@@ -46,9 +46,11 @@ const REDUNDANT_BOTTOM_CITATION_PATTERNS = [
   /\n##\s*原文出處/,
 ];
 const CLAWD_NOTE_REDUNDANT_PREFIX = [
-  /<ClawdNote>\s*\n?\s*\*\*Clawd[：:]\*\*/i,
-  /<ClawdNote>\s*\n?\s*Clawd[：:]\s/i,
+  /<ClawdNote\b[^>]*>\s*\n?\s*\*\*Clawd[：:]\*\*/i,
+  /<ClawdNote\b[^>]*>\s*\n?\s*Clawd[：:]\s/i,
 ];
+const LONG_CLAWD_NOTE_CHARS = 420;
+const MAX_CLAWD_NOTE_SUMMARY_CHARS = 120;
 
 // ─── Helpers ───────────────────────────────────────────────────────
 function parseFrontmatter(content) {
@@ -161,8 +163,40 @@ function validateScoreBlock(fmText, judge, dimensions) {
   return errors;
 }
 
+function extractClawdNotes(content) {
+  const notes = [];
+  const pattern = /<ClawdNote\b([^>]*)>([\s\S]*?)<\/ClawdNote>/g;
+  let match;
+
+  while ((match = pattern.exec(content)) !== null) {
+    const attrs = match[1] ?? '';
+    const inner = match[2] ?? '';
+    const summaryMatch =
+      attrs.match(/\bsummary\s*=\s*"([^"]*)"/) ??
+      attrs.match(/\bsummary\s*=\s*'([^']*)'/) ??
+      attrs.match(/\bsummary\s*=\s*\{`([^`]*)`\}/) ??
+      attrs.match(/\bsummary\s*=\s*\{"([^"]*)"\}/) ??
+      attrs.match(/\bsummary\s*=\s*\{'([^']*)'\}/);
+
+    const text = inner
+      .replace(/```[\s\S]*?```/g, '')
+      .replace(/`[^`\n]+`/g, '')
+      .replace(/<[^>]+>/g, '')
+      .replace(/\s+/g, '');
+
+    notes.push({
+      index: notes.length + 1,
+      length: text.length,
+      hasSummary: Boolean(summaryMatch?.[1]?.trim()),
+      summaryLength: summaryMatch?.[1]?.trim().length ?? 0,
+    });
+  }
+
+  return notes;
+}
+
 // ─── Validation Rules ──────────────────────────────────────────────
-function validatePost(filepath, allPosts) {
+function validatePost(filepath, allPosts, options = {}) {
   const filename = path.basename(filepath);
   const content = fs.readFileSync(filepath, 'utf-8');
   const fm = parseFrontmatter(content);
@@ -248,7 +282,23 @@ function validatePost(filepath, allPosts) {
     }
   }
 
-  // ── Rule 10: Minimum content length ──
+  // ── Rule 10: Long ClawdNote requires writer-authored summary ──
+  if (options.enforceLongClawdNoteSummary) {
+    for (const note of extractClawdNotes(content)) {
+      if (note.length > LONG_CLAWD_NOTE_CHARS && !note.hasSummary) {
+        errors.push(
+          `ClawdNote #${note.index} is long (${note.length} chars) and needs summary="短版一句話"`
+        );
+      }
+      if (note.summaryLength > MAX_CLAWD_NOTE_SUMMARY_CHARS) {
+        errors.push(
+          `ClawdNote #${note.index} summary is too long (${note.summaryLength} chars, max ${MAX_CLAWD_NOTE_SUMMARY_CHARS})`
+        );
+      }
+    }
+  }
+
+  // ── Rule 11: Minimum content length ──
   // Strip imports and component tags for length check
   const cleanBody = body
     .replace(/^import\s+.*$/gm, '')
@@ -258,12 +308,12 @@ function validatePost(filepath, allPosts) {
     errors.push(`Content too short (${cleanBody.length} chars, minimum ${MIN_CONTENT_LENGTH})`);
   }
 
-  // ── Rule 11: summary not too long (for index page) ──
+  // ── Rule 12: summary not too long (for index page) ──
   if (fm.summary && fm.summary.length > 300) {
     warnings.push(`summary is ${fm.summary.length} chars (recommend ≤300 for index page)`);
   }
 
-  // ── Rule 12: ticketId uniqueness (cross-file check) ──
+  // ── Rule 13: ticketId uniqueness (cross-file check) ──
   // Exempt PENDING — multiple parallel drafts legitimately share the
   // PENDING placeholder; real numbers get allocated per-draft at deploy.
   if (fm.ticketId && allPosts && !fm.ticketId.endsWith('-PENDING')) {
@@ -277,7 +327,7 @@ function validatePost(filepath, allPosts) {
     }
   }
 
-  // ── Rule 13: Translation pair ticketId consistency ──
+  // ── Rule 14: Translation pair ticketId consistency ──
   if (fm.ticketId && allPosts) {
     const baseName = getBaseFilename(filename);
     const pair = allPosts.find(
@@ -290,7 +340,7 @@ function validatePost(filepath, allPosts) {
     }
   }
 
-  // ── Rule 14: translatedBy.model must have version number ──
+  // ── Rule 15: translatedBy.model must have version number ──
   if (fm.translatedBy?.model) {
     const model = fm.translatedBy.model;
     // Must contain a version number (e.g., "Opus 4.6", "Sonnet 4.5", "Gemini 3 Pro")
@@ -330,13 +380,13 @@ function validatePost(filepath, allPosts) {
     errors.push('Missing kaomoji — every gu-log post needs at least one (brand voice)');
   }
 
-  // ── Rule 15: Filename includes date ──
+  // ── Rule 17: Filename includes date ──
   const dateInFilename = filename.match(/\d{8}/);
   if (!dateInFilename) {
     warnings.push('Filename does not contain a date (YYYYMMDD)');
   }
 
-  // ── Rule 17: No raw ```mermaid code fences ──
+  // ── Rule 18: No raw ```mermaid code fences ──
   // Astro doesn't auto-render mermaid code fences — must use <Mermaid chart={...} /> component.
   // Match ```mermaid (with optional whitespace) that's NOT inside another code block example.
   const mermaidFencePattern = /^```mermaid\s*$/m;
@@ -636,11 +686,14 @@ function main() {
     filesToValidate = allFiles.map((f) => path.join(POSTS_DIR, f));
   }
 
+  const isFileListMode = args.length > 0;
   let totalErrors = 0;
   let totalWarnings = 0;
 
   for (const filepath of filesToValidate) {
-    const result = validatePost(filepath, allPosts);
+    const result = validatePost(filepath, allPosts, {
+      enforceLongClawdNoteSummary: isFileListMode,
+    });
 
     if (result.errors.length > 0 || result.warnings.length > 0) {
       console.log(`\n📄 ${result.filename}`);
@@ -661,7 +714,6 @@ function main() {
   // specific missing pairs for the staged files; in full-repo mode we
   // print a summary count to keep noise down. The hard gate lives in
   // CI (scripts/check-translation-pairs.mjs --strict --pr-base=…).
-  const isFileListMode = args.length > 0;
   const scope = isFileListMode
     ? new Set(
         filesToValidate.map((fp) => {
