@@ -1193,19 +1193,6 @@
     "status": "PASS",
     "finishedAt": "2026-04-27T17:05:35+08:00"
   },
-  "sp-pending-20260505-mindos-lisa-reddit.mdx": {
-    "article": "sp-pending-20260505-mindos-lisa-reddit.mdx",
-    "startedAt": "2026-05-05T20:25:47+08:00",
-    "stages": {
-      "librarian": {
-        "status": "in_progress",
-        "score": null,
-        "model": "opus-4.7",
-        "attempts": 1
-      }
-    },
-    "topLevelAttempts": 1
-  },
   "sp-190-20260505-mindos-lisa-reddit.mdx": {
     "article": "sp-190-20260505-mindos-lisa-reddit.mdx",
     "startedAt": "2026-05-05T23:11:35+08:00",
@@ -1306,99 +1293,6 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-05-05T23:48:00+08:00"
-  },
-  "sp-pending-20260507-danizhu-claude-dreams-agent.mdx": {
-    "article": "sp-pending-20260507-danizhu-claude-dreams-agent.mdx",
-    "startedAt": "2026-05-07T13:44:45+08:00",
-    "stages": {
-      "librarian": {
-        "status": "pass",
-        "score": {
-          "judge": "librarian",
-          "dimensions": {
-            "glossary": 10,
-            "crossRef": 10,
-            "sourceAlign": 8,
-            "attribution": 8
-          },
-          "score": 9,
-          "verdict": "PASS",
-          "reasons": {
-            "glossary": "Detected glossary terms are linked in-context: Agent, Token, Prompt, and the related Context Window mention all point to glossary anchors.",
-            "crossRef": "The post cites the two most relevant prior gu-log memory/context pieces, SP-135 and CP-199, and both /posts/ links resolve with no broken internal links reported.",
-            "sourceAlign": "The body consistently frames Dreams through @danizhu's X post and matches the declared summary, though direct source verification is limited because x.com returned HTTP 403.",
-            "attribution": "Feature details and interpretation are repeatedly attributed to @danizhu, and ClawdNote opinions are visually separated, with only minor general claims like sleep-memory consolidation relying on broad background framing."
-          }
-        },
-        "model": "codex-gpt-5.5-medium",
-        "attempts": 2
-      },
-      "factChecker": {
-        "status": "pass",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 9,
-            "fidelity": 9,
-            "consistency": 9
-          },
-          "score": 9,
-          "verdict": "PASS",
-          "reasons": {
-            "accuracy": "Product claims match Anthropic Dreams docs and the source article: async job, up to 100 sessions, separate output memory store, streamable underlying session_id, and standard token-rate billing; only minor simplification is saying Opus or Sonnet without naming the exact supported model IDs.",
-            "fidelity": "The post faithfully expands Dani Zhu's article about memory rot, non-summary curation, custom instructions, observability, cost, sleep metaphor, second loop, and curation over context capacity, with added ClawdNote commentary clearly separated.",
-            "consistency": "The argument consistently links memory accumulation problems to offline curation and lifecycle management, and the speculative analogies are marked as interpretation rather than presented as Anthropic technical claims."
-          }
-        },
-        "model": "codex-gpt-5.5-medium",
-        "attempts": 1
-      },
-      "freshEyes": {
-        "status": "pass",
-        "score": {
-          "judge": "freshEyes",
-          "dimensions": {
-            "readability": 8,
-            "firstImpression": 8
-          },
-          "score": 8,
-          "verdict": "PASS",
-          "reasons": {
-            "readability": "The post explains Dreams clearly with strong analogies, though terms like Managed Agents API, session_id, token, and context window pile up enough that a beginner may slow down in the middle.",
-            "firstImpression": "The memory-rot hook and camping-gear analogy are good enough to keep reading, but the repeated metaphors and several ClawdNote blocks make the second half feel longer than needed."
-          }
-        },
-        "model": "codex-gpt-5.5-medium",
-        "attempts": 2
-      },
-      "vibe": {
-        "status": "pass",
-        "score": {
-          "judge": "vibe",
-          "dimensions": {
-            "persona": 8,
-            "clawdNote": 8,
-            "vibe": 8,
-            "clarity": 9,
-            "narrative": 8
-          },
-          "score": 8,
-          "verdict": "PASS",
-          "reasons": {
-            "persona": "The convenience-store camping-gear analogy at line 63 and professor整理實驗紀錄 analogy at line 75 give strong LHY warmth, though several middle sections still read like structured explanation.",
-            "clawdNote": "Four notes across the post are well-spaced, and lines 78, 106, 134, and 166 all add opinionated diagnosis rather than plain definitions.",
-            "vibe": "The post is readable and fun, especially the memory-rot framing and refrigerator/warehouse jokes, with no bullet-dump ending, but the cost and observability sections are more useful than shareable.",
-            "clarity": "Speaker attribution stays clear with @danizhu named repeatedly, rg found no 你/我 pronoun violations, and the English terms are glossary, API, code, model, or product/proper-name uses.",
-            "narrative": "The arc moves from memory rot to Dreams as offline cleanup and closes with the sleep callback at line 187, but the section order still has some linear report skeleton."
-          }
-        },
-        "model": "codex-gpt-5.5-medium",
-        "attempts": 1
-      }
-    },
-    "topLevelAttempts": 1,
-    "status": "PASS",
-    "finishedAt": "2026-05-07T13:58:00+08:00"
   },
   "sp-194-20260508-trq212-html-markdown-agent.mdx": {
     "article": "sp-194-20260508-trq212-html-markdown-agent.mdx",
@@ -1656,5 +1550,98 @@
     "status": "FAILED",
     "failedStage": "freshEyes",
     "finishedAt": "2026-05-15T17:38:28+08:00"
+  },
+  "sp-204-20260516-steipete-token-openclaw-agent.mdx": {
+    "article": "sp-204-20260516-steipete-token-openclaw-agent.mdx",
+    "finishedAt": "2026-05-16T23:18:40+08:00",
+    "stages": {
+      "factChecker": {
+        "attempts": 2,
+        "model": "codex-gpt-5.5-medium",
+        "score": {
+          "dimensions": {
+            "accuracy": 9,
+            "consistency": 9,
+            "fidelity": 8
+          },
+          "judge": "factCheck",
+          "reasons": {
+            "accuracy": "Core claims match the source tweet, including ~100 Codex in the cloud, PR/issue review, security review on every commit, issue deduplication, crabbox.sh machines, benchmark reporting to Discord, meeting agents, clawpatch.ai, and the Vercel deepsec details align with Vercel's May 4, 2026 post including static scan, agent investigation, revalidation, and roughly 10-20% false positives.",
+            "consistency": "The argument consistently develops the thesis that cheaper tokens shift organizational friction into always-on agent workflows, with ClawdNote opinions separated from the reported source claims.",
+            "fidelity": "The post faithfully preserves the tweet's main claims and correctly avoids overstating crabbox.sh as Vercel Sandbox, but it expands a short source into a broad interpretive essay with several workflow conclusions beyond the literal tweet."
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "status": "pass"
+      },
+      "freshEyes": {
+        "attempts": 1,
+        "model": "codex-gpt-5.5-medium",
+        "score": {
+          "dimensions": {
+            "firstImpression": 8,
+            "readability": 8
+          },
+          "judge": "freshEyes",
+          "reasons": {
+            "firstImpression": "The opening hook about token cost and background work is strong and shareable, though the seven-layer middle gets repetitive and a few metaphors like the firefighter watering a succulent feel try-hard.",
+            "readability": "The structure is easy to follow because each layer has concrete examples, but terms like Codex, deepsec, benchmark, CI, webhook, and Agent stack up fast for a 3-month dev."
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "status": "pass"
+      },
+      "librarian": {
+        "attempts": 2,
+        "model": "codex-gpt-5.5-medium",
+        "score": {
+          "dimensions": {
+            "attribution": 9,
+            "crossRef": 10,
+            "glossary": 10,
+            "sourceAlign": 8
+          },
+          "judge": "librarian",
+          "reasons": {
+            "attribution": "Peter's claims, Vercel deepsec details, Vercel Sandbox documentation, and the 10% to 20% false-positive figure are attributed or linked, while interpretive opinions are mostly confined to framing and ClawdNote sections.",
+            "crossRef": "Internal links resolve and the post explicitly situates the new Peter Steinberger/OpenClaw angle against prior gu-log pieces on OpenClaw Task Flow and Claude Code Agent Teams.",
+            "glossary": "All detected glossary terms are linked on first meaningful use, including OpenClaw, Token, Agent, Codex, and prompt, with no unlinked packet hits.",
+            "sourceAlign": "The main claims align with the declared @steipete X source as corroborated by secondary coverage, though the Vercel Sandbox interpretation is cautiously inferred from a t.co link rather than directly proven in the post."
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "status": "pass"
+      },
+      "vibe": {
+        "attempts": 2,
+        "model": "codex-gpt-5.5-medium",
+        "score": {
+          "dimensions": {
+            "clarity": 9,
+            "clawdNote": 8,
+            "narrative": 8,
+            "persona": 8,
+            "vibe": 8
+          },
+          "judge": "vibe",
+          "reasons": {
+            "clarity": "Speaker attribution stays clear, body text avoids ambiguous 你/我 usage, and English terms are mostly glossary terms, proper nouns, code identifiers, or standard engineering acronyms.",
+            "clawdNote": "Five notes over roughly 190 prose lines is acceptable, and notes at lines 123, 178, and 216 take clear stances instead of just defining terms.",
+            "narrative": "The post builds from hidden team friction to always-on Agent networks and lands a clean punch at lines 242-244, but the arc remains partly linear because sections follow the source list.",
+            "persona": "Opening at lines 55-63 and analogies like the便條紙辦公室, 電動螺絲起子產線, and 消防車澆多肉 have real LHY oral energy, though several sections still begin as source-report exposition.",
+            "vibe": "The friction-transfer frame is readable and shareable, with strong moments like lines 226-232, but the long middle still walks through the tweet's feature inventory one item at a time."
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "status": "pass"
+      }
+    },
+    "startedAt": "2026-05-16T23:00:25+08:00",
+    "status": "PASS",
+    "topLevelAttempts": 1
   }
 }
