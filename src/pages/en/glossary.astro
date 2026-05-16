@@ -23,6 +23,21 @@ const categoryLabel: Record<string, string> = {
   people: 'People',
 };
 
+function isExternalUrl(url: string) {
+  return /^https?:\/\//.test(url);
+}
+
+function urlLabel(url: string) {
+  if (!isExternalUrl(url)) return `gu-log${url}`;
+
+  const u = new URL(url);
+  const host = u.hostname.replace('www.', '');
+  const parts = u.pathname.split('/').filter(Boolean);
+  const skip = /^(en|zh|ja|ko|de|fr|es|pt|ru)$/i;
+  const first = parts.find((p) => !skip.test(p));
+  return first ? `${host}/${first}` : host;
+}
+
 // Group by first letter
 const grouped: { letter: string; items: typeof glossary }[] = [];
 let currentLetter = '';
@@ -115,16 +130,13 @@ const allLetters = grouped.map((g) => g.letter);
                     {item.enClawdNote && <ClawdNote>{item.enClawdNote}</ClawdNote>}
                     {item.url && (
                       <p class="term-meta">
-                        <a href={item.url} target="_blank" rel="noopener noreferrer">
-                          {(() => {
-                            const u = new URL(item.url);
-                            const host = u.hostname.replace('www.', '');
-                            const parts = u.pathname.split('/').filter(Boolean);
-                            const skip = /^(en|zh|ja|ko|de|fr|es|pt|ru)$/i;
-                            const first = parts.find((p) => !skip.test(p));
-                            return first ? `${host}/${first}` : host;
-                          })()}{' '}
-                          ↗
+                        <a
+                          href={item.url}
+                          target={isExternalUrl(item.url) ? '_blank' : undefined}
+                          rel={isExternalUrl(item.url) ? 'noopener noreferrer' : undefined}
+                        >
+                          {urlLabel(item.url)}
+                          {isExternalUrl(item.url) && ' ↗'}
                         </a>
                       </p>
                     )}
