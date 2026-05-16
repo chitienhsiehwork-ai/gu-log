@@ -9,11 +9,13 @@
 interface Props {
   /** Optional custom prefix. If not provided, one is selected based on content */
   prefix?: string;
+  /** Writer-authored short version for long notes. Long notes with summary auto-collapse. */
+  summary?: string;
   /** Visual variant: "note" (default) | "murmur" (casual 碎碎念) */
   variant?: 'note' | 'murmur';
 }
 
-const { prefix, variant = 'note' } = Astro.props;
+const { prefix, summary, variant = 'note' } = Astro.props;
 
 // Detect language from URL path
 const isEnglish = Astro.url.pathname.startsWith('/en/');
@@ -92,17 +94,105 @@ function hashString(str: string): number {
 // Select prefix based on content hash (deterministic but varied)
 const contentHash = hashString(slotContent);
 const selectedPrefix = prefix || prefixes[contentHash % prefixes.length];
+const prefixStartsWithClawd = selectedPrefix.startsWith('Clawd');
+const prefixSuffix = prefixStartsWithClawd ? selectedPrefix.slice('Clawd'.length) : selectedPrefix;
 const isNote = variant === 'note';
+const hasSummary = Boolean(summary?.trim());
+const contentId = `clawd-note-content-${contentHash}`;
+const clawdGlossaryLabel = isEnglish ? 'Clawd glossary entry' : 'Clawd 詞彙說明';
 ---
 
-<blockquote class:list={['claude-note', { 'claude-note--murmur': !isNote }]}>
+<blockquote
+  class:list={['claude-note', { 'claude-note--murmur': !isNote }]}
+  data-clawd-note
+  data-has-summary={hasSummary ? 'true' : 'false'}
+>
   <strong class="clawd-prefix">
-    <img src="/clawd-picks-icon.png" alt="Clawd" class="clawd-prefix-icon" width="20" height="20" />
-    {selectedPrefix}
+    {
+      prefixStartsWithClawd && (
+        <a href="/glossary#clawd" class="clawd-prefix-link" aria-label={clawdGlossaryLabel}>
+          <img
+            src="/clawd-picks-icon.png"
+            alt=""
+            class="clawd-prefix-icon"
+            width="20"
+            height="20"
+          />
+          <span>Clawd</span>
+        </a>
+      )
+    }
+    <span>{prefixSuffix}</span>
   </strong>
-  <br />
-  <Fragment set:html={slotContent} />
+
+  {
+    hasSummary && (
+      <div class="clawd-note-summary" hidden>
+        <span class="clawd-note-summary-label">短版</span>
+        <p>{summary}</p>
+      </div>
+    )
+  }
+
+  <div class="clawd-note-content" id={contentId}>
+    <Fragment set:html={slotContent} />
+  </div>
+
+  {
+    hasSummary && (
+      <button
+        class="clawd-note-toggle"
+        type="button"
+        aria-expanded="false"
+        aria-controls={contentId}
+        hidden
+      >
+        <span class="clawd-note-toggle-icon" aria-hidden="true">
+          ▾
+        </span>
+        <span class="clawd-note-toggle-label">展開長註解</span>
+      </button>
+    )
+  }
 </blockquote>
+
+<script>
+  const COLLAPSE_THRESHOLD_PX = 260;
+
+  function setCollapsed(note: HTMLElement, collapsed: boolean) {
+    const content = note.querySelector<HTMLElement>('.clawd-note-content');
+    const toggle = note.querySelector<HTMLButtonElement>('.clawd-note-toggle');
+    const label = note.querySelector<HTMLElement>('.clawd-note-toggle-label');
+
+    note.dataset.collapsed = collapsed ? 'true' : 'false';
+    if (content) content.hidden = collapsed;
+    if (toggle) toggle.setAttribute('aria-expanded', (!collapsed).toString());
+    if (label) label.textContent = collapsed ? '展開長註解' : '收合';
+  }
+
+  function initClawdNote(note: HTMLElement) {
+    if (note.dataset.hasSummary !== 'true') return;
+
+    const content = note.querySelector<HTMLElement>('.clawd-note-content');
+    const summary = note.querySelector<HTMLElement>('.clawd-note-summary');
+    const toggle = note.querySelector<HTMLButtonElement>('.clawd-note-toggle');
+    if (!content || !summary || !toggle) return;
+
+    const shouldCollapse = content.scrollHeight > COLLAPSE_THRESHOLD_PX;
+    if (!shouldCollapse) return;
+
+    summary.hidden = false;
+    toggle.hidden = false;
+    note.dataset.collapsible = 'true';
+    setCollapsed(note, true);
+
+    toggle.addEventListener('click', () => {
+      setCollapsed(note, note.dataset.collapsed !== 'true');
+    });
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-clawd-note]').forEach(initClawdNote);
+</script>
 
 <style>
   .clawd-prefix {
@@ -114,11 +204,73 @@ const isNote = variant === 'note';
     margin-bottom: 0.3rem;
   }
 
+  .clawd-prefix-link {
+    color: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    text-decoration: none;
+  }
+
+  .clawd-prefix-link:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.18em;
+  }
+
   .clawd-prefix-icon {
     display: inline-block;
     vertical-align: middle;
     width: 20px;
     height: 20px;
+  }
+
+  .clawd-note-content {
+    margin-top: 1.25rem;
+  }
+
+  .clawd-note-summary {
+    margin-top: 0.55rem;
+  }
+
+  .clawd-note-summary-label {
+    color: var(--color-clawd-orange);
+    display: inline-block;
+    font-size: 0.82rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+  }
+
+  .clawd-note-summary p {
+    margin-bottom: 0;
+  }
+
+  .clawd-note-toggle {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    color: var(--color-clawd-orange);
+    cursor: pointer;
+    display: inline-flex;
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 700;
+    gap: 0.35rem;
+    margin-top: 0.7rem;
+    padding: 0;
+  }
+
+  .clawd-note-toggle:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.18em;
+  }
+
+  .clawd-note-toggle-icon {
+    display: inline-block;
+    transition: transform 160ms ease;
+  }
+
+  .claude-note[data-collapsed='false'] .clawd-note-toggle-icon {
+    transform: rotate(180deg);
   }
 
   /* Murmur variant styling */
