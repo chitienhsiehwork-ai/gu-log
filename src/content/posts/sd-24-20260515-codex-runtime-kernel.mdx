@@ -1,0 +1,124 @@
+---
+ticketId: "SD-24"
+title: "Codex 正在變成 AI Agent 的 runtime kernel"
+originalDate: "2026-05-15"
+translatedDate: "2026-05-15"
+source: "ShroomDog Lab"
+sourceUrl: "https://hermes-agent.nousresearch.com/docs/user-guide/features/codex-app-server-runtime"
+lang: "zh-tw"
+summary: "OpenClaw 和 Hermes 都開始把寫程式 agent 的底層執行交給 Codex 執行伺服器。這不是單純換模型，而是 AI agent 產品開始把模型、執行引擎、聊天入口拆成三層。"
+tags: ["shroomdog-original", "codex", "openclaw", "hermes-agent", "agent-harness", "runtime", "architecture"]
+scores:
+  tribunalVersion: 3
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    score: 8
+    date: "2026-05-16"
+    model: "gpt-5.5"
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-05-16"
+    model: "gpt-5.5"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+AI agent 的下一個分工點，可能不是「換哪個模型」。
+
+而是：誰負責思考，誰負責動手，誰負責把結果送回人手上。
+
+2026 年五月，Hermes 和 OpenClaw 都把「真正下去寫程式碼、跑終端命令、改檔案」那一層，接到 Codex 執行伺服器。Hermes 的說明在 [Codex 應用伺服器執行環境](https://hermes-agent.nousresearch.com/docs/user-guide/features/codex-app-server-runtime)，OpenClaw 的說明在 [Codex harness](https://docs.openclaw.ai/plugins/codex-harness)。
+
+這件事有趣，不是因為 Codex 多了一個入口。
+
+有趣的是：AI agent 產品開始承認，模型、執行引擎、聊天入口，其實是三件事。
+
+---
+
+## 三層拆開了
+
+以前問一個 agent「現在是 GPT-5.5 還是 GPT-5.4？跑在 OpenClaw 還是 Codex？」這句話很容易混在一起。
+
+現在比較清楚了。
+
+模型，是腦袋。GPT-5.5、GPT-5.4、其他模型，決定思考品質。
+
+執行引擎，是手腳。誰真的去跑命令、改檔案、處理程式碼任務，這一層可以是 Codex 執行伺服器。
+
+聊天入口，是櫃檯。Telegram、Discord、Apple 訊息、網頁介面，只是人把任務交出去、再把結果收回來的地方。
+
+OpenClaw 和 Hermes 這次做的事情，就是把「手腳」這層交給 Codex，自己繼續做櫃檯、流程、記憶、派工、回報。
+
+<ClawdNote>
+這很像餐廳分工。
+
+模型是主廚腦袋，知道菜要怎麼做。
+Codex 是廚房，負責開火、切菜、真的把菜煮出來。
+OpenClaw / Hermes 是外場，負責接單、排隊、送餐、記住熟客偏好。
+
+以前很多 agent 產品想自己當主廚、自己蓋廚房、自己當外場。聽起來很完整，實際上很容易變成一間什麼都自己修的餐廳。水管爆了也自己修，冰箱壞了也自己修，最後菜還沒上，老闆已經在地下室跟排水管搏鬥。
+
+╮(╯▽╰)╭
+</ClawdNote>
+
+---
+
+## 為什麼要交給 Codex
+
+第一個理由是：廚房很難蓋。
+
+寫程式 agent 的底層工作不是只有「叫終端跑一下」。它要安全地改檔案、知道什麼時候要套修改、知道怎麼處理長任務、知道上下文快滿時怎麼整理。這些事情做錯會炸，做好了又很少變成產品賣點。
+
+第二個理由是：Codex 已經專門在做這件事。
+
+如果有一個底層引擎專門服務寫程式 agent，那 OpenClaw 和 Hermes 繼續重做同一層，收益就沒那麼高。更聰明的做法是把力氣放到 Codex 不負責的地方：任務怎麼進來、哪些操作要先問過人、結果怎麼送回去、記憶怎麼留下、下一次怎麼接著做。
+
+第三個理由是：帳號和額度也開始變成架構的一部分。
+
+Hermes 文件提到可以沿用 Codex CLI 的登入流程。OpenClaw 文件也把模型、Codex 這個執行引擎、Telegram / Discord 這些入口分開講。細節不需要背，真正重點是：以後問「這個 agent 用哪個模型」還不夠，還要問「它在哪個引擎裡跑」。
+
+---
+
+## 這不是誰輸給誰
+
+這件事很容易被講成「OpenClaw / Hermes 輸給 Codex」。
+
+但這個說法不太準。
+
+比較像不同瀏覽器採用同一顆 JavaScript 引擎。底層引擎可以共用，但每個瀏覽器的價值仍然不一樣：介面、同步、隱私、擴充套件、生態、預設體驗，全部都還能競爭。
+
+同樣地，OpenClaw 和 Hermes 採用 Codex 執行伺服器，不代表外層產品消失。它只是承認：底層寫程式碼的廚房，可以交給更專門的廚房。
+
+真正的競爭會往上移。
+
+誰的記憶比較好？誰讓人確認危險操作時比較順？誰能把 Telegram、定時任務、工作流程、團隊協作接得更自然？誰能讓 agent 做完事情後真的回到人手上，而不是躺在某個紀錄檔裡等人撿？
+
+這些才是外層產品的戰場。
+
+<ClawdNote>
+這裡真正有料的地方是：產品開始承認「會寫程式」不是唯一賣點。
+
+當所有人都能借同一間高級廚房，差異就不在誰有鍋子，而在誰比較懂客人、誰記得熟客不吃香菜、誰能在尖峰時間不把單送錯桌。
+
+AI agent 也是一樣。底層會寫程式很重要，但使用者真正感受到的是：任務有沒有被接住，結果有沒有回來，下一次能不能延續。
+</ClawdNote>
+
+---
+
+## 真正的訊號
+
+早期 AI agent 生態很像每家公司都在蓋整台機器。
+
+後來開始分工：有人做模型，有人做底層執行，有人做使用者入口，有人做工作流程，有人做記憶。當一個生態開始分層，代表它不再只是展示品，而是在往可維護的系統走。
+
+所以 Codex 執行伺服器被 Hermes 和 OpenClaw 採用，不是小功能。
+
+它是訊號：Codex 正在變成寫程式 agent 的底層引擎。
+
+而 agent 框架的戰場，正在往引擎之上移動。

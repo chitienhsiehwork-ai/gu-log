@@ -1,0 +1,128 @@
+---
+ticketId: "SD-24"
+title: "Codex Is Becoming the Runtime Kernel for AI Agents"
+originalDate: "2026-05-15"
+translatedDate: "2026-05-15"
+source: "ShroomDog Lab"
+sourceUrl: "https://hermes-agent.nousresearch.com/docs/user-guide/features/codex-app-server-runtime"
+lang: "en"
+summary: "OpenClaw and Hermes are both handing low-level coding-agent execution to Codex app-server. This is not just a model switch. It is the agent product stack separating model, execution engine, and chat surface."
+tags: ["shroomdog-original", "codex", "openclaw", "hermes-agent", "agent-harness", "runtime", "architecture"]
+scores:
+  tribunalVersion: 3
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    score: 8
+    date: "2026-05-16"
+    model: "gpt-5.5"
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-05-16"
+    model: "gpt-5.5"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+The next big split in AI agents may not be "which model are you using?"
+
+It may be: who does the thinking, who does the work, and who gets the result back to the human.
+
+In May 2026, Hermes and OpenClaw both connected the layer that actually writes code, runs terminal commands, and edits files to Codex app-server. Hermes documents this as [Codex App-Server Runtime](https://hermes-agent.nousresearch.com/docs/user-guide/features/codex-app-server-runtime). OpenClaw documents it as [Codex harness](https://docs.openclaw.ai/plugins/codex-harness).
+
+If you do not live in agent-infra land: Hermes and OpenClaw are outer agent products. They connect agents to chat apps, workflows, memory, approvals, and delivery. Codex app-server is closer to the machine room behind Codex CLI: the part that gives an AI a workspace and lets it actually touch code.
+
+This is interesting not because Codex gets one more entry point.
+
+It is interesting because AI agent products are starting to admit that the model, the execution engine, and the chat surface are three different things.
+
+This is the browser-engine moment for coding agents.
+
+---
+
+## The Three Layers Are Splitting
+
+When someone asks, "Is this GPT-5.5 or GPT-5.4? Is it running on OpenClaw or Codex?" the question can easily get mashed together.
+
+Now the split is clearer.
+
+The model is the brain. GPT-5.5, GPT-5.4, or any other model decides the quality of reasoning.
+
+The execution engine is the hands. The thing that actually runs commands, edits files, and handles code tasks can be Codex app-server.
+
+The chat surface is the front desk. Telegram, Discord, iMessage, and web UI are where humans send tasks in and receive results back.
+
+What OpenClaw and Hermes are doing here is handing the "hands" layer to Codex while continuing to own the front desk, workflow, memory, delegation, and reporting.
+
+<ClawdNote>
+This is restaurant architecture.
+
+The model is the chef's brain.
+Codex is the kitchen: fire, knives, actual cooking.
+OpenClaw and Hermes are the front of house: taking orders, remembering regulars, sending the food back to the right table.
+
+A lot of older agent products tried to be the chef, build the kitchen, and run the dining room all at once. It sounds complete. In practice, it turns into a restaurant where the owner is fixing the plumbing in the basement before the food even reaches the table.
+
+╮(╯▽╰)╭
+</ClawdNote>
+
+---
+
+## Why Hand It To Codex
+
+The first reason: the kitchen is hard to build.
+
+The low-level work of a coding agent is not just "run a command." It needs to edit files safely, know when to apply a patch, handle long tasks, and clean up context when the conversation gets too full. If this layer fails, everything breaks. If it works, users rarely think about it.
+
+The second reason: Codex is already specializing in this layer.
+
+If there is a dedicated execution engine for coding agents, OpenClaw and Hermes gain less from rebuilding the same layer. It is smarter to focus on the parts Codex does not own: how tasks arrive, who approves them, how results are delivered, what memory remains, and how the next task continues.
+
+The third reason: accounts and usage limits are becoming part of architecture.
+
+Hermes mentions reusing the Codex CLI login flow. OpenClaw also separates the model, the Codex execution engine, and chat apps like Telegram or Discord. The exact mechanics are in the docs. The real point is simple: asking "which model does this agent use?" is no longer enough. The next question is "which engine is it running inside?"
+
+---
+
+## This Is Not Someone Losing
+
+It is easy to frame this as "OpenClaw or Hermes lost to Codex."
+
+That is not quite right.
+
+It is more like a browser adopting V8. Chrome, Edge, and Brave can share a JavaScript engine while still competing on interface, sync, privacy, extensions, ecosystem, and default experience.
+
+In the same way, OpenClaw and Hermes adopting Codex app-server does not erase the outer product. It means the kitchen that writes code can be handled by a specialized kitchen.
+
+The real competition moves upward.
+
+Who has better memory? Who has smoother approval? Who connects Telegram, cron, workflows, and team collaboration more naturally? Who makes sure the agent's result actually comes back to the human instead of rotting in a log file?
+
+That is the battlefield for the outer product.
+
+<ClawdNote>
+This is the real substance: products are starting to admit that "can write code" is not the only selling point.
+
+When everyone can borrow the same high-end kitchen, the difference is no longer who owns the pans. It is who understands the guest, who remembers that a regular hates cilantro, and who can survive the dinner rush without sending the wrong order to the wrong table.
+
+AI agents are the same. Low-level coding ability matters, but what users actually feel is whether the task was caught, whether the result came back, and whether the next session can continue from there.
+</ClawdNote>
+
+---
+
+## The Real Signal
+
+Early AI agent products looked like every company trying to build the whole machine.
+
+Now the ecosystem is splitting. Some teams build models. Some build execution engines. Some build user surfaces. Some build workflow. Some build memory. When an ecosystem starts forming layers, it is no longer just a demo. It is moving toward maintainable systems.
+
+So Hermes and OpenClaw adopting Codex app-server is not a small feature.
+
+It is a signal: Codex is becoming the low-level engine for coding agents.
+
+The agent-framework battlefield is moving above the engine.

@@ -200,3 +200,12 @@
 - 情境：SP-196 保留了太多原文工具名、Skill 名、模型名、書名、人名、benchmark 名和部署選項。它們對 Garry 原文忠實，但對 gu-log 讀者來說容易變成名詞牆：讀者被迫記 `brain-ops`、`enrich`、`cross-modal-eval`、模型分工、benchmark、雲端服務，而不是抓到「流程會記住錯誤並複利」這個核心。
 - 修法：刪減不重要專有名詞，把細節轉成故事或譬喻：Skill 組合改寫成「小工廠產線」；模型分工改寫成「有的抓精確錯誤、有的補脈絡、有的抓萬用雞湯」；工具棧與部署名改成「知識層、流程層、派工層」。保留必要名詞，例如 Garry、Demis、GBrain、Skill、Harness，但不要求讀者背完整 inventory。
 - Reusable lesson：gu-log 的價值不是做 1-to-1 translation。讀者來 gu-log 是為了更快抓到 idea behind the details。寫作時先問：這個專有名詞是否承載核心觀念？若沒有，就改成故事、角色、流程、譬喻或「有一個工具負責 X」。細節控讀者可以點原文；gu-log 要交付的是可記住的 mental model。
+
+## 2026-05-16 — SD-24 Codex Runtime Kernel
+
+### Feedback: Architecture posts should deliver the mental model, not the spec tour
+
+- ShroomDog feedback：`Interesting, but too long, too many detailed that should be linked. But seems there r some interesting insights that worth starting a SD post from this`
+- 情境：SD-24 初稿把 Hermes Codex App-Server Runtime 和 OpenClaw Codex harness 的細節完整展開，包含 auth、native tools、tool boundary、optional routing、不同產品動機等。內容有 insight，但讀起來太像 spec walkthrough，不像一篇 gu-log SD 原創文。
+- 修法：把文章重寫成短版：只保留核心 thesis「Codex 正在變成 coding agent 的 runtime kernel；OpenClaw / Hermes 變成外層 control plane」，把 implementation detail 變成原文連結，不在正文展開 inventory。
+- Reusable lesson：架構趨勢文不要把文件細節搬進正文。gu-log 要交付的是可記住的 mental model；implementation details、限制清單、auth 指令、完整 tool matrix 應該連回原文。若細節沒有推動 thesis，就刪掉或縮成一句。
