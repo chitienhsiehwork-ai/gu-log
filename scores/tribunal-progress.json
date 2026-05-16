@@ -1553,95 +1553,96 @@
   },
   "sp-204-20260516-steipete-token-openclaw-agent.mdx": {
     "article": "sp-204-20260516-steipete-token-openclaw-agent.mdx",
-    "finishedAt": "2026-05-16T23:18:40+08:00",
+    "startedAt": "2026-05-17T00:06:48+08:00",
     "stages": {
-      "factChecker": {
-        "attempts": 2,
-        "model": "codex-gpt-5.5-medium",
+      "librarian": {
+        "status": "pass",
         "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 8,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key glossary terms are linked on first meaningful use, including Token, OpenClaw, Agent, and Codex; the detected Claude Code hit appears as part of a linked post title rather than an unlinked concept needing glossary treatment.",
+            "crossRef": "Both internal links resolve, and the post appropriately connects the new always-on-agent angle to OpenClaw Task Flow and Claude Code Agent Teams; additional related posts on agent quality ratchets or agent-team task throughput would be optional rather than required.",
+            "sourceAlign": "The post aligns with Peter Steinberger's source claim about roughly 100 Codex instances handling PR review, issue triage, security review, benchmarks, meetings, and Clawpatch/deepsec-style analysis, though it paraphrases rather than preserving the source's exact spend and token figures.",
+            "attribution": "The operational claims are consistently framed as Peter's account and ClawdNote commentary is clearly separated from factual summary, but the long bullet list would be stronger with a direct source citation or more explicit note that all listed items come from the same tweet thread/source."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
           "dimensions": {
             "accuracy": 9,
-            "consistency": 9,
-            "fidelity": 8
-          },
-          "judge": "factCheck",
-          "reasons": {
-            "accuracy": "Core claims match the source tweet, including ~100 Codex in the cloud, PR/issue review, security review on every commit, issue deduplication, crabbox.sh machines, benchmark reporting to Discord, meeting agents, clawpatch.ai, and the Vercel deepsec details align with Vercel's May 4, 2026 post including static scan, agent investigation, revalidation, and roughly 10-20% false positives.",
-            "consistency": "The argument consistently develops the thesis that cheaper tokens shift organizational friction into always-on agent workflows, with ClawdNote opinions separated from the reported source claims.",
-            "fidelity": "The post faithfully preserves the tweet's main claims and correctly avoids overstating crabbox.sh as Vercel Sandbox, but it expands a short source into a broad interpretive essay with several workflow conclusions beyond the literal tweet."
-          },
-          "score": 8,
-          "verdict": "PASS"
-        },
-        "status": "pass"
-      },
-      "freshEyes": {
-        "attempts": 1,
-        "model": "codex-gpt-5.5-medium",
-        "score": {
-          "dimensions": {
-            "firstImpression": 8,
-            "readability": 8
-          },
-          "judge": "freshEyes",
-          "reasons": {
-            "firstImpression": "The opening hook about token cost and background work is strong and shareable, though the seven-layer middle gets repetitive and a few metaphors like the firefighter watering a succulent feel try-hard.",
-            "readability": "The structure is easy to follow because each layer has concrete examples, but terms like Codex, deepsec, benchmark, CI, webhook, and Agent stack up fast for a 3-month dev."
-          },
-          "score": 8,
-          "verdict": "PASS"
-        },
-        "status": "pass"
-      },
-      "librarian": {
-        "attempts": 2,
-        "model": "codex-gpt-5.5-medium",
-        "score": {
-          "dimensions": {
-            "attribution": 9,
-            "crossRef": 10,
-            "glossary": 10,
-            "sourceAlign": 8
-          },
-          "judge": "librarian",
-          "reasons": {
-            "attribution": "Peter's claims, Vercel deepsec details, Vercel Sandbox documentation, and the 10% to 20% false-positive figure are attributed or linked, while interpretive opinions are mostly confined to framing and ClawdNote sections.",
-            "crossRef": "Internal links resolve and the post explicitly situates the new Peter Steinberger/OpenClaw angle against prior gu-log pieces on OpenClaw Task Flow and Claude Code Agent Teams.",
-            "glossary": "All detected glossary terms are linked on first meaningful use, including OpenClaw, Token, Agent, Codex, and prompt, with no unlinked packet hits.",
-            "sourceAlign": "The main claims align with the declared @steipete X source as corroborated by secondary coverage, though the Vercel Sandbox interpretation is cautiously inferred from a t.co link rather than directly proven in the post."
+            "fidelity": 9,
+            "consistency": 9
           },
           "score": 9,
-          "verdict": "PASS"
-        },
-        "status": "pass"
-      },
-      "vibe": {
-        "attempts": 2,
-        "model": "codex-gpt-5.5-medium",
-        "score": {
-          "dimensions": {
-            "clarity": 9,
-            "clawdNote": 8,
-            "narrative": 8,
-            "persona": 8,
-            "vibe": 8
-          },
-          "judge": "vibe",
+          "verdict": "PASS",
           "reasons": {
-            "clarity": "Speaker attribution stays clear, body text avoids ambiguous 你/我 usage, and English terms are mostly glossary terms, proper nouns, code identifiers, or standard engineering acronyms.",
-            "clawdNote": "Five notes over roughly 190 prose lines is acceptable, and notes at lines 123, 178, and 216 take clear stances instead of just defining terms.",
-            "narrative": "The post builds from hidden team friction to always-on Agent networks and lands a clean punch at lines 242-244, but the arc remains partly linear because sections follow the source list.",
-            "persona": "Opening at lines 55-63 and analogies like the便條紙辦公室, 電動螺絲起子產線, and 消防車澆多肉 have real LHY oral energy, though several sections still begin as source-report exposition.",
-            "vibe": "The friction-transfer frame is readable and shareable, with strong moments like lines 226-232, but the long middle still walks through the tweet's feature inventory one item at a time."
+            "accuracy": "Core technical claims match Peter Steinberger's tweet, including ~100 Codex instances, PR/issue review, security review, issue clustering, benchmark regression reporting, meeting-triggered PRs, clawpatch.ai, Vercel deepsec, and Codex Security.",
+            "fidelity": "The translation preserves the source's meaning and framing, with only minor compression such as rendering crabbox.sh as temporary machines and moving broader interpretation into clearly separated ClawdNote sections.",
+            "consistency": "The argument logically extends the tweet's token-cost premise into a background-agent workflow thesis, while keeping source summary and ClawdNote commentary distinguishable."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
           },
           "score": 8,
-          "verdict": "PASS"
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "The convenience-store night-shift and basement cleanup analogies make Token, Codex, and Agent easy to follow, though @clawsweeper, gu-log, and old-post links add some insider texture.",
+            "firstImpression": "The hook lands because it turns AI cost into a concrete question about background labor, but the middle chore inventory is the place I started skimming."
+          }
         },
-        "status": "pass"
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Night-shift, convenience-store, basement, evidence-table, and breathing metaphors give it LHY oral teaching energy, though the middle still spends several paragraphs in source-summary mode.",
+            "clawdNote": "All three ClawdNotes carry stance rather than definitions, especially the convenience-store night-shift and robot-vacuum analogies, but none becomes a true highlight-level punchline.",
+            "vibe": "The core question about cheap background labor is shareable and the ending lands, but the original-summary section still feels orderly rather than surprising.",
+            "clarity": "Speaker attribution stays clear with Peter named throughout, body pronouns avoid the banned 你/我 pattern, and English terms are mostly glossary terms, proper nouns, acronyms, or code-workflow identifiers.",
+            "narrative": "The piece moves from short tweet to night-shift system to organizational change and ends with a callback to background breathing, but the skeleton remains a clean explain-and-apply article rather than a high-drama arc."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 2
       }
     },
-    "startedAt": "2026-05-16T23:00:25+08:00",
+    "topLevelAttempts": 3,
     "status": "PASS",
-    "topLevelAttempts": 1
+    "failedStage": "freshEyes",
+    "finishedAt": "2026-05-17T00:27:11+08:00"
   }
 }

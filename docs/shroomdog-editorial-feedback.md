@@ -209,3 +209,12 @@
 - 情境：SD-24 初稿把 Hermes Codex App-Server Runtime 和 OpenClaw Codex harness 的細節完整展開，包含 auth、native tools、tool boundary、optional routing、不同產品動機等。內容有 insight，但讀起來太像 spec walkthrough，不像一篇 gu-log SD 原創文。
 - 修法：把文章重寫成短版：只保留核心 thesis「Codex 正在變成 coding agent 的 runtime kernel；OpenClaw / Hermes 變成外層 control plane」，把 implementation detail 變成原文連結，不在正文展開 inventory。
 - Reusable lesson：架構趨勢文不要把文件細節搬進正文。gu-log 要交付的是可記住的 mental model；implementation details、限制清單、auth 指令、完整 tool matrix 應該連回原文。若細節沒有推動 thesis，就刪掉或縮成一句。
+
+## 2026-05-16 — SP-204 OpenClaw Token Spend Agent Workflow
+
+### Feedback: Short tweets should stay short
+
+- ShroomDog feedback：I think too many other text than original tweet. I prefer a simple translation of origin tweet, with gu-log vibe/glossary/internal-link, and interesting clawdNote. I think that will be easier to read, and reader can refer back to origin tweet much easier. The en version should be a non-native-speaker friendly version plus gu-log vibe/glossary/internal-link with ClawdNote as well. So if the tweet is short, gu-log SP post can be short as well.
+- 情境：SP-204 初版把 Peter Steinberger 一則短 X post 擴寫成 260 行長文，雖然資訊完整，但讀者不容易對照原 tweet，也不像早期 SP 的輕快 vibe。
+- 修法：回看早期 SP-2 / SP-6 / SP-11 / SP-30 等短文 pattern：簡短 hook、原文白話翻譯、少量 ClawdNote、必要 glossary/internal links。將 SP-204 改成短版 zh-tw + en：以原 tweet 內容為主，保留 gu-log 解釋與 ClawdNote，但不把短 tweet 膨脹成架構長文。
+- Reusable lesson：SP 的長度要跟 source 密度成比例。短 tweet 可以是短 SP；gu-log value 不等於擴寫更多段落，而是提供好讀的 Traditional Chinese / non-native-friendly English、vibe、glossary/internal links、ClawdNote 與一個清楚 mental frame。只有 thread、長文、影片、或多來源 analysis 才需要長篇展開。

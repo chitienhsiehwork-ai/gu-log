@@ -1,6 +1,6 @@
 ---
 ticketId: "SP-204"
-title: "When Tokens Stop Being the Limit: OpenClaw's Hundred-Agent Development Model"
+title: "When Tokens Stop Being the Limit: OpenClaw's Always-On Agent Experiment"
 originalDate: "2026-05-15"
 translatedDate: "2026-05-16"
 translatedBy:
@@ -30,23 +30,23 @@ translatedBy:
 source: "@steipete on X"
 sourceUrl: "https://x.com/steipete/status/2055405041843052792?s=46"
 lang: "en"
-summary: "Peter Steinberger says OpenClaw keeps about a hundred Codex instances running in the cloud, not to show off AI spend, but to test what happens when software teams turn review, triage, security, benchmarks, and meeting follow-up into a standing agent network."
+summary: "Peter Steinberger says OpenClaw often runs about a hundred Codex instances in the cloud. The point is not showing off AI spend. It is testing what software work looks like when review, triage, security, reproduction, benchmarks, and meeting follow-up become always-on agent work."
 tags: ["shroom-picks", "ai-agents", "software-engineering", "openclaw"]
 scores:
   tribunalVersion: 3
   librarian:
-    glossary: 10
-    crossRef: 10
+    glossary: 9
+    crossRef: 9
     sourceAlign: 8
-    attribution: 9
-    score: 9
+    attribution: 8
+    score: 8
     date: "2026-05-16"
     model: "gpt-5.5"
   factCheck:
     accuracy: 9
-    fidelity: 8
+    fidelity: 9
     consistency: 9
-    score: 8
+    score: 9
     date: "2026-05-16"
     model: "gpt-5.5"
   freshEyes:
@@ -68,193 +68,54 @@ scores:
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Some software teams do not have an "engineers are not trying hard enough" problem. They have a problem where every tiny thing still has to be carried by a human hand.
+The tweet is short, but the question behind it is big:
 
-PRs need review. Issues need triage. Security problems need scanning. Duplicate reports need merging. Benchmark regressions need someone to notice. A feature comes up in a meeting, and after the meeting someone still has to remember to open the issue, write the spec, and rank the priority. Each of these is easy in isolation. Together, they are like every desk in the office having a stack of sticky notes on it; one gust of wind, and the whole development process starts questioning its life choices.
+**If [Token](/glossary#token) cost stops being the main constraint, what does software development start looking like?**
 
-So the real question the author raised in that May 15, 2026 tweet was not "how much AI money is [OpenClaw](/glossary#openclaw) spending?" The tweet says what outsiders see is AI spend. What they miss is that OpenClaw is trying to answer a more interesting question:
+The author's answer is not "every engineer gets a very fast coding assistant." It is closer to a project getting a night shift: someone is always watching the door, cleaning up tickets, checking small fires, and leaving evidence behind.
 
-If [Token](/glossary#token) cost is no longer the main constraint, how will future software get built?
+Outsiders see [OpenClaw](/glossary#openclaw)'s AI spend. The author says the real experiment is not "spend a lot of money to make AI write code." It is testing a stranger and more important question: **when background labor gets cheap, which project chores should become always-on [Agent](/glossary#agent) work?**
 
-That question is dangerous. It is not asking whether AI can help write code. It is asking: if machines can keep reading, running, comparing, and tracking all the time, how much organizational friction do software teams still need to leave for humans?
+<ClawdNote>Do not read this as "wow, so many Codex instances, very fancy." Read it like a convenience store suddenly getting a hundred night-shift workers who never sleep. The question is not whether the manager is rich. The question is which chores no longer need a human to restart them from zero every time: restocking, inventory checks, expired-item checks, complaint sorting, all of it. (◕‿◕)</ClawdNote>
 
-You can read this as a continuation of two earlier gu-log threads: [OpenClaw Task Flow](/posts/sp-186-20260428-article-openclaw-task-flow/), which covered orchestrating multi-step workflows, and [Claude Code Agent Teams](/posts/sp-105-20260305-claude-code-agent-teams/), which covered multiple [Agent](/glossary#agent) instances splitting up work. This piece adds the next layer down: once workflow and division of labor already exist, can a team turn them into a standing operating system?
+## The tweet, in plain English
 
-<ClawdNote>The point here is not "tokens are free, so burn them like confetti." It is more like a convenience store suddenly getting a hundred night-shift clerks who never sleep. The real question is not the electricity bill. It is: stocking shelves, inventory checks, expired-item sweeps, complaint triage, and manager-meeting notes -- which of these still need a human to start from zero every single time?</ClawdNote>
+The author says OpenClaw often runs about a hundred [Codex](/glossary#codex) instances in the cloud. You do not need to memorize the name first. In this context, Codex is an AI worker that can inspect code, propose changes, and run checks. The point is not that "one hundred" sounds huge. The point is that these workers are not asleep until an engineer rings the bell. While the project is moving during the day, someone is already walking around in the background with a flashlight.
 
-## This is not AI spend. It is friction transfer
+The patrol starts at the entrance. Codex looks at every PR, every issue, and every commit. Security problems are easy to miss, so every commit gets a security review. If a new issue matches the project's documented direction, Codex can even create a PR first; then another Codex reviews that PR. It is not magic. It is "make a first pass, then have something else challenge it" turned into a small wheel that keeps spinning in the background.
 
-The author says OpenClaw keeps about a hundred [Codex](/glossary#codex) instances running in the cloud, reviewing every PR and reading every issue. That number sounds absurd, but the absurd part is not just "a hundred." The truly absurd part is the work boundary.
+Once the entrance is covered, the mess moves to the basement. When issues are duplicates, agents de-duplicate them. When many issues point to the same broken area, agents find the cluster. If a fix on the main branch quietly resolves a six-month-old issue, a sweeper-style agent can later find that old issue and close it with an exact reference. Not heroic work. Very important work. The kind of work that piles up until nobody wants to open the basement door.
 
-Traditional software teams usually put AI on point tasks: help an engineer fill in a test, explain an error, generate a component, fix a small bug. That is like handing a worker an electric screwdriver. The worker gets faster, but the production line itself does not change.
+After the basement comes the evidence table. Some agents recreate complex setups, spin up disposable machines, log into outside services like Telegram, record before-and-after videos, and post the evidence back to the PR. Others watch performance, scan spam comments, or block abusive accounts. There are many names here, but the simple version is this: the author is not only saying "AI writes some code." He is saying "the PR can arrive with its own evidence packet."
 
-OpenClaw's idea is closer to putting AI into the gaps across the whole production line. An agent is not summoned only when one engineer needs help. The agent is already there, patrolling.
+And then the night shift starts listening to the meeting room. If a meeting starts discussing a new feature, background agents can start work right away, even opening PRs while the meeting is still happening. The tweet also names a few related tools and security flows. In plain English, they point in the same direction: split the project into smaller units that are easier to review, easier to inspect, and easier to assign to background workers.
 
-A PR comes in; someone reads it. A commit lands; someone scans for security risk. An issue opens; someone judges whether it is a duplicate, whether it fits the product vision, and whether it should become a PR directly. Spam starts appearing in the comment section; someone blocks it. A benchmark regresses; someone reports it to Discord. A meeting is discussing a feature; an agent starts turning the discussion into an executable change.
+The conclusion is simple: all that automation lets OpenClaw run extremely lean.
 
-This is not just "AI writes faster." This is turning the places where organizations most often get stuck into a standing monitoring system.
-
----
-
-## Start with the swamp: every issue gets caught
-
-The core line in the tweet is that OpenClaw keeps about a hundred Codex instances running in the cloud, reviewing every PR and every issue.
-
-In a normal project, "every issue has been seriously read" sounds like a fairy tale. Large open-source projects are especially brutal. Users report duplicates, paste half a log, describe the same bug in different languages, or only discover six months later that the main branch already fixed the problem. Maintainers do not ignore issues because they enjoy suffering. Issue lists naturally turn into swamps.
-
-The tweet's `@clawsweeper` is the swamp cleaner. Suppose a fix lands on the main branch. `ClawSweeper` will eventually find the issue from six months ago that this fix already resolved, then close it with a precise reference.
-
-That is a small thing, but it marks an important shift: issues stop being merely "a list waiting for human attention" and become a knowledge base that code changes can update in reverse.
-
-The old flow looked roughly like this:
-
-- Someone fixed a bug.
-- Someone remembered that this bug had an issue.
-- Someone went back and found the issue.
-- Someone pasted the fixing PR or commit.
-- Someone closed the issue.
-
-Every "someone" in that chain can disappear. Not because people are lazy, but because software development is full of context switches. An engineer just fixed the auth flow; the next second Slack fires with a production incident; the second after that a PM asks whether next week's release can still make it. That issue from six months ago? Sorry, the brain cache has already been evicted.
-
-The value of a standing agent is that work that is important but easy to forget no longer depends on human memory.
-
-<ClawdNote>The scary part of an issue list is not volume. It is losing causality. A bug was fixed, but the issue is still alive. A user reported it again, but it is actually the same thing. A PR fixed three problems, but only one issue got closed. It is like having ten lunch boxes in the fridge and not knowing which one expired, which one was just bought, and which one is already empty. The agent labels the boxes, checks the receipts, and throws away the empties.</ClawdNote>
+<ClawdNote>Lean can sound like management soup. Here it is more concrete: it does not mean hiring fewer people and making the rest suffer. It means moving the background patrol work humans are bad at remembering, bad at repeating, and very good at postponing onto agents that do not get tired. Humans stay closer to judgment.</ClawdNote>
 
 ---
 
-## Next comes security: look at every commit
+## Why this short tweet belongs on gu-log
 
-OpenClaw also runs Codex security review on every commit. The reason in the tweet is direct: security issues are too easy to miss.
+The interesting part is not the tool inventory. Tool names will change. Agent names will change. Today it is one logo; tomorrow it is another product tab.
 
-That sentence is not showing off. It sounds more like a senior engineer's fear. Security bugs usually are not giant red lights flashing in the codebase. They can hide in the order of a permission check, an unchecked webhook, a helper that accidentally passes user input into a command line, or a diff that "looks like just a refactor."
+The part worth remembering is the shift in work shape. Early AI coding felt like "an engineer has a very fast assistant sitting next to them." What this tweet describes for OpenClaw feels more like "the project has grown a background operating system." It does not only answer questions. It stays awake and handles the chores nobody wants to do, but every project slowly rots without.
 
-Human code review has blind spots. The reviewer might be tired, rushing to lunch, or so familiar with the code that the problem becomes invisible. Worse, the cost distribution of security review is uneven: ninety-nine times nothing happens; the hundredth miss explodes.
+This connects cleanly with two earlier gu-log threads: [OpenClaw Task Flow](/posts/sp-186-20260428-article-openclaw-task-flow/) and [Claude Code Agent Teams](/posts/sp-105-20260305-claude-code-agent-teams/).
 
-So OpenClaw gives agents the job of "look every time." That does not mean the agent is necessarily better than a professional security engineer. It also does not mean every finding is real. It means security checks move from "when someone has time" to "on every commit, automatically."
+- Task Flow answers: how do multi-step jobs keep going without falling apart?
+- Agent Teams answers: how do multiple agents divide work?
+- This tweet adds the third piece: **if tokens are cheap enough for agents to stay on, which jobs should always have someone watching in the background?**
 
-This connects to the Vercel `deepsec` and Codex security review mentioned in the tweet. Vercel [open-sourced `deepsec` on May 4, 2026](https://vercel.com/blog/introducing-deepsec-find-and-fix-vulnerabilities-in-your-code-base), describing it as a security review framework powered by coding agents that can run on a user's own infrastructure and find hard-to-catch vulnerabilities in large codebases. Vercel's post says `deepsec` first uses static analysis to identify security-sensitive areas, then has agents trace data flow, check safeguards, and produce actionable findings, followed by a second validation pass to reduce false positives. Vercel also says its early experience put false positives around 10% to 20%.
-
-That limitation matters. Agentic security scanning is not a magic amulet. It is more like an always-awake assistant security researcher: it can dig through many places, raise suspicious points, and organize them into a trackable list, but the organization still needs process for false positives, severity, and ownership of fixes.
-
-<ClawdNote>The worst kind of security scanning is "we technically ran the tool." It spits out three hundred red warnings, and eventually everyone builds muscle memory: see red, close tab. The interesting bit in `deepsec` is that validation is part of the flow. It admits agents will produce false positives, then sends another round of agents to inspect the body. That is engineering: not pretending the model is holy light, but managing it like an employee who can be wrong.</ClawdNote>
-
----
-
-## Once the swamp grows, triage cannot depend on heroics
-
-The tweet then says OpenClaw uses Codex to remove duplicate issues, find issue clusters, and send reports on the most urgent problems.
-
-That sounds like ordinary support triage, but inside a software project it has real bite. Many product problems are not visible from one issue. You need to see the pattern across a group of similar reports.
-
-Imagine a few issues describing the same login or configuration problem in different languages. One person pastes half a log. Another leaves only "it stopped working after the update." If humans read them one by one, they look like noise. If an agent can cluster them into the same category, maintainers stop seeing scattered complaints and start seeing a regression that might be spreading.
-
-That is the essence of triage: not making the issue list pretty, but turning noise into actionable signal.
-
-Traditionally, this relies on the mental index of senior maintainers. Whoever remembers which module recently changed, which platform breaks most often, and which class of reports share the same root cause can turn chaos into priority. The problem is that this ability does not scale well, and it gets tired.
-
-OpenClaw's design externalizes that mental index. Agents keep reading new issues, comparing them with old issues, forming clusters, and pushing the most important reports. Humans still make product judgments, but they no longer have to dig signal out of mud by hand first.
-
----
-
-## The expensive part is not fixing. It is reproduction
-
-The most vivid part of the tweet is that OpenClaw has agents that can rebuild complex environments, spin up temporary machines, log into services such as Telegram, record a video, and post the before/after comparison to the PR.
-
-That `t.co` short link points to `crabbox.sh`. From this tweet alone, the stable thing we can say is that the author is pointing to some kind of disposable temporary machine / reproduction environment, not Vercel's Sandbox service. That distinction needs to hold, otherwise the article quietly swaps "the author linked a reproduction environment" into "the author was talking about a specific cloud product."
-
-The difference from ordinary CI is that this does not just run tests. It can behave like a very patient QA engineer:
-
-- Set up the project environment.
-- Log into an external service.
-- Reproduce the user flow.
-- Record the failure happening.
-- Apply the fix and run it again.
-- Post before/after evidence back to the PR.
-
-For open source, this is extremely practical. Many bugs are not caught by unit tests. They may require a particular account state, a third-party service, browser permissions, mobile notifications, or a chat-platform integration. Asking humans to manually reproduce this every time is like sending a fire truck to water a desk succulent: possible, but the cost ratio is ridiculous, and the succulent may still get destroyed.
-
-The point of agents plus temporary machines is to make "cost of reproduction" low enough to normalize it. When reproduction is no longer expensive, PR discussion no longer has to stop at "looks like it should be fixed." It can attach video evidence from before and after the change.
-
----
-
-## If an issue is worth doing, it may grow a PR first
-
-Going further, the tweet says OpenClaw has Codex watch new issues; if an issue fits the project's documented vision, it automatically creates a PR. Then another Codex reviews that PR.
-
-This flow is interesting because it splits product judgment into two layers.
-
-The first gate is "should this be done?" OpenClaw is not letting agents rush off and write code for every issue. It uses the documented vision as a filter. In other words, the product direction is written down first, and agents use that document to decide whether a new report falls inside the boundary.
-
-The second gate is "can this implementation land?" An auto-generated PR does not mean auto-merge. Another Codex reviews it, and the flow can still connect to human review, tests, security scanning, and performance benchmarks.
-
-The most important point here is that agents are not one persona doing everything end to end. They form a network that checks itself. The coding agent and review agent are separate. The vulnerability-finding agent and validation agent are separate. The feature-building agent and the benchmark-regression-checking agent are separate.
-
-A single agent can easily act like an over-caffeinated intern, confidently sprinting straight into a wall. An agent network looks more like a small company: someone writes, someone reviews, someone tests, someone watches metrics, someone cleans up comment spam. Each role is limited, but the checks between roles start to look like an engineering system.
-
-<ClawdNote>"Agents reviewing each other" sounds a bit like having two photocopiers grade each other's exams: absurd, but not entirely irrational (¬‿¬). The key is not to treat it as final truth. Treat it as a cheap first layer of friction. The most valuable time of human reviewers should go to architecture, product judgment, and risk tradeoffs, not always being the first person to notice a missing null check.</ClawdNote>
-
----
-
-## The development operating system starts handling chores
-
-The second half of the tweet starts to read like a "software-team automation checklist," but every item maps to a real source of friction.
-
-OpenClaw has Codex scan comment spam and block users. That may look unrelated to development, but it is critical. Once an open-source project has traffic, issues and comments become a public space. Without basic sanitation, maintainers' attention gets eaten by spam, phishing, low-effort noise, and malicious links. Automated moderation is not flashy AI. It is how engineering discussion keeps a minimum level of hygiene.
-
-OpenClaw also has Codex verify performance benchmarks and report regressions to Discord. This is another common disaster: performance regressions are usually less obvious than broken features. The button still clicks. Tests still pass. But latency rises, memory use climbs, or a flow gets slow enough that users start getting angry. By the time support complaints come in, the problem may have been on main for a long time.
-
-Pushing benchmark regressions into Discord means performance becomes a daily team signal instead of "something someone remembers to check." It is not a report lying around on a CI page. It walks into the team's communication space and bangs on the table.
-
-Then there are meeting agents. The tweet says OpenClaw has agents listen to meetings and proactively start working; for example, when the team is discussing a new feature, an agent creates a PR.
-
-This is probably the most sci-fi part of the whole tweet, and also the easiest to misunderstand. The point is not "automatic meeting summaries," that very 2024-flavored feature. The point is that decisions made in meetings no longer fall into the post-meeting void.
-
-Many teams waste time because they actually reached consensus in the meeting, but that consensus never becomes a work product. Nobody opens an issue, nobody writes acceptance criteria, nobody creates an exploratory branch. Two weeks later, everyone meets again and re-archaeologizes the previous episode.
-
-If a meeting agent can really turn an in-progress feature discussion into a PR, or at least into a reviewable work item, then meetings stop being only "status sync" and start becoming "production-line triggers." That is a large difference.
-
----
-
-## Draw the map first, or the agents get lost on patrol
-
-The author ends by mentioning that OpenClaw built a tool, passed through a `t.co` short link in the tweet. From his description, the tool's job is to break all projects into functional modules, then use that structure for review, bug-finding, and regression detection. The security side gets the same decomposition, paired with Vercel `deepsec` and Codex security review to find regressions and vulnerabilities.
-
-This is the foundation of the whole system.
-
-If an agent only faces the entire codebase, it easily turns into "please read the whole world and tell the engineers what is wrong." That kind of [prompt](/glossary#prompt) sounds heroic, but in practice it often resembles sending someone into a library and asking for a summary of human civilization three hours later. Big posture, foggy output.
-
-The value of splitting a project into functional modules is that the codebase becomes a set of regions agents can patrol repeatedly. Each module has a boundary, a responsibility, related tests, and possible regression types. Review is no longer staring at one giant blob of diff. It becomes asking: did the behavior of this functional module change? Did a security assumption break? Did a performance metric regress?
-
-Security scanning works the same way. The public design of `deepsec` is to first identify security-sensitive candidates, then send agents to dig deeper, validate again, and output findings someone can actually handle. OpenClaw first divides the project, then checks regression along both the functional and security axes. In effect, it is building a map for the agents.
-
-An agent without a map gets lost easily. An agent with a map can patrol.
-
-<ClawdNote>Do not underestimate "split it into modules." Many AI workflows fail not because the model is dumb, but because the task is cut like a boss-level dumpling. Dumping an entire large monorepo on an agent and asking it to find bugs is like handing a delivery driver a map of Taipei and saying, "Lunch is somewhere in there, go find it." Functional modules are the address, door number, and floor. Without those, even a strong agent can only stand at the alley entrance and contemplate existence.</ClawdNote>
-
----
-
-## Real leanness is not fewer people. It is fewer handoffs
-
-The tweet's last sentence is: "all of this automation allows us to run the project extremely lean."
-
-That sentence deserves unpacking. Lean does not mean cutting the team to the smallest possible size. It also does not mean fantasizing that agents can painlessly replace a team. What OpenClaw shows is more like this: less work falls through the handoff cracks.
-
-From issue to PR, there is less waiting. From PR to review, less queueing. From commit to security check, less "we will look next week when someone has time." From benchmark regression to team attention, less silence. From meeting decision to executable work product, less post-meeting amnesia.
-
-Those cracks are invisible most of the time, but they are the dark matter of software teams. Projects are not slowed only by hard technical problems. They are also slowed by tiny waits, tiny forgettings, and tiny "can someone take a look at this?"
-
-When token cost falls, the most obvious idea is "everyone gets a cheaper coding assistant." This tweet is more radical: the cheap thing is not a personal assistant, but background organizational labor. Reading PRs, scanning issues, triage, deduplication, reproduction, recording videos, benchmark verification, security monitoring, meeting follow-up. This work used to be too fragmented, too annoying, and too not-worth-automating. If agents become cheap enough, it becomes worth doing.
-
-That also explains why outsiders miss the story when they stare only at AI spend. The spend itself is not the story. The story is the friction being moved away.
-
----
+<ClawdNote>This is the robot-vacuum moment for software teams. Early robot vacuums felt like toys: bumping into walls, getting lost, missing dust. What eventually changed life was not that they developed deep philosophy about floors. It was that they could run every day. Agents are similar. A smart one-off answer is nice. Daily patrol, daily comparison, daily follow-up — that is where the organization starts changing.</ClawdNote>
 
 ## Closing
 
-OpenClaw's approach will not necessarily be copy-pasteable for every team. Keeping about a hundred Codex instances resident in the cloud, having agents log into third-party services, creating PRs during meetings, and running security review on every commit all require access control, false-positive handling, cost monitoring, a documented product vision, and the engineering discipline to split workflows into machine-patrolable modules.
+At first glance, this looks like OpenClaw burning tokens in luxury mode.
 
-But it does draw a very clear experimental direction: when tokens stop being the main constraint, software development may not just become "faster code writing." The bigger change may be that teams start handing every piece of work that distracts humans, gets forgotten, sits in queues, or requires repeated checking to a standing agent network.
+But the tweet is asking a sharper question: if background labor gets cheap, should software teams keep stuffing every small patrol job back into human heads?
 
-Software teams used to be bottlenecked most by engineer time. Next, the scarcer resource may be the ability to define work clearly.
+Once the answer starts becoming "no," AI coding is no longer just about writing code faster.
 
-Because once work can be clearly defined, it can be patrolled, reproduced, checked, cross-validated, and maybe even grow into a first PR before the meeting is over.
+Projects used to depend on humans remembering to breathe for them. Now there may really be someone in the background keeping the air moving.
