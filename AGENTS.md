@@ -26,6 +26,8 @@
 
 **術語決策規則**：如果中文譯法讀起來像硬翻論文腔（例：「擴展測試時運算」），不要直接送出。三選一：保留 canonical English term 並補 glossary、改成自然中文解釋、或標成 terminology decision 交給 ShroomDog / Librarian 判斷。這類問題不是小潤稿，是 gu-log 長期詞彙風格的一部分。
 
+**晶晶體 accepted-English boundary**：`scripts/check-jingjing.mjs` / `src/data/glossary.json` 負責 deterministic enforcement，但可接受 English terms 的新增或移除 SHALL 每次都先與 ShroomDog 討論。這會直接影響閱讀流與語感，不能由 agent 自行擴張或收縮 allowlist。
+
 **新增或編輯文章前，先讀 `CONTRIBUTING.md`。** 它是所有內容規則的 SSOT（Single Source of Truth）。
 
 **ChatGPT share URL → 先讀 `.agents/skills/chatgpt-share-fetch/SKILL.md`。** 不要用 `web_fetch` 摘要直接寫文；先跑 `scripts/fetch-chatgpt-share.mjs` 把完整 transcript 存到 `sources/chatgpt/...`，再把該 source file 當成寫作依據。
