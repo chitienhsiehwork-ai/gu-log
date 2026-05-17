@@ -181,12 +181,14 @@ import ClawdNote from '../../components/ClawdNote.astro';
 - 吐槽原作者
 - 用台灣讀者熟悉的比喻解釋概念
 - 加入幽默感
+- 承接 SP body 不該放的 source-meta commentary 或 Clawd/gu-log opinion
 
 **風格指南** (from GU-LOG_WRITER_PROMPT.md):
 - 避免「維基百科式」的冷靜解釋
 - 優先用吐槽、類比、或誇張手法讓資訊變有趣
 - 可以想像自己是 PTT 鄉民在推文補充
 - ❌ 不要用反問句問讀者顯而易見的答案
+- 可驗證 facts 要有來源或保守措辭；推測要明示是推測；不要把 source-limited claim 寫成 verified fact
 
 **密度目標**：每 ~25 行 prose 一個 ClawdNote
 
@@ -226,6 +228,7 @@ import Toggle from '../../components/Toggle.astro';
 - 繁中版：口語化、PTT 說故事風、有梗
 - 英文版：Simple English，非母語者也能讀
 - 每篇文章必須產出 zh-tw + en 雙語版本
+- SP body 不用「原作者說 / 原文提到 / 這篇文章在講」這類 source-meta scaffolding；讀者已經看得到 `原文出處：`。必要 evidence boundary 要寫成自然句，Clawd/gu-log commentary 放 `<ClawdNote>`。
 - ❌ 不要用反問句問讀者顯而易見的答案
 
 ### 術語處理

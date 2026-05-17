@@ -35,6 +35,7 @@ cd "$ROOT_DIR"
 
 POSTS_DIR="$ROOT_DIR/src/content/posts"
 PROGRESS_FILE="$ROOT_DIR/scores/tribunal-progress.json"
+TRIBUNAL_VERSION=5
 LOG_DIR="$ROOT_DIR/.score-loop/logs"
 LOG_FILE="$LOG_DIR/tribunal-quota-loop-$(date +%Y%m%d-%H%M%S).log"
 USAGE_MONITOR="${USAGE_MONITOR:-$HOME/clawd/scripts/usage-monitor.sh}"
@@ -317,7 +318,7 @@ legacy_compute_tier_name() {
 
 # ─── Quota: Closed-loop controller ───────────────────────────────────────────
 # Parses usage-monitor.sh --json output into dual-window quota readings.
-# Preferred provider is OpenAI/Codex v4:
+# Preferred provider is OpenAI/Codex:
 #   session_remaining_pct + session_reset_min   → 5hr bucket
 #   weekly_remaining_pct  + weekly_reset_hr     → weekly bucket
 # Claude parsing is retained only for --legacy-quota / historical dev fixtures.
@@ -364,7 +365,7 @@ def parse_reset_to_sec(s):
 
 try:
     data = json.loads(sys.argv[1])
-    # Tribunal v4 runs on OpenAI/Codex GPT-5.5. usage-monitor exposes the
+    # Tribunal v5 runs on OpenAI/Codex GPT-5.5. usage-monitor exposes the
     # short OpenAI bucket as session_remaining_pct/session_reset_min and the
     # long bucket as weekly_remaining_pct/weekly_reset_hr.
     for p in data:
@@ -844,9 +845,12 @@ get_unscored_articles() {
     if grep -q '^status: "deprecated"' "$full_path" 2>/dev/null; then
       continue
     fi
-    # Skip already passed or permanently exhausted (hit MAX_TOP_ATTEMPTS=5 in
-    # tribunal.sh — prevents sp-94-style infinite retry loop).
-    status=$(jq -r --arg a "$article" '.[$a].status // "pending"' "$PROGRESS_FILE" 2>/dev/null || echo "pending")
+    # Skip already passed or permanently exhausted only for the current
+    # tribunal version. Older PASS entries are intentionally reprocessed by
+    # the v5 source-boundary gate, preserving newest-first order.
+    status=$(jq -r --arg a "$article" --argjson v "$TRIBUNAL_VERSION" \
+      'if ((.[$a].tribunalVersion // 0) >= $v) then (.[$a].status // "pending") else "pending" end' \
+      "$PROGRESS_FILE" 2>/dev/null || echo "pending")
     if [ "$status" = "PASS" ] || [ "$status" = "EXHAUSTED" ]; then
       continue
     fi

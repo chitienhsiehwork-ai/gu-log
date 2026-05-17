@@ -28,7 +28,7 @@ title: Test
 lang: zh-tw
 translatedDate: 2026-04-29
 scores:
-  tribunalVersion: 3
+  tribunalVersion: 5
 ---
 
 Original body.
@@ -40,7 +40,7 @@ title: Test EN
 lang: en
 translatedDate: 2026-04-29
 scores:
-  tribunalVersion: 3
+  tribunalVersion: 5
 ---
 
 Original EN body.
@@ -86,7 +86,31 @@ git -C "$repo2" add scores/tribunal-progress.json src/content/posts/cp-999-test.
 bash "$ASSERT" "$repo2" cp-999-test.mdx --staged
 pass "postcondition accepts staged PASS with target artifacts"
 
-# 3. Audit must fail on historical progress-only Tribunal PASS commits.
+# 3. New staged PASS postcondition must reject pre-v5 score frontmatter.
+repo2b="$TMP/postcondition-v3-reject"
+setup_repo "$repo2b"
+python3 - <<PY
+from pathlib import Path
+import json
+repo=Path('$repo2b')
+for name in ['cp-999-test.mdx', 'en-cp-999-test.mdx']:
+    p = repo/'src/content/posts'/name
+    p.write_text(p.read_text().replace('tribunalVersion: 5', 'tribunalVersion: 3').replace('Original', 'Rewritten'))
+p=repo/'scores/tribunal-progress.json'
+p.write_text(json.dumps({'cp-999-test.mdx': {'status': 'PASS', 'tribunalVersion': 5}}, indent=2) + '\n')
+PY
+git -C "$repo2b" add scores/tribunal-progress.json src/content/posts/cp-999-test.mdx src/content/posts/en-cp-999-test.mdx
+if bash "$ASSERT" "$repo2b" cp-999-test.mdx --staged >/tmp/guard-v3-out 2>&1; then
+  cat /tmp/guard-v3-out >&2
+  fail "postcondition accepted pre-v5 score frontmatter for a new PASS"
+fi
+if ! grep -q 'tribunalVersion >= 5' /tmp/guard-v3-out; then
+  cat /tmp/guard-v3-out >&2
+  fail "pre-v5 rejection did not explain required tribunal version"
+fi
+pass "postcondition rejects pre-v5 staged PASS score frontmatter"
+
+# 4. Audit must fail on historical progress-only Tribunal PASS commits.
 repo3="$TMP/audit"
 setup_repo "$repo3"
 python3 - <<PY
@@ -107,7 +131,7 @@ if ! grep -q 'progress-only Tribunal PASS commit' /tmp/audit-out; then
 fi
 pass "audit rejects historical progress-only PASS commits"
 
-# 4. Audit must pass when PASS commit includes target posts.
+# 5. Audit must pass when PASS commit includes target posts.
 repo4="$TMP/audit-ok"
 setup_repo "$repo4"
 python3 - <<PY

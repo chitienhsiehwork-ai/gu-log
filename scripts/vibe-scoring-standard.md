@@ -1,22 +1,21 @@
 # Ralph Vibe Scoring Standard v2.0
 
 > Golden standard for evaluating gu-log post quality.
-> Tribunal v2 calibrated 2026-04-08 by ShroomDog + Clawd.
+> Tribunal v5 source-boundary update calibrated 2026-05-17 by ShroomDog + Clawd.
 > **SSOT for all 4 tribunal judges + writer agent.**
 
 ## Tribunal System Overview
 
-Tribunal v2 pipeline — 5 stages (0–4). All judges use **uniform 0-10 integer scale**. Composite = `Math.floor(avg of all dims)`.
+Tribunal v5 pipeline — 4 stages. All judges use **uniform 0-10 integer scale**. Composite = `Math.floor(avg of all dims)`.
 
 | Stage | Judge | Model | Dimensions | Pass Bar |
 |-------|-------|-------|------------|----------|
-| 0 | Worthiness Gate | Opus | coreInsight · expandability · audienceRelevance | WARN mode — always advances, marks frontmatter if low |
-| 1 | Vibe | Opus | persona · clawdNote · vibe · clarity · narrative | composite ≥ 8 AND one dim ≥ 9 AND no dim < 8 |
-| 2 | Fresh Eyes | Opus | readability · firstImpression | composite ≥ 8 |
-| 3 | FactLib (combined) | Opus | factAccuracy · sourceFidelity · linkCoverage · linkRelevance | fact_pass AND library_pass (independent) |
-| 4 | Final Vibe | Opus | persona · clawdNote · vibe · clarity · narrative | relative: no dim drops > 1 from Stage 1 |
+| 1 | Fact Checker | GPT-5.5 | accuracy · fidelity · consistency · sourceBoundary · commentarySeparation | fact core avg ≥ 8 AND sourceBoundary ≥ 8 AND commentarySeparation ≥ 8 |
+| 2 | Librarian | GPT-5.5 | glossary · crossRef · sourceAlign · attribution | composite ≥ 8 |
+| 3 | Fresh Eyes | GPT-5.5 | readability · firstImpression | composite ≥ 8 |
+| 4 | Vibe | GPT-5.5 | persona · clawdNote · vibe · clarity · narrative | composite ≥ 8 AND one dim ≥ 9 AND no dim < 8 |
 
-## Uniform Agent Output JSON (v2)
+## Uniform Agent Output JSON (v5)
 
 All judges output the `BaseJudgeOutput` shape from `src/lib/tribunal-v2/types.ts`:
 
@@ -48,28 +47,30 @@ All judges output the `BaseJudgeOutput` shape from `src/lib/tribunal-v2/types.ts
 - `judge_version` — semver of this prompt (e.g. `"2.0.0"`).
 - `timestamp` — ISO 8601.
 
-Stage 3 (FactLib) extends this with `fact_pass` and `library_pass` booleans. Stage 4 (Final Vibe) extends with `stage_1_scores`, `degraded_dimensions`, `is_degraded`. See `types.ts` for exact shapes.
+The shell runtime normalizes legacy `scores`/`composite` output into this uniform JSON shape before validation.
 
 ## Pass Bar: Code is the Rule
 
 The orchestrator in `src/lib/tribunal-v2/pass-bar.ts` is the ultimate authority. Even if an agent sets `pass: true`, the orchestrator re-evaluates. Mismatches are logged — agents must keep `pass` aligned.
 
 ```typescript
-// Stage 1 / Stage 4 (Vibe)
+// Vibe
 composite >= 8 && max(scores) >= 9 && min(scores) >= 8
 
-// Stage 2 (Fresh Eyes), Stage 3 (FactLib per independent axis)
+// Fresh Eyes, Librarian
 composite >= 8
 
-// Stage 4 relative check — applied on top of Stage 4 absolute
-forEach dim: stage1Score - stage4Score <= 1
+// Fact Checker v5
+floor(avg(accuracy, fidelity, consistency)) >= 8
+sourceBoundary >= 8
+commentarySeparation >= 8
 ```
 
 Agents self-assess `pass` but the pass-bar lib wins. Log the discrepancy.
 
 ---
 
-## Stage 1: Librarian (Opus 4.7) — 4 Dimensions
+## Stage 2: Librarian (GPT-5.5) — 4 Dimensions
 
 ### glossary — Glossary Term Coverage
 Does every technical term that exists in `src/data/glossary.json` get linked or explained?
@@ -110,14 +111,14 @@ Are quotes, stats, and opinions properly attributed?
 
 | Score | Description |
 |-------|-------------|
-| 10 | Perfect attribution — every claim sourced, every opinion clearly labeled as ClawdNote opinion |
+| 10 | Perfect attribution — quotes/stats/evidence limits are clear, and gu-log/Clawd opinions stay in ClawdNote |
 | 8 | Generally good, 1-2 minor gaps |
 | 5 | Multiple unattributed claims or opinion/fact blur in body |
 | 2 | Pervasive attribution failure |
 
 ---
 
-## Stage 2: Fact Checker (Opus) — 3 Dimensions
+## Stage 1: Fact Checker (GPT-5.5) — 5 Dimensions
 
 ### accuracy — Technical Accuracy
 
@@ -162,6 +163,30 @@ Are quotes, stats, and opinions properly attributed?
 | 1–2 | Argument fundamentally incoherent. |
 | 0 | No logical structure. |
 
+### sourceBoundary — SP Body Source Boundary
+
+SP readers already see `原文出處：`. SP body should not waste flow on source-meta scaffolding like 「原作者說」「原文提到」「這篇文章在講」 or English equivalents. Present source claims directly, preserving hedges and evidence boundaries in natural prose.
+
+| Score | Description |
+|-------|-------------|
+| 10 | Body has no source-meta scaffolding; evidence boundaries are smooth and readable. |
+| 8 | Mostly clean; 1–2 small source-meta slips. |
+| 6 | Repeated 「原作者說 / 原文提到」 transitions make the post feel like a report. |
+| 4 | Source-report framing shapes multiple sections. |
+| 2 | Body mostly narrates the source instead of translating/explaining it. |
+
+### commentarySeparation — Commentary Separation
+
+Clawd/gu-log opinions, interpretation, jokes, and source-meta commentary belong in `<ClawdNote>`, not SP body.
+
+| Score | Description |
+|-------|-------------|
+| 10 | Body stays source-derived; Clawd/gu-log stance and source-meta commentary live in ClawdNote. |
+| 8 | Mostly separated; 1–2 body sentences should move into ClawdNote. |
+| 6 | Several body opinions blur gu-log interpretation with source claims. |
+| 4 | Reader must guess whether a claim comes from source or gu-log. |
+| 2 | Commentary and source claims are heavily mixed. |
+
 ### Calibration Examples (Fact Checker)
 
 **High anchor — SP-14 (`ai-assistance-coding-skills.mdx`): accuracy 9 / fidelity 9 / consistency 9**
@@ -181,7 +206,7 @@ Are quotes, stats, and opinions properly attributed?
 
 ---
 
-## Stage 3: Fresh Eyes (Opus 4.7) — 2 Dimensions
+## Stage 3: Fresh Eyes (GPT-5.5) — 2 Dimensions
 
 **Persona: developer with ~3 months of experience.** Impatient, scared of jargon, will close the tab after 2 boring paragraphs. Does NOT know what ShroomDog, Clawd, or OpenClaw are.
 
@@ -209,7 +234,7 @@ Are quotes, stats, and opinions properly attributed?
 
 ---
 
-## Stage 4: Vibe Scorer (Opus) — 5 Dimensions
+## Stage 4: Vibe Scorer (GPT-5.5, Opus-calibrated rubric) — 5 Dimensions
 
 **Pass bar: composite ≥ 8 AND at least one dimension ≥ 9 AND no dimension < 8**
 

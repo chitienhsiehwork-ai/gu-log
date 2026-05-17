@@ -16,6 +16,7 @@ repo="${1:-}"
 post_file="${2:-}"
 mode="${3:-}"
 commit_sha="${4:-}"
+required_tribunal_version="${TRIBUNAL_REQUIRED_VERSION:-5}"
 
 if [ -z "$repo" ] || [ -z "$post_file" ] || [ -z "$mode" ]; then
   usage
@@ -99,17 +100,26 @@ if [ "$en_exists" -eq 1 ] && ! has_changed_file "$en_rel"; then
   exit 1
 fi
 
+has_required_score_frontmatter() {
+  local content="$1"
+  grep -q '^scores:' <<<"$content" || return 1
+  local version
+  version="$(awk '/tribunalVersion:/ {print $2; exit}' <<<"$content" | tr -d '"')"
+  [[ "$version" =~ ^[0-9]+$ ]] || return 1
+  [ "$version" -ge "$required_tribunal_version" ]
+}
+
 zh_content="$(read_file_at_check_target "$zh_rel")"
-if ! grep -q '^scores:' <<<"$zh_content" || ! grep -q 'tribunalVersion: 3' <<<"$zh_content"; then
-  echo "ERROR: target post artifact lacks scores.tribunalVersion: 3: $zh_rel" >&2
+if ! has_required_score_frontmatter "$zh_content"; then
+  echo "ERROR: target post artifact lacks scores.tribunalVersion >= $required_tribunal_version: $zh_rel" >&2
   echo "       Refusing Tribunal PASS without published score frontmatter." >&2
   exit 1
 fi
 
 if [ "$en_exists" -eq 1 ]; then
   en_content="$(read_file_at_check_target "$en_rel")"
-  if ! grep -q '^scores:' <<<"$en_content" || ! grep -q 'tribunalVersion: 3' <<<"$en_content"; then
-    echo "ERROR: EN target post artifact lacks scores.tribunalVersion: 3: $en_rel" >&2
+  if ! has_required_score_frontmatter "$en_content"; then
+    echo "ERROR: EN target post artifact lacks scores.tribunalVersion >= $required_tribunal_version: $en_rel" >&2
     echo "       Refusing Tribunal PASS without published EN score frontmatter." >&2
     exit 1
   fi

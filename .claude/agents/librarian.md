@@ -56,6 +56,7 @@ Are quotes, statistics, and opinions properly attributed?
 - Numbers/statistics cited with sources?
 - ClawdNote opinions clearly separated from body text facts?
 - Facts vs. opinions clearly distinguished throughout?
+- For SP body prose, do not require repetitive「原作者說 / 原文提到」framing; readers already see `原文出處：`. Prefer smooth evidence-boundary wording and reserve source-meta commentary for `<ClawdNote>`.
 - **10** = Perfect attribution — every claim sourced, every opinion clearly labeled
 - **8** = Generally good, 1-2 minor attribution gaps
 - **5** = Multiple unattributed claims or opinion/fact blur in body

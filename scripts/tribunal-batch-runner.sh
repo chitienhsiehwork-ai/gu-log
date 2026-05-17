@@ -23,6 +23,7 @@ cd "$ROOT_DIR"
 
 POSTS_DIR="$ROOT_DIR/src/content/posts"
 PROGRESS_FILE="$ROOT_DIR/scores/tribunal-progress.json"
+TRIBUNAL_VERSION=5
 LOG_DIR="$ROOT_DIR/.score-loop/logs"
 LOG_FILE="$LOG_DIR/tribunal-batch-$(date +%Y%m%d-%H%M%S).log"
 QUOTA_FLOOR_PCT="${QUOTA_FLOOR_PCT:-3}"
@@ -121,9 +122,12 @@ get_unscored_articles() {
       continue
     fi
 
-    # Check if already PASS in progress
+    # Check if already PASS in current tribunal version. Older PASS entries
+    # should be reprocessed by the v5 source-boundary gate.
     local status
-    status=$(jq -r --arg a "$article" '.[$a].status // "pending"' "$PROGRESS_FILE" 2>/dev/null || echo "pending")
+    status=$(jq -r --arg a "$article" --argjson v "$TRIBUNAL_VERSION" \
+      'if ((.[$a].tribunalVersion // 0) >= $v) then (.[$a].status // "pending") else "pending" end' \
+      "$PROGRESS_FILE" 2>/dev/null || echo "pending")
     if [ "$status" = "PASS" ]; then
       continue
     fi
