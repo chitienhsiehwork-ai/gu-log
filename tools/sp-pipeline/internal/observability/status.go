@@ -22,7 +22,7 @@ const (
 
 var pendingArticlePattern = regexp.MustCompile(`^(?:en-)?(?:sp|cp|sd|lv)-pending-.*\.mdx$`)
 
-var tribunalStageOrder = []string{"librarian", "factChecker", "freshEyes", "vibe"}
+var tribunalStageOrder = []string{"factChecker", "librarian", "freshEyes", "vibe"}
 
 var artifactFiles = map[string]string{
 	"source":         "source-tweet.md",

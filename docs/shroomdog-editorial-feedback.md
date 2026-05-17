@@ -218,3 +218,12 @@
 - 情境：SP-204 初版把 Peter Steinberger 一則短 X post 擴寫成 260 行長文，雖然資訊完整，但讀者不容易對照原 tweet，也不像早期 SP 的輕快 vibe。
 - 修法：回看早期 SP-2 / SP-6 / SP-11 / SP-30 等短文 pattern：簡短 hook、原文白話翻譯、少量 ClawdNote、必要 glossary/internal links。將 SP-204 改成短版 zh-tw + en：以原 tweet 內容為主，保留 gu-log 解釋與 ClawdNote，但不把短 tweet 膨脹成架構長文。
 - Reusable lesson：SP 的長度要跟 source 密度成比例。短 tweet 可以是短 SP；gu-log value 不等於擴寫更多段落，而是提供好讀的 Traditional Chinese / non-native-friendly English、vibe、glossary/internal links、ClawdNote 與一個清楚 mental frame。只有 thread、長文、影片、或多來源 analysis 才需要長篇展開。
+
+## 2026-05-17 — Tribunal v5 Source Boundary
+
+### Feedback: SP body should not narrate the source
+
+- ShroomDog feedback：`i don't think we will need 「原作者說 / 這篇文章在講」these kinds of sentence at all in the SP posts body, except in ClawdNote, this kinds of sentence will just harm the reading flow, given that the reader should already know SP post r mere translation + ClawdNote, and they will always been able to see the 原文出處 in SP posts anyway.`
+- 情境：規劃 Tribunal v5 時，初版計畫仍允許 SP body 在 evidence boundary、引用、案例自述、benchmark/內部數字等場合保留「原作者說 / 這篇文章在講」類句型。ShroomDog 指出：SP 讀者已經知道文章是 source-derived，也看得到 `原文出處：`，正文反覆講 source metadata 只會傷害閱讀流。
+- 修法：把 Tribunal v5 factCheck 擴成五維，新增 `sourceBoundary` 與 `commentarySeparation`。SP body 禁用「原作者說 / 原文提到 / 這篇文章在講」這類 source-meta scaffolding；必要 evidence boundary 改成自然句，例如「這組數字應視為案例自述，不是公開 benchmark」。若需要討論 source 本身或加 Clawd/gu-log 觀點，放進 `<ClawdNote>`。
+- Reusable lesson：SP body 的 source fidelity 不靠反覆提醒「原作者說」維持。正文要自然呈現 source claim，保留 hedge 與 evidence boundary；source-meta commentary 與 AI/gu-log opinion 則進 ClawdNote。Reader-facing flow 優先，因為 source attribution 已由 frontmatter/source block 承擔。

@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# tribunal.sh — 4-stage sequential tribunal (Codex/GPT-5.5 runner)
+# tribunal.sh — Tribunal v5 sequential tribunal (Codex/GPT-5.5 runner)
 #
 # Stages (in order):
-#   1. Librarian  (GPT-5.5) — composite ≥ 8,             max 2 loops
-#   2. Fact Check (GPT-5.5) — composite ≥ 8,             max 2 loops
+#   1. Fact Check (GPT-5.5) — source/commentary gate + fact bar, max 2 loops
+#   2. Librarian  (GPT-5.5) — composite ≥ 8,             max 2 loops
 #   3. Fresh Eyes (GPT-5.5) — composite ≥ 8,             max 2 loops
 #   4. Vibe Scorer (GPT-5.5) — one dim ≥ 9 AND rest ≥ 8, max 3 loops
 #
 # Usage:
-#   bash scripts/tribunal.sh [--only-stage <librarian|factChecker|freshEyes|vibe>] [--allow-rewrite] [--no-commit] <filename.mdx>
+#   bash scripts/tribunal.sh [--only-stage <factChecker|librarian|freshEyes|vibe>] [--allow-rewrite] [--no-commit] <filename.mdx>
 #   bash scripts/tribunal.sh --score-only --only-stage vibe <filename.mdx>
 #
 # Standalone mode: bash scripts/tribunal.sh sp-123-date-slug.mdx
@@ -41,6 +41,7 @@ POST_FILE=""
 ALLOW_REWRITE=""
 WRITE_FRONTMATTER=1
 SCORE_ONLY=0
+TRIBUNAL_VERSION=5
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --only-stage)
@@ -75,7 +76,7 @@ while [ "$#" -gt 0 ]; do
       shift
       ;;
     -h|--help)
-      echo "Usage: bash scripts/tribunal.sh [--only-stage <librarian|factChecker|freshEyes|vibe>] [--allow-rewrite] [--no-commit|--score-only] <filename.mdx>"
+      echo "Usage: bash scripts/tribunal.sh [--only-stage <factChecker|librarian|freshEyes|vibe>] [--allow-rewrite] [--no-commit|--score-only] <filename.mdx>"
       exit 0
       ;;
     --*)
@@ -94,7 +95,7 @@ while [ "$#" -gt 0 ]; do
 done
 
 if [ -z "$POST_FILE" ]; then
-  echo "Usage: bash scripts/tribunal.sh [--only-stage <librarian|factChecker|freshEyes|vibe>] [--allow-rewrite] [--no-commit|--score-only] <filename.mdx>" >&2
+  echo "Usage: bash scripts/tribunal.sh [--only-stage <factChecker|librarian|freshEyes|vibe>] [--allow-rewrite] [--no-commit|--score-only] <filename.mdx>" >&2
   exit 1
 fi
 
@@ -178,8 +179,8 @@ ensure_progress_file() {
 get_stage_status() {
   local article="$1"
   local stage="$2"
-  jq -r --arg a "$article" --arg s "$stage" \
-    '.[$a].stages[$s].status // "pending"' "$PROGRESS_FILE"
+  jq -r --arg a "$article" --arg s "$stage" --argjson v "$TRIBUNAL_VERSION" \
+    'if ((.[$a].stages[$s].tribunalVersion // 0) >= $v) then (.[$a].stages[$s].status // "pending") else "pending" end' "$PROGRESS_FILE"
 }
 
 write_stage_progress() {
@@ -193,8 +194,9 @@ write_stage_progress() {
        --arg status "$status" \
        --arg model "$model" \
        --argjson attempts "$attempts" \
+       --argjson tribunalVersion "$TRIBUNAL_VERSION" \
        --argjson score "$score_json" \
-       '.[$a].stages[$s] = {status: $status, score: $score, model: $model, attempts: $attempts}' \
+       '.[$a].stages[$s] = {status: $status, score: $score, model: $model, attempts: $attempts, tribunalVersion: $tribunalVersion}' \
        "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
   ) 9>>"$RC_PROGRESS_LOCK"
 }
@@ -217,11 +219,23 @@ init_article_progress() {
     existing="$(jq -r --arg a "$article" '.[$a] // empty' "$PROGRESS_FILE")"
     if [ -z "$existing" ]; then
       jq --arg a "$article" \
+         --argjson tribunalVersion "$TRIBUNAL_VERSION" \
          --arg ts "$(TZ=Asia/Taipei date -Iseconds)" \
-         '.[$a] = {article: $a, startedAt: $ts, stages: {}, topLevelAttempts: 0}' \
+         '.[$a] = {article: $a, startedAt: $ts, stages: {}, topLevelAttempts: 0, tribunalVersion: $tribunalVersion}' \
          "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
       tlog "Progress initialized for $article"
     else
+      local existing_version
+      existing_version=$(jq -r --arg a "$article" '.[$a].tribunalVersion // 0' "$PROGRESS_FILE")
+      if ! [[ "$existing_version" =~ ^[0-9]+$ ]]; then existing_version=0; fi
+      if [ "$existing_version" -lt "$TRIBUNAL_VERSION" ]; then
+        jq --arg a "$article" \
+           --argjson tribunalVersion "$TRIBUNAL_VERSION" \
+           --arg ts "$(TZ=Asia/Taipei date -Iseconds)" \
+           '.[$a].status = "PENDING" | .[$a].stages = {} | .[$a].topLevelAttempts = 0 | .[$a].startedAt = $ts | .[$a].tribunalVersion = $tribunalVersion | del(.[$a].finishedAt, .[$a].failedStage)' \
+           "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
+        tlog "Progress reset for $article: tribunalVersion $existing_version → $TRIBUNAL_VERSION"
+      fi
       tlog "Resuming existing progress for $article"
     fi
 
@@ -237,8 +251,9 @@ init_article_progress() {
     if [ "$attempts" -gt "$MAX_TOP_ATTEMPTS" ]; then
       tlog "ERROR: $article exceeded MAX_TOP_ATTEMPTS=$MAX_TOP_ATTEMPTS. Marking EXHAUSTED."
       jq --arg a "$article" \
+         --argjson tribunalVersion "$TRIBUNAL_VERSION" \
          --arg ts "$(TZ=Asia/Taipei date -Iseconds)" \
-         '.[$a].status = "EXHAUSTED" | .[$a].finishedAt = $ts' \
+         '.[$a].status = "EXHAUSTED" | .[$a].finishedAt = $ts | .[$a].tribunalVersion = $tribunalVersion' \
          "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
       echo EXHAUSTED > "$tmp.flag"
     fi
@@ -263,8 +278,9 @@ mark_article_failed() {
     tmp="$(mktemp)"
     jq --arg a "$article" \
        --arg s "$failed_stage" \
+       --argjson tribunalVersion "$TRIBUNAL_VERSION" \
        --arg ts "$(TZ=Asia/Taipei date -Iseconds)" \
-       '.[$a].status = "FAILED" | .[$a].failedStage = $s | .[$a].finishedAt = $ts' \
+       '.[$a].status = "FAILED" | .[$a].failedStage = $s | .[$a].finishedAt = $ts | .[$a].tribunalVersion = $tribunalVersion' \
        "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
   ) 9>>"$RC_PROGRESS_LOCK"
 }
@@ -276,8 +292,9 @@ mark_article_passed() {
     local tmp
     tmp="$(mktemp)"
     jq --arg a "$article" \
+       --argjson tribunalVersion "$TRIBUNAL_VERSION" \
        --arg ts "$(TZ=Asia/Taipei date -Iseconds)" \
-       '.[$a].status = "PASS" | .[$a].finishedAt = $ts' \
+       '.[$a].status = "PASS" | .[$a].finishedAt = $ts | .[$a].tribunalVersion = $tribunalVersion' \
        "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
   ) 9>>"$RC_PROGRESS_LOCK"
 }
@@ -516,9 +533,11 @@ PY
 import json, sys, math
 data = json.load(open(sys.argv[1]))
 dims = data.get('dimensions', {})
-vals = [dims.get(k, 0) for k in ('accuracy', 'fidelity', 'consistency')]
-composite = math.floor(sum(vals) / len(vals))
-sys.exit(0 if composite >= 8 else 1)
+core = [dims.get(k, 0) for k in ('accuracy', 'fidelity', 'consistency')]
+core_composite = math.floor(sum(core) / len(core))
+source_boundary = dims.get('sourceBoundary', 0)
+commentary_separation = dims.get('commentarySeparation', 0)
+sys.exit(0 if core_composite >= 8 and source_boundary >= 8 and commentary_separation >= 8 else 1)
 PY
       ;;
     fresh-eyes)
@@ -570,7 +589,7 @@ run_stage() {
 
   local post_path="$ROOT_DIR/src/content/posts/$post_file"
 
-  # Tribunal v4 executes every stage through Codex/GPT-5.5. Agent specs are
+  # Tribunal v5 executes every stage through Codex/GPT-5.5. Agent specs are
   # prompt contracts; the runtime model comes from this runner.
   local model_id="gpt-5.5"
 
@@ -885,12 +904,12 @@ init_article_progress "$POST_FILE"
 
 tlog "=== tribunal.sh: $POST_FILE ==="
 
-# ─── 4-Stage Sequential Loop ─────────────────────────────────────────────────
+# ─── Tribunal v5 Sequential Loop ──────────────────────────────────────────────
 # Format: stage_key:agent_name:validate_name:label:max_loops:runner_label:fm_judge_key
 # fm_judge_key = frontmatter scores key (used by frontmatter-scores.mjs)
 declare -a STAGES=(
-  "librarian:librarian:librarian:Librarian:2:codex-gpt-5.5-medium:librarian"
   "factChecker:fact-checker:fact-checker:FactChecker:2:codex-gpt-5.5-medium:factCheck"
+  "librarian:librarian:librarian:Librarian:2:codex-gpt-5.5-medium:librarian"
   "freshEyes:fresh-eyes:fresh-eyes:FreshEyes:2:codex-gpt-5.5-medium:freshEyes"
   "vibe:vibe-opus-scorer:vibe-opus-scorer:VibeScorer:3:codex-gpt-5.5-medium:vibe"
 )

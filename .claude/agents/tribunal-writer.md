@@ -43,6 +43,8 @@ For each failing dimension, the fix is different:
 | Fact Checker | accuracy | Fix incorrect technical claims; add sourced numbers |
 | Fact Checker | fidelity | Restore hedges that were dropped; remove added claims; separate ClawdNote from body |
 | Fact Checker | consistency | Fix logical contradictions; ensure conclusions follow from evidence; label speculation |
+| Fact Checker | sourceBoundary | Remove SP body meta framing such as 「原作者說 / 原文提到 / 這篇文章在講」; rewrite as direct source-derived prose with smooth evidence boundaries |
+| Fact Checker | commentarySeparation | Move Clawd/gu-log opinions, interpretation, jokes, and source-meta commentary out of SP body and into `<ClawdNote>` |
 | Fresh Eyes | readability | Simplify jargon; break up confusing paragraphs; add transitions |
 | Fresh Eyes | firstImpression | Strengthen hook; tighten boring sections; improve ending |
 | Vibe | persona | Add life analogies; inject oral feel; increase 吐槽 density; fix motivational-poster ending |
@@ -61,6 +63,7 @@ For each failing dimension, the fix is different:
 6. **Avoid 晶晶體 in zh-tw posts** — do not gratuitously mix English into Chinese when natural zh-tw exists. Canonical technical terms/proper nouns are OK (API, CLI, MCP, model names, product names), but avoid filler English like "這個 reveal 很 strong" or "production-ready 的 vibe" unless the English term is genuinely the industry term.
 7. **Match the current voice** — don't introduce a dramatically different writing style; improve within the existing voice.
 8. **Maintain minimum content length** — do not significantly shorten the post.
+9. **SP body has no source-meta scaffolding** — readers already see `原文出處：`. In SP body prose, do not use 「原作者說 / 原文提到 / 這篇文章在講」 as transitions or evidence labels. Preserve uncertainty with natural wording such as「這組數字應視為案例自述，不是公開 benchmark」. Put source-meta commentary and Clawd/gu-log opinions in `<ClawdNote>`.
 
 ### For Vibe rewrites (most complex)
 

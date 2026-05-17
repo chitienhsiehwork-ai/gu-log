@@ -277,9 +277,11 @@ validate_judge_score_json() {
       _validate_dim attribution || return 1
       ;;
     factCheck|fact-checker)
-      _validate_dim accuracy    || return 1
-      _validate_dim fidelity    || return 1
-      _validate_dim consistency || return 1
+      _validate_dim accuracy               || return 1
+      _validate_dim fidelity               || return 1
+      _validate_dim consistency            || return 1
+      _validate_dim sourceBoundary         || return 1
+      _validate_dim commentarySeparation   || return 1
       ;;
     freshEyes|fresh-eyes)
       _validate_dim readability     || return 1

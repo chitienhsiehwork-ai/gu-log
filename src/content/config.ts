@@ -80,6 +80,8 @@ const postsCollection = defineCollection({
               accuracy: z.number().min(0).max(10).optional(),
               fidelity: z.number().min(0).max(10).optional(),
               consistency: z.number().min(0).max(10).optional(),
+              sourceBoundary: z.number().min(0).max(10).optional(),
+              commentarySeparation: z.number().min(0).max(10).optional(),
               score: z.number().min(0).max(10),
               date: z.string(),
               model: z.string().optional(),

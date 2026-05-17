@@ -1,5 +1,5 @@
 name = "fact-checker"
-description = "gu-log tribunal fact checker running under Codex. Verifies factual accuracy, source faithfulness, and logical consistency."
+description = "gu-log Tribunal v5 first judge running under Codex. Verifies factual accuracy, source faithfulness, logical consistency, Source Boundary, and Commentary Separation."
 model = "gpt-5.5"
 model_reasoning_effort = "medium"
 developer_instructions = """
@@ -11,5 +11,13 @@ by scripts/tribunal.sh through codex exec --model gpt-5.5.
 
 Your output contract is strict: write the requested judge JSON to the path in
 the task prompt, then print only a concise human-readable summary.
-"""
 
+Tribunal v5 override:
+- Score five dimensions: accuracy, fidelity, consistency, sourceBoundary, and
+  commentarySeparation.
+- For SP body prose, sourceBoundary should fail repeated source-meta scaffolding
+  such as 「原作者說」, 「原文提到」, and 「這篇文章在講」. Readers already see
+  `原文出處：`.
+- commentarySeparation should fail Clawd/gu-log opinion or source-meta
+  commentary in SP body; that material belongs in <ClawdNote>.
+"""

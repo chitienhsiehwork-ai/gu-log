@@ -4,7 +4,7 @@
  *
  * 4 judges, uniform 0-10 scale, new dimension map:
  *   Librarian (Opus 4.7)    → glossary · crossRef · sourceAlign · attribution
- *   Fact Check (Opus 4.7)   → accuracy · fidelity · consistency
+ *   Fact Check (GPT-5.5)    → accuracy · fidelity · consistency · sourceBoundary · commentarySeparation
  *   Fresh Eyes (Opus 4.7)   → readability · firstImpression
  *   Vibe (Opus 4.6[1m])     → persona · clawdNote · vibe · clarity · narrative
  *
@@ -27,6 +27,8 @@ interface Props {
       accuracy?: number;
       fidelity?: number;
       consistency?: number;
+      sourceBoundary?: number;
+      commentarySeparation?: number;
       score: number;
       date: string;
       model?: string;
@@ -77,6 +79,8 @@ const labels = {
   accuracy: 'Accuracy',
   fidelity: 'Fidelity',
   consistency: 'Consistency',
+  sourceBoundary: 'Boundary',
+  commentarySeparation: 'Separation',
   readability: 'Readability',
   firstImpression: 'FirstImpression',
   persona: 'Persona',
@@ -211,6 +215,22 @@ const labels = {
                   <span class="dim-label">{labels.consistency}</span>
                   <strong class={scoreColor(scores.factCheck.consistency)}>
                     {scores.factCheck.consistency}
+                  </strong>
+                </span>
+              )}
+              {scores.factCheck.sourceBoundary !== undefined && (
+                <span class="dim-item">
+                  <span class="dim-label">{labels.sourceBoundary}</span>
+                  <strong class={scoreColor(scores.factCheck.sourceBoundary)}>
+                    {scores.factCheck.sourceBoundary}
+                  </strong>
+                </span>
+              )}
+              {scores.factCheck.commentarySeparation !== undefined && (
+                <span class="dim-item">
+                  <span class="dim-label">{labels.commentarySeparation}</span>
+                  <strong class={scoreColor(scores.factCheck.commentarySeparation)}>
+                    {scores.factCheck.commentarySeparation}
                   </strong>
                 </span>
               )}

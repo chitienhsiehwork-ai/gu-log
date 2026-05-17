@@ -60,7 +60,8 @@ while IFS=$'\t' read -r sha subject; do
   slug="${slug%%):*}"
   post_file="$slug.mdx"
   checked=$((checked + 1))
-  if ! "$ASSERT" "$repo" "$post_file" --commit "$sha" >/tmp/tribunal-audit-assert.out 2>&1; then
+  if ! TRIBUNAL_REQUIRED_VERSION="${TRIBUNAL_AUDIT_REQUIRED_VERSION:-3}" \
+    "$ASSERT" "$repo" "$post_file" --commit "$sha" >/tmp/tribunal-audit-assert.out 2>&1; then
     failures=$((failures + 1))
     echo "ERROR: progress-only Tribunal PASS commit detected: $sha $subject" >&2
     sed 's/^/       /' /tmp/tribunal-audit-assert.out >&2

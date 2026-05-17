@@ -19,6 +19,15 @@
  *       score: 8
  *       date: "2026-04-07"
  *       model: "claude-sonnet-4-6"
+ *     factCheck:
+ *       accuracy: 8
+ *       fidelity: 9
+ *       consistency: 8
+ *       sourceBoundary: 8
+ *       commentarySeparation: 9
+ *       score: 8
+ *       date: "2026-05-17"
+ *       model: "gpt-5.5"
  *
  * write input: uniform agent JSON { judge, dimensions, score, verdict, reasons, model? }
  * get output: { dimensions, score, date, model? }
@@ -29,6 +38,7 @@ import process from 'node:process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const VALID_JUDGES = ['librarian', 'factCheck', 'freshEyes', 'vibe'];
+const CURRENT_TRIBUNAL_VERSION = 5;
 
 const __isCli =
   import.meta.url === pathToFileURL(process.argv[1] ?? '').href ||
@@ -189,7 +199,7 @@ function writeFrontmatter(filePath, fmText, body) {
 
 const JUDGE_DIMS = {
   librarian: ['glossary', 'crossRef', 'sourceAlign', 'attribution'],
-  factCheck: ['accuracy', 'fidelity', 'consistency'],
+  factCheck: ['accuracy', 'fidelity', 'consistency', 'sourceBoundary', 'commentarySeparation'],
   freshEyes: ['readability', 'firstImpression'],
   vibe: ['persona', 'clawdNote', 'vibe', 'clarity', 'narrative'],
 };
@@ -281,10 +291,9 @@ function opWrite() {
 
   scores[judge] = entry;
 
-  // Ensure tribunalVersion is set (v3: all judges opus-4.7, vibe/writer opus-4.6[1m])
-  if (scores.tribunalVersion == null) {
-    scores.tribunalVersion = 3;
-  }
+  // New tribunal writes are v5: factCheck runs first and includes
+  // Source Boundary / Commentary Separation dimensions.
+  scores.tribunalVersion = CURRENT_TRIBUNAL_VERSION;
 
   let newFm = removeScoresBlock(parts.fmText);
   const scoresYaml = serializeScores(scores);
@@ -327,6 +336,7 @@ export {
   removeScoresBlock,
   JUDGE_DIMS,
   VALID_JUDGES,
+  CURRENT_TRIBUNAL_VERSION,
 };
 
 // ─── Dispatch ─────────────────────────────────────────────────────────────
