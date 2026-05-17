@@ -301,6 +301,8 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 
 **Sentence Signal Rule:** every sentence must be informative or intriguing. If a sentence only repeats source metadata, throat-clears, or restates what the reader already sees in the byline/source block, it is dead weight. Multiple dead sentences cap vibe at 7; a dead opening usually means the post should fail unless the rest recovers hard.
 
+**晶晶體 boundary:** Vibe Scorer must not invent its own English-term lint. For zh-tw posts, `scripts/check-jingjing.mjs` is the canonical programmatic gate and allowlist. If the checker returns clean, do not penalize accepted engineering terms such as `vs`, `bug`, `commit`, `PR`, model names, tool names, or glossary terms as hard-policy 晶晶體 hits. Penalize decorative English mixing only when the checker reports a violation, or when deterministic checker output is included in the evidence packet.
+
 ### clarity — Pronoun Clarity / Voice Attribution
 
 **What we're measuring:** Does every sentence make it obvious who is speaking?
