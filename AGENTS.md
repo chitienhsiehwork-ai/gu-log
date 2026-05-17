@@ -162,13 +162,13 @@ vercel logs --since 1h         # 查最近 1h request logs（需 vercel login）
 
 ## Dev Workflow
 
-### CC vs CCC: Who am I, and what can I do?
+### mac-cdx / mac-CC vs CCC: Who am I, and what can I do?
 
-兩種 Codex instance 會碰這個 repo。**開場第一件事先跑 `./scripts/detect-env.sh`** 確認自己是哪個，然後讀對應的 playbook：
+幾種 Codex / local agent instance 會碰這個 repo。**開場第一件事先跑 `./scripts/detect-env.sh`** 確認自己是哪個，然後讀對應的 playbook：
 
 | Instance | 跑在哪 | Playbook |
 |---|---|---|
-| **mac-CC** (Local Codex) | user 個人 Mac，互動式 iterate | [`playbooks/mac-CC-playbook.md`](playbooks/mac-CC-playbook.md) |
+| **mac-cdx / mac-CC** (Local Codex / local harness) | user 個人 Mac，互動式 iterate | [`playbooks/mac-CC-playbook.md`](playbooks/mac-CC-playbook.md) |
 | **CCC** (Cloud Codex) | Codex 網頁版，Linux sandbox，auto-branch | [`playbooks/CCC-playbook.md`](playbooks/CCC-playbook.md) |
 
 Playbook 各自是 SSOT，定義各自的精神、scope ceiling、失敗處理、merge policy、品質 gate。**不要在這個檔案重複那些規則。** 有要加規則就去編對應的 playbook 檔。
@@ -211,7 +211,7 @@ gu-log 的文章草稿有三種來源，全部最終都變成 `src/content/posts
      - 自動補 frontmatter、自動 bump `scripts/article-counter.json`
      - 自動跑 `validate-posts.mjs`
    - 完整設定和 workflow 在 `OBSIDIAN_SETUP.md`
-2. **VS Code / Cursor / CC 直接編 MDX**（手動 + AI 輔助）
+2. **VS Code / Cursor / mac-cdx / CC 直接編 MDX**（手動 + AI 輔助）
    - 走原本流程：手動填 frontmatter → validate → commit
    - 適合改現有文章、寫需要複雜元件的文章
 3. **Clawd / CP pipeline 自動產**（VPS 上的 agent）
@@ -223,7 +223,7 @@ gu-log 的文章草稿有三種來源，全部最終都變成 `src/content/posts
 ### 其他 workflow 規則
 
 - **User 只看 production**（gu-log.vercel.app）。不要叫 user 開 dev server。
-- **CC 自己跑 `pnpm run dev`** 來 iterate，用 `playwright-cli` 截圖驗證 UI（skill 在 `.Codex/skills/playwright-cli/`）。
+- **mac-cdx / CC 自己跑 `pnpm run dev`** 來 iterate，用 `playwright-cli` 截圖驗證 UI（skill 在 `.Codex/skills/playwright-cli/`）。
 - **UI/UX 品質**：改完任何視覺的東西（CSS、component、color、spacing、typography、layout）就跑 `uiux-auditor` skill（`.Codex/skills/uiux-auditor/`）。它會強制兩個主題都截圖、算 WCAG 對比、flag 寫死的 hex。不要等 user 來挑錯。
 - **建立 / 修改 skill**：用 `skill-creator` skill（`.Codex/skills/skill-creator/`）— 官方 anthropic/skills 的來源。
 - **沙箱網路能力**（2026-04-23 實測修正）：command-line HTTPS（curl、`sp-pipeline` 的 FetchGeneric）**是通的**，不要假設沒外網。真正受限的是 `playwright-cli` 的 browser navigation——`goto` 在 `domcontentloaded` 卡死，fonts.googleapis.com 之類 CSS 外鏈拿不到。每次 navigate 前先用 `run-code` 裝一個 route handler：localhost/data: 放行，其他一律 abort。uiux-auditor skill 裡有完整範本。
@@ -242,7 +242,7 @@ gu-log 的文章草稿有三種來源，全部最終都變成 `src/content/posts
 
 ### Tribunal runtime ops
 
-Daemon 行為、graceful stop、2-worker 平行化、worker worktree 管理，全部寫在 **`docs/tribunal-runbook.md`**。**碰 tribunal 自動化之前先讀這個檔**，特別是 worker worktree 不會跟著 main 自動更新這個雷，要用 `scripts/tribunal-worker-bootstrap.sh sync` 手動刷。mac-CC 可以 SSH 到 VM 查即時狀態——用 `/tribunal-monitor` skill 或見 [`mac-CC-playbook`](playbooks/mac-CC-playbook.md)。
+Daemon 行為、graceful stop、2-worker 平行化、worker worktree 管理，全部寫在 **`docs/tribunal-runbook.md`**。**碰 tribunal 自動化之前先讀這個檔**，特別是 worker worktree 不會跟著 main 自動更新這個雷，要用 `scripts/tribunal-worker-bootstrap.sh sync` 手動刷。mac-cdx / mac-CC 可以 SSH 到 VM 查即時狀態——用 `/tribunal-monitor` skill 或見 [`mac-CC-playbook`](playbooks/mac-CC-playbook.md)。
 
 ## Style Guide (Quick Ref)
 
