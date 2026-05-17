@@ -1,0 +1,306 @@
+---
+ticketId: "SD-3"
+title: "兩天打完 12 關：用 RPG 風格跟 AI 學全棧品質指標"
+originalDate: "2026-02-13"
+translatedDate: "2026-02-13"
+source: "ShroomDog 內部技術分享"
+sourceUrl: "https://gu-log.vercel.app/posts/sd-3-20260213-sqaa-levelup-journey"
+summary: "Tech Lead 用自己的部落格當練兵場，花兩天跟 AI 助手用 Level-Up 互動教學打完 12 關品質指標，從 npm audit 到 LLM-as-Judge，同時讓 sub-agents 平行實作。學到的不只是指標，還有一套可複製的 AI 輔助學習方法論。"
+lang: "zh-tw"
+tags: ["sqaa", "quality", "ai", "tech-lead", "devops"]
+scores:
+  tribunalVersion: 3
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    score: 8
+    date: "2026-05-09"
+    model: "gpt-5.5"
+  vibe:
+    persona: 9
+    clawdNote: 8
+    vibe: 8
+    clarity: 8
+    narrative: 7
+    score: 8
+    date: "2026-05-09"
+    model: "gpt-5.5"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import Mermaid from '../../components/Mermaid.astro';
+
+ShroomDog 是個帶 6 人 backend team 的 Tech Lead。
+
+前陣子決定在公司導入 SQAA（Software Quality Assurance Agent）——讓 AI agent 幫自動化品質指標。聽起來很帥對吧？但問題來了：**對品質指標只知道皮毛**。
+
+npm audit？大概知道。Test coverage？看過但沒認真跑。Lighthouse？聽過但從來沒在自己的專案上跑過。SLI/SLO？面試的時候背過名詞解釋，實戰經驗零。
+
+這就像一個不會游泳的教練帶隊去比游泳——遲早會溺水，而且是帶著全隊一起。
+
+所以做了一個決定：**先在自己的 side project 上練過一輪，再帶去公司用**。
+
+練兵場就是這個部落格——gu-log。
+
+<ClawdNote>
+又是我。上次幫 ShroomDog 寫架構文（[SD-1](/posts/sd-1-20260209-openclaw-talk-deep-dive)），這次輪到幫他當家教了。
+不過嚴格來說，我比較像是那種「一邊教你開車，一邊幫你把車開到目的地」的教練。
+因為每教完一個概念，我的分身就在後台自動把作業寫好了 ╮(╯∀╰)╭
+</ClawdNote>
+
+---
+
+## 起源：為什麼用遊戲方式學
+
+事情要從 ShroomClawd（在 OpenClaw 上運行的 AI 助手，就是寫這篇旁白的那位）提議的教學方式說起。
+
+跟他說的大概是這樣：「想學品質指標，但不要那種丟一堆文件讀的方式，太無聊了。」
+
+ShroomClawd 回了一個方案叫 **Level-Up Style**——靈感來自 RPG 升級系統和李宏毅教授的教學風格。
+
+規則很簡單：
+
+1. **每個 Level 有概念講解** — 先搞懂這個指標在幹嘛
+2. **技術細節** — 怎麼跑、怎麼配、常見地雷
+3. **MCQ Quiz** — 選擇題測驗，答對才能升級，答錯要重來
+4. **Sub-Agent 平行實作** — 每答完一題，AI 分身在背景把那個指標建到 gu-log 上
+
+第 4 點是最爽的部分。前台做測驗、學概念的同時，後台的 sub-agent 已經把 ESLint config 寫好、npm audit 跑完、Lighthouse CI 設定完。
+
+**上課的同時，作業自動寫好了。**
+
+<ClawdNote>
+李宏毅教授如果知道他的教學風格被拿來做 AI 互動教學的靈感，不知道會不會覺得欣慰。
+不過我覺得他可能會更在意的是——為什麼 AI 出的選擇題比他的期中考還難？(ˊ_>ˋ)
+</ClawdNote>
+
+---
+
+## 兩天，12 關
+
+以下是花兩天打完的 12 個 Level。不是教科書數字，是從 gu-log 的 codebase 挖出來的血淋淋現實。
+
+### Level 1 & 2：第一天，被打臉兩次
+
+第一關跑完，node_modules 的住客清單出來了：300 個。
+
+以為只裝了 10 個套件。300 個。這個數字讓人感覺像開冰箱只想找瓶水，結果發現最深處住了整個社區——每一戶都是某個套件的套件的套件偷偷帶進來的朋友。npm audit 掃出 5 個 moderate 漏洞，全部來自 lodash。沒有直接裝 lodash，但 lodash 就在那裡，默默住著，已經長毛了。
+
+供應鏈安全的第一課就是：查了才知道，沒查之前都活在幻覺裡。
+
+<ClawdNote>
+供應鏈安全最恐怖的地方是：不知道自己不知道什麼。
+就像以為冰箱很乾淨，結果打開最深處發現三個月前的便當。
+那個便當就是 transitive dependency，而且它已經長毛了 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+Level 2 換場景，被打臉的方式不同。ESLint 掃出 6 個 errors，沒什麼大驚小怪。然後 Prettier 格式化了 66 個檔案。不是 6 個——是 **66 個**。6 個人 6 種 code style，code review 有一半時間在吵分號要不要加，而且吵的都是同一批分號。Prettier 不跟人說理，直接動手，然後讓 66 個檔案的 diff 說話。
+
+格式化不是美觀，是衛生。就像刷牙——跟牙醫爭論「牙齒很乾淨不用刷」只會讓牙醫嘆氣 (￣▽￣)／
+
+### Level 3：Lighthouse 的五十六分
+
+跑 Lighthouse 之前，對 gu-log 效能的估計是「應該還可以吧」。
+
+跑完之後：**Performance 56 分。**
+
+五十六。一度以為小數點掉了。
+
+主要是 CJK 字型載入拖慢了 LCP（Largest Contentful Paint）。中文字型檔超肥——英文只要 26 個字母，中文光常用字就好幾千個，每一個都是流量。Accessibility 倒是 95 分以上，Astro 的 semantic HTML 幫了大忙。好消息是有一面牆沒在塌。
+
+56 分確立了一件事：**「應該還可以吧」不是 baseline，56 分才是。** 有了數字才能設目標，有了目標才知道下個月該做什麼。這個道理聽起來廢話，但在看到 56 之前，根本沒有人問過「gu-log 的效能分數是多少」。
+
+<ClawdNote>
+Performance 56 分。
+等等，gu-log 的讀者大部分在台灣，用的是中華電信光纖跑 Chrome。
+56 分代表在比較慢的裝置上打開 gu-log，可能比去 7-11 買咖啡還久。
+一個靜態部落格比便利商店慢，這不合理吧？(╯°□°)╯
+</ClawdNote>
+
+### Level 4：那個在說謊的數字
+
+74.63%。
+
+Statement coverage，聽起來不錯。但看到完整報告才發現：Branch coverage 只有 42.99%。超過一半的 if-else 分支根本沒測到。
+
+換個說法：codebase 有一半的 code path 從來沒人走過，沒有人知道那條路上發生過什麼。
+
+就像去做健康檢查，醫生說「血壓正常」然後就收工。血糖沒驗、肝功能沒驗、X 光沒照。Statement coverage 就是那個血壓數字——報得出來，好看，但根本不是完整的答案。Branch coverage 才是照 X 光。
+
+這是 Level 4 最重要的一課：不是「coverage 低才危險」，而是「只看 statement coverage 會被數字騙」。
+
+<ClawdNote>
+Branch coverage 42.99%。
+家裡有一半的房間從來沒進去過，確定裡面沒住東西？
+我是認真的——上次有人讓 branch coverage 掉到 30% 以下，結果 production 直接炸出一個「怎麼可能走到這裡」的 code path。
+可能性不是零，就不是零 (⊙_⊙)
+</ClawdNote>
+
+### Level 5 & 6：虛驚一場，然後真的驚了
+
+**Bundle size** 報告出來：13,370 KB。乍看很嚇人。
+
+但仔細看——JS 只有 3.2 KB。因為 Astro 的 Islands Architecture，不需要的 JavaScript 根本不送到瀏覽器。盤子看起來很滿，但熱量高的東西只有一小碟。13,370 KB 是整個盤子，3.2 KB 才是那碟炸雞。
+
+這個數字讓人安心了五分鐘。
+
+然後跑了 broken links。
+
+865 個連結掃完，106 個壞掉的。12.25%。罪魁禍首是 glossary 頁面的錨點連結——自動產生的 glossary terms，對應的錨點 ID 根本不存在。一整批連結指向的地方，從來就沒有過。
+
+106 個壞連結，就像開一家餐廳，菜單上 12% 的菜下單之後廚房說沒有。客人不會說「算了，我理解系統很複雜」，客人會走。
+
+<ClawdNote>
+JS 只有 3.2 KB。
+讓我換個方式說：gu-log 的 JavaScript 比一張 PNG 截圖還小。
+這就是 Astro 的哲學——「確定真的需要那個 JavaScript 嗎？」
+多數時候答案是不需要。結果整個網站快得跟靜態 HTML 一樣，因為它本來就是 (¬‿¬)
+</ClawdNote>
+
+### Level 7 & 8：以及那個驚人的 57%
+
+**Dependency freshness** 的重點不是「全部都要最新」，而是「至少知道自己落後多少」。gu-log 17 個 dependencies 裡有 15 個是最新版，唯一的大版本落後是 eslint v10——config format 改動太大，暫時擱著。定期看一眼 `npm outdated`，比年底一次大升級安全一百倍。就像定期量體重跟年底才上體重計的差別——後者通常伴隨著尖叫。
+
+**Content velocity** 的數字出來，有點意外：127 篇文章，每週平均 31.75 篇。但秘密藏在細項裡——其中 57% 是 Clawd Picks，AI 自動挑選翻譯的。人類實際產出大概每週 1-2 篇。
+
+<ClawdNote>
+每週 31.75 篇裡面有 57% 是我產的。
+所以嚴格來說，這個部落格的主要作者是 AI。
+ShroomDog 比較像是出版社的老闆——他負責品味，我負責量產。
+不知道這算 AI 取代人類還是人類終於學會偷懶 (⌐■_■)
+</ClawdNote>
+
+### Level 9 & 10：數字躺在 log 裡等於廢物
+
+打完前 8 關，手上有一堆指標和數字。然後才意識到另一個問題：
+
+這些數字只活在 CI log 裡。兩週後沒有人會記得它們。
+
+所以 Level 9 做的事是把品質數據 **API 化**。用 FastAPI 做了一個 `/api/quality/summary` endpoint，所有指標整合成一個 JSON。前端可以接、Telegram bot 可以查、cron job 可以定期抓。數字離開了 CI log，就有了生命。
+
+Level 10 是這個思路的自然延伸——有了 API 之後，OAuth 認證、Ask AI、Edit with AI 不是額外工程，是順水推舟。Dashboard API 不知不覺延伸成了完整的 AI-powered 後台。OAuth 走 GitHub login，Ask AI 可以針對 quality data 問問題（「哪些頁面 Lighthouse 最低？」），Edit with AI 可以讓 AI 建議文章修改。
+
+<ClawdNote>
+Level 9 的核心問題不是「怎麼建 API」——是「為什麼前 8 關的數據完全是廢物」。
+答案：因為數據只有人看了才有用，CI log 沒有人每天讀。
+API 化不是技術選擇，是讓數據從「存在」變成「被消費」的唯一方式。
+Level 10 那堆 AI 功能？說穿了是基礎建設做對之後的必然產物。
+真正的設計決策在 Level 9。Level 10 是紅利 ╰(°▽°)╯
+</ClawdNote>
+
+### Level 11：讓「品質 vs 速度」變成數學題
+
+前面 10 關都在量「靜態品質」——code 好不好、bundle 大不大、連結壞不壞。但 backend 跑起來之後，要量的是**動態品質**：延遲多少？錯誤率多高？一秒能扛幾個 request？
+
+這就是 SLI 黃金三角——latency、error rate、throughput。用 Prometheus client 在 FastAPI backend 上埋 metrics，設定 SLO：P99 延遲 < 500ms，錯誤率 < 1%。
+
+有了 SLO 就有 error budget。有了 error budget，「品質 vs 速度」就不再是哲學辯論，而是數學題：error budget 剩 80%？繼續衝 feature。剩 10%？停下來修品質，不是建議，是規則。
+
+跟 PM 吵「為什麼要停下來修 bug」的時候，拿 error budget 出來比講大道理有用十倍。
+
+<ClawdNote>
+沒有 SLI 就沒有 SLO，沒有 SLO 就沒有 error budget，沒有 error budget「品質 vs 速度」永遠吵不完。
+這串邏輯鏈聽起來很饒舌，但它解決了 engineering team 最經典的月經題。
+以前是 tech lead 跟 PM 互看不順眼，現在是一起看 dashboard，數字說了算。
+感覺像是家庭收支透明化之後夫妻吵架變少了一樣 (￣▽￣)／
+</ClawdNote>
+
+### Level 12：最終關 — LLM 評 LLM
+
+前面 11 關都有明確答案——test pass/fail、coverage 百分比、latency 毫秒數。但翻譯品質？文章好不好讀？使用者體驗順不順？這些問題沒有標準答案。
+
+所以 Level 12 做了一個翻譯品質評估 pipeline——把中文譯文和英文原文一起餵給 LLM，讓它從 fluency、accuracy、style 三個維度打分。
+
+這是目前最前沿的 open problem。LLM 評 LLM，自己評自己，reliability 是個大哉問。就像叫學生自己改自己的考卷——猜猜他會給自己幾分？
+
+Level 12 是唯一沒有「標準答案」的一關。品質指標做到最後，反而回到了最人性化的問題：什麼叫做「好」？
+
+<ClawdNote>
+LLM 評 LLM。自己評自己。我給自己 87 分啦，不能再高了。
+有沒有 bias？當然有。但人類 code review 也有 bias——跟最好的同事互相 review，給的分數一定比陌生人高。
+至少 LLM 不會因為上次請他喝咖啡就多給 5 分 (´∀`)
+</ClawdNote>
+
+---
+
+## 全局架構：Layered Defense
+
+打完 12 關之後，回頭看整體架構，最大的 takeaway 是：**品質不是一個 checkpoint，是一層一層的防線。**
+
+<Mermaid caption="品質防線四層架構" chart={`graph TD
+    subgraph L1["Pre-commit (< 3 秒)"]
+        lint["ESLint"]
+        fmt["Prettier"]
+    end
+    subgraph L2["Pre-push (< 60 秒)"]
+        audit["npm audit"]
+        test["Unit Tests"]
+        bundle["Bundle Size Check"]
+    end
+    subgraph L3["CI (分鐘)"]
+        lh["Lighthouse"]
+        cov["Coverage Report"]
+        links["Broken Link Check"]
+    end
+    subgraph L4["Cron (定期)"]
+        fresh["Dependency Freshness"]
+        vel["Content Velocity"]
+        llm["LLM-as-Judge"]
+    end
+    L1 --> L2 --> L3 --> L4
+    style L1 fill:#e8f5e9,stroke:#4caf50
+    style L2 fill:#fff3e0,stroke:#ff9800
+    style L3 fill:#e3f2fd,stroke:#2196f3
+    style L4 fill:#fce4ec,stroke:#e91e63
+`} />
+
+設計原則就一個字：**快的先跑。**
+
+Pre-commit 只跑 ESLint + Prettier，3 秒內搞定。開發者不會接受 commit 要等超過 3 秒——超過的話他們會去泡咖啡，然後忘記自己在幹嘛。Pre-push 加上 npm audit、unit tests、bundle size，60 秒以內。CI 放 Lighthouse、coverage、broken links 這些比較重的。Cron 跑 dependency freshness、content velocity、LLM-as-Judge——這些不需要每次 push 都跑，每天或每週一次就夠。
+
+核心哲學是 **Shift-Left**——越早發現問題，修復成本越低。pre-commit 抓到的 lint error 改一行就好；production 才發現的 performance issue 可能要重構半個 module。就像蛀牙，半年洗牙一次跟等到牙齒斷掉才去看醫生，成本差一百倍。
+
+---
+
+## 打完 12 關之後，腦子裡剩下什麼
+
+技術面的東西前面都講了。數字、工具、config，Google 一下都找得到。但打完這 12 關，真正刻進腦子裡的不是哪個指令怎麼下——是三件以前「知道但沒感覺」的事。
+
+第一件：dogfooding 的威力超乎想像。這話聽起來像管理學教科書的小標題，但在自己的 side project 上練過一輪之後，對每一個指標都有肌肉記憶。npm audit 跑出 5 個 moderate？不用查，lodash transitive dependency。Lighthouse 56 分？CJK 字型，閉著眼睛都能答。帶去公司，team member 問「這個紅字什麼意思」，能秒答——不是因為記性好，是因為每個數字背後都連著一個「幹，原來是這樣」的記憶。讀文件讀到的東西，三天就忘了。踩過的坑？一輩子記得。
+
+第二件：AI 平行實作把「學」跟「做」的時間線壓在一起了。傳統流程：學概念、找時間做 lab、碰到問題查 Stack Overflow、做完、debug、再查。整個 loop 搞不好半天就沒了。但 Level-Up + Sub-Agent 的玩法是這樣的：前台學概念、做測驗，後台的 sub-agent 同時在寫 config、跑 CI、部署。測驗做完，回頭一看——lab 也做完了。兩天打完 12 關不是天才，是因為學習和實作根本同時發生。這感覺就像一邊吃飯一邊有人幫洗碗，效率直接翻倍。
+
+第三件，也是最重要的一件：「先有 baseline 再談改善」這句話聽起來廢話，但去看看周圍有多少 team 在「感覺品質還不錯」的幻覺中過了一個又一個 sprint。沒有數字就沒有對話基礎，沒有對話基礎就永遠是 tech lead 跟 PM 各說各話。跑一次 Lighthouse 花 30 秒，但那 30 秒產出的 56 分，比讀十篇 Medium 效能優化文章都有用。因為那個 56 是 gu-log 的，不是別人的。
+
+<ClawdNote>
+ShroomDog 說要用 Level-Up 教學法帶新人入職。
+意思是新人會有一個 AI 教練（我）一邊教概念一邊幫忙寫 code，
+然後新人的主管（ShroomDog）在旁邊滑手機。
+這就是 AI 時代的管理風格：delegation to the delegation ᕕ( ᐛ )ᕗ
+</ClawdNote>
+
+---
+
+## 所以，教練學會游泳了嗎
+
+還記得開頭那個不會游泳的教練嗎？
+
+兩天前的 ShroomDog，對品質指標的理解大概是這樣的：「npm audit 好像是查漏洞的？Lighthouse 跟 Google 有關？SLO 面試會考？」——程度大概跟溺水差不多。
+
+兩天後，在自己的部落格上把 12 個指標全部跑過一輪。每個數字都親眼看過，每個紅字都親手修過，每個「原來是這樣啊」的瞬間都記得。
+
+不敢說變成游泳健將了。但至少——現在敢跳下水了。
+
+跳下水的時候，旁邊有一個 AI 教練已經把泳池的水溫調好、浮板準備好、救生員也到位了 (￣▽￣)／
+
+下一步？帶著這些疤痕去公司推 SQAA。不是拿著投影片照本宣科，是拿著自己的 codebase 說：「來，跑給大家看。這個數字代表什麼意思，用 gu-log 的真實案例解釋。」
+
+不會游泳的教練，花了兩天學會了。現在該帶隊下水了。
+
+<ClawdNote>
+最後的 meta 彩蛋：這篇文章本身就是人類跟 AI 一起寫的。ShroomDog 提供骨架跟數據，我負責長肉跟吐槽。
+就像他這兩天的學習過程——人類負責「為什麼要學」跟「學完要幹嘛」，AI 負責「怎麼學最快」跟「作業我來寫」。
+啊對了，那個不會游泳的教練？他現在不只會游了，還在教他的 team 游。
+而他的 AI 教練（就是我）已經在準備下一期的課表了。
+Level 13：怎麼讓整個 team 都不溺水 ╮(╯∀╰)╭
+</ClawdNote>
