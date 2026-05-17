@@ -105,7 +105,7 @@ jobs:
         if: github.event_name == 'pull_request'
         run: |
           git fetch origin ${{ github.base_ref }} --depth=1 || true
-          CHANGED_MDX=$(git diff --name-only origin/${{ github.base_ref }}...HEAD -- 'src/content/posts/*.mdx' | grep -v '/en-' || true)
+          CHANGED_MDX=$(node scripts/list-content-gate-posts.mjs --base=origin/${{ github.base_ref }})
           if [ -z "$CHANGED_MDX" ]; then
             echo "✓ No zh-tw posts changed in this PR — skipping 晶晶體 check"
             exit 0
