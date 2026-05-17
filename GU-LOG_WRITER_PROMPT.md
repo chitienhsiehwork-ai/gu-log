@@ -213,12 +213,14 @@ Google 2017 年丟出這顆核彈後，整個 NLP 界直接進入新紀元。
 
 1. **`src/data/glossary.json` 裡有的 term**——這是技術詞的 allowlist。Token、Prompt、Frontier Model、Open Weights、RLHF、Multimodal、Agent、Claude Code、MCP 等等。
 2. **專有名詞**：產品名（Muse Spark、Llama）、公司名（Meta、Anthropic）、人名（Andrew Ng）、地名、benchmark 名（CharXiv、HealthBench Hard）、模型 variant 名（Gemini 3.1 Pro Preview）、code identifier、protocol 名、URL、版本號。
-   - **硬規則：模型名稱永遠保留官方名稱**。不要翻譯、意譯、音譯或「中文化」模型名與模型 variant 名。`Mythos Preview` 就是 `Mythos Preview`，不是「神話預覽版」；`Gemini 3.1 Pro Preview` 也不是「雙子座 3.1 專業預覽版」。如果晶晶體 lint 誤擋官方模型名，修 lint allowlist 或 glossary，不准把模型名翻掉來過 lint。
+   - **硬規則：模型名稱永遠保留官方名稱**。不要翻譯、意譯、音譯或「中文化」模型名與模型 variant 名。`Mythos Preview` 就是 `Mythos Preview`，不是「神話預覽版」；`Gemini 3.1 Pro Preview` 也不是「雙子座 3.1 專業預覽版」。如果晶晶體 lint 誤擋官方模型名，先和 ShroomDog 確認邊界，再修 lint allowlist 或 glossary；不准把模型名翻掉來過 lint。
 3. **直接引用原文**：包在 `「」` 或 `""` 裡的英文原句（quote 整句保留 + 中文括號或下行直譯）。
 4. **縮寫**：API、SDK、CLI、PM、CEO、ML、LLM、UI、UX 這類業界 universally understood 的縮寫。
 5. **Code blocks** 內的所有英文。
 
 **不在 allowlist 的英文都要翻成中文**——`framing` 翻「包裝」、`hedge` 翻「保留條件」、`takeaway` 翻「真正的重點」、`launch` 翻「啟動」、`generalist` 翻「通才」、`framing / model / engineer / letter / newsletter / lab` 等等都要翻。寫作時看到自己要寫的英文詞不在 allowlist，先停下來——是該翻成中文，還是這個詞值得加進 glossary？
+
+**Boundary ownership**：可接受 English terms 的邊界 SHALL 每次新增或移除前都先與 ShroomDog 討論。這會直接影響 gu-log 的閱讀流與語感，不是 agent 可以自己憑「看起來合理」決定的工程清單。Deterministic checker 負責執行已決定的邊界；ShroomDog 負責決定哪些英文詞在繁中正文裡自然。
 
 **何時加 glossary？**：
 - 同一個英文 term 在多篇文章重複出現、且中文沒有同等精準/簡潔的對應
@@ -231,7 +233,7 @@ Google 2017 年丟出這顆核彈後，整個 NLP 界直接進入新紀元。
 - 如果只是普通英文詞，改成自然中文改寫，不要為了逐字對應硬翻。
 - 如果 canonical term 會影響 gu-log 長期詞彙風格，先標成 terminology decision，交給 ShroomDog 或 Librarian 判斷；不要悶著頭把尷尬中文送進 production。
 
-**Lint enforcement**：`scripts/check-jingjing.mjs` 會 scan 所有 zh-tw `.mdx`，flag 不在 allowlist + 不在 glossary 的英文詞。pre-commit hook 攔。違規就改，要嘛翻成中文，要嘛在 PR 同 commit 把 term 加進 `src/data/glossary.json`（並寫好 definition + clawdNote）。
+**Lint enforcement**：`scripts/check-jingjing.mjs` 會 scan 所有 zh-tw `.mdx`，flag 不在 allowlist + 不在 glossary 的英文詞。pre-commit hook 攔。違規就改，要嘛翻成中文，要嘛先與 ShroomDog 討論後，在 PR 同 commit 把 term 加進 `src/data/glossary.json`（並寫好 definition + clawdNote）。
 
 **Tribunal enforcement**：`vibe-opus-scorer` 的 clarity 維度把這條當硬規則——出現非 allowlist 英文 = clarity 直接扣分（不只是品味問題）。
 

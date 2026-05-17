@@ -16,6 +16,11 @@
 // add the term to src/data/glossary.json in the same PR if it's a real
 // canonical industry term that loses meaning when translated.
 //
+// Boundary ownership: adding or removing accepted English terms SHALL be
+// discussed with ShroomDog first. This list encodes ShroomDog's reading-flow
+// comfort, not just technical correctness; reviewers and agents must not
+// silently expand or shrink it.
+//
 // Usage:
 //   node scripts/check-jingjing.mjs <file.mdx>...
 //   node scripts/check-jingjing.mjs --baseline-ref=origin/main <file.mdx>...
@@ -44,6 +49,7 @@ const GLOSSARY_PATH = path.join(REPO_ROOT, 'src/data/glossary.json');
 // These are English words/phrases that are universally OK in zh-tw posts
 // without needing a glossary entry. Keep this list tight — when in doubt,
 // add the term to glossary.json so it gets a definition + clawdNote.
+// Add/remove entries only after discussing the boundary with ShroomDog.
 
 const ALLOWLIST_RAW = `
 # Universally-understood acronyms
@@ -724,8 +730,8 @@ if (!__isCli) {
   console.error(
     `Fix options:\n` +
       `  1. Translate to natural zh-tw (preferred — see GU-LOG_WRITER_PROMPT.md §術語處理).\n` +
-      `  2. If genuinely a canonical industry term, add to src/data/glossary.json with definition + clawdNote.\n` +
-      `  3. If proper noun (product/people/lab) misclassified, add to ALLOWLIST_RAW in scripts/check-jingjing.mjs.\n` +
+      `  2. If genuinely a canonical industry term, discuss the boundary with ShroomDog, then add to src/data/glossary.json with definition + clawdNote.\n` +
+      `  3. If proper noun (product/people/lab) misclassified, discuss with ShroomDog before adding to ALLOWLIST_RAW in scripts/check-jingjing.mjs.\n` +
       (baselineRef
         ? `\nNote: --baseline-ref=${baselineRef} was used, so only new violations are reported; historical grandfathered violations are ignored.\n`
         : '')

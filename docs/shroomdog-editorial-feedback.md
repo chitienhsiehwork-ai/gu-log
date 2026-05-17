@@ -227,3 +227,12 @@
 - 情境：規劃 Tribunal v5 時，初版計畫仍允許 SP body 在 evidence boundary、引用、案例自述、benchmark/內部數字等場合保留「原作者說 / 這篇文章在講」類句型。ShroomDog 指出：SP 讀者已經知道文章是 source-derived，也看得到 `原文出處：`，正文反覆講 source metadata 只會傷害閱讀流。
 - 修法：把 Tribunal v5 factCheck 擴成五維，新增 `sourceBoundary` 與 `commentarySeparation`。SP body 禁用「原作者說 / 原文提到 / 這篇文章在講」這類 source-meta scaffolding；必要 evidence boundary 改成自然句，例如「這組數字應視為案例自述，不是公開 benchmark」。若需要討論 source 本身或加 Clawd/gu-log 觀點，放進 `<ClawdNote>`。
 - Reusable lesson：SP body 的 source fidelity 不靠反覆提醒「原作者說」維持。正文要自然呈現 source claim，保留 hedge 與 evidence boundary；source-meta commentary 與 AI/gu-log opinion 則進 ClawdNote。Reader-facing flow 優先，因為 source attribution 已由 frontmatter/source block 承擔。
+
+## 2026-05-18 — 晶晶體 Accepted-English Boundary
+
+### Feedback: Accepted English terms are ShroomDog taste decisions
+
+- ShroomDog feedback：`可接受 English terms 的邊界交給 deterministic checker`，並補充：`make sure it is clear that the boundary SHALL be discuss with ShroomDog everytime adding or removing it. (because this will severely impact the flow and only ShroomDog knows what terms he is comfortable with or not)`
+- 情境：Tribunal v5 Vibe Scorer 曾把 `vs` / `bug` 這類 ShroomDog 可接受的 engineering terms 誤判成 zh-tw 晶晶體 penalty。把判定交給 `scripts/check-jingjing.mjs` 後，仍需要明確規定 allowlist / glossary acceptance set 的 ownership，避免未來 agent 因為測試或單篇文章需要，直接擅自加詞或刪詞。
+- 修法：`scripts/check-jingjing.mjs`、Vibe Scorer contract、`scripts/vibe-scoring-standard.md` 都要寫清楚：可接受 English terms 的邊界是 deterministic checker 執行，但 boundary ownership 屬於 ShroomDog。任何新增或移除 accepted term，SHALL 先與 ShroomDog 討論。
+- Reusable lesson：晶晶體不是純技術 lint 問題，而是 gu-log 閱讀流與語感邊界。程式負責穩定執行已決定的邊界；ShroomDog 負責決定哪些 English terms 在繁中正文裡自然、哪些會破壞 flow。Agent 不應把「checker 誤報」直接翻譯成「加 allowlist」。
