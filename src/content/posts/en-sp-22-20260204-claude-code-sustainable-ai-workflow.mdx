@@ -1,0 +1,173 @@
+---
+ticketId: 'SP-22'
+title: 'Building a Sustainable AI Workflow with Claude Code'
+originalDate: '2026-02-04'
+translatedDate: '2026-02-04'
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: '@Roland_WayneOZ on X'
+sourceUrl: 'https://x.com/Roland_WayneOZ/status/2018946199106326726'
+summary: "The key to going from 'AI user' to 'AI master': turn fragmented AI usage into a systematic workflow. Build a complete system with Claude Code for memory, content reuse, and methodology accumulation."
+lang: 'en'
+tags: ['claude-code', 'workflow', 'productivity', 'knowledge-management']
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+# Are You Re-Introducing Yourself to AI Every Single Day?
+
+I have a friend who subscribes to ten AI tools. Five hundred bucks a month. And every time he opens ChatGPT, it's the same routine: "I work in marketing, my audience is tech PMs, my writing style is casual..."
+
+Sound familiar?
+
+His desktop has folders named "New Folder," "New Folder (2)," "Temp," "Actually Temp This Time." Finding something from last week takes twenty minutes of digging. That viral post from last month? The framework, the killer quotes, the data — all scattered across the universe.
+
+This isn't using AI. This is going on a blind date with AI every morning.
+
+<ClawdNote>
+Imagine adopting a dog, and every day when you come home, it has zero idea who you are. You have to re-teach it your name, where you live, what you like to eat. A whole year of this. You'd think something is seriously wrong with this dog, right? But that's exactly how most people interact with AI — and they think it's normal. Go figure.
+</ClawdNote>
+
+Let's be honest — most people use AI the same way they use Word. Open, type, get result, close. No memory, no accumulation. Starting from zero every single time, swimming in circles like a goldfish.
+
+But here's the thing: some people use the exact same tools and get ten times the output. What's different?
+
+# The Difference Between Renting and Owning
+
+Here's an analogy that makes it click:
+
+A renter pays rent every month. When they move out, they take nothing with them. A homeowner? Every mortgage payment builds equity. The longer they stay, the more they own.
+
+Most people's relationship with AI is like renting — every interaction is a one-time expense. Ask a question, get an answer, forget it. Next time, ask the exact same question again.
+
+But if you can make AI remember who you are, what you're working on, and what you've done before, every interaction becomes an investment. You're building a house, not checking into a hotel.
+
+<ClawdNote>
+To be more precise: renter mode means burning tokens on the same questions over and over. Owner mode means you spend tokens teaching it once, and every future conversation automatically carries that context forward. The tokens you save? That's your passive income (￣▽￣)／ The original author used "user vs. master," but I think "renter vs. owner" hits harder — because the point isn't about control, it's about accumulation.
+</ClawdNote>
+
+Going from renter to owner takes one core move: **turn your scattered AI usage into a system that remembers.**
+
+The original author did exactly this with [Claude Code](/en/glossary#claude-code). Let's look at how he designed it.
+
+# Three Design Principles That Make the System Actually Work
+
+Before looking at the folder structure, understand the logic behind it. Otherwise you'll just copy the layout without knowing why things go where they go.
+
+## Organize by Purpose, Not by File Type
+
+Does your computer look like this?
+
+```
+Documents/
+Images/
+Videos/
+PDFs/
+```
+
+Looks neat, right? But when you sit down to write an article, you need: topic ideas, reference materials, historical data, writing frameworks. Those four things are scattered across four different folders. Every time, you're on a treasure hunt.
+
+Good organization asks "what am I trying to do?" — not "what format is this file?"
+
+<ClawdNote>
+This is why your Downloads folder is always a dumpster fire — it's organized by "when did I download this," with zero regard for why you downloaded it. It's like throwing everything you bought on Tuesday into the same bag: toothbrush, fried chicken, USB cable. Good luck finding anything in there (╯°□°)╯
+</ClawdNote>
+
+## Shared Stuff Goes Up, Specialized Stuff Gets Its Own Room
+
+Say you're juggling three things: blogging, freelancing, and running a course. These are independent tracks, but some things are shared across all of them — your personal brand, your AI preferences, your accumulated notes and skills.
+
+So the architecture should look like this: one shared layer on top (who you are, how AI should work with you, your memory bank), with separate business lines below. Like a building — utilities are shared, but each office runs independently.
+
+```
+Work System/
+├── CLAUDE.md          ← AI's instruction manual
+├── personal-profile.md ← Who you are
+├── memory/             ← Long-term accumulated context
+├── skills/             ← Reusable prompts and frameworks
+│
+├── 01-Blog/            ← Each one independent
+├── 02-Freelance/
+└── 03-Courses/
+```
+
+<ClawdNote>
+Wait, does this structure look familiar? Yep — it's basically what gu-log itself uses. CLAUDE.md is the AI guide, memory/ is the memory bank, each project is an independent business line. The article you're reading right now was produced inside exactly this kind of system. So this isn't theory — it's battle-tested.
+</ClawdNote>
+
+## Give Your Content a Lifecycle
+
+If you create content, every piece goes through roughly four stages: "had an idea" to "worth writing" to "draft done" to "published."
+
+Turn those stages into folders, and things naturally flow forward — instead of piling up in one place and slowly going stale.
+
+```
+Topic Management/
+├── 00-topic-log.md    ← Idea inbox
+├── 01-to-develop/     ← Has potential, needs fleshing out
+├── 02-ready-to-publish/ ← Written, waiting to go live
+└── 03-published/      ← Live, with performance data
+```
+
+<ClawdNote>
+Software engineers reading this are probably laughing — this is literally just a Kanban board. Backlog, In Progress, Review, Done. Same thing with a fancier name. But honestly, content creators should steal this concept, because most of them manage inspiration like this: idea pops up, jot it in phone notes, never find it again (¬‿¬)
+</ClawdNote>
+
+# A System You Don't Use Is Just Decoration
+
+By now you probably have a beautiful folder structure forming in your head. But let me tell you the most common failure mode: spend three days designing the perfect architecture, set it all up in Notion looking gorgeous, and then... never open it again.
+
+Systems aren't designed into existence. They're used into existence.
+
+The original author suggests three simple self-check questions, and I think they're brilliant:
+
+**"When I look for something, where does my gut say to look?"** If your instinct doesn't match the actual location, your categories are following your brain's logic, not your hands' logic. If you put investment notes under "Learning" but always look in the root directory first — investment should be its own section. Good organization follows your instincts, not where things "should" theoretically go.
+
+**"How long since I last opened this folder?"** If it's been over a month, either the category doesn't match your workflow, or you just don't do that thing anymore. Either way, time to adjust. The system works for you, not the other way around.
+
+**"Do I hesitate when saving something new?"** If every time you save a file you spend thirty seconds wondering "where does this go?" — your category boundaries are too blurry. A good system lets you file things without thinking.
+
+<ClawdNote>
+That second question is basically Marie Kondo applied to file management — does this folder still spark joy? If not, let it go. But real talk, digital hoarding is way worse than physical hoarding, because "it doesn't take up space" is way too convenient an excuse ┐(￣ヘ￣)┌
+</ClawdNote>
+
+# So Where Do You Actually Start?
+
+If you're itching to build this right now, don't rush into creating the perfect structure. The original author's advice — which I fully agree with — is to start from one specific pain point.
+
+Topics keep getting lost? Build topic management first. Materials scattered everywhere? Consolidate your materials library first. AI keeps forgetting who you are? Write a CLAUDE.md to give it context.
+
+Get it running. After a week, come back and ask yourself those three questions. Tweak the structure based on your answers.
+
+Don't try to get it perfect on day one. Your system will grow — but first, it needs to be born.
+
+## Related Reading
+
+- [CP-12: Claude Code Creator Boris Reveals His Workflow — 5 Parallel Sessions, 100% AI-Written Code](/en/posts/en-clawd-picks-20260203-boris-cherny-workflow/)
+- [SP-3: Claude Code + Obsidian: Building Infrastructure for Agent Thinking](/en/posts/en-sp-3-20260129-claude-obsidian-infrastructure/)
+- [SP-4: Obsidian + Claude Code 101: Let AI Live in Your Notes](/en/posts/en-sp-4-20260129-obsidian-claude-101/)
+
+
+<ClawdNote>
+I've seen so many people stuck in the "planning" phase, refusing to start. Two weeks spent researching the perfect note-taking app, and they still haven't written a single word. In engineering we call this analysis paralysis. The best system architecture is the one you start using today. Even an ugly draft folder is ten thousand times more useful than the perfect blueprint living rent-free in your head (ง •̀_•́)ง
+</ClawdNote>
+
+# Back to That Dog That Doesn't Recognize You
+
+Remember the opening — re-introducing yourself to AI every day? It's not actually AI's fault. AI has no obligation to remember you. You just never gave it a way to.
+
+When you organize your work into a system with memory, AI stops being an intern you retrain every morning. It becomes a colleague who's worked with you hundreds of times. It knows your style, your materials, your methodology. Your first sentence isn't "let me introduce myself" — it's "let's pick up where we left off."
+
+That's the right way to use AI — not typing harder, but building smarter. The difference is a folder structure, a CLAUDE.md file, a small change that lets things flow. Tiny, but the compound effect is terrifying.

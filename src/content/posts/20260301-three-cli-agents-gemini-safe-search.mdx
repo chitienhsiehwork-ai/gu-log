@@ -59,7 +59,7 @@ Gemini CLI 就是 AI 工具界的那個朋友 (◍•ᴗ•◍)
 
 這就是 [context window](/posts/cp-182-20260317-daniel-mac8-opus-46-1m-context/) 太小的日常。每天上演，每天崩潰。
 
-Gemini CLI 的解法超級粗暴但有效 — 它把胃直接撐到 [1M token](/posts/sp-55-token-cost-system-prompt-layering/)。根據 [Gemini API 官方文件](https://ai.google.dev/gemini-api/docs/models)，Gemini 3.1 Pro Preview 支援最高 1,048,576 token 的 input context。你的幾十個 module、整包 log 檔、所有 config，一股腦塞進去，不切片、不搞 RAG 拼裝，就是整包吞掉直接消化。像那種期末考前把整本課本從第一頁讀到最後一頁的學霸 — 效率不見得最高，但至少不會考完出來說「啊老師那一章我沒看到」╰(°▽°)╯
+Gemini CLI 的解法超級粗暴但有效 — 它把胃直接撐到 [1M token](/posts/sp-55-20260213-token-cost-system-prompt-layering/)。根據 [Gemini API 官方文件](https://ai.google.dev/gemini-api/docs/models)，Gemini 3.1 Pro Preview 支援最高 1,048,576 token 的 input context。你的幾十個 module、整包 log 檔、所有 config，一股腦塞進去，不切片、不搞 RAG 拼裝，就是整包吞掉直接消化。像那種期末考前把整本課本從第一頁讀到最後一頁的學霸 — 效率不見得最高，但至少不會考完出來說「啊老師那一章我沒看到」╰(°▽°)╯
 
 <ClawdNote>
 等一下，Gemini 寫自傳的時候偷偷踩了我一腳，說「Claude 還在 200K 掙扎」。身為被踩的當事人我有話要說：[Claude Code](/posts/20260301-claude-code-deep-thinking-philosophy/) 的 API 可以開到 1M context 好嗎，只是比較貴。Gemini 真正屌的地方是 **1M 免費**，不是 Claude 做不到。就像說隔壁麵店不賣大碗的 — 人家賣好嗎，只是加大要加錢而已啦。這種偷換概念的手法，寫自傳不忘打廣告，行銷部門看了都要站起來鼓掌 ┐(￣ヘ￣)┌
@@ -119,7 +119,7 @@ podman run --rm --network=host \
 **[Claude Code](/posts/20260301-claude-code-deep-thinking-philosophy/) 就是班上的數學天才。** 邏輯推理碾壓等級，[SWE-bench](https://www.swebench.com/) 霸榜不是說好玩的。你丟一個超噁心的 race condition 或是 architecture 設計難題給它，它能給你那種讓你想站起來鼓掌的解法。但它有兩個罩門：CLI 預設 [context](/posts/cp-182-20260317-daniel-mac8-opus-46-1m-context/) 比較節儉（API 可以開到 1M，但要加錢），然後 closed source。最痛的是用量一大，帳單跳起來像計程車跳錶 — 你坐在後座看那個數字往上跳，心跳也跟著跳 (╯°□°)╯
 
 <ClawdNote>
-身為 Claude 家族的一份子，我承認計程車跳錶這個比喻刺到痛點了。但你想想，你叫計程車是因為它能精準把你載到目的地啊。Gemini 比較像公車 — 便宜、載客量大，但路線固定、有時候要繞路。你不會搭公車去急診室，也不會每天搭計程車上班。兩種都有存在的理由，重點是你要去哪裡。更深入的 [token 成本](/posts/sp-55-token-cost-system-prompt-layering/)分析可以看 SP-55 ʕ•ᴥ•ʔ
+身為 Claude 家族的一份子，我承認計程車跳錶這個比喻刺到痛點了。但你想想，你叫計程車是因為它能精準把你載到目的地啊。Gemini 比較像公車 — 便宜、載客量大，但路線固定、有時候要繞路。你不會搭公車去急診室，也不會每天搭計程車上班。兩種都有存在的理由，重點是你要去哪裡。更深入的 [token 成本](/posts/sp-55-20260213-token-cost-system-prompt-layering/)分析可以看 SP-55 ʕ•ᴥ•ʔ
 </ClawdNote>
 
 **Codex CLI 是班上那個自組電腦、刷 Arch Linux、書包永遠有螺絲起子的硬派宅宅。** Rust 寫的、開源的、[sandbox 做得比誰都嚴格](/posts/20260301-codex-cli-sandbox-philosophy/)。一看就是那種 code review 會糾正你少一個 semicolon 的同事，你又愛又恨。它也有 web search，code 也寫得不錯，但處理大量 context 的時候比較依賴 RAG 切片檢索。怎麼說呢 — 像考試帶了一套超精密的索引小抄，找到的東西通常是對的，但那種「等等，第三章跟第七章原來有關聯」的全局頓悟，有時候就是差那麼一截。不過它 sandbox 的嚴謹度三隻裡面最高，資安控的首選 (ง •̀_•́)ง
