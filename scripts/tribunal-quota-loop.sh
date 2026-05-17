@@ -841,8 +841,19 @@ get_unscored_articles() {
   local article full_path status
   for article in $all_zh_articles; do
     full_path="$POSTS_DIR/$article"
-    # Skip deprecated
-    if grep -q '^status: "deprecated"' "$full_path" 2>/dev/null; then
+    # Skip deprecated posts. Frontmatter may use quoted or unquoted YAML
+    # scalars, so parse only the first frontmatter block instead of matching
+    # one exact string.
+    if awk '
+      /^---$/ { c++; if (c == 2) exit; next }
+      c == 1 && /^status:/ {
+        sub(/^status:[[:space:]]*/, "", $0)
+        gsub(/^[[:space:]"'\''"]+|[[:space:]"'\''"]+$/, "", $0)
+        if ($0 == "deprecated") found = 1
+        exit
+      }
+      END { exit(found ? 0 : 1) }
+    ' "$full_path" 2>/dev/null; then
       continue
     fi
     # Skip already passed or permanently exhausted only for the current
