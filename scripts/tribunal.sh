@@ -637,6 +637,29 @@ run_stage() {
     local judge_rc=0 judge_task librarian_packet
     judge_task="Score this post: $ROOT_DIR/src/content/posts/$post_file
 Write your JSON result to: SCORE_PATH_PLACEHOLDER"
+    if [ "$stage_key" = "vibe" ]; then
+      local jingjing_output jingjing_rc
+      jingjing_rc=0
+      jingjing_output="$(node "$SCRIPT_DIR/check-jingjing.mjs" "$post_path" 2>&1)" || jingjing_rc=$?
+      judge_task="$(cat <<PROMPT
+Score this post: $ROOT_DIR/src/content/posts/$post_file
+Write your JSON result to: SCORE_PATH_PLACEHOLDER
+
+## Deterministic evidence packet
+Use this packet first. Do not invent a separate zh-tw decorative-English / 晶晶體 lint policy.
+
+### 晶晶體 checker
+Command: node scripts/check-jingjing.mjs src/content/posts/$post_file
+Exit code: $jingjing_rc
+
+\`\`\`
+$jingjing_output
+\`\`\`
+
+If the checker exit code is 0, do not penalize allowlisted engineering terms such as \`vs\`, \`bug\`, \`commit\`, \`PR\`, model names, tool names, or glossary terms as hard-policy 晶晶體 hits.
+PROMPT
+)"
+    fi
     if [ "$stage_key" = "librarian" ]; then
       librarian_packet="$(python3 "$SCRIPT_DIR/tribunal-librarian-packet.py" "$post_file")"
       judge_task="$(cat <<PROMPT

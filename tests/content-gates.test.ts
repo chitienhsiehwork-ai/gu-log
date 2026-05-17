@@ -76,6 +76,10 @@ describe('check-jingjing.isAllowed', () => {
     expect(jj.isAllowed('GPT-5')).toBe(true);
     expect(jj.isAllowed('K2.5')).toBe(true);
   });
+  it('allows common engineering terms ShroomDog accepts in zh-tw prose', () => {
+    expect(jj.isAllowed('vs')).toBe(true);
+    expect(jj.isAllowed('bug')).toBe(true);
+  });
   it('strips trailing punctuation before checking', () => {
     expect(jj.isAllowed('API.')).toBe(true);
   });
