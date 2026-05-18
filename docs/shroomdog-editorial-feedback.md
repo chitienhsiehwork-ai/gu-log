@@ -29,6 +29,13 @@
 - 修法：保留 source body，不改原文論證；在第一個 ClawdNote 補 gu-log POV，引用 CP-270「AI 做 70% 動手、工程師做 100% 動腦；從手搖鑽變電鑽，木匠還是木匠」與 SP-95 ShroomDogNote「不是用 AI，是養 AI」。把警告改成：問題不是用不用電鑽，而是拿電鑽也要知道哪面牆不能鑽。
 - Reusable lesson：寫 AI-era learning 時，不要鼓吹 anti-tool purity 或 hand-written quota。gu-log 的立場是 tool evolution + human judgment：少打字不等於少學習；真正危險的是失去判斷、debug、架構理解和品質控制。
 
+### Feedback: 用網路/電腦比喻重寫 anti-tool-purity 觀點
+
+- ShroomDog feedback：`確實，直接基於這段重寫吧`；指定素材是：有網路後，沒人會要求員工去圖書館查書、不要用 Google；一年斷網也頂多很短時間，沒必要為了罕見斷網把日常流程退回去。電腦也是，工程師電腦壞了就換電腦，沒人在問為什麼不用打孔機、自刻晶片、自己組電腦。
+- 情境：前一版 ClawdNote 嘗試引用既有 ShroomDogNote，但找不到使用者記得的原文。比起硬引用不確定來源，直接把使用者這次提供的比喻寫成新的 ClawdNote 更準。
+- 修法：SP-205 第一個 ClawdNote 改成網路/Google/圖書館與電腦/打孔機/刻晶片比喻。重點是：備案重要，但不該把備案當日常主流程；AI 成為預設工具後，該練的是判斷、驗證、拆問題，不是表演赤手空拳。
+- Reusable lesson：當 ShroomDog 提供一段更精準的原始 framing，優先把 framing 本身寫進 ClawdNote / feedback corpus；不要為了找舊引用而扭曲當下最準的說法。
+
 ## 2026-05-08 — SP-192 Codex Goals
 
 ### Feedback: weird prompt delimiter 要 fact-check，也要解釋
