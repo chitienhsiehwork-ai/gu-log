@@ -13,6 +13,15 @@
 - 寫 SP / CP / SD / Lv 前，如果任務涉及文章品質或風格，先快速掃這份檔案的近期條目。
 - 當同一類 feedback 出現 3 次以上，應該蒸餾進 `GU-LOG_WRITER_PROMPT.md`，必要時再同步到 pipeline prompt；不要永遠只留在 corpus 裡。
 
+## 2026-05-18 — SP Addy Osmani: Don't Outsource the Learning
+
+### Feedback: SP 要貼近原文，ClawdNote 補脈絡，不要先重構文章
+
+- ShroomDog feedback：`為什麼要想文章結構？SP 的話就直接根據 WRITER_PROMPT 的語氣翻譯，加上 ClawdNote 就好了吧？這樣我要跟原本原文對照的話成本也低`；並補充：`Make sure in the first ClawdNote, the why do we need to learn is clear and discuss interestingly if the article did not include it properly`
+- 情境：評估 Addy Osmani 的 X Article〈Don't Outsource the Learning〉是否適合做 SP 時，Iris 先提出一篇重新組織過的 gu-log essay structure。這不符合 SP 的主要價值：讓讀者能低成本對照原文，同時拿到 gu-log 口吻與 ClawdNote 補充。
+- 修法：正文保留原文段落與論證順序，依 `GU-LOG_WRITER_PROMPT.md` 翻成自然台灣中文；不要把 source 改寫成另一篇 editorial。第一個 ClawdNote 專門補強「為什麼還要學」：AI 能完成任務，但不會自動把可遷移的 mental model 裝進腦袋；未來值錢的是判斷、debug、遷移、質疑 AI 輸出的能力。
+- Reusable lesson：SP 的預設不是重新設計文章架構，而是 source-spine translation + gu-log voice + ClawdNote。若原文缺一段讀者需要的 why/context，把它放進 ClawdNote，不要偷偷改原作者正文。
+
 ## 2026-05-08 — SP-192 Codex Goals
 
 ### Feedback: weird prompt delimiter 要 fact-check，也要解釋

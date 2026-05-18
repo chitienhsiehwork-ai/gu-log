@@ -1,0 +1,173 @@
+---
+ticketId: "SP-205"
+title: "Do Not Outsource the Learning to AI"
+originalDate: "2026-05-17"
+translatedDate: "2026-05-18"
+translatedBy:
+  model: "GPT-5.5"
+  harness: "Iris + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "GPT-5.5"
+      harness: "Iris"
+    - role: "Verified"
+      model: "GPT-5.5"
+      harness: "Codex CLI + Tribunal"
+source: "@addyosmani on X"
+sourceUrl: "https://x.com/addyosmani/status/2056078124346228860?s=46"
+lang: "en"
+summary: "Addy Osmani warns that default AI coding workflows help people close tasks, but do not automatically make them sharper. The difference is not whether engineers use AI; it is whether they use it to test and grow their own mental models."
+tags: ["shroom-picks", "ai", "software-engineering", "learning"]
+scores:
+  tribunalVersion: 5
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 10
+    commentarySeparation: 8
+    score: 8
+    date: "2026-05-18"
+    model: "gpt-5.5"
+  librarian:
+    glossary: 9
+    crossRef: 9
+    sourceAlign: 9
+    attribution: 8
+    score: 8
+    date: "2026-05-18"
+    model: "gpt-5.5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    score: 8
+    date: "2026-05-18"
+    model: "gpt-5.5"
+  vibe:
+    persona: 8
+    clawdNote: 9
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-05-18"
+    model: "gpt-5.5"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Right now, it is too easy to let AI write the code while the human skips the learning. The bug gets fixed, but the mental model does not move. Over time, it may even get worse. We are quietly trading future capability for present-day speed, and the tools will not force a different choice. That part has to come from the person using them.
+
+There is a default loop many developers have settled into: paste in a spec or an error message, get a fix from the model, watch the symptom disappear, ship. Somewhere in that loop, the messy struggle between problem and solution stops happening at all.
+
+Cognitive surrender happens when an AI reviewer’s verdict quietly replaces your own. The same loop has a solo version. It is just the developer and the model. The model is faster, so the human stops trying to compete on comprehension. Across thousands of small interactions, what that person can actually build without an AI looking over their shoulder gets a little weaker every week. None of these moments feel like a problem on the day they happen.
+
+This is not anti-AI. These tools are already part of daily work, and they can help people ship more in one year than in the several years before it. But the default way we use them is optimized for one thing: closing tasks.
+
+That is a completely different goal from staying sharp enough to steer them over a long career.
+
+<ClawdNote summary="The steering wheel still cannot fall asleep.">
+This is easy to misread as “do not be lazy, suffer more.” That is not the point. The point is control.
+
+AI can close the ticket in front of you. It does not automatically install a transferable mental model in your head. A mental model is what lets you know where to look when the framework changes, the security review explodes, the model confidently lies, or the system wanders into an undocumented corner.
+
+A stronger AI is like a car that is extremely good at hitting the accelerator. Great. But the steering wheel still cannot fall asleep. Outsourcing learning feels cheap at first; the deposit is your future debugging power. (◕‿◕)
+</ClawdNote>
+
+## The studies are converging on the same point
+
+Several pieces of research over the last year have landed in roughly the same place.
+
+Anthropic ran a randomized trial in early 2026 where engineers learned a new Python library, half with AI assistance and half without. Both groups finished the tasks at the same speed. But the AI group did much worse on the follow-up comprehension quiz: 50% versus 67% for the manual group, with the gap widening on debugging.
+
+The interesting split was inside the AI group. Engineers who used AI to ask conceptual questions scored above 65%. Engineers who copy-pasted generated code scored under 40%. The tool did not determine the outcome. The posture did.
+
+MIT’s Your Brain on ChatGPT study compared essay writing across LLM, search-engine, and brain-only groups. EEG measurements showed brain connectivity scaling down with every layer of external support. The LLM group showed the weakest coupling. After writing the essay, 83% of LLM users could not quote a single line of what they had just produced. The researchers called this cognitive debt: saving mental effort today, paying for it with critical thinking tomorrow.
+
+A CHI 2026 study added a related finding. When people had LLM access at the start of a task, the LLM framed the entire problem. Even when the human did the rest of the work themselves, that initial anchoring produced measurably worse decisions. The order of operations mattered more than the total amount of AI used.
+
+Different methods, same warning: using AI without an active intent to learn quietly degrades the skill people are paid for.
+
+---
+
+## The tools default to shipping, not teaching
+
+If someone fires up a [coding agent](/en/glossary#agent) and sticks to the defaults, everything is tuned for one metric: getting the task done.
+
+The model writes the code. The human accepts it. The loop repeats. At no point does the tool pause and ask, “what do you think the problem is?” or “try writing the first five lines yourself.”
+
+That is where UX gravity is right now. Product teams are rewarded for merged changes and shorter cycle times, not for making users sharper engineers. Everyone wants fewer keystrokes, so the tools have sanded the friction away. The trouble is that friction was where the learning lived.
+
+A few companies have tried pushing back. Anthropic shipped Learning Mode for Claude, which uses Socratic questioning and stops to ask the user to write code before continuing; Addy Osmani puts OpenAI and Google's similar learning modes in the same bucket.
+
+Almost nobody uses them for real production work, though. We have quietly filed them under “for students,” and that is a mistake. The same feature that helps a sophomore learn React works for a senior engineer learning Rust. The price is feeling like a beginner again.
+
+<ClawdNote summary="Learning Mode is cooking class, not delivery.">
+The awkward part of Learning Mode is not that it is slow. It is that it makes a senior engineer feel like the teacher just called on them.
+
+Normal mode is delivery: food arrives, eat, next order. Learning Mode is cooking class: the teacher says, cut the onion first. Many people want to flip the table because they wanted dinner, not knife practice. But after every meal is delivery, the day the stove breaks is the day everyone learns they cannot fry an egg.
+
+gu-log already unpacked the Anthropic study in [SP-14](/en/posts/en-sp-14-20260131-ai-assistance-coding-skills/): people who used AI to ask conceptual questions and people who pasted generated code did not become the same kind of engineer. This piece pushes that same warning into everyday workflow.
+</ClawdNote>
+
+---
+
+## “If AI can do it, why understand it?”
+
+Fair question. For some work, maybe the answer is: no need. If it is boilerplate, glue code, or a throwaway CI script nobody will ever look at again, delegate it. The opportunity cost of memorizing syntax can be too high.
+
+For real software, pure delegation breaks down in a few places.
+
+**When something breaks.** AI-generated code crashes the same way human code does. “The agent wrote it” does not help anyone debug. Somebody on the team has to understand the architecture.
+
+**When it is confidently wrong.** LLMs can still hallucinate. The only defense against a plausible-looking wrong answer is enough expertise to notice what is strange. [Skills](/en/glossary#skill) and CLIs only get so far.
+
+**When the foundation changes.** Code is temporary; systems are long-lived. When frameworks update or a security review flags a structural issue, teams cannot just re-prompt their way out. They need engineers who understand the system well enough to migrate it.
+
+**When the work leaves the median.** AI is brilliant at problems solved a million times on GitHub. The further the problem gets from the median, the worse it gets. The hard, undocumented problems that justify a senior engineer’s salary still require deep understanding.
+
+**When the market adjusts.** Engineers who can only ship with AI, and not without it, are entering a labor pool that is already re-pricing expertise. Using AI to skip learning trades future relevance for a slightly easier Tuesday.
+
+---
+
+## The fix is in the prompt posture
+
+The good news: the same tools that create cognitive debt can also make sharper engineers. The difference is what people ask of them.
+
+**Form a hypothesis before asking.** Before requesting a fix, write two or three sentences about what the problem might be. Use the model’s answer to test that theory, not replace it.
+
+**Ask for the explanation before the code.** In unfamiliar territory, start with: “explain how this works, what the alternatives are, and what the tradeoffs are.” Ask for code only after the concepts land.
+
+**Turn on Learning Mode when out of depth.** Yes, it feels slower. That is the point.
+
+**Treat AI output like a PR from a junior engineer.** Read it. Critique it. Push back. If passing tests would not be enough to merge that PR from a person, it should not be enough here either.
+
+**Re-derive things by hand once in a while.** Take a piece of code the model wrote and recreate it from scratch. It is a calibration check for what has been quietly lost.
+
+**Ask the model to teach what it just did.** After it writes a clever function, ask what concepts it used, why it made that design choice, and what to read next. One extra prompt changes what the session leaves behind.
+
+None of this is dramatic. It is a small posture shift inside the same tools.
+
+<ClawdNote summary="AI should be the coach, not the lifter.">
+This is basically the gym coach problem. Bad version: “Coach, lift the barbell for me while I scroll my phone.” Task complete. Muscle growth: zero.
+
+Good version: “Watch my form. I think my core is unstable; help me test that.” Then AI is not a body double. It is a sparring partner. One word changes the career arc.
+
+This also connects to [SP-142](/en/posts/en-sp-142-20260402-mario-zechner-coding-agent-codebase/), the "slow down" warning. That post is about not letting [agent](/en/glossary#agent) speed wreck the codebase; this one is about not letting speed hollow out the engineer. [ClawdNote](/en/glossary#clawd) will keep nagging about it because those are two ends of the same line.
+</ClawdNote>
+
+---
+
+## Two metrics, not one
+
+Now every coding session can end with a simple question: did anything get learned today, or did issues just get closed?
+
+Sometimes the honest answer is “just closed issues,” and that is fine. If that becomes the answer for months in a row, cognitive debt is accumulating in the background.
+
+Shipping and learning are two separate metrics. Managers and customers will only ask about the first one. The second is on the engineer.
+
+The healthier tradeoff is shipping 80% of what could have been shipped while learning 100% of what needed to be learned, not the reverse. Over years, those two strategies produce very different engineers.
+
+Nobody has to choose between using AI and learning. But people do have to choose a workflow that does both, because the defaults will not choose it for them. The tools are ready.
+
+The next boring task that was about to be delegated is a good place to start.
