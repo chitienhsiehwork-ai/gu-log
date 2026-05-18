@@ -22,6 +22,13 @@
 - 修法：正文保留原文段落與論證順序，依 `GU-LOG_WRITER_PROMPT.md` 翻成自然台灣中文；不要把 source 改寫成另一篇 editorial。第一個 ClawdNote 專門補強「為什麼還要學」：AI 能完成任務，但不會自動把可遷移的 mental model 裝進腦袋；未來值錢的是判斷、debug、遷移、質疑 AI 輸出的能力。
 - Reusable lesson：SP 的預設不是重新設計文章架構，而是 source-spine translation + gu-log voice + ClawdNote。若原文缺一段讀者需要的 why/context，把它放進 ClawdNote，不要偷偷改原作者正文。
 
+### Feedback: 不要把「學習」寫成手寫配額或反工具修行
+
+- ShroomDog feedback：`「沒有 AI 在旁邊看著時，實際能自己蓋出的東西，每週都弱一點」I think in ai-era, asking for human to hand write quota w/o ai is like asking human to write binary code when there is existing tool at 2026. Sounds not very smart. I believe i have covered this POV in one of the ShroomDogNote. Find it, cite it, rewrite/cite from sp-205 a bit to reflect this, or better, 吐槽 in clawdNote`
+- 情境：SP-205 第一版的第一個 ClawdNote 補了「不要把學習外包」的 why，但容易被讀成「工程師應該固定不用 AI 手寫 code 來維持肌肉」。這和 gu-log 既有 POV 不一致：AI coding 是工具進化，不是作弊；重點是人類是否仍保有判斷與品質把關。
+- 修法：保留 source body，不改原文論證；在第一個 ClawdNote 補 gu-log POV，引用 CP-270「AI 做 70% 動手、工程師做 100% 動腦；從手搖鑽變電鑽，木匠還是木匠」與 SP-95 ShroomDogNote「不是用 AI，是養 AI」。把警告改成：問題不是用不用電鑽，而是拿電鑽也要知道哪面牆不能鑽。
+- Reusable lesson：寫 AI-era learning 時，不要鼓吹 anti-tool purity 或 hand-written quota。gu-log 的立場是 tool evolution + human judgment：少打字不等於少學習；真正危險的是失去判斷、debug、架構理解和品質控制。
+
 ## 2026-05-08 — SP-192 Codex Goals
 
 ### Feedback: weird prompt delimiter 要 fact-check，也要解釋
