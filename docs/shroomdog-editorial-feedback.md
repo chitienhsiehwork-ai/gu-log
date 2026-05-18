@@ -36,6 +36,13 @@
 - 修法：SP-205 第一個 ClawdNote 改成網路/Google/圖書館與電腦/打孔機/刻晶片比喻。重點是：備案重要，但不該把備案當日常主流程；AI 成為預設工具後，該練的是判斷、驗證、拆問題，不是表演赤手空拳。
 - Reusable lesson：當 ShroomDog 提供一段更精準的原始 framing，優先把 framing 本身寫進 ClawdNote / feedback corpus；不要為了找舊引用而扭曲當下最準的說法。
 
+### Feedback: ClawdNote 和 ShroomDogNote 要分清楚聲音來源
+
+- ShroomDog feedback：`Split into ClawdNote -> ai's opinion / ShroomDogNote -> ShroomDog's opinion`
+- 情境：SP-205 第一個 ClawdNote 同時包含 AI/Clawd 對「為什麼還要學」的分析，以及 ShroomDog 對「不要把學習寫成 anti-tool 苦修」的吐槽。兩種聲音都對，但放在同一個 ClawdNote 裡會讓讀者以為 Google/圖書館/打孔機那段也是 AI 的 editorial voice，而不是 ShroomDog 本人的觀點。
+- 修法：把第一個 note 拆成兩塊：`<ClawdNote>` 只放 AI/Clawd opinion（控制權、心智模型、判斷與驗證）；`<ShroomDogNote>` 放 ShroomDog opinion（不用 AI 手寫配額像禁用 Google、打孔機、自刻晶片等反工具修行吐槽）。英文版同步拆分，保持中英文章結構一致。
+- Reusable lesson：當 note 內容混到不同角色的立場時，不要只靠文字說「ShroomDog 覺得」。要用元件邊界標出 voice ownership：Clawd/AI 的補充放 ClawdNote，ShroomDog 本人的 editorial stance 放 ShroomDogNote。
+
 ## 2026-05-08 — SP-192 Codex Goals
 
 ### Feedback: weird prompt delimiter 要 fact-check，也要解釋
