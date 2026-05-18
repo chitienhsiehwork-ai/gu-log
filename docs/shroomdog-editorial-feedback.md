@@ -22,7 +22,7 @@
 - 修法：正文保留原文段落與論證順序，依 `GU-LOG_WRITER_PROMPT.md` 翻成自然台灣中文；不要把 source 改寫成另一篇 editorial。第一個 ClawdNote 專門補強「為什麼還要學」：AI 能完成任務，但不會自動把可遷移的 mental model 裝進腦袋；未來值錢的是判斷、debug、遷移、質疑 AI 輸出的能力。
 - Reusable lesson：SP 的預設不是重新設計文章架構，而是 source-spine translation + gu-log voice + ClawdNote。若原文缺一段讀者需要的 why/context，把它放進 ClawdNote，不要偷偷改原作者正文。
 
-### Feedback: 不要把「學習」寫成手寫配額或反工具修行
+### Feedback: 不要把「學習」寫成手寫 code 配額或反工具修行
 
 - ShroomDog feedback：`「沒有 AI 在旁邊看著時，實際能自己蓋出的東西，每週都弱一點」I think in ai-era, asking for human to hand write quota w/o ai is like asking human to write binary code when there is existing tool at 2026. Sounds not very smart. I believe i have covered this POV in one of the ShroomDogNote. Find it, cite it, rewrite/cite from sp-205 a bit to reflect this, or better, 吐槽 in clawdNote`
 - 情境：SP-205 第一版的第一個 ClawdNote 補了「不要把學習外包」的 why，但容易被讀成「工程師應該固定不用 AI 手寫 code 來維持肌肉」。這和 gu-log 既有 POV 不一致：AI coding 是工具進化，不是作弊；重點是人類是否仍保有判斷與品質把關。
@@ -40,8 +40,15 @@
 
 - ShroomDog feedback：`Split into ClawdNote -> ai's opinion / ShroomDogNote -> ShroomDog's opinion`
 - 情境：SP-205 第一個 ClawdNote 同時包含 AI/Clawd 對「為什麼還要學」的分析，以及 ShroomDog 對「不要把學習寫成 anti-tool 苦修」的吐槽。兩種聲音都對，但放在同一個 ClawdNote 裡會讓讀者以為 Google/圖書館/打孔機那段也是 AI 的 editorial voice，而不是 ShroomDog 本人的觀點。
-- 修法：把第一個 note 拆成兩塊：`<ClawdNote>` 只放 AI/Clawd opinion（控制權、心智模型、判斷與驗證）；`<ShroomDogNote>` 放 ShroomDog opinion（不用 AI 手寫配額像禁用 Google、打孔機、自刻晶片等反工具修行吐槽）。英文版同步拆分，保持中英文章結構一致。
+- 修法：把第一個 note 拆成兩塊：`<ClawdNote>` 只放 AI/Clawd opinion（控制權、心智模型、判斷與驗證）；`<ShroomDogNote>` 放 ShroomDog opinion（不用 AI 手寫 code 的配額像禁用 Google、打孔機、自刻晶片等反工具修行吐槽）。英文版同步拆分，保持中英文章結構一致。
 - Reusable lesson：當 note 內容混到不同角色的立場時，不要只靠文字說「ShroomDog 覺得」。要用元件邊界標出 voice ownership：Clawd/AI 的補充放 ClawdNote，ShroomDog 本人的 editorial stance 放 ShroomDogNote。
+
+### Feedback: 「手寫配額」不是自然中文，要寫清楚是手寫 code 的配額
+
+- ShroomDog feedback：`手寫配額？手寫扣？`
+- 情境：SP-205 ShroomDogNote 把 `hand write quota w/o ai` 寫成「不用 AI 手寫配額」，讀起來像「手寫扣」或不知道在手寫什麼；問題不是立場，而是中文賓語漏掉。
+- 修法：改成「每天固定完成一段『不用 AI 手寫 code 的配額』」，把被手寫的東西補出來。
+- Reusable lesson：中英混寫時，不要把 English shorthand 直譯成缺賓語的中文名詞片語。`handwritten-code quota` 要寫成「手寫 code 的配額」或「不用 AI 寫 code 的固定份量」，不要寫「手寫配額」。
 
 ## 2026-05-08 — SP-192 Codex Goals
 
