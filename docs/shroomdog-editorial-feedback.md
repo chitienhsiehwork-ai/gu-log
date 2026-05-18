@@ -50,6 +50,13 @@
 - 修法：先改成「每天固定完成一段『不用 AI 手寫 code 的配額』」仍然太硬；再依 ShroomDog 指示改成「每天固定手寫一定量的 code」。
 - Reusable lesson：中英混寫時，不要把 English shorthand 直譯成缺賓語或硬組裝的中文名詞片語。`handwritten-code quota` 要寫成「每天固定手寫一定量的 code」這種正常中文動作句，不要寫「手寫配額」或「手寫 code 的配額」。
 
+### Feedback: ShroomDogNote 太長時要自動收合，不要把 Note 牆砸到讀者臉上
+
+- ShroomDog feedback：`ShroomDogNote should also be auto-folded when too long. Do not throw a wall of text of *Note to reader's face`
+- 情境：SP-205 的 ShroomDogNote 承載了 ShroomDog 本人的長段吐槽。拆成 ShroomDogNote 是對的，但如果整段直接展開，讀者會在正文前被一大塊 note 擋住，閱讀節奏被打斷。
+- 修法：在 `ShroomDogNote.astro` 加入預設啟用的 auto-fold。內容高度超過門檻時，先顯示前段 preview + 漸層淡出 +「展開完整 ShroomDogNote」按鈕；短 note 維持原樣。保留 `autoFold={false}` 和 `collapseThreshold` 讓個別 note 可覆寫。
+- Reusable lesson：所有 *Note 元件都要避免「牆式插話」。Note 是旁白，不是路障；長 note 應該預設收合，讓讀者自己選擇是否展開。
+
 ## 2026-05-08 — SP-192 Codex Goals
 
 ### Feedback: weird prompt delimiter 要 fact-check，也要解釋
