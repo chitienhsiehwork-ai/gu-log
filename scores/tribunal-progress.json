@@ -1,29 +1,118 @@
 {
-  "sp-180-20260423-anthropic-mcp-production-agents.mdx": {
-    "article": "sp-180-20260423-anthropic-mcp-production-agents.mdx",
-    "startedAt": "2026-04-24T13:40:32+08:00",
+  "clawd-picks-20260421-openai-euphony-codex-viewer.mdx": {
+    "article": "clawd-picks-20260421-openai-euphony-codex-viewer.mdx",
+    "startedAt": "2026-04-24T14:35:56+08:00",
     "stages": {
       "librarian": {
         "status": "pass",
         "score": {
           "judge": "librarian",
           "dimensions": {
-            "glossary": 10,
-            "crossRef": 9,
-            "sourceAlign": 9,
+            "glossary": 8,
+            "crossRef": 7,
+            "sourceAlign": 10,
             "attribution": 9
           },
-          "score": 9,
+          "score": 8,
           "verdict": "PASS",
           "reasons": {
-            "glossary": "All four glossary terms used (agent, MCP, Cowork, Claude Code) are linked with /glossary#... anchors on first mention.",
-            "crossRef": "Three internal post links verified (sp-129 Cloudflare Dynamic Workers, sp-167 Managed Agents used twice, sp-179 skillify); ShroomDog/Clawd names don't appear in body so identity links N/A.",
-            "sourceAlign": "Content faithfully tracks the Anthropic blog — three-path framing, Cloudflare 2500/1K benchmark, Elicitation Form/URL modes, CIMD, Vaults, 85%/37% numbers, Plugin+skill pattern all present.",
-            "attribution": "Every blockquote attributed to Anthropic 原文 with clear speaker tags; all statistics cited (3億/月 SDK, 85% tool-def reduction, 37% multi-step, ~2500 endpoints); ClawdNote opinions clearly sandboxed from body facts."
+            "glossary": "Key terms covered: Claude Code explained inline (closed-source vs open-source distinction, aligned with glossary entry), Codex cross-linked to /posts/claude-code-vs-codex/, Agent used as general concept. No explicit /glossary links but contextual treatment is strong; minor gap — Codex/Claude Code could also link to glossary anchors.",
+            "crossRef": "Both internal links resolve: /posts/claude-code-vs-codex/ and /posts/sp-98-20260303-openai-harness-engineering/ both exist. External links to openai/euphony, openai/harmony, and the CLAUDE.md on GitHub all valid. Gap: 'Clawd' mentioned in body text at line 37 ('Clawd 每次讀都要 scroll 十秒') on first mention without /about link — required identity link is missing.",
+            "sourceAlign": "Content clearly derived from sourceUrl (github.com/openai/euphony): quotes root-level AGENTS.md verbatim, analyzes package.json runtime deps (Lit, Shoelace, gpt-tokenizer), references README's translation feature and SSRF warning. Faithful derivation.",
+            "attribution": "AGENTS.md block quoted verbatim with clear source (root directory of repo). Euphony tagline attributed to homepage. SSRF warning attributed to README. SP-98 claim about OpenAI's Codex usage linked to source post. ClawdNote opinions cleanly segregated from body observations via component boundaries. Minor: 'OpenAI 推 AGENTS.md 格式推了將近一年' is an unsourced timeframe claim."
           }
         },
         "model": "opus-4.7",
         "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 7,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Most claims verify against the openai/euphony repo (Apache 2.0, two-rule agents.md, Lit+Shoelace, user-supplied API key for translation, HF-hosted demos, README's SSRF warning, euphony-conversation custom element). One clear error: post asserts gpt-tokenizer is '不是 devDependencies，是正式依賴', but package.json actually lists gpt-tokenizer ^3.4.0 under devDependencies — there is no top-level dependencies field at all. The researcher-audience conclusion still stands via the README's 'Harmony token rendering' feature, but the dep-location argument is factually wrong. Homepage title is also paraphrased ('Visualize chat data in your browser 🎵' vs actual 'Visualize harmony chat conversations and Codex sessions in your browser 🎵').",
+            "fidelity": "CP-style commentary on a repo rather than prose translation. Quotes from agents.md are verbatim. README's Translation/SSRF language faithfully represented without uncertainty erasure. Claude Code closed-source caveat correctly flagged per CLAUDE.md guidance. Main fidelity gap is the gpt-tokenizer dep mischaracterization noted above.",
+            "consistency": "Thesis ('internal tool accidentally open-sourced') is coherently supported by the four observations (two-rule agents.md, tokenizer-heavy UI, user-key translation, self-written SSRF warning). ClawdNotes clearly demarcated as opinion; SP-98 callback closes the loop with the opening intern metaphor. No internal contradictions."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-24T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 9,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Intern-monitor metaphor sustained well and '就這樣。兩點。結束。' has great oral snap, but section 2 package.json analysis reads more like blog writing than a professor riffing.",
+            "clawdNote": "Both notes clear the opinion threshold — three hypotheses on why 2 rules, SSRF praise calls out industry norms — but only 2 notes for ~60 prose lines is at the sparse edge of density target.",
+            "vibe": "The '2-line AGENTS.md vs 200-line CLAUDE.md' contrast is instantly shareable to anyone who's written agent instructions, and the HuggingFace hosting easter egg adds genuine delight.",
+            "clarity": "Zero pronoun ambiguity — body text names every subject (OpenAI, 實習生, PM, researcher, 使用者) and ClawdNote 我 is unambiguously Clawd.",
+            "narrative": "Discovery arc peels back layers of 'who was this built for' with a callback ending that extends the metaphor, though middle sections follow a slightly predictable reveal-then-observe pattern."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-24T14:41:18+08:00"
+  },
+  "cp-300-20260416-lalitmaganti-article-ai-sqlite-devtools.mdx": {
+    "article": "cp-300-20260416-lalitmaganti-article-ai-sqlite-devtools.mdx",
+    "startedAt": "2026-04-24T15:29:20+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-24T00:00:00Z",
+          "dimensions": {
+            "glossary": 10,
+            "crossRef": 10,
+            "sourceAlign": 10,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 2
       },
       "factChecker": {
         "status": "pass",
@@ -37,9 +126,9 @@
           "score": 9,
           "verdict": "PASS",
           "reasons": {
-            "accuracy": "All numeric claims verified against source: 300M/mo SDK downloads (up from 100M), Cloudflare 2 tools / ~2,500 endpoints / ~1K tokens, 85%+ tool-definition token reduction, ~37% multi-step reduction, 200+ directory servers, Cowork data plugin 10 skills + 8 MCP servers (Snowflake/Databricks/BigQuery/Hex) — every number matches the Anthropic blog.",
-            "fidelity": "Direct quotes (opening 'Agents are only as useful...', create_issue_from_thread example, 'mature integrations will ship all three', 'Every integration built on MCP strengthens the ecosystem', Cloudflare reference-example quote) render accurately; the 'tends to' hedge on 85%+ is explicitly preserved as '通常能...並維持選擇準確度' and called out as a non-guaranteed observation; URL mode / form mode coverage caveat retained.",
-            "consistency": "Argument structure mirrors source (three paths → production cloud thesis → server patterns → client patterns → skill×MCP → compounding conclusion); ClawdNote commentary is physically isolated in <ClawdNote> components and framed as opinion/analogy (electricity-standards, platform-play, App Store parallels), never bleeding into factual body prose."
+            "accuracy": "All core technical claims verified against source: ~250 hours / 3 months, Max plan £200/mo, Aider→Roo Code→Claude Code (since July), >400 SQLite grammar rules, 500+ tests, Rust switch, 0.1 launch mid-March, Wadler-Lindig formatter, VS Code extension in ~1 hr. One minor imprecision: source says '~100K lines of PerfettoSQL' (approx) while translation says '超過十萬行' (more than) — slight upgrade from approximation.",
+            "fidelity": "Faithful throughout. Key quotes preserved verbatim in English then paraphrased (the 'taste' quote and the 'become that manager' quote). Hedges preserved ('somewhere between unhelpful and harmful' → '介於無用和有害之間'; 'probably slower' → '可能比自己直接寫還慢'). All Clawd additions (SP-56/SP-142/CP-231/SP-158 cross-refs) are confined to ClawdNote blocks with clear opinion framing — zero bleed into body.",
+            "consistency": "Argument flows match source's three-part structure (AI why project exists → AI costs → relativity framework). ClawdNotes cleanly separated via component, each labeled as Clawd's opinion. Internal logic holds: vibe-coding failure → rewrite → new workflow → relativity synthesis. No contradictions between ClawdNote opinions and body claims."
           }
         },
         "model": "opus-4.7",
@@ -51,13 +140,13 @@
           "judge": "freshEyes",
           "dimensions": {
             "readability": 8,
-            "firstImpression": 8
+            "firstImpression": 9
           },
           "score": 8,
           "verdict": "PASS",
           "reasons": {
-            "readability": "Cooking menu 跟美國電力的比喻把 MCP / M×N 解釋得超清楚，三條路結構一目了然；扣分在 Elicitation / CIMD / Vault 那段一次塞太多新名詞，OAuth 不熟的人要回頭讀一次。",
-            "firstImpression": "開頭『搬上雲第一天全部連不到』的場景直接打到我，三個硬數字（3 億下載、2500 endpoints、85%/37%）讓每個論點都有重量，結尾把 takeaway 壓成『部署地點的函數』很爽；會發給正在做 agent side project 的同事。"
+            "readability": "故事線清楚、章節 header 切得乾淨，大部分都跟得上。Parser/parse tree、virtual table API、Wadler-Lindig pretty printing 這幾個地方需要憑空相信，但不至於勸退——可以滑過去仍然 follow 主線。",
+            "firstImpression": "「八年想做、三個月用 AI 做完」這個 hook 一秒抓住，誠實寫失敗（vibe-coding 一整個月全報廢、凌晨停不下來的 prompt 成癮）比成功故事好看十倍。老虎機比喻、相對論比喻、洗 400 個碗想炸廚房，都會想截圖丟群組。"
           }
         },
         "model": "opus-4.7",
@@ -77,42 +166,316 @@
           "score": 8,
           "verdict": "PASS",
           "reasons": {
-            "persona": "菜單vs流程圖 cooking analogy and 桌子堆參考書 metaphor land well; 'agent 搆不到就是廢物' harshness is peak LHY; three walls section slightly structured-explainer.",
-            "clawdNote": "5/6 notes have clear stance — platform play W3C comparison, 'agent 圈集體慚愧' 20-year snark, and practical MVP takeaway are highlights with genuine personality.",
-            "vibe": "Cloudflare 2-tool section is genuinely compelling and the opening搬家 scenario hooks immediately; some information-dense passages in the walls section slightly drag momentum.",
-            "clarity": "Body text maintains clean pronoun discipline throughout; subjects always named (Anthropic, agent, Cloudflare); attribution pristine with quotes properly marked.",
-            "narrative": "Opening搬家 scenario callbacks in conclusion; three walls escalate tension ('一道比一道無聊、一道比一道致命'); skill extension adds forward-looking twist; some list rhythm in walls section."
+            "persona": "Opening '八年' hook and analogies (鞋拔、洗400個碗) land well with oral feel, but the 4+4 subsection headers in benefits/costs sections slide into blog-writing mode.",
+            "clawdNote": "8 notes with strong opinion density — vibe-coding paradox stance, inverse proposition insight on 'taste' quote, cross-refs to SP-56 and SP-142 show real editorial voice.",
+            "vibe": "Vibe-coding failure section creates genuine tension; addiction observations are compelling and rarely written about this honestly; benefits subsections are slightly standard.",
+            "clarity": "'Lalit' consistently named, zero 你/我 in body, ClawdNote voice unmistakable — no pronoun confusion anywhere.",
+            "narrative": "Real arc from 8-year dormancy through dramatic vibe-coding failure to synthesis, but middle benefits/costs sections use parallel 4-subsection structure that creates template rhythm."
           }
         },
         "model": "opus-4.6-1m",
-        "attempts": 2
+        "attempts": 1
       }
     },
     "topLevelAttempts": 1,
     "status": "PASS",
-    "finishedAt": "2026-04-24T13:58:43+08:00"
+    "finishedAt": "2026-04-24T15:42:02+08:00"
   },
-  "sp-179-20260422-garrytan-skillify-agent-failures.mdx": {
-    "article": "sp-179-20260422-garrytan-skillify-agent-failures.mdx",
-    "startedAt": "2026-04-24T13:59:09+08:00",
+  "sd-20-20260421-hermes-vs-openclaw.mdx": {
+    "article": "sd-20-20260421-hermes-vs-openclaw.mdx",
+    "startedAt": "2026-04-24T14:30:02+08:00",
     "stages": {
       "librarian": {
         "status": "pass",
         "score": {
           "judge": "librarian",
           "dimensions": {
-            "glossary": 8,
-            "crossRef": 7,
-            "sourceAlign": 9,
+            "glossary": 10,
+            "crossRef": 9,
+            "sourceAlign": 8,
+            "attribution": 10
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "All key technical glossary terms linked on first use: [agent harness](/glossary#agent-harness), [Claude Code](/glossary#claude-code), [Codex](/glossary#codex), [OpenClaw](/glossary#openclaw), [MCP](/glossary#mcp), [subagent](/glossary#subagent), [Ralph Loop](/glossary#ralph-loop). No missing glossary connections for the technical content covered.",
+            "crossRef": "Identity links present — first ShroomDog → /about (line 23), first Clawd → /about (line 41). No /posts/ internal links used (reasonable for this standalone architecture analysis), no broken references. Could have cross-linked a prior Ralph Loop post for deeper context, but the glossary link suffices.",
+            "sourceAlign": "SD original post, sourceUrl points to self (gu-log.vercel.app/posts/sd-20-20260421-hermes-vs-openclaw) — auto 8/10 per rubric.",
+            "attribution": "Direct quotes cited with exact source (README first line, run_agent.py:11868-11872 with inline comment attribution, README VPS line). Numeric claims backed by file+line refs (run_agent.py 12,131 lines; _memory_nudge_interval=10 line 1418; pi-coding-agent pinned 0.67.68). People named (Peter Steinberger, Mario Zechner, Nous Research). Opinion vs fact cleanly separated via <ClawdNote>/<ShroomDogNote> components vs body prose."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Canonical entities (OpenClaw, Nous Research, pi-coding-agent, Peter Steinberger/Mario Zechner) all plausible and consistent with glossary; quantitative claims (12,131-line run_agent.py, pi-coding-agent@0.67.68, line numbers 1418/1517/11868-11872, 25 channels, 129 SKILL.md) are first-hand-inspection-style numbers not independently verifiable from outside the cited repos — no outright fabrication detected.",
+            "fidelity": "Hermes README quote attributed; hedges preserved ('短期/長期', '理論上可以', '至少今天還是'); 'self-improving' marketing line explicitly de-hyped with 'not gradient descent, not fine-tune' clarification; ClawdNote/ShroomDogNote opinions clearly segregated from body-text observations about the two codebases.",
+            "consistency": "Three-part closing rationale (channel-layer identity, stealable pattern, rent-vs-own tradeoff) maps cleanly back to earlier architecture, skill-nudge, and pi-mono sections; 'hermes claw migrate' is introduced, deconstructed, and returned to in the closer; opinion-vs-fact demarcation is clean throughout with one mild hop in the 'both sides will improve' prediction which is properly bounded inside a ShroomDogNote."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-24T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "「自帶大腦 vs 租大腦」framing is peak LHY — simple, memorable, and carries the entire piece; restaurant and IKEA analogies reinforce oral teaching feel.",
+            "clawdNote": "Nearly all notes carry clear opinions: 'not a killer feature worth moving for, but a pattern worth stealing' is a standout stance; migration table note has real teeth comparing it to lazy CSV imports.",
+            "vibe": "The 'will ShroomDog switch?' tension holds throughout and the ending callback lands cleanly; migration detail section in §6 is the one stretch that reads slightly list-heavy.",
+            "clarity": "Body text consistently names ShroomDog/Clawd/Hermes/OpenClaw with zero ambiguous pronouns; third parties (Peter Steinberger, Mario Zechner) always identified by name.",
+            "narrative": "The decision-framing creates genuine tension a linear report wouldn't have; section rhythm varies well from punchy '同一天' coincidence to analytical architecture to personal decision; strip test passes."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-24T14:35:29+08:00"
+  },
+  "sd-21-20260421-agent-search-vs-vector-db.mdx": {
+    "article": "sd-21-20260421-agent-search-vs-vector-db.mdx",
+    "startedAt": "2026-04-24T14:23:56+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 8,
+            "sourceAlign": 8,
             "attribution": 9
           },
           "score": 8,
           "verdict": "PASS",
           "reasons": {
-            "glossary": "OpenClaw linked to /glossary#openclaw on first mention. Claude Code, Agent, Subagent, Hooks are used naturally in body/ClawdNote without explicit glossary links but the meaning is self-evident in context; no critical unexplained term. Minor gap only.",
-            "crossRef": "External refs (TechCrunch, Fortune, Nous docs, Hermes Agent repo, gstack, gbrain, Garry's prior X posts) all resolve. No ShroomDog/Clawd prose mention requiring /about link. However several obvious thematic connections to existing gu-log skill posts are missing — e.g. sp-118 (Claude Code skills lessons), sp-117 (Karpathy autoresearch + skills), sp-122 (Uber 500 AI skills), levelup-20260218-06 (OpenClaw memory + skills). Skillify is squarely in this family and deserved 1-2 internal backlinks.",
-            "sourceAlign": "sourceUrl points to Garry Tan's X post on skillify; body faithfully covers the two failure case studies (Singapore calendar recall, UTC→PT timezone), the 10-step checklist, the LangChain critique, the Hermes Agent comparison, and the closing thesis. Content clearly derived from source.",
-            "attribution": "Direct quotes marked with blockquotes and attributed to Garry. $160M → $260M fact correction cited to TechCrunch and Fortune inside ClawdNote (fact-check flag clearly separated from body claim). Hermes Agent feature claims (skill_manage, progressive disclosure, MEMORY.md bound) verified against Nous Research docs and called out as 'claim 屬實'. ClawdNote commentary is visually isolated via the component, keeping opinion layer distinct from reporting layer."
+            "glossary": "Key glossary terms linked: Agent (/glossary#agent) and Context Window (/glossary#context-window). Other tech terms (HNSW, IVF, RAG, Milvus, sqlite-vec, embedding) are not in glossary.json so cannot be linked; all existing glossary-eligible terms are covered.",
+            "crossRef": "All 3 internal post links resolve to real files: /posts/cp-244-20260403-karpathy-llm-knowledge-base, /posts/sd-11-20260402-ai-agent-memory-architecture, /posts/recursive-language-models-mit. Thematic connections to memory architecture and RLM research are well-chosen. Minor gap: first mentions of ShroomDog and Clawd personas don't link to /about (they only appear inside their own note components).",
+            "sourceAlign": "SD original post with sourceUrl pointing to gu-log.vercel.app (self) — auto 8 per rubric. Content is clearly original ShroomDog Lab analysis.",
+            "attribution": "Numbers and claims are clearly attributed: text-embedding-3-small (1536 dim) cited with vendor, Azure Blob pricing cited with specific rate ($0.02/GB/月), MIT RLM study attributed with link, Milvus architecture specifics named. ClawdNote and ShroomDogNote opinions are structurally separated from body facts via components — reader can always tell commentary from analysis."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Core numbers verify: text-embedding-3-small=1536 dims, 1536x4~=6KB, 50M*1536*4~=300GB, 5B*1536*4~=30TB, int8 quant ~75GB, Standard_E32s_v5=256GiB RAM, Azure Blob hot ~$0.02/GB/mo, Milvus etcd+MinIO+pods architecture. Minor imprecisions: HNSW graph overhead (~1.5-2x raw vectors) unaccounted so '300GB RAM' slightly understates real HNSW footprint; '~1KB per chunk' is on the small end vs common 2-4KB -- neither changes the order-of-magnitude conclusion.",
+            "fidelity": "SD original from ShroomDog Lab -- no external source to misrepresent. ClawdNote and ShroomDogNote blocks cleanly separate opinion/speculation from the body's factual analysis. Cross-refs to /posts/cp-244 (Karpathy), /posts/sd-11 (agent memory), /posts/recursive-language-models-mit, /glossary#context-window, /glossary#agent all point to internal resources and are not overstated.",
+            "consistency": "Argument arc coherent throughout: problem (fire truck / succulent) -> math (per-user sandbox sizing) -> IO contrast at 10K users -> thought experiment at 1M users -> three-cliff taxonomy (user count, per-user data, cross-user search) -> conclusion. Cost comparisons ($16 vs $3,000; $1,600 vs $180,000) follow from the stated assumptions without internal contradiction. Opinions in Clawd/ShroomDog blocks clearly marked; no fact/speculation blurring."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-24T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 9
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 9,
+            "clarity": 9,
+            "narrative": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "消防車澆多肉 opener + 獨棟透天/公寓大樓 sustained analogy + 「嗯。30TB 的記憶體。」dramatic pause — reads like LHY on stage doing whiteboard math.",
+            "clawdNote": "All five notes carry explicit opinions (先數再選, 同一顆藥 analogy, $16 vs $3000 attitude, defends Milvus in right context, 文件好看不是選技術理由) — zero Wikipedia footnotes.",
+            "vibe": "Cost comparison numbers ($16 vs $3,000) are screenshot-and-send material; ShroomDog confessing own Milvus mistake adds authenticity that makes the analysis trustworthy and shareable.",
+            "clarity": "Body text consistently uses 使用者/agent/系統/工程師 — zero ambiguous pronouns; ClawdNote and ShroomDogNote speakers always explicit.",
+            "narrative": "Escalates through scale jumps (1→10K→1M), 30TB dramatic pause creates peak tension, three-cliff insight subverts single-answer expectation, 噴水壺 ending callbacks to 消防車 opener."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-24T14:29:35+08:00"
+  },
+  "sp-175-20260416-anthropic-opus-4-7-prompting-best-practices.mdx": {
+    "article": "sp-175-20260416-anthropic-opus-4-7-prompting-best-practices.mdx",
+    "startedAt": "2026-04-24T14:41:46+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-24T00:00:00Z",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 10,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Every verifiable technical claim checks out against both source docs: xhigh as new Claude Code default, 64k max_tokens starting point for xhigh/max, budget_tokens removed in favor of adaptive thinking, updated tokenizer, auto mode via Shift+Tab for Claude Code Max users, design defaults (#F4F1EA, Georgia/Fraunces/Playfair, terracotta/amber), literal instruction following, fewer subagents by default. Report-every-issue and subagent snippets quoted verbatim. Minor: the 'verify before answering by grep' snippet is synthesized rather than verbatim from the docs — it captures the principle but a reader could mistake it for an official quote.",
+            "fidelity": "Sources faithfully represented with no uncertainty erasure. The 'literal照做' framing matches 'Claude Opus 4.7 may follow that instruction more faithfully than earlier models did'. Tokenizer claim is correctly hedged as 'may切出更多或更少 token' rather than asserting direction. The Monday/Tuesday postmortem is a clearly illustrative narrative; underlying technical claims all map to source material.",
+            "consistency": "Argument flow is tight: three behavioral defaults (literal / less tool / fewer subagents) unified under 'read the model personality' thesis, then three infra changes (tokenizer / budget_tokens removal / tone calibration), design aside, closed with the meta-lesson. ClawdNote opinions clearly bracketed in component with distinctive voice — no bleed into body. Effort ladder uses two concrete tickets as counterexamples and maps cleanly to the official five-level spec."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-24T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Team lead 事件調查帶動教學節奏，比喻自然（實習生/油門方向盤），但 section 4-5 稍偏報導而非教授講課。",
+            "clawdNote": "五個 note 超過半數有明確立場——「4.7 這樣才是對的」逆向觀點、CPU 命名吐槽、技術債 vs 溝通債區分，personality 跟 insight 兼具。",
+            "vibe": "開頭事件 hook 強、咖啡店截圖段有趣、「油門不是方向盤」可引用，但 tokenizer 帳單段能量下降。",
+            "clarity": "Body text 零你我，team lead / release manager / 工程師永遠具名，ClawdNote 內的指涉清晰無歧義。",
+            "narrative": "偵探故事骨架（事件→三層調查→pivot→comic relief→final twist→callback 收束），但 section 4-5 稍回 template 節奏。"
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 2,
+    "status": "PASS",
+    "failedStage": "vibe",
+    "finishedAt": "2026-04-24T15:28:53+08:00"
+  },
+  "sp-176-20260421-dkundel-codex-chronicle-stop-explaining.mdx": {
+    "article": "sp-176-20260421-dkundel-codex-chronicle-stop-explaining.mdx",
+    "startedAt": "2026-04-24T14:17:26+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key glossary terms linked: 'agent harness' → /glossary#agent-harness inline, and Codex → /glossary#codex in 延伸閱讀. 'Agent' used naturally throughout without needing a link.",
+            "crossRef": "Internal /posts/sp-173-20260411-hwchase17-harness-memory-lockin/ link resolves to existing post; thematic tie to harness/memory lock-in is strong. Glossary anchors valid. No body-text mention of ShroomDog/Clawd requiring /about link (Clawd voice only appears via ClawdNote component).",
+            "sourceAlign": "Content clearly derived from @dkundel's thread — sync docs + message Romain example, three-layer memories/vault/plugins architecture, Chronicle framing — with extension to official Chronicle docs (explicitly linked in 延伸閱讀).",
+            "attribution": "Kundel's quote 'sync with the latest docs draft...' and closing 'I can talk to Codex the way I would with a colleague' properly attributed; official Chronicle doc phrases ('uses rate limits quickly', 'increases risk of prompt injection') marked as 官方文件的原文措辭; Karpathy vault reference and Simon Willison prompt-injection link cited; ClawdNote opinions cleanly separated from body facts."
           }
         },
         "model": "opus-4.7",
@@ -130,9 +493,9 @@
           "score": 8,
           "verdict": "PASS",
           "reasons": {
-            "accuracy": "ClawdNote proactively fact-corrects Garry's '$160M LangChain' claim to verified $260M cumulative with TechCrunch/Fortune citation — sign of careful verification. Hermes Agent claims (skill_manage, progressive disclosure, 2200-char MEMORY.md) attributed to nous research docs. Specific numbers (3,146 calendar files, 179 unit tests, 40+ skills with 6 unreachable) come from tweet-level source so unverifiable against primary, normal for SP-class translation.",
-            "fidelity": "Direct Garry quotes preserved with attribution markers ('Garry：', 'Garry 自己的描述翻譯過來'). Hedges maintained ('技術上也確實強', '稍微便宜了一點'). ClawdNote opinions cleanly separated from translation body via component boundary. No uncertainty erasure observed; might/could nuance preserved through 可能/或許 phrasing throughout.",
-            "consistency": "10-step checklist structurally consistent across both failure cases (calendar-recall and context-now follow same pattern). Latent/deterministic dichotomy applied uniformly. ClawdNote analyses (e.g. 'three patterns stacked' synthesis) clearly framed as Clawd commentary, not Garry's claim. Argument arc from 'two failures → skillify → 10 steps → Hermes comparison → SRE-style conclusion' holds without contradiction."
+            "accuracy": "Key Chronicle claims verified against developers.openai.com/codex/memories/chronicle: opt-in research preview, ChatGPT Pro-only on macOS, not available in EU/UK/Switzerland, requires Screen Recording + Accessibility permissions, exact phrases 'uses rate limits quickly' and 'increases risk of prompt injection', and memories stored as unencrypted markdown files locally — all correct. Minor imprecision: post explains rate-limit burn as 'Chronicle 每次 prompt 都帶更多螢幕 context 進模型' but the doc attributes it to sandboxed background agents generating memories from screen captures, not bigger user prompts. Also frames Chronicle as '螢幕錄影 agent' when the doc describes it as screen captures/screenshot frames (the macOS permission is called 'Screen Recording' so the framing is understandable but slightly imprecise). Neither is materially misleading.",
+            "fidelity": "Faithful representation of both sides. Kundel's workflow (six-step 'sync docs + message Romain') preserved; his closing 'some risks' line quoted verbatim to justify the critique frame. Chronicle doc's warnings quoted with exact English phrases, no uncertainty erasure. ClawdNote additions (FileVault speculation, OpenAI-employee threat model asymmetry) are clearly scoped inside the ClawdNote component and not conflated with Kundel's or OpenAI's claims. Tweet body itself could not be fetched (X returned logged-out shell), so the exact 'sync with the latest docs draft changes and message Romain when you are done' phrasing and the six-step decomposition are unverified against the source.",
+            "consistency": "Argument arc is coherent: colleague analogy → three-layer context model (memories/vault/plugins) → Chronicle as the fourth 'screen eye' layer → missing colleague properties (accountability, asking for confirmation) → hidden costs from official doc → closing '不問' resolution tying usage upside to risk. ClawdNotes consistently marked as opinion/speculation via the component; the 'which Romain?' thought experiment explicitly distinguishes traceable memories path from inferential Chronicle path. No internal contradictions detected."
           }
         },
         "model": "opus-4.7",
@@ -141,17 +504,108 @@
       "freshEyes": {
         "status": "pass",
         "score": {
-          "judge": "freshEyes",
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-24T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 9,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "行政助理三層 context 比喻和「履歷表只貼優點」framing 是純 LHY 教學風，口語感全篇維持；section 4 風險列舉略偏報導調。",
+            "clawdNote": "五個 note 都有明確立場——note 2 拆解 Romain 推論透明度、note 3 對 auto-ingest vault 直接判死刑、note 5 點出 Kundel 是 OpenAI 員工的威脅模型差異，吐槽密度和洞察品質都到位。",
+            "vibe": "demo→risks 的調查式敘事弧讓人想轉發給正在興奮試 Codex 的朋友，教育性和娛樂性同時在線。",
+            "clarity": "全篇 body text 零你/我，每句都有具名主詞（Kundel / Codex / Chronicle / 官方文件），ClawdNote 內第一人稱使用正確。",
+            "narrative": "section 3『同事比喻少了幾個零件』製造真實轉折，結尾 callback 開頭的小明場景收得漂亮；section 4 三個風險依序列舉稍有 template 節奏。"
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-24T14:23:29+08:00"
+  },
+  "sp-177-20260421-pawelhuryn-intent-first-4-7-migration.mdx": {
+    "article": "sp-177-20260421-pawelhuryn-intent-first-4-7-migration.mdx",
+    "startedAt": "2026-04-24T14:11:18+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Model Swap linked to /glossary#model-swap at first mention; tokenizer/effort/adaptive thinking explained naturally in an inline 名詞小抄 callout. Minor gap: Claude Code and Agent (both glossary entries) appear multiple times unlinked, though context makes them clear.",
+            "crossRef": "Internal link /posts/sp-175-20260416-anthropic-opus-4-7-prompting-best-practices verified to exist (linked twice); external links to Boris Cherny and Karpathy X posts with concrete status URLs. No ShroomDog/Clawd name mentions in body text, so /about identity links not required.",
+            "sourceAlign": "Content faithfully derives from Pawel Huryn's migration guide at sourceUrl — all six tactics (CLAUDE.md layering, effort toggle, batch questions, positive examples, scaffold removal, plan review) plus Reddit/Arena regression framing and Anthropic/OpenAI convergence observation are covered.",
+            "attribution": "Boris Cherny and Karpathy quotes attributed with direct X links; '16 hours' testing and '1.0-1.35x token' stats credited to Pawel; Reddit/LM Arena/Anthropic docs clearly distinguished as separate sources; ClawdNote opinion blocks cleanly separated from body facts via component."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Technical claims about Opus 4.7 behavior (literal execution, adaptive thinking, effort ladder low/medium/high/xhigh/max with xhigh default in Claude Code, tokenizer yielding 1.0-1.35x tokens, Plan mode via double Shift+Tab, /ultraplan CLI-only) are consistent with SP-175's documented Anthropic references; specific numbers (1.0-1.35x tokens, 16-hour test) are clearly attributed to Pawel's own testing rather than presented as Anthropic-official; Boris Cherny and Karpathy references carry direct URLs; minor imprecision on the specific tokenizer ratio remains unverifiable without direct access to Pawel's guide, typical of tweet-sourced translations.",
+            "fidelity": "Source's core claim ('Opus 4.7 rewards clear intent') is preserved verbatim and bolded; the six tactics map cleanly onto a migration-guide structure; hedges are maintained ('Pawel 的觀察', 'Migration guide 建議', 'Pawel 實測' rather than blanket assertions); ClawdNotes are visually isolated via the component and clearly extend beyond source material (e.g., 班長比喻、考古層累積、網紅觀察) without masquerading as source; no uncertainty erasure detected — Reddit/Arena regression claim is explicitly framed as a measurement-scope dispute rather than either-side truth.",
+            "consistency": "Argument arc holds tight: opening 'new colleague' metaphor threads through all seven sections (Arena-vs-docs scoping, contract-not-command, effort throttle, batch-not-drip, positive-not-negative, scaffolding removal, plan-review) and converges in the Anthropic/OpenAI convergence coda; every tactic is justified by the literal-execution premise set in §1; ClawdNotes extend rather than contradict the body; cross-references to SP-175 (Model Swap glossary, code-review coverage-vs-filter split, max overthinking) reinforce internal coherence without creating contradictions."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-24T00:00:00Z",
           "dimensions": {
             "readability": 8,
             "firstImpression": 9
           },
           "score": 8,
-          "verdict": "PASS",
-          "reasons": {
-            "readability": "Concrete scenarios (Singapore trip, 28 vs 88 minutes) anchor abstract stuff; analogies like 螺絲工廠抽驗機, 急診掛號櫃檯, 萬用抽屜 USB 線, 阿嬤整鍋湯 translate jargon like resolver/unit test/DRY audit for a beginner. 'thin harness / fat skills' linked but not restated, mild re-read moment.",
-            "firstImpression": "Hook is strong — 'agent 翻兩次車 + 10 步 checklist' pulls you in immediately, and the '搜 fucking shit / wtf 找漏掉的 test' heuristic is screenshot-worthy. Closing line '被一年裡犯過的每個錯塑形' lands. Would share in a dev group chat."
-          }
+          "verdict": "PASS"
         },
         "model": "opus-4.7",
         "attempts": 1
@@ -170,11 +624,11 @@
           "score": 8,
           "verdict": "PASS",
           "reasons": {
-            "persona": "Analogies land well (螺絲工廠抽驗機, 急診掛號分科, USB 斷芯充電線, 阿嬤嚐湯) and oral voice is genuine, but the 剩下 8 步 mega-section repeats an analogy→detail→impl rhythm that slides from talking to writing mode.",
-            "clawdNote": "Six notes with sharp independent stances: fact-corrects Garry's $160M→$260M, calls the LangChain dunk 'slightly cheap' on product-shape grounds, distills the core latent/deterministic insight better than the source, and the final note boils the article to three known patterns stacked together.",
-            "vibe": "The two failure cases and 'skillify as a verb' section with Garry's actual chat quotes are compelling reads, but the 8-step walkthrough section is thorough-but-heavy and you feel the word count dragging.",
-            "clarity": "Body text consistently names Garry and agent as subjects with zero 你/我 leakage; voice attribution is always unambiguous between source claims, article analysis, and ClawdNote opinion.",
-            "narrative": "Opening hooks with universal agent frustration, two concrete failures build a pattern, skillify-as-verb shifts register, conclusion callbacks the opening effectively — but the 8-step walkthrough follows checklist order with a repeating analogy→detail cadence where momentum dips."
+            "persona": "「新同事」比喻貫穿全篇且自然回扣，口語感穩定，但中段 effort/batch 章節偶爾滑回教學說明模式而非講課模式。",
+            "clawdNote": "五個 note 全部有明確立場——Arena 投票制偏袒、資深工程師 ego 要先坐下、一次問完品質更好不只省錢、CLAUDE.md 考古是最高 ROI、prompt 課程網紅要倒楣——opinion 密度超過門檻。",
+            "vibe": "爭議拆解那段讓人想繼續讀，結尾 convergence 觀察有記憶點，但中間幾招（effort 油門、batch 問法）偏實用指南、黏著力稍弱。",
+            "clarity": "全篇正文零你/我洩漏，主語一律用 Pawel/新同事/舊同事/model 等具體名稱，ClawdNote 內的第一人稱歸屬明確。",
+            "narrative": "開場爭議製造張力、結尾 convergence 觀察拉高視野並 callback 新同事比喻，但中段六招按序展開仍偏線性列舉，節奏變化不夠大。"
           }
         },
         "model": "opus-4.6-1m",
@@ -183,7 +637,7 @@
     },
     "topLevelAttempts": 1,
     "status": "PASS",
-    "finishedAt": "2026-04-24T14:04:37+08:00"
+    "finishedAt": "2026-04-24T14:16:55+08:00"
   },
   "sp-178-20260422-pedroh96-brex-crabtrap-llm-judge-proxy.mdx": {
     "article": "sp-178-20260422-pedroh96-brex-crabtrap-llm-judge-proxy.mdx",
@@ -278,377 +732,9 @@
     "status": "PASS",
     "finishedAt": "2026-04-24T14:10:51+08:00"
   },
-  "sp-177-20260421-pawelhuryn-intent-first-4-7-migration.mdx": {
-    "article": "sp-177-20260421-pawelhuryn-intent-first-4-7-migration.mdx",
-    "startedAt": "2026-04-24T14:11:18+08:00",
-    "stages": {
-      "librarian": {
-        "status": "pass",
-        "score": {
-          "judge": "librarian",
-          "dimensions": {
-            "glossary": 8,
-            "crossRef": 9,
-            "sourceAlign": 9,
-            "attribution": 9
-          },
-          "score": 8,
-          "verdict": "PASS",
-          "reasons": {
-            "glossary": "Model Swap linked to /glossary#model-swap at first mention; tokenizer/effort/adaptive thinking explained naturally in an inline 名詞小抄 callout. Minor gap: Claude Code and Agent (both glossary entries) appear multiple times unlinked, though context makes them clear.",
-            "crossRef": "Internal link /posts/sp-175-20260416-anthropic-opus-4-7-prompting-best-practices verified to exist (linked twice); external links to Boris Cherny and Karpathy X posts with concrete status URLs. No ShroomDog/Clawd name mentions in body text, so /about identity links not required.",
-            "sourceAlign": "Content faithfully derives from Pawel Huryn's migration guide at sourceUrl — all six tactics (CLAUDE.md layering, effort toggle, batch questions, positive examples, scaffold removal, plan review) plus Reddit/Arena regression framing and Anthropic/OpenAI convergence observation are covered.",
-            "attribution": "Boris Cherny and Karpathy quotes attributed with direct X links; '16 hours' testing and '1.0-1.35x token' stats credited to Pawel; Reddit/LM Arena/Anthropic docs clearly distinguished as separate sources; ClawdNote opinion blocks cleanly separated from body facts via component."
-          }
-        },
-        "model": "opus-4.7",
-        "attempts": 1
-      },
-      "factChecker": {
-        "status": "pass",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 8,
-            "fidelity": 8,
-            "consistency": 9
-          },
-          "score": 8,
-          "verdict": "PASS",
-          "reasons": {
-            "accuracy": "Technical claims about Opus 4.7 behavior (literal execution, adaptive thinking, effort ladder low/medium/high/xhigh/max with xhigh default in Claude Code, tokenizer yielding 1.0-1.35x tokens, Plan mode via double Shift+Tab, /ultraplan CLI-only) are consistent with SP-175's documented Anthropic references; specific numbers (1.0-1.35x tokens, 16-hour test) are clearly attributed to Pawel's own testing rather than presented as Anthropic-official; Boris Cherny and Karpathy references carry direct URLs; minor imprecision on the specific tokenizer ratio remains unverifiable without direct access to Pawel's guide, typical of tweet-sourced translations.",
-            "fidelity": "Source's core claim ('Opus 4.7 rewards clear intent') is preserved verbatim and bolded; the six tactics map cleanly onto a migration-guide structure; hedges are maintained ('Pawel 的觀察', 'Migration guide 建議', 'Pawel 實測' rather than blanket assertions); ClawdNotes are visually isolated via the component and clearly extend beyond source material (e.g., 班長比喻、考古層累積、網紅觀察) without masquerading as source; no uncertainty erasure detected — Reddit/Arena regression claim is explicitly framed as a measurement-scope dispute rather than either-side truth.",
-            "consistency": "Argument arc holds tight: opening 'new colleague' metaphor threads through all seven sections (Arena-vs-docs scoping, contract-not-command, effort throttle, batch-not-drip, positive-not-negative, scaffolding removal, plan-review) and converges in the Anthropic/OpenAI convergence coda; every tactic is justified by the literal-execution premise set in §1; ClawdNotes extend rather than contradict the body; cross-references to SP-175 (Model Swap glossary, code-review coverage-vs-filter split, max overthinking) reinforce internal coherence without creating contradictions."
-          }
-        },
-        "model": "opus-4.7",
-        "attempts": 1
-      },
-      "freshEyes": {
-        "status": "pass",
-        "score": {
-          "pass": true,
-          "judge_model": "claude-opus-4-6",
-          "judge_version": "2.0.0",
-          "timestamp": "2026-04-24T00:00:00Z",
-          "dimensions": {
-            "readability": 8,
-            "firstImpression": 9
-          },
-          "score": 8,
-          "verdict": "PASS"
-        },
-        "model": "opus-4.7",
-        "attempts": 1
-      },
-      "vibe": {
-        "status": "pass",
-        "score": {
-          "judge": "vibe",
-          "dimensions": {
-            "persona": 8,
-            "clawdNote": 9,
-            "vibe": 8,
-            "clarity": 9,
-            "narrative": 8
-          },
-          "score": 8,
-          "verdict": "PASS",
-          "reasons": {
-            "persona": "「新同事」比喻貫穿全篇且自然回扣，口語感穩定，但中段 effort/batch 章節偶爾滑回教學說明模式而非講課模式。",
-            "clawdNote": "五個 note 全部有明確立場——Arena 投票制偏袒、資深工程師 ego 要先坐下、一次問完品質更好不只省錢、CLAUDE.md 考古是最高 ROI、prompt 課程網紅要倒楣——opinion 密度超過門檻。",
-            "vibe": "爭議拆解那段讓人想繼續讀，結尾 convergence 觀察有記憶點，但中間幾招（effort 油門、batch 問法）偏實用指南、黏著力稍弱。",
-            "clarity": "全篇正文零你/我洩漏，主語一律用 Pawel/新同事/舊同事/model 等具體名稱，ClawdNote 內的第一人稱歸屬明確。",
-            "narrative": "開場爭議製造張力、結尾 convergence 觀察拉高視野並 callback 新同事比喻，但中段六招按序展開仍偏線性列舉，節奏變化不夠大。"
-          }
-        },
-        "model": "opus-4.6-1m",
-        "attempts": 1
-      }
-    },
-    "topLevelAttempts": 1,
-    "status": "PASS",
-    "finishedAt": "2026-04-24T14:16:55+08:00"
-  },
-  "sp-176-20260421-dkundel-codex-chronicle-stop-explaining.mdx": {
-    "article": "sp-176-20260421-dkundel-codex-chronicle-stop-explaining.mdx",
-    "startedAt": "2026-04-24T14:17:26+08:00",
-    "stages": {
-      "librarian": {
-        "status": "pass",
-        "score": {
-          "judge": "librarian",
-          "dimensions": {
-            "glossary": 9,
-            "crossRef": 9,
-            "sourceAlign": 9,
-            "attribution": 9
-          },
-          "score": 9,
-          "verdict": "PASS",
-          "reasons": {
-            "glossary": "Key glossary terms linked: 'agent harness' → /glossary#agent-harness inline, and Codex → /glossary#codex in 延伸閱讀. 'Agent' used naturally throughout without needing a link.",
-            "crossRef": "Internal /posts/sp-173-20260411-hwchase17-harness-memory-lockin/ link resolves to existing post; thematic tie to harness/memory lock-in is strong. Glossary anchors valid. No body-text mention of ShroomDog/Clawd requiring /about link (Clawd voice only appears via ClawdNote component).",
-            "sourceAlign": "Content clearly derived from @dkundel's thread — sync docs + message Romain example, three-layer memories/vault/plugins architecture, Chronicle framing — with extension to official Chronicle docs (explicitly linked in 延伸閱讀).",
-            "attribution": "Kundel's quote 'sync with the latest docs draft...' and closing 'I can talk to Codex the way I would with a colleague' properly attributed; official Chronicle doc phrases ('uses rate limits quickly', 'increases risk of prompt injection') marked as 官方文件的原文措辭; Karpathy vault reference and Simon Willison prompt-injection link cited; ClawdNote opinions cleanly separated from body facts."
-          }
-        },
-        "model": "opus-4.7",
-        "attempts": 1
-      },
-      "factChecker": {
-        "status": "pass",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 8,
-            "fidelity": 8,
-            "consistency": 9
-          },
-          "score": 8,
-          "verdict": "PASS",
-          "reasons": {
-            "accuracy": "Key Chronicle claims verified against developers.openai.com/codex/memories/chronicle: opt-in research preview, ChatGPT Pro-only on macOS, not available in EU/UK/Switzerland, requires Screen Recording + Accessibility permissions, exact phrases 'uses rate limits quickly' and 'increases risk of prompt injection', and memories stored as unencrypted markdown files locally — all correct. Minor imprecision: post explains rate-limit burn as 'Chronicle 每次 prompt 都帶更多螢幕 context 進模型' but the doc attributes it to sandboxed background agents generating memories from screen captures, not bigger user prompts. Also frames Chronicle as '螢幕錄影 agent' when the doc describes it as screen captures/screenshot frames (the macOS permission is called 'Screen Recording' so the framing is understandable but slightly imprecise). Neither is materially misleading.",
-            "fidelity": "Faithful representation of both sides. Kundel's workflow (six-step 'sync docs + message Romain') preserved; his closing 'some risks' line quoted verbatim to justify the critique frame. Chronicle doc's warnings quoted with exact English phrases, no uncertainty erasure. ClawdNote additions (FileVault speculation, OpenAI-employee threat model asymmetry) are clearly scoped inside the ClawdNote component and not conflated with Kundel's or OpenAI's claims. Tweet body itself could not be fetched (X returned logged-out shell), so the exact 'sync with the latest docs draft changes and message Romain when you are done' phrasing and the six-step decomposition are unverified against the source.",
-            "consistency": "Argument arc is coherent: colleague analogy → three-layer context model (memories/vault/plugins) → Chronicle as the fourth 'screen eye' layer → missing colleague properties (accountability, asking for confirmation) → hidden costs from official doc → closing '不問' resolution tying usage upside to risk. ClawdNotes consistently marked as opinion/speculation via the component; the 'which Romain?' thought experiment explicitly distinguishes traceable memories path from inferential Chronicle path. No internal contradictions detected."
-          }
-        },
-        "model": "opus-4.7",
-        "attempts": 1
-      },
-      "freshEyes": {
-        "status": "pass",
-        "score": {
-          "pass": true,
-          "judge_model": "claude-opus-4-7",
-          "judge_version": "2.0.0",
-          "timestamp": "2026-04-24T00:00:00Z",
-          "dimensions": {
-            "readability": 8,
-            "firstImpression": 8
-          },
-          "score": 8,
-          "verdict": "PASS"
-        },
-        "model": "opus-4.7",
-        "attempts": 1
-      },
-      "vibe": {
-        "status": "pass",
-        "score": {
-          "judge": "vibe",
-          "dimensions": {
-            "persona": 9,
-            "clawdNote": 9,
-            "vibe": 9,
-            "clarity": 9,
-            "narrative": 8
-          },
-          "score": 8,
-          "verdict": "PASS",
-          "reasons": {
-            "persona": "行政助理三層 context 比喻和「履歷表只貼優點」framing 是純 LHY 教學風，口語感全篇維持；section 4 風險列舉略偏報導調。",
-            "clawdNote": "五個 note 都有明確立場——note 2 拆解 Romain 推論透明度、note 3 對 auto-ingest vault 直接判死刑、note 5 點出 Kundel 是 OpenAI 員工的威脅模型差異，吐槽密度和洞察品質都到位。",
-            "vibe": "demo→risks 的調查式敘事弧讓人想轉發給正在興奮試 Codex 的朋友，教育性和娛樂性同時在線。",
-            "clarity": "全篇 body text 零你/我，每句都有具名主詞（Kundel / Codex / Chronicle / 官方文件），ClawdNote 內第一人稱使用正確。",
-            "narrative": "section 3『同事比喻少了幾個零件』製造真實轉折，結尾 callback 開頭的小明場景收得漂亮；section 4 三個風險依序列舉稍有 template 節奏。"
-          }
-        },
-        "model": "opus-4.6-1m",
-        "attempts": 1
-      }
-    },
-    "topLevelAttempts": 1,
-    "status": "PASS",
-    "finishedAt": "2026-04-24T14:23:29+08:00"
-  },
-  "sd-21-20260421-agent-search-vs-vector-db.mdx": {
-    "article": "sd-21-20260421-agent-search-vs-vector-db.mdx",
-    "startedAt": "2026-04-24T14:23:56+08:00",
-    "stages": {
-      "librarian": {
-        "status": "pass",
-        "score": {
-          "judge": "librarian",
-          "dimensions": {
-            "glossary": 9,
-            "crossRef": 8,
-            "sourceAlign": 8,
-            "attribution": 9
-          },
-          "score": 8,
-          "verdict": "PASS",
-          "reasons": {
-            "glossary": "Key glossary terms linked: Agent (/glossary#agent) and Context Window (/glossary#context-window). Other tech terms (HNSW, IVF, RAG, Milvus, sqlite-vec, embedding) are not in glossary.json so cannot be linked; all existing glossary-eligible terms are covered.",
-            "crossRef": "All 3 internal post links resolve to real files: /posts/cp-244-20260403-karpathy-llm-knowledge-base, /posts/sd-11-20260402-ai-agent-memory-architecture, /posts/recursive-language-models-mit. Thematic connections to memory architecture and RLM research are well-chosen. Minor gap: first mentions of ShroomDog and Clawd personas don't link to /about (they only appear inside their own note components).",
-            "sourceAlign": "SD original post with sourceUrl pointing to gu-log.vercel.app (self) — auto 8 per rubric. Content is clearly original ShroomDog Lab analysis.",
-            "attribution": "Numbers and claims are clearly attributed: text-embedding-3-small (1536 dim) cited with vendor, Azure Blob pricing cited with specific rate ($0.02/GB/月), MIT RLM study attributed with link, Milvus architecture specifics named. ClawdNote and ShroomDogNote opinions are structurally separated from body facts via components — reader can always tell commentary from analysis."
-          }
-        },
-        "model": "opus-4.7",
-        "attempts": 1
-      },
-      "factChecker": {
-        "status": "pass",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 8,
-            "fidelity": 9,
-            "consistency": 9
-          },
-          "score": 8,
-          "verdict": "PASS",
-          "reasons": {
-            "accuracy": "Core numbers verify: text-embedding-3-small=1536 dims, 1536x4~=6KB, 50M*1536*4~=300GB, 5B*1536*4~=30TB, int8 quant ~75GB, Standard_E32s_v5=256GiB RAM, Azure Blob hot ~$0.02/GB/mo, Milvus etcd+MinIO+pods architecture. Minor imprecisions: HNSW graph overhead (~1.5-2x raw vectors) unaccounted so '300GB RAM' slightly understates real HNSW footprint; '~1KB per chunk' is on the small end vs common 2-4KB -- neither changes the order-of-magnitude conclusion.",
-            "fidelity": "SD original from ShroomDog Lab -- no external source to misrepresent. ClawdNote and ShroomDogNote blocks cleanly separate opinion/speculation from the body's factual analysis. Cross-refs to /posts/cp-244 (Karpathy), /posts/sd-11 (agent memory), /posts/recursive-language-models-mit, /glossary#context-window, /glossary#agent all point to internal resources and are not overstated.",
-            "consistency": "Argument arc coherent throughout: problem (fire truck / succulent) -> math (per-user sandbox sizing) -> IO contrast at 10K users -> thought experiment at 1M users -> three-cliff taxonomy (user count, per-user data, cross-user search) -> conclusion. Cost comparisons ($16 vs $3,000; $1,600 vs $180,000) follow from the stated assumptions without internal contradiction. Opinions in Clawd/ShroomDog blocks clearly marked; no fact/speculation blurring."
-          }
-        },
-        "model": "opus-4.7",
-        "attempts": 1
-      },
-      "freshEyes": {
-        "status": "pass",
-        "score": {
-          "pass": true,
-          "judge_model": "claude-opus-4-7",
-          "judge_version": "2.0.0",
-          "timestamp": "2026-04-24T00:00:00Z",
-          "dimensions": {
-            "readability": 8,
-            "firstImpression": 9
-          },
-          "score": 8,
-          "verdict": "PASS"
-        },
-        "model": "opus-4.7",
-        "attempts": 1
-      },
-      "vibe": {
-        "status": "pass",
-        "score": {
-          "judge": "vibe",
-          "dimensions": {
-            "persona": 9,
-            "clawdNote": 9,
-            "vibe": 9,
-            "clarity": 9,
-            "narrative": 9
-          },
-          "score": 9,
-          "verdict": "PASS",
-          "reasons": {
-            "persona": "消防車澆多肉 opener + 獨棟透天/公寓大樓 sustained analogy + 「嗯。30TB 的記憶體。」dramatic pause — reads like LHY on stage doing whiteboard math.",
-            "clawdNote": "All five notes carry explicit opinions (先數再選, 同一顆藥 analogy, $16 vs $3000 attitude, defends Milvus in right context, 文件好看不是選技術理由) — zero Wikipedia footnotes.",
-            "vibe": "Cost comparison numbers ($16 vs $3,000) are screenshot-and-send material; ShroomDog confessing own Milvus mistake adds authenticity that makes the analysis trustworthy and shareable.",
-            "clarity": "Body text consistently uses 使用者/agent/系統/工程師 — zero ambiguous pronouns; ClawdNote and ShroomDogNote speakers always explicit.",
-            "narrative": "Escalates through scale jumps (1→10K→1M), 30TB dramatic pause creates peak tension, three-cliff insight subverts single-answer expectation, 噴水壺 ending callbacks to 消防車 opener."
-          }
-        },
-        "model": "opus-4.6-1m",
-        "attempts": 1
-      }
-    },
-    "topLevelAttempts": 1,
-    "status": "PASS",
-    "finishedAt": "2026-04-24T14:29:35+08:00"
-  },
-  "sd-20-20260421-hermes-vs-openclaw.mdx": {
-    "article": "sd-20-20260421-hermes-vs-openclaw.mdx",
-    "startedAt": "2026-04-24T14:30:02+08:00",
-    "stages": {
-      "librarian": {
-        "status": "pass",
-        "score": {
-          "judge": "librarian",
-          "dimensions": {
-            "glossary": 10,
-            "crossRef": 9,
-            "sourceAlign": 8,
-            "attribution": 10
-          },
-          "score": 9,
-          "verdict": "PASS",
-          "reasons": {
-            "glossary": "All key technical glossary terms linked on first use: [agent harness](/glossary#agent-harness), [Claude Code](/glossary#claude-code), [Codex](/glossary#codex), [OpenClaw](/glossary#openclaw), [MCP](/glossary#mcp), [subagent](/glossary#subagent), [Ralph Loop](/glossary#ralph-loop). No missing glossary connections for the technical content covered.",
-            "crossRef": "Identity links present — first ShroomDog → /about (line 23), first Clawd → /about (line 41). No /posts/ internal links used (reasonable for this standalone architecture analysis), no broken references. Could have cross-linked a prior Ralph Loop post for deeper context, but the glossary link suffices.",
-            "sourceAlign": "SD original post, sourceUrl points to self (gu-log.vercel.app/posts/sd-20-20260421-hermes-vs-openclaw) — auto 8/10 per rubric.",
-            "attribution": "Direct quotes cited with exact source (README first line, run_agent.py:11868-11872 with inline comment attribution, README VPS line). Numeric claims backed by file+line refs (run_agent.py 12,131 lines; _memory_nudge_interval=10 line 1418; pi-coding-agent pinned 0.67.68). People named (Peter Steinberger, Mario Zechner, Nous Research). Opinion vs fact cleanly separated via <ClawdNote>/<ShroomDogNote> components vs body prose."
-          }
-        },
-        "model": "opus-4.7",
-        "attempts": 1
-      },
-      "factChecker": {
-        "status": "pass",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 8,
-            "fidelity": 9,
-            "consistency": 9
-          },
-          "score": 8,
-          "verdict": "PASS",
-          "reasons": {
-            "accuracy": "Canonical entities (OpenClaw, Nous Research, pi-coding-agent, Peter Steinberger/Mario Zechner) all plausible and consistent with glossary; quantitative claims (12,131-line run_agent.py, pi-coding-agent@0.67.68, line numbers 1418/1517/11868-11872, 25 channels, 129 SKILL.md) are first-hand-inspection-style numbers not independently verifiable from outside the cited repos — no outright fabrication detected.",
-            "fidelity": "Hermes README quote attributed; hedges preserved ('短期/長期', '理論上可以', '至少今天還是'); 'self-improving' marketing line explicitly de-hyped with 'not gradient descent, not fine-tune' clarification; ClawdNote/ShroomDogNote opinions clearly segregated from body-text observations about the two codebases.",
-            "consistency": "Three-part closing rationale (channel-layer identity, stealable pattern, rent-vs-own tradeoff) maps cleanly back to earlier architecture, skill-nudge, and pi-mono sections; 'hermes claw migrate' is introduced, deconstructed, and returned to in the closer; opinion-vs-fact demarcation is clean throughout with one mild hop in the 'both sides will improve' prediction which is properly bounded inside a ShroomDogNote."
-          }
-        },
-        "model": "opus-4.7",
-        "attempts": 1
-      },
-      "freshEyes": {
-        "status": "pass",
-        "score": {
-          "pass": true,
-          "judge_model": "claude-opus-4-6",
-          "judge_version": "2.0.0",
-          "timestamp": "2026-04-24T00:00:00Z",
-          "dimensions": {
-            "readability": 8,
-            "firstImpression": 8
-          },
-          "score": 8,
-          "verdict": "PASS"
-        },
-        "model": "opus-4.7",
-        "attempts": 1
-      },
-      "vibe": {
-        "status": "pass",
-        "score": {
-          "judge": "vibe",
-          "dimensions": {
-            "persona": 9,
-            "clawdNote": 9,
-            "vibe": 8,
-            "clarity": 9,
-            "narrative": 8
-          },
-          "score": 8,
-          "verdict": "PASS",
-          "reasons": {
-            "persona": "「自帶大腦 vs 租大腦」framing is peak LHY — simple, memorable, and carries the entire piece; restaurant and IKEA analogies reinforce oral teaching feel.",
-            "clawdNote": "Nearly all notes carry clear opinions: 'not a killer feature worth moving for, but a pattern worth stealing' is a standout stance; migration table note has real teeth comparing it to lazy CSV imports.",
-            "vibe": "The 'will ShroomDog switch?' tension holds throughout and the ending callback lands cleanly; migration detail section in §6 is the one stretch that reads slightly list-heavy.",
-            "clarity": "Body text consistently names ShroomDog/Clawd/Hermes/OpenClaw with zero ambiguous pronouns; third parties (Peter Steinberger, Mario Zechner) always identified by name.",
-            "narrative": "The decision-framing creates genuine tension a linear report wouldn't have; section rhythm varies well from punchy '同一天' coincidence to analytical architecture to personal decision; strip test passes."
-          }
-        },
-        "model": "opus-4.6-1m",
-        "attempts": 1
-      }
-    },
-    "topLevelAttempts": 1,
-    "status": "PASS",
-    "finishedAt": "2026-04-24T14:35:29+08:00"
-  },
-  "clawd-picks-20260421-openai-euphony-codex-viewer.mdx": {
-    "article": "clawd-picks-20260421-openai-euphony-codex-viewer.mdx",
-    "startedAt": "2026-04-24T14:35:56+08:00",
+  "sp-179-20260422-garrytan-skillify-agent-failures.mdx": {
+    "article": "sp-179-20260422-garrytan-skillify-agent-failures.mdx",
+    "startedAt": "2026-04-24T13:59:09+08:00",
     "stages": {
       "librarian": {
         "status": "pass",
@@ -657,16 +743,16 @@
           "dimensions": {
             "glossary": 8,
             "crossRef": 7,
-            "sourceAlign": 10,
+            "sourceAlign": 9,
             "attribution": 9
           },
           "score": 8,
           "verdict": "PASS",
           "reasons": {
-            "glossary": "Key terms covered: Claude Code explained inline (closed-source vs open-source distinction, aligned with glossary entry), Codex cross-linked to /posts/claude-code-vs-codex/, Agent used as general concept. No explicit /glossary links but contextual treatment is strong; minor gap — Codex/Claude Code could also link to glossary anchors.",
-            "crossRef": "Both internal links resolve: /posts/claude-code-vs-codex/ and /posts/sp-98-20260303-openai-harness-engineering/ both exist. External links to openai/euphony, openai/harmony, and the CLAUDE.md on GitHub all valid. Gap: 'Clawd' mentioned in body text at line 37 ('Clawd 每次讀都要 scroll 十秒') on first mention without /about link — required identity link is missing.",
-            "sourceAlign": "Content clearly derived from sourceUrl (github.com/openai/euphony): quotes root-level AGENTS.md verbatim, analyzes package.json runtime deps (Lit, Shoelace, gpt-tokenizer), references README's translation feature and SSRF warning. Faithful derivation.",
-            "attribution": "AGENTS.md block quoted verbatim with clear source (root directory of repo). Euphony tagline attributed to homepage. SSRF warning attributed to README. SP-98 claim about OpenAI's Codex usage linked to source post. ClawdNote opinions cleanly segregated from body observations via component boundaries. Minor: 'OpenAI 推 AGENTS.md 格式推了將近一年' is an unsourced timeframe claim."
+            "glossary": "OpenClaw linked to /glossary#openclaw on first mention. Claude Code, Agent, Subagent, Hooks are used naturally in body/ClawdNote without explicit glossary links but the meaning is self-evident in context; no critical unexplained term. Minor gap only.",
+            "crossRef": "External refs (TechCrunch, Fortune, Nous docs, Hermes Agent repo, gstack, gbrain, Garry's prior X posts) all resolve. No ShroomDog/Clawd prose mention requiring /about link. However several obvious thematic connections to existing gu-log skill posts are missing — e.g. sp-118 (Claude Code skills lessons), sp-117 (Karpathy autoresearch + skills), sp-122 (Uber 500 AI skills), levelup-20260218-06 (OpenClaw memory + skills). Skillify is squarely in this family and deserved 1-2 internal backlinks.",
+            "sourceAlign": "sourceUrl points to Garry Tan's X post on skillify; body faithfully covers the two failure case studies (Singapore calendar recall, UTC→PT timezone), the 10-step checklist, the LangChain critique, the Hermes Agent comparison, and the closing thesis. Content clearly derived from source.",
+            "attribution": "Direct quotes marked with blockquotes and attributed to Garry. $160M → $260M fact correction cited to TechCrunch and Fortune inside ClawdNote (fact-check flag clearly separated from body claim). Hermes Agent feature claims (skill_manage, progressive disclosure, MEMORY.md bound) verified against Nous Research docs and called out as 'claim 屬實'. ClawdNote commentary is visually isolated via the component, keeping opinion layer distinct from reporting layer."
           }
         },
         "model": "opus-4.7",
@@ -677,195 +763,16 @@
         "score": {
           "judge": "factCheck",
           "dimensions": {
-            "accuracy": 7,
+            "accuracy": 8,
             "fidelity": 8,
             "consistency": 9
           },
           "score": 8,
           "verdict": "PASS",
           "reasons": {
-            "accuracy": "Most claims verify against the openai/euphony repo (Apache 2.0, two-rule agents.md, Lit+Shoelace, user-supplied API key for translation, HF-hosted demos, README's SSRF warning, euphony-conversation custom element). One clear error: post asserts gpt-tokenizer is '不是 devDependencies，是正式依賴', but package.json actually lists gpt-tokenizer ^3.4.0 under devDependencies — there is no top-level dependencies field at all. The researcher-audience conclusion still stands via the README's 'Harmony token rendering' feature, but the dep-location argument is factually wrong. Homepage title is also paraphrased ('Visualize chat data in your browser 🎵' vs actual 'Visualize harmony chat conversations and Codex sessions in your browser 🎵').",
-            "fidelity": "CP-style commentary on a repo rather than prose translation. Quotes from agents.md are verbatim. README's Translation/SSRF language faithfully represented without uncertainty erasure. Claude Code closed-source caveat correctly flagged per CLAUDE.md guidance. Main fidelity gap is the gpt-tokenizer dep mischaracterization noted above.",
-            "consistency": "Thesis ('internal tool accidentally open-sourced') is coherently supported by the four observations (two-rule agents.md, tokenizer-heavy UI, user-key translation, self-written SSRF warning). ClawdNotes clearly demarcated as opinion; SP-98 callback closes the loop with the opening intern metaphor. No internal contradictions."
-          }
-        },
-        "model": "opus-4.7",
-        "attempts": 1
-      },
-      "freshEyes": {
-        "status": "pass",
-        "score": {
-          "pass": true,
-          "judge_model": "claude-opus-4-7",
-          "judge_version": "2.0.0",
-          "timestamp": "2026-04-24T00:00:00Z",
-          "dimensions": {
-            "readability": 8,
-            "firstImpression": 8
-          },
-          "score": 8,
-          "verdict": "PASS"
-        },
-        "model": "opus-4.7",
-        "attempts": 1
-      },
-      "vibe": {
-        "status": "pass",
-        "score": {
-          "judge": "vibe",
-          "dimensions": {
-            "persona": 8,
-            "clawdNote": 8,
-            "vibe": 9,
-            "clarity": 9,
-            "narrative": 8
-          },
-          "score": 8,
-          "verdict": "PASS",
-          "reasons": {
-            "persona": "Intern-monitor metaphor sustained well and '就這樣。兩點。結束。' has great oral snap, but section 2 package.json analysis reads more like blog writing than a professor riffing.",
-            "clawdNote": "Both notes clear the opinion threshold — three hypotheses on why 2 rules, SSRF praise calls out industry norms — but only 2 notes for ~60 prose lines is at the sparse edge of density target.",
-            "vibe": "The '2-line AGENTS.md vs 200-line CLAUDE.md' contrast is instantly shareable to anyone who's written agent instructions, and the HuggingFace hosting easter egg adds genuine delight.",
-            "clarity": "Zero pronoun ambiguity — body text names every subject (OpenAI, 實習生, PM, researcher, 使用者) and ClawdNote 我 is unambiguously Clawd.",
-            "narrative": "Discovery arc peels back layers of 'who was this built for' with a callback ending that extends the metaphor, though middle sections follow a slightly predictable reveal-then-observe pattern."
-          }
-        },
-        "model": "opus-4.6-1m",
-        "attempts": 1
-      }
-    },
-    "topLevelAttempts": 1,
-    "status": "PASS",
-    "finishedAt": "2026-04-24T14:41:18+08:00"
-  },
-  "sp-175-20260416-anthropic-opus-4-7-prompting-best-practices.mdx": {
-    "article": "sp-175-20260416-anthropic-opus-4-7-prompting-best-practices.mdx",
-    "startedAt": "2026-04-24T14:41:46+08:00",
-    "stages": {
-      "librarian": {
-        "status": "pass",
-        "score": {
-          "pass": true,
-          "judge_model": "claude-opus-4-6",
-          "judge_version": "2.0.0",
-          "timestamp": "2026-04-24T00:00:00Z",
-          "dimensions": {
-            "glossary": 9,
-            "crossRef": 9,
-            "sourceAlign": 10,
-            "attribution": 9
-          },
-          "score": 9,
-          "verdict": "PASS"
-        },
-        "model": "opus-4.7",
-        "attempts": 2
-      },
-      "factChecker": {
-        "status": "pass",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 9,
-            "fidelity": 9,
-            "consistency": 9
-          },
-          "score": 9,
-          "verdict": "PASS",
-          "reasons": {
-            "accuracy": "Every verifiable technical claim checks out against both source docs: xhigh as new Claude Code default, 64k max_tokens starting point for xhigh/max, budget_tokens removed in favor of adaptive thinking, updated tokenizer, auto mode via Shift+Tab for Claude Code Max users, design defaults (#F4F1EA, Georgia/Fraunces/Playfair, terracotta/amber), literal instruction following, fewer subagents by default. Report-every-issue and subagent snippets quoted verbatim. Minor: the 'verify before answering by grep' snippet is synthesized rather than verbatim from the docs — it captures the principle but a reader could mistake it for an official quote.",
-            "fidelity": "Sources faithfully represented with no uncertainty erasure. The 'literal照做' framing matches 'Claude Opus 4.7 may follow that instruction more faithfully than earlier models did'. Tokenizer claim is correctly hedged as 'may切出更多或更少 token' rather than asserting direction. The Monday/Tuesday postmortem is a clearly illustrative narrative; underlying technical claims all map to source material.",
-            "consistency": "Argument flow is tight: three behavioral defaults (literal / less tool / fewer subagents) unified under 'read the model personality' thesis, then three infra changes (tokenizer / budget_tokens removal / tone calibration), design aside, closed with the meta-lesson. ClawdNote opinions clearly bracketed in component with distinctive voice — no bleed into body. Effort ladder uses two concrete tickets as counterexamples and maps cleanly to the official five-level spec."
-          }
-        },
-        "model": "opus-4.7",
-        "attempts": 1
-      },
-      "freshEyes": {
-        "status": "pass",
-        "score": {
-          "pass": true,
-          "judge_model": "claude-opus-4-7",
-          "judge_version": "2.0.0",
-          "timestamp": "2026-04-24T00:00:00Z",
-          "dimensions": {
-            "readability": 8,
-            "firstImpression": 8
-          },
-          "score": 8,
-          "verdict": "PASS"
-        },
-        "model": "opus-4.7",
-        "attempts": 1
-      },
-      "vibe": {
-        "status": "pass",
-        "score": {
-          "judge": "vibe",
-          "dimensions": {
-            "persona": 8,
-            "clawdNote": 9,
-            "vibe": 8,
-            "clarity": 9,
-            "narrative": 8
-          },
-          "score": 8,
-          "verdict": "PASS",
-          "reasons": {
-            "persona": "Team lead 事件調查帶動教學節奏，比喻自然（實習生/油門方向盤），但 section 4-5 稍偏報導而非教授講課。",
-            "clawdNote": "五個 note 超過半數有明確立場——「4.7 這樣才是對的」逆向觀點、CPU 命名吐槽、技術債 vs 溝通債區分，personality 跟 insight 兼具。",
-            "vibe": "開頭事件 hook 強、咖啡店截圖段有趣、「油門不是方向盤」可引用，但 tokenizer 帳單段能量下降。",
-            "clarity": "Body text 零你我，team lead / release manager / 工程師永遠具名，ClawdNote 內的指涉清晰無歧義。",
-            "narrative": "偵探故事骨架（事件→三層調查→pivot→comic relief→final twist→callback 收束），但 section 4-5 稍回 template 節奏。"
-          }
-        },
-        "model": "opus-4.6-1m",
-        "attempts": 1
-      }
-    },
-    "topLevelAttempts": 2,
-    "status": "PASS",
-    "failedStage": "vibe",
-    "finishedAt": "2026-04-24T15:28:53+08:00"
-  },
-  "cp-300-20260416-lalitmaganti-article-ai-sqlite-devtools.mdx": {
-    "article": "cp-300-20260416-lalitmaganti-article-ai-sqlite-devtools.mdx",
-    "startedAt": "2026-04-24T15:29:20+08:00",
-    "stages": {
-      "librarian": {
-        "status": "pass",
-        "score": {
-          "pass": true,
-          "judge_model": "claude-opus-4-6",
-          "judge_version": "2.0.0",
-          "timestamp": "2026-04-24T00:00:00Z",
-          "dimensions": {
-            "glossary": 10,
-            "crossRef": 10,
-            "sourceAlign": 10,
-            "attribution": 9
-          },
-          "score": 9,
-          "verdict": "PASS"
-        },
-        "model": "opus-4.7",
-        "attempts": 2
-      },
-      "factChecker": {
-        "status": "pass",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 9,
-            "fidelity": 9,
-            "consistency": 9
-          },
-          "score": 9,
-          "verdict": "PASS",
-          "reasons": {
-            "accuracy": "All core technical claims verified against source: ~250 hours / 3 months, Max plan £200/mo, Aider→Roo Code→Claude Code (since July), >400 SQLite grammar rules, 500+ tests, Rust switch, 0.1 launch mid-March, Wadler-Lindig formatter, VS Code extension in ~1 hr. One minor imprecision: source says '~100K lines of PerfettoSQL' (approx) while translation says '超過十萬行' (more than) — slight upgrade from approximation.",
-            "fidelity": "Faithful throughout. Key quotes preserved verbatim in English then paraphrased (the 'taste' quote and the 'become that manager' quote). Hedges preserved ('somewhere between unhelpful and harmful' → '介於無用和有害之間'; 'probably slower' → '可能比自己直接寫還慢'). All Clawd additions (SP-56/SP-142/CP-231/SP-158 cross-refs) are confined to ClawdNote blocks with clear opinion framing — zero bleed into body.",
-            "consistency": "Argument flows match source's three-part structure (AI why project exists → AI costs → relativity framework). ClawdNotes cleanly separated via component, each labeled as Clawd's opinion. Internal logic holds: vibe-coding failure → rewrite → new workflow → relativity synthesis. No contradictions between ClawdNote opinions and body claims."
+            "accuracy": "ClawdNote proactively fact-corrects Garry's '$160M LangChain' claim to verified $260M cumulative with TechCrunch/Fortune citation — sign of careful verification. Hermes Agent claims (skill_manage, progressive disclosure, 2200-char MEMORY.md) attributed to nous research docs. Specific numbers (3,146 calendar files, 179 unit tests, 40+ skills with 6 unreachable) come from tweet-level source so unverifiable against primary, normal for SP-class translation.",
+            "fidelity": "Direct Garry quotes preserved with attribution markers ('Garry：', 'Garry 自己的描述翻譯過來'). Hedges maintained ('技術上也確實強', '稍微便宜了一點'). ClawdNote opinions cleanly separated from translation body via component boundary. No uncertainty erasure observed; might/could nuance preserved through 可能/或許 phrasing throughout.",
+            "consistency": "10-step checklist structurally consistent across both failure cases (calendar-recall and context-now follow same pattern). Latent/deterministic dichotomy applied uniformly. ClawdNote analyses (e.g. 'three patterns stacked' synthesis) clearly framed as Clawd commentary, not Garry's claim. Argument arc from 'two failures → skillify → 10 steps → Hermes comparison → SRE-style conclusion' holds without contradiction."
           }
         },
         "model": "opus-4.7",
@@ -882,8 +789,8 @@
           "score": 8,
           "verdict": "PASS",
           "reasons": {
-            "readability": "故事線清楚、章節 header 切得乾淨，大部分都跟得上。Parser/parse tree、virtual table API、Wadler-Lindig pretty printing 這幾個地方需要憑空相信，但不至於勸退——可以滑過去仍然 follow 主線。",
-            "firstImpression": "「八年想做、三個月用 AI 做完」這個 hook 一秒抓住，誠實寫失敗（vibe-coding 一整個月全報廢、凌晨停不下來的 prompt 成癮）比成功故事好看十倍。老虎機比喻、相對論比喻、洗 400 個碗想炸廚房，都會想截圖丟群組。"
+            "readability": "Concrete scenarios (Singapore trip, 28 vs 88 minutes) anchor abstract stuff; analogies like 螺絲工廠抽驗機, 急診掛號櫃檯, 萬用抽屜 USB 線, 阿嬤整鍋湯 translate jargon like resolver/unit test/DRY audit for a beginner. 'thin harness / fat skills' linked but not restated, mild re-read moment.",
+            "firstImpression": "Hook is strong — 'agent 翻兩次車 + 10 步 checklist' pulls you in immediately, and the '搜 fucking shit / wtf 找漏掉的 test' heuristic is screenshot-worthy. Closing line '被一年裡犯過的每個錯塑形' lands. Would share in a dev group chat."
           }
         },
         "model": "opus-4.7",
@@ -903,11 +810,11 @@
           "score": 8,
           "verdict": "PASS",
           "reasons": {
-            "persona": "Opening '八年' hook and analogies (鞋拔、洗400個碗) land well with oral feel, but the 4+4 subsection headers in benefits/costs sections slide into blog-writing mode.",
-            "clawdNote": "8 notes with strong opinion density — vibe-coding paradox stance, inverse proposition insight on 'taste' quote, cross-refs to SP-56 and SP-142 show real editorial voice.",
-            "vibe": "Vibe-coding failure section creates genuine tension; addiction observations are compelling and rarely written about this honestly; benefits subsections are slightly standard.",
-            "clarity": "'Lalit' consistently named, zero 你/我 in body, ClawdNote voice unmistakable — no pronoun confusion anywhere.",
-            "narrative": "Real arc from 8-year dormancy through dramatic vibe-coding failure to synthesis, but middle benefits/costs sections use parallel 4-subsection structure that creates template rhythm."
+            "persona": "Analogies land well (螺絲工廠抽驗機, 急診掛號分科, USB 斷芯充電線, 阿嬤嚐湯) and oral voice is genuine, but the 剩下 8 步 mega-section repeats an analogy→detail→impl rhythm that slides from talking to writing mode.",
+            "clawdNote": "Six notes with sharp independent stances: fact-corrects Garry's $160M→$260M, calls the LangChain dunk 'slightly cheap' on product-shape grounds, distills the core latent/deterministic insight better than the source, and the final note boils the article to three known patterns stacked together.",
+            "vibe": "The two failure cases and 'skillify as a verb' section with Garry's actual chat quotes are compelling reads, but the 8-step walkthrough section is thorough-but-heavy and you feel the word count dragging.",
+            "clarity": "Body text consistently names Garry and agent as subjects with zero 你/我 leakage; voice attribution is always unambiguous between source claims, article analysis, and ClawdNote opinion.",
+            "narrative": "Opening hooks with universal agent frustration, two concrete failures build a pattern, skillify-as-verb shifts register, conclusion callbacks the opening effectively — but the 8-step walkthrough follows checklist order with a repeating analogy→detail cadence where momentum dips."
           }
         },
         "model": "opus-4.6-1m",
@@ -916,7 +823,100 @@
     },
     "topLevelAttempts": 1,
     "status": "PASS",
-    "finishedAt": "2026-04-24T15:42:02+08:00"
+    "finishedAt": "2026-04-24T14:04:37+08:00"
+  },
+  "sp-180-20260423-anthropic-mcp-production-agents.mdx": {
+    "article": "sp-180-20260423-anthropic-mcp-production-agents.mdx",
+    "startedAt": "2026-04-24T13:40:32+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 10,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "All four glossary terms used (agent, MCP, Cowork, Claude Code) are linked with /glossary#... anchors on first mention.",
+            "crossRef": "Three internal post links verified (sp-129 Cloudflare Dynamic Workers, sp-167 Managed Agents used twice, sp-179 skillify); ShroomDog/Clawd names don't appear in body so identity links N/A.",
+            "sourceAlign": "Content faithfully tracks the Anthropic blog — three-path framing, Cloudflare 2500/1K benchmark, Elicitation Form/URL modes, CIMD, Vaults, 85%/37% numbers, Plugin+skill pattern all present.",
+            "attribution": "Every blockquote attributed to Anthropic 原文 with clear speaker tags; all statistics cited (3億/月 SDK, 85% tool-def reduction, 37% multi-step, ~2500 endpoints); ClawdNote opinions clearly sandboxed from body facts."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All numeric claims verified against source: 300M/mo SDK downloads (up from 100M), Cloudflare 2 tools / ~2,500 endpoints / ~1K tokens, 85%+ tool-definition token reduction, ~37% multi-step reduction, 200+ directory servers, Cowork data plugin 10 skills + 8 MCP servers (Snowflake/Databricks/BigQuery/Hex) — every number matches the Anthropic blog.",
+            "fidelity": "Direct quotes (opening 'Agents are only as useful...', create_issue_from_thread example, 'mature integrations will ship all three', 'Every integration built on MCP strengthens the ecosystem', Cloudflare reference-example quote) render accurately; the 'tends to' hedge on 85%+ is explicitly preserved as '通常能...並維持選擇準確度' and called out as a non-guaranteed observation; URL mode / form mode coverage caveat retained.",
+            "consistency": "Argument structure mirrors source (three paths → production cloud thesis → server patterns → client patterns → skill×MCP → compounding conclusion); ClawdNote commentary is physically isolated in <ClawdNote> components and framed as opinion/analogy (electricity-standards, platform-play, App Store parallels), never bleeding into factual body prose."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Cooking menu 跟美國電力的比喻把 MCP / M×N 解釋得超清楚，三條路結構一目了然；扣分在 Elicitation / CIMD / Vault 那段一次塞太多新名詞，OAuth 不熟的人要回頭讀一次。",
+            "firstImpression": "開頭『搬上雲第一天全部連不到』的場景直接打到我，三個硬數字（3 億下載、2500 endpoints、85%/37%）讓每個論點都有重量，結尾把 takeaway 壓成『部署地點的函數』很爽；會發給正在做 agent side project 的同事。"
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "菜單vs流程圖 cooking analogy and 桌子堆參考書 metaphor land well; 'agent 搆不到就是廢物' harshness is peak LHY; three walls section slightly structured-explainer.",
+            "clawdNote": "5/6 notes have clear stance — platform play W3C comparison, 'agent 圈集體慚愧' 20-year snark, and practical MVP takeaway are highlights with genuine personality.",
+            "vibe": "Cloudflare 2-tool section is genuinely compelling and the opening搬家 scenario hooks immediately; some information-dense passages in the walls section slightly drag momentum.",
+            "clarity": "Body text maintains clean pronoun discipline throughout; subjects always named (Anthropic, agent, Cloudflare); attribution pristine with quotes properly marked.",
+            "narrative": "Opening搬家 scenario callbacks in conclusion; three walls escalate tension ('一道比一道無聊、一道比一道致命'); skill extension adds forward-looking twist; some list rhythm in walls section."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-24T13:58:43+08:00"
   },
   "sp-181-20260423-walden-cognition-multi-agents-working.mdx": {
     "article": "sp-181-20260423-walden-cognition-multi-agents-working.mdx",
@@ -1746,5 +1746,185 @@
     "tribunalVersion": 5,
     "status": "PASS",
     "finishedAt": "2026-05-18T10:40:18+08:00"
+  },
+  "sp-206-20260519-article-ai.mdx": {
+    "article": "sp-206-20260519-article-ai.mdx",
+    "failedStage": "freshEyes",
+    "finishedAt": "2026-05-19T02:44:41+08:00",
+    "stages": {
+      "factChecker": {
+        "attempts": 1,
+        "model": "codex-gpt-5.5-medium",
+        "score": {
+          "dimensions": {
+            "accuracy": 9,
+            "commentarySeparation": 8,
+            "consistency": 9,
+            "fidelity": 8,
+            "sourceBoundary": 10
+          },
+          "judge": "factCheck",
+          "reasons": {
+            "accuracy": "Technical claims about Claude Code local navigation, RAG staleness, CLAUDE.md layering, Hooks, Skills, Plugins, LSP, MCP, subagents, and three-to-six-month configuration reviews match the Claude Blog source.",
+            "commentarySeparation": "Most opinionated material is in ClawdNote, but some body phrasing such as the underground-maze setup, '更殘酷的問題', and '不是...童話' adds gu-log interpretive color outside the note.",
+            "consistency": "The argument remains coherent: navigation context, harness layers, codebase legibility, maintenance, and ownership all support the conclusion that large-codebase success depends on operational setup.",
+            "fidelity": "The post faithfully preserves the source's major recommendations and caveats, including conventional-environment limits, though it compresses the article and adds gu-log framing metaphors around the source structure.",
+            "sourceBoundary": "The SP body avoids repeated source-report scaffolding such as '原作者說' or '原文提到' and presents source claims directly while reserving explicit source-limit discussion for a ClawdNote."
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "status": "pass",
+        "tribunalVersion": 5
+      },
+      "freshEyes": {
+        "attempts": 2,
+        "model": "codex-gpt-5.5-medium",
+        "score": {
+          "dimensions": {
+            "firstImpression": 7,
+            "readability": 7
+          },
+          "judge": "freshEyes",
+          "reasons": {
+            "firstImpression": "Strong practical thesis about AI needing roads and maps, but the long tooling tour and some cute ClawdNote bits like the emoticon and 'ancestor debugging charm' make it feel more niche than shareable.",
+            "readability": "The metaphors help, but the middle stacks CLAUDE.md, Hooks, Skills, Plugins, MCP, LSP, and sub Agent so fast that a beginner has to slow down and re-read."
+          },
+          "score": 7,
+          "verdict": "FAIL"
+        },
+        "status": "fail",
+        "tribunalVersion": 5
+      },
+      "librarian": {
+        "attempts": 2,
+        "model": "codex-gpt-5.5-medium",
+        "score": {
+          "dimensions": {
+            "attribution": 9,
+            "crossRef": 9,
+            "glossary": 9,
+            "sourceAlign": 9
+          },
+          "judge": "librarian",
+          "reasons": {
+            "attribution": "Source-derived examples are attributed to Anthropic sharing or deployment experience, the LSP caveat explicitly prevents benchmark overclaiming, and opinions are clearly separated in ClawdNote blocks.",
+            "crossRef": "All three internal post links resolve, and the ClawdNote explicitly connects the post to prior gu-log coverage of Hooks, Skills, and Plugin distribution, which addresses the main overlap risk.",
+            "glossary": "Key glossary terms are linked on first substantial use, including Claude Code, Agent, Hooks, Skill, Plugin, MCP, and Subagent; only minor possible gaps remain around component/meta mentions like ClawdNote, prompt, and trq212 in link text.",
+            "sourceAlign": "The post closely follows the Claude Blog sourceUrl on large-codebase navigation, harness layers, LSP/MCP/subagents, configuration maintenance, and organizational ownership, with ClawdNote commentary kept separate."
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "status": "pass",
+        "tribunalVersion": 5
+      }
+    },
+    "startedAt": "2026-05-19T02:35:51+08:00",
+    "status": "FAILED",
+    "topLevelAttempts": 1,
+    "tribunalVersion": 5
+  },
+  "sp-206-20260519-claude-code-large-codebase-harness.mdx": {
+    "article": "sp-206-20260519-claude-code-large-codebase-harness.mdx",
+    "startedAt": "2026-05-19T02:48:19+08:00",
+    "stages": {
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 8,
+            "consistency": 9,
+            "sourceBoundary": 8,
+            "commentarySeparation": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Technical claims about live filesystem navigation, RAG staleness, CLAUDE.md layering, hooks, skills, plugins, LSP, MCP servers, subagents, permissions.deny, and three-to-six-month configuration reviews match the Claude blog; no fabricated benchmark numbers were found.",
+            "fidelity": "The post faithfully preserves the source's main caveats and deployment patterns, though it heavily paraphrases and adds gu-log style framing around concepts such as harness importance and organizational ownership.",
+            "consistency": "The argument proceeds coherently from navigation limits to harness layers, codebase legibility, maintenance, ownership, and governance without internal contradiction.",
+            "sourceBoundary": "The SP body mostly presents source-derived claims directly, but a few body sentences still use source-report framing such as 'Anthropic 分享的案例裡' and 'Anthropic 分享的另一個導入案例'.",
+            "commentarySeparation": "Most explicit gu-log commentary is inside ClawdNote, but some body prose uses interpretive editorial framing such as '最容易低估', '最可惜', and the concluding '真正的門檻' outside ClawdNote."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1,
+        "tribunalVersion": 5
+      },
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 7,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key glossary terms are linked on first substantive use, including Claude Code, Agent, Hooks, Skills, Plugins, MCP, and 子 Agent; packet-only hits like ClawdNote, Prompt, and trq212 are component/import, ordinary prose, or URL noise rather than body glossary gaps.",
+            "crossRef": "All three internal post links resolve and the Clawd/ShroomDog identity link is not required because they are not mentioned as identities, but the post should cite or contrast the older Agent Harness framing post /posts/sp-94-20260302-hxlfed14-agent-harness-real-product/ because the core thesis again says harness/operational architecture matters more than model strength.",
+            "sourceAlign": "The body closely follows the Claude Blog source on large-codebase navigation, stale indexing/RAG, CLAUDE.md layering, Hooks, Skills, Plugins, LSP, MCP, subagents, configuration review, DRI ownership, and governance.",
+            "attribution": "Enterprise examples and deployment claims are attributed to Anthropic or framed as Anthropic-shared experience, while ClawdNote commentary is clearly separated from sourced body prose."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1,
+        "tribunalVersion": 5
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "The maze/map/toolbox metaphors make a jargon-heavy topic followable, though CLAUDE.md, Hooks, Skills, Plugins, MCP, LSP, sub Agent, and DRI pile up in the middle.",
+            "firstImpression": "Strong practical hook and useful framing around AI needing roads and maps, but a few ClawdNote jokes and the long operations section would make me skim on a phone."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1,
+        "tribunalVersion": 5
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "LHY feel is strong in images like the underground maze,百貨公司相簿, and消防車澆多肉, though some setup paragraphs return to polished article mode.",
+            "clawdNote": "Five ClawdNotes over roughly ninety prose lines hit good density, and most have a real stance, especially the CLAUDE.md大補帖 warning and自由放養 critique.",
+            "vibe": "The opening has immediate tension and the piece stays readable without bullet-dump endings, but the long configuration sections are more useful than addictive.",
+            "clarity": "Speaker attribution is clean, body avoids confusing 你/我 usage, and the provided check-jingjing result is clean so there is no hard 晶晶體 penalty.",
+            "narrative": "The arc moves from迷宮 to軌道 to可讀組織 and ends with a real thesis, but the middle still follows a guide-like progression through maps, Hooks, Skills, LSP, MCP, and governance."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 2,
+        "tribunalVersion": 5
+      }
+    },
+    "topLevelAttempts": 1,
+    "tribunalVersion": 5,
+    "status": "PASS",
+    "finishedAt": "2026-05-19T02:56:59+08:00"
   }
 }
