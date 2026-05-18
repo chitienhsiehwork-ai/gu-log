@@ -45,10 +45,10 @@
 
 ### Feedback: 「手寫配額」不是自然中文，要寫清楚是手寫 code 的配額
 
-- ShroomDog feedback：`手寫配額？手寫扣？`
+- ShroomDog feedback：`手寫配額？手寫扣？`；後續補充：`什麼爛中文啊 = =「要求 2026 年的工程師每天固定手寫固定量的code」 這種的吧`
 - 情境：SP-205 ShroomDogNote 把 `hand write quota w/o ai` 寫成「不用 AI 手寫配額」，讀起來像「手寫扣」或不知道在手寫什麼；問題不是立場，而是中文賓語漏掉。
-- 修法：改成「每天固定完成一段『不用 AI 手寫 code 的配額』」，把被手寫的東西補出來。
-- Reusable lesson：中英混寫時，不要把 English shorthand 直譯成缺賓語的中文名詞片語。`handwritten-code quota` 要寫成「手寫 code 的配額」或「不用 AI 寫 code 的固定份量」，不要寫「手寫配額」。
+- 修法：先改成「每天固定完成一段『不用 AI 手寫 code 的配額』」仍然太硬；再依 ShroomDog 指示改成「每天固定手寫一定量的 code」。
+- Reusable lesson：中英混寫時，不要把 English shorthand 直譯成缺賓語或硬組裝的中文名詞片語。`handwritten-code quota` 要寫成「每天固定手寫一定量的 code」這種正常中文動作句，不要寫「手寫配額」或「手寫 code 的配額」。
 
 ## 2026-05-08 — SP-192 Codex Goals
 
