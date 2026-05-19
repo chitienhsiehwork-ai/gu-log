@@ -2214,18 +2214,36 @@
     "startedAt": "2026-05-20T02:23:45+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9,
+            "sourceBoundary": 5,
+            "commentarySeparation": 5
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core technical claims match the source: Agent Loop as perceive/decide/act/feedback, Harness as validation/boundary/feedback/rollback infrastructure, Context Rot, ACI-style tool design, externalized memory, multi-agent isolation, evals, tracing, prompt-injection boundaries, and OpenClaw layers are all source-supported.",
+            "fidelity": "The post is a compressed adaptation rather than a full translation, but it preserves the source's main arguments and caveats, including the OpenAI productivity numbers being treated as a case claim rather than a universal guarantee.",
+            "consistency": "The accident-map framing flows coherently from control loops to validation, context, tools, memory, multi-agent state, evals, traces, and safety without internal contradiction.",
+            "sourceBoundary": "The SP body repeatedly uses source-meta scaffolding such as '@HiTw93 這篇長文', '原文列了', '原文一直強調', '原文裡被整理', '原文用', '原文提醒', and '原文最後', so it reads too often like a report about the source.",
+            "commentarySeparation": "Several gu-log/Clawd interpretations and source-meta comments remain in body prose outside ClawdNote, including the tribunal automation anecdote, gu-log cross-reference paragraph, and multiple humorous analogies such as the fire-truck succulent and electronic divination lines."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 2,
+    "topLevelAttempts": 3,
     "tribunalVersion": 5,
     "status": "FAILED",
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T02:39:56+08:00"
+    "finishedAt": "2026-05-20T03:07:09+08:00"
   },
   "sd-24-20260515-codex-runtime-kernel.mdx": {
     "article": "sd-24-20260515-codex-runtime-kernel.mdx",
@@ -2429,29 +2447,71 @@
     "startedAt": "2026-05-20T03:01:06+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 8,
+            "sourceBoundary": 5,
+            "commentarySeparation": 6
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core technical/source claims such as 970,000 lines, 665 test files, 100,720 extracted claims, 35% holder confusion, 17 tests, DO-178C Level A MC/DC, and Six Sigma defect-rate examples align with available source mirrors or known references, but the Capers Jones DRE figures and project metrics remain largely source/self-reported rather than independently primary-verified.",
+            "fidelity": "The post preserves the original essay's main argument that AI agents make 90% coverage and test/document/eval ratchets practical, including caveats about catastrophic production-data, security, and privacy failures, though it adds substantial gu-log framing and cross-post interpretation outside the source.",
+            "consistency": "The argument is internally coherent from fragile software to ratchets, GBrain/GStack examples, coverage economics, and complexity ceilings, with only mild leaps such as treating self-reported project outcomes as broad evidence for industry practice.",
+            "sourceBoundary": "The SP body frequently narrates the source instead of presenting claims directly, using repeated scaffolding such as `Garry 的觀察是`, `Garry 把`, `Garry 提到`, `Garry 說`, `Garry 的判斷`, `Garry 舉`, and `文中提到`.",
+            "commentarySeparation": "Several gu-log interpretive asides and source-meta comments appear in body prose rather than ClawdNote, including `本文統一把這個概念譯成`, `這篇真正要拆的`, `gu-log 之前`, and repeated evaluative house/ghost metaphors that go beyond source-derived claims."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 0,
-    "tribunalVersion": 5
+    "topLevelAttempts": 1,
+    "tribunalVersion": 5,
+    "status": "FAILED",
+    "failedStage": "factChecker",
+    "finishedAt": "2026-05-20T03:13:06+08:00"
   },
   "sp-197-20260512-chrishayduk-codex-goals.mdx": {
     "article": "sp-197-20260512-chrishayduk-codex-goals.mdx",
     "startedAt": "2026-05-20T03:01:07+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9,
+            "sourceBoundary": 7,
+            "commentarySeparation": 6
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core claims about /goal needing measurable goals, fast feedback, a 200+ item checklist, NanoFold reducing scoring from days to minutes, and Markdown memory files are supported by available reposted source traces, but X itself was unreadable and screenshot/media details remain unverifiable.",
+            "fidelity": "The post tracks the source's three-part advice and preserves caveats around missing media, but it substantially expands the source with analogies and framing such as the brake/dashboard/logbook structure.",
+            "consistency": "The argument is coherent: measurable stopping conditions, validation loops, and persistent notes are presented as mutually reinforcing requirements for long-running agent work.",
+            "sourceBoundary": "The SP body has several source-meta boundary slips, including notes that the checklist screenshot only left a [media] marker, that the source did not provide item details, and that EXPERIMENTS.md screenshots were unavailable.",
+            "commentarySeparation": "Several gu-log interpretive passages sit in the body rather than ClawdNote, including the magic-button/brake framing, the broader gu-log cross-reference paragraph, and source limitation commentary."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 0,
-    "tribunalVersion": 5
+    "topLevelAttempts": 1,
+    "tribunalVersion": 5,
+    "status": "FAILED",
+    "failedStage": "factChecker",
+    "finishedAt": "2026-05-20T03:06:38+08:00"
   }
 }
