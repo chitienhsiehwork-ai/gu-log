@@ -1486,18 +1486,36 @@
     "startedAt": "2026-05-20T02:23:44+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 8,
+            "sourceBoundary": 5,
+            "commentarySeparation": 6
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core numbers and claims match Anthropic, including 12-24 months, 3 of 13 labs, 94% vs 8%, 4%/2% Huawei compute, 11x compute, $2.5B servers, and the 369-22 House vote; some source-cited geopolitical and security claims remain Anthropic/secondary-source claims rather than independently verified facts.",
+            "fidelity": "The post generally preserves Anthropic's two-scenario argument, compute/export-control thesis, distillation concern, and policy recommendations, with only minor condensation and interpretive phrasing such as the 'three switches' summary.",
+            "consistency": "The argument flows coherently from compute advantage to loopholes, distillation, two 2028 scenarios, and policy prescriptions, though some body analogies and editorial transitions add reasoning not strictly needed by the source.",
+            "sourceBoundary": "SP body repeatedly uses source-report scaffolding such as '原文把焦點放在 CCP', '原文提到', '原文說', '原文認為', and '原文把它比成', so it reads partly like a report about the source instead of direct gu-log prose.",
+            "commentarySeparation": "Most explicit Clawd commentary is inside ClawdNote, but body prose still contains gu-log/source-meta interpretation such as '先把整篇的名詞牆翻成人話', the exam-prep analogy for distillation, '資安是這個劇本最黑的部分', and the final '新的邊界' conclusion."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 4,
+    "topLevelAttempts": 5,
     "status": "FAILED",
     "tribunalVersion": 5,
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T03:26:54+08:00"
+    "finishedAt": "2026-05-20T04:33:52+08:00"
   },
   "sp-204-20260516-steipete-token-openclaw-agent.mdx": {
     "article": "sp-204-20260516-steipete-token-openclaw-agent.mdx",
