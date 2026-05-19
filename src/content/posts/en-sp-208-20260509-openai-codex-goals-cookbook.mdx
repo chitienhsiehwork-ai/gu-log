@@ -18,25 +18,59 @@ sourceUrl: "https://developers.openai.com/cookbook/examples/codex/using_goals_in
 lang: "en"
 summary: "OpenAI's Cookbook frames Codex Goals as a thread-scoped completion contract: the objective persists, but completion must be checked against evidence. This post fills in the official spec angle around SP-192, SP-197, and SP-207."
 tags: ["shroom-picks", "codex", "agent", "ai-engineering"]
+scores:
+  tribunalVersion: 5
+  factCheck:
+    accuracy: 9
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 10
+    commentarySeparation: 8
+    score: 8
+    date: "2026-05-19"
+    model: "gpt-5.5"
+  librarian:
+    glossary: 9
+    crossRef: 8
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-05-19"
+    model: "gpt-5.5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    score: 8
+    date: "2026-05-19"
+    model: "gpt-5.5"
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-05-19"
+    model: "gpt-5.5"
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
 The most dangerous fantasy around long-running [agents](/en/glossary#agent) is confusing "it keeps going" with "it is still right."
 
-OpenAI's Cookbook guide gives Codex Goals a cleaner definition than the hype usually does. A Goal is not just a longer [prompt](/en/glossary#prompt), and it is not an agent roaming freely in the background. It is a completion contract attached to a thread: what should be true, what evidence should prove it, and which constraints must stay intact.
+Codex Goals have a cleaner definition than the hype usually gives them. A Goal is not just a longer [prompt](/en/glossary#prompt), and it is not an agent roaming freely in the background. It is a completion contract attached to a thread: what should be true, what evidence should prove it, and which constraints must stay intact.
 
-That makes this worth adding to gu-log. [SP-192](/en/posts/en-sp-192-20260508-article-agent-ralph/) covered Codex Goals and long-running agent drift. [SP-197](/en/posts/en-sp-197-20260512-chrishayduk-codex-goals/) covered the practical loop: finish line, tests, and file memory. [SP-207](/en/posts/en-sp-207-20260518-pawelhuryn-agent-goal-intent/) put goals inside a larger governance frame. The official guide adds the product language: **the objective can persist, but evidence decides whether the work is done.**
+The objective can persist, but evidence decides whether the work is done. That sounds like management-speak until it is attached to a long-running agent. Then it becomes a hard product boundary: the agent may keep working, but it cannot close the ticket because the result feels close enough.
 
 <ClawdNote summary="This is not a rewrite of the earlier posts. It is the official calibration point.">
 If this post simply repeated how to use /goal, it would be duplicate content. SP-197 already did the practical version well, and SP-207 already covered the governance gap.
 
-The useful thing here is OpenAI's mental model: a Goal is a thread-scoped completion contract. In plain words, this thread now has a work order, but it cannot be closed by vibes. It needs evidence.
+The useful thing here is OpenAI's mental model: a Goal is a thread-scoped completion contract. [SP-192](/en/posts/en-sp-192-20260508-article-agent-ralph/) covered Codex Goals and long-running agent drift. [SP-197](/en/posts/en-sp-197-20260512-chrishayduk-codex-goals/) covered the practical loop: finish line, tests, and file memory. [SP-207](/en/posts/en-sp-207-20260518-pawelhuryn-agent-goal-intent/) put goals inside a larger governance frame. This post adds the calibration sentence: this thread now has a work order, but it cannot be closed by vibes. It needs evidence.
 </ClawdNote>
 
 ## A prompt says the next step. A Goal says what done means.
 
-The guide's most important distinction is the difference between a prompt and a Goal.
+The important distinction is simple: a prompt controls the next step, while a Goal controls the completion condition.
 
 A prompt says: do this next thing.
 
@@ -62,7 +96,7 @@ That is not just a fancier way to say "make checkout faster." It defines three t
 
 ## A good Goal has six parts, not just more words
 
-The Cookbook breaks a strong Goal into six pieces:
+A strong Goal has six pieces:
 
 1. Outcome: what should be true when the work is done.
 2. Verification surface: the test, benchmark, report, artifact, command output, or source material that proves it.
@@ -89,7 +123,7 @@ The difference is not length. The second version tells the agent how to finish, 
 
 If p95 drops from 180ms to 135ms, the Goal is not done. If it drops to 110ms but the correctness suite fails, the Goal is still not done. If the benchmark cannot run, that is a blocker, not completion. This separates "lots of activity" from "the condition is satisfied."
 
-This matches the lesson gu-log keeps circling back to: long-running agents are not short on effort. They are short on acceptance criteria. Without acceptance criteria, an agent can treat "I did many things" as "I got closer."
+Long-running agents are not short on effort. They are short on acceptance criteria. Without acceptance criteria, an agent can treat "I did many things" as "I got closer."
 
 <ClawdNote>
 It is like fitness. "Get healthier" lets almost anything count: jog for five minutes, drink water, buy new shoes. "Run 5K under 30 minutes in three months without knee pain, while logging pace and recovery every week" is harder to fake.
@@ -101,13 +135,13 @@ Agents are similar. Wishes start the motion. Measurement tells the system whethe
 
 ## A Goal is thread state, not global memory
 
-The architecture section has one boundary that matters: Goals are persisted thread state, not global memory and not project-level instructions.
+The architecture has one boundary that matters: Goals are persisted thread state, not global memory and not project-level instructions.
 
 In normal engineering language: the Goal belongs to the thread because the evidence belongs to the thread. The files Codex inspected, the commands it ran, the diffs it produced, the logs it saw, and the reasoning trail it built all live in that conversation context. Attaching the Goal there is more precise than putting it in global memory or project config.
 
 This also explains why Goals are not background autonomy.
 
-The official continuation policy is conservative. Codex considers continuing only when the thread is idle, the Goal is active, no user input is queued, no other thread work is pending, and the Goal is within budget. Plan-only work does not trigger continuation. Interruptions pause the objective. If a continuation turn makes no tool call, the next automatic continuation is suppressed so Codex does not spin.
+The continuation policy is conservative. Codex considers continuing only when the thread is idle, the Goal is active, no user input is queued, no other thread work is pending, and the Goal is within budget. Plan-only work does not trigger continuation. Interruptions pause the objective. If a continuation turn makes no tool call, the next automatic continuation is suppressed so Codex does not spin.
 
 That sounds boring. It is also the part that makes the feature product-shaped. If Goals were just a while loop, they would quickly become an expensive spinner. A usable long-running system needs rules for when not to continue.
 
@@ -121,11 +155,11 @@ This is the most engineering-shaped part of the guide. It is not selling the dre
 
 ## Completion should be audited, not believed
 
-OpenAI keeps returning to evidence-based completion. A Goal should not be marked complete because the model believes it is probably done. It should be checked against concrete evidence: files, tests, logs, benchmark output, generated artifacts, or research evidence.
+A Goal should not be marked complete because the model believes it is probably done. It should be checked against concrete evidence: files, tests, logs, benchmark output, generated artifacts, or research evidence.
 
-For coding work, that is easy to understand. Tests pass. Benchmarks hit the target. The build succeeds. But the Cookbook's research example is more interesting.
+For coding work, that is easy to understand. Tests pass. Benchmarks hit the target. The build succeeds. Research examples are more interesting because research work often lacks the full material needed for an exact replay.
 
-It uses a reproduction of the Deep Hedging paper. A weak Goal would be:
+A reproduction of the Deep Hedging paper shows the problem well. A weak Goal would be:
 
 ~~~text
 /goal Reproduce Buehler et al., "Deep Hedging"
@@ -175,10 +209,10 @@ Otherwise the agent will work very hard. That is the scary part. Lazy wrong work
 
 ## Conclusion
 
-OpenAI's official guide is not valuable because it lists /goal commands. It is valuable because it defines the boundary of responsibility.
+Goal mode is not valuable because it lists /goal commands. It is valuable because it defines the boundary of responsibility.
 
 A Goal keeps an objective alive, but it does not create unlimited autonomy. It belongs to a thread, not global memory. It can let Codex continue when idle, but continuation has conservative conditions. It can drive long-running work, but completion must be audited. It can handle research uncertainty, but the final result must separate confirmed, approximate, blocked, and uncertain claims.
 
-That is why this belongs in the SP series. It turns several gu-log lessons into official language: the point of long-running agents is not "keep going."
+The point of long-running agents is not "keep going."
 
 The real point is: let the objective persist, and let evidence decide.
