@@ -1489,7 +1489,7 @@
         "status": "in_progress",
         "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
@@ -2273,18 +2273,36 @@
     "startedAt": "2026-05-20T02:33:53+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 8,
+            "sourceBoundary": 5,
+            "commentarySeparation": 6
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core technical claims match the Mem0 source: Markdown storage under `~/.codex/memories/`, six-hour idle eligibility, secret redaction, `memory_summary.md` startup loading, `grep` fallback, MCP setup, and regional limitation are all supported, though some source-backed product behavior is presented with broad confidence.",
+            "fidelity": "The post faithfully preserves the main source claims and limits, including local-only memory and no semantic search, but it omits some source details such as AGENTS.md caps and adds gu-log framing and cross-post synthesis beyond the Mem0 article.",
+            "consistency": "The argument is coherent from local Markdown memory to Mem0 semantic memory, but body prose sometimes mixes evidence, analogy, and evaluation in the same flow, making the support boundary less clean.",
+            "sourceBoundary": "SP body repeatedly uses source-report scaffolding such as `Mem0 原文先把神話拆掉`, `Mem0 原文提到`, `Mem0 原文指出`, `原文舉的例子`, and `原文也提到`, so it reads too often like a report about the source.",
+            "commentarySeparation": "Several gu-log interpretive asides and source-meta passages appear outside `<ClawdNote>`, including the opening `Mem0 這篇拆開來看`, cross-post framing, and evaluative analogies like `很工程師` and `這個選擇很有意思`."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 2,
+    "topLevelAttempts": 3,
     "tribunalVersion": 5,
     "status": "FAILED",
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T02:45:04+08:00"
+    "finishedAt": "2026-05-20T03:05:28+08:00"
   },
   "sp-199-20260513-manthanguptaa-memory-in-voice-agents-is-a-harder-problem-than-you-think.mdx": {
     "article": "sp-199-20260513-manthanguptaa-memory-in-voice-agents-is-a-harder-problem-than-you-think.mdx",
