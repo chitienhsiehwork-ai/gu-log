@@ -2309,28 +2309,71 @@
     "startedAt": "2026-05-20T02:33:53+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9,
+            "sourceBoundary": 6,
+            "commentarySeparation": 6
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core claims match the Mem0 source and docs, including Markdown storage under `~/.codex/memories/`, `memory_summary.md`/`MEMORY.md`/`raw_memories.md`, six-hour idle consolidation, grep-based recall, and the Mem0 MCP config; the 5,000-token read budget is more implementation-level than clearly primary-documented in the source body.",
+            "fidelity": "The post preserves the source's main structure and limits, but adds gu-log framing and analogies such as the local work-note interpretation and cross-article memory arc beyond direct translation.",
+            "consistency": "The argument consistently distinguishes local Markdown memory from external semantic memory, and the tradeoff logic around grep, latency, sync, and governance is coherent.",
+            "sourceBoundary": "The SP body repeatedly uses source-report framing such as `Mem0 原文先把神話拆掉`, `Mem0 原文提到`, `原文舉的例子`, and `原文也提到`, so it reads partly like a report about the source.",
+            "commentarySeparation": "Several gu-log interpretations and jokes remain in body prose outside `<ClawdNote>`, including the gu-log cross-reference paragraph, `很工程師`, the library-system analogy, and the office-cleanup/meeting analogies."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 1,
+    "topLevelAttempts": 2,
     "tribunalVersion": 5,
     "status": "FAILED",
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T02:39:04+08:00"
+    "finishedAt": "2026-05-20T02:45:04+08:00"
   },
   "sp-199-20260513-manthanguptaa-memory-in-voice-agents-is-a-harder-problem-than-you-think.mdx": {
     "article": "sp-199-20260513-manthanguptaa-memory-in-voice-agents-is-a-harder-problem-than-you-think.mdx",
     "startedAt": "2026-05-20T02:33:55+08:00",
     "stages": {
       "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 7,
+            "consistency": 9,
+            "sourceBoundary": 9,
+            "commentarySeparation": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Core claims about 500-800ms voice latency pressure, 32k gpt-realtime context, async/preload memory patterns, and sleep-time-compute figures are broadly supported, but several latency and cost numbers such as diarization 200-400ms and per-turn extraction dollars are presented without directly checkable primary support.",
+            "fidelity": "The X post is a link-only tweet to an X Article and the accessible digest matches the article's main thesis, but the full X Article body could not be retrieved, so the many expanded architecture and research details cannot all be verified against the source.",
+            "consistency": "The argument is internally coherent: latency budget motivates cache/preload reads, async writes, background retrieval, transcript compression, and off-path consolidation without contradictions.",
+            "sourceBoundary": "The SP body avoids repeated original-source scaffolding such as 「原作者說」 or 「原文提到」, with only occasional external citation framing like OpenAI docs and a related paper page.",
+            "commentarySeparation": "Most overt gu-log opinions and jokes are in ClawdNote, though some rhetorical interpretation in the body, such as vector search standing at a cliff edge or the final silence line, slightly blurs prose commentary with source-derived explanation."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 2,
+        "tribunalVersion": 5
+      },
+      "librarian": {
         "status": "in_progress",
         "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 2,
+        "attempts": 1,
         "tribunalVersion": 5
       }
     },
