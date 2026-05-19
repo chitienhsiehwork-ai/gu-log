@@ -2493,18 +2493,36 @@
     "startedAt": "2026-05-20T04:27:48+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9,
+            "sourceBoundary": 6,
+            "commentarySeparation": 5
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core technical and factual claims match the source, including 100,000 pages, 100+ skills, Skillify, book-mirror, meeting prep, and the thin-harness/fat-skill architecture, with only source-self-reported implementation details such as model roles and growth claims limiting confidence.",
+            "fidelity": "The post faithfully preserves the main source argument and examples, but compresses or omits several concrete source details such as Demis AGI-timeline notes, model names like Opus 4.7, GStack/GBrain open-source specifics, 97.6% LongMemEval recall, and the exact 15-cron/100-cron distinction.",
+            "consistency": "The argument flows coherently from book mirror to Skillify to GBrain architecture and the compounding thesis, and the softened reading of the 10x claim at line 226 is logically appropriate.",
+            "sourceBoundary": "The SP body repeatedly uses source-report scaffolding such as 'Garry 原文說' at line 167 and '原文說' at lines 200, 206, and 230, plus '他也說' at line 232, which violates the Tribunal v5 SP body boundary rule.",
+            "commentarySeparation": "Gu-log interpretation and jokes frequently appear in body prose rather than ClawdNote, including the LinkedIn aside at line 95, the engineering takeaway and 文昌帝君 joke at lines 125-127, gu-log cross-reference commentary at line 196, and the car-without-brakes analogy at line 212."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 1,
+    "topLevelAttempts": 2,
     "tribunalVersion": 5,
     "status": "FAILED",
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T04:34:06+08:00"
+    "finishedAt": "2026-05-20T06:26:07+08:00"
   },
   "sd-23-20260510-ai-dota-teammates.mdx": {
     "article": "sd-23-20260510-ai-dota-teammates.mdx",
@@ -2631,7 +2649,7 @@
         "status": "in_progress",
         "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
