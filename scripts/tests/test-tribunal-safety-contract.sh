@@ -8,6 +8,7 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 TRIBUNAL="$ROOT_DIR/scripts/tribunal.sh"
 VIBE="$ROOT_DIR/scripts/vibe-scorer.sh"
 HELPERS="$ROOT_DIR/scripts/tribunal-helpers.sh"
+WRAPPER="$ROOT_DIR/scripts/cc-tribunal-loop-wrapper.sh"
 CODEX_AGENTS_DIR="$ROOT_DIR/.codex/agents"
 CODEX_WRITER="$CODEX_AGENTS_DIR/tribunal-writer.toml"
 
@@ -75,6 +76,12 @@ pass "Codex agent specs are separated from Claude Code frontmatter"
 
 if ! grep -q -- '--model gpt-5.5' "$HELPERS"; then
   fail "Codex tribunal helper is not pinned to GPT-5.5"
+fi
+if ! grep -q 'MIN_CODEX_VERSION="0.128.0"' "$TRIBUNAL"; then
+  fail "Tribunal does not reject known-broken old Codex CLI versions"
+fi
+if ! grep -Fq 'export PATH="$HOME/.local/bin:$HOME/bin:$PATH"' "$WRAPPER"; then
+  fail "Tribunal systemd wrapper does not prefer the current ~/.local/bin Codex before stale ~/bin"
 fi
 if ! grep -q 'local model_id="gpt-5.5"' "$TRIBUNAL"; then
   fail "Tribunal frontmatter/logging model_id is not pinned to GPT-5.5"

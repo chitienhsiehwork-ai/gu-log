@@ -943,7 +943,13 @@ for _cmd in jq python3 pnpm git flock timeout; do
 done
 if ! tribunal_codex_cmd >/dev/null 2>&1; then
   echo "ERROR: Required Codex CLI missing: install codex or provide the bundled node entrypoint" >&2
-  exit 1
+  exit 70
+fi
+CODEX_VERSION="$(tribunal_codex_version || true)"
+MIN_CODEX_VERSION="0.128.0"
+if [ -z "$CODEX_VERSION" ] || ! tribunal_codex_version_at_least "$CODEX_VERSION" "$MIN_CODEX_VERSION"; then
+  echo "ERROR: Codex CLI version $CODEX_VERSION is older than required $MIN_CODEX_VERSION; check tribunal service PATH" >&2
+  exit 70
 fi
 
 if [ -d .git/rebase-merge ] || [ -d .git/rebase-apply ]; then
