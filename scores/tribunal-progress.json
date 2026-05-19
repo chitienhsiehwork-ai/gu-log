@@ -1486,26 +1486,8 @@
     "startedAt": "2026-05-20T02:23:44+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 9,
-            "fidelity": 8,
-            "consistency": 8,
-            "sourceBoundary": 6,
-            "commentarySeparation": 7
-          },
-          "score": 7,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "The concrete claims checked against Anthropic match the source, including 3 of 13 Chinese labs publishing safety evals, DeepSeek R1-0528 at 94% versus 8%, Firefox/Mythos bug-fix claims, Huawei/NVIDIA 4% and 2%, the 11x compute estimate, and the 369-22 House vote.",
-            "fidelity": "The post follows Anthropic's two-scenario structure and preserves most caveats, but it adds explanatory compression and gu-log reframing such as the three 'switches' and '考前不能偷考卷' analogy that are not direct source claims.",
-            "consistency": "The argument is coherent from compute advantage to export controls, distillation, and the 2028 scenarios, though several body-level interpretive transitions make the logic feel partly editorial rather than purely source-derived.",
-            "sourceBoundary": "The SP body repeatedly uses source-meta scaffolding such as '原文把焦點放在 CCP', '原文提到', '原文說', '原文也提到', and '原文認為', which violates the v5 rule that readers already see the source attribution.",
-            "commentarySeparation": "ClawdNote is used for explicit commentary, but body prose still contains gu-log interpretation and source-meta commentary such as '先把整篇的名詞牆翻成人話', '文章很容易變成政策簡報', '資安是這個劇本最黑的部分', and the final '真正重要的地方' interpretation."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
@@ -2214,18 +2196,36 @@
     "startedAt": "2026-05-20T02:23:45+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 7,
+            "consistency": 8,
+            "sourceBoundary": 6,
+            "commentarySeparation": 5
+          },
+          "score": 6,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core technical claims about Agent loops, workflow-vs-agent control, Harness, context layering, tools, memory, multi-agent isolation, evals, traces, and safety align with the source; the OpenAI numbers are preserved with an appropriate case-study caveat.",
+            "fidelity": "The post faithfully tracks the source's main structure, but it adds the local tribunal automation completion anecdote and omits or compresses many concrete source details such as prompt caching, tool-search metrics, Pass@k/Pass^k, and OpenClaw internals.",
+            "consistency": "The argument is coherent around verifiable state, Harness, context, tools, memory, multi-agent coordination, and safety, though the added gu-log incident framing is not sourced and becomes a repeated support pillar.",
+            "sourceBoundary": "SP body repeatedly uses source-report framing such as '@HiTw93 這篇長文', '@HiTw93 原文列了', '原文一直強調', '原文用', and '原文最後', so it reads partly like a report about the source.",
+            "commentarySeparation": "Many gu-log interpretations and analogies remain in the SP body outside ClawdNote, including the local automation accident, '電子擲筊', '模型不是萬能補土', and the '新進工程團隊' conclusion."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 4,
+    "topLevelAttempts": 5,
     "tribunalVersion": 5,
     "status": "FAILED",
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T03:23:08+08:00"
+    "finishedAt": "2026-05-20T04:33:23+08:00"
   },
   "sd-24-20260515-codex-runtime-kernel.mdx": {
     "article": "sd-24-20260515-codex-runtime-kernel.mdx",
@@ -2532,6 +2532,46 @@
     "startedAt": "2026-05-20T04:27:48+08:00",
     "stages": {
       "factChecker": {
+        "status": "in_progress",
+        "score": null,
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 2,
+        "tribunalVersion": 5
+      }
+    },
+    "topLevelAttempts": 0,
+    "tribunalVersion": 5
+  },
+  "sd-23-20260510-ai-dota-teammates.mdx": {
+    "article": "sd-23-20260510-ai-dota-teammates.mdx",
+    "startedAt": "2026-05-20T04:29:39+08:00",
+    "stages": {
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 9,
+            "consistency": 9,
+            "sourceBoundary": 10,
+            "commentarySeparation": 10
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "LLM limitations around taste, stale knowledge, internal context, context windows, and overconfident plausible output are broadly correct; minor imprecision remains because lines like AI being good at research or humans better sensing uncertainty are generalized rather than evidence-cited technical claims.",
+            "fidelity": "The post faithfully carries over the ChatGPT transcript's core ideas: DOTA teammate framing, not fighting AI for mid lane, taste/recent-knowledge/internal-detail weaknesses, context window versus world model, and uncertainty detection.",
+            "consistency": "The argument flows cleanly from AI anxiety to team-role division, then to concrete LLM weakness categories and the final claim that humans should manage risk and map awareness rather than compete on first drafts.",
+            "sourceBoundary": "This is an SD original rather than an SP translation, and the body does not use repeated source-meta scaffolding such as 原作者說 or 原文提到.",
+            "commentarySeparation": "ClawdNote and ShroomDogNote material is clearly marked, while the main body keeps a coherent original-essay voice without confusing external-source claims with gu-log commentary."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1,
+        "tribunalVersion": 5
+      },
+      "librarian": {
         "status": "in_progress",
         "score": null,
         "model": "codex-gpt-5.5-medium",
