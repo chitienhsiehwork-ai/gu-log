@@ -1512,10 +1512,10 @@
       }
     },
     "topLevelAttempts": 5,
-    "status": "FAILED",
+    "status": "EXHAUSTED",
     "tribunalVersion": 5,
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T04:33:52+08:00"
+    "finishedAt": "2026-05-20T06:20:39+08:00"
   },
   "sp-204-20260516-steipete-token-openclaw-agent.mdx": {
     "article": "sp-204-20260516-steipete-token-openclaw-agent.mdx",
@@ -2241,9 +2241,9 @@
     },
     "topLevelAttempts": 5,
     "tribunalVersion": 5,
-    "status": "FAILED",
+    "status": "EXHAUSTED",
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T04:33:23+08:00"
+    "finishedAt": "2026-05-20T06:20:39+08:00"
   },
   "sd-24-20260515-codex-runtime-kernel.mdx": {
     "article": "sd-24-20260515-codex-runtime-kernel.mdx",
@@ -2309,18 +2309,36 @@
     "startedAt": "2026-05-20T02:33:53+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9,
+            "sourceBoundary": 5,
+            "commentarySeparation": 6
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core technical claims match the Mem0 source article: Markdown files under ~/.codex/memories/, memory_summary.md/MEMORY.md/raw_memories.md layout, six-hour default idle consolidation, grep-based recall, 5,000-token summary budget, and EEA/UK/Switzerland availability limits are represented accurately.",
+            "fidelity": "The post preserves the source's main architecture and tradeoffs, including local generated memory versus Mem0 semantic cross-tool memory, though it condenses several source details and adds explanatory framing beyond a strict translation.",
+            "consistency": "The local Markdown memory versus external semantic memory argument is coherent throughout, and the conclusion follows from the earlier discussion of grep limits, local state, and cross-machine needs.",
+            "sourceBoundary": "The SP body repeatedly uses source-report scaffolding such as 'Mem0 原文先把神話拆掉', 'Mem0 原文提到', 'Mem0 原文指出', and '原文舉的例子', so it reads too often like a report about the source rather than direct gu-log prose.",
+            "commentarySeparation": "Several interpretive or gu-log framing sentences remain in the body outside ClawdNote, including the opening judgment that the design is '很工程師', the gu-log cross-post framing, and the final '內建記憶輸了/外部記憶贏了' interpretation."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 4,
+    "topLevelAttempts": 5,
     "tribunalVersion": 5,
-    "status": "FAILED",
+    "status": "EXHAUSTED",
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T03:24:03+08:00"
+    "finishedAt": "2026-05-20T06:20:41+08:00"
   },
   "sp-199-20260513-manthanguptaa-memory-in-voice-agents-is-a-harder-problem-than-you-think.mdx": {
     "article": "sp-199-20260513-manthanguptaa-memory-in-voice-agents-is-a-harder-problem-than-you-think.mdx",
@@ -2429,18 +2447,78 @@
     "startedAt": "2026-05-20T03:01:06+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 8,
+            "sourceBoundary": 9,
+            "commentarySeparation": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Core claims about the complexity ratchet, 90% coverage, GBrain holder-confusion example, TTY-style agent behavior tests, and Capers Jones/DO-178C/Six Sigma evidence match available source summaries, while project stats such as 970,000 LOC, 93K stars, and 665 test files remain self-reported and are correctly caveated.",
+            "fidelity": "The post preserves the source's main argument that AI agents make high verification coverage cheaper and that tests/docs/evals create a forward-only quality ratchet, though the gu-log rewrite is expansive and occasionally more declarative than the source summaries.",
+            "consistency": "The argument flows coherently from AI coding failure modes to ratchet mechanics, GBrain/GStack examples, 90% coverage evidence, and open-source collaboration, with no major internal contradictions.",
+            "sourceBoundary": "The SP body largely avoids banned scaffolding like 原作者說 or 原文提到 and uses smoother boundary language such as 案例自述 and 不是第三方審計過的公開 benchmark, with only minor source-report phrasing like 他也用 六標準差做類比.",
+            "commentarySeparation": "Most explicit gu-log interpretation is inside ClawdNote, but the body still contains some strong editorial metaphors and conclusions such as 鬼屋 and 真正昂貴的反而是沒有驗證 that blur source translation with gu-log voice."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 2,
+        "tribunalVersion": 5
+      },
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 9,
+            "sourceAlign": 8,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key terms such as Prompt, Claude Code, Codex, Agent, Context Window, Vibe Coding, and Andrej Karpathy are linked, but the Skills link points to /glossary#skills while the glossary entry anchor is generated from singular Skill.",
+            "crossRef": "The post cites the most relevant existing gu-log pieces, Eval-Driven Development and Meta-Meta-Prompting, and both /posts/sp-151-20260402-ecc-eval-driven-development/ and /posts/sp-196-20260511-garrytan-meta-meta-prompting-garry-tan/ resolve to existing files.",
+            "sourceAlign": "The article stays aligned with the declared Garry Tan X source by centering GStack, GBrain, 90% coverage, tests, docs, evals, and the ratchet framing, while clearly expanding the argument into gu-log context.",
+            "attribution": "Project scale numbers and benchmark-like claims are framed as case self-reports or named research contexts, with ClawdNote commentary separated from body claims."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 1,
         "tribunalVersion": 5
+      },
+      "freshEyes": {
+        "status": "fail",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 7,
+            "firstImpression": 8
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "readability": "The ghost-house and ratchet framing is easy to follow, but the middle gets heavy with GStack, GBrain, TTY, MC/DC, DRE, and coverage research all arriving fast for a new dev.",
+            "firstImpression": "The opening has real signal and the haunted-code metaphor would keep me reading, but repeated ClawdNote asides and long proof sections make it feel less shareable by the end."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 2,
+        "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 2,
+    "topLevelAttempts": 3,
     "tribunalVersion": 5,
     "status": "FAILED",
-    "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T03:24:25+08:00"
+    "failedStage": "freshEyes",
+    "finishedAt": "2026-05-20T04:47:18+08:00"
   },
   "sp-197-20260512-chrishayduk-codex-goals.mdx": {
     "article": "sp-197-20260512-chrishayduk-codex-goals.mdx",
@@ -2550,15 +2628,36 @@
     "startedAt": "2026-05-20T04:27:48+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9,
+            "sourceBoundary": 7,
+            "commentarySeparation": 7
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core claims match the reposted Garry Tan source, including the Pema book mirror, 30,000-word output, 40-minute run, family-error examples, 100,000-page GBrain, 100+ skills, and thin-harness/fat-skills architecture, but many numeric claims remain Garry self-reports rather than independently verified facts.",
+            "fidelity": "The post preserves the main source argument and key examples, but it compresses and editorially reshapes parts of the source, omitting some specific source claims such as LongMemEval and skillpack counts while adding explanatory framing around the same thesis.",
+            "consistency": "The argument is coherent from book mirror to Skillify, meeting prep, GBrain structure, architecture, and compounding; caveats around 100,000 pages and 10x growth keep the self-report numbers logically bounded.",
+            "sourceBoundary": "The SP body mostly avoids explicit '原文提到' scaffolding, but several body transitions still narrate the source/article itself, including '文章最遞迴的地方', '放在這篇文章裡', and 'Garry 這篇文章最容易被誤讀'.",
+            "commentarySeparation": "Most overt gu-log commentary is inside ClawdNote, but the body still contains interpretive/source-meta commentary such as '真正的工程重點', '資料本身不稀缺，排序方式才稀缺', internal gu-log cross-reference framing, and the final misread caveat setup."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 0,
-    "tribunalVersion": 5
+    "topLevelAttempts": 1,
+    "tribunalVersion": 5,
+    "status": "FAILED",
+    "failedStage": "factChecker",
+    "finishedAt": "2026-05-20T04:34:06+08:00"
   },
   "sd-23-20260510-ai-dota-teammates.mdx": {
     "article": "sd-23-20260510-ai-dota-teammates.mdx",
@@ -2590,14 +2689,76 @@
         "tribunalVersion": 5
       },
       "librarian": {
-        "status": "in_progress",
-        "score": null,
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 9,
+            "sourceAlign": 8,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key terms Context Window and AI agent are linked, but glossary hits Token and ClawdNote remain unlinked and the phrase agent workflow points to the Agent anchor rather than a more precise workflow or harness term.",
+            "crossRef": "Internal links resolve per packet, first ShroomDog mention links to /about, and the post explicitly connects its context-window angle to /posts/sd-22-20260508-context-window-model-day/.",
+            "sourceAlign": "As an SD original based on a ShroomDog x ChatGPT conversation, the post stays aligned with the declared source topic about AI collaboration and human judgment, though the private/share source cannot be independently inspected from the packet.",
+            "attribution": "Opinionated claims are clearly framed as ShroomDog/Clawd commentary, the source boundary is visible in frontmatter, and there are no unsupported statistics or external quotations needing separate attribution."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 2,
+        "tribunalVersion": 5
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "The DOTA metaphor is explained well enough for non-players, but terms like context window, production, and agent workflow still make a few paragraphs feel aimed at people already inside the AI-dev bubble.",
+            "firstImpression": "The hook is clear and the 'AI teammate who sends heads' framing is sticky, though the middle repeats the same team-position point enough that I started skimming before the confidence-management section."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1,
+        "tribunalVersion": 5
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 9,
+            "clarity": 9,
+            "narrative": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "The DOTA teammate frame starts at line 66 and keeps the professor-like tactical explanation alive through lines 80, 118, and 170 without collapsing into a news report.",
+            "clawdNote": "The notes are opinionated and useful, especially line 75's confident-AI送頭 joke and line 123's production trauma point, with 4 notes over 50 prose lines.",
+            "vibe": "The post is shareable because phrases like line 84's machine-not-getting-tired joke and line 190's don't-share-mid-lane callback keep the reading energy high.",
+            "clarity": "Speaker attribution stays clear with body claims separated from ClawdNote/ShroomDogNote, no confusing body 你/我 usage observed, and check-jingjing returned clean.",
+            "narrative": "The arc moves from AI anxiety at line 60 to team-role reframing, weakness diagnosis, confidence management, and a strong line-190 callback payoff."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 1,
         "tribunalVersion": 5
       }
     },
     "topLevelAttempts": 0,
-    "tribunalVersion": 5
+    "tribunalVersion": 5,
+    "status": "PASS",
+    "finishedAt": "2026-05-20T04:39:01+08:00"
   }
 }
