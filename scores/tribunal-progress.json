@@ -2291,18 +2291,36 @@
     "startedAt": "2026-05-20T02:33:53+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9,
+            "sourceBoundary": 5,
+            "commentarySeparation": 6
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core technical claims match the Mem0 source and OpenAI docs, including local `~/.codex/memories/`, Markdown storage, six-hour idle default, secret redaction, and MCP setup; the 5,000-token summary cap is plausible but not stated in the Mem0 article or current OpenAI config reference.",
+            "fidelity": "The post preserves the source's main argument that Codex memory is local generated Markdown with grep-style recall and that Mem0 adds cross-tool semantic memory, but it adds gu-log framing, prior-post connections, and interpretive takeaways beyond the source.",
+            "consistency": "The local-note versus semantic-memory comparison is internally coherent, and the tradeoff argument around latency, transparency, cross-machine sync, and external-service cost follows logically.",
+            "sourceBoundary": "The SP body repeatedly uses source-report scaffolding such as `Mem0 原文先把神話拆掉`, `Mem0 原文提到`, `Mem0 原文指出`, `原文舉的例子`, and `Mem0 原文列了一串設定`, which violates the v5 SP source-boundary rule.",
+            "commentarySeparation": "Several gu-log opinions, jokes, source-meta comments, and cross-post recommendations appear in body prose outside `<ClawdNote>`, including the opening interpretation, gu-log previous-post bridge, and multiple analogies that should be separated or rewritten as direct explanatory prose."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 3,
+    "topLevelAttempts": 4,
     "tribunalVersion": 5,
     "status": "FAILED",
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T03:05:28+08:00"
+    "finishedAt": "2026-05-20T03:24:03+08:00"
   },
   "sp-199-20260513-manthanguptaa-memory-in-voice-agents-is-a-harder-problem-than-you-think.mdx": {
     "article": "sp-199-20260513-manthanguptaa-memory-in-voice-agents-is-a-harder-problem-than-you-think.mdx",
@@ -2454,6 +2472,48 @@
         "tribunalVersion": 5
       },
       "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 10,
+            "crossRef": 9,
+            "sourceAlign": 8,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Detected glossary terms are handled: the opening links Codex, Prompt, and Agent, and the ClawdNote component/persona is used without leaving an unlinked visible first-mention gap.",
+            "crossRef": "All three internal post links resolve, and the post explicitly connects the long-running Agent angle to SP-192, SP-191, and SP-193; SP-200 would be a useful optional later memory-related link but is not required for this article to pass.",
+            "sourceAlign": "The post stays aligned with the declared Chris Hayduk X source topic around Codex /goal, measurable stopping conditions, fast test loops, and Markdown experiment memory, while carefully marking missing media details as unavailable.",
+            "attribution": "Claims are generally bounded to the source and visible evidence, with unsupported screenshot details explicitly withheld and ClawdNote opinions clearly separated from body prose."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1,
+        "tribunalVersion": 5
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "The brake/dashboard/logbook frame makes the Codex goal-mode idea easy to follow, though the ICML, LaTeX, NanoFold, and protein-structure section briefly feels like expert territory.",
+            "firstImpression": "The opening has a clear problem and good stakes, and the concrete examples keep it readable enough to finish, but the middle drags when source-limit caveats repeat."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1,
+        "tribunalVersion": 5
+      },
+      "vibe": {
         "status": "in_progress",
         "score": null,
         "model": "codex-gpt-5.5-medium",
