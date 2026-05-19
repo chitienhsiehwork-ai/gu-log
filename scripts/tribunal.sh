@@ -285,6 +285,36 @@ mark_article_failed() {
   ) 9>>"$RC_PROGRESS_LOCK"
 }
 
+mark_article_runner_error() {
+  local article="$1" failed_stage="$2" model="$3" attempts="$4" reason="$5"
+  (
+    flock -x 9
+    local tmp
+    tmp="$(mktemp)"
+    jq --arg a "$article" \
+       --arg s "$failed_stage" \
+       --arg model "$model" \
+       --arg reason "$reason" \
+       --argjson attempts "$attempts" \
+       --argjson tribunalVersion "$TRIBUNAL_VERSION" \
+       --arg ts "$(TZ=Asia/Taipei date -Iseconds)" \
+       '.[$a].status = "RUNNER_ERROR"
+        | .[$a].failedStage = $s
+        | .[$a].finishedAt = $ts
+        | .[$a].tribunalVersion = $tribunalVersion
+        | .[$a].topLevelAttempts = ([((.[$a].topLevelAttempts // 0) - 1), 0] | max)
+        | .[$a].stages[$s] = {
+            status: "runner_error",
+            score: null,
+            model: $model,
+            attempts: $attempts,
+            tribunalVersion: $tribunalVersion,
+            error: $reason
+          }' \
+       "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
+  ) 9>>"$RC_PROGRESS_LOCK"
+}
+
 mark_article_passed() {
   local article="$1"
   (
@@ -697,15 +727,15 @@ PROMPT
 
     # ── Validate score JSON ───────────────────────────────────────────────────
     if ! validate_judge_score_json "$validate_name" "$score_tmp"; then
-      tlog "  ERROR: Invalid/missing $label score JSON schema on attempt $attempt; failing loudly without writer rewrite."
+      tlog "  ERROR: Invalid/missing $label score JSON schema on attempt $attempt; treating as runner infrastructure failure."
       if [ -f "$score_tmp" ]; then
         local raw
         raw="$(head -3 "$score_tmp" 2>/dev/null | tr '\n' ' ')"
         tlog "  Raw (head): $raw"
       fi
-      write_stage_progress "$post_file" "$stage_key" "fail" "null" "$runner_label" "$attempt"
+      mark_article_runner_error "$post_file" "$stage_key" "$runner_label" "$attempt" "invalid_or_missing_score_json"
       rm -f "$score_tmp"
-      return 1
+      return 70
     fi
 
     local score_json composite verdict
@@ -945,9 +975,15 @@ for stage_def in "${STAGES[@]}"; do
     continue
   fi
 
-  if ! run_stage \
-      "$stage_key" "$agent_name" "$validate_name" "$label" \
-      "$max_loops" "$runner_label" "$POST_FILE" "$fm_judge_key"; then
+  stage_rc=0
+  run_stage \
+    "$stage_key" "$agent_name" "$validate_name" "$label" \
+    "$max_loops" "$runner_label" "$POST_FILE" "$fm_judge_key" || stage_rc=$?
+  if [ "$stage_rc" -eq 70 ]; then
+    tlog "=== RUNNER ERROR at stage: $label ==="
+    commit_progress "tribunal(${POST_FILE%.mdx}): RUNNER_ERROR at $label stage"
+    exit 70
+  elif [ "$stage_rc" -ne 0 ]; then
     tlog "=== FAILED at stage: $label ==="
     mark_article_failed "$POST_FILE" "$stage_key"
     commit_progress "tribunal(${POST_FILE%.mdx}): FAILED at $label stage"
