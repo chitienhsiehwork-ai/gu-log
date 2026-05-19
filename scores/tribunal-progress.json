@@ -1486,18 +1486,36 @@
     "startedAt": "2026-05-20T02:23:44+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 8,
+            "sourceBoundary": 6,
+            "commentarySeparation": 6
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "The major technical and policy claims match Anthropic's source, including the 12-24 month lead, 3 of 13 safety-eval disclosure figure, 94% versus 8% jailbreaking comparison, Mythos Preview Firefox example, Huawei/NVIDIA 4% and 2% compute figures, and 11x compute estimate, though many figures remain Anthropic-cited secondary claims rather than independently verified facts.",
+            "fidelity": "The post preserves Anthropic's central argument about compute, export-control loopholes, distillation attacks, and the two 2028 scenarios, with only moderate compression and some added explanatory analogies rather than material inversion.",
+            "consistency": "The argument flows coherently from AI leadership risk to compute constraints, loopholes, scenarios, and policy recommendations, but body-level interpretive transitions sometimes blur summary with gu-log framing.",
+            "sourceBoundary": "The SP body repeatedly uses source-report scaffolding such as '原文把焦點放在 CCP', '原文說', '原文也提到', '原文認為', and '原文把它比成', so it reads too often like a report about the source rather than direct gu-log prose.",
+            "commentarySeparation": "Several gu-log interpretations and source-meta asides appear in the body outside ClawdNote, including '先把整篇的名詞牆翻成人話', the exam-answer distillation analogy, '文章很容易變成政策簡報', '這個劇本最黑的部分', and the closing claim about what the article '真正重要' is."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 2,
+    "topLevelAttempts": 3,
     "status": "FAILED",
     "tribunalVersion": 5,
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T02:39:59+08:00"
+    "finishedAt": "2026-05-20T03:06:18+08:00"
   },
   "sp-204-20260516-steipete-token-openclaw-agent.mdx": {
     "article": "sp-204-20260516-steipete-token-openclaw-agent.mdx",
@@ -2199,7 +2217,7 @@
         "status": "in_progress",
         "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
@@ -2429,7 +2447,7 @@
         "status": "in_progress",
         "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
