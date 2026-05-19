@@ -762,7 +762,8 @@ spawn_worker() {
 }
 
 # Wait for ANY worker to finish. Releases its claim, logs outcome, clears
-# tracking state. Propagates rc=77 (stopped_by_request) to exit_stopped.
+# tracking state. Propagates rc=77 (stopped_by_request) and rc=70
+# (runner infrastructure failure) into drain mode.
 wait_any_worker() {
   # bash: wait -n returns when ANY child exits, sets $? to its status.
   local rc=0
@@ -794,6 +795,11 @@ wait_any_worker() {
     77) tlog "  [worker-$finished_id] $article_slug — stopped_by_request propagated."
         stop_requested=true
         stop_source="${stop_source:-propagated-from-worker}"
+        ;;
+    70) tlog "  [worker-$finished_id] $article_slug — runner_error propagated; draining to avoid poisoning more articles."
+        stop_requested=true
+        stop_source="${stop_source:-runner-error}"
+        rc_write_state "draining" "runner_error article=$article_slug"
         ;;
     *)  tlog "  [worker-$finished_id] $article_slug — failed (rc=$rc)" ;;
   esac
