@@ -1489,7 +1489,7 @@
         "status": "in_progress",
         "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
@@ -2199,7 +2199,7 @@
         "status": "in_progress",
         "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
@@ -2239,26 +2239,10 @@
         "tribunalVersion": 5
       },
       "librarian": {
-        "status": "fail",
-        "score": {
-          "judge": "librarian",
-          "dimensions": {
-            "glossary": 5,
-            "crossRef": 6,
-            "sourceAlign": 8,
-            "attribution": 8
-          },
-          "score": 6,
-          "verdict": "FAIL",
-          "reasons": {
-            "glossary": "Key glossary terms such as Agent, Codex, OpenClaw, and ClawdNote appear repeatedly without /glossary links or inline definitions beyond the local metaphor framing.",
-            "crossRef": "There are no broken internal links, but the post has zero internal post links despite strongly overlapping with SD-20 on Hermes/OpenClaw harness architecture and SP-89 on OpenClaw routing Codex through Discord/Telegram.",
-            "sourceAlign": "The Hermes source page explicitly says Hermes can hand terminal commands, file edits, sandboxing, and MCP tool calls to Codex runtime while Hermes remains the shell, which matches the post's three-layer runtime framing.",
-            "attribution": "The body cites the Hermes and OpenClaw docs for the concrete runtime claims, and the larger product-architecture interpretation is presented as ShroomDog analysis rather than imported fact."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 2,
+        "attempts": 1,
         "tribunalVersion": 5
       }
     },
@@ -2273,15 +2257,36 @@
     "startedAt": "2026-05-20T02:33:53+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9,
+            "sourceBoundary": 6,
+            "commentarySeparation": 6
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core technical claims match the Mem0 article and OpenAI docs: local `~/.codex/memories/`, Markdown files, six-hour idle default, secret redaction, memory on/off controls, MCP HTTP config, and regional availability caveat are all supported.",
+            "fidelity": "The post faithfully represents the Mem0 article's main argument about native Codex memories versus Mem0, though it adds gu-log analogies and cross-post framing beyond the source.",
+            "consistency": "The argument is internally coherent: Codex native memory is consistently framed as local Markdown recall, while Mem0 is framed as a cross-tool semantic memory layer with added operational cost.",
+            "sourceBoundary": "SP body repeatedly uses source-meta scaffolding such as `Mem0 這篇拆開來看`, `Mem0 原文先`, `Mem0 原文提到`, `原文舉的例子`, and `原文列了一串設定`, so it reads partly like a report about the source.",
+            "commentarySeparation": "Several gu-log interpretations and jokes appear in body prose outside `<ClawdNote>`, including the prior-post reading guide, library-machine analogy, desk-cleaning analogy, and convenience-store analogy."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 0,
-    "tribunalVersion": 5
+    "topLevelAttempts": 1,
+    "tribunalVersion": 5,
+    "status": "FAILED",
+    "failedStage": "factChecker",
+    "finishedAt": "2026-05-20T02:39:04+08:00"
   },
   "sp-199-20260513-manthanguptaa-memory-in-voice-agents-is-a-harder-problem-than-you-think.mdx": {
     "article": "sp-199-20260513-manthanguptaa-memory-in-voice-agents-is-a-harder-problem-than-you-think.mdx",
