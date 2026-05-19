@@ -1302,7 +1302,7 @@
         "status": "in_progress",
         "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
@@ -2634,7 +2634,7 @@
         "status": "in_progress",
         "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
@@ -2646,14 +2646,35 @@
     "startedAt": "2026-05-20T06:21:58+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 7,
+            "fidelity": 8,
+            "consistency": 9,
+            "sourceBoundary": 5,
+            "commentarySeparation": 6
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core technical claims about BrowseComp token scaling, Codex Goals using a SQLite thread_goals table, goal tools, token budget, and a Ralph-loop-style continuation prompt match the fetched source, but the post frontmatter dates May 7/May 8 conflict with the fetched source timestamp of May 19, 2026, and several internals remain tweet-level/source-code-derived claims rather than independently cited primary documentation.",
+            "fidelity": "The post faithfully preserves Jarrod's three-part argument of ambiguity compounding, multi-agent review, and cross-context file memory, including GOAL.md/STANDARDS.md/IMPLEMENT.md/PROGRESS.md, but omits some source tail details such as the packaged SKILL.md link, git worktree parallelization, and Codex App/GPT-5.5 xHigh recommendation.",
+            "consistency": "The argument flows coherently from test-time compute limits to Codex Goals as persistence/continuation, then to ambiguity reduction, fresh-context review, and external memory without internal contradiction.",
+            "sourceBoundary": "The SP body repeatedly uses source-report framing such as 'Jarrod 文章第一刀', '原文引用', 'Jarrod 拆原始碼後看到', '原文最有價值的地方', '原文有個很好的視覺化', and 'Jarrod 的說法很直', so it reads too often like a report about the source rather than direct gu-log prose.",
+            "commentarySeparation": "Most explicit gu-log opinions are in ClawdNote, but body prose still mixes source-meta and editorial interpretation outside ClawdNote, including the SaaS fantasy opening, the purple-gradient website analogy, '不重要', and the concluding '小型工程組織' framing."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 0,
-    "tribunalVersion": 5
+    "topLevelAttempts": 1,
+    "tribunalVersion": 5,
+    "status": "FAILED",
+    "failedStage": "factChecker",
+    "finishedAt": "2026-05-20T06:27:16+08:00"
   }
 }
