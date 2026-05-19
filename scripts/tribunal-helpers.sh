@@ -151,6 +151,25 @@ tribunal_codex_cmd() {
   return 1
 }
 
+tribunal_codex_version() {
+  local codex_cmd
+  codex_cmd="$(tribunal_codex_cmd)" || return 1
+  $codex_cmd --version 2>/dev/null | awk '{print $NF; exit}'
+}
+
+tribunal_codex_version_at_least() {
+  local actual="$1" required="$2"
+  python3 - "$actual" "$required" <<'PY'
+import re, sys
+
+def parts(v):
+    nums = [int(x) for x in re.findall(r'\d+', v)[:3]]
+    return tuple((nums + [0, 0, 0])[:3])
+
+sys.exit(0 if parts(sys.argv[1]) >= parts(sys.argv[2]) else 1)
+PY
+}
+
 # Run a repo-local agent spec through Codex. Codex custom agents live in
 # `.codex/agents/*.toml`, but `codex exec` has no stable `--agent` flag for this
 # non-interactive tribunal path, so we inline the project-scoped Codex agent

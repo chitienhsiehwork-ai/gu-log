@@ -22,6 +22,10 @@ if [ "${1:-}" = "exec" ] && [ "${2:-}" = "--help" ]; then
   echo "fake codex exec help"
   exit 0
 fi
+if [ "${1:-}" = "--version" ]; then
+  echo "codex-cli 0.128.0"
+  exit 0
+fi
 if [ "${1:-}" = "exec" ]; then
   echo "fake codex runner crashed before writing score" >&2
   exit 1
@@ -70,3 +74,35 @@ if ! grep -q 'runner_error propagated' "$ROOT_DIR/scripts/tribunal-quota-loop.sh
   fail "quota loop does not drain on tribunal runner_error"
 fi
 pass "quota loop drains instead of sweeping the queue after runner_error"
+
+old_bin="$TMP/old-bin"
+mkdir -p "$old_bin"
+cat > "$old_bin/codex" <<'OLD_CODEX'
+#!/usr/bin/env bash
+if [ "${1:-}" = "exec" ] && [ "${2:-}" = "--help" ]; then
+  echo "old codex exec help"
+  exit 0
+fi
+if [ "${1:-}" = "--version" ]; then
+  echo "codex-cli 0.106.0"
+  exit 0
+fi
+echo "old codex should not run a judge" >&2
+exit 1
+OLD_CODEX
+chmod +x "$old_bin/codex"
+
+old_progress="$TMP/old-progress.json"
+printf '{}\n' > "$old_progress"
+set +e
+PATH="$old_bin:$PATH" \
+TRIBUNAL_SCORE_ONLY_PROGRESS_FILE="$old_progress" \
+bash "$TRIBUNAL" --score-only --only-stage factChecker sp-1-20260128-demo.mdx \
+  >"$TMP/old.out" 2>"$TMP/old.err"
+old_rc=$?
+set -e
+
+[ "$old_rc" -eq 70 ] || fail "old Codex CLI should exit 70 before judging, got $old_rc"
+[ "$(jq 'length' "$old_progress")" = "0" ] || fail "old Codex CLI should not initialize article progress"
+grep -q 'older than required' "$TMP/old.err" || fail "old Codex rejection did not explain version requirement"
+pass "old Codex CLI is rejected before article progress is touched"
