@@ -24,7 +24,7 @@ scores:
     readability: 8
     firstImpression: 8
     score: 8
-    date: "2026-05-18"
+    date: "2026-05-19"
     model: "gpt-5.5"
   vibe:
     persona: 8
@@ -33,38 +33,21 @@ scores:
     clarity: 9
     narrative: 8
     score: 8
-    date: "2026-05-18"
-    model: "gpt-5.5"
-  factCheck:
-    accuracy: 8
-    fidelity: 8
-    consistency: 9
-    sourceBoundary: 9
-    commentarySeparation: 8
-    score: 8
-    date: "2026-05-19"
-    model: "gpt-5.5"
-  librarian:
-    glossary: 8
-    crossRef: 10
-    sourceAlign: 9
-    attribution: 8
-    score: 8
     date: "2026-05-19"
     model: "gpt-5.5"
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-The most dangerous coding [agent](/glossary#agent) is not always the one that ignores instructions.
-
-Sometimes it is the obedient one: it gets a goal, works hard, and charges straight through every warning sign that nobody wrote down.
-
-In 2026, coding agents are learning a very manager-like move: take a goal, break it into steps, run tools, fix errors, and keep going until the job is done. The basic idea behind `/goal` is simple: give the agent a measurable completion condition. Tests pass. A feature works. An existing flow does not break. The agent no longer waits for every next instruction; it keeps moving around that finish line.
+In 2026, coding [agents](/glossary#agent) are learning a very manager-like move: take a goal, break it into steps, run tools, fix errors, and keep going until the job is done.
 
 That is progress. But a goal alone does not define safe work.
 
-This is not a claim that OpenAI [Codex](/en/glossary#codex) and Anthropic [Claude Code](/glossary#claude-code) ship the exact same product behavior. Product details should be checked against each vendor. gu-log has already covered Codex [`/goal` mode](/en/posts/en-sp-197-20260512-chrishayduk-codex-goals/), the difference between [Codex Goals and long-running agent safety](/en/posts/en-sp-192-20260508-article-agent-ralph/), and OpenAI's official [Codex Goals guide](/en/posts/en-sp-208-20260509-openai-codex-goals-cookbook/). This post only needs one idea: goal mode can help an agent avoid stopping too early. It does not automatically create production governance.
+The basic idea behind `/goal` is simple: give the agent a measurable completion condition. Tests pass. A feature works. An existing flow does not break. The agent no longer waits for every next instruction; it keeps moving around that finish line.
+
+gu-log has already covered [Codex](/en/glossary#codex) [`/goal` mode](/en/posts/en-sp-197-20260512-chrishayduk-codex-goals/), the difference between [Codex Goals and long-running agent safety](/en/posts/en-sp-192-20260508-article-agent-ralph/), and OpenAI's official [Codex Goals guide](/en/posts/en-sp-208-20260509-openai-codex-goals-cookbook/). But this post only needs one idea: goal mode can help an agent avoid stopping too early. It does not automatically create production governance.
+
+This is not a claim that OpenAI Codex and Anthropic [Claude Code](/glossary#claude-code) ship the exact same product behavior. Product details should be checked against each vendor. The useful point here is the governance gap that Paweł Huryn's intent framework helps name.
 
 A `/goal`-like feature gives the agent a measurable condition and lets it run until that condition is judged complete, or until it cannot continue. In some designs, even asking the user a question does not necessarily pause the whole loop; the question may just be another step before the agent keeps going.
 
@@ -111,13 +94,13 @@ When a senior PM joins a team, nobody hands them one sentence: "handle support t
 
 Agents need the same shape of context. A model can be smart, but if intent is incomplete, it fills in the blanks. Sometimes it fills them correctly. Sometimes everyone learns that no document ever said, "do not touch this part."
 
-Complete intent can be split into eight parts, but the useful reading is not "memorize the labels." Think of it as an onboarding packet.
+Complete intent can be split into eight parts, but it does not need to feel like a consultant deck. It is more like handing work to a capable new teammate: first explain direction, then success, then the things they must not break.
 
-The first page gives direction: strategy, objective, and desired outcomes. Does the company care most about reliability, speed, cost, or brand trust? Which problem is this work solving? What observable state proves success? If those answers are missing, the agent has to guess in every gray area.
+The first part answers "why do this?" Strategy, objective, and desired outcomes. Strategy is vision, market, value proposition, and trade-offs. Objective is the problem. Desired outcomes are observable states that prove success.
 
-The second page says what must not break: health metrics, organization context, and constraints. Which metrics must stay healthy while the agent chases the goal? Which users, systems, and brand promises surround the work? Which limits are soft steering, and which are hard limits the architecture will actually enforce?
+The middle answers "what must not get worse while doing it?" Health metrics, organization context, and constraints. Health metrics protect the system. Organization context explains the users, surrounding systems, and brand. Constraints include both soft guidance and hard limits enforced by the architecture.
 
-The third page gives the keys and the brakes: autonomy boundaries and stop rules. Which decisions can the agent make alone, which require a proposal, and which require a human? When should it halt, escalate, or declare the job complete? Those rules cannot wait until after the incident.
+The last part answers "how far can the agent go, and when should it stop?" Autonomy boundaries define which decisions are safe to make alone, which require a proposal, and which require a human. Stop rules define when to halt, escalate, or complete.
 
 `/goal` mostly touches objective and desired outcomes. That is useful. It is still far from enough for safe autonomy.
 
