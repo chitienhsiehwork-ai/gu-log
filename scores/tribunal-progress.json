@@ -1486,28 +1486,10 @@
     "startedAt": "2026-05-20T02:23:44+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 8,
-            "fidelity": 9,
-            "consistency": 8,
-            "sourceBoundary": 5,
-            "commentarySeparation": 6
-          },
-          "score": 7,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "Core technical and policy claims match Anthropic, including the 12-24 month lead, 94% versus 8% jailbreak statistic, Huawei 4%/2% compute comparison, and 369-22 House vote, though several numbers are only as strong as Anthropic's cited secondary sources.",
-            "fidelity": "The post faithfully preserves Anthropic's two-scenario structure, compute/export-control/distillation thesis, and stated distinction between Chinese people and CCP-controlled systems without major uncertainty erasure.",
-            "consistency": "The argument flows coherently from compute advantage to policy action, but body-level interpretive transitions such as the '三個開關' and final '新的邊界' framing add gu-log synthesis beyond straight source presentation.",
-            "sourceBoundary": "The SP body repeatedly uses source-report framing such as 「原文說」, 「原文提到」, 「原文把它比成」, and 「Anthropic 認為」 across many sections, so it often reads like a report about the source rather than direct SP prose.",
-            "commentarySeparation": "ClawdNote blocks are clearly labeled, but source-meta and gu-log interpretive commentary also appears in the body, including the '名詞牆翻成人話', '政策簡報', '最黑的部分', and closing '新的邊界' lines."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 2,
+        "attempts": 1,
         "tribunalVersion": 5
       }
     },
@@ -2214,28 +2196,10 @@
     "startedAt": "2026-05-20T02:23:45+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 8,
-            "fidelity": 7,
-            "consistency": 9,
-            "sourceBoundary": 5,
-            "commentarySeparation": 5
-          },
-          "score": 6,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "Core technical claims about Agent loop, workflow versus Agent, harness, context layering, tools, memory, multi-agent isolation, evals, tracing, and prompt-injection boundaries match the source, and the OpenAI case numbers are hedged as case self-report rather than universal benchmarks.",
-            "fidelity": "The post preserves the source's broad argument, but it heavily condenses the source and adds gu-log-specific framing such as the tribunal automation completion incident and cross-post map that are not in the source body.",
-            "consistency": "The accident-map structure is coherent: each section ties an Agent failure mode to an engineering control, and the conclusion follows from the earlier harness, context, tooling, memory, eval, trace, and safety sections.",
-            "sourceBoundary": "The SP body repeatedly uses source-meta scaffolding such as '@HiTw93 這篇長文', '原文列了', '原文一直強調', '原文裡', '原文用', '原文提醒', and '原文最後', so it reads partly like a report about the source.",
-            "commentarySeparation": "ClawdNotes are present, but body prose still contains gu-log commentary and source-meta interpretation, including the automation pipeline anecdote, gu-log cross-post positioning, jokes, and evaluative framing that should mostly live in ClawdNote."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 2,
+        "attempts": 1,
         "tribunalVersion": 5
       }
     },
@@ -2279,18 +2243,18 @@
         "score": {
           "judge": "librarian",
           "dimensions": {
-            "glossary": 5,
+            "glossary": 7,
             "crossRef": 5,
-            "sourceAlign": 9,
+            "sourceAlign": 8,
             "attribution": 8
           },
-          "score": 6,
+          "score": 7,
           "verdict": "FAIL",
           "reasons": {
-            "glossary": "The post repeatedly uses glossary-governed terms such as Agent, Codex, OpenClaw, and ClawdNote without linking first mentions to `/glossary#...` or `/about`, though it does explain the model/runtime/surface split in natural prose.",
-            "crossRef": "There are no broken internal links because there are no internal links, but the post does not cite or contrast the highly relevant `/posts/sd-20-20260421-hermes-vs-openclaw/` despite overlapping on Hermes, OpenClaw, agent harness architecture, and execution-layer separation.",
-            "sourceAlign": "The body aligns well with the declared Hermes Codex app-server runtime source and the linked OpenClaw Codex harness page: both support the claim that Codex is being used as the lower execution/runtime layer.",
-            "attribution": "The key factual claims about Hermes and OpenClaw are tied to external documentation links, and opinionated interpretation is mostly kept in ClawdNote, with only minor broad ecosystem claims left as unsourced framing."
+            "glossary": "Key glossary terms such as Agent, Codex, OpenClaw, and ClawdNote appear without glossary links, though the body does naturally explain the model/execution-engine/chat-entry split.",
+            "crossRef": "The post has zero internal links and misses obvious citations to prior gu-log context such as /posts/sd-20-20260421-hermes-vs-openclaw/, /posts/sp-89-20260227-openclaw-acp-agents/, and /posts/sp-98-20260303-openai-harness-engineering/.",
+            "sourceAlign": "The Hermes sourceUrl matches the Codex app-server runtime claim, and the post also cites OpenClaw's Codex harness page for the parallel OpenClaw claim.",
+            "attribution": "The two primary factual anchors are linked to Hermes and OpenClaw docs, while the layer-splitting and browser-engine analogies are clearly ShroomDog analysis rather than unattributed source claims."
           }
         },
         "model": "codex-gpt-5.5-medium",
@@ -2298,37 +2262,19 @@
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 3,
+    "topLevelAttempts": 4,
     "tribunalVersion": 5,
     "status": "FAILED",
     "failedStage": "librarian",
-    "finishedAt": "2026-05-20T02:42:26+08:00"
+    "finishedAt": "2026-05-20T03:04:43+08:00"
   },
   "sp-200-20260514-mem0ai-codex-cli-grep-markdown.mdx": {
     "article": "sp-200-20260514-mem0ai-codex-cli-grep-markdown.mdx",
     "startedAt": "2026-05-20T02:33:53+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 8,
-            "fidelity": 8,
-            "consistency": 9,
-            "sourceBoundary": 6,
-            "commentarySeparation": 6
-          },
-          "score": 7,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "Core claims match the Mem0 source and docs, including Markdown storage under `~/.codex/memories/`, `memory_summary.md`/`MEMORY.md`/`raw_memories.md`, six-hour idle consolidation, grep-based recall, and the Mem0 MCP config; the 5,000-token read budget is more implementation-level than clearly primary-documented in the source body.",
-            "fidelity": "The post preserves the source's main structure and limits, but adds gu-log framing and analogies such as the local work-note interpretation and cross-article memory arc beyond direct translation.",
-            "consistency": "The argument consistently distinguishes local Markdown memory from external semantic memory, and the tradeoff logic around grep, latency, sync, and governance is coherent.",
-            "sourceBoundary": "The SP body repeatedly uses source-report framing such as `Mem0 原文先把神話拆掉`, `Mem0 原文提到`, `原文舉的例子`, and `原文也提到`, so it reads partly like a report about the source.",
-            "commentarySeparation": "Several gu-log interpretations and jokes remain in body prose outside `<ClawdNote>`, including the gu-log cross-reference paragraph, `很工程師`, the library-system analogy, and the office-cleanup/meeting analogies."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
@@ -2441,5 +2387,35 @@
     "tribunalVersion": 5,
     "status": "PASS",
     "finishedAt": "2026-05-20T02:53:22+08:00"
+  },
+  "sp-198-20260512-garrytan-ai-agent-complexity-ratchet.mdx": {
+    "article": "sp-198-20260512-garrytan-ai-agent-complexity-ratchet.mdx",
+    "startedAt": "2026-05-20T03:01:06+08:00",
+    "stages": {
+      "factChecker": {
+        "status": "in_progress",
+        "score": null,
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1,
+        "tribunalVersion": 5
+      }
+    },
+    "topLevelAttempts": 0,
+    "tribunalVersion": 5
+  },
+  "sp-197-20260512-chrishayduk-codex-goals.mdx": {
+    "article": "sp-197-20260512-chrishayduk-codex-goals.mdx",
+    "startedAt": "2026-05-20T03:01:07+08:00",
+    "stages": {
+      "factChecker": {
+        "status": "in_progress",
+        "score": null,
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1,
+        "tribunalVersion": 5
+      }
+    },
+    "topLevelAttempts": 0,
+    "tribunalVersion": 5
   }
 }
