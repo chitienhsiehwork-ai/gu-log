@@ -2429,18 +2429,36 @@
     "startedAt": "2026-05-20T03:01:06+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 8,
+            "sourceBoundary": 5,
+            "commentarySeparation": 5
+          },
+          "score": 6,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core claims such as GStack/GBrain totaling about 970,000 LOC and 665 test files, 90% coverage, GBrain 6.8/10, 17 tests, and Capers Jones DRE ranges are supported by accessible mirrors, but X itself was not fetchable and some project-specific PR/version details remain source-level claims rather than independently verified facts.",
+            "fidelity": "The post generally preserves Garry Tan's thesis about agents, tests, docs, evals, and the complexity ratchet, but it expands the source into a gu-log narrative with extra analogies and framing beyond a strict translation.",
+            "consistency": "The argument is internally coherent: tests, docs, evals, TTY behavior checks, and 90% coverage all support the ratchet thesis, with catastrophic-production-error limits acknowledged.",
+            "sourceBoundary": "SP body repeatedly uses source-report framing such as 'Garry 的主張', 'Garry 的觀察是', 'Garry 說', 'Garry 舉 GStack 當例子', and '文中提到', making the body read partly like a report about the source.",
+            "commentarySeparation": "Body prose frequently includes gu-log interpretation and source-meta commentary outside ClawdNote, including '這篇真正要拆的', cross-post references like 'gu-log 之前', and extended haunted-house/engineering-opinion framing."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 1,
+    "topLevelAttempts": 2,
     "tribunalVersion": 5,
     "status": "FAILED",
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T03:13:06+08:00"
+    "finishedAt": "2026-05-20T03:24:25+08:00"
   },
   "sp-197-20260512-chrishayduk-codex-goals.mdx": {
     "article": "sp-197-20260512-chrishayduk-codex-goals.mdx",
