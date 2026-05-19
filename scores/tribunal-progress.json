@@ -2214,28 +2214,10 @@
     "startedAt": "2026-05-20T02:23:45+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 8,
-            "fidelity": 7,
-            "consistency": 8,
-            "sourceBoundary": 5,
-            "commentarySeparation": 5
-          },
-          "score": 6,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "Technical claims about Agent loops, workflows, harnesses, context layering, tool design, memory, multi-agent coordination, evals, tracing, and prompt-injection defenses broadly match the accessible Tw93 source; the main caveat is that the frontmatter X sourceUrl was not directly readable and appears to differ from the Tw93 mirrored article URL.",
-            "fidelity": "The post preserves the source's central engineering argument and key OpenAI harness numbers, but it substantially rewrites, compresses, omits many concrete details, and adds a gu-log pipeline incident and cross-post framing not present in the source.",
-            "consistency": "The argument flows coherently from control loops through harness, context, tools, memory, multi-agent state, evals, tracing, and security, with no major internal contradiction.",
-            "sourceBoundary": "The SP body repeatedly uses source-report scaffolding such as '@HiTw93 這篇長文', '原文列了', '原文一直強調', '原文裡被整理', '原文用', '原文提醒', and '原文最後', making the body read like a report about the source.",
-            "commentarySeparation": "Several gu-log/Clawd interpretive additions remain in body prose, including the tribunal automation incident, gu-log cross-post map, and multiple local jokes/analogies, instead of being confined to ClawdNote."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 2,
+        "attempts": 1,
         "tribunalVersion": 5
       }
     },
@@ -2300,37 +2282,19 @@
     },
     "topLevelAttempts": 5,
     "tribunalVersion": 5,
-    "status": "FAILED",
+    "status": "EXHAUSTED",
     "failedStage": "librarian",
-    "finishedAt": "2026-05-20T03:23:24+08:00"
+    "finishedAt": "2026-05-20T04:28:51+08:00"
   },
   "sp-200-20260514-mem0ai-codex-cli-grep-markdown.mdx": {
     "article": "sp-200-20260514-mem0ai-codex-cli-grep-markdown.mdx",
     "startedAt": "2026-05-20T02:33:53+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 8,
-            "fidelity": 8,
-            "consistency": 9,
-            "sourceBoundary": 5,
-            "commentarySeparation": 6
-          },
-          "score": 7,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "Core technical claims match the Mem0 source and OpenAI docs, including local `~/.codex/memories/`, Markdown storage, six-hour idle default, secret redaction, and MCP setup; the 5,000-token summary cap is plausible but not stated in the Mem0 article or current OpenAI config reference.",
-            "fidelity": "The post preserves the source's main argument that Codex memory is local generated Markdown with grep-style recall and that Mem0 adds cross-tool semantic memory, but it adds gu-log framing, prior-post connections, and interpretive takeaways beyond the source.",
-            "consistency": "The local-note versus semantic-memory comparison is internally coherent, and the tradeoff argument around latency, transparency, cross-machine sync, and external-service cost follows logically.",
-            "sourceBoundary": "The SP body repeatedly uses source-report scaffolding such as `Mem0 原文先把神話拆掉`, `Mem0 原文提到`, `Mem0 原文指出`, `原文舉的例子`, and `Mem0 原文列了一串設定`, which violates the v5 SP source-boundary rule.",
-            "commentarySeparation": "Several gu-log opinions, jokes, source-meta comments, and cross-post recommendations appear in body prose outside `<ClawdNote>`, including the opening interpretation, gu-log previous-post bridge, and multiple analogies that should be separated or rewritten as direct explanatory prose."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 2,
+        "attempts": 1,
         "tribunalVersion": 5
       }
     },
@@ -2447,28 +2411,10 @@
     "startedAt": "2026-05-20T03:01:06+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 8,
-            "fidelity": 8,
-            "consistency": 8,
-            "sourceBoundary": 5,
-            "commentarySeparation": 5
-          },
-          "score": 6,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "Core claims such as GStack/GBrain totaling about 970,000 LOC and 665 test files, 90% coverage, GBrain 6.8/10, 17 tests, and Capers Jones DRE ranges are supported by accessible mirrors, but X itself was not fetchable and some project-specific PR/version details remain source-level claims rather than independently verified facts.",
-            "fidelity": "The post generally preserves Garry Tan's thesis about agents, tests, docs, evals, and the complexity ratchet, but it expands the source into a gu-log narrative with extra analogies and framing beyond a strict translation.",
-            "consistency": "The argument is internally coherent: tests, docs, evals, TTY behavior checks, and 90% coverage all support the ratchet thesis, with catastrophic-production-error limits acknowledged.",
-            "sourceBoundary": "SP body repeatedly uses source-report framing such as 'Garry 的主張', 'Garry 的觀察是', 'Garry 說', 'Garry 舉 GStack 當例子', and '文中提到', making the body read partly like a report about the source.",
-            "commentarySeparation": "Body prose frequently includes gu-log interpretation and source-meta commentary outside ClawdNote, including '這篇真正要拆的', cross-post references like 'gu-log 之前', and extended haunted-house/engineering-opinion framing."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 2,
+        "attempts": 1,
         "tribunalVersion": 5
       }
     },
@@ -2580,5 +2526,20 @@
     "status": "PASS",
     "failedStage": "factChecker",
     "finishedAt": "2026-05-20T03:29:05+08:00"
+  },
+  "sp-196-20260511-garrytan-meta-meta-prompting-garry-tan.mdx": {
+    "article": "sp-196-20260511-garrytan-meta-meta-prompting-garry-tan.mdx",
+    "startedAt": "2026-05-20T04:27:48+08:00",
+    "stages": {
+      "factChecker": {
+        "status": "in_progress",
+        "score": null,
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1,
+        "tribunalVersion": 5
+      }
+    },
+    "topLevelAttempts": 0,
+    "tribunalVersion": 5
   }
 }
