@@ -2275,18 +2275,34 @@
         "tribunalVersion": 5
       },
       "librarian": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 5,
+            "crossRef": 5,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 6,
+          "verdict": "FAIL",
+          "reasons": {
+            "glossary": "The post repeatedly uses glossary-governed terms such as Agent, Codex, OpenClaw, and ClawdNote without linking first mentions to `/glossary#...` or `/about`, though it does explain the model/runtime/surface split in natural prose.",
+            "crossRef": "There are no broken internal links because there are no internal links, but the post does not cite or contrast the highly relevant `/posts/sd-20-20260421-hermes-vs-openclaw/` despite overlapping on Hermes, OpenClaw, agent harness architecture, and execution-layer separation.",
+            "sourceAlign": "The body aligns well with the declared Hermes Codex app-server runtime source and the linked OpenClaw Codex harness page: both support the claim that Codex is being used as the lower execution/runtime layer.",
+            "attribution": "The key factual claims about Hermes and OpenClaw are tied to external documentation links, and opinionated interpretation is mostly kept in ClawdNote, with only minor broad ecosystem claims left as unsourced framing."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 2,
+    "topLevelAttempts": 3,
     "tribunalVersion": 5,
     "status": "FAILED",
     "failedStage": "librarian",
-    "finishedAt": "2026-05-20T02:37:57+08:00"
+    "finishedAt": "2026-05-20T02:42:26+08:00"
   },
   "sp-200-20260514-mem0ai-codex-cli-grep-markdown.mdx": {
     "article": "sp-200-20260514-mem0ai-codex-cli-grep-markdown.mdx",
@@ -2314,7 +2330,7 @@
         "status": "in_progress",
         "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
