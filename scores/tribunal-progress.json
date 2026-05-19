@@ -1926,5 +1926,107 @@
     "tribunalVersion": 5,
     "status": "PASS",
     "finishedAt": "2026-05-19T02:56:59+08:00"
+  },
+  "sp-209-20260520-nous-cna-refusal-neurons.mdx": {
+    "article": "sp-209-20260520-nous-cna-refusal-neurons.mdx",
+    "startedAt": "2026-05-20T02:34:37+08:00",
+    "stages": {
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9,
+            "sourceBoundary": 9,
+            "commentarySeparation": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "The CNA method, 0.1% MLP activation selection, no-gradient/no-training setup, Llama/Qwen 1B-72B scope, and example refusal-rate drops such as 86% to 18%, 87% to 2%, and 78% to 8% match the cited paper.",
+            "fidelity": "The post preserves the paper's main hedges around 'may/suggest' and faithfully represents the base-versus-instruct finding that base models show late-layer discrimination structure but not stable refusal behavior when steered.",
+            "consistency": "The argument coherently connects sparse neuron identification, causal ablation, preserved generation quality/MMLU, and the alignment-fine-tuning interpretation without internal contradiction.",
+            "sourceBoundary": "The SP body mostly presents source-derived claims directly and avoids repeated '原作者說/原文提到/這篇文章在講' scaffolding, with only light source-report phrasing such as '研究者在 8 個指令微調模型上測試'.",
+            "commentarySeparation": "ClawdNote contains the overt gu-log framing and analogies, though a few body passages such as the attack-defense implications and '安全行為可能比想像中更脆' read as interpretive commentary outside ClawdNote."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 2,
+        "tribunalVersion": 5
+      },
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 10,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key detected glossary terms are handled well: prompt and token are linked, while Clawd/ClawdNote only appear as component/import scaffolding rather than body prose; CNA/CAA may deserve future glossary governance if gu-log keeps covering mechanistic interpretability.",
+            "crossRef": "All internal post links resolve, and the post appropriately connects this CNA angle to the older Anthropic emotion-vector piece and the Qwen SFT alignment case instead of duplicating their POV.",
+            "sourceAlign": "The body matches the declared Nous/CNA source topic and the linked arXiv paper's claims about 0.1% MLP neurons, forward-pass-only contrastive attribution, refusal-rate drops, base-versus-instruct differences, and sparse targetable refusal gates.",
+            "attribution": "The research claims and statistics are clearly presented as coming from the CNA study, with ClawdNote commentary separated, though exact benchmark/stat lines rely on the source boundary rather than inline citations for each number."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 2,
+        "tribunalVersion": 5
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "The post explains CNA with useful analogies like exam papers and traffic gates, but the CAA/residual stream/MMLU stretch still feels like a jargon pile for a 3-month developer.",
+            "firstImpression": "The hook about a refusal switch inside 0.1% of neurons is strong and shareable, though the middle results section is more dutiful than exciting."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 2,
+        "tribunalVersion": 5
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "LHY feel is solid through the handbrake, exam-paper, factory, highway, and control-box analogies, though the voice stays more polished explainer than fully oral professor.",
+            "clawdNote": "The three ClawdNotes all add stance rather than definitions, especially reframing the piece away from jailbreak framing and into alignment mechanism stakes.",
+            "vibe": "The opening image of refusal not being the whole model braking creates immediate curiosity, and the 0.1% neuron result gives the middle real momentum without falling into bullet-dump structure.",
+            "clarity": "Speaker attribution is clean, body pronouns avoid ambiguous 你/我, and `node scripts/check-jingjing.mjs src/content/posts/sp-209-20260520-nous-cna-refusal-neurons.mdx` returned clean.",
+            "narrative": "The arc moves from hidden switch to method, scary result, base-vs-instruct twist, security control-box implication, and ends with a callback to the opening refusal sentence."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 2,
+        "tribunalVersion": 5
+      }
+    },
+    "topLevelAttempts": 0,
+    "tribunalVersion": 5,
+    "status": "PASS",
+    "finishedAt": "2026-05-20T02:54:02+08:00"
   }
 }
