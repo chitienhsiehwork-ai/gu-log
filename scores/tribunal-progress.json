@@ -1489,7 +1489,7 @@
         "status": "in_progress",
         "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
@@ -2158,8 +2158,26 @@
         "tribunalVersion": 5
       },
       "vibe": {
-        "status": "in_progress",
-        "score": null,
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "The opening at lines 33-37 and analogies like the scaffolding and scoreboard frame at lines 45-55 feel professor-like, though some middle sections still read more like edited analysis than live LHY lecture.",
+            "clawdNote": "The three ClawdNotes at lines 39-43, 71-73, and 101-103 all carry stance or analogy, especially the low-information language-war critique and adoption-risk punch, but density is modest rather than electric.",
+            "vibe": "The post starts with immediate conflict at lines 33-37 and stays readable, while the repair-layer bullet run at lines 83-87 briefly turns into structured explanation instead of momentum.",
+            "clarity": "Speaker attribution is clean, body pronouns avoid the banned ambiguous 你/我 pattern, and the canonical checker returned clean: `✓ check-jingjing: 1 file(s) clean`.",
+            "narrative": "The arc moves from language-war framing to lifecycle tradeoffs to trust and incident-review framing, with a real closing punch at lines 113-115, though the middle is still more analytical ladder than dramatic rise-and-fall."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 1,
         "tribunalVersion": 5
@@ -2176,15 +2194,36 @@
     "startedAt": "2026-05-20T02:23:45+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 7,
+            "consistency": 8,
+            "sourceBoundary": 5,
+            "commentarySeparation": 6
+          },
+          "score": 6,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core technical claims about agent loops, workflows versus agents, harnesses, context layering, tool design, memory, tracing, and prompt injection align with the source; the OpenAI figures are preserved with a useful caveat as case self-report rather than a universal benchmark.",
+            "fidelity": "The post faithfully tracks the source's main structure and examples, including the five control patterns and harness conclusion, but it adds a local automation-incident narrative and compresses or omits several source caveats and quantitative details.",
+            "consistency": "The argument is coherent around verifiable state, harnesses, context hygiene, tool boundaries, and multi-agent isolation, though the repeated local incident framing occasionally makes the evidence chain depend on gu-log experience rather than the source alone.",
+            "sourceBoundary": "The SP body repeatedly uses source-report scaffolding such as '@HiTw93 這篇長文', '@HiTw93 原文列了', '原文一直強調', '原文用', '原文提醒', and '原文最後', so it reads partly like a report about the source instead of direct SP prose.",
+            "commentarySeparation": "Most jokes and opinions are inside ClawdNote, but body prose contains gu-log/source-meta commentary and a non-source automation anecdote at lines 75, 125-127, 184, and recurring interpretive transitions like '這篇比較像一張事故地圖'."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 0,
-    "tribunalVersion": 5
+    "topLevelAttempts": 1,
+    "tribunalVersion": 5,
+    "status": "FAILED",
+    "failedStage": "factChecker",
+    "finishedAt": "2026-05-20T02:30:39+08:00"
   },
   "sd-24-20260515-codex-runtime-kernel.mdx": {
     "article": "sd-24-20260515-codex-runtime-kernel.mdx",
