@@ -21,21 +21,21 @@ tags: ["shroom-picks", "ai-agents", "codex", "claude-code", "intent-engineering"
 scores:
   tribunalVersion: 5
   factCheck:
-    accuracy: 9
+    accuracy: 8
     fidelity: 8
     consistency: 9
-    sourceBoundary: 10
+    sourceBoundary: 9
     commentarySeparation: 8
     score: 8
-    date: "2026-05-18"
+    date: "2026-05-19"
     model: "gpt-5.5"
   librarian:
     glossary: 8
-    crossRef: 9
+    crossRef: 10
     sourceAlign: 9
-    attribution: 9
+    attribution: 8
     score: 8
-    date: "2026-05-18"
+    date: "2026-05-19"
     model: "gpt-5.5"
   freshEyes:
     readability: 8
@@ -56,15 +56,15 @@ scores:
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-2026 年的 coding [Agent](/glossary#agent) 正在學會一件很像主管會做的事：拿到一個終點，自己拆步驟、跑工具、修錯，直到完成為止。
+最危險的 coding [Agent](/glossary#agent)，不是完全不聽話的那種。
+
+反而是很聽話、很努力、拿到目標就一路衝到底的那種。
+
+2026 年的 coding Agent 正在學會一件很像主管會做的事：拿到一個終點，自己拆步驟、跑工具、修錯，直到完成為止。`/goal` 這類能力，就是把「完成條件」交給 Agent：測試要全過、某個功能要能用、某個流程不能壞。Agent 不再每一步都等人推，而是圍著這個終點自己往前走。
 
 這當然是進步。問題是，只給 Agent 一個目標，還不足以定義安全工作的方式。
 
-先把背景補平。`/goal` 這類能力，就是把「完成條件」交給 Agent：例如測試要全過、某個功能要能用、某個流程不能壞。Agent 不再每一步都等人推，而是圍著這個終點自己往前走。
-
-前面 gu-log 已經拆過 [Codex](/glossary#codex) 的 [`/goal` 目標模式](/posts/sp-197-20260512-chrishayduk-codex-goals/)，也拆過 [Codex Goals 和長跑 Agent 安全](/posts/sp-192-20260508-article-agent-ralph/) 的差別；如果要看 OpenAI 官方怎麼定義目標模式，直接看 [SP-208：Codex Goals 官方指南](/posts/sp-208-20260509-openai-codex-goals-cookbook/)。沒看過那幾篇也沒關係，這篇只需要抓住一件事：目標模式讓 Agent 比較不容易太早停下來，但不等於正式環境治理已經完成。
-
-換句話說，這裡不是把 OpenAI 的 Codex 或 Anthropic 的 [Claude Code](/glossary#claude-code) 宣傳成同一套功能；產品細節要回到各自來源，這篇只處理這套意圖工程框架能補上的治理缺口。
+這裡不是把 OpenAI 的 [Codex](/glossary#codex) 或 Anthropic 的 [Claude Code](/glossary#claude-code) 宣傳成同一套功能；產品細節要回到各自來源。前面 gu-log 已經拆過 Codex 的 [`/goal` 目標模式](/posts/sp-197-20260512-chrishayduk-codex-goals/)、[Codex Goals 和長跑 Agent 安全](/posts/sp-192-20260508-article-agent-ralph/) 的差別，也整理過 [SP-208：Codex Goals 官方指南](/posts/sp-208-20260509-openai-codex-goals-cookbook/)。這篇只需要抓住一件事：目標模式讓 Agent 比較不容易太早停下來，但不等於正式環境治理已經完成。
 
 這類 `/goal` 能力的核心想法很直覺：給一個可衡量的完成條件，Agent 就依照這個條件推進，直到目標被判定達成，或遇到無法繼續的狀況。某些設計裡，即使 Agent 中途問使用者問題，也不代表整個迴圈已經暫停；問題可以只是下一輪推進前的資訊補洞。
 
@@ -111,13 +111,13 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 Agent 也一樣。模型再聰明，如果意圖不完整，它就只能補洞。補洞補對了，大家覺得 AI 好神；補錯了，才發現沒有任何文件寫「這裡其實不能碰」。
 
-完整意圖可以拆成八個部分，但不用把它想成顧問簡報。比較像交接一個會自己做事的新人：先講方向，再講成功長相，最後講哪裡不能亂碰。
+完整意圖可以拆成八個部分，但比較好的讀法不是背名詞，而是想像一場交接。
 
-前半段回答「為什麼要做」：策略、目標、期望結果。策略是願景、市場、價值主張與取捨；目標是要解決的問題；期望結果是可觀察、可驗證的成功狀態。
+第一張紙先交代方向：策略、目標、期望結果。公司到底重視可靠性、速度、成本，還是品牌信任？這次要解決哪個問題？做到什麼狀態才算真的成功？這三件事不清楚，Agent 遇到模糊地帶就只能自己猜。
 
-中間回答「做的時候不能弄壞什麼」：健康指標、組織脈絡、限制。健康指標是追目標時不能變差的東西；組織脈絡是 Agent 身處的系統、使用者與品牌環境；限制則分成提示層的引導，以及架構層真正強制執行的硬限制。
+第二張紙寫「不要弄壞的東西」：健康指標、組織脈絡、限制。追目標時哪些指標不能掉？這個 Agent 服務的是誰、活在哪個產品和品牌環境裡？哪些只是語氣與風險偏好的引導，哪些是架構層真的會擋下來的硬限制？
 
-最後回答「權限到哪裡、什麼時候該停」：自主邊界和停止規則。哪些決策可自主、哪些要提案、哪些必須由人執行，都要先講清楚；什麼時候停止、升級、或宣告完成，也不能等出事後才補。
+第三張紙才是權限和煞車：自主邊界、停止規則。哪些決策可以自己做，哪些要先提案，哪些必須由人執行；什麼時候要停止、升級、或宣告完成，都不能等出事後才補。
 
 `/goal` 大概只碰到第二項和第三項：目標與期望結果。這已經很有用，但離「可以放心讓 Agent 自己跑」還有一大段距離。
 

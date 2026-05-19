@@ -2088,15 +2088,30 @@
         "tribunalVersion": 5
       },
       "freshEyes": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 7,
+            "firstImpression": 6
+          },
+          "score": 6,
+          "verdict": "FAIL",
+          "reasons": {
+            "readability": "The core idea is followable and the examples help, but early gu-log references, Codex/Claude Code product caveats, and terms like health metrics, autonomy boundaries, hooks, sandbox, and approval gates pile up before a beginner has footing.",
+            "firstImpression": "The first two sentences hook well, then the post slows down with internal source context and repeats the same point about goals needing boundaries for many sections, so I would skim rather than share."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 0,
-    "tribunalVersion": 5
+    "topLevelAttempts": 1,
+    "tribunalVersion": 5,
+    "status": "FAILED",
+    "failedStage": "freshEyes",
+    "finishedAt": "2026-05-20T02:20:40+08:00"
   },
   "sp-203-20260516-mitchellh-bun-rust-rewrite-comms.mdx": {
     "article": "sp-203-20260516-mitchellh-bun-rust-rewrite-comms.mdx",
@@ -2128,6 +2143,29 @@
         "tribunalVersion": 5
       },
       "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 8,
+            "sourceAlign": 8,
+            "attribution": 7
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Packet only detects Clawd/ClawdNote from the component import and note blocks, with no substantive unlinked glossary term in body prose.",
+            "crossRef": "There are no internal post links to break and no required ShroomDog/Clawd identity mention in prose, though the testing-strategy angle could optionally link a related older software-engineering post such as SP-107.",
+            "sourceAlign": "The post's language-war and developer-communications framing matches the declared Mitchell Hashimoto X source, and the Bun PR details align with GitHub PR #30683/#30412.",
+            "attribution": "ClawdNote opinions are clearly separated, but concrete claims such as PR #30683 deleting 1290 Zig files and Rust catching memory bugs should be linked or explicitly attributed to the Bun PRs rather than left as bare facts."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1,
+        "tribunalVersion": 5
+      },
+      "freshEyes": {
         "status": "in_progress",
         "score": null,
         "model": "codex-gpt-5.5-medium",
