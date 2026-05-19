@@ -1486,18 +1486,36 @@
     "startedAt": "2026-05-20T02:23:44+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 8,
+            "consistency": 8,
+            "sourceBoundary": 6,
+            "commentarySeparation": 7
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "The concrete claims checked against Anthropic match the source, including 3 of 13 Chinese labs publishing safety evals, DeepSeek R1-0528 at 94% versus 8%, Firefox/Mythos bug-fix claims, Huawei/NVIDIA 4% and 2%, the 11x compute estimate, and the 369-22 House vote.",
+            "fidelity": "The post follows Anthropic's two-scenario structure and preserves most caveats, but it adds explanatory compression and gu-log reframing such as the three 'switches' and '考前不能偷考卷' analogy that are not direct source claims.",
+            "consistency": "The argument is coherent from compute advantage to export controls, distillation, and the 2028 scenarios, though several body-level interpretive transitions make the logic feel partly editorial rather than purely source-derived.",
+            "sourceBoundary": "The SP body repeatedly uses source-meta scaffolding such as '原文把焦點放在 CCP', '原文提到', '原文說', '原文也提到', and '原文認為', which violates the v5 rule that readers already see the source attribution.",
+            "commentarySeparation": "ClawdNote is used for explicit commentary, but body prose still contains gu-log interpretation and source-meta commentary such as '先把整篇的名詞牆翻成人話', '文章很容易變成政策簡報', '資安是這個劇本最黑的部分', and the final '真正重要的地方' interpretation."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 3,
+    "topLevelAttempts": 4,
     "status": "FAILED",
     "tribunalVersion": 5,
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T03:06:18+08:00"
+    "finishedAt": "2026-05-20T03:26:54+08:00"
   },
   "sp-204-20260516-steipete-token-openclaw-agent.mdx": {
     "article": "sp-204-20260516-steipete-token-openclaw-agent.mdx",
@@ -2535,7 +2553,7 @@
         "status": "in_progress",
         "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
