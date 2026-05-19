@@ -1553,8 +1553,33 @@
   },
   "sp-204-20260516-steipete-token-openclaw-agent.mdx": {
     "article": "sp-204-20260516-steipete-token-openclaw-agent.mdx",
-    "startedAt": "2026-05-17T00:06:48+08:00",
+    "startedAt": "2026-05-20T02:11:08+08:00",
     "stages": {
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9,
+            "sourceBoundary": 9,
+            "commentarySeparation": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Core technical claims match the source text: roughly 100 Codex instances, PR/issue/commit review, security checks, issue deduplication and clustering, crabbox-style temporary machines, Telegram evidence videos, spam handling, benchmark regression reports, meeting-triggered PRs, Clawpatch, Vercel deepsec, and Codex Security.",
+            "fidelity": "The post faithfully preserves the source's token-cost premise and operational list, with only light compression such as rendering ephemeral crabbox.sh machines as temporary machines and not reproducing the exact wording of the spend discussion.",
+            "consistency": "The night-shift and background-operating-system framing follows logically from the source's always-on automation examples and does not create internal contradictions.",
+            "sourceBoundary": "The SP body mostly avoids repeated source-report scaffolding like 「原作者說」 or 「原文提到」, using direct claims and a smooth evidence boundary in 「這組數字應視為專案操作者自述」.",
+            "commentarySeparation": "Most gu-log interpretation is in ClawdNote, but some body prose such as the night-shift/background-operating-system framing and 「真正值得記的是工作型態的轉向」 is editorial interpretation outside ClawdNote."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1,
+        "tribunalVersion": 5
+      },
       "librarian": {
         "status": "pass",
         "score": {
@@ -1568,34 +1593,15 @@
           "score": 8,
           "verdict": "PASS",
           "reasons": {
-            "glossary": "Key glossary terms are linked on first meaningful use, including Token, OpenClaw, Agent, and Codex; the detected Claude Code hit appears as part of a linked post title rather than an unlinked concept needing glossary treatment.",
-            "crossRef": "Both internal links resolve, and the post appropriately connects the new always-on-agent angle to OpenClaw Task Flow and Claude Code Agent Teams; additional related posts on agent quality ratchets or agent-team task throughput would be optional rather than required.",
-            "sourceAlign": "The post aligns with Peter Steinberger's source claim about roughly 100 Codex instances handling PR review, issue triage, security review, benchmarks, meetings, and Clawpatch/deepsec-style analysis, though it paraphrases rather than preserving the source's exact spend and token figures.",
-            "attribution": "The operational claims are consistently framed as Peter's account and ClawdNote commentary is clearly separated from factual summary, but the long bullet list would be stronger with a direct source citation or more explicit note that all listed items come from the same tweet thread/source."
+            "glossary": "Key glossary terms are linked on first meaningful use, including Peter Steinberger, Token, OpenClaw, Agent, and Codex; the only minor gap is the unlinked Claude Code term inside the internal-link title 'Claude Code Agent Teams'.",
+            "crossRef": "Internal links to /posts/sp-186-20260428-article-openclaw-task-flow/ and /posts/sp-105-20260305-claude-code-agent-teams/ resolve and the post explicitly contrasts this piece as the third angle: always-on background work when Token is cheap.",
+            "sourceAlign": "The post aligns with the declared @steipete source about roughly 100 Codex instances and token-heavy OpenClaw operation, while clearly framing detailed workflow implications as interpretation of that self-report rather than a public benchmark.",
+            "attribution": "The body identifies Peter Steinberger as the source and marks the 'one hundred Codex' claim as project-operator self-report, with ClawdNote commentary separated; a few workflow details are summarized broadly rather than individually attributed."
           }
         },
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1
-      },
-      "factChecker": {
-        "status": "pass",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 9,
-            "fidelity": 9,
-            "consistency": 9
-          },
-          "score": 9,
-          "verdict": "PASS",
-          "reasons": {
-            "accuracy": "Core technical claims match Peter Steinberger's tweet, including ~100 Codex instances, PR/issue review, security review, issue clustering, benchmark regression reporting, meeting-triggered PRs, clawpatch.ai, Vercel deepsec, and Codex Security.",
-            "fidelity": "The translation preserves the source's meaning and framing, with only minor compression such as rendering crabbox.sh as temporary machines and moving broader interpretation into clearly separated ClawdNote sections.",
-            "consistency": "The argument logically extends the tweet's token-cost premise into a background-agent workflow thesis, while keeping source summary and ClawdNote commentary distinguishable."
-          }
-        },
-        "model": "codex-gpt-5.5-medium",
-        "attempts": 1
+        "attempts": 1,
+        "tribunalVersion": 5
       },
       "freshEyes": {
         "status": "pass",
@@ -1608,12 +1614,13 @@
           "score": 8,
           "verdict": "PASS",
           "reasons": {
-            "readability": "The convenience-store night-shift and basement cleanup analogies make Token, Codex, and Agent easy to follow, though @clawsweeper, gu-log, and old-post links add some insider texture.",
-            "firstImpression": "The hook lands because it turns AI cost into a concrete question about background labor, but the middle chore inventory is the place I started skimming."
+            "readability": "The night-shift metaphor makes Codex, Agent, PR, issue, benchmark, and security review easy enough to follow, though the middle paragraph about meetings and tool safety gets vague.",
+            "firstImpression": "The opening asks a real question instead of repeating source metadata, and the convenience-store/night-shift framing is shareable even if the final breathing line feels a little dramatic."
           }
         },
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1
+        "attempts": 1,
+        "tribunalVersion": 5
       },
       "vibe": {
         "status": "pass",
@@ -1629,21 +1636,22 @@
           "score": 8,
           "verdict": "PASS",
           "reasons": {
-            "persona": "Night-shift, convenience-store, basement, evidence-table, and breathing metaphors give it LHY oral teaching energy, though the middle still spends several paragraphs in source-summary mode.",
-            "clawdNote": "All three ClawdNotes carry stance rather than definitions, especially the convenience-store night-shift and robot-vacuum analogies, but none becomes a true highlight-level punchline.",
-            "vibe": "The core question about cheap background labor is shareable and the ending lands, but the original-summary section still feels orderly rather than surprising.",
-            "clarity": "Speaker attribution stays clear with Peter named throughout, body pronouns avoid the banned 你/我 pattern, and English terms are mostly glossary terms, proper nouns, acronyms, or code-workflow identifiers.",
-            "narrative": "The piece moves from short tweet to night-shift system to organizational change and ends with a callback to background breathing, but the skeleton remains a clean explain-and-apply article rather than a high-drama arc."
+            "persona": "The night-shift frame at lines 77-81 and flashlight patrol image at line 87 give real LHY-style explanation, though lines 85-97 still carry some structured report cadence.",
+            "clawdNote": "Three notes across the post have good density and stance, especially the convenience-store night-shift analogy at line 81 and the anti-management-soup point at line 99.",
+            "vibe": "The post is readable and sticky around the one-hundred-Codex-as-night-shift idea, but the issue/PR/task inventory in lines 89-97 slightly cools the momentum.",
+            "clarity": "Speaker attribution is clean, body subjects stay named, no body pronoun ambiguity showed in the line scan, and the deterministic jingjing checker reports the file clean.",
+            "narrative": "The arc moves from token cost to background labor to a background operating system, with a strong closing callback at lines 119-125, but the middle still briefly becomes an ordered capability tour."
           }
         },
         "model": "codex-gpt-5.5-medium",
-        "attempts": 2
+        "attempts": 1,
+        "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 3,
+    "topLevelAttempts": 0,
     "status": "PASS",
-    "failedStage": "freshEyes",
-    "finishedAt": "2026-05-17T00:27:11+08:00"
+    "tribunalVersion": 5,
+    "finishedAt": "2026-05-20T02:18:14+08:00"
   },
   "sp-205-20260517-addyosmani-dont-outsource-learning.mdx": {
     "article": "sp-205-20260517-addyosmani-dont-outsource-learning.mdx",
@@ -1926,5 +1934,208 @@
     "tribunalVersion": 5,
     "status": "PASS",
     "finishedAt": "2026-05-19T02:56:59+08:00"
+  },
+  "sp-208-20260509-openai-codex-goals-cookbook.mdx": {
+    "article": "sp-208-20260509-openai-codex-goals-cookbook.mdx",
+    "startedAt": "2026-05-20T02:11:07+08:00",
+    "stages": {
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 8,
+            "consistency": 9,
+            "sourceBoundary": 10,
+            "commentarySeparation": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Codex Goals claims about persistent thread-scoped objectives, completion criteria, lifecycle controls, conservative continuation, evidence-based completion, and Deep Hedging blockers match the OpenAI Cookbook source.",
+            "fidelity": "The post preserves the source's main claims and evidence boundaries, though it omits quickstart details such as Codex 0.128.0 availability and the explicit /goal pause/resume/clear command list.",
+            "consistency": "The argument stays coherent around one throughline: Goals persist across turns, but completion must be audited against concrete evidence rather than model confidence.",
+            "sourceBoundary": "The SP body avoids repeated source-report scaffolding such as 「原作者說」 or 「原文提到」 and presents source claims directly with natural evidence-boundary prose.",
+            "commentarySeparation": "Most gu-log interpretation and jokes are inside ClawdNote, with only a few body-side interpretive flourishes such as 「這些細節有點無聊」 and product-boundary framing."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 2,
+        "tribunalVersion": 5
+      },
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 8,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key glossary terms are covered: the first visible Agent and Prompt mentions link to /glossary anchors, while repeated Codex Goals usage is understandable from context though Codex itself is not explicitly glossary-linked.",
+            "crossRef": "The three most relevant overlapping posts, SP-192, SP-197, and SP-207, are linked and contrasted, and the deterministic packet reports no broken internal post links; visible Clawd mention in the architecture ClawdNote is not linked to /about.",
+            "sourceAlign": "The post closely tracks the OpenAI Cookbook source on Goals as persistent thread-scoped completion contracts, auditable evidence surfaces, six-part goal design, continuation boundaries, and research audit examples.",
+            "attribution": "The sourceUrl and SP framing make the official-source boundary clear, ClawdNote commentary is separated from body claims, and concrete examples such as p95 checkout latency and Deep Hedging are presented as source-derived examples rather than unsourced original facts."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1,
+        "tribunalVersion": 5
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "The main idea is easy to follow because it keeps returning to evidence and completion criteria, though terms like p95, benchmark, thread state, and audit may slow a 3-month dev down.",
+            "firstImpression": "The hook and analogies are strong enough to finish, especially the work-order and fitness comparisons, but the autoresume rules section gets dry and is where I started skimming."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1,
+        "tribunalVersion": 5
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "LHY style is real in lines 70, 83, and 185 with the便利貼/工單, 夜店門票, and 工地吊車 analogies, though several middle sections still read like a polished official guide.",
+            "clawdNote": "Five ClawdNotes at lines 56, 82, 119, 139, and 193 give useful stance and metaphor, especially the UI and fitness notes, but the first note is more calibration summary than sharp吐槽.",
+            "vibe": "The opening line 50 has immediate tension and the ending line 209 lands cleanly, while the six-part list and long goal examples around lines 90-110 slow the read a bit.",
+            "clarity": "Speaker attribution is clean, `node scripts/check-jingjing.mjs src/content/posts/sp-208-20260509-openai-codex-goals-cookbook.mdx` returned clean, and body pronoun scans found no `你/我/我們` violations.",
+            "narrative": "The piece moves from the false fantasy of long-running Agents to proof-based completion and closes with an evidence callback, but the skeleton remains a structured explainer more than a dramatic arc."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1,
+        "tribunalVersion": 5
+      }
+    },
+    "topLevelAttempts": 0,
+    "tribunalVersion": 5
+  },
+  "sp-207-20260518-pawelhuryn-agent-goal-intent.mdx": {
+    "article": "sp-207-20260518-pawelhuryn-agent-goal-intent.mdx",
+    "startedAt": "2026-05-20T02:11:08+08:00",
+    "stages": {
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9,
+            "sourceBoundary": 9,
+            "commentarySeparation": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Core technical claims about goal mode covering destination but not autonomy boundaries, stop rules, or risks match the source, though the body adds broader OpenAI/Codex and Anthropic/Claude Code context that is plausible but not directly established by the source tweet.",
+            "fidelity": "The post preserves the source's main frame that /goal is only part of intent and expands the ProductCompass intent-structure items, but it softens/omits the tweet's specific 'Seven evaluator firings, zero answers' test detail.",
+            "consistency": "The argument consistently distinguishes goals, health metrics, hard constraints, autonomy boundaries, and stop rules, with examples supporting the conclusion that goals alone are not governance.",
+            "sourceBoundary": "SP body mostly avoids source-report scaffolding such as '原作者說' or '原文提到', with only light body-level meta context around prior gu-log coverage and source scope.",
+            "commentarySeparation": "Most jokes and explicit gu-log stance are contained in ClawdNote, but body sentences such as the gu-log cross-reference paragraph and '這裡不是把 OpenAI...' are source-meta/contextual commentary outside ClawdNote."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 2,
+        "tribunalVersion": 5
+      },
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 10,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Detected key glossary terms Agent, Codex, Claude Code, Clawd, ClawdNote, and Prompt are linked or naturally framed, with only a minor unlinked lowercase hook/Hooks vocabulary gap.",
+            "crossRef": "The post explicitly cites the most relevant prior goal-mode pieces SP-197, SP-192, and SP-208, all internal links resolve per the packet, and Clawd links to /about.",
+            "sourceAlign": "The body tracks Pawel Huryn's intent-engineering frame around /goal as only part of intent, including strategy, health metrics, constraints, autonomy boundaries, and stop rules.",
+            "attribution": "Source-derived claims are generally bounded by the declared X source and internal gu-log citations, though a few broad product claims about OpenAI, Anthropic, and mid-run goal behavior could use slightly tighter attribution."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1,
+        "tribunalVersion": 5
+      },
+      "freshEyes": {
+        "status": "in_progress",
+        "score": null,
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1,
+        "tribunalVersion": 5
+      }
+    },
+    "topLevelAttempts": 0,
+    "tribunalVersion": 5
+  },
+  "sp-203-20260516-mitchellh-bun-rust-rewrite-comms.mdx": {
+    "article": "sp-203-20260516-mitchellh-bun-rust-rewrite-comms.mdx",
+    "startedAt": "2026-05-20T02:11:10+08:00",
+    "stages": {
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9,
+            "sourceBoundary": 10,
+            "commentarySeparation": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Bun PR #30683 details match GitHub's PR body about deleting the remaining 1290 .zig files and renaming Zig-facing internals, while broader Rust safety and maintainability claims are technically plausible but not fully evidenced with Bun-specific data.",
+            "fidelity": "The post preserves Mitchell Hashimoto's main points about anti-Zig framing, Zig having carried Bun this far, language fungibility, Rust's stronger guarantees, and the need for better crash analysis, though it expands the source into a fuller essay with some added synthesis.",
+            "consistency": "The argument flows coherently from language-war framing to Zig's role, language lock-in, memory-safety limits, and communication lessons without internal contradiction.",
+            "sourceBoundary": "The SP body avoids repeated source-report scaffolding such as 原作者說, 原文提到, or 這篇文章在講, and presents the source-derived claims directly.",
+            "commentarySeparation": "Humorous gu-log commentary is placed in ClawdNote blocks, and the body mostly keeps to source-derived claims and engineering analysis rather than obvious Clawd asides."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 2,
+        "tribunalVersion": 5
+      },
+      "librarian": {
+        "status": "in_progress",
+        "score": null,
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1,
+        "tribunalVersion": 5
+      }
+    },
+    "topLevelAttempts": 0,
+    "tribunalVersion": 5
   }
 }
