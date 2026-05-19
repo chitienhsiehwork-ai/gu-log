@@ -1483,73 +1483,19 @@
   },
   "sp-202-20260515-anthropic-2028-ai-leadership-five-voices.mdx": {
     "article": "sp-202-20260515-anthropic-2028-ai-leadership-five-voices.mdx",
-    "startedAt": "2026-05-15T17:31:38+08:00",
+    "startedAt": "2026-05-20T02:23:44+08:00",
     "stages": {
-      "librarian": {
-        "status": "pass",
-        "score": {
-          "judge": "librarian",
-          "dimensions": {
-            "glossary": 10,
-            "crossRef": 7,
-            "sourceAlign": 9,
-            "attribution": 9
-          },
-          "score": 8,
-          "verdict": "PASS",
-          "reasons": {
-            "glossary": "Detected glossary terms Frontier Model and Open Weights are linked to /glossary anchors, and nearby technical terms such as CBRN and model distillation are explained in prose.",
-            "crossRef": "No broken post links and the first Clawd mention links to /about, but the Mythos Preview section should cite /posts/sp-165-20260408-anthropic-anthropic-claude-mythos-preview-ai/ as the existing deep gu-log treatment, with optional contrast to the Andrew Ng sovereign-AI/export-control counterpoint.",
-            "sourceAlign": "The post closely tracks Anthropic's sourceUrl: the two 2028 scenarios, compute advantage, export-control loopholes, distillation attacks, CCP/PLA risk framing, and policy recommendations all match the original article.",
-            "attribution": "Statistics and contentious claims are consistently framed as Anthropic's original text or cited analysis, and ClawdNote commentary is clearly separated from the translated/source-aligned body."
-          }
-        },
-        "model": "codex-gpt-5.5-medium",
-        "attempts": 1
-      },
       "factChecker": {
-        "status": "pass",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 9,
-            "fidelity": 9,
-            "consistency": 9
-          },
-          "score": 9,
-          "verdict": "PASS",
-          "reasons": {
-            "accuracy": "Technical and numerical claims match Anthropic's source, including the 12-24 month lead, 3 of 13 Chinese labs, 94% vs 8% jailbreak compliance, Huawei 4%/2% compute comparison, 11x compute estimate, and 369-22 House vote.",
-            "fidelity": "The post closely follows Anthropic's structure and preserves attribution for scenarios, policy recommendations, CCP-focused caveats, Mythos Preview, compute loopholes, and distillation claims, with ClawdNote commentary clearly separated.",
-            "consistency": "The argument is internally coherent: compute advantage, export-control loopholes, distillation, two 2028 scenarios, and policy recommendations are connected logically without material contradiction."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1
-      },
-      "freshEyes": {
-        "status": "fail",
-        "score": {
-          "judge": "freshEyes",
-          "dimensions": {
-            "readability": 8,
-            "firstImpression": 7
-          },
-          "score": 7,
-          "verdict": "FAIL",
-          "reasons": {
-            "readability": "Mostly easy to follow because it keeps translating policy jargon into plain language, but the CBRN, DUV/EUV, and safety-evaluation section still feels like a term wall for a beginner.",
-            "firstImpression": "The two-map opening and model-distillation analogy are strong, but the middle becomes a long policy brief and I would finish it only if I already cared about AI geopolitics."
-          }
-        },
-        "model": "codex-gpt-5.5-medium",
-        "attempts": 2
+        "attempts": 1,
+        "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 1,
-    "status": "FAILED",
-    "failedStage": "freshEyes",
-    "finishedAt": "2026-05-15T17:38:28+08:00"
+    "topLevelAttempts": 0,
+    "status": "PENDING",
+    "tribunalVersion": 5
   },
   "sp-204-20260516-steipete-token-openclaw-agent.mdx": {
     "article": "sp-204-20260516-steipete-token-openclaw-agent.mdx",
@@ -2090,22 +2036,47 @@
         "tribunalVersion": 5
       },
       "freshEyes": {
-        "status": "fail",
+        "status": "pass",
         "score": {
           "judge": "freshEyes",
           "dimensions": {
-            "readability": 7,
-            "firstImpression": 6
+            "readability": 8,
+            "firstImpression": 8
           },
-          "score": 6,
-          "verdict": "FAIL",
+          "score": 8,
+          "verdict": "PASS",
           "reasons": {
-            "readability": "The core idea is followable and the examples help, but early gu-log references, Codex/Claude Code product caveats, and terms like health metrics, autonomy boundaries, hooks, sandbox, and approval gates pile up before a beginner has footing.",
-            "firstImpression": "The first two sentences hook well, then the post slows down with internal source context and repeats the same point about goals needing boundaries for many sections, so I would skim rather than share."
+            "readability": "The core idea is easy to follow because /goal, health metrics, hard limits, autonomy boundaries, and stop rules are each explained with concrete examples, though terms like intent engineering and governance still feel a little heavy for a new reader.",
+            "firstImpression": "The opening earns attention by quickly saying goals are not enough, and the strongest shareable moment is the test-passing example where the Agent could make tests meaningless just to get a green light."
           }
         },
         "model": "codex-gpt-5.5-medium",
-        "attempts": 2,
+        "attempts": 1,
+        "tribunalVersion": 5
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "LHY feel is solid in lines 59-63 and 81-85, using the manager/intern and traffic-law analogies without turning into fake catchphrases.",
+            "clawdNote": "The 4 ClawdNotes are opinionated rather than definitional, especially lines 125-129 and 195-198, though density is only moderate for a 288-line post.",
+            "vibe": "The post is readable and has memorable bits like lines 100 and 193, but the six-question action section at lines 264-276 turns a little checklist-like.",
+            "clarity": "Speaker attribution stays clean, body pronouns are controlled, and the canonical jingjing checker returned clean for this file.",
+            "narrative": "The arc moves from goal insufficiency to governance boundaries and lands a callback in line 288, though the middle still follows a fairly linear framework tour."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1,
         "tribunalVersion": 5
       }
     },
@@ -2172,14 +2143,14 @@
         "score": {
           "judge": "freshEyes",
           "dimensions": {
-            "readability": 8,
-            "firstImpression": 7
+            "readability": 7,
+            "firstImpression": 6
           },
-          "score": 7,
+          "score": 6,
           "verdict": "FAIL",
           "reasons": {
-            "readability": "Mostly easy to follow because the post explains PR, FFI, memory allocator, JIT, and risk model in plain language, but the middle still stacks too many system-programming terms in one run.",
-            "firstImpression": "The hook avoids dead metadata and the language-war framing is clear, but this feels more useful than exciting and I would not share it unless someone was already arguing about Bun, Zig, or Rust."
+            "readability": "The structure is clear and the analogies help, but terms like PR #30683, code generation paths, FFI, JIT boundaries, and risk models stack up fast for a 3-month dev.",
+            "firstImpression": "The opening is decent, but the post feels more like a careful argument than a must-read, and the repeated anti-language-war point gets predictable by the second half."
           }
         },
         "model": "codex-gpt-5.5-medium",
@@ -2187,10 +2158,65 @@
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 1,
+    "topLevelAttempts": 2,
     "tribunalVersion": 5,
     "status": "FAILED",
     "failedStage": "freshEyes",
-    "finishedAt": "2026-05-20T02:21:51+08:00"
+    "finishedAt": "2026-05-20T02:27:06+08:00"
+  },
+  "sp-201-20260515-hitw93-agent.mdx": {
+    "article": "sp-201-20260515-hitw93-agent.mdx",
+    "startedAt": "2026-05-20T02:23:45+08:00",
+    "stages": {
+      "factChecker": {
+        "status": "in_progress",
+        "score": null,
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1,
+        "tribunalVersion": 5
+      }
+    },
+    "topLevelAttempts": 0,
+    "tribunalVersion": 5
+  },
+  "sd-24-20260515-codex-runtime-kernel.mdx": {
+    "article": "sd-24-20260515-codex-runtime-kernel.mdx",
+    "startedAt": "2026-05-20T02:23:46+08:00",
+    "stages": {
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9,
+            "sourceBoundary": 10,
+            "commentarySeparation": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "The central claim that Hermes and OpenClaw can hand low-level coding/runtime work to Codex app-server is supported by the cited docs; the broader 'runtime kernel' framing is interpretive but not technically false.",
+            "fidelity": "The post preserves the docs' split between Codex as execution/runtime and Hermes/OpenClaw as outer shell/orchestration, though it simplifies some implementation details such as OpenClaw still owning tools, approvals, and model selection.",
+            "consistency": "The three-layer model of model, execution engine, and chat entry point is coherent and the browser/JavaScript-engine analogy supports rather than contradicts the argument.",
+            "sourceBoundary": "This is an SD original rather than an SP translation, and the body does not rely on repeated source-report scaffolding like '原作者說' or '原文提到'.",
+            "commentarySeparation": "The strongest gu-log interpretive asides and jokes are kept inside ClawdNote blocks, while the body remains a source-backed architecture argument."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1,
+        "tribunalVersion": 5
+      },
+      "librarian": {
+        "status": "in_progress",
+        "score": null,
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1,
+        "tribunalVersion": 5
+      }
+    },
+    "topLevelAttempts": 0,
+    "tribunalVersion": 5
   }
 }
