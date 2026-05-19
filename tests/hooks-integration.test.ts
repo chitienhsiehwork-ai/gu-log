@@ -73,9 +73,11 @@ describe('pre-commit: ticketId duplicate gate (Step 0)', () => {
     });
     // PENDING dupes shouldn't trip Step 0. Other later steps may still
     // fail (eslint, validate-posts, etc), but the message we're asserting
-    // about should not appear.
+    // about should not appear. CI can spend a few extra seconds in the
+    // later hook chain, so keep this assertion's timeout above Vitest's
+    // default instead of making the duplicate-gate test flaky.
     expect(r.stdout + r.stderr).not.toMatch(/DUPLICATE ticketId/);
-  });
+  }, 15_000);
 });
 
 describe('pre-push: PENDING ticketId guard (Step 0)', () => {
