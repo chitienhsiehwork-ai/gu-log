@@ -1486,16 +1486,36 @@
     "startedAt": "2026-05-20T02:23:44+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 8,
+            "sourceBoundary": 5,
+            "commentarySeparation": 5
+          },
+          "score": 6,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Technical and policy claims largely match Anthropic's source, including the 12-24 month lead, 4%/2% Huawei-vs-NVIDIA compute figures, 11x compute estimate, 94% vs 8% jailbreak result, and 369-22 House vote, though several statistics remain Anthropic-cited rather than independently verified primary conclusions.",
+            "fidelity": "The post preserves the source's core two-scenario argument, compute/export-control/distillation structure, CCP focus, and major caveats such as respect for Chinese people and support for China safety dialogue, with only mild compression and paraphrase.",
+            "consistency": "The argument is internally coherent from compute advantage to policy recommendations, and ClawdNote sections are marked, but body-level interpretive transitions occasionally blur analysis with source summary.",
+            "sourceBoundary": "SP body repeatedly uses source-report scaffolding such as `原文說`, `原文提到`, `原文也說`, `Anthropic 說`, `Anthropic 認為`, and `Anthropic 最後提出`, making substantial parts read like a report about the source rather than direct gu-log prose.",
+            "commentarySeparation": "Several gu-log interpretive asides remain in the body, including `先把整篇的名詞牆翻成人話`, the door/window and tutoring analogies, `政策簡報`, `半導體期末考`, `最黑的部分`, and the final claim that the article's real importance is binding AI safety, chips, APIs, markets, and national security together."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 0,
-    "status": "PENDING",
-    "tribunalVersion": 5
+    "topLevelAttempts": 1,
+    "status": "FAILED",
+    "tribunalVersion": 5,
+    "failedStage": "factChecker",
+    "finishedAt": "2026-05-20T02:31:20+08:00"
   },
   "sp-204-20260516-steipete-token-openclaw-agent.mdx": {
     "article": "sp-204-20260516-steipete-token-openclaw-agent.mdx",
