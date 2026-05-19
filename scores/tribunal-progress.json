@@ -1486,28 +1486,10 @@
     "startedAt": "2026-05-20T02:23:44+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 8,
-            "fidelity": 8,
-            "consistency": 8,
-            "sourceBoundary": 6,
-            "commentarySeparation": 6
-          },
-          "score": 7,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "The major technical and policy claims match Anthropic's source, including the 12-24 month lead, 3 of 13 safety-eval disclosure figure, 94% versus 8% jailbreaking comparison, Mythos Preview Firefox example, Huawei/NVIDIA 4% and 2% compute figures, and 11x compute estimate, though many figures remain Anthropic-cited secondary claims rather than independently verified facts.",
-            "fidelity": "The post preserves Anthropic's central argument about compute, export-control loopholes, distillation attacks, and the two 2028 scenarios, with only moderate compression and some added explanatory analogies rather than material inversion.",
-            "consistency": "The argument flows coherently from AI leadership risk to compute constraints, loopholes, scenarios, and policy recommendations, but body-level interpretive transitions sometimes blur summary with gu-log framing.",
-            "sourceBoundary": "The SP body repeatedly uses source-report scaffolding such as '原文把焦點放在 CCP', '原文說', '原文也提到', '原文認為', and '原文把它比成', so it reads too often like a report about the source rather than direct gu-log prose.",
-            "commentarySeparation": "Several gu-log interpretations and source-meta asides appear in the body outside ClawdNote, including '先把整篇的名詞牆翻成人話', the exam-answer distillation analogy, '文章很容易變成政策簡報', '這個劇本最黑的部分', and the closing claim about what the article '真正重要' is."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 2,
+        "attempts": 1,
         "tribunalVersion": 5
       }
     },
@@ -2219,19 +2201,19 @@
           "judge": "factCheck",
           "dimensions": {
             "accuracy": 8,
-            "fidelity": 8,
-            "consistency": 9,
+            "fidelity": 7,
+            "consistency": 8,
             "sourceBoundary": 5,
             "commentarySeparation": 5
           },
-          "score": 7,
+          "score": 6,
           "verdict": "FAIL",
           "reasons": {
-            "accuracy": "Core technical claims match the source: Agent Loop as perceive/decide/act/feedback, Harness as validation/boundary/feedback/rollback infrastructure, Context Rot, ACI-style tool design, externalized memory, multi-agent isolation, evals, tracing, prompt-injection boundaries, and OpenClaw layers are all source-supported.",
-            "fidelity": "The post is a compressed adaptation rather than a full translation, but it preserves the source's main arguments and caveats, including the OpenAI productivity numbers being treated as a case claim rather than a universal guarantee.",
-            "consistency": "The accident-map framing flows coherently from control loops to validation, context, tools, memory, multi-agent state, evals, traces, and safety without internal contradiction.",
-            "sourceBoundary": "The SP body repeatedly uses source-meta scaffolding such as '@HiTw93 這篇長文', '原文列了', '原文一直強調', '原文裡被整理', '原文用', '原文提醒', and '原文最後', so it reads too often like a report about the source.",
-            "commentarySeparation": "Several gu-log/Clawd interpretations and source-meta comments remain in body prose outside ClawdNote, including the tribunal automation anecdote, gu-log cross-reference paragraph, and multiple humorous analogies such as the fire-truck succulent and electronic divination lines."
+            "accuracy": "Technical claims about Agent loops, workflows, harnesses, context layering, tool design, memory, multi-agent coordination, evals, tracing, and prompt-injection defenses broadly match the accessible Tw93 source; the main caveat is that the frontmatter X sourceUrl was not directly readable and appears to differ from the Tw93 mirrored article URL.",
+            "fidelity": "The post preserves the source's central engineering argument and key OpenAI harness numbers, but it substantially rewrites, compresses, omits many concrete details, and adds a gu-log pipeline incident and cross-post framing not present in the source.",
+            "consistency": "The argument flows coherently from control loops through harness, context, tools, memory, multi-agent state, evals, tracing, and security, with no major internal contradiction.",
+            "sourceBoundary": "The SP body repeatedly uses source-report scaffolding such as '@HiTw93 這篇長文', '原文列了', '原文一直強調', '原文裡被整理', '原文用', '原文提醒', and '原文最後', making the body read like a report about the source.",
+            "commentarySeparation": "Several gu-log/Clawd interpretive additions remain in body prose, including the tribunal automation incident, gu-log cross-post map, and multiple local jokes/analogies, instead of being confined to ClawdNote."
           }
         },
         "model": "codex-gpt-5.5-medium",
@@ -2239,11 +2221,11 @@
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 3,
+    "topLevelAttempts": 4,
     "tribunalVersion": 5,
     "status": "FAILED",
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T03:07:09+08:00"
+    "finishedAt": "2026-05-20T03:23:08+08:00"
   },
   "sd-24-20260515-codex-runtime-kernel.mdx": {
     "article": "sd-24-20260515-codex-runtime-kernel.mdx",
@@ -2275,24 +2257,8 @@
         "tribunalVersion": 5
       },
       "librarian": {
-        "status": "fail",
-        "score": {
-          "judge": "librarian",
-          "dimensions": {
-            "glossary": 7,
-            "crossRef": 5,
-            "sourceAlign": 8,
-            "attribution": 8
-          },
-          "score": 7,
-          "verdict": "FAIL",
-          "reasons": {
-            "glossary": "Key glossary terms such as Agent, Codex, OpenClaw, and ClawdNote appear without glossary links, though the body does naturally explain the model/execution-engine/chat-entry split.",
-            "crossRef": "The post has zero internal links and misses obvious citations to prior gu-log context such as /posts/sd-20-20260421-hermes-vs-openclaw/, /posts/sp-89-20260227-openclaw-acp-agents/, and /posts/sp-98-20260303-openai-harness-engineering/.",
-            "sourceAlign": "The Hermes sourceUrl matches the Codex app-server runtime claim, and the post also cites OpenClaw's Codex harness page for the parallel OpenClaw claim.",
-            "attribution": "The two primary factual anchors are linked to Hermes and OpenClaw docs, while the layer-splitting and browser-engine analogies are clearly ShroomDog analysis rather than unattributed source claims."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
@@ -2309,26 +2275,8 @@
     "startedAt": "2026-05-20T02:33:53+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 8,
-            "fidelity": 8,
-            "consistency": 8,
-            "sourceBoundary": 5,
-            "commentarySeparation": 6
-          },
-          "score": 7,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "Core technical claims match the Mem0 source: Markdown storage under `~/.codex/memories/`, six-hour idle eligibility, secret redaction, `memory_summary.md` startup loading, `grep` fallback, MCP setup, and regional limitation are all supported, though some source-backed product behavior is presented with broad confidence.",
-            "fidelity": "The post faithfully preserves the main source claims and limits, including local-only memory and no semantic search, but it omits some source details such as AGENTS.md caps and adds gu-log framing and cross-post synthesis beyond the Mem0 article.",
-            "consistency": "The argument is coherent from local Markdown memory to Mem0 semantic memory, but body prose sometimes mixes evidence, analogy, and evaluation in the same flow, making the support boundary less clean.",
-            "sourceBoundary": "SP body repeatedly uses source-report scaffolding such as `Mem0 原文先把神話拆掉`, `Mem0 原文提到`, `Mem0 原文指出`, `原文舉的例子`, and `原文也提到`, so it reads too often like a report about the source.",
-            "commentarySeparation": "Several gu-log interpretive asides and source-meta passages appear outside `<ClawdNote>`, including the opening `Mem0 這篇拆開來看`, cross-post framing, and evaluative analogies like `很工程師` and `這個選擇很有意思`."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
@@ -2447,26 +2395,8 @@
     "startedAt": "2026-05-20T03:01:06+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 8,
-            "fidelity": 8,
-            "consistency": 8,
-            "sourceBoundary": 5,
-            "commentarySeparation": 6
-          },
-          "score": 7,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "Core technical/source claims such as 970,000 lines, 665 test files, 100,720 extracted claims, 35% holder confusion, 17 tests, DO-178C Level A MC/DC, and Six Sigma defect-rate examples align with available source mirrors or known references, but the Capers Jones DRE figures and project metrics remain largely source/self-reported rather than independently primary-verified.",
-            "fidelity": "The post preserves the original essay's main argument that AI agents make 90% coverage and test/document/eval ratchets practical, including caveats about catastrophic production-data, security, and privacy failures, though it adds substantial gu-log framing and cross-post interpretation outside the source.",
-            "consistency": "The argument is internally coherent from fragile software to ratchets, GBrain/GStack examples, coverage economics, and complexity ceilings, with only mild leaps such as treating self-reported project outcomes as broad evidence for industry practice.",
-            "sourceBoundary": "The SP body frequently narrates the source instead of presenting claims directly, using repeated scaffolding such as `Garry 的觀察是`, `Garry 把`, `Garry 提到`, `Garry 說`, `Garry 的判斷`, `Garry 舉`, and `文中提到`.",
-            "commentarySeparation": "Several gu-log interpretive asides and source-meta comments appear in body prose rather than ClawdNote, including `本文統一把這個概念譯成`, `這篇真正要拆的`, `gu-log 之前`, and repeated evaluative house/ghost metaphors that go beyond source-derived claims."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
@@ -2483,28 +2413,35 @@
     "startedAt": "2026-05-20T03:01:07+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
+        "status": "pass",
         "score": {
           "judge": "factCheck",
           "dimensions": {
             "accuracy": 8,
             "fidelity": 8,
             "consistency": 9,
-            "sourceBoundary": 7,
-            "commentarySeparation": 6
+            "sourceBoundary": 8,
+            "commentarySeparation": 8
           },
-          "score": 7,
-          "verdict": "FAIL",
+          "score": 8,
+          "verdict": "PASS",
           "reasons": {
-            "accuracy": "Core claims about /goal needing measurable goals, fast feedback, a 200+ item checklist, NanoFold reducing scoring from days to minutes, and Markdown memory files are supported by available reposted source traces, but X itself was unreadable and screenshot/media details remain unverifiable.",
-            "fidelity": "The post tracks the source's three-part advice and preserves caveats around missing media, but it substantially expands the source with analogies and framing such as the brake/dashboard/logbook structure.",
-            "consistency": "The argument is coherent: measurable stopping conditions, validation loops, and persistent notes are presented as mutually reinforcing requirements for long-running agent work.",
-            "sourceBoundary": "The SP body has several source-meta boundary slips, including notes that the checklist screenshot only left a [media] marker, that the source did not provide item details, and that EXPERIMENTS.md screenshots were unavailable.",
-            "commentarySeparation": "Several gu-log interpretive passages sit in the body rather than ClawdNote, including the magic-button/brake framing, the broader gu-log cross-reference paragraph, and source limitation commentary."
+            "accuracy": "Core technical claims match accessible source mirrors: `/goal` loops toward a goal, vague goals can stop too early or wander, the 20% runtime example, 200+ checklist conversion, NanoFold days-to-minutes feedback, and the three Markdown memory files are all represented; remaining limits are that the X source and media screenshots are not directly verifiable.",
+            "fidelity": "The post is broadly faithful to Chris Hayduk's article as mirrored by TwStalker/Korean summaries, preserving the main advice and examples, though it expands the framing with gu-log metaphors and adds explicit `[media]` caveats not present as source prose.",
+            "consistency": "The argument is coherent: stopping criteria, fast validation, and durable notes are presented as mutually necessary parts of long-running agent work without internal contradiction.",
+            "sourceBoundary": "The SP body mostly avoids banned source-report framing such as `原作者說` or `原文提到`, but body sentences like `這裡只能保守寫：清單截圖只留下 [media] 標記` and the later screenshot caveat are source-meta scaffolding.",
+            "commentarySeparation": "Most gu-log opinions and jokes are inside `<ClawdNote>`, but the body still contains a few source-meta/editorial caveats about missing `[media]` screenshots that would be cleaner inside ClawdNote or rewritten as smooth evidence limits."
           }
         },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
+        "tribunalVersion": 5
+      },
+      "librarian": {
+        "status": "in_progress",
+        "score": null,
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1,
         "tribunalVersion": 5
       }
     },
