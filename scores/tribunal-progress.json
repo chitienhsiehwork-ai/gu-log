@@ -1486,18 +1486,36 @@
     "startedAt": "2026-05-20T02:23:44+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 9,
+            "consistency": 8,
+            "sourceBoundary": 5,
+            "commentarySeparation": 6
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core technical and policy claims match Anthropic, including the 12-24 month lead, 94% versus 8% jailbreak statistic, Huawei 4%/2% compute comparison, and 369-22 House vote, though several numbers are only as strong as Anthropic's cited secondary sources.",
+            "fidelity": "The post faithfully preserves Anthropic's two-scenario structure, compute/export-control/distillation thesis, and stated distinction between Chinese people and CCP-controlled systems without major uncertainty erasure.",
+            "consistency": "The argument flows coherently from compute advantage to policy action, but body-level interpretive transitions such as the '三個開關' and final '新的邊界' framing add gu-log synthesis beyond straight source presentation.",
+            "sourceBoundary": "The SP body repeatedly uses source-report framing such as 「原文說」, 「原文提到」, 「原文把它比成」, and 「Anthropic 認為」 across many sections, so it often reads like a report about the source rather than direct SP prose.",
+            "commentarySeparation": "ClawdNote blocks are clearly labeled, but source-meta and gu-log interpretive commentary also appears in the body, including the '名詞牆翻成人話', '政策簡報', '最黑的部分', and closing '新的邊界' lines."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 1,
+    "topLevelAttempts": 2,
     "status": "FAILED",
     "tribunalVersion": 5,
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T02:31:20+08:00"
+    "finishedAt": "2026-05-20T02:39:59+08:00"
   },
   "sp-204-20260516-steipete-token-openclaw-agent.mdx": {
     "article": "sp-204-20260516-steipete-token-openclaw-agent.mdx",
@@ -2196,18 +2214,36 @@
     "startedAt": "2026-05-20T02:23:45+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 7,
+            "consistency": 9,
+            "sourceBoundary": 5,
+            "commentarySeparation": 5
+          },
+          "score": 6,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core technical claims about Agent loop, workflow versus Agent, harness, context layering, tools, memory, multi-agent isolation, evals, tracing, and prompt-injection boundaries match the source, and the OpenAI case numbers are hedged as case self-report rather than universal benchmarks.",
+            "fidelity": "The post preserves the source's broad argument, but it heavily condenses the source and adds gu-log-specific framing such as the tribunal automation completion incident and cross-post map that are not in the source body.",
+            "consistency": "The accident-map structure is coherent: each section ties an Agent failure mode to an engineering control, and the conclusion follows from the earlier harness, context, tooling, memory, eval, trace, and safety sections.",
+            "sourceBoundary": "The SP body repeatedly uses source-meta scaffolding such as '@HiTw93 這篇長文', '原文列了', '原文一直強調', '原文裡', '原文用', '原文提醒', and '原文最後', so it reads partly like a report about the source.",
+            "commentarySeparation": "ClawdNotes are present, but body prose still contains gu-log commentary and source-meta interpretation, including the automation pipeline anecdote, gu-log cross-post positioning, jokes, and evaluative framing that should mostly live in ClawdNote."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 1,
+    "topLevelAttempts": 2,
     "tribunalVersion": 5,
     "status": "FAILED",
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T02:30:39+08:00"
+    "finishedAt": "2026-05-20T02:39:56+08:00"
   },
   "sd-24-20260515-codex-runtime-kernel.mdx": {
     "article": "sd-24-20260515-codex-runtime-kernel.mdx",
@@ -2257,28 +2293,10 @@
     "startedAt": "2026-05-20T02:33:53+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 8,
-            "fidelity": 8,
-            "consistency": 9,
-            "sourceBoundary": 6,
-            "commentarySeparation": 6
-          },
-          "score": 7,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "Core technical claims match the Mem0 article and OpenAI docs: local `~/.codex/memories/`, Markdown files, six-hour idle default, secret redaction, memory on/off controls, MCP HTTP config, and regional availability caveat are all supported.",
-            "fidelity": "The post faithfully represents the Mem0 article's main argument about native Codex memories versus Mem0, though it adds gu-log analogies and cross-post framing beyond the source.",
-            "consistency": "The argument is internally coherent: Codex native memory is consistently framed as local Markdown recall, while Mem0 is framed as a cross-tool semantic memory layer with added operational cost.",
-            "sourceBoundary": "SP body repeatedly uses source-meta scaffolding such as `Mem0 這篇拆開來看`, `Mem0 原文先`, `Mem0 原文提到`, `原文舉的例子`, and `原文列了一串設定`, so it reads partly like a report about the source.",
-            "commentarySeparation": "Several gu-log interpretations and jokes appear in body prose outside `<ClawdNote>`, including the prior-post reading guide, library-machine analogy, desk-cleaning analogy, and convenience-store analogy."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 2,
+        "attempts": 1,
         "tribunalVersion": 5
       }
     },
