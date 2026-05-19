@@ -239,16 +239,25 @@ init_article_progress() {
       tlog "Resuming existing progress for $article"
     fi
 
-    # Increment + cap check
-    local attempts
+    # topLevelAttempts counts terminal content failures, not process starts.
+    # A worker killed mid-stage leaves status in-progress/no-score; restarting
+    # that article must not burn an attempt or eventually poison it as
+    # EXHAUSTED.
+    local attempts article_status
     attempts=$(jq -r --arg a "$article" '.[$a].topLevelAttempts // 0' "$PROGRESS_FILE")
-    attempts=$((attempts + 1))
-    jq --arg a "$article" --argjson n "$attempts" \
-       '.[$a].topLevelAttempts = $n' \
-       "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
-    tlog "Top-level attempt $attempts/$MAX_TOP_ATTEMPTS for $article"
+    article_status=$(jq -r --arg a "$article" '.[$a].status // ""' "$PROGRESS_FILE")
+    if ! [[ "$attempts" =~ ^[0-9]+$ ]]; then attempts=0; fi
 
-    if [ "$attempts" -gt "$MAX_TOP_ATTEMPTS" ]; then
+    if [ "$article_status" != "FAILED" ] && [ "$attempts" -gt 0 ]; then
+      jq --arg a "$article" '.[$a].topLevelAttempts = 0' \
+         "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
+      attempts=0
+      tlog "Reset non-terminal topLevelAttempts for $article after interrupted/non-content run."
+    fi
+
+    tlog "Top-level attempt $((attempts + 1))/$MAX_TOP_ATTEMPTS for $article"
+
+    if [ "$article_status" = "FAILED" ] && [ "$attempts" -ge "$MAX_TOP_ATTEMPTS" ]; then
       tlog "ERROR: $article exceeded MAX_TOP_ATTEMPTS=$MAX_TOP_ATTEMPTS. Marking EXHAUSTED."
       jq --arg a "$article" \
          --argjson tribunalVersion "$TRIBUNAL_VERSION" \
@@ -280,7 +289,11 @@ mark_article_failed() {
        --arg s "$failed_stage" \
        --argjson tribunalVersion "$TRIBUNAL_VERSION" \
        --arg ts "$(TZ=Asia/Taipei date -Iseconds)" \
-       '.[$a].status = "FAILED" | .[$a].failedStage = $s | .[$a].finishedAt = $ts | .[$a].tribunalVersion = $tribunalVersion' \
+       '.[$a].topLevelAttempts = ((.[$a].topLevelAttempts // 0) + 1)
+        | .[$a].status = "FAILED"
+        | .[$a].failedStage = $s
+        | .[$a].finishedAt = $ts
+        | .[$a].tribunalVersion = $tribunalVersion' \
        "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
   ) 9>>"$RC_PROGRESS_LOCK"
 }
@@ -302,7 +315,7 @@ mark_article_runner_error() {
         | .[$a].failedStage = $s
         | .[$a].finishedAt = $ts
         | .[$a].tribunalVersion = $tribunalVersion
-        | .[$a].topLevelAttempts = ([((.[$a].topLevelAttempts // 0) - 1), 0] | max)
+        | .[$a].topLevelAttempts = (.[$a].topLevelAttempts // 0)
         | .[$a].stages[$s] = {
             status: "runner_error",
             score: null,

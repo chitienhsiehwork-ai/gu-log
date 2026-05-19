@@ -106,3 +106,42 @@ set -e
 [ "$(jq 'length' "$old_progress")" = "0" ] || fail "old Codex CLI should not initialize article progress"
 grep -q 'older than required' "$TMP/old.err" || fail "old Codex rejection did not explain version requirement"
 pass "old Codex CLI is rejected before article progress is touched"
+
+interrupted_progress="$TMP/interrupted-progress.json"
+cat > "$interrupted_progress" <<'JSON'
+{
+  "sp-1-20260128-demo.mdx": {
+    "article": "sp-1-20260128-demo.mdx",
+    "topLevelAttempts": 5,
+    "tribunalVersion": 5,
+    "stages": {
+      "factChecker": {
+        "status": "in_progress",
+        "score": null,
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1,
+        "tribunalVersion": 5
+      }
+    }
+  }
+}
+JSON
+
+set +e
+PATH="$fake_bin:$PATH" \
+TRIBUNAL_SCORE_ONLY_PROGRESS_FILE="$interrupted_progress" \
+TRIBUNAL_CODEX_TIMEOUT_SEC=5 \
+TRIBUNAL_CODEX_IDLE_TIMEOUT_SEC=5 \
+TRIBUNAL_CODEX_IDLE_POLL_SEC=1 \
+bash "$TRIBUNAL" --score-only --only-stage factChecker sp-1-20260128-demo.mdx \
+  >"$TMP/interrupted.out" 2>"$TMP/interrupted.err"
+interrupted_rc=$?
+set -e
+
+[ "$interrupted_rc" -eq 70 ] || fail "interrupted in-progress retry should surface runner error, got $interrupted_rc"
+[ "$(jq -r '."sp-1-20260128-demo.mdx".status' "$interrupted_progress")" = "RUNNER_ERROR" ] || fail "interrupted retry should be RUNNER_ERROR"
+[ "$(jq -r '."sp-1-20260128-demo.mdx".topLevelAttempts' "$interrupted_progress")" = "0" ] || fail "interrupted retry should reset non-terminal attempts"
+if jq -e '."sp-1-20260128-demo.mdx".status == "EXHAUSTED"' "$interrupted_progress" >/dev/null; then
+  fail "interrupted in-progress retry must not become EXHAUSTED"
+fi
+pass "interrupted in-progress runs do not consume attempts or exhaust articles"
