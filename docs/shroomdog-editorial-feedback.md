@@ -280,3 +280,11 @@
 - 情境：Tribunal v5 Vibe Scorer 曾把 `vs` / `bug` 這類 ShroomDog 可接受的 engineering terms 誤判成 zh-tw 晶晶體 penalty。把判定交給 `scripts/check-jingjing.mjs` 後，仍需要明確規定 allowlist / glossary acceptance set 的 ownership，避免未來 agent 因為測試或單篇文章需要，直接擅自加詞或刪詞。
 - 修法：`scripts/check-jingjing.mjs`、Vibe Scorer contract、`scripts/vibe-scoring-standard.md` 都要寫清楚：可接受 English terms 的邊界是 deterministic checker 執行，但 boundary ownership 屬於 ShroomDog。任何新增或移除 accepted term，SHALL 先與 ShroomDog 討論。
 - Reusable lesson：晶晶體不是純技術 lint 問題，而是 gu-log 閱讀流與語感邊界。程式負責穩定執行已決定的邊界；ShroomDog 負責決定哪些 English terms 在繁中正文裡自然、哪些會破壞 flow。Agent 不應把「checker 誤報」直接翻譯成「加 allowlist」。
+
+## 2026-05-18 — SP-206 title should use plain language
+
+- Feedback: Sprin approved the /goal / intent-engineering source as an SP post, but explicitly asked: “use plain language title btw.”
+- Context: The source uses product-management vocabulary like intent engineering, OKRs, empowered teams, autonomy boundaries, and stop rules. A framework-heavy title would make the post feel like PM jargon before the reader gets the useful agent lesson.
+- Fix: Use a direct title such as 「AI Agent 不是有目標就夠了」 instead of terms like 「意圖工程框架」 or 「Agent 治理八要素」. Keep the body practical: goal, boundary, what cannot break, and when to stop.
+- Reusable lesson: When the source is a framework post, gu-log titles should often translate the reader-facing problem, not the author’s framework brand. Plain-language titles lower the entry cost and keep the article from smelling like a slide deck.
+
