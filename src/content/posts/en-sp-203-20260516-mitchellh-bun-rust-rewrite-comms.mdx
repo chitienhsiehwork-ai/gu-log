@@ -18,6 +18,25 @@ sourceUrl: "https://x.com/mitchellh/status/2055039647924007222"
 lang: "en"
 summary: "Mitchell Hashimoto's point about Bun moving from Zig to Rust is not that Rust won and Zig lost. The more useful lesson is that programming languages are becoming more replaceable, and developer-tool companies need to manage technical narratives before the internet turns them into faction wars."
 tags: ["shroom-picks", "bun", "rust", "zig", "developer-relations", "software-engineering"]
+scores:
+  tribunalVersion: 5
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 10
+    commentarySeparation: 9
+    score: 8
+    date: "2026-05-19"
+    model: "gpt-5.5"
+  librarian:
+    glossary: 9
+    crossRef: 8
+    sourceAlign: 8
+    attribution: 7
+    score: 8
+    date: "2026-05-19"
+    model: "gpt-5.5"
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
@@ -38,13 +57,13 @@ Language wars are attractive because they are easy to argue. Rust is safe. Zig i
 
 ## Zig was not the loser. It was the scaffolding that got Bun here
 
-The Bun PR itself is substantial. In oven-sh/bun#30683, Jarred Sumner removed the remaining 1,290 Zig files, renamed <code>$zig(...)</code>, <code>$newZigFunction(...)</code>, and the <code>JS2Zig__</code> prefix to Rust equivalents, and moved codegen paths from <code>.zig</code> to <code>.rs</code>. This is not a cosmetic rename. It is the final cleanup of a deep runtime migration.
+The Bun PR itself is substantial. A PR is the change package a developer sends into a project. In oven-sh/bun#30683, Jarred Sumner removed the remaining 1,290 Zig files, renamed <code>$zig(...)</code>, <code>$newZigFunction(...)</code>, and the <code>JS2Zig__</code> prefix to Rust equivalents, and moved the code-generation paths from <code>.zig</code> to <code>.rs</code>. Code generation just means part of the source code is produced by tools instead of typed by hand. This is not a cosmetic rename. It is the final cleanup of a deep runtime migration.
 
 The easy thing to forget is that if Zig had been useless, Bun would not have reached this point with it.
 
 Bun is not a toy. It is a JavaScript runtime, package manager, bundler, test runner, and a whole developer-tool stack wrapped together. A project that pressures the JavaScript tooling ecosystem at that level did not get there by accident. Zig played a real role in that story.
 
-Mitchell's suggested framing is simple: Bun leadership could have said that first. Acknowledge what Zig made possible in the early phase, then explain why the next phase needs Rust's memory-safety guarantees and ecosystem conditions. That is not PR sugar. That is technical history done responsibly.
+Mitchell's suggested framing is simple: Bun leadership could have said that first. Acknowledge what Zig made possible in the early phase, then explain why the next phase needs Rust's memory-safety guarantees and ecosystem conditions. In plain English: the early phase needed a fast workshop; the later phase needs more guardrails because more people are now driving on the road. That is not PR sugar. That is technical history done responsibly.
 
 Without that framing, the internet fills in the cheapest version: Rust won, Zig lost. It is satisfying, but it is dumb.
 
@@ -58,11 +77,11 @@ Bun makes that assumption feel less permanent.
 
 Mitchell's sharper observation is that people may think Bun moving to Rust is a win for Rust, but Bun also showed something more unsettling: it can apparently move a major product narrative from one systems language to another very quickly. Rust is useful until it is not. Another language could become useful later.
 
-That does not mean rewrites are cheap now. Large rewrites are still expensive, especially around runtimes, FFI, codegen, and test matrices. But AI coding, stronger type systems, test coverage, codegen, and interop are slowly weakening the idea that a language choice is destiny.
+That does not mean rewrites are cheap now. Large rewrites are still expensive, especially around runtimes, FFI, code generation, and test matrices. FFI is the bridge where one language calls into another language; if the bridge is shaky, the crash may happen on the other side and still be your problem. But AI coding, stronger type systems, test coverage, code generation, and interop are slowly weakening the idea that a language choice is destiny.
 
 Languages are starting to look more like replaceable parts and less like religious identity.
 
-That is a more valuable observation than Rust versus Zig. It changes how engineering organizations think about technology selection. The question becomes less "which language is best?" and more "which language gives the best tradeoff for this product phase, risk model, and team shape?"
+That is a more valuable observation than Rust versus Zig. It changes how engineering organizations think about technology selection. The question becomes less "which language is best?" and more "which language gives the best tradeoff for this product phase, risk model, and team shape?" A risk model is just the list of failures the team is most afraid of: crashes, slow releases, security bugs, maintenance pain, or new engineers getting lost on day one.
 
 <ClawdNote>
 A decent analogy is a startup using Notion to run the whole company, then later moving parts of the workflow to Linear, GitHub Issues, or internal tools. Notion did not become trash. It completed one phase of the job. Replacing a tool is not the same as disproving it.
@@ -72,7 +91,7 @@ A decent analogy is a startup using Notion to run the whole company, then later 
 
 ## Memory safety is not magic. It is a set of boundary guarantees
 
-Rust's strongest card in this discussion is, of course, memory safety. Bun has dealt with crashes, native boundaries, runtime complexity, and all the wonderful ways low-level software can ruin an afternoon. Rust's type system and borrow checker really can move many runtime explosions into compile-time failures.
+Rust's strongest card in this discussion is, of course, memory safety. Bun has dealt with crashes, native boundaries, runtime complexity, and all the wonderful ways low-level software can ruin an afternoon. Rust's type system and borrow checker really can move many runtime explosions into compile-time failures. The borrow checker is like a strict warehouse clerk: who can take this box, who can modify it, and when does it have to come back? It checks the paperwork before the truck leaves.
 
 But Mitchell is not satisfied with the lazy "blame the language" version. He wants the more useful engineering analysis:
 
@@ -82,7 +101,7 @@ But Mitchell is not satisfied with the lazy "blame the language" version. He wan
 - Could Zig have prevented some of them with stricter process, tests, linting, or review gates?
 - For errors no language can fully prevent, what engineering practice needs to change?
 
-Those are the questions other projects can learn from.
+Allocators hand out and reclaim memory. JIT systems turn code into faster machine code while the program is running. Both are like busy highway interchanges: amazing when traffic flows, painful when one lane is mislabeled. Those are the questions other projects can learn from.
 
 Saying "Rust is safer than Zig" may be true, but it is too low-resolution. It is like seeing a kitchen fire and announcing that water is better than oil for putting it out. Fine. But the real questions are where the fire started, how the gas pipe was connected, why the alarm did not fire, and who checks it next time.
 

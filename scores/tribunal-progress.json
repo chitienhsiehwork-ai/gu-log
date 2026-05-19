@@ -2168,14 +2168,29 @@
         "tribunalVersion": 5
       },
       "freshEyes": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 7
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "readability": "Mostly easy to follow because the post explains PR, FFI, memory allocator, JIT, and risk model in plain language, but the middle still stacks too many system-programming terms in one run.",
+            "firstImpression": "The hook avoids dead metadata and the language-war framing is clear, but this feels more useful than exciting and I would not share it unless someone was already arguing about Bun, Zig, or Rust."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 0,
-    "tribunalVersion": 5
+    "topLevelAttempts": 1,
+    "tribunalVersion": 5,
+    "status": "FAILED",
+    "failedStage": "freshEyes",
+    "finishedAt": "2026-05-20T02:21:51+08:00"
   }
 }
