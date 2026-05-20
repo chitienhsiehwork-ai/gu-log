@@ -2918,15 +2918,36 @@
     "startedAt": "2026-05-20T17:33:33+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 8,
+            "sourceBoundary": 5,
+            "commentarySeparation": 6
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core claims match the OpenAI post, including the no-human-written-code repo, 3-5 manageable Codex sessions, 500% landed-PR increase for some teams, Elixir reference implementation, and TypeScript/Go/Rust/Java/Python spec trials, but body prose adds unsupported interpretive claims such as PM validation shrinking from weeks to hours.",
+            "fidelity": "The post preserves major source caveats around the 500% number and Symphony not being maintained as a standalone product, but it expands the source into broader claims about role reshuffling, platform strategy, and engineering culture that are not clearly marked as source-derived versus gu-log interpretation.",
+            "consistency": "The argument coherently follows the source's bottleneck-to-orchestration arc, but some conclusions, such as low-code disruption and Codex App Server as OpenAI's real platform bet, are stronger than the evidence presented in the body.",
+            "sourceBoundary": "The SP body repeatedly uses source-meta scaffolding such as '這篇文章', '原文寫', '原作者用', and '原作者自己留了一條暗線', making the article read partly like a report about the source instead of direct gu-log prose.",
+            "commentarySeparation": "Many opinions are correctly placed in ClawdNote, but body sentences like '這篇 SP 把這個故事拆成三層', '這句話的可信度比 500% 高', and '這是「平台」級別的賭注' mix gu-log interpretation and source-meta commentary into the main SP body."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 0,
-    "tribunalVersion": 5
+    "topLevelAttempts": 1,
+    "tribunalVersion": 5,
+    "status": "FAILED",
+    "failedStage": "factChecker",
+    "finishedAt": "2026-05-20T17:41:50+08:00"
   },
   "sp-186-20260428-article-openclaw-task-flow.mdx": {
     "article": "sp-186-20260428-article-openclaw-task-flow.mdx",
