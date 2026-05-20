@@ -222,11 +222,34 @@ Google 2017 年丟出這顆核彈後，整個 NLP 界直接進入新紀元。
 
 **Boundary ownership**：可接受 English terms 的邊界 SHALL 每次新增或移除前都先與 ShroomDog 討論。這會直接影響 gu-log 的閱讀流與語感，不是 agent 可以自己憑「看起來合理」決定的工程清單。Deterministic checker 負責執行已決定的邊界；ShroomDog 負責決定哪些英文詞在繁中正文裡自然。
 
-**何時加 glossary？**：
-- 同一個英文 term 在多篇文章重複出現、且中文沒有同等精準/簡潔的對應
-- 業界討論時直接講英文是 standard（譬如 RLHF、Token、Prompt）
-- term 有特定技術意義，中文翻譯會丟失資訊
-不是「我懶得翻」就加。先想：寫成中文是不是真的失準？如果只是順手沒想自然中文，那是晶晶體不是技術詞。
+**Glossary creation standard（問 / 建 / 不建）**：
+
+Glossary 不是英文詞垃圾桶。它的工作是替 gu-log 保存「讀者之後會反覆遇到，而且需要穩定 mental model」的術語。
+
+**建 glossary item**：
+- Canonical English term 是產品、協定、架構層、研究方法或社群固定講法，讀者之後需要拿它去對官方文件 / X / GitHub 討論。例如 `Codex app server`、`MCP`、`RLHF`。
+- 中文硬翻會失真、變長、變論文腔，或讓讀者對不上英文世界的討論。
+- term 是該篇的核心概念，而且很可能在 gu-log 後續文章再次出現；即使目前只出現一篇，也值得先建立穩定 anchor。
+- term 需要一段固定 ClawdNote / ShroomDog-style 解釋，避免每篇都重新解釋一次。
+
+**先問 ShroomDog**：
+- 新增或移除 accepted English term / glossary entry 會改變 zh-tw 正文的閱讀流。
+- 這個詞介於「自然的工程英文」和「晶晶體」之間，只有 ShroomDog 能判斷舒服不舒服。
+- 要把既有中文譯法改成 canonical English term，或把既有 English term 改成中文。
+- 這是一次新的術語分類邊界，不只是單篇文章修字。
+
+**不建 glossary item**：
+- 普通英文有自然中文可寫：`framing` →「包裝」、`takeaway` →「真正的重點」、`generalist` →「通才」。這種要翻，不要建 glossary。
+- 單篇 source 裡的一次性 label、活動名稱、內部專案代號，讀者不需要長期記住；文內解釋一次就好。
+- 已經是 universally understood acronym / proper noun / model name / product name，而且不需要 gu-log 額外定義；放 allowlist 或 glossaryExclude 就好。
+- 只是因為 lint 擋住、或 agent 懶得想自然中文。Lint 失敗不是建 glossary 的理由，只是提醒「翻中文」或「提術語決策」。
+
+**文內解釋即可**：
+- term 只在該篇服務一個小段落，但不會成為 gu-log 長期詞彙。
+- 中文翻法雖然不是完美，但讀者能順暢理解，而且不需要拿英文去查外部文件。
+- source-specific 說法只需要保留 attribution，不需要納入 gu-log 詞彙系統。
+
+**PR checklist**：真的新增 glossary term 時，同一個 PR 要更新 `src/data/glossary.json`，必要時更新 `src/config/glossary.ts`，第一次出現連 `/glossary#...`，英文版連 `/en/glossary#...`，並確保 `scripts/check-jingjing.mjs` 通過。若決策來自 ShroomDog feedback，也要 append 到 `docs/shroomdog-editorial-feedback.md`。
 
 **術語 checkpoint（不要硬翻研究論文腔）**：遇到像「擴展測試時運算」這種語意看得懂、但中文讀起來很卡的譯法，先停下來判斷：
 - 如果業界主要用英文討論，正文保留 canonical English term，第一次出現連到 glossary，glossary 裡補可能的 zh-tw 譯法。

@@ -13,8 +13,10 @@
 //   5. Universally understood acronyms (API, SDK, CLI, PM, CEO, ML, LLM, etc.)
 //
 // Anything else is 晶晶體 → flag. Fix by translating to natural zh-tw, OR
-// add the term to src/data/glossary.json in the same PR if it's a real
-// canonical industry term that loses meaning when translated.
+// add the term to src/data/glossary.json in the same PR only if it passes
+// GU-LOG_WRITER_PROMPT.md's glossary creation standard: canonical term,
+// likely reused, loses meaning when translated, and useful as a stable
+// gu-log mental-model anchor. A lint failure alone is never enough.
 //
 // Boundary ownership: adding or removing accepted English terms SHALL be
 // discussed with ShroomDog first. This list encodes ShroomDog's reading-flow
@@ -730,7 +732,7 @@ if (!__isCli) {
   console.error(
     `Fix options:\n` +
       `  1. Translate to natural zh-tw (preferred — see GU-LOG_WRITER_PROMPT.md §術語處理).\n` +
-      `  2. If genuinely a canonical industry term, discuss the boundary with ShroomDog, then add to src/data/glossary.json with definition + clawdNote.\n` +
+      `  2. If genuinely a canonical/reusable term, apply GU-LOG_WRITER_PROMPT.md's glossary creation standard, discuss the boundary with ShroomDog, then add to src/data/glossary.json with definition + clawdNote.\n` +
       `  3. If proper noun (product/people/lab) misclassified, discuss with ShroomDog before adding to ALLOWLIST_RAW in scripts/check-jingjing.mjs.\n` +
       (baselineRef
         ? `\nNote: --baseline-ref=${baselineRef} was used, so only new violations are reported; historical grandfathered violations are ignored.\n`
