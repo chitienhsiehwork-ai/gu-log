@@ -2846,18 +2846,36 @@
     "startedAt": "2026-05-20T11:56:00+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 6,
+            "fidelity": 6,
+            "consistency": 7,
+            "sourceBoundary": 6,
+            "commentarySeparation": 5
+          },
+          "score": 6,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Most OpenAI guide details are correct, including outcome-first prompts, retrieval budgets, phase handling, Cursor tuning, and the 35% apply_patch failure-rate claim, but the body presents unsupported specifics such as the final 28% latency and one-third token-cost anecdote.",
+            "fidelity": "The post tracks the official guide's main recommendations, but it adds substantial extrapolation and narrative claims outside the source, including the 700-line prompt story and the final benchmark result.",
+            "consistency": "The argument is broadly coherent around shorter outcome-first prompts, but conclusions such as industry-wide retirement of old prompt style and the invented evaluation anecdote go beyond the evidence presented.",
+            "sourceBoundary": "The SP body repeatedly narrates the source with report framing such as \"OpenAI 在 GPT-5.5 段落\", \"OpenAI 給的\", \"OpenAI 用的詞\", and \"OpenAI 在文件裡給了\" rather than presenting claims directly.",
+            "commentarySeparation": "Several gu-log interpretations and source-meta comments remain in body prose, including comparisons to Anthropic, \"這是 GPT-5.5 文件最有畫面感的新概念\", and the unsupported final engineer anecdote, instead of staying in ClawdNote."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 1,
+    "topLevelAttempts": 2,
     "tribunalVersion": 5,
     "status": "FAILED",
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T12:03:52+08:00"
+    "finishedAt": "2026-05-20T17:41:22+08:00"
   },
   "sp-188-20260429-mitchellh-ghostty-leaving-github.mdx": {
     "article": "sp-188-20260429-mitchellh-ghostty-leaving-github.mdx",
@@ -2903,7 +2921,7 @@
         "status": "in_progress",
         "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
