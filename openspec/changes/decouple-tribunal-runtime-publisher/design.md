@@ -55,6 +55,8 @@ The threshold should be configurable, and a manual flush should exist for urgent
 
 FAILED / EXHAUSTED outcomes SHALL be represented in operator-facing metadata and status views, but SHALL NOT count toward the PR threshold and SHALL NOT by themselves create production-bound artifact PRs. RUNNER_ERROR SHALL be excluded from publishable batches entirely.
 
+Batch selection SHALL be oldest-first by terminal PASS timestamp. Auto publisher runs SHALL scan the eligible publishable pool in order and select up to the configured threshold. Conflicted or validation-blocked candidates are excluded before counting. Auto runs SHALL create a PR only when the filtered batch reaches the configured threshold; manual flush MAY publish fewer.
+
 Alternative considered: publish every article. That reduces latency but creates review noise and more CI churn. One giant commit after the backlog finishes is also rejected because it is too large to review and too risky to conflict with editorial edits.
 
 ### Decision 4: Conflict policy is manifest-and-base aware
@@ -69,6 +71,10 @@ Each publishable ledger entry SHALL record an artifact manifest for every path i
 The publisher SHALL compare that manifest to current `origin/main` and to open non-publisher PRs that touch the same manifest paths.
 
 If any manifest path changed after the base, was renamed/deleted, or is already under active editorial review in another PR, the publisher SHALL mark that article as conflicted/requeue-needed and SHALL NOT overwrite it automatically. This protects Sprin, Iris, or Clawd editorial edits across zh/en paired files and shared publishable metadata.
+
+For gu-log article publishing, a publishable PASS artifact should include the zh canonical post plus the English counterpart whenever that counterpart exists in the repo. Missing required pair files are validation failures, not silent zh-only publishes.
+
+Publisher-owned PRs SHALL identify themselves with both a reserved branch prefix and a dedicated label, so editorial PR detection is rule-based instead of guesswork.
 
 Alternative considered: last-writer-wins. That is unacceptable for editorial content because phrasing edits are often the valuable human judgment, not noise.
 
@@ -87,17 +93,26 @@ The key rule is that one ambiguous post SHALL NOT block unrelated clean posts. T
 - ask an agent to merge both
 - requeue Tribunal after human/Iris/Clawd edits
 
-Each triage event should have a dedup key, state machine, owner, timestamps, retry semantics, and explicit resolution outcome so OpenClaw can be event-driven instead of relying on chat memory.
+Each triage event should have a dedup key, closed event kind enum, closed processing-state enum, owner, timestamps, retry semantics, and explicit resolution outcome so OpenClaw can be event-driven instead of relying on chat memory.
 
 Alternative considered: stop the whole publisher batch on first conflict. That preserves safety but wastes throughput and makes Tribunal feel broken whenever one article needs judgment.
 
 ### Decision 6: Validation failures are isolated per candidate
 
-Publisher validation should fail closed per candidate, not per whole batch. If one candidate artifact fails validation or build, that candidate should move to a validation-blocked triage state while the rest of the clean batch continues, as long as at least one valid publishable artifact remains.
+Publisher validation should fail closed per candidate, not per whole batch. Validation happens in two layers:
+
+- candidate preflight: per-article and pair-level checks before a candidate enters the batch
+- batch integration gate: whole-site build and integration checks after the candidate set is assembled
+
+If a whole-site gate fails, publisher SHALL isolate the failing candidate set by deterministic replay over the selected candidates until it can move the failing candidate or minimal failing subset into validation-blocked state. The remaining valid candidates may continue, as long as at least one valid publishable artifact remains.
 
 Alternative considered: cancel the whole batch on the first validation failure. That is simpler, but it recreates the same throughput problem as conflict-wide blocking.
 
-### Decision 7: Runtime update checks are fetch-only
+### Decision 7: Publish lifecycle is explicit end-to-end
+
+Publisher and ledger entries SHALL move through explicit lifecycle states from ready_for_batch to batch_selected, branch_pushed, pr_open, merged_deploy_pending, published, deploy_failed, abandoned, or requeued. Failed transitions such as branch push success but PR creation failure, closed-without-merge, or merge-with-deploy-failure must be observable and recoverable without duplicate publication.
+
+### Decision 8: Runtime update checks are fetch-only
 
 The long-running runtime MAY run `git fetch origin main` to observe remote drift and sync worker worktrees before dispatch, but SHALL NOT run `git pull`, `git rebase`, or `git push` in the runtime main worktree.
 
@@ -111,6 +126,7 @@ If code updates are needed, the operator should drain/restart the daemon. This i
 - Conflict events can annoy Sprin if too noisy -> dedup events by conflict fingerprint and only escalate to human when deterministic agentic merge rules do not apply.
 - Production will see results later than daemon completion -> default 10-PASS threshold plus manual flush balances latency and reviewability.
 - One invalid candidate could stall a batch -> isolate it into validation-blocked state and continue with remaining clean entries.
+- Whole-site failures can still be combinatorial -> require deterministic replay policy and surface unresolved minimal failing subsets as blocked instead of guessing.
 - More moving parts -> keep interfaces boring: ledger writer, publisher, migration, status command, tests.
 - Existing service may still have dirty state during migration -> implement and verify in a clean worktree, then drain/restart runtime when applying.
 
@@ -122,7 +138,8 @@ If code updates are needed, the operator should drain/restart the daemon. This i
 4. Replace daemon `git pull --rebase` with fetch-only drift detection.
 5. Add publisher dry-run and conflict detection.
 6. Enable publisher batch PR creation after candidate-level validation passes.
-7. Drain/restart the existing service and observe at least one publish cycle.
+7. Add explicit lifecycle reconciliation for branch/PR/merge/deploy state.
+8. Drain/restart the existing service and observe at least one publish cycle.
 
 Rollback: disable publisher, stop runtime, restore the backed-up tracked progress file, and restart the previous daemon code path from the pre-change commit.
 

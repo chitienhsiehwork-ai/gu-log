@@ -3,11 +3,14 @@
 - [ ] 1.1 Add a regression test proving the daemon loop uses fetch-only remote drift checks and never invokes pull/rebase/push in runtime mode.
 - [ ] 1.2 Add ledger migration tests covering existing PASS, FAILED, EXHAUSTED, RUNNER_ERROR, stale in-progress, and topLevelAttempts shapes.
 - [ ] 1.3 Add publisher batching tests for default 10 publishable PASS artifacts, configurable threshold, and manual flush.
+- [ ] 1.3a Add batch-selection tests for oldest-first ordering, up-to-threshold selection, and auto-run behavior when filtering leaves fewer than the threshold.
 - [ ] 1.4 Add conflict tests for manifest path/base blob changes, zh/en paired files, and open editorial PRs touching the same publishable paths.
 - [ ] 1.5 Add idempotency tests for publisher crash/retry and already-batched ledger entries.
 - [ ] 1.6 Add non-blocking conflict tests proving clean entries still publish when conflicted entries are triaged.
 - [ ] 1.7 Add event-driven triage tests for durable event schema, dedup key, state transitions, ask-Sprin, agentic-merge, keep-current, accept-Tribunal, validation-blocked, and requeue decisions.
 - [ ] 1.8 Add migration tests proving PASS/EXHAUSTED remain non-dispatchable, FAILED stays operator-visible until explicit requeue, and RUNNER_ERROR never counts toward publishable batches.
+- [ ] 1.9 Add migration reconciliation tests for contradictory legacy records and tracked-versus-ignored source precedence.
+- [ ] 1.10 Add lifecycle tests for branch_pushed, pr_open, merged_deploy_pending, deploy_failed, published, abandoned, and requeued transitions.
 
 ## 2. Runtime Ledger
 
@@ -16,6 +19,7 @@
 - [ ] 2.3 Implement migration from tracked tribunal progress JSON into the ignored ledger with timestamped backup and explicit outcome-state mapping.
 - [ ] 2.4 Update unscored article selection to read from the ledger instead of tracked progress JSON.
 - [ ] 2.5 Update workers to write terminal outcomes and non-terminal progress to the ledger.
+- [ ] 2.6 Define source-of-truth precedence between tracked progress, ignored progress artifacts, and migrated ledger state.
 
 ## 3. Runtime Git Hygiene
 
@@ -31,11 +35,14 @@
 - [ ] 4.3 Apply PASS article artifacts and batch metadata into the publisher worktree.
 - [ ] 4.4 Detect conflicts by comparing stored artifact manifest base blobs with current `origin/main` and open non-publisher PRs touching the same paths.
 - [ ] 4.5 Run candidate-level validation before commit and PR creation, isolating invalid candidates without blocking the whole batch.
+- [ ] 4.5a Implement deterministic replay for whole-site build failures so failing candidates or minimal failing subsets move to validation_blocked state.
 - [ ] 4.6 Push a batch branch and open a PR with batch summary and validation proof.
 - [ ] 4.7 Mark ledger entries with batch/PR identifiers only after branch/PR creation succeeds.
 - [ ] 4.8 Split conflicted entries out of otherwise clean publisher batches.
 - [ ] 4.9 Emit triage events for conflicted or validation-blocked entries with durable schema, dedup key, owner, and concise decision context.
 - [ ] 4.10 Implement triage outcomes: keep current, accept Tribunal, deterministic agentic merge, validation-blocked retry, requeue, and defer.
+- [ ] 4.11 Reserve publisher branch prefix and label, and use them in open-PR conflict detection.
+- [ ] 4.12 Reconcile publisher lifecycle after branch push, PR create/update, merge, deploy success, deploy failure, abandonment, and requeue.
 
 ## 5. Operations
 

@@ -56,7 +56,7 @@ Migration from tracked Tribunal progress into the ignored runtime ledger SHALL p
 - **WHEN** migration reads a tracked RUNNER_ERROR or equivalent runner-failure record
 - **THEN** it SHALL create a RUNNER_ERROR ledger entry
 - **AND** the entry SHALL NOT count toward batch thresholds
-- **AND** the entry SHALL remain eligible for recovery or requeue after runtime remediation
+- **AND** the entry SHALL remain recovery_pending until an explicit recovery or requeue action marks it runnable again
 
 #### Scenario: Stale in-progress state migrates without false exhaustion
 
@@ -64,9 +64,62 @@ Migration from tracked Tribunal progress into the ignored runtime ledger SHALL p
 - **THEN** it SHALL migrate the article into a retryable non-terminal recovery state
 - **AND** it SHALL NOT convert process interruption alone into EXHAUSTED
 
+#### Scenario: Legacy tracked and ignored progress records disagree
+
+- **WHEN** migration sees both `scores/tribunal-progress.json` and legacy ignored progress artifacts for the same article
+- **THEN** it SHALL treat tracked progress as the primary source of outcome semantics
+- **AND** it MAY import missing timestamps or audit detail from ignored progress artifacts
+- **AND** it SHALL record that reconciliation happened
+
+#### Scenario: Legacy record contains contradictory terminal and stage data
+
+- **WHEN** migration sees a terminal status that conflicts with stale stage or attempt metadata
+- **THEN** the terminal status SHALL win for dispatch behavior
+- **AND** contradictory legacy metadata SHALL be preserved as audit detail rather than changing the migrated outcome
+
+### Requirement: FAILED and RUNNER_ERROR re-dispatch SHALL require explicit policy
+
+FAILED and RUNNER_ERROR entries SHALL NOT become runnable merely because the daemon restarted.
+
+#### Scenario: FAILED entry after daemon restart
+
+- **WHEN** runtime restarts with a FAILED entry in the ledger
+- **THEN** that article SHALL remain non-runnable
+- **AND** it SHALL become runnable again only after an explicit requeue decision or policy marks it eligible
+
+#### Scenario: RUNNER_ERROR entry after runtime remediation
+
+- **WHEN** the underlying runtime problem has been fixed
+- **AND** no explicit recovery or requeue action has been taken
+- **THEN** RUNNER_ERROR entries SHALL remain recovery_pending and non-runnable
+- **AND** runtime SHALL NOT auto-dispatch them just because the environment is healthy again
+
+### Requirement: Requeue and recovery policy SHALL be explicit and auditable
+
+The system SHALL provide explicit actions or policies for making FAILED and RUNNER_ERROR entries runnable again.
+
+#### Scenario: Operator requeues a FAILED article
+
+- **WHEN** an operator or triage workflow decides a FAILED article should be retried
+- **THEN** the system SHALL record who requeued it, when, and why
+- **AND** the article SHALL move from FAILED into a runnable requeued state
+
+#### Scenario: Operator recovers a RUNNER_ERROR article
+
+- **WHEN** an operator or recovery workflow decides a RUNNER_ERROR article should be retried after remediation
+- **THEN** the system SHALL record who recovered it, when, and why
+- **AND** the article SHALL move from recovery_pending into a runnable requeued state
+
 ### Requirement: Tribunal publisher SHALL create batch PRs from publishable PASS artifacts
 
 Tribunal SHALL provide a publisher that reads ledger entries and creates reviewable batch PRs from a clean checkout based on current `origin/main`.
+
+#### Scenario: Auto publisher selects a batch
+
+- **WHEN** auto publisher scans publishable PASS artifacts
+- **THEN** it SHALL order candidates by oldest terminal PASS timestamp first
+- **AND** it SHALL exclude conflicted, validation-blocked, batched, and published candidates before counting
+- **AND** it SHALL select up to the configured threshold from the remaining ordered pool
 
 #### Scenario: Ten publishable PASS artifacts are ready
 
@@ -82,6 +135,13 @@ Tribunal SHALL provide a publisher that reads ledger entries and creates reviewa
 - **WHEN** an operator requests a publisher flush below the default threshold
 - **THEN** publisher SHALL create a batch PR for currently publishable PASS artifacts
 - **AND** SHALL record that the batch was manually flushed
+
+#### Scenario: Auto publisher finds only six clean artifacts after filtering
+
+- **WHEN** the configured auto threshold is ten
+- **AND** only six publishable PASS artifacts remain after conflict and validation filtering
+- **THEN** auto publisher SHALL create no PR
+- **AND** those six artifacts SHALL remain eligible for the next auto cycle or manual flush
 
 #### Scenario: No publishable entries are ready
 
@@ -113,6 +173,19 @@ Publisher SHALL NOT overwrite publishable artifact paths that changed after Trib
 - **THEN** publisher SHALL treat that artifact as conflicted or waiting-on-editorial-review
 - **AND** SHALL avoid racing a second PR against the same paths
 
+#### Scenario: English counterpart exists for a zh post
+
+- **WHEN** the repository already contains an English counterpart for a zh canonical post
+- **THEN** a publishable PASS artifact SHALL include both zh and en paths in its manifest
+- **AND** missing the required counterpart SHALL move the candidate into validation_blocked state
+
+#### Scenario: Publisher-owned PR identification
+
+- **WHEN** publisher opens or updates a PR
+- **THEN** its branch name SHALL use the reserved prefix `publisher/tribunal-batch-`
+- **AND** the PR SHALL carry the label `tribunal-publisher`
+- **AND** open PRs lacking both markers SHALL be treated as non-publisher PRs for conflict detection
+
 ### Requirement: Conflicted posts SHALL trigger event-driven triage without blocking clean posts
 
 Publisher SHALL separate conflicted entries from unambiguous publishable entries. Clean entries SHALL continue into batch PRs, while conflicted entries SHALL create a triage event for OpenClaw or another designated agent.
@@ -132,13 +205,17 @@ Every conflict or validation-blocked triage event SHALL be durably recorded with
 #### Scenario: Triage event is created
 
 - **WHEN** publisher or a triage agent creates a new event
-- **THEN** the event SHALL include at least event ID, schema version, article slug, Tribunal version, event kind, conflict fingerprint, owner, state, candidate manifest, decision options, createdAt, and updatedAt
-- **AND** the dedup key SHALL prevent duplicate events for the same article slug, artifact base, and conflict fingerprint
+- **THEN** the event SHALL include at least event ID, schema version, article slug, Tribunal version, event kind, owner, state, candidate manifest, decision options, createdAt, and updatedAt
+- **AND** event kind SHALL be exactly one of `conflict` or `validation_blocked`
+- **AND** conflict events SHALL include a conflict fingerprint
+- **AND** validation-blocked events SHALL include a validation fingerprint
+- **AND** the dedup key SHALL prevent duplicate events for the same article slug, event kind, artifact base, and event fingerprint
 
 #### Scenario: Triage event moves through state machine
 
 - **WHEN** an event is processed
-- **THEN** its state SHALL move through explicit values such as pending_agent_review, agent_merging, awaiting_human, resolved_keep_current, resolved_accept_tribunal, resolved_agent_merge, requeued, validation_blocked, or closed
+- **THEN** its state SHALL be one of `open`, `agent_review`, `awaiting_human`, `resolved`, `requeued`, `deferred`, or `closed`
+- **AND** its resolution SHALL be one of `keep_current`, `accept_tribunal`, `agent_merge`, `validation_fix`, `requeue`, `defer`, or `no_action`
 - **AND** the resolution SHALL record who resolved it and what changed
 
 #### Scenario: Conflict requires Sprin's opinion
@@ -160,12 +237,25 @@ Every conflict or validation-blocked triage event SHALL be durably recorded with
 
 Publisher SHALL isolate candidate-level validation or build failures so unrelated clean artifacts can still move forward.
 
+#### Scenario: Candidate preflight fails before batch assembly
+
+- **WHEN** a candidate fails per-candidate or pair-level validation before batch assembly
+- **THEN** publisher SHALL create or update a `validation_blocked` event in `open` state for that candidate
+- **AND** it SHALL exclude the candidate before threshold counting for auto publisher runs
+
 #### Scenario: One candidate fails validation in an otherwise clean batch
 
 - **WHEN** publisher validates a batch and one candidate artifact fails validation or build
-- **THEN** publisher SHALL move that candidate into validation_blocked triage state
+- **THEN** publisher SHALL create or update a `validation_blocked` event in `open` state for that candidate
 - **AND** SHALL exclude that candidate from the current batch PR
 - **AND** SHALL continue creating the batch PR for remaining valid publishable artifacts if any remain
+
+#### Scenario: Whole-site build fails after batch assembly
+
+- **WHEN** whole-site validation fails for an assembled batch
+- **THEN** publisher SHALL deterministically replay the selected candidates to identify the minimal failing candidate set
+- **AND** it SHALL create or update `validation_blocked` events in `open` state for that failing candidate set
+- **AND** it SHALL retry the batch with the remaining candidates before giving up on the whole batch
 
 #### Scenario: All candidates fail validation
 
@@ -189,6 +279,41 @@ Publisher SHALL avoid publishing the same terminal ledger entry more than once, 
 - **THEN** a later publisher run SHALL either reuse the same batch identity or safely create a new one
 - **AND** SHALL NOT mark entries as published without a branch or PR reference
 
+### Requirement: Publisher and deploy lifecycle SHALL be explicit and recoverable
+
+Batch and entry publish state SHALL move through explicit lifecycle transitions that survive retries and partial failure.
+
+#### Scenario: Publisher lifecycle states are enumerated
+
+- **WHEN** batch or entry publish state is recorded
+- **THEN** batch or entry state SHALL be one of `ready_for_batch`, `batch_selected`, `branch_pushed`, `pr_open`, `merged_deploy_pending`, `published`, `deploy_failed`, `abandoned`, or `requeued`
+- **AND** implementation SHALL NOT invent additional lifecycle states without changing this spec
+
+#### Scenario: Branch push succeeds but PR creation fails
+
+- **WHEN** publisher has pushed a batch branch but failed to create a PR
+- **THEN** the batch SHALL remain in `branch_pushed` state
+- **AND** a later reconciliation run SHALL retry PR creation instead of creating a new batch branch
+
+#### Scenario: PR closes without merge
+
+- **WHEN** a publisher PR is closed without merge
+- **THEN** the affected batch and entries SHALL move to `abandoned` or `requeued` according to operator policy
+- **AND** they SHALL NOT remain indefinitely in `pr_open`
+
+#### Scenario: PR merges but deploy fails
+
+- **WHEN** a publisher PR merges
+- **AND** production deploy does not succeed
+- **THEN** the batch SHALL move to `merged_deploy_pending` or `deploy_failed`
+- **AND** entries SHALL NOT be marked `published` until deploy success is observed
+
+#### Scenario: Deploy succeeds
+
+- **WHEN** publisher observes successful deployment for a merged batch
+- **THEN** the batch SHALL move to `published`
+- **AND** the entries in that batch SHALL also move to `published`
+
 ### Requirement: Publisher SHALL expose operator status
 
 Tribunal SHALL provide a status view that separates daemon health, ledger backlog, publisher queue, conflicted entries, open batch PRs, and production merge state.
@@ -198,4 +323,5 @@ Tribunal SHALL provide a status view that separates daemon health, ledger backlo
 - **WHEN** an operator requests Tribunal status
 - **THEN** the system SHALL report daemon lifecycle state separately from publisher queue state
 - **AND** SHALL include counts for pending, in-progress, PASS, FAILED, EXHAUSTED, RUNNER_ERROR, publishable, batched, conflicted, and published entries
+- **AND** SHALL include batch/entry lifecycle counts such as branch_pushed, pr_open, merged_deploy_pending, deploy_failed, abandoned, and requeued
 - **AND** SHALL identify the oldest unpublished terminal entry age
