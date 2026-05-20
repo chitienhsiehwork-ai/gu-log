@@ -3060,14 +3060,35 @@
     "startedAt": "2026-05-20T21:14:12+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 7,
+            "fidelity": 6,
+            "consistency": 7,
+            "sourceBoundary": 5,
+            "commentarySeparation": 4
+          },
+          "score": 5,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Most concrete source numbers match The Batch, including 1:1 PM ratios, Muse Spark's 52 Intelligence Index, 59M/158M/116M token counts, 2.75B/115M Lilly deal terms, and 82/76/46 persona coverage, but the body adds or overstates claims such as a '1000 人實驗室', '百萬美元級' pay packages instead of the source's hundreds-of-millions wording, and Meta's open-weights strategy being '整個收掉'.",
+            "fidelity": "The post preserves many caveats from the source, including remote teams can work, the 2-10 person scope, no AI-designed drug approval yet, and Muse Spark's coding weakness, but it repeatedly extends the source into stronger editorial conclusions such as 'Ng 那篇是寫給自己看的，Muse Spark 那篇是寫給競爭對手看的' and a broad industry '賭注' frame.",
+            "consistency": "The argument is generally coherent around the bottleneck-shift theme, but several connections among Andrew Ng, Meta, Insilico, and Persona Generators are interpretive leaps rather than conclusions directly supported by the source.",
+            "sourceBoundary": "The SP body frequently uses source-report and issue-framing prose such as 'The Batch 349 頭條', 'The Batch 自家', 'Ng 的信', and repeated discussion of how the issue is arranged, so it reads partly like a report about the source rather than direct gu-log prose.",
+            "commentarySeparation": "Although explicit Clawd opinions are often placed in <ClawdNote>, the body itself contains substantial gu-log interpretation and metaphor, including the noodle-shop analogy, the 'two opposite bets' frame, and claims about what each article is 'for'."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 0,
-    "tribunalVersion": 5
+    "topLevelAttempts": 1,
+    "tribunalVersion": 5,
+    "status": "FAILED",
+    "failedStage": "factChecker",
+    "finishedAt": "2026-05-20T21:24:40+08:00"
   }
 }
