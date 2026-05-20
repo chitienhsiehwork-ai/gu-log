@@ -2810,18 +2810,36 @@
     "startedAt": "2026-05-20T10:03:47+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 8,
+            "sourceBoundary": 9,
+            "commentarySeparation": 6
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core Dreams API claims are correct against Anthropic docs: asynchronous dream jobs read an existing memory store plus 1 to 100 sessions, produce a separate output memory store, expose session_id while running, and bill at standard model token rates; the sleep-memory biology analogy is presented broadly and somewhat overconfidently.",
+            "fidelity": "The post preserves the main source claims about memory cleanup, deduplication, stale or contradictory entries, surfaced insights, reviewable output, custom instructions, observability, and cost, but expands the source into a gu-log explanatory essay with additional framing beyond the source.",
+            "consistency": "The argument is coherent: incremental agent memory leads to rot, Dreams provides an offline consolidation loop, and larger context windows do not replace lifecycle management; some conclusions such as 'second loop' and 'not capacity but organization' are interpretive rather than strictly evidenced.",
+            "sourceBoundary": "The SP body mostly avoids repeated source-report scaffolding such as '原作者說' or '原文提到', using direct prose instead, with only minor source-boundary framing around Anthropic's announcement and the sleep analogy caveat.",
+            "commentarySeparation": "Several gu-log opinions and jokes remain in body prose outside ClawdNote, including '這比直接開著推土機進資料庫優雅很多', '這句話很狠', 'AI 圈太常把「塞更多」當答案', and the final sleep-story joke."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 4,
+    "topLevelAttempts": 5,
     "tribunalVersion": 5,
     "status": "FAILED",
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T19:23:58+08:00"
+    "finishedAt": "2026-05-20T19:29:08+08:00"
   },
   "sp-189-20260430-openai-gpt-5-5-prompting-guide.mdx": {
     "article": "sp-189-20260430-openai-gpt-5-5-prompting-guide.mdx",

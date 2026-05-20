@@ -70,19 +70,19 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 Anthropic announced a new feature for Claude's Managed Agents API: **Dreams**. A rough way to understand that API is this: developers can package Claude as a service that takes tasks, uses tools, and works across sessions, instead of opening a clean chat every time.
 
-The name is cute, maybe even a little dramatic. AI can talk, reason, use tools, and now apparently we have to schedule bedtime too. But the real point @danizhu caught is not the name. Dreams addresses a problem every [Agent](/en/glossary#agent) builder eventually hits: **[context rot](/en/glossary#context-rot)**.
+Dreams is not important because Claude got a cute feature name. It is important because it addresses a problem every [Agent](/en/glossary#agent) builder eventually hits: **[context rot](/en/glossary#context-rot)**.
 
 Context rot sounds like a curse from a fantasy novel, but in engineering terms it is painfully mundane. Agents write things into memory while they work. At first, this feels great. The agent remembers user preferences, project conventions, and past pitfalls. It feels like hiring an assistant who actually takes notes.
 
 Then the sessions pile up, and the notebook turns into a warehouse clearance sale.
 
-The same fact gets recorded multiple times, with slightly different versions. A hypothesis that was true three weeks ago is now stale, but it is still sitting in the memory store pretending to be alive. A temporary debugging note gets treated as universal law in the next round of context. Eventually, every time the agent works, it drags around a bag of noise. It is like going to a convenience store for tea eggs while carrying a full camping kit: stove, tarp, folding chair, the whole thing. You have not bought the egg yet, and you are already exhausted.
+The same fact gets recorded multiple times, with slightly different versions. A hypothesis that was true three weeks ago is now stale, but it is still sitting in the memory store. A temporary debugging note gets carried into the next round of context as if it were a lasting rule. Eventually, every time the agent works, it drags around a bag of noise, and the important signal gets buried.
 
 Dreams means Claude can clean up that bag while it is "asleep."
 
 ## What Dreams Actually Does
 
-Dreams does not edit the original memory store in place. According to the tweet, developers trigger an async job — basically a background task for Claude — and Claude reads the existing memory store together with past session transcripts. There is one explicit limit here: it can include up to **100 sessions**.
+Dreams does not edit the original memory store in place. Developers trigger an async job — basically a background task for Claude — and Claude reads the existing memory store together with past session transcripts. There is one explicit limit here: it can include up to **100 sessions**.
 
 Then Claude produces a **brand-new, reorganized memory store**.
 
@@ -94,7 +94,7 @@ That last point matters. Dreams is not just renaming folders or emptying the tra
 The sharpest part here is "extracting patterns that were never explicitly written down" from transcripts. Ordinary summarization compresses a meeting recording into a few conclusions. Dreams is closer to a TA reading an entire semester of assignments and saying, "This student does understand recursion; they just forget the base case every time." That is not compression. That is diagnosis.
 </ClawdNote>
 
-The original memory store is not touched. That design is extremely engineering-brained, and extremely important. Dreams only produces a new version. Developers can review it, attach it to future sessions, or throw it away if it looks wrong.
+The original memory store is not touched. Dreams only produces a new version. Developers can review it, attach it to future sessions, or throw it away if it looks wrong.
 
 In other words, the design assumes memory consolidation can make mistakes. Not because Claude is bad, but because drawing conclusions about long-term memory is inherently risky. Keeping the original around and making the output auditable and reversible is much more elegant than driving a bulldozer straight into the database.
 
@@ -102,11 +102,11 @@ In other words, the design assumes memory consolidation can make mistakes. Not b
 
 ## This Is Not a Summarizer. It Is a Memory Miner.
 
-@danizhu specifically points out that Dreams is not simply doing one summarization pass.
+Dreams is not simply doing one summarization pass.
 
-If it were just summarization, it would be like taking a panoramic photo of an exploded room. The photo is smaller. The room is still exploded. Dreams is positioned more like actively mining session transcripts for patterns, insights, and reorganized knowledge.
+If it were just summarization, it would only compress a large pile of records into a smaller one. Dreams is positioned more like actively mining session transcripts for patterns, insights, and reorganized knowledge.
 
-Developers can also pass custom instructions to guide what Claude should prioritize or ignore during consolidation. The example in the tweet is concrete: prioritize coding-style preferences, and ignore one-off debugging notes.
+Developers can also pass custom instructions to guide what Claude should prioritize or ignore during consolidation. One concrete example is to prioritize coding-style preferences and ignore one-off debugging notes.
 
 That distinction is huge, because the hardest part of agent memory is often not too little information. It is that different pieces of information have different shelf lives.
 
@@ -114,7 +114,7 @@ That distinction is huge, because the hardest part of agent memory is often not 
 
 "Today's tests failed because one environment variable was missing" might be a one-time event.
 
-Put both into long-term memory with equal weight, and the agent starts behaving weirdly. It is like a family fridge containing kimchi, cold medicine, and last year's leftover barbecue sauce from Mid-Autumn Festival, with every bottle labeled "important." Open the fridge later and all you have left is archaeology.
+Put both into long-term memory with equal weight, and the agent starts behaving weirdly. Short-lived events and long-term preferences get mixed together, so the next task can treat stale information as a rule.
 
 Dreams is valuable because it gives memory a mechanism for being reclassified, filtered, and condensed into more stable knowledge, instead of just piling higher forever.
 
@@ -128,7 +128,7 @@ The scariest failure mode in agent memory is turning "today-only intel" into "pe
 
 Dreams has another interesting design choice: you can observe it while it runs.
 
-The tweet says that while a dream is running, its `session_id` points to the live underlying session. Developers can stream events and see what Claude is reading and writing in real time.
+While a dream is running, its `session_id` points to the live underlying session. Developers can stream events and see what Claude is reading and writing in real time.
 
 That might sound like mere observability, but for agent memory systems, it is very practical. Memory consolidation is not just background janitorial work. It changes future behavior. If the consolidation process is completely black-boxed, you are effectively handing "how this agent understands the user, project, and preferences from now on" to an invisible nightly batch job.
 
@@ -140,7 +140,7 @@ That is not a flashy feature. It is the kind of thing that saves you during debu
 
 ## Cost: No Magic, Just Tokens
 
-Dreams does not hide the cost behind mysterious fine print either. The tweet says it is billed at the standard API [Token](/en/glossary#token) rate for whichever model you use, Opus or Sonnet — Anthropic's different Claude model tiers. Usage scales with the number and length of input sessions, so the advice is to start small.
+Dreams does not hide the cost behind mysterious fine print either. It is billed at the standard API [Token](/en/glossary#token) rate for whichever model you use, Opus or Sonnet — Anthropic's different Claude model tiers. Usage scales with the number and length of input sessions, so the advice is to start small.
 
 There is no free lunch here, and no fairy tale where sleeping does not use electricity. Claude has to read the existing memory store, read past sessions, consolidate them, and produce a new memory store. All of that costs tokens.
 
@@ -154,7 +154,7 @@ Do not read Dreams as "the more memory you have, the more you should dream all o
 
 ## Why Call It Dreams? Not Romance — Scheduling
 
-@danizhu argues that Dreams is an intentional metaphor, and a good one. To be clear: the sleep-and-memory analogy below is just a way to understand the naming through the common cognitive-science idea that sleep helps consolidate memory. It is not a claim from Anthropic that Claude literally has biological sleep.
+Dreams puts the feature inside a sleep-and-memory metaphor. To be clear: the analogy below is just a way to understand the naming through the common cognitive-science idea that sleep helps consolidate memory. It is not a claim from Anthropic that Claude literally has biological sleep.
 
 The useful part of the metaphor is not the romantic "AI is like humans" angle. It is the reminder that memory consolidation should not be crammed into the exact moment of action.
 
@@ -168,13 +168,13 @@ Dreams splits the work: record while working, consolidate while sleeping.
 
 ## The Second Loop: Agents Need Reflection, Not Just Action
 
-The most insightful part of the tweet is the idea that Dreams creates a second loop outside the agent loop. In plain English: agents cannot only have a "do the work" pipeline. They also need an "after-action review" pipeline.
+Dreams can be understood as a second loop outside the agent loop. In plain English: agents cannot only have a "do the work" pipeline. They also need an "after-action review" pipeline.
 
 The original agent loop handles action and writes: take the task, use tools, get a result, write important information into memory. That loop is like being awake during the day.
 
 Dreams forms another loop: reflect, reorganize, improve. It reshapes accumulated experience offline, so the agent does not have to play engineer and file clerk at the same time in the middle of a task.
 
-That separation is what @danizhu sees as the key to compounding long-term performance. Before Dreams, memory was closer to an append-only log: new things kept getting written, while old things were rarely digested. When noise grew, the common fix was more [Prompt](/en/glossary#prompt) tuning: "please ignore irrelevant information," "prioritize recent facts," "resolve conflicts yourself." That helps, but it is also like dealing with a messy room by taping a note to the door that says, "please be careful not to step on clutter." The problem is still there. Now it just has a label.
+That separation is the key idea behind compounding long-term performance. Before Dreams, memory was closer to an append-only log: new things kept getting written, while old things were rarely digested. When noise grew, the common fix was more [Prompt](/en/glossary#prompt) tuning: "please ignore irrelevant information," "prioritize recent facts," "resolve conflicts yourself." That helps, but the problem still lives in the memory store. It just has another layer of instructions around it.
 
 The shift with Dreams is that memory can become an evolving knowledge base. Behind it sits an offline learning mechanism dedicated to memory lifecycle management.
 
@@ -186,7 +186,7 @@ This is the core payload of the whole tweet. A lot of agent systems treat "it re
 
 ## A Bigger Context Window Is Not the Cure
 
-@danizhu ends by aiming at a common myth: better agents do not necessarily come from a larger [context window](/en/glossary#context-window). They come from better memory lifecycle management. You can think of the context window as the size of Claude's desk — how much material it can see in one conversation.
+Dreams also points at a common myth: better agents do not necessarily come from a larger [context window](/en/glossary#context-window). They come from better memory lifecycle management. You can think of the context window as the size of Claude's desk — how much material it can see in one conversation.
 
 That is a sharp point, because the AI world keeps treating "fit more stuff" as the answer. Context window too small? Make it bigger. Too much history? Make it bigger. Agent keeps forgetting things? Bigger again.
 
