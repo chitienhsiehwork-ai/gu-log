@@ -1299,26 +1299,8 @@
     "startedAt": "2026-05-20T06:21:20+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 9,
-            "fidelity": 8,
-            "consistency": 9,
-            "sourceBoundary": 7,
-            "commentarySeparation": 6
-          },
-          "score": 7,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "The concrete claims match the fetched fxtwitter source and companion page, including 100-line Markdown pain, S3 sharing, 2-4x slower HTML generation, Opus 4.7 1MM context, and the verified 20 demos across 9 sections.",
-            "fidelity": "The post preserves the source's main argument and FAQ caveats, but expands the article into a gu-log essay with added metaphors and a three-stage workflow synthesis beyond the source's direct wording.",
-            "consistency": "The argument consistently connects richer HTML artifacts to readability, sharing, interaction, and staying in the agent loop without internal contradiction.",
-            "sourceBoundary": "The SP body mostly avoids literal phrases like 原作者說, but still uses source-report framing such as line 189 的答案, lines 269-281 他承認/他認為, and line 191 文章裡看到的那些圖.",
-            "commentarySeparation": "Although many opinions are in ClawdNote, the body frequently contains gu-log interpretation and jokes outside it, including the IKEA analogy at line 77, convenience-store chopsticks at line 107, gray-wall/new-year aside at line 139, and coffee-supply-chain joke at line 223."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
@@ -1335,7 +1317,7 @@
     "startedAt": "2026-05-20T06:20:46+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
+        "status": "pass",
         "score": {
           "judge": "factCheck",
           "dimensions": {
@@ -1343,18 +1325,48 @@
             "fidelity": 7,
             "consistency": 9,
             "sourceBoundary": 10,
-            "commentarySeparation": 7
+            "commentarySeparation": 8
           },
           "score": 8,
-          "verdict": "FAIL",
+          "verdict": "PASS",
           "reasons": {
-            "accuracy": "Core technical/platform claims are broadly correct: the post's OpenAI claims about 300萬 weekly Codex developers and 90+ plugins match the OpenAI Codex update, and Cursor plugin/skill descriptions match Cursor docs, but broad commercial conclusions such as Skill pricing pressure are analytical rather than directly verifiable facts.",
-            "fidelity": "The post preserves the source's main thesis that Skill monetization is weak while Plugin adds runtime, credentials, and distribution, but it omits major source support blocks such as Cursor's negative gross margin/Composer evidence and the Plugin-unification speculation, while adding a gu-log developer-monetization section.",
-            "consistency": "The argument flows coherently from Skill copyability to Plugin platform handles to OpenAI execution-layer lock-in and Cursor editor differentiation, with no internal contradiction detected.",
-            "sourceBoundary": "The SP body avoids repeated source-report scaffolding such as 原作者說, 原文提到, or 這篇文章在講, and presents claims directly.",
-            "commentarySeparation": "Several body passages are gu-log interpretive framing rather than source translation, including 先不用被 MCP 嚇到, 白話一點說, and the 小團隊和個人開發者收費點 discussion, so not all commentary is confined to ClawdNote."
+            "accuracy": "Core claims about Skill being portable text, Cursor plugins packaging rules/skills/agents/commands/hooks/MCP, team marketplaces, and skills as an open standard are supported; OpenAI Codex figures and capability claims rely on the cited source because the official OpenAI page was blocked by Cloudflare during verification.",
+            "fidelity": "The post preserves the source's main thesis that OpenAI and Cursor both move from Skill to Plugin for different strategic reasons, but it omits or rewrites several source-specific supports such as Agensi/skills.sh, Cursor cost pressure, Forbes/Economist framing, and plugin-standard convergence.",
+            "consistency": "The argument flows coherently from Skill copyability to Plugin runtime, permission, and distribution control, then separately explains OpenAI's execution-layer strategy and Cursor's editor moat without internal contradiction.",
+            "sourceBoundary": "The SP body avoids repeated source-report scaffolding such as '原作者說', '原文提到', or '這篇文章在講'; `rg` found only frontmatter source fields.",
+            "commentarySeparation": "Most overt gu-log commentary is placed in ClawdNote, though body phrases like '先不用被 MCP 嚇到', '收銀機不在那裡', and the recipe/stage analogies add interpretive gu-log framing outside ClawdNote."
           }
         },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1,
+        "tribunalVersion": 5
+      },
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 8,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key glossary terms such as Skill, Plugin, Codex, MCP, Agent, Agent Harness, and Claude Code are linked, but repeated technical wording like 「事件掛鉤」 should probably be standardized as Hooks with a glossary link or documented translation.",
+            "crossRef": "The required ShroomDog and Clawd identity links point to /about and there are no broken internal post links, though a thematic link to prior Skill or Plugin coverage such as SP-170 or SP-134 would strengthen knowledge-base continuity.",
+            "sourceAlign": "The post closely tracks the declared Yage source's core argument that OpenAI and Cursor both move from Skill to Plugin for different strategic reasons, while reshaping it into gu-log's value-capture framing.",
+            "attribution": "External claims are generally attributed through links to OpenAI, Cursor, and Yage sources, but broad market claims about model commoditization and execution-layer lock-in would benefit from slightly clearer source boundaries."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1,
+        "tribunalVersion": 5
+      },
+      "freshEyes": {
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
@@ -2390,8 +2402,8 @@
           "score": 7,
           "verdict": "FAIL",
           "reasons": {
-            "readability": "The ghost-house hook and ratchet explanation are clear, but the GBrain/GStack/TTY/MC/DC/DRE/OpenClaw middle becomes a wall of project names and testing jargon for a new reader.",
-            "firstImpression": "I would keep reading because the metaphor is strong, but I would start skimming around the long observability and 90% coverage sections and probably would not share it."
+            "readability": "The ghost-house and ratchet frame is clear, but terms like TTY, DRE, MC/DC, context window, Conductor, GStack, GBrain, and cross-model evals pile up fast for a beginner.",
+            "firstImpression": "Strong opening and concrete examples, but the long stats-and-standards stretch around 90% coverage made me start skimming and the gu-log cross-references feel like insider homework."
           }
         },
         "model": "codex-gpt-5.5-medium",
@@ -2399,11 +2411,11 @@
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 4,
+    "topLevelAttempts": 5,
     "tribunalVersion": 5,
-    "status": "FAILED",
+    "status": "EXHAUSTED",
     "failedStage": "freshEyes",
-    "finishedAt": "2026-05-20T06:25:23+08:00"
+    "finishedAt": "2026-05-20T08:12:33+08:00"
   },
   "sp-197-20260512-chrishayduk-codex-goals.mdx": {
     "article": "sp-197-20260512-chrishayduk-codex-goals.mdx",
@@ -2519,18 +2531,18 @@
           "dimensions": {
             "accuracy": 8,
             "fidelity": 8,
-            "consistency": 9,
+            "consistency": 8,
             "sourceBoundary": 6,
             "commentarySeparation": 5
           },
           "score": 7,
           "verdict": "FAIL",
           "reasons": {
-            "accuracy": "Core technical and factual claims match the source, including 100,000 pages, 100+ skills, Skillify, book-mirror, meeting prep, and the thin-harness/fat-skill architecture, with only source-self-reported implementation details such as model roles and growth claims limiting confidence.",
-            "fidelity": "The post faithfully preserves the main source argument and examples, but compresses or omits several concrete source details such as Demis AGI-timeline notes, model names like Opus 4.7, GStack/GBrain open-source specifics, 97.6% LongMemEval recall, and the exact 15-cron/100-cron distinction.",
-            "consistency": "The argument flows coherently from book mirror to Skillify to GBrain architecture and the compounding thesis, and the softened reading of the 10x claim at line 226 is logically appropriate.",
-            "sourceBoundary": "The SP body repeatedly uses source-report scaffolding such as 'Garry 原文說' at line 167 and '原文說' at lines 200, 206, and 230, plus '他也說' at line 232, which violates the Tribunal v5 SP body boundary rule.",
-            "commentarySeparation": "Gu-log interpretation and jokes frequently appear in body prose rather than ClawdNote, including the LinkedIn aside at line 95, the engineering takeaway and 文昌帝君 joke at lines 125-127, gu-log cross-reference commentary at line 196, and the car-without-brakes analogy at line 212."
+            "accuracy": "Core technical and factual claims match the source mirror, including the 162-page/22-chapter book example, 30,000-word brain page, 100,000-page knowledge base, 100+ skills, and model-role examples, though these remain mostly Garry Tan self-reported claims rather than independently verified benchmarks.",
+            "fidelity": "The post faithfully preserves the main architecture and examples, but it heavily rewrites the source with added interpretive framing such as the convenience-store assistant and SOP analogies that go beyond direct translation.",
+            "consistency": "The argument is coherent from book mirror to Skillify to thin harness/fat skills/fat data, with no major internal contradictions, though the 10x compounding claim is only lightly bounded as not an investment-report-style metric.",
+            "sourceBoundary": "The SP body repeatedly uses source-report scaffolding such as `Garry 的說法`, `Garry 說`, `Garry 原文說`, and `原文說已經超過 100 個`, so it reads partly like a report about the source rather than direct gu-log prose.",
+            "commentarySeparation": "Several gu-log interpretations and jokes remain in body prose outside `<ClawdNote>`, including `這才叫複利`, the 文昌帝君 comparison, gu-log cross-post commentary, and evaluative claims about what is `真正` valuable."
           }
         },
         "model": "codex-gpt-5.5-medium",
@@ -2538,11 +2550,11 @@
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 2,
+    "topLevelAttempts": 3,
     "tribunalVersion": 5,
     "status": "FAILED",
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T06:26:07+08:00"
+    "finishedAt": "2026-05-20T08:13:18+08:00"
   },
   "sd-23-20260510-ai-dota-teammates.mdx": {
     "article": "sd-23-20260510-ai-dota-teammates.mdx",
@@ -2659,16 +2671,16 @@
             "fidelity": 7,
             "consistency": 8,
             "sourceBoundary": 5,
-            "commentarySeparation": 6
+            "commentarySeparation": 5
           },
           "score": 6,
           "verdict": "FAIL",
           "reasons": {
-            "accuracy": "Core technical claims match the Browserbase Autobrowse source, including the trace-study loop, strategy.md, SKILL.md graduation, Craigslist/API examples, federal grants JSON endpoint, and static HTML failure case; minor issues include treating a co-authored Browserbase article/X thread as mostly singular \"原作者\" and relying on internally reported benchmark/cost claims without independent verification.",
-            "fidelity": "The post preserves the main thesis and caveats, but it substantially rewrites with gu-log framing, omits the source's exact Craigslist and form-fill benchmark numbers, and adds evidence-boundary commentary such as \"不是公開可重跑的基準測試\" that is prudent but not stated that way in the source.",
-            "consistency": "The article's logic is coherent: exploration cost becomes reusable skill memory, high-agency Autobrowse is reserved for genuinely exploratory tasks, and deterministic parsing should use fetch/Python first; the main weakness is that source-report framing interrupts the argument repeatedly.",
-            "sourceBoundary": "SP body repeatedly uses source-meta scaffolding such as \"原作者介紹\", \"原作者用了一個很準的形容\", \"原作者說\", \"原作者回報\", \"原文給了一個慘痛例子\", and \"原作者提到\", so it reads too often like a report about the source rather than direct SP prose.",
-            "commentarySeparation": "Several gu-log/source-meta interpretations sit in the body outside ClawdNote, including the explicit evidence-boundary paragraph, gu-log cross-post positioning, and evaluative transitions like \"這點很重要\" and \"原文有一句很漂亮\", even though the dedicated ClawdNote blocks are clearly marked."
+            "accuracy": "Core technical claims about Autobrowse, strategy.md, SKILL.md, Craigslist API details, federal grants endpoint, and deterministic parsing match the Browserbase source, but the post under-attributes the coauthored Browserbase article as '@kylejeong on X' and treats the accessible blog material as an X longform with limited access.",
+            "fidelity": "The main argument is faithful, but the body omits the source's concrete benchmark values while adding a source-evidence disclaimer and many gu-log explanatory analogies not present in the source.",
+            "consistency": "The article's memory-to-skill argument is coherent from problem through workflow, examples, limits, and future work, though repeated source-meta transitions interrupt the logic of an SP translation.",
+            "sourceBoundary": "The SP body repeatedly uses source-report framing such as '原作者介紹', '原作者說', '原作者提到', '原文有一句', and '原文給了一個', making it read like a report about the source rather than direct gu-log prose.",
+            "commentarySeparation": "Several gu-log interpretations and source-meta asides remain outside ClawdNote, including the gu-log cross-reference paragraph, '這點很重要', '原文有一句很漂亮', and the evidence-boundary discussion about not repeating benchmark numbers."
           }
         },
         "model": "codex-gpt-5.5-medium",
@@ -2676,37 +2688,19 @@
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 1,
+    "topLevelAttempts": 2,
     "tribunalVersion": 5,
     "status": "FAILED",
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T06:27:59+08:00"
+    "finishedAt": "2026-05-20T08:13:11+08:00"
   },
   "sp-192-20260508-article-agent-ralph.mdx": {
     "article": "sp-192-20260508-article-agent-ralph.mdx",
     "startedAt": "2026-05-20T06:21:58+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 7,
-            "fidelity": 8,
-            "consistency": 9,
-            "sourceBoundary": 5,
-            "commentarySeparation": 6
-          },
-          "score": 7,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "Core technical claims about BrowseComp token scaling, Codex Goals using a SQLite thread_goals table, goal tools, token budget, and a Ralph-loop-style continuation prompt match the fetched source, but the post frontmatter dates May 7/May 8 conflict with the fetched source timestamp of May 19, 2026, and several internals remain tweet-level/source-code-derived claims rather than independently cited primary documentation.",
-            "fidelity": "The post faithfully preserves Jarrod's three-part argument of ambiguity compounding, multi-agent review, and cross-context file memory, including GOAL.md/STANDARDS.md/IMPLEMENT.md/PROGRESS.md, but omits some source tail details such as the packaged SKILL.md link, git worktree parallelization, and Codex App/GPT-5.5 xHigh recommendation.",
-            "consistency": "The argument flows coherently from test-time compute limits to Codex Goals as persistence/continuation, then to ambiguity reduction, fresh-context review, and external memory without internal contradiction.",
-            "sourceBoundary": "The SP body repeatedly uses source-report framing such as 'Jarrod 文章第一刀', '原文引用', 'Jarrod 拆原始碼後看到', '原文最有價值的地方', '原文有個很好的視覺化', and 'Jarrod 的說法很直', so it reads too often like a report about the source rather than direct gu-log prose.",
-            "commentarySeparation": "Most explicit gu-log opinions are in ClawdNote, but body prose still mixes source-meta and editorial interpretation outside ClawdNote, including the SaaS fantasy opening, the purple-gradient website analogy, '不重要', and the concluding '小型工程組織' framing."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
@@ -2717,5 +2711,20 @@
     "status": "FAILED",
     "failedStage": "factChecker",
     "finishedAt": "2026-05-20T06:27:16+08:00"
+  },
+  "sd-22-20260508-context-window-model-day.mdx": {
+    "article": "sd-22-20260508-context-window-model-day.mdx",
+    "startedAt": "2026-05-20T08:12:54+08:00",
+    "stages": {
+      "factChecker": {
+        "status": "in_progress",
+        "score": null,
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1,
+        "tribunalVersion": 5
+      }
+    },
+    "topLevelAttempts": 0,
+    "tribunalVersion": 5
   }
 }
