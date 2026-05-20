@@ -2780,18 +2780,36 @@
     "startedAt": "2026-05-20T17:33:33+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 7,
+            "consistency": 8,
+            "sourceBoundary": 4,
+            "commentarySeparation": 5
+          },
+          "score": 6,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core technical claims match the OpenAI source, including 3-5 Codex sessions, the 500% landed-PR caveat, Elixir reference implementation, multi-language SPEC validation, and non-product-maintenance positioning, though some broad claims such as low-code displacement and platform strategy are interpretive rather than source facts.",
+            "fidelity": "The translation preserves key caveats like 'some teams' and 'first three weeks,' but it repeatedly expands source claims into gu-log conclusions, such as treating 'writing code' as a product-decision bottleneck and framing Symphony as a platform bet.",
+            "consistency": "The article's argument is coherent and the bottleneck-shift through-line is logical, but several conclusions go beyond the quoted evidence while still being presented in the main narrative.",
+            "sourceBoundary": "SP body repeatedly uses source-meta scaffolding such as '這篇...講,' '原文寫,' '原作者用,' and '原作者自己留了一條暗線,' making the prose read like a report about the source instead of direct SP body prose.",
+            "commentarySeparation": "Many gu-log interpretations stay outside ClawdNote, including the opening '這篇 SP 把這個故事拆成三層,' the judgment that concrete scenes are more credible than percentages, and the platform/moat interpretation near the end."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 4,
+    "topLevelAttempts": 5,
     "tribunalVersion": 5,
     "status": "FAILED",
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T23:16:38+08:00"
+    "finishedAt": "2026-05-21T03:00:48+08:00"
   },
   "sp-186-20260428-article-openclaw-task-flow.mdx": {
     "article": "sp-186-20260428-article-openclaw-task-flow.mdx",
@@ -2901,28 +2919,10 @@
     "startedAt": "2026-05-20T21:14:12+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 7,
-            "fidelity": 6,
-            "consistency": 7,
-            "sourceBoundary": 5,
-            "commentarySeparation": 5
-          },
-          "score": 6,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "Most numeric claims match The Batch, including 8:1 to 1:1, Muse Spark 52/59M tokens, Lilly 2.75B, and Persona Generators 82%, but the summary compresses Meta's $14.3B Scale AI stake into hiring spend and the body overstates health-data curation as the direct cause of HealthBench performance while loosely framing Meta's RL penalty as an RLHF variant.",
-            "fidelity": "The post preserves many source details and caveats, but it adds a large editorial thesis that Ng, Meta, Insilico, and Persona Generators are all variations of the same bottleneck story and omits the source's separate U.S. state AI-laws story from the main treatment.",
-            "consistency": "The main argument is coherent, especially the distinction between teams that use models and labs that build models, but several causal bridges such as thought compression causing coding weakness and all stories solving 'deciding what to build' are interpretive leaps beyond the source.",
-            "sourceBoundary": "SP body repeatedly uses source-report and source-meta framing such as 'DeepLearning.AI 的 The Batch 電子報第 349 期', 'The Batch 349 頭條', 'The Batch 自家', and '這篇 SP', so it reads partly like a report about the source rather than direct source-derived prose.",
-            "commentarySeparation": "Many gu-log interpretations stay outside ClawdNote, including 'Ng 那篇是寫給自己看的，Muse Spark 那篇是寫給競爭對手看的', the two-opposite-signals framing, and the final claim that editorial placement is the real signal."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 2,
+        "attempts": 1,
         "tribunalVersion": 5
       }
     },
