@@ -195,7 +195,7 @@ export const stage3LibrarianRunner: StageRunner<
       timeoutSec: TIMEOUT.WORKER_LIBRARIAN,
       buildPrompt: (outputPath) => `Add library links to this post: ${articlePath}
 
-Per your agent instructions, add glossary links and cross-references where appropriate. Do NOT modify text or facts — only add links. Use your Write tool to save the updated file.
+Per your agent instructions, add glossary links and cross-references where appropriate. Apply the glossary creation standard as judgment, but this worker pass is link-only: do NOT create new glossary entries, invent anchors, modify text, or change facts. If a term looks like a missing glossary candidate, leave the prose unchanged and mention it in your stdout summary.
 
 Write the v2 LibrarianOutput JSON (glossary_links_added + cross_references_added) to: ${outputPath}
 Confirm with a one-line status on stdout.`,
