@@ -22,27 +22,29 @@ lang: "zh-tw"
 summary: "Yage AI 認為 OpenAI 和 Cursor 都從 Skill 走向 Plugin，但兩家公司要解的題不同：OpenAI 在建立執行層防線，Cursor 在建立編輯器差異化。這篇重寫成 gu-log 版本：Skill 不是沒價值，而是價值創造和價值收取被拆開了。"
 tags: ["shroom-picks", "skill", "plugin", "agent-platform"]
 scores:
-  tribunalVersion: 3
+  tribunalVersion: 5
   librarian:
     glossary: 8
-    crossRef: 10
+    crossRef: 8
     sourceAlign: 9
     attribution: 8
     score: 8
-    date: "2026-05-09"
+    date: "2026-05-20"
     model: "gpt-5.5"
   factCheck:
     accuracy: 8
-    fidelity: 8
+    fidelity: 7
     consistency: 9
+    sourceBoundary: 10
+    commentarySeparation: 8
     score: 8
-    date: "2026-05-09"
+    date: "2026-05-20"
     model: "gpt-5.5"
   freshEyes:
     readability: 8
     firstImpression: 8
     score: 8
-    date: "2026-05-09"
+    date: "2026-05-20"
     model: "gpt-5.5"
   vibe:
     persona: 8
@@ -51,17 +53,19 @@ scores:
     clarity: 9
     narrative: 8
     score: 8
-    date: "2026-05-09"
+    date: "2026-05-20"
     model: "gpt-5.5"
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-2026 四月，OpenAI 和 Cursor 幾乎同時做了同一件事：把 Agent 能力的重心，從可複製的 [Skill](/glossary#skill) 推向可安裝、可更新、可分發的 [Plugin](/glossary#plugin)。
+一個教 [Agent](/glossary#agent) 做事的檔案，可以替團隊省下好幾個小時；但它一旦好用，也最容易被複製帶走。
 
-OpenAI 在四月的 [Codex 更新](https://openai.com/index/codex-for-almost-everything/)裡，說 [Codex](/glossary#codex) 已經有超過 300 萬每週開發者，新增超過 90 個 Plugin，還把應用程式整合、[MCP](/glossary#mcp) 伺服器、Skill 全部包進更大的 Plugin 敘事裡。先不用被 MCP 嚇到：可以先把它想成「讓 Agent 安全接上外部工具和資料源的插座規格」。
+這就是 [Skill](/glossary#skill) 的尷尬：價值是真的，收銀機卻常常不在檔案旁邊。
 
-Cursor 官方文件則把 Plugin 定義成一個可分發的能力包：可以包規則、Skill、[Agent](/glossary#agent)、指令、MCP 伺服器、事件掛鉤，還有市集、團隊市集、必裝 Plugin 這些企業分發機制。白話一點說，這已經不是「丟一個 Markdown 檔案給 Agent」的世界，而是「把一整套工作能力裝進工具箱，再發給整個團隊」的世界。
+2026 四月，OpenAI 和 Cursor 幾乎同時把這個問題往 [Plugin](/glossary#plugin) 推。OpenAI 在 [Codex 更新](https://openai.com/index/codex-for-almost-everything/)裡，把應用程式整合、[MCP](/glossary#mcp) 伺服器、Skill 和 90 多個新增 Plugin 都包進同一個方向；Cursor 官方文件則把 Plugin 做成可分發的能力包，可以放進規則、Skill、Agent、指令、MCP 伺服器和事件掛鉤。
+
+先不用背這串名詞。白話一點說，這已經不是「丟一個 Markdown 檔案給 Agent」的世界，而是「把一整套工作能力裝進工具箱，再發給整個團隊」的世界。
 
 表面上看，這像是產品命名改版。Skill 改叫 Plugin，文件換個資料夾，大家繼續寫 `SKILL.md`。
 
@@ -127,7 +131,7 @@ OpenAI 的 Codex 更新也走同一個方向。那些看起來很像產品發表
 
 比較像這樣：OpenAI 以前賣的是很會寫作業的同學。現在它開始搬桌子、牽延長線、配鑰匙，最後跟企業說，乾脆讓作業在這間教室裡完成。
 
-在這條脈絡裡，OpenAI 推 Plugin 的重點不只是 Plugin 收入，而是讓 Codex 更像「工作真的發生的地方」。
+在這條脈絡裡，OpenAI 推 Plugin 的重點不只是 Plugin 收入，而是讓 [Codex](/glossary#codex) 更像「工作真的發生的地方」。
 
 官方文章裡，Codex 可以操作電腦、開瀏覽器、連 SSH 開發機、看 PDF 和文件、處理 PR 審查、排程未來任務、跨天醒來繼續做事，還有記憶和依情境建議。單看每一項，像產品發表會的煙火；放在一起，就像一家公司把工程師桌上的鍵盤、瀏覽器、終端機、文件櫃、待辦清單全部搬進同一個房間。
 

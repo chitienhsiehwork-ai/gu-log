@@ -1302,15 +1302,15 @@
         "status": "in_progress",
         "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 2,
+        "attempts": 1,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 1,
+    "topLevelAttempts": 2,
     "status": "FAILED",
     "tribunalVersion": 5,
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T06:28:01+08:00"
+    "finishedAt": "2026-05-20T08:14:25+08:00"
   },
   "sp-195-20260507-yage-skill-plugin-evolution.mdx": {
     "article": "sp-195-20260507-yage-skill-plugin-evolution.mdx",
@@ -1384,18 +1384,36 @@
         "tribunalVersion": 5
       },
       "vibe": {
-        "status": "in_progress",
-        "score": null,
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "LHY feel is solid through concrete analogies like Skill as a martial manual at line 79 and Plugin as a food-truck system at lines 116 and 123, though some middle sections still read like structured analysis.",
+            "clawdNote": "Four notes across the post give real stance and metaphor, especially the copied-manual monetization take at line 79 and gu-log self-reference at line 215, with only limited kaomoji/personality density.",
+            "vibe": "The hook at lines 62-76 creates an immediate business tension and the recurring cash-register/theater imagery keeps it readable, but lines 172-190 settle into a fairly explanatory comparison rhythm.",
+            "clarity": "Speaker attribution is clean, body claims keep OpenAI/Cursor/Skill/Plugin named, and `node scripts/check-jingjing.mjs src/content/posts/sp-195-20260507-yage-skill-plugin-evolution.mdx` returned clean.",
+            "narrative": "The article moves from copyability pain to platform handles, then OpenAI versus Cursor incentives and a monetization payoff, but the skeleton remains closer to a strong analytical essay than a high-drama arc."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 1,
         "tribunalVersion": 5
       }
     },
     "topLevelAttempts": 1,
-    "status": "FAILED",
+    "status": "PASS",
     "tribunalVersion": 5,
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T06:25:15+08:00"
+    "finishedAt": "2026-05-20T08:17:14+08:00"
   },
   "sp-202-20260515-anthropic-2028-ai-leadership-five-voices.mdx": {
     "article": "sp-202-20260515-anthropic-2028-ai-leadership-five-voices.mdx",
@@ -2682,28 +2700,10 @@
     "startedAt": "2026-05-20T06:21:58+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 7,
-            "fidelity": 7,
-            "consistency": 8,
-            "sourceBoundary": 6,
-            "commentarySeparation": 7
-          },
-          "score": 6,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "Codex Goals mechanics such as thread_goals, goal tools, token budget, and untrusted_objective are broadly corroborated, but the state-file section simplifies Jarrod's actual .agent/goal.md, plans.md, standards.md, implement.md, and progress.md structure into uppercase file names and omits plans.md.",
-            "fidelity": "The core three-part argument matches Jarrod's long-running-agent-skill pattern of goal discovery, subagent review, and persistent state files, but the inaccessible X source plus added editorial expansion prevents a higher faithfulness score.",
-            "consistency": "The post's logic coherently distinguishes sustaining execution from preventing drift, with only minor leaps where analogies and conclusions are stronger than the available source evidence.",
-            "sourceBoundary": "SP body repeatedly uses source-report framing such as 'Jarrod 文章第一刀', '原文引用', '原文最有價值的地方', '原文有個很好的視覺化', and '原文有個小錯字式的可愛地方'.",
-            "commentarySeparation": "Several gu-log interpretive asides remain in body prose, including the B2B SaaS joke, '這一步聽起來很慢，其實是在省命', and '不重要', although larger opinions are mostly placed in ClawdNote."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 2,
+        "attempts": 1,
         "tribunalVersion": 5
       }
     },
