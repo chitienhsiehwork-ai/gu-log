@@ -1198,28 +1198,10 @@
     "startedAt": "2026-05-20T11:55:35+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 8,
-            "fidelity": 7,
-            "consistency": 8,
-            "sourceBoundary": 5,
-            "commentarySeparation": 5
-          },
-          "score": 6,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "Core factual details align with the retrieved source context, including KD `0-14%`, CPC `> 0.01`, Reddit Answers, Atlas, Octopus RPA links, Feishu invite code `Code2z4tYku9Ru`, and preserving the DataReportal `X` placeholder, though the Reddit consensus claims remain source-level summaries rather than independently verifiable facts.",
-            "fidelity": "The post preserves the main workflow and caveats such as not inventing the DataReportal threshold and disclosing the Feishu promotion, but the SP body substantially expands the source with gu-log explanatory prose and analogies.",
-            "consistency": "The argument flows coherently from Semrush filtering to Reddit validation to RPA and Feishu storage, with only mild blurring where editorial expansions make it less clear whether a conclusion is Lisa's or gu-log's.",
-            "sourceBoundary": "The SP body frequently uses source-report framing such as `Lisa 這篇推文提供`, `原作者自介`, `Lisa 建議`, `原作者提到`, `原文保留`, and `原文提供`, so it reads too often like a report about the source.",
-            "commentarySeparation": "Multiple gu-log opinions and jokes appear outside `<ClawdNote>`, including the metal-detector analogy, professor joke, Ironman joke, technology joke, and broad concluding product-philosophy flourishes."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 2,
+        "attempts": 1,
         "tribunalVersion": 5
       }
     },
@@ -2833,7 +2815,7 @@
           "judge": "factCheck",
           "dimensions": {
             "accuracy": 8,
-            "fidelity": 7,
+            "fidelity": 8,
             "consistency": 8,
             "sourceBoundary": 9,
             "commentarySeparation": 6
@@ -2841,11 +2823,11 @@
           "score": 7,
           "verdict": "FAIL",
           "reasons": {
-            "accuracy": "Core Dreams API claims are correct against Anthropic docs: async job, 1-100 sessions, separate output memory store, streamable running session, standard token billing, and Opus/Sonnet support are all supported; the sleep-memory explanation is framed as analogy but not sourced in the post.",
-            "fidelity": "The X source text was not accessible for direct comparison, and the post adds substantial interpretive framing such as Dreams as a second loop and context-window critique beyond what can be verified from the available Anthropic documentation.",
-            "consistency": "The argument is coherent and the memory lifecycle thesis follows from duplicates, contradictions, stale entries, and output reviewability, though some conclusions about long-term compounding are broader than the cited mechanics.",
-            "sourceBoundary": "The SP body mostly avoids repeated source-report scaffolding such as 原作者說 or 原文提到; the line clarifying that biological sleep is not an Anthropic claim is a reasonable evidence boundary rather than recurring meta-framing.",
-            "commentarySeparation": "Several gu-log interpretations and evaluative asides remain in the body rather than ClawdNote, including 非常工程腦/優雅很多, 除錯時會救命, the broader second-loop thesis, and the context-window-not-a-cure section."
+            "accuracy": "Concrete Dreams mechanics match Anthropic docs: asynchronous job, existing memory store plus up to 100 sessions, separate output store, observable session_id, and standard model token billing; minor imprecision remains where supported models are summarized only as Opus or Sonnet and broad sleep-memory claims are presented confidently.",
+            "fidelity": "The cited X source was not directly readable, but the post aligns well with Anthropic's Dreams docs and launch blog; some interpretive claims such as Dreams as a second reflection loop and long-term compounding capability go beyond the verifiable source wording.",
+            "consistency": "The argument is coherent from context rot to offline memory curation, observability, cost, and lifecycle management, though a few conclusions such as 'long-term performance compounding' are stronger than the cited evidence establishes.",
+            "sourceBoundary": "The SP body avoids repeated source-report scaffolding such as '原作者說' or '原文提到', with source limitations expressed more naturally in places like the sleep analogy disclaimer.",
+            "commentarySeparation": "Many gu-log interpretations and evaluative asides remain in the SP body outside ClawdNote, including '這個設計非常工程腦', '這不是華麗功能，是除錯時會救命的功能', and the broader '不是只靠容量，而是整理' framing."
           }
         },
         "model": "codex-gpt-5.5-medium",
@@ -2853,39 +2835,21 @@
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 2,
+    "topLevelAttempts": 3,
     "tribunalVersion": 5,
     "status": "FAILED",
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T12:01:47+08:00"
+    "finishedAt": "2026-05-20T17:37:02+08:00"
   },
   "sp-189-20260430-openai-gpt-5-5-prompting-guide.mdx": {
     "article": "sp-189-20260430-openai-gpt-5-5-prompting-guide.mdx",
     "startedAt": "2026-05-20T11:56:00+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 6,
-            "fidelity": 7,
-            "consistency": 7,
-            "sourceBoundary": 5,
-            "commentarySeparation": 5
-          },
-          "score": 6,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "Core OpenAI-doc claims such as outcome-first GPT-5.5 prompting, phase preservation, automated Codex migration, retrieval budgets, and the 35% apply_patch failure-rate reduction are supported, but the body presents an unsupported benchmark anecdote at the end: 700 lines reduced to 200, latency down 28%, and token cost cut by one-third.",
-            "fidelity": "The post mostly follows the OpenAI guide's substance, but it adds broad conclusions such as old prompting entering industry retirement and fictionalized before/after results that are not preserved from the source.",
-            "consistency": "The argument is internally coherent around outcome-first prompting, but the final concrete benchmark claim and broad industry-level conclusion are not supported by the evidence presented.",
-            "sourceBoundary": "The SP body frequently uses source-report framing such as 'OpenAI 在文件裡', 'OpenAI 給的', 'OpenAI 把這條經驗放進官方文件', and 'OpenAI 自己在 GPT-5.5 文件末段寫了一句', so it reads partly like a report about the source.",
-            "commentarySeparation": "Many opinions are correctly placed in ClawdNote, but body prose still contains gu-log interpretation and source-meta commentary, including the '拐杖' framing, Anthropic convergence claims, Karpathy aside, industry-retirement conclusion, and the unsupported benchmark story."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 2,
+        "attempts": 1,
         "tribunalVersion": 5
       }
     },
@@ -2900,28 +2864,10 @@
     "startedAt": "2026-05-20T11:59:55+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 6,
-            "fidelity": 6,
-            "consistency": 7,
-            "sourceBoundary": 5,
-            "commentarySeparation": 4
-          },
-          "score": 5,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "Core facts from Mitchell's post are mostly correct, but the body adds unsupported quantified inference such as 25-28 days/80-90% at line 76 and an unsupported final-X-on-2026-04-28 flourish at line 250.",
-            "fidelity": "The quoted passages are translated faithfully, but the SP expands beyond the source by turning 'almost every day' into precise workday percentages and by intensifying the outage pattern into daily background noise at line 220.",
-            "consistency": "The argument is readable and mostly coherent, but several conclusions rely on interpretive leaps, especially the user-impact chain at line 84 and the structural-signal conclusion at line 220.",
-            "sourceBoundary": "The SP body repeatedly uses source-report scaffolding such as '直譯', '原作者', '原文還有一句', '這篇 SP', and 'Mitchell 部落格那篇全文' across lines 64-90, 116, 160, 208, and 242.",
-            "commentarySeparation": "Substantial gu-log/ShroomDog interpretation remains in body prose outside ClawdNote, including the 80-90% analysis at line 76, broad platform-signal claims at lines 132 and 220, and explicit ShroomDog/gu-log commentary at lines 246-248."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 2,
+        "attempts": 1,
         "tribunalVersion": 5
       }
     },
@@ -2930,5 +2876,35 @@
     "status": "FAILED",
     "failedStage": "factChecker",
     "finishedAt": "2026-05-20T12:11:07+08:00"
+  },
+  "sp-187-20260428-openai-symphony-codex-orchestration.mdx": {
+    "article": "sp-187-20260428-openai-symphony-codex-orchestration.mdx",
+    "startedAt": "2026-05-20T17:33:33+08:00",
+    "stages": {
+      "factChecker": {
+        "status": "in_progress",
+        "score": null,
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1,
+        "tribunalVersion": 5
+      }
+    },
+    "topLevelAttempts": 0,
+    "tribunalVersion": 5
+  },
+  "sp-186-20260428-article-openclaw-task-flow.mdx": {
+    "article": "sp-186-20260428-article-openclaw-task-flow.mdx",
+    "startedAt": "2026-05-20T17:33:54+08:00",
+    "stages": {
+      "factChecker": {
+        "status": "in_progress",
+        "score": null,
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1,
+        "tribunalVersion": 5
+      }
+    },
+    "topLevelAttempts": 0,
+    "tribunalVersion": 5
   }
 }
