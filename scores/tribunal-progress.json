@@ -1198,18 +1198,103 @@
     "startedAt": "2026-05-20T11:55:35+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 8,
+            "consistency": 9,
+            "sourceBoundary": 8,
+            "commentarySeparation": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Semrush KD 0-14%, CPC > 0.01, Reddit Answers, Atlas, Octopus RPA, Feishu links, invitation code, and 3500-yuan promotion match the fetched X Article; unverifiable source-side Reddit summary claims are kept as case-derived rather than benchmark facts.",
+            "fidelity": "The post faithfully preserves the source method and caveats such as not filling the DataReportal X value, but expands the source with gu-log explanatory prose and stronger narrative transitions beyond direct translation.",
+            "consistency": "The argument flows coherently from keyword filtering to Reddit validation to structured collection, and the conclusion that small demand is verified, expressible, and sustainable follows from the preceding method.",
+            "sourceBoundary": "The SP body avoids repeated explicit scaffolding like 原作者說 or 原文提到, though phrases such as 這套方法裡被當成 and the DataReportal paragraph still read partly like source-report framing.",
+            "commentarySeparation": "Most jokes and opinions are inside ClawdNote, but body prose such as 做產品最怕什麼, 腦內煙火, and 這不是那種神奇魔法 adds gu-log commentary outside ClawdNote."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 2,
+        "tribunalVersion": 5
+      },
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 8,
+            "sourceAlign": 8,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Detected glossary hits are mostly incidental component/persona terms: `ClawdNote` is used as the MDX component, `Clawd` appears once in a note, and `RL`/`Token` are URL false positives rather than real technical-term usage.",
+            "crossRef": "No internal post links are present and the evidence packet shows no broken links; the main gap is that the first body mention of `Clawd` in a ClawdNote is not linked to `/about`, while related old posts are not close enough to require citation.",
+            "sourceAlign": "The article matches the declared source topic from the packet: Semrush keyword narrowing, Reddit validation, wired-earbuds examples, and RPA/Feishu asset capture; direct X retrieval was not available, so this is judged from available deterministic evidence and post content.",
+            "attribution": "The post clearly marks uncertain source data such as the DataReportal `X` threshold, labels the promotional Feishu/RPA offer, and separates ClawdNote commentary from body claims, with only minor gaps around Reddit-derived consensus details."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1,
+        "tribunalVersion": 5
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Mostly easy to follow because the Semrush to Reddit to RPA flow is concrete, but a beginner may stumble on unexplained bits like KD, CPC, Atlas sidebar, RPA, and Feishu multi-dimensional tables.",
+            "firstImpression": "The opening has a useful hook and the wired earbuds example keeps it alive, though the tool-promo details and long middle automation section feel skimmable."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1,
+        "tribunalVersion": 5
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Opening at line 73 turns product ideation into \"明日獨角獸\" versus \"腦內煙火\", and later beach-detector and convenience-store analogies keep the LHY teaching voice strong.",
+            "clawdNote": "Eight ClawdNotes are dense enough and mostly opinionated, especially lines 124, 204, and 228 where Clawd challenges keyword-first building, promotion disclosure, and sterile marketing language.",
+            "vibe": "The read is useful and lively, with strong moments like lines 139-143 and 196-198, but the tool-link and setup details at lines 200-210 briefly turn into procedural report mode.",
+            "clarity": "Speaker attribution is clean, body pronouns do not create ambiguity, and the canonical checker reports `✓ check-jingjing: 1 file(s) clean` so there is no hard-policy 晶晶體 penalty.",
+            "narrative": "The piece has a clear arc from unreliable inspiration to validated pain to reusable assets, and the ending at lines 256-264 callbacks the opening smoke/firework and detector imagery, though the step-by-step skeleton still keeps it at 8."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
       }
     },
     "topLevelAttempts": 2,
-    "status": "FAILED",
+    "status": "PASS",
     "tribunalVersion": 5,
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T17:49:15+08:00"
+    "finishedAt": "2026-05-20T19:38:03+08:00"
   },
   "sp-194-20260508-trq212-html-markdown-agent.mdx": {
     "article": "sp-194-20260508-trq212-html-markdown-agent.mdx",
@@ -2837,37 +2922,19 @@
     },
     "topLevelAttempts": 5,
     "tribunalVersion": 5,
-    "status": "FAILED",
+    "status": "EXHAUSTED",
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T19:29:08+08:00"
+    "finishedAt": "2026-05-20T21:14:32+08:00"
   },
   "sp-189-20260430-openai-gpt-5-5-prompting-guide.mdx": {
     "article": "sp-189-20260430-openai-gpt-5-5-prompting-guide.mdx",
     "startedAt": "2026-05-20T11:56:00+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 6,
-            "fidelity": 6,
-            "consistency": 7,
-            "sourceBoundary": 5,
-            "commentarySeparation": 4
-          },
-          "score": 5,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "Most OpenAI guide mechanics are correct, including outcome-first prompts, retrieval budgets, phase, apply_patch, Cursor tuning, and the 35% apply_patch failure-rate claim, but the closing 700-to-200-line/28%-latency/token-cost anecdote is unsupported and presented as fact.",
-            "fidelity": "The main source sections are broadly represented, but the post repeatedly extends the guide into stronger conclusions such as industry-wide retirement of old prompt styles and source-critical interpretations not stated by OpenAI.",
-            "consistency": "The argument is mostly coherent, but it relies on unsupported narrative examples and broad extrapolations from OpenAI plus Anthropic convergence to an industry-level conclusion.",
-            "sourceBoundary": "SP body repeatedly uses source-report framing such as 'OpenAI 在文件裡給了', 'OpenAI 強調', 'OpenAI 把', and '這份文件' instead of presenting source claims directly.",
-            "commentarySeparation": "Gu-log interpretation appears throughout the SP body outside ClawdNote, including '描述目的地，別畫地圖' as the central framing, '自製 patch 工具是負債', Anthropic convergence claims, and the final fictional engineer benchmark story."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 2,
+        "attempts": 1,
         "tribunalVersion": 5
       }
     },
@@ -2882,28 +2949,10 @@
     "startedAt": "2026-05-20T11:59:55+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 7,
-            "fidelity": 7,
-            "consistency": 7,
-            "sourceBoundary": 4,
-            "commentarySeparation": 4
-          },
-          "score": 5,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "Core source facts match Mitchell's article, including GitHub user #1299, the month of X marks, the ~2 hour Actions outage, and the April 27 footnotes, but the body turns 'almost every day' into an estimated 25-28 days and 80%-90% of workdays and adds broad claims such as HN/X reaction without source support.",
-            "fidelity": "Quoted passages are mostly translated faithfully, but the SP body extends the source into interpretive conclusions about signal weight, community blast radius, and platform trends that Mitchell did not state.",
-            "consistency": "The argument is coherent overall, but it makes visible leaps from one maintainer's outage journal to generalized workflow and ecosystem conclusions, especially the 80%-90% impact framing and 'all contributors blocked' chain.",
-            "sourceBoundary": "The SP body repeatedly uses source-report scaffolding such as '直譯', '原作者', '原文還有一句', and '這篇 SP 不是在報導', so it reads heavily like a report about the source rather than natural SP prose.",
-            "commentarySeparation": "Substantial gu-log interpretation remains outside ClawdNote, including the landlord analogy, why #1299 matters, the Ghostty-only move analysis, footnote strategy analysis, and ShroomDog's closing interpretation."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 2,
+        "attempts": 1,
         "tribunalVersion": 5
       }
     },
@@ -2979,17 +3028,67 @@
         "tribunalVersion": 5
       },
       "librarian": {
-        "status": "in_progress",
-        "score": null,
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 10,
+            "sourceAlign": 10,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key detected body terms are linked or naturally handled: OpenClaw, Hooks, agent, Clawd, and subagent are linked; the only packet gap, Claude Code, appears in metadata rather than body prose.",
+            "crossRef": "All three internal post links resolve according to the evidence packet, Clawd is linked to /about on first mention, and the post cites the most relevant older OpenClaw, automation-pattern, and Hooks pieces.",
+            "sourceAlign": "The post closely follows the OpenClaw automation source: Cron vs Heartbeat, background task ledger, Task Flow, Standing Orders, Hooks, Heartbeat, and task-flow inspection commands all match the declared sourceUrl.",
+            "attribution": "Claims are grounded in the declared OpenClaw Docs source, interpretive framing is mostly separated into ClawdNote, and practical caveats such as Heartbeat not implying dedupe or locking are clearly bounded."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 2,
+        "tribunalVersion": 5
+      },
+      "freshEyes": {
+        "status": "fail",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 7
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "readability": "The analogies make the six automation parts easy to follow, but terms like managed / mirrored, ACP, substrate, and task records show up without enough beginner context.",
+            "firstImpression": "The opening has a useful hook and avoids dead metadata, but the middle repeats the same role-splitting point enough that I would skim instead of sharing."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 1,
+    "topLevelAttempts": 2,
     "tribunalVersion": 5,
     "status": "FAILED",
-    "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T17:43:45+08:00"
+    "failedStage": "freshEyes",
+    "finishedAt": "2026-05-20T19:34:11+08:00"
+  },
+  "sp-185-20260428-andrew-ng-meta-muse-spark-the-batch-349.mdx": {
+    "article": "sp-185-20260428-andrew-ng-meta-muse-spark-the-batch-349.mdx",
+    "startedAt": "2026-05-20T21:14:12+08:00",
+    "stages": {
+      "factChecker": {
+        "status": "in_progress",
+        "score": null,
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1,
+        "tribunalVersion": 5
+      }
+    },
+    "topLevelAttempts": 0,
+    "tribunalVersion": 5
   }
 }
