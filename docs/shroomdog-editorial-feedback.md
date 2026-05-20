@@ -254,6 +254,13 @@
 - 修法：把 glossary creation standard 升級進 `GU-LOG_WRITER_PROMPT.md`：建 glossary 的條件是 canonical / reusable / 翻譯失真 / 需要穩定 gu-log mental-model anchor；borderline English-term boundary 要先問 ShroomDog；普通英文、一次性 source label、只是 lint 擋住的詞，不准為了省事建 glossary。同步更新 `scripts/check-jingjing.mjs` 與 `src/config/glossary.ts` 註解，讓 lint failure 不會自動變成「加 glossary」。
 - Reusable lesson：Glossary 是 gu-log 的長期詞彙系統，不是每篇文章的補丁區。Agent 應該先做術語決策：翻中文、文內解釋、建 glossary、或請 ShroomDog 決策；不能等 ShroomDog 每次在 production 文章裡指出該建哪個 term。
 
+### Feedback: Librarian must own glossary candidate judgment too
+
+- ShroomDog feedback：I believe this mental model should also be in the librarian
+- 情境：前一輪把 glossary creation standard 寫進 writer prompt / lint guidance，但 Librarian rubric 仍偏向「已存在 glossary term 有沒有連結」。這會讓 writer 端學會 ask/create/do-not-create，審稿端卻只做 link checklist，漏掉「該建 glossary 的 canonical term 被硬翻或飄過」這種問題。
+- 修法：同步更新 Librarian agent prompt、vibe scoring standard 的 Stage 2 glossary rubric、tribunal librarian runner prompt，以及 tribunal writer / vibe scorer 的相關說明。Librarian 的 glossary 維度改成兩件事：既有 glossary coverage + missing glossary candidate judgment。worker pass 仍只補 link，不直接發明新 glossary anchor；candidate 要在 summary / judge reasons 裡指出。
+- Reusable lesson：Glossary policy 不能只放 writer 端。Librarian 是 gu-log 知識庫守門員，必須把 glossary 視為長期 mental-model anchor system，而不是「看見已存在 term 就補 link」的機械流程。
+
 ### Feedback: Architecture posts should deliver the mental model, not the spec tour
 
 - ShroomDog feedback：`Interesting, but too long, too many detailed that should be linked. But seems there r some interesting insights that worth starting a SD post from this`

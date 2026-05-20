@@ -36,7 +36,7 @@ For each failing dimension, the fix is different:
 
 | Judge | Low dimension | Typical fix |
 |-------|---------------|-------------|
-| Librarian | glossary | Add links to `glossary.json` terms |
+| Librarian | glossary | Add links to `glossary.json` terms; for missing candidates, apply the glossary creation standard instead of treating glossary as an English allowlist |
 | Librarian | crossRef | Add internal `/posts/slug/` links, add identity links for ShroomDog/Clawd |
 | Librarian | sourceAlign | Ensure post content aligns with sourceUrl topic |
 | Librarian | attribution | Attribute quotes to named speakers; label ClawdNote opinions as opinions; add source citations |

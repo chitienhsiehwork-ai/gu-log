@@ -72,15 +72,27 @@ Agents self-assess `pass` but the pass-bar lib wins. Log the discrepancy.
 
 ## Stage 2: Librarian (GPT-5.5) — 4 Dimensions
 
-### glossary — Glossary Term Coverage
-Does every technical term that exists in `src/data/glossary.json` get linked or explained?
+### glossary — Glossary Term Coverage + Candidate Judgment
+Does every technical term that exists in `src/data/glossary.json` get linked or explained? Does the post contain any canonical/reusable term that should become a glossary mental-model anchor?
+
+Glossary is gu-log's long-term mental-model anchor system, not a dictionary and not an English allowlist.
+
+Librarian checks two things:
+- Existing coverage: terms already in `src/data/glossary.json` should be linked or naturally explained.
+- Missing candidates: canonical English terms that readers will need again, and that lose meaning when translated, should be flagged as glossary candidates.
+
+Creation judgment:
+- Recommend/create glossary when the term is canonical/reusable, likely to recur, loses useful meaning when translated, and needs a stable gu-log explanation.
+- Ask ShroomDog for borderline accepted-English boundary decisions that affect zh-tw reading flow.
+- Do not create glossary for ordinary English with natural zh-tw, one-off source labels, or terms added merely to satisfy lint.
+- Inline explanation is enough when the term only serves the current post and does not need to become gu-log vocabulary.
 
 | Score | Description |
 |-------|-------------|
-| 10 | All glossary terms linked or naturally explained |
-| 8 | 1-2 minor terms unlinked but all key terms covered |
-| 5 | Multiple key terms used without glossary connection |
-| 2 | Full of terms with zero glossary integration |
+| 10 | All existing glossary terms linked or naturally explained; no obvious missing long-term glossary candidates |
+| 8 | 1-2 minor terms unlinked, or a borderline glossary candidate is explicitly treated as a terminology decision |
+| 5 | Multiple key terms used without glossary connection, or an obvious reusable canonical term is hard-translated / left unexplained |
+| 2 | Glossary treated as a link checklist or English allowlist, with no mental-model-anchor judgment |
 
 ### crossRef — Internal Cross-References + Identity Linking
 Do internal `/posts/slug/` links resolve? Are relevant connections made?
