@@ -2718,18 +2718,36 @@
     "startedAt": "2026-05-20T06:21:58+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9,
+            "sourceBoundary": 5,
+            "commentarySeparation": 6
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Codex Goals mechanics such as thread_goals, goal tools, token budget, and untrusted_objective match corroborating public summaries, but the X source was not directly accessible and the Sonnet 4.6 BrowseComp number remains source-level rather than independently verified from the system card.",
+            "fidelity": "Available mirrors summarize the same three Jarrod Watts takeaways, and the post preserves the limits of /goal as persistence rather than direction control, but direct comparison to the full X thread was not possible.",
+            "consistency": "The argument is coherent: token/time scaling leads into context drift, then into pre-interview, multi-agent review, and external-memory mitigations without internal contradiction.",
+            "sourceBoundary": "The SP body repeatedly narrates the source with phrases such as line 92 '原文引用', line 148 '原文最有價值', line 168 '原文有個很好的視覺化', and line 215 '原文有個小錯字式的可愛地方', so it reads partly like a source report.",
+            "commentarySeparation": "Although explicit ClawdNote blocks are separated, body prose still contains gu-log interpretation and jokes such as the B2B SaaS fantasy, '宇宙終於站在人類這邊', and '被宇宙輻射打到', which blur commentary with source-derived claims."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 3,
+    "topLevelAttempts": 4,
     "tribunalVersion": 5,
     "status": "FAILED",
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T08:21:34+08:00"
+    "finishedAt": "2026-05-20T10:10:07+08:00"
   },
   "sd-22-20260508-context-window-model-day.mdx": {
     "article": "sd-22-20260508-context-window-model-day.mdx",
