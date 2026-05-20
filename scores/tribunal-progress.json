@@ -2783,7 +2783,7 @@
         "status": "in_progress",
         "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
@@ -2901,46 +2901,46 @@
     "startedAt": "2026-05-20T21:14:12+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 7,
+            "fidelity": 6,
+            "consistency": 7,
+            "sourceBoundary": 5,
+            "commentarySeparation": 5
+          },
+          "score": 6,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Most numeric claims match The Batch, including 8:1 to 1:1, Muse Spark 52/59M tokens, Lilly 2.75B, and Persona Generators 82%, but the summary compresses Meta's $14.3B Scale AI stake into hiring spend and the body overstates health-data curation as the direct cause of HealthBench performance while loosely framing Meta's RL penalty as an RLHF variant.",
+            "fidelity": "The post preserves many source details and caveats, but it adds a large editorial thesis that Ng, Meta, Insilico, and Persona Generators are all variations of the same bottleneck story and omits the source's separate U.S. state AI-laws story from the main treatment.",
+            "consistency": "The main argument is coherent, especially the distinction between teams that use models and labs that build models, but several causal bridges such as thought compression causing coding weakness and all stories solving 'deciding what to build' are interpretive leaps beyond the source.",
+            "sourceBoundary": "SP body repeatedly uses source-report and source-meta framing such as 'DeepLearning.AI 的 The Batch 電子報第 349 期', 'The Batch 349 頭條', 'The Batch 自家', and '這篇 SP', so it reads partly like a report about the source rather than direct source-derived prose.",
+            "commentarySeparation": "Many gu-log interpretations stay outside ClawdNote, including 'Ng 那篇是寫給自己看的，Muse Spark 那篇是寫給競爭對手看的', the two-opposite-signals framing, and the final claim that editorial placement is the real signal."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 2,
+    "topLevelAttempts": 3,
     "tribunalVersion": 5,
     "status": "FAILED",
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T23:15:43+08:00"
+    "finishedAt": "2026-05-21T02:59:22+08:00"
   },
   "sp-182-20260423-anthropic-claude-code-april-postmortem.mdx": {
     "article": "sp-182-20260423-anthropic-claude-code-april-postmortem.mdx",
     "startedAt": "2026-05-21T02:52:42+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 7,
-            "fidelity": 7,
-            "consistency": 8,
-            "sourceBoundary": 6,
-            "commentarySeparation": 6
-          },
-          "score": 6,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "Core dates and mechanisms match Anthropic's postmortem, but the body incorrectly says choosing medium meant choosing '慢一點但沒那麼聰明' even though the source says medium reduced latency, and it over-labels all three issues as bugs.",
-            "fidelity": "The translation preserves the main sequence, affected products, version fixes, and cache failure, but strengthens Anthropic's 'three changes/issues' into 'three bugs' and adds interpretive claims beyond the source.",
-            "consistency": "The argument mostly flows coherently from the three incidents to process lessons, though the medium-effort latency statement contradicts both the source and the surrounding explanation.",
-            "sourceBoundary": "The SP body repeatedly uses source-report scaffolding such as 'Anthropic 今天放的', 'Anthropic 原文把', '原文的描述是', and '原文收尾', so it reads partly like a report about the source.",
-            "commentarySeparation": "Many opinions are correctly inside ClawdNote, but body prose still contains gu-log interpretation such as the default-bias lesson, '三次都是為了省', and evaluative phrasing like '當賠罪' outside ClawdNote."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 2,
+        "attempts": 1,
         "tribunalVersion": 5
       }
     },
