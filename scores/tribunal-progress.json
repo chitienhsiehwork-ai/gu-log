@@ -2918,18 +2918,36 @@
     "startedAt": "2026-05-20T21:14:12+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 6,
+            "fidelity": 6,
+            "consistency": 7,
+            "sourceBoundary": 5,
+            "commentarySeparation": 5
+          },
+          "score": 5,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Most benchmark and Insilico/Persona numbers match The Batch, but the body conflates Meta's more than 1,000 physicians for health data with a '1000 人實驗室' and softens the source's hundreds-of-millions pay packages into '百萬美元級'.",
+            "fidelity": "Core source claims are represented, but the SP adds a large interpretive thesis about two opposite bets, editorial intent, and developer strategy that is not stated by the source.",
+            "consistency": "The main bottleneck-transfer argument is coherent, but the conclusion that all five stories are solving the same '決定做什麼' problem overextends the source, especially for the Meta and drug-discovery sections.",
+            "sourceBoundary": "The SP body repeatedly frames the source as source material with phrases like 'The Batch 349', '這篇 SP', 'Ng 的信', and 'The Batch 自家', so it reads partly as a report about the issue rather than direct SP prose.",
+            "commentarySeparation": "Substantial gu-log interpretation appears outside ClawdNote, including the noodle-shop analogy, 'Ng 那篇是寫給自己看的', '版面安排本身就是論點', and the final editorial-reading lesson."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 3,
+    "topLevelAttempts": 4,
     "tribunalVersion": 5,
     "status": "FAILED",
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-21T02:59:22+08:00"
+    "finishedAt": "2026-05-21T03:11:14+08:00"
   },
   "sp-182-20260423-anthropic-claude-code-april-postmortem.mdx": {
     "article": "sp-182-20260423-anthropic-claude-code-april-postmortem.mdx",
