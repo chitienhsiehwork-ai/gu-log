@@ -830,16 +830,36 @@
     "startedAt": "2026-05-21T03:01:44+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9,
+            "sourceBoundary": 7,
+            "commentarySeparation": 6
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core technical claims match the Anthropic source, including 300M monthly MCP SDK downloads, Cloudflare's two-tool/~2,500-endpoint example, MCP Apps, Elicitation, CIMD, Vaults, tool search, programmatic tool calling, and skills, but the body adds an unsupported concrete illustration that tool search can move a task from 5 steps to 15+ steps.",
+            "fidelity": "The post broadly preserves the source's structure and hedges such as 'tends to' for 85%+ token reduction, but it strengthens some framing into more absolute editorial conclusions like production '最後會收斂到 MCP' and MCP as the only compounding path.",
+            "consistency": "The argument is internally coherent: deployment location drives API/CLI/MCP choice, server design affects usability, production needs auth/interactivity, and context efficiency supports longer agent workflows.",
+            "sourceBoundary": "The SP body repeatedly uses source-meta framing such as 'Anthropic 這篇新文', 'Anthropic 的框架', 'Anthropic 原文的數字', '原文交代相容性', 'Anthropic 列了兩招', and '原文的總結', so it reads partly like a source report.",
+            "commentarySeparation": "Although ClawdNote sections hold much of the gu-log interpretation, the body still includes editorialized source-meta and opinionated phrasing such as '就是廢物', '自嗨', '屌打', '怪獸', and '搬上線那天...三道牆才會一起從地板冒出來'."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 0,
-    "status": "PENDING",
-    "tribunalVersion": 5
+    "topLevelAttempts": 1,
+    "status": "FAILED",
+    "tribunalVersion": 5,
+    "failedStage": "factChecker",
+    "finishedAt": "2026-05-21T03:07:29+08:00"
   },
   "sp-181-20260423-walden-cognition-multi-agents-working.mdx": {
     "article": "sp-181-20260423-walden-cognition-multi-agents-working.mdx",
@@ -921,7 +941,7 @@
         "status": "in_progress",
         "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
