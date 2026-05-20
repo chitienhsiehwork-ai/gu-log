@@ -1198,18 +1198,36 @@
     "startedAt": "2026-05-20T11:55:35+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 8,
+            "sourceBoundary": 6,
+            "commentarySeparation": 7
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core technical and workflow claims match the source, including Semrush KD 0-14%, CPC > 0.01, Reddit Answers plus Atlas, and wired-earbuds reasons, but several concrete tool URLs and the Feishu/RPA link details are not visible in the fetched source text and remain only partially verifiable.",
+            "fidelity": "The post preserves the source's main sequence and hedges such as the DataReportal threshold being written as X, but it expands the source with explanatory conclusions like the market-research-company analogy and product/channel framing beyond direct translation.",
+            "consistency": "The argument flows coherently from keyword screening to Reddit validation to structured collection, with no major internal contradiction, though some added interpretations are stronger than the source evidence alone supports.",
+            "sourceBoundary": "The SP body repeatedly uses source-report framing such as 'Lisa 這篇推文提供', 'Lisa 的背景', 'Lisa 先從平台選擇講起', 'Lisa 建議', and 'Lisa 最後', making it read partly like a report about the source rather than direct gu-log prose.",
+            "commentarySeparation": "Most overt gu-log opinions are in ClawdNote, but body prose still includes interpretive commentary such as '不是那種...神奇魔法', '沒有招牌的市場研究公司', and '不是一張許願清單' outside ClawdNote."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 1,
+    "topLevelAttempts": 2,
     "status": "FAILED",
     "tribunalVersion": 5,
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T12:02:53+08:00"
+    "finishedAt": "2026-05-20T17:49:15+08:00"
   },
   "sp-194-20260508-trq212-html-markdown-agent.mdx": {
     "article": "sp-194-20260508-trq212-html-markdown-agent.mdx",
