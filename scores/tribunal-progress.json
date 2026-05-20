@@ -2900,14 +2900,35 @@
     "startedAt": "2026-05-20T11:59:55+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 6,
+            "fidelity": 6,
+            "consistency": 7,
+            "sourceBoundary": 5,
+            "commentarySeparation": 4
+          },
+          "score": 5,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core facts from Mitchell's post are mostly correct, but the body adds unsupported quantified inference such as 25-28 days/80-90% at line 76 and an unsupported final-X-on-2026-04-28 flourish at line 250.",
+            "fidelity": "The quoted passages are translated faithfully, but the SP expands beyond the source by turning 'almost every day' into precise workday percentages and by intensifying the outage pattern into daily background noise at line 220.",
+            "consistency": "The argument is readable and mostly coherent, but several conclusions rely on interpretive leaps, especially the user-impact chain at line 84 and the structural-signal conclusion at line 220.",
+            "sourceBoundary": "The SP body repeatedly uses source-report scaffolding such as '直譯', '原作者', '原文還有一句', '這篇 SP', and 'Mitchell 部落格那篇全文' across lines 64-90, 116, 160, 208, and 242.",
+            "commentarySeparation": "Substantial gu-log/ShroomDog interpretation remains in body prose outside ClawdNote, including the 80-90% analysis at line 76, broad platform-signal claims at lines 132 and 220, and explicit ShroomDog/gu-log commentary at lines 246-248."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 0,
-    "tribunalVersion": 5
+    "topLevelAttempts": 1,
+    "tribunalVersion": 5,
+    "status": "FAILED",
+    "failedStage": "factChecker",
+    "finishedAt": "2026-05-20T12:11:07+08:00"
   }
 }
