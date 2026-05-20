@@ -45,6 +45,7 @@ export const glossaryInclude = [
   'RL',
   'Claude Code',
   'Codex',
+  'Codex app server',
   'Hooks',
   'Subagent',
   'Context Window',

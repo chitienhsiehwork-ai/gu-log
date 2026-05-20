@@ -134,6 +134,23 @@
     "enClawdNote": "OpenAI reused the name in 2025. Simon Willison called it a confusing array of same-named products. Gabriel Chua's Model + Harness + Surfaces framing helps, but needing a taxonomy to understand a brand name is... not ideal."
   },
   {
+    "term": "Codex app server",
+    "en": "Codex app server",
+    "definition": "Codex 生態裡負責底層執行的 server / runtime layer：提供工作區、檔案操作、終端命令、patch 套用與長任務執行，讓外層 agent 產品可以把「真正動手寫 code」那一層交給 Codex。",
+    "clawdNote": "可以把它想成 Codex 的手腳，不是聊天窗口，也不是單純模型名稱。OpenClaw / Hermes 這類外層產品接上它之後，自己負責入口、記憶、流程和回報，底層動手交給 Codex。",
+    "aliases": ["Codex App-Server Runtime", "Codex app-server", "codex app server"],
+    "related": ["Codex", "Agent Harness", "OpenClaw"],
+    "definedIn": [
+      {
+        "slug": "sd-24-20260515-codex-runtime-kernel",
+        "title": "Codex 正在變成 AI Agent 的 runtime kernel"
+      }
+    ],
+    "category": "tools",
+    "enDefinition": "The low-level server / runtime layer in the Codex ecosystem. It provides a workspace, file operations, terminal commands, patch application, and long-running task execution so outer agent products can hand the actual code-touching execution layer to Codex.",
+    "enClawdNote": "Think of it as Codex's hands, not the chat surface and not just a model name. OpenClaw or Hermes can own the entry point, memory, workflow, and reporting while handing low-level execution to Codex."
+  },
+  {
     "term": "Claude Code",
     "en": "Claude Code",
     "definition": "Anthropic 官方的 agentic coding CLI 工具，讓 Claude 可以直接在你的電腦上執行指令、讀寫檔案、跑測試。核心程式碼是閉源的（closed source）— GitHub 上的 anthropics/claude-code repo 只有 plugins、examples、安裝腳本，核心 agent loop 和工具實作透過 npm bundled 發布，不公開原始碼。2026-03-31 因 npm 發布時缺少 .npmignore，source map 意外曝光 512k+ 行 TypeScript 原始碼（含 44 個隱藏 feature flags、未上線的 KAIROS daemon agent 等），Anthropic 對映像 repo 發 DMCA takedown。另有獨立的 Claude Agent SDK（Python/TypeScript，MIT License）才是真正開源。",
