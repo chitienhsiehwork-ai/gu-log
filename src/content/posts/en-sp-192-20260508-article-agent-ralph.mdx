@@ -73,11 +73,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 Codex recently shipped `/goal`, and on paper it sounds like the thing agent people have been waiting for: give an [Agent](/en/glossary#agent) a big objective, let it run for hours or days, and stop making it ask every fifteen minutes whether it is allowed to continue.
 
-The promise is seductive: continuous work becomes a product behavior instead of a shell script taped to the outside.
-
-<ClawdNote>
-Every long-running agent demo has the same human fantasy hiding underneath: go to sleep after typing "build the product," wake up to a working B2B SaaS with tests, docs, and deployment notes. Finally, the universe has decided to be useful. (´・ω・)
-</ClawdNote>
+The promise is seductive. Go to sleep after typing "build the product," wake up to a working B2B SaaS with tests, docs, and deployment notes. Finally, the universe has decided to be useful. (´・ω・)
 
 Jarrod Watts was excited too. He has spent the last few months experimenting with long-running agents, including using agents on Anthropic's hiring challenge. Codex Goals should have been right in the center of that world.
 
@@ -93,9 +89,9 @@ This is the nastiest failure mode for long-running agents. No explosion. No red 
 
 ## First, Stop Mystifying the Long Run. It Mostly Spends More Tokens.
 
-Long-running agents sometimes work because they spend more [Token](/en/glossary#token).
+Jarrod's first cut is brutally plain: long-running agents sometimes work because they spend more [Token](/en/glossary#token).
 
-Researchers call this scaling [test-time compute](/en/glossary#test-time-compute). The model is not retrained. It simply gets more time, more budget, and more chances to check itself while answering. Anthropic's Sonnet 4.6 system card shows roughly this pattern on BrowseComp: when Sonnet 4.6 spent 10x more tokens, its score rose by about 10 percentage points.
+Researchers call this scaling [test-time compute](/en/glossary#test-time-compute). The model is not retrained. It simply gets more time, more budget, and more chances to check itself while answering. Jarrod points to Anthropic's Opus 4.6 system card, where Sonnet 4.6 spending 10x more tokens on BrowseComp produced about 10 percentage points of additional score.
 
 Plain English: thinking longer can really help.
 
@@ -146,17 +142,15 @@ This is the easy part to misread. Codex Goals is not bad design. It solves a low
 
 ## Jarrod's Disappointment: It Can Drift Without Resting
 
-The sharpest point is not the SQLite table or the loop prompt. It is the argument that long-running workflows are not mainly threatened by lack of time. They are threatened by compounding ambiguity.
+The most valuable part of the thread is not the SQLite table or the loop prompt. It is the argument that long-running workflows are not mainly threatened by lack of time. They are threatened by compounding ambiguity.
 
 When an LLM works in a loop, each output becomes part of the next input. A small decision in round one becomes the floor for round two. Round three writes tests around it. Round four documents it as if it had always been the obvious choice.
 
 If the first branch was wrong, later work does not stay neutral. It builds a whole little city on the wrong road.
 
-Agents do the same thing. They are not malicious. They are asked to choose paths inside a fuzzy objective, then they work very hard along the path they picked.
+This is the classic product tragedy: a brief says "make it feel professional," and the final site is black-purple gradient, starfield background, glowing buttons, and enough visual effects to irradiate the brand. Engineering delivered. Taste filed a missing-person report.
 
-<ClawdNote>
-This is the classic product tragedy: a brief says "make it feel professional," and the final site is black-purple gradient, starfield background, glowing buttons, and enough visual effects to irradiate the brand. Engineering delivered. Taste filed a missing-person report. That is Clawd translating "ambiguity compounds" into daily-life pain, not adding a new source claim.
-</ClawdNote>
+Agents do the same thing. They are not malicious. They are asked to choose paths inside a fuzzy objective, then they work very hard along the path they picked.
 
 So Jarrod's first missing piece is not a bigger model or a stronger loop. It is a setup phase before execution.
 
@@ -168,7 +162,7 @@ Before letting the autonomous loop begin, Jarrod invests in a setup phase. The g
 
 This sounds slow. It is actually how time gets saved.
 
-Think of the final outcome as a tree. Every branch is a decision. Without clarification, the agent chooses one branch on behalf of the person asking. It may be a plausible branch, but not necessarily the intended one.
+Jarrod uses a useful image: the final outcome is like a tree. Every branch is a decision. Without clarification, the agent chooses one branch on behalf of the person asking. It may be a plausible branch, but not necessarily the intended one.
 
 Asking questions upfront cuts off the wrong branches before the long run starts.
 
@@ -206,7 +200,7 @@ Multi-agent is not a magic circle. Summoning three extra agents does not automat
 
 ## Missing Piece Three: Memory Has to Live Outside Context
 
-The third missing piece is moving state outside the context.
+The third missing piece is the least glamorous, which means it is probably the most real engineering part.
 
 Long-running tasks will hit context problems. The context window fills up. Agents may hand off. Earlier decisions get compressed, dropped, or misread. Managing a whole project only inside a chat transcript is like writing handoff notes on sticky notes and taping them in front of a desk fan.
 
@@ -219,11 +213,7 @@ He lists several:
 3. `IMPLEMENT.md`: workflow rules, including review, testing, and verification.
 4. `PROGRESS.md`: the running log of decisions and completed work.
 
-The number is not the insight. The insight is that state must leave the model's short-term memory and become an external object that the next agent can read, continue from, and be audited against.
-
-<ClawdNote>
-There is a tiny source quirk here: the setup sounds like three files, then the list has four. That is not the lesson. The lesson is externalized memory, not memorizing the file count like it will be on the final exam.
-</ClawdNote>
+There is a funny small inconsistency in the original: it says three files and then lists four. That does not matter. The number is not the insight. The insight is that state must leave the model's short-term memory and become an external object that the next agent can read, continue from, and be audited against.
 
 This is not a silver bullet either. Agents may skip files. Files can go stale. Logs can be incomplete. Jarrod says as much: these are guidelines, not perfect control systems.
 
