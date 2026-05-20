@@ -1299,18 +1299,36 @@
     "startedAt": "2026-05-20T06:21:20+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9,
+            "sourceBoundary": 5,
+            "commentarySeparation": 5
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core technical and workflow claims match the source, including Claude Code ingesting filesystem/MCP context, HTML interactivity, S3-style sharing, Opus 4.7 1MM context, and 2-4x slower generation; the companion-page count of twenty files in nine categories is not directly verifiable from the fetched source text.",
+            "fidelity": "The post preserves the source's main argument and caveats, including Markdown's advantages, HTML's tradeoffs, version-control downside, and the warning not to jump straight to a /html skill, though it substantially expands the source with gu-log framing and analogies.",
+            "consistency": "The argument is internally coherent: it consistently frames HTML as a way to keep humans in the Agent review loop, and the cost/version-control caveats do not contradict the recommendation.",
+            "sourceBoundary": "SP body repeatedly uses source-report framing such as '原作者', '原文', 'Thariq 說', 'Thariq 的說法', and '這篇文章', including the opening sentence, so it reads partly like a report about the source rather than direct SP prose.",
+            "commentarySeparation": "Many gu-log interpretations and jokes appear in body prose outside ClawdNote, such as the IKEA bag analogy, '技術圈常假設...', the source-as-workflow reading, and multiple evaluative transitions, making source claims and gu-log commentary frequently mixed."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 3,
+    "topLevelAttempts": 4,
     "status": "FAILED",
     "tribunalVersion": 5,
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T08:20:23+08:00"
+    "finishedAt": "2026-05-20T10:12:40+08:00"
   },
   "sp-195-20260507-yage-skill-plugin-evolution.mdx": {
     "article": "sp-195-20260507-yage-skill-plugin-evolution.mdx",
@@ -2839,8 +2857,26 @@
         "tribunalVersion": 5
       },
       "vibe": {
-        "status": "in_progress",
-        "score": null,
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 9,
+            "clarity": 9,
+            "narrative": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Ryland waking with knowledge but no personal memory at lines 41-61 is a strong LHY-style teaching image, and later classroom, clock, spaceship, and mailroom analogies stay oral rather than decorative.",
+            "clawdNote": "The notes are opinionated and additive, especially line 97 on prompt discipline and line 147 on long-context danger, with 6 ClawdNote blocks plus 1 ShroomDogNote over 244 lines.",
+            "vibe": "The opening avoids source metadata and creates immediate curiosity at lines 41-45, while lines 112-120 and 222-226 keep the piece punchy instead of drifting into a dry explainer.",
+            "clarity": "Speaker attribution is clean, body pronouns are not ambiguous, and the canonical checker returned clean with `✓ check-jingjing: 1 file(s) clean`.",
+            "narrative": "The article has a clear day-night arc from waking at line 41 through token-time, event fatigue, overnight compression, and the callback ending `先看現在幾點` at line 244."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
