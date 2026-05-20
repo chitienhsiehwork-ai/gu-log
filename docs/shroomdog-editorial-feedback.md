@@ -261,6 +261,20 @@
 - 修法：移除廚房比喻，全文統一成腦袋 / 手腳 / 互動窗口與調度系統。Codex 一律是「真正動手的執行層」，OpenClaw / Hermes 一律是入口、調度、記憶、回報與 workflow。
 - Reusable lesson：架構文章可以有比喻，但同一篇的核心比喻要收斂。若要換比喻，必須明確說「換個角度看」並只用在局部；否則會讓 mental model 自相打架。尤其是三層架構文，角色 mapping 要穩定：同一個元件不要一段是手、一段是廚房、一段又是引擎。
 
+### Feedback: Keep Codex app server as canonical English term
+
+- ShroomDog feedback：Codex 執行伺服器 -> codex app server? How about we use codex app server and add in glossary? I think this term itself might be useful and we might not want to translate it.
+- 情境：SD-24 把 Codex app server 硬翻成「Codex 執行伺服器 / Codex 應用伺服器執行環境」。中文能看懂，但它其實是 Codex 生態裡一個會反覆出現的架構 term；硬翻會讓讀者之後對不上英文文件與產品討論。
+- 修法：正文改用 canonical English term Codex app server，第一次出現連到 glossary；新增 glossary entry，解釋它是 Codex 的底層執行 server / runtime layer，不是模型名稱也不是聊天入口。
+- Reusable lesson：當英文 term 是產品/架構邊界本身，而且之後讀者需要拿它去對照官方文件或社群討論時，不要硬翻成中文。保留 canonical English term，第一次出現連 glossary，用中文解釋它在系統裡扮演的角色。
+
+### Feedback: Prefer 「像」 over loose 「很像」 when introducing analogies
+
+- ShroomDog feedback：Btw, how about 很像 -> 像？i think that might be more natural for taiwanese?
+- 情境：SD-24 的「早期 AI agent 生態很像每家公司都在蓋整台機器」可以更自然地寫成「早期 AI agent 生態像每家公司都在蓋整台機器」。很像在比喻起手式裡常顯得鬆散，像是還沒決定比喻要不要成立。
+- 修法：把該句改成「像」。後續寫作遇到直接建立比喻時，優先用「像」；只有真的要表達「相似程度很高」時才用「很像」。
+- Reusable lesson：台灣中文裡，架構/故事比喻常用「X 像 Y」更俐落。「很像」不是不能用，但容易把 punch 減弱成閒聊語氣。能用「像」講清楚，就不要加「很」。
+
 ## 2026-05-16 — SP-204 OpenClaw Token Spend Agent Workflow
 
 ### Feedback: Short tweets should stay short
