@@ -247,6 +247,13 @@
 
 ## 2026-05-16 — SD-24 Codex Runtime Kernel
 
+### Feedback: Glossary creation needs a decision standard, not ad hoc ShroomDog catches
+
+- ShroomDog feedback：I think we should have a standard of asking/create/do not create glossary items? I don't think everytime i need to point that out is a good system
+- 情境：SD-24 把 `Codex app server` 硬翻成「Codex 執行伺服器」後，ShroomDog 指出這個 term 本身有長期價值，應保留英文並加 glossary。問題不只是單篇漏詞，而是 pipeline 沒有明確判斷：何時該翻、何時該文內解釋、何時該建 glossary、何時該先問 ShroomDog。
+- 修法：把 glossary creation standard 升級進 `GU-LOG_WRITER_PROMPT.md`：建 glossary 的條件是 canonical / reusable / 翻譯失真 / 需要穩定 gu-log mental-model anchor；borderline English-term boundary 要先問 ShroomDog；普通英文、一次性 source label、只是 lint 擋住的詞，不准為了省事建 glossary。同步更新 `scripts/check-jingjing.mjs` 與 `src/config/glossary.ts` 註解，讓 lint failure 不會自動變成「加 glossary」。
+- Reusable lesson：Glossary 是 gu-log 的長期詞彙系統，不是每篇文章的補丁區。Agent 應該先做術語決策：翻中文、文內解釋、建 glossary、或請 ShroomDog 決策；不能等 ShroomDog 每次在 production 文章裡指出該建哪個 term。
+
 ### Feedback: Architecture posts should deliver the mental model, not the spec tour
 
 - ShroomDog feedback：`Interesting, but too long, too many detailed that should be linked. But seems there r some interesting insights that worth starting a SD post from this`
