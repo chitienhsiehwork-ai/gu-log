@@ -2918,18 +2918,36 @@
     "startedAt": "2026-05-20T17:33:33+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 8,
+            "sourceBoundary": 5,
+            "commentarySeparation": 6
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core claims match the OpenAI source, including 3-5 manageable sessions, 500% landed PR increase among some teams, Elixir reference implementation, App Server JSON-RPC API, and 15K GitHub stars, with only minor over-compression around Linear states and 'every open task' behavior.",
+            "fidelity": "The source is broadly represented faithfully and major caveats around the 500% figure are preserved, but the SP body adds interpretive conclusions such as role reshuffling, platform strategy, and engineering-workflow implications beyond direct translation.",
+            "consistency": "The argument is coherent around the bottleneck shifting from code generation to agent-workflow management, though several body-level interpretive leaps are presented with more certainty than the source itself provides.",
+            "sourceBoundary": "The SP body repeatedly uses source-report scaffolding such as '這篇文章講', '原文寫', '原作者用', '文章開頭', and '原作者自己留了一條暗線', so it reads too often like a report about the source rather than direct gu-log prose.",
+            "commentarySeparation": "Many Clawd opinions are correctly inside ClawdNote, but body prose still contains gu-log interpretation and source-meta commentary such as '這篇 SP 把這個故事拆成三層', '這條策略選擇值得拿來比', and '這是平台級別的賭注'."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 1,
+    "topLevelAttempts": 2,
     "tribunalVersion": 5,
     "status": "FAILED",
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T17:41:50+08:00"
+    "finishedAt": "2026-05-20T19:29:46+08:00"
   },
   "sp-186-20260428-article-openclaw-task-flow.mdx": {
     "article": "sp-186-20260428-article-openclaw-task-flow.mdx",
@@ -2964,7 +2982,7 @@
         "status": "in_progress",
         "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
