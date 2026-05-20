@@ -1299,18 +1299,36 @@
     "startedAt": "2026-05-20T06:21:20+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 8,
+            "sourceBoundary": 10,
+            "commentarySeparation": 6
+          },
+          "score": 8,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core claims match the source and companion page, including HTML expressiveness, S3 sharing, MCP/context ingestion, 20 self-contained HTML examples, 1MM context, and 2-4x slower generation; the post has a minor category-list inconsistency when it says nine classes but names weekly and incident reports separately.",
+            "fidelity": "The post preserves the source's main argument, caveats, examples, and FAQ, though it often turns first-person subjective claims such as reading likelihood and staying in the loop into broader declarative gu-log prose.",
+            "consistency": "The human-in-the-loop argument is coherent from Markdown limits to HTML reviewability, interaction, sharing, and feedback export, with only a mild internal mismatch around the nine categories versus the expanded list of report examples.",
+            "sourceBoundary": "The SP body avoids repeated source-report scaffolding such as 原作者說, 原文提到, 這篇文章在講, or 作者指出, and generally presents source claims directly.",
+            "commentarySeparation": "Several gu-log interpretive jokes and analogies remain in the SP body outside ClawdNote, including the convenience-store chopsticks aircraft-carrier line, gray-wall/new-year-resolution line, coffee-supply-chain line, and repeated '這不是...而是...' framing."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 2,
+    "topLevelAttempts": 3,
     "status": "FAILED",
     "tribunalVersion": 5,
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T08:14:25+08:00"
+    "finishedAt": "2026-05-20T08:20:23+08:00"
   },
   "sp-195-20260507-yage-skill-plugin-evolution.mdx": {
     "article": "sp-195-20260507-yage-skill-plugin-evolution.mdx",
@@ -2565,7 +2583,7 @@
         "status": "in_progress",
         "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
@@ -2721,7 +2739,7 @@
         "status": "in_progress",
         "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
