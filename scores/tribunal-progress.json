@@ -1110,19 +1110,19 @@
           "judge": "factCheck",
           "dimensions": {
             "accuracy": 8,
-            "fidelity": 8,
+            "fidelity": 7,
             "consistency": 8,
-            "sourceBoundary": 7,
-            "commentarySeparation": 7
+            "sourceBoundary": 5,
+            "commentarySeparation": 6
           },
-          "score": 7,
+          "score": 6,
           "verdict": "FAIL",
           "reasons": {
-            "accuracy": "Core incident facts in the post, including Cursor running Claude Opus 4.6, Railway GraphQL volumeDelete, 9-second deletion, unrelated token, same-volume backups, and three-month-old restore point, are supported by contemporaneous reporting, but some broad body claims about Cursor's track record and Railway's whole-user-base risk are asserted more strongly than the directly available source record supports.",
-            "fidelity": "The post preserves the main source claims and important hedge around model-level versus integration-level responsibility, but it expands Jer's incident account into a broader Cursor/Railway indictment with extra examples and conclusions that go beyond straightforward translation.",
-            "consistency": "The causal chain from agent permissions to unscoped token to destructive Railway API to backup loss is coherent, though some conclusions such as inevitable systemic failure and future citation by panels or papers are rhetorical projections rather than evidence-backed findings.",
-            "sourceBoundary": "The SP body mostly presents the incident directly, but it repeatedly frames source handling with body prose such as 'Jer 把整段事件寫成', 'Jer 後來說', 'Jer 把過往案例列了一串', and 'Jer 寫文章的真正動機', which makes parts read like a report about the source.",
-            "commentarySeparation": "Most explicit gu-log interpretation is inside ClawdNote, but body sentences such as '重點是兩個重金行銷的廠商把這場災難從可能變成必然的系統性失敗', 'Pattern 已經很清楚', and '這篇拆給每一個...' add editorial framing outside ClawdNote."
+            "accuracy": "Core incident claims are corroborated by multiple reports: Cursor/Claude Opus 4.6, Railway GraphQL volumeDelete, 9 seconds, root-like token, same-volume backups, and three-month usable backup; however some sweeping body claims such as Cursor being the strongest/most expensive setup and Railway tokens being effectively root for every token are asserted more broadly than the accessible evidence proves.",
+            "fidelity": "The main source account is broadly represented, but direct X Article verification was unavailable and the post adds substantial external Cursor track-record material plus strong conclusions like lines 124-133 that go beyond simple translation of Jer's incident narrative.",
+            "consistency": "The causal chain from agent action to Railway API/token/backup failures to downstream customer disruption is coherent, though some body conclusions such as 'systemic failure became inevitable' at line 54 and 'Pattern 已經很清楚' at line 133 are argumentative leaps rather than strictly evidenced steps.",
+            "sourceBoundary": "SP body repeatedly narrates the source with scaffolding such as 'Jer 把整段事件寫成' at line 54, 'Jer 後來說' at line 62, 'Jer 把過往案例列了一串' at line 124, and 'Jer 寫文章的真正動機' at line 213, so it reads partly like a report about the source.",
+            "commentarySeparation": "Several gu-log judgments remain in body prose outside ClawdNote, including '這篇拆給...' at line 56, '那不叫備份' at line 157, '沒有任何辯護空間' at line 215, and '這個 hedge 留得很對' at line 247."
           }
         },
         "model": "codex-gpt-5.5-medium",
@@ -1130,11 +1130,11 @@
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 1,
+    "topLevelAttempts": 2,
     "status": "FAILED",
     "tribunalVersion": 5,
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T21:21:15+08:00"
+    "finishedAt": "2026-05-20T23:15:40+08:00"
   },
   "sp-190-20260505-mindos-lisa-reddit.mdx": {
     "article": "sp-190-20260505-mindos-lisa-reddit.mdx",
@@ -2878,20 +2878,20 @@
         "score": {
           "judge": "factCheck",
           "dimensions": {
-            "accuracy": 8,
-            "fidelity": 8,
-            "consistency": 8,
-            "sourceBoundary": 5,
-            "commentarySeparation": 6
+            "accuracy": 6,
+            "fidelity": 7,
+            "consistency": 7,
+            "sourceBoundary": 6,
+            "commentarySeparation": 5
           },
-          "score": 7,
+          "score": 6,
           "verdict": "FAIL",
           "reasons": {
-            "accuracy": "The main technical claims match the OpenAI guide, including outcome-first prompting, personality/collaboration split, retrieval budget, phase values, Cursor's GPT-5 examples, and the 35% apply_patch failure-rate claim, but the fictional 700-to-200-line/28% latency vignette is presented in body prose as if it were a concrete case.",
-            "fidelity": "The source guidance is mostly faithfully represented and preserves evaluation caveats, but the post adds broad industry conclusions such as '舊 prompt 寫法真的進入退場期' and the final benchmark story beyond what the OpenAI source directly supports.",
-            "consistency": "The argument coherently follows the source's migration logic from process-heavy prompts to outcome-first rules, though the conclusion that the whole industry is retiring old prompt styles overextends the evidence from OpenAI plus one Anthropic comparison.",
-            "sourceBoundary": "SP body repeatedly uses source-report scaffolding such as '原文', 'OpenAI 在文件裡給了', 'OpenAI 把這條經驗放進官方文件', and 'OpenAI 自己在 GPT-5.5 文件末段寫', so it reads often like a report about the source.",
-            "commentarySeparation": "Many opinions are properly inside ClawdNote, but source-meta and gu-log interpretation remain in body prose, including the opening fictional engineer narrative, the Anthropic comparison framing, 'OpenAI 罕見地放了一段 Cursor', and the invented final benchmark anecdote."
+            "accuracy": "Core OpenAI guide claims about outcome-first prompts, retrieval budgets, phase handling, Cursor tuning, and apply_patch 35% are supported, but the body presents unsupported narrative metrics such as the Tuesday engineer's 700-line prompt and final 28% latency/token-cost results.",
+            "fidelity": "The post generally follows the official GPT-5.5/GPT-5/GPT-5.1 guidance, but it adds stronger conclusions like old prompt styles entering industry-wide retirement and fictionalized benchmark outcomes beyond the source.",
+            "consistency": "The prompt-evolution argument is coherent, but the opening and closing case story is treated like evidence without support, creating a logical gap between documented guidance and claimed measured gains.",
+            "sourceBoundary": "SP body repeatedly uses source-report framing such as 'OpenAI 在 GPT-5.5 段落', 'OpenAI 給', and '原文：', so it often reads as a report about the source instead of direct gu-log prose.",
+            "commentarySeparation": "ClawdNotes contain much of the opinion, but the body still includes gu-log interpretation such as '意味著舊 prompt 寫法真的進入退場期', '自製 patch 工具是負債', and the final industry-retirement conclusion outside ClawdNote."
           }
         },
         "model": "codex-gpt-5.5-medium",
@@ -2899,11 +2899,11 @@
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 4,
+    "topLevelAttempts": 5,
     "tribunalVersion": 5,
-    "status": "FAILED",
+    "status": "EXHAUSTED",
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T21:19:28+08:00"
+    "finishedAt": "2026-05-21T02:52:14+08:00"
   },
   "sp-188-20260429-mitchellh-ghostty-leaving-github.mdx": {
     "article": "sp-188-20260429-mitchellh-ghostty-leaving-github.mdx",
@@ -2914,20 +2914,20 @@
         "score": {
           "judge": "factCheck",
           "dimensions": {
-            "accuracy": 7,
-            "fidelity": 7,
+            "accuracy": 8,
+            "fidelity": 8,
             "consistency": 8,
             "sourceBoundary": 5,
-            "commentarySeparation": 4
+            "commentarySeparation": 5
           },
           "score": 6,
           "verdict": "FAIL",
           "reasons": {
-            "accuracy": "Most quoted facts match Mitchell Hashimoto's post, including GitHub user #1299, the month-long X journal, the ~2 hour Actions outage, and the April 27 caveat, but the final claim that the last X was drawn on 2026-04-28 is unsupported and likely conflicts with the source's note that the blog post was written over a week before April 27.",
-            "fidelity": "The main source quotations are translated faithfully, but the body repeatedly adds interpretive framing such as HN/X reaction scale, broad ecosystem conclusions, and the 2026-04-28 final-X scene beyond what the source states.",
-            "consistency": "The article's reasoning is mostly coherent, especially the distinction between Git and surrounding infrastructure, but several conclusions depend on added gu-log interpretation rather than evidence in the source.",
-            "sourceBoundary": "The SP body frequently uses source-meta scaffolding, including '原作者' in direct-translation paragraphs and framing like '原文還有一句很關鍵的補充' and '這篇 SP 不是在報導'.",
-            "commentarySeparation": "Substantial gu-log interpretation appears outside ClawdNote, including the landlord analogy, claims about why the announcement carried unusual weight, source-meta discussion, ShroomDog commentary, and gu-log cross-post context in the body."
+            "accuracy": "Core facts match Mitchell's blog post: GitHub user 1299, Feb 2008 join date, over 18 years, the one-month X journal, ~2 hour GitHub Actions outage, read-only mirror plan, and April 27 outage footnotes are all supported; a few social-impact claims such as X/Hacker News reaction are not verified from the primary source.",
+            "fidelity": "The quoted passages are translated accurately and major caveats are preserved, including that the April 27 outage timing was coincidental and the PR-review outage was a different outage, but the body repeatedly adds interpretive framing beyond a straight SP rendering.",
+            "consistency": "The post's argument is coherent: long-term GitHub attachment, accumulated outage impact, scoped Ghostty migration, and footnote caveats support the conclusion; the main weakness is not logic but boundary discipline.",
+            "sourceBoundary": "The SP body frequently narrates the source with meta framing such as '這篇推文', 'Mitchell 部落格那篇全文', '這封告白信', 'Mitchell 寫下', and repeated '直譯', so it reads like a source report rather than clean body prose.",
+            "commentarySeparation": "Several gu-log interpretations and analogies appear in the SP body instead of ClawdNote, including the landlord/SLO analogy, claims about why #1299 carries weight, and readings like '態度宣告' and '最務實的一段'."
           }
         },
         "model": "codex-gpt-5.5-medium",
@@ -2935,11 +2935,11 @@
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 4,
+    "topLevelAttempts": 5,
     "tribunalVersion": 5,
-    "status": "FAILED",
+    "status": "EXHAUSTED",
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T21:21:35+08:00"
+    "finishedAt": "2026-05-21T02:52:14+08:00"
   },
   "sp-187-20260428-openai-symphony-codex-orchestration.mdx": {
     "article": "sp-187-20260428-openai-symphony-codex-orchestration.mdx",
@@ -2959,11 +2959,11 @@
           "score": 7,
           "verdict": "FAIL",
           "reasons": {
-            "accuracy": "Core technical claims about Symphony as a SPEC.md plus Elixir reference implementation, Linear task orchestration, per-task agent workspaces, 500% landed-PR increase for some teams, and TypeScript/Go/Rust/Java/Python spec validation are supported by the OpenAI source, but the dated GitHub star claim is not in the source and could only be weakly corroborated by current GitHub state.",
-            "fidelity": "The post preserves major source caveats such as 'some teams,' 'first three weeks,' and 'not every task fits,' but it adds broad interpretive conclusions such as the shift from programming to describing work and cross-role reshuffling beyond the source's explicit claims.",
-            "consistency": "The argument is coherent around context switching becoming the next bottleneck and Symphony moving control to tickets, though several conclusions about platform strategy and future engineering roles are inferential rather than directly evidenced.",
-            "sourceBoundary": "SP body repeatedly uses source-report framing, including '這篇...講,' '原文寫,' '原作者用,' '文章還引,' and '文章結尾,' so it often reads as a report about the source instead of direct gu-log prose.",
-            "commentarySeparation": "Most explicit Clawd opinions are in ClawdNote, but body prose still contains source-meta commentary and gu-log interpretation such as '這篇 SP 把這個故事拆成三層,' the Andrew Ng comparison, platform-strategy analysis, and the concluding '描述工作' thesis."
+            "accuracy": "Core claims match the OpenAI source, including the no-human-written-code setup, 3-5 session ceiling, 500% landed-PR caveat, Elixir reference implementation, JSON-RPC app server, and 15K GitHub stars, but several broad ecosystem interpretations are presented as factual conclusions.",
+            "fidelity": "The post preserves important source caveats such as 'some teams' and 'first three weeks,' but expands beyond the source with claims like low-code tools being crossed over and OpenAI making a platform-level bet.",
+            "consistency": "The bottleneck-to-orchestration argument is coherent, but some conclusions move from source evidence to broader industry prognosis without clearly marking the inference in the body.",
+            "sourceBoundary": "SP body repeatedly uses source-report scaffolding such as '這篇文章講,' '原文寫,' '原作者用,' '文章結尾那段,' and '原作者自己留了一條暗線,' so it reads partly like a source report rather than direct gu-log prose.",
+            "commentarySeparation": "Most explicit Clawd commentary is inside <ClawdNote>, but body prose still contains gu-log/source-meta interpretation such as '這篇 SP 把這個故事拆成三層,' '好的軟體工程承諾通常長這樣,' and '這是平台級別的賭注.'"
           }
         },
         "model": "codex-gpt-5.5-medium",
@@ -2971,11 +2971,11 @@
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 3,
+    "topLevelAttempts": 4,
     "tribunalVersion": 5,
     "status": "FAILED",
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T21:21:37+08:00"
+    "finishedAt": "2026-05-20T23:16:38+08:00"
   },
   "sp-186-20260428-article-openclaw-task-flow.mdx": {
     "article": "sp-186-20260428-article-openclaw-task-flow.mdx",
@@ -3030,30 +3030,55 @@
         "tribunalVersion": 5
       },
       "freshEyes": {
-        "status": "fail",
+        "status": "pass",
         "score": {
           "judge": "freshEyes",
           "dimensions": {
             "readability": 8,
-            "firstImpression": 7
+            "firstImpression": 8
           },
-          "score": 7,
-          "verdict": "FAIL",
+          "score": 8,
+          "verdict": "PASS",
           "reasons": {
-            "readability": "The analogies make the six automation terms easy to follow, but parts like managed/mirrored, ACP, and the long cross-link paragraph still feel like insider map-reading.",
-            "firstImpression": "The opener is clear and useful, but the middle repeats the same role-separation point enough that I would finish for learning, not share it."
+            "readability": "The disaster opener and repeated analogies make the six OpenClaw mechanisms understandable, though terms like Task Flow, Hook, Heartbeat, Standing Orders, and background task ledger arrive fast for a new reader.",
+            "firstImpression": "The Monday-morning failure story is strong and I would keep reading, but the middle dialogue and ClawdNote sections run long enough that a phone reader may start skimming."
           }
         },
         "model": "codex-gpt-5.5-medium",
-        "attempts": 2,
+        "attempts": 1,
+        "tribunalVersion": 5
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "The opening disaster scenario and metaphors like \"準時但失憶的鬧鐘\" read like an engaged professor, though a few architecture paragraphs still lean documentation-style.",
+            "clawdNote": "Five ClawdNotes over the post all take clear stances, especially the critique that the six-mechanism framing is a trap and the final architecture-diagram complaint.",
+            "vibe": "The post stays readable and shareable through concrete failure cases, dialogue, and a clean callback, with only the Task Flow definition section briefly slowing into explanation.",
+            "clarity": "Speaker attribution is clean, body pronouns do not create confusion, and the deterministic 晶晶體 checker reports clean for this file.",
+            "narrative": "It opens with a crash, escalates into the missing-order thesis, pivots through Heartbeat vs. scheduling, and closes by calling back to the original disaster."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1,
         "tribunalVersion": 5
       }
     },
     "topLevelAttempts": 3,
     "tribunalVersion": 5,
-    "status": "FAILED",
+    "status": "PASS",
     "failedStage": "freshEyes",
-    "finishedAt": "2026-05-20T21:19:53+08:00"
+    "finishedAt": "2026-05-20T23:12:54+08:00"
   },
   "sp-185-20260428-andrew-ng-meta-muse-spark-the-batch-349.mdx": {
     "article": "sp-185-20260428-andrew-ng-meta-muse-spark-the-batch-349.mdx",
@@ -3067,17 +3092,17 @@
             "accuracy": 7,
             "fidelity": 6,
             "consistency": 7,
-            "sourceBoundary": 5,
+            "sourceBoundary": 4,
             "commentarySeparation": 4
           },
           "score": 5,
           "verdict": "FAIL",
           "reasons": {
-            "accuracy": "Most concrete source numbers match The Batch, including 1:1 PM ratios, Muse Spark's 52 Intelligence Index, 59M/158M/116M token counts, 2.75B/115M Lilly deal terms, and 82/76/46 persona coverage, but the body adds or overstates claims such as a '1000 人實驗室', '百萬美元級' pay packages instead of the source's hundreds-of-millions wording, and Meta's open-weights strategy being '整個收掉'.",
-            "fidelity": "The post preserves many caveats from the source, including remote teams can work, the 2-10 person scope, no AI-designed drug approval yet, and Muse Spark's coding weakness, but it repeatedly extends the source into stronger editorial conclusions such as 'Ng 那篇是寫給自己看的，Muse Spark 那篇是寫給競爭對手看的' and a broad industry '賭注' frame.",
-            "consistency": "The argument is generally coherent around the bottleneck-shift theme, but several connections among Andrew Ng, Meta, Insilico, and Persona Generators are interpretive leaps rather than conclusions directly supported by the source.",
-            "sourceBoundary": "The SP body frequently uses source-report and issue-framing prose such as 'The Batch 349 頭條', 'The Batch 自家', 'Ng 的信', and repeated discussion of how the issue is arranged, so it reads partly like a report about the source rather than direct gu-log prose.",
-            "commentarySeparation": "Although explicit Clawd opinions are often placed in <ClawdNote>, the body itself contains substantial gu-log interpretation and metaphor, including the noodle-shop analogy, the 'two opposite bets' frame, and claims about what each article is 'for'."
+            "accuracy": "Most quoted benchmark and drug-discovery numbers match The Batch, but the body misframes Meta as a \"1000 人實驗室\" even though the source's 1,000 figure refers to physicians curating health data, and it understates source-described hiring packages as merely 百萬美元級 rather than hundreds of millions.",
+            "fidelity": "The post preserves many source details, but it adds a large body-level thesis about opposite signals, intended audiences, and editorial arrangement that The Batch does not state, and it overextends Meta's pivot into \"Open Weights 策略整個收掉\".",
+            "consistency": "The argument is mostly coherent, but several conclusions depend on unsupported synthesis, especially tying Ng, Meta, Insilico, and Persona Generators into one shared bottleneck narrative outside the source's explicit claims.",
+            "sourceBoundary": "SP body repeatedly narrates the source and its layout with phrases such as \"The Batch 349 頭條\", \"The Batch 自家\", \"這篇 SP\", and \"版面安排本身就是論點\", so it often reads as a source report rather than direct gu-log prose.",
+            "commentarySeparation": "Substantial gu-log interpretation appears outside ClawdNote, including the noodle-shop analogies, \"Ng 那篇是寫給自己看的，Muse Spark 那篇是寫給競爭對手看的\", and the editorial-power thesis in the conclusion."
           }
         },
         "model": "codex-gpt-5.5-medium",
@@ -3085,10 +3110,10 @@
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 1,
+    "topLevelAttempts": 2,
     "tribunalVersion": 5,
     "status": "FAILED",
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T21:24:40+08:00"
+    "finishedAt": "2026-05-20T23:15:43+08:00"
   }
 }
