@@ -1217,7 +1217,7 @@
         "status": "in_progress",
         "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
@@ -2790,18 +2790,36 @@
     "startedAt": "2026-05-20T10:03:47+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 7,
+            "consistency": 8,
+            "sourceBoundary": 9,
+            "commentarySeparation": 6
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core Dreams API claims are correct against Anthropic docs: async job, 1-100 sessions, separate output memory store, streamable running session, standard token billing, and Opus/Sonnet support are all supported; the sleep-memory explanation is framed as analogy but not sourced in the post.",
+            "fidelity": "The X source text was not accessible for direct comparison, and the post adds substantial interpretive framing such as Dreams as a second loop and context-window critique beyond what can be verified from the available Anthropic documentation.",
+            "consistency": "The argument is coherent and the memory lifecycle thesis follows from duplicates, contradictions, stale entries, and output reviewability, though some conclusions about long-term compounding are broader than the cited mechanics.",
+            "sourceBoundary": "The SP body mostly avoids repeated source-report scaffolding such as 原作者說 or 原文提到; the line clarifying that biological sleep is not an Anthropic claim is a reasonable evidence boundary rather than recurring meta-framing.",
+            "commentarySeparation": "Several gu-log interpretations and evaluative asides remain in the body rather than ClawdNote, including 非常工程腦/優雅很多, 除錯時會救命, the broader second-loop thesis, and the context-window-not-a-cure section."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 1,
+    "topLevelAttempts": 2,
     "tribunalVersion": 5,
     "status": "FAILED",
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T10:08:17+08:00"
+    "finishedAt": "2026-05-20T12:01:47+08:00"
   },
   "sp-189-20260430-openai-gpt-5-5-prompting-guide.mdx": {
     "article": "sp-189-20260430-openai-gpt-5-5-prompting-guide.mdx",
