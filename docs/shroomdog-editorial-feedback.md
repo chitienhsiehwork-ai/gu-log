@@ -254,6 +254,13 @@
 - 修法：把文章重寫成短版：只保留核心 thesis「Codex 正在變成 coding agent 的 runtime kernel；OpenClaw / Hermes 變成外層 control plane」，把 implementation detail 變成原文連結，不在正文展開 inventory。
 - Reusable lesson：架構趨勢文不要把文件細節搬進正文。gu-log 要交付的是可記住的 mental model；implementation details、限制清單、auth 指令、完整 tool matrix 應該連回原文。若細節沒有推動 thesis，就刪掉或縮成一句。
 
+### Feedback: Do not mix competing analogy systems in one architecture post
+
+- ShroomDog feedback：I think there is a problem of the analogy in this post / 有些比喻是 腦 手 跟互動窗口 / 有些比喻是廚房 / 搞屁啊= =
+- 情境：SD-24 正文先建立「模型 = 腦袋、執行引擎 = 手腳、聊天入口 = 互動窗口」三層 mental model，但 ClawdNote 又切到「主廚腦袋 / 廚房 / 外場」餐廳比喻。兩套比喻各自能用，但放在同一篇會讓讀者不知道 Codex 到底是手腳、廚房，還是 runtime kernel。
+- 修法：移除廚房比喻，全文統一成腦袋 / 手腳 / 互動窗口與調度系統。Codex 一律是「真正動手的執行層」，OpenClaw / Hermes 一律是入口、調度、記憶、回報與 workflow。
+- Reusable lesson：架構文章可以有比喻，但同一篇的核心比喻要收斂。若要換比喻，必須明確說「換個角度看」並只用在局部；否則會讓 mental model 自相打架。尤其是三層架構文，角色 mapping 要穩定：同一個元件不要一段是手、一段是廚房、一段又是引擎。
+
 ## 2026-05-16 — SP-204 OpenClaw Token Spend Agent Workflow
 
 ### Feedback: Short tweets should stay short
@@ -287,4 +294,3 @@
 - Context: The source uses product-management vocabulary like intent engineering, OKRs, empowered teams, autonomy boundaries, and stop rules. A framework-heavy title would make the post feel like PM jargon before the reader gets the useful agent lesson.
 - Fix: Use a direct title such as 「AI Agent 不是有目標就夠了」 instead of terms like 「意圖工程框架」 or 「Agent 治理八要素」. Keep the body practical: goal, boundary, what cannot break, and when to stop.
 - Reusable lesson: When the source is a framework post, gu-log titles should often translate the reader-facing problem, not the author’s framework brand. Plain-language titles lower the entry cost and keep the article from smelling like a slide deck.
-

@@ -55,18 +55,18 @@ The model is the brain. GPT-5.5, GPT-5.4, or any other model decides the quality
 
 The execution engine is the hands. The thing that actually runs commands, edits files, and handles code tasks can be Codex app-server.
 
-The chat surface is the front desk. Telegram, Discord, iMessage, and web UI are where humans send tasks in and receive results back.
+The chat surface is the interaction layer. Telegram, Discord, iMessage, and web UI are where humans send tasks in and receive results back.
 
-What OpenClaw and Hermes are doing here is handing the "hands" layer to Codex while continuing to own the front desk, workflow, memory, delegation, and reporting.
+What OpenClaw and Hermes are doing here is handing the "hands" layer to Codex while continuing to own the interaction layer, workflow, memory, delegation, and reporting.
 
 <ClawdNote>
-This is restaurant architecture.
+This is the important part: keep the layers straight.
 
-The model is the chef's brain.
-Codex is the kitchen: fire, knives, actual cooking.
-OpenClaw and Hermes are the front of house: taking orders, remembering regulars, sending the food back to the right table.
+The model is the brain: judgment and planning.
+Codex is the hands: grabbing tools, running commands, editing files, and turning an abstract plan into something that actually happens in the workspace.
+OpenClaw and Hermes are the interaction layer and dispatch system: receiving tasks, setting priorities, remembering preferences, and getting the result back to the right human.
 
-A lot of older agent products tried to be the chef, build the kitchen, and run the dining room all at once. It sounds complete. In practice, it turns into a restaurant where the owner is fixing the plumbing in the basement before the food even reaches the table.
+A lot of older agent products tried to grow the brain, hands, interaction layer, memory, and alarm system all at once. It sounds complete. In practice, a simple bug fix can turn into the product team wrestling with permissions, patches, and context cleanup in the execution layer. The task has not even been reported back yet, and everyone is already debugging the robot fingers.
 
 ╮(╯▽╰)╭
 </ClawdNote>
@@ -75,7 +75,7 @@ A lot of older agent products tried to be the chef, build the kitchen, and run t
 
 ## Why Hand It To Codex
 
-The first reason: the kitchen is hard to build.
+The first reason: the execution layer is hard to build well.
 
 The low-level work of a coding agent is not just "run a command." It needs to edit files safely, know when to apply a patch, handle long tasks, and clean up context when the conversation gets too full. If this layer fails, everything breaks. If it works, users rarely think about it.
 
@@ -97,7 +97,7 @@ That is not quite right.
 
 It is more like a browser adopting V8. Chrome, Edge, and Brave can share a JavaScript engine while still competing on interface, sync, privacy, extensions, ecosystem, and default experience.
 
-In the same way, OpenClaw and Hermes adopting Codex app-server does not erase the outer product. It means the kitchen that writes code can be handled by a specialized kitchen.
+In the same way, OpenClaw and Hermes adopting Codex app-server does not erase the outer product. It means the low-level layer that actually touches code can be handled by a specialized execution engine.
 
 The real competition moves upward.
 
@@ -108,7 +108,7 @@ That is the battlefield for the outer product.
 <ClawdNote>
 This is the real substance: products are starting to admit that "can write code" is not the only selling point.
 
-When everyone can borrow the same high-end kitchen, the difference is no longer who owns the pans. It is who understands the guest, who remembers that a regular hates cilantro, and who can survive the dinner rush without sending the wrong order to the wrong table.
+When everyone can connect to the same specialized execution layer, the difference is no longer who can type into the terminal. It is who understands the user, who remembers that this repo should not casually run migrations, and who can survive peak load without sending the wrong task to the wrong place.
 
 AI agents are the same. Low-level coding ability matters, but what users actually feel is whether the task was caught, whether the result came back, and whether the next session can continue from there.
 </ClawdNote>
