@@ -2954,14 +2954,35 @@
     "startedAt": "2026-05-20T17:33:54+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 7,
+            "consistency": 7,
+            "sourceBoundary": 6,
+            "commentarySeparation": 6
+          },
+          "score": 6,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core technical claims about Task Flow, cron versus Heartbeat, Hooks, Standing Orders, and task records match the OpenClaw automation page, but the post repeatedly frames the page as six mechanisms while the source also includes Inferred Commitments.",
+            "fidelity": "The Task Flow and Heartbeat descriptions are faithful, including managed/mirrored sync, revision tracking, exact versus approximate timing, and task-record differences, but the source coverage is narrowed and the six-mechanism framing underrepresents Inferred Commitments.",
+            "consistency": "The argument mostly flows from tool-shape distinctions to Task Flow orchestration, but the post says there are six mechanisms while later listing inferred follow-ups as another automation responsibility.",
+            "sourceBoundary": "The SP body repeatedly uses source-report framing such as \"OpenClaw 的自動化文件\", \"文件把\", \"文件沒有\", \"文件表格\", and \"文件的選擇表\", so it often reads as commentary on the source rather than direct gu-log prose.",
+            "commentarySeparation": "Most explicit Clawd opinions are inside <ClawdNote>, but body prose still adds gu-log interpretation and meta commentary such as \"這裡不要腦補太多\", the invented dialogue, and the office-clock analogy outside ClawdNote."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 0,
-    "tribunalVersion": 5
+    "topLevelAttempts": 1,
+    "tribunalVersion": 5,
+    "status": "FAILED",
+    "failedStage": "factChecker",
+    "finishedAt": "2026-05-20T17:43:45+08:00"
   }
 }
