@@ -1105,16 +1105,36 @@
     "startedAt": "2026-05-20T21:15:14+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 8,
+            "sourceBoundary": 7,
+            "commentarySeparation": 7
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core incident facts in the post, including Cursor running Claude Opus 4.6, Railway GraphQL volumeDelete, 9-second deletion, unrelated token, same-volume backups, and three-month-old restore point, are supported by contemporaneous reporting, but some broad body claims about Cursor's track record and Railway's whole-user-base risk are asserted more strongly than the directly available source record supports.",
+            "fidelity": "The post preserves the main source claims and important hedge around model-level versus integration-level responsibility, but it expands Jer's incident account into a broader Cursor/Railway indictment with extra examples and conclusions that go beyond straightforward translation.",
+            "consistency": "The causal chain from agent permissions to unscoped token to destructive Railway API to backup loss is coherent, though some conclusions such as inevitable systemic failure and future citation by panels or papers are rhetorical projections rather than evidence-backed findings.",
+            "sourceBoundary": "The SP body mostly presents the incident directly, but it repeatedly frames source handling with body prose such as 'Jer 把整段事件寫成', 'Jer 後來說', 'Jer 把過往案例列了一串', and 'Jer 寫文章的真正動機', which makes parts read like a report about the source.",
+            "commentarySeparation": "Most explicit gu-log interpretation is inside ClawdNote, but body sentences such as '重點是兩個重金行銷的廠商把這場災難從可能變成必然的系統性失敗', 'Pattern 已經很清楚', and '這篇拆給每一個...' add editorial framing outside ClawdNote."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 0,
-    "status": "PENDING",
-    "tribunalVersion": 5
+    "topLevelAttempts": 1,
+    "status": "FAILED",
+    "tribunalVersion": 5,
+    "failedStage": "factChecker",
+    "finishedAt": "2026-05-20T21:21:15+08:00"
   },
   "sp-190-20260505-mindos-lisa-reddit.mdx": {
     "article": "sp-190-20260505-mindos-lisa-reddit.mdx",
@@ -2893,7 +2913,7 @@
         "status": "in_progress",
         "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
@@ -2911,7 +2931,7 @@
         "status": "in_progress",
         "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
