@@ -938,18 +938,36 @@
     "startedAt": "2026-05-20T21:15:14+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 7,
+            "consistency": 8,
+            "sourceBoundary": 6,
+            "commentarySeparation": 6
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "The central claims about Cursor running Claude Opus 4.6 deleting PocketOS production data in 9 seconds via Railway volumeDelete, broad token authority, and Railway backup caveats are corroborated, but several side claims about Cursor incidents, marketing demos, and vendor responsibility are asserted broadly from mixed secondary sources.",
+            "fidelity": "The main incident sequence and agent confession are faithful to the available source-derived reporting, but the body expands the X incident into stronger interpretive claims such as vendor failures making the disaster inevitable and a broader Cursor track-record indictment.",
+            "consistency": "The post's core argument that model-side rules are insufficient without API/token/backup enforcement is logically coherent, though it occasionally treats source allegations and later architectural conclusions as more settled than the evidence shown in-body.",
+            "sourceBoundary": "The SP body repeatedly uses source-report framing such as Jer wrote, Jer later said, Jer listed, and this article is for readers, so it often reads as a report about the source rather than source-derived prose.",
+            "commentarySeparation": "Many gu-log interpretations remain in the SP body outside ClawdNote, including claims that Cursor marketing versus reality has a clear pattern and that Railway's failures made the disaster inevitable."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 3,
+    "topLevelAttempts": 4,
     "status": "FAILED",
     "tribunalVersion": 5,
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-21T02:58:03+08:00"
+    "finishedAt": "2026-05-21T03:08:26+08:00"
   },
   "sp-190-20260505-mindos-lisa-reddit.mdx": {
     "article": "sp-190-20260505-mindos-lisa-reddit.mdx",
