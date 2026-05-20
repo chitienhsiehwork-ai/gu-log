@@ -1201,7 +1201,7 @@
         "status": "in_progress",
         "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
@@ -2813,7 +2813,7 @@
         "status": "in_progress",
         "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
@@ -2864,18 +2864,36 @@
     "startedAt": "2026-05-20T11:59:55+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 7,
+            "fidelity": 7,
+            "consistency": 7,
+            "sourceBoundary": 4,
+            "commentarySeparation": 4
+          },
+          "score": 5,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core source facts match Mitchell's article, including GitHub user #1299, the month of X marks, the ~2 hour Actions outage, and the April 27 footnotes, but the body turns 'almost every day' into an estimated 25-28 days and 80%-90% of workdays and adds broad claims such as HN/X reaction without source support.",
+            "fidelity": "Quoted passages are mostly translated faithfully, but the SP body extends the source into interpretive conclusions about signal weight, community blast radius, and platform trends that Mitchell did not state.",
+            "consistency": "The argument is coherent overall, but it makes visible leaps from one maintainer's outage journal to generalized workflow and ecosystem conclusions, especially the 80%-90% impact framing and 'all contributors blocked' chain.",
+            "sourceBoundary": "The SP body repeatedly uses source-report scaffolding such as '直譯', '原作者', '原文還有一句', and '這篇 SP 不是在報導', so it reads heavily like a report about the source rather than natural SP prose.",
+            "commentarySeparation": "Substantial gu-log interpretation remains outside ClawdNote, including the landlord analogy, why #1299 matters, the Ghostty-only move analysis, footnote strategy analysis, and ShroomDog's closing interpretation."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 2,
+    "topLevelAttempts": 3,
     "tribunalVersion": 5,
     "status": "FAILED",
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T17:38:52+08:00"
+    "finishedAt": "2026-05-20T19:28:49+08:00"
   },
   "sp-187-20260428-openai-symphony-codex-orchestration.mdx": {
     "article": "sp-187-20260428-openai-symphony-codex-orchestration.mdx",
@@ -2885,7 +2903,7 @@
         "status": "in_progress",
         "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
