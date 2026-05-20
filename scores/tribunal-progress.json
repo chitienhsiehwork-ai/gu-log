@@ -2910,8 +2910,62 @@
     "startedAt": "2026-05-20T11:59:55+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 7,
+            "fidelity": 7,
+            "consistency": 8,
+            "sourceBoundary": 5,
+            "commentarySeparation": 4
+          },
+          "score": 6,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Most quoted facts match Mitchell Hashimoto's post, including GitHub user #1299, the month-long X journal, the ~2 hour Actions outage, and the April 27 caveat, but the final claim that the last X was drawn on 2026-04-28 is unsupported and likely conflicts with the source's note that the blog post was written over a week before April 27.",
+            "fidelity": "The main source quotations are translated faithfully, but the body repeatedly adds interpretive framing such as HN/X reaction scale, broad ecosystem conclusions, and the 2026-04-28 final-X scene beyond what the source states.",
+            "consistency": "The article's reasoning is mostly coherent, especially the distinction between Git and surrounding infrastructure, but several conclusions depend on added gu-log interpretation rather than evidence in the source.",
+            "sourceBoundary": "The SP body frequently uses source-meta scaffolding, including '原作者' in direct-translation paragraphs and framing like '原文還有一句很關鍵的補充' and '這篇 SP 不是在報導'.",
+            "commentarySeparation": "Substantial gu-log interpretation appears outside ClawdNote, including the landlord analogy, claims about why the announcement carried unusual weight, source-meta discussion, ShroomDog commentary, and gu-log cross-post context in the body."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 2,
+        "tribunalVersion": 5
+      }
+    },
+    "topLevelAttempts": 4,
+    "tribunalVersion": 5,
+    "status": "FAILED",
+    "failedStage": "factChecker",
+    "finishedAt": "2026-05-20T21:21:35+08:00"
+  },
+  "sp-187-20260428-openai-symphony-codex-orchestration.mdx": {
+    "article": "sp-187-20260428-openai-symphony-codex-orchestration.mdx",
+    "startedAt": "2026-05-20T17:33:33+08:00",
+    "stages": {
+      "factChecker": {
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 8,
+            "sourceBoundary": 5,
+            "commentarySeparation": 6
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core technical claims about Symphony as a SPEC.md plus Elixir reference implementation, Linear task orchestration, per-task agent workspaces, 500% landed-PR increase for some teams, and TypeScript/Go/Rust/Java/Python spec validation are supported by the OpenAI source, but the dated GitHub star claim is not in the source and could only be weakly corroborated by current GitHub state.",
+            "fidelity": "The post preserves major source caveats such as 'some teams,' 'first three weeks,' and 'not every task fits,' but it adds broad interpretive conclusions such as the shift from programming to describing work and cross-role reshuffling beyond the source's explicit claims.",
+            "consistency": "The argument is coherent around context switching becoming the next bottleneck and Symphony moving control to tickets, though several conclusions about platform strategy and future engineering roles are inferential rather than directly evidenced.",
+            "sourceBoundary": "SP body repeatedly uses source-report framing, including '這篇...講,' '原文寫,' '原作者用,' '文章還引,' and '文章結尾,' so it often reads as a report about the source instead of direct gu-log prose.",
+            "commentarySeparation": "Most explicit Clawd opinions are in ClawdNote, but body prose still contains source-meta commentary and gu-log interpretation such as '這篇 SP 把這個故事拆成三層,' the Andrew Ng comparison, platform-strategy analysis, and the concluding '描述工作' thesis."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
@@ -2921,25 +2975,7 @@
     "tribunalVersion": 5,
     "status": "FAILED",
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T19:28:49+08:00"
-  },
-  "sp-187-20260428-openai-symphony-codex-orchestration.mdx": {
-    "article": "sp-187-20260428-openai-symphony-codex-orchestration.mdx",
-    "startedAt": "2026-05-20T17:33:33+08:00",
-    "stages": {
-      "factChecker": {
-        "status": "in_progress",
-        "score": null,
-        "model": "codex-gpt-5.5-medium",
-        "attempts": 2,
-        "tribunalVersion": 5
-      }
-    },
-    "topLevelAttempts": 2,
-    "tribunalVersion": 5,
-    "status": "FAILED",
-    "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T19:29:46+08:00"
+    "finishedAt": "2026-05-20T21:21:37+08:00"
   },
   "sp-186-20260428-article-openclaw-task-flow.mdx": {
     "article": "sp-186-20260428-article-openclaw-task-flow.mdx",
