@@ -1302,7 +1302,7 @@
         "status": "in_progress",
         "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
@@ -2682,18 +2682,36 @@
     "startedAt": "2026-05-20T06:21:38+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9,
+            "sourceBoundary": 5,
+            "commentarySeparation": 6
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core claims match the Browserbase Autobrowse article, including the 3-5 iteration cap, Craigslist API route, federal grants JSON endpoint, and static HTML failure case, but the post frames the source as an X longform by Kyle alone while the comparable public article is a Browserbase post coauthored by Kyle Jeong and Shubhankar Srivastava.",
+            "fidelity": "The translation preserves the main argument and caveats, and responsibly avoids repeating one-off benchmark numbers as universal facts, but it adds unsourced source-access commentary such as the X longform not being directly open to everyone.",
+            "consistency": "The argument is coherent from amnesic browser agents to reusable SKILL.md artifacts, then to fit-for-purpose tool selection and future improvements, with no major internal contradiction.",
+            "sourceBoundary": "The SP body repeatedly uses source-report scaffolding such as lines 77, 93, 107, 117, 131, 149, 151, 183, 193, 224, and 240 with phrases like 原作者介紹, 原作者說, 原作者貼出, 原文給了, and 原作者提到.",
+            "commentarySeparation": "Several body passages add gu-log/source-meta framing outside ClawdNote, including the evidence-boundary paragraph at line 81 and the gu-log cross-reference paragraph at line 89, so readers cannot always separate source translation from gu-log framing."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 2,
+    "topLevelAttempts": 3,
     "tribunalVersion": 5,
     "status": "FAILED",
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T08:13:11+08:00"
+    "finishedAt": "2026-05-20T08:19:10+08:00"
   },
   "sp-192-20260508-article-agent-ralph.mdx": {
     "article": "sp-192-20260508-article-agent-ralph.mdx",
