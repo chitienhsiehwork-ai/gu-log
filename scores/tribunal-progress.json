@@ -1198,16 +1198,36 @@
     "startedAt": "2026-05-20T11:55:35+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 7,
+            "consistency": 8,
+            "sourceBoundary": 5,
+            "commentarySeparation": 5
+          },
+          "score": 6,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core factual details align with the retrieved source context, including KD `0-14%`, CPC `> 0.01`, Reddit Answers, Atlas, Octopus RPA links, Feishu invite code `Code2z4tYku9Ru`, and preserving the DataReportal `X` placeholder, though the Reddit consensus claims remain source-level summaries rather than independently verifiable facts.",
+            "fidelity": "The post preserves the main workflow and caveats such as not inventing the DataReportal threshold and disclosing the Feishu promotion, but the SP body substantially expands the source with gu-log explanatory prose and analogies.",
+            "consistency": "The argument flows coherently from Semrush filtering to Reddit validation to RPA and Feishu storage, with only mild blurring where editorial expansions make it less clear whether a conclusion is Lisa's or gu-log's.",
+            "sourceBoundary": "The SP body frequently uses source-report framing such as `Lisa 這篇推文提供`, `原作者自介`, `Lisa 建議`, `原作者提到`, `原文保留`, and `原文提供`, so it reads too often like a report about the source.",
+            "commentarySeparation": "Multiple gu-log opinions and jokes appear outside `<ClawdNote>`, including the metal-detector analogy, professor joke, Ironman joke, technology joke, and broad concluding product-philosophy flourishes."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 0,
-    "status": "PENDING",
-    "tribunalVersion": 5
+    "topLevelAttempts": 1,
+    "status": "FAILED",
+    "tribunalVersion": 5,
+    "failedStage": "factChecker",
+    "finishedAt": "2026-05-20T12:02:53+08:00"
   },
   "sp-194-20260508-trq212-html-markdown-agent.mdx": {
     "article": "sp-194-20260508-trq212-html-markdown-agent.mdx",
@@ -2847,7 +2867,7 @@
         "status": "in_progress",
         "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
