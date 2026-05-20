@@ -1201,7 +1201,7 @@
         "status": "in_progress",
         "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
@@ -1214,18 +1214,36 @@
     "startedAt": "2026-05-20T06:21:20+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9,
+            "sourceBoundary": 9,
+            "commentarySeparation": 7
+          },
+          "score": 8,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "The main technical claims about HTML capabilities, Claude Code filesystem/MCP context, sharing via browser/S3, token overhead, slower generation, and noisy git diffs match the available cached/source summaries, though claims such as Opus 4.7's 1MM context and team adoption are source-level assertions rather than independently verified primary facts.",
+            "fidelity": "The post preserves the source's core argument, use cases, caveats, and minimal-start advice, but expands the source into gu-log interpretation and analogies beyond a strict translation.",
+            "consistency": "The argument flows coherently from Markdown limits to HTML readability, sharing, interaction, Claude Code context, caveats, and the human-in-the-loop conclusion without material contradiction.",
+            "sourceBoundary": "The SP body avoids repeated source-report scaffolding such as 原作者說 or 原文提到, and mostly presents the claims directly with natural evidence boundaries.",
+            "commentarySeparation": "Several gu-log interpretive or source-meta sentences remain in body prose outside ClawdNote, including the prior gu-log cross-reference, '這句話其實有點殘酷', '這裡的判斷很直接', and '這個建議很務實'."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 4,
+    "topLevelAttempts": 5,
     "status": "FAILED",
     "tribunalVersion": 5,
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T10:12:40+08:00"
+    "finishedAt": "2026-05-20T12:02:07+08:00"
   },
   "sp-195-20260507-yage-skill-plugin-evolution.mdx": {
     "article": "sp-195-20260507-yage-skill-plugin-evolution.mdx",

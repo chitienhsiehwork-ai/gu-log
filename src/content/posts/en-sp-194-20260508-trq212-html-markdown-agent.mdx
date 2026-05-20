@@ -64,15 +64,15 @@ scores:
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-On the surface, [Thariq](/en/glossary#thariq)'s piece is about something very simple: when using Claude Code, instead of asking the agent to produce Markdown, ask it to produce HTML.
+In [Thariq](/en/glossary#thariq)'s Claude Code workflow, one shift is simple: instead of asking the agent to produce Markdown, ask it to produce HTML.
 
 But the truly interesting part is not that "HTML looks nicer."
 
 The real point is this: once software development agents start producing specs, research reports, code reviews, interactive prototypes, and decision-support tools, the biggest bottleneck is no longer only "can the AI write it," but **whether humans will actually read it**.
 
-Markdown is very good for notes, READMEs, and short specs. But once a file grows to hundreds of lines, with option comparisons, flowcharts, code snippets, risks, mockups, data flows, and operating interfaces inside it, Markdown starts to feel like taking every piece of IKEA furniture in the room, dismantling it into parts, throwing all the parts into a transparent plastic bag, and attaching one crumpled instruction sheet. Everything is there, and in theory it can be assembled, but just looking at it makes you want to run away.
+Markdown is very good for notes, READMEs, and short specs. But once a file grows to hundreds of lines, with option comparisons, flowcharts, code snippets, risks, mockups, data flows, and operating interfaces inside it, Markdown's linear text starts compressing different levels of information into the same surface. Everything is there, and in theory it can be read, but the cost of review rises quickly.
 
-Thariq's core claim is that HTML can turn agent output from a "wall of text" into something genuinely reviewable. Humans do not need to dig through piles of `###`, indentation, and ASCII arrows. Instead, they can use layout, color, charts, interactive elements, tabs, buttons, and export functions to understand, compare, adjust, and send the result back into Claude Code.
+The core claim is that HTML can turn agent output from a "wall of text" into something genuinely reviewable. Humans do not need to dig through piles of `###`, indentation, and ASCII arrows. Instead, they can use layout, color, charts, interactive elements, tabs, buttons, and export functions to understand, compare, adjust, and send the result back into Claude Code.
 
 This may sound like a formatting preference, but it is really a question of the human-machine collaboration interface. (⌐■_■)
 
@@ -94,31 +94,31 @@ This may sound like a formatting preference, but it is really a question of the 
 
 ## Markdown's strengths are also exactly its ceiling
 
-The author first acknowledges that Markdown became the dominant format for communication between agents and humans for good reasons.
+Markdown became the dominant format for communication between agents and humans for good reasons.
 
-It is simple, portable, easy to edit, and has basic rich text capability. Claude has even become very good at drawing in ASCII inside Markdown. This skill is a little like carving an aircraft carrier out of convenience-store chopsticks: dexterous, admirable in spirit, but when there is clearly a 3D printer sitting nearby, the scene starts to feel a bit absurd.
+It is simple, portable, easy to edit, and has basic rich text capability. Claude has even become very good at drawing in ASCII inside Markdown. But ASCII diagrams can only carry so much layout, color, and interaction.
 
-The problem is that once agents get stronger, the output is no longer just "please help me list a TODO." They start writing larger and larger specs, plans, brainstorm results, reference documents, and research summaries. Thariq says that in practice, once a Markdown file exceeds one hundred lines, he already finds it hard to read the whole thing, let alone get other people in the organization to read it together.
+The problem is that once agents get stronger, the output is no longer just "please help me list a TODO." They start writing larger and larger specs, plans, brainstorm results, reference documents, and research summaries. In practice, once a Markdown file exceeds one hundred lines, it is already hard to read the whole thing, let alone get other people in the organization to read it together.
 
-More importantly, one of Markdown's biggest advantages used to be that it was "easy for humans to edit." But Thariq found that now, much of the time, he is not personally editing these files at all. He treats them as specs, references, and brainstorm output; when changes are really needed, he mostly prompts Claude to make them. Since the main editor has already shifted from human hands to the agent, Markdown's hand-editability advantage is weakened.
+More importantly, one of Markdown's biggest advantages used to be that it was "easy for humans to edit." In this workflow, though, many files are not primarily hand-edited. They are treated as specs, references, and brainstorm output; when changes are really needed, Claude usually makes them from a prompt. Since the main editor has already shifted from human hands to the agent, Markdown's hand-editability advantage is weakened.
 
 <ClawdNote>
 This turn is important. Markdown is not bad; it has been put into a new job. Writing short notes in Markdown is comfortable. Using Markdown to carry interactive specs, design comparisons, code reviews, and flow visualizations is like asking a bicycle to tow a shipping container. The bicycle is not wrong, and neither is the container. The mistake is forcing them together.
 </ClawdNote>
 
-So Thariq started preferring HTML. Even more interestingly, he observed that more and more people on the Claude Code team are doing the same.
+So HTML starts becoming the preferred format. Even more interestingly, more and more people on the Claude Code team are doing the same.
 
 ---
 
 ## HTML's first power: a huge jump in information density
 
-Thariq says HTML can express much richer information than Markdown. This is not as shallow as "you can add colors."
+HTML can express much richer information than Markdown. This is not as shallow as "you can add colors."
 
-HTML can contain headings and paragraphs, but also tables, CSS design data, SVG illustrations, code snippets, JavaScript interactions, HTML components, flowcharts, absolutely positioned spatial data, canvas, and images. The author even says that there is almost no set of information Claude can read that cannot be represented quite efficiently as HTML.
+HTML can contain headings and paragraphs, but also tables, CSS design data, SVG illustrations, code snippets, JavaScript interactions, HTML components, flowcharts, absolutely positioned spatial data, canvas, and images. Almost any information Claude can read can be represented quite efficiently as HTML.
 
 In other words, HTML is not just a document format. It is more like a desktop that can hold documents, charts, control panels, interactive simulators, presentations, and small tools.
 
-In Markdown, when an agent wants to say "this UI has three states, there is a data flow here, this piece of code has risks, and these modules call one another," it usually has to rely on text plus ASCII diagrams. Worse, Thariq mentions that Claude Code sometimes uses Unicode characters to approximate colors. The image is pretty funny: the AI wants to communicate color, but all it has is a box of shredded colorful sticky notes, so it starts using block characters to pretend it has a palette.
+In Markdown, when an agent wants to say "this UI has three states, there is a data flow here, this piece of code has risks, and these modules call one another," it usually has to rely on text plus ASCII diagrams. Claude Code sometimes even uses Unicode characters to approximate colors: the AI wants to communicate color, but all it has is a box of shredded colorful sticky notes, so it starts using block characters to pretend it has a palette.
 
 HTML lets the model put information directly into the shape best suited to it. Tables are tables, flows are flows, colors are colors, interactions are interactions. This is not decoration; it is a reduction in cognitive load.
 
@@ -128,11 +128,11 @@ HTML lets the model put information directly into the shape best suited to it. T
 
 At this point, the story stops being only about "HTML can hold more information." The sharper question is: even if the information is there, will anyone finish reading it?
 
-The more complex Claude's work becomes, the longer the plans and specs it writes. The problem with long Markdown is not that the information is incomplete, but that it looks too much like a whole gray wall. A reader's eyes scan across it, everything seems about equally important, and the brain switches into power-saving mode: save it for later, read it tomorrow, quietly let tomorrow join the same graveyard as New Year's resolutions.
+The more complex Claude's work becomes, the longer the plans and specs it writes. The problem with long Markdown is not that the information is incomplete, but that there is too little visual hierarchy. A reader's eyes scan across it, everything seems about equally important, and the risks, options, and decision points that need review can sink into the text.
 
 HTML lets Claude arrange content in ways closer to how humans read: tabs, illustrations, links, visual hierarchy, sections, and navigation. It can even produce responsive layouts, with different presentations on desktop and mobile.
 
-This is especially important for team collaboration. Thariq says very directly that it is hard to get coworkers to read Markdown specs; if it is HTML, the odds that they will read a spec, report, or PR explanation become much higher.
+This is especially important for team collaboration. It is hard to get coworkers to read Markdown specs; if it is HTML, the odds that they will read a spec, report, or PR explanation become much higher.
 
 That sentence is a little brutal. The technical world often assumes that "once the information is written down, communication is complete." It is not. Writing information down only means it exists. Communication is complete only when people actually understand it, are willing to review it, and can give feedback.
 
@@ -152,21 +152,21 @@ Do not underestimate the cost of "opening."
 
 For the same content, if someone has to download an attachment, find a suitable reader, switch tools, and tolerate broken formatting, the read rate will naturally fall. Conversely, when one link opens directly and the layout itself is designed for reading, the odds that the content will be reviewed go up. This is not merely "people are lazy." It is friction in the collaboration system.
 
-Thariq's wording is direct: HTML makes it much more likely that specs, reports, and PR explanations will actually be read.
+The judgment here is direct: HTML makes it much more likely that specs, reports, and PR explanations will actually be read.
 
 ---
 
 ## The real evolution: documents can become two-way interactive
 
-Up to this point, HTML sounds like a better-formatted document format. But the next layer Thariq really cares about is interaction.
+Up to this point, HTML sounds like a better-formatted document format. But the next important layer is interaction.
 
 HTML documents are not only readable; they are operable. You can add sliders, knobs, and options so people can adjust design parameters, switch algorithm settings, and see how the result changes. You can even add a button that copies the adjusted content as a prompt, ready to paste back into Claude Code.
 
 This workflow is crucial: the human is no longer just reading the agent's answer, but operating, choosing, and fine-tuning inside the artifact, then feeding decisions back to the agent.
 
-For example, the author mentions making an animation parameter tuner. Suppose you want to create a new checkout button that plays an animation after being clicked, then quickly turns purple. Claude can generate an HTML file with multiple sliders and options so the developer can try different animation parameters, then use a copy button to take away the parameters that seem usable.
+For example, take an animation parameter tuner. Suppose you want to create a new checkout button that plays an animation after being clicked, then quickly turns purple. Claude can generate an HTML file with multiple sliders and options so the developer can try different animation parameters, then use a copy button to take away the parameters that seem usable.
 
-This is not a formal product, nor an internal tool meant to be maintained long-term. It is a disposable interactive interface serving the decision at hand. It is like temporarily using a small dish to taste food while cooking; once the tasting is done, that is enough. There is no need to register the small dish as a company platform.
+This is not a formal product, nor an internal tool meant to be maintained long-term. It is a disposable interactive interface serving the decision at hand; once the decision is made and the result is exported, it does not need to be maintained.
 
 <ClawdNote>
 This kind of disposable interface is powerful. In the past, people did not want to write tools because tools were too expensive. Now that agents can generate single-file HTML relatively cheaply, small tools suddenly become cheap. So things that are painful to describe in text can become "drag a little, choose a little, copy the result." This is not laziness; it is rescuing the human brain from text-format hell.
@@ -176,11 +176,11 @@ This kind of disposable interface is powerful. In the past, people did not want 
 
 ## Why Claude Code, rather than a normal chat interface
 
-Thariq also answers a natural question: if HTML is only an output format, why produce it with Claude Code rather than ClaudeAI or Claude Design?
+This also raises a natural question: if HTML is only an output format, why produce it with Claude Code rather than ClaudeAI or Claude Design?
 
-His answer is data ingestion capability.
+The answer is data ingestion capability.
 
-Claude Code can read the file system. While writing this piece, the author asked Claude Code to scan his code folders, find all the generated HTML files, group and categorize them, then create an HTML file with charts showing each type. The charts shown in the article are the direct result of that process.
+Claude Code can read the file system. In this case, Claude Code scanned code folders, found all generated HTML files, grouped and categorized them, then created an HTML file with charts showing each type. Those charts are the direct result of that process.
 
 Beyond the file system, Claude Code can also find more context through MCP, such as Slack and Linear; it can also use browser context, such as Claude in Chrome, as well as sources like git history.
 
@@ -192,7 +192,7 @@ So the subject here is not HTML itself, but "a context-aware agent producing HTM
 
 ## Fun is not a small thing; involvement affects quality
 
-Thariq raises another reason that sounds un-engineering-like but is very important: using Claude to make HTML documents is more fun, and makes him feel more involved and invested.
+There is another reason that sounds un-engineering-like but is very important: using Claude to make HTML documents is more fun, and makes people feel more involved and invested.
 
 This sentence may sound like a soft preference, but in agent workflows it is actually hard-edged.
 
@@ -204,27 +204,27 @@ HTML makes intermediate artifacts easier to read, easier to play with, and easie
 
 ## There is no need to invent an "HTML skill" first
 
-The author also specifically warns: do not read this and immediately rush to make an `/html` skill.
+There is also a specific warning: do not see this workflow and immediately rush to make an `/html` skill.
 
-He acknowledges that it may be valuable, but emphasizes that getting started does not need to be complicated. Just ask Claude directly to "make an HTML file" or "make an HTML artifact."
+An `/html` skill may be valuable, but getting started does not need to be complicated. Just ask Claude directly to "make an HTML file" or "make an HTML artifact."
 
 The real skill is not the template, but knowing what the artifact is supposed to do and how it will be used afterward. Is it meant to compare six design directions? Review a PR? Tune animation parameters? Summarize an incident? Move Linear tickets into Now / Next / Later / Cut?
 
 Start with zero-shot prompts a few times and get a feel for how HTML can help in different situations. Once the needs become stable, then consider extracting it into a skill.
 
-This advice is very pragmatic. When many engineers see an effective method, their first reaction is to institutionalize it, templatize it, and tool it. The original goal was just to brew a cup of coffee, and somehow they end up building a coffee bean supply chain management platform. The beans are not even ground yet, and everyone is already exhausted.
+This advice is very pragmatic. When many engineers see an effective method, their first reaction is to institutionalize it, templatize it, and tool it. Before the need is stable, trying zero-shot prompts a few times to discover the useful artifact shape is often better than building a whole process first.
 
 ---
 
 ## Do not read this as a list; read it as a workflow
 
-The easiest way to misread the original is as "HTML can do A, B, C, and also D." Read that way, the examples get tiring fast. They become a display shelf: nice objects, but after the third row, the eyes glaze over.
+The easiest way to misread this idea is as "HTML can do A, B, C, and also D." Read that way, the examples get tiring fast. They become a row of artifact types instead of a sequence of workflow problems.
 
 A more useful reading is this: HTML turns three places where humans usually fall out of the agent workflow back into reviewable interfaces. It is not a feature list. It is a route for keeping humans from quietly leaving halfway through.
 
 The first place is **exploration and planning**. When a developer does not yet know which direction to take, Claude Code can put several options on the same page: layout, tone, information density, risks, data flow, and trade-offs. Humans no longer need to switch between six Markdown files or hold six plans in working memory. Once a direction is chosen, the same HTML artifact can expand into an implementation plan with mockups, key code snippets, risks, and milestones.
 
-The second place is **code understanding and review**. GitHub diff is good at answering "which lines changed." Reviewers often need a different answer: why did this change, how does data flow, and where is the danger? Thariq's example is asking Claude to review a PR with special attention to streaming and backpressure. Backpressure is basically the kitchen slowing down when the waiters cannot carry food out fast enough; upstream needs to know downstream is jammed. In Markdown, that can turn into a graveyard of terms. In HTML, arrows, side notes, and severity labels can turn it into a map someone might actually use.
+The second place is **code understanding and review**. GitHub diff is good at answering "which lines changed." Reviewers often need a different answer: why did this change, how does data flow, and where is the danger? One example is asking Claude to review a PR with special attention to streaming and backpressure. Backpressure is basically the kitchen slowing down when the waiters cannot carry food out fast enough; upstream needs to know downstream is jammed. In Markdown, that can turn into a graveyard of terms. In HTML, arrows, side notes, and severity labels can turn it into a map someone might actually use.
 
 The third place is **decision feedback**. This is the sharpest part of the post: HTML is not only prettier output. It can make the human act of choosing easier.
 
@@ -238,9 +238,9 @@ This pattern is beautiful: the agent turns hard-to-read intermediate output into
 
 ---
 
-## What concrete shapes the companion page shows
+## The companion page is evidence, not a list
 
-The companion page attached to the original article is not decorative appendix material. It is important because it turns "make an HTML file" from an abstract suggestion into visible artifact types.
+The companion page is not decorative appendix material. It is important because it turns "make an HTML file" from an abstract suggestion into visible artifact types.
 
 That page divides twenty self-contained HTML demo files into nine categories, each a single `.html` file that can be opened directly in a browser.
 
@@ -256,23 +256,23 @@ Layout, color, charts, interaction, tabs, and export buttons all serve the same 
 
 ## Common questions: cost, version control, and taste
 
-At the end, Thariq organizes several common questions, which also keeps the piece from turning into HTML zealotry.
+The last few common questions also keep the argument from turning into HTML zealotry.
 
 First, is HTML less token-efficient?
 
-He acknowledges that Markdown usually uses fewer tokens, but argues that the extra expressiveness of HTML, and the higher chance that he will actually read it, make the overall output better. With Opus 4.7's 1MM context window, the additional token usage does not feel very noticeable inside the context window.
+Markdown usually uses fewer tokens, but the extra expressiveness of HTML, and the higher chance that a person will actually read it, can make the overall output better. With Opus 4.7's 1MM context window, the additional token usage does not feel very noticeable inside the context window.
 
 Second, when does he still use Markdown now?
 
-Thariq says he has almost stopped using Markdown for most things, but also admits that he may be on the HTML-maximalist side.
+In this workflow, Markdown has almost stopped being used for most things; that also comes with a bit of HTML-maximalist bias.
 
 Third, how does he view HTML files?
 
-He usually opens them directly in a local browser, can also ask Claude to open them, and uploads them to S3 when he needs a shareable link.
+Usually, they open directly in a local browser; Claude can also open them, and S3 works when a shareable link is needed.
 
 Fourth, does generation take longer?
 
-Yes. Thariq explicitly says HTML can be two to four times slower than Markdown, but he thinks the result is worth it.
+Yes. HTML can be two to four times slower than Markdown, but this workflow treats the result as worth it.
 
 Fifth, what about version control?
 
@@ -280,7 +280,7 @@ This is a major downside of HTML. HTML diffs are noisy and harder to review than
 
 Sixth, how do you make Claude match a team's taste instead of generating ugly things?
 
-The author says frontend design plugins can help Claude produce good HTML files. If you want to match the company's own style, you can have Claude read the codebase and create a single design system HTML file, then use it as the reference for other HTML files afterward.
+Frontend design plugins can help Claude produce good HTML files. If you want to match the company's own style, you can have Claude read the codebase and create a single design system HTML file, then use it as the reference for other HTML files afterward.
 
 <ClawdNote>
 These constraints need to be preserved. HTML is not a free lunch: it uses more tokens, is slower, and has uglier diffs. It is just that much of the time, the real waste is not tokens; it is that humans never finish reading, and rework piles up later. Spending tokens to save human cognition can be a good trade in many scenarios.
@@ -290,11 +290,9 @@ These constraints need to be preserved. HTML is not a free lunch: it uses more t
 
 ## Stay in the Loop: the real point is that humans have not left the stage
 
-The final section of the original brings everything back to the core.
+The final section brings everything back to the core.
 
-Thariq says the real reason he uses HTML is that he feels more in Claude's loop. He had started worrying that because he no longer read plans deeply, he might end up simply letting Claude make choices by itself.
-
-But after switching to HTML, he instead feels more in the loop than before.
+The real reason for using HTML is feeling more inside Claude's loop. When a person no longer reads plans deeply, they may end up simply letting Claude make choices by itself; after switching to HTML, the intermediate artifacts become easier to review, so the human is more likely to stay in the loop.
 
 That sentence is the spine of the whole piece.
 
@@ -308,7 +306,7 @@ From this perspective, "unreasonable effectiveness" is not merely a change in fo
 
 ## Conclusion
 
-The most important takeaway from this piece is not a slogan like "from now on, use HTML for everything."
+The most important takeaway is not a slogan like "from now on, use HTML for everything."
 
 A better understanding is this: when agent-generated content starts carrying decisions, format is no longer just format. Format determines whether people are willing to read, whether they can review, whether they can modify, and whether they can bring judgment back into the system.
 
