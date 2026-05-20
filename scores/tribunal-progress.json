@@ -2810,28 +2810,10 @@
     "startedAt": "2026-05-20T10:03:47+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 9,
-            "fidelity": 8,
-            "consistency": 9,
-            "sourceBoundary": 6,
-            "commentarySeparation": 6
-          },
-          "score": 7,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "Core Dreams claims match the X source and Anthropic docs: async job, existing memory store plus up to 100 sessions, separate output store, live session_id observation, Opus/Sonnet billing, and token-cost scaling.",
-            "fidelity": "The source is represented faithfully overall, but the post expands heavily with gu-log analogies and interpretation around Managed Agents, debugging value, and memory lifecycle beyond direct translation.",
-            "consistency": "The argument flows coherently from memory rot to offline curation, observability, costs, sleep metaphor, second loop, and context-window limits without internal contradiction.",
-            "sourceBoundary": "SP body repeatedly uses source-report framing such as line 85 '依照推文描述', line 105 '@danizhu 特別提醒', line 131 '推文提到', line 143 '推文說', and line 189 '@danizhu 最後'.",
-            "commentarySeparation": "Several gu-log opinions and source-meta interpretations remain in body prose instead of ClawdNote, including lines 73, 97-99, 137, 191, and the closing joke at line 215."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 2,
+        "attempts": 1,
         "tribunalVersion": 5
       }
     },
@@ -2846,18 +2828,36 @@
     "startedAt": "2026-05-20T11:56:00+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 6,
+            "fidelity": 6,
+            "consistency": 7,
+            "sourceBoundary": 5,
+            "commentarySeparation": 4
+          },
+          "score": 5,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Most OpenAI guide mechanics are correct, including outcome-first prompts, retrieval budgets, phase, apply_patch, Cursor tuning, and the 35% apply_patch failure-rate claim, but the closing 700-to-200-line/28%-latency/token-cost anecdote is unsupported and presented as fact.",
+            "fidelity": "The main source sections are broadly represented, but the post repeatedly extends the guide into stronger conclusions such as industry-wide retirement of old prompt styles and source-critical interpretations not stated by OpenAI.",
+            "consistency": "The argument is mostly coherent, but it relies on unsupported narrative examples and broad extrapolations from OpenAI plus Anthropic convergence to an industry-level conclusion.",
+            "sourceBoundary": "SP body repeatedly uses source-report framing such as 'OpenAI 在文件裡給了', 'OpenAI 強調', 'OpenAI 把', and '這份文件' instead of presenting source claims directly.",
+            "commentarySeparation": "Gu-log interpretation appears throughout the SP body outside ClawdNote, including '描述目的地，別畫地圖' as the central framing, '自製 patch 工具是負債', Anthropic convergence claims, and the final fictional engineer benchmark story."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 2,
+    "topLevelAttempts": 3,
     "tribunalVersion": 5,
     "status": "FAILED",
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T17:41:22+08:00"
+    "finishedAt": "2026-05-20T19:27:12+08:00"
   },
   "sp-188-20260429-mitchellh-ghostty-leaving-github.mdx": {
     "article": "sp-188-20260429-mitchellh-ghostty-leaving-github.mdx",
@@ -2900,6 +2900,31 @@
     "startedAt": "2026-05-20T17:33:54+08:00",
     "stages": {
       "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 8,
+            "consistency": 9,
+            "sourceBoundary": 10,
+            "commentarySeparation": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "The post correctly matches the OpenClaw docs on cron exact timing, Heartbeat approximate 30-minute main-session turns with no task records, background tasks as a ledger, and Task Flow supporting durable multi-step flows with managed/mirrored modes and list/show/cancel commands.",
+            "fidelity": "The source is expanded into explanatory prose but preserves the core distinctions from the docs; minor added cautionary framing such as Task Flow not automatically providing locking or deduplication is reasonable but not stated directly by the source.",
+            "consistency": "The argument consistently separates timing, context, records, events, standing instructions, and orchestration, and the Task Flow conclusion follows from the source's decision guide and core concepts.",
+            "sourceBoundary": "The SP body avoids repeated source-meta scaffolding such as 原作者說, 原文提到, or 這篇文章在講, presenting source-derived claims directly.",
+            "commentarySeparation": "Explicit Clawd reactions and source-meta comments are kept inside ClawdNote blocks, though the body still uses some interpretive gu-log framing such as Task Flow as a 指揮系統."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 2,
+        "tribunalVersion": 5
+      },
+      "librarian": {
         "status": "in_progress",
         "score": null,
         "model": "codex-gpt-5.5-medium",
