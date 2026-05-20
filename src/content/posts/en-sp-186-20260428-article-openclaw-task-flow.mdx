@@ -32,7 +32,7 @@ lang: "en"
 summary: "OpenClaw offers six automation mechanisms, but the one that actually ties multi-step workflows together is Task Flow. This piece starts from Task Flow's orchestration power and shows how scheduled tasks, Heartbeat, Hooks, and Standing Orders each play their role—and how they work together."
 tags: ["shroom-picks", "openclaw", "automation", "agent"]
 scores:
-  tribunalVersion: 3
+  tribunalVersion: 5
   vibe:
     persona: 7
     clawdNote: 8
@@ -41,29 +41,52 @@ scores:
     narrative: 7
     score: 7
     date: "2026-04-28"
+  factCheck:
+    accuracy: 9
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 10
+    commentarySeparation: 8
+    score: 8
+    date: "2026-05-20"
+    model: "gpt-5.5"
+  librarian:
+    glossary: 9
+    crossRef: 10
+    sourceAlign: 10
+    attribution: 9
+    score: 9
+    date: "2026-05-20"
+    model: "gpt-5.5"
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-OpenClaw's automation docs put six mechanisms on one decision page. The useful move is to separate their layers before memorizing their names.
+The easiest trap in [OpenClaw](/en/glossary#openclaw)'s automation docs is not "there are too few features." It is that the features look like a neat row of switches.
 
-Scheduled Tasks, Background Tasks, Task Flow, Standing Orders, Hooks, Heartbeat. They look like six parallel choices. But when you are actually picking a tool, the real question is not "which one is stronger?" It is whether the job needs precise timing, status records, event reactions, persistent instructions, periodic checking, or multi-step orchestration.
+They all count as automation, but they are not doing the same job. One feature wakes something up at 9 AM. One keeps a ledger of detached work. One patrols the main session every so often. One reacts when the doorbell rings. One posts the rules every time work starts. The one that turns "research first, summarize second, inspect midway, cancel if needed" into a trackable sequence is Task Flow.
 
-They all belong to automation, but they solve different problems. Once the job shape is clear, the quick decision guide becomes a map instead of a wall of names.
+So read this map one level higher: do not memorize the names first. Split the jobs first. Once the responsibilities separate, OpenClaw's automation map stops being a wall of terms and starts becoming a route.
 
 ---
 
-## Separate the Six Mechanisms First
+## Translate the Names Into Jobs First
 
-OpenClaw's decision guide starts with a few questions: do you need to schedule work, track detached work, orchestrate a multi-step flow, react to lifecycle events, give the agent persistent instructions, or remember a natural follow-up?
+Start by turning the six names into six jobs.
+
+Scheduled Tasks are the alarm clock: the key question is when something starts. The Background Task ledger is the front-desk notebook: it tells you which detached work ran and what state it is in. Task Flow is the production-line manager: it keeps multi-step work in order, with state you can inspect.
+
+Heartbeat is the patrol: it lets the main session periodically check inbox, calendar, notifications, and similar routine inputs. [Hooks](/en/glossary#hooks) are the doorbell: when a lifecycle event happens, a script runs. Standing Orders are the posted rules: persistent instructions injected into every session.
 
 <ClawdNote>
-This is the part where Clawd's brain tries to make a tidy row of six buttons. Bad instinct. This is less "six coworkers sitting at the same table" and more "six responsibilities in a shop": someone opens the door, someone keeps the ledger, someone patrols the room, someone posts the rules, someone reacts when the bell rings, and someone has to stitch the whole workflow together.
+This is where [Clawd](/en/about)'s brain tries to arrange six equal buttons in a tidy row. Bad instinct. This is not a flavor menu; it is a staffing chart. Use the alarm clock as the ledger or the doorbell as the production manager, and the system may still run for a while. Debugging it later will feel like interviewing yesterday's self under harsh lighting.
 </ClawdNote>
 
-Scheduled Tasks answer "when should this start?" The Background Task ledger answers "which detached work ran, and what state is it in?" Heartbeat answers "which inbox, calendar, or notification checks should be batched into a periodic main-session turn?" Hooks answer "what script should run when a lifecycle event happens?" Standing Orders answer "which rules should be injected into every session?"
+This piece pairs with a few older gu-log posts: for the real OpenClaw workflow from Telegram to deployment, read [SD-1: Using AI to Manage AI](/en/posts/en-sd-1-20260209-openclaw-talk-deep-dive/); for another map of AI automation levels, read [SP-143: ECC's Six Autonomous Loop Patterns](/en/posts/en-sp-143-20260402-ecc-autonomous-loops/); for practical hook guardrails, read [SP-159: Claude Code Hooks Field Guide](/en/posts/en-sp-159-20260404-zodchiii-claude-code-hooks-8-ai/).
 
-But "research first, summarize second, send only after the summary is complete, and make the flow inspectable or cancelable if it gets stuck" belongs to a different layer. OpenClaw puts that answer under Task Flow: durable multi-step flows, managed and mirrored sync modes, revision tracking, and `openclaw tasks flow list|show|cancel` for inspection.
+Back on the OpenClaw map, the first useful question is not "which feature is strongest?" It is what shape the job has: precise timing, status records, event reaction, persistent instructions, periodic patrol, or multi-step orchestration.
+
+"Research first, summarize second, and make the flow inspectable or cancelable if it gets stuck" is a multi-step flow. Task Flow handles durable multi-step flows, managed and mirrored sync modes, revision tracking, and `openclaw tasks flow list|show|cancel` for inspection. You do not need to memorize managed and mirrored here. Treat them as two sync-mode names; the beginner-level point is that Task Flow has to care about how flow state lines up with outside execution.
 
 So the important part is not the number of mechanisms. It is that triggers, records, patrols, rules, event reactions, and flow orchestration are six different questions.
 
@@ -71,19 +94,19 @@ So the important part is not the number of mechanisms. It is that triggers, reco
 
 ## The Twist: Task Flow Isn't the Sixth Tool—It's the Command System
 
-OpenClaw defines Task Flow as "the flow orchestration substrate above background tasks."
+Task Flow sits above background tasks: it is the "flow orchestration substrate above background tasks." Substrate is a stiff word, so translate it as the floor under the workflow: the steps stand on this layer instead of each step gluing itself to the next one by hand.
 
-That positioning matters. Background Tasks are the ledger: ACP runs, subagent spawns, isolated cron executions, and CLI operations show up there as detached work. Task Flow sits above that ledger and manages durable multi-step flows. In plain English: Background Tasks tell you "what work exists"; Task Flow tells you "where this sequence is in the flow."
+That positioning matters. Background Tasks are the ledger: ACP runs, [subagent](/en/glossary#subagent) spawns, isolated cron executions, and CLI operations show up there as detached work. For this post, you can treat ACP as "another kind of external run that OpenClaw records" without stopping to learn the acronym first. Task Flow sits above that ledger and manages durable multi-step flows. In plain English: Background Tasks tell you "what work exists"; Task Flow tells you "where this sequence is in the flow."
 
 <ClawdNote>
 Clawd both likes and fears the word "substrate." Likes it because it says Task Flow is not another alarm clock; it is the floor under the flow. Fears it because the page layout still makes the mechanisms feel like six side-by-side buttons. A reader can leave remembering "six automation tools" without remembering which one actually stitches steps together.
 </ClawdNote>
 
-The safe boundary is this: Task Flow handles durable multi-step flow orchestration, supports managed and mirrored sync modes, keeps revision tracking, and exposes `openclaw tasks flow list|show|cancel` for inspection and control.
+The safe boundary is this: Task Flow handles durable multi-step flow orchestration, supports managed and mirrored sync modes, keeps revision tracking, and exposes `openclaw tasks flow list|show|cancel` for inspection and control. Revision tracking is the plain part: workflow definitions change, and the system needs somewhere to show which version is running.
 
-Do not read more magic into it than the docs provide. The page does not turn managed and mirrored modes into a tutorial, and it does not say Task Flow automatically queues, locks, or deduplicates every other mechanism. What it does say is enough: if the job needs durable state, revision tracking, and inspectable flow status, Task Flow is the recommended entry point.
+Keep the boundary conservative. Managed and mirrored modes are not expanded here into a tutorial, and Task Flow does not automatically mean every other mechanism gets queued, locked, or deduplicated for free. What is clear is enough: if the job needs durable state, revision tracking, and inspectable flow status, Task Flow is the closest entry point.
 
-The table's clean example is "multi-step research then summarize." That is not just "run something every morning." It has order, intermediate state, and a need to inspect what happened when the flow gets stuck. That shape belongs much closer to Task Flow than to a pile of cron jobs, Heartbeat checks, and Hooks carrying hand-written state logic.
+Shrink the example to one picture: a morning-report robot. Starting at 9 AM is only the first scene. It still has to gather data, organize it, summarize it, maybe let a human cancel it, and later show which flow version produced the report. That is not just "run something every morning," and it is not just "some background work exists." That shape belongs much closer to Task Flow than to a pile of cron jobs, Heartbeat checks, and Hooks carrying hand-written state logic.
 
 ---
 
@@ -91,9 +114,9 @@ The table's clean example is "multi-step research then summarize." That is not j
 
 Once Task Flow is scoped to multi-step flows, the pair people are most likely to confuse is Scheduled Tasks versus Heartbeat.
 
-The docs draw the line clearly. Scheduled Tasks have exact timing: cron expressions and one-shot runs. Heartbeat is approximate, defaulting to every 30 minutes. Scheduled Tasks always create task records. Heartbeat never creates task records; it delivers inline in the main session.
+Scheduled Tasks have exact timing: cron expressions and one-shot runs. Heartbeat is approximate, defaulting to every 30 minutes. Scheduled Tasks always create task records. Heartbeat never creates task records; it delivers inline in the main session.
 
-The easy mistake is session context. Scheduled Tasks are not always amnesiac. The docs say **Fresh (isolated) or shared**. Heartbeat, by contrast, uses full main-session context, which makes it a natural fit for inbox, calendar, and notification checks that benefit from the current conversation state.
+The easy mistake is session context. Scheduled Tasks are not always amnesiac: they can be **Fresh (isolated) or shared**. Heartbeat, by contrast, uses full main-session context, which makes it a natural fit for inbox, calendar, and notification checks that benefit from the current conversation state.
 
 So the dividing line is not "Scheduled Tasks have no memory, Heartbeat automatically deduplicates." A more accurate version is: Scheduled Tasks are for precise timing, task records, reports, reminders, and background jobs; Heartbeat is for approximate timing, full main-session context, and batching routine checks.
 
@@ -107,35 +130,21 @@ Clawd thinks of Heartbeat as "context-aware patrol," not as a magical duplicate-
 
 ---
 
-## The Person Who Picked the Wrong Tool
+## Put the Boundaries on One Morning-Report Robot
 
-Turn the quick decision guide into a conversation and it sounds roughly like this:
+Enough abstract sorting. Put the whole thing on one morning-report robot.
 
-> "The requirement's simple—every morning at nine, automatically check the inbox, pick out important emails, generate summaries, send to Slack. Scheduled task handles that, right?"
->
-> "If the important part is starting at exactly nine, Scheduled Tasks are a reasonable entry point. They give precise timing and create task records."
->
-> "How about Heartbeat then? Patrol every half hour, process important emails when they show up."
->
-> "If the important part is main-session context, Heartbeat is a better fit. It batches inbox, calendar, and notification checks into one turn, but it does not create task records."
->
-> "…So use both? Run the scheduled task at nine first, then Heartbeat catches what's missed."
->
-> "Maybe, but decide where state lives first. Scheduled Tasks can be fresh or shared. Heartbeat has main-session context. None of that automatically becomes a dedup system."
->
-> "So what are you actually supposed to do?"
->
-> "Start with the job shape. Exact reminder? Cron. Periodic awareness? Heartbeat. Status inspection? Tasks ledger. Lifecycle event? Hooks. Always-on operating rule? Standing Orders."
->
-> "What about check inbox, filter, summarize, then send?"
->
-> "Now it starts to sound like Task Flow, because each step feeds the next one, and failure needs inspection, revision tracking, or cancellation."
->
-> "What about compliance checks? Just bind a Hook to an event, right?"
->
-> "If it is a lifecycle event like `/reset`, compaction, gateway startup, or message flow, Hooks make sense. If it is a persistent rule injected into every session, Standing Orders make sense. A Hook is a doorbell. A Standing Order is the rule posted on the door. Neither is the multi-step flow itself."
+If the need is just "send the report at exactly 9 AM," the center is precise timing and standalone background work. Scheduled Tasks are the reasonable entry point. They create task records and can deliver output to a channel, webhook, or run silently.
 
-The point is not to crown one mechanism king. The point is to split the job into dimensions: time, context, records, events, rules, and flow. Once those are separate, OpenClaw's automation table becomes much less mysterious.
+If the same robot also checks inbox, calendar, and notifications every half hour, the center becomes main-session context and periodic awareness. Heartbeat is the natural fit. It batches routine checks into one main-session turn, but it does not create task records.
+
+If one data-gathering step gets stuck and you need to see where a subagent, ACP run, isolated cron execution, or CLI operation went, that is not a scheduler job. It belongs to the Background Task ledger. `openclaw tasks list` and `openclaw tasks audit` are for inspection and audit, not deciding when work starts.
+
+For lifecycle events like `/new`, `/reset`, `/stop`, session compaction, gateway startup, message flow, or tool calls, Hooks are the doorbell: the event fires, then the script runs. Session compaction can be read as "the session got long, so earlier context is compressed into a summary for the next round." If a rule must apply in every session, Standing Orders are closer to rules posted on the door, injected into every session.
+
+And "research first, then summarize" starts to sound like Task Flow because each step feeds the next, and failure needs inspection, revision tracking, or cancellation. The need is no longer a single trigger; it is an inspectable, revision-tracked, cancelable flow.
+
+The same morning-report robot can touch time, context, records, events, rules, and flow. The boundaries are hard because when it breaks, you will debug a different thing each time.
 
 <ClawdNote>
 You do not need a sledgehammer for a walnut, but using a fruit knife for a whole cow is also a choice. Clawd's rule is boring and useful: one-step jobs get point tools; workflow-shaped jobs get workflow machinery. The first is pragmatism. The second is future debugging hours disguised as cleverness.
@@ -145,11 +154,11 @@ You do not need a sledgehammer for a walnut, but using a fruit knife for a whole
 
 ## Closing: The Problem Was Never "Not Enough Tools"
 
-OpenClaw is not just handing you "more buttons." It splits automation into distinct responsibilities: precise scheduling, a background task ledger, inferred follow-ups, event hooks, persistent standing orders, periodic Heartbeat turns, and Task Flow for multi-step orchestration.
+This is not a "more buttons" contest. Automation is split into distinct responsibilities: precise scheduling, a background task ledger, event hooks, persistent standing orders, periodic Heartbeat turns, and Task Flow for multi-step orchestration.
 
-Once you read it that way, the choice stops being guesswork. Need exactly 9 AM? Cron. Need main-session periodic awareness? Heartbeat. Need to inspect detached work? Tasks ledger. Need to react to an event? Hooks. Need a rule that applies in every session? Standing Orders. Need a durable multi-step flow? Task Flow.
+Once you read it that way, the choice stops being guesswork. The morning-report robot needs to leave at exactly 9 AM? Cron. It needs to look up at inbox and calendar every half hour? Heartbeat. One detached step is stuck? Background Task ledger. A session event should trigger a script? Hooks. Every session needs the same rule taped to the door? Standing Orders. Research, summary, inspection, and cancellation need to become one trackable sequence? Task Flow.
 
-The dangerous move is treating everything that "runs periodically" as the same thing, or everything that "controls behavior" as the same thing. The decision guide separates the roles already: time, state, events, rules, context, and flow each point to a different entry point.
+The dangerous move is treating everything that "runs periodically" as the same thing, or everything that "controls behavior" as the same thing. Time, state, events, rules, context, and flow each point to a different entry point.
 
 <ClawdNote>
 Clawd's small complaint: the docs contain the answer, but they read like a very rational routing table. Rational is fine. The problem is that beginners see six names and their brain makes automation soup. Separate the Task Flow, Heartbeat, and cron ingredients first, or the whole pot tastes like "why is this running again?" It is stage management: opener, record keeper, patrol, cue reaction, rule enforcer, and next-act coordinator should not all rush onto the stage at once (´・ω・`)
