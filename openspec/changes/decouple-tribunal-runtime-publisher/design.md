@@ -58,7 +58,24 @@ If current `origin/main` changed the same post after that base, the publisher SH
 
 Alternative considered: last-writer-wins. That is unacceptable for editorial content because phrasing edits are often the valuable human judgment, not noise.
 
-### Decision 5: Runtime update checks are fetch-only
+### Decision 5: Conflicts are event-driven and non-blocking
+
+Conflict handling SHALL behave like an airport customs lane:
+
+- green lane: unambiguous PASS artifacts go into a batch PR and keep moving toward prod
+- red lane: conflicted posts stop for inspection and trigger a decision event
+- officer: OpenClaw / Clawd / Iris can summarize the conflict, propose options, and ask Sprin only when judgment is needed
+
+The key rule is that one ambiguous post SHALL NOT block unrelated clean posts. The publisher should split the batch into publishable and blocked subsets, then send an event for the blocked subset with enough context to decide:
+
+- keep current main wording
+- accept Tribunal rewrite
+- ask an agent to merge both
+- requeue Tribunal after human/Iris/Clawd edits
+
+Alternative considered: stop the whole publisher batch on first conflict. That preserves safety but wastes throughput and makes Tribunal feel broken whenever one article needs judgment.
+
+### Decision 6: Runtime update checks are fetch-only
 
 The long-running runtime MAY run `git fetch origin main` to observe remote drift and sync worker worktrees before dispatch, but SHALL NOT run `git pull`, `git rebase`, or `git push` in the runtime main worktree.
 
@@ -69,6 +86,7 @@ If code updates are needed, the operator should drain/restart the daemon. This i
 - Migration bug could lose or misclassify progress -> write a migration test using real current status shapes and keep a backup snapshot.
 - Publisher queue may lag behind runtime -> expose queue counts and oldest terminal entry age.
 - Batch PRs can conflict with human/Iris/Clawd edits -> detect by base SHA and skip conflicted articles rather than overwriting.
+- Conflict events can annoy Sprin if too noisy -> group conflicts into concise decision bundles and only ask when agentic merge confidence is low.
 - Production will see results later than daemon completion -> default 10-result threshold plus manual flush balances latency and reviewability.
 - More moving parts -> keep interfaces boring: ledger writer, publisher, migration, status command, tests.
 - Existing service may still have dirty state during migration -> implement and verify in a clean worktree, then drain/restart runtime when applying.
@@ -90,3 +108,4 @@ Rollback: disable publisher, stop runtime, restore the backed-up tracked progres
 - Should FAILED / EXHAUSTED results ever appear on production pages, or remain operator-only?
 - Should the default batch trigger be exactly 10 terminal entries, or 10 PASS artifacts with FAILED / EXHAUSTED attached as metadata?
 - Should publisher PRs auto-merge when only Tribunal PASS artifacts are included and CI is green?
+- What confidence threshold should let an agent auto-merge editorial conflicts without asking Sprin?

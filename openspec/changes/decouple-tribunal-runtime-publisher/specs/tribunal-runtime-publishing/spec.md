@@ -67,6 +67,32 @@ Publisher SHALL NOT overwrite post files that changed on `origin/main` after Tri
 - **THEN** publisher MAY apply the artifact to the batch PR
 - **AND** SHALL include validation evidence in the PR body or batch metadata
 
+### Requirement: Conflicted posts SHALL trigger event-driven triage without blocking clean posts
+
+Publisher SHALL separate conflicted entries from unambiguous publishable entries. Clean entries SHALL continue into batch PRs, while conflicted entries SHALL create a triage event for OpenClaw or another designated agent.
+
+#### Scenario: Batch contains both clean and conflicted entries
+
+- **WHEN** publisher selects a batch containing clean PASS artifacts and conflicted PASS artifacts
+- **THEN** publisher SHALL include the clean artifacts in the batch PR
+- **AND** SHALL exclude conflicted artifacts from that PR
+- **AND** SHALL create or update a triage event for the conflicted artifacts
+- **AND** SHALL NOT block clean artifacts from reaching CI/prod because unrelated posts need judgment
+
+#### Scenario: Conflict requires Sprin's opinion
+
+- **WHEN** a conflicted artifact cannot be merged with high confidence
+- **THEN** the triage agent SHALL summarize the conflict in human terms
+- **AND** SHALL present concise choices such as keep current wording, accept Tribunal rewrite, merge both, or requeue
+- **AND** SHALL ask Sprin for a decision before changing the production-bound post
+
+#### Scenario: Conflict can be merged safely by an agent
+
+- **WHEN** a conflict is low-risk and the triage agent can preserve both the human/Iris/Clawd edit and the Tribunal improvement
+- **THEN** the agent MAY produce a merged candidate
+- **AND** the merged candidate SHALL still pass validation and relevant Tribunal checks before entering a publisher PR
+- **AND** the event SHALL record what was merged and why it did not need human judgment
+
 ### Requirement: Publisher SHALL be idempotent
 
 Publisher SHALL avoid publishing the same terminal ledger entry more than once, even after process restarts or repeated manual runs.

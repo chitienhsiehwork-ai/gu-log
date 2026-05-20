@@ -11,6 +11,7 @@ We want the more correct architecture: Tribunal may run continuously, but publis
 - Add a publisher that materializes terminal Tribunal results into batch PRs, defaulting to about 10 terminal article results per PR.
 - Require publisher PRs to be built from a clean worktree based on `origin/main`, not from the daemon's dirty runtime worktree.
 - Require conflict detection when a human, Iris, Clawd, or another branch changes the same post after Tribunal evaluated it.
+- Add event-driven conflict triage: ambiguous/conflicted posts create a human-facing decision event, while unambiguous publishable posts continue into batch PRs.
 - Require runtime update checks to use fetch/observability only; daemon loops must not pull, rebase, or push the main worktree while workers are active.
 - Preserve TDD coverage for migration, ledger idempotency, batching thresholds, conflict handling, and no-runtime-rebase behavior.
 
