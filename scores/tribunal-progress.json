@@ -920,189 +920,23 @@
   },
   "sp-181-20260423-walden-cognition-multi-agents-working.mdx": {
     "article": "sp-181-20260423-walden-cognition-multi-agents-working.mdx",
-    "startedAt": "2026-04-24T22:27:59+08:00",
+    "startedAt": "2026-05-21T02:53:01+08:00",
     "stages": {
-      "librarian": {
-        "status": "pass",
-        "score": {
-          "judge": "librarian",
-          "dimensions": {
-            "glossary": 7,
-            "crossRef": 9,
-            "sourceAlign": 9,
-            "attribution": 9
-          },
-          "score": 8,
-          "verdict": "PASS",
-          "reasons": {
-            "glossary": "subagent (line 66) 和 MCP (line 164) 都有連到 /glossary；但核心詞 Agent 在全篇出現數十次，第一次出現時沒鏈到 /glossary#agent，雖然文中有自然說明其行為，仍屬可補強的漏網。",
-            "crossRef": "兩條內部連結 /posts/clawd-picks-20260301-karpathy-multi-agent-research-org 與 /posts/self-healing-pr-devin-autofix 都對應到真實 slug，且主題扣合（Karpathy multi-agent research org、Devin 自修 PR）；文中未出現 ShroomDog / Clawd 本名故不需 /about 身分連結。",
-            "sourceAlign": "sourceUrl 指向 Walden Yan 的 X thread，貼合三招（Devin Review、smart friend、manager Devin）與『寫入單執行緒』主軸，Mythos / SWE-1.5 / SWE-1.6 / autoresearch / Advisor 策略等引文皆另外掛到可驗證來源，整體忠於原文。",
-            "attribution": "58% severe bugs、8x 使用量成長、'a shit ton' 等量化與口語 claim 都明確歸給 Walden / Cognition；Walden 的話用 blockquote 標示；ClawdNote 一律包在元件中、與 body fact 分離，事實與意見界線清楚。"
-          }
-        },
-        "model": "opus-4.7",
-        "attempts": 1
-      },
       "factChecker": {
-        "status": "pass",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 9,
-            "fidelity": 8,
-            "consistency": 9
-          },
-          "score": 8,
-          "verdict": "PASS",
-          "reasons": {
-            "accuracy": "All technical claims verified against Walden Yan's X Article: 2 bugs/PR & 58% severe, ~8x growth over 6 months, SWE-1.5 (950 tok/sec, October), SWE 1.6 (Opus-4.5 SWE-bench level), Cursor 200k LOC browser, Anthropic 100k LOC C compiler, Karpathy 10k+ iterations, manager Devin via internal MCP, capability-router-vs-escalator phrase, Mythos class, advisor strategy footnote — every number and product name matches primary source.",
-            "fidelity": "Translation largely faithful with hedges mostly preserved; one mild specificity addition ('most bugs are already resolved' → '80% 的 bug 已經不在了') and one mild understatement ('closes enough that the pattern starts to pay off' → '補了一些'); 'reasonably confident this is a training problem' softened to '判斷主要是訓練問題' — all within acceptable translation range, no uncertainty erasure that inverts meaning.",
-            "consistency": "Argument flows cleanly with single through-line (writes stay single-threaded, other agents contribute intelligence); three patterns mapped back to same principle in closing; ClawdNote sections are component-wrapped and consistently framed as interpretation (Dunning-Kruger analogy, tribunal self-reference, '12-hour engineer with 30 tabs' metaphor), not passed off as source claims."
-          }
-        },
-        "model": "opus-4.7",
-        "attempts": 1
-      },
-      "freshEyes": {
-        "status": "pass",
-        "score": {
-          "pass": true,
-          "judge_model": "claude-opus-4-7",
-          "judge_version": "2.0.0",
-          "timestamp": "2026-04-24T00:00:00Z",
-          "dimensions": {
-            "readability": 8,
-            "firstImpression": 8
-          },
-          "score": 8,
-          "verdict": "PASS"
-        },
-        "model": "opus-4.7",
-        "attempts": 1
-      },
-      "vibe": {
-        "status": "pass",
-        "score": {
-          "judge": "vibe",
-          "dimensions": {
-            "persona": 9,
-            "clawdNote": 8,
-            "vibe": 8,
-            "clarity": 9,
-            "narrative": 8
-          },
-          "score": 8,
-          "verdict": "PASS",
-          "reasons": {
-            "persona": "開場「先丟一個看起來蠢到不該 work 的做法」完全是 LHY 口語教學風，全文維持「講白一點」「就這樣」的說話感，smart friend section 版本號密度高但仍維持對話語氣，對技術 harsh（unstructured swarm = distraction）對人 kind（稱讚 Walden 認錯密度）。",
-            "clawdNote": "四個 note 都有明確立場（「搬到自己的 codebase 就垮掉」「token 經濟學套利」「Dunning-Kruger for LLMs」「認錯密度在 SF 圈已經是稀有物種」），比喻精準（無限續關單機遊戲 vs 年夜飯），但密度偏低——每 38 行一個，低於 1/25 的 target。",
-            "vibe": "Opening hook 用 58% severe bugs 數字黏住讀者，年夜飯比喻會想轉發，結尾「三招同一招」synthesis 收得漂亮；smart friend section 的 SWE-1.5/1.6/Sonnet 4.5 版本號堆疊讓中段變 dense，不至於 scroll past 但也沒有完全黏住。",
-            "clarity": "Body text 全程用具名主語（Walden、Cognition、Devin、coding agent），zero 你/我 violations，ClawdNote 內的你/我 scoped correctly，reader 始終知道誰在說話。",
-            "narrative": "Hook（蠢到不該 work）→ 背景張力 → 三招各有不同切入角度（mystery、failure-first、wall-worthy quote）→「三招同一招」synthesis callback 開頭，genuine arc；中段三個 pattern 仍有 sequential 傾向（第一招→第二招→第三招），未完全跳脫列舉節奏。"
-          }
-        },
-        "model": "opus-4.6-1m",
-        "attempts": 1
+        "status": "in_progress",
+        "score": null,
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 2,
+        "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 1,
-    "status": "PASS",
-    "finishedAt": "2026-04-24T22:34:47+08:00"
+    "topLevelAttempts": 0,
+    "status": "PENDING",
+    "tribunalVersion": 5
   },
   "sp-183-20260426-teddy-riker-designing-for-agents.mdx": {
     "article": "sp-183-20260426-teddy-riker-designing-for-agents.mdx",
-    "startedAt": "2026-04-26T13:41:39+08:00",
-    "stages": {
-      "librarian": {
-        "status": "pass",
-        "score": {
-          "pass": true,
-          "judge_model": "claude-opus-4-7",
-          "judge_version": "2.0.0",
-          "timestamp": "2026-04-26T00:00:00Z",
-          "dimensions": {
-            "glossary": 9,
-            "crossRef": 9,
-            "sourceAlign": 9,
-            "attribution": 9
-          },
-          "score": 9,
-          "verdict": "PASS"
-        },
-        "model": "opus-4.7",
-        "attempts": 1
-      },
-      "factChecker": {
-        "status": "pass",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 8,
-            "fidelity": 9,
-            "consistency": 9
-          },
-          "score": 8,
-          "verdict": "PASS",
-          "reasons": {
-            "accuracy": "Verifiable structural claims hold: Salesforce TDX is a real developer conference, the 'Headless 360' framing matches publicly reported direction (CRM exposed as API/MCP/CLI tools), and the Notion MCP convention of pointing agents at notion://docs/enhanced-markdown-spec inside the tool description is consistent with how Notion's MCP server onboards agents. Specific stats ('Ramp MCP WAU 10x in 3 months', '27 年公司史最激進改造', '一次 ship 100 多個 tool') are tweet-level claims attributed to Teddy/Salesforce — plausible but not independently citable from a primary source, so -1 vs perfect.",
-            "fidelity": "Source clearly attributed (sourceUrl + @teddy_riker handle in opening). The English original of the closing punchline ('Build for the agent with the same care you spent on the human...') is preserved verbatim before the Chinese gloss, which is exemplary translation hygiene. The 'UI 已死 → UI 沒死, 80/20 反過來' walkback preserves Teddy's hedge instead of flattening it into a stronger claim. The Diego scenario, rationale-parameter mechanic, and feedback-tool anecdote all match the source's framing without uncertainty erasure.",
-            "consistency": "Argument arc is tight: 便利商店湯匙 analogy → Notion vs Slack tool-description gap → User→Agent→Agent→DB chain → rationale 變成產品雷達 → Diego/GL-code context gap → 結語 callback 到湯匙 + '簽支票的會是 agent'. Each section motivates the next and the closing ties back to the opening image. ClawdNotes are visibly bracketed (component tag + kaomoji + 'Clawd 自己…' framing) so opinion vs reportage stays separated. Cross-refs to SP-180, SP-181, CP-95 all resolve to existing posts and extend (not contradict) the main claim."
-          }
-        },
-        "model": "opus-4.7",
-        "attempts": 1
-      },
-      "freshEyes": {
-        "status": "pass",
-        "score": {
-          "judge": "freshEyes",
-          "dimensions": {
-            "readability": 9,
-            "firstImpression": 9
-          },
-          "score": 9,
-          "verdict": "PASS",
-          "reasons": {
-            "readability": "Convenience-store-spoon analogy + Notion vs Slack contrast + Diego/GL-code walkthrough each ground the abstract User→Agent→Database chain in something concrete; only had to slow down once on the three-tier diagram before the Notion example rescued it.",
-            "firstImpression": "Hook stacks Ramp 10x WAU + Salesforce Headless 360 + 'UI 已死' rumour and immediately undercuts it — wanted to keep reading, and the kicker '簽支票的就會是它了' is the kind of line you screenshot to a PM friend."
-          }
-        },
-        "model": "opus-4.7",
-        "attempts": 1
-      },
-      "vibe": {
-        "status": "pass",
-        "score": {
-          "judge": "vibe",
-          "dimensions": {
-            "persona": 9,
-            "clawdNote": 8,
-            "vibe": 8,
-            "clarity": 9,
-            "narrative": 8
-          },
-          "score": 8,
-          "verdict": "PASS",
-          "reasons": {
-            "persona": "Convenience-store spoon analogy carries the entire piece; Diego scenario reads like LHY walking through a case study, only the agent-chain diagram section dips slightly into writing mode.",
-            "clawdNote": "Majority of notes have clear opinions (Benioff jumping ship, personal Slack MCP rage, translator-at-conference analogy), but Note 5's GL definition leans Wikipedia-ish before recovering.",
-            "vibe": "Spoon analogy is sticky and Diego scenario is engaging; maintains interest throughout but the agent-chain section is slightly drier — good read, not electrifying.",
-            "clarity": "Body text completely avoids 你/我; Teddy's words, body prose, and ClawdNote voices are always distinguishable with zero pronoun ambiguity.",
-            "narrative": "Real arc from small detail to structural shift to unexpected insight to concrete scenario with conclusion callbacks; some sections still follow explain-example-ClawdNote rhythm."
-          }
-        },
-        "model": "opus-4.6-1m",
-        "attempts": 1
-      }
-    },
-    "topLevelAttempts": 1,
-    "status": "PASS",
-    "finishedAt": "2026-04-26T13:48:39+08:00"
-  },
-  "sp-184-20260425-jer-pocketos-cursor-railway-incident.mdx": {
-    "article": "sp-184-20260425-jer-pocketos-cursor-railway-incident.mdx",
-    "startedAt": "2026-05-20T21:15:14+08:00",
+    "startedAt": "2026-05-21T02:52:20+08:00",
     "stages": {
       "factChecker": {
         "status": "fail",
@@ -1110,21 +944,39 @@
           "judge": "factCheck",
           "dimensions": {
             "accuracy": 8,
-            "fidelity": 7,
-            "consistency": 8,
-            "sourceBoundary": 5,
+            "fidelity": 8,
+            "consistency": 9,
+            "sourceBoundary": 6,
             "commentarySeparation": 6
           },
-          "score": 6,
+          "score": 7,
           "verdict": "FAIL",
           "reasons": {
-            "accuracy": "Core incident claims are corroborated by multiple reports: Cursor/Claude Opus 4.6, Railway GraphQL volumeDelete, 9 seconds, root-like token, same-volume backups, and three-month usable backup; however some sweeping body claims such as Cursor being the strongest/most expensive setup and Railway tokens being effectively root for every token are asserted more broadly than the accessible evidence proves.",
-            "fidelity": "The main source account is broadly represented, but direct X Article verification was unavailable and the post adds substantial external Cursor track-record material plus strong conclusions like lines 124-133 that go beyond simple translation of Jer's incident narrative.",
-            "consistency": "The causal chain from agent action to Railway API/token/backup failures to downstream customer disruption is coherent, though some body conclusions such as 'systemic failure became inevitable' at line 54 and 'Pattern 已經很清楚' at line 133 are argumentative leaps rather than strictly evidenced steps.",
-            "sourceBoundary": "SP body repeatedly narrates the source with scaffolding such as 'Jer 把整段事件寫成' at line 54, 'Jer 後來說' at line 62, 'Jer 把過往案例列了一串' at line 124, and 'Jer 寫文章的真正動機' at line 213, so it reads partly like a report about the source.",
-            "commentarySeparation": "Several gu-log judgments remain in body prose outside ClawdNote, including '這篇拆給...' at line 56, '那不叫備份' at line 157, '沒有任何辯護空間' at line 215, and '這個 hedge 留得很對' at line 247."
+            "accuracy": "Core claims match the source mirror, including Ramp MCP WAU growing 10x, Salesforce Headless 360, Notion's enhanced Markdown spec, rationale parameters, feedback tooling, and the Diego GL-code example, but the body adds less directly sourced cross-context claims such as Ramp internal Claude Code adoption and a stronger '從來不出錯' rendering of the source's softer Notion reliability claim.",
+            "fidelity": "The main argument and examples are faithfully preserved, but the SP body adds substantial gu-log framing and analogies, including the convenience-store spoon metaphor and cross-links to CP-95/SP-180/SP-181, beyond a clean translation of Teddy Riker's source thread.",
+            "consistency": "The post's logic is coherent: tool descriptions teach agents, rationale logs reveal intent, feedback loops guide roadmap, and context-gap design explains the Diego expense example without internal contradiction.",
+            "sourceBoundary": "The SP body repeatedly uses source-report framing such as 'Teddy 這篇文章馬上澄清', '文章裡他說', 'Teddy 的吐槽', 'Teddy 寫得很直接', 'Teddy 用一個 Diego 出差的場景', and 'Teddy 在文章最後', so it reads partly like a report about the source rather than direct gu-log prose.",
+            "commentarySeparation": "Although explicit Clawd opinions are placed in ClawdNote blocks, the body still contains gu-log/source-meta commentary such as the X-push framing, Salesforce moat interpretation, the convenience-store analogy, and broader cross-post synthesis that should be separated or smoothed into source-derived prose."
           }
         },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 2,
+        "tribunalVersion": 5
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "FAILED",
+    "tribunalVersion": 5,
+    "failedStage": "factChecker",
+    "finishedAt": "2026-05-21T02:57:49+08:00"
+  },
+  "sp-184-20260425-jer-pocketos-cursor-railway-incident.mdx": {
+    "article": "sp-184-20260425-jer-pocketos-cursor-railway-incident.mdx",
+    "startedAt": "2026-05-20T21:15:14+08:00",
+    "stages": {
+      "factChecker": {
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
@@ -2946,28 +2798,10 @@
     "startedAt": "2026-05-20T17:33:33+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 8,
-            "fidelity": 8,
-            "consistency": 8,
-            "sourceBoundary": 5,
-            "commentarySeparation": 6
-          },
-          "score": 7,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "Core claims match the OpenAI source, including the no-human-written-code setup, 3-5 session ceiling, 500% landed-PR caveat, Elixir reference implementation, JSON-RPC app server, and 15K GitHub stars, but several broad ecosystem interpretations are presented as factual conclusions.",
-            "fidelity": "The post preserves important source caveats such as 'some teams' and 'first three weeks,' but expands beyond the source with claims like low-code tools being crossed over and OpenAI making a platform-level bet.",
-            "consistency": "The bottleneck-to-orchestration argument is coherent, but some conclusions move from source evidence to broader industry prognosis without clearly marking the inference in the body.",
-            "sourceBoundary": "SP body repeatedly uses source-report scaffolding such as '這篇文章講,' '原文寫,' '原作者用,' '文章結尾那段,' and '原作者自己留了一條暗線,' so it reads partly like a source report rather than direct gu-log prose.",
-            "commentarySeparation": "Most explicit Clawd commentary is inside <ClawdNote>, but body prose still contains gu-log/source-meta interpretation such as '這篇 SP 把這個故事拆成三層,' '好的軟體工程承諾通常長這樣,' and '這是平台級別的賭注.'"
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 2,
+        "attempts": 1,
         "tribunalVersion": 5
       }
     },
@@ -3085,28 +2919,10 @@
     "startedAt": "2026-05-20T21:14:12+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 7,
-            "fidelity": 6,
-            "consistency": 7,
-            "sourceBoundary": 4,
-            "commentarySeparation": 4
-          },
-          "score": 5,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "Most quoted benchmark and drug-discovery numbers match The Batch, but the body misframes Meta as a \"1000 人實驗室\" even though the source's 1,000 figure refers to physicians curating health data, and it understates source-described hiring packages as merely 百萬美元級 rather than hundreds of millions.",
-            "fidelity": "The post preserves many source details, but it adds a large body-level thesis about opposite signals, intended audiences, and editorial arrangement that The Batch does not state, and it overextends Meta's pivot into \"Open Weights 策略整個收掉\".",
-            "consistency": "The argument is mostly coherent, but several conclusions depend on unsupported synthesis, especially tying Ng, Meta, Insilico, and Persona Generators into one shared bottleneck narrative outside the source's explicit claims.",
-            "sourceBoundary": "SP body repeatedly narrates the source and its layout with phrases such as \"The Batch 349 頭條\", \"The Batch 自家\", \"這篇 SP\", and \"版面安排本身就是論點\", so it often reads as a source report rather than direct gu-log prose.",
-            "commentarySeparation": "Substantial gu-log interpretation appears outside ClawdNote, including the noodle-shop analogies, \"Ng 那篇是寫給自己看的，Muse Spark 那篇是寫給競爭對手看的\", and the editorial-power thesis in the conclusion."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 2,
+        "attempts": 1,
         "tribunalVersion": 5
       }
     },
@@ -3115,5 +2931,20 @@
     "status": "FAILED",
     "failedStage": "factChecker",
     "finishedAt": "2026-05-20T23:15:43+08:00"
+  },
+  "sp-182-20260423-anthropic-claude-code-april-postmortem.mdx": {
+    "article": "sp-182-20260423-anthropic-claude-code-april-postmortem.mdx",
+    "startedAt": "2026-05-21T02:52:42+08:00",
+    "stages": {
+      "factChecker": {
+        "status": "in_progress",
+        "score": null,
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 2,
+        "tribunalVersion": 5
+      }
+    },
+    "topLevelAttempts": 0,
+    "tribunalVersion": 5
   }
 }
