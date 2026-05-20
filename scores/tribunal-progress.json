@@ -1198,28 +1198,10 @@
     "startedAt": "2026-05-20T11:55:35+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 8,
-            "fidelity": 8,
-            "consistency": 8,
-            "sourceBoundary": 6,
-            "commentarySeparation": 7
-          },
-          "score": 7,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "Core technical and workflow claims match the source, including Semrush KD 0-14%, CPC > 0.01, Reddit Answers plus Atlas, and wired-earbuds reasons, but several concrete tool URLs and the Feishu/RPA link details are not visible in the fetched source text and remain only partially verifiable.",
-            "fidelity": "The post preserves the source's main sequence and hedges such as the DataReportal threshold being written as X, but it expands the source with explanatory conclusions like the market-research-company analogy and product/channel framing beyond direct translation.",
-            "consistency": "The argument flows coherently from keyword screening to Reddit validation to structured collection, with no major internal contradiction, though some added interpretations are stronger than the source evidence alone supports.",
-            "sourceBoundary": "The SP body repeatedly uses source-report framing such as 'Lisa 這篇推文提供', 'Lisa 的背景', 'Lisa 先從平台選擇講起', 'Lisa 建議', and 'Lisa 最後', making it read partly like a report about the source rather than direct gu-log prose.",
-            "commentarySeparation": "Most overt gu-log opinions are in ClawdNote, but body prose still includes interpretive commentary such as '不是那種...神奇魔法', '沒有招牌的市場研究公司', and '不是一張許願清單' outside ClawdNote."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 2,
+        "attempts": 1,
         "tribunalVersion": 5
       }
     },
@@ -2832,20 +2814,20 @@
         "score": {
           "judge": "factCheck",
           "dimensions": {
-            "accuracy": 8,
+            "accuracy": 9,
             "fidelity": 8,
-            "consistency": 8,
-            "sourceBoundary": 9,
+            "consistency": 9,
+            "sourceBoundary": 6,
             "commentarySeparation": 6
           },
           "score": 7,
           "verdict": "FAIL",
           "reasons": {
-            "accuracy": "Concrete Dreams mechanics match Anthropic docs: asynchronous job, existing memory store plus up to 100 sessions, separate output store, observable session_id, and standard model token billing; minor imprecision remains where supported models are summarized only as Opus or Sonnet and broad sleep-memory claims are presented confidently.",
-            "fidelity": "The cited X source was not directly readable, but the post aligns well with Anthropic's Dreams docs and launch blog; some interpretive claims such as Dreams as a second reflection loop and long-term compounding capability go beyond the verifiable source wording.",
-            "consistency": "The argument is coherent from context rot to offline memory curation, observability, cost, and lifecycle management, though a few conclusions such as 'long-term performance compounding' are stronger than the cited evidence establishes.",
-            "sourceBoundary": "The SP body avoids repeated source-report scaffolding such as '原作者說' or '原文提到', with source limitations expressed more naturally in places like the sleep analogy disclaimer.",
-            "commentarySeparation": "Many gu-log interpretations and evaluative asides remain in the SP body outside ClawdNote, including '這個設計非常工程腦', '這不是華麗功能，是除錯時會救命的功能', and the broader '不是只靠容量，而是整理' framing."
+            "accuracy": "Core Dreams claims match the X source and Anthropic docs: async job, existing memory store plus up to 100 sessions, separate output store, live session_id observation, Opus/Sonnet billing, and token-cost scaling.",
+            "fidelity": "The source is represented faithfully overall, but the post expands heavily with gu-log analogies and interpretation around Managed Agents, debugging value, and memory lifecycle beyond direct translation.",
+            "consistency": "The argument flows coherently from memory rot to offline curation, observability, costs, sleep metaphor, second loop, and context-window limits without internal contradiction.",
+            "sourceBoundary": "SP body repeatedly uses source-report framing such as line 85 '依照推文描述', line 105 '@danizhu 特別提醒', line 131 '推文提到', line 143 '推文說', and line 189 '@danizhu 最後'.",
+            "commentarySeparation": "Several gu-log opinions and source-meta interpretations remain in body prose instead of ClawdNote, including lines 73, 97-99, 137, 191, and the closing joke at line 215."
           }
         },
         "model": "codex-gpt-5.5-medium",
@@ -2853,39 +2835,21 @@
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 3,
+    "topLevelAttempts": 4,
     "tribunalVersion": 5,
     "status": "FAILED",
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T17:37:02+08:00"
+    "finishedAt": "2026-05-20T19:23:58+08:00"
   },
   "sp-189-20260430-openai-gpt-5-5-prompting-guide.mdx": {
     "article": "sp-189-20260430-openai-gpt-5-5-prompting-guide.mdx",
     "startedAt": "2026-05-20T11:56:00+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 6,
-            "fidelity": 6,
-            "consistency": 7,
-            "sourceBoundary": 6,
-            "commentarySeparation": 5
-          },
-          "score": 6,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "Most OpenAI guide details are correct, including outcome-first prompts, retrieval budgets, phase handling, Cursor tuning, and the 35% apply_patch failure-rate claim, but the body presents unsupported specifics such as the final 28% latency and one-third token-cost anecdote.",
-            "fidelity": "The post tracks the official guide's main recommendations, but it adds substantial extrapolation and narrative claims outside the source, including the 700-line prompt story and the final benchmark result.",
-            "consistency": "The argument is broadly coherent around shorter outcome-first prompts, but conclusions such as industry-wide retirement of old prompt style and the invented evaluation anecdote go beyond the evidence presented.",
-            "sourceBoundary": "The SP body repeatedly narrates the source with report framing such as \"OpenAI 在 GPT-5.5 段落\", \"OpenAI 給的\", \"OpenAI 用的詞\", and \"OpenAI 在文件裡給了\" rather than presenting claims directly.",
-            "commentarySeparation": "Several gu-log interpretations and source-meta comments remain in body prose, including comparisons to Anthropic, \"這是 GPT-5.5 文件最有畫面感的新概念\", and the unsupported final engineer anecdote, instead of staying in ClawdNote."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 2,
+        "attempts": 1,
         "tribunalVersion": 5
       }
     },
@@ -2900,28 +2864,10 @@
     "startedAt": "2026-05-20T11:59:55+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 7,
-            "fidelity": 7,
-            "consistency": 7,
-            "sourceBoundary": 5,
-            "commentarySeparation": 5
-          },
-          "score": 6,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "Core source facts such as GitHub user 1299, Feb 2008, the month-long X journal, PR review blocked for about two hours, and the April 27 outage footnote are accurate, but the closing claim that the final X was drawn on 2026-04-28 is not supported and conflicts with the source footnote that the cited outage was from a post written a week before April 27.",
-            "fidelity": "Most quoted passages are translated faithfully, but the body adds interpretive claims beyond the source, including converting 'almost every day' into an assumed 25 to 28 days and framing the event as a broader signal that the developer circle only listens because of user #1299.",
-            "consistency": "The argument is readable and mostly coherent, but several conclusions overreach the evidence, especially the 80% to 90% workday impact calculation and the claim that a two-hour PR review outage means all contributors were blocked for two hours.",
-            "sourceBoundary": "The SP body repeatedly uses source-report scaffolding such as '這篇推文', 'Mitchell 部落格那篇全文', '原文還有一句', and many '直譯' transitions, so it often reads like a report about the source rather than clean SP prose.",
-            "commentarySeparation": "ClawdNote sections are present, but substantial gu-log interpretation remains in the body, including '這篇 SP 不是在報導', the room-renter analogy, the signal-analysis claims around #1299, and the final ShroomDog contextual commentary."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 2,
+        "attempts": 1,
         "tribunalVersion": 5
       }
     },
@@ -2936,28 +2882,10 @@
     "startedAt": "2026-05-20T17:33:33+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 8,
-            "fidelity": 8,
-            "consistency": 8,
-            "sourceBoundary": 5,
-            "commentarySeparation": 6
-          },
-          "score": 7,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "Core claims match the OpenAI post, including the no-human-written-code repo, 3-5 manageable Codex sessions, 500% landed-PR increase for some teams, Elixir reference implementation, and TypeScript/Go/Rust/Java/Python spec trials, but body prose adds unsupported interpretive claims such as PM validation shrinking from weeks to hours.",
-            "fidelity": "The post preserves major source caveats around the 500% number and Symphony not being maintained as a standalone product, but it expands the source into broader claims about role reshuffling, platform strategy, and engineering culture that are not clearly marked as source-derived versus gu-log interpretation.",
-            "consistency": "The argument coherently follows the source's bottleneck-to-orchestration arc, but some conclusions, such as low-code disruption and Codex App Server as OpenAI's real platform bet, are stronger than the evidence presented in the body.",
-            "sourceBoundary": "The SP body repeatedly uses source-meta scaffolding such as '這篇文章', '原文寫', '原作者用', and '原作者自己留了一條暗線', making the article read partly like a report about the source instead of direct gu-log prose.",
-            "commentarySeparation": "Many opinions are correctly placed in ClawdNote, but body sentences like '這篇 SP 把這個故事拆成三層', '這句話的可信度比 500% 高', and '這是「平台」級別的賭注' mix gu-log interpretation and source-meta commentary into the main SP body."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 2,
+        "attempts": 1,
         "tribunalVersion": 5
       }
     },
@@ -2972,28 +2900,10 @@
     "startedAt": "2026-05-20T17:33:54+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 8,
-            "fidelity": 7,
-            "consistency": 7,
-            "sourceBoundary": 6,
-            "commentarySeparation": 6
-          },
-          "score": 6,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "Core technical claims about Task Flow, cron versus Heartbeat, Hooks, Standing Orders, and task records match the OpenClaw automation page, but the post repeatedly frames the page as six mechanisms while the source also includes Inferred Commitments.",
-            "fidelity": "The Task Flow and Heartbeat descriptions are faithful, including managed/mirrored sync, revision tracking, exact versus approximate timing, and task-record differences, but the source coverage is narrowed and the six-mechanism framing underrepresents Inferred Commitments.",
-            "consistency": "The argument mostly flows from tool-shape distinctions to Task Flow orchestration, but the post says there are six mechanisms while later listing inferred follow-ups as another automation responsibility.",
-            "sourceBoundary": "The SP body repeatedly uses source-report framing such as \"OpenClaw 的自動化文件\", \"文件把\", \"文件沒有\", \"文件表格\", and \"文件的選擇表\", so it often reads as commentary on the source rather than direct gu-log prose.",
-            "commentarySeparation": "Most explicit Clawd opinions are inside <ClawdNote>, but body prose still adds gu-log interpretation and meta commentary such as \"這裡不要腦補太多\", the invented dialogue, and the office-clock analogy outside ClawdNote."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 2,
+        "attempts": 1,
         "tribunalVersion": 5
       }
     },
