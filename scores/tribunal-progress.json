@@ -882,18 +882,36 @@
     "startedAt": "2026-05-21T02:52:20+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 7,
+            "consistency": 8,
+            "sourceBoundary": 5,
+            "commentarySeparation": 5
+          },
+          "score": 6,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core technical/source claims are mostly correct against the mirrored Teddy article, including Ramp MCP WAU growing 10x, Notion's enhanced markdown spec instruction, rationale parameters, feedback tool, and the Diego GL-code example, but the body adds interpretive Salesforce moat/UI-lock-in claims and Ramp/Claude Code context beyond the source.",
+            "fidelity": "The source arc is represented, but the post adds substantial gu-log framing, analogies, cross-post references, and stronger interpretive language such as Salesforce admitting its UI moat is being hollowed out, so it is more adapted commentary than a faithful SP translation.",
+            "consistency": "The argument is internally coherent from MCP ergonomics to feedback loops and context gaps, though several added conclusions rely on editorial interpretation rather than evidence carried in the source.",
+            "sourceBoundary": "The SP body repeatedly narrates the source with phrases such as `Teddy 這篇文章`, `Teddy 自己的 workflow`, `文章裡他說`, `Teddy 的吐槽`, `Teddy 寫得`, and `Teddy 用`, which violates the v5 source-boundary rule.",
+            "commentarySeparation": "Many gu-log interpretations and metaphors remain in body prose outside ClawdNote, including the convenience-store spoon analogy, Salesforce moat commentary, CP cross-references, and `飼料工程` framing."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 1,
+    "topLevelAttempts": 2,
     "status": "FAILED",
     "tribunalVersion": 5,
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-21T02:57:49+08:00"
+    "finishedAt": "2026-05-21T03:04:32+08:00"
   },
   "sp-184-20260425-jer-pocketos-cursor-railway-incident.mdx": {
     "article": "sp-184-20260425-jer-pocketos-cursor-railway-incident.mdx",
@@ -2880,17 +2898,35 @@
     "startedAt": "2026-05-21T02:52:42+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 8,
+            "sourceBoundary": 6,
+            "commentarySeparation": 8
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core Anthropic timeline, affected products, versions, and fixes match the source, but several ClawdNote additions such as the 401(k) participation numbers and broader SRE/default-bias claims are not sourced in the post.",
+            "fidelity": "The body faithfully preserves the three-issue structure and key caveats, including that the prompt change was in combination with other prompt changes, though it adds stronger explanatory color around user complaints and intelligence loss.",
+            "consistency": "The post's causal chain is coherent from latency/token/verbosity changes to perceived regression, but some broad conclusions about evals and product value extend beyond the source evidence.",
+            "sourceBoundary": "The SP body repeatedly uses source-meta framing such as \"Anthropic 原文\", \"原文的描述是\", \"原文列了\", and \"原文收尾\", so it reads partly like a source report.",
+            "commentarySeparation": "Most gu-log interpretation is properly inside ClawdNote, with only light body-side interpretive phrasing such as \"翻成白話\" and \"技術最硬也最值得細讀\"."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 1,
+    "topLevelAttempts": 2,
     "tribunalVersion": 5,
     "status": "FAILED",
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-21T02:58:43+08:00"
+    "finishedAt": "2026-05-21T03:04:33+08:00"
   }
 }
