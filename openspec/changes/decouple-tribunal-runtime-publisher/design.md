@@ -8,7 +8,7 @@ The current Tribunal daemon is doing too many jobs in one git worktree:
 
 This worked while throughput was small, but it breaks down once Tribunal runs for hours. The main runtime branch can become `ahead N, behind M` while also containing dirty post files. A daemon loop that repeatedly runs `git pull --rebase --autostash` in that state is doing a human/publisher job from an unsafe environment.
 
-Sprin's product expectation is also batch-shaped: Tribunal results should sync to remote/prod through PRs, roughly every 10 terminal runs, so Clawd/Iris/humans can still rewrite phrasing on individual posts without the daemon blindly overwriting them.
+Sprin's product expectation is also batch-shaped: publishable Tribunal PASS artifacts should sync to remote/prod through PRs in small batches, roughly every 10 publishable PASS artifacts, so Clawd/Iris/humans can still rewrite phrasing on individual posts without the daemon blindly overwriting them.
 
 ## Goals / Non-Goals
 
@@ -17,7 +17,7 @@ Sprin's product expectation is also batch-shaped: Tribunal results should sync t
 - Separate Tribunal runtime from production publishing.
 - Make the daemon safe to run for long periods without accumulating a dirty tracked worktree.
 - Persist runtime progress in ignored, restart-safe ledger files.
-- Publish terminal results through small batch PRs, with CI and conflict checks.
+- Publish publishable PASS artifacts through small batch PRs, with CI and conflict checks.
 - Prefer human/Iris/Clawd editorial changes over stale Tribunal rewrites when both touch the same post.
 - Preserve enough state in OpenSpec so implementation can resume after context compaction.
 
@@ -32,7 +32,7 @@ Sprin's product expectation is also batch-shaped: Tribunal results should sync t
 
 ### Decision 1: Runtime ledger lives outside tracked git files
 
-Tribunal SHALL write canonical runtime state under `.score-loop/state/tribunal-ledger/` or an equivalent ignored directory. The ledger should be JSONL or per-article JSON files written with atomic rename and serialized locks.
+Tribunal SHALL write canonical runtime state under `.score-loop/state/tribunal-ledger/` or an equivalent ignored directory. The canonical shape should be per-article JSON files plus an append-only journal or audit stream. Every ledger record must include a schema version, stable entry ID, article slug, Tribunal version, outcome state, attempt counters, publish state, timestamps, and artifact manifest metadata. Writes must use atomic replacement or append plus serialized locks.
 
 Alternative considered: keep using `scores/tribunal-progress.json` as the canonical ledger. This keeps production-visible state simple, but it forces every runtime update into the git working tree and recreates the dirty-worktree problem.
 
@@ -42,23 +42,37 @@ A new publisher command SHALL read terminal ledger entries, select a batch, crea
 
 Alternative considered: let `tribunal-quota-loop.sh` keep committing locally and periodically push. This is simpler but keeps runtime and publishing coupled, and still leaves daemon-local rebase conflicts.
 
-### Decision 3: Default batch trigger is 10 terminal article results
+### Decision 3: Default batch trigger is 10 publishable PASS artifacts
 
-The default publishing threshold SHALL be 10 terminal results, where terminal means PASS, FAILED, or EXHAUSTED. The threshold should be configurable, and a manual flush should exist for urgent publishing.
+The default publishing threshold SHALL be 10 publishable PASS artifacts. A publishable artifact means:
 
-The batch PR SHOULD include PASS article artifacts. FAILED / EXHAUSTED outcomes SHALL be represented in operator-facing batch metadata; whether they become production UI is a separate product decision.
+- Tribunal outcome is PASS
+- artifact manifest exists
+- no unresolved conflict or validation-blocked state exists
+- entry is not already batched or published
+
+The threshold should be configurable, and a manual flush should exist for urgent publishing.
+
+FAILED / EXHAUSTED outcomes SHALL be represented in operator-facing metadata and status views, but SHALL NOT count toward the PR threshold and SHALL NOT by themselves create production-bound artifact PRs. RUNNER_ERROR SHALL be excluded from publishable batches entirely.
 
 Alternative considered: publish every article. That reduces latency but creates review noise and more CI churn. One giant commit after the backlog finishes is also rejected because it is too large to review and too risky to conflict with editorial edits.
 
-### Decision 4: Conflict policy is base-SHA based and human-friendly
+### Decision 4: Conflict policy is manifest-and-base aware
 
-Each ledger terminal entry SHALL record the post artifact base SHA used when the worker started or when the publishable artifact was produced. The publisher SHALL compare that base SHA to current `origin/main`.
+Each publishable ledger entry SHALL record an artifact manifest for every path it wants to publish, including at least:
 
-If current `origin/main` changed the same post after that base, the publisher SHALL mark that article as conflicted/requeue-needed and SHALL NOT overwrite it automatically. This protects Sprin, Iris, or Clawd editorial edits.
+- path
+- base commit SHA
+- base blob SHA
+- candidate blob digest
+
+The publisher SHALL compare that manifest to current `origin/main` and to open non-publisher PRs that touch the same manifest paths.
+
+If any manifest path changed after the base, was renamed/deleted, or is already under active editorial review in another PR, the publisher SHALL mark that article as conflicted/requeue-needed and SHALL NOT overwrite it automatically. This protects Sprin, Iris, or Clawd editorial edits across zh/en paired files and shared publishable metadata.
 
 Alternative considered: last-writer-wins. That is unacceptable for editorial content because phrasing edits are often the valuable human judgment, not noise.
 
-### Decision 5: Conflicts are event-driven and non-blocking
+### Decision 5: Conflicts are event-driven, durable, and non-blocking
 
 Conflict handling SHALL behave like an airport customs lane:
 
@@ -66,16 +80,24 @@ Conflict handling SHALL behave like an airport customs lane:
 - red lane: conflicted posts stop for inspection and trigger a decision event
 - officer: OpenClaw / Clawd / Iris can summarize the conflict, propose options, and ask Sprin only when judgment is needed
 
-The key rule is that one ambiguous post SHALL NOT block unrelated clean posts. The publisher should split the batch into publishable and blocked subsets, then send an event for the blocked subset with enough context to decide:
+The key rule is that one ambiguous post SHALL NOT block unrelated clean posts. The publisher should split the batch into publishable and blocked subsets, then send a durable triage event for the blocked subset with enough context to decide:
 
 - keep current main wording
 - accept Tribunal rewrite
 - ask an agent to merge both
 - requeue Tribunal after human/Iris/Clawd edits
 
+Each triage event should have a dedup key, state machine, owner, timestamps, retry semantics, and explicit resolution outcome so OpenClaw can be event-driven instead of relying on chat memory.
+
 Alternative considered: stop the whole publisher batch on first conflict. That preserves safety but wastes throughput and makes Tribunal feel broken whenever one article needs judgment.
 
-### Decision 6: Runtime update checks are fetch-only
+### Decision 6: Validation failures are isolated per candidate
+
+Publisher validation should fail closed per candidate, not per whole batch. If one candidate artifact fails validation or build, that candidate should move to a validation-blocked triage state while the rest of the clean batch continues, as long as at least one valid publishable artifact remains.
+
+Alternative considered: cancel the whole batch on the first validation failure. That is simpler, but it recreates the same throughput problem as conflict-wide blocking.
+
+### Decision 7: Runtime update checks are fetch-only
 
 The long-running runtime MAY run `git fetch origin main` to observe remote drift and sync worker worktrees before dispatch, but SHALL NOT run `git pull`, `git rebase`, or `git push` in the runtime main worktree.
 
@@ -85,9 +107,10 @@ If code updates are needed, the operator should drain/restart the daemon. This i
 
 - Migration bug could lose or misclassify progress -> write a migration test using real current status shapes and keep a backup snapshot.
 - Publisher queue may lag behind runtime -> expose queue counts and oldest terminal entry age.
-- Batch PRs can conflict with human/Iris/Clawd edits -> detect by base SHA and skip conflicted articles rather than overwriting.
-- Conflict events can annoy Sprin if too noisy -> group conflicts into concise decision bundles and only ask when agentic merge confidence is low.
-- Production will see results later than daemon completion -> default 10-result threshold plus manual flush balances latency and reviewability.
+- Batch PRs can conflict with human/Iris/Clawd edits -> detect by manifest path/base blob and skip conflicted articles rather than overwriting.
+- Conflict events can annoy Sprin if too noisy -> dedup events by conflict fingerprint and only escalate to human when deterministic agentic merge rules do not apply.
+- Production will see results later than daemon completion -> default 10-PASS threshold plus manual flush balances latency and reviewability.
+- One invalid candidate could stall a batch -> isolate it into validation-blocked state and continue with remaining clean entries.
 - More moving parts -> keep interfaces boring: ledger writer, publisher, migration, status command, tests.
 - Existing service may still have dirty state during migration -> implement and verify in a clean worktree, then drain/restart runtime when applying.
 
@@ -98,7 +121,7 @@ If code updates are needed, the operator should drain/restart the daemon. This i
 3. Change runtime writes to ledger files and stop treating tracked progress JSON as canonical.
 4. Replace daemon `git pull --rebase` with fetch-only drift detection.
 5. Add publisher dry-run and conflict detection.
-6. Enable publisher batch PR creation after validation passes.
+6. Enable publisher batch PR creation after candidate-level validation passes.
 7. Drain/restart the existing service and observe at least one publish cycle.
 
 Rollback: disable publisher, stop runtime, restore the backed-up tracked progress file, and restart the previous daemon code path from the pre-change commit.
@@ -106,6 +129,5 @@ Rollback: disable publisher, stop runtime, restore the backed-up tracked progres
 ## Open Questions
 
 - Should FAILED / EXHAUSTED results ever appear on production pages, or remain operator-only?
-- Should the default batch trigger be exactly 10 terminal entries, or 10 PASS artifacts with FAILED / EXHAUSTED attached as metadata?
 - Should publisher PRs auto-merge when only Tribunal PASS artifacts are included and CI is green?
-- What confidence threshold should let an agent auto-merge editorial conflicts without asking Sprin?
+- What additional signals beyond disjoint hunks and metadata-only overlap should permit deterministic agentic merge without asking Sprin?

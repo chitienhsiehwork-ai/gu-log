@@ -11,11 +11,11 @@ Workers MAY write runtime ledger entries and publishable artifacts into ignored 
 - **WHEN** worker A and worker B finish their respective articles near the same time
 - **THEN** each worker SHALL serialize writes to the runtime ledger
 - **AND** neither worker SHALL push or rebase a shared branch
-- **AND** publisher SHALL later serialize integration of eligible terminal results into a batch PR
+- **AND** publisher SHALL later serialize integration of eligible publishable PASS artifacts into a batch PR
 
 #### Scenario: Publisher integrates multiple worker outputs
 
-- **WHEN** publisher selects terminal entries from multiple workers
+- **WHEN** publisher selects publishable PASS artifacts from multiple workers
 - **THEN** publisher SHALL integrate them from a clean checkout
 - **AND** SHALL create at most one branch/PR for that batch
 - **AND** SHALL record batch membership so repeated publisher runs remain idempotent
