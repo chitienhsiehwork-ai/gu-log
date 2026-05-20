@@ -1201,7 +1201,7 @@
         "status": "in_progress",
         "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
@@ -2864,18 +2864,36 @@
     "startedAt": "2026-05-20T11:59:55+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 7,
+            "fidelity": 7,
+            "consistency": 7,
+            "sourceBoundary": 5,
+            "commentarySeparation": 5
+          },
+          "score": 6,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core source facts such as GitHub user 1299, Feb 2008, the month-long X journal, PR review blocked for about two hours, and the April 27 outage footnote are accurate, but the closing claim that the final X was drawn on 2026-04-28 is not supported and conflicts with the source footnote that the cited outage was from a post written a week before April 27.",
+            "fidelity": "Most quoted passages are translated faithfully, but the body adds interpretive claims beyond the source, including converting 'almost every day' into an assumed 25 to 28 days and framing the event as a broader signal that the developer circle only listens because of user #1299.",
+            "consistency": "The argument is readable and mostly coherent, but several conclusions overreach the evidence, especially the 80% to 90% workday impact calculation and the claim that a two-hour PR review outage means all contributors were blocked for two hours.",
+            "sourceBoundary": "The SP body repeatedly uses source-report scaffolding such as '這篇推文', 'Mitchell 部落格那篇全文', '原文還有一句', and many '直譯' transitions, so it often reads like a report about the source rather than clean SP prose.",
+            "commentarySeparation": "ClawdNote sections are present, but substantial gu-log interpretation remains in the body, including '這篇 SP 不是在報導', the room-renter analogy, the signal-analysis claims around #1299, and the final ShroomDog contextual commentary."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 1,
+    "topLevelAttempts": 2,
     "tribunalVersion": 5,
     "status": "FAILED",
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-20T12:11:07+08:00"
+    "finishedAt": "2026-05-20T17:38:52+08:00"
   },
   "sp-187-20260428-openai-symphony-codex-orchestration.mdx": {
     "article": "sp-187-20260428-openai-symphony-codex-orchestration.mdx",
