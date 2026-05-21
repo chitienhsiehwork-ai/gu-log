@@ -789,18 +789,36 @@
     "startedAt": "2026-05-21T02:53:01+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 8,
+            "sourceBoundary": 7,
+            "commentarySeparation": 7
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core technical claims match the source, including the 2 bugs per PR / 58% severe Devin Review figure, ~8x enterprise usage growth, SWE-1.5 at 950 tok/sec, SWE-1.6 reaching Opus-4.5-level SWE-bench performance, and the map-reduce-and-manage framing; a few phrasings such as 'Sonnet 被 Opus 取代' slightly overstate the source's softer 'distinct shift' claim.",
+            "fidelity": "The post preserves the article's main thesis that writes should stay single-threaded while other agents contribute intelligence, and accurately covers the code-review loop, smart friend, and manager Devin sections, but it repeatedly expands Walden's points with stronger local interpretation such as '真正可行的解不是讓它們一起寫' and '研究論文看起來很漂亮，實務上 ship 不出產品'.",
+            "consistency": "The through-line from clean-context review to smart friend to manager Devin is logically coherent and supported by the source, though the conclusion's 'manager 不親自寫，child 一次一個在寫' simplification is a bit muddy because the source's higher-level delegation can involve multiple child Devins executing scoped work.",
+            "sourceBoundary": "The SP body has several source-report/meta transitions, including 'Walden 的態度沒有轉彎', 'Walden 想挖的就是', 'Walden 給的答案', 'Walden 的發現', 'Walden 判斷', and '這篇 SP 就是把那一類拆乾淨', so it reads partly like a narrated source report rather than direct gu-log prose.",
+            "commentarySeparation": "Most explicit gu-log commentary is inside <ClawdNote>, but body sentences such as '這句話值得停一下', '整句直接推翻...天真敘事', and '這題 Cognition 的答案是...' inject interpretive/source-meta stance outside the note boundary."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 2,
+    "topLevelAttempts": 3,
     "status": "FAILED",
     "tribunalVersion": 5,
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-21T16:03:07+08:00"
+    "finishedAt": "2026-05-21T16:10:38+08:00"
   },
   "sp-183-20260426-teddy-riker-designing-for-agents.mdx": {
     "article": "sp-183-20260426-teddy-riker-designing-for-agents.mdx",
