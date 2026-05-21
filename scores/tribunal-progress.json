@@ -460,16 +460,36 @@
     "startedAt": "2026-05-21T17:55:47+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 7,
+            "consistency": 8,
+            "sourceBoundary": 4,
+            "commentarySeparation": 4
+          },
+          "score": 6,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core claims match the source and OpenAI docs: the source says Codex launched computer use, 90+ plugins, memories, and Chronicle, and the docs confirm macOS-only Pro preview, Screen Recording/Accessibility permissions, quick rate-limit use, prompt-injection risk, and unencrypted local Markdown memories; a few body claims overstate interpretation, such as '每一個字都是 context' and 'Chronicle 不會問'.",
+            "fidelity": "The post preserves the main source example around 'sync with the latest docs draft changes and message Romain', the six-step workflow, the vault setup, and the colleague analogy, but it adds a large critical security interpretation from docs and gu-log reasoning outside ClawdNote rather than presenting it as separated commentary.",
+            "consistency": "The argument is coherent from context convenience to verification burden to Chronicle risk, though the blanket conclusion that Chronicle will infer and not ask is stronger than the cited evidence supports.",
+            "sourceBoundary": "The SP body repeatedly narrates source metadata with phrases like 'OpenAI DevX 的 Dominik Kundel...在 X 上發了一篇推文', '推文寫得很漂亮', 'Kundel 推文結尾', and '去翻官方 Chronicle 文件', so it reads heavily as a report about sources rather than direct SP prose.",
+            "commentarySeparation": "Substantial gu-log interpretation appears in body prose outside ClawdNote, including 'demo 效果一百分', the resume metaphor, '把 Codex 當同事？這個比喻少了幾個零件', and the final risk framing that Chronicle is not a harmless booster but a screen-recording agent."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 0,
-    "status": "PENDING",
-    "tribunalVersion": 5
+    "topLevelAttempts": 1,
+    "status": "FAILED",
+    "tribunalVersion": 5,
+    "failedStage": "factChecker",
+    "finishedAt": "2026-05-21T18:01:28+08:00"
   },
   "sp-177-20260421-pawelhuryn-intent-first-4-7-migration.mdx": {
     "article": "sp-177-20260421-pawelhuryn-intent-first-4-7-migration.mdx",
