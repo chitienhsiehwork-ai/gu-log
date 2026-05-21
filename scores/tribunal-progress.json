@@ -848,18 +848,36 @@
     "startedAt": "2026-05-21T02:53:01+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 7,
+            "consistency": 8,
+            "sourceBoundary": 5,
+            "commentarySeparation": 6
+          },
+          "score": 6,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core technical figures match the Cognition source, including ~8x usage growth, 2 bugs per PR, 58% severe, and SWE-1.5 at 950 tok/sec, but the body adds an unsupported exact claim that humans see PRs after \"80%\" of bugs are gone.",
+            "fidelity": "The main three-pattern structure is faithful to Walden Yan's article, but several paraphrases add sharper gu-log framing and one invented precision point, such as the 80% bug-resolution statement.",
+            "consistency": "The argument coherently tracks the source through clean-context review, smart friend, and manager Devin, though body-level interpretive transitions occasionally overstate the source's own framing.",
+            "sourceBoundary": "The SP body frequently narrates the source with phrases such as \"Walden 給的答案\", \"Walden 的發現\", \"Walden 判斷\", and \"原文用的字\", so it reads partly like a source report rather than direct gu-log prose.",
+            "commentarySeparation": "Many opinions are properly inside ClawdNote, but the body still includes gu-log/source-meta commentary such as \"這篇 SP 就是把那一類拆乾淨\", \"技術那層真的狠\", and \"這句話值得停一下\"."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 1,
+    "topLevelAttempts": 2,
     "status": "FAILED",
     "tribunalVersion": 5,
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-21T03:04:18+08:00"
+    "finishedAt": "2026-05-21T16:03:07+08:00"
   },
   "sp-183-20260426-teddy-riker-designing-for-agents.mdx": {
     "article": "sp-183-20260426-teddy-riker-designing-for-agents.mdx",
@@ -2849,7 +2867,7 @@
         "status": "in_progress",
         "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
