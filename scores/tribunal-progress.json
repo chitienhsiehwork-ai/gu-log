@@ -580,18 +580,36 @@
     "startedAt": "2026-05-21T02:53:01+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 8,
+            "sourceBoundary": 7,
+            "commentarySeparation": 7
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core facts match Cognition's article, including Devin Review averaging 2 bugs per PR with roughly 58% severe, ~8x enterprise usage growth, SWE-1.5 at 950 tok/sec, SWE 1.6 improving toward Opus-4.5-level SWE-bench performance, and manager Devin using child Devins through internal MCP; minor over-compression appears in phrasing such as child agents writing '一次一個'.",
+            "fidelity": "The post faithfully preserves the source's main claims about single-threaded writes, clean-context review, Smart Friend limitations, cross-frontier routing, and map-reduce-and-manage, but adds stronger gu-log framing such as '三招同一招' and 'ship 不出產品' that goes beyond the source's more cautious wording.",
+            "consistency": "The narrative is internally coherent around one writer plus reviewer/advisor/router agents, with no major contradiction, though the manager Devin section slightly blurs whether child execution is strictly single-at-a-time or structurally managed.",
+            "sourceBoundary": "The SP body mostly presents source claims directly, but several source-meta/body-report phrases remain, including '這篇 SP 就是把那一類拆乾淨', '原文用的字是', 'Walden 在這邊劃下了一條界線', and 'Walden 的發現'.",
+            "commentarySeparation": "Most explicit gu-log commentary is in ClawdNote, but body prose still contains source-meta and gu-log interpretive asides such as 'gu-log 之前在 SP-66 拆過', '這句話值得停一下', and evaluative framing like '真的狠' outside ClawdNote."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 3,
+    "topLevelAttempts": 4,
     "status": "FAILED",
     "tribunalVersion": 5,
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-21T16:10:38+08:00"
+    "finishedAt": "2026-05-21T17:56:45+08:00"
   },
   "sp-183-20260426-teddy-riker-designing-for-agents.mdx": {
     "article": "sp-183-20260426-teddy-riker-designing-for-agents.mdx",
