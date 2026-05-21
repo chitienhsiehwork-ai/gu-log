@@ -34,7 +34,7 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$ROOT_DIR"
 
 POSTS_DIR="$ROOT_DIR/src/content/posts"
-PROGRESS_FILE="$ROOT_DIR/scores/tribunal-progress.json"
+PROGRESS_FILE="$(tribunal_progress_file_default "$ROOT_DIR")"
 TRIBUNAL_VERSION=5
 LOG_DIR="$ROOT_DIR/.score-loop/logs"
 LOG_FILE="$LOG_DIR/tribunal-quota-loop-$(date +%Y%m%d-%H%M%S).log"
@@ -88,6 +88,8 @@ tlog() {
 export RC_ROOT_DIR="$ROOT_DIR"
 # shellcheck source=scripts/tribunal-run-control.sh
 source "$SCRIPT_DIR/tribunal-run-control.sh"
+
+RUNTIME_GIT_STATE_FILE="$(tribunal_runtime_git_state_file "$ROOT_DIR")"
 trap 'rc_on_stop_signal TERM' TERM
 trap 'rc_on_stop_signal INT' INT
 
@@ -660,8 +662,8 @@ print(f'# rotated: kept {kept} entries', file=sys.stderr)
 
 # ─── Multi-worker supervisor helpers (Phase 2) ───────────────────────────────
 # Worker worktrees live at ~/clawd/projects/gu-log-worker-<id>. The "main"
-# repo (this script's ROOT_DIR) hosts the shared progress file, claims,
-# locks, and state. When WORKERS=1 we run in ROOT_DIR directly — no worker
+# repo (this script's ROOT_DIR) hosts the ignored runtime ledger, claims,
+# locks, and controller state. When WORKERS=1 we run in ROOT_DIR directly — no worker
 # worktrees, no env overrides — matching the pre-Phase-2 behavior.
 WORKER_IDS=()
 if (( WORKERS > 1 )); then
@@ -748,7 +750,7 @@ spawn_worker() {
     # supervisor; make it explicit again here in case the subshell's env
     # differs).
     export RC_ROOT_DIR="$ROOT_DIR"
-    export PROGRESS_FILE="$ROOT_DIR/scores/tribunal-progress.json"
+    export PROGRESS_FILE="$(tribunal_progress_file_default "$ROOT_DIR")"
     export TRIBUNAL_MAIN_REPO="$ROOT_DIR"
     export TRIBUNAL_SHARED_LOCK_DIR="$ROOT_DIR/.score-loop/locks"
     export TRIBUNAL_WORKER_ID="$id"
@@ -821,9 +823,7 @@ drain_and_exit() {
 # Copied from tribunal-batch-runner.sh (not a shared helper — keep in sync).
 get_unscored_articles() {
   # Ensure progress file exists
-  if [ ! -f "$PROGRESS_FILE" ] || ! jq empty "$PROGRESS_FILE" 2>/dev/null; then
-    echo '{}' > "$PROGRESS_FILE"
-  fi
+  ensure_tribunal_progress_file "$PROGRESS_FILE" "$ROOT_DIR"
 
   # List zh-tw articles (not en-, not demo), sorted newest-first by
   # frontmatter translatedDate (the date we first shipped this post).
@@ -943,9 +943,13 @@ while true; do
   autoscale_check
   EFFECTIVE_WORKERS=$(autoscale_read_limit)
 
-  # ── Git pull in main repo (workers do their own in their worktrees) ──────
-  git pull --rebase --autostash origin main >> "$LOG_FILE" 2>&1 \
-    || { git rebase --abort 2>/dev/null; tlog "WARN: git pull failed, continuing"; }
+  # ── Fetch-only drift check in main repo (workers sync their disposable worktrees) ──
+  git_drift="$(tribunal_fetch_and_report_origin_main "$ROOT_DIR" "$LOG_FILE" "$RUNTIME_GIT_STATE_FILE")"
+  IFS='|' read -r git_fetched git_state git_ahead git_behind git_dirty <<< "$git_drift"
+  if [ "$git_fetched" != "true" ]; then
+    tlog "WARN: origin/main fetch failed; runtime continues with current snapshot."
+  fi
+  tlog "Git drift: state=$git_state ahead=$git_ahead behind=$git_behind tracked_dirty=$git_dirty"
 
   # ── Find unscored articles ─────────────────────────────────────────────────
   mapfile -t ARTICLES < <(get_unscored_articles)
