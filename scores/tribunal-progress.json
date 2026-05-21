@@ -830,26 +830,8 @@
     "startedAt": "2026-05-21T03:01:44+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 8,
-            "fidelity": 8,
-            "consistency": 9,
-            "sourceBoundary": 7,
-            "commentarySeparation": 6
-          },
-          "score": 7,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "Core technical claims match the Anthropic source, including 300M monthly MCP SDK downloads, Cloudflare's two-tool/~2,500-endpoint example, MCP Apps, Elicitation, CIMD, Vaults, tool search, programmatic tool calling, and skills, but the body adds an unsupported concrete illustration that tool search can move a task from 5 steps to 15+ steps.",
-            "fidelity": "The post broadly preserves the source's structure and hedges such as 'tends to' for 85%+ token reduction, but it strengthens some framing into more absolute editorial conclusions like production '最後會收斂到 MCP' and MCP as the only compounding path.",
-            "consistency": "The argument is internally coherent: deployment location drives API/CLI/MCP choice, server design affects usability, production needs auth/interactivity, and context efficiency supports longer agent workflows.",
-            "sourceBoundary": "The SP body repeatedly uses source-meta framing such as 'Anthropic 這篇新文', 'Anthropic 的框架', 'Anthropic 原文的數字', '原文交代相容性', 'Anthropic 列了兩招', and '原文的總結', so it reads partly like a source report.",
-            "commentarySeparation": "Although ClawdNote sections hold much of the gu-log interpretation, the body still includes editorialized source-meta and opinionated phrasing such as '就是廢物', '自嗨', '屌打', '怪獸', and '搬上線那天...三道牆才會一起從地板冒出來'."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
@@ -866,28 +848,10 @@
     "startedAt": "2026-05-21T02:53:01+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 7,
-            "fidelity": 8,
-            "consistency": 8,
-            "sourceBoundary": 7,
-            "commentarySeparation": 7
-          },
-          "score": 7,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "Core technical claims such as 2 bugs per PR, 58% severe, ~8x usage growth, SWE-1.5/Sonnet 4.5, SWE 1.6, and manager Devin align with the fetched source, but frontmatter dates say 2026-04-22/2026-04-23 while the source fetch reports Published Time Wed, 20 May 2026 18:58:58 GMT.",
-            "fidelity": "The main article structure and caveats are faithfully represented, including Smart Friend being an open problem for weaker primaries, though line 190's 'child 一次一個在寫' over-compresses the manager/child model beyond the source's 'children execute' phrasing.",
-            "consistency": "The through-line of single-threaded writes and intelligence-only auxiliary agents is coherent, but the impossible source/translation dates in frontmatter undermine temporal consistency.",
-            "sourceBoundary": "The body mostly presents source claims smoothly, but it still uses source-report scaffolding such as line 76's '原文用的字' and repeated 'Walden 給的答案/發現/判斷/收斂' transitions.",
-            "commentarySeparation": "Most gu-log opinions are inside ClawdNote, but body prose still includes interpretive/source-meta commentary such as line 54's '寫來打自己臉' framing, line 130's 'Cognition 坦承做歪了', and line 148's '值得停一下' aside."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 2,
+        "attempts": 1,
         "tribunalVersion": 5
       }
     },
@@ -910,16 +874,16 @@
             "fidelity": 7,
             "consistency": 8,
             "sourceBoundary": 5,
-            "commentarySeparation": 5
+            "commentarySeparation": 6
           },
           "score": 6,
           "verdict": "FAIL",
           "reasons": {
-            "accuracy": "Core technical/source claims are mostly correct against the mirrored Teddy article, including Ramp MCP WAU growing 10x, Notion's enhanced markdown spec instruction, rationale parameters, feedback tool, and the Diego GL-code example, but the body adds interpretive Salesforce moat/UI-lock-in claims and Ramp/Claude Code context beyond the source.",
-            "fidelity": "The source arc is represented, but the post adds substantial gu-log framing, analogies, cross-post references, and stronger interpretive language such as Salesforce admitting its UI moat is being hollowed out, so it is more adapted commentary than a faithful SP translation.",
-            "consistency": "The argument is internally coherent from MCP ergonomics to feedback loops and context gaps, though several added conclusions rely on editorial interpretation rather than evidence carried in the source.",
-            "sourceBoundary": "The SP body repeatedly narrates the source with phrases such as `Teddy 這篇文章`, `Teddy 自己的 workflow`, `文章裡他說`, `Teddy 的吐槽`, `Teddy 寫得`, and `Teddy 用`, which violates the v5 source-boundary rule.",
-            "commentarySeparation": "Many gu-log interpretations and metaphors remain in body prose outside ClawdNote, including the convenience-store spoon analogy, Salesforce moat commentary, CP cross-references, and `飼料工程` framing."
+            "accuracy": "Core factual claims match the source mirror and VentureBeat excerpt, including Ramp MCP WAU growing 10x, Headless 360 exposing API/MCP/CLI surfaces, and 100-plus tools, but the body adds unverifiable certainty around items like Slack MCP behavior and Ramp internal Claude Code adoption.",
+            "fidelity": "The main Teddy Riker argument is mostly preserved, but the post adds substantial gu-log context and analogies such as CP-95, the convenience-store spoon framing, and extra cross-post comparisons that are not in the source.",
+            "consistency": "The agent-design argument flows coherently from tool descriptions to rationale logs to context gaps, though some added source commentary and local analogies blur whether they are source claims or gu-log interpretation.",
+            "sourceBoundary": "SP body repeatedly narrates the source with phrases such as 'Teddy 這篇文章馬上澄清', 'Teddy 自己的 workflow', '文章裡他說', 'Teddy 的吐槽', and 'Teddy 在文章最後丟了一句', so it reads partly like a report about the source.",
+            "commentarySeparation": "Several gu-log interpretations remain outside ClawdNote, including the CP-95 Ramp comparison, the convenience-store spoon analogy, and broader SP-180/SP-181 cross-references in body prose."
           }
         },
         "model": "codex-gpt-5.5-medium",
@@ -927,39 +891,21 @@
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 2,
+    "topLevelAttempts": 3,
     "status": "FAILED",
     "tribunalVersion": 5,
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-21T03:04:32+08:00"
+    "finishedAt": "2026-05-21T16:01:26+08:00"
   },
   "sp-184-20260425-jer-pocketos-cursor-railway-incident.mdx": {
     "article": "sp-184-20260425-jer-pocketos-cursor-railway-incident.mdx",
     "startedAt": "2026-05-20T21:15:14+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 8,
-            "fidelity": 7,
-            "consistency": 8,
-            "sourceBoundary": 6,
-            "commentarySeparation": 6
-          },
-          "score": 7,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "The central claims about Cursor running Claude Opus 4.6 deleting PocketOS production data in 9 seconds via Railway volumeDelete, broad token authority, and Railway backup caveats are corroborated, but several side claims about Cursor incidents, marketing demos, and vendor responsibility are asserted broadly from mixed secondary sources.",
-            "fidelity": "The main incident sequence and agent confession are faithful to the available source-derived reporting, but the body expands the X incident into stronger interpretive claims such as vendor failures making the disaster inevitable and a broader Cursor track-record indictment.",
-            "consistency": "The post's core argument that model-side rules are insufficient without API/token/backup enforcement is logically coherent, though it occasionally treats source allegations and later architectural conclusions as more settled than the evidence shown in-body.",
-            "sourceBoundary": "The SP body repeatedly uses source-report framing such as Jer wrote, Jer later said, Jer listed, and this article is for readers, so it often reads as a report about the source rather than source-derived prose.",
-            "commentarySeparation": "Many gu-log interpretations remain in the SP body outside ClawdNote, including claims that Cursor marketing versus reality has a clear pattern and that Railway's failures made the disaster inevitable."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 2,
+        "attempts": 1,
         "tribunalVersion": 5
       }
     },
@@ -2918,28 +2864,10 @@
     "startedAt": "2026-05-20T21:14:12+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 6,
-            "fidelity": 6,
-            "consistency": 7,
-            "sourceBoundary": 5,
-            "commentarySeparation": 5
-          },
-          "score": 5,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "Most benchmark and Insilico/Persona numbers match The Batch, but the body conflates Meta's more than 1,000 physicians for health data with a '1000 人實驗室' and softens the source's hundreds-of-millions pay packages into '百萬美元級'.",
-            "fidelity": "Core source claims are represented, but the SP adds a large interpretive thesis about two opposite bets, editorial intent, and developer strategy that is not stated by the source.",
-            "consistency": "The main bottleneck-transfer argument is coherent, but the conclusion that all five stories are solving the same '決定做什麼' problem overextends the source, especially for the Meta and drug-discovery sections.",
-            "sourceBoundary": "The SP body repeatedly frames the source as source material with phrases like 'The Batch 349', '這篇 SP', 'Ng 的信', and 'The Batch 自家', so it reads partly as a report about the issue rather than direct SP prose.",
-            "commentarySeparation": "Substantial gu-log interpretation appears outside ClawdNote, including the noodle-shop analogy, 'Ng 那篇是寫給自己看的', '版面安排本身就是論點', and the final editorial-reading lesson."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 2,
+        "attempts": 1,
         "tribunalVersion": 5
       }
     },
@@ -2954,26 +2882,8 @@
     "startedAt": "2026-05-21T02:52:42+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 8,
-            "fidelity": 8,
-            "consistency": 8,
-            "sourceBoundary": 6,
-            "commentarySeparation": 8
-          },
-          "score": 7,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "Core Anthropic timeline, affected products, versions, and fixes match the source, but several ClawdNote additions such as the 401(k) participation numbers and broader SRE/default-bias claims are not sourced in the post.",
-            "fidelity": "The body faithfully preserves the three-issue structure and key caveats, including that the prompt change was in combination with other prompt changes, though it adds stronger explanatory color around user complaints and intelligence loss.",
-            "consistency": "The post's causal chain is coherent from latency/token/verbosity changes to perceived regression, but some broad conclusions about evals and product value extend beyond the source evidence.",
-            "sourceBoundary": "The SP body repeatedly uses source-meta framing such as \"Anthropic 原文\", \"原文的描述是\", \"原文列了\", and \"原文收尾\", so it reads partly like a source report.",
-            "commentarySeparation": "Most gu-log interpretation is properly inside ClawdNote, with only light body-side interpretive phrasing such as \"翻成白話\" and \"技術最硬也最值得細讀\"."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
