@@ -753,18 +753,36 @@
     "startedAt": "2026-05-21T03:01:44+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 8,
+            "sourceBoundary": 7,
+            "commentarySeparation": 7
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core technical claims match the Anthropic source, including MCP SDK downloads, Cloudflare's two-tool 2,500-endpoint example, Elicitation modes, CIMD, Vaults, tool search, and programmatic tool calling, but the body slightly overstates support as '其他多數主流 AI 工具' where the source says many top AI tools.",
+            "fidelity": "The post is broadly faithful and preserves key hedges such as 'tends to' for the 85%+ tool-search result, but it adds stronger narrative conclusions like '只有 MCP 是會越用越值錢的那條' and adoption interpretations beyond the source's wording.",
+            "consistency": "The argument is coherent from connection options to production constraints to context efficiency and skills, though some body-level leaps from Anthropic's claims into platform-strategy interpretation are not always marked as commentary.",
+            "sourceBoundary": "The SP body has repeated source-meta scaffolding such as 'Anthropic 這篇新文', 'Anthropic 原文的數字', '原文交代相容性', and '原文的總結', so it reads partly like a report about the source rather than direct gu-log prose.",
+            "commentarySeparation": "Most explicit gu-log opinions are in ClawdNote, but body prose still includes interpretive/editorial claims such as 'agent 再聰明...就是廢物', 'Anthropic 自己在自嗨', and '不是技術選型，是部署地點的函數' outside ClawdNote."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 2,
+    "topLevelAttempts": 3,
     "status": "FAILED",
     "tribunalVersion": 5,
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-21T16:02:08+08:00"
+    "finishedAt": "2026-05-21T16:08:00+08:00"
   },
   "sp-181-20260423-walden-cognition-multi-agents-working.mdx": {
     "article": "sp-181-20260423-walden-cognition-multi-agents-working.mdx",
