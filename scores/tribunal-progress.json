@@ -492,16 +492,36 @@
     "startedAt": "2026-05-21T17:49:16+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 8,
+            "sourceBoundary": 7,
+            "commentarySeparation": 7
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core CrabTrap claims match Brex/GitHub sources, including HTTP/HTTPS proxying, TLS interception, static rules, LLM judge, PostgreSQL audit logs, 4KB/16KB caps, and <3% judge activation, but line 60 misidentifies @pedroh96/Pedro Franceschi as Pedro Hernández.",
+            "fidelity": "The post is broadly faithful to the Brex article, but it strengthens or embellishes some source wording, such as line 165's '高一個數量級' and line 169's '上線一個月後', beyond what I could verify in the official Brex source.",
+            "consistency": "The architecture-to-production-learning narrative is coherent, but line 201's claim that early data says the hot-path judge '撐得住' overstates a limited single-use-case production observation.",
+            "sourceBoundary": "The SP body repeatedly uses source-report framing such as 'Pedro 先快速掃' at line 70, 'Pedro 講得' at line 113, 'Pedro 引' at line 163, and 'Pedro 誠實說' at line 179, so it reads partly like a source report.",
+            "commentarySeparation": "Several gu-log interpretations remain in the body rather than ClawdNote, including the parenthetical source-meta caveat on line 80, the LLM safety vs security engineering interpretation on line 151, and the broad forecast on lines 201-203."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 0,
-    "status": "PENDING",
-    "tribunalVersion": 5
+    "topLevelAttempts": 1,
+    "status": "FAILED",
+    "tribunalVersion": 5,
+    "failedStage": "factChecker",
+    "finishedAt": "2026-05-21T17:57:19+08:00"
   },
   "sp-179-20260422-garrytan-skillify-agent-failures.mdx": {
     "article": "sp-179-20260422-garrytan-skillify-agent-failures.mdx",
