@@ -945,11 +945,13 @@ while true; do
   EFFECTIVE_WORKERS=$(autoscale_read_limit)
 
   # ── Fetch-only drift check in main repo (workers sync their disposable worktrees) ──
-  git_drift="$(tribunal_fetch_and_report_origin_main "$ROOT_DIR" "$LOG_FILE" "$RUNTIME_GIT_STATE_FILE")"
-  IFS='|' read -r git_fetched git_state git_ahead git_behind git_dirty <<< "$git_drift"
-  if [ "$git_fetched" != "true" ]; then
+  if ! tribunal_fetch_and_report_origin_main "$ROOT_DIR" "$LOG_FILE" "$RUNTIME_GIT_STATE_FILE" >/dev/null; then
     tlog "WARN: origin/main fetch failed; runtime continues with current snapshot."
   fi
+  git_state="$(jq -r '.state // "unknown"' "$RUNTIME_GIT_STATE_FILE" 2>/dev/null || printf 'unknown')"
+  git_ahead="$(jq -r '.ahead // 0' "$RUNTIME_GIT_STATE_FILE" 2>/dev/null || printf '0')"
+  git_behind="$(jq -r '.behind // 0' "$RUNTIME_GIT_STATE_FILE" 2>/dev/null || printf '0')"
+  git_dirty="$(jq -r '.trackedDirty // 0' "$RUNTIME_GIT_STATE_FILE" 2>/dev/null || printf '0')"
   tlog "Git drift: state=$git_state ahead=$git_ahead behind=$git_behind tracked_dirty=$git_dirty"
 
   # ── Find unscored articles ─────────────────────────────────────────────────
