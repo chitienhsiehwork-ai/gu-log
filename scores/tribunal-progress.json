@@ -830,18 +830,36 @@
     "startedAt": "2026-05-21T03:01:44+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 8,
+            "sourceBoundary": 6,
+            "commentarySeparation": 6
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core claims match the Anthropic source, including 300M monthly MCP SDK downloads, Cloudflare's two tools for about 2,500 endpoints, 85%+ tool-definition token reduction, and roughly 37% token reduction, but the body adds unsupported concrete color such as the 8-server 5-step-to-15-step example.",
+            "fidelity": "The post preserves the major structure and key caveats such as 'tends to' for the 85%+ result and URL mode still rolling out, but it adds stronger interpretive conclusions like MCP becoming '少了不行' and several demo/production failure claims beyond the source text.",
+            "consistency": "The argument is coherent from connection options to server design, auth, context efficiency, and skills, though some rhetorical leaps such as '三道牆才會一起從地板冒出來' are broader than the evidence shown.",
+            "sourceBoundary": "SP body repeatedly uses source-meta/report framing such as 'Anthropic 這篇新文', 'Anthropic 原文的數字', 'Anthropic 給了一個對照', 'Anthropic 列了兩招', and '原文的總結', so it reads partly like a source report.",
+            "commentarySeparation": "Several gu-log interpretations and voice-heavy judgments remain in body prose, including '就是廢物', '不是 Anthropic 自己在自嗨', '屌打', and '三道牆，一道比一道無聊、一道比一道致命', instead of being kept inside ClawdNote."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 1,
+    "topLevelAttempts": 2,
     "status": "FAILED",
     "tribunalVersion": 5,
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-21T03:07:29+08:00"
+    "finishedAt": "2026-05-21T16:02:08+08:00"
   },
   "sp-181-20260423-walden-cognition-multi-agents-working.mdx": {
     "article": "sp-181-20260423-walden-cognition-multi-agents-working.mdx",
@@ -851,7 +869,7 @@
         "status": "in_progress",
         "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
@@ -866,28 +884,10 @@
     "startedAt": "2026-05-21T02:52:20+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 8,
-            "fidelity": 7,
-            "consistency": 8,
-            "sourceBoundary": 5,
-            "commentarySeparation": 6
-          },
-          "score": 6,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "Core factual claims match the source mirror and VentureBeat excerpt, including Ramp MCP WAU growing 10x, Headless 360 exposing API/MCP/CLI surfaces, and 100-plus tools, but the body adds unverifiable certainty around items like Slack MCP behavior and Ramp internal Claude Code adoption.",
-            "fidelity": "The main Teddy Riker argument is mostly preserved, but the post adds substantial gu-log context and analogies such as CP-95, the convenience-store spoon framing, and extra cross-post comparisons that are not in the source.",
-            "consistency": "The agent-design argument flows coherently from tool descriptions to rationale logs to context gaps, though some added source commentary and local analogies blur whether they are source claims or gu-log interpretation.",
-            "sourceBoundary": "SP body repeatedly narrates the source with phrases such as 'Teddy 這篇文章馬上澄清', 'Teddy 自己的 workflow', '文章裡他說', 'Teddy 的吐槽', and 'Teddy 在文章最後丟了一句', so it reads partly like a report about the source.",
-            "commentarySeparation": "Several gu-log interpretations remain outside ClawdNote, including the CP-95 Ramp comparison, the convenience-store spoon analogy, and broader SP-180/SP-181 cross-references in body prose."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 2,
+        "attempts": 1,
         "tribunalVersion": 5
       }
     },
