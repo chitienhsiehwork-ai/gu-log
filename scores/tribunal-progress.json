@@ -737,16 +737,36 @@
     "startedAt": "2026-05-21T16:04:59+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 7,
+            "fidelity": 7,
+            "consistency": 8,
+            "sourceBoundary": 6,
+            "commentarySeparation": 6
+          },
+          "score": 6,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Most technical structure matches the source, including the 10-step checklist, 3,146 calendar files, 28 vs 88 minutes, and context-now details, but the body rewrites the source's calendar-recall example from Beijing to Singapore and states the initial failure was the Singapore trip, which is not faithful to the source text available from the X mirror.",
+            "fidelity": "The main thesis is preserved, but there are material source departures: the Beijing sample output becomes Singapore/Mandarin Oriental/Fullerton, several source examples such as the ngrok link-check and double-booking skill are omitted, and added gu-log framing sometimes turns source claims into stronger narrative conclusions.",
+            "consistency": "The argument is internally coherent around deterministic work versus latent reasoning, although repeated claims that a bug becomes structurally impossible can read stronger than the evidence, especially when the post itself later notes agents can still ignore correct pieces until smoke tests catch it.",
+            "sourceBoundary": "The SP body repeatedly uses source-report framing such as '文章開場 Garry', 'Garry 列', 'Garry 寫', 'Garry 在另一篇', '文章尾段 Garry', and 'Garry 自己的收束句', so the body often reads as a report about the source rather than direct SP prose.",
+            "commentarySeparation": "Several gu-log interpretations and added analogies live in body prose rather than ClawdNote, including '這招真正聰明', '這個更荒謬的是', the screw-factory/unit-test analogy, hospital resolver analogy, drawer/USB analogy, and grandma soup smoke-test analogy."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 0,
-    "status": "PENDING",
-    "tribunalVersion": 5
+    "topLevelAttempts": 1,
+    "status": "FAILED",
+    "tribunalVersion": 5,
+    "failedStage": "factChecker",
+    "finishedAt": "2026-05-21T16:12:40+08:00"
   },
   "sp-180-20260423-anthropic-mcp-production-agents.mdx": {
     "article": "sp-180-20260423-anthropic-mcp-production-agents.mdx",
