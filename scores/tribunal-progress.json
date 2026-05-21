@@ -848,28 +848,10 @@
     "startedAt": "2026-05-21T02:53:01+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 8,
-            "fidelity": 7,
-            "consistency": 8,
-            "sourceBoundary": 5,
-            "commentarySeparation": 6
-          },
-          "score": 6,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "Core technical figures match the Cognition source, including ~8x usage growth, 2 bugs per PR, 58% severe, and SWE-1.5 at 950 tok/sec, but the body adds an unsupported exact claim that humans see PRs after \"80%\" of bugs are gone.",
-            "fidelity": "The main three-pattern structure is faithful to Walden Yan's article, but several paraphrases add sharper gu-log framing and one invented precision point, such as the 80% bug-resolution statement.",
-            "consistency": "The argument coherently tracks the source through clean-context review, smart friend, and manager Devin, though body-level interpretive transitions occasionally overstate the source's own framing.",
-            "sourceBoundary": "The SP body frequently narrates the source with phrases such as \"Walden 給的答案\", \"Walden 的發現\", \"Walden 判斷\", and \"原文用的字\", so it reads partly like a source report rather than direct gu-log prose.",
-            "commentarySeparation": "Many opinions are properly inside ClawdNote, but the body still includes gu-log/source-meta commentary such as \"這篇 SP 就是把那一類拆乾淨\", \"技術那層真的狠\", and \"這句話值得停一下\"."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 2,
+        "attempts": 1,
         "tribunalVersion": 5
       }
     },
@@ -902,18 +884,36 @@
     "startedAt": "2026-05-20T21:15:14+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 7,
+            "fidelity": 8,
+            "consistency": 8,
+            "sourceBoundary": 5,
+            "commentarySeparation": 6
+          },
+          "score": 6,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core incident facts match the source, including the 9-second volumeDelete, same-volume backup loss, three-month backup, root-like token, and later recovery context, but the Jake quote is materially misquoted as \"Oh my. That 1000% shouldn't be possible. We have evals for this\" instead of the source's \"Oh my god. This 100% should never be possible. We have guardrails,\" and several external Cursor-track-record claims are presented more strongly than the source can verify.",
+            "fidelity": "The main translation follows Jer's article closely and preserves key hedges such as model-level versus integration-level responsibility, but it adds a gu-log framing layer and contains the direct-quote mismatch around Jake's response.",
+            "consistency": "The causal chain from Cursor agent to Railway API/token/backups to customer impact is coherent, though some body conclusions such as the broad Cursor pattern and future panel/research impact are asserted beyond the evidence presented.",
+            "sourceBoundary": "The SP body repeatedly narrates the source instead of presenting claims directly, with phrases such as \"Jer 把整段事件寫成\", \"Jer 後來說\", \"Jer 的補充\", \"Jer 把過往案例列了一串\", \"Jer 對 Railway 的火\", \"Jer 寫文章的真正動機\", and \"Jer 在文末\".",
+            "commentarySeparation": "Many opinions are correctly placed in ClawdNote, but body prose still includes gu-log/source-meta interpretation such as \"這篇拆給...看\", \"兩個重金行銷的廠商把這場災難從可能變成必然\", \"Pattern 已經很清楚\", and predictions that the confession will be cited by panels, papers, and sales decks."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 4,
+    "topLevelAttempts": 5,
     "status": "FAILED",
     "tribunalVersion": 5,
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-21T03:08:26+08:00"
+    "finishedAt": "2026-05-21T16:03:48+08:00"
   },
   "sp-190-20260505-mindos-lisa-reddit.mdx": {
     "article": "sp-190-20260505-mindos-lisa-reddit.mdx",
@@ -2882,28 +2882,10 @@
     "startedAt": "2026-05-21T02:52:42+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 8,
-            "fidelity": 8,
-            "consistency": 8,
-            "sourceBoundary": 7,
-            "commentarySeparation": 6
-          },
-          "score": 7,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "Core dates, versions, affected products, the cache bug, the 3% eval drop, and subscriber usage-limit reset match Anthropic, but lines 126 and 170-182 add technical interpretation about reasoning truncation and intelligence tradeoffs beyond the source's exact claims.",
-            "fidelity": "The three incident narratives are broadly faithful and preserve the important caveat that the verbosity prompt acted in combination with other prompt changes, though the body sometimes strengthens Anthropic's cautious wording into sharper causal commentary.",
-            "consistency": "The post's explanation flows coherently from three independent changes to an aggregate quality regression, but some conclusions about eval blind spots and production feedback exceed the evidence presented in body prose.",
-            "sourceBoundary": "Several SP body transitions still report on the source with meta framing such as 'Anthropic 原文把' at line 24, '原文的描述是' at line 52, '原文列了' at line 94, and '原文收尾' at line 146.",
-            "commentarySeparation": "ClawdNote is used extensively, but body prose still contains gu-log interpretation and source-meta commentary such as 'agent 工程師尤其該細讀' at line 115 and the evaluative conclusion at lines 170-182."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 2,
+        "attempts": 1,
         "tribunalVersion": 5
       }
     },
