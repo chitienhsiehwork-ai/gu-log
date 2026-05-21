@@ -690,12 +690,13 @@ worker_worktree() {
   fi
 }
 
-# Ensure worker worktrees exist AND are synced with origin/main. Called once
-# at supervisor startup. Without the sync step, worker worktrees keep
-# whichever origin/main snapshot they had at `git worktree add` time, so
-# tribunal fixes merged to main never reach running workers.
+# Ensure worker worktrees exist AND are synced with the supervisor's active
+# code ref. Called once at supervisor startup. Without the sync step, worker
+# worktrees keep whichever snapshot they had at `git worktree add` time, so
+# tribunal fixes in the deployed runtime never reach running workers.
 ensure_worktrees() {
   (( WORKERS == 1 )) && return 0
+  export TRIBUNAL_WORKER_SYNC_REF="${TRIBUNAL_WORKER_SYNC_REF:-HEAD}"
   local id wt
   for id in "${WORKER_IDS[@]}"; do
     wt=$(worker_worktree "$id")
@@ -707,8 +708,8 @@ ensure_worktrees() {
       }
     fi
   done
-  # Fast-forward every worker worktree to whatever main currently is.
-  tlog "Syncing worker worktrees to origin/main…"
+  # Fast-forward every worker worktree to the supervisor's current sync ref.
+  tlog "Syncing worker worktrees to ${TRIBUNAL_WORKER_SYNC_REF}…"
   bash "$SCRIPT_DIR/tribunal-worker-bootstrap.sh" sync >> "$LOG_FILE" 2>&1 || \
     tlog "WARN: worktree sync reported errors (see log)"
 }
@@ -734,11 +735,11 @@ spawn_worker() {
   wt=$(worker_worktree "$id")
   local slug="${article%.mdx}"
 
-  # Sync worker worktree to origin/main before each dispatch. Per-dispatch
-  # cost is one git fetch (~100ms with cached refs) plus a no-op hard reset
-  # if nothing changed; supervisor doesn't need a restart for new tribunal
-  # fixes to reach the next article's worker.
+  # Sync worker worktree to the supervisor's active sync ref before each
+  # dispatch. Per-dispatch cost is one no-op reset when nothing changed; when
+  # the sync ref is origin/main the bootstrap helper also fetches the remote.
   if (( WORKERS > 1 )); then
+    export TRIBUNAL_WORKER_SYNC_REF="${TRIBUNAL_WORKER_SYNC_REF:-HEAD}"
     bash "$SCRIPT_DIR/tribunal-worker-bootstrap.sh" sync "$id" >> "$LOG_FILE" 2>&1 || \
       tlog "  WARN: pre-dispatch sync failed for worker-$id (continuing with current snapshot)"
   fi
