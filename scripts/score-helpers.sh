@@ -12,6 +12,7 @@ ensure_score_dirs() {
   mkdir -p \
     "$SCORE_ROOT/scores" \
     "$SCORE_ROOT/.score-loop/logs" \
+    "$SCORE_ROOT/.score-loop/state" \
     "$SCORE_ROOT/.score-loop/tmp"
 
   [ -e "$SCORE_ROOT/scores/.gitkeep" ] || : > "$SCORE_ROOT/scores/.gitkeep"
