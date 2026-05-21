@@ -21,11 +21,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$ROOT_DIR"
 
+source "$SCRIPT_DIR/tribunal-helpers.sh"
+
 POSTS_DIR="$ROOT_DIR/src/content/posts"
-PROGRESS_FILE="$ROOT_DIR/scores/tribunal-progress.json"
+PROGRESS_FILE="$(tribunal_progress_file_default "$ROOT_DIR")"
 TRIBUNAL_VERSION=5
 LOG_DIR="$ROOT_DIR/.score-loop/logs"
 LOG_FILE="$LOG_DIR/tribunal-batch-$(date +%Y%m%d-%H%M%S).log"
+RUNTIME_GIT_STATE_FILE="$(tribunal_runtime_git_state_file "$ROOT_DIR")"
 QUOTA_FLOOR_PCT="${QUOTA_FLOOR_PCT:-3}"
 MAX_ARTICLES="${MAX_ARTICLES:-999}"
 DRY_RUN=false
@@ -96,9 +99,7 @@ except Exception:
 # Articles that haven't passed all 4 tribunal stages.
 get_unscored_articles() {
   # Ensure progress file exists
-  if [ ! -f "$PROGRESS_FILE" ] || ! jq empty "$PROGRESS_FILE" 2>/dev/null; then
-    echo '{}' > "$PROGRESS_FILE"
-  fi
+  ensure_tribunal_progress_file "$PROGRESS_FILE" "$ROOT_DIR"
 
   # List zh-tw articles (not en-, not deprecated), sorted newest-first by
   # frontmatter translatedDate. Keep in sync with
@@ -140,9 +141,14 @@ get_unscored_articles() {
 tlog "=== Tribunal Batch Runner started ==="
 tlog "  Floor: ${QUOTA_FLOOR_PCT}%, Max: ${MAX_ARTICLES}, Dry-run: ${DRY_RUN}"
 
-# Pull latest
-tlog "Pulling latest from origin..."
-git pull --rebase origin main >> "$LOG_FILE" 2>&1 || tlog "WARN: git pull failed"
+# Fetch-only drift check
+tlog "Fetching origin/main for drift status..."
+git_drift="$(tribunal_fetch_and_report_origin_main "$ROOT_DIR" "$LOG_FILE" "$RUNTIME_GIT_STATE_FILE")"
+IFS='|' read -r git_fetched git_state git_ahead git_behind git_dirty <<< "$git_drift"
+if [ "$git_fetched" != "true" ]; then
+  tlog "WARN: origin/main fetch failed; continuing with current snapshot."
+fi
+tlog "Git drift: state=$git_state ahead=$git_ahead behind=$git_behind tracked_dirty=$git_dirty"
 
 # Get unscored articles
 mapfile -t ARTICLES < <(get_unscored_articles)

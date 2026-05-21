@@ -147,19 +147,14 @@ if ! flock -n 200; then
 fi
 
 # ─── Progress Tracking ────────────────────────────────────────────────────────
-# Phase 2 (tribunal-safe-parallelism): supervisor runs in the main repo and
-# exports PROGRESS_FILE pointing at the shared progress file there; workers
-# run in isolated worktrees. Without the fallback, this line unconditionally
-# clobbers the export with the WORKTREE's local path, so per-worker
-# init_article_progress / mark_article_* writes land in the wrong file. The
-# main repo's progress.json only refreshes via `git pull`, and whenever that
-# pull warns-and-continues (dirty tree, rebase conflict) the supervisor's
-# get_unscored_articles() keeps re-dispatching articles a worker already
-# marked EXHAUSTED — producing the tight re-dispatch loop that filled the
-# 2 GB cgroup and OOM-killed tribunal-loop.service on 2026-04-24 01:03:59.
-# Honor the exported env so shared flock + shared file + shared commit path
-# all line up.
-PROGRESS_FILE="${PROGRESS_FILE:-$ROOT_DIR/scores/tribunal-progress.json}"
+# Supervisor runs in the main repo and exports PROGRESS_FILE pointing at the
+# ignored runtime ledger under .score-loop/state; workers run in isolated
+# worktrees. Without honoring the export, this line would clobber the shared
+# ledger path with the WORKTREE's local default, so per-worker progress writes
+# land in the wrong place and the supervisor can re-dispatch already-terminal
+# articles. Keep the exported env authoritative so shared flock + shared file
+# coordinates all line up.
+PROGRESS_FILE="${PROGRESS_FILE:-$(tribunal_progress_file_default "$ROOT_DIR")}"
 if [ "$SCORE_ONLY" -eq 1 ]; then
   if [ -n "${TRIBUNAL_SCORE_ONLY_PROGRESS_FILE:-}" ]; then
     PROGRESS_FILE="$TRIBUNAL_SCORE_ONLY_PROGRESS_FILE"
@@ -170,10 +165,7 @@ if [ "$SCORE_ONLY" -eq 1 ]; then
 fi
 
 ensure_progress_file() {
-  mkdir -p "$(dirname "$PROGRESS_FILE")"
-  if [ ! -f "$PROGRESS_FILE" ] || ! jq empty "$PROGRESS_FILE" 2>/dev/null; then
-    printf '{}\n' > "$PROGRESS_FILE"
-  fi
+  ensure_tribunal_progress_file "$PROGRESS_FILE" "$ROOT_DIR"
 }
 
 get_stage_status() {
@@ -890,9 +882,10 @@ PROMPT
 # Phase 2 (tribunal-safe-parallelism):
 #   - Serialized by push_lock so 2 workers don't race while staging/committing.
 #   - Honors TRIBUNAL_MAIN_REPO env var: workers running in their own isolated
-#     worktrees can update the coordinator repo's shared progress file (flock
-#     coordinates the read-modify-write; this function coordinates the local
-#     git commit). Push is opt-in and direct main pushes are refused.
+#     worktrees can update the coordinator repo's shared runtime ledger (flock
+#     coordinates the read-modify-write; this function coordinates target-post
+#     materialization + local git commit). Push is opt-in and direct main pushes
+#     are refused.
 commit_progress() {
   local msg="$1"
   if [ "${TRIBUNAL_NO_COMMIT:-0}" = "1" ]; then
@@ -906,8 +899,8 @@ commit_progress() {
 
     # Workers rewrite posts and write score frontmatter inside their isolated
     # worktree ($ROOT_DIR). Publish those target post artifacts into the main
-    # repo before staging, otherwise PASS commits only contain progress JSON and
-    # production content never changes.
+    # repo before staging, otherwise PASS commits only contain content-free
+    # metadata and production content never changes.
     if [ -n "${POST_FILE:-}" ]; then
       bash "$SCRIPT_DIR/tribunal-publish-worker-changes.sh" "$ROOT_DIR" "$repo_dir" "$POST_FILE" >> "$LOG_FILE" 2>&1 || {
         tlog "ERROR: failed to publish worker post artifacts for $POST_FILE"
