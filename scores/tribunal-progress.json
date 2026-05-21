@@ -792,7 +792,7 @@
         "status": "in_progress",
         "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
@@ -2859,17 +2859,35 @@
     "startedAt": "2026-05-21T02:52:42+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 8,
+            "sourceBoundary": 7,
+            "commentarySeparation": 6
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core facts match Anthropic's postmortem, including the March 4 effort change, March 26 thinking-cache bug, April 16 verbosity prompt, April 20 v2.1.116 resolution, and April 23 usage-limit reset, but body claims such as line 60's 90% default-behavior framing and line 20's '當賠罪' characterization are interpretive rather than sourced.",
+            "fidelity": "The post preserves the main source timeline, affected products, model slices, fixes, and caveats such as 'In combination with other prompt changes' at line 128, though it repeatedly upgrades Anthropic's neutral 'issues/changes' into the stronger '三條 bug' framing at lines 20, 38, and 170.",
+            "consistency": "The argument coherently links latency, token, and verbosity optimizations to perceived quality regression, but some conclusions such as lines 178-180's '每一次微決策都是一次價值觀宣告' are editorial leaps beyond the evidence.",
+            "sourceBoundary": "The SP body has several source-report scaffolds, including 'Anthropic 原文' at lines 24 and 41, '原文的描述' at line 52, '原文列' at line 94, '原文的用字' at line 128, and '原文收尾' at line 146.",
+            "commentarySeparation": "ClawdNote sections exist, but gu-log interpretation remains in body prose, especially line 60's default-bias lesson, line 72's '最值得細讀', line 115's advice to agent engineers, line 126's Twitter-length analogy, and the editorial conclusion at lines 178-182."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 3,
+    "topLevelAttempts": 4,
     "tribunalVersion": 5,
     "status": "FAILED",
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-21T16:02:41+08:00"
+    "finishedAt": "2026-05-21T16:09:24+08:00"
   }
 }
