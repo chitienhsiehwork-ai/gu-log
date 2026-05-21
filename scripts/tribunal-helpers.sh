@@ -195,6 +195,11 @@ tribunal_publisher_state_file() {
   printf '%s/.score-loop/state/tribunal-publisher.json\n' "$root"
 }
 
+tribunal_triage_events_file() {
+  local root="${1:-${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}}"
+  printf '%s/.score-loop/state/tribunal-triage-events.json\n' "$root"
+}
+
 ensure_tribunal_progress_file() {
   local target="$1"
   local root="${2:-${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}}"
