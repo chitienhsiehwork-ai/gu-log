@@ -756,7 +756,7 @@
         "status": "in_progress",
         "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
@@ -789,18 +789,36 @@
     "startedAt": "2026-05-21T02:52:20+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 7,
+            "consistency": 8,
+            "sourceBoundary": 6,
+            "commentarySeparation": 6
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core technical claims match the source, including Ramp MCP WAU growth, Notion's enhanced-markdown-spec behavior, rationale parameters, feedback tools, and the Diego GL-code example, but body wording overstates a few claims such as Notion agents 'never' making formatting mistakes and Slack/Notion differing by 'two orders of magnitude.'",
+            "fidelity": "The post preserves the source's main argument, but it adds substantial non-source framing and analogies, moves interpretive cross-links into body prose, omits the source's separate 'context seed' feedback-loop point, and hardens some hedged language from 'rarely' or examples into stronger claims.",
+            "consistency": "The argument remains logically coherent from agent-facing instructions to feedback loops and context gaps, though added Salesforce/Ramp cross-context and convenience-store analogies sometimes extend beyond the source evidence.",
+            "sourceBoundary": "The SP body repeatedly uses source-report framing such as 'Teddy 這篇文章馬上澄清,' '文章裡他說,' 'Teddy 的吐槽,' and 'Teddy 從這個對比拉出第一條心得,' so it reads partly as a report about the source instead of direct SP prose.",
+            "commentarySeparation": "Several gu-log interpretations and source-meta additions appear outside ClawdNote, including CP/SP cross-references, the convenience-store spoon analogy, '設計這條鏈不是給工程師讀的 API doc 工程,' and the Ramp/check metaphor explanation."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 3,
+    "topLevelAttempts": 4,
     "status": "FAILED",
     "tribunalVersion": 5,
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-21T16:01:26+08:00"
+    "finishedAt": "2026-05-21T16:07:22+08:00"
   },
   "sp-184-20260425-jer-pocketos-cursor-railway-incident.mdx": {
     "article": "sp-184-20260425-jer-pocketos-cursor-railway-incident.mdx",
