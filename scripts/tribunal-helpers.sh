@@ -190,6 +190,11 @@ tribunal_runtime_git_state_file() {
   printf '%s/.score-loop/state/runtime-git.json\n' "$root"
 }
 
+tribunal_publisher_state_file() {
+  local root="${1:-${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}}"
+  printf '%s/.score-loop/state/tribunal-publisher.json\n' "$root"
+}
+
 ensure_tribunal_progress_file() {
   local target="$1"
   local root="${2:-${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}}"
