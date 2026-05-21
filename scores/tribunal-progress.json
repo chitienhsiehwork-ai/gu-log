@@ -463,7 +463,7 @@
         "status": "in_progress",
         "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
@@ -476,16 +476,36 @@
     "startedAt": "2026-05-21T17:55:21+08:00",
     "stages": {
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 7,
+            "fidelity": 7,
+            "consistency": 8,
+            "sourceBoundary": 6,
+            "commentarySeparation": 7
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core Opus 4.7 claims about literal instruction following, xhigh default, tokenizer increase, adaptive thinking, progress updates, and /ultraplan are supported by reachable Anthropic/Claude docs, but the OpenAI December Model Spec intent-shift claim and several Reddit/Arena/Pawel specifics are not verified from reachable primary sources.",
+            "fidelity": "The X sourceUrl returned only an empty shell, so Pawel-specific claims like the 16-hour test, multi-turn drift, max-overthinking observation, and six-tip structure cannot be fully compared against the source.",
+            "consistency": "The argument is coherent around one migration thesis, though it leans from verified literalism and token-cost facts into broader workflow conclusions that are sometimes more advisory than evidenced.",
+            "sourceBoundary": "SP body repeatedly uses source-report framing such as 'Pawel 的核心 claim', 'Pawel 實測', 'Pawel 的觀察', 'Pawel 引 Anthropic 的觀察', and 'Pawel 的主張', making parts read like a report about the source.",
+            "commentarySeparation": "Most overt gu-log opinion sits in ClawdNote, but body prose still adds interpretive framing like Model Swap cross-reference, SP-175 comparisons, and the Anthropic/OpenAI convergence takeaway outside ClawdNote."
+          }
+        },
         "model": "codex-gpt-5.5-medium",
-        "attempts": 1,
+        "attempts": 2,
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 0,
-    "status": "PENDING",
-    "tribunalVersion": 5
+    "topLevelAttempts": 1,
+    "status": "FAILED",
+    "tribunalVersion": 5,
+    "failedStage": "factChecker",
+    "finishedAt": "2026-05-21T18:01:08+08:00"
   },
   "sp-178-20260422-pedroh96-brex-crabtrap-llm-judge-proxy.mdx": {
     "article": "sp-178-20260422-pedroh96-brex-crabtrap-llm-judge-proxy.mdx",
