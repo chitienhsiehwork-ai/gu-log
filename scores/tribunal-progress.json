@@ -641,124 +641,29 @@
   },
   "sp-178-20260422-pedroh96-brex-crabtrap-llm-judge-proxy.mdx": {
     "article": "sp-178-20260422-pedroh96-brex-crabtrap-llm-judge-proxy.mdx",
-    "startedAt": "2026-04-24T14:05:03+08:00",
+    "startedAt": "2026-05-21T17:49:16+08:00",
     "stages": {
-      "librarian": {
-        "status": "pass",
-        "score": {
-          "judge": "librarian",
-          "dimensions": {
-            "glossary": 10,
-            "crossRef": 9,
-            "sourceAlign": 9,
-            "attribution": 9
-          },
-          "score": 9,
-          "verdict": "PASS",
-          "reasons": {
-            "glossary": "All key technical terms linked to glossary anchors: agent, MCP, OpenClaw, agent-harness, context-window — every glossary term that appears in the post is properly anchored on first use.",
-            "crossRef": "All 3 internal post links resolve to real slugs (sp-149 ECC agent security, sd-18 permission engineering, sp-158 Braintrust trace); no identity link needed since 'Clawd'/'ShroomDog' are not named in body prose, only via the ClawdNote component.",
-            "sourceAlign": "Content faithfully derived from Pedro Hernández's X post about Brex CrabTrap — covers all major beats (transport-layer proxy, two-stage static+LLM, policy-from-traffic, prompt-injection defenses, three production surprises) consistent with sourceUrl.",
-            "attribution": "Pedro's quotes are speaker-tagged ('Pedro 引的'/'Pedro 的原話'); the '<3% LLM requests' stat is explicitly bounded to Brex Corporate environment; the 'fastest-growing on GitHub' claim is flagged as Pedro's claim not objective fact; ClawdNote opinions are visually separated from body via the component."
-          }
-        },
-        "model": "opus-4.7",
-        "attempts": 1
-      },
       "factChecker": {
-        "status": "pass",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 9,
-            "fidelity": 9,
-            "consistency": 9
-          },
-          "score": 9,
-          "verdict": "PASS",
-          "reasons": {
-            "accuracy": "Every verifiable technical claim matches CrabTrap source/README: MIT License, HTTP(S) proxy with TLS MITM, HTTP_PROXY/HTTPS_PROXY env setup, two-tier static-then-LLM evaluation, deny > allow precedence, policy builder as agentic loop, eval replay system, PostgreSQL audit store, JSON-encoded prompt-injection defense, and specifically the 4KB header cap + 16KB body cap (const maxHeaderBytes = 4096, maxBodyBytes = 16384 in internal/judge/llm_judge.go), plus security-relevant headers prioritized and multipart summary handling. The '<3% of requests hit LLM judge' figure is Pedro's Brex-production number and explicitly scoped to Brex's Corporate environment in the post.",
-            "fidelity": "Pedro's 'fastest-growing on GitHub' claim about OpenClaw is explicitly flagged as '這是他的 claim 不是客觀事實' — textbook hedge preservation. CrabTrap positioned as 'experimental tool, not final solution' per source. The '<3%' number is bounded to Brex's workload ('這個 <3% 是 Brex 自家 Corporate 環境的數字，換 domain 會漂移'). ClawdNote opinion frames (management analogies, future speculation about 'payment API managers') are clearly separated inside <ClawdNote> blocks, not bled into body.",
-            "consistency": "Argument arc (problem → existing-solutions gap → transport-layer choice → two-tier architecture → policy-from-traffic inversion → adversarial prompt engineering → three production surprises → open-source rationale → LLM-as-judge primitive framing) flows without contradiction. The 'butler' metaphor is set up in ClawdNote early and paid off in the closing line. 'Audit log becomes agent health tool' conclusion is properly grounded in the preceding ops narrative and cross-referenced to SP-158."
-          }
-        },
-        "model": "opus-4.7",
-        "attempts": 1
-      },
-      "freshEyes": {
-        "status": "pass",
-        "score": {
-          "judge": "freshEyes",
-          "dimensions": {
-            "readability": 8,
-            "firstImpression": 9
-          },
-          "score": 8,
-          "verdict": "PASS",
-          "reasons": {
-            "readability": "Bouncer/管家 metaphor carries me through, structure is clean with clear headers. Stumbled briefly on TLS interception / iptables / mTLS — these flew past without enough hand-holding for a ~3-month dev, but the gist survived. The '4KB header / 16KB body' section was the smoothest explanation of a security tradeoff I've read in a while.",
-            "firstImpression": "Hook landed immediately — 'give agent real credentials → it grows a hand that can DELETE /users/all' made me keep reading. The three surprises section (<3% latency, policy-from-traffic, audit log as X-ray) is genuinely memorable and the closing line 'LLM-as-a-judge 剛從 eval 桌上走下來，穿上西裝、站到大門口，第一天上班' is the kind of sentence I'd screenshot and send. Would share."
-          }
-        },
-        "model": "opus-4.7",
-        "attempts": 1
-      },
-      "vibe": {
-        "status": "pass",
-        "score": {
-          "judge": "vibe",
-          "dimensions": {
-            "persona": 9,
-            "clawdNote": 9,
-            "vibe": 8,
-            "clarity": 9,
-            "narrative": 8
-          },
-          "score": 8,
-          "verdict": "PASS",
-          "reasons": {
-            "persona": "Strong oral transitions ('先講最容易被問的那題', '但真正的 plot twist 在第三件') and life analogies (管家/外傭, 跑車試駕 vs 高速公路通勤) sustain LHY feel throughout; judge prompt injection section slightly more expository than conversational.",
-            "clawdNote": "5 of 7 notes carry explicit opinions — transport layer '老派但非常對', challenges Pedro's fastest-growing claim, '企業先踩坑再開源比lab發論文務實'; observability X-ray note and infra history pattern recognition are highlights.",
-            "vibe": "Plot twist structure in section 5 and memorable closing ('穿上西裝、站到大門口，第一天上班') pull reader through; judge prompt injection section's density (structured JSON, header limits, body truncation) is the one spot phone readers might skim.",
-            "clarity": "Zero pronoun violations in body text; every claim attributed to Pedro by name ('Pedro 講的', 'Pedro 引的數字'); ClawdNote first-person always has clear speaker identity.",
-            "narrative": "Genuine arc from fundamental embarrassment → failed solutions → clever architecture → counterintuitive policy → plot twist surprises → bookend 管家 callback; 'existing solutions' section reads slightly listy (three items in sequence) before the arc takes off."
-          }
-        },
-        "model": "opus-4.6-1m",
-        "attempts": 1
+        "status": "in_progress",
+        "score": null,
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1,
+        "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 1,
-    "status": "PASS",
-    "finishedAt": "2026-04-24T14:10:51+08:00"
+    "topLevelAttempts": 0,
+    "status": "PENDING",
+    "tribunalVersion": 5
   },
   "sp-179-20260422-garrytan-skillify-agent-failures.mdx": {
     "article": "sp-179-20260422-garrytan-skillify-agent-failures.mdx",
     "startedAt": "2026-05-21T16:04:59+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 7,
-            "fidelity": 7,
-            "consistency": 8,
-            "sourceBoundary": 6,
-            "commentarySeparation": 6
-          },
-          "score": 6,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "Most technical structure matches the source, including the 10-step checklist, 3,146 calendar files, 28 vs 88 minutes, and context-now details, but the body rewrites the source's calendar-recall example from Beijing to Singapore and states the initial failure was the Singapore trip, which is not faithful to the source text available from the X mirror.",
-            "fidelity": "The main thesis is preserved, but there are material source departures: the Beijing sample output becomes Singapore/Mandarin Oriental/Fullerton, several source examples such as the ngrok link-check and double-booking skill are omitted, and added gu-log framing sometimes turns source claims into stronger narrative conclusions.",
-            "consistency": "The argument is internally coherent around deterministic work versus latent reasoning, although repeated claims that a bug becomes structurally impossible can read stronger than the evidence, especially when the post itself later notes agents can still ignore correct pieces until smoke tests catch it.",
-            "sourceBoundary": "The SP body repeatedly uses source-report framing such as '文章開場 Garry', 'Garry 列', 'Garry 寫', 'Garry 在另一篇', '文章尾段 Garry', and 'Garry 自己的收束句', so the body often reads as a report about the source rather than direct SP prose.",
-            "commentarySeparation": "Several gu-log interpretations and added analogies live in body prose rather than ClawdNote, including '這招真正聰明', '這個更荒謬的是', the screw-factory/unit-test analogy, hospital resolver analogy, drawer/USB analogy, and grandma soup smoke-test analogy."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 2,
+        "attempts": 1,
         "tribunalVersion": 5
       }
     },
@@ -773,28 +678,10 @@
     "startedAt": "2026-05-21T03:01:44+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 8,
-            "fidelity": 8,
-            "consistency": 8,
-            "sourceBoundary": 7,
-            "commentarySeparation": 7
-          },
-          "score": 7,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "Core technical claims match the Anthropic source, including MCP SDK downloads, Cloudflare's two-tool 2,500-endpoint example, Elicitation modes, CIMD, Vaults, tool search, and programmatic tool calling, but the body slightly overstates support as '其他多數主流 AI 工具' where the source says many top AI tools.",
-            "fidelity": "The post is broadly faithful and preserves key hedges such as 'tends to' for the 85%+ tool-search result, but it adds stronger narrative conclusions like '只有 MCP 是會越用越值錢的那條' and adoption interpretations beyond the source's wording.",
-            "consistency": "The argument is coherent from connection options to production constraints to context efficiency and skills, though some body-level leaps from Anthropic's claims into platform-strategy interpretation are not always marked as commentary.",
-            "sourceBoundary": "The SP body has repeated source-meta scaffolding such as 'Anthropic 這篇新文', 'Anthropic 原文的數字', '原文交代相容性', and '原文的總結', so it reads partly like a report about the source rather than direct gu-log prose.",
-            "commentarySeparation": "Most explicit gu-log opinions are in ClawdNote, but body prose still includes interpretive/editorial claims such as 'agent 再聰明...就是廢物', 'Anthropic 自己在自嗨', and '不是技術選型，是部署地點的函數' outside ClawdNote."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 2,
+        "attempts": 1,
         "tribunalVersion": 5
       }
     },
@@ -809,28 +696,10 @@
     "startedAt": "2026-05-21T02:53:01+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 8,
-            "fidelity": 8,
-            "consistency": 8,
-            "sourceBoundary": 7,
-            "commentarySeparation": 7
-          },
-          "score": 7,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "Core technical claims match the source, including the 2 bugs per PR / 58% severe Devin Review figure, ~8x enterprise usage growth, SWE-1.5 at 950 tok/sec, SWE-1.6 reaching Opus-4.5-level SWE-bench performance, and the map-reduce-and-manage framing; a few phrasings such as 'Sonnet 被 Opus 取代' slightly overstate the source's softer 'distinct shift' claim.",
-            "fidelity": "The post preserves the article's main thesis that writes should stay single-threaded while other agents contribute intelligence, and accurately covers the code-review loop, smart friend, and manager Devin sections, but it repeatedly expands Walden's points with stronger local interpretation such as '真正可行的解不是讓它們一起寫' and '研究論文看起來很漂亮，實務上 ship 不出產品'.",
-            "consistency": "The through-line from clean-context review to smart friend to manager Devin is logically coherent and supported by the source, though the conclusion's 'manager 不親自寫，child 一次一個在寫' simplification is a bit muddy because the source's higher-level delegation can involve multiple child Devins executing scoped work.",
-            "sourceBoundary": "The SP body has several source-report/meta transitions, including 'Walden 的態度沒有轉彎', 'Walden 想挖的就是', 'Walden 給的答案', 'Walden 的發現', 'Walden 判斷', and '這篇 SP 就是把那一類拆乾淨', so it reads partly like a narrated source report rather than direct gu-log prose.",
-            "commentarySeparation": "Most explicit gu-log commentary is inside <ClawdNote>, but body sentences such as '這句話值得停一下', '整句直接推翻...天真敘事', and '這題 Cognition 的答案是...' inject interpretive/source-meta stance outside the note boundary."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
-        "attempts": 2,
+        "attempts": 1,
         "tribunalVersion": 5
       }
     },
@@ -845,26 +714,8 @@
     "startedAt": "2026-05-21T02:52:20+08:00",
     "stages": {
       "factChecker": {
-        "status": "fail",
-        "score": {
-          "judge": "factCheck",
-          "dimensions": {
-            "accuracy": 8,
-            "fidelity": 7,
-            "consistency": 8,
-            "sourceBoundary": 6,
-            "commentarySeparation": 6
-          },
-          "score": 7,
-          "verdict": "FAIL",
-          "reasons": {
-            "accuracy": "Core technical claims match the source, including Ramp MCP WAU growth, Notion's enhanced-markdown-spec behavior, rationale parameters, feedback tools, and the Diego GL-code example, but body wording overstates a few claims such as Notion agents 'never' making formatting mistakes and Slack/Notion differing by 'two orders of magnitude.'",
-            "fidelity": "The post preserves the source's main argument, but it adds substantial non-source framing and analogies, moves interpretive cross-links into body prose, omits the source's separate 'context seed' feedback-loop point, and hardens some hedged language from 'rarely' or examples into stronger claims.",
-            "consistency": "The argument remains logically coherent from agent-facing instructions to feedback loops and context gaps, though added Salesforce/Ramp cross-context and convenience-store analogies sometimes extend beyond the source evidence.",
-            "sourceBoundary": "The SP body repeatedly uses source-report framing such as 'Teddy 這篇文章馬上澄清,' '文章裡他說,' 'Teddy 的吐槽,' and 'Teddy 從這個對比拉出第一條心得,' so it reads partly as a report about the source instead of direct SP prose.",
-            "commentarySeparation": "Several gu-log interpretations and source-meta additions appear outside ClawdNote, including CP/SP cross-references, the convenience-store spoon analogy, '設計這條鏈不是給工程師讀的 API doc 工程,' and the Ramp/check metaphor explanation."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "codex-gpt-5.5-medium",
         "attempts": 2,
         "tribunalVersion": 5
@@ -2902,19 +2753,19 @@
           "judge": "factCheck",
           "dimensions": {
             "accuracy": 8,
-            "fidelity": 8,
+            "fidelity": 7,
             "consistency": 8,
             "sourceBoundary": 7,
-            "commentarySeparation": 6
+            "commentarySeparation": 5
           },
           "score": 7,
           "verdict": "FAIL",
           "reasons": {
-            "accuracy": "Core facts match Anthropic's postmortem, including the March 4 effort change, March 26 thinking-cache bug, April 16 verbosity prompt, April 20 v2.1.116 resolution, and April 23 usage-limit reset, but body claims such as line 60's 90% default-behavior framing and line 20's '當賠罪' characterization are interpretive rather than sourced.",
-            "fidelity": "The post preserves the main source timeline, affected products, model slices, fixes, and caveats such as 'In combination with other prompt changes' at line 128, though it repeatedly upgrades Anthropic's neutral 'issues/changes' into the stronger '三條 bug' framing at lines 20, 38, and 170.",
-            "consistency": "The argument coherently links latency, token, and verbosity optimizations to perceived quality regression, but some conclusions such as lines 178-180's '每一次微決策都是一次價值觀宣告' are editorial leaps beyond the evidence.",
-            "sourceBoundary": "The SP body has several source-report scaffolds, including 'Anthropic 原文' at lines 24 and 41, '原文的描述' at line 52, '原文列' at line 94, '原文的用字' at line 128, and '原文收尾' at line 146.",
-            "commentarySeparation": "ClawdNote sections exist, but gu-log interpretation remains in body prose, especially line 60's default-bias lesson, line 72's '最值得細讀', line 115's advice to agent engineers, line 126's Twitter-length analogy, and the editorial conclusion at lines 178-182."
+            "accuracy": "Core dates, affected products, version numbers, prompt text, cache behavior, and the 3% eval drop match Anthropic's postmortem, but the body adds unverifiable details such as Twitter/Reddit framing and a 90% default-behavior claim.",
+            "fidelity": "The post preserves the main Anthropic claims and caveats, but repeatedly upgrades the source's three changes/issues into 'three bugs' and adds broader product interpretations beyond the source.",
+            "consistency": "The narrative is internally coherent and the three-issue timeline supports the conclusion that users experienced broad degradation, though the final 'three cost-saving decisions' framing is a stronger causal interpretation than the source states.",
+            "sourceBoundary": "The SP body has several source-meta transitions such as 'Anthropic 原文', '原文的描述是', and '原文列了', so it reads partly like a report about the source rather than direct gu-log prose.",
+            "commentarySeparation": "Many opinions are correctly inside ClawdNote, but body prose still includes gu-log interpretation such as default-bias lessons, 'agent 工程師尤其該細讀', and the closing value-judgment about resource savings versus intelligence."
           }
         },
         "model": "codex-gpt-5.5-medium",
@@ -2922,10 +2773,10 @@
         "tribunalVersion": 5
       }
     },
-    "topLevelAttempts": 4,
+    "topLevelAttempts": 5,
     "tribunalVersion": 5,
     "status": "FAILED",
     "failedStage": "factChecker",
-    "finishedAt": "2026-05-21T16:09:24+08:00"
+    "finishedAt": "2026-05-21T17:53:59+08:00"
   }
 }
