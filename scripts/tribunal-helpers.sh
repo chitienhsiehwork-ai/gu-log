@@ -243,8 +243,13 @@ tribunal_write_runtime_git_state() {
   ahead="$(printf '%s' "$counts" | awk '{print $1}')"
   behind="$(printf '%s' "$counts" | awk '{print $2}')"
   tracked_dirty="$(git -C "$repo_dir" status --porcelain --untracked-files=no 2>/dev/null | wc -l | tr -d ' ')"
+  [[ "$ahead" =~ ^[0-9]+$ ]] || ahead=0
+  [[ "$behind" =~ ^[0-9]+$ ]] || behind=0
+  [[ "$tracked_dirty" =~ ^[0-9]+$ ]] || tracked_dirty=0
+  [ -n "$local_ref" ] || local_ref="unknown"
+  [ -n "$remote_ref" ] || remote_ref="unknown"
 
-  if [ -z "$local_ref" ] || [ -z "$remote_ref" ]; then
+  if [ "$local_ref" = "unknown" ] || [ "$remote_ref" = "unknown" ]; then
     state="unknown"
   elif [ "$ahead" = "0" ] && [ "$behind" = "0" ]; then
     state="in_sync"
