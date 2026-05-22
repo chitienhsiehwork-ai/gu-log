@@ -18,6 +18,23 @@ sourceUrl: "https://x.com/mitchellh/status/2055039647924007222"
 lang: "en"
 summary: "Mitchell Hashimoto's point about Bun moving from Zig to Rust is not that Rust won and Zig lost. The more useful lesson is that programming languages are becoming more replaceable, and developer-tool companies need to manage technical narratives before the internet turns them into faction wars."
 tags: ["shroom-picks", "bun", "rust", "zig", "developer-relations", "software-engineering"]
+scores:
+  tribunalVersion: 5
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    score: 8
+    date: "2026-05-19"
+    model: "gpt-5.5"
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-05-19"
+    model: "gpt-5.5"
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
@@ -74,40 +91,29 @@ A decent analogy is a startup using Notion to run the whole company, then later 
 
 Rust's strongest card in this discussion is, of course, memory safety. Bun has dealt with crashes, native boundaries, runtime complexity, and all the wonderful ways low-level software can ruin an afternoon. Rust's type system and borrow checker really can move many runtime explosions into compile-time failures.
 
-But Mitchell is not satisfied with the lazy "blame the language" version. He wants the more useful engineering analysis:
+But the lazy version, "Zig was unsafe, so Bun moved to Rust," is too flat. A newer developer can read the real question as a stack of repair jobs:
 
-- Where did Bun actually crash most often?
-- Were the problems in allocators, FFI, JIT boundaries, concurrent state, or loose API contracts?
-- Which bugs would Rust specifically prevent?
-- Could Zig have prevented some of them with stricter process, tests, linting, or review gates?
-- For errors no language can fully prevent, what engineering practice needs to change?
+- An allocator is the warehouse manager for memory. If the ledger is wrong, code can pick up a shelf that was already cleared out.
+- FFI is the customs checkpoint between languages. If the two sides disagree about shape, ownership, or lifetime, the package may explode after crossing the border.
+- A JIT boundary is like paving the road while cars are already driving on it. The machine code appears during runtime, so the crash may show up far away from the original mistake.
+- Concurrent state is many people editing the same whiteboard at once. Without rules, someone erases another person's fresh note.
+- An API contract is the promise between two pieces of code. If callers assume a promise the callee never made, that assumption becomes a future incident.
 
-Those are the questions other projects can learn from.
+Rust can turn some of those mistakes into compiler errors, which is a huge deal. But it does not make every class of incident disappear. The useful questions are more specific: where did Bun crash most often, which bugs would Rust actually block, and which ones still need tests, review gates, architecture boundaries, or better process?
 
-Saying "Rust is safer than Zig" may be true, but it is too low-resolution. It is like seeing a kitchen fire and announcing that water is better than oil for putting it out. Fine. But the real questions are where the fire started, how the gas pipe was connected, why the alarm did not fire, and who checks it next time.
-
-If Bun can publish the crash categories, before-and-after incident patterns, testing strategy, and the bug classes Rust now blocks, this story becomes a postmortem the whole systems-language world can learn from. Without that, the discussion is just fans throwing half-facts at each other.
+If Bun can publish the crash categories, before-and-after incident patterns, testing strategy, and the bug classes Rust now blocks, this story becomes a postmortem the whole systems-language world can learn from.
 
 ---
 
 ## Developer-tool companies sell trust, not just features
 
-Mitchell's final point is really about developer communications.
-
 Developer-tool companies are unusual. If a consumer app changes its internals, most users care only whether it is faster, stabler, or cheaper. But developers care how the team thinks. Adopting a tool often means wiring it into CI, deployment, local machines, team habits, and several years of future technical debt.
 
 So the technical decision itself becomes a trust signal.
 
-When Bun leadership does not define the story, the internet defines it instead. The internet rarely picks the fairest version. It picks the version with the most conflict. Anti-Zig framing spreads because it has enemies, winners, losers, and teams. It gets short-term attention, but it can weaken long-term trust.
+When Bun leadership does not define the story, the internet defines it instead. The internet rarely picks the fairest version. It picks the version with conflict: enemies, winners, losers, teams. That gets short-term attention, but it can weaken long-term trust.
 
-A stronger message would have been straightforward:
-
-- Zig gave Bun speed and control in the early phase, and that contribution deserves respect.
-- Rust is the next-phase choice for stability, memory safety, and maintainability.
-- A language migration is not a declaration that the previous language failed. It is a sign that the product's risk model changed.
-- The most valuable thing to publish is the incident pattern, engineering lessons, and how the new architecture reduces risk.
-
-That version is not boring. It is more mature, and it is more convincing.
+A stronger message would have been simple: Zig gave Bun early speed and control; Rust is the next-phase choice for stability and maintainability; a language migration means the product's risk model changed, not that the previous language was a historical mistake. That version is not boring. It is more mature, and it is more convincing.
 
 <ClawdNote>
 Developer audiences can handle big changes. Developers refactor messy systems for a living. The worrying part is not the rewrite. The worrying part is when a team talks about a rewrite like it is dunking on the previous technical choice. That makes adopters wonder: is the current choice the next one to be dunked on?
