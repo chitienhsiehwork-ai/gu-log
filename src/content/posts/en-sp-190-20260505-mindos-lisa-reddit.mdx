@@ -33,56 +33,60 @@ pipeline:
     model: "GPT-5.5"
     harness: "OpenClaw + Tribunal"
 scores:
-  tribunalVersion: 4
+  tribunalVersion: 5
   librarian:
     glossary: 8
     crossRef: 8
-    sourceAlign: 9
-    attribution: 10
+    sourceAlign: 8
+    attribution: 9
     score: 8
-    date: "2026-05-05"
+    date: "2026-05-20"
     model: "gpt-5.5"
   factCheck:
     accuracy: 9
-    fidelity: 9
+    fidelity: 8
     consistency: 9
-    score: 9
-    date: "2026-05-05"
+    sourceBoundary: 8
+    commentarySeparation: 8
+    score: 8
+    date: "2026-05-20"
     model: "gpt-5.5"
   freshEyes:
     readability: 8
-    firstImpression: 9
+    firstImpression: 8
     score: 8
-    date: "2026-05-05"
+    date: "2026-05-20"
     model: "gpt-5.5"
   vibe:
     persona: 9
     clawdNote: 9
     vibe: 8
-    clarity: 8
+    clarity: 9
     narrative: 8
     score: 8
-    date: "2026-05-05"
+    date: "2026-05-20"
     model: "gpt-5.5"
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-What is the scariest part of building a product? It is not having no ideas. It is having too many ideas, with every one of them looking like tomorrow’s unicorn, until you actually build it and discover it was only fireworks inside your own head. Lisa’s post offers a very practical route: **use Semrush to set the direction, Reddit to validate the demand, RPA to automate pain-point collection, and AI to work backward toward products and content**.
+What is the scariest part of building a product? It is not having no ideas. It is having too many ideas, with every one of them looking like tomorrow’s unicorn, until you actually build it and discover it was only fireworks inside your own head. This route is much more practical: **use Semrush to set the direction, Reddit to validate the demand, RPA to automate pain-point collection, and AI to work backward toward products and content**.
 
-This is not the magical “find the trend, chase the hit, make money in three days” spell. It is more like walking across a beach with a metal detector: a beep does not prove there is treasure underneath, but it is still more scientific than digging with your eyes closed. (￣▽￣)／
+This is not the magical “find the trend, chase the hit, make money in three days” spell.
 
-Lisa’s own background is worth putting up front. The original author describes herself as having a master’s degree, a non-technical background, and starting from zero code to build an AI product for her daughter. She is also publicly documenting experiments in Reddit marketing and AI growth. That lens matters, because this method is not designed for a large company that already has a ten-person data team. It is for solo builders, small teams, and content operators who want to feel the pulse of demand from market signals.
+The usage context is clear: a master’s degree, a non-technical background, starting from zero code to build an AI product for a daughter, and publicly documenting experiments in Reddit marketing and AI growth. This method is not designed for a large company that already has a ten-person data team. It is for solo builders, small teams, and content operators who want to feel the pulse of demand from market signals.
+
+<ClawdNote>This method feels more like walking across a beach with a metal detector: a beep does not prove there is treasure underneath, but it is still more scientific than digging with your eyes closed. (￣▽￣)／</ClawdNote>
 
 ## Why Reddit: not a traffic pool, but a place where problems surface
 
-Lisa starts with why she chose the platform. On the data side, she cites DataReportal’s social media report and says Reddit’s user base has passed a certain threshold, and in some countries its “addressable users for discussion” are close to, or even above, short-video platforms. But the source text writes that threshold as `X` and does not provide a concrete number, so we should not fill in a shiny number here. Making up numbers is like bluffing on an exam when you do not know the answer; the professor can smell it from the doorway.
+Platform choice starts with the data layer. DataReportal’s social media report is used to support one judgment: Reddit’s user base has passed a certain threshold, and in some countries its “addressable users for discussion” are close to, or even above, short-video platforms. But that threshold is only written as `X`, without a concrete number, so we should not fill in a shiny number here.
 
-The real point is not just that Reddit has many users. Its mechanism is unusual. Lisa calls it an overseas “database of real user needs.” Not because Reddit has stronger traffic magic, but because it naturally encourages people to say their problems out loud.
+The real point is not just that Reddit has many users. Its mechanism is unusual. In this method, Reddit works as an overseas “database of real user needs.” Not because Reddit has stronger traffic magic, but because it naturally encourages people to say their problems out loud.
 
 On many content platforms, users scroll, like, save, and share. Those signals are useful, but they often answer only one question: did this content catch attention? Reddit is different. Many threads start with a concrete problem: something is hard to use, a choice is confusing, a scenario keeps getting stuck, or an alternative product may or may not be worth buying.
 
-The reasons Lisa lists are important:
+The reasons are important:
 
 - **Visible demand**: users actively describe the problems they meet, instead of only consuming content passively.
 - **Deep discussion**: comment chains are long, and people add, challenge, and correct each other’s views.
@@ -90,7 +94,7 @@ The reasons Lisa lists are important:
 - **Clear topic structure**: each Subreddit is already a segmented market of “people × scenario.”
 - **Global and English-language context**: useful for overseas demand research and validation.
 
-So in this method, Reddit is not merely “a place to post and get traffic.” Lisa’s conclusion is: if you want to find problems that really exist, appear repeatedly, and may be worth paying to solve, Reddit is currently the place she finds most cost-effective. It is more like an unmarked market research firm, except the interviewees walk in by themselves and then argue in a full thread for free.
+So in this method, Reddit is not merely “a place to post and get traffic.” Its job is to find problems that really exist, appear repeatedly, and may be worth paying to solve; with that goal, Reddit becomes a cost-effective demand research field.
 
 <ClawdNote>Reddit’s value is not “everyone is there.” It is “people explain their annoying problems there in painful detail.” For demand research, that difference is huge. Surveys sometimes produce polite answers. Complaint posts are often closer to the truth. A like is a passerby nodding. A long Reddit comment is a customer sitting down for thirty minutes and casually roasting the previous product until there is nothing left.</ClawdNote>
 
@@ -98,32 +102,32 @@ So in this method, Reddit is not merely “a place to post and get traffic.” L
 
 ## Step one: use Semrush to narrow the demand direction first
 
-Then Lisa moves to the question of “what to sell.” She suggests using Semrush first to identify small but real demand directions. This step is not about finding the product immediately. It is about building a pool of candidate needs.
+Then comes the question of “what to sell.” Semrush first narrows the direction of small but real demand. This step is not about finding the product immediately. It is about building a pool of candidate needs.
 
-She gives two hard filters:
+Two hard filters cut away the noise:
 
 - **Low KD**: choose `0-14%`. KD is keyword difficulty in SEO. The lower the number, the less crowded the keyword is.
-- **CPC above 0**: this means advertisers are already willing to pay for the term. Lisa’s actual filter is `> 0.01`.
+- **CPC above 0**: this means advertisers are already willing to pay for the term. The actual filter in this workflow is `> 0.01`.
 
-Put together, the meaning is clear: look for places that are “not unwanted, but not yet flattened by an army.” Lisa uses CPC as a commercial signal: `CPC > 0` means advertisers are already willing to pay for the term. In the other direction, a keyword with no CPC is not necessarily impossible, but in this screening method it lacks the first layer of payment signal. If KD is too high, the space may already be very crowded. A beginner rushing in there is like joining an Ironman triathlon in flip-flops: admirable spirit, knees give out first.
+Put together, the meaning is clear: look for places that are “not unwanted, but not yet flattened by an army.” `CPC > 0` is used as a commercial signal, meaning advertisers are already willing to pay for the term. In the other direction, a keyword with no CPC is not necessarily impossible, but in this screening method it lacks the first layer of payment signal. If KD is too high, the space may already be very crowded.
 
 The concrete workflow is to type a broad word into Semrush, such as `best`, then apply filters:
 
 1. Set KD to `0-14%`.
 2. Set CPC to `> 0.01`.
-3. Manually exclude sensitive or unsuitable words, such as `casino` and `near`, which the original author mentions as terms not worth operating on.
+3. Manually exclude sensitive or unsuitable words, such as `casino` and `near`.
 
-After that, you get a batch of “real demand that has not been over-competed.” Lisa’s examples include `Best body lotion`, which may carry seasonal demand, and `Best wired earbuds`.
+After that, you get a batch of “real demand that has not been over-competed.” The examples include `Best body lotion`, which may carry seasonal demand, and `Best wired earbuds`.
 
-But the easiest mistake here is seeing one keyword and immediately starting to build a product. Lisa specifically warns that the output of this step is not a product. It is a “candidate demand pool.” In other words, Semrush is only saying, “There may be ore here.” It has not proved there is gold under the ground.
+But the easiest mistake here is seeing one keyword and immediately starting to build a product. The output of this step is not a product. It is a “candidate demand pool.” In other words, Semrush is only saying, “There may be ore here.” It has not proved there is gold under the ground.
 
-<ClawdNote>Starting work after seeing only a keyword is like seeing instant noodles sell well on a convenience-store shelf and immediately deciding to open a noodle factory. Hey, slow down. It might be typhoon season, it might be a discount, or people might just be too lazy to cook. A keyword is a clue, not a court ruling.</ClawdNote>
+<ClawdNote>Starting work after seeing only a keyword is like seeing instant noodles sell well on a convenience-store shelf and immediately deciding to open a noodle factory. Hey, slow down. It might be typhoon season, it might be a discount, or people might just be too lazy to cook. A keyword is a clue, not a court ruling. Charging into a high-KD space is the flip-flops version of an Ironman triathlon: admirable spirit, knees give out first.</ClawdNote>
 
 ---
 
 ## Step two: go back to Reddit and verify whether this is living demand
 
-After finding candidate needs, Lisa’s next step is to validate them on Reddit: is this real demand, or just a search-volume mirage?
+After finding candidate needs, the next step is to validate them on Reddit: is this real demand, or just a search-volume mirage?
 
 She uses two tools:
 
@@ -134,13 +138,17 @@ Using `wired earbuds` as the example, the route is: search the keyword in Reddit
 
 This shift is very important. Product opportunities often hide not in the conclusion, but in the reasons behind it. Someone saying “wired earbuds are better” is not enough. The valuable part is the chain of reasons after that: not wanting to charge another device, fearing latency, hating Bluetooth interference, wanting better sound quality at the same budget, or often losing one side of true wireless earbuds.
 
-Lisa organizes five high-frequency points of consensus from the accepted answers.
+This is where the story gets interesting. Semrush only gave the first beep. Reddit is where you kneel down and check whether the thing under the sand is a coin, a rusty can, or a bottle cap from yesterday’s tourist.
+
+Five high-frequency points of consensus emerge from the accepted answers. They are not five product specs. They are five daily frictions pushing users back toward wired earbuds.
 
 ### Consensus one: stable and reliable, without mysterious problems
 
 The first advantage of wired earbuds is stability. No disconnection, no latency, no Bluetooth interference. Plug them in and they work. That “No BS” feeling is the core value for some people.
 
-Bluetooth earbuds are convenient, of course, but they add a layer of connection uncertainty. Sometimes pairing fails. Sometimes there is latency. Sometimes the sound goes to a strange device. Life is already hard enough. When your earbuds also join the side quest battle, you start wondering whether technology is pranking you.
+Bluetooth earbuds are convenient, of course, but they add a layer of connection uncertainty. Sometimes pairing fails. Sometimes there is latency. Sometimes the sound goes to a strange device. Those small frictions are exactly what wired-earbud discussions keep comparing against.
+
+<ClawdNote>The problem with Bluetooth earbuds is not that they never work. It is that they sometimes throw a tantrum at the worst possible moment. Life is already hard enough. When your earbuds also join the side quest battle, going back to a cable can feel weirdly peaceful.</ClawdNote>
 
 ### Consensus two: better sound quality at the same price
 
@@ -148,27 +156,31 @@ At the same budget, the consensus in the Reddit discussions is that wired earbud
 
 This does not mean everyone should become an audiophile. It points to a clear user mindset: when the budget is limited and sound quality matters, a wired option is still attractive.
 
+So far, the demand still looks like rational comparison: stability, sound, budget. The moment that moves it from a spec sheet into real life is the next complaint.
+
 ### Consensus three: no charging anxiety
 
-Many users do not want one more device that needs charging, battery maintenance, and battery-life anxiety. The original text preserves a very representative user sentence:
+Many users do not want one more device that needs charging, battery maintenance, and battery-life anxiety. One representative user sentence captures it:
 
 > "I don't want another thing to charge."
 
-It is a short sentence, but the demand density is high. It is not about specs. It is about life fatigue. Your phone needs charging, your watch needs charging, your mouse needs charging, your keyboard needs charging, and even your toothbrush may need charging. Add another pair of earbuds, and it feels like your life is ruled by battery icons.
+It is a short sentence, but the demand density is high. It is not about specs. It is about life fatigue.
+
+<ClawdNote>Your phone needs charging, your watch needs charging, your mouse needs charging, your keyboard needs charging, and even your toothbrush may need charging. Add another pair of earbuds, and it feels like your life is ruled by battery icons. That fatigue does not show up on a spec sheet, but it absolutely affects whether someone wants another “smart” device.</ClawdNote>
 
 ### Consensus four: low latency
 
-In real-time feedback scenarios such as gaming, instruments, and video editing, Lisa believes wired earbuds still beat Bluetooth because Bluetooth is not friendly enough to instant feedback. Latency may not be obvious when listening to music, but in gaming, recording, editing, or practicing an instrument, it can twist the experience immediately.
+In real-time feedback scenarios such as gaming, instruments, and video editing, wired earbuds still beat Bluetooth because Bluetooth is not friendly enough to instant feedback. Latency may not be obvious when listening to music, but in gaming, recording, editing, or practicing an instrument, it can twist the experience immediately.
 
 The demand here is not “everyone needs zero latency.” It is “some scenarios are extremely sensitive to latency.” Once product positioning catches that kind of scenario, it is much stronger than vaguely saying “great sound quality.”
 
 ### Consensus five: more durable and harder to lose
 
-Lisa mentions that Reddit discussions say good wired earbuds can last `3-5` years, and are less likely to suffer the tragedy of “one earbud disappearing into the universe.” The description is funny and very real. The freedom of true wireless earbuds is sweet, but tiny objects are destined to enter parallel universes, especially one side of the pair.
+Reddit discussions also include a durability judgment: good wired earbuds can last `3-5` years, and are less likely to suffer the tragedy of “one earbud disappearing into the universe.” The freedom of true wireless earbuds is sweet, but the small size also turns loss into a real pain point.
 
-So for wired earbuds, Lisa summarizes the accepted-answer position like this: if you care about stability, sound quality, and long-term usage experience, wired earbuds are still a rational choice.
+At this point, the product direction starts to take shape. This is not nostalgia, anti-tech sentiment, or a holy war for cables. It is a group of people who have been poked too many times by charging, pairing, latency, and losing tiny devices. For wired earbuds, the accepted-answer position can be compressed into one sentence: if stability, sound quality, and long-term usage experience matter, wired earbuds are still a rational choice.
 
-Going further, this round of Reddit validation also produces places for content distribution. Lisa lists several high-frequency discussion communities:
+Going further, this round of Reddit validation also produces places for content distribution. Several high-frequency discussion communities include:
 
 - `r/Earbuds`
 - `r/HeadphoneAdvice`
@@ -181,29 +193,33 @@ This means demand research does not only answer product direction. It also answe
 
 ## Step three: turn pain points into reusable assets
 
-After validating demand, Lisa does not stop at the feel-good stage of “I learned so much from Reddit.” She then automates the workflow so pain points can be collected, organized, and stored continuously.
+After validating demand, the most dangerous moment arrives: you read Reddit, feel very enlightened, take a few screenshots, open a document, and forget everything three days later. A lot of demand research dies exactly there, like gold dust slipping back into the sand.
 
-The tools she uses include Octopus RPA and Feishu multidimensional tables. The Reddit app in Octopus RPA is marked as free in the original text. The client download link is `https://partner.rpa.bazhuayu.com/R9Sc6Z`, and it is currently only available for Windows. The official tutorial link is `https://base.feishu.cn/template-landing?token=AGI9bXyMFaivx1sXoFVcnoK7nbf&utm_from=octopus`. The original text also mentions an official customer-service entry point, but that information is attached inside expandable image media, and this source context does not provide a text link we can verify.
+The next move is automation, so pain points can be collected, organized, and stored continuously.
 
-Feishu multidimensional tables are used for structured storage. The original text provides a registration link, `https://fcna6swh3rtl.feishu.cn/share/base/form/shrcn8BkxqoKYeA6XyZZAB7zK73`, and a dedicated invitation code, `Code2z4tYku9Ru`. Lisa explains that this is an official promotional offer from Feishu for her, and new users can receive three months of Pro benefits worth `3500` yuan. This disclosure is kept as in the original, so the tool recommendation is not disguised as a purely neutral list.
+The tool stack includes Octopus RPA and Feishu multidimensional tables. The Reddit app in Octopus RPA is currently marked as free. The client download link is `https://partner.rpa.bazhuayu.com/R9Sc6Z`, and it is currently only available for Windows. The official tutorial link is `https://base.feishu.cn/template-landing?token=AGI9bXyMFaivx1sXoFVcnoK7nbf&utm_from=octopus`. There is also an official customer-service entry point, but that information is attached inside expandable image media, and the currently verifiable text does not provide a link.
 
-The workflow has three steps:
+Feishu multidimensional tables are used for structured storage. The registration link is `https://fcna6swh3rtl.feishu.cn/share/base/form/shrcn8BkxqoKYeA6XyZZAB7zK73`, with the dedicated invitation code `Code2z4tYku9Ru`. This information is labeled as an official promotional offer from Feishu, and new users can receive three months of Pro benefits worth `3500` yuan.
+
+<ClawdNote>When a tool recommendation includes a promotional offer, the nature of that offer should stay visible. It does not mean the tool is bad. It means readers get to judge it with the right label on the box.</ClawdNote>
+
+The workflow itself is not complicated. The hard part is making it survive beyond one burst of enthusiasm. Three actions connect the pipeline:
 
 1. Copy the Feishu multidimensional table template and get the plugin authorization code.
 2. Open the Reddit app in Octopus RPA and run it with one click.
 3. Automatically collect Reddit community posts and comments into Feishu multidimensional tables.
 
-Lisa also adds that other RPA platforms can build similar apps on their own. As long as the data acquisition logic is written and the Feishu multidimensional table settings are connected, the same kind of workflow can work. In other words, the key is not being locked into one tool. The key is building a pipeline for monitoring, extraction, and structuring.
+Other RPA platforms can also build similar apps. As long as the data acquisition logic is written and the Feishu multidimensional table settings are connected, the same kind of workflow can work. In other words, the key is not being locked into one tool. The key is building a pipeline for monitoring, extraction, and structuring.
 
 In practice, three things are happening here.
 
 First, **monitor Subreddits**. Do not check only when you happen to remember. Continuously collect posts and comments. Demand research is most dangerous when you draw conclusions from one day of reading, because what you see that day may simply be the community arguing about one event. Continuous monitoring gives you a better chance of separating one-off noise from long-term pain.
 
-Second, **extract pain points at the level of original wording**. Lisa emphasizes keeping users’ real expressions, not only the researcher’s summary. This is very important. Summaries become cleaner, but they also sand off emotion. Once the emotion is sanded off, ad copy, product positioning, and content titles often lose their force too.
+Second, **extract pain points at the level of original wording**. The point is to keep users’ real expressions, not only the researcher’s summary. Summaries become cleaner, but they also sand off emotion. Once the emotion is sanded off, ad copy, product positioning, and content titles often lose their force too.
 
 Third, **store the data structurally**. Fields can be designed around pain point, scenario, emotion, and comparison target. In the wired earbuds case, for example, the pain point may be charging hassle, the scenario may be gaming or editing, the emotion may be impatience, and the comparison target is Bluetooth earbuds.
 
-Finally, this data becomes three kinds of directly usable assets:
+By this point, the scattered complaints finally become assets. They are no longer merely “people on Reddit are annoyed about earbuds.” They become raw material for product planning, content, and ad tests:
 
 - Viral content topics
 - Product feature priorities
@@ -215,7 +231,7 @@ Finally, this data becomes three kinds of directly usable assets:
 
 ## The core of this method: small but real demand is not niche; it is overlooked
 
-Lisa compresses the whole method into one sentence:
+The whole method compresses into one sentence:
 
 > Small but real demand = validated × expressible × sustainable
 
@@ -225,18 +241,24 @@ This can be split into three layers.
 
 **Expressible** means users can describe the pain clearly. This is often underestimated. If a need is hard for users to say out loud, content and ads will also have a hard time hitting it. In the other direction, when users repeatedly use similar language to describe the same annoyance, product positioning gets natural raw material.
 
-**Sustainable** means it is not a one-wave trend. It appears repeatedly over time in a specific group and a specific scenario. This is also why Lisa wants to automate Reddit monitoring instead of taking a few screenshots for a one-time deck.
+**Sustainable** means it is not a one-wave trend. It appears repeatedly over time in a specific group and a specific scenario. This is also why Reddit monitoring needs automation instead of a few screenshots for a one-time deck.
 
 Small but real demand does not mean “the market is small, so just build something casually.” A more precise way to say it is: the demand already exists, but it has been covered by large companies, large trends, and large narratives. Users complain, compromise, compare, and search for alternatives every day. Their voices are just scattered across discussion threads and have not yet been organized systematically.
 
-The value of this workflow is turning scattered voices into actionable data. Semrush is like radar, first scanning suspicious areas. Reddit is like field interviewing, confirming there really are footprints on the ground. RPA and multidimensional tables are the warehouse, storing every discovery. AI can then work on top of that data to infer product features, content directions, and advertising language.
+So the real thing this workflow sells is not “Reddit tricks.” It is patience: first admit that inspiration is unreliable, then collect the repeated problems already showing up in the market. AI can then work on top of that data to infer product features, content directions, and advertising language.
+
+<ClawdNote>I think of this pipeline as a very plain exploration team: Semrush is the radar, Reddit is the field interview, RPA plus tables are the warehouse. The point is not that the tools look fancy. The point is that clues should not evaporate right after someone reads them.</ClawdNote>
 
 ---
 
 ## Closing
 
-Chasing trends is exciting, but trend zones are often also the most crowded, noisiest, and most painful places to fall from. Lisa’s method goes the other way: do not ask where the next big trend is first. Ask where a group of real users repeatedly gets stuck.
+Chasing trends is exciting, but trend zones are often also the most crowded, noisiest, and most painful places to fall from. The ideas at the beginning that all looked like tomorrow’s unicorns often turn out to be fireworks inside someone’s head: bright for a second, then gone.
+
+This method goes the other way: do not ask where the next big trend is first. Ask where a group of real users repeatedly gets stuck.
 
 This approach is slower, but less mystical. Products do not grow out of inspiration alone. They grow out of problems that appear repeatedly, can be clearly expressed, and are worth solving.
 
-Small but real needs do not always stand under the spotlight. Very often, they hide inside an ordinary-looking Reddit comment, waiting for someone patient enough to pick them up.
+Small but real needs do not always stand under the spotlight. Very often, they hide inside an ordinary-looking Reddit comment, like that tiny beep under the metal detector.
+
+Product sense, sometimes, is simply the willingness to kneel down and check whether that beep is a bottle cap or gold.
