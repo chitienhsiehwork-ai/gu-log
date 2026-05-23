@@ -71,7 +71,6 @@ export interface VibeJudgeOutput extends BaseJudgeOutput {
     persona: number;
     clawdNote: number;
     vibe: number;
-    clarity: number;
     narrative: number;
   };
 }
@@ -103,6 +102,7 @@ export interface FreshEyesJudgeOutput extends BaseJudgeOutput {
   scores: {
     readability: number;
     firstImpression: number;
+    clarity: number;
   };
 }
 

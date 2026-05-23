@@ -39,7 +39,7 @@ export function tribunalBranchName(articlePath: string): string {
 // ---------------------------------------------------------------------------
 
 function formatVibeScores(scores: VibeJudgeOutput['scores']): string {
-  return `persona:${scores.persona} clawdNote:${scores.clawdNote} vibe:${scores.vibe} clarity:${scores.clarity} narrative:${scores.narrative}`;
+  return `persona:${scores.persona} clawdNote:${scores.clawdNote} vibe:${scores.vibe} narrative:${scores.narrative}`;
 }
 
 function formatStageStatus<T>(label: string, stage: StageResult<T>, detail?: string): string {
@@ -66,7 +66,7 @@ function formatStageStatus<T>(label: string, stage: StageResult<T>, detail?: str
  * tribunal: CP-280 延遲降低 40% 的新框架
  *
  * Stage 0: PASS (no warn)
- * Stage 1: PASS @ loop 2/3 (persona:9 clawdNote:8 vibe:9 clarity:8 narrative:8)
+ * Stage 1: PASS @ loop 2/3 (persona:9 clawdNote:8 vibe:9 narrative:8)
  * Stage 2: PASS @ loop 1/2
  * Stage 3: PASS @ loop 1/2 (fact:9 lib:8)
  * Stage 4: PASS @ loop 1/2 (no regression)

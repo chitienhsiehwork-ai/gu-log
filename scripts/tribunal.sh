@@ -580,7 +580,7 @@ PY
 import json, sys, math
 data = json.load(open(sys.argv[1]))
 dims = data.get('dimensions', {})
-vals = [dims.get(k, 0) for k in ('readability', 'firstImpression')]
+vals = [dims.get(k, 0) for k in ('readability', 'firstImpression', 'clarity')]
 composite = math.floor(sum(vals) / len(vals))
 sys.exit(0 if composite >= 8 else 1)
 PY
@@ -591,7 +591,7 @@ PY
 import json, sys, math
 data = json.load(open(sys.argv[1]))
 dims = data.get('dimensions', {})
-vals = [dims.get(k, 0) for k in ('persona', 'clawdNote', 'vibe', 'clarity', 'narrative')]
+vals = [dims.get(k, 0) for k in ('persona', 'clawdNote', 'vibe', 'narrative')]
 composite = math.floor(sum(vals) / len(vals))
 if composite < 8:
     sys.exit(1)

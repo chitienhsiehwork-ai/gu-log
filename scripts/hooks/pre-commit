@@ -72,8 +72,8 @@ echo ""
 
 # ─── Step 0.1: Score gate — staged posts must have vibe scores ────
 # Only checks zh-tw primary posts (not en- translations).
-# Minimum: scores.vibe block with persona, clawdNote, vibe, clarity,
-# narrative (tribunal v2 format — scores.ralph was the v1 shape and
+# Minimum: scores.vibe block with persona, clawdNote, vibe, narrative
+# (tribunal v2 format — scores.ralph was the v1 shape and
 # has been superseded; src/content/config.ts schema only declares
 # scores.vibe / librarian / factCheck / freshEyes).
 #
@@ -215,9 +215,9 @@ else
             continue
         fi
 
-        # Check scores.vibe block with the 5 tribunal v2 dimensions.
+        # Check scores.vibe block with the 4 active tribunal dimensions.
         # Matches both "^  vibe:" (nested under scores) and inline value
-        # styles; requires persona/clawdNote/vibe/clarity/narrative to
+        # styles; requires persona/clawdNote/vibe/narrative to
         # appear within the block's first ~8 lines.
         if ! grep -q "^  vibe:" "$FULL_PATH" 2>/dev/null; then
             BASENAME=$(basename "$file")
@@ -230,11 +230,10 @@ else
             HAS_PERSONA=$(printf '%s\n' "$BLOCK" | grep -c "persona:" 2>/dev/null || echo 0)
             HAS_CLAWD=$(printf '%s\n' "$BLOCK" | grep -c "clawdNote:" 2>/dev/null || echo 0)
             HAS_VIBE=$(printf '%s\n' "$BLOCK" | grep -c "vibe:" 2>/dev/null || echo 0)
-            HAS_CLARITY=$(printf '%s\n' "$BLOCK" | grep -c "clarity:" 2>/dev/null || echo 0)
             HAS_NARRATIVE=$(printf '%s\n' "$BLOCK" | grep -c "narrative:" 2>/dev/null || echo 0)
-            if [ "$HAS_PERSONA" -eq 0 ] || [ "$HAS_CLAWD" -eq 0 ] || [ "$HAS_VIBE" -lt 2 ] || [ "$HAS_CLARITY" -eq 0 ] || [ "$HAS_NARRATIVE" -eq 0 ]; then
+            if [ "$HAS_PERSONA" -eq 0 ] || [ "$HAS_CLAWD" -eq 0 ] || [ "$HAS_VIBE" -lt 2 ] || [ "$HAS_NARRATIVE" -eq 0 ]; then
                 BASENAME=$(basename "$file")
-                SCORE_MISSING="$SCORE_MISSING  ⚠️  $BASENAME — scores.vibe incomplete (need persona, clawdNote, vibe, clarity, narrative)\n"
+                SCORE_MISSING="$SCORE_MISSING  ⚠️  $BASENAME — scores.vibe incomplete (need persona, clawdNote, vibe, narrative)\n"
             fi
         fi
     done

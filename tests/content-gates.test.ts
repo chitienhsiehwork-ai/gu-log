@@ -233,12 +233,16 @@ describe('frontmatter-scores', () => {
     expect(fmScores.VALID_JUDGES).toEqual(['librarian', 'factCheck', 'freshEyes', 'vibe']);
   });
 
-  it('JUDGE_DIMS has 5 vibe dimensions', () => {
+  it('JUDGE_DIMS matches post-clarity-move schema', () => {
+    expect(fmScores.JUDGE_DIMS.freshEyes).toEqual([
+      'readability',
+      'firstImpression',
+      'clarity',
+    ]);
     expect(fmScores.JUDGE_DIMS.vibe).toEqual([
       'persona',
       'clawdNote',
       'vibe',
-      'clarity',
       'narrative',
     ]);
   });

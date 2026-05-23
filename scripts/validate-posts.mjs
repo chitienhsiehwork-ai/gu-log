@@ -163,6 +163,12 @@ function validateScoreBlock(fmText, judge, dimensions) {
   return errors;
 }
 
+function hasScoreDimension(fmText, judge, dim) {
+  const block = getScoreBlock(fmText, judge);
+  if (!block) return false;
+  return new RegExp(`^    ${dim}:\\s*(?:10|[0-9])\\s*$`, 'm').test(block);
+}
+
 function extractClawdNotes(content) {
   const notes = [];
   const pattern = /<ClawdNote\b([^>]*)>([\s\S]*?)<\/ClawdNote>/g;
@@ -358,14 +364,11 @@ function validatePost(filepath, allPosts, options = {}) {
     }
     errors.push(
       ...validateScoreBlock(fmText, 'freshEyes', ['readability', 'firstImpression']),
-      ...validateScoreBlock(fmText, 'vibe', [
-        'persona',
-        'clawdNote',
-        'vibe',
-        'clarity',
-        'narrative',
-      ])
+      ...validateScoreBlock(fmText, 'vibe', ['persona', 'clawdNote', 'vibe', 'narrative'])
     );
+    if (!hasScoreDimension(fmText, 'freshEyes', 'clarity') && !hasScoreDimension(fmText, 'vibe', 'clarity')) {
+      errors.push('scores.freshEyes.clarity is required (legacy fallback: scores.vibe.clarity)');
+    }
   }
 
   // ── Rule 16: At least one kaomoji per post (brand voice) ──

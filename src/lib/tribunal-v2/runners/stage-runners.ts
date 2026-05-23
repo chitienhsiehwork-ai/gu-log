@@ -135,7 +135,7 @@ export const stage2JudgeRunner: StageRunner<
       timeoutSec: TIMEOUT.JUDGE_FRESH_EYES,
       buildPrompt: (outputPath) => `Fresh-eyes review this post: ${articlePath}
 
-Score readability and firstImpression from a 3-month engineer persona per your agent instructions.
+Score readability, firstImpression, and clarity from a 3-month engineer persona per your agent instructions.
 
 Write the v2 FreshEyesJudgeOutput JSON to: ${outputPath}
 Confirm with a one-line status on stdout.`,

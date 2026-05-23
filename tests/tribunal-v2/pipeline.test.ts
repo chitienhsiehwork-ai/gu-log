@@ -86,7 +86,6 @@ const PASSING_SCORES: VibeJudgeOutput['scores'] = {
   persona: 9,
   clawdNote: 8,
   vibe: 8,
-  clarity: 8,
   narrative: 8,
 };
 
@@ -94,14 +93,13 @@ const FAILING_SCORES: VibeJudgeOutput['scores'] = {
   persona: 7,
   clawdNote: 7,
   vibe: 7,
-  clarity: 7,
   narrative: 7,
 };
 
 function freshEyesPass(): FreshEyesJudgeOutput {
   return {
     pass: true,
-    scores: { readability: 8, firstImpression: 8 },
+    scores: { readability: 8, firstImpression: 8, clarity: 8 },
     composite: 8,
     judge_model: 'mock',
     judge_version: '2.0.0',
@@ -411,7 +409,7 @@ describe('pipeline — writer-constraint enforcement', () => {
     const git = mockGit();
 
     // Stage 1 scores: all high
-    const stage1Scores = { persona: 9, clawdNote: 9, vibe: 9, clarity: 9, narrative: 9 };
+    const stage1Scores = { persona: 9, clawdNote: 9, vibe: 9, narrative: 9 };
 
     const config: PipelineConfig = {
       ...passThroughConfig(),
@@ -423,7 +421,7 @@ describe('pipeline — writer-constraint enforcement', () => {
         stage4Judge: {
           run: async ({ stage1Scores: s1 }) => ({
             pass: true, // model claims pass
-            scores: { ...stage1Scores, clarity: 6 }, // but clarity dropped 3 points (> 1 regression)
+            scores: { ...stage1Scores, narrative: 6 }, // narrative dropped 3 points (> 1 regression)
             composite: 8,
             stage_1_scores: s1,
             degraded_dimensions: [], // and model forgot to report it
@@ -445,7 +443,7 @@ describe('pipeline — writer-constraint enforcement', () => {
     const stage4Out = final.stages.stage4.output;
     expect(stage4Out?.pass).toBe(false);
     expect(stage4Out?.is_degraded).toBe(true);
-    expect(stage4Out?.degraded_dimensions).toContain('clarity');
+    expect(stage4Out?.degraded_dimensions).toContain('narrative');
 
     // Degraded frontmatter marker should have been written to the article.
     const content = await readFile(articlePath, 'utf-8');

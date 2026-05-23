@@ -142,8 +142,8 @@ const FRONTMATTER_DIM_MAP: Record<
   string,
   { fmKey: FrontmatterJudgeKey; dims: readonly string[] }
 > = {
-  stage1: { fmKey: 'vibe', dims: ['persona', 'clawdNote', 'vibe', 'clarity', 'narrative'] },
-  stage2: { fmKey: 'freshEyes', dims: ['readability', 'firstImpression'] },
+  stage1: { fmKey: 'vibe', dims: ['persona', 'clawdNote', 'vibe', 'narrative'] },
+  stage2: { fmKey: 'freshEyes', dims: ['readability', 'firstImpression', 'clarity'] },
   stage3fact: {
     fmKey: 'factCheck',
     dims: ['accuracy', 'fidelity', 'consistency'],

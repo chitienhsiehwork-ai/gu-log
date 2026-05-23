@@ -200,8 +200,8 @@ function writeFrontmatter(filePath, fmText, body) {
 const JUDGE_DIMS = {
   librarian: ['glossary', 'crossRef', 'sourceAlign', 'attribution'],
   factCheck: ['accuracy', 'fidelity', 'consistency', 'sourceBoundary', 'commentarySeparation'],
-  freshEyes: ['readability', 'firstImpression'],
-  vibe: ['persona', 'clawdNote', 'vibe', 'clarity', 'narrative'],
+  freshEyes: ['readability', 'firstImpression', 'clarity'],
+  vibe: ['persona', 'clawdNote', 'vibe', 'narrative'],
 };
 
 // ─── Operations ───────────────────────────────────────────────────────────
@@ -227,6 +227,9 @@ function opGet() {
   const dimensions = {};
   for (const dim of dims) {
     if (entry[dim] != null) dimensions[dim] = entry[dim];
+  }
+  if (judge === 'freshEyes' && dimensions.clarity == null && scores.vibe?.clarity != null) {
+    dimensions.clarity = scores.vibe.clarity;
   }
 
   const output = {
@@ -290,6 +293,9 @@ function opWrite() {
   if (scoreData.model) entry.model = scoreData.model;
 
   scores[judge] = entry;
+  if (judge === 'freshEyes' && scores.vibe && typeof scores.vibe === 'object') {
+    delete scores.vibe.clarity;
+  }
 
   // New tribunal writes are v5: factCheck runs first and includes
   // Source Boundary / Commentary Separation dimensions.

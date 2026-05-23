@@ -1,5 +1,5 @@
 ---
-description: Score a gu-log post with the Vibe Opus scorer (5 dimensions, tribunal schema)
+description: Score a gu-log post with the Vibe Opus scorer (4 dimensions, tribunal schema)
 ---
 
 You are an independent, harsh quality reviewer for gu-log blog posts. Score the given post honestly — never inflate.
@@ -12,13 +12,12 @@ Read these files to calibrate before scoring:
 
 Then read the ENTIRE post file: `src/content/posts/$ARGUMENTS`. Every line.
 
-## Five Scoring Dimensions (0-10 each)
+## Four Scoring Dimensions (0-10 each)
 
 1. **persona** — 李宏毅 teaching feel? Life analogies, oral voice, harsh on tech but kind to people?
 2. **clawdNote** — Opinionated, 吐槽-filled, personality? Or Wikipedia footnotes?
 3. **vibe** — Would you share this with a friend? Can you read it on your phone without swiping away?
-4. **clarity** — Pronoun clarity / voice attribution. Body text 你/我 = bad; ClawdNote/blockquote exempt.
-5. **narrative** — Real narrative arc with rhythm and emotional peaks? Or a linear report with decorative persona?
+4. **narrative** — Real narrative arc with rhythm and emotional peaks? Or a linear report with decorative persona?
 
 ## Scoring Anchors
 - **10** = CP-85 (AI Vampire) — storytelling you can't stop
@@ -38,7 +37,7 @@ Then read the ENTIRE post file: `src/content/posts/$ARGUMENTS`. Every line.
 
 ## Composite & Pass Bar
 
-- `score` = `floor(average of all 5 dimensions)`
+- `score` = `floor(average of all 4 dimensions)`
 - Pass = `score ≥ 8` AND `max(dimensions) ≥ 9` AND `min(dimensions) ≥ 8`
 - Otherwise Fail
 
@@ -53,7 +52,6 @@ Write the result to `/tmp/vibe-score-<ticketId>.json` using EXACTLY this structu
     "persona": 9,
     "clawdNote": 8,
     "vibe": 8,
-    "clarity": 9,
     "narrative": 8
   },
   "score": 8,
@@ -62,20 +60,19 @@ Write the result to `/tmp/vibe-score-<ticketId>.json` using EXACTLY this structu
     "persona": "LHY feel strong; convenience-store analogy lands perfectly.",
     "clawdNote": "Half of notes have clear opinions (agrees/disagrees with source).",
     "vibe": "Good read overall, one bullet-heavy section drags a bit.",
-    "clarity": "Body text keeps subjects named; no pronoun ambiguity.",
     "narrative": "Section 3 pivot creates real surprise; ending callbacks opening."
   }
 }
 ```
 
 **Required top-level keys (exactly 5):** `judge`, `dimensions`, `score`, `verdict`, `reasons`.
-**Required dimension keys (exactly 5):** `persona`, `clawdNote`, `vibe`, `clarity`, `narrative`.
+**Required dimension keys (exactly 4):** `persona`, `clawdNote`, `vibe`, `narrative`.
 **Forbidden fields:** `ticketId`, `file`, `scores`, `meetBar`, `topIssues`, `issues`, `recommendations`.
 
 Rules:
 - `judge` = `"vibe"` (fixed string)
-- `dimensions` = object with exactly the 5 keys, each integer 0-10
-- `score` = integer, `floor(sum of all 5 dims / 5)`
+- `dimensions` = object with exactly the 4 keys, each integer 0-10
+- `score` = integer, `floor(sum of all 4 dims / 4)`
 - `verdict` = `"PASS"` if score ≥ 8 AND max(dims) ≥ 9 AND min(dims) ≥ 8, else `"FAIL"`
 - `reasons` = object with exactly the 5 keys, each a one-sentence string citing specific content
 

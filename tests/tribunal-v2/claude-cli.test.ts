@@ -58,7 +58,6 @@ describe('extractJson — v1 → v2 migration safety', () => {
     "persona": 8,
     "clawdNote": 8,
     "vibe": 8,
-    "clarity": 9,
     "narrative": 9
   },
   "composite": 8,
@@ -76,7 +75,7 @@ describe('extractJson — v1 → v2 migration safety', () => {
       timestamp: string;
     };
     expect(parsed.pass).toBe(true);
-    expect(parsed.scores.clarity).toBe(9);
+    expect(parsed.scores.narrative).toBe(9);
     expect(parsed.composite).toBe(8);
     expect(parsed.judge_version).toBe('2.0.0');
   });

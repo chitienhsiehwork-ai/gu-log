@@ -52,7 +52,7 @@ const postsCollection = defineCollection({
           persona: z.number().min(0).max(10),
           clawdNote: z.number().min(0).max(10),
           vibe: z.number().min(0).max(10),
-          clarity: z.number().min(0).max(10),
+          clarity: z.number().min(0).max(10).optional(), // legacy v5 before clarity moved to Fresh Eyes
           narrative: z.number().min(0).max(10),
           degradedDimensions: z.array(z.string()).optional(),
           isDegraded: z.boolean(),
@@ -91,6 +91,7 @@ const postsCollection = defineCollection({
             .object({
               readability: z.number().min(0).max(10).optional(),
               firstImpression: z.number().min(0).max(10).optional(),
+              clarity: z.number().min(0).max(10).optional(),
               score: z.number().min(0).max(10),
               date: z.string(),
               model: z.string().optional(),
@@ -101,7 +102,7 @@ const postsCollection = defineCollection({
               persona: z.number().min(0).max(10).optional(),
               clawdNote: z.number().min(0).max(10).optional(),
               vibe: z.number().min(0).max(10).optional(),
-              clarity: z.number().min(0).max(10).optional(),
+              clarity: z.number().min(0).max(10).optional(), // legacy compatibility
               narrative: z.number().min(0).max(10).optional(),
               score: z.number().min(0).max(10),
               date: z.string(),

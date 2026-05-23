@@ -84,12 +84,12 @@ case "$JUDGE" in
   freshEyes|fresh-eyes)
     validate_dim readability
     validate_dim firstImpression
+    validate_dim clarity
     ;;
   vibe|vibe-opus-scorer)
     validate_dim persona
     validate_dim clawdNote
     validate_dim vibe
-    validate_dim clarity
     validate_dim narrative
     ;;
   *)

@@ -5,8 +5,8 @@
  * 4 judges, uniform 0-10 scale, new dimension map:
  *   Librarian (Opus 4.7)    → glossary · crossRef · sourceAlign · attribution
  *   Fact Check (GPT-5.5)    → accuracy · fidelity · consistency · sourceBoundary · commentarySeparation
- *   Fresh Eyes (Opus 4.7)   → readability · firstImpression
- *   Vibe (Opus 4.6[1m])     → persona · clawdNote · vibe · clarity · narrative
+ *   Fresh Eyes (Opus 4.7)   → readability · firstImpression · clarity
+ *   Vibe (Opus 4.6[1m])     → persona · clawdNote · vibe · narrative
  *
  * Scores live in post frontmatter. No legacy keys (ralph/gemini/codex/sonnet).
  */
@@ -36,6 +36,7 @@ interface Props {
     freshEyes?: {
       readability?: number;
       firstImpression?: number;
+      clarity?: number;
       score: number;
       date: string;
       model?: string;
@@ -44,8 +45,8 @@ interface Props {
       persona?: number;
       clawdNote?: number;
       vibe?: number;
-      clarity?: number;
       narrative?: number;
+      clarity?: number; // legacy fallback: tribunal v5 before clarity moved to Fresh Eyes
       score: number;
       date: string;
       model?: string;
@@ -60,6 +61,7 @@ const hasScores =
   scores && (scores.librarian || scores.factCheck || scores.freshEyes || scores.vibe);
 
 const tribunalVersion = scores?.tribunalVersion ?? 3;
+const freshEyesClarity = scores?.freshEyes?.clarity ?? scores?.vibe?.clarity;
 
 function scoreColor(score: number): string {
   if (score >= 9) return 'score-high';
@@ -283,6 +285,12 @@ const labels = {
                   </strong>
                 </span>
               )}
+              {freshEyesClarity !== undefined && (
+                <span class="dim-item">
+                  <span class="dim-label">{labels.clarity}</span>
+                  <strong class={scoreColor(freshEyesClarity)}>{freshEyesClarity}</strong>
+                </span>
+              )}
             </div>
           </div>
         )}
@@ -331,12 +339,6 @@ const labels = {
                 <span class="dim-item">
                   <span class="dim-label">{labels.vibe_dim}</span>
                   <strong class={scoreColor(scores.vibe.vibe)}>{scores.vibe.vibe}</strong>
-                </span>
-              )}
-              {scores.vibe.clarity !== undefined && (
-                <span class="dim-item">
-                  <span class="dim-label">{labels.clarity}</span>
-                  <strong class={scoreColor(scores.vibe.clarity)}>{scores.vibe.clarity}</strong>
                 </span>
               )}
               {scores.vibe.narrative !== undefined && (
@@ -461,20 +463,20 @@ const labels = {
 
   /* Score value colors */
   .score-high {
-    color: #34d399; /* bright emerald — exceptional */
+    color: #7ea88f; /* muted sage — exceptional */
   }
   .score-pass {
-    color: #93a1a1; /* Solarized base1 — passing */
+    color: #9aa88f; /* subdued olive-sage — passing */
   }
   .score-fail {
     color: #e57373; /* soft red — failing */
   }
 
   :global([data-theme='light']) .score-high {
-    color: #047857;
+    color: #4f6f58;
   }
   :global([data-theme='light']) .score-pass {
-    color: #586e75;
+    color: #68755f;
   }
   :global([data-theme='light']) .score-fail {
     color: #b71c1c;
@@ -485,7 +487,7 @@ const labels = {
     color: #78b4ff;
   }
   .judge-color-factcheck {
-    color: #34d399;
+    color: #9f4b5d;
   }
   .judge-color-fresheyes {
     color: #c084fc;
@@ -498,7 +500,7 @@ const labels = {
     color: #1d4ed8;
   }
   :global([data-theme='light']) .judge-color-factcheck {
-    color: #047857;
+    color: #7f1d2d;
   }
   :global([data-theme='light']) .judge-color-fresheyes {
     color: #7e22ce;

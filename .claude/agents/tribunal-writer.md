@@ -47,10 +47,10 @@ For each failing dimension, the fix is different:
 | Fact Checker | commentarySeparation | Move Clawd/gu-log opinions, interpretation, jokes, and source-meta commentary out of SP body and into `<ClawdNote>` |
 | Fresh Eyes | readability | Simplify jargon; break up confusing paragraphs; add transitions |
 | Fresh Eyes | firstImpression | Strengthen hook; tighten boring sections; improve ending |
+| Fresh Eyes | clarity | Replace fuzzy referents; fix speaker attribution; remove half-translated wording that muddies reading |
 | Vibe | persona | Add life analogies; inject oral feel; increase 吐槽 density; fix motivational-poster ending |
 | Vibe | clawdNote | Convert explain-only notes to opinion-first notes; add Clawd's own stance; add meta-commentary |
 | Vibe | vibe | Fix bullet-dump ending; add narrative arc; tighten boring stretches |
-| Vibe | clarity | Replace 你/我 in body text with specific names; clarify speaker attribution |
 | Vibe | narrative | Add emotional arc; create section pivots; add punch ending; break linear structure |
 
 ### Rules for rewriting

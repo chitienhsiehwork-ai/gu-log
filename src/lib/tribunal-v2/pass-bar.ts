@@ -10,7 +10,7 @@ import type { VibeJudgeOutput } from './types';
 
 type VibeScores = VibeJudgeOutput['scores'];
 
-const VIBE_DIMS = ['persona', 'clawdNote', 'vibe', 'clarity', 'narrative'] as const;
+const VIBE_DIMS = ['persona', 'clawdNote', 'vibe', 'narrative'] as const;
 
 /** Check if Stage 1 Vibe scores pass the bar */
 export function checkVibePassBar(scores: VibeScores): {
@@ -71,11 +71,12 @@ export function checkFinalVibePassBar(
 export function checkFreshEyesPassBar(scores: {
   readability: number;
   firstImpression: number;
+  clarity: number;
 }): {
   pass: boolean;
   composite: number;
 } {
-  const composite = Math.floor((scores.readability + scores.firstImpression) / 2);
+  const composite = Math.floor((scores.readability + scores.firstImpression + scores.clarity) / 3);
   return {
     pass: composite >= PASS_BARS.STAGE_2_COMPOSITE,
     composite,
