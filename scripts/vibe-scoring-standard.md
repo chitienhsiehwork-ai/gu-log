@@ -1,12 +1,12 @@
 # Ralph Vibe Scoring Standard v2.0
 
 > Golden standard for evaluating gu-log post quality.
-> Tribunal v5 source-boundary update calibrated 2026-05-17 by ShroomDog + Clawd.
+> Tribunal v6 clarity rebalance calibrated 2026-05-23 by ShroomDog + Clawd.
 > **SSOT for all 4 tribunal judges + writer agent.**
 
 ## Tribunal System Overview
 
-Tribunal v5 pipeline — 4 stages. All judges use **uniform 0-10 integer scale**. Composite = `Math.floor(avg of all dims)`.
+Tribunal v6 pipeline — 4 stages. All judges use **uniform 0-10 integer scale**. Composite = `Math.floor(avg of all dims)`.
 
 | Stage | Judge | Model | Dimensions | Pass Bar |
 |-------|-------|-------|------------|----------|
@@ -15,7 +15,7 @@ Tribunal v5 pipeline — 4 stages. All judges use **uniform 0-10 integer scale**
 | 3 | Fresh Eyes | GPT-5.5 | readability · firstImpression · clarity | composite ≥ 8 |
 | 4 | Vibe | GPT-5.5 | persona · clawdNote · vibe · narrative | composite ≥ 8 AND one dim ≥ 9 AND no dim < 8 |
 
-## Uniform Agent Output JSON (v5)
+## Uniform Agent Output JSON (v6)
 
 All judges output the `BaseJudgeOutput` shape from `src/lib/tribunal-v2/types.ts`:
 
@@ -60,7 +60,7 @@ composite >= 8 && max(scores) >= 9 && min(scores) >= 8
 // Fresh Eyes, Librarian
 composite >= 8
 
-// Fact Checker v5
+// Fact Checker v6
 floor(avg(accuracy, fidelity, consistency)) >= 8
 sourceBoundary >= 8
 commentarySeparation >= 8

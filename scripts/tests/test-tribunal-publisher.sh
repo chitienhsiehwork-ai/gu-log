@@ -32,7 +32,7 @@ sourceUrl: "https://example.com/sp1"
 summary: "Summary one."
 lang: zh-tw
 scores:
-  tribunalVersion: 5
+  tribunalVersion: 6
 ---
 This is a sufficiently long body for publisher validation. It explains one coherent idea, adds supporting detail, and stays comfortably above the minimum content length that the deterministic content validator requires for a real publishable artifact in gu-log.
 POST
@@ -47,7 +47,7 @@ sourceUrl: "https://example.com/sp1"
 summary: "Summary one en."
 lang: en
 scores:
-  tribunalVersion: 5
+  tribunalVersion: 6
 ---
 This is a sufficiently long English body for publisher validation. It mirrors the publishable structure expected by the content validator and avoids failing on missing metadata or minimum-length requirements during the clean batch materialization step.
 POST
@@ -62,7 +62,7 @@ sourceUrl: "https://example.com/sp2"
 summary: "Summary two."
 lang: zh-tw
 scores:
-  tribunalVersion: 5
+  tribunalVersion: 6
 ---
 This is another sufficiently long body for publisher validation. It exists so the test can later turn it into an invalid candidate and verify that validation-blocked events isolate only the broken article instead of stopping the clean publisher batch.
 POST
@@ -77,7 +77,7 @@ sourceUrl: "https://example.com/sp2"
 summary: "Summary two en."
 lang: en
 scores:
-  tribunalVersion: 5
+  tribunalVersion: 6
 ---
 This is another sufficiently long English body for publisher validation. It gives the test a clean bilingual pair so the batch publisher can materialize both files and still isolate the broken candidate later when the zh file is intentionally damaged.
 POST

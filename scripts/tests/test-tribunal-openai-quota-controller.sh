@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Static/no-token regression tests for Tribunal v5 OpenAI-aware burn-rate pacing.
+# Static/no-token regression tests for Tribunal v6 OpenAI-aware burn-rate pacing.
 
 set -euo pipefail
 

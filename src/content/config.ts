@@ -52,7 +52,7 @@ const postsCollection = defineCollection({
           persona: z.number().min(0).max(10),
           clawdNote: z.number().min(0).max(10),
           vibe: z.number().min(0).max(10),
-          clarity: z.number().min(0).max(10).optional(), // legacy v5 before clarity moved to Fresh Eyes
+          clarity: z.number().min(0).max(10).optional(), // legacy v5 and earlier before clarity moved to Fresh Eyes
           narrative: z.number().min(0).max(10),
           degradedDimensions: z.array(z.string()).optional(),
           isDegraded: z.boolean(),

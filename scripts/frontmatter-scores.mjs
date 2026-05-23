@@ -38,7 +38,7 @@ import process from 'node:process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const VALID_JUDGES = ['librarian', 'factCheck', 'freshEyes', 'vibe'];
-const CURRENT_TRIBUNAL_VERSION = 5;
+const CURRENT_TRIBUNAL_VERSION = 6;
 
 const __isCli =
   import.meta.url === pathToFileURL(process.argv[1] ?? '').href ||
@@ -297,8 +297,8 @@ function opWrite() {
     delete scores.vibe.clarity;
   }
 
-  // New tribunal writes are v5: factCheck runs first and includes
-  // Source Boundary / Commentary Separation dimensions.
+  // New tribunal writes are v6: factCheck-first pipeline retained, while
+  // clarity moves from Vibe to Fresh Eyes.
   scores.tribunalVersion = CURRENT_TRIBUNAL_VERSION;
 
   let newFm = removeScoresBlock(parts.fmText);

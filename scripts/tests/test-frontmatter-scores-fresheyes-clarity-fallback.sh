@@ -16,7 +16,7 @@ sourceUrl: "https://example.com"
 summary: "x"
 lang: "zh-tw"
 scores:
-  tribunalVersion: 5
+  tribunalVersion: 6
   freshEyes:
     readability: 8
     firstImpression: 9

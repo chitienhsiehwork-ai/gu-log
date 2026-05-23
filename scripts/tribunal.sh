@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tribunal.sh — Tribunal v5 sequential tribunal (Codex/GPT-5.5 runner)
+# tribunal.sh — Tribunal v6 sequential tribunal (Codex/GPT-5.5 runner)
 #
 # Stages (in order):
 #   1. Fact Check (GPT-5.5) — source/commentary gate + fact bar, max 2 loops
@@ -41,7 +41,7 @@ POST_FILE=""
 ALLOW_REWRITE=""
 WRITE_FRONTMATTER=1
 SCORE_ONLY=0
-TRIBUNAL_VERSION=5
+TRIBUNAL_VERSION=6
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --only-stage)
@@ -624,7 +624,7 @@ run_stage() {
 
   local post_path="$ROOT_DIR/src/content/posts/$post_file"
 
-  # Tribunal v5 executes every stage through Codex/GPT-5.5. Agent specs are
+  # Tribunal v6 executes every stage through Codex/GPT-5.5. Agent specs are
   # prompt contracts; the runtime model comes from this runner.
   local model_id="gpt-5.5"
 
@@ -969,7 +969,7 @@ init_article_progress "$POST_FILE"
 
 tlog "=== tribunal.sh: $POST_FILE ==="
 
-# ─── Tribunal v5 Sequential Loop ──────────────────────────────────────────────
+# ─── Tribunal v6 Sequential Loop ──────────────────────────────────────────────
 # Format: stage_key:agent_name:validate_name:label:max_loops:runner_label:fm_judge_key
 # fm_judge_key = frontmatter scores key (used by frontmatter-scores.mjs)
 declare -a STAGES=(
