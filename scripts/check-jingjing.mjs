@@ -79,9 +79,9 @@ Semrush DataReportal Feishu
 GitHub GitLab Bitbucket GitLab.com
 DeepMind XAI Mistral DeepSeek Qwen Kimi Cohere Stability
 Hugging Face HuggingFace Replicate Modal RunPod Lambda Together Together.ai
-Linear Notion Slack Discord Telegram WhatsApp Instagram Facebook Messenger
+Linear Notion Slack Gmail Calendar Discord Telegram WhatsApp Instagram Facebook Messenger
 Jira
-Ray-Ban Tesla Apple Samsung Sony Nintendo
+Ray-Ban Tesla Apple Samsung Sony Nintendo Mac Mobile mobile
 DeepLearning.AI deeplearning.ai
 LangChain LangGraph LlamaIndex Pinecone Weaviate Chroma Milvus
 Scale Insilico BenevolentAI Recursion Pharmaceuticals
@@ -151,7 +151,7 @@ Kyle Jeong
 Albuquerque Hong Kong San Francisco SF Silicon Valley
 Cambridge Stanford MIT Berkeley Princeton Harvard
 Beijing Shanghai Shenzhen Hangzhou Tokyo Seoul Singapore London Paris Berlin
-Craigslist OpenTable Google Maps
+Craigslist OpenTable Google Maps Google Drive Dropbox Drive
 
 # Common file/format/protocol identifiers
 Markdown markdown JSON YAML XML CSV TSV PDF EPUB DOCX MDX LaTeX

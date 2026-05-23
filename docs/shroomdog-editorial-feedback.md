@@ -322,3 +322,19 @@
 - Context: The source uses product-management vocabulary like intent engineering, OKRs, empowered teams, autonomy boundaries, and stop rules. A framework-heavy title would make the post feel like PM jargon before the reader gets the useful agent lesson.
 - Fix: Use a direct title such as 「AI Agent 不是有目標就夠了」 instead of terms like 「意圖工程框架」 or 「Agent 治理八要素」. Keep the body practical: goal, boundary, what cannot break, and when to stop.
 - Reusable lesson: When the source is a framework post, gu-log titles should often translate the reader-facing problem, not the author’s framework brand. Plain-language titles lower the entry cost and keep the article from smelling like a slide deck.
+
+
+## 2026-05-23 — accepted English boundary: Mac / Mobile / Gmail / Obsidian
+
+Feedback:
+- ShroomDog corrected SP-210 cleanup: "Mac Mobile Gmail 都是正常英文吧 obsidian, obsidian vault can go into glossary".
+
+Context:
+- During SP-210 Codex workflow recovery, the article over-translated normal product/platform terms to appease `check-jingjing.mjs`, weakening source fidelity and reading flow.
+
+Fix:
+- Treat Mac, Mobile/mobile, and Gmail as accepted English/product terms in `check-jingjing.mjs`.
+- Add Obsidian vault to `src/data/glossary.json` instead of translating it away.
+
+Reusable lesson:
+- Do not blindly translate common product/platform terms just because deterministic lint flags them. If ShroomDog says a term is normal English in gu-log voice, encode that boundary in the deterministic allowlist or glossary so future agents stop fighting the prose.
