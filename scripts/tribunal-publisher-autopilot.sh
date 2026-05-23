@@ -46,15 +46,30 @@ tlog() {
 
 publisher_gh() {
   local token_file="${GU_LOG_GH_TOKEN_FILE:-$HOME/.config/github-tokens/gu-log-operator.token}"
+  local out rc token_out token_rc
   if [ -n "${GU_LOG_GH_TOKEN:-}" ]; then
     GH_TOKEN="$GU_LOG_GH_TOKEN" "$GH_BIN" "$@"
     return
   fi
-  if [ -f "$token_file" ]; then
-    GH_TOKEN="$(cat "$token_file")" "$GH_BIN" "$@"
-    return
+  out=$("$GH_BIN" "$@" 2>&1)
+  rc=$?
+  if [ "$rc" -eq 0 ]; then
+    printf '%s\n' "$out"
+    return 0
   fi
-  "$GH_BIN" "$@"
+  if [ -f "$token_file" ]; then
+    token_out=$(GH_TOKEN="$(cat "$token_file")" "$GH_BIN" "$@" 2>&1)
+    token_rc=$?
+    if [ "$token_rc" -eq 0 ]; then
+      printf '%s\n' "$token_out"
+      return 0
+    fi
+  fi
+  printf '%s\n' "$out" >&2
+  if [ -n "${token_out:-}" ]; then
+    printf '%s\n' "$token_out" >&2
+  fi
+  return "$rc"
 }
 
 ensure_runtime_files() {
