@@ -19,6 +19,11 @@ type CodexProvider struct {
 	ReasoningEffort string
 }
 
+// NewCodexGPT55Low returns a CodexProvider wired to GPT-5.5 low.
+func NewCodexGPT55Low() *CodexProvider {
+	return &CodexProvider{ModelName: "gpt-5.5", ReasoningEffort: "low"}
+}
+
 // NewCodexGPT55Medium returns a CodexProvider wired to GPT-5.5 medium.
 func NewCodexGPT55Medium() *CodexProvider {
 	return &CodexProvider{ModelName: "gpt-5.5", ReasoningEffort: "medium"}
