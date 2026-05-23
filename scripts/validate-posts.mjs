@@ -366,7 +366,10 @@ function validatePost(filepath, allPosts, options = {}) {
       ...validateScoreBlock(fmText, 'freshEyes', ['readability', 'firstImpression']),
       ...validateScoreBlock(fmText, 'vibe', ['persona', 'clawdNote', 'vibe', 'narrative'])
     );
-    if (!hasScoreDimension(fmText, 'freshEyes', 'clarity') && !hasScoreDimension(fmText, 'vibe', 'clarity')) {
+    if (
+      !hasScoreDimension(fmText, 'freshEyes', 'clarity') &&
+      !hasScoreDimension(fmText, 'vibe', 'clarity')
+    ) {
       errors.push('scores.freshEyes.clarity is required (legacy fallback: scores.vibe.clarity)');
     }
   }
