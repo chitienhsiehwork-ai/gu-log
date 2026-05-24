@@ -13,6 +13,15 @@
 - 寫 SP / CP / SD / Lv 前，如果任務涉及文章品質或風格，先快速掃這份檔案的近期條目。
 - 當同一類 feedback 出現 3 次以上，應該蒸餾進 `GU-LOG_WRITER_PROMPT.md`，必要時再同步到 pipeline prompt；不要永遠只留在 corpus 裡。
 
+## 2026-05-23 — gu-log source evaluation: duplicate content is duplicate dead code
+
+### Feedback: 寫文前先評估新東西與已覆蓋內容
+
+- ShroomDog feedback：`all gu-log posts should first go through this eval of what to write and what not to write because already covered in gu-log`；`Duplicate content is like duplicate dead code, will be token waste for ai, attention waste for human.`
+- 情境：評估 OpenAI `openai/skills` repo 是否適合做 SP 時，gu-log 已經有多篇 Skills / Codex / skillify / plugin evolution 相關文章。正確做法不是重講「Skills 是什麼」，而是先列出 repo 裡真正新的訊號（`.system` / `.curated` / `agents/openai.yaml` / catalog 與分發權），再明確排除 SP-54、CP-68、SP-104、SP-122、SP-170、SP-179、SP-195 已經寫過的部分。
+- 修法：在 `AGENTS.md` 的 SP candidate / source evaluation 規則加入 overlap evaluation：Go 之前要先列「這次的新東西」、「gu-log 已覆蓋內容」、「這篇應該避開什麼」，最後才決定 angle。
+- Reusable lesson：Duplicate content is duplicate dead code。對 AI 是 token waste，對人類是 attention waste。每篇 gu-log 都要有資訊增量、判斷增量或敘事增量；已寫過的背景最多一句 recap + 內鏈，不要換皮重寫。
+
 ## 2026-05-18 — SP Addy Osmani: Don't Outsource the Learning
 
 ### Feedback: SP 要貼近原文，ClawdNote 補脈絡，不要先重構文章
