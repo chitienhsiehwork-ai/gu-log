@@ -49,6 +49,32 @@ test('tribunal score panel stays two-up on iPhone 15 width', async ({ page }) =>
   }
 });
 
+test('tribunal score panel content aligns with the post info block', async ({ page }) => {
+  await page.setViewportSize({ width: 852, height: 393 });
+  await page.goto('/en/posts/en-sd-23-20260510-ai-dota-teammates', {
+    waitUntil: 'domcontentloaded',
+  });
+
+  const offsets = await page.evaluate(() => {
+    const infoLine = document.querySelector('.translation-info div:nth-of-type(2)');
+    const judgeCards = document.querySelector('.ai-judge-panel .judge-cards');
+    const judgeHeader = document.querySelector('.ai-judge-panel .judge-header');
+
+    if (!infoLine || !judgeCards || !judgeHeader) {
+      throw new Error('Expected post info and tribunal score panel to be present');
+    }
+
+    return {
+      infoLeft: infoLine.getBoundingClientRect().left,
+      cardsLeft: judgeCards.getBoundingClientRect().left,
+      headerLeft: judgeHeader.getBoundingClientRect().left,
+    };
+  });
+
+  expect(Math.abs(offsets.cardsLeft - offsets.infoLeft)).toBeLessThanOrEqual(1);
+  expect(Math.abs(offsets.headerLeft - offsets.infoLeft)).toBeLessThanOrEqual(1);
+});
+
 test('tribunal score panel collapses only on extra narrow screens', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 852 });
   await page.goto(POST_WITH_TRIBUNAL, { waitUntil: 'domcontentloaded' });
