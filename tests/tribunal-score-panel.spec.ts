@@ -73,7 +73,7 @@ test('tribunal fact-check accent stays wine-red in dark theme', async ({ page })
   expect(b).toBeGreaterThan(g);
 });
 
-test('tribunal score panel collapses to a single column on a narrow phone', async ({ page }) => {
+test('tribunal score panel keeps two columns on a typical phone width', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(POST_WITH_TRIBUNAL, { waitUntil: 'domcontentloaded' });
 
@@ -87,6 +87,27 @@ test('tribunal score panel collapses to a single column on a narrow phone', asyn
     }),
   );
 
-  expect(positions[1].top).toBeGreaterThan(positions[0].top);
+  expect(Math.abs(positions[1].top - positions[0].top)).toBeLessThan(2);
+  expect(positions[1].left).toBeGreaterThan(positions[0].left + 20);
+  expect(positions[2].top).toBeGreaterThan(positions[0].top + 20);
+});
+
+test('tribunal score panel still collapses to one column on extra narrow screens', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 844 });
+  await page.goto(POST_WITH_TRIBUNAL, { waitUntil: 'domcontentloaded' });
+
+  const cards = page.locator('.judge-card');
+  await expect(cards).toHaveCount(4);
+
+  const positions = await cards.evaluateAll((nodes) =>
+    nodes.map((node) => {
+      const rect = node.getBoundingClientRect();
+      return { top: rect.top, left: rect.left };
+    }),
+  );
+
+  expect(positions[1].top).toBeGreaterThan(positions[0].top + 20);
   expect(Math.abs(positions[1].left - positions[0].left)).toBeLessThan(2);
 });
