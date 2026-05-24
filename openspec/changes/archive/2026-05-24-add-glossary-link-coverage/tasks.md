@@ -33,4 +33,4 @@
 
 - [x] 6.1 Run focused tests
 - [x] 6.2 Run `pnpm run build`
-- [ ] 6.3 Open PR, monitor CI, merge, smoke prod
+- [x] 6.3 Open PR, monitor CI, merge, smoke prod
