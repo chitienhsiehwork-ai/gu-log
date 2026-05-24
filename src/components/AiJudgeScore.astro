@@ -165,6 +165,55 @@ const labels = {
           </div>
         )}
 
+        {scores?.freshEyes && (
+          <div class="judge-card">
+            <div class="card-header">
+              <span class="judge-icon judge-color-fresheyes">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </span>
+              <div class="card-meta">
+                <span class="judge-name judge-color-fresheyes">{labels.freshEyes}</span>
+                {scores.freshEyes.model && <span class="model-info">{scores.freshEyes.model}</span>}
+              </div>
+            </div>
+            <div class={`card-score ${scoreColor(scores.freshEyes.score)}`}>
+              {scores.freshEyes.score}
+              <span class="score-denom">/10</span>
+            </div>
+            <div class="dim-list">
+              {scores.freshEyes.readability !== undefined && (
+                <span class="dim-item">
+                  <span class="dim-label">{labels.readability}</span>
+                  <strong class={scoreColor(scores.freshEyes.readability)}>
+                    {scores.freshEyes.readability}
+                  </strong>
+                </span>
+              )}
+              {scores.freshEyes.firstImpression !== undefined && (
+                <span class="dim-item">
+                  <span class="dim-label">{labels.firstImpression}</span>
+                  <strong class={scoreColor(scores.freshEyes.firstImpression)}>
+                    {scores.freshEyes.firstImpression}
+                  </strong>
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
         {scores?.factCheck && (
           <div class="judge-card">
             <div class="card-header">
@@ -231,55 +280,6 @@ const labels = {
                   <span class="dim-label">{labels.commentarySeparation}</span>
                   <strong class={scoreColor(scores.factCheck.commentarySeparation)}>
                     {scores.factCheck.commentarySeparation}
-                  </strong>
-                </span>
-              )}
-            </div>
-          </div>
-        )}
-
-        {scores?.freshEyes && (
-          <div class="judge-card">
-            <div class="card-header">
-              <span class="judge-icon judge-color-fresheyes">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.5"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                  <circle cx="12" cy="12" r="3" />
-                </svg>
-              </span>
-              <div class="card-meta">
-                <span class="judge-name judge-color-fresheyes">{labels.freshEyes}</span>
-                {scores.freshEyes.model && <span class="model-info">{scores.freshEyes.model}</span>}
-              </div>
-            </div>
-            <div class={`card-score ${scoreColor(scores.freshEyes.score)}`}>
-              {scores.freshEyes.score}
-              <span class="score-denom">/10</span>
-            </div>
-            <div class="dim-list">
-              {scores.freshEyes.readability !== undefined && (
-                <span class="dim-item">
-                  <span class="dim-label">{labels.readability}</span>
-                  <strong class={scoreColor(scores.freshEyes.readability)}>
-                    {scores.freshEyes.readability}
-                  </strong>
-                </span>
-              )}
-              {scores.freshEyes.firstImpression !== undefined && (
-                <span class="dim-item">
-                  <span class="dim-label">{labels.firstImpression}</span>
-                  <strong class={scoreColor(scores.freshEyes.firstImpression)}>
-                    {scores.freshEyes.firstImpression}
                   </strong>
                 </span>
               )}
