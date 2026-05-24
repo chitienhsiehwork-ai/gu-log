@@ -256,6 +256,10 @@ Glossary 不是英文詞垃圾桶。它的工作是替 gu-log 保存「讀者之
 - 如果只是普通英文詞，改成自然中文改寫，不要為了逐字對應硬翻。
 - 如果 canonical term 會影響 gu-log 長期詞彙風格，先標成 terminology decision，交給 ShroomDog 或 Librarian 判斷；不要悶著頭把尷尬中文送進 production。
 
+**已決定的 AI 術語邊界**：
+- `Embedding` 是 ShroomDog 接受的基本 AI term，正文可直接寫 `Embedding model` / `Embedding space`；不要硬翻成「嵌入模型」或「嵌入空間」。但普通動詞 embedded / injected / inline 不要一律寫成 Embedding，要照語境改成「塞進 context」「inline 工具結果」等自然中文。
+- `harness` / `Agent Harness` 是 agent 架構 term。比較不同 agent runtime、CLI agent、tool-calling loop 時，保留 `harness` 或連到 [Agent Harness](/glossary#agent-harness)；不要翻成「外殼」。只有原文真的在講 shell-based interface / bash shell 時才用 shell。
+
 **Lint enforcement**：`scripts/check-jingjing.mjs` 會 scan 所有 zh-tw `.mdx`，flag 不在 allowlist + 不在 glossary 的英文詞。pre-commit hook 攔。違規就改，要嘛翻成中文，要嘛先與 ShroomDog 討論後，在 PR 同 commit 把 term 加進 `src/data/glossary.json`（並寫好 definition + clawdNote）。
 
 **Tribunal enforcement**：`vibe-opus-scorer` 的 clarity 維度把這條當硬規則——出現非 allowlist 英文 = clarity 直接扣分（不只是品味問題）。
