@@ -84,15 +84,30 @@ current_batch_id() {
 
 publisher_gh() {
   local token_file="${GU_LOG_GH_TOKEN_FILE:-$HOME/.config/github-tokens/gu-log-operator.token}"
+  local out rc token_out token_rc
   if [ -n "${GU_LOG_GH_TOKEN:-}" ]; then
     GH_TOKEN="$GU_LOG_GH_TOKEN" "$GH_BIN" "$@"
     return
   fi
-  if [ -f "$token_file" ]; then
-    GH_TOKEN="$(cat "$token_file")" "$GH_BIN" "$@"
-    return
+  out=$("$GH_BIN" "$@" 2>&1)
+  rc=$?
+  if [ "$rc" -eq 0 ]; then
+    printf '%s\n' "$out"
+    return 0
   fi
-  "$GH_BIN" "$@"
+  if [ -f "$token_file" ]; then
+    token_out=$(GH_TOKEN="$(cat "$token_file")" "$GH_BIN" "$@" 2>&1)
+    token_rc=$?
+    if [ "$token_rc" -eq 0 ]; then
+      printf '%s\n' "$token_out"
+      return 0
+    fi
+  fi
+  printf '%s\n' "$out" >&2
+  if [ -n "${token_out:-}" ]; then
+    printf '%s\n' "$token_out" >&2
+  fi
+  return "$rc"
 }
 
 publisher_has_gh_auth() {
@@ -257,13 +272,22 @@ for pr in prs:
         repo = os.environ.get("GU_LOG_GITHUB_REPO", "chitienhsiehwork-ai/gu-log")
         token = os.environ.get("GU_LOG_GH_TOKEN")
         token_file = os.environ.get("GU_LOG_GH_TOKEN_FILE", os.path.expanduser("~/.config/github-tokens/gu-log-operator.token"))
-        env = os.environ.copy()
-        if not token and os.path.isfile(token_file):
-            with open(token_file, "r", encoding="utf-8") as fh:
-                env["GH_TOKEN"] = fh.read().strip()
-        elif token:
+        base_env = os.environ.copy()
+        cmd = [gh_bin, "pr", "view", str(num), "--repo", repo, "--json", "files"]
+        if token:
+            env = base_env.copy()
             env["GH_TOKEN"] = token
-        out = subprocess.check_output([gh_bin, "pr", "view", str(num), "--repo", repo, "--json", "files"], env=env)
+            out = subprocess.check_output(cmd, env=env)
+        else:
+            try:
+                out = subprocess.check_output(cmd, env=base_env)
+            except subprocess.CalledProcessError:
+                if not os.path.isfile(token_file):
+                    raise
+                env = base_env.copy()
+                with open(token_file, "r", encoding="utf-8") as fh:
+                    env["GH_TOKEN"] = fh.read().strip()
+                out = subprocess.check_output(cmd, env=env)
         files_json = json.loads(out)
     paths = [f["path"] for f in files_json.get("files", [])]
     overlap = [p for p in paths if p in rels]

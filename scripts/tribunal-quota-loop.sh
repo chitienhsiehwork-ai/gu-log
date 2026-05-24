@@ -33,6 +33,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$ROOT_DIR"
 
+# shellcheck source=scripts/tribunal-helpers.sh
+source "$SCRIPT_DIR/tribunal-helpers.sh"
+
 POSTS_DIR="$ROOT_DIR/src/content/posts"
 PROGRESS_FILE="$(tribunal_progress_file_default "$ROOT_DIR")"
 TRIBUNAL_VERSION=5
@@ -714,6 +717,16 @@ ensure_worktrees() {
     tlog "WARN: worktree sync reported errors (see log)"
 }
 
+run_publisher_autopilot() {
+  if [ "${TRIBUNAL_PUBLISHER_AUTOPILOT:-1}" != "1" ]; then
+    return 0
+  fi
+  local max_batch="${TRIBUNAL_PUBLISHER_MAX_BATCH:-10}"
+  if ! bash "$SCRIPT_DIR/tribunal-publisher-autopilot.sh" --max "$max_batch" >> "$LOG_FILE" 2>&1; then
+    tlog "WARN: tribunal publisher autopilot failed; will retry next iteration."
+  fi
+}
+
 # Try to claim the next unscored article that isn't already claimed.
 # Prints the article filename and returns 0 on success, 1 if none available.
 try_claim_next_article() {
@@ -953,6 +966,10 @@ while true; do
   git_behind="$(jq -r '.behind // 0' "$RUNTIME_GIT_STATE_FILE" 2>/dev/null || printf '0')"
   git_dirty="$(jq -r '.trackedDirty // 0' "$RUNTIME_GIT_STATE_FILE" 2>/dev/null || printf '0')"
   tlog "Git drift: state=$git_state ahead=$git_ahead behind=$git_behind tracked_dirty=$git_dirty"
+
+  # Publish already-passed artifacts toward main/prod. Keep this best-effort so
+  # publisher issues do not halt scoring workers.
+  run_publisher_autopilot
 
   # ── Find unscored articles ─────────────────────────────────────────────────
   mapfile -t ARTICLES < <(get_unscored_articles)
