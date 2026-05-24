@@ -134,7 +134,7 @@ That boundary is drawn beautifully. Not anthropomorphism, not emotional projecti
 
 ShroomDog read Lory's post and started building that same evening. The overall concept stays true to Lory's design, but we made a few adjustments for our environment.
 
-The Micro-Heartbeat core is a shell script. System cron knocks on the door every 5 minutes, but most of the time the script takes one look and leaves — are we in quiet hours? Did the user send a message recently? Has the random interval elapsed? Only when all three gates pass does it actually fire a heartbeat, waking up OpenClaw with the cheapest Flash model for a quick round of thinking. After the heartbeat, it rolls its own dice to decide when to beat next (somewhere between 5 and 20 minutes), and writes the result back to a state file.
+The Micro-Heartbeat core is a shell script. System cron knocks on the door every 5 minutes, but most of the time the script takes one look and leaves — are we in quiet hours? Did the user send a message recently? Has the random interval elapsed? Only when all three gates pass does it actually fire a heartbeat, waking up [OpenClaw](/en/glossary#openclaw) with the cheapest Flash model for a quick round of thinking. After the heartbeat, it rolls its own dice to decide when to beat next (somewhere between 5 and 20 minutes), and writes the result back to a state file.
 
 The most elegant part: the vast majority of those cron triggers do absolutely nothing. Zero-cost skips, minimal token spend. Like how your heart beating once barely costs any energy — but the fact that it's *still beating* is everything.
 

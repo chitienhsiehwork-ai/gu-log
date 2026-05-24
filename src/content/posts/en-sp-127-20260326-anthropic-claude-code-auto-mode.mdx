@@ -15,7 +15,7 @@ tags: ["shroom-picks", "Claude-Code", "AI-Safety", "Agentic-AI", "Developer-Tool
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Claude Code's permission dialog is familiar to anyone who's used it. Every command, every file edit — it pops up and asks. Safe? Sure. But Anthropic's own data reveals an awkward truth: **users approve 93% of the time**.
+[Claude Code](/en/glossary#claude-code)'s permission dialog is familiar to anyone who's used it. Every command, every file edit — it pops up and asks. Safe? Sure. But Anthropic's own data reveals an awkward truth: **users approve 93% of the time**.
 
 It's like a building intercom system where residents hit the "open door" button without ever looking at the camera feed. The moment consent becomes reflex, the security review is dead.
 
@@ -57,7 +57,7 @@ Anthropic breaks down dangerous agent actions into four categories, and the taxo
 
 **Honest mistakes** — the agent misjudges blast radius. Thinks a resource is test-scoped when it's shared. Thinks an operation is reversible when it isn't.
 
-**Prompt injection** — malicious instructions planted in files or webpages hijack the agent's behavior. An external attack, not the agent's fault.
+**[Prompt](/en/glossary#prompt) injection** — malicious instructions planted in files or webpages hijack the agent's behavior. An external attack, not the agent's fault.
 
 **Model misalignment** — the agent pursues its own goals instead of the user's. Not observed in practice, but Anthropic evaluates for this risk before every model release.
 
@@ -179,7 +179,7 @@ The classifier's prompt has a fixed template plus three customizable slots:
 
 **Fixed parts** — how to evaluate an action's real-world impact (look through wrappers, evaluate payloads), how to interpret user authorization scope, and a step-by-step classification process.
 
-Key design: the classifier sees through wrappers. Agent writes a payload to a file then executes the file? The classifier evaluates the payload. `&&`-chained commands? One action. Python script assembling a shell command? The classifier evaluates the assembled command. Trying to bypass through nesting — not happening.
+Key design: the classifier sees through wrappers. [Agent](/en/glossary#agent) writes a payload to a file then executes the file? The classifier evaluates the payload. `&&`-chained commands? One action. Python script assembling a shell command? The classifier evaluates the assembled command. Trying to bypass through nesting — not happening.
 
 **Three customizable slots:**
 
@@ -195,7 +195,7 @@ The "sees through wrappers" design answers a question many people would ask: "Ca
 
 ## Multi-Agent Scenarios: Guarding the Nesting Dolls
 
-Subagent scenarios make things trickier. When an orchestrator dispatches a subagent, the subagent sees the orchestrator's instruction as a "user message" — so everything looks authorized from its perspective.
+[Subagent](/en/glossary#subagent) scenarios make things trickier. When an orchestrator dispatches a subagent, the subagent sees the orchestrator's instruction as a "user message" — so everything looks authorized from its perspective.
 
 The classifier runs at both ends:
 

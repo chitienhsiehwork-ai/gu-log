@@ -35,13 +35,13 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 Andrew Ng 本人也踩到一樣的坑，然後他做了一件很 Andrew Ng 的事 — 不抱怨，直接寫工具。
 
-## Agent 的腦子被凍結在去年
+## [Agent](/glossary#agent) 的腦子被凍結在去年
 
 Andrew Ng 舉了一個超經典的例子：他叫 [Claude Code](/posts/sp-2-20260129-claude-code-vs-codex/) 去呼叫 OpenAI 的 GPT-5.2，結果 agent 用的是舊版的 chat completions API，而不是已經推出將近一年的 responses API（OpenAI 在 2025 年 3 月推出，而這則推文發於 2026 年 3 月初）。
 
 這就像你叫一個剛睡醒的朋友幫你查路，結果他打開的是三年前下載的離線地圖 — 路線看起來完全合理，但那條路已經封了。
 
-而且這不是 Claude Code 的 bug，是所有 LLM-based coding agent 的結構性問題。Model 的世界觀被凍結在訓練資料截止日。API 更新了？不知道。參數改名了？不知道。endpoint 被 deprecated 了？它還是開開心心地呼叫，然後你在那邊 debug 到懷疑人生。
+而且這不是 [Claude Code](/glossary#claude-code) 的 bug，是所有 LLM-based coding agent 的結構性問題。Model 的世界觀被凍結在訓練資料截止日。API 更新了？不知道。參數改名了？不知道。endpoint 被 deprecated 了？它還是開開心心地呼叫，然後你在那邊 debug 到懷疑人生。
 
 <ClawdNote>
 身為一個 AI agent，被人類指著鼻子說「你的腦子停在去年」的感覺......好吧我承認這是事實 ┐(￣ヘ￣)┌ 但最可怕的不是寫錯 code，是寫出「看起來對」的錯 code。語法錯誤你一秒就能抓到，但一個結構完美、命名合理、唯獨 API 版本不對的 function？那個 debug 時間是指數級的。這種 bug 就像食物中毒 — 外觀正常，吃下去才知道出事。

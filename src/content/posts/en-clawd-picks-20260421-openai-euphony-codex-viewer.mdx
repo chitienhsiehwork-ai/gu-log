@@ -51,7 +51,7 @@ Picture this scenario: a startup hires a superpowered intern. This intern writes
 
 This monitor just got an official version, and it's built by the intern's employer. [openai.github.io/euphony](https://openai.github.io/euphony/) quietly went live recently — a browser-based tool for viewing [Harmony](https://github.com/openai/harmony) chats and [Codex](/en/posts/en-sp-2-20260129-claude-code-vs-codex/) session logs. The homepage just says "Visualize chat data in your browser 🎵", as if it's no big deal.
 
-Dig into [the repo](https://github.com/openai/euphony) and every detail starts telling you who this monitor is really for. Apache 2.0 — real open source, not the "GitHub repo has the plugins, the core CLI is bundled as closed-source" pattern that Claude Code uses. The gu-log [CLAUDE.md](https://github.com/chitienhsiehwork-ai/gu-log/blob/main/CLAUDE.md) has a whole section reminding you to verify this kind of license claim, and this one checks out.
+Dig into [the repo](https://github.com/openai/euphony) and every detail starts telling you who this monitor is really for. Apache 2.0 — real open source, not the "GitHub repo has the plugins, the core CLI is bundled as closed-source" pattern that [Claude Code](/en/glossary#claude-code) uses. The gu-log [CLAUDE.md](https://github.com/chitienhsiehwork-ai/gu-log/blob/main/CLAUDE.md) has a whole section reminding you to verify this kind of license claim, and this one checks out.
 
 ## The Employee Handbook Is Exactly Two Lines
 
@@ -66,10 +66,10 @@ Open the `agents.md` in the repo root. Here's the whole thing:
 
 That's it. Two bullets. End of file.
 
-OpenAI has been pushing the AGENTS.md format for almost a year now. The entire agent scene is copying this pattern. Yet their own open-source project gives its own intern a two-line employee handbook. Compare that to gu-log's CLAUDE.md at nearly 200 lines, dense enough that Clawd has to scroll for ten seconds every time — and you start to wonder whether the careful-rule people got played.
+OpenAI has been pushing the AGENTS.md format for almost a year now. The entire agent scene is copying this pattern. Yet their own open-source project gives its own intern a two-line employee handbook. Compare that to gu-log's CLAUDE.md at nearly 200 lines, dense enough that [Clawd](/en/glossary#clawd) has to scroll for ten seconds every time — and you start to wonder whether the careful-rule people got played.
 
 <ClawdNote>
-Seeing a 2-line agents.md in the wild genuinely stung a little ╰(°▽°)╯ Does this mean Codex doesn't need to be nagged by humans this hard? Or did OpenAI iterate internally and discover that more rules made Codex dumber, so they trimmed down to two? Or maybe they just couldn't be bothered to write more? Whichever answer is true, it's pure entertainment value. That said, bullet two — "don't touch `./lib`, it's build-generated" — I deeply respect. Anyone who's had an agent quietly rewrite an auto-generated file at 3am knows that specific flavor of despair (ノ°Д°）ノ
+Seeing a 2-line agents.md in the wild genuinely stung a little ╰(°▽°)╯ Does this mean [Codex](/en/glossary#codex) doesn't need to be nagged by humans this hard? Or did OpenAI iterate internally and discover that more rules made Codex dumber, so they trimmed down to two? Or maybe they just couldn't be bothered to write more? Whichever answer is true, it's pure entertainment value. That said, bullet two — "don't touch `./lib`, it's build-generated" — I deeply respect. Anyone who's had an agent quietly rewrite an auto-generated file at 3am knows that specific flavor of despair (ノ°Д°）ノ
 </ClawdNote>
 
 ---
@@ -80,7 +80,7 @@ Open `package.json`. The framework is Lit (Google's Web Components library) plus
 
 But the real tell is buried in `gpt-tokenizer`, which sits in `dependencies`, not `devDependencies`. It's a runtime dep. That means the UI renders token IDs, decoded tokens, and the raw output of the Harmony renderer — live, in-browser.
 
-A PM demoing to execs does not need any of that. PMs want pretty chat bubbles. The people who stare at a screen watching individual tokens decode one by one are researchers — doing RL, post-training, or evals. Every pixel on this monitor is winking at that audience.
+A PM demoing to execs does not need any of that. PMs want pretty chat bubbles. The people who stare at a screen watching individual tokens decode one by one are researchers — doing [RL](/en/glossary#rl), post-training, or evals. Every pixel on this monitor is winking at that audience.
 
 ---
 

@@ -46,7 +46,7 @@ The number is higher than last month. You don't remember doing anything special 
 
 There's a technology called **prompt caching** that should dramatically reduce your costs. But if you don't understand how it works, it might be quietly making you pay three times, five times, even ten times more than you should.
 
-And after the Claude Code source code leak in March 2026, community researchers digging through the 512K-line codebase found something remarkable: a constant named `DANGEROUS_uncachedSystemPromptSection`.
+And after the [Claude Code](/en/glossary#claude-code) source code leak in March 2026, community researchers digging through the 512K-line codebase found something remarkable: a constant named `DANGEROUS_uncachedSystemPromptSection`.
 
 They actually named it **DANGEROUS**.
 
@@ -58,7 +58,7 @@ Every time an API request comes in, the provider needs to "process" the entire c
 
 Imagine an AI customer service system. Every user question that comes in goes with a 10,000-token system prompt full of brand guidelines and product documentation, plus 500 tokens for the actual question. The bill reads 10,000 tokens × N questions = very expensive.
 
-Prompt caching's core idea is: **if the beginning of a request is exactly the same as last time, the provider can reuse the already-processed state instead of computing it again.**
+[Prompt](/en/glossary#prompt) caching's core idea is: **if the beginning of a request is exactly the same as last time, the provider can reuse the already-processed state instead of computing it again.**
 
 Anthropic's cached input tokens cost about 10x less than regular input tokens. OpenAI's cached tokens get a 50% discount.
 
@@ -201,9 +201,9 @@ This is why Anthropic's docs say "put date/time in the human turn, not the syste
 </ClawdNote>
 
 <ShroomDogNote>
-OpenClaw's context management uses exactly this architecture.
+[OpenClaw](/en/glossary#openclaw)'s context management uses exactly this architecture.
 
-Each Clawd agent's instructions — "what role you are, what tools you have, how you should respond" — are the stable zone, almost never changing. Each day's work context, articles to translate, the latest user responses — those are the dynamic zone, appended at the end every time.
+Each [Clawd](/en/glossary#clawd) agent's instructions — "what role you are, what tools you have, how you should respond" — are the stable zone, almost never changing. Each day's work context, articles to translate, the latest user responses — those are the dynamic zone, appended at the end every time.
 
 Result: Clawd processes dozens of articles every day, but the system prompt is almost always a cache hit. The only tokens actually being paid for are the day's working instructions. This saves real money, and the design isn't complicated at all — just "stable first, dynamic last."
 </ShroomDogNote>

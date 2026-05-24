@@ -40,7 +40,7 @@ scores:
 import ClawdNote from '../../components/ClawdNote.astro';
 import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
-In late March 2026, the Claude Code source code accidentally shipped inside a public npm package — a 59.8 MB `.map` sourcemap file that no one remembered to remove. An intern at Solayer Labs found it around 4 AM and posted about it. Within hours, 512K lines of TypeScript were mirrored across GitHub.
+In late March 2026, the [Claude Code](/en/glossary#claude-code) source code accidentally shipped inside a public npm package — a 59.8 MB `.map` sourcemap file that no one remembered to remove. An intern at Solayer Labs found it around 4 AM and posted about it. Within hours, 512K lines of TypeScript were mirrored across GitHub.
 
 Everyone dug in. Archaeologists looking for fossils: KAIROS, an unreleased background daemon agent. 187 different spinner verbs. A single function that ran 3,167 lines, nested 12 levels deep.
 
@@ -146,7 +146,7 @@ In academia they call this "homogeneous peer review": if an entire field shares 
 
 **The solution isn't to eliminate this problem — it's to bring in an independent perspective.**
 
-Use different LLMs for code and tests. Claude writes code, GPT or Gemini writes tests (or vice versa). Different training data, different RLHF preferences, different systematic biases. You can't guarantee there's no overlap in their blind spots, but you dramatically reduce the chance that both make the same mistake the same way. Not a perfect solution. But at least it's not the same brain writing the exam and grading it.
+Use different LLMs for code and tests. Claude writes code, GPT or Gemini writes tests (or vice versa). Different training data, different [RLHF](/en/glossary#rlhf) preferences, different systematic biases. You can't guarantee there's no overlap in their blind spots, but you dramatically reduce the chance that both make the same mistake the same way. Not a perfect solution. But at least it's not the same brain writing the exam and grading it.
 
 <ClawdNote>
 Cross-model testing has one very real problem that nobody talks about: you're now paying two AI companies. Claude Max for code, OpenAI API for test generation. Month-end billing has some personality.
@@ -158,11 +158,11 @@ There's also an unexpected side effect: you start noticing each model's testing 
 
 ---
 
-## How OpenClaw Does It: Human Oracle, Machine Loop
+## How [OpenClaw](/en/glossary#openclaw) Does It: Human Oracle, Machine Loop
 
 Here's what we're actually doing.
 
-Every article on gu-log runs through Ralph Loop — Claude writes the article, a separate Claude instance scores it against a fixed rubric (Persona, ClawdNote quality, Overall Vibe), and if it doesn't pass, it gets rewritten. Up to three rounds. This is AI testing AI, applied to content quality.
+Every article on gu-log runs through [Ralph Loop](/en/glossary#ralph-loop) — Claude writes the article, a separate Claude instance scores it against a fixed rubric (Persona, ClawdNote quality, Overall Vibe), and if it doesn't pass, it gets rewritten. Up to three rounds. This is AI testing AI, applied to content quality.
 
 Does it solve the specification problem? Partially. Both scorer and writer are Claude, so if Claude has a systematic blind spot, the scoring might share that blind spot. Occasionally I'll read an article that "Ralph scored 9" myself to check for obvious misses. This isn't a design flaw — it's the reality of AI testing: even a well-designed oracle needs periodic calibration, and the calibrator is still a person.
 
@@ -171,7 +171,7 @@ But "humans need to stay involved" doesn't mean "humans do every step." In Ralph
 <ShroomDogNote>
 OpenClaw's agent-to-agent architecture is the production version of this.
 
-The Clawd instance on the Linux VM (running 24/7) can delegate tasks to agents on other machines via SSH. This article was produced that way — Claude Code on my Mac and Clawd on the VM collaborating, Clawd sometimes sending tasks to another agent.
+The [Clawd](/en/glossary#clawd) instance on the Linux VM (running 24/7) can delegate tasks to agents on other machines via SSH. This article was produced that way — Claude Code on my Mac and Clawd on the VM collaborating, Clawd sometimes sending tasks to another agent.
 
 Not magic. Just SSH + stdin/stdout + bash glue. But once it's set up, you have "agent delegates to agent, human manages oracle." Today it runs translations and quality scoring. Same structure, tomorrow it can run tests.
 </ShroomDogNote>

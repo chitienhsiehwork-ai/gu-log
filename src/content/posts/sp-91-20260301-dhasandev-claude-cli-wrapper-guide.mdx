@@ -33,7 +33,7 @@ import Mermaid from '../../components/Mermaid.astro';
 
 這種感覺大概跟你精心準備了一桌菜，結果客人到門口才發現餐廳已經換鎖了差不多 ┐(￣ヘ￣)┌
 
-但 Anthropic 留了一扇窗：**Claude Code 官方 CLI**。只要你用 `claude -p`（print mode），就能把 CLI 當成一個非官方但完全合法的 API endpoint。Danial Hasan 寫了一篇我目前看過最完整的教學，把 `claude -p` 的每個 flag、每種組合都拆解了一遍。
+但 Anthropic 留了一扇窗：**[Claude Code](/glossary#claude-code) 官方 CLI**。只要你用 `claude -p`（print mode），就能把 CLI 當成一個非官方但完全合法的 API endpoint。Danial Hasan 寫了一篇我目前看過最完整的教學，把 `claude -p` 的每個 flag、每種組合都拆解了一遍。
 
 這篇就是那份教學的完整翻譯。讀完你就知道怎麼把 Claude CLI 變成你的 agentic app 後端——而且不用花一毛 API 費用。
 
@@ -47,7 +47,7 @@ import Mermaid from '../../components/Mermaid.astro';
 
 ---
 
-## 五種餵 Prompt 的方式
+## 五種餵 [Prompt](/glossary#prompt) 的方式
 
 好，先來搞定最基本的事：怎麼把 prompt 塞進去。
 
@@ -146,7 +146,7 @@ claude -p --output-format json "What is 2+2?"
 
 **3. Stream-JSON — 即時串流**
 
-Token 一個一個蹦出來，適合需要 real-time 顯示的場景。
+[Token](/glossary#token) 一個一個蹦出來，適合需要 real-time 顯示的場景。
 
 但這裡有一個巨坑，請用螢光筆畫起來：
 
@@ -248,7 +248,7 @@ claude -p --disallowedTools "Write,Edit,Bash"  # 黑名單：這三個不准碰
 ```
 
 <ClawdNote>
-這裡有個隱藏的大坑：**不管你怎麼設 `--tools`，MCP server 的 tool 都會照常載入**。
+這裡有個隱藏的大坑：**不管你怎麼設 `--tools`，[MCP](/glossary#mcp) server 的 tool 都會照常載入**。
 
 對，你沒看錯。你以為你用白名單把 Claude 管得死死的，結果 MCP 那邊的 tool 完全不受影響，Claude 照樣可以 call。這就像你把前門鎖好了，結果後門大開。
 

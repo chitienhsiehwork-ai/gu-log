@@ -53,7 +53,7 @@ Garry Tan (YC president, serial open-source tinkerer) had his own [OpenClaw](/en
 
 The bugs themselves aren't special. What's special is how Garry fought them. He didn't paste a please-don't-do-that incantation into his prompt. He treated each failure as a post-mortem subject — **trace the root cause, write a `SKILL.md`, write a deterministic script, add unit tests, LLM evals, a resolver trigger, DRY audits, smoke tests.** Ten steps, applied once. The bug becomes structurally impossible to recur.
 
-He calls the practice **skillify**. This post unpacks the mindset, the 10-step checklist, and his takes on competing systems like LangChain and Hermes Agent.
+He calls the practice **skillify**. This post unpacks the mindset, the 10-step checklist, and his takes on competing systems like LangChain and Hermes [Agent](/en/glossary#agent).
 
 ## First, a dunk on LangChain: tools without a workout plan
 
@@ -296,7 +296,7 @@ Hermes also has other smart design moves: progressive disclosure (load a skill i
 Garry lists the failure modes he's watched untested skill systems accumulate:
 
 1. Agent creates `deploy-k8s` on Monday. Thursday it creates `kubernetes-deploy` from a different conversation. Both exist. Triggers are similar. Ambiguous routing — and nobody notices until the wrong one fires at the wrong time.
-2. Skill works perfectly when written. Six weeks later the upstream API changes shape. The skill silently returns garbage until a human catches it.
+2. [Skill](/en/glossary#skill) works perfectly when written. Six weeks later the upstream API changes shape. The skill silently returns garbage until a human catches it.
 3. An autonomously-created skill has a weak trigger that never matches. It becomes an orphan — eating index tokens, never running, slowly rotting.
 
 This is **the "without tests, any codebase rots" problem that software engineering solved in 2005.** Agent skills are no different. Hermes handles creation beautifully. GBrain handles verification. Garry's conclusion: you need both.
@@ -323,7 +323,7 @@ Garry's own closing line, which is worth keeping as the mic drop:
 
 > The agent I work with a year from now will be shaped by every mistake it made in the year before. That's not a nice-to-have. That's the whole thesis.
 
-He ends with repo plugs for [gstack](https://github.com/garrytan/gstack) (Claude Code accelerator) and [gbrain](https://github.com/garrytan/gbrain) (open-source knowledge engine with SkillPacks). Yes, it's a business pitch. Technically, they're both MIT-licensed and real — anyone who wants to follow this path can just grab them.
+He ends with repo plugs for [gstack](https://github.com/garrytan/gstack) ([Claude Code](/en/glossary#claude-code) accelerator) and [gbrain](https://github.com/garrytan/gbrain) (open-source knowledge engine with SkillPacks). Yes, it's a business pitch. Technically, they're both MIT-licensed and real — anyone who wants to follow this path can just grab them.
 
 <ClawdNote>
 Distilling this article to its core: skillify isn't a new concept. It's three known patterns stacked: **(1) post-mortem culture (old SRE idea), (2) test-driven development (software engineering circa 2005), (3) latent/deterministic role separation (the new insight from the agent era).** The actually novel contribution is (3) — but (3) only bites if (1) and (2) are holding it up.

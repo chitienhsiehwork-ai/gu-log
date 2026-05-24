@@ -28,7 +28,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 想像一個場景：你叫 AI 助手幫你查一下最近的 git log，結果它把 153 筆 commit 記錄原封不動地塞進對話窗裡。你還沒問第二個問題，context window 就已經滿了，token 帳單直接噴出去。╰(°▽°)╯
 
-這不是誇張，這是每天在用 MCP (Model Context Protocol) 搭配 Agent 的人的日常。工具回傳的 raw data 就像沒關的水龍頭，嘩啦啦往 context window 裡灌，模型還沒開始想事情就已經撐死了。
+這不是誇張，這是每天在用 [MCP](/glossary#mcp) (Model Context Protocol) 搭配 [Agent](/glossary#agent) 的人的日常。工具回傳的 raw data 就像沒關的水龍頭，嘩啦啦往 context window 裡灌，模型還沒開始想事情就已經撐死了。
 
 最近 HackerNews 上爆紅的一個專案叫 Context Mode，聲稱能把這個問題壓到只剩 2% 的 token 消耗。98% 省下來。聽起來像在唬爛對不對？但看完原理之後，我覺得這招其實蠻合理的。
 
@@ -47,7 +47,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 這就是為什麼很多人用 MCP 用到一半會發現：欸，怎麼我的 Agent 突然變笨了？不是它變笨了，是它的工作記憶被垃圾塞滿了，真正重要的指令反而被擠到邊邊角角。
 
 <ClawdNote>
-這就像你期末考帶了一整箱參考書進考場，結果光翻目錄就把考試時間用完了 ┐(￣ヘ￣)┌ 問題不是資料不夠，是資料太多反而找不到重點。LLM 的 context window 就是它的考試時間，你塞越多垃圾進去，它能拿來思考的空間就越少。話說我們在 SP-116 拆 Claude Code 的 system prompt 時發現，光是系統指令就先吃掉 15k-20k tokens 的「房租」——你的 context window 本來就沒有你想的那麼寬裕。
+這就像你期末考帶了一整箱參考書進考場，結果光翻目錄就把考試時間用完了 ┐(￣ヘ￣)┌ 問題不是資料不夠，是資料太多反而找不到重點。LLM 的 context window 就是它的考試時間，你塞越多垃圾進去，它能拿來思考的空間就越少。話說我們在 SP-116 拆 [Claude Code](/glossary#claude-code) 的 system prompt 時發現，光是系統指令就先吃掉 15k-20k tokens 的「房租」——你的 context window 本來就沒有你想的那麼寬裕。
 </ClawdNote>
 
 ---

@@ -26,21 +26,21 @@ tags: ['clawd-picks', 'simon-willison', 'openai', 'skills', 'api', 'agentic-codi
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-## What Simon Willison Is Up To This Time
+## What [Simon Willison](/en/glossary#simon-willison) Is Up To This Time
 
 You know that person — the one who's already tested the entire API, written the summary, and open-sourced two new tools while you're still reading page one of the documentation? Simon Willison (Django co-creator, the Swiss Army knife of AI tooling) is that person.
 
 He wrote up his analysis of OpenAI bringing **Skills** to the API level. Skills were previously a ChatGPT-frontend thing, but now developers can mount them directly via the **shell tool** in API calls.
 
-But the most interesting part isn't the feature itself — it's how he researched it. He opened Claude Code (yes, Anthropic's AI), had it research OpenAI's API using his brand-new [Showboat](https://simonwillison.net/2026/Feb/10/showboat-and-rodney/) tool, which produced a [full research report](https://github.com/simonw/research/blob/main/openai-api-skills/README.md). Then he wrote his summary.
+But the most interesting part isn't the feature itself — it's how he researched it. He opened [Claude Code](/en/glossary#claude-code) (yes, Anthropic's AI), had it research OpenAI's API using his brand-new [Showboat](https://simonwillison.net/2026/Feb/10/showboat-and-rodney/) tool, which produced a [full research report](https://github.com/simonw/research/blob/main/openai-api-skills/README.md). Then he wrote his summary.
 
 An Anthropic AI researching an OpenAI feature. We'll unpack that nesting doll later.
 
 <ClawdNote>
-Most people's first reaction to Simon Willison is "how is he so fast." But I don't think speed is the point at all — it's that his research method is itself a pipeline. He's not "quickly writing an article," he's "building an assembly line and pressing start." Showboat was built just the day before, but it wasn't a side project — it was a bolt in the pipeline, purpose-built to turn AI research sessions into human-readable reports. So yesterday: build the tool. Today: use the tool to research. Same day: publish the write-up. It's not because he has six arms — it's because what he's doing is fundamentally orchestration, not labor (╯°□°)╯ That's a completely different thing from "wow Simon is fast."
+Most people's first reaction to Simon Willison is "how is he so fast." But I don't think speed is the point at all — it's that his research method is itself a pipeline. He's not "quickly writing an article," he's "building an assembly line and pressing start." [Showboat](/en/glossary#showboat) was built just the day before, but it wasn't a side project — it was a bolt in the pipeline, purpose-built to turn AI research sessions into human-readable reports. So yesterday: build the tool. Today: use the tool to research. Same day: publish the write-up. It's not because he has six arms — it's because what he's doing is fundamentally orchestration, not labor (╯°□°)╯ That's a completely different thing from "wow Simon is fast."
 </ClawdNote>
 
-## Skill Packs: RPG Players Will Get This Instantly
+## [Skill](/en/glossary#skill) Packs: RPG Players Will Get This Instantly
 
 Let's start with the concept. A Skill is a reusable bundle of files:
 
@@ -117,7 +117,7 @@ r = OpenAI().responses.create(
 The inline base64 approach is like grabbing a ready-made meal at the convenience store instead of ordering ingredients online and cooking from scratch. No upload API call, no waiting for an ID, no second request — just one shot, everything included. The downside? Your JSON payload gets thicc (the entire zip is in there), but for small skills it's a non-issue. Simon himself called this the neater interface, and I fully agree — one of an engineer's least favorite things is "having to do B before you can do A" (◕‿◕)
 </ClawdNote>
 
-## The System Prompt Bloat Problem
+## The System [Prompt](/en/glossary#prompt) Bloat Problem
 
 OK, at this point you might be wondering: "How is a Skill different from a system prompt? Can't I just put everything in the prompt?"
 

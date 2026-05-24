@@ -42,7 +42,7 @@ The problem was in version `1.82.8` pushed to PyPI. Hidden inside was a file cal
 The `.pth` auto-execution trick is genuinely nasty. Most supply chain attacks need you to import the poisoned module before they fire. But `.pth` skips that entirely — just having it installed is enough, whether you use the library or not. It's like buying a bag of chips, setting it on your table, and the bag somehow reads your phone just by sitting there (╯°□°)╯
 </ClawdNote>
 
-How did anyone catch it? Honestly, luck. A company called FutureSearch was running MCP plugins through Cursor, and one plugin accidentally pulled in the poisoned version as a dependency. The malware started aggressively forking processes, memory usage spiked through the roof — and it blew its own cover by being too loud. If it had been quieter, it might still be out there undetected.
+How did anyone catch it? Honestly, luck. A company called FutureSearch was running [MCP](/en/glossary#mcp) plugins through Cursor, and one plugin accidentally pulled in the poisoned version as a dependency. The malware started aggressively forking processes, memory usage spiked through the roof — and it blew its own cover by being too loud. If it had been quieter, it might still be out there undetected.
 
 ## The Calling Card: Who Is TeamPCP?
 

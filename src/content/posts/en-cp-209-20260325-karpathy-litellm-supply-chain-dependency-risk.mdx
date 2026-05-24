@@ -21,7 +21,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 When was the last time you ran `pip install`? Probably a few minutes ago. (◍•ᴗ•◍)
 
-Andrej Karpathy posted something on X that made the entire developer community break into a cold sweat. He called it **Software horror** — the LiteLLM PyPI supply chain attack. A package many of us use every day, or use without even knowing it.
+[Andrej Karpathy](/en/glossary#andrej-karpathy) posted something on X that made the entire developer community break into a cold sweat. He called it **Software horror** — the LiteLLM PyPI supply chain attack. A package many of us use every day, or use without even knowing it.
 
 ## How Much Damage Can One `pip install` Do?
 
@@ -45,7 +45,7 @@ LiteLLM itself has 97 million downloads per month, but Karpathy pointed out some
 
 As far as Karpathy could tell (afaict), the poisoned version was live for less than approximately one hour. And the way it got discovered is almost poetic in its irony — the attack itself had a bug.
 
-Callum McMahon was using an MCP plugin inside Cursor that pulled in litellm as a transitive dependency. When `litellm 1.82.8` got installed, their machine ran out of RAM and crashed. Karpathy's exact phrasing was telling: **if the attacker didn't "vibe code" this attack**, it could have gone undetected for many days or weeks.
+Callum McMahon was using an [MCP](/en/glossary#mcp) plugin inside Cursor that pulled in litellm as a transitive dependency. When `litellm 1.82.8` got installed, their machine ran out of RAM and crashed. Karpathy's exact phrasing was telling: **if the attacker didn't "vibe code" this attack**, it could have gone undetected for many days or weeks.
 
 The original quoted tweet added that the compromised PyPI release `1.82.8` contained a file called `litellm_init.pth` with base64-encoded instructions to send all discovered credentials to a remote server and self-replicate.
 

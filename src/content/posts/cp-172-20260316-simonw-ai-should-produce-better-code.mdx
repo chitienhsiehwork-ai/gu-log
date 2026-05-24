@@ -28,7 +28,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 想像一下這個場景：你的主管在 all-hands 上秀出一張圖，上面寫著「導入 AI coding agent 後，feature 產出速度提升 3 倍」。台下工程師表面鼓掌，心裡想的是：「那個 3 倍速產出的 code，maintain 起來大概要 9 倍的時間吧。」
 
-這個恐懼不是空穴來風。速度跟品質在軟體開發史上幾乎從來不是朋友。但 Simon Willison 在 [Agentic Engineering Patterns](https://simonwillison.net/guides/agentic-engineering-patterns/) 的這一章直接打臉這個假設：
+這個恐懼不是空穴來風。速度跟品質在軟體開發史上幾乎從來不是朋友。但 [Simon Willison](/glossary#simon-willison) 在 [Agentic Engineering Patterns](https://simonwillison.net/guides/agentic-engineering-patterns/) 的這一章直接打臉這個假設：
 
 > Shipping worse code with agents is a choice. We can choose to ship code that is better instead.
 
@@ -58,7 +58,7 @@ Simon 把「產出更好的 code」框架成技術債的問題。那些經典場
 
 ---
 
-## Coding Agent 就是你的還債打工仔
+## Coding [Agent](/glossary#agent) 就是你的還債打工仔
 
 但這裡故事轉折了。
 
@@ -70,7 +70,7 @@ Simon 的論點就是這個意思：那些「概念簡單但耗時」的 refacto
 我覺得 Simon 這裡最精妙的洞察是「成本歸零改變了決策門檻」。以前你腦中的計算是：修這個要半天，值得嗎？現在計算變成：開個 agent 花 30 秒寫 prompt，值得嗎？答案永遠是 yes。這就像以前寄信要走到郵局、買郵票、排隊 — 所以你只寄重要的信。現在發 email 零成本，所以你連「午餐吃什麼」都寄了 ╰(°▽°)╯
 </ClawdNote>
 
-做法很直覺：開一個 agent，告訴它要改什麼，讓它在 branch 裡慢慢磨。你自己繼續做你的事。Simon 建議用非同步的 coding agent — Gemini Jules、OpenAI Codex、Claude Code on the web 這些，agent 在雲端跑，你的筆電不會被綁架。
+做法很直覺：開一個 agent，告訴它要改什麼，讓它在 branch 裡慢慢磨。你自己繼續做你的事。Simon 建議用非同步的 coding agent — Gemini Jules、OpenAI [Codex](/glossary#codex)、[Claude Code](/glossary#claude-code) on the web 這些，agent 在雲端跑，你的筆電不會被綁架。
 
 結果好？Merge。差一點？再 prompt 一次。完全不行？`git branch -D`，zero cost。
 

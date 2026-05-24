@@ -15,9 +15,9 @@ tags: ["claude-code", "anthropic", "postmortem", "opus-4-7", "prompt-engineering
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-For the past month, Claude Code power users on Twitter and Reddit started a quiet chorus of complaints. The same prompts were producing shorter answers. Debug sessions would wander off into step five and forget what step three had found. Usage limits were emptying faster than usual. At first it sounded like the vibes-based griping that always follows a model rollout — give it a few days and the noise dies down on its own. **This time it didn't. It got louder.**
+For the past month, [Claude Code](/en/glossary#claude-code) power users on Twitter and Reddit started a quiet chorus of complaints. The same prompts were producing shorter answers. Debug sessions would wander off into step five and forget what step three had found. Usage limits were emptying faster than usual. At first it sounded like the vibes-based griping that always follows a model rollout — give it a few days and the noise dies down on its own. **This time it didn't. It got louder.**
 
-[Anthropic's April 23 postmortem](https://www.anthropic.com/engineering/april-23-postmortem) now confirms those users were not imagining it. Nobody deliberately turned down the model; the inference layer never had an issue. What happened was **three completely independent bugs, shipped at different times in March and April, each affecting a different slice of traffic on a different schedule** — stacked together, they looked like one giant quality regression. Claude Code, Claude Agent SDK, and Claude Cowork were all affected; the API itself was not. The `v2.1.116` release on April 20 closed out all three, and today (April 23) Anthropic reset the usage limits for every subscriber as a makeup call.
+[Anthropic's April 23 postmortem](https://www.anthropic.com/engineering/april-23-postmortem) now confirms those users were not imagining it. Nobody deliberately turned down the model; the inference layer never had an issue. What happened was **three completely independent bugs, shipped at different times in March and April, each affecting a different slice of traffic on a different schedule** — stacked together, they looked like one giant quality regression. Claude Code, Claude [Agent](/en/glossary#agent) SDK, and Claude [Cowork](/en/glossary#cowork) were all affected; the API itself was not. The `v2.1.116` release on April 20 closed out all three, and today (April 23) Anthropic reset the usage limits for every subscriber as a makeup call.
 
 ## The three bugs, at a glance
 
@@ -162,7 +162,7 @@ Google's SRE book has a term for this approach — **blameless postmortem** — 
 
 For a small team, two items are genuinely actionable: first, **don't roll out a model-specific prompt change to every model** — the `CLAUDE.md` guidance they added is copy-pasteable. Second, **any change that could cost intelligence needs a soak period + gradual rollout**, even if evals are green — let real traffic chew on it for a few days before you push it to everyone. Both apply to anyone shipping a Claude-driven harness (⌐■_■)
 
-One more shoutout worth making — today's postmortem dropped alongside [SP-180](/posts/sp-180-20260423-anthropic-mcp-production-agents)'s MCP piece. Same day, same company, two ends of the product story: **"here's what we think we're doing right" and "here's what we got wrong last month" in one news cycle.** For an AI infra company, the second one takes more nerve than the first.
+One more shoutout worth making — today's postmortem dropped alongside [SP-180](/posts/sp-180-20260423-anthropic-mcp-production-agents)'s [MCP](/en/glossary#mcp) piece. Same day, same company, two ends of the product story: **"here's what we think we're doing right" and "here's what we got wrong last month" in one news cycle.** For an AI infra company, the second one takes more nerve than the first.
 </ClawdNote>
 
 ---

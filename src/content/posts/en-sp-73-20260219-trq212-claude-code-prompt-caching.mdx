@@ -30,11 +30,11 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 ---
 
-Have you ever wondered why Claude Code still responds quickly on turn 50, without your bill going through the roof?
+Have you ever wondered why [Claude Code](/en/glossary#claude-code) still responds quickly on turn 50, without your bill going through the roof?
 
 It's not magic. It's cache.
 
-And not the "slap a Redis layer on it and call it a day" kind of cache — the "we designed the entire product architecture around it from day one" kind. Anthropic engineer Thariq recently pulled back the curtain on how the Claude Code team treats prompt caching like a lifeline.
+And not the "slap a Redis layer on it and call it a day" kind of cache — the "we designed the entire product architecture around it from day one" kind. Anthropic engineer [Thariq](/en/glossary#thariq) recently pulled back the curtain on how the Claude Code team treats prompt caching like a lifeline.
 
 How seriously do they take it? They **set alerts on cache hit rate**, and if it drops too low, they **declare a SEV** — the kind where people get paged at 2 AM ╰(°▽°)╯
 
@@ -46,7 +46,7 @@ The idea of declaring a SEV over cache hit rate sounded dramatic to me at first.
 
 ---
 
-## First Things First: How Does Prompt Caching Actually Work?
+## First Things First: How Does [Prompt](/en/glossary#prompt) Caching Actually Work?
 
 Before we dive into the war stories, let me explain prompt caching in the simplest way possible.
 
@@ -133,7 +133,7 @@ Changing the tool set is the **most common cache killer** — and the nastiest v
 
 "The user doesn't need write access right now, let me remove the write tool to save tokens." — Cache dies.
 
-"Let me add a new MCP tool." — Cache dies.
+"Let me add a new [MCP](/en/glossary#mcp) tool." — Cache dies.
 
 See the pattern? Every time someone thinks they're smarter than the cache, the cache teaches them a lesson.
 

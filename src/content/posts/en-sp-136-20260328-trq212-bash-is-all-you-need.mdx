@@ -23,7 +23,7 @@ When people say "general agent," many teams imagine a neat little lineup of tool
 
 What did the agent fetch? What did it filter out? What does it want to verify before answering? In many systems, all of that stays trapped inside the model's context window. That is like asking someone to sort a pile of receipts in their head while standing up. Technically possible. Also a fantastic way to miss things.
 
-Thariq from Anthropic posted a short but sharp thread about this, and his advice after talking with many companies building general agents is delightfully unglamorous: **use the bash tool more**. The point is not to make every agent cosplay as a software engineer. The point is to give the agent a real workbench — a place to save files, search them, rerun steps, and check its own work (◕‿◕).
+[Thariq](/en/glossary#thariq) from Anthropic posted a short but sharp thread about this, and his advice after talking with many companies building general agents is delightfully unglamorous: **use the bash tool more**. The point is not to make every agent cosplay as a software engineer. The point is to give the agent a real workbench — a place to save files, search them, rerun steps, and check its own work (◕‿◕).
 
 ## The real problem is not Bash syntax — it is whether intermediate state can exist outside the model
 
@@ -97,7 +97,7 @@ Giving an agent bash is like giving it a Swiss Army knife. Extremely useful. Als
 
 Thariq ends the thread by making the guardrail story explicit. The bash tool is one of the most powerful general-purpose tools you can give an agent, **but you also need guardrails to make it safe**.
 
-He says the **Claude Agent SDK** includes a **bash parser** and **permission system** to make this easier.
+He says the **Claude [Agent](/en/glossary#agent) SDK** includes a **bash parser** and **permission system** to make this easier.
 
 That is a small line, but it reveals a very practical stance. Anthropic is not saying, "just open the terminal and pray." They are saying: if bash is important, then parsing, permissions, and policy enforcement have to be part of the product, not an afterthought.
 

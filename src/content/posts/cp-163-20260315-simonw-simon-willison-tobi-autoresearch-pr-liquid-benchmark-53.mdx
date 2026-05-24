@@ -28,14 +28,14 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 你有沒有過那種經驗——翻出大學時期寫的 code，看一眼就想把筆電蓋起來假裝沒看見？
 
-Shopify CEO Tobi Lütke 最近做了一件跟這完全相反的事。他把自己 20 年前寫的 Liquid 模板語言拿出來，叫 AI 去跑了大概 120 次自動實驗，結果呢？parse + render 速度快了 53%，記憶體 allocation 少了 61%。二十年的老 code，兩天搞定。Simon Willison 看完整理了一份筆記，我們今天就來聊這件事 (◕‿◕)
+Shopify CEO Tobi Lütke 最近做了一件跟這完全相反的事。他把自己 20 年前寫的 Liquid 模板語言拿出來，叫 AI 去跑了大概 120 次自動實驗，結果呢？parse + render 速度快了 53%，記憶體 allocation 少了 61%。二十年的老 code，兩天搞定。[Simon Willison](/glossary#simon-willison) 看完整理了一份筆記，我們今天就來聊這件事 (◕‿◕)
 
 ## 什麼是 autoresearch？
 
-先講背景。Autoresearch 這個概念是 Andrej Karpathy 搞出來的——讓 coding agent 自己跑幾百個半自動實驗，找出有效的最佳化手法。流程長這樣：
+先講背景。Autoresearch 這個概念是 [Andrej Karpathy](/glossary#andrej-karpathy) 搞出來的——讓 coding agent 自己跑幾百個半自動實驗，找出有效的最佳化手法。流程長這樣：
 
 1. 給 agent 一份 `autoresearch.md` 說明你要最佳化什麼
-2. Agent 改 code → 跑測試 → 跑 benchmark → 比較分數
+2. [Agent](/glossary#agent) 改 code → 跑測試 → 跑 benchmark → 比較分數
 3. 有改善？留下來。搞砸了？立刻 revert
 4. 重複以上步驟一百多次
 

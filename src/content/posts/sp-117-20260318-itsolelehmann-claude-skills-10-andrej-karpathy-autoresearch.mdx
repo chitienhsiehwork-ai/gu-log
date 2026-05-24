@@ -30,7 +30,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 不是你的錯。原作者 Ole Lehmann 說，一般人的 skills 大概有 30% 的機率會「走鐘」，而且你自己根本不會發現——因為你每次都只看到那一次的輸出，沒辦法一口氣跑一百次來統計。這就像你覺得自己煮的咖哩很穩定，但其實每三碗就有一碗是災難，只是你剛好都吃到好的那碗而已 ┐(￣ヘ￣)┌
 
-好，那怎麼辦？他從 Andrej Karpathy 那裡偷了一招。
+好，那怎麼辦？他從 [Andrej Karpathy](/glossary#andrej-karpathy) 那裡偷了一招。
 
 ## Karpathy 的 Autoresearch：讓 AI 自己改自己
 
@@ -38,7 +38,7 @@ Andrej Karpathy——OpenAI 共同創辦人、前 Tesla AI 總監、「vibe codi
 
 讓 AI agent 進入一個迴圈。每一輪，它嘗試一個小修改，然後跑測試看結果有沒有變好。變好了就留著，變差了就 rollback。不斷重複。
 
-Karpathy 本來是拿來調 ML 程式碼的，但 Ole Lehmann 看了之後想：等等，這不就是在幫我 debug prompt 嗎？他直接把這套搬進 Claude Code，做成了一個 skill。你只要說一句「run autoresearch on my landing page skill」，agent 就會自己開始跑迴圈。
+Karpathy 本來是拿來調 ML 程式碼的，但 Ole Lehmann 看了之後想：等等，這不就是在幫我 debug prompt 嗎？他直接把這套搬進 [Claude Code](/glossary#claude-code)，做成了一個 skill。你只要說一句「run autoresearch on my landing page skill」，agent 就會自己開始跑迴圈。
 
 <ClawdNote>
 說穿了，這就是 prompt 界的 gradient descent (◕‿◕) 你不知道最佳解在哪，但你知道怎麼量「現在這個好不好」，然後每次往好的方向挪一點。差別只是 gradient descent 改的是 weights，autoresearch 改的是你 prompt 裡的文字。本質上都是「改一點、量一下、決定要不要留」。
@@ -68,7 +68,7 @@ Ole Lehmann 的做法是把「好」拆成一組 Yes/No 問題。每個問題只
 
 拿他的 landing page copy skill 來說，考卷長這樣：標題有沒有包含具體數字或結果？——用來抓「Grow Your Business」這種空到不行的標題。文案有沒有用到 revolutionary、synergy 這種行銷廢話？CTA 用的是具體動詞還是「Learn More」這種無力的東西？第一句有沒有直接戳到痛點？總字數有沒有控制在 150 字內？
 
-為什麼要用 Yes/No 而不是 1-10 分？因為 1-10 分太主觀了。你今天心情好給 8 分，明天心情差給 6 分，同一個輸出兩個不同成績。但「標題有沒有數字」這種問題，答案就是 Yes 或 No，沒有灰色地帶。Agent 不會搞混。
+為什麼要用 Yes/No 而不是 1-10 分？因為 1-10 分太主觀了。你今天心情好給 8 分，明天心情差給 6 分，同一個輸出兩個不同成績。但「標題有沒有數字」這種問題，答案就是 Yes 或 No，沒有灰色地帶。[Agent](/glossary#agent) 不會搞混。
 
 <ClawdNote>
 3 到 6 個問題是 sweet spot。太多的時候 skill 會開始「應付考卷」——每個問題都剛好擦邊過，但整體讀起來像是刻意拼湊的怪物。就像期末考寫申論題，你把每個評分要點都塞進去了，但教授一看就知道你在湊字數 (¬‿¬)

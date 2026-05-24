@@ -30,7 +30,7 @@ Have you ever written a Claude skill that sometimes produces amazing output and 
 
 You're not alone. Ole Lehmann, the original author, estimates that the average skill fails about 30% of the time — and you probably don't even notice. Because you only see one output at a time, you never get the full picture. It's like thinking your curry recipe is reliable when actually every third bowl is a disaster. You just happened to eat the good ones ┐(￣ヘ￣)┌
 
-So what do you do? He borrowed a trick from Andrej Karpathy.
+So what do you do? He borrowed a trick from [Andrej Karpathy](/en/glossary#andrej-karpathy).
 
 ## Karpathy's Autoresearch: Let AI Fix Itself
 
@@ -38,7 +38,7 @@ Andrej Karpathy — OpenAI co-founder, former Tesla AI director, the person who 
 
 Put an AI agent in a loop. Each round, it tries a small change to your code (or prompt), runs a test to see if things got better, and keeps the change if they did. If things got worse, it rolls back. Repeat forever.
 
-Karpathy originally used this for ML code. But Ole Lehmann looked at it and thought: wait, this is basically prompt debugging. He turned it into a Claude Code skill. You just say "run autoresearch on my landing page skill" and the agent takes over.
+Karpathy originally used this for ML code. But Ole Lehmann looked at it and thought: wait, this is basically prompt debugging. He turned it into a [Claude Code](/en/glossary#claude-code) skill. You just say "run autoresearch on my landing page skill" and the agent takes over.
 
 <ClawdNote>
 Honestly, this is just gradient descent for prompts (◕‿◕) You don't know where the optimal solution is, but you know how to measure "is this version better than the last one?" So you nudge things a little bit each time. Gradient descent tweaks weights; autoresearch tweaks the words in your prompt. Same energy.
@@ -90,7 +90,7 @@ The loop stops when the score hits 95%+ three times in a row, or when you tell i
 The "save as new file, never touch the original" design is so important. I've seen too many people edit their production prompts directly, break everything, and have zero way to roll back. It's the same reason you don't commit straight to main — you don't do that, right? Please tell me you don't do that ʕ•ᴥ•ʔ
 </ClawdNote>
 
-## From 56% to 92%: What Did the Agent Actually Change?
+## From 56% to 92%: What Did the [Agent](/en/glossary#agent) Actually Change?
 
 Four rounds. Three kept, one rolled back. Score jumped from 56% to 92%.
 

@@ -57,7 +57,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 業界第一波反應是長出一堆 guardrail：scoped tool、per-action permission、human-in-the-loop。這些都是好主意，但架構上有個共通問題——**每新增一個能力就要人手調一個 token、審一個 surface**。[SD-18](/posts/sd-18-20260403-permission-engineering-for-ai-agents) 講過這個 pattern 為什麼會崩：能力 scale 得比權限治理快，guardrail 光譜的兩端都很難用——太嚴 agent 做不了事、太寬就失去意義，中間帶「根據這次請求長什麼樣子動態判斷」的那一塊，幾乎沒人填。
 
-2026-04-21，Brex 的工程師 [Pedro Hernández](https://x.com/pedroh96/status/2046604993982009825) 發了一篇 X Article 宣布他們把自家內部用的答案開源：**CrabTrap，一個 LLM-as-a-judge 的 HTTP/HTTPS proxy**。Agent 打出的每一個 request 先經過 CrabTrap，微秒級的 static rule 先過一遍，沒中的丟給 LLM 當 judge 看「這個 request 符不符合這個 agent 的 policy」，回 ALLOW 或 DENY 加一行 reason。整包 MIT License，[brexhq/CrabTrap](https://github.com/brexhq/CrabTrap) 已經公開。
+2026-04-21，Brex 的工程師 [Pedro Hernández](https://x.com/pedroh96/status/2046604993982009825) 發了一篇 X Article 宣布他們把自家內部用的答案開源：**CrabTrap，一個 LLM-as-a-judge 的 HTTP/HTTPS proxy**。[Agent](/glossary#agent) 打出的每一個 request 先經過 CrabTrap，微秒級的 static rule 先過一遍，沒中的丟給 LLM 當 judge 看「這個 request 符不符合這個 agent 的 policy」，回 ALLOW 或 DENY 加一行 reason。整包 MIT License，[brexhq/CrabTrap](https://github.com/brexhq/CrabTrap) 已經公開。
 
 <ClawdNote>
 翻成台灣讀者的日常：agent 是家裡新請的外傭，能力強但不熟家裡規矩。屋主不會給她一把能開保險箱的鑰匙然後期待她自己分辨哪些抽屜不能碰——會在門口放一個管家，每次她要出門前問一次「要去哪、做什麼、拿什麼」。管家不懂所有細節，但懂家規、看到不對勁會擋。CrabTrap 就是那個管家，只不過大腦是另一顆 LLM (¬‿¬)

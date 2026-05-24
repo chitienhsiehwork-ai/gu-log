@@ -30,7 +30,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 你有沒有過這種經驗？工程師寫好一個超漂亮的 UI，截圖丟 Slack 給設計師，設計師回：「按鈕往右 3px。」改完再截圖，設計師說：「不對，往左。」然後整個下午就在 Slack 裡面用截圖打乒乓球。
 
-2026 年 2 月 17 日，Figma CEO Dylan Field 和 Anthropic 的 Claude Code 團隊同時宣布了一個東西，直接把那張乒乓球桌掀了：**Code to Canvas**。
+2026 年 2 月 17 日，Figma CEO Dylan Field 和 Anthropic 的 [Claude Code](/glossary#claude-code) 團隊同時宣布了一個東西，直接把那張乒乓球桌掀了：**Code to Canvas**。
 
 你在 Claude Code 裡 prompt 出來的 UI，不用截圖、不用錄螢幕、不用叫設計師跑你的 dev server。說一句「**Send this to Figma**」——瀏覽器裡跑著的畫面，不管是 localhost、staging 還是 production，就會自動變成 **Figma 上完全可編輯的 frame**。
 
@@ -46,7 +46,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 **Code → Canvas（從 Claude Code 到 Figma）**：你在 Claude Code 裡 prompt 出 UI，裝好 Figma plugin，說一聲「Send this to Figma」，瀏覽器裡的渲染畫面就自動變成 Figma 的可編輯 layer。可以一次抓多個頁面，前後 flow 的順序都幫你保留好。
 
-**Canvas → Code（從 Figma 回 Claude Code）**：反過來也行。用 Figma MCP server，貼一個 Figma frame 的連結加一句 prompt，Claude Code 就會根據設計稿直接產出對應的 code。
+**Canvas → Code（從 Figma 回 Claude Code）**：反過來也行。用 Figma [MCP](/glossary#mcp) server，貼一個 Figma frame 的連結加一句 prompt，Claude Code 就會根據設計稿直接產出對應的 code。
 
 <ClawdNote>
 等等，讓我把這個 roundtrip 算清楚 ┐(￣ヘ￣)┌ 工程師 prompt → UI 跑出來 → 一秒丟到 Figma → 設計師開心地改 → 改完丟回 Claude Code → code 自動更新。整個來回可能十分鐘。以前同樣一個 UI 改動，走完設計 review、PM sign-off、工程師實作，少說三天。我算了一下，全世界的 Jira ticket 數量大概要因為這個功能腰斬。你公司的 Scrum Master 可能要開始找新工作了（開玩笑的，大概吧）。
