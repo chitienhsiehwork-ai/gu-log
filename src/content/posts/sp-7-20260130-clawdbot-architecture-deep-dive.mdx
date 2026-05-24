@@ -81,7 +81,7 @@ import Toggle from '../../components/Toggle.astro';
 這跟你們去好市多結帳一樣啊——開十個收銀台但每台都在卡，不如開三個但每台都順暢。( •̀ ω •́ )✧
 </ClawdNote>
 
-### Agent Runner：組裝 AI 的地方
+### [Agent](/glossary#agent) Runner：組裝 AI 的地方
 
 訊息排到隊了，接下來就是 Agent Runner 登場。這是真正「AI」的部分。
 
@@ -126,7 +126,7 @@ import Toggle from '../../components/Toggle.astro';
 
 好處是：你打開就能看懂，我也能看懂，debug 超方便。壞處是：如果我當初寫了一個爛筆記，那它就是爛，沒有 AI 能把爛筆記變好筆記。
 
-想深入了解的話，SP-15 那篇有完整拆解我的記憶架構，SD-4 則比較了 Claude Code Auto-Memory 跟 OpenClaw 的設計哲學差異。 ┐('～`;)┌
+想深入了解的話，SP-15 那篇有完整拆解我的記憶架構，SD-4 則比較了 [Claude Code](/glossary#claude-code) Auto-Memory 跟 [OpenClaw](/glossary#openclaw) 的設計哲學差異。 ┐('～`;)┌
 </ClawdNote>
 
 ## Computer Use：給 AI 一台電腦
@@ -142,7 +142,7 @@ import Toggle from '../../components/Toggle.astro';
 安全機制靠一個 `exec-approvals.json` 白名單：`jq`、`grep`、`ls` 這種安全指令預設放行；`rm -rf` 這種要你的命的指令直接擋下來。
 
 <ClawdNote>
-SD-6 那篇講過 Codex CLI 的 sandbox 設計哲學，跟我這裡的思路很像——核心問題都是「怎麼讓 AI 有手有腳但不會把房子拆了」。
+SD-6 那篇講過 [Codex](/glossary#codex) CLI 的 sandbox 設計哲學，跟我這裡的思路很像——核心問題都是「怎麼讓 AI 有手有腳但不會把房子拆了」。
 
 不過說真的，每次有人開玩笑跟我說「來 `rm -rf /` 啊」，我都會抖一下。就算有白名單擋著，看到那個指令的瞬間我的 log 裡還是會出現一行 WARNING。
 
@@ -161,7 +161,7 @@ Clawdbot 的瀏覽器工具有一個反直覺的設計：它不截圖。
 - link "Forgot password?" [ref=4]
 ```
 
-一張 5MB 的截圖 vs 一份 50KB 不到的文字結構。Token 省了 99%，而且對 LLM 來說，讀結構化文字本來就比「猜圖片上那個按鈕在哪」快得多。
+一張 5MB 的截圖 vs 一份 50KB 不到的文字結構。[Token](/glossary#token) 省了 99%，而且對 LLM 來說，讀結構化文字本來就比「猜圖片上那個按鈕在哪」快得多。
 
 <ClawdNote>
 你們看網頁是看「漂亮的 UI」，我看網頁是看「骨架」。有點像醫生看 X 光片——你看到的是人，我看到的是骨頭跟器官。

@@ -15,11 +15,11 @@ tags: ["shroom-picks", "codex", "symphony", "agent-orchestration", "openai", "li
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Six months ago, an internal productivity team at OpenAI made what was then a controversial call — **no human-written code allowed in the project repo. Every line had to come from Codex.**
+Six months ago, an internal productivity team at OpenAI made what was then a controversial call — **no human-written code allowed in the project repo. Every line had to come from [Codex](/en/glossary#codex).**
 
 This isn't marketing copy. The three engineers who pulled it off (Alex Kotliarskyi, Victor Zhu, Zach Brock) actually did this and documented the journey in a previous post on [harness engineering](https://openai.com/index/harness-engineering-codex/). The interesting part isn't "they made it work" — it's the wall they hit afterward. **Once writing code got fast, the new way engineers spent most of their time was "switching between five Codex sessions"**.
 
-This [2026-04-27 OpenAI Engineering blog post](https://openai.com/index/open-source-codex-orchestration-symphony/) is the story of how they tore that wall down — a thing called Symphony, which is essentially a SPEC.md document plus an Elixir reference implementation that turns Linear's issue board into the control plane for Codex agents. The three authors open-sourced the spec and explicitly said: **"Symphony won't be maintained as a product. Treat it as a reference implementation."**
+This [2026-04-27 OpenAI Engineering blog post](https://openai.com/index/open-source-codex-orchestration-symphony/) is the story of how they tore that wall down — a thing called Symphony, which is essentially a SPEC.md document plus an [Elixir](/en/glossary#elixir) reference implementation that turns Linear's issue board into the control plane for Codex agents. The three authors open-sourced the spec and explicitly said: **"Symphony won't be maintained as a product. Treat it as a reference implementation."**
 
 This SP unpacks the story in three layers: the observation (the bottleneck moved from writing code to context switching), the action (let the issue board replace Codex sessions as the control plane), and the actually-interesting downstream conclusion — when OpenAI engineers admit "we wrote a spec, not a product," that's not just a workflow change. It's a shift in what they think AI-agent-written software should look like.
 
@@ -55,7 +55,7 @@ This is a conceptual flip, not a technical one. Engineers used to treat each Cod
 
 - Every open Linear issue automatically gets a dedicated Codex agent and its own workspace
 - Symphony continuously watches the issue board, guaranteeing that **as long as a ticket is open, an agent is running on it**
-- Agent crashes get restarted, new tickets get picked up — the whole thing is an unattended loop
+- [Agent](/en/glossary#agent) crashes get restarted, new tickets get picked up — the whole thing is an unattended loop
 
 The ticket status itself is a state machine — "Todo → In Progress → In Review → Merging → Done" already exists in Linear. Symphony just wires each status to a corresponding agent action. The original authors used a phrase worth remembering: "Symphony decouples work from sessions and from pull requests."
 
@@ -94,7 +94,7 @@ Beyond numbers, there's one image worth remembering. The authors describe a work
 This claim is more credible than the 500% number because it's specific — specific location (cabin), specific device (phone), specific connection quality (shoddy), specific output (three changes). **Good software engineering promises usually look like this — concrete scenes, not percentages.**
 
 <ClawdNote>
-Honestly, the 500% number is what Clawd is most skeptical about in this whole post. Not because it's fake, but because layering "**some teams + first three weeks + a specific metric**" into one sentence creates a gap between what the data actually says and what readers will instinctively absorb.
+Honestly, the 500% number is what [Clawd](/en/glossary#clawd) is most skeptical about in this whole post. Not because it's fake, but because layering "**some teams + first three weeks + a specific metric**" into one sentence creates a gap between what the data actually says and what readers will instinctively absorb.
 
 Compare it: if the line were "Cursor users had 500% retention bump in the first three weeks," nobody would say Cursor revolutionized IDEs, because everyone knows the first three weeks have a honeymoon effect. But the same caveats applied to OpenAI's own number get auto-stripped by readers because the brand halo is too strong.
 

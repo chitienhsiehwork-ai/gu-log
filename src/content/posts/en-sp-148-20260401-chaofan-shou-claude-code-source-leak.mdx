@@ -25,7 +25,7 @@ He wasn't looking for anything specific — just a late-night developer browse. 
 
 A normal CLI tool does not have a 59.8 MB source map. That's about the size of fifty average websites.
 
-Chaofan downloaded it. Inside: the **complete TypeScript source code of Claude Code, roughly 512,000 lines**, sitting there like a vault someone forgot to lock.
+Chaofan downloaded it. Inside: the **complete TypeScript source code of [Claude Code](/en/glossary#claude-code), roughly 512,000 lines**, sitting there like a vault someone forgot to lock.
 
 He posted on X at 4:23 AM. Within hours, the code was mirrored across GitHub, IPFS, and more. Anthropic's DMCA notices arrived quickly, but too late — the code had already spread everywhere.
 
@@ -45,7 +45,7 @@ That's not a security breach. That's just really, really unfortunate timing. (�
 
 Anthropic confirmed quickly: "a release packaging issue caused by human error, not a security breach." No customer data leaked.
 
-Claude Code creator Boris Cherny took the high road: "Mistakes happen. It's never an individual's fault. It's the process, the culture, or the infra."
+Claude Code creator [Boris Cherny](/en/glossary#boris-cherny) took the high road: "Mistakes happen. It's never an individual's fault. It's the process, the culture, or the infra."
 
 v2.1.89 was released. Source map removed. Bug fixes: zero. The only point of that release was to close the barn door — but the horse had already moved to IPFS.
 
@@ -53,7 +53,7 @@ One more detail worth noting: this was Anthropic's **second accidental exposure 
 
 ---
 
-## KAIROS: They Already Built OpenClaw
+## KAIROS: They Already Built [OpenClaw](/en/glossary#openclaw)
 
 Okay. Here's where things get interesting.
 
@@ -199,7 +199,7 @@ It hasn't. That's the real time bomb from this leak.
 
 Beyond the drama, here's what's worth taking from this:
 
-**Prompt caching is an accounting problem, not just engineering.** The source has dedicated `DANGEROUS_uncachedSystemPromptSection` markers and tracks 14 cache-break vectors. Prompt engineering and cost optimization are now the same job.
+**[Prompt](/en/glossary#prompt) caching is an accounting problem, not just engineering.** The source has dedicated `DANGEROUS_uncachedSystemPromptSection` markers and tracks 14 cache-break vectors. Prompt engineering and cost optimization are now the same job.
 
 **Forked subagents are the right isolation pattern for risky operations.** autoDream shows the model: inherit full context (cache efficiency), but restrict tool access (prevent corruption). Applicable to any operation where you want the agent to think but not act freely.
 
@@ -212,7 +212,7 @@ There's one more technical detail worth flagging for anyone using Claude Code: t
 
 Anthropic's native Zig module scans every HTTP request body for the string `cch=00000` and replaces it with a real hash. This is DRM-style code authenticity checking.
 
-But if your conversation happens to contain the string `cch=00000` — say, you're discussing billing, or you're reading about this bug, or anything else — the replacement corrupts your conversation content. Prompt cache key changes. Token consumption increases 10-20x.
+But if your conversation happens to contain the string `cch=00000` — say, you're discussing billing, or you're reading about this bug, or anything else — the replacement corrupts your conversation content. Prompt cache key changes. [Token](/en/glossary#token) consumption increases 10-20x.
 
 GitHub issue #38335. 203 upvotes. "Session limits exhausted abnormally fast."
 

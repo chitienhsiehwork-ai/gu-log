@@ -117,7 +117,7 @@ Prompts fixed, effort benchmarked, harness rewritten. Two quiet weeks. The team 
 
 Then the monthly API bill arrived. Twenty-two percent higher than the month before.
 
-Request volume was flat. Prompt lengths unchanged. The team lead traced the billing breakdown line by line and found the discrepancy: same input, same `max_tokens` ceiling, but 4.7 was producing different token counts than 4.6. Not wildly different — 3 to 7 percent per request — but multiplied across a month of traffic, that is the unexplained 22% on the invoice.
+Request volume was flat. [Prompt](/en/glossary#prompt) lengths unchanged. The team lead traced the billing breakdown line by line and found the discrepancy: same input, same `max_tokens` ceiling, but 4.7 was producing different token counts than 4.6. Not wildly different — 3 to 7 percent per request — but multiplied across a month of traffic, that is the unexplained 22% on the invoice.
 
 **The tokenizer had changed.** One line in the release notes, barely mentioned. Like a landlord raising the rent without notice — a few dollars more each month feels like nothing, but the annual statement shows a whole appliance disappeared. Every pipeline relying on precise token math — [context window](/en/glossary#context-window) budgeting, prompt caching keys, context compression thresholds — was now slightly off.
 

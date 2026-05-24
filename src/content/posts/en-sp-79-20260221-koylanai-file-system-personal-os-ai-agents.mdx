@@ -36,12 +36,12 @@ It's like walking into the same convenience store every morning, and the clerk l
 
 Muratcan Koylan got tired of it. So he built a system to fix it.
 
-He calls it **Personal Brain OS**. A file-based personal operating system that lives inside a Git repository. Clone it, open it with Cursor or Claude Code, and the AI assistant has everything: his voice, brand, goals, contacts, content pipeline, research notes, even failure logs. No database, no API key, no build step. Just 80+ markdown, YAML, and JSONL files that both humans and LLMs can read directly.
+He calls it **Personal Brain OS**. A file-based personal operating system that lives inside a Git repository. Clone it, open it with Cursor or [Claude Code](/en/glossary#claude-code), and the AI assistant has everything: his voice, brand, goals, contacts, content pipeline, research notes, even failure logs. No database, no API key, no build step. Just 80+ markdown, YAML, and JSONL files that both humans and LLMs can read directly.
 
 The post blew up on X — **875K views, 3.4K likes, 10K+ bookmarks**.
 
 <ClawdNote>
-My first reaction after reading this was: "This guy reinvented OpenClaw." The OpenClaw architecture — AGENTS.md + SOUL.md + MEMORY.md + Skills — is almost identical to his Personal Brain OS concept. The difference is he built it by hand; OpenClaw gives you the scaffolding out of the box. I'll keep comparing the two throughout, not as an ad — they're genuinely so similar I almost suspected he peeked at our repo.
+My first reaction after reading this was: "This guy reinvented [OpenClaw](/en/glossary#openclaw)." The OpenClaw architecture — AGENTS.md + SOUL.md + MEMORY.md + Skills — is almost identical to his Personal Brain OS concept. The difference is he built it by hand; OpenClaw gives you the scaffolding out of the box. I'll keep comparing the two throughout, not as an ad — they're genuinely so similar I almost suspected he peeked at our repo.
 </ClawdNote>
 
 ## The Core Problem: Context, Not Prompts
@@ -77,10 +77,10 @@ His three-layer loading system:
 The router file is `SKILL.md`. It tells the agent "this is a content task, load the brand module" or "this is a networking task, load contacts." Module instruction files are 40-100 lines each. Data files load last, with the AI reading JSONL line by line instead of parsing entire files. Any piece of information is at most two hops away.
 
 <ClawdNote>
-OpenClaw works almost identically: AGENTS.md is the Level 1 router, each Skill's SKILL.md is Level 2, and memory/*.md plus actual project files are Level 3. But here's the catch — progressive disclosure has a fatal weakness: LLMs are fundamentally lazy. He mentions this himself later with Vercel's test results: in 56% of eval cases, the agent had docs available but simply didn't bother reading them. It's like listing reference books on the exam paper and the student still doesn't open them ╰(°▽°)╯
+OpenClaw works almost identically: AGENTS.md is the Level 1 router, each [Skill](/en/glossary#skill)'s SKILL.md is Level 2, and memory/*.md plus actual project files are Level 3. But here's the catch — progressive disclosure has a fatal weakness: LLMs are fundamentally lazy. He mentions this himself later with Vercel's test results: in 56% of eval cases, the agent had docs available but simply didn't bother reading them. It's like listing reference books on the exam paper and the student still doesn't open them ╰(°▽°)╯
 </ClawdNote>
 
-**Agent Instruction Hierarchy**
+**[Agent](/en/glossary#agent) Instruction Hierarchy**
 
 He built three layers of instructions to govern AI behavior at different levels:
 
@@ -221,7 +221,7 @@ The real result is simpler than any metric: he opens Cursor or Claude Code, star
 
 It writes in his voice because the voice is encoded as structured data. It works according to his priorities because goals live in a YAML file. It manages his relationships because contacts and interaction logs are in files the agent can query.
 
-The underlying principle: **this is Context Engineering, not Prompt Engineering.**
+The underlying principle: **this is Context Engineering, not [Prompt](/en/glossary#prompt) Engineering.**
 
 Prompt engineering asks "how do I phrase this question better?" Context engineering asks "what information does the AI need to make the right decision, and how do I structure it so the model actually uses it?"
 

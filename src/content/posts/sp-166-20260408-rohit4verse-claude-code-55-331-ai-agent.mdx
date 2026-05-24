@@ -49,20 +49,20 @@ Rohit（@rohit4verse）把 [Claude Code](/posts/sp-116-20260317-reverse-engineer
 被人拆解的感覺——說不上來。像體檢報告被貼到布告欄上。但 Rohit 拆得比很多內部文件還清楚，該擔心的搞不好是 Anthropic 的 docs team (╯°□°)╯
 </ClawdNote>
 
-## 一切的壓力源：Context Window 是有限的
+## 一切的壓力源：[Context Window](/glossary#context-window) 是有限的
 
 所有 production AI agent 的工程決策，追到底都繞不開同一個物理限制：**context window 是有限的**。
 
-想像一個人只有 200KB 的短期記憶。對話越長，記住的東西越多，但腦袋的容量不會變大。所有東西——系統指令、工具規格、對話歷史、留給回覆的空間——都在搶這塊有限的記憶體。[SP-97](/posts/sp-97-20260303-vikingmute-mcp-context-mode-98-token/) 講過 MCP 工具吃掉 98% context 的慘況，那是從使用者角度看。Rohit 這篇是從工程師角度看同一個問題——然後看到的東西，比想像中複雜得多。
+想像一個人只有 200KB 的短期記憶。對話越長，記住的東西越多，但腦袋的容量不會變大。所有東西——系統指令、工具規格、對話歷史、留給回覆的空間——都在搶這塊有限的記憶體。[SP-97](/posts/sp-97-20260303-vikingmute-mcp-context-mode-98-token/) 講過 [MCP](/glossary#mcp) 工具吃掉 98% context 的慘況，那是從使用者角度看。Rohit 這篇是從工程師角度看同一個問題——然後看到的東西，比想像中複雜得多。
 
 Context window 裡裝了四層東西：
 
-1. **System Prompt**（固定）：工具描述、模式指引，每個 session 開頭就釘死
+1. **System [Prompt](/glossary#prompt)**（固定）：工具描述、模式指引，每個 session 開頭就釘死
 2. **User Context**（動態注入）：CLAUDE.md 階層結構、git status，隨環境改變
 3. **Conversation Messages**：隨對話增長的訊息歷史——最容易爆的一層
 4. **Reserved Output Space**：~20K tokens，留給模型回覆
 
-光前三層就可能吃掉大半 window。而 Claude Code 對這個問題的回應，不是一個解法，是**一整套設計哲學**——從壓縮策略到工具載入到 agent 派生，每一個都是同一個壓力源的不同回應方式。
+光前三層就可能吃掉大半 window。而 [Claude Code](/glossary#claude-code) 對這個問題的回應，不是一個解法，是**一整套設計哲學**——從壓縮策略到工具載入到 agent 派生，每一個都是同一個壓力源的不同回應方式。
 
 這才是 Rohit 這篇真正有價值的地方。不是「Claude Code 有哪些 feature」的清單，而是「面對同一個限制，一個 production 系統做了哪些 trade-off」的故事。
 
@@ -96,7 +96,7 @@ Context window 裡裝了四層東西：
 
 壓縮解決的是「對話太長」。但 context 被吃掉的另一個大戶，是工具規格。
 
-Claude Code 的工具箱很滿——Bash、FileRead、FileEdit、FileWrite、Glob、Grep、Agent、Skill，再加上各種依條件開關的擴充工具。每個工具的 JSON schema 可能幾百 token，全塞進 system prompt 就是好幾千 token 被工具說明佔走——那些 token 本來可以放對話歷史或使用者的程式碼。
+Claude Code 的工具箱很滿——Bash、FileRead、FileEdit、FileWrite、Glob、Grep、[Agent](/glossary#agent)、[Skill](/glossary#skill)，再加上各種依條件開關的擴充工具。每個工具的 JSON schema 可能幾百 token，全塞進 system prompt 就是好幾千 token 被工具說明佔走——那些 token 本來可以放對話歷史或使用者的程式碼。
 
 解法出奇簡單：**開場只報名字，不報規格**。等模型真的需要某個工具時，才把完整 schema 載入。
 
@@ -110,7 +110,7 @@ Hobby project 的態度：「context window 夠大嘛，先塞再說。」Produc
 
 ---
 
-## Fork Subagent：整篇文章最值得偷走的設計
+## Fork [Subagent](/glossary#subagent)：整篇文章最值得偷走的設計
 
 到這裡為止，講的都是「怎麼在有限空間裡生存」。接下來這個設計翻轉了框架——不是節省空間，是**把 context 的重複利用變成經濟武器**。
 
@@ -158,7 +158,7 @@ Prompt 的結構不只是「給模型看的指令」，同時也是「給 cachin
 
 前面講的所有機制——迴圈、壓縮、agent 派生、工具管理、權限——都是 Claude Code「出廠就會做」的事。但一個 production 工具如果只靠原廠功能，每個人的客製化需求最終都會走向同一條路：fork 整個專案，自己維護，跟不上官方更新。
 
-Hooks 切斷了這條路。在特定動作前後自動執行腳本，不改核心程式碼就能改變行為。自動 lint、audit logging、跟外部系統整合——全部變成「掛上去就好」。（[SP-146](/posts/sp-146-20260402-ecc-hook-architecture/) 有更深入的 hook 架構分析。）
+[Hooks](/glossary#hooks) 切斷了這條路。在特定動作前後自動執行腳本，不改核心程式碼就能改變行為。自動 lint、audit logging、跟外部系統整合——全部變成「掛上去就好」。（[SP-146](/posts/sp-146-20260402-ecc-hook-architecture/) 有更深入的 hook 架構分析。）
 
 六種 hook 類型裡面，最讓人挑眉的是 **LLM evaluation**——用另一個 AI 來判斷要不要觸發 hook。白話：可以寫一條規則說「如果 agent 準備做的事情看起來很蠢，就攔下來」，然後讓另一個 AI 定義什麼叫「很蠢」。
 

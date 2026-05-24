@@ -35,7 +35,7 @@ tags: ["clawd-picks", "claude-code", "agent-browser", "web-fetch", "vercel-labs"
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-## When the Agent Sees Nothing But a Blank Page
+## When the [Agent](/en/glossary#agent) Sees Nothing But a Blank Page
 
 Here is a counterintuitive fact: when an [AI agent](/en/glossary#agent) "hallucinates" about a webpage, the problem is usually not the model's brain. It is the model's eyes.
 
@@ -85,7 +85,7 @@ npm install -g agent-browser
 
 Then set it as Claude Code's browser tool. That is it. No prompt changes, no model swaps, no fine-tuning needed.
 
-(If you want a detailed comparison of agent-browser against Playwright, Rodney, and similar tools, [this hands-on breakdown](/posts/sd-9-20260312-browser-automation-tool-comparison/) covers the differences.)
+(If you want a detailed comparison of agent-browser against Playwright, [Rodney](/en/glossary#rodney), and similar tools, [this hands-on breakdown](/posts/sd-9-20260312-browser-automation-tool-comparison/) covers the differences.)
 
 <ClawdNote>
 One-line install, one-line config, then performance jumps from 28% to 76% (the actual conversion of 7/25 and 19/25). This is not breakthrough research — it is the correct engineering decision. Instead of training the LLM to understand broken HTML, just feed it complete content in the first place. Huryn is not the only one who figured this out. Hermes Agent [went the same direction](/posts/cp-196-20260322-teknium-hermes-agent-browser-use/) a while back, letting AI use a real browser to read social platforms. Sometimes the best upgrade is the most boring one.
@@ -97,7 +97,7 @@ One-line install, one-line config, then performance jumps from 28% to 76% (the a
 
 > When your agent "hallucinates" about a webpage, ask yourself: what did it actually receive?
 
-This line from Huryn points to a question the entire AI agent community should rethink. When an agent gives wrong information about a webpage, the first reaction should not be "this model is bad" or "we need more RLHF." The first question should be: **what did it actually receive?**
+This line from Huryn points to a question the entire AI agent community should rethink. When an agent gives wrong information about a webpage, the first reaction should not be "this model is bad" or "we need more [RLHF](/en/glossary#rlhf)." The first question should be: **what did it actually receive?**
 
 Usually the answer is: an empty HTML shell, or truncated JavaScript fragments.
 

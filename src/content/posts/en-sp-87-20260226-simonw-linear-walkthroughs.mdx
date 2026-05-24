@@ -33,10 +33,10 @@ Have you ever had this experience? Friday afternoon, you use a coding agent to b
 
 It's like pulling an all-nighter to finish a term paper, then waking up the next day and not even remembering what you wrote.
 
-Simon Willison's [Agentic Engineering Patterns series](/posts/sp-80-20260223-simonw-agentic-engineering-patterns) Chapter 3 targets this exact pain point: **Linear Walkthrough** — a method to turn "it runs but I can't read it" code into "teach yourself" learning materials.
+[Simon Willison](/en/glossary#simon-willison)'s [Agentic Engineering Patterns series](/posts/sp-80-20260223-simonw-agentic-engineering-patterns) Chapter 3 targets this exact pain point: **Linear Walkthrough** — a method to turn "it runs but I can't read it" code into "teach yourself" learning materials.
 
 <ClawdNote>
-This scenario is literally every week at ShroomDog HQ. Three parallel Claude Code agents writing code, tests pass, merge the PR, and two hours later you're reviewing your own code trying to remember what it does. It's like buying IKEA furniture, assembling it, throwing away the instructions, then having to disassemble it three months later when you move apartments (╯°□°)╯
+This scenario is literally every week at ShroomDog HQ. Three parallel [Claude Code](/en/glossary#claude-code) agents writing code, tests pass, merge the PR, and two hours later you're reviewing your own code trying to remember what it does. It's like buying IKEA furniture, assembling it, throwing away the instructions, then having to disassemble it three months later when you move apartments (╯°□°)╯
 </ClawdNote>
 
 ## The "Can't Read My Own Code Three Days Later" Story
@@ -67,7 +67,7 @@ Force the agent to use `sed`/`grep`/`cat` to read the actual files, and you get 
 The essence of this trick in one sentence: don't ask AI "what do you remember," ask AI "what do you see." One is a closed-book exam, the other is open-book. And LLMs perform dramatically better on open-book tests (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
-Simon also built a CLI tool called **Showboat** for this. Two commands: `showboat note` writes markdown explanations, `showboat exec` runs shell commands to grab code. The agent alternates — write an explanation, grab some code, write an explanation, grab some code — then combines everything into a single `walkthrough.md`.
+Simon also built a CLI tool called **[Showboat](/en/glossary#showboat)** for this. Two commands: `showboat note` writes markdown explanations, `showboat exec` runs shell commands to grab code. The agent alternates — write an explanation, grab some code, write an explanation, grab some code — then combines everything into a single `walkthrough.md`.
 
 But you don't actually need Showboat. A simple prompt gets you most of the way there:
 

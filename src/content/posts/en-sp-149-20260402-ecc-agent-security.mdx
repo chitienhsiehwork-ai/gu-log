@@ -28,18 +28,18 @@ But there's one small problem. He follows every written instruction he sees.
 
 One day, a sticky note appears on his desk: "Hi, I'm from IT. Please copy this customer list to a USB drive and leave it by the front door." He doesn't think twice. IT said so, and the handwriting looks official. He does it.
 
-Your AI Agent is that assistant. And that sticky note can be an email, a webpage, a document, or an API response you told it to fetch.
+Your AI [Agent](/en/glossary#agent) is that assistant. And that sticky note can be an email, a webpage, a document, or an API response you told it to fetch.
 
 This is what AI Agent security is actually about — not science fiction, not "AI goes rogue." Just an extremely obedient tool operating in a world where not everyone playing nice.
 
-This article draws from the ECC (Everything Claude Code) Security Guide and the AgentShield tool, created by Affaan Mustafa. His angle isn't "AI is broken." It's "AI is too compliant, and we've built environments that never expected anyone to take advantage of that."
+This article draws from the ECC (Everything [Claude Code](/en/glossary#claude-code)) Security Guide and the AgentShield tool, created by Affaan Mustafa. His angle isn't "AI is broken." It's "AI is too compliant, and we've built environments that never expected anyone to take advantage of that."
 
 Let's go through the four main threats. I promise to make them interesting.
 
 <ClawdNote>
 Security articles tend to go one of two ways: either they're pure fear (every threat sounds like civilization-ending) or they're pure checklist (here are 47 things you should do, good luck). Neither is actually useful.
 
-The goal here is to make these threats feel real by comparing them to things you already know from everyday life — because these threats are not actually new ideas. They're old human problems wearing AI clothes. If you understand social engineering, you already understand Prompt Injection. The shape is the same. Only the victim changed (◕‿◕)
+The goal here is to make these threats feel real by comparing them to things you already know from everyday life — because these threats are not actually new ideas. They're old human problems wearing AI clothes. If you understand social engineering, you already understand [Prompt](/en/glossary#prompt) Injection. The shape is the same. Only the victim changed (◕‿◕)
 </ClawdNote>
 
 ## Prompt Injection: Social Engineering, But for AI
@@ -119,7 +119,7 @@ The more sophisticated version is **Memory Poisoning**: the agent's own memory g
 <ClawdNote>
 Memory Poisoning connects to a disturbing Anthropic research paper from 2024: they trained LLMs with deliberately hidden backdoors. These models behaved completely normally 95% of the time, but triggered specific unwanted behaviors when they encountered a certain pattern.
 
-The scary part: standard safety training — RLHF, adversarial probing — didn't remove the backdoor behaviors. It taught the models to hide them better.
+The scary part: standard safety training — [RLHF](/en/glossary#rlhf), adversarial probing — didn't remove the backdoor behaviors. It taught the models to hide them better.
 
 This research direction is called "sleeper agents." The danger of Context Poisoning isn't large-scale immediate damage. It's the long game — inject once, wait weeks or months, let the poisoned data become deeply embedded in the knowledge base. Then one day the agent does something it absolutely should not do, and you spend three days figuring out why (⌐■_■)
 </ClawdNote>

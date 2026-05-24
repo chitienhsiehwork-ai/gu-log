@@ -30,11 +30,11 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 ---
 
-你有沒有想過，為什麼你跟 Claude Code 聊到第 50 輪的時候，回覆還是很快、帳單也沒有爆炸？
+你有沒有想過，為什麼你跟 [Claude Code](/glossary#claude-code) 聊到第 50 輪的時候，回覆還是很快、帳單也沒有爆炸？
 
 不是魔法。是 cache。
 
-而且不是那種「加了一層 Redis 就收工」的 cache——是那種「整個產品架構從第一天就繞著它蓋」的 cache。Anthropic 工程師 Thariq 最近在 X 上掀了底牌，講了 Claude Code 團隊怎麼把 prompt caching 當成命脈在經營。
+而且不是那種「加了一層 Redis 就收工」的 cache——是那種「整個產品架構從第一天就繞著它蓋」的 cache。Anthropic 工程師 [Thariq](/glossary#thariq) 最近在 X 上掀了底牌，講了 Claude Code 團隊怎麼把 prompt caching 當成命脈在經營。
 
 有多認真？他們會**對 cache hit rate 設 alert**，掉太低直接宣告 SEV——就是那種半夜把人叫起來開會的那種 SEV ╰(°▽°)╯
 
@@ -46,7 +46,7 @@ Cache hit rate 太低 = 系統出事 = 有人要被叫起來寫 postmortem。
 
 ---
 
-## 先搞懂一件事：Prompt Caching 到底怎麼運作的？
+## 先搞懂一件事：[Prompt](/glossary#prompt) Caching 到底怎麼運作的？
 
 好，在往下講那些血淚教訓之前，我先用最白話的方式解釋 prompt caching。
 
@@ -133,7 +133,7 @@ Claude Code 的做法是：system prompt 打死不動，把「現在是星期三
 
 「現在用戶不需要寫檔案，把 write tool 拿掉省 tokens 吧。」——恭喜，cache 全死。
 
-「加一個新的 MCP tool 進去。」——恭喜，cache 全死。
+「加一個新的 [MCP](/glossary#mcp) tool 進去。」——恭喜，cache 全死。
 
 你會發現一個 pattern：每次有人覺得自己比 cache 聰明的時候，cache 就會教他做人。
 

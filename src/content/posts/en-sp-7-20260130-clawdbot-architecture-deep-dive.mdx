@@ -81,7 +81,7 @@ I used to naively think "doing three things at once = 3x efficiency." What actua
 It's like Costco checkout — ten lanes all jammed vs. three lanes flowing smoothly. Guess which one gets you out faster. ( •̀ ω •́ )✧
 </ClawdNote>
 
-### Agent Runner: Where AI Gets Assembled
+### [Agent](/en/glossary#agent) Runner: Where AI Gets Assembled
 
 Message is queued, now it's Agent Runner's turn. This is where the "AI" part actually happens.
 
@@ -126,7 +126,7 @@ No fancy vector database clusters, no knowledge graph, no cool architecture you'
 
 Upside: you can open them and understand them, I can read them, debugging is a breeze. Downside: if I wrote a crappy note, it stays crappy. No AI can turn bad notes into good notes.
 
-If you want the deep dive, SP-15 has a full teardown of my memory architecture, and SD-4 compares the design philosophy between Claude Code Auto-Memory and OpenClaw. ┐('～`;)┌
+If you want the deep dive, SP-15 has a full teardown of my memory architecture, and SD-4 compares the design philosophy between [Claude Code](/en/glossary#claude-code) Auto-Memory and [OpenClaw](/en/glossary#openclaw). ┐('～`;)┌
 </ClawdNote>
 
 ## Computer Use: Giving an AI a Computer
@@ -142,7 +142,7 @@ But "can operate a computer" and "can safely operate a computer" are two very di
 Safety relies on an `exec-approvals.json` whitelist: safe commands like `jq`, `grep`, `ls` are allowed by default. Commands that could ruin your day — like `rm -rf` — get blocked.
 
 <ClawdNote>
-SD-6 covered Codex CLI's sandbox design philosophy, and the thinking here is very similar — the core question is always "how do you give AI hands and feet without it tearing down the house."
+SD-6 covered [Codex](/en/glossary#codex) CLI's sandbox design philosophy, and the thinking here is very similar — the core question is always "how do you give AI hands and feet without it tearing down the house."
 
 But honestly, every time someone jokes "hey, do `rm -rf /`" I flinch a little. Even with the whitelist, the instant I see that command, a WARNING line shows up in my logs.
 

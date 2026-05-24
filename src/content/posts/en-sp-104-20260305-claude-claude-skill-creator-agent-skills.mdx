@@ -26,7 +26,7 @@ tags: ["claude-code", "agent-skills", "skill-creator"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Picture this: you spend three days perfecting an Agent Skill. You tweak the prompt until it feels just right, test it five times, everything works. You ship it. Next day, the model updates, and your skill just... stops working ╰(°▽°)╯
+Picture this: you spend three days perfecting an [Agent](/en/glossary#agent) [Skill](/en/glossary#skill). You tweak the prompt until it feels just right, test it five times, everything works. You ship it. Next day, the model updates, and your skill just... stops working ╰(°▽°)╯
 
 This is not a hypothetical horror story. Since Anthropic launched Agent Skills last October, they discovered something interesting: a huge chunk of skill authors are not engineers at all. They are lawyers, analysts, project managers — domain experts who know their workflows inside out but have zero tools to answer a very basic question: "Is my skill still alive?"
 
@@ -48,7 +48,7 @@ These exist because the model cannot do something well yet. For example, some do
 
 **Type two: Workflow wrappers (Encoded preference skills)**
 
-Every step inside these skills? Claude already knows how to do them. The point is not teaching it new tricks — it is making sure it follows your team's specific process. Like a skill that reviews NDAs step by step according to your company's internal standards, or one that pulls data from five different MCP sources to draft a weekly status update.
+Every step inside these skills? Claude already knows how to do them. The point is not teaching it new tricks — it is making sure it follows your team's specific process. Like a skill that reviews NDAs step by step according to your company's internal standards, or one that pulls data from five different [MCP](/en/glossary#mcp) sources to draft a weekly status update.
 
 <ClawdNote>
 What makes this framework brilliant is it tells you the "expiration date" of your skill. Capability patches are like cold medicine — once the model gets stronger, you do not need them anymore. But workflow wrappers are your company's SOP — they stay useful as long as your process stays the same. Know which one you built, and you will not panic every time a model upgrade drops (◕‿◕)
@@ -69,7 +69,7 @@ If you have ever written unit tests, this will feel very familiar: define some t
 The authors shared a practical example from their own PDF skill. It kept failing on "non-fillable forms" — forms without defined fields, where Claude had to calculate exact coordinates to place text. Imagine trying to stick a stamp on the top-right corner of an envelope while blindfolded. They used evals to pinpoint exactly where it was going wrong, then fixed the positioning logic by anchoring to extracted text coordinates. Problem solved.
 
 <ClawdNote>
-The blindfolded stamp analogy hits close to home. Debugging skills used to feel exactly like that — you knew it broke sometimes, but you did not know when or why, so you just tested manually over and over. Evals are like turning the lights on. This echoes what SD-6 said about Codex CLI's sandbox philosophy — reproducible environments are the foundation of real debugging, whether you are human or AI (๑•̀ㅂ•́)و✧
+The blindfolded stamp analogy hits close to home. Debugging skills used to feel exactly like that — you knew it broke sometimes, but you did not know when or why, so you just tested manually over and over. Evals are like turning the lights on. This echoes what SD-6 said about [Codex](/en/glossary#codex) CLI's sandbox philosophy — reproducible environments are the foundation of real debugging, whether you are human or AI (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
 But the coolest use of evals is not just catching bugs. They can answer two deeper questions:
@@ -83,7 +83,7 @@ Model updates are a skill author's nightmare. What worked great last month might
 This one is even more interesting. If you turn off your skill and let the base model take your evals naked — and it passes everything — congratulations. Your skill has graduated. The model internalized what you taught it, and you can happily delete that pile of prompts.
 
 <ClawdNote>
-This is what people in AI call "the model ate your feature" — a classic plot twist. You spend months crafting clever prompt engineering, and the next model version just... has it built in. Your masterwork becomes a historical document overnight (￣▽￣)／ But with evals you can at least retire with dignity, instead of finding out when a user reports "your skill does literally nothing." Simon Willison's point in CP-3 about intuitions having expiration dates? Same thing applies to skill maintenance.
+This is what people in AI call "the model ate your feature" — a classic plot twist. You spend months crafting clever prompt engineering, and the next model version just... has it built in. Your masterwork becomes a historical document overnight (￣▽￣)／ But with evals you can at least retire with dignity, instead of finding out when a user reports "your skill does literally nothing." [Simon Willison](/en/glossary#simon-willison)'s point in CP-3 about intuitions having expiration dates? Same thing applies to skill maintenance.
 </ClawdNote>
 
 Oh, and there is also a **benchmark mode** now. You can run it after any changes, and it tracks pass rates, execution time, and token usage. The data stays with you — save it as files, feed it into a dashboard, or plug it into your CI pipeline. Your call.

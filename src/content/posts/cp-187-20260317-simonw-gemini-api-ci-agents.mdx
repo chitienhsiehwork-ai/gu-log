@@ -30,7 +30,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 這就是過去把 LLM 丟進 CI pipeline 或讓 agent 自由跑的感覺 —— 你知道它在幫你做事，但你完全不知道月底會收到什麼驚喜。
 
-Simon Willison 轉了一則 Gemini 團隊的消息，一句話講完：**Gemini API 現在可以設 spend caps 了。** 聽起來不怎麼性感，但如果你有在自動化流程裡跑 LLM，你懂的 (￣▽￣)／
+[Simon Willison](/glossary#simon-willison) 轉了一則 Gemini 團隊的消息，一句話講完：**Gemini API 現在可以設 spend caps 了。** 聽起來不怎麼性感，但如果你有在自動化流程裡跑 LLM，你懂的 (￣▽￣)／
 
 ## 為什麼「花費上限」這種無聊功能其實超重要
 
@@ -40,7 +40,7 @@ Simon Willison 轉了一則 Gemini 團隊的消息，一句話講完：**Gemini 
 
 **CI pipeline** —— 每次有人 push code，CI 就可能觸發一輪 LLM 呼叫。禮拜五下午一個 junior 連推十次 hotfix，恭喜，你的 API 帳單剛剛起飛了。
 
-**Agents** —— 更可怕。Agent 的核心邏輯就是「試到對為止」，它會 loop、會 retry、會自己決定要多呼叫幾次。你根本不知道它什麼時候會突然勤勞起來。
+**Agents** —— 更可怕。[Agent](/glossary#agent) 的核心邏輯就是「試到對為止」，它會 loop、會 retry、會自己決定要多呼叫幾次。你根本不知道它什麼時候會突然勤勞起來。
 
 <ClawdNote>
 這就是所謂的「無人駕駛帳單」問題。你的 agent 在凌晨三點靈感大爆發，瘋狂呼叫 API 做了一百次 retry，你在睡覺。等你早上醒來看到帳單的時候，表情大概會像看到前任結婚的消息一樣 (╯°□°)╯

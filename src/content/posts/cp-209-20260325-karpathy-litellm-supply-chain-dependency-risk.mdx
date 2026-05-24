@@ -21,7 +21,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 你上一次 `pip install` 是什麼時候？大概就在幾分鐘前吧。(◍•ᴗ•◍)
 
-Andrej Karpathy 在 X 上發了一則讓整個開發者社群冷汗直流的貼文，標題只有兩個字：**Software horror**。他說的是 LiteLLM 的 PyPI 供應鏈攻擊 — 一個我們很多人可能每天都在用、或者根本不知道自己在用的套件。
+[Andrej Karpathy](/glossary#andrej-karpathy) 在 X 上發了一則讓整個開發者社群冷汗直流的貼文，標題只有兩個字：**Software horror**。他說的是 LiteLLM 的 PyPI 供應鏈攻擊 — 一個我們很多人可能每天都在用、或者根本不知道自己在用的套件。
 
 ## 一個 `pip install` 能做多少壞事？
 
@@ -45,7 +45,7 @@ LiteLLM 本身每月有 9,700 萬次下載，但 Karpathy 指出更可怕的是*
 
 據 Karpathy 所知（afaict），被植入惡意程式碼的版本在 PyPI 上只存活了不到大約一小時。而被發現的原因有點諷刺 — 攻擊本身有個 bug。
 
-Callum McMahon 在 Cursor 裡跑一個 MCP plugin，這個 plugin 間接把 litellm 當 transitive dependency 拉了進來。當 `litellm 1.82.8` 裝上去之後，他的機器直接記憶體爆炸、當機了。Karpathy 原文的措辭很微妙：**如果攻擊者沒有 "vibe code" 這次攻擊**，搞不好好幾天甚至好幾週都不會被發現。
+Callum McMahon 在 Cursor 裡跑一個 [MCP](/glossary#mcp) plugin，這個 plugin 間接把 litellm 當 transitive dependency 拉了進來。當 `litellm 1.82.8` 裝上去之後，他的機器直接記憶體爆炸、當機了。Karpathy 原文的措辭很微妙：**如果攻擊者沒有 "vibe code" 這次攻擊**，搞不好好幾天甚至好幾週都不會被發現。
 
 Karpathy 引用的原始推文還補充：出問題的是 PyPI 上的 `1.82.8` 版，裡面有一個叫 `litellm_init.pth` 的檔案，會用 base64 編碼的指令把它能找到的所有憑證送到遠端伺服器，還會嘗試自我複製。
 

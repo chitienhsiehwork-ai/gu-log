@@ -50,7 +50,7 @@ This observation really stings. Imagine you're comparing two agent frameworks at
 
 ---
 
-## Context Engineering > Prompt Engineering
+## Context Engineering > [Prompt](/en/glossary#prompt) Engineering
 
 Before diving into the paper's technical proposal, let's talk about a mindset shift: **context engineering.**
 
@@ -74,7 +74,7 @@ Alright, let's get into the meat of the paper. It proposes two things, and we'll
 
 ### What NLAH Actually Describes
 
-NLAH (Natural-Language Agent Harnesses) is essentially a structured natural-language format for laying out the control logic that's normally buried in code.
+NLAH (Natural-Language [Agent](/en/glossary#agent) Harnesses) is essentially a structured natural-language format for laying out the control logic that's normally buried in code.
 
 Think about inheriting someone else's agent system. You spend three days reading code before you finally understand the workflow, responsibilities, and failure handling. What NLAH wants to do is make it so you don't need those three days — one document tells the whole story.
 
@@ -112,7 +112,7 @@ In plain terms: agents need a notebook, and this notebook shouldn't automaticall
 
 ## The Experiments: More Subtle Than You'd Expect
 
-Now for the most interesting part — the results. The paper used Codex CLI v0.114.0 + GPT-5.4 (reasoning level: xhigh) as the backend, running on Ubuntu 24.04 with a 64-core CPU and 251 GiB of RAM in a Docker container. Due to budget constraints, they only ran **125 SWE-bench Verified samples** and **36 OSWorld samples**.
+Now for the most interesting part — the results. The paper used [Codex](/en/glossary#codex) CLI v0.114.0 + GPT-5.4 (reasoning level: xhigh) as the backend, running on Ubuntu 24.04 with a 64-core CPU and 251 GiB of RAM in a Docker container. Due to budget constraints, they only ran **125 SWE-bench Verified samples** and **36 OSWorld samples**.
 
 ### RQ1: Does the Harness Actually Change Behavior?
 
@@ -217,7 +217,7 @@ Dan's tweet thread had some sharp replies:
 
 **@atthatmatt** threw cold water: "If the harness itself is nondeterministic, then you need a harness harness." Meaning: if your harness relies on an LLM to interpret it (introducing randomness), how do you guarantee stable harness behavior? Do you need a "harness for the harness"? A very fair challenge.
 
-**@XunWallace (Rocky)** dropped a powerful line: "The harness IS the product. The model is interchangeable." He runs AI agents at OpenClaw, so this isn't armchair talk — it's a conclusion drawn from real production experience.
+**@XunWallace (Rocky)** dropped a powerful line: "The harness IS the product. The model is interchangeable." He runs AI agents at [OpenClaw](/en/glossary#openclaw), so this isn't armchair talk — it's a conclusion drawn from real production experience.
 
 **@gaia_intelflows** thinks Dan's 50% is conservative: "In production it's often 80% of the challenge."
 
@@ -231,7 +231,7 @@ Dan's tweet thread had some sharp replies:
 
 ## Wrapping Up
 
-Dan said "Agent Harness engineers will become a role." After reading this paper, I think he might be right — but not for the reason you'd expect.
+Dan said "[Agent Harness](/en/glossary#agent-harness) engineers will become a role." After reading this paper, I think he might be right — but not for the reason you'd expect.
 
 It's not because harnesses are hard to write (that's just a barrier to entry). It's because **harness design choices affect agent behavior in ways you can't predict just by looking at architecture diagrams.** Add a verifier, and it might help solve two more problems while causing three others to misalign with the benchmark. Add file-backed state, and your agent gets more organized, but resolved rate doesn't move. Migrate the harness from code to NL, and suddenly your agent stops fighting the GUI on OSWorld and takes the shell route instead — a qualitative behavior shift no architecture diagram would have predicted.
 

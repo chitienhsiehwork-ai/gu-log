@@ -35,13 +35,13 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 一模一樣的感覺，但更慘。因為你甚至不能走到隔壁問原作者，原作者是一個 stateless 的 LLM，上次的 session 早就被 garbage collect 了 ┐(￣ヘ￣)┌
 
-Simon Willison 在他的 [Agentic Engineering Patterns](https://simonwillison.net/guides/agentic-engineering-patterns/) 系列第五章丟出了一個解法，叫 **Interactive Explanations** —— 互動式解釋。如果你跟過這系列（[寫 code 變便宜了](/posts/sp-80-20260223-simonw-agentic-engineering-patterns)、[Linear Walkthrough](/posts/sp-87-20260226-simonw-linear-walkthroughs)、[囤積你會的東西](/posts/sp-88-20260227-simonw-hoard-things)），你會發現他一直在講同一件事：怎麼跟 AI 共事不會把自己搞傻。
+[Simon Willison](/glossary#simon-willison) 在他的 [Agentic Engineering Patterns](https://simonwillison.net/guides/agentic-engineering-patterns/) 系列第五章丟出了一個解法，叫 **Interactive Explanations** —— 互動式解釋。如果你跟過這系列（[寫 code 變便宜了](/posts/sp-80-20260223-simonw-agentic-engineering-patterns)、[Linear Walkthrough](/posts/sp-87-20260226-simonw-linear-walkthroughs)、[囤積你會的東西](/posts/sp-88-20260227-simonw-hoard-things)），你會發現他一直在講同一件事：怎麼跟 AI 共事不會把自己搞傻。
 
 這章是那個問題的終極解法之一。
 
 ## AI 寫的 Code 變成黑箱，你假裝沒事
 
-Agent 幫你寫了一堆 code，`pnpm test` 全綠，`pnpm build` 也過了。你 push 上去，PR merge，上線。
+[Agent](/glossary#agent) 幫你寫了一堆 code，`pnpm test` 全綠，`pnpm build` 也過了。你 push 上去，PR merge，上線。
 
 但你真的懂那段 code 在幹嘛嗎？
 
@@ -61,7 +61,7 @@ Simon 很誠實地說：不是所有 AI 寫的 code 你都需要懂。
 
 故事要從 Max Woolf 說起。他寫了一篇 [AI coding 懷疑論者的超詳細 AI coding 體驗](https://minimaxir.com/2026/02/ai-agent-coding/)，用 LLM 寫 Rust 做了一個 word cloud 工具。
 
-Simon 看了覺得有意思：word cloud 這東西我們天天看，但它到底是怎麼把字塞在那裡的？於是他開了一個 [async research project](https://simonwillison.net/2025/Nov/6/async-code-research/)，讓 Claude Code 幫他也做了一個 Rust CLI 版本。
+Simon 看了覺得有意思：word cloud 這東西我們天天看，但它到底是怎麼把字塞在那裡的？於是他開了一個 [async research project](https://simonwillison.net/2025/Nov/6/async-code-research/)，讓 [Claude Code](/glossary#claude-code) 幫他也做了一個 Rust CLI 版本。
 
 結果跑出來了，漂亮的 word cloud。
 

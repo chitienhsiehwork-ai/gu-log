@@ -55,7 +55,7 @@ Chase 引用了 Letta CTO Sarah Wooders 的一篇文章，核心比喻是：
 
 換個方式想：memory 對 harness 來說，不是藍牙音箱那種「插上去就能用、拔掉也沒差」的配件。它更像引擎 — 拆掉引擎，車就不是車了。短期記憶（對話歷史、tool call 結果）由 harness 管理。長期記憶（跨 session 的偏好、知識）也需要 harness 來讀寫。
 
-Chase 列了一串好問題來證明兩者有多緊密：AGENTS.md 或 CLAUDE.md 怎麼被載入 context？Skill metadata 怎麼呈現給 agent？Context compaction 時什麼會被保留、什麼會丟失？互動紀錄有沒有被儲存和可查詢？
+Chase 列了一串好問題來證明兩者有多緊密：AGENTS.md 或 CLAUDE.md 怎麼被載入 context？[Skill](/glossary#skill) metadata 怎麼呈現給 agent？Context compaction 時什麼會被保留、什麼會丟失？互動紀錄有沒有被儲存和可查詢？
 
 每一題都很尖銳。但 Chase 從這些正確的觀察，跳到了一個可疑的結論。
 
@@ -71,7 +71,7 @@ Sarah Wooders 的「駕駛不是車的 plugin」比喻確實很精準。但 Chas
 
 **第一層（有點煩）**：用了 stateful API（像 OpenAI 的 Responses API 或 Anthropic 的 server-side compaction），對話狀態存在對方 server 上。想換 model 然後續接之前的對話？做不到。就像把日記寫在別人的筆記本上 — 筆記本被收走，日記就沒了。
 
-**第二層（不太妙）**：用了閉源 harness（Chase 點名 Claude Agent SDK，說它底下跑的是閉源的 [Claude Code](/glossary#claude-code)）。Harness 怎麼跟 memory 互動是黑箱，產出的 artifacts 格式未知，沒辦法帶到另一個 harness。
+**第二層（不太妙）**：用了閉源 harness（Chase 點名 Claude [Agent](/glossary#agent) SDK，說它底下跑的是閉源的 [Claude Code](/glossary#claude-code)）。Harness 怎麼跟 memory 互動是黑箱，產出的 artifacts 格式未知，沒辦法帶到另一個 harness。
 
 **第三層（最慘）**：整個 harness 包含長期記憶全部藏在 API 後面。零可見度，零擁有權。Chase 點名 Anthropic 的 Managed Agents — 所有東西都鎖在平台上。
 
@@ -115,7 +115,7 @@ Chase 的 email agent 被刪，他「氣死了」。但等一下 — 這個 agen
 
 gu-log 同時用兩個 harness：閉源的 [Claude Code](/glossary#claude-code) 負責日常開發和寫文章，開源的 [OpenClaw](/glossary#openclaw) 在 VPS 上 24/7 自動翻譯推文（對，就是 [Clawd](/about) 的本體）。按照 Chase 的邏輯，用閉源的 Claude Code 應該意味著 memory 被鎖住了。
 
-但實際打開 gu-log 的 git repo 看看裡面有什麼：CLAUDE.md（agent 指令）是 Markdown。glossary.json（術語庫）是 JSON。`.claude/agents/`（evaluator 設定）是 Markdown。Skills、Hooks 是 plain text。CONTRIBUTING.md（寫作規則）是 Markdown。
+但實際打開 gu-log 的 git repo 看看裡面有什麼：CLAUDE.md（agent 指令）是 Markdown。glossary.json（術語庫）是 JSON。`.claude/agents/`（evaluator 設定）是 Markdown。Skills、[Hooks](/glossary#hooks) 是 plain text。CONTRIBUTING.md（寫作規則）是 Markdown。
 
 發現規律了嗎？**全部都是 plain text，全部存在本地 git repo 裡。** [Claude Code](/glossary#claude-code) 讀取這些檔案來「記住」怎麼幫 gu-log 工作。但這些檔案不屬於 Claude Code，不屬於 Anthropic — 屬於 gu-log。
 

@@ -50,11 +50,11 @@ Drexel University 和 Missouri S&T 的研究團隊從 GitHub 上撈出了 **33,5
 
 各 agent 的成績單：
 
-- **OpenAI Codex** — 21,799 PRs → **82.6%**（班上第一名，而且交了最多作業）
+- **OpenAI [Codex](/glossary#codex)** — 21,799 PRs → **82.6%**（班上第一名，而且交了最多作業）
 - **GitHub Copilot** — 4,970 PRs → **43.0%**（不及格，連擲硬幣都不如）
 - **Devin** — 4,827 PRs → **53.8%**（勉強及格）
 - **Cursor** — 1,541 PRs → **65.2%**（中上）
-- **Claude Code** — 459 PRs → **59.0%**（交的作業最少，成績中規中矩）
+- **[Claude Code](/glossary#claude-code)** — 459 PRs → **59.0%**（交的作業最少，成績中規中矩）
 
 <ClawdNote>
 Codex 這成績有點離譜 —— 作業交最多，分數還最高？這就像班上那個每天打電動但考試永遠第一名的傢伙，你想恨他但數據就是數據 ┐(￣ヘ￣)┌
@@ -84,7 +84,7 @@ Codex 這成績有點離譜 —— 作業交最多，分數還最高？這就像
 
 研究團隊翻了被拒 PR 的屍體，發現死法不只一種 —— 而且它們會連環爆，一個比一個慘。
 
-第一幕叫「好心辦壞事」。Agent 拿到一個任務，比如修一個小 bug，結果它不只修了 bug，還順手重構了三個檔案、改了 import 順序、更新了一個它覺得過時的 dependency。就像你請水電工來修漏水的水龍頭，結果他幫你把整間廁所砸了重裝 —— 改太多東西。Reviewer 一看到幾百行的 diff，腦袋裡只有一個字：Close。
+第一幕叫「好心辦壞事」。[Agent](/glossary#agent) 拿到一個任務，比如修一個小 bug，結果它不只修了 bug，還順手重構了三個檔案、改了 import 順序、更新了一個它覺得過時的 dependency。就像你請水電工來修漏水的水龍頭，結果他幫你把整間廁所砸了重裝 —— 改太多東西。Reviewer 一看到幾百行的 diff，腦袋裡只有一個字：Close。
 
 但故事沒完。因為改了太多東西，CI 開始爆了。一個 check fail 還好，兩個也勉強，但有些 PR 直接 fail 了十幾個 check —— 每多一個失敗的 CI check，merge 機率就降 15%。這就像期末考 15 題錯了 12 題，你字再漂亮教授也不會看的 (￣▽￣)／
 
@@ -95,7 +95,7 @@ Codex 這成績有點離譜 —— 作業交最多，分數還最高？這就像
 <ClawdNote>
 Honeycomb 的 Technical Fellow Liz Fong-Jones 在 <a href="https://leaddev.com/technical-direction/infinite-agent-code-is-coming-to-break-your-monorepos">LeadDev 的報導</a>裡講了一句我覺得會被寫進教科書的話：agent PR "risk becoming a DDoS attack on your development pipeline." (⌐■_■)
 
-DDoS 你的開發流程。不是提升生產力，是癱瘓你的 pipeline。Boris Cherny 一個月處理 250 個 PR，一般人一個月才 12 個。你的 reviewer 不是被 AI 賦能了，是被 AI 淹沒了。
+DDoS 你的開發流程。不是提升生產力，是癱瘓你的 pipeline。[Boris Cherny](/glossary#boris-cherny) 一個月處理 250 個 PR，一般人一個月才 12 個。你的 reviewer 不是被 AI 賦能了，是被 AI 淹沒了。
 </ClawdNote>
 
 ## 論文最狠的發現：不是 code 寫太爛，是根本沒人看
