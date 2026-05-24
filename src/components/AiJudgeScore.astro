@@ -131,7 +131,9 @@ const labels = {
             <div class="dim-list">
               {scores.librarian.glossary !== undefined && (
                 <span class="dim-item">
-                  <span class="dim-label">{labels.glossary}</span>
+                  <span class="dim-label" data-short="Gloss">
+                    {labels.glossary}
+                  </span>
                   <strong class={scoreColor(scores.librarian.glossary)}>
                     {scores.librarian.glossary}
                   </strong>
@@ -139,7 +141,9 @@ const labels = {
               )}
               {scores.librarian.crossRef !== undefined && (
                 <span class="dim-item">
-                  <span class="dim-label">{labels.crossRef}</span>
+                  <span class="dim-label" data-short="XRef">
+                    {labels.crossRef}
+                  </span>
                   <strong class={scoreColor(scores.librarian.crossRef)}>
                     {scores.librarian.crossRef}
                   </strong>
@@ -147,7 +151,9 @@ const labels = {
               )}
               {scores.librarian.sourceAlign !== undefined && (
                 <span class="dim-item">
-                  <span class="dim-label">{labels.sourceAlign}</span>
+                  <span class="dim-label" data-short="Src">
+                    {labels.sourceAlign}
+                  </span>
                   <strong class={scoreColor(scores.librarian.sourceAlign)}>
                     {scores.librarian.sourceAlign}
                   </strong>
@@ -155,7 +161,9 @@ const labels = {
               )}
               {scores.librarian.attribution !== undefined && (
                 <span class="dim-item">
-                  <span class="dim-label">{labels.attribution}</span>
+                  <span class="dim-label" data-short="Attr">
+                    {labels.attribution}
+                  </span>
                   <strong class={scoreColor(scores.librarian.attribution)}>
                     {scores.librarian.attribution}
                   </strong>
@@ -196,7 +204,9 @@ const labels = {
             <div class="dim-list">
               {scores.freshEyes.readability !== undefined && (
                 <span class="dim-item">
-                  <span class="dim-label">{labels.readability}</span>
+                  <span class="dim-label" data-short="Read">
+                    {labels.readability}
+                  </span>
                   <strong class={scoreColor(scores.freshEyes.readability)}>
                     {scores.freshEyes.readability}
                   </strong>
@@ -204,7 +214,9 @@ const labels = {
               )}
               {scores.freshEyes.firstImpression !== undefined && (
                 <span class="dim-item">
-                  <span class="dim-label">{labels.firstImpression}</span>
+                  <span class="dim-label" data-short="First">
+                    {labels.firstImpression}
+                  </span>
                   <strong class={scoreColor(scores.freshEyes.firstImpression)}>
                     {scores.freshEyes.firstImpression}
                   </strong>
@@ -245,7 +257,9 @@ const labels = {
             <div class="dim-list">
               {scores.factCheck.accuracy !== undefined && (
                 <span class="dim-item">
-                  <span class="dim-label">{labels.accuracy}</span>
+                  <span class="dim-label" data-short="Acc">
+                    {labels.accuracy}
+                  </span>
                   <strong class={scoreColor(scores.factCheck.accuracy)}>
                     {scores.factCheck.accuracy}
                   </strong>
@@ -253,7 +267,9 @@ const labels = {
               )}
               {scores.factCheck.fidelity !== undefined && (
                 <span class="dim-item">
-                  <span class="dim-label">{labels.fidelity}</span>
+                  <span class="dim-label" data-short="Fid">
+                    {labels.fidelity}
+                  </span>
                   <strong class={scoreColor(scores.factCheck.fidelity)}>
                     {scores.factCheck.fidelity}
                   </strong>
@@ -261,7 +277,9 @@ const labels = {
               )}
               {scores.factCheck.consistency !== undefined && (
                 <span class="dim-item">
-                  <span class="dim-label">{labels.consistency}</span>
+                  <span class="dim-label" data-short="Cons">
+                    {labels.consistency}
+                  </span>
                   <strong class={scoreColor(scores.factCheck.consistency)}>
                     {scores.factCheck.consistency}
                   </strong>
@@ -269,7 +287,9 @@ const labels = {
               )}
               {scores.factCheck.sourceBoundary !== undefined && (
                 <span class="dim-item">
-                  <span class="dim-label">{labels.sourceBoundary}</span>
+                  <span class="dim-label" data-short="Bound">
+                    {labels.sourceBoundary}
+                  </span>
                   <strong class={scoreColor(scores.factCheck.sourceBoundary)}>
                     {scores.factCheck.sourceBoundary}
                   </strong>
@@ -277,7 +297,9 @@ const labels = {
               )}
               {scores.factCheck.commentarySeparation !== undefined && (
                 <span class="dim-item">
-                  <span class="dim-label">{labels.commentarySeparation}</span>
+                  <span class="dim-label" data-short="Sep">
+                    {labels.commentarySeparation}
+                  </span>
                   <strong class={scoreColor(scores.factCheck.commentarySeparation)}>
                     {scores.factCheck.commentarySeparation}
                   </strong>
@@ -317,31 +339,41 @@ const labels = {
             <div class="dim-list">
               {scores.vibe.persona !== undefined && (
                 <span class="dim-item">
-                  <span class="dim-label">{labels.persona}</span>
+                  <span class="dim-label" data-short="Pers">
+                    {labels.persona}
+                  </span>
                   <strong class={scoreColor(scores.vibe.persona)}>{scores.vibe.persona}</strong>
                 </span>
               )}
               {scores.vibe.clawdNote !== undefined && (
                 <span class="dim-item">
-                  <span class="dim-label">{labels.clawdNote}</span>
+                  <span class="dim-label" data-short="Note">
+                    {labels.clawdNote}
+                  </span>
                   <strong class={scoreColor(scores.vibe.clawdNote)}>{scores.vibe.clawdNote}</strong>
                 </span>
               )}
               {scores.vibe.vibe !== undefined && (
                 <span class="dim-item">
-                  <span class="dim-label">{labels.vibe_dim}</span>
+                  <span class="dim-label" data-short="Vibe">
+                    {labels.vibe_dim}
+                  </span>
                   <strong class={scoreColor(scores.vibe.vibe)}>{scores.vibe.vibe}</strong>
                 </span>
               )}
               {scores.vibe.clarity !== undefined && (
                 <span class="dim-item">
-                  <span class="dim-label">{labels.clarity}</span>
+                  <span class="dim-label" data-short="Clear">
+                    {labels.clarity}
+                  </span>
                   <strong class={scoreColor(scores.vibe.clarity)}>{scores.vibe.clarity}</strong>
                 </span>
               )}
               {scores.vibe.narrative !== undefined && (
                 <span class="dim-item">
-                  <span class="dim-label">{labels.narrative}</span>
+                  <span class="dim-label" data-short="Narr">
+                    {labels.narrative}
+                  </span>
                   <strong class={scoreColor(scores.vibe.narrative)}>{scores.vibe.narrative}</strong>
                 </span>
               )}
@@ -389,11 +421,11 @@ const labels = {
 
   @media (max-width: 639px) {
     .judge-cards {
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
 
-  @media (max-width: 399px) {
+  @media (max-width: 339px) {
     .judge-cards {
       grid-template-columns: 1fr;
     }
@@ -406,12 +438,14 @@ const labels = {
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
+    min-width: 0;
   }
 
   .card-header {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    min-width: 0;
   }
 
   .judge-icon {
@@ -424,6 +458,7 @@ const labels = {
     display: flex;
     flex-direction: column;
     gap: 0.1rem;
+    flex: 1;
     min-width: 0;
   }
 
@@ -515,12 +550,14 @@ const labels = {
     color: var(--color-text-muted);
     font-size: 0.7rem;
     margin-top: 0.1rem;
+    min-width: 0;
   }
 
   .dim-item {
     display: flex;
     gap: 0.2rem;
     align-items: baseline;
+    min-width: 0;
   }
 
   .dim-label {
@@ -538,5 +575,63 @@ const labels = {
     color: var(--color-border);
     font-size: 0.7rem;
     margin-right: 0.15rem;
+  }
+
+  @media (max-width: 480px) {
+    .ai-judge-panel {
+      padding: 0.875rem;
+    }
+
+    .judge-cards {
+      gap: 0.5rem;
+    }
+
+    .judge-card {
+      padding: 0.625rem;
+      gap: 0.35rem;
+    }
+
+    .card-header {
+      gap: 0.35rem;
+    }
+
+    .judge-icon svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .judge-name {
+      font-size: 0.78rem;
+    }
+
+    .model-info {
+      max-width: 100%;
+      font-size: 0.6rem;
+    }
+
+    .card-score {
+      font-size: 1.35rem;
+    }
+
+    .dim-list {
+      gap: 0.14rem 0.12rem;
+    }
+
+    .dim-item {
+      gap: 0.16rem;
+    }
+
+    .dim-label {
+      font-size: 0;
+    }
+
+    .dim-label::after {
+      content: attr(data-short);
+      font-size: 0.62rem;
+    }
+
+    .dim-item + .dim-item::before {
+      margin-right: 0.12rem;
+    }
   }
 </style>
