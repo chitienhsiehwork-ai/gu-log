@@ -51,6 +51,7 @@ export const glossaryInclude = [
   'Codex',
   'Codex app server',
   'Hooks',
+  'Elixir',
   'Subagent',
   'Context Window',
   'Context Rot',
