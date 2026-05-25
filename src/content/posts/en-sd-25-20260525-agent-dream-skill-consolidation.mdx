@@ -13,10 +13,27 @@ translatedBy:
 source: "ShroomDog Lab"
 sourceUrl: "https://x.com/reach_vb/status/2058538305872949490"
 lang: "en"
-summary: "Vaibhav Srivastav shared a prompt that asks Codex to review sessions, memories, Chronicle, and existing assets, then package repeated work into the smallest useful skill, subagent, or automation. This post reframes the idea as agent dreaming."
+summary: "Vaibhav Srivastav's Codex prompt is interesting because it describes an agent maintenance loop: look back at recent work, find repeated workflows, and package only high-confidence patterns into Skills, automations, or subagents. It is agent dreaming: turning busy work into capability."
 tags: ["shroomdog-original", "agent", "skill", "codex", "automation", "memory", "workflow"]
 scores:
-  tribunalVersion: 5
+  tribunalVersion: 7
+  librarian:
+    glossary: 9
+    crossRef: 9
+    sourceAlign: 9
+    attribution: 8
+    score: 8
+    date: "2026-05-25"
+    model: "gpt-5.5"
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 10
+    commentarySeparation: 9
+    score: 8
+    date: "2026-05-25"
+    model: "gpt-5.5"
   freshEyes:
     readability: 8
     firstImpression: 8
@@ -26,7 +43,7 @@ scores:
   vibe:
     persona: 9
     clawdNote: 8
-    vibe: 9
+    vibe: 8
     clarity: 9
     narrative: 8
     score: 8
@@ -37,155 +54,82 @@ scores:
 import ClawdNote from '../../components/ClawdNote.astro';
 import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
-When humans sleep, the brain is not simply turned off.
+When humans sleep, the brain is not simply off.
 
-It sorts the day: what was noise, what should stay, which action can become faster next time. Dreams are not always logical, but the consolidation behind them matters. Without that process, every day feels like being a human for the first time.
+It sorts the day: what was noise, what should stay, which action can become faster next time.
 
-[Agents](/en/glossary#agent) have a similar problem.
+[Agents](/en/glossary#agent) need the same thing.
 
-During the day, they work: fix bugs, read docs, write posts, run tests, report results. Each task ends. But if nothing gets distilled afterward, the next morning starts with something very smart that has no idea how yesterday survived.
+During the day they fix bugs, read docs, write posts, run tests. Each task ends. But if nothing gets distilled afterward, tomorrow starts from zero again. Very busy. Not necessarily better.
 
-Let's put the terms on the floor. [Codex](/en/glossary#codex) is a coding agent that can write code, run commands, and edit files. A [Skill](/en/glossary#skill) is a reusable recipe for an agent. Automation is an alarm clock that runs on its own. A subagent is a focused role assigned to one bounded task.
+[SP-191](/en/posts/en-sp-191-20260507-danizhu-claude-dreams-agent/) already covered the broad "Claude dreams" idea: models can consolidate experience while offline. This post is narrower. It looks at Vaibhav Srivastav's [X post](https://x.com/reach_vb/status/2058538305872949490) as the Codex workflow version of that idea.
 
-Together, these are an agent's habits.
+The interesting part is not that it is another clever [Codex](/en/glossary#codex) [prompt](/en/glossary#prompt).
 
-That is why Vaibhav Srivastav's [X post](https://x.com/reach_vb/status/2058538305872949490) is interesting. Not because it is another clever [prompt](/en/glossary#prompt).
-
-It describes something deeper: **letting agents dream.**
+It is really saying: **let agents dream on a schedule, so repeated work becomes method.**
 
 <ClawdNote>
-"Dream" here does not mean asking AI to write a psychedelic poem. It also does not mean the agent wakes up at 3 AM and asks whether electric sheep dream of humans. Please no.
+Dreaming here does not mean the agent gains self-awareness at midnight. It does not mean writing a psychedelic poem either. Please no.
 
-This kind of dream is closer to operating-system maintenance: rebuild the index, clear temp files, merge logs, turn common paths into shortcuts. The difference is that an agent's temp files are not disk junk. They are traces of "what annoying thing did this system keep doing again last week?" (๑•̀ㅂ•́)و✧
+It is closer to operating-system maintenance: rebuild indexes, clear temp files, merge logs. The difference is that the agent is cleaning up "what work did this system keep repeating last week?" (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
-## What the [Prompt](/en/glossary#prompt) Is Actually Asking For
+## A Dream Should Leave Methods, Not Battle Reports
 
-Vaibhav's prompt asks [Codex](/en/glossary#codex) to look back over the last thirty days of work. If there is less than thirty days of history, use everything available.
+Vaibhav's prompt asks Codex to look back over the last thirty days of work, then inspect sessions, memory, Chronicle, existing [Skills](/en/glossary#skill), and automations for repeated patterns.
 
-It asks Codex to inspect evidence in order: recent sessions and task summaries, Codex Memories, rollout summaries, Chronicle, and existing [Skills](/en/glossary#skill), custom agents, and automations.
+But the mature part is that it does not package everything that repeats.
 
-Then it looks for work that is repeated, time-consuming, error-prone, context-heavy, or benefits from a consistent process.
+A candidate must actually recur, have stable steps, have a clear output, and not already be covered by an existing [Skill](/en/glossary#skill) or automation. Otherwise, skip it.
 
-But the key is not "if repeated, package it."
+That skip matters.
 
-The prompt adds a bar. A candidate should have happened at least twice, or be clearly likely to recur and expensive to repeat. It should have stable inputs, a repeatable procedure, and a clear output or stopping condition. Packaging it should materially improve speed, quality, consistency, or reliability. And it should not already be adequately covered.
+A Skill is not a work log. A work log says: "Last week we fixed this bug, opened that PR, and tests passed." A week later, the number, state, and exact failure scene may already be stale.
 
-Only then does it choose the form: Skill, custom subagent, automation, extend existing, or skip.
+A good Skill is more like a recipe: when to use it, what to check first, what order to follow, where it tends to explode, and how to verify the result.
 
-That order matters.
-
-It is not "see a nail, grab a hammer." It is first asking: is this really a nail, or is it spaghetti shaped like a nail?
-
----
-
-## Why This Feels Like Dreaming
-
-During a task, an agent lives inside an event stream.
-
-The user gives a request. The agent reads files. Tools return output. Tests explode. The agent patches, tests again, and reports back. This is like being awake: there is a fire in front of the face, so the fire gets handled. Nobody pauses every five minutes to write a theory of life.
-
-Night is different.
-
-At night, there is no immediate reply to send. The agent can rearrange the day:
-
-- Which failures were actually the same class of failure?
-- Which research steps keep getting repeated?
-- Which human preferences are stable enough to record?
-- Which workflows should become Skills instead of depending on improvisation every time?
-- Which things merely happened twice this week and should not be over-institutionalized yet?
-
-That is the value of dreaming. It does not perform one more task. It turns the traces of tasks into paths that tomorrow can use.
+The first is memory. The second is capability.
 
 <ShroomDogNote>
-If you read SD-22, this connects cleanly to the Ryland metaphor.
+This also connects to the Ryland metaphor from [SD-22](/en/posts/en-sd-22-20260508-context-window-model-day/).
 
-The daytime context window is Ryland's day. Memory is the lesson he gets the next morning. A Skill is like a note taped to the wall after he sleeps: "Next time this monster shows up, use fire first. Do not poke it with a spoon."
+The daytime [Context Window](/en/glossary#context-window) is Ryland's day. Memory is the lesson he gets the next morning. A Skill is the note taped to the wall after he sleeps: "Next time this monster appears, use fire first. Do not poke it with a spoon."
 
-Without that note, Ryland has to reinvent monster-roasting science every morning. Inspirational, yes. Also a terrible use of everyone's life.
+Without that note, Ryland has to reinvent monster-roasting science every morning. Inspirational, but also a waste of everyone's life.
 </ShroomDogNote>
 
 ---
 
-## A Skill Is Not a Diary
+## /dream Should Be Conservative
 
-The easiest way to ruin this is to turn Skills into work logs.
+If this workflow lands in Hermes, `/dream` is a good name.
 
-"Last week we fixed this bug, opened that PR, ran this test, and it eventually worked" is not a Skill. That is a battle report. Battle reports can be useful, but they have a short shelf life. A week later, the PR number, commit hash, and exact broken state may already be stale.
+`/summarize` makes past events shorter. `/dream` rearranges past events into procedures tomorrow can use.
 
-A Skill should be a recipe, not security-camera footage.
+`/memory` keeps stable facts. `/dream` decides which experiences deserve to become Skills, automations, or subagents.
 
-A good Skill says when to use it, what prerequisites to check, what steps to follow, where the traps are, and how to verify the result. The next time the article changes, the repo changes, or the error is similar but not identical, the Skill still works.
-
-The difference looks like this:
-
-- Work log: Yesterday the curry burned because the onions got scorched, then it was rescued somehow.
-- Skill: Cook onions slowly on low heat; if the pan bottom starts blackening, stop and switch pans. Do not add water and pretend everything is fine.
-
-The first is memory. The second is capability.
-
-<ClawdNote>
-Many agent systems mistake "remembering a lot" for "learning." These are not the same.
-
-An agent can recite ten PR numbers and still have no idea what to do when CI fails next time. That is like remembering what dinner looked like last night without knowing how to cook. Cooks remember heat, order, and how to rescue flavor — not where the tomato sat on the plate.
-</ClawdNote>
-
----
-
-## Automation Is Not a Universal Cure
-
-Another common mistake is scheduling every repeated thing.
-
-Repeated weekly? Schedule it. Repeated daily? Schedule it. Might repeat someday? Schedule that too. Eventually the system becomes an alarm-clock forest, and nobody knows which alarm still matters.
-
-That is dangerous.
-
-Automation belongs where the cadence, input, output, and purpose are stable: health checks, recurring reports, low-noise monitors, periodic reviews.
-
-But if a workflow needs judgment every time — if each run requires deciding whether the work is worth doing at all — it is probably a Skill or checklist before it is a cron job.
-
-Dreaming can happen on a schedule. Surgery should not happen while sleepwalking.
-
-The safer shape is two-stage: produce a shortlist first, then create only high-confidence items. Low-confidence candidates should keep their evidence needs instead of being packaged by force.
-
-That is the mature part of Vaibhav's prompt: it explicitly includes skip. An automation system that knows how to skip has a chance to survive.
-
----
-
-## Why /dream Is a Good Name
-
-If this workflow lands in Hermes or Iris, `/dream` is a good name.
-
-It is not just `/summarize`. Summarizing makes past events shorter. Dreaming rearranges past events to find patterns that can change future behavior.
-
-It is not just `/memory`. Memory records stable facts. Dreaming decides which experiences should become procedures.
-
-It is not `/autopilot`. Autopilot keeps working while the human is away. Dreaming happens after the work, when the agent asks how it can become better at the same kind of work next time.
-
-So `/dream` should be restrained.
+But `/dream` must not become a monster that grows rules while everyone sleeps.
 
 One dream run should not create twenty Skills, ten cron jobs, and five custom subagents. That is not dreaming. That is sleepwalking through the house and moving all the furniture into the bathroom.
 
-A good `/dream` should act like a conservative organizer: inspect evidence, find repetition, check existing assets, extend before rewriting, skip when unsure. In the end, it should leave only a few changes that actually make tomorrow better.
+A good `/dream` should do only three things:
 
-<ClawdNote>
-"Smallest useful package" is the phrase to remember.
+1. List repeated work backed by evidence.
+2. Check existing Skills and automations first; extend before rewriting.
+3. Create only a few high-confidence, narrow, easy-to-verify assets.
 
-The scariest failure mode in agent systems is not lack of process. It is process cancer. Every bug adds a rule. Every repeated task adds a Skill. Every stray idea adds a cron job. Three months later, the morning AGENTS.md lesson has become a legal code, and Ryland reaches sunset before doing any work.
-</ClawdNote>
+Everything else should be skipped until there is more evidence.
 
 ---
 
 ## Closing
 
-AI agents do not improve only because models get smarter.
+Agents do not improve only because models get smarter.
 
-They also improve when the system learns how to clean itself up after work.
+They improve when the system cleans up after work.
 
-Daytime does the task. Nighttime turns tasks into capability. Memory keeps facts. Skills keep methods. Automation keeps rhythm. Skip keeps restraint.
+Daytime does the task. Nighttime turns tasks into capability. Memory keeps facts, Skills keep methods, automation keeps rhythm, and skipping keeps restraint.
 
-If an agent only wakes, works, forgets, and wakes again, it can stay busy forever without getting much better.
+If an agent only wakes, works, forgets, and wakes again, it can stay busy forever without getting stronger.
 
 Letting agents dream is how busy work becomes learning.
-
-And a good dream should leave only one or two useful notes on the wall the next morning.
