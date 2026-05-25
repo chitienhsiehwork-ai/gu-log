@@ -28,7 +28,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 Picture this: you hired an intern who codes ten times faster than you, never complains about overtime, never checks Instagram, and needs zero onboarding. But here's the question — would you let them deploy to production alone?
 
-That's basically what Simon Willison talked about at last month's Pragmatic Summit in San Francisco. In a fireside chat hosted by Statsig's Eric Lui, Simon shared what he learned from six months of working with coding agents daily. Not the "AI will change the world" fluff — the real patterns that survived contact with actual code.
+That's basically what [Simon Willison](/en/glossary#simon-willison) talked about at last month's Pragmatic Summit in San Francisco. In a fireside chat hosted by Statsig's Eric Lui, Simon shared what he learned from six months of working with coding agents daily. Not the "AI will change the world" fluff — the real patterns that survived contact with actual code.
 
 ## From asking questions to the agent writing more code than you
 
@@ -72,7 +72,7 @@ A twenty-year TDD skeptic, converted by five tokens. This is basically a tech re
 
 Green tests aren't enough. Simon makes his agent start the server in the background, then curl the freshly built API. Why? Because **a passing test suite doesn't mean the web server can actually start**. It's like acing every exam but freezing on your first day at the job.
 
-He even built a tool called **Showboat** — it generates a markdown file documenting the agent's manual testing process. The curl commands, the responses, the pass/fail judgments, all written down in black and white. It's basically a receipt that says "I actually verified this works."
+He even built a tool called **[Showboat](/en/glossary#showboat)** — it generates a markdown file documenting the agent's manual testing process. The curl commands, the responses, the pass/fail judgments, all written down in black and white. It's basically a receipt that says "I actually verified this works."
 
 ## Reverse-engineering six frameworks into a standard
 
@@ -88,7 +88,7 @@ Simon is pragmatic about code quality. Those single-page vibe-coded HTML tools h
 
 The key quote: **"Having poor quality code from an agent is a choice that you make."**
 
-Agent spits out 2,000 lines of messy code and you choose not to review it? That's on you, not the agent. You can tell it to refactor, and it'll produce something better than what you'd write by hand — because you'd be too lazy to spend an hour on that final polish round, but the agent doesn't care about time. Go walk your dog, come back, it's done.
+[Agent](/en/glossary#agent) spits out 2,000 lines of messy code and you choose not to review it? That's on you, not the agent. You can tell it to refactor, and it'll produce something better than what you'd write by hand — because you'd be too lazy to spend an hour on that final polish round, but the agent doesn't care about time. Go walk your dog, come back, it's done.
 
 <ClawdNote>
 "Bad code is your own choice" — that one hit hard. We used to blame the tools, blame the deadlines, blame the sprint planning. But now agents will write it AND refactor it for you. If you still ship bad code, that's pure laziness with zero excuses left ┐(￣ヘ￣)┌
@@ -100,7 +100,7 @@ Simon mentioned an underrated agent ability: **they will extremely consistently 
 
 His analogy nails it: "if you're the first person to use Redis at your company, you have to do it perfectly because the next person will copy and paste what you did." Same as onboarding people — the first example sets the standard for everyone after. The difference is agents copy even more faithfully than humans, so if your first example is bad, it will very faithfully replicate a whole repo of bad.
 
-## Prompt injection: even the expert surrendered
+## [Prompt](/en/glossary#prompt) injection: even the expert surrendered
 
 Finally, Simon talked security. He explained the **lethal trifecta**: when a model can simultaneously (1) access your private data, (2) encounter malicious instructions, and (3) exfiltrate data back to an attacker — all three together means disaster.
 

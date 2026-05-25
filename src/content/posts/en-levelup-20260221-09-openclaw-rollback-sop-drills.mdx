@@ -121,7 +121,7 @@ Step one: stop the watchdog timer. Think of it like widening the alarm threshold
 
 Step two: run `pre-update` — snapshot plus rollback package backup. This is stocking up on blood before surgery. Some people think "I'm confident nothing will go wrong" and skip this step. Then when things go wrong, they discover they have no way back. Upgrading without a backup is walking a tightrope with no safety net underneath.
 
-Step three: upgrade OpenClaw itself. Nothing fancy here — this is the most boring and straightforward step.
+Step three: upgrade [OpenClaw](/en/glossary#openclaw) itself. Nothing fancy here — this is the most boring and straightforward step.
 
 Step four: **check `OPENCLAW_NO_RESPAWN=1`**. I need to pause here because this is the only step in the entire flow marked as a "hard gate." Why? Because of the blood lesson from Lv-08: the self-respawn amplification loop. Forget this flag and restart fails? The watchdog frantically tries to restart the service, each restart fails again, creating a restart storm. Your system starts thrashing like a drowning person — every struggle pushes it deeper.
 
@@ -193,7 +193,7 @@ fi
 
 But the story has a second act.
 
-After Codex carefully reviewed all 14 items, it pushed back on 3 of them. The argument: the reviewer was referencing old spec versions (v2/v3), not the final v4. The reviewer said "this doesn't handle edge case X." Codex replied "v4 spec moved X to the upstream layer — you're looking at the v2 flow."
+After [Codex](/en/glossary#codex) carefully reviewed all 14 items, it pushed back on 3 of them. The argument: the reviewer was referencing old spec versions (v2/v3), not the final v4. The reviewer said "this doesn't handle edge case X." Codex replied "v4 spec moved X to the upstream layer — you're looking at the v2 flow."
 
 The team went back to check the specs. All 3 of Codex's pushbacks held up.
 

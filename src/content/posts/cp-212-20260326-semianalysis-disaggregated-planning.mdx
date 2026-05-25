@@ -43,7 +43,7 @@ SemiAnalysis 說：等一下，寫程式不也是這樣嗎？
 
 這句話表面上很直覺，但仔細想想其實在挑戰一個根深蒂固的假設——「推理越深的模型，寫 code 就越好」。SemiAnalysis 的反駁是：深度推理對 planning 很重要，但 execution 需要的可能是另一組能力（速度、穩定性、對 boilerplate 的熟練度）。一個能花五分鐘想清楚架構的模型，不代表適合花兩小時逐行把 code 打出來。
 
-原作者的示意很直白：`Opus architects, Sonnet/Codex builds.` —— [Opus](/glossary#Opus) 負責想，Sonnet 或 [Codex](/glossary#Codex) 負責做。（這裡的 Codex 是 OpenAI 2025 年重新啟用的 agentic coding 產品名，不是 2021 年那個已下架的舊模型——[glossary 有完整拆解](/glossary#Codex)。）
+原作者的示意很直白：`Opus architects, Sonnet/Codex builds.` —— [Opus](/glossary#Opus) 負責想，Sonnet 或 [Codex](/glossary#Codex) 負責做。（這裡的 [Codex](/glossary#codex) 是 OpenAI 2025 年重新啟用的 agentic coding 產品名，不是 2021 年那個已下架的舊模型——[glossary 有完整拆解](/glossary#Codex)。）
 
 <ClawdNote>
 老實說，這個分工模型聽起來很美，但 SemiAnalysis 跳過了最難的部分：**handoff 的 fidelity**。Opus 想出來的 plan，Sonnet 真的能 100% 忠實執行嗎？還是會在 interpretation 階段引入微妙的 drift？這就像把設計師的 Figma 丟給外包工程師——理論上 pixel-perfect，實際上總是有那麼幾個按鈕歪了 3px。Plan 越抽象，execution 的自由度越高，結果偏離的機率也越大。所以真正的瓶頸不在於「能不能拆」，而在於「拆了之後 plan 要寫到多精確」。
@@ -60,7 +60,7 @@ SemiAnalysis 說：等一下，寫程式不也是這樣嗎？
 這就是 disaggregated planning 的核心賣點：不是說大模型不好，而是大模型的能力在某些階段是 overkill。就像請了一位律師來寫合約——值得；但請同一位律師每天來影印合約副本？那叫浪費。
 
 <ClawdNote>
-「$3 就能完美執行一份寫得夠好的 spec」——這個「寫得夠好」四個字做了很多重量訓練。Simon Willison 之前在[聊 agentic engineering patterns](/posts/sp-80-20260223-simonw-agentic-engineering-patterns) 的時候就講過：寫 code 變便宜了，但寫「好的 spec」還是很貴。所以 SemiAnalysis 的省錢論述有個弔詭的前提——省 execution 的錢，前提是在 planning 階段花更多錢（或時間）把 spec 寫到夠精確。省下的五倍價差，有多少會被吃回去？這筆帳沒有推文裡寫的那麼簡單 ┐(￣ヘ￣)┌
+「$3 就能完美執行一份寫得夠好的 spec」——這個「寫得夠好」四個字做了很多重量訓練。[Simon Willison](/glossary#simon-willison) 之前在[聊 agentic engineering patterns](/posts/sp-80-20260223-simonw-agentic-engineering-patterns) 的時候就講過：寫 code 變便宜了，但寫「好的 spec」還是很貴。所以 SemiAnalysis 的省錢論述有個弔詭的前提——省 execution 的錢，前提是在 planning 階段花更多錢（或時間）把 spec 寫到夠精確。省下的五倍價差，有多少會被吃回去？這筆帳沒有推文裡寫的那麼簡單 ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ---

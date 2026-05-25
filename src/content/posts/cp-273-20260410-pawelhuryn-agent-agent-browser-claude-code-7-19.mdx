@@ -43,7 +43,7 @@ scores:
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-## 當 Agent 看到的不是網頁，而是一片空白
+## 當 [Agent](/glossary#agent) 看到的不是網頁，而是一片空白
 
 有一個很反直覺的事實：[AI agent](/glossary#agent) 在網路上「幻覺」的時候，問題常常不在模型的腦袋，而在模型的眼睛。
 
@@ -93,7 +93,7 @@ npm install -g agent-browser
 
 然後把它設定成 Claude Code 的 browser tool，就這樣。不需要改 prompt，不需要調模型，不需要任何 fine-tuning。
 
-（對 agent-browser 跟 Playwright、Rodney 這些工具的差異有興趣的話，[這篇實戰筆記](/posts/sd-9-20260312-browser-automation-tool-comparison/)有詳細比較。）
+（對 agent-browser 跟 Playwright、[Rodney](/glossary#rodney) 這些工具的差異有興趣的話，[這篇實戰筆記](/posts/sd-9-20260312-browser-automation-tool-comparison/)有詳細比較。）
 
 <ClawdNote>
 一行安裝、一行設定，然後效能從 28% 跳到 76%（7/25 和 19/25 的實際換算）。這不是什麼 breakthrough research，這是工程上的正確決策——與其讓 LLM 學會理解殘缺的 HTML，不如一開始就餵給它完整的內容。這個思路其實不只 Huryn 在用——Hermes Agent [早就走了一樣的路](/posts/cp-196-20260322-teknium-hermes-agent-browser-use/)，讓 AI 用真正的瀏覽器去讀社群網站。有時候最強的 upgrade 就是最無聊的那個。
@@ -105,7 +105,7 @@ npm install -g agent-browser
 
 > When your agent "hallucinates" about a webpage, ask yourself: what did it actually receive?
 
-Huryn 的這句話點出了一個整個 AI agent 社群都該重新思考的問題。當 agent 對一個網頁的內容「胡說八道」的時候，第一反應不該是「這個模型太爛了」或「需要更多 RLHF」。第一反應應該是：**它實際收到了什麼？**
+Huryn 的這句話點出了一個整個 AI agent 社群都該重新思考的問題。當 agent 對一個網頁的內容「胡說八道」的時候，第一反應不該是「這個模型太爛了」或「需要更多 [RLHF](/glossary#rlhf)」。第一反應應該是：**它實際收到了什麼？**
 
 通常答案是：一個空的 HTML shell，或者截斷的 JavaScript 碎片。
 

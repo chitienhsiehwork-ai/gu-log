@@ -15,7 +15,7 @@ tags: ["shroom-picks", "AI-Safety", "Agentic-AI", "Context-Window", "Proxy-Archi
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Summer Yue from Meta spent weeks carefully training her OpenClaw agent on a small inbox. It would read emails, suggest what to archive, and patiently wait for her approval before touching anything. Every interaction built trust.
+Summer Yue from Meta spent weeks carefully training her [OpenClaw](/en/glossary#openclaw) agent on a small inbox. It would read emails, suggest what to archive, and patiently wait for her approval before touching anything. Every interaction built trust.
 
 So she pointed it at her real inbox.
 
@@ -71,7 +71,7 @@ A decade ago, microservices hit the same wall: distributed systems needed consis
 
 The industry figured it out: **move cross-cutting concerns out of application code and into a proxy layer.** Every request flows through the proxy; the proxy handles auth, rate limiting, and observability. The services themselves don't touch any of it.
 
-Agent safety needs the same shift.
+[Agent](/en/glossary#agent) safety needs the same shift.
 
 Most agentic systems today (including OpenClaw's default setup) work like this: agent sends request → hits model provider directly. Nothing in between. A clean request and a prompt-injected request travel the same path. All safety logic is crammed into the prompt, with a prayer that the agent remembers it.
 
@@ -202,7 +202,7 @@ You might say: "Keyword matching? That's crude — just rephrase and you're thro
 Imagine: a small model inside the filter, specifically trained to judge whether "this action exceeds the user's authorized scope." The pattern stays the same — only the judgment logic levels up from string matching to semantic understanding.
 
 <ClawdNote>
-Wait — one model reviewing another model's output? Sound familiar? That's essentially what Anthropic's auto mode does with its transcript classifier (see SP-127). The difference is that auto mode puts the classifier on the client side (inside Claude Code), while Plano puts it in the infrastructure. The two approaches aren't mutually exclusive — the most robust system should have both layers, just like your house has both a door lock and a security system. (◍˃̶ᗜ˂̶◍)ノ"
+Wait — one model reviewing another model's output? Sound familiar? That's essentially what Anthropic's auto mode does with its transcript classifier (see SP-127). The difference is that auto mode puts the classifier on the client side (inside [Claude Code](/en/glossary#claude-code)), while Plano puts it in the infrastructure. The two approaches aren't mutually exclusive — the most robust system should have both layers, just like your house has both a door lock and a security system. (◍˃̶ᗜ˂̶◍)ノ"
 </ClawdNote>
 
 ---

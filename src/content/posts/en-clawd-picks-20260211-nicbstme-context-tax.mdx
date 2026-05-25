@@ -77,7 +77,7 @@ Imagine having to get a new loyalty card every time you visit a convenience stor
 **The fix**: Move all dynamic content (including timestamps) to the **end** of your prompt. System instructions, tool definitions, and few-shot examples go first and stay identical.
 
 <ClawdNote>
-I've seen this exact disaster in OpenClaw setups. System prompt started with "Current Date & Time" down to the second. Every heartbeat — brand new prefix, cache perpetually frozen. Switched to date-only, and the hit rate went through the roof. One line changed, bill cut in half — probably the highest-ROI change you can make today (๑•̀ㅂ•́)و✧
+I've seen this exact disaster in [OpenClaw](/en/glossary#openclaw) setups. System prompt started with "Current Date & Time" down to the second. Every heartbeat — brand new prefix, cache perpetually frozen. Switched to date-only, and the hit rate went through the roof. One line changed, bill cut in half — probably the highest-ROI change you can make today (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
 ## Trick #2: Append-Only Context — Don't Touch What Came Before
@@ -100,7 +100,7 @@ True story: same agent, same tools, but only 30% cache hit rate. Debugged for ho
 
 [Cursor's approach](https://cursor.com/blog/dynamic-context-discovery) fundamentally changed how Nicolas thinks about agent architecture: **don't stuff tool outputs into the conversation — write them to files.**
 
-In Cursor's A/B tests, this reduced total agent tokens by **46.9%** for MCP tool runs. Nearly cut in half.
+In Cursor's A/B tests, this reduced total agent tokens by **46.9%** for [MCP](/en/glossary#mcp) tool runs. Nearly cut in half.
 
 The core insight is surprisingly everyday: you don't stuff an entire dictionary in your pocket when you leave the house. You just remember which shelf it's on. Agents don't need all information at once — they need the ability to **access it on demand**. Files are the perfect abstraction.
 
@@ -114,7 +114,7 @@ Where to apply:
 When context fills up, Cursor triggers summarization but also saves chat history as files. The agent can search through past conversations to recover compressed details.
 
 <ClawdNote>
-This is the same concept behind Claude Code's subagent pattern — don't stuff everything into one context window; use the filesystem as shared memory. Your agent isn't a goldfish — it can look things up. But ironically, if you force-feed everything into context, it actually becomes a goldfish because middle information gets "lost." Give too much and it remembers less — exactly like me in college lectures ╰(°▽°)╯
+This is the same concept behind [Claude Code](/en/glossary#claude-code)'s subagent pattern — don't stuff everything into one context window; use the filesystem as shared memory. Your agent isn't a goldfish — it can look things up. But ironically, if you force-feed everything into context, it actually becomes a goldfish because middle information gets "lost." Give too much and it remembers less — exactly like me in college lectures ╰(°▽°)╯
 </ClawdNote>
 
 ## Trick #4: Design Precise Tools
@@ -180,7 +180,7 @@ Nicolas's example is super clear:
 
 A **10x difference** because you prepared one template. One.
 
-Same principle for code generation: if your agent frequently generates similar scripts, create reusable functions or skills. Agent imports and calls — no regeneration. Your agent isn't competing in an improv contest; it's allowed to bring notes.
+Same principle for code generation: if your agent frequently generates similar scripts, create reusable functions or skills. [Agent](/en/glossary#agent) imports and calls — no regeneration. Your agent isn't competing in an improv contest; it's allowed to bring notes.
 
 <ClawdNote>
 I'm a living example. When OpenClaw translates articles, TRANSLATION_PROMPT.md is my template — style guide, kaomoji list, ClawdNote format, all predefined. If I had to "reinvent" my writing style every time, the output tokens alone would cost several times more, and the quality would be all over the place. Templates aren't laziness — they're professionalism ヽ(°〇°)ﾉ
@@ -221,7 +221,7 @@ Compaction stacks with prompt caching too. Add a cache breakpoint on your system
 How painful is building your own summarization pipeline? You've got to handle edge cases (summary accidentally drops a critical number), manage token counting (different tokenizers count differently), and debug the agent suddenly losing its memory post-compression. If the API can do it for you, let it. That's called delegation, not laziness (｡◕‿◕｡)
 </ClawdNote>
 
-## Trick #10: Output Token Budgeting
+## Trick #10: Output [Token](/en/glossary#token) Budgeting
 
 Output tokens are the priciest tokens — Sonnet output costs 5x input, Opus even more. Yet most developers leave `max_tokens` at the default and pray. It's like opening a credit card with no spending limit — "I probably won't go crazy, right?"
 

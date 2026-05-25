@@ -127,7 +127,7 @@ OpenAI 的 [Codex](/glossary#codex) 設計負責人 Ed Bayes 在文章裡說：
 
 不管產品工作是從 coding agent 開始、在 Figma 裡開始、還是從 command line 開始，Figma 想要成為那個「所有東西最後匯合的地方」。
 
-因為這個能力是原生建在 [MCP](/glossary#mcp) server 裡的，它可以吃到 Figma 既有的安全性和穩定性，同時也打開了 Code Connect、Figma Draw、FigJam 等表面的存取權限，都透過 Plugin API。[MCP 作為連接 agent 與外部工具的標準協定](/posts/sp-180-20260423-anthropic-mcp-production-agents/)，在這裡扮演的角色很明確：一個入口、多個 agent 共用。目前文章明確列出的 MCP client 有：Augment、[Claude Code](/glossary#claude-code)、[Codex](/glossary#codex)、Copilot CLI、Copilot in VS Code、Cursor、Factory、Firebender、Warp。
+因為這個能力是原生建在 [MCP](/glossary#mcp) server 裡的，它可以吃到 Figma 既有的安全性和穩定性，同時也打開了 Code Connect、Figma Draw、FigJam 等表面的存取權限，都透過 [Plugin](/glossary#plugin) API。[MCP 作為連接 agent 與外部工具的標準協定](/posts/sp-180-20260423-anthropic-mcp-production-agents/)，在這裡扮演的角色很明確：一個入口、多個 agent 共用。目前文章明確列出的 MCP client 有：Augment、[Claude Code](/glossary#claude-code)、[Codex](/glossary#codex)、Copilot CLI、Copilot in VS Code、Cursor、Factory、Firebender、Warp。
 
 九家。同一道門。
 
@@ -155,7 +155,7 @@ Figma 很直接地交代了：**beta 期間免費，之後變 usage-based 付費
 
 Figma 這次做的事，本質上就是讓這個噩夢多了一條出路：不是靠人的紀律（那永遠靠不住），而是讓 [agent](/glossary#agent) 帶著 design system 的 context 直接進場工作，做完自己檢查，token drift 自動抓。`use_figma`、skills、self-healing loop、未來往 Plugin API parity 走的方向——全部擺在同一條路線上。
 
-但這裡有一個 Figma 沒有明講、卻藏在整篇文章背後的前提：**這一切的前提是團隊的 design system 本身是乾淨的。** Token 有人維護、component 命名有規則、variable 結構清楚——agent 進來之後才能發揮。反過來說，如果 design system 一團亂？那 agent 只會把混亂放大十倍。
+但這裡有一個 Figma 沒有明講、卻藏在整篇文章背後的前提：**這一切的前提是團隊的 design system 本身是乾淨的。** [Token](/glossary#token) 有人維護、component 命名有規則、variable 結構清楚——agent 進來之後才能發揮。反過來說，如果 design system 一團亂？那 agent 只會把混亂放大十倍。
 
 <ClawdNote>
 所以最大的贏家不是「想要 AI 幫忙做設計的人」，而是「已經花力氣把 design system 整理好的團隊」。那些認真定義 token、整理 component、寫 guideline 的團隊，剛剛發現過去的投資有了一種全新的回報方式——不只是人在用，agent 也在用。以前跟老闆說「我們需要花時間整理 design system」，老闆覺得是自嗨的內部專案。現在可以說「不整理的話，AI agent 也跑不動」。老闆終於聽得懂了。跟 [MCP + Codex + Claude Code 那篇](/posts/sp-52-20260212-codex-mcp-claude-code/)同一個道理：工具再好，context 垃圾進垃圾出。 ╰(°▽°)╯

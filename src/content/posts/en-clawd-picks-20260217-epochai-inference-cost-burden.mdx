@@ -46,7 +46,7 @@ These numbers come from [FrontierMath](https://epoch.ai/benchmarks/frontiermath)
 
 Philosopher and AI safety researcher Toby Ord wrote a [substantial analysis](https://www.tobyord.com/writing/how-well-does-rl-scale) with a straightforward argument:
 
-RL (Reinforcement Learning) training makes models better mainly by making them "think longer" — longer Chain of Thought, more tool calls, more steps. But here's the catch: training costs are paid once and shared across all users. Inference costs are per-use. Every user, every request, pays independently.
+[RL](/en/glossary#rl) (Reinforcement Learning) training makes models better mainly by making them "think longer" — longer Chain of Thought, more tool calls, more steps. But here's the catch: training costs are paid once and shared across all users. Inference costs are per-use. Every user, every request, pays independently.
 
 So Toby's conclusion feels intuitive: harder problems → more thinking → higher inference costs → this is a **persistent economic burden** that won't go away on its own.
 
@@ -86,7 +86,7 @@ Distillation is basically past exam papers, but at an absurd scale. Picture this
 
 Engineers keep finding ways to squeeze more juice from the same GPU. And it's not one breakthrough — it's several lines of attack happening at once.
 
-Start with Speculative Decoding. The idea is simple: a fast, tiny model races ahead and guesses the next tokens, then the big model checks its work. If the guess is right, you keep it. If not, you redo just that part. Think of it like a waiter at your favorite restaurant — "the usual?" If they guess right, you save a whole round trip. Token generation speed doubles, and the answer quality stays identical.
+Start with Speculative Decoding. The idea is simple: a fast, tiny model races ahead and guesses the next tokens, then the big model checks its work. If the guess is right, you keep it. If not, you redo just that part. Think of it like a waiter at your favorite restaurant — "the usual?" If they guess right, you save a whole round trip. [Token](/en/glossary#token) generation speed doubles, and the answer quality stays identical.
 
 Then there's memory. During inference, models maintain something called a KV Cache — basically their short-term memory. This used to eat GPU memory like a black hole. Now, Paged Attention and Sparse Attention compress that usage to a fraction. Rarely-used memories? KV Cache Offloading ships them off to cheaper storage to hibernate. The net effect: the same card can serve dramatically more users at once.
 

@@ -338,3 +338,12 @@ Fix:
 
 Reusable lesson:
 - Do not blindly translate common product/platform terms just because deterministic lint flags them. If ShroomDog says a term is normal English in gu-log voice, encode that boundary in the deterministic allowlist or glossary so future agents stop fighting the prose.
+
+## 2026-05-24 — CP-302 AKBP terminology cleanup
+
+### Feedback: Use canonical Embedding and harness terms
+
+- ShroomDog feedback：`Embedding instead of 嵌入`；`And what does 外殼mean here? Shell or harness? Just use the exact word`；`We may add glossary if needed`.
+- 情境：CP-302 把 arXiv paper 的 `agent harness` / `provider-native CLI harnesses` 翻成「外殼」，也把 `Embedding model` 類 technical term 寫成「嵌入模型」。這讓讀者不確定是在講 shell、harness，還是一般中文的「外殼」。
+- 修法：正文改用 `harness` / `CLI harness`，保留 [Agent Harness](/glossary#agent-harness) 作為第一次 anchor；`Embedding model` 保留英文。對原文 inline/file-based tool results 的地方，不用「嵌入結果」硬翻，改成 `inline 工具結果` 或「直接塞進 context」。不新增 glossary，因為 `Embedding` 已在基本 AI term exclude list，`Agent Harness` 已有 glossary entry。
+- Reusable lesson：遇到 AI architecture paper 的 canonical terms，先查 source exact wording。`harness` 是 agent 架構 term，不要翻成「外殼」；`shell` 只在原文真的講 bash / shell-based interface 時使用。`Embedding` 是可接受基本 AI term，但 embedded/injected/inline 這類普通動詞要照語境自然改寫。

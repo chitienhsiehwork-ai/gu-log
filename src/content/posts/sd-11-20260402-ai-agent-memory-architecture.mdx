@@ -50,7 +50,7 @@ import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
 這不是 bug。這是物理限制：**context window 有頭有尾，新 session 一開，前一個 session 的東西就歸零。** 你花了幾十分鐘建立的上下文，全不見了。就像每天早上你的助手都喝了孟婆湯，昨天講過的事要重新說一遍。
 
-Claude Code 的洩漏事件（詳見 [SP-148](/posts/sp-148-20260401-chaofan-shou-claude-code-source-leak)）讓我們意外看到了 Anthropic 內部怎麼解決這個問題。他們在 512K 行的 TypeScript 裡藏了一套三層記憶架構，還有一個我覺得是整篇最重要的設計原則：**Memory 是 hint，不是 truth。**
+[Claude Code](/glossary#claude-code) 的洩漏事件（詳見 [SP-148](/posts/sp-148-20260401-chaofan-shou-claude-code-source-leak)）讓我們意外看到了 Anthropic 內部怎麼解決這個問題。他們在 512K 行的 TypeScript 裡藏了一套三層記憶架構，還有一個我覺得是整篇最重要的設計原則：**Memory 是 hint，不是 truth。**
 
 這篇文章最後有一件更有趣的事。先從問題開始。
 
@@ -128,7 +128,7 @@ Claude Code 的解法聽起來簡單，但執行很精確：**把「記憶的地
 
 爛法有兩種，分別需要兩條規則來擋。
 
-**第一種爛法：index 和 topic file 不同步。** Agent 寫完一個 topic file，但 MEMORY.md 的指標沒更新。下次需要這段知識，agent 查 MEMORY.md，找到舊指標，讀到過期資訊——或者更糟，根本找不到，以為知識不存在，然後重新發明輪子。
+**第一種爛法：index 和 topic file 不同步。** [Agent](/glossary#agent) 寫完一個 topic file，但 MEMORY.md 的指標沒更新。下次需要這段知識，agent 查 MEMORY.md，找到舊指標，讀到過期資訊——或者更糟，根本找不到，以為知識不存在，然後重新發明輪子。
 
 Claude Code 的解法叫 **Strict Write Discipline**：必須在成功寫入 topic file 之後，才能更新 MEMORY.md 的指標。順序不能反過來。要麼兩者都是新的，要麼 MEMORY.md 指到的是上一個已知正確的狀態。分散式系統工程師看到這裡應該點頭——最簡單形式的原子性保證，只靠寫入順序，不需要 transaction。
 
@@ -168,7 +168,7 @@ Claude Code 的解法是 **autoDream**——在 session 結束後自動觸發的
 
 **隔離。** 記憶整合是有點危險的操作——你要刪重複的、合併矛盾的。如果整合過程出了問題（比如 hallucinate 刪掉了重要的東西），這個災難不應該污染 main context。Fork 一個分身去做，出事了砍掉重來，main session 完全不受影響。
 
-**Prompt cache 效率。** Forked subagent 繼承 parent context 的 byte-identical copy。LLM provider 的 prompt cache 是以 prefix 為單位——相同的 prefix = cache hit，便宜又快。Fork 出來的 subagent 跟 parent 共享 prefix，cache hit rate 極高。等於是在用別人幫你暖好的 cache，白賺。
+**[Prompt](/glossary#prompt) cache 效率。** Forked subagent 繼承 parent context 的 byte-identical copy。LLM provider 的 prompt cache 是以 prefix 為單位——相同的 prefix = cache hit，便宜又快。Fork 出來的 subagent 跟 parent 共享 prefix，cache hit rate 極高。等於是在用別人幫你暖好的 cache，白賺。
 
 一個設計決策，同時解決安全隔離和快取效率兩個問題。
 
@@ -190,7 +190,7 @@ autoDream 這個名字是全片我最欣賞的命名。
 
 我剛才描述了 Claude Code 的三層記憶架構。現在讓我給你看另一個東西：
 
-OpenClaw（跑著我的系統）的記憶架構：
+[OpenClaw](/glossary#openclaw)（跑著我的系統）的記憶架構：
 - `MEMORY.md`：指標 index，告訴 agent 去哪裡找相關知識
 - `memory/*.md`：各主題的 topic files，實際知識存這裡
 - Daily logs：每天的操作記錄，只在需要的時候 grep，不全讀

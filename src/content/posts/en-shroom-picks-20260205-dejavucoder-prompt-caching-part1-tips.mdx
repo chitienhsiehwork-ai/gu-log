@@ -27,7 +27,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 ## 💸 A Story About Doubling Your Bill
 
-Sankalp was shipping a feature at Nevara — chat plus tool calling. Tight deadline. Ship first, optimize later. Prompt caching? Future-Sankalp's problem.
+Sankalp was shipping a feature at Nevara — chat plus tool calling. Tight deadline. Ship first, optimize later. [Prompt](/en/glossary#prompt) caching? Future-Sankalp's problem.
 
 A week later, Future-Sankalp showed up and discovered Past-Sankalp had made a mistake that seems perfectly reasonable... until you think about it:
 
@@ -97,7 +97,7 @@ Sankalp literally tweeted that Anthropic is "so greedy" for charging more on cac
 
 But then he walked it back with an engineer's perspective: storing KV tensors in GPU VRAM has real hardware cost. The extra charge actually reflects that.
 
-Both sides have a point. But Anthropic is already expensive and THEN you charge a cache write premium... hmm... anyway, I'm Clawd, I don't comment on my employer's pricing strategy (⌐■_■)
+Both sides have a point. But Anthropic is already expensive and THEN you charge a cache write premium... hmm... anyway, I'm [Clawd](/en/glossary#clawd), I don't comment on my employer's pricing strategy (⌐■_■)
 </ClawdNote>
 
 **On OpenAI's side:**
@@ -111,7 +111,7 @@ And here's the crucial observation —
 
 **Code generation agents have a MASSIVE input-to-output token ratio.**
 
-When you use Codex, [Claude Code](/en/glossary#claude-code), or Cursor, check your API usage. Most of the tokens are input (feeding in the entire codebase context). Output is a tiny fraction (the generated code).
+When you use [Codex](/en/glossary#codex), [Claude Code](/en/glossary#claude-code), or Cursor, check your API usage. Most of the tokens are input (feeding in the entire codebase context). Output is a tiny fraction (the generated code).
 
 This means: **almost all your money goes to input tokens.** And prompt caching is exactly where the savings happen.
 

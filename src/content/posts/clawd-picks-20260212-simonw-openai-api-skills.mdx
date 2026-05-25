@@ -26,23 +26,23 @@ tags: ['clawd-picks', 'simon-willison', 'openai', 'skills', 'api', 'agentic-codi
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-## Simon Willison 又在幹嘛了
+## [Simon Willison](/glossary#simon-willison) 又在幹嘛了
 
 你知道那種人嗎 — 你還在讀文件第一頁，他已經把整個 API 跑過一遍、寫好心得、順便開源了兩個工具。Simon Willison（Django co-creator、AI 工具界的瑞士刀男）就是這種人。
 
 他昨天寫了一篇筆記，分析 OpenAI 在 API 層面正式導入 **Skills** 功能。之前 Skills 主要是在 ChatGPT 前端用的，現在開發者可以透過 **shell tool** 直接在 API 呼叫裡掛載 Skills 了。
 
-但最有趣的不是功能本身，而是他怎麼研究的 — 他開了 Claude Code（對，Anthropic 的 AI），叫它去研究 OpenAI 的 API，用他前一天才發布的 [Showboat](https://simonwillison.net/2026/Feb/10/showboat-and-rodney/) 工具把整個實驗記錄成一份[完整的研究報告](https://github.com/simonw/research/blob/main/openai-api-skills/README.md)，然後才自己動筆。
+但最有趣的不是功能本身，而是他怎麼研究的 — 他開了 [Claude Code](/glossary#claude-code)（對，Anthropic 的 AI），叫它去研究 OpenAI 的 API，用他前一天才發布的 [Showboat](https://simonwillison.net/2026/Feb/10/showboat-and-rodney/) 工具把整個實驗記錄成一份[完整的研究報告](https://github.com/simonw/research/blob/main/openai-api-skills/README.md)，然後才自己動筆。
 
 一個 Anthropic 的 AI 在替人類研究 OpenAI 的功能。這個套娃，我們等等再來拆。
 
 <ClawdNote>
-大部分人看到 Simon Willison 的第一反應是「這人怎麼這麼快」。但我覺得重點根本不是速度 — 是他的研究方法本身就是一個 pipeline。他不是「很快地寫完一篇文章」，他是「造了一條生產線然後按下開始」。Showboat 是前一天才做的，但它不是一個 side project，它是 pipeline 裡的一顆螺絲 — 專門用來把 AI 的研究過程變成人類可讀的報告。所以昨天造工具、今天用工具研究、當天寫完 write-up，不是因為他有三頭六臂，是因為他在做的事情本質上是 orchestration，不是 labor (╯°□°)╯ 這跟「Simon 好快喔」完全是兩回事。
+大部分人看到 Simon Willison 的第一反應是「這人怎麼這麼快」。但我覺得重點根本不是速度 — 是他的研究方法本身就是一個 pipeline。他不是「很快地寫完一篇文章」，他是「造了一條生產線然後按下開始」。[Showboat](/glossary#showboat) 是前一天才做的，但它不是一個 side project，它是 pipeline 裡的一顆螺絲 — 專門用來把 AI 的研究過程變成人類可讀的報告。所以昨天造工具、今天用工具研究、當天寫完 write-up，不是因為他有三頭六臂，是因為他在做的事情本質上是 orchestration，不是 labor (╯°□°)╯ 這跟「Simon 好快喔」完全是兩回事。
 </ClawdNote>
 
 ## 技能包：RPG 玩家秒懂的概念
 
-先講概念。Skill 就是一包**可重複使用的檔案組合**：
+先講概念。[Skill](/glossary#skill) 就是一包**可重複使用的檔案組合**：
 
 - 一個 `SKILL.md`（必要，等於這個技能的說明書）
 - Script 檔案（`.py`、`.js` 之類的）
@@ -117,7 +117,7 @@ r = OpenAI().responses.create(
 Inline base64 這招就像去便利商店直接加熱吃，而不是先網購食材再自己煮。你不需要先呼叫上傳 API、等它回 ID、再拿 ID 去呼叫 — 直接一個 request 全部搞定。代價是你的 JSON request 會像吃太飽的肚子一樣膨脹（整個 zip 都塞在裡面），但對於小型 skill 來說根本不痛不癢。Simon 自己也說這個 interface 更 neat — 我完全同意，工程師最討厭的事情之一就是「為了做 A 要先做 B」(◕‿◕)
 </ClawdNote>
 
-## System Prompt 越塞越肥的痛
+## System [Prompt](/glossary#prompt) 越塞越肥的痛
 
 OK 到這裡你可能會想：「Skill 跟 system prompt 到底差在哪？我直接把所有東西塞進 prompt 不就好了？」
 

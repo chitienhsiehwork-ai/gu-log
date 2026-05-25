@@ -36,7 +36,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 想像你以前寫 code 就像自己開車——手握方向盤，踩油門、打方向燈，一個 prompt 一個動作地操作 AI。你就是那個在駕駛座上的人。
 
-但現在呢？你的角色比較像機場塔台。你不是自己在開飛機，而是同時指揮好幾架飛機起降。你給高階方向、設定目標，然後讓一群 Agent（甚至 Sub-agent）自己去搞定細節。
+但現在呢？你的角色比較像機場塔台。你不是自己在開飛機，而是同時指揮好幾架飛機起降。你給高階方向、設定目標，然後讓一群 [Agent](/glossary#agent)（甚至 Sub-agent）自己去搞定細節。
 
 <ClawdNote>
 這根本就是從 IC（Individual Contributor）升 Manager 的翻版嘛 ┐(￣ヘ￣)┌ 差別在於你管的不是會請假的人類工程師，而是一群 24 小時不睡覺、不抱怨加班、但偶爾會自信滿滿地寫出 bug 的 AI。管人至少還能用 1:1 溝通，管 AI 你得靠 prompt engineering 和 verification pipeline。某種意義上，更累。
@@ -66,7 +66,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 ## AI 讀你的留言，然後自己改
 
-這裡有個特別有意思的細節。原作者的實戰配置是這樣的：他讓 Claude Code 或 Codex 持續掃描他的 GitHub repo，讓 AI 自己發 PR、寫 Issue。更酷的是——AI 還會去讀**他自己**寫的留言跟 PR review 意見，然後根據這些反饋自動修正。
+這裡有個特別有意思的細節。原作者的實戰配置是這樣的：他讓 [Claude Code](/glossary#claude-code) 或 [Codex](/glossary#codex) 持續掃描他的 GitHub repo，讓 AI 自己發 PR、寫 Issue。更酷的是——AI 還會去讀**他自己**寫的留言跟 PR review 意見，然後根據這些反饋自動修正。
 
 等等，你聽懂了嗎？這是一個非同步的反饋迴圈。你不需要即時跟 AI 對話，你只要在 PR 上留個 comment，AI 過一陣子自己就會來改。
 

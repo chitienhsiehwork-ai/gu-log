@@ -68,9 +68,9 @@ scores:
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-[Codex](/glossary#codex) CLI memory sounds like an Agent suddenly grew a second brain: next time it starts work, it remembers the test command, the deployment flow, the repo habits, and maybe even which error last made the engineer want to pickle their keyboard.
+[Codex](/glossary#codex) CLI memory sounds like an [Agent](/en/glossary#agent) suddenly grew a second brain: next time it starts work, it remembers the test command, the deployment flow, the repo habits, and maybe even which error last made the engineer want to pickle their keyboard.
 
-Mem0's breakdown is much more plain once you open the box. Codex CLI memory is not a vector database. It is not some mysterious semantic search system either. It is closer to a stack of curated Markdown: a summary, longer notes, per-session rollups, and finally `grep` for finding keywords.
+Mem0's breakdown is much more plain once you open the box. [Codex](/en/glossary#codex) CLI memory is not a vector database. It is not some mysterious semantic search system either. It is closer to a stack of curated Markdown: a summary, longer notes, per-session rollups, and finally `grep` for finding keywords.
 
 That does not sound as sexy as "AI memory," but it is very engineering-brained: local, readable, inspectable, and predictable in cost. That is also why its boundary is so clear. Built-in Codex CLI memory is good as a local work cheat sheet. What Mem0 wants to add is a long-term memory layer for cross-machine, cross-tool, semantic retrieval, and live updates. ╮(╯▽╰)╭
 
@@ -142,7 +142,7 @@ Built-in Codex CLI memory answers: "On this same machine, for this same user, do
 
 Mem0 wants to answer: "Across different tools, machines, and sessions, how do we share one long-term, searchable memory layer that understands meaning?"
 
-The connection point is [MCP](/glossary#mcp). You can think of MCP as the socket Agents use to plug into external tools: Codex CLI does not need to bake Mem0 into its own body. It only needs to declare a server in `~/.codex/config.toml`, and the memory tool can be plugged in. The minimal setup from Mem0's docs roughly looks like this:
+The connection point is [MCP](/glossary#mcp). You can think of [MCP](/en/glossary#mcp) as the socket Agents use to plug into external tools: Codex CLI does not need to bake Mem0 into its own body. It only needs to declare a server in `~/.codex/config.toml`, and the memory tool can be plugged in. The minimal setup from Mem0's docs roughly looks like this:
 
 ```toml
 [mcp_servers.mem0]

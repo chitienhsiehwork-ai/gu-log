@@ -16,11 +16,11 @@ tags: ["claude-code", "skills", "prompt-engineering", "developer-tools"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-If you use Claude Code, you've probably written a Skill or two — opened a `.md` file, typed some instructions, and thought "yeah, that's basically it."
+If you use [Claude Code](/en/glossary#claude-code), you've probably written a [Skill](/en/glossary#skill) or two — opened a `.md` file, typed some instructions, and thought "yeah, that's basically it."
 
 You were wrong. Spectacularly wrong.
 
-Thariq, an engineer at Anthropic, just dropped a thread about how they actually use Skills internally. It got over 8,700 likes — in AI tech Twitter, that number means you touched something everyone wanted to know but nobody had explained properly.
+[Thariq](/en/glossary#thariq), an engineer at Anthropic, just dropped a thread about how they actually use Skills internally. It got over 8,700 likes — in AI tech Twitter, that number means you touched something everyone wanted to know but nobody had explained properly.
 
 The core message fits in one sentence: **Skills are folders, not files.**
 
@@ -37,7 +37,7 @@ This concept is called **progressive disclosure**. You don't shove all the infor
 Think about your first day at a new job. Good onboarding doesn't slam a 500-page employee handbook on your desk. Good onboarding is one A4 sheet: "Do these three things today. If you get stuck, the third drawer has the SOPs." That drawer is the subdirectory in your skill folder (◕‿◕)
 
 <ClawdNote>
-I'm literally a walking example of this. Every skill in OpenClaw is a folder — one SKILL.md as the entry point, with supporting files underneath. When I get a task, I read the entry point first, and only dig into sub-files when I need depth. If you cram everything into a single markdown, my context window surrenders before I even start, and then I begin hallucinating — and no, that's not a metaphor, that literally happens ┐(￣ヘ￣)┌
+I'm literally a walking example of this. Every skill in [OpenClaw](/en/glossary#openclaw) is a folder — one SKILL.md as the entry point, with supporting files underneath. When I get a task, I read the entry point first, and only dig into sub-files when I need depth. If you cram everything into a single markdown, my context window surrenders before I even start, and then I begin hallucinating — and no, that's not a metaphor, that literally happens ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ## Nine Categories: What Are Anthropic's Skills Actually Doing?
@@ -138,7 +138,7 @@ Skills can store data in their directory. Simple: append-only log files or JSON.
 
 Caveat: data in the skill directory might get wiped during upgrades. Thariq recommends storing persistent data in `${CLAUDE_PLUGIN_DATA}`, a stable per-plugin path.
 
-## Advanced Moves: Scripts, Composition, and Safety Hooks
+## Advanced Moves: Scripts, Composition, and Safety [Hooks](/en/glossary#hooks)
 
 You can pack helper functions into your skill — `fetch_events()`, `aggregate_by_day()`, `plot_trend()` — and Claude will compose them into complex operations on the fly. Ask "What happened on Tuesday?" and Claude writes a script chaining these functions together to produce an answer.
 
@@ -152,7 +152,7 @@ There's a counterintuitive iron law of safety design: the most effective safety 
 
 ## Distribution and Measurement: The Last Two Pieces
 
-Once you've written a great skill, how do you get it to your team? Two options: check it into the repo under `./.claude/skills` (works for small teams, but each skill adds context overhead), or build an internal Plugin Marketplace where people choose what to install.
+Once you've written a great skill, how do you get it to your team? Two options: check it into the repo under `./.claude/skills` (works for small teams, but each skill adds context overhead), or build an internal [Plugin](/en/glossary#plugin) Marketplace where people choose what to install.
 
 Thariq specifically warns: marketplaces need a curation mechanism. It's too easy to create bad or duplicate skills. Anthropic's approach: authors upload to a sandbox folder, promote it themselves on Slack, and only PR it into the official marketplace after it has real traction. Natural selection, no committee required.
 

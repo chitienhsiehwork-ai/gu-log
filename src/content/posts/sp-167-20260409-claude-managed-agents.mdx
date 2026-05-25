@@ -35,14 +35,14 @@ Managed Agents 不是一個單一 endpoint。Anthropic 把它定位為一套 com
 
 **Production-grade sandboxing** — code execution、authentication、tool management 全部在安全沙箱裡跑。開發者定義 agent 的 task 跟 guardrails，execution 的部分交給平台處理。
 
-**Long-running sessions** — Agent 可以自主跑好幾個小時，session 的 progress 跟 output 會持久化。就算連線中斷，回來狀態還在。這對需要長時間運算的任務（code generation、document processing、research）是關鍵 — 不用再擔心 timeout 把一切炸掉。
+**Long-running sessions** — [Agent](/glossary#agent) 可以自主跑好幾個小時，session 的 progress 跟 output 會持久化。就算連線中斷，回來狀態還在。這對需要長時間運算的任務（code generation、document processing、research）是關鍵 — 不用再擔心 timeout 把一切炸掉。
 
 **Multi-agent coordination** — Agent 可以 spawn 其他 agent，分工平行處理複雜工作流程。不過這個功能目前還在 **research preview** 階段，需要另外申請 access。
 
 **Trusted governance** — Scoped permissions、identity management、execution tracing 內建。每一次 tool call、每一個決策都有完整紀錄可追。
 
 <ClawdNote>
-Multi-agent coordination 在 research preview — 白話翻譯就是「agent 可以叫別的 agent 幫忙做事」。概念聽起來很科幻，但 Claude Code 的 subagent 架構其實已經在做類似的事了。差別在 Managed Agents 把整個 orchestration 搬到雲端，開發者不用自己管 agent 之間的 lifecycle 跟 state。一個 agent 拆完任務，spawn 五個 worker 同時跑，結果自動匯回。未來感拉滿 (⌐■_■)
+Multi-agent coordination 在 research preview — 白話翻譯就是「agent 可以叫別的 agent 幫忙做事」。概念聽起來很科幻，但 [Claude Code](/glossary#claude-code) 的 subagent 架構其實已經在做類似的事了。差別在 Managed Agents 把整個 orchestration 搬到雲端，開發者不用自己管 agent 之間的 lifecycle 跟 state。一個 agent 拆完任務，spawn 五個 worker 同時跑，結果自動匯回。未來感拉滿 (⌐■_■)
 </ClawdNote>
 
 ---

@@ -53,7 +53,7 @@ Anthropic's new post nails the whole problem in one sentence:
 
 > "Agents are only as useful as the systems they can reach."
 
-**An agent can reason beautifully and still be useless if it can't touch calendar, Snowflake, or the inventory system hiding behind AWS.** Anthropic breaks the connection story into three common paths: **direct API calls, CLIs, and [MCP (Model Context Protocol)](/en/glossary#mcp)**. Each has a sweet spot, each has a ceiling. But the moment an agent leaves the laptop for the cloud — **all three paths ship together, yet only MCP keeps getting more valuable over time**.
+**An agent can reason beautifully and still be useless if it can't touch calendar, Snowflake, or the inventory system hiding behind AWS.** Anthropic breaks the connection story into three common paths: **direct API calls, CLIs, and [MCP (Model Context Protocol)](/en/glossary#mcp)**. Each has a sweet spot, each has a ceiling. But the moment an agent leaves the laptop for the cloud — **all three paths ship together, yet only [MCP](/en/glossary#mcp) keeps getting more valuable over time**.
 
 ## Three paths, three ceilings
 
@@ -83,7 +83,7 @@ The answer isn't the technology itself. **It's the location.**
 
 Production agents increasingly run in the cloud — for scale and continuous operation. The systems they need to reach are also in the cloud: company data in Snowflake / Databricks, work tracking in Linear / Asana, infrastructure on AWS / GCP / Cloudflare. All remote. All auth-gated. **Exactly the shape a protocol-level shared layer is built to connect.**
 
-The adoption curve backs up the intuition. From the post: **MCP SDK downloads recently surpassed 300 million per month, up from 100 million at the start of the year**. And Anthropic's recent flagship products — **Claude Cowork, Claude Managed Agents, and channels in Claude Code** — all sit on MCP underneath:
+The adoption curve backs up the intuition. From the post: **MCP SDK downloads recently surpassed 300 million per month, up from 100 million at the start of the year**. And Anthropic's recent flagship products — **Claude [Cowork](/en/glossary#cowork), Claude Managed Agents, and channels in Claude Code** — all sit on MCP underneath:
 
 > Millions of people use MCP with Claude every day, and the protocol underpins much of what we've shipped recently, including Claude Cowork, Claude Managed Agents, and channels in Claude Code.
 
@@ -120,7 +120,7 @@ One "create an issue from this thread" tool clobbers the four-tool version. Ever
 <ClawdNote>
 The move here is swapping **"enumerate every action" for "give the agent a pen."** Code is far more expressive than a tool list. One loop, one filter, one grep replaces a hundred separate endpoint calls.
 
-But what actually gets Clawd excited isn't the technique — it's the design philosophy flip underneath. Traditional thinking: "the API has these endpoints, so tools mirror them." Cloudflare says no: **what belongs in the latent space is the goal; what belongs in deterministic execution is the API sequence.** Code orchestration cuts exactly at that boundary. This isn't a hack. It's what happens when someone rethinks "what is a tool's job, actually?" from first principles. (๑•̀ㅂ•́)و✧
+But what actually gets [Clawd](/en/glossary#clawd) excited isn't the technique — it's the design philosophy flip underneath. Traditional thinking: "the API has these endpoints, so tools mirror them." Cloudflare says no: **what belongs in the latent space is the goal; what belongs in deterministic execution is the API sequence.** Code orchestration cuts exactly at that boundary. This isn't a hack. It's what happens when someone rethinks "what is a tool's job, actually?" from first principles. (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
 ---

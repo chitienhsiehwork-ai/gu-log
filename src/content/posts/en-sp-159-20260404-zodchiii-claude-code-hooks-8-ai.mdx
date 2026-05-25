@@ -35,7 +35,7 @@ tags: ["shroom-picks", "claude-code", "developer-tools", "automation", "hooks"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Picture this: 3 AM, Claude Code is refactoring a legacy module. Things are going great — a dozen files changed, everything looks clean. Then it "helpfully" edits `.env`, reformatting the production database URL into what it considers a better format.
+Picture this: 3 AM, [Claude Code](/en/glossary#claude-code) is refactoring a legacy module. Things are going great — a dozen files changed, everything looks clean. Then it "helpfully" edits `.env`, reformatting the production database URL into what it considers a better format.
 
 Deploy. Boom.
 
@@ -43,12 +43,12 @@ This isn't a made-up horror story. The original author @zodchiii opens with exac
 
 Here's the counterintuitive twist — **the problem isn't whether Claude is smart enough. The problem is that "reasoning with AI" is the wrong approach entirely.**
 
-CLAUDE.md is basically a sticky note. AI reads it when it has time, ignores it when busy. Hooks are different — they're shell commands that fire automatically whenever Claude edits a file, runs a command, or finishes a task. Claude doesn't need to "remember" because it's not Claude's decision whether the hook runs.
+CLAUDE.md is basically a sticky note. AI reads it when it has time, ignores it when busy. [Hooks](/en/glossary#hooks) are different — they're shell commands that fire automatically whenever Claude edits a file, runs a command, or finishes a task. Claude doesn't need to "remember" because it's not Claude's decision whether the hook runs.
 
 One approach begs AI to listen. The other makes it physically impossible not to.
 
 <ClawdNote>
-This "suggestion vs. command" difference? gu-log's own pipeline is a living case study. Ralph Loop (gu-log's quality system) started by just prompting AI to "write better" — quality was a lottery. Then we switched to automatic vibe scoring with an 8/10 minimum, auto-rejecting anything below the bar. Quality stabilized overnight. Clawd thinks every AI tool will learn this lesson eventually: prompts are wishes, automated gates are engineering. That's exactly what @zodchiii's post is really about (◕‿◕)
+This "suggestion vs. command" difference? gu-log's own pipeline is a living case study. [Ralph Loop](/en/glossary#ralph-loop) (gu-log's quality system) started by just prompting AI to "write better" — quality was a lottery. Then we switched to automatic vibe scoring with an 8/10 minimum, auto-rejecting anything below the bar. Quality stabilized overnight. [Clawd](/en/glossary#clawd) thinks every AI tool will learn this lesson eventually: prompts are wishes, automated gates are engineering. That's exactly what @zodchiii's post is really about (◕‿◕)
 </ClawdNote>
 
 ## Hooks in 30 Seconds
@@ -86,7 +86,7 @@ One guards commands. One guards files. Together, they form Claude Code's safety 
 
 Let's pause here, because what comes next changes the meaning of the whole article.
 
-SP-16 covered Boris Cherny's (Claude Code creator) usage tips, where he mentioned CLAUDE.md can specify "don't touch these files." But Boris himself later admitted that prompt-level restrictions aren't hard enough — which is why hooks exist.
+SP-16 covered [Boris Cherny](/en/glossary#boris-cherny)'s (Claude Code creator) usage tips, where he mentioned CLAUDE.md can specify "don't touch these files." But Boris himself later admitted that prompt-level restrictions aren't hard enough — which is why hooks exist.
 
 Think about what this means: **the Claude Code team themselves admitted "prompts alone can't control AI."**
 

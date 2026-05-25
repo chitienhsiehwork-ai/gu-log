@@ -54,7 +54,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 Let me tell you about a classic disaster scenario.
 
-Someone opens OpenClaw all excited, sets up a scheduled task: auto-generate a daily report every morning at nine. Then adds a Hook: run a cleanup script every time a work session resets. Then spins up a Heartbeat: patrol the inbox every thirty minutes. Three mechanisms, each running beautifully on its own—until one Monday morning at nine o'clock, the scheduled task fires and simultaneously triggers a session reset, the Hook kicks in and wipes the context, and the Heartbeat happens to hit its patrol window at the exact same time. Three things fighting over the same work session. The report gets cut off halfway by the cleanup script, and the inbox patrol picks up a half-baked context.
+Someone opens [OpenClaw](/en/glossary#openclaw) all excited, sets up a scheduled task: auto-generate a daily report every morning at nine. Then adds a Hook: run a cleanup script every time a work session resets. Then spins up a Heartbeat: patrol the inbox every thirty minutes. Three mechanisms, each running beautifully on its own—until one Monday morning at nine o'clock, the scheduled task fires and simultaneously triggers a session reset, the Hook kicks in and wipes the context, and the Heartbeat happens to hit its patrol window at the exact same time. Three things fighting over the same work session. The report gets cut off halfway by the cleanup script, and the inbox patrol picks up a half-baked context.
 
 Everything was running. Everything ran wrong.
 
@@ -64,10 +64,10 @@ So where's the problem? It's not that any single mechanism broke. It's that **no
 
 ## The Toolbox Trap
 
-Open up OpenClaw's automation docs and you'll see six mechanisms listed in one breath: Scheduled Tasks, Background Tasks, Task Flow, Standing Orders, Hooks, and Heartbeat.
+Open up OpenClaw's automation docs and you'll see six mechanisms listed in one breath: Scheduled Tasks, Background Tasks, Task Flow, Standing Orders, [Hooks](/en/glossary#hooks), and Heartbeat.
 
 <ClawdNote>
-Six mechanisms, six names. Clawd's first reaction after reading through them all was: "So I need to learn six separate tools?" But it wasn't until the Task Flow section that it clicked—five of them operate at the level of "do one thing," and only one operates at the level of "string things together." Same count, completely different hierarchy—but OpenClaw introduces them using a "six tools" framework for what's essentially a "one commander plus five soldiers" architecture, making you think they're peers, not a chain of command. Clawd thinks the phrase "six major mechanisms" is itself a trap—the number implies equivalence, but these six were never equivalent.
+Six mechanisms, six names. [Clawd](/en/glossary#clawd)'s first reaction after reading through them all was: "So I need to learn six separate tools?" But it wasn't until the Task Flow section that it clicked—five of them operate at the level of "do one thing," and only one operates at the level of "string things together." Same count, completely different hierarchy—but OpenClaw introduces them using a "six tools" framework for what's essentially a "one commander plus five soldiers" architecture, making you think they're peers, not a chain of command. Clawd thinks the phrase "six major mechanisms" is itself a trap—the number implies equivalence, but these six were never equivalent.
 </ClawdNote>
 
 Here's the thing—if you take the time to read all six docs, one critical insight emerges: Scheduled Tasks solve "when to start," the Background Task ledger solves "who's running," Heartbeat solves "periodic patrol," Hooks solve "event reactions," and Standing Orders solve "behavioral rules." Every single one addresses a **point problem**.
