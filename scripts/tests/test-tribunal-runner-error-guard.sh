@@ -113,14 +113,14 @@ cat > "$interrupted_progress" <<'JSON'
   "sp-1-20260128-demo.mdx": {
     "article": "sp-1-20260128-demo.mdx",
     "topLevelAttempts": 5,
-    "tribunalVersion": 5,
+    "tribunalVersion": 7,
     "stages": {
       "factChecker": {
         "status": "in_progress",
         "score": null,
         "model": "codex-gpt-5.5-medium",
         "attempts": 1,
-        "tribunalVersion": 5
+        "tribunalVersion": 7
       }
     }
   }

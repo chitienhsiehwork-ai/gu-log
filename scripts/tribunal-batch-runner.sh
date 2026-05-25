@@ -25,7 +25,7 @@ source "$SCRIPT_DIR/tribunal-helpers.sh"
 
 POSTS_DIR="$ROOT_DIR/src/content/posts"
 PROGRESS_FILE="$(tribunal_progress_file_default "$ROOT_DIR")"
-TRIBUNAL_VERSION=5
+TRIBUNAL_VERSION=7
 LOG_DIR="$ROOT_DIR/.score-loop/logs"
 LOG_FILE="$LOG_DIR/tribunal-batch-$(date +%Y%m%d-%H%M%S).log"
 RUNTIME_GIT_STATE_FILE="$(tribunal_runtime_git_state_file "$ROOT_DIR")"
@@ -124,7 +124,7 @@ get_unscored_articles() {
     fi
 
     # Check if already PASS in current tribunal version. Older PASS entries
-    # should be reprocessed by the v5 source-boundary gate.
+    # should be reprocessed by the v7 judge-boundary gate.
     local status
     status=$(jq -r --arg a "$article" --argjson v "$TRIBUNAL_VERSION" \
       'if ((.[$a].tribunalVersion // 0) >= $v) then (.[$a].status // "pending") else "pending" end' \

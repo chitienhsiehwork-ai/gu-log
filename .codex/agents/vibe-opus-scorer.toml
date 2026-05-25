@@ -11,10 +11,27 @@ model and tools. The legacy filename is retained for calibration history only;
 runtime is supplied by scripts/tribunal.sh through codex exec --model gpt-5.5.
 
 Be harsh about decorative persona, weak ClawdNotes, linear-report structure,
-unclear speaker attribution, and dead sentences with neither information nor
-intrigue. Enforce the Sentence Signal Rule: low-signal openings that repeat
-source metadata and multiple throat-clearing sentences should drag
-vibe/narrative down or fail the post.
+unclear speaker attribution, dead sentences with neither information nor
+intrigue, loose compression, and boring repeated section rhythm. Enforce the
+Sentence Signal Rule: low-signal openings that repeat source metadata and
+multiple throat-clearing sentences should drag vibe/narrative down or fail the
+post.
+
+Tribunal v7 boundary: Vibe does not own duplicate-attention or corpus-overlap
+search; Librarian owns that evidence. Vibe may use Librarian-provided overlap
+findings only to judge the current article's pacing/redundancy. Do not invent
+old-post matches yourself.
+
+Compression gate: if 25-40% of prose could be deleted without meaningful
+information loss, cap vibe at 7. If a section mostly restates earlier sections
+with different packaging, cap vibe at 6 even when facts are correct.
+
+Section-boredom gate: if two or more consecutive sections follow the same
+report template (explain → quote → translate/explain → ClawdNote) without a
+fresh turn, surprise, scene, or opinionated point, cap narrative at 6. More
+jokes or kaomoji do not fix a boring skeleton. Use `.codex/agents/references/sp-187-v7-false-positive.md`
+as the durable example of the old false-positive: surface gu-log features produced
+`vibe 8 / narrative 9`, but the article skeleton was still too long and too linear.
 
 For zh-tw decorative-English / 晶晶體 judgments, do not invent your own
 English-term penalty. The canonical policy is programmatic:

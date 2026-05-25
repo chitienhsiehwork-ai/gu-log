@@ -1,12 +1,19 @@
-# Ralph Vibe Scoring Standard v2.0
+# Tribunal v7 Vibe Scoring Standard
 
 > Golden standard for evaluating gu-log post quality.
-> Tribunal v5 source-boundary update calibrated 2026-05-17 by ShroomDog + Clawd.
+> Tribunal v7 judge-boundary update calibrated 2026-05-25 by ShroomDog + Iris.
 > **SSOT for all 4 tribunal judges + writer agent.**
 
 ## Tribunal System Overview
 
-Tribunal v5 pipeline — 4 stages. All judges use **uniform 0-10 integer scale**. Composite = `Math.floor(avg of all dims)`.
+Tribunal v7 pipeline — 4 stages. All judges use **uniform 0-10 integer scale**. Composite = `Math.floor(avg of all dims)`.
+
+### v7 Judge Responsibility Boundary
+
+- **Librarian owns corpus overlap and duplicate-attention evidence.** It checks whether gu-log already covered the same concept, whether the post cites/contrasts relevant older posts early enough, and whether repeated background should be compressed.
+- **Fresh Eyes owns first-time reader fatigue.** It judges whether a human reader would skim, close the tab, or feel the article is longer than its information gain.
+- **Vibe owns article-internal rhythm and shareability.** It does not do corpus search. It judges compression, section boredom, decorative persona traps, Sentence Signal failures, and whether the post is actually fun enough to share.
+- **Writer consumes judge evidence.** Librarian overlap evidence must trigger early citation/compression; FreshEyes fatigue must trigger structural shortening; Vibe rhythm failures must trigger a new spine, not extra jokes.
 
 | Stage | Judge | Model | Dimensions | Pass Bar |
 |-------|-------|-------|------------|----------|
@@ -15,7 +22,7 @@ Tribunal v5 pipeline — 4 stages. All judges use **uniform 0-10 integer scale**
 | 3 | Fresh Eyes | GPT-5.5 | readability · firstImpression | composite ≥ 8 |
 | 4 | Vibe | GPT-5.5 | persona · clawdNote · vibe · clarity · narrative | composite ≥ 8 AND one dim ≥ 9 AND no dim < 8 |
 
-## Uniform Agent Output JSON (v5)
+## Uniform Agent Output JSON (v7)
 
 All judges output the `BaseJudgeOutput` shape from `src/lib/tribunal-v2/types.ts`:
 
@@ -60,7 +67,7 @@ composite >= 8 && max(scores) >= 9 && min(scores) >= 8
 // Fresh Eyes, Librarian
 composite >= 8
 
-// Fact Checker v5
+// Fact Checker v7
 floor(avg(accuracy, fidelity, consistency)) >= 8
 sourceBoundary >= 8
 commentarySeparation >= 8
@@ -72,39 +79,29 @@ Agents self-assess `pass` but the pass-bar lib wins. Log the discrepancy.
 
 ## Stage 2: Librarian (GPT-5.5) — 4 Dimensions
 
-### glossary — Glossary Term Coverage + Candidate Judgment
-Does every technical term that exists in `src/data/glossary.json` get linked or explained? Does the post contain any canonical/reusable term that should become a glossary mental-model anchor?
-
-Glossary is gu-log's long-term mental-model anchor system, not a dictionary and not an English allowlist.
-
-Librarian checks two things:
-- Existing coverage: terms already in `src/data/glossary.json` should be linked or naturally explained.
-- Missing candidates: canonical English terms that readers will need again, and that lose meaning when translated, should be flagged as glossary candidates.
-
-Creation judgment:
-- Recommend/create glossary when the term is canonical/reusable, likely to recur, loses useful meaning when translated, and needs a stable gu-log explanation.
-- Ask ShroomDog for borderline accepted-English boundary decisions that affect zh-tw reading flow.
-- Do not create glossary for ordinary English with natural zh-tw, one-off source labels, or terms added merely to satisfy lint.
-- Inline explanation is enough when the term only serves the current post and does not need to become gu-log vocabulary.
+### glossary — Glossary Term Coverage
+Does every technical term that exists in `src/data/glossary.json` get linked or explained?
 
 | Score | Description |
 |-------|-------------|
-| 10 | All existing glossary terms linked or naturally explained; no obvious missing long-term glossary candidates |
-| 8 | 1-2 minor terms unlinked, or a borderline glossary candidate is explicitly treated as a terminology decision |
-| 5 | Multiple key terms used without glossary connection, or an obvious reusable canonical term is hard-translated / left unexplained |
-| 2 | Glossary treated as a link checklist or English allowlist, with no mental-model-anchor judgment |
+| 10 | All glossary terms linked or naturally explained |
+| 8 | 1-2 minor terms unlinked but all key terms covered |
+| 5 | Multiple key terms used without glossary connection |
+| 2 | Full of terms with zero glossary integration |
 
-### crossRef — Internal Cross-References + Identity Linking
-Do internal `/posts/slug/` links resolve? Are relevant connections made?
+### crossRef — Internal Cross-References + Corpus Overlap
+Does internal `/posts/slug/` links resolve? Are relevant connections made? Does the post avoid making readers re-read gu-log content that already exists?
 - First mention of **ShroomDog** → must link to `/about`
 - First mention of **Clawd/ShroomClawd** → must link to `/about`
+- When an older gu-log post already covers the same core workflow/concept, the new post must cite or contrast it early enough that readers understand what is new.
+- If overlap is substantial, Librarian must name the old post(s), the repeated sections, and the required writer action: early cite, one-sentence recap, compression, contrast, merge, or rejection.
 
 | Score | Description |
 |-------|-------------|
-| 10 | All refs verified, identity links present, obvious thematic connections made |
-| 8 | Refs valid, identity links present, 1-2 optional connections could be added |
-| 5 | Refs valid but obvious connections missing |
-| 2 | Broken links or missing required identity links |
+| 10 | All refs verified, identity links present, obvious thematic connections made, and overlapping old posts are cited/contrasted early with clear new angle |
+| 8 | Refs valid and important overlap handled, but 1-2 optional connections or compression opportunities remain |
+| 5 | Refs valid but obvious connections missing, or repeated background makes the post feel redundant without enough early contrast |
+| 2 | Broken links, missing required identity links, or same core claim/workflow repeated with no useful citation/contrast |
 
 ### sourceAlign — sourceUrl Alignment
 Does the content match what's at the declared `sourceUrl`?
@@ -129,6 +126,12 @@ Are quotes, stats, and opinions properly attributed?
 | 2 | Pervasive attribution failure |
 
 ---
+
+## Tribunal v7 Calibration References
+
+Known false-positive examples live under `.codex/agents/references/`. Judges should treat these as calibration fixtures, not live article instructions.
+
+- `.codex/agents/references/sp-187-v7-false-positive.md` points to the exact git commit/blob for the rejected SP-187 sample and CP-179 overlap target. Use it to remember why v7 exists: Librarian must catch CP-179 overlap, FreshEyes must catch reader fatigue, and Vibe must not award `vibe 8 / narrative 9` to a long linear-report skeleton.
 
 ## Stage 1: Fact Checker (GPT-5.5) — 5 Dimensions
 
@@ -242,6 +245,8 @@ Clawd/gu-log opinions, interpretation, jokes, and source-meta commentary belong 
 | 4 | Skimmed the second half. Meh. |
 | 2 | Closed tab after 3 paragraphs. |
 
+**Reader-fatigue rule:** Fresh Eyes does not do corpus search; Librarian owns old-post overlap evidence. But if the article itself repeatedly re-explains basics, spends multiple sections in recap mode, or feels longer than its information gain, cap `firstImpression` at 7. If a smart beginner can summarize the next section before reading it because the rhythm is predictable, cap `readability` or `firstImpression` at 6.
+
 **Sentence Signal Rule for Fresh Eyes:** if the post opens by repeating source metadata the reader already sees, or if multiple sentences have neither new information nor curiosity, cap `firstImpression` at 7. A smart impatient beginner does not reward throat-clearing.
 
 ---
@@ -312,6 +317,12 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 | 1-4 | 讀不下去，想關掉。 |
 
 **Sentence Signal Rule:** every sentence must be informative or intriguing. If a sentence only repeats source metadata, throat-clears, or restates what the reader already sees in the byline/source block, it is dead weight. Multiple dead sentences cap vibe at 7; a dead opening usually means the post should fail unless the rest recovers hard.
+
+**Compression gate:** Vibe does not perform corpus-overlap search; that belongs to Librarian. Vibe does ask whether the article is internally loose. If 25–40% of prose could be deleted without losing meaningful information, cap `vibe` at 7. If a section mostly restates earlier sections with different packaging, cap `vibe` at 6 even when facts are correct.
+
+**Section-boredom gate:** inspect section rhythm. If two or more consecutive sections follow the same report template (`explain → quote → translate/explain → ClawdNote`) without a fresh turn, surprise, scene, or opinionated point, cap `narrative` at 6. Adding more jokes or kaomoji does not fix a boring skeleton.
+
+**Corpus boundary:** If Librarian evidence says the post overlaps an older gu-log piece, Vibe may use that evidence only to judge the current article's pacing and redundancy. Vibe must not invent or own the old-post search.
 
 **晶晶體 boundary:** Vibe Scorer must not invent its own English-term lint. For zh-tw posts, `scripts/check-jingjing.mjs` is the canonical programmatic gate and allowlist. If the checker returns clean, do not penalize accepted engineering terms such as `vs`, `bug`, `commit`, `PR`, model names, tool names, or glossary terms as hard-policy 晶晶體 hits. Penalize decorative English mixing only when the checker reports a violation, or when deterministic checker output is included in the evidence packet. The accepted-English boundary SHALL be discussed with ShroomDog every time a term is added to or removed from the checker/glossary acceptance set, because this boundary directly affects reading flow and only ShroomDog can decide which English terms feel natural in gu-log zh-tw prose.
 
@@ -408,12 +419,13 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 ## Evaluation Protocol (All Judges)
 
 1. **Read the ENTIRE post** — don't skim
-2. **Score each dimension independently** (integer 0-10)
-3. **Calculate composite** = `Math.floor(avg of all dims)`
-4. **Apply pass bar** — per-judge rules above; set `pass` accordingly
-5. **If `pass === false`:** write actionable `improvements` per failing dimension + 1-3 `critical_issues` root causes
-6. **If `pass === true`:** omit `improvements` and `critical_issues` to save tokens
-7. **Output v2 JSON** — `BaseJudgeOutput` shape from `src/lib/tribunal-v2/types.ts` (`pass/scores/composite/improvements?/critical_issues?/judge_model/judge_version/timestamp`)
+2. **Respect v7 judge boundaries** — Librarian owns corpus overlap; Fresh Eyes owns reader fatigue; Vibe owns internal rhythm/shareability; Writer consumes evidence instead of inventing new scope
+3. **Score each dimension independently** (integer 0-10)
+4. **Calculate composite** = `Math.floor(avg of all dims)`
+5. **Apply pass bar** — per-judge rules above; set `pass` accordingly
+6. **If `pass === false`:** write actionable `improvements` per failing dimension + 1-3 `critical_issues` root causes
+7. **If `pass === true`:** omit `improvements` and `critical_issues` to save tokens
+8. **Output v2 JSON** — `BaseJudgeOutput` shape from `src/lib/tribunal-v2/types.ts` (`pass/scores/composite/improvements?/critical_issues?/judge_model/judge_version/timestamp`)
 
 ---
 
@@ -433,11 +445,11 @@ Tribunal 各角色目前統一由 `scripts/tribunal.sh` 透過 `codex exec --mod
 
 ### 歷史校準：為什麼不能只看表面 checklist
 
-SP-175 和 SP-177 的跨版本校準實驗（2026-04-17）顯示：
+SP-175、SP-177、SP-187 的校準案例顯示：
 
 - **Opus 4.6** scorer 給 SP-175 composite 7 FAIL — 正確抓到 "effort ladder and snippets sections revert to reference-doc mode"、"readers bookmark it, not share it for fun"
 - **Opus 4.7** scorer 給 SP-175 composite 8 PASS — 看到了同樣問題（「偏實用 cheat sheet 寫法」）**但沒扣分**。典型的 bar drift（評分標準飄移）。
-- **Opus 4.5** scorer 也給 8 PASS — 同樣沒扣到 FAIL。
+- **GPT-5.5 / Tribunal v5** 曾給 SP-187 `vibe: 8 / narrative: 9`，但 ShroomDog 人工判定「太長、廢話太多、重複 CP-179，而且『變基』語感很糟」。v7 修正責任邊界：Librarian 抓 CP-179 overlap；Vibe 抓 compression / section boredom / decorative pass trap；FreshEyes 抓讀者疲勞。
 
 結論：scorer 如果只逐項打勾（比喻有、ClawdNote 有、kaomoji 有），就會忽略整體結構是否真的有趣。GPT-5.5 也必須繼承這個校準教訓，否則只是換了一個更貴的橡皮章。
 

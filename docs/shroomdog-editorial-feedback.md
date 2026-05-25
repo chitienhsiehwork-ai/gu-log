@@ -13,6 +13,31 @@
 - 寫 SP / CP / SD / Lv 前，如果任務涉及文章品質或風格，先快速掃這份檔案的近期條目。
 - 當同一類 feedback 出現 3 次以上，應該蒸餾進 `GU-LOG_WRITER_PROMPT.md`，必要時再同步到 pipeline prompt；不要永遠只留在 corpus 裡。
 
+## 2026-05-25 — SP-187 Symphony: CP-179 overlap and Vibe scorer false positive
+
+### Feedback: 引用既有 CP，刪掉重複內容，不要讓讀者重讀同一篇
+
+- ShroomDog feedback：`First, i think it should cite CP-179 to reduce deplication of content.`
+- 情境：SP-187（OpenAI 官方 Symphony 開源文）和 CP-179（daniel_mac8 的社群版 Symphony / Linear / Codex workflow）高度重疊。SP-187 現版有 8 個 section、約 128 行非空正文、5 個 ClawdNote；CP-179 已經用更短、更有趣的方式講過「從管理 agent 變管理 work / issue 狀態觸發 / Codex workspace / demo 邊界」。SP-187 只在後段 ClawdNote 提到 CP-179，太晚、太弱，沒有用內鏈幫讀者省注意力。
+- 修法：SP-187 重寫時，前段就明確 cite CP-179，把已覆蓋的「Symphony 怎麼動、Linear issue 觸發、agent 自動回寫狀態、demo 仍有坑」壓成短 recap + 內鏈；正文聚焦 OpenAI 官方文章的新資訊：官方 SPEC 化、Codex App Server / JSON-RPC 平台意圖、500% 的限制條件、PM/設計師直接派活、Elixir 與多語言 spec validation、guardrails/skills 紀律。
+- Reusable lesson：如果新 SP 和既有 CP/SP 共享同一個核心概念，不能把舊內容換皮再講一次。早早 cite 舊文，重複背景最多一句 recap，把篇幅留給新增資訊、判斷或更好的敘事。
+
+### Feedback: Vibe 8 是 scorer 失準，decorative surface 不能騙過評分
+
+- ShroomDog feedback：`Then we should analyze and recalibrate the vibe scorer, how the fuck can vibe scorer score a post like this with vibe 8? Terrible and horrible`；`Last we rewrite sp 187 with calibrated vibe scorer, to make this post much more interesting and entertaining to read`
+- 情境：SP-187 現版 frontmatter 顯示 Vibe `persona: 8 / clawdNote: 8 / vibe: 8 / clarity: 8 / narrative: 9`，但人工讀感是太長、廢話多、線性報告骨架、重複既有 CP-179 內容，甚至有「變基」這種自然度問題。這是典型 scorer false positive：看到 ClawdNote、比喻、kaomoji、完整 section，就給 8/9，卻沒有把「讀者會不會覺得好看、會不會想分享」扣到 fail。
+- 修法：責任邊界要拆清楚。`duplicate-attention / corpus overlap` 屬於 Librarian，不屬於 Vibe scorer；Librarian 要抓 CP-179 overlap、早期引用缺失、cross-ref/source redundancy，並輸出 writer 可直接執行的 rewrite requirement。Vibe scorer 則新增/強化兩個硬檢查：一是 compression check，若刪掉 25–40% 句子不損資訊，`vibe` 最高 7；二是 section-level “why am I still reading?” 檢查，連續兩個 section 只是 explain → quote → explain → ClawdNote，`narrative` 最高 6。
+- Reusable lesson：Vibe scorer 的任務不是確認文章「有 gu-log 表面特徵」，也不是做 corpus overlap search；它要保護讀者注意力與閱讀節奏。長、鬆、可預測、沒有新 punch 的文章，即使每句都沒錯、ClawdNote 密度也夠，也不該拿 8。重複既有內容則由 Librarian 負責抓出並要求 early citation / compression。
+
+## 2026-05-23 — gu-log source evaluation: duplicate content is duplicate dead code
+
+### Feedback: 寫文前先評估新東西與已覆蓋內容
+
+- ShroomDog feedback：`all gu-log posts should first go through this eval of what to write and what not to write because already covered in gu-log`；`Duplicate content is like duplicate dead code, will be token waste for ai, attention waste for human.`
+- 情境：評估 OpenAI `openai/skills` repo 是否適合做 SP 時，gu-log 已經有多篇 Skills / Codex / skillify / plugin evolution 相關文章。正確做法不是重講「Skills 是什麼」，而是先列出 repo 裡真正新的訊號（`.system` / `.curated` / `agents/openai.yaml` / catalog 與分發權），再明確排除 SP-54、CP-68、SP-104、SP-122、SP-170、SP-179、SP-195 已經寫過的部分。
+- 修法：在 `AGENTS.md` 的 SP candidate / source evaluation 規則加入 overlap evaluation：Go 之前要先列「這次的新東西」、「gu-log 已覆蓋內容」、「這篇應該避開什麼」，最後才決定 angle。
+- Reusable lesson：Duplicate content is duplicate dead code。對 AI 是 token waste，對人類是 attention waste。每篇 gu-log 都要有資訊增量、判斷增量或敘事增量；已寫過的背景最多一句 recap + 內鏈，不要換皮重寫。
+
 ## 2026-05-18 — SP Addy Osmani: Don't Outsource the Learning
 
 ### Feedback: SP 要貼近原文，ClawdNote 補脈絡，不要先重構文章
@@ -247,47 +272,12 @@
 
 ## 2026-05-16 — SD-24 Codex Runtime Kernel
 
-### Feedback: Glossary creation needs a decision standard, not ad hoc ShroomDog catches
-
-- ShroomDog feedback：I think we should have a standard of asking/create/do not create glossary items? I don't think everytime i need to point that out is a good system
-- 情境：SD-24 把 `Codex app server` 硬翻成「Codex 執行伺服器」後，ShroomDog 指出這個 term 本身有長期價值，應保留英文並加 glossary。問題不只是單篇漏詞，而是 pipeline 沒有明確判斷：何時該翻、何時該文內解釋、何時該建 glossary、何時該先問 ShroomDog。
-- 修法：把 glossary creation standard 升級進 `GU-LOG_WRITER_PROMPT.md`：建 glossary 的條件是 canonical / reusable / 翻譯失真 / 需要穩定 gu-log mental-model anchor；borderline English-term boundary 要先問 ShroomDog；普通英文、一次性 source label、只是 lint 擋住的詞，不准為了省事建 glossary。同步更新 `scripts/check-jingjing.mjs` 與 `src/config/glossary.ts` 註解，讓 lint failure 不會自動變成「加 glossary」。
-- Reusable lesson：Glossary 是 gu-log 的長期詞彙系統，不是每篇文章的補丁區。Agent 應該先做術語決策：翻中文、文內解釋、建 glossary、或請 ShroomDog 決策；不能等 ShroomDog 每次在 production 文章裡指出該建哪個 term。
-
-### Feedback: Librarian must own glossary candidate judgment too
-
-- ShroomDog feedback：I believe this mental model should also be in the librarian
-- 情境：前一輪把 glossary creation standard 寫進 writer prompt / lint guidance，但 Librarian rubric 仍偏向「已存在 glossary term 有沒有連結」。這會讓 writer 端學會 ask/create/do-not-create，審稿端卻只做 link checklist，漏掉「該建 glossary 的 canonical term 被硬翻或飄過」這種問題。
-- 修法：同步更新 Librarian agent prompt、vibe scoring standard 的 Stage 2 glossary rubric、tribunal librarian runner prompt，以及 tribunal writer / vibe scorer 的相關說明。Librarian 的 glossary 維度改成兩件事：既有 glossary coverage + missing glossary candidate judgment。worker pass 仍只補 link，不直接發明新 glossary anchor；candidate 要在 summary / judge reasons 裡指出。
-- Reusable lesson：Glossary policy 不能只放 writer 端。Librarian 是 gu-log 知識庫守門員，必須把 glossary 視為長期 mental-model anchor system，而不是「看見已存在 term 就補 link」的機械流程。
-
 ### Feedback: Architecture posts should deliver the mental model, not the spec tour
 
 - ShroomDog feedback：`Interesting, but too long, too many detailed that should be linked. But seems there r some interesting insights that worth starting a SD post from this`
 - 情境：SD-24 初稿把 Hermes Codex App-Server Runtime 和 OpenClaw Codex harness 的細節完整展開，包含 auth、native tools、tool boundary、optional routing、不同產品動機等。內容有 insight，但讀起來太像 spec walkthrough，不像一篇 gu-log SD 原創文。
 - 修法：把文章重寫成短版：只保留核心 thesis「Codex 正在變成 coding agent 的 runtime kernel；OpenClaw / Hermes 變成外層 control plane」，把 implementation detail 變成原文連結，不在正文展開 inventory。
 - Reusable lesson：架構趨勢文不要把文件細節搬進正文。gu-log 要交付的是可記住的 mental model；implementation details、限制清單、auth 指令、完整 tool matrix 應該連回原文。若細節沒有推動 thesis，就刪掉或縮成一句。
-
-### Feedback: Do not mix competing analogy systems in one architecture post
-
-- ShroomDog feedback：I think there is a problem of the analogy in this post / 有些比喻是 腦 手 跟互動窗口 / 有些比喻是廚房 / 搞屁啊= =
-- 情境：SD-24 正文先建立「模型 = 腦袋、執行引擎 = 手腳、聊天入口 = 互動窗口」三層 mental model，但 ClawdNote 又切到「主廚腦袋 / 廚房 / 外場」餐廳比喻。兩套比喻各自能用，但放在同一篇會讓讀者不知道 Codex 到底是手腳、廚房，還是 runtime kernel。
-- 修法：移除廚房比喻，全文統一成腦袋 / 手腳 / 互動窗口與調度系統。Codex 一律是「真正動手的執行層」，OpenClaw / Hermes 一律是入口、調度、記憶、回報與 workflow。
-- Reusable lesson：架構文章可以有比喻，但同一篇的核心比喻要收斂。若要換比喻，必須明確說「換個角度看」並只用在局部；否則會讓 mental model 自相打架。尤其是三層架構文，角色 mapping 要穩定：同一個元件不要一段是手、一段是廚房、一段又是引擎。
-
-### Feedback: Keep Codex app server as canonical English term
-
-- ShroomDog feedback：Codex 執行伺服器 -> codex app server? How about we use codex app server and add in glossary? I think this term itself might be useful and we might not want to translate it.
-- 情境：SD-24 把 Codex app server 硬翻成「Codex 執行伺服器 / Codex 應用伺服器執行環境」。中文能看懂，但它其實是 Codex 生態裡一個會反覆出現的架構 term；硬翻會讓讀者之後對不上英文文件與產品討論。
-- 修法：正文改用 canonical English term Codex app server，第一次出現連到 glossary；新增 glossary entry，解釋它是 Codex 的底層執行 server / runtime layer，不是模型名稱也不是聊天入口。
-- Reusable lesson：當英文 term 是產品/架構邊界本身，而且之後讀者需要拿它去對照官方文件或社群討論時，不要硬翻成中文。保留 canonical English term，第一次出現連 glossary，用中文解釋它在系統裡扮演的角色。
-
-### Feedback: Prefer 「像」 over loose 「很像」 when introducing analogies
-
-- ShroomDog feedback：Btw, how about 很像 -> 像？i think that might be more natural for taiwanese?
-- 情境：SD-24 的「早期 AI agent 生態很像每家公司都在蓋整台機器」可以更自然地寫成「早期 AI agent 生態像每家公司都在蓋整台機器」。很像在比喻起手式裡常顯得鬆散，像是還沒決定比喻要不要成立。
-- 修法：把該句改成「像」。後續寫作遇到直接建立比喻時，優先用「像」；只有真的要表達「相似程度很高」時才用「很像」。
-- Reusable lesson：台灣中文裡，架構/故事比喻常用「X 像 Y」更俐落。「很像」不是不能用，但容易把 punch 減弱成閒聊語氣。能用「像」講清楚，就不要加「很」。
 
 ## 2026-05-16 — SP-204 OpenClaw Token Spend Agent Workflow
 
@@ -322,28 +312,3 @@
 - Context: The source uses product-management vocabulary like intent engineering, OKRs, empowered teams, autonomy boundaries, and stop rules. A framework-heavy title would make the post feel like PM jargon before the reader gets the useful agent lesson.
 - Fix: Use a direct title such as 「AI Agent 不是有目標就夠了」 instead of terms like 「意圖工程框架」 or 「Agent 治理八要素」. Keep the body practical: goal, boundary, what cannot break, and when to stop.
 - Reusable lesson: When the source is a framework post, gu-log titles should often translate the reader-facing problem, not the author’s framework brand. Plain-language titles lower the entry cost and keep the article from smelling like a slide deck.
-
-
-## 2026-05-23 — accepted English boundary: Mac / Mobile / Gmail / Obsidian
-
-Feedback:
-- ShroomDog corrected SP-210 cleanup: "Mac Mobile Gmail 都是正常英文吧 obsidian, obsidian vault can go into glossary".
-
-Context:
-- During SP-210 Codex workflow recovery, the article over-translated normal product/platform terms to appease `check-jingjing.mjs`, weakening source fidelity and reading flow.
-
-Fix:
-- Treat Mac, Mobile/mobile, and Gmail as accepted English/product terms in `check-jingjing.mjs`.
-- Add Obsidian vault to `src/data/glossary.json` instead of translating it away.
-
-Reusable lesson:
-- Do not blindly translate common product/platform terms just because deterministic lint flags them. If ShroomDog says a term is normal English in gu-log voice, encode that boundary in the deterministic allowlist or glossary so future agents stop fighting the prose.
-
-## 2026-05-24 — CP-302 AKBP terminology cleanup
-
-### Feedback: Use canonical Embedding and harness terms
-
-- ShroomDog feedback：`Embedding instead of 嵌入`；`And what does 外殼mean here? Shell or harness? Just use the exact word`；`We may add glossary if needed`.
-- 情境：CP-302 把 arXiv paper 的 `agent harness` / `provider-native CLI harnesses` 翻成「外殼」，也把 `Embedding model` 類 technical term 寫成「嵌入模型」。這讓讀者不確定是在講 shell、harness，還是一般中文的「外殼」。
-- 修法：正文改用 `harness` / `CLI harness`，保留 [Agent Harness](/glossary#agent-harness) 作為第一次 anchor；`Embedding model` 保留英文。對原文 inline/file-based tool results 的地方，不用「嵌入結果」硬翻，改成 `inline 工具結果` 或「直接塞進 context」。不新增 glossary，因為 `Embedding` 已在基本 AI term exclude list，`Agent Harness` 已有 glossary entry。
-- Reusable lesson：遇到 AI architecture paper 的 canonical terms，先查 source exact wording。`harness` 是 agent 架構 term，不要翻成「外殼」；`shell` 只在原文真的講 bash / shell-based interface 時使用。`Embedding` 是可接受基本 AI term，但 embedded/injected/inline 這類普通動詞要照語境自然改寫。
