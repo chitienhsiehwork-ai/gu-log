@@ -208,6 +208,31 @@
     "enClawdNote": "Think of it as Codex's hands, not the chat surface and not just a model name. OpenClaw or Hermes can own the entry point, memory, workflow, and reporting while handing low-level execution to Codex."
   },
   {
+    "term": "Linear",
+    "en": "Linear",
+    "definition": "給軟體團隊用的雲端 issue tracking / project management SaaS。可以把它想成 GitHub Issues、GitLab Issues、Jira、Redmine 這一類工具的現代化版本：用 ticket / issue 管需求、bug、roadmap、sprint、狀態和責任人。AI agent 脈絡裡常把 Linear 當成「工作入口」：人先把任務寫成 issue，agent 再從 issue 接工作。",
+    "clawdNote": "Linear 不是 Git，也不是 IDE；它比較像工程團隊的任務收銀台。以前卡片是提醒人類去做事，現在卡片開始變成叫 agent 開工的按鈕。",
+    "url": "https://linear.app/",
+    "related": [
+      "Agentic Engineering",
+      "Codex",
+      "Codex app server"
+    ],
+    "definedIn": [
+      {
+        "slug": "cp-179-20260316-daniel-mac8-symphony-manage-work-not-agents",
+        "title": "你不是在管理 Agent，你是在管理工作"
+      },
+      {
+        "slug": "sp-187-20260428-openai-symphony-codex-orchestration",
+        "title": "OpenAI 開源 Symphony 編排規格——當任務板變成 codebase 遙控器"
+      }
+    ],
+    "category": "tools",
+    "enDefinition": "A cloud-based issue tracking and project management SaaS for software teams. Think GitHub Issues, GitLab Issues, Jira, or Redmine, but with a modern product workflow: tickets/issues for requirements, bugs, roadmap, sprint state, ownership, and execution status. In AI-agent workflows, Linear often becomes the work entry point: humans write the task as an issue, then an agent picks it up from there.",
+    "enClawdNote": "Linear is not Git and not an IDE. It is closer to the task counter for an engineering team. The card used to remind a human to work; now the card can become the button that starts an agent."
+  },
+  {
     "term": "Claude Code",
     "en": "Claude Code",
     "definition": "Anthropic 官方的 agentic coding CLI 工具，讓 Claude 可以直接在你的電腦上執行指令、讀寫檔案、跑測試。核心程式碼是閉源的（closed source）— GitHub 上的 anthropics/claude-code repo 只有 plugins、examples、安裝腳本，核心 agent loop 和工具實作透過 npm bundled 發布，不公開原始碼。2026-03-31 因 npm 發布時缺少 .npmignore，source map 意外曝光 512k+ 行 TypeScript 原始碼（含 44 個隱藏 feature flags、未上線的 KAIROS daemon agent 等），Anthropic 對映像 repo 發 DMCA takedown。另有獨立的 Claude Agent SDK（Python/TypeScript，MIT License）才是真正開源。",

@@ -76,7 +76,7 @@ Karpathy 說了一句很到位的話：
 
 但 Karpathy 發現，比起自己用 DeepWiki 查資料，更猛的做法是：**讓你的 AI agent 直接透過 MCP 去存取 DeepWiki**。
 
-他昨天在用 [torchao](https://github.com/pytorch/ao) 做 fp8 training 的時候遇到了一些煩人的問題。他心裡有個直覺：「等等，fp8 training 不就是一個跟 Linear 差不多的 Function，多幾個 cast 跟三次 `torch._scaled_mm` 呼叫嗎？不應該這麼複雜啊？」
+他昨天在用 [torchao](https://github.com/pytorch/ao) 做 fp8 training 的時候遇到了一些煩人的問題。他心裡有個直覺：「等等，fp8 training 不就是一個跟 [Linear](/glossary#linear) 差不多的 Function，多幾個 cast 跟三次 `torch._scaled_mm` 呼叫嗎？不應該這麼複雜啊？」
 
 於是他給 Claude 下了一個 prompt：
 

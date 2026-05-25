@@ -140,7 +140,7 @@ Engineers also tag `@claude` in issues and PRs for implementation plans, debuggi
 
 Every morning at 9:00 AM UTC, an automated health workflow runs. Claude Sonnet 4.6 queries CloudWatch, analyzes error patterns across all services, and generates an executive health summary delivered to the team via Microsoft Teams. **Nobody asked for it. It ran itself.**
 
-One hour later, the triage engine runs. It clusters production errors from CloudWatch and Sentry, scores each cluster across nine severity dimensions, auto-generates investigation tickets in Linear — each with sample logs, affected users, affected endpoints, and suggested investigation paths.
+One hour later, the triage engine runs. It clusters production errors from CloudWatch and Sentry, scores each cluster across nine severity dimensions, auto-generates investigation tickets in [Linear](/en/glossary#linear) — each with sample logs, affected users, affected endpoints, and suggested investigation paths.
 
 The system deduplicates. Same error pattern as an open ticket? Update it. A previously closed issue recurring? Detect the regression and reopen.
 
