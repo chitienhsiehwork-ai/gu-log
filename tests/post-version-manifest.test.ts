@@ -16,11 +16,38 @@ function repoWithFullGitHistory(cwd: string): string {
 
   // Do not unshallow the test runner's checkout in-place. Vitest runs files in
   // parallel, and mutating .git here can make hook integration tests hang.
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-version-full-'));
   const origin = run('git', ['remote', 'get-url', 'origin'], cwd).trim();
-  const ref = process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || run('git', ['rev-parse', 'HEAD'], cwd).trim();
-  run('git', ['clone', '--filter=blob:none', '--single-branch', '--branch', ref, origin, tmp], cwd);
-  return tmp;
+  const headRef = process.env.GITHUB_HEAD_REF;
+  const refName = process.env.GITHUB_REF_NAME;
+  const currentBranch = run('git', ['branch', '--show-current'], cwd).trim();
+  const headSha = run('git', ['rev-parse', 'HEAD'], cwd).trim();
+  const candidates = [headRef, refName, currentBranch, `origin/${currentBranch}`, headSha].filter(
+    (candidate): candidate is string => Boolean(candidate)
+  );
+
+  let lastError: unknown;
+  for (const ref of candidates) {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-version-full-'));
+    try {
+      run('git', ['clone', '--filter=blob:none', '--single-branch', '--branch', ref, origin, tmp], cwd);
+      return tmp;
+    } catch (error) {
+      fs.rmSync(tmp, { recursive: true, force: true });
+      lastError = error;
+    }
+  }
+
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-version-full-'));
+  try {
+    run('git', ['clone', '--no-local', cwd, tmp], cwd);
+    run('git', ['fetch', '--unshallow', 'origin'], tmp);
+    return tmp;
+  } catch (error) {
+    fs.rmSync(tmp, { recursive: true, force: true });
+    lastError = error;
+  }
+
+  throw lastError;
 }
 
 function makeSyntheticRepo(): string {
