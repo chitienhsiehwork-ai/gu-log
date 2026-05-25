@@ -31,16 +31,31 @@ scores:
     accuracy: 9
     fidelity: 8
     consistency: 9
-    sourceBoundary: 9
+    sourceBoundary: 8
     commentarySeparation: 8
     score: 8
     date: "2026-05-25"
     model: "gpt-5.5"
   librarian:
     glossary: 8
-    crossRef: 8
+    crossRef: 9
     sourceAlign: 9
     attribution: 8
+    score: 8
+    date: "2026-05-25"
+    model: "gpt-5.5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    score: 8
+    date: "2026-05-25"
+    model: "gpt-5.5"
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    clarity: 9
+    narrative: 8
     score: 8
     date: "2026-05-25"
     model: "gpt-5.5"
@@ -78,11 +93,15 @@ The principles are also clear: technical facts and data outrank personal prefere
 
 <ClawdNote>The worst review mismatch is dressing up "I like it this way" as "engineering quality." That is like insisting the garnish must sit on the left and calling it food architecture governance. Please. That is taste, not architecture. (¬‿¬)</ClawdNote>
 
+Once that line is clear, review stops being a search for defects and becomes a judgment call about where the system is going. The next question is practical: when a reviewer opens a CL, what should they look at first so they do not spend all their energy on the least important thing?
+
 ---
 
 ## What reviewers should actually look at
 
 The checklist starts with familiar items: design, functionality, complexity, tests, names, comments, style, and documentation. The useful part is not the checklist. It is the question behind it: will this change make future maintainers suffer more?
+
+At this point, the reviewer has to stop being a gatekeeper and start being a guide. A gatekeeper only says no at the entrance. A guide knows which path leads off a cliff and which path merely has ugly carpet.
 
 **Design** comes first. Should this change exist in the current system? Should it live in a shared library? Does it fit the existing architecture? Is now the right time to add this feature? If the direction is wrong, the reviewer should say so early instead of waiting until the author stacks more CLs on top of the wrong design.
 
@@ -100,6 +119,8 @@ The checklist starts with familiar items: design, functionality, complexity, tes
 
 Two review boundaries are easy to miss. First, picking reviewers is not just finding someone available; it means finding the people who can understand this change. Sometimes different parts need different reviewers, and if the ideal reviewer is busy, they may still need to be CC'd, meaning copied into the review so they keep context. Second, reviewers should usually read every line of human-written code they are assigned. Generated files and large data structures can be treated differently, but classes, functions, and blocks should not be skipped. If the reviewer only looked at certain files or one aspect, they should say so.
 
+The checklist is not the hard part. The hard part is order. If the reviewer gets pulled into a variable name first, the review can become like inspecting the curtains before noticing the foundation is cracked.
+
 ---
 
 ## Review order: map first, alleyways later
@@ -115,6 +136,8 @@ Third, read the rest of the files in a sensible order. Sometimes the review tool
 The spirit is simple: catch issues that would force a redesign before spending half an hour on typos.
 
 <ClawdNote>This kind of review can be diligent in the wrong order, like polishing glass on a sinking ship. The glass is shinier; the ship is still sinking. Looking at design direction first is checking whether the ship has a hole.</ClawdNote>
+
+Once the direction is clear, review has another enemy: time. Too fast becomes rubber-stamping. Too slow turns the team into a traffic jam. The speed section is about that annoying but very real tension.
 
 ---
 
@@ -136,6 +159,8 @@ Another practical move is **LGTM with comments**. `LGTM` means "looks good to me
 
 Large CLs are another speed trap. If a CL is too big to review predictably, ask the author to split it into smaller stacked CLs. If it truly cannot be split, at least review the overall design early so the author can keep moving.
 
+Speed only solves half the problem. The other half is tone. A review comment written like a court sentence can turn a technical issue into a dignity issue in about three seconds.
+
 ---
 
 ## The art of comments: talk about code, not people
@@ -153,6 +178,8 @@ Severity should be clear. `Nit:` means a small polish item. `Optional:` or `Cons
 If a reviewer asks the author to explain unclear code, the usual destination should be clearer code, not only a reply in the review tool. Future readers will not see review-tool explanations. Unless the context is domain knowledge that typical future readers already know, the fix should go back into code or comments.
 
 Review should not only find faults. When the author cleans up a complex path, adds a good test, or teaches the reviewer something, say so. Praise is not candy; it reinforces the engineering habits the team wants to keep.
+
+The real test often comes after the first comment, when the author comes back and says, "I disagree." At that moment, the reviewer has to protect quality without turning the thread into a contest.
 
 ---
 
@@ -172,11 +199,13 @@ If the debate gets stuck, try a face-to-face or video conversation and record th
 
 <ClawdNote>This is mature process design. Many review systems fail not because they lack standards, but because they lack a conflict-resolution path. Two engineers quote each other's previous comments like a tiny courtroom drama, and the CL becomes a monument to the organization's missing decision mechanism.</ClawdNote>
 
+By now, the reviewer's job is clear. But smooth review is not a solo performance by the reviewer. The author also decides whether the review feels like repair work or archaeology.
+
 ---
 
 ## Author side: a good CL saves reviewer brainpower
 
-The guide also teaches CL authors how to make review faster and more useful.
+The guide also teaches CL authors how to make review faster and more useful. A good CL does not dump a giant box on the reviewer's desk with a note saying "please take a look." That is closer to emptying every kitchen drawer onto the floor and asking someone to find one spoon.
 
 First, write a good CL description. It is a permanent record in version-control history and may be read by hundreds of people. A good description answers two questions: **what changed** and **why**.
 
@@ -196,6 +225,8 @@ There are many ways to split: stack one small CL on top of another; split by fil
 
 <ClawdNote>"Small CL" does not mean breaking the whole machine into crumbs and throwing them at the reviewer. Each piece still needs enough meaning to show where it belongs. Too small without semantics is also painful, like receiving one screw with no idea which part of the airplane it came from.</ClawdNote>
 
+Even after a good CL description and a clean split, the conversation can still wobble when comments arrive. That is where the author's side has its own version of code-health discipline: fix the code before fixing feelings.
+
 ---
 
 ## Authors receiving comments: fix the code before fixing feelings
@@ -210,6 +241,8 @@ When disagreeing with a comment, avoid a flat "will not do." Explain the tradeof
 
 This reflects the guide's underlying value: code review is a collaboration mechanism, not a personality test. Reviewers protect code health. Authors make changes easy to understand, verify, and maintain. Neither side is proving who is stronger; both are reducing pain for future maintainers.
 
+There is one last escape hatch almost every team is tempted to abuse: emergency. Once that word gets too broad, the earlier rules about health, speed, kindness, and small CLs can all get flattened by "we really need this today."
+
 ---
 
 ## Emergency is not "please, I want this today"
@@ -222,14 +255,18 @@ The non-emergency examples matter more: wanting to launch this week instead of n
 
 Hard deadlines also have a strict bar: missing them would cause a disaster, such as a contractual obligation, a market window that truly determines product survival, or a hardware vendor accepting code only once a year. A normal release wish is not a disaster. Repeatedly sacrificing review quality at the end of cycles is a common way to accumulate overwhelming technical debt.
 
+This matters because technical debt rarely begins with someone saying, "Today I will damage the system." It begins with a reasonable sentence: let this one through and clean it later. Say that often enough, and both failure modes from the opening return, just wearing different uniforms.
+
 ---
 
 ## Conclusion
 
-The heart of this review guide is not internal terminology, nor the words `LGTM` and `CL`. A `CL` is a self-contained change under review or ready to enter version control; `LGTM` is the reviewer's approval. The lesson is the engineering principle behind them: **each review decides whether the codebase will be healthier tomorrow or harder to maintain.**
+The guide circles back to the two failure modes from the opening: rubber-stamp review lets the codebase quietly decay, while perfection-gate review prevents useful improvements from entering at all.
+
+The point is not internal terminology, nor the words `LGTM` and `CL`. A `CL` is a self-contained change under review or ready to enter version control; `LGTM` is the reviewer's approval. The lesson is the engineering principle behind them: **each review decides whether the codebase will be healthier tomorrow or harder to maintain.**
 
 Strictness is not the goal, and speed is not the goal. Strictness serves code health; speed serves team flow. Comments should make change possible; descriptions should make the future understandable. Authors and reviewers both lower their ego and put the system first.
 
 <ClawdNote>The problem with "later" is that it rarely destroys the system loudly. It quietly interviews for the technical-debt job every day. At first it looks harmless; by the time you notice, it is already sitting beside the team with an employee badge.</ClawdNote>
 
-The best code review does not polish a CL into a perfect jewel. It makes the system easier to understand and maintain than it was yesterday.
+The best code review does not polish a CL into a perfect jewel. It makes the system easier to understand and maintain than it was yesterday. The rubber stamp is too soft; the perfection gate is too hard. Good review knows when to let the change through, and when to stand still.
