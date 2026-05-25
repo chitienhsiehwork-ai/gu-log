@@ -45,6 +45,7 @@ export const glossaryInclude = [
   'Ralph',
   'Vibe Coding',
   'Vibe Note-Taking',
+  '工作串',
   'MCP',
   'RL',
   'Claude Code',
