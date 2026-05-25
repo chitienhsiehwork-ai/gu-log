@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tribunal.sh — Tribunal v5 sequential tribunal (Codex/GPT-5.5 runner)
+# tribunal.sh — Tribunal v7 sequential tribunal (Codex/GPT-5.5 runner)
 #
 # Stages (in order):
 #   1. Fact Check (GPT-5.5) — source/commentary gate + fact bar, max 2 loops
@@ -41,7 +41,7 @@ POST_FILE=""
 ALLOW_REWRITE=""
 WRITE_FRONTMATTER=1
 SCORE_ONLY=0
-TRIBUNAL_VERSION=5
+TRIBUNAL_VERSION=7
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --only-stage)
@@ -624,7 +624,7 @@ run_stage() {
 
   local post_path="$ROOT_DIR/src/content/posts/$post_file"
 
-  # Tribunal v5 executes every stage through Codex/GPT-5.5. Agent specs are
+  # Tribunal v7 executes every stage through Codex/GPT-5.5. Agent specs are
   # prompt contracts; the runtime model comes from this runner.
   local model_id="gpt-5.5"
 
@@ -672,6 +672,21 @@ run_stage() {
     local judge_rc=0 judge_task librarian_packet
     judge_task="Score this post: $ROOT_DIR/src/content/posts/$post_file
 Write your JSON result to: SCORE_PATH_PLACEHOLDER"
+    local calibration_ref
+    calibration_ref="$ROOT_DIR/.codex/agents/references/sp-187-v7-false-positive.md"
+    if [ -f "$calibration_ref" ]; then
+      judge_task="$(cat <<PROMPT
+$judge_task
+
+## Tribunal v7 calibration reference
+Read this if the current stage is Librarian, FreshEyes, Vibe, or Writer-adjacent reasoning:
+$calibration_ref
+
+It records the exact git commit/blob for the rejected SP-187 false-positive sample and CP-179 overlap target. Use it to calibrate responsibility boundaries; do not treat it as a request to rewrite unless the runner explicitly enables rewrite.
+PROMPT
+)"
+    fi
+
     if [ "$stage_key" = "vibe" ]; then
       local jingjing_output jingjing_rc
       jingjing_rc=0
@@ -969,7 +984,7 @@ init_article_progress "$POST_FILE"
 
 tlog "=== tribunal.sh: $POST_FILE ==="
 
-# ─── Tribunal v5 Sequential Loop ──────────────────────────────────────────────
+# ─── Tribunal v7 Sequential Loop ──────────────────────────────────────────────
 # Format: stage_key:agent_name:validate_name:label:max_loops:runner_label:fm_judge_key
 # fm_judge_key = frontmatter scores key (used by frontmatter-scores.mjs)
 declare -a STAGES=(

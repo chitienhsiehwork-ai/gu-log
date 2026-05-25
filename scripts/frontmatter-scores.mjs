@@ -38,7 +38,7 @@ import process from 'node:process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const VALID_JUDGES = ['librarian', 'factCheck', 'freshEyes', 'vibe'];
-const CURRENT_TRIBUNAL_VERSION = 5;
+const CURRENT_TRIBUNAL_VERSION = 7;
 
 const __isCli =
   import.meta.url === pathToFileURL(process.argv[1] ?? '').href ||
@@ -291,7 +291,7 @@ function opWrite() {
 
   scores[judge] = entry;
 
-  // New tribunal writes are v5: factCheck runs first and includes
+  // New tribunal writes are v7: factCheck includes
   // Source Boundary / Commentary Separation dimensions.
   scores.tribunalVersion = CURRENT_TRIBUNAL_VERSION;
 
