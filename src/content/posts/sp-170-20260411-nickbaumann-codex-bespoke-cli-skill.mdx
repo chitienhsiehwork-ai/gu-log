@@ -32,7 +32,7 @@ Nick Baumann（@nickbaumann_）的這篇文章標題直接就嗆：**「給 Code
 
 ## 為什麼 connector 不夠，還要加一層 CLI
 
-Nick 先把話說清楚：他不是在貶低 [MCP](/glossary#mcp) server 或 connector。Slack、Linear、Sentry 他都接 connector，而且天天用。Connector 解決的是「access」— 讓 agent 拿得到資料。
+Nick 先把話說清楚：他不是在貶低 [MCP](/glossary#mcp) server 或 connector。Slack、[Linear](/glossary#linear)、Sentry 他都接 connector，而且天天用。Connector 解決的是「access」— 讓 agent 拿得到資料。
 
 問題是光拿得到還不夠。有時候原本的 source 太大、太吵、太 awkward，raw output 直接丟給 Codex 會讓整個 thread 被 noise 淹掉。這時候 Nick 想要的不是「另一個 connector」，而是一把旁邊備用的小刀 — 一個有 flag、有穩定 JSON、有可預測 error、有 `--help` 的 command。
 

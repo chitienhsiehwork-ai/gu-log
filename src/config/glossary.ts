@@ -50,6 +50,7 @@ export const glossaryInclude = [
   'Claude Code',
   'Codex',
   'Codex app server',
+  'Linear',
   'Hooks',
   'Elixir',
   'Subagent',
