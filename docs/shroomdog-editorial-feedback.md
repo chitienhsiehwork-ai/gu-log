@@ -312,3 +312,12 @@
 - Context: The source uses product-management vocabulary like intent engineering, OKRs, empowered teams, autonomy boundaries, and stop rules. A framework-heavy title would make the post feel like PM jargon before the reader gets the useful agent lesson.
 - Fix: Use a direct title such as 「AI Agent 不是有目標就夠了」 instead of terms like 「意圖工程框架」 or 「Agent 治理八要素」. Keep the body practical: goal, boundary, what cannot break, and when to stop.
 - Reusable lesson: When the source is a framework post, gu-log titles should often translate the reader-facing problem, not the author’s framework brand. Plain-language titles lower the entry cost and keep the article from smelling like a slide deck.
+
+## 2026-05-26 — SD-25 Agent Dream / Skill Consolidation
+
+### Feedback: 文章太長、難看；短概念文不要把 prompt 拆成報告
+
+- ShroomDog feedback：`SD-25 太長了，難看，用tribunal v7 重新迭代`
+- 情境：SD-25 把 Vaibhav Srivastav 的 Codex skill-consolidation prompt 延伸成 `/dream` mental model。第一版雖然 FreshEyes/Vibe 給過 8，但正文把 prompt 條件、Skill、automation、/dream 定義逐段鋪開，讀感像把一個好概念拉成流程報告。
+- 修法：保留「agent 做夢 = 把白天工作沉澱成可重用程序」這個核心，刪掉重複解釋和過多分類，讓文章變成短而尖的概念文。只留必要 source capture、Skill vs diary、/dream 應該保守這幾個讀者真正需要的點。
+- Reusable lesson：短 prompt/概念來源不一定需要完整拆解每個 bullet。若核心洞見一句話就能講清楚，文章應該圍繞那個洞見做 mental model，而不是把 source prompt 轉成「逐條說明書」。Tribunal/FreshEyes 若只看懂不看「是否值得讀完」，可能會高估這類長但正確的文章。
