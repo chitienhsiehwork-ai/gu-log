@@ -10,11 +10,17 @@ function run(command: string, args: string[], cwd: string): string {
   return execFileSync(command, args, { cwd, encoding: 'utf-8' });
 }
 
-function ensureFullGitHistory(cwd: string): void {
+function repoWithFullGitHistory(cwd: string): string {
   const isShallow = run('git', ['rev-parse', '--is-shallow-repository'], cwd).trim();
-  if (isShallow === 'true') {
-    run('git', ['fetch', '--unshallow', '--filter=blob:none', 'origin'], cwd);
-  }
+  if (isShallow !== 'true') return cwd;
+
+  // Do not unshallow the test runner's checkout in-place. Vitest runs files in
+  // parallel, and mutating .git here can make hook integration tests hang.
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-version-full-'));
+  const origin = run('git', ['remote', 'get-url', 'origin'], cwd).trim();
+  const ref = process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || run('git', ['rev-parse', 'HEAD'], cwd).trim();
+  run('git', ['clone', '--filter=blob:none', '--single-branch', '--branch', ref, origin, tmp], cwd);
+  return tmp;
 }
 
 function makeSyntheticRepo(): string {
@@ -53,10 +59,10 @@ describe('post version manifest freshness', () => {
   });
 
   it('keeps the production manifest fresh for Vercel shallow builds', () => {
-    ensureFullGitHistory(REPO_ROOT);
+    const repo = repoWithFullGitHistory(REPO_ROOT);
 
     const result = spawnSync('node', ['scripts/build-version-manifest.mjs', '--check'], {
-      cwd: REPO_ROOT,
+      cwd: repo,
       encoding: 'utf-8',
     });
 
