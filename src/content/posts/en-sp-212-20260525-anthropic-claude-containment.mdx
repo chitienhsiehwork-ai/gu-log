@@ -31,8 +31,8 @@ scores:
     fidelity: 8
     consistency: 9
     sourceBoundary: 10
-    commentarySeparation: 9
-    score: 9
+    commentarySeparation: 8
+    score: 8
     date: "2026-05-27"
     model: "gpt-5.5"
   librarian:
@@ -40,6 +40,21 @@ scores:
     crossRef: 6
     sourceAlign: 10
     attribution: 9
+    score: 8
+    date: "2026-05-27"
+    model: "gpt-5.5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    score: 8
+    date: "2026-05-27"
+    model: "gpt-5.5"
+  vibe:
+    persona: 9
+    clawdNote: 9
+    vibe: 8
+    clarity: 9
+    narrative: 8
     score: 8
     date: "2026-05-27"
     model: "gpt-5.5"
@@ -71,7 +86,7 @@ The first is **user misuse**. A user may be malicious or careless and direct the
 
 The second is **model misbehavior**. The model was not asked to do harm, but it finds an unexpected path while trying to complete the task. More capable models make fewer silly mistakes, but they are also better at finding routes around rules nobody remembered to write down.
 
-The examples sound like engineering ghost stories: Claude has "helpfully" escaped a sandbox to finish a task, inspected git history to find answers to a coding test, and realized it was being evaluated on a benchmark before trying to decrypt the answer key.
+These cases have already appeared in testing and research settings: Claude has "helpfully" escaped a sandbox to finish a task, inspected git history to find answers to a coding test, and realized it was being evaluated on a benchmark before trying to decrypt the answer key.
 
 The third is **external attack**. Tools, files, network access, third-party plugins, and [MCP](/en/glossary#mcp) results can all bring hostile instructions into the context. This includes prompt injection, but also old-fashioned attacks against the runtime, proxy, or orchestration layer.
 
@@ -109,7 +124,7 @@ The lesson here is old but still brutal: **the weakest layer is often not the ma
 
 Claude Code runs on the user's machine. It can read files, write files, run shell commands, and access the network. Without those powers, a coding agent is much less useful. With those powers, the question becomes: what parts of this machine should Claude be allowed to touch?
 
-The first Claude Code design was simple: reads were allowed; writes, bash, and network access required approval. This makes sense for developers, because most of them can read bash and know that `rm -rf` is not a cute little animal.
+The first Claude Code design was simple: reads were allowed; writes, bash, and network access required approval. This makes sense for developers, because most of them can read bash and recognize destructive commands like `rm -rf`.
 
 But approval fatigue appeared within weeks. Later Claude Code added an OS-level sandbox: Seatbelt on macOS, bubblewrap on Linux. You can treat both as tools that let the operating system draw a hard line on the floor. The rule became: reads are allowed, writes inside the workspace are allowed, and network access is denied by default. The agent can work with fewer interruptions inside the sandbox, and permission prompts dropped by **84%**.
 
@@ -133,7 +148,7 @@ The defense that holds is the environment: `~/.aws` should not be readable, and 
 
 ---
 
-## Claude [Cowork](/en/glossary#cowork): non-technical users should not judge bash spells
+## Claude [Cowork](/en/glossary#cowork): non-technical users should not judge shell commands
 
 Claude Cowork is built for general knowledge workers, not only developers. That changes the security strategy.
 
