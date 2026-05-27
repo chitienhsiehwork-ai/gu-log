@@ -1,14 +1,14 @@
-# Tribunal v7 Vibe Scoring Standard
+# Tribunal v8 Vibe Scoring Standard
 
 > Golden standard for evaluating gu-log post quality.
-> Tribunal v7 judge-boundary update calibrated 2026-05-25 by ShroomDog + Iris.
+> Tribunal v8 FreshEyes length-fit update calibrated 2026-05-27 by ShroomDog + Iris.
 > **SSOT for all 4 tribunal judges + writer agent.**
 
 ## Tribunal System Overview
 
-Tribunal v7 pipeline — 4 stages. All judges use **uniform 0-10 integer scale**. Composite = `Math.floor(avg of all dims)`.
+Tribunal v8 pipeline — 4 stages. All judges use **uniform 0-10 integer scale**. Composite = `Math.floor(avg of all dims)`.
 
-### v7 Judge Responsibility Boundary
+### v8 Judge Responsibility Boundary
 
 - **Librarian owns corpus overlap and duplicate-attention evidence.** It checks whether gu-log already covered the same concept, whether the post cites/contrasts relevant older posts early enough, and whether repeated background should be compressed.
 - **Fresh Eyes owns first-time reader fatigue.** It judges whether a human reader would skim, close the tab, or feel the article is longer than its information gain.
@@ -19,10 +19,10 @@ Tribunal v7 pipeline — 4 stages. All judges use **uniform 0-10 integer scale**
 |-------|-------|-------|------------|----------|
 | 1 | Fact Checker | GPT-5.5 | accuracy · fidelity · consistency · sourceBoundary · commentarySeparation | fact core avg ≥ 8 AND sourceBoundary ≥ 8 AND commentarySeparation ≥ 8 |
 | 2 | Librarian | GPT-5.5 | glossary · crossRef · sourceAlign · attribution | composite ≥ 8 |
-| 3 | Fresh Eyes | GPT-5.5 | readability · firstImpression | composite ≥ 8 |
+| 3 | Fresh Eyes | GPT-5.5 | readability · firstImpression · payoffDensity · lengthFit | composite ≥ 8 AND payoffDensity ≥ 8 AND lengthFit ≥ 8 |
 | 4 | Vibe | GPT-5.5 | persona · clawdNote · vibe · clarity · narrative | composite ≥ 8 AND one dim ≥ 9 AND no dim < 8 |
 
-## Uniform Agent Output JSON (v7)
+## Uniform Agent Output JSON (v8)
 
 All judges output the `BaseJudgeOutput` shape from `src/lib/tribunal-v2/types.ts`:
 
@@ -127,7 +127,7 @@ Are quotes, stats, and opinions properly attributed?
 
 ---
 
-## Tribunal v7 Calibration References
+## Tribunal v8 Calibration References
 
 Known false-positive examples live under `.codex/agents/references/`. Judges should treat these as calibration fixtures, not live article instructions.
 
@@ -419,7 +419,7 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 ## Evaluation Protocol (All Judges)
 
 1. **Read the ENTIRE post** — don't skim
-2. **Respect v7 judge boundaries** — Librarian owns corpus overlap; Fresh Eyes owns reader fatigue; Vibe owns internal rhythm/shareability; Writer consumes evidence instead of inventing new scope
+2. **Respect v8 judge boundaries** — Librarian owns corpus overlap; Fresh Eyes owns reader fatigue; Vibe owns internal rhythm/shareability; Writer consumes evidence instead of inventing new scope
 3. **Score each dimension independently** (integer 0-10)
 4. **Calculate composite** = `Math.floor(avg of all dims)`
 5. **Apply pass bar** — per-judge rules above; set `pass` accordingly

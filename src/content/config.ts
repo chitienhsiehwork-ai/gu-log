@@ -18,7 +18,7 @@ const postsCollection = defineCollection({
                 role: z.string(), // e.g., "Written", "Reviewed", "Refined"
                 model: z.string(),
                 harness: z.string(),
-              }),
+              })
             )
             .optional(),
           pipelineUrl: z.string().url().optional(),
@@ -91,6 +91,8 @@ const postsCollection = defineCollection({
             .object({
               readability: z.number().min(0).max(10).optional(),
               firstImpression: z.number().min(0).max(10).optional(),
+              payoffDensity: z.number().min(0).max(10).optional(),
+              lengthFit: z.number().min(0).max(10).optional(),
               score: z.number().min(0).max(10),
               date: z.string(),
               model: z.string().optional(),
@@ -124,7 +126,7 @@ const postsCollection = defineCollection({
         message:
           'SP/CP posts require translatedBy (model + harness) — this is a translation, not an original',
         path: ['translatedBy'],
-      },
+      }
     ),
 });
 

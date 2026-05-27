@@ -321,3 +321,8 @@
 - 情境：SD-25 把 Vaibhav Srivastav 的 Codex skill-consolidation prompt 延伸成 `/dream` mental model。第一版雖然 FreshEyes/Vibe 給過 8，但正文把 prompt 條件、Skill、automation、/dream 定義逐段鋪開，讀感像把一個好概念拉成流程報告。
 - 修法：保留「agent 做夢 = 把白天工作沉澱成可重用程序」這個核心，刪掉重複解釋和過多分類，讓文章變成短而尖的概念文。只留必要 source capture、Skill vs diary、/dream 應該保守這幾個讀者真正需要的點。
 - Reusable lesson：短 prompt/概念來源不一定需要完整拆解每個 bullet。若核心洞見一句話就能講清楚，文章應該圍繞那個洞見做 mental model，而不是把 source prompt 轉成「逐條說明書」。Tribunal/FreshEyes 若只看懂不看「是否值得讀完」，可能會高估這類長但正確的文章。
+
+
+## 2026-05-27 — FreshEyes 長度剛好要變成明確 metric
+
+Sprin asked whether Tribunal v7 FreshEyes covers “length should be just right,” then preferred adding one or two FreshEyes metrics and bumping Tribunal version. Durable lesson: FreshEyes should not only ask whether the post is understandable; it must judge whether the length is worth finishing. Add explicit `payoffDensity` and `lengthFit` dimensions, and make them non-compensating so a good hook/readability cannot hide correct-but-too-long filler. Librarian still owns corpus overlap evidence; FreshEyes owns on-page reader fatigue and length/payoff fit.

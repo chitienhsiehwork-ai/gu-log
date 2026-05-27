@@ -103,7 +103,7 @@ export interface PipelineConfig {
      * staged, an `--allow-empty` marker commit is created for audit-trail
      * continuity. Returns the new commit hash.
      */
-     commit(message: string, paths?: string[]): Promise<string>;
+    commit(message: string, paths?: string[]): Promise<string>;
     squashMerge(branch: string, commitMessage: string): Promise<void>;
   };
 
@@ -138,21 +138,22 @@ interface FrontmatterScoreEntry {
   model: string;
 }
 
-const FRONTMATTER_DIM_MAP: Record<
-  string,
-  { fmKey: FrontmatterJudgeKey; dims: readonly string[] }
-> = {
-  stage1: { fmKey: 'vibe', dims: ['persona', 'clawdNote', 'vibe', 'clarity', 'narrative'] },
-  stage2: { fmKey: 'freshEyes', dims: ['readability', 'firstImpression'] },
-  stage3fact: {
-    fmKey: 'factCheck',
-    dims: ['accuracy', 'fidelity', 'consistency'],
-  },
-  stage3lib: {
-    fmKey: 'librarian',
-    dims: ['glossary', 'crossRef', 'sourceAlign', 'attribution'],
-  },
-};
+const FRONTMATTER_DIM_MAP: Record<string, { fmKey: FrontmatterJudgeKey; dims: readonly string[] }> =
+  {
+    stage1: { fmKey: 'vibe', dims: ['persona', 'clawdNote', 'vibe', 'clarity', 'narrative'] },
+    stage2: {
+      fmKey: 'freshEyes',
+      dims: ['readability', 'firstImpression', 'payoffDensity', 'lengthFit'],
+    },
+    stage3fact: {
+      fmKey: 'factCheck',
+      dims: ['accuracy', 'fidelity', 'consistency'],
+    },
+    stage3lib: {
+      fmKey: 'librarian',
+      dims: ['glossary', 'crossRef', 'sourceAlign', 'attribution'],
+    },
+  };
 
 const RESERVED_KEYS = new Set(['score', 'date', 'model']);
 
@@ -318,10 +319,9 @@ async function runStage0(state: PipelineState, config: PipelineConfig): Promise<
   stage.status = 'passed'; // Always pass — WARN mode
   stage.completedAt = now();
 
-  await config.git.commit(
-    `tribunal(stage0): worthiness gate — ${output.pass ? 'PASS' : 'WARN'}`,
-    [state.articlePath]
-  );
+  await config.git.commit(`tribunal(stage0): worthiness gate — ${output.pass ? 'PASS' : 'WARN'}`, [
+    state.articlePath,
+  ]);
   await config.onProgress?.(state);
 }
 
@@ -365,12 +365,7 @@ async function runJudgeWriterLoop<
     // Run judge
     const articleContent = await config.io.readArticle(state.articlePath);
     const judgeOutput = await judge(articleContent);
-    await assertJudgeDidNotMutate(
-      config,
-      state.articlePath,
-      articleContent,
-      `stage${stageNum}`
-    );
+    await assertJudgeDidNotMutate(config, state.articlePath, articleContent, `stage${stageNum}`);
 
     stage.output = judgeOutput;
     stage.history.push(judgeOutput);
@@ -517,10 +512,9 @@ async function runStage3(state: PipelineState, config: PipelineConfig): Promise<
           `tribunal(stage3): Librarian rejected (constraint violations) — loop ${loop}/${stage.maxLoops}`
         );
       } else {
-        await config.git.commit(
-          `tribunal(stage3): Librarian — loop ${loop}/${stage.maxLoops}`,
-          [state.articlePath]
-        );
+        await config.git.commit(`tribunal(stage3): Librarian — loop ${loop}/${stage.maxLoops}`, [
+          state.articlePath,
+        ]);
       }
     }
 
@@ -529,12 +523,7 @@ async function runStage3(state: PipelineState, config: PipelineConfig): Promise<
     const judgeOutput = await config.runners.stage3Judge.run({
       articleContent: articleAfterWorkers,
     });
-    await assertJudgeDidNotMutate(
-      config,
-      state.articlePath,
-      articleAfterWorkers,
-      'stage3'
-    );
+    await assertJudgeDidNotMutate(config, state.articlePath, articleAfterWorkers, 'stage3');
 
     stage.output = judgeOutput;
     stage.history.push(judgeOutput);
@@ -545,17 +534,21 @@ async function runStage3(state: PipelineState, config: PipelineConfig): Promise<
 
       const model = judgeOutput.judge_model ?? 'stage3';
       const { dims: factDims, fmKey: factKey } = FRONTMATTER_DIM_MAP.stage3fact;
-      const factEntry = buildFrontmatterScore(judgeOutput.scores, factDims, model, STAGE3_FACT_RENAME);
+      const factEntry = buildFrontmatterScore(
+        judgeOutput.scores,
+        factDims,
+        model,
+        STAGE3_FACT_RENAME
+      );
       await persistScoreToFrontmatter(config, state.articlePath, factKey, factEntry);
 
       const { dims: libDims, fmKey: libKey } = FRONTMATTER_DIM_MAP.stage3lib;
       const libEntry = buildFrontmatterScore(judgeOutput.scores, libDims, model, STAGE3_LIB_RENAME);
       await persistScoreToFrontmatter(config, state.articlePath, libKey, libEntry);
 
-      await config.git.commit(
-        `tribunal(stage3): FactLib — PASS @ loop ${loop}/${stage.maxLoops}`,
-        [state.articlePath]
-      );
+      await config.git.commit(`tribunal(stage3): FactLib — PASS @ loop ${loop}/${stage.maxLoops}`, [
+        state.articlePath,
+      ]);
       await config.onProgress?.(state);
       return true;
     }
@@ -576,7 +569,10 @@ async function runStage3(state: PipelineState, config: PipelineConfig): Promise<
       const dupClass = classMatch?.[1] ?? 'unknown';
       const dupAction = actionMatch?.[1] ?? 'unknown';
       const matchedSlugs = slugsMatch?.[1]
-        ? slugsMatch[1].split(',').map((s) => s.trim()).filter(Boolean)
+        ? slugsMatch[1]
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean)
         : [];
       const reason = reasonMatch?.[1]?.trim() ?? '';
       const score = judgeOutput.scores.dupCheck;
@@ -744,10 +740,9 @@ async function runStage4(state: PipelineState, config: PipelineConfig): Promise<
     });
   }
 
-  await config.git.commit(
-    `tribunal(stage4): Final Vibe — degraded (non-blocking)`,
-    [state.articlePath]
-  );
+  await config.git.commit(`tribunal(stage4): Final Vibe — degraded (non-blocking)`, [
+    state.articlePath,
+  ]);
   await config.onProgress?.(state);
 }
 
@@ -844,8 +839,7 @@ export async function runPipeline(
     // 'failed' (fact/library exhausted max loops). Do NOT flatten both paths
     // into 'failed' — scripts/tribunal-v2-run.ts uses exit code 3 for
     // needs_review and exit code 1 for failed; CI/orchestrator behavior differs.
-    state.status =
-      state.stages.stage3.status === 'needs_review' ? 'needs_review' : 'failed';
+    state.status = state.stages.stage3.status === 'needs_review' ? 'needs_review' : 'failed';
     state.completedAt = now();
     await config.onProgress?.(state);
     return state;

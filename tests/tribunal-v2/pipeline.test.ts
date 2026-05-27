@@ -101,7 +101,7 @@ const FAILING_SCORES: VibeJudgeOutput['scores'] = {
 function freshEyesPass(): FreshEyesJudgeOutput {
   return {
     pass: true,
-    scores: { readability: 8, firstImpression: 8 },
+    scores: { readability: 8, firstImpression: 8, payoffDensity: 8, lengthFit: 8 },
     composite: 8,
     judge_model: 'mock',
     judge_version: '2.0.0',
@@ -362,9 +362,7 @@ describe('pipeline — writer-constraint enforcement', () => {
     expect(judgeContents[0]).not.toContain('wrong.example.com');
 
     // Commit trail shows both workers rejected
-    expect(
-      git.commits.some((m) => m.includes('FactCorrector rejected'))
-    ).toBe(true);
+    expect(git.commits.some((m) => m.includes('FactCorrector rejected'))).toBe(true);
     expect(git.commits.some((m) => m.includes('Librarian rejected'))).toBe(true);
   });
 
@@ -392,9 +390,7 @@ describe('pipeline — writer-constraint enforcement', () => {
       },
     };
 
-    await expect(runPipeline(articlePath, config)).rejects.toThrow(
-      /judge mutated article/i
-    );
+    await expect(runPipeline(articlePath, config)).rejects.toThrow(/judge mutated article/i);
 
     // The injection must have been reverted off disk.
     const content = await readFile(articlePath, 'utf-8');
@@ -503,9 +499,7 @@ describe('pipeline — writer-constraint enforcement', () => {
     expect(finalContent).not.toContain('malicious.example.com');
 
     // Commit trail shows a Stage 4 rejected marker (proves constraint ran)
-    expect(
-      git.commits.some((m) => m.includes('stage4') && m.includes('rejected'))
-    ).toBe(true);
+    expect(git.commits.some((m) => m.includes('stage4') && m.includes('rejected'))).toBe(true);
   });
 });
 
@@ -731,10 +725,16 @@ describe('pipeline — Stage 3 dupCheck-only FAIL (Level E)', () => {
     // Round 2: library passes + dupCheck still fails → shortcut fires (needs_review)
     const round1Output: FactLibJudgeOutput = {
       pass: false,
-      scores: { factAccuracy: 9, sourceFidelity: 9, linkCoverage: 6, linkRelevance: 6, dupCheck: 3 },
+      scores: {
+        factAccuracy: 9,
+        sourceFidelity: 9,
+        linkCoverage: 6,
+        linkRelevance: 6,
+        dupCheck: 3,
+      },
       composite: 6,
       fact_pass: true,
-      library_pass: false,  // library fails — workers CAN fix this
+      library_pass: false, // library fails — workers CAN fix this
       dupCheck_pass: false,
       improvements: {
         linkCoverage: 'missing glossary links',
@@ -747,10 +747,16 @@ describe('pipeline — Stage 3 dupCheck-only FAIL (Level E)', () => {
     };
     const round2Output: FactLibJudgeOutput = {
       pass: false,
-      scores: { factAccuracy: 9, sourceFidelity: 9, linkCoverage: 9, linkRelevance: 8, dupCheck: 3 },
+      scores: {
+        factAccuracy: 9,
+        sourceFidelity: 9,
+        linkCoverage: 9,
+        linkRelevance: 8,
+        dupCheck: 3,
+      },
       composite: 7,
       fact_pass: true,
-      library_pass: true,  // library fixed by workers
+      library_pass: true, // library fixed by workers
       dupCheck_pass: false,
       improvements: {
         dupCheck: 'class=hard-dup action=BLOCK matchedSlugs=[sp-100] reason=同 cluster primary',
@@ -784,7 +790,9 @@ describe('pipeline — Stage 3 dupCheck-only FAIL (Level E)', () => {
     expect(judgeCallCount).toBe(2);
 
     // shortcut fires on round 2 (after library is fixed by workers)
-    expect(git.commits.some((m) => m.includes('dupCheck FAIL') && m.includes('class=hard-dup'))).toBe(true);
+    expect(
+      git.commits.some((m) => m.includes('dupCheck FAIL') && m.includes('class=hard-dup'))
+    ).toBe(true);
     expect(git.commits.every((m) => !m.includes('max loops exhausted'))).toBe(true);
   });
 });

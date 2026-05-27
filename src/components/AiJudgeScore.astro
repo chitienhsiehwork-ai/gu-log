@@ -5,7 +5,7 @@
  * 4 judges, uniform 0-10 scale, new dimension map:
  *   Librarian (Opus 4.7)    → glossary · crossRef · sourceAlign · attribution
  *   Fact Check (GPT-5.5)    → accuracy · fidelity · consistency · sourceBoundary · commentarySeparation
- *   Fresh Eyes (Opus 4.7)   → readability · firstImpression
+ *   Fresh Eyes (GPT-5.5)    → readability · firstImpression · payoffDensity · lengthFit
  *   Vibe (Opus 4.6[1m])     → persona · clawdNote · vibe · clarity · narrative
  *
  * Scores live in post frontmatter. No legacy keys (ralph/gemini/codex/sonnet).
@@ -36,6 +36,8 @@ interface Props {
     freshEyes?: {
       readability?: number;
       firstImpression?: number;
+      payoffDensity?: number;
+      lengthFit?: number;
       score: number;
       date: string;
       model?: string;
@@ -83,6 +85,8 @@ const labels = {
   commentarySeparation: 'Separation',
   readability: 'Readability',
   firstImpression: 'FirstImpression',
+  payoffDensity: 'PayoffDensity',
+  lengthFit: 'LengthFit',
   persona: 'Persona',
   clawdNote: 'ClawdNote',
   vibe_dim: 'Vibe',
@@ -219,6 +223,26 @@ const labels = {
                   </span>
                   <strong class={scoreColor(scores.freshEyes.firstImpression)}>
                     {scores.freshEyes.firstImpression}
+                  </strong>
+                </span>
+              )}
+              {scores.freshEyes.payoffDensity !== undefined && (
+                <span class="dim-item">
+                  <span class="dim-label" data-short="Payoff">
+                    {labels.payoffDensity}
+                  </span>
+                  <strong class={scoreColor(scores.freshEyes.payoffDensity)}>
+                    {scores.freshEyes.payoffDensity}
+                  </strong>
+                </span>
+              )}
+              {scores.freshEyes.lengthFit !== undefined && (
+                <span class="dim-item">
+                  <span class="dim-label" data-short="Length">
+                    {labels.lengthFit}
+                  </span>
+                  <strong class={scoreColor(scores.freshEyes.lengthFit)}>
+                    {scores.freshEyes.lengthFit}
                   </strong>
                 </span>
               )}

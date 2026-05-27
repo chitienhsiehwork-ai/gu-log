@@ -28,7 +28,7 @@ title: Test
 lang: zh-tw
 translatedDate: 2026-04-29
 scores:
-  tribunalVersion: 7
+  tribunalVersion: 8
 ---
 
 Original body.
@@ -40,7 +40,7 @@ title: Test EN
 lang: en
 translatedDate: 2026-04-29
 scores:
-  tribunalVersion: 7
+  tribunalVersion: 8
 ---
 
 Original EN body.
@@ -86,7 +86,7 @@ git -C "$repo2" add scores/tribunal-progress.json src/content/posts/cp-999-test.
 bash "$ASSERT" "$repo2" cp-999-test.mdx --staged
 pass "postcondition accepts staged PASS with target artifacts"
 
-# 3. New staged PASS postcondition must reject pre-v7 score frontmatter.
+# 3. New staged PASS postcondition must reject pre-v8 score frontmatter.
 repo2b="$TMP/postcondition-v6-reject"
 setup_repo "$repo2b"
 python3 - <<PY
@@ -95,20 +95,20 @@ import json
 repo=Path('$repo2b')
 for name in ['cp-999-test.mdx', 'en-cp-999-test.mdx']:
     p = repo/'src/content/posts'/name
-    p.write_text(p.read_text().replace('tribunalVersion: 7', 'tribunalVersion: 6').replace('Original', 'Rewritten'))
+    p.write_text(p.read_text().replace('tribunalVersion: 8', 'tribunalVersion: 6').replace('Original', 'Rewritten'))
 p=repo/'scores/tribunal-progress.json'
 p.write_text(json.dumps({'cp-999-test.mdx': {'status': 'PASS', 'tribunalVersion': 6}}, indent=2) + '\n')
 PY
 git -C "$repo2b" add scores/tribunal-progress.json src/content/posts/cp-999-test.mdx src/content/posts/en-cp-999-test.mdx
 if bash "$ASSERT" "$repo2b" cp-999-test.mdx --staged >/tmp/guard-v6-out 2>&1; then
   cat /tmp/guard-v6-out >&2
-  fail "postcondition accepted pre-v7 score frontmatter for a new PASS"
+  fail "postcondition accepted pre-v8 score frontmatter for a new PASS"
 fi
-if ! grep -q 'tribunalVersion >= 7' /tmp/guard-v6-out; then
+if ! grep -q 'tribunalVersion >= 8' /tmp/guard-v6-out; then
   cat /tmp/guard-v6-out >&2
-  fail "pre-v7 rejection did not explain required tribunal version"
+  fail "pre-v8 rejection did not explain required tribunal version"
 fi
-pass "postcondition rejects pre-v7 staged PASS score frontmatter"
+pass "postcondition rejects pre-v8 staged PASS score frontmatter"
 
 # 4. Audit must fail on historical progress-only Tribunal PASS commits.
 repo3="$TMP/audit"

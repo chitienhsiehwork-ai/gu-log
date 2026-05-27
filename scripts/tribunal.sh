@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tribunal.sh — Tribunal v7 sequential tribunal (Codex/GPT-5.5 runner)
+# tribunal.sh — Tribunal v8 sequential tribunal (Codex/GPT-5.5 runner)
 #
 # Stages (in order):
 #   1. Fact Check (GPT-5.5) — source/commentary gate + fact bar, max 2 loops
@@ -41,7 +41,7 @@ POST_FILE=""
 ALLOW_REWRITE=""
 WRITE_FRONTMATTER=1
 SCORE_ONLY=0
-TRIBUNAL_VERSION=7
+TRIBUNAL_VERSION=8
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --only-stage)
@@ -580,9 +580,11 @@ PY
 import json, sys, math
 data = json.load(open(sys.argv[1]))
 dims = data.get('dimensions', {})
-vals = [dims.get(k, 0) for k in ('readability', 'firstImpression')]
+vals = [dims.get(k, 0) for k in ('readability', 'firstImpression', 'payoffDensity', 'lengthFit')]
 composite = math.floor(sum(vals) / len(vals))
-sys.exit(0 if composite >= 8 else 1)
+# FreshEyes length/readability dimensions are non-compensating: a flashy hook
+# must not hide low payoff density or bad length fit.
+sys.exit(0 if composite >= 8 and dims.get('payoffDensity', 0) >= 8 and dims.get('lengthFit', 0) >= 8 else 1)
 PY
       ;;
     vibe-opus-scorer)
@@ -624,7 +626,7 @@ run_stage() {
 
   local post_path="$ROOT_DIR/src/content/posts/$post_file"
 
-  # Tribunal v7 executes every stage through Codex/GPT-5.5. Agent specs are
+  # Tribunal v8 executes every stage through Codex/GPT-5.5. Agent specs are
   # prompt contracts; the runtime model comes from this runner.
   local model_id="gpt-5.5"
 
@@ -678,7 +680,7 @@ Write your JSON result to: SCORE_PATH_PLACEHOLDER"
       judge_task="$(cat <<PROMPT
 $judge_task
 
-## Tribunal v7 calibration reference
+## Tribunal v8 calibration reference
 Read this if the current stage is Librarian, FreshEyes, Vibe, or Writer-adjacent reasoning:
 $calibration_ref
 
@@ -984,7 +986,7 @@ init_article_progress "$POST_FILE"
 
 tlog "=== tribunal.sh: $POST_FILE ==="
 
-# ─── Tribunal v7 Sequential Loop ──────────────────────────────────────────────
+# ─── Tribunal v8 Sequential Loop ──────────────────────────────────────────────
 # Format: stage_key:agent_name:validate_name:label:max_loops:runner_label:fm_judge_key
 # fm_judge_key = frontmatter scores key (used by frontmatter-scores.mjs)
 declare -a STAGES=(

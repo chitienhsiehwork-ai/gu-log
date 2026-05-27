@@ -103,6 +103,8 @@ export interface FreshEyesJudgeOutput extends BaseJudgeOutput {
   scores: {
     readability: number;
     firstImpression: number;
+    payoffDensity: number;
+    lengthFit: number;
   };
 }
 

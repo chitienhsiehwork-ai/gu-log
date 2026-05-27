@@ -32,9 +32,7 @@ export function checkVibePassBar(scores: VibeScores): {
   const failedDimensions = VIBE_DIMS.filter((d) => scores[d] < PASS_BARS.STAGE_1_MIN_DIMENSION);
 
   const pass =
-    composite >= PASS_BARS.STAGE_1_COMPOSITE &&
-    hasHighlight &&
-    failedDimensions.length === 0;
+    composite >= PASS_BARS.STAGE_1_COMPOSITE && hasHighlight && failedDimensions.length === 0;
 
   return { pass, composite, hasHighlight, failedDimensions };
 }
@@ -42,12 +40,13 @@ export function checkVibePassBar(scores: VibeScores): {
 /** Check if Stage 4 Final Vibe passes the relative bar */
 export function checkFinalVibePassBar(
   currentScores: VibeScores,
-  stage1Scores: VibeScores,
+  stage1Scores: VibeScores
 ): {
   pass: boolean;
   degradedDimensions: Array<{ dim: string; stage1: number; current: number; drop: number }>;
 } {
-  const degradedDimensions: Array<{ dim: string; stage1: number; current: number; drop: number }> = [];
+  const degradedDimensions: Array<{ dim: string; stage1: number; current: number; drop: number }> =
+    [];
 
   for (const dim of VIBE_DIMS) {
     const drop = stage1Scores[dim] - currentScores[dim];
@@ -71,13 +70,24 @@ export function checkFinalVibePassBar(
 export function checkFreshEyesPassBar(scores: {
   readability: number;
   firstImpression: number;
+  payoffDensity: number;
+  lengthFit: number;
 }): {
   pass: boolean;
   composite: number;
 } {
-  const composite = Math.floor((scores.readability + scores.firstImpression) / 2);
+  const values = [
+    scores.readability,
+    scores.firstImpression,
+    scores.payoffDensity,
+    scores.lengthFit,
+  ];
+  const composite = Math.floor(values.reduce((a, b) => a + b, 0) / values.length);
   return {
-    pass: composite >= PASS_BARS.STAGE_2_COMPOSITE,
+    pass:
+      composite >= PASS_BARS.STAGE_2_COMPOSITE &&
+      scores.payoffDensity >= PASS_BARS.STAGE_2_COMPOSITE &&
+      scores.lengthFit >= PASS_BARS.STAGE_2_COMPOSITE,
     composite,
   };
 }
@@ -136,9 +146,11 @@ export function checkFactLibPassBar(scores: {
   }
 
   const fact_pass =
-    Math.floor((scores.factAccuracy + scores.sourceFidelity) / 2) >= PASS_BARS.STAGE_3_FACT_COMPOSITE;
+    Math.floor((scores.factAccuracy + scores.sourceFidelity) / 2) >=
+    PASS_BARS.STAGE_3_FACT_COMPOSITE;
   const library_pass =
-    Math.floor((scores.linkCoverage + scores.linkRelevance) / 2) >= PASS_BARS.STAGE_3_LIBRARY_COMPOSITE;
+    Math.floor((scores.linkCoverage + scores.linkRelevance) / 2) >=
+    PASS_BARS.STAGE_3_LIBRARY_COMPOSITE;
   const dupCheck_pass = raw >= PASS_BARS.STAGE_3_DUPCHECK;
 
   return {

@@ -18,7 +18,7 @@ cat > "$repo/scores/tribunal-progress.json" <<'JSON'
 {
   "sp-test.mdx": {
     "status": "PASS",
-    "tribunalVersion": 7
+    "tribunalVersion": 8
   }
 }
 JSON
