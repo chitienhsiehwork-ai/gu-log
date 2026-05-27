@@ -31,19 +31,21 @@ const lvPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('Lv-')).sort(
 const spPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('SP-')).sort(sortByTicketNumber);
 
 const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(sortByTicketNumber);
+
+const experimentHeroStyle = `margin:1.2rem 0 1.8rem;padding:1.6rem;border:1px solid var(--color-divider);border-radius:28px;background:linear-gradient(135deg,color-mix(in srgb,var(--color-surface) 86%,transparent),color-mix(in srgb,var(--color-bg) 70%,transparent));box-shadow:0 24px 80px rgba(0,0,0,.18);`;
+const experimentKickerStyle = `margin:0 0 .35rem;color:var(--color-accent);font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;`;
+const experimentTitleStyle = `max-width:10em;margin:0 0 .7rem;font-size:clamp(2rem,8vw,4.4rem);line-height:.95;letter-spacing:-.07em;`;
+const experimentCopyStyle = `max-width:34rem;margin:0;color:var(--color-text-muted);font-size:.98rem;`;
 ---
 
 <BaseLayout title="ShroomDog">
-  <section class="experiment-hero ambient-hero" aria-label="Gu-log experimental reading lobby">
-    <p class="hero-kicker">Experimental UI · Ambient Reading</p>
-    <h1>把 AI 長文變成比較想坐下來讀的地方</h1>
-    <p class="hero-copy">
+  <section style={experimentHeroStyle} aria-label="Gu-log experimental reading lobby">
+    <p style={experimentKickerStyle}>Experimental UI · Ambient Reading</p>
+    <h1 style={experimentTitleStyle}>把 AI 長文變成比較想坐下來讀的地方</h1>
+    <p style={experimentCopyStyle}>
       保留 gu-log 原本的窄欄閱讀節奏，但讓首頁更像一個安靜的 reading
       room：柔光、分層卡片、少一點列表感。
     </p>
-    <div class="hero-pills" aria-label="content streams">
-      <span>SP 翻譯</span><span>CP 精選</span><span>SD 原創</span><span>Lv 教學</span>
-    </div>
   </section>
 
   {/* SP: ShroomDog Picks — 最頻繁更新 */}
@@ -347,104 +349,5 @@ const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(
 
   .view-all a:hover {
     text-decoration: underline;
-  }
-
-  /* Experiment: Ambient Reading Lobby */
-  :global(body) {
-    background:
-      radial-gradient(circle at 18% 8%, rgba(139, 233, 253, 0.13), transparent 30rem),
-      radial-gradient(circle at 88% 16%, rgba(255, 121, 198, 0.12), transparent 26rem),
-      linear-gradient(180deg, var(--color-bg), var(--color-bg));
-  }
-
-  :global(.container) {
-    max-width: 760px;
-  }
-
-  .experiment-hero {
-    position: relative;
-    overflow: hidden;
-    margin: 1.2rem 0 1.8rem;
-    padding: 1.6rem;
-    border: 1px solid color-mix(in srgb, var(--color-border) 78%, var(--color-accent));
-    border-radius: 28px;
-    background:
-      linear-gradient(
-        135deg,
-        color-mix(in srgb, var(--color-surface) 86%, transparent),
-        color-mix(in srgb, var(--color-bg) 72%, transparent)
-      ),
-      radial-gradient(circle at 90% 20%, rgba(255, 184, 108, 0.18), transparent 16rem);
-    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.18);
-  }
-
-  .experiment-hero::after {
-    content: '';
-    position: absolute;
-    inset: auto -20% -50% 20%;
-    height: 12rem;
-    background: radial-gradient(circle, rgba(139, 233, 253, 0.18), transparent 68%);
-    pointer-events: none;
-  }
-
-  .hero-kicker {
-    margin: 0 0 0.35rem;
-    color: var(--color-accent);
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-  }
-
-  .experiment-hero h1 {
-    max-width: 10em;
-    margin: 0 0 0.7rem;
-    font-size: clamp(2rem, 8vw, 4.4rem);
-    line-height: 0.95;
-    letter-spacing: -0.07em;
-  }
-
-  .hero-copy {
-    max-width: 34rem;
-    margin: 0;
-    color: var(--color-text-muted);
-    font-size: 0.98rem;
-  }
-
-  .hero-pills {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.45rem;
-    margin-top: 1rem;
-  }
-
-  .hero-pills span {
-    border: 1px solid var(--color-divider);
-    border-radius: 999px;
-    padding: 0.22rem 0.6rem;
-    color: var(--color-text-muted);
-    font-size: 0.76rem;
-    background: color-mix(in srgb, var(--color-bg) 78%, transparent);
-  }
-
-  .post-preview,
-  .pick-preview {
-    margin: 0.65rem 0;
-    padding: 0.9rem 1rem;
-    border: 1px solid var(--color-divider);
-    border-radius: 18px;
-    background: color-mix(in srgb, var(--color-surface) 58%, transparent);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-  }
-
-  .posts-section h2,
-  .clawd-picks-section h2 {
-    letter-spacing: -0.04em;
-  }
-
-  [data-theme='light'] .experiment-hero,
-  [data-theme='light'] .post-preview,
-  [data-theme='light'] .pick-preview {
-    box-shadow: 0 18px 50px rgba(101, 75, 34, 0.1);
   }
 </style>
