@@ -61,7 +61,7 @@ title: Original
 lang: zh-tw
 translatedDate: 2026-04-28
 scores:
-  tribunalVersion: 7
+  tribunalVersion: 8
   vibe:
     score: 8
 ---
@@ -75,7 +75,7 @@ ticketId: CP-999
 lang: en
 translatedDate: 2026-04-28
 scores:
-  tribunalVersion: 7
+  tribunalVersion: 8
   vibe:
     score: 8
 ---
@@ -89,7 +89,7 @@ grep -q 'Rewritten body with Tribunal changes' "$main/src/content/posts/cp-999-t
   || fail "zh post rewrite was not copied from worker to main"
 grep -q 'Rewritten EN body with Tribunal changes' "$main/src/content/posts/en-cp-999-test.mdx" \
   || fail "en post rewrite was not copied from worker to main"
-grep -q 'tribunalVersion: 7' "$main/src/content/posts/cp-999-test.mdx" \
+grep -q 'tribunalVersion: 8' "$main/src/content/posts/cp-999-test.mdx" \
   || fail "score frontmatter was not copied to main"
 
 git -C "$main" add src/content/posts/cp-999-test.mdx src/content/posts/en-cp-999-test.mdx

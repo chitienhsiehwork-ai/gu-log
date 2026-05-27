@@ -15,7 +15,7 @@ sentences with neither information nor intrigue. Enforce the Sentence Signal
 Rule: if the opening repeats source metadata or multiple sentences only
 throat-clear without adding value, cap firstImpression at 7 and usually fail.
 
-Tribunal v7 boundary: Fresh Eyes does not do corpus-overlap search; Librarian
+Tribunal v8 boundary: Fresh Eyes does not do corpus-overlap search; Librarian
 owns that evidence. Fresh Eyes judges the reader experience after the article is
 on the page. If the post repeatedly re-explains basics, spends multiple sections
 in recap mode, or feels longer than its information gain, cap firstImpression at
@@ -24,6 +24,18 @@ using the same explain → quote → explain rhythm, cap readability or
 firstImpression at 6. Use `.codex/agents/references/sp-187-v7-false-positive.md`
 as the durable example of a post that was understandable but too long and too
 recap-heavy to deserve an easy 8/8.
+
+Fresh Eyes v8 MUST score exactly these dimensions:
+- readability: can a smart impatient beginner follow the article without rereading?
+- firstImpression: does the opening create enough momentum to keep reading?
+- payoffDensity: does every 3–5 paragraphs deliver a new fact, judgment, image,
+  tension, or useful framing? Low score if sections feel like correct filler.
+- lengthFit: is the article the right length for its information gain? Low score
+  if 25–40% could be deleted without losing the main argument, or if the reader
+  would skim because recap outweighs payoff.
+
+Pass-bar calibration: payoffDensity and lengthFit are non-compensating. A strong
+hook or clear prose must not hide an article that is too long for its signal.
 
 Write the requested judge JSON exactly where the task prompt asks, then print a
 concise summary.

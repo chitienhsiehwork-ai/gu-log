@@ -38,7 +38,7 @@ source "$SCRIPT_DIR/tribunal-helpers.sh"
 
 POSTS_DIR="$ROOT_DIR/src/content/posts"
 PROGRESS_FILE="$(tribunal_progress_file_default "$ROOT_DIR")"
-TRIBUNAL_VERSION=7
+TRIBUNAL_VERSION=8
 LOG_DIR="$ROOT_DIR/.score-loop/logs"
 LOG_FILE="$LOG_DIR/tribunal-quota-loop-$(date +%Y%m%d-%H%M%S).log"
 USAGE_MONITOR="${USAGE_MONITOR:-$HOME/clawd/scripts/usage-monitor.sh}"
@@ -370,7 +370,7 @@ def parse_reset_to_sec(s):
 
 try:
     data = json.loads(sys.argv[1])
-    # Tribunal v7 runs on OpenAI/Codex GPT-5.5. usage-monitor exposes the
+    # Tribunal v8 runs on OpenAI/Codex GPT-5.5. usage-monitor exposes the
     # short OpenAI bucket as session_remaining_pct/session_reset_min and the
     # long bucket as weekly_remaining_pct/weekly_reset_hr.
     for p in data:
@@ -878,7 +878,7 @@ get_unscored_articles() {
     fi
     # Skip already passed or permanently exhausted only for the current
     # tribunal version. Older PASS entries are intentionally reprocessed by
-    # the v7 judge-boundary gate, preserving newest-first order.
+    # the v8 judge-boundary gate, preserving newest-first order.
     status=$(jq -r --arg a "$article" --argjson v "$TRIBUNAL_VERSION" \
       'if ((.[$a].tribunalVersion // 0) >= $v) then (.[$a].status // "pending") else "pending" end' \
       "$PROGRESS_FILE" 2>/dev/null || echo "pending")
