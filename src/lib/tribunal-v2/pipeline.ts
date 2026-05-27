@@ -18,7 +18,7 @@ import type {
 } from './types';
 import { MAX_LOOPS } from './types';
 import { enforceWriterConstraints } from './writer-constraints';
-import { checkFinalVibePassBar } from './pass-bar';
+import { checkFinalVibePassBar, checkFreshEyesPassBar } from './pass-bar';
 
 // ---------------------------------------------------------------------------
 // Pipeline State Types
@@ -188,6 +188,56 @@ const STAGE3_LIB_RENAME: Record<string, string> = {
   sourceAlign: 'linkRelevance',
 };
 
+interface VerifiedPassBar {
+  pass: boolean;
+  composite?: number;
+  reasons?: string[];
+}
+
+function verifyFreshEyesPassBar(output: FreshEyesJudgeOutput): VerifiedPassBar {
+  const result = checkFreshEyesPassBar(output.scores);
+  const reasons: string[] = [];
+
+  if (result.composite < 8) {
+    reasons.push(`FreshEyes composite ${result.composite} is below 8`);
+  }
+  if (output.scores.payoffDensity < 8) {
+    reasons.push(`payoffDensity ${output.scores.payoffDensity} is below 8`);
+  }
+  if (output.scores.lengthFit < 8) {
+    reasons.push(`lengthFit ${output.scores.lengthFit} is below 8`);
+  }
+
+  return { pass: result.pass, composite: result.composite, reasons };
+}
+
+function applyVerifiedPassBar<
+  TJudge extends {
+    pass: boolean;
+    composite?: number;
+    improvements?: Record<string, string>;
+    critical_issues?: string[];
+  },
+>(output: TJudge, verified?: VerifiedPassBar): void {
+  if (!verified) return;
+
+  output.pass = verified.pass;
+  if (typeof verified.composite === 'number') {
+    output.composite = verified.composite;
+  }
+
+  if (!verified.pass && verified.reasons?.length) {
+    output.critical_issues = [
+      ...(output.critical_issues ?? []),
+      `Programmatic pass-bar failed: ${verified.reasons.join('; ')}`,
+    ];
+    output.improvements = {
+      ...(output.improvements ?? {}),
+      passBar: verified.reasons.join('; '),
+    };
+  }
+}
+
 async function persistScoreToFrontmatter(
   config: PipelineConfig,
   articlePath: string,
@@ -345,7 +395,8 @@ async function runJudgeWriterLoop<
   config: PipelineConfig,
   judge: (content: string) => Promise<TJudge>,
   writer: (content: string, feedback: string) => Promise<{ content: string }>,
-  fmPersist?: { fmKey: FrontmatterJudgeKey; dims: readonly string[] }
+  fmPersist?: { fmKey: FrontmatterJudgeKey; dims: readonly string[] },
+  verifyPassBar?: (output: TJudge) => VerifiedPassBar
 ): Promise<boolean> {
   if (stage.status === 'passed' || stage.status === 'skipped') return true;
 
@@ -365,6 +416,7 @@ async function runJudgeWriterLoop<
     // Run judge
     const articleContent = await config.io.readArticle(state.articlePath);
     const judgeOutput = await judge(articleContent);
+    applyVerifiedPassBar(judgeOutput, verifyPassBar?.(judgeOutput));
     await assertJudgeDidNotMutate(config, state.articlePath, articleContent, `stage${stageNum}`);
 
     stage.output = judgeOutput;
@@ -821,7 +873,8 @@ export async function runPipeline(
     config,
     (content) => config.runners.stage2Judge.run({ articleContent: content }),
     (content, feedback) => config.runners.stage2Writer.run({ articleContent: content, feedback }),
-    FRONTMATTER_DIM_MAP.stage2
+    FRONTMATTER_DIM_MAP.stage2,
+    verifyFreshEyesPassBar
   );
 
   if (!stage2Passed) {

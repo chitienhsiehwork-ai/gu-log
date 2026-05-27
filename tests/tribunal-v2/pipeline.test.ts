@@ -98,15 +98,30 @@ const FAILING_SCORES: VibeJudgeOutput['scores'] = {
   narrative: 7,
 };
 
-function freshEyesPass(): FreshEyesJudgeOutput {
+function freshEyesOutput(
+  pass: boolean,
+  scores: FreshEyesJudgeOutput['scores'],
+  extras: Partial<FreshEyesJudgeOutput> = {}
+): FreshEyesJudgeOutput {
+  const composite = Math.floor(Object.values(scores).reduce((a, b) => a + b, 0) / 4);
   return {
-    pass: true,
-    scores: { readability: 8, firstImpression: 8, payoffDensity: 8, lengthFit: 8 },
-    composite: 8,
+    pass,
+    scores,
+    composite,
     judge_model: 'mock',
     judge_version: '2.0.0',
     timestamp: '2026-04-16T00:00:00Z',
+    ...extras,
   };
+}
+
+function freshEyesPass(): FreshEyesJudgeOutput {
+  return freshEyesOutput(true, {
+    readability: 8,
+    firstImpression: 8,
+    payoffDensity: 8,
+    lengthFit: 8,
+  });
 }
 
 function factLibPass(): FactLibJudgeOutput {
@@ -446,6 +461,55 @@ describe('pipeline — writer-constraint enforcement', () => {
     // Degraded frontmatter marker should have been written to the article.
     const content = await readFile(articlePath, 'utf-8');
     expect(content).toContain('stage4Degraded');
+  });
+
+  // -------------------------------------------------------------------------
+  // Codex PR review — Stage 2 FreshEyes v8 pass bar must be recomputed from
+  // scores, not trusted from the model's `pass` flag.
+  // -------------------------------------------------------------------------
+  it('Stage 2: overrides model pass=true when FreshEyes lengthFit fails', async () => {
+    let judgeCalls = 0;
+    let writerCalls = 0;
+    const git = mockGit();
+
+    const config: PipelineConfig = {
+      ...passThroughConfig(),
+      git: git.adapter,
+      runners: {
+        ...passThroughConfig().runners,
+        stage2Judge: {
+          run: async () => {
+            judgeCalls++;
+            if (judgeCalls === 1) {
+              return freshEyesOutput(
+                true,
+                { readability: 10, firstImpression: 10, payoffDensity: 8, lengthFit: 7 },
+                { improvements: { lengthFit: 'too long for the payoff' } }
+              );
+            }
+            return freshEyesPass();
+          },
+        },
+        stage2Writer: {
+          run: async ({ articleContent, feedback }) => {
+            writerCalls++;
+            expect(feedback).toContain('Programmatic pass-bar failed');
+            expect(feedback).toContain('lengthFit 7 is below 8');
+            return { content: `${articleContent}\n\n已壓縮長度，讓篇幅更符合資訊收益。` };
+          },
+        },
+      },
+    };
+
+    const final = await runPipeline(articlePath, config);
+
+    expect(final.status).toBe('passed');
+    expect(final.stages.stage2.status).toBe('passed');
+    expect(judgeCalls).toBe(2);
+    expect(writerCalls).toBe(1);
+    expect(final.stages.stage2.history[0]?.pass).toBe(false);
+    expect(final.stages.stage2.history[0]?.composite).toBe(8);
+    expect(git.commits.some((m) => m.includes('FreshEyes writer rewrite'))).toBe(true);
   });
 
   // -------------------------------------------------------------------------
