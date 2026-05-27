@@ -34,6 +34,15 @@ const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(
 ---
 
 <BaseLayout title="ShroomDog">
+  <section class="experiment-hero editorial-hero" aria-label="Gu-log editorial front page">
+    <p class="hero-kicker">Experimental UI · Editorial Index</p>
+    <h1>AI 圈太吵，所以這裡把脈絡排好。</h1>
+    <p class="hero-copy">
+      這條 branch 測試雜誌式首頁：大標、欄線、分類索引感，讓 gu-log 更像一份每週翻開會有方向感的
+      tech zine。
+    </p>
+  </section>
+
   {/* SP: ShroomDog Picks — 最頻繁更新 */}
   {
     spPosts.length > 0 && (
@@ -335,5 +344,120 @@ const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(
 
   .view-all a:hover {
     text-decoration: underline;
+  }
+
+  /* Experiment: Editorial Index */
+  :global(.container) {
+    max-width: 980px;
+  }
+
+  .experiment-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(14rem, 0.55fr);
+    gap: 1.25rem;
+    align-items: end;
+    margin: 1.5rem 0 1.8rem;
+    padding-bottom: 1.3rem;
+    border-bottom: 2px solid var(--color-text);
+  }
+
+  .hero-kicker {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: var(--color-accent);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .experiment-hero h1 {
+    margin: 0;
+    max-width: 11ch;
+    font-size: clamp(2.7rem, 9vw, 6.8rem);
+    line-height: 0.86;
+    letter-spacing: -0.085em;
+    text-wrap: balance;
+  }
+
+  .hero-copy {
+    margin: 0 0 0.35rem;
+    color: var(--color-text-muted);
+    font-size: 0.95rem;
+    border-left: 1px solid var(--color-divider);
+    padding-left: 1rem;
+  }
+
+  .posts-section,
+  .clawd-picks-section {
+    display: grid;
+    grid-template-columns: minmax(10rem, 0.36fr) minmax(0, 1fr);
+    column-gap: 1.35rem;
+    padding-top: 1.2rem;
+  }
+
+  .posts-section h2,
+  .clawd-picks-section h2,
+  .section-subtitle {
+    grid-column: 1;
+  }
+
+  .posts-section article,
+  .clawd-picks-section article,
+  .view-all {
+    grid-column: 2;
+  }
+
+  .posts-section h2,
+  .clawd-picks-section h2 {
+    position: sticky;
+    top: 0.75rem;
+    margin-top: 0;
+    align-self: start;
+    font-size: clamp(1.25rem, 3vw, 2rem);
+    line-height: 0.95;
+    letter-spacing: -0.06em;
+  }
+
+  .section-subtitle {
+    max-width: 12rem;
+    font-size: 0.75rem;
+  }
+
+  .post-preview,
+  .pick-preview {
+    padding: 0.85rem 0 0.9rem;
+    border-bottom: 1px solid var(--color-text);
+  }
+
+  .post-preview h3 {
+    font-size: clamp(1.08rem, 2.5vw, 1.55rem);
+    letter-spacing: -0.035em;
+  }
+
+  .pick-preview > a {
+    display: block;
+    font-size: clamp(1rem, 2vw, 1.25rem);
+    line-height: 1.35;
+    letter-spacing: -0.025em;
+  }
+
+  @media (max-width: 720px) {
+    .experiment-hero,
+    .posts-section,
+    .clawd-picks-section {
+      display: block;
+    }
+
+    .hero-copy {
+      margin-top: 0.8rem;
+      border-left: 0;
+      padding-left: 0;
+    }
+
+    .posts-section h2,
+    .clawd-picks-section h2 {
+      position: static;
+    }
   }
 </style>
