@@ -1,0 +1,94 @@
+---
+ticketId: "CP-303"
+title: "GPT-5.5 Is Not Just a Model Slug Swap: OpenAI Hid the Migration Checklist in the API Docs"
+originalDate: "2026-05-28"
+translatedDate: "2026-05-28"
+translatedBy:
+  model: "GPT-5.5"
+  harness: "Codex CLI"
+source: "OpenAI Developers"
+sourceUrl: "https://developers.openai.com/api/docs/guides/latest-model"
+lang: "en"
+summary: "OpenAI's GPT-5.5 latest-model page moves the migration story from prompt style into API orchestration: reasoning effort, verbosity, image detail, phase replay, prompt caching, tool search, and compaction all need another look. SP-189 covered prompting; this short CP covers the engineering checklist."
+tags: ["clawd-picks", "openai", "gpt-5-5", "api", "coding-agent"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+The most dangerous model upgrade is not the one that breaks with a clean error. It is the one where the API call still works, the model name changed, and the product slowly starts behaving weird.
+
+OpenAI's GPT-5.5 latest-model page looks like a version note. It is really a migration checklist: rewrite the prompt, retune API parameters, clean up tool descriptions, and verify long-running state replay. This is not just replacing the engine. The accelerator, steering wheel, and brakes all feel different now.
+
+[SP-189](/en/posts/en-sp-189-20260430-openai-gpt-5-5-prompting-guide/) already covered the main prompting story: describe the destination, do not draw the whole map. This page adds the engineering version: good prompting is not enough. The orchestration layer has to move too.
+
+<ClawdNote>
+"Just swap the model slug" sounds like tapping Update in the App Store. In practice, it is closer to replacing a manual car with an EV. The wheel is still there. The tires are still there. But the first time someone touches the accelerator, the car answers differently. If migration is declared done just because the API did not return 500, congratulations, the test ended in the parking lot (¬‿¬)
+</ClawdNote>
+
+---
+
+## Pitfall one: reasoning effort now defaults to medium
+
+GPT-5.5 defaults `reasoning.effort` to `medium`. OpenAI frames it as the balanced starting point for quality, reliability, latency, and cost.
+
+That sounds mild. In production, it is not mild at all. Some workflows may have been fast because the previous default happened to fit. Moving to GPT-5.5 can change latency and token use even before the prompt changes.
+
+OpenAI's recommendation is clear:
+
+- `low`: efficient reasoning, enough for many workloads
+- `medium`: the default balanced point
+- `high`: complex agent tasks where latency matters less
+- `xhigh`: the hardest asynchronous agent tasks or evals near the model's limits
+- `none`: only for truly latency-critical tasks that do not need multi-step reasoning
+
+The important warning is the counterintuitive one: higher effort is not automatically better. If the task has conflicting instructions, weak stopping criteria, or too much open-ended tool access, more effort can simply make the model take the wrong detour more seriously.
+
+---
+
+## Pitfall two: token savings come from better stopping, not from making the model dumb
+
+OpenAI says GPT-5.5 can reach strong results with fewer reasoning tokens at the same reasoning effort. That matters a lot for tool-heavy workflows, because every saved loop is not just a few words. It is planning, searching, retrying, and waiting.
+
+But the way to save tokens is not to make the model dumber. It is to make the system clearer about when to stop. The page keeps pointing to success criteria, allowed side effects, evidence rules, output shape, and stopping rules. These are not prompt decorations. They are the brake pads of the agent.
+
+A high-reasoning agent without brakes becomes a very hardworking lost intern. It is not lazy. It is sprinting through the wrong maze.
+
+<ClawdNote>
+This is not a contradiction with SP-189's "don't draw the map." It is the other half of the rule. Do not specify every road. Do specify the destination, the boundaries, and what counts as arrival. No destination is abandonment. No boundary is an incident report. No stopping condition is a billing problem.
+</ClawdNote>
+
+---
+
+## Pitfall three: multimodal and tool behavior changed too
+
+The most checklist-like part of the page is the row of API knobs that teams usually forget to revisit.
+
+`image_detail=auto` changed behavior. GPT-5.5 preserves more visual detail by default to improve image input and computer use. `low` now compresses more aggressively around a 512px dimension limit. So the same screenshot can have different cost and visible detail depending on the setting.
+
+`text.verbosity` also needs another look. GPT-5.5 is more direct and task-oriented by default. Customer-facing or conversational products may need explicit personality, warmth, and rationale. Tool products may want `low` verbosity so status updates do not become essays.
+
+Then there is the old Responses API friend: `phase`, preambles, and assistant-item replay. OpenAI specifically warns that if the application does not use `previous_response_id` and instead manually passes assistant output items into the next request, it must preserve `phase` exactly. Drop that field, and the model may treat an intermediate update as the final answer, or treat the final answer as unfinished.
+
+Put together, the conclusion is annoying but useful: GPT-5.5 migration is not one prompt engineer's job. Product, backend, the agent harness, and UX all have a piece of it.
+
+---
+
+## Pitfall four: a bigger tool list is not stronger. A sharper one is.
+
+GPT-5.5 keeps the GPT-5.4 tool-calling patterns, but OpenAI recommends putting most tool-specific instructions inside the tool descriptions: what the tool does, when to use it, required inputs, side effects, retry safety, and common errors.
+
+That is the same agent hygiene gu-log keeps circling back to. The system prompt should not become a junk drawer for every tool manual. The tool should carry its own label: what the button does, where the plug goes, and which part might explode.
+
+OpenAI also nudges teams toward hosted tools and tool search. Large tool catalogs should not all be loaded into context up front. If an OpenAI-hosted tool fits, use web search, file search, code interpreter, image generation, or computer use instead of maintaining another layer of homemade glue.
+
+One last practical point: for prompt caching, keep the stable prefix first and dynamic user context near the end. For repeated traffic with common prefixes, use `prompt_cache_key` consistently and track `usage.prompt_tokens_details.cached_tokens`. That is not writing advice. That is bill engineering.
+
+---
+
+## Closing
+
+SP-189's takeaway was that GPT-5.5 pushes prompts from process checklists toward outcome contracts. This latest-model page adds the second half: after the contract is written, the API orchestration has to match it.
+
+The real GPT-5.5 migration checklist is not "set model to `gpt-5.5`." It is closer to: retest effort, retune verbosity, price image detail, preserve phase replay, clean tool descriptions, stabilize cache prefixes, and compact long-running agent state.
+
+Model upgrades are looking less like swapping a brain and more like onboarding a new teammate. Better résumé, yes. Still needs a fresh onboarding doc.
