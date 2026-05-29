@@ -16,21 +16,58 @@ const zhSteps: Step[] = [
   { label: '2. 粗糙地圖', goal: '只列最先要懂的 3 個概念，其他先延後。', output: '注意力邊界' },
   { label: '3. 最小練習', goal: '做一個小到不怕失敗、真到有回饋的例子。', output: '牽引力' },
   { label: '4. 講回來', goal: '用自己的話回答 5 個實務問題。', output: '理解檢查' },
-  { label: '5. 留麵包屑', goal: '記下學會什麼、還不確定什麼、下次從哪裡接。', output: '可恢復記憶' },
+  {
+    label: '5. 留麵包屑',
+    goal: '記下學會什麼、還不確定什麼、下次從哪裡接。',
+    output: '可恢復記憶',
+  },
 ];
 
 const enSteps: Step[] = [
-  { label: '1. Minimum question', goal: 'Ask what you need to understand so you are no longer stuck.', output: 'Entry point' },
-  { label: '2. Rough map', goal: 'Name the first three concepts and explicitly ignore the rest for now.', output: 'Attention boundary' },
-  { label: '3. Tiny exercise', goal: 'Run something small enough to fail safely but real enough to teach.', output: 'Traction' },
-  { label: '4. Teach it back', goal: 'Answer five practical questions in your own words.', output: 'Understanding check' },
-  { label: '5. Breadcrumbs', goal: 'Save what you learned, what is uncertain, and where to continue.', output: 'Recoverable memory' },
+  {
+    label: '1. Minimum question',
+    goal: 'Ask what you need to understand so you are no longer stuck.',
+    output: 'Entry point',
+  },
+  {
+    label: '2. Rough map',
+    goal: 'Name the first three concepts and explicitly ignore the rest for now.',
+    output: 'Attention boundary',
+  },
+  {
+    label: '3. Tiny exercise',
+    goal: 'Run something small enough to fail safely but real enough to teach.',
+    output: 'Traction',
+  },
+  {
+    label: '4. Teach it back',
+    goal: 'Answer five practical questions in your own words.',
+    output: 'Understanding check',
+  },
+  {
+    label: '5. Breadcrumbs',
+    goal: 'Save what you learned, what is uncertain, and where to continue.',
+    output: 'Recoverable memory',
+  },
 ];
 
 const steps = lang === 'en' ? enSteps : zhSteps;
-const labels = lang === 'en'
-  ? { title: 'Codex as a learning coach', wrong: 'Wrong mental model', right: 'Useful mental model', lecture: '“Explain the tool” → 3,000-word lecture', entrance: '“Find my entry point” → one next action' }
-  : { title: '把 Codex 當學習教練', wrong: '錯的心智模型', right: '有用的心智模型', lecture: '「解釋這個工具」→ 3000 字講座', entrance: '「幫我找入口」→ 下一個動作' };
+const labels =
+  lang === 'en'
+    ? {
+        title: 'Codex as a learning coach',
+        wrong: 'Wrong mental model',
+        right: 'Useful mental model',
+        lecture: '“Explain the tool” → 3,000-word lecture',
+        entrance: '“Find my entry point” → one next action',
+      }
+    : {
+        title: '把 Codex 當學習教練',
+        wrong: '錯的心智模型',
+        right: '有用的心智模型',
+        lecture: '「解釋這個工具」→ 3000 字講座',
+        entrance: '「幫我找入口」→ 下一個動作',
+      };
 ---
 
 <section class="codex-learning-map" aria-label={labels.title}>
@@ -47,13 +84,15 @@ const labels = lang === 'en'
   </div>
 
   <ol class="steps">
-    {steps.map((step) => (
-      <li>
-        <div class="step-label">{step.label}</div>
-        <p>{step.goal}</p>
-        <span>{step.output}</span>
-      </li>
-    ))}
+    {
+      steps.map((step) => (
+        <li>
+          <div class="step-label">{step.label}</div>
+          <p>{step.goal}</p>
+          <span>{step.output}</span>
+        </li>
+      ))
+    }
   </ol>
 </section>
 
@@ -97,8 +136,12 @@ const labels = lang === 'en'
     line-height: 1.35;
   }
 
-  .bad { box-shadow: inset 4px 0 0 #dc322f; }
-  .good { box-shadow: inset 4px 0 0 #859900; }
+  .bad {
+    box-shadow: inset 4px 0 0 #dc322f;
+  }
+  .good {
+    box-shadow: inset 4px 0 0 #859900;
+  }
 
   .arrow {
     display: flex;
