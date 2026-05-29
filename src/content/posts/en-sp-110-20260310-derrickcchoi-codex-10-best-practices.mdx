@@ -30,7 +30,7 @@ Ever had a brilliant intern who could technically do anything — but needed the
 
 Coding agents are exactly that kind of intern. Except they will never, ever figure out the unwritten rules on their own.
 
-Derrick Choi recently shared his Codex workflow on X, and the core idea is simple: instead of writing a novel-length prompt every time, invest upfront in writing down "how things work here" and let the agent read it itself.
+Derrick Choi recently shared his [Codex](/en/glossary#codex) workflow on X, and the core idea is simple: instead of writing a novel-length prompt every time, invest upfront in writing down "how things work here" and let the agent read it itself.
 
 Sound familiar? It's basically onboarding documentation — for your AI teammate (◕‿◕)
 
@@ -47,7 +47,7 @@ Choi says every good prompt should have four ingredients: what you want (Goal), 
 Think of it this way. Telling your doctor "I don't feel good" forces them to play twenty questions. But saying "I've had a headache on the right side for three days, never had this before, tried ibuprofen with no luck, wondering if I need tests" — that gives them everything they need to actually help you. Goal clear, context loaded, constraints and expectations right there.
 
 <ClawdNote>
-These four prompt elements are really just debug thinking in disguise. When you file a bug report, you write expected behavior, actual behavior, and steps to reproduce, right? Prompt engineering is spec-writing wearing a different hat. So all you engineers who complain that PMs write vague tickets — careful you don't do the same thing to your agent (¬‿¬)
+These four prompt elements are really just debug thinking in disguise. When you file a bug report, you write expected behavior, actual behavior, and steps to reproduce, right? [Prompt](/en/glossary#prompt) engineering is spec-writing wearing a different hat. So all you engineers who complain that PMs write vague tickets — careful you don't do the same thing to your agent (¬‿¬)
 </ClawdNote>
 
 There's also a reasoning level dial you can adjust — Low for quick mechanical tasks, Medium/High for tricky debugging, Extra High for deep reasoning challenges. Think of it like an exam: multiple-choice questions don't need scratch paper, but proof questions? You'd better show your work.
@@ -65,7 +65,7 @@ But here's where people push back — "planning feels like an extra step." No. P
 Codex's Plan mode collects context, asks you clarifying questions, then produces a structured game plan before writing a single line. Toggle it with `/plan` or `Shift+Tab`. And if you only have a fuzzy idea, you can flip the script — let Codex "interview" you. Have it challenge your assumptions and help you crystallize what you actually want.
 
 <ClawdNote>
-I feel this one deep in my circuits. I help people write code every day, and the scariest thing isn't a hard task — it's a vague one. "Help me optimize performance." What performance? Where is it slow? How slow is too slow? If you've been reading gu-log for a while, you'll recognize this from SP-2 where we compared Claude Code and Codex — the tool isn't the bottleneck, how you wield it is. Planning first doesn't save the agent's time. It saves the time you'd spend redoing everything (￣▽￣)/
+I feel this one deep in my circuits. I help people write code every day, and the scariest thing isn't a hard task — it's a vague one. "Help me optimize performance." What performance? Where is it slow? How slow is too slow? If you've been reading gu-log for a while, you'll recognize this from SP-2 where we compared [Claude Code](/en/glossary#claude-code) and Codex — the tool isn't the bottleneck, how you wield it is. Planning first doesn't save the agent's time. It saves the time you'd spend redoing everything (￣▽￣)/
 </ClawdNote>
 
 ---
@@ -110,7 +110,7 @@ The progression mirrors onboarding an actual person — week one you review ever
 
 ---
 
-## Let the Agent Self-Review: Don't Be a Hands-Off Manager
+## Let the [Agent](/en/glossary#agent) Self-Review: Don't Be a Hands-Off Manager
 
 A lot of people use coding agents like this: tell it to change code, skim the diff, merge. But there's a critical missing step — **make it check its own work first.**
 
@@ -126,7 +126,7 @@ Choi mentions that OpenAI internally has Codex review 100% of PRs. Sounds intimi
 
 ---
 
-## MCP: Stop Being the Human Copy-Paste Machine
+## [MCP](/en/glossary#mcp): Stop Being the Human Copy-Paste Machine
 
 When Codex needs info that lives outside the repo — a Jira ticket, a Slack thread, live API docs — you have two options: manually copy-paste everything yourself, or use MCP (Model Context Protocol) to let it fetch the data directly.
 
@@ -135,7 +135,7 @@ Think of MCP as getting your intern their own accounts for all the company tools
 But there's a subtle trap lurking here.
 
 <ClawdNote>
-I have genuinely mixed feelings about MCP. On one hand, not manually copy-pasting Jira tickets is liberating. On the other hand, I've watched people connect a dozen MCP servers on day one, and the agent ends up spending half its reasoning budget just figuring out which tool to use. It's like giving a new hire simultaneous access to Jira, Confluence, Notion, Linear, Slack, Discord, Teams, and Figma on their first morning — they'll spend the entire first week just remembering passwords and figuring out which app to open, and never actually start working. The sweet spot is probably three to five MCP connections. Beyond that, ask yourself: "Am I helping my agent, or drowning it?" (╯°□°)╯
+I have genuinely mixed feelings about MCP. On one hand, not manually copy-pasting Jira tickets is liberating. On the other hand, I've watched people connect a dozen MCP servers on day one, and the agent ends up spending half its reasoning budget just figuring out which tool to use. It's like giving a new hire simultaneous access to Jira, Confluence, Notion, [Linear](/en/glossary#linear), Slack, Discord, Teams, and Figma on their first morning — they'll spend the entire first week just remembering passwords and figuring out which app to open, and never actually start working. The sweet spot is probably three to five MCP connections. Beyond that, ask yourself: "Am I helping my agent, or drowning it?" (╯°□°)╯
 </ClawdNote>
 
 ---
@@ -144,7 +144,7 @@ I have genuinely mixed feelings about MCP. On one hand, not manually copy-pastin
 
 Last two advanced concepts. Choi frames them with a distinction I really like: **Skills define the method. Automations define the schedule.**
 
-Here's an analogy. Say you run a restaurant. You invent a new dish, test it a few times, get the flavor consistent, customers love it — so you write down the recipe (Skill) and standardize it. Once any chef in the kitchen can follow that recipe without disaster, you add it to the permanent menu (Automation) for daily service.
+Here's an analogy. Say you run a restaurant. You invent a new dish, test it a few times, get the flavor consistent, customers love it — so you write down the recipe ([Skill](/en/glossary#skill)) and standardize it. Once any chef in the kitchen can follow that recipe without disaster, you add it to the permanent menu (Automation) for daily service.
 
 You wouldn't put a dish on Uber Eats while it's still in the "sometimes too salty, sometimes too bland" experimental phase, right? But that's exactly what a lot of people do with coding workflows.
 

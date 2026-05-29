@@ -356,8 +356,13 @@ function validatePost(filepath, allPosts, options = {}) {
     if (!/^scores:\s*$/m.test(fmText)) {
       errors.push('Missing scores block — every SD post needs freshEyes + vibe scores');
     }
+    const tribunalVersion = Number(fmText.match(/^  tribunalVersion:\s*(\d+)/m)?.[1] ?? 0);
+    const freshEyesDims =
+      tribunalVersion >= 8
+        ? ['readability', 'firstImpression', 'payoffDensity', 'lengthFit']
+        : ['readability', 'firstImpression'];
     errors.push(
-      ...validateScoreBlock(fmText, 'freshEyes', ['readability', 'firstImpression']),
+      ...validateScoreBlock(fmText, 'freshEyes', freshEyesDims),
       ...validateScoreBlock(fmText, 'vibe', [
         'persona',
         'clawdNote',

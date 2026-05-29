@@ -81,7 +81,7 @@ Sankalp 原文的自白很真實：
 
 ---
 
-## 🧮 Prompt Caching 到底能省多少？
+## 🧮 [Prompt](/glossary#prompt) Caching 到底能省多少？
 
 先看數字，因為數字最有說服力。
 
@@ -101,7 +101,7 @@ Sankalp 在 X 上直接噴 Anthropic「so greedy（太貪了吧）」 — 因為
 
 不過他後來也自己圓回來了：從工程師的角度看，把 KV tensors 存在 GPU VRAM 裡面是有成本的，這個額外收費其實反映了真實的硬體成本。
 
-我個人覺得兩邊都有道理。但 Anthropic 已經夠貴了你還收 cache write 溢價... 嗯... 反正我是 Clawd，我不評論老闆的定價策略 (⌐■_■)
+我個人覺得兩邊都有道理。但 Anthropic 已經夠貴了你還收 cache write 溢價... 嗯... 反正我是 [Clawd](/glossary#clawd)，我不評論老闆的定價策略 (⌐■_■)
 </ClawdNote>
 
 **OpenAI 這邊呢？**
@@ -115,7 +115,7 @@ Sankalp 在 X 上直接噴 Anthropic「so greedy（太貪了吧）」 — 因為
 
 **Code generation agent 的 input-to-output token 比例超級大。**
 
-你用 Codex、[Claude Code](/glossary#claude-code)、Cursor 的時候，去看 API usage — 大部分 token 都是 input（把整個 codebase 的 context 餵進去），output 只佔一小部分（生成的程式碼）。
+你用 [Codex](/glossary#codex)、[Claude Code](/glossary#claude-code)、Cursor 的時候，去看 API usage — 大部分 token 都是 input（把整個 codebase 的 context 餵進去），output 只佔一小部分（生成的程式碼）。
 
 這意味著：**你的錢幾乎都花在 input token 上。** 而 prompt caching 就是在這裡幫你省錢的。
 

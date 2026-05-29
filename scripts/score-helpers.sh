@@ -12,6 +12,7 @@ ensure_score_dirs() {
   mkdir -p \
     "$SCORE_ROOT/scores" \
     "$SCORE_ROOT/.score-loop/logs" \
+    "$SCORE_ROOT/.score-loop/state" \
     "$SCORE_ROOT/.score-loop/tmp"
 
   [ -e "$SCORE_ROOT/scores/.gitkeep" ] || : > "$SCORE_ROOT/scores/.gitkeep"
@@ -284,8 +285,10 @@ validate_judge_score_json() {
       _validate_dim commentarySeparation   || return 1
       ;;
     freshEyes|fresh-eyes)
-      _validate_dim readability     || return 1
-      _validate_dim firstImpression || return 1
+      _validate_dim readability      || return 1
+      _validate_dim firstImpression  || return 1
+      _validate_dim payoffDensity    || return 1
+      _validate_dim lengthFit        || return 1
       ;;
     vibe|vibe-opus-scorer)
       _validate_dim persona    || return 1

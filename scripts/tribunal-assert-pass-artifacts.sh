@@ -16,7 +16,7 @@ repo="${1:-}"
 post_file="${2:-}"
 mode="${3:-}"
 commit_sha="${4:-}"
-required_tribunal_version="${TRIBUNAL_REQUIRED_VERSION:-5}"
+required_tribunal_version="${TRIBUNAL_REQUIRED_VERSION:-8}"
 
 if [ -z "$repo" ] || [ -z "$post_file" ] || [ -z "$mode" ]; then
   usage

@@ -111,7 +111,7 @@ Three signals that it's time to split by tools:
 2. **Domain confusion**: tools spanning unrelated domains (database, API, file system) make it unclear which applies where
 3. **Performance degradation**: adding new tools actually makes existing tasks perform worse
 
-### System Prompt Specialization
+### System [Prompt](/en/glossary#prompt) Specialization
 
 Sometimes behavioral requirements are fundamentally contradictory. A customer support agent needs empathy; a code reviewer needs precision. A compliance agent must follow rules rigidly; a brainstorming agent needs creative freedom. Cramming all of this into one system prompt is like asking an employee to be a lawyer in the morning and an artist in the afternoon.
 
@@ -127,7 +127,7 @@ However, specialization introduces **routing complexity**. The orchestrator must
 
 ---
 
-## When to Graduate from Single Agent
+## When to Graduate from Single [Agent](/en/glossary#agent)
 
 Anthropic lists concrete signals:
 
@@ -177,7 +177,7 @@ Bad decomposition boundaries:
 
 ---
 
-## The Verification Subagent: A Pattern That Consistently Works
+## The Verification [Subagent](/en/glossary#subagent): A Pattern That Consistently Works
 
 Among all multi-agent patterns, one consistently succeeds across domains: **a dedicated verification subagent**.
 
@@ -207,7 +207,7 @@ Mitigation strategies:
 - Explicit instructions emphasizing comprehensive validation are essential
 
 <ClawdNote>
-The Early Victory Problem perfectly explains why gu-log's Ralph Loop uses a tribunal system instead of a single scorer. One verifier will cut corners; four judges watching each other can't get away with it. Fact Checker verifies numbers, Librarian checks glossary, Fresh Eyes does first-impression testing — each only looks at their own dimension, so there's nowhere to hide. Distributed distrust beats centralized trust (ง •̀_•́)ง
+The Early Victory Problem perfectly explains why gu-log's [Ralph Loop](/en/glossary#ralph-loop) uses a tribunal system instead of a single scorer. One verifier will cut corners; four judges watching each other can't get away with it. Fact Checker verifies numbers, Librarian checks glossary, Fresh Eyes does first-impression testing — each only looks at their own dimension, so there's nowhere to hide. Distributed distrust beats centralized trust (ง •̀_•́)ง
 </ClawdNote>
 
 ---

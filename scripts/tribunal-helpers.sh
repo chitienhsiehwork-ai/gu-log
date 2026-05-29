@@ -170,6 +170,129 @@ sys.exit(0 if parts(sys.argv[1]) >= parts(sys.argv[2]) else 1)
 PY
 }
 
+tribunal_progress_file_default() {
+  local root="${1:-${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}}"
+  printf '%s/.score-loop/state/tribunal-progress.json\n' "$root"
+}
+
+tribunal_legacy_progress_file() {
+  local root="${1:-${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}}"
+  printf '%s/scores/tribunal-progress.json\n' "$root"
+}
+
+tribunal_progress_migration_dir() {
+  local root="${1:-${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}}"
+  printf '%s/.score-loop/state/migrations\n' "$root"
+}
+
+tribunal_runtime_git_state_file() {
+  local root="${1:-${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}}"
+  printf '%s/.score-loop/state/runtime-git.json\n' "$root"
+}
+
+tribunal_publisher_state_file() {
+  local root="${1:-${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}}"
+  printf '%s/.score-loop/state/tribunal-publisher.json\n' "$root"
+}
+
+tribunal_triage_events_file() {
+  local root="${1:-${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}}"
+  printf '%s/.score-loop/state/tribunal-triage-events.json\n' "$root"
+}
+
+ensure_tribunal_progress_file() {
+  local target="$1"
+  local root="${2:-${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}}"
+  local legacy="${3:-$(tribunal_legacy_progress_file "$root")}"
+
+  mkdir -p "$(dirname "$target")" "$(tribunal_progress_migration_dir "$root")"
+
+  if [ -f "$target" ] && jq empty "$target" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  if [ "$target" != "$legacy" ] && [ -f "$legacy" ] && jq empty "$legacy" >/dev/null 2>&1; then
+    local stamp backup
+    stamp="$(TZ=Asia/Taipei date +%Y%m%d-%H%M%S)"
+    backup="$(tribunal_progress_migration_dir "$root")/legacy-tribunal-progress-$stamp.json"
+    cp "$legacy" "$backup"
+    cp "$legacy" "$target"
+    return 0
+  fi
+
+  printf '{}\n' > "$target"
+}
+
+tribunal_fetch_origin_main() {
+  local repo_dir="$1"
+  local log_file="$2"
+  git -C "$repo_dir" fetch --prune origin main >> "$log_file" 2>&1
+}
+
+tribunal_write_runtime_git_state() {
+  local repo_dir="$1"
+  local state_file="${2:-$(tribunal_runtime_git_state_file "$repo_dir")}"
+  local ts local_ref remote_ref counts ahead behind state tracked_dirty
+
+  mkdir -p "$(dirname "$state_file")"
+
+  ts="$(TZ=Asia/Taipei date -Iseconds)"
+  local_ref="$(git -C "$repo_dir" rev-parse HEAD 2>/dev/null || true)"
+  remote_ref="$(git -C "$repo_dir" rev-parse refs/remotes/origin/main 2>/dev/null || true)"
+  counts="$(git -C "$repo_dir" rev-list --left-right --count HEAD...refs/remotes/origin/main 2>/dev/null || printf '0\t0')"
+  ahead="$(printf '%s' "$counts" | awk '{print $1}')"
+  behind="$(printf '%s' "$counts" | awk '{print $2}')"
+  tracked_dirty="$(git -C "$repo_dir" status --porcelain --untracked-files=no 2>/dev/null | wc -l | tr -d ' ')"
+  [[ "$ahead" =~ ^[0-9]+$ ]] || ahead=0
+  [[ "$behind" =~ ^[0-9]+$ ]] || behind=0
+  [[ "$tracked_dirty" =~ ^[0-9]+$ ]] || tracked_dirty=0
+  [ -n "$local_ref" ] || local_ref="unknown"
+  [ -n "$remote_ref" ] || remote_ref="unknown"
+
+  if [ "$local_ref" = "unknown" ] || [ "$remote_ref" = "unknown" ]; then
+    state="unknown"
+  elif [ "$ahead" = "0" ] && [ "$behind" = "0" ]; then
+    state="in_sync"
+  elif [ "$ahead" = "0" ]; then
+    state="behind"
+  elif [ "$behind" = "0" ]; then
+    state="ahead"
+  else
+    state="diverged"
+  fi
+
+  jq -n \
+    --arg state "$state" \
+    --arg localHead "$local_ref" \
+    --arg originMainHead "$remote_ref" \
+    --arg updatedAt "$ts" \
+    --argjson ahead "${ahead:-0}" \
+    --argjson behind "${behind:-0}" \
+    --argjson trackedDirty "${tracked_dirty:-0}" \
+    '{state: $state, ahead: $ahead, behind: $behind, trackedDirty: $trackedDirty, localHead: $localHead, originMainHead: $originMainHead, updatedAt: $updatedAt}' \
+    > "$state_file"
+}
+
+tribunal_fetch_and_report_origin_main() {
+  local repo_dir="$1"
+  local log_file="$2"
+  local state_file="${3:-$(tribunal_runtime_git_state_file "$repo_dir")}"
+  local fetched="true"
+
+  if ! tribunal_fetch_origin_main "$repo_dir" "$log_file"; then
+    fetched="false"
+  fi
+
+  tribunal_write_runtime_git_state "$repo_dir" "$state_file"
+
+  local state ahead behind tracked_dirty
+  state="$(jq -r '.state // "unknown"' "$state_file" 2>/dev/null || printf 'unknown')"
+  ahead="$(jq -r '.ahead // 0' "$state_file" 2>/dev/null || printf '0')"
+  behind="$(jq -r '.behind // 0' "$state_file" 2>/dev/null || printf '0')"
+  tracked_dirty="$(jq -r '.trackedDirty // 0' "$state_file" 2>/dev/null || printf '0')"
+  printf '%s|%s|%s|%s|%s\n' "$fetched" "$state" "$ahead" "$behind" "$tracked_dirty"
+}
+
 # Run a repo-local agent spec through Codex. Codex custom agents live in
 # `.codex/agents/*.toml`, but `codex exec` has no stable `--agent` flag for this
 # non-interactive tribunal path, so we inline the project-scoped Codex agent

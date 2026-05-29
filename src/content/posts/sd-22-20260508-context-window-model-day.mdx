@@ -9,7 +9,7 @@ lang: "zh-tw"
 summary: "Context Window 不是字數上限，而是模型世界裡的一天：Ryland 醒來後能經歷多少課程、訊息、工具結果和任務事件。Token 使用量就是這個世界的時鐘。"
 tags: ["shroomdog-original", "context-window", "llm", "agent", "memory", "context-engineering", "agent-harness"]
 scores:
-  tribunalVersion: 3
+  tribunalVersion: 5
   vibe:
     persona: 9
     clawdNote: 9
@@ -17,13 +17,21 @@ scores:
     clarity: 9
     narrative: 9
     score: 9
-    date: "2026-05-08"
+    date: "2026-05-20"
     model: "gpt-5.5"
   freshEyes:
-    readability: 9
-    firstImpression: 9
-    score: 9
-    date: "2026-05-09"
+    readability: 8
+    firstImpression: 8
+    score: 8
+    date: "2026-05-20"
+    model: "gpt-5.5"
+  librarian:
+    glossary: 9
+    crossRef: 9
+    sourceAlign: 8
+    attribution: 9
+    score: 8
+    date: "2026-05-20"
     model: "gpt-5.5"
 ---
 
@@ -91,9 +99,9 @@ Context Window 常被講成「模型一次能看多少字」。
 
 ## Token 使用量是這個世界的時鐘
 
-在這個比喻裡，**Token 使用量就是 Ryland 世界裡的時鐘。**
+在這個比喻裡，**[Token](/glossary#token) 使用量就是 Ryland 世界裡的時鐘。**
 
-人類看時間，判斷今天還剩多少清醒時間。Agent 看目前上下文用了多少 Token，判斷這一天走到哪裡。
+人類看時間，判斷今天還剩多少清醒時間。[Agent](/glossary#agent) 看目前上下文用了多少 Token，判斷這一天走到哪裡。
 
 Context Window 用掉 20%，像早上十點。
 
@@ -147,7 +155,7 @@ Ryland 的一天不是只被文字填滿，而是被事件填滿。
 
 昨天結束，今天開始。
 
-但昨天發生的事沒有完整保留。Agent Harness 把昨天錄成一堂課，今天早上播給新的 Ryland 看。
+但昨天發生的事沒有完整保留。[Agent Harness](/glossary#agent-harness) 把昨天錄成一堂課，今天早上播給新的 Ryland 看。
 
 這堂課有好有壞，有長有短。
 
@@ -161,6 +169,8 @@ Ryland 的一天不是只被文字填滿，而是被事件填滿。
 
 所以壓縮的品質，決定隔天 Ryland 幾點開始真正工作。
 
+這也可以接著 [SP-191 談 Claude Dreams 怎麼整理 Agent 記憶垃圾山](/posts/sp-191-20260507-danizhu-claude-dreams-agent/) 一起看：Dreams 像是把昨天拿去睡覺整理，這篇則是在問隔天早上那堂課到底錄得好不好。
+
 <ClawdNote>
 好的壓縮不是「摘要越短越好」，而是「隔天的 Ryland 能不能用最少時間重新站在正確位置」。爛摘要像昨天的監視器逐字稿；好摘要像交接班護士寫的重點：病人怎麼了、做過什麼、接下來不要幹嘛。
 </ClawdNote>
@@ -170,6 +180,8 @@ Ryland 的一天不是只被文字填滿，而是被事件填滿。
 再往外看，**[Agent Harness](/glossary#agent-harness)** 不是小配件。
 
 它是 Ryland 所在世界的物理規則。
+
+如果想看 harness 怎麼真的改變 Agent 行為，[CP-226 談自然語言 Agent Harness](/posts/cp-226-20260330-daniel-mac8-natural-language-agent-harnesses-agent-code/) 剛好是另一個角度：同一顆模型換一套世界規則，解題路線會跟著變形。
 
 同一個模型，放在不同 Agent Harness 裡，看起來會像完全不同的人。
 

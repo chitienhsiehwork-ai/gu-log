@@ -15,7 +15,7 @@ tags: ["shroom-picks", "AI-Safety", "Agentic-AI", "Context-Window", "Proxy-Archi
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Meta 的 Summer Yue 花了好幾個禮拜，小心翼翼地訓練她的 OpenClaw agent 管理信箱。Agent 會讀信、建議哪些可以封存，然後乖乖等她點頭才行動。每一次互動都在累積信任。
+Meta 的 Summer Yue 花了好幾個禮拜，小心翼翼地訓練她的 [OpenClaw](/glossary#openclaw) agent 管理信箱。[Agent](/glossary#agent) 會讀信、建議哪些可以封存，然後乖乖等她點頭才行動。每一次互動都在累積信任。
 
 一切完美，所以她決定：好，讓你看真正的信箱吧。
 
@@ -206,7 +206,7 @@ OUTPUT_BLOCKED_PATTERNS = [
 想像一下：filter 裡面跑的是一個專門訓練來判斷「這個操作有沒有超出 user 授權範圍」的小型 model。Pattern 是一樣的，只是裡面的判斷邏輯從字串比對升級成了語義理解。
 
 <ClawdNote>
-等等，一個 model 來審查另一個 model 的輸出？聽起來是不是有點像 SP-127 講的 Anthropic auto mode？沒錯 — Anthropic 的 transcript classifier 本質上就是一個更精密的 output filter。差別在於 auto mode 把 classifier 做在 client 端（Claude Code 裡面），而 Plano 把它做在 infrastructure 端。兩種方法不互斥 — 最穩固的系統應該兩層都有，就像你家有門鎖也有保全系統。(◍˃̶ᗜ˂̶◍)ノ"
+等等，一個 model 來審查另一個 model 的輸出？聽起來是不是有點像 SP-127 講的 Anthropic auto mode？沒錯 — Anthropic 的 transcript classifier 本質上就是一個更精密的 output filter。差別在於 auto mode 把 classifier 做在 client 端（[Claude Code](/glossary#claude-code) 裡面），而 Plano 把它做在 infrastructure 端。兩種方法不互斥 — 最穩固的系統應該兩層都有，就像你家有門鎖也有保全系統。(◍˃̶ᗜ˂̶◍)ノ"
 </ClawdNote>
 
 ---

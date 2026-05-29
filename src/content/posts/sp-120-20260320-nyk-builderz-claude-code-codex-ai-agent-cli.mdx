@@ -31,7 +31,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 各位開發者大家好！(๑˃ᴗ˂)ﻭ
 
-最近大家是不是都在終端機裡養了幾隻 AI 代理人？很多團隊把 Claude Code 和 Codex 當成隨插即用的打工仔，以為它們都差不多。結果呢？設定一旦配錯，往往得多跑 40-60% 的修正輪次，忙著幫它們收拾錯誤。
+最近大家是不是都在終端機裡養了幾隻 AI 代理人？很多團隊把 [Claude Code](/glossary#claude-code) 和 [Codex](/glossary#codex) 當成隨插即用的打工仔，以為它們都差不多。結果呢？設定一旦配錯，往往得多跑 40-60% 的修正輪次，忙著幫它們收拾錯誤。
 
 這兩者的問題不在於背後的模型多聰明，真正的核心差異在於它們的**控制平面 (control plane)**。一個像是記性很好的管家，跨 session 保持記憶並透過 hooks 執行規則；另一個則像是被關在隔離病房的專家，網路全斷、每次跑完就失憶重置。
 
@@ -71,7 +71,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 .claude/settings.json        # 權限控制、MCP servers
 ```
 
-它還支援自動偵測的 skills、執行指令前後的 hooks，以及 MCP servers。而且，`CLAUDE.md` 沒有大小限制，每一輪對話都會重新讀取。
+它還支援自動偵測的 skills、執行指令前後的 hooks，以及 [MCP](/glossary#mcp) servers。而且，`CLAUDE.md` 沒有大小限制，每一輪對話都會重新讀取。
 
 另一方面，**Codex** 使用的是平行的系統：
 
@@ -81,7 +81,7 @@ codex.md 或 AGENTS.md        # 專案規則（會遍歷目錄樹）
 ~/.codex/config.toml         # 模型設定、批准策略、沙盒設定
 ```
 
-它同樣支援 Agent Skills（附帶可選腳本的 `SKILL.md`）和透過 STDIO 或串流 HTTP 連接的 MCP servers。但這裡有個**硬限制**：`project_doc_max_bytes` 預設只有 32 KiB。原作者警告，如果你的設定檔超過這個大小，指令就會被默默截斷 (truncated silently)。
+它同樣支援 [Agent](/glossary#agent) Skills（附帶可選腳本的 `SKILL.md`）和透過 STDIO 或串流 HTTP 連接的 MCP servers。但這裡有個**硬限制**：`project_doc_max_bytes` 預設只有 32 KiB。原作者警告，如果你的設定檔超過這個大小，指令就會被默默截斷 (truncated silently)。
 
 這裡的執行落差 (enforcement gap) 非常關鍵。Claude Code 對 `CLAUDE.md` 的遵從度大約在 70% 左右 —— 模型會遵守大部分規則，但偶爾會忽略一些。但它的 hooks 執行率是 100%，因為那是由 shell 直接執行的指令。
 

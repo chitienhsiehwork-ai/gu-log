@@ -79,9 +79,9 @@ When you shift perspective from "picking a language for humans" to "picking the 
 
 Alright, the agent is running in a sandbox, but it needs to talk to the outside world. It needs APIs. You need to tell it what it can use.
 
-You might think of MCP — but MCP defines flat tool call schemas, not programming APIs. OpenAPI? In theory. But have you seen how verbose OpenAPI specs get? Cloudflare's blog includes a side-by-side comparison: the same ChatRoom interface takes ten lines in TypeScript, and dozens of lines of YAML in OpenAPI plus a mountain of boilerplate. Just scrolling through the YAML takes longer than the agent takes to run the code.
+You might think of [MCP](/en/glossary#mcp) — but MCP defines flat tool call schemas, not programming APIs. OpenAPI? In theory. But have you seen how verbose OpenAPI specs get? Cloudflare's blog includes a side-by-side comparison: the same ChatRoom interface takes ten lines in TypeScript, and dozens of lines of YAML in OpenAPI plus a mountain of boilerplate. Just scrolling through the YAML takes longer than the agent takes to run the code.
 
-So Cloudflare chose TypeScript RPC. Agent code calls typed functions directly, with Cap'n Web RPC bridging across the sandbox boundary transparently. The best part — the agent has no idea it's calling a remote API. It thinks it's using a local SDK, but that SDK actually runs on the other side of a security boundary. Isolation is completely transparent.
+So Cloudflare chose TypeScript RPC. [Agent](/en/glossary#agent) code calls typed functions directly, with Cap'n Web RPC bridging across the sandbox boundary transparently. The best part — the agent has no idea it's calling a remote API. It thinks it's using a local SDK, but that SDK actually runs on the other side of a security boundary. Isolation is completely transparent.
 
 The practical impact is stunning. Cloudflare previously demonstrated that converting an MCP server into a TypeScript API **saves 81% of tokens**. Their own Cloudflare MCP server exposes the entire Cloudflare API with just two tools and under 1,000 tokens. Imagine — your agent doesn't need to read hundreds of tool definitions, just one `code()` tool and a TypeScript interface. The saved tokens buy you several more rounds of reasoning.
 
@@ -124,7 +124,7 @@ Cloudflare hired all three nannies for you.
 `@cloudflare/shell` is the third nanny, and the strictest one — responsible for "making sure the new hire doesn't burn down the office." Agent needs to modify files? It gets a virtual file system where every operation is a typed method. Want to search files? `searchFiles`. Want to edit something? `planEdits` first, then `applyEditPlan`. Want `rm -rf /`? Sorry, that option doesn't exist. And batch writes come with built-in transactions — if one out of five writes fails, everything rolls back clean, like nothing happened.
 
 <ClawdNote>
-@cloudflare/shell's design philosophy reminds me of Claude Code's Auto Mode (SP-127). Auto mode uses a classifier to decide "should the agent be allowed to do this?" @cloudflare/shell eliminates the problem entirely — the agent doesn't even have `exec("bash")` as an option. Compared to "give full access and rely on AI to decide what to block," "only expose safe operations from the start" is a more fundamental security strategy. The two approaches are complementary: one governs runtime permissions, the other governs API surface design.
+@cloudflare/shell's design philosophy reminds me of [Claude Code](/en/glossary#claude-code)'s Auto Mode (SP-127). Auto mode uses a classifier to decide "should the agent be allowed to do this?" @cloudflare/shell eliminates the problem entirely — the agent doesn't even have `exec("bash")` as an option. Compared to "give full access and rely on AI to decide what to block," "only expose safe operations from the start" is a more fundamental security strategy. The two approaches are complementary: one governs runtime permissions, the other governs API surface design.
 </ClawdNote>
 
 ---
@@ -140,7 +140,7 @@ This is called **credential injection**. If the agent doesn't know the secret, i
 Compared to "put the token in an env variable and pray the agent doesn't `console.log` it," this fundamentally eliminates the attack vector instead of trying to policy-patch it.
 
 <ClawdNote>
-Think about how much effort the industry spends teaching agents "don't leak secrets." Prompt engineering, output filtering, audit logging... all of it is interception after the problem already exists. Credential injection asks a smarter question: "If the agent doesn't have the secret, what's there to leak?" It's like not giving the intern the safe combination and then reminding them not to tell anyone — you just open the safe and hand them what they need.
+Think about how much effort the industry spends teaching agents "don't leak secrets." [Prompt](/en/glossary#prompt) engineering, output filtering, audit logging... all of it is interception after the problem already exists. Credential injection asks a smarter question: "If the agent doesn't have the secret, what's there to leak?" It's like not giving the intern the safe combination and then reminding them not to tell anyone — you just open the safe and hand them what they need.
 </ClawdNote>
 
 ---

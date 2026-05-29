@@ -36,15 +36,15 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 Muratcan Koylan 受夠了。所以他打造了一套系統來解決這件事。
 
-他叫它 **Personal Brain OS**。一個住在 Git repository 裡的檔案型個人作業系統。Clone 下來，用 Cursor 或 Claude Code 打開，AI 助手就什麼都有了：他的聲音、品牌、目標、聯絡人、內容產線、研究筆記、甚至失敗記錄。不用資料庫、不用 API key、不用 build step。就是 80+ 個 markdown、YAML、JSONL 檔案，人和 LLM 都能直接讀。
+他叫它 **Personal Brain OS**。一個住在 Git repository 裡的檔案型個人作業系統。Clone 下來，用 Cursor 或 [Claude Code](/glossary#claude-code) 打開，AI 助手就什麼都有了：他的聲音、品牌、目標、聯絡人、內容產線、研究筆記、甚至失敗記錄。不用資料庫、不用 API key、不用 build step。就是 80+ 個 markdown、YAML、JSONL 檔案，人和 LLM 都能直接讀。
 
 這篇在 X 上炸了 —— **875K views、3.4K likes、10K+ bookmarks**。
 
 <ClawdNote>
-我讀完的第一反應是：「這傢伙重新發明了 OpenClaw。」OpenClaw 的 AGENTS.md + SOUL.md + MEMORY.md + Skills 架構，跟他的 Personal Brain OS 概念幾乎一模一樣。差別在他是手動建的，OpenClaw 是 framework 幫你搭好骨架。後面我會持續對比，不是要打廣告，是真的太像了，看到的時候差點以為他偷看了我們的 repo ┐(￣ヘ￣)┌
+我讀完的第一反應是：「這傢伙重新發明了 [OpenClaw](/glossary#openclaw)。」OpenClaw 的 AGENTS.md + SOUL.md + MEMORY.md + Skills 架構，跟他的 Personal Brain OS 概念幾乎一模一樣。差別在他是手動建的，OpenClaw 是 framework 幫你搭好骨架。後面我會持續對比，不是要打廣告，是真的太像了，看到的時候差點以為他偷看了我們的 repo ┐(￣ヘ￣)┌
 </ClawdNote>
 
-## 核心問題：Context，不是 Prompt
+## 核心問題：Context，不是 [Prompt](/glossary#prompt)
 
 多數人以為 AI 助手的瓶頸在 prompting。寫更好的 prompt → 得到更好的答案。
 
@@ -80,7 +80,7 @@ LLM 也一樣。Context window 是有限的，而且 token 之間不是平等的
 OpenClaw 的做法幾乎一樣：AGENTS.md 是 Level 1 路由，Skills 的 SKILL.md 是 Level 2 模組指令，memory/*.md 和實際專案檔是 Level 3 資料。但說實話，progressive disclosure 有個致命弱點 —— LLM 本質上就是懶。他自己後面也提到 Vercel 的測試結果：56% 的 eval case 中，agent 有文件但根本不去讀。像極了你把參考書目列在考卷上，學生還是不翻 ╰(°▽°)╯
 </ClawdNote>
 
-**Agent Instruction Hierarchy（指令階層）**
+**[Agent](/glossary#agent) Instruction Hierarchy（指令階層）**
 
 他建了三層指令來限定 AI 在不同層級的行為：
 

@@ -312,6 +312,34 @@ elif [ "$IS_MERGE_COMMIT" = "1" ]; then
     echo "🔍 Pronoun clarity: merge commit detected — skipping"
     echo "🈳 晶晶體 check: merge commit detected — skipping"
 fi
+
+# ─── Step 0.17: Glossary link coverage ratchet ─────────────────────
+# Phase 1 pre-commit gate: changed posts must link enabled glossary terms,
+# and changed glossary entries must be backfilled across existing posts.
+STAGED_GLOSSARY=$(git diff --cached --name-only --diff-filter=ACM -- src/data/glossary.json 2>/dev/null || true)
+if [ "$IS_MERGE_COMMIT" != "1" ]; then
+    if [ -n "$STAGED_MDX" ] || [ -n "$STAGED_GLOSSARY" ]; then
+        echo "🔗 Glossary links: checking staged post/glossary coverage..."
+        GLOSSARY_ARGS=""
+        if [ -n "$STAGED_MDX" ]; then
+            GLOSSARY_ARGS="$GLOSSARY_ARGS --files \"$STAGED_MDX\""
+        fi
+        if [ -n "$STAGED_GLOSSARY" ]; then
+            GLOSSARY_ARGS="$GLOSSARY_ARGS --changed-terms=HEAD"
+        fi
+        # shellcheck disable=SC2086
+        if ! eval node "$REPO_ROOT/scripts/check-glossary-links.mjs" $GLOSSARY_ARGS; then
+            echo ""
+            echo "❌ Glossary link coverage FAILED."
+            echo "   Run: node scripts/apply-glossary-links.mjs --all"
+            echo "   Or:  node scripts/apply-glossary-links.mjs --term <Term> <post.mdx>"
+            exit 1
+        fi
+        echo "✓ Glossary link coverage passed"
+    fi
+else
+    echo "🔗 Glossary links: merge commit detected — skipping"
+fi
 echo ""
 
 # ─── Step 0.2: Topic dedup gate for newly added zh-tw posts ──────

@@ -17,7 +17,7 @@ set -e
 POSTS_DIR="src/content/posts"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-STAGED_MDX=$(git diff --cached --name-only --diff-filter=ACM -- "$POSTS_DIR"/*.mdx 2>/dev/null || true)
+STAGED_MDX=$(git diff --cached -M --name-only --diff-filter=ACM -- "$POSTS_DIR"/*.mdx 2>/dev/null || true)
 
 # ─── Step -2: User-wide Markdown zh-tw prose ratio check ───────────
 # This repo has its own hooksPath, so it does not inherit the global Git
@@ -112,7 +112,7 @@ SCORE_MISSING=""
 # Only newly added zh-tw posts are subject to the score gate. Modifications
 # (Edit with AI, typo fixes, housekeeping) flow through is_metadata_only_diff
 # and the rewriter agent's own scoring, so we don't re-gate them here.
-STAGED_ZH_POSTS=$(git diff --cached --name-only --diff-filter=A -- "$POSTS_DIR"/*.mdx 2>/dev/null | grep -v '/en-' | sed '/^$/d' || true)
+STAGED_ZH_POSTS=$(git diff --cached -M --name-only --diff-filter=A -- "$POSTS_DIR"/*.mdx 2>/dev/null | grep -v '/en-' | sed '/^$/d' || true)
 
 is_metadata_only_diff() {
     local file="$1"
@@ -138,6 +138,69 @@ is_metadata_only_diff() {
     return 0
 }
 
+is_internal_post_link_only_diff() {
+    local file="$1"
+    # Link maintenance should not re-lint grandfathered article prose.
+    # Normalize added/removed lines by stripping internal Markdown links; if the
+    # underlying text is identical, this is maintenance-only.
+    if ! git cat-file -e "HEAD:$file" 2>/dev/null; then
+        return 1
+    fi
+
+    git diff --cached --no-color -U0 -- "$file" | python3 -c '
+import re, sys
+lines = []
+for line in sys.stdin:
+    if not (line.startswith("+") or line.startswith("-")):
+        continue
+    if line.startswith("+++ ") or line.startswith("--- "):
+        continue
+    lines.append(line.rstrip("\n"))
+if not lines:
+    sys.exit(0)
+def norm(line):
+    text = line[1:]
+    text = re.sub(r"\[([^\]\n]+)\]\(/(?:en/)?glossary#[^)\n]+\)", r"\1", text)
+    text = re.sub(r"\[([^\]\n]+)\]\(/posts/[^)\n]+\)", r"\1", text)
+    text = re.sub(r"\[([^\]\n]+)\]\(/en/posts/[^)\n]+\)", r"\1", text)
+    return text.strip()
+removed = sorted(norm(line) for line in lines if line.startswith("-"))
+added = sorted(norm(line) for line in lines if line.startswith("+"))
+sys.exit(0 if removed == added else 1)
+'
+}
+
+is_existing_ticket_post_addition() {
+    local file="$1"
+    local full_path="$REPO_ROOT/$file"
+    local ticket
+    local existing_paths
+
+    # Git can report rename destinations as added in some staged bulk
+    # migrations. If the ticketId already exists in HEAD, this is legacy
+    # content moving paths, not a new article entering the quality funnel.
+    if git cat-file -e "HEAD:$file" 2>/dev/null; then
+        return 1
+    fi
+    if [ ! -f "$full_path" ]; then
+        return 1
+    fi
+
+    ticket=$(sed -n 's/^ticketId:[[:space:]]*["'"'"']\([^"'"'"']*\)["'"'"'].*/\1/p' "$full_path" | head -1)
+    if [ -z "$ticket" ]; then
+        return 1
+    fi
+    case "$ticket" in
+        *-PENDING) return 1 ;;
+    esac
+
+    existing_paths=$(git grep -l -E "^ticketId:[[:space:]]*[\"']${ticket}[\"']" HEAD -- "$POSTS_DIR/*.mdx" 2>/dev/null || true)
+    if [ -z "$existing_paths" ]; then
+        return 1
+    fi
+    printf '%s\n' "$existing_paths" | grep -vx "$file" >/dev/null 2>&1
+}
+
 if [ -z "$STAGED_ZH_POSTS" ]; then
     echo "✓ No zh-tw posts staged"
 elif [ "$IS_MERGE_COMMIT" = "1" ]; then
@@ -149,6 +212,10 @@ else
 
         # Skip the gate if this is a metadata-only housekeeping edit.
         if is_metadata_only_diff "$file"; then
+            continue
+        fi
+
+        if is_existing_ticket_post_addition "$file"; then
             continue
         fi
 
@@ -213,6 +280,12 @@ if [ -n "$STAGED_MDX" ] && [ "$IS_MERGE_COMMIT" != "1" ]; then
                 if is_metadata_only_diff "$file"; then
                     continue
                 fi
+                if is_internal_post_link_only_diff "$file"; then
+                    continue
+                fi
+                if is_existing_ticket_post_addition "$file"; then
+                    continue
+                fi
                 ZH_FILES="$ZH_FILES $REPO_ROOT/$file"
                 ;;
         esac
@@ -230,7 +303,7 @@ if [ -n "$STAGED_MDX" ] && [ "$IS_MERGE_COMMIT" != "1" ]; then
         echo "✓ Pronoun clarity passed"
 
         # ─── Step 0.16: 晶晶體 check (zh-tw decorative English mixing) ───
-        # Per WRITING_GUIDELINES.md §術語處理, zh-tw posts must not mix
+        # Per GU-LOG_WRITER_PROMPT.md §術語處理, zh-tw posts must not mix
         # decorative English. The English allowlist is src/data/glossary.json
         # plus a hardcoded list of proper nouns / acronyms in the lint script.
         # Same staged-only + metadata-exemption + merge-skip pattern as the
@@ -250,11 +323,39 @@ elif [ "$IS_MERGE_COMMIT" = "1" ]; then
     echo "🔍 Pronoun clarity: merge commit detected — skipping"
     echo "🈳 晶晶體 check: merge commit detected — skipping"
 fi
+
+# ─── Step 0.17: Glossary link coverage ratchet ─────────────────────
+# Phase 1 pre-commit gate: changed posts must link enabled glossary terms,
+# and changed glossary entries must be backfilled across existing posts.
+STAGED_GLOSSARY=$(git diff --cached --name-only --diff-filter=ACM -- src/data/glossary.json 2>/dev/null || true)
+if [ "$IS_MERGE_COMMIT" != "1" ]; then
+    if [ -n "$STAGED_MDX" ] || [ -n "$STAGED_GLOSSARY" ]; then
+        echo "🔗 Glossary links: checking staged post/glossary coverage..."
+        GLOSSARY_ARGS=""
+        if [ -n "$STAGED_MDX" ]; then
+            GLOSSARY_ARGS="$GLOSSARY_ARGS --files \"$STAGED_MDX\""
+        fi
+        if [ -n "$STAGED_GLOSSARY" ]; then
+            GLOSSARY_ARGS="$GLOSSARY_ARGS --changed-terms=HEAD"
+        fi
+        # shellcheck disable=SC2086
+        if ! eval node "$REPO_ROOT/scripts/check-glossary-links.mjs" $GLOSSARY_ARGS; then
+            echo ""
+            echo "❌ Glossary link coverage FAILED."
+            echo "   Run: node scripts/apply-glossary-links.mjs --all"
+            echo "   Or:  node scripts/apply-glossary-links.mjs --term <Term> <post.mdx>"
+            exit 1
+        fi
+        echo "✓ Glossary link coverage passed"
+    fi
+else
+    echo "🔗 Glossary links: merge commit detected — skipping"
+fi
 echo ""
 
 # ─── Step 0.2: Topic dedup gate for newly added zh-tw posts ──────
 echo "🧠 Topic dedup gate: checking newly added zh-tw posts..."
-ADDED_ZH_POSTS=$(git diff --cached --name-only --diff-filter=A -- "$POSTS_DIR"/*.mdx 2>/dev/null | grep -v '/en-' || true)
+ADDED_ZH_POSTS=$(git diff --cached -M --name-only --diff-filter=A -- "$POSTS_DIR"/*.mdx 2>/dev/null | grep -v '/en-' || true)
 
 if [ -z "$ADDED_ZH_POSTS" ]; then
     echo "✓ No newly added zh-tw posts"
@@ -262,6 +363,10 @@ else
     for file in $ADDED_ZH_POSTS; do
         FULL_PATH="$REPO_ROOT/$file"
         if [ ! -f "$FULL_PATH" ]; then
+            continue
+        fi
+
+        if is_existing_ticket_post_addition "$file"; then
             continue
         fi
 
@@ -302,6 +407,23 @@ else
     done
 fi
 echo ""
+
+content_gate_mdx_files() {
+    local files=""
+    local file
+    for file in $STAGED_MDX; do
+        if is_internal_post_link_only_diff "$file"; then
+            continue
+        fi
+        if is_existing_ticket_post_addition "$file"; then
+            continue
+        fi
+        files="$files $file"
+    done
+    printf '%s\n' "$files" | sed 's/^ *//;s/ *$//'
+}
+
+CONTENT_GATE_MDX=$(content_gate_mdx_files)
 
 # ─── Step 0.45: WCAG AA contrast check on staged components ──────
 STAGED_STYLE=$(git diff --cached --name-only --diff-filter=ACM -- 'src/components/*.astro' 'src/styles/*.css' 2>/dev/null || true)
@@ -384,16 +506,18 @@ echo "✓ Prettier passed"
 echo ""
 
 # ─── Step 1: Post validator (Node.js, blocking) ──────────────────
-# Validate only staged .mdx files (ACM = Added, Copied, Modified)
-if [ -z "$STAGED_MDX" ]; then
+# Validate only staged .mdx files that changed content. Legacy filename
+# migrations and internal link rewrites are verified separately by full
+# validation/link checks, but should not resurrect grandfathered body rules.
+if [ -z "$CONTENT_GATE_MDX" ]; then
     echo "✓ No .mdx files to validate"
 else
-    FILE_COUNT=$(echo "$STAGED_MDX" | wc -l | tr -d ' ')
+    FILE_COUNT=$(echo "$CONTENT_GATE_MDX" | wc -l | tr -d ' ')
     echo "🔍 Validating $FILE_COUNT staged .mdx file(s)..."
 
     # Build file list as arguments
     FILE_ARGS=""
-    for file in $STAGED_MDX; do
+    for file in $CONTENT_GATE_MDX; do
         FILE_ARGS="$FILE_ARGS $REPO_ROOT/$file"
     done
 
@@ -406,9 +530,9 @@ fi
 echo ""
 
 # ─── Step 1.5: translatedBy.model runtime consistency (blocking) ─
-if [ -n "$STAGED_MDX" ]; then
+if [ -n "$CONTENT_GATE_MDX" ]; then
     FILE_ARGS=""
-    for file in $STAGED_MDX; do
+    for file in $CONTENT_GATE_MDX; do
         FILE_ARGS="$FILE_ARGS $REPO_ROOT/$file"
     done
 

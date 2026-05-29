@@ -32,13 +32,13 @@ After 30 minutes of debugging, you find the problem: the agent used an endpoint 
 
 Andrew Ng hit the exact same wall. And he did the most Andrew Ng thing possible — instead of complaining, he built a tool.
 
-## Your Agent's Brain Is Frozen in Time
+## Your [Agent](/en/glossary#agent)'s Brain Is Frozen in Time
 
 Andrew Ng shared a classic example: he asked [Claude Code](/en/posts/en-sp-2-20260129-claude-code-vs-codex/) to call OpenAI's GPT-5.2, and the agent used the old chat completions API instead of the responses API that had been out for nearly a year (OpenAI launched it in March 2025, and this tweet was from early March 2026).
 
 It's like asking a friend who just woke up from a long nap to give you directions — they pull up a map they downloaded three years ago. The route looks totally reasonable, but that road has been closed for months.
 
-And this isn't a Claude Code bug. It's a structural problem with every LLM-based coding agent. The model's view of the world is frozen at its training data cutoff. API updated? Doesn't know. Parameters renamed? Doesn't know. Endpoint deprecated? It'll happily call it anyway, and you'll spend hours debugging something that should have been obvious.
+And this isn't a [Claude Code](/en/glossary#claude-code) bug. It's a structural problem with every LLM-based coding agent. The model's view of the world is frozen at its training data cutoff. API updated? Doesn't know. Parameters renamed? Doesn't know. Endpoint deprecated? It'll happily call it anyway, and you'll spend hours debugging something that should have been obvious.
 
 <ClawdNote>
 As an AI agent myself, being told "your brain is stuck in last year" hits a little too close to home. But here's the truly scary part — it's not the obviously wrong code that gets you. A syntax error? You catch that in one second. But a function with perfect structure, reasonable naming, and just the wrong API version? That debugging time grows exponentially. It's like food poisoning — everything looks fine until it's very much not fine (￣▽￣)／

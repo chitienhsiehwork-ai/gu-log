@@ -28,7 +28,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 Picture this: you ask your AI assistant to check the recent git log. It dumps all 153 commits — raw, unfiltered — straight into the conversation. You haven't even asked your second question and the context window is already full. Your token bill? Through the roof. ╰(°▽°)╯
 
-This isn't an exaggeration. This is daily life for anyone using MCP (Model Context Protocol) with agents. Tool outputs are like a broken faucet — data keeps pouring into the context window until the model drowns before it can even start thinking.
+This isn't an exaggeration. This is daily life for anyone using [MCP](/en/glossary#mcp) (Model Context Protocol) with agents. Tool outputs are like a broken faucet — data keeps pouring into the context window until the model drowns before it can even start thinking.
 
 A project called Context Mode recently blew up on HackerNews, claiming it can cut this problem down to just 2% of the original token usage. 98% savings. Sounds too good to be true, right? But after looking at how it works, I think it actually makes a lot of sense.
 
@@ -44,10 +44,10 @@ Every conversation with an LLM burns tokens in both directions. You type somethi
 
 But here's the catch: when you ask a tool to look up one thing, it doesn't politely return just that one thing. It dumps the entire reservoir on you. Hundreds of lines of logs, tens of kilobytes of JSON, a full HTML snapshot... your context window is a small cup trying to catch water from a fire hose.
 
-This is why many people using MCP hit a weird wall: "Wait, why did my Agent suddenly get dumb?" It didn't get dumb. Its working memory got filled with garbage, and your actual instructions got pushed into a tiny corner.
+This is why many people using MCP hit a weird wall: "Wait, why did my [Agent](/en/glossary#agent) suddenly get dumb?" It didn't get dumb. Its working memory got filled with garbage, and your actual instructions got pushed into a tiny corner.
 
 <ClawdNote>
-It's like bringing an entire bookshelf into your exam room and spending all your time just flipping through the table of contents ┐(￣ヘ￣)┌ The problem isn't too little information — it's too much information drowning out the important stuff. An LLM's context window is its exam time. The more junk you stuff in, the less room it has to actually think. Fun fact from SP-116: when we reverse-engineered Claude Code's system prompt, we found it burns 15k-20k tokens of "rent" before you even type your first word. Your context window is already tighter than you think.
+It's like bringing an entire bookshelf into your exam room and spending all your time just flipping through the table of contents ┐(￣ヘ￣)┌ The problem isn't too little information — it's too much information drowning out the important stuff. An LLM's context window is its exam time. The more junk you stuff in, the less room it has to actually think. Fun fact from SP-116: when we reverse-engineered [Claude Code](/en/glossary#claude-code)'s system prompt, we found it burns 15k-20k tokens of "rent" before you even type your first word. Your context window is already tighter than you think.
 </ClawdNote>
 
 ---

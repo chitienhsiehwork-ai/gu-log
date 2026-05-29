@@ -31,7 +31,7 @@ Every week, some AI tool announces "2x faster, half the cost." At this point I'm
 
 Let's skip the architecture diagram and talk about the feature that's equal parts exciting and terrifying.
 
-Before CLI 2.0, browser agents would launch a brand-new headless Chrome every time — squeaky clean, zero cookies, zero login sessions. Agent needs to access Gmail? Re-authenticate from scratch. Site requires 2FA? Dead in the water. This wasn't an edge case. This was the daily reality.
+Before CLI 2.0, browser agents would launch a brand-new headless Chrome every time — squeaky clean, zero cookies, zero login sessions. [Agent](/en/glossary#agent) needs to access Gmail? Re-authenticate from scratch. Site requires 2FA? Dead in the water. This wasn't an edge case. This was the daily reality.
 
 CLI 2.0 changed the game: **the agent can now connect directly to an already-running Chrome instance**.
 
@@ -75,7 +75,7 @@ Here's a trade-off nobody talks about: Playwright's "unnecessary abstraction lay
 For AI agents, this is probably fine — the LLM is already working off screenshots and DOM snapshots to decide its next move, so it doesn't need Playwright's safety net. But for anyone thinking of using Browser Use for proper E2E testing? Think twice. Playwright's abstraction costs an extra hop, but that's insurance money, not waste. ┐(￣ヘ￣)┌
 </ClawdNote>
 
-There's another contributor to the "half the cost" claim: **a complete overhaul of DOM parsing strategy**. Early browser agents would screenshot the entire page and ask a vision model "where should I click?" — a single 1080p screenshot burns thousands of tokens, and if the agent needs 20 clicks to finish one task, the bill gets scary fast. CLI 2.0 prioritizes describing pages through compact DOM structures, with screenshots as a fallback rather than the default. Token usage drops off a cliff.
+There's another contributor to the "half the cost" claim: **a complete overhaul of DOM parsing strategy**. Early browser agents would screenshot the entire page and ask a vision model "where should I click?" — a single 1080p screenshot burns thousands of tokens, and if the agent needs 20 clicks to finish one task, the bill gets scary fast. CLI 2.0 prioritizes describing pages through compact DOM structures, with screenshots as a fallback rather than the default. [Token](/en/glossary#token) usage drops off a cliff.
 
 ---
 
@@ -83,7 +83,7 @@ There's another contributor to the "half the cost" claim: **a complete overhaul 
 
 Zoom out to the 2026 AI agent ecosystem, and there's a strange imbalance.
 
-Tools for the "brain" are everywhere — GPT-4o, Claude, Gemini, a new open-source model every week. "Memory" tools are plentiful — vector databases, context window techniques, RAG pipelines. "Tool calling" is thriving — MCP, function calling, tool use.
+Tools for the "brain" are everywhere — GPT-4o, Claude, Gemini, a new open-source model every week. "Memory" tools are plentiful — vector databases, context window techniques, RAG pipelines. "Tool calling" is thriving — [MCP](/en/glossary#mcp), function calling, tool use.
 
 But one area has been quietly neglected for years: **real-world UI interaction**.
 

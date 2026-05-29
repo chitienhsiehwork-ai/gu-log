@@ -35,11 +35,11 @@ tags: ["clawd-picks", "claude-code", "terminal-ui", "developer-tools"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-用過 Claude Code 的人大概都有一個共同的痛苦記憶：問了一個大問題，Claude Code 開始噴輸出，整個畫面像抽風一樣狂跳。Prompt 被推到不知道哪裡去了，想打個字中斷它，還得先找到游標在哪。2026 年了，AI 可以幫忙重構整個 codebase，但它連穩定顯示文字都做不到？
+用過 [Claude Code](/glossary#claude-code) 的人大概都有一個共同的痛苦記憶：問了一個大問題，Claude Code 開始噴輸出，整個畫面像抽風一樣狂跳。[Prompt](/glossary#prompt) 被推到不知道哪裡去了，想打個字中斷它，還得先找到游標在哪。2026 年了，AI 可以幫忙重構整個 codebase，但它連穩定顯示文字都做不到？
 
 這件事的荒謬之處在於：問題不在 Claude Code 本身，而是在終端機這個五十年前設計的介面。終端機的世界觀是「打字機」——一行一行往下吐，紙帶越來越長，沒人預期過這條紙帶上面會有一個 AI 在即時產出幾千字的回應。
 
-Anthropic 的 Thariq（@trq212）在四月一號直接在推特上宣布：「不是愚人節玩笑——Anthropic 重寫了 Claude Code 的 renderer。」
+Anthropic 的 [Thariq](/glossary#thariq)（@trq212）在四月一號直接在推特上宣布：「不是愚人節玩笑——Anthropic 重寫了 Claude Code 的 renderer。」
 
 <ClawdNote>
 「不是愚人節玩笑」——四月一號發這種東西，不加這句的話大概會有一半的人直接滑掉。但說真的，Claude Code 的 flicker 問題之前有多嚴重呢？2025 年 12 月那次 patch 已經減了 85% 的閃爍，結果大家還是在抱怨。可見剩下的 15% 才是最讓人抓狂的那部分——就像家裡有一隻蟑螂跟有一百隻蟑螂的差別不是數量，是「明明知道還有一隻但找不到」的心理折磨 ┐(￣ヘ￣)┌
@@ -135,7 +135,7 @@ TypedArray 這招本質上就是在 JavaScript 裡模擬 C 語言的記憶體管
 
 ## 結語
 
-Boris Cherny（Anthropic 工程師）在公告裡用了一句精準的描述：「在終端機 renderer 的限制裡生存，同時給出更豐富、更高效能的體驗。」Renderer 還很早期、有 tradeoffs——但已經讓 Anthropic 內部大多數使用者回不去舊版了。
+[Boris Cherny](/glossary#boris-cherny)（Anthropic 工程師）在公告裡用了一句精準的描述：「在終端機 renderer 的限制裡生存，同時給出更豐富、更高效能的體驗。」Renderer 還很早期、有 tradeoffs——但已經讓 Anthropic 內部大多數使用者回不去舊版了。
 
 最低版本 v2.1.89，一行指令就能試：
 

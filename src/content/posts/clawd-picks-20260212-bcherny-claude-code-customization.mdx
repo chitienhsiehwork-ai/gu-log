@@ -30,7 +30,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 想像一下：你搬進新家，屋子格局方正、採光也不錯，但牆上的畫不是你挑的、書架的高度差了三公分、浴室的蓮蓬頭水壓永遠不對。住是能住，但就是少了那個「啊，這是我家」的感覺。
 
-Boris Cherny — Claude Code 的創作者 — 在 X 上發了一個 12 則的 thread，講的就是怎麼讓 Claude Code 從「能住的房子」變成「你的家」。核心只有一個字：
+[Boris Cherny](/glossary#boris-cherny) — [Claude Code](/glossary#claude-code) 的創作者 — 在 X 上發了一個 12 則的 thread，講的就是怎麼讓 Claude Code 從「能住的房子」變成「你的家」。核心只有一個字：
 
 **Customizability。**
 
@@ -138,7 +138,7 @@ Permission 管理是 Claude Code 的一個設計哲學：**安全是預設值，
 
 Boris 的 thread 到這裡已經講了怎麼調外觀、裝生態系、設安全、改小細節。但接下來這兩個功能，層次完全不一樣 — 它們改變的不是 Claude Code 長什麼樣子，而是 Claude Code **怎麼跟你互動**。
 
-**Hooks** 讓你在 Claude 的生命週期裡確定性地插入自訂邏輯。Boris 舉了幾個用法：自動把 permission request 轉發到 Slack 或 Opus 處理；在 Claude 結束一個 turn 時 nudge 它繼續（你甚至可以用另一個 agent 來決定要不要繼續）；pre-process 或 post-process tool calls，例如加入你自己的 logging。
+**[Hooks](/glossary#hooks)** 讓你在 Claude 的生命週期裡確定性地插入自訂邏輯。Boris 舉了幾個用法：自動把 permission request 轉發到 Slack 或 Opus 處理；在 Claude 結束一個 turn 時 nudge 它繼續（你甚至可以用另一個 agent 來決定要不要繼續）；pre-process 或 post-process tool calls，例如加入你自己的 logging。
 
 Boris 在 CP-14 分享過他的 PostToolUse hook 會自動跑 `bun run format`。而現在 hook 能做的事更多了 — 包括「用另一個 AI 來決定要不要繼續」。這是 agent-of-agents 的概念，遞迴到讓人頭暈。
 

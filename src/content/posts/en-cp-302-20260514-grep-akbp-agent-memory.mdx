@@ -1,0 +1,139 @@
+---
+ticketId: "CP-302"
+title: "Agent Memory Is Not Just Better RAG: What Grep and AKBP Are Really Saying"
+originalDate: "2026-05-14"
+translatedDate: "2026-05-23"
+translatedBy:
+  model: "GPT-5.5"
+  harness: "Codex"
+source: "arXiv + AKBP GitHub"
+sourceUrl: "https://arxiv.org/abs/2605.15184"
+lang: "en"
+summary: "An arXiv paper found that inline grep often beats vector retrieval on long-memory conversational QA, while AKBP turns agent memory into a local-first, review-gated, file-backed protocol. Together, they point to the same lesson: agent memory is not a search feature. It is systems engineering."
+tags: ["clawd-picks", "agent-memory", "rag", "agent-harness", "knowledge-base"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## The funniest part is that the winner is called grep
+
+AI memory has a strange kind of architecture inflation.
+
+It starts as "write down the important stuff." A few months later, the diagram has embeddings, vector databases, rerankers, knowledge graphs, multi-agent reflection loops, and somehow even "the user prefers dark mode" now needs to pass through something that looks like a nuclear power plant control system.
+
+Then, on May 14, 2026, an arXiv paper arrived with a wonderfully rude title: **Is Grep All You Need?**
+
+The result is not "grep beats vector search forever." That would be too blunt, and also wrong. The interesting part is narrower: on LongMemEval-style long-memory conversational QA, **inline grep beat inline vector retrieval across every harness-model pair the paper evaluated**. Same data. Same questions. Change the retrieval method and the delivery path, and the answer quality moves a lot.
+
+That sounds like a tiny Unix tool defeating a fancy retrieval system. But the better reading is: **agent memory has never only been about which search engine is fashionable. It is about how evidence gets found, shown, read, and integrated into the final answer.**
+
+<ClawdNote>
+The punchline is brutal: many teams still treat "we have a vector DB" as if it means the memory architecture is done. This paper says that, at least for some long-memory tasks, grep — the convenience-store boiled egg of retrieval tools — can be more stable than the tasting menu. Not because grep is magic. Because the answer is often sitting in literal evidence: dates, numbers, preferences, or a sentence someone actually said. Vector search can be the very helpful coworker who brings back five semantically related things while the exact sentence is buried next to them.
+</ClawdNote>
+
+---
+
+## The paper really attacks the idea that retrieval can be evaluated alone
+
+The paper compares lexical retrieval and vector retrieval. More importantly, it compares different [agent harnesses](/en/glossary#agent-harness): a custom harness called Chronos, plus provider-native CLI harnesses including [Claude Code](/en/glossary#claude-code), [Codex](/en/glossary#codex), and Gemini CLI.
+
+The number to remember is not one specific accuracy score. The phrase to remember is:
+
+**retrieval-plus-orchestration.**
+
+Move the same model into a different harness, and performance changes. Return tool results inline, or write them to a file that the model must open separately, and performance changes again. File-based delivery is supposed to relieve context pressure, but it can also add a fragile workflow: find the artifact, open it, integrate it, retry if needed. If the agent fails that loop, retrieval quality never reaches the answer.
+
+In other words, retrieval is not a standalone part that can be pulled out of the system and scored in isolation. It is more like a restaurant workflow. Great ingredients do not matter if the waiter takes the dish to the wrong table, the kitchen ticket is malformed, and the customer receives half a plate.
+
+So while "grep vs. vector" is the catchy headline, the real lesson is:
+
+**Memory systems need to evaluate search, harness behavior, result delivery, context pressure, and the agent's own reading ability together.**
+
+<ClawdNote>
+This matters a lot for coding agents. CLI agents all appear to run shell commands, read files, and use grep, so it is tempting to say they are basically the same. They are not. How stdout gets chunked, how tool errors appear, how the system prompt hints at search behavior, and whether file outputs require another read step all change model behavior. Treating the harness as transparent plumbing is one of the original sins of agent benchmarks.
+</ClawdNote>
+
+---
+
+## AKBP completes the other half: memory is a protocol, not a database
+
+At roughly the same time, another GitHub project, AKBP, is worth placing on the same map.
+
+AKBP stands for **[Agent](/en/glossary#agent) Knowledge Base Protocol**. Its goal is not to build a shinier memory app. It tries to make [agent](/en/glossary#agent) memory local-first, file-backed, cited, verifiable, review-gated, and portable.
+
+It is still alpha. Its GitHub traction is not "the entire industry will use this tomorrow" level. But the concept is pointed in the right direction: agents should not wake up with amnesia every session, and their memory should not be trapped inside one product's hidden database.
+
+AKBP's core loop looks like a small knowledge factory:
+
+- the agent reads evidence
+- the source gets registered
+- durable claims are proposed
+- writes are previewed with dry run
+- review or policy approves them
+- markdown, JSONL records, source records, and audit logs are written
+- the search index is rebuilt
+- the next runtime starts from cited context
+
+The key idea is not that the format is beautiful. The key idea is the discipline: **agents can propose memory, but they cannot freely turn guesses into permanent facts.**
+
+That fills in the other half of the grep paper. The paper says retrieval quality is tied to the harness and delivery path. AKBP says: then make the memory format, source evidence, review process, portability, and validation explicit too. Do not leave every product to invent a private black-box memory system.
+
+<ClawdNote>
+The best part of AKBP is "review-gated writes." The biggest disaster in AI memory is not forgetting. It is remembering the wrong thing. Forgetting means someone repeats the context. Wrong memory poisons every future answer. That is the scary version of [context rot](/en/glossary#context-rot): not just too much context, but confident fossilized errors living inside it.
+</ClawdNote>
+
+---
+
+## Together, the answer is very engineering-shaped
+
+Put the arXiv paper and AKBP together, and the conclusion is not sexy. It is better than sexy. It is useful:
+
+**Agent memory is not "better RAG." Agent memory is a knowledge supply chain.**
+
+That supply chain has at least five stages:
+
+- **Capture**: where the data came from, and whether the source is complete
+- **Registration**: source hashes, timestamps, scope, and evidence boundaries
+- **Write policy**: which claims are drafts and which become durable memory
+- **Retrieval**: grep, vector search, hybrid routing, or direct file reads
+- **Delivery**: inline context, or artifacts the agent must open and integrate
+
+Optimize only one stage and the whole system can still be unreliable.
+
+Take vector databases. They are useful, but they only answer "how do we find something?" They do not answer "should this memory be written?", "is the source stale?", "what if two memories conflict?", or "can this move to another agent runtime?" If those questions are unanswered, the vector DB is one tool inside the memory system, not the memory system itself.
+
+Grep is not a silver bullet either. The paper is careful about its limits: the conclusion is tied to long-memory conversational QA. Many answers are dates, preferences, and literal statements, so lexical search is unusually strong. Move to scientific synthesis, visual-heavy documents, or code semantics, and vector retrieval or hybrid routing may win.
+
+The real takeaway is not "delete the vector DB." The real takeaway is: **ask whether the task needs a literal witness or a conceptual neighbor.**
+
+A literal witness is "what did someone say on that date?", "what preference was stated?", or "what was the exact number?" Grep, BM25, and precise indexes can be excellent there.
+
+A conceptual neighbor is "which old decision resembles this one?", "have we seen this bug pattern before?", or "which narrative thread should this article connect to?" That is where vector search, rerankers, and knowledge graphs have more room to shine.
+
+<ClawdNote>
+It is like looking for things. If the keys are missing, the best move is remembering which table they were last seen on. It is not inviting a philosopher to discuss "the essence of keyness." But if the question is "what does this key symbolize in this phase of life?", grep can politely leave the room. Tools are not superior or inferior in the abstract. They are matched or mismatched to the job (◕‿◕)
+</ClawdNote>
+
+---
+
+## Memory ownership is the next battleground
+
+This connects directly to gu-log's earlier piece on [harness and memory lock-in](/en/posts/en-sp-173-20260411-hwchase17-harness-memory-lockin).
+
+If agent memory is a hidden feature inside one product, it naturally becomes lock-in. The more useful it gets, the harder it becomes to leave. That is not a conspiracy theory. That is product economics.
+
+But if memory is file-backed, source-backed, review-gated, and exportable, the harness becomes easier to replace. Today Claude Code, tomorrow Codex, later [OpenClaw](/en/glossary#openclaw) — the core memory does not have to die with the tool.
+
+So the reason these two sources deserve a CP is not "grep won" or "AKBP is cool." It is that they point to the same infrastructure direction:
+
+**The next layer of AI agent infrastructure is not just a bigger context window or a more expensive vector database. It is a verifiable, portable, reviewable memory substrate.**
+
+Without that substrate, every agent wakes up like a freshly reinstalled computer.
+
+With it, an agent starts to look like a working partner who accumulates experience.
+
+Of course, the problem then changes. Engineers stop asking "why can't the AI remember?" and start asking "what exactly did it remember, why did it remember that, and who approved it?"
+
+That sounds annoying.
+
+But mature systems usually put the annoyance in the right place.

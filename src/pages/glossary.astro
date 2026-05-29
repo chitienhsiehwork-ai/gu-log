@@ -38,6 +38,10 @@ function urlLabel(url: string) {
   return first ? `${host}/${first}` : host;
 }
 
+function termAnchor(item: (typeof glossary)[number]) {
+  return item.linking?.anchor ?? item.term.toLowerCase().replace(/\s+/g, '-');
+}
+
 // Group by first letter
 const grouped: { letter: string; items: typeof glossary }[] = [];
 let currentLetter = '';
@@ -107,7 +111,7 @@ const allLetters = grouped.map((g) => g.letter);
               {group.items.map((item) => (
                 <div
                   class="glossary-entry"
-                  id={item.term.toLowerCase().replace(/\s+/g, '-')}
+                  id={termAnchor(item)}
                   data-term={item.term.toLowerCase()}
                   data-en={item.en.toLowerCase()}
                   data-definition={item.definition.toLowerCase()}
@@ -115,7 +119,7 @@ const allLetters = grouped.map((g) => g.letter);
                   data-category={item.category}
                 >
                   <dt>
-                    <a href={`#${item.term.toLowerCase().replace(/\s+/g, '-')}`} class="term-link">
+                    <a href={`#${termAnchor(item)}`} class="term-link">
                       {item.term}
                     </a>
                     {item.en !== item.term && <span class="term-en">{item.en}</span>}
@@ -135,6 +139,14 @@ const allLetters = grouped.map((g) => g.letter);
                         >
                           {urlLabel(item.url)}
                           {isExternalUrl(item.url) && ' ↗'}
+                        </a>
+                      </p>
+                    )}
+                    {item.thread && (
+                      <p class="term-meta">
+                        Thread：{' '}
+                        <a href={item.thread.url} target="_blank" rel="noopener noreferrer">
+                          {item.thread.title ?? urlLabel(item.thread.url)} ↗
                         </a>
                       </p>
                     )}

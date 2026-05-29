@@ -2028,5 +2028,107 @@
     "tribunalVersion": 5,
     "status": "PASS",
     "finishedAt": "2026-05-20T02:54:02+08:00"
+  },
+  "sp-212-20260525-anthropic-claude-containment.mdx": {
+    "article": "sp-212-20260525-anthropic-claude-containment.mdx",
+    "startedAt": "2026-05-27T17:35:42+08:00",
+    "stages": {
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 8,
+            "consistency": 9,
+            "sourceBoundary": 10,
+            "commentarySeparation": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "The main technical claims match the Anthropic source, including 93% prompt approvals, 84% fewer prompts, the pre-trust .claude/settings.json hook issue, 24 of 25 AWS credential exfiltration attempts, Cowork VM boundaries, and the api.anthropic.com allowlist failure.",
+            "fidelity": "The post faithfully preserves the source's core argument and incident details, though it omits some source caveats and secondary metrics such as Mythos Preview, Gray Swan rates, auto-mode classifier details, and experienced-user telemetry.",
+            "consistency": "The argument consistently moves from risk categories to product-specific containment patterns and then to future risks, with conclusions about deterministic environment boundaries supported by the cited incidents.",
+            "sourceBoundary": "The SP body avoids repeated source-report framing such as 原作者說, 原文提到, 這篇文章在講, or 作者指出, and presents source claims directly.",
+            "commentarySeparation": "Most explicit gu-log commentary is inside ClawdNote, but a few body passages such as the opening reading guide at line 56 and colorful analogies like lines 94-100 and 136 add interpretive gu-log framing outside ClawdNote."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 2,
+        "tribunalVersion": 7
+      },
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 7,
+            "crossRef": 6,
+            "sourceAlign": 10,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Core glossary terms such as Claude Code, Cowork, and MCP are linked, but repeated first-class terms like agent, prompt, subagent, and token remain unlinked or only lowercase in body prose despite being glossary anchors.",
+            "crossRef": "No internal /posts/ links are present, so the post misses concrete citations to prior gu-log coverage such as SP-149 on prompt injection and agent security, and CP-250 on Claude Code auto mode and permission fatigue.",
+            "sourceAlign": "The post closely tracks Anthropic Engineering's May 25, 2026 source on claude.ai, Claude Code, Cowork, containment patterns, VM boundaries, egress allowlists, and the cited 93%, 84%, and 24-of-25 incident details.",
+            "attribution": "Statistics, incidents, and standards are presented as Anthropic/source-derived material with ClawdNote commentary clearly separated, with only minor room to name linked external standards more explicitly in body prose."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1,
+        "tribunalVersion": 7
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "The article explains VM, MCP, sandbox, allowlist, and token ideas with enough plain-language handles that a beginner can stay oriented, though the Cowork and API proxy sections get dense.",
+            "firstImpression": "The opening has stakes and the locked-door framing carries through, but the middle is long enough that the repeated product-section rhythm starts to feel like security notes instead of a sharp shareable post."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1,
+        "tribunalVersion": 7
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "The LHY-style teaching voice is strong from the opening nightmare framing through concrete analogies like the short-rental room, small computer VM, and physical door.",
+            "clawdNote": "Six ClawdNotes at lines 68, 84, 126, 150, 170, and 188 are dense enough and mostly opinionated, especially the prompt-as-whack-a-mole and allowlist-as-shopping-mall notes.",
+            "vibe": "The article is shareable and sharp, with strong lines like line 130's 24-of-25 exfiltration beat, though the middle still becomes a long product-by-product security walkthrough.",
+            "clarity": "Speaker attribution is clean, body prose avoids ambiguous 你/我 usage, and the canonical checker returned clean with `✓ check-jingjing: 1 file(s) clean`.",
+            "narrative": "The arc moves from the permission-fatigue setup to increasingly harder containment failures and lands a clean door callback, but the claude.ai to Claude Code to Cowork sequence remains somewhat linear."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 2,
+        "tribunalVersion": 7
+      }
+    },
+    "topLevelAttempts": 0,
+    "tribunalVersion": 7,
+    "status": "PASS",
+    "finishedAt": "2026-05-27T17:48:45+08:00"
   }
 }

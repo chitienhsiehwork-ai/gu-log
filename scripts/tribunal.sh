@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tribunal.sh — Tribunal v5 sequential tribunal (Codex/GPT-5.5 runner)
+# tribunal.sh — Tribunal v8 sequential tribunal (Codex/GPT-5.5 runner)
 #
 # Stages (in order):
 #   1. Fact Check (GPT-5.5) — source/commentary gate + fact bar, max 2 loops
@@ -41,7 +41,7 @@ POST_FILE=""
 ALLOW_REWRITE=""
 WRITE_FRONTMATTER=1
 SCORE_ONLY=0
-TRIBUNAL_VERSION=5
+TRIBUNAL_VERSION=8
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --only-stage)
@@ -147,19 +147,14 @@ if ! flock -n 200; then
 fi
 
 # ─── Progress Tracking ────────────────────────────────────────────────────────
-# Phase 2 (tribunal-safe-parallelism): supervisor runs in the main repo and
-# exports PROGRESS_FILE pointing at the shared progress file there; workers
-# run in isolated worktrees. Without the fallback, this line unconditionally
-# clobbers the export with the WORKTREE's local path, so per-worker
-# init_article_progress / mark_article_* writes land in the wrong file. The
-# main repo's progress.json only refreshes via `git pull`, and whenever that
-# pull warns-and-continues (dirty tree, rebase conflict) the supervisor's
-# get_unscored_articles() keeps re-dispatching articles a worker already
-# marked EXHAUSTED — producing the tight re-dispatch loop that filled the
-# 2 GB cgroup and OOM-killed tribunal-loop.service on 2026-04-24 01:03:59.
-# Honor the exported env so shared flock + shared file + shared commit path
-# all line up.
-PROGRESS_FILE="${PROGRESS_FILE:-$ROOT_DIR/scores/tribunal-progress.json}"
+# Supervisor runs in the main repo and exports PROGRESS_FILE pointing at the
+# ignored runtime ledger under .score-loop/state; workers run in isolated
+# worktrees. Without honoring the export, this line would clobber the shared
+# ledger path with the WORKTREE's local default, so per-worker progress writes
+# land in the wrong place and the supervisor can re-dispatch already-terminal
+# articles. Keep the exported env authoritative so shared flock + shared file
+# coordinates all line up.
+PROGRESS_FILE="${PROGRESS_FILE:-$(tribunal_progress_file_default "$ROOT_DIR")}"
 if [ "$SCORE_ONLY" -eq 1 ]; then
   if [ -n "${TRIBUNAL_SCORE_ONLY_PROGRESS_FILE:-}" ]; then
     PROGRESS_FILE="$TRIBUNAL_SCORE_ONLY_PROGRESS_FILE"
@@ -170,10 +165,7 @@ if [ "$SCORE_ONLY" -eq 1 ]; then
 fi
 
 ensure_progress_file() {
-  mkdir -p "$(dirname "$PROGRESS_FILE")"
-  if [ ! -f "$PROGRESS_FILE" ] || ! jq empty "$PROGRESS_FILE" 2>/dev/null; then
-    printf '{}\n' > "$PROGRESS_FILE"
-  fi
+  ensure_tribunal_progress_file "$PROGRESS_FILE" "$ROOT_DIR"
 }
 
 get_stage_status() {
@@ -588,9 +580,11 @@ PY
 import json, sys, math
 data = json.load(open(sys.argv[1]))
 dims = data.get('dimensions', {})
-vals = [dims.get(k, 0) for k in ('readability', 'firstImpression')]
+vals = [dims.get(k, 0) for k in ('readability', 'firstImpression', 'payoffDensity', 'lengthFit')]
 composite = math.floor(sum(vals) / len(vals))
-sys.exit(0 if composite >= 8 else 1)
+# FreshEyes length/readability dimensions are non-compensating: a flashy hook
+# must not hide low payoff density or bad length fit.
+sys.exit(0 if composite >= 8 and dims.get('payoffDensity', 0) >= 8 and dims.get('lengthFit', 0) >= 8 else 1)
 PY
       ;;
     vibe-opus-scorer)
@@ -632,7 +626,7 @@ run_stage() {
 
   local post_path="$ROOT_DIR/src/content/posts/$post_file"
 
-  # Tribunal v5 executes every stage through Codex/GPT-5.5. Agent specs are
+  # Tribunal v8 executes every stage through Codex/GPT-5.5. Agent specs are
   # prompt contracts; the runtime model comes from this runner.
   local model_id="gpt-5.5"
 
@@ -680,6 +674,21 @@ run_stage() {
     local judge_rc=0 judge_task librarian_packet
     judge_task="Score this post: $ROOT_DIR/src/content/posts/$post_file
 Write your JSON result to: SCORE_PATH_PLACEHOLDER"
+    local calibration_ref
+    calibration_ref="$ROOT_DIR/.codex/agents/references/sp-187-v7-false-positive.md"
+    if [ -f "$calibration_ref" ]; then
+      judge_task="$(cat <<PROMPT
+$judge_task
+
+## Tribunal v8 calibration reference
+Read this if the current stage is Librarian, FreshEyes, Vibe, or Writer-adjacent reasoning:
+$calibration_ref
+
+It records the exact git commit/blob for the rejected SP-187 false-positive sample and CP-179 overlap target. Use it to calibrate responsibility boundaries; do not treat it as a request to rewrite unless the runner explicitly enables rewrite.
+PROMPT
+)"
+    fi
+
     if [ "$stage_key" = "vibe" ]; then
       local jingjing_output jingjing_rc
       jingjing_rc=0
@@ -890,9 +899,10 @@ PROMPT
 # Phase 2 (tribunal-safe-parallelism):
 #   - Serialized by push_lock so 2 workers don't race while staging/committing.
 #   - Honors TRIBUNAL_MAIN_REPO env var: workers running in their own isolated
-#     worktrees can update the coordinator repo's shared progress file (flock
-#     coordinates the read-modify-write; this function coordinates the local
-#     git commit). Push is opt-in and direct main pushes are refused.
+#     worktrees can update the coordinator repo's shared runtime ledger (flock
+#     coordinates the read-modify-write; this function coordinates target-post
+#     materialization + local git commit). Push is opt-in and direct main pushes
+#     are refused.
 commit_progress() {
   local msg="$1"
   if [ "${TRIBUNAL_NO_COMMIT:-0}" = "1" ]; then
@@ -906,8 +916,8 @@ commit_progress() {
 
     # Workers rewrite posts and write score frontmatter inside their isolated
     # worktree ($ROOT_DIR). Publish those target post artifacts into the main
-    # repo before staging, otherwise PASS commits only contain progress JSON and
-    # production content never changes.
+    # repo before staging, otherwise PASS commits only contain content-free
+    # metadata and production content never changes.
     if [ -n "${POST_FILE:-}" ]; then
       bash "$SCRIPT_DIR/tribunal-publish-worker-changes.sh" "$ROOT_DIR" "$repo_dir" "$POST_FILE" >> "$LOG_FILE" 2>&1 || {
         tlog "ERROR: failed to publish worker post artifacts for $POST_FILE"
@@ -976,7 +986,7 @@ init_article_progress "$POST_FILE"
 
 tlog "=== tribunal.sh: $POST_FILE ==="
 
-# ─── Tribunal v5 Sequential Loop ──────────────────────────────────────────────
+# ─── Tribunal v8 Sequential Loop ──────────────────────────────────────────────
 # Format: stage_key:agent_name:validate_name:label:max_loops:runner_label:fm_judge_key
 # fm_judge_key = frontmatter scores key (used by frontmatter-scores.mjs)
 declare -a STAGES=(

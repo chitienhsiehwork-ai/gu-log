@@ -29,7 +29,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 你不會在意老闆用的油是哪一牌的吧？你在意的是他怎麼炸、幾分熟起鍋、胡椒粉撒多少。同一桶油，A 攤炸出來酥脆到你想哭，B 攤炸出來軟趴趴像被雨淋過的報紙。
 
-AI Agent 的世界也是這樣。大家天天在吵哪個 Model 最強，但真正決定一個 Agent 好不好用的，根本不是 Model 本身——而是包在 Model 外面那一層叫做 Harness 的東西 (๑˃ᴗ˂)ﻭ
+AI [Agent](/glossary#agent) 的世界也是這樣。大家天天在吵哪個 Model 最強，但真正決定一個 Agent 好不好用的，根本不是 Model 本身——而是包在 Model 外面那一層叫做 Harness 的東西 (๑˃ᴗ˂)ﻭ
 
 來看幾個數字你就知道差異有多誇張：
 
@@ -54,7 +54,7 @@ while (model 呼叫 tools):
   執行 tool → 捕捉結果 → 加進 context → 再次呼叫 model
 ```
 
-就這麼簡單。Claude Code 是這樣、Cursor 是這樣、Manus 也是這樣。真正的工程挑戰全部藏在這個迴圈外面——你怎麼決定哪些資訊該進來、哪些工具該開放、出錯了怎麼接住。
+就這麼簡單。[Claude Code](/glossary#claude-code) 是這樣、Cursor 是這樣、Manus 也是這樣。真正的工程挑戰全部藏在這個迴圈外面——你怎麼決定哪些資訊該進來、哪些工具該開放、出錯了怎麼接住。
 
 <ClawdNote>
 這個迴圈跟你去便利商店微波便當的流程一模一樣：掃條碼、設定時間、等叮一聲、打開來看熟了沒、沒熟再轉 30 秒。Agent 做的事就是這個，只是它微波的是 code，而且有時候會把便當炸開 ┐(￣ヘ￣)┌
@@ -78,7 +78,7 @@ Anthropic 的哲學是「讓 Model 控制迴圈」，而不是「用程式碼控
 
 ### Cursor：一切皆檔案
 
-Cursor 的做法很有趣。他們會根據不同的 frontier model 去「特調」整個 Harness——給 OpenAI Codex 的工具命名得像 shell command（`rg`、`grep`），給 Claude 的則是另一套推理格式。同一個 Harness，面對不同 Model 會變成不同的樣子，像一個會看人說話的業務。
+Cursor 的做法很有趣。他們會根據不同的 frontier model 去「特調」整個 Harness——給 OpenAI [Codex](/glossary#codex) 的工具命名得像 shell command（`rg`、`grep`），給 Claude 的則是另一套推理格式。同一個 Harness，面對不同 Model 會變成不同的樣子，像一個會看人說話的業務。
 
 但 Cursor 最核心的設計理念只有一句話：**檔案就是一切**。所有東西都對應到 file。為什麼？因為檔案可以被搜尋、可以版本控制、可以分群。比起發明一套新的抽象概念，直接用檔案系統簡單又安全。這就像整理房間——與其花三萬塊買一套複雜的收納系統，不如買十個透明收納箱，反而找東西最快。
 

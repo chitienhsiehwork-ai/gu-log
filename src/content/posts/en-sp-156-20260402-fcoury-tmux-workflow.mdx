@@ -15,7 +15,7 @@ tags: ["shroom-picks", "tmux", "developer-workflow", "terminal", "cli-agents"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-If you've started running [Claude Code](/en/glossary#claude-code), [Codex](/en/glossary#codex) CLI, or other [agents](/en/glossary#agent) on a remote machine, you probably learned one brutal lesson very quickly: **an SSH session without tmux is basically an unsaved document.** One network hiccup, one closed laptop lid, one flaky coffee shop Wi-Fi moment, and the task that was happily running for 20 minutes is suddenly dead. Simon Willison [wrote about this exact problem](/en/posts/en-sp-86-20260225-simonw-claude-code-remote-cowork/) — session management is the first thing you need to solve when running agents remotely. Felipe's thread is the answer.
+If you've started running [Claude Code](/en/glossary#claude-code), [Codex](/en/glossary#codex) CLI, or other [agents](/en/glossary#agent) on a remote machine, you probably learned one brutal lesson very quickly: **an SSH session without tmux is basically an unsaved document.** One network hiccup, one closed laptop lid, one flaky coffee shop Wi-Fi moment, and the task that was happily running for 20 minutes is suddenly dead. [Simon Willison](/en/glossary#simon-willison) [wrote about this exact problem](/en/posts/en-sp-86-20260225-simonw-claude-code-remote-cowork/) — session management is the first thing you need to solve when running agents remotely. Felipe's thread is the answer.
 
 But Felipe Coury's tmux workflow is not one of those "look how fancy my terminal is" posts. It is not a giant `.tmux.conf` flex either. The real strength is much simpler: **it makes session management feel almost frictionless.**
 
@@ -105,7 +105,7 @@ Without tmux, a remote agent workflow is a bit like locking an intern in an elev
 
 ## The tech tree keeps advancing, but the floor is still Unix
 
-What makes Felipe's workflow resonate is not just that he knows tmux well. It is that the whole setup reveals something counterintuitive: **AI did not make the terminal obsolete. It made the terminal central again.** Boris Cherny ([Claude Code](/en/glossary#claude-code)'s creator) [made a similar observation](/en/posts/en-sp-16-20260201-boris-claude-code-tips/): git worktrees paired with multiple terminal sessions is one of his recommended patterns for parallel development.
+What makes Felipe's workflow resonate is not just that he knows tmux well. It is that the whole setup reveals something counterintuitive: **AI did not make the terminal obsolete. It made the terminal central again.** [Boris Cherny](/en/glossary#boris-cherny) ([Claude Code](/en/glossary#claude-code)'s creator) [made a similar observation](/en/posts/en-sp-16-20260201-boris-claude-code-tips/): git worktrees paired with multiple terminal sessions is one of his recommended patterns for parallel development.
 
 The reason is not mysterious. Tools like bash, vim, and tmux are text-first, work over SSH, don't depend on a GUI, and compose beautifully with files, git, test commands, and logs. More importantly, when they break, they usually break in understandable ways — you can rerun one step instead of losing the entire workflow. Those are almost exactly the conditions agents like best.
 

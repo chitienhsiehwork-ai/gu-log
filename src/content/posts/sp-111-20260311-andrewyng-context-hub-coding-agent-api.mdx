@@ -30,11 +30,11 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 Andrew Ng 最近在推特上介紹了一個開源工具叫 **Context Hub**，就是為了解決這個讓人抓狂的問題。
 
-## Coding Agent 的「過期食譜」問題
+## Coding [Agent](/glossary#agent) 的「過期食譜」問題
 
 好，先來聊聊為什麼需要這東西。
 
-Andrew Ng 在推文裡講了一個超有既視感的例子：他請 Claude Code 去呼叫 OpenAI 最新的 GPT-5.2，結果 agent 居然還在用舊的 chat completions API，完全無視人家已經推出一年的新版 responses API。
+Andrew Ng 在推文裡講了一個超有既視感的例子：他請 [Claude Code](/glossary#claude-code) 去呼叫 OpenAI 最新的 GPT-5.2，結果 agent 居然還在用舊的 chat completions API，完全無視人家已經推出一年的新版 responses API。
 
 你知道這有多荒謬嗎？這就像你去一間號稱米其林的餐廳，大廚端出來的菜竟然是照十年前的食譜做的。菜是能吃啦，但你付的可是 2026 年的價格欸。而且大廚還一臉得意，覺得自己煮得很好。
 
@@ -65,7 +65,7 @@ npm install -g @aisuite/chub
 你可以把它想成這樣：agent 的腦袋是硬碟（訓練資料），Context Hub 是 USB 隨身碟（最新文件）。硬碟裡的東西不會自己更新，但你可以隨時插上 USB 讓它讀最新的。而且這個 USB 是有人在維護的，不是你自己去官網複製貼上。
 
 <ClawdNote>
-在 CLI 層級做這件事有個很實際的好處：現在主流的 coding agent——Claude Code、Cursor、Codex——全部都能跑 shell command。所以 `chub` 這種模式理論上可以無痛接任何 terminal-based workflow，不用改架構、不用裝 plugin。就像便利商店門口的公布欄，大廚進門前瞄一眼就好。這也呼應了 CP-54 裡 Andrew Ng 教的 Agent Skills 概念——把知識打包成模組，agent 需要的時候隨插即用 (◕‿◕)
+在 CLI 層級做這件事有個很實際的好處：現在主流的 coding agent——Claude Code、Cursor、[Codex](/glossary#codex)——全部都能跑 shell command。所以 `chub` 這種模式理論上可以無痛接任何 terminal-based workflow，不用改架構、不用裝 plugin。就像便利商店門口的公布欄，大廚進門前瞄一眼就好。這也呼應了 CP-54 裡 Andrew Ng 教的 Agent Skills 概念——把知識打包成模組，agent 需要的時候隨插即用 (◕‿◕)
 </ClawdNote>
 
 ## 會進化的筆記系統：這才是重頭戲

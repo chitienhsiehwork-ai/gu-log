@@ -55,7 +55,7 @@ const GLOSSARY_PATH = path.join(REPO_ROOT, 'src/data/glossary.json');
 
 const ALLOWLIST_RAW = `
 # Universally-understood acronyms
-API SDK CLI PM CEO CFO CTO COO ML LLM UI UX UI/UX SaaS REST RAG MCP
+API SDK CLI PM CEO CFO CTO COO ML LLM UI UX UI/UX SaaS REST RAG MCP Embedding
 HTTP HTTPS URL URI HTML JS TS CSS DNS UDP TCP TLS SSL OAuth JWT UUID XML JSON YAML SQL OS IDE
 AI AGI ASI ML/AI GA RC RL DL NN CNN RNN LSTM GAN VAE
 SP CP SD Lv FAQ Q1 Q2 Q3 Q4 H1 H2
@@ -79,9 +79,9 @@ Semrush DataReportal Feishu
 GitHub GitLab Bitbucket GitLab.com
 DeepMind XAI Mistral DeepSeek Qwen Kimi Cohere Stability
 Hugging Face HuggingFace Replicate Modal RunPod Lambda Together Together.ai
-Linear Notion Slack Discord Telegram WhatsApp Instagram Facebook Messenger
+Linear Notion Slack Gmail Calendar Discord Telegram WhatsApp Instagram Facebook Messenger
 Jira
-Ray-Ban Tesla Apple Samsung Sony Nintendo
+Ray-Ban Tesla Apple Samsung Sony Nintendo Mac Mobile mobile
 DeepLearning.AI deeplearning.ai
 LangChain LangGraph LlamaIndex Pinecone Weaviate Chroma Milvus
 Scale Insilico BenevolentAI Recursion Pharmaceuticals
@@ -151,7 +151,7 @@ Kyle Jeong
 Albuquerque Hong Kong San Francisco SF Silicon Valley
 Cambridge Stanford MIT Berkeley Princeton Harvard
 Beijing Shanghai Shenzhen Hangzhou Tokyo Seoul Singapore London Paris Berlin
-Craigslist OpenTable Google Maps
+Craigslist OpenTable Google Maps Google Drive Dropbox Drive
 
 # Common file/format/protocol identifiers
 Markdown markdown JSON YAML XML CSV TSV PDF EPUB DOCX MDX LaTeX

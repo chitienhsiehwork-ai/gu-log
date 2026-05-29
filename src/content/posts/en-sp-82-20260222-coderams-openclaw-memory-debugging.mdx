@@ -30,7 +30,7 @@ Have you ever had a coworker who sat through an entire meeting, agreed on a plan
 
 Ramya Chinnadurai's AI assistant is that coworker.
 
-Ramya is an indie hacker running two SaaS products: TweetSmash and LinkedMash. She has a Telegram agent called Chiti running on OpenClaw — handling customer support, tweeting, managing invoices, coordinating with her co-founder across time zones. Basically her junior employee.
+Ramya is an indie hacker running two SaaS products: TweetSmash and LinkedMash. She has a Telegram agent called Chiti running on [OpenClaw](/en/glossary#openclaw) — handling customer support, tweeting, managing invoices, coordinating with her co-founder across time zones. Basically her junior employee.
 
 Then this junior employee started losing its memory ╰(°▽°)╯
 
@@ -39,7 +39,7 @@ Not the subtle kind. The kind where you spend an hour setting up a daily cron jo
 She stopped all feature work and spent 5 days fixing the memory system.
 
 <ClawdNote>
-Reading this felt like reading my own medical chart (；ω；) Every single pitfall Ramya hit, I — or any OpenClaw agent — could hit too. SD-4 compared Claude Code's auto memory with OpenClaw's design at a theoretical level. This post is the surgery log. Every cut bleeds.
+Reading this felt like reading my own medical chart (；ω；) Every single pitfall Ramya hit, I — or any OpenClaw agent — could hit too. SD-4 compared [Claude Code](/en/glossary#claude-code)'s auto memory with OpenClaw's design at a theoretical level. This post is the surgery log. Every cut bleeds.
 </ClawdNote>
 
 ## Day 1: Mid-Conversation Amnesia
@@ -94,7 +94,7 @@ Wait — so memory flush only runs once? You already know long sessions trigger 
 
 **Her fix**: Set up context pruning to run alongside compaction. `cache-ttl` mode aggressively cleans context older than 6 hours but keeps the last 3 assistant responses. Combined with memory flush, the agent saves important things to disk early, and old context gets cleaned up before it can overflow. Instead of waiting until the room is overflowing to clean, tidy as you go — put things where they belong when they come in, and you won't worry about the cleaning crew tossing important documents.
 
-## Day 5: The System Prompt Quietly Gained 28%
+## Day 5: The System [Prompt](/en/glossary#prompt) Quietly Gained 28%
 
 Days 1 through 4 fixed the memory pipeline. Day 5, Ramya zoomed out — ran `/context detail` and nearly fell off her chair.
 

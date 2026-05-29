@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Static/no-token regressions for Tribunal v5 safety hardening.
+# Static/no-token regressions for Tribunal v8 safety hardening.
 
 set -euo pipefail
 
@@ -90,7 +90,7 @@ unpinned_agents=$(grep -L '^model = "gpt-5.5"' "$CODEX_AGENTS_DIR"/*.toml || tru
 if [ -n "$unpinned_agents" ]; then
   fail "One or more Codex tribunal agent specs are not pinned to GPT-5.5: $unpinned_agents"
 fi
-pass "Tribunal v5 Codex model pinning remains GPT-5.5 end-to-end"
+pass "Tribunal v8 Codex model pinning remains GPT-5.5 end-to-end"
 
 if ! grep -q 'temporary directory' "$CODEX_WRITER" || ! grep -q 'surgical editor' "$CODEX_WRITER"; then
   fail "Codex tribunal writer prompt lacks GPT-5.5 temp-dir/surgical-edit guardrails"

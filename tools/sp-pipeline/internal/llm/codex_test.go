@@ -85,10 +85,14 @@ printf 'codex-ok\n' > "$out"
 }
 
 func TestDefaultChainsAreCodexGPT55Only(t *testing.T) {
-	for name, chain := range map[string][]Provider{
-		"writing": DefaultWritingChain(),
-		"probe":   DefaultProbeChain(),
+	for name, tc := range map[string]struct {
+		chain  []Provider
+		effort string
+	}{
+		"writing": {chain: DefaultWritingChain(), effort: "low"},
+		"probe":   {chain: DefaultProbeChain(), effort: "medium"},
 	} {
+		chain := tc.chain
 		if len(chain) != 1 {
 			t.Fatalf("%s chain length = %d, want 1", name, len(chain))
 		}
@@ -97,6 +101,13 @@ func TestDefaultChainsAreCodexGPT55Only(t *testing.T) {
 		}
 		if chain[0].Model() != ModelGPT55 {
 			t.Fatalf("%s model = %q, want %q", name, chain[0].Model(), ModelGPT55)
+		}
+		codex, ok := chain[0].(*CodexProvider)
+		if !ok {
+			t.Fatalf("%s provider type = %T, want *CodexProvider", name, chain[0])
+		}
+		if got := codex.reasoningEffort(); got != tc.effort {
+			t.Fatalf("%s effort = %q, want %q", name, got, tc.effort)
 		}
 	}
 }

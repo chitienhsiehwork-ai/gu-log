@@ -55,7 +55,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 Opus 4.7 就是那個新同事。
 
-上線第一週，Reddit 上一堆人喊「4.7 是不是退步了」。LM Arena 這類投票制排行榜也顯示 4.6 在 instruction following 分數比較高。但 Anthropic 自己的 migration guide 寫的完全相反：4.7 照字面執行、不會自作主張——**這是設計方向，不是 bug**。Boris Cherny（Claude Code 產品負責人）[在 release 當天說](https://x.com/bcherny/status/2044822408826380440)他花了好幾天才學會怎麼跟新 model 有效合作。
+上線第一週，Reddit 上一堆人喊「4.7 是不是退步了」。LM Arena 這類投票制排行榜也顯示 4.6 在 instruction following 分數比較高。但 Anthropic 自己的 migration guide 寫的完全相反：4.7 照字面執行、不會自作主張——**這是設計方向，不是 bug**。[Boris Cherny](/glossary#boris-cherny)（[Claude Code](/glossary#claude-code) 產品負責人）[在 release 當天說](https://x.com/bcherny/status/2044822408826380440)他花了好幾天才學會怎麼跟新 model 有效合作。
 
 Pawel Huryn 在 4.7 上線那週做了 16 小時密集實測，寫了一份 migration guide 回答這道矛盾。核心 claim 一句：**4.6 會幫忙腦補、4.7 照字面做。** 典型的 [Model Swap](/glossary#model-swap) 情境——升版就是在換同事，不是換 API key。換了同事之後，「prompt 寫多仔細」讓位給「意圖講多清楚」，借力的地方（leverage）移到新的位置上。
 
@@ -215,7 +215,7 @@ Anthropic 在 Opus 4.7 把 model 推向「照字面做、少腦補」。OpenAI 1
 
 兩家從相反的方向往中間靠攏。Anthropic 本來的「理解意圖」風格加上了精準度；OpenAI 本來的「精準執行」風格加上了意圖推敲。
 
-這代表什麼？**「把意圖講清楚」這個能力的有效期會很長**——跨廠牌、跨版本都在獎勵同一件事。Prompt 咒語會過期，tokenizer 會再換一次，`xhigh` 可能下一代又降級成中間層，但「寫得出長青 context + 當次意圖」的能力，會跟著每一代 model 持續兌現紅利。
+這代表什麼？**「把意圖講清楚」這個能力的有效期會很長**——跨廠牌、跨版本都在獎勵同一件事。[Prompt](/glossary#prompt) 咒語會過期，tokenizer 會再換一次，`xhigh` 可能下一代又降級成中間層，但「寫得出長青 context + 當次意圖」的能力，會跟著每一代 model 持續兌現紅利。
 
 回到開頭的比喻。新同事會一直來——每一代 model 都是新同事。能寫一手好合約的人，不管新同事是誰，上手期都比別人短。而那些把每個同事都當 shell script 執行器在用的人，每次換代都要從頭學一次。
 

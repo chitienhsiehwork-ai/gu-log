@@ -22,27 +22,29 @@ lang: "en"
 summary: "Yage AI argues that OpenAI and Cursor are both moving from Skills toward Plugins, but for different reasons: OpenAI is building an execution-layer moat, while Cursor is building an editor-workflow moat. This gu-log rewrite explains why Skills create value but often fail to capture it."
 tags: ["shroom-picks", "skill", "plugin", "agent-platform"]
 scores:
-  tribunalVersion: 3
+  tribunalVersion: 5
   librarian:
     glossary: 8
-    crossRef: 10
+    crossRef: 8
     sourceAlign: 9
     attribution: 8
     score: 8
-    date: "2026-05-09"
+    date: "2026-05-20"
     model: "gpt-5.5"
   factCheck:
     accuracy: 8
-    fidelity: 8
+    fidelity: 7
     consistency: 9
+    sourceBoundary: 10
+    commentarySeparation: 8
     score: 8
-    date: "2026-05-09"
+    date: "2026-05-20"
     model: "gpt-5.5"
   freshEyes:
     readability: 8
     firstImpression: 8
     score: 8
-    date: "2026-05-09"
+    date: "2026-05-20"
     model: "gpt-5.5"
   vibe:
     persona: 8
@@ -51,19 +53,21 @@ scores:
     clarity: 9
     narrative: 8
     score: 8
-    date: "2026-05-09"
+    date: "2026-05-20"
     model: "gpt-5.5"
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-In April 2026, OpenAI and Cursor quietly made the same move: they pushed agent capabilities away from copyable [Skills](/en/glossary#skill) and toward installable, updateable, distributable [Plugins](/en/glossary#plugin).
+A file that teaches an [agent](/en/glossary#agent) how to work can save a team hours. But the moment it becomes useful, it also becomes easy to copy and carry away.
 
-In OpenAI's April [Codex for almost everything](https://openai.com/index/codex-for-almost-everything/) update, [Codex](/en/glossary#codex) is no longer framed as just a coding assistant. OpenAI says it now has more than 3 million weekly developers, more than 90 additional plugins, background computer use, app integrations, [MCP](/en/glossary#mcp) servers, memory, automations, and browser workflows. If MCP sounds like alphabet soup, the beginner version is: it is a way for an agent to connect to outside tools and data sources without everyone inventing a new plug shape.
+That is the awkward business problem of [Skills](/en/glossary#skill): the value is real, but the cash register is often not sitting next to the file.
 
-Cursor's own [Plugins documentation](https://cursor.com/docs/plugins) defines a plugin as a distributable bundle that can contain rules, skills, [agents](/en/glossary#agent), commands, MCP servers, and hooks. It also has marketplace review, team marketplaces, required plugins, and enterprise distribution controls. In plain English, this is not "give the agent a Markdown file." It is "package a work capability and ship it to a whole team."
+In April 2026, OpenAI and Cursor both pushed this problem toward [Plugins](/en/glossary#plugin). OpenAI's [Codex for almost everything](https://openai.com/index/codex-for-almost-everything/) update bundled app integrations, [MCP](/en/glossary#mcp) servers, Skills, and more than 90 additional Plugins into the same direction. Cursor's own documentation defines Plugins as distributable bundles that can contain rules, Skills, agents, commands, MCP servers, and hooks.
 
-That is no longer the world of "drop a Markdown file into an agent and hope it behaves."
+You do not need to memorize that noun pile. In plain English, this is no longer "give the agent a Markdown file." It is "package a work capability and ship it to a whole team."
+
+From the outside, this can look like a naming change. [Skill](/en/glossary#skill) becomes [Plugin](/en/glossary#plugin), the docs move folders, and everyone keeps writing `SKILL.md`.
 
 The interesting part is not the word "plugin."
 
@@ -125,9 +129,9 @@ Zoom back to OpenAI. The interesting part is not "more plugins."
 
 It is more like this: OpenAI used to sell the very smart classmate who could help with homework. Now it is moving the desks, wiring the power strips, handing out keys, and telling companies, "Maybe the work should happen in this classroom."
 
-Yage AI's read on OpenAI is useful: OpenAI is not pushing Plugins mainly because plugin revenue is the prize. It is trying to make Codex the place where work actually happens.
+In this context, OpenAI is not pushing Plugins mainly because plugin revenue is the prize. It is trying to make [Codex](/en/glossary#codex) the place where work actually happens.
 
-That interpretation fits the official update. Codex can operate a computer, use a browser, connect to SSH devboxes, view PDFs and documents, handle PR review, schedule future work, wake up later, remember preferences, and suggest follow-up work from context. Each feature by itself sounds like product-release confetti. Together, they look like a company moving the keyboard, browser, terminal, documents, and task list into the same room.
+The official update points in that direction. Codex can operate a computer, use a browser, connect to SSH devboxes, view PDFs and documents, handle PR review, schedule future work, wake up later, remember preferences, and suggest follow-up work from context. Each feature by itself sounds like product-release confetti. Together, they look like a company moving the keyboard, browser, terminal, documents, and task list into the same room.
 
 In other words, Codex is becoming an [agent harness](/en/glossary#agent-harness). A simple way to read that term is "the workbench for the agent": the model thinks there, the tools are wired in, and the platform manages permissions and process.
 

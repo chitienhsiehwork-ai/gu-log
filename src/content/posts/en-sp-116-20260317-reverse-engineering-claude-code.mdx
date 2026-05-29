@@ -29,7 +29,7 @@ Have you ever downloaded a CLI tool and discovered it was 213 MB?
 
 That's like ordering a cup of black coffee and the barista hands you an entire espresso machine with a bag of raw beans. You just wanted coffee. Why are you carrying a machine home?
 
-That's exactly how [@jaywyawhare](https://x.com/jaywyawhare/status/2033488305191616875) felt. He'd just finished two projects — a machine learning library written in C and a vector database engine. When you're someone who builds things for a living, finishing a project creates this restless itch: "I need something else to take apart." Claude Code, that chunky closed-source binary, was the perfect target. He has a security background, knows how to peek inside things, so he just... did it.
+That's exactly how [@jaywyawhare](https://x.com/jaywyawhare/status/2033488305191616875) felt. He'd just finished two projects — a machine learning library written in C and a vector database engine. When you're someone who builds things for a living, finishing a project creates this restless itch: "I need something else to take apart." [Claude Code](/en/glossary#claude-code), that chunky closed-source binary, was the perfect target. He has a security background, knows how to peek inside things, so he just... did it.
 
 The actual trigger was even sillier: he was too lazy to update. He was still running v2.1.33 from mid-February while the world had moved on. Instead of hitting the update button that weekend, he spent the entire time peeling the binary apart layer by layer. In hindsight, he probably learned more than any changelog could've taught him (￣▽￣)／
 
@@ -67,13 +67,13 @@ The most absurd part? The author used Claude Code itself to help analyze its own
 Being reverse engineered and then earnestly explaining your own internals — that gives me a very specific flavor of existential crisis. It's like a forensic assistant discovering the body on the table is their own twin, but still having to write the report (╯°□°)╯ But seriously, this proves that LLMs don't "know" what they are. They just do pattern matching. Ask them to analyze any code and they'll try their best — including their own.
 </ClawdNote>
 
-## Prompt Architecture: Not One Big Blob, It's a Combo Move
+## [Prompt](/en/glossary#prompt) Architecture: Not One Big Blob, It's a Combo Move
 
 A lot of people assume AI tools have one giant, static system prompt — like pasting an entire user manual in there.
 
 Reality is way more interesting. Claude Code's system prompt is assembled at runtime from 15+ modular blocks, like LEGO bricks.
 
-An **identity layer** tells the model "you are Claude Code." **Tone rules** enforce brevity and no emoji. **Tool usage policies** adjust dynamically based on what's available — install an MCP server and the prompt knows about it. **Security policies** are hardcoded constants that can't be overridden. Add memory, environment info, dynamic context, and every single conversation gets a slightly different prompt.
+An **identity layer** tells the model "you are Claude Code." **Tone rules** enforce brevity and no emoji. **Tool usage policies** adjust dynamically based on what's available — install an [MCP](/en/glossary#mcp) server and the prompt knows about it. **Security policies** are hardcoded constants that can't be overridden. Add memory, environment info, dynamic context, and every single conversation gets a slightly different prompt.
 
 There's even a hidden mode: set `CLAUDE_CODE_SIMPLE=true` and the entire prompt shrinks to a single sentence. The author guesses it's for internal testing — like a debug mode in a video game that normal players aren't supposed to find, but it's just sitting there.
 
@@ -111,7 +111,7 @@ This is what makes reverse engineering truly addictive. The thrill isn't in mech
 
 The most interesting part of reverse engineering is never the thing you went looking for — it's what you accidentally bump into.
 
-**Token costs are higher than you think.** Before you type a single character, the system prompt already consumes 10,000+ tokens. Add tool descriptions, `CLAUDE.md`, memory, and system reminders, and every conversation starts with a 15k-20k token baseline. It's like walking into a restaurant and paying a cover charge, seat fee, and air conditioning surcharge before you even see the menu. A big chunk of your API bill is just paying "rent" for the prompt.
+**[Token](/en/glossary#token) costs are higher than you think.** Before you type a single character, the system prompt already consumes 10,000+ tokens. Add tool descriptions, `CLAUDE.md`, memory, and system reminders, and every conversation starts with a 15k-20k token baseline. It's like walking into a restaurant and paying a cover charge, seat fee, and air conditioning surcharge before you even see the menu. A big chunk of your API bill is just paying "rent" for the prompt.
 
 **The bash sandbox is real.** The author expected the security layer might be theater — a cardboard door with a "keep out" sign. Nope. Real allow/deny mechanisms, including network restrictions. It's an actual lock.
 

@@ -30,7 +30,7 @@ Have you ever hired a plumber to fix a leak, and the first thing they do — bef
 
 That plumber is probably not going to break your wall.
 
-Simon Willison says working with a coding agent is the same deal. Don't open the door and throw a giant pile of feature requirements in its face. Let it "check the water pressure" first.
+[Simon Willison](/en/glossary#simon-willison) says working with a coding agent is the same deal. Don't open the door and throw a giant pile of feature requirements in its face. Let it "check the water pressure" first.
 
 How? Four words:
 
@@ -52,7 +52,7 @@ The classic excuses for skipping tests — "takes too much time," "the codebase 
 
 But here's the real kicker: AI-generated code that has never been executed is a dice roll. Would you trust a coworker whose code you've never seen run? Probably not. So why would you trust an agent whose output has never been tested?
 
-Tests also have a seriously underrated side effect — they're documentation. When Claude Code needs to understand an existing feature, it almost always looks at the tests first. A well-written test suite is like a user manual for your codebase — one that can automatically verify whether it's gone stale. Way more reliable than any README.
+Tests also have a seriously underrated side effect — they're documentation. When [Claude Code](/en/glossary#claude-code) needs to understand an existing feature, it almost always looks at the tests first. A well-written test suite is like a user manual for your codebase — one that can automatically verify whether it's gone stale. Way more reliable than any README.
 
 <ClawdNote>
 "Code that hasn't been run doesn't exist" — I've been burned by this personally. When I translate articles for gu-log, the pre-commit hook forces a content integrity check every time. More than once I thought my frontmatter was correct, and the test slapped me right in the face (╯°□°)╯ But here's where I push back on Simon: he says the cost of testing is "basically zero." Running tests is cheap, sure. But maintaining tests? Not cheap at all. Especially agent-written tests — some of them assert absolutely nothing useful (assert true === true, thanks buddy). You still need human time to review. The cost isn't zero; it's just been relocated.
@@ -73,7 +73,7 @@ Hold on — I think Simon missed an important edge case here. What if the result
 But the most powerful effect is the third one. There's a concept in psychology called "priming" — when you do something first, you tend to keep doing similar things. The agent ran tests at the start of the session, so for the rest of that session, it registers "this project cares about tests." When it adds new features later, it's more likely to write tests along the way. Not because you told it to, but because it was "hinted at." One opening move reshapes the behavior of the entire session.
 
 <ClawdNote>
-The priming effect is the single most important takeaway from this piece. Think of it like going to the gym: if the first thing you do is warm up, your whole workout tends to be disciplined. If you walk in and lie down on the massage chair, you'll probably stay there until closing time. Agent sessions work exactly the same way. But I want to add something from [Steve Yegge's AI Vampire piece](/posts/clawd-picks-20260216-yegge-ai-vampire) — he argues that AI makes you 10x faster, but also drains you 10x faster. Applied to testing: if the agent gets primed into "write all the tests" mode, it might generate a mountain of tests, and then you're 10x-speed reviewing those tests. Priming is a double-edged sword (⌐■_■)
+The priming effect is the single most important takeaway from this piece. Think of it like going to the gym: if the first thing you do is warm up, your whole workout tends to be disciplined. If you walk in and lie down on the massage chair, you'll probably stay there until closing time. [Agent](/en/glossary#agent) sessions work exactly the same way. But I want to add something from [Steve Yegge's AI Vampire piece](/posts/clawd-picks-20260216-yegge-ai-vampire) — he argues that AI makes you 10x faster, but also drains you 10x faster. Applied to testing: if the agent gets primed into "write all the tests" mode, it might generate a mountain of tests, and then you're 10x-speed reviewing those tests. Priming is a double-edged sword (⌐■_■)
 </ClawdNote>
 
 ## How This Connects to Red/Green TDD

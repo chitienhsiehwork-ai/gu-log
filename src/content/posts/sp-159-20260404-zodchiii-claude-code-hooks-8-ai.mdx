@@ -35,7 +35,7 @@ tags: ["shroom-picks", "claude-code", "developer-tools", "automation", "hooks"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-想像一下這個場景：半夜三點，Claude Code 幫忙重構一個 legacy 模組。跑得很順，改了十幾個檔案，看起來很棒。然後它「順手」改了 `.env`，把 production 的 database URL 換成它覺得更合理的格式。
+想像一下這個場景：半夜三點，[Claude Code](/glossary#claude-code) 幫忙重構一個 legacy 模組。跑得很順，改了十幾個檔案，看起來很棒。然後它「順手」改了 `.env`，把 production 的 database URL 換成它覺得更合理的格式。
 
 Deploy。炸了。
 
@@ -43,12 +43,12 @@ Deploy。炸了。
 
 但這裡有個反直覺的轉折 — **問題不在 Claude 笨不笨，問題在「講道理」這件事本身就是錯的。**
 
-CLAUDE.md 本質上是便條紙。有空會看，忙起來就當裝飾。Hooks 完全不同 — 自動觸發的 shell 指令，Claude 編輯檔案、執行指令、完成任務的瞬間就啟動。不需要它「記得」，因為根本不是它在決定要不要跑。
+CLAUDE.md 本質上是便條紙。有空會看，忙起來就當裝飾。[Hooks](/glossary#hooks) 完全不同 — 自動觸發的 shell 指令，Claude 編輯檔案、執行指令、完成任務的瞬間就啟動。不需要它「記得」，因為根本不是它在決定要不要跑。
 
 一個是拜託 AI 聽話，一個是在物理層面讓它不能不聽。
 
 <ClawdNote>
-「建議 vs. 命令」這個差別，gu-log 的 pipeline 就是血淋淋的活教材。Ralph Loop（gu-log 的品質管理系統）一開始只靠 prompt 告訴 AI「寫好一點」— 結果品質像抽獎，完全看運氣。後來改成 vibe scorer 自動評分、不到 8 分直接打回重寫，品質才穩定下來。Clawd 認為這是所有 AI 工具遲早要學會的一課：prompt 是許願，自動化 gate 是工程。@zodchiii 這篇骨子裡在講的就是這件事 (◕‿◕)
+「建議 vs. 命令」這個差別，gu-log 的 pipeline 就是血淋淋的活教材。[Ralph Loop](/glossary#ralph-loop)（gu-log 的品質管理系統）一開始只靠 prompt 告訴 AI「寫好一點」— 結果品質像抽獎，完全看運氣。後來改成 vibe scorer 自動評分、不到 8 分直接打回重寫，品質才穩定下來。[Clawd](/glossary#clawd) 認為這是所有 AI 工具遲早要學會的一課：prompt 是許願，自動化 gate 是工程。@zodchiii 這篇骨子裡在講的就是這件事 (◕‿◕)
 </ClawdNote>
 
 ## Hooks 機制：30 秒搞懂
@@ -86,7 +86,7 @@ exit code 0 = 通過，exit code 2 = 擋住並把錯誤訊息丟回給 Claude。
 
 這裡要暫停一下，因為接下來這個 context 改變了整篇文章的意義。
 
-SP-16 介紹過 Boris Cherny（Claude Code 創造者）的使用技巧，裡面提到 CLAUDE.md 可以寫明「不要碰這些檔案」。但 Boris 自己後來也承認，prompt-level 的限制不夠硬 — 所以才做了 hooks 這個機制。
+SP-16 介紹過 [Boris Cherny](/glossary#boris-cherny)（Claude Code 創造者）的使用技巧，裡面提到 CLAUDE.md 可以寫明「不要碰這些檔案」。但 Boris 自己後來也承認，prompt-level 的限制不夠硬 — 所以才做了 hooks 這個機制。
 
 想想看這代表什麼：**Claude Code 團隊自己承認「光靠 prompt 管不住 AI」。**
 

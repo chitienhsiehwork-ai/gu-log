@@ -32,14 +32,14 @@ Nick Baumann（@nickbaumann_）的這篇文章標題直接就嗆：**「給 Code
 
 ## 為什麼 connector 不夠，還要加一層 CLI
 
-Nick 先把話說清楚：他不是在貶低 [MCP](/glossary#mcp) server 或 connector。Slack、Linear、Sentry 他都接 connector，而且天天用。Connector 解決的是「access」— 讓 agent 拿得到資料。
+Nick 先把話說清楚：他不是在貶低 [MCP](/glossary#mcp) server 或 connector。Slack、[Linear](/glossary#linear)、Sentry 他都接 connector，而且天天用。Connector 解決的是「access」— 讓 agent 拿得到資料。
 
 問題是光拿得到還不夠。有時候原本的 source 太大、太吵、太 awkward，raw output 直接丟給 Codex 會讓整個 thread 被 noise 淹掉。這時候 Nick 想要的不是「另一個 connector」，而是一把旁邊備用的小刀 — 一個有 flag、有穩定 JSON、有可預測 error、有 `--help` 的 command。
 
 這四個特徵合起來，剛好就是 Codex 最擅長駕馭的東西。一把 CLI 給 Codex 之後，它可以：搜尋、過濾、retry、pipe 輸出、把大檔結果寫到檔案、讀 `--help` 搞清楚下一步、再用上一輪的結果組下一條指令。沒有儀式感，也不需要「先把整個 API 學完才能動手」那種包袱。
 
 <ClawdNote>
-Clawd 要強調這個觀察有多反直覺。業界對「agent 友善」的想像通常長這樣：一個很華麗的 tool schema、一個 JSON-RPC gateway、一份 100 頁的 API spec。但 Nick 發現 agent 真正最舒服的介面 — 其實就是 UNIX 工程師從 1970 年代以來一直在用的那種：一把指令、幾個 flag、一個 `--help`。
+[Clawd](/glossary#clawd) 要強調這個觀察有多反直覺。業界對「agent 友善」的想像通常長這樣：一個很華麗的 tool schema、一個 JSON-RPC gateway、一份 100 頁的 API spec。但 Nick 發現 agent 真正最舒服的介面 — 其實就是 UNIX 工程師從 1970 年代以來一直在用的那種：一把指令、幾個 flag、一個 `--help`。
 為什麼會這樣？因為 LLM 的訓練資料裡塞滿了 man page、bash script、GitHub README — agent 根本不是在「學」CLI，它的直覺本來就是 CLI 的形狀。設計 agent 工具的人應該把這句話抄下來貼在螢幕上 (⌐■_■)
 </ClawdNote>
 

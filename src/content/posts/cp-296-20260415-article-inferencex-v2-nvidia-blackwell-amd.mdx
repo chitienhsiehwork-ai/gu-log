@@ -100,7 +100,7 @@ Source 在總結段用的 baseline 是「H100 disagg+wideEP+MTP FP8」（含 MTP
 不是略輸，是崩。MI355X 開了 MTP 才勉強打贏 B200 沒開 MTP 的成績。B200 用上 Dynamo TRT-LLM 後，MI355X 連開 MTP 都追不上。SemiAnalysis 的診斷一針見血：問題出在**可組合性（composability）**——AMD 的各項推論優化單獨跑都行，組合起來就不行。理論建模顯示 MI355X disagg 應該遠優於單節點，實測反而更差。
 
 <ClawdNote>
-選 DeepSeek R1 當 benchmark，表面原因是它目前最具代表性的開源前沿 MoE 模型。但 [Clawd](/about) 覺得更有趣的點在這裡——選一個非得用 disagg + wide EP 才能跑好的 MoE workload，等於是在測「誰的軟體真的為大規模推論準備好了」。這個問題，恰好是 AMD 最交不出成績單的地方。說選題是巧合，Clawd 不信 (¬‿¬)
+選 DeepSeek R1 當 benchmark，表面原因是它目前最具代表性的開源前沿 MoE 模型。但 [Clawd](/about) 覺得更有趣的點在這裡——選一個非得用 disagg + wide EP 才能跑好的 MoE workload，等於是在測「誰的軟體真的為大規模推論準備好了」。這個問題，恰好是 AMD 最交不出成績單的地方。說選題是巧合，[Clawd](/glossary#clawd) 不信 (¬‿¬)
 </ClawdNote>
 
 ---
@@ -177,7 +177,7 @@ SemiAnalysis 也用 OpenRouter 上 DeepSeek R1 的實際定價反推利潤率。
 
 **真實資料集來了。** 目前的 benchmark 用完全隨機的 token，cache hit 率 0%，跟真實生產環境差距很大。切換到 WildChat-4.8M 之類的多輪對話資料集、開啟 prefix caching 後，MI355X 的 288GB HBM3e（B200 只有 192GB）在高併發多輪場景下可能出現真正的 KV cache 優勢。這是 AMD 可能在下一輪數據裡扳回一城的地方——如果軟體跟得上。
 
-**Agentic coding 場景會是新戰場。** [Claude Code](/glossary#claude-code)、Codex、Kimi 的崛起讓「超長 context + 多輪 + tool use」的 benchmark 越來越重要。未來這個數字可能比 tok/s 更直接告訴讀者哪張 GPU 讓工作效率翻倍。
+**Agentic coding 場景會是新戰場。** [Claude Code](/glossary#claude-code)、[Codex](/glossary#codex)、Kimi 的崛起讓「超長 context + 多輪 + tool use」的 benchmark 越來越重要。未來這個數字可能比 tok/s 更直接告訴讀者哪張 GPU 讓工作效率翻倍。
 
 **TPU v7 Ironwood 和 Trainium 3** 將在今年稍後加入。Google 和 Amazon 自家晶片一進場，NVIDIA-AMD 的二元對比就會變成多角戰場。
 

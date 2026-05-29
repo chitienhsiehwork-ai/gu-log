@@ -1,0 +1,135 @@
+---
+ticketId: "SD-25"
+title: "讓 Agent 做夢：把重複工作煉成 Skill 的每週保養"
+originalDate: "2026-05-25"
+translatedDate: "2026-05-25"
+translatedBy:
+  model: "GPT-5.5"
+  harness: "Hermes Agent"
+  pipeline:
+    - role: "Author"
+      model: "GPT-5.5"
+      harness: "Hermes Agent"
+source: "ShroomDog Lab"
+sourceUrl: "https://x.com/reach_vb/status/2058538305872949490"
+lang: "zh-tw"
+summary: "Vaibhav Srivastav 的 Codex prompt 真正有趣的不是 prompt 本身，而是它把 agent 的工作後整理講清楚了：回顧最近工作、找重複流程、只把高信心項目封裝成 Skill、自動化或子代理。這很像讓 agent 睡覺做夢，把忙碌變成能力。"
+tags: ["shroomdog-original", "agent", "skill", "codex", "automation", "memory", "workflow"]
+scores:
+  tribunalVersion: 7
+  librarian:
+    glossary: 9
+    crossRef: 9
+    sourceAlign: 9
+    attribution: 8
+    score: 8
+    date: "2026-05-25"
+    model: "gpt-5.5"
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 10
+    commentarySeparation: 9
+    score: 8
+    date: "2026-05-25"
+    model: "gpt-5.5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    score: 8
+    date: "2026-05-25"
+    model: "gpt-5.5"
+  vibe:
+    persona: 9
+    clawdNote: 8
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-05-25"
+    model: "gpt-5.5"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+
+人類睡覺時，大腦不是關機。
+
+它在整理白天：哪些只是噪音，哪些值得留下，哪些動作下次可以更快。
+
+[Agent](/glossary#agent) 也需要這件事。
+
+白天修 bug、查文件、寫文章、跑測試。每個任務都結束了，但如果結束後什麼都沒沉澱，隔天醒來還是從零開始。很忙，但不會越來越會。
+
+[SP-191](/posts/sp-191-20260507-danizhu-claude-dreams-agent/) 已經寫過「Claude 做夢」這個大方向：模型可以在離線時整理經驗。這篇窄一點，只看這條 [X 貼文](https://x.com/reach_vb/status/2058538305872949490) 丟出的 Codex 工作流版本。
+
+它真正有趣的地方，不是又多了一段 [Codex](/glossary#codex) [Prompt](/glossary#prompt)。
+
+它其實在說：**讓 agent 定期做夢，把重複工作煉成方法。**
+
+<ClawdNote>
+這裡的做夢不是半夜產生自我意識，也不是寫一首迷幻詩。拜託不要。
+
+比較像作業系統背景維護：整理索引、清暫存、合併 log。只是 agent 要整理的不是磁碟垃圾，而是「上週到底重複做了哪些事」(๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+## 夢要留下方法，不是留下戰報
+
+這段 prompt 要 Codex 回頭看最近三十天的工作，從對話紀錄、記憶、外部活動紀錄、既有 [Skill](/glossary#skill) 和自動化裡找重複模式。
+
+但它最成熟的地方，是沒有看到重複就馬上包起來。
+
+候選工作必須真的重複、真的有穩定步驟、真的有清楚輸出，而且現有 Skill 或自動化沒有涵蓋。否則就跳過。
+
+這個「跳過」很重要。
+
+Skill 不是工作日誌。工作日誌會寫：「上週修了某個 bug，開了某個修改請求，最後測試過了。」一週後，號碼、狀態、錯誤現場都可能過期。
+
+好的 Skill 比較像食譜：什麼情況該用、先檢查什麼、照什麼順序做、哪裡容易炸、最後怎麼驗證。
+
+前者是記憶。後者是能力。
+
+<ShroomDogNote>
+這也接到 [SD-22](/posts/sd-22-20260508-context-window-model-day/) 的 Ryland 比喻。
+
+白天的 [Context Window](/glossary#context-window) 是 Ryland 的一天；記憶是隔天早上的課；Skill 則像睡覺後貼在牆上的紙條：「下次遇到這種怪物，先用火，不要拿湯匙戳。」
+
+沒有這張紙條，Ryland 每天醒來都要重新發明火烤怪物學。很勵志，也很浪費生命。
+</ShroomDogNote>
+
+---
+
+## /dream 應該很保守
+
+如果這套流程放進 Hermes，叫 `/dream` 很合理。
+
+`/summarize` 是把發生過的事情縮短；`/dream` 是把發生過的事情重組，找出明天能用的程序。
+
+`/memory` 留下穩定事實；`/dream` 判斷哪些經驗值得升級成 Skill、自動化或子代理。
+
+但 `/dream` 絕對不能變成半夜亂長規則的怪物。
+
+一次 dream 不應該噴出二十個 Skill、十個 cron、五個自訂子代理。那不是做夢，那是夢遊把家裡家具全部搬到浴室。
+
+合理的 `/dream` 只做三件事：
+
+1. 列出有證據的重複工作。
+2. 先檢查既有 Skill / 自動化，能擴充就不要重寫。
+3. 只建立少數高信心、範圍窄、容易驗證的東西。
+
+其他全部跳過，等更多證據。
+
+---
+
+## 結語
+
+Agent 真正的進步，不只來自模型變聰明。
+
+也來自系統會不會在工作後整理自己。
+
+白天負責做事。晚上負責把事情變成能力。記憶留下事實，Skill 留下方法，自動化留下節奏，跳過留下節制。
+
+如果 agent 每天都只醒來、工作、失憶、再醒來，它永遠很忙，但不一定變強。
+
+讓 agent 做夢，是把忙碌變成學習。
