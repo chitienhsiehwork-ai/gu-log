@@ -28,9 +28,9 @@ We want the more correct architecture: Tribunal may run continuously, but publis
 
 ## Impact
 
-- Affected scripts likely include `scripts/tribunal.sh`, `scripts/tribunal-quota-loop.sh`, `scripts/tribunal-publish-worker-changes.sh`, and new publisher/migration scripts.
-- Runtime state moves from tracked `scores/tribunal-progress.json` semantics toward ignored ledger files under `.score-loop/state/`.
-- CI and production deploy become driven by publisher PRs instead of daemon-local commits.
+- Affected scripts include current Tribunal shell surfaces such as `scripts/tribunal.sh`, `scripts/tribunal-quota-loop.sh`, `scripts/tribunal-publish-worker-changes.sh`, `scripts/tribunal-publisher.sh`, `scripts/tribunal-publisher-autopilot.sh`, and shared helpers/tests.
+- Runtime state moves from tracked `scores/tribunal-progress.json` semantics toward ignored ledger/state files under `.score-loop/state/`; current main already has partial flat JSON state files there, while this change defines the durable target contracts they must satisfy.
+- CI and production deploy become driven by publisher PRs and publisher lifecycle reconciliation instead of daemon-local commits.
 - Existing Tribunal progress must be migrated without losing PASS / FAILED / EXHAUSTED / RUNNER_ERROR history.
 - Migration SHALL preserve outcome semantics: PASS and EXHAUSTED remain non-dispatchable terminal outcomes, FAILED remains operator-visible and requeueable only by explicit policy, and RUNNER_ERROR remains non-publishable infrastructure failure.
 - Operators gain clearer separation: daemon health, ledger state, publisher queue, PR status, and production status can be observed independently.

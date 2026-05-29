@@ -8,6 +8,8 @@ The current Tribunal daemon is doing too many jobs in one git worktree:
 
 This worked while throughput was small, but it breaks down once Tribunal runs for hours. The main runtime branch can become `ahead N, behind M` while also containing dirty post files. A daemon loop that repeatedly runs `git pull --rebase --autostash` in that state is doing a human/publisher job from an unsafe environment.
 
+Current main has already started moving in the right direction with ignored `.score-loop/state/` files, fetch-only drift helpers, `scripts/tribunal-publisher.sh`, and `scripts/tribunal-publisher-autopilot.sh`. This change remains the durable contract for hardening those partial shell surfaces: stable ledger identity, explicit publish lifecycle, conflict/validation triage, and clean-worktree PR publication.
+
 Sprin's product expectation is also batch-shaped: publishable Tribunal PASS artifacts should sync to remote/prod through PRs in small batches, roughly every 10 publishable PASS artifacts, so Clawd/Iris/humans can still rewrite phrasing on individual posts without the daemon blindly overwriting them.
 
 ## Goals / Non-Goals
