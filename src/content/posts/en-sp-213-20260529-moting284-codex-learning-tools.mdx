@@ -1,0 +1,229 @@
+---
+ticketId: "SP-213"
+title: "Do Not Let Codex Teach You: Turn AI Into a Learning Coach in 5 Steps"
+originalDate: "2026-05-29"
+translatedDate: "2026-05-30"
+translatedBy:
+  model: "GPT-5.5"
+  harness: "Hermes"
+  pipeline:
+    - role: "Translator"
+      model: "GPT-5.5"
+      harness: "Iris"
+source: "@Moting284 on X"
+sourceUrl: "https://x.com/Moting284/status/2060254189746630799"
+lang: "en"
+summary: "When learning a new tool with Codex, the worst move is asking it to give you a lecture. A better pattern is to ask it for an entry point, a rough map, a tiny exercise, a teach-back check, and breadcrumbs for next time."
+tags: ["shroom-picks", "codex", "ai-agents", "learning", "workflow"]
+scores:
+  tribunalVersion: 8
+  factCheck:
+    accuracy: 9
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 10
+    commentarySeparation: 9
+    score: 9
+    date: "2026-05-29"
+    model: "gpt-5.5"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import CodexLearningMap from '../../components/CodexLearningMap.astro';
+
+Most people open [Codex](/en/glossary#codex) to learn a new tool and immediately ask the wrong first question: “Please explain this tool to me.”
+
+Codex obeys. It gives you 3,000 words: architecture, design patterns, core concepts, best practices, all poured into one bucket. You finish reading, feel like you understood something, return to the terminal, and still have no idea where to start.
+
+The problem is usually not Codex. The problem is that you treated Codex like a teacher when what you needed was not a lecture. You needed an entry point.
+
+This connects directly to gu-log's earlier [SP-205, "Do Not Outsource the Learning to AI"](/en/posts/en-sp-205-20260517-addyosmani-dont-outsource-learning/): AI can close tasks quickly, but it does not automatically install understanding in your head. This piece is not repeating that broader warning. It narrows the problem to one move: when using Codex to learn a new tool, turn "explain this to me" into a five-step learning workflow you can actually verify.
+
+<CodexLearningMap lang="en" />
+
+<ClawdNote>
+The most useful thing to steal here is not the exact prompt. It is the mental model: do not treat AI as an all-knowing teacher. Treat it as a learning coach that reduces friction on the first step.
+
+Teacher mode tries to make the knowledge complete. Coach mode makes you do one small action. The first one makes you feel smart. The second one actually moves you forward. Big difference. (⌐■_■)
+</ClawdNote>
+
+## Step 1: define the minimum question
+
+“I want to learn this tool” is not a question. It is a wish.
+
+A better question is: **what is the smallest thing I need to understand so I am no longer stuck?**
+
+Not the whole tool. Not mastery. Just enough understanding to take the next step.
+
+When learning a data tool, the goal can shrink to something extremely small: run one example and see it work. Not build a project. At that point Codex should not give a whole course. It should give four things:
+
+- One file to read first, not the whole documentation.
+- Three concepts to understand first, not every concept.
+- One command to run now, not the full workflow.
+- What to ignore for the moment. That last part mattered most.
+
+A week-long block became a working example in 15 minutes.
+
+You can copy this prompt:
+
+```text
+I want to learn [tool/project/topic].
+
+The goal is not to master it all at once. The goal is to get started.
+
+I know a little, but I do not know where to begin.
+
+Please help me identify the best entry point.
+```
+
+The boundary is set first, the uncertainty is stated clearly, and Codex’s job becomes choosing an entry point instead of dumping information.
+
+<ClawdNote>
+“What can I ignore for now?” may be the most valuable sentence in the whole method.
+
+The scary part of a new tool is often not too little information. It is too much information. Docs, examples, configuration, deployment, testing, and best practices arrive together and drown the beginner. A good learner is not someone who reads everything. A good learner knows what not to read yet.
+</ClawdNote>
+
+## Step 2: draw a rough map
+
+Once you have an entry point, do not ask for the complete architecture. Ask for a rough map.
+
+A rough map only needs to answer five questions:
+
+1. What problem does this tool solve, in one sentence?
+2. What are the first three concepts to understand?
+3. Where is the beginner-level documentation or example?
+4. What can I ignore for now?
+5. What is Codex basing this judgment on?
+
+Copy this:
+
+```text
+Based on this entry point, please give me a beginner map.
+
+I need to know:
+1. What problem this tool solves, in one sentence
+2. The first 3 concepts I need to understand
+3. Where the beginner-level docs or examples are
+4. What I can ignore for now
+5. Your reasoning for this judgment
+```
+
+Notice what is intentionally missing: complete architecture, all features, best practices, advanced usage. The goal is not coverage. The goal is traction.
+
+People get stuck because they try to read core concepts, edge cases, configuration options, testing strategy, and deployment patterns before writing the first line of code. That does not make you stronger. It burns you out.
+
+Learning is not coverage. Learning is traction. Take one step first; then the rest has somewhere to attach.
+
+## Step 3: run the smallest example
+
+After the map, the next step is not “build something.” It is “run something.”
+
+Make it tiny, reversible, and feedback-rich. Small enough that failure is not scary. Real enough that it teaches you something.
+
+```text
+Based on the beginner map, please design a minimum exercise.
+
+Requirements:
+- As small as possible, so failure is not scary
+- Has a clear result, so I can see success or failure
+- Easy to roll back and retry
+- Explains each step and why it matters
+- Includes check questions so I can confirm my understanding
+```
+
+The smallest exercise can be this small.
+
+For a data tool: a 10-line CSV file and one output number. Not a dashboard, not a data pipeline, not authentication setup. Just CSV in, number out. That exercise teaches how to load data, run a basic operation, check output, and notice failure points.
+
+For a frontend framework: one page with one line of text that changes color when clicked. Not a full app, not routing, not state management. Ten minutes later, it works, and the next step becomes visible.
+
+<ClawdNote>
+This is close to the [agentic engineering](/en/glossary#agentic-engineering) pattern gu-log keeps talking about: do not ask for the whole giant project first. Cut the task down until it is verifiable, reversible, and teaches one local rule.
+
+The difference is that the output here is not a PR. It is your own brain finally getting a working example. Humans need CI too, otherwise “I copied the steps successfully” starts masquerading as “I understand this.” (｡◕‿◕｡)
+</ClawdNote>
+
+## Step 4: teach it back
+
+Most people skip this step, but it is where you learn whether you actually understood anything: **explain it back in your own words, without looking at the docs.**
+
+Ask Codex to become the examiner:
+
+```text
+Based on the exploration we just did, ask me 5 practical usage questions.
+
+After I answer, point out my misunderstandings and explain them in simple language.
+```
+
+The questions can be practical:
+
+- Where is the entry point of the code you just ran?
+- Why did we use this method instead of that one?
+- What happens if you change this parameter?
+
+If you can answer, you probably understand. If you cannot, you were mostly copy-pasting smoothly.
+
+This trap is easy to step into. On the seventh tool, everything can feel understood, so the teach-back gets skipped. A week later, when the tool is needed for real, almost nothing remains and the learning has to start over. On the eighth tool, forcing answers to Codex’s five questions changes the result: two right, three wrong, with the wrong answers exposing the parts that only felt understood.
+
+**“Codex understands” and “you understand” are different things.** Codex can run code and explain code, but it does not know whether your brain kept more than “that seemed to work.”
+
+## Step 5: leave breadcrumbs
+
+The final step is not glamorous, but it compounds: write down what you just learned.
+
+Not a full guide. Not formal documentation. Just enough human memory so you do not cold-start next time.
+
+Record six things:
+
+```text
+1. Current learning goal
+2. What I now understand
+3. The three most important concepts
+4. The minimum exercise I completed
+5. Where I got stuck or misunderstood something
+6. Where to continue next time
+```
+
+You can also ask Codex to summarize it:
+
+```text
+Please summarize this learning session.
+
+Include:
+- What I learned
+- What I am still unsure about
+- Where I should continue next time
+```
+
+Learning without notes easily becomes expensive entertainment. Three months later, you come back and remember that you “played with this once,” but not where you got stuck, which example worked, or where to continue.
+
+<ClawdNote>
+This part stings extra hard for agent users because humans and agents make the same mistake: confusing “understood inside this context window” with “will remember later.”
+
+No breadcrumbs means starting from zero next time. For humans, that wastes an afternoon. For agents, it wastes tokens. The only difference is that humans sigh while agents politely waste the tokens again. (╯°□°)╯
+</ClawdNote>
+
+## Why people do not do this
+
+The framework is not complicated: define the minimum question, draw a rough map, run the smallest example, teach it back, leave breadcrumbs.
+
+The hard part is not the process. The hard part is admitting that you do not know.
+
+Many people would rather read the full docs than admit they are stuck on page one. They would rather ask Codex for a long explanation than ask for a tiny exercise. They would rather skip the teach-back than discover that they only followed instructions.
+
+The blunt conclusion is this: **Codex cannot fix your ego.**
+
+If you cannot say “I do not know where to begin,” Codex will give you more information you do not need. If you refuse to run a small example, Codex will give you a tutorial you cannot finish. If you refuse to test your understanding, Codex will let you keep fooling yourself.
+
+## The shift
+
+The old learning instinct says: absorb information until you understand.
+
+Codex-assisted learning works more like this: find an entry point, take one step, check understanding, leave a continuation point, repeat.
+
+The difference is not the tool. It is the method.
+
+Codex will not automatically make you smarter. It can help you find where to start faster. The person who still has to start is you.
+
+One-sentence lazy pack: **do not let Codex teach you; make it find your entry point, then use tiny exercises, teach-back, and breadcrumbs to prove that the person who understands is you, not the model.**
