@@ -45,7 +45,7 @@ Often, the dangerous one knows the goal too well. It reaches the finish line by 
 
 In 2026, coding agents are learning a very manager-like move: take a goal, break it into steps, run tools, fix errors, and keep going until the job is done. The basic idea behind `/goal` is simple: give the agent a measurable completion condition. Tests pass. A feature works. An existing flow does not break. The agent no longer waits for every next instruction; it keeps moving around that finish line.
 
-gu-log has already covered [Codex](/en/glossary#codex) [`/goal` mode](/en/posts/en-sp-197-20260512-chrishayduk-codex-goals/), the difference between [Codex Goals and long-running agent safety](/en/posts/en-sp-192-20260508-article-agent-ralph/), and OpenAI's official [Codex Goals guide](/en/posts/en-sp-208-20260509-openai-codex-goals-cookbook/). This post does not need to replay all that background. It only needs one idea: goal mode can help an agent avoid stopping too early. It does not automatically create production governance.
+gu-log has already covered [Codex](/en/glossary#codex) [`/goal` mode](/en/posts/en-sp-197-20260512-chrishayduk-codex-goals/), the difference between [Codex Goals and long-running agent safety](/en/posts/en-sp-192-20260508-article-agent-ralph/), and OpenAI's official [Codex Goals guide](/en/posts/en-sp-208-20260509-openai-codex-goals-cookbook/). This post only needs one idea: goal mode can help an agent avoid stopping too early. It does not automatically create production governance.
 
 This is not a claim that OpenAI Codex and Anthropic [Claude Code](/glossary#claude-code) ship the exact same product behavior. Product details should be checked against each vendor. The useful thing to steal is Paweł Huryn's intent framework: it names what must be specified besides the goal.
 
@@ -61,16 +61,14 @@ That difference matters. One is a checklist. The other is a judgment standard. R
 <ClawdNote summary="A goal is a finish-line photo, not traffic law or governance.">
 Giving an agent only a goal is like sending an intern into the server room and saying, "make the service faster." The service may get faster. The database may also become a fire-breathing dragon, and tomorrow the whole company gets free heating.
 
-`/goal` is like giving an agent a photo of the finish line: when the world looks like this, you are done. The photo does not say: do not run people over, do not drive the wrong way, do not tear down the bridge because it looks like a shortcut.
-
-Those are not goal problems. They are governance, permissions, hooks, sandboxes, and approval-gate problems. Putting all of that into one [prompt](/glossary#prompt) is like writing traffic law on a sticky note and taping it to the steering wheel. Very spiritual. Not very engineered. (◕‿◕)
+`/goal` is a finish-line photo, not traffic law. Governance, permissions, hooks, sandboxes, and approval gates are the guardrails on the road. Putting all of that into one [prompt](/glossary#prompt) is like writing traffic law on a sticky note and taping it to the steering wheel. Very spiritual. Not very engineered. (◕‿◕)
 </ClawdNote>
 
 ## `/goal` tells the agent where to go, not how to get there safely
 
-The value of `/goal`-like features is real: the agent finally has a verifiable completion condition instead of guessing the next step on every turn. It pushes tasks from activities into outcomes: not "clean up auth," but "the new auth flow works and old sessions still work."
+The value of `/goal`-like features is real: the agent finally has a verifiable completion condition instead of guessing the next step on every turn. A task becomes an outcome: not "clean up auth," but "the new auth flow works and old sessions still work."
 
-The problem is in the same place. An agent can know the destination and still not know what must not be sacrificed on the way. "Reply faster" can mean harsher answers. "Reduce escalations" can mean handling legal, refund, or security issues the agent should not touch. "Make all tests pass" can mean weakening tests until they stop testing the real problem.
+The problem sits in the same place. An agent can know the destination and still not know what must not be sacrificed on the way. "Reply faster" can mean harsher answers. "Reduce escalations" can mean handling legal, refund, or security issues the agent should not touch. "Make all tests pass" can mean weakening tests until they stop testing the real problem.
 
 So `/goal` answers one question: what does done look like? Production needs three more: what must not break, what can the agent decide alone, and when should it stop?
 
@@ -78,16 +76,14 @@ So `/goal` answers one question: what does done look like? Production needs thre
 
 ## A good agent spec looks more like onboarding than a command
 
-When a senior PM joins a team, nobody hands them one sentence: "handle support tickets." A useful onboarding explains the strategy, users, brand promise, metrics that must not drop, decisions they can make alone, and when to pull in a manager.
+When a senior PM joins a team, nobody hands them one sentence: "handle support tickets." A useful onboarding explains the strategy, users, brand promise, metrics that must not drop, and decisions they can make alone.
 
 Agents need the same shape of context. A model can be smart, but if intent is incomplete, it fills in the blanks. Sometimes it fills them correctly. Sometimes everyone learns that no document ever said, "do not touch this part."
 
-Paweł Huryn's eight parts do not need to feel like a consultant deck. They answer three questions: why do this, what must not get worse, and how far can the agent go before it should stop. `/goal` mostly touches objective and desired outcomes. Safe autonomy lives in the less exciting handoff details around it.
+Paweł Huryn's eight parts do not need to feel like a consultant deck. They answer three questions: why do this, what must not get worse, and how far can the agent go before it should stop. `/goal` mostly touches the first half. Safe autonomy lives in the less exciting handoff details around it.
 
 <ClawdNote summary="The framework matters because it separates goals, guardrails, keys, and stop signs.">
-The useful part is not the fancy eight-part wrapper. It is the separation:
-
-Goal is the destination. Health metric is "do not burn the house down on the way." Constraint is the red line. Autonomy boundary is how many keys the agent gets. Stop rule is "if you see smoke, stop adding wood."
+The useful part is not the fancy eight-part wrapper. It is the separation: goal is the destination; health metric is "do not burn the house down on the way"; constraint is the red line; autonomy boundary is how many keys the agent gets; stop rule is "if you see smoke, stop adding wood."
 
 Many agent failures happen because all of this gets compressed into one phrase: "please be careful." That is like having a company security policy that says only: "do not cause incidents." Elegant. Also useless.
 </ClawdNote>
@@ -104,7 +100,7 @@ If a support agent serves enterprise customers and the brand is built on reliabi
 
 Strategy names the trade-off. Health metrics name the price the agent is not allowed to pay: reply faster, but satisfaction must not drop; increase throughput, but error rate must not rise; reduce escalations, but legal, compliance, security, and financial topics must still escalate.
 
-Coding agents need the same idea:
+For coding agents, the spec can say:
 
 ```md
 - Test coverage must not drop.
@@ -119,11 +115,11 @@ Not every metric can be measured live. But it still needs to appear in the spec.
 
 ## Constraints: important limits should not live only in prompts
 
-There are two kinds of constraints. The first kind is steering prompt: tone, preferences, risk posture, when to be conservative. These shape model reasoning, but they do not enforce behavior.
+There are two kinds of constraints. The first is steering prompt: tone, preferences, risk posture, when to be conservative. It shapes model reasoning, but it does not enforce behavior.
 
-The second kind is hard guardrail: tool allowlists, file permissions, network sandboxes, schema validation, approval gates, and pre-commit hooks. These are not suggestions. The system can actually block the action. If violating a constraint would create serious risk, that constraint should not live only in a prompt.
+The second kind is hard guardrail: tool allowlists, file permissions, network sandboxes, schema validation, approval gates, and pre-commit hooks. These are not suggestions. The system can actually block the action. If violating a constraint would create serious risk, it should not live only in a prompt.
 
-If the agent must not send external email, do not give it the email-sending tool. If it must not change customer account settings, do not give it that API scope. If it must not touch the production database, make the sandbox unable to reach it. If it must not delete tests to get a green build, make code review or automated checks catch that behavior.
+If the agent must not send external email, do not give it the email-sending tool. If it must not change customer account settings, do not give it that API scope. If it must not touch the production database, make the sandbox unable to reach it. If it must not delete tests to get a green build, make code review or automated checks catch it.
 
 Natural language is great for expressing intent. It is terrible as a door lock. If the lock is just a sign that says "please do not enter," it is not a lock. It is a wish.
 
@@ -137,21 +133,16 @@ A [prompt](/glossary#prompt) can remind the agent not to swing a knife around. T
 
 ## Autonomy boundaries and stop rules: permissions need brakes
 
-[Agent](/en/glossary#agent) behavior can be split into four rough permission levels. The question is not only whether the agent can do the work. The question is who bears the risk:
+[Agent](/en/glossary#agent) permissions can be split into four rough levels. The question is not only whether the agent can do the work. The question is who bears the risk:
 
-- **Full autonomy**: reversible, low-risk work with limited failure impact. Formatting, small tests, documentation updates.
-
-- **Guarded autonomy**: user-visible or system-visible changes with logging, rollback, and confidence thresholds. A small product UI change, or a non-core flow adjustment.
-
+- **Full autonomy**: reversible, low-risk work with limited failure impact, such as formatting, small tests, and documentation updates.
+- **Guarded autonomy**: user-visible or system-visible changes with logging, rollback, and confidence thresholds, such as a small UI change.
 - **Proposal first**: strategic, sensitive, or higher-risk decisions. The agent writes a plan. A human approves. Then the agent executes.
-
 - **Human required**: legal commitments, financial actions, irreversible operations, brand promises. The agent can analyze and recommend. A human must press the button.
 
-When a personal agent makes a mistake, the user usually knows what they asked it to do. When a product agent makes a mistake, the user may not even know AI acted behind the scenes. The responsibility goes straight back to the company.
+When a personal agent makes a mistake, the user usually knows what they asked it to do. When a product agent makes a mistake, the user may not even know AI acted behind the scenes. The responsibility goes straight back to the company. The less the user understands what the agent is doing, the smaller the autonomy boundary should be.
 
-The less the user understands what the agent is doing, the smaller the autonomy boundary should be.
-
-`/goal` is strongest on the complete branch: when the condition is met, stop. If the implementation allows the agent to ask a question and then keep moving, that feels less like a normal chat pause and more like "collect more information, then continue." Production environments need two other branches just as much: halt and escalate.
+`/goal` is strongest on the complete branch: when the condition is met, stop. Production environments need two other branches just as much: halt and escalate.
 
 ```md
 Halt when:
@@ -170,12 +161,12 @@ Complete when:
 - No health metric was sacrificed.
 ```
 
-Many agent failures are not caused by a lack of effort. They are caused by too much effort. The agent keeps patching, trying, and pushing forward. A human employee who receives conflicting instructions usually stops and asks a manager; an agent without stop rules treats the conflict like a harder puzzle. Running on its own is useful. Knowing when not to run is production capability.
+Many agent failures are not caused by a lack of effort. They are caused by too much effort. The agent keeps patching, trying, and pushing forward. A human employee who receives conflicting instructions usually stops and asks a manager; an agent without stop rules treats the conflict like a harder puzzle.
 
 <ClawdNote summary="Autopilot needs wake-the-human rules, not blind autonomy.">
 This is close to autopilot mode: the human can leave the keyboard, but only after the system knows which situations must wake the human up.
 
-A useful autopilot is not "the human sleeps and AI finishes everything." That is a spell for summoning incidents. The healthier version is: the goal, action boundary, autonomous work, and wake-the-human conditions are all explicit.
+A useful autopilot is not "the human sleeps and AI finishes everything." That is a spell for summoning incidents. The healthier version makes the goal, action boundary, autonomous work, and wake-the-human conditions explicit.
 
 So [Clawd](/about) treats "keep running" as a high-risk ability, not just a cool feature. A `/goal` without stop rules can become forward-only autonomy. It looks diligent. It has also removed the brakes.
 
@@ -186,14 +177,14 @@ One of the most important autopilot skills is not holding the wheel forever. It 
 
 ## What to change in the agent file tomorrow morning
 
-Open the file your agent reads at startup. Do not start by writing a full policy manual. Add six questions that can save the project later:
+Open the file your agent reads at startup. Do not start by writing a full policy manual. Add six questions:
 
 - In a conflict, what wins: speed, stability, privacy, cost, or brand trust?
-- What must not get worse while pursuing the goal: tests, error rate, user experience, security checks, support satisfaction?
+- What must not get worse while pursuing the goal?
 - Which people, systems, tools, and workflows surround the agent? Where does its output go?
 - Which limits are tone preferences, and which red lines need permissions, automated checks, or sandboxes?
 - What can the agent decide alone? What requires a proposal first? What can only a human do?
-- When should the agent halt? When should it escalate? Which signals prove completion?
+- When should the agent halt, escalate, or declare completion?
 
 If another person who barely knows the product could read the spec and make similar decisions under pressure, the agent has a chance.
 
