@@ -124,35 +124,13 @@ This is very different from "ask the agent to figure it out every time." That so
 
 ---
 
-## The Artifact Is Not a Recording, but a Backdoor Map
-
-Autobrowse's most important artifact is not a verbatim log, a screenshot album, or a vector index. It is a small, readable Markdown skill.
-
-The Craigslist example the original author shared is worth looking at closely. The skill's opening metadata marks the name, purpose, website, category, tags, status, source, update date, recommended method, and fallback method. The body then explains the purpose, when to use it, the workflow, and site-specific traps. The details below are organized from the original author's description of the example skill. The point is "what kind of operational knowledge a skill preserves," not that readers should copy it as permanent Craigslist API documentation.
-
-It does not vaguely say, "Go search Craigslist." It compresses the exploration result into a handoff-ready map of pitfalls.
-
-At the top level, the conclusion is simple: behind Craigslist's web UI, there is actually a JSON API path. The agent does not need to open a browser and slowly click through listings every time. It can call the API with `fetch` first, then parse the results.
-
-But the truly valuable part is not the four words "found the API." It is all the fine print around it. Searches need to look like they come from the correct city, otherwise the site may infer location from the outbound IP. Some returned fields are not obvious things like `title` or `price`; they are packed into position arrays and need a decoding table to restore them. The page looks clickable, but the actual content is mostly rendered on the frontend, so forcing an agent to stare at the screen and hunt for listings can easily become busywork.
-
-In other words, the skill is not API documentation, and it is not an engineer's flex note. It is more like a restaurant backdoor map: the front entrance is pretty, but what the delivery rider actually needs is "take the alley, ring the bell on the left, and do not trust the old sign by the door."
-
-The Craigslist skill even gets specific enough to warn that some fields look like IDs but are really offsets; some lookup data may be rebuilt on every response and cannot be hardcoded; category abbreviations may not have public documentation. Treat those things as stable data structures and the next step may be producing a row of 404s. What the skill truly preserves is not only "which endpoint to call," but "which fields look like common sense and are actually traps."
-
-This kind of thing is useful to agents, and also to humans. Engineers can read it, edit it, and commit it. The next agent can load it into context. The client-side team can audit it. Success is no longer just a mysterious execution trace. It is a working manual.
-
----
-
 ## Craigslist Example: Skip the Pretty Wrong Road
 
-Craigslist is the concrete internal test case the original author shared.
+Autobrowse's most important artifact is not a verbatim log, a screenshot album, or a vector index. It is a small Markdown skill. The Craigslist example the original author shared is useful because it shows what kind of operational knowledge a skill preserves, not because readers should treat it as permanent Craigslist API documentation.
 
 The reported result is that a traditional [Claude Code](/en/glossary#claude-code) loop has to explore from scratch every time, while the graduated Autobrowse skill clearly lowers per-run cost and latency. This article does not repeat the exact one-off dollar and second counts, because they read more like internal experiment notes than a public benchmark anyone can rerun.
 
-The original author emphasizes that the point is not the absolute numbers, but the shape. The first visit has the kind of cost you would expect from a general agent loop. But once the skill forms, every later run no longer rediscovers the route. It directly takes the shortest reliable path the agent found.
-
-The original author also mentions another early form-filling experiment: after a small number of iterations, cost dropped sharply. The reason was not magic. The agent learned which of its own steps did not contribute, then deleted them.
+The point is not the absolute numbers, but the shape. The first visit has the kind of cost you would expect from a general agent loop. Once the skill forms, later runs stop rediscovering the route. Another early form-filling experiment showed the same pattern: after a few iterations, the agent learned which steps did not contribute, deleted them, and cost dropped.
 
 The Craigslist skill's route can be compressed into one sentence: do not start from the most human-looking path; start from the most data-looking path.
 
@@ -160,11 +138,9 @@ A normal browser agent that sees a search page will instinctively behave like a 
 
 The route Autobrowse learns is more engineering-minded: choose the city and category first, call Craigslist's search API, verify that the returned city scope is correct, decode each post, and finally construct usable post URLs. Pagination should also follow the API response as much as possible, instead of sending the browser back to slowly click through pages.
 
-The easiest part for beginners to get stuck on is all the terms that look like low-level implementation details: `Referer`, `postal`, decoding tables, position arrays, accessibility indexes. You do not have to memorize the terms first. Just hold onto the same idea: **websites hide data behind several layers of packaging, and the skill remembers which layer is the real door.**
+The easiest part for beginners to get stuck on is all the terms that look like low-level implementation details: `Referer`, `postal`, decoding tables, position arrays, accessibility indexes. You do not have to memorize the terms first. Hold onto one idea: **websites hide data behind several layers of packaging, and the skill remembers which layer is the real door.**
 
-Information like `Referer` and `postal` tells the site "which city this search should count as." A decoding table turns the site's compressed response back into human-readable title, price, and location. An accessibility index reminds the agent that some screens are empty to automation tools, and directly fetching the underlying data is better than stubbornly clicking the UI.
-
-Put this way, the Craigslist details stop drowning the point. The important pattern is: the agent spends effort understanding the website once, and then stops staging a detective drama on every later run. The skill stores details that used to require stepping on landmines to learn. Next time, the agent does not need to stare blankly at a client-rendered page, guess why a New York query returned San Francisco, or mistake offsets for IDs and produce a row of 404s.
+`Referer` and `postal` tell the site which city this search should count as. A decoding table turns the compressed response into title, price, and location. An accessibility index reminds the agent that some screens are empty to automation tools, so directly fetching the underlying data is better than stubbornly clicking the UI. The skill preserves these warnings so the next run does not need to step on the same landmines.
 
 <ClawdNote>
 The most interesting part of this Craigslist skill is not "found the API." It is that it writes down all the dirty reality around the API. Cities may be affected by IP. The response format may need decoding. Category abbreviations may be undocumented. Region labels may not be reliable. Real production knowledge usually looks like this: not a beautiful architecture diagram, but a pile of "please stop stepping on this."
@@ -221,31 +197,23 @@ This failure case actually makes Autobrowse more credible. People who really und
 
 ## Why This Changes Handoff
 
-The original author's framing of skills is clear: a skill is a work handoff artifact for clients, and that framing carries real weight.
+The framing of skills is clear: a skill is not a record of "what the agent did this time." It is a manual for "how this should be done from now on." Execution traces, work replays, and natural-language reasoning help with debugging, but they rarely become something the workflow owner can truly own.
 
-Today, after many agents successfully complete a task, the things they can hand to the client's engineering team are usually execution traces, work replays, or a piece of natural-language reasoning. Those are useful for debugging, but they do not necessarily become something the workflow owner can truly own. They are closer to records of "what the agent did this time" than manuals for "how this should be done from now on."
-
-Skills are different. A skill is readable, durable, debuggable, reviewable by humans, and ownable by a team. Engineers can read, edit, and commit it. Non-engineers, if they understand the business well enough, such as technical PMs, technical VPs, or administrators deeply familiar with a grants portal, can also roughly understand what the agent is doing without touching code.
+Skills are different. Engineers can read, edit, and commit them. Non-engineers who understand the business, such as technical PMs, technical VPs, or administrators deeply familiar with a grants portal, can also roughly understand what the agent is doing without touching code.
 
 So the workflow changes from "trust the agent's output" to "read the agent's operations manual."
 
-That difference is large. In the original author's view, reliability in enterprise environments is not only success rate. It also includes whether failures can be traced, reviewed, fixed, and handed off. Black-box success feels great, but to enter serious workflows, it eventually has to leave something humans can own.
-
-Longer term, every new website produces a new skill. As the skill library grows, agents get cheaper and faster on long-tail repeated work, because they no longer pay the discovery tax every time. The original author says Autobrowse already feels like a factory for browser-agent capability. A single skill is useful, but the real prize is a whole public skill directory usable by anyone running browser agents.
+In enterprise environments, reliability is not only success rate. It also includes whether failures can be traced, reviewed, fixed, and handed off. Black-box success feels great, but serious workflows eventually need something humans can own. Longer term, each new website can add one more skill to the library, lowering the discovery tax for repeated long-tail work.
 
 ---
 
 ## What Needs to Improve Next
 
-Autobrowse is not the endpoint yet. The original author mentions several directions.
-
-First: smarter stopping conditions. The current approach limits the loop to a small number of iterations and stops early when cost and turn counts converge across consecutive runs. That is reasonable, but crude. In the future, the hope is for the agent to reason more explicitly about whether it has truly converged, looking not only at cost and turns but also comparing trajectory structure across executions.
+Autobrowse is not the endpoint yet. First: smarter stopping conditions. The current approach limits the loop to a small number of iterations and stops early when cost and turn counts converge across consecutive runs. That is reasonable, but crude. In the future, the hope is for the agent to reason more explicitly about whether it has truly converged, looking not only at cost and turns but also comparing trajectory structure across executions.
 
 There is a subtle point here: some of the most valuable discoveries, like the JSON endpoint in the U.S. federal portal, came from the agent accidentally bumping into a shorter route while randomly varying its strategy. If you optimize variability away too early, you might miss the real prize. So the stopping condition cannot just be a blunt knife.
 
-Second: better exploration priors. Browserbase wants the agent to think of basic actions like `fetch` and `search` before opening a full browser workflow. Many problems that look like exploration can actually be answered with one `fetch`. More advanced tasks can have the agent inspect browser traces, network events, and CDP logs, finding internal APIs through network requests instead of guessing from the rendered DOM alone.
-
-Third: let Autobrowse improve Autobrowse. Today's iteration loop, convergence checks, and skill templates are still mostly hand-designed. If Autobrowse can graduate skills for individual websites, the same idea can be used to graduate improvements for the framework itself: better iteration [Prompt](/en/glossary#prompt)s, better priors for choosing basic actions, and skill templates better suited to different task types.
+Second: better exploration priors. Browserbase wants the agent to think of basic actions like `fetch` and `search` before opening a full browser workflow; for harder tasks, it can inspect traces, network events, and CDP logs instead of guessing from the rendered DOM alone. Third: let Autobrowse improve Autobrowse, graduating better iteration [Prompt](/en/glossary#prompt)s, tool-choice priors, and skill templates for the framework itself.
 
 ---
 
