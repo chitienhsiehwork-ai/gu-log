@@ -29,6 +29,40 @@ lang: zh-tw
 translatedDate: 2026-04-29
 scores:
   tribunalVersion: 8
+  librarian:
+    glossary: 8
+    crossRef: 8
+    sourceAlign: 8
+    attribution: 8
+    score: 8
+    date: "2026-05-30"
+    model: "gpt-5.5"
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 8
+    sourceBoundary: 8
+    commentarySeparation: 8
+    score: 8
+    date: "2026-05-30"
+    model: "gpt-5.5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    score: 8
+    date: "2026-05-30"
+    model: "gpt-5.5"
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    clarity: 8
+    narrative: 8
+    score: 8
+    date: "2026-05-30"
+    model: "gpt-5.5"
 ---
 
 Original body.
@@ -41,6 +75,40 @@ lang: en
 translatedDate: 2026-04-29
 scores:
   tribunalVersion: 8
+  librarian:
+    glossary: 8
+    crossRef: 8
+    sourceAlign: 8
+    attribution: 8
+    score: 8
+    date: "2026-05-30"
+    model: "gpt-5.5"
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 8
+    sourceBoundary: 8
+    commentarySeparation: 8
+    score: 8
+    date: "2026-05-30"
+    model: "gpt-5.5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    score: 8
+    date: "2026-05-30"
+    model: "gpt-5.5"
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    clarity: 8
+    narrative: 8
+    score: 8
+    date: "2026-05-30"
+    model: "gpt-5.5"
 ---
 
 Original EN body.
@@ -110,7 +178,33 @@ if ! grep -q 'tribunalVersion >= 8' /tmp/guard-v6-out; then
 fi
 pass "postcondition rejects pre-v8 staged PASS score frontmatter"
 
-# 4. Audit must fail on historical progress-only Tribunal PASS commits.
+# 4. New staged PASS postcondition must reject v8 frontmatter missing a required judge.
+repo2c="$TMP/postcondition-missing-judge-reject"
+setup_repo "$repo2c"
+python3 - <<PY
+from pathlib import Path
+import json, re
+repo=Path('$repo2c')
+for name in ['cp-999-test.mdx', 'en-cp-999-test.mdx']:
+    p = repo/'src/content/posts'/name
+    text = p.read_text().replace('Original', 'Rewritten')
+    text = re.sub(r'\n  librarian:\n    glossary: 8\n    crossRef: 8\n    sourceAlign: 8\n    attribution: 8\n    score: 8\n    date: "2026-05-30"\n    model: "gpt-5.5"', '', text)
+    p.write_text(text)
+p=repo/'scores/tribunal-progress.json'
+p.write_text(json.dumps({'cp-999-test.mdx': {'status': 'PASS', 'tribunalVersion': 8}}, indent=2) + '\n')
+PY
+git -C "$repo2c" add scores/tribunal-progress.json src/content/posts/cp-999-test.mdx src/content/posts/en-cp-999-test.mdx
+if bash "$ASSERT" "$repo2c" cp-999-test.mdx --staged >/tmp/guard-missing-judge-out 2>&1; then
+  cat /tmp/guard-missing-judge-out >&2
+  fail "postcondition accepted v8 score frontmatter missing Librarian"
+fi
+if ! grep -q 'Missing judge block(s): librarian' /tmp/guard-missing-judge-out; then
+  cat /tmp/guard-missing-judge-out >&2
+  fail "missing-judge rejection did not name Librarian"
+fi
+pass "postcondition rejects incomplete v8 staged PASS score frontmatter"
+
+# 5. Audit must fail on historical progress-only Tribunal PASS commits.
 repo3="$TMP/audit"
 setup_repo "$repo3"
 python3 - <<PY
