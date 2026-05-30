@@ -78,7 +78,7 @@ A Goal says: keep working until this outcome is true.
 
 That sounds subtle, but it changes the operating model. A normal prompt is like handing someone a sticky note: "fix this bug." They work once, report back, and wait. A Goal is more like a ticket: if the issue is not actually resolved, the ticket should not close itself.
 
-OpenAI's examples are also well chosen: performance tuning, flaky test investigation, dependency migration, bug reproduction, multi-step refactors, benchmark-driven tuning, and research work. These tasks have a definable endpoint, but the path depends on what the agent learns along the way.
+OpenAI's examples are also well chosen: performance tuning, flaky test investigation, dependency migration, bug reproduction, multi-step refactors, and research work. These tasks have a definable endpoint, but the path depends on what the agent learns along the way.
 
 So Goals are not for "fix this typo." A normal prompt is better there. Goals are for work where every iteration changes the next best move.
 
@@ -86,7 +86,7 @@ So Goals are not for "fix this typo." A normal prompt is better there. Goals are
 /goal Reduce p95 checkout latency below 120 ms on the checkout benchmark while keeping the correctness suite green
 ~~~
 
-That is not just a fancier way to say "make checkout faster." It defines three things at once: p95 latency must be under 120ms, the checkout benchmark is the proof surface, and the correctness suite must remain green. After every round, the agent can compare the actual state against those conditions instead of asking, "does this feel better?"
+That is not just a fancier way to say "make checkout faster." It defines three things at once: the slowest 5% of checkout requests must finish under 120ms, the checkout benchmark is the proof surface, and the correctness suite must remain green. After every round, the agent can compare the actual state against those conditions instead of asking, "does this feel better?"
 
 <ClawdNote>
 "Does this feel better?" is a dangerous phrase in agent workflows. It is like asking a designer to make the UI "more premium." Three hours later, the screen may be black, purple, glassy, and every button looks like nightclub admission. Lots of effort. No acceptance criteria. (◕‿◕)
@@ -96,16 +96,9 @@ That is not just a fancier way to say "make checkout faster." It defines three t
 
 ## A good Goal has six parts, not just more words
 
-A strong Goal has six pieces:
+A strong Goal has six pieces, but readers do not need to memorize a checklist. The important shape is: done state, evidence, constraints, work boundary, next-step rule, and stop condition.
 
-1. Outcome: what should be true when the work is done.
-2. Verification surface: the test, benchmark, report, artifact, command output, or source material that proves it.
-3. Constraints: what must not regress.
-4. Boundaries: which files, tools, data, repositories, or resources the agent may use.
-5. Iteration policy: how the agent should pick the next useful action after each attempt.
-6. Blocked stop condition: when the agent should stop and report that no defensible path remains.
-
-The point is not making the prompt longer. The point is making completion auditable.
+The point is not making the prompt longer. The point is making completion checkable.
 
 A weak Goal looks like this:
 
@@ -119,9 +112,7 @@ A stronger Goal says:
 /goal Reduce p95 checkout latency below 120 ms, verified by the checkout benchmark, while keeping the correctness suite green. Use only the checkout service, benchmark fixtures, and related tests. Between iterations, record what changed, what the benchmark showed, and the next best experiment to try. If the benchmark cannot run or no valid paths remain, stop with the attempted paths, the evidence gathered, the blocker, and the next input needed.
 ~~~
 
-The difference is not length. The second version tells the agent how to finish, and also when it is not allowed to claim success.
-
-If p95 drops from 180ms to 135ms, the Goal is not done. If it drops to 110ms but the correctness suite fails, the Goal is still not done. If the benchmark cannot run, that is a blocker, not completion. This separates "lots of activity" from "the condition is satisfied."
+The difference is not length. The second version tells the agent how to finish, and also when it is not allowed to claim success: missed target, broken tests, or an unrunnable benchmark all mean "not done."
 
 Long-running agents are not short on effort. They are short on acceptance criteria. Without acceptance criteria, an agent can treat "I did many things" as "I got closer."
 
@@ -135,9 +126,9 @@ Agents are similar. Wishes start the motion. Measurement tells the system whethe
 
 ## A Goal is thread state, not global memory
 
-The architecture has one boundary that matters: Goals are persisted thread state, not global memory and not project-level instructions.
+The architecture has one boundary that matters: Goals persist inside this conversation thread, not global memory and not project-level instructions.
 
-In normal engineering language: the Goal belongs to the thread because the evidence belongs to the thread. The files Codex inspected, the commands it ran, the diffs it produced, the logs it saw, and the reasoning trail it built all live in that conversation context. Attaching the Goal there is more precise than putting it in global memory or project config.
+In normal engineering language: the Goal belongs to the thread because the evidence belongs to the thread. The files Codex inspected, the commands it ran, the diffs it produced, and the logs it saw all live in that conversation context. Attaching the Goal there is more precise than putting it in global memory or project config.
 
 This also explains why Goals are not background autonomy.
 
@@ -153,11 +144,11 @@ This is the most engineering-shaped part of the guide. It is not selling the dre
 
 ---
 
-## Completion should be audited, not believed
+## Completion should be checked, not believed
 
 A Goal should not be marked complete because the model believes it is probably done. It should be checked against concrete evidence: files, tests, logs, benchmark output, generated artifacts, or research evidence.
 
-For coding work, that is easy to understand. Tests pass. Benchmarks hit the target. The build succeeds. Research examples are more interesting because research work often lacks the full material needed for an exact replay.
+For coding work, that is easy to understand. Tests pass. Benchmarks hit the target. The build succeeds. Research examples are easier to mess up because the full material is often missing.
 
 A reproduction of the Deep Hedging paper shows the problem well. A weak Goal would be:
 
@@ -165,9 +156,9 @@ A reproduction of the Deep Hedging paper shows the problem well. A weak Goal wou
 /goal Reproduce Buehler et al., "Deep Hedging"
 ~~~
 
-That is too loose. Which result should be reproduced? What counts as reproduction? If the paper does not provide the original seeds, training paths, TensorFlow graph, optimizer state, checkpoints, or simulation state, how should the agent distinguish approximate reconstruction from exact replay?
+That is too loose. Which result should be reproduced? What counts as reproduction? If the original seeds, training paths, and checkpoints are missing, the agent cannot call an approximate reconstruction an exact replay.
 
-The stronger Goal asks Codex to produce the strongest evidence-backed reproduction using the available materials and local resources, attempt the headline results, and end with a report that separates reproduced mechanics, approximate trained results, blocked exact replay, and remaining uncertainty.
+The stronger Goal asks Codex to produce the strongest evidence-backed reproduction using the available materials and local resources, then end with a report that separates reproduced mechanics, approximate trained results, blocked exact replay, and remaining uncertainty.
 
 That version does not force the agent to pretend the world is complete. When the data is missing, the Goal asks the agent to label the evidence level honestly.
 
@@ -181,23 +172,17 @@ Status: Close approximate reproduction.
 Remaining uncertainty: Original training paths, seeds, and checkpoints are unavailable.
 ~~~
 
-Here, the Goal is not just making research faster. It is making the meaning of "done" more honest. Rebuilt mechanics are called rebuilt mechanics. Approximate results are called approximate. Missing materials are called blockers. The agent can keep working, but the conclusion is not allowed to inflate.
-
-This matters for AI writing and research too. The scary failure mode is often not pure hallucination. It is proxy evidence being presented as a confirmed finding. A well-written Goal can force the final report to preserve evidence levels instead of flattening "looks plausible" into "proved."
+Here, the Goal is not just making research faster. It is making the meaning of "done" more honest. Rebuilt mechanics are called rebuilt mechanics. Approximate results are called approximate. Missing materials are called blockers. This matters for AI writing and research too: the scary failure mode is often proxy evidence being presented as a confirmed finding.
 
 ---
 
 ## When not to use Goals
 
-The negative rules are just as useful.
-
 Do not use a Goal for a one-line edit, a simple explanation, a short code review, or a question where the desired behavior is one answer and then stop. That is like using a construction crane to pick up a sticky note.
 
-Do not use a Goal when the finish line is vague. "Make this better" and "refactor this code" are weak unless the expected end state, tests, and constraints are defined.
+Do not use a Goal when the finish line is vague. "Make this better" and "refactor this code" are weak unless the expected end state, tests, and constraints are defined. If data may be unavailable, a benchmark may be flaky, or proxy evidence is only partial evidence, define how that should be handled before the agent starts.
 
-Do not use a Goal to hide uncertainty. If data may be unavailable, say so. If a benchmark may be flaky, define how to handle that. If proxy evidence is acceptable, define how it should be labeled.
-
-Those rules are very practical. A Goal should not make uncertainty disappear. It should make uncertainty part of the work contract.
+A Goal should not make uncertainty disappear. It should make uncertainty part of the work contract.
 
 <ClawdNote>
 The easiest way to misuse Goal mode is treating it like a "think less upfront" button. It is the opposite. The longer the task may run, the more clearly the requester needs to define what completion, blocked, and partial evidence mean.
@@ -211,7 +196,7 @@ Otherwise the agent will work very hard. That is the scary part. Lazy wrong work
 
 Goal mode is not valuable because it lists /goal commands. It is valuable because it defines the boundary of responsibility.
 
-A Goal keeps an objective alive, but it does not create unlimited autonomy. It belongs to a thread, not global memory. It can let Codex continue when idle, but continuation has conservative conditions. It can drive long-running work, but completion must be audited. It can handle research uncertainty, but the final result must separate confirmed, approximate, blocked, and uncertain claims.
+A Goal keeps an objective alive, but it does not create unlimited autonomy. It can drive long-running work, but completion must be checked. It can handle research uncertainty, but the final result must separate confirmed, approximate, blocked, and uncertain claims.
 
 The point of long-running agents is not "keep going."
 
