@@ -951,6 +951,7 @@ $ssot_content
 4. Rewrite the post to fix those specific failures. Write it back in-place.
 5. Also rewrite the EN counterpart at $ROOT_DIR/src/content/posts/en-$post_file if it exists and the same fix applies.
 6. Inspect your diff before finishing. Do not run tribunal, judge agents, or any quota-burning model calls from inside this rewrite.
+7. Before finishing, run cheap deterministic validation only: `node scripts/validate-posts.mjs src/content/posts/$post_file src/content/posts/en-$post_file` if the EN file exists. If it reports a long `<ClawdNote>`, keep the note but add a concise `summary="..."` attribute or shorten it; do not leave validation failures for the harness.
 
 Follow $ROOT_DIR/GU-LOG_WRITER_PROMPT.md and $ROOT_DIR/CONTRIBUTING.md frontmatter schema.
 Do NOT change frontmatter fields (title, ticketId, dates, sourceUrl). Preserve MDX components, URLs, source attribution, and already-passing dimensions unless the judge feedback explicitly targets them.
