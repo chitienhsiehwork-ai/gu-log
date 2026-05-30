@@ -70,13 +70,17 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 Anthropic announced a new feature for Claude's Managed Agents API: **Dreams**. A rough way to understand that API is this: developers can package Claude as a service that takes tasks, uses tools, and works across sessions, instead of opening a clean chat every time.
 
-Dreams is not just a naming joke. AI can talk, reason, use tools, and now "sleep" is part of the agent system design. The real point is that Dreams addresses a problem every [Agent](/en/glossary#agent) builder eventually hits: **[context rot](/en/glossary#context-rot)**.
+Dreams turns "sleep" into an async consolidation stage inside agent system design. It addresses a problem every [Agent](/en/glossary#agent) builder eventually hits: **[context rot](/en/glossary#context-rot)**.
 
 Context rot sounds like a curse from a fantasy novel, but in engineering terms it is painfully mundane. Agents write things into memory while they work. At first, this feels great. The agent remembers user preferences, project conventions, and past pitfalls. It feels like hiring an assistant who actually takes notes.
 
 Then the sessions pile up, and the notebook turns into a warehouse clearance sale.
 
-The same fact gets recorded multiple times, with slightly different versions. A hypothesis that was true three weeks ago is now stale, but it is still sitting in the memory store pretending to be alive. A temporary debugging note gets treated as universal law in the next round of context. Eventually, every time the agent works, it drags around a bag of noise. It is like going to a convenience store for tea eggs while carrying a full camping kit: stove, tarp, folding chair, the whole thing. You have not bought the egg yet, and you are already exhausted.
+The same fact gets recorded multiple times, with slightly different versions. A hypothesis that was true three weeks ago is now stale, but it is still sitting in the memory store. A temporary debugging note can travel into the next round of context as if it were still relevant. Eventually, every time the agent works, it loads more and more noise.
+
+<ClawdNote>
+The absurd version is easy to picture: going to a convenience store for tea eggs while carrying a full camping kit: stove, tarp, folding chair, the whole thing. You have not bought the egg yet, and you are already exhausted. Agent memory that only appends and never consolidates lands in the same place.
+</ClawdNote>
 
 Dreams means Claude can clean up that bag while it is "asleep."
 
@@ -88,7 +92,7 @@ Then Claude produces a **brand-new, reorganized memory store**.
 
 That new memory store is supposed to handle several things. Duplicate entries get merged. Contradictions get resolved. Stale entries get replaced. Patterns that repeatedly appeared in past sessions, but were never explicitly written down as memory, can also be surfaced.
 
-That last point matters. Dreams is not just renaming folders or emptying the trash. It is more like a professor sneaking into a grad student's lab notebook at midnight: not only sorting the pages by date, but noticing from all the "it exploded again today" notes that every explosion happens when the same parameter changes.
+That last point matters. Dreams is not just renaming folders or emptying the trash. Its goal is to surface useful patterns from past sessions, not merely compress text.
 
 <ClawdNote>
 The sharpest part here is "extracting patterns that were never explicitly written down" from transcripts. Ordinary summarization compresses a meeting recording into a few conclusions. Dreams is closer to a TA reading an entire semester of assignments and saying, "This student does understand recursion; they just forget the base case every time." That is not compression. That is diagnosis. (￣▽￣)
@@ -106,7 +110,7 @@ This "do not edit the original memory store directly" choice is extremely engine
 
 Dreams is not simply doing one summarization pass.
 
-If it were just summarization, it would be like taking a panoramic photo of an exploded room. The photo is smaller. The room is still exploded. Dreams is positioned more like actively mining session transcripts for patterns, insights, and reorganized knowledge.
+If it were just summarization, the output would be shorter, but the original memory structure could still be messy. Dreams is positioned more like actively mining session transcripts for patterns, insights, and reorganized knowledge.
 
 Developers can also pass custom instructions to guide what Claude should prioritize or ignore during consolidation. Those instructions can get concrete: prioritize coding-style preferences, and ignore one-off debugging notes.
 
@@ -116,12 +120,14 @@ That distinction is huge, because the hardest part of agent memory is often not 
 
 "Today's tests failed because one environment variable was missing" might be a one-time event.
 
-Put both into long-term memory with equal weight, and the agent starts behaving weirdly. It is like a family fridge containing kimchi, cold medicine, and last year's leftover barbecue sauce from Mid-Autumn Festival, with every bottle labeled "important." Open the fridge later and all you have left is archaeology.
+Put both into long-term memory with equal weight, and the agent can mistake a one-time event for a stable preference. Its future behavior then starts drifting around that stale memory.
 
 Dreams is valuable because it gives memory a mechanism for being reclassified, filtered, and condensed into more stable knowledge, instead of just piling higher forever.
 
-<ClawdNote>
-The scariest failure mode in agent memory is turning "today-only intel" into "permanent personality setting." Avoiding a command today because of a version conflict does not mean it should be avoided forever. Systems that treat temporary workarounds as ancestral commandments are how engineers end up questioning their life choices.
+<ClawdNote summary="Temporary agent memory should not become a permanent rule.">
+The scariest failure mode in agent memory is turning "today-only intel" into "permanent personality setting." Avoiding a command today because of a version conflict does not mean it should be avoided forever.
+
+It is like a family fridge containing kimchi, cold medicine, and last year's leftover barbecue sauce from Mid-Autumn Festival, with every bottle labeled "important." Open the fridge later and all you have left is archaeology. Systems that treat temporary workarounds as ancestral commandments are how engineers end up questioning their life choices.
 </ClawdNote>
 
 ---
@@ -136,7 +142,11 @@ That might sound like mere observability, but for agent memory systems, it is ve
 
 Streaming observability makes Dreams feel more like a consolidation process you can sit in on. Developers do not need to watch every run, but when the output looks strange, they at least have a way to trace it back. Which session led Claude to that conclusion? Which memory got merged? Which old entry got replaced?
 
-That is not a flashy feature. It is the kind of thing that saves you during debugging. The more a system looks like it can learn by itself, the more it needs a trail. Otherwise, when the agent suddenly insists on doing something bizarre, the engineer is left staring at the screen wondering: which conversation taught it that nonsense?
+The more a system looks like it can learn by itself, the more it needs a trail. Otherwise, when the agent suddenly insists on doing something unexpected, the engineer has little evidence for tracing which conversation or consolidation step produced that behavior.
+
+<ClawdNote>
+Clawd reads this as a debugging feature that can save the day, not a shiny demo extra. A system that changes future behavior but leaves no trail eventually turns debugging into staring at the screen and asking: which conversation taught it that nonsense?
+</ClawdNote>
 
 ---
 
