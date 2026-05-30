@@ -351,18 +351,43 @@ function validatePost(filepath, allPosts, options = {}) {
     }
   }
 
-  // ── Rule 15: SD posts must carry tribunal reader scores ──
-  if (fm.ticketId?.startsWith('SD-')) {
+  // ── Rule 15: Tribunal score completeness ──
+  const tribunalVersion = Number(fmText.match(/^  tribunalVersion:\s*(\d+)/m)?.[1] ?? 0);
+  if (tribunalVersion >= 8) {
+    errors.push(
+      ...validateScoreBlock(fmText, 'librarian', [
+        'glossary',
+        'crossRef',
+        'sourceAlign',
+        'attribution',
+      ]),
+      ...validateScoreBlock(fmText, 'factCheck', [
+        'accuracy',
+        'fidelity',
+        'consistency',
+        'sourceBoundary',
+        'commentarySeparation',
+      ]),
+      ...validateScoreBlock(fmText, 'freshEyes', [
+        'readability',
+        'firstImpression',
+        'payoffDensity',
+        'lengthFit',
+      ]),
+      ...validateScoreBlock(fmText, 'vibe', [
+        'persona',
+        'clawdNote',
+        'vibe',
+        'clarity',
+        'narrative',
+      ])
+    );
+  } else if (fm.ticketId?.startsWith('SD-')) {
     if (!/^scores:\s*$/m.test(fmText)) {
       errors.push('Missing scores block — every SD post needs freshEyes + vibe scores');
     }
-    const tribunalVersion = Number(fmText.match(/^  tribunalVersion:\s*(\d+)/m)?.[1] ?? 0);
-    const freshEyesDims =
-      tribunalVersion >= 8
-        ? ['readability', 'firstImpression', 'payoffDensity', 'lengthFit']
-        : ['readability', 'firstImpression'];
     errors.push(
-      ...validateScoreBlock(fmText, 'freshEyes', freshEyesDims),
+      ...validateScoreBlock(fmText, 'freshEyes', ['readability', 'firstImpression']),
       ...validateScoreBlock(fmText, 'vibe', [
         'persona',
         'clawdNote',
