@@ -697,8 +697,27 @@ run_stage() {
   local existing_status
   existing_status="$(get_stage_status "$post_file" "$stage_key")"
   if [ "$existing_status" = "pass" ]; then
-    tlog "  Stage '$label' already PASS (crash resume). Skipping."
-    return 0
+    # A prior run may have recorded progress PASS before the score block was
+    # materialized into the post frontmatter (interrupted run, legacy SD score
+    # shape, or earlier publisher/assert failure). Do not trust progress alone:
+    # if this stage owns a frontmatter score and the post lacks it, re-run the
+    # stage so the final PASS artifact is complete and publishable.
+    if [ -n "$fm_judge_key" ] && [ "$WRITE_FRONTMATTER" -eq 1 ]; then
+      if ! awk -v judge="$fm_judge_key" '
+        /^scores:$/ {in_scores=1; next}
+        in_scores && $0 !~ /^[[:space:]]/ && $0 != "" {in_scores=0}
+        in_scores && $0 ~ "^  " judge ":$" {found=1}
+        END {exit found ? 0 : 1}
+      ' "$post_path"; then
+        tlog "  Stage '$label' has progress PASS but missing frontmatter score '$fm_judge_key'; re-running."
+      else
+        tlog "  Stage '$label' already PASS (crash resume). Skipping."
+        return 0
+      fi
+    else
+      tlog "  Stage '$label' already PASS (crash resume). Skipping."
+      return 0
+    fi
   fi
 
   tlog "=== Stage $label ($runner_label) | max_loops=$max_loops ==="
