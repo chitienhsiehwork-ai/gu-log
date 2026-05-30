@@ -73,9 +73,9 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 The scariest thing about memory in voice [agents](/glossary#agent) is not that they forget. It is that, in order to remember, they slow down by a few hundred milliseconds.
 
-In text chat, a few hundred milliseconds feels like an elevator door opening half a beat late: annoying, but tolerable. On a phone call, the whole mood instantly turns into: "Hello? Are you still there?" The first easy pitfall when wiring memory into a voice [Agent](/en/glossary#agent) is to copy the text-agent architecture: synchronously query a vector database, do a small rerank, then send the result to the LLM. Nobody would notice in a chat UI. In a voice UI, every turn feels like the other side is buffering. This is especially sharp because it is not a beginner mistake about memory; even after studying ChatGPT and Claude's memory behavior, building hierarchical memory frameworks, and building user-owned memory layers, the 800-millisecond clock of voice can still force the whole text-world habit stack back to zero.
+In text chat, a few hundred milliseconds is just a loading spinner taking one more turn. On a phone call, it instantly becomes: "Hello? Are you still there?" That is the common mistake in voice memory: not having no memory, but copying the text-agent path wholesale—synchronously query a vector database, rerank, and stuff the result into the [prompt](/glossary#prompt). In chat, nobody notices. In voice, every turn feels like the other side is buffering.
 
-"Voice Agents need memory too" is true, but the harsher sentence matters more: **voice memory is not accelerated text memory. Its clock is so tight that the whole read-write path has to be designed backwards.**
+The harsh version is: **voice memory is not accelerated text memory. Its clock is tight enough that the whole read-write path has to be designed backwards.**
 
 <ClawdNote>
 Text chat is like sending a letter. If it arrives one second late, you can still say the system was thinking. Voice chat is like two people talking face to face. A pause of 800 milliseconds is enough to get awkward. In a text interface, the memory system is a librarian. In a voice interface, it is closer to a convenience-store clerk: the moment the customer finishes talking, the thing better already be within arm's reach. You do not get to say, "Hold on, let me check the basement archive."
@@ -83,28 +83,17 @@ Text chat is like sending a letter. If it arrives one second late, you can still
 
 ## Voice Has No Luxury of Waiting
 
-Text Agents have a built-in buffer. The user finishes typing, sees a loading indicator, and waiting one to three seconds still feels reasonable. You can pack a lot of work into that blank space: vector retrieval, semantic search, summarization, reranking, digging relevant snippets out of past conversations. Users have already been trained to expect a short wait after typing.
+Text Agents have a built-in buffer. The user finishes typing, sees a loading indicator, and waiting one to three seconds still feels reasonable. You can pack that gap with vector retrieval, semantic search, summarization, reranking, and digging up snippets from old conversations.
 
 Voice does not get that gift.
 
-A voice Agent usually wants to land within **500 to 800 milliseconds** from the moment the user stops speaking to the first audio coming back. That time is not reserved for the memory system to enjoy. It has to be split across VAD, STT, memory retrieval, the LLM's first [token](/glossary#token), the first TTS audio chunk, and even the time it takes to deliver the audio to the user's ear:
+A voice Agent usually wants to land within **500 to 800 milliseconds** from the moment the user stops speaking to the first audio coming back. That is the whole catch-the-ball budget: VAD decides the user is done in roughly 100 ms, streaming STT emits the final transcript in another roughly 50 ms, the LLM starts its first [token](/glossary#token) around 300 ms, TTS makes the first audio chunk around 100 ms, and audio delivery still counts. The ideal room left for memory retrieval is only 50 to 100 ms.
 
-Do not let the acronyms scare you. This is just the "catching the ball" motion inside a phone call: first decide the user has finished talking, then turn speech into text, then find the necessary memory, then make the model start speaking, then turn text back into speech. Every slice is short. So short that it feels like cutting up an 800-millisecond cake, and one crooked cut means the whole thing is gone.
+That makes a cloud vector database round trip dangerous. The network hop alone can cost 20 to 80 ms. Add embedding, approximate nearest-neighbor search, reranking, and formatting, and the memory budget is gone before the LLM even sees the input. Mem0's docs describe semantic search as roughly 50 to 200 ms depending on vector database and infrastructure; voice-memory integration cases often advertise P95 retrieval below 200 or 250 ms. Great numbers for chat. For voice, that is taking a selfie on the edge of a cliff.
 
-- VAD decides the user has finished, around 100 milliseconds.
-- Streaming STT emits the final transcript, another roughly 50 milliseconds.
-- Memory retrieval sits in the middle and ideally gets only 50 to 100 milliseconds.
-- The LLM starts emitting the first token, around 300 milliseconds.
-- TTS synthesizes the first audio chunk, around 100 milliseconds.
-- Audio delivery is counted inside the same latency budget. It is not free just because it is inconvenient to measure.
+Plain English: text chat can rummage through the warehouse. A phone call can only grab what is already on the desk. Any memory operation that has to "send out, compute, rank, and send back" is not impossible, but it should not block the one second where the user is waiting for a reply. Per-turn LLM summarization has the same problem: put it before the response, and it can eat 300 to 800 ms—the whole voice budget in one bite.
 
-So if the memory system starts by taking a round trip to a cloud vector database, the network hop alone may cost 20 to 80 milliseconds. Add embedding, approximate nearest neighbor search, reranking, and formatting, and the memory budget is already blown before the LLM even sees the [prompt](/glossary#prompt). Mem0's own docs describe semantic search as landing around 50 to 200 milliseconds depending on vector database and infrastructure; two other voice-memory integration cases advertise P95 retrieval below 250 milliseconds, and standalone retrieval P95 can also come in under 200 milliseconds. Those numbers look great for chat products. For voice products, they are taking a selfie on the edge of a cliff.
-
-In plain English: text chat can go rummage through the warehouse. A phone call can only grab what is already on the desk. Any memory operation that needs to "send out, compute, rank, and send back" is not impossible, but it probably should not block the one second where the user is waiting for a reply.
-
-Same goes for per-turn summarization. An LLM summary inserted before the current response could eat 300 to 800 milliseconds. That is not a small timeout. That is the entire voice response budget swallowed in one bite.
-
-The stable path is boring: local cache or Redis key-value lookup, 1 to 5 milliseconds, predictable, basically invisible.
+The stable path is boring: local cache or Redis key-value lookup, 1 to 5 ms, predictable, basically invisible.
 
 <ClawdNote>
 Putting a vector database in the voice response path often feels like using siege equipment for a desk-sized problem. The machine looks cool, and the problem will indeed disappear, but by the time you calibrate it, load it, and eat the recoil, the rhythm of the whole call has been shelled into dust. (╯°□°)╯ First principle for voice Agents: smartness that creates audible silence is usually worse than fast stupidity.
@@ -112,33 +101,29 @@ Putting a vector database in the voice response path often feels like using sieg
 
 ---
 
-## Voice Input Is Messier by Default
+## Messier Input, Less Identity Signal
 
-Latency is only the first cut. The second cut is the input format.
+Latency is only the first cut. The second cut is the input itself.
 
-Text Agents receive sentences that users have already cleaned up. Voice Agents receive the raw crime scene of human improvisation: um, uh, restarts halfway through a sentence, pronouns with no obvious referent, one sentence negating and the next one correcting it. Fact extraction that looks beautiful in a chat interface can start writing nonsense when moved onto transcripts.
+Text Agents receive sentences the user has already cleaned up. Voice Agents receive the raw scene of human improvisation: um, uh, restarts halfway through a sentence, pronouns with no clear referent, one sentence negating and the next correcting it. Fact extraction that looks beautiful in a chat interface can start writing nonsense on transcripts.
 
-The third cut is information density per turn. Voice turns are usually short, fast, and low-density, roughly 10 to 30 English words. A 10-minute call can easily have 40 to 60 turns, with a transcript around 1,500 to 2,000 tokens. That does not sound like much until the model consumes audio directly.
+The density is lower too. Voice turns are often only 10 to 30 English words, but a 10-minute call can have 40 to 60 turns and a transcript around 1,500 to 2,000 tokens. If the model consumes audio directly, token pressure jumps again: OpenAI's realtime voice API example docs say the same sentence represented as audio can often use about 10x as many tokens as text. `gpt-realtime` supports a 32k token window, but after audio-token inflation, an ordinary support call can still push the system into an uncomfortable place.
 
-OpenAI's realtime voice API example docs put it bluntly: in practice, representing the same sentence as audio often uses about 10x as many tokens as text; the same docs also say `gpt-realtime` supports a 32k token window. 32k sounds large, but after audio-token inflation, an ordinary customer-support call can push the system into an uncomfortable place.
-
-The fourth cut is the one people most often miss: cold start.
-
-Chat products usually know who the user is at the beginning because there is a login session. Phone calls do not necessarily have that. Many voice systems start with only a phone number and still need to infer the caller's identity within the first few hundred milliseconds. Any memory architecture that assumes "we know the user on turn one" is fragile in the phone world. A more robust design treats unknown callers as the main path, not an edge case.
+Then comes cold start. Chat products usually know the user because there is a login session. Phone calls may start with only a number, and identity still has to be inferred inside the first few hundred milliseconds. Any memory architecture that assumes "we know the user on turn one" is fragile in the phone world. Robust systems treat unknown callers as the main path, not an edge case.
 
 ---
 
-## The Three Kinds of Memory That Actually Matter
+## Three Memories, Three Failure Modes
 
-Voice Agent memory can be split into three layers. This split is useful because each layer has different latency requirements, storage shapes, and failure costs. It also lines up with the broader Agent memory literature: some research frames the evolution as storage, reflection, and experience; some product docs split memory into core memory, recall memory, and archival memory. The names differ, but the core question is the same: what information needs to be immediately at hand, what can be looked up slowly, and what should become long-term experience?
+Voice Agent memory can be split into three layers. The split is useful not because the names are elegant, but because each layer has different latency needs, storage shape, and failure cost.
 
-**The first layer is call memory.** This is the current call transcript, turn order, and immediate context, usually living inside the LLM's [context window](/glossary#context-window). The problem is that long calls hit practical limits faster than you expect. In practice, a usable 4k to 8k window can fill up quickly; even if modern models nominally support 128k+ tokens, that does not mean you should jam in the entire transcript. It slows generation, and attention starts to scatter. Long context is like a large refrigerator: it can hold a lot of things, but that does not mean you can find the eggs every time.
+**The first layer is call memory.** This is the current transcript, turn order, and immediate context, usually inside the LLM's [context window](/glossary#context-window). Long calls hit practical limits faster than expected. Even if modern models nominally support 128k+ tokens, that does not mean the whole transcript should be jammed in. It slows generation, and attention starts to scatter. Long context is like a big refrigerator: it can hold a lot, but that does not mean you can find the eggs every time.
 
-**The second layer is call facts.** This is working memory established during the current call and needed later. For example: the caller's name is Xiaoya, the account number is 4821, they are currently angry, and they are dealing with a specific unresolved issue. If this layer fails, the Agent asks for the caller's name again five turns later and trust evaporates instantly. Goldfish memory is especially deadly on the phone because the user has no chat log to look back at. They just feel like "is this support rep even listening?"
+**The second layer is call facts.** This is working memory established during the call and needed later: the caller's name is Xiaoya, the account number is 4821, they are angry, and they are dealing with a specific unresolved issue. If this layer fails, the Agent asks for the caller's name again five turns later and trust evaporates.
 
-**The third layer is the user profile.** This is long-term cross-call data: name, preferences, last-call summary, unresolved tickets, relationship context. Done well, return callers feel recognized. Done poorly, every call feels like starting a new game in the tutorial village.
+**The third layer is the user profile.** This is cross-call data: name, preferences, last-call summary, unresolved tickets, relationship context. Done well, return callers feel recognized. Done poorly, every call feels like restarting the tutorial village.
 
-The hard part is the middle two layers: how to capture call facts inside a single phone call, and how to read and write user profiles across calls without slowing the conversation down.
+The hard part is not naming the three layers. It is making the second and third layers readable and writable without slowing down the conversation.
 
 <ClawdNote>
 More memory is not automatically better. A voice Agent that records a pile of useless details feels like a support rep opening ten spreadsheet tabs and then searching cell by cell in front of the user. A smart memory system is not a warehouse. It is a secretary: it keeps only the things that will actually change future responses.
@@ -146,19 +131,19 @@ More memory is not automatically better. A voice Agent that records a pile of us
 
 ---
 
-## The Viable Pattern: Only Cache Blocks the Call
+## The Viable Pattern: Use Only What Is Already Prepped
 
-Every voice memory architecture eventually returns to one question: **who is responsible for those 800 milliseconds?** The names can multiply into frameworks, memory services, knowledge graphs, and cognitive architectures, but the phone call only cares about their latency position.
+The pattern that keeps showing up in production voice memory is to reverse the read-write path: before the response, do the smallest possible read; after the response, do the expensive write. Architecture diagrams can say framework, memory service, knowledge graph, or reflection system. The phone call asks one question: **who is responsible for those 800 milliseconds?**
 
-Framework-native state handles "where are we in this call." End-to-end voice models can remove latency from stitched STT-LLM-TTS pipelines, but they do not magically become cross-call memory. Plug-in memory services handle background reads and writes. Knowledge graphs and cognitive memory systems handle relationships, reflection, forgetting, and long-term cleanup. Useful boxes, different jobs, same rule: the blocking path should contain only what is already nearby.
+The blocking path should contain only local cache, Redis key-value lookup, and already-preloaded user profile data. Embedding, reranking, summarization, cross-call search, and speaker diarization should leave the response path if they create audible silence. Smart features are not banned; they just belong where human ears cannot hear them—between turns, after the call, or overnight.
 
-When a phone call connects, WebRTC links up, audio initializes, and codecs negotiate, there are actually a few hundred milliseconds available. That time should fetch the user profile, last-call summary, and open tickets into a local call cache. When the first real turn arrives, "memory retrieval" is just looking up a table that is already nearby, not taking a trip to a remote service.
+When the call connects, WebRTC links up, audio initializes, and codecs negotiate, there are actually a few hundred milliseconds available. Use that time to fetch the user profile, last-call summary, and open tickets into a local call cache. When the first real turn arrives, "memory retrieval" is just looking up a table already nearby, not taking a trip to a remote service.
 
-Cold start is the stress test for this design. If the caller is anonymous, the system has no user-specific profile to preload. Then it can only confirm identity in the first turn or two, for example through account number, phone-number lookup in a CRM, or it must accept that the first call has thinner context and make the prompt handle unknown identity gracefully. The most common mistake is treating verified callers as the normal path and anonymous callers as the exception. In phone systems, anonymous is often the hot path.
+Cold start is the stress test. If the caller is anonymous, there is no user-specific profile to preload. The system can confirm identity in the first turn or two through an account number, phone-number lookup in a CRM, or it must accept thinner context for the first call and make the prompt handle unknown identity gracefully. In phone systems, anonymous is often the hot path.
 
-Writes go the other way: after every Agent response, fire off a background task whose result is not awaited, extract new facts from the latest turn, and persist them. At call end, wait up to 2 to 3 seconds for in-flight tasks to finish, because the user has already hung up and there is no response latency left to protect. Then do one final summary pass over the full transcript and store it as the authoritative record: what the call was about, whether it was resolved, key facts, and follow-ups.
+Writes go the other way: after every Agent response, fire off a background task whose result is not awaited, extract new facts from the latest turn, and persist them. At call end, wait up to 2 to 3 seconds for in-flight tasks to finish, then run one final summary pass over the full transcript and store it as the authoritative record: what the call was about, whether it was resolved, key facts, and follow-ups.
 
-That call summary becomes the `last_interaction` preload for next time. It is the most underrated artifact in a voice memory system. ChatGPT and Claude's text-memory systems can be read in the same spirit: at retrieval time, a cleaned-up summary is usually more useful than the raw transcript.
+That call summary becomes the next `last_interaction` preload. It is also the most underrated artifact in voice memory: a cleaned handoff is more useful for recall than a whole raw transcript.
 
 <ClawdNote>
 A raw transcript is like security-camera footage. It has everything, but finding the point every time is painful. A call summary is like a shift handoff notebook: who called, what they are mad about, where the issue is stuck, who takes over next time. What a voice Agent really needs is the handoff notebook, not a whole roll of footage shoved into its head.
@@ -166,59 +151,29 @@ A raw transcript is like security-camera footage. It has everything, but finding
 
 ---
 
-## Two Problems That Bite Only After Launch
+## Three Details That Bite After Launch
 
-The first problem is that preload can race against the writeback from the previous call. Suppose the user said in the last call, "Please call me Alex from now on." Per-turn extraction caught it and is writing it back. Then the next call comes in too quickly, and preload reads an old snapshot from a few seconds ago. The Agent opens with the old name again. That error is worse than having no memory at all, because it looks like the system remembers, but remembers the wrong version. The fix sounds intuitive: always serve the latest writeback first, even if the snapshot is older. But this failure mode often only surfaces once real users show up.
+First is the writeback race. The user said in the last call, "Please call me Alex from now on." The next call comes in too quickly, preload reads an old snapshot, and the Agent uses the old name again. That is worse than having no memory because it looks like the system remembers, but remembers the wrong version. The honest fix is to serve the latest writeback before the older snapshot.
 
-The second problem is cost. Per-turn extraction means one extra LLM call per turn. In a 10-minute call with 40 to 60 turns, if each extraction costs a few cents, extraction alone can climb to a few dollars. High-value support calls can tolerate that. A free consumer assistant at scale will cry. The more honest approach is to use cheap distilled models for fact extraction; 7B to 8B is often enough. Or extract over longer sliding windows. Low-margin scenarios tend toward post-call extraction. Technical architecture cannot be divorced from the business model. Otherwise you are just hiding cost inside the prompt and letting the monthly bill take revenge.
+Second is cost. A 40-to-60-turn call with one extra LLM extraction per turn can push extraction alone toward dollars. High-value support may tolerate that; a free consumer assistant will not. In practice, teams use cheap distilled models, longer sliding windows, or post-call extraction in low-margin scenarios. Memory architecture cannot be divorced from the business model. Otherwise the cost is just hidden inside the prompt until the monthly bill takes revenge.
 
----
+Third is dirty attribution. There is often more than one person in the room: a spouse, a child, a caregiver, or a coworker contributing from across the office. Without speaker diarization, the extractor may write "the caller's spouse hates the current plan" into the caller's profile. Next time, the Agent confidently brings it up and trust cracks on the spot.
 
-## Three Jobs Should Lag by One Beat
-
-Even within a single call, practical context limits show up quickly. A normal 10-minute call transcript is around 1,500 to 2,000 tokens; native voice calls also have the audio-token inflation problem. A nominally large context window does not mean you can brainlessly stuff everything in.
-
-First, in-call history should lag. Use **sliding window plus summary**: keep the latest N turns in full, compress older turns into 3 to 4 sentence summaries, and drop low-signal turns like "okay," "got it," and "mm-hmm." A 50 to 150 millisecond compression delay is acceptable in the asynchronous path. In the response path, it becomes painful.
-
-Second, long-term episodic memory should lag. The system can synthesize a topic vector from the last one or two user utterances, search past calls every 3 to 5 turns, stage the result, and inject it into the next turn. Users are unlikely to notice that the Agent references a past conversation one turn later. They will definitely feel an extra 200 milliseconds of silence every turn. The danger is stale context: if the user changes topic quickly, expired retrieval results can make the Agent confidently talk about yesterday's issue.
-
-Third, cleanup should lag the whole call. Sleep-time compute can organize, merge, and restructure memory in the background. The related paper page says that, on selected evaluations, sleep-time compute can reach the same accuracy with about 5x less [test-time compute](/glossary#test-time-compute), and improve accuracy by 13% to 18% on predictable queries. Those are numbers from specific paper tasks and should not be used as guarantees for voice products. For a phone system, the simpler lesson is enough: do not clean the warehouse while serving the customer. Clean it at night, and tomorrow's lookup gets easier.
-
-The same thread appears in [SP-191: How Claude Dreams Cleans Up the Memory Junk Mountain for Agents](/posts/sp-191-20260507-danizhu-claude-dreams-agent/): Claude Dreams is about offline memory cleanup for text Agents. Voice adds the sharper constraint: it is the same idea of sending memory off to sleep and tidy itself, but in a voice Agent, a 200-millisecond daytime pause is something the user can hear.
-
----
-
-## Clean Signals: Transcripts and Multiple Speakers
-
-Everything above has a hidden assumption: the memory pipeline receives reasonably clean input. Reality usually disagrees.
-
-The first problem is messy transcripts. Users pause, restart sentences, and say things like "that thing we talked about last time." Raw transcripts can make fact extraction noisy. The fix is a lightweight transcript-cleaning step: remove filler words and stutter-like restarts, normalize references, and then feed the cleaned version into the memory pipeline. The LLM response still sees the raw transcript because cleaning adds latency; only memory extraction sees the cleaned version.
-
-The second problem is worse: there is often more than one person in the room.
-
-When a household calls support, a spouse or child may be nearby. A medical call may include a caregiver. A small company calling support may have someone contributing from the other side of the office. Speaker diarization, meaning figuring out who said what, directly affects memory accuracy. Without diarization, the fact extractor may write "the caller's spouse hates the current plan" into the caller's profile. Next time, the Agent confidently brings it up and trust cracks on the spot.
-
-Open-source tools and newer LLM-assisted systems are improving overlapping speech handling, but real-time speaker separation has real cost. In the blocking path, it can add 200 to 400 milliseconds per turn. So most production voice Agents accept some attribution noise during the call, then run speaker diarization after the call and persist facts under the correct speaker.
-
----
-
-## Latency Layers, Not Data Layers
-
-Put the whole piece together, and a voice memory system is not layered by data type. It is layered by latency: hot cache at 1 to 5 milliseconds, background retrieval at 50 to 150 milliseconds, and asynchronous writes where response latency no longer matters. Long context, memory streams, reflection, forgetting curves, sleep-time compute, and graphs all answer the same phone-call question: which memory should be available now, and which memory can be organized later?
-
-<ClawdNote>
-The spirit of this architecture is restaurant prep. If the customer orders and only then you start washing rice, chopping vegetables, and simmering stock, even a brilliant chef gets complaints. Voice Agent memory is the same: make the stock the night before; at service time, just ladle it out.
-</ClawdNote>
-
-The next natural question is voice Agent evaluation, because ordinary LLM benchmarks and long-memory benchmarks usually miss the most painful parts of real voice deployments: the hesitation caused by 200 extra milliseconds per turn, misattributing a bystander's words to the user, or reading before the previous call's writeback has finished. Evaluating a voice Agent cannot only ask how many questions it answered correctly. It also has to ask whether the rhythm feels human.
+Real-time speaker separation is improving, but it can add 200 to 400 ms per turn in the blocking path. Most production voice Agents accept some attribution noise during the call, then run diarization after the call and persist facts under the correct speaker. Transcript cleanup follows the same rule: the LLM response sees the raw transcript to avoid added latency; memory extraction sees the cleaned version with filler words removed, restarts repaired, and references normalized.
 
 ---
 
 ## Closing
 
-Memory in voice Agents is still not fully solved. The ability to recall naturally across many conversations, almost like a person, remains hard. But the engineering foundation is already clear: caches, asynchronous extraction, structured user profiles, post-call summaries, knowledge graphs, and sleep-time memory consolidation are all things we can build today. Voice Agent frameworks plus external memory services also mean teams do not have to hand-roll the entire read-write loop from scratch.
+Put the whole piece together, and a voice memory system is not layered by data type. It is layered by latency: hot cache at 1 to 5 ms, background retrieval at 50 to 150 ms, and asynchronous writes where response latency no longer matters. Long context, memory streams, reflection, forgetting curves, and sleep-time compute all answer the same phone-call question: which memory should be available now, and which memory can be organized later?
 
-The real craft is not "store the data." It is deciding what is worth remembering, when to bring it back, and how to say it in a way that sounds like contextual understanding instead of reading from a file. That depends on prompt design, memory filtering, and strict cleanup, not on a bigger vector database.
+<ClawdNote>
+The spirit of this architecture is restaurant prep. If the customer orders and only then you start washing rice, chopping vegetables, and simmering stock, even a brilliant chef gets complaints. Voice Agent memory is the same: make the stock the night before; at service time, just ladle it out.
+</ClawdNote>
+
+Memory in voice Agents is still not fully solved. Natural recall across many conversations remains hard. But the engineering foundation is clear: caches, asynchronous extraction, structured user profiles, post-call summaries, knowledge graphs, and sleep-time memory consolidation are all buildable today.
+
+The craft is not "store the data." It is deciding what is worth remembering, when to bring it back, and how to say it so it sounds like contextual understanding instead of reading from a file. Evaluation has to follow: a voice Agent cannot only be judged by how many questions it answers correctly. It also has to be judged by whether an extra 200 ms per turn makes the rhythm stop feeling human.
 
 The final line belongs next to every voice Agent architecture diagram:
 

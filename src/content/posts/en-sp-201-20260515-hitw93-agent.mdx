@@ -74,50 +74,32 @@ Start with a dumb but very real incident: an agent reports that it is "complete,
 
 That is the cruelest and most useful lesson in agent engineering: **an agent saying it is done does not mean the system is actually done.**
 
-A reliable agent is not one that writes a pretty completion report. It is one that records progress, can be verified by machines, leaves inspectable traces when something breaks, and cannot randomly poke tools it should not touch. Put another way: the model is only the driver. The engineering system is the dashboard, brakes, lane markings, and dashcam.
+A reliable agent is not one that writes a pretty completion report. It records progress, can be checked by machines, leaves inspectable traces when something breaks, and cannot randomly poke tools it should not touch. The model is only the driver. The engineering system is the dashboard, brakes, lane markings, and dashcam.
 
-This engineering breakdown is not asking "which model is strongest?" It is answering a much more practical question from the engineering floor: **how do agents go from demo toys to systems that can actually deliver work?**
-
-We will cover a lot of parts later, but you do not need to memorize the names first. Keep only three questions in mind: who decides the next step, who checks the result, and where do engineers look when something fails?
-
-The whole architecture is more like an incident map. The blast radius keeps growing: at first the loop runs off course, then completion reports become untrustworthy, then context and tools get dirty, and finally multiple agents start stepping on shared state. If you only remember one thing, make it this: **getting an agent to move is not hard; getting it to run reliably is.**
+So this piece is not asking "which model is strongest?" It is asking: **how do agents go from demo toys to systems that can actually deliver work?** Keep three questions in mind: who decides the next step, who checks the result, and where do engineers look when something fails?
 
 <ClawdNote summary="This piece connects several recent gu-log agent-engineering threads.">
-Many agent product demos look like Iron Man's house AI. Open the implementation and it often looks more like a dorm-room power strip: model, tools, database, browser, command line, logs, all plugged into one place. It moves, and sometimes it looks amazing. But once something smokes, nobody knows which plug started it.
-
-Compared with recent gu-log pieces, this one is the main switchboard: [SP-197](/posts/sp-197-20260512-chrishayduk-codex-goals/) on verifiable [Codex](/glossary#codex) state, [SP-192](/posts/sp-192-20260508-article-agent-ralph/) on long-running drift, [SP-158](/posts/sp-158-20260403-braintrust-agent-production-trace/) on traces, and [SP-135](/posts/sp-135-20260328-trq212-agent-file-system/) on file-system memory, all wired into one map of the engineering floor.
+Many agent demos look like Iron Man's house AI. Open the implementation and it often looks more like a dorm-room power strip: model, tools, database, browser, command line, logs, all plugged into one place. It moves, but once something smokes, nobody knows which plug started it. Compared with recent gu-log pieces, this one is the main switchboard: [SP-197](/posts/sp-197-20260512-chrishayduk-codex-goals/) on verifiable [Codex](/glossary#codex) state, [SP-192](/posts/sp-192-20260508-article-agent-ralph/) on long-running drift, [SP-158](/posts/sp-158-20260403-braintrust-agent-production-trace/) on traces, and [SP-135](/posts/sp-135-20260328-trq212-agent-file-system/) on file-system memory.
 </ClawdNote>
 
 ## Incident 1: A control loop can run without finishing the task
 
-Strip an agent down to the minimum, and it is not that mysterious. The smallest agent control loop is basically a `while` loop: send user input to the model; if the model wants a tool, the external system runs that tool and feeds the result back; if the model replies with plain text, the task ends.
+Strip an agent down to the minimum, and it is basically a `while` loop: send user input to the model; if the model wants a tool, the external system runs it and feeds the result back; if the model replies with plain text, the task ends. You can call that perception, decision, action, and feedback, but the name is not the problem. The problem is: **a control loop can run without completing the task correctly.**
 
-You can call this loop perception, decision, action, and feedback. It sounds like magic. It is really closer to an engineering process that keeps asking, "what next?" The real problem is: **a control loop can run without completing the task correctly.**
-
-Many products wear the agent label, but if you open them up, they look more like fixed workflows: the route is already written, and each step merely uses an LLM. That is not a bad thing. When the task is fixed and acceptance is clear, a fixed workflow is often more stable. You only really need an agent when the task requires exploration, judgment, and dynamic adjustment across multiple tools.
-
-<ClawdNote summary="Autonomy is only useful when the job actually needs it.">
-An agent control loop is like a car that can press the accelerator by itself. Many demos shout, "look, it moves!" The engineering floor asks, "are the route, brakes, insurance, and dashcam installed, and who pays when it hits something?"
-
-Forcing everything into a fully autonomous agent can be like calling a fire truck to water a tiny succulent on your desk. The truck arrives, the ladder goes up, the hose is connected, and the succulent dies. Bigger machinery is not automatically the right machinery.
-</ClawdNote>
+Many products wear the agent label, but inside they are fixed workflows: the route is already written, and each step merely uses an LLM. That is fine. When the task is fixed and acceptance is clear, a fixed workflow is often more stable. You only need an agent when the task requires exploration, judgment, and dynamic adjustment across tools.
 
 ---
 
 ## Incident 2: The agent says it is done, but nobody checked
 
-This is a classic failure: the agent says it is done, but the outside world still has no checkable completion state. **Completion is not language; completion is verifiable state.**
+This is the classic failure: the agent says it is done, but the outside world still has no checkable completion state. **Completion is not language; completion is verifiable state.**
 
-This is where the [Agent Harness](/glossary#agent-harness) matters. You can think of it as the acceptance rig around the agent: the equipment that gives it goals, scope limits, acceptance checks, failure feedback, and rollback paths. The model drives. The guardrail system handles traffic lights, speed cameras, and accident records.
+This is where the [Agent Harness](/glossary#agent-harness) matters. Think of a harness as the acceptance rig around the agent: goals, scope limits, checks, failure feedback, and rollback paths. The OpenAI case reports dramatic numbers: 3 engineers, 5 months, roughly 1 million lines of code, nearly 1,500 PRs, about 10x traditional development speed. Treat that as self-reported case data, not a universal guarantee. The lesson is the conditions behind it: docs that work like maps, constraints embedded in format checks, type systems, CI, and structural tests, and agents that can reproduce failures, run tests, inspect logs, and read traces.
 
-The OpenAI case comes with a dramatic set of numbers: 3 engineers, 5 months, roughly 1 million lines of code, nearly 1,500 PRs, and about 10x the speed of traditional development. Treat those numbers as self-reported case data, not a universal productivity guarantee. The useful lesson is the conditions behind them: docs that work like maps, constraints that land in format checks, type systems, CI, and structural tests, and agents that can reproduce failures, run tests, inspect logs, and read traces without waiting for humans to spoon-feed context.
-
-So the point is not "write more docs." The point is to shape the task into something an agent can handle: clear goals, with results that can be automatically verified. If the goal is clear but acceptance depends entirely on humans, throughput gets capped by human review. If verification is plentiful but the goal is vague, the system will sprint very efficiently in the wrong direction.
+The point is not "write more docs." The point is to shape the task so an agent can hold it: clear goals and automatically verifiable results. Human-only acceptance caps throughput; vague goals with lots of checks make the system sprint efficiently in the wrong direction.
 
 <ClawdNote summary="A green CI check is a different civilization from a completion report.">
-There is an entire civilization between "the agent says it is done" and "CI is green." The first is a verbal report. The second at least has a machine willing to share the blame. Engineers distrust verbal reports not because they lack love, but because production has educated them.
-
-An agent workflow with no goal and no verification is electronic divination. It has a ritual, a response, and a result, but that is not acceptance testing. That is confidence handed to randomness.
+There is an entire civilization between "the agent says it is done" and "CI is green." The first is a verbal report. The second at least has a machine willing to share the blame. An agent workflow with no goal and no verification is electronic divination: ritual, response, result, but not acceptance testing.
 </ClawdNote>
 
 ---
@@ -126,75 +108,54 @@ An agent workflow with no goal and no verification is electronic divination. It 
 
 The next failure mode is sneakier: the model is not broken, and the task is not wrong, but the context is dirty.
 
-Context engineering sounds academic. It is really just cleaning your desk. [Prompt](/glossary#prompt), tool outputs, long documents, memory, error logs: if you mash all of them together and shove the pile at the model, the model sees a lot, but has a harder time finding the signal that matters. Screwdrivers, drills, and welding torches are all useful, but nobody dumps the entire hardware store onto the table when fixing a pair of glasses.
+Context engineering sounds academic. It is really just cleaning your desk. [Prompt](/glossary#prompt), tool outputs, long documents, memory, error logs: if you mash all of them together and shove the pile at the model, the model sees a lot, but has a harder time finding the signal. Screwdrivers, drills, and welding torches are all useful, but nobody dumps the entire hardware store onto the table when fixing glasses.
 
-A more stable approach is layered: keep short, hard identity and rules in the always-on layer; keep domain knowledge in [Skill](/glossary#skill) files or normal docs and read it only when needed; keep only the current run's state in runtime context; manage long-term memory separately instead of stuffing every chat log back into every turn. A stable always-on layer also helps prompt caching, so the system becomes easier to control and cheaper to run.
+A more stable approach is layered: short, hard identity and rules in the always-on layer; domain knowledge in [Skill](/glossary#skill) files or normal docs, read only when needed; current-run state in runtime context; long-term memory managed separately. Stuffing every chat log into every turn is not memory. It is pouring the warehouse into the driver's seat.
 
-Skill descriptions should not become essays either. A long description permanently burns [Token](/en/glossary#token) in resident context; a vague one cannot route anything. The better shape is direct: when to use it, when not to use it, and what it returns. The numbers are concrete: without counter-examples, routing accuracy can drop from 73% to 53%; with counter-examples, it reaches 85% while response time drops 18.1%.
+Skill and tool descriptions should act like road signs, not essays. A long description permanently burns [Token](/en/glossary#token); a vague one cannot route anything. The useful shape is direct: when to use it, when not to use it, and what it returns. The numbers tell the story: without counter-examples, skill routing can fall from 73% to 53%; with counter-examples, it reaches 85% and response time drops 18.1%. Tool definitions have the same cost: five MCP servers can add roughly 55,000 tokens of overhead; another MCP experiment fetched definitions only when needed, cutting related task token use by 46.9%.
 
-Tools have the same problem. More tools make it easier for the agent to choose the wrong one. More abstract tool descriptions make it easier for the model to guess wrong. Five MCP servers can add roughly 55,000 tokens of tool-definition overhead, nearly 30% of a 200K context window. Another MCP tool experiment synced tool descriptions into folders so the agent saw names first and queried definitions only when needed; total token consumption on tasks using MCP tools fell 46.9%.
-
-The most important human-language sentence here is: **do not give agents a pile of low-level API parts; give them tools that complete tasks.** Instead of making an agent assemble `create_file`, `write_content`, and `set_permissions` by itself, give it `create_script(path, content, executable)`. Tool search, programmatic tool calls, and tool-use examples all serve the same goal: stop stuffing irrelevant material into the model, and let the agent look up or act only when the job needs it.
-
-Memory works the same way. Cross-session consistency cannot depend on "it should remember." It needs an external memory layer. Put information needed for the current task in front of the model, put working methods in docs, put history in traces, and only store truly important long-term facts in curated notes like `MEMORY.md`. Most importantly, keep rollback: if a summary fails, the raw data must not disappear; when memory is integrated, the pointer needs to return to the previous safe point.
+The human version is: **do not give agents a pile of low-level API parts; give them tools that complete tasks.** Instead of making an agent assemble `create_file`, `write_content`, and `set_permissions`, give it `create_script(path, content, executable)`. Memory follows the same rule: current task in front, methods in docs, history in traces, important long-term facts in `MEMORY.md`-style notes, with rollback to raw data.
 
 <ClawdNote summary="Bad tool descriptions and bad memory both create confident confusion.">
-A tool description like "helps with backend" is like a convenience store sign that says "we sell things." Technically true, completely useless. A good description should work like a road sign: turn right for deploys, also right for rollbacks, do not turn right for billing. If the sign just says "there is a road here," people really will stand at the intersection questioning reality. (￣▽￣)／
-
-Memory without rollback is not infrastructure. It is a paper shredder that rewrites history for you. The scary part is not forgetting; it is forgetting and then producing a very confident summary.
+A tool description like "helps with backend" is like a convenience store sign that says "we sell things." A good description works like a road sign: turn right for deploys and rollbacks, not for billing. Memory without rollback is not infrastructure. It is a paper shredder that rewrites history for you.
 </ClawdNote>
 
 ---
 
 ## Incident 4: Once multiple agents run, the real danger is shared state
 
-The exciting part of multi-agent systems is that "many things can run at once." But the first thing to break usually is not speed. It is agents stepping on each other's state.
+The exciting part of multi-agent systems is that many things can run at once. But the first thing to break usually is not speed. It is agents stepping on each other's state.
 
-It makes sense for a main agent to delegate search, trial-and-error, and debugging to subagents. Each subagent keeps its own context and returns only a summary at the end, so the main agent does not get polluted by every exploration path and can more easily locate which subtask failed.
+It makes sense for a main agent to delegate search, trial-and-error, and debugging to subagents. Each subagent keeps its own context and returns only a summary, so the main agent does not get polluted. But collaboration cannot rely on verbal agreements. Long tasks need progress files; parallel edits need isolation; "who is waiting for whom, and who completed what" needs to become a recoverable record. If files have not landed or tests have not run, a pretty completion summary is still just a pretty summary.
 
-But collaboration cannot rely on verbal agreements alone. You need at least three things first: structured communication, task dependencies, and modification isolation. That is why long tasks need to write progress to files; why parallel edits need isolation; and why "who is waiting for whom, and who has completed what" needs to become a recoverable record. If the task is still alive, files have not landed, or tests have not run, a pretty completion summary is still just a pretty summary.
+Evals and traces exist for the same reason: do not only judge whether an answer looks good; check whether the environment ended in the right state. Evals split into task, trial, and grader. `Pass@k` is like taking several shots and asking whether one succeeds, useful for capability exploration. `Pass^k` is like a multi-step run where every step must hold, useful for pre-launch regression.
 
-Evals and execution traces exist for the same reason: do not only judge whether an answer looks pretty; check whether the environment ended up in the right state. The basic eval structure needs to separate task, trial, and grader, while also tracking both transcript and outcome. Pass@k, where multiple samples can give one successful attempt, is not the same pressure as Pass^k, where a multi-step run needs every step to hold; the first is for exploring capability limits, the second is for pre-launch regression. Survey data says manual annotation and LLM-as-judge still dominate, traditional ML metrics account for only 16.9%, and nearly a quarter of teams have not started evaluating at all.
+The grader choice matters. Code graders fit unit tests, structural diffs, and parameter validation. Model graders fit rubrics, A/B comparisons, and multi-model consensus. Human graders establish baselines and calibrate auto-judges. Traces answer the painful question: which turn started drifting? Each run should log the full [Prompt](/en/glossary#prompt), `messages[]`, tool parameters and returns, final output, token use, and latency.
 
-The grader choice matters too. Code graders fit unit tests, structural diffs, and parameter validation where the answer is explicit. Model graders fit rubric scores, A/B comparisons, and multi-model consensus for semantic quality. Human graders establish baselines and calibrate auto-judges.
-
-Traces answer the more painful question: exactly which turn started drifting? Each agent execution should log at least the full [Prompt](/en/glossary#prompt), multi-turn `messages[]`, every tool call with parameters and return values, final output, token consumption, and latency. Event streams can split the loop into `tool_start`, `tool_end`, and `turn_end`, so logs, UI updates, online evals, and manual review queues can subscribe without rewriting the core loop.
-
-[OpenClaw](/glossary#openclaw) works as a full-system example. You do not need to memorize the system name. Just look at the design direction: receiving messages, translating messages, making decisions, calling tools, and storing memory should be separated; long-running task state should be recoverable; task dispatch, tool calls, memory reads and writes, and state sync should each have boundaries; and safety checks should stand in front of dangerous operations. [Prompt](/en/glossary#prompt) injection makes more sense from the same angle: do not fantasize that the model will never be fooled by dirty content; make sure dirty content cannot reach dangerous buttons.
+[OpenClaw](/glossary#openclaw) works as a full-system example. You do not need to memorize the name; look at the design direction. Receiving messages, translating messages, making decisions, calling tools, and storing memory should be separated. Long-running task state should be recoverable. Task dispatch, tool calls, memory reads and writes, and state sync each need boundaries. Safety checks should stand in front of dangerous operations. [Prompt](/en/glossary#prompt) injection is the same lesson: do not assume the model will never be fooled; make sure dirty content cannot reach dangerous buttons.
 
 ---
 
 ## If you want to ship it, order matters more than terminology
 
-When you actually start building, do not chase terms first. Chase the order of operations.
+When you start building, do not chase terms first. Chase the order of operations.
 
 Step one is to get one minimal path working: a message comes in, the agent handles it, the result goes back out. Step two is to add safety boundaries: workspace limits, allowlists, and parameter validation should not wait until after an incident. Step three is to turn the first real failure into an eval case. Do not wait until "later when we have time." Later usually does not exist.
 
-Then put knowledge in documents, externalize progress for long tasks, and isolate multi-agent edits before talking about parallelism. Seen in reverse, many agent incidents have the same flavor: they look like model problems, but they are really engineering problems. A growing system prompt is knowledge management. A growing tool list is interface design. Completion without checks is a harness problem. Shared-file overwrites are isolation problems. Prompt changes without regression checks are eval problems.
-
-<ClawdNote summary="Carefulness is not a permission system.">
-"Tell the agent to be careful" is not a safety strategy. In engineering terms, that is roughly equivalent to leaving important data on the table with a sticky note beside it saying: please do not leak this. It looks controlled. In practice, it just gives the incident report one more screenshot.
-
-The model is not magic putty. It can patch sentences, code, and steps. It cannot patch a dirty environment, bad tools, weak evals, or runaway permissions. Asking the model to "just be careful" turns safety policy into a wish list.
-</ClawdNote>
+Then put knowledge in documents, externalize progress for long tasks, and isolate multi-agent edits. Seen in reverse, many agent incidents have the same flavor: they look like model problems, but they are engineering problems. A growing system prompt is knowledge management. A growing tool list is interface design. Completion without checks is a harness problem. Shared-file overwrites are isolation problems. Prompt changes without regression checks are eval problems.
 
 ---
 
 ## References
 
 1. @HiTw93, long post on agent principles, architecture, and engineering practice, X, 2026-03-19. https://x.com/hitw93/status/2034627967926825175?s=46
-2. OpenAI, [Harness engineering: Building reliable agents with Codex](https://openai.com/index/harness-engineering/)
-3. Anthropic, [Building effective agents](https://www.anthropic.com/engineering/building-effective-agents)
-4. Anthropic, [Prompt caching docs](https://platform.claude.com/docs/en/build-with-claude/prompt-caching)
-5. Anthropic, [Equipping agents for the real world with agent skills](https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills)
-6. Anthropic, [Advanced tool use on the Claude Developer Platform](https://www.anthropic.com/engineering/advanced-tool-use)
-7. Anthropic, [Demystifying evals for AI agents](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents)
-8. OpenAI, [Designing agents to resist prompt injection](https://openai.com/index/designing-agents-to-resist-prompt-injection/)
+2. OpenAI: [Harness engineering](https://openai.com/index/harness-engineering/); [Designing agents to resist prompt injection](https://openai.com/index/designing-agents-to-resist-prompt-injection/)
+3. Anthropic: [Building effective agents](https://www.anthropic.com/engineering/building-effective-agents), [Prompt caching](https://platform.claude.com/docs/en/build-with-claude/prompt-caching), [Agent skills](https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills), [Advanced tool use](https://www.anthropic.com/engineering/advanced-tool-use), [Agent evals](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents)
 
 ---
 
 ## Closing
 
-An agent's core control loop is small: perception, decision, action, feedback. That actually makes the engineering priority clearer. Do not stuff complexity into the control loop. Put it where it belongs: tool boundaries, context layers, file-system state, memory integration, eval guardrails, execution traces, permissions, and safety mechanisms.
+An agent's core control loop is small: perception, decision, action, feedback. That makes the engineering priority clearer. Do not stuff complexity into the loop. Put it where it belongs: tool boundaries, context layers, file-system state, memory integration, eval guardrails, execution traces, permissions, and safety mechanisms.
 
 Stronger models will make agents more capable. But stronger models do not automatically fix dirty environments, bad tools, weak evals, or runaway permissions. An agent is not a thinking button. It is closer to a new engineering team: it needs tasks, docs, tools, tests, review, logs, permissions, and rollback paths. Without those, even a smart agent is just charging through a black box.
