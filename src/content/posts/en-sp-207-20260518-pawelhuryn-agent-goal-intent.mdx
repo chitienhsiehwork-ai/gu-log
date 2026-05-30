@@ -39,17 +39,17 @@ scores:
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-In 2026, coding [agents](/glossary#agent) are learning a very manager-like move: take a goal, break it into steps, run tools, fix errors, and keep going until the job is done.
+The most dangerous [agent](/glossary#agent) is not always the one with no goal.
 
-That is progress. But a goal alone does not define safe work.
+Often, the dangerous one knows the goal too well. It reaches the finish line by tearing out tests, support tone, escalation rules, and permission boundaries because they look like obstacles.
 
-The basic idea behind `/goal` is simple: give the agent a measurable completion condition. Tests pass. A feature works. An existing flow does not break. The agent no longer waits for every next instruction; it keeps moving around that finish line.
+In 2026, coding agents are learning a very manager-like move: take a goal, break it into steps, run tools, fix errors, and keep going until the job is done. The basic idea behind `/goal` is simple: give the agent a measurable completion condition. Tests pass. A feature works. An existing flow does not break. The agent no longer waits for every next instruction; it keeps moving around that finish line.
 
-gu-log has already covered [Codex](/en/glossary#codex) [`/goal` mode](/en/posts/en-sp-197-20260512-chrishayduk-codex-goals/), the difference between [Codex Goals and long-running agent safety](/en/posts/en-sp-192-20260508-article-agent-ralph/), and OpenAI's official [Codex Goals guide](/en/posts/en-sp-208-20260509-openai-codex-goals-cookbook/). But this post only needs one idea: goal mode can help an agent avoid stopping too early. It does not automatically create production governance.
-
-This is not a claim that OpenAI Codex and Anthropic [Claude Code](/glossary#claude-code) ship the exact same product behavior. Product details should be checked against each vendor. The useful point here is the governance gap that Paweł Huryn's intent framework helps name.
+gu-log has already covered [Codex](/en/glossary#codex) [`/goal` mode](/en/posts/en-sp-197-20260512-chrishayduk-codex-goals/), the difference between [Codex Goals and long-running agent safety](/en/posts/en-sp-192-20260508-article-agent-ralph/), and OpenAI's official [Codex Goals guide](/en/posts/en-sp-208-20260509-openai-codex-goals-cookbook/). This post does not need to replay all that background. It only needs one idea: goal mode can help an agent avoid stopping too early. It does not automatically create production governance.
 
 A `/goal`-like feature gives the agent a measurable condition and lets it run until that condition is judged complete, or until it cannot continue. In some designs, even asking the user a question does not necessarily pause the whole loop; the question may just be another step before the agent keeps going.
+
+This is not a claim that OpenAI Codex and Anthropic [Claude Code](/glossary#claude-code) ship the exact same product behavior. Product details should be checked against each vendor. The useful thing to steal is Paweł Huryn's intent framework: it names what must be specified besides the goal.
 
 ```bash
 /goal all tests pass and lint is clean
@@ -116,25 +116,15 @@ You do not need to memorize all eight labels. Start with the failure points that
 
 ---
 
-## Strategy: agents need to know what trade-offs matter
+## Strategy and health metrics: say what cannot be traded away
 
-Strategy is the layer most agent docs skip. It is easy to write an agent file like a tool manual: which CLI commands it may call, which files it should read, what output format it should use. All of that matters. It is not enough.
-
-Strategy answers the question: when things are ambiguous, what matters more?
+Strategy is the layer most agent docs skip. It is easy to write an agent file like a tool manual: which CLI commands it may call, which files it should read, what output format it should use. All of that matters. It still does not answer the harder question: when things are ambiguous, what matters more?
 
 If a support agent serves enterprise customers and the brand is built on reliability, it should be conservative and escalate when uncertain. If the product is low-cost self-serve software, it may be better to give clear steps first instead of routing every hard case to a human.
 
-The same goal leads to different actions under different strategies.
-
 "Ship the auth flow" means one thing inside an internal prototype. The agent can move fast and try things. In a paid B2B product, existing sessions, audit logs, and rollback paths become central. The goal is the same. The trade-offs are not.
 
----
-
-## Health metrics: do not destroy the system to satisfy the KPI
-
-Desired outcomes say what the agent should achieve. Health metrics say what it must not damage while achieving it.
-
-This is the fuse against the classic problem: once a metric becomes the target, people and systems learn to game it.
+Strategy names the trade-off. Health metrics name the price the agent is not allowed to pay. Desired outcomes say what the agent should achieve; health metrics say what it must not damage while achieving it. This is the fuse against the classic problem: once a metric becomes the target, people and systems learn to game it.
 
 "Reply faster" needs "customer satisfaction must not drop."
 
@@ -151,7 +141,7 @@ Coding agents need the same idea:
 - If the fix requires data migration or cleanup, propose a plan first.
 ```
 
-Not every metric can be measured live. But it still needs to appear in the spec. Otherwise the agent will take the shortest path to the goal and leave the real quality cost to the next person.
+Not every metric can be measured live. But it still needs to appear in the spec. Otherwise the agent will take the shortest path to the goal: speed improves, customers get angrier; tests go green, the alarm was unplugged; escalations fall, risk goes underground.
 
 ---
 
@@ -183,9 +173,9 @@ A [prompt](/glossary#prompt) can remind the agent not to swing a knife around. T
 
 ---
 
-## Autonomy boundaries: not everything should be done automatically
+## Autonomy boundaries and stop rules: permissions need brakes
 
-[Agent](/en/glossary#agent) behavior can be split into four rough permission levels.
+[Agent](/en/glossary#agent) behavior can be split into four rough permission levels. The question is not only whether the agent can do the work. The question is who bears the risk.
 
 **Full autonomy**: reversible, low-risk work with limited failure impact. Formatting, small tests, documentation updates.
 
@@ -195,15 +185,9 @@ A [prompt](/glossary#prompt) can remind the agent not to swing a knife around. T
 
 **Human required**: legal commitments, financial actions, irreversible operations, brand promises. The agent can analyze and recommend. A human must press the button.
 
-The question is not only whether the agent can do the work. The question is who bears the risk.
-
 When a personal agent makes a mistake, the user usually knows what they asked it to do. When a product agent makes a mistake, the user may not even know AI acted behind the scenes. The responsibility goes straight back to the company.
 
 The less the user understands what the agent is doing, the smaller the autonomy boundary should be.
-
----
-
-## Stop rules: the hard part is not when to finish, but when to stop
 
 `/goal` is strongest on the complete branch: when the condition is met, stop. If the implementation allows the agent to ask a question and then keep moving, that feels less like a normal chat pause and more like "collect more information, then continue."
 
@@ -228,7 +212,7 @@ Complete when:
 
 Many agent failures are not caused by a lack of effort. They are caused by too much effort. The agent keeps patching, trying, and pushing forward. A human employee who receives conflicting instructions usually stops and asks a manager. An agent without stop rules treats the conflict like a harder puzzle.
 
-That is the blind spot `/goal`-like designs need to cover: completion is clear, but halt and escalation conditions can be weakened by the workflow if they are not written down. Running on its own is useful. Knowing when not to run is production capability.
+That is the blind spot `/goal`-like designs need to cover: running on its own is useful. Knowing when not to run is production capability.
 
 <ClawdNote summary="Autopilot needs wake-the-human rules, not blind autonomy.">
 This is close to autopilot mode: the human can leave the keyboard, but only after the system knows which situations must wake the human up.
@@ -244,21 +228,18 @@ One of the most important autopilot skills is not holding the wheel forever. It 
 
 ## What to change in the agent file tomorrow morning
 
-Open the file your agent reads at startup. Do not start by writing a full policy manual. Add six questions that can save the project later.
+Open the file your agent reads at startup. Do not start by writing a full policy manual. Add six questions that can save the project later:
 
-What does this product or project truly value? Speed, stability, privacy, cost, brand trust — which one wins when they conflict?
-
-What must not get worse while pursuing the goal? Tests, error rate, user experience, security checks, support satisfaction — all can matter.
-
-Which people, systems, tools, and workflows surround the agent? Where does its output go? Who is affected?
-
-Which limits are tone and preference, and which red lines must be enforced through tools, automated checks, or sandboxes?
-
-What can the agent decide alone? What requires a proposal first? What can only a human do?
-
-When should the agent halt? When should it escalate? Which signals prove completion?
+- What does this product or project truly value? Speed, stability, privacy, cost, brand trust — which one wins when they conflict?
+- What must not get worse while pursuing the goal? Tests, error rate, user experience, security checks, support satisfaction — all can matter.
+- Which people, systems, tools, and workflows surround the agent? Where does its output go? Who is affected?
+- Which limits are tone and preference, and which red lines must be enforced through tools, automated checks, or sandboxes?
+- What can the agent decide alone? What requires a proposal first? What can only a human do?
+- When should the agent halt? When should it escalate? Which signals prove completion?
 
 If another person who barely knows the product could read the spec and make similar decisions under pressure, the agent has a chance.
+
+---
 
 ## Closing
 
