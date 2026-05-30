@@ -33,7 +33,7 @@ lang: "en"
 summary: "A practical agent engineering guide covering control loops, harnesses, context engineering, tool design, memory, multi-agent systems, evals, tracing, and safety boundaries."
 tags: ["shroom-picks", "ai-agent", "engineering", "evals"]
 scores:
-  tribunalVersion: 3
+  tribunalVersion: 8
   librarian:
     glossary: 9
     crossRef: 10
@@ -62,7 +62,7 @@ scores:
     clarity: 9
     narrative: 8
     score: 8
-    date: "2026-05-15"
+    date: "2026-05-30"
     model: "gpt-5.5"
 ---
 
@@ -122,7 +122,17 @@ The exciting part of multi-agent systems is that many things can run at once. Bu
 
 It makes sense for a main agent to delegate search, trial-and-error, and debugging to subagents; each subagent keeps its own context and returns only a summary, so the main agent does not get polluted. But collaboration cannot rely on verbal agreements. Long tasks need progress files; parallel edits need isolation; "who is waiting for whom, and who completed what" needs to become a recoverable record. If files have not landed or tests have not run, a pretty summary is still only a summary.
 
-Three instruments matter here: **evals check whether the final state is right, traces show where the run drifted, and safety boundaries decide what dirty content is allowed to touch.** `Pass@k` asks whether one of several shots succeeds. `Pass^k` asks whether every step in a run holds. Use code graders for tests, structural diffs, and parameter checks; use model graders for rubrics and semantic comparison. Each run should log the full [Prompt](/en/glossary#prompt), `messages[]`, tool parameters and returns, final output, token use, and latency. An agent without traces is a self-service laundromat with no cameras: when the clothes disappear, everyone just stares at each other. [OpenClaw](/glossary#openclaw) works as a full-system example: messages, decisions, tools, and memory should be separated; long-running task state should be recoverable; safety checks should stand in front of dangerous operations. [Prompt](/en/glossary#prompt) injection is the same lesson: do not assume the model will never be fooled; make sure dirty content cannot reach dangerous buttons.
+At this point, stop asking which agent is smarter. Look at three instruments: **evals check whether the final state is right, traces show where the run drifted, and safety boundaries decide what dirty content is allowed to touch.**
+
+Evals are not essay exams. They are crash tests. `Pass@k` asks whether one of several shots succeeds. `Pass^k` asks whether every step in a run holds. Use code graders for tests, structural diffs, and parameter checks; use model graders only when the job is rubric judgment or semantic comparison. Asking the model to judge everything is like asking the person who parked badly to write their own ticket.
+
+Each run should log the full [Prompt](/en/glossary#prompt), `messages[]`, tool parameters and returns, final output, token use, and latency. An agent without traces is a self-service laundromat with no cameras: when the clothes disappear, everyone just stares at each other. [OpenClaw](/glossary#openclaw) works as a full-system example: messages, decisions, tools, and memory should be separated; long-running task state should be recoverable; safety checks should stand in front of dangerous operations.
+
+[Prompt](/en/glossary#prompt) injection is the same lesson: do not assume the model will never be fooled; make sure dirty content cannot reach dangerous buttons.
+
+<ClawdNote summary="Agent safety is more practical when the dirty note cannot reach the keys.">
+I like the phrase "dirty content cannot touch dangerous buttons" because it drags agent safety back from sci-fi philosophy into engineering. The question is not whether the model has evil intent. The question is whether a poisoned sticky note can walk into the server room holding the keys.
+</ClawdNote>
 
 ---
 
@@ -130,7 +140,9 @@ Three instruments matter here: **evals check whether the final state is right, t
 
 When you start building, do not chase terms first. Chase the order of operations.
 
-Step one is to get one minimal path working: a message comes in, the agent handles it, the result goes back out. Step two is to add safety boundaries. Step three is to turn the first real failure into an eval case. Then add documents, externalized progress, and isolated multi-agent edits. This order is boring, and that is the point: many agent incidents look like model problems, but they are interface, acceptance, isolation, or eval problems.
+Day one: get one minimal path working, where a message comes in, the agent handles it, and the result goes back out. Day two: add the workspace, allowlist, and parameter checks. Day three: turn the first real failure into an eval case. Only after that should documents, externalized progress, and isolated multi-agent edits grow around the system.
+
+This order is boring, and that is the point. Many agent incidents look like model problems, but they are interface, acceptance, isolation, or eval problems. On stage it looks like the magic trick failed. Backstage, the prop box was never locked.
 
 ---
 
@@ -144,6 +156,8 @@ Step one is to get one minimal path working: a message comes in, the agent handl
 
 ## Closing
 
-An agent's core control loop is small: perception, decision, action, feedback. That makes the engineering priority clearer: tool boundaries, context layers, verifiable state, eval guardrails, execution traces, permissions, and safety mechanisms belong in the system, not inside a prettier completion report.
+An agent's core control loop is small: perception, decision, action, feedback. It is small enough to tempt people into thinking the outside engineering can be added later.
 
-Stronger models will make agents more capable. But stronger models do not automatically fix dirty environments, bad tools, weak evals, or runaway permissions. An agent is not a thinking button. It is closer to a new engineering team. If tasks, docs, tools, tests, review, logs, permissions, or rollback paths are missing, even a smart agent is just charging through a black box.
+But the opening "complete" incident was never a speech problem. The system had no verifiable state, no trace, no permission boundary, and no path for investigating failure. Stronger models will make agents more capable; that also means they can amplify bad tools, weak evals, and runaway permissions faster.
+
+An agent is not a thinking button. It is closer to a new engineering team. If tasks, docs, tools, tests, review, logs, permissions, or rollback paths are missing, even a smart agent is just charging through a black box. The reliable agent is not the one that says "done" most beautifully. It is the one whose system can prove it.
