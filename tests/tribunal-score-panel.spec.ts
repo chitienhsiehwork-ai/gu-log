@@ -55,12 +55,14 @@ test('tribunal score panel content aligns with the post info block', async ({ pa
     waitUntil: 'domcontentloaded',
   });
 
-  const offsets = await page.evaluate(() => {
+  const layout = await page.evaluate(() => {
     const infoLine = document.querySelector('.translation-info div:nth-of-type(2)');
     const judgeCards = document.querySelector('.ai-judge-panel .judge-cards');
     const judgeHeader = document.querySelector('.ai-judge-panel .judge-header');
+    const judgeCard = document.querySelector('.ai-judge-panel .judge-card');
+    const dimList = document.querySelector('.ai-judge-panel .dim-list');
 
-    if (!infoLine || !judgeCards || !judgeHeader) {
+    if (!infoLine || !judgeCards || !judgeHeader || !judgeCard || !dimList) {
       throw new Error('Expected post info and tribunal score panel to be present');
     }
 
@@ -68,11 +70,46 @@ test('tribunal score panel content aligns with the post info block', async ({ pa
       infoLeft: infoLine.getBoundingClientRect().left,
       cardsLeft: judgeCards.getBoundingClientRect().left,
       headerLeft: judgeHeader.getBoundingClientRect().left,
+      headerFlexDirection: getComputedStyle(judgeHeader).flexDirection,
+      headerAlignItems: getComputedStyle(judgeHeader).alignItems,
+      cardTextAlign: getComputedStyle(judgeCard).textAlign,
+      cardAlignItems: getComputedStyle(judgeCard).alignItems,
+      dimListDisplay: getComputedStyle(dimList).display,
+      dimListTextAlign: getComputedStyle(dimList).textAlign,
     };
   });
 
-  expect(Math.abs(offsets.cardsLeft - offsets.infoLeft)).toBeLessThanOrEqual(1);
-  expect(Math.abs(offsets.headerLeft - offsets.infoLeft)).toBeLessThanOrEqual(1);
+  expect(Math.abs(layout.cardsLeft - layout.infoLeft)).toBeLessThanOrEqual(1);
+  expect(Math.abs(layout.headerLeft - layout.infoLeft)).toBeLessThanOrEqual(1);
+  expect(layout.headerFlexDirection).toBe('column');
+  expect(layout.headerAlignItems).toBe('flex-start');
+  expect(['left', 'start']).toContain(layout.cardTextAlign);
+  expect(layout.cardAlignItems).toBe('flex-start');
+  expect(layout.dimListDisplay).toBe('grid');
+  expect(['left', 'start']).toContain(layout.dimListTextAlign);
+});
+
+test('tribunal fact-check accent uses wine-red instead of pass-green', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('theme', 'dark'));
+  await page.goto(POST_WITH_TRIBUNAL, { waitUntil: 'domcontentloaded' });
+  await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
+
+  const accent = page.locator('.ai-judge-panel .judge-color-factcheck').first();
+  await expect(accent).toBeVisible();
+
+  const [r, g, b] = await accent.evaluate((node) => {
+    const match = getComputedStyle(node).color.match(/\d+/g);
+    if (!match || match.length < 3) {
+      throw new Error('Fact Check accent did not resolve to an RGB color');
+    }
+
+    return match.slice(0, 3).map(Number);
+  });
+
+  expect(r).toBeGreaterThan(150);
+  expect(g).toBeLessThan(140);
+  expect(r).toBeGreaterThan(g);
+  expect(b).toBeGreaterThan(g);
 });
 
 test('tribunal score panel collapses only on extra narrow screens', async ({ page }) => {
