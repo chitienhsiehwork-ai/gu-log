@@ -19,7 +19,7 @@ lang: "zh-tw"
 summary: "OpenAI 和 Anthropic 都把 /goal 類能力推進 coding agent，但目標只解決一小塊問題。真正能讓 agent 安全自動工作的，是策略、限制、健康指標、自治邊界與停止規則。"
 tags: ["shroom-picks", "ai-agents", "codex", "claude-code", "intent-engineering"]
 scores:
-  tribunalVersion: 5
+  tribunalVersion: 8
   factCheck:
     accuracy: 9
     fidelity: 8
@@ -50,7 +50,7 @@ scores:
     clarity: 9
     narrative: 8
     score: 8
-    date: "2026-05-18"
+    date: "2026-05-30"
     model: "gpt-5.5"
 ---
 
@@ -62,7 +62,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 2026 年的 coding Agent 正在學會一件很像主管會做的事：拿到終點，自己拆步驟、跑工具、修錯，直到完成為止。`/goal` 這類能力，就是把「可驗證的完成條件」交給 Agent。
 
-前面幾篇已經拆過 [Codex](/glossary#codex) 的 [`/goal` 目標模式](/posts/sp-197-20260512-chrishayduk-codex-goals/)、[長跑 Agent 安全](/posts/sp-192-20260508-article-agent-ralph/)，也有 [SP-208：Codex Goals 官方指南](/posts/sp-208-20260509-openai-codex-goals-cookbook/) 可以對照 OpenAI 官方說法。這篇不重講 `/goal` 怎麼用，只抓 Paweł Huryn 這套意圖工程框架裡最硬的一刀：目標模式讓 Agent 比較不容易太早停下來，但不等於正式環境治理已經完成。
+前面幾篇已經拆過 [Codex](/glossary#codex) 的 [`/goal` 目標模式](/posts/sp-197-20260512-chrishayduk-codex-goals/)、[長跑 Agent 安全](/posts/sp-192-20260508-article-agent-ralph/)，也有 [SP-208：Codex Goals 官方指南](/posts/sp-208-20260509-openai-codex-goals-cookbook/) 可以對照 OpenAI 官方說法。這篇不重講 `/goal` 怎麼用，只抓這套意圖工程框架裡最硬的一刀：目標模式讓 Agent 比較不容易太早停下來，但不等於正式環境治理已經完成。
 
 這裡也不是說 OpenAI 的 Codex 和 Anthropic 的 [Claude Code](/glossary#claude-code) 是同一套產品。產品細節要回到各自來源；真正值得偷的是「目標之外還要交代什麼」。
 
@@ -83,7 +83,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 Agent 也一樣。`/goal` 可以把任務從活動變結果：不是「整理一下認證」，而是「新認證流程可以用，舊登入狀態不會壞」。麻煩是，Agent 知道終點，仍然不知道路上哪些東西不能犧牲。「客服回覆更快」可能換來更粗暴的答案；「降低升級處理」可能把法律、退款、資安問題硬吃下來；「所有測試通過」可能變成把測試改到不再測真正的問題。
 
-Paweł Huryn 的八個部分不用背成顧問簡報。它們其實只在回答四題：為什麼要做、完成長什麼樣子、什麼不能壞、哪些事必須停下來問人。`/goal` 大概碰到前兩題；能放心讓 Agent 自己跑，靠的是剩下那些不性感的交接資訊。
+這八個部分不用背成顧問簡報。它們其實只在回答四題：為什麼要做、完成長什麼樣子、什麼不能壞、哪些事必須停下來問人。`/goal` 大概碰到前兩題；能放心讓 Agent 自己跑，靠的是剩下那些不性感的交接資訊。
 
 <ClawdNote>
 最值得偷走的不是「八大框架」這個包裝，而是拆分：目標是終點；健康指標是不要為了終點把房子燒掉；限制是紅線；自主邊界是鑰匙發到哪裡；停止規則是看到煙時不要繼續加柴。
