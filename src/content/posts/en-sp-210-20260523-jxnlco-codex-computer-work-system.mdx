@@ -81,16 +81,14 @@ A task gets its context today, then tomorrow you explain it again. Last week's n
 
 Durable threads change that. The conversation is no longer only a transcript. It becomes a long-lived workspace.
 
-Do not think of this as a feature checklist yet. The simpler image is: the same desk stays there. The documents, sticky notes, half-finished artifacts, and open loops do not get wiped away. The next time the user comes back, Codex can continue from the previous state instead of rebooting after every exchange.
-
-The best pinned threads are usually not one-off tasks like "fix this bug." They are recurring workflows:
+Do not think of this as a feature checklist yet. The simpler image is: the same desk stays there. The documents, sticky notes, half-finished artifacts, and open loops do not get wiped away. The best pinned threads are usually not one-off tasks like "fix this bug." They are recurring workflows:
 
 - Chief-of-staff thread: messages, calendar, to-dos, and people who need replies.
 - Release thread: versions, tests, docs, and launch checklists.
 - Documentation-review thread: keep docs aligned with product changes.
 - External-monitoring thread: watch PR comments, document comments, and Slack replies.
 
-Their value is not just remembering the previous sentence. The value is preserving decisions, preferences, constraints, and open loops. Pinning and quick switching are small interface details, but they reveal the product model: these threads are fixed workbenches, not disposable sticky notes.
+Their value is not just remembering the previous sentence. The value is preserving decisions, preferences, constraints, and open loops. Pinning and quick switching are small interface details, but they reveal the product model: a thread is closer to a fixed workbench than a disposable sticky note.
 
 ---
 
@@ -120,19 +118,19 @@ The second is: "After this is done, do the next thing." That is queuing. It does
 
 The difference matters. Steering changes what is happening now. Queuing changes what should happen next. The human stays in the loop, but does not have to stand beside the model like an exam proctor until their eyes dry out.
 
+Mobile makes more sense inside this control model. The point of the Codex mobile app is not to squeeze a whole development environment into a phone. The point is to let the local machine keep running while the user leaves the desk and still checks progress, answers questions, approves the next step, or redirects the task.
+
+<ClawdNote>Writing an entire PR on a phone feels like carving a chip with a toothpick on the subway. Admirable spirit; the fingers will resign first.</ClawdNote>
+
+It used to be: sit at the computer until the task finishes. Now it is closer to: let it run, then intervene when a decision is needed. The environment stays; the human can move.
+
 ---
 
 ## Tool radius: growing outward from the repository
 
 Durable threads answer "what does Codex remember?" The next question is: what can it touch?
 
-Do not start by memorizing tool names. Start with the expanding radius.
-
-The innermost ring is the web page. Codex can inspect a rendered page, operate it, and respond to annotations on the surface. That is already different from merely reading an HTML file. It can handle work where the problem only becomes obvious once someone looks at the result.
-
-The next ring is the signed-in browser. Internal tools, SaaS admin screens, and anything where login state is the ticket in become reachable.
-
-The outer ring is the whole desktop. Old workflows with no API, no CLI, only buttons and windows, do not have to remain permanently human-only.
+Do not start by memorizing tool names. Start with the expanding radius: the innermost ring is the rendered web page, where Codex can operate the surface and respond to annotations; the next ring is the signed-in browser, where internal tools and SaaS admin screens become reachable; the outer ring is the whole desktop, where old workflows with no API, no CLI, only buttons and windows, do not have to remain permanently human-only.
 
 [MCP](/en/glossary#mcp) servers and connectors are easiest to read as safe sockets that let Codex plug into external tools. Slack, inboxes, and calendars matter because many real tasks do not start as code. They start as messages, email, schedule conflicts, or a human dropping a sentence like "can you look at this?"
 
@@ -142,33 +140,15 @@ When a workflow repeats, it can become a [Skill](/en/glossary#skill). A Skill is
 
 ---
 
-## Mobile is not the battlefield, but it changes waiting
-
-The point of the Codex mobile app is not to squeeze a whole development environment into a phone. The point is to change when the user must be at the desk.
-
-<ClawdNote>Writing an entire PR on a phone feels like carving a chip with a toothpick on the subway. Admirable spirit; the fingers will resign first.</ClawdNote>
-
-The work can begin on a local machine where files, permissions, environment variables, and repo state already exist. Then the user can leave the desk and still check progress, answer questions, approve the next step, or redirect the task.
-
-This changes the shape of waiting. It used to be: sit at the computer until the task finishes. Now it is closer to: let it run, then intervene from wherever you are when a decision is needed. The environment stays; the human can move.
-
----
-
 ## Automations: waking the thread on a schedule
 
 Pinned threads are still passive. They wait for the user to come back.
 
-Thread automations feel more like a heartbeat: wake the same thread every few minutes or hours, return to its existing context, and check the state. If the condition is not ready, wait. If it is ready, move to the next step.
-
-The useful split is simple. Some scheduled jobs should start fresh from a clean workspace, such as a daily report or a regular repository check. Others should return to the same conversation because the context itself is part of the work. That is where long workflows get interesting.
+Thread automations feel more like a heartbeat: wake the same thread every few minutes or hours, return to its existing context, and check the state. If the condition is not ready, wait. If it is ready, move to the next step. Some scheduled jobs should start fresh, such as a daily report. Others should return to the same conversation because the accumulated context is part of the work.
 
 A chief-of-staff-style thread could periodically check messages and inboxes, identify items that need attention, research a reply, and draft it without sending. When the human returns, the expensive context gathering is done; the final authority to send still belongs to the human.
 
-Feedback loops are another natural fit. PR comments, document comments, and Slack replies can all become signals.
-
-For artifact review, the flow is easy to picture: check for feedback, regenerate the output, then bring the state back into the same discussion context. If the final step only exists through a desktop GUI, desktop automation can cover it.
-
-That loop spans messages, a codebase, an artifact-generation pipeline, and a desktop GUI. That sounds like a lot, but the skeleton is simple: see feedback, update the artifact, bring it back for review. We used to call this human coordination. Now it starts to look like a workflow that can be described, rerun, and checked.
+Feedback loops are another natural fit. PR comments, document comments, and Slack replies can all become signals: see feedback, update the artifact, bring it back for review. If the final step only exists through a desktop GUI, desktop automation can cover it. We used to call this human coordination. Now it starts to look like a workflow that can be described, rerun, and checked.
 
 ---
 
@@ -176,11 +156,7 @@ That loop spans messages, a codebase, an artifact-generation pipeline, and a des
 
 The point of Goals is not to make tasks sound more ambitious. It is to give Codex a real finish line: something it can keep pushing toward, plus a signal that says the work is complete.
 
-A goal is not a slogan, but a verifiable stopping condition.
-
-A weak goal is: "Implement this Markdown plan." That sounds clear, but it is like telling a delivery driver to bring food "somewhere nearby." Nearby where? What counts as delivered? What should happen if the route fails?
-
-A strong goal has a verifier. If an engineer migrates an internal tool from Python to Rust, the finish line is not "try to migrate it." It is: the new implementation is done when the unit tests pass. The verifier might be a test suite, benchmark, bug reproduction, validation matrix, or an end-to-end workflow that must keep passing.
+A goal is not a slogan, but a verifiable stopping condition. A weak goal is: "Implement this Markdown plan." That sounds clear, but it is like telling a delivery driver to bring food "somewhere nearby." A strong goal has a verifier. If an engineer migrates an internal tool from Python to Rust, the finish line is not "try to migrate it." It is: the new implementation is done when the unit tests pass. The verifier might be a test suite, benchmark, bug reproduction, validation matrix, or an end-to-end workflow that must keep passing.
 
 Ambition without a verifier is just a wish. Harsh, but useful.
 
@@ -198,17 +174,7 @@ The Codex side panel keeps the artifact beside the thread that created it. Hold 
 
 <ClawdNote>I read the side panel as part of the control loop, not just a small UI feature. When the artifact leaves the thread, the next step becomes "please open another ticket." When the artifact stays beside the thread, the correction can plug straight back in. Boring? Yes. Also exactly where product work usually leaks.</ClawdNote>
 
-The in-app browser is especially important. The web page can be both output and control surface. Codex can generate a page, open it, inspect the rendered result, see what broke, and continue fixing it. Comments no longer need to become a separate ticket; they live on the surface under review.
-
-Good fits for this pattern include:
-
-- `index.html`: lightweight static artifacts that need no server.
-- UI component review tools.
-- Programmatic animation tools.
-- Browser-based slide decks.
-- Data apps and analysis workflows.
-
-A single `index.html` can become a durable interactive artifact. Thread automations can refresh it over time so the thread has a new state waiting when the user returns.
+The in-app browser is especially important. The web page can be both output and control surface. Codex can generate a page, open it, inspect the rendered result, see what broke, and continue fixing it. This is a good fit for `index.html` static pages, UI review surfaces, programmatic animation tools, browser decks, and data apps: anything where the problem only shows up once the artifact is visible. Thread automations can refresh the artifact over time so the thread has a new state waiting when the user returns.
 
 ---
 
@@ -220,32 +186,11 @@ A more durable pattern is to write reviewable, movable, versionable context into
 
 This is close to [SP-200 on Markdown / AGENTS.md memory](/en/posts/en-sp-200-20260514-mem0ai-codex-cli-grep-markdown/), but you do not need that background first. Imagine a plain folder of text files, stored in Git, Dropbox, Google Drive, or the team's usual sync layer. An [Obsidian vault](/en/glossary#obsidian-vault) is one common name for that kind of folder. The name sounds fancy; the basic idea is just a note warehouse that is easy to move, search, and version.
 
-The structure can be simple:
-
-```txt
-vault/
-├── TODO.md
-├── people/
-├── projects/
-├── agent/
-└── notes/
-```
-
-The important part is not copying this exact tree. The important part is using `AGENTS.md` to tell Codex what should be preserved, where it belongs, and when not to create churn. Think of `AGENTS.md` as the handoff rules taped to the workbench.
-
-A useful `AGENTS.md` might say:
-
-- Treat `~/vault` as durable work memory.
-- Prefer canonical notes over note sprawl.
-- Route TODOs, people, projects, daily summaries, and scratch notes explicitly.
-- Preserve decisions, blockers, owners, dates, and useful links.
-- If nothing meaningful changed, do not churn the folder.
+The structure can be simple. No need to turn it into a knowledge-management religion. A plain `vault/` with `TODO.md`, `people/`, `projects/`, `agent/`, and `notes/` is enough. The important part is using `AGENTS.md` to tell Codex: treat `~/vault` as durable work memory, prefer canonical notes over note sprawl, route TODOs and project notes explicitly, preserve decisions, blockers, owners, dates, and useful links, and do not churn the folder when nothing meaningful changed. Think of it as the handoff rules taped to the workbench.
 
 Repositories preserve code. The memory folder preserves rolling context: who is involved, what changed, what is blocked, who owns the follow-up, and what the next thread must not ask again.
 
-First-party Codex memory features are better suited to preferences, repeated workflows, and known pitfalls. Another class of screen-context memory tools points toward building memory from recent screen context.
-
-There is no need to turn this into a team sport between memory systems. Product memory is good for preferences and recent context. Plain-text memory is good for work facts the team wants to inspect, move, and version. One is more like a habit in the head; the other is more like a folder in the cabinet.
+First-party Codex memory features are better suited to preferences, repeated workflows, and known pitfalls. Plain-text memory is better for work facts the team wants to inspect, move, and version. One is more like a habit in the head; the other is more like a folder in the cabinet. There is no need to turn this into a team sport between memory systems.
 
 <ClawdNote>My own bias is conservative here: first-party memory is useful, but important team context should still have a plain-text version somewhere. Folders, Markdown, Git — none of this is sexy, but it still opens five years later. Many AI memory systems are scary not because they forget, but because they remember things nobody can audit. Inspectable beats mystical.</ClawdNote>
 
@@ -255,7 +200,7 @@ There is no need to turn this into a team sport between memory systems. Product 
 
 Codex still begins from code, but it is connecting more of the work around code: messages, browsers, desktop surfaces, artifacts, review, scheduling, automation, and shared memory.
 
-This is not a story about a coding assistant becoming slightly better. It is a change in control model. The workbench stays around, the tool radius expands, artifacts remain close enough to review, and important context moves into memory that can be checked. Steering, queuing, automations, and the side panel are not separate product-tour stops; they are different joints in the same workflow.
+This is not a story about a coding assistant becoming slightly better. It is a change in control model. The workbench stays around, the tool radius expands, artifacts remain close enough to review, and important context moves into memory that can be checked. Those scattered features stop looking like product-tour stops and start looking like joints in the same workflow.
 
 If you want to connect this back to earlier gu-log pieces: [SP-197](/posts/sp-197-20260512-chrishayduk-codex-goals/) covers goals and verifiers, [SP-200](/posts/sp-200-20260514-mem0ai-codex-cli-grep-markdown/) covers Markdown memory, [SP-183](/posts/sp-183-20260426-teddy-riker-designing-for-agents/) covers surfaces designed for agents, and [SP-196](/posts/sp-196-20260511-garrytan-meta-meta-prompting-garry-tan/) covers personal AI as a larger operating-system idea. This source puts those parts on one desk.
 
