@@ -98,13 +98,36 @@ const labels =
 
 <style>
   .codex-learning-map {
+    --clm-bg: linear-gradient(135deg, rgba(68, 71, 90, 0.96), rgba(40, 42, 54, 0.98));
+    --clm-glow: radial-gradient(circle at top left, rgba(255, 121, 198, 0.2), transparent 38%);
+    --clm-card-bg: rgba(40, 42, 54, 0.72);
+    --clm-step-bg: rgba(68, 71, 90, 0.42);
+    --clm-pill-bg: rgba(139, 233, 253, 0.12);
+    --clm-border: rgba(206, 205, 218, 0.32);
+    --clm-dashed-border: rgba(206, 205, 218, 0.34);
+    --clm-text: var(--color-text, #cecdda);
+    --clm-muted: var(--color-text-muted, #8a96c0);
+    --clm-strong: #f8f8f2;
+
     margin: 2rem 0;
     padding: 1rem;
-    border: 1px solid var(--border-color, #93a1a1);
+    border: 1px solid var(--clm-border);
     border-radius: 18px;
-    background:
-      radial-gradient(circle at top left, rgba(38, 139, 210, 0.18), transparent 36%),
-      var(--code-bg, #fdf6e3);
+    background: var(--clm-glow), var(--clm-bg);
+    color: var(--clm-text);
+  }
+
+  :global([data-theme='light']) .codex-learning-map {
+    --clm-bg: #fdf6e3;
+    --clm-glow: radial-gradient(circle at top left, rgba(38, 139, 210, 0.18), transparent 36%);
+    --clm-card-bg: rgba(255, 255, 255, 0.45);
+    --clm-step-bg: rgba(255, 255, 255, 0.32);
+    --clm-pill-bg: rgba(88, 110, 117, 0.12);
+    --clm-border: var(--color-border, #d3cbb7);
+    --clm-dashed-border: rgba(88, 110, 117, 0.52);
+    --clm-text: var(--color-text, #556b73);
+    --clm-muted: var(--color-text-muted, #4a5a5e);
+    --clm-strong: var(--color-text, #556b73);
   }
 
   .model-shift {
@@ -118,8 +141,8 @@ const labels =
   .model-card {
     border-radius: 14px;
     padding: 0.9rem;
-    border: 1px solid var(--border-color, #93a1a1);
-    background: rgba(255, 255, 255, 0.45);
+    border: 1px solid var(--clm-border);
+    background: var(--clm-card-bg);
   }
 
   .model-card span,
@@ -127,13 +150,14 @@ const labels =
     display: inline-block;
     font-size: 0.78rem;
     letter-spacing: 0.03em;
-    opacity: 0.72;
+    color: var(--clm-muted);
   }
 
   .model-card strong {
     display: block;
     margin-top: 0.35rem;
     line-height: 1.35;
+    color: var(--clm-strong);
   }
 
   .bad {
@@ -147,7 +171,7 @@ const labels =
     display: flex;
     align-items: center;
     font-size: 1.7rem;
-    opacity: 0.75;
+    color: var(--clm-muted);
   }
 
   .steps {
@@ -160,27 +184,29 @@ const labels =
   }
 
   .steps li {
-    border: 1px dashed var(--border-color, #93a1a1);
+    border: 1px dashed var(--clm-dashed-border);
     border-radius: 14px;
     padding: 0.75rem;
-    background: rgba(255, 255, 255, 0.32);
+    background: var(--clm-step-bg);
   }
 
   .step-label {
     font-weight: 700;
     margin-bottom: 0.35rem;
+    color: var(--clm-strong);
   }
 
   .steps p {
     margin: 0 0 0.55rem;
     font-size: 0.92rem;
     line-height: 1.55;
+    color: var(--clm-text);
   }
 
   .steps span {
     padding: 0.15rem 0.45rem;
     border-radius: 999px;
-    background: rgba(88, 110, 117, 0.12);
+    background: var(--clm-pill-bg);
   }
 
   @media (max-width: 760px) {
