@@ -89,11 +89,11 @@ This is the nastiest failure mode for long-running agents. No explosion. No red 
 
 ## First, Stop Mystifying the Long Run. It Mostly Spends More Tokens.
 
-Jarrod's first cut is plain: long-running agents sometimes work because they spend more [Token](/en/glossary#token).
+Long-running agents sometimes work because they spend more [Token](/en/glossary#token).
 
 Researchers call this scaling [test-time compute](/en/glossary#test-time-compute). The model is not retrained. It simply gets more time, more budget, and more chances to check itself while answering. Jarrod points to Anthropic's Opus 4.6 system card, where Sonnet 4.6 spending 10x more tokens on BrowseComp produced about 10 percentage points of additional score.
 
-Plain English: thinking longer can really help.
+The conservative reading is simple: thinking longer can really help.
 
 That is not magic. Humans are the same way. A five-minute answer and a two-hour answer with research, rereading, and revision are not the same product. Agents are similar. As long as the task still fits in one coherent context, more rounds can improve the result.
 
@@ -158,7 +158,7 @@ So Jarrod's first missing piece is not a bigger model or a stronger loop. It is 
 
 ## Missing Piece One: Kill Ambiguity Before the Starting Line
 
-Before letting the autonomous loop begin, Jarrod invests in a setup phase. The goal is not to write code. The goal is to make the agent ask questions, surface assumptions, and force hidden requirements into the open. The idea is close to Matt Pocock's viral `grill-me` skill, and to Jarrod's own `/interview` style workflow.
+Before letting the autonomous loop begin, the workflow invests in a setup phase. The goal is not to write code. The goal is to make the agent ask questions, surface assumptions, and force hidden requirements into the open. The idea is close to Matt Pocock's viral `grill-me` skill, and to Jarrod's own `/interview` style workflow.
 
 This sounds slow. It is actually how time gets saved.
 
@@ -204,7 +204,7 @@ The third missing piece is the least glamorous, which means it is probably the m
 
 Long-running tasks will hit context problems. The context window fills up. Agents may hand off. Earlier decisions get compressed, dropped, or misread. Managing a whole project only inside a chat transcript is like writing handoff notes on sticky notes and taping them in front of a desk fan.
 
-Jarrod's solution is very plain: write important state into files.
+The solution is very plain: write important state into files.
 
 Jarrod's skill puts those states under a `.agent/` directory:
 
@@ -217,7 +217,7 @@ The number is not the insight. The insight is that state must leave the model's 
 
 This is not a silver bullet either. Agents may skip files. Files can go stale. Logs can be incomplete. Jarrod says as much: these are guidelines, not perfect control systems.
 
-But without external memory, a long-running agent almost always becomes "whatever the current context says." That is not a workflow. That is improv theater with a terminal.
+But without external memory, a long-running agent almost always becomes "whatever the current context says," leaving control inside the current context itself.
 
 ---
 
@@ -231,7 +231,7 @@ During execution, something builds, something reviews, and something coordinates
 
 Across rounds, something preserves the goal, standards, method, and progress.
 
-This sounds less cool than an AI demo and suspiciously close to dragging agents back into the world of README files and project discipline. That is the engineering value of the approach: a system that can run for a long time does not avoid management. It turns management into part of the system.
+This sounds less cool than an AI demo and much closer to specifications, handoff notes, and process checks. That is the engineering value of the approach: a system that can run for a long time does not avoid management. It turns management into part of the system.
 
 Codex Goals productizes continuous work. That matters. But Jarrod's warning is that continuous work is only the foundation. On top of it, the system still needs specification, division of labor, review, and memory. Otherwise, mistakes simply get more time to grow.
 
