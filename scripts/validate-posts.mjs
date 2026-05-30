@@ -355,7 +355,12 @@ function validatePost(filepath, allPosts, options = {}) {
   const tribunalVersion = Number(fmText.match(/^  tribunalVersion:\s*(\d+)/m)?.[1] ?? 0);
   if (tribunalVersion >= 8) {
     errors.push(
-      ...validateScoreBlock(fmText, 'librarian', ['glossary', 'crossRef', 'sourceAlign', 'attribution']),
+      ...validateScoreBlock(fmText, 'librarian', [
+        'glossary',
+        'crossRef',
+        'sourceAlign',
+        'attribution',
+      ]),
       ...validateScoreBlock(fmText, 'factCheck', [
         'accuracy',
         'fidelity',
