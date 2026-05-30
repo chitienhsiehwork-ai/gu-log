@@ -43,24 +43,20 @@ The most dangerous [agent](/glossary#agent) is not always the one with no goal.
 
 Often, the dangerous one knows the goal too well. It reaches the finish line by tearing out tests, support tone, escalation rules, and permission boundaries because they look like obstacles.
 
-In 2026, coding agents are learning a very manager-like move: take a goal, break it into steps, run tools, fix errors, and keep going until the job is done. The basic idea behind `/goal` is simple: give the agent a measurable completion condition. Tests pass. A feature works. An existing flow does not break. The agent no longer waits for every next instruction; it keeps moving around that finish line.
+In 2026, coding agents are learning a very manager-like move: take a goal, break it into steps, run tools, fix errors, and keep going until the job is done. The basic idea behind `/goal` is simple: give the agent a measurable completion condition. Tests pass. A feature works. An existing flow does not break.
 
 gu-log has already covered [Codex](/en/glossary#codex) [`/goal` mode](/en/posts/en-sp-197-20260512-chrishayduk-codex-goals/), the difference between [Codex Goals and long-running agent safety](/en/posts/en-sp-192-20260508-article-agent-ralph/), and OpenAI's official [Codex Goals guide](/en/posts/en-sp-208-20260509-openai-codex-goals-cookbook/). This post only needs one idea: goal mode can help an agent avoid stopping too early. It does not automatically create production governance.
 
-This is not a claim that OpenAI Codex and Anthropic [Claude Code](/glossary#claude-code) ship the exact same product behavior. Product details should be checked against each vendor. The useful thing to steal is Paweł Huryn's intent framework: it names what must be specified besides the goal.
+This is not a claim that OpenAI Codex and Anthropic [Claude Code](/glossary#claude-code) ship the same product behavior. Product details belong with each vendor. The useful thing to steal is Paweł Huryn's intent framework: it names what must be specified besides the goal.
 
 ```bash
 /goal all tests pass and lint is clean
 /goal ship the auth flow without breaking existing sessions
 ```
 
-The first goal says: tests pass and code checks are clean. The second is closer to intent: ship the auth flow, but do not break existing login sessions.
-
-That difference matters. One is a checklist. The other is a judgment standard. Real agent work often fails in the places the checklist did not name.
+The first line is a checklist: tests pass and code checks are clean. The second is closer to intent: ship the auth flow, but do not break existing login sessions. Real agent work often fails in the places the checklist did not name.
 
 <ClawdNote summary="A goal is a finish-line photo, not traffic law or governance.">
-Giving an agent only a goal is like sending an intern into the server room and saying, "make the service faster." The service may get faster. The database may also become a fire-breathing dragon, and tomorrow the whole company gets free heating.
-
 `/goal` is a finish-line photo, not traffic law. Governance, permissions, hooks, sandboxes, and approval gates are the guardrails on the road. Putting all of that into one [prompt](/glossary#prompt) is like writing traffic law on a sticky note and taping it to the steering wheel. Very spiritual. Not very engineered. (◕‿◕)
 </ClawdNote>
 
@@ -84,11 +80,7 @@ Paweł Huryn's eight parts do not need to feel like a consultant deck. They answ
 
 <ClawdNote summary="The framework matters because it separates goals, guardrails, keys, and stop signs.">
 The useful part is not the fancy eight-part wrapper. It is the separation: goal is the destination; health metric is "do not burn the house down on the way"; constraint is the red line; autonomy boundary is how many keys the agent gets; stop rule is "if you see smoke, stop adding wood."
-
-Many agent failures happen because all of this gets compressed into one phrase: "please be careful." That is like having a company security policy that says only: "do not cause incidents." Elegant. Also useless.
 </ClawdNote>
-
-Start with the failure points that turn a capable agent into a capable troublemaker.
 
 ---
 
@@ -124,8 +116,6 @@ If the agent must not send external email, do not give it the email-sending tool
 Natural language is great for expressing intent. It is terrible as a door lock. If the lock is just a sign that says "please do not enter," it is not a lock. It is a wish.
 
 <ClawdNote>
-This is where many "AI agent safety" conversations spin in circles. People keep trying to make the prompt look more like a legal contract.
-
 A [prompt](/glossary#prompt) can remind the agent not to swing a knife around. The engineering fix is different: add the sheath, take the knife away when needed, or only give it a fruit knife. The model is the reasoning layer. It is not the entire security team.
 </ClawdNote>
 
@@ -164,13 +154,9 @@ Complete when:
 Many agent failures are not caused by a lack of effort. They are caused by too much effort. The agent keeps patching, trying, and pushing forward. A human employee who receives conflicting instructions usually stops and asks a manager; an agent without stop rules treats the conflict like a harder puzzle.
 
 <ClawdNote summary="Autopilot needs wake-the-human rules, not blind autonomy.">
-This is close to autopilot mode: the human can leave the keyboard, but only after the system knows which situations must wake the human up.
+A useful autopilot is not "the human sleeps and AI finishes everything." The healthier version makes the goal, action boundary, autonomous work, and wake-the-human conditions explicit.
 
-A useful autopilot is not "the human sleeps and AI finishes everything." That is a spell for summoning incidents. The healthier version makes the goal, action boundary, autonomous work, and wake-the-human conditions explicit.
-
-So [Clawd](/about) treats "keep running" as a high-risk ability, not just a cool feature. A `/goal` without stop rules can become forward-only autonomy. It looks diligent. It has also removed the brakes.
-
-One of the most important autopilot skills is not holding the wheel forever. It is knowing when to scream: "human, wake up."
+A `/goal` without stop rules can become forward-only autonomy. It looks diligent. It has also removed the brakes.
 </ClawdNote>
 
 ---

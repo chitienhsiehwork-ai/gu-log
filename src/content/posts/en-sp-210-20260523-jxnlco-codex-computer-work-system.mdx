@@ -65,71 +65,53 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 [Codex](/en/glossary#codex) first looks like an engineer's helper: open a repository, read files, make a diff, run tests, and open a PR.
 
-That center of gravity is still there. But the interesting shift is not "faster code." Codex is starting to touch the rest of computer work: browsers, terminals, APIs, documents, Slack, Gmail, calendars, desktop GUIs, and scheduled state checks. Code is turning from destination into entrance.
+That center of gravity is still there. But the shift now feels more like a late-night call: not "change this function," but "someone mentioned this in Slack, the docs may have clues, the admin panel needs a login, send me a screenshot of the result, and remind me before morning." If Codex only writes code, that task scatters into five tickets, three tabs, and a lot of human follow-up.
 
-Before, you handed Codex a task and waited for a code change. Now it feels more like leaving Codex a workbench: memory, tools, open loops, half-finished artifacts, and something reviewable next to the conversation.
-
-The real question is no longer whether Codex can write code. It is whether this workbench can carry a computer task from "someone asked for it" to "the result got reviewed."
+So the question is no longer just whether Codex can code. It is whether Codex can keep context, reach the right tools, and put the result back in front of a human. Code is turning from destination into entrance; behind the door is a fuller workflow for computer work.
 
 <ClawdNote>This is like a convenience-store cashier growing from "I can ring people up" into "I can restock shelves, order inventory, check cameras, and call vendors." We thought the register got smarter; actually the whole store workflow started connecting. Scary, but reasonable (｀・ω・´)</ClawdNote>
 
-## First key: the desk cannot reset every day
+## First, flatten the names: this is one workbench, not five toys
+
+The product stack can lose new readers fast, so here is the plain-language version:
+
+- [Thread](/en/glossary#thread): not a chat transcript, but a workbench that does not reset every day. It holds decisions, preferences, constraints, and open loops.
+- Voice, mobile app, and queuing: ways to give rough tasks, leave the desk, then come back to approve or redirect the next step.
+- Browser, desktop GUI, connectors, and [MCP](/en/glossary#mcp): ways for Codex to reach beyond the repository into webpages, SaaS admin screens, APIs, and even old workflows that only have buttons and windows. MCP can be read as a safe socket for external tools.
+- [Skill](/en/glossary#skill): a repeated workflow packaged as a standard operating card, so the [agent](/en/glossary#agent) does not need the same routine re-taught every time.
+- Side panel, Goals, first-party memory, and Markdown / [Obsidian vault](/en/glossary#obsidian-vault): artifact review, completion criteria, personal preferences, and inspectable team context. An Obsidian vault is basically a note warehouse that is easy to move, search, and version.
+
+Lots of names, one problem: the gray zone between "I asked for it" and "the result is reviewable" needs to become describable, rerunnable, and correctable.
+
+## The desk stays around, so humans stop restating everything
 
 The biggest problem with short chats is not that the model is dumb. It is that every session rebuilds the stage: last week's naming rule, review preference, test trap, or customer habit disappears like a whiteboard erased after the meeting.
 
-Durable [threads](/en/glossary#thread) turn a conversation from a transcript into a workspace. The best pinned threads are usually not one-off bugs; they are recurring workflows like releases, documentation review, and regular message or to-do triage. The value is not remembering the previous sentence. It is preserving decisions, preferences, constraints, and open loops.
+Durable threads turn a conversation from a transcript into a workspace. The best pinned threads are usually not one-off bugs; they are recurring workflows like releases, documentation review, message triage, and to-do cleanup. Voice belongs on the same desk: a lot of work is not a clean instruction yet. "Someone in Slack mentioned this. I forgot the details. Please go find it." Typed out, that sounds like a bad ticket. Spoken out loud, it sounds normal. For an agent that can search, summarize, and report back, roughness is often the real shape of the task.
 
 <ClawdNote>Humans often write prompts while pretending they are clearer than they are, then delete the useful hesitation, anxiety, and context. Voice input pours the scratchpad directly into the sink. Messy, but often closer to the truth.</ClawdNote>
 
-Voice input belongs in this same picture. A lot of work is not a clean instruction yet: "Someone in Slack mentioned this. I forgot the details. Please go find it." Typed out, that sounds like a bad ticket. Spoken out loud, it sounds normal; for an [agent](/en/glossary#agent) that can search and report back, roughness is often the real shape of the task.
-
----
-
-## Second key: humans can leave the desk, not the loop
-
-Once a long task starts running, control splits into two forms: redirect the work now, or queue the next step without interrupting the current one. During a website review, the side panel can show the rendered surface while the user annotates: make this smaller, the spacing feels off, this copy is wrong. After PR comments are handled, the docs update can already be lined up.
-
-Together, these keep the human in the loop without making the human stand beside the model like an exam proctor until their eyes dry out. The Codex mobile app also makes more sense as a control surface: the local machine keeps running while the user checks progress, answers questions, approves the next step, or redirects the task.
+Once a long task is running, control should not collapse into either "watch it" or "abandon it." In a side panel, a website review can become direct annotations: make this smaller, the spacing feels off, this copy is wrong. After PR comments are handled, a docs update can already be queued. The mobile app then reads less like a phone-sized IDE and more like a control surface: the local machine keeps running while the user checks progress, answers questions, approves the next step, or redirects the task.
 
 <ClawdNote>Writing an entire PR on a phone feels like carving a chip with a toothpick on the subway. Admirable spirit; the fingers will resign first.</ClawdNote>
 
----
+## The tool radius grows, but it needs a finish line
 
-## Third key: the tool radius should grow without becoming clutter
+Once the desk stays around, the next question is what Codex can touch. Read the radius from inside out: first rendered webpages, where Codex can operate the surface and respond to annotations; then signed-in browsers, where internal tools and SaaS admin panels become reachable; finally the full desktop, where old workflows with no API, no CLI, only buttons and windows can still be connected.
 
-Once the desk stays around, the next question is what Codex can touch.
+A bigger radius does not mean attaching every tool in sight. A daily workflow that always drops one step may deserve a Skill; a weird process that appears once every three weeks can just be written down. Automation follows the same rule. A thread can wake every few minutes or hours to check state, or messages, inboxes, PR comments, document comments, and Slack replies can become signals. This used to be called human coordination. Now it starts to look like a workflow that can be described, rerun, and checked.
 
-Do not start by memorizing tool names. Start with the radius: rendered web pages, signed-in browsers, SaaS admin screens, and finally desktop workflows with no API, no CLI, only buttons and windows.
+<ClawdNote>This is where overengineering gets tempting. Buying a library barcode scanner for twenty books is how the scanner breaks before the books become searchable.</ClawdNote>
 
-[MCP](/en/glossary#mcp) servers and connectors are safe sockets for external tools. When a workflow repeats, it can become a [Skill](/en/glossary#skill), closer to a standard operating card than a magic spell: do not teach the [agent](/en/glossary#agent) the same routine every time.
+What keeps this from becoming clutter is the verifier. The point of Goals is not to make tasks sound more ambitious. It is to give Codex a real finish line. "Migrate the internal tool from Python to Rust" should not mean "try to migrate it." It should mean "the new implementation is done and the unit tests pass." Ambition without a verifier is just a wish.
 
-<ClawdNote>This is where overengineering gets tempting. A weird process that happens once every three weeks does not need a skill. A daily process that always loses one step does. Buying a library barcode scanner for twenty books is how the scanner breaks before the books become searchable.</ClawdNote>
-
-Automation adds a heartbeat to that card. A thread wakes every few minutes or hours, checks state, and moves only when the condition is ready. Messages, inboxes, PR comments, document comments, and Slack replies can all become signals. This used to be called human coordination; now it starts to look like a workflow that can be described, rerun, and checked.
-
----
-
-## Fourth key: a goal without a verifier is just a wish
-
-The point of Goals is not to make tasks sound more ambitious. It is to give Codex a real finish line: something it can keep pushing toward, plus a signal that says the work is complete.
-
-"Implement this Markdown plan" sounds clear, but it is like telling a delivery driver to bring food "somewhere nearby." A strong goal has a verifiable stopping condition: if an engineer migrates an internal tool from Python to Rust, the finish line is not "try to migrate it." It is "the unit tests pass."
-
-Ambition without a verifier is just a wish. Harsh, but useful.
-
-<ClawdNote>Goals are easy to overframe as the protagonist. A better reading: the goal is the finish line. The work moves because threads, tools, schedules, review surfaces, and verifiers connect. A long task without a verifier is like a gym poster that says "get stronger." Motivational, but the muscle does not appear.</ClawdNote>
-
-The side panel keeps verifiers and artifacts inside the loop. A document, deck, webpage, table, or PDF that leaves the conversation quickly turns into another tab, another tool, and another review thread. The in-app browser makes this concrete: the web page can be both output and control surface, so Codex can generate, open, inspect, and fix without throwing the artifact over the wall.
+The side panel keeps that finish line and the artifact inside the loop. A document, deck, webpage, table, or PDF that leaves the conversation quickly turns into another tab, another tool, and another review thread. The in-app browser makes this concrete: a webpage can be both output and control surface, so Codex can generate, open, inspect, and fix without throwing the artifact over the wall.
 
 <ClawdNote>I read the side panel as part of the control loop, not just a small UI feature. When the artifact leaves the thread, the next step becomes "please open another ticket." When the artifact stays beside the thread, the correction can plug straight back in. Boring? Yes. Also exactly where product work usually leaks.</ClawdNote>
 
----
+## Memory has to be trusted, not merely stored
 
-## Fifth key: important context should be inspectable
-
-Long-running threads are useful, but a thread should not be the final home for every memory.
-
-A more durable pattern is to write reviewable, movable, versionable context into external memory. This is close to [SP-200 on Markdown / AGENTS.md memory](/en/posts/en-sp-200-20260514-mem0ai-codex-cli-grep-markdown/): a plain folder of text files. An [Obsidian vault](/en/glossary#obsidian-vault) sounds fancy, but the basic idea is just a note warehouse that is easy to move, search, and version.
+Long-running threads are useful, but a thread should not be the final home for every memory. A more durable pattern is to write reviewable, movable, versionable context into external memory. This is close to [SP-200 on Markdown / AGENTS.md memory](/en/posts/en-sp-200-20260514-mem0ai-codex-cli-grep-markdown/): a plain folder of text files.
 
 The structure can stay simple. No need to turn it into a knowledge-management religion. `TODO.md`, `people/`, `projects/`, `agent/`, and `notes/` are enough. The important part is using `AGENTS.md` to tell Codex which notes are canonical, which decisions and blockers matter, and when not to churn the folder.
 
@@ -137,12 +119,8 @@ Repositories preserve code; the memory folder preserves rolling context. First-p
 
 <ClawdNote>My own bias is conservative: first-party memory is useful, but important team context should still have a plain-text version. Folders, Markdown, Git — none of this is sexy, but it still opens five years later. AI memory systems are scary not because they forget, but because they remember things nobody can audit. Inspectable beats mystical.</ClawdNote>
 
----
-
 ## Closing
 
-Codex still begins from code, but it is connecting more of the surrounding work: messages, browsers, desktop surfaces, artifacts, review, scheduling, automation, and shared memory.
-
-Read one by one, this sounds like a product tour. The real signal is that these pieces are starting to form one control loop: the desk stays around, the tool radius expands, artifacts remain close enough to review, and important context moves into memory that can be checked.
+Read one by one, this can sound like a product tour. Connected together, the signal is larger: Codex is starting to join messages, browsers, desktop surfaces, artifacts, review, scheduling, automation, and shared memory into one control loop.
 
 Code used to look like the agent's destination. Now it looks more like a door. Behind that door is not another editor, but a computer-work loop that runs from instruction to execution to artifact review.

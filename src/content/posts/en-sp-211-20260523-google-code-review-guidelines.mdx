@@ -65,27 +65,19 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 Code review sits between two failure modes.
 
-If review only checks whether tests are green and quickly stamps approval, technical debt accumulates. If the reviewer treats every preference as a blocking requirement, even useful changes get trapped in process.
+If review only checks whether tests are green and stamps approval, technical debt accumulates quietly. If every preference becomes a blocking requirement, useful changes get trapped in process.
 
-The core of this code review guide is not a checklist. It starts by defining the standard: **the purpose of code review is to improve the overall code health of the system over time.**
+The better standard is simple: **the purpose of code review is to improve the overall code health of the system over time.** It is not about proving that the reviewer knows more, and it is not about polishing every `CL` into a perfect jewel. A `CL` is a changelist: one self-contained change ready for version control. Once it clearly improves the system's overall code health, reviewers should usually favor approval even if it is not perfect.
 
-It is not about proving that the reviewer knows more. It is not about making the author suffer. It is not about polishing one CL into the only perfect artifact in the universe. Code is not perfect or imperfect; it is healthier or less healthy. Once a CL clearly improves the system's overall code health, reviewers should usually favor approval even if the CL is not perfect.
-
-<ClawdNote>This source has an important time boundary: the `google/eng-practices` GitHub repository is archived and read-only; GitHub shows it was archived on 2025-11-21. That does not make the advice useless. It is closer to an old engineering handbook whose bones are still solid. Tools change, review interfaces change, and AI writes more code, but "do not let the codebase get worse every day" has not been deprecated by any shiny framework.</ClawdNote>
+<ClawdNote>This article summarizes the code review material from Google Engineering Practices. The `google/eng-practices` repository is archived and read-only, so this should not be treated as a new 2026 document. It is closer to an older engineering handbook with sturdy bones: tools change, review interfaces change, and AI writes more code, but "do not let the codebase get worse every day" has not been deprecated.</ClawdNote>
 
 ## First define the standard: health over perfection
 
-The review standard has a plain but strict center: reviewers must trade off progress and quality. If no change can land, the codebase does not improve. If every "we'll clean this later" decision gets waved through, the cost for future maintainers rises one small shortcut at a time.
+Review has to avoid two bad outcomes at once. If no change can land, the codebase does not improve. If every "we'll clean this later" decision gets waved through, future maintainers pay for one shortcut after another.
 
-The core rule is:
+The question is not "do I like this?" It is "will this be easier to maintain?" Technical facts and data outrank personal preference; formatting follows the style guide; design arguments should come from engineering principles. If several designs are reasonable and the author supports one with data or sound reasoning, the reviewer should usually accept the author's choice.
 
-> In general, reviewers should favor approving a CL once it is in a state where it definitely improves the overall code health of the system being worked on, even if the CL isn't perfect.
-
-In engineering-floor language: **if this CL clearly makes the system better overall, do not block it for days just because it is not perfect.**
-
-That is not a retreat from quality. It changes quality from "my idea of perfect" to "long-term maintainability." Reviewers can still leave suggestions. If a comment is only a polish item, mark it as `Nit:` so the author knows it is not a hard requirement.
-
-Technical facts and data outrank personal preference; formatting follows the style guide; software design should be argued from engineering principles. If several designs are reasonable and the author supports one with data or sound reasoning, the reviewer should accept the author's preference.
+Polish comments can be marked `Nit:` so the author knows they are not blocking. Reviewers still protect quality, but the quality bar is long-term maintainability, not a private list of preferences.
 
 <ClawdNote>The worst review mismatch is dressing up "I like it this way" as "engineering quality." That is like insisting the garnish must sit on the left and calling it food architecture governance. Please. That is taste, not architecture. (¬‿¬)</ClawdNote>
 
@@ -95,41 +87,33 @@ Once that line is clear, review stops being a search for defects and becomes a j
 
 ## What reviewers should look at first
 
-The checklist starts with familiar items: design, functionality, complexity, tests, names, comments, style, and documentation. But the useful part is not having eight boxes to tick. It is the question behind them: will this change make future maintainers suffer more?
+The review topics are familiar: design, functionality, complexity, tests, names, comments, style, and documentation. The useful part is not ticking eight boxes. It is asking whether this change makes future understanding and maintenance cheaper or more expensive.
 
-At this point, the reviewer has to stop being a gatekeeper and start being a guide. A gatekeeper only says no at the entrance. A guide knows which path leads off a cliff and which path merely has ugly carpet.
+**Design** comes first. Should this change exist in the current system? Should it live here? Does it fit the existing architecture? If the direction is wrong, say so early instead of waiting until the author stacks more CLs on top of the wrong design.
 
-**Design** comes first. Should this change exist in the current system? Should it live in a shared library? Does it fit the existing architecture? Is now the right time to add this feature? If the direction is wrong, the reviewer should say so early instead of waiting until the author stacks more CLs on top of the wrong design.
+**Functionality** is about whether the change is good for users. Users include end users and future engineers who will call, modify, or debug this code. UI changes may need a demo, not just a diff. Concurrency changes need careful reasoning about deadlocks and race conditions.
 
-**Functionality** is not only whether the code does what the author intended. It is whether that intention is good for users. Users include end users and future engineers who will call, modify, or debug this code. UI changes may need a demo, not just a diff. Concurrency changes often require human reasoning about deadlocks and race conditions, not just passing tests.
+**Complexity, tests, names, comments, and documentation** all protect maintainability. Can the next engineer understand it quickly? Will tests fail when behavior breaks? Are names clear? Do comments explain why instead of restating what? Did README, API, build, release, or user-facing docs move with the code? Over-engineering counts as complexity: if the requirement is a door that opens, do not ship smart access control, visitor analytics, pluggable hinge interfaces, and a multi-tenant doorknob strategy.
 
-**Complexity** has a direct test: if readers cannot quickly understand it, it is probably too complex. Watch especially for over-engineering: designing a giant generic abstraction for a future requirement that may never arrive.
-
-<ClawdNote>Over-engineering has a smell. The requirement asks for a door that opens; the implementation arrives with smart access control, visitor analytics, pluggable hinge interfaces, and a multi-tenant doorknob strategy. The requirement is standing in the corner whispering, "Actually, I just needed the door to open." (￣▽￣)／</ClawdNote>
-
-**Tests, names, comments, and documentation** all belong to maintainability too. Will the test fail when the code breaks? Are names clear without becoming legal paperwork? Do comments explain why instead of repeating what the code does? If build, release, API usage, or user interaction changes, the docs should move with it.
-
-Two boundaries are easy to miss: pick reviewers who can understand the change, not just whoever is available; and if reviewers only checked certain files or one aspect, they should say so.
-
-Order matters more than the checklist. For a large CL, start with the description and overall direction, then the files that carry the main design, then the rest. Sometimes tests are the fastest entry point because they reveal what behavior the change promises.
+Order matters more than the checklist. For a large CL, start with the description and overall direction, then the files that carry the main design, then the details. Sometimes tests are the fastest entry point because they reveal the behavior being promised. If a reviewer checked only certain files or one aspect, they should say so.
 
 <ClawdNote>This kind of review can be diligent in the wrong order, like polishing glass on a sinking ship. The glass is shinier; the ship is still sinking. Looking at design direction first is checking whether the ship has a hole.</ClawdNote>
 
-Once the direction is clear, review has another enemy: time. Too fast becomes rubber-stamping. Too slow turns the team into a traffic jam. The speed section is about that annoying but very real tension.
+Once the direction is clear, review has another enemy: time. Too fast becomes rubber-stamping. Too slow turns the team into a traffic jam.
 
 ---
 
 ## Speed is team throughput, not nagging
 
-The important idea about review speed is that the optimization target is not one engineer typing faster. It is the whole team moving product work forward without clogging the pipe. Slow review gets downstream work stuck, makes engineers hate review, and damages code health because pressure pushes teams to land weaker CLs.
+Review speed is not about making one engineer type faster. It is about team throughput. Slow review blocks features and bug fixes, makes engineers resent the process, and eventually pressures teams to land weaker CLs.
 
-How fast is fast enough? **One work day is the upper bound for responding to a review notification** — for example, first thing the next morning. That does not mean interrupting focus every three minutes. A reviewer in deep coding work can wait for a natural break; the point is to keep the author from guessing in the dark.
+A review notification should get a response within about one work day, such as first thing the next morning. That does not mean interrupting focus every three minutes. A reviewer in deep work can wait for a natural break; the point is to keep the author from guessing in the dark.
 
-Another practical move is **LGTM with comments**. `LGTM` means "looks good to me," or approval. If the code meets the review standard and the remaining comments are non-blocking, reviewers can approve while leaving comments. Across time zones, this can save a full day.
+`LGTM` means "looks good to me." If the code meets the review standard and the remaining comments are non-blocking, reviewers can approve while leaving those comments. Across time zones, this can save a full day. If a CL is too large to review predictably, ask the author to split it.
 
 <ClawdNote>This is mundane but important: many review conflicts are not caused by standards being too high; they are caused by latency being too high. When people wait too long, they attach all their frustration to the final comment. The comment may only say "please add a test," but the author hears "after three days, please rewrite your life."</ClawdNote>
 
-Large CLs are another speed trap. If a CL is too big to review predictably, ask the author to split it. Speed solves half the problem. The other half is tone.
+Speed solves half the problem. The other half is tone.
 
 ---
 
@@ -137,15 +121,15 @@ Large CLs are another speed trap. If a CL is too big to review predictably, ask 
 
 Good review comments are kind, clear, explanatory, and aimed at the code, not the person. A bad version: "Why are you using threads? Concurrency gives no benefit here." A better version: "This concurrency model increases system complexity, but I do not see a performance benefit; without that benefit, a single-threaded approach would fit better." The first sounds like judging the author; the second reviews the design.
 
-Comments should explain why when the request causes extra work, invokes best practice, or depends on code-health reasoning. Severity should also be clear: `Nit:` means small polish, `Optional:` or `Consider:` means a suggestion, and `FYI:` means future context. Without labels, authors may treat every comment as a blocker.
+Explain why when a request causes extra work, invokes best practice, or depends on code-health reasoning. Mark severity clearly: `Nit:` means small polish, `Optional:` or `Consider:` means a suggestion, and `FYI:` means future context. Without labels, authors may treat every comment as a blocker.
 
-If a reviewer asks the author to explain unclear code, the usual destination should be clearer code, not only a reply in the review tool. Future readers will not see review-tool explanations.
+If a reviewer cannot understand the code, the usual destination should be clearer code, not only a reply in the review tool. Future readers will not see review-tool explanations.
 
-The real test comes when the author says, "I disagree." The first step is not for the reviewer to get tougher; it is to pause and check whether the author may be right. If the pushback is reasonable from a code-health perspective, drop the issue. If the author is wrong, add better reasoning and bring the conversation back to code health.
+The real test comes when the author says, "I disagree." The first step is not for the reviewer to get tougher; it is to check whether the author may be right. If the pushback is reasonable from a code-health perspective, drop the issue. If the author is wrong, add better reasoning and bring the conversation back to maintainability.
 
-"We'll clean it up later" is the classic pushback. The guide is blunt here: unless cleanup happens immediately, it becomes less likely over time. If a CL introduces new complexity, it should usually be cleaned up before submit, unless it is an emergency. If the CL only exposes nearby existing problems and they cannot be fixed now, the author should file a bug and, when appropriate, add a TODO that points to it.
+"We'll clean it up later" is the classic danger. Unless cleanup happens immediately, it becomes less likely over time. If a CL introduces new complexity, it should usually be cleaned up before submit. If the CL only exposes nearby existing problems and they cannot be fixed now, file a bug and, when appropriate, add a TODO that points to it.
 
-If the debate gets stuck, try a face-to-face or video conversation and record the conclusion back in CL comments. If that still fails, escalate to a broader team discussion, tech lead, maintainer, or engineering manager. The key rule is: **do not let a CL sit forever because author and reviewer cannot agree.**
+If the debate gets stuck, try a face-to-face or video conversation and record the conclusion back in CL comments. If that still fails, escalate to a broader team discussion, tech lead, maintainer, or engineering manager. Do not let a CL sit forever because author and reviewer cannot agree.
 
 <ClawdNote>This is mature process design. Many review systems fail not because they lack standards, but because they lack a conflict-resolution path. Two engineers quote each other's previous comments like a tiny courtroom drama, and the CL becomes a monument to the organization's missing decision mechanism.</ClawdNote>
 
@@ -155,17 +139,17 @@ Smooth review is not a solo performance by the reviewer. The author also decides
 
 ## Author side: a good CL saves reviewer brainpower
 
-The guide also teaches CL authors how to make review faster and more useful. A good CL does not dump a giant box on the reviewer's desk with a note saying "please take a look." That is closer to emptying every kitchen drawer onto the floor and asking someone to find one spoon.
+A good `CL` does not dump a giant box on the reviewer's desk with a note saying "please take a look." That is closer to emptying every kitchen drawer onto the floor and asking someone to find one spoon.
 
-First, write a good CL description. It is a permanent record in version-control history and may be read by hundreds of people. A good description answers **what changed** and **why**; "Fix bug," "Fix build," and "Phase 1" are not concise, they are empty.
+First, write a good CL description. It becomes part of version-control history and may be read by many people later. A useful description answers **what changed** and **why**; "Fix bug," "Fix build," and "Phase 1" are not concise, they are empty.
 
-Second, write small CLs. Small, simple CLs are reviewed faster, understood more carefully, less likely to introduce bugs, less costly when rejected, easier to merge, easier to roll back, and less likely to block follow-up work.
+Second, write small CLs. Small, simple CLs are reviewed faster, understood more carefully, less likely to introduce bugs, easier to merge, and easier to roll back.
 
-"Small" is not just line count. It means **one self-contained change**: one thing, related tests included, and enough context in the CL description, current codebase, or already-reviewed CLs. A pragmatic scale: 100 lines is usually reasonable, 1000 lines is usually too large, and reviewers may reject a CL simply because it needs splitting.
+"Small" is not just line count. It means **one self-contained change**: one thing, related tests included, and enough context in the description, current codebase, or already-reviewed CLs. A pragmatic scale: 100 lines is usually reasonable, 1000 lines is usually too large, and reviewers may reject a CL simply because it needs splitting.
 
 <ClawdNote>"Small CL" does not mean breaking the whole machine into crumbs and throwing them at the reviewer. Each piece still needs enough meaning to show where it belongs. Too small without semantics is also painful, like receiving one screw with no idea which part of the airplane it came from.</ClawdNote>
 
-Even after a good CL description and a clean split, comments can still wobble the conversation. The author's first rule is simple: do not take criticism personally. If the code can be clearer, change the code. If it cannot reasonably be clearer, add comments explaining why it exists. Only when a comment is unnecessary should the explanation stay only in the review tool.
+After comments arrive, do not treat criticism as personal. If the code can be clearer, change the code. If it cannot reasonably be clearer, add comments explaining why it exists. Only when a comment is unnecessary should the explanation stay only in the review tool.
 
 When disagreeing with a comment, avoid a flat "will not do." Explain the tradeoff: why X was chosen, why Y seemed worse, and whether the reviewer thinks Y better matches the original tradeoff. That brings the discussion back to technical facts instead of willpower.
 
@@ -175,17 +159,17 @@ There is one last escape hatch almost every team is tempted to abuse: emergency.
 
 ## Emergency is not "please, I want this today"
 
-Emergencies need a strict definition because the word is easy to abuse. A true emergency CL should be small and address things like a major launch blocker, a severe production bug affecting users, an urgent legal issue, or a serious security vulnerability. Only then should review speed become the top priority and quality standards narrow to correctness. After the incident, the emergency CL still needs a fuller review.
+A true emergency CL should be small and address things like a major launch blocker, a severe production bug affecting users, an urgent legal issue, or a serious security vulnerability. Only then should review speed become the top priority and quality standards narrow to correctness. After the incident, the emergency CL still needs a fuller review.
 
 Wanting to launch this week instead of next week, merge before Friday evening, work around sleeping reviewers in other time zones, or satisfy a manager's soft deadline may all be annoying. They are not reasons to flatten the review standard. Even a hard deadline needs a disaster-level consequence, such as a contractual obligation or a product-survival market window.
 
-This matters because technical debt rarely begins with someone saying, "Today I will damage the system." It begins with a reasonable sentence: let this one through and clean it later. Say that often enough, and both failure modes from the opening return, just wearing different uniforms.
+Technical debt rarely begins with someone saying, "Today I will damage the system." It begins with a reasonable sentence: let this one through and clean it later. Say that often enough, and both failure modes from the opening return, just wearing different uniforms.
 
 ---
 
 ## Conclusion
 
-The guide circles back to the two failure modes from the opening: rubber-stamp review lets the codebase quietly decay, while perfection-gate review prevents useful improvements from entering at all. The point is not the words `LGTM` and `CL`; it is the engineering principle behind them: **each review decides whether the codebase will be healthier tomorrow or harder to maintain.**
+`LGTM`, `CL`, and `Nit:` are only tools. The engineering principle behind them is the real point: **each review decides whether the codebase will be healthier tomorrow or harder to maintain.**
 
 <ClawdNote>The problem with "later" is that it rarely destroys the system loudly. It quietly interviews for the technical-debt job every day. At first it looks harmless; by the time you notice, it is already sitting beside the team with an employee badge.</ClawdNote>
 
