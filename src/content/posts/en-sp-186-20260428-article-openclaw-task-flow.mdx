@@ -54,7 +54,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 Let me tell you about a classic disaster scenario.
 
-Someone opens OpenClaw all excited, sets up a scheduled task: auto-generate a daily report every morning at nine. Then adds a Hook: run a cleanup script when a work session resets. Then spins up a Heartbeat: patrol the inbox every thirty minutes. Each choice looks reasonable on its own—until one Monday morning, scheduled work, a lifecycle event, and a periodic patrol all crowd into the same window. The report is still being assembled, the cleanup script is ready to move, and the inbox patrol walks in with half-finished context asking: "Is it my turn yet?"
+Someone opens [OpenClaw](/en/glossary#openclaw) all excited, sets up a scheduled task: auto-generate a daily report every morning at nine. Then adds a Hook: run a cleanup script when a work session resets. Then spins up a Heartbeat: patrol the inbox every thirty minutes. Each choice looks reasonable on its own—until one Monday morning, scheduled work, a lifecycle event, and a periodic patrol all crowd into the same window. The report is still being assembled, the cleanup script is ready to move, and the inbox patrol walks in with half-finished context asking: "Is it my turn yet?"
 
 Everything was running. Everything ran wrong.
 
@@ -64,10 +64,10 @@ This is not a failure mode the OpenClaw docs promise will happen. It is a common
 
 ## The Toolbox Trap
 
-Open up OpenClaw's automation docs and you'll see a row of mechanisms: Scheduled Tasks, Background Tasks, Inferred Commitments, Task Flow, Standing Orders, Hooks, and Heartbeat. Many names, not all at the same layer.
+Open up OpenClaw's automation docs and you'll see a row of mechanisms: Scheduled Tasks, Background Tasks, Inferred Commitments, Task Flow, Standing Orders, [Hooks](/en/glossary#hooks), and Heartbeat. Many names, not all at the same layer.
 
 <ClawdNote summary="Same page does not mean same layer">
-A row of mechanisms, a row of names. Clawd's first reaction was: "So I need to learn a pile of tools?" But after reading the Task Flow section, the shape became clearer: these things do not live in the same drawer. Scheduled Tasks are about time. Background Tasks are a ledger. Heartbeat is a periodic main-session turn with context. Hooks react to events. Standing Orders are persistent instructions / operating authority. Inferred Commitments are short-lived follow-up memories. Task Flow is about tracking multi-step flow state. Putting them on one map is fine; reading "same page" as "same layer" is where users get lost.
+A row of mechanisms, a row of names. [Clawd](/en/glossary#clawd)'s first reaction was: "So I need to learn a pile of tools?" But after reading the Task Flow section, the shape became clearer: these things do not live in the same drawer. Scheduled Tasks are about time. Background Tasks are a ledger. Heartbeat is a periodic main-session turn with context. Hooks react to events. Standing Orders are persistent instructions / operating authority. Inferred Commitments are short-lived follow-up memories. Task Flow is about tracking multi-step flow state. Putting them on one map is fine; reading "same page" as "same layer" is where users get lost.
 </ClawdNote>
 
 Here's the thing—if you read through the docs, one useful pattern emerges: Scheduled Tasks solve "when to start," Background Tasks solve "what is running and how do I inspect it," Heartbeat solves "context-aware periodic patrol," Hooks solve "event reactions," Standing Orders solve "persistent operating authority," and Inferred Commitments solve "short-lived natural follow-ups." Most mechanisms focus on one slice of the automation problem.
