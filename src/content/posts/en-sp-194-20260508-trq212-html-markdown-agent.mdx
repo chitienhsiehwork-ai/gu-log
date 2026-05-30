@@ -100,14 +100,16 @@ gu-log previously covered Thariq's [Claude Code interactive sandbox plugin](/en/
 
 Markdown became the dominant format for communication between agents and humans for good reasons.
 
-It is simple, portable, easy to edit, and has basic rich text capability. Claude has even become very good at drawing in ASCII inside Markdown. This skill is a little like carving an aircraft carrier out of convenience-store chopsticks: dexterous, admirable in spirit, but when there is clearly a 3D printer sitting nearby, the scene starts to feel a bit absurd.
+It is simple, portable, easy to edit, and has basic rich text capability. Claude has even become very good at drawing in ASCII inside Markdown. But that approach is still limited by what Markdown can naturally express: it can sketch the structure, but it struggles with visual hierarchy, interactive states, and complex layouts.
 
 The problem is that once agents get stronger, the output is no longer just "please help me list a TODO." They start writing larger and larger specs, plans, brainstorm results, reference documents, and research summaries. In practice, once a Markdown file exceeds one hundred lines, it is already hard to read the whole thing, let alone get other people in the organization to read it together.
 
 More importantly, one of Markdown's biggest advantages used to be that it was "easy for humans to edit." But now, much of the time, these files are not edited line by line by hand. They are treated as specs, references, and brainstorm output; when changes are really needed, Claude is usually prompted to make them. Since the main editor has already shifted from human hands to the agent, Markdown's hand-editability advantage is weakened.
 
-<ClawdNote>
+<ClawdNote summary="Markdown is fine for notes, but not for rich agent artifacts.">
 This turn is important. Markdown is not bad; it has been put into a new job. Writing short notes in Markdown is comfortable. Using Markdown to carry interactive specs, design comparisons, code reviews, and flow visualizations is like asking a bicycle to tow a shipping container. The bicycle is not wrong, and neither is the container. The mistake is forcing them together.
+
+Claude drawing ASCII diagrams inside Markdown is still impressive. It is a little like carving an aircraft carrier out of convenience-store chopsticks: dexterous, admirable, and also a bit absurd when a 3D printer is sitting nearby.
 </ClawdNote>
 
 So HTML started becoming the preferred option. Even more interestingly, more and more people on the Claude Code team are doing the same.
@@ -128,20 +130,22 @@ HTML lets the model put information directly into the shape best suited to it. T
 
 ---
 
-## Readability is not aesthetics, it is the lifeline of collaboration
+## Readability is not aesthetics; it shapes review rate
 
 At this point, the story stops being only about "HTML can hold more information." The sharper question is: even if the information is there, will anyone finish reading it?
 
-The more complex Claude's work becomes, the longer the plans and specs it writes. The problem with long Markdown is not that the information is incomplete, but that it looks too much like a whole gray wall. A reader's eyes scan across it, everything seems about equally important, and the brain switches into power-saving mode: save it for later, read it tomorrow, quietly let tomorrow join the same graveyard as New Year's resolutions.
+The more complex Claude's work becomes, the longer the plans and specs it writes. The problem with long Markdown is not that the information is incomplete, but that it has too little visual hierarchy. When a reader scans it, it is hard to tell what matters, what needs immediate feedback, and what can wait, so the document is easy to postpone.
 
 HTML lets Claude arrange content in ways closer to how humans read: tabs, illustrations, links, visual hierarchy, sections, and navigation. It can even produce responsive layouts, with different presentations on desktop and mobile.
 
-This is especially important for team collaboration. It is hard to get coworkers to read Markdown specs; if it is HTML, the odds that they will read a spec, report, or PR explanation become much higher.
+This is especially important for team collaboration. It is hard to get coworkers to read Markdown specs; if it is HTML, the odds that a spec, report, or PR explanation gets opened, read, and commented on may be much higher.
 
-That sentence is a little brutal. The technical world often assumes that "once the information is written down, communication is complete." It is not. Writing information down only means it exists. Communication is complete only when people actually understand it, are willing to review it, and can give feedback.
+Writing information down only means it exists. Communication is complete only when people actually understand it, are willing to review it, and can give feedback.
 
-<ClawdNote>
+<ClawdNote summary="A document nobody reads is not communication.">
 The real enemy of many specs is not typos, nor architecture diagrams that are insufficiently UML. It is that nobody reads them. A spec that nobody reads is like that box of yogurt in the fridge that expired three weeks ago: strong presence, practical value approaching zero.
+
+Clawd's private take: engineering culture often treats "the document exists" as "communication happened." But if the document is so dense that the reader's brain goes into power-saving mode, saves it for later, and lets "later" join the same graveyard as New Year's resolutions, that is not communication. That is responsibility sealed into a file.
 </ClawdNote>
 
 ---
@@ -200,9 +204,13 @@ There is another reason that sounds un-engineering-like but is very important: u
 
 This sentence may sound like a soft preference, but in agent workflows it is actually hard-edged.
 
-If a plan makes people too lazy to read it, they exit the loop. Then the agent decides the direction by itself, and the human only sees the result at the end, notices something is wrong, and tries to fix it. This mode is very much like handing over the car keys, then sitting in the back seat and pretending you are still navigating. On the surface there is participation; in reality, control has already been given up.
+If a plan makes people too lazy to read it, they exit the loop. Then the agent decides the direction by itself, and the human only sees the result at the end, notices something is wrong, and tries to fix it. On the surface there is still participation; in reality, early judgment has been delayed until it is too late.
 
 HTML makes intermediate artifacts easier to read, easier to play with, and easier to adjust. When people are willing to stop and look, they are more likely to intervene early. One early intervention can save a whole string of rework later.
+
+<ClawdNote>
+The dangerous version is not "the AI suddenly rebels." It is a human handing over the car keys, moving to the back seat, and still believing the map in their hand counts as navigation. If intermediate artifacts are hard to read, humans quietly give up control, and it usually happens without a dramatic moment.
+</ClawdNote>
 
 ---
 
@@ -224,7 +232,7 @@ This advice is very pragmatic. When many engineers see an effective method, thei
 
 HTML is easy to misread as "it can do A, B, C, and also D." Read that way, the examples get tiring fast. They become a display shelf: nice objects, but after the third row, the eyes glaze over.
 
-A more useful reading is this: HTML turns three places where humans usually fall out of the agent workflow back into reviewable interfaces. It is not a feature list. It is a route for keeping humans from quietly leaving halfway through.
+A more useful reading is this: HTML turns three places where humans usually fall out of the agent workflow back into reviewable interfaces. It is not a feature list. It is a route that makes review, choice, and feedback easier to finish.
 
 The first place is **exploration and planning**. When a developer does not yet know which direction to take, Claude Code can put several options on the same page: layout, tone, information density, risks, data flow, and trade-offs. Humans no longer need to switch between six Markdown files or hold six plans in working memory. Once a direction is chosen, the same HTML artifact can expand into an implementation plan with mockups, key code snippets, risks, and milestones.
 
