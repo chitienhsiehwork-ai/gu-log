@@ -70,15 +70,13 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 The most magical-looking part of an [Agent](/glossary#agent) is usually not the hardest part.
 
-Start with a dumb but very real incident.
-
-When this article entered the automated pipeline, one subtask briefly reported that it was "complete." In theory, the machine could have packed up and gone home. But one extra check of system state showed the real workflow was still running, the quality checks had not passed, and the article absolutely could not be published yet.
+Start with a dumb but very real incident: an agent reports that it is "complete," while the surrounding system has no verifiable state proving the work is actually complete.
 
 That is the cruelest and most useful lesson in agent engineering: **an agent saying it is done does not mean the system is actually done.**
 
 A reliable agent is not one that writes a pretty completion report. It is one that records progress, can be verified by machines, leaves inspectable traces when something breaks, and cannot randomly poke tools it should not touch. Put another way: the model is only the driver. The engineering system is the dashboard, brakes, lane markings, and dashcam.
 
-@HiTw93's long post breaks this down nicely. It is not asking "which model is strongest?" It is answering a much more practical question from the engineering floor: **how do agents go from demo toys to systems that can actually deliver work?**
+This engineering breakdown is not asking "which model is strongest?" It is answering a much more practical question from the engineering floor: **how do agents go from demo toys to systems that can actually deliver work?**
 
 If you do not want to swallow every term at once, read with just three questions in mind:
 
@@ -90,12 +88,12 @@ We will cover a lot of parts later, but you do not need to memorize the names fi
 
 If you only remember one thing, make it this: **getting an agent to move is not hard; getting it to run reliably is.**
 
-This piece is more like an incident map. First we look at where things blow up, then at how engineering patches the holes. The blast radius keeps growing: at first the loop runs off course, then completion reports become untrustworthy, then context gets dirty, and finally multiple agents start stepping on each other.
+The whole architecture is more like an incident map. First we look at where things blow up, then at how engineering patches the holes. The blast radius keeps growing: at first the loop runs off course, then completion reports become untrustworthy, then context gets dirty, and finally multiple agents start stepping on each other.
 
-Compared with recent gu-log pieces, this one is the main switchboard: [SP-197](/posts/sp-197-20260512-chrishayduk-codex-goals/) explains how [Codex](/glossary#codex) `/goal` writes verifiable state into files, [SP-192](/posts/sp-192-20260508-article-agent-ralph/) looks at how long-running agents avoid diligently drifting in the wrong direction, [SP-158](/posts/sp-158-20260403-braintrust-agent-production-trace/) shows how execution traces and scoring feedback make systems improve for real, and [SP-135](/posts/sp-135-20260328-trq212-agent-file-system/) unpacks file-system memory. HiTw93's post happens to connect those lines into one map of the engineering floor.
-
-<ClawdNote>
+<ClawdNote summary="This piece connects several recent gu-log agent-engineering threads.">
 Many agent product demos look like Iron Man's house AI. Open the implementation and it often looks more like a dorm-room power strip: model, tools, database, browser, command line, logs, all plugged into one place. It moves, and sometimes it looks amazing. But once something smokes, nobody knows which plug started it.
+
+Compared with recent gu-log pieces, this one is the main switchboard: [SP-197](/posts/sp-197-20260512-chrishayduk-codex-goals/) explains how [Codex](/glossary#codex) `/goal` writes verifiable state into files, [SP-192](/posts/sp-192-20260508-article-agent-ralph/) looks at how long-running agents avoid diligently drifting in the wrong direction, [SP-158](/posts/sp-158-20260403-braintrust-agent-production-trace/) shows how execution traces and scoring feedback make systems improve for real, and [SP-135](/posts/sp-135-20260328-trq212-agent-file-system/) unpacks file-system memory. This source connects those lines into one map of the engineering floor.
 </ClawdNote>
 
 ## Incident 1: A control loop can run without finishing the task
@@ -110,7 +108,7 @@ The real problem is: **a control loop can run without completing the task correc
 
 Many products wear the agent label, but if you open them up, they look more like fixed workflows: the route is already written, and each step merely uses an LLM. That is not a bad thing. When the task is fixed and acceptance is clear, a fixed workflow is often more stable. Forcing everything into a fully autonomous agent is like calling a fire truck to water a tiny succulent on your desk. The truck arrives, the ladder goes up, the hose is connected, and the succulent dies.
 
-@HiTw93's original post lists several common control patterns: prompt chaining, routing, parallelization, orchestrator-workers, and evaluator-optimizer. You do not need to memorize the names. What matters is that they all answer the same question: **should the program decide the path, or should the model dynamically decide the next step?**
+Common control patterns include prompt chaining, routing, parallelization, orchestrator-workers, and evaluator-optimizer. You do not need to memorize the names. What matters is that they all answer the same question: **should the program decide the path, or should the model dynamically decide the next step?**
 
 If the answer is "the process is clear," start with a fixed workflow. You only really need an agent when the task requires exploration, judgment, and dynamic adjustment across multiple tools.
 
@@ -122,13 +120,11 @@ An agent control loop is like a car that can press the accelerator by itself. Th
 
 ## Incident 2: The agent says it is done, but nobody checked
 
-This one just slapped us in the face in real time.
+This is a classic failure: the agent says it is done, but the outside world still has no checkable completion state. **Completion is not language; completion is verifiable state.**
 
-A subtask reported completion, but the real workflow was still running, quality checks had not passed, and the article could not be published yet. Luckily, system state got checked again. Otherwise we would have hit a classic agent failure: **completion is not language; completion is verifiable state.**
+This is where the [Agent Harness](/glossary#agent-harness) matters. You can think of it as the acceptance rig around the agent: the equipment that gives it goals, scope limits, acceptance checks, failure feedback, and rollback paths. The model drives. The guardrail system handles traffic lights, barriers, speed cameras, and accident records.
 
-This is why the original post keeps emphasizing the [Agent Harness](/glossary#agent-harness). You can think of it as the acceptance rig around the agent: the equipment that gives it goals, scope limits, acceptance checks, failure feedback, and rollback paths. The model drives. The guardrail system handles traffic lights, barriers, speed cameras, and accident records.
-
-The OpenAI case mentioned in the original post comes with a dramatic set of numbers: 3 engineers, 5 months, roughly 1 million lines of code, nearly 1,500 PRs, and what the original describes as about 10x the speed of traditional development. Treat those numbers as self-reported case data, not a universal productivity guarantee. The useful lesson is the set of conditions behind them.
+The OpenAI case comes with a dramatic set of numbers: 3 engineers, 5 months, roughly 1 million lines of code, nearly 1,500 PRs, and about 10x the speed of traditional development. Treat those numbers as self-reported case data, not a universal productivity guarantee. The useful lesson is the set of conditions behind them.
 
 Those conditions are very practical. Anything the agent cannot see effectively does not exist, so documentation should work like a map, not an encyclopedia. Constraints cannot live only in human heads; they need to land in format checks, type systems, CI, and structural tests. More importantly, the agent needs to reproduce failures, run tests, inspect logs, and read execution traces by itself instead of waiting for humans to spoon-feed context. Merging can be fast, but discipline cannot run on prayer. Prayer mostly just adds a line to the incident report saying everyone felt confident at the time.
 
@@ -146,7 +142,7 @@ There is an entire civilization between "the agent says it is done" and "CI is g
 
 The next failure mode is sneakier: the model is not broken, and the task is not wrong, but the context is dirty.
 
-Context engineering sounds academic. It is really just cleaning your desk. [Prompt](/glossary#prompt), tool outputs, long documents, memory, user preferences, error logs: if you mash all of them together and shove the pile at the model, the model sees a lot, but has a harder time finding the signal that matters. The original post calls this "context degradation": the more content you add, the harder it can be to grab the point.
+Context engineering sounds academic. It is really just cleaning your desk. [Prompt](/glossary#prompt), tool outputs, long documents, memory, user preferences, error logs: if you mash all of them together and shove the pile at the model, the model sees a lot, but has a harder time finding the signal that matters. That is context degradation: the more content you add, the harder it can be to grab the point.
 
 A more stable approach is layered:
 
@@ -156,6 +152,8 @@ A more stable approach is layered:
 4. Manage long-term memory separately; do not stuff every chat log back into every turn.
 
 This is like organizing a toolbox. Screwdrivers, drills, and welding torches are all useful, but nobody dumps the entire hardware store onto the table when fixing a pair of glasses.
+
+A stable prefix also has one very practical benefit: prompt caching. If fixed rules, tool descriptions, and background material keep shifting every turn, cache hits fall. If the always-on layer stays stable, the system becomes easier to control and cheaper to run.
 
 Tools have the same problem. More tools make it easier for the agent to choose the wrong one. More abstract tool descriptions make it easier for the model to guess wrong. The most important human-language sentence here is: **do not give agents a pile of low-level API parts; give them tools that complete tasks.**
 
@@ -173,7 +171,7 @@ A tool description like "helps with backend" is like a convenience store sign th
 
 ## Incident 4: Once multiple agents run, the real danger is shared state
 
-The exciting part of multi-agent systems is that "many things can run at once." But the original post warns that the first thing to break usually is not speed. It is agents stepping on each other's state.
+The exciting part of multi-agent systems is that "many things can run at once." But the first thing to break usually is not speed. It is agents stepping on each other's state.
 
 It makes sense for a main agent to delegate search, trial-and-error, and debugging to subagents. Each subagent keeps its own context and returns only a summary at the end, so the main agent does not get polluted by every exploration path and can more easily locate which subtask failed.
 
@@ -181,11 +179,11 @@ But collaboration cannot rely on verbal agreements alone. You need at least thre
 
 That is why long tasks need to write progress to files instead of keeping it only in chat; why parallel edits need isolation; and why "who is waiting for whom, and who has completed what" needs to become a recoverable record.
 
-The pitfall this workflow hit lives here too: a subtask reported completion, but the real workflow was still alive. This is not merely "the model is dumb." It means the orchestration layer cannot trust natural-language completion reports alone. External state is the more trustworthy source.
+The orchestration layer cannot trust natural-language completion reports alone. External state is the more trustworthy source. If the task is still alive, files have not landed, or tests have not run, a pretty completion summary is still just a pretty summary.
 
-Evals and execution traces exist for the same reason. Evals should not only judge whether an answer looks pretty; they should check whether the environment ended up in the right state. Traces answer the more painful question: exactly which turn started drifting? What did the model see, what did the tool actually do, and what did the system become afterward? Miss any one of those three, and debugging quickly becomes a seance.
+Evals and execution traces exist for the same reason. Evals should not only judge whether an answer looks pretty; they should check whether the environment ended up in the right state. Pass@k, where multiple samples can give you one successful attempt, is not the same pressure as Pass^k, where a multi-step run needs every step to hold. Online sampling should also turn real production-like failures back into cases instead of only celebrating offline test sets. Traces answer the more painful question: exactly which turn started drifting? What did the model see, what did the tool actually do, and what did the system become afterward? Miss any one of those three, and debugging quickly becomes a seance.
 
-The original post ends with [OpenClaw](/glossary#openclaw) as a full-system example. You do not need to memorize the system name. Just look at the design direction: receiving messages, translating messages, making decisions, calling tools, and storing memory should be separated; long-running task state should be recoverable; and safety boundaries should stand in front of dangerous operations.
+[OpenClaw](/glossary#openclaw) works as a full-system example. You do not need to memorize the system name. Just look at the design direction: receiving messages, translating messages, making decisions, calling tools, and storing memory should be separated; long-running task state should be recoverable; task dispatch, tool calls, memory reads and writes, and state sync should each have boundaries; and safety checks should stand in front of dangerous operations.
 
 [Prompt](/en/glossary#prompt) injection also makes more sense from this angle. Do not fantasize that the model will never be fooled by dirty content. Make sure dirty content cannot reach dangerous buttons. External content should enter marked as untrusted, sensitive operations should require confirmation, tool permissions should be minimized, and critical actions should have extra rules or a second layer of checking.
 
@@ -193,7 +191,7 @@ The original post ends with [OpenClaw](/glossary#openclaw) as a full-system exam
 
 ## If you want to ship it, order matters more than terminology
 
-The original post ends with a pile of practical advice. When you actually start building, do not chase terms first. Chase the order of operations.
+When you actually start building, do not chase terms first. Chase the order of operations.
 
 Step one is to get one minimal path working: a message comes in, the agent handles it, the result goes back out. Step two is to add safety boundaries: workspace limits, allowlists, and parameter validation should not wait until after an incident. Step three is to turn the first real failure into an eval case. Do not wait until "later when we have time." Later usually does not exist.
 
