@@ -417,13 +417,16 @@ const labels = {
     border-radius: 8px;
     border: 1px solid var(--color-border);
     font-size: 0.85rem;
+    text-align: left;
   }
 
   .judge-header {
     margin-bottom: 0.75rem;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+    text-align: left;
   }
 
   .judge-title {
@@ -462,14 +465,19 @@ const labels = {
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
+    align-items: flex-start;
     min-width: 0;
+    text-align: left;
   }
 
   .card-header {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    width: 100%;
+    justify-content: flex-start;
     min-width: 0;
+    text-align: left;
   }
 
   .judge-icon {
@@ -484,6 +492,8 @@ const labels = {
     gap: 0.1rem;
     flex: 1;
     min-width: 0;
+    align-items: flex-start;
+    text-align: left;
   }
 
   .judge-name {
@@ -497,6 +507,8 @@ const labels = {
     font-weight: 700;
     line-height: 1;
     margin: 0.1rem 0;
+    width: 100%;
+    text-align: left;
   }
 
   .score-denom {
@@ -520,20 +532,20 @@ const labels = {
 
   /* Score value colors */
   .score-high {
-    color: #34d399; /* bright emerald — exceptional */
+    color: #88a17f; /* muted sage — exceptional */
   }
   .score-pass {
-    color: #93a1a1; /* Solarized base1 — passing */
+    color: #738b6c; /* softened olive-sage — passing */
   }
   .score-fail {
-    color: #e57373; /* soft red — failing */
+    color: #e09a9a; /* brighter dusty rose — failing */
   }
 
   :global([data-theme='light']) .score-high {
-    color: #047857;
+    color: #55704d;
   }
   :global([data-theme='light']) .score-pass {
-    color: #586e75;
+    color: #65795e;
   }
   :global([data-theme='light']) .score-fail {
     color: #b71c1c;
@@ -544,7 +556,7 @@ const labels = {
     color: #78b4ff;
   }
   .judge-color-factcheck {
-    color: #34d399;
+    color: #b8657d;
   }
   .judge-color-fresheyes {
     color: #c084fc;
@@ -557,7 +569,7 @@ const labels = {
     color: #1d4ed8;
   }
   :global([data-theme='light']) .judge-color-factcheck {
-    color: #047857;
+    color: #8f3852;
   }
   :global([data-theme='light']) .judge-color-fresheyes {
     color: #7e22ce;
@@ -567,20 +579,25 @@ const labels = {
   }
 
   .dim-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.2rem 0.15rem;
-    align-items: center;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.18rem;
+    align-items: start;
+    justify-items: start;
     color: var(--color-text-muted);
     font-size: 0.7rem;
     margin-top: 0.1rem;
+    width: 100%;
     min-width: 0;
+    text-align: left;
   }
 
   .dim-item {
     display: flex;
-    gap: 0.2rem;
+    gap: 0.35rem;
     align-items: baseline;
+    justify-content: flex-start;
+    width: 100%;
     min-width: 0;
   }
 
@@ -592,13 +609,6 @@ const labels = {
   .dim-item strong {
     font-weight: 600;
     font-size: 0.75rem;
-  }
-
-  .dim-item + .dim-item::before {
-    content: '·';
-    color: var(--color-border);
-    font-size: 0.7rem;
-    margin-right: 0.15rem;
   }
 
   @media (max-width: 480px) {
@@ -638,7 +648,7 @@ const labels = {
     }
 
     .dim-list {
-      gap: 0.14rem 0.12rem;
+      gap: 0.14rem;
     }
 
     .dim-item {
@@ -652,10 +662,6 @@ const labels = {
     .dim-label::after {
       content: attr(data-short);
       font-size: 0.62rem;
-    }
-
-    .dim-item + .dim-item::before {
-      margin-right: 0.12rem;
     }
   }
 </style>
