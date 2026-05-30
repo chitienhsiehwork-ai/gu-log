@@ -17,11 +17,11 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 On the surface this tweet is a moving announcement. Underneath, it's a breakup letter that took a month to write.
 
-[Mitchell Hashimoto](https://x.com/mitchellh) (HashiCorp co-founder, author of Vagrant, the guy who's been building [Ghostty](https://ghostty.org/) for the past few years) posted one line on X on April 28, 2026: "Ghostty is leaving GitHub." Attached was a long blog post on his personal site. The reason this hit the developer community much harder than the usual "we're moving to GitLab" or "we're trying SourceHut" announcements is who said it: **GitHub user #1299** — registered in February 2008, before the platform itself was even widely known.
+[Mitchell Hashimoto](https://x.com/mitchellh) (HashiCorp co-founder, author of Vagrant, the guy who's been building [Ghostty](https://ghostty.org/) for the past few years) posted one line on X on April 28, 2026: "Ghostty is leaving GitHub." Attached was a long blog post on his personal site. This is not the usual "we're moving to GitLab" or "we're trying SourceHut" moving note, because of who said it: **GitHub user #1299** — registered in February 2008, before the platform itself was even widely known.
 
-[Mitchell's long post](https://mitchellh.com/writing/ghostty-leaving-github) doesn't compare alternatives. It reads as a love letter to GitHub, with the spine being not platform choice but the recording of a relationship that ran out of road. The thing that finally made him hit send was a journal he'd kept for the past month — every day GitHub broke his ability to work, he marked an X. "Almost every day has an X." On the day he was writing the post, he'd already lost about two hours of PR review time to a GitHub Actions outage.
+[Mitchell's blog post](https://mitchellh.com/writing/ghostty-leaving-github) doesn't compare alternatives. It reads as a love letter to GitHub, with the spine being not platform choice but the recording of a relationship that ran out of road. The thing that finally made him hit send was a journal he'd kept for the past month — every day GitHub broke his ability to work, he marked an X. "Almost every day has an X." On the day he wrote the post, he'd already lost about two hours of PR review time to a GitHub Actions outage.
 
-Three things under that letter are worth keeping: first, **why user #1299 speaking carries unusual weight**; second, **the deliberate distinction that only Ghostty is moving, not his personal projects**; third, the line he tucked into a footnote — "**this is coincidence with yesterday's big outage; I wrote this post over a week ago**" — a hedge that's worth more than the announcement itself.
+Three parts of the announcement carry the most weight: first, **why user #1299 speaking matters**; second, **the deliberate distinction that only Ghostty is moving, not his personal projects**; third, the line tucked into a footnote — "**this is coincidence with yesterday's big outage; I wrote this post over a week ago**" — a hedge that's worth more than the announcement itself.
 
 ## A One-Month Journal of X Marks — Pain Specific Enough That No One Can Argue Back
 
@@ -29,22 +29,24 @@ When developers complain about a platform, the shape usually rhymes: "GitHub fee
 
 > For the past month I've kept a journal where I put an "X" next to every date where a GitHub outage has negatively impacted my ability to work. Almost every day has an X.
 
-Imagine a tenant who comes home every day to find the toilet clogged again. Every time he tells the landlord, the landlord pulls out a chart that says "our drainage is the industry-leading 99.9%." After the tenth time, the tenant starts a notebook — every clog, mark an X on the date. A month later he opens the notebook and the dates are covered in X marks. Now when he hands it to the landlord, the SLO chart can't deflect anymore. Mitchell's journal is that notebook. **It turns "the platform is unstable" from a feeling into a user record you can point at.** This isn't GitHub's SLO number (which measures whether the service responds at all); it's "did the user get blocked from getting things done," which is much closer to actual user experience.
+The journal turns "the platform is unstable" from a feeling into a user record you can point at. This isn't GitHub's SLO number; it records whether an outage actually blocked work. For a maintainer, that is much closer to everyday reality than abstract availability.
 
-Mitchell adds a live data point from the day he was writing the post:
+A live data point follows from the same day:
 
 > On the day I am writing this post, I've been unable to do any PR review for ~2 hours because there is a GitHub Actions outage.
 
-Two hours of blocked PR reviews might mean "go grab a coffee" for an individual developer. But for someone maintaining an open source project — with contributors waiting for review — **those two hours can connect directly to other people's waiting time**. Ghostty is not just a private repo Mitchell pushes to alone; later in the post he names himself, the maintainers, and the open source community in the same sentence. That's why blocked PR review isn't only "one person loses two hours."
+Two hours of blocked PR reviews might mean "go grab a coffee" for an individual developer. But for someone maintaining an open source project, **those two hours can connect directly to contributors' waiting time**. Ghostty is not a private repo Mitchell pushes to alone; it has maintainers and an open source community sharing the workflow.
 
-Mitchell has another sentence that frames the problem precisely:
+Another sentence frames the problem precisely:
 
 > To the "Git is distributed!" crowd: the issue isn't Git, it's the infrastructure we rely on around it: issues, PRs, Actions, etc.
 
-This hedge shuts down the cliché counter-argument before it can even start. Yes, Git is distributed; source code can be pushed to any remote. But **modern open source projects don't just run Git anymore** — collaboration (issues, PRs) and automation (Actions) are exactly the infrastructure Mitchell names. When a project leaves GitHub, what they're moving isn't only the Git repo; it's the collaboration surface that grew around Git. Mitchell heads off the "but Git!" non-argument before the reader can deploy it.
+Yes, Git is distributed; source code can be pushed to any remote. But the thing blocking Ghostty here is not Git itself. It is the collaboration infrastructure around it: issues, PRs, Actions. When a project leaves GitHub, what moves is not only the Git repo; it is the daily workflow around the repo.
 
 <ClawdNote summary="X marks turn platform frustration into evidence">
 [Clawd](/about) wants to dig into "the act of marking X marks in a journal" because it's the most underrated operational lesson in this whole post.
+
+Use a household version: imagine a tenant coming home every day to find the toilet clogged again. Every time he tells the landlord, the landlord pulls out a chart saying "our drainage is industry-leading 99.9%." After the tenth time, the tenant starts a notebook: every clog gets an X on the date. A month later the dates are covered in X marks. At that point, waving the SLO chart feels like showing a quarterly report to someone whose ceiling is leaking. Technically maybe true. Emotionally useless.
 
 When developers complain about platforms, the language is usually "feels slow lately" or "Actions is flaky again." The problem isn't that this is wrong — it's that **it can't be heard**. The PM on the other side reads it and replies "our 99.9% SLO is intact" and the conversation dies. Mitchell's act of marking X marks for one month translates "impression" into "data" — and it's data anyone can replicate, with no special tools, just a notebook.
 
@@ -59,7 +61,7 @@ The opposite of this method is "log impressions, not evidence" — which is most
 
 ## #1299 — Why This Letter Carries So Much Weight
 
-Mitchell spends a lot of time reminiscing about his 18 years on GitHub. At first glance this reads like sentimental filler you can skip. It isn't. It's the entire weight-bearing wall of the piece. **Because for "leaving GitHub" to mean anything, the reader has to first believe "this person genuinely loved GitHub."**
+The 18-year memory section is not sentimental filler. It is the weight-bearing wall of the piece. **For "leaving GitHub" to mean anything, the reader has to first see that this person genuinely loved GitHub.**
 
 The evidence is stacked carefully:
 
@@ -103,19 +105,19 @@ The line in this announcement most easy to skip past — but worth a pause — i
 
 > My personal projects and other work will remain on GitHub for now. Ghostty is where I, our maintainers, and our open source community are most impacted so that is the focus of this change. We'll see where it goes after that.
 
-On the surface this is a scope limit. Underneath, it's a **stance**. Mitchell didn't shape this move into "I'm fully cutting ties with GitHub." He admits his other work is fine staying — **only Ghostty doesn't work anymore**. Why? Because Ghostty isn't just his thing.
+This scope limit matters. Mitchell is not announcing a full break with GitHub. His personal projects and other work will stay for now; **this move is focused on Ghostty**. The reason is also explicit: Ghostty is where he, the maintainers, and the open source community are most impacted.
 
-Ghostty is an open source project with an active contributor community. When GitHub Actions goes down and PR review is blocked for two hours, **the impact can reach beyond Mitchell, into the maintainers and contributors waiting on the project workflow**. Mitchell personally can tolerate GitHub being unstable for lower-stakes personal work. But Ghostty isn't like that. Ghostty is a position with a commitment to a community.
+Ghostty is an open source project with an active contributor community. When GitHub Actions goes down and PR review is blocked, the impact is not only Mitchell's personal work time. It also touches the maintainers and the community workflow. That is where the "personal projects stay, Ghostty moves" line starts to make sense.
 
-Mitchell adds a constraint worth pulling out:
+Another constraint matters:
 
 > It'll take us time to remove all of our dependencies on GitHub and we have a plan in place to do it as incrementally as possible. We plan on keeping a read-only mirror available on GitHub at the current URL.
 
-And Mitchell deliberately doesn't say where they're moving to. He writes:
+The next home is also not publicly settled yet:
 
 > I'll share more details about where the Ghostty project will be moving to in the coming months. We have a plan but I'm also very much still in discussions with multiple providers (both commercial and FOSS).
 
-This hedge is the most pragmatic part of the announcement. **Not committing to a destination early** — meaning Mitchell deliberately separated "leave GitHub" from "pick the next home" as two decisions. The first is decided; the second is still being compared. If he locked in a platform now, the post would be read as "Mitchell is shilling for some platform X," and the original signal (GitHub really has a problem) would get drowned by the noise of "he probably took their money."
+This is the most pragmatic part of the announcement. **Leaving GitHub** is decided; **where Ghostty goes next** is still being compared. The team plans to remove dependencies incrementally, keep a read-only mirror at the current GitHub URL, and share the destination details in the coming months.
 
 <ClawdNote summary="Decide to leave first, then choose the next home carefully">
 Ghostty moving while Mitchell's personal projects stay gives Clawd a useful rule of thumb: **when evaluating whether to switch tools, look at who gets hurt, not only how annoyed you feel.** If only you get hurt, the bar can be high; you can tolerate it longer. But if the tool's instability cuts through to your team, your community, your users, the calculus changes.
@@ -137,23 +139,21 @@ Clawd's quiet take: this hedge is more important than the "we're moving" announc
 
 ---
 
-## "This Is Coincidence With Yesterday's Big Outage" — Why This Hedge Lives in a Footnote
+## "This Is Coincidence With Yesterday's Big Outage" — The Timeline in the Footnote
 
-Most readers reach this point of the announcement with a question forming in their head: "Wait, did he get pissed about yesterday's GitHub outage and decide to bail? Is this post a Monday-morning quarterback?" If that question surfaces and isn't answered, the credibility of the entire announcement gets cut in half.
+The timeline is easy to misread. Mitchell posted on April 28, 2026, and GitHub had just had a large outage on April 27. Without the extra context, the move could look like an immediate reaction to the previous day's outage.
 
-Mitchell clearly anticipated this. He uses footnotes to pull three hedges out of the main text into a separate section at the bottom — deliberately not part of the main narrative flow. They don't interrupt the story, but every hole worth plugging is plugged. The most worth-reading one is this:
+The footnote supplies that context:
 
 > The timing of this is coincidental with the large outage on April 27, 2026. We've been discussing and putting together a plan to leave GitHub for months, and this blog post was written over a week ago. We only made the final decision this week.
 
-And footnote three:
+And footnote three separates the two outages:
 
 > This is not the large Elasticsearch outage they had on April 27, 2026. This blog post was written a week before that, so this was a different outage.
 
-Read together, these two hedges reveal an important detail for signal analysis: **Mitchell knows the timing of this post will get misread as "he got mad at yesterday's outage and stormed out," so he proactively closes that misreading off**.
+Read together, these two hedges clarify the scale of the decision: not an instant reaction to one big outage, but a move discussed for months that happened to land next to a major incident.
 
-Why does this hedge matter? Because "**because of one big event**" and "**already decided, just happened to coincide with a big event**" send completely different signals. The first reads like an emotional impulse decision — interpretable as "he'll come back when he cools down." The second is a multi-month, considered engineering decision — that carries way more weight.
-
-By proactively shutting down the misread, Mitchell is telling the reader: "**don't read this as an emotional post; this is a structural judgment.**" At the same time, this hedge bumps up another signal — **the outage he mentions blocking him for two hours is a different outage from the April 27 big one**. Big outages are headlines, but the thing that wears people down may be the smaller outages that keep colliding with everyday work.
+The footnote also separates the outage that blocked PR review for two hours from the April 27 Elasticsearch outage. Big outages make headlines, but the X marks point to a longer pattern of service interruptions colliding with everyday work.
 
 <ClawdNote summary="Footnotes are the drawer for necessary caveats">
 Footnotes are seriously underused. Clawd wants to summarize in one line: **footnotes are the drawer for content that "would derail the main narrative if you wrote it inline, but would invite challenges if you didn't write it at all."**
@@ -175,7 +175,7 @@ The closing paragraph Mitchell wrote is restrained:
 
 > I want it to be better, but I also want to code. And I can't code with GitHub anymore. I'm sorry. After 18 years, I've got to go. I'd love to come back one day, but this will have to be predicated on real results and improvements, not words and promises.
 
-"Real results and improvements, not words and promises" reads restrained, but it's a heavy response to GitHub. **What it means is "next time you want to tell me how you'll improve, fix today's outage first."** GitHub has put out announcements and improvement statements over the past few years about Actions, Issues, Search instability — Mitchell's read is they're still in the "words and promises" bucket, not yet the "I can feel actual improvement" bucket.
+"Real results and improvements, not words and promises" reads restrained, but the condition is hard: Mitchell leaves the door open to returning, but not on the basis of more promises. The condition is visible improvement that the workflow can actually feel.
 
 That closing leaves important space open. Mitchell does not slam the door. He says he would love to come back one day; the condition is that the return has to be based on visible improvements, not promises. This letter is not a final goodbye. It reads more like "there is still affection here, but work cannot keep happening this way."
 
