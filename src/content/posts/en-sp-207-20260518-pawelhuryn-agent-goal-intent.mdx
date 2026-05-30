@@ -84,13 +84,13 @@ The useful part is not the fancy eight-part wrapper. It is the separation: goal 
 
 ---
 
-## Strategy and health metrics: say what cannot be traded away
+## Strategy, limits, and brakes: say them together
 
-It is easy to write an agent file like a tool manual: which CLI commands it may call, which files it should read, what output format it should use. All of that matters. Strategy answers a harder question: when things are ambiguous, what matters more?
+It is easy to write an agent file like a tool manual: which CLI commands it may call, which files it should read, what output format it should use. All of that matters, but the life-saving parts are trade-offs, red lines, and brakes.
 
 If a support agent serves enterprise customers and the brand is built on reliability, it should be conservative and escalate when uncertain. A low-cost self-serve product may make the opposite trade-off: clear steps first, not a human handoff for every hard case. "Ship the auth flow" means one thing in an internal prototype, and another in a paid B2B product where sessions, audit logs, and rollback paths matter.
 
-Strategy names the trade-off. Health metrics name the price the agent is not allowed to pay: reply faster, but satisfaction must not drop; increase throughput, but error rate must not rise; reduce escalations, but legal, compliance, security, and financial topics must still escalate.
+Strategy names the trade-off. Health metrics name the price the agent is not allowed to pay: reply faster, but satisfaction must not drop; increase throughput, but error rate must not rise; reduce escalations, but legal, compliance, security, and financial topics must still escalate. Limits also need a split: tone, preference, and risk posture can live in a [prompt](/glossary#prompt); tool allowlists, file permissions, network sandboxes, schema validation, approval gates, and pre-commit hooks are the hard guardrails.
 
 For coding agents, the spec can say:
 
@@ -99,19 +99,11 @@ For coding agents, the spec can say:
 - Existing public API behavior must not silently change.
 - Security checks must not be disabled to make the build pass.
 - If the fix requires data migration or cleanup, propose a plan first.
+- Halt after failing to fix the same class of error twice.
+- Escalate legal, compliance, security, or financial commitments.
 ```
 
-Not every metric can be measured live. But it still needs to appear in the spec. Otherwise the agent will take the shortest path to the goal and hide the real risk outside the dashboard.
-
----
-
-## Constraints: important limits should not live only in prompts
-
-There are two kinds of constraints. The first is steering prompt: tone, preferences, risk posture, when to be conservative. It shapes model reasoning, but it does not enforce behavior.
-
-The second kind is hard guardrail: tool allowlists, file permissions, network sandboxes, schema validation, approval gates, and pre-commit hooks. These are not suggestions. The system can actually block the action. If violating a constraint would create serious risk, it should not live only in a prompt.
-
-If the agent must not send external email, do not give it the email-sending tool. If it must not change customer account settings, do not give it that API scope. If it must not touch the production database, make the sandbox unable to reach it. If it must not delete tests to get a green build, make code review or automated checks catch it.
+Not every metric can be measured live. But it still needs to appear in the spec or in the system boundary. If the agent must not send external email, do not give it the email-sending tool. If it must not change customer account settings, do not give it that API scope. If it must not touch the production database, make the sandbox unable to reach it. If it must not delete tests to get a green build, make code review or automated checks catch it.
 
 Natural language is great for expressing intent. It is terrible as a door lock. If the lock is just a sign that says "please do not enter," it is not a lock. It is a wish.
 
@@ -123,16 +115,14 @@ A [prompt](/glossary#prompt) can remind the agent not to swing a knife around. T
 
 ## Autonomy boundaries and stop rules: permissions need brakes
 
-[Agent](/en/glossary#agent) permissions can be split into four rough levels. The question is not only whether the agent can do the work. The question is who bears the risk:
+[Agent](/en/glossary#agent) permissions can be split into four rough levels. The question is not only whether the agent can do the work. The question is who carries the risk when it fails:
 
 - **Full autonomy**: reversible, low-risk work with limited failure impact, such as formatting, small tests, and documentation updates.
-- **Guarded autonomy**: user-visible or system-visible changes with logging, rollback, and confidence thresholds, such as a small UI change.
+- **Guarded autonomy**: user-visible or system-visible changes with logging, rollback, and confidence thresholds.
 - **Proposal first**: strategic, sensitive, or higher-risk decisions. The agent writes a plan. A human approves. Then the agent executes.
 - **Human required**: legal commitments, financial actions, irreversible operations, brand promises. The agent can analyze and recommend. A human must press the button.
 
 When a personal agent makes a mistake, the user usually knows what they asked it to do. When a product agent makes a mistake, the user may not even know AI acted behind the scenes. The responsibility goes straight back to the company. The less the user understands what the agent is doing, the smaller the autonomy boundary should be.
-
-`/goal` is strongest on the complete branch: when the condition is met, stop. Production environments need two other branches just as much: halt and escalate.
 
 ```md
 Halt when:
@@ -143,7 +133,6 @@ Halt when:
 Escalate when:
 - The issue is outside the defined scope.
 - The topic touches legal, compliance, security, or financial commitments.
-- User frustration keeps rising.
 
 Complete when:
 - Desired outcomes are reached.
@@ -151,7 +140,7 @@ Complete when:
 - No health metric was sacrificed.
 ```
 
-Many agent failures are not caused by a lack of effort. They are caused by too much effort. The agent keeps patching, trying, and pushing forward. A human employee who receives conflicting instructions usually stops and asks a manager; an agent without stop rules treats the conflict like a harder puzzle.
+`/goal` is strongest on the complete branch: when the condition is met, stop. Production environments also need halt and escalate branches, because many agent failures are not caused by a lack of effort. They are caused by too much effort. A human employee who receives conflicting instructions usually stops and asks a manager; an agent without stop rules treats the conflict like a harder puzzle.
 
 <ClawdNote summary="Autopilot needs wake-the-human rules, not blind autonomy.">
 A useful autopilot is not "the human sleeps and AI finishes everything." The healthier version makes the goal, action boundary, autonomous work, and wake-the-human conditions explicit.
