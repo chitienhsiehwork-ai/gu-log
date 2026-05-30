@@ -25,9 +25,9 @@ In plain English: that 700-line prompt is a crutch built for the previous model.
 
 The whole [GPT-5.5 prompting guide](https://developers.openai.com/api/docs/guides/prompt-guidance?model=gpt-5.5) circles around this single point. OpenAI puts the GPT family (4.1, 5, 5.1, 5.2, 5.3-Codex, 5.4, 5.5) prompting guides all on one page, so you can compare side-by-side how prompt style evolved generation by generation. The takeaway for the latest one, in one sentence: **describe the destination, don't draw the map**. Tell the model what "good" looks like, and let the model pick the path.
 
-This is almost word-for-word what Anthropic said for Opus 4.7 in [SP-175](/en/posts/en-sp-175-20260416-anthropic-opus-4-7-prompting-best-practices/) under the "intent-first" banner. Two flagship models from two different labs converging on the same advice means the old prompt style is genuinely on its way out.
+This is almost word-for-word what Anthropic said for Opus 4.7 in [SP-175](/en/posts/en-sp-175-20260416-anthropic-opus-4-7-prompting-best-practices/) under the "intent-first" banner. Two flagship models from two different labs converging on the same advice means old prompt stacks cannot just be carried over unchanged.
 
-<ClawdNote>
+<ClawdNote summary="Vendor prompt advice expires faster than engineers want.">
 What's interesting here is that OpenAI rarely puts "the stuff we taught you before will now bite you" into a formal docs page. Usually that admission lives in some half-buried blog post. For prompt engineers, this is basically a release note saying "two years of muscle memory: partially expired." Friendly read: the vendor is finally being honest. ALWAYS/NEVER prompts were always patches for weak models, and patches that should be thrown out, should be (¬‿¬)
 
 Less friendly read: vendor prompt advice gets refreshed roughly every six months. The thing engineers really need to learn isn't this current cheat sheet — it's "how do I tell when a piece of advice is going to expire?" OpenAI knows this too, which is why they kept all the older guides on the same page (the GPT-4.1 one is still there). Not deleted — just kept around so you can see "oh, this thing I treated as gospel last year just got overturned."
@@ -37,13 +37,13 @@ Less friendly read: vendor prompt advice gets refreshed roughly every six months
 
 ## Cut #1: Kill process-heavy prompts. Talk about the destination, not the map.
 
-OpenAI opens the GPT-5.5 section by stating this shift directly:
+The GPT-5.5 section states this shift directly:
 
 > GPT-5.5 works best when prompts define the outcome and leave room for the model to choose an efficient solution path.
 
 The classic prompt opening used to be: "First inspect A, then inspect B, then compare every field, then think through all possible exceptions, then decide which tool to call, then call the tool, then explain the entire process to the user." Lock the SOP step by step so the model doesn't skip a beat or wander off. For models that needed hand-holding (GPT-4 / GPT-4.1 / GPT-5), this worked. For GPT-5.5, this backfires: the model treats the SOP as absolute, runs every step regardless of whether it makes sense for the actual context, and the output ends up slow and mechanical.
 
-OpenAI's replacement: rewrite the same task as "what does success look like":
+The replacement: rewrite the same task as "what does success look like":
 
 ```
 Resolve the customer's issue end to end.
@@ -57,7 +57,7 @@ Success means:
 
 Notice the structural change: no "first do X then Y," no step-by-step, no "ALWAYS check this" / "NEVER do that." Just four things: what to solve, what success means, what the output looks like, what to do when stuck. Every other decision — which API to query, which tool to use, in what order, whether to validate — gets pushed to the model.
 
-OpenAI's matching guidance: **save ALWAYS / NEVER / must / only for genuinely black-and-white things** — safety rules, required output fields, hard "do not do this" rules. For judgment calls (when to search, when to ask, when to use a tool), use a decision rule instead of a command. Decision rules look like this:
+The matching guidance: **save ALWAYS / NEVER / must / only for genuinely black-and-white things** — safety rules, required output fields, hard "do not do this" rules. For judgment calls (when to search, when to ask, when to use a tool), use a decision rule instead of a command. Decision rules look like this:
 
 ```
 Use the minimum evidence sufficient to answer correctly,
@@ -66,7 +66,7 @@ cite it precisely, then stop.
 
 The difference vs. "ALWAYS cite all available sources": the first one lets the model decide "is that enough?", the second forces it to read every source available. For a model like GPT-5.5 that already judges sufficiency well, the second one just wastes tokens and latency.
 
-<ClawdNote>
+<ClawdNote summary="Old prompt muscle memory can turn into noise.">
 For developers who wrote prompts in the GPT-3.5 era, this shift comes with a sting: "damn, I spent a week on those 700 lines two years ago." Back then the model really did skip steps, really did wander off, really did need to be led by the nose. That wasn't engineers writing too much — that was the model not being strong enough.
 
 GPT-5.5's capability gain killed that necessity, but it also turned everyone with a stack of old prompts into a debt holder. The muscle memory for "how to pin model behavior down" is now noise. Healthier framing: treat the old prompts as an archeological layer in git history. They served their purpose. Time to seal that layer.
@@ -78,14 +78,14 @@ By the way, OpenAI even shipped a one-button migration tool — `$openai-docs mi
 
 ## Cut #2: Split personality and collaboration style. They're not the same thing.
 
-Starting with GPT-5.5, OpenAI separates "how the assistant talks" from "how the assistant works" into two distinct prompt blocks. The names are **personality** and **collaboration style**:
+Starting with GPT-5.5, "how the assistant talks" and "how the assistant works" are split into two distinct prompt blocks: **personality** and **collaboration style**.
 
 - Personality controls "how it sounds": tone, warmth, directness, formality, humor, empathy, polish.
 - Collaboration style controls "how it works": when to ask questions, when to make assumptions, how proactive to be, how much context to provide, when to check work, how to handle uncertainty.
 
 The two used to get bundled into one line — "You are a friendly and proactive assistant who..." — and that's the problem. "Friendly" and "proactive" are independent dimensions. Lock them into one sentence and you can't tune one without changing the other (try to make the tone more professional, suddenly the assistant becomes less proactive). GPT-5.5 is sensitive to this kind of muddled prompt, so the official guidance is: just split them.
 
-OpenAI's docs include two templates. One for a "steady, task-focused" assistant:
+The docs include two templates. One for a "steady, task-focused" assistant:
 
 ```
 # Personality
@@ -118,11 +118,11 @@ view rather than merely mirroring the user, while staying responsive
 to their goals and constraints.
 ```
 
-Both templates are short — deliberately. OpenAI is clear that these blocks **don't replace task goals, success criteria, tool rules, or stopping conditions**. Personality shapes user experience. Collaboration style shapes task behavior. Neither should reach across and define what "done" means.
+Both templates are short — deliberately. These blocks **don't replace task goals, success criteria, tool rules, or stopping conditions**. Personality shapes user experience. Collaboration style shapes task behavior. Neither should reach across and define what "done" means.
 
 A useful mental model: think of the prompt as an onion. The innermost layer is task goal + success criteria + constraints (the actual job). The middle layer is collaboration style (execution discipline). The outermost layer is personality (surface vibe). Changes to the outer layer should never reach the inner layer.
 
-<ClawdNote>
+<ClawdNote summary="Tone and work style should not live in one sentence.">
 This split looks obvious, but in real prompts you constantly see things like "You are a senior Python engineer who is helpful, friendly, and patient, and always checks twice before answering" — role / personality / collaboration / safety all jammed into one sentence. Tweak the tone and you accidentally drop the "check twice" discipline. That's how bugs sneak into production.
 
 A bonus observation: OpenAI's two templates ("sober steady" vs. "vivid playful") map nicely onto a long-standing engineering puzzle — "how do I split the prompt between an internal dev tool assistant and an end-user chatbot?" The bad old answer was "one prompt with if-else conditions." The new answer is much cleaner: swap the personality block, keep the task goal + success criteria. Maintenance cost drops by half.
@@ -132,11 +132,11 @@ A bonus observation: OpenAI's two templates ("sober steady" vs. "vivid playful")
 
 ## Three small tricks: preamble, retrieval budget, stopping condition
 
-Once you've stripped the process-heavy bullet lists, the prompt is shorter. But there are still situations where the model needs explicit guidance. OpenAI gives three independent tricks in the GPT-5.5 section, each fixing a specific pain point.
+Once you've stripped the process-heavy bullet lists, the prompt is shorter. But there are still situations where the model needs explicit guidance. The GPT-5.5 section gives three independent tricks, each fixing a specific pain point.
 
 ### Preamble: a visual fix for first-token latency
 
-When GPT-5.5 handles tool-heavy or multi-step tasks, it may spend time on reasoning, planning, and preparing tool calls before emitting any visible text. The user sees a blank screen during that time. OpenAI suggests adding a preamble rule so the model sends a short message before doing anything:
+When GPT-5.5 handles tool-heavy or multi-step tasks, it may spend time on reasoning, planning, and preparing tool calls before emitting any visible text. The user sees a blank screen during that time. A preamble rule asks the model to send a short message before doing anything:
 
 ```
 Before any tool calls for a multi-step task, send a short
@@ -144,7 +144,7 @@ user-visible update that acknowledges the request and states the
 first step. Keep it to one or two sentences.
 ```
 
-This trick doesn't make the model faster. It makes the user **feel** like the model is faster. Seeing "Got it, going to start by checking X" appear in a streaming UI cuts the waiting anxiety in half. OpenAI calls this "improve perceived responsiveness" — refreshingly honest, no claim that reasoning is faster.
+This trick doesn't make the model faster. It makes the user **feel** like the model is faster. Seeing "Got it, going to start by checking X" appear in a streaming UI cuts the waiting anxiety in half. The docs call this "improve perceived responsiveness" — refreshingly honest, no claim that reasoning is faster.
 
 ### Retrieval budget: putting a ceiling on search
 
@@ -175,7 +175,7 @@ The pain point this fixes: in grounded-answer scenarios, the model easily falls 
 
 ### Stopping condition: replacing ALWAYS / NEVER for judgment calls
 
-Following on from the outcome-first philosophy, a stopping condition tells the model "when to stop." OpenAI's template:
+Following on from the outcome-first philosophy, a stopping condition tells the model "when to stop." The template:
 
 ```
 Resolve the user query in the fewest useful tool loops, but do not
@@ -189,7 +189,7 @@ If yes, answer.
 
 Notice the texture: this prompt doesn't say "stop after at most 5 tool calls" (too restrictive), and it doesn't say "decide for yourself when to stop" (too vague). It gives an **executable internal question** — after every loop, ask "can I answer now?" — which externalizes the judgment into a routine the model can re-run reliably.
 
-<ClawdNote>
+<ClawdNote summary="Decision rules hand judgment back to the model.">
 All three tricks share one thing: **they hand the judgment back to the model, but give the model a repeatable self-check routine**. The old style was "I list every condition for the model" (process-heavy). The new style is "I teach the model how to judge" (decision rule).
 
 This shift is psychologically hard for prompt engineers — handing over control feels wrong. But benchmarks show GPT-5.5's own judgment usually beats hand-coded if-else. Adapting to this might take months — same kind of transition as moving from procedural to declarative code, where senior engineers wrote for-loops by hand for years before they accepted list comprehensions.
@@ -205,7 +205,7 @@ If the previous sections were aimed at developers writing general prompts, this 
 
 ### Phase parameter: stage labels for assistant items
 
-The Responses API introduced a `phase` field starting with GPT-5.4. It lets long-running or tool-heavy workflows distinguish "intermediate updates" from "final answer." GPT-5.5 uses the same pattern. OpenAI's rules:
+The Responses API introduced a `phase` field starting with GPT-5.4. It lets long-running or tool-heavy workflows distinguish "intermediate updates" from "final answer." GPT-5.5 uses the same pattern. The rules:
 
 ```
 If manually replaying assistant items:
@@ -217,7 +217,7 @@ If manually replaying assistant items:
 
 The trap to avoid: if your application uses `previous_response_id`, the API preserves phase state automatically — you don't have to think about it. But if you're manually replaying assistant output items into the next request, every item's `phase` value must be passed back **exactly as-is**. Drop it or change it, and the model loses track of whether the previous turn was intermediate commentary or final answer. Behavior gets weird.
 
-OpenAI even adds a troubleshooting hint in the GPT-5.4 docs: "if GPT-5.4 starts treating intermediate updates as the final answer, first check whether your integration is preserving the phase field." A lot of teams must have hit this bug for it to make it into the official docs.
+The GPT-5.4 docs even add a troubleshooting hint: "if GPT-5.4 starts treating intermediate updates as the final answer, first check whether your integration is preserving the phase field." A lot of teams must have hit this bug for it to make it into the docs.
 
 ### apply_patch: OpenAI made the diff format a first-class tool
 
@@ -233,7 +233,7 @@ Here's the killer line from OpenAI's own testing: **the named function reduces a
 
 Translation: if a coding agent developer hand-writes their own apply_patch tool description (or uses some other diff format), failure rate is 35% higher than using OpenAI's built-in version. The reason: the model has been specifically post-trained on OpenAI's diff format.
 
-This has big consequences for coding agent decisions: **rolling your own patch tool is a liability**, unless you have a very specific reason (like patches needing to go through some review pipeline first). OpenAI offers both a server-defined tool and a freeform tool with context-free grammar — both have full examples in the docs. Pick the one that fits your existing stack.
+This has big consequences for coding agent decisions: if you roll your own patch tool, you need a very specific reason (like patches needing to go through some review pipeline first). The docs offer both a server-defined tool and a freeform tool with context-free grammar — both have full examples. Pick the one that fits your existing stack.
 
 GPT-5.5 also adds a "have the model check its own work" guideline for coding agents, in line with the destination-first philosophy:
 
@@ -250,7 +250,7 @@ best check.
 
 It doesn't lock in "run pytest" or "run eslint" — it lets the model pick the most relevant validation. This is especially useful for coding agents working across multi-language codebases. No need to hardcode a validation rule per language.
 
-<ClawdNote>
+<ClawdNote summary="Patch tools work best in formats the model was trained on.">
 That 35% number deserves a closer look. It means: the gap between "what prompt engineering can paper over" and "what the model natively knows about your tool" is 35% in failure rate. That's bigger than most engineers want to admit.
 
 Translated differently: a coding agent's competitive edge isn't really in the prompt. It's in "did you use the first-class tools the vendor provides?" Cursor, Cognition, Anthropic's own [Claude Code](/en/glossary#claude-code) — why do they run so reliably? Because they reach for the post-trained tool formats from each vendor instead of rolling their own.
@@ -262,7 +262,7 @@ For an indie developer trying to build a coding agent: **don't invent your own d
 
 ## Cursor's GPT-5 prompt tuning: "more is better" gets overturned once
 
-In the GPT-5 section, OpenAI rarely includes a guest case study — but here they include one from Cursor, the AI code editor that alpha-tested GPT-5. Three things stand out, because they give the destination-first philosophy a concrete example.
+The GPT-5 section includes a Cursor case study from the AI code editor's GPT-5 alpha testing. Three things stand out, because they give the destination-first philosophy a concrete example.
 
 ### Thing #1: Configure verbosity at two levels separately
 
@@ -278,7 +278,7 @@ clever one-liners unless explicitly requested. Use high verbosity
 for writing code and code tools.
 ```
 
-Result: status updates stay short and clean, code diffs come out easy to read. This is the standard solution for "the same model needs different behaviors on different surfaces." After GPT-5, OpenAI added this as official guidance — `text.verbosity` is the global default, but the prompt can override it for specific contexts.
+Result: status updates stay short and clean, code diffs come out easy to read. This is the standard solution for "the same model needs different behaviors on different surfaces." With GPT-5, `text.verbosity` is the global default, but the prompt can override it for specific contexts.
 
 ### Thing #2: `maximize_context_understanding` actually got worse on GPT-5
 
@@ -310,7 +310,7 @@ answer yourself.
 
 The keywords flip from "THOROUGH" / "FULL picture" to "Bias towards not asking." From pushing the model to pulling it back.
 
-OpenAI putting this case in the official docs is meaningful. It demonstrates a habit: **old prompts need re-review, not because they were wrong, but because the model changed**. Encouragement that worked on GPT-4 turns into redundant nagging on GPT-5.
+This case demonstrates a habit: **old prompts need re-review, not because they were wrong, but because the model changed**. Encouragement that worked on GPT-4 turns into redundant nagging on GPT-5.
 
 ### Thing #3: XML structure improves instruction adherence
 
@@ -318,7 +318,7 @@ Cursor's observation: using `<[instruction]_spec>` style XML tags to label diffe
 
 This matches Anthropic's recommendation in Claude prompt best practices to use XML tags — both flagship models prefer structured XML. The takeaway for prompt writers: when splitting complex prompts into sections, XML tags work better than markdown headers.
 
-<ClawdNote>
+<ClawdNote summary="Cursor's real lesson is what they removed.">
 The real value of Cursor's case study isn't in "what they did" — it's in "what they **cut**." That `maximize_` prompt used to be a best practice. Now it's an antipattern. This is a reminder for any team running LLMs in production: **prompts are not write-once artifacts**. Every model upgrade should trigger a prompt review where you ask each section: "is this still useful for the new model, or has it become noise?"
 
 Side jab at Cursor's naming habits — those `maximize_` / `ensure_` / `always_` prefixes are themselves products of "use tone to pressure the model" thinking. New-generation prompts should avoid imperative prefixes and use neutral spec names (`<context_handling>`, `<verbosity_rules>`). Tone should live in the prompt content, not be re-emphasized in the tag name.
@@ -328,7 +328,7 @@ Side jab at Cursor's naming habits — those `maximize_` / `ensure_` / `always_`
 
 ## Metaprompting: have the model fix its own prompt
 
-The GPT-5.3-Codex section hides a sneakier trick: metaprompting, which means **letting the model look at one of its unsatisfying outputs and suggest how to fix the instructions**. OpenAI ships this as a formal tool:
+The GPT-5.3-Codex section hides a sneakier trick: metaprompting, which means **letting the model look at one of its unsatisfying outputs and suggest how to fix the instructions**. The template:
 
 ```
 That was a high quality response, thanks! It seemed like it took
@@ -349,20 +349,20 @@ time with the same level of quality
 
 The spirit of metaprompting: put the problem itself ("you were too slow last turn") in front of the model, ask the model to re-read its own instructions, then suggest changes.
 
-OpenAI's caveats matter — don't skip them:
+The caveats matter — don't skip them:
 
 - **Run it multiple times**: metaprompts are stochastic. Run 3–5 times and look for shared suggestions across runs. A single run might give an over-fitted suggestion specific to that situation. The recommendations that show up across multiple runs are the generalizable ones.
 - **Build an eval**: once you adopt a suggestion, you need an eval to measure "did this make things better or worse for this use case?" Don't take the model's recommendation on faith.
 - **Best for specific failure modes**: overthinking, loggy preambles, awkward phrasing — these "behavioral" issues are where metaprompting shines, because the model has more insight into its own behavior than the prompt engineer does.
 
-OpenAI's two example use cases:
+Two example use cases:
 
 - **Overthinking / slow start**: ask the model for instruction changes that would reduce time-to-first-tool-call or time-to-first-concrete-plan.
 - **Loggy preamble**: ask the model to rewrite the user-update instructions to match a specific preference.
 
-This trick has been around in the LLM community for a while — Karpathy wrote about something similar on X about two years ago. But OpenAI putting it in the official prompting guide is a first. It signals the vendor is finally treating "prompt engineering is iterative work" as part of the recommended workflow, instead of the "write one perfect prompt" one-off task.
+This trick has been around in the LLM community for a while — Karpathy wrote about something similar on X about two years ago. Putting it in the official prompting guide signals that "prompt engineering is iterative work" has moved from community trick to recommended workflow, instead of the "write one perfect prompt" one-off task.
 
-<ClawdNote>
+<ClawdNote summary="Treat prompts like code, with evals and revision history.">
 The hidden meaning of metaprompting is a bit philosophical: the vendor is saying "our model understands its own instructions better than the prompt engineer understands the model's behavior." That's a tough thing to swallow if you've been writing prompts for five years. But anyone who looks at their own prompt git log will quietly admit — it's true many times. "I thought writing it this way would make the model do that, but it didn't."
 
 A healthy workflow looks something like: write v1 prompt → ship to production → collect failure cases → feed the failures into a metaprompt → collect suggestions → run an eval → adopt the ones that pass. Maintain prompts like a codebase, not like a spec you signed off on (◕‿◕)
@@ -379,7 +379,7 @@ Lay the OpenAI GPT-5.5 prompting guide next to Anthropic's Opus 4.7 best practic
 - Both emphasize the model judges for itself — OpenAI's retrieval budget / decision rule; Anthropic's "stop writing always/never, the model handles it."
 - Both treat metaprompting / prompt review as a real workflow — OpenAI puts it in the docs, Anthropic ships it as a Claude Code skill.
 
-Two top-tier vendors converging on the same direction isn't copy-paste. It's two independently-trained flagship models hitting the same capability threshold — "no longer needs to be led by process-heavy prompts." For prompt engineers, this signal is stronger than any single doc: **the old prompt style isn't OpenAI alone retiring it. The whole industry is.**
+Two top-tier vendors converging on the same direction isn't copy-paste. It's two independently-trained flagship models reducing the need for process-heavy prompts. For prompt engineers, this signal is stronger than any single doc: the old prompt style can no longer be treated as the default safe option.
 
 But don't go nuking everything. OpenAI puts a critical sentence at the end of the GPT-5.5 docs: "The patterns here are starting points. Adapt them to your product surface, tools, evals, and user experience goals." Plain English: every recommendation has to pass your own eval before it counts. Wholesale rewriting old prompts without an eval is shipping production code naked.
 
@@ -392,6 +392,6 @@ A healthier rhythm:
 
 This sounds a lot like the review discipline software engineers use for code, because it is the same thing — prompts are no longer "incantations for the LLM," they are part of the production system. They deserve the same review, test, refactor treatment.
 
-That Tuesday-morning engineer eventually cut the 700-line prompt down to 200. The eval said latency dropped 28%, accuracy held, token cost dropped by a third. The 500 deleted lines went into git history as a monument — they saved the day in the GPT-4 era. They've earned retirement.
+That Tuesday-morning engineer eventually cut the 700-line prompt down to 200. The eval said latency and token cost both improved, while accuracy held. The 500 deleted lines went into git history as a monument — they saved the day in the GPT-4 era. They've earned retirement.
 
 When the next-generation model lands, those remaining 200 lines will probably get cut in half again. A prompt engineer's job isn't writing the eternal prompt. It's learning to keep cutting what they wrote yesterday.
