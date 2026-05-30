@@ -90,9 +90,7 @@ Many products wear the agent label, but inside they are fixed workflows: the rou
 
 ---
 
-## The agent says it is done, but nobody checked
-
-This is the classic failure: the agent says it is done, but the outside world still has no checkable completion state. **Completion is not language; completion is verifiable state.**
+## A harness is an acceptance rig, not model decoration
 
 This is where the [Agent Harness](/glossary#agent-harness) matters. Think of a harness as the acceptance rig around the agent: goals, scope limits, checks, failure feedback, and rollback paths. The OpenAI case reports dramatic numbers: 3 engineers, 5 months, roughly 1 million lines of code, nearly 1,500 PRs, about 10x traditional development speed. Treat that as self-reported case data, not a universal guarantee. The lesson is the conditions behind it: docs that work like maps, constraints embedded in format checks, type systems, CI, and structural tests, and agents that can reproduce failures, run tests, inspect logs, and read traces.
 
@@ -106,15 +104,11 @@ There is an entire civilization between "the agent says it is done" and "CI is g
 
 ## Dirty context and tiny tools can make the agent dumber
 
-The next failure mode is sneakier: the model is not broken, and the task is not wrong, but the context is dirty.
+After acceptance comes the sneakier failure: the model is not broken, but the desk is a mess.
 
-Context engineering sounds academic. It is really just cleaning your desk. [Prompt](/glossary#prompt), tool outputs, long documents, memory, error logs: if you mash all of them together and shove the pile at the model, the model sees a lot, but has a harder time finding the signal. Screwdrivers, drills, and welding torches are all useful, but nobody dumps the entire hardware store onto the table when fixing glasses.
+Context engineering sounds academic. It is really just cleaning your desk. [Prompt](/glossary#prompt), tool outputs, long documents, memory, error logs: if you mash all of them together and shove the pile at the model, the model sees a lot, but has a harder time finding the signal. Nobody dumps the whole hardware store onto the table when fixing glasses. Keep the current task in front, methods in docs, history in traces, and only durable long-term facts in `MEMORY.md`-style notes with rollback to raw data.
 
-A more stable approach is layered: short, hard identity and rules in the always-on layer; domain knowledge in [Skill](/glossary#skill) files or normal docs, read only when needed; current-run state in runtime context; long-term memory managed separately. Stuffing every chat log into every turn is not memory. It is pouring the warehouse into the driver's seat.
-
-Skill and tool descriptions should act like road signs, not essays: when to use it, when not to use it, and what it returns. The numbers tell the story: without counter-examples, skill routing can fall from 73% to 53%; with counter-examples, it reaches 85%. Tool definitions have the same cost: five MCP servers can add roughly 55,000 [Token](/en/glossary#token) of overhead; another MCP experiment fetched definitions only when needed, cutting related task token use by 46.9%.
-
-The human version is: **do not give agents a pile of low-level API parts; give them tools that complete tasks.** Instead of making an agent assemble `create_file`, `write_content`, and `set_permissions`, give it `create_script(path, content, executable)`. Memory follows the same rule: current task in front, methods in docs, history in traces, important long-term facts in `MEMORY.md`-style notes, with rollback to raw data.
+The same rule applies to tools: **do not give agents a pile of low-level API parts; give them tools that complete tasks.** Instead of making an agent assemble `create_file`, `write_content`, and `set_permissions`, give it `create_script(path, content, executable)`. [Skill](/glossary#skill) and tool descriptions should act like road signs: when to use it, when not to use it, and what it returns. The numbers tell the story: without counter-examples, skill routing can fall from 73% to 53%; with counter-examples, it reaches 85%. Tool definitions have the same cost: five MCP servers can add roughly 55,000 [Token](/en/glossary#token) of overhead; another MCP experiment fetched definitions only when needed, cutting related task token use by 46.9%. These are all versions of the same engineering move: make the agent guess less and grab the right handle faster.
 
 <ClawdNote summary="Bad tool descriptions and bad memory both create confident confusion.">
 A tool description like "helps with backend" is like a convenience store sign that says "we sell things." A good description works like a road sign: turn right for deploys, not for billing. Memory without rollback is not infrastructure. It is a paper shredder that rewrites history for you.
@@ -128,9 +122,7 @@ The exciting part of multi-agent systems is that many things can run at once. Bu
 
 It makes sense for a main agent to delegate search, trial-and-error, and debugging to subagents; each subagent keeps its own context and returns only a summary, so the main agent does not get polluted. But collaboration cannot rely on verbal agreements. Long tasks need progress files; parallel edits need isolation; "who is waiting for whom, and who completed what" needs to become a recoverable record. If files have not landed or tests have not run, a pretty summary is still only a summary.
 
-Evals and traces enter together here: do not only judge whether an answer looks good; check whether the environment ended in the right state. `Pass@k` asks whether one of several shots succeeds. `Pass^k` asks whether every step in a run holds. Use code graders for tests, structural diffs, and parameter checks; use model graders for rubrics and semantic comparison.
-
-Traces answer the painful question: which turn started drifting? Each run should log the full [Prompt](/en/glossary#prompt), `messages[]`, tool parameters and returns, final output, token use, and latency. An agent without traces is a self-service laundromat with no cameras: when the clothes disappear, everyone just stares at each other. [OpenClaw](/glossary#openclaw) works as a full-system example: messages, decisions, tools, and memory should be separated; long-running task state should be recoverable; safety checks should stand in front of dangerous operations. [Prompt](/en/glossary#prompt) injection is the same lesson: do not assume the model will never be fooled; make sure dirty content cannot reach dangerous buttons.
+Three instruments matter here: **evals check whether the final state is right, traces show where the run drifted, and safety boundaries decide what dirty content is allowed to touch.** `Pass@k` asks whether one of several shots succeeds. `Pass^k` asks whether every step in a run holds. Use code graders for tests, structural diffs, and parameter checks; use model graders for rubrics and semantic comparison. Each run should log the full [Prompt](/en/glossary#prompt), `messages[]`, tool parameters and returns, final output, token use, and latency. An agent without traces is a self-service laundromat with no cameras: when the clothes disappear, everyone just stares at each other. [OpenClaw](/glossary#openclaw) works as a full-system example: messages, decisions, tools, and memory should be separated; long-running task state should be recoverable; safety checks should stand in front of dangerous operations. [Prompt](/en/glossary#prompt) injection is the same lesson: do not assume the model will never be fooled; make sure dirty content cannot reach dangerous buttons.
 
 ---
 
@@ -138,7 +130,7 @@ Traces answer the painful question: which turn started drifting? Each run should
 
 When you start building, do not chase terms first. Chase the order of operations.
 
-Step one is to get one minimal path working: a message comes in, the agent handles it, the result goes back out. Step two is to add safety boundaries. Step three is to turn the first real failure into an eval case. Then add documents, externalized progress, and isolated multi-agent edits. Many agent incidents look like model problems, but they are interface, acceptance, isolation, or eval problems.
+Step one is to get one minimal path working: a message comes in, the agent handles it, the result goes back out. Step two is to add safety boundaries. Step three is to turn the first real failure into an eval case. Then add documents, externalized progress, and isolated multi-agent edits. This order is boring, and that is the point: many agent incidents look like model problems, but they are interface, acceptance, isolation, or eval problems.
 
 ---
 
