@@ -11,6 +11,17 @@ sourceUrl: "https://developers.openai.com/api/docs/guides/prompt-guidance?model=
 lang: "en"
 summary: "OpenAI's GPT-5.5 prompting guide: describe the outcome, not the process. ALWAYS/NEVER lists out; personality vs. collaboration, retrieval budgets, stopping conditions, phase parameters in. Cursor's GPT-5 case study included. Anthropic Opus 4.7 went the same direction in SP-175."
 tags: ["shroom-picks", "openai", "gpt-5-5", "prompt-engineering", "coding-agent"]
+scores:
+  tribunalVersion: 8
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-05-30"
+    model: "gpt-5.5"
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
@@ -96,9 +107,11 @@ Cleaner pattern: internal dev tool and end-user chatbot can share task goals, th
 
 ---
 
-## Three small tricks, all about the same question: when should the model stop?
+## After removing the crutch, don't let the model walk to the next county
 
-Once process-heavy lists are gone, the prompt cannot just say "be smart." The GPT-5.5 docs add three small tricks: preamble, retrieval budget, and stopping condition. Different names, same move: define what "enough" means.
+Once the 700-line SOP is gone, the prompt cannot just say "be smart." That is how a model finally stops being dragged by the hand, then happily wanders off: one more search, one more tool call, one more document, like someone going to the store for milk and coming back with an air fryer.
+
+The GPT-5.5 docs add preamble, retrieval budget, and stopping condition. Different names, same move: give the model traffic lights. Green light: use judgment. Yellow light: tell the user what is happening. Red light: enough, stop.
 
 ### Preamble: a visual fix for first-token latency
 
@@ -132,7 +145,7 @@ with useful evidence and citations for the factual claims?"
 If yes, answer.
 ```
 
-That is more flexible than "stop after five tool calls" and more concrete than "stop when appropriate." A good decision rule does not make every decision for the model. It writes down the question the model should ask itself.
+That is more flexible than "stop after five tool calls" and more concrete than "stop when appropriate." A good decision rule does not make every decision for the model. It writes down the question the model should ask itself. The old 700-line prompt was a parent sitting beside the homework desk. This version is the checklist taped to the monitor: work independently, but look up at the traffic light after every loop.
 
 <ClawdNote summary="Decision rules hand judgment back to the model.">
 All three tricks share one thing: **they hand judgment back to the model, but give it a repeatable self-check question**. The old style was "I list every condition." The new style is "I teach the model how to judge."
@@ -142,9 +155,9 @@ That feels wrong to engineers because control is being handed back. But the GPT-
 
 ---
 
-## Hard tech for coding agents: phase and patch format are not decoration
+## Hard tech for coding agents: don't save "checking" as "finished"
 
-The tech names get heavier here, but the message is simple: label intermediate updates clearly, and prefer patch formats the model was trained on.
+The tech names get heavier here, but there are only two traps: when replaying model output, do not mix up "checking" and "finished"; when editing files, do not invent a patch format the model has barely seen.
 
 ### Phase parameter: stage labels for assistant items
 
@@ -182,9 +195,9 @@ So a coding agent's edge is not only in the prompt. It is also in whether it use
 
 ---
 
-## Cursor's GPT-5 prompt tuning: "more is better" gets overturned once
+## Cursor's reversal: old prompts pushed the model; new prompts may need brakes
 
-The GPT-5 section includes a Cursor case study from the AI code editor's GPT-5 alpha testing. Three things are worth keeping because they make the destination-first philosophy concrete.
+The GPT-5 section includes a Cursor case study from the AI code editor's GPT-5 alpha testing. This is where the theory hits the floor. Cursor did not just add more rules. It had to admit an awkward thing: the whip that used to get older models moving could make GPT-5 run too far.
 
 ### Thing #1: Configure verbosity at two levels separately
 
@@ -200,7 +213,7 @@ Cursor's fix was to rename the block to the more neutral `<context_understanding
 
 This case demonstrates a habit: **old prompts need re-review, not because they were wrong, but because the model changed**. Encouragement that worked on GPT-4 can turn into redundant nagging on GPT-5.
 
-### Thing #3: XML structure improves instruction adherence
+### Thing #3: XML structure lets rules find each other
 
 Cursor's observation: using `<[instruction]_spec>` style XML tags to label different prompt sections improves instruction adherence. Other parts of the prompt can reference those tags (for example, "follow the rules in `<output_spec>`"), so the prompt becomes an internally cross-referenced structure instead of a flat blob of text.
 
@@ -214,7 +227,7 @@ This is the reminder for any team running LLMs in production: **prompts are not 
 
 ---
 
-## Metaprompting: have the model fix its own prompt
+## The sharpest cut: have the model grade the prompt
 
 The GPT-5.3-Codex section hides a sneakier trick: metaprompting, which means **letting the model look at one of its unsatisfying outputs and suggest how to fix the instructions**. The official template is not magic. Its core is three steps: ask what made the last response slow, have the model reread its instructions, then ask for generalized additions, changes, or deletions.
 
@@ -222,7 +235,7 @@ It is especially useful for behavioral failures like overthinking, loggy preambl
 
 But this is not scripture. Run the metaprompt several times and look for repeated suggestions across 3–5 runs. Then put any adopted change behind an eval. A single suggestion may be overfit to one case; merging it straight into production is just letting the model improvise your system prompt.
 
-This trick has been around in the LLM community for a while — Karpathy wrote about something similar on X about two years ago. Putting it in the official prompting guide signals that "prompt engineering is iterative work" has moved from community trick to recommended workflow.
+This trick has been around in the LLM community for a while — Karpathy wrote about something similar on X about two years ago. Putting it in the official prompting guide signals that "prompt engineering is iterative work" has moved from community trick to recommended workflow. After the article starts with "remove the crutch," this is the sharper ending: the new model does not merely follow prompts. It can sometimes tell you which prompt made it behave badly.
 
 <ClawdNote summary="Treat prompts like code, with evals and revision history.">
 The hidden meaning of metaprompting stings a bit: the model sometimes understands why its instructions made it fail better than the prompt engineer does. Open a prompt git log and you will find plenty of "I thought this wording would make the model do X, but nope."
@@ -232,7 +245,7 @@ A healthy workflow looks something like: write v1 prompt → ship to production 
 
 ---
 
-## Closing: two flagships, same direction. Send the old prompts to git history as keepsakes.
+## Closing: put the crutch in storage, not on an altar
 
 Lay the OpenAI GPT-5.5 prompting guide next to Anthropic's Opus 4.7 best practices ([SP-175](/en/posts/en-sp-175-20260416-anthropic-opus-4-7-prompting-best-practices/)) and the convergence is hard to miss: shorter prompts, intent-first framing, split concerns, fewer always/never commands, more model judgment.
 
