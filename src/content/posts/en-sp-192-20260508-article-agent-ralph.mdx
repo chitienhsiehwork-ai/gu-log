@@ -36,36 +36,40 @@ lang: "en"
 summary: "Jarrod Watts looked inside Codex Goals and found that it solves early stopping, not long-run drift. The real long-running agent stack needs upfront clarification, multi-agent review, and memory outside the context window."
 tags: ["shroom-picks", "agent", "codex", "ai-engineering"]
 scores:
-  tribunalVersion: 3
+  tribunalVersion: 8
   librarian:
-    glossary: 9
+    glossary: 8
     crossRef: 8
-    sourceAlign: 9
-    attribution: 9
+    sourceAlign: 8
+    attribution: 8
     score: 8
-    date: "2026-05-07"
+    date: "2026-05-30"
     model: "gpt-5.5"
   factCheck:
     accuracy: 8
     fidelity: 8
     consistency: 9
+    sourceBoundary: 8
+    commentarySeparation: 8
     score: 8
-    date: "2026-05-07"
+    date: "2026-05-30"
     model: "gpt-5.5"
   freshEyes:
     readability: 8
     firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
     score: 8
-    date: "2026-05-07"
+    date: "2026-05-30"
     model: "gpt-5.5"
   vibe:
-    persona: 9
-    clawdNote: 9
+    persona: 8
+    clawdNote: 8
     vibe: 8
     clarity: 9
     narrative: 8
     score: 8
-    date: "2026-05-07"
+    date: "2026-05-30"
     model: "gpt-5.5"
 ---
 
@@ -73,7 +77,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 [Codex](/en/glossary#codex) recently shipped `/goal`, and on paper it sounds like the thing agent people have been waiting for: give an [Agent](/en/glossary#agent) a big objective, let it run for hours or days, and stop making it ask every fifteen minutes whether it is allowed to continue.
 
-The promise is seductive. Go to sleep after typing "build the product," wake up to a working B2B SaaS with tests, docs, and deployment notes. Finally, the universe has decided to be useful. (´・ω・)
+For people experimenting with long-running agents, the promise is straightforward: stop manually handing the task back every few minutes, let the agent keep pursuing one objective, preserve progress, and audit completion before it claims victory.
 
 Jarrod Watts was excited too. He has spent the last few months experimenting with long-running agents, including using agents on Anthropic's hiring challenge. Codex Goals should have been right in the center of that world.
 
@@ -84,16 +88,16 @@ Not because it does nothing. It does real engineering work: store a goal in SQLi
 They keep going, very confidently, in the wrong direction.
 
 <ClawdNote>
-This is the nastiest failure mode for long-running agents. No explosion. No red error. No obvious crash. Just a sequence of reasonable-looking steps that ends with a finished artifact that is not the thing anyone wanted. A crash is at least honest.
+This is the nastiest failure mode for long-running agents. No explosion. No red error. No obvious crash. Just a sequence of reasonable-looking steps that ends with a finished artifact that is not the thing anyone wanted. A crash is at least honest. (´・ω・)
 </ClawdNote>
 
 ## First, Stop Mystifying the Long Run. It Mostly Spends More Tokens.
 
-Jarrod's first cut is brutally plain: long-running agents sometimes work because they spend more [Token](/en/glossary#token).
+Long-running agents sometimes work because they spend more [Token](/en/glossary#token).
 
-Researchers call this scaling [test-time compute](/en/glossary#test-time-compute). The model is not retrained. It simply gets more time, more budget, and more chances to check itself while answering. Jarrod points to Anthropic's Opus 4.6 system card, where Sonnet 4.6 spending 10x more tokens on BrowseComp produced about 10 percentage points of additional score.
+Researchers call this scaling [test-time compute](/en/glossary#test-time-compute). The model is not retrained. It simply gets more time, more budget, and more chances to check itself while answering. Anthropic's Opus 4.6 system card gives one conservative reference point: Sonnet 4.6 spending 10x more tokens on BrowseComp produced about 10 percentage points of additional score.
 
-Plain English: thinking longer can really help.
+The conservative reading is simple: thinking longer can really help.
 
 That is not magic. Humans are the same way. A five-minute answer and a two-hour answer with research, rereading, and revision are not the same product. Agents are similar. As long as the task still fits in one coherent context, more rounds can improve the result.
 
@@ -109,7 +113,7 @@ At that point, "run another round" does not always mean "get smarter." Sometimes
 
 This is where Codex `/goal` enters.
 
-After reading the code, Jarrod found that Codex Goals uses a `thread_goals` table to store each goal's objective, ID, status, and optional token budget. During execution, the agent can call tools like `get_goal` and `update_goal` to know the active target, report progress, and track remaining budget.
+Under the hood, Codex Goals uses a `thread_goals` table to store each goal's objective, ID, status, and optional token budget. During execution, the agent can call tools like `get_goal` and `update_goal` to know the active target, report progress, and track remaining budget.
 
 The actual motion still comes from a fairly standard [Ralph Loop](/en/glossary#ralph-loop):
 
@@ -140,29 +144,29 @@ This is the easy part to misread. Codex Goals is not bad design. It solves a low
 
 ---
 
-## Jarrod's Disappointment: It Can Drift Without Resting
+## The Real Problem: It Can Drift Without Resting
 
-The most valuable part of the thread is not the SQLite table or the loop prompt. It is the argument that long-running workflows are not mainly threatened by lack of time. They are threatened by compounding ambiguity.
+The core argument is not the SQLite table or the loop prompt. It is that long-running workflows are not mainly threatened by lack of time. They are threatened by compounding ambiguity.
 
 When an LLM works in a loop, each output becomes part of the next input. A small decision in round one becomes the floor for round two. Round three writes tests around it. Round four documents it as if it had always been the obvious choice.
 
 If the first branch was wrong, later work does not stay neutral. It builds a whole little city on the wrong road.
 
-This is the classic product tragedy: a brief says "make it feel professional," and the final site is black-purple gradient, starfield background, glowing buttons, and enough visual effects to irradiate the brand. Engineering delivered. Taste filed a missing-person report.
+This is the classic product tragedy: a brief says "make it feel professional," and the team ships a complete artifact, but not necessarily the version the requester had in mind.
 
 Agents do the same thing. They are not malicious. They are asked to choose paths inside a fuzzy objective, then they work very hard along the path they picked.
 
-So Jarrod's first missing piece is not a bigger model or a stronger loop. It is a setup phase before execution.
+So the first missing piece is not a bigger model or a stronger loop. It is a setup phase before execution.
 
 ---
 
 ## Missing Piece One: Kill Ambiguity Before the Starting Line
 
-Before letting the autonomous loop begin, Jarrod invests in a setup phase. The goal is not to write code. The goal is to make the agent ask questions, surface assumptions, and force hidden requirements into the open. The idea is close to Matt Pocock's viral `grill-me` skill, and to Jarrod's own `/interview` style workflow.
+Before letting the autonomous loop begin, the workflow invests in a setup phase. The goal is not to write code. The goal is to make the agent ask questions, surface assumptions, and force hidden requirements into the open. The idea is close to Matt Pocock's viral `grill-me` skill, and to `/interview` style workflows.
 
-This sounds slow. It is actually how time gets saved.
+The value is that this catches misunderstandings before the loop spends hours amplifying them.
 
-Jarrod uses a useful image: the final outcome is like a tree. Every branch is a decision. Without clarification, the agent chooses one branch on behalf of the person asking. It may be a plausible branch, but not necessarily the intended one.
+The final outcome is like a tree. Every branch is a decision. Without clarification, the agent chooses one branch on behalf of the person asking. It may be a plausible branch, but not necessarily the intended one.
 
 Asking questions upfront cuts off the wrong branches before the long run starts.
 
@@ -180,13 +184,13 @@ This line belongs on the door of every agent workflow: do not rebrand "we have n
 
 The second missing piece is multi-agent work.
 
-Jarrod's point is direct: if token cost is not the main constraint, an orchestrator-and-subagent setup often beats a single strong agent. Not because multi-agent is cooler, but because it changes compute scaling from one deep tunnel into several separated perspectives.
+If token cost is not the main constraint, an orchestrator-and-subagent setup often beats a single strong agent. Not because multi-agent is cooler, but because it changes compute scaling from one deep tunnel into several separated perspectives.
 
 A single agent sitting in one context for too long starts treating earlier decisions as worldbuilding. It does not have pride in the human sense, but it is shaped by its own context. If an earlier assumption was wrong, later rounds become increasingly good at rationalizing it.
 
 The main value of multiple agents is fresh context.
 
-Jarrod's workflow roughly looks like this: a main agent acts as orchestrator. For each smaller task, it creates a small team. One agent implements. Another reviews. The implementer produces work, the reviewer inspects it from a cleaner context, they iterate until the result is acceptable, and then report back to the orchestrator.
+The workflow roughly looks like this: a main agent acts as orchestrator. For each smaller task, it creates a small team. One agent implements. Another reviews. The implementer produces work, the reviewer inspects it from a cleaner context, they iterate until the result is acceptable, and then report back to the orchestrator.
 
 That is basically PR review, but agent-shaped.
 
@@ -204,20 +208,20 @@ The third missing piece is the least glamorous, which means it is probably the m
 
 Long-running tasks will hit context problems. The context window fills up. Agents may hand off. Earlier decisions get compressed, dropped, or misread. Managing a whole project only inside a chat transcript is like writing handoff notes on sticky notes and taping them in front of a desk fan.
 
-Jarrod's solution is very plain: write important state into files.
+The solution is very plain: write important state into files.
 
-He lists several:
+The skill puts those states under a `.agent/` directory:
 
-1. `GOAL.md`: the top-level objective.
-2. `STANDARDS.md`: non-negotiable quality standards.
-3. `IMPLEMENT.md`: workflow rules, including review, testing, and verification.
-4. `PROGRESS.md`: the running log of decisions and completed work.
+1. `.agent/goal.md`: the top-level objective.
+2. `.agent/standards.md`: non-negotiable quality standards.
+3. `.agent/implement.md`: workflow rules, including review, testing, and verification.
+4. `.agent/progress.md`: the running log of decisions and completed work.
 
-There is a funny small inconsistency in the original: it says three files and then lists four. That does not matter. The number is not the insight. The insight is that state must leave the model's short-term memory and become an external object that the next agent can read, continue from, and be audited against.
+The number is not the insight. The insight is that state must leave the model's short-term memory and become an external object that the next agent can read, continue from, and be audited against.
 
-This is not a silver bullet either. Agents may skip files. Files can go stale. Logs can be incomplete. Jarrod says as much: these are guidelines, not perfect control systems.
+This is not a silver bullet either. Agents may skip files. Files can go stale. Logs can be incomplete. These are guidelines, not perfect control systems.
 
-But without external memory, a long-running agent almost always becomes "whatever the current context says." That is not a workflow. That is improv theater with a terminal.
+But without external memory, a long-running agent almost always becomes "whatever the current context says," leaving control inside the current context itself.
 
 ---
 
@@ -231,9 +235,9 @@ During execution, something builds, something reviews, and something coordinates
 
 Across rounds, something preserves the goal, standards, method, and progress.
 
-This sounds less cool than an AI demo and suspiciously close to dragging agents back into the world of README files and project discipline. That is exactly why it is valuable. A system that can run for a long time does not avoid management. It turns management into part of the system.
+This pulls the AI demo back into the world of specifications, handoff notes, and process checks. That is the engineering value of the approach: a system that can run for a long time does not avoid management. It turns management into part of the system.
 
-Codex Goals productizes continuous work. That matters. But Jarrod's warning is that continuous work is only the foundation. On top of it, the system still needs specification, division of labor, review, and memory. Otherwise, mistakes simply get more time to grow.
+Codex Goals productizes continuous work. That matters. But continuous work is only the foundation. On top of it, the system still needs specification, division of labor, review, and memory. Otherwise, mistakes simply get more time to grow.
 
 ---
 
@@ -243,7 +247,7 @@ A Ralph Loop solves endurance, not direction.
 
 Codex Goals solves "do not stop every fifteen minutes to ask permission," not "every fifteen minutes, still be going the right way." Those are very different problems.
 
-The best part of Jarrod's piece is that it pulls long-running agents out of the magic story and back into engineering reality: clarify before execution, split work, review from fresh context, and write memory outside the model's head. Less sexy, yes. Much more likely to survive the night.
+This conclusion pulls long-running agents out of the magic story and back into engineering reality: clarify before execution, split work, review from fresh context, and write memory outside the model's head. Much more likely to survive the night.
 
 The future of long-running agents probably is not one supermodel locked in a room until it ships a product.
 

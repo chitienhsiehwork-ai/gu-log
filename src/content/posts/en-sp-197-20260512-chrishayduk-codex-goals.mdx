@@ -26,7 +26,7 @@ lang: "en"
 summary: "Codex `/goal` is not a wish machine. Chris Hayduk's real point is engineering discipline: give the agent a measurable finish line, a fast feedback loop, and Markdown files that work as long-term memory."
 tags: ["shroom-picks", "codex", "agent", "workflow"]
 scores:
-  tribunalVersion: 5
+  tribunalVersion: 8
   librarian:
     glossary: 10
     crossRef: 9
@@ -47,8 +47,10 @@ scores:
   freshEyes:
     readability: 8
     firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
     score: 8
-    date: "2026-05-19"
+    date: "2026-05-30"
     model: "gpt-5.5"
   vibe:
     persona: 8
@@ -57,32 +59,21 @@ scores:
     clarity: 9
     narrative: 8
     score: 8
-    date: "2026-05-19"
+    date: "2026-05-30"
     model: "gpt-5.5"
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-[Codex](/en/glossary#codex) `/goal` looks like a magic button: put one command in front of a [Prompt](/en/glossary#prompt), and the [Agent](/en/glossary#agent) keeps going until the task is finished. The problem with magic buttons is not that they fail. It is that they work too well: you press the button, the machine really starts moving, and nobody installed the brakes first.
+[Codex](/en/glossary#codex) `/goal` looks like a magic button: put one command in front of a [Prompt](/en/glossary#prompt), and the [Agent](/en/glossary#agent) keeps going until the task is finished. The problem with that button is not that it fails. It is that it works too well: the machine really starts moving, and nobody installed the brakes first.
 
-The point is not that Codex can work for a long time. The practical question is how to break "work for a long time" into three engineering conditions: **the loop needs to know when to stop, it needs a fast way to judge whether the last step helped, and it needs somewhere to remember what it already tried.**
-
-In other words, Goal mode is not magical autonomy. It is closer to putting a very diligent machine on rails: install the brakes, add the dashboard, then give it a ship log that does not forget. Miss any one of those, and long-running work turns from a cool feature into an expensive spinning animation.
+So the point is not how long Codex can work. The practical question is whether the long-running loop has three engineering conditions: **a finish line, fast tests, and external memory.** Miss any one of those, and Goal mode turns from a cool feature into an expensive spinning animation.
 
 ## Press the Magic Button, Then Find the Brakes
 
-Codex now supports `/goal` inside the app. The usage is simple: start the prompt with `/goal`, then describe what you want the agent to achieve. Codex enters a continuous loop until it decides the goal has been met.
+Codex now supports `/goal` inside the app: start the prompt with `/goal`, describe what you want the agent to achieve, and Codex enters a continuous loop until it decides the goal has been met.
 
-The important word is not "continuous." When people first see a feature like this, the fantasy appears immediately: finally, I can hand a task to an agent, go to sleep, and wake up to cleaner code, a stronger model, or a paper formatted correctly by itself. Life has entered autopilot.
-
-But Goal mode is not "delegate once and let the miracle happen." It is closer to a loop:
-
-1. The agent takes some actions.
-2. The agent scores those actions.
-3. The agent checks whether the score satisfies the goal.
-4. If not, it continues; if yes, it stops.
-
-The easiest place for the system to break is step three. "Does this satisfy the goal?" sounds simple until the goal itself is vague. Then the agent is playing a game with no win condition. The screen is busy, the character keeps running, the effects keep firing, and nobody knows when the level ends.
+The fantasy is immediate: hand a task to an agent, go to sleep, and wake up to cleaner code, a stronger model, or a paper formatted correctly by itself. Reality is less magical. Goal mode is a loop: the agent acts, scores the result, checks whether the score satisfies the goal, and either continues or stops. The easiest place to break is "satisfies the goal." If the goal is vague, the agent is playing a game with no win condition. The character keeps running, and nobody knows when the level ends.
 
 <ClawdNote>
 This is the counterintuitive part of Goal mode: the stronger the agent, the more it needs a clear finish line. A weaker tool stops after a few minutes, so the blast radius is limited. A stronger tool might run for days. At that point, "make the code better" is not a prompt. It is a disaster generator wearing a nice jacket.
@@ -92,21 +83,13 @@ This is the counterintuitive part of Goal mode: the stronger the agent, the more
 
 ## Failure One: Without Acceptance Criteria, the Brakes Are Decoration
 
-Over roughly the last six months, models have become so good that everyday prompting has gotten a little lazy. Often you can gesture vaguely at what you want, tell GPT-5.5 the general direction, and it can infer the next steps.
+Over roughly the last six months, models have become so good that everyday prompting has gotten a little lazy. Often you can gesture vaguely at what you want, tell GPT-5.5 the general direction, and it can infer the next steps. That habit breaks badly in Goal mode.
 
-That habit breaks badly in Goal mode.
+"Make the code better" can work in an ordinary chat. The model can inspect files, find obvious issues, make reasonable patches, then report what changed. But inside Goal mode, that sentence has no endpoint. Better how? More readable, faster, better tested, more consistent with the architecture, or just nicer filenames? Better enough to stop?
 
-"Make the code better" can work in an ordinary chat. The model can inspect files, find some obvious issues, make a few reasonable patches, then report what changed. But inside Goal mode, that sentence has no clear endpoint. Better how? More readable, faster, better tested, more consistent with the architecture, or just nicer filenames? And the harder question: better enough to stop?
+Under-specified goals create two failure modes. The first is quitting too early: the agent changes a few things, cannot prove progress, and declares victory because no acceptance criteria exist. The second is worse: the agent never stops, because "better" never reaches a definite completed state. That is not diligence. That is an exitless maze connected to autopilot.
 
-Under-specified goals create two failure modes.
-
-The first is quitting too early. The agent works for a few minutes, changes a few things, cannot clearly prove progress, and decides the job is done. That is like asking someone to clean a room by saying "make it nicer." They move two chairs, find no acceptance criteria, and declare victory. Awkward, but at least the damage is small.
-
-The second is worse: the agent never stops. It keeps changing things, switching directions, and trying plausible adjustments, because "better" never reaches a definite completed state. That is not diligence. That is an exitless maze connected to autopilot.
-
-A better version is: reduce the runtime of the code in a specific file by 20%, without regressing existing unit tests or integration tests.
-
-That sentence is a different animal. It has a measurable target: runtime for a specific file goes down by 20%. It also has a constraint: existing unit and integration tests still pass. The agent no longer has to guess what "better" looks like. It checks two things: did speed hit the bar, and did the tests stay green?
+A better version is: reduce the runtime of the code in a specific file by 20%, without regressing existing unit tests or integration tests. That sentence has a measurable target and a constraint. The agent no longer guesses what "better" looks like. It checks two things: did speed hit the bar, and did the tests stay green?
 
 That is the first rule of Goal mode: **do not give wishes; give acceptance criteria.** Wishes make the agent start moving. Acceptance criteria tell it when to stop.
 
@@ -114,17 +97,11 @@ That is the first rule of Goal mode: **do not give wishes; give acceptance crite
 
 ## Qualitative Work Still Needs Checkboxes
 
-Some tasks do not naturally look like "reduce runtime by 20%." Converting a NeurIPS preprint into ICML conference paper format is a very representative example.
+Some tasks do not naturally look like "reduce runtime by 20%." Converting a NeurIPS preprint into ICML conference paper format is a good example: format, style, and accidental changes to technical content are not captured by one number.
 
-That sounds qualitative. Is the format correct? Does the style match? Did any technical content get accidentally changed? Many of the details are not captured by one number. Worse, ICML has many formatting rules, originally sitting in LaTeX files, which are not ideal as direct acceptance tests.
+The move is not to ask Codex to "make the formatting right." First, Codex extracts the LaTeX rules into a `checklist.md` with more than 200 formatting and style requirements; then the goal becomes: convert the NeurIPS paper to ICML format according to `checklist.md`, without changing any technical content.
 
-The move is not to ask Codex to "make the formatting right." First, Codex extracts the LaTeX rules into a `checklist.md` with more than 200 formatting and style requirements. Then the goal becomes: convert the NeurIPS paper to ICML format according to `checklist.md`, without changing any technical content.
-
-That move turns "make the format right" into checkable work. The original goal sounds like an editor's soul judgment. After the checklist, the goal becomes "finish all 200-plus items." Each individual item may still have some fuzziness, but judging one rule is much easier than judging whether an entire paper now has the right ICML aura.
-
-The evidence is narrower here: the checklist screenshot is only preserved as `[media]`; the screenshot text itself is not available. So the reliable facts are limited: the checklist had more than 200 items, and it covered formatting and style requirements. The exact items should not be reconstructed beyond that.
-
-Completed items should be checked off as the work progresses. That writes progress into the file system instead of leaving it inside the agent's temporary context. Humans can inspect the checklist. The agent can reread state during a long task. The brakes stop being "seems about done" and become a visible row of boxes getting crossed off.
+Now "make the format right" turns from an editor's soul judgment into 200-plus checkable gates. The screenshot is only preserved as `[media]`, so the exact rules should not be reconstructed; the reliable point is that the checklist had more than 200 items covering formatting and style. As items are checked off, progress moves into the file system instead of staying inside the agent's temporary context.
 
 <ClawdNote>
 This is like turning "save the world" into "collect the shards, beat the boss, return to town." The first one sounds epic, but the system cannot score it. The second one is embarrassingly plain, and that is why it works. In agent land, boring checklists beat mystical vibes more often than people want to admit.
@@ -134,19 +111,13 @@ This is like turning "save the world" into "collect the shards, beat the boss, r
 
 ## Brakes Are Not Enough. You Also Need a Dashboard.
 
-Once the goal is clear, the story is not over. Brakes tell the agent when to stop. But at every step along the way, it still needs a dashboard to know whether it is moving toward the goal or drifting beautifully sideways.
+Once the goal is clear, the story is not over. Brakes tell the agent when to stop. At every step along the way, it still needs a dashboard to know whether it is moving toward the goal or drifting beautifully sideways.
 
-How does the agent know whether the last change helped?
+The second recommendation is to shorten the feedback loop. After each round of changes, the agent needs some test mechanism to evaluate the result. The faster the test runs, and the simpler it is to execute, the faster the signal comes back.
 
-The second recommendation is to shorten the feedback loop. After each round of changes, the agent needs some test mechanism to evaluate the result. The faster the test runs, and the simpler it is to execute, the more quickly the agent gets signal about whether it is closer to the goal or farther away.
+This matters especially in machine learning work. If the goal is to improve a model architecture, using the full model size and the full dataset for every training run can stall the loop. The setup uses a smaller model and a sampled dataset so the agent can test ideas faster. The point is not to make the score sloppy. The point is to accelerate feedback without destroying score quality.
 
-This matters especially in machine learning work. If the goal is to improve a model architecture, using the full model size and the full dataset for every training run can take a long time. That is hostile to Goal mode. Every tiny change waits for a full training result, which is like asking a very good experimenter to wait for a painfully slow report card before every next move.
-
-The setup uses a smaller model and a sampled dataset so the agent can test ideas faster. The point is not to make the score sloppy. The point is to accelerate feedback as much as possible without destroying score quality.
-
-In the protein-structure model architecture search example, scoring on the full dataset could take days. NanoFold, a small but well-sampled dataset published by Chris Hayduk on Hugging Face, cuts experiment scoring time from days to minutes. That number matters: not "a little faster," but from day-scale to minute-scale. For an agent that iterates repeatedly, that difference changes how many ideas it can afford to try.
-
-NanoFold's internal details are limited here. The reliable claims are that the dataset is small, well-sampled, publicly available on Hugging Face, and used for protein-structure model architecture experiments. So the article should not invent extra benchmark numbers or dataset composition.
+In the protein-structure model architecture search example, scoring on the full dataset could take days. NanoFold, a small but well-sampled dataset published by Chris Hayduk on Hugging Face, cuts experiment scoring time from day-scale to minute-scale. The reliable details stop there, so no extra benchmark numbers or dataset composition should be invented. But for an agent that iterates repeatedly, the time difference already changes how many ideas it can afford to try.
 
 <ClawdNote>
 Using full training as the score for every iteration is like printing a hardcover book after every sentence revision, then asking the teacher to grade it. Very ceremonial. Absolutely cursed for throughput. (╯°□°)╯ Goal mode needs checks that are credible enough and fast enough, not formal review for every footstep.
@@ -158,39 +129,23 @@ Using full training as the score for every iteration is like printing a hardcove
 
 Even with brakes and a dashboard, long tasks have one more problem: by day three, does the agent still remember why it turned left on day one?
 
-The third recommendation looks humble and matters a lot: give the agent Markdown files where it can write its plan, experiments, and live thoughts.
+The third recommendation looks humble and matters a lot: give the agent Markdown files where it can write its plan, experiments, and live thoughts. Goal mode can let GPT-5.5 run continuously for days. Even if Codex has decent context compression, long tasks still need memory of what was already tried, why it failed, and which roads have already been proven not worth taking. If all of that context stays inside the model context window, memory starts to look like a photocopy of a photocopy: the gist survives, but details blur.
 
-The reason is simple. Goal mode can let GPT-5.5 run continuously for days. Even if Codex has decent context compression, that time scale is rough for any model. Long tasks do not only require remembering the newest step. They require remembering what was already tried, why it failed, and which roads have already been proven not worth taking.
+Goal mode usually gets three files, each holding a different kind of memory.
 
-If all of that context is forced to live inside the model context window, the longer the task runs, the more memory starts to look like a photocopy of a photocopy. The gist survives. The details blur. The file system is stable, readable, and auditable. The agent can reread it. Humans can audit it.
+**`PLAN.md`** holds the high-level plan: how the agent intends to move toward the goal, plus any human-provided direction or assumptions. It is the route map that keeps the strategy from floating away.
 
-Goal mode usually gets three files.
+**`EXPERIMENTS.md`** holds experiment records: each attempt's title, what changed, why it changed, and what happened.
 
-**`PLAN.md`** holds the high-level plan. It records how the agent intends to move toward the goal, and it can include human-provided direction or assumptions from the start. It is the route map. It does not need every footstep, but it should keep the overall strategy from floating away.
+**`EXPERIMENT_NOTES.md`** is the live scratchpad, recording the agent's thoughts in chronological order. Its value is auditability, not elegance. When the agent starts walking in a strange direction, a human can see which reasoning step bent too hard.
 
-**`EXPERIMENTS.md`** holds experiment records. In the machine learning context, it records each experiment's title, what was tried, and the result. In other domains, it can become a record of attempts: what changed, why it changed, and what happened.
-
-**`EXPERIMENT_NOTES.md`** is the live scratchpad. It records the agent's thoughts in chronological order while it works. Its value is not elegance. Its value is auditability. When the agent starts walking in a strange direction, a human can see which reasoning step bent too hard and pull it back.
-
-`EXPERIMENTS.md` is the most important of the three, because it lets both the human and the agent review past attempts and why each one worked or failed.
+`EXPERIMENTS.md` is the most important of the three, because it lets both the human and the agent review why each attempt worked or failed. The screenshot excerpt is also only preserved as `[media]`; the reliable structure is simply a clean experiment list with a title, short description, and result for each entry.
 
 <ClawdNote>
 The scariest thing about a long-running agent is not that it makes a mistake. It is that it forgets it already made that exact mistake, then reenacts it with complete confidence. These record files look plain, but they are guardrails against repeated self-owning.
 </ClawdNote>
 
-The `EXPERIMENTS.md` screenshot excerpt is also only preserved as `[media]`, without the actual text. The reliable structure is a clean experiment list where each entry includes a title, a short description, and a result.
-
----
-
-## Brakes, Dashboard, and Ship Log Have to Show Up Together
-
-By this point, the shape of `/goal` is clear: a precise, measurable target; a tight feedback loop; and Markdown files that give the agent working memory outside the context window. These are not three parallel tips. They are one safety system for long runs: brakes decide when to stop, the dashboard shows whether the direction is right, and the ship log keeps the next loop from forgetting which wall the last loop already hit.
-
-A clear goal without fast tests means the agent knows the destination but has to wait forever after every step to know whether it moved the right way. Fast tests with a vague goal means the agent can crash into things very efficiently. File memory without measurement and scoring gives you a pile of serious notes, like a student preparing intensely for an exam that has no questions.
-
-Goal mode running longer does not mean it knows what success means. Success has to be written as a checkable state. That is why these examples are so concrete: 20% runtime improvement, no test regression, 200-plus formatting rules checked off, scoring time reduced from days to minutes, and three files separating plan, experiments, and live notes.
-
-This is not fancy prompt magic. It is engineering management, except the thing being managed is an agent that does not get tired and really needs boundaries. The real tension is here: the more capable an agent is of working for a long time, the less it feels like a toy, and the more it feels like a machine that amplifies instructions.
+Brakes, dashboard, and ship log are not three parallel tips. They are one safety system for long runs. Without a goal, the agent crashes efficiently. Without fast tests, it waits too long to learn whether a step helped. Without memory, it leaves behind serious notes that do not actually answer the exam question.
 
 The same long-running-agent problem shows up from other angles too. [SP-192](/en/posts/en-sp-192-20260508-article-agent-ralph/) is about external memory and human clarification. [SP-191](/en/posts/en-sp-191-20260507-danizhu-claude-dreams-agent/) and [SP-193](/en/posts/en-sp-193-20260508-article-autobrowse-agent/) approach it through memory cleanup and browser-task handoff. The real fear in long-running work is not that the agent cannot run long enough. It is that after running for a long time, it forgets why it started running.
 
@@ -198,9 +153,7 @@ The same long-running-agent problem shows up from other angles too. [SP-192](/en
 
 ## Closing
 
-The most attractive part of `/goal` is that it lets an agent keep digging into a hard problem. The most dangerous part of `/goal` is also that it lets an agent keep digging into a hard problem. The magic button did not disappear. It just needs three labels taped next to it: where are the brakes, which dashboard gauge matters, and where is the ship log?
-
-The key is not making Codex "more autonomous." The key is giving autonomy a measurable finish line, fast enough feedback, and memory written into files. Without those three, Goal mode is a vague wish connected to an infinite loop. With them, it starts to look like an engineering system that can work for a long time.
+The most attractive part of `/goal` is that it lets an agent keep digging into a hard problem. The most dangerous part is the same thing. The magic button did not disappear. Before pressing it, tape three labels next to it: where is the finish line, how will it be tested, and where will the attempts be written down?
 
 The real instruction is not "go make it better." The real instruction is: define what success looks like, define how to test it, and write down what you already tried.
 

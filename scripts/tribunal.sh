@@ -391,6 +391,69 @@ revert_writer_rewrite_files() {
   fi
 }
 
+# Writers sometimes rewrite/copy the YAML scores block while editing prose.
+# Tribunal scores are harness-owned: stale v5 scores may be temporarily present
+# while v8 is re-scoring, and partial writer edits can turn them into invalid
+# v8 frontmatter (for example tribunalVersion: 8 without FreshEyes v8 dims).
+# Preserve the pre-writer scores block exactly; successful stages write their
+# own score blocks later via frontmatter-scores.mjs.
+restore_scores_block_from_snapshot() {
+  local snapshot="$1" target="$2"
+  [ -f "$snapshot" ] || return 0
+  [ -f "$target" ] || return 0
+  python3 - "$snapshot" "$target" <<'PY'
+import re, sys
+from pathlib import Path
+snap = Path(sys.argv[1])
+target = Path(sys.argv[2])
+old = snap.read_text(encoding='utf-8')
+new = target.read_text(encoding='utf-8')
+fm_re = re.compile(r'^(---\r?\n)([\s\S]*?)(\r?\n---\r?\n)([\s\S]*)$')
+old_m = fm_re.match(old)
+new_m = fm_re.match(new)
+if not old_m or not new_m:
+    sys.exit(0)
+
+def split_scores(fm: str):
+    lines = fm.split('\n')
+    out = []
+    start = end = None
+    i = 0
+    while i < len(lines):
+        if lines[i] == 'scores:':
+            start = i
+            j = i + 1
+            while j < len(lines):
+                if lines[j] != '' and not lines[j].startswith((' ', '\t')):
+                    break
+                j += 1
+            end = j
+            out = lines[start:end]
+            break
+        i += 1
+    return start, end, out
+
+old_start, old_end, old_scores = split_scores(old_m.group(2))
+new_fm = new_m.group(2)
+new_lines = new_fm.split('\n')
+new_start, new_end, _ = split_scores(new_fm)
+if new_start is not None:
+    if old_scores:
+        new_lines[new_start:new_end] = old_scores
+    else:
+        del new_lines[new_start:new_end]
+elif old_scores:
+    # Reinsert at end of frontmatter if the writer accidentally removed scores.
+    while new_lines and new_lines[-1] == '':
+        new_lines.pop()
+    if new_lines:
+        new_lines.append('')
+    new_lines.extend(old_scores)
+restored_fm = '\n'.join(new_lines).rstrip('\n')
+target.write_text(new_m.group(1) + restored_fm + new_m.group(3) + new_m.group(4), encoding='utf-8')
+PY
+}
+
 classify_build_failure() {
   local rc="$1" build_log="$2" post_file="$3"
   local post_rel="src/content/posts/$post_file"
@@ -634,8 +697,27 @@ run_stage() {
   local existing_status
   existing_status="$(get_stage_status "$post_file" "$stage_key")"
   if [ "$existing_status" = "pass" ]; then
-    tlog "  Stage '$label' already PASS (crash resume). Skipping."
-    return 0
+    # A prior run may have recorded progress PASS before the score block was
+    # materialized into the post frontmatter (interrupted run, legacy SD score
+    # shape, or earlier publisher/assert failure). Do not trust progress alone:
+    # if this stage owns a frontmatter score and the post lacks it, re-run the
+    # stage so the final PASS artifact is complete and publishable.
+    if [ -n "$fm_judge_key" ] && [ "$WRITE_FRONTMATTER" -eq 1 ]; then
+      if ! awk -v judge="$fm_judge_key" '
+        /^scores:$/ {in_scores=1; next}
+        in_scores && $0 !~ /^[[:space:]]/ && $0 != "" {in_scores=0}
+        in_scores && $0 ~ "^  " judge ":$" {found=1}
+        END {exit found ? 0 : 1}
+      ' "$post_path"; then
+        tlog "  Stage '$label' has progress PASS but missing frontmatter score '$fm_judge_key'; re-running."
+      else
+        tlog "  Stage '$label' already PASS (crash resume). Skipping."
+        return 0
+      fi
+    else
+      tlog "  Stage '$label' already PASS (crash resume). Skipping."
+      return 0
+    fi
   fi
 
   tlog "=== Stage $label ($runner_label) | max_loops=$max_loops ==="
@@ -835,6 +917,15 @@ PROMPT
     else
       en_existed_before=0
     fi
+    local pre_rewrite_post_snapshot pre_rewrite_en_snapshot
+    pre_rewrite_post_snapshot="$(mktemp)"
+    cp "src/content/posts/$post_file" "$pre_rewrite_post_snapshot"
+    pre_rewrite_en_snapshot=""
+    if [ -f "src/content/posts/en-$post_file" ]; then
+      pre_rewrite_en_snapshot="$(mktemp)"
+      cp "src/content/posts/en-$post_file" "$pre_rewrite_en_snapshot"
+    fi
+
     writer_prompt="$(cat <<PROMPT
 You are the tribunal-writer for gu-log. The $label judge reviewed this post and it FAILED.
 
@@ -860,6 +951,7 @@ $ssot_content
 4. Rewrite the post to fix those specific failures. Write it back in-place.
 5. Also rewrite the EN counterpart at $ROOT_DIR/src/content/posts/en-$post_file if it exists and the same fix applies.
 6. Inspect your diff before finishing. Do not run tribunal, judge agents, or any quota-burning model calls from inside this rewrite.
+7. Before finishing, run cheap deterministic validation only with node scripts/validate-posts.mjs on the rewritten post paths if the EN file exists. If it reports a long ClawdNote component, keep the note but add a concise summary attribute or shorten it; do not leave validation failures for the harness.
 
 Follow $ROOT_DIR/GU-LOG_WRITER_PROMPT.md and $ROOT_DIR/CONTRIBUTING.md frontmatter schema.
 Do NOT change frontmatter fields (title, ticketId, dates, sourceUrl). Preserve MDX components, URLs, source attribution, and already-passing dimensions unless the judge feedback explicitly targets them.
@@ -879,6 +971,15 @@ PROMPT
       tlog "  WARN: tribunal-writer exited with code $writer_rc"
     fi
     rm -f "$writer_out"
+
+    restore_scores_block_from_snapshot "$pre_rewrite_post_snapshot" "src/content/posts/$post_file"
+    if [ -n "$pre_rewrite_en_snapshot" ]; then
+      restore_scores_block_from_snapshot "$pre_rewrite_en_snapshot" "src/content/posts/en-$post_file"
+    fi
+    rm -f "$pre_rewrite_post_snapshot"
+    if [ -n "$pre_rewrite_en_snapshot" ]; then
+      rm -f "$pre_rewrite_en_snapshot"
+    fi
 
     # ── Cheap validation after rewrite (full build is deferred to final gate) ─
     if ! cheap_validate_writer_rewrite "$post_file" "$en_existed_before"; then

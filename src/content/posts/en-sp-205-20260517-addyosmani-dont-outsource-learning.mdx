@@ -19,7 +19,7 @@ lang: "en"
 summary: "Addy Osmani warns that default AI coding workflows help people close tasks, but do not automatically make them sharper. The difference is not whether engineers use AI; it is whether they use it to test and grow their own mental models."
 tags: ["shroom-picks", "ai", "software-engineering", "learning"]
 scores:
-  tribunalVersion: 5
+  tribunalVersion: 8
   factCheck:
     accuracy: 8
     fidelity: 8
@@ -40,8 +40,10 @@ scores:
   freshEyes:
     readability: 8
     firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
     score: 8
-    date: "2026-05-18"
+    date: "2026-05-30"
     model: "gpt-5.5"
   vibe:
     persona: 8
@@ -50,7 +52,7 @@ scores:
     clarity: 9
     narrative: 8
     score: 8
-    date: "2026-05-18"
+    date: "2026-05-30"
     model: "gpt-5.5"
 ---
 
@@ -76,9 +78,9 @@ AI can close the ticket in front of you. It does not automatically install a tra
 <ShroomDogNote>
 But the reverse mistake is also real. Asking a 2026 engineer to maintain a fixed quota of “handwritten code without AI” is like a company getting internet access, then requiring employees to spend part of every day searching paper books in a library instead of using Google, just so they “know what to do when the internet is down.” That sounds hardcore. It is mostly silly. If the internet is down for less than an hour a year, turning every workday into 1995 is not training. It is cosplay.
 
-Computers work the same way. When an engineer’s laptop dies, the company replaces the laptop. Nobody starts evaluating whether that engineer can ship the feature with punch cards, carve a chip by hand, or assemble a computer from scratch to prove they truly understand software. Having a fallback matters. Turning the fallback into the daily workflow is like commuting with a safe strapped to your back.
+Computers work the same way. When an engineer’s laptop dies, the company replaces the laptop. Nobody starts evaluating whether that engineer can ship the feature with punch cards. Having a fallback matters. Turning the fallback into the daily workflow is like commuting with a safe strapped to your back.
 
-So the real warning is not “AI is watching, therefore humans are automatically getting weaker.” The better warning is: once AI becomes the default tool, engineers should train judgment, verification, and problem decomposition, not perform bare-handed productivity theater. Strong engineers do not avoid Google. They know what to search, which result is lying, and which tiny bit of knowledge actually belongs in their head for the rare outage. AI is the same. The tool can get stronger. The steering wheel still cannot fall asleep. (◕‿◕)
+So the real warning is not “AI is watching, therefore humans are automatically getting weaker.” The better warning is: once AI becomes the default tool, engineers should train judgment, verification, and problem decomposition, not perform bare-handed productivity theater. The tool can get stronger. The steering wheel still cannot fall asleep. (◕‿◕)
 </ShroomDogNote>
 
 ## The studies are converging on the same point
@@ -105,14 +107,14 @@ The model writes the code. The human accepts it. The loop repeats. At no point d
 
 That is where UX gravity is right now. Product teams are rewarded for merged changes and shorter cycle times, not for making users sharper engineers. Everyone wants fewer keystrokes, so the tools have sanded the friction away. The trouble is that friction was where the learning lived.
 
-A few companies have tried pushing back. Anthropic shipped Learning Mode for Claude, which uses Socratic questioning and stops to ask the user to write code before continuing; Addy Osmani puts OpenAI and Google's similar learning modes in the same bucket.
+A few companies have tried pushing back. Anthropic shipped Learning Mode for Claude, which uses Socratic questioning and stops to ask the user to write code before continuing; OpenAI and Google have similar learning modes.
 
-Almost nobody uses them for real production work, though. We have quietly filed them under “for students,” and that is a mistake. The same feature that helps a sophomore learn React works for a senior engineer learning Rust. The price is feeling like a beginner again.
+Almost nobody uses them for real production work, though. We have quietly filed them under “for students,” and that is a mistake. The same feature that helps a sophomore learn React can help a senior engineer learn Rust; the price is feeling like a beginner again.
 
 <ClawdNote summary="Learning Mode is cooking class, not delivery.">
 The awkward part of Learning Mode is not that it is slow. It is that it makes a senior engineer feel like the teacher just called on them.
 
-Normal mode is delivery: food arrives, eat, next order. Learning Mode is cooking class: the teacher says, cut the onion first. Many people want to flip the table because they wanted dinner, not knife practice. But after every meal is delivery, the day the stove breaks is the day everyone learns they cannot fry an egg.
+Normal mode is delivery: food arrives, eat, next order. Learning Mode is cooking class: the teacher says, cut the onion first. Many people wanted dinner, not knife practice. The problem is that knife skills do not grow by themselves.
 
 gu-log already unpacked the Anthropic study in [SP-14](/en/posts/en-sp-14-20260131-ai-assistance-coding-skills/): people who used AI to ask conceptual questions and people who pasted generated code did not become the same kind of engineer. This piece pushes that same warning into everyday workflow.
 </ClawdNote>
@@ -125,15 +127,15 @@ Fair question. For some work, maybe the answer is: no need. If it is boilerplate
 
 For real software, pure delegation breaks down in a few places.
 
-**When something breaks.** AI-generated code crashes the same way human code does. “The agent wrote it” does not help anyone debug. Somebody on the team has to understand the architecture.
+**When something breaks.** AI-generated code crashes the same way human code does. “The agent wrote it” does not help anyone debug; somebody on the team has to understand the architecture.
 
 **When it is confidently wrong.** LLMs can still hallucinate. The only defense against a plausible-looking wrong answer is enough expertise to notice what is strange. [Skills](/en/glossary#skill) and CLIs only get so far.
 
-**When the foundation changes.** Code is temporary; systems are long-lived. When frameworks update or a security review flags a structural issue, teams cannot just re-prompt their way out. They need engineers who understand the system well enough to migrate it.
+**When the foundation changes.** Code is temporary; systems are long-lived. When frameworks update or a security review flags a structural issue, teams cannot just re-prompt their way out; someone has to understand the system well enough to migrate it.
 
-**When the work leaves the median.** AI is brilliant at problems solved a million times on GitHub. The further the problem gets from the median, the worse it gets. The hard, undocumented problems that justify a senior engineer’s salary still require deep understanding.
+**When the work leaves the median.** AI is brilliant at problems solved a million times on GitHub. The further the problem gets from the median, the more someone has to know which answer only looks like an answer.
 
-**When the market adjusts.** Engineers who can only ship with AI, and not without it, are entering a labor pool that is already re-pricing expertise. Using AI to skip learning trades future relevance for a slightly easier Tuesday.
+**When the market adjusts.** Engineers who can only ship with AI, and not without it, are entering a labor pool already re-pricing expertise. Using AI to skip learning trades future relevance for a slightly easier Tuesday.
 
 ---
 
@@ -167,14 +169,10 @@ This also connects to [SP-142](/en/posts/en-sp-142-20260402-mario-zechner-coding
 
 ## Two metrics, not one
 
-Now every coding session can end with a simple question: did anything get learned today, or did issues just get closed?
+Every coding session can end with one question: did anything get learned today, or did issues just get closed?
 
 Sometimes the honest answer is “just closed issues,” and that is fine. If that becomes the answer for months in a row, cognitive debt is accumulating in the background.
 
-Shipping and learning are two separate metrics. Managers and customers will only ask about the first one. The second is on the engineer.
-
-The healthier tradeoff is shipping 80% of what could have been shipped while learning 100% of what needed to be learned, not the reverse. Over years, those two strategies produce very different engineers.
-
-Nobody has to choose between using AI and learning. But people do have to choose a workflow that does both, because the defaults will not choose it for them. The tools are ready.
+Shipping and learning are two separate metrics. Managers and customers usually ask about the first one; the second is on the engineer. Nobody has to choose between using AI and learning. The real choice is a workflow that ships while keeping the person sharp.
 
 The next boring task that was about to be delegated is a good place to start.

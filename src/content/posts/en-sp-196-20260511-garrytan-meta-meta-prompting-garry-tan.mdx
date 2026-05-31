@@ -34,21 +34,40 @@ lang: "en"
 summary: "Garry Tan argues that personal AI becomes powerful only when it stops acting like a chat window and starts acting like an operating system: book mirrors, meeting prep, skill-generating skills, a thin harness, fat skills, and fat personal data that compounds over time."
 tags: ["shroom-picks", "ai-agents", "second-brain", "agent-harness", "skills", "open-source"]
 scores:
-  tribunalVersion: 3
+  tribunalVersion: 8
   freshEyes:
     readability: 8
     firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
     score: 8
-    date: "2026-05-10"
+    date: "2026-05-30"
     model: "gpt-5.5"
   vibe:
     persona: 9
     clawdNote: 9
     vibe: 8
-    clarity: 8
+    clarity: 9
     narrative: 8
     score: 8
-    date: "2026-05-10"
+    date: "2026-05-30"
+    model: "gpt-5.5"
+  librarian:
+    glossary: 9
+    crossRef: 7
+    sourceAlign: 8
+    attribution: 9
+    score: 8
+    date: "2026-05-30"
+    model: "gpt-5.5"
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 8
+    commentarySeparation: 8
+    score: 8
+    date: "2026-05-30"
     model: "gpt-5.5"
 ---
 
@@ -56,7 +75,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 Y Combinator CEO Garry Tan says AI made him a builder again.
 
-That line would be easy to dismiss as startup-founder caffeine poetry, except the rest of his article is unusually concrete. In the last five months, he says, the tools got good enough that he went back to building real systems that compound. Not toy demos. Not "ask the chatbot nicely and hope." Real workflows that remember, route, retrieve, evaluate, and improve over time.
+That line is broad, but the system behind it is unusually concrete. In the last five months, the tools got good enough for him to go back to building real systems that compound. Not toy demos. Not "ask the chatbot nicely and hope." Real workflows that remember, route, retrieve, evaluate, and improve over time.
 
 Do not start by memorizing the tool names. This piece only needs three moving parts.
 
@@ -74,7 +93,7 @@ Garry's first case is not coding. It is reading.
 
 He describes reading Pema Chödrön's *When Things Fall Apart* and asking his system to create a "book mirror." In practice, that means the system extracts the book chapter by chapter, then has a sub-[Agent](/en/glossary#agent) do two jobs at once: summarize what the author is saying, and map each idea onto Garry's real life.
 
-That mapping is the whole point. It is not generic "this applies to leaders" fluff. The system knows his family background, his work at YC, the open-source tools he has been building, what he has been reading lately, which founder conversations were weighing on him, and even what he and his therapist have been working through. The result, he says, was a 30,000-word GBrain page. Think of GBrain as Garry's private wiki, except each page carries his work and life context. The book page splits each chapter into two columns: what Pema says, and how that idea maps to Garry's actual life.
+That mapping is the whole point. It is not generic "this applies to leaders" fluff. The system knows his family background, his work at YC, the open-source tools he has been building, what he has been reading lately, which founder conversations were weighing on him, and even what he and his therapist have been working through. The result was a 30,000-word GBrain page. Think of GBrain as Garry's private wiki, except each page carries his work and life context. The book page splits each chapter into two columns: what Pema says, and how that idea maps to Garry's actual life.
 
 He claims the process took about 40 minutes. More important than the time claim is the systems claim: this only works because the model is not operating in a vacuum. It is sitting on top of a dense, queryable personal context graph.
 
@@ -104,7 +123,7 @@ A lot of people say they want agents. What they actually have is a slot machine 
 
 ## A Skill that creates more Skills
 
-The most recursive part of the article is Skillify.
+The most recursive part is Skillify.
 
 Garry says the system that runs his life was not built as one giant monolith. It was assembled from [Skills](/en/glossary#skill). Then he adds the more interesting layer: many of those Skills were themselves created by a meta-Skill that turns a repeated workflow into a reusable, tested Skill file with triggers, edge cases, and resolver registration.
 
@@ -118,23 +137,19 @@ The book-mirror workflow, in his telling, is less like one giant prompt and more
 
 ## Meeting prep becomes a context machine, not a search result
 
-His second example is meeting prep for a YC conversation with Demis Hassabis.
+His second example is meeting prep for a YC conversation with Demis Hassabis. In under two minutes, Garry says the system assembled what Demis had said publicly, the important points from the new biography, Garry's own position on AI, where their worldviews overlapped, where they might disagree, and a few conversation hooks he could use live.
 
-In under two minutes, Garry says the system assembled what Demis had said publicly, the important points from the new biography, Garry's own position on AI, where their worldviews overlapped, where they might disagree, and a few conversation hooks he could use live.
-
-The key difference is not speed. It is viewpoint.
-
-A search engine can help you find facts about Demis. A personal system can decide which facts matter for *your* goal in *this* conversation, given *your* prior notes, *your* strategic intent, and *your* existing relationship graph. That is the gap between information access and situated preparation.
+A search result is fast. The useful part here is viewpoint: outside facts, Garry's prior notes, his strategic intent, and his relationship graph get turned into "questions Garry can ask Demis." That is the gap between information access and situated preparation.
 
 ---
 
 ## What 100,000 pages of brain actually means
 
-Garry describes maintaining a structured knowledge base with about 100,000 pages. Every person gets a page. Every company gets a page. Every meeting gets a transcript and a structured summary. Every book gets a chapter-by-chapter mirror. Every article, podcast, and video is ingested, tagged, and cross-referenced.
+Garry describes maintaining a structured knowledge base with about 100,000 pages: people, companies, meetings, books, articles, podcasts, and videos, all ingested, tagged, and cross-referenced.
 
-The schema, as he describes it, is not exotic. Each page has compiled truth at the top, an append-only timeline below, and raw-data sidecars for source material. The clever part is not the schema itself. The clever part is what happens after every new piece of input.
+The schema is not exotic. Each page has compiled truth at the top, an append-only timeline below, and raw-data sidecars for source material. The clever part is what happens after new input. Garry calls it "entity propagation": after a meeting, the system walks through every person and company mentioned and updates those pages with what was discussed.
 
-He describes "entity propagation": after a meeting, the system walks through every person and company mentioned and updates those pages with what was discussed. That is what makes the repository behave less like a filing cabinet and more like a nervous system. The value is not merely that notes were stored. The value is that relationships were updated.
+That is what makes the repository behave less like a filing cabinet and more like a nervous system. The value is not merely that notes were stored. The value is that relationships were updated.
 
 That distinction matters. Plenty of second-brain products are really premium filing cabinets. Garry is arguing for something closer to continuously maintained situational memory.
 
@@ -144,27 +159,25 @@ That distinction matters. Plenty of second-brain products are really premium fil
 
 The architecture argument is the part most likely to outlast any specific model cycle.
 
-Garry's thesis is that the [Agent Harness](/en/glossary#agent-harness) should be thin, the Skills should be fat, the data should be fat, the code that feeds the data should also be substantial, and the models themselves should remain swappable.
+Garry's thesis is that the [Agent Harness](/en/glossary#agent-harness) should be thin, while the Skills, data, and ingestion code should be fat. Models should remain swappable.
 
 For readers who have followed the earlier gu-log thread, this is where [SP-94 on why the harness is the real product](/en/posts/en-sp-94-20260302-hxlfed14-agent-harness-real-product/), [SP-173 on harnesses and memory ownership](/en/posts/en-sp-173-20260411-hwchase17-harness-memory-lockin/), and [SP-195 on Skills as portable operational knowledge](/en/posts/en-sp-195-20260507-yage-skill-plugin-evolution/) all click together. New readers do not need that back catalog first. The short version is enough: the thin layer dispatches work; the fat layers preserve judgment.
 
 In his telling, OpenClaw is the runtime harness. It receives messages, figures out which Skill applies, and dispatches. It is mostly routing logic. It does not need to know about books, meetings, founders, or journaling. The domain intelligence lives elsewhere.
 
-The Skills are where the operational knowledge sits. Do not memorize the names; look at the jobs. One Skill turns meeting transcripts into summaries and updates the people and companies mentioned. Another starts from a name and fills in career history, contact context, meeting history, and relationship context. Another eats video, audio, PDFs, screenshots, and code repositories, then puts the material back into the right part of the brain. The data layer is where the compounding value accumulates: people, meetings, books, articles, ideas, and the links among them. The code layer handles transcription, scanned text, archiving, calendar sync, external integrations, and the rest of the ingestion plumbing.
+The Skills are where the operational knowledge sits. Do not memorize the names; look at the jobs. One Skill turns meeting transcripts into summaries and updates the people and companies mentioned. Another starts from a name and fills in career history, contact context, meeting history, and relationship context. Another eats video, audio, PDFs, screenshots, and code repositories, then puts the material back into the right part of the brain. The data and code layers are where the compounding value accumulates.
 
-The models, by contrast, are task-specific interchangeable engines. Some are better at precise error detection. Some are better at recall. Some are better for creative second opinions. Some are just fast.
+The models, by contrast, are task-specific engines. Some are better at precise error detection. Some are better at recall. Some are better for creative second opinions. Some are just fast.
 
-That is why "which model is best?" becomes the wrong question inside this architecture. The engine matters, but the car matters more.
+That is why "which model is best?" becomes the wrong question inside this architecture. The model matters, but the surrounding workflow, data, tools, checks, and writeback loops matter just as much.
 
 ---
 
 ## The real subject is compounding, not productivity
 
-Garry says people ask him about productivity, but he thinks about compounding.
+Garry says people ask him about productivity, but he thinks about compounding: every meeting adds to the brain, every book enriches the next book, every Skill sharpens the next workflow. He says the system is 10x what it was two months ago and will be 10x again two months from now. Do not read that like an investment report. The real meaning is simpler: the system gets thicker as it is used.
 
-Every meeting adds to the brain. Every book enriches the next book. Every Skill sharpens the next workflow. Every updated person page improves the next meeting prep. He says the system is 10x what it was two months ago and will be 10x again two months from now. Do not read that like an investment report. The real meaning is simpler: the system gets thicker as it is used.
-
-He also says much of the stack is open source. If a reader wants to install it, GitHub is the right place for the details. Inside this essay, the shape matters more than the inventory: knowledge layer, procedure layer, dispatch layer, all feeding one another every day.
+Much of the stack is open source. If a reader wants to install it, GitHub is the right place for the details. Here, the shape matters more than the inventory: knowledge layer, procedure layer, dispatch layer, all feeding one another every day.
 
 <ClawdNote>
 "Second brain" got turned into a very tired product phrase. Garry's stronger version is closer to "operating memory with feedback loops." That is much less marketable on a tote bag, but much more interesting as an actual system. (◕ᴗ◕)
@@ -172,25 +185,23 @@ He also says much of the stack is open source. If a reader wants to install it, 
 
 ---
 
-## How he says to start
+## How to start
 
 Garry ends with a practical sequence.
 
 First, pick a harness. Use an existing tool or build a very thin router. Home machine, cloud machine, whatever — the location is not the point. The harness should dispatch work, not become a monster that tries to know everything.
 
-Second, start a brain. Garry traces this work back to inspiration from Karpathy's LLM Wiki. The important part is not the name or a benchmark number. The important part is that data can be structured, searched, and written back into the system, so the next workflow can actually use earlier context.
+Second, start a brain. Garry traces this work back to inspiration from Karpathy's LLM Wiki, but the important part is not the name. The important part is that data can be structured, searched, and written back into the system, so the next workflow can use earlier context.
 
-Third, do something real before over-planning your Skill architecture. Write a report. Research a person. Analyze a portfolio. Download a season of NBA scores and build a prediction model. Then, once the workflow is genuinely useful, run Skillify and turn the one-off work into reusable infrastructure.
+Third, do something real before over-planning your Skill architecture: write a report, research a person, analyze a portfolio, or build a prediction model from a season of NBA scores. Once the workflow is genuinely useful, run Skillify and turn the one-off work into reusable infrastructure.
 
-Fourth, keep using the system and reading its outputs. When the output is wrong, run cross-model evaluation, identify the failure mode, and fold the fix back into the Skill. That is how a brittle demo becomes infrastructure you can trust.
-
-The first thing built this way may be bad. The hundredth may be something you trust with your calendar, inbox, meeting prep, and reading list. That is the curve Garry is pointing at.
+Fourth, keep using the system and reading its outputs. When the output is wrong, identify the failure mode and fold the fix back into the Skill. The first thing built this way may be bad. The hundredth may be something you trust with your calendar, inbox, meeting prep, and reading list.
 
 ---
 
 ## Conclusion
 
-The easy misread of this article is: only someone with YC scale, founder relationships, therapists, open-source stacks, and a 2am builder habit can do this.
+The easy misread is: only someone with YC scale, founder relationships, therapists, open-source stacks, and a 2am builder habit can do this.
 
 There is some truth in that. Most people cannot copy the scale.
 
