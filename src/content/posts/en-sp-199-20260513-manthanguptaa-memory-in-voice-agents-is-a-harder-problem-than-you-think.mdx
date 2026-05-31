@@ -87,7 +87,7 @@ Text chat is like sending a letter. Voice chat is like talking face to face: 800
 
 Text Agents have a built-in buffer. The user finishes typing, sees a loading indicator, and waiting one to three seconds still feels reasonable; voice does not get that gift, because silence is part of the interface.
 
-A voice Agent usually wants to land within **500 to 800 milliseconds** from the moment the user stops speaking to the first audio coming back. That is the whole catch-the-ball budget: VAD roughly 100 ms, streaming STT another roughly 50 ms, the LLM's first [token](/glossary#token) around 300 ms, TTS around 100 ms, plus audio delivery. The ideal room left for memory retrieval is only 50 to 100 ms.
+A voice [Agent](/en/glossary#agent) usually wants to land within **500 to 800 milliseconds** from the moment the user stops speaking to the first audio coming back. That is the whole catch-the-ball budget: VAD roughly 100 ms, streaming STT another roughly 50 ms, the LLM's first [token](/glossary#token) around 300 ms, TTS around 100 ms, plus audio delivery. The ideal room left for memory retrieval is only 50 to 100 ms.
 
 That makes a cloud vector database round trip dangerous. The network hop alone can cost 20 to 80 ms. Add embedding, approximate nearest-neighbor search, reranking, and formatting, and the memory budget is gone before the LLM sees the input. Mem0's docs describe semantic search as roughly 50 to 200 ms; voice-memory integration cases often advertise P95 retrieval below 200 or 250 ms. Great for chat. For voice, that is taking a selfie on the edge of a cliff.
 

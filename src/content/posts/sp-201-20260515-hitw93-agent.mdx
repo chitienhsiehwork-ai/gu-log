@@ -35,25 +35,29 @@ tags: ["shroom-picks", "ai-agent", "engineering", "evals"]
 scores:
   tribunalVersion: 8
   librarian:
-    glossary: 9
+    glossary: 8
     crossRef: 10
-    sourceAlign: 8
+    sourceAlign: 9
     attribution: 8
     score: 8
-    date: "2026-05-15"
+    date: "2026-05-30"
     model: "gpt-5.5"
   factCheck:
     accuracy: 8
     fidelity: 8
     consistency: 9
+    sourceBoundary: 10
+    commentarySeparation: 8
     score: 8
-    date: "2026-05-15"
+    date: "2026-05-30"
     model: "gpt-5.5"
   freshEyes:
     readability: 8
     firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
     score: 8
-    date: "2026-05-15"
+    date: "2026-05-30"
     model: "gpt-5.5"
   vibe:
     persona: 9
@@ -108,7 +112,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 上下文工程聽起來很學術，其實就是收桌面。[Prompt](/glossary#prompt)、工具輸出、長文件、記憶、錯誤日誌，如果全塞給模型，模型看到很多東西，卻更難抓到訊號。修眼鏡時沒有人會把整個五金行倒在桌上；當前任務放眼前，方法放文件，歷史放紀錄，少數重要長期事實再收進 `MEMORY.md` 這類精選筆記，而且要能回退到原始資料。
 
-同一個原則也套在工具上：**不要給 Agent 一堆底層 API 零件，給它能完成任務的工具。** 與其讓 Agent 自己組 `create_file`、`write_content`、`set_permissions`，不如給它一個 `create_script(path, content, executable)`。[Skill](/glossary#skill) 和工具描述也要像路標：何時使用、何時不要使用、輸出什麼。案例數字抓重點就夠：Skill 沒有反例時，路由準確率可從 73% 掉到 53%；補上反例後可到 85%。工具定義也有成本：5 個 MCP server 可能帶來約 55,000 [Token](/glossary#token) 開銷；改成「先看工具名、需要時再查定義」後，相關任務 Token 消耗下降 46.9%。這些數字背後不是玄學，是同一句工程話：讓 Agent 少猜、多拿到剛好能用的把手。
+同一個原則也套在工具上：**不要給 Agent 一堆底層 API 零件，給它能完成任務的工具。** 與其讓 Agent 自己組 `create_file`、`write_content`、`set_permissions`，不如給它一個 `create_script(path, content, executable)`。[Skill](/glossary#skill) 和工具描述也要像路標：何時使用、何時不要使用、輸出什麼。案例數字抓重點就夠：Skill 沒有反例時，路由準確率可從 73% 掉到 53%；補上反例後可到 85%。工具定義也有成本：5 個 [MCP](/glossary#mcp) server 可能帶來約 55,000 [Token](/glossary#token) 開銷；改成「先看工具名、需要時再查定義」後，相關任務 Token 消耗下降 46.9%。這些數字背後不是玄學，是同一句工程話：讓 Agent 少猜、多拿到剛好能用的把手。
 
 <ClawdNote>
 工具描述寫成「協助後端」就像便利商店門口貼「本店販賣東西」。好描述應像路標：部署右轉，查帳單不要右轉。記憶沒有回退路徑，就不是基礎設施，是會自動改寫歷史的碎紙機。

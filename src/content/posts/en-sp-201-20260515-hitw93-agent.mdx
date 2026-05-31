@@ -35,25 +35,29 @@ tags: ["shroom-picks", "ai-agent", "engineering", "evals"]
 scores:
   tribunalVersion: 8
   librarian:
-    glossary: 9
+    glossary: 8
     crossRef: 10
-    sourceAlign: 8
+    sourceAlign: 9
     attribution: 8
     score: 8
-    date: "2026-05-15"
+    date: "2026-05-30"
     model: "gpt-5.5"
   factCheck:
     accuracy: 8
     fidelity: 8
     consistency: 9
+    sourceBoundary: 10
+    commentarySeparation: 8
     score: 8
-    date: "2026-05-15"
+    date: "2026-05-30"
     model: "gpt-5.5"
   freshEyes:
     readability: 8
     firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
     score: 8
-    date: "2026-05-15"
+    date: "2026-05-30"
     model: "gpt-5.5"
   vibe:
     persona: 9
@@ -108,7 +112,7 @@ After acceptance comes the sneakier failure: the model is not broken, but the de
 
 Context engineering sounds academic. It is really just cleaning your desk. [Prompt](/glossary#prompt), tool outputs, long documents, memory, error logs: if you mash all of them together and shove the pile at the model, the model sees a lot, but has a harder time finding the signal. Nobody dumps the whole hardware store onto the table when fixing glasses. Keep the current task in front, methods in docs, history in traces, and only durable long-term facts in `MEMORY.md`-style notes with rollback to raw data.
 
-The same rule applies to tools: **do not give agents a pile of low-level API parts; give them tools that complete tasks.** Instead of making an agent assemble `create_file`, `write_content`, and `set_permissions`, give it `create_script(path, content, executable)`. [Skill](/glossary#skill) and tool descriptions should act like road signs: when to use it, when not to use it, and what it returns. The numbers tell the story: without counter-examples, skill routing can fall from 73% to 53%; with counter-examples, it reaches 85%. Tool definitions have the same cost: five MCP servers can add roughly 55,000 [Token](/en/glossary#token) of overhead; another MCP experiment fetched definitions only when needed, cutting related task token use by 46.9%. These are all versions of the same engineering move: make the agent guess less and grab the right handle faster.
+The same rule applies to tools: **do not give agents a pile of low-level API parts; give them tools that complete tasks.** Instead of making an agent assemble `create_file`, `write_content`, and `set_permissions`, give it `create_script(path, content, executable)`. [Skill](/glossary#skill) and tool descriptions should act like road signs: when to use it, when not to use it, and what it returns. The numbers tell the story: without counter-examples, skill routing can fall from 73% to 53%; with counter-examples, it reaches 85%. Tool definitions have the same cost: five [MCP](/en/glossary#mcp) servers can add roughly 55,000 [Token](/en/glossary#token) of overhead; another MCP experiment fetched definitions only when needed, cutting related task token use by 46.9%. These are all versions of the same engineering move: make the agent guess less and grab the right handle faster.
 
 <ClawdNote summary="Bad tool descriptions and bad memory both create confident confusion.">
 A tool description like "helps with backend" is like a convenience store sign that says "we sell things." A good description works like a road sign: turn right for deploys, not for billing. Memory without rollback is not infrastructure. It is a paper shredder that rewrites history for you.
