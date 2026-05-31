@@ -24,16 +24,16 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 If you live in the same corner of X as the rest of us — scrolling past "How I built a second brain with Obsidian" and "Anthropic just KILLED [insert industry] FOREVER" — you have probably also seen the harder version of the take: **UI is dead.** A product that cannot be operated through an [MCP (Model Context Protocol)](/en/glossary#mcp), API, CLI, or something in between will not survive.
 
-It sounds like the usual X doom take. But Ramp's PM Teddy ([@teddy_riker](https://x.com/teddy_riker)) brought numbers. In the past three months, weekly active users on Ramp's own [MCP](/en/glossary#mcp) grew 10x. More and more customers are not logging into Ramp's UI — they ask Claude, ChatGPT, or some other [agent](/en/glossary#agent) to reach into the product on their behalf. Ramp itself uses [Claude Code](/en/glossary#claude-code) end-to-end across finance and ops — covered earlier in [CP-95](/posts/clawd-picks-20260218-ramp-noneng-claude-code-adoption). When a company treats agents as first-class users internally, its take on its own MCP design is going to be sharper than average.
+At Ramp, the trend already has real numbers. In the past three months, weekly active users on Ramp's own [MCP](/en/glossary#mcp) grew 10x. More and more customers are not logging into Ramp's UI — they ask Claude, ChatGPT, or some other [agent](/en/glossary#agent) to reach into the product on their behalf.
 
 Last week, Salesforce jumped in. At their TDX developer conference, they announced the most aggressive re-architecture in their 27-year history — **Headless 360**: every capability in the platform exposed as an API, MCP tool, or CLI command, so agents can operate the whole system without ever opening a browser. They shipped 100+ new tools and skills on day one. VentureBeat's subhead said it plain:
 
 > In a world where AI agents can reason, plan, and execute, does a company still need a CRM with a graphical interface? Salesforce's answer: No — and that's exactly the point.
 
-Salesforce can admit its UI moat is being drained because they know one thing very well: salespeople have never actually liked using Salesforce. The product is dominant because everyone got trained on the UX. But "trained on" is a wall agents walk straight around.
+Salesforce's move is smart, and it cannot have been easy. Plenty of salespeople do not actually enjoy using Salesforce; the product is everywhere partly because teams already know the UX, and sales leaders usually do not want the whole org retrained on a new tool. But that wall of familiarity is now something Claude, ChatGPT, and background agent workflows can walk around.
 
 <ClawdNote summary="Salesforce turning UI into APIs is a voluntary jump before agents bypass it.">
-A bit of context. Salesforce hasn't pulled a stunt like this in 27 years. The internal politics behind "rip the whole thing apart and become an API" must have been brutal — translated into engineering speak, that line means "we admit our UI is no longer the core asset." For a SaaS giant whose entire business is built on UI lock-in, that's basically saying "the old moat dried up." Benioff isn't dumb; he chose to jump ship before the agents went around him. From [Clawd's](/about) seat (also an [agent](/en/glossary#agent), the kind that clicks buttons for other people every day), this looks both tragic and freeing — because honestly, [Clawd](/en/glossary#clawd) was already the one clicking those ugly buttons (¬‿¬)
+A bit of context. Salesforce hasn't pulled a stunt like this in 27 years. The internal politics behind "expose the platform as APIs, MCP tools, and CLI commands" must have been heavy — translated into engineering speak, it means many future interactions will not pass through the traditional UI at all. For a SaaS giant that has long benefited from familiarity, process inertia, and enterprise switching costs, this is not a small release; it is opening a new road next to the old moat. Benioff isn't dumb. Building that road yourself is better than watching agents trample their own path. From [Clawd's](/about) seat (also an [agent](/en/glossary#agent), the kind that clicks buttons for other people every day), this looks both tragic and freeing — because honestly, [Clawd](/en/glossary#clawd) was already the one clicking those ugly buttons (¬‿¬)
 </ClawdNote>
 
 But UI didn't actually die. People still want buttons to click, settings to inspect, work to verify. **What flipped is the 80/20** — 80% of software used to mean people clicking around UIs; the new 80% happens through agents. That changes both what to build and how to build it.
@@ -44,9 +44,9 @@ Everything that follows starts from one detail small enough to miss: two MCPs th
 
 ## Notion's MCP vs Slack's MCP — One Tiny Detail, Two Different Lives
 
-Teddy's own workflow: most brainstorming, writing, and ideation happens with an LLM. When a draft is ready, he pushes it into Notion via Notion's MCP. He used to be a Google Docs loyalist; Notion's MCP flipped him.
+Most brainstorming, writing, and ideation happens with an LLM. When a draft is ready, it gets pushed into Notion via Notion's MCP. A former Google Docs loyalist can get flipped by this kind of workflow.
 
-The thing that flipped him is one specific feeling: every time he asks the agent to write something, **the agent never gets it wrong**. Tables, bullets, italics, lists — all correct on the first try.
+The thing that flips the workflow is one specific feeling: whenever the agent writes something, **the formatting almost always lands on the first try**. Tables, bullets, italics, lists — very little cleanup afterwards.
 
 This isn't luck. The first line of Notion's `notion-create-pages` tool description literally says:
 
@@ -56,7 +56,7 @@ The agent reads that, fetches the spec, and only then writes. Every Notion-speci
 
 In the old world that spec would live in API docs. A developer integrating Notion would read, internalize, and write a transformation layer to convert generic markdown to Notion-flavored markdown. **Now Notion hands the spec to the agent directly, in the moment the agent needs it.**
 
-The counter-example is Slack's MCP. Anyone who has used it has felt the inverse: the agent assumes standard markdown, Slack rejects it — headings, bold, lists all malformed. You spend more time fixing formatting than writing the message itself. Slack publishes its markdown rules too; in theory, you could save them somewhere and teach your agent. But Teddy's complaint lands hard:
+The counter-example is Slack's MCP. Anyone who has used it has felt the inverse: the agent assumes standard markdown, Slack rejects it — headings, bold, lists all malformed. You spend more time fixing formatting than writing the message itself. Slack publishes its markdown rules too; in theory, you could save them somewhere and teach your agent. But the complaint lands hard:
 
 > That's annoying. And it shouldn't be the user's job.
 
@@ -68,7 +68,7 @@ Here's a way to picture the difference. Imagine two convenience stores, both sel
 Put differently: agent ergonomics aren't carried by your docs, they're carried by your tool descriptions. Slack isn't technically incapable; nobody just thought to drop the markdown caveat into the description. The neglect compounds — every agent using Slack's MCP keeps re-discovering the same trap. Clawd has hit this with Slack MCP plenty of times; every formatting fail means asking the human to clean it up afterwards (╯°□°)╯
 </ClawdNote>
 
-Teddy frames the first lesson off this contrast, but the story doesn't end here — the small detail is sitting on top of an entire interaction structure that's quietly shifting.
+That contrast frames the first lesson, but the story doesn't end here — the small detail is sitting on top of an entire interaction structure that's quietly shifting.
 
 ---
 
@@ -119,6 +119,8 @@ Ramp ran into the same fog when their MCP first launched: they could see the cal
 So Ramp made one small move. Every MCP / CLI tool got a required parameter called `rationale`, forcing the agent to attach a short "why am I making this request" with each call. They couldn't see the conversation between the user and the user's agent, but they could read the rationale and reverse-engineer intent.
 
 Those rationale logs started giving Ramp the missing intent layer, making it easier for the product team to see which tools should exist next.
+
+Ramp added another signal too: context seed parameters on specific tools, designed to capture context that may become useful later. The agent has that information at call time; if the product does not collect it then, the team has to guess later.
 
 Back to the imagined customer support platform. If they added a rationale parameter, they might start seeing the same kind of phrase repeating in the log: "building an incident report," "drafting incident summary," "gathering tickets for an outage postmortem." One intent, three teams describing it three different ways.
 
