@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex,nofollow" />
+<title>gu-log Human Finishability OpenSpec Review</title>
+<style>
+:root { --bg:#07111f; --panel:#0f1b2d; --panel2:#111f35; --text:#e8edf7; --muted:#9fb0c7; --accent:#7dd3fc; --good:#86efac; --bad:#fca5a5; --warn:#fde68a; --line:#24364f; }
+*{box-sizing:border-box} body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC","Inter",sans-serif;background:linear-gradient(135deg,#07111f,#101827 55%,#172033);color:var(--text);line-height:1.65} 
+a{color:var(--accent)} .wrap{max-width:1080px;margin:0 auto;padding:32px 18px 80px} .hero{padding:32px;border:1px solid var(--line);border-radius:24px;background:rgba(15,27,45,.86);box-shadow:0 20px 80px rgba(0,0,0,.35)}
+h1{font-size:clamp(30px,5vw,56px);line-height:1.05;margin:0 0 14px} .sub{font-size:20px;color:var(--muted);max-width:820px} .pill{display:inline-flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:999px;padding:7px 12px;margin:6px 8px 0 0;background:#0a1626;color:#dce9ff;font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px;margin-top:18px} .card{grid-column:span 6;background:rgba(17,31,53,.92);border:1px solid var(--line);border-radius:18px;padding:20px} .card.full{grid-column:1/-1} .card.third{grid-column:span 4} h2{font-size:26px;margin:0 0 12px} h3{font-size:19px;margin:18px 0 8px;color:#d8e7ff} ul{padding-left:22px} li{margin:7px 0} .ok{color:var(--good)} .no{color:var(--bad)} .warn{color:var(--warn)} code{background:#07111f;border:1px solid #26364c;border-radius:7px;padding:2px 6px;color:#dbeafe} .quote{border-left:4px solid var(--accent);padding:10px 14px;background:#0b1728;border-radius:10px;color:#dce9ff}
+.flow{display:grid;gap:10px} .step{display:flex;gap:12px;align-items:flex-start;padding:12px;border:1px solid var(--line);border-radius:14px;background:#0b1728} .num{min-width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#1d4ed8;color:white;font-weight:700} .small{font-size:13px;color:var(--muted)} .btns{display:flex;gap:12px;flex-wrap:wrap;margin-top:20px} .btn{display:inline-block;padding:12px 16px;border-radius:12px;background:#2563eb;color:white;text-decoration:none;font-weight:700} .btn.secondary{background:#0b1728;border:1px solid var(--line)}
+@media (max-width:760px){.card,.card.third{grid-column:1/-1} .hero{padding:22px}}
+</style>
+</head>
+<body><main class="wrap">
+<section class="hero">
+  <div class="pill">OpenSpec PR #358</div><div class="pill">review artifact</div><div class="pill">expires: 2026-06-04T04:55:54Z</div>
+  <h1>gu-log Human Finishability Signals</h1>
+  <p class="sub">把「ShroomDog 是否真的讀完、留言罵難看、或想分享」變成 versioned human signal，讓 Tribunal 不再只最佳化 AI 分數。</p>
+  <div class="btns"><a class="btn" href="https://github.com/chitienhsiehwork-ai/gu-log/pull/358">Review GitHub PR</a><a class="btn secondary" href="https://github.com/chitienhsiehwork-ai/gu-log/pull/358/files">Open PR files</a></div>
+</section>
+
+<section class="grid">
+  <article class="card full">
+    <h2>這次要你批准什麼</h2>
+    <div class="flow">
+      <div class="step"><div class="num">1</div><div><b>Human feedback 必須綁文章版本。</b><br><span class="small">你的「難看死了」要知道是 v1 還是 v5，不然 Tribunal rewrite 後 feedback 會漂移。</span></div></div>
+      <div class="step"><div class="num">2</div><div><b>Raw unversioned Giscus comments 不得驅動 automation。</b><br><span class="small">現有 Giscus 綁 pathname；未 index 出 version 之前，不能拿來自動重寫或 block publish。</span></div></div>
+      <div class="step"><div class="num">3</div><div><b>負向 human feedback 可以推翻 AI PASS。</b><br><span class="small">AI score PASS 只是 proxy；如果你讀不完或罵難看，系統要進 review/requeue policy。</span></div></div>
+      <div class="step"><div class="num">4</div><div><b>Storage / thresholds / exact UI 延後決定。</b><br><span class="small">這版先批准 contract，不急著選 DB、不急著移除 Giscus、不一次做完整 analytics。</span></div></div>
+    </div>
+  </article>
+
+  <article class="card">
+    <h2>目前系統現況</h2>
+    <ul>
+      <li><b>Giscus comments</b>：綁 <code>pathname</code>，不含文章版本。</li>
+      <li><b>postVersion</b>：來自 <code>post-versions.json</code>，目前是 file-touch count，不是 content-only version。</li>
+      <li><b>Reading tracker</b>：只存 <code>slugs[]</code>，且目前需要 <code>gu-log-jwt</code> 才會寫入。</li>
+      <li><b>ShareButton</b>：有分享 UI，沒有 share signal event。</li>
+      <li><b>Vercel Analytics</b>：只有 pageview telemetry，不是 Tribunal 可查詢 evidence。</li>
+      <li><b>Tribunal</b>：會重寫低分文章，但目前沒有人類 finishability/comment/share signal。</li>
+    </ul>
+  </article>
+
+  <article class="card">
+    <h2>最重要的產品語意</h2>
+    <ul>
+      <li><span class="ok">讀完</span>：可讀 signal。</li>
+      <li><span class="warn">讀一段後放棄</span>：可能 boring，但要有 confidence，不能單次 quick bounce 就判死刑。</li>
+      <li><span class="no">站內留言負評</span>：高價值 negative feedback，不是 positive engagement。</li>
+      <li><span class="ok">分享</span>：強正向 signal，rewrite 時應 preserve/study。</li>
+    </ul>
+    <p class="quote">comment presence ≠ 好。<br>「這篇難看死了」應歸為 negative / rewrite-needed。</p>
+  </article>
+
+  <article class="card third"><h2>新增 spec 1</h2><h3>human-finishability-signals</h3><p>定義 read finish、abandon、share intent 等 event 必須含文章 identity + version snapshot。</p></article>
+  <article class="card third"><h2>新增 spec 2</h2><h3>versioned-human-feedback</h3><p>定義 gu-log comment / feedback 綁版次；Giscus raw comment 未 index 前不能驅動 automation。</p></article>
+  <article class="card third"><h2>新增 spec 3</h2><h3>tribunal-human-signal-loop</h3><p>定義 human signal packet、bounded requeue、publisher block、positive signal preserve。</p></article>
+
+  <article class="card full">
+    <h2>4 個 reviewer subagents 找到什麼，已修什麼</h2>
+    <ul>
+      <li>補上 Vercel Analytics / API routes 現況，避免誤以為 pageview 已可當 signal ledger。</li>
+      <li>明確寫：現有 <code>postVersion</code> 是 file-touch version；<code>contentVersion/contentHash</code> 是 future manifest v2。</li>
+      <li>明確寫：timestamp inference 不能只靠現有 <code>post-versions.json</code>。</li>
+      <li>明確寫：PASS article requeue 必須有 quota loop 可消費的 bounded requeue marker。</li>
+      <li>把 tasks 拆 Phase，降低 review scope。</li>
+      <li>補 <code>tribunal-ops-policy</code> dependency。</li>
+    </ul>
+  </article>
+
+  <article class="card full">
+    <h2>Review 建議順序</h2>
+    <ol>
+      <li>先看 <a href="https://github.com/chitienhsiehwork-ai/gu-log/pull/358/files#diff-0">proposal.md</a>：確認產品語意。</li>
+      <li>再看 <a href="https://github.com/chitienhsiehwork-ai/gu-log/pull/358/files#diff-1">design.md</a>：確認現況盤點與 deferred decisions。</li>
+      <li>最後看 specs：只挑你在意的語意，不用先看 implementation details。</li>
+    </ol>
+    <p class="small">This page is a temporary Vercel review artifact. It is noindex and scheduled for removal after 24h.</p>
+  </article>
+</section>
+</main></body></html>
