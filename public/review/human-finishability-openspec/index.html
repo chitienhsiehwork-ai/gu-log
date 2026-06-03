@@ -32,6 +32,7 @@ h1{font-size:clamp(32px,6vw,64px);line-height:1.02;margin:8px 0 16px;letter-spac
       <li><b>站內 comment 要綁文章版次。</b> v1 的「難看死了」不能漂到 v5 身上，這會把 rewrite loop 搞成靈異事件。</li>
       <li><b>負評不是壞事，是便宜又準的資料。</b> 你不想寫長篇解釋，系統就該接受短負評，然後自己去找原因。</li>
       <li><b>這次先定 contract，不先選 DB / Giscus / API。</b> 不要一開始就把工程 scope 開到變成 Benson 週五下午說「順手做一下」那種地獄。</li>
+      <li><b>ShroomDog identity 用 GitHub OAuth trusted emails 判斷。</b> 那兩個 trusted owner emails 可以是 owner-grade signal；random guest 也可以記，但只能當參考，不能自己衝去指揮 Tribunal。</li>
     </ol>
   </article>
 
@@ -67,12 +68,24 @@ h1{font-size:clamp(32px,6vw,64px);line-height:1.02;margin:8px 0 16px;letter-spac
       <div class="row"><b>3. 你同意嗎？</b><div>所有 comment / feedback 都要綁 <code>postVersion</code>；長期最好再有 <code>contentVersion</code> / <code>contentHash</code>。</div></div>
       <div class="row"><b>4. 你同意嗎？</b><div>AI judge PASS 但你覺得難看，系統要能 block / requeue / manual review，而不是硬說「模型說過了」。</div></div>
       <div class="row"><b>5. 你同意嗎？</b><div>這次先不決定 storage transport。Giscus indexer、first-party API、Gist、DB 都是後續 implementation choice。</div></div>
+      <div class="row"><b>6. 你同意嗎？</b><div>GitHub OAuth 登入後，如果 email 在 trusted owner allowlist，就可視為 ShroomDog / owner-grade signal；其他 random guest signal 只能做 reference，必須 owner approve 才能影響 Tribunal。</div></div>
     </div>
   </article>
 
-  <article class="card third"><h2>Merge if</h2><ul><li>你認同上面 5 個問題。</li><li>你想先讓規格成為 SSOT。</li><li>你接受後續再拆 implementation PR。</li></ul></article>
+  <article class="card third"><h2>Merge if</h2><ul><li>你認同上面 6 個問題。</li><li>你想先讓規格成為 SSOT。</li><li>你接受後續再拆 implementation PR。</li></ul></article>
   <article class="card third"><h2>Do not merge if</h2><ul><li>你想先決定 DB/API/Giscus。</li><li>你不想把短負評當正式 signal。</li><li>你覺得 Tribunal 不該被 human feedback 影響。</li></ul></article>
   <article class="card third"><h2>Ask changes if</h2><ul><li>你想把 private feedback 和 public Giscus 分得更硬。</li><li>你想先定義 <code>contentVersion</code>。</li><li>你想把 scope 再縮小成只做 versioned comment。</li></ul></article>
+
+  <article class="card full">
+    <h2>ShroomDog vs random guest：怎麼判斷？</h2>
+    <p class="quote">判斷方式很簡單：登入後看 GitHub OAuth email。命中 trusted owner allowlist 的兩個 emails → owner-grade / ShroomDog signal。其他人 → guest_reference。</p>
+    <ul>
+      <li><span class="good">owner_trusted</span>：可以進 Tribunal evidence / requeue / publish-block policy。</li>
+      <li><span class="warn">guest_reference</span>：可以記錄、彙總、給你看，但不能自己影響 Tribunal。</li>
+      <li><span class="purple">owner-approved guest signal</span>：如果 guest pattern 很有料，你 approve 之後才可升級成 actionable evidence，而且要保留 provenance，知道它原本來自 guest data。</li>
+    </ul>
+    <p>這樣就不會變成 random 訪客滑一滑，Tribunal 就開始大喊「全站重寫！」——那畫面太像 John 把咖啡打翻在 production keyboard 上，大家都先不要。</p>
+  </article>
 
   <article class="card full">
     <h2>目前系統現況，PR 有正確對齊嗎？</h2>
@@ -81,6 +94,7 @@ h1{font-size:clamp(32px,6vw,64px);line-height:1.02;margin:8px 0 16px;letter-spac
       <li><b>postVersion</b>：現況是 file-touch count，PR 已補清楚，不假裝它是 content-only version。</li>
       <li><b>Reading tracker</b>：現況只存 slug，而且登入後才寫；PR 已補清楚。</li>
       <li><b>Vercel Analytics</b>：現況只有 pageview；PR 已寫明不能當 Tribunal evidence。</li>
+      <li><b>GitHub OAuth</b>：PR 已補 reader trust tier；trusted owner emails 才能產生 owner-grade signal，guest signals 只是參考席。</li>
       <li><b>Tribunal quota loop</b>：現況 PASS 文章會被 skip；PR 已補 bounded requeue marker 必須讓 runtime 看得到。</li>
       <li><b>Publisher triage</b>：PR 已要求 human block 要帶 version binding，避免 v1 負評卡死 v5。</li>
     </ul>
@@ -91,7 +105,7 @@ h1{font-size:clamp(32px,6vw,64px);line-height:1.02;margin:8px 0 16px;letter-spac
     <ol>
       <li><a href="https://github.com/chitienhsiehwork-ai/gu-log/pull/358/files"><b>proposal.md</b></a>：看 Human Review Summary 和 Review Decision Requested。這裡決定要不要 merge。</li>
       <li><a href="https://github.com/chitienhsiehwork-ai/gu-log/pull/358/files"><b>design.md</b></a>：看現況盤點，確認沒有跟現有系統打架。</li>
-      <li><a href="https://github.com/chitienhsiehwork-ai/gu-log/pull/358/files"><b>tasks.md</b></a>：看 Phase 1 vs follow-up，確認 scope 沒爆炸。</li>
+      <li><a href="https://github.com/chitienhsiehwork-ai/gu-log/pull/358/files"><b>tasks.md</b></a>：看 Phase 1 vs follow-up，確認 scope 沒爆炸，尤其 identity policy 是 Phase 1 approval，actual emails 不進 repo。</li>
       <li><a href="https://github.com/chitienhsiehwork-ai/gu-log/pull/358/files"><b>versioned-human-feedback/spec.md</b></a>：如果你只想看核心，讀這份就好。</li>
     </ol>
     <p class="small">Temp review page：noindex。這頁只幫你判斷要不要按 merge，不是 repo artifact。</p>
