@@ -1,11 +1,13 @@
 ## Context
 
-四個只讀盤點得到的現況：
+四個只讀 subagents + follow-up review 得到的現況：
 
-1. **Comments**：文章頁使用 `Giscus.astro`，`data-mapping="pathname"`，comments 存在 GitHub Discussions。gu-log repo 內沒有 first-party comment schema / DB / API。留言不含 post version。
-2. **Post versions**：`scripts/build-version-manifest.mjs` 以 git history touch count 產生 `src/data/post-versions.json`，頁面顯示 `vN`。manifest 只存 latest count，沒有 `vN -> commit/contentHash` 對照。
-3. **Reading tracker**：`reading-tracker.ts` 只存 `{ version: 1, slugs, lastUpdated }`，可 localStorage + Gist sync。`ReadStatusButton` 可用 IntersectionObserver 看到文章尾端後 auto mark read，但沒有 active read time、scroll depth、完成方法、postVersion。
-4. **Tribunal**：`tribunal.sh` 會在 stage fail 後呼叫 `tribunal-writer` 重寫；`tribunal-quota-loop.sh` 會背景持續挑未完成 / failed 文章重跑；publisher 已有 triage events 形狀，但 human finishability/comment/share 尚未進入 evidence/requeue/publish decision。
+1. **Comments**：文章頁使用 `Giscus.astro`，`data-mapping="pathname"`，comments 存在 GitHub Discussions。gu-log repo 內沒有 first-party comment schema / DB / API。留言不含 post version；Giscus iframe submit 也不會自動附 gu-log metadata。
+2. **Post versions**：`scripts/build-version-manifest.mjs` 以 git history touch count 產生 `src/data/post-versions.json`，頁面顯示 `vN`。manifest 只存 latest count，沒有 `vN -> commit/time/contentHash` 對照。現有 `postVersion` 是 file-touch version，不是 content-only version。
+3. **Reading tracker**：`reading-tracker.ts` 只存 `{ version: 1, slugs, lastUpdated }`，可 localStorage + Gist sync。`ReadStatusButton` 與 auto scroll mark-read 目前只在 browser 有 `gu-log-jwt` 時啟用；未登入讀者只有 reading progress / Vercel pageview，不會寫入 read tracker。現有 auto mark read 用 IntersectionObserver 看到文章尾端後標記 slug，但沒有 active read time、scroll depth、完成方法、postVersion。
+4. **Tribunal**：`tribunal.sh` 會在 stage fail 後呼叫 `tribunal-writer` 重寫；`tribunal-quota-loop.sh` 會背景持續挑未完成 / failed 文章重跑，但會跳過 current Tribunal version 下已 `PASS` / `EXHAUSTED` 的文章；publisher 已有 triage events 形狀，但 human finishability/comment/share 尚未進入 evidence/requeue/publish decision。
+5. **Vercel Analytics**：`BaseLayout.astro` 目前注入 `@vercel/analytics`，提供站台 web analytics / pageview telemetry；repo 內沒有使用 `track()` 記錄 read/share/comment custom events，也沒有可由 Tribunal deterministic query 的 repo-local export 或 API。現有 Vercel Analytics 不等同 human-signal ledger。
+6. **API routes**：目前 `src/pages/api/feed.json.ts` 與 `src/pages/api/posts/[slug].json.ts` 是 static GET endpoints，回傳 feed / article metadata / body 給外部 client；沒有 first-party `POST` event ingestion route、comment endpoint、share endpoint、或 human-signal query endpoint。
 
 ## Goals / Non-Goals
 
@@ -23,6 +25,7 @@
 - 不把「有 comment」一律視為好；comment sentiment / feedback type 必須分類。
 - 不要求第一版就做完整產品分析平台。
 - 不把單次 bounce 直接判定為 boring；必須保留 `unknown` / confidence。
+- 不在本 change 選定 storage transport、first-party feedback UI、或 active-read thresholds。
 
 ## Decisions
 
@@ -34,9 +37,9 @@
 
 ### D2: comment 必須綁 version snapshot，不只綁 pathname
 
-**選擇**：每筆 comment record SHALL 記 `postId/lang/pathname/postVersion/contentVersion/contentHash/commit` 中可取得的欄位；最小版也必須有 `postVersion` + `createdAt` + `pathname`。
+**選擇**：每筆 comment record SHALL 記 `postId/lang/pathname/postVersion/createdAt`；`contentVersion/contentHash/qualified commit` 是未來 manifest v2 或 snapshot helper 可提供的 optional fields。
 
-**理由**：Tribunal 會重寫文章。v1 的「這篇難看死了」不能自動套到 v5；但 v5 rewrite 應知道自己是為了解決 v1 的 human negative feedback。
+**理由**：Tribunal 會重寫文章。v1 的負向 feedback 不能自動套到 v5；但 v5 rewrite 應知道自己是為了解決 v1 的 human negative feedback。
 
 ### D3: 讀完不是只有 `slugs[]`
 
@@ -46,7 +49,7 @@
 
 ### D4: negative comment 是高價值訊號
 
-**選擇**：例如「這篇難看死了」分類為 `sentiment=negative`、`feedbackType=boring_or_bad_read`、`rewriteNeeded=true`，不是 comment engagement positive。
+**選擇**：明確負評分類為 `sentiment=negative`、`feedbackType=boring_or_bad_read`、`rewriteNeeded=true`，不是 comment engagement positive。
 
 **理由**：ShroomDog 不想花時間解釋為什麼無聊；系統應接受短負評作為明確 signal，再由 agent/Tribunal 嘗試找原因。
 
@@ -58,6 +61,8 @@
 
 ## Data model sketch
 
+Current minimum fields:
+
 ```json
 {
   "eventSchemaVersion": 1,
@@ -68,10 +73,7 @@
     "ticketId": "SP-198",
     "lang": "zh-tw",
     "pathname": "/posts/sp-198-20260512-garrytan-ai-agent-complexity-ratchet",
-    "postVersion": 4,
-    "contentVersion": 3,
-    "contentHash": "sha256:...",
-    "commit": "abc123..."
+    "postVersion": 4
   },
   "reader": "ShroomDog",
   "occurredAt": "2026-06-03T00:00:00Z",
@@ -84,15 +86,26 @@
 }
 ```
 
+Future manifest v2 / snapshot helper fields, not available in the current manifest:
+
+```json
+{
+  "contentVersion": 3,
+  "contentHash": "sha256:...",
+  "servedBuildCommit": "abc123...",
+  "articleFileCommit": "def456..."
+}
+```
+
 ## Migration Plan
 
 1. **OpenSpec review**：先讓 ShroomDog review 這個 spec，確認資料語意與 product loop。
-2. **Event identity / version snapshot**：在 article page expose post identity + `postVersion`，設計 manifest v2 或 runtime snapshot helper。
+2. **Event identity / version snapshot**：在 article page expose post identity + current file-touch `postVersion`；transport/contentVersion 可 deferred。
 3. **Reading tracker v2**：保留現有 `slugs[]`，新增 event ledger；bulk/import/manual read 不當作高信心 finishability。
 4. **Share tracking**：在 `ShareButton` 記錄 share intent target/result + version snapshot。
-5. **Comment indexing**：若保留 Giscus，新增 GitHub Discussions sync/indexer，用 comment createdAt + page version snapshot 回推/補齊；若改 first-party form，送出時直接附 version snapshot。
-6. **Tribunal ingestion**：在 `.score-loop/state/` 加 human signal index / triage events，judge/writer 讀 deterministic packet。
-7. **Requeue / publish policy**：unresolved severe negative signal 可 block publish 或 requeue；positive share signal 可標為 preserve / study。
+5. **Comment indexing**：若保留 Giscus，新增 GitHub Discussions sync/indexer；timestamp inference 需 manifest v2 / git-history boundary，不可只靠現有 latest-count manifest。若改 first-party form，送出時直接附 version snapshot。
+6. **Tribunal ingestion**：human signal ledger / triage events 做 evidence SSOT；progress ledger 繼續做 execution status SSOT。若 human signal 影響執行狀態，必須透過 bounded requeue marker 與現有 locking discipline 串接。
+7. **Requeue / publish policy**：unresolved severe negative signal 可 block publish 或 requeue；positive share signal 可標為 preserve / study；所有 automation 必須 bounded。
 
 ## Risks / Trade-offs
 

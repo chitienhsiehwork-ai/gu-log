@@ -13,7 +13,7 @@ Each engagement event SHALL include at least:
 - `ticketId` when available
 - `lang`
 - `pathname`
-- `postVersion`
+- `postVersion` as an integer (UI MAY render it as `vN`)
 - `occurredAt`
 - `reader` when known
 
@@ -123,6 +123,15 @@ Gu-log SHALL record share intent as a positive human signal. Share events SHALL 
 ### Requirement: Human signal transport SHALL be explicit and queryable
 
 Gu-log SHALL define where human engagement events are stored and how Tribunal or operators can query them. The storage MAY be first-party API/DB, Gist, repo JSONL, GitHub Discussions derived index, or another explicit transport, but it SHALL NOT rely on unqueryable browser-only state for Tribunal decisions.
+
+
+#### Scenario: Existing Vercel Analytics pageviews are telemetry, not Tribunal evidence
+
+- **WHEN** gu-log only has the current `@vercel/analytics` injection from `BaseLayout.astro`
+- **AND** no custom event payload with article identity/version is emitted
+- **AND** no deterministic export/query path is available to Tribunal
+- **THEN** Vercel Analytics pageviews SHALL NOT be treated as the configured human-signal transport
+- **AND** they SHALL NOT drive requeue/block/preserve decisions by themselves
 
 #### Scenario: Tribunal requests signals for a post
 

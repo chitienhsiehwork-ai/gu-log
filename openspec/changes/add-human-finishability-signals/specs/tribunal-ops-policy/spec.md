@@ -38,3 +38,12 @@ Human quality signals SHALL be valid operational evidence, including:
 - **AND** a later version has resolved or superseded that feedback
 - **THEN** the operational policy SHALL NOT treat the old feedback as an unresolved complaint against the current version
 - **AND** resolution state SHALL be visible in the review context
+
+
+#### Scenario: human-signal requeue does not bypass pause policy
+
+- **WHEN** human negative signals indicate systemic score-over-quality drift across multiple posts
+- **THEN** the policy SHALL prefer pause/review over blind autonomous requeue
+- **AND** any requeue SHALL be bounded
+- **AND** human-signal requeue SHALL NOT bypass drift pause, rollback-review, or bounded restart requirements
+
