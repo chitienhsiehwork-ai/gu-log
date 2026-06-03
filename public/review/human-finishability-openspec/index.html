@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex,nofollow" />
+<title>要不要 merge？gu-log Human Finishability OpenSpec</title>
+<style>
+:root { --bg:#08111f; --card:#101b2d; --card2:#142238; --text:#edf4ff; --muted:#a9b8cc; --line:#2a3b55; --blue:#7dd3fc; --green:#8af0b2; --red:#ff9ea8; --yellow:#ffe08a; --purple:#c4b5fd; }
+*{box-sizing:border-box} body{margin:0;background:radial-gradient(circle at top left,#18345c 0,#08111f 42%,#050914 100%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC","Inter",sans-serif;line-height:1.72} a{color:var(--blue)}
+.wrap{max-width:1120px;margin:auto;padding:32px 18px 90px} .hero{border:1px solid var(--line);background:rgba(16,27,45,.92);border-radius:28px;padding:34px;box-shadow:0 24px 90px rgba(0,0,0,.38)}
+h1{font-size:clamp(32px,6vw,64px);line-height:1.02;margin:8px 0 16px;letter-spacing:-.04em} .lead{font-size:21px;color:#d8e7ff;max-width:880px} .pills{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px} .pill{border:1px solid var(--line);background:#09162a;border-radius:999px;padding:7px 12px;color:#dce8fa;font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px;margin-top:18px} .card{grid-column:span 6;border:1px solid var(--line);border-radius:20px;background:rgba(16,27,45,.90);padding:22px} .full{grid-column:1/-1} .third{grid-column:span 4} h2{font-size:27px;margin:0 0 12px} h3{font-size:19px;color:#dbeafe;margin:18px 0 8px} ul,ol{padding-left:24px} li{margin:8px 0} code{background:#07111f;border:1px solid #26364c;border-radius:7px;padding:2px 6px;color:#e0f2fe} .btns{display:flex;gap:12px;flex-wrap:wrap;margin-top:20px} .btn{display:inline-block;background:#2563eb;color:white;text-decoration:none;font-weight:800;border-radius:13px;padding:12px 16px} .btn.secondary{background:#0b1728;border:1px solid var(--line)}
+.good{color:var(--green)} .bad{color:var(--red)} .warn{color:var(--yellow)} .purple{color:var(--purple)} .quote{border-left:4px solid var(--blue);background:#0b1728;border-radius:12px;padding:12px 16px;color:#dce9ff} .decision{font-size:22px;font-weight:900} .table{display:grid;gap:10px} .row{display:grid;grid-template-columns:220px 1fr;gap:10px;border:1px solid var(--line);border-radius:14px;background:#0b1728;padding:12px} .small{font-size:13px;color:var(--muted)} .callout{background:linear-gradient(135deg,rgba(37,99,235,.28),rgba(124,58,237,.20));border:1px solid #38598c;border-radius:18px;padding:18px}
+@media(max-width:800px){.card,.third{grid-column:1/-1} .row{grid-template-columns:1fr} .hero{padding:24px}}
+</style>
+</head>
+<body><main class="wrap">
+<section class="hero">
+  <div class="pills"><span class="pill">PR #358 review guide</span><span class="pill">chill tone edition</span><span class="pill">temp page expires 2026-06-04T05:42:26Z</span></div>
+  <h1>要不要 merge 這個 OpenSpec？</h1>
+  <p class="lead">短版：如果你同意「gu-log 要把 ShroomDog 讀不讀得完、站內負評、分享」變成 <b>有版次的 human signal</b>，那這個 PR 可以 merge。這不是 implementation PR，是先把產品規格釘住，避免之後 agent 們各自腦補。</p>
+  <div class="btns"><a class="btn" href="https://github.com/chitienhsiehwork-ai/gu-log/pull/358">打開 PR #358</a><a class="btn secondary" href="https://github.com/chitienhsiehwork-ai/gu-log/pull/358/files">看 Files changed</a></div>
+</section>
+
+<section class="grid">
+  <article class="card full callout">
+    <h2>我的 merge 建議</h2>
+    <p class="decision"><span class="good">可以 merge</span>，前提是你同意下面 4 個產品判斷。</p>
+    <ol>
+      <li><b>AI score 不是 gu-log 的最終目標。</b> 文章讓你讀得下去、想罵、想分享，才是更接近產品的 signal。</li>
+      <li><b>站內 comment 要綁文章版次。</b> v1 的「難看死了」不能漂到 v5 身上，這會把 rewrite loop 搞成靈異事件。</li>
+      <li><b>負評不是壞事，是便宜又準的資料。</b> 你不想寫長篇解釋，系統就該接受短負評，然後自己去找原因。</li>
+      <li><b>這次先定 contract，不先選 DB / Giscus / API。</b> 不要一開始就把工程 scope 開到變成 Benson 週五下午說「順手做一下」那種地獄。</li>
+    </ol>
+  </article>
+
+  <article class="card">
+    <h2>這個 PR 到底在改什麼</h2>
+    <ul>
+      <li>新增 OpenSpec change：<code>add-human-finishability-signals</code></li>
+      <li>定義 human finishability event：讀完、疑似放棄、分享、站內 comment。</li>
+      <li>定義 versioned feedback：每則重要 feedback 都要知道是針對哪一版文章。</li>
+      <li>定義 Tribunal human-signal loop：human negative signal 可以進入 evidence / requeue / publisher policy。</li>
+      <li>補一個 ops policy amendment：human quality 可以推翻 score compliance。</li>
+    </ul>
+  </article>
+
+  <article class="card">
+    <h2>這個 PR 沒有在改什麼</h2>
+    <ul>
+      <li>沒有真的實作 tracking。</li>
+      <li>沒有移除 Giscus。</li>
+      <li>沒有新增 DB。</li>
+      <li>沒有新增 first-party feedback form。</li>
+      <li>沒有讓 Tribunal 立刻開始重寫任何文章。</li>
+      <li>沒有把 Vercel Analytics pageview 當人類品質 evidence。</li>
+    </ul>
+    <p class="quote">換句話說：這不是「開工蓋整棟百貨公司」，只是先畫逃生門在哪裡。</p>
+  </article>
+
+  <article class="card full">
+    <h2>你 merge 前需要回答的問題</h2>
+    <div class="table">
+      <div class="row"><b>1. 你同意嗎？</b><div>「ShroomDog 讀不完」可以是文章 boring / hook 失敗的強 signal，但單次 quick bounce 不能直接判死刑。</div></div>
+      <div class="row"><b>2. 你同意嗎？</b><div>「這篇難看死了」這種 gu-log 站內 comment 是 <span class="bad">negative feedback</span>，不是「有人留言所以 engagement 好棒棒」。</div></div>
+      <div class="row"><b>3. 你同意嗎？</b><div>所有 comment / feedback 都要綁 <code>postVersion</code>；長期最好再有 <code>contentVersion</code> / <code>contentHash</code>。</div></div>
+      <div class="row"><b>4. 你同意嗎？</b><div>AI judge PASS 但你覺得難看，系統要能 block / requeue / manual review，而不是硬說「模型說過了」。</div></div>
+      <div class="row"><b>5. 你同意嗎？</b><div>這次先不決定 storage transport。Giscus indexer、first-party API、Gist、DB 都是後續 implementation choice。</div></div>
+    </div>
+  </article>
+
+  <article class="card third"><h2>Merge if</h2><ul><li>你認同上面 5 個問題。</li><li>你想先讓規格成為 SSOT。</li><li>你接受後續再拆 implementation PR。</li></ul></article>
+  <article class="card third"><h2>Do not merge if</h2><ul><li>你想先決定 DB/API/Giscus。</li><li>你不想把短負評當正式 signal。</li><li>你覺得 Tribunal 不該被 human feedback 影響。</li></ul></article>
+  <article class="card third"><h2>Ask changes if</h2><ul><li>你想把 private feedback 和 public Giscus 分得更硬。</li><li>你想先定義 <code>contentVersion</code>。</li><li>你想把 scope 再縮小成只做 versioned comment。</li></ul></article>
+
+  <article class="card full">
+    <h2>目前系統現況，PR 有正確對齊嗎？</h2>
+    <ul>
+      <li><b>Giscus</b>：現況是 pathname mapping，PR 沒假裝它已經 versioned。</li>
+      <li><b>postVersion</b>：現況是 file-touch count，PR 已補清楚，不假裝它是 content-only version。</li>
+      <li><b>Reading tracker</b>：現況只存 slug，而且登入後才寫；PR 已補清楚。</li>
+      <li><b>Vercel Analytics</b>：現況只有 pageview；PR 已寫明不能當 Tribunal evidence。</li>
+      <li><b>Tribunal quota loop</b>：現況 PASS 文章會被 skip；PR 已補 bounded requeue marker 必須讓 runtime 看得到。</li>
+      <li><b>Publisher triage</b>：PR 已要求 human block 要帶 version binding，避免 v1 負評卡死 v5。</li>
+    </ul>
+  </article>
+
+  <article class="card full">
+    <h2>最值得看的 PR 檔案</h2>
+    <ol>
+      <li><a href="https://github.com/chitienhsiehwork-ai/gu-log/pull/358/files"><b>proposal.md</b></a>：看 Human Review Summary 和 Review Decision Requested。這裡決定要不要 merge。</li>
+      <li><a href="https://github.com/chitienhsiehwork-ai/gu-log/pull/358/files"><b>design.md</b></a>：看現況盤點，確認沒有跟現有系統打架。</li>
+      <li><a href="https://github.com/chitienhsiehwork-ai/gu-log/pull/358/files"><b>tasks.md</b></a>：看 Phase 1 vs follow-up，確認 scope 沒爆炸。</li>
+      <li><a href="https://github.com/chitienhsiehwork-ai/gu-log/pull/358/files"><b>versioned-human-feedback/spec.md</b></a>：如果你只想看核心，讀這份就好。</li>
+    </ol>
+    <p class="small">Temp review page：noindex。這頁只幫你判斷要不要按 merge，不是 repo artifact。</p>
+  </article>
+</section>
+</main></body></html>
