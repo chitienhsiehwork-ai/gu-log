@@ -31,9 +31,23 @@ const lvPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('Lv-')).sort(
 const spPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('SP-')).sort(sortByTicketNumber);
 
 const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(sortByTicketNumber);
+
+const experimentHeroStyle = `margin:1.2rem 0 1.8rem;padding:1.6rem;border:1px solid var(--color-divider);border-radius:28px;background:linear-gradient(135deg,color-mix(in srgb,var(--color-surface) 86%,transparent),color-mix(in srgb,var(--color-bg) 70%,transparent));box-shadow:0 24px 80px rgba(0,0,0,.18);`;
+const experimentKickerStyle = `margin:0 0 .35rem;color:var(--color-accent);font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;`;
+const experimentTitleStyle = `max-width:10em;margin:0 0 .7rem;font-size:clamp(2rem,8vw,4.4rem);line-height:.95;letter-spacing:-.07em;`;
+const experimentCopyStyle = `max-width:34rem;margin:0;color:var(--color-text-muted);font-size:.98rem;`;
 ---
 
 <BaseLayout title="ShroomDog">
+  <section style={experimentHeroStyle} aria-label="Gu-log experimental reading lobby">
+    <p style={experimentKickerStyle}>Experimental UI · Ambient Reading</p>
+    <h1 style={experimentTitleStyle}>把 AI 長文變成比較想坐下來讀的地方</h1>
+    <p style={experimentCopyStyle}>
+      保留 gu-log 原本的窄欄閱讀節奏，但讓首頁更像一個安靜的 reading
+      room：柔光、分層卡片、少一點列表感。
+    </p>
+  </section>
+
   {/* SP: ShroomDog Picks — 最頻繁更新 */}
   {
     spPosts.length > 0 && (
