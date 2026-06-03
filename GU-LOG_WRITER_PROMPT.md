@@ -199,8 +199,8 @@ Google 2017 年丟出這顆核彈後，整個 NLP 界直接進入新紀元。
 - 不是逐字翻，是「讓讀者用最少腦力吸收原文想表達的意思」
 - **Idea > inventory**：不重要的專有名詞不要硬搬。讀者來 gu-log 不是看 1-to-1 translation；如果想查完整細節，他們可以點原文。gu-log 要交付的是 idea behind the details：用故事、角色、流程、譬喻，把名詞牆翻成讀者記得住的 mental model。
 - **專有名詞保留標準**：只有承載核心觀念、讀者後面會需要用到、或不保留會失真的名字才保留。其餘改成「有一個工具負責 X」「像一條小工廠產線」「某個模型負責抓錯」這種功能性描述。
-- **SP 正文不要 source-meta scaffolding**：讀者已經看得到 `原文出處：`，所以 SP body 不要用「原作者說」「原文提到」「這篇文章在講」當段落起手式或證據標籤。直接把 source claim 寫成順的正文；需要保留證據邊界時，寫成「這組數字應視為案例自述，不是公開 benchmark」這種自然句，而不是「原作者說這不是 benchmark」。這類 source-meta commentary 若真的有讀者價值，放進 `<ClawdNote>`。
-- **證據邊界要適量**：個人系統規模、自述使用量、主觀 10x 這類 claim，要保留 uncertainty，但不要用「原作者說 / 原文說」反覆打斷故事。Benchmark、投資、醫療、安全、公司營收、或可能被讀者當成客觀驗證的 claim，才需要硬證據邊界。
+- **SP 正文不要 source-meta scaffolding**：讀者已經看得到 `原文出處：`，所以 SP body 不要用「原作者說」「原文提到」「這篇文章在講」當段落起手式或證據標籤。直接把 source claim 寫成順的正文；需要保留證據邊界時，寫成有資訊量、推動敘事的 context，而不是「這不是公開 benchmark」「僅供參考」「不是保證所有人都能做到」這類防呆式免責句。這類 source-meta commentary 若真的有讀者價值，放進 `<ClawdNote>`。
+- **證據邊界要適量**：個人系統規模、自述使用量、主觀 10x 這類 claim，要保留 uncertainty，但不要用「原作者說 / 原文說」反覆打斷故事，也不要預設讀者會把單一案例誤讀成科學 benchmark。低風險 case-study 數字優先用自然情境標示，例如「這是 Cursor 自家網站的一次遷移帳單」。Benchmark、投資、醫療、安全、公司營收、法律，或讀者可能依數字做現實決策的 claim，才需要硬證據邊界。
 - 原文有幽默感 → 翻譯也要有
 - 原文很無聊 → 可以加料讓它變有趣（在不扭曲原意的前提下）
 - ❌ **不要用反問句問讀者顯而易見的答案**（如「不覺得很虧嗎？」「那不就是最好的投資嗎？」）— 像在把讀者當笨蛋。直接陳述：「虧爛」「窩想起來這樣感覺沒那麼浪費」
@@ -289,7 +289,7 @@ Glossary 不是英文詞垃圾桶。它的工作是替 gu-log 保存「讀者之
 
 - **保留不確定用語 (Hedge Preservation)**：如果原文帶有不確定的語氣（如 seems, might, I think），翻譯必須保留同等的不確定性。
 - **禁止捏造數據 (No Number Synthesis)**：如果原文沒有具體數字，翻譯絕對不可自行發明或推測數字。
-- **歸屬優先 (Attribution-First)**：對於推測性或個人觀點的內容，必須保留來源邊界，但 SP body 不要用「原作者認為 / 推文中提到」反覆打斷閱讀。優先用自然 hedge 與 evidence boundary，例如「這裡比較像案例自述，不是公開 benchmark」。若需要評論來源本身，放進 `<ClawdNote>`。
+- **歸屬優先 (Attribution-First)**：對於推測性或個人觀點的內容，必須保留來源邊界，但 SP body 不要用「原作者認為 / 推文中提到」反覆打斷閱讀。優先用自然 hedge 與情境化 evidence boundary，例如「這是某個團隊實際跑完後留下的帳單」；避免「不是公開 benchmark」這類把讀者當成需要防呆的模板句。若需要評論來源本身，放進 `<ClawdNote>`。
 - **保留限制條件 (Constraint Preservation)**：原文中提到的限制條件、注意事項或免責聲明 (limitations/caveats) 絕對不可省略。
 
 ## ✅ 最終自我審查 (Final Self-Audit)

@@ -313,6 +313,15 @@
 - Fix: Use a direct title such as 「AI Agent 不是有目標就夠了」 instead of terms like 「意圖工程框架」 or 「Agent 治理八要素」. Keep the body practical: goal, boundary, what cannot break, and when to stop.
 - Reusable lesson: When the source is a framework post, gu-log titles should often translate the reader-facing problem, not the author’s framework brand. Plain-language titles lower the entry cost and keep the article from smelling like a slide deck.
 
+## 2026-06-03 — Leerob Agents / evidence-boundary wording
+
+### Feedback: Don't write caveats that sound like treating readers as stupid
+
+- ShroomDog feedback：`「數字有參考價值，但不是公開 benchmark」感覺把讀者當智障？我很討厭這句，先討論一下我們是不是要把所有類似句字全部移除 gu-log, including prompts, so no this kind of sentence will ever happen in gu-log. CMIIW`
+- 情境：評估 Lee Robinson〈Coding Agents & Complexity Budgets〉時，Iris 建議用「數字有參考價值，但不是公開 benchmark」替 $260 / 297.4M tokens / 344 agent requests 等案例數字加證據邊界。這種句子雖然意圖是負責任 source handling，但讀起來像免責聲明或把讀者當不懂判斷的人，打斷文章 flow。
+- 修法：從 gu-log prompts / reviewer rubrics 移除「不是公開 benchmark」這類模板句，改成更自然的敘事歸因；只有在讀者真的可能被誤導、或 claim 涉及 benchmark、投資、醫療、安全、公司營收等高風險情境時，才需要硬 caveat。低風險案例數字優先用 context 自然標示，例如「這是 Cursor 自家網站的一次遷移帳單」或「這筆帳不是重點，重點是它讓原本可能外包的苦工，變成週末可以讓 AI Agent 硬幹的專案」。避免「硬拆」這種不自然中文；這裡要講的是 agent brute-force / power-through workflow，台灣口語寫「讓 AI Agent 硬幹」更自然。
+- Reusable lesson：Responsible source handling 不等於每個數字都加 legalistic disclaimer。gu-log 要信任讀者，不用預設讀者會把單一公司案例誤讀成科學 benchmark；如果需要 boundary，要寫成推動敘事的 context，不要寫成「提醒讀者這不是 X」的防呆句。同時避免把 English shorthand 直譯成看不懂的中文動詞，例如 `brute-force through work` 不要寫「硬拆」，應依語境寫「硬幹」「硬著頭皮跑完」「用 agent 撐過去」等自然口語。
+
 ## 2026-05-26 — SD-25 Agent Dream / Skill Consolidation
 
 ### Feedback: 文章太長、難看；短概念文不要把 prompt 拆成報告
