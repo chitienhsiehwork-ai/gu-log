@@ -31,9 +31,23 @@ const lvPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('Lv-')).sort(
 const spPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('SP-')).sort(sortByTicketNumber);
 
 const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(sortByTicketNumber);
+
+const experimentHeroStyle = `margin:1rem 0 1.2rem;padding:.95rem 0;border-top:1px solid var(--color-divider);border-bottom:1px solid var(--color-divider);`;
+const experimentKickerStyle = `margin:0 0 .25rem;color:var(--color-accent);font-size:.7rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;`;
+const experimentTitleStyle = `margin:0;font-size:clamp(1.55rem,5vw,3rem);line-height:1.02;letter-spacing:-.055em;`;
+const experimentCopyStyle = `max-width:42rem;margin:.45rem 0 0;color:var(--color-text-muted);font-size:.88rem;line-height:1.65;`;
 ---
 
 <BaseLayout title="ShroomDog">
+  <section style={experimentHeroStyle} aria-label="Gu-log compact feed experiment">
+    <p style={experimentKickerStyle}>Experimental UI · Compact Feed</p>
+    <h1 style={experimentTitleStyle}>少一點裝飾，多一點掃讀速度。</h1>
+    <p style={experimentCopyStyle}>
+      這條 branch 把首頁推向 inbox / changelog 手感：密度更高、meta
+      更清楚、每個分類像可快速掃過的閱讀 queue。
+    </p>
+  </section>
+
   {/* SP: ShroomDog Picks — 最頻繁更新 */}
   {
     spPosts.length > 0 && (
