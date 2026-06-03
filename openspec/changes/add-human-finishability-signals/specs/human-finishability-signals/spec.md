@@ -144,3 +144,42 @@ Gu-log SHALL define where human engagement events are stored and how Tribunal or
 - **WHEN** engagement state exists only in a browser localStorage and has not synced to the configured transport
 - **THEN** Tribunal SHALL NOT assume that state exists
 - **AND** the UI SHOULD expose sync status or otherwise avoid implying unsynced events are already part of automation
+
+---
+
+### Requirement: Reader identity and trust tier SHALL gate automation impact
+
+Gu-log SHALL classify human engagement events by reader trust tier before those events can affect Tribunal or publisher decisions. GitHub OAuth identity MAY be used to classify a reader as ShroomDog / owner-trusted when the authenticated account email matches a configured trusted-owner allowlist. The actual trusted email values SHALL NOT be hardcoded in OpenSpec text.
+
+Reader trust tiers SHALL include at least:
+
+- `owner_trusted` — ShroomDog / gu-log owner identity verified through trusted GitHub OAuth email allowlist or equivalent owner-approved identity source
+- `guest_reference` — random or unauthenticated guest signals useful for reference but not authorized to drive Tribunal
+- `unknown` — identity unavailable or not yet classified
+
+#### Scenario: Trusted OAuth email classifies ShroomDog signal
+
+- **WHEN** a reader is authenticated through GitHub OAuth
+- **AND** the account email matches the configured trusted-owner allowlist
+- **THEN** the event MAY be classified as `readerTrustTier="owner_trusted"`
+- **AND** the event MAY be eligible for Tribunal evidence, requeue, or publish-block policy according to the human-signal rules
+
+#### Scenario: Random guest action remains reference-only
+
+- **WHEN** an unauthenticated or non-owner reader finishes, abandons, comments, or shares an article
+- **THEN** the event MAY be recorded as `readerTrustTier="guest_reference"`
+- **AND** the event MAY appear in ShroomDog review dashboards or signal summaries
+- **BUT** it SHALL NOT trigger Tribunal rewrite, requeue, publish block, or score override by itself
+
+#### Scenario: ShroomDog approves a guest-derived signal
+
+- **WHEN** guest reference signals reveal a useful pattern
+- **AND** ShroomDog / owner explicitly approves the pattern or a specific signal as actionable
+- **THEN** the approved signal MAY be promoted into owner-approved evidence
+- **AND** the promoted record SHALL retain provenance showing it originated from guest data
+
+#### Scenario: Guest signals are aggregated for reference
+
+- **WHEN** multiple random guests show similar finishability or share patterns
+- **THEN** the system MAY aggregate those signals for product insight
+- **AND** the aggregate SHALL remain reference-only until ShroomDog / owner approval makes it actionable

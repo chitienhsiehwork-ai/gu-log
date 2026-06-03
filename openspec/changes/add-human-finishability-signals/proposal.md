@@ -15,10 +15,12 @@
 1. Human feedback 必須綁文章版本。
 2. Raw unversioned Giscus comments 不得驅動 Tribunal rewrite / publish block。
 3. 明確負向 human feedback 可以推翻「AI score PASS 就算完成」。
-4. Storage transport、first-party feedback UI、`contentVersion`、active-read thresholds 延後到 follow-up changes 決定。
+4. OAuth trusted owner emails 可歸為 ShroomDog / owner-grade signals；random guest signals 可以記錄，但只作參考，未經 ShroomDog approve 不得影響 Tribunal。
+5. Storage transport、first-party feedback UI、`contentVersion`、active-read thresholds 延後到 follow-up changes 決定。
 
 這次**不要求**批准：
 
+- trusted owner email allowlist 的實際 email 值（應放 config/secrets，不放 OpenSpec）。
 - 最終 storage transport（Giscus-derived index / first-party API / Gist / repo JSONL / DB）。
 - 是否要把 Giscus 換成 first-party feedback form。
 - active read time / scroll depth 的精確 threshold。
@@ -39,7 +41,7 @@ Tribunal 目前主要依賴 AI judge 分數與 pass bar 判斷文章能不能發
 
 ## What Changes
 
-- **新增 Human Finishability Signals capability**：定義 reading engagement、gu-log 站內 comment、share intent 的事件 schema 與語意。
+- **新增 Human Finishability Signals capability**：定義 reading engagement、gu-log 站內 comment、share intent 的事件 schema、reader trust tier 與語意。
 - **新增 Versioned Human Feedback capability**：每個 feedback/comment/share/read-finish event 必須綁定文章 identity + 版本 snapshot，避免 Tribunal rewrite 後訊號漂移。
 - **新增 Tribunal Human Signal Loop capability**：定義 human negative/positive signals 如何以 deterministic packet 進入 Tribunal evidence / requeue / publish policy；具體 routing 與 storage 可分階段落地。
 - **保留現有系統邊界**：OpenSpec 不假設立刻替換 Giscus、reading tracker 或 Vercel Analytics；先定義 contract。
@@ -87,3 +89,4 @@ Dependency: `tribunal-ops-policy` is introduced by active change `add-tribunal-o
   - 不規定必須立刻移除 Giscus。
   - 不規定必須用 Vercel Analytics、自建 DB、GitHub Discussions、Gist 的哪一種 transport；spec 只要求資料 contract 與可查詢性。
   - 不把所有 comment 當正向訊號；明確負評是強負向訊號。
+  - random guest actions MAY be tracked as reference signals, but SHALL NOT drive Tribunal until ShroomDog / owner approval promotes or resolves them.

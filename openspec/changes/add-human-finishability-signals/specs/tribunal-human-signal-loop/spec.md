@@ -2,7 +2,7 @@
 
 ### Requirement: Tribunal SHALL consume unresolved human signals as deterministic evidence
 
-Tribunal SHALL include unresolved per-article human signals in judge and writer context as deterministic evidence. Human signals SHALL be read from the configured signal transport or generated packet, not inferred from model intuition.
+Tribunal SHALL include unresolved per-article human signals in judge and writer context as deterministic evidence. Human signals SHALL be read from the configured signal transport or generated packet, not inferred from model intuition. Tribunal-impacting signals SHALL be limited to `owner_trusted` or explicitly owner-approved evidence; `guest_reference` signals SHALL remain reference-only until promoted by ShroomDog / owner approval.
 
 #### Scenario: Human signal SSOT and progress ledger SSOT remain separate
 
@@ -11,9 +11,15 @@ Tribunal SHALL include unresolved per-article human signals in judge and writer 
 - **AND** the progress ledger SHALL remain the Tribunal execution status SSOT
 - **AND** any write that changes shared progress state SHALL use the same serialized locking discipline as current progress writes
 
+#### Scenario: Guest reference evidence is not automation authority
+
+- **WHEN** a human signal packet includes `guest_reference` finishability or comment signals
+- **THEN** Tribunal MAY show those signals as reference context for ShroomDog review
+- **BUT** Tribunal SHALL NOT use them to trigger rewrite, requeue, publish block, or score override unless they are explicitly owner-approved
+
 #### Scenario: FreshEyes receives low finishability evidence
 
-- **WHEN** an article has unresolved `abandoned_suspected_boring` or negative readability feedback
+- **WHEN** an article has unresolved owner-trusted or owner-approved `abandoned_suspected_boring` or negative readability feedback
 - **THEN** FreshEyes SHALL receive a human signal packet describing the event kind, evidence, version, and timestamp
 - **AND** FreshEyes MAY use that evidence when scoring first impression, readability, or reader fatigue
 
@@ -90,7 +96,7 @@ Valid disposition paths SHALL include:
 
 #### Scenario: Requeue marker is visible to quota loop
 
-- **WHEN** a PASS article is selected for human-signal requeue
+- **WHEN** a PASS article is selected for human-signal requeue based on owner-trusted or owner-approved evidence
 - **THEN** the system SHALL write an observable bounded requeue marker that the quota loop or equivalent runtime consumes
 - **AND** that marker SHALL prevent the article from being skipped solely because progress status is still `PASS`
 - **AND** the marker SHALL include `requeueReason`, target version snapshot, and attempt count
@@ -98,7 +104,7 @@ Valid disposition paths SHALL include:
 
 #### Scenario: Requeue is bounded
 
-- **WHEN** an article is requeued due to human negative feedback
+- **WHEN** an article is requeued due to owner-trusted or owner-approved human negative feedback
 - **THEN** the requeue SHALL have a bounded attempt limit or explicit human-approved scope
 - **AND** repeated failures SHALL transition to manual review or EXHAUSTED-like state instead of infinite rewrite
 
@@ -131,7 +137,7 @@ The publishing pipeline SHALL block or flag publication of articles with unresol
 
 #### Scenario: Publisher human block carries version binding
 
-- **WHEN** a human negative signal creates a publisher-facing block
+- **WHEN** an owner-trusted or owner-approved human negative signal creates a publisher-facing block
 - **THEN** the block SHALL include or reference `humanSignalEventId`, `postId`, `pathname`, `postVersion`, optional `contentVersion`, and resolution state
 - **AND** publisher SHALL block only when the unresolved severe signal targets the current content version, or when an older-version signal has no resolution showing it was superseded/addressed
 
