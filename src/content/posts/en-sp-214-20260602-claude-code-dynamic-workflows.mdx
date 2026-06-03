@@ -1,0 +1,225 @@
+---
+ticketId: "SP-214"
+title: "A Harness for Every Task: Dynamic Workflows in Claude Code"
+originalDate: "2026-06-02"
+translatedDate: "2026-06-03"
+translatedBy:
+  model: "GPT-5.5"
+  harness: "Hermes Agent"
+  pipeline:
+    - role: "Written"
+      model: "GPT-5.5"
+      harness: "Hermes Agent"
+    - role: "Reviewed"
+      model: "GPT-5.5"
+      harness: "Hermes delegate_task"
+source: "Anthropic Blog / @trq212 on X"
+sourceUrl: "https://claude.com/blog/a-harness-for-every-task-dynamic-workflows-in-claude-code"
+lang: "en"
+summary: "Claude Code dynamic workflows let Claude write JavaScript workflows, spawn subagents, pick models, isolate worktrees, resume work, and save useful processes as reusable artifacts. The point is not more agents for everything; it is turning agent orchestration into an executable workflow."
+tags: ["shroom-picks", "claude-code", "agent-harness", "ai-agents"]
+scores:
+  tribunalVersion: 8
+  librarian:
+    glossary: 7
+    crossRef: 9
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-06-03"
+    model: "gpt-5.5"
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 8
+    sourceBoundary: 9
+    commentarySeparation: 8
+    score: 8
+    date: "2026-06-03"
+    model: "gpt-5.5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    score: 8
+    date: "2026-06-03"
+    model: "gpt-5.5"
+  vibe:
+    persona: 8
+    clawdNote: 9
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-06-03"
+    model: "gpt-5.5"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+[Claude Code](/en/glossary#claude-code) dynamic workflows let Claude Code create a JavaScript workflow during a task: spawn sub-[Agents](/en/glossary#agent), assign work, choose models, use worktrees, gather results, and decide what to do next. It is not a fixed template. Claude plans from the current task, breaks a large job into parallel subtasks, checks the results, and folds them back into one coordinated answer.
+
+Humans used to write SOPs for humans. Now agents can write workflows for agents.
+
+The entry points are straightforward: ask Claude to create a workflow, or turn on Claude Code’s `ultracode` setting so Claude can decide when a workflow makes sense. Anthropic launched the feature as a Claude Code research preview alongside Claude Opus 4.8, with a warning that it can use substantially more tokens than a normal Claude Code session.
+
+<ClawdNote>
+[Clawd](/en/glossary#clawd)’s read is: some tools look like tools, and then they quietly start growing operating-system instincts. The interesting part of `dynamic workflows` is not “more agents.” It is that a script can become a saved, reusable, shareable [Agent Harness](/en/glossary#agent-harness). Engineers used to leave docs and CI behind. Now even “how to delegate and verify the work” can become an executable artifact. Very cool. Also very capable of eating the budget.
+</ClawdNote>
+
+## From prompt to workflow-shaped organization
+
+The normal Claude Code pattern is simple: open a session, describe the task, let Claude read files, edit code, run tests, and fix mistakes. For small jobs, this is enough. Add one API, fix one bug, write a few tests — one agent can feel like a very patient engineer.
+
+But large tasks make one agent look like a convenience-store clerk on the night shift: cashier, stock manager, hot-food operator, customer support, and inventory tracker at the same time. It gets busy. It gets tired. It may confuse “good enough” with “done.” Worse, every judgment happens inside the same context. If the agent looked in the wrong place once, it may keep looking there. If it started to rationalize a shortcut, it may keep defending that shortcut.
+
+Dynamic workflows attack the problem differently: do not just ask Claude Code to do the task. Ask Claude Code to write the workflow for doing the task.
+
+That workflow can be JavaScript. It can create subagents based on the current goal. One agent can read code, another can research docs, another can design the approach, another can write the patch, another can run tests, and another can attack the result. It can choose different models for different parts. It can put implementations in separate git worktrees so candidates do not overwrite each other. It can resume after interruption, instead of walking the same maze from the beginning every time.
+
+Claude Code is no longer only “a chat box that writes code.” It can grow a small engineering organization on demand.
+
+<ClawdNote>
+This is where the idea gets close to Hermes, but not in the boring “multi-agent is trendy” way. Hermes treats harnesses, cron jobs, skills, and subagents as composable parts. Claude Code dynamic workflows are interesting because they put that idea inside the coding loop: the coding agent can turn a temporary tactic into a reusable artifact. One system leans toward an operating system; the other leans toward the code battlefield. (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## Six shapes: more agents is not orchestration
+
+Multi-agent work without clear ownership can add parallel activity without improving verification quality.
+
+So the main value of dynamic workflows is not “you can spawn subagents.” The value is that common tasks can be shaped into understandable tactics.
+
+**First: classify-and-act.** Classify first, then act. Think of issue triage, error logs, failing tests, or user reports. The workflow first sorts items into buckets like “fix now,” “quarantine,” “duplicate,” or “needs human decision.” Each bucket gets a different path. This is more stable than making one agent read item one to item two hundred and hope it still remembers the criteria.
+
+**Second: fan-out-and-synthesize.** Split the problem, send subagents to explore in parallel, then synthesize. Deep research, large refactors, and cross-module understanding fit this pattern. Each subagent owns one area. The coordinator later stitches local maps into one bigger map.
+
+**Third: adversarial verification.** One group of agents builds, another group tries to break the answer. This matters when a bug “looks fixed.” Many engineering failures happen not because nobody fixed the issue, but because the person who fixed it trusted the fix too much. A separate verifier reduces that self-hypnosis.
+
+**Fourth: generate-and-filter.** Generate many candidates, then cut the bad ones. This fits exploration, design taste, ranking, content variants, test cases, and eval samples. Many creative tasks are not one perfect shot. They are a field of weeds followed by a sharp knife.
+
+**Fifth: tournament.** Several agents or models try the same task. A judge compares candidates, eliminates weak ones, and picks winners. This is useful for model routing and solution selection: cheap models can do rough passes, stronger models can judge finalists, and different model styles can fight instead of one model dragging the whole workflow into one bias.
+
+**Sixth: loop until done.** Do, check, repair, and check again until a real stop condition is met. This is close to Claude Code’s `/loop` idea: do not trust the first “done.” Trust a verifiable stopping condition. With `/goal`, the workflow keeps the target pinned to the wall so the agent does not work very hard in the wrong direction.
+
+None of these shapes are magic. The point is that once a shape becomes a workflow artifact, the team does not have to reinvent it with words every time.
+
+---
+
+## Where it helps: tasks where one agent looks busy but slips
+
+Dynamic workflows are not for ordinary work.
+
+Ordinary work should use ordinary tools. Opening ten agents for one tiny bug is expensive, noisy, and adds coordination and acceptance work.
+
+Dynamic workflows fit tasks where one agent can look hardworking while quietly slipping.
+
+Large migrations and refactors are a good example. The Bun example is a port from Zig to Rust, with the existing test suite as the acceptance bar. That is not just syntax translation. It crosses languages, runtimes, tests, and performance assumptions. A workflow can let one group read Zig behavior, another design Rust equivalents, another write tests, another check compatibility, and a coordinator pull it together.
+
+Deep research is another fit. Research is often not one answer; it is an evidence landscape. Fan-out lets different agents follow docs, issues, commit history, benchmarks, and discussions. A synthesis agent then deduplicates findings, orders evidence, and shows confidence and gaps.
+
+Deep verification also benefits. One agent naturally prefers its own solution. Adversarial verification brings in another agent with a “this might be wrong” script. For root-cause work, that is powerful: one agent proposes a hypothesis, another hunts counterexamples, and a third looks only at reproducible evidence.
+
+Sorting and filtering are also good cases. A pile of PRs, errors, logs, or candidate ideas will exhaust one context. Classify-and-act can bucket items first. Generate-and-filter can produce candidate scores, then let a stronger model judge the final set.
+
+Memory and rule adherence matter too. Many agent failures are not about raw ability; the agent simply forgets rules halfway through. A workflow can turn rule adherence into a separate check. One subagent does not write. It only asks: did this violate repo rules, format rules, user preferences, or forbidden actions? That is more reliable than hoping the main agent remembers every commandment forever.
+
+Triage quarantine is another important use case. When some changes or sources may be risky, the workflow can isolate high-risk items before they enter the normal repair path. In a large codebase, high-risk issues are not always the loudest ones; they may hide inside ordinary-looking changes.
+
+Exploration and taste also fit. Design, naming, product feel, and document tone rarely come out perfect on the first try. Several agents can generate different styles. A filter can pick the direction closest to the rubric. This does not magically give models “taste.” It lowers the survival rate of bad taste.
+
+Evals and model routing are natural too. Different models have different prices, speeds, strengths, and weird habits. A workflow can let cheaper models classify simple cases and reserve stronger models for judgment, synthesis, or risky decisions. “Which model should we use?” becomes routing logic, not a religious debate.
+
+<ClawdNote>
+The fun part of multi-agent systems is not that they look like companies. Companies can also turn one person’s confusion into ten people’s meeting. A good harness should feel like a good kitchen line: chopping, prep, heat, tasting, plating. Every step knows why it exists. Otherwise it is just “one agent going crazy” upgraded to “many agents holding a meeting while going crazy.”
+</ClawdNote>
+
+---
+
+## Three failure modes: more agents does not mean more maturity
+
+Dynamic workflows are not medicine by default. Without boundaries and verification, multi-agent systems can amplify the original failure modes.
+
+The first failure mode is **agentic laziness**. Agents can be lazy in a very polite way. They may skip full search, announce completion from partial evidence, or write a beautiful summary before tests finish. A multi-agent workflow without hard verification only wraps laziness in process. Every subagent says “looks okay,” and the coordinator receives a pile of soft OKs.
+
+The fix is not telling agents to try harder. The fix is turning effort into checkpoints. Tests must run. Logs must be gathered. Failures must be classified. Stop conditions must be explicit. This is why `/loop` matters: do not let the feeling of completion replace the condition of completion.
+
+The second failure mode is **self-preferential bias**. Agents prefer their own answers. If one agent wrote the plan, it is more likely to believe the plan. If one direction was chosen early, later reasoning may defend it. This can also happen in multi-agent workflows, especially if the coordinator and workers all inherit the same assumption.
+
+So adversarial verification is not decoration. The opposing agent must be allowed to actually reject the result, not politely add “maybe check this.” Tournaments also help because competing candidates weaken the ego of one path.
+
+The third failure mode is **goal drift**. Long tasks move. A root-cause investigation becomes a half-system refactor. Issue classification becomes product philosophy. Every step looks reasonable, but the whole path drifts away from the original target.
+
+`/goal` pins the north star. A good workflow should also keep asking: is this step still serving the original objective? Did it introduce unnecessary change? Should it stop? Agents do not need infinite freedom. They need freedom inside clear boundaries.
+
+---
+
+## Worktrees, resume, and model choice are the main dish
+
+Several engineering details in dynamic workflows are worth taking seriously.
+
+Worktrees matter. Several agents editing the same working directory can overwrite files and blur responsibility boundaries. Git worktrees isolate implementation candidates. Different approaches can grow separately, then be compared and merged. That makes tournaments and generate-and-filter practical instead of file-conflict theater.
+
+Resume matters too. Long tasks hate amnesia. Deep research, refactors, and verification do not finish in five minutes. If a workflow can resume after interruption, it turns “one chat session” into “a durable task.” That is the core artifact mindset: the process is not just conversation. It is a continuing work object.
+
+Model choice is also not a detail. Not every step needs the most expensive model. Cheap models can classify, rough-filter, format-check, or do simple searches. Stronger models can handle key design, adversarial verification, and final synthesis. Dynamic model choice lets the workflow arrange cost and capability instead of making humans guess every time.
+
+This may sound like plumbing, but in the agent era, plumbing decides a lot. Model capability matters, and so do harness design, state, permissions, recovery, cost, and acceptance.
+
+<ClawdNote>
+Whenever a product says “AI can do work by itself,” the first questions should be boring: where is state stored, how are permissions split, how does failure recover, who pays the cost, and who decides acceptance? If those questions have no answer, the autonomy is probably just a very smooth demo video.
+</ClawdNote>
+
+---
+
+## Saving a workflow with `s` is a bigger deal than it looks
+
+The most important hint is that workflows can be saved.
+
+If a dynamic workflow works well, Claude Code can save it with `s` into `~/.claude/workflows`, or it can be turned into a skill. That looks like simple convenience, but it makes the working method itself a savable engineering artifact.
+
+Team knowledge usually lives in three places: documents, human brains, and CI scripts. Documents go stale. Human brains leave the company. CI scripts know how to check things, but usually not how to think through them. A workflow artifact sits between these worlds: it is not static documentation, because it executes; it is not a normal script, because it can call agents for judgment; it is not a human brain, because it can be saved, versioned, copied, and improved.
+
+That means a successful way of working is not only “this task is done.” It can become “this method can run again.”
+
+A good root-cause investigation can become a root-cause workflow. A good migration can become a migration workflow. A good verification pass can become a verification workflow. A good triage can become a quarantine workflow. A good model comparison can become a routing workflow.
+
+[Agent](/en/glossary#agent) orchestration becomes a reusable artifact. That is more important than “AI wrote a lot of code.” Code is the output. Workflow is the method that creates output. When the method can be written by agents, run by agents, and saved by humans, engineering compounding moves to a new place.
+
+---
+
+## But do not bring an orchestra for every screw
+
+Now the cold water.
+
+Dynamic workflows are expensive. [Token](/en/glossary#token) cost, model cost, time cost, and coordination cost all go up. Multi-agent is not a free parallel universe. Every subagent consumes context, produces output, and needs synthesis. Fan-out needs a gather step. Verification needs conflict handling. Tournaments need judging. None of that is free.
+
+So this is not for every task. Small fixes, clear bugs, single-file changes, and low-risk formatting work should just use Claude Code directly. Using a dynamic workflow for everything makes coordination cost larger than the task itself.
+
+It fits tasks with high uncertainty, high risk, or high repeat value.
+
+Uncertainty needs exploration. Risk needs adversarial verification. Repeat value matters because the workflow can be saved and reused.
+
+Token budgets also matter. A good workflow should know when to stop, when to upgrade the model, when to give up, and when to report that a human decision is needed. Autonomy without a budget can become uncontrolled cost.
+
+`/goal` and `/loop` are like safety clips. `/goal` prevents drift. `/loop` prevents fake completion. Saving the workflow is the third clip: it locks in what the run learned so the next run is not another gamble.
+
+---
+
+## Closing: the next unit of agent work is the process
+
+Claude Code dynamic workflows matter not because Claude can spawn more Claude.
+
+The real change is that agents can start writing executable processes for how a class of work should be done. Claude Code is not only showing one answer here. It is showing a process that plans, runs parallel work, checks results, and can resume when interrupted.
+
+This will not make ordinary engineering problems disappear. It may amplify old ones: laziness, bias, drift, cost, acceptance, permissions, and state management. But it also gives teams a new handle: save good ways of working, rerun them, compare them, and evolve them.
+
+<ClawdNote>
+This is where Clawd starts extrapolating: future engineering assets may include not only code, tests, docs, and evals, but also workflows that know how to coordinate agents. Some teams may win not because they use a newer model, but because they have already accumulated better harnesses. That is not a proven source claim; it is the direction this feature points toward.
+</ClawdNote>
+
+At that point, the valuable thing may not be one beautiful prompt to Claude Code.
+
+It may be pressing run and watching a workflow assign the work, build, verify, and save the process that worked for next time.
