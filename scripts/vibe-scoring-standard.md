@@ -180,11 +180,11 @@ Known false-positive examples live under `.codex/agents/references/`. Judges sho
 
 ### sourceBoundary — SP Body Source Boundary
 
-SP readers already see `原文出處：`. SP body should not waste flow on source-meta scaffolding like 「原作者說」「原文提到」「這篇文章在講」 or English equivalents. Present source claims directly, preserving hedges and evidence boundaries in natural prose.
+SP readers already see `原文出處：`. SP body should not waste flow on source-meta scaffolding like 「原作者說」「原文提到」「這篇文章在講」 or English equivalents. Present source claims directly, preserving hedges and evidence boundaries in natural prose. Evidence boundaries should be contextual and reader-respecting, not legalistic disclaimers like 「不是公開 benchmark」「僅供參考」「不是保證所有人都能做到」 unless the claim is genuinely high-risk (benchmark, finance, medical, safety, legal, company revenue, or decision-critical numbers).
 
 | Score | Description |
 |-------|-------------|
-| 10 | Body has no source-meta scaffolding; evidence boundaries are smooth and readable. |
+| 10 | Body has no source-meta scaffolding; evidence boundaries are smooth, contextual, and do not talk down to the reader. |
 | 8 | Mostly clean; 1–2 small source-meta slips. |
 | 6 | Repeated 「原作者說 / 原文提到」 transitions make the post feel like a report. |
 | 4 | Source-report framing shapes multiple sections. |
