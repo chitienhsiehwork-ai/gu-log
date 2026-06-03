@@ -58,7 +58,9 @@ Tribunal 目前主要依賴 AI judge 分數與 pass bar 判斷文章能不能發
 
 - `tribunal-ops-policy` — human feedback 成為合法 stop/requeue/block publish trigger；score compliance 不能覆蓋 human reading-quality loss。
 
-Dependency: `tribunal-ops-policy` is introduced by active change `add-tribunal-ops-policy`; this change assumes that capability exists or will be archived first.
+### Depends on `add-tribunal-ops-policy`
+
+`tribunal-ops-policy` is introduced by active change `add-tribunal-ops-policy`, not by an archived baseline under `openspec/specs/` yet. This change is therefore blocked from archive until `add-tribunal-ops-policy` is archived first, so the `MODIFIED Requirements` delta has an existing capability baseline to modify.
 
 ## Impact
 

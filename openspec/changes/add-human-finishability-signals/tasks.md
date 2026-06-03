@@ -1,5 +1,6 @@
 ## Phase 1 — Required for this OpenSpec approval
 
+- [ ] 1.0 Archive `add-tribunal-ops-policy` before archiving this change, because this change modifies `tribunal-ops-policy` rather than introducing its baseline
 - [ ] 1.1 ShroomDog review proposal / design，確認「gu-log 站內 comment，不是原文 comment」的範圍
 - [ ] 1.2 Approve minimum version snapshot fields: `postId`, `lang`, `pathname`, `postVersion`, `occurredAt`
 - [ ] 1.3 Approve rule: raw unversioned Giscus comments SHALL NOT drive Tribunal rewrite / publish block
