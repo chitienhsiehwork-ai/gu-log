@@ -18,7 +18,7 @@
 - 用 GitHub OAuth trusted owner email allowlist 區分 ShroomDog / owner-grade signals 與 random guest reference signals。
 - 把「沒讀完 / 明確留言說難看」當成負向品質 evidence，而不是要求 ShroomDog 解釋為什麼。
 - 把站內 gu-log comment 綁定到留言當下的文章版本，避免 rewrite 後漂移。
-- 把 share intent 視為強正向 signal，供 future source/angle/rewrite learning 使用。
+- 把 share intent 視為強反應 signal，而不是自動正向；分享可能代表好、有用、資訊量高，也可能代表爛到想給朋友笑。
 - 讓 Tribunal 在背景重寫低分文章時能讀取 per-version human signals，並用 bounded policy requeue / block / resolve。
 
 **Non-Goals:**
@@ -55,6 +55,12 @@
 **選擇**：明確負評分類為 `sentiment=negative`、`feedbackType=boring_or_bad_read`、`rewriteNeeded=true`，不是 comment engagement positive。
 
 **理由**：ShroomDog 不想花時間解釋為什麼無聊；系統應接受短負評作為明確 signal，再由 agent/Tribunal 嘗試找原因。
+
+### D4.5: share 是強反應，不是自動 positive
+
+**選擇**：`share_intent` SHALL 先記為 `reactionStrength=strong` / `polarity=unknown`（或等價欄位），不可在沒有 comment、explicit mark、分享文案、或後續人工分類前直接當 `sentiment=positive`。
+
+**理由**：ShroomDog 分享文章可能是「這篇很好」、也可能是「這篇有用 / 資訊量高」、或「這篇爛到想給朋友笑」。把 share 全部當 positive 會污染品質迴圈，讓 Tribunal preserve 其實該重寫的爛文。
 
 ### D5: Reader trust tier 決定 signal 能不能影響 Tribunal
 
@@ -118,7 +124,7 @@ Future manifest v2 / snapshot helper fields, not available in the current manife
 5. **Share tracking**：在 `ShareButton` 記錄 share intent target/result + version snapshot。
 6. **Comment indexing**：若保留 Giscus，新增 GitHub Discussions sync/indexer；timestamp inference 需 manifest v2 / git-history boundary，不可只靠現有 latest-count manifest。若改 first-party form，送出時直接附 version snapshot。
 7. **Tribunal ingestion**：human signal ledger / triage events 做 evidence SSOT；progress ledger 繼續做 execution status SSOT。若 human signal 影響執行狀態，必須透過 bounded requeue marker 與現有 locking discipline 串接。
-8. **Requeue / publish policy**：unresolved severe negative signal 可 block publish 或 requeue；positive share signal 可標為 preserve / study；所有 automation 必須 bounded。
+8. **Requeue / publish policy**：unresolved severe negative signal 可 block publish 或 requeue；share signal 只能標為 strong-reaction / study，需分類後才可當 preserve-positive；所有 automation 必須 bounded。
 
 ## Risks / Trade-offs
 

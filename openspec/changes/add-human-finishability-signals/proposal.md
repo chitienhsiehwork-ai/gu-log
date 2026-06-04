@@ -34,7 +34,7 @@ Tribunal 目前主要依賴 AI judge 分數與 pass bar 判斷文章能不能發
 
 - 已讀 tracker 只存 slug，不記 active read time、scroll depth、完成方法、文章版次。
 - Giscus comment 綁 pathname，不知道留言當下文章是 v 幾，也不會把「這篇難看死了」歸為負向 human feedback。
-- ShareButton 有分享 UI，但沒有把分享意圖視為強正向訊號。
+- ShareButton 有分享 UI，但不能把分享意圖預設成正向；分享可能代表好、有用、資訊量高，也可能代表爛到想給朋友笑。
 - Tribunal 會背景重寫低分文章，但缺少 per-version human signal 作為 requeue / rewrite evidence。
 
 如果 comment 不綁文章版次，Tribunal 重寫後舊留言會漂移：v1 的負評可能被誤解成 v5 仍然失敗。這會污染回饋迴路。

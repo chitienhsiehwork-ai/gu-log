@@ -59,11 +59,12 @@ Gu-log SHALL define a routing policy from human signal kinds to Tribunal stages/
 - **THEN** the signal SHALL route to Librarian / cross-reference / dedup review
 - **AND** SHALL NOT be treated as a generic style complaint only
 
-#### Scenario: Share signal routes as positive preserve evidence
+#### Scenario: Raw share signal routes as strong-reaction evidence
 
 - **WHEN** an article has a versioned `share_intent` signal
-- **THEN** Tribunal SHALL treat it as positive evidence for the version that was shared
-- **AND** writer SHOULD preserve the elements likely responsible unless other evidence shows they are harmful
+- **THEN** Tribunal SHALL treat it as strong-reaction evidence for the version that was shared
+- **AND** Tribunal SHALL NOT treat the raw share as positive preserve evidence until comment context, explicit mark, share context, or human classification resolves the share polarity
+- **AND** writer MAY study the article for what triggered sharing, including positive usefulness or negative/ridicule cases
 
 ---
 
@@ -159,18 +160,18 @@ The publishing pipeline SHALL block or flag publication of articles with unresol
 
 ### Requirement: Positive human signals SHALL be preserved and studied
 
-Positive human signals such as finish, share, or positive comment SHALL be preserved as evidence of effective article patterns. Tribunal SHALL NOT automatically rewrite away positively signaled versions without noting the risk.
+Positive human signals such as finish or positive comment SHALL be preserved as evidence of effective article patterns. Share signals SHALL be preserved as strong-reaction evidence, but SHALL NOT be treated as positive unless their polarity is resolved. Tribunal SHALL NOT automatically rewrite away positively signaled versions without noting the risk.
 
 #### Scenario: Shared version is proposed for rewrite
 
 - **WHEN** a versioned article has a share signal
 - **AND** Tribunal proposes a rewrite for unrelated score reasons
 - **THEN** the rewrite evidence packet SHALL include the share signal
-- **AND** writer SHOULD preserve the hook, framing, or passage likely responsible for shareability unless there is a stronger reason to change it
+- **AND** writer SHOULD inspect whether the share likely indicates positive value, practical usefulness, high information density, or ridicule/negative reaction before deciding what to preserve or change
 
 #### Scenario: Rewrite degrades human-positive version
 
 - **WHEN** a rewritten version scores higher by AI judges
-- **BUT** it loses human finish/share/comment-positive signals compared with the previous version
+- **BUT** it loses human finish/comment-positive signals or resolved-positive share signals compared with the previous version
 - **THEN** the system SHALL surface this as quality regression risk
 - **AND** human review MAY overrule score-based automation

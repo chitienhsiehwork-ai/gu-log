@@ -27,6 +27,7 @@
 ## Phase 4 — Share and comment signal follow-up
 
 - [x] 4.1 在 `ShareButton` 記錄 share intent target/result + version snapshot
+- [ ] 4.1a 修正 share 語意：raw share intent 是 strong reaction，不可預設 `sentiment=positive`；需支援 later polarity classification（positive/useful/ridicule/negative）
 - [ ] 4.2 若使用 Giscus，建立 comment sync/indexer，將 GitHub Discussion comments 補上 article version snapshot
 - [ ] 4.3 若使用 first-party feedback form，送出時直接附 version snapshot
 - [ ] 4.4 建立 comment sentiment / feedback type classifier 規則，確保明確負評歸為 negative/rewriteNeeded

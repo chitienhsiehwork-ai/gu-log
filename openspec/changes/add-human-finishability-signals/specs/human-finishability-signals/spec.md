@@ -95,21 +95,22 @@ Gu-log SHALL model human finishability as more than a boolean read/unread state.
 
 - **WHEN** ShroomDog spends meaningful active read time on an article
 - **AND** reaches only a partial scroll depth
-- **AND** does not later finish, share, or leave positive feedback
+- **AND** does not later finish, leave positive feedback, or produce a resolved-positive / useful share classification
 - **THEN** the system MAY classify the article as `abandoned_suspected_boring`
 - **AND** the event SHALL include confidence and evidence fields
 
 ---
 
-### Requirement: Share intent SHALL be treated as strong positive feedback
+### Requirement: Share intent SHALL be treated as a strong reaction signal, not positive by default
 
-Gu-log SHALL record share intent as a positive human signal. Share events SHALL include article identity, version snapshot, share target, and result confidence.
+Gu-log SHALL record share intent as a strong human reaction signal. Share events SHALL include article identity, version snapshot, share target, and result confidence. The system SHALL NOT treat a share event as positive by default unless an explicit comment, mark, share context, or human classification resolves the share polarity.
 
 #### Scenario: Native share attempted
 
 - **WHEN** a reader uses the Web Share API from a gu-log article
 - **THEN** the system SHALL record a `share_intent` event with `target="native"`
 - **AND** the event SHALL include the article `postVersion`
+- **AND** the event SHALL mark reaction strength as strong while leaving polarity unknown unless the platform or user supplies explicit context
 - **AND** the event SHOULD record whether the native share promise completed or was cancelled when the platform exposes that distinction
 
 #### Scenario: External share link clicked
@@ -117,6 +118,13 @@ Gu-log SHALL record share intent as a positive human signal. Share events SHALL 
 - **WHEN** a reader clicks X, Facebook, LINE, or copy-link share UI
 - **THEN** the system SHALL record a `share_intent` event with the selected target
 - **AND** the event SHALL mark result confidence as attempted unless completion can be verified
+- **AND** the event SHALL NOT set `sentiment="positive"` solely because the share UI was used
+
+#### Scenario: Share is later resolved as useful, positive, or ridicule
+
+- **WHEN** ShroomDog or an owner-trusted classifier later attaches context to a share event
+- **THEN** the system MAY resolve the share polarity as positive, useful/informative, ridicule/negative, or another explicit category
+- **AND** downstream Tribunal packets SHALL use the resolved category rather than the raw share intent alone
 
 ---
 
