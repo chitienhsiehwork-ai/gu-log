@@ -5,10 +5,19 @@ interface Props {
   postId: string;
   ticketId?: string;
   postVersion: number;
+  readerRevision?: string | null;
   pathname: string;
 }
 
-const { slug, lang = 'zh-tw', postId, ticketId, postVersion, pathname } = Astro.props;
+const {
+  slug,
+  lang = 'zh-tw',
+  postId,
+  ticketId,
+  postVersion,
+  readerRevision,
+  pathname,
+} = Astro.props;
 ---
 
 <div
@@ -19,6 +28,7 @@ const { slug, lang = 'zh-tw', postId, ticketId, postVersion, pathname } = Astro.
   data-post-id={postId}
   data-ticket-id={ticketId}
   data-post-version={postVersion}
+  data-reader-revision={readerRevision}
   data-pathname={pathname}
   style="display:none"
 >
@@ -31,7 +41,7 @@ const { slug, lang = 'zh-tw', postId, ticketId, postVersion, pathname } = Astro.
 </div>
 
 <script>
-  import { isRead, toggleRead, getReadSlugs, markAsRead } from '../lib/reading-tracker';
+  import { isRead, toggleRead, markAsRead, exportJson, importJson } from '../lib/reading-tracker';
   import { getGitHubToken, pushToGist, pullFromGist, mergeSync } from '../lib/gist-sync';
   import {
     recordManualMarkRead,
@@ -63,7 +73,8 @@ const { slug, lang = 'zh-tw', postId, ticketId, postVersion, pathname } = Astro.
       if (!token) return;
       try {
         const remote = await pullFromGist(token);
-        const merged = mergeSync(getReadSlugs(), remote?.slugs ?? []);
+        const merged = mergeSync(JSON.parse(exportJson()), remote ?? []);
+        importJson(JSON.stringify(merged));
         await pushToGist(token, merged);
         localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
         localStorage.removeItem(SYNC_DIRTY_KEY);
@@ -83,6 +94,7 @@ const { slug, lang = 'zh-tw', postId, ticketId, postVersion, pathname } = Astro.
 
       const slug = el.dataset.slug || '';
       const btn = el.querySelector<HTMLButtonElement>('.read-status-btn');
+      const readerRevision = el.dataset.readerRevision || null;
       if (!btn) return;
 
       function updateUI(read: boolean) {
@@ -113,7 +125,7 @@ const { slug, lang = 'zh-tw', postId, ticketId, postVersion, pathname } = Astro.
       updateUI(isRead(slug));
 
       btn.addEventListener('click', () => {
-        const nowRead = toggleRead(slug);
+        const nowRead = toggleRead(slug, readerRevision);
         if (nowRead) {
           recordManualMarkRead(getSnapshot(el));
         }
@@ -139,6 +151,7 @@ const { slug, lang = 'zh-tw', postId, ticketId, postVersion, pathname } = Astro.
     const el = document.querySelector<HTMLElement>('[data-read-button]');
     if (!el) return;
     const slug = el.dataset.slug || '';
+    const readerRevision = el.dataset.readerRevision || null;
     if (!slug || isRead(slug)) return;
 
     const postContent = document.querySelector('.post-content');
@@ -227,7 +240,7 @@ const { slug, lang = 'zh-tw', postId, ticketId, postVersion, pathname } = Astro.
         if (entries[0].isIntersecting) {
           // Bottom of content visible — mark as read synchronously enough to avoid pagehide races.
           finished = true;
-          markAsRead(slug, 'active_scroll_end');
+          markAsRead(slug, 'active_scroll_end', readerRevision);
           recordReadFinish(getSnapshot(el!), {
             method: 'active_scroll_end',
             activeReadMs: checkpointActiveRead(),

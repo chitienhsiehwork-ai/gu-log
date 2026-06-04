@@ -2,6 +2,7 @@
 import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { getPublishedPosts } from '../utils/post-status';
+import { getPostReaderRevision } from '../utils/post-versions';
 
 const allPosts = getPublishedPosts(await getCollection('posts'), 'zh-tw');
 
@@ -184,12 +185,15 @@ const totalArticles = allPosts.length;
             <ul class="article-list">
               {g.posts.map((post) => {
                 const date = post.data.translatedDate || post.data.originalDate || '';
+                const readerRevision = getPostReaderRevision(post.id);
                 return (
                   <li
                     class="article-row"
                     data-slug={post.slug}
                     data-group={prefix}
                     data-read="false"
+                    data-read-state="unread"
+                    data-current-revision={readerRevision}
                   >
                     <button class="article-toggle" aria-label="切換已讀狀態" type="button">
                       <span class="toggle-unread">☐</span>
@@ -218,7 +222,7 @@ const totalArticles = allPosts.length;
     isRead,
     markAsRead,
     markAsUnread,
-    getReadSlugs,
+    getReadRecords,
     exportJson,
     importJson,
   } from '../lib/reading-tracker';
@@ -230,52 +234,92 @@ const totalArticles = allPosts.length;
 
   const totalArticles = document.querySelectorAll<HTMLElement>('.article-row').length;
 
+  function currentRevisionMap(): Record<string, string | null> {
+    const revisions: Record<string, string | null> = {};
+    document.querySelectorAll<HTMLElement>('.article-row').forEach((row) => {
+      revisions[row.dataset.slug!] = row.dataset.currentRevision || null;
+    });
+    return revisions;
+  }
+
+  function readRecordMap() {
+    return getReadRecords(currentRevisionMap()).reduce<
+      Record<string, ReturnType<typeof getReadRecords>[number]>
+    >((acc, record) => {
+      acc[record.slug] = record;
+      return acc;
+    }, {});
+  }
+
   function updateStats() {
-    const readSlugs = new Set(getReadSlugs());
-    const totalRead = readSlugs.size;
+    const readRecords = readRecordMap();
+    const totalCurrentRead = Object.values(readRecords).filter(
+      (record) => record.revisionState === 'current'
+    ).length;
+    const totalStaleRead = Object.values(readRecords).filter(
+      (record) => record.revisionState === 'stale'
+    ).length;
+    const totalUnknownRead = Object.values(readRecords).filter(
+      (record) => record.revisionState === 'unknown'
+    ).length;
+    const totalKnownRead = totalCurrentRead + totalStaleRead + totalUnknownRead;
 
     // Overall stats
-    document.getElementById('total-count')!.textContent = `${totalRead} / ${totalArticles}`;
-    const pct = totalArticles > 0 ? Math.round((totalRead / totalArticles) * 100) : 0;
+    document.getElementById('total-count')!.textContent = `${totalCurrentRead} / ${totalArticles}`;
+    const pct = totalArticles > 0 ? Math.round((totalCurrentRead / totalArticles) * 100) : 0;
     (document.getElementById('total-bar') as HTMLElement).style.width = `${pct}%`;
     document.getElementById('total-pct')!.textContent = `${pct}%`;
 
     // Subtitle
     document.getElementById('tracker-subtitle')!.textContent =
-      `已讀 ${totalRead} 篇，還有 ${totalArticles - totalRead} 篇等著你 (▿ω▿)`;
+      `最新已讀 ${totalCurrentRead} 篇，${totalStaleRead} 篇有新版，${totalUnknownRead} 篇版本未知，還有 ${totalArticles - totalKnownRead} 篇未讀 (▿ω▿)`;
 
     // Per-group stats
     document.querySelectorAll<HTMLElement>('[data-group-progress]').forEach((el) => {
       const prefix = el.dataset.groupProgress!;
       const rows = document.querySelectorAll<HTMLElement>(`.article-row[data-group="${prefix}"]`);
       const groupTotal = rows.length;
-      let groupRead = 0;
+      let groupCurrent = 0;
+      let groupStale = 0;
+      let groupUnknown = 0;
       rows.forEach((row) => {
-        if (readSlugs.has(row.dataset.slug!)) groupRead++;
+        const record = readRecords[row.dataset.slug!];
+        if (record?.revisionState === 'current') groupCurrent++;
+        if (record?.revisionState === 'stale') groupStale++;
+        if (record?.revisionState === 'unknown') groupUnknown++;
       });
-      const groupPct = groupTotal > 0 ? Math.round((groupRead / groupTotal) * 100) : 0;
+      const groupPct = groupTotal > 0 ? Math.round((groupCurrent / groupTotal) * 100) : 0;
       const countEl = document.querySelector<HTMLElement>(`[data-group-count="${prefix}"]`);
-      if (countEl) countEl.textContent = `${groupRead} / ${groupTotal}`;
+      if (countEl)
+        countEl.textContent = `${groupCurrent} / ${groupTotal}（新版 ${groupStale}、未知 ${groupUnknown}）`;
       const barEl = document.querySelector<HTMLElement>(`[data-group-bar="${prefix}"]`);
       if (barEl) barEl.style.width = `${groupPct}%`;
     });
   }
 
   function updateAllRows() {
-    const readSlugs = new Set(getReadSlugs());
+    const records = readRecordMap();
     document.querySelectorAll<HTMLElement>('.article-row').forEach((row) => {
       const slug = row.dataset.slug!;
-      const read = readSlugs.has(slug);
+      const record = records[slug];
+      const read = Boolean(record);
+      const state = record?.revisionState ?? 'unread';
       row.dataset.read = read ? 'true' : 'false';
+      row.dataset.readState = state;
       const toggleUnread = row.querySelector<HTMLElement>('.toggle-unread')!;
       const toggleRead = row.querySelector<HTMLElement>('.toggle-read')!;
       toggleUnread.style.display = read ? 'none' : '';
       toggleRead.style.display = read ? '' : 'none';
-      if (read) {
-        row.classList.add('is-read');
-      } else {
-        row.classList.remove('is-read');
-      }
+      row.classList.toggle('is-read', read);
+      row.classList.toggle('is-current-read', state === 'current');
+      row.classList.toggle('is-stale-read', state === 'stale');
+      row.classList.toggle('is-unknown-read', state === 'unknown');
+      row.title =
+        state === 'stale'
+          ? '以前讀過，但這篇現在有新版'
+          : state === 'unknown'
+            ? '已讀，但舊紀錄沒有版本資訊'
+            : '';
     });
     updateStats();
     applyFilter();
@@ -315,7 +359,7 @@ const totalArticles = allPosts.length;
       if (isRead(slug)) {
         markAsUnread(slug);
       } else {
-        markAsRead(slug);
+        markAsRead(slug, 'manual_mark_read', row.dataset.currentRevision || null);
       }
       updateAllRows();
     });
@@ -344,7 +388,7 @@ const totalArticles = allPosts.length;
         .forEach((row) => {
           const slug = row.dataset.slug!;
           if (action === 'read') {
-            markAsRead(slug);
+            markAsRead(slug, 'manual_mark_read', row.dataset.currentRevision || null);
           } else {
             markAsUnread(slug);
           }
@@ -441,20 +485,16 @@ const totalArticles = allPosts.length;
     badge.className = 'sync-status-badge sync-status-syncing';
 
     try {
-      const localSlugs = getReadSlugs();
+      const localStore = JSON.parse(exportJson());
 
       if (mode === 'merge') {
         const remote = await pullFromGist(token);
-        const merged = mergeSync(localSlugs, remote?.slugs ?? []);
-        if (merged.length !== localSlugs.length || merged.some((s) => !localSlugs.includes(s))) {
-          importJson(
-            JSON.stringify({ version: 1, slugs: merged, lastUpdated: new Date().toISOString() })
-          );
-          updateAllRows();
-        }
+        const merged = mergeSync(localStore, remote ?? []);
+        importJson(JSON.stringify(merged));
+        updateAllRows();
         await pushToGist(token, merged);
       } else if (mode === 'push') {
-        await pushToGist(token, localSlugs);
+        await pushToGist(token, localStore);
       } else if (mode === 'pull') {
         const remote = await pullFromGist(token);
         if (remote) {
@@ -811,6 +851,25 @@ const totalArticles = allPosts.length;
 
   .article-row.is-read .article-title {
     color: var(--color-text-muted);
+  }
+
+  .article-row.is-stale-read {
+    opacity: 0.58;
+    background: color-mix(in srgb, var(--color-border) 12%, transparent);
+  }
+
+  .article-row.is-stale-read .article-title::after {
+    content: ' 有新版';
+    margin-left: 0.4rem;
+    color: var(--color-text-muted);
+    font-size: 0.72rem;
+  }
+
+  .article-row.is-unknown-read .article-title::after {
+    content: ' 版本未知';
+    margin-left: 0.4rem;
+    color: var(--color-text-muted);
+    font-size: 0.72rem;
   }
 
   .article-date {

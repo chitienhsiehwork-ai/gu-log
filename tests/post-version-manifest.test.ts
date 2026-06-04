@@ -29,7 +29,11 @@ function repoWithFullGitHistory(cwd: string): string {
   for (const ref of candidates) {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-version-full-'));
     try {
-      run('git', ['clone', '--filter=blob:none', '--single-branch', '--branch', ref, origin, tmp], cwd);
+      run(
+        'git',
+        ['clone', '--filter=blob:none', '--single-branch', '--branch', ref, origin, tmp],
+        cwd
+      );
       return tmp;
     } catch (error) {
       fs.rmSync(tmp, { recursive: true, force: true });
@@ -65,7 +69,10 @@ function makeSyntheticRepo(): string {
   run('git', ['config', 'user.email', 'test@example.com'], tmp);
   run('git', ['config', 'user.name', 'Test'], tmp);
 
-  fs.writeFileSync(path.join(tmp, 'src', 'content', 'posts', 'sp-999-regression.mdx'), '---\ntitle: test\n---\nbody\n');
+  fs.writeFileSync(
+    path.join(tmp, 'src', 'content', 'posts', 'sp-999-regression.mdx'),
+    '---\ntitle: test\n---\nbody\n'
+  );
   fs.writeFileSync(path.join(tmp, 'src', 'data', 'post-versions.json'), '{}\n');
   run('git', ['add', '.'], tmp);
   run('git', ['commit', '-qm', 'seed post'], tmp);
@@ -96,4 +103,28 @@ describe('post version manifest freshness', () => {
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('post-versions.json fresh');
   }, 60_000);
+});
+
+describe('reader-facing revision manifest', () => {
+  it('changes when reader-visible body changes', async () => {
+    const { computeReaderRevisionFromContent } =
+      await import('../scripts/build-reader-revision-manifest.mjs');
+    const before = '---\ntitle: Test\nscores:\n  tribunalVersion: 3\n---\nBody A\n';
+    const after = '---\ntitle: Test\nscores:\n  tribunalVersion: 3\n---\nBody B\n';
+
+    expect(computeReaderRevisionFromContent(before)).not.toBe(
+      computeReaderRevisionFromContent(after)
+    );
+  });
+
+  it('does not change for backend-only score metadata', async () => {
+    const { computeReaderRevisionFromContent } =
+      await import('../scripts/build-reader-revision-manifest.mjs');
+    const before =
+      '---\ntitle: Test\nscores:\n  tribunalVersion: 3\n  vibe:\n    score: 7\n---\nSame body\n';
+    const after =
+      '---\ntitle: Test\nscores:\n  tribunalVersion: 4\n  vibe:\n    score: 9\n---\nSame body\n';
+
+    expect(computeReaderRevisionFromContent(before)).toBe(computeReaderRevisionFromContent(after));
+  });
 });
