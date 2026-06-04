@@ -2,11 +2,15 @@ const GIST_DESCRIPTION = 'gu-log Reading Tracker (auto-synced)';
 const GIST_FILENAME = 'gu-log-reading-tracker.json';
 const GIST_ID_KEY = 'gu-log-gist-id';
 
-export interface GistReadStore {
+import type { ReadRecord, ReadStoreV2 } from './reading-tracker';
+
+export interface GistReadStoreV1 {
   version: 1;
   slugs: string[];
   lastUpdated: string;
 }
+
+export type GistReadStore = GistReadStoreV1 | ReadStoreV2;
 
 /** Decode a base64url string (JWT-safe variant). */
 function b64urlDecode(s: string): string {
@@ -56,6 +60,37 @@ function apiError(status: number, fallback: string): Error {
   return new Error(`${fallback}：HTTP ${status}`);
 }
 
+function emptyV2Store(): ReadStoreV2 {
+  return { version: 2, slugs: [], records: [], lastUpdated: new Date().toISOString() };
+}
+
+function normalizeForSync(store: GistReadStore | null | undefined): ReadStoreV2 {
+  if (!store) return emptyV2Store();
+  if (store.version === 2 && Array.isArray(store.records)) return store;
+  const lastUpdated =
+    typeof store.lastUpdated === 'string' ? store.lastUpdated : new Date().toISOString();
+  const slugs = Array.isArray(store.slugs) ? [...new Set(store.slugs)] : [];
+  return {
+    version: 2,
+    slugs,
+    records: slugs.map((slug) => ({
+      slug,
+      method: 'legacy_import',
+      confidence: 'legacy_or_manual',
+      readAt: lastUpdated,
+      lastReadAt: lastUpdated,
+      readRevision: null,
+      revisionState: 'unknown',
+    })),
+    lastUpdated,
+  };
+}
+
+function recordTime(record: ReadRecord): number {
+  const timestamp = Date.parse(record.readAt || record.lastReadAt);
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
 export async function findOrCreateGist(token: string): Promise<string> {
   // Fast path: cached id
   const cachedId = localStorage.getItem(GIST_ID_KEY);
@@ -83,11 +118,7 @@ export async function findOrCreateGist(token: string): Promise<string> {
       public: false,
       files: {
         [GIST_FILENAME]: {
-          content: JSON.stringify(
-            { version: 1, slugs: [], lastUpdated: new Date().toISOString() },
-            null,
-            2
-          ),
+          content: JSON.stringify(emptyV2Store(), null, 2),
         },
       },
     }),
@@ -98,9 +129,12 @@ export async function findOrCreateGist(token: string): Promise<string> {
   return created.id;
 }
 
-export async function pushToGist(token: string, slugs: string[]): Promise<void> {
+export async function pushToGist(token: string, store: GistReadStore | string[]): Promise<void> {
   const gistId = await findOrCreateGist(token);
-  const data: GistReadStore = { version: 1, slugs, lastUpdated: new Date().toISOString() };
+  const data = Array.isArray(store)
+    ? normalizeForSync({ version: 1, slugs: store, lastUpdated: new Date().toISOString() })
+    : normalizeForSync(store);
+  data.lastUpdated = new Date().toISOString();
   const resp = await ghFetch(`https://api.github.com/gists/${gistId}`, token, {
     method: 'PATCH',
     body: JSON.stringify({
@@ -120,7 +154,10 @@ export async function pullFromGist(token: string): Promise<GistReadStore | null>
   try {
     const parsed = JSON.parse(file.content);
     if (parsed.version === 1 && Array.isArray(parsed.slugs)) {
-      return parsed as GistReadStore;
+      return parsed as GistReadStoreV1;
+    }
+    if (parsed.version === 2 && Array.isArray(parsed.slugs) && Array.isArray(parsed.records)) {
+      return parsed as ReadStoreV2;
     }
   } catch {
     // ignore
@@ -128,7 +165,43 @@ export async function pullFromGist(token: string): Promise<GistReadStore | null>
   return null;
 }
 
-/** Union merge — never loses data from either side. */
-export function mergeSync(localSlugs: string[], remoteSlugs: string[]): string[] {
-  return [...new Set([...localSlugs, ...remoteSlugs])];
+/** Merge per-article records — keep the record with the newest read timestamp. */
+export function mergeSync(
+  local: GistReadStore | string[],
+  remote: GistReadStore | string[]
+): ReadStoreV2 {
+  const localStore = normalizeForSync(
+    Array.isArray(local)
+      ? { version: 1, slugs: local, lastUpdated: new Date().toISOString() }
+      : local
+  );
+  const remoteStore = normalizeForSync(
+    Array.isArray(remote)
+      ? { version: 1, slugs: remote, lastUpdated: new Date().toISOString() }
+      : remote
+  );
+  const bySlug = new Map<string, ReadRecord>();
+
+  for (const record of [...localStore.records, ...remoteStore.records]) {
+    const existing = bySlug.get(record.slug);
+    if (!existing || recordTime(record) >= recordTime(existing)) {
+      bySlug.set(record.slug, { ...record });
+    }
+  }
+
+  const slugs = [...new Set([...localStore.slugs, ...remoteStore.slugs, ...bySlug.keys()])];
+  return {
+    version: 2,
+    slugs,
+    records: slugs
+      .map((slug) => bySlug.get(slug))
+      .filter((record): record is ReadRecord => Boolean(record)),
+    lastUpdated: new Date(
+      Math.max(
+        Date.parse(localStore.lastUpdated) || 0,
+        Date.parse(remoteStore.lastUpdated) || 0,
+        Date.now()
+      )
+    ).toISOString(),
+  };
 }

@@ -1,6 +1,6 @@
 ---
 import { getCollection } from 'astro:content';
-import { getPostVersion } from '../../utils/post-versions';
+import { getPostReaderRevision, getPostVersion } from '../../utils/post-versions';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import TableOfContents from '../../components/TableOfContents.astro';
 import PrevNextNav from '../../components/PrevNextNav.astro';
@@ -44,6 +44,7 @@ const showSourceCitation = !isLevelUp && (!isShroomDogOriginal || isChatGptShare
 const sourceCitationLabel = isShroomDogOriginal && isChatGptShareSource ? '靈感來源' : '原文出處';
 
 const postVersion = getPostVersion(post.id);
+const postReaderRevision = getPostReaderRevision(post.id);
 const postStatus = resolvePostStatus(post, allPosts);
 const navigablePosts = getNavigablePosts(allPosts, post);
 
@@ -178,6 +179,7 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
       postId={post.id}
       ticketId={post.data.ticketId}
       postVersion={Number(postVersion)}
+      readerRevision={postReaderRevision}
       pathname={Astro.url.pathname}
     />
 
