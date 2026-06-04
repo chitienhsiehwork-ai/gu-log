@@ -1,0 +1,193 @@
+---
+ticketId: "SP-215"
+title: "Cursor Spent $260 to Move Its Website Back From a CMS to Code"
+originalDate: "2025-12-01"
+translatedDate: "2026-06-03"
+translatedBy:
+  model: "GPT-5.5"
+  harness: "Hermes Agent"
+  pipeline:
+    - role: "Written"
+      model: "GPT-5.5"
+      harness: "Hermes Agent"
+    - role: "Reviewed"
+      model: "GPT-5.5"
+      harness: "Hermes Agent"
+source: "Lee Robinson"
+sourceUrl: "https://leerob.com/agents"
+lang: "en"
+summary: "Cursor moved cursor.com from a headless CMS back to raw code and Markdown. The important part is not just the $260 bill. It is that AI agents make some human-friendly abstractions feel like walls."
+tags: ["shroom-picks", "cursor", "ai-agents", "cms", "agent-harness"]
+scores:
+  tribunalVersion: 8
+  librarian:
+    glossary: 8
+    crossRef: 8
+    sourceAlign: 8
+    attribution: 9
+    score: 8
+    date: "2026-06-03"
+    model: "gpt-5.5"
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 8
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 8
+    date: "2026-06-03"
+    model: "gpt-5.5"
+  freshEyes:
+    readability: 9
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    score: 8
+    date: "2026-06-03"
+    model: "gpt-5.5"
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-06-03"
+    model: "gpt-5.5"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Cursor did something that sounds like moving backwards: it moved `cursor.com` from a nice CMS backend back into raw code and Markdown.
+
+The result was not “engineers hate GUIs.” The result was three days, `$260.32`, `344` agent requests, and `67` commits for a migration Lee Robinson originally thought would take one or two weeks, maybe with help from an agency.
+
+The interesting part is not just another “Cursor agents are powerful” story. The sharp point is this: **with AI agents, abstractions have become more expensive.**
+
+Some abstractions used to save humans time. Now the same layer can become a wall that blocks agents from doing the work.
+
+<ClawdNote summary="A CMS is a human-friendly backend that can become an agent wall.">
+CMS means Content Management System. In plain English: it is the backend where website content lives. Articles, images, homepage copy, and button text can be edited through a GUI. WordPress is the classic CMS. A headless CMS gives you the backend and API, while a separate app like Next.js or React renders the actual website.
+
+This is not a dumb idea. If people do not write code, a CMS makes a ton of sense. The problem is that agents are very good at reading code, editing code, and opening PRs. They are much less happy when forced to stand in line at a GUI counter. ᕕ( ᐛ )ᕗ
+</ClawdNote>
+
+## Content Was Already Code
+
+Cursor’s website is a standard Next.js and React app. After a redesign, its pages and content were powered by a headless CMS so non-engineers could build marketing pages and writers could add blog posts.
+
+That is normal for many websites. A CMS gives teams login, permissions, previews, image uploads, and publishing flows. For people who do not write code, opening a backend form is friendlier than editing MDX in GitHub.
+
+But when the Cursor team talked about the website, the pain became obvious. The new design looked good, but shipping content felt harder. Before, they could `@ cursor` and ask an agent to change code and content. With the CMS in the middle, the workflow went back to clicking through menus.
+
+Lee Robinson asked the dangerous question: do they actually need a CMS? If content editors can use a chatbot and the GitHub workflow, is the GUI still worth it?
+
+The answer is not “all websites should delete their CMS.” The Cursor case is more specific: **once AI agents become part of the content workflow, a backend designed for humans has to justify itself again.**
+
+---
+
+## A CMS Opens Doors for Humans, and Builds Walls for Agents
+
+The first wall is accounts.
+
+A CMS has its own login, permissions, and roles. GitHub has SSO, RBAC, and teams too. A new teammate who wants to edit the website might first ask, “Can someone add me to the CMS?” Enterprise tiers and SCIM can solve this, but every solution is another layer of complexity.
+
+Cursor’s fix was blunt: add the marketing team to GitHub. Once content became code again, account management became one system again.
+
+The second wall is previewing changes.
+
+A marketing site should be fast, so teams often prerender as much as possible. Static pages are fast and reliable. But a CMS also wants live draft previews. Next.js draft mode and the Vercel toolbar can do this.
+
+But “possible” does not mean “free.” Viewers may need Vercel accounts. Static pages need a dynamic preview path. The cake can be eaten twice, but the kitchen starts growing extra pipes.
+
+The third wall is internationalization.
+
+Multilingual sites are already tricky. When content lives in code, build steps and AI translation tools can help. When content lives in a CMS, the same blog post may become a different CMS item for each language, and the publishing process has to connect with translation tooling. Cursor even hired contractors to build a plugin system to connect the CMS with its localization tool.
+
+The fourth wall is assets.
+
+A CMS often stores images and videos and serves them through its CDN. That is convenient, and it can be expensive. After Cursor launched the CMS-backed website, blog, changelog, and page assets were served through the CMS and its CDN. The CDN usage since September cost `$56,848`.
+
+Cursor moved assets to object storage and built a small GUI for uploading, browsing, and deleting them. Not a huge platform. Just a minimum viable feature made in three or four prompts.
+
+<ClawdNote>
+This is not “CMS bad.” A CMS sells convenience: backend editing, permissions, previews, asset hosting, and support. But if a team already lives in GitHub, already uses agents, and is willing to treat content as code, that convenience can become double payment. Yesterday it was paying to save work. Today it might be paying to buy a wall.
+</ClawdNote>
+
+---
+
+## A Network Boundary Makes Agents Blind
+
+The most interesting cost is not money. It is code becoming harder to see.
+
+A `navbar.tsx` or `footer.tsx` can directly contain a few links. With a CMS, the component may fetch navigation JSON from an API and map that data into UI. A human engineer can understand that. An agent has to cross a network boundary before it can know what the navbar actually contains.
+
+Lee Robinson also points at a common React smell: turning everything into arrays and mapping over them can look cleaner, but sometimes it only adds indirection. With Tailwind, copy-paste can be better than the wrong abstraction.
+
+When content lives in code, an agent can grep, read diffs, edit files, run tests, and open a PR. When content lives inside a CMS, the agent needs API access, permissions, data formats, query syntax, and the CMS’s custom rendering model.
+
+That is not because the agent is stupid. The tool environment hid the problem from it.
+
+<ClawdNote>
+A CMS is like a nice service counter for humans: take a number, fill a form, wait for the stamp. That made sense when not everyone wanted to walk into the warehouse. But an agent is closer to a warehouse worker. It wants shelves, labels, and inventory sheets. Forcing it to queue at the counter every day is how a helpful GUI becomes a bottleneck.
+</ClawdNote>
+
+---
+
+## How the Migration Ran
+
+Lee Robinson first made a plan with Opus 4.5. Cursor asked clarifying questions and suggested a simple but important path: since the team already had a CMS API key, do not click through menus manually.
+
+Instead, write scripts: export content from the CMS, validate its structure, convert it into Markdown and repository files, then upload images and videos to object storage.
+
+After about 10 agent runs, Cursor got 80% of the way there. It installed and removed dependencies, ran scripts, and built page after page of content.
+
+Then the classic engineering hell appeared: the last 20% took most of the time.
+
+Some pages did not perfectly match production, so Lee ran an agent on each page with a prompt like: compare local and production screenshots, re-export the full page contents, including sub-components, images, and backgrounds, then keep using the browser until the local version matches production.
+
+The work also expanded beyond the CMS migration. Annoying codebase patterns got cleaned up. Lee worked with Opus on the API shape, then asked Cursor to run subagents that updated many call sites in parallel.
+
+Storybook was deleted too. Not because Storybook has no value, but because Cursor barely used it. With Cursor’s browser-based visual editing, keeping a large dependency stack for every machine and CI run stopped looking worth it.
+
+The brutal lesson: AI agents do not only make new features faster. They make deleting old complexity cheaper.
+
+---
+
+## $260 Was Not a Myth. It Was a Migration Bill.
+
+Lee later had Cursor write a script to calculate the usage:
+
+- `$260.32`, `297.4M tokens`, mostly cached tokens
+- `344` agent requests
+- `66` manual Tab changes
+- `67` commits
+- `+43K / -322K` lines changed
+
+The most interesting thing about this bill is not that `$260` is cheap. It is that work that used to sound like “hire an agency and slowly grind through it” became a weekend project that AI agents could brute-force to completion.
+
+The benefits did not stop at saving CMS costs. The first day after the migration, Lee merged a website fix from a cloud agent on his phone. The next day, an engineer shipped a feature across both the product and marketing site in the same PR.
+
+Once content became code again, all changes flowed through git. That was already useful for reverts and history. In the agent era, it matters even more because agents can read history, compare diffs, and understand repository structure.
+
+Another side effect: build times became 2x faster because prerendering no longer had to fetch from the CMS over the network.
+
+<ClawdNote>
+The point of these numbers is not “every migration will cost $260.” The better reading is: some tech debt that used to be too annoying, too fragmented, and too low-priority for a sprint can now be pushed through with tokens as an exoskeleton. Not free. Not magic. But the cost curve has changed.
+</ClawdNote>
+
+---
+
+## Conclusion: In the AI Era, Every Abstraction Has to Interview Again
+
+Over-abstraction was annoying before. But deleting abstractions used to be expensive, so teams learned to live with them: keep the CMS, add the plugin, wire the preview mode, pay the asset CDN.
+
+AI agents do not mean every abstraction is wrong. They change the cost formula.
+
+If a layer saves humans a few clicks but stops agents from grepping, diffing, editing code, and opening PRs, that layer needs to interview again in 2026.
+
+Cursor moving its website back to raw code and Markdown is not nostalgia. It is software architecture admitting that future codebases will be operated by more than humans.
+
+And when the operator changes, many workflows that used to look professional, complete, and enterprise-ready may reveal another face.
+
+They might just be very expensive counters.
