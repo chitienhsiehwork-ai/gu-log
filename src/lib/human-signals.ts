@@ -57,8 +57,8 @@ export type ReadAbandonCandidateEvent = BaseHumanSignalEvent & {
   kind: 'read_abandon_candidate';
   finishability: Extract<FinishabilityState, 'abandoned_suspected_boring' | 'abandoned_unknown'>;
   confidence: Extract<SignalConfidence, 'low'>;
-  activeReadMs?: number;
-  maxScrollPercent?: number;
+  activeReadMs: number;
+  maxScrollPercent: number;
 };
 
 export type ShareTarget = 'native' | 'x' | 'facebook' | 'line' | 'copy_link';
@@ -142,8 +142,46 @@ export function getHumanSignalEvents(): HumanSignalEvent[] {
   return [...getStore().events];
 }
 
-export function appendHumanSignalEvent(event: HumanSignalEvent): HumanSignalEvent {
+type EventUpsertOptions = {
+  dedupeKey?: (event: HumanSignalEvent) => string;
+};
+
+function articleVersionKey(event: HumanSignalEvent): string {
+  return [
+    event.kind,
+    event.postId,
+    event.postVersion,
+    event.contentVersion ?? '',
+    event.pathname,
+    event.reader ?? '',
+  ].join('|');
+}
+
+export function appendHumanSignalEvent(
+  event: HumanSignalEvent,
+  options: EventUpsertOptions = {}
+): HumanSignalEvent {
   const store = getStore();
+  if (options.dedupeKey) {
+    const incomingKey = options.dedupeKey(event);
+    let existingIndex = -1;
+    for (let index = 0; index < store.events.length; index += 1) {
+      if (options.dedupeKey(store.events[index]) === incomingKey) {
+        existingIndex = index;
+        break;
+      }
+    }
+    if (existingIndex >= 0) {
+      const upserted = {
+        ...event,
+        eventId: store.events[existingIndex].eventId,
+      } as HumanSignalEvent;
+      store.events[existingIndex] = upserted;
+      store.lastUpdated = nowIso();
+      saveStore(store);
+      return upserted;
+    }
+  }
   store.events.push(event);
   store.lastUpdated = nowIso();
   saveStore(store);
@@ -210,8 +248,8 @@ export function recordLegacyImportedRead(slug: string, importedAt?: string): Rea
 export function recordReadAbandonCandidate(
   snapshot: ArticleVersionSnapshot,
   metrics: {
-    activeReadMs?: number;
-    maxScrollPercent?: number;
+    activeReadMs: number;
+    maxScrollPercent: number;
     finishability?: Extract<FinishabilityState, 'abandoned_suspected_boring' | 'abandoned_unknown'>;
   }
 ): ReadAbandonCandidateEvent {
@@ -223,7 +261,7 @@ export function recordReadAbandonCandidate(
     activeReadMs: metrics.activeReadMs,
     maxScrollPercent: metrics.maxScrollPercent,
   };
-  return appendHumanSignalEvent(event) as ReadAbandonCandidateEvent;
+  return appendHumanSignalEvent(event, { dedupeKey: articleVersionKey }) as ReadAbandonCandidateEvent;
 }
 
 export function recordShareIntent(

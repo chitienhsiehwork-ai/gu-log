@@ -110,7 +110,7 @@ describe('human signals', () => {
     expect(getHumanSignalEvents()).toEqual([event]);
   });
 
-  it('records abandoned reading as low-confidence suspected boring evidence', async () => {
+  it('records abandoned reading as low-confidence suspected boring evidence with engagement metrics', async () => {
     const { recordReadAbandonCandidate, getHumanSignalEvents } =
       await import('../src/lib/human-signals');
 
@@ -141,7 +141,65 @@ describe('human signals', () => {
       transport: 'local_storage',
       syncStatus: 'local_only',
     });
+    expect(event.activeReadMs).toEqual(expect.any(Number));
+    expect(event.maxScrollPercent).toEqual(expect.any(Number));
     expect(getHumanSignalEvents()).toEqual([event]);
+  });
+
+  it('upserts repeated pagehide abandon candidates for the same article version instead of spamming duplicates', async () => {
+    const { recordReadAbandonCandidate, getHumanSignalEvents } =
+      await import('../src/lib/human-signals');
+    const snapshot = {
+      postId: 'sp-789-20260603-repeated-pagehide.mdx',
+      ticketId: 'SP-789',
+      lang: 'zh-tw' as const,
+      pathname: '/posts/sp-789-20260603-repeated-pagehide/',
+      postVersion: 5,
+    };
+
+    const first = recordReadAbandonCandidate(snapshot, {
+      activeReadMs: 31_000,
+      maxScrollPercent: 34,
+      finishability: 'abandoned_suspected_boring',
+    });
+    const second = recordReadAbandonCandidate(snapshot, {
+      activeReadMs: 32_500,
+      maxScrollPercent: 36,
+      finishability: 'abandoned_suspected_boring',
+    });
+
+    expect(getHumanSignalEvents()).toEqual([second]);
+    expect(second.eventId).toBe(first.eventId);
+    expect(second).toMatchObject({
+      kind: 'read_abandon_candidate',
+      postId: snapshot.postId,
+      ticketId: snapshot.ticketId,
+      postVersion: 5,
+      confidence: 'low',
+      activeReadMs: 32_500,
+      maxScrollPercent: 36,
+    });
+  });
+
+  it('keeps abandon candidates for different article versions as separate events', async () => {
+    const { recordReadAbandonCandidate, getHumanSignalEvents } =
+      await import('../src/lib/human-signals');
+    const baseSnapshot = {
+      postId: 'sp-789-20260603-repeated-pagehide.mdx',
+      lang: 'zh-tw' as const,
+      pathname: '/posts/sp-789-20260603-repeated-pagehide/',
+    };
+
+    const v1 = recordReadAbandonCandidate(
+      { ...baseSnapshot, postVersion: 5 },
+      { activeReadMs: 31_000, maxScrollPercent: 34 }
+    );
+    const v2 = recordReadAbandonCandidate(
+      { ...baseSnapshot, postVersion: 6 },
+      { activeReadMs: 31_000, maxScrollPercent: 34 }
+    );
+
+    expect(getHumanSignalEvents()).toEqual([v1, v2]);
   });
 });
 
