@@ -31,7 +31,7 @@ const { slug, lang = 'zh-tw', postId, ticketId, postVersion, pathname } = Astro.
 </div>
 
 <script>
-  import { isRead, toggleRead, getReadSlugs } from '../lib/reading-tracker';
+  import { isRead, toggleRead, getReadSlugs, markAsRead } from '../lib/reading-tracker';
   import { getGitHubToken, pushToGist, pullFromGist, mergeSync } from '../lib/gist-sync';
   import {
     recordManualMarkRead,
@@ -145,24 +145,22 @@ const { slug, lang = 'zh-tw', postId, ticketId, postVersion, pathname } = Astro.
     if (!postContent) return;
     const postContentEl = postContent as HTMLElement;
 
-    const startedAt = Date.now();
+    const ACTIVE_WINDOW_MS = 5_000;
+    const FINISH_SCROLL_GUARD_PERCENT = 95;
     let maxScrollPercent = 0;
+    let activeReadMs = 0;
+    let lastTickAt = Date.now();
+    let lastActivityAt = Date.now();
     let finished = false;
 
-    function recordAbandonIfNeeded() {
-      if (finished || isRead(slug) || maxScrollPercent <= 0) return;
-      const activeReadMs = Date.now() - startedAt;
-      recordReadAbandonCandidate(getSnapshot(el), {
-        activeReadMs,
-        maxScrollPercent,
-        finishability:
-          activeReadMs >= 30_000 && maxScrollPercent < 80
-            ? 'abandoned_suspected_boring'
-            : 'abandoned_unknown',
-      });
-      if (localStorage.getItem(LAST_SYNC_KEY)) {
-        localStorage.setItem(SYNC_DIRTY_KEY, 'true');
+    function checkpointActiveRead() {
+      const now = Date.now();
+      const elapsedMs = Math.max(0, now - lastTickAt);
+      if (document.visibilityState === 'visible' && now - lastActivityAt <= ACTIVE_WINDOW_MS) {
+        activeReadMs += elapsedMs;
       }
+      lastTickAt = now;
+      return activeReadMs;
     }
 
     function updateMaxScroll() {
@@ -172,40 +170,82 @@ const { slug, lang = 'zh-tw', postId, ticketId, postVersion, pathname } = Astro.
       if (percent > maxScrollPercent) maxScrollPercent = percent;
     }
 
-    window.addEventListener('scroll', updateMaxScroll, { passive: true });
+    function noteReaderActivity() {
+      checkpointActiveRead();
+      lastActivityAt = Date.now();
+      updateMaxScroll();
+    }
+
+    function markDirtyForSync() {
+      if (localStorage.getItem(LAST_SYNC_KEY)) {
+        localStorage.setItem(SYNC_DIRTY_KEY, 'true');
+      }
+    }
+
+    function cleanupTracking() {
+      window.removeEventListener('scroll', noteReaderActivity);
+      window.removeEventListener('pointerdown', noteReaderActivity);
+      window.removeEventListener('keydown', noteReaderActivity);
+      window.removeEventListener('touchstart', noteReaderActivity);
+      document.removeEventListener('visibilitychange', checkpointActiveRead);
+      window.removeEventListener('pagehide', recordAbandonIfNeeded);
+      observer.disconnect();
+    }
+
+    function recordAbandonIfNeeded() {
+      const measuredActiveReadMs = checkpointActiveRead();
+      updateMaxScroll();
+      if (
+        finished ||
+        isRead(slug) ||
+        maxScrollPercent <= 0 ||
+        maxScrollPercent >= FINISH_SCROLL_GUARD_PERCENT
+      ) {
+        return;
+      }
+      recordReadAbandonCandidate(getSnapshot(el!), {
+        activeReadMs: measuredActiveReadMs,
+        maxScrollPercent,
+        finishability:
+          measuredActiveReadMs >= 30_000 && maxScrollPercent < 80
+            ? 'abandoned_suspected_boring'
+            : 'abandoned_unknown',
+      });
+      markDirtyForSync();
+    }
+
+    window.addEventListener('scroll', noteReaderActivity, { passive: true });
+    window.addEventListener('pointerdown', noteReaderActivity, { passive: true });
+    window.addEventListener('keydown', noteReaderActivity);
+    window.addEventListener('touchstart', noteReaderActivity, { passive: true });
+    document.addEventListener('visibilitychange', checkpointActiveRead);
     window.addEventListener('pagehide', recordAbandonIfNeeded);
     updateMaxScroll();
 
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
-          // Bottom of content visible — mark as read
-          import('../lib/reading-tracker').then(({ markAsRead }) => {
-            markAsRead(slug, 'active_scroll_end');
-            finished = true;
-            recordReadFinish(getSnapshot(el), {
-              method: 'active_scroll_end',
-              activeReadMs: Date.now() - startedAt,
-              maxScrollPercent: Math.max(maxScrollPercent, 100),
-            });
-            if (localStorage.getItem(LAST_SYNC_KEY)) {
-              localStorage.setItem(SYNC_DIRTY_KEY, 'true');
-            }
-            scheduleDebouncedSync();
-            // Update button UI
-            document.querySelectorAll<HTMLElement>('[data-read-button]').forEach((btn) => {
-              if (btn.dataset.slug === slug) {
-                btn.querySelector<HTMLElement>('.rs-icon-unread')!.style.display = 'none';
-                btn.querySelector<HTMLElement>('.rs-icon-read')!.style.display = '';
-                btn.querySelector<HTMLElement>('.rs-label-unread')!.style.display = 'none';
-                btn.querySelector<HTMLElement>('.rs-label-read')!.style.display = '';
-                btn.querySelector<HTMLButtonElement>('.read-status-btn')!.classList.add('is-read');
-              }
-            });
+          // Bottom of content visible — mark as read synchronously enough to avoid pagehide races.
+          finished = true;
+          markAsRead(slug, 'active_scroll_end');
+          recordReadFinish(getSnapshot(el!), {
+            method: 'active_scroll_end',
+            activeReadMs: checkpointActiveRead(),
+            maxScrollPercent: Math.max(maxScrollPercent, 100),
           });
-          window.removeEventListener('scroll', updateMaxScroll);
-          window.removeEventListener('pagehide', recordAbandonIfNeeded);
-          observer.disconnect();
+          markDirtyForSync();
+          scheduleDebouncedSync();
+          // Update button UI
+          document.querySelectorAll<HTMLElement>('[data-read-button]').forEach((btn) => {
+            if (btn.dataset.slug === slug) {
+              btn.querySelector<HTMLElement>('.rs-icon-unread')!.style.display = 'none';
+              btn.querySelector<HTMLElement>('.rs-icon-read')!.style.display = '';
+              btn.querySelector<HTMLElement>('.rs-label-unread')!.style.display = 'none';
+              btn.querySelector<HTMLElement>('.rs-label-read')!.style.display = '';
+              btn.querySelector<HTMLButtonElement>('.read-status-btn')!.classList.add('is-read');
+            }
+          });
+          cleanupTracking();
         }
       },
       { threshold: 1.0, rootMargin: '0px 0px -50px 0px' }

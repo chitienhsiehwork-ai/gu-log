@@ -27,14 +27,14 @@
 ## Phase 4 — Share and comment signal follow-up
 
 - [x] 4.1 在 `ShareButton` 記錄 share intent target/result + version snapshot
-- [ ] 4.1a 修正 share 語意：raw share intent 是 strong reaction，不可預設 `sentiment=positive`；需支援 later polarity classification（positive/useful/ridicule/negative）
+- [x] 4.1a 修正 share 語意：raw share intent 是 strong reaction，不可預設 `sentiment=positive`；需支援 later polarity classification（positive/useful/ridicule/negative）
 - [ ] 4.2 若使用 Giscus，建立 comment sync/indexer，將 GitHub Discussion comments 補上 article version snapshot
 - [ ] 4.3 若使用 first-party feedback form，送出時直接附 version snapshot
 - [ ] 4.4 建立 comment sentiment / feedback type classifier 規則，確保明確負評歸為 negative/rewriteNeeded
 
 ## Phase 5 — Tribunal integration follow-up
 
-- [ ] 5.1 建立 per-article human signal packet 產生器
+- [x] 5.1 建立 per-article human signal packet 產生器
 - [ ] 5.2 將 unresolved human negative signals 注入 FreshEyes / Vibe / FactChecker / Librarian 對應 judge evidence
 - [ ] 5.3 明確指定 human signal ledger / triage events / progress ledger 的 SSOT 分工與 locking discipline
 - [ ] 5.4 定義 guest_reference review dashboard / summary：guest signals 可供 ShroomDog 參考，但未 approve 不進 Tribunal
@@ -45,7 +45,7 @@
 
 - [x] 6.1 Unit test：v1 reading tracker migration 不丟失已讀 slugs
 - [x] 6.2 Unit test：read finish event 必含 article identity + version
-- [ ] 6.3 Unit test：negative comment record 必含 version snapshot
+- [x] 6.3 Unit test：negative comment record 必含 version snapshot
 - [x] 6.4 Unit test：share intent record 必含 target/result/version
 - [ ] 6.5 Integration test：Tribunal packet 讀到 unresolved negative feedback 並標示 requeue/block publish
 - [ ] 6.6 Manual smoke：文章頁讀到底、留言、分享後可查到 versioned event

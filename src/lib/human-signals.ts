@@ -75,7 +75,21 @@ export type ShareIntentEvent = BaseHumanSignalEvent & {
   polarity: SharePolarity;
 };
 
-export type HumanSignalEvent = ReadFinishEvent | ReadAbandonCandidateEvent | ShareIntentEvent;
+export type CommentPolarity = 'unknown' | 'positive' | 'negative' | 'rewrite_needed';
+
+export type FeedbackCommentEvent = BaseHumanSignalEvent & {
+  kind: 'feedback_comment';
+  source: 'giscus' | 'first_party';
+  commentId?: string;
+  commentText?: string;
+  polarity: CommentPolarity;
+};
+
+export type HumanSignalEvent =
+  | ReadFinishEvent
+  | ReadAbandonCandidateEvent
+  | ShareIntentEvent
+  | FeedbackCommentEvent;
 
 export type HumanSignalTrustInput = {
   reader?: string;
@@ -114,7 +128,10 @@ export type HumanSignalTribunalPacketSignal = Readonly<
     target?: ShareTarget;
     result?: ShareResult;
     reactionStrength?: ShareReactionStrength;
-    polarity?: SharePolarity;
+    polarity?: SharePolarity | CommentPolarity;
+    source?: FeedbackCommentEvent['source'];
+    commentId?: string;
+    commentText?: string;
   }
 >;
 
@@ -236,6 +253,14 @@ function toTribunalPacketSignal(event: HumanSignalEvent): HumanSignalTribunalPac
           target: event.target,
           result: event.result,
           reactionStrength: event.reactionStrength,
+          polarity: event.polarity,
+        }
+      : {}),
+    ...(event.kind === 'feedback_comment'
+      ? {
+          source: event.source,
+          commentId: event.commentId,
+          commentText: event.commentText,
           polarity: event.polarity,
         }
       : {}),
@@ -460,4 +485,24 @@ export function recordShareIntent(
     polarity: 'unknown',
   };
   return appendHumanSignalEvent(event) as ShareIntentEvent;
+}
+
+export function recordFeedbackComment(
+  snapshot: ArticleVersionSnapshot,
+  comment: {
+    source: FeedbackCommentEvent['source'];
+    commentId?: string;
+    commentText?: string;
+    polarity?: CommentPolarity;
+  }
+): FeedbackCommentEvent {
+  const event: FeedbackCommentEvent = {
+    ...baseEvent('feedback_comment', snapshot),
+    kind: 'feedback_comment',
+    source: comment.source,
+    commentId: comment.commentId,
+    commentText: comment.commentText,
+    polarity: comment.polarity || 'unknown',
+  };
+  return appendHumanSignalEvent(event) as FeedbackCommentEvent;
 }

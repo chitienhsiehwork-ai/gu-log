@@ -100,6 +100,39 @@ describe('human signals', () => {
     expect(getHumanSignalEvents()).toEqual([event]);
   });
 
+  it('records feedback comments with article identity and version snapshot', async () => {
+    const { recordFeedbackComment, getHumanSignalEvents } =
+      await import('../src/lib/human-signals');
+    const event = recordFeedbackComment(
+      {
+        postId: 'sp-commented.mdx',
+        ticketId: 'SP-COMMENT',
+        lang: 'zh-tw',
+        pathname: '/posts/sp-commented/',
+        postVersion: '9',
+      },
+      {
+        source: 'giscus',
+        commentId: 'discussion-comment-123',
+        commentText: '難看死了',
+        polarity: 'rewrite_needed',
+      }
+    );
+    expect(event).toMatchObject({
+      kind: 'feedback_comment',
+      postId: 'sp-commented.mdx',
+      ticketId: 'SP-COMMENT',
+      pathname: '/posts/sp-commented/',
+      postVersion: 9,
+      source: 'giscus',
+      commentId: 'discussion-comment-123',
+      commentText: '難看死了',
+      polarity: 'rewrite_needed',
+      syncStatus: 'local_only',
+    });
+    expect(getHumanSignalEvents()).toEqual([event]);
+  });
+
   it('records abandoned reading as low-confidence suspected boring evidence with engagement metrics', async () => {
     const { recordReadAbandonCandidate, getHumanSignalEvents } =
       await import('../src/lib/human-signals');
