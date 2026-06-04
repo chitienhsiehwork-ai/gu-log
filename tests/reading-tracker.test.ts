@@ -218,15 +218,12 @@ describe('gist-sync', () => {
     expect(m.getGitHubToken()).toBeNull();
   });
 
-  it('getGitHubToken decodes JWT payload.github_token', async () => {
-    const payload = { github_token: 'ghp_test_token_long_enough' };
-    const b64 = (s: string) =>
-      Buffer.from(s).toString('base64').replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_');
-    const jwt = `header.${b64(JSON.stringify(payload))}.sig`;
-    (globalThis as any).atob = (s: string) => Buffer.from(s, 'base64').toString('binary');
+  it('getGuLogSessionToken returns the stored gu-log JWT', async () => {
+    const jwt = 'header.payload.sig';
     (globalThis as any).localStorage.setItem('gu-log-jwt', jwt);
     const m = await import('../src/lib/gist-sync');
-    expect(m.getGitHubToken()).toBe('ghp_test_token_long_enough');
+    expect(m.getGuLogSessionToken()).toBe(jwt);
+    expect(m.getGitHubToken()).toBeNull();
   });
 
   it('falls through to PAT when JWT lacks token', async () => {
