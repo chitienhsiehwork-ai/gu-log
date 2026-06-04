@@ -125,7 +125,8 @@ function saveStore(store: ReadStore): void {
 
 function upsertReadRecord(store: ReadStore, slug: string, method: ReadMethod): void {
   const lastReadAt = nowIso();
-  const confidence: ReadConfidence = method === 'active_scroll_end' ? 'active_finish' : 'legacy_or_manual';
+  const confidence: ReadConfidence =
+    method === 'active_scroll_end' ? 'active_finish' : 'legacy_or_manual';
   let existing: ReadRecord | undefined;
   for (const record of store.records) {
     if (record.slug === slug) {

@@ -142,12 +142,17 @@ const t = i18n[lang];
     const snapshot: ArticleVersionSnapshot = {
       postId: container.getAttribute('data-post-id') || '',
       ticketId: container.getAttribute('data-ticket-id') || undefined,
-      lang: (container.getAttribute('data-lang') || document.documentElement.lang || 'zh-tw') as GuLogLang,
+      lang: (container.getAttribute('data-lang') ||
+        document.documentElement.lang ||
+        'zh-tw') as GuLogLang,
       pathname: container.getAttribute('data-pathname') || window.location.pathname,
       postVersion: container.getAttribute('data-post-version') || '1',
     };
 
-    function record(target: ShareTarget, result: 'attempted' | 'completed' | 'cancelled' | 'failed') {
+    function record(
+      target: ShareTarget,
+      result: 'attempted' | 'completed' | 'cancelled' | 'failed'
+    ) {
       recordShareIntent(snapshot, { target, result });
     }
 

@@ -113,7 +113,11 @@ describe('reading tracker migration to event-aware store', () => {
   it('preserves v1 read slugs and imports them as legacy-confidence records', async () => {
     (globalThis as any).localStorage.setItem(
       'gu-log-read-articles',
-      JSON.stringify({ version: 1, slugs: ['sp-1', 'sp-2'], lastUpdated: '2026-06-01T00:00:00.000Z' })
+      JSON.stringify({
+        version: 1,
+        slugs: ['sp-1', 'sp-2'],
+        lastUpdated: '2026-06-01T00:00:00.000Z',
+      })
     );
 
     const tracker = await import('../src/lib/reading-tracker');
@@ -122,8 +126,16 @@ describe('reading tracker migration to event-aware store', () => {
     expect(tracker.getStats()).toMatchObject({ total: 2, version: 2 });
     expect(tracker.getReadRecords()).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ slug: 'sp-1', method: 'legacy_import', confidence: 'legacy_or_manual' }),
-        expect.objectContaining({ slug: 'sp-2', method: 'legacy_import', confidence: 'legacy_or_manual' }),
+        expect.objectContaining({
+          slug: 'sp-1',
+          method: 'legacy_import',
+          confidence: 'legacy_or_manual',
+        }),
+        expect.objectContaining({
+          slug: 'sp-2',
+          method: 'legacy_import',
+          confidence: 'legacy_or_manual',
+        }),
       ])
     );
   });

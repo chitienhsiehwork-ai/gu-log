@@ -33,7 +33,11 @@ type BaseHumanSignalEvent = {
 };
 
 export type ReadFinishMethod = 'active_scroll_end' | 'manual_mark_read' | 'legacy_import';
-export type FinishabilityState = 'finished' | 'manually_marked_read' | 'abandoned_suspected_boring' | 'abandoned_unknown';
+export type FinishabilityState =
+  | 'finished'
+  | 'manually_marked_read'
+  | 'abandoned_suspected_boring'
+  | 'abandoned_unknown';
 export type SignalConfidence = 'active_finish' | 'legacy_or_manual' | 'low';
 
 export type ReadFinishEvent = BaseHumanSignalEvent & {
@@ -86,7 +90,9 @@ function normalizeSnapshot(snapshot: ArticleVersionSnapshot) {
     pathname: snapshot.pathname,
     postVersion: toPositiveInteger(snapshot.postVersion),
     contentVersion:
-      snapshot.contentVersion === undefined ? undefined : toPositiveInteger(snapshot.contentVersion),
+      snapshot.contentVersion === undefined
+        ? undefined
+        : toPositiveInteger(snapshot.contentVersion),
   };
 }
 
