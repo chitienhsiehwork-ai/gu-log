@@ -157,6 +157,32 @@ function articleVersionKey(event: HumanSignalEvent): string {
   ].join('|');
 }
 
+export function getPendingHumanSignalEvents(): HumanSignalEvent[] {
+  return getStore().events.filter((event) => event.syncStatus !== 'synced');
+}
+
+function markHumanSignalEventSyncStatus(eventId: string, syncStatus: SignalSyncStatus): boolean {
+  const store = getStore();
+  for (const event of store.events) {
+    if (event.eventId === eventId) {
+      event.syncStatus = syncStatus;
+      store.lastUpdated = nowIso();
+      saveStore(store);
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export function markHumanSignalEventSynced(eventId: string): boolean {
+  return markHumanSignalEventSyncStatus(eventId, 'synced');
+}
+
+export function markHumanSignalEventFailed(eventId: string): boolean {
+  return markHumanSignalEventSyncStatus(eventId, 'sync_failed');
+}
+
 export function appendHumanSignalEvent(
   event: HumanSignalEvent,
   options: EventUpsertOptions = {}
@@ -261,7 +287,9 @@ export function recordReadAbandonCandidate(
     activeReadMs: metrics.activeReadMs,
     maxScrollPercent: metrics.maxScrollPercent,
   };
-  return appendHumanSignalEvent(event, { dedupeKey: articleVersionKey }) as ReadAbandonCandidateEvent;
+  return appendHumanSignalEvent(event, {
+    dedupeKey: articleVersionKey,
+  }) as ReadAbandonCandidateEvent;
 }
 
 export function recordShareIntent(

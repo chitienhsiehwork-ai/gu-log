@@ -201,6 +201,83 @@ describe('human signals', () => {
 
     expect(getHumanSignalEvents()).toEqual([v1, v2]);
   });
+
+  it('lists local-only and failed human-signal events as pending sync work', async () => {
+    const {
+      getPendingHumanSignalEvents,
+      markHumanSignalEventSynced,
+      markHumanSignalEventFailed,
+      recordManualMarkRead,
+      recordShareIntent,
+    } = await import('../src/lib/human-signals');
+
+    const first = recordManualMarkRead({
+      postId: 'sp-pending-1.mdx',
+      lang: 'zh-tw',
+      pathname: '/posts/sp-pending-1/',
+      postVersion: 1,
+    });
+    const second = recordShareIntent(
+      {
+        postId: 'sp-pending-2.mdx',
+        lang: 'en',
+        pathname: '/en/posts/sp-pending-2/',
+        postVersion: 1,
+      },
+      { target: 'copy_link', result: 'attempted' }
+    );
+
+    expect(getPendingHumanSignalEvents().map((event) => event.eventId)).toEqual([
+      first.eventId,
+      second.eventId,
+    ]);
+
+    expect(markHumanSignalEventSynced(first.eventId)).toBe(true);
+    expect(markHumanSignalEventFailed(second.eventId)).toBe(true);
+
+    expect(getPendingHumanSignalEvents()).toEqual([
+      expect.objectContaining({ eventId: second.eventId, syncStatus: 'sync_failed' }),
+    ]);
+  });
+
+  it('marks human-signal sync status by eventId without changing event semantics', async () => {
+    const {
+      getHumanSignalEvents,
+      markHumanSignalEventFailed,
+      markHumanSignalEventSynced,
+      recordReadFinish,
+    } = await import('../src/lib/human-signals');
+
+    const event = recordReadFinish(
+      {
+        postId: 'sp-status.mdx',
+        ticketId: 'SP-STATUS',
+        lang: 'zh-tw',
+        pathname: '/posts/sp-status/',
+        postVersion: 2,
+      },
+      { method: 'active_scroll_end', activeReadMs: 10_000, maxScrollPercent: 100 }
+    );
+    const before = { ...event };
+
+    expect(markHumanSignalEventFailed('missing-event-id')).toBe(false);
+    expect(markHumanSignalEventFailed(event.eventId)).toBe(true);
+    expect(markHumanSignalEventSynced(event.eventId)).toBe(true);
+
+    const after = getHumanSignalEvents()[0];
+    expect(after).toEqual({ ...before, syncStatus: 'synced' });
+  });
+
+  it('treats corrupted human-signal storage as an empty pending queue', async () => {
+    (globalThis as any).localStorage.setItem('gu-log-human-signals', '{not valid json');
+
+    const { getHumanSignalEvents, getPendingHumanSignalEvents, markHumanSignalEventSynced } =
+      await import('../src/lib/human-signals');
+
+    expect(getHumanSignalEvents()).toEqual([]);
+    expect(getPendingHumanSignalEvents()).toEqual([]);
+    expect(markHumanSignalEventSynced('missing-event-id')).toBe(false);
+  });
 });
 
 describe('reading tracker migration to event-aware store', () => {
