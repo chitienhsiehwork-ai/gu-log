@@ -5,6 +5,7 @@ import { getPublishedPosts } from '../utils/post-status';
 import { getPostReaderRevision } from '../utils/post-versions';
 
 const allPosts = getPublishedPosts(await getCollection('posts'), 'zh-tw');
+const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
 
 // Sort by date descending
 allPosts.sort((a, b) => {
@@ -99,36 +100,33 @@ const totalArticles = allPosts.length;
       }
     </div>
 
-    <!-- GitHub Gist Sync card -->
-    <div class="sync-card" id="sync-card" style="display:none">
-      <!-- Shown when no token: PAT setup -->
-      <div id="sync-pat-setup" style="display:none">
+    <!-- GitHub Sync card -->
+    <div class="sync-card" id="sync-card" style="display:none" data-api-url={apiUrl}>
+      <div id="sync-oauth-setup" style="display:none">
         <div class="sync-card-header">
-          <span class="sync-card-title">🔗 Connect GitHub for Sync</span>
+          <span class="sync-card-title">🔗 GitHub OAuth Sync</span>
         </div>
         <p class="sync-desc">
-          貼入 GitHub PAT 即可把閱讀紀錄同步到你的 Private Gist，跨裝置不遺漏。
+          已改用 gu-log 登入狀態同步閱讀紀錄，不需要手貼 GitHub private token。
         </p>
-        <div class="sync-pat-row">
-          <input
-            type="password"
-            id="sync-pat-input"
-            placeholder="ghp_xxxxxxxxxxxx"
-            class="sync-pat-field"
-            autocomplete="off"
-            spellcheck="false"
-          />
-          <button id="sync-pat-save" class="action-btn">儲存</button>
-        </div>
-        <p class="sync-pat-hint">
-          只需勾選 <code>gist</code> scope —
-          <a
-            href="https://github.com/settings/tokens/new?scopes=gist&description=gu-log-reading-tracker"
-            target="_blank"
-            rel="noopener"
-            class="sync-link">點此建立 →</a
-          >
-        </p>
+        <a id="sync-reauth-link" class="sync-action-btn" href={`${apiUrl}/auth/github?reader_sync=1`}>
+          重新授權同步
+        </a>
+        <details class="legacy-sync-details">
+          <summary>Legacy token fallback</summary>
+          <p class="sync-pat-hint">只有 backend OAuth sync 暫時不可用時才用這條舊路。</p>
+          <div class="sync-pat-row">
+            <input
+              type="password"
+              id="sync-pat-input"
+              placeholder="***"
+              class="sync-pat-field"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <button id="sync-pat-save" class="action-btn">儲存 legacy token</button>
+          </div>
+        </details>
       </div>
 
       <!-- Shown when token available: sync controls -->
@@ -226,7 +224,16 @@ const totalArticles = allPosts.length;
     exportJson,
     importJson,
   } from '../lib/reading-tracker';
-  import { getGitHubToken, pushToGist, pullFromGist, mergeSync } from '../lib/gist-sync';
+  import {
+    getGitHubToken,
+    getGuLogSessionToken,
+    pushToGist,
+    pushToReaderSyncApi,
+    pullFromGist,
+    pullFromReaderSyncApi,
+    mergeSync,
+    ReaderSyncApiError,
+  } from '../lib/gist-sync';
 
   // ── Sync constants ─────────────────────────────────────────────────────────
   const LAST_SYNC_KEY = 'gu-log-last-sync';
@@ -434,21 +441,31 @@ const totalArticles = allPosts.length;
 
   // ── GitHub Gist Sync ───────────────────────────────────────────────────────
 
+  function syncApiUrl(): string {
+    return document.getElementById('sync-card')?.dataset.apiUrl || 'https://api.shroomdog.dev';
+  }
+
+  function setReauthUrl(url?: string) {
+    const link = document.getElementById('sync-reauth-link') as HTMLAnchorElement | null;
+    if (link && url) link.href = url;
+  }
+
   function updateSyncUI() {
     const syncCard = document.getElementById('sync-card')!;
-    const patSetup = document.getElementById('sync-pat-setup')!;
+    const oauthSetup = document.getElementById('sync-oauth-setup')!;
     const syncControls = document.getElementById('sync-controls')!;
 
-    const token = getGitHubToken();
+    const jwt = getGuLogSessionToken();
+    const legacyToken = getGitHubToken();
     syncCard.style.display = '';
 
-    if (!token) {
-      patSetup.style.display = '';
+    if (!jwt && !legacyToken) {
+      oauthSetup.style.display = '';
       syncControls.style.display = 'none';
       return;
     }
 
-    patSetup.style.display = 'none';
+    oauthSetup.style.display = 'none';
     syncControls.style.display = '';
 
     const lastSync = localStorage.getItem(LAST_SYNC_KEY);
@@ -474,7 +491,7 @@ const totalArticles = allPosts.length;
     }
   }
 
-  async function doSync(token: string, mode: 'merge' | 'push' | 'pull') {
+  async function doSync(mode: 'merge' | 'push' | 'pull') {
     const btns = ['sync-btn', 'push-btn', 'pull-btn'].map(
       (id) => document.getElementById(id) as HTMLButtonElement | null
     );
@@ -486,17 +503,31 @@ const totalArticles = allPosts.length;
 
     try {
       const localStore = JSON.parse(exportJson());
+      const legacyToken = getGitHubToken();
+      const useLegacy = !getGuLogSessionToken() && Boolean(legacyToken);
 
       if (mode === 'merge') {
-        const remote = await pullFromGist(token);
+        const remote = useLegacy
+          ? await pullFromGist(legacyToken!)
+          : await pullFromReaderSyncApi(syncApiUrl());
         const merged = mergeSync(localStore, remote ?? []);
         importJson(JSON.stringify(merged));
         updateAllRows();
-        await pushToGist(token, merged);
+        if (useLegacy) {
+          await pushToGist(legacyToken!, merged);
+        } else {
+          await pushToReaderSyncApi(syncApiUrl(), merged);
+        }
       } else if (mode === 'push') {
-        await pushToGist(token, localStore);
+        if (useLegacy) {
+          await pushToGist(legacyToken!, localStore);
+        } else {
+          await pushToReaderSyncApi(syncApiUrl(), localStore);
+        }
       } else if (mode === 'pull') {
-        const remote = await pullFromGist(token);
+        const remote = useLegacy
+          ? await pullFromGist(legacyToken!)
+          : await pullFromReaderSyncApi(syncApiUrl());
         if (remote) {
           importJson(JSON.stringify(remote));
           updateAllRows();
@@ -508,6 +539,10 @@ const totalArticles = allPosts.length;
       updateSyncUI();
     } catch (err) {
       const msg = err instanceof Error ? err.message : '同步失敗';
+      if (err instanceof ReaderSyncApiError && err.code === 'GITHUB_SCOPE_MISSING') {
+        setReauthUrl(err.reauthorizeUrl);
+        document.getElementById('sync-oauth-setup')!.style.display = '';
+      }
       badge.textContent = `❌ ${msg}`;
       badge.className = 'sync-status-badge sync-status-error';
     } finally {
@@ -524,8 +559,7 @@ const totalArticles = allPosts.length;
     localStorage.setItem('gu-log-github-pat', pat);
     input.value = '';
     updateSyncUI();
-    const tok = getGitHubToken();
-    if (tok) doSync(tok, 'merge').catch(() => {});
+    doSync('merge').catch(() => {});
   });
 
   document.getElementById('sync-pat-input')?.addEventListener('keydown', (e) => {
@@ -535,18 +569,15 @@ const totalArticles = allPosts.length;
   });
 
   document.getElementById('sync-btn')?.addEventListener('click', () => {
-    const tok = getGitHubToken();
-    if (tok) doSync(tok, 'merge');
+    doSync('merge');
   });
 
   document.getElementById('push-btn')?.addEventListener('click', () => {
-    const tok = getGitHubToken();
-    if (tok) doSync(tok, 'push');
+    doSync('push');
   });
 
   document.getElementById('pull-btn')?.addEventListener('click', () => {
-    const tok = getGitHubToken();
-    if (tok) doSync(tok, 'pull');
+    doSync('pull');
   });
 
   document.getElementById('sync-disconnect-btn')?.addEventListener('click', () => {
@@ -558,9 +589,8 @@ const totalArticles = allPosts.length;
   });
 
   // Auto-sync on page load (non-blocking)
-  {
-    const autoTok = getGitHubToken();
-    if (autoTok) doSync(autoTok, 'merge').catch(() => {});
+  if (getGuLogSessionToken() || getGitHubToken()) {
+    doSync('merge').catch(() => {});
   }
 
   // ── Listen for changes from article pages ──────────────────────────────────
