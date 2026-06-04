@@ -6,7 +6,7 @@ export type HumanSignalKind =
   | 'share_intent'
   | 'feedback_comment';
 export type GuLogLang = 'zh-tw' | 'en';
-export type ReaderTrustTier = 'owner_trusted' | 'guest_reference' | 'unknown';
+export type ReaderTrustTier = 'owner_trusted' | 'owner_approved' | 'guest_reference' | 'unknown';
 export type SignalSyncStatus = 'local_only' | 'synced' | 'sync_failed';
 export type SignalTransport = 'local_storage';
 
@@ -77,6 +77,57 @@ export type ShareIntentEvent = BaseHumanSignalEvent & {
 
 export type HumanSignalEvent = ReadFinishEvent | ReadAbandonCandidateEvent | ShareIntentEvent;
 
+export type HumanSignalTrustInput = {
+  reader?: string;
+  ownerReader?: string;
+  ownerApproved?: boolean;
+};
+
+export type HumanSignalPacketQuery = {
+  postId: string;
+  pathname: string;
+  postVersion: number | string;
+};
+
+export type HumanSignalTribunalPacketSignal = Readonly<
+  Pick<
+    HumanSignalEvent,
+    | 'eventId'
+    | 'kind'
+    | 'postId'
+    | 'ticketId'
+    | 'lang'
+    | 'pathname'
+    | 'postVersion'
+    | 'contentVersion'
+    | 'occurredAt'
+    | 'reader'
+    | 'readerTrustTier'
+    | 'syncStatus'
+  > & {
+    automationAuthoritative: boolean;
+    finishability?: FinishabilityState;
+    confidence?: SignalConfidence;
+    method?: ReadFinishMethod;
+    activeReadMs?: number;
+    maxScrollPercent?: number;
+    target?: ShareTarget;
+    result?: ShareResult;
+    reactionStrength?: ShareReactionStrength;
+    polarity?: SharePolarity;
+  }
+>;
+
+export type HumanSignalTribunalPacket = Readonly<{
+  packetSchemaVersion: 1;
+  postId: string;
+  pathname: string;
+  postVersion: number;
+  signals: ReadonlyArray<HumanSignalTribunalPacketSignal>;
+  automationAuthoritativeSignalCount: number;
+  recommendedAutomation: 'none';
+}>;
+
 type HumanSignalStore = {
   version: 1;
   events: HumanSignalEvent[];
@@ -109,6 +160,109 @@ function normalizeSnapshot(snapshot: ArticleVersionSnapshot) {
         ? undefined
         : toPositiveInteger(snapshot.contentVersion),
   };
+}
+
+export function classifyHumanSignalTrustTier(input: HumanSignalTrustInput = {}): ReaderTrustTier {
+  if (input.ownerApproved) {
+    return 'owner_approved';
+  }
+  if (input.reader && input.ownerReader && input.reader === input.ownerReader) {
+    return 'owner_trusted';
+  }
+  if (input.reader) {
+    return 'guest_reference';
+  }
+  return 'unknown';
+}
+
+export function isAutomationAuthoritativeTrustTier(tier: ReaderTrustTier): boolean {
+  return tier === 'owner_trusted' || tier === 'owner_approved';
+}
+
+export function promoteHumanSignalTrustTier<T extends HumanSignalEvent>(
+  event: T,
+  readerTrustTier: ReaderTrustTier,
+  reader?: string
+): T {
+  return {
+    ...event,
+    reader: reader ?? event.reader,
+    readerTrustTier,
+  };
+}
+
+function matchesPacketQuery(event: HumanSignalEvent, query: HumanSignalPacketQuery): boolean {
+  return (
+    event.postId === query.postId &&
+    event.pathname === query.pathname &&
+    event.postVersion === toPositiveInteger(query.postVersion)
+  );
+}
+
+function toTribunalPacketSignal(event: HumanSignalEvent): HumanSignalTribunalPacketSignal {
+  const signal: HumanSignalTribunalPacketSignal = {
+    eventId: event.eventId,
+    kind: event.kind,
+    postId: event.postId,
+    ticketId: event.ticketId,
+    lang: event.lang,
+    pathname: event.pathname,
+    postVersion: event.postVersion,
+    contentVersion: event.contentVersion,
+    occurredAt: event.occurredAt,
+    reader: event.reader,
+    readerTrustTier: event.readerTrustTier,
+    syncStatus: event.syncStatus,
+    automationAuthoritative: isAutomationAuthoritativeTrustTier(event.readerTrustTier),
+    ...(event.kind === 'read_finish'
+      ? {
+          method: event.method,
+          finishability: event.finishability,
+          confidence: event.confidence,
+          activeReadMs: event.activeReadMs,
+          maxScrollPercent: event.maxScrollPercent,
+        }
+      : {}),
+    ...(event.kind === 'read_abandon_candidate'
+      ? {
+          finishability: event.finishability,
+          confidence: event.confidence,
+          activeReadMs: event.activeReadMs,
+          maxScrollPercent: event.maxScrollPercent,
+        }
+      : {}),
+    ...(event.kind === 'share_intent'
+      ? {
+          target: event.target,
+          result: event.result,
+          reactionStrength: event.reactionStrength,
+          polarity: event.polarity,
+        }
+      : {}),
+  };
+
+  return Object.freeze(signal);
+}
+
+export function buildHumanSignalTribunalPacket(
+  query: HumanSignalPacketQuery,
+  events: readonly HumanSignalEvent[]
+): HumanSignalTribunalPacket {
+  const postVersion = toPositiveInteger(query.postVersion);
+  const signals = Object.freeze(
+    events.filter((event) => matchesPacketQuery(event, query)).map(toTribunalPacketSignal)
+  );
+
+  return Object.freeze({
+    packetSchemaVersion: 1,
+    postId: query.postId,
+    pathname: query.pathname,
+    postVersion,
+    signals,
+    automationAuthoritativeSignalCount: signals.filter((signal) => signal.automationAuthoritative)
+      .length,
+    recommendedAutomation: 'none',
+  });
 }
 
 function getStore(): HumanSignalStore {
