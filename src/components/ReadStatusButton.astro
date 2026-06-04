@@ -2,9 +2,13 @@
 interface Props {
   slug: string;
   lang?: 'zh-tw' | 'en';
+  postId: string;
+  ticketId?: string;
+  postVersion: number;
+  pathname: string;
 }
 
-const { slug, lang = 'zh-tw' } = Astro.props;
+const { slug, lang = 'zh-tw', postId, ticketId, postVersion, pathname } = Astro.props;
 ---
 
 <div
@@ -12,6 +16,10 @@ const { slug, lang = 'zh-tw' } = Astro.props;
   data-read-button
   data-slug={slug}
   data-lang={lang}
+  data-post-id={postId}
+  data-ticket-id={ticketId}
+  data-post-version={postVersion}
+  data-pathname={pathname}
   style="display:none"
 >
   <button class="read-status-btn" type="button">
@@ -25,11 +33,23 @@ const { slug, lang = 'zh-tw' } = Astro.props;
 <script>
   import { isRead, toggleRead, getReadSlugs } from '../lib/reading-tracker';
   import { getGitHubToken, pushToGist, pullFromGist, mergeSync } from '../lib/gist-sync';
+  import { recordManualMarkRead, recordReadFinish } from '../lib/human-signals';
+  import type { ArticleVersionSnapshot, GuLogLang } from '../lib/human-signals';
 
   const LAST_SYNC_KEY = 'gu-log-last-sync';
   const SYNC_DIRTY_KEY = 'gu-log-sync-dirty';
 
   let syncDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function getSnapshot(el: HTMLElement): ArticleVersionSnapshot {
+    return {
+      postId: el.dataset.postId || el.dataset.slug || '',
+      ticketId: el.dataset.ticketId || undefined,
+      lang: (el.dataset.lang || 'zh-tw') as GuLogLang,
+      pathname: el.dataset.pathname || window.location.pathname,
+      postVersion: el.dataset.postVersion || '1',
+    };
+  }
 
   function scheduleDebouncedSync() {
     if (syncDebounceTimer !== null) clearTimeout(syncDebounceTimer);
@@ -90,6 +110,9 @@ const { slug, lang = 'zh-tw' } = Astro.props;
 
       btn.addEventListener('click', () => {
         const nowRead = toggleRead(slug);
+        if (nowRead) {
+          recordManualMarkRead(getSnapshot(el));
+        }
         updateUI(nowRead);
         // Dispatch event for any dashboard that might be listening
         window.dispatchEvent(
@@ -116,13 +139,32 @@ const { slug, lang = 'zh-tw' } = Astro.props;
 
     const postContent = document.querySelector('.post-content');
     if (!postContent) return;
+    const postContentEl = postContent as HTMLElement;
+
+    const startedAt = Date.now();
+    let maxScrollPercent = 0;
+
+    function updateMaxScroll() {
+      const rect = postContentEl.getBoundingClientRect();
+      const visibleBottom = window.innerHeight - rect.top;
+      const percent = Math.max(0, Math.min(100, Math.round((visibleBottom / rect.height) * 100)));
+      if (percent > maxScrollPercent) maxScrollPercent = percent;
+    }
+
+    window.addEventListener('scroll', updateMaxScroll, { passive: true });
+    updateMaxScroll();
 
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
           // Bottom of content visible — mark as read
           import('../lib/reading-tracker').then(({ markAsRead }) => {
-            markAsRead(slug);
+            markAsRead(slug, 'active_scroll_end');
+            recordReadFinish(getSnapshot(el), {
+              method: 'active_scroll_end',
+              activeReadMs: Date.now() - startedAt,
+              maxScrollPercent: Math.max(maxScrollPercent, 100),
+            });
             if (localStorage.getItem(LAST_SYNC_KEY)) {
               localStorage.setItem(SYNC_DIRTY_KEY, 'true');
             }
@@ -138,6 +180,7 @@ const { slug, lang = 'zh-tw' } = Astro.props;
               }
             });
           });
+          window.removeEventListener('scroll', updateMaxScroll);
           observer.disconnect();
         }
       },

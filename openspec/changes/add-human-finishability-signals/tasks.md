@@ -13,20 +13,20 @@
 
 - [ ] 2.1 建立 trusted owner email allowlist config/secrets source；不要把 actual emails commit 進 repo
 - [ ] 2.2 在 event schema 中加入 `readerTrustTier`, `identitySource`, `ownerApproved`, and provenance fields
-- [ ] 2.3 在文章頁建立 single source helper，輸出 `postId/ticketId/lang/pathname/postVersion`
+- [x] 2.3 在文章頁建立 snapshot wiring，輸出 `postId/ticketId/lang/pathname/postVersion`
 - [ ] 2.4 若需要 timestamp inference，設計 manifest v2 或 git-history index，支援 version boundary / qualified commit / optional content hash
 - [ ] 2.5 確保 zh-tw / en 文章 identity 與 version 分開但可關聯
 
 ## Phase 3 — Reading engagement follow-up
 
-- [ ] 3.1 將 `reading-tracker.ts` 從 v1 `slugs[]` migration 到 v2 event-aware store
-- [ ] 3.2 實作 active read time、max scroll depth、finish method、confidence
-- [ ] 3.3 將 manual / bulk / import read 與 auto scroll finish 分開標記
-- [ ] 3.4 保留 Gist sync backward compatibility
+- [x] 3.1 將 `reading-tracker.ts` 從 v1 `slugs[]` migration 到 v2 event-aware store
+- [x] 3.2 實作 active read time、max scroll depth、finish method、confidence
+- [x] 3.3 將 manual / bulk / import read 與 auto scroll finish 分開標記
+- [x] 3.4 保留 Gist sync backward compatibility for slug sync while human-signal events remain local-only pending transport decision
 
 ## Phase 4 — Share and comment signal follow-up
 
-- [ ] 4.1 在 `ShareButton` 記錄 share intent target/result + version snapshot
+- [x] 4.1 在 `ShareButton` 記錄 share intent target/result + version snapshot
 - [ ] 4.2 若使用 Giscus，建立 comment sync/indexer，將 GitHub Discussion comments 補上 article version snapshot
 - [ ] 4.3 若使用 first-party feedback form，送出時直接附 version snapshot
 - [ ] 4.4 建立 comment sentiment / feedback type classifier 規則，確保明確負評歸為 negative/rewriteNeeded
@@ -42,9 +42,9 @@
 
 ## Phase 6 — Verification follow-up
 
-- [ ] 6.1 Unit test：v1 reading tracker migration 不丟失已讀 slugs
-- [ ] 6.2 Unit test：read finish event 必含 article identity + version
+- [x] 6.1 Unit test：v1 reading tracker migration 不丟失已讀 slugs
+- [x] 6.2 Unit test：read finish event 必含 article identity + version
 - [ ] 6.3 Unit test：negative comment record 必含 version snapshot
-- [ ] 6.4 Unit test：share intent record 必含 target/result/version
+- [x] 6.4 Unit test：share intent record 必含 target/result/version
 - [ ] 6.5 Integration test：Tribunal packet 讀到 unresolved negative feedback 並標示 requeue/block publish
 - [ ] 6.6 Manual smoke：文章頁讀到底、留言、分享後可查到 versioned event
