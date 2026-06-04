@@ -172,9 +172,23 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
 
     {post.data.scores && <AiJudgeScore scores={post.data.scores} lang="zh-tw" />}
 
-    <ReadStatusButton slug={post.slug} lang="zh-tw" />
+    <ReadStatusButton
+      slug={post.slug}
+      lang="zh-tw"
+      postId={post.id}
+      ticketId={post.data.ticketId}
+      postVersion={Number(postVersion)}
+      pathname={Astro.url.pathname}
+    />
 
-    <ShareButton title={post.data.title} lang="zh-tw" />
+    <ShareButton
+      title={post.data.title}
+      lang="zh-tw"
+      postId={post.id}
+      ticketId={post.data.ticketId}
+      postVersion={Number(postVersion)}
+      pathname={Astro.url.pathname}
+    />
 
     <LoginCta lang="zh-tw" />
 

@@ -2,9 +2,13 @@
 interface Props {
   title: string;
   lang?: 'zh-tw' | 'en';
+  postId: string;
+  ticketId?: string;
+  postVersion: number;
+  pathname: string;
 }
 
-const { title, lang = 'zh-tw' } = Astro.props;
+const { title, lang = 'zh-tw', postId, ticketId, postVersion, pathname } = Astro.props;
 
 const i18n = {
   'zh-tw': {
@@ -32,6 +36,11 @@ const t = i18n[lang];
     data-copy-text={t.copyLink}
     data-copied-text={t.copied}
     data-native-text={t.nativeShare}
+    data-lang={lang}
+    data-post-id={postId}
+    data-ticket-id={ticketId}
+    data-post-version={postVersion}
+    data-pathname={pathname}
   >
     <!-- Native share button (hidden by default, shown via JS if supported) -->
     <button class="share-btn share-native" aria-label={t.nativeShare} style="display:none">
@@ -118,6 +127,9 @@ const t = i18n[lang];
 </div>
 
 <script>
+  import { recordShareIntent } from '../lib/human-signals';
+  import type { ArticleVersionSnapshot, GuLogLang, ShareTarget } from '../lib/human-signals';
+
   function initShareButtons() {
     const container = document.querySelector('.share-buttons');
     if (!container) return;
@@ -126,6 +138,18 @@ const t = i18n[lang];
     const url = window.location.href;
     const copyText = container.getAttribute('data-copy-text') || 'Copy link';
     const copiedText = container.getAttribute('data-copied-text') || 'Copied!';
+
+    const snapshot: ArticleVersionSnapshot = {
+      postId: container.getAttribute('data-post-id') || '',
+      ticketId: container.getAttribute('data-ticket-id') || undefined,
+      lang: (container.getAttribute('data-lang') || document.documentElement.lang || 'zh-tw') as GuLogLang,
+      pathname: container.getAttribute('data-pathname') || window.location.pathname,
+      postVersion: container.getAttribute('data-post-version') || '1',
+    };
+
+    function record(target: ShareTarget, result: 'attempted' | 'completed' | 'cancelled' | 'failed') {
+      recordShareIntent(snapshot, { target, result });
+    }
 
     const nativeBtn = container.querySelector('.share-native') as HTMLElement;
     const fallback = container.querySelector('.share-fallback') as HTMLElement;
@@ -138,8 +162,9 @@ const t = i18n[lang];
       nativeBtn.addEventListener('click', async () => {
         try {
           await navigator.share({ title, url });
+          record('native', 'completed');
         } catch (_e) {
-          // User cancelled — no-op
+          record('native', 'cancelled');
         }
       });
     } else {
@@ -153,13 +178,22 @@ const t = i18n[lang];
     const encodedTitle = encodeURIComponent(title);
 
     const xBtn = container.querySelector('.share-x') as HTMLAnchorElement;
-    if (xBtn) xBtn.href = `https://x.com/intent/tweet?text=${encodedTitle}&url=${encodedUrl}`;
+    if (xBtn) {
+      xBtn.href = `https://x.com/intent/tweet?text=${encodedTitle}&url=${encodedUrl}`;
+      xBtn.addEventListener('click', () => record('x', 'attempted'));
+    }
 
     const fbBtn = container.querySelector('.share-fb') as HTMLAnchorElement;
-    if (fbBtn) fbBtn.href = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
+    if (fbBtn) {
+      fbBtn.href = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
+      fbBtn.addEventListener('click', () => record('facebook', 'attempted'));
+    }
 
     const lineBtn = container.querySelector('.share-line') as HTMLAnchorElement;
-    if (lineBtn) lineBtn.href = `https://social-plugins.line.me/lineit/share?url=${encodedUrl}`;
+    if (lineBtn) {
+      lineBtn.href = `https://social-plugins.line.me/lineit/share?url=${encodedUrl}`;
+      lineBtn.addEventListener('click', () => record('line', 'attempted'));
+    }
 
     // Copy link button
     const copyBtn = container.querySelector('.share-copy') as HTMLButtonElement;
@@ -167,6 +201,7 @@ const t = i18n[lang];
       copyBtn.addEventListener('click', async () => {
         try {
           await navigator.clipboard.writeText(url);
+          record('copy_link', 'completed');
           const span = copyBtn.querySelector('.copy-text');
           if (span) {
             span.textContent = copiedText;
@@ -182,6 +217,7 @@ const t = i18n[lang];
           input.select();
           document.execCommand('copy');
           document.body.removeChild(input);
+          record('copy_link', 'attempted');
         }
       });
     }
