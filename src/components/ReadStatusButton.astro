@@ -33,7 +33,11 @@ const { slug, lang = 'zh-tw', postId, ticketId, postVersion, pathname } = Astro.
 <script>
   import { isRead, toggleRead, getReadSlugs } from '../lib/reading-tracker';
   import { getGitHubToken, pushToGist, pullFromGist, mergeSync } from '../lib/gist-sync';
-  import { recordManualMarkRead, recordReadFinish } from '../lib/human-signals';
+  import {
+    recordManualMarkRead,
+    recordReadAbandonCandidate,
+    recordReadFinish,
+  } from '../lib/human-signals';
   import type { ArticleVersionSnapshot, GuLogLang } from '../lib/human-signals';
 
   const LAST_SYNC_KEY = 'gu-log-last-sync';
@@ -143,6 +147,23 @@ const { slug, lang = 'zh-tw', postId, ticketId, postVersion, pathname } = Astro.
 
     const startedAt = Date.now();
     let maxScrollPercent = 0;
+    let finished = false;
+
+    function recordAbandonIfNeeded() {
+      if (finished || isRead(slug) || maxScrollPercent <= 0) return;
+      const activeReadMs = Date.now() - startedAt;
+      recordReadAbandonCandidate(getSnapshot(el), {
+        activeReadMs,
+        maxScrollPercent,
+        finishability:
+          activeReadMs >= 30_000 && maxScrollPercent < 80
+            ? 'abandoned_suspected_boring'
+            : 'abandoned_unknown',
+      });
+      if (localStorage.getItem(LAST_SYNC_KEY)) {
+        localStorage.setItem(SYNC_DIRTY_KEY, 'true');
+      }
+    }
 
     function updateMaxScroll() {
       const rect = postContentEl.getBoundingClientRect();
@@ -152,6 +173,7 @@ const { slug, lang = 'zh-tw', postId, ticketId, postVersion, pathname } = Astro.
     }
 
     window.addEventListener('scroll', updateMaxScroll, { passive: true });
+    window.addEventListener('pagehide', recordAbandonIfNeeded);
     updateMaxScroll();
 
     const observer = new IntersectionObserver(
@@ -160,6 +182,7 @@ const { slug, lang = 'zh-tw', postId, ticketId, postVersion, pathname } = Astro.
           // Bottom of content visible — mark as read
           import('../lib/reading-tracker').then(({ markAsRead }) => {
             markAsRead(slug, 'active_scroll_end');
+            finished = true;
             recordReadFinish(getSnapshot(el), {
               method: 'active_scroll_end',
               activeReadMs: Date.now() - startedAt,
@@ -181,6 +204,7 @@ const { slug, lang = 'zh-tw', postId, ticketId, postVersion, pathname } = Astro.
             });
           });
           window.removeEventListener('scroll', updateMaxScroll);
+          window.removeEventListener('pagehide', recordAbandonIfNeeded);
           observer.disconnect();
         }
       },

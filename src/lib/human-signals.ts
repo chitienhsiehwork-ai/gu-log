@@ -1,6 +1,10 @@
 const SIGNAL_STORAGE_KEY = 'gu-log-human-signals';
 
-export type HumanSignalKind = 'read_finish' | 'share_intent' | 'feedback_comment';
+export type HumanSignalKind =
+  | 'read_finish'
+  | 'read_abandon_candidate'
+  | 'share_intent'
+  | 'feedback_comment';
 export type GuLogLang = 'zh-tw' | 'en';
 export type ReaderTrustTier = 'owner_trusted' | 'guest_reference' | 'unknown';
 export type SignalSyncStatus = 'local_only' | 'synced' | 'sync_failed';
@@ -49,18 +53,29 @@ export type ReadFinishEvent = BaseHumanSignalEvent & {
   maxScrollPercent?: number;
 };
 
+export type ReadAbandonCandidateEvent = BaseHumanSignalEvent & {
+  kind: 'read_abandon_candidate';
+  finishability: Extract<FinishabilityState, 'abandoned_suspected_boring' | 'abandoned_unknown'>;
+  confidence: Extract<SignalConfidence, 'low'>;
+  activeReadMs?: number;
+  maxScrollPercent?: number;
+};
+
 export type ShareTarget = 'native' | 'x' | 'facebook' | 'line' | 'copy_link';
 export type ShareResult = 'attempted' | 'completed' | 'cancelled' | 'failed';
+export type ShareReactionStrength = 'strong';
+export type SharePolarity = 'unknown' | 'positive' | 'useful' | 'ridicule' | 'negative';
 
 export type ShareIntentEvent = BaseHumanSignalEvent & {
   kind: 'share_intent';
   target: ShareTarget;
   result: ShareResult;
   resultConfidence: 'attempted' | 'completed' | 'cancelled' | 'failed';
-  sentiment: 'positive';
+  reactionStrength: ShareReactionStrength;
+  polarity: SharePolarity;
 };
 
-export type HumanSignalEvent = ReadFinishEvent | ShareIntentEvent;
+export type HumanSignalEvent = ReadFinishEvent | ReadAbandonCandidateEvent | ShareIntentEvent;
 
 type HumanSignalStore = {
   version: 1;
@@ -192,6 +207,25 @@ export function recordLegacyImportedRead(slug: string, importedAt?: string): Rea
   return appendHumanSignalEvent(event) as ReadFinishEvent;
 }
 
+export function recordReadAbandonCandidate(
+  snapshot: ArticleVersionSnapshot,
+  metrics: {
+    activeReadMs?: number;
+    maxScrollPercent?: number;
+    finishability?: Extract<FinishabilityState, 'abandoned_suspected_boring' | 'abandoned_unknown'>;
+  }
+): ReadAbandonCandidateEvent {
+  const event: ReadAbandonCandidateEvent = {
+    ...baseEvent('read_abandon_candidate', snapshot),
+    kind: 'read_abandon_candidate',
+    finishability: metrics.finishability || 'abandoned_unknown',
+    confidence: 'low',
+    activeReadMs: metrics.activeReadMs,
+    maxScrollPercent: metrics.maxScrollPercent,
+  };
+  return appendHumanSignalEvent(event) as ReadAbandonCandidateEvent;
+}
+
 export function recordShareIntent(
   snapshot: ArticleVersionSnapshot,
   share: { target: ShareTarget; result: ShareResult }
@@ -202,7 +236,8 @@ export function recordShareIntent(
     target: share.target,
     result: share.result,
     resultConfidence: share.result,
-    sentiment: 'positive',
+    reactionStrength: 'strong',
+    polarity: 'unknown',
   };
   return appendHumanSignalEvent(event) as ShareIntentEvent;
 }

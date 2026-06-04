@@ -83,7 +83,7 @@ describe('human signals', () => {
     });
   });
 
-  it('records share_intent with target, result confidence, and version snapshot', async () => {
+  it('records share_intent as a strong reaction without assuming positive polarity', async () => {
     const { recordShareIntent, getHumanSignalEvents } = await import('../src/lib/human-signals');
 
     const event = recordShareIntent(
@@ -103,7 +103,43 @@ describe('human signals', () => {
       result: 'completed',
       resultConfidence: 'completed',
       postVersion: 7,
-      sentiment: 'positive',
+      reactionStrength: 'strong',
+      polarity: 'unknown',
+    });
+    expect(event).not.toHaveProperty('sentiment', 'positive');
+    expect(getHumanSignalEvents()).toEqual([event]);
+  });
+
+  it('records abandoned reading as low-confidence suspected boring evidence', async () => {
+    const { recordReadAbandonCandidate, getHumanSignalEvents } =
+      await import('../src/lib/human-signals');
+
+    const event = recordReadAbandonCandidate(
+      {
+        postId: 'sp-456-20260602-boring-post.mdx',
+        ticketId: 'SP-456',
+        lang: 'zh-tw',
+        pathname: '/posts/sp-456-20260602-boring-post/',
+        postVersion: 3,
+      },
+      {
+        activeReadMs: 39_000,
+        maxScrollPercent: 38,
+        finishability: 'abandoned_suspected_boring',
+      }
+    );
+
+    expect(event).toMatchObject({
+      kind: 'read_abandon_candidate',
+      postId: 'sp-456-20260602-boring-post.mdx',
+      ticketId: 'SP-456',
+      postVersion: 3,
+      activeReadMs: 39_000,
+      maxScrollPercent: 38,
+      finishability: 'abandoned_suspected_boring',
+      confidence: 'low',
+      transport: 'local_storage',
+      syncStatus: 'local_only',
     });
     expect(getHumanSignalEvents()).toEqual([event]);
   });

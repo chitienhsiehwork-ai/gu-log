@@ -22,6 +22,8 @@ describe('human signal UI wiring', () => {
     expect(readStatus).toContain('data-post-version={postVersion}');
     expect(readStatus).toContain('recordManualMarkRead');
     expect(readStatus).toContain('recordReadFinish');
+    expect(readStatus).toContain('recordReadAbandonCandidate');
+    expect(readStatus).toContain('pagehide');
 
     const share = read('src/components/ShareButton.astro');
     expect(share).toContain('data-post-id={postId}');
