@@ -18,6 +18,8 @@ const {
   readerRevision,
   pathname,
 } = Astro.props;
+
+const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
 ---
 
 <div
@@ -30,6 +32,7 @@ const {
   data-post-version={postVersion}
   data-reader-revision={readerRevision}
   data-pathname={pathname}
+  data-api-url={apiUrl}
   style="display:none"
 >
   <button class="read-status-btn" type="button">
@@ -42,7 +45,15 @@ const {
 
 <script>
   import { isRead, toggleRead, markAsRead, exportJson, importJson } from '../lib/reading-tracker';
-  import { getGitHubToken, pushToGist, pullFromGist, mergeSync } from '../lib/gist-sync';
+  import {
+    getGitHubToken,
+    getGuLogSessionToken,
+    pushToGist,
+    pushToReaderSyncApi,
+    pullFromGist,
+    pullFromReaderSyncApi,
+    mergeSync,
+  } from '../lib/gist-sync';
   import {
     recordManualMarkRead,
     recordReadAbandonCandidate,
@@ -69,13 +80,21 @@ const {
     if (syncDebounceTimer !== null) clearTimeout(syncDebounceTimer);
     syncDebounceTimer = setTimeout(async () => {
       syncDebounceTimer = null;
-      const token = getGitHubToken();
-      if (!token) return;
+      const jwt = getGuLogSessionToken();
+      const legacyToken = getGitHubToken();
+      if (!jwt && !legacyToken) return;
       try {
-        const remote = await pullFromGist(token);
+        const apiUrl =
+          document.querySelector<HTMLElement>('[data-read-button]')?.dataset.apiUrl ||
+          'https://api.shroomdog.dev';
+        const remote = jwt ? await pullFromReaderSyncApi(apiUrl) : await pullFromGist(legacyToken!);
         const merged = mergeSync(JSON.parse(exportJson()), remote ?? []);
         importJson(JSON.stringify(merged));
-        await pushToGist(token, merged);
+        if (jwt) {
+          await pushToReaderSyncApi(apiUrl, merged);
+        } else {
+          await pushToGist(legacyToken!, merged);
+        }
         localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
         localStorage.removeItem(SYNC_DIRTY_KEY);
       } catch {

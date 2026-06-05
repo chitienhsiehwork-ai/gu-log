@@ -12,32 +12,81 @@ export interface GistReadStoreV1 {
 
 export type GistReadStore = GistReadStoreV1 | ReadStoreV2;
 
-/** Decode a base64url string (JWT-safe variant). */
-function b64urlDecode(s: string): string {
-  return atob(s.replace(/-/g, '+').replace(/_/g, '/'));
+export class ReaderSyncApiError extends Error {
+  code: string;
+  reauthorizeUrl?: string;
+
+  constructor(message: string, code = 'READER_SYNC_FAILED', reauthorizeUrl?: string) {
+    super(message);
+    this.name = 'ReaderSyncApiError';
+    this.code = code;
+    this.reauthorizeUrl = reauthorizeUrl;
+  }
+}
+
+export function getGuLogSessionToken(): string | null {
+  return localStorage.getItem('gu-log-jwt');
+}
+
+async function apiFetch(apiUrl: string, init?: RequestInit): Promise<Response> {
+  const jwt = getGuLogSessionToken();
+  if (!jwt) throw new ReaderSyncApiError('請先登入 GitHub', 'SESSION_EXPIRED');
+  return fetch(`${apiUrl.replace(/\/$/, '')}/reader-sync`, {
+    ...init,
+    headers: {
+      Authorization: `Bearer ${jwt}`,
+      'Content-Type': 'application/json',
+      ...(init?.headers ?? {}),
+    },
+  });
+}
+
+async function readerSyncApiError(resp: Response, fallback: string): Promise<ReaderSyncApiError> {
+  let detail: unknown;
+  try {
+    detail = (await resp.json()).detail;
+  } catch {
+    detail = null;
+  }
+  if (detail && typeof detail === 'object') {
+    const d = detail as { code?: unknown; message?: unknown; reauthorizeUrl?: unknown };
+    return new ReaderSyncApiError(
+      typeof d.message === 'string' ? d.message : fallback,
+      typeof d.code === 'string' ? d.code : 'READER_SYNC_FAILED',
+      typeof d.reauthorizeUrl === 'string' ? d.reauthorizeUrl : undefined
+    );
+  }
+  if (resp.status === 401) return new ReaderSyncApiError('登入已過期，請重新登入', 'SESSION_EXPIRED');
+  return new ReaderSyncApiError(`${fallback}：HTTP ${resp.status}`);
+}
+
+export async function pullFromReaderSyncApi(apiUrl: string): Promise<GistReadStore | null> {
+  const resp = await apiFetch(apiUrl);
+  if (!resp.ok) throw await readerSyncApiError(resp, '拉取失敗');
+  const payload: { store?: GistReadStore } = await resp.json();
+  return payload.store ?? null;
+}
+
+export async function pushToReaderSyncApi(
+  apiUrl: string,
+  store: GistReadStore | string[]
+): Promise<void> {
+  const data = Array.isArray(store)
+    ? normalizeForSync({ version: 1, slugs: store, lastUpdated: new Date().toISOString() })
+    : normalizeForSync(store);
+  data.lastUpdated = new Date().toISOString();
+  const resp = await apiFetch(apiUrl, {
+    method: 'PUT',
+    body: JSON.stringify({ store: data }),
+  });
+  if (!resp.ok) throw await readerSyncApiError(resp, '推送失敗');
 }
 
 /**
- * Try to extract a GitHub token from the stored JWT, falling back to a
- * manually stored PAT.  Returns null if neither is available.
+ * Legacy fallback: manually pasted GitHub PAT stored in localStorage.
+ * Normal signed-in sync should use gu-log backend mediation instead.
  */
 export function getGitHubToken(): string | null {
-  const jwt = localStorage.getItem('gu-log-jwt');
-  if (jwt) {
-    try {
-      const parts = jwt.split('.');
-      if (parts.length === 3) {
-        const payload = JSON.parse(b64urlDecode(parts[1]));
-        const tok: unknown =
-          payload.github_token ?? payload.access_token ?? payload.gh_token ?? payload.token;
-        if (tok && typeof tok === 'string' && tok.length > 10) {
-          return tok;
-        }
-      }
-    } catch {
-      // ignore decode errors
-    }
-  }
   return localStorage.getItem('gu-log-github-pat');
 }
 
@@ -53,7 +102,7 @@ async function ghFetch(url: string, token: string, init?: RequestInit): Promise<
   });
 }
 
-function apiError(status: number, fallback: string): Error {
+function githubApiError(status: number, fallback: string): Error {
   if (status === 401) return new Error('Token 無效或已過期');
   if (status === 403) return new Error('GitHub API 速率限制，請稍後再試');
   if (status === 404) return new Error('Gist 不存在');
@@ -102,7 +151,7 @@ export async function findOrCreateGist(token: string): Promise<string> {
 
   // Search existing gists (up to 100)
   const listResp = await ghFetch('https://api.github.com/gists?per_page=100', token);
-  if (!listResp.ok) throw apiError(listResp.status, 'GitHub API 錯誤');
+  if (!listResp.ok) throw githubApiError(listResp.status, 'GitHub API 錯誤');
   const gists: Array<{ id: string; description: string }> = await listResp.json();
   const existing = gists.find((g) => g.description === GIST_DESCRIPTION);
   if (existing) {
@@ -123,7 +172,7 @@ export async function findOrCreateGist(token: string): Promise<string> {
       },
     }),
   });
-  if (!createResp.ok) throw apiError(createResp.status, '無法建立 Gist');
+  if (!createResp.ok) throw githubApiError(createResp.status, '無法建立 Gist');
   const created: { id: string } = await createResp.json();
   localStorage.setItem(GIST_ID_KEY, created.id);
   return created.id;
@@ -141,13 +190,13 @@ export async function pushToGist(token: string, store: GistReadStore | string[])
       files: { [GIST_FILENAME]: { content: JSON.stringify(data, null, 2) } },
     }),
   });
-  if (!resp.ok) throw apiError(resp.status, '推送失敗');
+  if (!resp.ok) throw githubApiError(resp.status, '推送失敗');
 }
 
 export async function pullFromGist(token: string): Promise<GistReadStore | null> {
   const gistId = await findOrCreateGist(token);
   const resp = await ghFetch(`https://api.github.com/gists/${gistId}`, token);
-  if (!resp.ok) throw apiError(resp.status, '拉取失敗');
+  if (!resp.ok) throw githubApiError(resp.status, '拉取失敗');
   const gist: { files: Record<string, { content: string }> } = await resp.json();
   const file = gist.files?.[GIST_FILENAME];
   if (!file?.content) return null;
