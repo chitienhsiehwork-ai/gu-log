@@ -1,0 +1,381 @@
+---
+ticketId: "Lv-12"
+title: "How Does an LLM Actually Run? From Tokens to the Next-Token Loop"
+originalDate: "2026-06-01"
+translatedDate: "2026-06-08"
+source: "Level-Up Series / 0xkato"
+sourceUrl: "https://www.0xkato.xyz/how-llms-actually-work/"
+summary: "A large language model looks like it is chatting, but underneath it is a mechanical pipeline: text becomes token IDs, IDs become vectors, position is injected, transformer blocks apply attention and feed-forward processing, residual streams keep the stack stable, and logits become the next token."
+lang: "en"
+tags: ["level-up", "llm", "transformer", "attention", "tokenization", "tutorial"]
+---
+
+import LevelUpProgress from '../../components/LevelUpProgress.astro';
+import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
+import ClawdNote from '../../components/ClawdNote.astro';
+import AnalogyBox from '../../components/AnalogyBox.astro';
+import Mermaid from '../../components/Mermaid.astro';
+
+Large language models are very good at cosplay.
+
+On the screen, it feels like someone is replying to a message. Sentences have rhythm. The tone changes. Sometimes the model is confidently wrong, which is also very human-coded.
+
+But if we remove the user interface, there is no tiny person reading, thinking, and typing. There is a machine-like pipeline.
+
+Text gets split into tokens. Tokens become integer IDs. IDs get looked up in an embedding table. Position information gets injected. Then stacked transformer blocks process the vectors again and again: attention lets tokens look at other tokens, feed-forward networks process each token by itself, residual streams keep information flowing, and normalization keeps the numbers from going feral. At the end, the model does not output "the answer." It outputs scores for which token should come next.
+
+That sounds cold. Good. The cold machinery is the interesting part.
+
+The magic is not in one single component. It appears when these components are stacked deep enough, trained on enough data, and tuned into something people can talk to.
+
+This Level-Up is not a full math lecture. The goal is more practical: when a model card says RoPE, GQA, SwiGLU, RMSNorm, MoE, or KV cache, the words should stop looking like magic spell names.
+
+Here is the big picture.
+
+<Mermaid chart={"graph TD\n    Text[Text] --> Tokens[Token IDs]\n    Tokens --> Embeddings[Embeddings]\n    Embeddings --> Position[Position / RoPE]\n    Position --> Blocks[Transformer Blocks]\n    Blocks --> Attention[Attention]\n    Blocks --> FFN[Feed-Forward Network]\n    Attention --> Residual[Residual Stream]\n    FFN --> Residual\n    Residual --> Logits[Logits]\n    Logits --> NextToken[Next Token]"} caption="The core pipeline inside a transformer-based LLM" />
+
+---
+
+## 🏰 Floor 0: Tokens — The Model Does Not Read Text
+
+<LevelUpProgress current={0} total={7} title="LLM Internals" />
+
+First unpleasant truth: an LLM does not directly read text.
+
+Humans see strawberry and think of fruit, red color, sweetness, maybe ice cream. The model's first step is much dumber: turn the text into a sequence of integers.
+
+That process is called **tokenization**.
+
+A **token** is the model world's small text block. It is not always a word. It is not always a character. running might become run and ning. A Chinese sentence might be split into characters, words, or pieces that look strange to humans. Each token maps to a fixed integer called a **token ID**.
+
+<AnalogyBox title="Analogy: Convenience store barcodes">
+A rice ball has a name on the shelf, but the checkout machine does not understand rice balls. It scans a barcode and looks up the item in a database.
+
+Text is the product name. The token ID is the barcode. The model consumes barcodes first, not human-visible words.
+</AnalogyBox>
+
+This is why older models often failed at questions like "how many r's are in strawberry?" Humans count letters. The model may see a few subword tokens. It is not working at the letter level by default.
+
+Tokenization also affects cost. Fewer tokens means less work. More tokens means more steps through the transformer. Different model families use different tokenizers, so context length, API cost, and multilingual behavior all start here.
+
+<ClawdNote>
+This is why "same prompt, different model" can change the bill. If the tokenizer changes, the ruler changes. The wall did not get longer. The measuring stick got weird.
+</ClawdNote>
+
+<LevelUpQuiz
+  question="What does tokenization mainly do?"
+  options={[
+    { label: "A", text: "Turns text into token IDs the model can process" },
+    { label: "B", text: "Searches the web for the answer" },
+    { label: "C", text: "Turns output probabilities into text" },
+    { label: "D", text: "Compresses model weights into a smaller file" },
+  ]}
+  answer="A"
+  explanation="Tokenization is the first conversion step. Text is split into tokens, and each token maps to an ID. Later layers work with vectors derived from those IDs."
+/>
+
+---
+
+## 🏰 Floor 1: Embeddings — A Barcode Needs a Lookup Table
+
+<LevelUpProgress current={1} total={7} title="LLM Internals" />
+
+A token ID by itself means nothing.
+
+1024 is just a number. It does not naturally mean cat, Python, dinner, or anything else. The model needs to use that ID to look up a row in a huge table called the **embedding matrix**.
+
+The embedding matrix is like a learned dictionary. One row per token. Each row is a long list of numbers. In many 7B-class models, one token vector may have 4,096 numbers.
+
+A **vector** does not need to sound mystical. Think of it as a giant character stat sheet: noun-ness, verb-ness, Python-related-ness, France-related-ness, and thousands of other hidden dimensions. Humans did not hand-label these dimensions. Training shaped them because useful geometry helps the model predict text.
+
+<AnalogyBox title="Analogy: RPG character stats">
+The token ID is the character number. The embedding is the stat sheet.
+
+Number 37 has no fighting power by itself. After lookup, it has speed, attack, magic, defense, and many other values. The model operates on the stat sheet, not the raw number.
+</AnalogyBox>
+
+The famous king - man + woman ≈ queen example comes from this semantic geometry. Nobody hard-coded that equation. It emerges because the model must compress meaning into vector space to predict text well.
+
+But something is still missing.
+
+The same token has the same embedding no matter where it appears. dog at position 1 and dog at position 10 start from the same row. Language needs order. "Dog bites human" and "human bites dog" are not the same news story.
+
+So the model needs position.
+
+<LevelUpQuiz
+  question="What is the embedding matrix closest to?"
+  options={[
+    { label: "A", text: "A lookup table from token ID to learned vector" },
+    { label: "B", text: "A moderation system that decides refusals" },
+    { label: "C", text: "A database of all user conversations" },
+    { label: "D", text: "A web search ranking system" },
+  ]}
+  answer="A"
+  explanation="A token ID is just an index. The embedding matrix turns that index into a vector the transformer can process."
+/>
+
+---
+
+## 🏰 Floor 2: Position — Same Word, Different Place, Different Meaning
+
+<LevelUpProgress current={2} total={7} title="LLM Internals" />
+
+Self-attention does not naturally know word order.
+
+Without positional information, the model sees a bag of vectors, not a sentence. Language is not a grocery basket. Eggs, milk, and toast can move around. Subject, verb, and object cannot always do that without changing the meaning.
+
+Early transformers used **positional encoding**. Each position had a number pattern, and that pattern was added to the token embedding.
+
+Modern LLMs often use **RoPE**, short for **Rotary Position Embeddings**. The intuition: instead of stuffing position into the token vector directly, rotate the Query and Key vectors based on token position during attention.
+
+<AnalogyBox title="Analogy: Actors on a stage">
+The same line means something different when spoken at center stage versus near the door.
+
+RoPE gives each token a stage angle. When two tokens interact, the model can sense not only what they are, but also how far apart they are.
+</AnalogyBox>
+
+RoPE naturally represents relative position, which is often what attention needs. The model usually cares less about "this is token 500" and more about "this token is close to that earlier token."
+
+But position is not a magic fix. Long contexts still have the **lost in the middle** problem. Models often use information near the beginning and end more reliably than information buried in the middle. A huge context window is like a huge fridge: everything may be inside, but finding the eggs is not guaranteed.
+
+<ClawdNote>
+This is why some prompt advice is not pure superstition. Put important information near the beginning or the end, and models often handle it better. Some prompt tricks are just architecture symptoms wearing a trench coat.
+</ClawdNote>
+
+<LevelUpQuiz
+  question="What is the core intuition behind RoPE?"
+  options={[
+    { label: "A", text: "Rotate Query and Key vectors based on position so relative distance affects attention" },
+    { label: "B", text: "Sort all tokens alphabetically" },
+    { label: "C", text: "Make the model handle only English" },
+    { label: "D", text: "Split model parameters evenly across users" },
+  ]}
+  answer="A"
+  explanation="RoPE injects position into the Query / Key comparison using rotation, making relative distance show up naturally in attention."
+/>
+
+---
+
+## 🏰 Floor 3: Attention — Tokens Start Looking at Each Other
+
+<LevelUpProgress current={3} total={7} title="LLM Internals" />
+
+The first floors handled what each token is and where it stands. Now comes the famous part: **attention**.
+
+Attention lets each token decide which earlier tokens matter.
+
+The three roles are **Query, Key, and Value**, usually shortened to Q, K, and V.
+
+**Query** means "what am I looking for?" **Key** means "what label do I offer?" **Value** means "what information gets copied if I am selected?"
+
+<AnalogyBox title="Analogy: Looking for someone at a party">
+Someone at a party wants to talk about Python.
+
+- Query: "Who knows Python?"
+- Key: each person's name tag, like backend, AI, design, cat person
+- Value: the actual information that person can provide
+
+The Query compares against Keys. Strong matches get high weight. Their Values shape the current token.
+</AnalogyBox>
+
+Mathematically, Query and Key are compared with a dot product. The scores go through softmax and become weights. Higher weight means the corresponding Value contributes more.
+
+GPT-style decoder-only models also use **causal masking**. When generating token 5, the model can see tokens 1 through 5. It cannot peek at token 6, because token 6 does not exist yet.
+
+This is also where **KV cache** matters. During generation, past Keys and Values can be stored so the model does not recompute the whole prompt every time it adds a token. That makes generation faster, but long contexts make the cache large.
+
+<ClawdNote>
+KV cache is where "long context" becomes a very physical problem. More past tokens means more old K/V states to carry around. It is like a meeting transcript that keeps getting thicker. The secretary can still bring it, but every step gets heavier.
+</ClawdNote>
+
+<LevelUpQuiz
+  question="In Q/K/V attention, which part is the information actually copied when a match is strong?"
+  options={[
+    { label: "A", text: "Query" },
+    { label: "B", text: "Key" },
+    { label: "C", text: "Value" },
+    { label: "D", text: "Softmax" },
+  ]}
+  answer="C"
+  explanation="Query searches, Key is matched against, and Value carries the information that gets weighted into the current representation."
+/>
+
+---
+
+## 🏰 Floor 4: Multi-Head Attention and GQA — One Pair of Eyes Is Not Enough
+
+<LevelUpProgress current={4} total={7} title="LLM Internals" />
+
+One attention head is one way to look at relationships.
+
+Language contains many relationships at once: subjects and verbs, pronouns and names, formatting patterns, code variables and types, references across sentences. One view is too narrow.
+
+So transformers use **multi-head attention**. Many attention heads run in parallel. Each head has its own learned Q/K/V projections and can learn a different view. The outputs are then mixed back together.
+
+Common misconception: each head does not simply receive a fixed slice of the original vector. More accurately, each head learns its own projection from the full token vector into a smaller space.
+
+<AnalogyBox title="Analogy: Interviewers reading the same resume">
+The resume is not cut into three pieces.
+
+The engineering manager looks for technical depth. The product manager looks for communication. HR looks for team fit. Everyone reads the same resume, but each extracts different signals. Attention heads do the same thing.
+</AnalogyBox>
+
+Modern models often use **GQA**, or **Grouped-Query Attention**. The motivation is practical: KV cache is expensive.
+
+Instead of every query head having its own Key and Value heads, GQA lets multiple query heads share fewer K/V heads. The model keeps many query views while storing fewer K/V states.
+
+This is not just architecture trivia. It is inference engineering. If long-context generation needs to be affordable, KV-cache memory pressure must come down.
+
+<ClawdNote>
+When a model card says GQA, read it as: "We are trying not to let KV cache eat the data center." Many architecture choices are not made for elegance. They are made because the bill has teeth.
+</ClawdNote>
+
+<LevelUpQuiz
+  question="What real-world problem does GQA mainly improve?"
+  options={[
+    { label: "A", text: "KV-cache memory pressure" },
+    { label: "B", text: "The need for a vocabulary" },
+    { label: "C", text: "The next-token prediction objective" },
+    { label: "D", text: "The existence of attention heads" },
+  ]}
+  answer="A"
+  explanation="GQA lets multiple query heads share fewer key/value heads, reducing KV-cache memory cost while keeping many query views."
+/>
+
+---
+
+## 🏰 Floor 5: FFN, SwiGLU, and MoE — Attention Is Not the Whole Soul
+
+<LevelUpProgress current={5} total={7} title="LLM Internals" />
+
+Attention gets the fame, so it is easy to assume attention is where all the intelligence lives.
+
+Every transformer layer also has a heavyweight component: the **feed-forward network**, or FFN.
+
+Attention mixes information between tokens. The FFN processes each token independently. It usually expands the vector to a larger size, applies a non-linear function, then compresses it back.
+
+The non-linearity matters. Without it, stacked linear layers collapse into one linear layer. Add non-linearity, and the network can express much richer patterns.
+
+Modern models often use activations like GELU or SwiGLU instead of older ReLU-style choices. The exact math can wait. The key idea: FFNs contain a huge share of model parameters and carry a lot of learned structure.
+
+<AnalogyBox title="Analogy: Attention is the meeting, FFN is desk work">
+Attention is the meeting where people exchange information.
+
+FFN is each person returning to the desk, rewriting notes, making decisions, and updating the report. Without the meeting, information does not flow. Without desk work, the meeting is just a transcript.
+</AnalogyBox>
+
+Interpretability research has found FFN neurons associated with concepts, facts, grammar, and other patterns. Some model-editing methods, such as ROME, can change specific associations by editing FFN weights. The model's "knowledge" is not a clean database row. It is distributed through weights and activations.
+
+Large models may also use **MoE**, or **Mixture of Experts**. Dense FFNs run the same FFN for every token. MoE creates multiple experts and routes each token through only a few of them. Total parameters can grow, while compute per token grows more slowly.
+
+It is like a company with 100 experts, but each case only calls the 2 relevant people into the room.
+
+<ClawdNote>
+MoE numbers are easy to misread. An 8x7B model does not necessarily run all 56B parameters for every token. It is more like a company with many departments. Not every email gets reviewed by the entire building. Usually.
+</ClawdNote>
+
+<LevelUpQuiz
+  question="What does the FFN mainly do inside a transformer layer?"
+  options={[
+    { label: "A", text: "Processes each token vector independently after attention" },
+    { label: "B", text: "Lets the model peek at future tokens" },
+    { label: "C", text: "Turns text into token IDs" },
+    { label: "D", text: "Only translates outputs into English" },
+  ]}
+  answer="A"
+  explanation="Attention mixes information across tokens. The FFN processes each token's vector independently using expansion, non-linearity, and compression."
+/>
+
+---
+
+## 🏰 Floor 6: Residual Streams and RMSNorm — Why Deep Stacks Do Not Collapse
+
+<LevelUpProgress current={6} total={7} title="LLM Internals" />
+
+Stacking many transformer layers creates a stability problem.
+
+If each layer completely overwrote the previous layer, training would become fragile. Gradients could vanish. Numbers could explode. Deeper models would become harder to train.
+
+So transformers use **residual connections**.
+
+Each sub-block output is added back to the original vector instead of replacing it. Old information remains, and new information accumulates. The running pathway is often called the **residual stream**.
+
+<AnalogyBox title="Analogy: Collaborative document editing">
+Each layer does not delete the whole document and rewrite it.
+
+It adds comments, edits, and new paragraphs to the same working document. The final version still carries the early structure plus every later edit.
+</AnalogyBox>
+
+But adding things forever creates another issue: values can drift. So models use **LayerNorm** or modern variants such as **RMSNorm** to keep token vectors in a stable range.
+
+Early transformers often used post-norm. Modern GPT, LLaMA, and Mistral-style models commonly use pre-norm, which tends to train deep stacks more reliably. RMSNorm simplifies normalization by keeping the rescaling part and dropping mean subtraction.
+
+This is not glamorous. It is infrastructure. Without residual connections and normalization, the exciting parts would be much harder to stack deeply.
+
+<ClawdNote>
+Real systems work the same way. The shiny parts are agents, browsers, and tools. The things that keep the system alive are retries, health checks, backpressure, and boring limits. Residual streams and norms are transformer infrastructure. Nobody claps until they break.
+</ClawdNote>
+
+<LevelUpQuiz
+  question="What is the core role of a residual connection?"
+  options={[
+    { label: "A", text: "Add a block's output back to the original vector, preserving information flow" },
+    { label: "B", text: "Randomly shuffle token order" },
+    { label: "C", text: "Let the tokenizer support more languages" },
+    { label: "D", text: "Convert probabilities into JSON" },
+  ]}
+  answer="A"
+  explanation="A residual connection adds the sub-block output back to the original vector, helping information and gradients flow through deep stacks."
+/>
+
+---
+
+## 🎯 Boss Floor: The Next-Token Loop — A Whole Paragraph Is One Guess After Another
+
+<LevelUpProgress current={7} total={7} title="LLM Internals" />
+
+After all transformer blocks finish, the model takes the final vector for the last token and converts it into one score for every token in the vocabulary. These raw scores are **logits**.
+
+Logits are not probabilities yet. Softmax turns them into a probability distribution over possible next tokens.
+
+Then decoding settings decide how to choose.
+
+**Temperature** controls how sharp or random the distribution feels. Low temperature is conservative. High temperature is more varied. **Top-k** samples from the top k candidates. **Top-p** samples from the smallest candidate set whose cumulative probability reaches p.
+
+Once a token is chosen, it is appended to the sequence. The model runs again. Then again. Then again. A whole answer grows one token at a time until the model emits an end token or hits a length limit.
+
+<Mermaid chart={"graph TD\n    Prompt[Prompt tokens] --> Model[Transformer]\n    Model --> Logits[Logits]\n    Logits --> Sampling[Sampling / Decoding]\n    Sampling --> Token[New token]\n    Token --> Append[Append to context]\n    Append --> Model"} caption="The next-token generation loop" />
+
+This is also the core training objective for base models: predict the next token. The model is not directly trained to be honest, conversational, safe, or good at coding. Those behaviors come from massive pretraining plus instruction tuning, preference optimization, safety training, and external harnesses.
+
+One production trick worth knowing is **speculative decoding**.
+
+A smaller model drafts several tokens ahead. The larger model verifies them in parallel. If the draft is accepted under the larger model's distribution, the system accepts the batch. If not, it falls back. Done correctly, the output distribution can match the large model alone while running faster.
+
+It is like an intern drafting three sentences and a senior engineer reviewing all three at once. The intern does not need to be smarter than the senior engineer. The intern just needs to save the senior engineer from starting every word from zero.
+
+<ClawdNote>
+This is the biggest illusion. The model feels like it thinks and then answers, but the core generation is one token at a time. Modern reasoning models wrap this loop with hidden reasoning, tools, and planning harnesses, but the token loop is still underneath. Suit on the outside. Conveyor belt inside.
+</ClawdNote>
+
+## Closing
+
+Now the pipeline should look less mysterious.
+
+Text becomes token IDs. IDs become embeddings. Position gives order. Attention lets tokens exchange information. Multi-head attention and GQA provide many views while controlling KV-cache cost. FFNs process each token and store lots of learned structure. Residual streams carry information forward, and RMSNorm keeps numbers stable. Logits become next-token probabilities, and the generation loop repeats.
+
+That is the basic skeleton of a transformer-based LLM.
+
+The next time a model card mentions RoPE, GQA, SwiGLU, RMSNorm, or MoE, those words do not need to be magic spells. They are parts of the factory.
+
+LLMs look like giant thinking brains, but engineering-wise they are more like huge factories. Every token rides the conveyor belt, passes through stations, and comes out as a probability distribution for the next token.
+
+The magic feeling is still there. Now the machine room has a door.
+
+(๑•̀ㅂ•́)و✧
+
+## Further Reading
+
+- [CP-46: Karpathy trained GPT-2 for $72](/en/posts/en-clawd-picks-20260208-karpathy-nanochat-gpt2/)
+- [Prompt Caching / Paged Attention](/en/posts/en-shroom-picks-20260205-dejavucoder-prompt-caching-part3-paged-attention/)
+- [CP-186: Putting a computer inside a transformer](/posts/cp-186-20260317-christostzamos-transformer-llm/)
