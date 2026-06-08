@@ -32,7 +32,7 @@ This Level-Up is not a full math lecture. The goal is more practical: when a mod
 
 Here is the big picture.
 
-<Mermaid chart={"graph TD\n    Text[Text] --> Tokens[Token IDs]\n    Tokens --> Embeddings[Embeddings]\n    Embeddings --> Position[Position / RoPE]\n    Position --> Blocks[Transformer Blocks]\n    Blocks --> Attention[Attention]\n    Blocks --> FFN[Feed-Forward Network]\n    Attention --> Residual[Residual Stream]\n    FFN --> Residual\n    Residual --> Logits[Logits]\n    Logits --> NextToken[Next Token]"} caption="The core pipeline inside a transformer-based LLM" />
+<Mermaid chart={"graph TD\n    Input[Text → Token IDs<br/>→ Embeddings]\n    Input --> Position[Position / RoPE]\n    Position --> Blocks[Transformer Blocks]\n    Blocks --> Attention[Attention]\n    Blocks --> FFN[Feed-Forward Network]\n    Attention --> Residual[Residual Stream]\n    FFN --> Residual\n    Residual --> Output[Logits → Next Token]"} caption="The core pipeline inside a transformer-based LLM" />
 
 ---
 

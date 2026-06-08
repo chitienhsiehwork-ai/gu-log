@@ -30,7 +30,7 @@ import Mermaid from '../../components/Mermaid.astro';
 
 先看全景。
 
-<Mermaid chart={"graph TD\n    Text[文字] --> Tokens[詞元編號]\n    Tokens --> 嵌入向量[嵌入向量]\n    嵌入向量 --> 位置[位置資訊 / `RoPE`]\n    位置 --> Blocks[`Transformer` 區塊]\n    Blocks --> 注意力機制[注意力機制]\n    Blocks --> FFN[前饋網路]\n    注意力機制 --> 殘差[殘差流]\n    FFN --> 殘差\n    殘差 --> 原始分數[原始分數]\n    原始分數 --> 下一詞元[下一個 Token]"} caption="`Transformer` 架構 LLM 的核心流水線" />
+<Mermaid chart={"graph TD\n    輸入[文字 → 詞元編號<br/>→ 嵌入向量]\n    輸入 --> 位置[位置資訊 / `RoPE`]\n    位置 --> Blocks[`Transformer` 區塊]\n    Blocks --> 注意力機制[注意力機制]\n    Blocks --> FFN[前饋網路]\n    注意力機制 --> 殘差[殘差流]\n    FFN --> 殘差\n    殘差 --> 輸出[原始分數 → 下一個 Token]"} caption="`Transformer` 架構 LLM 的核心流水線" />
 
 ---
 
