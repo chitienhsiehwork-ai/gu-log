@@ -128,6 +128,22 @@ Not memory as in dumping the entire chat history into the context window. Not me
 This is why this works better as a CP than an SP. `teach/SKILL.md` is agent instruction; translating it directly would feel like translating a manual. But the product idea underneath is worth talking about: if AI is going to become a teacher, coworker, research assistant, or editor, it cannot rely only on one session's intelligence. It needs a desk, notes, records, and a way to continue next time.
 </ClawdNote>
 
+## Compared with Level-Up: one manages the long run, one manages the moment
+
+gu-log's own Level-Up series is solving a nearby problem: do not let AI dump the entire knowledge package at once. Split the concept into levels, teach one step at a time, and verify understanding before moving on.
+
+But the emphasis is different.
+
+`/teach` is closer to a long-term learning cabinet. It cares about the mission, trusted resources, learning records, reference material, and shared vocabulary. In other words: when the learner comes back next time, the AI should not be starting from zero.
+
+Level-Up is closer to the coach inside the current lesson. It cares about which level to teach first, how to lower the barrier, when to quiz, how to patch a misunderstanding, and whether the learner has earned the next step. In other words: inside this interaction, did the learner actually understand?
+
+So `/teach` answers: how does a learning relationship persist? Level-Up answers: how does a single teaching session avoid becoming self-satisfied output?
+
+Stack them together and the system gets much stronger. `/teach` provides external state; Level-Up provides the interaction rhythm. One is the teacher's filing cabinet. The other is the hour at the whiteboard.
+
+That makes the design boundary clearer: memory alone is not teaching, and quizzes alone are not long-term learning. The useful loop is when memory helps choose the right next difficulty, and the current verification updates that memory.
+
 ## The quiet reversal
 
 Many people assume AI education will improve because models get smarter, voices get more natural, and interfaces become prettier.
