@@ -1,5 +1,6 @@
 import type { APIContext } from 'astro';
 import { getCollection } from 'astro:content';
+import { getPostAuthorshipNote } from '../../utils/post-authorship-notes';
 import { getPublishedPosts } from '../../utils/post-status';
 
 /**
@@ -11,7 +12,7 @@ import { getPublishedPosts } from '../../utils/post-status';
  *
  * Fields per article:
  *   slug, ticketId, prefix, title, summary, tags, lang,
- *   originalDate, translatedDate, source, sourceUrl,
+ *   originalDate, translatedDate, source, sourceUrl, authorshipNote,
  *   translatedBy (model info), url (relative link)
  */
 export async function GET(_context: APIContext) {
@@ -37,6 +38,7 @@ export async function GET(_context: APIContext) {
       translatedDate: post.data.translatedDate || null,
       source: post.data.source,
       sourceUrl: post.data.sourceUrl,
+      authorshipNote: getPostAuthorshipNote(post.id, post.data.lang),
       translatedBy: post.data.translatedBy
         ? {
             model: post.data.translatedBy.model,
