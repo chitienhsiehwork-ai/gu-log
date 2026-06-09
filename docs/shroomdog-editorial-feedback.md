@@ -13,6 +13,15 @@
 - 寫 SP / CP / SD / Lv 前，如果任務涉及文章品質或風格，先快速掃這份檔案的近期條目。
 - 當同一類 feedback 出現 3 次以上，應該蒸餾進 `GU-LOG_WRITER_PROMPT.md`，必要時再同步到 pipeline prompt；不要永遠只留在 corpus 裡。
 
+## 2026-06-09 — Lv-06 preservation: 不要污染有生命感的文字
+
+### Feedback: 好玩的文字要保護，不要被後續機械修補污染
+
+- ShroomDog feedback：`Lv-06 是誰寫的？好有趣的文字！別污染了Lv-06`
+- 情境：Lv-06〈OpenClaw Memory, Skills & Automation：大腦和習慣〉有很強的 early Level-Up 口吻：失憶、金魚、每天醒來讀 MEMORY.md、AI 像真的「活過來」的敘事感。這類文字的價值不只是資訊正確，而是有角色、有節奏、有記憶點。後續任何 glossary、晶晶體、link、version、Mermaid、QA gate 或 batch rewrite 都可能不小心把這種手感磨平。
+- 修法：Lv-06 預設視為 preservation-sensitive article。若未來要改，只做必要、可驗證、最小範圍的修補；不要順手統一語氣、重寫比喻、清掉 kaomoji、把活句子改成規格書中文，或用新版 pipeline 全文重跑。若真的需要大改，先明確比較 before/after 的讀感，確認沒有把原本的趣味和角色感洗掉。
+- Reusable lesson：gu-log 文章不是只有「通過 gate」一種品質。當某篇文章已經有自然、有趣、有生命感的聲音，工程修補要像修古董：穩固結構，不要重新噴漆。自動化工具負責防壞，不該把好東西磨成平均值。
+
 ## 2026-05-25 — SP-187 Symphony: CP-179 overlap and Vibe scorer false positive
 
 ### Feedback: 引用既有 CP，刪掉重複內容，不要讓讀者重讀同一篇
