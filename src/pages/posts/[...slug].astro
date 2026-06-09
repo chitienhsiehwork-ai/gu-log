@@ -16,6 +16,7 @@ import LoginCta from '../../components/LoginCta.astro';
 import AiPopup from '../../components/AiPopup.astro';
 import ReadStatusButton from '../../components/ReadStatusButton.astro';
 import AiJudgeScore from '../../components/AiJudgeScore.astro';
+import { getPostAuthorshipNote } from '../../utils/post-authorship-notes';
 import { getLocalizedPostUrl, getNavigablePosts, resolvePostStatus } from '../../utils/post-status';
 
 export async function getStaticPaths() {
@@ -45,6 +46,7 @@ const sourceCitationLabel = isShroomDogOriginal && isChatGptShareSource ? '靈�
 
 const postVersion = getPostVersion(post.id);
 const postReaderRevision = getPostReaderRevision(post.id);
+const authorshipNote = getPostAuthorshipNote(post.id, 'zh-tw');
 const postStatus = resolvePostStatus(post, allPosts);
 const navigablePosts = getNavigablePosts(allPosts, post);
 
@@ -117,6 +119,15 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
           <a href={post.data.sourceUrl} target="_blank" rel="noopener">
             {post.data.source}
           </a>
+        </div>
+      )
+    }
+
+    {
+      authorshipNote && (
+        <div class="authorship-note">
+          <strong>作者推定：</strong>
+          <span>{authorshipNote}</span>
         </div>
       )
     }
@@ -346,6 +357,21 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
     border-radius: 6px;
     font-size: 0.85rem;
     color: var(--color-text-muted);
+  }
+
+  .authorship-note {
+    margin: 1rem 0 1.25rem;
+    padding: 0.75rem 1rem;
+    background-color: var(--color-bg-secondary, rgba(0, 0, 0, 0.03));
+    border-left: 3px solid var(--color-accent);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    line-height: 1.6;
+  }
+
+  .authorship-note strong {
+    color: var(--color-text);
   }
 
   .post-version-info {

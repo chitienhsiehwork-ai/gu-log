@@ -1,5 +1,6 @@
 import type { APIContext } from 'astro';
 import { getCollection, type CollectionEntry } from 'astro:content';
+import { getPostAuthorshipNote } from '../../../utils/post-authorship-notes';
 
 /**
  * Individual article endpoint for gu-log iOS app.
@@ -44,6 +45,7 @@ export async function GET(_context: APIContext) {
       translatedDate: post.data.translatedDate || null,
       source: post.data.source,
       sourceUrl: post.data.sourceUrl,
+      authorshipNote: getPostAuthorshipNote(post.id, post.data.lang),
       translatedBy: post.data.translatedBy || null,
       headings,
       // Raw body: everything after the frontmatter closing ---
