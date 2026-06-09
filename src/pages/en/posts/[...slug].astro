@@ -127,15 +127,6 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
       )
     }
 
-    {
-      authorshipNote && (
-        <div class="authorship-note">
-          <strong>Authorship note:</strong>
-          <span>{authorshipNote}</span>
-        </div>
-      )
-    }
-
     <TableOfContents lang="en" headings={headings} maxDepth={isLevelUp ? 2 : 3} />
 
     <div class="post-content">
@@ -158,29 +149,37 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
     }
 
     {
-      post.data.translatedDate && post.data.translatedBy && (
+      ((post.data.translatedDate && post.data.translatedBy) || authorshipNote) && (
         <div class="translation-info">
-          {post.data.translatedBy.pipeline ? (
-            <>
-              <div>Translated on {post.data.translatedDate}</div>
-              {post.data.translatedBy.pipeline.map((step) => (
-                <div>
-                  {step.role} by {step.model} ({step.harness})
-                </div>
-              ))}
-              {post.data.translatedBy.pipelineUrl && (
-                <div>
-                  <a href={post.data.translatedBy.pipelineUrl} target="_blank" rel="noopener">
-                    View pipeline script →
-                  </a>
-                </div>
-              )}
-            </>
-          ) : (
-            <>
-              Translated on {post.data.translatedDate} by {post.data.translatedBy.model} (
-              {post.data.translatedBy.harness})
-            </>
+          {post.data.translatedDate &&
+            post.data.translatedBy &&
+            (post.data.translatedBy.pipeline ? (
+              <>
+                <div>Translated on {post.data.translatedDate}</div>
+                {post.data.translatedBy.pipeline.map((step) => (
+                  <div>
+                    {step.role} by {step.model} ({step.harness})
+                  </div>
+                ))}
+                {post.data.translatedBy.pipelineUrl && (
+                  <div>
+                    <a href={post.data.translatedBy.pipelineUrl} target="_blank" rel="noopener">
+                      View pipeline script →
+                    </a>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div>
+                Translated on {post.data.translatedDate} by {post.data.translatedBy.model} (
+                {post.data.translatedBy.harness})
+              </div>
+            ))}
+          {authorshipNote && (
+            <div class="authorship-note">
+              <strong>Authorship note:</strong>
+              <span>{authorshipNote}</span>
+            </div>
           )}
         </div>
       )
@@ -361,15 +360,8 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
     color: var(--color-text-muted);
   }
 
-  .authorship-note {
-    margin: 1rem 0 1.25rem;
-    padding: 0.75rem 1rem;
-    background-color: var(--color-bg-secondary, rgba(0, 0, 0, 0.03));
-    border-left: 3px solid var(--color-accent);
-    border-radius: 6px;
-    font-size: 0.9rem;
-    color: var(--color-text-muted);
-    line-height: 1.6;
+  .translation-info .authorship-note {
+    margin-top: 0.5rem;
   }
 
   .authorship-note strong {

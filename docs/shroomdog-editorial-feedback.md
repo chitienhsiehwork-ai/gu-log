@@ -340,7 +340,15 @@
 - 修法：保留「agent 做夢 = 把白天工作沉澱成可重用程序」這個核心，刪掉重複解釋和過多分類，讓文章變成短而尖的概念文。只留必要 source capture、Skill vs diary、/dream 應該保守這幾個讀者真正需要的點。
 - Reusable lesson：短 prompt/概念來源不一定需要完整拆解每個 bullet。若核心洞見一句話就能講清楚，文章應該圍繞那個洞見做 mental model，而不是把 source prompt 轉成「逐條說明書」。Tribunal/FreshEyes 若只看懂不看「是否值得讀完」，可能會高估這類長但正確的文章。
 
-
 ## 2026-05-27 — FreshEyes 長度剛好要變成明確 metric
 
 Sprin asked whether Tribunal v7 FreshEyes covers “length should be just right,” then preferred adding one or two FreshEyes metrics and bumping Tribunal version. Durable lesson: FreshEyes should not only ask whether the post is understandable; it must judge whether the length is worth finishing. Add explicit `payoffDensity` and `lengthFit` dimensions, and make them non-compensating so a good hook/readability cannot hide correct-but-too-long filler. Librarian still owns corpus overlap evidence; FreshEyes owns on-page reader fatigue and length/payoff fit.
+
+## 2026-06-09 — AI authorship notes belong with provenance metadata
+
+### Feedback: Do not put inferred model attribution under the title
+
+- ShroomDog feedback：`為什麼是放那麼上面啊 毫無品味`；`鐵定是要放在藍色框框那個位置吧，模型署名的部分`
+- 情境：PR #383 新增舊文作者推定後，把「作者推定」卡片放在 title/source citation 下方、TOC 上方。這讓製作履歷搶走正文開場視覺重心，特別是在手機上看起來像文章最重要的 lead block。
+- 修法：作者推定不是閱讀前資訊，而是 provenance metadata；應該跟 translatedBy pipeline / model 署名收在同一個底部 metadata box，位置在 tags 後、Tribunal Scores 前。Source citation 可以留在文章前方，因為它幫讀者理解正文來源；model attribution 不該打斷 reading flow。
+- Reusable lesson：AI provenance 要透明，但透明不等於放到最搶眼的位置。讀者先讀文章，再看製作履歷；所有 model / harness / authorship inference 類資訊都應服從文章版面節奏，集中在文章尾段 metadata 區。
