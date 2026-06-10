@@ -326,6 +326,7 @@ gu-log 的文章草稿有三種來源，全部最終都變成 `src/content/posts
 ### 其他 workflow 規則
 
 - **User 只看 production**（gu-log.vercel.app）。不要叫 user 開 dev server。
+- **🔴 ShroomDog（作者本人）只在 merge 之後才參與**，而且是在 **prod URL（gu-log.vercel.app）或 branch/preview URL** 上讀成品——**不讀 draft、不看 diff、不在 merge 前審稿**。所以任何 CC/CCC **不准停下來問 user「要不要先讀這篇 draft 再 merge」**，那等於把 author 拖進 pre-merge 流程，違反這條。寫作 / 翻譯任務只要 (1) 品質 gate 全綠（pre-commit / pre-push / tribunal floor composite ≥3）、(2) 內容 logical / safe、(3) 不是 critical product / 架構決策 → **自己 merge**，author 之後在 prod 或 branch URL 上看，要回饋他會在 merge 後給（進 `docs/shroomdog-editorial-feedback.md`）。唯一要 merge 前停下來問的：產品方向、對外承諾、或不確定該不該公開的 critical design decision（見 [`CCC-playbook` Self-merge policy](playbooks/CCC-playbook.md)）。「文章寫得好不好 / 語氣對不對」**不是** stop 的理由——那靠 tribunal gate 把關，author 在 prod 上事後挑。
 - **CC 自己跑 `pnpm run dev`** 來 iterate，用 `playwright-cli` 截圖驗證 UI（skill 在 `.claude/skills/playwright-cli/`）。
 - **UI/UX 品質**：改完任何視覺的東西（CSS、component、color、spacing、typography、layout）就跑 `uiux-auditor` skill（`.claude/skills/uiux-auditor/`）。它會強制兩個主題都截圖、算 WCAG 對比、flag 寫死的 hex。不要等 user 來挑錯。
 - **建立 / 修改 skill**：用 `skill-creator` skill（`.claude/skills/skill-creator/`）— 官方 anthropic/skills 的來源。
