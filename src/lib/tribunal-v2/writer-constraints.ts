@@ -338,7 +338,7 @@ export async function enforceWriterConstraints(
       parts.push(`  - line ${v.line}: found 「${v.pronoun}」 — ${v.snippet}`);
     }
     parts.push(
-      '  Fix: use specific names (ShroomDog, Clawd, 讀者) or restructure sentences to be impersonal.'
+      '  Fix: use specific names (ShroomDog, Mogu, 讀者) or restructure sentences to be impersonal.'
     );
   }
 

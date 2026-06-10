@@ -1,6 +1,6 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
 import '../../styles/glossary.css';
 import glossaryData from '../../data/glossary.json';
 
@@ -131,7 +131,7 @@ const allLetters = grouped.map((g) => g.letter);
                   </dt>
                   <dd>
                     <p class="term-def">{item.enDefinition ?? item.definition}</p>
-                    {item.enClawdNote && <ClawdNote>{item.enClawdNote}</ClawdNote>}
+                    {item.enMoguNote && <MoguNote>{item.enMoguNote}</MoguNote>}
                     {item.url && (
                       <p class="term-meta">
                         <a

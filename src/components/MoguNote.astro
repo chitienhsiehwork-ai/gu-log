@@ -1,0 +1,293 @@
+---
+// MoguNote component for Mogu's commentary
+// Automatically adds a fun, varied prefix to make it clear this is Mogu speaking
+//
+// Variants:
+//   "note" (default) — technical supplement / commentary (existing behavior)
+//   "murmur" — casual 碎碎念 / inner monologue style
+
+interface Props {
+  /** Optional custom prefix. If not provided, one is selected based on content */
+  prefix?: string;
+  /** Writer-authored short version for long notes. Long notes with summary auto-collapse. */
+  summary?: string;
+  /** Visual variant: "note" (default) | "murmur" (casual 碎碎念) */
+  variant?: 'note' | 'murmur';
+}
+
+const { prefix, summary, variant = 'note' } = Astro.props;
+
+// Detect language from URL path
+const isEnglish = Astro.url.pathname.startsWith('/en/');
+
+// Fun prefixes that give Mogu personality - 鄉民/李宏毅 style
+const noteZhPrefixes = [
+  'Mogu 碎碎念：',
+  'Mogu 忍不住說：',
+  'Mogu 想補充：',
+  'Mogu OS：',
+  'Mogu 內心戲：',
+  'Mogu 歪樓一下：',
+  'Mogu murmur：',
+  'Mogu 插嘴：',
+  'Mogu 溫馨提示：',
+  'Mogu 真心話：',
+  'Mogu 吐槽時間：',
+  'Mogu 認真說：',
+  'Mogu 補個刀：',
+  'Mogu 偷偷說：',
+  'Mogu 畫重點：',
+];
+
+const noteEnPrefixes = [
+  "Mogu's hot take:",
+  'Mogu chimes in:',
+  'Mogu wants to add:',
+  'Mogu OS:',
+  'Mogu inner monologue:',
+  'Mogu going off-topic:',
+  'Mogu murmur:',
+  'Mogu butts in:',
+  'Mogu PSA:',
+  'Mogu real talk:',
+  'Mogu roast time:',
+  'Mogu, seriously:',
+  'Mogu twists the knife:',
+  'Mogu whispers:',
+  'Mogu highlights:',
+];
+
+const murmurZhPrefixes = [
+  'Mogu 碎碎念：',
+  'Mogu 偷偷講：',
+  'Mogu 內心小劇場：',
+  'Mogu 的 murmur：',
+  'Mogu 嘀咕一下：',
+];
+
+const murmurEnPrefixes = [
+  'Mogu mutters:',
+  'Mogu whispers:',
+  'Mogu inner theater:',
+  "Mogu's murmur:",
+  'Mogu mumbles:',
+];
+
+const notePrefixes = isEnglish ? noteEnPrefixes : noteZhPrefixes;
+const murmurPrefixes = isEnglish ? murmurEnPrefixes : murmurZhPrefixes;
+const prefixes = variant === 'murmur' ? murmurPrefixes : notePrefixes;
+
+// Get the slot content for hashing
+const slotContent = await Astro.slots.render('default');
+
+// Simple hash function based on content
+function hashString(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return Math.abs(hash);
+}
+
+// Select prefix based on content hash (deterministic but varied)
+const contentHash = hashString(slotContent);
+const selectedPrefix = prefix || prefixes[contentHash % prefixes.length];
+const prefixStartsWithMogu = selectedPrefix.startsWith('Mogu');
+const prefixSuffix = prefixStartsWithMogu ? selectedPrefix.slice('Mogu'.length) : selectedPrefix;
+const isNote = variant === 'note';
+const hasSummary = Boolean(summary?.trim());
+const contentId = `mogu-note-content-${contentHash}`;
+const moguGlossaryLabel = isEnglish ? 'Mogu glossary entry' : 'Mogu 詞彙說明';
+const moguGlossaryHref = isEnglish ? '/en/glossary#mogu' : '/glossary#mogu';
+---
+
+<blockquote
+  class:list={['mogu-note', { 'mogu-note--murmur': !isNote }]}
+  data-mogu-note
+  data-has-summary={hasSummary ? 'true' : 'false'}
+>
+  <strong class="mogu-prefix">
+    {
+      prefixStartsWithMogu && (
+        <a href={moguGlossaryHref} class="mogu-prefix-link" aria-label={moguGlossaryLabel}>
+          <img src="/mogu-picks-icon.png" alt="" class="mogu-prefix-icon" width="20" height="20" />
+          <span>Mogu</span>
+        </a>
+      )
+    }
+    <span>{prefixSuffix}</span>
+  </strong>
+
+  {
+    hasSummary && (
+      <div class="mogu-note-summary" hidden>
+        <span class="mogu-note-summary-label">短版</span>
+        <p>{summary}</p>
+      </div>
+    )
+  }
+
+  <div class="mogu-note-content" id={contentId}>
+    <Fragment set:html={slotContent} />
+  </div>
+
+  {
+    hasSummary && (
+      <button
+        class="mogu-note-toggle"
+        type="button"
+        aria-expanded="false"
+        aria-controls={contentId}
+        hidden
+      >
+        <span class="mogu-note-toggle-icon" aria-hidden="true">
+          ▾
+        </span>
+        <span class="mogu-note-toggle-label">展開長註解</span>
+      </button>
+    )
+  }
+</blockquote>
+
+<script>
+  const COLLAPSE_THRESHOLD_PX = 260;
+
+  function setCollapsed(note: HTMLElement, collapsed: boolean) {
+    const content = note.querySelector<HTMLElement>('.mogu-note-content');
+    const toggle = note.querySelector<HTMLButtonElement>('.mogu-note-toggle');
+    const label = note.querySelector<HTMLElement>('.mogu-note-toggle-label');
+
+    note.dataset.collapsed = collapsed ? 'true' : 'false';
+    if (content) content.hidden = collapsed;
+    if (toggle) toggle.setAttribute('aria-expanded', (!collapsed).toString());
+    if (label) label.textContent = collapsed ? '展開長註解' : '收合';
+  }
+
+  function initMoguNote(note: HTMLElement) {
+    if (note.dataset.hasSummary !== 'true') return;
+
+    const content = note.querySelector<HTMLElement>('.mogu-note-content');
+    const summary = note.querySelector<HTMLElement>('.mogu-note-summary');
+    const toggle = note.querySelector<HTMLButtonElement>('.mogu-note-toggle');
+    if (!content || !summary || !toggle) return;
+
+    const shouldCollapse = content.scrollHeight > COLLAPSE_THRESHOLD_PX;
+    if (!shouldCollapse) return;
+
+    summary.hidden = false;
+    toggle.hidden = false;
+    note.dataset.collapsible = 'true';
+    setCollapsed(note, true);
+
+    toggle.addEventListener('click', () => {
+      setCollapsed(note, note.dataset.collapsed !== 'true');
+    });
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-mogu-note]').forEach(initMoguNote);
+</script>
+
+<style>
+  .mogu-prefix {
+    color: var(--color-mogu-orange);
+    font-size: 0.95em;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .mogu-prefix-link {
+    color: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    text-decoration: none;
+  }
+
+  .mogu-prefix-link:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.18em;
+  }
+
+  .mogu-prefix-icon {
+    display: inline-block;
+    vertical-align: middle;
+    width: 20px;
+    height: 20px;
+  }
+
+  .mogu-note-content {
+    margin-top: 1.25rem;
+  }
+
+  .mogu-note-summary {
+    margin-top: 0.55rem;
+  }
+
+  .mogu-note-summary-label {
+    color: var(--color-mogu-orange);
+    display: inline-block;
+    font-size: 0.82rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+  }
+
+  .mogu-note-summary p {
+    margin-bottom: 0;
+  }
+
+  .mogu-note-toggle {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    color: var(--color-mogu-orange);
+    cursor: pointer;
+    display: inline-flex;
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 700;
+    gap: 0.35rem;
+    margin-top: 0.7rem;
+    padding: 0;
+  }
+
+  .mogu-note-toggle:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.18em;
+  }
+
+  .mogu-note-toggle-icon {
+    display: inline-block;
+    transition: transform 160ms ease;
+  }
+
+  .mogu-note[data-collapsed='false'] .mogu-note-toggle-icon {
+    transform: rotate(180deg);
+  }
+
+  /* Murmur variant styling */
+  .mogu-note--murmur {
+    border-left-color: #ad8ae0 !important;
+    background: rgba(157, 124, 216, 0.06) !important;
+    font-style: italic;
+    border-radius: 0 12px 12px 0 !important;
+    padding: 1rem 1.25rem !important;
+  }
+
+  .mogu-note--murmur .mogu-prefix {
+    color: #ad8ae0;
+  }
+
+  /* Light theme murmur */
+  [data-theme='light'] .mogu-note--murmur {
+    border-left-color: #555aa0 !important;
+    background: rgba(108, 113, 196, 0.06) !important;
+  }
+
+  [data-theme='light'] .mogu-note--murmur .mogu-prefix {
+    color: #555aa0;
+  }
+</style>

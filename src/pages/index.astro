@@ -72,14 +72,14 @@ const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(
     )
   }
 
-  {/* CP: Clawd Picks */}
+  {/* CP: Mogu Picks */}
   {
     cpPosts.length > 0 && (
-      <section class="clawd-picks-section" id="clawd-picks">
+      <section class="mogu-picks-section" id="mogu-picks">
         <h2>
-          <img src="/clawd-picks-icon.png" alt="" class="clawd-section-icon" /> Clawd Picks
+          <img src="/mogu-picks-icon.png" alt="" class="mogu-section-icon" /> Mogu Picks
         </h2>
-        <p class="section-subtitle">Clawd 每 5 小時精選一則推文翻譯</p>
+        <p class="section-subtitle">Mogu 每 5 小時精選一則推文翻譯</p>
 
         {cpPosts.slice(0, 5).map((pick) => {
           const status = getPostStatus(pick, allPostsFull);
@@ -104,7 +104,7 @@ const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(
 
         {cpPosts.length > 5 && (
           <p class="view-all">
-            <a href="/clawd-picks">查看全部 →</a>
+            <a href="/mogu-picks">查看全部 →</a>
           </p>
         )}
       </section>
@@ -211,7 +211,7 @@ const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(
   }
 
   .posts-section,
-  .clawd-picks-section {
+  .mogu-picks-section {
     margin-bottom: 1.5rem;
     padding-top: 1.25rem;
   }
@@ -223,7 +223,7 @@ const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(
   }
 
   /* Short centered divider between sections */
-  .clawd-picks-section::before,
+  .mogu-picks-section::before,
   .sd-section::before,
   .lv-section::before {
     content: '';
@@ -254,11 +254,11 @@ const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(
     color: var(--color-heading-sp, var(--color-badge-sp));
   }
 
-  .clawd-picks-section h2 {
-    color: var(--color-clawd-orange);
+  .mogu-picks-section h2 {
+    color: var(--color-mogu-orange);
   }
 
-  .clawd-section-icon,
+  .mogu-section-icon,
   .section-icon {
     width: 24px;
     height: 24px;

@@ -32,8 +32,8 @@ test.describe('Ticket Badge Colors', () => {
       return;
     }
 
-    // Go to clawd-picks listing to find a CP post in the middle (has prev/next)
-    await page.goto('/clawd-picks');
+    // Go to mogu-picks listing to find a CP post in the middle (has prev/next)
+    await page.goto('/mogu-picks');
     await page.waitForLoadState('networkidle');
 
     // Click on a post that's not the first or last (so it has both prev and next)
@@ -50,7 +50,9 @@ test.describe('Ticket Badge Colors', () => {
     await page.waitForLoadState('networkidle');
 
     // Now check the PrevNextNav for ticket badge colors
-    const navTicketIds = page.locator('.prev-next-nav .ticket-badge, .prev-next-nav .nav-ticket-id');
+    const navTicketIds = page.locator(
+      '.prev-next-nav .ticket-badge, .prev-next-nav .nav-ticket-id'
+    );
     const navCount = await navTicketIds.count();
 
     expect(navCount).toBeGreaterThan(0);
