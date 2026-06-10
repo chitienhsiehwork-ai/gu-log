@@ -4,10 +4,11 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import Toggle from '../components/Toggle.astro';
 import TicketBadge from '../components/TicketBadge.astro';
 import PostStatusLabel from '../components/PostStatusLabel.astro';
-import { getListablePosts, getPostStatus, type PostStatus } from '../utils/post-status';
+import { getIndexPosts, getPostStatus, type PostStatus } from '../utils/post-status';
 
 const allPostsFull = await getCollection('posts');
-const allPosts = getListablePosts(allPostsFull, 'zh-tw');
+// Homepage excludes sub-8 posts (held off until a background tribunal lifts them).
+const allPosts = getIndexPosts(allPostsFull, 'zh-tw');
 
 // Helper: extract number from ticketId (e.g., "CP-11" → 11)
 const getTicketNumber = (ticketId: string | undefined) => {
