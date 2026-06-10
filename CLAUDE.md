@@ -82,16 +82,31 @@
 
 這是個人副業 repo，**velocity > stability**。寫主任務時順手踩到的 bug、寫 follow-up 寫到不爽的小毛刺，**不要另開 branch / 另開 PR / 寫 follow-up commit message 然後甩給 user**——直接在當前 PR 修掉，每個 fix 一個 atomic commit 就好。
 
-**為什麼**：
+**🔴 最高原則：每個 agent 都要完全自主，絕不把問題甩給下一個 session/CCC，也不要為了確認而一直問 user。**
+
+自主包含兩面：(1) 把所有 friction 當場修掉（見下），(2) **CI 綠 + 改動 logical/safe/appropriate + 不是 critical design decision → 直接 merge + auto-delete，不要問 user「要不要合」**。會拖慢流程、浪費 user 注意力的確認式問題一律不問；只有 critical design decision（產品方向、架構、對外承諾、個人品牌調性）才停下來用 `AskUserQuestion`。細節見 [`CCC-playbook` Self-merge policy](playbooks/CCC-playbook.md)。
+
+任何 CC/CCC 在做任務的過程中撞到的所有 friction——環境沒裝好、hook 紅了、lint 擋了、驗證器報錯、frontmatter schema 不合、相依工具缺、文件過時——**通通是當前這個 agent 的責任，當場用 proper commit 修掉**，放進同一個 PR。不准：
+
+- ❌ 把問題寫進 PR body / commit message 當「known issue / follow-up」然後丟給 user 或下一個 CCC
+- ❌ 回頭問 user「要不要我順便修這個？」——這種 friction 不需要 user 決策，預設答案永遠是「修」
+- ❌ 假設「下一個 session 會處理」——下一個 session 很可能根本不會發生，問題就這樣爛在那裡
+
+**為什麼這條是最高原則**：
+
+- **甩鍋給下一個 CCC = 浪費 user 的時間和注意力**。每多丟一個問題回去，user 就要多被 prompt 一次、多開一次 GitHub、多 load 一次脈絡。Agent 存在的意義就是把這些 friction 吃掉，不是轉手。
+- **同一個 PR 修全部完全 OK**：repo 已開 auto-merge + auto-delete merged branch，PR 是拋棄式的 review surface，不是需要保持「乾淨單一主題」的長期資產。所以「怕弄髒 PR」不是甩鍋的理由——atomic commit 讓 diff 仍然讀得懂、revert 仍然下得了刀。
 - 副業 repo 沒人 review queue，另開 PR 只是讓 user 多開一次 GitHub、多 merge 一次
 - Atomic commit + revert 已經是足夠的 rollback 工具，不需要 PR 級別的隔離
 - Context switch（CC/CCC 重啟、重新 load 整個任務脈絡）的成本遠大於多寫一個 commit
 - 避免「我先 ship 主任務、follow-up 留給下一個 session」這種藉口——下一個 session 可能根本不會發生，bug 就這樣 ship 出去了
 
-**例外**（這時可以開 follow-up PR）：
+**例外**（這時可以把 fix 拆成另一個 PR——但**仍然是當前 agent 自己現在開、自己現在 merge**，不是丟給下一個 session）：
 - Fix scope 大到會干擾主 PR review/diff（譬如要動 50 個檔案重構）
-- Fix 跟主任務語意完全無關（在改 SP 文章時順手發現 build infra bug，可以另開）
+- Fix 跟主任務語意完全無關（在改 SP 文章時順手發現 build infra bug）
 - User 明講「先別管那個，下次再處理」
+
+⚠️ 注意：「另開 PR」≠「甩給下一個 CCC」。另開 PR 的前提是當前 agent 把它開好、跑綠、merge 掉，friction 在這個 session 內就消失。只有 user 明確喊停才可以真正延後。**預設是全部塞同一個 PR**——auto-merge 的 repo 沒有理由為了「主題乾淨」去拆。
 
 **Atomic commit 紀律**：
 - 一個 commit 做一件事，commit message 解釋「為什麼修」（不是「修了什麼」——diff 自己會說）

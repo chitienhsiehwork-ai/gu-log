@@ -32,6 +32,10 @@
 
 ## Self-merge policy
 
+**🔴 預設就是「綠了直接 merge」，不要為了確認而問 user。** 判斷三連：**CI 全綠** + **改動 logical/safe/appropriate（在 CCC scope 內）** + **不是 critical design decision** → CCC **自己 mark ready + merge + 讓 GitHub auto-delete branch**，不需要、也不該回頭問 user「要不要 merge / 要不要我合」。問這種問題 = 拖慢流程、浪費 user 注意力。
+
+**唯一該停下來問的**：critical design decision——會改變產品方向、架構、對外承諾、或 user 個人品牌調性的東西（例：要不要砍掉一個系列、要不要改 site 結構、要不要公開某個敏感立場）。內容文章只要過了 vibe gate + CI 綠，就屬於「safe & appropriate」，直接 merge；revert 很便宜（auto-merge + atomic commit 就是為了讓 ship 快、回退也快）。
+
 1. `git push -u origin claude/xxx`
 2. 用 GitHub MCP (`mcp__github__create_pull_request`) 開 PR 到 main
 3. **PR 開完立刻 `mcp__github__subscribe_pr_activity` 訂閱自己這條 PR**——不要問 user「要不要幫你盯」。CCC 開 PR 預設就要盯 CI + review comment，這是工作的一部分，不是 opt-in 服務。問就是 dumb question。
@@ -218,6 +222,8 @@ Maintainer 明確拒絕 Opus 4.7 的寫作聲音 + vibe 評分校準。因此：
 原因很簡單：tribunal 回來的修改意見要 iterate，如果兩版都寫了，每輪 rewrite 要改兩份，token 花費直接翻倍。zh-tw 是主版本，en 是衍生翻譯，先把主版本品質打到及格再翻。
 
 **晶晶體防線**：zh-tw 文章禁止裝飾性中英夾雜。API、CLI、MCP、model 名、產品名等技術專有名詞保留英文 OK，但「這個 approach 很 solid」「deliver 一個 production-ready 的 output」這種寫法一律改成自然中文。Tribunal 的 vibe scorer 會對晶晶體扣分（clarity -3, vibe -4）。
+
+**🔧 查晶晶體（跟所有 deterministic 檢查）一律跑 script / grep，不要 Read 整篇文章用人眼挑英文**。`node scripts/check-jingjing.mjs` 本身就是 ripgrep-based 掃描器，會把每個違規詞、行號、上下文一次列出來；pronoun 檢查、frontmatter 驗證同理（`check-pronoun-clarity.mjs`、`validate-posts.mjs`）。為了「確認有沒有英文詞」去 `Read` 一整個 .mdx 是純浪費 token——deterministic 規則交給 deterministic 工具，Read 只留給需要理解語意/語氣的時候（例如自己重讀文章判斷 vibe）。同理，要找某個詞出現在哪，用 `Grep` 不要 `Read` 全檔。
 
 ### 流程
 
