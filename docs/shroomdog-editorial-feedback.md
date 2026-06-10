@@ -352,3 +352,13 @@ Sprin asked whether Tribunal v7 FreshEyes covers “length should be just right,
 - 情境：PR #383 新增舊文作者推定後，把「作者推定」卡片放在 title/source citation 下方、TOC 上方。這讓製作履歷搶走正文開場視覺重心，特別是在手機上看起來像文章最重要的 lead block。
 - 修法：作者推定不是閱讀前資訊，而是 provenance metadata；應該跟 translatedBy pipeline / model 署名收在同一個底部 metadata box，位置在 tags 後、Tribunal Scores 前。Source citation 可以留在文章前方，因為它幫讀者理解正文來源；model attribution 不該打斷 reading flow。
 - Reusable lesson：AI provenance 要透明，但透明不等於放到最搶眼的位置。讀者先讀文章，再看製作履歷；所有 model / harness / authorship inference 類資訊都應服從文章版面節奏，集中在文章尾段 metadata 區。
+
+## 2026-06-10 — SP-220 loop engineering / CTA 縮寫太生
+
+### Feedback: ClawdNote 裡別丟讀者不懂的行銷縮寫，改白話
+
+- ShroomDog feedback：`CTA? what is that?` ——讀 SP-220 拆穿 DeepSeek 業配那段 ClawdNote 時，被「整數 CTA」（en: round-number CTA）這個縮寫卡住。
+- 情境：原文用 CTA（Call To Action）形容「$20 = 17 億 token」這個刻意取整、誘導馬上註冊的收尾數字。CTA 是行銷文案術語，不是 AI/tooling 圈詞彙；放在拆穿業配的 punch 句裡，讀者剛要會心一笑卻得停下來查縮寫，力道就洩了。
+- 修法：改成白話，把概念講出來不搬縮寫。zh-tw：「廣告結尾那種『手刀下單』的收尾鉤子」；en：「the kind of 'sign up now' line every ad ends on」。不進 glossary——CTA 是通用行銷縮寫、非 AI 概念，塞進 AI 詞庫會稀釋它、且開頭後每個行銷詞都要比照。
+- 順帶查清楚 jingjing 為何沒擋 CTA：`scripts/check-jingjing.mjs:491` 對「長度 ≤ 6 的全大寫 token」（`/^[A-Z][A-Z0-9-]*$/`）一律放行，把短全大寫當 acronym（API/SDK/CLI…）。副作用是抓不到冷門縮寫術語（CTA/MVP/ICP/TAM），那類要靠人或 tribunal 判斷讀者熟不熟。
+- Reusable lesson：晶晶體 lint 只守小寫／混寫英文；全大寫縮寫是 lint 的盲區。寫作時遇到行銷／PM／商管縮寫（CTA、MVP、ICP、TAM、ARR…），預設翻成白話或講出概念，不要假設 AI 工程讀者都懂行銷術語。ClawdNote 的 punch 句尤其不能被一個縮寫卡住。
