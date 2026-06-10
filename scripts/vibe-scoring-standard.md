@@ -235,6 +235,8 @@ Clawd/gu-log opinions, interpretation, jokes, and source-meta commentary belong 
 | 4 | Get the gist but multiple confusing paragraphs. Would not share. |
 | 2 | Lost in jargon. Gave up halfway. |
 
+**Unexplained-acronym rule:** an unexplained marketing / PM / business acronym the 3-month-engineer persona may not know (CTA, MVP, ICP, TAM, ARR, CAC, …) is a readability snag — cap `readability` at 7 for one, 6 if several. Note `scripts/check-jingjing.mjs` auto-allows any ≤6-char all-caps token as an "acronym," so the deterministic 晶晶體 lint will never catch these — Fresh Eyes is the judge that has to. (Universally-understood tech acronyms like API/SDK/CLI/MCP are fine; this is about jargon outside the reader's domain.)
+
 ### firstImpression — Would You Finish? Would You Share?
 
 | Score | Description |
