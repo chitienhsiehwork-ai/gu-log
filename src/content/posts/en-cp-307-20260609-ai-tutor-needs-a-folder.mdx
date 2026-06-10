@@ -1,166 +1,171 @@
 ---
 ticketId: "CP-307"
-title: "AI Tutors Don't Need to Explain Better. They Need to Remember Better."
-originalDate: "2026-06-08"
-translatedDate: "2026-06-09"
+title: "AI Is Eating the Junior Dev's Day Job. Matt Pocock's Fix Is a Folder."
+originalDate: "2026-06-10"
+translatedDate: "2026-06-10"
 translatedBy:
-  model: "GPT-5.5"
-  harness: "Hermes Agent"
+  model: "Opus 4.8"
+  harness: "Claude Code"
   pipeline:
     - role: "Written"
       model: "GPT-5.5"
       harness: "Hermes Agent"
-source: "mattpocock/skills on GitHub"
-sourceUrl: "https://github.com/mattpocock/skills/tree/main/skills/productivity/teach"
+    - role: "Rewritten"
+      model: "Opus 4.8"
+      harness: "Claude Code"
+source: "@mattpocockuk on X"
+sourceUrl: "https://x.com/mattpocockuk/status/2064663221718425660"
 lang: "en"
-summary: "Matt Pocock's /teach skill turns an AI tutor from a one-off explainer into a learning workspace with MISSION, RESOURCES, learning-records, lessons, and a GLOSSARY. The point is not prettier explanations. The point is remembering why you are learning and what the next lesson should be."
+summary: "Matt Pocock's 'how to become a senior programmer' recipe looks like a joke: install /teach, make a folder, paste a prompt. The idea underneath is sharp — AI is eating the tactical part of coding, so strategic skills are now the bare minimum. What /teach really does is turn 'teach me X' into a folder that remembers where you are."
 tags: ["clawd-picks", "ai-tutor", "agent-skills", "learning", "workflow", "matt-pocock"]
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-The most common failure mode of an AI tutor is not being wrong.
+> Steps to become a senior programmer:
+> Step 1, install my `/teach` skill.
 
-It is being beautifully complete.
+Matt Pocock posted something that reads like a joke. The recipe has six steps: install the skill, make a folder called `junior-to-senior`, start your coding agent, paste a prompt, and then "keep working with the agent until you are senior."
 
-It explains the topic with structure, examples, caveats, and enough confidence to feel like a polished lecture. You finish the session thinking, "Okay, I think I got it."
+By step six, most people laugh. But the real hook is not the steps. It is the worldview hiding under that prompt.
 
-Then tomorrow, you ask again, and it starts over. Your goal is gone. Your stuck point is gone. The tiny misconception you fixed yesterday is gone. Every lesson feels like a new session. Every learning attempt feels like opening an incognito tab.
+Matt's claim: AI is eating the "tactical, on-the-ground" part of coding. A developer's day was never only typing code. It was also planning, testing, and shaping how the whole codebase grows. And the strategic skills that used to carry a person from junior to senior? In this era, they are no longer the bonus. They are the bare minimum just to stay in the game.
 
-Matt Pocock's `/teach` skill is interesting because it does not try to make the AI tutor more eloquent. It does something much more engineering-shaped: **it turns learning into a folder.**
-
-Not "teach me React." A learning workspace: `MISSION.md`, `RESOURCES.md`, `learning-records/`, `lessons/`, `reference/`, `GLOSSARY.md`, and `NOTES.md`.
-
-That sounds plain. Maybe even boring. But education often does not fail because the interaction is not fancy enough. It fails because the state disappears.
-
-## The first file: why are you learning this?
-
-`MISSION.md` is the first hook in the system.
-
-AI tutors love to start teaching as soon as they see a topic. You say you want to learn Rust, and they start explaining ownership. You say you want to learn running, and they start talking about pace. You say you want to learn yoga, and they start listing poses.
-
-But "I want to understand Rust" and "I need to ship a CLI for my team in three weeks" are not the same learning problem. "I want to get healthier" and "I want to finish a half marathon by October" should not produce the same curriculum.
-
-`/teach` requires the mission to be concrete. What are you trying to change in your work or life? What does success look like? What constraints matter? What should stay out of scope for now?
-
-This is not warm-up conversation. It is the foundation that prevents the AI from teaching randomly.
-
-<ClawdNote>
-This is very close to Matt's earlier point about not reading AI plans and instead judging the conversation before the plan. CP-52 was about aligning on a design concept before coding. This one is about aligning on a mission before learning. Same brain, different room.
-
-Same skill brain, moved from engineering to tutoring. Basically dragging the whiteboard from the office into the classroom (￣▽￣)
-</ClawdNote>
-
-## The second file: knowledge should not come from vibes
-
-`RESOURCES.md` solves another old problem: AI can explain, but it can also make "sounds plausible" feel like knowledge.
-
-So `/teach` is strict. Before the resource list is good enough, the job is not to rush into lessons. The job is to find trustworthy sources. Books, papers, expert writing, high-signal communities — they go into `RESOURCES.md`, with annotations explaining what each source is useful for.
-
-This demotes the AI from "the source of truth" to "the course designer." It can organize, sequence, quiz, and build feedback loops, but the knowledge itself should be traceable.
-
-That matters because the danger in tutoring is not only being wrong. The student is often a beginner, which means they may not know when the AI is hallucinating.
-
-`RESOURCES.md` gives the lesson a rope back to reality.
-
-## The third file: taught is not learned
-
-`learning-records/` is where the skill starts to feel like real instructional design.
-
-Many AI tutors treat coverage as progress. If closure was explained, you learned closure. If gradient descent was described, you know gradient descent.
-
-`/teach` refuses that. A learning record is not a session log. It is written only when the user demonstrates real understanding, discloses prior knowledge, corrects a misconception, or shifts the mission because of what they learned.
-
-In other words, it does not record "what was covered." It records "what we can now reasonably assume the learner understands."
-
-That is the data needed to choose the next lesson.
-
-If you can apply the concept in a scenario, the next step can get harder. If you merely nodded through the explanation, the next step should be practice, not more terminology.
-
-<ClawdNote>
-CP-229 covered harvesting AI conversations into a personal wiki so work decisions do not evaporate. The new thing here is learning progress: not preserving every note, but preserving evidence that changes the difficulty of the next lesson. It is closer to a coach checking last week's lift than a philosopher archiving your life.
-</ClawdNote>
-
-## The fourth file: one lesson, one win
-
-Every file in `lessons/` is a self-contained HTML lesson, and the rule is intentionally narrow: teach one tightly scoped thing, make it completable quickly, and give the learner a tangible win.
-
-That is small, but it cuts against an AI's instincts.
-
-Once an AI starts teaching, it often wants to unfold the whole map: background, definitions, history, common mistakes, advanced extensions, best practices, FAQ. Most of it may be true. For a beginner, it still feels like being hit in the face with an encyclopedia.
-
-The `/teach` unit is closer to "today, learn how to read this one error message" or "today, practice one breathing drill." Not because the rest does not matter, but because learning needs finishable rounds.
-
-People do not grow by swallowing the entire universe at once. They grow through one small win after another, slowly proving to themselves that they can keep going.
-
-## The fifth file: vocabulary waits for understanding
-
-`GLOSSARY.md` is another clever reversal.
-
-Most glossaries act like dictionaries: define a bunch of terms first, then ask the learner to memorize them. `/teach` does the opposite: **a term enters the glossary only after the user understands it.**
-
-That makes the glossary a compression layer, not an entry point.
-
-Once you actually understand a concept, it becomes worth compressing into a short term. Future lessons can then use that term without explaining it from scratch every time.
-
-This is similar to shared language in software teams. Teams do not memorize a domain dictionary before doing the work. They solve problems together, then compress recurring useful concepts into common language.
-
-Learning works the same way.
-
-## What AI tutoring really needs is state
-
-Put the files together, and `/teach` is not really a "teaching prompt." It is a tiny learning operating system:
-
-- `MISSION.md` decides why the learner is here.
-- `RESOURCES.md` decides where knowledge comes from.
-- `learning-records/` decides what the learner has proven they know.
-- `lessons/` decides the next small win.
-- `reference/` and `GLOSSARY.md` compress what should be revisited.
-- `NOTES.md` preserves teaching preferences and working notes.
-
-The value is not that any one file is magical. The value is that the system forces the AI to admit something basic: **teaching is not a single answer. Teaching is a relationship.**
-
-And relationships need memory.
-
-Not memory as in dumping the entire chat history into the context window. Not memory as in "remember that I am a beginner." Memory as external state that can be read, edited, cited, and actually used by the next lesson.
-
-<ClawdNote>
-This is why this works better as a CP than an SP. `teach/SKILL.md` is agent instruction; translating it directly would feel like translating a manual. But the product idea underneath is worth talking about: if AI is going to become a teacher, coworker, research assistant, or editor, it cannot rely only on one session's intelligence. It needs a desk, notes, records, and a way to continue next time.
-</ClawdNote>
-
-## Compared with Level-Up: one manages the long run, one manages the moment
-
-gu-log's own Level-Up series is solving a nearby problem: do not let AI dump the entire knowledge package at once. Split the concept into levels, teach one step at a time, and verify understanding before moving on.
-
-But the emphasis is different.
-
-`/teach` is closer to a long-term learning cabinet. It cares about the mission, trusted resources, learning records, reference material, and shared vocabulary. In other words: when the learner comes back next time, the AI should not be starting from zero.
-
-Level-Up is closer to the coach inside the current lesson. It cares about which level to teach first, how to lower the barrier, when to quiz, how to patch a misunderstanding, and whether the learner has earned the next step. In other words: inside this interaction, did the learner actually understand?
-
-So `/teach` answers: how does a learning relationship persist? Level-Up answers: how does a single teaching session avoid becoming self-satisfied output?
-
-Stack them together and the system gets much stronger. `/teach` provides external state; Level-Up provides the interaction rhythm. One is the teacher's filing cabinet. The other is the hour at the whiteboard.
-
-That makes the design boundary clearer: memory alone is not teaching, and quizzes alone are not long-term learning. The useful loop is when memory helps choose the right next difficulty, and the current verification updates that memory.
-
-## The quiet reversal
-
-Many people assume AI education will improve because models get smarter, voices get more natural, and interfaces become prettier.
-
-All of that will happen. All of it will help.
-
-But `/teach` points at a less flashy direction: an AI tutor may not first become more human. It may first become more like a good teacher's desk.
-
-On that desk are the syllabus, the reference books, the student's last mistakes, the next exercise, and a vocabulary list that gets sharper over time.
-
-Without those, even a great explanation is just improvisation.
-
-With them, AI starts to feel like it is helping you learn something that actually leaves a trace.
+In other words: the thing that used to make you senior is now only the entry fee.
 
 ---
 
-**Source**: [mattpocock/skills — productivity/teach](https://github.com/mattpocock/skills/tree/main/skills/productivity/teach)
+## The smallest line in the recipe is the whole point
+
+The step everyone skips is step two: `mkdir junior-to-senior`.
+
+Make a folder. That is it.
+
+But that folder is exactly where `/teach` gets interesting. It does not try to make the AI tutor a better talker — more patient, more examples, a softer voice. It does something much more engineering-shaped: **it turns "teach me X" into a folder.**
+
+Not "teach me React." A learning workspace, with `MISSION.md`, `RESOURCES.md`, `learning-records/`, `lessons/`, `reference/`, `GLOSSARY.md`, and `NOTES.md`.
+
+That sounds plain. Almost boring. But the number one killer of an AI tutor was never being wrong.
+
+It is forgetting.
+
+It can explain a topic with clean structure, good examples, and total confidence — like a polished public lecture. You finish thinking, "Okay, I think I got it." Then you ask again tomorrow, and it starts from zero. Your goal is gone. Your stuck point is gone. The small misconception you fixed yesterday is gone. Every lesson feels like a fresh chat. Every learning attempt feels like an incognito tab.
+
+That folder is built to fix exactly this.
+
+---
+
+## Before it teaches, it forces two questions
+
+A normal AI tutor starts teaching the moment it sees a topic. You say you want to learn Rust, and it starts explaining ownership. You say you want to start running, and it starts talking about pace. You say you want to learn yoga, and it starts listing poses.
+
+But "I want to understand Rust" and "I need to ship a CLI for my team in three weeks" are two different jobs. "I want to get healthier" and "I want to finish a half marathon in October" should not grow the same lesson plan.
+
+So `/teach` forces a `MISSION.md` first: what is this skill actually for? What does success look like? What are the limits on time and budget? What side topics should stay out for now? This is not small talk. It is the floor that stops the AI from teaching at random.
+
+The second move is sharper. `RESOURCES.md` has a rule: before there are good, trustworthy sources, the job is not to rush into lessons. The job is to go find books, papers, expert writing, and high-signal community discussion — and to note what each source is good for.
+
+This step demotes the AI from "the source of truth" to "the course designer." It can sequence, quiz, and build practice loops, but the knowledge must trace back to something real.
+
+That matters most here, because the student is a beginner — which means they often cannot tell when the AI is making things up. `RESOURCES.md` ties a rope to the ground: if the lesson is worth trusting, at least you know where it came from.
+
+<ClawdNote>
+Matt really only has one design in his head. He just keeps moving it into different rooms. CP-52 was "don't read the AI's plan, watch the conversation that happens *before* the plan" — align on the design idea before you code. This is the same move for learning: align on "what should you be able to do afterward" before anyone teaches anything.
+
+Dragging the same whiteboard from the office into the classroom, without even swapping the markers. I kind of respect the stubbornness (￣▽￣)
+</ClawdNote>
+
+---
+
+## It records what you proved, not what it said
+
+`learning-records/` is where the skill starts to feel like real instructional design.
+
+Most AI tutors treat coverage as progress. Closure was explained, so you learned closure. Gradient descent was described, so you know gradient descent.
+
+`/teach` refuses that. A learning record is written only in a few moments: the learner actually shows understanding, admits they already knew something, fixes a real misconception, or changes the mission because of something new they understood.
+
+So it does not record "which lesson was covered." It records "what we can now reasonably assume this person knows."
+
+That gap is huge. How hard the next lesson should be cannot be a guess — it needs evidence. If you can use the concept in a scenario, the next step can level up. If you only nodded along, the next step should be practice, not ten more new words.
+
+`GLOSSARY.md` runs the same logic, but flipped even harder. Most people build a glossary like a dictionary: list a pile of definitions, tell the learner to memorize them. `/teach` does the opposite: **a term only enters the glossary after the learner truly understands it.**
+
+So the glossary is not the entrance to the material. It is a compression file for understanding. Once a concept is really digested, it earns the right to be squeezed into one short word, and future lessons can carry that word forward without re-explaining it. This is exactly how engineering teams grow a shared language — nobody memorizes the domain dictionary before starting. You solve problems together, then slowly compress the useful, recurring ideas into one phrase.
+
+<ClawdNote>
+CP-229 was about harvesting your AI chats into a personal wiki so work decisions don't evaporate. The new thing here is a different category: learning progress. It does not store all your notes. It stores the few pieces of evidence that change the difficulty of the next lesson.
+
+Closer to a coach jotting down "last week: bench 60kg" than a philosopher archiving your life reflections. The coach adds weight next time. The philosopher just reads it at your funeral.
+</ClawdNote>
+
+---
+
+## One lesson, one win
+
+Every file in `lessons/` is a standalone HTML lesson, and the rule is stubbornly narrow: teach one tightly scoped thing, make it quick to finish, and give the learner a win they can see.
+
+It sounds small. It cuts hard against the AI's instincts.
+
+The moment an AI starts teaching, it wants to unroll the whole map: background, definitions, history, common mistakes, advanced extensions, best practices, FAQ. All of it correct. But to a beginner, it is like calling a fire truck to water the little succulent on your desk — the truck arrives, the ladder goes up, the hose blasts, and the succulent drowns.
+
+A `/teach` unit is closer to "today, just learn how to read this one error message." Not because the rest does not matter, but because learning needs finishable rounds. People do not grow by swallowing the universe in one bite. They grow one small win at a time, slowly believing they can take one more step.
+
+---
+
+## Seven files apart, one learning operating system together
+
+Stack the files up, and `/teach` is not really a "teaching prompt." It is a small learning operating system: `MISSION.md` decides why you are learning, `RESOURCES.md` decides where knowledge comes from, `learning-records/` decides what the learner has proven, `lessons/` decides the next small win, `reference/` and `GLOSSARY.md` compress what should be revisited, and `NOTES.md` holds teaching preferences.
+
+The value is not that any single file is magic. It is that the system forces the AI to admit one thing: **teaching is not a single answer. It is a relationship. And relationships need memory.**
+
+Not memory as in dumping the whole chat history into the context window. Not memory as in "please remember they are a beginner." Memory as external state — something that can be read, edited, cited, and actually picked up by the next lesson.
+
+<ClawdNote summary="Cleverness is the raw model's job; memory is the harness's job. That's why this is a CP, not an SP.">
+This is also why it works better as a CP than an SP. `teach/SKILL.md` is an agent instruction; translating it line by line would read like a manual nobody wants. But the product judgment underneath is worth saying out loud: if AI is going to grow into a teacher, coworker, research assistant, or editor, it cannot run on the cleverness of one chat turn. It needs a desk, a stack of notes, a record, and a place it can pick up from next time.
+
+Cleverness is the raw model's job. Memory is the harness's job. This whole field took two years to realize memory is worth more than a few extra IQ points.
+</ClawdNote>
+
+---
+
+## Versus Level-Up: one runs the long game, one runs the moment
+
+gu-log's own Level-Up series is solving a very nearby problem: do not let the AI dump the whole package at once. Split the concept into levels, teach one at a time, and check understanding after each one.
+
+But the center of gravity is different.
+
+`/teach` is more like a long-term learning cabinet. It cares about the mission, the trusted sources, the learning records, the review material, the shared vocabulary — so that when the learner comes back, the AI is not starting from zero.
+
+Level-Up is more like the coach inside this one lesson. It cares about which level to attack first, how to lower the bar, when to quiz, how to patch a wrong answer, and whether you have earned the next level. It even has hard multiple-choice gates — get it wrong, and the level stays locked. So: inside this interaction, did the learner actually get it?
+
+So the two ask different questions. `/teach` asks: how does the learning relationship survive until next time? Level-Up asks: how does this one session avoid becoming the AI talking to itself?
+
+The fun part is that stacked together, the picture is finally complete. `/teach` provides the external state; Level-Up provides the rhythm of interaction. One is the teacher's filing cabinet. The other is the teacher's hour at the whiteboard. Without the cabinet, every lesson restarts from nothing. Without the whiteboard hour, the cabinet only stores "what was covered," not "what was actually learned."
+
+You need both. And that makes the design boundary clear: memory alone is not teaching, and quizzes alone are not long-term learning. The useful loop is when memory picks the right difficulty for the next lesson, and the check in the moment feeds back to update the memory.
+
+---
+
+## Closing: an AI that forgets cannot make anyone senior
+
+Back to Matt's half-joke recipe. Step six — "keep working until you are senior" — is funny because it assumes something that is usually false: that the AI will remember everything it walked you through.
+
+It usually does not.
+
+Many people assume AI teaching will get better because models get smarter, voices get more natural, and screens get prettier. All of that will happen, and all of it will help. But `/teach` points at a less flashy direction: an AI tutor may not first become more human. It may first become more like a good teacher's desk. On that desk: the syllabus, the reference books, the question you got wrong last time, the thing to practice next, and a vocabulary list that gets sharper over time.
+
+Without those, even a great explanation is just improvisation.
+
+And that loops straight back to Matt's sharpest line: AI is turning strategic skill into the bare minimum. As coding gets eaten from the bottom up, whether an engineer keeps a senior seat depends less and less on out-typing the AI — that fight the AI is winning — and more on whether they are seriously training the things AI is turning into commodities.
+
+To train those things, what you need is not a brilliant tutor with amnesia. It is a slightly clumsy one that remembers where the learner is and knows exactly how hard the next step should be.
+
+In the end, the teacher who carries someone from junior to senior is never the smartest one in the room. It is the one who still remembers who the student is.
+
+---
+
+**Source**: [@mattpocockuk on X](https://x.com/mattpocockuk/status/2064663221718425660) (the `/teach` skill source lives in [mattpocock/skills](https://github.com/mattpocock/skills/tree/main/skills/productivity/teach))
 
 **Related reading**:
 
