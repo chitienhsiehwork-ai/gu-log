@@ -312,6 +312,15 @@ git branch --show-current         # 應該是 claude/xxx
 git log --oneline -5              # 看 branch 最近在幹嘛
 ```
 
+接著跑 **CCC 環境 smoke test** 確認這個全新 sandbox 真的能開工（deps、git hooks、外網、sp-pipeline、validate-posts 一次驗完）：
+
+```bash
+./scripts/ccc-smoke-test.sh --fix     # --fix 會先補 deps + 掛 hooks，再跑所有 check
+# 加 --full 會多跑 lint + astro check（較慢）
+```
+
+全綠才開工。任何 ✗ 多半 `--fix` 能自動補；補不掉的（例如外網被擋、hook source drift）照訊息修。這支 script 也守住 hook source-of-truth drift（`scripts/hooks/` vs `.githooks/`），避免 setup-hooks 裝到過時的 pre-commit。
+
 然後看 task description 決定要做什麼。
 
 ## 不確定時找誰
