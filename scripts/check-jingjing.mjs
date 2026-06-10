@@ -77,7 +77,7 @@ Cloudflare Stripe Vercel Astro MDX
 Browserbase
 Semrush DataReportal Feishu
 GitHub GitLab Bitbucket GitLab.com
-DeepMind XAI Mistral DeepSeek Qwen Kimi Cohere Stability
+DeepMind XAI Mistral DeepSeek Qwen Kimi MiniMax Cohere Stability
 Hugging Face HuggingFace Replicate Modal RunPod Lambda Together Together.ai
 Linear Notion Slack Gmail Calendar Discord Telegram WhatsApp Instagram Facebook Messenger
 Jira
@@ -90,6 +90,7 @@ Insilico Medicine
 Fierce Biotech
 The Batch
 The Verge The Register Hacker News HN HackerNews TechCrunch Wired Information Bloomberg Reuters NYTimes WSJ
+Tom's Hardware
 Substack Medium dev.to
 Twitter X x.com twitter.com fxtwitter
 Reddit StackOverflow Subreddit Reddit Answers
@@ -105,6 +106,8 @@ Codex Cursor Copilot Replit Bolt Lovable Devin Atlas
 Autobrowse
 PandaOmics Chemistry42 AlphaEvolve Concordia Gemma Nemotron NanoFold
 Muse Spark Llama Maverick Sonnet Opus K2 K2.5 R1
+# Model tier names (Gemini Flash, DeepSeek V4 Flash, etc.)
+Flash
 Agent Swarm
 
 # Programming languages / runtimes / tools
