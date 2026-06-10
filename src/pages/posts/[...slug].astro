@@ -9,6 +9,8 @@ import RelatedArticles from '../../components/RelatedArticles.astro';
 import PostStatusBanner from '../../components/PostStatusBanner.astro';
 import Stage0WarnBanner from '../../components/Stage0WarnBanner.astro';
 import Stage4DegradedBanner from '../../components/Stage4DegradedBanner.astro';
+import Sub8RefiningBanner from '../../components/Sub8RefiningBanner.astro';
+import { computeOverallComposite, isBelowPublishBar } from '../../utils/tribunal-scores';
 import TicketBadge from '../../components/TicketBadge.astro';
 import Giscus from '../../components/Giscus.astro';
 import ShareButton from '../../components/ShareButton.astro';
@@ -109,6 +111,15 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
     {
       post.data.stage4Scores?.isDegraded && (
         <Stage4DegradedBanner stage4Scores={post.data.stage4Scores} lang="zh-tw" />
+      )
+    }
+
+    {
+      isBelowPublishBar(post.data.scores) && (
+        <Sub8RefiningBanner
+          composite={computeOverallComposite(post.data.scores) ?? 0}
+          lang="zh-tw"
+        />
       )
     }
 

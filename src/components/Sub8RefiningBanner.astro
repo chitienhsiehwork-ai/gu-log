@@ -1,0 +1,102 @@
+---
+/**
+ * Sub8RefiningBanner — shown on posts whose tribunal composite is below the
+ * featured bar (<8). It is NOT an error: the post ships at its own URL and
+ * shows its real AI-judge scores, but is held off the homepage until a
+ * background tribunal rewrites it up to >=8. See CLAUDE.md §兩層品質門檻.
+ */
+
+interface Props {
+  composite: number; // overall tribunal composite, 0-10
+  lang?: 'zh-tw' | 'en';
+}
+
+const { composite, lang = 'zh-tw' } = Astro.props;
+
+const labels = {
+  'zh-tw': {
+    title: '這篇還在精修中 ✍️',
+    body: `tribunal 給的分數還沒到 gu-log 的 featured 門檻（≥8），所以暫時不上首頁。背景 tribunal 之後會把它重寫拉高，分數過了就自動上架。`,
+    scoreLabel: '目前綜合分數',
+    cta: '下面是 AI judge 目前打的分數，覺得哪裡可以更好？留言告訴我們 (>w<)',
+  },
+  en: {
+    title: 'This one is still being refined ✍️',
+    body: `Its tribunal score has not yet reached gu-log's featured bar (>=8), so it is kept off the homepage for now. A background tribunal will rewrite it upward, and it goes live once it clears the bar.`,
+    scoreLabel: 'Current composite',
+    cta: 'The AI-judge scores below are where it stands now. See a way to make it better? Drop a comment (>w<)',
+  },
+} as const;
+
+const t = labels[lang];
+---
+
+<div class="sub8-refining-banner" role="note" aria-live="polite">
+  <div class="banner-header">
+    <span class="banner-title">{t.title}</span>
+    <span class="banner-score" aria-label={t.scoreLabel}>{t.scoreLabel}: {composite}/10</span>
+  </div>
+  <div class="banner-body">
+    <p class="banner-text">{t.body}</p>
+    <p class="banner-cta">{t.cta}</p>
+  </div>
+</div>
+
+<style>
+  .sub8-refining-banner {
+    margin: 1rem 0 1.5rem;
+    padding: 0;
+    border-radius: 8px;
+    border: 1px solid color-mix(in srgb, var(--color-accent) 35%, transparent);
+    border-left: 4px solid var(--color-accent);
+    background: color-mix(in srgb, var(--color-accent) 7%, transparent);
+    overflow: hidden;
+  }
+
+  .banner-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.65rem 1rem;
+    border-bottom: 1px solid color-mix(in srgb, var(--color-accent) 20%, transparent);
+    background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+  }
+
+  .banner-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--color-accent);
+    letter-spacing: 0.01em;
+  }
+
+  .banner-score {
+    font-size: 0.8rem;
+    font-weight: 600;
+    /* --color-accent (same as title): neither --color-text nor
+       --color-text-muted clears AA on the 10% accent header tint in BOTH
+       themes (muted fails dark ~4.1, text fails light ~4.4). Accent passes
+       both (dark 5.05, light 4.90); 0.8rem keeps it visually secondary. */
+    color: var(--color-accent);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .banner-body {
+    padding: 0.85rem 1rem;
+  }
+
+  .banner-text {
+    margin: 0 0 0.5rem;
+    font-size: 0.9rem;
+    color: var(--color-text);
+    line-height: 1.6;
+  }
+
+  .banner-cta {
+    margin: 0;
+    font-size: 0.88rem;
+    color: var(--color-text-muted);
+    line-height: 1.6;
+  }
+</style>

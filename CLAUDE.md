@@ -9,43 +9,37 @@
 
 **任何 Claude Code instance 進到這個 repo，第一件事必須跑 `./scripts/detect-env.sh` 確認自己的身份**，再讀對應的 playbook（`playbooks/mac-CC-playbook.md` 或 `playbooks/CCC-playbook.md`）。沒搞清楚身份就動手 = 用錯 SOP（mac-CC 跟 CCC 的 scope ceiling、merge policy、失敗處理都不一樣）。沒有例外，不能跳。
 
-### 🎯 Vibe FAIL ≠ 可以 ship（必須 iterate 到過分數才能 merge）
+### 🎯 兩層品質門檻：floor ≥3 才能 ship，PASS ≥8 才上首頁（2026-06-10 起）
 
-把 vibe FAIL 的 score 寫進 frontmatter **不等於完成任務**。Score gate 的 schema 容忍 FAIL（只檢查 block 存在），但 gu-log 的內容標準不容忍——FAIL 的東西就是品質沒到，ship 出去 = 拉低整個站的水準。
+gu-log 的品質把關**分兩層**，不要再把它當成「沒過 8 就不准 commit」的單一硬門檻：
 
-**硬規則**：
+| 層 | 門檻 | 誰擋 | 沒過會怎樣 |
+|---|---|---|---|
+| **Floor（自動 gate）** | scores.vibe 在 + 5 維齊 + **composite ≥ 3** | pre-commit hook（`scripts/score-floor-check.mjs`） | **擋 commit**。garbage(<3) 跟無分數一律進不了 main |
+| **PASS（編輯標準）** | composite ≥ 8 AND 一維 ≥ 9 AND 沒有維 < 8 | UI / 首頁過濾，不是 commit blocker | sub-8 **照樣 ship**，但加「精修中」badge + **不上首頁/featured**，等背景 tribunal 拉到 ≥8 才上 |
 
-- 任何新增的 SP / CP / SD / Lv 文章，vibe scorer 給 FAIL 一律**不准 commit + 不准 push**，必須 iterate 到 **composite ≥ 8 AND 至少一維 ≥ 9 AND 沒有任何維 < 8**（Pass bar 同 `scripts/vibe-scoring-standard.md`）
-- 實作上，呼叫 `tribunal-writer` subagent 重寫文章 → 重跑 `vibe-scorer.sh` → 沒過再來一輪。**最多 3 輪**，3 輪沒過就停下來向 user 報告（可能是 prompt 結構問題，writer agent 修不動，需要人工或重設角度）
-- 已存在於 main 的歷史文章不溯及既往（grandfathered），但**新文章一律以 PASS 為門檻**
+**白話**：
 
-**為什麼這條這麼硬**：
+- **≥3 就能 commit、能 ship**。一篇 5/10 的文章不會被 hook 擋——它會帶著 tribunal 分數公開顯示（讀者看得到 good/bad 長怎樣，這是 gu-log 的透明度賣點），但**不會出現在首頁**，會被 `getIndexPosts()` 過濾掉，並掛上「精修中」badge。
+- **首頁/featured 只放 ≥8 的**。背景 tribunal（有 quota 時跑）把 sub-8 重寫拉到 ≥8，分數一過門檻就自動上首頁。
+- **<3 或沒分數一律擋**。那是 garbage（SP-110 那種無聊到 cringe），連當反面教材都不值得公開。
+- **歷史文章 grandfathered**：沒有 scores block 的舊文不受影響（照常顯示在首頁），但**一旦 reader-visible 內容被改寫（不是純連結維護），就會觸發 floor gate**，要補一個 ≥3 的 scores.vibe 才能 commit。
 
-- 多放一篇 FAIL 文章，整站平均品質就下來。讀者不分新舊，看到一篇水的就降低對 gu-log 的信任
-- "velocity > stability" 是針對**基礎建設**（pipeline、hook、infra），不是針對**內容品質**。內容品質沒到就是沒到，沒有 velocity 跟 stability 的 trade-off
-- Tribunal 裝置存在的目的就是擋這件事——把 score 寫進 frontmatter 後因為「gate 過了」就 commit，等於把 tribunal 變成了 rubber stamp。Tribunal 是 reviewer 不是 logger
-- Decorative persona trap、ClawdNote opinion deficit、linear documentation walkthrough 這些 vibe scorer 抓的問題，rewriter 改 1-2 輪通常就能把 score 從 6 拉到 8+。3 輪都沒過再說
+**所以「把 FAIL score 寫進 frontmatter」現在是 OK 的**——只要 ≥3。它不再等於「假裝完成」，因為 badge + 首頁隔離會誠實地把它標成「還沒到 featured 水準」。Tribunal 仍然是 reviewer 不是 logger：**有 quota 就該把 sub-8 往 ≥8 推**，但這是背景精修的工作，不是 ship 的硬前提。
 
-**反例 vs 正例**：
+**還是要做的事（只是不再 block ship）**：
 
-```
-❌ 反例（這個 PR 自己踩過的）：
-   1. 跑 vibe-scorer 拿到 6/10 FAIL
-   2. 把 score JSON 塞進 frontmatter
-   3. commit + push，理由「velocity > stability、gate 過了」
-   4. 一篇 FAIL 文章 ship 到 main
+- 寫新文章時，仍然先跑 tribunal / `vibe-score` skill 拿到真分數塞進 frontmatter（≥3 才能 commit）。
+- 分數 6-7 又剛好有 quota → 呼叫 `tribunal-writer` subagent 重寫修 reasons 點出的維度 → 重跑 → 最多 3 輪，能拉到 ≥8 就上首頁。拉不動就先帶 sub-8 badge ship，排進背景 tribunal 佇列。
+- **不要為了過 floor 把分數灌水**。score-floor-check 只看 composite ≥3，但灌一個假的 8 進去比誠實標 5 更糟——badge 機制的前提是分數誠實。
 
-✅ 正例：
-   1. 跑 vibe-scorer 拿到 6/10 FAIL
-   2. 看 reasons：「decorative persona trap、5/6 ClawdNote 沒 stance」
-   3. 呼叫 tribunal-writer subagent，把 reasons + scoring standard 餵給它，
-      要求它重寫文章修這幾個維度
-   4. 重跑 vibe-scorer
-   5. 過 → 把 PASS score 塞進 frontmatter、commit、push
-   6. 沒過 → 再來一輪，最多 3 輪。3 輪後仍 FAIL → 停下來向 user 報告
-```
+**為什麼改成這樣**：
 
-實作介面：mac-CC 有 `bash scripts/tribunal-batch-runner.sh`、CCC 可以呼叫 `tribunal-writer` agent（`.claude/agents/tribunal-writer.md`）+ `vibe-scorer.sh` loop。
+- 單一硬門檻（沒過 8 不准 ship）會讓 velocity 卡死在「每篇都要 iterate 到 8」。改成 floor + 透明 badge 後，velocity 回來了，品質靠「公開分數 + 首頁只放 ≥8 + 背景精修」維持，而不是靠 block。
+- gu-log 寫的就是 AI 品質，**把 AI 自評分數攤在陽光下、連 sub-8 的也誠實標記**，本身就是這個 blog 的調性。
+- 背景 tribunal 可以排程慢慢把存量往上拉，不用塞在 ship 的關鍵路徑上。
+
+實作介面：自動 gate = `scripts/score-floor-check.mjs`（pre-commit 呼叫）；首頁過濾 = `getIndexPosts()`（`src/utils/post-status.ts`）；badge = `Sub8RefiningBanner.astro`；composite 計算 = `src/utils/tribunal-scores.ts`。重寫 loop：mac-CC 有 `bash scripts/tribunal-batch-runner.sh`、CCC 可以呼叫 `tribunal-writer` agent + `vibe-scorer.sh`。
 
 ### 🚫 絕對不准 `--no-verify`（hook 失敗 = 修 hook 或修 code，不准跳）
 
