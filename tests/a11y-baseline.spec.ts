@@ -12,7 +12,7 @@ import AxeBuilder from '@axe-core/playwright';
 const ROUTES = [
   { name: 'Home (zh-tw)', path: '/' },
   { name: 'Home (en)', path: '/en/' },
-  { name: 'Clawd Picks listing', path: '/clawd-picks/' },
+  { name: 'Mogu Picks listing', path: '/mogu-picks/' },
   { name: 'Tags', path: '/tags' },
   { name: 'Glossary', path: '/glossary' },
   { name: 'Level Up index', path: '/level-up' },
@@ -40,7 +40,8 @@ for (const route of ROUTES) {
     if (results.violations.length > 0) {
       const lines = results.violations.flatMap((v) =>
         v.nodes.map(
-          (n) => `[${v.id}] ${n.target.join(' > ')} — ${n.failureSummary?.split('\n')[1]?.trim() ?? ''}`
+          (n) =>
+            `[${v.id}] ${n.target.join(' > ')} — ${n.failureSummary?.split('\n')[1]?.trim() ?? ''}`
         )
       );
       // Soft-assert so we get the full list per route, not the first failure

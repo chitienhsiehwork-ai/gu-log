@@ -37,7 +37,8 @@ export async function getStaticPaths() {
 const { post, allPosts } = Astro.props;
 const { Content, headings } = await post.render();
 
-const isClawdPicks = post.data.tags?.includes('clawd-picks');
+const isMoguPicks =
+  post.data.tags?.includes('mogu-picks') || post.data.tags?.includes('clawd-picks');
 const ticketId = post.data.ticketId;
 const ticketPrefix = ticketId?.split('-')[0] || '';
 const isLevelUp = ticketId?.startsWith('Lv-') ?? false;
@@ -55,9 +56,10 @@ const navigablePosts = getNavigablePosts(allPosts, post);
 const ticketLabels: Record<string, string> = {
   SD: 'ShroomDog Original',
   SP: 'ShroomDog Picks',
-  CP: 'Clawd Picks',
+  CP: 'Mogu Picks',
 };
 const ticketLabel = ticketLabels[ticketPrefix] || '';
+const displayTag = (tag: string) => (tag === 'clawd-picks' ? 'mogu-picks' : tag);
 ---
 
 <BaseLayout title={`${post.data.title} - gu-log`}>
@@ -69,9 +71,9 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
           {ticketId && <TicketBadge ticketId={ticketId} />}
           <span class="meta-date">{post.data.translatedDate || post.data.originalDate}</span>
           {
-            isClawdPicks && (
-              <span class="clawd-picks-badge">
-                <img src="/clawd-picks-icon.png" alt="Clawd Picks" class="clawd-icon" />
+            isMoguPicks && (
+              <span class="mogu-picks-badge">
+                <img src="/mogu-picks-icon.png" alt="Mogu Picks" class="mogu-icon" />
               </span>
             )
           }
@@ -147,7 +149,7 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
           <div class="post-tags">
             {post.data.tags.map((tag) => (
               <a href={`/tags/${tag}`} class="tag-chip">
-                {tag}
+                {displayTag(tag)}
               </a>
             ))}
           </div>
@@ -290,14 +292,14 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
   }
 
   .label-cp {
-    color: var(--color-clawd-orange);
+    color: var(--color-mogu-orange);
   }
 
-  .clawd-picks-badge {
+  .mogu-picks-badge {
     vertical-align: middle;
   }
 
-  .clawd-icon {
+  .mogu-icon {
     width: 24px;
     height: 24px;
     vertical-align: middle;

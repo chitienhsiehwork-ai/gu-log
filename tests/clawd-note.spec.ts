@@ -1,38 +1,39 @@
 import { test, expect } from './fixtures';
 
 /**
- * Tests for ClawdNote Component
- * 
- * ClawdNote is a stylized blockquote for commentary.
+ * Tests for MoguNote Component
+ *
+ * MoguNote is a stylized blockquote for commentary.
  * Run with: npx playwright test tests/clawd-note.spec.ts
  */
 
-test.describe('ClawdNote Component', () => {
+test.describe('MoguNote Component', () => {
   const testPostUrl = '/posts/claude-is-a-space-to-think';
 
-  test('GIVEN a post with ClawdNote WHEN page loads THEN ClawdNote should be visible', async ({ page }) => {
+  test('GIVEN a post with MoguNote WHEN page loads THEN MoguNote should be visible', async ({
+    page,
+  }) => {
     await page.goto(testPostUrl);
-    
-    // It renders as a blockquote with class claude-note
-    const clawdNote = page.locator('.claude-note').first();
-    await expect(clawdNote).toBeVisible();
+
+    const moguNote = page.locator('.mogu-note').first();
+    await expect(moguNote).toBeVisible();
   });
 
-  test('GIVEN ClawdNote WHEN rendered THEN it should have a prefix', async ({ page }) => {
+  test('GIVEN MoguNote WHEN rendered THEN it should have a prefix', async ({ page }) => {
     await page.goto(testPostUrl);
-    
-    const prefix = page.locator('.claude-note .clawd-prefix').first();
+
+    const prefix = page.locator('.mogu-note .mogu-prefix').first();
     await expect(prefix).toBeVisible();
-    await expect(prefix).toContainText('Clawd');
+    await expect(prefix).toContainText('Mogu');
   });
 
-  test('GIVEN ClawdNote content WHEN rendered THEN should not be empty', async ({ page }) => {
+  test('GIVEN MoguNote content WHEN rendered THEN should not be empty', async ({ page }) => {
     await page.goto(testPostUrl);
-    
+
     // The content is inside the blockquote
-    const note = page.locator('.claude-note').first();
+    const note = page.locator('.mogu-note').first();
     const text = await note.textContent();
-    
+
     expect(text?.trim().length).toBeGreaterThan(0);
   });
 });

@@ -15,7 +15,7 @@ import AxeBuilder from '@axe-core/playwright';
 const PAGES = [
   { name: 'Home', path: '/' },
   { name: 'Post (zh-tw)', path: '/posts/agentic-note-taking-verbatim-trap/' },
-  { name: 'Clawd Picks listing', path: '/clawd-picks/' },
+  { name: 'Mogu Picks listing', path: '/mogu-picks/' },
   { name: 'About', path: '/about/' },
 ];
 
@@ -49,8 +49,8 @@ for (const theme of THEMES) {
           .analyze();
 
         // Collect violations with useful debug info
-        const violations = results.violations.flatMap(v =>
-          v.nodes.map(n => ({
+        const violations = results.violations.flatMap((v) =>
+          v.nodes.map((n) => ({
             html: n.html.slice(0, 120),
             target: n.target.join(' > '),
             message: n.failureSummary?.split('\n')[1]?.trim() ?? n.failureSummary,

@@ -22,7 +22,7 @@ const ogImage = image ? new URL(image, Astro.site).href : new URL('/og-image.png
 const i18n = {
   'zh-tw': {
     htmlLang: 'zh-TW',
-    defaultDescription: '香菇大狗狗的翻譯閱讀筆記 - ShroomDog and Clawd',
+    defaultDescription: '香菇大狗狗的翻譯閱讀筆記 - ShroomDog and Mogu',
     siteTitle: '香菇大狗狗',
     homeLink: '/',
     navHome: '首頁',
@@ -32,11 +32,11 @@ const i18n = {
     briefsLink: '/briefs',
     navGlossary: '詞彙表',
     glossaryLink: '/glossary',
-    navClawdPicks: 'Clawd Picks',
+    navMoguPicks: 'Mogu Picks',
     navReadingTracker: '閱讀紀錄',
     menuLabel: '選單',
     footerBy: '香菇大狗狗',
-    footerSub: '翻譯由 Clawd 執行，（沒什麼）經人工校對',
+    footerSub: '由 Mogu 寫作、翻譯與維護，由 ShroomDog 許願與指路',
     fonts:
       'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap',
   },
@@ -52,11 +52,11 @@ const i18n = {
     briefsLink: '/en/briefs',
     navGlossary: 'Glossary',
     glossaryLink: '/en/glossary',
-    navClawdPicks: 'Clawd Picks',
+    navMoguPicks: 'Mogu Picks',
     navReadingTracker: 'Reading Tracker',
     menuLabel: 'Menu',
     footerBy: 'ShroomDog',
-    footerSub: 'Written by AI, (barely) reviewed by humans',
+    footerSub: 'Written and maintained by Mogu, guided by ShroomDog',
     fonts: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
   },
 };
@@ -441,14 +441,14 @@ const finalDescription = description || t.defaultDescription;
               </svg>
               {t.navAbout}
             </a>
-            <a href={`${t.homeLink}#clawd-picks`} class="hamburger-item">
+            <a href={`${t.homeLink}#mogu-picks`} class="hamburger-item">
               <svg viewBox="0 0 24 24">
                 <path d="M12 8V4H8"></path>
                 <rect x="4" y="8" width="16" height="12" rx="2"></rect>
                 <circle cx="9" cy="14" r="1.5" fill="currentColor" stroke="none"></circle>
                 <circle cx="15" cy="14" r="1.5" fill="currentColor" stroke="none"></circle>
               </svg>
-              {t.navClawdPicks}
+              {t.navMoguPicks}
             </a>
             <a href={t.briefsLink} class="hamburger-item">
               <svg viewBox="0 0 24 24">
@@ -490,7 +490,7 @@ const finalDescription = description || t.defaultDescription;
       <footer class="site-footer">
         <p>
           by <strong>{t.footerBy}</strong>
-          {lang === 'zh-tw' ? '/ ShroomDog and Clawd' : 'and Clawd'}
+          {lang === 'zh-tw' ? '/ ShroomDog and Mogu' : 'and Mogu'}
         </p>
         <p class="footer-sub">{t.footerSub}</p>
         <p class="footer-rss"><a href="/rss.xml">RSS</a></p>
