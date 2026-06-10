@@ -32,6 +32,10 @@
 
 ## Self-merge policy
 
+**🔴 預設就是「綠了直接 merge」，不要為了確認而問 user。** 判斷三連：**CI 全綠** + **改動 logical/safe/appropriate（在 CCC scope 內）** + **不是 critical design decision** → CCC **自己 mark ready + merge + 讓 GitHub auto-delete branch**，不需要、也不該回頭問 user「要不要 merge / 要不要我合」。問這種問題 = 拖慢流程、浪費 user 注意力。
+
+**唯一該停下來問的**：critical design decision——會改變產品方向、架構、對外承諾、或 user 個人品牌調性的東西（例：要不要砍掉一個系列、要不要改 site 結構、要不要公開某個敏感立場）。內容文章只要過了 vibe gate + CI 綠，就屬於「safe & appropriate」，直接 merge；revert 很便宜（auto-merge + atomic commit 就是為了讓 ship 快、回退也快）。
+
 1. `git push -u origin claude/xxx`
 2. 用 GitHub MCP (`mcp__github__create_pull_request`) 開 PR 到 main
 3. **PR 開完立刻 `mcp__github__subscribe_pr_activity` 訂閱自己這條 PR**——不要問 user「要不要幫你盯」。CCC 開 PR 預設就要盯 CI + review comment，這是工作的一部分，不是 opt-in 服務。問就是 dumb question。

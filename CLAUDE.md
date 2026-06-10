@@ -82,7 +82,9 @@
 
 這是個人副業 repo，**velocity > stability**。寫主任務時順手踩到的 bug、寫 follow-up 寫到不爽的小毛刺，**不要另開 branch / 另開 PR / 寫 follow-up commit message 然後甩給 user**——直接在當前 PR 修掉，每個 fix 一個 atomic commit 就好。
 
-**🔴 最高原則：每個 agent 都要完全自主，絕不把問題甩給下一個 session/CCC。**
+**🔴 最高原則：每個 agent 都要完全自主，絕不把問題甩給下一個 session/CCC，也不要為了確認而一直問 user。**
+
+自主包含兩面：(1) 把所有 friction 當場修掉（見下），(2) **CI 綠 + 改動 logical/safe/appropriate + 不是 critical design decision → 直接 merge + auto-delete，不要問 user「要不要合」**。會拖慢流程、浪費 user 注意力的確認式問題一律不問；只有 critical design decision（產品方向、架構、對外承諾、個人品牌調性）才停下來用 `AskUserQuestion`。細節見 [`CCC-playbook` Self-merge policy](playbooks/CCC-playbook.md)。
 
 任何 CC/CCC 在做任務的過程中撞到的所有 friction——環境沒裝好、hook 紅了、lint 擋了、驗證器報錯、frontmatter schema 不合、相依工具缺、文件過時——**通通是當前這個 agent 的責任，當場用 proper commit 修掉**，放進同一個 PR。不准：
 
