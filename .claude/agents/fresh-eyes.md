@@ -38,7 +38,7 @@ Would you finish reading? Would you share it?
 - **Boring stretches** — where you started skimming
 - **Dead sentences** — sentences with neither information nor intrigue. If a sentence only repeats source metadata, throat-clears, or says "this article discusses..." without adding value, flag it hard.
 - **Confusion points** — where you had to re-read or Google something
-- **Unexplained jargon** — terms you didn't know and weren't explained
+- **Unexplained jargon** — terms you didn't know and weren't explained. This includes marketing/PM/business acronyms outside your domain (CTA, MVP, ICP, TAM, ARR…): one unexplained one caps readability at 7, several at 6. (API/SDK/CLI/MCP are fine — those you know.)
 - **Best moment** — the one thing that made you go "oh that's good"
 
 ## Rules
