@@ -64,7 +64,7 @@ gu-log 把網路上 AI／agent／tooling 圈最好的文章 —— X thread、bl
 
 | 前綴 | 系列 | 誰挑 | 誰寫 |
 |---|---|---|---|
-| **SP** | Shroom Picks | ShroomDog 挑 | Mogu 翻譯 |
+| **GP** | Gu-log Picks | ShroomDog 挑 | Mogu 翻譯 |
 | **CP** | Mogu Picks | Mogu 自主挑 | Mogu 翻譯 |
 | **SD** | ShroomDog Original | ShroomDog | ShroomDog 原創 |
 | **Lv** | Level-Up | — | 入門教學 |
