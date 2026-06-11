@@ -1,189 +1,175 @@
+<div align="center">
+
+<img src=".github/assets/gu-log-icon.png" alt="gu-log" width="140" />
+
 # gu-log
 
-> ShroomDog's translation blog — bilingual tech articles (zh-tw + en) with Clawd annotations.
-> Live: https://gu-log.vercel.app/
+**A bilingual AI/tech blog — great English writing, retold in Traditional Chinese (and back).**
 
-## Commands
+[![Live](https://img.shields.io/badge/live-gu--log.vercel.app-cb4b16?style=flat-square)](https://gu-log.vercel.app/)
+&nbsp;[![Built with Astro](https://img.shields.io/badge/built%20with-Astro%205-ff5d01?style=flat-square&logo=astro&logoColor=white)](https://astro.build/)
+&nbsp;[![Deployed on Vercel](https://img.shields.io/badge/deploy-Vercel-000?style=flat-square&logo=vercel&logoColor=white)](https://vercel.com/)
 
-```bash
-pnpm install          # install deps
-pnpm run dev          # dev server at localhost:4321
-pnpm run build        # production build (catches rendering errors)
-pnpm exec astro check # TypeScript + template type checking
-pnpm run format:check # Prettier check (code/config scope only)
-pnpm run content:check # content quality gate = validate:posts + build
-pnpm run lockfile:check # frozen lockfile + no pnpm-lock drift
-pnpm run security:gate # block new high/critical vulnerabilities unless valid allowlist
-```
+**English** · [繁體中文](./README.zh-TW.md)
 
-## Package manager & lockfile policy
+</div>
 
-- This repo uses **pnpm only**.
-- `pnpm-lock.yaml` is the single source of truth and must be committed with dependency changes.
-- `package-lock.json` is not used and must not be tracked.
-- CI blocks PRs if lockfile consistency checks fail (`pnpm install --frozen-lockfile` + clean lockfile diff).
+---
 
-## Security Gate (Level 4, Plan C)
+## What is gu-log?
 
-### Governance tiers
+gu-log takes the best AI / agent / tooling writing on the internet — X threads, blog posts, HN discussions, docs — and retells it in clear Traditional Chinese, with the original always linked. It also publishes original pieces and beginner tutorials. **Every article ships in both `zh-tw` and `en`.**
 
-- **Runtime / production dependencies**: high/critical vulnerabilities are highest priority and must be remediated first.
-- **Dev dependencies**: temporary risk tolerance is allowed only with explicit tracking in allowlist.
+The name: **`gu` = 菇 (mushroom)** from ShroomDog. So `gu-log` = 菇 log = a mushroom's notebook. 🍄
 
-### Blocking rule in CI
+> Good content shouldn't be gated by language — and translating it is how we learn it too.
 
-- CI runs `pnpm run security:gate`.
-- Any **new high/critical** finding not covered by a valid allowlist entry fails PR.
-- Allowlisted findings must include expiry. Expired entries stop bypassing immediately.
+---
 
-### Allowlist file
+## The cast
 
-- Path: `quality/security-allowlist.json`
-- Each entry must include:
-  - `id` and/or `name`
-  - `reason`
-  - `expiresAt` (ISO-8601 date/time)
-- Additional guardrails enforced by gate:
-  - Runtime/mixed/unknown scope allowlist TTL: **max 14 days**
-  - Dev scope allowlist TTL: **max 45 days**
+<table>
+  <tr>
+    <td align="center" width="220">
+      <img src=".github/assets/gu-log-icon.png" alt="gu-log icon" width="120" /><br/>
+      <strong>gu-log</strong>
+    </td>
+    <td align="center" width="220">
+      <img src=".github/assets/shroomdog.png" alt="ShroomDog" width="120" /><br/>
+      <strong>ShroomDog</strong> (香菇大狗狗)
+    </td>
+    <td align="center" width="220">
+      <img src=".github/assets/mogu.png" alt="Mogu the Hedgie" width="120" /><br/>
+      <strong>Mogu the Hedgie</strong>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" valign="top">
+      The <strong>brand</strong>. A mushroom with a terminal prompt — half cozy, half command line. It's the blog itself.
+    </td>
+    <td align="center" valign="top">
+      The <strong>human author</strong>. Curates what's worth translating, sets the editorial bar, and gives the feedback that calibrates everything.
+    </td>
+    <td align="center" valign="top">
+      The <strong>AI partner</strong>. A mushroom-capped hedgehog who does the writing, translating, and site upkeep — and drops the running commentary in <code>&lt;MoguNote&gt;</code>.
+    </td>
+  </tr>
+</table>
 
-## Format vs Content Quality (Level 3 split)
+---
 
-To avoid MDX parser false positives while keeping quality signals trustworthy:
+## Article series
 
-- `pnpm run format:check` / `pnpm run format` now targets **code + config** only:
-  - `src/components/**/*.{astro,js,ts}`
-  - `src/layouts/**/*.{astro,js,ts}`
-  - `src/pages/**/*.{astro,js,ts}`
-  - `src/config/**/*.{js,ts}`
-  - `src/styles/**/*.css`
-  - `scripts/**/*.{js,mjs,cjs,ts}`
-  - root config files: `*.{mjs,cjs,ts}`
-- `src/content/posts/*.mdx` is checked by content-specific gates instead of Prettier.
-- Content command to run in CI/local:
-  - `pnpm run validate:posts` (frontmatter/content policy)
-  - `pnpm run build` (real render/build safety)
-  - or one-shot: `pnpm run content:check`
+Every article carries a ticket ID so you can tell at a glance who picked it and why.
 
-Follow-up parser compatibility TODOs are tracked in `docs/mdx-format-todo.md`.
+| Prefix | Series | Who picks | Who writes |
+|---|---|---|---|
+| **GP** | Gu-log Picks | ShroomDog | Mogu translates |
+| **CP** | Mogu Picks | Mogu (self-selected) | Mogu translates |
+| **SD** | ShroomDog Original | ShroomDog | ShroomDog writes |
+| **Lv** | Level-Up | — | beginner tutorials |
 
-## Bundle Budget Flow
+---
 
-```bash
-node scripts/bundle-budget-check.mjs            # check-only (default, no file writes)
-node scripts/bundle-budget-check.mjs --record   # record mode (append quality/bundle-size-history.json)
-```
+## Quality: a two-tier bar
 
-### Level 5 (Plan C) budget policy
+gu-log is a blog *about* AI quality, so it puts its own AI self-scores in the open — even the bad ones. Quality is gated in two layers, not one hard wall:
 
-- **Blocking budgets (fail CI / pre-push):**
-  - Global JS size
-  - Global CSS size
-  - Single JS/CSS file max size
-- **Trend monitors (warn only, non-blocking):**
-  - Global HTML size
-  - Global total bundle size
-  - Route-level HTML size for key pages (`/`, `/en/`, `/clawd-picks/`, `/en/clawd-picks/`, `/shroomdog-picks/`, `/level-up/`)
+| Tier | Bar | Enforced by | If it doesn't pass |
+|---|---|---|---|
+| **Floor** (auto-gate) | composite **≥ 3** + 5 dimensions present | pre-commit hook | **commit blocked** — garbage never reaches `main` |
+| **PASS** (editorial) | composite **≥ 8**, one dim ≥ 9, no dim < 8 | homepage / UI filter | still ships, but with a "refining" badge and **kept off the homepage** until a background pass lifts it to ≥ 8 |
 
-Trend monitors also include **growth-rate alerts** (warning/critical tiers) against recorded history to catch unusual jumps without blocking normal content growth.
+Scoring runs through a **4-judge tribunal** (each article, newest-first):
 
-- `pre-push` hook runs **check-only** mode, so pushing does not modify tracked files.
-- `pre-push` only blocks on **blocking budget violations**.
-- Bundle history recording is handled by the nightly deep check workflow:
-  `.github/workflows/nightly-deep.yml`
-- The workflow runs `--record` and uploads `quality/bundle-size-history.json` as an artifact.
+- **Vibe Scorer** (Opus) — 5 dimensions: Persona / MoguNote / Vibe / Clarity / Narrative
+- **Fact Checker** (Opus) — technical accuracy, source fidelity, logical consistency
+- **Librarian** (Sonnet) — glossary, cross-refs, attribution, source alignment
+- **Fresh Eyes** (Haiku) — a stranger's first impression
 
-## CI Architecture — Layered Strategy (Level 7)
+Anything sub-8 gets queued for a background rewrite (up to 3 rounds) instead of blocking the ship.
 
-### Layer 1: PR Fast Gate (`.github/workflows/ci.yml`)
+---
 
-Runs on every push/PR to `main`. **Blocking** — must pass before merge.
-Target: **3–5 minutes**.
+## Tech stack
 
-```
-┌─────────────────────────────────────────────────┐
-│  Parallel tier (run simultaneously)             │
-│  ┌──────────────┐  ┌──────┐  ┌────────────────┐│
-│  │lockfile-check │  │ lint │  │validate-content││
-│  └──────────────┘  └──────┘  └────────────────┘│
-│  ┌──────────────┐                               │
-│  │security-gate │                               │
-│  └──────────────┘                               │
-├─────────────────────────────────────────────────┤
-│  Sequential tier (after all above pass)         │
-│  ┌──────────────────────────────────────┐       │
-│  │ build (type check + astro build)     │       │
-│  └──────────────────────────────────────┘       │
-└─────────────────────────────────────────────────┘
-```
+- **Framework** — [Astro 5](https://astro.build/) (Content Collections + MDX)
+- **Hosting** — Vercel (auto-deploy on push to `main`)
+- **Package manager** — pnpm (the only supported one; `pnpm-lock.yaml` is the source of truth)
+- **Fonts** — Inter + Noto Sans TC
+- **Theme** — Solarized (light) / Dracula-ish (dark), via CSS variables
 
-**Jobs:**
-| Job | What it checks | Blocking? |
-|---|---|---|
-| `lockfile-consistency` | `pnpm install --frozen-lockfile`, no drift, no `package-lock.json` | ✅ |
-| `lint` | ESLint + Prettier (code/config scope) | ✅ |
-| `validate-content` | `validate:posts` — frontmatter & content policy | ✅ |
-| `security-gate` | Block new high/critical vulns | ✅ |
-| `build` | Type check + production build | ✅ |
+---
 
-### Layer 2: Nightly Deep Check (`.github/workflows/nightly-deep.yml`)
-
-Runs daily at 03:15 UTC (and on `workflow_dispatch`). **Advisory** — failures send Telegram notification.
-
-**Jobs:**
-| Job | What it checks |
-|---|---|
-| `visual-test` | Playwright screenshot + LLM visual review |
-| `lighthouse` | Lighthouse CI against static dist (performance, a11y, SEO) |
-| `security-audit` | Full `pnpm audit` with history recording |
-| `dependency-freshness` | Major/minor/deprecated dependency scan |
-| `bundle-budget-record` | Record bundle size history (trend data) |
-| `notify-failure` | Telegram alert on any job failure |
-
-### Layer 3: Post-Deploy Smoke Test (`.github/workflows/deploy-smoke-test.yml`)
-
-Triggers on Vercel production deployment. Checks site is live, articles render, CP count matches.
-Sends Telegram alert on failure.
-
-### Notification Matrix
-
-| Event | Channel |
-|---|---|
-| PR gate fails | GitHub status check (native) |
-| Nightly deep fails | Telegram (thread 4) |
-| Deploy fails / smoke test fails | Telegram (thread 4) |
-
-### Required Secrets
-
-| Secret | Used by |
-|---|---|
-| `TELEGRAM_BOT_TOKEN` | nightly-deep, deploy-smoke-test |
-| `TELEGRAM_CHAT_ID` | nightly-deep, deploy-smoke-test |
-
-## Tribunal Batch Runner
-
-`tribunal-batch-runner.sh` dynamically scans `src/content/posts/` (newest-first) and runs the 4-judge tribunal on each unscored article. No static queue — it always sees the latest posts.
+## Local development
 
 ```bash
-bash scripts/tribunal-batch-runner.sh              # run until quota floor
-bash scripts/tribunal-batch-runner.sh --max 5      # run at most 5 articles
-bash scripts/tribunal-batch-runner.sh --dry-run    # list articles to process
+pnpm install            # install deps (frozen lockfile in CI)
+pnpm run dev            # dev server at localhost:4321
+pnpm run build          # production build (catches render errors)
+pnpm exec astro check   # TypeScript + template type checking
+pnpm run validate:posts # frontmatter & content policy
+pnpm run content:check  # validate:posts + build, in one shot
 ```
 
-Runtime logs: `.score-loop/logs/` (gitignored)
+---
 
-## Task Tracking
-
-See `TODO.json` for the prioritized task list. Tasks are ordered P0 (critical) → P3 (nice-to-have).
-
-## Project Structure
+## Project structure
 
 ```
 src/
-├── layouts/          # page shells (BaseLayout, EnLayout)
-├── components/       # ThemeToggle, LanguageToggle, Toggle
+├── content/
+│   ├── config.ts            # frontmatter schema (Zod validation)
+│   └── posts/
+│       ├── sp-123-…-slug.mdx     # zh-tw version (lang: "zh-tw")
+│       └── en-sp-123-…-slug.mdx  # en version    (lang: "en")
+├── components/
+│   ├── MoguNote.astro       # Mogu's commentary box
+│   ├── ShroomDogNote.astro  # ShroomDog's own voice (SD series)
+│   └── …                    # ThemeToggle, LanguageToggle, TableOfContents…
+├── layouts/                 # BaseLayout (zh-tw) + en shell
 ├── pages/
-│   ├── posts/*.astro # zh-tw articles
-│   └── en/posts/     # en articles
-└── styles/global.css # Solarized theming via CSS variables
+│   ├── posts/[...slug].astro     # zh-tw articles
+│   ├── en/posts/[...slug].astro  # en articles
+│   └── rss.xml.ts
+└── styles/global.css        # Solarized theming via CSS variables
 ```
+
+---
+
+## Quality gates & CI
+
+CI is layered to keep PRs fast while still catching everything overnight.
+
+**Layer 1 — PR fast gate** (`.github/workflows/ci.yml`, blocking, ~3–5 min):
+`lockfile-consistency` · `lint` (ESLint + Prettier) · `validate-content` · `security-gate` → then `build` (type check + production build).
+
+**Layer 2 — nightly deep check** (`.github/workflows/nightly-deep.yml`, advisory):
+Playwright visual review · Lighthouse · full `pnpm audit` · dependency freshness · bundle-size history. Failures ping Telegram.
+
+**Layer 3 — post-deploy smoke test** (`.github/workflows/deploy-smoke-test.yml`):
+After each Vercel production deploy, checks the site is live, articles render, and counts match.
+
+Two extra blocking policies worth knowing:
+
+- **Security gate** (`pnpm run security:gate`) — any new high/critical vulnerability fails the PR unless it has a valid, expiring entry in `quality/security-allowlist.json` (runtime: ≤ 14 days, dev: ≤ 45 days).
+- **Bundle budget** (`scripts/bundle-budget-check.mjs`) — global JS/CSS and single-file sizes are blocking; HTML/total/route sizes are warn-only trend monitors with growth-rate alerts.
+
+> No `--no-verify`. If a hook fails, the fix is to fix the code or fix the hook — never to skip it.
+
+---
+
+## Contributing & docs
+
+These are the sources of truth — read them before editing content:
+
+- [`CONTRIBUTING.md`](./CONTRIBUTING.md) — content rules, ticket-ID SOP, dedup, frontmatter schema
+- [`GU-LOG_WRITER_PROMPT.md`](./GU-LOG_WRITER_PROMPT.md) — writing style (PTT storytelling, MoguNote voice)
+- [`src/content/config.ts`](./src/content/config.ts) — frontmatter schema (Zod)
+- [`CLAUDE.md`](./CLAUDE.md) — how the AI agents operate this repo
+
+---
+
+<div align="center">
+<sub>Made by ShroomDog &amp; Mogu · <a href="https://gu-log.vercel.app/">gu-log.vercel.app</a></sub>
+</div>
