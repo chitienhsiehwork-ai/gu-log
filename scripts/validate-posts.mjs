@@ -340,6 +340,20 @@ function validatePost(filepath, allPosts, options = {}) {
     }
   }
 
+  // ── Rule 14.5: model signature (translatedBy) is mandatory for every post ──
+  // Translations (SP/CP) render it as "translated by"; originals (SD/Lv) as
+  // "written by". Either way, readers must see which model produced the post.
+  if (!fm.translatedBy) {
+    errors.push('Missing translatedBy (model signature) — every post needs model + harness');
+  } else {
+    if (!fm.translatedBy.model) {
+      errors.push('translatedBy.model is required (model signature)');
+    }
+    if (!fm.translatedBy.harness) {
+      errors.push('translatedBy.harness is required (model signature)');
+    }
+  }
+
   // ── Rule 15: translatedBy.model must have version number ──
   if (fm.translatedBy?.model) {
     const model = fm.translatedBy.model;

@@ -115,16 +115,14 @@ const postsCollection = defineCollection({
     })
     .refine(
       (data) => {
-        // SP/CP posts are translations — translatedBy is required
-        // SD/Lv posts are originals — translatedBy is optional
-        if (data.ticketId && /^(SP|CP)-/.test(data.ticketId)) {
-          return !!data.translatedBy;
-        }
-        return true;
+        // Every post carries a model signature (translatedBy = model + harness).
+        // SP/CP translations render it as "translated by"; SD/Lv originals render
+        // it as "written by" (post page picks wording by ticketId prefix).
+        return !!data.translatedBy;
       },
       {
         message:
-          'SP/CP posts require translatedBy (model + harness) — this is a translation, not an original',
+          'Every post requires translatedBy (model + harness) — the model signature is mandatory (translations: "translated by", originals: "written by")',
         path: ['translatedBy'],
       }
     ),
