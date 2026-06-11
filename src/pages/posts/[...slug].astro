@@ -43,6 +43,8 @@ const ticketId = post.data.ticketId;
 const ticketPrefix = ticketId?.split('-')[0] || '';
 const isLevelUp = ticketId?.startsWith('Lv-') ?? false;
 const isShroomDogOriginal = ticketId?.startsWith('SD-') ?? false;
+// SD/Lv are originals — the model signature is "written by", not "translated by".
+const isOriginalPost = isLevelUp || isShroomDogOriginal;
 const isChatGptShareSource = post.data.sourceUrl.startsWith('https://chatgpt.com/share/');
 const showSourceCitation = !isLevelUp && (!isShroomDogOriginal || isChatGptShareSource);
 const sourceCitationLabel = isShroomDogOriginal && isChatGptShareSource ? '靈感來源' : '原文出處';
@@ -164,7 +166,9 @@ const displayTag = (tag: string) => (tag === 'clawd-picks' ? 'mogu-picks' : tag)
             post.data.translatedBy &&
             (post.data.translatedBy.pipeline ? (
               <>
-                <div>翻譯於 {post.data.translatedDate}</div>
+                <div>
+                  {isOriginalPost ? '撰寫於' : '翻譯於'} {post.data.translatedDate}
+                </div>
                 {post.data.translatedBy.pipeline.map((step) => (
                   <div>
                     {step.role} by {step.model} ({step.harness})
@@ -180,8 +184,8 @@ const displayTag = (tag: string) => (tag === 'clawd-picks' ? 'mogu-picks' : tag)
               </>
             ) : (
               <div>
-                翻譯於 {post.data.translatedDate} by {post.data.translatedBy.model} (
-                {post.data.translatedBy.harness})
+                {isOriginalPost ? '撰寫於' : '翻譯於'} {post.data.translatedDate} by{' '}
+                {post.data.translatedBy.model} ({post.data.translatedBy.harness})
               </div>
             ))}
           {authorshipNote && (
