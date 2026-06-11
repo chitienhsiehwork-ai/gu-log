@@ -35,7 +35,7 @@ gu-log 把網路上 AI／agent／tooling 圈最好的文章 —— X thread、bl
       <strong>gu-log</strong>
     </td>
     <td align="center" width="220">
-      <img src=".github/assets/shroomdog.jpeg" alt="香菇大狗狗" width="120" /><br/>
+      <img src=".github/assets/shroomdog.png" alt="香菇大狗狗" width="120" /><br/>
       <strong>ShroomDog</strong>（香菇大狗狗）
     </td>
     <td align="center" width="220">

@@ -35,7 +35,7 @@ The name: **`gu` = 菇 (mushroom)** from ShroomDog. So `gu-log` = 菇 log = a mu
       <strong>gu-log</strong>
     </td>
     <td align="center" width="220">
-      <img src=".github/assets/shroomdog.jpeg" alt="ShroomDog" width="120" /><br/>
+      <img src=".github/assets/shroomdog.png" alt="ShroomDog" width="120" /><br/>
       <strong>ShroomDog</strong> (香菇大狗狗)
     </td>
     <td align="center" width="220">
