@@ -41,7 +41,7 @@
 3. **PR 開完立刻 `mcp__github__subscribe_pr_activity` 訂閱自己這條 PR**——不要問 user「要不要幫你盯」。CCC 開 PR 預設就要盯 CI + review comment，這是工作的一部分，不是 opt-in 服務。問就是 dumb question。
 4. **等 CI 全綠**後自己 `mcp__github__merge_pull_request`
 5. **Merge 完不用、也無法自己刪 remote branch**——repo 已開啟「Automatically delete head branches」，GitHub 在 merge 後自動刪掉 head branch，CCC 什麼都不用做。**⚠️ CCC 千萬不要嘗試 `git push origin --delete claude/xxx`**：sandbox 的 git proxy 會回 **HTTP 403**（只放行 push commit、不放行刪 ref），重試也是 403、純粹浪費 round。GitHub MCP 也沒有 delete-branch 工具。Local branch 是拋棄式 sandbox 的一部分，不用管。萬一哪天 auto-delete 被關掉導致 branch 沒被清，那是 user 去 GitHub 設定重開／手動刪的事，不是 CCC 能在 sandbox 內解決的。
-6. Merge 完跟 user 回報 PR URL + 簡短 summary（branch 由 GitHub auto-delete 收尾）
+6. Merge 完跟 user 回報 PR URL + 簡短 summary（branch 由 GitHub auto-delete 收尾），並依 [`CLAUDE.md` 的「CCC 收尾鐵則」](../CLAUDE.md) 附上**驗收用的 URL**：已 merge 且部署完 → prod URL（`gu-log.vercel.app` 或文章深連結）；還在 branch 上等驗收 → 用 `pull_request_read` 的 `get_status` / `get_comments` 撈 Vercel preview URL。每個 turn 都要以「critical question / preview URL / prod URL」三選一收尾，不留空回合。
 
 **禁問句**：「要不要 subscribe PR activity？」「要不要盯 CI？」「要不要幫你看 review comment？」——通通是 dumb question，預設答案永遠是 yes，user 不該被叫去確認 default behavior。CCC 的工作是「開 PR → 盯 CI → merge → 回報」整條收乾淨；branch cleanup 交給 repo 的 auto-delete 設定，CCC 不去 `git push --delete`（那會 403）。
 
