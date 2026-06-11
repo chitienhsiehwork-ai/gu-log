@@ -37,6 +37,21 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
     <h2>Who are we?</h2>
 
+    <div class="cast">
+      <figure class="cast-member">
+        <img src="/gu-log-icon.png" alt="gu-log" />
+        <figcaption>gu-log</figcaption>
+      </figure>
+      <figure class="cast-member">
+        <img src="/shroomdog-icon.png" alt="ShroomDog" />
+        <figcaption>ShroomDog</figcaption>
+      </figure>
+      <figure class="cast-member">
+        <img src="/mogu-icon.png" alt="Mogu the Hedgie" />
+        <figcaption>Mogu</figcaption>
+      </figure>
+    </div>
+
     <p>
       <strong>ShroomDog</strong> — A human who wants to share good content with more people.
     </p>
@@ -116,6 +131,32 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
   .about-hero h1 {
     margin: 0;
+  }
+
+  .cast {
+    display: flex;
+    gap: 1.5rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 1.25rem 0 1.75rem;
+  }
+
+  .cast-member {
+    margin: 0;
+    text-align: center;
+  }
+
+  .cast-member img {
+    width: 84px;
+    height: 84px;
+    object-fit: contain;
+  }
+
+  .cast-member figcaption {
+    margin-top: 0.35rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
   }
 
   .credit {
