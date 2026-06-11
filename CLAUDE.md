@@ -161,6 +161,16 @@ Pipeline 包辦：fetch → eval → dedup → write → review → refine → c
 
 **ShroomDog editorial feedback 一律進 corpus。** 如果 ShroomDog / Sprin 對 gu-log 文章提出用字、敘事、事實查核、語氣、讀者困惑點等回饋，立刻 append 到 `docs/shroomdog-editorial-feedback.md`。不要只存在聊天紀錄、個人 memory、未追蹤 scratch file，或某個 agent 的私人筆記。這份檔案是之後蒸餾進 GU-LOG_WRITER_PROMPT.md 的原始訓練資料，讓 GPT-5.5 / Codex / Claude Code / Iris 共用同一份 gu-log writer prompt。
 
+### 🔚 CCC 收尾鐵則：每個 turn 都要以「可驗收的東西」結束
+
+**CCC（Cloud Claude Code）每一次結束 turn，最後一定要丟給 user 下面三選一**——不准用「我做完了」「等你看看」這種空回合收尾：
+
+1. **Critical design decision 問題**（用 `AskUserQuestion`）：只有當你撞到產品方向、架構、對外承諾、個人品牌調性這種**非 user 不能決定**的岔路時才停下來問。問題本身要把脈絡帶足，讓 user 不用往回捲就能答。
+2. **Preview URL**：改動還沒 merge、要 user 在 branch 上驗收時，去 PR 的 Vercel deployment status / vercel[bot] 留言把 **preview URL** 撈出來貼給 user（格式 `https://gu-log-git-<branch-hash>-sprin-clawds-projects.vercel.app`，用 `mcp__github__pull_request_read` 的 `get_status` / `get_comments` 拿，不要自己猜湊）。
+3. **Prod URL**（`https://gu-log.vercel.app`，或對應的文章/分頁深連結）：已經 merge、Vercel 部署完，要 user 在正式站上驗收時貼這個。
+
+**為什麼**：CCC 跑在沙箱，user 看不到你的 dev server、看不到 diff、不讀 draft（見下面 ShroomDog 那條）。**唯一的驗收介面就是一個可以點開的 URL，或一個只有他能拍板的問題**。沒有這三者之一的收尾 = 把球停在半空，user 得自己去翻 PR 找連結，等於把 friction 甩回去。三選一的判斷順序：有 critical decision 卡著 → 問；沒卡但還沒 merge → 給 preview URL；已 merge 部署完 → 給 prod URL。
+
 ### 🔍 事實查核紀律：AI tooling 的 claim 必須 verify
 
 gu-log 寫的就是 AI / agent / tooling 圈，這個圈子有兩個特性：
