@@ -307,6 +307,14 @@ if [ -n "$STAGED_MDX" ] && [ "$IS_MERGE_COMMIT" != "1" ]; then
         case "$file" in
             */en-*) ;; # skip English
             *)
+                # Backend-only frontmatter edits (translatedBy/model/harness,
+                # scores, …) don't touch reader prose — don't re-lint a
+                # grandfathered tutorial's 你/我 just because we added a model
+                # signature. Mirrors the score gate's reader_visible_changed
+                # exemption above; new posts (no HEAD) still get linted.
+                if git cat-file -e "HEAD:$file" 2>/dev/null && ! reader_visible_changed "$file"; then
+                    continue
+                fi
                 if is_metadata_only_diff "$file"; then
                     continue
                 fi
@@ -442,6 +450,13 @@ content_gate_mdx_files() {
     local files=""
     local file
     for file in $STAGED_MDX; do
+        # Backend-only frontmatter edits (model signature, scores) don't change
+        # reader prose — skip the grandfathered-content enforcement (long
+        # ClawdNote summary etc.), same exemption the score/pronoun gates use.
+        # New posts (no HEAD) and reader-visible rewrites still validate.
+        if git cat-file -e "HEAD:$file" 2>/dev/null && ! reader_visible_changed "$file"; then
+            continue
+        fi
         if is_internal_post_link_only_diff "$file"; then
             continue
         fi
