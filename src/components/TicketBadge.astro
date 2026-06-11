@@ -27,8 +27,9 @@ const labels: Record<string, string> = {
 };
 
 // Display alias: the SP series is branded "Gu-log Picks" with a GP- ticket,
-// while the underlying slug/URL/ticketId stays SP- (no URL breakage).
-const displayId = ticketId.replace(/^SP-/, 'GP-');
+// and the CP series is branded "Mogu Picks" with an MP- ticket, while the
+// underlying slug/URL/ticketId stays SP-/CP- (no URL breakage).
+const displayId = ticketId.replace(/^SP-/, 'GP-').replace(/^CP-/, 'MP-');
 
 const label = labels[prefix] || '';
 ---
