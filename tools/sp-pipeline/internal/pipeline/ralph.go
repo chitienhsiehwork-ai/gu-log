@@ -100,8 +100,9 @@ func (s *State) Ralph(ctx context.Context) error {
 		}
 	}
 
-	// Run the tribunal.
-	s.Log.Info("  Running 4-stage tribunal (Codex GPT-5.5 via tribunal.sh)...")
+	// Run the tribunal. tribunal.sh auto-selects its own runtime provider
+	// (Codex GPT-5.5 normally; Claude Opus when codex is absent in CCC).
+	s.Log.Info("  Running 4-stage tribunal (via tribunal.sh)...")
 	passed, err := ralph.Run(ctx, ralph.Options{
 		RalphScript: filepath.Join(s.Cfg.ScriptsDir, "tribunal.sh"),
 		Filename:    s.ActiveFilename,
@@ -121,12 +122,13 @@ func (s *State) Ralph(ctx context.Context) error {
 	// Frontmatter normaliser — for every file in {zh, en}, strip old
 	// pipeline block + pipelineUrl, then inject the canonical 6-entry
 	// block. Matches the Python heredoc at bash lines 1245-1300.
+	stampModel, stampHarness := s.StampLabels()
 	for _, fname := range []string{s.ActiveFilename, s.ActiveENFilename} {
 		path := filepath.Join(postsDir, fname)
 		if _, err := os.Stat(path); err != nil {
 			continue
 		}
-		if err := normalizeRalphFrontmatter(path); err != nil {
+		if err := normalizeRalphFrontmatter(path, stampModel, stampHarness); err != nil {
 			return fmt.Errorf("ralph: normalize %s: %w", fname, err)
 		}
 	}
@@ -139,10 +141,10 @@ func (s *State) Ralph(ctx context.Context) error {
 //
 //  1. Parses the file's frontmatter.
 //  2. Strips any existing pipeline: block and any pipelineUrl: line.
-//  3. Rewrites harness: to "Codex CLI".
+//  3. Rewrites harness: to the runtime provider's harness (stampHarness).
 //  4. Inserts a canonical 6-entry pipeline: block after harness.
 //  5. Inserts the canonical pipelineUrl.
-func normalizeRalphFrontmatter(path string) error {
+func normalizeRalphFrontmatter(path, stampModel, stampHarness string) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return err
@@ -169,17 +171,22 @@ func normalizeRalphFrontmatter(path string) error {
 		return strings.TrimSpace(line) == "pipeline:"
 	})
 
+	// stampModel/stampHarness record who actually wrote/scored the post:
+	// Codex GPT-5.5 on the VPS/mac, Claude Opus in the CCC sandbox fallback.
+	// This keeps tribunal calibration honest — a Claude-scored post is never
+	// mislabelled as a GPT-5.5 one.
+
 	// Canonical harness summary.
-	f.SetNestedScalar("translatedBy", "harness", `"Codex CLI"`)
+	f.SetNestedScalar("translatedBy", "harness", quoted(stampHarness))
 
 	// 6-entry canonical pipeline block.
 	entries := []PipelineEntry{
-		{Role: "Written", Model: "GPT-5.5", Harness: "Codex CLI"},
-		{Role: "Reviewed", Model: "GPT-5.5", Harness: "Codex CLI"},
-		{Role: "Refined", Model: "GPT-5.5", Harness: "Codex CLI"},
-		{Role: "Scored", Model: "GPT-5.5", Harness: "Codex CLI + Tribunal"},
-		{Role: "Rewritten", Model: "GPT-5.5", Harness: "Codex CLI + Tribunal"},
-		{Role: "Orchestrated", Model: "GPT-5.5", Harness: "sp-pipeline + Tribunal"},
+		{Role: "Written", Model: stampModel, Harness: stampHarness},
+		{Role: "Reviewed", Model: stampModel, Harness: stampHarness},
+		{Role: "Refined", Model: stampModel, Harness: stampHarness},
+		{Role: "Scored", Model: stampModel, Harness: stampHarness + " + Tribunal"},
+		{Role: "Rewritten", Model: stampModel, Harness: stampHarness + " + Tribunal"},
+		{Role: "Orchestrated", Model: stampModel, Harness: "sp-pipeline + Tribunal"},
 	}
 	f.SetNestedScalar("translatedBy", "pipeline", "")
 	f.SetBlock("  pipeline", renderPipelineBlock("  pipeline", entries))

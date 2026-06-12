@@ -350,6 +350,148 @@ PROMPT
   )
 }
 
+# ── Claude fallback (CCC sandbox: codex absent, only `claude` on PATH) ─────────
+# The tribunal is codex-first everywhere it exists (VPS/mac). In the Claude Code
+# on the web sandbox there is no codex, only `claude`, so these helpers let the
+# tribunal still score/rewrite via Claude rather than hard-failing exit 70.
+
+tribunal_claude_cmd() {
+  if command -v claude >/dev/null 2>&1; then
+    printf '%s\n' claude
+    return 0
+  fi
+  return 1
+}
+
+# Resolve the active tribunal LLM provider: "codex" when present (the
+# maintained runtime), else "claude" (CCC fallback). Returns 1 when neither
+# binary is on PATH. Codex always wins when both exist, mirroring the Go
+# pipeline's WritingChain so the two runtimes agree on who ran.
+tribunal_llm_provider() {
+  if tribunal_codex_cmd >/dev/null 2>&1; then
+    printf 'codex\n'
+    return 0
+  fi
+  if tribunal_claude_cmd >/dev/null 2>&1; then
+    printf 'claude\n'
+    return 0
+  fi
+  return 1
+}
+
+# Parse the `model:` field from a .claude/agents/<name>.md spec so each judge
+# runs on its declared Claude build (vibe/fact-checker on opus, etc.). Falls
+# back to the pinned SP writer Opus when the field is absent.
+tribunal_claude_agent_model() {
+  local agent_name="$1"
+  if [ -z "${REPO_ROOT:-}" ]; then
+    REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  fi
+  local f="$REPO_ROOT/.claude/agents/$agent_name.md"
+  local m=""
+  if [ -f "$f" ]; then
+    m="$(awk -F'model:[[:space:]]*' '/^model:/ {print $2; exit}' "$f" | tr -d '"'"'"'[:space:]')"
+  fi
+  if [ -n "$m" ]; then
+    printf '%s\n' "$m"
+  else
+    printf 'claude-opus-4-6[1m]\n'
+  fi
+}
+
+# Programmatic model id stamped into frontmatter scores + progress for the
+# active provider, so a Claude-scored post is recorded honestly instead of
+# being mislabelled GPT-5.5. Optional agent_name yields the judge's declared
+# Claude build; without it, a coarse provider label is returned.
+tribunal_llm_model_id() {
+  local agent_name="${1:-}"
+  case "$(tribunal_llm_provider 2>/dev/null)" in
+    claude)
+      if [ -n "$agent_name" ]; then
+        tribunal_claude_agent_model "$agent_name"
+      else
+        printf 'claude-opus-4-6\n'
+      fi
+      ;;
+    *)
+      printf 'gpt-5.5\n'
+      ;;
+  esac
+}
+
+# Claude equivalent of tribunal_codex_exec: inlines the .claude/agents/<name>.md
+# rubric (its YAML frontmatter is the persona/pass-bar contract) and runs
+# `claude -p` non-interactively. Under root (CCC) claude rejects
+# bypassPermissions, so we use acceptEdits, which still auto-approves the
+# judge's score-file write; non-root uses the broader bypassPermissions.
+tribunal_claude_exec() {
+  local work_dir="$1"
+  local agent_name="$2"
+  local user_prompt="$3"
+  if [ -z "${REPO_ROOT:-}" ]; then
+    REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  fi
+  local agent_file="$REPO_ROOT/.claude/agents/$agent_name.md"
+  local agent_spec=""
+  if [ -f "$agent_file" ]; then
+    agent_spec="$(cat "$agent_file")"
+  fi
+  local prompt
+  prompt="$(cat <<PROMPT
+You are running inside the gu-log tribunal automation as a non-interactive judge.
+
+## Claude Code agent spec: $agent_name
+The YAML frontmatter and body below define your persona, rubric, and pass bar.
+Follow them exactly. The runtime model is selected by this runner; ignore any
+tools/model runtime fields in the frontmatter.
+
+$agent_spec
+
+## Repo root
+$REPO_ROOT
+
+## User task
+$user_prompt
+PROMPT
+)"
+  local model timeout_sec claude_cmd perm
+  model="$(tribunal_claude_agent_model "$agent_name")"
+  timeout_sec="${TRIBUNAL_CODEX_TIMEOUT_SEC:-3600}"
+  claude_cmd="$(tribunal_claude_cmd)" || return 127
+  if [ "$(id -u)" = "0" ]; then
+    perm="acceptEdits"
+  else
+    perm="bypassPermissions"
+  fi
+  (
+    cd "$work_dir"
+    exec </dev/null
+    timeout "$timeout_sec" "$claude_cmd" -p --model "$model" --permission-mode "$perm" "$prompt"
+  )
+}
+
+# Provider-agnostic single-shot exec. Drop-in replacement for direct
+# tribunal_codex_exec calls: routes to codex (primary) or claude (CCC
+# fallback). On the VPS/mac where codex exists this is byte-for-byte the old
+# codex path.
+tribunal_llm_exec() {
+  local work_dir="$1"
+  local agent_name="$2"
+  local user_prompt="$3"
+  case "$(tribunal_llm_provider 2>/dev/null)" in
+    claude)
+      tribunal_claude_exec "$work_dir" "$agent_name" "$user_prompt"
+      ;;
+    codex)
+      tribunal_codex_exec "$work_dir" "$agent_name" "$user_prompt"
+      ;;
+    *)
+      echo "ERROR: no tribunal LLM provider available (need codex or claude on PATH)" >&2
+      return 127
+      ;;
+  esac
+}
+
 # Run Codex with both a wall-clock timeout and an idle watchdog. The wall-clock
 # timeout can be large for GPT-5.5 judge runs, but a process that produces no
 # output and no score-file progress for a while is treated as stalled.
@@ -367,7 +509,7 @@ tribunal_codex_exec_watchdog() {
   local pid rc now last_change latest_mtime out_mtime progress_mtime
 
   : > "$output_file"
-  tribunal_codex_exec "$work_dir" "$agent_name" "$user_prompt" > "$output_file" 2>&1 &
+  tribunal_llm_exec "$work_dir" "$agent_name" "$user_prompt" > "$output_file" 2>&1 &
   pid=$!
   last_change="$(date +%s)"
 
@@ -387,7 +529,7 @@ tribunal_codex_exec_watchdog() {
       last_change="$latest_mtime"
     fi
     if [ $((now - last_change)) -ge "$idle_timeout" ]; then
-      printf '[tribunal-watchdog] idle for %ss with no output/score-file progress; killing Codex pid %s\n' "$idle_timeout" "$pid" >> "$output_file"
+      printf '[tribunal-watchdog] idle for %ss with no output/score-file progress; killing judge pid %s\n' "$idle_timeout" "$pid" >> "$output_file"
       kill -TERM "$pid" 2>/dev/null || true
       sleep 5
       kill -KILL "$pid" 2>/dev/null || true
@@ -399,4 +541,11 @@ tribunal_codex_exec_watchdog() {
   rc=0
   wait "$pid" || rc=$?
   return "$rc"
+}
+
+# Provider-agnostic alias. The watchdog body now dispatches through
+# tribunal_llm_exec (codex primary, claude CCC fallback), so prefer this name
+# at call sites; the codex-specific name is kept for back-compat.
+tribunal_llm_exec_watchdog() {
+  tribunal_codex_exec_watchdog "$@"
 }

@@ -486,7 +486,7 @@ PROMPT
   # instructions. Writer's job is to edit src/content/posts/*.mdx.
   local writer_work_dir
   writer_work_dir="$(tribunal_llm_work_dir)"
-  tribunal_codex_exec "$writer_work_dir" "tribunal-writer" "$writer_prompt" > "$writer_out" 2>&1 || writer_rc=$?
+  tribunal_llm_exec "$writer_work_dir" "tribunal-writer" "$writer_prompt" > "$writer_out" 2>&1 || writer_rc=$?
   rm -rf "$writer_work_dir"
   if [ "$writer_rc" -ne 0 ]; then
     tlog "  WARN: final build repair writer exited with code $writer_rc"
@@ -626,9 +626,13 @@ run_stage() {
 
   local post_path="$ROOT_DIR/src/content/posts/$post_file"
 
-  # Tribunal v8 executes every stage through Codex/GPT-5.5. Agent specs are
-  # prompt contracts; the runtime model comes from this runner.
-  local model_id="gpt-5.5"
+  # Tribunal v8 executes every stage through the active provider: Codex/GPT-5.5
+  # on the VPS/mac, or the judge's declared Claude build in the CCC fallback.
+  # Agent specs are prompt contracts; the runtime model id (stamped into
+  # progress + frontmatter) comes from this runner so a Claude-scored post is
+  # recorded honestly rather than mislabelled GPT-5.5.
+  local model_id
+  model_id="$(tribunal_llm_model_id "$agent_name")"
 
   # ── Crash resume: skip already-passed stages ──
   local existing_status
@@ -669,7 +673,7 @@ run_stage() {
     else
       stage_timeout="${TRIBUNAL_JUDGE_TIMEOUT_SEC:-3600}"
     fi
-    tlog "  Invoking Codex agent-spec '$agent_name' (runtime model '$model_id', timeout ${stage_timeout}s)..."
+    tlog "  Invoking agent-spec '$agent_name' via $TRIBUNAL_PROVIDER (runtime model '$model_id', timeout ${stage_timeout}s)..."
 
     local judge_rc=0 judge_task librarian_packet
     judge_task="Score this post: $ROOT_DIR/src/content/posts/$post_file
@@ -732,7 +736,7 @@ PROMPT
     judge_work_dir="$(tribunal_llm_work_dir)"
     local judge_score_in_work="$judge_work_dir/score.json"
     judge_task="${judge_task/SCORE_PATH_PLACEHOLDER/$judge_score_in_work}"
-    TRIBUNAL_CODEX_TIMEOUT_SEC="$stage_timeout" tribunal_codex_exec_watchdog "$judge_work_dir" "$agent_name" "$judge_task" "$judge_out" "$judge_score_in_work" || judge_rc=$?
+    TRIBUNAL_CODEX_TIMEOUT_SEC="$stage_timeout" tribunal_llm_exec_watchdog "$judge_work_dir" "$agent_name" "$judge_task" "$judge_out" "$judge_score_in_work" || judge_rc=$?
 
     if [ -f "$judge_score_in_work" ]; then
       mv "$judge_score_in_work" "$score_tmp"
@@ -872,7 +876,7 @@ PROMPT
     # Spawn from tmp work-dir to keep prompt context isolated.
     local rewrite_work_dir
     rewrite_work_dir="$(tribunal_llm_work_dir)"
-    tribunal_codex_exec "$rewrite_work_dir" "tribunal-writer" "$writer_prompt" > "$writer_out" 2>&1 || writer_rc=$?
+    tribunal_llm_exec "$rewrite_work_dir" "tribunal-writer" "$writer_prompt" > "$writer_out" 2>&1 || writer_rc=$?
     rm -rf "$rewrite_work_dir"
 
     if [ "$writer_rc" -ne 0 ]; then
@@ -964,15 +968,22 @@ for _cmd in jq python3 pnpm git flock timeout; do
     exit 1
   fi
 done
-if ! tribunal_codex_cmd >/dev/null 2>&1; then
-  echo "ERROR: Required Codex CLI missing: install codex or provide the bundled node entrypoint" >&2
+# Provider gate: codex is the maintained runtime (VPS/mac). When codex is
+# absent — the CCC / Claude Code on the web sandbox — fall back to claude so
+# the tribunal can still score/rewrite rather than hard-failing. Codex, when
+# present, must still meet the minimum version; claude has no version pin.
+TRIBUNAL_PROVIDER="$(tribunal_llm_provider || true)"
+if [ -z "$TRIBUNAL_PROVIDER" ]; then
+  echo "ERROR: No tribunal LLM provider on PATH: install codex (preferred) or claude" >&2
   exit 70
 fi
-CODEX_VERSION="$(tribunal_codex_version || true)"
-MIN_CODEX_VERSION="0.128.0"
-if [ -z "$CODEX_VERSION" ] || ! tribunal_codex_version_at_least "$CODEX_VERSION" "$MIN_CODEX_VERSION"; then
-  echo "ERROR: Codex CLI version $CODEX_VERSION is older than required $MIN_CODEX_VERSION; check tribunal service PATH" >&2
-  exit 70
+if [ "$TRIBUNAL_PROVIDER" = "codex" ]; then
+  CODEX_VERSION="$(tribunal_codex_version || true)"
+  MIN_CODEX_VERSION="0.128.0"
+  if [ -z "$CODEX_VERSION" ] || ! tribunal_codex_version_at_least "$CODEX_VERSION" "$MIN_CODEX_VERSION"; then
+    echo "ERROR: Codex CLI version $CODEX_VERSION is older than required $MIN_CODEX_VERSION; check tribunal service PATH" >&2
+    exit 70
+  fi
 fi
 
 if [ -d .git/rebase-merge ] || [ -d .git/rebase-apply ]; then
@@ -985,6 +996,9 @@ ensure_progress_file
 init_article_progress "$POST_FILE"
 
 tlog "=== tribunal.sh: $POST_FILE ==="
+if [ "$TRIBUNAL_PROVIDER" != "codex" ]; then
+  tlog "  Provider: codex absent — using Claude fallback (CCC sandbox)"
+fi
 
 # ─── Tribunal v8 Sequential Loop ──────────────────────────────────────────────
 # Format: stage_key:agent_name:validate_name:label:max_loops:runner_label:fm_judge_key

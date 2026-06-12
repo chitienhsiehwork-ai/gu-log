@@ -1,12 +1,16 @@
-# sp-pipeline SKILL
+# gp-pipeline SKILL
 
-Agent-facing usage guide. If you are a future agent session picking up work on gu-log, read this before running any `sp-pipeline` subcommand.
+Agent-facing usage guide. If you are a future agent session picking up work on gu-log, read this before running any `gp-pipeline` subcommand.
 
-> **Status**: Phase 4 complete. Every subcommand is live. `sp-pipeline run <url>` is the canonical entry point. `scripts/sp-pipeline.sh` is a thin shim that execs into this binary.
+> **Status**: Phase 4 complete. Every subcommand is live. `gp-pipeline run <url>` is the canonical entry point. `scripts/sp-pipeline.sh` is a thin shim that execs into this binary.
+
+## Naming: gp-pipeline vs sp-pipeline
+
+The command was renamed `sp-pipeline` → **`gp-pipeline`** ("Gu-log Picks", matching the blog brand). Both wrappers (`tools/sp-pipeline/gp-pipeline` and the retained `tools/sp-pipeline/sp-pipeline` shim) and both scripts (`scripts/gp-pipeline.sh`, `scripts/sp-pipeline.sh`) work identically — `sp-pipeline` simply execs `gp-pipeline`. On purpose, **only the command surface moved**: the Go module directory keeps its historical name `tools/sp-pipeline/` (renaming a 40-file module is pure churn), and the **ticket prefix + post filename slug stay `SP` / `sp-`**. So a `gp-pipeline` run still produces `sp-NNN-…` posts — that mismatch is intentional and brand-correct (SP = "Shroom Picks" lineage under the GP umbrella).
 
 ## What this binary is
 
-`sp-pipeline` is the Go rewrite of `scripts/sp-pipeline.sh`. It exists because the bash pipeline hit 1428 lines, embedded two Python validators, and grew an in-house LLM dispatcher — all of which are easier to test, compose, and reason about in Go.
+`gp-pipeline` is the Go rewrite of `scripts/sp-pipeline.sh`. It exists because the bash pipeline hit 1428 lines, embedded two Python validators, and grew an in-house LLM dispatcher — all of which are easier to test, compose, and reason about in Go.
 
 Design brief: Nick Baumann's "bespoke CLI + skill wrapper" pattern (translated as gu-log SP-170). Every step of the pipeline is a separate subcommand. Every subcommand has `--json` output so another agent can parse the result and compose the next step.
 
@@ -15,7 +19,7 @@ Design brief: Nick Baumann's "bespoke CLI + skill wrapper" pattern (translated a
 The binary is not checked into git. Before running any subcommand, the self-compiling wrapper handles the first-time build automatically:
 
 ```bash
-tools/sp-pipeline/sp-pipeline doctor
+tools/sp-pipeline/gp-pipeline doctor
 ```
 
 Expected: first call takes ~3 seconds (cold compile), subsequent calls are instant. If the wrapper reports `"go" not found on PATH`, install Go >= 1.24 before continuing.
@@ -24,22 +28,22 @@ Expected: first call takes ~3 seconds (cold compile), subsequent calls are insta
 
 | User intent | Run | Why |
 |-------------|-----|-----|
-| **"Run the whole pipeline on a tweet URL"** | `sp-pipeline run <url>` | The canonical end-to-end entry point — fetch → eval → dedup → write → review → refine → credits → ralph → deploy |
-| **"Any progress?" / "What step is stuck?"** | `sp-pipeline status <work-dir>` | Reads `pipeline-status.json`, work-dir artifacts, tribunal progress, and git diff to answer the observability questions in one command |
-| **"User wants a specific narrative angle"** | `sp-pipeline run --angle "focus on X while introducing the others" <url>` | Pipes the directive into the write + refine prompts; opening must establish the angle, closing must call back to it |
-| **"Source is a docs / blog page, not a tweet"** | `sp-pipeline run --source-label "OpenClaw Docs" <url>` | Overrides the `source:` frontmatter line; without it, generic URLs render hostname (`docs.openclaw.ai`) which is usually fine but not pretty |
-| "Resume a stuck run from a specific step" | `sp-pipeline run --from-step <name> --file <existing.mdx>` | Honors bash's `--from-step` contract: setup / fetch / eval / dedup / write / review / refine / ralph / deploy |
-| "Run everything except deploy" | `sp-pipeline run --dry-run <url>` | Stops before the deploy step |
-| "Is my environment set up correctly?" | `sp-pipeline doctor` | Walks PATH + repo-relative files, exits 0 if all required deps present |
-| "Can the LLM providers respond non-interactively?" | `sp-pipeline doctor --probe-llm` | Sends a 1-token canary to each provider, reports ok/error/missing |
-| "Just capture a tweet without running anything else" | `sp-pipeline fetch <url>` | Captures into `$REPO/tmp/sp-pending-<epoch>-pipeline/source-tweet.md` |
-| "What ticketId will the next SP use?" | `sp-pipeline counter next --prefix SP` | Reads counter without mutating |
-| "Allocate a new ticketId" | `sp-pipeline counter bump --prefix SP` | Atomically advances under `flock` |
-| "Is this source already covered?" | `sp-pipeline dedup --url <x> --title <t>` | Wraps `scripts/dedup-gate.mjs` |
-| "Run just one LLM-heavy step" | `sp-pipeline {eval,write,review,refine} --source ...` | Each step is independently callable; `--fake-provider` pins canned responses for tests |
-| "Run the 4-stage tribunal on an existing post" | `sp-pipeline ralph --file <sp-NNN-*.mdx>` | Wraps `scripts/tribunal.sh` + runs the frontmatter normaliser |
-| "Patch pipeline credits into a final.mdx for debugging" | `sp-pipeline credits --file <final.mdx>` | Step 4.6 standalone |
-| "Deploy a recovered article" | `sp-pipeline deploy --active-file ... --title ...` | Step 5 standalone — counter bump + rename + commit + push |
+| **"Run the whole pipeline on a tweet URL"** | `gp-pipeline run <url>` | The canonical end-to-end entry point — fetch → eval → dedup → write → review → refine → credits → ralph → deploy |
+| **"Any progress?" / "What step is stuck?"** | `gp-pipeline status <work-dir>` | Reads `pipeline-status.json`, work-dir artifacts, tribunal progress, and git diff to answer the observability questions in one command |
+| **"User wants a specific narrative angle"** | `gp-pipeline run --angle "focus on X while introducing the others" <url>` | Pipes the directive into the write + refine prompts; opening must establish the angle, closing must call back to it |
+| **"Source is a docs / blog page, not a tweet"** | `gp-pipeline run --source-label "OpenClaw Docs" <url>` | Overrides the `source:` frontmatter line; without it, generic URLs render hostname (`docs.openclaw.ai`) which is usually fine but not pretty |
+| "Resume a stuck run from a specific step" | `gp-pipeline run --from-step <name> --file <existing.mdx>` | Honors bash's `--from-step` contract: setup / fetch / eval / dedup / write / review / refine / ralph / deploy |
+| "Run everything except deploy" | `gp-pipeline run --dry-run <url>` | Stops before the deploy step |
+| "Is my environment set up correctly?" | `gp-pipeline doctor` | Walks PATH + repo-relative files, exits 0 if all required deps present |
+| "Can the LLM providers respond non-interactively?" | `gp-pipeline doctor --probe-llm` | Sends a 1-token canary to each provider, reports ok/error/missing |
+| "Just capture a tweet without running anything else" | `gp-pipeline fetch <url>` | Captures into `$REPO/tmp/sp-pending-<epoch>-pipeline/source-tweet.md` |
+| "What ticketId will the next SP use?" | `gp-pipeline counter next --prefix SP` | Reads counter without mutating |
+| "Allocate a new ticketId" | `gp-pipeline counter bump --prefix SP` | Atomically advances under `flock` |
+| "Is this source already covered?" | `gp-pipeline dedup --url <x> --title <t>` | Wraps `scripts/dedup-gate.mjs` |
+| "Run just one LLM-heavy step" | `gp-pipeline {eval,write,review,refine} --source ...` | Each step is independently callable; `--fake-provider` pins canned responses for tests |
+| "Run the 4-stage tribunal on an existing post" | `gp-pipeline ralph --file <sp-NNN-*.mdx>` | Wraps `scripts/tribunal.sh` + runs the frontmatter normaliser |
+| "Patch pipeline credits into a final.mdx for debugging" | `gp-pipeline credits --file <final.mdx>` | Step 4.6 standalone |
+| "Deploy a recovered article" | `gp-pipeline deploy --active-file ... --title ...` | Step 5 standalone — counter bump + rename + commit + push |
 
 ## Global flags
 
@@ -52,7 +56,7 @@ All subcommands inherit these from the root command:
 
 ## pipeline-status.json
 
-`sp-pipeline run` writes `<work-dir>/pipeline-status.json` at step boundaries. This is the machine-readable handoff card for active/recent runs. It includes:
+`gp-pipeline run` writes `<work-dir>/pipeline-status.json` at step boundaries. This is the machine-readable handoff card for active/recent runs. It includes:
 
 - `runState`, `currentStep`, `lastCompletedStep`
 - work-dir artifact presence
@@ -62,7 +66,7 @@ All subcommands inherit these from the root command:
 - pending-artifact guardrail results
 - `nextAction` + `staleWarning`
 
-`sp-pipeline status <work-dir>` reloads that file, refreshes it with live repo state, and exits non-zero if the run looks suspicious (stale, missing a required artifact, or carrying leftover pending artifacts).
+`gp-pipeline status <work-dir>` reloads that file, refreshes it with live repo state, and exits non-zero if the run looks suspicious (stale, missing a required artifact, or carrying leftover pending artifacts).
 
 ## `run` / `write` / `refine` shaping flags
 
@@ -75,7 +79,7 @@ These three flags shape the LLM output without changing the step sequence. Use t
 Example: SP from a docs page with a custom angle:
 
 ```bash
-tools/sp-pipeline/sp-pipeline run \
+tools/sp-pipeline/gp-pipeline run \
   --angle "Focus on Task Flow while introducing the others. Use intriguing stories to cover the knowledge." \
   --source-label "OpenClaw Docs" \
   https://docs.openclaw.ai/automation
@@ -127,8 +131,8 @@ Distinct per failure mode so agents can branch on `$?` without parsing stderr:
 | 11 | capture validation failed | Do NOT retry. The capture is contaminated or truncated — do not translate it. See `CONTRIBUTING.md` Source Completeness rules |
 | 12 | eval rejected (SKIP/SKIP) | Not an error — the evaluator said this source is not SP-worthy. Drop from queue |
 | 13 | dedup gate blocked | Check the printed match; the source is already covered. Either skip or justify to the user |
-| 14 | all LLM providers failed | Run `sp-pipeline doctor --probe-llm` to diagnose which provider is down |
-| 15 | ralph quality bar not met | Run `sp-pipeline ralph --file <mdx>` again with feedback; escalate after 3 failed rewrites |
+| 14 | all LLM providers failed | Run `gp-pipeline doctor --probe-llm` to diagnose which provider is down |
+| 15 | ralph quality bar not met | Run `gp-pipeline ralph --file <mdx>` again with feedback; escalate after 3 failed rewrites |
 | 16 | validate-posts.mjs rejected | Read the validator output, fix the frontmatter or content, retry |
 | 17 | `pnpm run build` failed | Astro build broke — almost always a regression in the MDX or a component |
 | 18 | git push failed | Check network, check if `claude/xxx` branch exists upstream |
@@ -174,11 +178,11 @@ fetch shelled out to `scripts/fetch-x-article.sh`, got output, but the native Go
 `codex exec` is installed but the 1-token canary did not complete. Common causes:
 
 - **Credentials** — run `codex` interactively once to seed auth, then retry the probe.
-- **PATH / bundled CLI mismatch** — on clawd-vm, the wrapper may need the bundled Node entrypoint. `scripts/tribunal-helpers.sh` has a fallback for tribunal; `sp-pipeline doctor` still expects `codex` on PATH.
+- **PATH / bundled CLI mismatch** — on clawd-vm, the wrapper may need the bundled Node entrypoint. `scripts/tribunal-helpers.sh` has a fallback for tribunal; `gp-pipeline doctor` still expects `codex` on PATH.
 - **Sandbox prompt blocked** — verify the installed Codex supports `exec --sandbox danger-full-access --skip-git-repo-check`.
-- **Canary stalls on repo discovery** — try `sp-pipeline run --dry-run <url>` before escalating; a failed 1-token probe can be less informative than an actual small pipeline rehearsal.
+- **Canary stalls on repo discovery** — try `gp-pipeline run --dry-run <url>` before escalating; a failed 1-token probe can be less informative than an actual small pipeline rehearsal.
 
-### "sp-pipeline: 'go' not found on PATH"
+### "gp-pipeline: 'go' not found on PATH"
 
 You are on a machine without Go 1.24+. Install it from https://go.dev/dl/ or ask the user to do so. On CCC sandboxes Go is pre-installed at `/usr/local/go/bin/go`.
 
@@ -186,8 +190,8 @@ You are on a machine without Go 1.24+. Install it from https://go.dev/dl/ or ask
 
 The bash wrapper is now a compatibility shim. The production implementation lives in `tools/sp-pipeline/` and uses Codex/GPT-5.5 by default.
 
-Safe assumption: `bash scripts/sp-pipeline.sh <url>` and `tools/sp-pipeline/sp-pipeline run <url>` exercise the same Go pipeline surface. Use `--dry-run` for rehearsal.
+Safe assumption: `bash scripts/sp-pipeline.sh <url>` and `tools/sp-pipeline/gp-pipeline run <url>` exercise the same Go pipeline surface. Use `--dry-run` for rehearsal.
 
 ## Reporting issues
 
-File gu-log issues with the full `--json` report, the environment info from `sp-pipeline doctor`, and the source URL (if applicable) so the failure can be reproduced.
+File gu-log issues with the full `--json` report, the environment info from `gp-pipeline doctor`, and the source URL (if applicable) so the failure can be reproduced.

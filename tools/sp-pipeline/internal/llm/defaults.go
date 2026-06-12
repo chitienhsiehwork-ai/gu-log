@@ -17,3 +17,52 @@ func DefaultProbeChain() []Provider {
 		NewCodexGPT55Medium(),
 	}
 }
+
+// WritingChain returns the provider chain the pipeline actually dispatches
+// through (eval / write / review / refine). Codex GPT-5.5 is the primary
+// everywhere it exists. When no codex binary is on PATH — the CCC / Claude
+// Code on the web sandbox case, where only `claude` ships — a Claude Opus
+// fallback is appended so `sp-pipeline run` can complete end to end.
+//
+// Claude is appended ONLY when codex is absent, so the VPS/mac behaviour is
+// byte-for-byte unchanged: codex present → Claude is never in the chain,
+// preserving the "Claude is not a safe default dependency" invariant. This is
+// auto-detection (binary-on-PATH), not a flag — a codex that is present but
+// fails at runtime still surfaces its error rather than silently retrying on
+// Claude.
+func WritingChain() []Provider {
+	chain := DefaultWritingChain()
+	if anyAvailable(chain) {
+		return chain
+	}
+	return append(chain, NewClaudeOpus())
+}
+
+// EffectiveStamp returns the (model, harness) display labels for the runtime
+// provider that WritingChain will resolve to. Frontmatter stampers (credits,
+// ralph) use it so a Claude-fallback run is recorded honestly as
+// "Opus 4.6" / "Claude Code CLI" instead of the hardcoded GPT-5.5 / Codex
+// labels. When nothing is on PATH (offline / FakeProvider test runs) it keeps
+// the historical codex labels so those paths do not suddenly flip to Claude.
+func EffectiveStamp() (model, harness string) {
+	chain := DefaultWritingChain()
+	if anyAvailable(chain) {
+		m := chain[0].Model()
+		return DisplayName(m), HarnessName(m)
+	}
+	if c := NewClaudeOpus(); c.Available() {
+		return DisplayName(c.Model()), HarnessName(c.Model())
+	}
+	return DisplayName(ModelGPT55), HarnessName(ModelGPT55)
+}
+
+// anyAvailable reports whether at least one provider in chain has its binary
+// on PATH.
+func anyAvailable(chain []Provider) bool {
+	for _, p := range chain {
+		if p.Available() {
+			return true
+		}
+	}
+	return false
+}

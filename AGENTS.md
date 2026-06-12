@@ -105,7 +105,7 @@ AGENTS.md (你在讀的這個)
   │   ├ validate-posts.mjs    ← Frontmatter + 格式驗證
   │   └ detect-model.mjs      ← Model 名稱偵測（不要猜！）
   └→ tools/sp-pipeline/       ← SP 自動翻譯 pipeline (Go, canonical)
-      ├ sp-pipeline           ← Self-compiling bash wrapper (entry point)
+      ├ gp-pipeline           ← Self-compiling bash wrapper (entry point)
       ├ cmd/sp-pipeline       ← cobra subcommands: run / fetch / eval / write /
       │                         review / refine / credits / ralph / deploy /
       │                         dedup / counter / doctor
@@ -235,7 +235,7 @@ gu-log 的文章草稿有三種來源，全部最終都變成 `src/content/posts
 - **mac-cdx / CC 自己跑 `pnpm run dev`** 來 iterate，用 `playwright-cli` 截圖驗證 UI（skill 在 `.Codex/skills/playwright-cli/`）。
 - **UI/UX 品質**：改完任何視覺的東西（CSS、component、color、spacing、typography、layout）就跑 `uiux-auditor` skill（`.Codex/skills/uiux-auditor/`）。它會強制兩個主題都截圖、算 WCAG 對比、flag 寫死的 hex。不要等 user 來挑錯。
 - **建立 / 修改 skill**：用 `skill-creator` skill（`.Codex/skills/skill-creator/`）— 官方 anthropic/skills 的來源。
-- **沙箱網路能力**（2026-04-23 實測修正）：command-line HTTPS（curl、`sp-pipeline` 的 FetchGeneric）**是通的**，不要假設沒外網。真正受限的是 `playwright-cli` 的 browser navigation——`goto` 在 `domcontentloaded` 卡死，fonts.googleapis.com 之類 CSS 外鏈拿不到。每次 navigate 前先用 `run-code` 裝一個 route handler：localhost/data: 放行，其他一律 abort。uiux-auditor skill 裡有完整範本。
+- **沙箱網路能力**（2026-04-23 實測修正）：command-line HTTPS（curl、`gp-pipeline` 的 FetchGeneric）**是通的**，不要假設沒外網。真正受限的是 `playwright-cli` 的 browser navigation——`goto` 在 `domcontentloaded` 卡死，fonts.googleapis.com 之類 CSS 外鏈拿不到。每次 navigate 前先用 `run-code` 裝一個 route handler：localhost/data: 放行，其他一律 abort。uiux-auditor skill 裡有完整範本。
 - Push 到 main → Vercel auto-deploy → user 在 production 驗收。
 
 ## Quality: Vibe Scoring + Tribunal

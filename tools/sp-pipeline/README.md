@@ -1,4 +1,4 @@
-# sp-pipeline
+# gp-pipeline
 
 The gu-log SP/CP translation pipeline, Go edition. `scripts/sp-pipeline.sh` is now a thin shim that execs into this binary.
 
@@ -22,30 +22,30 @@ None of these are wrong — they are just pushing bash past its good zone. Go ge
 Every step is a subcommand. Agents compose them without running the whole monolith:
 
 ```bash
-sp-pipeline fetch <url>                      # step 1 only
-sp-pipeline status <work-dir>               # active/recent run summary
-sp-pipeline eval --source <file>             # step 1.5
-sp-pipeline dedup --url <url> --title <t>    # step 1.7
-sp-pipeline write --source <file>            # step 2
-sp-pipeline review --draft <file>            # step 3
-sp-pipeline refine --draft <file>            # step 4
-sp-pipeline ralph --file <mdx>               # step 4.7
-sp-pipeline deploy --file <mdx>              # step 5
-sp-pipeline run <url>                        # whole pipeline
-sp-pipeline doctor [--probe-llm]             # preflight checks
-sp-pipeline counter {next,bump} --prefix SP  # ticket counter
+gp-pipeline fetch <url>                      # step 1 only
+gp-pipeline status <work-dir>               # active/recent run summary
+gp-pipeline eval --source <file>             # step 1.5
+gp-pipeline dedup --url <url> --title <t>    # step 1.7
+gp-pipeline write --source <file>            # step 2
+gp-pipeline review --draft <file>            # step 3
+gp-pipeline refine --draft <file>            # step 4
+gp-pipeline ralph --file <mdx>               # step 4.7
+gp-pipeline deploy --file <mdx>              # step 5
+gp-pipeline run <url>                        # whole pipeline
+gp-pipeline doctor [--probe-llm]             # preflight checks
+gp-pipeline counter {next,bump} --prefix SP  # ticket counter
 ```
 
 Global flags: `--json` (machine output), `--verbose`, `--timeout 50m`, `--work-dir <dir>`.
 
 ## Observability / handoff state
 
-`sp-pipeline run` now writes `<work-dir>/pipeline-status.json` at step boundaries. The file is intentionally small and operator-facing: current step, last completed step, artifacts present, active/final filename, next action, stale warning, and pending-artifact guardrail state.
+`gp-pipeline run` now writes `<work-dir>/pipeline-status.json` at step boundaries. The file is intentionally small and operator-facing: current step, last completed step, artifacts present, active/final filename, next action, stale warning, and pending-artifact guardrail state.
 
 Use it through the CLI:
 
 ```bash
-tools/sp-pipeline/sp-pipeline status /tmp/sp-pending-...-pipeline
+tools/sp-pipeline/gp-pipeline status /tmp/sp-pending-...-pipeline
 ```
 
 The `status` command refreshes the saved status with live repo facts:
@@ -83,7 +83,7 @@ See [`SKILL.md`](./SKILL.md) for the agent-facing subcommand contract.
 The binary is **not checked into git**. Use the self-compiling wrapper:
 
 ```bash
-tools/sp-pipeline/sp-pipeline doctor
+tools/sp-pipeline/gp-pipeline doctor
 ```
 
 First invocation cold-builds into `tools/sp-pipeline/bin/sp-pipeline` (takes ~3 seconds); subsequent invocations reuse the binary and are effectively instant. Go's incremental build cache handles source-file change detection.
@@ -99,14 +99,14 @@ make doctor     # build + run doctor
 
 Requirements:
 
-- Go >= 1.24 (verified in CI; `sp-pipeline doctor` reports the detected version)
-- Everything `sp-pipeline doctor` checks (bash, node, python3, git, curl) — these are shared with the existing bash pipeline
+- Go >= 1.24 (verified in CI; `gp-pipeline doctor` reports the detected version)
+- Everything `gp-pipeline doctor` checks (bash, node, python3, git, curl) — these are shared with the existing bash pipeline
 
 ## Repository layout
 
 ```
 tools/sp-pipeline/
-├── sp-pipeline                      # self-compiling bash wrapper (entry point)
+├── gp-pipeline                      # self-compiling bash wrapper (entry point)
 ├── Makefile                         # build / test / vet / fmt / clean targets
 ├── go.mod / go.sum                  # Go module
 ├── README.md                        # this file
@@ -148,18 +148,18 @@ The existing Node / Python helpers (`validate-posts.mjs`, `detect-model.mjs`, `f
 ## Acceptance (all phases done)
 
 - [x] `go fmt / go vet / go build / go test ./...` clean with zero cache
-- [x] `sp-pipeline --help` lists every subcommand, no stubs left
-- [x] `sp-pipeline doctor` reports binary + file health
-- [x] `sp-pipeline fetch <url>` captures a tweet into the work dir (native Go validator, no shell-out)
-- [x] `sp-pipeline counter next/bump --prefix SP` uses syscall.Flock, 20-goroutine concurrency test
-- [x] `sp-pipeline dedup` wraps `dedup-gate.mjs`, exit 13 on BLOCK
-- [x] `sp-pipeline eval` runs two evaluators via FakeProvider (CCC) or real LLM chain (mac-CC), GO/GO / SKIP/SKIP / split exit codes
-- [x] `sp-pipeline write` renders `internal/prompts/write.tmpl` with source + style guide, outputs draft-v1.mdx
-- [x] `sp-pipeline review` / `sp-pipeline refine` run their respective prompts with stdout fallback
-- [x] `sp-pipeline credits` stamps the 4-entry pipeline block via `frontmatter.SetBlock` — verified round-trip on real SP-170
-- [x] `sp-pipeline ralph --file <mdx>` wraps `scripts/tribunal.sh`, runs the frontmatter normaliser, log-and-continues on tribunal failure
-- [x] `sp-pipeline deploy` bumps counter → renames pending → replaces frontmatter ticketId → validates → builds → commits → pushes (with `SkipBuild`/`SkipPush`/`SkipValidate` test hooks)
-- [x] `sp-pipeline run <url>` walks all 9 steps end-to-end in the happy path; `--from-step ralph --file <mdx>` resumes on SP-170
+- [x] `gp-pipeline --help` lists every subcommand, no stubs left
+- [x] `gp-pipeline doctor` reports binary + file health
+- [x] `gp-pipeline fetch <url>` captures a tweet into the work dir (native Go validator, no shell-out)
+- [x] `gp-pipeline counter next/bump --prefix SP` uses syscall.Flock, 20-goroutine concurrency test
+- [x] `gp-pipeline dedup` wraps `dedup-gate.mjs`, exit 13 on BLOCK
+- [x] `gp-pipeline eval` runs two evaluators via FakeProvider (CCC) or real LLM chain (mac-CC), GO/GO / SKIP/SKIP / split exit codes
+- [x] `gp-pipeline write` renders `internal/prompts/write.tmpl` with source + style guide, outputs draft-v1.mdx
+- [x] `gp-pipeline review` / `gp-pipeline refine` run their respective prompts with stdout fallback
+- [x] `gp-pipeline credits` stamps the 4-entry pipeline block via `frontmatter.SetBlock` — verified round-trip on real SP-170
+- [x] `gp-pipeline ralph --file <mdx>` wraps `scripts/tribunal.sh`, runs the frontmatter normaliser, log-and-continues on tribunal failure
+- [x] `gp-pipeline deploy` bumps counter → renames pending → replaces frontmatter ticketId → validates → builds → commits → pushes (with `SkipBuild`/`SkipPush`/`SkipValidate` test hooks)
+- [x] `gp-pipeline run <url>` walks all 9 steps end-to-end in the happy path; `--from-step ralph --file <mdx>` resumes on SP-170
 - [x] `scripts/sp-pipeline.sh` is a 49-line shim that translates env vars → flags and execs into the Go binary
 - [x] No binary checked into git (self-compiling wrapper handles cold start)
 

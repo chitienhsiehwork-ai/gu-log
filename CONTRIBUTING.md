@@ -103,7 +103,7 @@ ticketId: "CP-PENDING"   # 或 SP-PENDING / SD-PENDING / Lv-PENDING
 
 檔名用：`<prefix>-pending-YYYYMMDD-<slug>.mdx`（zh-tw）、`en-<prefix>-pending-YYYYMMDD-<slug>.mdx`（en）
 
-**Merge 前的 swap procedure**（四步，手動或交給 `sp-pipeline deploy`）：
+**Merge 前的 swap procedure**（四步，手動或交給 `gp-pipeline deploy`）：
 
 1. `node -e "console.log(require('./scripts/article-counter.json').CP.next)"` 拿下一個真號
 2. 改 frontmatter：`ticketId: "CP-PENDING"` → `ticketId: "CP-293"`（兩個檔案都改）
@@ -111,7 +111,7 @@ ticketId: "CP-PENDING"   # 或 SP-PENDING / SD-PENDING / Lv-PENDING
 4. Bump counter：`node -e "const fs=require('fs'); const c=JSON.parse(fs.readFileSync('scripts/article-counter.json')); c.CP.next++; fs.writeFileSync('scripts/article-counter.json', JSON.stringify(c,null,2)+'\n');"`
 5. `node scripts/validate-posts.mjs` → commit swap → push 到 main
 
-**自動化版本**：`tools/sp-pipeline/sp-pipeline deploy` 包辦整個 swap，在 pipeline orchestrated 流程裡自動跑。
+**自動化版本**：`tools/sp-pipeline/gp-pipeline deploy` 包辦整個 swap，在 pipeline orchestrated 流程裡自動跑。
 
 **Gate 行為**：
 - `validate-posts.mjs` 接受 `<PREFIX>-PENDING`，跳過 uniqueness 檢查（讓多條 branch 並行用 PENDING）
@@ -345,7 +345,7 @@ Pipeline agents：如果無法取得完整 source，output `INCOMPLETE_SOURCE: <
 4. 丟 **vibe-opus-scorer** subagent 評分 → 沒過就改寫，最多 3 輪
 5. 過分數之後才翻 **en 版** `en-<prefix>-pending-YYYYMMDD-<slug>.mdx`
 6. 再跑一次 `validate-posts.mjs` + `pnpm run build`
-7. Merge 前把 PENDING swap 成真號（或交給 `sp-pipeline deploy`）
+7. Merge 前把 PENDING swap 成真號（或交給 `gp-pipeline deploy`）
 8. `git add` 指定檔案 → commit → push
 
 ### 新增原創文章 (SD)
@@ -361,7 +361,7 @@ Pipeline agents：如果無法取得完整 source，output `INCOMPLETE_SOURCE: <
 
 ```bash
 # Canonical: the Go binary (self-compiling wrapper — first run cold-builds)
-tools/sp-pipeline/sp-pipeline run <tweet_url>
+tools/sp-pipeline/gp-pipeline run <tweet_url>
 
 # Backwards-compat: old bash entry point is a shim that execs into the Go binary.
 bash scripts/sp-pipeline.sh <tweet_url>
@@ -369,7 +369,7 @@ bash scripts/sp-pipeline.sh <tweet_url>
 
 自動流程：抓原文 → 評估 → dedup → 翻譯 → review → refine → credits → Ralph 評分 → commit。
 
-單一 step 也可以直接 call：`tools/sp-pipeline/sp-pipeline fetch <url>` / `eval` / `write` / `review` / `refine` / `ralph` / `deploy`。每個 subcommand 都支援 `--json` 輸出。完整 exit code + flag 對照見 `tools/sp-pipeline/SKILL.md`。
+單一 step 也可以直接 call：`tools/sp-pipeline/gp-pipeline fetch <url>` / `eval` / `write` / `review` / `refine` / `ralph` / `deploy`。每個 subcommand 都支援 `--json` 輸出。完整 exit code + flag 對照見 `tools/sp-pipeline/SKILL.md`。
 
 ### Validation
 

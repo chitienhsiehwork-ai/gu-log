@@ -58,7 +58,7 @@ func TestNormalizeRalphFrontmatter_StripsAndCanonicalises(t *testing.T) {
 	if err := os.WriteFile(f, []byte(ralphFixtureMDX), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := normalizeRalphFrontmatter(f); err != nil {
+	if err := normalizeRalphFrontmatter(f, "GPT-5.5", "Codex CLI"); err != nil {
 		t.Fatalf("normalize: %v", err)
 	}
 	out, _ := os.ReadFile(f)
@@ -88,8 +88,34 @@ func TestNormalizeRalphFrontmatter_StripsAndCanonicalises(t *testing.T) {
 	}
 }
 
+func TestNormalizeRalphFrontmatter_HonoursClaudeStamp(t *testing.T) {
+	// When the CCC fallback ran the pipeline through Claude, the canonical
+	// block must record Claude Opus honestly rather than the hardcoded GPT-5.5.
+	f := filepath.Join(t.TempDir(), "post.mdx")
+	if err := os.WriteFile(f, []byte(ralphFixtureMDX), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := normalizeRalphFrontmatter(f, "Opus 4.6", "Claude Code CLI"); err != nil {
+		t.Fatalf("normalize: %v", err)
+	}
+	out, _ := os.ReadFile(f)
+	s := string(out)
+	for _, want := range []string{
+		`harness: "Claude Code CLI"`,
+		`model: "Opus 4.6"`,
+		`harness: "Claude Code CLI + Tribunal"`,
+	} {
+		if !strings.Contains(s, want) {
+			t.Errorf("claude-stamped frontmatter missing %q in:\n%s", want, s)
+		}
+	}
+	if strings.Contains(s, "GPT-5.5") || strings.Contains(s, `"Codex CLI"`) {
+		t.Errorf("claude run leaked codex labels:\n%s", s)
+	}
+}
+
 func TestNormalizeRalphFrontmatter_MissingFile(t *testing.T) {
-	if err := normalizeRalphFrontmatter("/tmp/missing-xyz-123.mdx"); err == nil {
+	if err := normalizeRalphFrontmatter("/tmp/missing-xyz-123.mdx", "GPT-5.5", "Codex CLI"); err == nil {
 		t.Fatal("expected error for missing file")
 	}
 }
@@ -100,7 +126,7 @@ func TestNormalizeRalphFrontmatter_NoFrontmatter_Silent(t *testing.T) {
 	if err := os.WriteFile(f, []byte("just body, no frontmatter"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := normalizeRalphFrontmatter(f); err != nil {
+	if err := normalizeRalphFrontmatter(f, "GPT-5.5", "Codex CLI"); err != nil {
 		t.Fatalf("expected silent success on no-frontmatter, got %v", err)
 	}
 }
