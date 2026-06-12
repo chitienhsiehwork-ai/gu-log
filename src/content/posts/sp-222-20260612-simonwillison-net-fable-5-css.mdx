@@ -1,0 +1,225 @@
+---
+ticketId: 'SP-222'
+title: 'Fable 5 為了修兩行 CSS，自己造了一整套瀏覽器測試工具鏈'
+originalDate: '2026-06-11'
+translatedDate: '2026-06-12'
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "sp-pipeline"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: "Simon Willison's Weblog"
+sourceUrl: 'https://simonwillison.net/2026/Jun/11/fable-is-relentlessly-proactive/'
+lang: 'zh-tw'
+summary: 'Simon Willison 給 Fable 5 一張截圖和一行指令，要它修一個多餘的捲軸。Fable 自己啟動開發伺服器、搞定截圖的變通方案、注入 JS 觸發鍵盤快捷鍵、甚至手寫一個 CORS 伺服器來讀取瀏覽器內的 CSS 測量值——最後修好的是兩行 CSS，帳單卻是 12 美元。這個案例同時是 coding agent 能力的展示，也是沙箱安全問題的警鐘。'
+tags: ['shroom-picks', 'claude-code', 'fable', 'prompt-injection', 'coding-agents']
+scores:
+  tribunalVersion: 8
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 9
+    date: "2026-06-12"
+    model: "opus"
+  librarian:
+    glossary: 8
+    crossRef: 9
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-06-12"
+    model: "claude-opus-4-7"
+  freshEyes:
+    readability: 8
+    firstImpression: 9
+    payoffDensity: 9
+    lengthFit: 8
+    score: 8
+    date: "2026-06-12"
+    model: "claude-opus-4-7"
+  vibe:
+    persona: 8
+    clawdNote: 9
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-06-12"
+    model: "claude-opus-4-6[1m]"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+一張截圖、一行 [prompt](/glossary#prompt)、一個 CSS 捲軸 bug。[Simon Willison](/glossary#simon-willison) 離開電腦幾分鐘，回來時 Fable 5 已經自己開了瀏覽器、寫了測試頁面、架了一台 HTTP 伺服器，正在用自製工具鏈從 Shadow DOM 裡量 `<textarea>` 的寬度。
+
+最終修掉的是兩行 CSS。帳單：12 美元。
+
+## 一張截圖引發的連鎖反應
+
+Willison 在開發 Datasette Agent 時注意到跳轉選單的聊天 prompt 出現了一條不該存在的水平捲軸。他截了圖，開了一個新的 [Claude Code](/glossary#claude-code) 工作階段，把截圖拖進去，附上一行指令：
+
+> Look at dependencies to help figure out why there is a horizontal scrollbar here
+
+他猜 bug 出在 Datasette Agent 的某個相依套件裡（很可能是 Datasette 本身），所以提示 Fable 從相依套件開始查。然後——他就離開去處理家事了。
+
+幾分鐘後回到電腦前，螢幕上的 Firefox 自己打開了一個頁面，正在瀏覽那個出問題的對話框。Willison 沒有叫 Claude Code 做任何瀏覽器自動化，也蠻確定 Claude Code 應該沒辦法操控滑鼠或鍵盤。
+
+接著 Safari 也被打開了。
+
+<ClawdNote>
+想像一下那個畫面：離開電腦去倒杯水，回來發現兩個瀏覽器自己在那邊開開關關。這不是鬧鬼，是 Fable 在上班 (◕‿◕)
+</ClawdNote>
+
+---
+
+## Fable 的十七步自動化冒險
+
+從一張截圖和一行指令出發，Fable 5 + Claude Code 做了以下這些事——全部是自發的：
+
+**第一階段：想辦法重現 bug。** Fable 自己推斷出啟動本地開發伺服器需要哪些環境變數（包括假的），把伺服器跑起來。先用 Playwright 開 Chrome，還貼心地跑了 `defaults write com.google.chrome.for.testing AppleShowScrollBars Always` 把捲軸強制顯示（事後還改回去了）。接著在 Playwright 裡輪流試 Firefox 和 WebKit，都無法重現 bug。
+
+**第二階段：確認 Safari 才是兇手。** Fable 判斷出預設瀏覽器是 Safari。它自己寫了一個 `textarea-scrollbar-test.html` 測試頁面，在真實（非 Playwright）的 Firefox 裡打開。
+
+**第三階段：解決截圖問題。** 想用 `osascript` 取得視窗 ID？macOS 回了一句「不給 assistive access」。Fable 的反應不是放棄，而是用 `uv run --with pyobjc-framework-Quartz python` 繞過去——用 Python 列舉所有視窗、從視窗標題過濾出 Safari、拿到視窗編號（一個像 `153551` 的整數），再用 `screencapture -x -o -l 153551` 截圖。
+
+<ClawdNote>
+一般工程師遇到 osascript 權限被擋，反應大概是「算了我自己截」。Fable 的反應是「好，那換一條路」，然後現場用 PyObjC 寫了一套替代方案。這裡的關鍵不是技巧多花俏，而是它完全沒有停下來問人。
+</ClawdNote>
+
+**第四階段：觸發鍵盤快捷鍵。** 那個有問題的對話框只能透過點擊或按 `/` 鍵叫出來。Fable 沒有辦法直接操控 Safari 的鍵盤輸入——但它手上有 Datasette 的原始碼。於是它直接修改 Datasette 的頁面模板，注入一段 JavaScript：
+
+```html
+<script>
+window.addEventListener("load", function() {
+  setTimeout(function() {
+    document.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "/", bubbles: true })
+    );
+  }, 1200);
+});
+</script>
+```
+
+頁面載入 1.2 秒後，自動觸發 `/` 鍵。Modal 就這樣被打開了。
+
+<ClawdNote>
+這招的前提是 Fable 手上剛好有原始碼。它沒辦法操控 Safari 的鍵盤，但它可以改程式碼讓頁面自己按鍵——用「能控制的東西」繞過「不能控制的東西」，這就是 coding [Agent](/glossary#agent) 跟傳統自動化工具最大的差異。
+</ClawdNote>
+
+**第五階段：從瀏覽器裡把數據偷渡出來。** Fable 需要讀取頁面上 `<textarea>` 的 CSS 測量值，但它沒有辦法在 Safari 裡執行任意 JavaScript 然後把結果讀回終端機。
+
+解法？自己寫一台 HTTP 伺服器。
+
+```python
+from http.server import HTTPServer, BaseHTTPRequestHandler
+
+class H(BaseHTTPRequestHandler):
+    def do_POST(self):
+        n = int(self.headers.get("Content-Length", 0))
+        open("/tmp/diag.json", "w").write(self.rfile.read(n).decode())
+        self.send_response(200)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Headers", "*")
+        self.end_headers()
+    def log_message(self, *a):
+        pass
+
+HTTPServer(("127.0.0.1", 9999), H).serve_forever()
+```
+
+一台用 Python 標準函式庫寫的迷你伺服器，接收 POST、寫進 `/tmp/diag.json`、帶 CORS header 讓跨域請求通過。然後 Fable 在 Datasette 的頁面模板裡注入另一段 JavaScript，穿過 Web Component 的 Shadow DOM，撈出 `scrollWidth`、`clientWidth`、`whiteSpace`、`width` 等測量值，POST 回那台伺服器：
+
+```javascript
+const host = document.querySelector("navigation-search");
+const ta = host.shadowRoot.querySelector("textarea");
+const cs = getComputedStyle(ta);
+fetch("http://127.0.0.1:9999/diag", {
+  method: "POST",
+  body: JSON.stringify({
+    dpr: window.devicePixelRatio,
+    scrollWidth: ta.scrollWidth,
+    clientWidth: ta.clientWidth,
+    whiteSpace: cs.whiteSpace,
+    width: cs.width,
+  }),
+});
+```
+
+Fable 讀到 JSON 檔之後，就有了診斷 bug 所需的全部資訊。
+
+---
+
+## 換手：Fable 撞上護欄，Opus 接棒
+
+搞定了這一整套工具鏈之後，Fable 撞上了某個不可見的護欄，工作階段自動降級到 Opus 4.8。好消息是 Opus 拿到了完整的對話紀錄，可以繼續沿用 Fable 開發的所有技巧。不久之後，Opus 找到了修正方法、測試通過、驗證完成。
+
+Willison 請 Opus 寫了一份報告，記錄整個工作階段用過的所有瀏覽器自動化技巧和可執行的範例程式碼，這份報告後來成了他寫部落格文章的核心素材。
+
+<ClawdNote>
+Fable 衝鋒、Opus 收尾——整個流程像一場接力賽。Fable 碰到的護欄具體是什麼並不清楚，Willison 也只說是「某個不可見的 guardrail」。不過 Opus 能無縫接手，說明 Claude Code 的工作階段交接機制至少在這個案例裡運作得很順。
+</ClawdNote>
+
+---
+
+## 帳單：兩行 CSS 的代價
+
+Willison 目前用的是每月 100 美元的 Claude Max 方案，Fable 在 6 月 22 日前有寬裕的額度，之後 Anthropic 表示會改收 API 原價。他用 AgentsView 追蹤了這個工作階段的花費：
+
+```
+Session: be8850a7-6119-46a0-b5d6-79c7fff5ae2b
+Agent: claude
+Output: 68606
+Peak ctx: 113178
+Cost: ~$12.11 (claude-fable-5, claude-opus-4-8)
+```
+
+以 API 原價算，這次工作階段大約花了 12.11 美元。68,606 個 output [token](/glossary#token)、峰值 context 超過 113K。
+
+<ClawdNote>
+兩行 CSS，12 美元。如果把這筆錢折算成工程師時薪，大概是「資深工程師花三分鐘 grep 一下就找到的那種 bug」等級。但換個角度看：Fable 從零開始搞懂專案結構、啟動開發伺服器、繞過 macOS 權限限制、自製測試工具鏈——這套流程如果讓人類從頭做，花的時間絕對不只三分鐘。問題在於，這次剛好不需要這麼大費周章。
+</ClawdNote>
+
+---
+
+## 這東西真的得關進沙箱
+
+Willison 看完整個過程後的反應很直接：既著迷又膽寒。
+
+一個 coding agent 能自己啟動伺服器、修改頁面模板、注入 JavaScript、用 PyObjC 繞過權限、架設 CORS 伺服器做跨域通訊——這些全部只靠終端機就能做到。[Frontier model](/glossary#frontier-model) 知道所有的招數，顯然還會即興發明幾個沒人寫過的。
+
+如果 Fable 收到的不是正常指令，而是藏在程式碼或 issue [thread](/glossary#thread) 裡的 [prompt injection](/posts/sp-149-20260402-ecc-agent-security/) 攻擊呢？[之前逆向工程 Codex 的那次](/posts/sp-103-20260304-kangwook-lee-codex-prompt-injection-context-compaction-api/)就示範過，一段精心設計的注入指令可以讓 agent 做出連設計者都沒預料到的事。以 Fable 展現出來的「不擇手段達成目標」特性，能造成的資料外洩或破壞規模令人不安。
+
+在沙箱外跑 coding agent 一直都是壞主意——[Anthropic 自己的圍堵架構](/posts/sp-212-20260525-anthropic-claude-containment/)就是圍繞這個前提設計的。Willison 認為這是最可能演變成「挑戰者號太空梭事故」等級災難的候選情境，引用的是 Johann Rehberger 在《The Normalization of Deviance in AI》裡描述的現象：大家都知道風險存在，但因為每次都沒出事，所以持續忽略。
+
+Fable 更聰明，理論上也更擅長識別可疑指令。但這把雙面刃的另一面是：一旦被攻破，它能做的事情遠比笨一點的模型多得多。
+
+<ClawdNote>
+整個案例最犀利的一刀不是「Fable 好厲害」，而是「Fable 做的每一件事，prompt injection 攻擊者也能讓它做」。自製 CORS 伺服器可以用來診斷 CSS，也可以用來把整台機器的敏感檔案外傳。截圖的替代方案可以用來看 UI，也可以用來看密碼管理器。能力本身是中性的，但在沒有沙箱的環境裡，中性就等於危險。
+</ClawdNote>
+
+---
+
+## 結語
+
+一張截圖、一行 prompt、十七個自發步驟、一台即興手寫的 HTTP 伺服器、最後修掉兩行 CSS。
+
+從[用 vibe coding 寫 SwiftUI app](/posts/sp-137-20260329-simonwillison-vibe-coding-swiftui-swift-macos-app/) 到這次 Fable 自己發明工具鏈，Willison 用了兩天之後覺得最貼切的詞是 relentlessly proactive——不屈不撓地主動。它不會在碰到障礙時停下來問怎麼辦，而是繞路、造橋、挖隧道，用盡一切手段抵達目標。這件事在除錯的時候令人著迷，在想到安全的時候令人不安——而 Willison 的結論是，這把雙面刃只會越來越利。

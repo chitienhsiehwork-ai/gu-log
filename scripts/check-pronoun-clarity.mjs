@@ -121,6 +121,20 @@ function stripInlineCode(line) {
   return line.replace(/`[^`]*`/g, (match) => ' '.repeat(match.length));
 }
 
+// Compounds where 你/我 is a syllable, not a reader-addressing pronoun.
+// Blank them before the scan so e.g. 迷你 (mini) doesn't false-positive as 「你」.
+// Keep this list to terms that are NEVER pronouns — 我們/你們 (we/you) must
+// still be caught, so they are deliberately absent.
+const NON_PRONOUN_COMPOUNDS = ['迷你'];
+
+function stripNonPronounCompounds(line) {
+  let out = line;
+  for (const term of NON_PRONOUN_COMPOUNDS) {
+    out = out.split(term).join(' '.repeat(term.length));
+  }
+  return out;
+}
+
 function truncate(line, max = 140) {
   return line.length > max ? `${line.slice(0, max - 3)}...` : line;
 }
@@ -148,7 +162,7 @@ function findViolations(filePath) {
   for (let i = 0; i < lines.length; i += 1) {
     if (masked[i]) continue;
 
-    const searchable = stripInlineCode(lines[i]);
+    const searchable = stripNonPronounCompounds(stripInlineCode(lines[i]));
     const matches = [...searchable.matchAll(/[你我]/g)];
     if (matches.length === 0) continue;
 
