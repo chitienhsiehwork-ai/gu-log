@@ -240,6 +240,17 @@ const trendWarningCount = trendAlerts.filter((a) => a.severity === 'warning').le
 
 // 6. Optional: append to history only in --record mode
 if (isRecordMode) {
+  // Only persist the routes that are actually trend-monitored. Recording all
+  // ~3000 dist routes balloons the committed history file by ~150 KB per
+  // nightly entry; the route trend rules only ever read the keys below.
+  const monitoredRoutes = Object.keys(budget.trend?.routes ?? {});
+  const allRoutes = sizes.routes ?? {};
+  const recordedRoutes = Object.fromEntries(
+    monitoredRoutes
+      .filter((routePath) => routePath in allRoutes)
+      .map((routePath) => [routePath, allRoutes[routePath]])
+  );
+
   const historyEntry = {
     date: new Date().toISOString(),
     totalKB: sizes.totalKB,
@@ -250,7 +261,7 @@ if (isRecordMode) {
     otherKB: sizes.otherKB,
     fileCount: sizes.fileCount,
     routeCount: sizes.routeCount,
-    routes: sizes.routes ?? {},
+    routes: recordedRoutes,
     blockingPassed: blockingViolations.length === 0,
     trendWarningCount,
     trendCriticalCount,
