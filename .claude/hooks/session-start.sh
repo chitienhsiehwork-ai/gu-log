@@ -16,7 +16,8 @@ fi
 
 cd "${CLAUDE_PROJECT_DIR:-.}" || exit 0
 
-# --fix 會補 deps（node_modules 缺才裝）+ 掛 git hooks，全程 idempotent。
+# --fix 會補 deps（node_modules 缺才裝）+ 掛 git hooks + 背景非同步下載
+# Playwright chromium（CCC sandbox 不預裝，~100MB，不擋開場），全程 idempotent。
 # smoke test 任何 check 沒過會 exit 1，但 SessionStart 不該因此卡住 session，
 # 所以吞掉非零 exit——report 已經印出來，agent 開場自己會看到要修什麼。
 bash scripts/ccc-smoke-test.sh --fix || true
