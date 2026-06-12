@@ -8,12 +8,15 @@ import (
 
 // buildDispatcher returns a Dispatcher honoring the --fake-provider flag.
 // When the flag is set, the dispatcher is a single FakeProvider loaded
-// from JSON. Otherwise it is the real Codex-only chain. The old
-// Opus-primary/Gemini-assisted pipeline is intentionally not the default now
-// that those subscriptions are not assumed to be active.
+// from JSON. Otherwise it is llm.WritingChain(): Codex GPT-5.5 as the
+// primary, plus an auto-detected Claude Opus fallback when no codex binary is
+// on PATH (the CCC sandbox case). The old Opus-primary/Gemini-assisted
+// pipeline is intentionally not the default — Codex stays primary wherever it
+// exists; Claude only enters the chain when codex is absent.
 //
 // The opusOnly parameter is kept for CLI compatibility, but no longer changes
-// provider routing because Claude is not a safe default dependency.
+// provider routing: the Claude fallback is driven by codex availability, not
+// by this flag.
 func buildDispatcher(state *rootState, opusOnly bool) (*llm.Dispatcher, error) {
 	if state.fakeProviderPath != "" {
 		fake, err := llm.LoadFakeFromJSON(state.fakeProviderPath)
@@ -22,7 +25,7 @@ func buildDispatcher(state *rootState, opusOnly bool) (*llm.Dispatcher, error) {
 		}
 		return llm.NewDispatcher(state.log, fake)
 	}
-	providers := llm.DefaultWritingChain()
+	providers := llm.WritingChain()
 	_ = opusOnly
 	return llm.NewDispatcher(state.log, providers...)
 }
