@@ -83,14 +83,20 @@ fi
 if ! grep -Fq 'export PATH="$HOME/.local/bin:$HOME/bin:$PATH"' "$WRAPPER"; then
   fail "Tribunal systemd wrapper does not prefer the current ~/.local/bin Codex before stale ~/bin"
 fi
-if ! grep -q 'local model_id="gpt-5.5"' "$TRIBUNAL"; then
-  fail "Tribunal frontmatter/logging model_id is not pinned to GPT-5.5"
+# model_id is provider-resolved now: codex pins GPT-5.5 (the maintained
+# runtime), claude is the CCC sandbox fallback. Guard both halves so a refactor
+# can't silently unpin the codex path or drop the resolver.
+if ! grep -q 'model_id="$(tribunal_llm_model_id' "$TRIBUNAL"; then
+  fail "Tribunal model_id is not resolved through the provider-aware tribunal_llm_model_id"
+fi
+if ! grep -q "printf 'gpt-5.5" "$HELPERS"; then
+  fail "Codex provider path no longer pins GPT-5.5 in tribunal_llm_model_id"
 fi
 unpinned_agents=$(grep -L '^model = "gpt-5.5"' "$CODEX_AGENTS_DIR"/*.toml || true)
 if [ -n "$unpinned_agents" ]; then
   fail "One or more Codex tribunal agent specs are not pinned to GPT-5.5: $unpinned_agents"
 fi
-pass "Tribunal v8 Codex model pinning remains GPT-5.5 end-to-end"
+pass "Tribunal model pinning: codex stays GPT-5.5, claude is the CCC fallback"
 
 if ! grep -q 'temporary directory' "$CODEX_WRITER" || ! grep -q 'surgical editor' "$CODEX_WRITER"; then
   fail "Codex tribunal writer prompt lacks GPT-5.5 temp-dir/surgical-edit guardrails"
