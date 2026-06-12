@@ -94,8 +94,8 @@ describe('pre-push: PENDING ticketId guard (Step 0)', () => {
       encoding: 'utf-8',
     });
     // Should not crash on PENDING gate (it only checks pushes targeting main).
-    // The bundle-budget step at the end may exit non-zero in environments
-    // without the metric files; we just assert PENDING gate didn't fire.
+    // The bundle-budget step is warning-only locally (#396) so it won't fail the
+    // hook; we just assert the PENDING gate didn't fire.
     expect(r.stdout + r.stderr).not.toMatch(/PENDING ticketId in commits/);
   });
 
