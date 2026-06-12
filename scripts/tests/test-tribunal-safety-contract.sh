@@ -98,6 +98,24 @@ if [ -n "$unpinned_agents" ]; then
 fi
 pass "Tribunal model pinning: codex stays GPT-5.5, claude is the CCC fallback"
 
+# The internal progress ledger runner_label must be provider-aware too, sharing
+# the same resolver as the frontmatter model_id. A refactor must not regress it
+# back to a static codex-gpt-5.5-medium string (that would mislabel CCC Claude
+# runs as codex in calibration/audit data).
+if ! grep -q 'tribunal_runner_label()' "$HELPERS"; then
+  fail "tribunal_runner_label provider-aware helper is missing"
+fi
+if ! grep -q 'codex-%s-medium' "$HELPERS"; then
+  fail "tribunal_runner_label codex path no longer reproduces codex-gpt-5.5-medium"
+fi
+if ! grep -q 'runner_label="$(tribunal_runner_label' "$TRIBUNAL"; then
+  fail "Tribunal progress runner_label is not resolved through tribunal_runner_label"
+fi
+if grep -Eq 'codex-gpt-5\.5-medium:(factCheck|librarian|freshEyes|vibe)' "$TRIBUNAL"; then
+  fail "STAGES still hardcodes a static codex-gpt-5.5-medium runner_label column"
+fi
+pass "Progress ledger runner_label is provider-aware (codex/claude), not a static codex string"
+
 if ! grep -q 'temporary directory' "$CODEX_WRITER" || ! grep -q 'surgical editor' "$CODEX_WRITER"; then
   fail "Codex tribunal writer prompt lacks GPT-5.5 temp-dir/surgical-edit guardrails"
 fi

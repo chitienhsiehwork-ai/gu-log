@@ -419,6 +419,31 @@ tribunal_llm_model_id() {
   esac
 }
 
+# Provider-aware runner label stamped into the internal progress ledger
+# (.score-loop/state/tribunal-progress.json), the stage log lines, and the
+# runner-error records. Shares the exact same provider resolution as the
+# frontmatter model_id (tribunal_llm_provider + tribunal_llm_model_id) so a
+# Claude-scored run is recorded as Claude internally instead of being
+# mislabelled as the codex GPT-5.5 runner — no second provider-detection path.
+#
+# - codex  → codex-gpt-5.5-medium  (byte-for-byte unchanged so VPS/mac
+#            calibration history stays continuous)
+# - claude → the judge's declared Claude build, symmetric to the frontmatter
+#            model_id (e.g. claude-opus-4-6[1m])
+tribunal_runner_label() {
+  local agent_name="${1:-}"
+  local model
+  model="$(tribunal_llm_model_id "$agent_name")"
+  case "$(tribunal_llm_provider 2>/dev/null)" in
+    claude)
+      printf '%s\n' "$model"
+      ;;
+    *)
+      printf 'codex-%s-medium\n' "$model"
+      ;;
+  esac
+}
+
 # Claude equivalent of tribunal_codex_exec: inlines the .claude/agents/<name>.md
 # rubric (its YAML frontmatter is the persona/pass-bar contract) and runs
 # `claude -p` non-interactively. Under root (CCC) claude rejects
