@@ -83,7 +83,18 @@ func (c *ClaudeProvider) Run(ctx context.Context, prompt string, opts RunOptions
 	if os.Geteuid() != 0 {
 		args = append(args, "--permission-mode", "bypassPermissions")
 	} else {
-		args = append(args, "--permission-mode", "acceptEdits")
+		// Root (CCC): bypassPermissions is rejected, so fall back to
+		// acceptEdits. acceptEdits only auto-approves *edits*, so any stage
+		// that Reads a file would hit a permission prompt and hang forever on
+		// the non-interactive stdin. Pre-approve the read/search/compute/write
+		// tools a stage can use via --allowed-tools — the explicit, narrower
+		// equivalent of the non-root bypassPermissions "never prompt" behavior.
+		// Prompt goes on stdin (below), so this trailing variadic flag has no
+		// positional to swallow.
+		args = append(args,
+			"--permission-mode", "acceptEdits",
+			"--allowed-tools", "Read,Grep,Glob,Bash,Write,Edit,MultiEdit",
+		)
 	}
 	res, err := runner.RunWithOptions(ctx, runner.Options{
 		Name:    "claude",

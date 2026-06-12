@@ -479,19 +479,34 @@ $REPO_ROOT
 $user_prompt
 PROMPT
 )"
-  local model timeout_sec claude_cmd perm
+  local model timeout_sec claude_cmd
   model="$(tribunal_claude_agent_model "$agent_name")"
   timeout_sec="${TRIBUNAL_CODEX_TIMEOUT_SEC:-3600}"
   claude_cmd="$(tribunal_claude_cmd)" || return 127
+  # Permission handling differs by uid:
+  #  - non-root (mac/VPS): bypassPermissions never prompts — judge runs free.
+  #  - root (CCC sandbox): claude *rejects* bypassPermissions, so we fall back to
+  #    acceptEdits. But acceptEdits only auto-approves *edits*; the judge task
+  #    passes the post as a PATH (not inlined), so the judge must Read it — which
+  #    prompts for permission and then hangs forever against the </dev/null
+  #    stdin. We therefore pre-approve the read/search/compute/write tools a judge
+  #    actually uses via --allowed-tools, reproducing the non-root "never prompt"
+  #    behavior with an explicit, narrower allowlist (no MCP, no network). Tools
+  #    are comma-joined into a single arg so the variadic flag can't swallow the
+  #    trailing "$prompt" positional.
+  #    --allowed-tools is variadic, so we must NOT leave a trailing positional
+  #    after it or the flag swallows the prompt text as bogus tool rules. Feed
+  #    the prompt on stdin (claude -p reads stdin when no positional prompt is
+  #    given) so the allowlist token is the last arg with nothing to consume.
+  local -a perm_args
   if [ "$(id -u)" = "0" ]; then
-    perm="acceptEdits"
+    perm_args=(--permission-mode acceptEdits --allowed-tools "Read,Grep,Glob,Bash,Write,Edit,MultiEdit")
   else
-    perm="bypassPermissions"
+    perm_args=(--permission-mode bypassPermissions)
   fi
   (
     cd "$work_dir"
-    exec </dev/null
-    timeout "$timeout_sec" "$claude_cmd" -p --model "$model" --permission-mode "$perm" "$prompt"
+    printf '%s' "$prompt" | timeout "$timeout_sec" "$claude_cmd" -p --model "$model" "${perm_args[@]}"
   )
 }
 

@@ -108,9 +108,9 @@ Vercel build / tribunal / validate-posts / CI 沒過：
 
 **PR 動到 `src/content/posts/*.mdx`（新增 SP/CP/SD/Lv，或實質改寫既有文章）→ 四評審必跑，結果必記錄。沒跑完不開 PR，跑完 FAIL 不 merge。**
 
-**首選**：`scripts/tribunal-batch-runner.sh` 或 `gp-pipeline ralph` 自動跑完四審 + rewrite + 寫 frontmatter scores。
+**首選**：`scripts/tribunal-batch-runner.sh` 或 `gp-pipeline ralph` 自動跑完四審 + rewrite + 寫 frontmatter scores。**這條在 CCC（root sandbox）現在可以原生跑**——`tribunal_claude_exec`（shell judges）和 Go `ClaudeProvider.Run`（pipeline）在 `id -u == 0` 時自動：(1) 用 `acceptEdits` 取代被 CLI 拒絕的 `bypassPermissions`，(2) 補 `--allowed-tools Read,Grep,Glob,Bash,Write,Edit,MultiEdit` 讓 judge Read 文章檔時不會卡 permission prompt，(3) prompt 走 stdin 避免 variadic 旗標吞掉內文。實測 `bash scripts/tribunal.sh --score-only --only-stage vibe <post>` 在 CCC 端到端 PASS（#123）。
 
-**沙箱 fallback**（`gp-pipeline ralph` / `scripts/vibe-scorer.sh` 的 subprocess 在 CCC 沒跑起來時——現在 `id -u` 下已自動 drop `--dangerously-skip-permissions` / `--permission-mode bypassPermissions`，理論上跑得起，但 subprocess 有可能讀 CLAUDE.md 卡在 permission wait；真的卡住再走這條）：**CCC 自己用 `Agent` tool 一次 spawn 四個 subagent 平行跑**，對應 `.claude/agents/`：
+**沙箱 fallback**（只有上面 shell/pipeline 路真的壞掉時才用——例如 quota 用盡、CLI 版本回歸）：**CCC 自己用 `Agent` tool 一次 spawn 四個 subagent 平行跑**，對應 `.claude/agents/`：
 
 - `vibe-opus-scorer.md`（Opus）→ persona / clawdNote / vibe / clarity / narrative
 - `fact-checker.md`（Opus）→ accuracy / fidelity / consistency（要 WebFetch 驗 sourceUrl）
@@ -190,8 +190,8 @@ tools/sp-pipeline/gp-pipeline run <url> --force
 
 不是因為沒網路、也不是因為 auth 不到——2026-04-23 實測：
 - **Auth OK**：CCC 有 `CLAUDE_CODE_OAUTH_TOKEN_FILE_DESCRIPTOR`，`claude -p` subprocess 可以認證完成並回應
-- **`--permission-mode bypassPermissions` / `--dangerously-skip-permissions` 在 root 會被 CLI 直接拒**。`gp-pipeline` 的 `ClaudeProvider.Run` 和 shell judges（tribunal-all-claude.sh / vibe-scorer.sh）已經都在 `id -u == 0` 時自動把這 flag drop 掉，所以這層不再是 blocker
-- **但 drop 掉 bypass flag 之後，subprocess 會用 default permission mode** → 讀 CLAUDE.md、auto-discover cwd、試圖做 context-aware 的事；短 prompt（例如 doctor 的 1-token canary）容易被誤判成「我該去幫你改 repo」然後卡在 permission wait，30s 後 timeout。長的 creative prompt（write / review / refine）比較不會，因為 task is the prompt, not the repo
+- **`--permission-mode bypassPermissions` / `--dangerously-skip-permissions` 在 root 會被 CLI 直接拒**。`gp-pipeline` 的 `ClaudeProvider.Run` 和 shell judges（`tribunal-helpers.sh` 的 `tribunal_claude_exec`，`vibe-scorer.sh` / `tribunal-all-claude.sh` 現在只是 → `tribunal.sh` 的 deprecated wrapper）都在 `id -u == 0` 時自動把這 flag 換成 `acceptEdits`，所以這層不再是 blocker
+- **`acceptEdits` 只自動核准 edit，judge / stage 要 Read 文章檔時還是會卡 permission prompt**（`</dev/null`/stdin 無 TTY → 靜默 hang，原本 #123 的 30s timeout 就是這個）。修法：root 下同時補 `--allowed-tools Read,Grep,Glob,Bash,Write,Edit,MultiEdit`，把 judge 會用到的工具顯式 allowlist 掉（等於用比 bypassPermissions 更窄的清單複製「不 prompt」行為）；prompt 一律走 stdin，避免 variadic 的 `--allowed-tools` 把 prompt 內文當成 tool 規則吞掉。修完實測單篇 vibe stage 在 CCC PASS（composite=8）
 - **Long creative generation 本身還會踩 stream idle timeout**（見本檔下方「Stream idle timeout 應對」那一節）
 
 真正要 fallback 的時候怎麼走：
