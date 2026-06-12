@@ -43,6 +43,11 @@ type fileCheck struct {
 
 // requiredBinaries and optionalBinaries mirror sp-pipeline.sh's
 // check_required_tools list, split by whether a missing entry is fatal.
+//
+// codex is optional rather than required because the pipeline falls back to
+// `claude` when no codex binary is on PATH (the CCC / Claude Code on the web
+// sandbox). A box with codex absent but claude present is still healthy, so a
+// missing codex must never flip overall health to failed — see ProbeChain.
 var (
 	requiredBinaries = []string{"git", "bash", "node", "python3", "curl"}
 	optionalBinaries = []string{"codex", "jq", "make", "pnpm"}
@@ -138,7 +143,7 @@ func runDoctor(ctx context.Context, state *rootState, probeLLM bool) error {
 		// should complete in a few seconds.
 		probeCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 		defer cancel()
-		disp, err := llm.NewDispatcher(state.log, llm.DefaultProbeChain()...)
+		disp, err := llm.NewDispatcher(state.log, llm.ProbeChain()...)
 		if err == nil {
 			report.LLMProbes = disp.Probe(probeCtx)
 		} else {

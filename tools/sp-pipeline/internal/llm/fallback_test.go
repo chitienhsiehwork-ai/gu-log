@@ -54,6 +54,31 @@ func TestWritingChainKeepsCodexPrimary(t *testing.T) {
 	}
 }
 
+func TestProbeChainKeepsCodexPrimary(t *testing.T) {
+	// ProbeChain mirrors WritingChain's invariant for the doctor --probe-llm
+	// path: codex is always primary so VPS/mac probe output is unchanged; the
+	// only difference is an optional trailing Claude probe when codex is absent
+	// (the CCC sandbox case). It must never be claude-only or place claude
+	// before codex.
+	chain := ProbeChain()
+	if len(chain) == 0 {
+		t.Fatal("ProbeChain returned an empty chain")
+	}
+	if chain[0].Name() != "codex-gpt-5.5" {
+		t.Fatalf("ProbeChain primary = %q, want codex-gpt-5.5", chain[0].Name())
+	}
+	switch len(chain) {
+	case 1:
+		// codex-only — fine.
+	case 2:
+		if _, ok := chain[1].(*ClaudeProvider); !ok {
+			t.Fatalf("ProbeChain fallback = %T, want *ClaudeProvider", chain[1])
+		}
+	default:
+		t.Fatalf("ProbeChain length = %d, want 1 or 2", len(chain))
+	}
+}
+
 func TestEffectiveStampLabels(t *testing.T) {
 	// EffectiveStamp never invents an unknown label; it returns one of the two
 	// known provider identities. We can't force PATH here, so we just assert
