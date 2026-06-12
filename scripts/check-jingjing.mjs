@@ -268,6 +268,11 @@ commit
 # OSS signing protocol Mitchell uses for Ghostty releases (covered in CP-159);
 # X handle of SP-169's source author.
 Vouch dani
+# Added 2026-06-12 for SP-221 (Zed DeltaDB). Zed = editor/company, DeltaDB =
+# the product, Nathan Sobo = founder; "delta" is DeltaDB's namesake atomic
+# unit (the article's core abstraction, analogous to commit) — keeping the
+# English preserves the tie to the product name.
+Zed DeltaDB Nathan Sobo delta
 
 # Added 2026-05-07 for SP-191 (Claude Dreams / context rot).
 # Dreams is Anthropic's Managed Agents memory-consolidation feature; danizhu is
