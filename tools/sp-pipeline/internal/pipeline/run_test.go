@@ -295,7 +295,10 @@ body
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(data), `"Codex CLI"`) {
+	// The run harness dispatches through a fake Claude provider, so the honest
+	// ralph stamp records Claude Code CLI (not the old hardcoded Codex label) —
+	// this is the CCC-fallback stamping path under test.
+	if !strings.Contains(string(data), `"Claude Code CLI"`) {
 		t.Errorf("ralph normaliser did not run on resume: %s", data)
 	}
 }

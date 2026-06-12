@@ -9,6 +9,7 @@ import (
 
 	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/config"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/counter"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/llm"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/logx"
 )
 
@@ -177,6 +178,14 @@ body
 	s.Prefix = "SP"
 	s.AuthorHandle = "fakeauthor"
 	s.Title = "Fake Title"
+	// Pin the stamp provider to Codex so the canonical-frontmatter assertions
+	// are deterministic regardless of which CLI happens to be on the test
+	// box's PATH (CCC has claude, the VPS has codex).
+	disp, err := llm.NewDispatcher(s.Log, llm.NewFakeCodex())
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.Dispatcher = disp
 
 	if err := s.Ralph(context.Background()); err != nil {
 		t.Fatalf("Ralph: %v", err)

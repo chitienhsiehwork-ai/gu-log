@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/frontmatter"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/llm"
 )
 
 // PipelineURL is the URL stamped into the pipelineUrl frontmatter field.
@@ -47,25 +48,30 @@ func (s *State) Credits(ctx context.Context) error {
 		return fmt.Errorf("credits: parse final.mdx: %w", err)
 	}
 
-	// Default the per-stage metadata to the mac-cdx Codex GPT-5.5 path.
-	// A real run populates these in Write/Review/Refine.
-	writeModel := nonEmpty(s.WriteModel, "GPT-5.5")
-	writeHarness := nonEmpty(s.WriteHarness, "Codex CLI")
-	reviewModel := nonEmpty(s.ReviewModel, "GPT-5.5")
-	reviewHarness := nonEmpty(s.ReviewHarness, "Codex CLI")
-	refineModel := nonEmpty(s.RefineModel, "GPT-5.5")
-	refineHarness := nonEmpty(s.RefineHarness, "Codex CLI")
+	// Default the per-stage metadata to the runtime provider's labels. A real
+	// run populates these from the dispatcher result in Write/Review/Refine;
+	// the defaults only matter when a stage was skipped via --from-step. They
+	// follow whichever provider WritingChain resolved to (Codex GPT-5.5
+	// normally, Claude Opus in the CCC sandbox fallback) so a Claude run is
+	// stamped honestly rather than mislabelled as GPT-5.5.
+	stampModel, stampHarness := s.StampLabels()
+	writeModel := nonEmpty(s.WriteModel, stampModel)
+	writeHarness := nonEmpty(s.WriteHarness, stampHarness)
+	reviewModel := nonEmpty(s.ReviewModel, stampModel)
+	reviewHarness := nonEmpty(s.ReviewHarness, stampHarness)
+	refineModel := nonEmpty(s.RefineModel, stampModel)
+	refineHarness := nonEmpty(s.RefineHarness, stampHarness)
 
 	// Patch the top-level model line to match the actual writer.
 	f.SetNestedScalar("translatedBy", "model", quoted(writeModel))
 	// Replace harness with a summary string and inject the 4-entry pipeline.
-	f.SetNestedScalar("translatedBy", "harness", `"Codex CLI"`)
+	f.SetNestedScalar("translatedBy", "harness", quoted(writeHarness))
 
 	entries := []PipelineEntry{
 		{Role: "Written", Model: writeModel, Harness: writeHarness},
 		{Role: "Reviewed", Model: reviewModel, Harness: reviewHarness},
 		{Role: "Refined", Model: refineModel, Harness: refineHarness},
-		{Role: "Orchestrated", Model: "GPT-5.5", Harness: "sp-pipeline"},
+		{Role: "Orchestrated", Model: stampModel, Harness: "sp-pipeline"},
 	}
 	f.SetNestedBlock("translatedBy", "pipeline", renderPipelineBlock("  pipeline", entries))
 	f.SetNestedScalar("translatedBy", "pipelineUrl", quoted(PipelineURL))
@@ -75,6 +81,23 @@ func (s *State) Credits(ctx context.Context) error {
 	}
 	s.Log.OK("Step 4.6: pipeline credits stamped")
 	return nil
+}
+
+// StampLabels resolves the (model, harness) display labels for the provider
+// the pipeline actually ran through, so frontmatter credits/ralph stamps are
+// honest about whether a post was written/scored by Codex GPT-5.5 or the
+// Claude Opus CCC fallback. It reads the resolved dispatcher (deterministic
+// for a given run and for FakeProvider tests) and falls back to probing PATH
+// via llm.EffectiveStamp when no dispatcher is wired.
+func (s *State) StampLabels() (model, harness string) {
+	if s.Dispatcher != nil {
+		for _, p := range s.Dispatcher.Providers() {
+			if p.Available() {
+				return llm.DisplayName(p.Model()), llm.HarnessName(p.Model())
+			}
+		}
+	}
+	return llm.EffectiveStamp()
 }
 
 // renderPipelineBlock builds a YAML snippet for a translatedBy.pipeline
