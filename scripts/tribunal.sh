@@ -612,7 +612,7 @@ PY
 }
 
 # ─── Run One Tribunal Stage ───────────────────────────────────────────────────
-# Args: stage_key, agent_name, validate_name, label, max_loops, runner_label, post_file
+# Args: stage_key, agent_name, validate_name, label, max_loops, post_file
 # Returns: 0 = stage passed, 1 = stage failed (max loops exhausted)
 run_stage() {
   local stage_key="$1"    # progress key: librarian, factChecker, freshEyes, vibe
@@ -620,9 +620,8 @@ run_stage() {
   local validate_name="$3" # validate name: librarian, fact-checker, fresh-eyes, vibe-opus-scorer
   local label="$4"        # human label: Librarian, FactChecker, FreshEyes, VibeScorer
   local max_loops="$5"    # 2 or 3
-  local runner_label="$6"  # Codex runner label for logging/progress/frontmatter
-  local post_file="$7"
-  local fm_judge_key="${8:-}" # frontmatter scores key: librarian, factCheck, freshEyes, vibe
+  local post_file="$6"
+  local fm_judge_key="${7:-}" # frontmatter scores key: librarian, factCheck, freshEyes, vibe
 
   local post_path="$ROOT_DIR/src/content/posts/$post_file"
 
@@ -633,6 +632,14 @@ run_stage() {
   # recorded honestly rather than mislabelled GPT-5.5.
   local model_id
   model_id="$(tribunal_llm_model_id "$agent_name")"
+
+  # Provider-aware runner label for the progress ledger / stage logs /
+  # runner-error records. Derived from the same provider resolution as model_id
+  # (not a static codex-gpt-5.5-medium string) so the internal ledger matches
+  # the reader-visible frontmatter: codex stays codex-gpt-5.5-medium, the CCC
+  # Claude fallback records the judge's Claude build instead of lying GPT-5.5.
+  local runner_label
+  runner_label="$(tribunal_runner_label "$agent_name")"
 
   # ── Crash resume: skip already-passed stages ──
   local existing_status
@@ -1001,17 +1008,19 @@ if [ "$TRIBUNAL_PROVIDER" != "codex" ]; then
 fi
 
 # ─── Tribunal v8 Sequential Loop ──────────────────────────────────────────────
-# Format: stage_key:agent_name:validate_name:label:max_loops:runner_label:fm_judge_key
+# Format: stage_key:agent_name:validate_name:label:max_loops:fm_judge_key
 # fm_judge_key = frontmatter scores key (used by frontmatter-scores.mjs)
+# The runner_label is no longer a static column here: run_stage resolves it
+# provider-aware via tribunal_runner_label so codex/claude are labelled honestly.
 declare -a STAGES=(
-  "factChecker:fact-checker:fact-checker:FactChecker:2:codex-gpt-5.5-medium:factCheck"
-  "librarian:librarian:librarian:Librarian:2:codex-gpt-5.5-medium:librarian"
-  "freshEyes:fresh-eyes:fresh-eyes:FreshEyes:2:codex-gpt-5.5-medium:freshEyes"
-  "vibe:vibe-opus-scorer:vibe-opus-scorer:VibeScorer:3:codex-gpt-5.5-medium:vibe"
+  "factChecker:fact-checker:fact-checker:FactChecker:2:factCheck"
+  "librarian:librarian:librarian:Librarian:2:librarian"
+  "freshEyes:fresh-eyes:fresh-eyes:FreshEyes:2:freshEyes"
+  "vibe:vibe-opus-scorer:vibe-opus-scorer:VibeScorer:3:vibe"
 )
 
 for stage_def in "${STAGES[@]}"; do
-  IFS=':' read -r stage_key agent_name validate_name label max_loops runner_label fm_judge_key <<< "$stage_def"
+  IFS=':' read -r stage_key agent_name validate_name label max_loops fm_judge_key <<< "$stage_def"
 
   if [ -n "$ONLY_STAGE" ] && [ "$stage_key" != "$ONLY_STAGE" ]; then
     tlog "  Skipping stage '$label' due to --only-stage=$ONLY_STAGE."
@@ -1021,7 +1030,7 @@ for stage_def in "${STAGES[@]}"; do
   stage_rc=0
   run_stage \
     "$stage_key" "$agent_name" "$validate_name" "$label" \
-    "$max_loops" "$runner_label" "$POST_FILE" "$fm_judge_key" || stage_rc=$?
+    "$max_loops" "$POST_FILE" "$fm_judge_key" || stage_rc=$?
   if [ "$stage_rc" -eq 70 ]; then
     tlog "=== RUNNER ERROR at stage: $label ==="
     commit_progress "tribunal(${POST_FILE%.mdx}): RUNNER_ERROR at $label stage"
