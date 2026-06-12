@@ -282,6 +282,24 @@ Managed Agents Agents
 danizhu
 context rot
 
+# Added 2026-06-12 for SP-222 (Simon Willison / Fable relentlessly proactive).
+# Fable = Claude model name (sibling of allowlisted Opus/Sonnet/Haiku).
+# Browsers / engines / automation siblings of allowlisted Firefox/Chrome.
+# Datasette/PyObjC/SwiftUI/AgentsView = products & libraries; osascript/grep =
+# canonical CLI tools (grep is universal, same status as allowlisted "commit").
+# Web Component + Shadow DOM = W3C web-platform proper nouns. injection covers
+# the canonical "prompt injection" term. Johann Rehberger + Normalization /
+# Deviance = the cited essay "The Normalization of Deviance in AI". relentlessly
+# = the source post's titular phrase, introduced then translated inline.
+Fable
+Safari Playwright WebKit
+Datasette PyObjC SwiftUI AgentsView
+osascript grep
+Web Component Shadow
+injection
+Johann Rehberger Normalization Deviance
+relentlessly
+
 # Added 2026-05-12 for SP-197 (Garry Tan AI agent complexity ratchet).
 # Proper nouns, source examples, research author names, and literal prior article titles.
 Conductor Dave Bitcoin Jared Podcast
