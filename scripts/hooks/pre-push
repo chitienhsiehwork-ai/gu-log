@@ -53,13 +53,18 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-# 2. Bundle budget check (check-only; must not write git working tree files)
-#    Blocking budgets fail the push; trend alerts are warnings only.
-echo "📦 Checking bundle budgets (blocking + trend monitor)..."
-node scripts/bundle-budget-check.mjs
-if [ $? -ne 0 ]; then
-  echo "❌ Blocking bundle budget violation detected! Push aborted."
-  exit 1
+# 2. Bundle budget check (LOCAL = warning-only; CI is the blocking authority)
+#    Local dist can be stale/incremental, which inflates the aggregate JS+CSS
+#    sum and produces false blocks. The CI `bundle-budget` job runs the same
+#    check against a clean build artifact and IS allowed to fail the PR (see #396).
+#    Do NOT re-add `exit 1` here — that reintroduces the false-block that forced
+#    --no-verify on every push.
+echo "📦 Checking bundle budgets (local: warning-only; CI enforces on a clean build)..."
+if ! node scripts/bundle-budget-check.mjs; then
+  echo "⚠️  Local bundle budget check flagged a violation — NOT blocking the push."
+  echo "   Likely a stale/incremental dist false positive. CI checks a clean build."
+  echo "   If CI's bundle-budget job also fails, shrink the bundle or rebaseline"
+  echo "   quality/bundle-budget.json."
 fi
 
 # 2. Coverage ratchet (only if tests can run quickly)
