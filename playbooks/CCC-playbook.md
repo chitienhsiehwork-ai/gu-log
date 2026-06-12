@@ -330,6 +330,21 @@ git log --oneline -5              # 看 branch 最近在幹嘛
 
 然後看 task description 決定要做什麼。
 
+### Fresh-env friction：系統性收斂，不要每個 session 重踩
+
+**CCC 每次都是全新 sandbox（fresh clone，啥都沒裝）。任何「每個 session 都會重複踩」的環境 friction，正確解法是把它收進 SessionStart hook（`.claude/hooks/session-start.sh` → `scripts/ccc-smoke-test.sh --fix`），不是這個 session 手動補一次了事。** 手動補 = 下個 CCC 在新 sandbox 又從零踩一次，等於把 friction 留給下一個 agent——違反「絕不甩鍋給下個 session」最高原則。
+
+判斷準則：**friction 是不是「換個 sandbox 還會再發生」？** 是 → 進 hook。只發生在這個 task 的一次性問題（某篇文章 frontmatter 寫錯）→ 當場修就好，不用進 hook。
+
+收進 hook 的兩種模式：
+
+- **同步補**（快、且開工前就需要）：deps（`pnpm install`）、git hooks（`setup-hooks`）、sp-pipeline 自編譯。放 `--fix` 區塊直接跑完，smoke test 順便驗。
+- **非同步背景補**（慢、下載大、不是開工就馬上要）：Playwright chromium binary（~100MB，uiux-auditor / playwright-cli / verify 才要）。`--fix` 用 `nohup … & disown` 丟背景，**不擋 session 開場**，等真的要截圖時通常已下載好。Smoke test 另開一個 optional readiness check（warn 不擋 exit）回報「裝好了 / 還在下載 / 沒裝」，讓 agent 知道現在能不能截圖。
+
+  Playwright 就是這個模式的範本（2026-06-12 加）：`ccc-smoke-test.sh --fix` 在 `CLAUDE_CODE_REMOTE=true` 時，偵測 `${PLAYWRIGHT_BROWSERS_PATH:-~/.cache/ms-playwright}` 沒有 chromium 快取就背景下載，idempotent（已裝或已在下載就跳過），只在 CCC 跑（mac-CC 自己管 local Playwright）。所以「Playwright 沒裝」這個 friction 對之後的 CCC 不該再發生——醒來時背景已經在補了。
+
+**鐵則：撞到新的 recurring env friction → 在同一個 PR 把它收進 hook，當場消滅，別只修這次。** 這跟 CLAUDE.md「主任務踩到的 bug 順手修在同一個 PR」是同一條精神，只是套用在環境層：hook 是 CCC fresh-env friction 的 SSOT，能進 hook 的就別留在 per-session 手動步驟。
+
 ## 不確定時找誰
 
 - **技術決策不確定**：用 `AskUserQuestion` 問 user，但要先把問題想清楚、給選項

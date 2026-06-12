@@ -73,6 +73,28 @@ if $FIX; then
   fi
   bash scripts/setup-hooks.sh >/tmp/ccc-smoke-hooks.log 2>&1 \
     && pass "setup-hooks" || fail "setup-hooks" "see /tmp/ccc-smoke-hooks.log"
+
+  # Playwright chromium：CCC sandbox 不預裝瀏覽器 binary（npm 的 playwright 套件
+  # 有，但 ~/.cache/ms-playwright 是空的），uiux-auditor / playwright-cli / verify
+  # 第一次要截圖就卡「Executable doesn't exist」。在背景非同步補下載（~100MB），
+  # 不擋 session 開場；等真的要截圖時通常已經裝好。只在 CCC（remote）跑——mac-CC
+  # 自己管 local Playwright，不要在 user 的 Mac 偷下載。Idempotent：已有 chromium
+  # 快取就跳過，不重複下載。
+  if [ "${CLAUDE_CODE_REMOTE:-}" = "true" ]; then
+    PW_CACHE="${PLAYWRIGHT_BROWSERS_PATH:-$HOME/.cache/ms-playwright}"
+    if ls "$PW_CACHE"/chromium-* >/dev/null 2>&1; then
+      pass "Playwright chromium 已存在，跳過下載"
+    elif pgrep -f "playwright install chromium" >/dev/null 2>&1; then
+      pass "Playwright chromium 已有背景下載在跑，不重複觸發"
+    elif [ -x node_modules/.bin/playwright ]; then
+      nohup node_modules/.bin/playwright install chromium \
+        >/tmp/ccc-playwright-install.log 2>&1 &
+      disown 2>/dev/null || true
+      pass "Playwright chromium 背景下載中 (pid $!; log: /tmp/ccc-playwright-install.log)"
+    else
+      warn "Playwright bin 不在 node_modules" "pnpm install 完成後重跑 --fix 會補"
+    fi
+  fi
 fi
 
 # ── 1. 身份 ───────────────────────────────────────────────────────
@@ -167,9 +189,23 @@ else
   fail "sp-pipeline doctor 失敗 (exit $?)" "see /tmp/ccc-smoke-doctor.log"
 fi
 
-# ── 9. 慢 gate（--full 才跑）─────────────────────────────────────
+# ── 9. Playwright browser（optional，給 UI 工作用）────────────────
+# uiux-auditor / playwright-cli / verify 需要 chromium binary。CCC sandbox 不
+# 預裝，--fix 會在背景補下載。這裡只回報狀態（warn 不擋 exit），讓 agent 開場
+# 就知道現在能不能截圖、還是要再等一下背景下載。
+section "9. Playwright browser"
+PW_CACHE="${PLAYWRIGHT_BROWSERS_PATH:-$HOME/.cache/ms-playwright}"
+if ls "$PW_CACHE"/chromium-* >/dev/null 2>&1; then
+  pass "chromium 已裝 ($PW_CACHE)"
+elif pgrep -f "playwright install chromium" >/dev/null 2>&1; then
+  warn "chromium 背景下載中" "稍候再用 uiux-auditor / playwright-cli；log: /tmp/ccc-playwright-install.log"
+else
+  warn "chromium 未裝" "UI 工作前先跑 'node_modules/.bin/playwright install chromium'（或 --fix 在 CCC 會自動背景補）"
+fi
+
+# ── 10. 慢 gate（--full 才跑）────────────────────────────────────
 if $FULL; then
-  section "9. 慢 gate (--full)"
+  section "10. 慢 gate (--full)"
   if [ -d node_modules ]; then
     pnpm run lint >/tmp/ccc-smoke-lint.log 2>&1 \
       && pass "eslint" || fail "eslint" "see /tmp/ccc-smoke-lint.log"
