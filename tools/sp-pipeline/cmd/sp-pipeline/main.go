@@ -51,9 +51,12 @@ func buildRoot() *cobra.Command {
 	state := &rootState{}
 
 	root := &cobra.Command{
-		Use:   "sp-pipeline",
-		Short: "gu-log translation pipeline (Go rewrite of scripts/sp-pipeline.sh)",
-		Long: `sp-pipeline is the Go rewrite of gu-log's SP/CP translation pipeline.
+		Use:   "gp-pipeline",
+		Short: "gu-log translation pipeline (a.k.a. sp-pipeline; Gu-log Picks)",
+		Long: `gp-pipeline ("Gu-log Picks") is the Go rewrite of gu-log's SP/CP
+translation pipeline. The legacy command name sp-pipeline is retained as a
+backwards-compat shim and keeps working identically; the ticket prefix and post
+filename slug also stay SP / sp- by design.
 
 It is split into composable subcommands so an agent (or a human) can run
 one step at a time without inheriting the whole pipeline's side effects:
@@ -108,7 +111,7 @@ for the migration history and current operational notes.`,
 
 	// Hide the auto-generated `completion` command by default — it is
 	// noise in --help for an agent-facing CLI. Users who need completions
-	// can still run `sp-pipeline completion bash` etc.
+	// can still run `gp-pipeline completion bash` etc.
 	root.CompletionOptions.HiddenDefaultCmd = true
 
 	// Attach subcommands. Each subcommand closes over `state` so it has

@@ -205,8 +205,13 @@ func TestRoot_HelpDoesNotError(t *testing.T) {
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("--help should not return error: %v", err)
 	}
+	// gp-pipeline is the canonical command name; sp-pipeline must still be
+	// referenced as the retained backwards-compat shim.
+	if !strings.Contains(out.String(), "gp-pipeline") {
+		t.Fatalf("--help output missing 'gp-pipeline':\n%s", out.String())
+	}
 	if !strings.Contains(out.String(), "sp-pipeline") {
-		t.Fatalf("--help output missing 'sp-pipeline':\n%s", out.String())
+		t.Fatalf("--help output missing 'sp-pipeline' shim reference:\n%s", out.String())
 	}
 }
 
