@@ -18,6 +18,25 @@ func DefaultProbeChain() []Provider {
 	}
 }
 
+// ProbeChain returns the providers `doctor --probe-llm` should canary. It is
+// the symmetric counterpart to WritingChain for the health-check path: codex
+// GPT-5.5 is probed wherever it exists, and only when no codex binary is on
+// PATH — the CCC / Claude Code on the web sandbox case, where only `claude`
+// ships — is a Claude Opus probe appended so doctor reports the provider the
+// pipeline would actually use instead of a misleading codex "missing".
+//
+// Claude is appended ONLY when codex is absent, mirroring WritingChain's
+// invariant: codex present → Claude is never probed, so VPS/mac doctor output
+// is byte-for-byte unchanged. DefaultProbeChain() stays codex-only for callers
+// that want to probe codex explicitly.
+func ProbeChain() []Provider {
+	chain := DefaultProbeChain()
+	if anyAvailable(chain) {
+		return chain
+	}
+	return append(chain, NewClaudeOpus())
+}
+
 // WritingChain returns the provider chain the pipeline actually dispatches
 // through (eval / write / review / refine). Codex GPT-5.5 is the primary
 // everywhere it exists. When no codex binary is on PATH — the CCC / Claude
