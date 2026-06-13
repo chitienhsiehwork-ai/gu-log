@@ -285,6 +285,42 @@ Glossary 不是英文詞垃圾桶。它的工作是替 gu-log 保存「讀者之
 - Inline code 格式的術語 → 保持英文和 code 格式
 - 程式碼前後的說明文字 → 正常翻譯
 - 程式碼內的註解 → 預設不翻；若註解是文章重點才翻，並標註「譯註」
+- **⚠️ Prompt 不算程式碼**：給 LLM / agent 的自然語言指令（system prompt、prompt 片段、prompt 範例）就算包在 code fence 或 blockquote 裡，也**不適用**「維持原樣不翻」這條——它是寫給模型讀的「散文」，不是字面要照打的指令。zh-tw 版要翻成中文，規則見下方〈Prompt 翻譯規則〉。
+
+### Prompt 翻譯規則（zh-tw 版要把 prompt 翻成中文）
+
+**核心規則：zh-tw 文章裡引用的 prompt，prompt 內文要翻成繁體中文。**
+
+gu-log 很多文章（尤其 AI/agent 圈）會引用「寫給模型的指令」——system prompt、prompt addendum、要餵給 agent 的 instruction block、官方文件示範的 prompt 範例。**這些東西在 zh-tw 版一律翻成中文**，不要原封不動貼英文。
+
+**為什麼**：
+
+- Prompt 的價值是它**傳達的意圖和心智模型**（要模型做什麼、怎麼權衡、在哪停下來），不是那串英文字母本身。讀者掃過一段中文 prompt，能秒懂「喔，原來是要它先講結論再講細節」；掃過一段英文 prompt，要先在腦中翻譯一次，心智模型就糊掉了。
+- gu-log 交付的是 **idea behind the details**（見〈基本原則〉），prompt 也一樣——讀者要的是「這個 prompt 在塑造什麼行為」，不是逐字英文。
+- **想要原文 prompt 的人有兩個地方拿**：(1) 同一篇的 **en 版**（en 版的 prompt 保留英文原文）、(2) **原始出處連結**（`sourceUrl`）。所以 zh-tw 翻成中文不會讓任何人少拿到東西——要英文去那兩個地方，要快速吸收看中文。
+
+**怎麼翻**：
+
+- 保留原本的呈現格式（原文用 blockquote 就用 blockquote、用 code fence 就用 code fence），只把**內文**翻成中文。
+- **忠實**：翻 prompt 跟翻正文一樣受〈翻譯誠實性規則〉約束——不要改掉指令的語氣、條件、邊界、hedge。原 prompt 說 "only validate at system boundaries" 就翻「只在系統邊界做驗證」，不要自己加碼或刪減。
+- prompt 裡夾的 **code identifier / 變數佔位符 / 工具名 / 旗標**（`[X]`、`send_to_user`、`stop_reason`、`--flag`、檔名）照〈術語處理〉保留原樣，只翻自然語言的部分。
+- 如果某段 prompt 的**英文措辭本身就是重點**（例如文章在討論「為什麼用這個動詞而不是那個」、prompt engineering 的逐字推敲），那就翻譯 + 保留關鍵英文原句（照〈原文語感保留〉的格式），不要為了翻而把要討論的字翻掉。
+- 真的擔心讀者需要對照原文時，可以在中文 prompt 後補一句「（原文 prompt 見 [en 版](...) 或原始出處）」，但通常不必——en 版本來就在。
+
+**en 版相反**：en 版的 prompt **保留英文原文**，那是 verbatim 參考來源，不要改寫。
+
+**範例**：
+
+````
+❌ zh-tw 版直接貼英文 prompt（讀者要在腦中翻譯一次）：
+> When you have enough information to act, act. Do not re-derive facts already
+> established in the conversation...
+
+✅ zh-tw 版翻成中文（讀者一眼吸收心智模型）：
+> 當你掌握的資訊足以行動，就行動。不要重新推導對話裡已經確立的事實、不要
+> 重翻使用者已經拍板的決定，也不要在面向使用者的訊息裡細數你不會採用的選項。
+> 要在幾個做法之間取捨時，給出一個建議，而不是一份完整清單。
+````
 
 ### 文化梗 / Idioms / Reference
 
