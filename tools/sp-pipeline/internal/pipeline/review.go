@@ -33,7 +33,11 @@ func (s *State) Review(ctx context.Context) error {
 		return fmt.Errorf("review: render prompt: %w", err)
 	}
 
-	res, err := s.Dispatcher.Run(ctx, prompt, llm.RunOptions{WorkDir: s.WorkDir})
+	disp := s.judgeDispatcher()
+	if disp == nil {
+		return fmt.Errorf("review: judge dispatcher is nil")
+	}
+	res, err := disp.Run(ctx, prompt, llm.RunOptions{WorkDir: s.WorkDir})
 	if err != nil {
 		return NewStepError(14, fmt.Errorf("review: dispatcher failed: %w", err))
 	}
@@ -50,7 +54,7 @@ func (s *State) Review(ctx context.Context) error {
 		}
 	}
 
-	s.ReviewModel = llm.DisplayName(res.Model)
+	s.ReviewModel = llm.DisplayName(res.ActualModel)
 	s.ReviewHarness = llm.HarnessName(res.Model)
 	s.Log.OK("Step 3: review.md written by %s", s.ReviewModel)
 	return nil

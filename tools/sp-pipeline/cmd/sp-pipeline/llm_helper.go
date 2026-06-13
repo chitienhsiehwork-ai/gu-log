@@ -6,18 +6,22 @@ import (
 	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/llm"
 )
 
-// buildDispatcher returns a Dispatcher honoring the --fake-provider flag.
-// When the flag is set, the dispatcher is a single FakeProvider loaded
-// from JSON. Otherwise it is llm.WritingChain(): Codex GPT-5.5 as the
-// primary, plus an auto-detected Claude Opus fallback when no codex binary is
-// on PATH (the CCC sandbox case). The old Opus-primary/Gemini-assisted
-// pipeline is intentionally not the default — Codex stays primary wherever it
-// exists; Claude only enters the chain when codex is absent.
-//
-// The opusOnly parameter is kept for CLI compatibility, but no longer changes
-// provider routing: the Claude fallback is driven by codex availability, not
-// by this flag.
+type dispatcherRole string
+
+const (
+	dispatcherWriter dispatcherRole = "writer"
+	dispatcherJudge  dispatcherRole = "judge"
+)
+
+// buildDispatcher returns a role-specific Dispatcher honoring the
+// --fake-provider flag. Writers use Claude Opus alias on Macs where Claude Code
+// is installed, falling back to full Codex GPT-5.5 only when Claude is absent.
+// Judges use full Codex GPT-5.5, never mini.
 func buildDispatcher(state *rootState, opusOnly bool) (*llm.Dispatcher, error) {
+	return buildDispatcherForRole(state, dispatcherWriter, opusOnly)
+}
+
+func buildDispatcherForRole(state *rootState, role dispatcherRole, opusOnly bool) (*llm.Dispatcher, error) {
 	if state.fakeProviderPath != "" {
 		fake, err := llm.LoadFakeFromJSON(state.fakeProviderPath)
 		if err != nil {
@@ -25,7 +29,13 @@ func buildDispatcher(state *rootState, opusOnly bool) (*llm.Dispatcher, error) {
 		}
 		return llm.NewDispatcher(state.log, fake)
 	}
-	providers := llm.WritingChain()
+	var providers []llm.Provider
+	switch role {
+	case dispatcherJudge:
+		providers = llm.JudgeChain()
+	default:
+		providers = llm.WritingChain()
+	}
 	_ = opusOnly
 	return llm.NewDispatcher(state.log, providers...)
 }

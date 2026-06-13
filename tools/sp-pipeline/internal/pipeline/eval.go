@@ -174,7 +174,11 @@ func (s *State) runEvalProvider(ctx context.Context, template string, lineCount 
 	if err != nil {
 		return nil, err
 	}
-	return s.Dispatcher.Run(ctx, prompt, llm.RunOptions{WorkDir: s.WorkDir})
+	disp := s.judgeDispatcher()
+	if disp == nil {
+		return nil, fmt.Errorf("eval: judge dispatcher is nil")
+	}
+	return disp.Run(ctx, prompt, llm.RunOptions{WorkDir: s.WorkDir})
 }
 
 // parseEvalFile reads an eval-*.json file and validates its shape.

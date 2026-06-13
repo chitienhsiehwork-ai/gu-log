@@ -2,6 +2,7 @@ package llm
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"strings"
 
@@ -23,26 +24,20 @@ import (
 //     and it returns a "please approve the permission" message instead of
 //     the JSON/MDX the parser expects.
 type ClaudeProvider struct {
-	// ModelFlag is the value passed to --model. For Opus we pin the exact
-	// build ("claude-opus-4-6[1m]") rather than the "opus" alias — see the
-	// PIN note below. Sonnet/Haiku may use aliases since only the Opus
-	// writing voice is taste-locked.
-	ModelFlag string
+	// ModelFlag is the value passed to --model. Opus intentionally uses the
+	// "opus" alias so the Mac writer follows Anthropic's current Opus line.
+	ModelFlag   string
+	actualModel ModelID
 }
 
-// Pinned model IDs. SP writer uses Opus 4.6 because the maintainer has
-// explicitly rejected Opus 4.7's writing voice and vibe-scoring calibration;
-// "opus" alias auto-upgrades to the latest and would silently break that.
-// DO NOT change ClaudeOpusPinned to the "opus" alias without owner sign-off.
-// Keep this in sync with Claude Code agent frontmatter. Codex tribunal runtime
-// has its own project-scoped configs under .codex/agents/*.toml.
+// ClaudeOpusAlias follows Anthropic's current Opus model for the Mac writing
+// path. Runtime JSON metadata is used to stamp the concrete resolved version.
 const (
-	ClaudeOpusPinned = "claude-opus-4-6[1m]"
+	ClaudeOpusAlias = "opus"
 )
 
-// NewClaudeOpus returns a ClaudeProvider wired to the pinned Claude Opus
-// build (see ClaudeOpusPinned).
-func NewClaudeOpus() *ClaudeProvider { return &ClaudeProvider{ModelFlag: ClaudeOpusPinned} }
+// NewClaudeOpus returns a ClaudeProvider wired to the Opus alias.
+func NewClaudeOpus() *ClaudeProvider { return &ClaudeProvider{ModelFlag: ClaudeOpusAlias} }
 
 // NewClaudeSonnet returns a ClaudeProvider wired to Claude Sonnet.
 func NewClaudeSonnet() *ClaudeProvider { return &ClaudeProvider{ModelFlag: "sonnet"} }
@@ -61,11 +56,21 @@ func (c *ClaudeProvider) Model() ModelID {
 		return ModelClaudeSonnet
 	case "haiku":
 		return ModelClaudeHaiku
-	case ClaudeOpusPinned, "opus":
+	case ClaudeOpusAlias:
 		return ModelClaudeOpus
 	default:
 		return ModelClaudeOpus
 	}
+}
+
+// ActualModel returns the concrete model reported by Claude Code JSON output
+// when available. Before the first run, or when older CLIs omit the field, it
+// falls back to the configured selector.
+func (c *ClaudeProvider) ActualModel() ModelID {
+	if c.actualModel != "" {
+		return c.actualModel
+	}
+	return c.Model()
 }
 
 // Available implements Provider.
@@ -79,6 +84,7 @@ func (c *ClaudeProvider) Run(ctx context.Context, prompt string, opts RunOptions
 	args := []string{
 		"-p",
 		"--model", c.modelFlag(),
+		"--output-format", "json",
 	}
 	if os.Geteuid() != 0 {
 		args = append(args, "--permission-mode", "bypassPermissions")
@@ -105,12 +111,32 @@ func (c *ClaudeProvider) Run(ctx context.Context, prompt string, opts RunOptions
 	if err != nil {
 		return "", err
 	}
-	return strings.TrimRight(string(res.Stdout), "\n"), nil
+	out := strings.TrimRight(string(res.Stdout), "\n")
+	if parsed, ok := parseClaudeJSON(out); ok {
+		if parsed.Model != "" {
+			c.actualModel = ModelID(parsed.Model)
+		}
+		return strings.TrimRight(parsed.Result, "\n"), nil
+	}
+	return out, nil
 }
 
 func (c *ClaudeProvider) modelFlag() string {
 	if c.ModelFlag == "" {
-		return ClaudeOpusPinned
+		return ClaudeOpusAlias
 	}
 	return c.ModelFlag
+}
+
+type claudeJSONOutput struct {
+	Result string `json:"result"`
+	Model  string `json:"model"`
+}
+
+func parseClaudeJSON(out string) (claudeJSONOutput, bool) {
+	var parsed claudeJSONOutput
+	if err := json.Unmarshal([]byte(out), &parsed); err != nil {
+		return parsed, false
+	}
+	return parsed, parsed.Result != "" || parsed.Model != ""
 }

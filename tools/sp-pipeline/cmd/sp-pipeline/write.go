@@ -75,7 +75,7 @@ set these from the upstream fetch + counter steps.`,
 	cmd.Flags().StringVar(&tweetURL, "tweet-url", "", "canonical source URL")
 	cmd.Flags().StringVar(&prefix, "prefix", "SP", "ticket prefix (SP / CP / SD / Lv) — controls first tag")
 	cmd.Flags().StringVar(&translatedDate, "translated-date", "", "YYYY-MM-DD of the translation run (defaults to today)")
-	cmd.Flags().BoolVar(&opusOnly, "opus", false, "deprecated compatibility flag; Codex remains the default provider")
+	cmd.Flags().BoolVar(&opusOnly, "opus", false, "deprecated compatibility flag; writer routing is automatic")
 	cmd.Flags().StringVar(&angle, "angle", "", "optional narrative angle to make the article spine")
 	cmd.Flags().StringVar(&sourceLabel, "source-label", "", "override the `source:` frontmatter line")
 	cmd.Flags().BoolVar(&sourceIsX, "source-is-x", true, "treat --author as an X handle when auto-rendering source")
@@ -116,7 +116,7 @@ func runWrite(ctx context.Context, state *rootState, opts writeOpts) error {
 		return fmt.Errorf("write: mkdir %s: %w", workDir, err)
 	}
 
-	disp, err := buildDispatcher(state, opts.OpusOnly)
+	disp, err := buildDispatcherForRole(state, dispatcherWriter, opts.OpusOnly)
 	if err != nil {
 		return err
 	}
@@ -125,6 +125,7 @@ func runWrite(ctx context.Context, state *rootState, opts writeOpts) error {
 	s.Cfg = state.cfg
 	s.Log = state.log
 	s.Dispatcher = disp
+	s.WriterDispatcher = disp
 	s.SourcePath = absSource
 	s.WorkDir = workDir
 	s.PromptTicketID = opts.TicketID
