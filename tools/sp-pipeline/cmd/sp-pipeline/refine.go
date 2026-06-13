@@ -47,7 +47,7 @@ contents — the LLM reads them from --work-dir.`,
 	cmd.Flags().StringVar(&reviewPath, "review", "", "path to review.md (defaults to <work-dir>/review.md)")
 	cmd.Flags().StringVar(&workDir, "work-dir", "", "work directory (defaults to dirname of --draft)")
 	cmd.Flags().StringVar(&ticketID, "ticket-id", "PENDING", "ticketId for the refine prompt header")
-	cmd.Flags().BoolVar(&opusOnly, "opus", false, "deprecated compatibility flag; Codex remains the default provider")
+	cmd.Flags().BoolVar(&opusOnly, "opus", false, "deprecated compatibility flag; writer routing is automatic")
 	cmd.Flags().StringVar(&angle, "angle", "", "optional narrative angle to preserve while refining")
 	_ = cmd.MarkFlagRequired("draft")
 	return cmd
@@ -80,7 +80,7 @@ func runRefine(ctx context.Context, state *rootState, draftPath, reviewPath, wor
 		state.log.Warn("refine: review.md not found at %s — LLM will refine blind", reviewPath)
 	}
 
-	disp, err := buildDispatcher(state, opusOnly)
+	disp, err := buildDispatcherForRole(state, dispatcherWriter, opusOnly)
 	if err != nil {
 		return err
 	}
@@ -89,6 +89,7 @@ func runRefine(ctx context.Context, state *rootState, draftPath, reviewPath, wor
 	s.Cfg = state.cfg
 	s.Log = state.log
 	s.Dispatcher = disp
+	s.WriterDispatcher = disp
 	s.WorkDir = workDir
 	s.PromptTicketID = ticketID
 	s.Angle = angle
