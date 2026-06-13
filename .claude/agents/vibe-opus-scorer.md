@@ -1,4 +1,5 @@
 ---
+name: vibe-opus-scorer
 description: "Vibe Scorer — independent, harsh quality scorer for gu-log posts. Scores on 5 dimensions (Persona/ClawdNote/Vibe/Clarity/Narrative). Pass bar: composite ≥ 8 AND at least one dimension ≥ 9 AND no dimension < 8. Zero context from parent conversation. Use this to evaluate post quality without bias."
 # PINNED: claude-opus-4-6[1m]. Maintainer has explicitly rejected Opus 4.7's
 # vibe-scoring calibration — 4.7 inflates scores and misses decorative-persona

@@ -41,9 +41,22 @@
 3. **PR 開完立刻 `mcp__github__subscribe_pr_activity` 訂閱自己這條 PR**——不要問 user「要不要幫你盯」。CCC 開 PR 預設就要盯 CI + review comment，這是工作的一部分，不是 opt-in 服務。問就是 dumb question。
 4. **等 CI 全綠**後自己 `mcp__github__merge_pull_request`
 5. **Merge 完不用、也無法自己刪 remote branch**——repo 已開啟「Automatically delete head branches」，GitHub 在 merge 後自動刪掉 head branch，CCC 什麼都不用做。**⚠️ CCC 千萬不要嘗試 `git push origin --delete claude/xxx`**：sandbox 的 git proxy 會回 **HTTP 403**（只放行 push commit、不放行刪 ref），重試也是 403、純粹浪費 round。GitHub MCP 也沒有 delete-branch 工具。Local branch 是拋棄式 sandbox 的一部分，不用管。萬一哪天 auto-delete 被關掉導致 branch 沒被清，那是 user 去 GitHub 設定重開／手動刪的事，不是 CCC 能在 sandbox 內解決的。
-6. Merge 完跟 user 回報 PR URL + 簡短 summary（branch 由 GitHub auto-delete 收尾），並依 [`CLAUDE.md` 的「CCC 收尾鐵則」](../CLAUDE.md) 附上**驗收用的 URL**：已 merge 且部署完 → prod URL（`gu-log.vercel.app` 或文章深連結）；還在 branch 上等驗收 → 用 `pull_request_read` 的 `get_status` / `get_comments` 撈 Vercel preview URL。每個 turn 都要以「critical question / preview URL / prod URL」三選一收尾，不留空回合。
+6. Merge 完跟 user 回報 PR URL + 簡短 summary（branch 由 GitHub auto-delete 收尾），並附上**驗收用的 URL**——預設是 **prod URL**（`gu-log.vercel.app` 或文章深連結）。什麼時候給 prod URL、什麼時候才給 preview URL、什麼時候停下來問，照下面〈Preview URL vs 直接 merge〉那張表判斷。每個 turn 都要以可驗收的東西收尾（prod URL / preview URL+問題 / critical question），不留空回合。
 
 **禁問句**：「要不要 subscribe PR activity？」「要不要盯 CI？」「要不要幫你看 review comment？」——通通是 dumb question，預設答案永遠是 yes，user 不該被叫去確認 default behavior。CCC 的工作是「開 PR → 盯 CI → merge → 回報」整條收乾淨；branch cleanup 交給 repo 的 auto-delete 設定，CCC 不去 `git push --delete`（那會 403）。
+
+### Preview URL vs 直接 merge（收尾要給哪個）
+
+**預設收尾不是給 preview URL，是 merge。** Preview URL 不是正常的 end-state，是「還不能 merge」或「reader-facing 又拿不準算不算 critical」的 fallback。給了 preview 又問「要不要我合？」是**反模式**——能 merge 就 merge，不能就問 critical question，中間沒有「我合好了但先停著等你看一眼」這種選項。
+
+| 情況 | 收尾動作 |
+|---|---|
+| CI 綠 + safe + 非 critical（content 過 tribunal、bugfix、infra、doc typo） | **直接 merge → 部署完給 prod URL**。不要給 preview、不要問「要不要合」 |
+| 改動 safe 但 CI 還在跑 | `enable_pr_auto_merge`（綠了自動合）→ 收尾講「已排 auto-merge，綠了會自動上」+ prod URL。仍不需要 preview |
+| Reader-facing 視覺/UX 改動，而且你**真的拿不準**是不是動到品牌調性/產品方向（borderline critical） | 給 **preview URL + 一個具體問題**，讓 user 拍板。這是 preview URL 唯一的正常用途 |
+| 明確的 critical design decision（產品方向、架構、對外承諾、品牌調性） | `AskUserQuestion` 停下來問，**不要**先 merge |
+
+**白話**：「safe 但我想讓你看一眼再合」**不是**給 preview 的理由——safe 就直接合，ShroomDog 在 prod 上事後審（這正是 merge-後-審稿的設計，見 `CLAUDE.md`）。只有「這個 taste call 我真的不確定該不該自己拍」才值得 preview + 問。判斷不出來時，預設往「merge」靠，不要往「問」靠。
 
 ### Merge method 選擇
 
@@ -118,6 +131,8 @@ Vercel build / tribunal / validate-posts / CI 沒過：
 - `fresh-eyes.md`（Opus 4.7）→ readability / firstImpression
 
 每個 agent 寫 JSON 到 `/tmp/tribunal-<ticketId>-<judge>.json`，schema 照各 agent spec。
+
+**⚠️ 實測 caveat（2026-06-13）**：不是每個 CCC 網頁 harness 都把 `.claude/agents/` 註冊成 `Agent` tool 的 `subagent_type`。有的 session `Agent` tool 只開 built-in 的 `general-purpose` / `Explore` / `Plan`，named agent（`vibe-opus-scorer` 等）會回 `Agent type '...' not found`。遇到這種：**spawn `general-purpose`，在 prompt 裡叫它「讀 `.claude/agents/<judge>.md` 並完全照著做（zero parent context）」**，效果等同——judge 一樣 zero-context、一樣寫同一份 JSON。差別只在 model pin 顧不到（named agent 走 frontmatter 的 `claude-opus-4-6[1m]`，general-purpose 繼承 parent model），所以 `scores.*.model` 要記**實際**用到的 model，不要照抄 pin。agent 檔已補 `name:` frontmatter，環境若支援 project agent 就會吃到 named 路徑。`scripts/tribunal-helpers.sh` 在 CCC 偵測到沒有 CLI provider 時，也會把這條 fallback 指令印到 stderr。
 
 **Pass bar（四條全部要過才能 merge）**：
 - Vibe composite ≥ 8 **AND** 至少一維 ≥ 9 **AND** 無任何維 < 8

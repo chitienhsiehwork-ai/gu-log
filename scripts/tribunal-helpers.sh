@@ -527,6 +527,25 @@ tribunal_llm_exec() {
       ;;
     *)
       echo "ERROR: no tribunal LLM provider available (need codex or claude on PATH)" >&2
+      # CCC sandbox fallback: the CLI judge path (codex / `claude -p`) is often
+      # unavailable in Claude Code on the web (codex not on PATH, claude CLI auth
+      # / exit 1). Instead of hard-failing, tell the CCC agent to run the judge
+      # via the Agent tool. This only prints on the error path, so it never
+      # changes the codex/claude success behaviour on the VPS/mac.
+      local _helper_dir
+      _helper_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+      if [ "$("$_helper_dir/detect-env.sh" 2>/dev/null)" = "CCC" ]; then
+        cat >&2 <<EOF
+↪ CCC fallback — score this judge with the Agent tool, do NOT skip:
+  1. Spawn a subagent. If your harness exposes the named project agents, use
+     subagent_type "$agent_name"; if it only exposes general-purpose, spawn
+     "general-purpose" and tell it to read and follow .claude/agents/$agent_name.md
+     exactly (zero parent context).
+  2. Have it write JSON to /tmp/tribunal-<ticketId>-<judge>.json.
+  3. Record the score with scripts/frontmatter-scores.mjs write <post> <judge> <json>.
+  See playbooks/CCC-playbook.md §沙箱 fallback for the full 4-judge protocol.
+EOF
+      fi
       return 127
       ;;
   esac

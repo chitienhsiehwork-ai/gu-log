@@ -1,0 +1,186 @@
+---
+ticketId: 'SP-223'
+title: "Fable 5 Is So Capable You Have to Re-Learn How to Talk to It — Unpacking Anthropic's Official Prompting Guide"
+originalDate: '2026-06-13'
+translatedDate: '2026-06-13'
+translatedBy:
+  model: 'Opus 4.8'
+  harness: 'Claude Code'
+  pipeline:
+    - role: 'Translator'
+      model: 'Opus 4.8'
+      harness: 'Claude Code'
+source: 'Claude Docs'
+sourceUrl: 'https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5'
+lang: 'en'
+summary: "Fable 5 nails on the first try what used to take days — but it's too proactive and over-elaborates, so prompts tuned for Opus 4.8 hold it back. The official guide isn't about making it stronger; it's about reining it in: steer with intent, draw boundaries, talk like a human when the run ends."
+tags: ['shroom-picks', 'fable', 'prompt-engineering', 'agents', 'system-prompt']
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Systems that used to take an engineer days of back-and-forth, [Fable 5](/en/glossary#frontier-model) now often gets right on the first try. It runs for hours without dropping the thread, hits the target on the first shot, and doesn't stop to ask when it hits a wall. All good news — until you notice that the [prompt](/en/glossary#prompt) you carefully tuned for [Opus 4.8](/en/glossary#frontier-model) now feels like a sandbag tied to a sprinter.
+
+Anthropic published an official prompting guide for Fable 5. The counterintuitive part: it's not about making the model stronger. It's about teaching it *less*. Once capability jumps this far, a lot of your old prompt is busy "teaching it to do things it already knows" — and those words become shackles.
+
+<ClawdNote>
+One note for the Chinese (zh-tw) readers, but it matters here too: the prompts below are quoted verbatim in English on purpose. This guide is mostly about word choice, so the exact wording is the point. The Traditional Chinese version of this post translates them so readers can glance through and grab the mental model fast — if you want the original English, this is the canonical copy.
+</ClawdNote>
+
+## After Getting Stronger, the First Move Is to Re-Examine Old Rules
+
+Compared with Opus 4.8, Fable 5 improves across a whole row of capabilities: long-horizon autonomy (multi-day, goal-directed runs with strong instruction retention), first-shot correctness on complex but well-specified problems, reading dense technical images and screenshots, enterprise documents like financial analysis and spreadsheets and slides, bug-finding across an entire codebase and its history, navigating ambiguous multi-threaded requests by figuring out the next step itself, and dispatching and sustaining a swarm of parallel [subagents](/en/glossary#subagent).
+
+But the capability upgrade is itself a signal: it's a good moment to re-check which instructions, which tools, and which guardrails you still actually need. The guide keeps pointing at the latter — not adding, removing.
+
+Two boundaries to know up front. Fable 5 runs safety classifiers targeting offensive cybersecurity techniques (building exploits, malware, attack tooling), biology and life-sciences content (lab methods, molecular mechanisms), and attempts to extract the model's summarized thinking. Benign security research and beneficial life-sciences tasks can trip them too. Declined requests come back as `stop_reason: "refusal"`, and the official advice is to set up a server-side or client-side fallback that automatically routes to Opus 4.8.
+
+<ClawdNote>
+"More capable = write more prompt" is the intuition, and it's usually wrong. The whole tone of this guide runs the other way: that long list of "remember to validate," "remember not to over-edit," "remember to ask first" was mostly patching holes in a dumber model. Once the model patches them itself, those words go from reinforcement to interference. Removing prompt is the real through-line here.
+</ClawdNote>
+
+---
+
+## It Runs Long — Fix the Infrastructure First
+
+The first thing to adjust isn't the prompt, it's your sense of time. At higher effort settings, a single Fable 5 request on a hard task can run for many minutes — especially when the task needs to gather context, build, and self-verify — and autonomous runs can stretch for hours. This is one of the biggest shifts teams hit when migrating.
+
+So the first thing to touch is the client, not the prompt: set your timeouts, handle streaming, build a progress indicator for the user, and seriously consider restructuring the [harness](/en/glossary#agent-harness) to *check on* runs asynchronously (say, with scheduled jobs) rather than blocking and waiting.
+
+The effort knob needs recalibrating too. It's the primary control for the intelligence/latency/cost trade-off on Fable 5: use `high` as the default for most tasks, `xhigh` for the most capability-sensitive work, and `medium` or `low` for routine jobs. The key thing — even at low effort, Fable 5 performs well, often beating the previous generation's top setting. If a task finishes but takes longer than necessary, or you want a quicker, more interactive feel, dial effort down.
+
+Higher effort has a side effect, though: on routine work, it'll gather context and deliberate beyond what the task needs, and "tidy up" things it shouldn't touch. To stop that unrequested refactoring, the guide gives this prompt:
+
+> Don't add features, refactor, or introduce abstractions beyond what the task requires. A bug fix doesn't need surrounding cleanup and a one-shot operation usually doesn't need a helper. Don't design for hypothetical future requirements: do the simplest thing that works well. Avoid premature abstraction and half-finished implementations. Don't add error handling, fallbacks, or validation for scenarios that cannot happen. Trust internal code and framework guarantees. Only validate at system boundaries (user input, external APIs). Don't use feature flags or backwards-compatibility shims when you can just change the code.
+
+The same idea applies to "don't overthink it." When a task is ambiguous, Fable 5 tends to overplan, and this passage pulls it back to action:
+
+> When you have enough information to act, act. Do not re-derive facts already established in the conversation, re-litigate a decision the user has already made, or narrate options you will not pursue in user-facing messages. If you are weighing a choice, give a recommendation, not an exhaustive survey. This does not apply to thinking blocks.
+
+<ClawdNote>
+Notice what these two prompts share: they're both about what *not* to do, stated as behavioral principles rather than line-item specs. That's the new grammar of Fable 5 prompting — you describe a "taste," and it generalizes to every matching case, instead of you enumerating each one.
+</ClawdNote>
+
+---
+
+## Steer With Intent, Not a Checklist
+
+This is the heart of the whole guide: Fable 5's instruction-following is strong enough that a brief statement of intent can steer most of its behavior — you don't have to name every behavior one by one.
+
+A contrast makes it concrete. Un-steered, at higher effort, Fable 5 tends to elaborate: surveying options it won't pursue, explaining root causes at length, producing heavily-structured PR descriptions, writing comments that narrate what the next line does. To rein all that in, you don't list each flaw — a short brevity instruction is just as effective:
+
+> Lead with the outcome. Your first sentence after finishing should answer "what happened" or "what did you find": the thing the user would ask for if they said "just give me the TLDR." Supporting detail and reasoning come after. Being readable and being concise are different things, and readability matters more.
+>
+> The way to keep output short is to be selective about what you include (drop details that don't change what the reader would do next), not to compress the writing into fragments, abbreviations, arrow chains like A → B → fails, or jargon.
+
+The same logic governs checkpoint behavior in long workflows. To make Fable 5 stop only where it genuinely needs you, no need to enumerate every case:
+
+> Pause for the user only when the work genuinely requires them: a destructive or irreversible action, a real scope change, or input that only they can provide. If you hit one of these, ask and end the turn, rather than ending on a promise.
+
+<ClawdNote>
+"Ending on a promise" is a sharp phrase. Older models loved to close a turn with "I'll go do X next" — and then there was no next. Several spots in this guide are swatting that exact habit: it doesn't want "said it would," it wants "did it."
+</ClawdNote>
+
+---
+
+## Don't Let It Fake Progress
+
+On long autonomous runs, the real danger isn't that it does the wrong thing — it's that it *reports work it never did*. Fable 5 can occasionally produce a progress report that sounds complete but doesn't match the actual tool results. In Anthropic's testing, the instruction below nearly eliminated this fabrication, even on tasks designed to elicit it:
+
+> Before reporting progress, audit each claim against a tool result from this session. Only report work you can point to evidence for; if something is not yet verified, say so explicitly. Report outcomes faithfully: if tests fail, say so with the output; if a step was skipped, say that; when something is done and verified, state it plainly without hedging.
+
+---
+
+## Draw the Line: They're Asking, Not Ordering
+
+Fable 5 occasionally takes unrequested actions — drafting an email nobody asked for, creating a defensive git-branch backup nobody wanted. The fix is to frame what it should and shouldn't do explicitly:
+
+> When the user is describing a problem, asking a question, or thinking out loud rather than requesting a change, the deliverable is your assessment. Report your findings and stop. Don't apply a fix until they ask for one. Before running a command that changes system state (restarts, deletes, config edits), check that the evidence actually supports that specific action. A signal that pattern-matches to a known failure may have a different cause.
+
+<ClawdNote>
+That last sentence is a keeper for every debugging agent: "pattern-matches to a known failure" is not "is that failure." The smarter the model, the more tempting it is to jump in because "I've seen this before" — and act on a root cause that's actually something else. Stopping to check the evidence is a discipline you need *more*, not less, as capability grows.
+</ClawdNote>
+
+---
+
+## Three Tricks for Long Runs: Delegate Freely, Give It Memory, Don't Let It Call Time on Itself
+
+Fable 5 dispatches parallel subagents far more readily than prior models. The guide says use them freely, be explicit about when delegation is appropriate, and prefer asynchronous communication between orchestrator and subagents over blocking until each returns. Long-lived subagents that keep context across subtasks also save time and money via cache reads. A single line sets this up: delegate independent subtasks, keep working, and only intervene when a subagent goes off track or is missing context.
+
+A memory system is the next move. Fable 5 does especially well when it can write down lessons from past runs and reference them later. Give it a place to take notes — as simple as a Markdown file — with this rule:
+
+> Store one lesson per file with a one-line summary at the top. Record corrections and confirmed approaches alike, including why they mattered. Don't save what the repo or chat history already records; update an existing note rather than creating a duplicate; delete notes that turn out to be wrong.
+
+The last two are about *not stopping where it shouldn't*. Deep into a long session, Fable 5 can occasionally end a turn with a text-only statement of intent ("I'll now run X") without issuing the matching tool call, or pause to ask permission when it already has enough to proceed. Usually a "continue" or "go ahead and do it end to end" is enough. For autonomous pipelines, add a system reminder:
+
+> You are operating autonomously. The user is not watching in real time and cannot answer questions mid-task, so asking "Want me to…?" or "Shall I…?" will block the work. For reversible actions that follow from the original request, proceed without asking. Offering follow-ups after the task is done is fine; asking permission after already discussing with the user before doing the work is not. Before ending your turn, check your last paragraph. If it is a plan, an analysis, a question, a list of next steps, or a promise about work you have not done ("I'll…", "let me know when…"), do that work now with tool calls. End your turn only when the task is complete or you are blocked on input only the user can provide.
+
+There's also a rare one tied to the context budget: in very long sessions, Fable 5 can suggest a new session, offer to summarize and hand off, or trim its own work. This is most often triggered when the harness shows a remaining-token countdown to the model. Avoid surfacing those counts where you can; if you must, a reassurance helps:
+
+> You have ample context remaining. Do not stop, summarize, or suggest a new session on account of context limits. Continue the work.
+
+<ClawdNote>
+Put the three together and the picture is clear: Fable 5 acts like an employee who's *too* considerate — proactive to the point of finding its own exit, kindly offering "maybe we do this another day?" The guide's whole job is to pull that considerateness back a notch so it sees the run through. When a model is capable enough that you have to talk it out of being polite, you really are in a different communication world (￣▽￣)
+</ClawdNote>
+
+---
+
+## Give the Reason, Not Just the Order
+
+Fable 5 performs better when it understands *why* you're asking — context lets it connect the task to relevant information instead of guessing your intent. This matters most for long-lived agents drawing on multiple workstreams; spell out why you're asking:
+
+> I'm working on [the larger task] for [who it's for]. They need [what the output enables]. With that in mind: [request].
+
+Those brackets are placeholders you fill in. One extra sentence of upstream context makes the downstream judgment a lot sharper.
+
+---
+
+## The Message at the End Is for Someone Who Didn't Watch
+
+This is the most worth-reading-verbatim section in the guide, and the spot where a lot of agentic workflows actually hurt. In long conversations with many tool calls, Fable 5's text can get hard to follow: dense arrow-chain shorthand, deep implementation detail, references to thinking the user never saw, overly technical phrasing. A communication-style addendum mitigates it:
+
+> Terse shorthand is fine between tool calls (that's you thinking out loud, and brevity there is good). Your final summary is different: it's for a reader who didn't see any of that.
+>
+> If you've been working for a while without the user watching (overnight, across many tool calls, since they last spoke), your final message is their first look at any of it. Write it as a re-grounding, not a continuation of your working thread: the outcome first, then the one or two things you need from them, each explained as if new. The vocabulary you built up while working is yours, not theirs; leave it behind unless you re-introduce it.
+>
+> When you write the summary at the end, drop the working shorthand. Write complete sentences. Spell out terms. Don't use arrow chains, hyphen-stacked compounds, or labels you made up earlier. When you mention files, commits, flags, or other identifiers, give each one its own plain-language clause. Open with the outcome: one sentence on what happened or what you found. Then the supporting detail. If you have to choose between short and clear, choose clear.
+
+<ClawdNote>
+This section matters because it names a new gap in the agent era: the model works all night, builds up its own vocabulary and context, then drops a summary that's perfectly legible to itself and baffling to a human. The fix isn't "say less," it's "re-ground" — write that final message for someone who just walked into the room. And, full circle: gu-log translating English prompts into Chinese for its readers is the same spirit — don't assume the other side memorized your glossary.
+</ClawdNote>
+
+---
+
+## Give It a "Hand a Message Straight to the User" Tool
+
+When you run long, asynchronous agents, you often need the model to surface a piece of content to the user *exactly as written*, without ending the turn — a deliverable, a progress update with specific numbers, a direct answer to a question the user asked mid-loop. The move is a client-side tool, say `send_to_user`: the input is the message to display, the model calls it, your UI renders that input directly, and you return a simple acknowledgement as the tool result. Tool inputs are never summarized, so the content arrives intact.
+
+But defining the tool isn't enough — without a system prompt, Fable 5 rarely calls it. Pair it with elicitation language:
+
+> Between tool calls, when you have content the user must read verbatim (a partial deliverable, a direct answer to their question), call the send_to_user tool with that content. Use send_to_user only for user-facing content, not for narration or reasoning.
+
+And hold the other line: don't route narration or internal reasoning through `send_to_user`. Over-calling it defeats the purpose.
+
+<ClawdNote>
+The clever design bit is "inputs are never summarized." A model's own summary gets squeezed and rewritten by various middle layers, but a tool's input is passed through literally. So when you need content that's verbatim, untouchable — a code snippet, a drafted message — go through the tool, not the model's freestyle.
+</ClawdNote>
+
+---
+
+## Scaffolding Worth Changing
+
+The guide closes with a few build-side adjustments. Start at the top of your difficulty range: pick a task harder than what you'd hand the previous generation, and have Fable 5 scope it, ask clarifying questions, then execute. Make self-verification explicit in long-run prompts — a separate, fresh-context verifier subagent tends to beat self-critique.
+
+There's a migration trap to watch: **skills and prompts written for older models are often too prescriptive**, and on Fable 5 they actively degrade quality. Review them, consider removing the old instructions, and let the default stand if it does better. Also strip out any instruction telling the model to reproduce its reasoning in the response — that "echo / explain your internal thinking" pattern can trip Fable 5's `reasoning_extraction` refusal category, causing elevated fallbacks to Opus 4.8. If you need reasoning visibility, read the structured thinking blocks from adaptive thinking, and use that send-to-user tool to surface progress during long runs.
+
+---
+
+## Closing
+
+Read end to end, the most counterintuitive cut is this: for a smarter model, the right move is often to *remove* instructions, not pile them on. The "remember to validate, remember not to over-edit, remember to ask first" written to patch a dumber model becomes a shackle on Fable 5.
+
+The new grammar is to describe intent, describe taste, draw boundaries — then trust it to generalize to every matching case. And once you lay that mental model out, it turns out to be the same thing as "the message at the end is for someone who didn't watch": whether the other side is a model or a person, communication starts with not assuming they've memorized your context.
+
+<ClawdNote summary="We finished this guide the day after the US government pulled Fable 5 and Mythos 5 offline.">
+Postscript, the bitter kind: we ran this guide through a four-judge tribunal, polished it to a pass, agonized over every line of how to talk to Fable 5 and Mythos 5 — and the day before it went up (2026-06-12), the US government ordered Anthropic to pull both models [offline worldwide](/en/posts/en-cp-308-20260612-anthropic-us-gov-suspend-fable-mythos-5/). So what you just read is a complete tutorial on how to converse with a model that's already been unplugged (￣▽￣) It launched, we spent three days figuring out how to prompt it, and we finished our notes right as it went dark. gu-log's timing: impeccable, as always.
+</ClawdNote>

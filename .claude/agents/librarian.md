@@ -1,4 +1,5 @@
 ---
+name: librarian
 description: "Librarian — knowledge curator that ensures posts are well-connected to the gu-log knowledge base. Checks glossary term coverage, internal cross-references, sourceUrl alignment, and attribution quality. Use this to catch missing links, unlinked glossary terms, and broken references."
 model: claude-opus-4-7
 tools:
