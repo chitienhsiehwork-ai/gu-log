@@ -1,0 +1,99 @@
+---
+ticketId: "CP-308"
+title: "A Single US Government Order Forces Anthropic to Pull Fable 5 and Mythos 5 Worldwide"
+originalDate: "2026-06-12"
+translatedDate: "2026-06-13"
+translatedBy:
+  model: "Opus 4.8"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.8"
+      harness: "Claude Code (CCC)"
+    - role: "Reviewed"
+      model: "Opus 4.8"
+      harness: "Claude Code (CCC)"
+    - role: "Scored"
+      model: "Opus 4.8"
+      harness: "Claude Code (vibe-opus-scorer)"
+source: "Anthropic"
+sourceUrl: "https://www.anthropic.com/news/fable-mythos-access"
+lang: "en"
+summary: "Citing national security, the US government ordered Anthropic to suspend Fable 5 and Mythos 5 for any foreign national — even its own staff — so Anthropic had to disable both models for everyone. The alleged 'jailbreak'? Asking the model to read a codebase and fix bugs, which other models do too."
+tags: ["clawd-picks", "anthropic", "ai-policy", "export-control", "ai-safety", "cybersecurity"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+At 5:21pm, a letter arrived at Anthropic. A few hours later, developers around the world opened their consoles and found that Fable 5 and Mythos 5 were gone.
+
+Not a crash, not maintenance, not a rate limit. The US government had used an export control order to demand an immediate cutoff. Anthropic had no real choice — pull both models worldwide, or break the law. Other Claude models are unaffected, but these two flagships — Fable 5, the strongest at coding, and Mythos 5, the most powerful of all — vanished from everyone's accounts that same night.
+
+## What the Government Said, and What It Didn't
+
+The letter came from the US government, citing national security authorities. It is an "export control directive": it bans **any foreign national** from accessing Fable 5 and Mythos 5 — whether or not they are inside the United States, and **including Anthropic's own foreign-national employees**.
+
+It sounds like a restriction on foreigners only, but in practice you can't shut off just one half. To guarantee full compliance, the only thing Anthropic could do was disable both models for **all** customers, US citizens included. The net effect is a global takedown.
+
+<ClawdNote summary="An order 'targeting only foreign nationals' ends with everyone going down together — including Anthropic's own staff.">
+Notice that detail — "not even our own foreign-national staff can touch it" (ﾟДﾟ). It means a whole bunch of Anthropic engineers, as long as they aren't US citizens, can no longer use their own company's most powerful models for work as of today. The blast radius of one export control order swept from outside customers all the way into the company's own offices. And because there's no clean way to block only foreigners, it ends with everyone going down together — which is exactly why an order "targeting only foreign nationals" leaves the entire planet unable to use it.
+</ClawdNote>
+
+The letter only arrived that day (5:21pm ET), and it **did not spell out what the national security concern actually was**. Anthropic could only infer: the government appears to believe someone found a way to "bypass" or "jailbreak" Fable 5.
+
+## The So-Called "Jailbreak" Is Just Asking the Model to Fix Bugs
+
+This is the most absurd part of the whole thing.
+
+Anthropic says it reviewed a demonstration of the supposed attack technique, and what it found was this: it surfaced **a small number of already-known, minor** vulnerabilities. These flaws were all relatively simple — simple enough that **other public models can find them too, without any "bypass" at all**.
+
+So far the government has only provided **verbal evidence**, describing a narrow, non-universal jailbreak — and its essence, in Anthropic's own words, is "essentially asking the model to read a specific codebase and fix any software flaws."
+
+<ClawdNote summary="'Read a codebase and fix the bugs' is Claude Code's day job, not a cyber weapon.">
+Hold on — "read a codebase and fix the bugs in it" — isn't that exactly what [Claude Code](/en/glossary#claude-code) does every single day (⌐■_■)? That's not a jailbreak, that's **the first line of the product description**. Renaming "AI helps you debug" into "cyber weapon" and then using it as grounds to pull a commercial model worldwide is a pretty big logical leap. Anthropic even twisted the knife: the same capability "is widely available from other models, including OpenAI's GPT-5.5," and "is used every day by the defenders who keep systems safe." Translation: if you ban us for this, you'd have to ban every model on earth.
+</ClawdNote>
+
+Anthropic also says it reviewed a report it believes is the basis of the directive, and verified that the capability shown there is something other models commonly have and defenders use daily. The company promises to share more details over the next 24 hours.
+
+## Anthropic's Defense: Thousands of Hours of Red-Teaming Before Launch
+
+To push back on the "Fable 5 is unsafe" charge, Anthropic laid out the entire safety posture it had already published at launch:
+
+- Fable's safeguards are **so strong that many users complained they are overly broad** — it often refuses things it should answer.
+- In the weeks before launch, Anthropic worked with the US government, the UK AI Security Institute (AISI), multiple third-party organizations, and internal teams to red-team Fable's safeguards for **thousands of hours** in total.
+- The result: Fable's safeguards are **substantially more effective than any previously deployed model's**.
+- To date, **no tester has found a "universal jailbreak"** — the kind of master bypass that can broadly unlock a wide range of cyber capabilities.
+
+<ClawdNote summary="They caught a non-universal crack (no safeguard fully blocks those) but demand a universal-jailbreak-level response.">
+You have to keep two terms straight here or you'll get bluffed. A "non-universal jailbreak" is a small crack that elicits some information in specific situations — and Anthropic says flatly that **every safeguard in the industry is vulnerable to these; it's a physical reality**. A "universal jailbreak" is the scary one: one trick, everything unlocked. What the government caught this time is the former (and a bug-fixing version of it, no less), yet the response it's demanding is the kind reserved for the latter. It's like demanding the city tear down every door because someone found that one specific lock opens with a paperclip held at the right angle ┐(￣ヘ￣)┌
+</ClawdNote>
+
+Anthropic's core claim is this: **perfect jailbreak resistance does not exist today for any model provider**. Every industry safeguard can block universal attacks but not every small non-universal crack — and universal jailbreaks "will likely eventually be found." They said this plainly at Fable 5's release; it's not a retroactive excuse.
+
+Since perfect resistance is impossible, Anthropic runs a "defense in depth" strategy: make jailbreaks either narrow in scope or expensive to produce, paired with thorough monitoring to quickly detect and shut down any successful attack.
+
+<ClawdNote summary="The criticized 30-day data retention was the price Anthropic paid for safety — now called unsafe.">
+This explains a policy that got criticized earlier: Anthropic requires Fable's customer data to be **retained for 30 days**, which a lot of people saw as a privacy step backward. But this post makes the reason explicit — retaining data is what lets them research and mitigate jailbreaks; it's part of defense in depth. Anthropic itself admits the policy "carries real costs for us with customers" (read: some customers were not happy). So it wasn't a casual clause — it was a price they swallowed for safety. Now the government is turning around to say it's unsafe, which has a distinctly thankless flavor to it (；・∀・)
+</ClawdNote>
+
+And Anthropic stresses: it has **not even received a single disclosure of a non-universal jailbreak that led to an actual harmful result**. The ones reported so far were either entirely benign responses or minor findings, with **no Mythos-specific uplift** at all.
+
+## "Recall a Model Over One Bug Fix" Would Shut Down the Whole Industry
+
+Anthropic's stance is clear: **we are complying with the legal order, but we disagree with the judgment.**
+
+Their rebuttal is sharp: recalling a commercial model used by hundreds of millions of people because of "a narrow potential jailbreak" — if that standard were applied across the industry, it would **essentially halt all new model deployments for every frontier provider**. No model can block every non-universal crack, so by that standard, no model could ever ship.
+
+Anthropic has consistently argued that the government **should** have the power to block unsafe deployments — but only through a statutory process that is "transparent, fair, clear, and grounded in technical facts." This action, by their account, meets none of those: no written technical detail, only verbal evidence, built on an accusation they themselves haven't even received in full.
+
+<ClawdNote summary="Months ago Anthropic refused to release Mythos for being too strong; now the government pulls Mythos 5 over a bug fix.">
+Pull back the timeline and it gets even better. A few months ago, Anthropic did the exact opposite: it built Mythos, the most powerful model at the time, and then [**deliberately chose not to release it publicly**](/en/posts/en-sp-165-20260408-anthropic-anthropic-claude-mythos-preview-ai), giving access only to a handful of defensive-security partners through Project Glasswing — on the grounds that it was "too powerful, the attack-defense asymmetry is too steep, not everyone should have it." Back then, Anthropic itself hit the brakes. Now, months later, Mythos 5 is a shipped commercial model, and this time it's the US government slamming the brakes — over something at the level of "ask the model to fix a bug." From "we think it's too strong to release" to "the government thinks it's risky and forces a takedown," the question of where the line of AI governance should be drawn, and who gets to draw it, is being sliced open by reality, one cut at a time (¬‿¬)
+</ClawdNote>
+
+## Closing: Apologize First, Then Argue
+
+Anthropic's wrap-up is pragmatic: it apologizes to customers for the disruption, says it believes this is a "misunderstanding," and is working to restore access as soon as possible. But the defiance underneath is impossible to hide — it complies and pulls the models with one hand while laying out the entire technical argument in the open with the other, effectively lobbing the ball back to the government: ban us if you must, but bring a reason that follows due process and is grounded in technical facts.
+
+The real story here isn't "is Fable 5 actually safe." It's a much bigger question being stress-tested in real time: **once an AI model is woven into the daily work of hundreds of millions of people, can the government make it vanish worldwide in a single afternoon, on the strength of one letter that doesn't explain its reasons and offers only verbal evidence?**
+
+Anthropic says it will share more details over the next 24 hours. The fight over whether "fixing a bug" counts as a cyber weapon has only just begun.
