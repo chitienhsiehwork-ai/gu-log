@@ -1,0 +1,143 @@
+---
+ticketId: 'SP-224'
+title: 'Your Traces Tell You How the Agent Died, Not How to Save It — What a Self-Repairing Agent Harness Looks Like'
+originalDate: '2026-06-08'
+translatedDate: '2026-06-13'
+translatedBy:
+  model: 'Opus 4.8'
+  harness: 'Claude Code'
+  pipeline:
+    - role: 'Translator'
+      model: 'Opus 4.8'
+      harness: 'Claude Code'
+source: 'Daily Dose of Data Science'
+sourceUrl: 'https://blog.dailydoseofds.com/p/your-agent-harness-should-repair'
+lang: 'en'
+summary: 'When an agent breaks in production, observability hands you a gorgeous autopsy — every call, latency, and token, but not why it broke or how to fix it. The fix is a loop that runs itself: failure → approved patch → locked-in regression test. Opik is just the example; the point is the loop.'
+tags: ['shroom-picks', 'agents', 'agent-harness', 'observability', 'self-healing']
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+The moment an AI [agent](/en/glossary#agent) blows up in production, the only thing your observability tool can hand you is a beautifully formatted autopsy report. Every model call, every tool call, the latency of each step, the [token](/en/glossary#token) usage of each segment — all lined up in neat little boxes. But on the three things you most want to know, it says nothing: why this trace broke, which change would fix it, and whether the same failure will come back.
+
+So debugging turns into manual labor: scroll down span by span, piece a theory together in your head, write a patch, and pray you didn't break something that already worked. Then the next model ships, carrying its own brand-new set of failure modes, and you run the whole loop again from the top.
+
+<ClawdNote>
+For a few years now, the observability arms race has been fought almost entirely over "whose dashboard looks nicer" — softer colors, smoother flame graphs, animations when you expand a box. The problem is, no matter how pretty, an autopsy report is fundamentally passive: it faithfully records "what happened" and stays dead silent on "what do I actually do now." Admiring a beautifully laid-out corpse doesn't bring a single production incident back to life.
+</ClawdNote>
+
+## That Harness Only Ever Grows Bigger
+
+Let's set the scene properly. An agent isn't just the raw model — wrapped around it is a whole layer of [harness](/en/glossary#agent-harness): the [prompt](/en/glossary#prompt) layers, the tools, the checks and guardrails, all orbiting the model. Cursor recently shared just how much engineering they've stuffed around their agent — and every model upgrade, every new tool, widens that surface by one more ring.
+
+The trouble is, mainstream observability tools are parked at "make the autopsy report prettier." Dashboards keep getting fancier, but they never take the next step: after you spot a broken trace, you still have to jump in yourself, fix it yourself, and gamble on whether you fixed the right thing. The tool nailed "seeing the problem" and left the entire "solving the problem" half blank.
+
+---
+
+## Swap the Manual Debug Loop for One That Runs Itself
+
+gu-log has actually walked this line twice before, but stopped at different points each time. [SP-158](/posts/sp-158-20260403-braintrust-agent-production-trace/) argued that the trace is the **starting point** of the improvement loop — you can't fix how an agent fails until you can see it. [SP-179](/posts/sp-179-20260422-garrytan-skillify-agent-failures/) went one step further, on how to distill every crash, **by hand**, into a structural line of defense. What this piece fills in is the part sandwiched between them — the part that gets skipped most often: wiring "see the problem → fix it → lock it as a test" into one chain that **runs on its own**, instead of re-soldering the wires by hand every time something breaks.
+
+What's missing is actually simple: this loop shouldn't need humans on rotating shifts to babysit it. It should run by itself.
+
+For a concrete shape, you can look at how the open-source tool Opik does it — but to be clear, the point was never the product itself. The point is the idea behind how it wires "something breaks → it gets fixed → it doesn't happen again" into one complete loop. Its four parts aren't four independent features; they're one ring, head joined to tail:
+
+> Trace → an agent reads the trace and diagnoses → it proposes a patch → the patch is applied and re-verified → the failure is locked in as a regression test → back to the trace
+
+Let's pull it apart layer by layer.
+
+---
+
+## Layer 1: Automatically Record Every Step
+
+One `@opik.track` annotation, and every LLM call, tool call, and retrieval step gets recorded automatically — across LangGraph, CrewAI, and 50-plus frameworks.
+
+```python
+import opik
+
+@opik.track
+def my_agent(query: str):
+    # your agent logic goes here
+    ...
+```
+
+The key isn't "having a record" — every observability tool has records. The key is that each record also captures "which agent configuration was running at the time." That way, when you later want to rerun the exact same failing input, you can fully reproduce the conditions. And those three words, "fully reproduce," are the bedrock the whole repair loop stands on: trying to fix a bug you can't reproduce is no different from throwing punches at thin air.
+
+<ClawdNote>
+Reproducibility is probably the least flashy, most critical piece of this whole thing. Plenty of people log only "input and output," then three days later try to rerun that weird case and discover the prompt version, the model, and the tool config from back then no longer line up — they can't reproduce it at all. Nail down "which config was running" first, and the automated repair downstream actually has something to bite into.
+</ClawdNote>
+
+---
+
+## Layer 2: Let an Agent Read the Record, Then Fix It
+
+This layer is called Ollie, a coding agent built into Opik. Hand it a failing trace, and it'll read the source, point at the exact lines responsible for the failure, and propose a change — and until you hit approve, it touches nothing.
+
+Once you approve, it does three things in sequence: rerun the agent against the original failing input, lay the old and new traces side by side for you to compare, and lock the original failure into the test suite as a regression case.
+
+The nastier part: even with zero access to the source, it can explain the causal chain just from the trace. Ask it "why did the final answer ignore the content that came back from retrieval?" and it'll walk the entire span tree from the top and pinpoint which segment the root cause lives in.
+
+<ClawdNote>
+Notice a really important design choice: every step needs your approval — it's not YOLO auto-fixing everything in one go. The most dangerous thing about a coding agent is the "I've seen this kind of bug" brand of confidence — it matches a familiar-looking failure, dives straight in, and ends up touching something whose root cause was completely different. Keeping a human in the loop to hit approve isn't bureaucratic fussiness; it's the brake that smarter tools need more, not less.
+</ClawdNote>
+
+---
+
+## Layer 3: Write Tests in Plain English, and Every Bug Becomes an Exam Question
+
+The traditional eval flow looks like this: prep a labeled dataset, define a numeric metric, compare floating-point numbers. The problem is, this doesn't match how an engineer's brain judges "is this answer actually good" — nobody decides whether a support reply can go out the door based on "0.82 is higher than 0.79."
+
+Opik lets you describe "what counts as correct" with plain-English assertions instead:
+
+```python
+suite = opik.TestSuite("crm-agent-v2")
+
+suite.add_assertion("The response must include specific deal details, not just a count")
+
+suite.add_assertion("The response must never reveal unauthorized information")
+
+suite.run_tests()
+```
+
+Under the hood, Opik turns these plain-English assertions into "go find an LLM to act as judge" checks, giving a clean pass or fail per case.
+
+The best part is the closing move: every failing trace you've debugged automatically becomes a new test case. The test suite grows, one entry at a time, straight out of real production failures — and every lap around the loop, this harness gets one notch harder to break than the last.
+
+<ClawdNote>
+gu-log actually does this exact move every single day: the repo's iron rule is "every bug = one new test." Before fixing, you write a test that's red and pins the bug down; once it goes green, that test stays forever as immunity. Turning a one-off incident into a permanent line of defense is the same spirit. The only difference is Opik automated the "writing that test" step too — you don't even have to hand-carve the regression test.
+</ClawdNote>
+
+---
+
+## Layer 4: Before Changing Anything, Run the Whole Graph in a Sandbox
+
+Most "playgrounds" are really just prompt playgrounds: change one line of the system prompt, rerun that single LLM call, see if the output got better. But that answers the wrong question. The question that actually hurts in production is — "after I change one thing, what does the **entire agent graph** look like?" Change one prompt, and it might drag the behavior of three downstream tool calls off course with it, something you'd never catch by staring at that one LLM-call box.
+
+Opik's [Agent](/en/glossary#agent) Sandbox runs the fully instrumented agent, end to end, right inside the UI. Change a prompt, swap a model, add a tool, and watch directly how the whole system chain-reacts across the entire span tree. And every sandbox run produces another complete trace — the verification itself gets recorded too, so the loop bites its own tail.
+
+---
+
+## The Real Point: This Isn't Four Features, It's One Closed Loop
+
+We've covered the four layers separately, but wiring them together is the soul of the whole thing.
+
+A production failure comes in; Ollie reads the trace plus the source and proposes a patch; a human approves; Ollie takes the original failing input and reruns it in the sandbox; it passes, so this version gets saved as a new blueprint, and the environment pointer gets promoted up to staging; finally, the original failure is locked in as a regression test. The next failure — if there even is one — enters the same loop.
+
+Every lap around, this harness gets one notch harder to break.
+
+This is where it parts ways, for good, with "make the dashboard prettier." Observability has been trapped at "passive recording" for far too long; the real shift is moving from a passive record to an active repair — from a production failure, to an approved patch, to a locked-in regression test, the whole road walked in one go, instead of stopping at the first stop, "see the problem," to applaud.
+
+<ClawdNote summary="Opik is just the example here — the point is the self-repairing loop, not the logo">
+Saying it once more so there's no confusion: in this piece, Opik is just "one tool that happens to have built this idea out," not the thing being sold (it really is open source with a healthy star count, so it's not vaporware — but that's not the point). What's worth remembering is the shape: what production systems need is a self-repairing harness loop, not a higher-resolution dashboard. The day a second or third tool builds the same closed loop, this piece's argument still holds — get the shape right, and it doesn't matter whose logo is on it (¬‿¬)
+</ClawdNote>
+
+---
+
+## Closing
+
+Stop marveling at that beautifully laid-out autopsy report.
+
+For the last decade, observability tools competed on "presenting the cause of death more clearly." The next thing to compete on should be "bringing the patient back, and while you're at it, making it immune to the same way of dying." A closed loop that runs from failure, to diagnosis, to approval, to rerun, to a locked-in regression test — its value isn't in how pretty any single box is, but in the fact that every lap it runs, it packs one more pit a little more solid for you. Pack enough of them, and the only thing left that can trip this agent is a brand-new failure it has never seen before.
+
+And that, all along, is the direction engineering is supposed to push: not getting better at autopsies, but getting harder to kill with the same blade twice.

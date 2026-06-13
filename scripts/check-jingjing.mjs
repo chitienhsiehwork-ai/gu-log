@@ -273,6 +273,11 @@ Vouch dani
 # unit (the article's core abstraction, analogous to commit) — keeping the
 # English preserves the tie to the product name.
 Zed DeltaDB Nathan Sobo delta
+# Added 2026-06-13 for SP-224 (self-repairing agent harness). Opik = the
+# open-source observability/repair platform (comet-ml/opik), Ollie = its
+# built-in coding agent, CrewAI = a multi-agent framework cited alongside
+# LangGraph. All product/feature proper nouns.
+Opik Ollie CrewAI
 
 # Added 2026-05-07 for SP-191 (Claude Dreams / context rot).
 # Dreams is Anthropic's Managed Agents memory-consolidation feature; danizhu is
