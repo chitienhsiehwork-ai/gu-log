@@ -1,4 +1,5 @@
 ---
+name: tribunal-writer
 description: "Tribunal Writer — rewrite agent for the tribunal quality pipeline. Receives judge feedback and the scoring standard, then rewrites the article to address specific failures. Used across all 4 tribunal stages (Librarian, Fact Checker, Fresh Eyes, Vibe Scorer)."
 # PINNED: claude-opus-4-6[1m]. This is the SP / rewrite voice — maintainer
 # has explicitly rejected Opus 4.7's writing style (too press-release, loses

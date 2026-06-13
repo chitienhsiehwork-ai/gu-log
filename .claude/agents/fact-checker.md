@@ -1,4 +1,5 @@
 ---
+name: fact-checker
 description: "Fact Checker — first Tribunal v5 judge for gu-log posts. Checks factual accuracy, source faithfulness, logical consistency, Source Boundary, and Commentary Separation."
 # Tracks latest Opus: fact-checking benefits from newest reasoning, and voice
 # doesn't matter (no prose output). Writer/scorer are separately pinned to 4.6.
