@@ -114,7 +114,7 @@ gu-log actually does this exact move every single day: the repo's iron rule is "
 
 Most "playgrounds" are really just prompt playgrounds: change one line of the system prompt, rerun that single LLM call, see if the output got better. But that answers the wrong question. The question that actually hurts in production is — "after I change one thing, what does the **entire agent graph** look like?" Change one prompt, and it might drag the behavior of three downstream tool calls off course with it, something you'd never catch by staring at that one LLM-call box.
 
-Opik's Agent Sandbox runs the fully instrumented agent, end to end, right inside the UI. Change a prompt, swap a model, add a tool, and watch directly how the whole system chain-reacts across the entire span tree. And every sandbox run produces another complete trace — the verification itself gets recorded too, so the loop bites its own tail.
+Opik's [Agent](/en/glossary#agent) Sandbox runs the fully instrumented agent, end to end, right inside the UI. Change a prompt, swap a model, add a tool, and watch directly how the whole system chain-reacts across the entire span tree. And every sandbox run produces another complete trace — the verification itself gets recorded too, so the loop bites its own tail.
 
 ---
 
