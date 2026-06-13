@@ -48,19 +48,17 @@ func (s *State) Credits(ctx context.Context) error {
 		return fmt.Errorf("credits: parse final.mdx: %w", err)
 	}
 
-	// Default the per-stage metadata to the runtime provider's labels. A real
-	// run populates these from the dispatcher result in Write/Review/Refine;
-	// the defaults only matter when a stage was skipped via --from-step. They
-	// follow whichever provider WritingChain resolved to (Codex GPT-5.5
-	// normally, Claude Opus in the CCC sandbox fallback) so a Claude run is
-	// stamped honestly rather than mislabelled as GPT-5.5.
-	stampModel, stampHarness := s.StampLabels()
-	writeModel := nonEmpty(s.WriteModel, stampModel)
-	writeHarness := nonEmpty(s.WriteHarness, stampHarness)
-	reviewModel := nonEmpty(s.ReviewModel, stampModel)
-	reviewHarness := nonEmpty(s.ReviewHarness, stampHarness)
-	refineModel := nonEmpty(s.RefineModel, stampModel)
-	refineHarness := nonEmpty(s.RefineHarness, stampHarness)
+	// Default skipped-stage metadata to each role's runtime provider. Writers
+	// use Opus-on-Mac / Codex-on-VM; reviewers and tribunal judges use full
+	// Codex GPT-5.5.
+	writerModel, writerHarness := s.StampLabels()
+	judgeModel, judgeHarness := s.JudgeStampLabels()
+	writeModel := nonEmpty(s.WriteModel, writerModel)
+	writeHarness := nonEmpty(s.WriteHarness, writerHarness)
+	reviewModel := nonEmpty(s.ReviewModel, judgeModel)
+	reviewHarness := nonEmpty(s.ReviewHarness, judgeHarness)
+	refineModel := nonEmpty(s.RefineModel, writerModel)
+	refineHarness := nonEmpty(s.RefineHarness, writerHarness)
 
 	// Patch the top-level model line to match the actual writer.
 	f.SetNestedScalar("translatedBy", "model", quoted(writeModel))
@@ -71,7 +69,7 @@ func (s *State) Credits(ctx context.Context) error {
 		{Role: "Written", Model: writeModel, Harness: writeHarness},
 		{Role: "Reviewed", Model: reviewModel, Harness: reviewHarness},
 		{Role: "Refined", Model: refineModel, Harness: refineHarness},
-		{Role: "Orchestrated", Model: stampModel, Harness: "sp-pipeline"},
+		{Role: "Orchestrated", Model: judgeModel, Harness: "sp-pipeline"},
 	}
 	f.SetNestedBlock("translatedBy", "pipeline", renderPipelineBlock("  pipeline", entries))
 	f.SetNestedScalar("translatedBy", "pipelineUrl", quoted(PipelineURL))
@@ -83,12 +81,10 @@ func (s *State) Credits(ctx context.Context) error {
 	return nil
 }
 
-// StampLabels resolves the (model, harness) display labels for the provider
-// the pipeline actually ran through, so frontmatter credits/ralph stamps are
-// honest about whether a post was written/scored by Codex GPT-5.5 or the
-// Claude Opus CCC fallback. It reads the resolved dispatcher (deterministic
-// for a given run and for FakeProvider tests) and falls back to probing PATH
-// via llm.EffectiveStamp when no dispatcher is wired.
+// StampLabels resolves the (model, harness) display labels for the writer
+// provider. It reads the resolved dispatcher (deterministic for a given run and
+// for FakeProvider tests) and falls back to probing PATH when no dispatcher is
+// wired.
 func (s *State) StampLabels() (model, harness string) {
 	if s.Dispatcher != nil {
 		for _, p := range s.Dispatcher.Providers() {
@@ -98,6 +94,25 @@ func (s *State) StampLabels() (model, harness string) {
 		}
 	}
 	return llm.EffectiveStamp()
+}
+
+// JudgeStampLabels resolves the default judge model/harness used by review and
+// tribunal scoring when a specific per-stage result is unavailable.
+func (s *State) JudgeStampLabels() (model, harness string) {
+	if s.JudgeDispatcher != nil {
+		for _, p := range s.JudgeDispatcher.Providers() {
+			if p.Available() {
+				m := p.Model()
+				if reporter, ok := p.(interface{ ActualModel() llm.ModelID }); ok {
+					if actual := reporter.ActualModel(); actual != "" {
+						m = actual
+					}
+				}
+				return llm.DisplayName(m), llm.HarnessName(p.Model())
+			}
+		}
+	}
+	return llm.DisplayName(llm.ModelGPT55), llm.HarnessName(llm.ModelGPT55)
 }
 
 // renderPipelineBlock builds a YAML snippet for a translatedBy.pipeline

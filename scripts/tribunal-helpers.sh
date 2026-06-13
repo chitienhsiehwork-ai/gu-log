@@ -364,9 +364,9 @@ tribunal_claude_cmd() {
 }
 
 # Resolve the active tribunal LLM provider: "codex" when present (the
-# maintained runtime), else "claude" (CCC fallback). Returns 1 when neither
-# binary is on PATH. Codex always wins when both exist, mirroring the Go
-# pipeline's WritingChain so the two runtimes agree on who ran.
+# maintained judge runtime), else "claude" (CCC fallback). Returns 1 when
+# neither binary is on PATH. Codex always wins when both exist; this intentionally
+# mirrors the Go pipeline's JudgeChain, not the Opus writer chain.
 tribunal_llm_provider() {
   if tribunal_codex_cmd >/dev/null 2>&1; then
     printf 'codex\n'
@@ -381,7 +381,7 @@ tribunal_llm_provider() {
 
 # Parse the `model:` field from a .claude/agents/<name>.md spec so each judge
 # runs on its declared Claude build (vibe/fact-checker on opus, etc.). Falls
-# back to the pinned SP writer Opus when the field is absent.
+# back to the legacy Opus scorer/writer calibration model when the field is absent.
 tribunal_claude_agent_model() {
   local agent_name="$1"
   if [ -z "${REPO_ROOT:-}" ]; then

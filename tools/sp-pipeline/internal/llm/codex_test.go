@@ -84,13 +84,13 @@ printf 'codex-ok\n' > "$out"
 	}
 }
 
-func TestDefaultChainsAreCodexGPT55Only(t *testing.T) {
+func TestDefaultJudgeAndProbeChainsAreCodexGPT55(t *testing.T) {
 	for name, tc := range map[string]struct {
 		chain  []Provider
 		effort string
 	}{
-		"writing": {chain: DefaultWritingChain(), effort: "low"},
-		"probe":   {chain: DefaultProbeChain(), effort: "medium"},
+		"judge": {chain: DefaultJudgeChain(), effort: "medium"},
+		"probe": {chain: DefaultProbeChain(), effort: "medium"},
 	} {
 		chain := tc.chain
 		if len(chain) != 1 {
@@ -109,5 +109,18 @@ func TestDefaultChainsAreCodexGPT55Only(t *testing.T) {
 		if got := codex.reasoningEffort(); got != tc.effort {
 			t.Fatalf("%s effort = %q, want %q", name, got, tc.effort)
 		}
+	}
+}
+
+func TestDefaultWritingChainUsesClaudeOpusAlias(t *testing.T) {
+	chain := DefaultWritingChain()
+	if len(chain) != 1 {
+		t.Fatalf("writing chain length = %d, want 1", len(chain))
+	}
+	if chain[0].Name() != "claude-opus" {
+		t.Fatalf("writing provider = %q, want claude-opus", chain[0].Name())
+	}
+	if chain[0].Model() != ModelClaudeOpus {
+		t.Fatalf("writing model = %q, want %q", chain[0].Model(), ModelClaudeOpus)
 	}
 }

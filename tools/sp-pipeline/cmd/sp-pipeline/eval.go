@@ -59,7 +59,7 @@ compares the two verdicts:
 	cmd.Flags().StringVar(&sourcePath, "source", "", "path to source-tweet.md (required)")
 	cmd.Flags().StringVar(&workDir, "work-dir", "", "work directory for eval output files (defaults to parent dir of --source)")
 	cmd.Flags().BoolVar(&force, "force", false, "skip the gate and exit 0 without calling the LLM")
-	cmd.Flags().BoolVar(&opusOnly, "opus", false, "deprecated compatibility flag; Codex remains the default provider")
+	cmd.Flags().BoolVar(&opusOnly, "opus", false, "deprecated compatibility flag; eval always uses the Codex judge chain")
 	_ = cmd.MarkFlagRequired("source")
 	return cmd
 }
@@ -85,7 +85,7 @@ func runEval(ctx context.Context, state *rootState, sourcePath, workDir string, 
 		return fmt.Errorf("eval: mkdir %s: %w", workDir, err)
 	}
 
-	disp, err := buildDispatcher(state, opusOnly)
+	disp, err := buildDispatcherForRole(state, dispatcherJudge, opusOnly)
 	if err != nil {
 		return err
 	}
@@ -94,6 +94,7 @@ func runEval(ctx context.Context, state *rootState, sourcePath, workDir string, 
 	s.Cfg = state.cfg
 	s.Log = state.log
 	s.Dispatcher = disp
+	s.JudgeDispatcher = disp
 	s.SourcePath = absSource
 	s.WorkDir = workDir
 	s.Force = force

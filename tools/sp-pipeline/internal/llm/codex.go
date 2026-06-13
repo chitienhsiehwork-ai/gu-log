@@ -53,6 +53,10 @@ func (c *CodexProvider) Model() ModelID {
 	}
 }
 
+// ActualModel returns the explicit Codex model passed to the CLI. Codex does
+// not use a moving alias here: gpt-5.5 is the current full recommended model.
+func (c *CodexProvider) ActualModel() ModelID { return c.Model() }
+
 // Available implements Provider.
 func (c *CodexProvider) Available() bool {
 	_, err := runner.LookPath("codex")

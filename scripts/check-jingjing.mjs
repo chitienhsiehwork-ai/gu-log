@@ -281,6 +281,9 @@ Dreams dream
 Managed Agents Agents
 danizhu
 context rot
+# Added 2026-06-13 for CP-308 (Fable 5 / Mythos 5 export control).
+# X handle of the cited add-on commentary author (the timeline + ITAR parallel).
+gothburz
 
 # Added 2026-06-12 for SP-222 (Simon Willison / Fable relentlessly proactive).
 # Fable = Claude model name (sibling of allowlisted Opus/Sonnet/Haiku).

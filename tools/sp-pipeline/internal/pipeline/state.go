@@ -82,10 +82,12 @@ type State struct {
 
 	// ── Dependencies injected by the caller ────────────────────────────
 
-	Cfg        *config.Config
-	Log        *logx.Logger
-	Dispatcher *llm.Dispatcher
-	Counter    *counter.Counter
+	Cfg              *config.Config
+	Log              *logx.Logger
+	Dispatcher       *llm.Dispatcher
+	WriterDispatcher *llm.Dispatcher
+	JudgeDispatcher  *llm.Dispatcher
+	Counter          *counter.Counter
 
 	// ── Fields populated during the run ────────────────────────────────
 
@@ -147,6 +149,20 @@ type State struct {
 
 	// Timings per step (seconds), matches bash summary output.
 	Timings map[string]int
+}
+
+func (s *State) writerDispatcher() *llm.Dispatcher {
+	if s.WriterDispatcher != nil {
+		return s.WriterDispatcher
+	}
+	return s.Dispatcher
+}
+
+func (s *State) judgeDispatcher() *llm.Dispatcher {
+	if s.JudgeDispatcher != nil {
+		return s.JudgeDispatcher
+	}
+	return s.Dispatcher
 }
 
 // NewState constructs a State with sensible defaults. Fields left empty

@@ -29,37 +29,22 @@ func TestAnyAvailable(t *testing.T) {
 	}
 }
 
-func TestWritingChainKeepsCodexPrimary(t *testing.T) {
-	// WritingChain must always lead with the codex default so that the VPS/mac
-	// dispatch order is unchanged; the only difference is an optional trailing
-	// Claude fallback when codex is absent.
+func TestWritingChainUsesSingleResolvedWriter(t *testing.T) {
 	chain := WritingChain()
 	if len(chain) == 0 {
 		t.Fatal("WritingChain returned an empty chain")
 	}
-	if chain[0].Name() != "codex-gpt-5.5" {
-		t.Fatalf("WritingChain primary = %q, want codex-gpt-5.5", chain[0].Name())
+	if len(chain) != 1 {
+		t.Fatalf("WritingChain length = %d, want exactly 1 resolved writer", len(chain))
 	}
-	// The chain is either codex-only (codex present) or codex+claude (codex
-	// absent). It must never be claude-only or place claude before codex.
-	switch len(chain) {
-	case 1:
-		// codex-only — fine.
-	case 2:
-		if _, ok := chain[1].(*ClaudeProvider); !ok {
-			t.Fatalf("WritingChain fallback = %T, want *ClaudeProvider", chain[1])
-		}
+	switch chain[0].Name() {
+	case "claude-opus", "codex-gpt-5.5":
 	default:
-		t.Fatalf("WritingChain length = %d, want 1 or 2", len(chain))
+		t.Fatalf("WritingChain writer = %q, want claude-opus or codex-gpt-5.5", chain[0].Name())
 	}
 }
 
 func TestProbeChainKeepsCodexPrimary(t *testing.T) {
-	// ProbeChain mirrors WritingChain's invariant for the doctor --probe-llm
-	// path: codex is always primary so VPS/mac probe output is unchanged; the
-	// only difference is an optional trailing Claude probe when codex is absent
-	// (the CCC sandbox case). It must never be claude-only or place claude
-	// before codex.
 	chain := ProbeChain()
 	if len(chain) == 0 {
 		t.Fatal("ProbeChain returned an empty chain")
@@ -67,15 +52,11 @@ func TestProbeChainKeepsCodexPrimary(t *testing.T) {
 	if chain[0].Name() != "codex-gpt-5.5" {
 		t.Fatalf("ProbeChain primary = %q, want codex-gpt-5.5", chain[0].Name())
 	}
-	switch len(chain) {
-	case 1:
-		// codex-only — fine.
-	case 2:
-		if _, ok := chain[1].(*ClaudeProvider); !ok {
-			t.Fatalf("ProbeChain fallback = %T, want *ClaudeProvider", chain[1])
-		}
-	default:
-		t.Fatalf("ProbeChain length = %d, want 1 or 2", len(chain))
+	if len(chain) != 2 {
+		t.Fatalf("ProbeChain length = %d, want codex + claude probes", len(chain))
+	}
+	if _, ok := chain[1].(*ClaudeProvider); !ok {
+		t.Fatalf("ProbeChain fallback = %T, want *ClaudeProvider", chain[1])
 	}
 }
 
@@ -89,11 +70,11 @@ func TestEffectiveStampLabels(t *testing.T) {
 		if harness != "Codex CLI" {
 			t.Fatalf("GPT-5.5 stamped with harness %q, want Codex CLI", harness)
 		}
-	case "Opus 4.6":
+	case "Opus 4.8":
 		if harness != "Claude Code CLI" {
-			t.Fatalf("Opus 4.6 stamped with harness %q, want Claude Code CLI", harness)
+			t.Fatalf("Opus 4.8 stamped with harness %q, want Claude Code CLI", harness)
 		}
 	default:
-		t.Fatalf("EffectiveStamp model = %q, want GPT-5.5 or Opus 4.6", model)
+		t.Fatalf("EffectiveStamp model = %q, want GPT-5.5 or Opus 4.8", model)
 	}
 }
