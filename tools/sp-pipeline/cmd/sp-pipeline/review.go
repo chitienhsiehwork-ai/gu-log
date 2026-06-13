@@ -46,7 +46,7 @@ pipeline runs ` + "`codex exec`" + ` in (cd $WORK_DIR && …).`,
 	cmd.Flags().StringVar(&draftPath, "draft", "", "path to draft-v1.mdx (required; its parent is used as work-dir when --work-dir is empty)")
 	cmd.Flags().StringVar(&workDir, "work-dir", "", "work directory where review.md should land (defaults to dirname of --draft)")
 	cmd.Flags().StringVar(&ticketID, "ticket-id", "PENDING", "ticketId for the review prompt header")
-	cmd.Flags().BoolVar(&opusOnly, "opus", false, "deprecated compatibility flag; Codex remains the default provider")
+	cmd.Flags().BoolVar(&opusOnly, "opus", false, "deprecated compatibility flag; review always uses the Codex judge chain")
 	_ = cmd.MarkFlagRequired("draft")
 	return cmd
 }
@@ -68,7 +68,7 @@ func runReview(ctx context.Context, state *rootState, draftPath, workDir, ticket
 		return err
 	}
 
-	disp, err := buildDispatcher(state, opusOnly)
+	disp, err := buildDispatcherForRole(state, dispatcherJudge, opusOnly)
 	if err != nil {
 		return err
 	}
@@ -77,6 +77,7 @@ func runReview(ctx context.Context, state *rootState, draftPath, workDir, ticket
 	s.Cfg = state.cfg
 	s.Log = state.log
 	s.Dispatcher = disp
+	s.JudgeDispatcher = disp
 	s.WorkDir = workDir
 	s.PromptTicketID = ticketID
 

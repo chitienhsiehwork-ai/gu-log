@@ -44,6 +44,10 @@ type RunResult struct {
 	ProviderName string
 	// Model is the ModelID of the successful provider.
 	Model ModelID
+	// ActualModel is the concrete model reported by the provider when a moving
+	// alias was used. It falls back to Model when the provider has no richer
+	// runtime metadata.
+	ActualModel ModelID
 	// FellBackFrom is a list of provider names that failed before the
 	// successful one ran (empty when the primary succeeded on the first try).
 	FellBackFrom []string
@@ -95,10 +99,17 @@ func (d *Dispatcher) Run(ctx context.Context, prompt string, opts RunOptions) (*
 			} else {
 				d.log.OK("llm: %s succeeded", p.Name())
 			}
+			actualModel := p.Model()
+			if reporter, ok := p.(interface{ ActualModel() ModelID }); ok {
+				if reported := reporter.ActualModel(); reported != "" {
+					actualModel = reported
+				}
+			}
 			return &RunResult{
 				Output:       out,
 				ProviderName: p.Name(),
 				Model:        p.Model(),
+				ActualModel:  actualModel,
 				FellBackFrom: fellBack,
 			}, nil
 		}

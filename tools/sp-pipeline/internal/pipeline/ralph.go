@@ -122,13 +122,29 @@ func (s *State) Ralph(ctx context.Context) error {
 	// Frontmatter normaliser — for every file in {zh, en}, strip old
 	// pipeline block + pipelineUrl, then inject the canonical 6-entry
 	// block. Matches the Python heredoc at bash lines 1245-1300.
-	stampModel, stampHarness := s.StampLabels()
+	writerModel, writerHarness := s.StampLabels()
+	judgeModel, judgeHarness := s.JudgeStampLabels()
+	writeModel := nonEmpty(s.WriteModel, writerModel)
+	writeHarness := nonEmpty(s.WriteHarness, writerHarness)
+	reviewModel := nonEmpty(s.ReviewModel, judgeModel)
+	reviewHarness := nonEmpty(s.ReviewHarness, judgeHarness)
+	refineModel := nonEmpty(s.RefineModel, writerModel)
+	refineHarness := nonEmpty(s.RefineHarness, writerHarness)
 	for _, fname := range []string{s.ActiveFilename, s.ActiveENFilename} {
 		path := filepath.Join(postsDir, fname)
 		if _, err := os.Stat(path); err != nil {
 			continue
 		}
-		if err := normalizeRalphFrontmatter(path, stampModel, stampHarness); err != nil {
+		if err := normalizeRalphFrontmatter(path, PipelineStamp{
+			WriteModel:    writeModel,
+			WriteHarness:  writeHarness,
+			ReviewModel:   reviewModel,
+			ReviewHarness: reviewHarness,
+			RefineModel:   refineModel,
+			RefineHarness: refineHarness,
+			JudgeModel:    judgeModel,
+			JudgeHarness:  judgeHarness,
+		}); err != nil {
 			return fmt.Errorf("ralph: normalize %s: %w", fname, err)
 		}
 	}
@@ -144,7 +160,18 @@ func (s *State) Ralph(ctx context.Context) error {
 //  3. Rewrites harness: to the runtime provider's harness (stampHarness).
 //  4. Inserts a canonical 6-entry pipeline: block after harness.
 //  5. Inserts the canonical pipelineUrl.
-func normalizeRalphFrontmatter(path, stampModel, stampHarness string) error {
+type PipelineStamp struct {
+	WriteModel    string
+	WriteHarness  string
+	ReviewModel   string
+	ReviewHarness string
+	RefineModel   string
+	RefineHarness string
+	JudgeModel    string
+	JudgeHarness  string
+}
+
+func normalizeRalphFrontmatter(path string, stamp PipelineStamp) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return err
@@ -171,22 +198,18 @@ func normalizeRalphFrontmatter(path, stampModel, stampHarness string) error {
 		return strings.TrimSpace(line) == "pipeline:"
 	})
 
-	// stampModel/stampHarness record who actually wrote/scored the post:
-	// Codex GPT-5.5 on the VPS/mac, Claude Opus in the CCC sandbox fallback.
-	// This keeps tribunal calibration honest — a Claude-scored post is never
-	// mislabelled as a GPT-5.5 one.
-
 	// Canonical harness summary.
-	f.SetNestedScalar("translatedBy", "harness", quoted(stampHarness))
+	f.SetNestedScalar("translatedBy", "model", quoted(stamp.WriteModel))
+	f.SetNestedScalar("translatedBy", "harness", quoted(stamp.WriteHarness))
 
 	// 6-entry canonical pipeline block.
 	entries := []PipelineEntry{
-		{Role: "Written", Model: stampModel, Harness: stampHarness},
-		{Role: "Reviewed", Model: stampModel, Harness: stampHarness},
-		{Role: "Refined", Model: stampModel, Harness: stampHarness},
-		{Role: "Scored", Model: stampModel, Harness: stampHarness + " + Tribunal"},
-		{Role: "Rewritten", Model: stampModel, Harness: stampHarness + " + Tribunal"},
-		{Role: "Orchestrated", Model: stampModel, Harness: "sp-pipeline + Tribunal"},
+		{Role: "Written", Model: stamp.WriteModel, Harness: stamp.WriteHarness},
+		{Role: "Reviewed", Model: stamp.ReviewModel, Harness: stamp.ReviewHarness},
+		{Role: "Refined", Model: stamp.RefineModel, Harness: stamp.RefineHarness},
+		{Role: "Scored", Model: stamp.JudgeModel, Harness: stamp.JudgeHarness + " + Tribunal"},
+		{Role: "Rewritten", Model: stamp.WriteModel, Harness: stamp.WriteHarness + " + Tribunal"},
+		{Role: "Orchestrated", Model: stamp.JudgeModel, Harness: "sp-pipeline + Tribunal"},
 	}
 	f.SetNestedScalar("translatedBy", "pipeline", "")
 	f.SetBlock("  pipeline", renderPipelineBlock("  pipeline", entries))
