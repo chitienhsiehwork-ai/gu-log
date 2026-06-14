@@ -74,6 +74,7 @@ PrevNextNav
 # AI labs / companies / orgs
 Anthropic OpenAI Google Meta Microsoft Apple Amazon AWS GCP Azure
 Cloudflare Stripe Vercel Astro MDX
+OpenRouter Perplexity Exa Parallel
 Browserbase
 Semrush DataReportal Feishu
 GitHub GitLab Bitbucket GitLab.com
@@ -96,7 +97,7 @@ Twitter X x.com twitter.com fxtwitter
 Reddit StackOverflow Subreddit Reddit Answers
 
 # Frontier models and product names
-Symphony
+Symphony Fusion
 Claude Opus Sonnet Haiku
 GPT GPT-3 GPT-3.5 GPT-4 GPT-4o GPT-5 GPT-5.2 GPT-5.3 GPT-5.4
 Gemini Llama Mistral Qwen DeepSeek Kimi Grok Cohere Command
