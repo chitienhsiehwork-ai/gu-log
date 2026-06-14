@@ -33,14 +33,29 @@
 
 set -euo pipefail
 
-TWEET_URL="${1:-}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+TWEET_URL=""
 MODE="text"
-if [ "${2:-}" = "--json" ]; then
-  MODE="json"
+# Thread reconstruction is on by default: a dropped thread URL should capture
+# the whole self-thread, not just tweet #1. Disable with --no-thread or
+# GU_LOG_X_FETCH_THREAD=0 (e.g. when a caller only wants the focal tweet).
+THREAD_ENABLED=1
+if [ "${GU_LOG_X_FETCH_THREAD:-}" = "0" ]; then
+  THREAD_ENABLED=0
 fi
+for arg in "$@"; do
+  case "$arg" in
+    --json) MODE="json" ;;
+    --no-thread) THREAD_ENABLED=0 ;;
+    --thread) THREAD_ENABLED=1 ;;
+    -*) echo "Unknown flag: $arg" >&2; exit 1 ;;
+    *) [ -z "$TWEET_URL" ] && TWEET_URL="$arg" ;;
+  esac
+done
 
 if [ -z "$TWEET_URL" ]; then
-  echo "Usage: $0 <tweet_url> [--json]" >&2
+  echo "Usage: $0 <tweet_url> [--json] [--no-thread]" >&2
   exit 1
 fi
 
@@ -420,6 +435,37 @@ fi
 if [ "$MODE" = "json" ]; then
   cat "$TMP_JSON"
   exit 0
+fi
+
+# Thread reconstruction (text mode only). If the focal tweet is the head/middle
+# of a self-thread, the single-tweet render above only captures one tweet and
+# silently drops the rest. fetch-x-thread.py walks the author's timeline and
+# rebuilds the whole chain via the guest GraphQL UserTweets route (the only
+# thread-capable route that works cookie-free in this sandbox). It is
+# best-effort: exit 3 = "not a thread / article / aged out", any other failure
+# also falls through to the single-tweet render below, so this can never regress
+# a capture that previously worked.
+#
+# Skip the probe entirely for X Articles — those are single long-form tweets and
+# the article renderer below handles them; probing would just add latency.
+focal_is_article() {
+  python3 - "$TMP_JSON" <<'PY' 2>/dev/null
+import json, sys
+try:
+    d = json.load(open(sys.argv[1]))
+except Exception:
+    sys.exit(1)
+art = (d.get("tweet") or {}).get("article") or {}
+sys.exit(0 if (art.get("content") or art.get("preview_text")) else 1)
+PY
+}
+
+if [ "$THREAD_ENABLED" = "1" ] && ! focal_is_article; then
+  if THREAD_OUT="$(python3 "$SCRIPT_DIR/fetch-x-thread.py" "$TWEET_URL" 2>/dev/null)" \
+    && [ -n "$THREAD_OUT" ]; then
+    printf '%s\n' "$THREAD_OUT"
+    exit 0
+  fi
 fi
 
 # Render to text. Output contract is aligned with sp-pipeline.sh's

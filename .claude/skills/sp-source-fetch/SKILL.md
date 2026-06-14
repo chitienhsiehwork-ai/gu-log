@@ -38,6 +38,31 @@ Fetched via: fxtwitter   # or vxtwitter
 
 On hard failure, prints `INCOMPLETE_SOURCE: <reason>` to stderr and exits 2.
 
+Output for a self-thread (author's chain of consecutive self-replies):
+
+```
+@handle — YYYY-MM-DD
+Source URL: https://x.com/handle/status/ID
+Fetched via: x-guest-thread
+Thread: 3 tweets
+
+=== MAIN TWEET ===
+<tweet 1>
+
+=== THREAD 2/3 ===
+<tweet 2>
+
+=== THREAD 3/3 ===
+<tweet 3>
+```
+
+You always get the **whole thread**, in chronological order, even if the URL
+points at a tweet in the middle of the chain (the script resolves the
+conversation root and pulls every tweet the author posted in it). `t.co`
+shortlinks are expanded to their real targets. Thread reconstruction is on by
+default; pass `--no-thread` (or `GU_LOG_X_FETCH_THREAD=0`) to capture only the
+focal tweet.
+
 For raw JSON (rare, mostly for debugging):
 
 ```bash
@@ -54,6 +79,18 @@ bash scripts/fetch-x-article.sh <tweet_url> --json
    - Plain tweets: fine
    - X Articles: vxtwitter returns only `article.preview_text` (~200 chars). The renderer surfaces the preview PLUS an `INCOMPLETE_SOURCE_WARNING` marker. Treat as incomplete — do not ship an SP based on a preview.
 4. Both failed / empty body → stderr `INCOMPLETE_SOURCE: <reason>`, exit 2
+
+**Thread step (text mode, unless `--no-thread`)**: after the focal tweet is in
+hand and it is *not* an X Article, `scripts/fetch-x-thread.py` rebuilds the full
+self-thread. It can't use fxtwitter (no thread field) or X's `TweetDetail`
+(404 for guest tokens) — the only cookie-free route that enumerates a thread is
+the guest GraphQL **`UserTweets`** timeline: pull the author's recent tweets,
+keep every one sharing the focal `conversation_id_str`, sort by tweet id
+(Snowflake ids are time-ordered). If it finds ≥2 author tweets it renders the
+whole thread; otherwise (single tweet / X Article / thread aged out of the
+recent timeline) it exits 3 and the single-tweet render is used. Best-effort:
+any failure here silently degrades to the single-tweet capture, so it can never
+regress a fetch that previously worked.
 
 ## Anti-patterns (do not do these, they will bite you)
 
