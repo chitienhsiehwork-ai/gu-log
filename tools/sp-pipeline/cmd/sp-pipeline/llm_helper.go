@@ -32,10 +32,19 @@ func buildDispatcherForRole(state *rootState, role dispatcherRole, opusOnly bool
 	var providers []llm.Provider
 	switch role {
 	case dispatcherJudge:
-		providers = llm.JudgeChain()
+		providers = llm.JudgeChainWithClaudeFallback(state.judgeAllowClaude)
 	default:
 		providers = llm.WritingChain()
 	}
 	_ = opusOnly
-	return llm.NewDispatcher(state.log, providers...)
+	disp, err := llm.NewDispatcher(state.log, providers...)
+	if err != nil {
+		return nil, err
+	}
+	policy := llm.DefaultQuotaPolicy()
+	if role == dispatcherJudge {
+		policy.AllowClaudeJudgeFallback = state.judgeAllowClaude
+	}
+	disp.ConfigureQuotaPolicy(policy)
+	return disp, nil
 }

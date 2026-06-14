@@ -22,6 +22,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$ROOT_DIR"
+TRIBUNAL_RESUME_COMMAND="$(printf '%q ' "$0" "$@")"
+export TRIBUNAL_RESUME_COMMAND="${TRIBUNAL_RESUME_COMMAND% }"
 
 # shellcheck source=scripts/score-helpers.sh
 source "$SCRIPT_DIR/score-helpers.sh"
@@ -320,6 +322,53 @@ mark_article_runner_error() {
   ) 9>>"$RC_PROGRESS_LOCK"
 }
 
+mark_article_quota_suspended() {
+  local article="$1" failed_stage="$2" model="$3" attempts="$4" reason="$5"
+  (
+    flock -x 9
+    local tmp
+    tmp="$(mktemp)"
+    jq --arg a "$article" \
+       --arg s "$failed_stage" \
+       --arg model "$model" \
+       --arg reason "$reason" \
+       --argjson attempts "$attempts" \
+       --argjson tribunalVersion "$TRIBUNAL_VERSION" \
+       --arg ts "$(TZ=Asia/Taipei date -Iseconds)" \
+       '.[$a].status = "QUOTA_SUSPENDED"
+        | .[$a].failedStage = $s
+        | .[$a].finishedAt = $ts
+        | .[$a].tribunalVersion = $tribunalVersion
+        | .[$a].topLevelAttempts = (.[$a].topLevelAttempts // 0)
+        | .[$a].stages[$s] = {
+            status: "quota_suspended",
+            score: null,
+            model: $model,
+            attempts: $attempts,
+            tribunalVersion: $tribunalVersion,
+            error: $reason
+          }' \
+       "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
+  ) 9>>"$RC_PROGRESS_LOCK"
+}
+
+quota_status_summary() {
+  local file="$1"
+  if [ ! -s "$file" ]; then
+    printf 'quota exhausted; resume with: %s' "${TRIBUNAL_RESUME_COMMAND:-rerun the same tribunal command}"
+    return 0
+  fi
+  local provider tier reset_seconds reason resume
+  provider="$(sed -n 's/^provider=//p' "$file" | head -1)"
+  tier="$(sed -n 's/^tier=//p' "$file" | head -1)"
+  reset_seconds="$(sed -n 's/^reset_seconds=//p' "$file" | head -1)"
+  reason="$(sed -n 's/^reason=//p' "$file" | head -1)"
+  resume="$(sed -n 's/^resume_command=//p' "$file" | head -1)"
+  printf 'provider=%s tier=%s reset_seconds=%s reason=%s resume=%s' \
+    "${provider:-unknown}" "${tier:-unknown}" "${reset_seconds:-0}" \
+    "${reason:-quota exhausted}" "${resume:-${TRIBUNAL_RESUME_COMMAND:-rerun the same tribunal command}}"
+}
+
 mark_article_passed() {
   local article="$1"
   (
@@ -448,7 +497,7 @@ run_final_build_once() {
 
 repair_final_build_failure() {
   local post_file="$1" build_log="$2" repair_attempt="$3"
-  local evidence writer_prompt writer_out writer_rc en_existed_before
+  local evidence writer_prompt writer_out writer_rc en_existed_before writer_quota_status_file
   evidence="$(tail -80 "$build_log" 2>/dev/null || true)"
   if [ -f "src/content/posts/en-$post_file" ]; then
     en_existed_before=1
@@ -481,20 +530,30 @@ $evidence
 PROMPT
 )"
   writer_out="$(mktemp)"
+  writer_quota_status_file="$(mktemp)"
   writer_rc=0
   # Spawn from tmp work-dir so Codex does not inherit unrelated repo-local
   # instructions. Writer's job is to edit src/content/posts/*.mdx.
   local writer_work_dir
   writer_work_dir="$(tribunal_llm_work_dir)"
-  tribunal_llm_exec "$writer_work_dir" "tribunal-writer" "$writer_prompt" > "$writer_out" 2>&1 || writer_rc=$?
+  TRIBUNAL_QUOTA_STATUS_FILE="$writer_quota_status_file" \
+    tribunal_writer_exec "$writer_work_dir" "tribunal-writer" "$writer_prompt" > "$writer_out" 2>&1 || writer_rc=$?
   rm -rf "$writer_work_dir"
+  if [ "$writer_rc" -eq 75 ]; then
+    local writer_quota_reason
+    writer_quota_reason="$(quota_status_summary "$writer_quota_status_file")"
+    tlog "  QUOTA SUSPEND during final build repair writer: $writer_quota_reason"
+    mark_article_quota_suspended "$post_file" "finalBuild" "tribunal-writer" "$repair_attempt" "writer: $writer_quota_reason"
+    rm -f "$writer_out" "$writer_quota_status_file"
+    return 75
+  fi
   if [ "$writer_rc" -ne 0 ]; then
     tlog "  WARN: final build repair writer exited with code $writer_rc"
     tail -10 "$writer_out" | while IFS= read -r line; do tlog "    $line"; done
-    rm -f "$writer_out"
+    rm -f "$writer_out" "$writer_quota_status_file"
     return 1
   fi
-  rm -f "$writer_out"
+  rm -f "$writer_out" "$writer_quota_status_file"
 
   cheap_validate_writer_rewrite "$post_file" "$en_existed_before"
 }
@@ -537,7 +596,13 @@ run_final_build_gate() {
     fi
 
     repair_attempt=$((repair_attempt + 1))
-    if ! repair_final_build_failure "$post_file" "$build_log" "$repair_attempt"; then
+    local repair_rc=0
+    repair_final_build_failure "$post_file" "$build_log" "$repair_attempt" || repair_rc=$?
+    if [ "$repair_rc" -eq 75 ]; then
+      rm -f "$build_log"
+      return 75
+    fi
+    if [ "$repair_rc" -ne 0 ]; then
       tlog "Final build repair attempt $repair_attempt failed cheap validation; failing without PASS."
       revert_writer_rewrite_files "$post_file"
       rm -f "$build_log"
@@ -662,6 +727,7 @@ run_stage() {
   while [ "$attempt" -lt "$max_loops" ]; do
     attempt=$((attempt + 1))
     tlog "  $label attempt $attempt/$max_loops..."
+    : > "$score_tmp"
 
     write_stage_progress "$post_file" "$stage_key" "in_progress" "null" "$runner_label" "$attempt"
 
@@ -739,16 +805,42 @@ PROMPT
     # Spawn from a tmp work-dir (NOT the repo) so Codex gets only the agent
     # contract + task prompt. Score JSON path stays inside work-dir, then moves
     # back to score_tmp after the run finishes.
-    local judge_work_dir
+    local judge_work_dir actual_provider_file quota_status_file
     judge_work_dir="$(tribunal_llm_work_dir)"
+    actual_provider_file="$(mktemp)"
+    quota_status_file="$(mktemp)"
     local judge_score_in_work="$judge_work_dir/score.json"
     judge_task="${judge_task/SCORE_PATH_PLACEHOLDER/$judge_score_in_work}"
-    TRIBUNAL_CODEX_TIMEOUT_SEC="$stage_timeout" tribunal_llm_exec_watchdog "$judge_work_dir" "$agent_name" "$judge_task" "$judge_out" "$judge_score_in_work" || judge_rc=$?
+    TRIBUNAL_CODEX_TIMEOUT_SEC="$stage_timeout" \
+      TRIBUNAL_ACTUAL_PROVIDER_FILE="$actual_provider_file" \
+      TRIBUNAL_QUOTA_STATUS_FILE="$quota_status_file" \
+      tribunal_llm_exec_watchdog "$judge_work_dir" "$agent_name" "$judge_task" "$judge_out" "$judge_score_in_work" || judge_rc=$?
+
+    if [ -s "$actual_provider_file" ]; then
+      local actual_provider actual_model actual_runner
+      actual_provider="$(sed -n 's/^provider=//p' "$actual_provider_file" | head -1)"
+      actual_model="$(sed -n 's/^model_id=//p' "$actual_provider_file" | head -1)"
+      actual_runner="$(sed -n 's/^runner_label=//p' "$actual_provider_file" | head -1)"
+      if [ -n "$actual_provider" ] && [ -n "$actual_model" ] && [ -n "$actual_runner" ]; then
+        model_id="$actual_model"
+        runner_label="$actual_runner"
+        tlog "  Actual judge provider: $actual_provider (runtime model '$model_id', runner '$runner_label')"
+      fi
+    fi
 
     if [ -f "$judge_score_in_work" ]; then
       mv "$judge_score_in_work" "$score_tmp"
     fi
     rm -rf "$judge_work_dir"
+
+    if [ "$judge_rc" -eq 75 ]; then
+      local quota_reason
+      quota_reason="$(quota_status_summary "$quota_status_file")"
+      tlog "  QUOTA SUSPEND: $quota_reason"
+      mark_article_quota_suspended "$post_file" "$stage_key" "$runner_label" "$attempt" "$quota_reason"
+      rm -f "$judge_out" "$actual_provider_file" "$quota_status_file" "$score_tmp"
+      return 75
+    fi
 
     if [ "$judge_rc" -ne 0 ]; then
       tlog "  WARN: Agent '$agent_name' exited with code $judge_rc"
@@ -756,7 +848,7 @@ PROMPT
         head -5 "$judge_out" | while IFS= read -r line; do tlog "    $line"; done
       fi
     fi
-    rm -f "$judge_out"
+    rm -f "$judge_out" "$actual_provider_file" "$quota_status_file"
 
     # ── Validate score JSON ───────────────────────────────────────────────────
     if ! validate_judge_score_json "$validate_name" "$score_tmp"; then
@@ -840,7 +932,7 @@ PROMPT
     # ── Rewrite: invoke tribunal-writer (timeout 900s / 15 min) ──────────────
     tlog "  Invoking tribunal-writer for rewrite (timeout 900s)..."
 
-    local writer_prompt writer_out writer_rc en_existed_before
+    local writer_prompt writer_out writer_rc en_existed_before writer_quota_status_file
     if [ -f "src/content/posts/en-$post_file" ]; then
       en_existed_before=1
     else
@@ -877,19 +969,30 @@ Do NOT change frontmatter fields (title, ticketId, dates, sourceUrl). Preserve M
 PROMPT
 )"
     writer_out="$(mktemp)"
+    writer_quota_status_file="$(mktemp)"
     writer_rc=0
 
     # Writer reads the full post + judge feedback + scoring SSOT through Codex.
     # Spawn from tmp work-dir to keep prompt context isolated.
     local rewrite_work_dir
     rewrite_work_dir="$(tribunal_llm_work_dir)"
-    tribunal_llm_exec "$rewrite_work_dir" "tribunal-writer" "$writer_prompt" > "$writer_out" 2>&1 || writer_rc=$?
+    TRIBUNAL_QUOTA_STATUS_FILE="$writer_quota_status_file" \
+      tribunal_writer_exec "$rewrite_work_dir" "tribunal-writer" "$writer_prompt" > "$writer_out" 2>&1 || writer_rc=$?
     rm -rf "$rewrite_work_dir"
+
+    if [ "$writer_rc" -eq 75 ]; then
+      local writer_quota_reason
+      writer_quota_reason="$(quota_status_summary "$writer_quota_status_file")"
+      tlog "  QUOTA SUSPEND during tribunal-writer rewrite: $writer_quota_reason"
+      mark_article_quota_suspended "$post_file" "$stage_key" "$runner_label" "$attempt" "writer: $writer_quota_reason"
+      rm -f "$writer_out" "$writer_quota_status_file" "$score_tmp"
+      return 75
+    fi
 
     if [ "$writer_rc" -ne 0 ]; then
       tlog "  WARN: tribunal-writer exited with code $writer_rc"
     fi
-    rm -f "$writer_out"
+    rm -f "$writer_out" "$writer_quota_status_file"
 
     # ── Cheap validation after rewrite (full build is deferred to final gate) ─
     if ! cheap_validate_writer_rewrite "$post_file" "$en_existed_before"; then
@@ -1031,7 +1134,11 @@ for stage_def in "${STAGES[@]}"; do
   run_stage \
     "$stage_key" "$agent_name" "$validate_name" "$label" \
     "$max_loops" "$POST_FILE" "$fm_judge_key" || stage_rc=$?
-  if [ "$stage_rc" -eq 70 ]; then
+  if [ "$stage_rc" -eq 75 ]; then
+    tlog "=== QUOTA SUSPENDED at stage: $label ==="
+    commit_progress "tribunal(${POST_FILE%.mdx}): QUOTA_SUSPENDED at $label stage"
+    exit 75
+  elif [ "$stage_rc" -eq 70 ]; then
     tlog "=== RUNNER ERROR at stage: $label ==="
     commit_progress "tribunal(${POST_FILE%.mdx}): RUNNER_ERROR at $label stage"
     exit 70
@@ -1051,7 +1158,14 @@ if [ -n "$ONLY_STAGE" ]; then
 fi
 
 tlog "=== ALL 4 STAGES PASSED: $POST_FILE ==="
-if ! run_final_build_gate "$POST_FILE"; then
+final_build_rc=0
+run_final_build_gate "$POST_FILE" || final_build_rc=$?
+if [ "$final_build_rc" -eq 75 ]; then
+  tlog "=== QUOTA SUSPENDED at final build gate: $POST_FILE ==="
+  commit_progress "tribunal(${POST_FILE%.mdx}): QUOTA_SUSPENDED at final build gate"
+  exit 75
+fi
+if [ "$final_build_rc" -ne 0 ]; then
   tlog "=== FAILED at final build gate: $POST_FILE ==="
   mark_article_failed "$POST_FILE" "finalBuild"
   commit_progress "tribunal(${POST_FILE%.mdx}): FAILED at final build gate"
