@@ -18,6 +18,7 @@ get_ticket_id() {
 validate_score_json() {
   local json_file="$1"
   local expected_file="$2"
+  : "$expected_file"
 
   # File exists?
   [ -f "$json_file" ] || return 1
@@ -52,8 +53,11 @@ validate_score_json() {
 # Sets: SCORE_P, SCORE_C, SCORE_V
 read_scores() {
   local json_file="$1"
+  # shellcheck disable=SC2034 # Exported-by-convention globals used by callers.
   SCORE_P=$(jq -r '.dimensions.persona' "$json_file")
+  # shellcheck disable=SC2034 # Exported-by-convention globals used by callers.
   SCORE_C=$(jq -r '.dimensions.clawdNote' "$json_file")
+  # shellcheck disable=SC2034 # Exported-by-convention globals used by callers.
   SCORE_V=$(jq -r '.dimensions.vibe' "$json_file")
 }
 
@@ -342,10 +346,11 @@ PROMPT
   local codex_cmd
   codex_cmd="$(tribunal_codex_cmd)" || return 127
   (
-    cd "$work_dir"
+    cd "$work_dir" || exit
     # Close stdin so non-interactive Codex runs don't inherit the caller's
     # open stdin and hang waiting for extra prompt text.
     exec </dev/null
+    # shellcheck disable=SC2086 # codex_cmd may be "node <bundled codex.js>".
     timeout "$timeout_sec" $codex_cmd exec --model gpt-5.5 -c "model_reasoning_effort=\"$reasoning_effort\"" --sandbox danger-full-access --skip-git-repo-check -- "$prompt"
   )
 }
@@ -390,19 +395,22 @@ tribunal_llm_provider() {
   return 1
 }
 
-# Resolve the writer provider. Unlike judge scoring, tribunal-internal prose
-# rewrites must prefer Claude when it is installed; Codex is only the VM-style
-# fallback when Claude is absent.
+# Resolve the legacy CLI writer provider. Tribunal-internal prose rewrites must
+# never fall back to Codex/GPT; the only CLI writer is explicit opt-in Claude.
 tribunal_writer_provider() {
   if tribunal_claude_cmd >/dev/null 2>&1; then
     printf 'claude\n'
     return 0
   fi
-  if tribunal_codex_cmd >/dev/null 2>&1; then
-    printf 'codex\n'
-    return 0
-  fi
   return 1
+}
+
+tribunal_writer_mode() {
+  if [ -n "${GP_WRITER_MODE:-}" ]; then
+    printf '%s\n' "$GP_WRITER_MODE"
+  else
+    printf 'none\n'
+  fi
 }
 
 # Parse the `model:` field from a .claude/agents/<name>.md spec so each judge
@@ -421,7 +429,7 @@ tribunal_claude_agent_model() {
   if [ -n "$m" ]; then
     printf '%s\n' "$m"
   else
-    printf 'claude-opus-4-6[1m]\n'
+    printf 'claude-opus-4-6\n'
   fi
 }
 
@@ -546,7 +554,7 @@ PROMPT
     perm_args=(--permission-mode bypassPermissions)
   fi
   (
-    cd "$work_dir"
+    cd "$work_dir" || exit
     printf '%s' "$prompt" | timeout "$timeout_sec" "$claude_cmd" -p --model "$model" "${perm_args[@]}"
   )
 }
@@ -596,7 +604,124 @@ tribunal_llm_exec() {
   tribunal_llm_exec_raw "$@"
 }
 
+tribunal_writer_exec_broker() {
+  local work_dir="$1"
+  local agent_name="$2"
+  local user_prompt="$3"
+  if [ -z "${REPO_ROOT:-}" ]; then
+    REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  fi
+
+  local broker_dir="${GP_WRITER_BROKER_DIR:-$work_dir/.writer-broker}"
+  local timeout_sec="${GP_WRITER_BROKER_TIMEOUT:-1800}"
+  local poll_interval="${GP_WRITER_BROKER_POLL_INTERVAL:-2}"
+  local post_file="${TRIBUNAL_WRITER_POST_FILE:-unknown-post.mdx}"
+  local stage="${TRIBUNAL_WRITER_STAGE:-unknown}"
+  local attempt="${TRIBUNAL_WRITER_ATTEMPT:-0}"
+  local attempt_json="$attempt"
+  case "$attempt_json" in
+    ''|*[!0-9]*) attempt_json=0 ;;
+  esac
+
+  mkdir -p "$broker_dir"
+  local safe_post safe_stage epoch id request tmp done_marker failed_marker claimed_marker
+  safe_post="$(printf '%s' "$post_file" | tr -c 'A-Za-z0-9._-' '-')"
+  safe_stage="$(printf '%s' "$stage" | tr -c 'A-Za-z0-9._-' '-')"
+  epoch="$(date +%s)"
+  id="${safe_post}-${safe_stage}-${attempt_json}-${epoch}-$$-$RANDOM"
+  request="$broker_dir/$id.request.json"
+  tmp="$broker_dir/$id.request.json.tmp.$$"
+  done_marker="$broker_dir/$id.done"
+  failed_marker="$broker_dir/$id.failed"
+  claimed_marker="$broker_dir/$id.claimed"
+
+  local post_path en_post_path created_at
+  post_path="$REPO_ROOT/src/content/posts/$post_file"
+  en_post_path=""
+  if [ -f "$REPO_ROOT/src/content/posts/en-$post_file" ]; then
+    en_post_path="$REPO_ROOT/src/content/posts/en-$post_file"
+  fi
+  created_at="$(TZ=UTC date '+%Y-%m-%dT%H:%M:%SZ')"
+
+  jq -n \
+    --arg id "$id" \
+    --arg agent_name "$agent_name" \
+    --arg post_file "$post_file" \
+    --arg post_path "$post_path" \
+    --arg en_post_path "$en_post_path" \
+    --arg prompt "$user_prompt" \
+    --arg stage "$stage" \
+    --argjson attempt "$attempt_json" \
+    --arg created_at "$created_at" \
+    '{
+      id: $id,
+      agent_name: $agent_name,
+      post_file: $post_file,
+      post_path: $post_path,
+      en_post_path: $en_post_path,
+      prompt: $prompt,
+      stage: $stage,
+      attempt: $attempt,
+      created_at: $created_at
+    }' > "$tmp"
+  mv "$tmp" "$request"
+
+  printf 'writer broker request: %s\n' "$request"
+  printf 'writer broker dir: %s\n' "$broker_dir"
+
+  local start now
+  start="$(date +%s)"
+  while true; do
+    if [ -f "$done_marker" ]; then
+      rm -f "$request" "$done_marker" "$failed_marker" "$claimed_marker"
+      return 0
+    fi
+    if [ -f "$failed_marker" ]; then
+      echo "ERROR: tribunal-writer broker request failed: $request" >&2
+      rm -f "$request" "$done_marker" "$failed_marker" "$claimed_marker"
+      return 1
+    fi
+    now="$(date +%s)"
+    if [ $((now - start)) -ge "$timeout_sec" ]; then
+      echo "WARN: tribunal-writer broker timed out after ${timeout_sec}s waiting for $request" >&2
+      rm -f "$request" "$done_marker" "$failed_marker" "$claimed_marker"
+      return 1
+    fi
+    sleep "$poll_interval"
+  done
+}
+
 tribunal_writer_exec_raw() {
+  local work_dir="$1"
+  local agent_name="$2"
+  local user_prompt="$3"
+  case "$(tribunal_writer_mode)" in
+    subagent)
+      tribunal_writer_exec_broker "$work_dir" "$agent_name" "$user_prompt"
+      ;;
+    none)
+      echo "rewrite skipped (GP_WRITER_MODE=none)" >&2
+      return 76
+      ;;
+    cli)
+      case "$(tribunal_writer_provider 2>/dev/null)" in
+        claude)
+          tribunal_claude_exec "$work_dir" "$agent_name" "$user_prompt"
+          ;;
+        *)
+          echo "ERROR: GP_WRITER_MODE=cli requires claude on PATH; refusing Codex/GPT writer fallback" >&2
+          return 127
+          ;;
+      esac
+      ;;
+    *)
+      echo "ERROR: unsupported GP_WRITER_MODE='$(tribunal_writer_mode)' (expected none, subagent, or cli)" >&2
+      return 2
+      ;;
+  esac
+}
+
+tribunal_writer_exec_raw_legacy_cli() {
   local work_dir="$1"
   local agent_name="$2"
   local user_prompt="$3"
@@ -604,11 +729,8 @@ tribunal_writer_exec_raw() {
     claude)
       tribunal_claude_exec "$work_dir" "$agent_name" "$user_prompt"
       ;;
-    codex)
-      tribunal_codex_exec "$work_dir" "$agent_name" "$user_prompt"
-      ;;
     *)
-      echo "ERROR: no tribunal writer provider available (need claude or codex on PATH)" >&2
+      echo "ERROR: GP_WRITER_MODE=cli requires claude on PATH; refusing Codex/GPT writer fallback" >&2
       return 127
       ;;
   esac
@@ -787,12 +909,19 @@ tribunal_writer_exec() {
   local work_dir="$1"
   local agent_name="$2"
   local user_prompt="$3"
+  local mode
+  mode="$(tribunal_writer_mode)"
+  if [ "$mode" != "cli" ]; then
+    tribunal_writer_exec_raw "$work_dir" "$agent_name" "$user_prompt"
+    return $?
+  fi
+
   local waits=0 provider out rc qrc
   provider="$(tribunal_writer_provider 2>/dev/null || true)"
   while true; do
     out="$(mktemp)"
     rc=0
-    tribunal_writer_exec_raw "$work_dir" "$agent_name" "$user_prompt" >"$out" 2>&1 || rc=$?
+    tribunal_writer_exec_raw_legacy_cli "$work_dir" "$agent_name" "$user_prompt" >"$out" 2>&1 || rc=$?
     cat "$out"
     if [ "$rc" -eq 0 ]; then
       rm -f "$out"
