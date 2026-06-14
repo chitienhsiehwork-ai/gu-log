@@ -1,0 +1,137 @@
+---
+ticketId: 'SP-225'
+title: 'OpenRouter Fusion: Three Cheap Models Hold a Meeting — and Catch the Flagship'
+originalDate: '2026-06-13'
+translatedDate: '2026-06-14'
+translatedBy:
+  model: 'Opus 4.8'
+  harness: 'Claude Code'
+  pipeline:
+    - role: 'Translator'
+      model: 'Opus 4.8'
+      harness: 'Claude Code'
+source: '@OpenRouter on X'
+sourceUrl: 'https://x.com/openrouter/status/2065856853989270011?s=46'
+lang: 'en'
+summary: 'OpenRouter shipped Fusion: run a group of models in parallel, then let one model read every answer and rewrite a single final one. On the DRACO benchmark, a panel of three cheap models beats solo GPT-5.5 and Opus 4.8 and lands within 0.6 points of Fable 5 — at half the cost. This post unpacks the architecture, the scorecard, and the caveats.'
+tags: ['shroom-picks', 'openrouter', 'model-routing', 'benchmark']
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+In June 2026, OpenRouter dropped a thing called Fusion, and attached a scorecard that is honestly a little provocative: three cheap models — none of them top-tier on their own — get grouped together, and the group beats solo GPT-5.5, beats solo Claude Opus 4.8, and lands less than one point behind Claude Fable 5, the strongest model on the board right now. At half the cost.
+
+OpenRouter's tagline for this is "neurodiversity, but for models." It sounds like marketing, but the table underneath is surprisingly solid. The point is not "here's another new model." The point is: put a few ordinary models in a room together, and what comes out can beat a single flagship.
+
+---
+
+## One API Call, a Round-Table Meeting Behind It
+
+Fusion is not a newly trained model. It's a "meeting process," wrapped so you can call it like a single model.
+
+Here's the flow: a prompt comes in, and it gets sent in parallel to a group of models (OpenRouter calls this group the review panel), each one with web search and web fetch turned on, each one looking things up and writing its own version of the answer. Then a synthesizer model reads every answer and produces a structured analysis — where everyone agrees, where they contradict each other, where each one only covered half the picture, the unique insight one member alone caught, and the blind spot they all missed together. Finally, that synthesizer writes one final answer grounded in the analysis.
+
+The whole pipeline runs server-side in a single pass, so from a developer's point of view, calling it is no different from calling a normal model. You just pass one model ID:
+
+```json
+{
+  "model": "openrouter/fusion",
+  "messages": [
+    { "role": "user", "content": "What are the strongest arguments for and against carbon taxes?" }
+  ]
+}
+```
+
+If you want to decide who's on the panel and who synthesizes, you can configure the members by hand:
+
+```json
+{
+  "model": "openrouter/fusion",
+  "messages": [{ "role": "user", "content": "..." }],
+  "plugins": [{
+    "id": "fusion",
+    "model": "google/gemini-3-flash-preview",
+    "analysis_models": [
+      "google/gemini-3-flash-preview",
+      "moonshotai/kimi-k2.6",
+      "deepseek/deepseek-v4-pro"
+    ]
+  }]
+}
+```
+
+`analysis_models` is the panel; `model` is the one that synthesizes and writes the final answer.
+
+This "run several models in parallel, then send one synthesizer to close it out" skeleton is not something OpenRouter invented from scratch — it's exactly the direction the glossary entry [Contemplating Mode](/en/glossary#contemplating-mode) points at: instead of forcing a single model to stretch one long chain of thought, you launch multiple agents to each propose, revise, and aggregate. The "generator–evaluator" split that Anthropic described in [SP-132's multi-agent harness design](/posts/sp-132-20260327-anthropic-multi-agent-harness-design) is in the same family — one side generates answers, the other evaluates them; Fusion just swaps "evaluate" for "read everyone's version, then rewrite."
+
+<ClawdNote>
+Think of it as a project: three engineers each open a branch and write their own version of the implementation, then one tech lead reviews all three — who got this part right, who missed an edge case over there, who came up with a solution nobody else thought of — and merges one PR out the door. The whole magic of Fusion isn't "which model is strongest," it's that synthesis step that "reads everyone's answer and rewrites it once more." Remember that line — it comes back to land a punch later, when we get to the experiment where Opus holds a meeting with itself.
+</ClawdNote>
+
+---
+
+## What the Scorecard Actually Looks Like
+
+The test OpenRouter used is called DRACO, a deep-research benchmark designed by Perplexity AI — 100 tasks across ten domains: academic research, finance, law, medicine, technology, UX design, general knowledge, needle-in-a-haystack retrieval, personalized assistance, and product comparison.
+
+It's not like the benchmarks that test factual recall or reasoning puzzles. Each task comes with a rubric of about 39 weighted criteria, in four categories: factual accuracy (~20 criteria, checking whether the verifiable claims got anything wrong), breadth and depth (~9 criteria, looking at synthesis, trade-off judgment, and actionable guidance), presentation quality (~6 criteria, terminology, formatting, readability), and citation quality (~5 criteria, real first-party sources you can actually click). Here's the harsh part: criteria can carry negative weights. Hitting a negative criterion means the answer contains an error — dangerous medical advice, for example, gets a heavy penalty. This design shuts down an old trick: you can't farm points by "saying a lot, confidently," because stating wrong things with confidence gets you docked. Each answer is graded criterion by criterion by a judge model, three independent times, averaged, and normalized to a 0-to-100 scale.
+
+The most eye-catching row on the scorecard is this one: Gemini 3 Flash on its own scores only 43.1, dead last on the board; Kimi K2.6 solo is 53.7; DeepSeek V4 Pro solo is 60.3. Group the three together, synthesized by Opus 4.8, and it jumps to 64.7 — leaving solo Opus 4.8 (58.8) and GPT-5.5 (60.0) behind, and landing just 0.6 points behind Fable 5's 65.3, at half the cost. That's where "Fable-level intelligence, half the price" comes from.
+
+Look further up and the top score is Fable 5 paired with GPT-5.5, synthesized by Opus 4.8: 69.0, beating even solo Fable 5 (65.3). In fact the whole table follows one consistent pattern: almost every "grouped" score beats any single member inside it.
+
+<ClawdNote>
+Let's be clear about whose numbers these are: this is a benchmark OpenRouter ran itself, published on its own blog promoting Fusion — not a third-party public benchmark. "Half the price" refers to that cheap panel versus solo Fable 5 — it does not mean Fusion is always half-price across the board. And on 64.7 vs 65.3, the blog's own wording is "close, within 1%"; the tweet rounded that up to "Fable-level." Whether 0.6 points means "caught up" or "narrowly lost" depends on where you stand — but a panel of cheap models, at half the cost, getting close enough to argue about it is interesting on its own.
+</ClawdNote>
+
+---
+
+## Why a Group of "Not That Strong" Models Wins
+
+Intuitively, adding a few ordinary models together should at best average out — how does it beat a solo flagship? OpenRouter borrows the human-team framing: bring diverse perspectives to a complex problem and the result beats any single person thinking alone. Sounds like a motivational poster, but they ran an experiment that put bones in the soup.
+
+They had Opus 4.8 team up with "itself" as a two-model panel — the same model run twice as the panel, with Opus 4.8 also serving as the synthesizer. By the logic of the framing there's zero "diversity" here; it's the same model start to finish. The result: 65.5, a full 6.7 points above solo Opus 4.8 (58.8).
+
+The key is this: run the same prompt twice and the model takes a different reasoning path each time, makes different tool calls, picks different sources. So the synthesis move — "read both versions, then rewrite" — generates 6.7 points of value by itself, with no direct dependence on "how architecturally diverse the models are."
+
+<ClawdNote>
+This is where that earlier line comes back to land its punch: Fusion's real engine is the synthesis step, not "throw in lots of different models." Opus holding a meeting with itself, left hand arguing with right hand, somehow pulled in an extra 6.7 points — that looks more like "forcing one person to reread their own draft and revise it" than "assembling a table full of experts." OpenRouter is honest about it too: self-vs-self isn't enough to beat a genuinely diverse panel; it just helps measure "how much the synthesis itself is worth." Diversity adds a bonus, but synthesis is the foundation. (⌐■_■)
+</ClawdNote>
+
+---
+
+## When the Test Subjects Start Peeking at the Answer Key
+
+Running this kind of "with internet access" benchmark hits an awkward problem. After OpenRouter gave the panel models web search, they discovered something alarming: the models, while searching around, were turning up the DRACO grading rubric itself.
+
+In other words, the test-takers found the answer key to the exam mid-exam. They judged this was a coincidence of search terms rather than deliberate cheating, but intentional or not, it's genuine data contamination — once a model has seen the grading criteria, the score can't be trusted.
+
+The fix is surprisingly clean: exclude the domains that host the benchmark results from web search and web fetch, so the models can't find or fetch pages related to the rubric. Because OpenRouter's server tools support exclude lists universally across all models through third-party providers like Exa and Parallel, this didn't require patching model by model — it was a one-line config change that applied everywhere. Every number in the post was produced after the exclude lists were in place. Anyone running their own evals can use the same trick: pass `excluded_domains` to web_search and `blocked_domains` to web_fetch in your tool definitions to keep specific sources out.
+
+<ClawdNote>
+This section is actually the detail most worth remembering for anyone who builds evals. People argue endlessly about whether benchmark scores are real, and often miss a more basic hole: when your test subject can go online, and your exam is publicly posted on the web, it can stumble onto the answers mid-test at any moment. That OpenRouter was willing to write "our models almost peeked at the answer key" into a promotional post — and lay out the fix (domain exclusion) right next to it — is more convincing than the scorecard itself.
+</ClawdNote>
+
+---
+
+## How Much Can You Trust These Numbers
+
+There's a string of caveats trailing this scorecard, and they carry as much weight as the scores — leave them out and the numbers are easy to over-read.
+
+The benchmark only ran this one deep-research test, and it doesn't include long-horizon tasks — the kind that span many steps and stretch over a long stretch of time to finish. OpenRouter specifically called it out: Fable 5's performance on long-horizon tasks was "extremely impressive," so this area still needs future benchmarking — meaning this scorecard speaks to "one-shot deep research" and can't be used to conclude "Fusion wins at everything."
+
+DRACO's methodology was also tweaked in one spot: OpenRouter swapped the judge model from the original paper's Gemini 3 Pro to [Gemini 3.1 Pro Preview](/posts/clawd-picks-20260222-google-gemini31-pro-core-reasoning), so these scores aren't directly comparable to the paper's published results. Their goal was only to measure the relative gap of "Fusion vs single model," not to claim absolute scores. Amusingly, this same Gemini 3.1 Pro Preview that was picked as judge scored only 45.4 when it sat the DRACO exam itself — second to last on the board — but being good at taking the test and being good at grading it were always two different things. To confirm the new judge wasn't grading off, OpenRouter cross-checked with Claude Sonnet 4.6 and confirmed it kept the qualities that got it picked as judge. And DRACO's own authors acknowledge the benchmark's limits: it tests text-only, English-only interactions, with a fixed task set that may not generalize to future research scenarios; absolute scores even drift with the judge model — the paper reports 10-to-25-point swings between judges. The good news: relative rankings between systems stay roughly stable. (This "swap the judge, watch the score drift" methodology trap isn't unique to DRACO; [the SWE-bench methodology reset post](/posts/clawd-picks-20260222-epochai-swebench-methodology-reset) covers it in more depth.)
+
+There's also an asymmetry easy to slide past: Fable 5 left 7 tasks unfinished, because its content filters blocked them from executing. OpenRouter chose not to fall back to Opus 4.8 on those tasks, so Fable's score is computed from 93 tasks, not the full 100. This is more accurate for showing Fable's own true level, but it also means that 0.6-point gap between it and the models that finished all 100 isn't a perfectly fair head-to-head.
+
+<ClawdNote>
+String these caveats together and the takeaway isn't "Fusion is overhyped" — the "stack the models" direction is genuinely interesting, and a cheap panel closing in on a flagship really did happen. The point is: don't read a self-run, single-benchmark scorecard, with a swapped judge and an opponent that skipped 7 tasks, as a scientific conclusion that "Fusion crushes flagships across the board." OpenRouter never said that — its tagline is "Fable-level at half the price," quietly followed by "we only tested one benchmark, and haven't tested long-horizon yet." That it put the limits in the same post is exactly what makes the report more trustworthy.
+</ClawdNote>
+
+---
+
+## Closing
+
+For the past two years, the default route to "make models stronger" has been to train a single model bigger and meaner. Fusion takes a different road: instead of betting on one all-around flagship, put three ordinary ones side by side in a meeting, then spend one model turning their argument into a single answer — and that answer might be better than what the flagship writes alone, at half the cost.
+
+And that experiment, where a model meets with itself and pulls in an extra 6.7 points, leaves a question worth sitting with: if a model improves this much just by "rereading its own draft and revising it," then how much of what we currently call a "capability ceiling" is really just the ceiling of "never being forced to think it through one more time"?
