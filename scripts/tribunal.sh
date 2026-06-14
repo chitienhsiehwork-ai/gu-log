@@ -31,10 +31,11 @@ source "$SCRIPT_DIR/score-helpers.sh"
 # shellcheck source=scripts/tribunal-helpers.sh
 source "$SCRIPT_DIR/tribunal-helpers.sh"
 
-# shellcheck source=scripts/tribunal-run-control.sh
 # Graceful stop helpers — file-flag only channel (no traps here; parent
 # loop owns signals and writes the flag file on stop).
 export RC_ROOT_DIR="$ROOT_DIR"
+# shellcheck source=scripts/tribunal-run-control.sh
+# shellcheck disable=SC1091
 source "$SCRIPT_DIR/tribunal-run-control.sh"
 
 # ─── Args ─────────────────────────────────────────────────────────────────────
@@ -131,7 +132,8 @@ mkdir -p "$LOG_DIR"
 LOG_FILE="$LOG_DIR/tribunal-$(TZ=Asia/Taipei date +%Y%m%d-%H%M%S)-${POST_FILE%.mdx}.log"
 
 tlog() {
-  local msg="[$(TZ=Asia/Taipei date '+%Y-%m-%d %H:%M:%S %z')] [tribunal] $*"
+  local msg
+  msg="[$(TZ=Asia/Taipei date '+%Y-%m-%d %H:%M:%S %z')] [tribunal] $*"
   echo "$msg" | tee -a "$LOG_FILE"
 }
 
@@ -204,7 +206,6 @@ init_article_progress() {
   local article="$1"
   # Entire init + attempts increment + cap check runs under a single
   # flock so two workers can't both see attempts=N and both bump to N+1.
-  local exhausted=0
   (
     flock -x 9
     local tmp
@@ -529,6 +530,12 @@ $evidence
 5. Do not rewrite unrelated content and do not change stable frontmatter fields unless the build error specifically requires it.
 PROMPT
 )"
+  local writer_mode
+  writer_mode="$(tribunal_writer_mode)"
+  if [ "$writer_mode" = "none" ]; then
+    tlog "  Rewrite skipped (GP_WRITER_MODE=none) during final build repair; failing without invoking tribunal-writer."
+    return 1
+  fi
   writer_out="$(mktemp)"
   writer_quota_status_file="$(mktemp)"
   writer_rc=0
@@ -537,6 +544,9 @@ PROMPT
   local writer_work_dir
   writer_work_dir="$(tribunal_llm_work_dir)"
   TRIBUNAL_QUOTA_STATUS_FILE="$writer_quota_status_file" \
+    TRIBUNAL_WRITER_POST_FILE="$post_file" \
+    TRIBUNAL_WRITER_STAGE="finalBuild" \
+    TRIBUNAL_WRITER_ATTEMPT="$repair_attempt" \
     tribunal_writer_exec "$writer_work_dir" "tribunal-writer" "$writer_prompt" > "$writer_out" 2>&1 || writer_rc=$?
   rm -rf "$writer_work_dir"
   if [ "$writer_rc" -eq 75 ]; then
@@ -721,7 +731,7 @@ run_stage() {
   ssot_content="$(cat "$ROOT_DIR/scripts/vibe-scoring-standard.md")"
 
   local score_tmp
-  score_tmp="$(mktemp /tmp/tribunal-${stage_key}-XXXXXX.json)"
+  score_tmp="$(mktemp /tmp/tribunal-"${stage_key}"-XXXXXX.json)"
 
   local attempt=0
   while [ "$attempt" -lt "$max_loops" ]; do
@@ -968,6 +978,14 @@ Follow $ROOT_DIR/GU-LOG_WRITER_PROMPT.md and $ROOT_DIR/CONTRIBUTING.md frontmatt
 Do NOT change frontmatter fields (title, ticketId, dates, sourceUrl). Preserve MDX components, URLs, source attribution, and already-passing dimensions unless the judge feedback explicitly targets them.
 PROMPT
 )"
+    local writer_mode
+    writer_mode="$(tribunal_writer_mode)"
+    if [ "$writer_mode" = "none" ]; then
+      tlog "  Rewrite skipped (GP_WRITER_MODE=none); failing score-only without invoking tribunal-writer."
+      write_stage_progress "$post_file" "$stage_key" "fail" "$score_json" "$runner_label" "$attempt"
+      rm -f "$score_tmp"
+      return 1
+    fi
     writer_out="$(mktemp)"
     writer_quota_status_file="$(mktemp)"
     writer_rc=0
@@ -977,6 +995,9 @@ PROMPT
     local rewrite_work_dir
     rewrite_work_dir="$(tribunal_llm_work_dir)"
     TRIBUNAL_QUOTA_STATUS_FILE="$writer_quota_status_file" \
+      TRIBUNAL_WRITER_POST_FILE="$post_file" \
+      TRIBUNAL_WRITER_STAGE="$stage_key" \
+      TRIBUNAL_WRITER_ATTEMPT="$attempt" \
       tribunal_writer_exec "$rewrite_work_dir" "tribunal-writer" "$writer_prompt" > "$writer_out" 2>&1 || writer_rc=$?
     rm -rf "$rewrite_work_dir"
 

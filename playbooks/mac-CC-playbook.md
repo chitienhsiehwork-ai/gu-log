@@ -64,6 +64,84 @@ mac-cdx / mac-CC 有的 CCC 沒有的：
 
 mac-cdx 會有 `CODEX_SHELL=1`、`CODEX_INTERNAL_ORIGINATOR_OVERRIDE` 或 `__CFBundleIdentifier=com.openai.codex` 這類環境線索。需要判斷 runtime 時，先用這些訊號，不要只靠舊的 `CC` 命名。舊命名還在，是為了讓 automation 活著，不是為了讓人類困惑。
 
+## Tribunal writer mode 與子代理 broker
+
+Tribunal 評審仍由 Codex/GPT-5.5 跑；文章正文的改寫永遠只能交給 Claude 寫手。為了避免 `claude -p` 產生額外付費用量，寫手路徑由 `GP_WRITER_MODE` 明確控制：
+
+- `GP_WRITER_MODE=subagent`：Mac 互動式協調使用。pipeline 寫出請求檔，外層 CC session 讀請求後啟動 `tribunal-writer` Claude 子代理，子代理改文，最後寫完成標記。
+- `GP_WRITER_MODE=none`：不改寫，只跑評分。這也是未設定或空字串時的預設，避免靜默花 API 錢。
+- `GP_WRITER_MODE=cli`：舊的 `claude -p` 路徑，只有 operator 明確選用時可用；這會走 Claude CLI，可能產生額外付費用量。
+
+VM cron 沒有互動式 CC、沒有 `claude -p`，也沒有 API 預算，所以 VM 使用 `GP_WRITER_MODE=none` 或直接不設定；結果是只跑評分，不會嘗試改寫。
+
+### 子代理 broker protocol
+
+外層負責協調的 CC 啟動 pipeline 時設定：
+
+```bash
+export GP_WRITER_MODE=subagent
+export GP_WRITER_BROKER_DIR=/tmp/gu-log-writer-broker
+export GP_WRITER_BROKER_TIMEOUT=1800
+```
+
+`GP_WRITER_BROKER_DIR` 若未設定，pipeline 會退回寫手暫存工作目錄裡的 `.writer-broker`，並在輸出中印出實際 broker 目錄；正常 Mac 協調流程應該總是明確設定。`GP_WRITER_BROKER_TIMEOUT` 預設 1800 秒。
+
+寫手步驟會用 temp file 加 `mv` 的方式原子寫出：
+
+```json
+{
+  "id": "<post-stage-attempt-epoch>",
+  "agent_name": "tribunal-writer",
+  "post_file": "sp-xxx.mdx",
+  "post_path": "<abs path to src/content/posts/sp-xxx.mdx>",
+  "en_post_path": "<abs path to en-sp-xxx.mdx, or empty>",
+  "prompt": "<full tribunal-writer prompt>",
+  "stage": "<stage_key>",
+  "attempt": 1,
+  "created_at": "2026-06-15T00:00:00Z"
+}
+```
+
+完成標記檔與請求檔放在同一個目錄：
+
+- `<id>.done`：Claude 子代理已成功在原檔改寫；pipeline 把寫手步驟視為成功。
+- `<id>.failed`：Claude 子代理失敗；pipeline 把它視為一般寫手失敗，交給既有 cheap validation / revert 流程處理。
+- `<id>.claimed`：由等待 helper 建立，避免兩個 CC loop 拿到同一個請求。
+
+外層 CC loop 範例：
+
+```bash
+GP_WRITER_MODE=subagent GP_WRITER_BROKER_DIR="$broker_dir" \
+  tools/sp-pipeline/gp-pipeline ralph ... &
+pipeline_pid=$!
+
+while true; do
+  event="$(scripts/writer-broker-wait.sh --dir "$broker_dir" --pid "$pipeline_pid")"
+  case "$event" in
+    REQUEST\ *)
+      request_path="${event#REQUEST }"
+      # 啟動 Claude 子代理：
+      # 1. 讀取 "$request_path"。
+      # 2. 讀 request.prompt、request.post_path、需要時讀 request.en_post_path，
+      #    再讀 GU-LOG_WRITER_PROMPT.md、CONTRIBUTING.md、tribunal-writer agent spec。
+      # 3. 在原檔改寫文章。
+      # 4. 成功寫 "$broker_dir/<id>.done"，失敗寫 "<id>.failed"。
+      ;;
+    PIPELINE_DONE)
+      break
+      ;;
+  esac
+done
+```
+
+等待 helper 介面：
+
+```bash
+scripts/writer-broker-wait.sh --dir <broker_dir> --pid <pipeline_pid> [--timeout <s>]
+```
+
+它 claim 到新的未處理請求時印 `REQUEST <abs path to request.json>`；pipeline pid 已結束且沒有請求時印 `PIPELINE_DONE`；可選 timeout 到期時印 `TIMEOUT` 並用非零 exit code 結束。
+
 ## 這份 playbook 是 living doc
 
 mac-cdx / mac-CC 如果遇到 Mac 專屬的狀況需要 codify（例如發現某個本地工具的坑、某個 skill 的新用法、某個 iCloud sync 的陷阱），直接編輯這份 playbook 加進去。
