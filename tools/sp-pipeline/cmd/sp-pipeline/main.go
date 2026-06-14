@@ -35,14 +35,16 @@ type rootState struct {
 	// real Codex chain. Hidden from --help because it is a
 	// test-only affordance.
 	fakeProviderPath string
+	judgeAllowClaude bool
 }
 
 var (
-	flagJSON         bool
-	flagVerbose      bool
-	flagTimeout      time.Duration
-	flagWorkDir      string
-	flagFakeProvider string
+	flagJSON             bool
+	flagVerbose          bool
+	flagTimeout          time.Duration
+	flagWorkDir          string
+	flagFakeProvider     string
+	flagJudgeAllowClaude bool
 )
 
 // buildRoot constructs the root cobra.Command. Extracted so tests can build
@@ -87,6 +89,7 @@ for the migration history and current operational notes.`,
 			state.verbose = flagVerbose
 			state.timeout = flagTimeout
 			state.fakeProviderPath = flagFakeProvider
+			state.judgeAllowClaude = flagJudgeAllowClaude || truthyEnv("GP_JUDGE_ALLOW_CLAUDE")
 
 			cfg, err := config.Resolve("")
 			if err != nil {
@@ -108,6 +111,8 @@ for the migration history and current operational notes.`,
 	root.PersistentFlags().StringVar(&flagFakeProvider, "fake-provider", "",
 		"(test only) path to a JSON file with canned LLM responses; replaces the real provider chain")
 	_ = root.PersistentFlags().MarkHidden("fake-provider")
+	root.PersistentFlags().BoolVar(&flagJudgeAllowClaude, "judge-allow-claude", false,
+		"allow judge steps to fall back to Claude only when Codex hits quota (default off; env GP_JUDGE_ALLOW_CLAUDE=1)")
 
 	// Hide the auto-generated `completion` command by default — it is
 	// noise in --help for an agent-facing CLI. Users who need completions
@@ -174,6 +179,15 @@ func exitCodeFor(err error) int {
 		return 124
 	}
 	return 1
+}
+
+func truthyEnv(key string) bool {
+	switch os.Getenv(key) {
+	case "1", "true", "TRUE", "yes", "YES", "on", "ON":
+		return true
+	default:
+		return false
+	}
 }
 
 // newStubCmds used to return placeholder subcommands for unimplemented

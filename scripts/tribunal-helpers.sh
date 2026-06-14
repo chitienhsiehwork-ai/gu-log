@@ -368,12 +368,38 @@ tribunal_claude_cmd() {
 # neither binary is on PATH. Codex always wins when both exist; this intentionally
 # mirrors the Go pipeline's JudgeChain, not the Opus writer chain.
 tribunal_llm_provider() {
+  if [ -n "${TRIBUNAL_FORCE_PROVIDER:-}" ]; then
+    case "$TRIBUNAL_FORCE_PROVIDER" in
+      codex)
+        tribunal_codex_cmd >/dev/null 2>&1 && printf 'codex\n' && return 0
+        ;;
+      claude)
+        tribunal_claude_cmd >/dev/null 2>&1 && printf 'claude\n' && return 0
+        ;;
+    esac
+    return 1
+  fi
   if tribunal_codex_cmd >/dev/null 2>&1; then
     printf 'codex\n'
     return 0
   fi
   if tribunal_claude_cmd >/dev/null 2>&1; then
     printf 'claude\n'
+    return 0
+  fi
+  return 1
+}
+
+# Resolve the writer provider. Unlike judge scoring, tribunal-internal prose
+# rewrites must prefer Claude when it is installed; Codex is only the VM-style
+# fallback when Claude is absent.
+tribunal_writer_provider() {
+  if tribunal_claude_cmd >/dev/null 2>&1; then
+    printf 'claude\n'
+    return 0
+  fi
+  if tribunal_codex_cmd >/dev/null 2>&1; then
+    printf 'codex\n'
     return 0
   fi
   return 1
@@ -442,6 +468,21 @@ tribunal_runner_label() {
       printf 'codex-%s-medium\n' "$model"
       ;;
   esac
+}
+
+tribunal_write_actual_provider() {
+  local provider="$1"
+  local agent_name="$2"
+  local out_file="${TRIBUNAL_ACTUAL_PROVIDER_FILE:-}"
+  [ -n "$out_file" ] || return 0
+  local model runner
+  model="$(TRIBUNAL_FORCE_PROVIDER="$provider" tribunal_llm_model_id "$agent_name")"
+  runner="$(TRIBUNAL_FORCE_PROVIDER="$provider" tribunal_runner_label "$agent_name")"
+  {
+    printf 'provider=%s\n' "$provider"
+    printf 'model_id=%s\n' "$model"
+    printf 'runner_label=%s\n' "$runner"
+  } > "$out_file"
 }
 
 # Claude equivalent of tribunal_codex_exec: inlines the .claude/agents/<name>.md
@@ -514,7 +555,7 @@ PROMPT
 # tribunal_codex_exec calls: routes to codex (primary) or claude (CCC
 # fallback). On the VPS/mac where codex exists this is byte-for-byte the old
 # codex path.
-tribunal_llm_exec() {
+tribunal_llm_exec_raw() {
   local work_dir="$1"
   local agent_name="$2"
   local user_prompt="$3"
@@ -551,6 +592,226 @@ EOF
   esac
 }
 
+tribunal_llm_exec() {
+  tribunal_llm_exec_raw "$@"
+}
+
+tribunal_writer_exec_raw() {
+  local work_dir="$1"
+  local agent_name="$2"
+  local user_prompt="$3"
+  case "$(tribunal_writer_provider 2>/dev/null)" in
+    claude)
+      tribunal_claude_exec "$work_dir" "$agent_name" "$user_prompt"
+      ;;
+    codex)
+      tribunal_codex_exec "$work_dir" "$agent_name" "$user_prompt"
+      ;;
+    *)
+      echo "ERROR: no tribunal writer provider available (need claude or codex on PATH)" >&2
+      return 127
+      ;;
+  esac
+}
+
+tribunal_quota_alarm() {
+  local msg="$1"
+  local ts safe_msg
+  ts="$(TZ=Asia/Taipei date '+%Y-%m-%d %H:%M:%S %z')"
+  safe_msg="${msg//\"/\\\"}"
+  printf '[%s] [tribunal-quota] %s\n' "$ts" "$msg" >&2
+  osascript -e "display notification \"$safe_msg\" with title \"gp-pipeline\"" >/dev/null 2>&1 || true
+}
+
+tribunal_quota_error_file() {
+  local file="$1"
+  [ -s "$file" ] || return 1
+  grep -Eiq '(^|[^0-9])429([^0-9]|$)|rate[- ]limit|too many requests|resource exhausted|quota exceeded|quota exhausted|usage limit|limit reached|try again later|temporarily limited' "$file"
+}
+
+tribunal_quota_seconds_from_text() {
+  local text="$1"
+  python3 - "$text" <<'PY' 2>/dev/null || printf '0\n'
+import re, sys
+s = sys.argv[1]
+total = 0
+for n, unit in re.findall(r'(\d+)\s*([dhms])', s, flags=re.I):
+    n = int(n)
+    total += n * {'d': 86400, 'h': 3600, 'm': 60, 's': 1}[unit.lower()]
+print(total)
+PY
+}
+
+tribunal_quota_max_wait_seconds() {
+  tribunal_quota_seconds_from_text "${GP_QUOTA_MAX_WAIT:-6h}"
+}
+
+tribunal_quota_codexbar_block() {
+  local provider="$1"
+  local needle="codex"
+  local usage
+  case "$provider" in
+    claude*) needle="claude" ;;
+  esac
+  if [ -n "${TRIBUNAL_QUOTA_CODEXBAR_OUTPUT:-}" ]; then
+    usage="$TRIBUNAL_QUOTA_CODEXBAR_OUTPUT"
+  else
+    usage="$(timeout "${GP_CODEXBAR_TIMEOUT_SECONDS:-20}" codexbar usage 2>/dev/null || true)"
+  fi
+  printf '%s\n' "$usage" | awk -v needle="$needle" '
+    BEGIN { in_block=0 }
+    {
+      lower=tolower($0)
+      is_header=(lower ~ /codex/ || lower ~ /claude/)
+      if (index(lower, needle) > 0) in_block=1
+      else if (in_block && is_header) exit
+      if (in_block) print
+    }
+  '
+}
+
+tribunal_quota_percent_left_from_line() {
+  local line="$1"
+  printf '%s\n' "$line" | grep -Eio '[0-9]+[[:space:]]*%[[:space:]]*left' | head -1 | grep -Eo '[0-9]+' || true
+}
+
+tribunal_quota_parse_block() {
+  local block="$1"
+  local current_section="" line reset_text reset_seconds
+  local session_left="" session_reset=0 weekly_left="" weekly_reset=0
+  while IFS= read -r line; do
+    if [[ "$line" =~ ^[[:space:]]*Session: ]]; then
+      current_section="session"
+      session_left="$(tribunal_quota_percent_left_from_line "$line")"
+      continue
+    fi
+    if [[ "$line" =~ ^[[:space:]]*Weekly: ]]; then
+      current_section="weekly"
+      weekly_left="$(tribunal_quota_percent_left_from_line "$line")"
+      continue
+    fi
+    if [[ "$line" =~ ^[[:space:]]*Resets?[[:space:]]+in[[:space:]]+(.+) ]]; then
+      reset_text="${BASH_REMATCH[1]}"
+      reset_seconds="$(tribunal_quota_seconds_from_text "$reset_text")"
+      case "$current_section" in
+        session) session_reset="$reset_seconds" ;;
+        weekly) weekly_reset="$reset_seconds" ;;
+      esac
+    fi
+  done <<< "$block"
+  printf '%s|%s|%s|%s\n' "${session_left:-}" "${session_reset:-0}" "${weekly_left:-}" "${weekly_reset:-0}"
+}
+
+tribunal_quota_decision() {
+  local provider="$1"
+  local waits="$2"
+  local block tier reset_seconds max_wait max_waits parsed session_left session_reset weekly_left weekly_reset
+  max_wait="$(tribunal_quota_max_wait_seconds)"
+  max_waits="${GP_QUOTA_MAX_WAITS:-3}"
+  block="$(tribunal_quota_codexbar_block "$provider" || true)"
+  if [ -z "$block" ]; then
+    printf 'suspend|unknown|0|codexbar unavailable/unparseable\n'
+    return 0
+  fi
+  parsed="$(tribunal_quota_parse_block "$block")"
+  IFS='|' read -r session_left session_reset weekly_left weekly_reset <<< "$parsed"
+  if [ "${weekly_left:-}" = "0" ]; then
+    printf 'suspend|weekly|%s|weekly quota exhausted; resets in %s\n' "$weekly_reset" "$(tribunal_quota_human_duration "$weekly_reset")"
+    return 0
+  fi
+  tier="session"
+  reset_seconds="${session_reset:-0}"
+  if [ "$reset_seconds" -gt 0 ] && [ "$reset_seconds" -le "$max_wait" ] && [ "$waits" -lt "$max_waits" ]; then
+    printf 'wait|%s|%s|session quota exhausted; resets in %s\n' "$tier" "$reset_seconds" "$(tribunal_quota_human_duration "$reset_seconds")"
+  else
+    printf 'suspend|%s|%s|session quota exhausted; resets in %s\n' "$tier" "$reset_seconds" "$(tribunal_quota_human_duration "$reset_seconds")"
+  fi
+}
+
+tribunal_quota_human_duration() {
+  local seconds="${1:-0}"
+  if ! [[ "$seconds" =~ ^[0-9]+$ ]] || [ "$seconds" -le 0 ]; then
+    printf 'unknown'
+    return 0
+  fi
+  local days hours minutes out=""
+  days=$((seconds / 86400))
+  seconds=$((seconds % 86400))
+  hours=$((seconds / 3600))
+  seconds=$((seconds % 3600))
+  minutes=$((seconds / 60))
+  [ "$days" -gt 0 ] && out="${out}${days}d "
+  [ "$hours" -gt 0 ] && out="${out}${hours}h "
+  [ "$minutes" -gt 0 ] && out="${out}${minutes}m "
+  printf '%s' "${out% }"
+}
+
+tribunal_quota_write_status() {
+  local provider="$1" action="$2" tier="$3" reset_seconds="$4" reason="$5"
+  local out_file="${TRIBUNAL_QUOTA_STATUS_FILE:-}"
+  [ -n "$out_file" ] || return 0
+  {
+    printf 'provider=%s\n' "$provider"
+    printf 'action=%s\n' "$action"
+    printf 'tier=%s\n' "$tier"
+    printf 'reset_seconds=%s\n' "$reset_seconds"
+    printf 'reason=%s\n' "$reason"
+    printf 'resume_command=%s\n' "${TRIBUNAL_RESUME_COMMAND:-rerun the same tribunal command}"
+  } > "$out_file"
+}
+
+tribunal_quota_handle_file() {
+  local provider="$1"
+  local output_file="$2"
+  local waits="$3"
+  tribunal_quota_error_file "$output_file" || return 1
+  local decision action tier reset_seconds reason
+  decision="$(tribunal_quota_decision "$provider" "$waits")"
+  IFS='|' read -r action tier reset_seconds reason <<<"$decision"
+  local resume="${TRIBUNAL_RESUME_COMMAND:-rerun the same tribunal command}"
+  tribunal_quota_write_status "$provider" "$action" "$tier" "$reset_seconds" "$reason"
+  if [ "$action" = "wait" ]; then
+    local sleep_seconds buffer_seconds
+    buffer_seconds="$(tribunal_quota_seconds_from_text "${GP_QUOTA_WAIT_BUFFER:-120s}")"
+    sleep_seconds=$((reset_seconds + buffer_seconds))
+    tribunal_quota_alarm "$provider quota exhausted ($tier). $reason. Sleeping ${sleep_seconds}s before retry."
+    sleep "$sleep_seconds"
+    tribunal_quota_alarm "$provider quota wait elapsed; retrying tribunal step."
+    return 88
+  fi
+  tribunal_quota_alarm "$provider quota exhausted ($tier). $reason. Suspended; resume with: $resume"
+  return 89
+}
+
+tribunal_writer_exec() {
+  local work_dir="$1"
+  local agent_name="$2"
+  local user_prompt="$3"
+  local waits=0 provider out rc qrc
+  provider="$(tribunal_writer_provider 2>/dev/null || true)"
+  while true; do
+    out="$(mktemp)"
+    rc=0
+    tribunal_writer_exec_raw "$work_dir" "$agent_name" "$user_prompt" >"$out" 2>&1 || rc=$?
+    cat "$out"
+    if [ "$rc" -eq 0 ]; then
+      rm -f "$out"
+      return 0
+    fi
+    qrc=0
+    tribunal_quota_handle_file "$provider" "$out" "$waits" || qrc=$?
+    rm -f "$out"
+    if [ "$qrc" -eq 88 ]; then
+      waits=$((waits + 1))
+      continue
+    fi
+    if [ "$qrc" -eq 89 ]; then
+      return 75
+    fi
+    return "$rc"
+  done
+}
+
 # Run Codex with both a wall-clock timeout and an idle watchdog. The wall-clock
 # timeout can be large for GPT-5.5 judge runs, but a process that produces no
 # output and no score-file progress for a while is treated as stalled.
@@ -565,10 +826,18 @@ tribunal_codex_exec_watchdog() {
   local progress_file="${5:-}"
   local idle_timeout="${TRIBUNAL_CODEX_IDLE_TIMEOUT_SEC:-900}"
   local poll_interval="${TRIBUNAL_CODEX_IDLE_POLL_SEC:-30}"
-  local pid rc now last_change latest_mtime out_mtime progress_mtime
+  local pid rc now last_change latest_mtime out_mtime progress_mtime waits force_provider provider qrc
+  waits=0
+  force_provider="${TRIBUNAL_FORCE_PROVIDER:-}"
 
   : > "$output_file"
-  tribunal_llm_exec "$work_dir" "$agent_name" "$user_prompt" > "$output_file" 2>&1 &
+  while true; do
+  : > "$output_file"
+  if [ -n "$force_provider" ]; then
+    TRIBUNAL_FORCE_PROVIDER="$force_provider" tribunal_llm_exec "$work_dir" "$agent_name" "$user_prompt" > "$output_file" 2>&1 &
+  else
+    tribunal_llm_exec "$work_dir" "$agent_name" "$user_prompt" > "$output_file" 2>&1 &
+  fi
   pid=$!
   last_change="$(date +%s)"
 
@@ -599,7 +868,29 @@ tribunal_codex_exec_watchdog() {
 
   rc=0
   wait "$pid" || rc=$?
+  if [ "$rc" -eq 0 ]; then
+    provider="${force_provider:-$(tribunal_llm_provider 2>/dev/null || true)}"
+    tribunal_write_actual_provider "$provider" "$agent_name"
+    return 0
+  fi
+  provider="${force_provider:-$(tribunal_llm_provider 2>/dev/null || true)}"
+  if [ "$provider" = "codex" ] && [ "${GP_JUDGE_ALLOW_CLAUDE:-0}" = "1" ] && tribunal_claude_cmd >/dev/null 2>&1 && tribunal_quota_error_file "$output_file"; then
+    tribunal_quota_alarm "codex judge quota exhausted; trying explicit Claude judge fallback."
+    force_provider="claude"
+    waits=0
+    continue
+  fi
+  qrc=0
+  tribunal_quota_handle_file "$provider" "$output_file" "$waits" || qrc=$?
+  if [ "$qrc" -eq 88 ]; then
+    waits=$((waits + 1))
+    continue
+  fi
+  if [ "$qrc" -eq 89 ]; then
+    return 75
+  fi
   return "$rc"
+  done
 }
 
 # Provider-agnostic alias. The watchdog body now dispatches through

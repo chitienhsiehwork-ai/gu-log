@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/logx"
 )
@@ -60,6 +61,7 @@ type RunResult struct {
 type Dispatcher struct {
 	providers []Provider
 	log       *logx.Logger
+	quota     QuotaPolicy
 }
 
 // NewDispatcher constructs a Dispatcher from an ordered slice of providers.
@@ -69,7 +71,7 @@ func NewDispatcher(log *logx.Logger, providers ...Provider) (*Dispatcher, error)
 	if len(providers) == 0 {
 		return nil, errors.New("dispatcher: at least one provider is required")
 	}
-	return &Dispatcher{providers: providers, log: log}, nil
+	return &Dispatcher{providers: providers, log: log, quota: DefaultQuotaPolicy()}, nil
 }
 
 // Providers returns the ordered provider list (read-only snapshot).
@@ -85,15 +87,20 @@ func (d *Dispatcher) Providers() []Provider {
 func (d *Dispatcher) Run(ctx context.Context, prompt string, opts RunOptions) (*RunResult, error) {
 	var fellBack []string
 	var errs []string
+	waitCounts := map[string]int{}
 
 	for _, p := range d.providers {
 		if !p.Available() {
 			errs = append(errs, fmt.Sprintf("%s: binary not found on PATH", p.Name()))
 			continue
 		}
+	retryProvider:
 		d.log.Info("llm: trying %s (%s)", p.Name(), DisplayName(p.Model()))
 		out, err := p.Run(ctx, prompt, opts)
 		if err == nil {
+			if waitCounts[p.Name()] > 0 {
+				NotifyQuotaResume(p.Name(), d.quota)
+			}
 			if len(fellBack) > 0 {
 				d.log.Warn("llm: %s succeeded after %d provider(s) failed", p.Name(), len(fellBack))
 			} else {
@@ -113,6 +120,30 @@ func (d *Dispatcher) Run(ctx context.Context, prompt string, opts RunOptions) (*
 				FellBackFrom: fellBack,
 			}, nil
 		}
+		if IsQuotaError(p.Name(), err) {
+			if d.quota.AllowClaudeJudgeFallback && isCodexProvider(p) {
+				d.log.Warn("llm: %s hit quota; trying explicit Claude judge fallback", p.Name())
+				fellBack = append(fellBack, p.Name())
+				errs = append(errs, fmt.Sprintf("%s: quota exhausted: %v", p.Name(), err))
+				continue
+			}
+			action := DecideQuotaAction(p.Name(), err, d.quota, waitCounts[p.Name()])
+			NotifyQuotaPause(action)
+			if action.Wait {
+				waitCounts[p.Name()]++
+				d.log.Warn("llm: %s quota exhausted (%s); sleeping until %s, then retrying",
+					p.Name(), action.Tier, action.ResetAt.Format(time.RFC3339))
+				timer := time.NewTimer(action.WaitDuration)
+				select {
+				case <-ctx.Done():
+					timer.Stop()
+					return nil, ctx.Err()
+				case <-timer.C:
+				}
+				goto retryProvider
+			}
+			return nil, action.SuspendError()
+		}
 		d.log.Warn("llm: %s failed: %v", p.Name(), err)
 		fellBack = append(fellBack, p.Name())
 		errs = append(errs, fmt.Sprintf("%s: %v", p.Name(), err))
@@ -120,6 +151,17 @@ func (d *Dispatcher) Run(ctx context.Context, prompt string, opts RunOptions) (*
 
 	return nil, fmt.Errorf("all %d provider(s) failed:\n  - %s",
 		len(d.providers), strings.Join(errs, "\n  - "))
+}
+
+// ConfigureQuotaPolicy updates dispatcher-level quota behavior. It is used by
+// CLI construction to wire the judge fallback toggle without changing provider
+// implementations.
+func (d *Dispatcher) ConfigureQuotaPolicy(policy QuotaPolicy) {
+	d.quota = policy
+}
+
+func isCodexProvider(p Provider) bool {
+	return strings.HasPrefix(p.Name(), "codex-") || strings.HasPrefix(p.Name(), "fake-codex")
 }
 
 // Probe runs a short canary prompt through each provider independently and

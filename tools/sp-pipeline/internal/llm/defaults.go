@@ -50,6 +50,18 @@ func JudgeChain() []Provider {
 	return DefaultJudgeChain()
 }
 
+// JudgeChainWithClaudeFallback returns the normal Codex judge chain, with an
+// explicit opt-in Claude judge fallback for Codex quota exhaustion only.
+func JudgeChainWithClaudeFallback(allowClaude bool) []Provider {
+	if !allowClaude {
+		return JudgeChain()
+	}
+	return []Provider{
+		NewCodexGPT55Medium(),
+		NewClaudeOpus(),
+	}
+}
+
 // EffectiveStamp returns the (model, harness) display labels for the runtime
 // provider that WritingChain will resolve to. When nothing is on PATH (offline
 // / FakeProvider test runs) it keeps Codex labels as the deterministic default.
