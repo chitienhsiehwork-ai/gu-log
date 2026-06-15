@@ -79,7 +79,7 @@ jobs:
       - name: Smoke test — check Clawd Picks listing page
         if: github.event.deployment_status.state == 'success'
         run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://gu-log.vercel.app/clawd-picks")
+          STATUS=$(curl -L -s -o /dev/null -w "%{http_code}" "https://gu-log.vercel.app/clawd-picks")
           if [ "$STATUS" != "200" ]; then
             echo "::error::🚨 Clawd Picks page returned HTTP $STATUS"
             exit 1
@@ -93,7 +93,7 @@ jobs:
           REPO_COUNT=$(ls src/content/posts/*.mdx | grep -v 'en-' | wc -l)
           
           # Fetch the homepage and count post links (rough check)
-          BODY=$(curl -s "https://gu-log.vercel.app/clawd-picks")
+          BODY=$(curl -L -s "https://gu-log.vercel.app/clawd-picks")
           # Count <a> links to /posts/ on the listing page
           LIVE_COUNT=$(echo "$BODY" | grep -o 'href="/posts/' | wc -l)
           
