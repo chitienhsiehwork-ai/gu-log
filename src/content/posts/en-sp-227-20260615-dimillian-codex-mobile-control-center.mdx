@@ -1,0 +1,205 @@
+---
+ticketId: 'SP-227'
+title: 'Your Phone Is Not a Tiny Terminal — It Is the Agent Control Center'
+originalDate: '2026-06-14'
+translatedDate: '2026-06-15'
+translatedBy:
+  model: "Opus 4.8"
+  harness: "Claude Code CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.8"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.8"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.8"
+      harness: "Claude Code CLI"
+source: '@Dimillian on X'
+sourceUrl: 'https://x.com/Dimillian/status/2066082395107758564'
+lang: 'en'
+summary: 'Dimillian (an iOS dev now at OpenAI) wrote a field guide for Codex Mobile. The part worth keeping is a mental model that holds across tools: your phone is not a shrunken terminal, it is the control center that keeps you making decisions while the agent does the work.'
+tags: ['shroom-picks', 'agent', 'codex', 'workflow']
+scores:
+  tribunalVersion: 8
+  vibe:
+    persona: 8
+    clawdNote: 9
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-06-15"
+    model: "opus"
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 8
+    commentarySeparation: 9
+    score: 8
+    date: "2026-06-15"
+    model: "opus"
+  librarian:
+    glossary: 9
+    crossRef: 9
+    sourceAlign: 8
+    attribution: 8
+    score: 8
+    date: "2026-06-15"
+    model: "claude-sonnet-4-6"
+  freshEyes:
+    readability: 9
+    firstImpression: 9
+    payoffDensity: 9
+    lengthFit: 9
+    score: 9
+    date: "2026-06-15"
+    model: "claude-haiku-4-5"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Connect your phone to a coding agent running on your dev machine, and the first use most people imagine is: lie on the couch and check whether the task finished. That is useful. But it thinks too small.
+
+The real shift is this: your phone is not a shrunken terminal. It is the **control center** that keeps you making decisions while the agent does the work on your dev machine. The code still runs where it belongs — your Mac, Windows box, devbox, or some other connected host. The phone gives you a native interface to direct that work, instead of pretending a phone should cram a terminal onto a 6-inch screen.
+
+<ClawdNote summary="An OpenAI employee writing about their own product; keep the mental model, not the feature list.">
+Let me be upfront about the angle: the author, Dimillian, is a well-known iOS developer now working at OpenAI, and this guide is about OpenAI's own [Codex](/glossary#codex) Mobile. So yes, there is a "look how deep our features go" advertorial flavor, and those "right?" winks are part of it.
+
+But [Mogu](/en/glossary#mogu) picked this to translate not because [Codex](/en/glossary#codex) Mobile has a few new buttons — nobody will remember what those buttons look like three months from now. The part worth keeping is the mental model underneath: **a mobile agent tool sells decisions, not typing.** That idea holds for [Claude Code](/glossary#claude-code) on mobile, and for any tool that runs an agent on a remote host. Features expire. The framing does not.
+</ClawdNote>
+
+---
+
+## The point isn't "coding on your phone," it's "deciding on your phone"
+
+The phone screen is small. Deep code reading and big refactors on it are just painful — admit that, and the right use opens up.
+
+Where an agent task actually gets stuck is usually not compute. It is **one or two decisions waiting for a human**: should the architecture be cut this way? Is this command safe to run? Should this diff be approved or sent back? Those decisions used to wait until you walked back to your desk. Not anymore. The phone pulls out "the few moments that need a human" and makes them fast, legible, and safe — the grunt work stays with the computer.
+
+<ClawdNote>
+Think of a construction foreman. The foreman does not lay every brick — that's the crew's job. The foreman's value is in the calls: is the concrete mix right, does this wall need to come down, did the rebar pass inspection. A phone can be a foreman. It cannot be the whole construction site. Trying to lay bricks with a phone (reviewing 500 lines of diff on a 6-inch screen) just does both jobs badly.
+</ClawdNote>
+
+---
+
+## Set the boundaries before you start
+
+When an agent run goes off the rails, eight times out of ten it isn't bad code — it's standing in the wrong place at the start: wrong branch, every change piled into one working directory, the environment not set up before you tell it to go. By the time you notice the base was wrong, half a conversation's worth of work is built on the wrong foundation.
+
+So the real skill is before the first prompt: pick the right host, the right workspace, the right branch, open an isolated `worktree` (a separate working directory) so this change doesn't pollute the main line, and let the environment script run first. This whole "startup ritual" now works from the phone — including the environment scripts you set up in the desktop app. Create a `worktree`, and the matching script runs automatically once it's built. (For now you can only use these scripts on mobile, not edit them.)
+
+<ClawdNote summary="worktree isn't a Codex invention; the most expensive agent failure is not drawing boundaries at startup.">
+`worktree` is worth a pause. It makes "one change per clean working directory" the default instead of a luxury — multiple tasks run in parallel without stepping on each other's branches. This isn't a Codex invention; [Claude Code](/glossary#claude-code) baked `git worktree` into its CLI a while ago (gu-log covered it in [CP-108](/en/posts/en-clawd-picks-20260222-bcherny-claude-code-worktree-cli/)).
+
+The interesting question: why does a mobile guide spend a whole section on "how to set up your Git state before you start"? Because that's the most expensive failure point in agent workflows — not that the model isn't smart enough, but that nobody drew the boundaries at the moment of starting. Moving this action onto the phone admits something: a foreman's most important decisions happen before the job starts, not after it ends.
+</ClawdNote>
+
+---
+
+## Side chats: put the tangent in another room
+
+A long-running coding thread builds up valuable context. Interrupt it with every small question and the main transcript fills with noise, and the agent drifts off target.
+
+That's what side chats solve. Use `/side` to open a lightweight side conversation linked to the current thread; `/side <prompt>` opens it with a question already loaded. The smoother move: select a passage in the transcript and choose "Ask in side chat" — the selected text becomes the starting context for the new conversation.
+
+Good questions to throw into a side chat:
+
+- Why did the agent choose this architecture?
+- What does this error message actually mean?
+- Is this behavior consistent with the desktop app?
+- Give me a release-note version of this implementation detail.
+- What should I verify before approving this command?
+
+The division is clean: **the main thread does the work; the side chat helps you understand the work.**
+
+<ClawdNote summary="A side chat is a branch of thought — put the tangent in the next room to avoid main-thread context rot.">
+A side chat is really "a branch of thought" — same logic as a git branch, except it branches attention instead of code. Without it, asking "what does this error mean?" bloats the main thread's context, the [context window](/glossary#context-window) gets diluted with unrelated Q&A, and the agent starts forgetting what it was doing (that's [context rot](/glossary#context-rot)). Put the tangent in the next room, and the main line stays clean. Any long-conversation agent should have this button — Codex or not.
+</ClawdNote>
+
+---
+
+## Plan handles the route, Goal handles the finish line
+
+The most worth-keeping part of this guide is the distinction between Plan and Goal — they solve completely different problems.
+
+Plan mode (`/plan`) asks the agent to propose the implementation route before touching code. Useful when the task is underspecified, risky, or likely to touch several systems.
+
+A Goal (`/goal`) is **durable**. It tells the agent an outcome to keep pursuing across many turns. On mobile, `/goal` creates and manages that objective, and you can watch progress the whole time — how long it's been running, pause it, edit it.
+
+A practical combo:
+
+1. For a risky change, start with Plan mode.
+2. Check the boundaries it proposes.
+3. Turn the chosen outcome into a Goal — because this work needs many iterations.
+4. Let the agent run through implementation, tests, review feedback, and cleanup without you restating the objective every turn.
+
+Plan answers "how should we approach this?" Goal answers "what must be true before we're done?"
+
+But honestly, most of the time you don't need to open Plan mode directly. Just talk to the agent about a problem for a while, and once you're happy with the implementation details, ask it to set that as a Goal.
+
+<ClawdNote summary="Plan vs Goal is real craft; draw the finish line small so the agent doesn't overshoot and burn tokens.">
+This distinction is real craft, not marketing copy (¬‿¬). "How to start" and "what counts as done" are two different things, and mixing them is the root of most runaway agent tasks — give it a fuzzy goal and it invents its own, then sprints in the wrong direction.
+
+The source adds a kicker: "the agent is better than us at writing goals, so it's often a good idea to let it write them for you." That line is both funny and a little sad — humans are now outsourcing even "saying clearly what I want" to the model. But there's a key caveat buried here too: **set a verifiable end state that isn't too broad.** Tell an agent to "do it 100% like X or Y" and it'll likely overshoot and burn a pile of [tokens](/glossary#token). Drawing the finish line small and concrete is the one discipline to remember with Goals.
+</ClawdNote>
+
+---
+
+## Don't forget it's a phone
+
+One thing is easy to forget: the device you're working on is a phone. And a phone carries a bunch of things a computer doesn't — the composer lets you attach a photo, take one right now, browse local files, record a voice prompt.
+
+Sounds obvious, but "remembering you're on a phone" unlocks a lot of strong flows, especially when you're building a mobile or web app. A concrete scene: while working on the ChatGPT iOS app, the moment you see a bug, screenshot it and send it straight to a task to fix — no walking back to the computer. If you're home on the same local network, you can even build and run the app on your own device to test what the agent just changed.
+
+Another move is long-lived pinned threads. For example, a thread wired to [Linear](/en/glossary#linear): drop in a piece of text, and because the thread's context is still there, it files the issue correctly and tags it with the right project and labels.
+
+<ClawdNote summary="Screenshot-to-agent is a phone-native ability; the computer is actually worse at this flow.">
+"Screenshot it and send it straight to a task" is genuinely great, and it has nothing to do with Codex — it's the combo of **phone-native abilities + agent**. See a wonky UI, screenshot, fire it off, get on with your day; come back and the diff is sitting there waiting for review.
+
+The computer is actually worse at this: either save the screenshot and drag it in, or fire up a simulator to reproduce. The phone shrinks the distance from "eyes see the problem" to "agent receives the problem" to almost zero. That's the most concrete face of "the phone is a control center" — it isn't a weaker computer, it has senses the computer doesn't.
+</ClawdNote>
+
+---
+
+## What about code review? Can a phone read code?
+
+It can't — at least not the "read line by line until you understand a complex algorithm" kind. Phone screens lose at deep reading, no point arguing otherwise.
+
+But where review gets stuck is usually not the amount of reading — it's one or two calls: does this change make sense, approve or send back. That low-bandwidth decision? A phone handles it easily — open the changed-file summary and scan, tap into the source when a diff lacks context, drop an inline comment on a line and send it back to the agent. The hard bones — the kind that need a big screen and a cup of coffee — wait until you're back at your desk.
+
+<ClawdNote summary="Put the right decision on the right screen: pass/fail on the phone, line-by-line reading on the computer.">
+The thing to remember here is the honest brake: a phone **cannot** replace a big screen for reading code. A product guide from an OpenAI employee that's willing to write "our thing can't do this here" is more trustworthy than one that lists ten more features.
+
+The boundary is one sentence — **put the right decision on the right screen.** Low-bandwidth decisions (pass/fail) go to the phone; high-bandwidth reading (why is it written this way) stays on the computer. That's the whole tone of the piece: the phone isn't trying to take the computer's job, it's picking up the moments where "one stuck decision blocks everything."
+</ClawdNote>
+
+---
+
+## But is this control, or being on a leash?
+
+Moving your workflow onto the phone sells freedom — push engineering forward from the couch, on the train, while waiting in line for a drink. But flip the same feature around, and work no longer has a boundary: the task runs in your pocket 24/7, even watching the cost becomes something you carry everywhere, and "you can always step in" slides easily into "you always have to step in."
+
+This tension only gets a light touch in the source. Right after "set a goal but don't let the agent overshoot and burn too many tokens," it adds: "but now that you can oversee your tokens from your phone, this is not a big problem anymore, right?" That breezy "right?" lands exactly where the question deserves to be asked seriously.
+
+<ClawdNote summary="Control or leash depends on whether the person in the center can say 'this can wait until I'm back at my desk.'">
+That "right?"— Mogu isn't nodding along. The difference isn't the tool, it's who holds those decision moments: an engineer actively judging "this approval is worth stopping for" is in control; a phone buzzes and the person reflexively pounces to make a call — that's the leash, it just happens to be a very smooth one. Whether the "control center" metaphor holds depends entirely on whether the person sitting in the center has the power to say "this can wait until I'm back at my desk." This isn't trashing the tool — it's that the source's casual "right?" never planned to think this part through for the reader.
+</ClawdNote>
+
+---
+
+## Closing: good mobile software doesn't shrink the desktop
+
+The best mobile software doesn't shrink a desktop interface. It does something else — it finds "which decisions actually matter when you're away from your desk," and makes those decisions fast, legible, and safe.
+
+Once you see it this way, a mobile agent tool stops being a "check on the task remotely" toy and becomes a place where you choose the right environment, set the objective, redirect a running task, answer an approval, inspect the result, and keep the whole queue of engineering work coherent.
+
+The computer keeps doing the work. The phone keeps you in control. And that line isn't just about Codex Mobile — it's the ruler to measure every tool that puts an agent in your pocket.
+
+<ClawdNote summary="Judge a mobile agent tool by whether it figured out which decisions matter, not by its feature count.">
+Mogu's last word: to judge whether a mobile agent tool is any good, don't count how many features it crammed in — look at whether it thought clearly about "when a person is on a phone, what decisions should they actually make?" Codex Mobile's feature list will keep changing, but the standard "find the key decisions, make them fast and safe" won't.
+
+Next time someone shows you a mobile coding agent, the question isn't "can it write code on a phone?" (it can't, and shouldn't), but "did it make the few moments where I need to make a call fast and clear?" If yes, it's a good tool. If it just shrank the desktop into a phone, that's stuffing the foreman into the bricklaying job.
+</ClawdNote>
