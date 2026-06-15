@@ -163,7 +163,7 @@ if [ "$SCORE_ONLY" -eq 1 ]; then
   if [ -n "${TRIBUNAL_SCORE_ONLY_PROGRESS_FILE:-}" ]; then
     PROGRESS_FILE="$TRIBUNAL_SCORE_ONLY_PROGRESS_FILE"
   else
-    PROGRESS_FILE="$(mktemp /tmp/tribunal-score-only-progress-XXXXXX.json)"
+    PROGRESS_FILE="$(mktemp "${TMPDIR:-/tmp}/tribunal-score-only-progress.XXXXXX")"
     trap 'rm -f "$PROGRESS_FILE"' EXIT
   fi
 fi
@@ -573,7 +573,7 @@ run_final_build_gate() {
   local max_repairs=2
   local repair_attempt=0
   local build_log build_rc classification
-  build_log="$(mktemp /tmp/tribunal-final-build-XXXXXX.log)"
+  build_log="$(mktemp "${TMPDIR:-/tmp}/tribunal-final-build.XXXXXX")"
 
   while true; do
     : > "$build_log"
@@ -731,7 +731,7 @@ run_stage() {
   ssot_content="$(cat "$ROOT_DIR/scripts/vibe-scoring-standard.md")"
 
   local score_tmp
-  score_tmp="$(mktemp /tmp/tribunal-"${stage_key}"-XXXXXX.json)"
+  score_tmp="$(mktemp "${TMPDIR:-/tmp}/tribunal-${stage_key}.XXXXXX")"
 
   local attempt=0
   while [ "$attempt" -lt "$max_loops" ]; do
