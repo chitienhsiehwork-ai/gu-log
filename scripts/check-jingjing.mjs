@@ -149,6 +149,7 @@ Riley Goodside Ethan Mollick Andy Weir Ryland Grace Project Hail Mary
 Alex Kotliarskyi Victor Zhu Zach Brock Karri Saarinen daniel_mac8 daniel
 Jarrod Watts Matt Pocock
 Lisa MindOS_Lisa
+Dimillian Thomas Ricouard
 Kyle Jeong
 
 # Places
