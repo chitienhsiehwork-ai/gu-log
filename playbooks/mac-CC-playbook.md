@@ -170,8 +170,9 @@ scripts/writer-broker-wait.sh --dir <broker_dir> --pid <pipeline_pid> [--timeout
 
    預設讓 Opus 輸出到 stdout，由 Codex 審核後再寫入 `src/content/posts/*`。不要讓 Opus 直接拿 repo edit 權限，除非任務明確是透過 broker 改已存在檔案。
 4. **Codex scoring 只產生 feedback packet**：評審輸出要短，格式固定：`must_fix`、`nice_to_have`、`line_refs_or_excerpts`、`rubric_scores`。不要把整篇文章貼回 Opus；rewrite prompt 只放評審結論、必要片段、原檔路徑。
-5. **Opus rewrite patch**：若需要重寫，Codex 叫 Opus 針對同一份 MDX 輸出完整新版或明確 patch；Codex 只負責套用、跑驗證、確認沒有違反規則。
-6. **最後才 allocate 真號，但不要停下來問 user**：SD 原創文可以先用 `SD-PENDING` 和 `sd-pending-YYYYMMDD-*.mdx`；Tribunal / validator 過了、內容不是 critical design decision，就依 `CONTRIBUTING.md` 的 merge 前 swap procedure 自己拿 counter、改 `ticketId` / 檔名、補 en sidecar、validate、commit、push、PR/merge/deploy。`PENDING` 是防撞號的工作狀態，不是 human approval gate。
+5. **Opus rewrite patch**：若需要重寫，Codex 叫 Opus 針對同一份 zh-tw MDX 輸出完整新版或明確 patch；Codex 只負責套用、跑驗證、確認沒有違反規則。
+6. **英文只在 zh-tw 定稿後翻譯**：遵守 `CONTRIBUTING.md` 的 zh-tw 優先 SOP。先只針對 zh-tw 版 iterate、跑 Tribunal、修到內容過關；zh-tw 穩定後，才叫 Opus 把 final zh-tw 直接翻成 en sidecar。英文評審只能抓翻譯錯、連結錯、frontmatter / MDX 格式錯、明顯漏譯；不能把英文 sidecar 當第二篇文章獨立重構，也不能因英文 FreshEyes 意見反向改已定稿的中文骨幹。
+7. **最後才 allocate 真號，但不要停下來問 user**：SD 原創文可以先用 `SD-PENDING` 和 `sd-pending-YYYYMMDD-*.mdx`；Tribunal / validator 過了、內容不是 critical design decision，就依 `CONTRIBUTING.md` 的 merge 前 swap procedure 自己拿 counter、改 `ticketId` / 檔名、依 final zh-tw 補 en sidecar、validate、commit、push、PR/merge/deploy。`PENDING` 是防撞號的工作狀態，不是 human approval gate。
 
 推薦 brief 骨架：
 
