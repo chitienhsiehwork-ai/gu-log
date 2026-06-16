@@ -142,6 +142,65 @@ scripts/writer-broker-wait.sh --dir <broker_dir> --pid <pipeline_pid> [--timeout
 
 它 claim 到新的未處理請求時印 `REQUEST <abs path to request.json>`；pipeline pid 已結束且沒有請求時印 `PIPELINE_DONE`；可選 timeout 到期時印 `TIMEOUT` 並用非零 exit code 結束。
 
+## SD 原創文：Opus 寫手、Codex 編排
+
+當 user 明確指定「叫 Claude Opus 寫」、「writing/refine/rewrite 必須由 Claude Opus 做」時，mac-cdx / Codex 的角色只能是 **orchestrator / scorer / gatekeeper**，不能代寫文章正文。這條包含：
+
+- 首稿 prose 由 Claude Opus 產出。
+- refine / rewrite prose 由 Claude Opus 產出。
+- Codex 可以整理 brief、挑 context、跑 validator、跑 scorer、萃取評審 feedback、檢查 frontmatter、修格式錯誤；但不能自己補正文段落、改寫句子、加 ClawdNote 當成內容。
+- Claude 不可用時，停在「可交接的 Opus brief + scoring plan」，不要用 Codex 代筆硬完成。
+
+低 token 工作流：
+
+1. **Codex 先建短 brief**：只放這篇需要的 source facts、既有文章連結、必寫主軸、禁忌、frontmatter。不要把 `GU-LOG_WRITER_PROMPT.md`、整篇舊文、全部搜尋結果整包貼給 Opus；只引用必要規則與 5-10 條精準事實。
+2. **先檢查 Claude auth，不花正文 token**：
+
+   ```bash
+   claude -p --model claude-opus-4-6 --tools "" --no-session-persistence "reply OK only"
+   ```
+
+   如果回 `Not logged in` 或 auth error，立即停止寫作路徑，回報需要登入，不要 fallback 到 Codex 寫正文。
+3. **首稿只要求 MDX**：
+
+   ```bash
+   claude -p --model claude-opus-4-6 --permission-mode acceptEdits \
+     --tools "" --no-session-persistence "$(cat /tmp/gu-log-opus-brief.md)"
+   ```
+
+   預設讓 Opus 輸出到 stdout，由 Codex 審核後再寫入 `src/content/posts/*`。不要讓 Opus 直接拿 repo edit 權限，除非任務明確是透過 broker 改已存在檔案。
+4. **Codex scoring 只產生 feedback packet**：評審輸出要短，格式固定：`must_fix`、`nice_to_have`、`line_refs_or_excerpts`、`rubric_scores`。不要把整篇文章貼回 Opus；rewrite prompt 只放評審結論、必要片段、原檔路徑。
+5. **Opus rewrite patch**：若需要重寫，Codex 叫 Opus 針對同一份 MDX 輸出完整新版或明確 patch；Codex 只負責套用、跑驗證、確認沒有違反規則。
+6. **最後才 allocate 真號，但不要停下來問 user**：SD 原創文可以先用 `SD-PENDING` 和 `sd-pending-YYYYMMDD-*.mdx`；Tribunal / validator 過了、內容不是 critical design decision，就依 `CONTRIBUTING.md` 的 merge 前 swap procedure 自己拿 counter、改 `ticketId` / 檔名、補 en sidecar、validate、commit、push、PR/merge/deploy。`PENDING` 是防撞號的工作狀態，不是 human approval gate。
+
+推薦 brief 骨架：
+
+```md
+You are Claude Opus writing an SD original article for gu-log.
+
+Output only MDX.
+
+Non-negotiable:
+- zh-tw, Taiwan wording.
+- No 「你 / 我」 in body; allowed inside ClawdNote / ShroomDogNote only.
+- Writing/refine/rewrite must be your prose; Codex is only orchestrating.
+- Fast-forward boring implementation details.
+
+Article goal:
+...
+
+Facts allowed:
+...
+
+Voice:
+...
+
+Frontmatter:
+...
+```
+
+這條 workflow 的精神是：**讓 Codex 省 Opus token，讓 Opus 只花在真正需要文筆和敘事判斷的地方。** Codex 不要拿高價寫手去讀整個 repo；也不要在寫手不可用時自己假裝是寫手。
+
 ## 這份 playbook 是 living doc
 
 mac-cdx / mac-CC 如果遇到 Mac 專屬的狀況需要 codify（例如發現某個本地工具的坑、某個 skill 的新用法、某個 iCloud sync 的陷阱），直接編輯這份 playbook 加進去。
