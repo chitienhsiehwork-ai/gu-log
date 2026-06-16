@@ -67,4 +67,36 @@ test.describe('ShroomDogNote auto-fold', () => {
 
     expect(badToggles).toEqual([]);
   });
+
+  test('GIVEN SD-26 on mobile with larger text WHEN page loads THEN short single-paragraph notes do not show toggles', async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      const style = document.createElement('style');
+      style.textContent = 'html { font-size: 22px !important; }';
+      document.head.appendChild(style);
+    });
+    await page.goto(sd26PostUrl);
+
+    const visibleToggles = await page.locator('.shroomdog-note').evaluateAll((notes) =>
+      notes
+        .map((note, index) => {
+          const content = note.querySelector<HTMLElement>('.shroomdog-note-content');
+          const toggle = note.querySelector<HTMLButtonElement>('.shroomdog-note-toggle');
+          if (!content || !toggle || toggle.hidden) return null;
+
+          return {
+            index,
+            paragraphCount: content.querySelectorAll('p').length,
+            textLength: content.textContent?.trim().length,
+            scrollHeight: content.scrollHeight,
+            label: toggle.textContent?.trim(),
+            text: content.textContent?.trim().slice(0, 80),
+          };
+        })
+        .filter(Boolean)
+    );
+
+    expect(visibleToggles).toEqual([]);
+  });
 });
