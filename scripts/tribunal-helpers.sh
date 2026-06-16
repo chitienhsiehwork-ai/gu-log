@@ -533,7 +533,12 @@ PROMPT
   timeout_sec="${TRIBUNAL_CODEX_TIMEOUT_SEC:-3600}"
   claude_cmd="$(tribunal_claude_cmd)" || return 127
   # Permission handling differs by uid:
-  #  - non-root (mac/VPS): bypassPermissions never prompts — judge runs free.
+  #  - non-root (mac/VPS): auto mode runs free without prompting. NOTE: we used
+  #    to use bypassPermissions here, but on current CC `claude -p
+  #    --permission-mode bypassPermissions` exits 1 the moment the agent invokes
+  #    a tool (Edit/Write), so the writer never rewrote. auto mode auto-approves
+  #    the read/edit/write the writer+judge need (verified editing an
+  #    out-of-cwd post) and is the maintainer's chosen mode (no bypassPermissions).
   #  - root (CCC sandbox): claude *rejects* bypassPermissions, so we fall back to
   #    acceptEdits. But acceptEdits only auto-approves *edits*; the judge task
   #    passes the post as a PATH (not inlined), so the judge must Read it — which
@@ -551,7 +556,7 @@ PROMPT
   if [ "$(id -u)" = "0" ]; then
     perm_args=(--permission-mode acceptEdits --allowed-tools "Read,Grep,Glob,Bash,Write,Edit,MultiEdit")
   else
-    perm_args=(--permission-mode bypassPermissions)
+    perm_args=(--permission-mode auto)
   fi
   (
     cd "$work_dir" || exit

@@ -1012,6 +1012,10 @@ PROMPT
 
     if [ "$writer_rc" -ne 0 ]; then
       tlog "  WARN: tribunal-writer exited with code $writer_rc"
+      # Surface the writer's own output so a non-quota failure (e.g. a permission
+      # rejection, a CLI error) is diagnosable instead of silently discarded.
+      # Mirrors the final-build repair path's dump.
+      tail -15 "$writer_out" | while IFS= read -r line; do tlog "    $line"; done
     fi
     rm -f "$writer_out" "$writer_quota_status_file"
 
