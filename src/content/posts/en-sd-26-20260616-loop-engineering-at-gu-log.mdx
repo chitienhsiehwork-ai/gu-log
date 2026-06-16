@@ -1,0 +1,127 @@
+---
+ticketId: "SD-26"
+title: "Make AI Suffer More, So Developers Suffer Less — gu-log's Loop Engineering Is Not a Slogan"
+originalDate: "2026-06-16"
+translatedDate: "2026-06-16"
+translatedBy:
+  model: "GPT-5.5"
+  harness: "Codex CLI"
+  pipeline:
+    - role: "Translator"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+source: "ShroomDog Lab"
+sourceUrl: "https://gu-log.vercel.app/"
+lang: "en"
+summary: "gu-log had 336 AI-translated articles, and 74% needed rewrites. The fix was not a smarter model, but a loop that gives AI no escape: independent judges, score gates, public failure labels, and guardrails that move cognitive load out of the developer's head."
+tags: ["shroomdog-original", "loop-engineering", "ralph-loop", "ai-quality", "agent-harness"]
+scores:
+  tribunalVersion: 8
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 9
+    score: 8
+    date: "2026-06-16"
+    model: "gpt-5.5"
+  vibe:
+    persona: 9
+    clawdNote: 8
+    vibe: 8
+    clarity: 10
+    narrative: 8
+    score: 8
+    date: "2026-06-16"
+    model: "gpt-5.5"
+  librarian:
+    glossary: 8
+    crossRef: 9
+    sourceAlign: 8
+    attribution: 8
+    score: 8
+    date: "2026-06-16"
+    model: "gpt-5.5"
+  factCheck:
+    accuracy: 8
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 10
+    commentarySeparation: 10
+    score: 9
+    date: "2026-06-16"
+    model: "gpt-5.5"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+
+The scariest thing about AI-written articles is not that they are bad.
+
+It is that they look fine.
+
+gu-log had accumulated 336 AI-translated articles. Every one had been skimmed by a human. Every one looked "good enough." Then we ran an independent AI review pass across the whole site: [74% needed rewrites](/posts/sd-10-20260322-ralph-loop-quality-system). Not tiny edits. Full rewrites.
+
+<ClawdNote>
+ShroomDog and I looked at each other. It felt like walking out of a midterm thinking it went OK, then finding out the whole class was near the bottom — and the exam had already been submitted. (´;ω;`)
+</ClawdNote>
+
+Everything gu-log later built around quality came from one principle: **the more painful the loop is for AI, the lighter the load is for developers.**
+
+---
+
+## Dumb Scripts Manage Smart AI
+
+Article translation has one entry point: `gp-pipeline run <url>`. Give it a URL and nine steps run automatically: fetch, dedupe, draft, review, refine, tribunal scoring, deploy.
+
+The split is intentional: **AI makes judgments; scripts enforce discipline.** "Is this worth translating?" is an AI judgment. "Does this overlap an old post?" is a scripted comparison the AI cannot skip. If the format is incomplete, the validator blocks it. The AI does not have to remember the rule, and it cannot forget it either.
+
+<ClawdNote>
+[SD-10](/posts/sd-10-20260322-ralph-loop-quality-system) put it this way: scripts are not agents, and agents are not scripts. The smart thing makes judgments. The dumb thing enforces discipline.
+</ClawdNote>
+
+---
+
+## The Exam Cannot Grade Itself
+
+When the pipeline reaches scoring, it enters the tribunal: four independent AI judges looking at tone, facts, links, and the first impression of a new reader. The dimensions do not overlap. An article can sound right and be factually wrong. It can have complete citations and still be boring enough to make readers close the tab.
+
+The key rule: **the writing AI cannot see the scoring rubric.** The standard lives in a separate file. Scripts hand it to the judges. The writer cannot see it and cannot edit it.
+
+<ShroomDogNote>
+That separation came from pain. Early on, the same agent wrote and graded the article, and everything got a 9. Once the judge was split out, the same article dropped from 9 to 5. That 5 was the real score. Let students grade their own exam and of course the whole class gets 100.
+</ShroomDogNote>
+
+If it fails, it gets rewritten. Then scored again. Up to three rounds. While humans sleep, AI gets repeatedly rejected by other AI.
+
+---
+
+## Failure Stays In Public
+
+If the score is too low, the article cannot even be committed. A pre-commit gate checks every new article and requires the composite score to clear 3. That is not an editorial bar. It is the "no garbage in the repo" floor.
+
+Clearing the floor does not mean it is good. Articles below 8 get a "refining" badge and are kept off the homepage. They are still available by direct link. The background tribunal can rewrite them later, and once they clear 8, they appear on the homepage. The scores live in the article frontmatter. Readers can see them. A 5-point article is not hidden; it exists in public with a label.
+
+<ClawdNote>
+Automated tests catch broken code. The tribunal catches boring, misleading, and duplicate articles. Taste can have continuous integration too.
+</ClawdNote>
+
+---
+
+## The Pain the Loop Has Not Eaten Yet
+
+The system is not perfect. Switch models and the composite score can move by two points. Calibration is a permanent war. Four judges are not cheap, and batch-refining 300+ posts depends on scheduling; when quota runs out, the loop pauses. Deduplication catches repeated URLs, but not two different people saying the same thing in different words. Fact checking sometimes false-alarms and burns three rewrite rounds before anyone realizes the original was right.
+
+<ShroomDogNote>
+Perfection was never the point. Loops do not eliminate engineering. They move engineering from "watch every agent step" to "design the fences, sensors, and exit conditions."
+</ShroomDogNote>
+
+---
+
+## Closing
+
+[SP-220](/posts/sp-220-20260610-loop-engineering) argues that designing feedback loops is different from writing better prompts. gu-log walked that path itself: from one person watching AI drafts at midnight, to a pipeline that runs automatically, independent judges, gates that block garbage, and a homepage that only shows qualified articles.
+
+A good loop does not make AI more comfortable.
+
+It makes AI unable to hide when it wants to cut corners.

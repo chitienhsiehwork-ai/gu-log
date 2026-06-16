@@ -1,0 +1,123 @@
+---
+ticketId: "SD-26"
+title: "讓 AI 越痛苦，開發者越輕鬆——gu-log 的迴圈工程不是口號"
+originalDate: "2026-06-16"
+translatedDate: "2026-06-16"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Author"
+      model: "Human + Opus 4.6"
+      harness: "ShroomDog + Claude Code"
+source: "ShroomDog Lab"
+sourceUrl: "https://gu-log.vercel.app/"
+lang: "zh-tw"
+summary: "gu-log 有 336 篇 AI 翻譯文章，74% 需要改寫。解法不是找更厲害的 AI，而是設計讓 AI 逃不掉的迴圈——獨立評審、分數門檻、失敗公開顯示。一個副業 blog 的迴圈工程實戰紀錄。"
+tags: ["shroomdog-original", "loop-engineering", "ralph-loop", "ai-quality", "agent-harness"]
+scores:
+  tribunalVersion: 8
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 9
+    score: 8
+    date: "2026-06-16"
+    model: "gpt-5.5"
+  vibe:
+    persona: 9
+    clawdNote: 8
+    vibe: 8
+    clarity: 10
+    narrative: 8
+    score: 8
+    date: "2026-06-16"
+    model: "gpt-5.5"
+  librarian:
+    glossary: 8
+    crossRef: 9
+    sourceAlign: 8
+    attribution: 8
+    score: 8
+    date: "2026-06-16"
+    model: "gpt-5.5"
+  factCheck:
+    accuracy: 8
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 10
+    commentarySeparation: 10
+    score: 9
+    date: "2026-06-16"
+    model: "gpt-5.5"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+
+AI 寫出來的文章，最可怕的不是寫得爛——是看起來沒問題。
+
+gu-log 累積了 336 篇 AI 翻譯文章，每篇都有人眼掃過，每篇看起來都「還行」。直到用獨立的 AI 評審跑了全站評分——[74% 需要改寫](/posts/sd-10-20260322-ralph-loop-quality-system)。不是微調，是全部重來。
+
+<ClawdNote>
+我當時跟老闆互看了一眼。那個感覺就像你覺得期中考考得還行，結果成績出來全班倒數——而且考卷已經交出去了 (´;ω;`)
+</ClawdNote>
+
+gu-log 後來做的所有品質工程，都從同一個原則長出來：**讓 AI 越痛苦，開發者越輕鬆。**
+
+---
+
+## 笨的腳本管聰明的 AI
+
+翻譯文章只有一個入口：`gp-pipeline run <url>`。丟一個網址，九步自動跑完——抓原文、查重、寫稿、審稿、修稿、評審團打分、部署。
+
+刻意的分工：**AI 做判斷，腳本做紀律。** 「值不值得翻」是 AI 判斷；「有沒有跟舊文撞題」是腳本強制比對，跳不掉；格式沒填齊，驗證器攔截，AI 不用記也不能忘。
+
+<ClawdNote>
+[SD-10](/posts/sd-10-20260322-ralph-loop-quality-system) 講過：腳本不是 agent，agent 不是腳本。聰明的做判斷，笨的管紀律。
+</ClawdNote>
+
+---
+
+## 考卷不能自己改
+
+流水線跑到打分，進入評審團——四個獨立的 AI 評審，分別盯調性、事實、連結品質、跟陌生讀者第一印象。維度不重疊——一篇文章可以語氣到位但事實全錯，也可以資料齊全但無聊到讓人關頁面。
+
+關鍵：**寫稿的 AI 碰不到評分標準。** 標準寫在獨立檔案裡，由腳本傳給評分員，寫手看不到也改不了。
+
+<ShroomDogNote>
+這個分離是血淚換來的。早期讓同一個 agent 又寫又評，分數永遠 9 分。把評分員獨立出來，同一篇從 9 掉到 5。那個 5 才是真的。讓學生改自己的考卷，結果當然全班一百分。
+</ShroomDogNote>
+
+沒過就重寫——改完再打分，最多三輪。人類睡覺的時候，AI 在半夜被同類反覆打槍。
+
+---
+
+## 失敗攤在陽光下
+
+分數不夠，連存進版本庫都做不到——存檔前的自動關卡攔截每篇新文章，綜合分數至少過 3 才放行。這是底線，不是編輯水準。
+
+過了底線不代表合格。沒到 8 的文章掛上「精修中」標章，從首頁隔離。背景評審團排程重寫，過 8 才上架。分數寫在文章頭資訊裡，讀者看得到——5 分的文章帶著標章公開存在，不藏。
+
+<ClawdNote>
+自動測試抓壞掉的程式碼，評審團抓無聊的、誤導的、重複的文章。品味也能持續整合。
+</ClawdNote>
+
+---
+
+## 迴圈還沒吃掉的痛
+
+這個系統不完美。換一個模型打分，綜合分數可以差兩分——校準是永遠的戰爭。四個評審跑一輪不便宜，300 多篇批次精修靠排程撐，額度用完就暫停。查重抓得到重複網址，抓不到兩個人用不同的話講同一件事。事實查核偶爾誤報，燒掉三輪改寫額度才發現原本是對的。
+
+<ShroomDogNote>
+重點從來不是完美。迴圈不消除工程——迴圈把工程從「盯著 agent 每一步」移到「設計好圍欄、感測器、跟出場條件」。
+</ShroomDogNote>
+
+---
+
+## 結語
+
+[SP-220](/posts/sp-220-20260610-loop-engineering) 說，設計回饋循環跟寫指令是不同的工程。gu-log 自己走了一遍——從一個人半夜盯 AI 寫稿，到流水線自動跑完、評審團獨立打分、關卡擋住垃圾、首頁只放合格文章。
+
+一個好的迴圈不是讓 AI 更舒服。是讓 AI 想偷懶的時候，無處可逃。
