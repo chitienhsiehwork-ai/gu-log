@@ -51,7 +51,7 @@ Log 跟你說是 race condition，但你追了半天覺得是 cache 過期。Sta
 
 **Subagent 像叫外送。** 你叫人去買便當，他買完拿給你，任務結束。他不會跟其他外送員討論你的便當好不好吃。Subagent 做完事、回傳結果、退場。只跟主 agent 單線溝通，結果還會被摘要壓縮，省 token。
 
-**Agent Teams 像開會。** PM 建了一個 Slack channel，工程師在裡面自己討論、自己認領任務、互相 @ 問問題。PM 不當傳話筒 —— 大家是 mesh network，不是 hub and spoke。每個 teammate 都是完整的 Claude 實例，有自己的 context window，溝通路徑是 O(n²)。
+**Agent Teams 像開會。** PM 建了一個 [Slack](/glossary#slack) channel，工程師在裡面自己討論、自己認領任務、互相 @ 問問題。PM 不當傳話筒 —— 大家是 mesh network，不是 hub and spoke。每個 teammate 都是完整的 Claude 實例，有自己的 context window，溝通路徑是 O(n²)。
 
 聽起來很美對吧？但 O(n²) 的溝通路徑意味著 O(n²) 的 token 帳單。
 

@@ -230,6 +230,11 @@ Hard Pro
 # gu-log persona names (not in glossary because they're meta-characters)
 Clawd ShroomDog OpenClaw
 
+# Product / feature / handle proper nouns (Codex ecosystem; SP-210)
+Storybook Remotion Studio Chronicle jxnlco
+# "center of gravity" — quoted source phrase (jxnlco's own wording)
+center gravity
+
 # Lab / div names whose individual words look generic but are part of proper noun
 Superintelligence
 Project Glasswing Firefox
@@ -564,6 +569,13 @@ function maskContent(text) {
   // 2. Mask code blocks ``` ... ```
   text = text.replace(/```[\s\S]*?```/g, (m) => m.replace(/[^\n]/g, ' '));
   text = text.replace(/~~~[\s\S]*?~~~/g, (m) => m.replace(/[^\n]/g, ' '));
+
+  // 2b. Mask JSX template-literal props (e.g. <Mermaid chart={`...`} />).
+  // The diagram/code source passed as a prop is not reader prose. The generic
+  // tag mask in step 5 only reaches the first '>', which here sits INSIDE the
+  // chart (`<br/>`, `-->`), so the diagram body would otherwise leak through
+  // and get scanned (fill/stroke/color/node labels → false positives).
+  text = text.replace(/=\{`[\s\S]*?`\}/g, (m) => m.replace(/[^\n]/g, ' '));
 
   // 3. Mask inline code `...`
   text = text.replace(/`[^`\n]*`/g, (m) => ' '.repeat(m.length));
