@@ -371,3 +371,12 @@ Sprin asked whether Tribunal v7 FreshEyes covers “length should be just right,
 - 情境：SD-26 在講 gu-log guardrails 時，把 dedup 寫成「查重」，讀起來像考卷或學術抄襲檢查，不像 AI/content pipeline 的實務術語。文章也把 dedup 當成清單項目帶過，沒有把它接回 loop engineering 的主軸。
 - 修法：正文使用 `dedup`，第一次出現連到 glossary。新增 Dedup glossary 條目，定義為偵測重複或高度重疊的主題與內容，避免讀者重複讀到換湯不換藥的文章。SD-26 補 MoguNote：重複內容最煩的是讀者會覺得「欸我好像讀過？」；gu-log 把這種 reader annoyance 變成 pipeline gate，讓下一輪更早攔住。
 - Reusable lesson：不是每個英文術語都該翻成中文。當 gu-log 內部 workflow 已經用 dedup 表示「主題/內容去重 gate」，硬翻成「查重」會跑錯語感。更重要的是，guardrail 不是孤立工具清單；每個 gate 都要能回扣 loop engineering：人或讀者感到痛，系統把痛轉成訊號，下一輪自動提早處理。
+
+## 2026-06-16 — SD-26 article-count accuracy
+
+### Feedback: gu-log 不是三百多篇，GP/MP 規模要算清楚
+
+- ShroomDog feedback：`話說我們不止三百多篇吧 GP about 200, MP about 300`
+- 情境：SD-26 用「三百多篇 AI 翻譯文章」描述 gu-log 規模。這低估了目前內容量，也把 MP 精選、SD 原創、教學混成「AI 翻譯文章」，分類不準。
+- 修法：改成「五百多篇文章——大約兩百篇 GP 翻譯、三百篇 MP 精選，外加 SD 跟教學」。後續句子只用「五百多篇 / 500 posts」，避免每次重複解釋 taxonomy。
+- Reusable lesson：談 gu-log 全站規模時，不要憑印象寫「三百多」。要先算 active unique posts，並區分 GP / MP / SD / LevelUp。若文意不是只談翻譯，不要寫成「AI 翻譯文章」。

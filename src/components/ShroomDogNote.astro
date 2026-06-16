@@ -137,7 +137,12 @@ const collapseLabel = isEnglish ? 'Collapse Note' : '收合 Note';
     const minExpandableOverflow = Number(note.dataset.minExpandableOverflow) || 72;
     content.style.setProperty('--shroomdog-note-collapsed-height', `${threshold}px`);
 
-    if (content.scrollHeight - threshold < minExpandableOverflow) return;
+    const hiddenHeight = content.scrollHeight - threshold;
+    const paragraphCount = content.querySelectorAll('p').length;
+    const textLength = content.textContent?.trim().length ?? 0;
+
+    if (hiddenHeight < minExpandableOverflow) return;
+    if (paragraphCount <= 1 && textLength < 360) return;
 
     note.dataset.collapsible = 'true';
     toggle.hidden = false;
