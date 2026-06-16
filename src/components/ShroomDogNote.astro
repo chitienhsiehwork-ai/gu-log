@@ -8,11 +8,18 @@ interface Props {
   prefix?: string;
   /** Auto-collapse notes taller than this many pixels. Set autoFold={false} to disable. */
   collapseThreshold?: number;
+  /** Minimum hidden content needed before showing a reader-facing expand control. */
+  minExpandableOverflow?: number;
   /** Whether long ShroomDogNotes should auto-collapse. Defaults to true. */
   autoFold?: boolean;
 }
 
-const { prefix, collapseThreshold = 260, autoFold = true } = Astro.props;
+const {
+  prefix,
+  collapseThreshold = 260,
+  minExpandableOverflow = 72,
+  autoFold = true,
+} = Astro.props;
 
 // Detect language from URL path
 const isEnglish = Astro.url.pathname.startsWith('/en/');
@@ -62,8 +69,8 @@ function hashString(str: string): number {
 const contentHash = hashString(slotContent);
 const selectedPrefix = prefix || prefixes[contentHash % prefixes.length];
 const contentId = `shroomdog-note-content-${contentHash}`;
-const expandLabel = isEnglish ? 'Read full ShroomDogNote' : '展開完整 ShroomDogNote';
-const collapseLabel = isEnglish ? 'Collapse ShroomDogNote' : '收合 ShroomDogNote';
+const expandLabel = isEnglish ? 'Read full Note' : '展開完整 Note';
+const collapseLabel = isEnglish ? 'Collapse Note' : '收合 Note';
 ---
 
 <blockquote
@@ -71,6 +78,7 @@ const collapseLabel = isEnglish ? 'Collapse ShroomDogNote' : '收合 ShroomDogNo
   data-shroomdog-note
   data-auto-fold={autoFold ? 'true' : 'false'}
   data-collapse-threshold={collapseThreshold}
+  data-min-expandable-overflow={minExpandableOverflow}
 >
   <strong class="shroomdog-prefix">
     <img
@@ -109,8 +117,8 @@ const collapseLabel = isEnglish ? 'Collapse ShroomDogNote' : '收合 ShroomDogNo
   function setShroomDogNoteCollapsed(note: HTMLElement, collapsed: boolean) {
     const toggle = note.querySelector<HTMLButtonElement>('.shroomdog-note-toggle');
     const label = note.querySelector<HTMLElement>('.shroomdog-note-toggle-label');
-    const expandLabel = toggle?.dataset.expandLabel || '展開完整 ShroomDogNote';
-    const collapseLabel = toggle?.dataset.collapseLabel || '收合 ShroomDogNote';
+    const expandLabel = toggle?.dataset.expandLabel || '展開完整 Note';
+    const collapseLabel = toggle?.dataset.collapseLabel || '收合 Note';
 
     note.dataset.collapsed = collapsed ? 'true' : 'false';
     if (toggle) toggle.setAttribute('aria-expanded', (!collapsed).toString());
@@ -126,16 +134,24 @@ const collapseLabel = isEnglish ? 'Collapse ShroomDogNote' : '收合 ShroomDogNo
 
     note.dataset.initialized = 'true';
     const threshold = Number(note.dataset.collapseThreshold) || 260;
+    const minExpandableOverflow = Number(note.dataset.minExpandableOverflow) || 72;
     content.style.setProperty('--shroomdog-note-collapsed-height', `${threshold}px`);
 
-    if (content.scrollHeight <= threshold) return;
+    if (content.scrollHeight - threshold < minExpandableOverflow) return;
 
     note.dataset.collapsible = 'true';
     toggle.hidden = false;
     setShroomDogNoteCollapsed(note, true);
 
     toggle.addEventListener('click', () => {
-      setShroomDogNoteCollapsed(note, note.dataset.collapsed !== 'true');
+      const wasCollapsed = note.dataset.collapsed === 'true';
+      setShroomDogNoteCollapsed(note, !wasCollapsed);
+
+      if (wasCollapsed) {
+        requestAnimationFrame(() => {
+          toggle.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        });
+      }
     });
   }
 

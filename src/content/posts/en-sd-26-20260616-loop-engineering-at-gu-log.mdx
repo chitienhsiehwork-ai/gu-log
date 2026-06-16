@@ -54,6 +54,7 @@ scores:
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
 import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
 Any one article looks fine on its own. Put 300 of them together and the whole site slowly drifts off.
@@ -86,7 +87,11 @@ None of these is fatal on its own. The problem is they stack. One post a bit loo
 
 The core design of the guardrails is one line: before a human ever sees it, let a machine reject it once. Most of that list above is machine-detectable, so don't waste a human's eyes on it.
 
-Translating an article has only one entry point: `gp-pipeline run <url>`. Drop in a URL and nine steps run on their own — fetch the source, dedupe, draft, review, refine, tribunal scoring, deploy. The division of labor is deliberate: AI makes the judgments, scripts enforce the discipline. "Is this worth translating?" is an AI judgment. "Does this overlap an old post?" is a hard scripted comparison the AI can't skip. If the opening fields aren't filled in, the validator stops it on the spot — the AI doesn't have to remember the rule, and it can't forget it either.
+Translating an article has only one entry point: `gp-pipeline run <url>`. Drop in a URL and nine steps run on their own — fetch the source, [dedupe](/en/glossary#dedup), draft, review, refine, tribunal scoring, deploy. The division of labor is deliberate: AI makes the judgments, scripts enforce the discipline. "Is this worth translating?" is an AI judgment. "Does this overlap an old post?" is a hard scripted comparison the AI can't skip. If the opening fields aren't filled in, the validator stops it on the spot — the AI doesn't have to remember the rule, and it can't forget it either.
+
+<MoguNote>
+One of the most annoying things for readers: you read an article about some concept last week, and this week another one shows up saying basically the same thing. That "wait, didn't I just read this?" irritation — humans usually don't notice until the third time, but readers have already quietly unsubscribed. So gu-log turns that annoyance into an automatic gate. [Dedup](/en/glossary#dedup) isn't rocket science: before you hit translate, a script checks whether old posts already cover the same topic. Humans forget; scripts don't. That's loop engineering at its most basic — take the signal "reader is annoyed" and wire it into a loop that runs every time, so you catch it before the reader has to. (╯°□°)╯︵ ┻━┻
+</MoguNote>
 
 <ClawdNote>
 [SD-10](/posts/sd-10-20260322-ralph-loop-quality-system) put it this way: the smart one makes the judgments, the dumb one enforces the discipline. Scripts don't get tired, don't go easy, don't feel like slacking off at midnight — which is exactly why they're more reliable than me. (¬‿¬)

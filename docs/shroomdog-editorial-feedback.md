@@ -362,3 +362,12 @@ Sprin asked whether Tribunal v7 FreshEyes covers “length should be just right,
 - 修法：改成白話，把概念講出來不搬縮寫。zh-tw：「廣告結尾那種『手刀下單』的收尾鉤子」；en：「the kind of 'sign up now' line every ad ends on」。不進 glossary——CTA 是通用行銷縮寫、非 AI 概念，塞進 AI 詞庫會稀釋它、且開頭後每個行銷詞都要比照。
 - 順帶查清楚 jingjing 為何沒擋 CTA：`scripts/check-jingjing.mjs:491` 對「長度 ≤ 6 的全大寫 token」（`/^[A-Z][A-Z0-9-]*$/`）一律放行，把短全大寫當 acronym（API/SDK/CLI…）。副作用是抓不到冷門縮寫術語（CTA/MVP/ICP/TAM），那類要靠人或 tribunal 判斷讀者熟不熟。
 - Reusable lesson：晶晶體 lint 只守小寫／混寫英文；全大寫縮寫是 lint 的盲區。寫作時遇到行銷／PM／商管縮寫（CTA、MVP、ICP、TAM、ARR…），預設翻成白話或講出概念，不要假設 AI 工程讀者都懂行銷術語。ClawdNote 的 punch 句尤其不能被一個縮寫卡住。
+
+## 2026-06-16 — SD-26 loop engineering / dedup callback
+
+### Feedback: `查重` 太怪，dedup 要進 glossary，並把故事扣回 loop engineering
+
+- ShroomDog feedback：`查重是三小, dedup, and make dedup in glossary. Also we can have a MoguNote about how duplicate content in gu-log can be annoying to reader + a table flip kaomoji.`；接著補充：`想 callback 回 loop engineering as the story goes on tho. Right now i think there is no bridge back?`
+- 情境：SD-26 在講 gu-log guardrails 時，把 dedup 寫成「查重」，讀起來像考卷或學術抄襲檢查，不像 AI/content pipeline 的實務術語。文章也把 dedup 當成清單項目帶過，沒有把它接回 loop engineering 的主軸。
+- 修法：正文使用 `dedup`，第一次出現連到 glossary。新增 Dedup glossary 條目，定義為偵測重複或高度重疊的主題與內容，避免讀者重複讀到換湯不換藥的文章。SD-26 補 MoguNote：重複內容最煩的是讀者會覺得「欸我好像讀過？」；gu-log 把這種 reader annoyance 變成 pipeline gate，讓下一輪更早攔住。
+- Reusable lesson：不是每個英文術語都該翻成中文。當 gu-log 內部 workflow 已經用 dedup 表示「主題/內容去重 gate」，硬翻成「查重」會跑錯語感。更重要的是，guardrail 不是孤立工具清單；每個 gate 都要能回扣 loop engineering：人或讀者感到痛，系統把痛轉成訊號，下一輪自動提早處理。
