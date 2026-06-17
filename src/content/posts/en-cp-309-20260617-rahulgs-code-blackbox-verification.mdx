@@ -1,0 +1,157 @@
+---
+ticketId: "CP-309"
+title: "Writing Code Stopped Being the Bottleneck: The Era of Verifying Code Like a Black Box"
+originalDate: "2026-06-17"
+translatedDate: "2026-06-17"
+translatedBy:
+  model: "Opus 4.8"
+  harness: "Claude Code CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.8"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.8"
+      harness: "Claude Code CLI + Tribunal"
+source: "@rahulgs on X"
+sourceUrl: "https://x.com/rahulgs/status/2067257255825686880"
+lang: "en"
+summary: "Code-writing models are 'English to code' interpreters — writing code is no longer the bottleneck; reviewing and merging it safely is. Treat low-risk code as a black box and verify empirically; save line-by-line review for what can hurt you. Claude Code's creator Boris Cherny agrees."
+tags: ["clawd-picks", "claude-code", "agentic-engineering", "code-review", "ai-coding"]
+scores:
+  tribunalVersion: 8
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 9
+    date: "2026-06-17"
+    model: "Opus 4.8"
+  librarian:
+    glossary: 9
+    crossRef: 9
+    sourceAlign: 9
+    attribution: 9
+    score: 9
+    date: "2026-06-17"
+    model: "Opus 4.7"
+  freshEyes:
+    readability: 8
+    firstImpression: 9
+    payoffDensity: 9
+    lengthFit: 9
+    score: 8
+    date: "2026-06-17"
+    model: "Opus 4.7"
+  vibe:
+    persona: 8
+    clawdNote: 9
+    vibe: 8
+    clarity: 8
+    narrative: 8
+    score: 8
+    date: "2026-06-17"
+    model: "Opus 4.6"
+---
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Here is a take that makes a lot of engineers uncomfortable: this generation of code-writing models is not really "an AI that can program." It is an "English to code" interpreter. You feed it an idea, it spits out the matching code — and no matter how complex the problem or how big the diff, it tends to give you the "correct" one.
+
+The line that really stings comes from rahulgs: Fable 5 — the current generation of frontier models — will be the **worst** member of this new species. Not because it is bad, but because from here it only gets stronger. What feels barely usable today is its floor, not its ceiling.
+
+If that premise holds, the skill engineers used to be paid the most for — "turning an idea into correct code" — is losing value fast. So what is still worth something? rahulgs lays out the answer in ten points, and [Claude Code](/en/glossary#claude-code)'s creator [Boris Cherny](/en/glossary#boris-cherny) stamped a big "agree" right underneath.
+
+## The Real Bottleneck Is Not "Writing" — It's "Reviewing" and "Merging"
+
+The most counterintuitive line in this mental model: the time it takes to ship software is now completely disconnected from the time it takes to produce the PR.
+
+These two used to be basically the same thing — code slow, product slow. But when an interpreter can spit out a fully working diff in minutes, the cost of producing a PR drops toward zero, and the whole shipping timeline gets taken over by something else: can you review and merge all this code while keeping risk under control — and do it at scale?
+
+In other words, the bottleneck moved from the keyboard to the review queue. A team's speed no longer depends on who types fastest or who knows the most algorithms. It depends on whether the team can let correct code through quickly while keeping the dangerous changes out. This is the same turn gu-log wrote about in [Code Got Cheap, but Trusting It Didn't](/posts/en-sp-230-20260616-agentic-code-review) — what got cheap is the output; what got expensive is the trust.
+
+<ClawdNote>
+Sharp cut — and it accidentally exposes a broken KPI too. Plenty of companies still measure productivity by "PRs merged this quarter" or "lines of code written." When producing a PR becomes free, that number means about as much as "how many times you breathed today." The thing actually worth measuring is "changes merged without blowing up" — review throughput, risk-catch rate. Those are the new bottleneck dashboards (⌐■_■)
+</ClawdNote>
+
+---
+
+## How Big Should a Diff Be? Look at Risk, Not Your Inner Neat Freak
+
+If diffs are free for the interpreter to generate, then diff size should no longer exist to "make it readable for humans." It should exist purely to serve review — and how tight that review is gets decided by risk.
+
+rahulgs splits code into two ways of being handled:
+
+**For the parts that can kill you, keep the diff small.** Authentication, permissions, data access, outbound network, money movement — get any of these wrong and it's a security hole or a data disaster. So the change should be cut small enough for a human to read line by line.
+
+**For the parts you can "run and verify," let the diff grow.** Frontend, backend plumbing, logic that touches neither the network nor the database, performance code where a benchmark tells you whether it's right — the correctness of this stuff can be proven by actual output. You don't need to eyeball it line by line, so a big diff is fine. (Flip side: gu-log wrote about [an agent dumping 1,500 lines in one shot being a warning sign](/posts/en-sp-229-20260616-mitchellh-1500-line-diff) — but that's because those 1,500 lines landed in the high-risk "a human has to understand this" zone, not in the run-and-verify bucket. Two sides of the same discipline.)
+
+Following this logic, rahulgs drops a conclusion that will spike a neat freak's blood pressure: **the cost of complexity itself is changing.** It might now be worth "maintaining" 50% more code to win a 5% performance gain. Finding the perfect abstraction matters less, because large refactors are no longer that painful. What becomes the biggest drag instead is fussing over code-quality nits. His bet: very likely a much smarter model will be maintaining your code later, so **taking on more technical debt now is a good trade** — while spending huge time hand-architecting and rebuilding systems comes with an enormous velocity cost.
+
+<ClawdNote summary="Not 'ship garbage' — drop perfectionism on abstractions and nits, stay ruthless on security and correctness.">
+This is the most easily-misquoted part of the whole thread. rahulgs is not telling you to slack off and write garbage — he's saying drop the perfectionism at the "abstraction" and "nits" layers, because refactoring got cheap and a stronger model will pay down the debt later. In the same thread he cranks the bar for "security and correctness" sky-high (small diffs, line-by-line review). So the correct reading is: **be pickier where it matters, stop pulling all-nighters chasing elegance where it doesn't.** Anyone who reads this as "technical debt doesn't matter" only read point 7 and skipped point 2 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Treat Low-Risk Code Like a Neural Network: Black-Box Verification
+
+This next point is the core of the whole way of thinking, and the boldest step.
+
+rahulgs puts it like this: if it quacks like a duck and walks like a duck, it's a duck. For low-risk code, instead of reading line by line to understand what it does, treat the whole chunk (a service, a function) as a **black box** — exactly the way everyone treats a neural network. Nobody pulls apart every weight inside; they just do pure empirical verification.
+
+What does empirical verification mean? Just ask a few very practical questions:
+
+- For the last 10, 100, 1,000, 10,000 inputs, did this code produce correct outputs?
+- Can you quarantine it — no outbound network, no database access?
+- If it goes wrong, what's the blast radius? Getting hacked, crashing (memory/CPU blown), or just an inconvenience?
+- Is it internal-facing or external-facing? What can be done about those risks?
+
+Push the logic further: **logical verification — line-by-line review — will eventually cost too much to be worth it.** So you save it for the parts that truly matter, and in return, you build systems that can tolerate empirical verification. rahulgs's example: is there a decorator that simply cuts off a chunk's database and network access? Because he spots one key asymmetry — **correctness bugs are far easier to fix than access bugs.** Get a number wrong, change one line. But let a chunk that shouldn't touch the outside network reach it, and that's a hole someone will pry open.
+
+<ClawdNote summary="You already black-box-trust 200 npm deps you never read — just build the isolate-and-verify cage first.">
+"Verify code like a black-box neural network" — an engineer's first reaction is usually "are you nuts, who merges code they can't read?" But think calmly: everyone already treats third-party packages this way. Who has read every line of the 200 npm dependencies they import? Nobody. What you trust is the behavior (tested, widely used, blast radius contained), not every line. rahulgs is just moving that "trust model you already use for other people's code" onto code you generated. The catch is that the "isolate + verify" cage has to be built first, otherwise you really are merging blind (╯°□°)╯
+</ClawdNote>
+
+---
+
+## The "Rails" That Let the Loop Go Faster: Permissions Should Be Off by Default
+
+If writing code is free and reviewing it is the bottleneck, then an engineer's energy should go entirely into "widening that review pipeline." rahulgs breaks this into three capabilities.
+
+The first is **turning bottlenecks into tooling.** Code checkers, tests, CI, shadow-mode verification (shadow mode: run the new version alongside the old, compare outputs only, don't actually ship it outward), empirical verification — these used to be "quality insurance." Now they're promoted to "speed engines." The more risk you can auto-block, the bigger the diffs humans can safely wave through.
+
+The second is **agency**: someone has to keep asking "what's the biggest bottleneck slowing this loop down right now? How do we kill it? Which problems need solving, and when?" — treating finding and clearing bottlenecks as a full-time job in itself.
+
+The third is **deep understanding of the full stack.** This one is the most interesting: rahulgs isn't saying "understanding every line" is unimportant — he's saying **understanding and managing risk** is what truly matters. Which problems are worth solving; whether to address a higher-level abstraction first; whether to hand the model the sub-sub-task, the sub-task, or the whole task; how to rank this PR's risks (in order: security holes > correctness holes > performance holes); whether this should run in shadow, in a sandbox, or behind a flag.
+
+And underpinning all of it are what he calls the "rails": **code permissions should be off by default and opted into.** Database writes, database reads, outbound connections (to where?), PII access — lock all of it down first, and open each one explicitly only when needed. Pair that with questions like "how long to get shadow-mode data, how many PRs can we test, what categories do diffs fall into," and the whole iteration loop can run faster and faster while staying safe.
+
+<ClawdNote summary="Permissions off by default = least-privilege IAM at the function layer — the cage that makes black-box safe.">
+"Permissions off by default" is the most underrated engineering conclusion in the thread. It's basically dragging the cloud-IAM principle of least privilege straight down into your own function layer — every chunk of code lives by default in a vacuum where it can touch nothing, and has to file an explicit request to reach the DB or go out to the network. That way, even if a black-box chunk really is wrong, the damage it can do is locked by the permission cage at the "inconvenience" tier, not escalated to the "front-page news" tier. The whole reason you can dare to play the black-box-verification game is this cage. Build the cage first, then let go (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## Claude Code's Creator Nods: The Next Era of Code
+
+The person who stamped this thread is no lightweight — Claude Code's creator Boris Cherny [replied with a flat "strongly agree with all of the above"](https://x.com/bcherny/status/2067272742253232211). No surprise he'd nod: he's said before that [coding is already solved](/posts/en-clawd-picks-20260223-bcherny-coding-solved-lenny), and he's talked about the split where [Claude Code catches 99% of the bugs and humans do the final sanity check](/posts/en-cp-222-20260329-bcherny-claude-code-99-bug-sanity-check). rahulgs's "humans retreat to managing risk" framing slots right in behind his long-running position.
+
+He then added his own version of the vision: software is entering its next era, where the model can generate correct code for an **increasingly large** percentage of tasks. So an engineer's job becomes two things — first, make sure the model and the whole system have the right guardrails, and then run "Claude Code + an advanced model + a verifier" as a loop, feeding it tasks (or, give the model the data it needs to generate its own tasks), and finding and clearing bottlenecks along the way.
+
+Stack rahulgs and Boris side by side and you see one conclusion converging from two angles: rahulgs comes in from "how an engineer should think," Boris closes from "how a system should be built." One says people should move their energy from writing code to managing risk; the other says products should move the workflow from "humans write, humans review" to "the model writes, the verifier verifies, humans mind the guardrails." The shared part in the middle is that loop: **verifier + guardrails + continuously clearing bottlenecks.**
+
+<ClawdNote summary="Boris hands even task-slicing to the model. The whole loop rides on how reliable the verifier is.">
+Boris's line "give the model the data it needs to generate its own tasks" sounds breezy, but it's actually the boldest step in the whole thing. rahulgs talked about humans slicing tasks and handing them to the model; Boris wants to hand off the task-slicing too — humans retreat to just minding the guardrails and designing the loop. That's perfectly on-brand for the guy who built Claude Code: the tool isn't there to help you type faster, it's there to take over the whole "write → verify → merge" loop. Of course, whether this holds up rides entirely on one premise — how reliable the verifier is. If the verifier blinks, the whole loop turns into a fully automated bug factory (¬‿¬)
+</ClawdNote>
+
+---
+
+## Closing
+
+Compress the whole thread into one line: **the ability to write code is inflating; the ability to manage risk is appreciating.**
+
+What's worth remembering isn't the clickbait "AI will write all the code from now on." It's the harder turn underneath: when producing one correct diff becomes free, an engineer's real battlefield moves to "how do you build a system that lets correct code fly through while locking dangerous changes in a cage?" Reading every line yourself goes from a virtue to a luxury — the same direction [Andrew Ng pointed when he said he no longer reads the code AI writes](/posts/en-clawd-picks-20260225-andrewng-stop-reading-code). Meanwhile building the cage, setting the guardrails, and automating verification go from chores to core competitive edge.
+
+So next time, before spending a whole afternoon wrestling with an abstraction that's beautiful but doesn't matter, it might be worth asking: would that afternoon be worth more spent widening the review pipeline instead?
