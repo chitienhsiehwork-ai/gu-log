@@ -88,11 +88,15 @@ tags: ["tag1", "tag2"]  # 用於分類和過濾
 
 **Counter 位置**: `scripts/article-counter.json`
 
-### 並行撰寫防 ID collision：PENDING ticket pattern
+### 編號分配：PENDING ticket pattern（預設流程）
 
-**問題**：兩條 branch 同時在寫 SP/CP，如果都從 `article-counter.json` 讀當前 `next` 值（例如 SP-174），就會撞號——先 merge 的那條沒事，後 merge 的那條要改號、改檔名、改 cross-ref，一堆瑣事。
+**這是新文章的預設做法，不是並行才用的特例。** 不管手邊有沒有別篇在寫，新文章一律先用 `PENDING`，**只在 merge 前最後一刻才 allocate 真號**。把「給號」這件事推到流程最尾端，是因為早給號只有壞處、沒有好處：
 
-**SOP**：寫作階段一律用 `PENDING` 當 ticketId + 檔名前綴，**只在 merge 前最後一刻才 allocate 真號**。兩條 branch 各自用 `CP-PENDING` 沒衝突，等要上 main 時才各自跟 counter 要號。
+- **撞號**：兩條 branch 同時寫，如果都先讀 `article-counter.json` 的 `next`（例如 SP-232）就會撞號——先 merge 的沒事，後 merge 的要改號、改檔名、改 cross-ref，一堆瑣事。
+- **counter merge conflict**：早給號 = 早 bump counter，每條 branch 都改 `article-counter.json` 同一行，必衝突。留到最後一刻才 bump，衝突視窗縮到趨近於零。
+- **白寫**：一篇文章可能 tribunal 沒過、被 user 喊卡而不上 main。早給的號就空掉了，counter 出現跳號。
+
+用 `PENDING` 寫作期間，每條 branch 各自掛 `SP-PENDING` 互不衝突；等真的要上 main，才各自跟 counter 要一個當下最新的號。**單篇、沒有並行工作時也照走 PENDING**——流程一致，不用每次判斷「這次要不要防呆」。
 
 **工作流程**：
 
@@ -103,22 +107,32 @@ ticketId: "CP-PENDING"   # 或 SP-PENDING / SD-PENDING / Lv-PENDING
 
 檔名用：`<prefix>-pending-YYYYMMDD-<slug>.mdx`（zh-tw）、`en-<prefix>-pending-YYYYMMDD-<slug>.mdx`（en）
 
-**Merge 前的 swap procedure**（四步，手動或交給 `gp-pipeline deploy`）：
+**Merge 前的 swap：一個指令搞定**（手寫 / CCC 路徑）
 
-1. `node -e "console.log(require('./scripts/article-counter.json').CP.next)"` 拿下一個真號
-2. 改 frontmatter：`ticketId: "CP-PENDING"` → `ticketId: "CP-293"`（兩個檔案都改）
-3. Rename 檔案：`cp-pending-20260414-foo.mdx` → `cp-293-20260414-foo.mdx`（兩個檔案都改）
-4. Bump counter：`node -e "const fs=require('fs'); const c=JSON.parse(fs.readFileSync('scripts/article-counter.json')); c.CP.next++; fs.writeFileSync('scripts/article-counter.json', JSON.stringify(c,null,2)+'\n');"`
-5. `node scripts/validate-posts.mjs` → commit swap → push 到 main
+```bash
+# 自動偵測唯一一組 PENDING 文章；多組時用 prefix 或 slug 指定
+node scripts/allocate-ticket.mjs            # 只有一組 PENDING 時
+node scripts/allocate-ticket.mjs SP         # 多個 prefix 有 PENDING 時，挑 SP
+node scripts/allocate-ticket.mjs polished-ui-rules   # 同 prefix 多篇時，用 slug 區分
+node scripts/allocate-ticket.mjs SP --dry-run        # 先預覽不動檔案
+```
 
-**自動化版本**：`tools/sp-pipeline/gp-pipeline deploy` 包辦整個 swap，在 pipeline orchestrated 流程裡自動跑。
+`allocate-ticket.mjs` 做的就是「給號」這一件事、而且**只做這件事**：讀 counter → 把 `SP-PENDING` 換成 `SP-N`（zh-tw + en 兩個檔案的 frontmatter）→ rename 檔名（`sp-pending-…` → `sp-N-…`，你選的日期跟 slug 原封不動保留）→ bump counter → 跑 `validate-posts.mjs`。**它不 commit、不 build、不 push**——所以你可以把它當 merge 前的最後一步，產出一個乾淨的「swap PENDING → SP-N」atomic commit，這時 counter 是最新的。
+
+四步手動版（script 壞了時的 fallback）：
+1. `node -e "console.log(require('./scripts/article-counter.json').SP.next)"` 拿下一個真號
+2. 改 frontmatter：`ticketId: "SP-PENDING"` → `ticketId: "SP-232"`（兩個檔案都改）
+3. Rename 檔案：`sp-pending-20260617-foo.mdx` → `sp-232-20260617-foo.mdx`（兩個檔案都改）
+4. Bump counter + `node scripts/validate-posts.mjs` → commit swap
+
+**Pipeline 版本**：`tools/sp-pipeline/gp-pipeline run`／`gp-pipeline deploy` 包辦整個 swap（連 commit / build / push 一起），在 orchestrated 流程裡自動跑——write 階段預設就寫 `PENDING`（`internal/pipeline/write.go`），deploy 階段才 allocate（`internal/deploy/deploy.go`）。手寫路徑想要「只 swap、commit 留給自己」時用上面的 `allocate-ticket.mjs`。
 
 **Gate 行為**：
 - `validate-posts.mjs` 接受 `<PREFIX>-PENDING`，跳過 uniqueness 檢查（讓多條 branch 並行用 PENDING）
 - `.githooks/pre-commit` 也跳過 PENDING 的 duplicate count 檢查
 - `.githooks/pre-push` **阻擋** PENDING 推上 `main` / `master`——這是 SOP 的 safety net，防止 PENDING 誤入 production
 
-**什麼時候可以跳過 PENDING？** 一條 branch 只有一篇、也沒有其他並行工作時，直接用真號也 OK。PENDING 是並行場景的防呆，不是強制規定。
+**什麼時候可以跳過 PENDING？** 幾乎不需要。預設一律走 PENDING（流程一致、不用每次判斷）。真的只有「100% 確定沒有任何並行工作、而且你就是要立刻給號」時，直接用真號才不算錯——但這沒有省到什麼，還得自己記得 bump counter，所以不建議當習慣。**有疑慮就用 PENDING。**
 
 ---
 
@@ -131,21 +145,18 @@ grep -r "sourceUrl.*twitter\|x\.com.*STATUS_ID" src/content/posts/
 grep -ri "AUTHOR_HANDLE\|TOPIC_KEYWORD" src/content/posts/*.mdx
 ```
 
-**Step 2: 取得下一個 ticket ID**
-```bash
-cat scripts/article-counter.json | grep -A1 '"SP"' | grep next
-# 或
-node -e "console.log('SP-' + require('./scripts/article-counter.json').SP.next)"
-```
+**Step 2: 用 PENDING 開檔（不要現在給號、不要碰 counter）**
 
-**Step 3: 建立文章並更新 counter**
-1. 用上面拿到的編號寫 frontmatter `ticketId: "SP-N"`
-2. 建立 zh-tw 和 en 兩個檔案
-3. **立即** 更新 counter：
-```bash
-node -e "const fs=require('fs'); const c=JSON.parse(fs.readFileSync('scripts/article-counter.json')); c.SP.next++; fs.writeFileSync('scripts/article-counter.json', JSON.stringify(c,null,2)+'\n');"
-```
-4. Validate & push
+frontmatter 寫 `ticketId: "SP-PENDING"`，檔名用 `sp-pending-YYYYMMDD-<slug>.mdx`（en 版 `en-sp-pending-…`）。**這一步不讀 counter、不 bump counter**——給號是 merge 前最後一刻的事，見上面〈編號分配：PENDING ticket pattern〉。
+
+**Step 3: 建立文章 → tribunal → commit（仍然是 PENDING）**
+1. 建立 zh-tw 和 en 兩個檔案，frontmatter 都掛 `SP-PENDING`
+2. 跑品質 gate（validate / jingjing / pronoun / tribunal），分數寫進 frontmatter
+3. Commit + push + 開 PR——**整路都還是 PENDING**（pre-push 只擋 PENDING 進 main/master，feature branch 照常）
+
+**Step 4: merge 前最後一刻才 allocate 真號**
+
+CI 綠、要合的那一刻才 `node scripts/allocate-ticket.mjs SP`（swap + rename + bump counter），產出一個獨立的「swap PENDING → SP-N」commit，然後 merge。這時讀到的 counter 是最新的，撞號跟 counter conflict 的視窗趨近於零。
 
 ### translatedBy.model — 自動偵測
 
@@ -160,8 +171,9 @@ node scripts/detect-model.mjs anthropic/claude-opus-4-6
 
 ### 常見錯誤
 - ❌ 看到 tweet 就開寫，沒先搜尋 → 造成重複文章
-- ❌ 用「我記得是 SP-XX」而不是讀 counter → 編號衝突
-- ❌ 忘記更新 counter → 下一篇又用同一編號
+- ❌ 寫作階段就給真號（而不是 `PENDING`）→ 跟並行的 branch 撞號、counter merge conflict
+- ❌ 早早 bump counter → 文章如果沒上 main，號就空掉、counter 跳號
+- ❌ 用「我記得是 SP-XX」硬給號 → 編號衝突（正解：`allocate-ticket.mjs` 在 merge 前讀當下的 counter）
 - ❌ 同一個 source tweet 寫成多篇 → 應該合併成 series
 
 ## Components
