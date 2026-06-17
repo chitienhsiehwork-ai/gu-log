@@ -380,3 +380,13 @@ Sprin asked whether Tribunal v7 FreshEyes covers “length should be just right,
 - 情境：SD-26 用「三百多篇 AI 翻譯文章」描述 gu-log 規模。這低估了目前內容量，也把 MP 精選、SD 原創、教學混成「AI 翻譯文章」，分類不準。
 - 修法：改成「五百多篇文章——大約兩百篇 GP 翻譯、三百篇 MP 精選，外加 SD 跟教學」。後續句子只用「五百多篇 / 500 posts」，避免每次重複解釋 taxonomy。
 - Reusable lesson：談 gu-log 全站規模時，不要憑印象寫「三百多」。要先算 active unique posts，並區分 GP / MP / SD / LevelUp。若文意不是只談翻譯，不要寫成「AI 翻譯文章」。
+
+## 2026-06-17 — SP-232 loop engineering /「六個字」沒講是哪六個字
+
+### Feedback: 標題/引言一直說「六個字的咒語」，卻從頭到尾沒講那六個字是什麼
+
+- ShroomDog feedback：`什麼東西六個字？三小xD 太沒資訊量了吧`（看 SP-232 標題與引言時）
+- 情境：SP-232 開場 hook 是「一句六個字的咒語衝到 220 萬瀏覽」，正文又反覆出現「那六個字」「一句六個字的話」，但**從來沒有把那六個英文字寫出來**。原文 mvanhorn 說 the most repeated sentence is "six words long"，指的是 Steinberger 那句的英文核心「design loops that prompt your agents」（剛好六個 word）。漏掉它＝把整個 hook 變成空殼，讀者被吊著卻拿不到 payoff。
+- 翻譯陷阱（中文版更糟）：英文 six words 很自然，但中文「六個字」會被讀成「六個漢字」。引言裡那句翻成中文的咒語明明十幾個漢字，讀者一對照就覺得「哪來六個字？」——word 與「字」的計數單位不一樣，直接搬會製造矛盾感。
+- 修法：引言第一段就把那六個字攤開——zh 改成「那句話濃縮成英文就六個字——『design loops that prompt your agents』（去設計那些會 prompt agent 的 loop）」；en 改成「Compressed, it's six words — "design loops that prompt your agents"」。英文原句包在引號裡（直接引用原文，jingjing 放行），後面附中文翻譯。標題與後面的「那六個字」callback 就站得住了，因為 payoff 已在第一段交付。
+- Reusable lesson：(1) 任何「數字＋名詞」的 hook（六個字、三句話、兩張圖、一行指令）都必須在開場附近**把那個東西本體交出來**，不能只丟數字吊胃口；hook 的 promise 要在同段或下一段兌現。(2) 跨語言搬「count words」類說法要小心單位錯位——英文 word ≠ 中文「字」。要保留「精簡到很短」的張力時，中文要嘛點明「英文六個字」並秀出英文，要嘛改用不綁計數單位的講法（例如「短到不行的一句」）。
