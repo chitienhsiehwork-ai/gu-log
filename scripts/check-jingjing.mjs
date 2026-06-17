@@ -496,6 +496,10 @@ SOP
 # kvnkld = X handle of the source author. Figma = the design tool the post
 # centers on (product proper noun, sibling of allowlisted Datasette/Zed).
 kvnkld Figma
+
+# Added 2026-06-17 for CP (rahulgs "english -> code interpreters" thread).
+# rahulgs = X handle of the source author (proper noun, same pattern as kvnkld).
+rahulgs
 `;
 
 const HARDCODED = new Set();
