@@ -1,0 +1,124 @@
+---
+ticketId: "SP-233"
+title: "AI-Built UI Gets Caught in Three Seconds. The Tell Is Taste."
+originalDate: "2026-06-16"
+translatedDate: "2026-06-17"
+translatedBy:
+  model: "Opus 4.8"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.8"
+      harness: "Claude Code"
+source: "@kvnkld on X"
+sourceUrl: "https://x.com/kvnkld/status/2066863634949779464"
+lang: "en"
+summary: "You can't tell a model 'make it premium and smooth' and get a premium UI. kvnkld's full system behind his polished components — easing curves, design tokens, real physics, the 98% press — reduces to one move: trade adjectives for numbers. The model is the hands; the last 10% of taste is still yours."
+tags: ["shroom-picks", "ai", "ui", "frontend", "design"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+There is a kind of interface you can spot as AI-built within three seconds. You can't say exactly what's wrong, but something is. Buttons feel stiff when pressed, things pop on like someone flipped a light switch, cards float over the background like stickers. Each element looks fine on its own; together they're just a little off.
+
+[kvnkld](https://x.com/kvnkld/status/2066863634949779464) keeps getting asked: how do those components you post end up so polished? What [prompts](/glossary#prompt) do you use? So he wrote the whole system down — and the very first line pops the fantasy:
+
+> Polish is not a feature you prompt for. You can't type "make it premium and smooth" and get there.
+
+The model is a phenomenal pair of hands, but the taste, the rules, and the hundred tiny decisions are still yours. Everything below is what he actually uses to build those components. His words: steal all of it.
+
+<ClawdNote summary="'Make it premium' is the engineer's version of 'just make it nice.'">
+This line deserves a frame. A lot of people use AI by handing the model the blurry blob in their head — "I want it to look impressive" — untouched, then frown at what comes back: nope, not that feeling.
+
+The problem is "that feeling" was never said out loud. Your idea of "premium" might be 280ms of easing with a touch of overshoot, but all you gave the model was the word "premium" — so it guesses, and the guess is the generic version everyone has seen and no one remembers. Adjectives are your excuse for laziness, and the model just faithfully develops that laziness into pixels. (¬‿¬)
+</ClawdNote>
+
+## Underneath all ten rules, there's only one: trade adjectives for numbers
+
+If you remember one thing, remember this. kvnkld's ten rules each have their own move, but underneath they're all the same action — every time you say an adjective out loud, convert it in your head into a number you can write straight into CSS. "Smooth" means nothing; "`cubic-bezier(0.22, 1, 0.36, 1)` at 280ms" can actually be built. Specificity is the whole game.
+
+The thing that shows this best is what he put first, and cares about most: **the easing curve.**
+
+The single biggest difference between "an LLM built this" and "a person with taste built this" is easing — how a motion starts, speeds up, and settles. The browser's built-in defaults (`ease`, `ease-in-out`) scream "generic, off-the-shelf." kvnkld never touches them. Instead he locks one house easing set into design variables and reuses it on every project:
+
+```css
+:root {
+  --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);    /* default for almost everything */
+  --ease-out:    cubic-bezier(0.17, 1, 0.32, 1);    /* decorative entrances */
+  --ease-spring: cubic-bezier(0.35, 1.55, 0.65, 1); /* badges, pops, overshoot */
+  --ease-in-out: cubic-bezier(0.66, 0, 0.34, 1);    /* symmetric moves */
+}
+```
+
+These, he stresses, aren't sacred numbers — they're tuned by feel. He nudged each one until presses, reveals, and entrances felt right. That tuning is the work. A curve that's 0.02 off feels subtly wrong even when you can't name why.
+
+So when you prompt, same rule — never say "smooth." Hand over the exact curve: "Use `cubic-bezier(0.22, 1, 0.36, 1)` for all transitions, and a slight overshoot curve `cubic-bezier(0.35, 1.55, 0.65, 1)` for anything that pops in."
+
+Rule two pushes the same logic to its source: **define your design variables before you build a single component.** Polish reads as consistency, and consistency comes from a shared vocabulary — your design tokens. Colors, corner radius, durations, motion curves, shadows: all defined as variables first, and every hover and dark-mode variant pulls from the same set. Once this exists, the model stops inventing one-off 13px radii and random 0.3s timings, and the whole UI snaps into one rhythm.
+
+> Hand the model your variable block first and say "use only these tokens, no one-off values." That one line kills 80% of the "AI slop" look.
+
+<ClawdNote summary="The model won't invent 13px radii — once you hand it the tokens first.">
+What makes this rule sharp is that it isn't really about aesthetics — it's about degrees of freedom.
+
+Every value you don't pin down, the model makes one up. The 13px, the 0.3s, some gray halfway between two others — each fine alone, a bowl of conflicting noise together. That's not the model lacking taste; it's you leaving too much room to improvise. Pin the tokens down and you plug every "just fill in something" gap, so all the model has left to do is assemble, not invent. The tighter you constrain it, the more it looks like it came from one person's hand — which is deeply counterintuitive. (◕‿◕)
+</ClawdNote>
+
+## Describe the feeling, not the jargon
+
+The next few rules look like they're about different components, but at heart they all teach you how to translate "feel" into something the model can hear.
+
+For anything draggable, don't use plain fades and slides — use real physics. A drag handle running on a fixed duration feels dead. Real interfaces have momentum, friction, and resistance: track how fast the user is moving, keep momentum on release so it coasts to a stop, and when it hits the edge don't stop hard — let it stretch a little and spring back. That last spring is the whole gap between "web slider" and "iOS."
+
+Even better is rule four — **magnetic snap points are free haptics.** Hardware gives you a physical click; on the web you fake the same satisfaction with snap points: as the handle nears a meaningful value (a month boundary, a preset), it gently magnetizes to it. The trick that makes it real is two zones — a tight pull-in zone to lock on, and a larger release zone so you have to mean it to break free. Flash the label the instant it catches, and that tiny resistance gets read, subconsciously, as quality.
+
+And how do you prompt for all this? kvnkld's answer: **forget the jargon, just describe how it should feel.**
+
+> Make the slider feel like a real physical object, not a web input. When I flick it, it should keep gliding and slowly coast to a stop on its own, like sliding something across a table. And when it hits the edge, it shouldn't stop dead — it should stretch a little and spring back.
+
+The model already knows the physics. It just needs to be told which feeling you're after.
+
+Rule five hides the most underrated detail of all: **entrances should blur into place — never just fade.** A clean fade is the most overused and least premium entrance. kvnkld's entrances almost always stack three things — opacity, a small upward shift, and a tiny blur that clears:
+
+```
+opacity:   0 → 1
+translateY: 6px → 0
+filter:    blur(2px) → blur(0)
+duration:  ~280ms, on --ease-smooth
+```
+
+Notice there's no new easing curve here — it's the `--ease-smooth` preset from rule one. That's the point of the motion set: you define the feel once, and every entrance, hover, and reveal inherits it. The 2px blur is the secret weapon — it makes content focus into the frame instead of getting switched on.
+
+<ClawdNote summary="A 2px blur and a 98% press — polish is built from obsession at this resolution.">
+I want to stop on that "2px blur" number, because it says everything about the whole piece.
+
+Nobody reviewing an interface ever says "hey, this is missing 2px of blur." It's too small to make it into a spec, too small to file a ticket, too small to even consciously notice — you only sense, vaguely, that the thing feels a bit cheap, and you can't say why. The press rule is the same: he insists on shrinking to 98%, not 95%, because 95% reads as "collapsing" while 98% reads as "a firm press."
+
+Two percentage points, two pixels — that's the line between "usable" and "want to keep touching." This can't be outsourced to the model, because the model doesn't even know it should exist. It's something you, hunched at the screen, feeling "still not quite right," go in and add by hand. (•̀ᴗ•́)
+</ClawdNote>
+
+Rule six closes another instant tell: **one shadow is a sticker; real depth is layered light.** A flat single-blur shadow is an immediate giveaway. Physical objects cast several shadows at once — a hairline where they meet the surface, a tight contact shadow, a wide soft ambient. kvnkld packs this into standard presets and reuses them everywhere, and three things make them read as real and not "default Material elevation": replace the border with a hairline ring of light (this is the single biggest tell of a hand-made UI — the edge is defined by light, not a 1px stroke), keep every layer's opacity tiny, roughly 2% to 8% (heavy shadows look cheap; depth is the sum of many faint layers), and stack several blurs at different sizes.
+
+The remaining rules are extensions of the same discipline: every clickable element gets a press response (the default is shrinking to 98%); for expand/collapse, drop the jittery `max-height: 9999px` hack and animate `grid-template-rows` from `0fr` to `1fr`, which grows precisely to the content's real height; and polish includes people who turned on "reduce motion" — every animation honors that accessibility setting, collapsing to instant and stopping decorative loops entirely. Skip these and it isn't polished.
+
+## The most important rule: a component isn't a picture, it's a set of states
+
+But kvnkld saved the finale for rule ten — the one he says nobody tells you: **a component is not a picture, it's a system of states.** A button isn't "a button," it's idle / hover / pressed / loading / disabled / success.
+
+And the real insight is the second half: **you often won't know which states you need until you start building.** The Figma mockup always looks complete. Then you start building, you drag the thing once, and the holes surface immediately — "this needs a working state," "this number should roll, not hard-swap," "this label should shimmer while busy," "this icon should cross-fade between play and pause, not snap." Those micro-interactions are discovered through use, never specced up front.
+
+<ClawdNote summary="A Figma file is a hypothesis, not a blueprint.">
+This rule isn't really just about UI — it's about the relationship between "design" and "reality" in general.
+
+kvnkld has a line I love: a Figma file is a hypothesis. It tells you where to start, but "what it actually needs" only reveals itself once you've built it and held it and dragged it around. The moments that make people go wow — numbers rolling digit by digit, a sweep of light across a label, the snap point catching — none of them were planned in the design file. They all crawled out of the gaps during the build.
+
+This is also why "design it to perfection before you start" is so often a trap. You think you're lowering risk, but you're really just deferring the moment you discover the problem. The real states, the real micro-interactions, only show up once you start dragging the live thing around. (◠‿◠)
+</ClawdNote>
+
+## The part the model can't give you
+
+Here's the truth under all of it. [Claude](/glossary#claude-code), [Codex](/glossary#codex), Cursor — these models are extraordinary. They'll build a flawless spring animation or a card-flight transition faster than any human could by hand ([Fable 5 built a whole browser-testing toolchain just to fix two lines of CSS](/en/posts/en-sp-222-20260612-simonwillison-net-fable-5-css) is a live example of a model swallowing exactly this kind of grunt work). But not one of them decided the press should be 98% and not 95%, none knew the entrance was missing a 2px blur, none knew the slider's release zone should be larger than its pull-in zone, and none knew "this specific component" was missing a working state — until a human felt the gap.
+
+That judgment is taste, and taste is earned: from shipping, from staring at things that are "almost right" and knowing the fix, from years of noticing why one interaction delights and another doesn't. The model is the hands; the eye is still yours. That's the whole skill, and it's why the same tools let two people ship wildly different work. [What's left for engineers once designers start using Claude Code](/en/posts/en-sp-26-20260204-designer-vibe-coding-insight) has the same answer: machines took over production, what stays on the human side is taste.
+
+> [Prompts](/glossary#prompt) get you 90% of the way in minutes. The last 10% — the part people actually celebrate, repost, remember — is you.
