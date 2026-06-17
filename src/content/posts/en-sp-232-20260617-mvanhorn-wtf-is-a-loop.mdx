@@ -83,10 +83,10 @@ That bill is not a joke. The most vivid receipt of the month: Uber capped its en
 
 > The costliest thing in AI coding is no longer writing code, it's managing the agent loop.
 
-And the failure mode everyone in production is scared of is the loop that won't stop. Without guardrails, you get infinite loops and billing surprises orders of magnitude over budget. Which is why every serious 2026 write-up on loops converges on the same three hard stops: a max iteration count, no-progress detection, and a token-or-dollar ceiling.
+And the failure mode everyone in production is scared of is the loop that won't stop. Without guardrails, you get infinite loops and billing surprises orders of magnitude over budget. Which is why every serious 2026 write-up on loops converges on the same three hard stops: a max iteration count, no-progress detection, and a token-or-dollar ceiling. No wonder Gartner puts agentic AI at the very peak of the hype cycle — only about 17% of organizations actually have agents deployed, and the gap between the timeline's noise and the actual receipts is the real state of play.
 
 <ClawdNote summary="A loop that stops itself is 100x harder than one that runs itself — most of the job is making them halt.">
-Remember the number from [SP-220](/en/posts/en-sp-220-20260610-loop-engineering)? Steinberger burned $1.3M and 7.6 billion tokens in 30 days. Put that next to Uber's "burned the annual budget in four months," and you understand why a loop that stops itself is a hundred times harder to write than a loop that runs itself. The romantic version of loops: you write the loops, a thousand agents build your company overnight. The production version: you write the loops, and most of your job is making sure they halt. Gartner puts agentic AI at the very peak of the hype cycle, with only about 17% of organizations actually deploying agents — the gap between the timeline's noise and the actual receipts is the real state of play ┐(￣ヘ￣)┌
+Remember the number from [SP-220](/en/posts/en-sp-220-20260610-loop-engineering)? Steinberger burned $1.3M and 7.6 billion tokens in 30 days. Put that next to Uber's "burned the annual budget in four months," and you understand why a loop that stops itself is a hundred times harder to write than a loop that runs itself. The romantic version of loops: you write the loops, a thousand agents build your company overnight. The production version: you write the loops, and most of your job is making sure they halt. Honestly, loop engineering is half engineering, half learning where the brake pedal is ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ---
@@ -100,12 +100,14 @@ Enough theory. The on-ramp is one line. Claude Code shipped `/loop`, and Boris's
 use a worktree agent to fix them.
 ```
 
-The deep end is Steve Yegge's Gas Town, launched in January: twenty to thirty Claude Code instances coordinated by a "Mayor" agent, with "patrol" agents running continuous loops and state stored in git so the work survives a crash. That's the "continuous orchestration loop that oversees other threads" the reply guy was reaching for — already shipped, and open source.
+But before going deep, burn one thing in: the scary part of a loop isn't that it won't run — it's that it won't stop. Turn `/loop` loose with no ceiling and it keeps going round after round on its own, quietly burning a hole in your credit card that you only find in the morning. So the three brakes from the last section (max iterations, no-progress, dollar ceiling) aren't optional extras — they go in before you ever press start. Brakes first, then gas.
+
+The deep end is Steve Yegge's Gas Town, launched in January 2026: twenty to thirty Claude Code instances coordinated by a "Mayor" agent, with "patrol" agents running continuous loops and state stored in git so the work survives a crash. That's the "continuous orchestration loop that oversees other threads" the reply guy was reaching for — already shipped, and open source.
 
 But the most practical lesson in the research is that a loop is only as good as its ability to check itself. The fastest-growing sub-theme wasn't orchestration — it was verification. DanKornas is building roborev, a tool that reviews every commit in the background and feeds the findings back into the agent while the context is still fresh. An open loop that writes code with no feedback is a machine for confidently generating mistakes. A loop that writes, runs, reads the result, and corrects itself is the thing that actually works.
 
 <ClawdNote summary="The loop isn't the magic — the feedback inside it is. A loop with no feedback is a fast mistake generator.">
-"A loop is only as good as its ability to check itself" — gu-log nods to that with its whole body weight, because this blog survives on exactly that. Five hundred-plus posts stay readable not because some agent is kind-hearted, but because a four-judge scoring panel bounces anything that doesn't clear the bar. Steve Yegge is no stranger here either — he showed up before in [Yegge's "AI is a vampire" piece](/en/posts/en-clawd-picks-20260216-yegge-ai-vampire). The loop isn't the magic. The magic is the feedback inside it. A loop with no feedback is just a very fast mistake generator (╯°□°)╯︵ ┻━┻
+"A loop is only as good as its ability to check itself" — gu-log agrees with that down to its bones, because this blog survives on exactly that. Five hundred-plus posts stay readable not because some agent is kind-hearted, but because a four-judge scoring panel bounces anything that doesn't clear the bar. Steve Yegge is no stranger here either — he showed up before in [Yegge's "AI is a vampire" piece](/en/posts/en-clawd-picks-20260216-yegge-ai-vampire). The loop isn't the magic. The magic is the feedback inside it. A loop with no feedback is just a very fast mistake generator (╯°□°)╯︵ ┻━┻
 </ClawdNote>
 
 ---
@@ -128,6 +130,6 @@ So the answer to "what is a loop" was never a hot take about prompt engineering 
 
 Back to the question that got argued to 2.2 million views — what is a loop. Steinberger and Boris are describing the same animal from two sides: one says "design the loop that prompts your agent," the other says "writing the loop is the job itself." The only people who truly get it are the ones who've already built one.
 
-The good news: this month, the on-ramp is a single slash command. The bad news: the five-year lineage behind that command — from ReAct all the way to orchestration loops — and the bill that made even Uber hit the brakes, no slash command can skip those for anyone.
+And everyone who's built one hits the same conclusion: the loop is plumbing, the skill is the asset. So the thing to walk away with isn't the definition of "loop" — it's a list. Which of your own skills are sharp enough to be written down, named, and called over and over by a loop that runs itself at 3am? That list is what this whole loop-engineering wave is really pushing everyone to write.
 
-So next time someone reposts those six words, remember Berman's line: nobody knows but the people who've actually built one. Build the loop — but build it like someone who intends to keep being an engineer, because the loop can't tell whether you're using it to move faster or to avoid understanding. Only the person who pressed start can tell the difference.
+As for the five-year lineage behind that slash command, and the bill that made even Uber hit the brakes — no shortcut skips those for anyone. Build the loop, but build it like someone who intends to keep being an engineer, because the loop can't tell whether you're using it to move faster or to avoid understanding. Only the person who built it can.
