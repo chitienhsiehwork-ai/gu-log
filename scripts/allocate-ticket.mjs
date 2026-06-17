@@ -1,0 +1,195 @@
+#!/usr/bin/env node
+/**
+ * allocate-ticket.mjs — swap a PENDING post's ticketId for a real number at the
+ * last moment, then bump the counter. No git, no build, no push.
+ *
+ * This is the manual / CCC counterpart to `gp-pipeline deploy`'s allocation
+ * step. The pipeline's deploy command also commits, builds, and pushes in one
+ * shot, which couples "allocate a number" with "finalize and ship." When you
+ * write a post by hand (or in a sandbox where the full pipeline can't run) and
+ * want to keep the PENDING placeholder all the way through commit + PR + CI,
+ * then allocate the real number as the very last step before merge, this is the
+ * one command that does exactly — and only — the swap:
+ *
+ *   1. Find the PENDING zh-tw post (+ its en- companion) for the prefix
+ *   2. Read scripts/article-counter.json -> next number N for that prefix
+ *   3. Rewrite `<PREFIX>-PENDING` -> `<PREFIX>-N` in both files' frontmatter
+ *   4. Rename `<prefix>-pending-<rest>.mdx` -> `<prefix>-<N>-<rest>.mdx`
+ *      (the date + slug you chose are preserved verbatim)
+ *   5. Bump the counter (next -> N + 1)
+ *   6. Run validate-posts.mjs on the renamed files
+ *
+ * Committing, building, and pushing stay in your hands (or the PR flow), so the
+ * allocation lands as its own atomic "swap PENDING -> SP-N" commit right before
+ * merge — exactly when the counter is freshest.
+ *
+ * Usage:
+ *   node scripts/allocate-ticket.mjs [slug-or-prefix] [--dry-run]
+ *
+ *   # auto-detect: exactly one PENDING pair in the repo
+ *   node scripts/allocate-ticket.mjs
+ *
+ *   # disambiguate by prefix when several prefixes have pending drafts
+ *   node scripts/allocate-ticket.mjs SP
+ *
+ *   # disambiguate by slug substring when one prefix has several pending drafts
+ *   node scripts/allocate-ticket.mjs polished-ui-rules
+ *
+ *   # preview the swap without touching anything
+ *   node scripts/allocate-ticket.mjs SP --dry-run
+ */
+
+import fs from 'node:fs';
+import path from 'node:path';
+import process from 'node:process';
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = path.resolve(__dirname, '..');
+const POSTS_DIR = path.join(REPO_ROOT, 'src', 'content', 'posts');
+const COUNTER_FILE = path.join(REPO_ROOT, 'scripts', 'article-counter.json');
+
+const VALID_PREFIXES = ['SP', 'CP', 'SD', 'Lv'];
+const PENDING_RE = /^(en-)?(sp|cp|sd|lv)-pending-(.+)\.mdx$/i;
+
+/** Find every PENDING post pair under src/content/posts. */
+function findPendingPairs() {
+  const files = fs.readdirSync(POSTS_DIR).filter((f) => PENDING_RE.test(f));
+  // Group by base name (strip the en- prefix) so a zh-tw post and its English
+  // companion travel together.
+  const byBase = new Map();
+  for (const f of files) {
+    const base = f.startsWith('en-') ? f.slice(3) : f;
+    if (!byBase.has(base)) byBase.set(base, { base, zh: null, en: null });
+    const entry = byBase.get(base);
+    if (f.startsWith('en-')) entry.en = f;
+    else entry.zh = f;
+  }
+  return [...byBase.values()].map((entry) => {
+    const m = entry.base.match(PENDING_RE);
+    return { ...entry, prefix: m[2].toUpperCase(), rest: m[3] };
+  });
+}
+
+/** Pick the single target pair, using an optional prefix/slug filter. */
+function selectPair(pairs, filter) {
+  let candidates = pairs;
+  if (filter) {
+    const upper = filter.toUpperCase();
+    if (VALID_PREFIXES.includes(upper)) {
+      candidates = pairs.filter((p) => p.prefix === upper);
+    } else {
+      candidates = pairs.filter((p) => p.base.includes(filter));
+    }
+  }
+  if (candidates.length === 0) {
+    throw new Error(
+      filter
+        ? `No PENDING post matches "${filter}".`
+        : 'No PENDING posts found under src/content/posts.'
+    );
+  }
+  if (candidates.length > 1) {
+    const list = candidates.map((p) => `  - ${p.base}`).join('\n');
+    throw new Error(
+      `Ambiguous: ${candidates.length} PENDING posts match. Disambiguate by prefix or slug:\n${list}`
+    );
+  }
+  return candidates[0];
+}
+
+function readCounter() {
+  return JSON.parse(fs.readFileSync(COUNTER_FILE, 'utf8'));
+}
+
+function writeCounter(counter) {
+  fs.writeFileSync(COUNTER_FILE, `${JSON.stringify(counter, null, 2)}\n`);
+}
+
+/** Swap the ticketId in a file's frontmatter, in place. */
+function swapTicketId(absPath, prefix, n) {
+  const content = fs.readFileSync(absPath, 'utf8');
+  const swapped = content.replace(
+    new RegExp(`(["']?)${prefix}-PENDING\\1`, 'g'),
+    `$1${prefix}-${n}$1`
+  );
+  if (swapped === content) {
+    throw new Error(`No ${prefix}-PENDING ticketId found in ${path.basename(absPath)}`);
+  }
+  fs.writeFileSync(absPath, swapped);
+}
+
+function allocate({ filter, dryRun }) {
+  const pairs = findPendingPairs();
+  const pair = selectPair(pairs, filter);
+  const { prefix } = pair;
+
+  const counter = readCounter();
+  if (!counter[prefix] || typeof counter[prefix].next !== 'number') {
+    throw new Error(`Counter has no numeric "next" for prefix ${prefix}`);
+  }
+  const n = counter[prefix].next;
+
+  const plan = [];
+  for (const which of ['zh', 'en']) {
+    const fname = pair[which];
+    if (!fname) continue;
+    const newName = fname.replace(/-pending-/i, `-${n}-`);
+    plan.push({ which, oldName: fname, newName });
+  }
+
+  const oldTicket = `${prefix}-PENDING`;
+  const newTicket = `${prefix}-${n}`;
+
+  process.stdout.write(`Allocating ${oldTicket} -> ${newTicket}\n`);
+  for (const step of plan) {
+    process.stdout.write(`  ${step.oldName}\n    -> ${step.newName}\n`);
+  }
+  process.stdout.write(`  counter: ${prefix}.next ${n} -> ${n + 1}\n`);
+
+  if (dryRun) {
+    process.stdout.write('\n[dry-run] nothing written.\n');
+    return { ticketId: newTicket, files: plan.map((s) => s.newName) };
+  }
+
+  // Swap ticketIds first (on the old paths), then rename the files.
+  for (const step of plan) {
+    swapTicketId(path.join(POSTS_DIR, step.oldName), prefix, n);
+  }
+  for (const step of plan) {
+    fs.renameSync(path.join(POSTS_DIR, step.oldName), path.join(POSTS_DIR, step.newName));
+  }
+
+  counter[prefix].next = n + 1;
+  writeCounter(counter);
+
+  // Validate the renamed files so a bad swap fails loudly here, not in CI.
+  const newPaths = plan.map((s) => path.join(POSTS_DIR, s.newName));
+  execFileSync('node', [path.join(REPO_ROOT, 'scripts', 'validate-posts.mjs'), ...newPaths], {
+    stdio: 'inherit',
+  });
+
+  process.stdout.write(
+    `\n✓ Allocated ${newTicket}. Stage the renamed files + scripts/article-counter.json, commit, and merge.\n`
+  );
+  return { ticketId: newTicket, files: plan.map((s) => s.newName) };
+}
+
+const __isCli =
+  import.meta.url === pathToFileURL(process.argv[1] ?? '').href ||
+  (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]);
+
+if (__isCli) {
+  const args = process.argv.slice(2);
+  const dryRun = args.includes('--dry-run');
+  const filter = args.find((a) => !a.startsWith('--'));
+  try {
+    allocate({ filter, dryRun });
+  } catch (err) {
+    process.stderr.write(`✗ ${err.message}\n`);
+    process.exit(1);
+  }
+}
+
+export { findPendingPairs, selectPair, allocate };

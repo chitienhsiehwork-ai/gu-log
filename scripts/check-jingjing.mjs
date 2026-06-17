@@ -491,6 +491,11 @@ apply
 format formats
 opening
 SOP
+
+# Added 2026-06-17 for SP (kvnkld "10 rules to ship polished UI").
+# kvnkld = X handle of the source author. Figma = the design tool the post
+# centers on (product proper noun, sibling of allowlisted Datasette/Zed).
+kvnkld Figma
 `;
 
 const HARDCODED = new Set();
