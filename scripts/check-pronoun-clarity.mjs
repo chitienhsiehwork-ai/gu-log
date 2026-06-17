@@ -125,7 +125,7 @@ function stripInlineCode(line) {
 // Blank them before the scan so e.g. 迷你 (mini) doesn't false-positive as 「你」.
 // Keep this list to terms that are NEVER pronouns — 我們/你們 (we/you) must
 // still be caught, so they are deliberately absent.
-const NON_PRONOUN_COMPOUNDS = ['迷你'];
+const NON_PRONOUN_COMPOUNDS = ['迷你', '自我'];
 
 function stripNonPronounCompounds(line) {
   let out = line;
