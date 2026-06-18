@@ -437,16 +437,46 @@ tribunal_claude_agent_model() {
   fi
 }
 
+# Resolve the floating `opus` alias to its concrete build for RECORDING only.
+# Selection stays on the alias (tribunal_claude_agent_model returns it verbatim
+# so `claude -p --model opus` still floats to Anthropic's latest Opus); this
+# resolver is applied at the recording boundary so frontmatter scores.*.model
+# and the progress ledger stamp the concrete version (e.g. claude-opus-4-8)
+# instead of the opaque literal "opus".
+#
+# The bash judge path can't cheaply read Claude Code's runtime JSON metadata
+# (the judge writes its score to a file; stdout is only grep'd for quota
+# errors), so we resolve via the single SSOT constant OPUS_ALIAS_CURRENT in
+# scripts/detect-model.mjs. Non-alias ids (claude-opus-4-5, gpt-5.5, …) pass
+# through untouched. Falls back to the input unchanged if node is unavailable.
+tribunal_resolve_recorded_model() {
+  local selector="$1"
+  if [ -z "${REPO_ROOT:-}" ]; then
+    REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  fi
+  local resolved=""
+  if command -v node >/dev/null 2>&1 && [ -r "$REPO_ROOT/scripts/detect-model.mjs" ]; then
+    resolved="$(node "$REPO_ROOT/scripts/detect-model.mjs" --id "$selector" 2>/dev/null)"
+  fi
+  if [ -n "$resolved" ]; then
+    printf '%s\n' "$resolved"
+  else
+    printf '%s\n' "$selector"
+  fi
+}
+
 # Programmatic model id stamped into frontmatter scores + progress for the
 # active provider, so a Claude-scored post is recorded honestly instead of
 # being mislabelled GPT-5.5. Optional agent_name yields the judge's declared
-# Claude build; without it, a coarse provider label is returned.
+# Claude build; without it, a coarse provider label is returned. When a judge
+# declares the floating `opus` alias, the recorded id is resolved to its
+# concrete build (selection still uses the alias — see tribunal_claude_exec).
 tribunal_llm_model_id() {
   local agent_name="${1:-}"
   case "$(tribunal_llm_provider 2>/dev/null)" in
     claude)
       if [ -n "$agent_name" ]; then
-        tribunal_claude_agent_model "$agent_name"
+        tribunal_resolve_recorded_model "$(tribunal_claude_agent_model "$agent_name")"
       else
         printf 'claude-opus-4-6\n'
       fi
