@@ -155,6 +155,35 @@ const FRONTMATTER_DIM_MAP: Record<string, { fmKey: FrontmatterJudgeKey; dims: re
     },
   };
 
+/**
+ * Version-aware vibe/freshEyes frontmatter dimension lists. For v9+ `clarity`
+ * is written under freshEyes (not vibe); other judges are unaffected. The
+ * `score` composite that buildFrontmatterScore computes is the floored mean of
+ * whatever dims are present, so the divisor follows ownership automatically.
+ */
+function vibeFmEntry(version: number): { fmKey: FrontmatterJudgeKey; dims: readonly string[] } {
+  return {
+    fmKey: 'vibe',
+    dims:
+      version >= NEW_RULES_MIN_VERSION
+        ? ['persona', 'clawdNote', 'vibe', 'narrative']
+        : ['persona', 'clawdNote', 'vibe', 'clarity', 'narrative'],
+  };
+}
+
+function freshEyesFmEntry(version: number): {
+  fmKey: FrontmatterJudgeKey;
+  dims: readonly string[];
+} {
+  return {
+    fmKey: 'freshEyes',
+    dims:
+      version >= NEW_RULES_MIN_VERSION
+        ? ['readability', 'firstImpression', 'payoffDensity', 'lengthFit', 'clarity']
+        : ['readability', 'firstImpression', 'payoffDensity', 'lengthFit'],
+  };
+}
+
 const RESERVED_KEYS = new Set(['score', 'date', 'model']);
 
 function buildFrontmatterScore(
@@ -194,8 +223,8 @@ interface VerifiedPassBar {
   reasons?: string[];
 }
 
-function verifyFreshEyesPassBar(output: FreshEyesJudgeOutput): VerifiedPassBar {
-  const result = checkFreshEyesPassBar(output.scores);
+function verifyFreshEyesPassBar(output: FreshEyesJudgeOutput, version: number): VerifiedPassBar {
+  const result = checkFreshEyesPassBar(output.scores, version);
   const reasons: string[] = [];
 
   if (result.composite < 8) {
@@ -207,9 +236,28 @@ function verifyFreshEyesPassBar(output: FreshEyesJudgeOutput): VerifiedPassBar {
   if (output.scores.lengthFit < 8) {
     reasons.push(`lengthFit ${output.scores.lengthFit} is below 8`);
   }
+  // v9+ only: clarity moved into Fresh Eyes as a non-compensating gate.
+  if (version >= NEW_RULES_MIN_VERSION) {
+    const clarity = output.scores.clarity;
+    if (clarity === undefined || clarity < 8) {
+      reasons.push(`clarity ${clarity ?? 'missing'} is below 8`);
+    }
+  }
 
   return { pass: result.pass, composite: result.composite, reasons };
 }
+
+/**
+ * Read the post's tribunalVersion from frontmatter (scores.tribunalVersion).
+ * Defaults to 8 (legacy) when absent — pre-clarity-move behavior.
+ */
+function readTribunalVersion(articleRaw: string): number {
+  const m = articleRaw.match(/^\s{2}tribunalVersion:\s*(\d+)/m);
+  return m ? Number(m[1]) : 8;
+}
+
+/** Minimum tribunalVersion at which the clarity-move (v9) rules apply. */
+const NEW_RULES_MIN_VERSION = 9;
 
 function applyVerifiedPassBar<
   TJudge extends {
@@ -672,7 +720,11 @@ async function runStage3(state: PipelineState, config: PipelineConfig): Promise<
  * Stage 4: Final Vibe — relative pass bar, no-block-on-fail.
  * On fail: records degradation, does NOT stop pipeline.
  */
-async function runStage4(state: PipelineState, config: PipelineConfig): Promise<void> {
+async function runStage4(
+  state: PipelineState,
+  config: PipelineConfig,
+  version: number
+): Promise<void> {
   const stage = state.stages.stage4;
   if (stage.status === 'passed' || stage.status === 'skipped') return;
 
@@ -714,7 +766,7 @@ async function runStage4(state: PipelineState, config: PipelineConfig): Promise<
     // be accepted and skip the degradation marker. Derive pass/degraded
     // deterministically here from scores, and overwrite the model's
     // claim so downstream consumers always see the orchestrator's truth.
-    const passBar = checkFinalVibePassBar(judgeOutput.scores, stage1Output.scores);
+    const passBar = checkFinalVibePassBar(judgeOutput.scores, stage1Output.scores, version);
     judgeOutput.pass = passBar.pass;
     judgeOutput.is_degraded = !passBar.pass;
     judgeOutput.degraded_dimensions = passBar.degradedDimensions.map((d) => d.dim);
@@ -726,7 +778,7 @@ async function runStage4(state: PipelineState, config: PipelineConfig): Promise<
       stage.status = 'passed';
       stage.completedAt = now();
 
-      const { fmKey, dims } = FRONTMATTER_DIM_MAP.stage1;
+      const { fmKey, dims } = vibeFmEntry(version);
       const entry = buildFrontmatterScore(
         judgeOutput.scores,
         dims,
@@ -842,6 +894,10 @@ export async function runPipeline(
   // Create tribunal branch (idempotent — git no-ops if branch exists)
   await config.git.createBranch(branchName);
 
+  // Resolve the post's tribunalVersion once — gates the clarity-move (v9) rules
+  // for every downstream pass-bar / persistence decision in this run.
+  const version = readTribunalVersion(await config.io.readArticle(articlePath));
+
   // --- Stage 0: Worthiness Gate (WARN mode, always continues) ---
   await runStage0(state, config);
 
@@ -854,7 +910,7 @@ export async function runPipeline(
     config,
     (content) => config.runners.stage1Judge.run({ articleContent: content }),
     (content, feedback) => config.runners.stage1Writer.run({ articleContent: content, feedback }),
-    FRONTMATTER_DIM_MAP.stage1
+    vibeFmEntry(version)
   );
 
   if (!stage1Passed) {
@@ -873,8 +929,8 @@ export async function runPipeline(
     config,
     (content) => config.runners.stage2Judge.run({ articleContent: content }),
     (content, feedback) => config.runners.stage2Writer.run({ articleContent: content, feedback }),
-    FRONTMATTER_DIM_MAP.stage2,
-    verifyFreshEyesPassBar
+    freshEyesFmEntry(version),
+    (output) => verifyFreshEyesPassBar(output, version)
   );
 
   if (!stage2Passed) {
@@ -899,7 +955,7 @@ export async function runPipeline(
   }
 
   // --- Stage 4: Final Vibe (relative pass bar, non-blocking) ---
-  await runStage4(state, config);
+  await runStage4(state, config, version);
 
   // --- All stages complete ---
   // Determine final status

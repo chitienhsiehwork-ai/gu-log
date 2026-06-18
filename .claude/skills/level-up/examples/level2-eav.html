@@ -1,0 +1,1313 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>光復超人 — Lv.2 EAV 倉庫大災難</title>
+  <style>
+    :root {
+      --bg: #f6f8f5;
+      --ink: #20302c;
+      --muted: #5d6e69;
+      --line: #d9e2dc;
+      --paper: #fffdf7;
+      --card: #ffffff;
+      --wood: #6d431f;
+      --wood-dark: #3d2614;
+      --wood-soft: #95612e;
+      --orange: #b7631b;
+      --orange-light: #f5aa48;
+      --orange-soft: #fff0dc;
+      --blue: #2f67a6;
+      --blue-deep: #1f4775;
+      --blue-soft: #e2edf8;
+      --green: #1f7a6b;
+      --green-deep: #13574d;
+      --green-soft: #dff2ed;
+      --cream: #fff7df;
+      --null: #7d8790;
+      --null-soft: #edf0f2;
+      --danger: #a4412f;
+      --pixel: 4px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      overflow-x: hidden;
+      color: var(--ink);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      line-height: 1.72;
+      background:
+        radial-gradient(circle at 12% 10%, rgba(255, 240, 178, .92) 0 7%, transparent 17%),
+        radial-gradient(circle at 84% 6%, rgba(134, 205, 235, .68) 0 8%, transparent 20%),
+        linear-gradient(180deg, #bfe7ff 0 0, #e7f6ff 230px, #f7fbef 520px, var(--bg) 100%);
+    }
+
+    body::before,
+    body::after {
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      pointer-events: none;
+      content: "";
+    }
+
+    body::before {
+      background:
+        linear-gradient(90deg, rgba(47, 103, 166, .08) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(47, 103, 166, .06) 1px, transparent 1px);
+      background-size: 28px 28px;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, .72), transparent 58%);
+    }
+
+    body::after {
+      top: auto;
+      height: 230px;
+      background:
+        linear-gradient(180deg, transparent, rgba(31, 122, 107, .14) 20%, rgba(31, 122, 107, .24)),
+        repeating-linear-gradient(90deg, transparent 0 42px, rgba(31, 122, 107, .18) 42px 46px);
+      z-index: -1;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+      letter-spacing: 0;
+    }
+
+    code {
+      padding: 1px 4px;
+      color: #183d67;
+      font-family: inherit;
+      font-weight: 1000;
+      background: rgba(226, 237, 248, .82);
+      border: 2px solid rgba(47, 103, 166, .22);
+    }
+
+    strong {
+      color: var(--orange);
+      text-shadow: 0 1px 0 rgba(255, 255, 255, .78);
+    }
+
+    .scene {
+      position: relative;
+      min-height: 100vh;
+      padding: 22px 0 46px;
+    }
+
+    .wrap {
+      width: min(1120px, calc(100% - 28px));
+      margin: 0 auto;
+    }
+
+    .leaf-field {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .leaf {
+      position: absolute;
+      top: -60px;
+      left: var(--x);
+      color: var(--orange);
+      font-size: var(--s);
+      opacity: .72;
+      filter: drop-shadow(0 2px 0 rgba(92, 45, 11, .18));
+      animation: fall var(--d) linear infinite;
+      animation-delay: var(--delay);
+    }
+
+    @keyframes fall {
+      0% {
+        transform: translate3d(0, -80px, 0) rotate(0deg);
+      }
+      50% {
+        transform: translate3d(var(--drift), 52vh, 0) rotate(150deg);
+      }
+      100% {
+        transform: translate3d(calc(var(--drift) * -1), 110vh, 0) rotate(320deg);
+      }
+    }
+
+    .exp-bar {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      gap: 10px;
+      margin-bottom: 22px;
+      padding: 14px;
+      color: #fffaf1;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, .14), transparent),
+        linear-gradient(90deg, var(--wood-dark), var(--wood), #7b4c24);
+      border: var(--pixel) solid var(--wood-dark);
+      border-radius: 8px;
+      box-shadow:
+        0 0 0 3px rgba(255, 229, 168, .94),
+        0 12px 0 rgba(64, 38, 18, .16),
+        0 18px 34px rgba(35, 52, 48, .18);
+    }
+
+    .exp-title {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+      font-weight: 1000;
+      text-shadow: 0 2px 0 rgba(39, 26, 14, .45);
+    }
+
+    .exp-track {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 7px;
+    }
+
+    .exp-step {
+      min-height: 52px;
+      padding: 7px 8px;
+      color: rgba(255, 250, 241, .74);
+      font-size: 12px;
+      font-weight: 1000;
+      text-align: center;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, .08), transparent),
+        #727d82;
+      border: 3px solid #2c3435;
+      box-shadow: inset 0 -5px 0 rgba(0, 0, 0, .18);
+    }
+
+    .exp-step.done {
+      color: #fffaf1;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, .2), transparent),
+        var(--green);
+      border-color: var(--green-deep);
+    }
+
+    .exp-step.active {
+      color: #fffaf1;
+      background:
+        linear-gradient(180deg, rgba(255, 245, 190, .32), transparent),
+        var(--orange);
+      border-color: #7a360d;
+      box-shadow:
+        inset 0 -5px 0 rgba(0, 0, 0, .18),
+        0 0 0 3px rgba(255, 226, 163, .86),
+        0 0 26px rgba(245, 170, 72, .55);
+      animation: active-glow 3.2s ease-in-out infinite;
+    }
+
+    @keyframes active-glow {
+      0%, 100% {
+        filter: brightness(1);
+      }
+      50% {
+        filter: brightness(1.16);
+      }
+    }
+
+    .hero {
+      position: relative;
+      z-index: 1;
+      margin-bottom: 22px;
+      padding: clamp(18px, 3vw, 30px);
+      color: #fff7df;
+      text-align: center;
+      background:
+        linear-gradient(180deg, rgba(255, 208, 103, .24), transparent 27%),
+        linear-gradient(135deg, #9a5219 0%, #b7631b 34%, #2f67a6 67%, #1f7a6b 100%);
+      border: var(--pixel) solid var(--wood-dark);
+      border-radius: 8px;
+      box-shadow:
+        0 0 0 5px #f8d68b,
+        0 0 0 9px var(--wood),
+        0 20px 0 rgba(64, 38, 18, .22),
+        0 28px 48px rgba(34, 48, 44, .26);
+      isolation: isolate;
+      animation: title-float 5.8s ease-in-out infinite;
+    }
+
+    .hero::before,
+    .hero::after {
+      position: absolute;
+      content: "";
+      pointer-events: none;
+    }
+
+    .hero::before {
+      inset: 12px;
+      border: 2px dashed rgba(255, 247, 223, .72);
+      border-radius: 4px;
+      box-shadow: inset 0 0 42px rgba(255, 250, 210, .18);
+    }
+
+    .hero::after {
+      inset: -18px 12%;
+      z-index: -1;
+      background: radial-gradient(ellipse, rgba(255, 220, 112, .46), transparent 68%);
+      filter: blur(12px);
+      animation: glow-breathe 4.6s ease-in-out infinite;
+    }
+
+    @keyframes title-float {
+      0%, 100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-7px);
+      }
+    }
+
+    @keyframes glow-breathe {
+      0%, 100% {
+        opacity: .48;
+      }
+      50% {
+        opacity: .95;
+      }
+    }
+
+    .save-slot {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+      padding: 5px 12px;
+      color: #5a3218;
+      font-size: 14px;
+      font-weight: 900;
+      background: #ffe5a8;
+      border: 3px solid #5a3218;
+      box-shadow: 4px 4px 0 rgba(40, 25, 12, .35);
+    }
+
+    .save-dot {
+      width: 10px;
+      height: 10px;
+      background: var(--orange);
+      border: 2px solid #7a360d;
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, .55);
+    }
+
+    .hero h1 {
+      max-width: 900px;
+      margin: 0 auto;
+      font-size: clamp(34px, 7vw, 68px);
+      line-height: 1.05;
+      text-shadow:
+        0 4px 0 #6f3410,
+        4px 0 0 rgba(45, 33, 20, .35),
+        0 0 20px rgba(255, 248, 190, .58);
+    }
+
+    .subtitle {
+      margin-top: 12px;
+      color: #fff1b8;
+      font-size: clamp(17px, 2.4vw, 25px);
+      font-weight: 900;
+      text-shadow: 0 3px 0 rgba(69, 42, 18, .62);
+    }
+
+    .tagline {
+      max-width: 850px;
+      margin: 14px auto 0;
+      color: #fffdf2;
+      font-size: clamp(15px, 1.75vw, 19px);
+      font-weight: 800;
+      text-shadow: 0 2px 0 rgba(39, 28, 16, .38);
+    }
+
+    main {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      gap: 22px;
+      padding-bottom: 26px;
+    }
+
+    .section {
+      position: relative;
+      border: 4px solid var(--wood-dark);
+      border-radius: 8px;
+      background: var(--card);
+      box-shadow:
+        0 0 0 3px rgba(255, 229, 168, .94),
+        0 16px 0 rgba(64, 38, 18, .12),
+        0 24px 44px rgba(35, 52, 48, .16);
+      overflow: hidden;
+    }
+
+    .section::before {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, .22), transparent 18% 82%, rgba(0, 0, 0, .04)),
+        repeating-linear-gradient(0deg, rgba(32, 48, 44, .025) 0 2px, transparent 2px 6px);
+      content: "";
+    }
+
+    .section-head {
+      position: relative;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 17px clamp(16px, 3vw, 24px);
+      color: #fffaf1;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, .18), transparent),
+        linear-gradient(90deg, var(--blue-deep), var(--blue), var(--green));
+      border-bottom: 4px solid var(--wood-dark);
+    }
+
+    .section-head.orange {
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, .18), transparent),
+        linear-gradient(90deg, #85400f, var(--orange), #c8832b);
+    }
+
+    .section-head.green {
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, .18), transparent),
+        linear-gradient(90deg, var(--green-deep), var(--green), #4e9d75);
+    }
+
+    .section-head h2 {
+      font-size: clamp(21px, 3vw, 34px);
+      line-height: 1.22;
+      text-shadow: 0 3px 0 rgba(39, 26, 14, .45);
+    }
+
+    .section-badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 4px 11px;
+      color: #543010;
+      font-size: 13px;
+      font-weight: 1000;
+      white-space: nowrap;
+      background: #ffe2a3;
+      border: 3px solid rgba(69, 38, 16, .82);
+      box-shadow: 3px 3px 0 rgba(42, 26, 11, .25);
+    }
+
+    .section-body {
+      position: relative;
+      display: grid;
+      gap: 18px;
+      padding: clamp(16px, 3vw, 26px);
+    }
+
+    .npc-grid {
+      display: grid;
+      grid-template-columns: 126px minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .portrait-card {
+      display: grid;
+      gap: 10px;
+      justify-items: center;
+    }
+
+    .storage-npc {
+      position: relative;
+      width: 104px;
+      height: 104px;
+      background:
+        linear-gradient(180deg, #ffe1b6 0 48%, #f4bf84 48%),
+        #f3c18b;
+      border: 4px solid var(--wood-dark);
+      box-shadow:
+        inset 0 -8px 0 rgba(103, 56, 21, .15),
+        7px 7px 0 rgba(65, 42, 18, .24);
+    }
+
+    .storage-npc::before {
+      position: absolute;
+      top: -16px;
+      left: 12px;
+      width: 72px;
+      height: 30px;
+      background:
+        linear-gradient(90deg, #3d2614 0 18%, #95612e 18% 82%, #3d2614 82%),
+        #74401d;
+      border: 4px solid var(--wood-dark);
+      content: "";
+    }
+
+    .storage-npc::after {
+      position: absolute;
+      inset: 33px 21px auto;
+      height: 40px;
+      background:
+        linear-gradient(90deg, #20302c 0 10px, transparent 10px 28px, #20302c 28px 38px, transparent 38px),
+        linear-gradient(0deg, transparent 0 22px, #8d3d20 22px 28px, transparent 28px),
+        linear-gradient(180deg, transparent 0 30px, #6d431f 30px 40px);
+      content: "";
+    }
+
+    .npc-name {
+      padding: 4px 9px;
+      color: #fff7df;
+      font-size: 13px;
+      font-weight: 1000;
+      background: var(--green);
+      border: 3px solid var(--green-deep);
+      box-shadow: 4px 4px 0 rgba(20, 54, 49, .24);
+    }
+
+    .dialogue {
+      position: relative;
+      padding: clamp(16px, 3vw, 24px);
+      color: #2d251c;
+      font-size: clamp(15px, 1.55vw, 18px);
+      font-weight: 800;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, .76), rgba(255, 247, 223, .92)),
+        var(--cream);
+      border: 4px solid var(--wood-dark);
+      box-shadow: inset 0 0 0 3px rgba(183, 99, 27, .16);
+    }
+
+    .dialogue::before {
+      position: absolute;
+      top: 24px;
+      left: -17px;
+      width: 24px;
+      height: 24px;
+      background: var(--cream);
+      border-left: 4px solid var(--wood-dark);
+      border-bottom: 4px solid var(--wood-dark);
+      transform: rotate(45deg);
+      content: "";
+    }
+
+    .dialogue p + p {
+      margin-top: 12px;
+    }
+
+    .story-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .story-card,
+    .note-card,
+    .maple-card,
+    .table-card,
+    .book-card {
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, .72), transparent),
+        #fffdf8;
+      border: 4px solid var(--wood-dark);
+      box-shadow: 7px 7px 0 rgba(64, 38, 18, .14);
+    }
+
+    .story-card {
+      display: grid;
+      gap: 10px;
+      align-content: start;
+      min-height: 220px;
+      padding: 15px;
+    }
+
+    .story-card h3,
+    .note-card h3,
+    .maple-card h3,
+    .book-card h3 {
+      color: #21322d;
+      font-size: clamp(18px, 2.1vw, 23px);
+      line-height: 1.28;
+    }
+
+    .item-sprite {
+      display: grid;
+      place-items: center;
+      width: 58px;
+      height: 58px;
+      color: #fff7df;
+      font-size: 28px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, .18), transparent),
+        var(--blue);
+      border: 4px solid var(--blue-deep);
+      box-shadow:
+        inset 0 -6px 0 rgba(0, 0, 0, .16),
+        5px 5px 0 rgba(25, 55, 49, .18);
+    }
+
+    .story-card:nth-child(2) .item-sprite {
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, .18), transparent),
+        var(--green);
+      border-color: var(--green-deep);
+    }
+
+    .story-card:nth-child(3) .item-sprite {
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, .18), transparent),
+        var(--orange);
+      border-color: #7a360d;
+    }
+
+    .speech {
+      position: relative;
+      padding: 12px 13px;
+      color: #344541;
+      font-weight: 850;
+      background: #fffaf1;
+      border: 3px solid var(--wood-dark);
+      box-shadow: inset 0 0 0 2px rgba(183, 99, 27, .1);
+    }
+
+    .speech::before {
+      position: absolute;
+      top: -11px;
+      left: 18px;
+      width: 18px;
+      height: 18px;
+      background: #fffaf1;
+      border-left: 3px solid var(--wood-dark);
+      border-top: 3px solid var(--wood-dark);
+      transform: rotate(45deg);
+      content: "";
+    }
+
+    .table-card {
+      overflow: hidden;
+    }
+
+    .table-title {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 13px 15px;
+      color: #fff7df;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, .18), transparent),
+        var(--wood);
+      border-bottom: 4px solid var(--wood-dark);
+      text-shadow: 0 2px 0 rgba(38, 22, 9, .5);
+    }
+
+    .table-title h3 {
+      color: #fff7df;
+      font-size: clamp(18px, 2.1vw, 23px);
+      line-height: 1.28;
+    }
+
+    .table-title span {
+      color: #ffe2a3;
+      font-size: 13px;
+      font-weight: 1000;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      background: #fffdfa;
+      box-shadow: inset 0 0 0 3px rgba(47, 103, 166, .08);
+    }
+
+    table {
+      width: 100%;
+      min-width: 680px;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 13px 15px;
+      text-align: left;
+      vertical-align: top;
+      border-bottom: 2px solid #eadcc7;
+      border-right: 2px solid #eadcc7;
+      font-weight: 850;
+    }
+
+    th:last-child,
+    td:last-child {
+      border-right: 0;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    th {
+      color: #fff7df;
+      font-size: 15px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, .18), transparent),
+        var(--wood-soft);
+      text-shadow: 0 2px 0 rgba(38, 22, 9, .5);
+    }
+
+    td {
+      color: #32413d;
+      background: rgba(255, 253, 250, .94);
+    }
+
+    tbody tr:nth-child(even) td {
+      background: #f5fbf8;
+    }
+
+    .null-cell {
+      color: #5c6368;
+      text-align: center;
+      background:
+        repeating-linear-gradient(135deg, rgba(125, 135, 144, .12) 0 8px, rgba(125, 135, 144, .2) 8px 16px),
+        var(--null-soft);
+      font-weight: 1000;
+    }
+
+    .panic-line {
+      padding: 13px 15px;
+      color: #6c3510;
+      font-weight: 1000;
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, .62), transparent),
+        var(--orange-soft);
+      border-top: 4px solid var(--wood-dark);
+    }
+
+    .note-card {
+      padding: 15px 17px;
+      color: #183d67;
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, .7), transparent),
+        var(--blue-soft);
+      box-shadow:
+        6px 6px 0 rgba(31, 71, 117, .14),
+        inset 0 0 0 3px rgba(47, 103, 166, .12);
+    }
+
+    .note-card p {
+      margin-top: 8px;
+      font-weight: 900;
+    }
+
+    .tag-stage {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .maple-card {
+      display: grid;
+      gap: 12px;
+      padding: 16px;
+    }
+
+    .ledger {
+      display: grid;
+      gap: 8px;
+    }
+
+    .ledger-row {
+      display: grid;
+      grid-template-columns: 92px minmax(0, 1fr);
+      gap: 10px;
+      align-items: center;
+      padding: 9px 10px;
+      background: rgba(255, 255, 255, .86);
+      border: 3px solid #d4c5ad;
+      color: #344541;
+      font-weight: 900;
+    }
+
+    .ledger-row b {
+      color: var(--blue);
+    }
+
+    .tag-cloud {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .tag {
+      padding: 7px 10px;
+      color: #543010;
+      font-size: 14px;
+      font-weight: 1000;
+      white-space: nowrap;
+      background: #ffe2a3;
+      border: 3px solid rgba(69, 38, 16, .82);
+      box-shadow: 3px 3px 0 rgba(42, 26, 11, .18);
+    }
+
+    .tag.green {
+      color: #114e45;
+      background: #dff2ed;
+      border-color: #1f7a6b;
+    }
+
+    .tag.blue {
+      color: #183d67;
+      background: #e2edf8;
+      border-color: #2f67a6;
+    }
+
+    .tag.bad {
+      color: #fffaf1;
+      background: var(--danger);
+      border-color: #6e2518;
+    }
+
+    .book-card {
+      display: grid;
+      gap: 14px;
+      padding: 16px;
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, .64), transparent),
+        var(--cream);
+    }
+
+    .book-page {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      background: rgba(255, 253, 247, .92);
+      border: 3px dashed rgba(109, 67, 31, .72);
+    }
+
+    .book-page p {
+      color: #344541;
+      font-weight: 850;
+    }
+
+    .ending {
+      display: grid;
+      gap: 14px;
+      padding: 16px 18px;
+      color: #183d67;
+      font-size: clamp(16px, 2vw, 21px);
+      font-weight: 900;
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, .7), transparent),
+        var(--blue-soft);
+      border: 4px solid var(--wood-dark);
+      box-shadow:
+        6px 6px 0 rgba(31, 71, 117, .14),
+        inset 0 0 0 3px rgba(47, 103, 166, .12);
+    }
+
+    footer {
+      position: relative;
+      z-index: 1;
+      width: min(1120px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 16px 0 4px;
+      color: rgba(32, 48, 44, .68);
+      font-size: 12px;
+      font-weight: 750;
+      text-align: center;
+    }
+
+    @media (max-width: 900px) {
+      .exp-track,
+      .story-grid,
+      .tag-stage {
+        grid-template-columns: 1fr;
+      }
+
+      .exp-step {
+        min-height: 42px;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .scene {
+        padding-top: 18px;
+      }
+
+      .hero {
+        box-shadow:
+          0 0 0 4px #f8d68b,
+          0 0 0 7px var(--wood),
+          0 18px 0 rgba(64, 38, 18, .2),
+          0 22px 38px rgba(34, 48, 44, .24);
+      }
+
+      .npc-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .portrait-card {
+        grid-template-columns: 86px minmax(0, 1fr);
+        align-items: center;
+        justify-items: start;
+      }
+
+      .storage-npc {
+        width: 78px;
+        height: 78px;
+      }
+
+      .storage-npc::before {
+        top: -12px;
+        left: 7px;
+        width: 58px;
+        height: 24px;
+      }
+
+      .storage-npc::after {
+        inset: 25px 15px auto;
+        height: 32px;
+        background:
+          linear-gradient(90deg, #20302c 0 8px, transparent 8px 22px, #20302c 22px 30px, transparent 30px),
+          linear-gradient(0deg, transparent 0 18px, #8d3d20 18px 23px, transparent 23px),
+          linear-gradient(180deg, transparent 0 25px, #6d431f 25px 32px);
+      }
+
+      .dialogue::before {
+        display: none;
+      }
+
+      .ledger-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        animation-duration: .001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .001ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="leaf-field" aria-hidden="true">
+    <span class="leaf" style="--x: 7%; --s: 20px; --d: 18s; --delay: -1s; --drift: 48px;">🍁</span>
+    <span class="leaf" style="--x: 19%; --s: 16px; --d: 21s; --delay: -10s; --drift: -34px;">🍁</span>
+    <span class="leaf" style="--x: 31%; --s: 22px; --d: 25s; --delay: -16s; --drift: 58px;">🍁</span>
+    <span class="leaf" style="--x: 49%; --s: 17px; --d: 19s; --delay: -7s; --drift: -44px;">🍁</span>
+    <span class="leaf" style="--x: 63%; --s: 24px; --d: 24s; --delay: -13s; --drift: 50px;">🍁</span>
+    <span class="leaf" style="--x: 78%; --s: 18px; --d: 20s; --delay: -4s; --drift: -60px;">🍁</span>
+    <span class="leaf" style="--x: 91%; --s: 21px; --d: 27s; --delay: -19s; --drift: 36px;">🍁</span>
+  </div>
+
+  <div class="scene">
+    <nav class="exp-bar wrap" aria-label="副本經驗值進度">
+      <div class="exp-title">
+        <span>災害應變副本 EXP</span>
+        <span>Lv.2 進行中：倉庫管理員的 EAV 收納術</span>
+      </div>
+      <div class="exp-track">
+        <div class="exp-step done">Lv.0 ✅<br>序章</div>
+        <div class="exp-step done">Lv.1 ✅<br>站點 vs 任務單</div>
+        <div class="exp-step active">Lv.2<br>進行中</div>
+        <div class="exp-step">Lv.3 🔒<br>關聯表</div>
+        <div class="exp-step">Lv.4 🔒<br>CSV 分流</div>
+        <div class="exp-step">Lv.5 🔒<br>tickets</div>
+        <div class="exp-step">Lv.6 🔒<br>交付</div>
+      </div>
+    </nav>
+
+    <header class="hero wrap">
+      <div class="save-slot"><span class="save-dot" aria-hidden="true"></span> NEW SKILL UNLOCKED</div>
+      <h1>Lv.2 倉庫大災難</h1>
+      <p class="subtitle">EAV：讓道具自己背屬性標籤</p>
+      <p class="tagline">今天不背資料庫術語。今天看木弓、紅水、攻擊卷軸在倉庫裡吵到管理員懷疑人生。</p>
+    </header>
+
+    <main class="wrap">
+      <section class="section" aria-labelledby="npc-title">
+        <div class="section-head orange">
+          <h2 id="npc-title">NPC 開場：菜鳥被拖進倉庫</h2>
+          <span class="section-badge">倉庫管理員</span>
+        </div>
+        <div class="section-body">
+          <div class="npc-grid">
+            <div class="portrait-card" aria-label="倉庫管理員像素頭像">
+              <div class="storage-npc" aria-hidden="true"></div>
+              <div class="npc-name">倉庫管理員</div>
+            </div>
+            <div class="dialogue">
+              <p>「歡迎來到道具倉庫！我是管理員。</p>
+              <p>看你一臉新手樣…來，我用你那堆亂七八糟的道具，教你一個連工程師都在用的收納大絕招：<strong>EAV</strong>。</p>
+              <p>學會了，你就懂為什麼救災平台的站點資料要這樣存。走吧！」</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="act1-title">
+        <div class="section-head orange">
+          <h2 id="act1-title">第一幕：恐怖的「萬用表格」</h2>
+          <span class="section-badge">大寬表 / NULL 海</span>
+        </div>
+        <div class="section-body">
+          <div class="dialogue">
+            <p>管理員一開始很天真，做了一張「所有道具都要填的萬用表格」。不管你是木弓、紅水、還是攻擊卷軸，通通站好，全部填：<code>攻擊力</code> / <code>攻擊速度</code> / <code>回復HP</code> / <code>卷軸成功率</code>。</p>
+            <p>倉庫門一關，道具們開始暴動。墮落城市都沒這麼吵。</p>
+          </div>
+
+          <div class="story-grid" aria-label="道具抗議萬用表格">
+            <article class="story-card">
+              <div class="item-sprite" aria-hidden="true">🏹</div>
+              <h3>木弓</h3>
+              <p>攻擊力 22、攻擊速度「快」都可以填。</p>
+              <div class="speech">「回復HP？卷軸成功率？我一把弓是要回復什麼啦！叫漢斯來也不會把我煮成紅水！」</div>
+            </article>
+            <article class="story-card">
+              <div class="item-sprite" aria-hidden="true">🧪</div>
+              <h3>紅水</h3>
+              <p>回復 HP 50，任務完成。</p>
+              <div class="speech">「攻擊力？攻擊速度？我、我就一瓶水欸，是要去打菇菇寶貝還是打嫩寶？」</div>
+            </article>
+            <article class="story-card">
+              <div class="item-sprite" aria-hidden="true">📜</div>
+              <h3>攻擊卷軸</h3>
+              <p>成功率 60%，其他全都跟它無關。</p>
+              <div class="speech">「我只負責讓你心臟停一下，不負責回 HP。不要把我跟藍水放同一個考卷。」</div>
+            </article>
+          </div>
+
+          <div class="table-card">
+            <div class="table-title">
+              <h3>所有道具都被迫填同一張表</h3>
+              <span>灰色就是倉庫地板上的 NULL 海</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">道具</th>
+                    <th scope="col">攻擊力</th>
+                    <th scope="col">攻擊速度</th>
+                    <th scope="col">回復HP</th>
+                    <th scope="col">卷軸成功率</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>🏹 木弓</td>
+                    <td>22</td>
+                    <td>快</td>
+                    <td class="null-cell"><code>NULL</code></td>
+                    <td class="null-cell"><code>NULL</code></td>
+                  </tr>
+                  <tr>
+                    <td>🧪 紅水</td>
+                    <td class="null-cell"><code>NULL</code></td>
+                    <td class="null-cell"><code>NULL</code></td>
+                    <td>50</td>
+                    <td class="null-cell"><code>NULL</code></td>
+                  </tr>
+                  <tr>
+                    <td>📜 攻擊卷軸</td>
+                    <td class="null-cell"><code>NULL</code></td>
+                    <td class="null-cell"><code>NULL</code></td>
+                    <td class="null-cell"><code>NULL</code></td>
+                    <td>60%</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="panic-line">管理員崩潰：「每進一種新道具，我就得在這張表多挖一個欄位…結果整張表一半都是 <code>NULL</code> 空格。這片就是工程師說的『<strong>NULL 海</strong>』。更慘的是，想加一欄就得把<strong>整張表打掉重改</strong>。」</div>
+          </div>
+
+          <div class="note-card">
+            <h3>📓 正經筆記</h3>
+            <p>把所有東西塞進一張「欄位固定的大寬表」，會得到 ① 一堆永遠填不滿的 NULL 欄位、② 想加新欄位就要 <code>ALTER TABLE</code> 改整張表結構。救災現場最不能做的就是臨時改表。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="act2-title">
+        <div class="section-head green">
+          <h2 id="act2-title">第二幕：神級收納術</h2>
+          <span class="section-badge">EAV：主表 + 屬性表</span>
+        </div>
+        <div class="section-body">
+          <div class="dialogue">
+            <p>管理員被 NULL 海淹到膝蓋，終於開竅：「我幹嘛逼紅水填攻擊力？我幹嘛逼木弓填回復HP？各位道具，從今天起，<strong>你們自己掛自己的屬性標籤</strong>！」</p>
+            <p>倉庫突然安靜。連魔法森林的漢斯都點頭：這才像個設計。</p>
+          </div>
+
+          <div class="tag-stage" aria-label="EAV 收納術">
+            <div class="maple-card">
+              <h3>① 倉庫門口的總名冊 <code>stations</code></h3>
+              <p>這本簽到簿只記每件道具都有的基本資料：編號、名字、種類。乾淨清爽，像村莊長老終於把任務看板擦乾淨。</p>
+              <div class="ledger">
+                <div class="ledger-row"><b>1</b><span>木弓 / 武器</span></div>
+                <div class="ledger-row"><b>2</b><span>紅水 / 藥水</span></div>
+                <div class="ledger-row"><b>3</b><span>攻擊卷軸 / 卷軸</span></div>
+              </div>
+            </div>
+
+            <div class="maple-card">
+              <h3>② 道具自己掛屬性標籤 <code>station_properties</code></h3>
+              <p>特殊屬性不再硬塞固定欄位，而是<strong>一張標籤記一個屬性</strong>，貼在該道具身上。沒有那個屬性，就根本不用貼。</p>
+              <div class="tag-cloud">
+                <span class="tag blue">🏹 木弓：攻擊力=22</span>
+                <span class="tag blue">🏹 木弓：攻擊速度=快</span>
+                <span class="tag green">🧪 紅水：回復HP=50</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="table-card">
+            <div class="table-title">
+              <h3>標籤表：一筆 row 就是一張屬性標籤</h3>
+              <span>NULL 海消失，標籤自己站好</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">道具編號</th>
+                    <th scope="col">屬性名稱（標籤）</th>
+                    <th scope="col">值</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>1 🏹木弓</td>
+                    <td>攻擊力</td>
+                    <td>22</td>
+                  </tr>
+                  <tr>
+                    <td>1 🏹木弓</td>
+                    <td>攻擊速度</td>
+                    <td>快</td>
+                  </tr>
+                  <tr>
+                    <td>2 🧪紅水</td>
+                    <td>回復HP</td>
+                    <td>50</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="panic-line">管理員得意：「想幫某個道具加新屬性？<strong>再貼一張標籤（多一筆 row）就好，完全不用動表格結構！</strong> 這套收納術，工程師叫它 <strong>EAV</strong>。」</div>
+          </div>
+
+          <div class="maple-card">
+            <h3>救災平台其實也在做同一件事</h3>
+            <p>站點也一樣：充電站掛〔插座數量=8〕、醫療站掛〔醫護人數=3〕。各掛各的、互不佔位。充電站不需要硬填「醫護人數」，就像紅水不需要假裝自己有攻擊速度。</p>
+            <div class="tag-cloud">
+              <span class="tag green">充電站：插座數量=8</span>
+              <span class="tag green">醫療站：醫護人數=3</span>
+              <span class="tag blue">物資站：物資種類=文字</span>
+            </div>
+          </div>
+
+          <div class="note-card">
+            <h3>📓 正經筆記</h3>
+            <p>EAV = 共通資料放<strong>主表</strong>（固定欄位）；特殊資料拆成「一筆 row 一個屬性」放<strong>屬性表</strong>（動態欄位）。加屬性 = 加 row，不動表結構。<code>station_properties</code> 就是這張屬性（標籤）表。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="act3-title">
+        <div class="section-head">
+          <h2 id="act3-title">第三幕：防止倉庫變垃圾場</h2>
+          <span class="section-badge">白名單 config</span>
+        </div>
+        <div class="section-body">
+          <div class="dialogue">
+            <p>標籤制度剛上線，大家爽到亂貼。A 玩家貼〔攻擊力〕，B 玩家貼〔攻擊〕，C 玩家貼〔攻擊數值〕。木弓站在旁邊一臉「你們到底要不要尊重我」。</p>
+            <p>管理員抱頭：「同一件事三種寫法，查資料會查到墮落城市去。這不是自由，這是垃圾場。」</p>
+          </div>
+
+          <div class="story-grid" aria-label="亂貼標籤的災難">
+            <article class="story-card">
+              <div class="item-sprite" aria-hidden="true">🏷️</div>
+              <h3>A 玩家</h3>
+              <div class="speech">「我貼〔攻擊力〕，很合理吧？」</div>
+              <span class="tag blue">攻擊力</span>
+            </article>
+            <article class="story-card">
+              <div class="item-sprite" aria-hidden="true">🏷️</div>
+              <h3>B 玩家</h3>
+              <div class="speech">「我比較短，我貼〔攻擊〕。」</div>
+              <span class="tag bad">攻擊</span>
+            </article>
+            <article class="story-card">
+              <div class="item-sprite" aria-hidden="true">🏷️</div>
+              <h3>C 玩家</h3>
+              <div class="speech">「我比較學術，我貼〔攻擊數值〕。」</div>
+              <span class="tag bad">攻擊數值</span>
+            </article>
+          </div>
+
+          <div class="book-card">
+            <h3>官方道具圖鑑 <code>station_property_config</code></h3>
+            <div class="book-page">
+              <p>管理員搬出一本厚到可以拿去敲菇菇寶貝的「官方道具圖鑑」：圖鑑早就規定好，「武器的合法屬性叫『攻擊力』，型別是數字」。你貼標籤只能照圖鑑來，亂發明的名稱不准貼。</p>
+              <p>就像遊戲裡道具的屬性不是玩家亂打的，是<strong>遊戲設計時就定義好</strong>的。白名單就是那本官方圖鑑。</p>
+            </div>
+          </div>
+
+          <div class="table-card">
+            <div class="table-title">
+              <h3>圖鑑頁：哪些標籤合法</h3>
+              <span>白名單 / 允許清單</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">合法屬性名稱</th>
+                    <th scope="col">適用種類</th>
+                    <th scope="col">值的型別</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>攻擊力</td>
+                    <td>武器</td>
+                    <td>數字</td>
+                  </tr>
+                  <tr>
+                    <td>回復HP</td>
+                    <td>藥水</td>
+                    <td>數字</td>
+                  </tr>
+                  <tr>
+                    <td>插座數量</td>
+                    <td>充電站</td>
+                    <td>數字</td>
+                  </tr>
+                  <tr>
+                    <td>醫護人數</td>
+                    <td>醫療站</td>
+                    <td>數字</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="note-card">
+            <h3>📓 正經筆記</h3>
+            <p>三張表分工 = 主表（共通欄）+ 屬性表（誰掛了什麼屬性、值多少）+ 白名單 config（規定哪些屬性名稱合法、什麼型別）。站點、任務單共用這同一套。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="eav-reveal-title">
+        <div class="section-head green">
+          <h2 id="eav-reveal-title">終章彩蛋：E / A / V 到底是誰？</h2>
+          <span class="section-badge">角色身分揭曉</span>
+        </div>
+        <div class="section-body">
+          <div class="dialogue">
+            <p>管理員把倉庫燈關一半，像墮落城市酒吧裡準備講祕密：「你以為 EAV 是工程師用來嚇新手的咒語？不是。這三個字母，其實就是剛剛在倉庫裡吵架的三個角色。」</p>
+            <p>木弓停止抱怨，紅水停止裝攻擊力，攻擊卷軸也暫時不讓人心臟停一下。全員坐好，準備公布身分。</p>
+          </div>
+
+          <div class="story-grid" aria-label="EAV 三個字母角色對照">
+            <article class="story-card">
+              <div class="item-sprite" aria-hidden="true">🏹</div>
+              <h3>E = Entity（實體）</h3>
+              <p>就是<strong>道具本人</strong>。木弓、紅水，都是那個「擁有屬性的東西」。</p>
+              <div class="speech">救災平台裡，E 就是一個站點。它站在那裡，等你幫它掛資料。</div>
+            </article>
+            <article class="story-card">
+              <div class="item-sprite" aria-hidden="true">🏷️</div>
+              <h3>A = Attribute（屬性）</h3>
+              <p>就是標籤上的<strong>屬性名稱</strong>：〔攻擊力〕〔回復HP〕。</p>
+              <div class="speech">救災平台裡，A 是「插座數量」「醫護人數」。不是亂貼的那種攻擊、攻擊數值。</div>
+            </article>
+            <article class="story-card">
+              <div class="item-sprite" aria-hidden="true">🔢</div>
+              <h3>V = Value（值）</h3>
+              <p>就是標籤上的<strong>數字或內容</strong>：木弓的 <code>22</code>、紅水的 <code>50</code>。</p>
+              <div class="speech">救災平台裡，V 是 8 個插座、3 位醫護。真正填進去的答案在這裡。</div>
+            </article>
+          </div>
+
+          <div class="table-card">
+            <div class="table-title">
+              <h3>每一筆 row，就是一張小紙條</h3>
+              <span>（哪個 E） 的 （哪個 A） 是 （多少 V）</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">小紙條</th>
+                    <th scope="col">E：誰</th>
+                    <th scope="col">A：什麼屬性</th>
+                    <th scope="col">V：是多少</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>〔木弓 的 攻擊力 是 22〕</td>
+                    <td>木弓</td>
+                    <td>攻擊力</td>
+                    <td>22</td>
+                  </tr>
+                  <tr>
+                    <td>〔某充電站 的 插座數量 是 8〕</td>
+                    <td>某充電站</td>
+                    <td>插座數量</td>
+                    <td>8</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="panic-line">管理員收網：「屬性表 <code>station_properties</code> 的每一筆 row，就是一張小紙條：<strong>誰－的什麼－是多少</strong>。」</div>
+          </div>
+
+          <div class="note-card">
+            <h3>📓 一句話收網</h3>
+            <p>EAV 就是把資料拆成一堆「<strong>誰－的什麼－是多少</strong>」的小紙條，而不是硬塞進一張固定欄位的大表。Entity 是誰、Attribute 是哪個屬性、Value 是多少 —— 你剛剛已經在倉庫裡全部見過它們了。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="ending-title">
+        <div class="section-head">
+          <h2 id="ending-title">通關結算</h2>
+          <span class="section-badge">下一關：Lv.3</span>
+        </div>
+        <div class="section-body">
+          <div class="ending">
+            <p>🍁 Lv.2 通關！你已經懂為什麼工程師寧可拆三張表，也不要一張 NULL 海大寬表 —— 跟你當年寧可開分頁倉庫也不想要一格塞爆是同個道理。</p>
+            <p>下一關 Lv.3：木弓旁邊那一圈小幫手（座標、照片、群眾回報）= stations 的關聯表。</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      本頁知識由 Sprin 的 Claude Code 撰寫、side codex 渲染。
+    </footer>
+  </div>
+</body>
+</html>

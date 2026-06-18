@@ -15,7 +15,7 @@ gu-log 的品質把關**分兩層**，不要再把它當成「沒過 8 就不准
 
 | 層 | 門檻 | 誰擋 | 沒過會怎樣 |
 |---|---|---|---|
-| **Floor（自動 gate）** | scores.vibe 在 + 5 維齊 + **composite ≥ 3** | pre-commit hook（`scripts/score-floor-check.mjs`） | **擋 commit**。garbage(<3) 跟無分數一律進不了 main |
+| **Floor（自動 gate）** | scores.vibe 在 + 該版本要求的 vibe 維齊（v9 = 4 維 persona/clawdNote/vibe/narrative；v8 = 5 維含 clarity）+ **composite ≥ 3** | pre-commit hook（`scripts/score-floor-check.mjs`） | **擋 commit**。garbage(<3) 跟無分數一律進不了 main |
 | **PASS（編輯標準）** | composite ≥ 8 AND 一維 ≥ 9 AND 沒有維 < 8 | UI / 首頁過濾，不是 commit blocker | sub-8 **照樣 ship**，但加「精修中」badge + **不上首頁/featured**，等背景 tribunal 拉到 ≥8 才上 |
 
 **白話**：
@@ -347,11 +347,11 @@ gu-log 的文章草稿有三種來源，全部最終都變成 `src/content/posts
 ## Quality: Vibe Scoring + Tribunal
 
 品質管理用 4-judge tribunal（`tribunal-batch-runner.sh` 批次掃描，`tribunal-all-claude.sh` 單篇執行）：
-- **Vibe Scorer** (Opus): 五維評分（Persona / ClawdNote / Vibe / Clarity / Narrative，0-10）
+- **Vibe Scorer** (Opus): v9 起四維評分（Persona / ClawdNote / Vibe / Narrative，0-10）；clarity 已移到 Fresh Eyes（v8 以下仍是含 Clarity 的五維，版本 gating）
 - **Fact Checker** (Opus): 技術準確度 / 來源忠實 / 邏輯一致
 - **Librarian** (Sonnet): Glossary / cross-ref + identity linking / sourceAlign / attribution
-- **Fresh Eyes** (Haiku): 陌生讀者第一印象（3-month engineer persona）
-- **Pass bar**: Vibe composite ≥ 8 AND 至少一維 ≥ 9 AND 沒有任何維 < 8，Fact ≥ 8，Librarian composite ≥ 8，Fresh Eyes ≥ 8
+- **Fresh Eyes** (Haiku): 陌生讀者第一印象（3-month engineer persona）。v9 起五維：readability / firstImpression / payoffDensity / lengthFit / **clarity**（clarity 是從 Vibe 移過來的非補償硬門檻；v8 以下無 clarity）
+- **Pass bar**: Vibe composite ≥ 8 AND 至少一維 ≥ 9 AND 沒有任何維 < 8，Fact ≥ 8，Librarian composite ≥ 8，Fresh Eyes composite ≥ 8 AND payoffDensity ≥ 8 AND lengthFit ≥ 8 AND（v9）clarity ≥ 8
 - **Rewrite**: 沒過 → rewriter 改寫 → 再跑 → 最多 3 次
 - Agents 在 `.claude/agents/`，評分標準 SSOT 在 `scripts/vibe-scoring-standard.md`
 

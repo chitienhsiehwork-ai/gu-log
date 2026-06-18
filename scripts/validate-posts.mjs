@@ -14,14 +14,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
-import {
-  normalizeUrl,
-  extractTweetId,
-  computeSimilarity,
-  REJECT_THRESHOLD,
-  FLAG_THRESHOLD,
-  MIN_EN_OVERLAP,
-} from './dedup-gate.mjs';
+import { normalizeUrl, extractTweetId, computeSimilarity, FLAG_THRESHOLD } from './dedup-gate.mjs';
 import { loadPostMap, findMissingPairs, reminderText } from './check-translation-pairs.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -147,17 +140,17 @@ function validateScoreBlock(fmText, judge, dimensions) {
   }
 
   for (const dim of dimensions) {
-    if (!new RegExp(`^    ${dim}:\\s*(?:10|[0-9])\\s*$`, 'm').test(block)) {
+    if (!new RegExp(`^ {4}${dim}:\\s*(?:10|[0-9])\\s*$`, 'm').test(block)) {
       errors.push(`scores.${judge}.${dim} must be an integer 0-10`);
     }
   }
-  if (!/^    score:\s*(?:10|[0-9])\s*$/m.test(block)) {
+  if (!/^ {4}score:\s*(?:10|[0-9])\s*$/m.test(block)) {
     errors.push(`scores.${judge}.score must be an integer 0-10`);
   }
-  if (!/^    date:\s*"\d{4}-\d{2}-\d{2}"\s*$/m.test(block)) {
+  if (!/^ {4}date:\s*"\d{4}-\d{2}-\d{2}"\s*$/m.test(block)) {
     errors.push(`scores.${judge}.date must be quoted YYYY-MM-DD`);
   }
-  if (!/^    model:\s*"[^"]+"\s*$/m.test(block)) {
+  if (!/^ {4}model:\s*"[^"]+"\s*$/m.test(block)) {
     errors.push(`scores.${judge}.model is required`);
   }
   return errors;
@@ -366,7 +359,19 @@ function validatePost(filepath, allPosts, options = {}) {
   }
 
   // ── Rule 15: Tribunal score completeness ──
-  const tribunalVersion = Number(fmText.match(/^  tribunalVersion:\s*(\d+)/m)?.[1] ?? 0);
+  // Version-aware dimension ownership (move-clarity-vibe-to-fresheyes):
+  //   tribunalVersion >= 9 → Vibe is 4 dims (no clarity); Fresh Eyes is 5 dims
+  //                          (clarity moved here as a hard gate).
+  //   tribunalVersion <= 8 → legacy: Vibe 5 dims (with clarity); FreshEyes 4.
+  // Without this branch a correctly-stamped v9 post (clarity under freshEyes,
+  // absent from vibe) is REJECTED at pre-commit/CI — a hard blocker.
+  const tribunalVersion = Number(fmText.match(/^ {2}tribunalVersion:\s*(\d+)/m)?.[1] ?? 0);
+  const VIBE_DIMS_V8 = ['persona', 'clawdNote', 'vibe', 'clarity', 'narrative'];
+  const VIBE_DIMS_V9 = ['persona', 'clawdNote', 'vibe', 'narrative'];
+  const FRESH_DIMS_V8 = ['readability', 'firstImpression', 'payoffDensity', 'lengthFit'];
+  const FRESH_DIMS_V9 = ['readability', 'firstImpression', 'payoffDensity', 'lengthFit', 'clarity'];
+  const vibeDims = tribunalVersion >= 9 ? VIBE_DIMS_V9 : VIBE_DIMS_V8;
+  const freshDims = tribunalVersion >= 9 ? FRESH_DIMS_V9 : FRESH_DIMS_V8;
   if (tribunalVersion >= 8) {
     errors.push(
       ...validateScoreBlock(fmText, 'librarian', [
@@ -382,19 +387,8 @@ function validatePost(filepath, allPosts, options = {}) {
         'sourceBoundary',
         'commentarySeparation',
       ]),
-      ...validateScoreBlock(fmText, 'freshEyes', [
-        'readability',
-        'firstImpression',
-        'payoffDensity',
-        'lengthFit',
-      ]),
-      ...validateScoreBlock(fmText, 'vibe', [
-        'persona',
-        'clawdNote',
-        'vibe',
-        'clarity',
-        'narrative',
-      ])
+      ...validateScoreBlock(fmText, 'freshEyes', freshDims),
+      ...validateScoreBlock(fmText, 'vibe', vibeDims)
     );
   } else if (fm.ticketId?.startsWith('SD-')) {
     if (!/^scores:\s*$/m.test(fmText)) {
@@ -402,13 +396,7 @@ function validatePost(filepath, allPosts, options = {}) {
     }
     errors.push(
       ...validateScoreBlock(fmText, 'freshEyes', ['readability', 'firstImpression']),
-      ...validateScoreBlock(fmText, 'vibe', [
-        'persona',
-        'clawdNote',
-        'vibe',
-        'clarity',
-        'narrative',
-      ])
+      ...validateScoreBlock(fmText, 'vibe', vibeDims)
     );
   }
 
@@ -658,7 +646,6 @@ function checkDuplicates() {
     console.log('  No duplicates found.\n');
   } else {
     for (const { representative, duplicates } of groups) {
-      const allActive = duplicates.every((d) => d.article.status !== 'deprecated');
       const hasActiveDup = duplicates.some((d) => d.article.status !== 'deprecated');
 
       if (hasActiveDup) {
