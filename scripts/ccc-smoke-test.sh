@@ -78,19 +78,22 @@ if $FIX; then
   # 有，但 ~/.cache/ms-playwright 是空的），uiux-auditor / playwright-cli / verify
   # 第一次要截圖就卡「Executable doesn't exist」。在背景非同步補下載（~100MB），
   # 不擋 session 開場；等真的要截圖時通常已經裝好。只在 CCC（remote）跑——mac-CC
-  # 自己管 local Playwright，不要在 user 的 Mac 偷下載。Idempotent：已有 chromium
-  # 快取就跳過，不重複下載。
+  # 自己管 local Playwright，不要在 user 的 Mac 偷下載。
+  #
+  # ⚠️ 不要用 `ls chromium-*` 當「已裝就跳過」的判斷——那是版本盲的：playwright 套件
+  # bump build 版號（例如 chromium-1194 → 1217）後，殘留的舊版目錄會讓這個粗略檢查
+  # 誤判成「已裝」而跳過下載，結果 pre-commit 的 content-integrity 測試在 launch 時
+  # 報「Executable doesn't exist at .../chrome-headless_shell-1217」。改成直接讓
+  # `playwright install chromium` 自己做版本級 idempotency：它只下載缺的/過期的 build，
+  # 版本對的時候 ~1s 內 no-op。所以背景無條件跑它（pgrep 防重複），不要自己猜版本。
   if [ "${CLAUDE_CODE_REMOTE:-}" = "true" ]; then
-    PW_CACHE="${PLAYWRIGHT_BROWSERS_PATH:-$HOME/.cache/ms-playwright}"
-    if ls "$PW_CACHE"/chromium-* >/dev/null 2>&1; then
-      pass "Playwright chromium 已存在，跳過下載"
-    elif pgrep -f "playwright install chromium" >/dev/null 2>&1; then
-      pass "Playwright chromium 已有背景下載在跑，不重複觸發"
+    if pgrep -f "playwright install chromium" >/dev/null 2>&1; then
+      pass "Playwright chromium 已有背景下載/驗證在跑，不重複觸發"
     elif [ -x node_modules/.bin/playwright ]; then
       nohup node_modules/.bin/playwright install chromium \
         >/tmp/ccc-playwright-install.log 2>&1 &
       disown 2>/dev/null || true
-      pass "Playwright chromium 背景下載中 (pid $!; log: /tmp/ccc-playwright-install.log)"
+      pass "Playwright chromium 背景驗證/下載中 (pid $!; log: /tmp/ccc-playwright-install.log)"
     else
       warn "Playwright bin 不在 node_modules" "pnpm install 完成後重跑 --fix 會補"
     fi

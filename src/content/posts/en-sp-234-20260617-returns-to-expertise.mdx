@@ -1,0 +1,152 @@
+---
+ticketId: "SP-234"
+title: "400,000 Claude Code Sessions Later: The Winner Isn't the Best Coder, It's the One Who Knows the Problem"
+originalDate: "2026-06-16"
+translatedDate: "2026-06-17"
+translatedBy:
+  model: "Opus 4.8"
+  harness: "Claude Code CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.8"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.8"
+      harness: "Claude Code CLI + Tribunal"
+source: "Anthropic Economic Research"
+sourceUrl: "https://www.anthropic.com/research/claude-code-expertise"
+lang: "en"
+summary: "Anthropic read about 400,000 Claude Code work sessions to find who gets the most out of agentic coding. The answer is counterintuitive: not the best programmers, but the people who understand the problem they're solving."
+tags: ["shroom-picks", "ai-agents", "claude-code", "agentic-engineering"]
+scores:
+  tribunalVersion: 8
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 9
+    date: "2026-06-17"
+    model: "Opus 4.8"
+  librarian:
+    glossary: 8
+    crossRef: 6
+    sourceAlign: 10
+    attribution: 9
+    score: 8
+    date: "2026-06-17"
+    model: "Opus 4.7"
+  freshEyes:
+    readability: 9
+    firstImpression: 9
+    payoffDensity: 9
+    lengthFit: 9
+    score: 9
+    date: "2026-06-17"
+    model: "Opus 4.7"
+  vibe:
+    persona: 8
+    clawdNote: 9
+    vibe: 8
+    clarity: 8
+    narrative: 8
+    score: 8
+    date: "2026-06-17"
+    model: "Opus 4.6"
+---
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Let's place a bet. A senior software engineer and an accountant who has never written a single line of Python both open [Claude Code](/en/glossary#claude-code) and ask it to do something that involves code. Who gets the job done? Most people would put their money on the engineer.
+
+Anthropic read about 400,000 Claude Code work sessions (October 2025 to April 2026, roughly 235,000 people, fully anonymized) to find out who actually wins these sessions. The dividing line they dug up is one that people betting on the engineer would mostly get wrong: what decides success isn't whether you can code. It's something else — how deeply you understand the task in front of you.
+
+Put plainly: under the strictest measure of success, accountants, lawyers, salespeople, engineers — every occupation clusters into one narrow band, within 7 percentage points of each other. Knowing how to code is less and less the thing that gets code shipped. What separates people is the other axis: how well they understand this particular problem.
+
+<ClawdNote summary="Anthropic studying its own tool is biased — but this finding cuts against its own sales pitch, so I trust it more.">
+This is Anthropic's own economic research team, studying usage data from Anthropic's own tool, so "Claude Code is useful" is a conclusion you should discount for bias. But the juicy part isn't "is it useful" — it's that they sliced the data to ask "who can actually use it," and the line they found runs against the direction their sales pitch would want. The on-script conclusion would be "the better you code, the more you win." What they served up instead is "knowing how to code basically isn't the point." A finding that fights its own marketing is one I trust a little more (¬‿¬)
+</ClawdNote>
+
+---
+
+## The Division of Labor: People Decide What, Claude Decides How
+
+First, look at who does what inside a session. The research splits every decision into two kinds: planning (what to do, which path to take, what counts as done) and execution (which file to change, what code to write, what language, which command to run), then asks who made each call.
+
+On average, people make about 70% of the planning decisions but only 20% of the execution decisions. In other words: people decide what to build, the [agent](/en/glossary#agent) decides how to build it.
+
+This split isn't fixed — it slides with how much you let go. When a person keeps a tight grip on execution (makes over 80% of execution decisions themselves), the agent takes fewer actions per turn, about eight. When a person hands over the planning too (the agent makes over 80% of planning calls), it goes wild — about sixteen actions in a single turn.
+
+A sense of scale, while we're here: a typical session runs about four turns back and forth. Each prompt a user sends sets off around ten agent actions on average — read files, edit code, run commands — sometimes blowing past a hundred, with the agent producing about 2,400 words of output along the way. One sentence triggers a whole chain reaction. That's the part that makes agentic coding different from autocomplete.
+
+<ClawdNote summary="The agent ate the execution layer; what's left valuable is knowing what to do — and that isn't syntax.">
+"People decide what, the agent decides how" sounds like a truism, but it quietly rewrites what "knowing how to code" means. Traditionally, coding skill = you know how to turn an idea into code, i.e. the execution layer. But the agent now handles 80% of that layer. What's left that's valuable is "knowing what should be done and what counts as right" — and that has very little to do with whether you can recite syntax. [The creator of Claude Code already declared "coding is solved, and the software-engineer title starts disappearing this year"](/en/posts/en-clawd-picks-20260223-bcherny-coding-solved-lenny/); this data basically hands that swagger the numbers to back it up. Every number later in the research is a footnote to this one sentence (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## "Knowing the Field" Isn't Your Job Title — It's This Task, Right Now
+
+That betting game from the opening flips because of how the research defines "expertise" — a word special enough to slow down for. It isn't a job title, and it isn't general intelligence. It's **tied to the task at hand**. The signals are three: how precisely you frame your instructions, what you ask the agent to verify, and whether you tend to correct the agent or the agent tends to correct you.
+
+So a senior software engineer, asking their first Rust question, is a flat-out novice in that session. Flip it around: an accountant who has never touched Python is an expert at that task — as long as they can tell the agent exactly which rules a month-end reconciliation must enforce, and catch the edge case it mishandles at the close. Job title, degree, whether you usually write code — none of it counts. What counts is: this one problem, how deep do you know it?
+
+That depth shows up directly in how much the agent does for you. In a novice session, each prompt sets off about five actions and 600 words of output. In an expert session, the same single prompt fires an action chain more than twice as long (twelve actions) carrying five times the output (3,200 words). And this gap shows up in every kind of work and every band of task value — it isn't a fluke of some particular task type.
+
+<ClawdNote summary="Expertise is task-specific: domain knowledge lets the accountant out-steer an engineer firing sloppy prompts.">
+This is the concept worth pocketing: expertise is task-specific. It cuts straight through the self-limiting "I'm not an engineer, this tool isn't for me." The point was never your title — it's your command of the problem on your desk. The accountant is the soul of the whole thing: they can't write Python, but they know what "reconciliation rules" and "month-end edge cases" look like, and that domain knowledge lets them steer the agent better than an engineer firing off sloppy prompts. Writing code is the agent's job. Knowing the field is yours. Clean division of labor (⌐■_■)
+</ClawdNote>
+
+---
+
+## Every Occupation Stays Right on the Engineers' Heels
+
+Before talking about "success," we need to be clear on how it's measured — otherwise it's easy to flatter yourself. The research can't observe real-world outcomes (no way to track whether that code ever actually shipped), so it reads the transcript ([the same transcript-reading method Anthropic used in an earlier study that defined AI-fluency signals](/en/posts/en-sp-83-20260223-anthropic-ai-fluency-index/)), in two layers. One layer is "judged success" — a classifier reads the whole session and decides whether the person did what they set out to do. A stricter layer is "verified success," which on top of being judged successful also needs hard evidence in the record: a matching git commit, a full test suite passing, or the user saying in plain words that it worked.
+
+Measured by that strictest ruler, the result is striking: software-related occupations reach verified success about 30% of the time, other occupations about 26%. Looking only at sessions that actually produce code, those numbers are 34% and 29%. Loosen the bar to "at least partial success" and the two practically merge — 89% and 88%. And among the ten largest occupations in the data, not one sits more than 7 percentage points away from software engineers.
+
+The subtler part: this five-point-ish gap neither widened nor narrowed over seven months — even as both groups' success rates climbed. In other words, the agent sanded down the "can you code" barrier, and sanded it remarkably evenly.
+
+<ClawdNote summary="Managers edge out engineers partly because they're just likelier to say 'yes, that's it' out loud.">
+A little easter egg: management occupations score slightly *above* software engineers on verified success. Sounds great — but the research taps the brakes on itself. Verified success partly relies on "the user explicitly said it worked," and managers are just more likely to say "yes, this is exactly what I wanted" out loud. So that lead might be half real skill (steering an agent shares a lot with steering people) and half measurement artifact (people who confirm things get logged as successful more often). Flagging that kind of bias inside your own study is where this paper isn't overselling (￣▽￣)
+</ClawdNote>
+
+---
+
+## The Returns Go to the People Who Know the Field
+
+Occupations are roughly even. So where's the gap hiding? It hides in the moment things go wrong.
+
+Start with the bluntest picture: count "judged a failure, and zero lines of code written" as abandonment. 19% of novice sessions just get abandoned like that, versus 5–7% for everyone else. The least knowledgeable users are the quickest to throw in the towel when stuck. And among those who do hit a wall and try to climb back, the gap is crueler still — in sessions that ran into trouble (the record shows errors, failed tests, the same thing retried over and over, or the user voicing frustration), novices claw back to verified success only 4% of the time, experts 15%. Pulling a stuck agent back on track is itself something only people who know the field can do.
+
+Pull the lens back to the whole picture, and this crack runs along the entire "novice → expert" axis: novice sessions reach verified success 15% of the time and at least partial success 77%; climb to intermediate or above and verified success jumps to 28–33%, partial to 91–92%. Worth pausing on — most of the jump happens in "novice → intermediate," and the curve flattens after "intermediate → expert." Meaning a solid working grasp of a field captures most of the reward; deep mastery only adds a little more on top.
+
+So the ability to steer an agent back toward success comes from command of the domain, not from coding skill. A person who knows the field, in any field, may now be able to do technical work they couldn't before. A person who knows nothing gets far less out of the very same tool.
+
+<ClawdNote summary="The agent eats implementation grind and rewards understanding — most payoff is clueless-to-competent, not mastery.">
+"Returns to expertise" is the value anchor of this whole piece. A lot of the anxiety about AI is "will it make my expertise worthless," and this data hands back the opposite answer: the agent eats the grind of the *implementation* layer, and rewards "do you actually understand this thing." And it's honest enough to add a kicker — most of the payoff is in the leap from "don't know it" to "know it," not from "know it" to "master it." Meaning you don't have to become a grandmaster of the field; a solid baseline already lets you run the agent with flair. For most people, that's a pretty friendly conclusion ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## In Seven Months, the Shape of the Work Changed
+
+Finally, the timeline. From October 2025 to April 2026 — just seven months — what people use Claude Code for changed shape entirely.
+
+The clearest cut: sessions spent fixing broken code fell from 33% to 19%, nearly halved. The space that opened up got filled by the work around code — "operating software" (deploying, configuring, running pipelines, watching systems) grew from 14% to 21%, while "writing documents" and "analyzing data" each roughly doubled, from about 10% up to 20%. The center of gravity clearly slid from "patching things inside the code" toward "handing the whole thing end-to-end to the agent" ([Anthropic's own trends report already walked through this role shift](/en/posts/en-shroom-picks-20260210-anthropic-agentic-coding-trends/), and this usage data confirms it from the other end).
+
+The tasks themselves also got more valuable. The research estimates each session's worth by asking "what would this work cost on a freelance marketplace," and over seven months the average session's estimated value rose 27%. Almost every category went up: building new features by about 43%, operating software by about 34%, fixing bugs by about 32%. These estimates are coarse (based on a fuzzy match to freelance job postings), and the research itself says don't take the dollar figure literally — its use is comparing "how the same kind of task changes over time," not handing you a real salary.
+
+<ClawdNote summary="Debugging halved not because bugs vanished — fixing is now absorbed into one end-to-end agent run.">
+The halving of debugging is more interesting than "value up 27%." It doesn't mean there are fewer bugs — it means "fixing a bug" is increasingly absorbed into a flow the agent runs in one go, instead of something a human has to open a separate session to babysit. Paired with "operating software," "writing documents," and "analyzing data" all growing, the whole chart tells one story: the agent is shifting from "an assistant that writes a chunk of code for you" into "an executor that gets the whole thing done for you." The value goes up because what gets handed to it is, more and more, a complete piece of work (•̀ω•́)
+</ClawdNote>
+
+---
+
+## Closing
+
+Put these threads together and a clear picture emerges: the agent is draining the *implementation* layer of labor while lifting the value of "do you actually understand this thing." Knowing how to code looks more and more like a barrier that's been sanded flat; knowing the field looks more and more like the real moat.
+
+Anthropic stresses this is all preliminary — they can't measure real-world outcomes (whether that code ever got used or thrown away, they can't see), they deliberately exclude a huge amount of non-interactive usage (one-shot prompts, SDK, third-party IDEs), and every judgment rests on a model reading transcripts. But they also point to the two signals most worth watching: if "returns to expertise" ever start to fall, that means models are beginning to supply the judgment users currently bring, and the benefits are spreading out beyond domain experts. If success rates for occupations outside software keep climbing, that means writing software is becoming part of ordinary work in every field, no longer the property of one profession.
+
+Whichever signal lights up first, it rewrites the answer to "what's most valuable in the labor market." But at least in this data, the answer is blunt: what's valuable isn't whether you can write code, it's whether you understand the problem you're solving. That accountant who never touched Python yet steers a month-end reconciliation with a steady hand is no longer a feel-good exception — they're the kind of person this whole chart is trying to get you to see.

@@ -101,7 +101,7 @@ Pre-commit hook 會自動檢查。違反會 block commit。
 
 ```yaml
 ---
-ticketId: 'SP-{N}'
+ticketId: 'SP-PENDING' # 寫作期間一律 PENDING；merge 前才用 allocate-ticket.mjs 換真號（見 CONTRIBUTING.md）
 title: '中文標題 — 吸引人但不浮誇'
 originalDate: 'YYYY-MM-DD'
 translatedDate: 'YYYY-MM-DD'

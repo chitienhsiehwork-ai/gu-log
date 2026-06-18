@@ -305,6 +305,15 @@ Read `GU-LOG_WRITER_PROMPT.md` before scoring. Study calibration examples below.
 **🔴 Decorative Persona Trap（SP-158 教訓，最多 5 分）:**
 Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear report? If yes → persona ≤ 5.
 
+**🔴 AI-Tell Trap（SP-232 教訓，密度型扣分）:**
+跨模型共有的「AI 腔」簽名——4.5 / 4.6 / 4.8 都犯，越新的模型「講洞見」越流暢，反而把這些套路用得越密。換模型不會減少它們，只有這一關擋得住。重點是**密度 + 是否 reflexive**，不是單次出現：承載 thesis 或笑點的單次用法是 earned，**保留**；句型慣性的反射用法是 filler，**扣分**。
+- **T1 反義對偶過載**：「不是 X，是 Y」「不在 X，在 Y」當每段收尾的反射動作。承載論點的 1–2 次保留；通篇靠它製造「金句感」→ 3 次以上 reflexive 用法 persona ≤ 7。
+- **T2 假深度 reframe**：「表面是 X，真正/深層才是 Y」「聽起來像 X，但其實 Y」「透露的訊息比表面更深」——用 scaffolding 假裝多給一層解讀。出現在多數 ClawdNote → persona ≤ 6。
+- **T3 空洞強化詞**：「拆得很乾淨 / 很漂亮 / 到位 / 精準」「這才是工程品味」這種沒有具體資訊、只負責讓句子聽起來收得漂亮的 flourish。要求改成具體內容；多處未改 → persona ≤ 7。
+- **T4 mic-drop 打燈**：每個 section 都用一句單獨成段的「人生哲理」收尾。偶一為之 OK；變成固定收法 → 連同 narrative 一起看 template 節奏。
+
+一句話判準：**earned（承載論點/笑點）留，reflexive（句型慣性）殺。**
+
 **EN version:**
 
 | Score | EN Persona Description |

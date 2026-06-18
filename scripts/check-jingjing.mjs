@@ -315,6 +315,17 @@ injection
 Johann Rehberger Normalization Deviance
 relentlessly
 
+# Added 2026-06-17 for SP-232 (mvanhorn "WTF Is a Loop?" loop-engineering lineage).
+# Company names (Uber budget cap, Gartner hype-cycle stat), person names cited in
+# the discourse (Steve Yegge, Matthew Berman, DanKornas), and product/feature
+# proper nouns (Gas Town = Yegge's orchestration system, roborev = Kornas's
+# background commit-review tool). All proper nouns named in the source.
+Uber Gartner Yegge Matthew Berman DanKornas
+Gas Town roborev
+# AutoGPT = the 2023 goal-loop project; Huntley = Geoffrey Huntley, ralph loop's
+# author. Both are proper nouns anchoring the loop lineage section.
+AutoGPT Huntley
+
 # Added 2026-05-12 for SP-197 (Garry Tan AI agent complexity ratchet).
 # Proper nouns, source examples, research author names, and literal prior article titles.
 Conductor Dave Bitcoin Jared Podcast
@@ -480,6 +491,28 @@ apply
 format formats
 opening
 SOP
+
+# Added 2026-06-17 for SP (kvnkld "10 rules to ship polished UI").
+# kvnkld = X handle of the source author. Figma = the design tool the post
+# centers on (product proper noun, sibling of allowlisted Datasette/Zed).
+kvnkld Figma
+
+# Added 2026-06-17 for CP (rahulgs "english -> code interpreters" thread).
+# rahulgs = X handle of the source author (proper noun, same pattern as kvnkld).
+rahulgs
+
+# Added 2026-06-18 for SP (samueljmcd "verifier is the product").
+# ReAct (Yao et al., Princeton + Google) and Reflexion (Shinn et al.) are
+# canonical agent-loop research paper names — proper nouns the article cites as
+# the research grounding for inner-loop verification and outer-loop memory.
+# Same status as AutoGPT. (ReAct already slips past via "React", but list it
+# explicitly so the allow is intentional, not an accident of collision.)
+# Jarred Sumner = Bun's creator (person, proper noun). struct / lifetime =
+# canonical Rust language keywords named in the port story (same status as the
+# allowlisted programming-language tokens).
+ReAct Reflexion
+Jarred Sumner
+struct lifetime
 `;
 
 const HARDCODED = new Set();

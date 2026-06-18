@@ -198,6 +198,16 @@ describe('check-pronoun-clarity', () => {
     const v = pron.findViolations(filepath);
     expect(v).toEqual([]);
   });
+
+  it('does NOT flag 我 inside the compound 自我 (self-, not a pronoun)', () => {
+    const filepath = tmpPath('pronoun-ziwo.mdx');
+    fs.writeFileSync(
+      filepath,
+      `---\nlang: zh-tw\n---\n一個會自我修正、能自我檢查的 loop 才靠得住。\n`
+    );
+    const v = pron.findViolations(filepath);
+    expect(v).toEqual([]);
+  });
 });
 
 // ════════════════════════════════════════════════════════════════════════════

@@ -380,3 +380,29 @@ Sprin asked whether Tribunal v7 FreshEyes covers “length should be just right,
 - 情境：SD-26 用「三百多篇 AI 翻譯文章」描述 gu-log 規模。這低估了目前內容量，也把 MP 精選、SD 原創、教學混成「AI 翻譯文章」，分類不準。
 - 修法：改成「五百多篇文章——大約兩百篇 GP 翻譯、三百篇 MP 精選，外加 SD 跟教學」。後續句子只用「五百多篇 / 500 posts」，避免每次重複解釋 taxonomy。
 - Reusable lesson：談 gu-log 全站規模時，不要憑印象寫「三百多」。要先算 active unique posts，並區分 GP / MP / SD / LevelUp。若文意不是只談翻譯，不要寫成「AI 翻譯文章」。
+
+## 2026-06-17 — SP-232 loop engineering /「六個字」沒講是哪六個字
+
+### Feedback: 標題/引言一直說「六個字的咒語」，卻從頭到尾沒講那六個字是什麼
+
+- ShroomDog feedback：`什麼東西六個字？三小xD 太沒資訊量了吧`（看 SP-232 標題與引言時）
+- 情境：SP-232 開場 hook 是「一句六個字的咒語衝到 220 萬瀏覽」，正文又反覆出現「那六個字」「一句六個字的話」，但**從來沒有把那六個英文字寫出來**。原文 mvanhorn 說 the most repeated sentence is "six words long"，指的是 Steinberger 那句的英文核心「design loops that prompt your agents」（剛好六個 word）。漏掉它＝把整個 hook 變成空殼，讀者被吊著卻拿不到 payoff。
+- 翻譯陷阱（中文版更糟）：英文 six words 很自然，但中文「六個字」會被讀成「六個漢字」。引言裡那句翻成中文的咒語明明十幾個漢字，讀者一對照就覺得「哪來六個字？」——word 與「字」的計數單位不一樣，直接搬會製造矛盾感。
+- 修法：引言第一段就把那六個字攤開——zh 改成「那句話濃縮成英文就六個字——『design loops that prompt your agents』（去設計那些會 prompt agent 的 loop）」；en 改成「Compressed, it's six words — "design loops that prompt your agents"」。英文原句包在引號裡（直接引用原文，jingjing 放行），後面附中文翻譯。標題與後面的「那六個字」callback 就站得住了，因為 payoff 已在第一段交付。
+- Reusable lesson：(1) 任何「數字＋名詞」的 hook（六個字、三句話、兩張圖、一行指令）都必須在開場附近**把那個東西本體交出來**，不能只丟數字吊胃口；hook 的 promise 要在同段或下一段兌現。(2) 跨語言搬「count words」類說法要小心單位錯位——英文 word ≠ 中文「字」。要保留「精簡到很短」的張力時，中文要嘛點明「英文六個字」並秀出英文，要嘛改用不綁計數單位的講法（例如「短到不行的一句」）。
+
+## 2026-06-17 — SP-232 / AI-tell taxonomy（跨模型風格簽名）
+
+### Feedback: 「拆得很乾淨了」這句很 AI；用實驗確認，並把 tell 清單沉澱
+
+- ShroomDog feedback：`「拆得很乾淨了」 我依稀覺得 這句話很ai?`；接著要求做對照實驗：讓 Opus 4.5 / 4.6 在乾淨環境用同一份 writer prompt + source 從零各寫一篇，比對。
+- 實驗設計：`claude -p --model claude-opus-4-5`（與 4.6）從 `/tmp` 跑（避開 repo CLAUDE.md 污染脈絡），餵精簡 writer prompt + 同一份 source，產出後比對 tell。（model 別名雷：這版 CLI 只認短別名 `opus/sonnet/haiku` 或完整 id `claude-opus-4-5`；`opus-4-5`／`opus-4.5` 一律被拒。）
+- 實驗結論：**AI tell 是跨模型的風格簽名，換模型不會變少，4.6 反而最密**。越新的模型「講洞見」越流暢，就越把下列套路用成反射動作。
+- **Tell taxonomy（earned 留、reflexive 殺）**：
+  - **T1 反義對偶過載**：「不是 X，是 Y」「不在 X，在 Y」。承載 thesis / 笑點的 1–2 次是 earned（例：mvanhorn 整篇論點就是 "it's not loops, it's skills"，該留）；當每段收尾的反射句型 = filler，殺。4.6 一篇用約 8 次、4.5 約 5 次。
+  - **T2 假深度 reframe**：「表面是 X，真正/深層才是 Y」「聽起來像 X，但其實 Y」「透露的訊息比表面更深」。用 scaffolding 假裝多給一層解讀。4.6 三個 ClawdNote 三個都用，是最好認的指紋。
+  - **T3 空洞強化詞**：「拆得很乾淨／很漂亮／到位／精準」「這才是工程品味」「這刀切得漂亮」——沒有具體資訊、只負責讓句子聽起來收得漂亮。改成「它到底講了什麼」的具體內容。
+  - **T4 mic-drop 打燈**：每個 section 都用一句單獨成段的「人生哲理」收尾；偶一為之 OK，固定收法就變 template。
+- 修法（SP-232 worked example）：外科手術式，只殺 reflexive，留 earned。實改三處 T3/T2（「拆得很乾淨了」→「都講過了」、「這刀切得漂亮」刪掉、「表面是吐槽，其實精準」→直接陳述），保留所有承載論點的對偶（cron 段「不是新魔法，也不是只是 cron，而是…」、結尾「不是 loop，是 skill」）。
+- Enforcement 決策：**不加硬 lint blocker**——密度型 tell 用 regex 會誤殺正當用法（含論點本身），製造比 tell 更煩的 friction。改放 tribunal：`scripts/vibe-scoring-standard.md` 的 persona 維度新增「AI-Tell Trap」rubric，由 LLM judge 用語意判斷密度與 earned/reflexive 後扣分。硬 lint 只留給有明確字表的 T3。
+- Reusable lesson：AI 腔不是某一隻模型的毛病，是 LLM 共有的「金句反射」。寫完自我審查時專抓四類：反義對偶是不是用成口頭禪、有沒有「表面/深層」假深度、有沒有空洞強化詞、是不是每段都想 mic-drop。判準一句話：**earned（承載論點/笑點）留，reflexive（句型慣性）殺。**
