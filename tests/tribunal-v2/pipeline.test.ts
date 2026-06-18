@@ -151,7 +151,9 @@ function finalVibe(
 ): FinalVibeJudgeOutput {
   const composite = Math.floor(Object.values(scores).reduce((a, b) => a + b, 0) / 5);
   const degraded_dimensions = (Object.keys(stage1Scores) as Array<keyof typeof stage1Scores>)
-    .filter((k) => stage1Scores[k] - scores[k] > 1)
+    // clarity is optional on VibeJudgeOutput['scores'] (v9 moved it to freshEyes),
+    // so coalesce to 0 for the test factory's regression math.
+    .filter((k) => (stage1Scores[k] ?? 0) - (scores[k] ?? 0) > 1)
     .map(String);
   return {
     pass,

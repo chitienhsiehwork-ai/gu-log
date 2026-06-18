@@ -61,18 +61,21 @@ export function checkVibePassBar(
   failedDimensions: string[];
 } {
   const dims = vibeDims(version);
+  // The owned-dim list is version-resolved (readonly string[]); index the
+  // scores object through a string-keyed view so TS doesn't widen to `any`.
+  const s = scores as Record<string, number>;
 
   // Validate all owned dims present
   for (const dim of dims) {
-    if (scores[dim] === undefined || scores[dim] === null) {
+    if (s[dim] === undefined || s[dim] === null) {
       throw new Error(`Missing required dimension: ${dim}`);
     }
   }
 
-  const values = dims.map((d) => scores[d]);
+  const values = dims.map((d) => s[d]);
   const composite = Math.floor(values.reduce((a, b) => a + b, 0) / values.length);
   const hasHighlight = Math.max(...values) >= PASS_BARS.STAGE_1_HIGHLIGHT;
-  const failedDimensions = dims.filter((d) => scores[d] < PASS_BARS.STAGE_1_MIN_DIMENSION);
+  const failedDimensions = dims.filter((d) => s[d] < PASS_BARS.STAGE_1_MIN_DIMENSION);
 
   const pass =
     composite >= PASS_BARS.STAGE_1_COMPOSITE && hasHighlight && failedDimensions.length === 0;
@@ -92,13 +95,15 @@ export function checkFinalVibePassBar(
   const degradedDimensions: Array<{ dim: string; stage1: number; current: number; drop: number }> =
     [];
 
+  const cur = currentScores as Record<string, number>;
+  const s1 = stage1Scores as Record<string, number>;
   for (const dim of vibeDims(version)) {
-    const drop = stage1Scores[dim] - currentScores[dim];
+    const drop = s1[dim] - cur[dim];
     if (drop > PASS_BARS.STAGE_4_MAX_REGRESSION) {
       degradedDimensions.push({
         dim,
-        stage1: stage1Scores[dim],
-        current: currentScores[dim],
+        stage1: s1[dim],
+        current: cur[dim],
         drop,
       });
     }
