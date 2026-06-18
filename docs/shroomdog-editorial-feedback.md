@@ -484,3 +484,13 @@ Sprin asked whether Tribunal v7 FreshEyes covers “length should be just right,
 - Mogu note 由誰寫：ShroomDog 要求 glossary 的 Mogu note 跟文章同一個聲音，用 **Opus 4.5** 在 clean context 生成（`claude -p --model claude-opus-4-5`），不是隨手自己補。
 - 連帶效應（ratchet）：新增 glossary 詞會觸發 `check-glossary-links --changed-terms`，要求全站既有文章補連結。用 `apply-glossary-links --all --term ReAct --term Reflexion` 自動 backfill；改到的 grandfathered 舊文因為是「link-only diff」（`is_internal_post_link_only_diff` 把 `[X](/glossary#x)` 正規化回 `X`），不會被 jingjing / pronoun 重新 lint。
 - Reusable lesson：**正文要引用一個會重複出現的外部 canonical 來源（論文 / 人 / 產品），預設先在 glossary 開條目（definition + Mogu note + `url`），正文連到 `/glossary#term`，由 glossary 再連出去**——不要從正文 body 直接外連，也不要為了過 lint 把術語塞進 ALLOWLIST_RAW。
+
+## 2026-06-18 — Judge model routing：Fresh Eyes 走浮動 opus alias（不 pin）+ CCC 版本 pin 機制
+
+### Decision: fresh-eyes 用 default opus（現在 4.8），刻意不跟 writer 同代
+
+- ShroomDog decision：被問「fresh-eyes 的 standing 預設要 4.5 還是 4.7」時答 `Use default opus model (opus alias), so now it shall be opus 4.8`。
+- 情境：SP-236 兩次 session user 都點名「fresh-eyes / vibe / writer 用 opus 4.5」。釐清後 ShroomDog 把 standing 規則定成：**writer / rewriter / vibe scorer 鎖 `claude-opus-4-5`（voice + taste 對齊），但 Fresh Eyes 走浮動 `opus` alias（追最新，現在 4.8），刻意不 pin**。理由：fresh-eyes 是「陌生讀者」視角，用跟 writer 不同代 / 最新的 model 反而能抓 writer 同代看不到的盲點——這裡要的是 diversity，不是 taste 對齊。Fact Checker 同理（本來就用浮動 opus 追最新）。Librarian 維持 `claude-opus-4-7`。
+- 發現的 drift：`.claude/agents/fresh-eyes.md` frontmatter 本來就是 `model: opus`（浮動），但 `playbooks/CCC-playbook.md` 路由表寫死成 `claude-opus-4-7`——playbook 漂掉了。已把路由表改回浮動 opus alias，跟 agent 檔對齊。
+- CCC 機制備忘（寫進 CCC-playbook〈CCC 怎麼 pin 到指定 Opus 版本〉）：`Agent` tool 的 `model` 只吃 alias（`opus`→最新 4.8），**選不到指定版本**；要 pin（writer/rewriter/vibe = `claude-opus-4-5`）唯一可靠路徑是 `claude -p --model claude-opus-4-5`（完整 id；`opus-4-5`/`opus-4.5` 半截寫法會被拒）。版本不敏感的角色（fact-check / fresh-eyes）用 `Agent` tool 省事即可，不要無腦全改 `claude -p`。
+- Reusable lesson：(1) **judge 的 model 路由不是「越新越好」也不是「全部對齊 writer」**——voice/taste-sensitive（writer/rewriter/vibe）要 pin 同代；要 diversity 的陌生讀者視角（fresh-eyes）反而要放它浮動、跟 writer 拉開。(2) 改 model 路由時，playbook 路由表 + `.claude/agents/*.md` frontmatter 兩邊要同步，不然又 drift。(3) CCC 要 pin 版本只能走 `claude -p --model <完整-id>`，Agent tool 做不到。

@@ -212,7 +212,7 @@ tools/sp-pipeline/gp-pipeline run <url> --force
 真正要 fallback 的時候怎麼走：
 
 1. `gp-pipeline fetch <url>` 先把 source 抓下來（這步幾乎不會炸）
-2. 單獨跑 prompt：`claude -p --model opus "<prompt>"` 模擬 write / refine 階段（**在 CCC root 下不要加 `--permission-mode` 也不要加 `--dangerously-skip-permissions`，會被擋**）。review / eval / tribunal judges 仍走 Codex GPT-5.5；只有沒有 `codex` 的 CCC fallback 才用 Claude。
+2. 單獨跑 prompt：`claude -p --model claude-opus-4-5 "<prompt>"` 模擬 write / refine 階段（**在 CCC root 下不要加 `--permission-mode` 也不要加 `--dangerously-skip-permissions`，會被擋**）。**用完整 model id `claude-opus-4-5`，不要用 `--model opus` alias**——alias 會解析成當前最新 Opus（現在是 4.8），吃不到上面路由表「writer 鎖 4.5」的 pin（理由見下面〈CCC 怎麼 pin 到指定 Opus 版本〉）。review / eval / tribunal judges 仍走 Codex GPT-5.5；只有沒有 `codex` 的 CCC fallback 才用 Claude。
 3. tribunal 改用本 playbook「Tribunal 必跑規則」那段的 4 個 subagent 平行跑
 
 **SP writer 在 Mac pipeline 鎖 `claude-opus-4-5`**（`claude.go` 的 `ClaudeOpusPinned`），不再走浮動 `opus` alias——寫作 voice 對 Opus 版本敏感，Anthropic 一升 alias 就可能改掉 LHY persona，所以釘死版本。pipeline 仍會從 Claude Code JSON metadata 讀回實際 model 寫進 frontmatter。Fact Checker fallback judge 跟 doctor probe 才繼續用浮動 `opus` alias（追最新）。
@@ -227,9 +227,41 @@ tools/sp-pipeline/gp-pipeline run <url> --force
 - **Tribunal Writer legacy agent**（`.claude/agents/tribunal-writer.md`）→ 鎖 `claude-opus-4-5`，只當 legacy / fallback calibration，不是 Codex runtime selector
 - **Fact Checker**（`.claude/agents/fact-checker.md`）→ 用 `opus` alias（追最新，fact-check 要 reasoning 強的，沒有 voice 問題；**不動**）
 - **Librarian**（`.claude/agents/librarian.md`）→ `claude-opus-4-7`
-- **Fresh Eyes**（`.claude/agents/fresh-eyes.md`）→ `claude-opus-4-7`
+- **Fresh Eyes**（`.claude/agents/fresh-eyes.md`）→ 浮動 `opus` alias（追最新，現在是 **Opus 4.8**）。**刻意不 pin**（2026-06-18 ShroomDog 決定）——fresh-eyes 是「陌生讀者」視角，用跟 writer **不同代 / 最新**的 model 反而能抓 writer 同代看不到的盲點（diversity > taste 對齊）。所以 CCC 用 `Agent(subagent_type:"fresh-eyes")` 直接跑即可，不需要 `claude -p` pin。
 
 修 `.claude/agents` 這些 legacy calibration 檔之前先讀 frontmatter 上方的 PIN 註解；它們不是 active Codex runtime model selection。
+
+### CCC 怎麼 pin 到指定 Opus 版本（`claude -p` vs `Agent` tool）
+
+**核心限制（2026-06-18 兩次 session 實測）**：CCC 的 `Agent` tool `model` 參數**只吃 alias**——`sonnet` / `opus` / `haiku` / `fable`——**沒有版本粒度**。`opus` alias 一律解析成「當前最新 Opus」（現在是 4.8）。所以**透過 `Agent` tool 永遠 spawn 不到 `claude-opus-4-5` 或任何指定舊版**，不管 named agent 的 frontmatter pin 寫的是什麼（named agent 在很多 CCC harness 還會 fall back 成 `general-purpose` + 繼承 parent model，pin 直接被無視，見上面 line 135 caveat）。
+
+**要 pin 到指定版本，唯一可靠路徑 = `claude -p --model <完整-id>` subprocess**：
+
+```bash
+# ✅ 能 pin：完整 id，真的跑在 4.5
+claude -p --model claude-opus-4-5 --allowed-tools "Read,Grep,Glob,Bash,Write,Edit" < /tmp/prompt.txt
+
+# ❌ pin 不到：alias 解析成最新（4.8），吃不到 4.5 pin
+#   Agent(model:"opus")  或  claude -p --model opus
+```
+
+注意：CLI 只認**短 alias**（`opus`/`sonnet`/`haiku`）或**完整 id**（`claude-opus-4-5`）；`opus-4-5` / `opus-4.5` 這種半截寫法一律被拒。
+
+**什麼時候必須走 `claude -p`（版本敏感的角色）vs `Agent` tool 就夠（版本不敏感）**：
+
+| 角色 | 路由表的 pin | CCC 怎麼跑 |
+|---|---|---|
+| **SP writer / rewriter** | `claude-opus-4-5`（voice 對版本敏感） | **必須 `claude -p --model claude-opus-4-5`**。寫作/改寫 voice 一漂就毀 LHY persona，pin 不能漏 |
+| **Vibe Scorer** | `claude-opus-4-5`（與 writer 同代，taste 對齊） | **必須 `claude -p --model claude-opus-4-5`** 才對得上 writer 的 taste 校準 |
+| **Fact Checker** | 浮動 `opus` alias（追最新） | `Agent(subagent_type:"fact-checker")` 直接用就好，本來就要最新 |
+| **Fresh Eyes** | 浮動 `opus` alias（追最新，現在 4.8；**刻意不 pin**，要 diversity 不要 taste 對齊） | `Agent(subagent_type:"fresh-eyes")` 直接用就好，跟 Fact Checker 同路 |
+| **Librarian** | `claude-opus-4-7`（路由表現值） | 版本不那麼敏感；`Agent` tool 用 default 即可。**若該次 task 明確要求特定版本**才改走 `claude -p --model <id>` |
+
+**規則一句話**：**版本要 pin（writer / rewriter / vibe，或 user 當次明講某 judge 用某版）→ `claude -p --model <完整-id>`；版本不在乎 → `Agent` tool 省事**。不要無腦把所有東西都改成 `claude -p`（fact-check / 一般 tribunal 用 `Agent` tool 更省 token、也不會踩 stream idle timeout）。
+
+**`claude -p` 跑長生成的雷**：write / rewrite 這種 long creative generation 會踩 stream idle timeout（見〈Stream idle timeout 應對〉）。對策：prompt 走 stdin、輸出用 `<<<MDX_START>>>…<<<MDX_END>>>` sentinel 包住再 `awk` 抽出、judge 一律 `--allowed-tools` 顯式 allowlist（root 下 `bypassPermissions` 會被拒）。
+
+**provenance 鐵則**：走 `claude -p` 手動 pin 的路徑**繞過了 pipeline 自動回填 model metadata 那層**，所以 `translatedBy.model` / `pipeline[].role.model` / `scores.*.model` 要**手動填實際用到的版本**（rewrite 就加一個 `Rewriter: Opus 4.5` role），同一筆 edit 補上、不能漏——frontmatter 標錯 model = 砸 gu-log「provenance 攤在陽光下」的招牌（見 `docs/shroomdog-editorial-feedback.md` 2026-06-18 SP-235 那條）。
 
 ## 文章寫作 SOP（省 token 版）
 
