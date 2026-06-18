@@ -233,13 +233,36 @@ describe('frontmatter-scores', () => {
     expect(fmScores.VALID_JUDGES).toEqual(['librarian', 'factCheck', 'freshEyes', 'vibe']);
   });
 
-  it('JUDGE_DIMS has 5 vibe dimensions', () => {
-    expect(fmScores.JUDGE_DIMS.vibe).toEqual([
+  it('judgeDims(vibe, v8) has 5 dimensions (legacy, with clarity)', () => {
+    expect(fmScores.judgeDims('vibe', 8)).toEqual([
       'persona',
       'clawdNote',
       'vibe',
       'clarity',
       'narrative',
+    ]);
+  });
+
+  it('judgeDims(vibe, v9) has 4 dimensions (no clarity)', () => {
+    expect(fmScores.judgeDims('vibe', 9)).toEqual(['persona', 'clawdNote', 'vibe', 'narrative']);
+  });
+
+  it('judgeDims(freshEyes, v9) has 5 dimensions (clarity added)', () => {
+    expect(fmScores.judgeDims('freshEyes', 9)).toEqual([
+      'readability',
+      'firstImpression',
+      'payoffDensity',
+      'lengthFit',
+      'clarity',
+    ]);
+  });
+
+  it('judgeDims(freshEyes, v8) has 4 dimensions (legacy, no clarity)', () => {
+    expect(fmScores.judgeDims('freshEyes', 8)).toEqual([
+      'readability',
+      'firstImpression',
+      'payoffDensity',
+      'lengthFit',
     ]);
   });
 
@@ -308,5 +331,115 @@ otherKey: y`;
 
   it('serializeScores returns empty for empty input', () => {
     expect(fmScores.serializeScores({})).toBe('');
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// score-floor-check (version-aware required vibe dims)
+// ════════════════════════════════════════════════════════════════════════════
+import { execFileSync } from 'node:child_process';
+
+const FLOOR_CHECK = path.join(__dirname, '..', 'scripts', 'score-floor-check.mjs');
+
+function runFloorCheck(file: string): { code: number; stderr: string } {
+  try {
+    execFileSync('node', [FLOOR_CHECK, file], { encoding: 'utf-8' });
+    return { code: 0, stderr: '' };
+  } catch (e: any) {
+    return { code: e.status ?? 1, stderr: String(e.stderr ?? '') };
+  }
+}
+
+describe('score-floor-check version-aware vibe dims', () => {
+  it('v9 post passes with 4 vibe dims (no clarity) + composite >= 3', () => {
+    const f = tmpPath('floor-v9-ok.mdx');
+    fs.writeFileSync(
+      f,
+      `---
+lang: zh-tw
+scores:
+  tribunalVersion: 9
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-06-18"
+---
+body
+`
+    );
+    expect(runFloorCheck(f).code).toBe(0);
+  });
+
+  it('v9 post blocked when missing a required v9 dim (narrative)', () => {
+    const f = tmpPath('floor-v9-missing.mdx');
+    fs.writeFileSync(
+      f,
+      `---
+lang: zh-tw
+scores:
+  tribunalVersion: 9
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    score: 8
+    date: "2026-06-18"
+---
+body
+`
+    );
+    const r = runFloorCheck(f);
+    expect(r.code).toBe(1);
+    expect(r.stderr).toMatch(/narrative/);
+  });
+
+  it('v8 post still requires 5 vibe dims (clarity required)', () => {
+    const f = tmpPath('floor-v8-missing-clarity.mdx');
+    fs.writeFileSync(
+      f,
+      `---
+lang: zh-tw
+scores:
+  tribunalVersion: 8
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-06-18"
+---
+body
+`
+    );
+    const r = runFloorCheck(f);
+    expect(r.code).toBe(1);
+    expect(r.stderr).toMatch(/clarity/);
+  });
+
+  it('legacy v8 post with clarity present passes', () => {
+    const f = tmpPath('floor-v8-ok.mdx');
+    fs.writeFileSync(
+      f,
+      `---
+lang: zh-tw
+scores:
+  tribunalVersion: 8
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    clarity: 8
+    narrative: 8
+    score: 8
+    date: "2026-06-18"
+---
+body
+`
+    );
+    expect(runFloorCheck(f).code).toBe(0);
   });
 });

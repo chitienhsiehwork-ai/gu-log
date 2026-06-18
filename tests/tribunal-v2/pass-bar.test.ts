@@ -4,6 +4,8 @@ import {
   checkFinalVibePassBar,
   checkFreshEyesPassBar,
   checkFactLibPassBar,
+  vibeDims,
+  freshEyesDims,
 } from '../../src/lib/tribunal-v2/pass-bar';
 
 // ============================================================================
@@ -433,5 +435,200 @@ describe('checkFactLibPassBar (Stage 3)', () => {
         dupCheck: -1,
       })
     ).toThrow(/outside the valid range/i);
+  });
+});
+
+// ============================================================================
+// move-clarity-vibe-to-fresheyes — version-aware dimension ownership
+// ============================================================================
+
+describe('vibeDims / freshEyesDims resolvers', () => {
+  it('v9+ Vibe owns 4 dims (no clarity)', () => {
+    expect(vibeDims(9)).toEqual(['persona', 'clawdNote', 'vibe', 'narrative']);
+    expect(vibeDims(10)).toEqual(['persona', 'clawdNote', 'vibe', 'narrative']);
+  });
+
+  it('v8 and below Vibe owns 5 dims (legacy, with clarity)', () => {
+    expect(vibeDims(8)).toEqual(['persona', 'clawdNote', 'vibe', 'clarity', 'narrative']);
+    expect(vibeDims(3)).toEqual(['persona', 'clawdNote', 'vibe', 'clarity', 'narrative']);
+  });
+
+  it('v9+ Fresh Eyes owns 5 dims (clarity added)', () => {
+    expect(freshEyesDims(9)).toEqual([
+      'readability',
+      'firstImpression',
+      'payoffDensity',
+      'lengthFit',
+      'clarity',
+    ]);
+  });
+
+  it('v8 and below Fresh Eyes owns 4 dims (legacy, no clarity)', () => {
+    expect(freshEyesDims(8)).toEqual([
+      'readability',
+      'firstImpression',
+      'payoffDensity',
+      'lengthFit',
+    ]);
+  });
+});
+
+describe('checkVibePassBar — v9 (4-dim, no clarity)', () => {
+  it('composite = floor(sum of 4 dims / 4)', () => {
+    const result = checkVibePassBar({ persona: 9, clawdNote: 8, vibe: 8, narrative: 8 }, 9);
+    // floor((9+8+8+8)/4) = floor(8.25) = 8
+    expect(result.composite).toBe(8);
+    expect(result.pass).toBe(true);
+    expect(result.hasHighlight).toBe(true);
+    expect(result.failedDimensions).toEqual([]);
+  });
+
+  it('does NOT require clarity at v9', () => {
+    // No clarity key present — must not throw.
+    expect(() =>
+      checkVibePassBar({ persona: 9, clawdNote: 8, vibe: 8, narrative: 8 }, 9)
+    ).not.toThrow();
+  });
+
+  it('fails when any of the 4 dims < 8', () => {
+    const result = checkVibePassBar({ persona: 10, clawdNote: 10, vibe: 10, narrative: 7 }, 9);
+    expect(result.pass).toBe(false);
+    expect(result.failedDimensions).toEqual(['narrative']);
+  });
+
+  it('throws when a required v9 dim is missing', () => {
+    expect(() =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      checkVibePassBar({ persona: 9, clawdNote: 8, vibe: 8 } as any, 9)
+    ).toThrow('Missing required dimension: narrative');
+  });
+
+  it('ignores clarity even if present in scores at v9', () => {
+    const result = checkVibePassBar(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      { persona: 9, clawdNote: 8, vibe: 8, narrative: 8, clarity: 2 } as any,
+      9
+    );
+    // clarity=2 would drop composite/fail under legacy, but v9 ignores it.
+    expect(result.composite).toBe(8);
+    expect(result.pass).toBe(true);
+    expect(result.failedDimensions).toEqual([]);
+  });
+});
+
+describe('checkVibePassBar — v8 regression (5-dim, with clarity)', () => {
+  it('defaults to legacy 5-dim math when no version passed', () => {
+    const result = checkVibePassBar({
+      persona: 9,
+      clawdNote: 8,
+      vibe: 8,
+      clarity: 8,
+      narrative: 8,
+    });
+    // floor((9+8+8+8+8)/5) = 8
+    expect(result.composite).toBe(8);
+    expect(result.pass).toBe(true);
+  });
+
+  it('still requires clarity at v8', () => {
+    expect(() =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      checkVibePassBar({ persona: 9, clawdNote: 8, vibe: 8, narrative: 8 } as any, 8)
+    ).toThrow('Missing required dimension: clarity');
+  });
+});
+
+describe('checkFinalVibePassBar — v9 (4-dim, no clarity)', () => {
+  it('does not consider clarity for regression at v9', () => {
+    const stage1 = { persona: 9, clawdNote: 9, vibe: 9, narrative: 9, clarity: 9 };
+    const current = { persona: 9, clawdNote: 9, vibe: 9, narrative: 9, clarity: 2 };
+    // clarity dropped 7 points but is no longer a Vibe dim at v9 → no degradation
+    const result = checkFinalVibePassBar(current, stage1, 9);
+    expect(result.pass).toBe(true);
+    expect(result.degradedDimensions).toEqual([]);
+  });
+
+  it('still flags a > 1 drop on an owned v9 dim', () => {
+    const stage1 = { persona: 9, clawdNote: 9, vibe: 9, narrative: 9 };
+    const current = { persona: 7, clawdNote: 9, vibe: 9, narrative: 9 };
+    const result = checkFinalVibePassBar(current, stage1, 9);
+    expect(result.pass).toBe(false);
+    expect(result.degradedDimensions).toEqual([{ dim: 'persona', stage1: 9, current: 7, drop: 2 }]);
+  });
+});
+
+describe('checkFreshEyesPassBar — v9 (5-dim, clarity hard gate)', () => {
+  const fresh9 = (
+    overrides: Partial<{
+      readability: number;
+      firstImpression: number;
+      payoffDensity: number;
+      lengthFit: number;
+      clarity: number;
+    }> = {}
+  ) =>
+    checkFreshEyesPassBar(
+      {
+        readability: 8,
+        firstImpression: 8,
+        payoffDensity: 8,
+        lengthFit: 8,
+        clarity: 8,
+        ...overrides,
+      },
+      9
+    );
+
+  it('composite = floor(sum of 5 dims / 5)', () => {
+    const result = fresh9({ readability: 10, clarity: 10 });
+    // floor((10+8+8+8+10)/5) = floor(8.8) = 8
+    expect(result.composite).toBe(8);
+    expect(result.pass).toBe(true);
+  });
+
+  it('passes when composite≥8 AND payoffDensity≥8 AND lengthFit≥8 AND clarity≥8', () => {
+    const result = fresh9({
+      readability: 8,
+      firstImpression: 8,
+      payoffDensity: 8,
+      lengthFit: 8,
+      clarity: 8,
+    });
+    expect(result.pass).toBe(true);
+  });
+
+  it('clarity=7 fails despite high composite (non-compensating)', () => {
+    const result = fresh9({
+      readability: 10,
+      firstImpression: 10,
+      payoffDensity: 10,
+      lengthFit: 10,
+      clarity: 7,
+    });
+    // composite floor((10+10+10+10+7)/5) = floor(9.4) = 9 ≥ 8, but clarity gate fails
+    expect(result.composite).toBe(9);
+    expect(result.pass).toBe(false);
+  });
+});
+
+describe('checkFreshEyesPassBar — v8 regression (4-dim, no clarity gate)', () => {
+  it('defaults to legacy 4-dim math and bar when no version passed', () => {
+    const result = checkFreshEyesPassBar({
+      readability: 9,
+      firstImpression: 8,
+      payoffDensity: 8,
+      lengthFit: 8,
+    });
+    // floor((9+8+8+8)/4) = 8
+    expect(result.composite).toBe(8);
+    expect(result.pass).toBe(true);
+  });
+
+  it('has no clarity gate at v8 (clarity absence does not fail)', () => {
+    const result = checkFreshEyesPassBar(
+      { readability: 9, firstImpression: 8, payoffDensity: 8, lengthFit: 8 },
+      8
+    );
+    expect(result.pass).toBe(true);
   });
 });
