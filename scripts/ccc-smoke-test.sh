@@ -95,6 +95,20 @@ if $FIX; then
       warn "Playwright bin 不在 node_modules" "pnpm install 完成後重跑 --fix 會補"
     fi
   fi
+
+  # OpenSpec CLI：CCC sandbox 不預裝。SDD 流程（openspec-propose / apply）要 `openspec`
+  # binary（repo 已 init openspec/，但 binary 不在 fresh sandbox）。套件名是
+  # @fission-ai/openspec —— npm 的裸名 `openspec` 是 0.0.0 空殼，別裝那個。小套件，
+  # 同步裝即可；idempotent：已在 PATH 就跳過。只在 CCC 跑（mac-CC 自己管 local）。
+  if [ "${CLAUDE_CODE_REMOTE:-}" = "true" ]; then
+    if command -v openspec >/dev/null 2>&1; then
+      pass "openspec CLI 已存在，跳過安裝"
+    else
+      npm i -g @fission-ai/openspec@latest >/tmp/ccc-openspec-install.log 2>&1 \
+        && pass "openspec CLI 安裝完成 ($(openspec --version 2>/dev/null | head -1))" \
+        || warn "openspec CLI 安裝失敗" "見 /tmp/ccc-openspec-install.log"
+    fi
+  fi
 fi
 
 # ── 1. 身份 ───────────────────────────────────────────────────────
