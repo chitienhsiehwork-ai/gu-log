@@ -406,3 +406,13 @@ Sprin asked whether Tribunal v7 FreshEyes covers “length should be just right,
 - 修法（SP-232 worked example）：外科手術式，只殺 reflexive，留 earned。實改三處 T3/T2（「拆得很乾淨了」→「都講過了」、「這刀切得漂亮」刪掉、「表面是吐槽，其實精準」→直接陳述），保留所有承載論點的對偶（cron 段「不是新魔法，也不是只是 cron，而是…」、結尾「不是 loop，是 skill」）。
 - Enforcement 決策：**不加硬 lint blocker**——密度型 tell 用 regex 會誤殺正當用法（含論點本身），製造比 tell 更煩的 friction。改放 tribunal：`scripts/vibe-scoring-standard.md` 的 persona 維度新增「AI-Tell Trap」rubric，由 LLM judge 用語意判斷密度與 earned/reflexive 後扣分。硬 lint 只留給有明確字表的 T3。
 - Reusable lesson：AI 腔不是某一隻模型的毛病，是 LLM 共有的「金句反射」。寫完自我審查時專抓四類：反義對偶是不是用成口頭禪、有沒有「表面/深層」假深度、有沒有空洞強化詞、是不是每段都想 mic-drop。判準一句話：**earned（承載論點/笑點）留，reflexive（句型慣性）殺。**
+
+## 2026-06-18 — SP-236 inner/outer loops /「V1 太冗長，細節太多」
+
+### Feedback: 心智模型要清楚，但話太多、細節太滿
+
+- ShroomDog feedback：`V1 好像 太冗長，細節太多`；要求 `Keep the mental clear and less verbose`（讀 SP-236 prod 成品後）。
+- 情境：SP-236 V1（Opus 4.8 寫）四審全 PASS（vibe 8 / fresh 8），但 fresh-eyes 與 vibe 都已預警「結語段落 + 最後 ClawdNote 把全文壓成同一句、結尾自我重複」。作者實際讀完的痛點更廣：六個 section + 六個 ClawdNote，每個 ClawdNote 都把同一個「內/外迴圈」心智模型再講一次，原文本來很乾淨的雙迴圈骨架被一層層 gu-log 自指解說（tribunal 分數封存、feedback 檔、3x 規則、SP-235/220 家譜）埋住，讀者要自己從冗詞裡挖回那張圖。
+- 修法：用 Opus 4.5 重寫，砍掉重複的解說層，讓「內迴圈帶 context 進來、外迴圈把審稿擠出的 context 撿回去」這張圖從頭到尾保持裸露。具體：減少 ClawdNote 數量與長度（只留真正加 insight 的）、合併節奏重複的 section、刪掉把同一結論換句話再說的句子、結語不要再 recap。Payoff 密度優先於覆蓋率——原文每個細節都翻不等於好，idea behind the details 才是交付物。
+- Reusable lesson：(1) **四審 PASS ≠ 不冗長**。tribunal 的 vibe/fresh 會給 8 分過關，但「composite 8 且 length/payoff 都剛好 8」常常就是「能讀但偏長」的訊號——看到 freshEyes 的 lengthFit / payoffDensity 卡在 8（不是 9）就要當成精簡提示，不要等作者讀完才發現。(2) **gu-log 自指要節制**。ClawdNote 接回 gu-log 自己的流程（tribunal、feedback 檔、cross-ref）是特色，但一篇塞三四個就會把原文的主幹稀釋掉——自指是調味，不是主菜，每篇最多一兩處夠味的就好。(3) 翻譯類文章的預設失敗模式是「太忠實 → 太長」，不是「漏東西」；寧可砍到剩骨架清楚，也不要逐點覆蓋。
+- 模型操作備忘：`claude -p --model claude-opus-4-5` 可用（完整 id），Agent tool 的 model enum 只有 `opus/sonnet/haiku/fable` alias（opus→4.8），選不到 4.5；要指定版本走 `claude -p` subprocess。

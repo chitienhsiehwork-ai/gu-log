@@ -1,19 +1,22 @@
 ---
 ticketId: "SP-236"
-title: "The AI Draft Was Good — You Edited It Anyway. The Line You Deleted Is the Context It Needs Next Time"
+title: "The AI Draft Was Good — You Edited It Anyway. That Deleted Line Is the Context It Needs Next Time"
 originalDate: "2026-06-17"
 translatedDate: "2026-06-18"
 translatedBy:
-  model: "Opus 4.8"
+  model: "Opus 4.5"
   harness: "Claude Code"
   pipeline:
     - role: "Translator"
       model: "Opus 4.8"
       harness: "Claude Code"
+    - role: "Rewriter"
+      model: "Opus 4.5"
+      harness: "Claude Code"
 source: "@gabrielchua on X"
 sourceUrl: "https://x.com/gabrielchua/status/2067262326043287852"
 lang: "en"
-summary: "Every two hours, Codex drafts email replies for review. The drafts are good — he edits them anyway. Those edits are context too, and most automations throw them away. The fix is two loops: an inner loop that brings context to the work, an outer loop that learns from the review diff."
+summary: "Every two hours, Codex drafts email replies for review. The drafts are good — he edits them anyway. Those edits are context too, and most automations throw them away. The fix: an inner loop brings context to the work; an outer loop recovers context from the review diff."
 tags: ["shroom-picks", "agent", "context-engineering", "codex", "loop"]
 scores:
   tribunalVersion: 8
@@ -22,10 +25,10 @@ scores:
     clawdNote: 9
     vibe: 8
     clarity: 9
-    narrative: 9
+    narrative: 8
     score: 8
     date: "2026-06-18"
-    model: "Opus 4.8"
+    model: "Opus 4.5"
   factCheck:
     accuracy: 9
     fidelity: 9
@@ -37,118 +40,84 @@ scores:
     model: "Opus 4.8"
   librarian:
     glossary: 9
-    crossRef: 10
+    crossRef: 9
     sourceAlign: 8
-    attribution: 9
-    score: 9
+    attribution: 8
+    score: 8
     date: "2026-06-18"
     model: "Opus 4.7"
   freshEyes:
     readability: 9
     firstImpression: 9
     payoffDensity: 8
-    lengthFit: 8
+    lengthFit: 9
     score: 8
     date: "2026-06-18"
-    model: "Opus 4.8"
+    model: "Opus 4.5"
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Every two hours, [Codex](/en/glossary#codex) quietly prepares a batch of email replies for someone and leaves them sitting there, waiting to be reviewed before they go out. The drafts are mostly good. But he edits them every single time.
+Every two hours, [Codex](/en/glossary#codex) quietly prepares a batch of email replies for someone and leaves them waiting for review before they go out. The drafts are mostly good. But he edits them every single time — adding a decision from a thread last week, softening the tone because he knows the recipient, deleting a commitment he isn't ready to make. The draft can be fluent and perfectly polite, and still carry a faint smell of "anyone could have written this." The problem isn't intelligence. It's missing context.
 
-He adds a decision from a thread last week, or even an in-person chat. He softens the tone because he knows the person on the other end. He deletes a commitment he isn't ready to make yet. The draft can be fluent and perfectly polite, and still carry a faint smell of "anyone could have written this." That smell often gets called "AI slop" — but in cases like this, the problem isn't intelligence. It's missing context.
+Those human edits fill in exactly the part the model didn't have. And here's the interesting bit: **those edits are context too.** They reveal what actually mattered in this message, at this moment. The problem is, most automations don't keep that context. The next run starts from the same incomplete picture all over again.
 
-Nobody did anything wrong. Codex wrote from the information it had, and those human edits filled in exactly the part it didn't. Here's the interesting bit: **those edits are context too.** They reveal what actually mattered in this message, at this moment — what got kept, what got swapped out, what got rejected, and what this person wasn't comfortable sending.
-
-The problem is that most automations don't keep that context. The next run starts from the same incomplete picture all over again.
-
-<ClawdNote summary="Two kinds of slop: a dumb model vs. a blind one. Only the first is fixed by a smarter model; the second needs context.">
-Let me recalibrate "AI slop," because the word gets thrown around too loosely. Most people use it to mean "the model is dumb, the output is garbage." But this piece nails a sharper distinction: a lot of stuff people call slop was written perfectly well — what's missing is the context that only lives inside the person's head. The thing settled last week, the history with the recipient, a promise they're not ready to make. The model isn't stupid. It's blind. Telling these two kinds of slop apart matters, because the fix is completely different: the first needs a smarter model, the second can't be saved by any model, no matter how strong — it needs context fed to it. gu-log bets on this too, which is why this blog would rather write its style rules, editorial feedback, and terminology boundaries into files in the repo than wait around for "the model to just get better" (¬‿¬)
+<ClawdNote summary="Two kinds of slop: a dumb model vs. a blind one. Only the first is fixed by a smarter model.">
+"AI slop" usually gets used to mean "the model is dumb, the output is garbage." But a sharper distinction: a lot of stuff people call slop was written perfectly well — what's missing is context that only lives inside the person's head. The model isn't stupid. It's blind. Telling these two apart matters: the first needs a smarter model; the second can't be saved by any model, no matter how strong — it needs context fed to it (¬‿¬)
 </ClawdNote>
 
 ---
 
-## The Context You Need Before You Start vs. the Context That Only Shows Up After
+## Two Kinds of Context, Two Loops
 
 Split context into two kinds and the whole thing gets clearer.
 
-The first kind is what you need to have ready **before the work begins**: history, facts, constraints, relationships, decisions already made. This is the groundwork that should already be in your head before you write a single reply.
+The first kind is what you need **before the work begins**: history, facts, constraints, relationships, decisions already made. The second kind only **shows up after the work is done**: what someone kept, changed, or rejected in the moment of review. This context doesn't exist before the work — it gets squeezed out by the act of reviewing.
 
-The second kind only **shows up after the work is done**: in the moment of review, what a person kept, what they changed, what they rejected, what they sent, and what they left sitting untouched. This context doesn't exist before the work — it gets squeezed out by the act of someone reviewing.
-
-These two kinds map neatly onto two loops. The **inner loop** brings the right context to the work and produces a draft. The **outer loop** learns from the review, keeps what it learned, and makes it available the next time the same work runs. One loop carries context in; the other catches the context the work squeezes out. Drop either side and the automation just spins in place.
+These two kinds map onto two loops. The **inner loop** brings the right context to the work and produces a draft. The **outer loop** recovers context from the review and feeds it to the next run. One carries context in; the other catches the context the work squeezes out. Drop either side and the automation just spins in place.
 
 ---
 
 ## The Inner Loop: Bringing Context to the Work
 
-For email, the inner loop runs a chain of jobs: decide whether a message even needs a reply, gather the relevant context, draft a response, check whether the claims inside it hold up, and produce a draft for review.
+For email, the inner loop runs a chain: decide whether a message needs a reply, gather relevant context, draft a response, check whether the claims hold up, and produce a draft for review.
 
-You can build this chain two ways. One is to hard-code the steps in code or a workflow builder: fetch messages, filter noise, classify, draft, check the result — one box after another. The other is to hand Codex one plain sentence — "Create drafts every morning at 9am for emails I need to reply" — and let it decide which steps to take: inspect new threads, recover relevant history, research what's missing, prepare replies, and surface anything unclear. Both work. The key line is this: **retrieval is part of the writing**, not a chore you do before it.
+The key line: **retrieval is part of the writing**, not a chore you do before it. A reply might lean on a similar old email, a decision made six months ago, or the current status in a project tracker. The goal isn't to retrieve everything — it's to find the smallest set of information that makes this reply accurate and specific.
 
-A reply might lean on a similar old email, a decision made six months ago, the current status in a project tracker, or a fact from an approved source. Codex can gather that context itself, or hand a specific question to a [subagent](/en/glossary#subagent) to research. The goal isn't to retrieve everything — it's to find the smallest set of information that makes the reply accurate and specific. Stuffing the whole [context window](/en/glossary#context-window) full and putting the right three sentences in are very different things.
-
-There's one design detail that matters: keep the action reversible. **Only create the draft; never send it.** Before anyone edits, the inner loop saves a copy of the proposed reply, the sources it used, and the versions of the prompt and writing guidance behind it — untouched. Without that record, review is just an anecdote. With it, review becomes evidence.
-
-<ClawdNote summary="'Draft, never send' isn't a safety rail — it's the control group that turns a review into evidence you can reuse.">
-"Only draft, never send" looks like a safety feature, but it's actually the foundation of the entire outer loop. The point isn't "don't cause an incident" — it's "leave behind a copy you can diff against." Saving the draft, the sources, and the prompt version sets up a control group for the review that's about to happen. Without a control group, what someone changed is just an impression, and impressions can't improve a system. gu-log carries this same spirit into its quality process: the scores four judges give every article get written straight into the article's own frontmatter (you can see persona, clarity, every dimension), not tossed once they're read. The scores stay, so next time you want to know "which dimension did the last one actually fall down on," there's evidence on file. Sealing the moment of evaluation is what turns it from a one-off feeling into something you can accumulate (◕‿◕)
-</ClawdNote>
+There's one design detail that matters: keep the action reversible. **Only create the draft; never send it.** Before anyone edits, save a copy of the draft, its sources, and the current prompt version. Without that record, review is just an anecdote. With it, review becomes evidence.
 
 ---
 
 ## The Outer Loop: Recovering Context From Review
 
-The outer loop kicks in after someone reviews the draft. What happened to it? Sent unchanged, edited and sent, deleted outright, or left sitting there untouched?
+The outer loop kicks in after someone reviews the draft. What happened to it? Sent unchanged, edited and sent, deleted outright, or left sitting there?
 
-These four endings mean wildly different things. Sent unchanged hints the draft landed. Edited and sent leaves a "before vs. after" pair — and that pair is the most valuable of all. A deleted draft is harder to read: maybe the draft was off, or maybe no reply was needed at all. A draft left pending tells us almost nothing. And note this: even a sent email only records what the person accepted, not whether the reply actually worked — the real result usually lives in the other side's response, or in whatever happens next. Even so, the act of review adds evidence that wasn't available the moment the draft was written.
+The difference between draft and sent version is evidence. But it does not automatically become a lesson, and definitely should not automatically become a prompt change. A shortened opening might just be personal preference. An added fact might mean the inner loop searched the wrong place. A deleted commitment might point to a missing "don't over-promise" check. A rewritten paragraph might reflect judgment that should stay human.
 
-The difference between the draft and the sent version is evidence. But it does not automatically become a lesson, and it definitely should not automatically become a prompt change. A shortened opening might just be one person's writing preference. An added fact might be telling you the inner loop searched the wrong place. A deleted commitment might point to a missing "don't over-promise" check in the workflow. A whole paragraph rewritten might reflect judgment that should stay human.
+**Spotting a diff is easy. Understanding a diff is hard.** Not every edit should become a rule. The outer loop's job is to find **patterns that keep showing up**, propose the smallest useful change, and let a human decide what to keep.
 
-A diff can tell you **where** something changed. **Reading what the change is actually trying to say — that's the real work of the outer loop.** Spotting a diff is easy. Understanding a diff is hard.
-
-<ClawdNote summary="Inner/outer loop isn't new — here the outer loop learns from the human's edit diff, and not every edit becomes a rule.">
-Time to label the family tree honestly, before anyone thinks this is a brand-new invention. gu-log has covered the "inner loop / outer loop" architecture several times — [SP-235](/en/posts/en-sp-235-20260618-verifier-is-the-product) defines the inner loop as "writing a test and verifying inside a single task" and the outer loop as "writing lessons into the repo so the next session reads them," rooted in the ReAct and Reflexion papers; [SP-220](/en/posts/en-sp-220-20260610-loop-engineering) takes loop engineering apart from scratch. This piece's outer loop looks similar, but it pushes the camera to a narrower, much-less-discussed spot: the outer loop's learning signal is **specifically the edits a person makes during review** — not a log of the agent's own failed test runs, but the diff a live human leaves when they rewrite the draft. And its most counterintuitive line: not every edit should become a rule. Reflexion's recipe was "fail, then write it into memory"; this piece adds one more gate — first read whether the change is a preference, a bug, or a piece of judgment you can't outsource, then decide whether it goes into memory. Get that wrong and the outer loop will happily teach the system the wrong thing (￣▽￣)
-</ClawdNote>
-
----
-
-## The Only Reason the Outer Loop Exists: Making the Next Inner Loop Better
-
-The outer loop isn't there to keep a diary. Its one and only reason to exist is to make the next inner-loop run better.
-
-Its job is to look at what changed between Codex's draft and the final sent version, then ask one question: what would have helped Codex get closer on the first try? The answer might be better writing guidance, one more source to pull from, a new search step, a "catch unsupported commitments" check, or simply handing the ball back to a human earlier. But not every edit gets promoted to a rule — the outer loop looks for **patterns that keep showing up**, proposes the smallest useful change, and a human decides what to keep.
-
-In practice, those approved lessons live in a single plain markdown file. The outer loop proposes what to add to it; the inner-loop automation reads that file before drafting the next email. What got changed today becomes context already in hand when tomorrow's run starts. That's the full path by which review improves the inner loop.
-
-<ClawdNote summary="Lessons go in a markdown file the next run reads — only after the same feedback shows up three times, not one edit.">
-"Lessons go into a markdown file, the next run reads it first" — gu-log didn't read this somewhere, it does it every day. Every piece of editorial feedback [ShroomDog](/en/about) gives during review has to be appended to a tracking file (`docs/shroomdog-editorial-feedback.md`), never left to rot in a chat log or some agent's private memory — because a lesson stuck in private notes is one the next agent can't read, and that's the outer loop leaking. But this piece forced me to spell out a discipline I'd left fuzzy: that file does NOT get a new rule copied in every time ShroomDog changes one word. Only when the same kind of feedback shows up three or more times does it get promoted to an actual writing rule — which is exactly the "find the pattern, don't legislate off a single edit" point from above. Writing is a craft: change something once and it's a preference, change it three times and it's a rule. The outer loop's easiest mistake is treating a one-off preference as permanent law, then forcing every future run to obey a weird rule that really only fit the last email (๑•̀ㅂ•́)و✧
+<ClawdNote summary="The outer loop's learning signal is the human's edit diff — and not every edit becomes a rule.">
+Inner/outer loop architecture has come up on gu-log before — [SP-235](/en/posts/en-sp-235-20260618-verifier-is-the-product) defines the inner loop as "self-verify inside a single task" and the outer loop as "write lessons to the repo so the next session reads them." This piece makes the outer loop's learning signal more concrete: **specifically the edits a person makes during review**. And the most counterintuitive line: not every edit should become a rule. Reflexion's recipe was "fail, then write it into memory"; this piece adds one more gate — first read whether the change is a preference, a bug, or judgment you can't outsource, then decide whether it goes into memory. Get that wrong and the outer loop will teach the system the wrong thing (￣▽￣)
 </ClawdNote>
 
 ---
 
 ## Two Loops, Two Clocks
 
-These two loops run at different speeds — and that difference is itself part of the design.
+These two loops run at different speeds — and that difference is part of the design.
 
-The inner loop has to run fast; it's only useful if it helps quickly — maybe every two hours. The outer loop has to take its time. It waits until it has enough examples before it moves: maybe at the end of the day, after ten reviewed drafts have piled up, or once a week when examples are sparse.
+The inner loop has to run fast to be useful — maybe every two hours. The outer loop has to take its time. It waits until it has enough examples before moving: maybe end of day, after ten reviewed drafts, or once a week when examples are sparse.
 
-The pacing isn't arbitrary. Run the outer loop too often and it'll learn something from a rare one-off case, then treat that oddball as a general rule and poison every run after it. But never run it at all and those useful corrections evaporate with the next draft — the context each review squeezes out just drips onto the floor, and the next run starts again from that same incomplete picture. Learning too fast and learning too slow are both diseases.
+Run the outer loop too often and it'll learn from a rare one-off case, then treat that oddball as a general rule and poison every run after it. Never run it at all and those useful corrections evaporate with the next draft. Learning too fast and learning too slow are both diseases.
 
 <ClawdNote summary="The inner loop verifies in space, the outer loop verifies in time — both stop an under-tested signal from compounding.">
-This "run it too often and you overfit to a freak case" trap is the same coin as [SP-235](/en/posts/en-sp-235-20260618-verifier-is-the-product)'s "the verifier is the product," just flipped. The inner loop's gate (check the draft, block a confident wrong answer) is a verifier in **space**. The outer loop's "wait for enough examples, don't get dragged off by a single case" is a verifier in **time**. Both do the same job: stop an under-tested signal from compounding into a disaster. The only difference is one blocks "this round's wrong answer" and the other blocks "this round's fake pattern." Anyone who designs loops has to mind both gates (⌐■_■)
+"Run it too often and you overfit to a freak case" is the same coin as [SP-235](/en/posts/en-sp-235-20260618-verifier-is-the-product)'s "the verifier is the product," just flipped. The inner loop's gate is a verifier in **space** — block a confident wrong answer this round. The outer loop's "wait for enough examples" is a verifier in **time** — block a fake pattern from becoming a rule. Both do the same job: stop an under-tested signal from compounding into a disaster (⌐■_■)
 </ClawdNote>
 
 ---
 
-## Closing: Stop Making the Model Rediscover the Same Thing Every Run
+## Closing
 
-The same pattern isn't just for email. Decks, reports, briefs, issue triage — every kind of recurring work gets better the moment the workflow can use both kinds of context: what you should have known before the first draft, and what only surfaced after review.
-
-The models are already strong enough. The real opportunity today isn't squeezing out a few more points of intelligence — it's building workflows so the model doesn't have to rediscover the same context on every single run. The inner loop brings the right context to the work; the outer loop keeps the context the work squeezed out. One half remembers to bring it, the other remembers to pick it up.
+The models are already strong enough. The real opportunity today isn't squeezing out a few more points of intelligence — it's building workflows so the model doesn't have to rediscover the same context on every single run.
 
 So that edited email — its most valuable part was never the polished thing that got sent. It was the line that got deleted, the tone that got swapped, the six-month-old decision that got added back in. The finished version ships; those edits should stay — because the next time the same work runs, the line you casually deleted today is exactly the context it needs most, and the one it's most likely to throw away.
-
-<ClawdNote summary="Most people build only the inner loop. The cheap outer half — one markdown file — is what gives the tool a memory.">
-The thing that gnaws at me most after reading this: almost everyone who builds an automation only builds half of it. Feed context, produce a draft, done — inner loop, finished. The outer half barely gets built, even though it's cheap enough to be one markdown file plus a scheduler. And the cost of skipping it is quiet: the tool never throws an error, it just shows up every morning as that same amnesiac stranger, redrawing the same incomplete picture, and you'll never get a notification that says "I forgot the thing you taught me last week" again. What got me most is the direction this piece bets on — not one word of it tells you to wait for a stronger model. It bets the models are already enough, and what's missing is whether anyone's willing to bend down and pick up the context that fell on the floor in the moment of review (｡◕‿◕｡)
-</ClawdNote>
