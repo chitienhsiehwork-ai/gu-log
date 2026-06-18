@@ -192,6 +192,30 @@ gu-log 寫的就是 AI / agent / tooling 圈，這個圈子有兩個特性：
 - **Subagent 的事實結論要自己驗證一次**：subagent 也會用聽起來合理但錯的詞（例如把 closed source 說成 source-available）。看到關鍵 claim 就 fetch 一次原始碼或 license 確認
 - 完整時間線參考 `src/data/glossary.json` 的 Claude Code 條目
 
+### 🧭 SSOT 紀律：別複製事實，發現 drift 當場收斂
+
+**每個事實只有一個家（SSOT）。任何 CC/CCC/agent 動到有 SSOT 的東西時，預設責任就是「維持單一真相來源」——不複製事實、發現對不上就當場修。** 這是強制行為，不是「有空再做」。
+
+**為什麼這條要硬**：drift 幾乎都源自同一個錯——**把本來住在某個 SSOT 的值，複製一份到散文/表格裡**。複製出來的副本遲早跟本尊分岔，而且分岔時兩邊都長得「看起來對」，沒人會發現，直到某次踩到才知道文件在說謊。實例（2026-06-18 連踩兩次）：model 版本的 SSOT 是 `.claude/agents/*.md` 的 `model:` frontmatter，但 `playbooks/CCC-playbook.md` 路由表把版本號複製了一份 → agent 檔改了、playbook 沒跟 → fresh-eyes 跟 librarian 都 drift 成假資訊。
+
+**四條操作規則（每個 agent 都要內化）**：
+
+1. **寫一個值之前先問「這是不是別處已有事實的副本？」**——版本號、計數、路徑、清單、schema、設定值都算。是副本 → **連到 / 指向 SSOT，不要複製值**。文件的工作是描述 **policy / 為什麼**，不是當第二份資料庫。
+2. **真的非列出來不可時（為了可讀性），明確標註「SSOT = X，此處為 derived view，以 X 為準」**，讓下個讀者知道哪邊是真的、該往哪改。
+3. **一旦發現某份文件跟它的 SSOT 對不上（值/路徑/數字/清單兜不攏），當場收斂**——在同一個 PR 把 drift 修掉，不要留給下一個 session（這是〈順手修 friction〉的一種）。**SSOT 永遠贏，文件副本服從 SSOT**，除非你查出來是 SSOT 本身錯了（那就修 SSOT + 同步副本，並說明）。
+4. **動到任何系統時，順手掃一眼「我改的這個事實，有沒有別的地方也抄了一份？」**——改 agent frontmatter 就回頭看 playbook 有沒有複述、改 schema 就看 docs 有沒有舊欄位、bump counter 就看有沒有別處寫死數字。改 SSOT 不順手掃副本 = 主動製造下一個 drift。
+
+**哪一邊才是 SSOT？可以 drift 的內容，權威端是「程式碼（code）或 openspec spec」，不是散文文件。** 值 / 行為 / schema / 設定 / 流程的真相住在 **code（含 frontmatter、常數、config、Zod schema）或 openspec 的 spec**；playbook / README / CLAUDE.md / 註解 / task prompt 這些散文都是 **derived view**。兩邊對不上時，**散文服從 code/openspec**，把散文那份改成跟權威端一致——除非你查出來是 code/openspec 本身錯了（那才反過來修權威端，並說明）。兩個權威端互相矛盾（code 跟 openspec 講的不一樣）= 這不是 drift 是真衝突，往下看〈收斂的自主姿態〉第 2 點。
+
+**收斂的自主姿態（跟 CCC self-merge 同一條精神：能自己判斷就別問）**：
+
+1. **能判斷哪邊對 → 自己判斷、把錯的那邊（通常是散文副本）修掉、最後跟 user 提一聲就好**。不要為了確認而停下來問——「playbook 寫 4.7 但 frontmatter 是 opus 浮動」這種 code-vs-doc drift，code 端就是 SSOT，直接把 doc 修好、回報時帶一句「順手收了 X 的 drift」即可。（本 session 的 librarian drift 其實就該這樣自己收，不必開 AskUserQuestion。）
+2. **只有「難以判斷、又是重要決定」才叫 user 拍板**（用 `AskUserQuestion`）：例如兩個權威端真的互相矛盾、或要決定的是產品方向 / 架構 / 對外承諾 / 品牌調性 / config 取向（像「fresh-eyes 該 pin 哪代還是浮動」那種是 taste/config 偏好，不是單純 reconcile drift，才值得問）。判斷不出來時，預設往「自己收 + 提一聲」靠，不要往「停下來問」靠。
+
+**為什麼用 prompt 而不是只靠 lint**：drift 的形態太多（版本號、計數、路徑、清單、描述措辭），deterministic guard 抓不完、還容易誤殺正當用法。真正可靠的是**每個 agent 帶著 SSOT 意識在動**——看到對不上就順手收，而不是等某支 checker 剛好覆蓋到。lint 只是補網，不是主防線。
+
+這條把既有的「改規則時只改 SSOT 來源檔，不要在 task prompt 裡重複定義」（見〈文件架構〉）從「規則文件」推廣到**所有事實**（值、設定、計數、路徑），並加上「權威端 = code/openspec」「主動偵測 + 自主收斂 + 提一聲」的義務。
+
 ## 文件架構（誰讀什麼）
 
 ```

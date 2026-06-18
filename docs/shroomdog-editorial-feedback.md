@@ -494,3 +494,15 @@ Sprin asked whether Tribunal v7 FreshEyes covers “length should be just right,
 - 發現的 drift：`.claude/agents/fresh-eyes.md` frontmatter 本來就是 `model: opus`（浮動），但 `playbooks/CCC-playbook.md` 路由表寫死成 `claude-opus-4-7`——playbook 漂掉了。已把路由表改回浮動 opus alias，跟 agent 檔對齊。
 - CCC 機制備忘（寫進 CCC-playbook〈CCC 怎麼 pin 到指定 Opus 版本〉）：`Agent` tool 的 `model` 只吃 alias（`opus`→最新 4.8），**選不到指定版本**；要 pin（writer/rewriter/vibe = `claude-opus-4-5`）唯一可靠路徑是 `claude -p --model claude-opus-4-5`（完整 id；`opus-4-5`/`opus-4.5` 半截寫法會被拒）。版本不敏感的角色（fact-check / fresh-eyes）用 `Agent` tool 省事即可，不要無腦全改 `claude -p`。
 - Reusable lesson：(1) **judge 的 model 路由不是「越新越好」也不是「全部對齊 writer」**——voice/taste-sensitive（writer/rewriter/vibe）要 pin 同代；要 diversity 的陌生讀者視角（fresh-eyes）反而要放它浮動、跟 writer 拉開。(2) 改 model 路由時，playbook 路由表 + `.claude/agents/*.md` frontmatter 兩邊要同步，不然又 drift。(3) CCC 要 pin 版本只能走 `claude -p --model <完整-id>`，Agent tool 做不到。
+
+## 2026-06-18 — SSOT 紀律升級成強制行為規則（drift 連踩兩次後的根因處理）
+
+### Feedback: 「我們應該有個 strong prompt 讓 agent 自主隨時意識並維持 SSOT」
+
+- ShroomDog insight：連續抓到 fresh-eyes、librarian 兩個 model-routing drift 後，ShroomDog 點出根因不是「忘了同步」，而是該有一條 standing prompt 讓每個 agent 自主維持 SSOT——`I think it is just we should have a strong prompt that will autonomously always try to aware and keep ssot`。
+- 根因：drift 幾乎都來自同一個錯——**把住在某 SSOT 的值複製一份到散文/表格**。`.claude/agents/*.md` 的 `model:` frontmatter 是 model 選擇的 SSOT，但 `CCC-playbook` 路由表（還有 fallback 清單、品質 section）把版本號各抄了一份 → agent 檔改了、副本沒跟 → 兩處 drift 成假資訊。
+- 修法（兩層）：
+  1. **行為層**：CLAUDE.md ⚠️ 必讀 新增〈🧭 SSOT 紀律：別複製事實，發現 drift 當場收斂〉——四條操作規則（寫值前先問是不是副本→指向 SSOT；非列不可就標 derived view；發現對不上當場在同一 PR 收斂、SSOT 永遠贏；改 SSOT 順手掃別處有沒有抄一份）。並說明為什麼用 prompt 而不只靠 lint（drift 形態太多、lint 抓不完又誤殺，主防線是每個 agent 帶 SSOT 意識）。
+  2. **結構層（practice what we preach）**：CCC-playbook 模型路由表從「複述版本號」改成「只講 policy（voice-sensitive pin / judge 浮動）+ 版本值指向 frontmatter SSOT」，結構上讓它無從 drift。順手把同檔另外兩處抄了版本號的清單（fallback 四審清單、寫作 SOP Step 2）也一併拔掉版本號。
+- 權威端 + 自主姿態（ShroomDog 補充）：**可以 drift 的內容，SSOT 權威端是「code 或 openspec」，不是散文**；散文服從 code/openspec。**能判斷哪邊對就自己判斷、把錯的那邊修掉、跟 user 提一聲就好，不要停下來問**；只有「難判斷又是重要決定」（兩權威端真衝突、或產品/架構/品牌/config 取向）才用 `AskUserQuestion`。對照本 session：librarian 那種 code(frontmatter)-vs-doc drift 該直接自己收（不必問）；fresh-eyes「pin 哪代 vs 浮動」是 config 取向，問 user 才對。
+- Reusable lesson：(1) **看到「doc 跟實際對不上」不要只修這一處，要問『這個事實在幾個地方被抄了』，全部收斂**——這次一條 routing fact 在 playbook 抄了三份。(2) **預防勝於修補：能不複製就不複製**，doc 講 policy / why，值留在它的 SSOT（code：frontmatter / 常數 / config / schema，或 openspec spec），要列就標明 derived view + 指向真身。(3) deterministic guard 是補網不是主防線；真正可靠的是把 SSOT 紀律寫成每個 agent 都讀得到的強規則（CLAUDE.md），讓它自主偵測 + 當場收斂 + 提一聲。

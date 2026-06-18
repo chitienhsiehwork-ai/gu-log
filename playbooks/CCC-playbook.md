@@ -125,14 +125,16 @@ Vercel build / tribunal / validate-posts / CI 沒過：
 
 **沙箱 fallback**（只有上面 shell/pipeline 路真的壞掉時才用——例如 quota 用盡、CLI 版本回歸）：**CCC 自己用 `Agent` tool 一次 spawn 四個 subagent 平行跑**，對應 `.claude/agents/`：
 
-- `vibe-opus-scorer.md`（Opus）→ persona / clawdNote / vibe / narrative（v9；clarity 已移到 Fresh Eyes，v8 以下才含 clarity）
-- `fact-checker.md`（Opus）→ accuracy / fidelity / consistency（要 WebFetch 驗 sourceUrl）
-- `librarian.md`（Opus 4.7）→ glossary / crossRef / sourceAlign / attribution
-- `fresh-eyes.md`（Opus 4.7）→ readability / firstImpression / payoffDensity / lengthFit / clarity（v9；clarity 是非補償硬門檻，v8 以下無）
+（每個 agent 用哪個 model = 它的 `model:` frontmatter，**這裡不複述版本號**，見〈模型路由〉的 SSOT 提醒）：
+
+- `vibe-opus-scorer.md` → persona / clawdNote / vibe / narrative（v9；clarity 已移到 Fresh Eyes，v8 以下才含 clarity）
+- `fact-checker.md` → accuracy / fidelity / consistency（要 WebFetch 驗 sourceUrl）
+- `librarian.md` → glossary / crossRef / sourceAlign / attribution
+- `fresh-eyes.md` → readability / firstImpression / payoffDensity / lengthFit / clarity（v9；clarity 是非補償硬門檻，v8 以下無）
 
 每個 agent 寫 JSON 到 `/tmp/tribunal-<ticketId>-<judge>.json`，schema 照各 agent spec。
 
-**⚠️ 實測 caveat（2026-06-13）**：不是每個 CCC 網頁 harness 都把 `.claude/agents/` 註冊成 `Agent` tool 的 `subagent_type`。有的 session `Agent` tool 只開 built-in 的 `general-purpose` / `Explore` / `Plan`，named agent（`vibe-opus-scorer` 等）會回 `Agent type '...' not found`。遇到這種：**spawn `general-purpose`，在 prompt 裡叫它「讀 `.claude/agents/<judge>.md` 並完全照著做（zero parent context）」**，效果等同——judge 一樣 zero-context、一樣寫同一份 JSON。差別只在 model pin 顧不到（named agent 走 frontmatter 的 `claude-opus-4-6[1m]`，general-purpose 繼承 parent model），所以 `scores.*.model` 要記**實際**用到的 model，不要照抄 pin。agent 檔已補 `name:` frontmatter，環境若支援 project agent 就會吃到 named 路徑。`scripts/tribunal-helpers.sh` 在 CCC 偵測到沒有 CLI provider 時，也會把這條 fallback 指令印到 stderr。
+**⚠️ 實測 caveat（2026-06-13）**：不是每個 CCC 網頁 harness 都把 `.claude/agents/` 註冊成 `Agent` tool 的 `subagent_type`。有的 session `Agent` tool 只開 built-in 的 `general-purpose` / `Explore` / `Plan`，named agent（`vibe-opus-scorer` 等）會回 `Agent type '...' not found`。遇到這種：**spawn `general-purpose`，在 prompt 裡叫它「讀 `.claude/agents/<judge>.md` 並完全照著做（zero parent context）」**，效果等同——judge 一樣 zero-context、一樣寫同一份 JSON。差別只在 model pin 顧不到（named agent 走 frontmatter 的 pin，general-purpose 繼承 parent model），所以 `scores.*.model` 要記**實際**用到的 model，不要照抄 pin。agent 檔已補 `name:` frontmatter，環境若支援 project agent 就會吃到 named 路徑。`scripts/tribunal-helpers.sh` 在 CCC 偵測到沒有 CLI provider 時，也會把這條 fallback 指令印到 stderr。
 
 **Pass bar（四條全部要過才能 merge）**：
 - Vibe composite ≥ 8 **AND** 至少一維 ≥ 9 **AND** 無任何維 < 8
@@ -219,17 +221,18 @@ tools/sp-pipeline/gp-pipeline run <url> --force
 
 ### 模型路由（Mac writer + Codex judges）
 
-2026-06-13 更新：Claude 在 VM/CCC 上不作為主要 runtime；VM 是 Codex GPT-5.5 的地盤。Mac pipeline 的分工如下：
+2026-06-13 更新：Claude 在 VM/CCC 上不作為主要 runtime；VM 是 Codex GPT-5.5 的地盤。
 
-- **SP writer / refine**（`tools/sp-pipeline/internal/llm/claude.go` 的 `ClaudeOpusPinned`）→ 鎖 `claude-opus-4-5`（不走浮動 alias，避免寫作 voice 漂移），runtime metadata 記錄實際版本
-- **Eval / review / tribunal judges** → `codex exec --model gpt-5.5`，完整版 GPT，不走 mini
-- **Vibe Scorer**（`.claude/agents/vibe-opus-scorer.md`）→ 鎖 `claude-opus-4-5`
-- **Tribunal Writer legacy agent**（`.claude/agents/tribunal-writer.md`）→ 鎖 `claude-opus-4-5`，只當 legacy / fallback calibration，不是 Codex runtime selector
-- **Fact Checker**（`.claude/agents/fact-checker.md`）→ 用 `opus` alias（追最新，fact-check 要 reasoning 強的，沒有 voice 問題；**不動**）
-- **Librarian**（`.claude/agents/librarian.md`）→ 浮動 `opus` alias（追最新，現在 **Opus 4.8**）。跟 Fact Checker / Fresh Eyes 同路——glossary / cross-ref 檢查不是 voice-sensitive，要最新 reasoning 就好，不 pin。（agent 檔 frontmatter 一直是 `model: opus`；2026-06-18 把這張表從寫死的 4.7 改回浮動，對齊實際 runtime。）
-- **Fresh Eyes**（`.claude/agents/fresh-eyes.md`）→ 浮動 `opus` alias（追最新，現在是 **Opus 4.8**）。**刻意不 pin**（2026-06-18 ShroomDog 決定）——fresh-eyes 是「陌生讀者」視角，用跟 writer **不同代 / 最新**的 model 反而能抓 writer 同代看不到的盲點（diversity > taste 對齊）。所以 CCC 用 `Agent(subagent_type:"fresh-eyes")` 直接跑即可，不需要 `claude -p` pin。
+> **🧭 SSOT 提醒（見 `CLAUDE.md`〈SSOT 紀律〉）**：每個 agent 用哪個 model，**值的 SSOT 是各 agent 的 `model:` frontmatter**（`.claude/agents/*.md`）；Mac SP writer 是 `tools/sp-pipeline/internal/llm/claude.go` 的 `ClaudeOpusPinned`。**下面這張表只描述 policy（哪一類 pin、哪一類浮動、為什麼），刻意不複述版本號**——版本號一旦抄進這裡就會 drift（2026-06-18 fresh-eyes / librarian 連踩兩次就是因為表裡寫死了 4-7）。要知道某 agent 現在實際跑哪版 → 去讀它的 frontmatter，不要相信任何散文裡的版本數字。
 
-修 `.claude/agents` 這些 legacy calibration 檔之前先讀 frontmatter 上方的 PIN 註解；它們不是 active Codex runtime model selection。
+分工 policy（**按類別，不按版本號**）：
+
+- **Voice / taste-sensitive（SP writer / refine / rewriter、Vibe Scorer）→ pin 到固定 Opus 世代**。理由：寫作 voice 跟評分 taste 對 Opus 版本敏感，Anthropic 一升浮動 alias 就可能改掉 LHY persona / 評分基準，所以釘死世代、讓 writer 跟 vibe scorer 共用同一代以對齊 taste。實際版本 = 各自 frontmatter / `ClaudeOpusPinned`（**SSOT**）。
+- **非-voice judge（Fact Checker / Librarian / Fresh Eyes）→ 浮動 `opus` alias（追最新），刻意不 pin**。理由：fact-check / glossary / 陌生讀者視角要的是**最新 reasoning + diversity**，不是跟 writer taste 對齊；fresh-eyes 用跟 writer 不同代的 model 反而能抓同代看不到的盲點。CCC 用 `Agent(subagent_type:"…")` 直接跑即可（`opus` alias 本來就解析成最新，不需要 `claude -p` pin）。
+- **Codex judges（eval / review / tribunal on VM）→ `codex exec --model gpt-5.5`**，完整版不走 mini。
+- **Tribunal Writer legacy agent**（`.claude/agents/tribunal-writer.md`）→ 跟 writer 同類（pin），只當 legacy / fallback calibration，不是 active runtime selector。
+
+改某 agent 的 model = 改它的 frontmatter（SSOT）；改完**順手確認沒有別的 doc 又把版本號抄了一份**（這張表已經不抄了，但別處若有就一併收斂）。修 `.claude/agents` 這些 calibration 檔之前先讀 frontmatter 上方的 PIN 註解；它們不是 active Codex runtime model selection。
 
 ### CCC 怎麼 pin 到指定 Opus 版本（`claude -p` vs `Agent` tool）
 
@@ -249,15 +252,17 @@ claude -p --model claude-opus-4-5 --allowed-tools "Read,Grep,Glob,Bash,Write,Edi
 
 **什麼時候必須走 `claude -p`（版本敏感的角色）vs `Agent` tool 就夠（版本不敏感）**：
 
-| 角色 | 路由表的 pin | CCC 怎麼跑 |
-|---|---|---|
-| **SP writer / rewriter** | `claude-opus-4-5`（voice 對版本敏感） | **必須 `claude -p --model claude-opus-4-5`**。寫作/改寫 voice 一漂就毀 LHY persona，pin 不能漏 |
-| **Vibe Scorer** | `claude-opus-4-5`（與 writer 同代，taste 對齊） | **必須 `claude -p --model claude-opus-4-5`** 才對得上 writer 的 taste 校準 |
-| **Fact Checker** | 浮動 `opus` alias（追最新） | `Agent(subagent_type:"fact-checker")` 直接用就好，本來就要最新 |
-| **Fresh Eyes** | 浮動 `opus` alias（追最新，現在 4.8；**刻意不 pin**，要 diversity 不要 taste 對齊） | `Agent(subagent_type:"fresh-eyes")` 直接用就好，跟 Fact Checker 同路 |
-| **Librarian** | 浮動 `opus` alias（追最新，現在 4.8；**不 pin**） | `Agent(subagent_type:"librarian")` 直接用就好，跟 Fact Checker / Fresh Eyes 同路 |
+> 下表的 `<id>` = 該 agent `model:` frontmatter 裡寫的那個 id（**SSOT**，見上面 SSOT 提醒）。要打 `--model` 之前**先去 frontmatter 讀當下的 id**，不要憑記憶打——pin 的世代日後可能變，但「讀 frontmatter」這條不變。snapshot：寫這段時 pinned 世代是 `claude-opus-4-5`。
 
-**規則一句話**：**版本要 pin（writer / rewriter / vibe，或 user 當次明講某 judge 用某版）→ `claude -p --model <完整-id>`；版本不在乎 → `Agent` tool 省事**。不要無腦把所有東西都改成 `claude -p`（fact-check / 一般 tribunal 用 `Agent` tool 更省 token、也不會踩 stream idle timeout）。
+| 角色 | model 來源（SSOT） | CCC 怎麼跑 |
+|---|---|---|
+| **SP writer / rewriter** | pin（`ClaudeOpusPinned` / writer agent frontmatter） | **必須 `claude -p --model <id>`**。寫作/改寫 voice 一漂就毀 LHY persona，pin 不能漏 |
+| **Vibe Scorer** | pin（`vibe-opus-scorer.md` frontmatter，與 writer 同代） | **必須 `claude -p --model <id>`** 才對得上 writer 的 taste 校準 |
+| **Fact Checker** | 浮動 `opus` alias（追最新） | `Agent(subagent_type:"fact-checker")` 直接用就好，本來就要最新 |
+| **Fresh Eyes** | 浮動 `opus` alias（**刻意不 pin**，要 diversity 不要 taste 對齊） | `Agent(subagent_type:"fresh-eyes")` 直接用就好，跟 Fact Checker 同路 |
+| **Librarian** | 浮動 `opus` alias（**不 pin**） | `Agent(subagent_type:"librarian")` 直接用就好，跟 Fact Checker / Fresh Eyes 同路 |
+
+**規則一句話**：**版本要 pin（writer / rewriter / vibe，或 user 當次明講某 judge 用某版）→ `claude -p --model <frontmatter 的 id>`；版本不在乎 → `Agent` tool 省事**。不要無腦把所有東西都改成 `claude -p`（fact-check / 一般 tribunal 用 `Agent` tool 更省 token、也不會踩 stream idle timeout）。
 
 **`claude -p` 跑長生成的雷**：write / rewrite 這種 long creative generation 會踩 stream idle timeout（見〈Stream idle timeout 應對〉）。對策：prompt 走 stdin、輸出用 `<<<MDX_START>>>…<<<MDX_END>>>` sentinel 包住再 `awk` 抽出、judge 一律 `--allowed-tools` 顯式 allowlist（root 下 `bypassPermissions` 會被拒）。
 
@@ -281,11 +286,11 @@ Step 1: 寫 zh-tw 版
   - ClawdNote / ShroomDogNote 都在這步完成
   - validate-posts.mjs 確認格式
 
-Step 2: Tribunal review（spawn subagent）
-  - Vibe Scorer（Opus 4.6[1m]）：四維評分（v9；clarity 移到 Fresh Eyes）
-  - Fact Checker（Opus 4.7）：技術準確度
-  - Librarian（Opus 4.7）：glossary / cross-ref
-  - Fresh Eyes（Opus 4.7）：陌生讀者第一印象
+Step 2: Tribunal review（spawn subagent；model 見各 agent frontmatter，不在這列版本號）
+  - Vibe Scorer：四維評分（v9；clarity 移到 Fresh Eyes）
+  - Fact Checker：技術準確度
+  - Librarian：glossary / cross-ref
+  - Fresh Eyes：陌生讀者第一印象
   - Pass bar：Vibe composite ≥ 8 且沒有任何維 < 8
 
 Step 3: Iterate（如未通過）
