@@ -406,3 +406,27 @@ Sprin asked whether Tribunal v7 FreshEyes covers “length should be just right,
 - 修法（SP-232 worked example）：外科手術式，只殺 reflexive，留 earned。實改三處 T3/T2（「拆得很乾淨了」→「都講過了」、「這刀切得漂亮」刪掉、「表面是吐槽，其實精準」→直接陳述），保留所有承載論點的對偶（cron 段「不是新魔法，也不是只是 cron，而是…」、結尾「不是 loop，是 skill」）。
 - Enforcement 決策：**不加硬 lint blocker**——密度型 tell 用 regex 會誤殺正當用法（含論點本身），製造比 tell 更煩的 friction。改放 tribunal：`scripts/vibe-scoring-standard.md` 的 persona 維度新增「AI-Tell Trap」rubric，由 LLM judge 用語意判斷密度與 earned/reflexive 後扣分。硬 lint 只留給有明確字表的 T3。
 - Reusable lesson：AI 腔不是某一隻模型的毛病，是 LLM 共有的「金句反射」。寫完自我審查時專抓四類：反義對偶是不是用成口頭禪、有沒有「表面/深層」假深度、有沒有空洞強化詞、是不是每段都想 mic-drop。判準一句話：**earned（承載論點/笑點）留，reflexive（句型慣性）殺。**
+
+## 2026-06-18 — SP-235 / 開場 overwrought editorializing（「整篇最誠實的一句話」）
+
+### Feedback: 「This feel like ai slop. 不需要這麼冗長也不用整篇發表最誠實這樣吧？」
+
+- 情境：SP-235 開場把 Anthropic 自補的「還沒上 production」那句捧成——「整篇發表最誠實的一句話，就是這句。而它指向的東西，比那 75 萬行 Rust 重要得多——……」。ShroomDog 讀起來是 AI slop：(1) 太冗長，(2)「整篇最誠實的一句話」是替讀者打燈、替句子強行加重量的 overwrought framing。
+- 為什麼是 slop：這句犯了既有 taxonomy 的 **T4 mic-drop 打燈**（把一句普通的事實 reframe 成「全場最誠實的一句」）＋ **T3 空洞強化詞**（「最誠實」「重要得多」沒有交付新資訊，只負責讓句子聽起來很重）。原文確實有 "the most honest line in the entire launch"，但**照搬原文的自我打燈到譯文開場，會把原作者的口氣放大成譯者在用力**，讀者反而出戲。
+- 修法（worked example，外科手術式）：
+  - zh：`整篇發表最誠實的一句話，就是這句。而它指向的東西，比那 75 萬行 Rust 重要得多——一個會跑出漂亮數字的 loop……當成真正的產品在設計。` → `這句才是重點。一個能跑出漂亮數字的 loop，跟一個能跑出**對結果**的 loop，差的不是 agent 數量，是那個「驗證」的環節有沒有被當成真正的產品來設計。`
+  - en：`That single sentence is the most honest thing in the entire launch. And what it points at matters more than the 750,000 lines of Rust — …` → `That's the line that matters. A loop that produces a beautiful number…`
+  - 動作：砍掉「最誠實的一句話」打燈、砍掉「比 75 萬行更重要」的冗語，用「這句才是重點」一句帶過，直接進到對比本身。對比句本身（漂亮數字 vs 對結果）是 earned thesis，留。
+- Reusable lesson：(1) **不要替一句話打「這是全場最 X 的一句」的燈**（最誠實／最重要／最關鍵的一句話）——讓那句話自己站，讀者自己會判斷份量；打燈＝替讀者下結論＝AI 腔。(2) **原文的自我評價式 framing（"the most honest line…"）不要逐句搬進譯文開場**，那是原作者在他自己脈絡裡的口氣，搬過來會變成譯者在用力。要嘛省略、要嘛降一級（「這句才是重點」就夠）。(3) 開場 hook 兌現了之後就收手，不要再追加一層「而且這比那個還重要」的疊加修飾——疊加＝冗長。
+
+## 2026-06-18 — SP-235 / ClawdNote 開頭三層清喉嚨（scaffolding 太冗、偏尬）
+
+### Feedback: 「這裡廢話太多了吧 偏尬，你試著想想短一點可以怎麼寫」（指第一個 ClawdNote）
+
+- 情境：SP-235 第一個 ClawdNote（指向 SP-220 當先修課）連續疊三層鋪陳才進到重點——「先把前情提要釘好：……」→「那篇從頭講到尾了，這篇不重講。把那篇當這篇的先修課。」→「這篇只處理一件 SP-220 故意沒展開、而且幾乎沒人講清楚的事：那張『探索→規劃→執行→驗證』流程圖裡……」。三句都在「準備要講」，不是在講。ShroomDog：廢話太多、偏尬。
+- 為什麼尬：ClawdNote 的工作是補一刀 insight，不是寫導言。「先把前情提要釘好」「把那篇當先修課」「這篇只處理一件…的事」是三個同義的 throat-clearing（清喉嚨），把一個 14 字就能講完的指向（去讀 SP-220、這篇只挖驗證那格）灌成 5 句。讀者要的是結論，不是「我即將給你結論」的預告。
+- 修法（砍 60%）：
+  - `先把前情提要釘好：loop engineering 是什麼、開放迴圈跟封閉迴圈怎麼分、一個好 loop 要搭哪六個積木——SP-220 那篇從頭講到尾了，這篇不重講。把那篇當這篇的先修課。這篇只處理一件 SP-220 故意沒展開、而且幾乎沒人講清楚的事：那張「探索 → 規劃 → 執行 → 驗證」流程圖裡，「驗證」那一格到底裝什麼。劇透：那格才是產品，其他全是水電`
+  - → `loop engineering 是什麼、開放／封閉迴圈、一個好 loop 的六個積木——SP-220 都講過了，當先修課讀。這篇只挖那篇沒展開的一格：流程圖裡的「驗證」。那格才是產品，其他全是水電`
+  - en 同步砍：`First, let me pin the prerequisite. … this post won't re-explain it. This post handles the one thing …` → `What loop engineering is, open vs closed loops, the six building blocks — SP-220 covers all of it. Read it first. This post only opens the one box that one left folded: "verify."`
+- Reusable lesson：(1) **ClawdNote / 段落不要「預告自己要講什麼」**——「先說個背景」「先把前提釘好」「這篇只處理一件事」都是 throat-clearing，直接講那件事就好。(2) **同義鋪陳只留一句**：「這篇不重講＋當先修課＋只處理一件沒展開的事」是同一個意思講三遍，留最有資訊量的一句（「當先修課讀」＋「只挖驗證那格」）。(3) 自檢問句：這句是在「給結論」還是在「宣布我要給結論」？後者一律刪。「劇透：」這種轉場詞也可省，直接接結論。
