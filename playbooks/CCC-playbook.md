@@ -215,17 +215,17 @@ tools/sp-pipeline/gp-pipeline run <url> --force
 2. 單獨跑 prompt：`claude -p --model opus "<prompt>"` 模擬 write / refine 階段（**在 CCC root 下不要加 `--permission-mode` 也不要加 `--dangerously-skip-permissions`，會被擋**）。review / eval / tribunal judges 仍走 Codex GPT-5.5；只有沒有 `codex` 的 CCC fallback 才用 Claude。
 3. tribunal 改用本 playbook「Tribunal 必跑規則」那段的 4 個 subagent 平行跑
 
-**SP writer 在 Mac pipeline 使用 `opus` alias**，讓 Anthropic 更新 Opus 時自動跟上。pipeline 會從 Claude Code JSON metadata 讀回實際 model，frontmatter 寫具體版本（例如 `Opus 4.8`），不是把 alias 原樣端給讀者。
+**SP writer 在 Mac pipeline 鎖 `claude-opus-4-5`**（`claude.go` 的 `ClaudeOpusPinned`），不再走浮動 `opus` alias——寫作 voice 對 Opus 版本敏感，Anthropic 一升 alias 就可能改掉 LHY persona，所以釘死版本。pipeline 仍會從 Claude Code JSON metadata 讀回實際 model 寫進 frontmatter。Fact Checker fallback judge 跟 doctor probe 才繼續用浮動 `opus` alias（追最新）。
 
 ### 模型路由（Mac writer + Codex judges）
 
 2026-06-13 更新：Claude 在 VM/CCC 上不作為主要 runtime；VM 是 Codex GPT-5.5 的地盤。Mac pipeline 的分工如下：
 
-- **SP writer / refine**（`tools/sp-pipeline/internal/llm/claude.go` 的 `ClaudeOpusAlias`）→ `opus` alias，runtime metadata 記錄實際版本
+- **SP writer / refine**（`tools/sp-pipeline/internal/llm/claude.go` 的 `ClaudeOpusPinned`）→ 鎖 `claude-opus-4-5`（不走浮動 alias，避免寫作 voice 漂移），runtime metadata 記錄實際版本
 - **Eval / review / tribunal judges** → `codex exec --model gpt-5.5`，完整版 GPT，不走 mini
-- **Vibe Scorer**（`.claude/agents/vibe-opus-scorer.md`）→ 鎖 `claude-opus-4-6[1m]`
-- **Tribunal Writer legacy agent**（`.claude/agents/tribunal-writer.md`）→ 鎖 `claude-opus-4-6[1m]`，只當 legacy / fallback calibration，不是 Codex runtime selector
-- **Fact Checker**（`.claude/agents/fact-checker.md`）→ 用 `opus` alias（追最新，fact-check 要 reasoning 強的，沒有 voice 問題）
+- **Vibe Scorer**（`.claude/agents/vibe-opus-scorer.md`）→ 鎖 `claude-opus-4-5`
+- **Tribunal Writer legacy agent**（`.claude/agents/tribunal-writer.md`）→ 鎖 `claude-opus-4-5`，只當 legacy / fallback calibration，不是 Codex runtime selector
+- **Fact Checker**（`.claude/agents/fact-checker.md`）→ 用 `opus` alias（追最新，fact-check 要 reasoning 強的，沒有 voice 問題；**不動**）
 - **Librarian**（`.claude/agents/librarian.md`）→ `claude-opus-4-7`
 - **Fresh Eyes**（`.claude/agents/fresh-eyes.md`）→ `claude-opus-4-7`
 
