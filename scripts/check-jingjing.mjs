@@ -91,6 +91,7 @@ Insilico Medicine
 Fierce Biotech
 The Batch
 The Verge The Register Hacker News HN HackerNews TechCrunch Wired Information Bloomberg Reuters NYTimes WSJ
+Fortune Brainstorm
 Tom's Hardware
 Substack Medium dev.to
 Twitter X x.com twitter.com fxtwitter
@@ -163,7 +164,7 @@ Markdown markdown JSON YAML XML CSV TSV PDF EPUB DOCX MDX LaTeX
 RSS Atom JSONFeed iCal vCard
 gRPC WebSocket WebRTC GraphQL OpenAPI Swagger JSON-RPC
 JWT OAuth SAML SSO 2FA MFA TOTP
-SPEC.md WORKFLOW.md README.md CLAUDE.md
+SPEC.md WORKFLOW.md README.md CLAUDE.md SKILL.md AGENTS.md CONTRIBUTING.md
 SSH SCP SFTP FTP IMAP SMTP POP3
 Git GitHub Actions GitLab CI CircleCI Travis Jenkins
 
