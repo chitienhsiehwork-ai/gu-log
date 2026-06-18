@@ -36,6 +36,7 @@
 import fs from 'fs';
 import process from 'node:process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { resolveRecordedModelId } from './detect-model.mjs';
 
 const VALID_JUDGES = ['librarian', 'factCheck', 'freshEyes', 'vibe'];
 // v9 (move-clarity-vibe-to-fresheyes): clarity moved from vibe → freshEyes.
@@ -309,7 +310,10 @@ function opWrite() {
       : Number(scoreData.score) || 0;
 
   entry.date = today;
-  if (scoreData.model) entry.model = scoreData.model;
+  // Never record the floating `opus` alias verbatim — resolve it to the
+  // concrete build (claude-opus-4-8) so scores.*.model is a real version. A
+  // direct CCC subagent write could otherwise stamp the literal "opus".
+  if (scoreData.model) entry.model = resolveRecordedModelId(scoreData.model);
 
   scores[judge] = entry;
 

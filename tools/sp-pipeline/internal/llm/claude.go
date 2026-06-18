@@ -30,14 +30,30 @@ type ClaudeProvider struct {
 	actualModel ModelID
 }
 
-// ClaudeOpusAlias follows Anthropic's current Opus model for the Mac writing
-// path. Runtime JSON metadata is used to stamp the concrete resolved version.
+// ClaudeOpusAlias follows Anthropic's current Opus model for paths that should
+// track Anthropic's latest Opus automatically (fact-check fallback judge,
+// doctor probe). Runtime JSON metadata is used to stamp the concrete resolved
+// version.
+//
+// ClaudeOpusPinned is the writer / refine voice. The maintainer has pinned it
+// to a specific Opus build (not the floating alias) because Opus writing-voice
+// calibration is version-sensitive — a silent Anthropic bump can change the LHY
+// persona. Keep this in sync with the PIN comments in
+// .claude/agents/tribunal-writer.md and .claude/agents/vibe-opus-scorer.md.
 const (
-	ClaudeOpusAlias = "opus"
+	ClaudeOpusAlias  = "opus"
+	ClaudeOpusPinned = "claude-opus-4-5"
 )
 
-// NewClaudeOpus returns a ClaudeProvider wired to the Opus alias.
+// NewClaudeOpus returns a ClaudeProvider wired to the floating Opus alias. Use
+// this for paths that should track Anthropic's latest Opus (fact-check
+// fallback judge, doctor probe) — NOT for the writer, which is pinned.
 func NewClaudeOpus() *ClaudeProvider { return &ClaudeProvider{ModelFlag: ClaudeOpusAlias} }
+
+// NewClaudeOpusWriter returns a ClaudeProvider pinned to ClaudeOpusPinned for
+// the article write / refine path, so the writing voice does not drift when
+// Anthropic moves the floating Opus alias.
+func NewClaudeOpusWriter() *ClaudeProvider { return &ClaudeProvider{ModelFlag: ClaudeOpusPinned} }
 
 // NewClaudeSonnet returns a ClaudeProvider wired to Claude Sonnet.
 func NewClaudeSonnet() *ClaudeProvider { return &ClaudeProvider{ModelFlag: "sonnet"} }
@@ -45,8 +61,11 @@ func NewClaudeSonnet() *ClaudeProvider { return &ClaudeProvider{ModelFlag: "sonn
 // NewClaudeHaiku returns a ClaudeProvider wired to Claude Haiku.
 func NewClaudeHaiku() *ClaudeProvider { return &ClaudeProvider{ModelFlag: "haiku"} }
 
-// Name implements Provider.
-func (c *ClaudeProvider) Name() string { return "claude-" + c.modelFlag() }
+// Name implements Provider. It returns a stable family label (claude-opus /
+// claude-sonnet / claude-haiku) derived from the resolved Model(), so a pinned
+// flag like "claude-opus-4-5" still reports "claude-opus" rather than
+// "claude-claude-opus-4-5".
+func (c *ClaudeProvider) Name() string { return string(c.Model()) }
 
 // Model implements Provider.
 func (c *ClaudeProvider) Model() ModelID {

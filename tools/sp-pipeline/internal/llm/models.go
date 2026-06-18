@@ -55,6 +55,13 @@ func DisplayName(m ModelID) string {
 		family := strings.ToUpper(match[1][:1]) + match[1][1:]
 		return family + " " + match[2] + "." + match[3]
 	}
+	// Never display the floating `opus` alias verbatim. If a path ever stamps
+	// the bare alias (e.g. runtime JSON reporting "opus" instead of a concrete
+	// build), resolve it to the current concrete Opus — mirrors the JS SSOT
+	// OPUS_ALIAS_CURRENT in scripts/detect-model.mjs (keep both in sync).
+	if normalized == "opus" {
+		return DisplayName(ModelClaudeOpus)
+	}
 	switch m {
 	case ModelClaudeOpus:
 		return "Opus 4.8"

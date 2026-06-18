@@ -1,12 +1,13 @@
 package llm
 
 // DefaultWritingChain returns the provider ordering used for article writing
-// and refine steps. On Macs with Claude Code installed, Opus is the writer.
-// On the Clawd VM, where Claude is intentionally not a dependency, the runtime
-// falls back to Codex GPT-5.5.
+// and refine steps. On Macs with Claude Code installed, the pinned Opus build
+// is the writer (NewClaudeOpusWriter), so the writing voice doesn't drift when
+// Anthropic moves the floating alias. On the Clawd VM, where Claude is
+// intentionally not a dependency, the runtime falls back to Codex GPT-5.5.
 func DefaultWritingChain() []Provider {
 	return []Provider{
-		NewClaudeOpus(),
+		NewClaudeOpusWriter(),
 	}
 }
 
@@ -33,11 +34,12 @@ func ProbeChain() []Provider {
 }
 
 // WritingChain returns the provider chain the pipeline actually dispatches
-// through for write/refine. If Claude is installed, Opus is the writer and a
-// Claude runtime failure should fail loudly rather than silently writing with a
-// different voice. If Claude is absent, Codex GPT-5.5 keeps VM runs alive.
+// through for write/refine. If Claude is installed, the pinned Opus build is
+// the writer and a Claude runtime failure should fail loudly rather than
+// silently writing with a different voice. If Claude is absent, Codex GPT-5.5
+// keeps VM runs alive.
 func WritingChain() []Provider {
-	claude := NewClaudeOpus()
+	claude := NewClaudeOpusWriter()
 	if claude.Available() {
 		return []Provider{claude}
 	}
