@@ -430,3 +430,37 @@ Sprin asked whether Tribunal v7 FreshEyes covers “length should be just right,
   - → `loop engineering 是什麼、開放／封閉迴圈、一個好 loop 的六個積木——SP-220 都講過了，當先修課讀。這篇只挖那篇沒展開的一格：流程圖裡的「驗證」。那格才是產品，其他全是水電`
   - en 同步砍：`First, let me pin the prerequisite. … this post won't re-explain it. This post handles the one thing …` → `What loop engineering is, open vs closed loops, the six building blocks — SP-220 covers all of it. Read it first. This post only opens the one box that one left folded: "verify."`
 - Reusable lesson：(1) **ClawdNote / 段落不要「預告自己要講什麼」**——「先說個背景」「先把前提釘好」「這篇只處理一件事」都是 throat-clearing，直接講那件事就好。(2) **同義鋪陳只留一句**：「這篇不重講＋當先修課＋只處理一件沒展開的事」是同一個意思講三遍，留最有資訊量的一句（「當先修課讀」＋「只挖驗證那格」）。(3) 自檢問句：這句是在「給結論」還是在「宣布我要給結論」？後者一律刪。「劇透：」這種轉場詞也可省，直接接結論。
+
+## 2026-06-18 — SP-235 / 怪味去不掉時，換模型整篇重寫（process lesson）
+
+### Feedback: 「短一點有好一點，不過整篇有股怪味」→「你試著直接叫 opus 4.5 寫一次吧」
+
+- 情境：SP-235 原版（Opus 4.8 寫）經過兩輪外科手術式 line-edit（砍打燈、砍清喉嚨）後，ShroomDog 說「短一點有好一點，不過整篇有股怪味」，然後直接指示用 Opus 4.5 在 clean context 從零重寫。重寫版的評價是「4.5 寫得好看多了，難得看得完」。
+- 為什麼換模型而不是繼續修：有些「AI 怪味」是**模型層級的風格簽名**（見 2026-06-17 SP-232 那條 tell taxonomy），不是某幾句的問題。當 line-edit 已經砍掉可見的 tell、讀起來卻還是悶，繼續逐句修只會無限逼近同一個味道。換一個 model / 換一個 clean context 重抽一版，比在原稿上補丁更快到位。
+- 操作：`claude -p --model claude-opus-4-5` 從 `/tmp` 跑（避開 repo CLAUDE.md 污染脈絡），餵精簡 writer prompt（明列要避開的 tell）+ source，整篇重生，再跑 tribunal。
+- Reusable lesson：(1) **句級 tell 清乾淨但整體還是悶 → 換模型整篇重寫，不要在同一稿上繼續補丁**。(2) 重寫時把「要避開的 AI tell」明寫進 writer prompt（打燈/假深度 reframe/空洞強化詞/mic-drop/清喉嚨），比寫完再抓有效。(3) ShroomDog 已把「writer / rewriter / vibe scorer 都用同一代 Opus（4.5）」定為 config，讓生成與評分共用同一套 taste。
+
+## 2026-06-18 — SP-235 / 研究術語別用「學術根源是 XX」教科書腔
+
+### Feedback: 「這個模式的學術根源是 xx 這句話太白癡了，可以換成『這像是所謂的 xx (ref: [link])』」
+
+- 情境：重寫版介紹 ReAct / Reflexion 時用「這個模式的學術根源是 ReAct（Princeton 和 Google）」。ShroomDog 嫌「學術根源是」太教科書、太白癡。
+- 修法：改成口語化的「這套循環有個學名，叫 [ReAct](arxiv-link)（Princeton 和 Google 那篇）」「這套做法也有名字，叫 [Reflexion](arxiv-link)」，並**連到原始論文**（arXiv），而不是只丟一個術語。
+- Reusable lesson：(1) 引入研究術語時**不要用「學術根源是／源自／出自」這種論文腔**——casual 地給名字（「有個學名叫」「研究圈管這叫」）就好。(2) 提到具體 paper 的術語，**順手連原始出處**（arXiv / 官方），讓讀者能 ref，而不是把術語當成炫技名詞丟下不管。
+
+## 2026-06-18 — SP-235 / 引用來源的 caveat 要附日期+連結（attribution completeness）
+
+### Feedback: 「『Anthropic 自己在公告裡寫的那句但書：這個移植還沒上 production』-> 要加公告日期跟連結」
+
+- 情境：正文把「還沒上 production」這句歸給「Anthropic 的公告」，但只有口頭歸屬，沒給是哪篇公告、哪天。
+- 修法：補成「Anthropic 在那篇[動態工作流公告](url)（2026 年 6 月 2 日）裡，自己寫的那句但書：……」——把 announcement 連結 + 日期 inline 進去。
+- Reusable lesson：**只要把一個 claim 歸給某篇具體公告/文章（尤其是『官方自己承認 X』這種有份量的歸屬），就要在那句附上連結 + 日期**。口頭講「官方公告說」但不給 source = 讀者沒法查證，attribution 不完整。低風險的泛論可以不附，但「官方自承 caveat」這種承重歸屬一定要。
+
+## 2026-06-18 — SP-235 / 換 model 重寫後，frontmatter provenance 必須同步改
+
+### Feedback: 「Model signature 沒一起改 騙人啊。這不是應該要由程式一起順便改？」
+
+- 情境：把 Opus 4.5 重寫的 body 換進檔案時，`translatedBy.model` 還掛著前一版的 Opus 4.8，沒同步改 → 等於 frontmatter 在說謊（標 4.8 實際 4.5）。
+- 修法：用 `detect-model.mjs` 把 zh + en 的 `translatedBy.model` / `pipeline[].model` 正名成 Opus 4.5。
+- 為什麼 ShroomDog 在意：gu-log 的賣點之一就是「把 AI 自評分數/provenance 攤在陽光下」，所以 model signature 必須誠實。標錯 model = 直接砸這個招牌。
+- Reusable lesson：(1) **任何「換 model / 換 harness 重生內容」的動作，同一筆 edit 就要把 `translatedBy` / `pipeline` provenance 改成實際用到的 model**，不能事後補、更不能漏。(2) ShroomDog 期望這件事**由 pipeline 自動蓋**（gp-pipeline 確實會從 Claude Code metadata 讀回 model 寫進 frontmatter）——手動 `claude -p` 重寫路徑繞過了那層才會漏，所以手動路徑要特別記得補。（討論過是否加 pre-commit guard 偵測「body 大改但 model 沒動」，ShroomDog 否決：因為可能用同一個 model 重寫，會誤殺。）
