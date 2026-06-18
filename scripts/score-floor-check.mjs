@@ -52,7 +52,14 @@ if (!vibe) {
   process.exit(1);
 }
 
-const dims = ['persona', 'clawdNote', 'vibe', 'clarity', 'narrative'];
+// Version-aware required vibe dimensions: tribunalVersion >= 9 moved `clarity`
+// out of Vibe into Fresh Eyes, so v9 posts need only the 4 remaining dims.
+// v8 and below (incl. missing version) keep the legacy 5-dim requirement.
+const tribunalVersion = Number(frontmatter?.scores?.tribunalVersion ?? 0);
+const dims =
+  tribunalVersion >= 9
+    ? ['persona', 'clawdNote', 'vibe', 'narrative']
+    : ['persona', 'clawdNote', 'vibe', 'clarity', 'narrative'];
 const missing = dims.filter((d) => typeof vibe[d] !== 'number');
 if (missing.length) {
   console.error(`scores.vibe incomplete (missing: ${missing.join(', ')})`);

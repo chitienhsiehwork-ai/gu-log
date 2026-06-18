@@ -5,8 +5,12 @@
  * 4 judges, uniform 0-10 scale, new dimension map:
  *   Librarian (Opus 4.7)    → glossary · crossRef · sourceAlign · attribution
  *   Fact Check (GPT-5.5)    → accuracy · fidelity · consistency · sourceBoundary · commentarySeparation
- *   Fresh Eyes (GPT-5.5)    → readability · firstImpression · payoffDensity · lengthFit
- *   Vibe (Opus 4.6[1m])     → persona · clawdNote · vibe · clarity · narrative
+ *   Fresh Eyes (GPT-5.5)    → readability · firstImpression · payoffDensity · lengthFit · clarity (v9+)
+ *   Vibe (Opus 4.6[1m])     → persona · clawdNote · vibe · narrative (v9; legacy v8 also clarity)
+ *
+ * clarity ownership is version-aware (move-clarity-vibe-to-fresheyes): v9+ posts
+ * carry it under freshEyes, v8 posts under vibe. Per-dimension `!== undefined`
+ * guards render it wherever it lives, so both shapes display correctly.
  *
  * Scores live in post frontmatter. No legacy keys (ralph/gemini/codex/sonnet).
  */
@@ -38,6 +42,8 @@ interface Props {
       firstImpression?: number;
       payoffDensity?: number;
       lengthFit?: number;
+      // tribunalVersion >= 9: clarity moved from vibe → freshEyes.
+      clarity?: number;
       score: number;
       date: string;
       model?: string;
@@ -243,6 +249,16 @@ const labels = {
                   </span>
                   <strong class={scoreColor(scores.freshEyes.lengthFit)}>
                     {scores.freshEyes.lengthFit}
+                  </strong>
+                </span>
+              )}
+              {scores.freshEyes.clarity !== undefined && (
+                <span class="dim-item">
+                  <span class="dim-label" data-short="Clarity">
+                    {labels.clarity}
+                  </span>
+                  <strong class={scoreColor(scores.freshEyes.clarity)}>
+                    {scores.freshEyes.clarity}
                   </strong>
                 </span>
               )}

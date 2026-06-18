@@ -7,9 +7,13 @@ set -euo pipefail
 
 JUDGE="${1:-}"
 JSON_FILE="${2:-}"
+# Optional 3rd arg: tribunalVersion. Defaults to 8 (legacy schema) so callers
+# that pass only <judge> <file> keep pre-clarity-move behavior. v9+ moves
+# clarity from vibe → freshEyes.
+VERSION="${3:-8}"
 
 if [ -z "$JUDGE" ] || [ -z "$JSON_FILE" ]; then
-  echo "Usage: validate-judge-output.sh <librarian|factCheck|freshEyes|vibe> <json-file>"
+  echo "Usage: validate-judge-output.sh <librarian|factCheck|freshEyes|vibe> <json-file> [tribunalVersion]"
   exit 1
 fi
 
@@ -86,12 +90,19 @@ case "$JUDGE" in
     validate_dim firstImpression
     validate_dim payoffDensity
     validate_dim lengthFit
+    # v9+: clarity moved into Fresh Eyes (non-compensating hard gate).
+    if [ "$VERSION" -ge 9 ]; then
+      validate_dim clarity
+    fi
     ;;
   vibe|vibe-opus-scorer)
     validate_dim persona
     validate_dim clawdNote
     validate_dim vibe
-    validate_dim clarity
+    # v9+: clarity left Vibe for Fresh Eyes — no longer required here.
+    if [ "$VERSION" -lt 9 ]; then
+      validate_dim clarity
+    fi
     validate_dim narrative
     ;;
   *)

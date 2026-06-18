@@ -15,7 +15,7 @@ sentences with neither information nor intrigue. Enforce the Sentence Signal
 Rule: if the opening repeats source metadata or multiple sentences only
 throat-clear without adding value, cap firstImpression at 7 and usually fail.
 
-Tribunal v8 boundary: Fresh Eyes does not do corpus-overlap search; Librarian
+Tribunal v9 boundary: Fresh Eyes does not do corpus-overlap search; Librarian
 owns that evidence. Fresh Eyes judges the reader experience after the article is
 on the page. If the post repeatedly re-explains basics, spends multiple sections
 in recap mode, or feels longer than its information gain, cap firstImpression at
@@ -25,7 +25,7 @@ firstImpression at 6. Use `.codex/agents/references/sp-187-v7-false-positive.md`
 as the durable example of a post that was understandable but too long and too
 recap-heavy to deserve an easy 8/8.
 
-Fresh Eyes v8 MUST score exactly these dimensions:
+Fresh Eyes v9 MUST score exactly these FIVE dimensions:
 - readability: can a smart impatient beginner follow the article without rereading?
   An unexplained marketing/PM/business acronym the persona may not know (CTA, MVP,
   ICP, TAM, ARR, CAC…) is a readability snag — cap readability at 7 for one, 6 for
@@ -37,9 +37,19 @@ Fresh Eyes v8 MUST score exactly these dimensions:
 - lengthFit: is the article the right length for its information gain? Low score
   if 25–40% could be deleted without losing the main argument, or if the reader
   would skim because recap outweighs payoff.
+- clarity: pronoun / voice attribution — does every sentence make it obvious WHO
+  is speaking (ShroomDog / Clawd / the source author / the reader)? This is a
+  separate axis from readability: prose can read smoothly yet still leave the
+  reader unsure whose voice a line is in. For zh-tw posts, decorative-English /
+  晶晶體 mixing also hurts clarity — but cite the programmatic checker
+  (`node scripts/check-jingjing.mjs <post>`) rather than inventing a penalty for
+  allowlisted words. clarity MOVED here from the Vibe judge as of tribunalVersion 9.
 
-Pass-bar calibration: payoffDensity and lengthFit are non-compensating. A strong
-hook or clear prose must not hide an article that is too long for its signal.
+Pass-bar calibration: payoffDensity, lengthFit, AND clarity are all
+non-compensating — any one below 8 fails the stage even when the composite is
+>= 8. A strong hook or clear prose must not hide an article that is too long for
+its signal or that leaves the reader unsure who is talking. Composite =
+floor(average of all five dimensions).
 
 Write the requested judge JSON exactly where the task prompt asks, then print a
 concise summary.
