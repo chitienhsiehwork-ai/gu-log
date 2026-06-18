@@ -10,26 +10,69 @@ import type { VibeJudgeOutput } from './types';
 
 type VibeScores = VibeJudgeOutput['scores'];
 
-const VIBE_DIMS = ['persona', 'clawdNote', 'vibe', 'clarity', 'narrative'] as const;
+// ---------------------------------------------------------------------------
+// Version-aware dimension ownership (move-clarity-vibe-to-fresheyes)
+//
+// `clarity` (pronoun / voice attribution) moves from Vibe → Fresh Eyes for
+// posts scored at tribunalVersion >= 9. Older posts keep the legacy ownership.
+// The dimension lists below are the SINGLE source for *this module*; gate
+// scripts hold their own (intentionally duplicated — see design.md) copies.
+// ---------------------------------------------------------------------------
+
+const NEW_RULES_MIN_VERSION = 9;
+
+/** Default version when a caller doesn't supply one — legacy (pre-clarity-move). */
+const DEFAULT_TRIBUNAL_VERSION = 8;
+
+const VIBE_DIMS_V8 = ['persona', 'clawdNote', 'vibe', 'clarity', 'narrative'] as const;
+const VIBE_DIMS_V9 = ['persona', 'clawdNote', 'vibe', 'narrative'] as const;
+const FRESH_EYES_DIMS_V8 = [
+  'readability',
+  'firstImpression',
+  'payoffDensity',
+  'lengthFit',
+] as const;
+const FRESH_EYES_DIMS_V9 = [
+  'readability',
+  'firstImpression',
+  'payoffDensity',
+  'lengthFit',
+  'clarity',
+] as const;
+
+/** Vibe-owned dimensions for the given tribunalVersion. */
+export function vibeDims(version: number = DEFAULT_TRIBUNAL_VERSION): readonly string[] {
+  return version >= NEW_RULES_MIN_VERSION ? VIBE_DIMS_V9 : VIBE_DIMS_V8;
+}
+
+/** Fresh-Eyes-owned dimensions for the given tribunalVersion. */
+export function freshEyesDims(version: number = DEFAULT_TRIBUNAL_VERSION): readonly string[] {
+  return version >= NEW_RULES_MIN_VERSION ? FRESH_EYES_DIMS_V9 : FRESH_EYES_DIMS_V8;
+}
 
 /** Check if Stage 1 Vibe scores pass the bar */
-export function checkVibePassBar(scores: VibeScores): {
+export function checkVibePassBar(
+  scores: VibeScores,
+  version: number = DEFAULT_TRIBUNAL_VERSION
+): {
   pass: boolean;
   composite: number;
   hasHighlight: boolean;
   failedDimensions: string[];
 } {
-  // Validate all 5 dims present
-  for (const dim of VIBE_DIMS) {
+  const dims = vibeDims(version);
+
+  // Validate all owned dims present
+  for (const dim of dims) {
     if (scores[dim] === undefined || scores[dim] === null) {
       throw new Error(`Missing required dimension: ${dim}`);
     }
   }
 
-  const values = VIBE_DIMS.map((d) => scores[d]);
+  const values = dims.map((d) => scores[d]);
   const composite = Math.floor(values.reduce((a, b) => a + b, 0) / values.length);
   const hasHighlight = Math.max(...values) >= PASS_BARS.STAGE_1_HIGHLIGHT;
-  const failedDimensions = VIBE_DIMS.filter((d) => scores[d] < PASS_BARS.STAGE_1_MIN_DIMENSION);
+  const failedDimensions = dims.filter((d) => scores[d] < PASS_BARS.STAGE_1_MIN_DIMENSION);
 
   const pass =
     composite >= PASS_BARS.STAGE_1_COMPOSITE && hasHighlight && failedDimensions.length === 0;
@@ -40,7 +83,8 @@ export function checkVibePassBar(scores: VibeScores): {
 /** Check if Stage 4 Final Vibe passes the relative bar */
 export function checkFinalVibePassBar(
   currentScores: VibeScores,
-  stage1Scores: VibeScores
+  stage1Scores: VibeScores,
+  version: number = DEFAULT_TRIBUNAL_VERSION
 ): {
   pass: boolean;
   degradedDimensions: Array<{ dim: string; stage1: number; current: number; drop: number }>;
@@ -48,7 +92,7 @@ export function checkFinalVibePassBar(
   const degradedDimensions: Array<{ dim: string; stage1: number; current: number; drop: number }> =
     [];
 
-  for (const dim of VIBE_DIMS) {
+  for (const dim of vibeDims(version)) {
     const drop = stage1Scores[dim] - currentScores[dim];
     if (drop > PASS_BARS.STAGE_4_MAX_REGRESSION) {
       degradedDimensions.push({
@@ -66,28 +110,39 @@ export function checkFinalVibePassBar(
   };
 }
 
-/** Check if Stage 2 FreshEyes passes */
-export function checkFreshEyesPassBar(scores: {
-  readability: number;
-  firstImpression: number;
-  payoffDensity: number;
-  lengthFit: number;
-}): {
+/**
+ * Check if Stage 2 FreshEyes passes.
+ *
+ * For tribunalVersion >= 9 the composite spans 5 dims and `clarity` joins
+ * `payoffDensity` / `lengthFit` as a non-compensating hard gate. For <= 8 the
+ * legacy 4-dim composite and 2-gate bar apply (no clarity).
+ */
+export function checkFreshEyesPassBar(
+  scores: {
+    readability: number;
+    firstImpression: number;
+    payoffDensity: number;
+    lengthFit: number;
+    clarity?: number;
+  },
+  version: number = DEFAULT_TRIBUNAL_VERSION
+): {
   pass: boolean;
   composite: number;
 } {
-  const values = [
-    scores.readability,
-    scores.firstImpression,
-    scores.payoffDensity,
-    scores.lengthFit,
-  ];
+  const dims = freshEyesDims(version);
+  const values = dims.map((d) => (scores as Record<string, number>)[d]);
   const composite = Math.floor(values.reduce((a, b) => a + b, 0) / values.length);
+
+  const isV9 = version >= NEW_RULES_MIN_VERSION;
+  const clarityGate = !isV9 || (scores.clarity ?? 0) >= PASS_BARS.STAGE_2_COMPOSITE;
+
   return {
     pass:
       composite >= PASS_BARS.STAGE_2_COMPOSITE &&
       scores.payoffDensity >= PASS_BARS.STAGE_2_COMPOSITE &&
-      scores.lengthFit >= PASS_BARS.STAGE_2_COMPOSITE,
+      scores.lengthFit >= PASS_BARS.STAGE_2_COMPOSITE &&
+      clarityGate,
     composite,
   };
 }

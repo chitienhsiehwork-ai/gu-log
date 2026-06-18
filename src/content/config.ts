@@ -93,6 +93,9 @@ const postsCollection = defineCollection({
               firstImpression: z.number().min(0).max(10).optional(),
               payoffDensity: z.number().min(0).max(10).optional(),
               lengthFit: z.number().min(0).max(10).optional(),
+              // tribunalVersion >= 9: clarity moved from vibe → freshEyes.
+              // Optional + additive so v8 posts (clarity under vibe) still validate.
+              clarity: z.number().min(0).max(10).optional(),
               score: z.number().min(0).max(10),
               date: z.string(),
               model: z.string().optional(),
