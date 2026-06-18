@@ -473,3 +473,14 @@ Sprin asked whether Tribunal v7 FreshEyes covers “length should be just right,
 - 修法：用 `detect-model.mjs` 把 zh + en 的 `translatedBy.model` / `pipeline[].model` 正名成 Opus 4.5。
 - 為什麼 ShroomDog 在意：gu-log 的賣點之一就是「把 AI 自評分數/provenance 攤在陽光下」，所以 model signature 必須誠實。標錯 model = 直接砸這個招牌。
 - Reusable lesson：(1) **任何「換 model / 換 harness 重生內容」的動作，同一筆 edit 就要把 `translatedBy` / `pipeline` provenance 改成實際用到的 model**，不能事後補、更不能漏。(2) ShroomDog 期望這件事**由 pipeline 自動蓋**（gp-pipeline 確實會從 Claude Code metadata 讀回 model 寫進 frontmatter）——手動 `claude -p` 重寫路徑繞過了那層才會漏，所以手動路徑要特別記得補。（討論過是否加 pre-commit guard 偵測「body 大改但 model 沒動」，ShroomDog 否決：因為可能用同一個 model 重寫，會誤殺。）
+
+## 2026-06-18 — SP-235 / 外部論文（canonical 引用）走 glossary，不要從正文直連
+
+### Feedback: 「我覺得這些（ReAct/Reflexion）應該進 glossary。對任何外部論文連結，我們應該是 post → glossary（含一條短又有趣的 Mogu note）→ 外部連結。這樣 proper 嗎？」
+
+- 情境：SP-235 把 ReAct / Reflexion 直連 arXiv（`[ReAct](https://arxiv.org/abs/2210.03629)`）。同時它們也被加進 `check-jingjing.mjs` 的 `ALLOWLIST_RAW` 才能過晶晶體 lint。ShroomDog 指出這兩件事都該收斂成「進 glossary」。
+- 為什麼 proper：(1) 這本來就是 glossary 既有慣例——Karpathy→eurekalabs、Boris→anthropic、Linear→linear.app 全是條目掛 `url` 外連，正文直連 arXiv 反而是破例。(2) 一個外部連結因此有「留在站內的理由」：Mogu note 先給讀者一句吐槽/類比 + context，再決定要不要點出去，順便把知識圖譜（related / definedIn）串起來。(3) jingjing 白名單自動收斂——進 glossary 後 `en` 欄位被 glossary loader 自動放行，`ALLOWLIST_RAW` 那兩行可以刪，不用兩處維護。
+- 界線：只有「會重複出現的 canonical 引用」（論文、人、產品）才進 glossary，一次性連結別塞，否則 glossary 膨脹。ReAct / Reflexion 是 agent-loop 奠基論文，合格；Jarred Sumner（人）/ struct·lifetime（語言關鍵字）這種一次性提及留在 allowlist。
+- Mogu note 由誰寫：ShroomDog 要求 glossary 的 Mogu note 跟文章同一個聲音，用 **Opus 4.5** 在 clean context 生成（`claude -p --model claude-opus-4-5`），不是隨手自己補。
+- 連帶效應（ratchet）：新增 glossary 詞會觸發 `check-glossary-links --changed-terms`，要求全站既有文章補連結。用 `apply-glossary-links --all --term ReAct --term Reflexion` 自動 backfill；改到的 grandfathered 舊文因為是「link-only diff」（`is_internal_post_link_only_diff` 把 `[X](/glossary#x)` 正規化回 `X`），不會被 jingjing / pronoun 重新 lint。
+- Reusable lesson：**正文要引用一個會重複出現的外部 canonical 來源（論文 / 人 / 產品），預設先在 glossary 開條目（definition + Mogu note + `url`），正文連到 `/glossary#term`，由 glossary 再連出去**——不要從正文 body 直接外連，也不要為了過 lint 把術語塞進 ALLOWLIST_RAW。

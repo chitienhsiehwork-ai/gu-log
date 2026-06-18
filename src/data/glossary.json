@@ -741,5 +741,40 @@
     "category": "concepts",
     "enDefinition": "Often shortened to PR. It is the request to submit your finished code and ask someone to merge it into the main line. Teams use PRs to review each other's changes: you open a PR, someone looks it over, and only then does it get merged into the real codebase.",
     "enMoguNote": "A PR is the polite knock that says \"I'm done, can you check if this is mergeable?\" The point is not what you changed; it is the gate where someone double-checks you. Without that gate, Mogu would have force-pushed the whole magic forest into rubble long ago."
+  },
+  {
+    "term": "ReAct",
+    "en": "ReAct",
+    "definition": "一種讓 LLM 交錯進行推理（reasoning）和行動（action）的框架。Agent 不是一口氣規劃完再執行，而是：思考當前狀況→執行一步→觀察結果→根據結果再思考下一步。這個「想→做→看→再想」的迴圈是現代 agent loop 的原型。",
+    "moguNote": "2022 年以前，大家叫 LLM 做事的方式是「一次給完指令，祈禱它一次做對」。ReAct 說：不對，讓它邊做邊想、錯了就調。聽起來很廢話，但這個廢話讓 agent 從玩具變成可用。",
+    "url": "https://arxiv.org/abs/2210.03629",
+    "aliases": ["ReAct prompting"],
+    "related": ["Reflexion", "Agent", "Context Window"],
+    "definedIn": [
+      {
+        "slug": "sp-235-20260618-verifier-is-the-product",
+        "title": "99.8% 測試通過，然後 Anthropic 自己補一句『還不能上線』— loop engineering 真正的產品是驗證器"
+      }
+    ],
+    "category": "concepts",
+    "enDefinition": "A framework that lets LLMs interleave reasoning and action. Instead of planning everything upfront, the agent thinks about the current situation, takes one step, observes the result, then thinks again. This think-act-observe-think loop is the prototype of modern agent loops.",
+    "enMoguNote": "Before 2022, calling an LLM meant giving all instructions at once and praying. ReAct said: let it think while doing, adjust when wrong. Obvious in hindsight, but that obvious idea made agents actually work."
+  },
+  {
+    "term": "Reflexion",
+    "en": "Reflexion",
+    "definition": "在 ReAct 基礎上加入語言化記憶的框架。當 agent 某次嘗試失敗，它會用自然語言寫下「為什麼失敗、學到什麼」，存進記憶，下次嘗試時讀出來避免重蹈覆轍。這種「把經驗寫成文字」的機制是現代 persistent memory 的種子。",
+    "moguNote": "ReAct 會學，但學完就忘——context window 一清，經驗歸零。Reflexion 說：那就寫筆記啊。現在看到的 CLAUDE.md、SKILL.md、那些 repo 裡的「這樣做會踩雷」備忘錄，骨子裡都是這招。",
+    "url": "https://arxiv.org/abs/2303.11366",
+    "related": ["ReAct", "Context Window", "Agent"],
+    "definedIn": [
+      {
+        "slug": "sp-235-20260618-verifier-is-the-product",
+        "title": "99.8% 測試通過，然後 Anthropic 自己補一句『還不能上線』— loop engineering 真正的產品是驗證器"
+      }
+    ],
+    "category": "concepts",
+    "enDefinition": "A framework that adds verbal memory to ReAct. When an attempt fails, the agent writes down in natural language what went wrong and what it learned, stores it, then reads it back in future attempts to avoid the same mistake. This write-experience-as-text mechanism seeded modern persistent memory.",
+    "enMoguNote": "ReAct learns but forgets once the context clears. Reflexion said: just write it down. Those CLAUDE.md files, SKILL.md notes, repo-level memos warning what not to do — all descendants of this trick."
   }
 ]

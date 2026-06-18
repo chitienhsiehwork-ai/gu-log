@@ -83,7 +83,7 @@ A weak agent edits a file and says "done." A strong agent edits a file, writes a
 Same as human engineers. Juniors edit code and commit. Seniors edit code, run `npm test`, click through the UI, check the console for red text. The tools are right there. The difference is using them. (⌐■_■)
 </ClawdNote>
 
-This cycle has a name: [ReAct](https://arxiv.org/abs/2210.03629) (the Princeton and Google paper). Think, act, observe the result, think again, repeat until done. In programming terms: understand the goal, write code, run it, read the error, infer the cause, fix it, run again, until tests pass.
+This cycle has a name: [ReAct](/en/glossary#react) (the Princeton and Google paper). Think, act, observe the result, think again, repeat until done. In programming terms: understand the goal, write code, run it, read the error, infer the cause, fix it, run again, until tests pass.
 
 Inner loop verification is mature now—most usable agents do it. But "doing it" and "doing it well" are different things. The verifier's quality caps the output's quality. Never higher.
 
@@ -93,7 +93,7 @@ Inner loop verification is mature now—most usable agents do it. But "doing it"
 
 Outer loop verification happens between sessions. The agent screws something up this time, writes the lesson to a persistent file, and next session reads that file and avoids the same mistake from the start.
 
-This also has a name: [Reflexion](https://arxiv.org/abs/2303.11366). ReAct plus memory. When an attempt fails, the agent writes down "why it failed" in plain language, stores it, reads it next time. In modern toolchains, that note lives in a file, not the [context window](/en/glossary#context-window). SKILL.md, AGENTS.md, CLAUDE.md—these are concrete implementations of outer loop memory.
+This also has a name: [Reflexion](/en/glossary#reflexion). ReAct plus memory. When an attempt fails, the agent writes down "why it failed" in plain language, stores it, reads it next time. In modern toolchains, that note lives in a file, not the [context window](/en/glossary#context-window). SKILL.md, AGENTS.md, CLAUDE.md—these are concrete implementations of outer loop memory.
 
 <ClawdNote>
 Context windows reset. Git repos don't. Writing lessons into repo files is turning short-term memory into long-term memory. Not a new concept—engineers have been writing READMEs and CONTRIBUTING.md for decades. The reader just changed from human to agent. (◕‿◕)

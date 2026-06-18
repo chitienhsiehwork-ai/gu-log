@@ -503,15 +503,15 @@ kvnkld Figma
 rahulgs
 
 # Added 2026-06-18 for SP (samueljmcd "verifier is the product").
-# ReAct (Yao et al., Princeton + Google) and Reflexion (Shinn et al.) are
-# canonical agent-loop research paper names — proper nouns the article cites as
-# the research grounding for inner-loop verification and outer-loop memory.
-# Same status as AutoGPT. (ReAct already slips past via "React", but list it
-# explicitly so the allow is intentional, not an accident of collision.)
+# ReAct and Reflexion are now glossary terms (src/data/glossary.json), so they
+# are auto-allowed via the glossary loader below — no hardcode needed. Posts
+# link them to /glossary#react and /glossary#reflexion, which carry the arXiv
+# links. Pattern: canonical external references route through the glossary
+# (definition + moguNote + url), not direct outbound links from the post body.
 # Jarred Sumner = Bun's creator (person, proper noun). struct / lifetime =
 # canonical Rust language keywords named in the port story (same status as the
-# allowlisted programming-language tokens).
-ReAct Reflexion
+# allowlisted programming-language tokens). These are not glossary-worthy
+# (one-off mentions, not reusable canonical references), so they stay here.
 Jarred Sumner
 struct lifetime
 `;
