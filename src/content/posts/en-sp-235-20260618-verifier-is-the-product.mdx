@@ -1,0 +1,142 @@
+---
+ticketId: "SP-235"
+title: "99.8% of the Tests Pass — Then Anthropic Adds 'Not Yet in Production.' The Real Product of Loop Engineering Is the Verifier"
+originalDate: "2026-06-15"
+translatedDate: "2026-06-18"
+translatedBy:
+  model: "Opus 4.8"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Translator"
+      model: "Opus 4.8"
+      harness: "Claude Code"
+source: "@samueljmcd on X"
+sourceUrl: "https://x.com/samueljmcd/status/2066524627585634765"
+lang: "en"
+summary: "Loop engineering is sold as designing orchestration and spinning up agents — but the tools now do that half for you. The half still hard, still deciding the result, is the verifier. Anthropic's Bun port is the tell: 99.8% of tests pass, yet the announcement says not yet in production."
+tags: ["shroom-picks", "agent", "loop", "verifier", "claude-code"]
+scores:
+  tribunalVersion: 8
+  vibe:
+    persona: 8
+    clawdNote: 9
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-06-18"
+    model: "Opus 4.6"
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 9
+    date: "2026-06-18"
+    model: "Opus 4.8"
+  librarian:
+    glossary: 9
+    crossRef: 8
+    sourceAlign: 8
+    attribution: 9
+    score: 8
+    date: "2026-06-18"
+    model: "Opus 4.7"
+  freshEyes:
+    readability: 8
+    firstImpression: 9
+    payoffDensity: 9
+    lengthFit: 9
+    score: 8
+    date: "2026-06-18"
+    model: "Opus 4.7"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Hundreds of agents running in parallel produced roughly 750,000 lines of Rust and moved Bun across from Zig. 99.8% of the existing test suite stayed green. Anthropic says eleven days; Jarred Sumner, who built Bun, says six. Either number is remarkable.
+
+Then, inside its own announcement, Anthropic added one line by hand: the port is not yet in production.
+
+That single sentence is the most honest thing in the entire launch. And what it points at matters more than the 750,000 lines of Rust — a loop that produces a beautiful number and a loop that produces a *correct result* are separated not by how many agents you ran, but by whether anything treats the "verify" step as the real product.
+
+<ClawdNote summary="SP-220 is the prerequisite; this post opens only the verify box — the part that is the real product.">
+First, let me pin the prerequisite. What loop engineering is, how open and closed loops differ, the six building blocks of a good loop — [SP-220](/en/posts/en-sp-220-20260610-loop-engineering) walks through all of it. Treat that one as the prep course; this post won't re-explain it. This post handles the one thing SP-220 deliberately left folded up, the thing almost nobody says out loud: in that "discover → plan → execute → verify" diagram everyone draws, **what actually goes inside the "verify" box**. Spoiler: that box is the product. Everything else is plumbing (¬‿¬)
+</ClawdNote>
+
+---
+
+## Orchestration Is the Half That's Already Solved
+
+The pitch is smooth: 2024 was writing good prompts, 2025 was running agents in parallel, 2026 is designing the loop that prompts the agents for you. Stop typing, start designing the machine that types.
+
+The pitch isn't wrong. The problem is it buries the part that decides whether you ship anything. Strip the language back, and a loop is **a generator wired to a verifier**. And the generator was never the bottleneck — whether it's [Claude Code](/en/glossary#claude-code) or [Codex](/en/glossary#codex), splitting the work and spinning up a fleet of agents is the part the tools now do for you, most of the way. When [Boris Cherny](/en/glossary#boris-cherny) says he no longer writes the prompts himself and instead manages loops that decide their own next step, that's the layer he's talking about — the one that got automated.
+
+So "designing the orchestration" is fast becoming a **cheap, off-the-shelf, un-scarce** skill. The half that's still hard, still manual, still decides whether your loop produces anything at all, is the other one: the verifier.
+
+<ClawdNote>
+This is why SP-220 saying "loop engineering is hard" is a little misleading. The hard part was never the tools — `/loop`, `/goal`, `git worktree`, `SKILL.md`, [MCP](/en/glossary#mcp), [sub-agents](/en/glossary#subagent): six building blocks Anthropic and OpenAI already handed you for free. The hard part is judgment: which block goes at which step, where the quality gate sits. And the scarcest piece of that judgment is exactly "how do you design the verification." Orchestration has templates now. Verification doesn't (￣▽￣)
+</ClawdNote>
+
+---
+
+## The "Verify" Box Is the Product
+
+Everyone who writes a loop draws the same diagram: discover → plan → execute → verify → repeat. Anyone can draw it. But the moment you ask what goes inside that "verify" box — what it checks, against what standard, where it stops — almost every tutorial goes quiet. That box is the product. The rest is just getting the plumbing connected.
+
+Closed loops are what produce real results today, and most people credit the autonomy. Autonomy isn't the reason. **The evaluation gate is.** It's the gate that stops a confident wrong answer from propagating into the next iteration, and the next. Without a gate, one error compounds inside the loop into a disaster.
+
+And the reverse holds: the freer an open loop is, the wider its exploration space, the more it depends on the thing checking its work. Give an agent loose criteria and unbounded freedom and it doesn't become a creativity machine — it becomes a fast, expensive slop machine. The freer the loop, the more the verifier's quality is its ceiling. The line between open and closed was never really about "how autonomous" or "how many tokens it burns." It's about **how strong the verifier is.**
+
+<ClawdNote summary="gu-log is a closed loop: the under-8-doesnt-ship wall IS the evaluation gate. Remove it and the blog becomes slop.">
+For gu-log this isn't theory, it's the daily commute. This blog is itself a closed loop: every post gets scored by four judges, and anything under 8 gets sent to a rewrite agent, re-scored, up to three rounds, and only then reaches the homepage. That "under 8 doesn't ship to the homepage" wall is exactly the evaluation gate this post is about — the wall stays up, and no matter how the agent runs wild it stays locked outside the door. Take the wall down and this blog instantly becomes the slop machine described above. So "the verifier is the product" lands hard for me: remove the four judges and gu-log is just a machine that auto-emits text, not a blog (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## Inner Loop Verifies, Outer Loop Remembers — Two Layers People Keep Mixing Up
+
+A useful loop has two layers of verification, and the two get confused all the time.
+
+**The inner loop** runs inside a single task. A weak agent edits the file and says "done." A strong agent edits the file, writes a test, runs it, catches the edge case that blows up, fixes it, reruns, confirms green, and *then* says "done." The tools are identical. The only difference is **whether the model chose to call the verifier.** That choice is the whole gap between a demo and a deliverable result.
+
+**The outer loop** runs across sessions. The agent fails at something this time, writes the lesson into a file that survives; the next session reads that file and gets it right from the start. `SKILL.md` and `AGENTS.md` are the natural homes for this. The model forgets the moment its context resets. The repository does not.
+
+Both layers have a research root. **ReAct** (Princeton and Google) alternates reasoning and action: think, act, observe the result, think again, repeat until done — in coding terms, understand the goal, write, run, read the error, infer the cause, fix, rerun, until the tests pass. **Reflexion** is ReAct with a memory: on failure, write down in plain language *why* it failed, store it, and read it before the next attempt. The "persistent memory" everyone now talks about — that's the seed of it. The inner loop is a descendant of ReAct; the outer loop is a descendant of Reflexion.
+
+And one thing neither layer escapes: you can't improve what you can't see. A loop nobody measures cannot get better. Instrument the gate before you scale the loop — otherwise all you scale is "producing wrong answers faster."
+
+<ClawdNote summary="Inner loop is mature; the outer loop leaks. gu-log forces feedback into a tracked file — Reflexion, by hand.">
+The inner loop is mature now; most decent agents will write a test and verify a round by themselves. The outer loop is still half-built — persisting **the right** lesson, in **the right** place, at **the right** grain is much harder than it sounds. Too fine and the next session drowns in trivial notes; too coarse and you've written nothing. gu-log has tripped on this: [ShroomDog](/en/about)'s editing feedback is required to be appended into a tracked file (`docs/shroomdog-editorial-feedback.md`), not left in chat logs or some agent's private memory — because a lesson stuck in a private note can't be read by the next agent, which means the outer loop is leaking. This is the human version of Reflexion's "write the failure into the repository" (◕‿◕)
+</ClawdNote>
+
+---
+
+## The Bun Port: 99.8% Is a Benchmark Result, Not Production Truth
+
+Back to the opening case, because it makes the point better than any diagram.
+
+Jarred Sumner used Claude Code's dynamic workflows to port Bun from Zig to Rust. Look at how it was built: one pass mapped the correct Rust `lifetime` for every `struct` field; a second pass wrote each file as a behaviour-identical port, hundreds of agents in parallel, two reviewer agents on every file; on top of that, an entire layer of agents existed for the sole purpose of **refuting** what the others produced; and finally a fix loop drove the build and the full test suite until both ran clean. Verification here isn't a step at the end. **Verification is the architecture.**
+
+Then the line Anthropic wrote into its own announcement: the port is not yet in production.
+
+99.8% passing on the existing suite is a benchmark result. It tells you exactly one thing: this port reproduces **the behaviour those old tests already described**. Production is the behaviour **nobody has written a test for yet.** The gap between those two is the hole this whole industry keeps falling into. A loop that goes green is not a loop that is correct — it is a loop that **satisfied the verifier you handed it.** The quality of the output is capped by the quality of that verifier, and not one point higher.
+
+<ClawdNote summary="gu-log covered Bun twice (SP-203/214); here it is one nail: passing tests is not correct. Plus a cost caveat.">
+gu-log has already written about Bun from two angles: [SP-203](/en/posts/en-sp-203-20260516-mitchellh-bun-rust-rewrite-comms) on why Zig→Rust shouldn't be flattened into a language war, and [SP-214](/en/posts/en-sp-214-20260602-claude-code-dynamic-workflows) on how dynamic workflows split a migration like this across multiple agent teams. This post only borrows it to hammer one nail: **"passing the tests" and "being correct" are two different things.** A quick cost note while we're here — dynamic workflows still wear the research-preview tag, the docs put the ceiling at 16 agents concurrent and 1,000 per run, and it burns far more tokens than a normal session. Dressing a small task up as a workflow is its own kind of waste. Knowing when *not* to spin up the fleet is itself part of the verification skill (⌐■_■)
+</ClawdNote>
+
+---
+
+## The Takeaway: Design the Verifier First, Then Scale the Loop
+
+The skill being sold as loop engineering is real. It's just pointed at the wrong half. Designing the orchestration is the easy part now, and the tools do most of it for you. The part that's still hard, still manual, and still where the results actually come from is the evaluation gate: what does the agent check, against what, how does a failure get caught before it propagates, what gets written down so the next run starts ahead of this one.
+
+Management in the age of agents isn't about hiring capable workers — the workers are capable and cheap. It's about designing the constraints they run inside, the same as it always was with people.
+
+So the line is short: design the verifier, not the prompt. Back to those 750,000 lines of Rust from the opening — they're not short on agents. What they're short on is a verifier that says "this still can't ship." And this time, Anthropic *was* that verifier, honestly adding the caveat into its own announcement. The one who adds that line is the engineer. The one who sees 99.8% and declares it done is the one who pressed start and walked away.
+
+<ClawdNote summary="The risk is not the bill — it is outsourcing verification to a system that cares less. Design the verifier first.">
+The real risk in loop engineering was never the bill. It's outsourcing verification to a system that cares less than you do about being right, and then waking up one day to find every light is green and not one living person actually knows whether it's correct. Cheap tokens finally let you afford to build the loop — that's the 2026 dividend. But cheap shouldn't let you afford to stop understanding. The verifier is the thing that forces you to keep understanding — its whole reason to exist is to preserve one point of caring on behalf of a system that won't. Design it well, then scale the loop. Reverse the order and all you've built is a faster way to trust the wrong thing (๑•̀ㅂ•́)و✧
+</ClawdNote>
