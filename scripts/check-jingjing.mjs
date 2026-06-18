@@ -500,6 +500,19 @@ kvnkld Figma
 # Added 2026-06-17 for CP (rahulgs "english -> code interpreters" thread).
 # rahulgs = X handle of the source author (proper noun, same pattern as kvnkld).
 rahulgs
+
+# Added 2026-06-18 for SP (samueljmcd "verifier is the product").
+# ReAct (Yao et al., Princeton + Google) and Reflexion (Shinn et al.) are
+# canonical agent-loop research paper names — proper nouns the article cites as
+# the research grounding for inner-loop verification and outer-loop memory.
+# Same status as AutoGPT. (ReAct already slips past via "React", but list it
+# explicitly so the allow is intentional, not an accident of collision.)
+# Jarred Sumner = Bun's creator (person, proper noun). struct / lifetime =
+# canonical Rust language keywords named in the port story (same status as the
+# allowlisted programming-language tokens).
+ReAct Reflexion
+Jarred Sumner
+struct lifetime
 `;
 
 const HARDCODED = new Set();
