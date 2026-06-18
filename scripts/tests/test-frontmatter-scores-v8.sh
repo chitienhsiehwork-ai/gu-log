@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
-# test-frontmatter-scores-v8.sh — regression tests for Tribunal v8
-# dimensions and frontmatter versioning.
+# test-frontmatter-scores-v8.sh — regression tests for Tribunal frontmatter
+# versioning and factCheck/freshEyes dimensions.
+#
+# Note: new tribunal writes now stamp the CURRENT version (v9 after
+# move-clarity-vibe-to-fresheyes). factCheck dims (Source Boundary /
+# Commentary Separation) are unchanged across v8/v9; the freshEyes checks
+# below call validate_judge_score_json without a version arg, which defaults
+# to legacy (v8) and so does NOT require clarity.
 
 set -euo pipefail
 
@@ -41,7 +47,7 @@ score_json='{
 
 node "$ROOT_DIR/scripts/frontmatter-scores.mjs" write "$post" factCheck "$score_json"
 
-grep -q 'tribunalVersion: 8' "$post" || fail "frontmatter write did not set tribunalVersion: 8"
+grep -q 'tribunalVersion: 9' "$post" || fail "frontmatter write did not set tribunalVersion: 9 (current)"
 grep -q 'sourceBoundary: 8' "$post" || fail "sourceBoundary was not written"
 grep -q 'commentarySeparation: 9' "$post" || fail "commentarySeparation was not written"
 
