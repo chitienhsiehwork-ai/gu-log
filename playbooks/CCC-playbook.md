@@ -226,7 +226,7 @@ tools/sp-pipeline/gp-pipeline run <url> --force
 - **Vibe Scorer**（`.claude/agents/vibe-opus-scorer.md`）→ 鎖 `claude-opus-4-5`
 - **Tribunal Writer legacy agent**（`.claude/agents/tribunal-writer.md`）→ 鎖 `claude-opus-4-5`，只當 legacy / fallback calibration，不是 Codex runtime selector
 - **Fact Checker**（`.claude/agents/fact-checker.md`）→ 用 `opus` alias（追最新，fact-check 要 reasoning 強的，沒有 voice 問題；**不動**）
-- **Librarian**（`.claude/agents/librarian.md`）→ `claude-opus-4-7`
+- **Librarian**（`.claude/agents/librarian.md`）→ 浮動 `opus` alias（追最新，現在 **Opus 4.8**）。跟 Fact Checker / Fresh Eyes 同路——glossary / cross-ref 檢查不是 voice-sensitive，要最新 reasoning 就好，不 pin。（agent 檔 frontmatter 一直是 `model: opus`；2026-06-18 把這張表從寫死的 4.7 改回浮動，對齊實際 runtime。）
 - **Fresh Eyes**（`.claude/agents/fresh-eyes.md`）→ 浮動 `opus` alias（追最新，現在是 **Opus 4.8**）。**刻意不 pin**（2026-06-18 ShroomDog 決定）——fresh-eyes 是「陌生讀者」視角，用跟 writer **不同代 / 最新**的 model 反而能抓 writer 同代看不到的盲點（diversity > taste 對齊）。所以 CCC 用 `Agent(subagent_type:"fresh-eyes")` 直接跑即可，不需要 `claude -p` pin。
 
 修 `.claude/agents` 這些 legacy calibration 檔之前先讀 frontmatter 上方的 PIN 註解；它們不是 active Codex runtime model selection。
@@ -255,7 +255,7 @@ claude -p --model claude-opus-4-5 --allowed-tools "Read,Grep,Glob,Bash,Write,Edi
 | **Vibe Scorer** | `claude-opus-4-5`（與 writer 同代，taste 對齊） | **必須 `claude -p --model claude-opus-4-5`** 才對得上 writer 的 taste 校準 |
 | **Fact Checker** | 浮動 `opus` alias（追最新） | `Agent(subagent_type:"fact-checker")` 直接用就好，本來就要最新 |
 | **Fresh Eyes** | 浮動 `opus` alias（追最新，現在 4.8；**刻意不 pin**，要 diversity 不要 taste 對齊） | `Agent(subagent_type:"fresh-eyes")` 直接用就好，跟 Fact Checker 同路 |
-| **Librarian** | `claude-opus-4-7`（路由表現值） | 版本不那麼敏感；`Agent` tool 用 default 即可。**若該次 task 明確要求特定版本**才改走 `claude -p --model <id>` |
+| **Librarian** | 浮動 `opus` alias（追最新，現在 4.8；**不 pin**） | `Agent(subagent_type:"librarian")` 直接用就好，跟 Fact Checker / Fresh Eyes 同路 |
 
 **規則一句話**：**版本要 pin（writer / rewriter / vibe，或 user 當次明講某 judge 用某版）→ `claude -p --model <完整-id>`；版本不在乎 → `Agent` tool 省事**。不要無腦把所有東西都改成 `claude -p`（fact-check / 一般 tribunal 用 `Agent` tool 更省 token、也不會踩 stream idle timeout）。
 
