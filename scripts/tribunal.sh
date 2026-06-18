@@ -44,7 +44,9 @@ POST_FILE=""
 ALLOW_REWRITE=""
 WRITE_FRONTMATTER=1
 SCORE_ONLY=0
-TRIBUNAL_VERSION=8
+# v9 (move-clarity-vibe-to-fresheyes): clarity moved vibe → freshEyes.
+# Must stay in lockstep with frontmatter-scores.mjs CURRENT_TRIBUNAL_VERSION.
+TRIBUNAL_VERSION=9
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --only-stage)
@@ -861,7 +863,7 @@ PROMPT
     rm -f "$judge_out" "$actual_provider_file" "$quota_status_file"
 
     # ── Validate score JSON ───────────────────────────────────────────────────
-    if ! validate_judge_score_json "$validate_name" "$score_tmp"; then
+    if ! validate_judge_score_json "$validate_name" "$score_tmp" "$TRIBUNAL_VERSION"; then
       tlog "  ERROR: Invalid/missing $label score JSON schema on attempt $attempt; treating as runner infrastructure failure."
       if [ -f "$score_tmp" ]; then
         local raw

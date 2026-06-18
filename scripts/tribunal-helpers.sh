@@ -13,7 +13,11 @@ get_ticket_id() {
 }
 
 # Validate vibe scorer JSON output — returns 0 if valid, 1 if not
-# Expects tribunal vibe scorer schema: { dimensions: { persona, clawdNote, vibe, clarity, narrative }, ... }
+# Expects tribunal vibe scorer schema. Note: clarity ownership is version-aware
+# (move-clarity-vibe-to-fresheyes) — for tribunalVersion <= 8 the vibe schema is
+# { persona, clawdNote, vibe, clarity, narrative }; for v9+ vibe drops clarity
+# (it moves to Fresh Eyes). This helper only spot-checks persona/clawdNote/vibe,
+# so it stays compatible with both versions.
 # Usage: validate_score_json "/tmp/vibe-score-SP-110.json" "sp-110-file.mdx"
 validate_score_json() {
   local json_file="$1"

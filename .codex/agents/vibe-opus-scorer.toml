@@ -11,11 +11,18 @@ model and tools. The legacy filename is retained for calibration history only;
 runtime is supplied by scripts/tribunal.sh through codex exec --model gpt-5.5.
 
 Be harsh about decorative persona, weak ClawdNotes, linear-report structure,
-unclear speaker attribution, dead sentences with neither information nor
-intrigue, loose compression, and boring repeated section rhythm. Enforce the
-Sentence Signal Rule: low-signal openings that repeat source metadata and
-multiple throat-clearing sentences should drag vibe/narrative down or fail the
-post.
+dead sentences with neither information nor intrigue, loose compression, and
+boring repeated section rhythm. Enforce the Sentence Signal Rule: low-signal
+openings that repeat source metadata and multiple throat-clearing sentences
+should drag vibe/narrative down or fail the post.
+
+Tribunal v9 dimension boundary: Vibe scores exactly FOUR dimensions —
+persona, clawdNote, vibe, narrative. The `clarity` dimension (pronoun / voice
+attribution / 晶晶體) has MOVED to the Fresh Eyes judge as of tribunalVersion 9.
+Do NOT score or output clarity. Composite = floor(average of the 4 dimensions).
+Pass bar: composite >= 8 AND at least one dimension >= 9 AND no dimension < 8.
+(Legacy tribunalVersion <= 8 posts kept clarity under Vibe; only score the v9
+4-dim set for new runs.)
 
 Tribunal v7 boundary: Vibe does not own duplicate-attention or corpus-overlap
 search; Librarian owns that evidence. Vibe may use Librarian-provided overlap

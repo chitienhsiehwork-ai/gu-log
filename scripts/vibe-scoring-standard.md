@@ -1,7 +1,12 @@
-# Tribunal v8 Vibe Scoring Standard
+# Tribunal Vibe Scoring Standard
 
 > Golden standard for evaluating gu-log post quality.
 > Tribunal v8 FreshEyes length-fit update calibrated 2026-05-27 by ShroomDog + Iris.
+> **v9 (move-clarity-vibe-to-fresheyes):** `clarity` (pronoun / voice
+> attribution) moved from the Vibe judge to **Fresh Eyes** and became a
+> non-compensating hard gate. Vibe is now 4 dims, Fresh Eyes 5. This is
+> **version-gated**: posts at `tribunalVersion >= 9` use the new ownership;
+> `tribunalVersion <= 8` posts keep clarity under Vibe unchanged (no migration).
 > **SSOT for all 4 tribunal judges + writer agent.**
 
 ## Tribunal System Overview
@@ -11,16 +16,16 @@ Tribunal v8 pipeline — 4 stages. All judges use **uniform 0-10 integer scale**
 ### v8 Judge Responsibility Boundary
 
 - **Librarian owns corpus overlap and duplicate-attention evidence.** It checks whether gu-log already covered the same concept, whether the post cites/contrasts relevant older posts early enough, and whether repeated background should be compressed.
-- **Fresh Eyes owns first-time reader fatigue.** It judges whether a human reader would skim, close the tab, or feel the article is longer than its information gain.
-- **Vibe owns article-internal rhythm and shareability.** It does not do corpus search. It judges compression, section boredom, decorative persona traps, Sentence Signal failures, and whether the post is actually fun enough to share.
+- **Fresh Eyes owns first-time reader fatigue.** It judges whether a human reader would skim, close the tab, or feel the article is longer than its information gain. **For v9+ it also owns `clarity`** (pronoun / voice attribution) as a non-compensating hard gate.
+- **Vibe owns article-internal rhythm and shareability.** It does not do corpus search. It judges compression, section boredom, decorative persona traps, Sentence Signal failures, and whether the post is actually fun enough to share. **For v9+ it no longer scores `clarity`** (moved to Fresh Eyes); 晶晶體 still drags `vibe` down via the penalty matrix.
 - **Writer consumes judge evidence.** Librarian overlap evidence must trigger early citation/compression; FreshEyes fatigue must trigger structural shortening; Vibe rhythm failures must trigger a new spine, not extra jokes.
 
 | Stage | Judge | Model | Dimensions | Pass Bar |
 |-------|-------|-------|------------|----------|
 | 1 | Fact Checker | GPT-5.5 | accuracy · fidelity · consistency · sourceBoundary · commentarySeparation | fact core avg ≥ 8 AND sourceBoundary ≥ 8 AND commentarySeparation ≥ 8 |
 | 2 | Librarian | GPT-5.5 | glossary · crossRef · sourceAlign · attribution | composite ≥ 8 |
-| 3 | Fresh Eyes | GPT-5.5 | readability · firstImpression · payoffDensity · lengthFit | composite ≥ 8 AND payoffDensity ≥ 8 AND lengthFit ≥ 8 |
-| 4 | Vibe | GPT-5.5 | persona · clawdNote · vibe · clarity · narrative | composite ≥ 8 AND one dim ≥ 9 AND no dim < 8 |
+| 3 | Fresh Eyes | GPT-5.5 | readability · firstImpression · payoffDensity · lengthFit · **clarity** (v9+) | composite ≥ 8 AND payoffDensity ≥ 8 AND lengthFit ≥ 8 AND **clarity ≥ 8** (v9+) |
+| 4 | Vibe | GPT-5.5 | persona · clawdNote · vibe · narrative (v9; legacy v8 also had clarity) | composite ≥ 8 AND one dim ≥ 9 AND no dim < 8 |
 
 ## Uniform Agent Output JSON (v8)
 
@@ -221,9 +226,11 @@ Clawd/gu-log opinions, interpretation, jokes, and source-meta commentary belong 
 
 ---
 
-## Stage 3: Fresh Eyes (GPT-5.5) — 2 Dimensions
+## Stage 3: Fresh Eyes (GPT-5.5) — readability · firstImpression · payoffDensity · lengthFit · clarity (v9; v8 had no clarity)
 
 **Persona: developer with ~3 months of experience.** Impatient, scared of jargon, will close the tab after 2 boring paragraphs. Does NOT know what ShroomDog, Clawd, or OpenClaw are.
+
+**Pass bar (v9+):** composite ≥ 8 AND payoffDensity ≥ 8 AND lengthFit ≥ 8 AND **clarity ≥ 8** — all three are non-compensating hard gates. (v8 had only payoffDensity / lengthFit gates and no clarity.)
 
 ### readability — Can You Follow Without Getting Lost?
 
@@ -251,9 +258,32 @@ Clawd/gu-log opinions, interpretation, jokes, and source-meta commentary belong 
 
 **Sentence Signal Rule for Fresh Eyes:** if the post opens by repeating source metadata the reader already sees, or if multiple sentences have neither new information nor curiosity, cap `firstImpression` at 7. A smart impatient beginner does not reward throat-clearing.
 
+### clarity — Pronoun Clarity / Voice Attribution (v9+ — moved here from Vibe)
+
+**What we're measuring:** Does every sentence make it obvious who is speaking? This is a SEPARATE axis from readability — prose can flow smoothly yet still leave a stranger unsure whether a line is the author's opinion, the source author's claim, or an aside. Non-compensating hard gate (clarity < 8 fails the stage). For `tribunalVersion <= 8` this dimension lived under Vibe and is NOT scored here.
+
+| Score | Description |
+|-------|-------------|
+| 10 | Every sentence has a clear speaker/subject. Zero ambiguous pronouns. |
+| 8 | Rare ambiguity. Pronouns used only in clearly scoped contexts (ClawdNote, blockquote). |
+| 6 | Some 你/我 slip through in body but context usually disambiguates. |
+| 4 | Frequent 你/我 in body. Reader has to guess who's speaking. |
+| 2 | Confusing mess. Can't tell if "I" is author, AI, or original source. |
+
+**EN version:** Pronoun prohibition doesn't apply. Instead: every "you/I" must have a clear referent.
+
+| Score | EN Clarity Description |
+|-------|------------------------|
+| 10 | Every "you/I" has clear referent. Reader always knows who is speaking. |
+| 8 | Rare ambiguity. "You" consistently addresses reader; "I" is always Clawd in ClawdNote. |
+| 6 | Occasional "we" ambiguity (Clawd + reader? Author + Anthropic?). |
+| 4 | Multiple instances where reader can't tell if "I" is Clawd, original author, or ShroomDog. |
+
+**晶晶體 boundary:** for zh-tw posts, decorative-English mixing also hurts clarity, but cite the canonical programmatic gate `scripts/check-jingjing.mjs` rather than inventing a penalty for allowlisted words (model names, tool names, glossary terms, `vs`/`bug`/`commit`/`PR`). Penalize only when the checker reports a violation or its output is in the evidence packet.
+
 ---
 
-## Stage 4: Vibe Scorer (GPT-5.5, Opus-calibrated rubric) — 5 Dimensions
+## Stage 4: Vibe Scorer (GPT-5.5, Opus-calibrated rubric) — persona · clawdNote · vibe · narrative (v9; legacy v8 also had clarity)
 
 **Pass bar: composite ≥ 8 AND at least one dimension ≥ 9 AND no dimension < 8**
 
@@ -337,26 +367,8 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 
 **晶晶體 boundary:** Vibe Scorer must not invent its own English-term lint. For zh-tw posts, `scripts/check-jingjing.mjs` is the canonical programmatic gate and allowlist. If the checker returns clean, do not penalize accepted engineering terms such as `vs`, `bug`, `commit`, `PR`, model names, tool names, or glossary terms as hard-policy 晶晶體 hits. Penalize decorative English mixing only when the checker reports a violation, or when deterministic checker output is included in the evidence packet. The accepted-English boundary SHALL be discussed with ShroomDog every time a term is added to or removed from the checker/glossary acceptance set, because this boundary directly affects reading flow and only ShroomDog can decide which English terms feel natural in gu-log zh-tw prose.
 
-### clarity — Pronoun Clarity / Voice Attribution
-
-**What we're measuring:** Does every sentence make it obvious who is speaking?
-
-| Score | Description |
-|-------|-------------|
-| 10 | Every sentence has a clear speaker/subject. Zero ambiguous pronouns. |
-| 8 | Rare ambiguity. Pronouns used only in clearly scoped contexts (ClawdNote, blockquote). |
-| 6 | Some 你/我 slip through in body but context usually disambiguates. |
-| 4 | Frequent 你/我 in body. Reader has to guess who's speaking. |
-| 2 | Confusing mess. Can't tell if "I" is author, AI, or original source. |
-
-**EN version:** Pronoun prohibition doesn't apply. Instead: every "you/I" must have a clear referent.
-
-| Score | EN Clarity Description |
-|-------|------------------------|
-| 10 | Every "you/I" has clear referent. Reader always knows who is speaking. |
-| 8 | Rare ambiguity. "You" consistently addresses reader; "I" is always Clawd in ClawdNote. |
-| 6 | Occasional "we" ambiguity (Clawd + reader? Author + Anthropic?). |
-| 4 | Multiple instances where reader can't tell if "I" is Clawd, original author, or ShroomDog. |
+> **Note (v9):** the `clarity` dimension moved to **Stage 3 Fresh Eyes** — see
+> its rubric there. For `tribunalVersion <= 8` posts clarity was scored here.
 
 ### narrative — Narrative Structure / Rhythm / Emotional Arc
 

@@ -38,7 +38,9 @@ source "$SCRIPT_DIR/tribunal-helpers.sh"
 
 POSTS_DIR="$ROOT_DIR/src/content/posts"
 PROGRESS_FILE="$(tribunal_progress_file_default "$ROOT_DIR")"
-TRIBUNAL_VERSION=8
+# v9 (move-clarity-vibe-to-fresheyes): keep in lockstep with tribunal.sh and
+# frontmatter-scores.mjs CURRENT_TRIBUNAL_VERSION.
+TRIBUNAL_VERSION=9
 LOG_DIR="$ROOT_DIR/.score-loop/logs"
 LOG_FILE="$LOG_DIR/tribunal-quota-loop-$(date +%Y%m%d-%H%M%S).log"
 USAGE_MONITOR="${USAGE_MONITOR:-$HOME/clawd/scripts/usage-monitor.sh}"

@@ -151,7 +151,9 @@ function finalVibe(
 ): FinalVibeJudgeOutput {
   const composite = Math.floor(Object.values(scores).reduce((a, b) => a + b, 0) / 5);
   const degraded_dimensions = (Object.keys(stage1Scores) as Array<keyof typeof stage1Scores>)
-    .filter((k) => stage1Scores[k] - scores[k] > 1)
+    // clarity is optional on VibeJudgeOutput['scores'] (v9 moved it to freshEyes),
+    // so coalesce to 0 for the test factory's regression math.
+    .filter((k) => (stage1Scores[k] ?? 0) - (scores[k] ?? 0) > 1)
     .map(String);
   return {
     pass,
@@ -858,5 +860,104 @@ describe('pipeline — Stage 3 dupCheck-only FAIL (Level E)', () => {
       git.commits.some((m) => m.includes('dupCheck FAIL') && m.includes('class=hard-dup'))
     ).toBe(true);
     expect(git.commits.every((m) => !m.includes('max loops exhausted'))).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// move-clarity-vibe-to-fresheyes — v9 Fresh Eyes clarity gate via pipeline
+// ---------------------------------------------------------------------------
+
+const V9_ARTICLE = `---
+title: "Test Article v9"
+ticketId: CP-998
+slug: test-article-v9
+lang: "zh-tw"
+date: 2026-06-18
+source:
+  url: "https://example.com/source"
+tags:
+  - test
+scores:
+  tribunalVersion: 9
+---
+
+# 測試文章
+
+ShroomDog 想分享這段內容。Clawd 覺得 [documentation](https://example.com/docs) 是起點。
+
+## 結論
+
+Clawd 覺得結束了。
+`;
+
+describe('pipeline — v9 Fresh Eyes clarity gate', () => {
+  let tmpDir: string;
+  let articlePath: string;
+
+  beforeEach(async () => {
+    tmpDir = await mkdtemp(join(tmpdir(), 'tribunal-v2-v9-test-'));
+    articlePath = join(tmpDir, 'cp-998-v9.mdx');
+    await writeFile(articlePath, V9_ARTICLE, 'utf-8');
+  });
+
+  afterEach(async () => {
+    await rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it('overrides model pass=true when v9 FreshEyes clarity < 8', async () => {
+    let judgeCalls = 0;
+    let writerCalls = 0;
+    const git = mockGit();
+
+    const config: PipelineConfig = {
+      ...passThroughConfig(),
+      git: git.adapter,
+      runners: {
+        ...passThroughConfig().runners,
+        stage2Judge: {
+          run: async () => {
+            judgeCalls++;
+            if (judgeCalls === 1) {
+              // High everything but clarity=7 → the v9 non-compensating gate
+              // must fail this even though the model claims pass=true.
+              return freshEyesOutput(
+                true,
+                {
+                  readability: 10,
+                  firstImpression: 10,
+                  payoffDensity: 10,
+                  lengthFit: 10,
+                  clarity: 7,
+                },
+                { improvements: { clarity: 'who is speaking here?' } }
+              );
+            }
+            return freshEyesOutput(true, {
+              readability: 8,
+              firstImpression: 8,
+              payoffDensity: 8,
+              lengthFit: 8,
+              clarity: 8,
+            });
+          },
+        },
+        stage2Writer: {
+          run: async ({ articleContent, feedback }) => {
+            writerCalls++;
+            expect(feedback).toContain('Programmatic pass-bar failed');
+            expect(feedback).toContain('clarity');
+            return { content: `${articleContent}\n\n釐清了每句話的發話者。` };
+          },
+        },
+      },
+    };
+
+    const final = await runPipeline(articlePath, config);
+
+    expect(final.status).toBe('passed');
+    expect(final.stages.stage2.status).toBe('passed');
+    expect(judgeCalls).toBe(2);
+    expect(writerCalls).toBe(1);
+    expect(final.stages.stage2.history[0]?.pass).toBe(false);
   });
 });
