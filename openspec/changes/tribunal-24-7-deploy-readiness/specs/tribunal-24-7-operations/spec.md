@@ -38,7 +38,7 @@ The monitoring tool SHALL parse the current controller output (`quota-controller
 
 - **WHEN** an operator runs the tribunal monitor against the live daemon
 - **THEN** it SHALL show the current controller `mode` and quota reading
-- **AND** SHALL NOT report blanks because it is matching a removed `Tier GO / 3%` format
+- **AND** SHALL NOT report blanks because it is matching a removed `Tier …% remaining` format or a stale 3% floor (the real default floor is 10%)
 
 ### Requirement: Burst spend SHALL be operator-configurable
 

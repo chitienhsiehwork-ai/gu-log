@@ -2,17 +2,17 @@
 
 ### Requirement: Each tribunal role SHALL resolve its provider and model independently
 
-The tribunal SHALL select the LLM provider and model per role, not once globally for all roles. The writer, rewriter, and vibe scorer SHALL run on Claude Opus 4.5; the fact-checker, librarian, fresh-eyes judge, and the orchestrator/supervisor SHALL run on Codex GPT-5.5.
+The tribunal SHALL select the LLM provider per role, not once globally for all roles: the writer, rewriter, and vibe scorer SHALL run on the Claude provider; the fact-checker, librarian, fresh-eyes judge, and the orchestrator/supervisor SHALL run on the Codex provider. The **model** for each role SHALL be resolved from that role's declared config (`.claude/agents/<role>.md` for Claude roles, `.codex/agents/<role>.toml` for Codex roles); the specific build values are owned by the `tribunal-model-pinning-strategy` change and SHALL NOT be hardcoded in the router.
 
-#### Scenario: Writer and vibe run on Opus 4.5
+#### Scenario: Writer and vibe run on Claude with their configured model
 
 - **WHEN** the tribunal invokes the writer/rewriter or the vibe scorer
-- **THEN** it SHALL execute on Claude `claude-opus-4-5`
+- **THEN** it SHALL execute on the Claude provider using the model declared in that role's `.claude/agents/<role>.md` (currently `claude-opus-4-5`)
 
-#### Scenario: Other judges and orchestrator run on GPT-5.5
+#### Scenario: Other judges and orchestrator run on Codex with their configured model
 
 - **WHEN** the tribunal invokes fact-checker, librarian, fresh-eyes, or the supervisor loop
-- **THEN** it SHALL execute on Codex `gpt-5.5`
+- **THEN** it SHALL execute on the Codex provider using the model declared in that role's `.codex/agents/<role>.toml` (currently `gpt-5.5`)
 
 #### Scenario: Roles do not share one global provider
 

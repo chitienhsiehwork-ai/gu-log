@@ -1,12 +1,12 @@
 ## Context
 
-The clawd-vm tribunal daemon is `tribunal-quota-loop.sh` (a quota-aware supervisor) dispatching `tribunal.sh` per article. Provider/model selection happens in `tribunal-helpers.sh`: `tribunal_llm_provider()` picks ONE provider for all roles (codex if present), and `tribunal_codex_exec` hardcodes `--model gpt-5.5` (helpers.sh:358) while the prompt explicitly tells the model to "Ignore model". The per-role `model` fields in `.codex/agents/*.toml` are therefore dead on the production path; only the CCC-claude fallback path honors `.claude/agents/*.md` models. `GP_WRITER_MODE` defaults to `none` (helpers.sh:412) and no deploy unit sets it. Alerting is `osascript` (Linux no-op). The quota controller writes `quota-controller.json` with modes `pacing/floor_stop/fallback`; the `tribunal-monitor` skill greps for the retired `Tier GO / 3%` format. Reboot survival needs `systemctl --user enable` + `loginctl enable-linger`.
+The clawd-vm tribunal daemon is `tribunal-quota-loop.sh` (a quota-aware supervisor) dispatching `tribunal.sh` per article. Provider/model selection happens in `tribunal-helpers.sh`: `tribunal_llm_provider()` picks ONE provider for all roles (codex if present), and `tribunal_codex_exec` hardcodes `--model gpt-5.5` (helpers.sh:358) while the prompt explicitly tells the model to "Ignore model". The per-role `model` fields in `.codex/agents/*.toml` are therefore dead on the production path; only the CCC-claude fallback path honors `.claude/agents/*.md` models. `GP_WRITER_MODE` defaults to `none` (helpers.sh:416) and no deploy unit sets it. Alerting is `osascript` (Linux no-op). The quota controller writes `quota-controller.json` with modes `pacing/floor_stop/fallback`; the `tribunal-monitor` skill greps for the retired `Tier …% remaining` format and a stale 3% floor (the real default floor is 10%, `QUOTA_FLOOR:-10`). Reboot survival needs `systemctl --user enable` + `loginctl enable-linger`.
 
 ## Goals / Non-Goals
 
 **Goals:**
 - A 24/7 clawd-vm run that actually rewrites sub-bar posts (not score-only).
-- The intended model split: Opus 4.5 writes/judges-vibe; GPT-5.5 does the other judges + orchestration.
+- The intended model split: Claude (Opus) writes/judges-vibe; Codex (GPT-5.5) does the other judges + orchestration. The exact builds are owned by `tribunal-model-pinning-strategy`; this change only routes to whatever each role's config declares.
 - Unattended operability: reboot-persistent, operator gets alerted, monitor reflects reality, burst is tunable.
 
 **Non-Goals:**
@@ -16,9 +16,9 @@ The clawd-vm tribunal daemon is `tribunal-quota-loop.sh` (a quota-aware supervis
 
 ## Decisions
 
-**D1. Per-role resolution, not a global provider.** Introduce a role→(provider, model) map: `{writer, rewriter, vibe} → claude/claude-opus-4-5`; `{fact-checker, librarian, fresh-eyes, orchestrator} → codex/gpt-5.5`. Each judge/writer invocation consults the map instead of `tribunal_llm_provider()` choosing once for all. *Alternative considered:* keep one provider and just swap it to claude globally — rejected: the user wants GPT doing the cheaper judges to spread quota across both balances.
+**D1. Per-role resolution, not a global provider.** Introduce a role→provider map: `{writer, rewriter, vibe} → claude`; `{fact-checker, librarian, fresh-eyes, orchestrator} → codex`. The **model** for each role is read from that role's existing config field (`.claude/agents/*.md` for claude roles — today `claude-opus-4-5`; `.codex/agents/*.toml` for codex roles — today `gpt-5.5`), **not hardcoded in the resolver**. The exact build values are owned by `tribunal-model-pinning-strategy`; this resolver just stops ignoring them. Each judge/writer invocation consults the map instead of `tribunal_llm_provider()` choosing once for all. *Alternative considered:* keep one provider and just swap it to claude globally — rejected: the user wants GPT doing the cheaper judges to spread quota across both balances.
 
-**D2. Remove the hardcoded codex model flag.** Replace `--model gpt-5.5` (helpers.sh:358) with a lookup of the `.codex/agents/<role>.toml` `model` field (already present, currently ignored), and drop the "Ignore model" prompt line so codex roles honor their declared model. Defaults to gpt-5.5 when unset.
+**D2. Remove the hardcoded codex model flag.** Replace `--model gpt-5.5` (helpers.sh:358) with a lookup of the `.codex/agents/<role>.toml` `model` field (already present, currently ignored), and drop the "Ignore model" prompt line so codex roles honor their declared model. Defaults to gpt-5.5 when unset. **`scripts/tests/test-tribunal-safety-contract.sh` must move in the same change** — it currently asserts the hardcode, the "Ignore YAML" prompt, the static `codex-gpt-5.5-medium` runner label, and pinned `.codex` models; those assertions flip from "must exist" to "must read from config" (see tasks 1.6).
 
 **D3. Deployment opts into rewrites; library default stays safe.** Keep `GP_WRITER_MODE` defaulting to `none` in `tribunal-helpers.sh` (safe for ad-hoc/library use) but require the deployed unit/wrapper to export `GP_WRITER_MODE=subagent`. This makes the dangerous-by-omission state impossible in production without changing safe local behavior.
 
