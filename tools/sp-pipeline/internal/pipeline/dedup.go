@@ -8,6 +8,48 @@ import (
 	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/dedup"
 )
 
+// DedupURL is the URL-only dedup gate that runs before Eval. It catches
+// exact URL / tweet-ID duplicates before spending the two eval LLM calls.
+func (s *State) DedupURL(ctx context.Context) error {
+	if s.shouldSkipBelow(StepDedupURL) {
+		s.Log.Info("Step 1.2: URL dedup gate — SKIPPED (--from-step)")
+		return nil
+	}
+	if s.TweetURL == "" {
+		s.Log.Info("Step 1.2: URL dedup — skipping (no URL)")
+		return nil
+	}
+
+	s.Log.Info("Step 1.2: URL dedup gate")
+
+	scriptPath := filepath.Join(s.Cfg.ScriptsDir, "dedup-gate.mjs")
+	result, err := dedup.Check(ctx, dedup.Options{
+		ScriptPath: scriptPath,
+		URL:        s.TweetURL,
+		Title:      "",
+		Series:     s.Prefix,
+	})
+	if err != nil {
+		return fmt.Errorf("dedup-url: %w", err)
+	}
+	s.DedupVerdict = string(result.Verdict)
+	switch result.Verdict {
+	case dedup.VerdictPass:
+		s.Log.OK("Step 1.2 URL dedup: PASS")
+		return nil
+	case dedup.VerdictWarn:
+		s.Log.Warn("Step 1.2 URL dedup: WARN — %d potential match(es) (advisory)", len(result.Matches))
+		return nil
+	case dedup.VerdictBlock:
+		for _, m := range result.Matches {
+			s.Log.Warn("  match: %s", m)
+		}
+		return NewStepError(13, fmt.Errorf("dedup-url: BLOCK (%d match(es))", len(result.Matches)))
+	default:
+		return fmt.Errorf("dedup-url: unknown verdict %q", result.Verdict)
+	}
+}
+
 // Dedup is the Go port of scripts/sp-pipeline.sh Step 1.7. It wraps
 // scripts/dedup-gate.mjs via internal/dedup and sets s.DedupVerdict for
 // downstream logging. A BLOCK verdict returns StepError{Code:13}, which

@@ -48,6 +48,7 @@ func (s *State) Fetch(ctx context.Context) error {
 	res, err := source.Fetch(ctx, s.TweetURL, source.FetchOptions{
 		WorkDir:             s.WorkDir,
 		FetchXArticleScript: s.Cfg.FetchXArticle,
+		FetchArticleScript:  s.Cfg.FetchArticle,
 	})
 	if err != nil {
 		code := 10

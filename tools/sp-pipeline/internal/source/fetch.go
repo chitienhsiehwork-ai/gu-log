@@ -8,6 +8,7 @@ import (
 	"net"
 	nethttp "net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -42,6 +43,8 @@ type FetchOptions struct {
 	WorkDir string
 	// FetchXArticleScript is the absolute path to scripts/fetch-x-article.sh.
 	FetchXArticleScript string
+	// FetchArticleScript is the absolute path to scripts/fetch-article.py.
+	FetchArticleScript string
 }
 
 // xURLRe matches https://x.com/... and twitter.com/... URLs.
@@ -129,14 +132,41 @@ func FetchGeneric(ctx context.Context, urlStr string, opts FetchOptions) (*Fetch
 		return nil, fmt.Errorf("fetchgeneric: WorkDir is required")
 	}
 
+	host := hostname(urlStr)
+	date := time.Now().Format("2006-01-02")
+	outPath := filepath.Join(opts.WorkDir, "source-tweet.md")
+
+	if opts.FetchArticleScript != "" {
+		if _, err := exec.LookPath("python3"); err == nil {
+			if res, runErr := runner.Run(ctx, "python3", opts.FetchArticleScript, urlStr); runErr == nil {
+				body := strings.TrimSpace(string(res.Stdout))
+				if body != "" {
+					header := fmt.Sprintf("@%s — %s\nSource URL: %s\nFetched via: fetch-article.py\n\n", host, date, urlStr)
+					payload := []byte(header + body + "\n")
+					if verr := ValidateArticleCapture(payload); verr == nil {
+						if err := os.WriteFile(outPath, payload, 0o644); err != nil {
+							return nil, fmt.Errorf("fetchgeneric: writing capture to %s: %w", outPath, err)
+						}
+						return &FetchResult{
+							Path:       outPath,
+							Handle:     "@" + host,
+							Date:       date,
+							FetchedVia: "fetch-article.py",
+							Bytes:      len(payload),
+							IsX:        false,
+						}, nil
+					}
+				}
+			}
+		}
+	}
+
 	ua := "Mozilla/5.0 (compatible; sp-pipeline/1; +https://gu-log.vercel.app)"
 	res, err := runner.Run(ctx, "curl", "-sSL", "--max-time", "60", "-A", ua, urlStr)
 	if err != nil {
 		return nil, fmt.Errorf("fetchgeneric: curl: %w", err)
 	}
 
-	host := hostname(urlStr)
-	date := time.Now().Format("2006-01-02")
 	body := cleanupHTML(res.Stdout)
 
 	header := fmt.Sprintf("@%s — %s\nSource URL: %s\nFetched via: curl\n\n", host, date, urlStr)
@@ -146,7 +176,6 @@ func FetchGeneric(ctx context.Context, urlStr string, opts FetchOptions) (*Fetch
 		return nil, verr
 	}
 
-	outPath := filepath.Join(opts.WorkDir, "source-tweet.md")
 	if err := os.WriteFile(outPath, payload, 0o644); err != nil {
 		return nil, fmt.Errorf("fetchgeneric: writing capture to %s: %w", outPath, err)
 	}

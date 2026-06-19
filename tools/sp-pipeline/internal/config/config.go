@@ -28,6 +28,8 @@ type Config struct {
 	WritingGuide string
 	// FetchXArticle is $RepoRoot/scripts/fetch-x-article.sh.
 	FetchXArticle string
+	// FetchArticle is $RepoRoot/scripts/fetch-article.py.
+	FetchArticle string
 	// ValidatePosts is $RepoRoot/scripts/validate-posts.mjs.
 	ValidatePosts string
 }
@@ -69,6 +71,7 @@ func fromRoot(root string) (*Config, error) {
 		CounterFile:   filepath.Join(abs, "scripts", "article-counter.json"),
 		WritingGuide:  filepath.Join(abs, "GU-LOG_WRITER_PROMPT.md"),
 		FetchXArticle: filepath.Join(abs, "scripts", "fetch-x-article.sh"),
+		FetchArticle:  filepath.Join(abs, "scripts", "fetch-article.py"),
 		ValidatePosts: filepath.Join(abs, "scripts", "validate-posts.mjs"),
 	}
 	return cfg, nil
