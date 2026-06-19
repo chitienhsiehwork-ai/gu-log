@@ -24,7 +24,7 @@
 
 ## 5. Accurate monitoring (P1)
 
-- [ ] 5.1 Update `.claude/skills/tribunal-monitor/SKILL.md` to parse `quota-controller.json` + `CONTROLLER:` log lines + the real floor (default 10%), not the retired `Tier GO / 3%` strings.
+- [ ] 5.1 Update `.claude/skills/tribunal-monitor/SKILL.md` to parse `quota-controller.json` + `CONTROLLER:` log lines + the real floor (default 10%), not the retired `Tier …% remaining` format / stale 3% floor.
 
 ## 6. Burst configurability + docs (P2)
 
