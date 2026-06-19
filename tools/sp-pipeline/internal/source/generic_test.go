@@ -1,6 +1,9 @@
 package source
 
 import (
+	"context"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -89,5 +92,133 @@ func TestHostname(t *testing.T) {
 		if got := hostname(in); got != want {
 			t.Errorf("hostname(%q) = %q, want %q", in, got, want)
 		}
+	}
+}
+
+func TestFetchGeneric_UsesCurlWhenFetchArticleScriptEmpty(t *testing.T) {
+	tmp := t.TempDir()
+	binDir := filepath.Join(tmp, "bin")
+	if err := os.MkdirAll(binDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writeExecutable(t, filepath.Join(binDir, "curl"), `#!/usr/bin/env bash
+cat <<'HTML'
+<html><body>
+<h1>Curl Article</h1>
+<p>This fake curl article has enough prose to pass the generic source validator.</p>
+<p>It includes multiple non-empty lines so the capture shape remains realistic.</p>
+<p>The body is intentionally plain and boring because the test only checks routing.</p>
+<p>One more line pads the capture beyond the minimum length without using the network.</p>
+</body></html>
+HTML
+`)
+	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	res, err := FetchGeneric(context.Background(), "https://example.com/article", FetchOptions{WorkDir: tmp})
+	if err != nil {
+		t.Fatalf("FetchGeneric: %v", err)
+	}
+	if res.FetchedVia != "curl" {
+		t.Fatalf("FetchedVia = %q, want curl", res.FetchedVia)
+	}
+	data, err := os.ReadFile(res.Path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), "Fetched via: curl") {
+		t.Fatalf("capture missing curl header:\n%s", data)
+	}
+}
+
+func TestFetchGeneric_UsesFetchArticleScriptWhenValid(t *testing.T) {
+	tmp := t.TempDir()
+	binDir := filepath.Join(tmp, "bin")
+	if err := os.MkdirAll(binDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writeExecutable(t, filepath.Join(binDir, "python3"), `#!/usr/bin/env bash
+cat <<'TEXT'
+Python Article
+This cleaned article text came from the Python extractor and is already readable.
+It has enough paragraphs to satisfy the article validator without HTML cleanup.
+The exact body should be preserved because the extractor did the cleanup upstream.
+This line pads the capture to a realistic size for downstream LLM prompts.
+The final line ensures there are more than five non-empty lines in the payload.
+TEXT
+`)
+	writeExecutable(t, filepath.Join(binDir, "curl"), `#!/usr/bin/env bash
+echo "curl should not run" >&2
+exit 9
+`)
+	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	res, err := FetchGeneric(context.Background(), "https://example.com/article", FetchOptions{
+		WorkDir:            tmp,
+		FetchArticleScript: filepath.Join(tmp, "fetch-article.py"),
+	})
+	if err != nil {
+		t.Fatalf("FetchGeneric: %v", err)
+	}
+	if res.FetchedVia != "fetch-article.py" {
+		t.Fatalf("FetchedVia = %q, want fetch-article.py", res.FetchedVia)
+	}
+	data, err := os.ReadFile(res.Path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := string(data)
+	if !strings.Contains(got, "Fetched via: fetch-article.py") {
+		t.Fatalf("capture missing python header:\n%s", got)
+	}
+	if !strings.Contains(got, "Python Article") {
+		t.Fatalf("capture missing python body:\n%s", got)
+	}
+}
+
+func TestFetchGeneric_FallsBackWhenFetchArticleOutputInvalid(t *testing.T) {
+	tmp := t.TempDir()
+	binDir := filepath.Join(tmp, "bin")
+	if err := os.MkdirAll(binDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writeExecutable(t, filepath.Join(binDir, "python3"), `#!/usr/bin/env bash
+echo "too short"
+`)
+	writeExecutable(t, filepath.Join(binDir, "curl"), `#!/usr/bin/env bash
+cat <<'HTML'
+<html><body>
+<h1>Fallback Article</h1>
+<p>This fake curl article is long enough to prove invalid Python output falls back.</p>
+<p>It has multiple non-empty lines and contains no blocked markers or code shell.</p>
+<p>The fetcher should validate this fallback payload and write it successfully.</p>
+<p>That keeps Python extractor failures advisory instead of making the pipeline fail.</p>
+</body></html>
+HTML
+`)
+	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	res, err := FetchGeneric(context.Background(), "https://example.com/article", FetchOptions{
+		WorkDir:            tmp,
+		FetchArticleScript: filepath.Join(tmp, "fetch-article.py"),
+	})
+	if err != nil {
+		t.Fatalf("FetchGeneric: %v", err)
+	}
+	if res.FetchedVia != "curl" {
+		t.Fatalf("FetchedVia = %q, want curl fallback", res.FetchedVia)
+	}
+	data, err := os.ReadFile(res.Path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), "Fallback Article") {
+		t.Fatalf("capture missing fallback body:\n%s", data)
+	}
+}
+
+func writeExecutable(t *testing.T, path, body string) {
+	t.Helper()
+	if err := os.WriteFile(path, []byte(body), 0o755); err != nil {
+		t.Fatalf("write %s: %v", path, err)
 	}
 }

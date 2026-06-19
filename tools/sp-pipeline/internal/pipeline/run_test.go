@@ -208,11 +208,46 @@ func TestRun_HappyPath(t *testing.T) {
 	var buf bytes.Buffer
 	PrintSummary(&buf, s)
 	sum := buf.String()
-	for _, want := range []string{"SP number", "SP-171" /* "171" appears in number row */, "Work dir", "fetch", "eval", "write", "deploy"} {
+	for _, want := range []string{"SP number", "SP-171" /* "171" appears in number row */, "Work dir", "fetch", "dedup-url", "eval", "write", "deploy"} {
 		_ = want
 	}
 	if !strings.Contains(sum, "171") {
 		t.Errorf("summary missing SP-171: %s", sum)
+	}
+	if !strings.Contains(sum, "dedup-url") {
+		t.Errorf("summary missing dedup-url timing: %s", sum)
+	}
+}
+
+func TestRun_DedupURLBlockExit13BeforeEval(t *testing.T) {
+	s, tmp := makeRunHarness(t)
+	if err := os.WriteFile(filepath.Join(tmp, "scripts", "dedup-gate.mjs"), []byte(`#!/usr/bin/env node
+if (!process.argv.includes('--title')) {
+  console.log('BLOCK: Duplicate of SP-1 (URL match): Existing post');
+  process.exit(1);
+}
+console.log('PASS');
+`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	fake := llm.NewFakeClaude()
+	disp, err := llm.NewDispatcher(logx.New(), fake)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.Dispatcher = disp
+	_, _ = SetupWorkDir(s)
+
+	err = Run(context.Background(), s)
+	if err == nil {
+		t.Fatalf("expected StepError")
+	}
+	var se *StepError
+	if !errors.As(err, &se) || se.Code != 13 {
+		t.Fatalf("expected exit 13 for URL dedup BLOCK, got %v", err)
+	}
+	if len(fake.Called) != 0 {
+		t.Fatalf("eval should not be reached after URL dedup BLOCK, got %d LLM call(s)", len(fake.Called))
 	}
 }
 

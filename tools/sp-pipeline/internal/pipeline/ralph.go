@@ -10,6 +10,7 @@ import (
 
 	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/frontmatter"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/ralph"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/runner"
 )
 
 // finalPipelineURL matches scripts/sp-pipeline.sh line 1290.
@@ -100,6 +101,8 @@ func (s *State) Ralph(ctx context.Context) error {
 		}
 	}
 
+	s.runPostFixers(ctx, activePath)
+
 	// Run the tribunal. tribunal.sh auto-selects its own runtime provider
 	// (Codex GPT-5.5 normally; Claude Opus when codex is absent in CCC).
 	s.Log.Info("  Running 4-stage tribunal (via tribunal.sh)...")
@@ -150,6 +153,41 @@ func (s *State) Ralph(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (s *State) runPostFixers(ctx context.Context, postPath string) {
+	if s.Cfg == nil || s.Cfg.ScriptsDir == "" {
+		return
+	}
+	s.Log.Info("  Running deterministic fixers (kaomoji/glossary/related)...")
+
+	type fixer struct {
+		name string
+		args []string
+	}
+	fixers := []fixer{
+		{
+			name: "kaomoji",
+			args: []string{filepath.Join(s.Cfg.ScriptsDir, "add-kaomoji.mjs"), "--write", postPath},
+		},
+		{
+			name: "glossary",
+			args: []string{filepath.Join(s.Cfg.ScriptsDir, "apply-glossary-links.mjs"), postPath},
+		},
+		{
+			name: "related",
+			args: []string{filepath.Join(s.Cfg.ScriptsDir, "inject-related-posts.mjs"), "--file", postPath},
+		},
+	}
+	for _, f := range fixers {
+		if _, err := runner.RunWithOptions(ctx, runner.Options{
+			Name:    "node",
+			Args:    f.args,
+			WorkDir: s.Cfg.RepoRoot,
+		}); err != nil {
+			s.Log.Warn("  fixer %s failed (advisory): %v", f.name, err)
+		}
+	}
 }
 
 // normalizeRalphFrontmatter is the Go port of the Python heredoc at

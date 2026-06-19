@@ -9,9 +9,11 @@
  *   node scripts/inject-related-posts.mjs --input /tmp/crosslink-suggestions.json --dry-run
  *   node scripts/inject-related-posts.mjs --input /tmp/crosslink-suggestions.json
  *   node scripts/inject-related-posts.mjs --dry-run          # generates suggestions inline
+ *   node scripts/inject-related-posts.mjs --file src/content/posts/sp-123-foo.mdx --dry-run
  *
  * Options:
  *   --input <file>    Path to suggestions JSON (default: generate inline)
+ *   --file <path>     Only process one post file
  *   --dry-run         Print diffs without writing files
  *   --limit <n>       Only process first N eligible posts (default: all)
  */
@@ -29,6 +31,8 @@ const args = process.argv.slice(2);
 const DRY_RUN = args.includes('--dry-run');
 const inputIdx = args.indexOf('--input');
 const INPUT_FILE = inputIdx !== -1 ? args[inputIdx + 1] : null;
+const fileIdx = args.indexOf('--file');
+const ONLY_FILE = fileIdx !== -1 ? path.basename(args[fileIdx + 1]) : null;
 const limitIdx = args.indexOf('--limit');
 const LIMIT = limitIdx !== -1 ? parseInt(args[limitIdx + 1], 10) : Infinity;
 
@@ -114,7 +118,8 @@ for (const entry of suggestions) {
 }
 
 // ─── Process posts ───────────────────────────────────────────────────
-const files = fs.readdirSync(POSTS_DIR).filter((f) => f.endsWith('.mdx'));
+let files = fs.readdirSync(POSTS_DIR).filter((f) => f.endsWith('.mdx'));
+if (ONLY_FILE) files = files.filter((f) => f === ONLY_FILE);
 let processed = 0;
 let injected = 0;
 let skippedHasLinks = 0;

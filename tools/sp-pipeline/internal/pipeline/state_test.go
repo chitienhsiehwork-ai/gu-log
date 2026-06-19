@@ -257,11 +257,11 @@ func TestRefine_AnglePropagates(t *testing.T) {
 
 func TestResolveSourceField(t *testing.T) {
 	cases := []struct {
-		name        string
-		label       string
-		isX         bool
-		handle      string
-		want        string
+		name   string
+		label  string
+		isX    bool
+		handle string
+		want   string
 	}{
 		{"explicit override wins", "OpenClaw Docs", true, "nick", "OpenClaw Docs"},
 		{"x with handle", "", true, "nickbaumann_", "@nickbaumann_ on X"},
