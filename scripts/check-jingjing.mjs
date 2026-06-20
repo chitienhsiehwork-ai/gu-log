@@ -588,6 +588,22 @@ Unix
 #   Enrico Fermi = the physicist behind "Fermi estimation" (order-of-magnitude
 #     back-of-envelope estimate), named in Post C's ClawdNote — person, proper noun.
 Enrico Fermi
+
+# Added 2026-06-20 for SD (Dan Koe spec-driven-life riff). Dan Koe = the source
+# author (person, X handle @thedankoe). Spec Kit (GitHub) and Kiro (Amazon) =
+# product names for the two spec-driven dev tools cited. cybernetics / kybernetes
+# = the Greek/English etymology the piece explicitly discusses alongside the
+# already-allowlisted Kubernetes (same word root). All proper nouns / named terms
+# under discussion, not decorative English.
+Dan Koe
+Spec Kit
+Kiro
+cybernetics kybernetes
+# @thedankoe = source X handle; the bracketed English string is the verbatim
+# title of the cited article, given with a zh-tw gloss right after (direct-quote
+# attribution, GU-LOG_WRITER_PROMPT §術語處理 rule 3).
+thedankoe
+How fix your entire life in day
 `;
 
 const HARDCODED = new Set();
