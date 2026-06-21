@@ -58,6 +58,10 @@ const sourceCitationLabel = isLevelUp
   : isShroomDogOriginal && isChatGptShareSource
     ? '靈感來源'
     : '原文出處';
+// Legacy Lv posts encoded the gu-log series name into `source`
+// (e.g. "Level-Up 系列 / 0xkato"). The series is already shown by the Lv
+// badge, so strip that self-referential prefix and credit only the real source.
+const sourceCitationText = post.data.source.replace(/^Level-Up 系列\s*[／/]\s*/, '');
 
 const postVersion = getPostVersion(post.id);
 const postReaderRevision = getPostReaderRevision(post.id);
@@ -142,7 +146,7 @@ const displayTag = (tag: string) => (tag === 'clawd-picks' ? 'mogu-picks' : tag)
         <div class="source-citation">
           <strong>{sourceCitationLabel}：</strong>
           <a href={post.data.sourceUrl} target="_blank" rel="noopener">
-            {post.data.source}
+            {sourceCitationText}
           </a>
         </div>
       )
