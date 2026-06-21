@@ -348,6 +348,7 @@ otherKey: y`;
 // score-floor-check (version-aware required vibe dims)
 // ════════════════════════════════════════════════════════════════════════════
 import { execFileSync } from 'node:child_process';
+import { isBelowPublishBar } from '../src/utils/tribunal-scores';
 
 const FLOOR_CHECK = path.join(__dirname, '..', 'scripts', 'score-floor-check.mjs');
 
@@ -451,5 +452,63 @@ body
 `
     );
     expect(runFloorCheck(f).code).toBe(0);
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// Translation-pair publish-bar parity
+//
+// Why this gate exists: the sp-pipeline only produces the zh-tw post; the en
+// version is authored separately, and it is easy to forget to mirror the zh
+// scores block into it. When that happens to a sub-8 post, isBelowPublishBar()
+// returns false for the score-less en file — so the en version silently leaks
+// onto the /en homepage and shows no "refining" badge, while its zh-tw twin is
+// correctly held back. (SP-237 shipped with exactly this bug.)
+//
+// A pre-merge visual check would catch it, but "remember to eyeball both
+// languages" is not a system — this assertion is. It runs in the per-PR
+// `unit-tests` job and reuses the real runtime helpers (parseScores +
+// isBelowPublishBar), so it can never drift from what the site actually does.
+// ════════════════════════════════════════════════════════════════════════════
+const POSTS_DIR = path.join(__dirname, '..', 'src', 'content', 'posts');
+
+function baseFilename(filename: string): string {
+  return filename.startsWith('en-') ? filename.slice(3) : filename;
+}
+
+function belowBarOf(filePath: string): boolean {
+  const content = fs.readFileSync(filePath, 'utf-8');
+  const split = fmScores.splitFrontmatter(content);
+  if (!split) return false;
+  const scores = fmScores.parseScores(split.fmText);
+  return isBelowPublishBar(scores);
+}
+
+describe('translation-pair publish-bar parity', () => {
+  it('every zh-tw + en pair agrees on isBelowPublishBar (no language leaks onto the homepage alone)', () => {
+    const files = fs.readdirSync(POSTS_DIR).filter((f) => f.endsWith('.mdx'));
+    const byBase = new Map<string, string[]>();
+    for (const f of files) {
+      const arr = byBase.get(baseFilename(f)) ?? [];
+      arr.push(f);
+      byBase.set(baseFilename(f), arr);
+    }
+
+    const mismatches: string[] = [];
+    for (const [, pair] of byBase) {
+      if (pair.length !== 2) continue; // only complete zh+en pairs
+      const en = pair.find((f) => f.startsWith('en-'));
+      const zh = pair.find((f) => !f.startsWith('en-'));
+      if (!en || !zh) continue; // two files but not a real cross-lang pair
+      const zhBelow = belowBarOf(path.join(POSTS_DIR, zh));
+      const enBelow = belowBarOf(path.join(POSTS_DIR, en));
+      if (zhBelow !== enBelow) {
+        mismatches.push(
+          `${zh} (belowBar=${zhBelow}) vs ${en} (belowBar=${enBelow}) — mirror the scores block across both languages`
+        );
+      }
+    }
+
+    expect(mismatches, mismatches.join('\n')).toEqual([]);
   });
 });
