@@ -1,5 +1,10 @@
 import type { CollectionEntry } from 'astro:content';
-import { checkFreshEyesPassBar, checkVibePassBar } from '../lib/tribunal-v2/pass-bar';
+import {
+  checkFreshEyesPassBar,
+  checkVibePassBar,
+  freshEyesDims,
+  vibeDims,
+} from '../lib/tribunal-v2/pass-bar';
 
 type PostScores = NonNullable<CollectionEntry<'posts'>['data']['scores']>;
 type JudgeName = (typeof JUDGES)[number];
@@ -31,17 +36,24 @@ function hasAllJudgeScores(scores?: PostScores): boolean {
   return !!scores && JUDGES.every((judge) => typeof scores[judge]?.score === 'number');
 }
 
-function getTribunalVersion(scores: PostScores): number {
-  return typeof scores.tribunalVersion === 'number' ? scores.tribunalVersion : 8;
+function getTribunalVersion(scores?: PostScores): number {
+  return typeof scores?.tribunalVersion === 'number' ? scores.tribunalVersion : 8;
 }
 
-function compositeJudgePasses(scores: PostScores, judge: JudgeName): boolean {
-  const score = scores[judge]?.score;
+function compositeJudgePasses(scores: PostScores | undefined, judge: JudgeName): boolean {
+  const score = scores?.[judge]?.score;
   return typeof score === 'number' && score >= PUBLISH_BAR;
 }
 
-function factCheckPasses(scores: PostScores): boolean {
-  const factCheck = scores.factCheck;
+function hasNumericDimensions(
+  scores: Record<string, unknown> | undefined,
+  dims: readonly string[]
+): scores is Record<string, number> {
+  return !!scores && dims.every((dim) => typeof scores[dim] === 'number');
+}
+
+function factCheckPasses(scores: PostScores | undefined): boolean {
+  const factCheck = scores?.factCheck;
   if (!factCheck || !compositeJudgePasses(scores, 'factCheck')) return false;
 
   const core = [factCheck.accuracy, factCheck.fidelity, factCheck.consistency];
@@ -55,23 +67,30 @@ function factCheckPasses(scores: PostScores): boolean {
   );
 }
 
-function vibePasses(scores: PostScores): boolean {
-  const vibe = scores.vibe;
+function vibePasses(scores: PostScores | undefined): boolean {
+  const vibe = scores?.vibe;
   if (!vibe || !compositeJudgePasses(scores, 'vibe')) return false;
 
   try {
-    return checkVibePassBar(vibe, getTribunalVersion(scores)).pass;
+    const version = getTribunalVersion(scores);
+    if (!hasNumericDimensions(vibe, vibeDims(version))) return false;
+    return checkVibePassBar(vibe as Parameters<typeof checkVibePassBar>[0], version).pass;
   } catch {
     return false;
   }
 }
 
-function freshEyesPasses(scores: PostScores): boolean {
-  const freshEyes = scores.freshEyes;
+function freshEyesPasses(scores: PostScores | undefined): boolean {
+  const freshEyes = scores?.freshEyes;
   if (!freshEyes || !compositeJudgePasses(scores, 'freshEyes')) return false;
 
   try {
-    return checkFreshEyesPassBar(freshEyes, getTribunalVersion(scores)).pass;
+    const version = getTribunalVersion(scores);
+    if (!hasNumericDimensions(freshEyes, freshEyesDims(version))) return false;
+    return checkFreshEyesPassBar(
+      freshEyes as Parameters<typeof checkFreshEyesPassBar>[0],
+      version
+    ).pass;
   } catch {
     return false;
   }
