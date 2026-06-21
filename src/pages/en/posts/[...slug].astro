@@ -49,9 +49,18 @@ const isShroomDogOriginal = ticketId?.startsWith('SD-') ?? false;
 // SD/Lv are originals — the model signature is "written by", not "translated by".
 const isOriginalPost = isLevelUp || isShroomDogOriginal;
 const isChatGptShareSource = post.data.sourceUrl.startsWith('https://chatgpt.com/share/');
-const showSourceCitation = !isLevelUp && (!isShroomDogOriginal || isChatGptShareSource);
-const sourceCitationLabel =
-  isShroomDogOriginal && isChatGptShareSource ? 'Inspiration source' : 'Original source';
+// Lv tutorials are originals, but when one is built on a real external source
+// (not a self-referential gu-log link) the source should still be credited + linked.
+const hasExternalSource =
+  !!post.data.sourceUrl && !post.data.sourceUrl.includes('gu-log.vercel.app');
+const showSourceCitation =
+  (!isLevelUp && (!isShroomDogOriginal || isChatGptShareSource)) ||
+  (isLevelUp && hasExternalSource);
+const sourceCitationLabel = isLevelUp
+  ? 'Reference'
+  : isShroomDogOriginal && isChatGptShareSource
+    ? 'Inspiration source'
+    : 'Original source';
 
 const postVersion = getPostVersion(post.id);
 const postReaderRevision = getPostReaderRevision(post.id);
