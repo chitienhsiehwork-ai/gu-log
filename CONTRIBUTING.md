@@ -355,7 +355,7 @@ Pipeline agents：如果無法取得完整 source，output `INCOMPLETE_SOURCE: <
 
 ### 新增翻譯文章 (SP/CP)
 
-1. 抓原文：tweet 用 `bird read <url>`；blog/docs 用 `WebFetch`
+1. 抓原文：X/Twitter 用 `sp-source-fetch` skill；一般 blog/docs 用 `curl -sL -A "Mozilla/5.0..." <url>` 抓原始 HTML 再解析，不用 `WebFetch` 當翻譯依據
 2. 寫 **zh-tw 版** `<prefix>-pending-YYYYMMDD-<slug>.mdx`（加 ClawdNote 吐槽）
 3. `node scripts/validate-posts.mjs` 確認 frontmatter 合格
 4. 丟 **vibe-opus-scorer** subagent 評分 → 沒過就改寫，最多 3 輪
