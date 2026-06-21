@@ -34,6 +34,17 @@ openspec 把「改什麼、為什麼改」攤成 proposal / design / tasks / spe
 
 中間（apply + 雙審 + archive）全自動，不打擾 user。除非 reviewer 卡關需要 user 拍板某個 critical design decision，否則不主動打斷。
 
+## 強制機制：CI archive-gate（絕對強制，零例外）
+
+階段 7 的 archive **不靠自律**，由 CI 強制。機制：
+
+- **觸發點 = draft → ready 那一刻**：GitHub Actions 掛 `pull_request: types: [ready_for_review]`，外加 ready 狀態下的後續 push（`synchronize`）。draft 階段（人類檢查點 ① 還在審 proposal）此 job 直接 pass，不擋提案審查。
+- **檢查內容**：PR 若**新引入**一個 active change（`openspec/changes/<name>/`，base main 上還沒有、且非 `archive/`），ready 後就 MUST 在同一個 PR 內 archive（目錄移進 `changes/archive/`、spec delta 同步進 `openspec/specs/`），否則 CI 紅。
+- **required status check**：設成 branch protection 必過項。沒 archive → auto-merge 卡住，merge 不了。
+- **gate 只驗證、不執行**：archive 動作仍由人 / agent 跑（階段 7）；CI 只負責「沒做就擋」。
+
+**語意邊界（為什麼這還是「零例外」）**：gate 擋的是「**這個 PR 新引入**的 change 沒收尾」。已經在 main 上的既有 change（gate 上線前留下的 backlog）= grandfathered，不溯及既往——那不是開後門，是物理上已成事實。對**未來每個新 change**，一律「一個 change = 一個 PR = propose + apply + archive」，沒有 `defer-archive` label、沒有 warning-only 模式。需要跨多 PR 的工作，拆成多個各自完成 + 各自 archive 的 capability，而不是讓一個 change 半開著跨 PR。
+
 ## 為什麼 propose 1 個 reviewer、apply 2 個
 
 - **propose 只動 doc**，錯了改起來便宜，1 個 reviewer 抓方向 / scope / 漏件就夠。
