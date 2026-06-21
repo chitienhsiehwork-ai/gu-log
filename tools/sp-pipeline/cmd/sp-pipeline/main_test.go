@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/llm"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/logx"
 )
 
@@ -118,6 +119,26 @@ func TestBuildRoot_PersistentFlags(t *testing.T) {
 func TestBuildDispatcherForRole_JudgeAllowClaudeToggle(t *testing.T) {
 	resetGlobals()
 	state := &rootState{log: logx.New()}
+
+	// The codex-vs-claude toggle only describes a box where codex is on PATH.
+	// On the CCC / Claude Code on the web sandbox (no codex), judges fall back
+	// to Claude regardless of the toggle — assert that branch separately.
+	if !llm.NewCodexGPT55Medium().Available() {
+		state.judgeAllowClaude = false
+		judge, err := buildDispatcherForRole(state, dispatcherJudge, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := len(judge.Providers()); got != 1 {
+			t.Fatalf("judge providers without codex = %d, want 1 (claude fallback)", got)
+		}
+		name := judge.Providers()[0].Name()
+		wantClaude := llm.NewClaudeOpus().Available()
+		if wantClaude && !strings.HasPrefix(name, "claude-") {
+			t.Fatalf("judge provider without codex = %s, want claude-*", name)
+		}
+		return
+	}
 
 	state.judgeAllowClaude = false
 	judge, err := buildDispatcherForRole(state, dispatcherJudge, false)
