@@ -226,6 +226,13 @@ gu-log 寫的就是 AI / agent / tooling 圈，這個圈子有兩個特性：
 
 這條把既有的「改規則時只改 SSOT 來源檔，不要在 task prompt 裡重複定義」（見〈文件架構〉）從「規則文件」推廣到**所有事實**（值、設定、計數、路徑），並加上「權威端 = code/openspec」「主動偵測 + 自主收斂 + 提一聲」的義務。
 
+### 📐 寫 prompt / 規則：抓耐久原則，別把抄自 SSOT 的具體值留在散文
+
+**verbose 散文比抽象規則 drift 得多。** 任何抄自真 SSOT（`settings.json`、workflow YAML、code、frontmatter、某天的計數 / 快照）的具體值，底層一變就默默過期，但句子還在、還「讀起來像對的」。人腦 drift 少，是因為只握幾個 mental model（核心判準）當尺、遇事動態判斷；AI 一次吞很多 token，反而黏在具體細節和 edge case 上，把會爛的特例當真相背。好的 prompt 抓那幾個 load-bearing 的第一性原理，讓未來 agent 照當下狀況判斷，而不是 pin 死一堆會過期的特例。
+
+- **散文只講 policy / 為什麼**；event 名、套件名、計數、路徑、deny 哪個工具這類具體值一律**指回 code / YAML**，不在散文留第二份（複製事實 = 製造 drift，見上面〈SSOT 紀律〉）。
+- **審查用 Keep / Simplify / Drop**：transient 環境狀態（「本機目前沒裝」）→ Drop；複製 SSOT 的值 → 指回 SSOT；一個原則被一堆特例埋住 → Simplify 成原則。目標是**少而通用、不易過期**，不是加更多條款。
+
 ## 文件架構（誰讀什麼）
 
 ```
