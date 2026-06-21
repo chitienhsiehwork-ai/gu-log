@@ -109,6 +109,16 @@ function buildMask(lines) {
       continue;
     }
 
+    // Cross-link list items (e.g. the auto-generated 延伸閱讀 / Related list)
+    // quote OTHER posts' titles in the anchor text. A 你/我 there belongs to
+    // the linked post's title, not to authorial reader-address, so mask bullet
+    // lines whose entire content is a single markdown link. Inline links inside
+    // flowing prose are deliberately NOT masked — those still get scanned.
+    if (/^\s*[-*+]\s*\[[^\]]*\]\([^)]*\)\s*$/.test(line)) {
+      masked[i] = true;
+      continue;
+    }
+
     if (/^(?: {4,}|\t)/.test(line)) {
       masked[i] = true;
     }
