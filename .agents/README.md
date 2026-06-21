@@ -18,3 +18,5 @@
 
 - `openspec-*` — propose、explore、apply、archive OpenSpec changes。
 - `source-command-opsx-*` — migrated source-command workflows，處理 opsx proposal、exploration、application、archive steps。
+
+**端到端流程 SSOT：[`openspec-sdlc.md`](openspec-sdlc.md)** — 只要跑了 `/opsx:propose`，就 MUST 照那份的九階段走（draft PR → 1 reviewer → 通報 user → apply → 2 平行 reviewer → archive → 終審 → auto-merge）。上面的 `openspec-*` / `source-command-opsx-*` skill 是各指令的機制細節，`openspec-sdlc.md` 定義它們的串接順序、審查 gate 與人類介入點。
