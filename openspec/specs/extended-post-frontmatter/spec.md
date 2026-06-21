@@ -36,31 +36,32 @@ TBD - created by archiving change extend-post-frontmatter. Update Purpose after 
 
 ### Requirement: Frontmatter 選填欄位
 
-Frontmatter SHALL 支援以下選填欄位：`seriesId`、`dedup`（含子欄位）、`metadata.gateWarnings`。選填欄位缺失 SHALL NOT 觸發 build 失敗。
+Frontmatter SHALL 支援以下選填欄位：`seriesId`、`dedup`（含子欄位）、`metadata.gateWarnings`、**`scores`（含四個 judge 子物件）**。選填欄位缺失 SHALL NOT 觸發 build 失敗。
 
-**型別規範**：
-- `seriesId`：字串，建議 kebab-case（如 `karpathy-thinking-evolution`）
-- `dedup.independentDiff`：字串
-- `dedup.acknowledgedOverlapWith`：字串陣列（post ID 列表）
-- `dedup.overlapJustification`：字串
-- `dedup.humanOverride`：boolean
-- `dedup.humanOverrideReason`：字串
-- `dedup.commentaryAngle`：字串（commentary 文章的論點角度標示，供 B-2-C 比對）
-- `metadata.gateWarnings`：字串陣列（dedup-gate 的 WARN 軌跡）
+`scores` 物件結構：
+- `tribunalVersion`：正整數（選填）
+- `librarian`：`{ glossary, crossRef, sourceAlign, attribution, score, date, model? }`
+- `factCheck`：`{ accuracy, fidelity, consistency, score, date, model? }`
+- `freshEyes`：`{ readability, firstImpression, score, date, model? }`
+- `vibe`：`{ persona, clawdNote, vibe, clarity, narrative, score, date, model? }`
 
-#### Scenario: 大多數 post 不需要 dedup 欄位
+每個 judge 子物件為選填（允許累進寫入）。維度分數為 0-10 整數，`score` 為 composite（`floor(avg)`），`date` 為 ISO 8601 字串，`model` 為 model label 字串（選填）。
 
-- **WHEN** 一篇 primary 且無特殊 override 的 post
-- **THEN** frontmatter 可完全不帶 `dedup` 欄位
-- **AND** Zod schema 驗證 SHALL 通過
+#### Scenario: 只有部分 judge 分數的 post build 成功
 
-#### Scenario: seriesId 可標示 intentional series
+- **WHEN** post 的 frontmatter 有 `scores.vibe` 但沒有 `scores.factCheck`
+- **THEN** Zod schema 驗證 SHALL 通過
+- **AND** build SHALL 成功
 
-- **WHEN** post 的 frontmatter 設 `seriesId: "karpathy-thinking-evolution"`
-- **THEN** Zod schema SHALL 允許此字串
-- **AND** 下游 dedup-gate SHALL 讀此欄位判定 B-3-A 規則豁免
+#### Scenario: scores 完全缺失的 post build 成功
 
----
+- **WHEN** post 的 frontmatter 沒有 `scores` 欄位
+- **THEN** Zod schema 驗證 SHALL 通過（scores 整體是 optional）
+
+#### Scenario: scores 內的維度分數超出範圍 build 失敗
+
+- **WHEN** post 的 `scores.vibe.persona` 值為 `11`（超出 0-10）
+- **THEN** Zod schema 驗證 SHALL 失敗
 
 ### Requirement: Schema 層 cross-field invariants
 
