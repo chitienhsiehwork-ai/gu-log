@@ -1,0 +1,44 @@
+name: OpenSpec Archive Gate
+
+# Branch protection note:
+# This standalone workflow is intentionally separate from PR Fast Gate because
+# it must run on ready_for_review. GitHub Actions cannot aggregate jobs across
+# workflow files, so branch protection must require this job's stable check
+# name as well as the existing `ci-passed` aggregate:
+#   OpenSpec Archive Gate / openspec-archive-gate
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+
+concurrency:
+  group: openspec-archive-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  openspec-archive-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Draft PR defer
+        if: github.event.pull_request.draft == true
+        run: echo "draft — archive gate deferred until ready"
+
+      - uses: actions/checkout@v6
+        if: github.event.pull_request.draft == false
+        with:
+          fetch-depth: 0
+
+      - uses: ./.github/actions/setup-pnpm
+        if: github.event.pull_request.draft == false
+
+      - name: Fetch base branch
+        if: github.event.pull_request.draft == false
+        run: git fetch origin main
+
+      - name: Check OpenSpec archive-before-merge
+        if: github.event.pull_request.draft == false
+        run: node scripts/check-openspec-archive.mjs
