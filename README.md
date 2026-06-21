@@ -77,8 +77,8 @@ gu-log is a blog *about* AI quality, so it puts its own AI self-scores in the op
 
 | Tier | Bar | Enforced by | If it doesn't pass |
 |---|---|---|---|
-| **Floor** (auto-gate) | composite **≥ 3** + 5 dimensions present | pre-commit hook | **commit blocked** — garbage never reaches `main` |
-| **PASS** (editorial) | composite **≥ 8**, one dim ≥ 9, no dim < 8 | homepage / UI filter | still ships, but with a "refining" badge and **kept off the homepage** until a background pass lifts it to ≥ 8 |
+| **Floor** (auto-gate) | real `scores.vibe` + required Vibe dimensions for that tribunal version + composite **≥ 3** | pre-commit hook | **commit blocked** — garbage never reaches `main` |
+| **PASS** (editorial) | full tribunal pass bar: Vibe composite **≥ 8** with one dim ≥ 9 and no dim < 8; Fact Check, Librarian, and Fresh Eyes hard gates also pass | homepage / UI filter | still ships, but with a "refining" badge and **kept off the homepage** until a background pass lifts it to PASS |
 
 Scoring runs through a **4-judge tribunal** (each article, newest-first):
 
