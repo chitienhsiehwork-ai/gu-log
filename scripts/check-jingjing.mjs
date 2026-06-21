@@ -142,7 +142,7 @@ Mark Zuckerberg Elon Musk Bill Gates Paul Allen Tim Cook Steve Jobs
 Sundar Pichai Satya Nadella Jensen Huang
 Yann LeCun Geoffrey Hinton Yoshua Bengio
 Alexandr Wang Yang Mira Mira Murati
-Davide Paglieri Logan Cross Mahmoud Jake Cooper
+Davide Paglieri Logan Cross Mahmoud Jake Cooper Pascal
 Trump Newsom Jer Crane Pawel Pawel Huryn
 Harrison Chase Simon Willison Nat Friedman Patrick Collison
 Garry Tan Brian Chesky
@@ -621,6 +621,14 @@ function maskContent(text) {
   text = text.replace(/^import .*$/gm, (m) => ' '.repeat(m.length));
   // Mask HTML/MDX opening/closing tags (e.g. <ClawdNote>, </ClawdNote>) but leave inner content
   text = text.replace(/<\/?[A-Za-z][^>]*>/g, (m) => ' '.repeat(m.length));
+
+  // 5b. Mask cross-link list items (the auto-generated 延伸閱讀 / Related list).
+  // A bullet whose entire content is a single markdown link quotes ANOTHER
+  // post's title in the anchor text (e.g. CP-85「AI Vampire…」). English there
+  // belongs to that post — and is governed by that post's own jingjing run —
+  // not to this post's prose, so mask the whole line. Inline links inside
+  // flowing prose are left alone by this rule and still get scanned (step 6).
+  text = text.replace(/^\s*[-*+]\s*\[[^\]\n]*\]\([^)\n]*\)\s*$/gm, (m) => ' '.repeat(m.length));
 
   // 6. Mask markdown link URL part [text](url) — keep text, drop URL
   text = text.replace(/\[([^\]]*)\]\([^)]*\)/g, (_m, txt) => {
