@@ -180,6 +180,14 @@ import ClawdNote from '../../components/ClawdNote.astro';
 - ClawdNote 內容要有 insight，不是廢話
 - 可加入 Clawd 的分析與延伸，但僅限於 ClawdNote 組件內，且必須明確標示為評論/推測；不得在正文新增原文沒有的事實、數字或結論
 
+**🎯 主翻譯忠實、POV 靠 MoguNote 打（MP/GP 翻譯系列鐵則）**
+
+翻譯/精選系列（**MP** = Mogu Picks、**GP** = Gu-log Picks）的分工只有一條，兩層不互相越界：
+
+- **正文 = 忠實的翻譯**：原文的語氣、條件、邊界、hedge、結論照實翻，不加碼、不刪減、不在正文塞原文沒有的事實/數字/觀點（這是〈翻譯誠實性〉的延伸面）。讀者要原汁原味的原文，就看正文。
+- **POV = 全部進 MoguNote**（`<MoguNote>`，舊稱 `ClawdNote`，現為 alias）：gu-log 的吐槽、延伸、反例、把題材接回 AI/tech 圈的平行對照、對來源本身的 meta 評論，一律放 note。讀者要 gu-log 的靈魂，就看 MoguNote。
+- **推論：題材 off-domain 不是拒翻的理由**。就算原文跟 AI/tech 無關（生產力、心理、商業…），gu-log 的獨特觀點永遠打得出來，因為 MoguNote 永遠在。所以 pipeline eval 的「off-domain」判斷是 advisory，不是硬 blocker——值得翻就 `--force` 翻，相關性靠 note 層的平行對照補。
+
 **🔴 只用 ClawdNote — 不要用 CodexNote / GeminiNote / ClaudeCodeNote**：
 
 - 讀者不在乎哪個 model 寫了哪段。那是廚房裡的事，不要端到餐桌上。

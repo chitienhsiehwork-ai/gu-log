@@ -65,6 +65,16 @@ Duplicate content is duplicate dead code：對 AI 是 token waste，對人類是
 
 這條規則的 editorial feedback 原文也記在 `docs/shroomdog-editorial-feedback.md`。未來更新 source-evaluation 類回饋時，兩邊要保持一致：`AGENTS.md` 放 general rule，editorial feedback corpus 放具體案例和 reusable lesson。
 
+### ✍️ MP/GP 翻譯鐵則：主翻譯忠實、POV 靠 MoguNotes 打
+
+翻譯/精選系列（**MP** = Mogu Picks、**GP** = Gu-log Picks）的分工只有一條，兩層不互相越界：
+
+- **正文 = 忠實翻譯**：原文的語氣、條件、邊界、hedge、結論照實翻，不加碼 / 不刪減 / 不在正文塞原文沒有的事實或觀點。讀者要原汁原味就看正文。
+- **POV = 全進 MoguNote**：gu-log 的吐槽、延伸、把題材接回 AI/tech 的平行對照、對來源本身的 meta 評論，一律放 `<MoguNote>`。讀者要 gu-log 的靈魂就看 MoguNote。
+- **所以題材 off-domain 不是拒翻的理由**：就算原文跟 AI/tech 無關，gu-log 的觀點永遠打得出來——因為 MoguNote 永遠在。pipeline eval 的 off-domain 判斷是 advisory，值得翻就 `--force`，相關性靠 note 層補。
+
+SSOT = `GU-LOG_WRITER_PROMPT.md`（此處為 derived view，完整規則以該檔為準）。
+
 ### 🔍 事實查核紀律：AI tooling 的 claim 必須 verify
 
 gu-log 寫的就是 AI / agent / tooling 圈，這個圈子有兩個特性：

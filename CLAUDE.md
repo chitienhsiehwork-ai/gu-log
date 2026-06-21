@@ -126,7 +126,7 @@ Pipeline 包辦：fetch → eval → dedup → write → review → refine → c
 
 **只有下面這幾種情況才手動寫**（其他全部走 pipeline）：
 
-- **使用者明確指定 narrative angle**（例：「focus on X、用故事帶 Y」、「對比 A 和 B 兩篇」、「從 Z 的角度切」）——pipeline write prompt 是「cover ALL ideas」，沒有 `--angle` flag，硬塞 user instruction 會被 prompt 自己的指令蓋過
+- **多篇來源要對比成一個 angle**（例：「對比 A 和 B 兩篇」）——單一 URL 的 narrative angle 現在可以直接用 `gp-pipeline run <url> --angle "從 Z 的角度切"`（write prompt 會把 angle 當文章 spine），不必手寫；只有「跨多來源綜合對比」這種一次吃不完一個 URL 的才需手動
 - **多來源綜合**（例：把兩三篇文章合成一篇 SP）——pipeline 一次只吃一個 URL
 - **Source 需要特殊 frontmatter**（例：source 不是 `@handle on X` 格式，是機構或 docs 站）——`write.tmpl` 寫死 `source: @{{.AuthorHandle}} on X`，產出後要手動 patch
 - **Pipeline 自己擋**（exit 11/12/13/15：source 汙染、eval SKIP、dedup blocked、ralph 連 3 輪沒過）——這時走手動或回頭調 prompt
@@ -139,6 +139,16 @@ Pipeline 包辦：fetch → eval → dedup → write → review → refine → c
 抓原文的 fallback（pipeline 不適用、要手動補資料時）：
 - X/Twitter URL → 先用 `sp-source-fetch` skill 抓原文（WebFetch 在沙箱會被擋，且會偷偷摘要）
 - 一般 blog/article URL → `curl -sL -A "Mozilla/5.0..." <url>` 抓原始 HTML
+
+### ✍️ MP/GP 翻譯鐵則：主翻譯忠實、POV 靠 MoguNotes 打
+
+翻譯/精選系列（**MP** = Mogu Picks、**GP** = Gu-log Picks）的分工只有一條，兩層不互相越界：
+
+- **正文 = 忠實翻譯**：原文的語氣、條件、邊界、hedge、結論照實翻，不加碼 / 不刪減 / 不在正文塞原文沒有的事實或觀點。讀者要原汁原味就看正文。
+- **POV = 全進 MoguNote**：gu-log 的吐槽、延伸、把題材接回 AI/tech 的平行對照、對來源本身的 meta 評論，一律放 `<MoguNote>`。讀者要 gu-log 的靈魂就看 MoguNote。
+- **所以題材 off-domain 不是拒翻的理由**：就算原文跟 AI/tech 無關，gu-log 的觀點永遠打得出來——因為 MoguNote 永遠在。pipeline eval 的 off-domain 判斷是 advisory，值得翻就 `--force`，相關性靠 note 層補。
+
+SSOT = `GU-LOG_WRITER_PROMPT.md`（此處為 derived view，完整規則以該檔為準）。
 
 ### 🏷️ Branch name 是 ID，不是語意
 
