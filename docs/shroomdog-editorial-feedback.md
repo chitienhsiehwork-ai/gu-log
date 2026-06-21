@@ -13,6 +13,18 @@
 - 寫 SP / CP / SD / Lv 前，如果任務涉及文章品質或風格，先快速掃這份檔案的近期條目。
 - 當同一類 feedback 出現 3 次以上，應該蒸餾進 `GU-LOG_WRITER_PROMPT.md`，必要時再同步到 pipeline prompt；不要永遠只留在 corpus 裡。
 
+## 2026-06-21 — SP-237: 自我指涉 callback 是 MoguNote 的靈魂
+
+### Feedback: 原文講的東西 gu-log 自己也在做時，MoguNote 要把它接回 gu-log 自身
+
+- ShroomDog feedback：`i think here we can cite our own tribunal system in the MoguNote? if we have existing post, cite existing posts, if we do not have such post, cite our github repo with relevant specs/docs/scripts. such callback seems much more fun to me` / `self-referential 梗正是 MoguNote 的靈魂 -> add this in the writer prompt and vibe scorer prompt` / `(hide details in glossary so readers only know that gu-log also do this, let user know that we focus a lot on making the process itself more smooth every time`
+- 情境：SP-237（Simon Last 大型專案 coding agent 心法）的兩個 MoguNote。原文講「對抗式 review / 啟動獨立 read-only sub-agent 審 diff」——gu-log 自己就跑 4-judge tribunal；原文講「把教訓寫回未來指令」——gu-log 自己就靠 CLAUDE.md / playbook / prompt 當唯一長期記憶（agent 跑在用完即丟的沙箱，整個環境每次重來，比 context window reset 更極端）。原本的 MoguNote 只做了一般吐槽，沒把這層「我們也這樣做」的親身對照打出來。
+- 修法：
+  1. 對抗式 review note → cite [SD-10](/posts/sd-10-20260322-ralph-loop-quality-system)（gu-log 自家評分系統），並加誠實 meta 梗：「你正在讀的這篇就是被那套審過、拿 sub-8、還掛精修中 badge」。
+  2. 把教訓寫回指令 note → 正文只輕點「gu-log 也這樣、很執著於把流程每次磨更順」，深入細節（ephemeral sandbox、比 context window 更極端、唯一記憶是 commit 進 repo 的指令）藏進新 glossary 詞條 **Process Compounding**（definedIn 連 SD-26 編輯台 / SD-22 context window / SD-10 tribunal）。
+  3. 把這條 distill 進 `GU-LOG_WRITER_PROMPT.md`（MoguNote 段新增「🪞 自我指涉 callback」原則 + 接法優先序）與 `scripts/vibe-scoring-standard.md`（clawdNote 維度：真誠 self-ref = 高分訊號，硬塞自誇 = cringe 扣分）。Librarian 不另立規則——self-ref callback 本質就是 internal cross-ref / definedIn，現有 crossRef 維度已覆蓋。
+- Reusable lesson：gu-log 寫的就是 AI/agent/tooling 圈，而 gu-log 本身就是一個重度 agent-operated 專案——很多原文的「best practice」gu-log 都有親身對應。把外部觀察接回「我們也這樣做（甚至更極端）」，是 MoguNote 最強、最有 gu-log 味的招式。三條鐵則：(1) 有現成文章連文章、沒有連 glossary、再沒有連 repo spec；(2) 細節可以藏 glossary，正文只露「我們也做」保持輕盈；(3) callback 必須真實 + 貼題，硬塞自誇是 cringe，拿掉它 note 還要站得住才放。
+
 ## 2026-06-09 — Lv-06 preservation: 不要污染有生命感的文字
 
 ### Feedback: 好玩的文字要保護，不要被後續機械修補污染

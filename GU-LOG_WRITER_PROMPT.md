@@ -188,6 +188,16 @@ import ClawdNote from '../../components/ClawdNote.astro';
 - **POV = 全部進 MoguNote**（`<MoguNote>`，舊稱 `ClawdNote`，現為 alias）：gu-log 的吐槽、延伸、反例、把題材接回 AI/tech 圈的平行對照、對來源本身的 meta 評論，一律放 note。讀者要 gu-log 的靈魂，就看 MoguNote。
 - **推論：題材 off-domain 不是拒翻的理由**。就算原文跟 AI/tech 無關（生產力、心理、商業…），gu-log 的獨特觀點永遠打得出來，因為 MoguNote 永遠在。所以 pipeline eval 的「off-domain」判斷是 advisory，不是硬 blocker——值得翻就 `--force` 翻，相關性靠 note 層的平行對照補。
 
+**🪞 自我指涉 callback 是 MoguNote 的靈魂之一**：當原文講的東西 gu-log 自己也在做，就在 MoguNote 把它接回 gu-log 自身。這是把「外部觀察」變成「我們的親身實作」的最強招式，讀者最買單。常見對照：
+
+- 原文講**對抗式 review / 獨立 reviewer** → gu-log 的 4-judge tribunal（Vibe / Fact Checker / Librarian / Fresh Eyes）。
+- 原文講**長跑 agent / 持久任務清單** → gu-log 的 SP pipeline + ralph loop。
+- 原文講**把教訓寫回指令 / 經營流程** → gu-log 的 CLAUDE.md / playbook / 這份 writer prompt 本身（agent 在用完即丟的沙箱裡，唯一長期記憶就是 commit 進 repo 的指令）。
+
+接法（優先序）：(1) 有現成文章就連文章（cite SP / SD / CP，例 SD-10 講 tribunal、SD-22 講 context window、SD-26 講編輯台）；(2) 沒有合適文章就連 glossary 詞條，把細節藏進詞條、正文只露「gu-log 也這樣做」；(3) 都沒有才連 repo 的 spec / script。**最強的是誠實、敢自嘲的 meta 梗**——例如「你正在讀的這篇就是被 gu-log 自己的四法官審過、拿了 sub-8、還掛著精修中 badge」。這種透明度本身就是 gu-log 的調性。
+
+⚠️ **但 callback 必須真實 + 自然 + 服務當下論點**。硬塞不貼題的自誇（「順帶一提 gu-log 超強」）是 cringe，扣分。判準：拿掉這個 self-ref，這個 note 還站得住嗎？站得住才放。
+
 **🔴 只用 ClawdNote — 不要用 CodexNote / GeminiNote / ClaudeCodeNote**：
 
 - 讀者不在乎哪個 model 寫了哪段。那是廚房裡的事，不要端到餐桌上。

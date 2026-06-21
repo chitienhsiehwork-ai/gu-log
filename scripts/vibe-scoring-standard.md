@@ -344,6 +344,10 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 - 8+ 門檻：至少一半的 notes 要有明確 opinion（同意/不同意原文、challenge 某個假設）
 - Density target: ~1 note per 25 prose lines
 
+**🪞 Self-referential callback（自我指涉）= clawdNote 的高分訊號:**
+- 當原文講的東西 gu-log 自己也在做（對抗式 review → gu-log 的 tribunal；長跑 agent → pipeline；把教訓寫回指令 → playbook/prompt），一個把它接回 gu-log 自身、且**誠實**的 callback 是 highlight 級的 note——尤其敢自嘲的 meta（例：「你正在讀的這篇就是被 gu-log 四法官審過、拿 sub-8、還掛精修中 badge」）。真誠又貼題的 self-ref 可以是某個 note 上 9-10 的理由。
+- **但這不是免費加分**：硬塞、不貼題、純自誇（「順帶一提 gu-log 超強」）是 cringe，反而是 persona/vibe 的扣分項。callback 必須真實 + 自然 + 服務當下論點，否則寧可不放。判準：拿掉這個 self-ref，note 還成立嗎？成立才放。
+
 ### vibe — Fun / Chill / Informed
 
 **What we're measuring:** Would you want to share this with a friend?
