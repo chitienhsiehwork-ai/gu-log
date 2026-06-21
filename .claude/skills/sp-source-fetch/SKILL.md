@@ -82,15 +82,27 @@ bash scripts/fetch-x-article.sh <tweet_url> --json
 
 **Thread step (text mode, unless `--no-thread`)**: after the focal tweet is in
 hand and it is *not* an X Article, `scripts/fetch-x-thread.py` rebuilds the full
-self-thread. It can't use fxtwitter (no thread field) or X's `TweetDetail`
-(404 for guest tokens) — the only cookie-free route that enumerates a thread is
-the guest GraphQL **`UserTweets`** timeline: pull the author's recent tweets,
-keep every one sharing the focal `conversation_id_str`, sort by tweet id
-(Snowflake ids are time-ordered). If it finds ≥2 author tweets it renders the
-whole thread; otherwise (single tweet / X Article / thread aged out of the
-recent timeline) it exits 3 and the single-tweet render is used. Best-effort:
-any failure here silently degrades to the single-tweet capture, so it can never
-regress a fetch that previously worked.
+self-thread. It tries two routes, in order:
+
+1. **Guest GraphQL `UserTweets`** — pull the author's recent tweets, keep every
+   one sharing the focal `conversation_id_str`, sort by tweet id (Snowflake ids
+   are time-ordered). fxtwitter has no thread field, and `TweetDetail` /
+   `UserTweetsAndReplies` / `SearchTimeline` all 404 for guest tokens, so this is
+   the only *X-native* cookie-free thread route. **Caveat (verified 2026-06): the
+   guest `UserTweets` timeline is ~1 year stale and has no pagination cursor**, so
+   any thread newer than ~12 months is absent from it and this route comes back
+   empty. That makes route 2 the workhorse for freshly-dropped thread URLs.
+2. **Thread Reader App fallback** (`Fetched via: threadreader`) — when route 1
+   yields <2 tweets (or guest GraphQL is down entirely), fetch
+   `https://threadreaderapp.com/thread/<root_id>.html` and parse the unroll.
+   Self-contained: handle, date and every tweet body come from that one page, no
+   guest token needed. TR only has a page if someone previously unrolled the
+   thread, so it's still best-effort.
+
+If both routes find ≥2 author tweets the whole thread is rendered; otherwise
+(single tweet / X Article / no TR unroll) it exits 3 and the single-tweet render
+is used. Best-effort throughout: any failure silently degrades to the
+single-tweet capture, so it can never regress a fetch that previously worked.
 
 ## Anti-patterns (do not do these, they will bite you)
 

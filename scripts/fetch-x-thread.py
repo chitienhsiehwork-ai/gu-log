@@ -14,12 +14,19 @@ rest of the thread — so the SP translated half a sentence.
 The public mirrors (fxtwitter / vxtwitter / syndication) and X's guest
 `TweetResultByRestId` all return a single tweet; none enumerate the thread.
 X's `TweetDetail` (which the web UI uses to render conversations) returns 404
-for guest tokens. The one route that DOES work cookie-free is `UserTweets`:
-the author's profile timeline bundles consecutive self-replies, so we can pull
-the author's recent tweets and keep every tweet that shares the focal tweet's
-`conversation_id_str`. Snowflake ids are time-ordered, so sorting ascending
-gives correct thread order regardless of which tweet in the chain the URL
-pointed at.
+for guest tokens. `UserTweets` works cookie-free — the author's profile timeline
+bundles consecutive self-replies, so we pull the author's recent tweets and keep
+every one sharing the focal tweet's `conversation_id_str`. Snowflake ids are
+time-ordered, so sorting ascending gives correct thread order regardless of
+which tweet in the chain the URL pointed at.
+
+The catch (verified 2026-06): the guest `UserTweets` timeline is ~1 year stale
+and returns no pagination cursor, so any self-thread newer than ~12 months is
+simply absent from it — the walker degrades to a single tweet. To cover that
+(the common case for a freshly-dropped thread URL), we fall back to the Thread
+Reader App unroll, which keeps a per-thread HTML page keyed on the first tweet
+id and needs no auth. `UserTweetsAndReplies`, `TweetDetail` and `SearchTimeline`
+all 404 for guest tokens, so they are not options.
 
 Contract
 --------
@@ -38,15 +45,23 @@ This is best-effort and deliberately degrades to the existing single-tweet
 behaviour, so wiring it in can never regress a capture that worked before.
 """
 
+import html as htmllib
 import json
 import re
 import sys
+from datetime import datetime, timezone
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 NOT_A_THREAD = 3
 HARD_FAIL = 2
+
+# Thread Reader App keeps a per-thread unroll keyed on the FIRST tweet id
+# (== conversation_id), reachable with a plain cookie-free GET. It is the
+# fallback when X's guest timeline can't enumerate a thread (see
+# threadreader_fallback for why that happens).
+THREADREADER_TEMPLATE = "https://threadreaderapp.com/thread/{root_id}.html"
 
 # Public web bearer token (same one fetch-x-article.sh uses). Not a secret —
 # it's the token x.com ships in its own JS bundle for unauthenticated reads.
@@ -330,6 +345,95 @@ def iso_date(result):
     return m.group(1) if m else "unknown-date"
 
 
+def emit_thread(handle, date, url, bodies, via):
+    """Print a thread in the shared capture contract (@handle / date / Source
+    URL / === MAIN TWEET === / === THREAD n/m ===) so downstream validators and
+    fetch-x-article.sh keep passing regardless of which source produced it."""
+    bodies = [b for b in bodies if b]
+    total = len(bodies)
+    lines = [
+        f"@{handle} — {date}",
+        f"Source URL: {url}",
+        f"Fetched via: {via}",
+        f"Thread: {total} tweets",
+        "",
+        "=== MAIN TWEET ===",
+        bodies[0],
+    ]
+    for idx, body in enumerate(bodies[1:], start=2):
+        lines.append("")
+        lines.append(f"=== THREAD {idx}/{total} ===")
+        lines.append(body)
+    print("\n".join(lines).strip())
+
+
+def _strip_tr_tweet_html(raw):
+    """Reduce one Thread Reader App tweet block's inner HTML to plain text.
+    Keeps the author's own "N/" numbering span, expands anchors to their href
+    (TR already resolves t.co), drops the permalink sup and any other tags."""
+    raw = re.sub(r'<span class="nop[^"]*">(.*?)</span>', r"\1", raw, flags=re.S)
+    raw = re.sub(
+        r'<a [^>]*?href=["\']?([^"\'\s>]+)["\']?[^>]*>.*?</a>',
+        lambda m: m.group(1),
+        raw,
+        flags=re.S,
+    )
+    raw = re.sub(r"<[^>]+>", "", raw)
+    text = htmllib.unescape(raw)
+    text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
+
+
+def fetch_threadreader(root_id):
+    """Recover a thread from the Thread Reader App unroll.
+
+    Self-contained: handle, date and every tweet body come from the one HTML
+    page, no guest token needed. Used when X's guest timeline can't enumerate
+    the thread (newer than ~12 months). TR only has a page if someone previously
+    unrolled the thread, so this is best-effort.
+
+    Returns (handle, iso_date, [body, ...]) with >=2 bodies, or None.
+    """
+    url = THREADREADER_TEMPLATE.format(root_id=root_id)
+    try:
+        status, page = fetch(
+            url, headers={"user-agent": UA, "accept": "text/html"}, timeout=25
+        )
+    except Exception:
+        return None
+    if status != 200 or not page:
+        return None
+    blocks = {}
+    for m in re.finditer(r'data-tweet="(\d+)"[^>]*\bdir="auto">(.*?)</div>', page, re.S):
+        rid, body = m.group(1), _strip_tr_tweet_html(m.group(2))
+        if body and rid not in blocks:
+            blocks[rid] = body
+    if len(blocks) < 2:
+        return None
+    # Snowflake ids are time-ordered -> ascending == thread order.
+    ordered = [blocks[k] for k in sorted(blocks, key=lambda x: int(x))]
+    mh = re.search(r'data-screenname="([^"]+)"', page)
+    handle = mh.group(1).lstrip("@") if mh else ""
+    mt = re.search(r'data-time="(\d+)"', page)
+    date = (
+        datetime.fromtimestamp(int(mt.group(1)), tz=timezone.utc).strftime("%Y-%m-%d")
+        if mt
+        else "unknown-date"
+    )
+    return handle, date, ordered
+
+
+def threadreader_fallback(root_id, url, handle_hint=""):
+    """Try the Thread Reader App unroll and emit it. Returns True on success."""
+    tr = fetch_threadreader(root_id)
+    if not tr:
+        return False
+    tr_handle, tr_date, bodies = tr
+    emit_thread(tr_handle or handle_hint, tr_date, url, bodies, "threadreader")
+    return True
+
+
 def main(argv):
     if len(argv) < 2 or not argv[1].strip():
         print("Usage: fetch-x-thread.py <tweet_url>", file=sys.stderr)
@@ -340,83 +444,71 @@ def main(argv):
         print(f"NOT_A_THREAD: no status id in {url}", file=sys.stderr)
         return NOT_A_THREAD
 
+    # Best-known thread root for the Thread Reader App fallback. When the guest
+    # focal lookup succeeds we replace this with the real conversation id; until
+    # then the dropped URL's status id is the best guess (correct whenever the
+    # user drops the thread's first tweet, which is the common case).
+    tr_root = status_id
+    handle = ""
+
+    guest_ok = True
     try:
         guest = activate_guest()
     except (HTTPError, URLError, TimeoutError, RuntimeError, ValueError) as exc:
-        print(f"HARD_FAIL: guest token: {exc}", file=sys.stderr)
-        return HARD_FAIL
+        print(f"guest token unavailable, will try threadreader: {exc}", file=sys.stderr)
+        guest_ok = False
 
-    qids = dict(FALLBACK_QIDS)
-    qids.update(discover_query_ids(["TweetResultByRestId", "UserTweets"]) or {})
+    if guest_ok:
+        qids = dict(FALLBACK_QIDS)
+        qids.update(discover_query_ids(["TweetResultByRestId", "UserTweets"]) or {})
+        try:
+            handle, conv, uid, is_article = focal_info(
+                qids["TweetResultByRestId"], status_id, guest
+            )
+            if is_article:
+                # X Articles are single long-form tweets — let the article
+                # renderer handle them; no thread, no TR fallback.
+                print("NOT_A_THREAD: focal tweet is an X Article", file=sys.stderr)
+                return NOT_A_THREAD
+            tr_root = conv or status_id
+            if uid:
+                ut = graphql_get(
+                    qids["UserTweets"],
+                    "UserTweets",
+                    {
+                        "userId": uid,
+                        "count": 40,
+                        "includePromotedContent": False,
+                        "withQuickPromoteEligibilityTweetFields": False,
+                        "withVoice": True,
+                    },
+                    guest,
+                )
+                thread = collect_thread(ut, conv, uid)
+                if len(thread) >= 2:
+                    root = thread[0]
+                    if not handle:
+                        core = (
+                            get_path(root, "core", "user_results", "result", "core")
+                            or {}
+                        )
+                        handle = (core.get("screen_name") or "").lstrip("@")
+                    bodies = [tweet_body(n) for n in thread]
+                    emit_thread(handle, iso_date(root), url, bodies, "x-guest-thread")
+                    return 0
+        except Exception as exc:
+            print(f"guest thread path failed, trying threadreader: {exc}", file=sys.stderr)
 
-    try:
-        handle, conv, uid, is_article = focal_info(
-            qids["TweetResultByRestId"], status_id, guest
-        )
-    except Exception as exc:
-        print(f"NOT_A_THREAD: focal fetch failed: {exc}", file=sys.stderr)
-        return NOT_A_THREAD
+    # Guest timeline can't reach it (too recent / aged out / guest GraphQL down).
+    # Fall back to the Thread Reader App unroll.
+    if threadreader_fallback(tr_root, url, handle):
+        return 0
 
-    if is_article:
-        # X Articles are single long-form tweets — let the article renderer handle them.
-        print("NOT_A_THREAD: focal tweet is an X Article", file=sys.stderr)
-        return NOT_A_THREAD
-    if not uid:
-        print("NOT_A_THREAD: could not resolve author id", file=sys.stderr)
-        return NOT_A_THREAD
-
-    try:
-        ut = graphql_get(
-            qids["UserTweets"],
-            "UserTweets",
-            {
-                "userId": uid,
-                "count": 40,
-                "includePromotedContent": False,
-                "withQuickPromoteEligibilityTweetFields": False,
-                "withVoice": True,
-            },
-            guest,
-        )
-    except Exception as exc:
-        print(f"NOT_A_THREAD: UserTweets failed: {exc}", file=sys.stderr)
-        return NOT_A_THREAD
-
-    thread = collect_thread(ut, conv, uid)
-    if len(thread) < 2:
-        # Single tweet, or the thread has aged out of the recent timeline.
-        print(
-            f"NOT_A_THREAD: found {len(thread)} author tweet(s) in conversation {conv}",
-            file=sys.stderr,
-        )
-        return NOT_A_THREAD
-
-    root = thread[0]
-    if not handle:
-        core = get_path(root, "core", "user_results", "result", "core") or {}
-        handle = (core.get("screen_name") or "").lstrip("@")
-    date = iso_date(root)
-    total = len(thread)
-
-    lines = [
-        f"@{handle} — {date}",
-        f"Source URL: {url}",
-        "Fetched via: x-guest-thread",
-        f"Thread: {total} tweets",
-        "",
-        "=== MAIN TWEET ===",
-        tweet_body(root),
-    ]
-    for idx, node in enumerate(thread[1:], start=2):
-        body = tweet_body(node)
-        if not body:
-            continue
-        lines.append("")
-        lines.append(f"=== THREAD {idx}/{total} ===")
-        lines.append(body)
-
-    print("\n".join(lines).strip())
-    return 0
+    print(
+        f"NOT_A_THREAD: guest timeline empty and no threadreader unroll for {tr_root}",
+        file=sys.stderr,
+    )
+    return NOT_A_THREAD
 
 
 if __name__ == "__main__":

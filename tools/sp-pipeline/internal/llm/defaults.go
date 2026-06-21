@@ -52,16 +52,31 @@ func JudgeChain() []Provider {
 	return DefaultJudgeChain()
 }
 
-// JudgeChainWithClaudeFallback returns the normal Codex judge chain, with an
-// explicit opt-in Claude judge fallback for Codex quota exhaustion only.
+// JudgeChainWithClaudeFallback returns the Codex judge chain, with a Claude
+// fallback in two distinct situations:
+//
+//   - Binary absence (automatic): on a box where codex isn't on PATH — the
+//     CCC / Claude Code on the web sandbox — judges run on Claude so the eval /
+//     review / tribunal gates still execute instead of dying with "binary not
+//     found". This mirrors WritingChain and is exactly the behavior doctor.go
+//     already documents ("falls back to claude when no codex binary is on PATH").
+//   - Quota exhaustion (opt-in via allowClaude): codex is installed but rate
+//     limited; only then do we add Claude as a secondary so the user keeps
+//     control over the codex-vs-claude judging tradeoff on a healthy box.
 func JudgeChainWithClaudeFallback(allowClaude bool) []Provider {
+	codex := NewCodexGPT55Medium()
+	if !codex.Available() {
+		if claude := NewClaudeOpus(); claude.Available() {
+			return []Provider{claude}
+		}
+		// Neither on PATH: keep codex so the failure is the familiar
+		// "binary not found", not a confusing empty chain.
+		return []Provider{codex}
+	}
 	if !allowClaude {
-		return JudgeChain()
+		return []Provider{codex}
 	}
-	return []Provider{
-		NewCodexGPT55Medium(),
-		NewClaudeOpus(),
-	}
+	return []Provider{codex, NewClaudeOpus()}
 }
 
 // EffectiveStamp returns the (model, harness) display labels for the runtime
