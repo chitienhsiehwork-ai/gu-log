@@ -7,6 +7,7 @@
 - [x] 1.5 在 spec 中定義 Lv-原創 mode 與 Lv-導讀 mode，包含 Lv-導讀開頭 cite ref 與轉述不得扭曲的底線。
 - [x] 1.6 在 spec 中定義四系列一句話定位。
 - [x] 1.7 在 spec 中定義 MOBA register policy，並標明 glossary / MoguNote prefix hook 是 follow-up。
+- [x] 1.8 建立 `openspec/changes/add-editorial-charter/design.md`，記錄設計決策（D1–D6）、被否決的替代方案與 risks，補上 propose 階段漏掉的 how/why 層。
 
 ## 2. 後續文件收斂
 
