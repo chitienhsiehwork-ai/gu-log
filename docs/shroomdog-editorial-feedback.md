@@ -518,3 +518,13 @@ Sprin asked whether Tribunal v7 FreshEyes covers “length should be just right,
   2. **結構層（practice what we preach）**：CCC-playbook 模型路由表從「複述版本號」改成「只講 policy（voice-sensitive pin / judge 浮動）+ 版本值指向 frontmatter SSOT」，結構上讓它無從 drift。順手把同檔另外兩處抄了版本號的清單（fallback 四審清單、寫作 SOP Step 2）也一併拔掉版本號。
 - 權威端 + 自主姿態（ShroomDog 補充）：**可以 drift 的內容，SSOT 權威端是「code 或 openspec」，不是散文**；散文服從 code/openspec。**能判斷哪邊對就自己判斷、把錯的那邊修掉、跟 user 提一聲就好，不要停下來問**；只有「難判斷又是重要決定」（兩權威端真衝突、或產品/架構/品牌/config 取向）才用 `AskUserQuestion`。對照本 session：librarian 那種 code(frontmatter)-vs-doc drift 該直接自己收（不必問）；fresh-eyes「pin 哪代 vs 浮動」是 config 取向，問 user 才對。
 - Reusable lesson：(1) **看到「doc 跟實際對不上」不要只修這一處，要問『這個事實在幾個地方被抄了』，全部收斂**——這次一條 routing fact 在 playbook 抄了三份。(2) **預防勝於修補：能不複製就不複製**，doc 講 policy / why，值留在它的 SSOT（code：frontmatter / 常數 / config / schema，或 openspec spec），要列就標明 derived view + 指向真身。(3) deterministic guard 是補網不是主防線；真正可靠的是把 SSOT 紀律寫成每個 agent 都讀得到的強規則（CLAUDE.md），讓它自主偵測 + 當場收斂 + 提一聲。
+
+## 2026-06-21 — CP-300 / mental model 優先，過度精確會讀起來像 AI slop
+
+### Feedback: online 版比 clean rewrite 好讀；不要把太多準確概念塞進同一句
+
+- ShroomDog feedback：讀過 CP-300 production 版後，實際偏好 online/current 版，而不是 salvage 出來的 clean rewrite。對 rewrite 的感覺是「boring」且「feels like ai slop」；進一步釐清後，不一定是典型 AI slop，而是**太嚴肅、太多準確概念和術語塞進一句，讀者很難抓 mental model**。
+- 情境：CP-300 clean rewrite 比 current 版更忠於 source boundary、概念更精確，會寫成「Lalit Maganti 回顧自己如何把想了八年的 SQLite devtools 專案，在三個月內靠 AI coding agents 推到 0.1 發佈；同時也記錄了 vibe-coding 報廢重來、prompt 成癮、失去 codebase 觸感，以及 AI 對 implementation 與 design 的不同作用。」這種句子。資訊都對，但一口氣塞進太多 axis：時間線、工具類型、版本發佈、vibe-coding、成癮、codebase 觸感、implementation/design 分工。讀者還沒建立圖像，就先被概念清單淹過。
+- ShroomDog 的核心判斷：**AI era 裡，人類最該保住的是正確 mental model**。細節可以交給 coding agents 補、查、實作，除非東西壞掉或是 absolute critical、需要 human input。文章要先幫人類抓住「這件事到底該怎麼想」；不要為了準確，把所有概念都壓進同一句，讓讀者失去可操作的圖。
+- 為什麼 current 版比較有效：current opening 比較有畫面與節奏——「八年。一個工程師腦子裡裝了八年的 side project……然後 AI coding agent 出現了。」它先交付一個簡單 mental model：長年想做但太難太煩的 side project，被 AI 推到可以開始。細節（PerfettoSQL、parser、400 條 grammar rules、vibe-coding 月、review/rewrite 流程）後面再展開。這比較符合人類閱讀順序：先有骨架，再掛細節。
+- Reusable lesson：(1) **準確不等於好讀**。一個句子如果同時承載五六個準確概念，它會像 model 把 source outline 壓縮成摘要，不像人在說故事。(2) **mental model 先於 term density**：先讓讀者拿到一張簡單圖，再逐步加 terms / caveats / implementation details。不要在 summary 或 opening 把所有正確維度一次塞完。(3) **細節不是消失，而是延後**：critical details 要保留，但放到讀者已經抓住圖像之後；非 critical details 可以交給 ClawdNote、後段、或乾脆省略。(4) Rewrite 不要只追「source boundary 更乾淨」；也要保住 gu-log 的可讀 hook、畫面感與人類認知節奏。太乾淨、太認真、太概念密集，會變成另一種 AI 味。

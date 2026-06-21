@@ -119,7 +119,7 @@ Vercel build / tribunal / validate-posts / CI 沒過：
 
 ### Tribunal 必跑規則（任何新增/改寫文章的 PR）
 
-**PR 動到 `src/content/posts/*.mdx`（新增 SP/CP/SD/Lv，或實質改寫既有文章）→ 四評審必跑，結果必記錄。沒跑完不開 PR，跑完 FAIL 不 merge。**
+**PR 動到 `src/content/posts/*.mdx`（新增 SP/CP/SD/Lv，或實質改寫既有文章）→ 四評審必跑，結果必記錄。沒跑完不開 PR；跑完 sub-8 不是 merge blocker，但 floor 沒過不能 merge。**
 
 **首選**：`scripts/tribunal-batch-runner.sh` 或 `gp-pipeline ralph` 自動跑完四審 + rewrite + 寫 frontmatter scores。**這條在 CCC（root sandbox）現在可以原生跑**——`tribunal_claude_exec`（shell judges）和 Go `ClaudeProvider.Run`（pipeline）在 `id -u == 0` 時自動：(1) 用 `acceptEdits` 取代被 CLI 拒絕的 `bypassPermissions`，(2) 補 `--allowed-tools Read,Grep,Glob,Bash,Write,Edit,MultiEdit` 讓 judge Read 文章檔時不會卡 permission prompt，(3) prompt 走 stdin 避免 variadic 旗標吞掉內文。實測 `bash scripts/tribunal.sh --score-only --only-stage vibe <post>` 在 CCC 端到端 PASS（#123）。
 
@@ -136,17 +136,15 @@ Vercel build / tribunal / validate-posts / CI 沒過：
 
 **⚠️ 實測 caveat（2026-06-13）**：不是每個 CCC 網頁 harness 都把 `.claude/agents/` 註冊成 `Agent` tool 的 `subagent_type`。有的 session `Agent` tool 只開 built-in 的 `general-purpose` / `Explore` / `Plan`，named agent（`vibe-opus-scorer` 等）會回 `Agent type '...' not found`。遇到這種：**spawn `general-purpose`，在 prompt 裡叫它「讀 `.claude/agents/<judge>.md` 並完全照著做（zero parent context）」**，效果等同——judge 一樣 zero-context、一樣寫同一份 JSON。差別只在 model pin 顧不到（named agent 走 frontmatter 的 pin，general-purpose 繼承 parent model），所以 `scores.*.model` 要記**實際**用到的 model，不要照抄 pin。agent 檔已補 `name:` frontmatter，環境若支援 project agent 就會吃到 named 路徑。`scripts/tribunal-helpers.sh` 在 CCC 偵測到沒有 CLI provider 時，也會把這條 fallback 指令印到 stderr。
 
-**Pass bar（四條全部要過才能 merge）**：
-- Vibe composite ≥ 8 **AND** 至少一維 ≥ 9 **AND** 無任何維 < 8
-- Fact composite ≥ 8
-- Librarian composite ≥ 8
-- FreshEyes composite ≥ 8
+**品質門檻（SSOT = `CLAUDE.md`〈🎯 兩層品質門檻〉；本段是 derived view）**：
+- **Floor（merge/ship gate）**：`scores.vibe` 存在、該 tribunalVersion 要求的 vibe 維度齊、且 composite ≥ 3。沒過 floor → pre-commit 會擋，不能 merge。
+- **PASS（首頁 / featured gate）**：Vibe composite ≥ 8 AND 至少一維 ≥ 9 AND 無任何維 < 8；Fact core avg ≥ 8 AND sourceBoundary ≥ 8 AND commentarySeparation ≥ 8；Librarian composite ≥ 8；FreshEyes composite ≥ 8 AND payoffDensity ≥ 8 AND lengthFit ≥ 8 AND（v9）clarity ≥ 8。沒過 PASS 仍可 merge/ship，但掛「精修中」badge，且不上首頁 / featured。
 
-**沒過怎麼辦**：`tribunal-writer` subagent rewrite → 再跑一輪 → 最多 3 輪。3 輪還不過 → `git revert` + 跟 user 說明卡在哪。
+**沒過 PASS 怎麼辦**：有 quota 就用 `tribunal-writer` subagent rewrite → 再跑一輪 → 最多 3 輪。3 輪還不到 ≥8，不要 revert；只要 floor ≥3 就先誠實帶 sub-8 badge ship，排進背景 tribunal 繼續拉。
 
 **禁語**（這些話出現在 PR body / commit message / 回報 = 偷工）：
 - ❌「Tribunal 背景跑中，等拿到結果再補」— 不行。pending 等於沒跑。開 PR 前就要有結果。
-- ❌「Tribunal 跳過」「先 merge 再補分數」「這次例外」— 全不行。
+- ❌「Tribunal 跳過」「先 merge 再補分數」「這次例外」— 全不行；至少要有 floor 可驗證的真分數。
 - ❌「只跑 vibe 就好」「不跑 FreshEyes」— 四個都要跑，缺一不可。
 
 **必附證據**：PR body 或一個隨 PR 的 commit 要包含四個 judge 的分數 + verdict，並把 `scores.vibe` / `scores.factCheck` / `scores.librarian` / `scores.freshEyes` 寫進文章 frontmatter（用 `scripts/frontmatter-scores.mjs write <file> <judge> <score_json>`，schema 見 `src/content/config.ts`）。pre-commit 的 score gate（`.githooks/pre-commit` 第 60 行起）會擋掉**新增**且 ticketId 非 PENDING 的 zh-tw 文章 commit，所以 swap PENDING → 真號那個 commit 之前，分數要先進 frontmatter。
