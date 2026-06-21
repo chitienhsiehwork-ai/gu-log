@@ -387,14 +387,14 @@ gu-log 的文章草稿有三種來源，全部最終都變成 `src/content/posts
 
 ## Quality: Vibe Scoring + Tribunal
 
-品質管理用 4-judge tribunal（`tribunal-batch-runner.sh` 批次掃描，`tribunal-all-claude.sh` 單篇執行）：
-- **Vibe Scorer** (Opus): v9 起四維評分（Persona / ClawdNote / Vibe / Narrative，0-10）；clarity 已移到 Fresh Eyes（v8 以下仍是含 Clarity 的五維，版本 gating）
-- **Fact Checker** (Opus): 技術準確度 / 來源忠實 / 邏輯一致
-- **Librarian** (Sonnet): Glossary / cross-ref + identity linking / sourceAlign / attribution
-- **Fresh Eyes** (Haiku): 陌生讀者第一印象（3-month engineer persona）。v9 起五維：readability / firstImpression / payoffDensity / lengthFit / **clarity**（clarity 是從 Vibe 移過來的非補償硬門檻；v8 以下無 clarity）
+品質管理用 4-judge tribunal（`tribunal-batch-runner.sh` 批次掃描，`tribunal-all-claude.sh` 單篇執行）。本段是 derived view；每個 judge 實際使用的 model SSOT 是 `.claude/agents/*.md` 的 `model:` frontmatter，不在散文裡複述：
+- **Vibe Scorer**: v9 起四維評分（Persona / ClawdNote / Vibe / Narrative，0-10）；clarity 已移到 Fresh Eyes（v8 以下仍是含 Clarity 的五維，版本 gating）
+- **Fact Checker**: 技術準確度 / 來源忠實 / 邏輯一致
+- **Librarian**: Glossary / cross-ref + identity linking / sourceAlign / attribution
+- **Fresh Eyes**: 陌生讀者第一印象（3-month engineer persona）。v9 起五維：readability / firstImpression / payoffDensity / lengthFit / **clarity**（clarity 是從 Vibe 移過來的非補償硬門檻；v8 以下無 clarity）
 - **Pass bar**: Vibe composite ≥ 8 AND 至少一維 ≥ 9 AND 沒有任何維 < 8，Fact ≥ 8，Librarian composite ≥ 8，Fresh Eyes composite ≥ 8 AND payoffDensity ≥ 8 AND lengthFit ≥ 8 AND（v9）clarity ≥ 8
 - **Rewrite**: 沒過 → rewriter 改寫 → 再跑 → 最多 3 次
-- Agents 在 `.claude/agents/`，評分標準 SSOT 在 `scripts/vibe-scoring-standard.md`
+- Agents 在 `.claude/agents/`；judge model SSOT 是各 agent 的 `model:` frontmatter，評分標準 SSOT 在 `scripts/vibe-scoring-standard.md`
 
 ### Tribunal runtime ops
 

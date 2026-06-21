@@ -244,9 +244,13 @@ import Toggle from '../../components/Toggle.astro';
 - ❌ 不要用反問句問讀者顯而易見的答案
 
 ### 術語處理
-- 專有名詞保留英文，必要時括號加註中文
-- 技術術語維持英文：API, SDK, SSH, E2E, etc.
-- 縮寫第一次出現要展開
+
+SSOT = `GU-LOG_WRITER_PROMPT.md` 的「術語處理」；此處只是 derived view。
+
+- zh-tw 正文的英文預設翻成自然台灣中文，不在 glossary / allowlist 的英文都要翻
+- 只有 `src/data/glossary.json` 已收錄的 term、產品名、公司名、人名、模型名、code identifier、protocol 名、URL、版本號等必要專有名詞才保留英文
+- 程式碼、CLI 指令、config key、檔名、路徑、UI label 維持原樣不翻
+- 縮寫第一次出現若會影響理解，要展開或用自然中文補一句
 
 ### 程式碼
 - 程式碼本體、CLI 指令 → 維持原樣不翻
@@ -351,7 +355,7 @@ Pipeline agents：如果無法取得完整 source，output `INCOMPLETE_SOURCE: <
 
 ### 新增翻譯文章 (SP/CP)
 
-1. 抓原文：tweet 用 `bird read <url>`；blog/docs 用 `WebFetch`
+1. 抓原文：X/Twitter 用 `sp-source-fetch` skill；一般 blog/docs 用 `curl -sL -A "Mozilla/5.0..." <url>` 抓原始 HTML 再解析，不用 `WebFetch` 當翻譯依據
 2. 寫 **zh-tw 版** `<prefix>-pending-YYYYMMDD-<slug>.mdx`（加 ClawdNote 吐槽）
 3. `node scripts/validate-posts.mjs` 確認 frontmatter 合格
 4. 丟 **vibe-opus-scorer** subagent 評分 → 沒過就改寫，最多 3 輪
