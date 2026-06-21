@@ -1,0 +1,161 @@
+---
+ticketId: 'SP-237'
+title: 'Run Your Coding Agent Like a Steam Engine: Operating Agents on Large Projects'
+originalDate: '2026-05-23'
+translatedDate: '2026-06-21'
+translatedBy:
+  model: "Opus 4.8"
+  harness: "Claude Code CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.8"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.8"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.8"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.8"
+      harness: "sp-pipeline"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: '@simonlast on X'
+sourceUrl: 'https://x.com/simonlast/status/2057978156183957995'
+lang: 'en'
+summary: 'Most coding-agent best practices from six months ago are now out of date. The new playbook: bigger tasks, longer sessions, and adversarial review so the agent verifies its own work — the engineer just shovels coal into the engine.'
+tags: ['shroom-picks', 'agent', 'workflow', 'prompt-engineering']
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+The coding [agent](/en/glossary#agent) advice from six months ago? You can throw most of it away now.
+
+Simon Last runs coding agent sessions that often go for weeks at a time, and the tasks he hands them are "what a good engineer would take multiple weeks to do" in size. This playbook is almost the exact opposite of the six-month-old consensus: "give the agent small tasks, watch it closely, step in often."
+
+## Think Bigger
+
+The most common mistake is scoping tasks too small. The real bar is: aim for work that would take a good engineer multiple weeks.
+
+<ClawdNote>
+This sounds crazy, but think about how the [context window](/en/glossary#context-window) has grown over the last year or two — you can fit more and more in, so the range an agent can carry at once naturally grows too. Scoping tasks too small is just letting a six-month-old fear tie your hands. (¬‿¬)
+</ClawdNote>
+
+---
+
+## Let One Session Run Forever
+
+The traditional wisdom: keep sessions short, context small, avoid piling up hallucinations. The new advice is the complete opposite — use one long-running implementer session for the whole project. Simon's sessions often run for days or even weeks, compacting many, many times along the way.
+
+The key point: compaction actually works now.
+
+The benefit of a long session is that the agent remembers the project's conventions and patterns. You don't have to re-explain "what's the naming convention here" or "how do we handle errors in this codebase" every time — it remembers. The communication overhead this saves is huge.
+
+gu-log has unpacked the long-running agent topic before: [SP-192](/posts/en-sp-192-20260508-article-agent-ralph) is exactly about how a long-running agent avoids "diligently drifting in the wrong direction" — running for a long time isn't the hard part; running for a long time without forgetting why you're running is.
+
+<ClawdNote>
+This is basically saying: treat the agent like a junior engineer who builds up experience, not a stateless function that starts from zero every time. The difference is a junior learns and remembers — you don't have to onboard them again every morning.
+</ClawdNote>
+
+---
+
+## Shoveling Coal: The Persistent Task List
+
+So what's the engineer's new role? Shoveling coal into the engine.
+
+Concretely: maintain a persistent task list. The engineer's job is to "add vetted tasks faster than the agent can finish them." Each task should include three things:
+
+1. **What to do**
+2. **How to verify it's done**
+3. **Proof notes once completed**
+
+The acceptance bar: if it's done as written, you'd trust the result.
+
+Before you stop for the day (especially on Fridays), queue up as many tasks as you can. Let the agent burn through the weekend, and come back Monday to collect.
+
+<ClawdNote>
+"Queue tasks Friday night, harvest Monday" — clocking off on Friday used to mean fearing a deploy would break with nobody around to save it. Now clocking off on Friday means fearing the agent will run out of things to do. ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## Spend Your Time on Plan Docs, Not Watching the [Agent](/en/glossary#agent)
+
+Most of your time should go into writing plan docs, not watching the agent execute.
+
+In practice: open a short-lived planning session, produce a plan, append one or more tasks to the list, then kill the session. A good plan doc should be:
+
+- **Self-contained**: reading the plan is enough, no extra context needed
+- **Interface-level detail**: not just "build feature X," but "feature X's input/output looks like this"
+- **An explicit end-to-end verification strategy**: how the agent proves it's done
+
+It's worth iterating on plan docs until they're genuinely good — the work you put into the plan up front gets paid back during execution.
+
+---
+
+## Adversarial Review Is the Key to Unattended Runs
+
+Want the agent to run on its own for long stretches, with no human babysitting? Adversarial review is the core mechanism.
+
+Here's how: before any task is marked complete, spin up a fresh, read-only [subagent](/en/glossary#subagent). This subagent's job is to review the diff against the original todo and plan doc, and find the gaps.
+
+This trick is often too strong — it's easy to over-engineer, so you need to dial back the sensitivity. But it's the key to letting the agent run itself long-term: with another agent picking at the work against the plan, gaps don't quietly slip through.
+
+This is the same core point as [SP-235](/posts/en-sp-235-20260618-verifier-is-the-product): the verifier is the product. Letting an independent reviewer pick at the work against the spec is far more reliable than letting the implementer declare "I'm done" itself — the value of the gatekeeper was never in writing fast, but in catching accurately.
+
+<ClawdNote>
+This is essentially automating code review. Not "a human reviews the agent's output," but "an agent reviews the agent's output, and the human only reads the reviewer's report." Supervision cost drops by an order of magnitude.
+</ClawdNote>
+
+---
+
+## Role Division: Not One Agent, a Team
+
+A long-running session should set up different roles:
+
+- **Planner**: produces plans
+- **Implementer**: does the implementation
+- **Adversarial Reviewer**: picks at the work
+- **Black-box Tester**: tests features from the outside
+- **Issue Triager**: sorts problems
+- **Deep Code Reviewer**: reviews the code in depth
+
+The engineer's job is to wire these roles together so the implementer is never idle — while monitoring the whole thing and stepping in when something breaks.
+
+---
+
+## Get Yourself Out of the Loop
+
+Don't open PRs by hand, don't type into the terminal yourself, don't check CI manually.
+
+If you catch yourself manually testing something — stop. The agent has to prove the work is done. The engineer's job is to double-check and gatekeep, not to do it personally.
+
+This is a role flip: the engineer goes from doer to reviewer.
+
+<ClawdNote>
+Put plainly: the agent is the employee, the engineer is the manager. A manager shouldn't jump in and write the code — your value is in confirming what the employee turns in is correct. It's a lot like the "AI-assisted coding" vs "AI-led coding" debate from a few years back — back then "AI-led" sounded far off, and now it's a hands-on operating manual.
+</ClawdNote>
+
+---
+
+## Spend 20%+ of Your Time on the Process Itself
+
+Every time you notice the agent make a mistake, write the lesson into its future instructions.
+
+Keep iterating on the process the agent follows. Improve the testing harness. But be careful about over-engineering — usually, simpler is better.
+
+That 20% isn't busywork; it's how you stop the same mistake from happening a second time.
+
+<ClawdNote>
+Writing lessons back into the instructions is essentially making sure the agent stops stepping on the same nail — fix it once, and every later run benefits. It's compounding interest on your process.
+</ClawdNote>
+
+---
+
+## Closing
+
+Six months ago, coding-agent best practice was "small tasks, short sessions, watch closely." Now it's "big tasks, long sessions, let the agent verify itself."
+
+This isn't an incremental improvement; it's a flip in how you operate: the engineer's role is shifting from "the person who writes code" to "the person who designs the process and reviews the output."
+
+The one shoveling coal doesn't have to run themselves — but they do have to make sure the train is running the right way.
