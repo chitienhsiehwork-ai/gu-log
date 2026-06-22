@@ -276,6 +276,10 @@ commit
 # OSS signing protocol Mitchell uses for Ghostty releases (covered in CP-159);
 # X handle of SP-169's source author.
 Vouch dani
+# Added 2026-06-22 for SP-239 (Ghostty startup tradeoffs). D-Bus = the Linux
+# desktop message bus, a genuine proper noun Mitchell names in the source
+# ("registration (dbus)"); reusable across future Linux/terminal articles.
+D-Bus
 # Added 2026-06-12 for SP-221 (Zed DeltaDB). Zed = editor/company, DeltaDB =
 # the product, Nathan Sobo = founder; "delta" is DeltaDB's namesake atomic
 # unit (the article's core abstraction, analogous to commit) — keeping the
