@@ -518,6 +518,15 @@ rahulgs
 # (one-off mentions, not reusable canonical references), so they stay here.
 Jarred Sumner
 struct lifetime
+
+# Added 2026-06-22 for SP-240 (championswimmer process-vs-outcome / AI breaking
+# the peace). Shia LaBeouf = the actor behind the "Just do it" meme the source
+# cites (person, proper noun). Tropicana = the juice brand the lemonade-stand
+# analogy scales up into (company/product, proper noun). Both are one-off
+# proper-noun references named in the source, same category as the people /
+# company names already allowlisted above.
+Shia LaBeouf
+Tropicana
 `;
 
 const HARDCODED = new Set();
