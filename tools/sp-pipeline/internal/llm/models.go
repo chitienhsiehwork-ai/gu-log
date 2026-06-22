@@ -84,7 +84,12 @@ func DisplayName(m ModelID) string {
 
 // HarnessName returns the harness that drives a given model when shelled out
 // from the pipeline. Mirrors scripts/sp-pipeline.sh's model_harness_name.
+// Concrete Claude build ids (e.g. "claude-opus-4-5") map to the Claude harness
+// via the family match, so a pinned writer model still resolves correctly.
 func HarnessName(m ModelID) string {
+	if claudeFamilyRe.MatchString(string(m)) {
+		return "Claude Code CLI"
+	}
 	switch m {
 	case ModelClaudeOpus, ModelClaudeSonnet, ModelClaudeHaiku:
 		return "Claude Code CLI"

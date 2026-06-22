@@ -112,15 +112,21 @@ func TestDefaultJudgeAndProbeChainsAreCodexGPT55(t *testing.T) {
 	}
 }
 
-func TestDefaultWritingChainUsesClaudeOpusAlias(t *testing.T) {
+func TestDefaultWritingChainUsesPinnedClaudeOpus(t *testing.T) {
 	chain := DefaultWritingChain()
 	if len(chain) != 1 {
 		t.Fatalf("writing chain length = %d, want 1", len(chain))
 	}
+	// Name() stays the family label for logs...
 	if chain[0].Name() != "claude-opus" {
 		t.Fatalf("writing provider = %q, want claude-opus", chain[0].Name())
 	}
-	if chain[0].Model() != ModelClaudeOpus {
-		t.Fatalf("writing model = %q, want %q", chain[0].Model(), ModelClaudeOpus)
+	// ...but Model() must keep the pinned version so provenance stamps the real
+	// build (regression: it used to collapse to the family → "Opus 4.8").
+	if chain[0].Model() != ModelID(ClaudeOpusPinned) {
+		t.Fatalf("writing model = %q, want %q", chain[0].Model(), ClaudeOpusPinned)
+	}
+	if got := DisplayName(chain[0].Model()); got != "Opus 4.5" {
+		t.Fatalf("writing DisplayName = %q, want Opus 4.5", got)
 	}
 }
