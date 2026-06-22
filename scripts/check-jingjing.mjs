@@ -527,6 +527,17 @@ struct lifetime
 # company names already allowlisted above.
 Shia LaBeouf
 Tropicana
+
+# Added 2026-06-22 for SP-242 (Sakana Fugu orchestration "AI sovereignty" vs
+# Elie Bakouch's teardown). All proper nouns named in the two sources:
+# Sakana = the Japanese AI lab (company). Fugu / Ultra = the product and its
+# variant (Fugu Ultra). Elie Bakouch = the researcher behind the critique
+# (person). AutoResearch / TerminalBench / Bench (SWE Bench Pro) = benchmark
+# names cited from the tech report. Same category as the lab / product / person
+# / benchmark names already allowlisted above; none has a zh-tw translation.
+Sakana Fugu Ultra
+Elie Bakouch
+AutoResearch TerminalBench Bench
 `;
 
 const HARDCODED = new Set();
