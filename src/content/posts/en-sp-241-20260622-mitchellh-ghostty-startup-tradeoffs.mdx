@@ -1,5 +1,5 @@
 ---
-ticketId: 'SP-239'
+ticketId: 'SP-241'
 title: 'A Terminal That Takes a Second to Start Is "Unusable"? Ghostty Author Says That Slowness Is on Purpose'
 originalDate: '2026-06-22'
 translatedDate: '2026-06-22'
@@ -19,7 +19,7 @@ translatedBy:
 source: '@mitchellh on X'
 sourceUrl: 'https://x.com/realpastaya/status/2068396437390434464'
 lang: 'en'
-summary: 'Someone called Ghostty "unusable" because it takes a second to launch. Its author, Mitchell Hashimoto, replied with a textbook explanation of tradeoffs: the slow cold start is not a bug, it is the cost paid up front to buy you eight smooth hours. Along the way he punctures a classic engineering mistake — is the thing you are optimizing a button you press once a day?'
+summary: 'Someone called Ghostty "unusable" for taking a second to launch. Its author Mitchell Hashimoto replied with a textbook tradeoff lesson: the slow cold start is not a bug — it is cost paid up front to buy eight smooth hours. Are you optimizing a button you press once a day?'
 tags: ['shroom-picks', 'ghostty', 'performance', 'engineering-tradeoffs']
 scores:
   tribunalVersion: 9
@@ -83,7 +83,7 @@ Preallocation means grabbing all the memory and buffers it will need up front, a
 
 So that "slow second" isn't laziness — it's deliberate accounting: concentrate the cost into the one moment you only feel once a day (the launch), and trade it for eight hours where you barely notice the tool exists. What that guy wants — "instant launch" — buys a different terminal: one that opens fast and then stutters at you right when you're busiest.
 
-<ClawdNote>
+<ClawdNote summary="There's no free lunch in performance — the only question is whether you can see the bill.">
 There's no free lunch — in performance engineering that's a law of physics. You want a buttery runtime? Someone has to pay the bill somewhere first; the only difference is whether you can see that bill. Ghostty puts the bill at the door, openly priced at one second; plenty of "instant" tools split the same cost into installments, hidden inside the latency of every keystroke — fast to open, dull to use. People who complain about slow startup often just haven't noticed they're paying interest somewhere else — and the interest costs more than the principal.
 </ClawdNote>
 
@@ -97,7 +97,7 @@ The mechanism is simple: instead of restarting a whole process for every window 
 
 In other words, the whole "unusable" accusation boils down to treating a default as the only option. Ghostty bet its default on "best for the person who uses it all day," not "best for a benchmark screenshot" — but it never locked the other road. What you want is right there; you just didn't read on.
 
-<ClawdNote>
+<ClawdNote summary="Single-instance is itself a tradeoff: cheaper and faster, but one crash takes every window down with it.">
 Single-instance is itself a tradeoff, one Mitchell didn't unpack in this thread (so this part is me adding to him, not his words): all windows share one process — cheaper, faster to open — but the blast radius grows too. That one process dies, and **all** your windows go down with it. The one-process-per-window design is the opposite: slower, heavier, but one window crashing won't drag the rest down. Neither is "correct"; it depends on whether you fear slowness or fear dying together. Even something as small as "how do you open a window" has a tradeoff buried underneath — and that's exactly what Mitchell wants you to see.
 </ClawdNote>
 
@@ -115,7 +115,7 @@ So is Mitchell against "speed" itself? The exact opposite — if he can get perf
 
 And the pit that guy fell into is the most common one in engineering — judging a tool built for "long running use" by a metric you trigger exactly once a day. Cold start time makes a great benchmark: pretty numbers, easy to measure, especially satisfying to screenshot. The trouble is it barely reflects your real experience. Nobody reopens a terminal every second; the norm is open one in the morning and run it all day. Spread that one second across eight hours and it doesn't even register as rounding error.
 
-<ClawdNote>
+<ClawdNote summary="The AI-tooling world has the same disease: optimizing the once-a-day button while ignoring the eight-hour run.">
 This disease is practically the national pastime of the AI-tooling world, and it's worse there. Everyone fixates on "how fast the first token comes out," "how many seconds the model takes to load," "how long the agent cold-starts" — numbers that screenshot well — but working with an agent means running a whole task. What actually decides life or death is whether it's still stable at step 40, whether it starts hallucinating once the context fills up, whether a long task drops halfway. Optimizing a button you press once a day into oblivion while ignoring the thing you stared at for eight hours isn't engineering discipline; it's optimizing the wrong dimension. It's comparing the paint job on a facade you don't even live in, while the house you sleep in every night leaks — the benchmark number is for other people to see; those eight rough hours are the ones you have to live through.
 </ClawdNote>
 
