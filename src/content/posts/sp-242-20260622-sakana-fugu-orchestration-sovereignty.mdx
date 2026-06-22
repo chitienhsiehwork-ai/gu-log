@@ -1,0 +1,137 @@
+---
+ticketId: 'SP-242'
+title: '把全世界的模型包成一個 API：Sakana Fugu 賣「AI 主權」，研究員說剛好相反'
+originalDate: '2026-06-22'
+translatedDate: '2026-06-22'
+translatedBy:
+  model: "Opus 4.8"
+  harness: "Claude Code CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.8"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.8"
+      harness: "Claude Code CLI"
+source: '@SakanaAILabs on X'
+sourceUrl: 'https://x.com/sakanaailabs/status/2068861630327443966'
+lang: 'zh-tw'
+summary: 'Sakana 推出 Fugu：一個 API 後面藏一整套 multi-agent 調度系統，主打「不靠單一廠商的 AI 主權」。但一位讀完技術報告的研究員拆台：閉源調度器疊在閉源模型上，能控制的反而更少；而且贏了 benchmark 卻從不報成本。'
+tags: ['shroom-picks', 'agent', 'orchestration', 'sakana', 'benchmark']
+scores:
+  tribunalVersion: 9
+  vibe:
+    persona: 9
+    clawdNote: 9
+    vibe: 8
+    narrative: 9
+    score: 8
+    date: "2026-06-22"
+    model: "claude-opus-4-8"
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 8
+    commentarySeparation: 8
+    score: 8
+    date: "2026-06-22"
+    model: "claude-opus-4-8"
+  librarian:
+    glossary: 8
+    crossRef: 8
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-06-22"
+    model: "claude-opus-4-8"
+  freshEyes:
+    readability: 9
+    firstImpression: 9
+    payoffDensity: 9
+    lengthFit: 9
+    clarity: 9
+    score: 9
+    date: "2026-06-22"
+    model: "claude-opus-4-8"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+一家以「集體智慧」聞名的日本實驗室，丟出一個產品：一個 API 端點後面，藏著一整支會自己組隊、分工、互相驗證的模型大軍。Sakana 把它叫做 Fugu，定位拉得很高——不只是工具，是「真正的 AI 主權藍圖」。
+
+幾個小時後，一位讀完技術報告的研究員 Elie Bakouch 在 X 上逐點拆台。結論很冷：這東西能讓使用者控制的，比以前更少。
+
+兩邊講的是同一個產品，卻像在描述兩件完全不同的事。
+
+## 一個 API 指揮全世界的模型
+
+Sakana Fugu 的賣法很乾脆：把一套 multi-agent 調度系統，包成單一個 model API。送一個請求進去，後面要派給哪個模型、要不要找第二個模型來驗證、最後怎麼把結果合成，全部由 Fugu 自己決定，使用者的程式碼完全碰不到這套複雜度。
+
+技術上，Fugu 本身就是一個 LLM，被訓練成去呼叫一池子的其他 LLM——甚至能遞迴呼叫自己的另一個實例，本質上是一個會自己調度模型的 [agent](/glossary#agent)。簡單的任務它直接解，難的才動員一整隊專家模型。產品分兩檔：Fugu 走性能與延遲的平衡（官方點名可以塞進 [Codex](/glossary#codex) 這種工具跑 coding 跟 code review），Fugu Ultra 則調度更深的專家池，衝難題品質。
+
+真正高調的是它的定位。Sakana 的論述是：AI 的進步一直靠巨大的單體模型推動，但未來最強的系統會是「協作生態系」。而把調度權交給單一公司，對組織甚至國家來說是「實質的脆弱性」——就像最近 Fable 和 Mythos 被祭出口令管制，存取權可能一夜消失。Fugu 因為背後是一池「可抽換」的模型，能直接繞過任何單一廠商的限制。Sakana 給這套機制下的標語是：對抗權力集中的實際避險手段，交付「真正 AI 主權所需要的韌性藍圖」。
+
+<ClawdNote>
+先把這套定位的精彩之處講清楚：把「不綁單一 vendor」直接升格成「地緣政治級的主權問題」，是非常漂亮的行銷框架——它把一個工程選型（要不要架一層路由器）包裝成國安等級的剛需。而且「協作生態系 > 單體巨模型」這個大方向，gu-log 自己其實是信徒：你正在讀的這篇，就是被一套[四個 AI 法官的互審機制](/posts/sd-10-20260322-ralph-loop-quality-system)審過的——一個管語感、一個查事實、一個顧詞庫、一個扮陌生讀者，沒有哪個單一模型說了算。協作調度是真議題。問題不在方向，在這支產品有沒有兌現它喊的口號。(¬‿¬)
+</ClawdNote>
+
+---
+
+## 「主權」這個詞，研究員第一個就不買
+
+Elie Bakouch 的第一刀，正好砍在這個最高調的賣點上。
+
+他的拆法是這樣的：Fugu 是一個**閉源的調度器**，疊在一堆**閉源的模型**之上。以前使用者至少還能自己選用哪個模型；現在連「用了哪幾個、各用了多少」都不給看。所以這不叫 AI 主權——主權的意思是控制權變多，而這套東西是把「綁誰」的決定權從使用者手上收走，交給一個看不到內部的黑箱。
+
+Sakana 說「繞過廠商限制」，Elie 的反問是：繞過之後，方向盤握在誰手裡？答案是 Sakana，不是使用者。
+
+<ClawdNote>
+這一刀很準，因為它打的不是技術，是定位的誠實度。「不依賴單一 vendor」是真的，但「不依賴單一 vendor」≠「你有主權」——它只是把單點依賴從某個模型公司，搬到了 Sakana 這個調度層。Sakana 自己也留了個破口：Fugu 可以從主控台把特定供應商踢出池子，但 Fugu Ultra 的池子是固定的、不給動。要主權的人通常衝著 Ultra 來，結果 Ultra 恰好是最不透明的那檔。┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## 拆開來看：一個是路由器，一個是規劃模式
+
+罵完定位，Elie 進去翻技術報告，把兩檔產品各自拆了。
+
+Fugu（非 Ultra）他的判斷是：本質上就是一個分類器，每一輪挑出「最可能答對的那個模型」——換句話說，一個路由器。代價看得到：SWE Bench Pro 上比 Opus 低了 10 分（官方自己的表格也對得上，Fugu 59.0、Opus 4.8 是 69.2），其他 benchmark 有小贏，但很微。唯一說得通的好處是省成本，可是官方完全沒給成本數字，所以他賭其實是反過來。附帶一個結構問題：要加新模型進池子，八成得重新訓練那個分類器，不是隨插即用。
+
+Fugu Ultra 則被他形容成「進階版的規劃模式加上一個調度器」。給一個問題，它先吐出一份含多個 workflow 的計畫，大致長這樣：派 A 模型的 [subagent](/glossary#subagent) 去做這件事，再用 B 模型評審，最後用 C 模型總結——本質就是一種 [test-time compute](/glossary#test-time-compute) 的擴展策略，靠多花算力換品質。Elie 說這做法還行，但卡在一個硬傷：它必須在 agent 開工**之前**就把整份計畫預測完，這也是為什麼步數被鎖死在 5 步。
+
+而他點出的正解，是這整串裡最有料的一句：該預測的不是 t=0 一次想到底，而是「拿 t 時刻觀察到的資訊，去決定 t+1 要派什麼」。靜態計畫跟動態適應，是兩種完全不同層級的 agent 設計。
+
+<ClawdNote summary="靜態計畫 vs 動態適應，正是 gu-log 跑長任務 agent 天天在處理的問題">
+這一刀打中的是 agent 設計的核心分水嶺，gu-log 自己對這題很有感。[SP-237](/posts/sp-237-20260621-simonlast-agent-coding-agent) 講的長跑 coding agent，整套打法就是反「一次規劃到底」——它靠的是邊跑邊把新任務鏟進清單、用一個獨立的審查模型對著計畫挑落差，等於每一步都拿當下的資訊重新校準。把整盤棋在第一步就下完、還鎖死 5 步，確實是放掉了 agent 最值錢的那一塊：邊做邊學。當然啦，Sakana 要把它包成「單一模型 API」、延遲還要能看，動態重新規劃的成本可能就是這個架構吃不下的——這是工程取捨，不是單純的笨。但 Elie 指出的方向沒錯。
+</ClawdNote>
+
+---
+
+## 最致命的一刀：贏了 benchmark，卻不報帳單
+
+把所有零碎的批評收攏，Elie 自己標成「最大、最明顯」的問題只有一個：
+
+Fugu 端出來的是一套「對多個模型取最佳解」的 test-time 擴展方法——白話講就是「同一題餵給好幾個模型、挑最好的」。這種方法天生就會多燒算力。然而從頭到尾，官方**沒有報過**達成任何一個 benchmark 用掉多少 output token、花了多少成本。
+
+少了成本這條軸，benchmark 上贏的那幾分就懸空了。畢竟燒 5 倍的 token 去換 2 分，跟用一樣的預算贏 2 分，是完全不同的兩件事——前者根本不算贏。
+
+連帶幾個透明度問題也一起浮出來：那張 AutoResearch 的對比圖，把對手匿名成「Model A、B、C」，拿人比卻不說比的是誰；Elie 還指控 Fable 5 在 TerminalBench 的分數標錯了；而池子裡到底有哪些模型，官方講得很含糊，只提了閉源 API 那幾個。
+
+他收尾的那句也很實在：公平的對照組根本選錯了。要比，不該拿 Fugu 去比裸的 Opus，而是去比「Opus 開了 ultracode／workflows」；不該比裸的 Kimi，而是比「Kimi swarm」。拿一個會多花算力的 test-time 方法，去打單發的對手，本來就佔便宜。
+
+<ClawdNote>
+「贏 benchmark 不報成本」這件事，是整個 AI 圈的慢性病，不是 Sakana 一家的原罪——但對一個賣點就是「多模型取最佳解」調度的產品來說，這個漏洞特別致命，因為它的核心機制就是「用更多算力換分數」，不報算力等於把唯一該被質疑的變數藏起來。順帶一提，gu-log 那套四法官互審機制也是 test-time 堆品質的東西，跑一篇文章燒掉的 token 不算少；差別只在它不會跑去 X 上宣稱自己「肩並肩 frontier 模型」就閉嘴不提帳單 (￣▽￣)。對照看就懂：同樣是多花算力換品質，誠實的版本會把成本攤出來讓人權衡，行銷的版本只秀贏的那一格。
+</ClawdNote>
+
+---
+
+## 結語
+
+把兩邊疊在一起看，會發現他們其實不矛盾——只是站在框架的兩端。
+
+Sakana 講對了一件大事：調度多個模型、讓它們協作，確實是個值得認真做的方向，甚至可能是下一個 frontier。這點連 Elie 都沒否認，gu-log 自己也用一整套多模型互審在實踐它。
+
+但「方向對」撐不起「主權藍圖」這麼大的詞。一個閉源調度器疊在閉源模型上、不讓人看內部、贏了 benchmark 不報帳單——這誠實的描述是「一個還不錯、但行銷過頭的 test-time 擴展工具」，不是什麼對抗權力集中的國安級避險。
+
+最反諷的地方在這：一個喊著「別把命交給單一黑箱」的產品，自己就是一個外人看不進去的黑箱。真正的主權，從來不是換一個更聰明的人來代為決定——而是看得見決定是怎麼被做出來的。
