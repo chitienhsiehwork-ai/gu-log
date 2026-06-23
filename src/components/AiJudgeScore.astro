@@ -58,6 +58,12 @@ interface Props {
       date: string;
       model?: string;
     };
+    // ShroomDog's own vibe — the named human editor, set apart from the AI tribunal.
+    shroomDogVibe?: {
+      score: number;
+      date: string;
+      note?: string;
+    };
   };
   lang?: string;
 }
@@ -65,7 +71,18 @@ interface Props {
 const { scores } = Astro.props;
 
 const hasScores =
-  scores && (scores.librarian || scores.factCheck || scores.freshEyes || scores.vibe);
+  scores &&
+  (scores.librarian ||
+    scores.factCheck ||
+    scores.freshEyes ||
+    scores.vibe ||
+    scores.shroomDogVibe);
+
+const labelsLang = Astro.props.lang === 'en' ? 'en' : 'zh-tw';
+const sdStrings =
+  labelsLang === 'en'
+    ? { name: 'ShroomDog Vibe', sub: 'human editor · the author himself' }
+    : { name: 'ShroomDog 私心評分', sub: '本人手評 · 非 AI 法官' };
 
 const tribunalVersion = scores?.tribunalVersion ?? 3;
 
@@ -421,6 +438,27 @@ const labels = {
           </div>
         )}
       </div>
+
+      {scores?.shroomDogVibe && (
+        <div class="shroomdog-vibe">
+          <span class="sd-icon" aria-hidden="true">
+            🍄
+          </span>
+          <div class="sd-body">
+            <div class="sd-top">
+              <div class="sd-meta">
+                <span class="sd-name">{sdStrings.name}</span>
+                <span class="sd-sub">{sdStrings.sub}</span>
+              </div>
+              <div class={`sd-score ${scoreColor(scores.shroomDogVibe.score)}`}>
+                {scores.shroomDogVibe.score}
+                <span class="score-denom">/10</span>
+              </div>
+            </div>
+            {scores.shroomDogVibe.note && <p class="sd-note">{scores.shroomDogVibe.note}</p>}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -625,6 +663,77 @@ const labels = {
   .dim-item strong {
     font-weight: 600;
     font-size: 0.75rem;
+  }
+
+  /* ShroomDog's own score — human editor, deliberately set apart from the AI grid */
+  .shroomdog-vibe {
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    border: 1px solid var(--color-border);
+    border-left: 3px solid #cb4b16; /* Solarized orange — ShroomDog accent */
+    border-radius: 6px;
+    background-color: var(--color-bg-secondary, rgba(0, 0, 0, 0.03));
+    text-align: left;
+  }
+
+  .sd-icon {
+    font-size: 1.1rem;
+    line-height: 1.2;
+    flex-shrink: 0;
+  }
+
+  .sd-body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .sd-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .sd-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+  }
+
+  .sd-name {
+    font-weight: 600;
+    font-size: 0.85rem;
+    line-height: 1.2;
+    color: #cb4b16;
+  }
+
+  :global([data-theme='light']) .sd-name {
+    color: #b0420f;
+  }
+
+  .sd-sub {
+    font-size: 0.65rem;
+    color: var(--color-text-muted);
+    line-height: 1.2;
+  }
+
+  .sd-score {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .sd-note {
+    margin: 0.4rem 0 0;
+    font-size: 0.72rem;
+    line-height: 1.45;
+    color: var(--color-text-muted);
   }
 
   @media (max-width: 480px) {
