@@ -653,24 +653,41 @@ sys.exit(0 if core_composite >= 8 and source_boundary >= 8 and commentary_separa
 PY
       ;;
     fresh-eyes)
-      python3 - "$json_file" <<'PY'
+      # Dimension ownership is version-aware (SSOT: src/lib/tribunal-v2/pass-bar.ts).
+      # At tribunalVersion >= 9 `clarity` moves Vibe → Fresh Eyes, joining the
+      # composite AND becoming a non-compensating hard gate.
+      python3 - "$json_file" "$TRIBUNAL_VERSION" <<'PY'
 import json, sys, math
 data = json.load(open(sys.argv[1]))
+version = int(sys.argv[2])
 dims = data.get('dimensions', {})
-vals = [dims.get(k, 0) for k in ('readability', 'firstImpression', 'payoffDensity', 'lengthFit')]
+keys = ('readability', 'firstImpression', 'payoffDensity', 'lengthFit')
+if version >= 9:
+    keys = keys + ('clarity',)
+vals = [dims.get(k, 0) for k in keys]
 composite = math.floor(sum(vals) / len(vals))
 # FreshEyes length/readability dimensions are non-compensating: a flashy hook
 # must not hide low payoff density or bad length fit.
-sys.exit(0 if composite >= 8 and dims.get('payoffDensity', 0) >= 8 and dims.get('lengthFit', 0) >= 8 else 1)
+ok = composite >= 8 and dims.get('payoffDensity', 0) >= 8 and dims.get('lengthFit', 0) >= 8
+if version >= 9:
+    ok = ok and dims.get('clarity', 0) >= 8
+sys.exit(0 if ok else 1)
 PY
       ;;
     vibe-opus-scorer)
-      # one dim ≥ 9 AND rest ≥ 8 (no dim < 8)
-      python3 - "$json_file" <<'PY'
+      # one dim ≥ 9 AND rest ≥ 8 (no dim < 8). Dimension set is version-aware
+      # (SSOT: src/lib/tribunal-v2/pass-bar.ts): at tribunalVersion >= 9 `clarity`
+      # leaves Vibe for Fresh Eyes, so the composite spans 4 dims, not 5. Keeping
+      # the legacy 5-dim list here made the absent clarity default to 0, dragging
+      # composite below 8 and wrongly failing every v9 post.
+      python3 - "$json_file" "$TRIBUNAL_VERSION" <<'PY'
 import json, sys, math
 data = json.load(open(sys.argv[1]))
+version = int(sys.argv[2])
 dims = data.get('dimensions', {})
-vals = [dims.get(k, 0) for k in ('persona', 'clawdNote', 'vibe', 'clarity', 'narrative')]
+keys = ('persona', 'clawdNote', 'vibe', 'narrative') if version >= 9 \
+    else ('persona', 'clawdNote', 'vibe', 'clarity', 'narrative')
+vals = [dims.get(k, 0) for k in keys]
 composite = math.floor(sum(vals) / len(vals))
 if composite < 8:
     sys.exit(1)
