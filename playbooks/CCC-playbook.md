@@ -43,12 +43,13 @@
 
 1. `git push -u origin claude/xxx`
 2. 用 GitHub MCP (`mcp__github__create_pull_request`) 開 PR 到 main
-3. **PR 開完立刻 `mcp__github__subscribe_pr_activity` 訂閱自己這條 PR**——不要問 user「要不要幫你盯」。CCC 開 PR 預設就要盯 CI + review comment，這是工作的一部分，不是 opt-in 服務。問就是 dumb question。
+3. **PR 開完立刻 `mcp__github__subscribe_pr_activity` 訂閱自己這條 PR**——不要問 user「要不要幫你盯」。CCC 開 PR 預設就要盯 CI + review comment，這是工作的一部分，不是 opt-in 服務。問就是 dumb question。**這條沒有「除非」**：開了 `enable_pr_auto_merge`、CI 還在 pending、改動很 safe、你覺得「應該會自己合」——通通不解除盯的責任。**訂閱是無條件動作，跟 subscribe 同一個 round 一起做完，不留到下個 turn、更不丟回給 user 決定。** 你盯，不然誰盯？（webhook 不送 CI success / merge transition，所以光訂閱不夠，見步驟 7 的 send_later check-in。）
 4. **等 CI 全綠**後自己 `mcp__github__merge_pull_request`
 5. **Merge 完不用、也無法自己刪 remote branch**——repo 已開啟「Automatically delete head branches」，GitHub 在 merge 後自動刪掉 head branch，CCC 什麼都不用做。**⚠️ CCC 千萬不要嘗試 `git push origin --delete claude/xxx`**：sandbox 的 git proxy 會回 **HTTP 403**（只放行 push commit、不放行刪 ref），重試也是 403、純粹浪費 round。GitHub MCP 也沒有 delete-branch 工具。Local branch 是拋棄式 sandbox 的一部分，不用管。萬一哪天 auto-delete 被關掉導致 branch 沒被清，那是 user 去 GitHub 設定重開／手動刪的事，不是 CCC 能在 sandbox 內解決的。
 6. Merge 完跟 user 回報 PR URL + 簡短 summary（branch 由 GitHub auto-delete 收尾），並附上**驗收用的 URL**——預設是 **prod URL**（`gu-log.vercel.app` 或文章深連結）。什麼時候給 prod URL、什麼時候才給 preview URL、什麼時候停下來問，照下面〈Preview URL vs 直接 merge〉那張表判斷。每個 turn 都要以可驗收的東西收尾（prod URL / preview URL+問題 / critical question），不留空回合。
+7. **盯到 merge / closed 才算收尾，中途不准把球丟回 user。** 訂閱不是「設定好就沒事」：webhook **不送** CI success、新 push、merge-conflict transition，所以光等事件會卡死。`send_later`（claude-code-remote MCP）可用時，排一個約 1 小時後的自我 check-in，醒來重查 PR 的 CI / mergeability / 狀態，有事就處理、沒事就**靜默 re-arm**（不要為了「沒事」去吵 user 或在 PR 灌留言），直到 PR merged/closed 或 user 喊停。`send_later` 不可用時，就在每次相關 event 醒來時順手重查一次。
 
-**禁問句**：「要不要 subscribe PR activity？」「要不要盯 CI？」「要不要幫你看 review comment？」——通通是 dumb question，預設答案永遠是 yes，user 不該被叫去確認 default behavior。CCC 的工作是「開 PR → 盯 CI → merge → 回報」整條收乾淨；branch cleanup 交給 repo 的 auto-delete 設定，CCC 不去 `git push --delete`（那會 403）。
+**禁問句**（出現任一句 = 違規，預設答案永遠是 yes，user 不該被叫去確認 default behavior）：「要不要 subscribe PR activity？」「要不要盯 CI？」「要不要幫你看 review comment？」「要我盯著確認真的 merge 嗎？」「還是放著讓 auto-merge 處理就好？」「要不要我 watch 這條 PR？」——**特別注意最後這幾句**：開了 `enable_pr_auto_merge` 之後在結尾問「要我盯 vs 放著讓它自動合」是最常見的偷懶收尾，**auto-merge 開了 ≠ 你可以不盯**，照樣要 subscribe + follow-through 到真的 merge。CCC 的工作是「開 PR → 盯 CI → merge → 回報」整條收乾淨；branch cleanup 交給 repo 的 auto-delete 設定，CCC 不去 `git push --delete`（那會 403）。
 
 ### Preview URL vs 直接 merge（收尾要給哪個）
 
