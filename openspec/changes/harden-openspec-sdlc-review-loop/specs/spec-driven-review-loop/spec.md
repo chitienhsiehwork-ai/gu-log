@@ -52,7 +52,7 @@ SDLC SHALL 明訂三層角色，每一層只做自己那層的事：
 
 ### Requirement: 審查迴圈 SHALL 有界
 
-階段 6 的 iterate SHALL 有輪數上限（max-N）。耗盡上限仍未收斂 SHALL 升 coach，不得無界重試。
+階段 6 的 iterate SHALL 有輪數上限（max-N）。耗盡上限仍未收斂 SHALL 升 coach，不得無界重試。此升 coach SHALL 視為落入 #481 既有的「critical design decision」例外，**不是新增第三個人類檢查點**——維持 #481「中間全自動、只在 critical decision 才打斷」的語意。
 
 #### Scenario: 達上限即升級
 
@@ -72,7 +72,7 @@ SDLC SHALL 明訂三層角色，每一層只做自己那層的事：
 
 ### Requirement: Builder SHALL NOT 改 spec delta
 
-builder 的 writable scope SHALL 排除 `specs/**/*.md`（scenario = 合約，對 builder 唯讀）。需要改一條 scenario 才能修好 = 勝利條件變了 = design decision，SHALL 撞唯讀牆並自動升 coach。
+builder 的 writable scope SHALL 排除 `specs/**/*.md`（scenario = 合約，對 builder 唯讀）。需要改一條 scenario 才能修好 = 勝利條件變了 = design decision，SHALL 撞唯讀牆並自動升 coach。**此唯讀牆在 apply（階段 5）即生效**；撞牆產生的 escalation 訊號跨階段 5→6，不是只在階段 6 審查迴圈內判定。
 
 #### Scenario: 改合約即升級
 

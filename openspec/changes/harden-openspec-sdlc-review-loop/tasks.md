@@ -1,7 +1,7 @@
 ## 1. 角色頂層心智模型（E）
 
 - [ ] 1.1 在 `.agents/openspec-sdlc.md` 的「三個角色」小節上方加一層：human = coach、main agent = controller、subagents = workers，明訂 coach 只停 explore + 審 proposal 兩座標
-- [ ] 1.2 同步把 coach 層補進 `AGENTS.md`／`CLAUDE.md` 對 SDLC 的描述（指標已加，補一句指揮鏈頂層）
+- [ ] 1.2 三層角色頂層 sync 進 `.agents/openspec-sdlc.md` 本體（流程 SSOT）；`AGENTS.md` 路由表指標已加（本 PR）；**不動 `CLAUDE.md`**（#484 後是 13 行 shim）
 
 ## 2. 收斂訊號 executable-first（A）+ scenario rubric（B）
 
