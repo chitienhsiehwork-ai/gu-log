@@ -60,7 +60,7 @@ entity. Tags:
 | `[GUESS]` | No basis. Say so plainly. |
 
 If a claim is about **AI tooling** (what's open source, who acquired whom, when a
-model shipped, whether feature X exists) — see CLAUDE.md's 〈事實查核紀律〉:
+model shipped, whether feature X exists) — see CONTRIBUTING.md's 〈事實查核紀律〉:
 do NOT tag it `[KNOWN]` from memory. Either `curl` the primary source and verify,
 or tag it `[GUESS]`/`[INFERRED]` and cap confidence LOW.
 

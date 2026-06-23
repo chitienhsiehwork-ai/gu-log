@@ -36,6 +36,11 @@
 
 **唯一該停下來問的**：critical design decision——會改變產品方向、架構、對外承諾、或 user 個人品牌調性的東西（例：要不要砍掉一個系列、要不要改 site 結構、要不要公開某個敏感立場）。內容文章只要過了 vibe gate + CI 綠，就屬於「safe & appropriate」，直接 merge；revert 很便宜（auto-merge + atomic commit 就是為了讓 ship 快、回退也快）。
 
+### ShroomDog 只在 merge 之後才參與（所以不准 merge 前停下來問要不要先讀 draft）
+
+- **User 只看 production**（gu-log.vercel.app）。不要叫 user 開 dev server。
+- **🔴 ShroomDog（作者本人）只在 merge 之後才參與**，而且是在 **prod URL（gu-log.vercel.app）或 branch/preview URL** 上讀成品——**不讀 draft、不看 diff、不在 merge 前審稿**。所以任何 agent **不准停下來問 user「要不要先讀這篇 draft 再 merge」**，那等於把 author 拖進 pre-merge 流程，違反這條。寫作 / 翻譯任務只要 (1) 品質 gate 全綠（pre-commit / pre-push / tribunal floor composite ≥3）、(2) 內容 logical / safe、(3) 不是 critical product / 架構決策 → **自己 merge**，author 之後在 prod 或 branch URL 上看，要回饋他會在 merge 後給（進 `docs/shroomdog-editorial-feedback.md`）。唯一要 merge 前停下來問的：產品方向、對外承諾、或不確定該不該公開的 critical design decision。「文章寫得好不好 / 語氣對不對」**不是** stop 的理由——那靠 tribunal gate 把關，author 在 prod 上事後挑。
+
 1. `git push -u origin claude/xxx`
 2. 用 GitHub MCP (`mcp__github__create_pull_request`) 開 PR 到 main
 3. **PR 開完立刻 `mcp__github__subscribe_pr_activity` 訂閱自己這條 PR**——不要問 user「要不要幫你盯」。CCC 開 PR 預設就要盯 CI + review comment，這是工作的一部分，不是 opt-in 服務。問就是 dumb question。**這條沒有「除非」**：開了 `enable_pr_auto_merge`、CI 還在 pending、改動很 safe、你覺得「應該會自己合」——通通不解除盯的責任。**訂閱是無條件動作，跟 subscribe 同一個 round 一起做完，不留到下個 turn、更不丟回給 user 決定。** 你盯，不然誰盯？（webhook 不送 CI success / merge transition，所以光訂閱不夠，見步驟 7 的 send_later check-in。）
@@ -57,7 +62,7 @@
 | Reader-facing 視覺/UX 改動，而且你**真的拿不準**是不是動到品牌調性/產品方向（borderline critical） | 給 **preview URL + 一個具體問題**，讓 user 拍板。這是 preview URL 唯一的正常用途 |
 | 明確的 critical design decision（產品方向、架構、對外承諾、品牌調性） | `AskUserQuestion` 停下來問，**不要**先 merge |
 
-**白話**：「safe 但我想讓你看一眼再合」**不是**給 preview 的理由——safe 就直接合，ShroomDog 在 prod 上事後審（這正是 merge-後-審稿的設計，見 `CLAUDE.md`）。只有「這個 taste call 我真的不確定該不該自己拍」才值得 preview + 問。判斷不出來時，預設往「merge」靠，不要往「問」靠。
+**白話**：「safe 但我想讓你看一眼再合」**不是**給 preview 的理由——safe 就直接合，ShroomDog 在 prod 上事後審（這正是 merge-後-審稿的設計，見上面〈ShroomDog 只在 merge 之後才參與〉）。只有「這個 taste call 我真的不確定該不該自己拍」才值得 preview + 問。判斷不出來時，預設往「merge」靠，不要往「問」靠。
 
 ### Merge method 選擇
 
@@ -137,7 +142,7 @@ Vercel build / tribunal / validate-posts / CI 沒過：
 
 **⚠️ 實測 caveat（2026-06-13）**：不是每個 CCC 網頁 harness 都把 `.claude/agents/` 註冊成 `Agent` tool 的 `subagent_type`。有的 session `Agent` tool 只開 built-in 的 `general-purpose` / `Explore` / `Plan`，named agent（`vibe-opus-scorer` 等）會回 `Agent type '...' not found`。遇到這種：**spawn `general-purpose`，在 prompt 裡叫它「讀 `.claude/agents/<judge>.md` 並完全照著做（zero parent context）」**，效果等同——judge 一樣 zero-context、一樣寫同一份 JSON。差別只在 model pin 顧不到（named agent 走 frontmatter 的 pin，general-purpose 繼承 parent model），所以 `scores.*.model` 要記**實際**用到的 model，不要照抄 pin。agent 檔已補 `name:` frontmatter，環境若支援 project agent 就會吃到 named 路徑。`scripts/tribunal-helpers.sh` 在 CCC 偵測到沒有 CLI provider 時，也會把這條 fallback 指令印到 stderr。
 
-**品質門檻（SSOT = `CLAUDE.md`〈🎯 兩層品質門檻〉；本段是 derived view）**：
+**品質門檻（SSOT = `CONTRIBUTING.md`〈🎯 兩層品質門檻〉；本段是 derived view）**：
 - **Floor（merge/ship gate）**：`scores.vibe` 存在、該 tribunalVersion 要求的 vibe 維度齊、且 composite ≥ 3。沒過 floor → pre-commit 會擋，不能 merge。
 - **PASS（首頁 / featured gate）**：Vibe composite ≥ 8 AND 至少一維 ≥ 9 AND 無任何維 < 8；Fact core avg ≥ 8 AND sourceBoundary ≥ 8 AND commentarySeparation ≥ 8；Librarian composite ≥ 8；FreshEyes composite ≥ 8 AND payoffDensity ≥ 8 AND lengthFit ≥ 8 AND（v9）clarity ≥ 8。沒過 PASS 仍可 merge/ship，但掛「精修中」badge，且不上首頁 / featured。
 
@@ -222,7 +227,7 @@ tools/sp-pipeline/gp-pipeline run <url> --force
 
 2026-06-13 更新：Claude 在 VM/CCC 上不作為主要 runtime；VM 是 Codex GPT-5.5 的地盤。
 
-> **🧭 SSOT 提醒（見 `CLAUDE.md`〈SSOT 紀律〉）**：每個 agent 用哪個 model，**值的 SSOT 是各 agent 的 `model:` frontmatter**（`.claude/agents/*.md`）；Mac SP writer 是 `tools/sp-pipeline/internal/llm/claude.go` 的 `ClaudeOpusPinned`。**下面這張表只描述 policy（哪一類 pin、哪一類浮動、為什麼），刻意不複述版本號**——版本號一旦抄進這裡就會 drift（2026-06-18 fresh-eyes / librarian 連踩兩次就是因為表裡寫死了 4-7）。要知道某 agent 現在實際跑哪版 → 去讀它的 frontmatter，不要相信任何散文裡的版本數字。
+> **🧭 SSOT 提醒（見 `docs/agent-discipline.md`〈SSOT 紀律〉）**：每個 agent 用哪個 model，**值的 SSOT 是各 agent 的 `model:` frontmatter**（`.claude/agents/*.md`）；Mac SP writer 是 `tools/sp-pipeline/internal/llm/claude.go` 的 `ClaudeOpusPinned`。**下面這張表只描述 policy（哪一類 pin、哪一類浮動、為什麼），刻意不複述版本號**——版本號一旦抄進這裡就會 drift（2026-06-18 fresh-eyes / librarian 連踩兩次就是因為表裡寫死了 4-7）。要知道某 agent 現在實際跑哪版 → 去讀它的 frontmatter，不要相信任何散文裡的版本數字。
 
 分工 policy（**按類別，不按版本號**）：
 
@@ -395,7 +400,7 @@ git log --oneline -5              # 看 branch 最近在幹嘛
 
   Playwright 就是這個模式的範本（2026-06-12 加）：`ccc-smoke-test.sh --fix` 在 `CLAUDE_CODE_REMOTE=true` 時，偵測 `${PLAYWRIGHT_BROWSERS_PATH:-~/.cache/ms-playwright}` 沒有 chromium 快取就背景下載，idempotent（已裝或已在下載就跳過），只在 CCC 跑（mac-CC 自己管 local Playwright）。所以「Playwright 沒裝」這個 friction 對之後的 CCC 不該再發生——醒來時背景已經在補了。
 
-**鐵則：撞到新的 recurring env friction → 在同一個 PR 把它收進 hook，當場消滅，別只修這次。** 這跟 CLAUDE.md「主任務踩到的 bug 順手修在同一個 PR」是同一條精神，只是套用在環境層：hook 是 CCC fresh-env friction 的 SSOT，能進 hook 的就別留在 per-session 手動步驟。
+**鐵則：撞到新的 recurring env friction → 在同一個 PR 把它收進 hook，當場消滅，別只修這次。** 這跟 `docs/agent-discipline.md`「主任務踩到的 bug 順手修在同一個 PR」是同一條精神，只是套用在環境層：hook 是 CCC fresh-env friction 的 SSOT，能進 hook 的就別留在 per-session 手動步驟。
 
 ## 不確定時找誰
 
