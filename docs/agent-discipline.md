@@ -74,3 +74,4 @@
 
 - **散文只講 policy / 為什麼**；event 名、套件名、計數、路徑、deny 哪個工具這類具體值一律**指回 code / YAML**，不在散文留第二份（複製事實 = 製造 drift，見上面〈SSOT 紀律〉）。
 - **審查用 Keep / Simplify / Drop**：transient 環境狀態（「本機目前沒裝」）→ Drop；複製 SSOT 的值 → 指回 SSOT；一個原則被一堆特例埋住 → Simplify 成原則。目標是**少而通用、不易過期**，不是加更多條款。
+- **持久化的 artifact（learning record、note、SOP、prompt）要對「零 session 脈絡的 fresh agent」自洽**：不要塞只有當下這場對話解得開的 handle——session-local 的關卡 / 步驟編號（`Lv.2`、`step 3`）、選項字母（「答對 B」）、「這個 turn / 剛剛那版」、臨時計數。下一個 agent 沒跑過那場流程、沒看過那些選項，這些 token 對它只是噪音（看不懂又燒 context）。**記「證明出來的耐久結論」（學會 / 決定了什麼），不是「產生它的 ephemeral 過程」（在第幾關、選了哪個字母）。** 一句測試：把這行抽出來單獨給一個沒讀過上下文的 agent，它看得懂嗎？看不懂就改寫成自洽的結論。
