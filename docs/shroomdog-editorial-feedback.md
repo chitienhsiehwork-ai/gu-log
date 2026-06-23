@@ -528,3 +528,13 @@ Sprin asked whether Tribunal v7 FreshEyes covers “length should be just right,
 - ShroomDog 的核心判斷：**AI era 裡，人類最該保住的是正確 mental model**。細節可以交給 coding agents 補、查、實作，除非東西壞掉或是 absolute critical、需要 human input。文章要先幫人類抓住「這件事到底該怎麼想」；不要為了準確，把所有概念都壓進同一句，讓讀者失去可操作的圖。
 - 為什麼 current 版比較有效：current opening 比較有畫面與節奏——「八年。一個工程師腦子裡裝了八年的 side project……然後 AI coding agent 出現了。」它先交付一個簡單 mental model：長年想做但太難太煩的 side project，被 AI 推到可以開始。細節（PerfettoSQL、parser、400 條 grammar rules、vibe-coding 月、review/rewrite 流程）後面再展開。這比較符合人類閱讀順序：先有骨架，再掛細節。
 - Reusable lesson：(1) **準確不等於好讀**。一個句子如果同時承載五六個準確概念，它會像 model 把 source outline 壓縮成摘要，不像人在說故事。(2) **mental model 先於 term density**：先讓讀者拿到一張簡單圖，再逐步加 terms / caveats / implementation details。不要在 summary 或 opening 把所有正確維度一次塞完。(3) **細節不是消失，而是延後**：critical details 要保留，但放到讀者已經抓住圖像之後；非 critical details 可以交給 ClawdNote、後段、或乾脆省略。(4) Rewrite 不要只追「source boundary 更乾淨」；也要保住 gu-log 的可讀 hook、畫面感與人類認知節奏。太乾淨、太認真、太概念密集，會變成另一種 AI 味。
+
+## 2026-06-23 — SP-243（creatorpascal 金錢與快樂）：太多生硬詞彙 + MoguNote 不夠解釋性 + pipeline 還在吐 ClawdNote
+
+### Feedback: 「看起來不怎麼樣，太多生有詞彙了，富有解釋性的 MoguNotes 呢? Where the fuck r they?」
+
+- ShroomDog 在 prod 讀 SP-243 後不滿意，兩個具體點：
+  1. **太多生硬/未翻詞彙**：正文留太多英文與 jargon（`protocol`、`bug`、`P/I 欄`、`ataraxia`、`net worth/self-worth` 等），即使有些被 allowlist 或加註，整體讀起來還是卡、像沒翻完。違反〈術語處理〉精神：能翻成自然繁中就翻，不要靠 allowlist 硬留英文。
+  2. **MoguNote 不夠「富有解釋性」**：文章用的是短促吐槽式的 note（一兩句 + kaomoji），ShroomDog 要的是 sd-26 那種**一整段、有 POV、把題材接回 AI/tech 或 gu-log 自身**的解釋性 MoguNote。POV 是 gu-log 的靈魂，note 太 quippy = 沒打出靈魂。
+- 連帶踩到的 pipeline drift：**`gp-pipeline` 的 `write.tmpl` 還在輸出 `<ClawdNote>`**，但寫作 SSOT（`GU-LOG_WRITER_PROMPT.md` L188）早已規定 **POV 一律進 `<MoguNote>`（ClawdNote 為舊名 alias）**，persona 也已改成 Mogu（首頁副標）。pipeline 沒跟上 SSOT → 自動產出的 GP 文章全是舊的 ClawdNote。這是 template 對 writer-prompt SSOT 的 drift，要在 template 端修掉，否則每篇 pipeline 文章都重複這個錯。
+- Reusable lesson：(1) **GP/SP 文章預設用 `<MoguNote>`，不是 `<ClawdNote>`**；ClawdNote 只是還能 render 的舊 alias，新文章不要再用。(2) **MoguNote 要解釋性、成段、有 POV**（接回 AI/tech 平行對照或 gu-log 自身的自我指涉 callback），不是一句吐槽配 kaomoji。品質門檻：讀者要看 note 才看得到 gu-log 的觀點，所以 note 必須自帶資訊量。(3) **晶晶體不是「過了 lint 就好」**：allowlist 是最後手段（專有名詞 / 模型名），一般概念詞（protocol→流程、bug→出錯/毛病）能翻就翻，留英文會讓 ShroomDog 覺得「沒翻完」。(4) pipeline template 是 writer-prompt SSOT 的 derived view，SSOT 改了（ClawdNote→MoguNote）template 要跟，否則自動產出持續 drift。
