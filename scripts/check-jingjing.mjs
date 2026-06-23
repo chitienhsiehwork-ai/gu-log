@@ -276,6 +276,10 @@ commit
 # OSS signing protocol Mitchell uses for Ghostty releases (covered in CP-159);
 # X handle of SP-169's source author.
 Vouch dani
+# Added 2026-06-22 for SP-239 (Ghostty startup tradeoffs). D-Bus = the Linux
+# desktop message bus, a genuine proper noun Mitchell names in the source
+# ("registration (dbus)"); reusable across future Linux/terminal articles.
+D-Bus
 # Added 2026-06-12 for SP-221 (Zed DeltaDB). Zed = editor/company, DeltaDB =
 # the product, Nathan Sobo = founder; "delta" is DeltaDB's namesake atomic
 # unit (the article's core abstraction, analogous to commit) — keeping the
@@ -514,6 +518,26 @@ rahulgs
 # (one-off mentions, not reusable canonical references), so they stay here.
 Jarred Sumner
 struct lifetime
+
+# Added 2026-06-22 for SP-240 (championswimmer process-vs-outcome / AI breaking
+# the peace). Shia LaBeouf = the actor behind the "Just do it" meme the source
+# cites (person, proper noun). Tropicana = the juice brand the lemonade-stand
+# analogy scales up into (company/product, proper noun). Both are one-off
+# proper-noun references named in the source, same category as the people /
+# company names already allowlisted above.
+Shia LaBeouf
+Tropicana
+
+# Added 2026-06-22 for SP-242 (Sakana Fugu orchestration "AI sovereignty" vs
+# Elie Bakouch's teardown). All proper nouns named in the two sources:
+# Sakana = the Japanese AI lab (company). Fugu / Ultra = the product and its
+# variant (Fugu Ultra). Elie Bakouch = the researcher behind the critique
+# (person). AutoResearch / TerminalBench / Bench (SWE Bench Pro) = benchmark
+# names cited from the tech report. Same category as the lab / product / person
+# / benchmark names already allowlisted above; none has a zh-tw translation.
+Sakana Fugu Ultra
+Elie Bakouch
+AutoResearch TerminalBench Bench
 `;
 
 const HARDCODED = new Set();

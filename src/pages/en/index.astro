@@ -81,25 +81,32 @@ const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(
         <h2>
           <img src="/mogu-picks-icon.png" alt="" class="mogu-section-icon" /> Mogu Picks
         </h2>
-        <p class="section-subtitle">One tweet, translated every hour by Mogu</p>
+        <p class="section-subtitle">Translated and written by Mogu</p>
 
-        {cpPosts.slice(0, 5).map((pick) => {
+        {cpPosts.slice(0, 3).map((pick) => {
           const status = getPostStatus(pick, allPostsFull);
           return (
-            <article class="pick-preview" style={getTimelineStyle(status)}>
-              <a href={`/en/posts/${pick.slug}`}>
-                {pick.data.title}
-                {status !== 'published' && <PostStatusLabel status={status} />}
-              </a>
-              <span class="pick-meta">
+            <article class="post-preview" style={getTimelineStyle(status)}>
+              <h3>
+                <a href={`/en/posts/${pick.slug}`}>
+                  {pick.data.title}
+                  {status !== 'published' && <PostStatusLabel status={status} />}
+                </a>
+              </h3>
+              <p class="post-meta">
                 {pick.data.ticketId && <TicketBadge ticketId={pick.data.ticketId} />}
-                {pick.data.translatedDate || pick.data.originalDate} · {pick.data.source}
-              </span>
+                {pick.data.translatedDate || pick.data.originalDate} · From {pick.data.source}
+              </p>
+              {pick.data.summary && (
+                <Toggle title="Preview">
+                  <p>{pick.data.summary}</p>
+                </Toggle>
+              )}
             </article>
           );
         })}
 
-        {cpPosts.length > 5 && (
+        {cpPosts.length > 3 && (
           <p class="view-all">
             <a href="/en/mogu-picks">View all →</a>
           </p>
@@ -272,31 +279,6 @@ const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(
   .post-preview :global(.toggle-header) {
     padding: 0.5rem 0.75rem;
     font-size: 0.85rem;
-  }
-
-  .pick-preview {
-    padding: 0.5rem 0;
-    border-bottom: 1px solid var(--color-divider);
-    font-size: 0.9rem;
-  }
-
-  .pick-preview a {
-    color: var(--color-text);
-  }
-
-  .pick-preview a:hover {
-    color: var(--color-accent);
-  }
-
-  .pick-meta {
-    display: block;
-    color: var(--color-text-muted);
-    font-size: 0.75rem;
-    margin-bottom: 0;
-  }
-
-  .pick-preview :global(.toggle-container) {
-    margin: 0.1rem 0 0;
   }
 
   .post-preview {

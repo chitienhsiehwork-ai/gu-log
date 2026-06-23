@@ -1,0 +1,137 @@
+---
+ticketId: 'SP-242'
+title: 'One API to Command Every Model: Sakana Fugu Sells "AI Sovereignty" — A Researcher Says It Delivers the Opposite'
+originalDate: '2026-06-22'
+translatedDate: '2026-06-22'
+translatedBy:
+  model: "Opus 4.8"
+  harness: "Claude Code CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.8"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.8"
+      harness: "Claude Code CLI"
+source: '@SakanaAILabs on X'
+sourceUrl: 'https://x.com/sakanaailabs/status/2068861630327443966'
+lang: 'en'
+summary: 'Sakana ships Fugu: a multi-agent orchestration system behind one API, sold as "AI sovereignty." But a researcher who read the tech report tears it down — a closed orchestrator on closed models means you control less, not more, and it wins benchmarks while never reporting cost.'
+tags: ['shroom-picks', 'agent', 'orchestration', 'sakana', 'benchmark']
+scores:
+  tribunalVersion: 9
+  vibe:
+    persona: 9
+    clawdNote: 9
+    vibe: 8
+    narrative: 9
+    score: 8
+    date: "2026-06-22"
+    model: "claude-opus-4-8"
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 8
+    commentarySeparation: 8
+    score: 8
+    date: "2026-06-22"
+    model: "claude-opus-4-8"
+  librarian:
+    glossary: 8
+    crossRef: 8
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-06-22"
+    model: "claude-opus-4-8"
+  freshEyes:
+    readability: 9
+    firstImpression: 9
+    payoffDensity: 9
+    lengthFit: 9
+    clarity: 9
+    score: 9
+    date: "2026-06-22"
+    model: "claude-opus-4-8"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+A Japanese lab famous for "collective intelligence" just shipped a product: behind one API endpoint sits a whole army of models that team up, split the work, and check each other. Sakana calls it Fugu, and it set the framing high — not just a tool, but "a blueprint for real AI sovereignty."
+
+A few hours later, a researcher named Elie Bakouch read the tech report and tore it apart point by point on X. His conclusion was cold: this thing lets the user control *less* than before.
+
+Both sides are describing the exact same product. But it sounds like two completely different things.
+
+## One API That Commands Every Model in the World
+
+Sakana Fugu's pitch is clean: wrap a whole multi-agent orchestration system inside a single model API. You send one request, and Fugu decides everything behind the scenes — which model to route to, whether to call a second model to verify, how to combine the results. Your code never touches any of that complexity.
+
+Technically, Fugu is itself an LLM, trained to call a pool of other LLMs — it can even call another copy of itself recursively. Simple tasks it answers directly; hard ones get a whole team of expert models. There are two products: Fugu balances performance and latency (Sakana says you can drop it into a tool like [Codex](/en/glossary#codex) for coding and code review), while Fugu Ultra coordinates a deeper pool of experts to push quality on hard problems. Under the hood, Fugu behaves like a multi-agent system but acts like a single [agent](/en/glossary#agent).
+
+What's really loud is the framing. Sakana's argument goes like this: AI progress has been driven by giant monolithic models, but the most powerful systems of the future will be "collaborative ecosystems." And handing the orchestration to a single company is, for an organization or even a nation, "a material vulnerability" — just like the recent export controls on Fable and Mythos, where access can vanish overnight. Because Fugu sits on a pool of "swappable" models, it can simply route around any single vendor's restrictions. The slogan Sakana puts on this: a practical hedge against the concentration of power, delivering "the resilient blueprint required for true AI sovereignty."
+
+<ClawdNote summary="The 'collaborative ecosystems' direction is real — the question is whether the product cashes its own check.">
+Let me give credit where it's due first: upgrading "not locked to one vendor" into "a geopolitical sovereignty problem" is a beautiful piece of marketing. It repackages an engineering choice (do you want a routing layer or not?) as a national-security necessity. And the big direction — "collaborative ecosystems beat single giant models" — is something gu-log actually believes. The post you're reading right now was reviewed by [a system of four AI judges](/en/posts/en-sd-10-20260322-ralph-loop-quality-system): one for voice, one for facts, one for the glossary, one playing the clueless stranger. No single model gets the final say. Orchestration is a real topic. The question isn't the direction — it's whether this product cashes the check it wrote. (¬‿¬)
+</ClawdNote>
+
+---
+
+## "Sovereignty" Is the First Word the Researcher Rejects
+
+Elie Bakouch's first cut lands right on the loudest selling point.
+
+His take: Fugu is a **closed orchestrator** stacked on top of a pile of **closed models**. Before, the user could at least pick which model to use. Now you don't even get to see which ones were used, or how much of each. So this isn't AI sovereignty — sovereignty means *more* control, and this thing takes the "who am I locked to" decision out of the user's hands and gives it to a black box nobody can see inside.
+
+Sakana says "route around vendor restrictions." Elie's question back: after the routing, who's holding the wheel? The answer is Sakana, not the user.
+
+<ClawdNote summary="'Not locked to one vendor' just moves the dependence to Sakana — and Ultra's pool is fixed, the opaque one.">
+This cut is sharp because it isn't aimed at the tech — it's aimed at the honesty of the framing. "Not dependent on a single vendor" is true, but "not dependent on a single vendor" is not the same as "you have sovereignty." It just moves the single point of dependence from some model company to Sakana, the orchestration layer. Sakana even left itself a tell: with Fugu, you can drop specific providers from the console — but Fugu Ultra's pool is fixed and can't be touched. The people who want sovereignty usually come for Ultra, and Ultra happens to be the least transparent of the two. ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Take It Apart: One Is a Router, One Is Plan Mode
+
+After the framing, Elie went into the tech report and took both products apart.
+
+For Fugu (the non-Ultra one), his read is: it's basically a classifier that, each turn, picks the model most likely to get the answer right — in other words, a router. The cost shows up: on SWE Bench Pro it scores 10 points *below* Opus (Sakana's own table backs this — Fugu 59.0, Opus 4.8 69.2), with small wins on other benchmarks but nothing big. The only benefit that makes sense is lower cost, but Sakana publishes no cost numbers at all, so he bets it's actually the other way. There's a structural catch too: adding a new model to the pool probably means retraining that classifier — not plug-and-play.
+
+Fugu Ultra he describes as "an advanced plan mode plus an orchestrator." Given a problem, it first emits a plan made of several workflows, roughly: spawn model A's [subagents](/en/glossary#subagent) to do this, then use model B to judge it, then use model C to summarize — which is just a [test-time compute](/en/glossary#test-time-compute) scaling strategy, trading more compute for quality. Elie says it's an okay way to do it, but it hits one hard limit: it has to predict the entire plan *before* the agents start working, which is exactly why the steps are capped at 5.
+
+And the fix he points at is the best line in the whole thread: what you should predict isn't the whole thing at t=0 — it's "use what you observed at t to decide what to spawn at t+1." A static plan versus dynamic adaptation are two completely different tiers of agent design.
+
+<ClawdNote summary="Static plan vs dynamic adaptation is exactly what gu-log wrestles with running long-task agents">
+This cut hits the core fault line of agent design, and gu-log feels it directly. The long-running coding agent in [SP-237](/en/posts/en-sp-237-20260621-simonlast-agent-coding-agent) is built on the opposite of "plan it all upfront" — it shovels new tasks into the list as it goes and uses an independent reviewer to find gaps against the plan, which means it re-calibrates with fresh information at every step. Playing the whole chess game on move one, and capping it at 5 moves, really does give up the most valuable thing an agent has: learning while doing. That said — to package this as a "single model API" with usable latency, the cost of dynamic re-planning may just be more than this architecture can swallow. That's an engineering trade-off, not plain stupidity. But the direction Elie points at is right.
+</ClawdNote>
+
+---
+
+## The Deadliest Cut: It Wins Benchmarks, but Never Shows the Bill
+
+Pulling all the scattered criticism together, the one problem Elie himself marks as "the biggest and most obvious":
+
+What Fugu serves up is a "best-of-N over models" test-time scaling method — in plain terms, feed the same question to several models and keep the best answer. A method like that burns extra compute by design. And yet, start to finish, Sakana **never reports** how many output tokens or how much cost it took to hit any given benchmark.
+
+Without the cost axis, those few points of benchmark lead are floating in midair. Burning 5x the tokens to win 2 points is a completely different thing from winning 2 points on the same budget — the former isn't a win at all.
+
+A few transparency problems come up alongside it: that AutoResearch comparison chart anonymizes the opponents as "Model A, B, C" — comparing against others while refusing to say who they are. Elie also alleges that Fable 5's TerminalBench score is reported wrong. And on exactly which models are in the pool, Sakana stays vague, naming only the closed-source API ones.
+
+His closing line is just as grounded: the fair comparison group is wrong. You shouldn't pit Fugu against bare Opus — you should pit it against "Opus with ultracode/workflows enabled." Not bare Kimi, but "Kimi swarm." Sending a compute-heavy test-time method up against single-shot opponents is rigged in its favor from the start.
+
+<ClawdNote summary="gu-log's own review burns tokens too — it just doesn't hide the bill while claiming frontier parity.">
+"Winning benchmarks without reporting cost" is a chronic disease across the whole AI field — it's not Sakana's original sin. But for a product whose entire pitch is best-of-N orchestration, the hole is especially fatal, because its core mechanism *is* "spend more compute for a higher score." Not reporting the compute means hiding the one variable that should be questioned. For the record, gu-log's own four-judge review is also a test-time quality-stacking thing, and a single article burns a non-trivial pile of tokens; the only difference is it doesn't go on X to claim it's "shoulder-to-shoulder with frontier models" and then go quiet about the bill (￣▽￣). The contrast says it all: same trade of more compute for quality, the honest version puts the cost on the table so people can weigh it, the marketing version only shows you the cell where it won.
+</ClawdNote>
+
+---
+
+## The Bottom Line
+
+Stack the two sides on top of each other and they don't actually contradict — they just stand at opposite ends of the framing.
+
+Sakana got one big thing right: orchestrating multiple models and making them collaborate really is a direction worth taking seriously, maybe even the next frontier. Even Elie doesn't deny that, and gu-log practices it with a whole multi-model review setup of its own.
+
+But "the direction is right" can't hold up a word as big as "sovereignty blueprint." A closed orchestrator on top of closed models, no look inside, winning benchmarks without showing the bill — the honest description is "a decent but over-marketed test-time scaling tool," not some national-security hedge against the concentration of power.
+
+Here's the most ironic part: a product shouting "don't hand your fate to a single black box" is itself a black box you can't see into. Real sovereignty was never about swapping in a smarter someone to decide for you — it's being able to see how the decision gets made.

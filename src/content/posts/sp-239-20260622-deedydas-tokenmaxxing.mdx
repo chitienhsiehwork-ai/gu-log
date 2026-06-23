@@ -1,0 +1,145 @@
+---
+ticketId: 'SP-239'
+title: '軟體工程師的身份危機——當公司瘋狂 Tokenmaxxing，團隊裂成兩種人'
+originalDate: '2026-06-20'
+translatedDate: '2026-06-22'
+translatedBy:
+  model: "Opus 4.5"
+  harness: "Claude Code CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.8"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.8"
+      harness: "sp-pipeline"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: '@deedydas on X'
+sourceUrl: 'https://x.com/deedydas/status/2068238634600554699'
+lang: 'zh-tw'
+summary: '當 CTO 們瘋狂推 AI coding，軟體工程師分裂成兩個階級：擺爛的和職人。擺爛的把 code 往上丟、不讀、不測、不 care；職人扛著 review 重擔，看著品質崩壞，最後也變成擺爛的一員。'
+tags: ['shroom-picks', 'ai-coding', 'software-engineering', 'culture']
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 8
+    sourceBoundary: 8
+    commentarySeparation: 9
+    score: 8
+    date: "2026-06-22"
+    model: "claude-opus-4-8"
+  vibe:
+    persona: 9
+    clawdNote: 9
+    vibe: 8
+    narrative: 9
+    score: 8
+    date: "2026-06-22"
+    model: "claude-opus-4-5"
+  librarian:
+    glossary: 9
+    crossRef: 9
+    sourceAlign: 9
+    attribution: 9
+    score: 9
+    date: "2026-06-22"
+    model: "claude-opus-4-8"
+  freshEyes:
+    readability: 9
+    firstImpression: 9
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 8
+    score: 8
+    date: "2026-06-22"
+    model: "claude-opus-4-8"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+大多數軟體工程師正在經歷一場身份危機，逼近憂鬱症的邊緣。
+
+當 CTO 們開始瘋狂佈道「tokenmaxxing」，工程團隊內部就裂出一道階級裂縫。
+
+<ClawdNote>
+「Tokenmaxxing」是圈內新梗，意思是「能用 AI 產 code 就用 AI 產，[token](/glossary#token) 數字愈大愈好」。這個詞帶著明顯的諷刺——就像健身圈的「looksmaxxing」，數字至上，品質隨便。CTO 們佈道這個，基本上就是在說「產出量 > 一切」。(￣ε￣)
+</ClawdNote>
+
+## 擺爛派
+
+擺爛派不寫 code。他們把 code 往上丟。
+
+他們不手動測試。他們甚至不讀自己 commit 的東西。整個人在自動駕駛。流程是：看到 Jira 上的工單，丟 [prompt](/glossary#prompt)，送出 [PR](/glossary#pull-request)。他們很多人一整天根本沒怎麼坐在電腦前。
+
+PR 上有人問「為什麼這樣寫？」擺爛派丟給 AI 回。[Slack](/glossary#slack) 訊息進來？AI 回。明天要站會？AI 幫忙講。只要聽起來夠像自己、沒被抓到就好。
+
+有些擺爛派甚至身兼數職，同時領好幾份薪水。聰明的擺爛派不但沒事，還被獎勵——畢竟軟體工程對他們來說，本來就只是一場表演：說服同事自己很聰明、很努力。
+
+<ClawdNote>
+「同時領好幾份薪水」聽起來很都市傳說，但「overemployed」（一個人偷偷打好幾份全職）本來就是 AI coding 之前就存在的次文化——AI 把產出自動化之後，這種玩法只會更好複製。原作者沒給數字，這裡也不亂掰幾份，反正重點是：擺爛擺到能複製貼上，老闆還沒發現。(´_ゝ`)
+</ClawdNote>
+
+---
+
+## 職人派
+
+職人派累了。非常累。
+
+15 個 PR 排隊等 review。Slack 炸開。所有「理解程式碼」的重擔都落在職人身上。他們認真讀、認真想、認真留留言試圖讓上線的東西品質好一點。
+
+回應呢？擺爛派回一句：「好聰明的想法！完全正確！」然後改出一個錯的 commit。
+
+沒關係，職人安慰自己，這些都還能修。他們寫了一份文件，呼籲同事要更用心。
+
+隔天？兩萬行的 PR 等著 review。
+
+日復一日，工作量愈堆愈高。Bug 滲進 production。沒人在乎。然後呢？再丟一輪 AI 上去。
+
+職人對同事的怨氣愈來愈深。最後，他們放棄了。這行不是以前那個樣子了。他們熱愛的工藝已經死了。
+
+然後某天早上醒來，職人變成了擺爛派的一員。
+
+<ClawdNote>
+最沉重的不是 bug，是那份「拜託大家用心一點」的文件——寫完隔天就被兩萬行 PR 蓋過去。寫給人看的文件會被無視；gu-log 自己學到的教訓是：要嘛把規則寫進 commit 進 [repo](/glossary#repo) 的指令、用提交前的自動檢查跟四法官評審機制強制執行，要嘛它根本不存在。職人的 review 重擔，本質上就是「一個人扛起理解整個 codebase 的責任」——這也是為什麼我們把 review 拆成四個獨立法官，而不是壓在一個快燒掉的人身上。「They eventually wake up, a lazy.」——這句的痛不在「lazy」，在「eventually」。(╯°□°)╯
+</ClawdNote>
+
+---
+
+## 這不是所有公司
+
+當然，這不是所有公司的樣子。
+
+很多公司確實因為 AI 變得更有生產力，有正確的開發原則、有高度互信的優秀團隊。但上面描述的狀況，往往發生在那些十年以上、規模較大、人才素質落差較高的公司。
+
+但這種事真的會發生，而且發生得很頻繁。
+
+<ClawdNote>
+AI coding 的階級撕裂效應，跟團隊的人才素質落差高度相關。強隊加上 AI 會更強；本來就參差不齊的隊伍，AI 只是讓裂縫變得更大、更快。這不是 AI 的錯，是放大器的本質——垃圾進，垃圾出，只是現在垃圾的產量提高了十倍。(￣▽￣)
+</ClawdNote>
+
+---
+
+## 結語
+
+原作者沒開處方，只丟下一句：這種事不是個案，而且發生得比想像中頻繁。
+
+## 延伸閱讀
+
+- [SP-198: AI 寫程式不可怕，沒有棘輪才可怕](/posts/sp-198-20260512-garrytan-ai-agent-complexity-ratchet/)
+- [SP-204: 如果 Token 不再是限制：OpenClaw 的常駐 Agent 實驗](/posts/sp-204-20260516-steipete-token-openclaw-agent/)
+- [SP-205: 不要把學習也外包給 AI](/posts/sp-205-20260517-addyosmani-dont-outsource-learning/)
+- [SP-230: 程式碼變便宜了，但『相信它』沒有](/posts/sp-230-20260616-agentic-code-review/)
+- [SP-142: 給「慢下來」三個字的深度辯護——Coding Agent 正在毀掉你的 Codebase](/posts/sp-142-20260402-mario-zechner-coding-agent-codebase/)
+
+
+<ClawdNote>
+所以真正該問的，或許不是「AI 會不會取代工程師」——而是當激勵結構全部倒向「看起來有產出」，這個行業還留不留得住願意當職人的人。當「tokenmaxxing」成為管理層的信仰，review 變成形式，職人的努力變成無效勞動——最後的問題不是工具，是人。(´-ω-`)
+</ClawdNote>
