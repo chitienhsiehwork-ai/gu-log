@@ -152,12 +152,14 @@ Jarrod Watts Matt Pocock
 Lisa MindOS_Lisa
 Dimillian Thomas Ricouard
 Kyle Jeong
+# Behavioral-economics / happiness researchers cited in SP-243
+Kahneman Deaton Angus Killingsworth
 
 # Places
 Albuquerque Hong Kong San Francisco SF Silicon Valley
 Cambridge Stanford MIT Berkeley Princeton Harvard
 Beijing Shanghai Shenzhen Hangzhou Tokyo Seoul Singapore London Paris Berlin
-Craigslist OpenTable Google Maps Google Drive Dropbox Drive
+Craigslist OpenTable Google Maps Google Drive Dropbox Drive Pinterest
 
 # Common file/format/protocol identifiers
 Markdown markdown JSON YAML XML CSV TSV PDF EPUB DOCX MDX LaTeX
@@ -175,6 +177,8 @@ ms us ns
 Hz MHz GHz THz
 RPM CPM BPM
 
+# Greek/foreign term italicized + glossed inline in body (SP-243 伊比鳩魯 ataraxia)
+ataraxia
 # Misc commonly-fine
 Inc Inc. Ltd LLC Corp Corp.
 v1 v2 v3 v4 v5
