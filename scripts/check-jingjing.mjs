@@ -542,6 +542,22 @@ Tropicana
 Sakana Fugu Ultra
 Elie Bakouch
 AutoResearch TerminalBench Bench
+
+# Added 2026-06-22 for CP-310 (Alisa Liu's NLP-PhD industry job-search notes).
+# All bona-fide proper nouns named in the single source, none with a natural
+# zh-tw translation (writer-prompt rule #2: people / libraries / products /
+# course + article titles stay English):
+#   Alisa Liu = the author (person). Lambert = Nathan Lambert, cited author.
+#   PyTorch / numpy = the ML libraries an interview tests. transformer /
+#   tokenizer / tokenization = canonical architecture + her research specialty.
+#   LeetCode / Neetcode / Blind (75) = interview-prep resources. Modeling /
+#   Scratch = the Stanford course title "Language Modeling from Scratch".
+#   Industry / Job = words in the source article title "Notes on the Industry
+#   Job Search" as it appears in the citation link.
+Alisa Liu Lambert
+PyTorch numpy transformer tokenizer tokenization
+LeetCode Neetcode Blind
+Modeling Scratch Industry Job
 `;
 
 const HARDCODED = new Set();

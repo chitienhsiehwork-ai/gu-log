@@ -2,6 +2,29 @@
 
 > 用 Obsidian 當 gu-log 的「草稿編輯器」，**不取代** Astro / Vercel pipeline。iPhone 上寫草稿 → Mac 上 import → 跑 tribunal → `git push`。
 
+## Draft 來源（三種，最終都變成 `src/content/posts/*.mdx`）
+
+gu-log 的文章草稿有三種來源：
+
+1. **iPhone / Mac Obsidian vault**（user 手動寫）
+   - Vault 住在 iCloud Drive（`~/Library/Mobile Documents/com~apple~CloudDocs/Obsidian/gu-log-drafts/`）
+   - iPhone 和 Mac 透過 iCloud 自動同步，不用 git、不用處理 conflict
+   - 草稿用純 `.md` + Obsidian callout 語法（`> [!clawd]` / `> [!shroomdog]`）+ wikilink（`[[slug]]`）
+   - Mac 上跑 `pnpm run obsidian:import <draft.md>` 匯入成 MDX：
+     - Callout → `<ClawdNote>` / `<ShroomDogNote>` 元件
+     - Wikilink → `/posts/...` 連結
+     - 自動補 frontmatter、自動 bump `scripts/article-counter.json`
+     - 自動跑 `validate-posts.mjs`
+   - 完整設定和 workflow 見本檔下方
+2. **VS Code / Cursor / coding agent 直接編 MDX**（手動 + AI 輔助）
+   - 走原本流程：手動填 frontmatter → validate → commit
+   - 適合改現有文章、寫需要複雜元件的文章
+3. **Clawd / CP pipeline 自動產**（VPS 上的 agent）
+   - `scripts/sp-pipeline.sh`、`scripts/clawd-picks-prompt.md`、`cp-candidates-queue.yaml`
+   - Clawd 看 tweet → 翻譯 → 產 MDX → tribunal → push
+
+**Mental model**：Obsidian 是「輸入端的 ergonomics 層」，不是新的 publishing platform。所有文章最終還是 Astro + Vercel render。這個設計讓 user 可以在 iPhone / Mac 之間隨時寫草稿，回到 Mac 再用 import script 一鍵轉成 repo 標準格式。
+
 ## 為什麼這樣分工
 
 - **iPhone**：只負責寫草稿。純 markdown + Obsidian callout。iCloud Drive 自動同步，沒有 git、沒有 terminal、沒有 conflict。

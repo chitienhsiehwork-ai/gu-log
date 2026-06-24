@@ -529,6 +529,14 @@ Sprin asked whether Tribunal v7 FreshEyes covers “length should be just right,
 - 為什麼 current 版比較有效：current opening 比較有畫面與節奏——「八年。一個工程師腦子裡裝了八年的 side project……然後 AI coding agent 出現了。」它先交付一個簡單 mental model：長年想做但太難太煩的 side project，被 AI 推到可以開始。細節（PerfettoSQL、parser、400 條 grammar rules、vibe-coding 月、review/rewrite 流程）後面再展開。這比較符合人類閱讀順序：先有骨架，再掛細節。
 - Reusable lesson：(1) **準確不等於好讀**。一個句子如果同時承載五六個準確概念，它會像 model 把 source outline 壓縮成摘要，不像人在說故事。(2) **mental model 先於 term density**：先讓讀者拿到一張簡單圖，再逐步加 terms / caveats / implementation details。不要在 summary 或 opening 把所有正確維度一次塞完。(3) **細節不是消失，而是延後**：critical details 要保留，但放到讀者已經抓住圖像之後；非 critical details 可以交給 ClawdNote、後段、或乾脆省略。(4) Rewrite 不要只追「source boundary 更乾淨」；也要保住 gu-log 的可讀 hook、畫面感與人類認知節奏。太乾淨、太認真、太概念密集，會變成另一種 AI 味。
 
+## 2026-06-23 — CP-310 ShroomDog vibe 6 vs 機器 vibe 8（校準訊號 + 新增 shroomDogVibe 欄位）
+
+### Feedback: 「Vibe 6 by ShroomDog (V2)；merge 前該有個 vibe score 存在某處」（澄清：不是匿名 human，是 ShroomDog 本人——gu-log 的具名編輯人格）
+
+- 情境：CP-310（Alisa Liu 求職實錄 MP 翻譯）由 Opus 4.5 重寫成 V2 後，四法官給 Fact 9 / Vibe 8 / Librarian 8 / Fresh Eyes 8。ShroomDog 讀過 branch preview 後判定「acceptable」可 merge，但 ShroomDog 本人 vibe 只給 **6**，並指出值得讓「ShroomDog vibe score」有個正式存放位置。
+- 校準訊號：**機器 vibe 8 對人工 vibe 6 → 機器分偏寬約 2 分**。這跟 CP-300 那次「rewrite 概念精確但讀起來像 AI slop / boring」是同一條軸——tribunal 的 vibe judge 容易把「忠實、乾淨、無錯」讀成高分，但人類讀者要的是畫面感、節奏、不無聊。CP-310 V2 的中段（面試分類七連列）正是 fresh-eyes 也點到的「faithful but less warm / linear」，機器仍給 8，人類給 6。
+- 處置：(1) 新增 `scores.shroomDogVibe`（score / date / note）到 `src/content/config.ts`（frontmatter schema SSOT），讓 ShroomDog vibe 有正式欄位、跟 AI tribunal 並存、可被未來 UI / 背景 tribunal 當 ground truth。命名刻意用 `shroomDogVibe` 而非 `humanVibe`——這是具名編輯（ShroomDog）的分數，不是匿名 human。(2) CP-310 兩版 frontmatter 填 shroomDogVibe 6。shroomDogVibe **不是 commit gate**，純編輯 ground truth / 校準用。
+- Reusable lesson：(1) **機器 vibe 跟 ShroomDog vibe 要分開記、不要互相覆蓋**——機器分系統性偏寬，把兩者並列才看得出 gap、才能日後校準 vibe-scoring-standard。(2) 機器給 straight-8、人類給 6 的典型死因是「中段把 source 結構線性照搬、忠實但不暖」；rewrite 要主動破壞線性、加畫面，不能只追忠實乾淨。(3) merge 不被 ShroomDog 低分擋（floor 是 AI composite ≥3、homepage 是 AI vibe 一維 ≥9）；ShroomDog vibe 6 的角色是誠實記錄 + 餵背景精修，不是 ship gate。
 ## 2026-06-23 — SP-243（creatorpascal 金錢與快樂）：太多生硬詞彙 + MoguNote 不夠解釋性 + pipeline 還在吐 ClawdNote
 
 ### Feedback: 「看起來不怎麼樣，太多生有詞彙了，富有解釋性的 MoguNotes 呢? Where the fuck r they?」
