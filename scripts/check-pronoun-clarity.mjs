@@ -40,8 +40,13 @@ function buildMask(lines) {
   let startIndex = markFrontmatter(lines, masked);
   let inFence = false;
   let fenceMarker = '';
-  let inClawdNote = false;
-  let inShroomDogNote = false;
+  // gu-log persona note components whose body is the persona speaking (Mogu /
+  // Clawd / ShroomDog), so first/second-person pronouns inside are expected and
+  // must be masked. MoguNote is the canonical name; ClawdNote is the legacy
+  // alias still rendered by older posts — both must mask, or switching a post to
+  // MoguNote silently reintroduces false positives.
+  const NOTE_COMPONENTS = ['MoguNote', 'ClawdNote', 'ShroomDogNote'];
+  let noteCloseTag = '';
 
   for (let i = startIndex; i < lines.length; i += 1) {
     const line = lines[i];
@@ -55,18 +60,10 @@ function buildMask(lines) {
       continue;
     }
 
-    if (inClawdNote) {
+    if (noteCloseTag) {
       masked[i] = true;
-      if (line.includes('</ClawdNote>')) {
-        inClawdNote = false;
-      }
-      continue;
-    }
-
-    if (inShroomDogNote) {
-      masked[i] = true;
-      if (line.includes('</ShroomDogNote>')) {
-        inShroomDogNote = false;
+      if (line.includes(noteCloseTag)) {
+        noteCloseTag = '';
       }
       continue;
     }
@@ -83,18 +80,11 @@ function buildMask(lines) {
       continue;
     }
 
-    if (line.includes('<ClawdNote')) {
+    const openedNote = NOTE_COMPONENTS.find((name) => line.includes(`<${name}`));
+    if (openedNote) {
       masked[i] = true;
-      if (!line.includes('</ClawdNote>')) {
-        inClawdNote = true;
-      }
-      continue;
-    }
-
-    if (line.includes('<ShroomDogNote')) {
-      masked[i] = true;
-      if (!line.includes('</ShroomDogNote>')) {
-        inShroomDogNote = true;
+      if (!line.includes(`</${openedNote}>`)) {
+        noteCloseTag = `</${openedNote}>`;
       }
       continue;
     }

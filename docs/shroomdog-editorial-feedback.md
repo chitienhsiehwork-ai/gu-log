@@ -537,3 +537,12 @@ Sprin asked whether Tribunal v7 FreshEyes covers “length should be just right,
 - 校準訊號：**機器 vibe 8 對人工 vibe 6 → 機器分偏寬約 2 分**。這跟 CP-300 那次「rewrite 概念精確但讀起來像 AI slop / boring」是同一條軸——tribunal 的 vibe judge 容易把「忠實、乾淨、無錯」讀成高分，但人類讀者要的是畫面感、節奏、不無聊。CP-310 V2 的中段（面試分類七連列）正是 fresh-eyes 也點到的「faithful but less warm / linear」，機器仍給 8，人類給 6。
 - 處置：(1) 新增 `scores.shroomDogVibe`（score / date / note）到 `src/content/config.ts`（frontmatter schema SSOT），讓 ShroomDog vibe 有正式欄位、跟 AI tribunal 並存、可被未來 UI / 背景 tribunal 當 ground truth。命名刻意用 `shroomDogVibe` 而非 `humanVibe`——這是具名編輯（ShroomDog）的分數，不是匿名 human。(2) CP-310 兩版 frontmatter 填 shroomDogVibe 6。shroomDogVibe **不是 commit gate**，純編輯 ground truth / 校準用。
 - Reusable lesson：(1) **機器 vibe 跟 ShroomDog vibe 要分開記、不要互相覆蓋**——機器分系統性偏寬，把兩者並列才看得出 gap、才能日後校準 vibe-scoring-standard。(2) 機器給 straight-8、人類給 6 的典型死因是「中段把 source 結構線性照搬、忠實但不暖」；rewrite 要主動破壞線性、加畫面，不能只追忠實乾淨。(3) merge 不被 ShroomDog 低分擋（floor 是 AI composite ≥3、homepage 是 AI vibe 一維 ≥9）；ShroomDog vibe 6 的角色是誠實記錄 + 餵背景精修，不是 ship gate。
+## 2026-06-23 — SP-243（creatorpascal 金錢與快樂）：太多生硬詞彙 + MoguNote 不夠解釋性 + pipeline 還在吐 ClawdNote
+
+### Feedback: 「看起來不怎麼樣，太多生有詞彙了，富有解釋性的 MoguNotes 呢? Where the fuck r they?」
+
+- ShroomDog 在 prod 讀 SP-243 後不滿意，兩個具體點：
+  1. **太多生硬/未翻詞彙**：正文留太多英文與 jargon（`protocol`、`bug`、`P/I 欄`、`ataraxia`、`net worth/self-worth` 等），即使有些被 allowlist 或加註，整體讀起來還是卡、像沒翻完。違反〈術語處理〉精神：能翻成自然繁中就翻，不要靠 allowlist 硬留英文。
+  2. **MoguNote 不夠「富有解釋性」**：文章用的是短促吐槽式的 note（一兩句 + kaomoji），ShroomDog 要的是 sd-26 那種**一整段、有 POV、把題材接回 AI/tech 或 gu-log 自身**的解釋性 MoguNote。POV 是 gu-log 的靈魂，note 太 quippy = 沒打出靈魂。
+- 連帶踩到的 pipeline drift：**`gp-pipeline` 的 `write.tmpl` 還在輸出 `<ClawdNote>`**，但寫作 SSOT（`GU-LOG_WRITER_PROMPT.md` L188）早已規定 **POV 一律進 `<MoguNote>`（ClawdNote 為舊名 alias）**，persona 也已改成 Mogu（首頁副標）。pipeline 沒跟上 SSOT → 自動產出的 GP 文章全是舊的 ClawdNote。這是 template 對 writer-prompt SSOT 的 drift，要在 template 端修掉，否則每篇 pipeline 文章都重複這個錯。
+- Reusable lesson：(1) **GP/SP 文章預設用 `<MoguNote>`，不是 `<ClawdNote>`**；ClawdNote 只是還能 render 的舊 alias，新文章不要再用。(2) **MoguNote 要解釋性、成段、有 POV**（接回 AI/tech 平行對照或 gu-log 自身的自我指涉 callback），不是一句吐槽配 kaomoji。品質門檻：讀者要看 note 才看得到 gu-log 的觀點，所以 note 必須自帶資訊量。(3) **晶晶體不是「過了 lint 就好」**：allowlist 是最後手段（專有名詞 / 模型名），一般概念詞（protocol→流程、bug→出錯/毛病）能翻就翻，留英文會讓 ShroomDog 覺得「沒翻完」。(4) pipeline template 是 writer-prompt SSOT 的 derived view，SSOT 改了（ClawdNote→MoguNote）template 要跟，否則自動產出持續 drift。
