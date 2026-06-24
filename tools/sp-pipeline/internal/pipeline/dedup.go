@@ -15,6 +15,10 @@ func (s *State) DedupURL(ctx context.Context) error {
 		s.Log.Info("Step 1.2: URL dedup gate — SKIPPED (--from-step)")
 		return nil
 	}
+	if s.SkipDedup {
+		s.Log.Warn("Step 1.2: URL dedup gate — BYPASSED (--skip-dedup)")
+		return nil
+	}
 	if s.TweetURL == "" {
 		s.Log.Info("Step 1.2: URL dedup — skipping (no URL)")
 		return nil
@@ -62,6 +66,10 @@ func (s *State) DedupURL(ctx context.Context) error {
 func (s *State) Dedup(ctx context.Context) error {
 	if s.shouldSkipBelow(StepDedup) {
 		s.Log.Info("Step 1.7: dedup gate — SKIPPED (--from-step)")
+		return nil
+	}
+	if s.SkipDedup {
+		s.Log.Warn("Step 1.7: dedup gate — BYPASSED (--skip-dedup)")
 		return nil
 	}
 	if s.TweetURL == "" && s.SuggestedTitle == "" {

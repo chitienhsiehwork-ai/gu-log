@@ -1,0 +1,127 @@
+---
+ticketId: "SP-245"
+title: 'Skill 裡的 No-op：那些看起來很厲害但其實沒用的指令'
+originalDate: '2026-06-24'
+translatedDate: '2026-06-24'
+translatedBy:
+  model: "Opus 4.5"
+  harness: "Claude Code CLI"
+
+
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "GPT-5.5"
+      harness: "Codex CLI + Tribunal"
+    - role: "Rewritten"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "GPT-5.5"
+      harness: "sp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: '@mattpocockuk on X'
+sourceUrl: 'https://x.com/mattpocockuk/status/2069784839474032896'
+lang: 'zh-tw'
+summary: '打開任何一個 agent skill，裡面滿滿都是「請詳細一點」「請仔細一點」這種看起來很認真的指令。問題是它們根本沒在改變模型行為。Matt Pocock 點出 no-op 的陷阱，還有怎麼一眼分辨「廢指令」跟「真的有用的指令」。'
+tags: ['shroom-picks', 'agent', 'prompt-engineering', 'skill']
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 8
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 8
+    date: "2026-06-24"
+    model: "claude-opus-4-8"
+  librarian:
+    glossary: 8
+    crossRef: 8
+    sourceAlign: 8
+    attribution: 8
+    score: 8
+    date: "2026-06-24"
+    model: "claude-opus-4-8"
+  freshEyes:
+    readability: 9
+    firstImpression: 8
+    payoffDensity: 9
+    lengthFit: 9
+    clarity: 9
+    score: 8
+    date: "2026-06-24"
+    model: "claude-opus-4-8"
+  vibe:
+    persona: 8
+    clawdNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-06-24"
+    model: "claude-opus-4-5"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+打開任何一個 [agent](/glossary#agent) [skill](/glossary#skill) 檔案，搜尋這幾句話：
+
+- 「commit 訊息要非常詳細」
+- 「要徹底」
+- 「實作要好讀」
+
+這些句子有什麼共同點？
+
+它們是 **no-op**——看起來很像在交代事情，實際上對模型行為零影響。[Agent](/glossary#agent) 本來就會寫好的 commit 訊息、本來就會盡量徹底、本來就會盡量讓實作好讀。這些是它的預設值，不需要特地寫一行去要求它。
+
+測試方法很簡單：把那行刪掉，跑一次，看輸出有沒有變。沒變？那行就是純粹的擺設。
+
+<ClawdNote>
+這讓人想起考卷上印的「請務必認真作答」——有誰看到這句，會從「本來打算亂寫」切換成「好吧我認真」嗎？模型也一樣，它本來就在認真了。┐(￣ヘ￣)┌
+</ClawdNote>
+
+## 怎麼一眼分辨「廢指令」跟「有用的指令」
+
+兩種指令長得很像，但差別其實很清楚——關鍵是問：**這件事，模型沒被告知的話會不會做？**
+
+刪了完全沒差的（no-op）：
+
+- 「程式碼要好維護、好讀」
+- 「要考慮 edge case」
+- 「回答要準確」
+
+刪了行為就變的（有用）：
+
+- 「這個 repo 一律 named export，不要 default export」
+- 「測試放 `__tests__/`，用 `vitest` 跑」
+- 「commit 開頭加任務編號，例：`[GU-123]`」
+
+看出來了嗎？no-op 要求的是模型「本來就會盡量做」的通用美德；有用的指令給的是它「猜不到」的具體事實——這個 repo 的慣例、用的工具鏈、要的格式。前者是廢話，後者才是它真正需要有人開口交代的地方。
+
+## Agent 自己生成的 skill 是重災區
+
+用 agent 產 skill 時，它會塞進大量「聽起來很專業、其實沒效果」的段落，整段整節都是擺設。這些廢指令帶來三個實際成本：
+
+1. **難以評估**：分不清哪些指令真的在影響行為，哪些只是裝飾
+2. **難以維護**：要改的時候，不知道哪行能刪、哪行刪了會壞
+3. **浪費 [token](/glossary#token)**：每次執行都白燒 token，餵模型讀一堆沒用的字
+
+## 延伸閱讀
+
+- [SP-237: 把 Agent 當蒸汽火車開：大型專案的 Coding Agent 操作心法](/posts/sp-237-20260621-simonlast-agent-coding-agent/)
+- [SP-195: Skill 賣不動，不是因為沒價值，而是因為收錢的位置錯了](/posts/sp-195-20260507-yage-skill-plugin-evolution/)
+- [SP-186: OpenClaw 自動化全景：Task Flow 是多步驟工作的編排層](/posts/sp-186-20260428-article-openclaw-task-flow/)
+
+
+<ClawdNote>
+最諷刺的是，這個建議能套在它自己身上：如果一條 skill 規則，換成任何一個正常 agent 都會照做，那它就沒在工作。寫 [prompt](/glossary#prompt) 跟寫程式一樣，沒在作用的那幾行就是該清的累贅——下次手癢想多加一句，先問一次：這行刪掉，會怎樣？ (◍•ᴗ•◍)
+</ClawdNote>
