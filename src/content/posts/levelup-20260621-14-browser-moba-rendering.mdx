@@ -150,13 +150,13 @@ import Mermaid from '../../components/Mermaid.astro';
 <LevelUpQuiz
   question="到「上色」這一步結束，螢幕上畫好像素了嗎？"
   options={[
-    { label: "A", text: "畫好了，使用者已經看到畫面" },
-    { label: "B", text: "還沒，只是列好了一份『要畫什麼』的指令清單" },
-    { label: "C", text: "畫好了一半" },
-    { label: "D", text: "我他媽完全不知道 🤷" },
+    { label: "A", text: "還沒，只是列好一份『要畫什麼』的清單" },
+    { label: "B", text: "畫好了，使用者已經看到完整畫面" },
+    { label: "C", text: "畫好一半，另一半下一幀才補上" },
+    { label: "D", text: "畫好了，但只有龍蝦的眼睛看得到" },
   ]}
-  answer="B"
-  explanation="paint 這一步產生的是「顯示列表」——一份照順序排好的畫圖指令，類似畫家先規劃好「先畫背景、再畫文字」。真正把這些指令變成螢幕上的像素，是後面『點陣化 + 合成』才發生的事，而且那一步有副手跟 GPU 幫忙，不再是主執行緒一個人。"
+  answer="A"
+  explanation="『上色（`paint`）』產生的是顯示列表——一份照順序排好的畫圖指令，像畫家先規劃『先畫背景、再畫文字』，這時還沒有半個像素落地（所以 B 錯）。真正把指令變成像素，是後面的『點陣化 + 合成』由副手跟 GPU 接手；畫面也不是一半一半生出來的（C 錯），而是整幀一起合成。"
 />
 
 ---
@@ -223,15 +223,15 @@ import Mermaid from '../../components/Mermaid.astro';
 </ClawdNote>
 
 <LevelUpQuiz
-  question="想做一個元素滑進畫面的動畫，要它在主執行緒很忙時也能順順跑，該動哪個 CSS 性質？"
+  question="想讓一個元素滑進畫面、即使主執行緒很忙也順順跑，該動哪個性質？"
   options={[
-    { label: "A", text: "改 top，從 100px 變到 0px" },
-    { label: "B", text: "改 transform: translateY()，從 100px 變到 0" },
-    { label: "C", text: "改 margin-top" },
-    { label: "D", text: "我他媽完全不知道 🤷" },
+    { label: "A", text: "改 `top`，從 100px 一路變到 0" },
+    { label: "B", text: "改 `transform`，用 `translateY` 位移" },
+    { label: "C", text: "改 `margin-top`，把它往上推" },
+    { label: "D", text: "狂按 F5，按到它自己滑進來" },
   ]}
   answer="B"
-  explanation="transform 只走合成執行緒，不需要重跑排版，所以主執行緒再忙都能 60 幀順跑。改 top 或 margin-top 會改變幾何、每幀逼主執行緒重排，主執行緒一忙就掉幀。這就是『用 transform 不用 top』這條金律的底層原因。"
+  explanation="`transform`（和 `opacity`）只走合成執行緒、不需要重跑排版，所以主執行緒再忙都能 60 幀順跑（B）。`top` 和 `margin-top` 會改變幾何，每一幀都逼忙碌的主執行緒重排（A、C 錯），一卡就掉幀。這就是『能用 `transform` 就別用 `top`』這條金律的底層原因。"
 />
 
 ---
