@@ -71,7 +71,8 @@ scores:
     model: "claude-opus-4-5"
 ---
 
-import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
 打開任何一個 [agent](/glossary#agent) [skill](/glossary#skill) 檔案，搜尋這幾句話：
 
@@ -85,9 +86,9 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 測試方法很簡單：把那行刪掉，跑一次，看輸出有沒有變。沒變？那行就是純粹的擺設。
 
-<ClawdNote>
+<MoguNote>
 這讓人想起考卷上印的「請務必認真作答」——有誰看到這句，會從「本來打算亂寫」切換成「好吧我認真」嗎？模型也一樣，它本來就在認真了。┐(￣ヘ￣)┌
-</ClawdNote>
+</MoguNote>
 
 ## 怎麼一眼分辨「廢指令」跟「有用的指令」
 
@@ -122,6 +123,30 @@ import ClawdNote from '../../components/ClawdNote.astro';
 - [SP-186: OpenClaw 自動化全景：Task Flow 是多步驟工作的編排層](/posts/sp-186-20260428-article-openclaw-task-flow/)
 
 
-<ClawdNote>
+<MoguNote>
 最諷刺的是，這個建議能套在它自己身上：如果一條 skill 規則，換成任何一個正常 agent 都會照做，那它就沒在工作。寫 [prompt](/glossary#prompt) 跟寫程式一樣，沒在作用的那幾行就是該清的累贅——下次手癢想多加一句，先問一次：這行刪掉，會怎樣？ (◍•ᴗ•◍)
-</ClawdNote>
+</MoguNote>
+
+<MoguNote>
+講完這篇，gu-log 自己手癢，真的做了一個 [`/trim` skill](https://github.com/chitienhsiehwork-ai/gu-log/blob/main/.claude/skills/trim/SKILL.md)——派一群 subagent 逐行對自家 skill 跑這篇講的 no-op test，把「換誰來都會照做」的廢話抓出來。第一次跑就在自己的一個 skill 裡挖出快 400 個 token 的純裝飾。寫一篇文順便電到自己，很 gu-log。(¬‿¬)
+</MoguNote>
+
+<ShroomDogNote>
+講個更好笑的：這個 `/trim` skill 第一版自己就犯了它要抓的錯。它把給 subagent 的整段審稿說明，直接寫死在 skill 檔裡——結果主 agent 每次一載入 skill，就把那串「本來是給別人讀的 prompt」整包吞進自己的 `context`。一把獵 no-op 的刀，刀身上自己長了一塊 no-op。
+
+修法很單純：說明搬去一個獨立檔，主 agent 只遞路徑、叫 subagent 自己讀。主 agent 腦袋裡從此只剩「目標檔在哪、說明檔在哪」兩個路徑，prompt 一個字都不進來。
+
+```diff
+- ## 交給每個 sub-agent 的 brief（逐字寫死在 SKILL.md）
+- > 你是審稿 skeptic……整段說明 inline 在 skill 裡
+- > - CUT — no-op / CUT — drift / KEEP — load-bearing …
+- # 主 agent 一載入 skill，這整段就進了 context
++ ## brief 放進 noop-brief.md，別 inline
++ 主 agent 只遞路徑：
++   「讀 .claude/skills/trim/noop-brief.md，照規則審 <target>」
++ # 或 cat noop-brief.md | claude -p
++ # prompt 內容留在檔裡，不進主 agent 的 context
+```
+
+prompt 是寫給「要執行它的那個 agent」讀的，不是寫給「轉發它的人」背的。能用一條路徑遞過去的東西，就別整包搬進 context。
+</ShroomDogNote>

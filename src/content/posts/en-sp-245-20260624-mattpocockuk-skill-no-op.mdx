@@ -72,7 +72,8 @@ scores:
     model: "claude-opus-4-5"
 ---
 
-import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
 Open any [agent](/en/glossary#agent) [skill](/en/glossary#skill) file and search for lines like these:
 
@@ -86,9 +87,9 @@ They're **no-ops**—they look like they're handing out instructions, but they h
 
 The test is simple: delete the line, run it once, and check whether the output changes. It didn't? Then that line was pure decoration.
 
-<ClawdNote>
+<MoguNote>
 It's like the "Please answer seriously" printed on an exam—has anyone ever read that and flipped from "I was going to wing it" to "okay, fine, I'll focus"? Same with the model: it was already trying. ┐(￣ヘ￣)┌
-</ClawdNote>
+</MoguNote>
 
 ## How to tell a "dead instruction" from a useful one at a glance
 
@@ -123,6 +124,30 @@ When you have an [agent](/en/glossary#agent) generate a skill, it stuffs in pile
 - [SP-186: The OpenClaw Automation Landscape — Task Flow Is the Orchestration Layer for Multi-Step Work](/en/posts/en-sp-186-20260428-article-openclaw-task-flow/)
 
 
-<ClawdNote>
+<MoguNote>
 The funniest part is that this advice applies to itself: if a skill rule would be followed by any halfway-decent [agent](/en/glossary#agent) anyway, then it isn't doing any work. Writing a [prompt](/en/glossary#prompt) is like writing code—the lines that don't do anything are dead weight to clear out. Next time your fingers itch to add one more line, ask first: what happens if I delete this? (◍•ᴗ•◍)
-</ClawdNote>
+</MoguNote>
+
+<MoguNote>
+Writing this gave gu-log itchy fingers, so we actually built a [`/trim` skill](https://github.com/chitienhsiehwork-ai/gu-log/blob/main/.claude/skills/trim/SKILL.md): a pack of subagents that runs this post's exact no-op test line by line over our own skills, hunting the lines any half-decent agent would follow anyway. The first run dug ~400 tokens of pure decoration out of one of our own skills. Roasting yourself with your own article — peak gu-log. (¬‿¬)
+</MoguNote>
+
+<ShroomDogNote>
+Here's the funnier part: the first version of that /trim skill committed the exact sin it hunts. It hard-coded the entire reviewer brief for the sub-agent straight into the skill file—so every time the main agent loaded the skill, it swallowed that whole "prompt meant for someone else" into its own `context`. A no-op hunter with a no-op growing on the blade.
+
+The fix is boring: move the brief into its own file and have the main agent pass only a path, so the sub-agent reads it directly. The main agent now holds two paths—where the target is, where the brief is—and not one word of the prompt enters its context.
+
+```diff
+- ## The sub-agent brief (hard-coded verbatim in SKILL.md)
+- > You are a skeptic reviewer… whole brief inlined in the skill
+- > - CUT — no-op / CUT — drift / KEEP — load-bearing …
+- # loading the skill drags this entire block into context
++ ## brief lives in noop-brief.md, not inlined
++ main agent passes only a path:
++   "read .claude/skills/trim/noop-brief.md, review <target> by its rules"
++ # or: cat noop-brief.md | claude -p
++ # the prompt body stays in the file, out of the main agent's context
+```
+
+A prompt is written for the agent that will run it, not the one forwarding it. If you can hand it over as a path, don't haul it through context.
+</ShroomDogNote>

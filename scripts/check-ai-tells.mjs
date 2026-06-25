@@ -47,8 +47,8 @@ const files = process.argv.slice(2).filter(Boolean);
 // evidence, not vibes.
 const BLOCKLIST = [
   {
-    // 2026-06-25: 拆過 全站退役（house idiom turned tell）。字面拆解（拆過機器/外掛）
-    // 用 {/* ai-ok */} 放行。
+    // 2026-06-25: 拆過 退役。跨模型 AI tell（ShroomDog 校正）——17 處是沒清的
+    // debt、不是慣用法。字面拆解（拆過機器/外掛）用 {/* ai-ok */} 放行。
     pattern: '拆過',
     suggest: '講過 / 寫過 / 聊過',
     why: '「X 拆過 [主題]」這種剪掉受詞的講法已退役；字面拆解請用 {/* ai-ok */} 放行',
