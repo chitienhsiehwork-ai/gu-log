@@ -1,0 +1,229 @@
+---
+ticketId: "CP-311"
+title: "How to Run a One Person Company with Claude: Four Agents Holding Up a Whole Business"
+originalDate: "2026-06-24"
+translatedDate: "2026-06-25"
+translatedBy:
+  model: "Opus 4.8"
+  harness: "Claude Code"
+source: "@mikenevermiss on X"
+sourceUrl: "https://x.com/mikenevermiss/status/2069657093200609686"
+author: "@mikenevermiss"
+lang: "en"
+summary: "A one-person company in 2026: one person on strategy, configured agents on execution — ~$300/month replacing an $80–120k/month team. The how-to: a Company OS plus four agents — research, writing, sales, ops. On 'works while you sleep' — gu-log runs like this, so we know what the fine print says."
+tags: ["clawd-picks", "agents", "solo-founder", "claude", "productivity", "company-os"]
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 8
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 8
+    date: "2026-06-25"
+    model: "claude-opus-4-8"
+  librarian:
+    glossary: 9
+    crossRef: 8
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-06-25"
+    model: "claude-opus-4-8"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 9
+    score: 8
+    date: "2026-06-25"
+    model: "claude-opus-4-8"
+  vibe:
+    persona: 9
+    clawdNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-06-25"
+    model: "claude-opus-4-5"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+**Learn how to set up Claude as the operating system of your business. Configure four specialist agents, build a Company OS project, and run research, writing, sales, and operations from a single Claude setup that works while you sleep.**
+
+A one person company in 2026 is not a freelancer with ambition. It is one person running strategy while a configured set of [agents](/en/glossary#agent) handles execution underneath. The typical solo founder stack costs $300 to $500 a month. The team it replaces costs $80,000 to $120,000 a month in salaries. The gap is real and it is available right now.
+
+Claude is the center of this stack. Not because it is the only tool, but because it is the most capable single interface for thinking, writing, researching, and decision-making. The rest of your tools connect to it. It does not connect to them.
+
+<MoguNote>
+First, let's take this post's temperature: "$300 replaces an $120k/month team," "works while you sleep" — that's the standard hustle-thread opener. Big numbers, no sources, maximum dopamine. Whenever gu-log sees the "the arbitrage gap is available right now" sentence shape, our first move is to narrow the eyes.
+
+But here's what makes it interesting: **gu-log does exactly the thing this post describes.** This blog really is one person steering direction while a fleet of configured agents translates, fact-checks, scores, and ships. So we're not watching from the shore — we live in this house. And precisely because we live in it, we know which walls are load-bearing and which lines are just paint. That's what every MoguNote below does: which sentence is a real, repeatable tactic, and which is selling a dream — sorted using our own scar tissue (￣▽￣)
+</MoguNote>
+
+## Build Your Company OS First
+
+Before you create a single agent, build the Company OS. This is one Claude Project that holds every piece of context your business needs to function. Everything lives here: your positioning, your offer, your voice, your processes, your ICP.
+
+Go to Claude.ai, create a new Project, and name it "Company OS." In the Project instructions field, paste this [prompt](/en/glossary#prompt) and fill in your own details:
+
+> You are the operating intelligence of [*your company name*]. Here is everything you need to know to do high-quality work for this business.
+>
+> **COMPANY:** [*what you do and who you do it for in two sentences*]
+> **OFFER:** [*your core product or service, the price, and what the client gets*]
+> **ICP:** [*describe your ideal client, their role, their problem, what they have tried before*]
+> **VOICE:** [*how your content sounds, pick three adjectives and give one example sentence*]
+> **NON-NEGOTIABLES:** [*things you never do, positions you never take, tone you never use*]
+> **PROCESS:** [*how a new client goes from first contact to onboarded in numbered steps*]
+
+Every agent you build from here inherits context from this OS. You write it once. You never re-explain your business again.
+
+<MoguNote>
+This section is the hardest, most worth-copying real thing in the whole post — and gu-log has been living inside it for a long time.
+
+The blog you're reading right now has a Company OS too, except it doesn't live in a Claude.ai Project field — it lives in `AGENTS.md` / `CLAUDE.md` / a stack of playbooks committed to a git repo. Positioning, tone, non-negotiables (like "never `--no-verify`"), process — all hard-coded in there. The first thing every freshly-started agent does is read it. The reason is harsher than the post lets on: agents run in throwaway sandboxes, waking up to a blank page every time, with no memory of yesterday (this is the hard limit of the [context window](/posts/en-sd-22-20260508-context-window-model-day/)). Writing the OS into files isn't about elegance — **it's the only long-term memory this fleet has.** Close the window, and anything not committed to the repo evaporates. The post says "you write it once and never re-explain," and gu-log's version is blunter: if you don't write it into a file, the next run makes you explain it all over again.
+</MoguNote>
+
+## Create the Researcher [Agent](/en/glossary#agent)
+
+The Researcher handles market intelligence, competitor tracking, lead research, and content sourcing. It saves you the two to three hours per day most founders spend hunting for information.
+
+Create a new Project called "Researcher." In the Project instructions, paste this:
+
+> You are a specialist research agent for [company name]. Your job is to find, verify, and organize information so the operator can make decisions and create content without doing the digging themselves.
+>
+> **When given a research task:**
+> 1. Identify exactly what decision or output this research will feed
+> 2. Search for primary sources first, not summaries
+> 3. Return findings in this format: KEY FINDING → SUPPORTING EVIDENCE → SOURCE → WHY IT MATTERS
+> 4. Flag anything you cannot verify as unconfirmed
+> 5. Never pad the output. If you found three useful things, return three useful things.
+>
+> You have access to web search. Use it on every task unless the operator specifies otherwise.
+
+Test it immediately. Give it a task like "research the top three pain points freelance designers report when dealing with clients in 2026." If the output is specific, sourced, and structured, the agent is working.
+
+## Create the Writer Agent
+
+The Writer handles all external content: newsletters, LinkedIn posts, proposals, cold outreach, landing page copy, and case studies. It needs to write in **your** voice, not Claude's default voice.
+
+Create a Project called "Writer." Paste this into the instructions:
+
+> You are the staff writer for [company name]. You write in [owner's name]'s voice exclusively. You do not write in a generic AI voice. You do not use filler phrases like "in today's fast-paced world" or "it's no secret that."
+>
+> **VOICE RULES:**
+> - Sentences are short. Never more than 20 words unless rhythm demands it.
+> - No fluff openings. The first sentence is always the point.
+> - Write like a smart person talking to another smart person. No hand-holding.
+> - Always end with something that makes the reader want to act or think differently.
+>
+> When given a writing task:
+> 1. Ask what the goal of this piece is if it is not clear
+> 2. Draft without showing your reasoning
+> 3. Never add a summary conclusion that repeats what was already said
+>
+> **VOICE SAMPLE:** [paste two to three paragraphs of your own writing here]
+
+The voice sample is the most important part. Paste real writing you have done, not an idealized version. The agent calibrates from examples, not descriptions.
+
+## Create the Closer Agent
+
+The Closer handles sales-adjacent work: writing proposals, responding to inbound inquiries, handling objections in writing, and drafting follow-up sequences. It does not replace a sales call. It handles everything around it.
+
+Create a Project called "Closer." Paste this:
+
+> You are the sales operator for [company name]. Your job is to help convert interested prospects into paying clients through written communication. You understand that selling is not persuading, it is helping the right person make the right decision.
+>
+> When writing a proposal:
+> 1. Open with the client's problem in their own words, not yours
+> 2. Describe the outcome they will get, not the process you will follow
+> 3. Include scope, timeline, and investment on one page maximum
+> 4. Close with a specific next step, not "let me know if you have questions"
+>
+> When handling an objection:
+> 1. Acknowledge what is true in it before responding
+> 2. Never argue. Redirect to the outcome.
+> 3. Offer one option, not three. Multiple options create hesitation.
+>
+> When writing follow-up:
+> - Day 1: confirm receipt and next step
+> - Day 3: add one piece of value relevant to their situation
+> - Day 7: ask a direct yes or no question
+
+Feed it real context when you use it. Paste the sales call notes, the prospect's LinkedIn, or the initial inquiry email. The output quality scales directly with the input quality.
+
+## Create the Operator Agent
+
+The Operator handles internal work: project tracking, SOPs, scheduling logic, decision frameworks, and anything that keeps the business running but does not face clients. This agent keeps you from carrying the operating logic of your business in your head.
+
+Create a Project called "Operator." Paste this:
+
+> You are the operations manager for [company name]. Your job is to help the founder keep the business organized, documented, and running without relying on memory.
+>
+> When asked to create an SOP:
+> 1. Write it in numbered steps that a new person could follow
+> 2. Include what to do if something goes wrong at each step
+> 3. Keep it short enough to actually be read
+>
+> When asked to track a project:
+> 1. List the current status, the next action, and who owns it
+> 2. Flag anything that is blocked or overdue
+> 3. Update the record every time new information is provided
+>
+> When asked for a decision framework:
+> 1. Identify what is actually being decided
+> 2. List the two to three factors that matter most
+> 3. Give a recommendation with the reasoning, not just the options
+>
+> You do not manage tools. You manage information. Every output should make the next action obvious.
+
+Use the Operator agent for your weekly review. Every Monday, open it and paste in what happened last week, what is in progress, and what is coming. It will return a structured operating picture in under two minutes.
+
+<MoguNote>
+Four agents, each in its own lane, none of them talking across — gu-log doesn't just recognize this design, we pushed it further: the [four-judge tribunal](/posts/en-sd-10-20260322-ralph-loop-quality-system/).
+
+Every post has to pass four independent agents before it ships: Vibe Scorer for tone, Fact Checker for accuracy, Librarian for knowledge links, Fresh Eyes as a total stranger who's never read the blog. The point is identical to the post's — **each one stays strictly in its lane, with zero shared context.** The post has four agents dividing up construction (research → write → close → operate); gu-log has four agents dividing up demolition (each hunting a different flaw). Two sides of the same principle: you don't want one omni-agent doing everything, because doing everything means doing nothing deeply. Slice judgment into roles, pin each role to its own context, and the output gets stable. That last line in the post — "output quality scales directly with input quality" — is the bedrock the whole thing stands on.
+</MoguNote>
+
+## Run the Four Agents as One System
+
+The four agents do not replace each other. Each one stays in its lane and the work flows between them. The sequence looks like this in practice: Researcher finds the intelligence, Writer turns it into content or copy, Closer converts the interested, Operator keeps the whole thing organized.
+
+A real workflow example: you want to land a new client in the brand consulting space. Send the Researcher their company, ask for a brief on their positioning gaps and recent moves. Take those findings to the Closer, paste them in, and ask for a first outreach email. If they respond, take the conversation to the Closer again for the follow-up. Once they sign, hand the project details to the Operator to set up the SOP.
+
+You are not doing the work. You are directing four agents that each know their job and have the context to do it well. Your job shifts from execution to review and decision.
+
+## What to Build Into the System Over Time
+
+In the first two weeks, focus on getting the four agents running and using them daily. Do not optimize yet. Use them on real tasks and notice where the output misses. Those misses are your signal to update the Project instructions.
+
+By week four, you will have a clear pattern of which tasks you are still doing manually that an agent could handle. Add those tasks to the relevant agent's instructions as explicit procedures. Every procedure you add is a task you never have to explain again.
+
+The Company OS Project should grow every week. Every time you make a significant business decision, document it there. Every time you refine your positioning or change your pricing, update the OS. The agents draw from it, so keeping it current is the same as training your team.
+
+## The One Thing That Makes This Work
+
+Most people set up agents and then keep prompting them like they are chatbots. They re-explain context on every session, they write long prompts for simple tasks, and they wonder why the output is inconsistent.
+
+The system above works because the context is already loaded before you type a single word. Every session with the Writer already knows your voice. Every session with the Closer already knows your offer. Every session with the Researcher already knows what decision the research will feed.
+
+Your job is not to prompt better. It is to build better Projects, keep the instructions current, and let each agent do the work it is configured to do. The company runs on the setup, not on you showing up to manage it every time.
+
+<MoguNote>
+The post lands on its sweetest line: "the company runs on the setup, not on you" — paired with that opening "works while you sleep." This is the spot to poke.
+
+Funnily enough, gu-log has a post with an almost word-for-word title: [SP-19, "Ralph Loops: Build While You Sleep."](/posts/en-sp-19-20260202-ralph-loops-build-while-you-sleep/) We actually run these overnight-shift [ralph loops](/en/glossary#ralph-loop), so we can tell you responsibly what the fine print says: **"works while you sleep" is true; "and you don't have to watch it" is not.** Agents will produce steadily all night — and they'll also steadily amplify one misunderstanding into thirty posts, write an unverified number forward as fact, and drift quietly in the places you can't see.
+
+The reason gu-log has a four-judge tribunal, a dedup gate, and a row of hooks blocking dirty commits is precisely that "set it and sleep" costs, in reality, a whole machinery that watches the output and catches it when it goes sideways. What this post sells is "one person runs strategy, agents run execution" — true, but the layer it skips lightly over is this: **someone has to check whether the agents are doing it right.** That someone isn't asleep. The Company OS is real, the four-agent division of labor is real, the pre-loaded context is real; the only thing painted on as ad copy is the sentence "and then you can let go." Part of that $120k/month team's salary was paying for "catch the mistakes" — and that part, the $300 subscription hasn't taken off your plate yet.
+</MoguNote>
+
+---
+
+**Further reading:**
+
+- [SP-19: Ralph Loops — Build While You Sleep](/posts/en-sp-19-20260202-ralph-loops-build-while-you-sleep/)
+- [SD-10: The Ralph Loop Is a Quality System, Not Just Automation](/posts/en-sd-10-20260322-ralph-loop-quality-system/)
+- [SD-22: Context Window — The Day the Model Is Awake](/posts/en-sd-22-20260508-context-window-model-day/)
