@@ -546,3 +546,18 @@ Sprin asked whether Tribunal v7 FreshEyes covers “length should be just right,
   2. **MoguNote 不夠「富有解釋性」**：文章用的是短促吐槽式的 note（一兩句 + kaomoji），ShroomDog 要的是 sd-26 那種**一整段、有 POV、把題材接回 AI/tech 或 gu-log 自身**的解釋性 MoguNote。POV 是 gu-log 的靈魂，note 太 quippy = 沒打出靈魂。
 - 連帶踩到的 pipeline drift：**`gp-pipeline` 的 `write.tmpl` 還在輸出 `<ClawdNote>`**，但寫作 SSOT（`GU-LOG_WRITER_PROMPT.md` L188）早已規定 **POV 一律進 `<MoguNote>`（ClawdNote 為舊名 alias）**，persona 也已改成 Mogu（首頁副標）。pipeline 沒跟上 SSOT → 自動產出的 GP 文章全是舊的 ClawdNote。這是 template 對 writer-prompt SSOT 的 drift，要在 template 端修掉，否則每篇 pipeline 文章都重複這個錯。
 - Reusable lesson：(1) **GP/SP 文章預設用 `<MoguNote>`，不是 `<ClawdNote>`**；ClawdNote 只是還能 render 的舊 alias，新文章不要再用。(2) **MoguNote 要解釋性、成段、有 POV**（接回 AI/tech 平行對照或 gu-log 自身的自我指涉 callback），不是一句吐槽配 kaomoji。品質門檻：讀者要看 note 才看得到 gu-log 的觀點，所以 note 必須自帶資訊量。(3) **晶晶體不是「過了 lint 就好」**：allowlist 是最後手段（專有名詞 / 模型名），一般概念詞（protocol→流程、bug→出錯/毛病）能翻就翻，留英文會讓 ShroomDog 覺得「沒翻完」。(4) pipeline template 是 writer-prompt SSOT 的 derived view，SSOT 改了（ClawdNote→MoguNote）template 要跟，否則自動產出持續 drift。
+
+## 2026-06-25 — 「拆過」全站退役 + 建 SP-232 授權但沒人做的 T3 硬 lint
+
+### Feedback: SP-244 的「gu-log 在 SP-220 拆過」很 AI；退役它，並把 banned terms 接成 lint
+
+- ShroomDog feedback：讀 SP-244 時點名 `拆過` 很 AI 腔；要求建一個 lint 擋掉這種 AI 翻譯腔，並指出「banned terms 在 editorial-feedback corpus 裡找得到」（要從這份 corpus 取字，不要 agent 自己憑空想）。
+- 查證發現（用資料修正直覺）：`拆過` 全站 **19 處 / 14 篇**，幾乎清一色是 `[post-ref] 拆過 [主題]` 的**既有 house idiom**、且多半帶 cross-ref（「gu-log 之前拆過 [SP-192]」「SP-175 拆過一次」）。只有 SP-216 的「拆過外掛、改過外掛」是**字面拆解**（金山遊俠外掛），不是 AI tell。直接硬 lint `拆過` 會一次點燃 14 篇 + 殺掉慣用內鏈句型——正好踩到 2026-06-17（SP-232）那條鐵則「密度型 tell 用 regex 會誤殺正當用法」。
+- 決策（ShroomDog 拍板兩題）：(1) `拆過` **全站退役** → 講過 / 寫過 / 聊過（當成刻意換詞，像 查重→dedup）。(2) **建 SP-232 line 419 早就授權、但一直沒人做的 T3 explicit-wordlist 硬 lint**——`scripts/check-ai-tells.mjs`。
+- Grandfather 取捨（誠實記一筆）：碰舊文會掀出它既有的 lint 債——編輯一個字就觸發整篇 re-lint / re-score。`拆過` 殘留在 7 篇 grandfathered 舊文：(a) **score-less**（cp-272 / cp-303 / sp-182，加字面用法的 sp-216）被 score floor 擋；(b) **晶晶體債**（sp-177 / sp-180 / sp-181 / sp-183）被 jingjing 擋（既有裝飾英文要 ShroomDog 拍 allowlist 邊界，超出換詞範圍）。依 gate 哲學（「不要為維護性小改逼舊文重評分」）+ 分數誠實（不准手填假分）+ allowlist 要 ShroomDog 拍板，**這 7 篇一律跳過、還原回 HEAD**；它們的 `拆過` 凍結，等下次被實質編輯時由 lint 連帶逼修。退役在**政策上**完成（詞已死、lint 把關新文與未來編輯），只是 analytical 殘留在這批 score-less / 晶晶體債的舊文。
+- 修法：
+  1. Sweep：8 處 analytical `拆過`→`講過`，橫跨 6 篇有分數的文 + SP-244（SP-208 用 `寫過` 避開相鄰 `講過` 重複）。上述 7 篇 grandfathered 舊文還原回 HEAD（見上）。
+  2. `scripts/check-ai-tells.mjs`：sibling of check-pronoun-clarity / check-jingjing（同 mask 區、staged-only、merge-skip、pre-commit 攔）。`BLOCKLIST` 是字表 SSOT，error 訊息直接帶自然替代（progressive disclosure——修的人讀 lint 輸出、不靠 prompt）。**v1 種子 = 低誤殺離散詞**：拆過、拆得很乾淨/很漂亮、這才是工程品味、這刀切得漂亮、學術根源是、一句話記住。`{/* ai-ok */}` 逐行放行字面用法。
+  3. `GU-LOG_WRITER_PROMPT.md` 加一條 policy pointer 指回 `BLOCKLIST`（**不複製字表**，避免 token 成本 + 過度迴避失真 + drift）。
+- 範圍紀律（照 SP-232）：**只有「有明確字表、低誤殺」的離散 tell 進硬 lint**；密度型（T1 反義對偶 / T2 假深度 reframe / T4 mic-drop）繼續走 tribunal 的 AI-Tell Trap rubric（`scripts/vibe-scoring-standard.md`），不碰。
+- Reusable lesson：(1) **直覺說某詞很 AI 時，先 grep 全站數它的用法**——`拆過` 一查才發現是 house idiom，硬 lint 會誤殺；資料先於開殺。(2) banned-term 字表的 SSOT = lint 的 `BLOCKLIST`，corpus / writer prompt 只當 derived view 指回去，不抄第二份。(3) 硬 lint 只收「離散 + 低誤殺 + 有明確字表」的詞；密度型交給 LLM judge，這條邊界 SP-232 就劃好了。(4) 退役一個會冒回來的詞，光 sweep + 寫 prompt 不夠，要有 deterministic gate 擋下一次；字面用法用逐行 escape 當壓力閥。
