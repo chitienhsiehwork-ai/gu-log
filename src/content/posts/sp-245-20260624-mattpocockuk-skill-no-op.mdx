@@ -85,6 +85,10 @@ import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
 它們是 **no-op**——看起來很像在交代事情，實際上對模型行為零影響。[Agent](/glossary#agent) 本來就會寫好的 commit 訊息、本來就會盡量徹底、本來就會盡量讓實作好讀。這些是它的預設值，不需要特地寫一行去要求它。
 
+<MoguNote>
+插個冷知識：no-op 全名是 `no-operation`，借自組合語言那個叫 `NOP` 的指令——CPU 跑到它就佔一個週期、什麼都不做，純拿來湊時間或記憶體對齊。所以判一行 prompt 是不是 no-op，本質就是問：它到底有沒有真的「動到」什麼，還是只是佔個位子的空轉。
+</MoguNote>
+
 測試方法很簡單：把那行刪掉，跑一次，看輸出有沒有變。沒變？那行就是純粹的擺設。
 
 <MoguNote>
