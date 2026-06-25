@@ -356,10 +356,29 @@ if [ -n "$STAGED_MDX" ] && [ "$IS_MERGE_COMMIT" != "1" ]; then
             exit 1
         fi
         echo "✓ 晶晶體 check passed"
+
+        # ─── Step 0.165: AI-tells check (zh-tw translationese banlist) ───
+        # Deterministic gate for discrete, explicit-wordlist AI tells per the
+        # SP-232 decision (docs/shroomdog-editorial-feedback.md 2026-06-17,
+        # 「硬 lint 只留給有明確字表的 T3」). Density tells (T1/T2/T4) stay in the
+        # tribunal AI-Tell Trap rubric — only low-collision discrete phrases are
+        # hard-linted here. Banlist SSOT = BLOCKLIST in scripts/check-ai-tells.mjs;
+        # the failure message carries the natural替代. Same staged-only +
+        # merge-skip pattern as the two above.
+        echo "🤖 AI-tells check: scanning staged zh-tw posts for translationese..."
+        if ! node "$REPO_ROOT/scripts/check-ai-tells.mjs" $ZH_FILES; then
+            echo ""
+            echo "❌ AI-tells check FAILED."
+            echo "   Rewrite to natural zh-tw (see suggestions above),"
+            echo "   OR mark a genuine literal use with {/* ai-ok */} on that line."
+            exit 1
+        fi
+        echo "✓ AI-tells check passed"
     fi
 elif [ "$IS_MERGE_COMMIT" = "1" ]; then
     echo "🔍 Pronoun clarity: merge commit detected — skipping"
     echo "🈳 晶晶體 check: merge commit detected — skipping"
+    echo "🤖 AI-tells check: merge commit detected — skipping"
 fi
 
 # ─── Step 0.17: Glossary link coverage ratchet ─────────────────────
