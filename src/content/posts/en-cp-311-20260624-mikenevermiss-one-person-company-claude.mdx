@@ -84,7 +84,7 @@ Every agent you build from here inherits context from this OS. You write it once
 <MoguNote>
 This section is the hardest, most worth-copying real thing in the whole post — and gu-log has been living inside it for a long time.
 
-The blog you're reading right now has a Company OS too, except it doesn't live in a Claude.ai Project field — it lives in `AGENTS.md` / `CLAUDE.md` / a stack of playbooks committed to a git repo. Positioning, tone, non-negotiables (like "never `--no-verify`"), process — all hard-coded in there. The first thing every freshly-started agent does is read it. The reason is harsher than the post lets on: agents run in throwaway sandboxes, waking up to a blank page every time, with no memory of yesterday (this is the hard limit of the [context window](/posts/en-sd-22-20260508-context-window-model-day/)). Writing the OS into files isn't about elegance — **it's the only long-term memory this fleet has.** Close the window, and anything not committed to the repo evaporates. The post says "you write it once and never re-explain," and gu-log's version is blunter: if you don't write it into a file, the next run makes you explain it all over again.
+The blog you're reading right now has a Company OS too, except it doesn't live in a Claude.ai Project field — it lives in `AGENTS.md` / `CLAUDE.md` / a stack of playbooks committed to a git repo. Positioning, tone, non-negotiables (like "never `--no-verify`"), process — all hard-coded in there. The first thing every freshly-started agent does is read it. The reason is harsher than the post lets on: agents run in throwaway sandboxes, waking up to a blank page every time, with no memory of yesterday (this is the hard limit of the [context window](/en/posts/en-sd-22-20260508-context-window-model-day/)). Writing the OS into files isn't about elegance — **it's the only long-term memory this fleet has.** Close the window, and anything not committed to the repo evaporates. The post says "you write it once and never re-explain," and gu-log's version is blunter: if you don't write it into a file, the next run makes you explain it all over again.
 </MoguNote>
 
 ## Create the Researcher [Agent](/en/glossary#agent)
@@ -183,7 +183,7 @@ Create a Project called "Operator." Paste this:
 Use the Operator agent for your weekly review. Every Monday, open it and paste in what happened last week, what is in progress, and what is coming. It will return a structured operating picture in under two minutes.
 
 <MoguNote>
-Four agents, each in its own lane, none of them talking across — gu-log doesn't just recognize this design, we pushed it further: the [four-judge tribunal](/posts/en-sd-10-20260322-ralph-loop-quality-system/).
+Four agents, each in its own lane, none of them talking across — gu-log doesn't just recognize this design, we pushed it further: the [four-judge tribunal](/en/posts/en-sd-10-20260322-ralph-loop-quality-system/).
 
 Every post has to pass four independent agents before it ships: Vibe Scorer for tone, Fact Checker for accuracy, Librarian for knowledge links, Fresh Eyes as a total stranger who's never read the blog. The point is identical to the post's — **each one stays strictly in its lane, with zero shared context.** The post has four agents dividing up construction (research → write → close → operate); gu-log has four agents dividing up demolition (each hunting a different flaw). Two sides of the same principle: you don't want one omni-agent doing everything, because doing everything means doing nothing deeply. Slice judgment into roles, pin each role to its own context, and the output gets stable. That last line in the post — "output quality scales directly with input quality" — is the bedrock the whole thing stands on.
 </MoguNote>
@@ -215,7 +215,7 @@ Your job is not to prompt better. It is to build better Projects, keep the instr
 <MoguNote>
 The post lands on its sweetest line: "the company runs on the setup, not on you" — paired with that opening "works while you sleep." This is the spot to poke.
 
-Funnily enough, gu-log has a post with an almost word-for-word title: [SP-19, "Ralph Loops: Build While You Sleep."](/posts/en-sp-19-20260202-ralph-loops-build-while-you-sleep/) We actually run these overnight-shift [ralph loops](/en/glossary#ralph-loop), so we can tell you responsibly what the fine print says: **"works while you sleep" is true; "and you don't have to watch it" is not.** Agents will produce steadily all night — and they'll also steadily amplify one misunderstanding into thirty posts, write an unverified number forward as fact, and drift quietly in the places you can't see.
+Funnily enough, gu-log has a post with an almost word-for-word title: [SP-19, "Ralph Loops: Build While You Sleep."](/en/posts/en-sp-19-20260202-ralph-loops-build-while-you-sleep/) We actually run these overnight-shift [ralph loops](/en/glossary#ralph-loop), so we can tell you responsibly what the fine print says: **"works while you sleep" is true; "and you don't have to watch it" is not.** Agents will produce steadily all night — and they'll also steadily amplify one misunderstanding into thirty posts, write an unverified number forward as fact, and drift quietly in the places you can't see.
 
 The reason gu-log has a four-judge tribunal, a dedup gate, and a row of hooks blocking dirty commits is precisely that "set it and sleep" costs, in reality, a whole machinery that watches the output and catches it when it goes sideways. What this post sells is "one person runs strategy, agents run execution" — true, but the layer it skips lightly over is this: **someone has to check whether the agents are doing it right.** That someone isn't asleep. The Company OS is real, the four-agent division of labor is real, the pre-loaded context is real; the only thing painted on as ad copy is the sentence "and then you can let go." Part of that $120k/month team's salary was paying for "catch the mistakes" — and that part, the $300 subscription hasn't taken off your plate yet.
 </MoguNote>
@@ -224,6 +224,6 @@ The reason gu-log has a four-judge tribunal, a dedup gate, and a row of hooks bl
 
 **Further reading:**
 
-- [SP-19: Ralph Loops — Build While You Sleep](/posts/en-sp-19-20260202-ralph-loops-build-while-you-sleep/)
-- [SD-10: The Ralph Loop Is a Quality System, Not Just Automation](/posts/en-sd-10-20260322-ralph-loop-quality-system/)
-- [SD-22: Context Window — The Day the Model Is Awake](/posts/en-sd-22-20260508-context-window-model-day/)
+- [SP-19: Ralph Loops — Build While You Sleep](/en/posts/en-sp-19-20260202-ralph-loops-build-while-you-sleep/)
+- [SD-10: The Ralph Loop Is a Quality System, Not Just Automation](/en/posts/en-sd-10-20260322-ralph-loop-quality-system/)
+- [SD-22: Context Window — The Day the Model Is Awake](/en/posts/en-sd-22-20260508-context-window-model-day/)
