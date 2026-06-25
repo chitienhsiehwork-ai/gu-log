@@ -165,6 +165,20 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
+  # Renders key pages (all /artifacts/ + home + an HTML-heavy post) at mobile
+  # and desktop widths and fails if anything blows out the viewport horizontally.
+  # Uses the Playwright dev server (npm run dev), so it does not consume dist/.
+  overflow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-pnpm
+      - name: Install Chromium
+        run: pnpm exec playwright install chromium --with-deps
+      - name: Check horizontal overflow (mobile + desktop)
+        run: pnpm exec playwright test tests/no-horizontal-overflow.spec.ts --project="Desktop Chrome"
+
   # ─── Tier 2: jobs that consume dist/ ──────────────────────────────────────
   internal-links:
     runs-on: ubuntu-latest
@@ -213,6 +227,7 @@ jobs:
       - build
       - internal-links
       - bundle-budget
+      - overflow
     steps:
       - name: Verify every required job succeeded
         run: |
