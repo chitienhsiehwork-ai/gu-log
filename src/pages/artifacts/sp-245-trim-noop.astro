@@ -102,8 +102,12 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     --line: rgba(106, 71, 42, 0.18);
     --bad: #c2421f;
     --cool: #2f6f4f;
-    width: min(1040px, calc(100vw - 1.5rem));
+    width: 100%;
+    max-width: 1040px;
     margin: 1.25rem auto 3rem;
+    padding-inline: 0.25rem;
+    box-sizing: border-box;
+    overflow-x: clip;
     position: relative;
     color: var(--ink);
     font-family: 'Noto Sans TC', system-ui, sans-serif;
@@ -117,7 +121,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   .artifact-page::before {
     content: '';
     position: absolute;
-    inset: -1rem -0.75rem;
+    inset: -1rem 0;
     border-radius: 32px;
     background:
       radial-gradient(circle at 18% 8%, rgba(246, 180, 75, 0.4), transparent 32%),
