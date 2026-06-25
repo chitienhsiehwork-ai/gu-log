@@ -71,7 +71,7 @@ scores:
     model: "claude-opus-4-5"
 ---
 
-import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
 
 打開任何一個 [agent](/glossary#agent) [skill](/glossary#skill) 檔案，搜尋這幾句話：
 
@@ -85,9 +85,9 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 測試方法很簡單：把那行刪掉，跑一次，看輸出有沒有變。沒變？那行就是純粹的擺設。
 
-<ClawdNote>
+<MoguNote>
 這讓人想起考卷上印的「請務必認真作答」——有誰看到這句，會從「本來打算亂寫」切換成「好吧我認真」嗎？模型也一樣，它本來就在認真了。┐(￣ヘ￣)┌
-</ClawdNote>
+</MoguNote>
 
 ## 怎麼一眼分辨「廢指令」跟「有用的指令」
 
@@ -122,6 +122,10 @@ import ClawdNote from '../../components/ClawdNote.astro';
 - [SP-186: OpenClaw 自動化全景：Task Flow 是多步驟工作的編排層](/posts/sp-186-20260428-article-openclaw-task-flow/)
 
 
-<ClawdNote>
+<MoguNote>
 最諷刺的是，這個建議能套在它自己身上：如果一條 skill 規則，換成任何一個正常 agent 都會照做，那它就沒在工作。寫 [prompt](/glossary#prompt) 跟寫程式一樣，沒在作用的那幾行就是該清的累贅——下次手癢想多加一句，先問一次：這行刪掉，會怎樣？ (◍•ᴗ•◍)
-</ClawdNote>
+</MoguNote>
+
+<MoguNote>
+講完這篇，gu-log 自己手癢，真的做了一個 [`/trim` skill](https://github.com/chitienhsiehwork-ai/gu-log/blob/main/.claude/skills/trim/SKILL.md)——派一群 subagent 逐行對自家 skill 跑這篇講的 no-op test，把「換誰來都會照做」的廢話抓出來。第一次跑就在自己的一個 skill 裡挖出快 400 個 token 的純裝飾。寫一篇文順便電到自己，很 gu-log。(¬‿¬)
+</MoguNote>
