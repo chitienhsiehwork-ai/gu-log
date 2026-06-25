@@ -161,6 +161,7 @@ tags: ['shroom-picks', 'tag2', 'tag3']
 - 補充 context
 - 加入梗/笑點
 - 用類比解釋術語
+- 點出術語的全名 / 出處（尤其縮寫、行話）——ShroomDog 喜歡這樣理解名詞：知道 no-op 是 `no-operation`、來自組合語言的 `NOP` 指令，比死背縮寫好記。遇到專業縮寫時，順手給一次全名 + 由來（一句話、別變維基），讀者會 get 得更深。
 
 **黃金準則**：
 
@@ -332,7 +333,7 @@ gu-log 很多文章（尤其 AI/agent 圈）會引用「寫給模型的指令」
 
 **範例**：
 
-````
+```
 ❌ zh-tw 版直接貼英文 prompt（讀者要在腦中翻譯一次）：
 > When you have enough information to act, act. Do not re-derive facts already
 > established in the conversation...
@@ -341,7 +342,7 @@ gu-log 很多文章（尤其 AI/agent 圈）會引用「寫給模型的指令」
 > 當你掌握的資訊足以行動，就行動。不要重新推導對話裡已經確立的事實、不要
 > 重翻使用者已經拍板的決定，也不要在面向使用者的訊息裡細數你不會採用的選項。
 > 要在幾個做法之間取捨時，給出一個建議，而不是一份完整清單。
-````
+```
 
 ### 文化梗 / Idioms / Reference
 
