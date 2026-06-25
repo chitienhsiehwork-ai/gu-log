@@ -19,17 +19,16 @@ description: Hunt and cut no-ops from a skill / prompt / agent-instruction file 
 3. **收 punch list**，自己過一遍（sub-agent 會誤殺 load-bearing 行——尤其專案特有事實、指回 SSOT 的值）。
 4. **改動走 PR**，逐項列「砍什麼 / 為什麼是 no-op / 省多少」，**絕不靜默亂砍**。爭議行留著、標記、問 user。
 
-## 交給每個 sub-agent 的 brief（逐字給，別加 parent context）
+## sub-agent 的 brief：放在檔案，別 inline 進 context
 
-> 你是審稿 skeptic。這個檔是 agent 指令（skill / prompt / playbook）。**預設每一行都是 no-op，要它自己證明 load-bearing。** 逐行 / 逐段分類：
->
-> - **CUT — no-op**：刪掉 agent 行為不會變的句子。典型 = agent 預設本來就會做的事（「要 thorough」「commit 要詳細」「實作要好讀」「仔細思考」「注意 edge case」）、客套、把通用 best-practice 再講一遍。
-> - **CUT — drift**：把抄自別處 SSOT 的具體值（計數、路徑、版本、event 名、套件名）留在散文裡的——該指回來源、不留第二份。
-> - **KEEP — load-bearing**：刪了 agent 行為**會變**的才留。專案特有事實、非顯而易見的 policy、具體指令 / 旗標 / 路徑、明確的反例與 gotcha、改變預設行為的指示。
->
-> 判準只有一條：**「刪掉這行，agent 輸出會不會變？」** 不變就 CUT。不確定就標 UNSURE 別亂砍。
->
-> 回傳每個 candidate：被引用的原文（一句或一段）+ verdict（CUT-noop / CUT-drift / KEEP / UNSURE）+ 一句理由 + 粗估省下 token。最後給「原檔約 N 行 → 砍後約 M 行」。
+brief 全文在 [`noop-brief.md`](./noop-brief.md)（與本檔同層）。**不要把它讀進主 agent 的 context**——主 agent 不需要知道 brief 寫什麼，把它塞進 context 就是這把刀要砍的那種 no-op。
+
+只遞路徑，兩種跑法：
+
+- 叫 sub-agent 自己讀：prompt 一句「讀 `.claude/skills/trim/noop-brief.md`，照裡面的規則審 `<target>`」。
+- 或 `cat .claude/skills/trim/noop-brief.md | claude -p`（再附上目標檔）。
+
+主 agent 全程只持有兩個路徑（目標檔 + brief 檔），brief 內容留在檔裡。
 
 ## 鐵規
 
