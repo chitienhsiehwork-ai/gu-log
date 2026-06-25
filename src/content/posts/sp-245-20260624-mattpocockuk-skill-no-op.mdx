@@ -8,6 +8,7 @@ translatedBy:
   harness: "Claude Code CLI"
 
 
+
   pipeline:
     - role: "Written"
       model: "Opus 4.5"
@@ -42,7 +43,7 @@ scores:
     sourceBoundary: 9
     commentarySeparation: 9
     score: 8
-    date: "2026-06-24"
+    date: "2026-06-25"
     model: "claude-opus-4-8"
   librarian:
     glossary: 8
@@ -50,7 +51,7 @@ scores:
     sourceAlign: 8
     attribution: 8
     score: 8
-    date: "2026-06-24"
+    date: "2026-06-25"
     model: "claude-opus-4-8"
   freshEyes:
     readability: 9
@@ -59,7 +60,7 @@ scores:
     lengthFit: 9
     clarity: 9
     score: 8
-    date: "2026-06-24"
+    date: "2026-06-25"
     model: "claude-opus-4-8"
   vibe:
     persona: 8
@@ -67,7 +68,7 @@ scores:
     vibe: 8
     narrative: 8
     score: 8
-    date: "2026-06-24"
+    date: "2026-06-25"
     model: "claude-opus-4-5"
 ---
 
@@ -136,17 +137,21 @@ import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
 修法很單純：說明搬去一個獨立檔，主 agent 只遞路徑、叫 subagent 自己讀。主 agent 腦袋裡從此只剩「目標檔在哪、說明檔在哪」兩個路徑，prompt 一個字都不進來。
 
-```diff
-- ## 交給每個 sub-agent 的 brief（逐字寫死在 SKILL.md）
-- > 你是審稿 skeptic……整段說明 inline 在 skill 裡
-- > - CUT — no-op / CUT — drift / KEEP — load-bearing …
-- # 主 agent 一載入 skill，這整段就進了 context
-+ ## brief 放進 noop-brief.md，別 inline
-+ 主 agent 只遞路徑：
-+   「讀 .claude/skills/trim/noop-brief.md，照規則審 <target>」
-+ # 或 cat noop-brief.md | claude -p
-+ # prompt 內容留在檔裡，不進主 agent 的 context
-```
+<a class="artifact-callout" href="/artifacts/sp-245-trim-noop/">
+  <span class="artifact-callout__icon-wrap">
+    <span class="artifact-callout__icon" aria-hidden="true">↗</span>
+    <span class="artifact-callout__tap">點開</span>
+  </span>
+  <span class="artifact-callout__body">
+    <span class="artifact-callout__label">互動小頁</span>
+    <strong>整段審稿說明塞進主 agent，還是只遞一條路徑？</strong>
+    <span class="artifact-callout__meta">一個開關看 skill 怎麼吃掉自己的 context · 無 API · 純瀏覽器內完成</span>
+    <span class="artifact-callout__cta">
+      <span>打開互動小頁</span>
+      <span aria-hidden="true">→</span>
+    </span>
+  </span>
+</a>
 
 prompt 是寫給「要執行它的那個 agent」讀的，不是寫給「轉發它的人」背的。能用一條路徑遞過去的東西，就別整包搬進 context。
 </ShroomDogNote>
