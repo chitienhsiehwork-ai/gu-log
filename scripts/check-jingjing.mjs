@@ -169,7 +169,11 @@ JWT OAuth SAML SSO 2FA MFA TOTP
 SPEC.md WORKFLOW.md README.md CLAUDE.md SKILL.md AGENTS.md CONTRIBUTING.md
 SSH SCP SFTP FTP IMAP SMTP POP3
 Git GitHub Actions GitLab CI CircleCI Travis Jenkins
+WebAssembly Wasm itms-services
 
+# Apple ecosystem / iOS app distribution (added 2026-06-26 for CP AssppWeb post)
+App Store TestFlight IPA
+AssppWeb Asspp ipatool
 # Time / units / measure
 ml mg kg km mph rpm
 GB TB MB KB Mb Kb Gb Tb
