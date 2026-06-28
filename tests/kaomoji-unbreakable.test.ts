@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'vitest';
-// @ts-expect-error — .mjs gate module has no type declarations
 import { check } from '../scripts/check-kaomoji-unbreakable.mjs';
 
 // CI gate (runs in the `unit-tests` vitest job): every known kaomoji must be
