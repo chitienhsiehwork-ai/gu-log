@@ -61,6 +61,58 @@ warn() {
 }
 section() { printf "\n${B}== %s ==${N}\n" "$1"; }
 
+# pw_bridge_browser_builds [PW_CACHE]
+#   為什麼存在：CCC 沙箱預烤的 Playwright browser build（例 1194）常落後 repo pin 的
+#   `@playwright/test` 想要的 build（例 1217），而透過 agent proxy 重抓 ~170MB 的
+#   chrome CDN zip 會在中途斷線（實測卡 80%），`playwright install` 補不上。結果 build-N
+#   目錄缺 binary，pre-commit 的 content-integrity（Playwright）一 launch 就報
+#   「Executable doesn't exist at .../chromium_headless_shell-1217/...」整批 fail。
+#
+#   修法：當「想要的 build」沒有可執行 binary、但有更舊的 build 在時，把想要的 build 目錄
+#   symlink 橋接到既有舊 build 的 binary（含新舊 layout 名稱差異：舊 chrome-linux/headless_shell
+#   → 新 chrome-headless-shell-linux64/chrome-headless-shell），補上 INSTALLATION_COMPLETE
+#   marker 讓 Playwright 認帳。換到的是「能 launch 的瀏覽器」而非「分毫不差的 pinned build」
+#   ——對 content-integrity（只讀 frontmatter）和 UI 截圖都夠用；要精準 build 就在能連 CDN
+#   的環境重跑 install。版號從 browsers.json 動態讀，不寫死，playwright 再 bump 也不用改這裡。
+pw_bridge_browser_builds() {
+  local cache="${1:-${PLAYWRIGHT_BROWSERS_PATH:-$HOME/.cache/ms-playwright}}"
+  [ -d "$cache" ] || return 0
+  local bjson
+  bjson=$(ls node_modules/.pnpm/playwright-core@*/node_modules/playwright-core/browsers.json 2>/dev/null | head -1)
+  [ -n "$bjson" ] || bjson="node_modules/playwright-core/browsers.json"
+  [ -f "$bjson" ] || return 0
+  local bridged=0
+  # prefix | 新 layout 子目錄 | 新 binary 名
+  local specs="chromium|chrome-linux64|chrome chromium_headless_shell|chrome-headless-shell-linux64|chrome-headless-shell"
+  local spec prefix subdir binname want wantdir wantbin src srcbin srcdir
+  for spec in $specs; do
+    prefix="${spec%%|*}"; subdir="${spec#*|}"; binname="${subdir#*|}"; subdir="${subdir%%|*}"
+    # 想要的 build 版號（browsers.json 的 name 是 chromium / chromium-headless-shell，連字號）
+    want=$(python3 -c "import json,sys; d=json.load(open('$bjson')); n='${prefix//_/-}'; print(next((b.get('revision','') for b in d['browsers'] if b['name']==n),''))" 2>/dev/null)
+    [ -n "$want" ] || continue
+    wantdir="$cache/${prefix}-${want}"
+    wantbin="$wantdir/$subdir/$binname"
+    [ -x "$wantbin" ] && continue   # 已經有真的/橋好的，跳過
+    # 找最新的既有 build（任一可執行 binary：新名 chrome / chrome-headless-shell 或舊名 chrome / headless_shell）
+    srcbin=""
+    for src in $(ls -d "$cache/${prefix}-"* 2>/dev/null | sort -t- -k2 -n -r); do
+      [ "$src" = "$wantdir" ] && continue
+      srcbin=$(find "$src" -maxdepth 2 -type f \( -name chrome -o -name chrome-headless-shell -o -name headless_shell \) 2>/dev/null | head -1)
+      [ -n "$srcbin" ] && break
+    done
+    [ -n "$srcbin" ] || continue
+    srcdir=$(dirname "$srcbin")
+    # 確保舊目錄裡有「新 binary 名」這個入口（舊 layout 叫 headless_shell，新的要 chrome-headless-shell）
+    [ -e "$srcdir/$binname" ] || ln -sfn "$(basename "$srcbin")" "$srcdir/$binname"
+    mkdir -p "$wantdir"
+    ln -sfn "$srcdir" "$wantdir/$subdir"
+    : > "$wantdir/INSTALLATION_COMPLETE"
+    : > "$wantdir/DEPENDENCIES_VALIDATED"
+    bridged=$((bridged + 1))
+  done
+  return $([ "$bridged" -gt 0 ] && echo 0 || echo 1)
+}
+
 # ── --fix：開工前自動補環境 ───────────────────────────────────────
 if $FIX; then
   section "FIX: 補環境"
@@ -96,6 +148,11 @@ if $FIX; then
       pass "Playwright chromium 背景驗證/下載中 (pid $!; log: /tmp/ccc-playwright-install.log)"
     else
       warn "Playwright bin 不在 node_modules" "pnpm install 完成後重跑 --fix 會補"
+    fi
+    # CDN 下載常在 proxy 後斷線（補不上想要的 build）。立刻用既有舊 build 橋接出一個能 launch
+    # 的瀏覽器，讓 pre-commit 的 content-integrity（Playwright）當下就能過，不必等背景下載。
+    if pw_bridge_browser_builds; then
+      pass "Playwright build 橋接：已用既有舊 build 補上 pinned build 目錄（content-integrity 可 launch）"
     fi
   fi
 
@@ -212,8 +269,15 @@ fi
 # 就知道現在能不能截圖、還是要再等一下背景下載。
 section "9. Playwright browser"
 PW_CACHE="${PLAYWRIGHT_BROWSERS_PATH:-$HOME/.cache/ms-playwright}"
-if ls "$PW_CACHE"/chromium-* >/dev/null 2>&1; then
-  pass "chromium 已裝 ($PW_CACHE)"
+# 注意：「有 chromium-* 目錄」不等於「pinned build 能 launch」——舊 build 殘留會誤判（見上方
+# pw_bridge_browser_builds 的註解）。所以這裡先試著橋接，再回報實際狀態。
+pw_bridge_browser_builds >/dev/null 2>&1 || true
+PW_HS_WANT=$(python3 -c "import json,glob; f=(glob.glob('node_modules/.pnpm/playwright-core@*/node_modules/playwright-core/browsers.json') or ['node_modules/playwright-core/browsers.json'])[0]; import os; d=json.load(open(f)) if os.path.exists(f) else {'browsers':[]}; print(next((b.get('revision','') for b in d['browsers'] if b['name']=='chromium-headless-shell'),''))" 2>/dev/null)
+PW_HS_BIN="$PW_CACHE/chromium_headless_shell-${PW_HS_WANT}/chrome-headless-shell-linux64/chrome-headless-shell"
+if [ -n "$PW_HS_WANT" ] && [ -x "$PW_HS_BIN" ]; then
+  pass "chromium 已裝且 pinned build $PW_HS_WANT 可 launch ($PW_CACHE)"
+elif ls "$PW_CACHE"/chromium-* >/dev/null 2>&1; then
+  warn "chromium 有目錄但 pinned build $PW_HS_WANT 缺 binary" "背景下載可能還沒好；content-integrity launch 會卡（--fix 會嘗試橋接舊 build）"
 elif pgrep -f "playwright install chromium" >/dev/null 2>&1; then
   warn "chromium 背景下載中" "稍候再用 uiux-auditor / playwright-cli；log: /tmp/ccc-playwright-install.log"
 else
