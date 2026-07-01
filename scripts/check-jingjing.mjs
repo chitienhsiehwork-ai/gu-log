@@ -559,6 +559,11 @@ PyTorch numpy transformer tokenizer tokenization
 LeetCode Neetcode Blind
 Modeling Scratch Industry Job
 
+# Added 2026-07-01 for CP-312 (Kun Chen's firstmate/secondmate/crewmate agent
+# org chart + per-task model routing). Kun Chen = the author (person), no
+# natural zh-tw translation (writer-prompt rule #2: people stay English).
+Kun Chen
+
 # Added 2026-07-01 for the Core-dump Lv 三部曲 (levelup-*-core-dump-*). All
 # bona-fide proper nouns named in the OpenAI source, none with a zh-tw
 # translation (same category as the product / library names already
