@@ -567,7 +567,15 @@ Modeling Scratch Industry Job
 #     series debugs. libunwind = the GNU stack-unwinding library that carried
 #     the 18-year-old race (the "18 歲的鬼"). Level-Up = the gu-log tutorial
 #     series brand, same house-term status as ClawdNote / ShroomDogNote above.
+#   folly = Facebook/Meta's open-source C++ library (its fatal signal handler
+#     logs the stack trace) — product/library proper noun like libunwind.
+#   John Snow / Broad Street = the physician + London street of the 1854 cholera
+#     pump, the founding story of epidemiology (Post B's bug #1 analogy anchor).
+#   Unix = the OS family named when cross-linking the Unix-signals Lv post.
 Rockset libunwind Level-Up
+folly
+John Snow Broad Street
+Unix
 `;
 
 const HARDCODED = new Set();
