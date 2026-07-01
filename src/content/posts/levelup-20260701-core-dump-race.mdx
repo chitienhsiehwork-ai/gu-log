@@ -1,0 +1,525 @@
+---
+ticketId: "Lv-15"
+title: "當機的驗屍課（下）：抓住那隻 18 歲的鬼"
+originalDate: "2026-07-01"
+translatedDate: "2026-07-01"
+translatedBy:
+  model: "Opus 4.5"
+  harness: "Claude Code"
+source: "Level-Up 系列"
+sourceUrl: "https://gu-log.vercel.app/posts/levelup-20260701-core-dump-race"
+lang: "zh-tw"
+summary: "當機驗屍三部曲完結篇。剩下那群「return 到 NULL」的命案，兇手是 GNU libunwind 藏了 18 年的競態條件——一個只有一條指令寬（約 100 皮秒）的完美作案窗。看兇器怎麼下手、用費米估算對帳發病率、以及為何這隻鬼躲了 18 年才現身。"
+tags: ["systems", "debugging", "cpp", "tutorial"]
+scores:
+  tribunalVersion: 9
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    narrative: 9
+    score: 8
+    date: "2026-07-01"
+    model: "Opus 4.5"
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 8
+    commentarySeparation: 9
+    score: 8
+    date: "2026-07-01"
+    model: "Opus 4.8"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 8
+    score: 8
+    date: "2026-07-01"
+    model: "Opus 4.8"
+  librarian:
+    glossary: 8
+    crossRef: 9
+    sourceAlign: 8
+    attribution: 8
+    score: 8
+    date: "2026-07-01"
+    model: "Opus 4.8"
+---
+
+import LevelUpProgress from '../../components/LevelUpProgress.astro';
+import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
+import ClawdNote from '../../components/ClawdNote.astro';
+import AnalogyBox from '../../components/AnalogyBox.astro';
+
+Post A 教調查員看屍體——`%rip`、`stack`、撞牆暴斃。Post B 破了第一案：一口毒井（壞主機）下線，`misaligned-%rsp` 那群消失。
+
+剩下那群 `return-to-null` 的命案，有一個詭異的共同點：**全死在 C++ 丟 `exception`、正在展開 `stack` 的當下**。
+
+這不是正常的「回家」。這是「瞬間傳送」。
+
+今天要抓真兇：GNU `libunwind` 裡藏了 18 年的競態條件（`race condition`）。一個只有一條指令寬、約 100 皮秒（10⁻¹⁰ 秒）的完美作案窗 ╰(°▽°)╯
+
+---
+
+## 🏰 第 0 層：回顧 + 今天抓真兇
+
+<LevelUpProgress current={0} total={8} title="當機的驗屍課（下）" />
+
+快速複習：
+
+- **Post A**：`stack` 是一疊拜訪便條；`ret` 照便條回家；便條被改成 `NULL` → 撞牆暴斃
+- **Post B**：用流行病學家模式分開兩群；壞主機那群 `denylist` 封井就消失；剩下那群全死在「`exception` 展開當下」
+
+工程師分離壞硬體之後，回頭看剩下的 `return-to-null` 命案。之前（錯誤地）排除了「`exception` 展開」這個可能——因為有些案例發生在「根本沒用 `exception`」的程式碼路徑。但那些反例全來自壞硬體那群。
+
+把壞硬體拿掉重看：**剩下的當機，百分之百發生在 C++ 丟 `exception`、正在展開 `stack` 的當下**。
+
+今天要搞懂三件事：
+
+1. `exception` 展開到底在做什麼（為什麼叫「瞬間傳送」）
+2. 兇手怎麼在一條指令的縫隙裡下手
+3. 為什麼這隻鬼躲了 18 年才出來
+
+<LevelUpQuiz
+  question="Post B 分離壞硬體之後，剩下的 return-to-null 命案有什麼共同點？"
+  options={[
+    { label: "A", text: "全發生在網路斷線的時候" },
+    { label: "B", text: "全發生在 C++ 丟 exception、正在展開 stack 的當下" },
+    { label: "C", text: "全發生在同一台機器" },
+    { label: "D", text: "全發生在凌晨三點" },
+  ]}
+  answer="B"
+  explanation="壞硬體那群分離掉之後，剩下的 return-to-null 當機有一個清楚的 pattern：全都發生在 C++ 丟 exception、正在展開 stack 的當下。這是破案的關鍵線索。"
+/>
+
+---
+
+## 🏰 第 1 層：`exception` 展開 = 瞬間傳送
+
+<LevelUpProgress current={1} total={8} title="當機的驗屍課（下）" />
+
+C++ 的 `exception` 機制長這樣：當程式碼呼叫 `throw`，`runtime` 要找到對應的 `catch` 區塊，然後把控制權交過去。
+
+但這不是普通的「回家」。
+
+普通的 `ret` 是：撕掉一張便條，照便條上的地址跳回去。一層一層回，很規矩。
+
+`exception` 展開不一樣。它可能要一次「跳過」好幾層便條——中間那些 function 全都還沒跑完，但程式要直接傳送到某一層的 `catch` 區塊。
+
+<AnalogyBox title="🌀 不是回家，是瞬間傳送">
+
+想像調查員原本在書店（function D），書店是咖啡廳（function C）叫來的，咖啡廳是警局（function A）叫來的。
+
+正常回家：D → C → A，一層一層撕便條。
+
+`exception` 傳送：D 直接傳送回 A 的某個 `catch` 點。中間 C 的便條不是「被撕掉」，而是「被展開掉」——執行期幫忙跑 C 的清理工作（`destructor`），然後控制權直接到 A。
+
+這比較像 `longjmp` 或光纖切換（`fiber switch`），不是普通的 `call`/`ret`。
+
+</AnalogyBox>
+
+展開的過程很複雜：
+
+1. 執行期檢查 `stack`
+2. 抓每層 function 的 `metadata`（編譯器事先產生的展開資訊）
+3. 動態找 `cleanup handler`（清理程式）和 `catch` 區塊
+4. 把中間所有 `stack frame` 展開掉
+5. 還原 `callee-save` 暫存器、`%rbp`、`%rsp`
+6. 把控制權「傳送」到目標 `catch` 點
+
+**操作上，這比較像 `longjmp` 或 `setcontext`，不是普通的 `call`/`ret`。**
+
+<ClawdNote>
+`exception` 展開的英文是 `unwinding`——「展開」或「解開」的意思。想像把纏在一起的毛線解開，一層一層處理。這個機制在 C++ 裡由執行期函式庫負責（`libgcc` 或 `libunwind`），編譯器會產生 `DWARF unwind metadata` 告訴執行期每層 function 該怎麼展開。坦白說，這整套比 Go 的 `panic`/`recover` 複雜十倍，但也彈性十倍——C++ 付出的代價是「任何一個環節出錯，屍體都不好看」。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="C++ 的 exception 展開和普通的 return 有什麼不同？"
+  options={[
+    { label: "A", text: "沒有不同，都是撕便條回家" },
+    { label: "B", text: "exception 展開可能一次跳過好幾層，由執行期的輔助函式代勞，比較像瞬間傳送" },
+    { label: "C", text: "exception 展開比較慢，但原理一樣" },
+    { label: "D", text: "exception 展開不需要便條" },
+  ]}
+  answer="B"
+  explanation="普通 return 是一層一層撕便條；exception 展開可能一次跳過好幾層，由執行期的輔助函式代勞，還要還原暫存器、跑清理程式。操作上更接近 longjmp 或 setcontext，不是普通的 call/ret。"
+/>
+
+---
+
+## 🏰 第 2 層：誰在做傳送？`libunwind` vs `libgcc`
+
+<LevelUpProgress current={2} total={8} title="當機的驗屍課（下）" />
+
+Rockset 的 `binary`（執行檔）同時連結（`link`）了兩個能做 `exception` 展開的函式庫：
+
+- **`libgcc`**：GCC 編譯器附帶的執行期函式庫
+- **GNU `libunwind`**：一個專門做 `stack` 展開的開源函式庫
+
+兩個函式庫都實作了同樣的函式（用來展開 `stack` 的輔助函式）。當程式跑起來，`dynamic linker`（動態連結器）會決定用哪一個版本。
+
+工程師本來以為 `symbol versioning` 規則會讓 `libgcc` 的版本勝出。但檢查跑起來的 `binary`，發現**實際上選到的是 `libunwind` 的版本**。
+
+這出乎意料。
+
+而兇器——就出自 `libunwind`。
+
+<AnalogyBox title="🔧 兩個供應商，系統選了另一個">
+
+想像城裡有兩家便當店都會送「傳送便當」（展開 `stack` 的輔助函式）。系統管理員以為會送 A 店的，但實際上 `dynamic linker` 挑了 B 店。
+
+工程師打開跑起來的程式一看：喔，是 B 店（`libunwind`）在送。
+
+兇器就藏在 B 店的便當裡。
+
+</AnalogyBox>
+
+<ClawdNote>
+`libunwind` 這個名字很直白：`lib` 是函式庫（`library`），`unwind` 是展開。它是 GNU/Linux 生態系裡常用的 `stack` 展開工具，很多程式（包括偵錯器、`profiler`）都會用到。這種「兩套實作、`linker` 挑一個」的情況在 C/C++ 世界超常見——但也是 bug 的溫床。你以為在用 A，其實在用 B，這種 `ambient dependency`（環境相依）的坑踩過一次就會永遠記得。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="Rockset 的 binary 最後用的是哪個函式庫的 exception 展開實作？"
+  options={[
+    { label: "A", text: "libgcc" },
+    { label: "B", text: "GNU libunwind" },
+    { label: "C", text: "兩個都用" },
+    { label: "D", text: "都沒用" },
+  ]}
+  answer="B"
+  explanation="雖然 Rockset 的 binary 同時連結了 libgcc 和 libunwind，但 dynamic linker 最後選到的是 libunwind 的版本。這出乎工程師意料——他們本來以為 symbol versioning 規則會讓 libgcc 勝出。兇器就藏在 libunwind 裡。"
+/>
+
+---
+
+## 🏰 第 3 層：傳送座標卡（`ucontext_t`）
+
+<LevelUpProgress current={3} total={8} title="當機的驗屍課（下）" />
+
+`libunwind` 做「瞬間傳送」的方法是這樣：
+
+1. 在 `stack` 上合成一張「傳送座標卡」——正式名稱叫 `ucontext_t`
+2. 卡上寫著目標暫存器狀態：傳送完成後 `%rip` 該指向哪、`%rsp` 該是多少、其他暫存器該是什麼值
+3. 把這張卡的指標交給一個內部組語常式 `_Ux86_64_setcontext`
+4. `_Ux86_64_setcontext` 把卡上的狀態灌回暫存器，完成傳送
+
+<AnalogyBox title="📍 傳送座標卡">
+
+想像調查員要被「瞬間傳送」到某個地點。傳送機器需要一張卡：
+
+- 目標位置：警局三樓會議室（對應 `%rip`）
+- 目標姿勢：站著、雙手放膝蓋（對應其他暫存器）
+- 目標地面高度：三樓地板（對應 `%rsp`）
+
+`libunwind` 在 `stack` 上填好這張卡，然後讓 `_Ux86_64_setcontext` 讀卡、執行傳送。
+
+</AnalogyBox>
+
+**關鍵來了**：這張卡就放在「即將被 `_Ux86_64_setcontext` 自己展開掉」的那個 `stack frame` 上。
+
+工程師讀 `libunwind` 的原始碼，發現它會在 `stack` 上合成 `ucontext_t`，填好目標暫存器狀態，然後把指標（放在 `%rdi`）交給 `_Ux86_64_setcontext`。
+
+這個設計看起來很合理——但藏了一個致命的時序問題。
+
+<ClawdNote>
+`ucontext_t` 的名字拆開來看：`u` 是 `user`（使用者空間），`context` 是上下文（程式執行狀態），`_t` 是 C 語言的型別後綴。這個結構體（`struct`）定義在 POSIX 標準裡，用來保存「某個執行點的完整暫存器狀態」。可以想成「存檔」——有了這張卡，就能回到那個狀態繼續跑。但也因為它太通用、太底層，幾乎所有需要「跳來跳去」的機制（`coroutine`、`fiber`、`exception`）都想借它用，也都可能用錯。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="libunwind 做瞬間傳送的機制是什麼？"
+  options={[
+    { label: "A", text: "直接修改 %rip 和 %rsp" },
+    { label: "B", text: "在 stack 上合成一張傳送座標卡（ucontext_t），再由 _Ux86_64_setcontext 讀卡、執行傳送" },
+    { label: "C", text: "用 kernel 的 system call" },
+    { label: "D", text: "靠 CPU 自動完成" },
+  ]}
+  answer="B"
+  explanation="libunwind 的做法是：在 stack 上合成一個 ucontext_t 結構體，寫好目標暫存器狀態，然後讓 _Ux86_64_setcontext 這個組語常式讀卡、把狀態灌回暫存器、完成傳送。關鍵是：這張卡就放在即將被展開掉的 stack frame 上。"
+/>
+
+---
+
+## 🏰 第 4 層：致命的一條指令
+
+<LevelUpProgress current={4} total={8} title="當機的驗屍課（下）" />
+
+工程師讀 `_Ux86_64_setcontext` 的組語碼。最後幾條指令大致是：
+
+```asm
+mov UC_MCONTEXT_GREGS_RSP(%rdi), %rsp   ; 第 1 條：更新 %rsp
+mov UC_MCONTEXT_GREGS_RIP(%rdi), %rcx   ; 第 2 條：讀目標 %rip 到 %rcx
+...                                      ; 還原其他暫存器
+push %rcx                                ; 把目標 %rip 壓到 stack
+...
+retq                                     ; 彈出那個值，跳過去
+```
+
+**問題出在第 1 條和第 2 條之間。**
+
+第 1 條指令執行完，`%rsp` 已經指向新的 `stack` 底。那一瞬間：
+
+- 那張傳送座標卡（`%rdi` 指著的 `ucontext_t`）掉到新 `%rsp` 的下方
+- 它**不再屬於 `active stack`**
+- 它也**不再受 `red zone`（封鎖線）保護**——因為新 `%rsp` 換了位置，`red zone` 也跟著換
+
+`kernel` 不再把那塊記憶體當禁區。
+
+**而下一條指令才要去讀卡上的目標 `%rip`。**
+
+中間這一步，門戶洞開。
+
+<AnalogyBox title="🚧 封鎖線移位，舊卡裸露">
+
+想像傳送機器在讀座標卡：
+
+1. 先調整地板高度（更新 `%rsp`）
+2. 再讀卡上的目標位置（讀 `%rip`）
+
+但調整地板高度的瞬間，原本放卡的地方掉到「封鎖線外」了。封鎖線跟著新地板跑，舊卡現在是裸露的。
+
+如果這時候有人闖進來，可以直接踩在那張卡上。
+
+</AnalogyBox>
+
+<ClawdNote>
+這就是為什麼這個 bug 這麼難抓。邏輯上 `setcontext` 寫得很合理：先換 `%rsp`，再讀剩下的值，最後跳過去。但它沒有考慮到：**換 `%rsp` 的那一瞬間，`red zone` 的保護範圍也跟著換了**，舊卡不再受保護。這是一個微妙的 ABI / `signal delivery`（訊號遞送）交互作用。寫這段 code 的人不是不聰明——他們只是活在一個「沒有人每幾毫秒就送 `signal` 給你」的世界觀裡。Bug 躲了 18 年不是因為原作者笨，是因為觸發條件離譜。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="為什麼更新 %rsp 之後，傳送座標卡會變得脆弱？"
+  options={[
+    { label: "A", text: "因為卡被刪除了" },
+    { label: "B", text: "因為卡掉到新 %rsp 下方，不再屬於 active stack（作用中的 stack），也不再受 red zone 保護" },
+    { label: "C", text: "因為 CPU 會自動清空卡的內容" },
+    { label: "D", text: "因為卡太大了" },
+  ]}
+  answer="B"
+  explanation="_Ux86_64_setcontext 的第一條指令更新 %rsp，指向新的 stack 底。那一瞬間，放在舊位置的傳送座標卡掉到新 %rsp 下方，不再屬於作用中的 stack，也不再受 red zone（128 位元組封鎖線）保護。kernel 可以在那裡覆寫東西。"
+/>
+
+---
+
+## 🏰 第 5 層：兇器下手——回收所有伏筆
+
+<LevelUpProgress current={5} total={8} title="當機的驗屍課（下）" />
+
+現在把所有線索串起來。
+
+Post B 提過：Rockset 用 `SIGUSR2` 來追蹤 CPU 時間。**每幾毫秒 CPU 時間，就送一個 `SIGUSR2` 到每個 `thread`。**
+
+當 `signal` 送達時，`kernel` 會在 `%rsp - 128` 的位置建立 `signal frame`——剛好在 `red zone` 外面。
+
+現在想像這個時間線：
+
+1. `exception` 被丟出，`libunwind` 開始展開 `stack`
+2. `_Ux86_64_setcontext` 執行第 1 條指令：**`%rsp` 更新了**
+3. 那張傳送座標卡（`ucontext_t`）掉到新 `%rsp` 下方，脫離封鎖線保護
+4. **就在這一瞬間，`SIGUSR2` 送達**
+5. `kernel` 在新 `%rsp - 128` 建立 `signal frame`——**正好蓋掉那張還沒讀完的傳送座標卡**
+6. 卡上的目標 `%rip` 被覆寫成 `NULL`（或其他垃圾值）
+7. `_Ux86_64_setcontext` 繼續執行，讀出被覆寫的 `%rip`
+8. 傳送完成，程式跳到 `NULL`
+9. **撞牆暴斃**
+
+<AnalogyBox title="🎯 完美的作案時機">
+
+- 兇器移動（`%rsp` 更新）
+- 座標卡脫離封鎖線
+- `SIGUSR2` 闖入，在封鎖線外踩出 `signal frame`
+- 座標卡被覆寫
+- 傳送到錯誤位置
+- 撞牆
+
+Post A 看到的「`return` 到 `NULL`」的真相：**不是便條被就地改掉，而是 `unwinder` 合成在 `stack` 上的傳送座標卡，在傳送完成前被 `signal` 蓋掉了。**
+
+</AnalogyBox>
+
+為什麼現場看起來像「一個 function `return` 到 `NULL`」？
+
+因為 `_Ux86_64_setcontext` 為了連 `%rdi` 都還原，沒辦法在最後一刻直接從 `%rdi` 讀目標 `%rip`。它的做法是：
+
+1. 先把目標 `%rip` 讀出來，存到 `stack` 上
+2. 還原其他暫存器（包括 `%rdi`）
+3. 最後用 `retq` 讀那個存起來的值，完成跳轉
+
+所以命案現場看起來就像「一個 function 執行 `ret`，跳到 `NULL`」。調查員一開始以為是回程便條被改，其實是傳送座標卡被覆寫。
+
+<ClawdNote>
+這就是為什麼這個 bug 偽裝得這麼好。現場證據看起來像「某個 function return 到 NULL」，但實際上是「unwinder 合成的傳送座標被 signal 覆寫」。兩者在 `core dump` 裡長得幾乎一樣——因為 `_Ux86_64_setcontext` 最後用 `retq` 跳轉，留下的痕跡就像普通的 `ret`。這是系統程式設計裡最討厭的那種 bug：**現場痕跡指向一個不存在的兇手**。沒有讀過 `libunwind` 原始碼、沒有建好族群資料分離壞硬體，根本不會想到這一層。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="造成 return-to-null 的真正機制是什麼？"
+  options={[
+    { label: "A", text: "便條上的回程地址被亂寫" },
+    { label: "B", text: "libunwind 合成的傳送座標卡在 %rsp 更新後脫離封鎖線保護，被 SIGUSR2 的 signal frame 覆寫" },
+    { label: "C", text: "編譯器產生錯誤的程式碼" },
+    { label: "D", text: "CPU 算錯數" },
+  ]}
+  answer="B"
+  explanation="真相是：_Ux86_64_setcontext 更新 %rsp 之後，傳送座標卡（ucontext_t）脫離封鎖線保護。如果 SIGUSR2 剛好在這一瞬間送達，kernel 會在新 %rsp - 128 建立 signal frame，蓋掉那張卡。卡上的目標 %rip 變成 NULL，傳送完成後就撞牆暴斃。"
+/>
+
+---
+
+## 🏰 第 6 層：100 皮秒的完美作案窗 + 費米估算
+
+<LevelUpProgress current={6} total={8} title="當機的驗屍課（下）" />
+
+這個 `race window`（競態窗口）有多窄？
+
+**整整一條指令寬。**
+
+`signal` 必須在「`%rsp` 改了之後、下一條指令載入 `%rip` 之前」抵達。現代超純量（`super-scalar`）亂序（`out-of-order`）CPU 一個 `cycle` 能跑好幾條這種簡單的 `mov` 指令。
+
+窗口大約 **100 皮秒（10⁻¹⁰ 秒）**。
+
+工程師第一反應：「這麼窄不可能解釋每天十幾次當機吧？」
+
+於是他們用**費米估算**（`Fermi estimation`）對帳。
+
+<AnalogyBox title="📊 費米估算：算發病率 / R0">
+
+費米估算是物理學家 Enrico Fermi 愛用的方法：不追求精確數字，用數量級快速估算，看「對不對得上」。
+
+- 競態窗口：約 10⁻¹⁰ 秒
+- `SIGUSR2` 每 10⁻² 秒 CPU 時間送一次
+- 每次 `cleanup handler` / `catch` 區塊的競態輸掉機率：約 10⁻⁸
+
+Rockset 拿 `exception` 當 `ingest backpressure`（寫入背壓）機制——過載時用丟 `exception` 來減速。一台過載主機每秒可丟約 10⁴ 個 `exception`。
+
+- 每 10⁴ 秒（幾小時）當機一次
+- 全機群每天十幾次當機
+
+**跟觀察到的頻率對得上。**
+
+</AnalogyBox>
+
+這就像流行病學家算發病率、算 R0（基本傳染數）——不需要精確到小數點後三位，只要數量級對得上，就知道假設是對的。
+
+<ClawdNote>
+費米估算（`Fermi estimation`）得名於物理學家 Enrico Fermi，他以能用極少資料快速估算數量級聞名。經典問題如「芝加哥有多少鋼琴調音師」——不需要查資料，用人口、家庭數、鋼琴普及率、調音頻率一路估下來，就能得到正確的數量級。費米估算在除錯時比精確模擬好用太多——數量級對就知道方向對，數量級錯就知道假設錯，不用等完整數據。這案例裡，10⁻⁸ × 10⁴ = 10⁻⁴ 次/秒 ≈ 每幾小時一次，對上了每天十幾次，假設成立。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="工程師怎麼確認 100 皮秒的競態窗口能解釋每天十幾次當機？"
+  options={[
+    { label: "A", text: "在實驗室重現 bug" },
+    { label: "B", text: "用費米估算：窗口 10⁻¹⁰ 秒 × SIGUSR2 頻率 10⁻² 秒 × exception 頻率 10⁴ 次/秒 ≈ 每幾小時當機一次，跟觀察對得上" },
+    { label: "C", text: "問 ChatGPT" },
+    { label: "D", text: "猜的" },
+  ]}
+  answer="B"
+  explanation="工程師用費米估算：競態窗口約 10⁻¹⁰ 秒，SIGUSR2 每 10⁻² 秒送一次，每次展開輸掉機率約 10⁻⁸。Rockset 每秒丟約 10⁴ 個 exception → 每 10⁴ 秒（幾小時）當機一次。全機群每天十幾次，跟觀察對得上。"
+/>
+
+---
+
+## 🏰 最終關：為何 18 年才爆 + 修法 + 大結局
+
+<LevelUpProgress current={7} total={8} title="當機的驗屍課（下）" />
+
+這個 GNU `libunwind` 的 bug 超過 **18 歲**——第一個支援 C++ `exception` 展開的 x86_64 版本就有了。
+
+為什麼現在才爆？
+
+因為當機率大致正比於三個乘數：
+
+1. **`exception` 丟出量**：Rockset 拿 `exception` 當 `backpressure` 機制，丟得比一般程式兇
+2. **`signal` 送出量**：Rockset 每幾毫秒就送一次 `SIGUSR2`，比一般程式頻繁很多
+3. **`signal handler` 吃的 `stack` 量**：今年稍早，工程師在 `SIGUSR2` handler 裡加了一個 `timer_getoverrun` 呼叫，讓 handler 多吃了一些 `stack`
+
+<AnalogyBox title="🦠 三個乘數跨過臨界點">
+
+這隻 18 歲的鬼一直在，但一直沒有「發作」的條件。就像一種病原體在人群裡潛伏很久，直到某些環境因素改變（人口密度、免疫力下降、新的傳播途徑），才爆發成流行病。
+
+Rockset 的三個乘數：`exception` 丟出量 × `signal` 送出量 × `handler` 吃的 `stack` 量，剛好都異常高。加那行 `timer_getoverrun` 之前，根本沒有這種當機；加完之後，也是等某些用途把 `backpressure` 壓力衝上去才爆。
+
+三者乘積跨過臨界點，老鬼現身。
+
+</AnalogyBox>
+
+**`handler` 吃的 `stack` 為什麼關鍵？**
+
+如果 handler 用的 `stack` 不夠多，`signal frame` 不會踩到那張已經脫離封鎖線的舊 `ucontext_t`。加了 `timer_getoverrun` 之後，handler 多吃了一些 `stack`，才開始踩到那張卡。
+
+---
+
+**修法**：
+
+工程師立刻從 GNU `libunwind` 換成 `libgcc` 的 `unwinder`。這本身也划算——`libgcc` 的實作在減少 `lock` 競爭上下過很多工，對大 VM 有幫助。
+
+他們也寫了一個獨立可重現的 `reproducer`，連同修補送回 GNU `libunwind` 上游。並驗證其他 `unwinder`（包括 LLVM 的 `libunwind`）沒有類似問題。
+
+**換掉帶病的器官，把解藥回饋給上游。**
+
+<ClawdNote>
+這是開源社群的正確姿勢：發現 bug，修好自己的系統，然後把 `reproducer` 和 `patch` 送回上游。GNU `libunwind` 的維護者收到這個修補後，可以讓全世界用這個函式庫的人都受益。這也是為什麼 OpenAI 會把這篇除錯故事公開——不只是炫技，是把知識回饋給社群。坦白講，很多公司抓到這種 bug 會悶著、當成「我們基礎設施比你穩」的競爭優勢，不公開也不上游 patch。OpenAI 這次做對了。
+</ClawdNote>
+
+---
+
+**系列大結局：破案的是那份乾淨的族群資料**
+
+回顧這三篇，真正破案的關鍵不是那些頂尖的組語判讀、也不是對 ABI / `signal` / `exception` 機制的深厚知識。
+
+**是先建了一份高品質的族群資料。**
+
+- 資料乾淨之後，「不可能的 bug」自己裂成兩個普通 bug：一口毒井（壞主機）+ 一隻 18 歲的鬼（`libunwind` 競態條件）
+- 毒井封掉，`misaligned-%rsp` 消失
+- 壞硬體分離掉之後，剩下的命案全指向 `exception` 展開——這才讓工程師敢深挖 `libunwind`
+
+Post A 的開場說「這種死法不該存在」。它當然存在。只是**要用對方法看**。
+
+一個個案例深挖是法醫的本能，但當假設反覆被推翻，該做的是退一步、建資料、當流行病學家。這個教訓不只適用於 C++ 除錯——任何領域都一樣。
+
+<LevelUpQuiz
+  question="為什麼這隻 18 歲的鬼現在才現身？"
+  options={[
+    { label: "A", text: "因為 kernel 更新了" },
+    { label: "B", text: "因為 Rockset 的 exception 丟出量 × signal 送出量 × handler 吃的 stack 量，三個乘數跨過了臨界點" },
+    { label: "C", text: "因為工程師太厲害了" },
+    { label: "D", text: "因為剛好是 18 歲的週年紀念日" },
+  ]}
+  answer="B"
+  explanation="這個 libunwind bug 存在超過 18 年，但當機率正比於 exception 丟出量 × signal 送出量 × handler 吃的 stack 量。Rockset 三個軸都異常高，加上今年在 handler 裡加了 timer_getoverrun 讓 stack 用量增加，三者乘積終於跨過臨界點。老鬼現身。"
+/>
+
+---
+
+## 🎓 通關小結
+
+調查員在這三堂課學會了：
+
+| 概念 | 一句話解釋 |
+|------|-----------|
+| **`exception` 展開** | 不是正常回家，是瞬間傳送——由執行期的輔助函式還原暫存器、跳到 `catch` 點 |
+| **`libunwind` vs `libgcc`** | 兩個能做展開的函式庫；Rockset 實際用的是 `libunwind` |
+| **`ucontext_t`** | 傳送座標卡——寫好目標暫存器狀態，交給 `setcontext` 執行 |
+| **競態窗口** | `%rsp` 更新後、`%rip` 讀取前，卡脫離封鎖線的一條指令縫隙 |
+| **`SIGUSR2` 覆寫** | `signal` 在窗口內抵達，蓋掉傳送座標卡，導致跳到 `NULL` |
+| **費米估算** | 用數量級驗證：窗口 × 頻率 × 頻率 ≈ 觀察到的當機率 |
+| **為何 18 年才爆** | `exception`率 × `signal`率 × `handler` 吃的 `stack`，三者乘積跨過臨界 |
+| **修法** | 換 `libgcc` + 上游 patch |
+
+最重要的一課：**破案的是那份乾淨的族群資料**。
+
+資料一乾淨，毒井自己現形、老鬼自己露餡。不需要神級個案推理——需要的是退一步、建資料、當流行病學家。
+
+這份驗屍報告到此結束。（對了，這篇也是被 gu-log 自己的四法官審過的——用的正是那套「對抗式 review」的流程。如果讀起來還算順暢，那是因為有一堆不順暢的版本已經被打槍了 (⌐■_■)）
+
+## 🔗 延伸閱讀
+
+三部曲從頭讀：
+
+- [當機的驗屍課（上）：先學會看一具程式的屍體](/posts/levelup-20260701-core-dump-anatomy/)
+- [當機的驗屍課（中）：法醫救不了你，要找的是流行病學家](/posts/levelup-20260701-core-dump-epidemiology/)
+
+原文（OpenAI 官方技術部落格）：
+
+- [Core dump epidemiology: fixing an 18-year-old bug](https://openai.com/index/core-dump-epidemiology-data-infrastructure-bug/)
+
+**（系列完結）**
