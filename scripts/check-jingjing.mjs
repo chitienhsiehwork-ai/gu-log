@@ -576,6 +576,9 @@ Rockset libunwind Level-Up
 folly
 John Snow Broad Street
 Unix
+#   Enrico Fermi = the physicist behind "Fermi estimation" (order-of-magnitude
+#     back-of-envelope estimate), named in Post C's ClawdNote — person, proper noun.
+Enrico Fermi
 `;
 
 const HARDCODED = new Set();
