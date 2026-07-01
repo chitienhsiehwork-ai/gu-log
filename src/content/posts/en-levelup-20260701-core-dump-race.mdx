@@ -1,0 +1,525 @@
+---
+ticketId: "Lv-15"
+title: "Autopsy of a Crash (Part 3): Catching the 18-Year-Old Ghost"
+originalDate: "2026-07-01"
+translatedDate: "2026-07-01"
+translatedBy:
+  model: "Opus 4.5"
+  harness: "Claude Code"
+source: "Level-Up Series"
+sourceUrl: "https://gu-log.vercel.app/en/posts/en-levelup-20260701-core-dump-race"
+lang: "en"
+summary: "The autopsy trilogy finale. The remaining 'return-to-null' murders all died during C++ exception unwinding — a teleport, not a normal return. The killer: an 18-year-old race in GNU libunwind, with a murder window one instruction wide (~100 picoseconds). Plus Fermi estimation to check the math."
+tags: ["systems", "debugging", "cpp", "tutorial"]
+scores:
+  tribunalVersion: 9
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    narrative: 9
+    score: 8
+    date: "2026-07-01"
+    model: "Opus 4.5"
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 8
+    commentarySeparation: 9
+    score: 8
+    date: "2026-07-01"
+    model: "Opus 4.8"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 8
+    score: 8
+    date: "2026-07-01"
+    model: "Opus 4.8"
+  librarian:
+    glossary: 8
+    crossRef: 9
+    sourceAlign: 8
+    attribution: 8
+    score: 8
+    date: "2026-07-01"
+    model: "Opus 4.8"
+---
+
+import LevelUpProgress from '../../components/LevelUpProgress.astro';
+import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
+import ClawdNote from '../../components/ClawdNote.astro';
+import AnalogyBox from '../../components/AnalogyBox.astro';
+
+Post A taught the investigator to read corpses — `%rip`, `stack`, hitting-a-wall death. Post B cracked the first case: a poisoned well (bad host) was capped, and the `misaligned-%rsp` population vanished.
+
+The remaining `return-to-null` murders share one eerie trait: **they all died during C++ `exception` throwing, right in the middle of unwinding the `stack`.**
+
+This isn't a normal "going home." This is a **teleport**.
+
+Today we catch the real killer: a race condition hiding in GNU `libunwind` for 18 years. A perfect murder window exactly one instruction wide — roughly 100 picoseconds (10^-10 seconds) ╰(°▽°)╯
+
+---
+
+## Floor 0: Recap + Today's Hunt
+
+<LevelUpProgress current={0} total={8} title="Autopsy of a Crash (Part 3)" />
+
+Quick recap:
+
+- **Post A**: `stack` is a pile of visit notes; `ret` follows the note home; note gets changed to `NULL` → hits a wall and dies
+- **Post B**: Epidemiologist mode to separate two populations; poisoned-well population → `denylist`, gone; remaining population all died during "`exception` unwinding"
+
+After isolating the bad hardware, the engineers looked again at the remaining `return-to-null` murders. Earlier, they'd (wrongly) ruled out "exception unwinding" as a suspect — because some cases happened in code paths that "don't use exceptions at all." But those counterexamples all came from the bad-hardware population.
+
+Remove the bad hardware and look again: **the remaining crashes, 100% of them, happen during C++ throwing an `exception`, right in the middle of unwinding the `stack`.**
+
+Today we nail down three things:
+
+1. What `exception` unwinding actually does (why it's called a "teleport")
+2. How the killer strikes in the gap of a single instruction
+3. Why this ghost hid for 18 years before showing itself
+
+<LevelUpQuiz
+  question="After separating out the bad-hardware population, what pattern emerged in the remaining return-to-null murders?"
+  options={[
+    { label: "A", text: "They all happened during network outages" },
+    { label: "B", text: "They all happened during C++ exception throwing, right in the middle of unwinding the stack" },
+    { label: "C", text: "They all happened on the same machine" },
+    { label: "D", text: "They all happened at 3 AM" },
+  ]}
+  answer="B"
+  explanation="After separating out the bad-hardware population, the remaining return-to-null crashes had a clear pattern: 100% happened during C++ exception throwing, in the middle of unwinding the stack. This was the key clue to cracking the case."
+/>
+
+---
+
+## Floor 1: Exception Unwinding = Teleport
+
+<LevelUpProgress current={1} total={8} title="Autopsy of a Crash (Part 3)" />
+
+Here's how C++'s `exception` mechanism works: when code calls `throw`, the runtime needs to find the matching `catch` block and transfer control there.
+
+But this isn't a normal "going home."
+
+A normal `ret` works like this: tear off one note, jump to the address written on it. One layer at a time. Very orderly.
+
+`Exception` unwinding is different. It might "skip over" several layers of notes at once — those intermediate functions haven't finished running, but the program needs to teleport directly to some layer's `catch` block.
+
+<AnalogyBox title="Not Going Home — Teleporting">
+
+Imagine the investigator is at the bookstore (function D), called there by the coffee shop (function C), which was called by the police station (function A).
+
+Normal going-home: D → C → A, tearing off notes one layer at a time.
+
+`Exception` teleport: D teleports directly to a `catch` point in A. The notes in between — C's notes — aren't "torn off" but "unwound away." The runtime handles C's cleanup work (destructors), then control lands directly at A.
+
+This is more like `longjmp` or a fiber switch — not a normal `call`/`ret`.
+
+</AnalogyBox>
+
+The unwinding process is complex:
+
+1. The runtime inspects the `stack`
+2. Grabs metadata for each function layer (unwind info generated by the compiler)
+3. Dynamically locates `cleanup handlers` and `catch` blocks
+4. Unwinds all the intermediate `stack frames`
+5. Restores `callee-save` registers, `%rbp`, `%rsp`
+6. "Teleports" control to the target `catch` point
+
+**Operationally, this is more like `longjmp` or `setcontext`, not a normal `call`/`ret`.**
+
+<ClawdNote>
+The word "unwinding" literally means "unraveling" — imagine untangling a ball of yarn, layer by layer. In C++, this mechanism is handled by a runtime library (`libgcc` or `libunwind`); the compiler generates `DWARF unwind metadata` telling the runtime how to unwind each function layer. Honestly, this whole system is ten times more complex than Go's `panic`/`recover`, but also ten times more flexible. The price C++ pays: "if anything in this chain breaks, the corpse won't be pretty."
+</ClawdNote>
+
+<LevelUpQuiz
+  question="How does C++ exception unwinding differ from a normal return?"
+  options={[
+    { label: "A", text: "No difference, both tear off notes and go home" },
+    { label: "B", text: "Exception unwinding can skip over multiple layers at once, handled by runtime helpers — more like a teleport" },
+    { label: "C", text: "Exception unwinding is slower but works the same way" },
+    { label: "D", text: "Exception unwinding doesn't need notes" },
+  ]}
+  answer="B"
+  explanation="A normal return tears off notes one layer at a time; exception unwinding can skip over multiple layers at once, handled by runtime helper routines — it also has to restore registers, run cleanup code. Operationally it's closer to longjmp or setcontext, not a normal call/ret."
+/>
+
+---
+
+## Floor 2: Who Does the Teleporting? libunwind vs libgcc
+
+<LevelUpProgress current={2} total={8} title="Autopsy of a Crash (Part 3)" />
+
+Rockset's `binary` links against two libraries that can both do `exception` unwinding:
+
+- **`libgcc`**: The runtime library bundled with the GCC compiler
+- **GNU `libunwind`**: A dedicated open-source `stack`-unwinding library
+
+Both libraries implement the same functions (the helper routines for unwinding the `stack`). When the program runs, the `dynamic linker` decides which version to use.
+
+The engineers originally thought `symbol versioning` rules would make `libgcc`'s version win. But when they checked the running `binary`, they found **the actual winner was `libunwind`'s version**.
+
+This was unexpected.
+
+And the murder weapon — was inside `libunwind`.
+
+<AnalogyBox title="Two Vendors, System Picked the Other One">
+
+Imagine the city has two delis that both deliver "teleport sandwiches" (the helper function for unwinding the `stack`). The sys admin thought they'd be getting sandwiches from Deli A, but the `dynamic linker` actually picked Deli B.
+
+Engineers opened up the running program to check: oh, it's Deli B (`libunwind`) making deliveries.
+
+The weapon was hidden in Deli B's sandwiches.
+
+</AnalogyBox>
+
+<ClawdNote>
+The name `libunwind` is straightforward: `lib` for library, `unwind` for... unwinding. It's a commonly-used `stack` unwinding tool in the GNU/Linux ecosystem; lots of programs (including debuggers, profilers) use it. This "two implementations, linker picks one" situation is super common in C/C++ land — and a breeding ground for bugs. You think you're using A, you're actually using B. This kind of `ambient dependency` trap — once you step on it, you never forget.
+</ClawdNote>
+
+<LevelUpQuiz
+  question="Which library's exception unwinding implementation did Rockset's binary actually use?"
+  options={[
+    { label: "A", text: "libgcc" },
+    { label: "B", text: "GNU libunwind" },
+    { label: "C", text: "Both" },
+    { label: "D", text: "Neither" },
+  ]}
+  answer="B"
+  explanation="Although Rockset's binary linked against both libgcc and libunwind, the dynamic linker ultimately chose libunwind's version. This surprised the engineers — they'd expected symbol versioning rules to favor libgcc. The weapon was hiding in libunwind."
+/>
+
+---
+
+## Floor 3: The Teleport-Coordinates Card (ucontext_t)
+
+<LevelUpProgress current={3} total={8} title="Autopsy of a Crash (Part 3)" />
+
+Here's how `libunwind` does "teleportation":
+
+1. Synthesize a "teleport-coordinates card" on the `stack` — formally called `ucontext_t`
+2. The card contains the target register state: where `%rip` should point after the teleport, what `%rsp` should be, what other registers should hold
+3. Pass a pointer to this card to an internal assembly routine called `_Ux86_64_setcontext`
+4. `_Ux86_64_setcontext` loads the state from the card back into the registers, completing the teleport
+
+<AnalogyBox title="The Teleport-Coordinates Card">
+
+Imagine the investigator is about to be "teleported" somewhere. The teleportation machine needs a card:
+
+- Target location: Station 3rd floor conference room (corresponds to `%rip`)
+- Target posture: Standing, hands on knees (corresponds to other registers)
+- Target floor level: 3rd floor (corresponds to `%rsp`)
+
+`libunwind` fills out this card on the `stack`, then has `_Ux86_64_setcontext` read the card and execute the teleport.
+
+</AnalogyBox>
+
+**Here's the critical part**: this card is placed right on top of "the very `stack frame` that `_Ux86_64_setcontext` is about to unwind."
+
+The engineers read `libunwind`'s source code and found that it synthesizes a `ucontext_t` on the `stack`, fills in the target register state, then passes the pointer (in `%rdi`) to `_Ux86_64_setcontext`.
+
+This design looks perfectly reasonable — but it hides a fatal timing flaw.
+
+<ClawdNote>
+Breaking down `ucontext_t`: `u` is for `user` (user space), `context` means execution context (program state), `_t` is C's type suffix. This struct is defined in the POSIX standard, used to save "the complete register state at some execution point." Think of it as a "save file" — with this card, you can resume from that state. But because it's so generic and so low-level, almost every mechanism that needs to "jump around" (coroutines, fibers, exceptions) wants to borrow it — and all of them can misuse it.
+</ClawdNote>
+
+<LevelUpQuiz
+  question="What mechanism does libunwind use for teleportation?"
+  options={[
+    { label: "A", text: "Directly modifying %rip and %rsp" },
+    { label: "B", text: "Synthesizing a teleport-coordinates card (ucontext_t) on the stack, then having _Ux86_64_setcontext read it and execute the teleport" },
+    { label: "C", text: "Using a kernel system call" },
+    { label: "D", text: "Relying on the CPU to do it automatically" },
+  ]}
+  answer="B"
+  explanation="libunwind's approach: synthesize a ucontext_t struct on the stack, write in the target register state, then have _Ux86_64_setcontext — an assembly routine — read the card, load the state back into registers, and complete the teleport. The critical point: this card sits right on the stack frame about to be unwound."
+/>
+
+---
+
+## Floor 4: The Fatal Single Instruction
+
+<LevelUpProgress current={4} total={8} title="Autopsy of a Crash (Part 3)" />
+
+The engineers read `_Ux86_64_setcontext`'s assembly code. The final few instructions look roughly like this:
+
+```asm
+mov UC_MCONTEXT_GREGS_RSP(%rdi), %rsp   ; Instruction 1: Update %rsp
+mov UC_MCONTEXT_GREGS_RIP(%rdi), %rcx   ; Instruction 2: Load target %rip into %rcx
+...                                      ; Restore other registers
+push %rcx                                ; Push target %rip onto stack
+...
+retq                                     ; Pop that value and jump there
+```
+
+**The problem is between instruction 1 and instruction 2.**
+
+Once instruction 1 executes, `%rsp` now points to the new stack bottom. In that instant:
+
+- That teleport-coordinates card (`%rdi` still points to the `ucontext_t`) drops below the new `%rsp`
+- It **no longer belongs to the active `stack`**
+- It's **no longer protected by the `red zone` (police tape)** — because the new `%rsp` has moved, and the `red zone` moved with it
+
+The `kernel` no longer treats that memory as a protected zone.
+
+**And the very next instruction needs to read the target `%rip` from that card.**
+
+In between — the door is wide open.
+
+<AnalogyBox title="Police Tape Moved, Old Card Exposed">
+
+Imagine the teleportation machine reading the coordinates card:
+
+1. First, adjust the floor level (update `%rsp`)
+2. Then, read the target location from the card (read `%rip`)
+
+But the instant the floor level adjusts, the card's original location drops "outside the police tape." The tape follows the new floor, and the old card is now exposed.
+
+If someone barges in at this exact moment, they can stomp right on that card.
+
+</AnalogyBox>
+
+<ClawdNote summary="The authors weren't dumb; the trigger conditions were just absurd.">
+This is why this bug is so hard to catch. Logically, `setcontext` is written perfectly reasonably: update `%rsp` first, then read the remaining values, then jump. But it doesn't account for: **the instant `%rsp` updates, the `red zone`'s protected range also moves**, and the old card is no longer protected. This is a subtle ABI / signal-delivery interaction. The people who wrote this code weren't dumb — they were just living in a world where "no one sends a signal to you every few milliseconds." The bug hid for 18 years not because the original authors were stupid, but because the trigger conditions were absurd.
+</ClawdNote>
+
+<LevelUpQuiz
+  question="Why does the teleport-coordinates card become vulnerable after %rsp updates?"
+  options={[
+    { label: "A", text: "The card gets deleted" },
+    { label: "B", text: "The card drops below the new %rsp, no longer belonging to the active stack, no longer protected by the red zone" },
+    { label: "C", text: "The CPU automatically clears the card's contents" },
+    { label: "D", text: "The card is too big" },
+  ]}
+  answer="B"
+  explanation="_Ux86_64_setcontext's first instruction updates %rsp to point to the new stack bottom. In that instant, the teleport-coordinates card (ucontext_t) at the old location drops below the new %rsp — no longer part of the active stack, no longer protected by the red zone (the 128-byte police tape). The kernel can now write there."
+/>
+
+---
+
+## Floor 5: The Weapon Strikes — Recycling Every Foreshadowed Setup
+
+<LevelUpProgress current={5} total={8} title="Autopsy of a Crash (Part 3)" />
+
+Now let's connect all the dots.
+
+Post B mentioned: Rockset uses `SIGUSR2` to track CPU time. **Every few milliseconds of CPU time, it sends a `SIGUSR2` to every thread.**
+
+When a `signal` arrives, the `kernel` creates a `signal frame` at `%rsp - 128` — just outside the `red zone`.
+
+Now imagine this timeline:
+
+1. An `exception` is thrown, `libunwind` starts unwinding the `stack`
+2. `_Ux86_64_setcontext` executes instruction 1: **`%rsp` updates**
+3. That teleport-coordinates card (`ucontext_t`) drops below the new `%rsp`, outside police-tape protection
+4. **At this exact instant, `SIGUSR2` arrives**
+5. The `kernel` creates a `signal frame` at new `%rsp - 128` — **directly overwriting that not-yet-fully-read coordinates card**
+6. The target `%rip` on the card gets overwritten with `NULL` (or garbage)
+7. `_Ux86_64_setcontext` continues executing, reads the overwritten `%rip`
+8. Teleport completes, program jumps to `NULL`
+9. **Hits wall and dies**
+
+<AnalogyBox title="The Perfect Murder Timing">
+
+- Weapon moved (`%rsp` updated)
+- Coordinates card drops outside police tape
+- `SIGUSR2` barges in, stamps down a `signal frame` outside the tape
+- Coordinates card overwritten
+- Teleport to wrong location
+- Hits wall
+
+The truth behind Post A's "return to `NULL`" murders: **the visit note wasn't tampered with in place — the teleport-coordinates card that the unwinder synthesized on the stack got overwritten by a signal before the teleport finished.**
+
+</AnalogyBox>
+
+Why does the crime scene look like "a function returned to `NULL`"?
+
+Because `_Ux86_64_setcontext` needs to restore even `%rdi`, so it can't read the target `%rip` directly from `%rdi` at the last moment. Its approach:
+
+1. Read the target `%rip` first, save it on the `stack`
+2. Restore other registers (including `%rdi`)
+3. Finally use `retq` to read that saved value and complete the jump
+
+So the crime scene looks exactly like "a function executed `ret`, jumped to `NULL`." The investigator initially thought the return note was tampered with; actually it was the teleport-coordinates card that got overwritten.
+
+<ClawdNote summary="The evidence points to a killer who doesn't exist.">
+This is why this bug was so well-disguised. The crime scene evidence looks like "some function returned to NULL," but the reality is "the unwinder's synthesized teleport coordinates got overwritten by a signal." The two look almost identical in a `core dump` — because `_Ux86_64_setcontext` ends with `retq` to jump, leaving traces that look like a normal `ret`. This is the most annoying kind of bug in systems programming: **the crime scene evidence points to a killer who doesn't exist.** Without reading `libunwind` source code, without building clean population data to separate bad hardware — you'd never think to look this deep.
+</ClawdNote>
+
+<LevelUpQuiz
+  question="What's the true mechanism behind return-to-null?"
+  options={[
+    { label: "A", text: "The return address on the visit note was corrupted" },
+    { label: "B", text: "libunwind's synthesized teleport-coordinates card dropped outside red-zone protection after %rsp updated, got overwritten by SIGUSR2's signal frame" },
+    { label: "C", text: "The compiler generated bad code" },
+    { label: "D", text: "The CPU miscalculated" },
+  ]}
+  answer="B"
+  explanation="The truth: after _Ux86_64_setcontext updates %rsp, the teleport-coordinates card (ucontext_t) drops outside red-zone protection. If SIGUSR2 arrives at that exact instant, the kernel creates a signal frame at new %rsp - 128, overwriting that card. The target %rip becomes NULL, the teleport completes, hits a wall and dies."
+/>
+
+---
+
+## Floor 6: The 100-Picosecond Perfect Murder Window + Fermi Estimation
+
+<LevelUpProgress current={6} total={8} title="Autopsy of a Crash (Part 3)" />
+
+How narrow is this race window?
+
+**Exactly one instruction wide.**
+
+The signal must arrive after "`%rsp` changed" but before "the next instruction loads `%rip`." Modern superscalar out-of-order CPUs can execute several of these simple `mov` instructions per cycle.
+
+The window is roughly **100 picoseconds (10^-10 seconds)**.
+
+The engineers' first reaction: "That narrow window can't possibly explain a dozen crashes per day, right?"
+
+So they used **Fermi estimation** to check.
+
+<AnalogyBox title="Fermi Estimation: Computing Incidence Rate / R0">
+
+Fermi estimation is the method physicist Enrico Fermi loved: don't chase precise numbers, estimate orders of magnitude quickly, see if "it checks out."
+
+- Race window: ~10^-10 seconds
+- `SIGUSR2` sent every 10^-2 seconds of CPU time
+- Probability of losing the race per `cleanup handler` / `catch` block: ~10^-8
+
+Rockset uses `exceptions` for ingest backpressure — when overloaded, throwing exceptions slows things down. An overloaded host might throw ~10^4 exceptions per second.
+
+- One crash every ~10^4 seconds (a few hours)
+- A dozen crashes across the fleet per day
+
+**Matches the observed frequency.**
+
+</AnalogyBox>
+
+This is exactly what an epidemiologist does when computing incidence rates or R0 (basic reproduction number) — no need to nail down three decimal places. If the order of magnitude checks out, you know the hypothesis is right.
+
+<ClawdNote summary="Fermi estimation: if the order of magnitude matches, the hypothesis holds.">
+Fermi estimation is named after physicist Enrico Fermi, famous for rapidly estimating orders of magnitude with minimal data. Classic example: "How many piano tuners in Chicago?" — no research needed, just estimate from population, households, piano ownership rate, tuning frequency, and you get the right order of magnitude. In debugging, Fermi estimation beats precise simulation — if the order of magnitude matches, you know the direction is right; if it's off, the hypothesis is wrong. No need to wait for complete data. In this case: 10^-8 times 10^4 = 10^-4 per second ~ once every few hours, matches "a dozen per day across the fleet." Hypothesis confirmed.
+</ClawdNote>
+
+<LevelUpQuiz
+  question="How did the engineers confirm that a 100-picosecond race window could explain a dozen daily crashes?"
+  options={[
+    { label: "A", text: "Reproduced the bug in a lab" },
+    { label: "B", text: "Fermi estimation: window 10^-10 s times SIGUSR2 frequency 10^-2 s times exception frequency 10^4/s ~ one crash every few hours, matches observations" },
+    { label: "C", text: "Asked ChatGPT" },
+    { label: "D", text: "Guessed" },
+  ]}
+  answer="B"
+  explanation="The engineers used Fermi estimation: race window ~10^-10 s, SIGUSR2 every 10^-2 s, probability of losing ~10^-8 per unwind. Rockset throws ~10^4 exceptions/second when overloaded → one crash every ~10^4 seconds (a few hours). Fleet-wide: a dozen per day. Matches observations."
+/>
+
+---
+
+## Floor 7: Why 18 Years to Strike + The Fix + Grand Finale
+
+<LevelUpProgress current={7} total={8} title="Autopsy of a Crash (Part 3)" />
+
+This GNU `libunwind` bug is over **18 years old** — it's been there since the first x86_64 version that supported C++ `exception` unwinding.
+
+Why did it only surface now?
+
+Because crash probability is roughly proportional to three multipliers:
+
+1. **Exception throw rate**: Rockset uses exceptions for backpressure, throws more aggressively than typical programs
+2. **Signal send rate**: Rockset sends `SIGUSR2` every few milliseconds, much more frequently than typical programs
+3. **Stack space consumed by signal handler**: Earlier this year, engineers added a `timer_getoverrun` call inside the `SIGUSR2` handler, making the handler consume more stack
+
+<AnalogyBox title="Three Multipliers Crossing the Threshold">
+
+This 18-year-old ghost was always there, just never had the right conditions to "manifest." Like a pathogen lurking in the population for a long time, until certain environmental factors change (population density, immune suppression, new transmission routes), it erupts into an epidemic.
+
+Rockset's three multipliers — exception throw rate times signal send rate times handler stack consumption — all happened to be unusually high. Before adding that `timer_getoverrun` line, these crashes didn't exist; after adding it, they still waited until certain workloads pushed backpressure high enough to trigger.
+
+The product of all three crossed the threshold. The old ghost emerged.
+
+</AnalogyBox>
+
+**Why does handler stack consumption matter?**
+
+If the handler doesn't use enough stack, the `signal frame` won't stomp on that old `ucontext_t` that just dropped outside the tape. After adding `timer_getoverrun`, the handler used a bit more stack — enough to start stepping on that card.
+
+---
+
+**The Fix**:
+
+The engineers immediately switched from GNU `libunwind` to `libgcc`'s unwinder. This also happened to be a good trade — `libgcc`'s implementation has had a lot of work done to reduce lock contention, which helps on large VMs.
+
+They also wrote a standalone reproducer and sent the patch upstream to GNU `libunwind`. They verified that other unwinders (including LLVM's `libunwind`) don't have similar issues.
+
+**Swap out the diseased organ, send the cure upstream.**
+
+<ClawdNote summary="The right open-source posture: fix your system, then send the cure upstream.">
+This is the right posture in open source: find a bug, fix your own system, then send the reproducer and patch upstream. Once GNU `libunwind`'s maintainers merge this fix, everyone using this library benefits. That's also why OpenAI published this debugging story — not just to show off, but to give knowledge back to the community. Honestly, many companies would sit on a bug like this, treating "our infra is more stable than yours" as competitive advantage — no public disclosure, no upstream patch. OpenAI did the right thing here.
+</ClawdNote>
+
+---
+
+**Series Finale: The Clean Population Dataset Cracked the Case**
+
+Looking back at all three posts, the real case-cracker wasn't the fancy assembly reading or the deep ABI / signal / exception knowledge.
+
+**It was building a high-quality population dataset first.**
+
+- Once the data was clean, the "impossible bug" split itself into two ordinary bugs: a poisoned well (bad host) + an 18-year-old ghost (`libunwind` race condition)
+- Cap the poisoned well, `misaligned-%rsp` vanishes
+- Separate out the bad hardware, and the remaining murders all point to `exception` unwinding — only then did the engineers dare to dig deep into `libunwind`
+
+Post A's opening said "this kind of death shouldn't exist." Of course it exists. You just need **the right way to look**.
+
+Deep-diving each case one by one is a coroner's instinct, but when hypotheses keep getting knocked down, the move is to step back, build data, think like an epidemiologist. This lesson applies beyond C++ debugging — it works in any domain.
+
+<LevelUpQuiz
+  question="Why did this 18-year-old ghost only emerge now?"
+  options={[
+    { label: "A", text: "The kernel was updated" },
+    { label: "B", text: "Rockset's exception throw rate times signal send rate times handler stack consumption — three multipliers crossed the threshold" },
+    { label: "C", text: "The engineers were too skilled" },
+    { label: "D", text: "It happened to be the bug's 18th birthday" },
+  ]}
+  answer="B"
+  explanation="This libunwind bug existed for 18+ years, but crash probability is proportional to exception rate times signal rate times handler stack consumption. Rockset was unusually high on all three axes, and adding timer_getoverrun this year increased stack usage — the product finally crossed the threshold. Old ghost emerged."
+/>
+
+---
+
+## Level Clear Summary
+
+The investigator learned in these three lessons:
+
+| Concept | One-Sentence Explanation |
+|---------|--------------------------|
+| **Exception unwinding** | Not normal going-home, but teleportation — runtime helpers restore registers and jump to the `catch` point |
+| **libunwind vs libgcc** | Two libraries that can do unwinding; Rockset was actually using `libunwind` |
+| **ucontext_t** | The teleport-coordinates card — holds target register state, passed to setcontext for execution |
+| **Race window** | After `%rsp` updates, before `%rip` is read — the one-instruction gap where the card drops outside police tape |
+| **SIGUSR2 overwrite** | Signal arrives in the window, overwrites the coordinates card, causing a jump to `NULL` |
+| **Fermi estimation** | Verify by order of magnitude: window times frequency times frequency ~ observed crash rate |
+| **Why 18 years to strike** | Exception rate times signal rate times handler stack — product crosses threshold |
+| **The fix** | Swap to `libgcc` + upstream patch |
+
+The most important lesson: **the clean population dataset is what cracked the case.**
+
+Once the data was clean, the poisoned well revealed itself, the old ghost showed its face. No need for genius individual-case reasoning — just step back, build data, think like an epidemiologist.
+
+This autopsy report is now closed. (By the way, this post was also reviewed by gu-log's own four-judge tribunal — using exactly that "adversarial review" process. If it reads reasonably well, that's because a bunch of less-readable versions already got rejected (⌐■_■))
+
+## Further Reading
+
+Read the trilogy from the start:
+
+- [Autopsy of a Crash (Part 1): Learning to Read a Program's Corpse](/en/posts/en-levelup-20260701-core-dump-anatomy/)
+- [Autopsy of a Crash (Part 2): The Coroner Won't Save You — Call the Epidemiologist](/en/posts/en-levelup-20260701-core-dump-epidemiology/)
+
+Original article (OpenAI official technical blog):
+
+- [Core dump epidemiology: fixing an 18-year-old bug](https://openai.com/index/core-dump-epidemiology-data-infrastructure-bug/)
+
+**(Series Complete)**
