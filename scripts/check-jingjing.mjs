@@ -558,6 +558,11 @@ Alisa Liu Lambert
 PyTorch numpy transformer tokenizer tokenization
 LeetCode Neetcode Blind
 Modeling Scratch Industry Job
+
+# Added 2026-07-01 for CP-312 (Kun Chen's firstmate/secondmate/crewmate agent
+# org chart + per-task model routing). Kun Chen = the author (person), no
+# natural zh-tw translation (writer-prompt rule #2: people stay English).
+Kun Chen
 `;
 
 const HARDCODED = new Set();
