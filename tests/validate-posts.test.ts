@@ -199,6 +199,14 @@ describe('validatePost — content rules', () => {
     expect(r.errors.some((e: string) => e.includes('missing version'))).toBe(true);
   });
 
+  it('accepts whole-number Claude 5-generation release names (e.g. "Sonnet 5")', () => {
+    const filepath = tmpPath('sonnet5model.mdx');
+    const fm = [...validFm, 'translatedBy:', '  model: Sonnet 5', '  harness: Claude Code'];
+    fs.writeFileSync(filepath, makePost(fm));
+    const r = validatePost(filepath, []);
+    expect(r.errors.some((e: string) => e.includes('missing version'))).toBe(false);
+  });
+
   it('warns on long summary', () => {
     const filepath = tmpPath('longsummary.mdx');
     const longSummary = 'x'.repeat(310);
