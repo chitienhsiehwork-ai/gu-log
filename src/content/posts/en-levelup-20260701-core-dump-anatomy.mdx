@@ -1,0 +1,461 @@
+---
+ticketId: "Lv-PENDING"
+title: "Autopsy of a Crash (Part 1): Learning to Read a Program's Corpse"
+originalDate: "2026-07-01"
+translatedDate: "2026-07-01"
+translatedBy:
+  model: "Opus 4.5"
+  harness: "Claude Code"
+source: "Level-Up Series"
+sourceUrl: "https://gu-log.vercel.app/en/posts/en-levelup-20260701-core-dump-anatomy"
+lang: "en"
+summary: "Learning how programs die, detective-style. This is Part 1 of a three-part series: first, understand the anatomy — CPU, stack, return addresses, segfault — before you can investigate the crime scene and catch the killer. A quiz at every floor. Pass to proceed."
+tags: ["systems", "debugging", "cpp", "tutorial"]
+scores:
+  tribunalVersion: 9
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    narrative: 9
+    score: 8
+    date: "2026-07-01"
+    model: "Opus 4.5"
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 9
+    date: "2026-07-01"
+    model: "Opus 4.8"
+  freshEyes:
+    readability: 9
+    firstImpression: 9
+    payoffDensity: 8
+    lengthFit: 9
+    clarity: 9
+    score: 8
+    date: "2026-07-01"
+    model: "Opus 4.8"
+  librarian:
+    glossary: 9
+    crossRef: 9
+    sourceAlign: 8
+    attribution: 8
+    score: 8
+    date: "2026-07-01"
+    model: "Opus 4.8"
+---
+
+import LevelUpProgress from '../../components/LevelUpProgress.astro';
+import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
+import ClawdNote from '../../components/ClawdNote.astro';
+import AnalogyBox from '../../components/AnalogyBox.astro';
+
+Welcome to the Level-Up series' "Autopsy of a Crash" trilogy.
+
+A few months ago, OpenAI's internal Rockset service — the one that powers ChatGPT's search-through-conversation-history feature — started dying in bizarre ways. A perfectly normal C++ function would finish its job, try to go home, and then jump to some ghost address and drop dead. Even weirder: in some cases, the "return address" was empty. Imagine following your GPS home, except the GPS leads you off a cliff, and at the bottom of the cliff there isn't even a road.
+
+This kind of death "shouldn't exist."
+
+To crack this case, an investigator first needs to learn anatomy — understand what a program's body looks like and how hitting-a-wall death actually happens. This is lesson one (◕‿◕)
+
+---
+
+## 🏰 Floor 0: The City Has an "Impossible Murder"
+
+<LevelUpProgress current={0} total={7} title="Autopsy of a Crash (Part 1)" />
+
+OpenAI's engineers noticed something eerie about these deaths: every victim died at the exact moment they were "going home."
+
+In the world of programs, "going home" works like this: function A calls function B, and when B finishes its job, it "returns to A" to continue. This is the most basic way programs work. It happens billions of times a day. It's rock solid.
+
+But these deaths were different.
+
+- Some victims had their return addresses overwritten with `NULL` — like having the GPS wiped clean, navigating to address 0
+- Some victims had their stack pointer (`%rsp`) mysteriously shifted by 8 bytes, as if someone had quietly turned a road sign a few degrees
+- Both types of deaths happened the instant the `ret` (go home) instruction ran
+
+These weren't ordinary bugs. Ordinary bugs write to the wrong place or calculate the wrong result. But the odds of "the return address just happens to become `NULL`" are so low that the engineers briefly suspected the `kernel` was broken, or the compiler had a bug, or the hardware was failing.
+
+<ClawdNote>
+Don't worry about figuring out "why this happens" yet — that's Post B and Post C territory. Post A's mission is: learn to read a program's corpse. You want to solve a murder? First you need to know anatomy.
+</ClawdNote>
+
+This lesson builds four core concepts:
+
+1. **`%rip`**: Where the victim is right now
+2. **Stack**: A stack of visit notes
+3. **`call` / `ret`**: How to visit someone, how to go home
+4. **`segfault`**: Hitting-a-wall death
+
+Once you understand these four things, you can read a crime scene.
+
+<LevelUpQuiz
+  question="What do these deaths have in common?"
+  options={[
+    { label: "A", text: "The programs ran too slowly" },
+    { label: "B", text: "They ran out of memory" },
+    { label: "C", text: "Every victim died at the exact moment they were returning home" },
+    { label: "D", text: "Network disconnection" },
+  ]}
+  answer="C"
+  explanation="The eerie thing about these deaths is that every victim died the instant they executed the return instruction. Return addresses were overwritten with NULL, or stack pointers were shifted — these 'shouldn't happen' situations made investigation extremely difficult."
+/>
+
+---
+
+## 🏰 Floor 1: `%rip` — Where the Victim Is Right Now
+
+<LevelUpProgress current={1} total={7} title="Autopsy of a Crash (Part 1)" />
+
+A CPU only executes one instruction at a time. Like how a person can only be in one place at a time.
+
+So how does the CPU know "which instruction to execute right now"? The answer is a register called `%rip`.
+
+<AnalogyBox title="🎯 %rip Is the Victim's GPS Location">
+
+Imagine every program is a city with thousands of instructions (streets). `%rip` is that blue dot on GPS showing "current location."
+
+- Program running = blue dot moving constantly
+- Program crashed = blue dot frozen at the last location
+- Investigator examining the crime scene = checking where the blue dot stopped
+
+</AnalogyBox>
+
+<ClawdNote>
+The full name of `%rip` is `instruction pointer`. The `r` at the front is an x86-64 naming convention indicating a 64-bit register. And `rip` just happens to sound like `R.I.P.` (rest in peace) — coincidence? When investigating program deaths, the pun is surprisingly fitting (¬‿¬)
+</ClawdNote>
+
+Here's roughly how the CPU works:
+
+1. Look at where `%rip` points
+2. Go to that address and read an instruction
+3. Execute the instruction
+4. Move `%rip` to the next instruction
+5. Repeat
+
+When a program crashes, the value of `%rip` is "where the victim was last." The first thing an investigator does at a crime scene is usually checking what address `%rip` stopped at.
+
+If `%rip` points to "somewhere that isn't an instruction" — say, a chunk of data, or an address that doesn't even exist — the program dies. Because the CPU tries to read an instruction at that address, finds it isn't an instruction, and the `kernel` kills the program.
+
+<LevelUpQuiz
+  question="What is the function of %rip?"
+  options={[
+    { label: "A", text: "Stores the program's name" },
+    { label: "B", text: "Points to the address of 'which instruction is executing right now'" },
+    { label: "C", text: "Counts how long the program has been running" },
+    { label: "D", text: "Stores user input" },
+  ]}
+  answer="B"
+  explanation="%rip (instruction pointer) always points to the memory address of the instruction the CPU is 'about to execute right now.' When a program crashes, %rip's value is the victim's last GPS location."
+/>
+
+---
+
+## 🏰 Floor 2: Stack — A Stack of Visit Notes
+
+<LevelUpProgress current={2} total={7} title="Autopsy of a Crash (Part 1)" />
+
+Programs don't have just one function. Function A calls B, B calls C, C might call D. This layered chain of "visits" needs a mechanism to record "where to go back afterward."
+
+That mechanism is the **stack**.
+
+<AnalogyBox title="📝 The Stack Is a Stack of Visit Notes">
+
+Imagine an investigator working a case in the city, needing to visit many places:
+
+1. Starting from the police station (function A), need to go to the coffee shop (function B)
+2. Before leaving, put a note on the desk: "When done, go back to the station"
+3. At the coffee shop, the owner says: "The person you're looking for is at the bookstore next door (function C)"
+4. Put down another note: "When done, go back to the coffee shop"
+5. At the bookstore, finish the interview, tear off the top note
+6. The note says "go back to the coffee shop," so go back to the coffee shop
+7. Finish up, tear off the next note
+8. The note says "go back to the station," so go back to the station
+
+The stack is this pile of notes. Every time you enter a function, you put down a note; every time you leave, you tear off the top one.
+
+</AnalogyBox>
+
+This stack of notes has some important properties:
+
+- **Last In, First Out** (LIFO): The last note put down is the first one torn off
+- **Each note has a "return address"**: Tells the CPU "where to go after this function finishes"
+- **`%rsp`**: A finger that always points at the top note
+
+<ClawdNote>
+The full name of `%rsp` is `stack pointer` — the `sp` is short for those two words. This "finger" is crucial — when the CPU needs to find the top note, it looks at where `%rsp` points. If this finger gets moved around randomly, the entire "going home" mechanism collapses. This is why that phrase "stack pointer shifted by 8 bytes" sounds so terrifying.
+</ClawdNote>
+
+Each note occupies a block of space on the stack called a `stack frame`. A typical `stack frame` contains:
+
+- Return address: Where to go after this function finishes
+- Local variables: Data this function uses internally
+- The previous layer's `%rbp` (`frame pointer`): Like a bookmark, helps with positioning
+
+<LevelUpQuiz
+  question="When function A calls function B, what happens to the stack?"
+  options={[
+    { label: "A", text: "The stack gets cleared" },
+    { label: "B", text: "A new note is put down, recording 'where in A to return to after B finishes'" },
+    { label: "C", text: "A's note gets torn off" },
+    { label: "D", text: "The stack doesn't change" },
+  ]}
+  answer="B"
+  explanation="When calling a new function, a new note (stack frame) is put on top of the stack, recording the return address. This way, after B finishes, the CPU knows where to go back to in A."
+/>
+
+---
+
+## 🏰 Floor 3: `call` / `ret` — Visiting and Going Home
+
+<LevelUpProgress current={3} total={7} title="Autopsy of a Crash (Part 1)" />
+
+Now let's map the visit-note analogy to actual CPU instructions.
+
+When function A wants to call function B, it executes the `call` instruction. `call` does two things:
+
+1. **Put down a note**: Push "the address of A's next instruction" onto the stack (this is the return address)
+2. **Jump there**: Set `%rip` to the address of B's first instruction
+
+When function B finishes and wants to return to A, it executes the `ret` instruction. `ret` also does two things:
+
+1. **Tear off the note**: Pop the return address from the top of the stack
+2. **Jump back**: Set `%rip` to that return address
+
+<AnalogyBox title="🚪 call = Leave a Note Before Going Out, ret = Tear Off the Note and Follow It Home">
+
+```
+call function_B:
+  1. Put down note: Push "A's next instruction" address onto stack
+  2. Go visit: Point %rip at B's beginning
+
+ret:
+  1. Tear off note: Pop return address from stack
+  2. Follow note home: Set %rip to that address
+```
+
+</AnalogyBox>
+
+There's also a register called `%rbp` (`frame pointer`) that works like a bookmark clipped to one of the notes. The compiler uses it to locate "where the current function's `stack frame` is." When debugging, the investigator can start from `%rbp` and trace upward layer by layer, reconstructing the entire call chain.
+
+<ClawdNote>
+The `bp` in `%rbp` stands for `base pointer`. Some compilers will omit `%rbp` for performance (with the `-fomit-frame-pointer` flag), but Rockset did the opposite — they enabled `-fno-omit-frame-pointer`, so the investigator could trace the entire call chain from `%rbp`. This seemingly minor compiler flag ended up saving their lives — that's foreshadowing, remember it.
+</ClawdNote>
+
+The whole mechanism is incredibly stable — as long as the return address on the note is correct, `ret` will obediently jump back to the right place.
+
+But what if the note gets tampered with?
+
+<LevelUpQuiz
+  question="What happens when the ret instruction executes?"
+  options={[
+    { label: "A", text: "The entire stack gets cleared" },
+    { label: "B", text: "It pops the return address from the stack, then jumps to that address" },
+    { label: "C", text: "It shuts down the program" },
+    { label: "D", text: "It calls the next function" },
+  ]}
+  answer="B"
+  explanation="ret's job is simple: pop the return address from the top of the stack (tear off the note), then set %rip to that address (follow the note home). As long as the return address is correct, everything works fine; but if the address gets changed to an invalid value, disaster strikes."
+/>
+
+---
+
+## 🏰 Floor 4: `segfault` — Hitting-a-Wall Death
+
+<LevelUpProgress current={4} total={7} title="Autopsy of a Crash (Part 1)" />
+
+Now you understand the `call` / `ret` mechanism. Next: how exactly does a program die?
+
+Suppose the return address on the stack gets changed to an address that "isn't an instruction" — maybe a chunk of data, maybe a virtual address that doesn't map to any physical memory, maybe `NULL` (address 0).
+
+The `ret` instruction won't check if the return address makes sense. It just:
+
+1. Pops that number from the stack
+2. Sets `%rip` to that number
+3. Tries to execute the "instruction" at that address
+
+If that address isn't actually an executable instruction, the CPU throws a `fault`. The `kernel` receives it and kills the program. That's a `segfault`.
+
+<AnalogyBox title="🧱 Hitting-a-Wall Death">
+
+Imagine the investigator follows the address on their note to go home, but:
+
+- The note says "Go to 123 XX Street"
+- But 123 XX Street isn't a road — it's a wall
+- The investigator walks straight into it
+
+That's hitting-a-wall death. The investigator didn't do anything wrong — the note was tampered with to point to an address that isn't a road.
+
+</AnalogyBox>
+
+<ClawdNote>
+The full name of `segfault` is `segmentation fault`, from the early days when operating systems divided memory into different "segments." When a program tries to access a segment it doesn't have permission for (or one that doesn't exist), it triggers a fault. Modern OS segfaults are usually about accessing invalid virtual addresses, not necessarily about "segmentation," but the name stuck. When engineers say "it segfaulted," they basically mean "it hit a wall and died."
+</ClawdNote>
+
+In OpenAI's batch of deaths, the victims' return addresses were changed to `NULL` (address 0). The `ret` instruction set `%rip` to 0, the CPU tried to read an instruction at address 0, but address 0 is usually deliberately left unmapped (to catch "null pointer access" bugs), and the `kernel` killed the program.
+
+The core question emerges: **Who tampered with the note?**
+
+<LevelUpQuiz
+  question="How does a segfault (hitting-a-wall death) happen?"
+  options={[
+    { label: "A", text: "The program ran for too long" },
+    { label: "B", text: "%rip points to an invalid or non-executable address, and the CPU can't execute the instruction" },
+    { label: "C", text: "Memory is full" },
+    { label: "D", text: "The user pressed Ctrl+C" },
+  ]}
+  answer="B"
+  explanation="A segfault happens when %rip points to an invalid or non-executable address. The CPU tries to read an instruction at that address, fails, and the kernel kills the program. In these murders, the return address was changed to NULL, ret followed it, and hit a wall."
+/>
+
+---
+
+## 🏰 Floor 5: C++ Has No `memory safety` — A City with No Guardrails
+
+<LevelUpProgress current={5} total={7} title="Autopsy of a Crash (Part 1)" />
+
+If the `call` / `ret` mechanism is so stable, how could the note get tampered with?
+
+The answer has to do with C++ as a language.
+
+C++ gives programmers "low-level control" — you can directly manipulate memory, directly control pointers, directly decide where data lives. This control brings extreme performance, but also risk: **nothing stops you from writing to places you shouldn't write.**
+
+<AnalogyBox title="🏙️ A City with No Guardrails">
+
+Imagine a city where every house has no locks, no access control, no walls.
+
+- The investigator's notes sit on the desk
+- Anyone can walk in, look at them, change them
+- Nobody gets stopped at the door
+
+C++ is that city. Any piece of code in a program can write to any piece of memory — including the return addresses on the stack. If some code accidentally (or maliciously) writes to the wrong place, the note gets tampered with.
+
+</AnalogyBox>
+
+This "can write anywhere" property is called "lacking `memory safety`" in programming language terms.
+
+By contrast, some languages have "guardrails":
+
+- **Rust**: Has a `borrow checker` that verifies memory access legality at compile time
+- **Languages with garbage collection** (Java, Go, Python): Manage memory at runtime, don't let programs write wherever they want
+
+Those languages have guardrails in their cities. Want to write on someone else's notes? The compiler or runtime blocks you.
+
+C++ chose: no guardrails, let programmers be responsible. The upside is performance — no overhead from guardrails. The downside: once you write to the wrong place, the note gets tampered with, you hit a wall and die, and it's very hard for investigators to catch the culprit.
+
+<ClawdNote>
+OpenAI's Rockset service chose C++ for performance and memory efficiency — processing massive real-time queries requires squeezing out every bit of performance. But the trade-off is: when bugs happen, you get these bizarre "tampered note, hit-wall death" murders. This is the classic C++ trade-off: the price of performance is "no guardrails."
+</ClawdNote>
+
+<LevelUpQuiz
+  question="Why can the return address on a C++ program's stack get tampered with?"
+  options={[
+    { label: "A", text: "Because the CPU has design flaws" },
+    { label: "B", text: "Because C++ has no memory safety, any code can write to any memory address" },
+    { label: "C", text: "Because the OS periodically cleans memory" },
+    { label: "D", text: "Because the compiler automatically changes return addresses" },
+  ]}
+  answer="B"
+  explanation="C++'s design philosophy is 'trust the programmer,' no guardrails. This means any piece of code can write to any piece of memory — including return addresses on the stack. If some code accidentally or due to a bug writes to the wrong place, the note gets tampered with."
+/>
+
+---
+
+## 🏰 Boss Floor: Re-enacting the Murder
+
+<LevelUpProgress current={6} total={7} title="Autopsy of a Crash (Part 1)" />
+
+Now the investigator has enough anatomical knowledge to re-enact the murder.
+
+Let's connect the clues:
+
+1. **Function A calls function B**: The `call` instruction puts a note on the stack, writing "after B finishes, return to some address in A"
+2. **Function B executes normally**: Does its job, no problems
+3. **At some point, the note gets tampered with**: The return address becomes `NULL` (address 0)
+4. **Function B executes `ret`**: Pops the return address from the stack (now `NULL`), sets `%rip` to `NULL`
+5. **CPU tries to execute the instruction at address 0**: Address 0 doesn't map to any memory
+6. **Hits wall and dies**: The `kernel` kills the program, leaving a corpse (crime scene)
+
+The investigator now knows "how they died":
+
+- `%rip` ended up pointing to `NULL`
+- The return note on the stack was changed to `NULL`
+- `ret` followed it, then hit a wall
+
+But the key question remains: **Who tampered with the note?**
+
+<AnalogyBox title="🔍 What We Know vs. What We Don't">
+
+**Known**:
+- Cause of death: Hitting-a-wall death (`ret` to `NULL`)
+- Mechanism: Return note was tampered with
+- Environment: C++ has no guardrails
+
+**Unknown**:
+- Who did it?
+- When?
+- Why did this bug exist for 18 years without being discovered?
+
+</AnalogyBox>
+
+Staring at a single corpse won't reveal the killer.
+
+The engineers tried many things: reading code, making hypotheses, ruling them out one by one. But every hypothesis had counterexamples. Some deaths had stack pointers shifted by 8 bytes, others had return addresses set to `NULL` — they looked like the same cause of death, but the details didn't quite match.
+
+It's like facing a series of murders where every corpse has slightly different wounds. The investigator hit a wall.
+
+To crack this, you need a different approach.
+
+Not staring at one corpse, but pulling out **every corpse from the entire city's past year**, cataloging them, classifying them. This is the epidemiologist's approach: find patterns, don't solve individual cases.
+
+<ClawdNote>
+A small spoiler: OpenAI's engineers eventually discovered that what looked like one bug was actually **two completely unrelated bugs**. One was hardware failure (a certain Azure host's CPU was doing arithmetic wrong), the other was a race condition that had been hiding in libunwind for 18 years. Because they kept treating it as a single bug, they couldn't catch either. Once they looked at them separately, the answers became instantly clear. How they did that is the main course in Post B.
+</ClawdNote>
+
+The investigator has learned to read corpses. Next lesson: entering the crime scene.
+
+<LevelUpQuiz
+  question="What does the investigator currently know vs. not know?"
+  options={[
+    { label: "A", text: "Knows who the killer is, doesn't know how to catch them" },
+    { label: "B", text: "Knows the cause of death (hitting-a-wall death) and mechanism (note was tampered with), doesn't know who tampered with it or when" },
+    { label: "C", text: "Knows all the details, case is solved" },
+    { label: "D", text: "Knows nothing" },
+  ]}
+  answer="B"
+  explanation="The investigator now understands the cause of death (ret to invalid address → hit wall and die) and mechanism (return note on stack was tampered with), but still doesn't know who did it or when. Staring at a single corpse won't give answers — you need an epidemiologist's approach."
+/>
+
+---
+
+## 🎓 Level Clear Summary
+
+The investigator learned four things in this lesson:
+
+| Concept | One-Sentence Explanation |
+|---------|--------------------------|
+| **`%rip`** | Where the victim is right now — which instruction the CPU is executing |
+| **Stack** | A stack of visit notes, recording "where to return" for each function layer |
+| **`call` / `ret`** | Leave a note before going out / Tear off note and follow it home |
+| **`segfault`** | Note tampered with to invalid address → `ret` follows it → hits wall and dies |
+
+The investigator also learned about C++, a city with no guardrails: anyone can tamper with anyone's notes. Extremely high performance, but when things go wrong, it's very hard to catch the culprit.
+
+Now the investigator understands "how they died," but still doesn't know "who did it."
+
+Next lesson, the investigator enters the crime scene — that sealed autopsy report (the `core dump`). You'll learn what the "police tape line" (`red zone`) is, what the "first responder on scene" (`signal handler`) does, and why looking at individual cases will never catch the killer.
+
+Upgrading from coroner to epidemiologist is the only way to crack this case (⌐■_■)
+
+## 🔗 Further Reading
+
+Post B will heavily use the `signal` mechanism — that `SIGUSR2` that gets sent every few milliseconds and eventually becomes the murder weapon is part of this family. Want to warm up, or like this "breaking down low-level concepts for beginners" tower-climbing style? These two from the same series are good follow-ups:
+
+- [Unix Signals 101 — SIGUSR1 vs SIGTERM vs SIGKILL](/en/posts/en-levelup-20260312-11-unix-signals-process-management/)
+- [A URL's Journey — From Pressing Enter to the Screen Lighting Up](/en/posts/en-levelup-20260223-10-url-journey-browser-internals/)
+
+**(Post B coming next)**
