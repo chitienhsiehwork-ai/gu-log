@@ -28,8 +28,6 @@
  */
 export const OPUS_ALIAS_CURRENT = 'claude-opus-4-8';
 
-export { MODEL_MAP };
-
 /**
  * Resolve a model selector to the concrete id used for RECORDING. The literal
  * floating alias "opus" (optionally provider-prefixed, e.g. "anthropic/opus")
@@ -43,7 +41,7 @@ export function resolveRecordedModelId(selector) {
   return selector;
 }
 
-const MODEL_MAP = {
+export const MODEL_MAP = {
   // Anthropic
   'claude-opus-4-8': 'Opus 4.8',
   'claude-opus-4-7': 'Opus 4.7',
