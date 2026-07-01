@@ -558,6 +558,16 @@ Alisa Liu Lambert
 PyTorch numpy transformer tokenizer tokenization
 LeetCode Neetcode Blind
 Modeling Scratch Industry Job
+
+# Added 2026-07-01 for the Core-dump Lv 三部曲 (levelup-*-core-dump-*). All
+# bona-fide proper nouns named in the OpenAI source, none with a zh-tw
+# translation (same category as the product / library names already
+# allowlisted above):
+#   Rockset = OpenAI's C++ data service (acquired 2024) — the product the whole
+#     series debugs. libunwind = the GNU stack-unwinding library that carried
+#     the 18-year-old race (the "18 歲的鬼"). Level-Up = the gu-log tutorial
+#     series brand, same house-term status as ClawdNote / ShroomDogNote above.
+Rockset libunwind Level-Up
 `;
 
 const HARDCODED = new Set();

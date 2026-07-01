@@ -1,0 +1,461 @@
+---
+ticketId: "Lv-PENDING"
+title: "當機的驗屍課（上）：先學會看一具程式的屍體"
+originalDate: "2026-07-01"
+translatedDate: "2026-07-01"
+translatedBy:
+  model: "Opus 4.5"
+  harness: "Claude Code"
+source: "Level-Up 系列"
+sourceUrl: "https://gu-log.vercel.app/posts/levelup-20260701-core-dump-anatomy"
+lang: "zh-tw"
+summary: "用「命案調查」的方式學程式怎麼當機。這是三部曲的第一課：先搞懂 CPU、stack、回程地址、segfault 是什麼——之後才驗屍、抓兇手。每層樓一個測驗，答對才能上樓。"
+tags: ["systems", "debugging", "cpp", "tutorial"]
+scores:
+  tribunalVersion: 9
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    narrative: 9
+    score: 8
+    date: "2026-07-01"
+    model: "Opus 4.5"
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 9
+    date: "2026-07-01"
+    model: "Opus 4.8"
+  freshEyes:
+    readability: 9
+    firstImpression: 9
+    payoffDensity: 8
+    lengthFit: 9
+    clarity: 9
+    score: 8
+    date: "2026-07-01"
+    model: "Opus 4.8"
+  librarian:
+    glossary: 9
+    crossRef: 9
+    sourceAlign: 8
+    attribution: 8
+    score: 8
+    date: "2026-07-01"
+    model: "Opus 4.8"
+---
+
+import LevelUpProgress from '../../components/LevelUpProgress.astro';
+import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
+import ClawdNote from '../../components/ClawdNote.astro';
+import AnalogyBox from '../../components/AnalogyBox.astro';
+
+歡迎來到 Level-Up 系列的「當機驗屍課」三部曲。
+
+幾個月前，OpenAI 內部的 Rockset 服務——負責 ChatGPT 搜尋對話紀錄的那個——開始出現詭異的當機。一個正常的 C++ function 跑完、準備回家，卻跳到一個鬼位址然後暴斃。更離譜的是，有些案件的「回程地址」是空的。就像照著 GPS 回家，結果 GPS 導到懸崖底下，而且懸崖底下連路都沒有。
+
+這種死法「不該存在」。
+
+要搞懂這樁命案，調查員得先學解剖學——搞清楚程式的身體構造是什麼、撞牆暴斃是怎麼發生的。這是第一課 (◕‿◕)
+
+---
+
+## 🏰 第 0 層：城裡出現「不可能的命案」
+
+<LevelUpProgress current={0} total={7} title="當機的驗屍課（上）" />
+
+OpenAI 的工程師發現這些當機有個詭異的共通點：死者都是在「回家」的瞬間暴斃。
+
+程式的世界裡，「回家」是這樣運作的：function A 呼叫 function B，B 做完事情之後會「回到 A」繼續執行。這是最基本的程式運作方式，每天發生幾十億次，穩到不能再穩。
+
+但這批命案不一樣。
+
+- 有些死者的「回程地址」被改成了 `NULL`——像是 GPS 被抹掉，導航到 0 號地址
+- 有些死者的堆疊指標（`%rsp`）莫名其妙偏移了 8 個位元組，像是有人把路牌悄悄轉了一個角度
+- 兩種情況都是在 `ret`（回家）指令執行的瞬間暴斃
+
+這些不是普通的 bug。普通 bug 會寫到錯的地方、算出錯的結果。但這種「回程地址剛好被改成 `NULL`」的機率，低到工程師們一度懷疑是 `kernel` 出問題、是編譯器出 bug、是硬體壞掉。
+
+<ClawdNote>
+先不要急著搞懂「為什麼會這樣」——那是 Post B、Post C 的事。Post A 的任務是：學會看懂一具程式的屍體。你要破案，得先懂解剖學。
+</ClawdNote>
+
+這堂課會建立四個核心概念：
+
+1. **`%rip`**：死者此刻人在哪
+2. **stack**：一疊拜訪便條
+3. **`call` / `ret`**：怎麼拜訪、怎麼回家
+4. **`segfault`**：撞牆暴斃
+
+學完這四件事，調查員才有辦法看懂命案現場。
+
+<LevelUpQuiz
+  question="這批命案的共通點是什麼？"
+  options={[
+    { label: "A", text: "程式跑太慢" },
+    { label: "B", text: "記憶體不夠" },
+    { label: "C", text: "死者都在「回家」（return）的瞬間暴斃" },
+    { label: "D", text: "網路斷線" },
+  ]}
+  answer="C"
+  explanation="這批命案的詭異之處在於，死者都是在執行 return 指令的瞬間暴斃。回程地址被改成 NULL 或堆疊指標被偏移——這些「不該發生」的情況，讓調查變得異常困難。"
+/>
+
+---
+
+## 🏰 第 1 層：`%rip` — 死者此刻人在哪
+
+<LevelUpProgress current={1} total={7} title="當機的驗屍課（上）" />
+
+CPU 一次只執行一條指令。就像一個人一次只能在一個地方。
+
+那 CPU 怎麼知道「現在要執行哪一條指令」？答案是一個叫做 `%rip` 的暫存器。
+
+<AnalogyBox title="🎯 %rip 是死者的 GPS 定位">
+
+想像每個程式都是一座城市，裡面有成千上萬條指令（街道）。`%rip` 就是 GPS 上那個「現在位置」的藍點。
+
+- 程式正在跑 = 藍點不斷移動
+- 程式當機 = 藍點定格在最後位置
+- 調查員檢視命案現場 = 看藍點最後停在哪
+
+</AnalogyBox>
+
+<ClawdNote>
+`%rip` 的全名是 `instruction pointer`（指令指標）。開頭那個 `r` 是 x86-64 架構的命名慣例，代表 64 位元的暫存器。`rip` 唸起來剛好很像 `R.I.P.`（`rest in peace`，安息），巧合嗎？在調查命案的時候，這個雙關還真的挺應景的 (¬‿¬)
+</ClawdNote>
+
+CPU 的工作流程大致是：
+
+1. 看 `%rip` 指向哪裡
+2. 去那個位址讀一條指令
+3. 執行指令
+4. 把 `%rip` 移到下一條指令
+5. 重複
+
+當程式當機的時候，`%rip` 的值就是「死者最後在哪」。調查員檢視命案現場的第一件事，通常就是看 `%rip` 停在什麼位址。
+
+如果 `%rip` 指向一個「不是指令的地方」——比如說指向一塊資料、或者指向一個根本不存在的位址——程式就會暴斃。因為 CPU 試圖在那個位址讀取指令，結果發現那根本不是指令，`kernel` 就會把程式斃掉。
+
+<LevelUpQuiz
+  question="%rip 的功能是什麼？"
+  options={[
+    { label: "A", text: "儲存程式的名稱" },
+    { label: "B", text: "指向「現在正在執行哪一條指令」的位址" },
+    { label: "C", text: "計算程式跑了多久" },
+    { label: "D", text: "儲存使用者輸入的資料" },
+  ]}
+  answer="B"
+  explanation="%rip（instruction pointer）永遠指向 CPU「現在要執行的那一條指令」的記憶體位址。程式當機時，%rip 的值就是死者最後的 GPS 定位。"
+/>
+
+---
+
+## 🏰 第 2 層：stack — 一疊拜訪便條
+
+<LevelUpProgress current={2} total={7} title="當機的驗屍課（上）" />
+
+程式不會只有一個 function。function A 會呼叫 B，B 會呼叫 C，C 可能再呼叫 D。這種「拜訪」的層層關係，需要一個機制來記錄「等一下要回哪裡」。
+
+這個機制就是 **stack**（堆疊）。
+
+<AnalogyBox title="📝 stack 是一疊拜訪便條">
+
+想像調查員在城裡辦案，需要去很多地方問話：
+
+1. 從警局（function A）出發，要去咖啡廳（function B）
+2. 出門前在桌上壓一張便條：「辦完事回警局」
+3. 到咖啡廳，老闆說：「要找的人在隔壁書店（function C）」
+4. 再壓一張便條：「辦完事回咖啡廳」
+5. 到書店，問完話，撕掉最上面那張便條
+6. 便條寫「回咖啡廳」，於是回咖啡廳
+7. 辦完事，撕掉下一張便條
+8. 便條寫「回警局」，於是回警局
+
+stack 就是這疊便條。每進一層 function，就壓一張；每離開一層，就撕掉最上面那張。
+
+</AnalogyBox>
+
+這疊便條有幾個重要特性：
+
+- **後進先出**（LIFO）：最後壓上去的便條，最先被撕掉
+- **每張便條都有一個「回程地址」**：告訴 CPU「這個 function 跑完要回哪裡」
+- **`%rsp`**：一根手指，永遠指著最上面那張便條
+
+<ClawdNote>
+`%rsp` 的全名是 `stack pointer`（堆疊指標），那個 `sp` 就是這兩個字的縮寫。這根「手指」非常重要——CPU 要找最上面的便條時，就看 `%rsp` 指向哪裡。如果這根手指被亂動，整個「回家」的機制就會崩潰。這也是為什麼開頭那句「堆疊指標偏移了 8 個位元組」聽起來這麼恐怖。
+</ClawdNote>
+
+每張便條在 stack 上佔一塊空間，這塊空間叫做一個 `stack frame`（堆疊框）。一個 `stack frame` 通常包含：
+
+- 回程地址：這個 function 跑完要回哪裡
+- 區域變數：這個 function 自己用的資料
+- 上一層的 `%rbp`（`frame pointer`，框架指標）：像書籤，方便定位
+
+<LevelUpQuiz
+  question="當 function A 呼叫 function B 時，stack 會發生什麼事？"
+  options={[
+    { label: "A", text: "stack 被清空" },
+    { label: "B", text: "壓一張新便條，記錄「B 跑完要回到 A 的哪裡」" },
+    { label: "C", text: "把 A 的便條撕掉" },
+    { label: "D", text: "stack 沒有變化" },
+  ]}
+  answer="B"
+  explanation="呼叫新 function 時，會在 stack 頂端壓一張新便條（stack frame），記錄回程地址。這樣 B 跑完之後，CPU 才知道要回到 A 的哪裡繼續執行。"
+/>
+
+---
+
+## 🏰 第 3 層：`call` / `ret` — 拜訪與回家
+
+<LevelUpProgress current={3} total={7} title="當機的驗屍課（上）" />
+
+現在把便條的比喻對應到真實的 CPU 指令。
+
+當 function A 要呼叫 function B 時，會執行 `call` 指令。`call` 做兩件事：
+
+1. **壓便條**：把「A 裡面的下一條指令的位址」壓到 stack 上（這就是回程地址）
+2. **跳過去**：把 `%rip` 設成 B 的第一條指令的位址
+
+當 function B 跑完，要回到 A 的時候，會執行 `ret` 指令。`ret` 也做兩件事：
+
+1. **撕便條**：從 stack 頂端拿出回程地址
+2. **跳回去**：把 `%rip` 設成那個回程地址
+
+<AnalogyBox title="🚪 call 是出門壓便條，ret 是撕便條回家">
+
+```
+call function_B:
+  1. 壓便條：把「A 的下一條指令」地址寫進 stack
+  2. 過去拜訪：把 %rip 指向 B 的開頭
+
+ret:
+  1. 撕便條：從 stack 拿出回程地址
+  2. 照便條回家：把 %rip 設成那個地址
+```
+
+</AnalogyBox>
+
+還有一個暫存器叫 `%rbp`（`frame pointer`），功能像是夾在某張便條上的書籤。編譯器會用它來定位「當前這一層 function 的 `stack frame` 在哪」。偵錯的時候，調查員可以從 `%rbp` 開始，一層一層往上追，重建整個呼叫鏈。
+
+<ClawdNote>
+`%rbp` 的 `bp` 是 `base pointer`（基底指標）的縮寫。有些編譯器會為了效能把 `%rbp` 省略掉（開 `-fomit-frame-pointer` 這個選項），但 Rockset 反過來開了 `-fno-omit-frame-pointer`，所以調查員可以從 `%rbp` 一路追蹤整個呼叫鏈。這個看似不起眼的編譯選項，後來救了他們一命——這是伏筆，記著。
+</ClawdNote>
+
+整個機制穩定到不行——只要便條上的回程地址是正確的，`ret` 就會乖乖跳回正確的地方。
+
+但如果便條被改了呢？
+
+<LevelUpQuiz
+  question="ret 指令執行的時候，會做什麼？"
+  options={[
+    { label: "A", text: "清空整個 stack" },
+    { label: "B", text: "從 stack 拿出回程地址，然後跳到那個地址" },
+    { label: "C", text: "把程式關掉" },
+    { label: "D", text: "呼叫下一個 function" },
+  ]}
+  answer="B"
+  explanation="ret 的工作很單純：從 stack 頂端拿出回程地址（撕便條），然後把 %rip 設成那個地址（照便條回家）。只要回程地址是正確的，一切順利；但如果地址被改成無效值，災難就來了。"
+/>
+
+---
+
+## 🏰 第 4 層：`segfault` — 撞牆暴斃
+
+<LevelUpProgress current={4} total={7} title="當機的驗屍課（上）" />
+
+現在調查員已經知道 `call` / `ret` 的機制了。接下來要搞懂：程式怎麼死的？
+
+假設 stack 上的回程地址被改成了一個「不是指令」的位址——可能是一塊資料、可能是一個沒有對應到實體記憶體的虛擬位址、可能是 `NULL`（0 號位址）。
+
+`ret` 指令不會檢查回程地址是不是合理的。它只會：
+
+1. 從 stack 拿出那個數字
+2. 把 `%rip` 設成那個數字
+3. 嘗試執行那個位址的「指令」
+
+如果那個位址根本不是可執行的指令，CPU 會產生一個錯誤（`fault`）。`kernel` 收到之後，會把程式斃掉。這就是 `segfault`。
+
+<AnalogyBox title="🧱 撞牆暴斃">
+
+想像調查員照著便條上的地址回家，結果：
+
+- 便條寫「回 XX 街 123 號」
+- 但 XX 街 123 號根本不是一條路——是一面牆
+- 調查員一頭撞上去
+
+這就是撞牆暴斃。不是因為調查員做錯事，是因為便條被改成了一個「走不通」的地址。
+
+</AnalogyBox>
+
+<ClawdNote>
+`segfault` 的全名是 `segmentation fault`（區段錯誤），來自早期作業系統把記憶體切成不同「`segment`（區段）」的概念。當程式試圖存取沒有權限的區段（或根本不存在的區段），就會觸發錯誤。現代作業系統的 `segfault` 通常是因為存取了無效的虛擬位址，不一定真的跟 `segmentation` 有關，但這個名字就這麼留下來了。工程師之間講「它 segfault 了」，基本上就是「它撞牆暴斃了」的意思。
+</ClawdNote>
+
+在 OpenAI 那批命案裡，死者的回程地址被改成 `NULL`（0 號位址）。`ret` 指令把 `%rip` 設成 0，CPU 嘗試在位址 0 讀取指令，但位址 0 通常故意不對應到任何記憶體（用來抓「存取空指標」這種 bug），`kernel` 就把程式斃掉。
+
+核心問題來了：**誰改了便條？**
+
+<LevelUpQuiz
+  question="segfault（撞牆暴斃）是怎麼發生的？"
+  options={[
+    { label: "A", text: "程式跑太久" },
+    { label: "B", text: "%rip 指向一個無效或不可執行的位址，CPU 無法執行指令" },
+    { label: "C", text: "記憶體滿了" },
+    { label: "D", text: "使用者按了 Ctrl+C" },
+  ]}
+  answer="B"
+  explanation="segfault 發生在 %rip 指向一個無效或不可執行的位址時。CPU 嘗試讀取那個位址的指令，失敗了，kernel 就把程式斃掉。在這些命案裡，回程地址被改成 NULL，ret 照著跳，然後撞牆。"
+/>
+
+---
+
+## 🏰 第 5 層：C++ 沒有 `memory safety` — 沒護欄的城市
+
+<LevelUpProgress current={5} total={7} title="當機的驗屍課（上）" />
+
+既然 `call` / `ret` 的機制這麼穩定，便條怎麼會被改掉？
+
+答案跟 C++ 這個語言的特性有關。
+
+C++ 給程式設計師「低階控制」的能力——可以直接操作記憶體、直接控制指標、直接決定資料放在哪裡。這種控制力帶來極高的效能，但也帶來風險：**沒有什麼東西會阻止程式寫到不該寫的地方**。
+
+<AnalogyBox title="🏙️ 沒有護欄的城市">
+
+想像一座城市，每個人的家都沒有鎖、沒有門禁、沒有圍牆。
+
+- 調查員的便條放在桌上
+- 任何人走進來都可以看、都可以改
+- 沒有人會被擋在門外
+
+C++ 就是這樣的城市。程式的任何一段程式碼都可以寫到任何一塊記憶體——包括 stack 上的回程地址。如果某段程式碼不小心（或惡意地）寫到了回程便條的位置，便條就被改了。
+
+</AnalogyBox>
+
+這種「可以寫到任何地方」的特性，在程式語言的術語裡叫做「缺乏 `memory safety`（記憶體安全）」。
+
+相比之下，有些語言有「護欄」：
+
+- **Rust**：有 `borrow checker`（借用檢查器），編譯器會在編譯時期就檢查記憶體存取是否合法
+- **有垃圾回收（GC）的語言**（Java、Go、Python）：執行期會幫忙管理記憶體，不讓程式直接亂寫
+
+這些語言的城市有護欄。想寫到別人的便條？編譯器或執行期會擋住。
+
+C++ 的選擇是：不設護欄，讓程式設計師自己負責。這樣的好處是效能——省下護欄的額外負擔。壞處是：一旦寫錯地方，便條就被改了，然後撞牆暴斃，而且調查員很難追兇手。
+
+<ClawdNote>
+OpenAI 的 Rockset 服務選用 C++ 是為了效能和記憶體效率——處理大量即時查詢，需要榨乾每一點效能。但代價就是：一旦出 bug，可能就是這種「便條被改、撞牆暴斃」的詭異命案。這是 C++ 的經典取捨：效能換來的代價，是「沒護欄」。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="為什麼 C++ 程式的 stack 上的回程地址可能被改掉？"
+  options={[
+    { label: "A", text: "因為 CPU 設計有缺陷" },
+    { label: "B", text: "因為 C++ 沒有 memory safety，任何程式碼都可以寫到任何記憶體位址" },
+    { label: "C", text: "因為作業系統會定期清理記憶體" },
+    { label: "D", text: "因為編譯器會自動改回程地址" },
+  ]}
+  answer="B"
+  explanation="C++ 的設計理念是「信任程式設計師」，不設護欄。這意味著程式的任何一段程式碼都可以寫到任何一塊記憶體——包括 stack 上的回程地址。如果某段程式碼不小心或因為 bug 寫到錯的地方，便條就被改了。"
+/>
+
+---
+
+## 🏰 最終關：重演命案
+
+<LevelUpProgress current={6} total={7} title="當機的驗屍課（上）" />
+
+現在調查員具備了足夠的解剖學知識，可以重演那樁命案了。
+
+把線索串起來：
+
+1. **function A 呼叫 function B**：`call` 指令在 stack 上壓一張便條，寫著「B 跑完回到 A 的某個位址」
+2. **function B 正常執行**：做該做的事，沒有任何問題
+3. **某個時刻，便條被改了**：回程地址被改成 `NULL`（0 號位址）
+4. **function B 執行 `ret`**：從 stack 拿出回程地址（現在是 `NULL`），把 `%rip` 設成 `NULL`
+5. **CPU 嘗試執行位址 0 的指令**：位址 0 沒有對應到任何記憶體
+6. **撞牆暴斃**：`kernel` 斃掉程式，留下一具屍體（命案現場）
+
+調查員現在知道「怎麼死的」了：
+
+- `%rip` 最後指向 `NULL`
+- stack 上的回程便條被改成 `NULL`
+- `ret` 照著跳，然後撞牆
+
+但關鍵問題還沒解決：**誰改了便條？**
+
+<AnalogyBox title="🔍 命案已知 vs 未知">
+
+**已知**：
+- 死法：撞牆暴斃（`ret` 到 `NULL`）
+- 機制：回程便條被改
+- 環境：C++ 沒有護欄
+
+**未知**：
+- 是誰改的？
+- 什麼時候改的？
+- 為什麼這個 bug 存在 18 年都沒被發現？
+
+</AnalogyBox>
+
+盯著這一具屍體，看不出兇手是誰。
+
+工程師做了很多嘗試：讀程式碼、猜假設、一條一條排除。但每個假設都有反例。有些命案的堆疊指標偏移 8 個位元組，有些命案的回程地址是 `NULL`——看起來像同一種死法，但細節又不太一樣。
+
+這就像面對一連串命案，每具屍體的傷口都有點不同。調查員陷入僵局。
+
+要破案，得換個方法。
+
+不是盯著一具屍體看，而是把**全城一年的屍體**都撈出來、建檔、分類。這是流行病學的思路：找 pattern，而不是解個案。
+
+<ClawdNote>
+劇透一點點：OpenAI 的工程師最後發現，看起來像一種 bug，其實是**兩種完全不相關的 bug**。一種是硬體壞掉（某台 Azure 主機的 CPU 算數會算錯），另一種是 libunwind 這個函式庫裡藏了 18 年的競態條件（race condition）。正因為他們一直當成同一個 bug 在抓，所以怎麼抓都抓不到。分開來看，答案瞬間就清楚了。這招怎麼辦到的，就是 Post B 的主菜。
+</ClawdNote>
+
+調查員學會了看屍體。下一課，要進命案現場。
+
+<LevelUpQuiz
+  question="調查員目前已知和未知的分別是什麼？"
+  options={[
+    { label: "A", text: "已知兇手是誰，未知怎麼抓" },
+    { label: "B", text: "已知死法（撞牆暴斃）和機制（便條被改），未知是誰在什麼時候改的" },
+    { label: "C", text: "已知所有細節，案子已經破了" },
+    { label: "D", text: "什麼都不知道" },
+  ]}
+  answer="B"
+  explanation="調查員已經理解了死法（ret 到無效位址 → 撞牆暴斃）和機制（stack 上的回程便條被改），但還不知道是誰改的、什麼時候改的。盯著單一屍體找不到答案，需要換成流行病學的思路。"
+/>
+
+---
+
+## 🎓 通關小結
+
+調查員在這堂課學會了四件事：
+
+| 概念 | 一句話解釋 |
+|------|-----------|
+| **`%rip`** | 死者「此刻人在哪」——CPU 現在要執行哪條指令 |
+| **stack** | 一疊拜訪便條，記錄每層 function「辦完回哪」 |
+| **`call` / `ret`** | 出門壓便條 / 撕便條照著回家 |
+| **`segfault`** | 便條被改成無效地址 → `ret` 照著跳 → 撞牆暴斃 |
+
+調查員也知道了 C++ 這座城市的特性：沒有護欄，誰都能改別人的便條。效能極高，但出事的時候會很難抓。
+
+現在調查員理解「怎麼死的」了，但還不知道「誰幹的」。
+
+下一課，調查員要進命案現場——那份封存的屍體檢驗報告（`core dump`）。會學到什麼是「封鎖線」（`red zone`）、什麼是「第一個趕到現場的人」（`signal handler`），以及為什麼單看個案永遠抓不到兇手。
+
+從法醫升級成流行病學家，才有辦法破案 (⌐■_■)
+
+## 🔗 延伸閱讀
+
+Post B 會大量用到 `signal`（訊號）這個機制——那個每幾毫秒就送一次、最後變成兇器的 `SIGUSR2`，就是這一族的成員。想先暖身，或喜歡這種「把底層拆給新手看」的爬塔風，這兩篇同系列可以續攤：
+
+- [Unix Signals 101 — SIGUSR1 vs SIGTERM vs SIGKILL](/posts/levelup-20260312-11-unix-signals-process-management/)
+- [一個 URL 的旅程 — 從按下 Enter 到畫面出現](/posts/levelup-20260223-10-url-journey-browser-internals/)
+
+**（Post B 待續）**
