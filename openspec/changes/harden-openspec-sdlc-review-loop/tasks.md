@@ -21,7 +21,7 @@
 
 ## 4. 唯讀牆強制點（coach 拍板：(b) 近似 CI + (c) reviewer backstop）
 
-- [ ] 4.1 實作近似 CI 檢查：PR 裡「同一 commit 同時動 openspec spec 檔 + 實作檔」視為違規（script + ci.yml job，warn-only MVP）
+- [x] 4.1 實作近似 CI 檢查：PR 裡「同一 commit 同時動 openspec spec 檔 + 實作檔」視為違規（script + ci.yml job，warn-only MVP）
 - [x] 4.2 reviewer backstop 寫進階段 6：正確性 reviewer 覆核 builder 有沒有偷改 scenario
 - [x] 4.3 收 drift：`.agents/openspec-sdlc.md`「archive 由 CI 強制」改誠實（現況 = policy、CI 尚未實作）
 
