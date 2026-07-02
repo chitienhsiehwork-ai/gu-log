@@ -50,8 +50,7 @@ function printStateSummary(state: PipelineState): void {
   };
   const fmt = (label: string, s: AnyStage): string => {
     const out = s.output as
-      | { composite?: number; pass?: boolean; scores?: Record<string, number> }
-      | undefined;
+      { composite?: number; pass?: boolean; scores?: Record<string, number> } | undefined;
     const dims = out?.scores ? ` scores=${JSON.stringify(out.scores)}` : '';
     const pass = out?.pass !== undefined ? ` pass=${out.pass}` : '';
     const comp = out?.composite !== undefined ? ` composite=${out.composite}` : '';
