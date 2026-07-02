@@ -29,5 +29,5 @@
 
 - **`.agents/openspec-sdlc.md`** — 主要 sync 目標：階段 6 改寫成 executable-first + scenario-rubric + 有界，補 escalation 小節與三層角色頂層。
 - **`AGENTS.md`（Tier-0 路由表）** — openspec-sdlc 流程指標已加（本 PR 完成，根治「agent 找不到流程 SSOT」的 friction；#484 context-tiering 後該指標住主題路由表）。三層角色頂層心智模型於 apply 階段 sync 進 `.agents/openspec-sdlc.md` 本體。**不動 `CLAUDE.md`**——#484 後它只剩 13 行 Claude-Code 專屬 shim（`@AGENTS.md` import），SDLC 描述不住那。
-- **CI / guard（apply 階段）** — builder 的 spec-delta 唯讀邊界需要一個可執行的強制點（git-diff 等級偵測，沿用 #481 archive-gate「只驗證不執行」的模式）。
-- **不影響**：#481 的九階段骨架、archive-gate、兩個人類檢查點、controller/builder/reviewer 分工——這些維持不變，本 change 只強化階段 6 的收斂與 escalation。
+- **唯讀牆強制點（apply 階段，強制形態待 coach 拍板）** — builder 對 openspec spec 檔（`openspec/**/specs/**/*.md`）唯讀的邊界，強制形態三候選：runtime hook / 近似 CI / doc+reviewer（見 design D4）。**查證發現**：#481 宣稱的 archive-gate CI 實際不存在（`.github/workflows/` grep 全空、doc-only），本 change **不沿用它**。
+- **不影響**：#481 的九階段骨架、兩個人類檢查點、controller/builder/reviewer 分工——這些維持不變，本 change 只強化階段 6 的收斂與 escalation。
