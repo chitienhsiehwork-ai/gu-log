@@ -1,0 +1,502 @@
+---
+ticketId: "Lv-14"
+title: "當機的驗屍課（中）：法醫救不了你，要找的是流行病學家"
+originalDate: "2026-07-01"
+translatedDate: "2026-07-01"
+translatedBy:
+  model: "Opus 4.5"
+  harness: "Claude Code"
+source: "Level-Up 系列"
+sourceUrl: "https://gu-log.vercel.app/posts/levelup-20260701-core-dump-epidemiology"
+lang: "zh-tw"
+summary: "當機驗屍三部曲第二課。進到命案現場（core dump），學會什麼是封鎖線（red zone）、第一個趕到現場的人（signal handler）；然後把「法醫」升級成「流行病學家」——用全城族群資料，一舉破掉兩樁命案裡的第一樁：一口毒井（壞掉的主機）。"
+tags: ["systems", "debugging", "epidemiology", "tutorial"]
+scores:
+  tribunalVersion: 9
+  vibe:
+    persona: 9
+    clawdNote: 8
+    vibe: 9
+    narrative: 9
+    score: 8
+    date: "2026-07-01"
+    model: "Opus 4.5"
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 9
+    date: "2026-07-01"
+    model: "Opus 4.8"
+  freshEyes:
+    readability: 9
+    firstImpression: 9
+    payoffDensity: 9
+    lengthFit: 9
+    clarity: 9
+    score: 9
+    date: "2026-07-01"
+    model: "Opus 4.8"
+  librarian:
+    glossary: 8
+    crossRef: 9
+    sourceAlign: 8
+    attribution: 9
+    score: 8
+    date: "2026-07-01"
+    model: "Opus 4.8"
+---
+
+import LevelUpProgress from '../../components/LevelUpProgress.astro';
+import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
+import ClawdNote from '../../components/ClawdNote.astro';
+import AnalogyBox from '../../components/AnalogyBox.astro';
+
+上一課，調查員學會了看屍體——搞懂 `%rip`、`stack`、`call`/`ret`、撞牆暴斃是怎麼回事。但盯著單一屍體看，找不到兇手。
+
+這一課要做兩件事：
+
+1. **進命案現場**：那份封存的驗屍報告（`core dump`）是什麼、為什麼某些證物死後還留得住
+2. **身份升級**：從法醫變成流行病學家，用全城一年的死亡資料，破掉第一個 bug
+
+這是三部曲的中間課。學完這堂，調查員會抓到第一隻鬼。剩下那群死者——死在「瞬間傳送」當下的——就是 Post C 的主菜了 ╰(°▽°)╯
+
+---
+
+## 🏰 第 0 層：回顧 + 今天的任務
+
+<LevelUpProgress current={0} total={8} title="當機的驗屍課（中）" />
+
+快速複習 Post A：
+
+- 程式當機 = 命案 / 暴斃
+- `stack` = 一疊拜訪便條，每進一層 function 壓一張，寫著「辦完回哪」
+- `call` / `ret` = 出門壓便條 / 撕便條照著回家
+- `segfault` = 便條被改成無效地址 → `ret` 照著跳 → 撞牆暴斃
+- C++ 是沒護欄的城市，誰都能改別人的便條
+
+OpenAI 那批命案的狀況是：死者的回程便條被改成 `NULL`（空號），或者 `%rsp` 莫名偏移 8 個位元組。調查員知道「怎麼死的」，但不知道「誰幹的」。
+
+盯著一具屍體猛看，看不出兇手。今天的任務：進命案現場、學會新的調查工具、然後換一個身份辦案。
+
+<LevelUpQuiz
+  question="Post A 留下的核心問題是什麼？"
+  options={[
+    { label: "A", text: "程式怎麼跑的" },
+    { label: "B", text: "便條是誰改的、什麼時候改的" },
+    { label: "C", text: "C++ 好不好用" },
+    { label: "D", text: "stack 長什麼樣子" },
+  ]}
+  answer="B"
+  explanation="Post A 教了死法（撞牆暴斃）和機制（便條被改），但兇手還沒抓到。便條是誰改的、什麼時候改的，是這整個三部曲要回答的核心問題。"
+/>
+
+---
+
+## 🏰 第 1 層：`core dump` = 封存的命案現場
+
+<LevelUpProgress current={1} total={8} title="當機的驗屍課（中）" />
+
+程式當機的時候，作業系統可以把「程式死亡那一瞬間的所有狀態」存成一個檔案。這個檔案叫做 `core dump`。
+
+<AnalogyBox title="📦 封存的命案現場">
+
+想像命案發生後，調查員立刻把整個現場用真空袋封起來：
+
+- 死者的姿勢
+- 桌上的便條
+- 所有暫存器的值
+- 記憶體裡的每一個位元組
+
+全部凍結、打包、上傳到保險箱。日後調查員可以隨時打開這份「封存的命案現場」，重新檢視所有細節。
+
+這就是 `core dump`。
+
+</AnalogyBox>
+
+Rockset 的工程師用 folly（Facebook 的 C++ 函式庫）的 `fatal signal handler` 來處理當機：當機一發生，就自動把 `stack trace`（呼叫鏈）記進 log，同時把 `core dump` 上傳到 `Azure blob storage` 保存起來。
+
+Rockset 的查詢節點有做 `replicated`（複製），所以單一當機對使用者的衝擊不大。但每一個當機都代表一個要修的 bug。
+
+<ClawdNote>
+`core dump` 這個名字來自古早年代——那時候磁芯記憶體（`magnetic-core memory`）是主流，所以「把記憶體倒出來」叫 `core dump`。現代電腦早就不用磁芯了，但這個詞就這樣留下來了。工程師之間說「幫我抓那個 `core`」，講的就是這份封存的命案現場檔案。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="core dump 是什麼？"
+  options={[
+    { label: "A", text: "一種壓縮演算法" },
+    { label: "B", text: "程式當機瞬間的完整狀態快照，封存起來供日後分析" },
+    { label: "C", text: "CPU 的效能報告" },
+    { label: "D", text: "網路連線紀錄" },
+  ]}
+  answer="B"
+  explanation="core dump 是作業系統在程式當機時存下的完整狀態快照——暫存器、記憶體、stack，全部凍結封存。調查員可以事後打開，重建案發現場。"
+/>
+
+---
+
+## 🏰 第 2 層：拜訪鏈——從 `%rbp` 追出「誰找誰來」
+
+<LevelUpProgress current={2} total={8} title="當機的驗屍課（中）" />
+
+Post A 提過一個細節：Rockset 編譯時開了 `-fno-omit-frame-pointer` 這個選項。現在來解釋這為什麼重要。
+
+每一個 `stack frame`（便條）裡面，除了回程地址，還存了「上一層的 `%rbp`」。這讓調查員可以從最上面那張便條開始，沿著 `%rbp` 一路往上追，看到完整的呼叫鏈：誰叫了誰、誰又叫了誰。
+
+<AnalogyBox title="🔗 誰找誰來的拜訪鏈">
+
+想像每張便條除了寫「辦完回哪」，還多寫了一行「是誰把它找來的」：
+
+```
+便條 C：上一層是 B
+便條 B：上一層是 A
+便條 A：上一層是 main
+```
+
+只要從最上面那張開始，順著這條鏈往上走，就能重建整個「拜訪順序」——function C 是誰叫來的？B 叫的。B 是誰叫的？A。A 呢？`main`。
+
+這條用 `%rbp` 串起來的 `linked list`，就是「誰找誰來」的拜訪鏈。
+
+</AnalogyBox>
+
+有些編譯器為了效能會把 `%rbp` 省略掉（開 `-fomit-frame-pointer`），這樣每層 function 少存一個暫存器，快一點點。但代價是：當機的時候，調查員很難重建呼叫鏈。
+
+Rockset 反過來開了 `-fno-omit-frame-pointer`——當初可能只是為了方便偵錯。結果這個選項在這場命案調查裡救了工程師一命。沒有這條拜訪鏈，調查員連「死者生前見過誰」都拼不出來。
+
+<ClawdNote>
+Post A 說「編譯選項救了他們一命」的伏筆，就是這個。`-fno-omit-frame-pointer` 看起來只是一個偵錯方便的選項，但在「便條被改、整個 `stack` 都可能壞掉」的情境下，這條拜訪鏈是調查員唯一能重建案發經過的工具。這就是為什麼很多 production 系統會刻意開這個選項，犧牲一點點效能換取可觀測性。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="拜訪鏈（用 %rbp 串成的 linked list）的功能是什麼？"
+  options={[
+    { label: "A", text: "加速程式執行" },
+    { label: "B", text: "讓調查員能從最上層便條一路追出完整的呼叫順序" },
+    { label: "C", text: "壓縮記憶體使用量" },
+    { label: "D", text: "防止便條被改" },
+  ]}
+  answer="B"
+  explanation="每張便條裡存了「上一層的 %rbp」，串成一條 `linked list`。調查員可以從最上面開始，沿著這條鏈往上走，看到誰叫了誰、誰又叫了誰——這在當機調查時是重建案發經過的關鍵。"
+/>
+
+---
+
+## 🏰 第 3 層：封鎖線（`red zone`）——為什麼死後證物還在
+
+<LevelUpProgress current={3} total={8} title="當機的驗屍課（中）" />
+
+現在要講一個關鍵細節：為什麼調查員可以看到「已經 `return` 掉的 function」的便條內容？
+
+按理說，function B 跑完、執行 `ret` 之後，它的 `stack frame` 就「不再有效」了——那塊記憶體可以被下一個 function 覆蓋。但工程師在報告裡寫「X 這個剛被彈出的 `stack frame` 看起來正常，只差回程地址是 NULL」。他們怎麼看到的？
+
+答案是 **`red zone`**（封鎖線）。
+
+<AnalogyBox title="🚧 現場封鎖線">
+
+在 x86-64 Linux 上，`AMD64 System V ABI` 規定：`%rsp` 下方 128 個位元組是「封鎖線」。
+
+- 這 128 位元組是使用者程式可以用的
+- 重點是：`kernel` 答應不會踩進去
+
+意思是，當 `kernel` 要送 `signal`（訊號）給程式時，它會在 `%rsp` 下方 128 位元組 **之外**的地方建立 `signal frame`（訊號框），不會覆蓋封鎖線裡的東西。
+
+就像命案現場拉起一圈黃色封鎖線，警察進來處理的時候，會在封鎖線外面站，不會踩進去破壞證物。
+
+</AnalogyBox>
+
+當機發生時，folly 的 `signal handler`（下一層會講）會在同一個 thread 的 `stack` 上跑。這個 handler 會踩亂已經 `return` 掉的舊便條——**但封鎖線內（最後 128 位元組）留得住**。
+
+這就是為什麼工程師能說：「X 這個剛被彈出的 `stack frame` 看起來正常，只差回程地址是 NULL。」封鎖線幫他們保存了最後一點證物。
+
+<ClawdNote>
+`red zone` 這個名字很有畫面感——「紅色區域，禁止進入」。在 `System V ABI` 的定義裡，這 128 位元組是「`leaf function`（不再呼叫別人的 function）可以拿來放區域變數、不用調整 `%rsp`」的空間。對調查員來說，它的價值是：當機後第一個跑進來的人（`signal handler`）會踩亂現場，但封鎖線內的證物撐得住。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="red zone（封鎖線）在當機調查中的價值是什麼？"
+  options={[
+    { label: "A", text: "讓程式跑更快" },
+    { label: "B", text: "kernel 答應不踩進這 128 位元組，所以當機後這裡的證物還留得住" },
+    { label: "C", text: "用來存密碼" },
+    { label: "D", text: "防止駭客攻擊" },
+  ]}
+  answer="B"
+  explanation="x86-64 Linux 的 System V ABI 規定 %rsp 下方 128 位元組是 red zone，kernel 送 signal 時不會踩進去。當機後，signal handler 會踩亂已經 return 掉的舊便條，但封鎖線內的證物還在。這讓調查員能看到「剛被彈出的 `stack frame` 只差回程地址是 NULL」。"
+/>
+
+---
+
+## 🏰 第 4 層：第一個趕到現場的人（`signal handler`）
+
+<LevelUpProgress current={4} total={8} title="當機的驗屍課（中）" />
+
+程式當機的時候，`kernel` 會送一個 `signal`（訊號）給程式。以 `segfault` 來說，`kernel` 會送 `SIGSEGV`（`segmentation violation`，區段違規）。
+
+程式可以事先註冊一個 `signal handler`——當這個訊號來的時候，先別直接死，先讓程式自己跑一段指定的程式碼。Rockset 用 folly 的 `fatal signal handler`，會在當機發生時記錄 `stack trace`、準備 `core dump`。
+
+問題是：這個 handler **就跑在當機的那條 thread 的 `stack` 上**——跟死者同一條命脈。
+
+<AnalogyBox title="🚨 第一個趕到現場的人會踩亂現場">
+
+想像命案發生，第一個趕到的警察：
+
+- 進來看了一圈
+- 開始記錄證物、拍照
+- 走動的過程中，難免踩亂一些東西
+
+`signal handler` 就是這樣。它要在 `stack` 上跑，會佔用空間，會覆蓋掉一些「已經不在封鎖線內」的舊便條。
+
+好消息是：封鎖線內（那 128 位元組）是安全的。壞消息是：封鎖線外的舊便條，就被踩亂了。
+
+</AnalogyBox>
+
+現在來鋪一個伏筆：Rockset 用 `signal` 用得比一般程式兇。
+
+他們有一個叫 `coarse_thread_cputime_clock` 的機制：用 `timer_create` 這個 API，每隔幾**毫秒** CPU 時間，就送一個 `SIGUSR2`（`signal user 2`，使用者自訂訊號 2 號）到每個 thread，讓 handler 更新一個 `thread-local` 的 CPU 時間值。這是為了追蹤「這個查詢總共用了多少 CPU 時間」。
+
+這個「每幾毫秒就送 `signal`」的設計，現在只當背景知識記著。到 Post C，它會變成兇器的一部分。
+
+<ClawdNote>
+`SIGUSR2` 的名字裡，`SIG` 是 `signal`，`USR2` 是 `user 2`——「使用者自訂訊號 2 號」。Unix 系統留了兩個訊號（`SIGUSR1` 和 `SIGUSR2`）讓程式自己定義用途。Rockset 拿 `SIGUSR2` 來做 CPU 時間追蹤。每幾毫秒就送一次——這個頻率在一般程式裡算非常兇。記住這個設定，Post C 會用到。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="signal handler 在當機調查中的角色是什麼？"
+  options={[
+    { label: "A", text: "防止當機發生" },
+    { label: "B", text: "當機發生時第一個趕到現場，記錄 stack trace，但會踩亂封鎖線外的舊便條" },
+    { label: "C", text: "加速程式執行" },
+    { label: "D", text: "壓縮 core dump 檔案" },
+  ]}
+  answer="B"
+  explanation="signal handler 是當機發生時第一個跑進來的程式碼。它就在當機的那條 thread 的 stack 上執行，會記錄有用的資訊（stack trace），但也會踩亂已經 return 掉的舊便條。幸好 red zone 內的證物還留得住。"
+/>
+
+---
+
+## 🏰 第 5 層：法醫 vs 流行病學家
+
+<LevelUpProgress current={5} total={8} title="當機的驗屍課（中）" />
+
+現在來到這堂課的核心。
+
+OpenAI 的工程師卡了好幾天。他們：
+
+- 仔細檢視幾個 `core dump`
+- 在一個 `misaligned-%rsp` 的案例上深挖——重建案發前的歷史、從 `stack` 和暫存器內容倒推
+- 讀 `kernel` 原始碼、讀 Azure 專屬的 `kernel` 修補程式
+- 跑壓力測試
+
+什麼都試了。沒結果。
+
+<AnalogyBox title="🩺 法醫 vs 流行病學家">
+
+有兩種辦案方式：
+
+**法醫模式**：
+- 盯著一個病人狂做檢查
+- 從單一個案的細節診斷
+- 「這個人的回程地址是 NULL、暫存器狀態是這樣、呼叫鏈是那樣」
+
+**流行病學家模式**：
+- 看整個城市的死亡族群
+- 問：這病何時開始？跟哪種 CPU 相關？跟哪個地區相關？
+- 「會不會其實有兩種病，只是症狀類似，被混在一起看？」
+
+工程師一直在法醫模式。該換了。
+
+</AnalogyBox>
+
+這是整個調查的轉捩點：**他們決定不再盯著單一 `core dump`，而是去蒐集高品質的族群資料**。
+
+為什麼會卡這麼久？因為他們一直假設「這是同一個 bug」。有些案例的回程地址是 `NULL`，有些案例的 `%rsp` 偏移 8 位元組——症狀有點像，又不完全一樣。工程師把它們當成同一種 bug 在抓，每個假設都有反例，怎麼抓都抓不到。
+
+流行病學家會問：**這真的是一種病嗎？還是兩種病混在一起，只是剛好同時被發現？**
+
+<ClawdNote>
+這是我覺得這篇 OpenAI 原文最精彩的洞見。很多難除錯（`debug`）的問題，難的不是技術細節，而是「你以為在解一個問題，其實同時有兩個不相關的問題混在一起」。工程師的直覺是深挖單一案例——法醫模式。但當假設反覆被推翻，該做的是退一步，蒐集全體資料，看有沒有 pattern。這招在任何領域都適用。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="「法醫模式」卡住的時候，該怎麼突破？"
+  options={[
+    { label: "A", text: "更認真地盯著同一個案例看" },
+    { label: "B", text: "換成流行病學家模式——蒐集全體資料，找 pattern，問「會不會其實是兩種 bug」" },
+    { label: "C", text: "放棄" },
+    { label: "D", text: "換一台電腦重跑" },
+  ]}
+  answer="B"
+  explanation="當法醫模式卡住（每個假設都有反例），該做的是退一步，換成流行病學家模式。蒐集全體資料、找 pattern、問「這真的是同一種 bug 嗎」。OpenAI 工程師的突破，就是在這個時候決定去建乾淨的族群資料。"
+/>
+
+---
+
+## 🏰 第 6 層：建乾淨的族群資料
+
+<LevelUpProgress current={6} total={8} title="當機的驗屍課（中）" />
+
+決定換成流行病學家模式之後，第一個問題是：資料從哪來？
+
+工程師一開始想用 log 文字搜尋，自動抓所有案例。但 `stack-corruption` 的 bug 有個麻煩：**log 本身就壞掉了**。因為 `stack` 被改壞，所以記出來的 `stack trace` 也是亂的。用文字搜尋會有 `false positive`（誤報：抓到不是這個 bug 的案例）也有漏抓（這個 bug 但 log 長得不一樣）。
+
+他們改成這樣：
+
+1. 讓 ChatGPT 寫一個腳本（`script`）
+2. 腳本下載每個 `core` 檔的開頭（不用下載整個 GB 等級的檔案）
+3. 抽出暫存器的值
+4. 用 log 濾掉已知的 `false positive`
+5. 自動把每個當機標成：`return-to-null`（回程地址是 `NULL`）/ `misaligned-stack`（`%rsp` 對不齊）/ `other`（其他）
+6. 平行跑過**過去一整年所有** production Rockset 的 `core dump`
+
+這就是「全城一年的屍體全建檔分類」。
+
+<AnalogyBox title="📊 全城屍體建檔分類">
+
+想像調查員不再一具一具驗屍，而是：
+
+- 把過去一年全城所有屍體的基本資料撈出來
+- 死亡時間、地點、死因分類、硬體型號
+- 全部建成一張大表
+
+然後開始看 pattern：這群死者有什麼共同點？那群呢？
+
+</AnalogyBox>
+
+乾淨資料一出來，相關性立刻浮現。
+
+**原本以為是一種 bug，其實是兩個完全不相關的當機族群。**
+
+| 族群 | 特徵 |
+|------|------|
+| `return-to-null` | 散在很多 `cluster`、很多地區；最近變多，但沒有明確起始日；沒有乾淨的基礎設施邊界 |
+| `misaligned-stack` | 全來自**一個**地區；有明確起始日；從不發生在開機很久的節點；雖然橫跨多台 Azure VM，但 pattern 像「某一台實體機器壞掉，害到剛好排到它上面的 VM」 |
+
+兩群的 pattern 完全不一樣。
+
+工程師之前一直把它們混在一起看，所以每個假設都有反例——因為用 `return-to-null` 的假設去解釋 `misaligned-stack` 的案例，當然解釋不通。分開來看，答案就清楚了。
+
+<ClawdNote>
+「以為是一種 bug，其實是兩種」——這個教訓太重要了。工程師一開始（錯誤地）排除了硬體問題，因為「跨多個地區、多種硬體都有」。但那是因為把兩種 bug 混在一起看。分開之後，`misaligned-stack` 那群的 pattern 就很清楚：全來自同一個地區、有明確起始日、只發生在新開機的節點。這根本就是「某一台實體機器壞掉」的典型樣貌。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="建乾淨資料集之後，工程師發現了什麼？"
+  options={[
+    { label: "A", text: "原本以為是一種 bug，其實是兩種完全不相關的當機族群" },
+    { label: "B", text: "所有當機都來自同一台機器" },
+    { label: "C", text: "沒有任何 pattern" },
+    { label: "D", text: "log 都是正確的" },
+  ]}
+  answer="A"
+  explanation="乾淨資料一出來，相關性立刻浮現。return-to-null 那群散在多個地區、沒有明確邊界；misaligned-stack 那群全來自同一個地區、有明確起始日、只發生在新節點。兩種 bug 的 pattern 完全不一樣——之前混在一起看，所以抓不到。"
+/>
+
+---
+
+## 🏰 最終關：Bug #1——毒井（John Snow）
+
+<LevelUpProgress current={7} total={8} title="當機的驗屍課（中）" />
+
+1854 年，倫敦爆發霍亂，幾天內死了幾百人。當時主流理論是「瘴氣」——壞空氣導致疾病。
+
+一個叫 John Snow 的醫生不相信。他畫了一張地圖，標出每個死亡案例的住址，發現一個 pattern：**死者集中在 Broad Street 那口水井附近**。
+
+John Snow 跑去檢查那口井，發現井水被附近的化糞池污染了。他說服當局拆掉那口井的把手，讓大家沒辦法再從那裡打水。
+
+霍亂停了。
+
+這是流行病學的起源故事。John Snow 沒有顯微鏡、沒有細菌培養，他用的是**族群資料和模式辨識（`pattern recognition`）**。
+
+<AnalogyBox title="🪣 一口毒井 = 一台壞主機">
+
+OpenAI 的 `misaligned-stack` 那群當機，pattern 跟 John Snow 的霍亂一模一樣：
+
+- 全來自同一個地區
+- 有明確起始日
+- 只發生在新開機的節點
+
+工程師拿著乾淨的 Kubernetes 節點清單 + 時間戳，把這群當機追回去，發現：**全部指向同一台實體主機**。
+
+那台主機就是毒井。
+
+</AnalogyBox>
+
+工程師把那台主機加進 `denylist`（封井）。
+
+他們在受控環境裡壓力測試好幾週，也沒辦法重現那個暫存器被改壞的現象——不知道 CPU 到底怎麼壞的。但這不重要。**把那台機器下線後，`misaligned-stack` 的當機就消失了。**
+
+就像 John Snow 不需要知道霍亂弧菌長什麼樣子。他只需要知道：拆掉那口井的把手，死亡就停了。
+
+工程師還順手做了幾件事：
+
+- 改良 `fatal signal handler`，讓它記下暫存器狀態。以後光看 log 就能偵測類似問題，不用下載整個 `core dump`
+- 改 `control plane`（控制面），讓 VM 盡量重用而不是回收。這樣比較容易抓「壞節點」——同一台實體機器上的 VM 死亡率異常高，就很可疑
+- 更新 `runbook`（操作手冊）
+
+**一口毒井，封井就好。**
+
+<ClawdNote>
+John Snow 的故事是流行病學的經典開場。1854 年那個年代，主流相信「瘴氣」，Snow 用資料打臉。他沒有顯微鏡、沒有培養皿，只有一張地圖和一堆死亡紀錄。這跟 OpenAI 工程師的處境很像：他們沒辦法在實驗室重現那個 bug，但有乾淨的資料，就夠了。現代醫學把 John Snow 叫做「流行病學之父」——而他的方法論，在為基礎設施除錯的時候一樣好用。
+</ClawdNote>
+
+---
+
+現在 `misaligned-stack` 那群分離掉了，剩下的 `return-to-null` 那群突然好懂多了。
+
+工程師之前「排除了 `exception` 展開（`exception unwinding`）這個可能」，是因為以為找到反例：有些當機發生在「根本沒用 `exception`」的程式碼路徑裡。
+
+但那些反例——**全都來自壞硬體那一群**。
+
+把壞硬體那群拿掉重看，剩下的當機 **全都發生在 C++ 丟 `exception`、正在展開 `stack`** 的當下。
+
+這到底是什麼？那個「瞬間傳送」是怎麼回事？兇器怎麼下手？
+
+Post C 見。
+
+<LevelUpQuiz
+  question="工程師怎麼破掉 bug #1（壞主機）？"
+  options={[
+    { label: "A", text: "在實驗室重現 bug 然後修程式碼" },
+    { label: "B", text: "用乾淨的族群資料追回到單一台實體主機，然後把它下線（封井）" },
+    { label: "C", text: "升級 kernel" },
+    { label: "D", text: "換一家雲端服務商" },
+  ]}
+  answer="B"
+  explanation="工程師用乾淨的資料（Kubernetes 節點 + 時間戳）把 misaligned-stack 那群追回到單一台實體主機。他們沒辦法在實驗室重現那個暫存器被改壞的現象，但不重要——把那台機器下線（封井）後，當機就消失了。John Snow 方法。"
+/>
+
+---
+
+## 🎓 通關小結
+
+調查員在這堂課學會了：
+
+| 概念 | 一句話解釋 |
+|------|-----------|
+| **`core dump`** | 封存的命案現場——程式當機瞬間的完整狀態快照 |
+| **拜訪鏈** | 用 `%rbp` 串起來的 `linked list`，重建「誰找誰來」 |
+| **`red zone`** | 封鎖線，`kernel` 答應不踩；當機後這 128 位元組的證物還留得住 |
+| **`signal handler`** | 第一個趕到現場的人，會踩亂封鎖線外的舊便條 |
+| **法醫 vs 流行病學家** | 盯單一案例 vs 看全體族群找 pattern |
+| **兩個族群** | `return-to-null` 和 `misaligned-stack` 是兩種不相關的 bug |
+| **毒井（John Snow）** | 壞主機 → `denylist` → 當機消失 |
+
+調查員也學到了最重要的一課：**當法醫模式卡住，該換成流行病學家模式**。建乾淨的族群資料，問「這真的是一種 bug 嗎」——答案經常是「不是，是兩種混在一起」。
+
+壞主機那群解決了。剩下的 `return-to-null` 那群，全都發生在「C++ 丟 `exception`、正在展開 `stack`」的當下。
+
+那個「瞬間傳送」是什麼？兇手怎麼在一條指令的縫隙裡下手？
+
+Post C，抓住 18 歲的鬼。
+
+## 🔗 延伸閱讀
+
+Post C 會講 `exception` 展開、`libunwind` 的競態條件、100 皮秒的作案窗。想先暖身，或喜歡這種爬塔風格：
+
+- [當機的驗屍課（上）：先學會看一具程式的屍體](/posts/levelup-20260701-core-dump-anatomy/)
+- [Unix Signals 101 — SIGUSR1 vs SIGTERM vs SIGKILL](/posts/levelup-20260312-11-unix-signals-process-management/)
+
+**（Post C 待續）**

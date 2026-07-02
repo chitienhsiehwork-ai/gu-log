@@ -20,6 +20,7 @@
 - **PR scope 可以大、可以雜**。做任務時順手修相關的東西，不用 split PR。
 - **Commit 內部維持 atomic**（一個 commit 做一件事）——revert 時才好下刀。這是放手做事的保險。
 - 不要把「改 import script + 升 astro + 改 CSS + 加新頁」塞同一個 commit——revert 一個會連累其他四個。
+- **Resumed session 的簽章雷**：session resume 後 git 的 signing key / committer email 可能是空檔，commit 會變 Unverified、反覆絆 stop hook。照 hook 訊息修（`git config user.email noreply@anthropic.com` + `git commit --amend --no-edit --reset-author`）再 push；不要跟 hook 打架、也不要為了省事跳過。
 
 ## Scope ceiling（順手修的上限）
 
@@ -43,12 +44,13 @@
 
 1. `git push -u origin claude/xxx`
 2. 用 GitHub MCP (`mcp__github__create_pull_request`) 開 PR 到 main
-3. **PR 開完立刻 `mcp__github__subscribe_pr_activity` 訂閱自己這條 PR**——不要問 user「要不要幫你盯」。CCC 開 PR 預設就要盯 CI + review comment，這是工作的一部分，不是 opt-in 服務。問就是 dumb question。
+3. **PR 開完立刻 `mcp__github__subscribe_pr_activity` 訂閱自己這條 PR**——不要問 user「要不要幫你盯」。CCC 開 PR 預設就要盯 CI + review comment，這是工作的一部分，不是 opt-in 服務。問就是 dumb question。**這條沒有「除非」**：開了 `enable_pr_auto_merge`、CI 還在 pending、改動很 safe、你覺得「應該會自己合」——通通不解除盯的責任。**訂閱是無條件動作，跟 subscribe 同一個 round 一起做完，不留到下個 turn、更不丟回給 user 決定。** 你盯，不然誰盯？（webhook 不送 CI success / merge transition，所以光訂閱不夠，見步驟 7 的 send_later check-in。）
 4. **等 CI 全綠**後自己 `mcp__github__merge_pull_request`
 5. **Merge 完不用、也無法自己刪 remote branch**——repo 已開啟「Automatically delete head branches」，GitHub 在 merge 後自動刪掉 head branch，CCC 什麼都不用做。**⚠️ CCC 千萬不要嘗試 `git push origin --delete claude/xxx`**：sandbox 的 git proxy 會回 **HTTP 403**（只放行 push commit、不放行刪 ref），重試也是 403、純粹浪費 round。GitHub MCP 也沒有 delete-branch 工具。Local branch 是拋棄式 sandbox 的一部分，不用管。萬一哪天 auto-delete 被關掉導致 branch 沒被清，那是 user 去 GitHub 設定重開／手動刪的事，不是 CCC 能在 sandbox 內解決的。
 6. Merge 完跟 user 回報 PR URL + 簡短 summary（branch 由 GitHub auto-delete 收尾），並附上**驗收用的 URL**——預設是 **prod URL**（`gu-log.vercel.app` 或文章深連結）。什麼時候給 prod URL、什麼時候才給 preview URL、什麼時候停下來問，照下面〈Preview URL vs 直接 merge〉那張表判斷。每個 turn 都要以可驗收的東西收尾（prod URL / preview URL+問題 / critical question），不留空回合。
+7. **盯到 merge / closed 才算收尾，中途不准把球丟回 user。** 訂閱不是「設定好就沒事」：webhook **不送** CI success、新 push、merge-conflict transition，所以光等事件會卡死。`send_later`（claude-code-remote MCP）可用時，排一個約 1 小時後的自我 check-in，醒來重查 PR 的 CI / mergeability / 狀態，有事就處理、沒事就**靜默 re-arm**（不要為了「沒事」去吵 user 或在 PR 灌留言），直到 PR merged/closed 或 user 喊停。`send_later` 不可用時，就在每次相關 event 醒來時順手重查一次。
 
-**禁問句**：「要不要 subscribe PR activity？」「要不要盯 CI？」「要不要幫你看 review comment？」——通通是 dumb question，預設答案永遠是 yes，user 不該被叫去確認 default behavior。CCC 的工作是「開 PR → 盯 CI → merge → 回報」整條收乾淨；branch cleanup 交給 repo 的 auto-delete 設定，CCC 不去 `git push --delete`（那會 403）。
+**禁問句**（出現任一句 = 違規，預設答案永遠是 yes，user 不該被叫去確認 default behavior）：「要不要 subscribe PR activity？」「要不要盯 CI？」「要不要幫你看 review comment？」「要我盯著確認真的 merge 嗎？」「還是放著讓 auto-merge 處理就好？」「要不要我 watch 這條 PR？」——**特別注意最後這幾句**：開了 `enable_pr_auto_merge` 之後在結尾問「要我盯 vs 放著讓它自動合」是最常見的偷懶收尾，**auto-merge 開了 ≠ 你可以不盯**，照樣要 subscribe + follow-through 到真的 merge。CCC 的工作是「開 PR → 盯 CI → merge → 回報」整條收乾淨；branch cleanup 交給 repo 的 auto-delete 設定，CCC 不去 `git push --delete`（那會 403）。
 
 ### Preview URL vs 直接 merge（收尾要給哪個）
 
@@ -217,10 +219,10 @@ tools/sp-pipeline/gp-pipeline run <url> --force
 真正要 fallback 的時候怎麼走：
 
 1. `gp-pipeline fetch <url>` 先把 source 抓下來（這步幾乎不會炸）
-2. 單獨跑 prompt：`claude -p --model claude-opus-4-5 "<prompt>"` 模擬 write / refine 階段（**在 CCC root 下不要加 `--permission-mode` 也不要加 `--dangerously-skip-permissions`，會被擋**）。**用完整 model id `claude-opus-4-5`，不要用 `--model opus` alias**——alias 會解析成當前最新 Opus（現在是 4.8），吃不到上面路由表「writer 鎖 4.5」的 pin（理由見下面〈CCC 怎麼 pin 到指定 Opus 版本〉）。review / eval / tribunal judges 仍走 Codex GPT-5.5；只有沒有 `codex` 的 CCC fallback 才用 Claude。
+2. 單獨跑 prompt：`claude -p --model <writer pin 的完整 id>` 模擬 write / refine 階段（id = `tribunal-writer` agent frontmatter，**SSOT**；寫這段時是 `claude-opus-4-5`，要打之前先讀 frontmatter）（**在 CCC root 下不要加 `--permission-mode` 也不要加 `--dangerously-skip-permissions`，會被擋**）。**用完整 model id，不要用 `--model opus` alias**——alias 會解析成當前最新 Opus（現在是 4.8），吃不到 writer pin（理由見下面〈CCC 怎麼 pin 到指定 Opus 版本〉）。review / eval / tribunal judges 仍走 Codex GPT-5.5；只有沒有 `codex` 的 CCC fallback 才用 Claude。
 3. tribunal 改用本 playbook「Tribunal 必跑規則」那段的 4 個 subagent 平行跑
 
-**SP writer 在 Mac pipeline 鎖 `claude-opus-4-5`**（`claude.go` 的 `ClaudeOpusPinned`），不再走浮動 `opus` alias——寫作 voice 對 Opus 版本敏感，Anthropic 一升 alias 就可能改掉 LHY persona，所以釘死版本。pipeline 仍會從 Claude Code JSON metadata 讀回實際 model 寫進 frontmatter。Fact Checker fallback judge 跟 doctor probe 才繼續用浮動 `opus` alias（追最新）。
+**SP writer 在 Mac pipeline 鎖某一代 Opus**（id 的 SSOT = `claude.go` 的 `ClaudeOpusPinned`，與 `tribunal-writer` agent frontmatter 同代），不再走浮動 `opus` alias——寫作 voice 對 Opus 版本敏感，Anthropic 一升 alias 就可能改掉 LHY persona，所以釘死版本。要打 `--model` 前先去那個 SSOT 讀當下的 id，不要照抄這段散文。pipeline 仍會從 Claude Code JSON metadata 讀回實際 model 寫進 frontmatter。Fact Checker fallback judge 跟 doctor probe 才繼續用浮動 `opus` alias（追最新）。
 
 ### 模型路由（Mac writer + Codex judges）
 
@@ -272,6 +274,20 @@ claude -p --model claude-opus-4-5 --allowed-tools "Read,Grep,Glob,Bash,Write,Edi
 **provenance 鐵則**：走 `claude -p` 手動 pin 的路徑**繞過了 pipeline 自動回填 model metadata 那層**，所以 `translatedBy.model` / `pipeline[].role.model` / `scores.*.model` 要**手動填實際用到的版本**（rewrite 就加一個 `Rewriter: Opus 4.5` role），同一筆 edit 補上、不能漏——frontmatter 標錯 model = 砸 gu-log「provenance 攤在陽光下」的招牌（見 `docs/shroomdog-editorial-feedback.md` 2026-06-18 SP-235 那條）。
 
 ## 文章寫作 SOP（省 token 版）
+
+### 🔴 鐵則：文章 prose 不准在 CCC session model 自己生 / 自己評，必須委派 pinned agent
+
+CCC session 跑在它當下的 default model 上（**會浮動**，現在是 Opus 4.8）。但 gu-log 的 writer / rewriter / vibe-scorer 是 **owner-pin 在某一代 Opus**（ShroomDog 2026-06-18 sign-off：writer、rewriter、vibe-scorer 全鎖同一代 Opus，讓「生成」和「評分」共用一致 taste）。所以只要 CCC 要產出或評分 **gu-log 文章 prose（SD / SP / CP / Lv 這種 reader-facing 內容，含手寫對照文）**：
+
+- **寫 / 改寫 → 委派 `tribunal-writer` agent**（SP / rewrite voice）。
+- **Vibe 評分 → 委派 `vibe-opus-scorer` agent**（grader）。
+- model pin = 這兩個 agent 的 `model:` frontmatter（**SSOT，不在這裡複述版本號**；owner sign-off 寫在 frontmatter 上方的 `# PINNED:` 註解）。**用 `Agent` tool 以 `subagent_type` 叫這兩個 agent，就會跑在它 frontmatter pin 的那一代**——這條路會 honor 完整 id 的 pin。（2026-06-22 實測：`tribunal-writer` / `vibe-opus-scorer` 兩個 subagent 的實際 API `model` 欄位都是 `claude-opus-4-5`；而 `model: opus` 浮動 alias 的 judge（fact / librarian / fresh-eyes）才解析成 session opus 4.8。）想顯式 pin 也可以走 `claude -p --model <frontmatter 的 id>`（見〈CCC 怎麼 pin 到指定 Opus 版本〉）；那裡要避開的是 `--model opus` **這個 alias**（會跑到 4.8），不是整個 `Agent` tool。
+
+**為什麼不准自己寫**：CCC 在 4.8 session 手寫一篇 GP 再自己蓋分數 = 「4.8 寫、4.5 評」，把 owner 要的單一 taste loop 打破（4.8 的寫作 voice 跟 vibe 校準都不是 owner 認可的那一代——見 `docs/shroomdog-editorial-feedback.md` 2026-06-18 SP-235：4.8 寫的被 ShroomDog 點名「有股怪味」、改用 pinned 代重寫才過）。**手寫+手評是 anti-pattern，2026-06 已踩過一次。**
+
+**provenance**：`scores.*.model` 和 `translatedBy.model` 要記**實際做那一步的 model**（被委派 agent 的 pin），**不是 CCC session model**。CCC session 只做機械編排 → 在 `pipeline[]` 記一個 `Orchestrated` role 即可。
+
+**不適用（這些機械工作 CCC session model 自己做就好）**：frontmatter 編輯、validate-posts、晶晶體修正、檔案搬移 / cat 合併、commit / push、開 PR、盯 CI。**只有「生 reader-facing prose」和「打 vibe 分數」這兩件事必須委派**。
 
 **核心原則：先寫好 zh-tw，通過 tribunal 後才翻 en。不要兩個版本同時寫、同時改。**
 

@@ -74,4 +74,5 @@
 
 - **散文只講 policy / 為什麼**；event 名、套件名、計數、路徑、deny 哪個工具這類具體值一律**指回 code / YAML**，不在散文留第二份（複製事實 = 製造 drift，見上面〈SSOT 紀律〉）。
 - **審查用 Keep / Simplify / Drop**：transient 環境狀態（「本機目前沒裝」）→ Drop；複製 SSOT 的值 → 指回 SSOT；一個原則被一堆特例埋住 → Simplify 成原則。目標是**少而通用、不易過期**，不是加更多條款。
+- **no-op test（Pocock 的刀，跟 drift 互補）**：drift 砍的是「會過期的具體值」，no-op 砍的是「不管過不過期、根本不改變 agent 行為的句子」。檢驗法：把那行刪掉，agent 輸出會變嗎？不變 = no-op，Drop。典型 no-op = agent 預設本來就會做的事——「要 thorough」「commit message 要詳細」「實作要好讀」「仔細思考」。agent 寫的 skill 特別容易整段都是這種空話，難評估、難維護、白燒 token。寫完 prompt / skill 自己過一遍，或用 `/trim` 讓 sub-agent 逐行測。（來源：https://x.com/mattpocockuk/status/2069784839474032896）
 - **持久化的 artifact（learning record、note、SOP、prompt）要對「零 session 脈絡的 fresh agent」自洽**：不要塞只有當下這場對話解得開的 handle——session-local 的關卡 / 步驟編號（`Lv.2`、`step 3`）、選項字母（「答對 B」）、「這個 turn / 剛剛那版」、臨時計數。下一個 agent 沒跑過那場流程、沒看過那些選項，這些 token 對它只是噪音（看不懂又燒 context）。**記「證明出來的耐久結論」（學會 / 決定了什麼），不是「產生它的 ephemeral 過程」（在第幾關、選了哪個字母）。** 一句測試：把這行抽出來單獨給一個沒讀過上下文的 agent，它看得懂嗎？看不懂就改寫成自洽的結論。

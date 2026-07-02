@@ -16,7 +16,7 @@
 
 沒搞清楚身份就動手 = 用錯 SOP（各 env 的 scope ceiling、merge policy、失敗處理都不一樣）。沒有例外，不能跳。Playbook 各自是 SSOT，定義各自的精神、scope ceiling、失敗處理、merge policy、品質 gate。**不要在這個檔案重複那些規則**，有要加規則就去編對應的 playbook 檔。
 
-共通底線（兩邊都不能跳）：commit atomic（一個 commit 一件事）；品質 gate 全保留（`pre-commit` / `pre-push` / `validate-posts.mjs` / tribunal 一個都不能關）；prod 炸或 main CI broken 立刻修（緊急事件無 scope 之分）；feature branch 完成後 **agent 自己開 PR + 盯 CI**、不留給 human（工具因 runtime 而異，Claude 見 `CLAUDE.md`、Codex 用 `gh`）；**gu-log 內容任務的完成定義是 production URL**——不停在 draft / PR / CI 綠 / preview，預設做到 merge → prod deploy → smoke test、回報可點 URL，只有關鍵內容 / 產品方向決策才停下問。
+共通底線（兩邊都不能跳）：commit atomic（一個 commit 一件事）；commit 可追溯到執行的 model——把 model 名放進 `git config user.name`（例 `Claude Fable 5`、`Codex GPT-5.5`），因為 squash merge 的 co-author 取自 git author 身份、訊息尾端同 email 的 Co-Authored-By trailer 會被去重折疊成通用名；品質 gate 全保留（`pre-commit` / `pre-push` / `validate-posts.mjs` / tribunal 一個都不能關）；prod 炸或 main CI broken 立刻修（緊急事件無 scope 之分）；feature branch 完成後 **agent 自己開 PR + 盯 CI**、不留給 human（工具因 runtime 而異，Claude 見 `CLAUDE.md`、Codex 用 `gh`）；**gu-log 內容任務的完成定義是 production URL**——不停在 draft / PR / CI 綠 / preview，預設做到 merge → prod deploy → smoke test、回報可點 URL，只有關鍵內容 / 產品方向決策才停下問。
 
 ## 🗣️ 回覆語言：一律繁體中文（zh-tw）
 
@@ -52,7 +52,7 @@ Feature branch 名稱常由沒 gu-log 上下文的 LLM 自動生成，只能當 
 
 預設走 feature branch + PR（命名 `<type>/<scope>-<desc>`，例 `fix/tribunal-badge`）——PR 給清楚的 review surface、讓 Vercel preview 在 merge 前先跑、revert 不沾其他 commit。流程（拉 branch → commit → push + PR → 盯 CI → 綠了自 merge → 刪 branch）是標準動作，solo repo 自己 merge 不等人；branch / merge 細節依 runtime playbook。Tribunal / 自動化 pipeline 同樣走 branch + PR。
 
-- **直推 `main` 的例外（不用 branch）**：prod 炸或 main CI broken 的緊急修復、純設定檔 / doc typo（無 code logic 風險）、user 明講「直接推 main」。
+- **沒有「直推 `main`」這條路**：main 有 server-side branch protection，直推一律被拒（實測 403，連 doc typo 也一樣）。緊急修復（prod 炸 / main CI broken）走同一條 branch + PR + auto-merge 流——CI 綠了自動合，實務上跟直推一樣快，不要浪費時間嘗試繞過。
 - **PR size discipline**：gu-log PR 不必為「讓 human 逐行看」刻意切小。review 主要由 agent 跑，human 看結論 / risk surface / CI / evidence。重點是 OpenSpec / tests / evidence / revertability 清楚，PR 大小本身不是問題。
 
 ## 🧭 主題路由表（要做某件事 → 先讀這份）
