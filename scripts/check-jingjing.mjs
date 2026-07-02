@@ -152,12 +152,14 @@ Jarrod Watts Matt Pocock
 Lisa MindOS_Lisa
 Dimillian Thomas Ricouard
 Kyle Jeong
+# Behavioral-economics / happiness researchers cited in SP-243
+Kahneman Deaton Angus Killingsworth
 
 # Places
 Albuquerque Hong Kong San Francisco SF Silicon Valley
 Cambridge Stanford MIT Berkeley Princeton Harvard
 Beijing Shanghai Shenzhen Hangzhou Tokyo Seoul Singapore London Paris Berlin
-Craigslist OpenTable Google Maps Google Drive Dropbox Drive
+Craigslist OpenTable Google Maps Google Drive Dropbox Drive Pinterest
 
 # Common file/format/protocol identifiers
 Markdown markdown JSON YAML XML CSV TSV PDF EPUB DOCX MDX LaTeX
@@ -167,7 +169,11 @@ JWT OAuth SAML SSO 2FA MFA TOTP
 SPEC.md WORKFLOW.md README.md CLAUDE.md SKILL.md AGENTS.md CONTRIBUTING.md
 SSH SCP SFTP FTP IMAP SMTP POP3
 Git GitHub Actions GitLab CI CircleCI Travis Jenkins
+WebAssembly Wasm itms-services
 
+# Apple ecosystem / iOS app distribution (added 2026-06-26 for CP AssppWeb post)
+App Store TestFlight IPA
+AssppWeb Asspp ipatool
 # Time / units / measure
 ml mg kg km mph rpm
 GB TB MB KB Mb Kb Gb Tb
@@ -175,6 +181,8 @@ ms us ns
 Hz MHz GHz THz
 RPM CPM BPM
 
+# Greek/foreign term italicized + glossed inline in body (SP-243 伊比鳩魯 ataraxia)
+ataraxia
 # Misc commonly-fine
 Inc Inc. Ltd LLC Corp Corp.
 v1 v2 v3 v4 v5
@@ -276,6 +284,10 @@ commit
 # OSS signing protocol Mitchell uses for Ghostty releases (covered in CP-159);
 # X handle of SP-169's source author.
 Vouch dani
+# Added 2026-06-22 for SP-239 (Ghostty startup tradeoffs). D-Bus = the Linux
+# desktop message bus, a genuine proper noun Mitchell names in the source
+# ("registration (dbus)"); reusable across future Linux/terminal articles.
+D-Bus
 # Added 2026-06-12 for SP-221 (Zed DeltaDB). Zed = editor/company, DeltaDB =
 # the product, Nathan Sobo = founder; "delta" is DeltaDB's namesake atomic
 # unit (the article's core abstraction, analogous to commit) — keeping the
@@ -514,6 +526,84 @@ rahulgs
 # (one-off mentions, not reusable canonical references), so they stay here.
 Jarred Sumner
 struct lifetime
+
+# Added 2026-06-22 for SP-240 (championswimmer process-vs-outcome / AI breaking
+# the peace). Shia LaBeouf = the actor behind the "Just do it" meme the source
+# cites (person, proper noun). Tropicana = the juice brand the lemonade-stand
+# analogy scales up into (company/product, proper noun). Both are one-off
+# proper-noun references named in the source, same category as the people /
+# company names already allowlisted above.
+Shia LaBeouf
+Tropicana
+
+# Added 2026-06-22 for SP-242 (Sakana Fugu orchestration "AI sovereignty" vs
+# Elie Bakouch's teardown). All proper nouns named in the two sources:
+# Sakana = the Japanese AI lab (company). Fugu / Ultra = the product and its
+# variant (Fugu Ultra). Elie Bakouch = the researcher behind the critique
+# (person). AutoResearch / TerminalBench / Bench (SWE Bench Pro) = benchmark
+# names cited from the tech report. Same category as the lab / product / person
+# / benchmark names already allowlisted above; none has a zh-tw translation.
+Sakana Fugu Ultra
+Elie Bakouch
+AutoResearch TerminalBench Bench
+
+# Added 2026-06-22 for CP-310 (Alisa Liu's NLP-PhD industry job-search notes).
+# All bona-fide proper nouns named in the single source, none with a natural
+# zh-tw translation (writer-prompt rule #2: people / libraries / products /
+# course + article titles stay English):
+#   Alisa Liu = the author (person). Lambert = Nathan Lambert, cited author.
+#   PyTorch / numpy = the ML libraries an interview tests. transformer /
+#   tokenizer / tokenization = canonical architecture + her research specialty.
+#   LeetCode / Neetcode / Blind (75) = interview-prep resources. Modeling /
+#   Scratch = the Stanford course title "Language Modeling from Scratch".
+#   Industry / Job = words in the source article title "Notes on the Industry
+#   Job Search" as it appears in the citation link.
+Alisa Liu Lambert
+PyTorch numpy transformer tokenizer tokenization
+LeetCode Neetcode Blind
+Modeling Scratch Industry Job
+
+# Added 2026-07-01 for CP-312 (Kun Chen's firstmate/secondmate/crewmate agent
+# org chart + per-task model routing). Kun Chen = the author (person), no
+# natural zh-tw translation (writer-prompt rule #2: people stay English).
+Kun Chen
+
+# Added 2026-07-01 for the Core-dump Lv 三部曲 (levelup-*-core-dump-*). All
+# bona-fide proper nouns named in the OpenAI source, none with a zh-tw
+# translation (same category as the product / library names already
+# allowlisted above):
+#   Rockset = OpenAI's C++ data service (acquired 2024) — the product the whole
+#     series debugs. libunwind = the GNU stack-unwinding library that carried
+#     the 18-year-old race (the "18 歲的鬼"). Level-Up = the gu-log tutorial
+#     series brand, same house-term status as ClawdNote / ShroomDogNote above.
+#   folly = Facebook/Meta's open-source C++ library (its fatal signal handler
+#     logs the stack trace) — product/library proper noun like libunwind.
+#   John Snow / Broad Street = the physician + London street of the 1854 cholera
+#     pump, the founding story of epidemiology (Post B's bug #1 analogy anchor).
+#   Unix = the OS family named when cross-linking the Unix-signals Lv post.
+Rockset libunwind Level-Up
+folly
+John Snow Broad Street
+Unix
+#   Enrico Fermi = the physicist behind "Fermi estimation" (order-of-magnitude
+#     back-of-envelope estimate), named in Post C's ClawdNote — person, proper noun.
+Enrico Fermi
+
+# Added 2026-06-20 for SD (Dan Koe spec-driven-life riff). Dan Koe = the source
+# author (person, X handle @thedankoe). Spec Kit (GitHub) and Kiro (Amazon) =
+# product names for the two spec-driven dev tools cited. cybernetics / kybernetes
+# = the Greek/English etymology the piece explicitly discusses alongside the
+# already-allowlisted Kubernetes (same word root). All proper nouns / named terms
+# under discussion, not decorative English.
+Dan Koe
+Spec Kit
+Kiro
+cybernetics kybernetes
+# @thedankoe = source X handle; the bracketed English string is the verbatim
+# title of the cited article, given with a zh-tw gloss right after (direct-quote
+# attribution, GU-LOG_WRITER_PROMPT §術語處理 rule 3).
+thedankoe
+How fix your entire life in day
 `;
 
 const HARDCODED = new Set();

@@ -20,6 +20,7 @@
 - **PR scope 可以大、可以雜**。做任務時順手修相關的東西，不用 split PR。
 - **Commit 內部維持 atomic**（一個 commit 做一件事）——revert 時才好下刀。這是放手做事的保險。
 - 不要把「改 import script + 升 astro + 改 CSS + 加新頁」塞同一個 commit——revert 一個會連累其他四個。
+- **Resumed session 的簽章雷**：session resume 後 git 的 signing key / committer email 可能是空檔，commit 會變 Unverified、反覆絆 stop hook。照 hook 訊息修（`git config user.email noreply@anthropic.com` + `git commit --amend --no-edit --reset-author`）再 push；不要跟 hook 打架、也不要為了省事跳過。
 
 ## Scope ceiling（順手修的上限）
 
@@ -36,14 +37,21 @@
 
 **唯一該停下來問的**：critical design decision——會改變產品方向、架構、對外承諾、或 user 個人品牌調性的東西（例：要不要砍掉一個系列、要不要改 site 結構、要不要公開某個敏感立場）。內容文章只要過了 vibe gate + CI 綠，就屬於「safe & appropriate」，直接 merge；revert 很便宜（auto-merge + atomic commit 就是為了讓 ship 快、回退也快）。
 
+### ShroomDog 只在 merge 之後才參與（所以不准 merge 前停下來問要不要先讀 draft）
+
+- **User 只看 production**（gu-log.vercel.app）。不要叫 user 開 dev server。
+- **🔴 ShroomDog（作者本人）只在 merge 之後才參與**，而且是在 **prod URL（gu-log.vercel.app）或 branch/preview URL** 上讀成品——**不讀 draft、不看 diff、不在 merge 前審稿**。所以任何 agent **不准停下來問 user「要不要先讀這篇 draft 再 merge」**，那等於把 author 拖進 pre-merge 流程，違反這條。寫作 / 翻譯任務只要 (1) 品質 gate 全綠（pre-commit / pre-push / tribunal floor composite ≥3）、(2) 內容 logical / safe、(3) 不是 critical product / 架構決策 → **自己 merge**，author 之後在 prod 或 branch URL 上看，要回饋他會在 merge 後給（進 `docs/shroomdog-editorial-feedback.md`）。唯一要 merge 前停下來問的：產品方向、對外承諾、或不確定該不該公開的 critical design decision。「文章寫得好不好 / 語氣對不對」**不是** stop 的理由——那靠 tribunal gate 把關，author 在 prod 上事後挑。
+
 1. `git push -u origin claude/xxx`
 2. 用 GitHub MCP (`mcp__github__create_pull_request`) 開 PR 到 main
-3. **PR 開完立刻 `mcp__github__subscribe_pr_activity` 訂閱自己這條 PR**——不要問 user「要不要幫你盯」。CCC 開 PR 預設就要盯 CI + review comment，這是工作的一部分，不是 opt-in 服務。問就是 dumb question。
-4. **等 CI 全綠**後自己 `mcp__github__merge_pull_request`
+3. **PR 開完立刻 `mcp__github__subscribe_pr_activity` 訂閱自己這條 PR**——不要問 user「要不要幫你盯」。CCC 開 PR 預設就要盯 CI + review comment，這是工作的一部分，不是 opt-in 服務。問就是 dumb question。**這條沒有「除非」**：開了 `enable_pr_auto_merge`、CI 還在 pending、改動很 safe、你覺得「應該會自己合」——通通不解除盯的責任。**訂閱是無條件動作，跟 subscribe 同一個 round 一起做完，不留到下個 turn、更不丟回給 user 決定。** 你盯，不然誰盯？（webhook 不送 CI success / merge transition，所以光訂閱不夠，見步驟 7 的 send_later check-in。）
+4. **開完 PR 同一個 round 就把 merge 交給 server-side**：harness 若強制開 draft，立刻 `mcp__github__update_pull_request` 轉 ready，接著 `mcp__github__enable_pr_auto_merge`（品質 gate 本來就在開 PR 前跑完，沒有理由停在 draft 等 CI）。CI 綠了 GitHub 自己合，**不依賴 session 醒著**。CCC session 閒置會被睡掉，任何 in-session 排程（CronCreate / Monitor / background polling，不管幾分鐘一次）都跟著凍結——「等 CI 綠我再回來 merge」= 賭 session 還活著（2026-07-02 SP-247 實測：draft 停等 → session 睡 2 小時 → main 前進變 behind → 又多卡兩小時等 user 手動叫醒）。醒著等到 CI 綠直接 `mcp__github__merge_pull_request` 當然更快，但 auto-merge 必須先掛上當保險，不是二選一
 5. **Merge 完不用、也無法自己刪 remote branch**——repo 已開啟「Automatically delete head branches」，GitHub 在 merge 後自動刪掉 head branch，CCC 什麼都不用做。**⚠️ CCC 千萬不要嘗試 `git push origin --delete claude/xxx`**：sandbox 的 git proxy 會回 **HTTP 403**（只放行 push commit、不放行刪 ref），重試也是 403、純粹浪費 round。GitHub MCP 也沒有 delete-branch 工具。Local branch 是拋棄式 sandbox 的一部分，不用管。萬一哪天 auto-delete 被關掉導致 branch 沒被清，那是 user 去 GitHub 設定重開／手動刪的事，不是 CCC 能在 sandbox 內解決的。
 6. Merge 完跟 user 回報 PR URL + 簡短 summary（branch 由 GitHub auto-delete 收尾），並附上**驗收用的 URL**——預設是 **prod URL**（`gu-log.vercel.app` 或文章深連結）。什麼時候給 prod URL、什麼時候才給 preview URL、什麼時候停下來問，照下面〈Preview URL vs 直接 merge〉那張表判斷。每個 turn 都要以可驗收的東西收尾（prod URL / preview URL+問題 / critical question），不留空回合。
+   - **URL 不等 merge 才第一次給**：內容任務的 prod URL 是 deterministic——由檔名推導（`/posts/<slug>/`，en 版 `/en/posts/en-<slug>/`），不需要等 deploy 才知道。所以在「開 PR + auto-merge 掛好」的**同一個回合**就先給**預定 prod URL**，講明「CI 綠了會自動 merge + 上線」；這樣就算 session 之後被睡掉（見步驟 4），user 手上已經有可點的連結，成果自己上線、不會卡在沒人回報。之後醒著時再補一句 deploy 完成的 smoke test 結果（HTTP 200 + 標題）即可，那是驗證、不是 user 拿到連結的前提。
+7. **盯到 merge / closed 才算收尾，中途不准把球丟回 user。** 訂閱不是「設定好就沒事」：webhook **不送** CI success、新 push、merge-conflict transition，所以光等事件會卡死。`send_later`（claude-code-remote MCP）可用時，排一個約 1 小時後的自我 check-in，醒來重查 PR 的 CI / mergeability / 狀態，有事就處理、沒事就**靜默 re-arm**（不要為了「沒事」去吵 user 或在 PR 灌留言），直到 PR merged/closed 或 user 喊停。`send_later` 不可用時，就在每次相關 event 醒來時順手重查一次。
 
-**禁問句**：「要不要 subscribe PR activity？」「要不要盯 CI？」「要不要幫你看 review comment？」——通通是 dumb question，預設答案永遠是 yes，user 不該被叫去確認 default behavior。CCC 的工作是「開 PR → 盯 CI → merge → 回報」整條收乾淨；branch cleanup 交給 repo 的 auto-delete 設定，CCC 不去 `git push --delete`（那會 403）。
+**禁問句**（出現任一句 = 違規，預設答案永遠是 yes，user 不該被叫去確認 default behavior）：「要不要 subscribe PR activity？」「要不要盯 CI？」「要不要幫你看 review comment？」「要我盯著確認真的 merge 嗎？」「還是放著讓 auto-merge 處理就好？」「要不要我 watch 這條 PR？」——**特別注意最後這幾句**：開了 `enable_pr_auto_merge` 之後在結尾問「要我盯 vs 放著讓它自動合」是最常見的偷懶收尾，**auto-merge 開了 ≠ 你可以不盯**，照樣要 subscribe + follow-through 到真的 merge。CCC 的工作是「開 PR → 盯 CI → merge → 回報」整條收乾淨；branch cleanup 交給 repo 的 auto-delete 設定，CCC 不去 `git push --delete`（那會 403）。
 
 ### Preview URL vs 直接 merge（收尾要給哪個）
 
@@ -56,7 +64,7 @@
 | Reader-facing 視覺/UX 改動，而且你**真的拿不準**是不是動到品牌調性/產品方向（borderline critical） | 給 **preview URL + 一個具體問題**，讓 user 拍板。這是 preview URL 唯一的正常用途 |
 | 明確的 critical design decision（產品方向、架構、對外承諾、品牌調性） | `AskUserQuestion` 停下來問，**不要**先 merge |
 
-**白話**：「safe 但我想讓你看一眼再合」**不是**給 preview 的理由——safe 就直接合，ShroomDog 在 prod 上事後審（這正是 merge-後-審稿的設計，見 `CLAUDE.md`）。只有「這個 taste call 我真的不確定該不該自己拍」才值得 preview + 問。判斷不出來時，預設往「merge」靠，不要往「問」靠。
+**白話**：「safe 但我想讓你看一眼再合」**不是**給 preview 的理由——safe 就直接合，ShroomDog 在 prod 上事後審（這正是 merge-後-審稿的設計，見上面〈ShroomDog 只在 merge 之後才參與〉）。只有「這個 taste call 我真的不確定該不該自己拍」才值得 preview + 問。判斷不出來時，預設往「merge」靠，不要往「問」靠。
 
 ### Merge method 選擇
 
@@ -119,7 +127,7 @@ Vercel build / tribunal / validate-posts / CI 沒過：
 
 ### Tribunal 必跑規則（任何新增/改寫文章的 PR）
 
-**PR 動到 `src/content/posts/*.mdx`（新增 SP/CP/SD/Lv，或實質改寫既有文章）→ 四評審必跑，結果必記錄。沒跑完不開 PR，跑完 FAIL 不 merge。**
+**PR 動到 `src/content/posts/*.mdx`（新增 SP/CP/SD/Lv，或實質改寫既有文章）→ 四評審必跑，結果必記錄。沒跑完不開 PR；跑完 sub-8 不是 merge blocker，但 floor 沒過不能 merge。**
 
 **首選**：`scripts/tribunal-batch-runner.sh` 或 `gp-pipeline ralph` 自動跑完四審 + rewrite + 寫 frontmatter scores。**這條在 CCC（root sandbox）現在可以原生跑**——`tribunal_claude_exec`（shell judges）和 Go `ClaudeProvider.Run`（pipeline）在 `id -u == 0` 時自動：(1) 用 `acceptEdits` 取代被 CLI 拒絕的 `bypassPermissions`，(2) 補 `--allowed-tools Read,Grep,Glob,Bash,Write,Edit,MultiEdit` 讓 judge Read 文章檔時不會卡 permission prompt，(3) prompt 走 stdin 避免 variadic 旗標吞掉內文。實測 `bash scripts/tribunal.sh --score-only --only-stage vibe <post>` 在 CCC 端到端 PASS（#123）。
 
@@ -136,20 +144,18 @@ Vercel build / tribunal / validate-posts / CI 沒過：
 
 **⚠️ 實測 caveat（2026-06-13）**：不是每個 CCC 網頁 harness 都把 `.claude/agents/` 註冊成 `Agent` tool 的 `subagent_type`。有的 session `Agent` tool 只開 built-in 的 `general-purpose` / `Explore` / `Plan`，named agent（`vibe-opus-scorer` 等）會回 `Agent type '...' not found`。遇到這種：**spawn `general-purpose`，在 prompt 裡叫它「讀 `.claude/agents/<judge>.md` 並完全照著做（zero parent context）」**，效果等同——judge 一樣 zero-context、一樣寫同一份 JSON。差別只在 model pin 顧不到（named agent 走 frontmatter 的 pin，general-purpose 繼承 parent model），所以 `scores.*.model` 要記**實際**用到的 model，不要照抄 pin。agent 檔已補 `name:` frontmatter，環境若支援 project agent 就會吃到 named 路徑。`scripts/tribunal-helpers.sh` 在 CCC 偵測到沒有 CLI provider 時，也會把這條 fallback 指令印到 stderr。
 
-**Pass bar（四條全部要過才能 merge）**：
-- Vibe composite ≥ 8 **AND** 至少一維 ≥ 9 **AND** 無任何維 < 8
-- Fact composite ≥ 8
-- Librarian composite ≥ 8
-- FreshEyes composite ≥ 8
+**品質門檻（SSOT = `CONTRIBUTING.md`〈🎯 兩層品質門檻〉；本段是 derived view）**：
+- **Floor（merge/ship gate）**：`scores.vibe` 存在、該 tribunalVersion 要求的 vibe 維度齊、且 composite ≥ 3。沒過 floor → pre-commit 會擋，不能 merge。
+- **PASS（首頁 / featured gate）**：Vibe composite ≥ 8 AND 至少一維 ≥ 9 AND 無任何維 < 8；Fact core avg ≥ 8 AND sourceBoundary ≥ 8 AND commentarySeparation ≥ 8；Librarian composite ≥ 8；FreshEyes composite ≥ 8 AND payoffDensity ≥ 8 AND lengthFit ≥ 8 AND（v9）clarity ≥ 8。沒過 PASS 仍可 merge/ship，但掛「精修中」badge，且不上首頁 / featured。
 
-**沒過怎麼辦**：`tribunal-writer` subagent rewrite → 再跑一輪 → 最多 3 輪。3 輪還不過 → `git revert` + 跟 user 說明卡在哪。
+**沒過 PASS 怎麼辦**：有 quota 就用 `tribunal-writer` subagent rewrite → 再跑一輪 → 最多 3 輪。3 輪還不到 ≥8，不要 revert；只要 floor ≥3 就先誠實帶 sub-8 badge ship，排進背景 tribunal 繼續拉。
 
 **禁語**（這些話出現在 PR body / commit message / 回報 = 偷工）：
 - ❌「Tribunal 背景跑中，等拿到結果再補」— 不行。pending 等於沒跑。開 PR 前就要有結果。
-- ❌「Tribunal 跳過」「先 merge 再補分數」「這次例外」— 全不行。
+- ❌「Tribunal 跳過」「先 merge 再補分數」「這次例外」— 全不行；至少要有 floor 可驗證的真分數。
 - ❌「只跑 vibe 就好」「不跑 FreshEyes」— 四個都要跑，缺一不可。
 
-**必附證據**：PR body 或一個隨 PR 的 commit 要包含四個 judge 的分數 + verdict，並把 `scores.vibe` / `scores.factCheck` / `scores.librarian` / `scores.freshEyes` 寫進文章 frontmatter（用 `scripts/frontmatter-scores.mjs write <file> <judge> <score_json>`，schema 見 `src/content/config.ts`）。pre-commit 的 score gate（`.githooks/pre-commit` 第 60 行起）會擋掉**新增**且 ticketId 非 PENDING 的 zh-tw 文章 commit，所以 swap PENDING → 真號那個 commit 之前，分數要先進 frontmatter。
+**必附證據**：PR body 或一個隨 PR 的 commit 要包含四個 judge 的分數 + verdict，並把 `scores.vibe` / `scores.factCheck` / `scores.librarian` / `scores.freshEyes` 寫進文章 frontmatter（用 `scripts/frontmatter-scores.mjs write <file> <judge> <score_json>`，schema 見 `src/content.config.ts`）。pre-commit 的 score gate（`.githooks/pre-commit` 第 60 行起）會擋掉**新增**且 ticketId 非 PENDING 的 zh-tw 文章 commit，所以 swap PENDING → 真號那個 commit 之前，分數要先進 frontmatter。
 
 ## URL 貼過來 → 預設走 gp-pipeline
 
@@ -214,16 +220,16 @@ tools/sp-pipeline/gp-pipeline run <url> --force
 真正要 fallback 的時候怎麼走：
 
 1. `gp-pipeline fetch <url>` 先把 source 抓下來（這步幾乎不會炸）
-2. 單獨跑 prompt：`claude -p --model claude-opus-4-5 "<prompt>"` 模擬 write / refine 階段（**在 CCC root 下不要加 `--permission-mode` 也不要加 `--dangerously-skip-permissions`，會被擋**）。**用完整 model id `claude-opus-4-5`，不要用 `--model opus` alias**——alias 會解析成當前最新 Opus（現在是 4.8），吃不到上面路由表「writer 鎖 4.5」的 pin（理由見下面〈CCC 怎麼 pin 到指定 Opus 版本〉）。review / eval / tribunal judges 仍走 Codex GPT-5.5；只有沒有 `codex` 的 CCC fallback 才用 Claude。
+2. 單獨跑 prompt：`claude -p --model <writer pin 的完整 id>` 模擬 write / refine 階段（id = `tribunal-writer` agent frontmatter，**SSOT**；寫這段時是 `claude-opus-4-5`，要打之前先讀 frontmatter）（**在 CCC root 下不要加 `--permission-mode` 也不要加 `--dangerously-skip-permissions`，會被擋**）。**用完整 model id，不要用 `--model opus` alias**——alias 會解析成當前最新 Opus（現在是 4.8），吃不到 writer pin（理由見下面〈CCC 怎麼 pin 到指定 Opus 版本〉）。review / eval / tribunal judges 仍走 Codex GPT-5.5；只有沒有 `codex` 的 CCC fallback 才用 Claude。
 3. tribunal 改用本 playbook「Tribunal 必跑規則」那段的 4 個 subagent 平行跑
 
-**SP writer 在 Mac pipeline 鎖 `claude-opus-4-5`**（`claude.go` 的 `ClaudeOpusPinned`），不再走浮動 `opus` alias——寫作 voice 對 Opus 版本敏感，Anthropic 一升 alias 就可能改掉 LHY persona，所以釘死版本。pipeline 仍會從 Claude Code JSON metadata 讀回實際 model 寫進 frontmatter。Fact Checker fallback judge 跟 doctor probe 才繼續用浮動 `opus` alias（追最新）。
+**SP writer 在 Mac pipeline 鎖某一代 Opus**（id 的 SSOT = `claude.go` 的 `ClaudeOpusPinned`，與 `tribunal-writer` agent frontmatter 同代），不再走浮動 `opus` alias——寫作 voice 對 Opus 版本敏感，Anthropic 一升 alias 就可能改掉 LHY persona，所以釘死版本。要打 `--model` 前先去那個 SSOT 讀當下的 id，不要照抄這段散文。pipeline 仍會從 Claude Code JSON metadata 讀回實際 model 寫進 frontmatter。Fact Checker fallback judge 跟 doctor probe 才繼續用浮動 `opus` alias（追最新）。
 
 ### 模型路由（Mac writer + Codex judges）
 
 2026-06-13 更新：Claude 在 VM/CCC 上不作為主要 runtime；VM 是 Codex GPT-5.5 的地盤。
 
-> **🧭 SSOT 提醒（見 `CLAUDE.md`〈SSOT 紀律〉）**：每個 agent 用哪個 model，**值的 SSOT 是各 agent 的 `model:` frontmatter**（`.claude/agents/*.md`）；Mac SP writer 是 `tools/sp-pipeline/internal/llm/claude.go` 的 `ClaudeOpusPinned`。**下面這張表只描述 policy（哪一類 pin、哪一類浮動、為什麼），刻意不複述版本號**——版本號一旦抄進這裡就會 drift（2026-06-18 fresh-eyes / librarian 連踩兩次就是因為表裡寫死了 4-7）。要知道某 agent 現在實際跑哪版 → 去讀它的 frontmatter，不要相信任何散文裡的版本數字。
+> **🧭 SSOT 提醒（見 `docs/agent-discipline.md`〈SSOT 紀律〉）**：每個 agent 用哪個 model，**值的 SSOT 是各 agent 的 `model:` frontmatter**（`.claude/agents/*.md`）；Mac SP writer 是 `tools/sp-pipeline/internal/llm/claude.go` 的 `ClaudeOpusPinned`。**下面這張表只描述 policy（哪一類 pin、哪一類浮動、為什麼），刻意不複述版本號**——版本號一旦抄進這裡就會 drift（2026-06-18 fresh-eyes / librarian 連踩兩次就是因為表裡寫死了 4-7）。要知道某 agent 現在實際跑哪版 → 去讀它的 frontmatter，不要相信任何散文裡的版本數字。
 
 分工 policy（**按類別，不按版本號**）：
 
@@ -237,6 +243,8 @@ tools/sp-pipeline/gp-pipeline run <url> --force
 ### CCC 怎麼 pin 到指定 Opus 版本（`claude -p` vs `Agent` tool）
 
 **核心限制（2026-06-18 兩次 session 實測）**：CCC 的 `Agent` tool `model` 參數**只吃 alias**——`sonnet` / `opus` / `haiku` / `fable`——**沒有版本粒度**。`opus` alias 一律解析成「當前最新 Opus」（現在是 4.8）。所以**透過 `Agent` tool 永遠 spawn 不到 `claude-opus-4-5` 或任何指定舊版**，不管 named agent 的 frontmatter pin 寫的是什麼（named agent 在很多 CCC harness 還會 fall back 成 `general-purpose` + 繼承 parent model，pin 直接被無視，見上面 line 135 caveat）。
+
+**⚠️ 這條完全不限 tribunal / judge——任何任務都算。** 只要 user 在對話裡明講要某個 model 版本（「用 opus 4.5 重想這段 storyline」「拿 4.5 幫我腦力激盪」），不管那是寫作、翻譯、腦力激盪、debug 還是隨手委派，**一律 `claude -p --model <user 指定的完整 id>`，不准用 `Agent` tool**。原因：`Agent(model:"opus")` 會把版本**默默降級**成當前最新 Opus、**而且不會報錯**，user 拿到的根本不是他要的版本——這是最難事後察覺的失誤。本 repo 2026-06-20 session 就實際踩過：user 明講要 opus 4.5 重寫一段 storyline，CCC 卻用 `Agent(model:"opus")` 跑成 4.8，產出看起來沒問題、但版本是錯的。
 
 **要 pin 到指定版本，唯一可靠路徑 = `claude -p --model <完整-id>` subprocess**：
 
@@ -261,14 +269,29 @@ claude -p --model claude-opus-4-5 --allowed-tools "Read,Grep,Glob,Bash,Write,Edi
 | **Fact Checker** | 浮動 `opus` alias（追最新） | `Agent(subagent_type:"fact-checker")` 直接用就好，本來就要最新 |
 | **Fresh Eyes** | 浮動 `opus` alias（**刻意不 pin**，要 diversity 不要 taste 對齊） | `Agent(subagent_type:"fresh-eyes")` 直接用就好，跟 Fact Checker 同路 |
 | **Librarian** | 浮動 `opus` alias（**不 pin**） | `Agent(subagent_type:"librarian")` 直接用就好，跟 Fact Checker / Fresh Eyes 同路 |
+| **User 指定版本的任意任務**（ad-hoc，**不限 tribunal**） | user 對話當次明講的 id | **必須 `claude -p --model <user 講的完整 id>`**。Agent tool 會默默降級成最新 Opus、不報錯 |
 
-**規則一句話**：**版本要 pin（writer / rewriter / vibe，或 user 當次明講某 judge 用某版）→ `claude -p --model <frontmatter 的 id>`；版本不在乎 → `Agent` tool 省事**。不要無腦把所有東西都改成 `claude -p`（fact-check / 一般 tribunal 用 `Agent` tool 更省 token、也不會踩 stream idle timeout）。
+**規則一句話**：**版本要 pin（writer / rewriter / vibe，或 user 當次明講任何任務要用某版——不限 judge/tribunal）→ `claude -p --model <完整 id>`；版本不在乎 → `Agent` tool 省事**。不要無腦把所有東西都改成 `claude -p`（fact-check / 一般 tribunal 用 `Agent` tool 更省 token、也不會踩 stream idle timeout）。
 
 **`claude -p` 跑長生成的雷**：write / rewrite 這種 long creative generation 會踩 stream idle timeout（見〈Stream idle timeout 應對〉）。對策：prompt 走 stdin、輸出用 `<<<MDX_START>>>…<<<MDX_END>>>` sentinel 包住再 `awk` 抽出、judge 一律 `--allowed-tools` 顯式 allowlist（root 下 `bypassPermissions` 會被拒）。
 
 **provenance 鐵則**：走 `claude -p` 手動 pin 的路徑**繞過了 pipeline 自動回填 model metadata 那層**，所以 `translatedBy.model` / `pipeline[].role.model` / `scores.*.model` 要**手動填實際用到的版本**（rewrite 就加一個 `Rewriter: Opus 4.5` role），同一筆 edit 補上、不能漏——frontmatter 標錯 model = 砸 gu-log「provenance 攤在陽光下」的招牌（見 `docs/shroomdog-editorial-feedback.md` 2026-06-18 SP-235 那條）。
 
 ## 文章寫作 SOP（省 token 版）
+
+### 🔴 鐵則：文章 prose 不准在 CCC session model 自己生 / 自己評，必須委派 pinned agent
+
+CCC session 跑在它當下的 default model 上（**會浮動**，現在是 Opus 4.8）。但 gu-log 的 writer / rewriter / vibe-scorer 是 **owner-pin 在某一代 Opus**（ShroomDog 2026-06-18 sign-off：writer、rewriter、vibe-scorer 全鎖同一代 Opus，讓「生成」和「評分」共用一致 taste）。所以只要 CCC 要產出或評分 **gu-log 文章 prose（SD / SP / CP / Lv 這種 reader-facing 內容，含手寫對照文）**：
+
+- **寫 / 改寫 → 委派 `tribunal-writer` agent**（SP / rewrite voice）。
+- **Vibe 評分 → 委派 `vibe-opus-scorer` agent**（grader）。
+- model pin = 這兩個 agent 的 `model:` frontmatter（**SSOT，不在這裡複述版本號**；owner sign-off 寫在 frontmatter 上方的 `# PINNED:` 註解）。**用 `Agent` tool 以 `subagent_type` 叫這兩個 agent，就會跑在它 frontmatter pin 的那一代**——這條路會 honor 完整 id 的 pin。（2026-06-22 實測：`tribunal-writer` / `vibe-opus-scorer` 兩個 subagent 的實際 API `model` 欄位都是 `claude-opus-4-5`；而 `model: opus` 浮動 alias 的 judge（fact / librarian / fresh-eyes）才解析成 session opus 4.8。）想顯式 pin 也可以走 `claude -p --model <frontmatter 的 id>`（見〈CCC 怎麼 pin 到指定 Opus 版本〉）；那裡要避開的是 `--model opus` **這個 alias**（會跑到 4.8），不是整個 `Agent` tool。
+
+**為什麼不准自己寫**：CCC 在 4.8 session 手寫一篇 GP 再自己蓋分數 = 「4.8 寫、4.5 評」，把 owner 要的單一 taste loop 打破（4.8 的寫作 voice 跟 vibe 校準都不是 owner 認可的那一代——見 `docs/shroomdog-editorial-feedback.md` 2026-06-18 SP-235：4.8 寫的被 ShroomDog 點名「有股怪味」、改用 pinned 代重寫才過）。**手寫+手評是 anti-pattern，2026-06 已踩過一次。**
+
+**provenance**：`scores.*.model` 和 `translatedBy.model` 要記**實際做那一步的 model**（被委派 agent 的 pin），**不是 CCC session model**。CCC session 只做機械編排 → 在 `pipeline[]` 記一個 `Orchestrated` role 即可。
+
+**不適用（這些機械工作 CCC session model 自己做就好）**：frontmatter 編輯、validate-posts、晶晶體修正、檔案搬移 / cat 合併、commit / push、開 PR、盯 CI。**只有「生 reader-facing prose」和「打 vibe 分數」這兩件事必須委派**。
 
 **核心原則：先寫好 zh-tw，通過 tribunal 後才翻 en。不要兩個版本同時寫、同時改。**
 
@@ -396,7 +419,7 @@ git log --oneline -5              # 看 branch 最近在幹嘛
 
   Playwright 就是這個模式的範本（2026-06-12 加）：`ccc-smoke-test.sh --fix` 在 `CLAUDE_CODE_REMOTE=true` 時，偵測 `${PLAYWRIGHT_BROWSERS_PATH:-~/.cache/ms-playwright}` 沒有 chromium 快取就背景下載，idempotent（已裝或已在下載就跳過），只在 CCC 跑（mac-CC 自己管 local Playwright）。所以「Playwright 沒裝」這個 friction 對之後的 CCC 不該再發生——醒來時背景已經在補了。
 
-**鐵則：撞到新的 recurring env friction → 在同一個 PR 把它收進 hook，當場消滅，別只修這次。** 這跟 CLAUDE.md「主任務踩到的 bug 順手修在同一個 PR」是同一條精神，只是套用在環境層：hook 是 CCC fresh-env friction 的 SSOT，能進 hook 的就別留在 per-session 手動步驟。
+**鐵則：撞到新的 recurring env friction → 在同一個 PR 把它收進 hook，當場消滅，別只修這次。** 這跟 `docs/agent-discipline.md`「主任務踩到的 bug 順手修在同一個 PR」是同一條精神，只是套用在環境層：hook 是 CCC fresh-env friction 的 SSOT，能進 hook 的就別留在 per-session 手動步驟。
 
 ## 不確定時找誰
 

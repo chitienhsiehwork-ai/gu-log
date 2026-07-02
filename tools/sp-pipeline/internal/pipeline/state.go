@@ -70,6 +70,11 @@ type State struct {
 	// SkipValidate disables `node scripts/validate-posts.mjs` in Deploy.
 	// Tests only.
 	SkipValidate bool
+	// SkipDedup bypasses both dedup gates (Step 1.2 URL + Step 1.7 topic).
+	// Escape hatch for confirmed false positives — e.g. a topic-similarity
+	// BLOCK against a same-author post on a genuinely different thesis. The
+	// override is logged loudly so it never happens silently.
+	SkipDedup bool
 
 	// Angle is an optional narrative directive passed to the Write and
 	// Refine prompts. When non-empty, the article is structurally pivoted

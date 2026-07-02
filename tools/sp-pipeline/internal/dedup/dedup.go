@@ -122,5 +122,21 @@ func parseMatches(stdout string) []string {
 			out = append(out, strings.TrimLeft(l, "-• "))
 		}
 	}
+	// Fallback: the gate often prints the match inline on the verdict line
+	// itself ("BLOCK: Duplicate of CP-52 (topic similarity: 0.420): ...")
+	// rather than as a bulleted list. Without this, a real BLOCK reports
+	// "0 match(es)", which reads like a false gate error. Recover the
+	// reason from the verdict line when no bullets were found.
+	if len(out) == 0 {
+		for _, line := range strings.Split(stdout, "\n") {
+			l := strings.TrimSpace(line)
+			if strings.HasPrefix(l, "BLOCK:") || strings.HasPrefix(l, "[BLOCK]") {
+				reason := strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(l, "[BLOCK]"), "BLOCK:"))
+				if reason != "" {
+					out = append(out, reason)
+				}
+			}
+		}
+	}
 	return out
 }

@@ -64,7 +64,7 @@ const allPostsFull = await getCollection('posts');
               style={status !== 'published' ? 'opacity: 0.6; filter: grayscale(0.22);' : undefined}
             >
               <h2>
-                <a href={`/posts/${post.slug}`}>
+                <a href={`/posts/${post.id}`}>
                   {post.data.title}
                   {status !== 'published' && <PostStatusLabel status={status} />}
                 </a>

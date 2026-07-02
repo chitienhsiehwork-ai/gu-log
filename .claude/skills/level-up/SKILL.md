@@ -78,6 +78,8 @@ Good evidence:
 
 Do not store secrets, client-specific facts, private code snippets, tokens, or long chat transcripts. Summarize at the concept level.
 
+Records must be self-contained for a fresh agent with zero session context: record the durable conclusion the user proved (which concept they mastered), never the ephemeral process that produced it — no session-local level numbers (`Lv.2`), MCQ option letters ("got B right"), or "this turn". See `docs/agent-discipline.md` 〈📐 寫 prompt / 規則〉.
+
 ### Index Rules
 
 `learning/INDEX.md` is the routing table. Keep it short and sortable:

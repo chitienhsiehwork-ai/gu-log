@@ -45,7 +45,7 @@ export function getTranslationPair(
 
   return posts.find(
     (candidate) =>
-      candidate.slug !== post.slug &&
+      candidate.id !== post.id &&
       candidate.data.ticketId === post.data.ticketId &&
       candidate.data.lang === desiredLang
   );
@@ -123,7 +123,7 @@ export function getIndexPosts(posts: PostEntry[], lang?: PostLang): PostEntry[] 
 export function getNavigablePosts(posts: PostEntry[], currentPost: PostEntry): PostEntry[] {
   const publishedPosts = getPublishedPosts(posts, currentPost.data.lang);
 
-  if (publishedPosts.some((post) => post.slug === currentPost.slug)) {
+  if (publishedPosts.some((post) => post.id === currentPost.id)) {
     return publishedPosts;
   }
 
@@ -131,5 +131,5 @@ export function getNavigablePosts(posts: PostEntry[], currentPost: PostEntry): P
 }
 
 export function getLocalizedPostUrl(post: PostEntry): string {
-  return post.data.lang === 'en' ? `/en/posts/${post.slug}` : `/posts/${post.slug}`;
+  return post.data.lang === 'en' ? `/en/posts/${post.id}` : `/posts/${post.id}`;
 }

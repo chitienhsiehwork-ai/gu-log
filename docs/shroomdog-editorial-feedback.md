@@ -518,3 +518,46 @@ Sprin asked whether Tribunal v7 FreshEyes covers “length should be just right,
   2. **結構層（practice what we preach）**：CCC-playbook 模型路由表從「複述版本號」改成「只講 policy（voice-sensitive pin / judge 浮動）+ 版本值指向 frontmatter SSOT」，結構上讓它無從 drift。順手把同檔另外兩處抄了版本號的清單（fallback 四審清單、寫作 SOP Step 2）也一併拔掉版本號。
 - 權威端 + 自主姿態（ShroomDog 補充）：**可以 drift 的內容，SSOT 權威端是「code 或 openspec」，不是散文**；散文服從 code/openspec。**能判斷哪邊對就自己判斷、把錯的那邊修掉、跟 user 提一聲就好，不要停下來問**；只有「難判斷又是重要決定」（兩權威端真衝突、或產品/架構/品牌/config 取向）才用 `AskUserQuestion`。對照本 session：librarian 那種 code(frontmatter)-vs-doc drift 該直接自己收（不必問）；fresh-eyes「pin 哪代 vs 浮動」是 config 取向，問 user 才對。
 - Reusable lesson：(1) **看到「doc 跟實際對不上」不要只修這一處，要問『這個事實在幾個地方被抄了』，全部收斂**——這次一條 routing fact 在 playbook 抄了三份。(2) **預防勝於修補：能不複製就不複製**，doc 講 policy / why，值留在它的 SSOT（code：frontmatter / 常數 / config / schema，或 openspec spec），要列就標明 derived view + 指向真身。(3) deterministic guard 是補網不是主防線；真正可靠的是把 SSOT 紀律寫成每個 agent 都讀得到的強規則（CLAUDE.md），讓它自主偵測 + 當場收斂 + 提一聲。
+
+## 2026-06-21 — CP-300 / mental model 優先，過度精確會讀起來像 AI slop
+
+### Feedback: online 版比 clean rewrite 好讀；不要把太多準確概念塞進同一句
+
+- ShroomDog feedback：讀過 CP-300 production 版後，實際偏好 online/current 版，而不是 salvage 出來的 clean rewrite。對 rewrite 的感覺是「boring」且「feels like ai slop」；進一步釐清後，不一定是典型 AI slop，而是**太嚴肅、太多準確概念和術語塞進一句，讀者很難抓 mental model**。
+- 情境：CP-300 clean rewrite 比 current 版更忠於 source boundary、概念更精確，會寫成「Lalit Maganti 回顧自己如何把想了八年的 SQLite devtools 專案，在三個月內靠 AI coding agents 推到 0.1 發佈；同時也記錄了 vibe-coding 報廢重來、prompt 成癮、失去 codebase 觸感，以及 AI 對 implementation 與 design 的不同作用。」這種句子。資訊都對，但一口氣塞進太多 axis：時間線、工具類型、版本發佈、vibe-coding、成癮、codebase 觸感、implementation/design 分工。讀者還沒建立圖像，就先被概念清單淹過。
+- ShroomDog 的核心判斷：**AI era 裡，人類最該保住的是正確 mental model**。細節可以交給 coding agents 補、查、實作，除非東西壞掉或是 absolute critical、需要 human input。文章要先幫人類抓住「這件事到底該怎麼想」；不要為了準確，把所有概念都壓進同一句，讓讀者失去可操作的圖。
+- 為什麼 current 版比較有效：current opening 比較有畫面與節奏——「八年。一個工程師腦子裡裝了八年的 side project……然後 AI coding agent 出現了。」它先交付一個簡單 mental model：長年想做但太難太煩的 side project，被 AI 推到可以開始。細節（PerfettoSQL、parser、400 條 grammar rules、vibe-coding 月、review/rewrite 流程）後面再展開。這比較符合人類閱讀順序：先有骨架，再掛細節。
+- Reusable lesson：(1) **準確不等於好讀**。一個句子如果同時承載五六個準確概念，它會像 model 把 source outline 壓縮成摘要，不像人在說故事。(2) **mental model 先於 term density**：先讓讀者拿到一張簡單圖，再逐步加 terms / caveats / implementation details。不要在 summary 或 opening 把所有正確維度一次塞完。(3) **細節不是消失，而是延後**：critical details 要保留，但放到讀者已經抓住圖像之後；非 critical details 可以交給 ClawdNote、後段、或乾脆省略。(4) Rewrite 不要只追「source boundary 更乾淨」；也要保住 gu-log 的可讀 hook、畫面感與人類認知節奏。太乾淨、太認真、太概念密集，會變成另一種 AI 味。
+
+## 2026-06-23 — CP-310 ShroomDog vibe 6 vs 機器 vibe 8（校準訊號 + 新增 shroomDogVibe 欄位）
+
+### Feedback: 「Vibe 6 by ShroomDog (V2)；merge 前該有個 vibe score 存在某處」（澄清：不是匿名 human，是 ShroomDog 本人——gu-log 的具名編輯人格）
+
+- 情境：CP-310（Alisa Liu 求職實錄 MP 翻譯）由 Opus 4.5 重寫成 V2 後，四法官給 Fact 9 / Vibe 8 / Librarian 8 / Fresh Eyes 8。ShroomDog 讀過 branch preview 後判定「acceptable」可 merge，但 ShroomDog 本人 vibe 只給 **6**，並指出值得讓「ShroomDog vibe score」有個正式存放位置。
+- 校準訊號：**機器 vibe 8 對人工 vibe 6 → 機器分偏寬約 2 分**。這跟 CP-300 那次「rewrite 概念精確但讀起來像 AI slop / boring」是同一條軸——tribunal 的 vibe judge 容易把「忠實、乾淨、無錯」讀成高分，但人類讀者要的是畫面感、節奏、不無聊。CP-310 V2 的中段（面試分類七連列）正是 fresh-eyes 也點到的「faithful but less warm / linear」，機器仍給 8，人類給 6。
+- 處置：(1) 新增 `scores.shroomDogVibe`（score / date / note）到 `src/content.config.ts`（frontmatter schema SSOT），讓 ShroomDog vibe 有正式欄位、跟 AI tribunal 並存、可被未來 UI / 背景 tribunal 當 ground truth。命名刻意用 `shroomDogVibe` 而非 `humanVibe`——這是具名編輯（ShroomDog）的分數，不是匿名 human。(2) CP-310 兩版 frontmatter 填 shroomDogVibe 6。shroomDogVibe **不是 commit gate**，純編輯 ground truth / 校準用。
+- Reusable lesson：(1) **機器 vibe 跟 ShroomDog vibe 要分開記、不要互相覆蓋**——機器分系統性偏寬，把兩者並列才看得出 gap、才能日後校準 vibe-scoring-standard。(2) 機器給 straight-8、人類給 6 的典型死因是「中段把 source 結構線性照搬、忠實但不暖」；rewrite 要主動破壞線性、加畫面，不能只追忠實乾淨。(3) merge 不被 ShroomDog 低分擋（floor 是 AI composite ≥3、homepage 是 AI vibe 一維 ≥9）；ShroomDog vibe 6 的角色是誠實記錄 + 餵背景精修，不是 ship gate。
+## 2026-06-23 — SP-243（creatorpascal 金錢與快樂）：太多生硬詞彙 + MoguNote 不夠解釋性 + pipeline 還在吐 ClawdNote
+
+### Feedback: 「看起來不怎麼樣，太多生有詞彙了，富有解釋性的 MoguNotes 呢? Where the fuck r they?」
+
+- ShroomDog 在 prod 讀 SP-243 後不滿意，兩個具體點：
+  1. **太多生硬/未翻詞彙**：正文留太多英文與 jargon（`protocol`、`bug`、`P/I 欄`、`ataraxia`、`net worth/self-worth` 等），即使有些被 allowlist 或加註，整體讀起來還是卡、像沒翻完。違反〈術語處理〉精神：能翻成自然繁中就翻，不要靠 allowlist 硬留英文。
+  2. **MoguNote 不夠「富有解釋性」**：文章用的是短促吐槽式的 note（一兩句 + kaomoji），ShroomDog 要的是 sd-26 那種**一整段、有 POV、把題材接回 AI/tech 或 gu-log 自身**的解釋性 MoguNote。POV 是 gu-log 的靈魂，note 太 quippy = 沒打出靈魂。
+- 連帶踩到的 pipeline drift：**`gp-pipeline` 的 `write.tmpl` 還在輸出 `<ClawdNote>`**，但寫作 SSOT（`GU-LOG_WRITER_PROMPT.md` L188）早已規定 **POV 一律進 `<MoguNote>`（ClawdNote 為舊名 alias）**，persona 也已改成 Mogu（首頁副標）。pipeline 沒跟上 SSOT → 自動產出的 GP 文章全是舊的 ClawdNote。這是 template 對 writer-prompt SSOT 的 drift，要在 template 端修掉，否則每篇 pipeline 文章都重複這個錯。
+- Reusable lesson：(1) **GP/SP 文章預設用 `<MoguNote>`，不是 `<ClawdNote>`**；ClawdNote 只是還能 render 的舊 alias，新文章不要再用。(2) **MoguNote 要解釋性、成段、有 POV**（接回 AI/tech 平行對照或 gu-log 自身的自我指涉 callback），不是一句吐槽配 kaomoji。品質門檻：讀者要看 note 才看得到 gu-log 的觀點，所以 note 必須自帶資訊量。(3) **晶晶體不是「過了 lint 就好」**：allowlist 是最後手段（專有名詞 / 模型名），一般概念詞（protocol→流程、bug→出錯/毛病）能翻就翻，留英文會讓 ShroomDog 覺得「沒翻完」。(4) pipeline template 是 writer-prompt SSOT 的 derived view，SSOT 改了（ClawdNote→MoguNote）template 要跟，否則自動產出持續 drift。
+
+## 2026-06-25 — 「拆過」全站退役 + 建 SP-232 授權但沒人做的 T3 硬 lint
+
+### Feedback: SP-244 的「gu-log 在 SP-220 拆過」很 AI；退役它，並把 banned terms 接成 lint
+
+- ShroomDog feedback：讀 SP-244 時點名 `拆過` 很 AI 腔；要求建一個 lint 擋掉這種 AI 翻譯腔，並指出「banned terms 在 editorial-feedback corpus 裡找得到」（要從這份 corpus 取字，不要 agent 自己憑空想）。
+- 查證（ShroomDog 校正：**`拆過` 就是 AI tell，只是一直沒空修，不是被認證的慣用法**）：全站 **19 處 / 14 篇**，幾乎清一色 `[post-ref] 拆過 [主題]`、多半帶 cross-ref（「gu-log 之前拆過 [SP-192]」「SP-175 拆過一次」）。一開始把「數量多」誤讀成「既有慣用法、別 lint」是錯的——多只代表**累積沒清的 debt**。grep 真正的價值是抓出唯一 1 處**字面**用法：SP-216「拆過外掛、改過外掛」=拆解外掛（金山遊俠），那個才該留。`拆過` 是離散、單一例外的 tell → 可以硬 lint（用 `{/* ai-ok */}` 放行 SP-216）；SP-232 那條「regex 誤殺正當用法」針對的是**密度型** tell，不是這種離散詞。
+- 決策（ShroomDog 拍板兩題）：(1) `拆過` **全站退役** → 講過 / 寫過 / 聊過（當成刻意換詞，像 查重→dedup）。(2) **建 SP-232 line 419 早就授權、但一直沒人做的 T3 explicit-wordlist 硬 lint**——`scripts/check-ai-tells.mjs`。
+- Grandfather 取捨（誠實記一筆）：碰舊文會掀出它既有的 lint 債——編輯一個字就觸發整篇 re-lint / re-score。`拆過` 殘留在 7 篇 grandfathered 舊文：(a) **score-less**（cp-272 / cp-303 / sp-182，加字面用法的 sp-216）被 score floor 擋；(b) **晶晶體債**（sp-177 / sp-180 / sp-181 / sp-183）被 jingjing 擋（既有裝飾英文要 ShroomDog 拍 allowlist 邊界，超出換詞範圍）。依 gate 哲學（「不要為維護性小改逼舊文重評分」）+ 分數誠實（不准手填假分）+ allowlist 要 ShroomDog 拍板，**這 7 篇一律跳過、還原回 HEAD**；它們的 `拆過` 凍結，等下次被實質編輯時由 lint 連帶逼修。退役在**政策上**完成（詞已死、lint 把關新文與未來編輯），只是 analytical 殘留在這批 score-less / 晶晶體債的舊文。
+- 修法：
+  1. Sweep：8 處 analytical `拆過`→`講過`，橫跨 6 篇有分數的文 + SP-244（SP-208 用 `寫過` 避開相鄰 `講過` 重複）。上述 7 篇 grandfathered 舊文還原回 HEAD（見上）。
+  2. `scripts/check-ai-tells.mjs`：sibling of check-pronoun-clarity / check-jingjing（同 mask 區、staged-only、merge-skip、pre-commit 攔）。`BLOCKLIST` 是字表 SSOT，error 訊息直接帶自然替代（progressive disclosure——修的人讀 lint 輸出、不靠 prompt）。**v1 種子 = 低誤殺離散詞**：拆過、拆得很乾淨/很漂亮、這才是工程品味、這刀切得漂亮、學術根源是、一句話記住。`{/* ai-ok */}` 逐行放行字面用法。
+  3. `GU-LOG_WRITER_PROMPT.md` 加一條 policy pointer 指回 `BLOCKLIST`（**不複製字表**，避免 token 成本 + 過度迴避失真 + drift）。
+- 範圍紀律（照 SP-232）：**只有「有明確字表、低誤殺」的離散 tell 進硬 lint**；密度型（T1 反義對偶 / T2 假深度 reframe / T4 mic-drop）繼續走 tribunal 的 AI-Tell Trap rubric（`scripts/vibe-scoring-standard.md`），不碰。
+- Reusable lesson：(1) **直覺說某詞很 AI 時，先 grep 全站**——但「數量多」≠「合理」，多通常只代表**沒清的 debt**（`拆過` 17 處就是）。grep 的真正用途是抓**例外**（唯一 1 處字面 SP-216 要留）+ 量化 sweep 範圍，不是拿數量替 tell 平反。(2) banned-term 字表的 SSOT = lint 的 `BLOCKLIST`，corpus / writer prompt 只當 derived view 指回去，不抄第二份。(3) 硬 lint 只收「離散 + 低誤殺 + 有明確字表」的詞；密度型交給 LLM judge，這條邊界 SP-232 就劃好了。(4) 退役一個會冒回來的詞，光 sweep + 寫 prompt 不夠，要有 deterministic gate 擋下一次；字面用法用逐行 escape 當壓力閥。

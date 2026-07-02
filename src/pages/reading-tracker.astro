@@ -191,7 +191,7 @@ const totalArticles = allPosts.length;
                 return (
                   <li
                     class="article-row"
-                    data-slug={post.slug}
+                    data-slug={post.id}
                     data-group={prefix}
                     data-read="false"
                     data-read-state="unread"
@@ -201,7 +201,7 @@ const totalArticles = allPosts.length;
                       <span class="toggle-unread">☐</span>
                       <span class="toggle-read">☑</span>
                     </button>
-                    <a href={`/posts/${post.slug}`} class="article-title">
+                    <a href={`/posts/${post.id}`} class="article-title">
                       {post.data.title}
                     </a>
                     <span class="article-date">{date}</span>

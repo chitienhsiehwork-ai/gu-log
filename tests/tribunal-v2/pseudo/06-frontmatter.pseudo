@@ -1,12 +1,12 @@
 // ============================================================================
 // File: 06-frontmatter.pseudo.ts
-// Topic: Frontmatter schema 擴充 (Zod schema in src/content/config.ts)
+// Topic: Frontmatter schema 擴充 (Zod schema in src/content.config.ts)
 // Layer: Unit (schema validation)
 // ============================================================================
 //
 // BACKGROUND
 // ──────────────────────────────────────────────────────────────────────────
-// `src/content/config.ts` 是 Astro content collection 的 SSOT schema。
+// `src/content.config.ts` 是 Astro content collection 的 SSOT schema。
 // Tribunal v2 要加幾個欄位:
 //
 //   warnedByStage0: boolean (default false)
@@ -21,7 +21,7 @@
 // ============================================================================
 // 為什麼 frontmatter schema 非測不可
 // ──────────────────────────────────────────────────────────────────────────
-// `src/content/config.ts` 壞了 → `pnpm run build` 失敗 → Vercel deploy
+// `src/content.config.ts` 壞了 → `pnpm run build` 失敗 → Vercel deploy
 // 失敗 → whole site 爆掉。這是 "upstream of everything" 的 code。
 //
 // 測它的成本極低（純 schema），回報極高。

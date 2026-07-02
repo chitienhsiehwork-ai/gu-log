@@ -63,12 +63,23 @@ func NewClaudeHaiku() *ClaudeProvider { return &ClaudeProvider{ModelFlag: "haiku
 
 // Name implements Provider. It returns a stable family label (claude-opus /
 // claude-sonnet / claude-haiku) derived from the resolved Model(), so a pinned
-// flag like "claude-opus-4-5" still reports "claude-opus" rather than
-// "claude-claude-opus-4-5".
-func (c *ClaudeProvider) Name() string { return string(c.Model()) }
+// flag like "claude-opus-4-5" still reports "claude-opus" rather than the raw
+// build id in dispatcher logs.
+func (c *ClaudeProvider) Name() string { return string(claudeFamily(c.Model())) }
 
-// Model implements Provider.
+// Model implements Provider. It returns the *concrete* model identity: the
+// runtime-reported build when known, otherwise the configured selector. A
+// pinned flag like "claude-opus-4-5" is preserved verbatim so its version
+// survives into DisplayName and the provenance stamp — collapsing it to the
+// bare family constant here is exactly the bug that made pinned 4.5 writes get
+// stamped "Opus 4.8" (the family → DisplayName fallback). Only the floating
+// aliases ("opus"/"sonnet"/"haiku"), which carry no version, resolve to a
+// family constant; the runtime JSON readback (modelUsage) then fills in the
+// concrete build they actually ran.
 func (c *ClaudeProvider) Model() ModelID {
+	if c.actualModel != "" {
+		return c.actualModel
+	}
 	flag := c.modelFlag()
 	switch flag {
 	case "sonnet":
@@ -78,7 +89,24 @@ func (c *ClaudeProvider) Model() ModelID {
 	case ClaudeOpusAlias:
 		return ModelClaudeOpus
 	default:
+		// Concrete pinned id (e.g. "claude-opus-4-5") — keep the version.
+		return ModelID(flag)
+	}
+}
+
+// claudeFamily normalizes any concrete Claude build id (claude-opus-4-5) or
+// family constant down to the stable family label used for log/Name() display.
+func claudeFamily(m ModelID) ModelID {
+	s := string(m)
+	switch {
+	case strings.Contains(s, "sonnet"):
+		return ModelClaudeSonnet
+	case strings.Contains(s, "haiku"):
+		return ModelClaudeHaiku
+	case strings.Contains(s, "opus"):
 		return ModelClaudeOpus
+	default:
+		return m
 	}
 }
 
@@ -132,12 +160,35 @@ func (c *ClaudeProvider) Run(ctx context.Context, prompt string, opts RunOptions
 	}
 	out := strings.TrimRight(string(res.Stdout), "\n")
 	if parsed, ok := parseClaudeJSON(out); ok {
+		// Prefer the top-level "model" field, but current Claude Code JSON
+		// omits it and only reports the concrete build under modelUsage keys
+		// (e.g. {"claude-opus-4-5": {...}}). Reading modelUsage is what lets a
+		// pinned write report its real version instead of falling back to the
+		// generic family → "Opus 4.8" stamp.
 		if parsed.Model != "" {
 			c.actualModel = ModelID(parsed.Model)
+		} else if m := primaryModelUsage(parsed.ModelUsage); m != "" {
+			c.actualModel = ModelID(m)
 		}
 		return strings.TrimRight(parsed.Result, "\n"), nil
 	}
 	return out, nil
+}
+
+// primaryModelUsage picks the concrete model that did the work from a Claude
+// Code JSON `modelUsage` map. Single-model runs (the common case) return their
+// only key; multi-model sessions return the key with the most output tokens so
+// the stamp reflects the model that actually produced the body.
+func primaryModelUsage(usage map[string]modelUsageEntry) string {
+	best := ""
+	bestTokens := -1
+	for id, u := range usage {
+		if u.OutputTokens > bestTokens {
+			best = id
+			bestTokens = u.OutputTokens
+		}
+	}
+	return best
 }
 
 func (c *ClaudeProvider) modelFlag() string {
@@ -148,8 +199,13 @@ func (c *ClaudeProvider) modelFlag() string {
 }
 
 type claudeJSONOutput struct {
-	Result string `json:"result"`
-	Model  string `json:"model"`
+	Result     string                     `json:"result"`
+	Model      string                     `json:"model"`
+	ModelUsage map[string]modelUsageEntry `json:"modelUsage"`
+}
+
+type modelUsageEntry struct {
+	OutputTokens int `json:"outputTokens"`
 }
 
 func parseClaudeJSON(out string) (claudeJSONOutput, bool) {
@@ -157,5 +213,5 @@ func parseClaudeJSON(out string) (claudeJSONOutput, bool) {
 	if err := json.Unmarshal([]byte(out), &parsed); err != nil {
 		return parsed, false
 	}
-	return parsed, parsed.Result != "" || parsed.Model != ""
+	return parsed, parsed.Result != "" || parsed.Model != "" || len(parsed.ModelUsage) > 0
 }

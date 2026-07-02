@@ -1,7 +1,8 @@
 import { defineCollection, z } from 'astro:content';
+import { glob } from 'astro/loaders';
 
 const postsCollection = defineCollection({
-  type: 'content',
+  loader: glob({ pattern: '**/[^_]*.{md,mdx}', base: './src/content/posts' }),
   schema: z
     .object({
       title: z.string(),
@@ -113,6 +114,16 @@ const postsCollection = defineCollection({
               model: z.string().optional(),
             })
             .optional(),
+          // ShroomDog's own vibe score — the named human editor's read,
+          // recorded alongside the AI tribunal. Editorial ground truth /
+          // calibration signal against the machine vibe score; not a commit gate.
+          shroomDogVibe: z
+            .object({
+              score: z.number().min(0).max(10),
+              date: z.string(),
+              note: z.string().optional(),
+            })
+            .optional(),
         })
         .optional(),
     })
@@ -132,7 +143,7 @@ const postsCollection = defineCollection({
 });
 
 const briefsCollection = defineCollection({
-  type: 'content',
+  loader: glob({ pattern: '**/[^_]*.{md,mdx}', base: './src/content/briefs' }),
   schema: z.object({
     title: z.string(),
     briefType: z.enum(['morning', 'late-night', 'patrol']),

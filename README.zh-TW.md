@@ -165,7 +165,7 @@ Playwright 視覺審查、Lighthouse、完整 `pnpm audit`、相依新鮮度、b
 
 - [`CONTRIBUTING.md`](./CONTRIBUTING.md) —— 內容規則、ticket-ID SOP、防重複、frontmatter schema
 - [`GU-LOG_WRITER_PROMPT.md`](./GU-LOG_WRITER_PROMPT.md) —— 寫作風格（PTT 說故事風、MoguNote 語氣）
-- [`src/content/config.ts`](./src/content/config.ts) —— frontmatter schema（Zod）
+- [`src/content.config.ts`](./src/content.config.ts) —— frontmatter schema（Zod）
 - [`CLAUDE.md`](./CLAUDE.md) —— AI agent 怎麼操作這個 repo
 
 ---

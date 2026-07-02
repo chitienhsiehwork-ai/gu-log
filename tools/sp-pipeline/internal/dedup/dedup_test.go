@@ -52,6 +52,18 @@ func TestParseMatches(t *testing.T) {
 	}
 }
 
+// When the gate prints the match inline on the verdict line (no bullets),
+// parseMatches must still recover the reason so the caller does not report
+// a misleading "0 match(es)".
+func TestParseMatchesInlineBlockFallback(t *testing.T) {
+	in := "BLOCK: Duplicate of CP-52 (topic similarity: 0.420): Some Title"
+	got := parseMatches(in)
+	want := "Duplicate of CP-52 (topic similarity: 0.420): Some Title"
+	if len(got) != 1 || got[0] != want {
+		t.Fatalf("parseMatches inline = %v, want [%q]", got, want)
+	}
+}
+
 func TestCheckArgValidation(t *testing.T) {
 	ctx := context.Background()
 

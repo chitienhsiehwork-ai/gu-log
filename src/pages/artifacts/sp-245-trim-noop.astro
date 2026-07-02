@@ -1,0 +1,423 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  title="SP-245 Artifact｜把 prompt 從 context 裡搬出去"
+  description="一個無 API 的互動 demo：切換 inline / file 兩種寫法，看獵 no-op 的 skill 怎麼把整段 brief 塞進主 agent 的 context，又怎麼把它搬回檔案裡。"
+>
+  <section class="artifact-page" data-mode="inline" aria-labelledby="artifact-title">
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+
+    <header class="hero-card">
+      <p class="eyebrow">SP-245 companion artifact</p>
+      <h1 id="artifact-title">獵 no-op 的刀，刀身上自己長了一塊 no-op</h1>
+      <div class="hero-copy">
+        <p>
+          <code>/trim</code> 是專門砍「不改變 agent 行為的廢指令」的 skill。第一版卻把給 sub-agent 的整段審稿說明，<strong
+            >寫死在 SKILL.md 裡</strong
+          >——主 agent 每次一載入這個 skill，就把那串「給別人讀的 prompt」整包吞進自己的
+          context。下面這個開關，讓你親眼看到差別。
+        </p>
+      </div>
+      <div class="toggle" role="group" aria-label="切換寫法">
+        <button type="button" data-set="inline" aria-pressed="true">① brief 寫死在 SKILL.md</button>
+        <button type="button" data-set="file" aria-pressed="false">② brief 搬進獨立檔</button>
+      </div>
+      <p class="hero-meta">No API · no tracking · 純瀏覽器內完成</p>
+    </header>
+
+    <section class="stage" aria-live="polite">
+      <article class="col col-skill">
+        <p class="col-label">主 agent 載入的 <code>SKILL.md</code></p>
+
+        <pre
+          class="code code-inline"><span class="dim">## 交給每個 sub-agent 的 brief（逐字寫死在這）</span>
+<span class="hot">你是審稿 skeptic。預設每一行都是 no-op，</span>
+<span class="hot">要它自己證明 load-bearing。逐行分類：</span>
+<span class="hot">- CUT — no-op：agent 預設就會做的事…</span>
+<span class="hot">- CUT — drift：抄自 SSOT 的值，指回來源…</span>
+<span class="hot">- KEEP — load-bearing：刪了行為會變的…</span>
+<span class="hot">判準：刪掉這行，輸出會不會變？不變就 CUT。</span>
+<span class="hot">回傳每個 candidate + verdict + 理由 + 省下 token…</span></pre>
+
+        <pre
+          class="code code-file"><span class="dim">## sub-agent 的 brief：放在檔案，別 inline</span>
+<span class="cool">brief 全文在 noop-brief.md。</span>
+<span class="cool">主 agent 只遞路徑：</span>
+<span class="cool">  「讀 .claude/skills/trim/noop-brief.md，審 &lt;target&gt;」</span>
+<span class="cool"># 或 cat noop-brief.md | claude -p</span></pre>
+      </article>
+
+      <article class="col col-ctx">
+        <p class="col-label">主 agent 的 <code>context</code> 實際吞了什麼</p>
+
+        <div class="ctx-box">
+          <div class="ctx-fill"></div>
+          <ul class="ctx-list ctx-list-inline">
+            <li>目標檔路徑</li>
+            <li class="bad">↑ 加上整段 brief（每次載入都重來一遍）</li>
+            <li class="bad">你是審稿 skeptic…</li>
+            <li class="bad">CUT / drift / KEEP 三段規則…</li>
+            <li class="bad">回傳格式說明…</li>
+          </ul>
+          <ul class="ctx-list ctx-list-file">
+            <li>目標檔路徑</li>
+            <li>brief 檔路徑（一行字）</li>
+            <li class="ghost">— brief 內容留在硬碟上，沒載入 —</li>
+          </ul>
+        </div>
+
+        <p class="cost">
+          進主 agent context 的 brief：<strong class="cost-num">~120 tokens</strong>
+        </p>
+
+        <aside class="disk" aria-label="brief 檔">
+          <span class="disk-name">noop-brief.md</span>
+          <span class="disk-state">由 sub-agent 直接讀，不經主 agent</span>
+        </aside>
+      </article>
+    </section>
+
+    <p class="kicker">
+      prompt 是寫給「要執行它的那個
+      agent」讀的，不是寫給「轉發它的人」背的。能用一條路徑遞過去的東西，就別整包搬進 context。
+    </p>
+
+    <a class="back-link" href="/posts/sp-245-20260624-mattpocockuk-skill-no-op/">← 回 SP-245</a>
+  </section>
+</BaseLayout>
+
+<style is:inline>
+  .artifact-page {
+    --cream: #fff4dc;
+    --ink: #3c2417;
+    --muted: #7c5d49;
+    --orange: #e76f32;
+    --orange-dark: #b94d22;
+    --honey: #f6b44b;
+    --leaf: #6b8f6b;
+    --card: rgba(255, 250, 238, 0.92);
+    --line: rgba(106, 71, 42, 0.18);
+    --bad: #c2421f;
+    --cool: #2f6f4f;
+    width: 100%;
+    max-width: 1040px;
+    margin: 1.25rem auto 3rem;
+    padding-inline: 0.25rem;
+    box-sizing: border-box;
+    overflow-x: clip;
+    position: relative;
+    color: var(--ink);
+    font-family: 'Noto Sans TC', system-ui, sans-serif;
+  }
+
+  :global([data-theme='dark']) .artifact-page,
+  :global([data-theme='light']) .artifact-page {
+    color: var(--ink);
+  }
+
+  .artifact-page::before {
+    content: '';
+    position: absolute;
+    inset: -1rem 0;
+    border-radius: 32px;
+    background:
+      radial-gradient(circle at 18% 8%, rgba(246, 180, 75, 0.4), transparent 32%),
+      radial-gradient(circle at 88% 4%, rgba(231, 111, 50, 0.2), transparent 30%),
+      linear-gradient(135deg, #fff7e8 0%, var(--cream) 45%, #f4ddb5 100%);
+    z-index: -2;
+    box-shadow: 0 24px 70px rgba(48, 27, 9, 0.22);
+  }
+
+  .ambient {
+    position: absolute;
+    border-radius: 999px;
+    filter: blur(10px);
+    opacity: 0.5;
+    pointer-events: none;
+    z-index: -1;
+  }
+  .ambient-one {
+    width: 150px;
+    height: 150px;
+    right: 4%;
+    top: 70px;
+    background: rgba(246, 180, 75, 0.4);
+  }
+  .ambient-two {
+    width: 120px;
+    height: 120px;
+    left: 3%;
+    bottom: 120px;
+    background: rgba(231, 111, 50, 0.22);
+  }
+
+  .hero-card {
+    padding: clamp(1.25rem, 3vw, 2.25rem);
+    text-align: left;
+  }
+  .eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--orange-dark);
+    margin: 0 0 0.5rem;
+  }
+  .hero-card h1 {
+    font-size: clamp(1.45rem, 3.4vw, 2.1rem);
+    line-height: 1.25;
+    margin: 0 0 0.75rem;
+    color: var(--ink);
+  }
+  .hero-copy p {
+    margin: 0;
+    max-width: 60ch;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+  .hero-copy strong {
+    color: var(--orange-dark);
+  }
+  code {
+    font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+    background: rgba(106, 71, 42, 0.1);
+    padding: 0.05em 0.35em;
+    border-radius: 6px;
+    font-size: 0.88em;
+  }
+
+  .toggle {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 1.25rem 0 0.5rem;
+  }
+  .toggle button {
+    border: 1px solid var(--line);
+    background: var(--card);
+    color: var(--muted);
+    padding: 0.55rem 1rem;
+    border-radius: 999px;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+      transform 0.12s ease,
+      background 0.2s ease,
+      color 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+  .toggle button:hover {
+    transform: translateY(-1px);
+  }
+  .toggle button[aria-pressed='true'] {
+    background: var(--orange);
+    color: #fff8ec;
+    border-color: var(--orange-dark);
+    box-shadow: 0 8px 20px rgba(183, 77, 34, 0.3);
+  }
+  .hero-meta {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin: 0.4rem 0 0;
+  }
+
+  .stage {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    padding: 0 clamp(0.25rem, 2vw, 1rem);
+    align-items: start;
+  }
+  @media (max-width: 720px) {
+    .stage {
+      grid-template-columns: 1fr;
+    }
+  }
+  .col {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 1rem;
+  }
+  .col-label {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 0 0 0.6rem;
+  }
+
+  .code {
+    font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 0.78rem;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin: 0;
+    padding: 0.75rem;
+    border-radius: 12px;
+    background: #fffaf0;
+    border: 1px solid var(--line);
+  }
+  .code .dim {
+    color: var(--muted);
+  }
+  .code .hot {
+    color: var(--bad);
+    font-weight: 600;
+  }
+  .code .cool {
+    color: var(--cool);
+    font-weight: 600;
+  }
+  .code-file {
+    display: none;
+  }
+  [data-mode='file'] .code-inline {
+    display: none;
+  }
+  [data-mode='file'] .code-file {
+    display: block;
+  }
+
+  .ctx-box {
+    position: relative;
+    border: 1px dashed var(--line);
+    border-radius: 12px;
+    padding: 0.75rem;
+    overflow: hidden;
+    min-height: 150px;
+  }
+  .ctx-fill {
+    position: absolute;
+    inset: auto 0 0 0;
+    background: linear-gradient(0deg, rgba(194, 66, 31, 0.16), rgba(194, 66, 31, 0.04));
+    height: 100%;
+    transition: height 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+    z-index: 0;
+  }
+  [data-mode='file'] .ctx-fill {
+    height: 22%;
+    background: linear-gradient(0deg, rgba(47, 111, 79, 0.16), rgba(47, 111, 79, 0.04));
+  }
+  .ctx-list {
+    position: relative;
+    z-index: 1;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: 0.82rem;
+    line-height: 1.65;
+  }
+  .ctx-list li {
+    padding-left: 1.1em;
+    position: relative;
+  }
+  .ctx-list li::before {
+    content: '·';
+    position: absolute;
+    left: 0;
+    color: var(--muted);
+  }
+  .ctx-list .bad {
+    color: var(--bad);
+    font-weight: 600;
+  }
+  .ctx-list .ghost {
+    color: var(--muted);
+    font-style: italic;
+  }
+  .ctx-list-file {
+    display: none;
+  }
+  [data-mode='file'] .ctx-list-inline {
+    display: none;
+  }
+  [data-mode='file'] .ctx-list-file {
+    display: block;
+  }
+
+  .cost {
+    margin: 0.7rem 0 0;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .cost-num {
+    color: var(--bad);
+    font-variant-numeric: tabular-nums;
+  }
+  [data-mode='file'] .cost-num {
+    color: var(--cool);
+  }
+
+  .disk {
+    margin-top: 0.7rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.6rem 0.75rem;
+    border-radius: 12px;
+    border: 1px dashed var(--line);
+    background: repeating-linear-gradient(
+      45deg,
+      rgba(106, 71, 42, 0.04),
+      rgba(106, 71, 42, 0.04) 8px,
+      transparent 8px,
+      transparent 16px
+    );
+    opacity: 0.55;
+    transition: opacity 0.3s ease;
+  }
+  [data-mode='file'] .disk {
+    opacity: 1;
+  }
+  .disk-name {
+    font-family: ui-monospace, Menlo, monospace;
+    font-weight: 700;
+    font-size: 0.82rem;
+    color: var(--ink);
+  }
+  .disk-state {
+    font-size: 0.74rem;
+    color: var(--muted);
+  }
+
+  .kicker {
+    margin: 1.5rem clamp(0.25rem, 2vw, 1rem) 0;
+    padding: 1rem 1.1rem;
+    border-left: 3px solid var(--orange);
+    background: var(--card);
+    border-radius: 0 12px 12px 0;
+    color: var(--ink);
+    font-weight: 600;
+    line-height: 1.7;
+  }
+  .back-link {
+    display: inline-block;
+    margin: 1.25rem clamp(0.25rem, 2vw, 1rem) 0;
+    color: var(--orange-dark);
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .back-link:hover {
+    text-decoration: underline;
+  }
+</style>
+
+<script is:inline>
+  (() => {
+    const page = document.querySelector('.artifact-page');
+    if (!page) return;
+    const buttons = page.querySelectorAll('.toggle button');
+    const costNum = page.querySelector('.cost-num');
+    const set = (mode) => {
+      page.setAttribute('data-mode', mode);
+      buttons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.set === mode)));
+      if (costNum) costNum.textContent = mode === 'file' ? '~0 tokens（只剩路徑）' : '~120 tokens';
+    };
+    buttons.forEach((b) => b.addEventListener('click', () => set(b.dataset.set)));
+  })();
+</script>

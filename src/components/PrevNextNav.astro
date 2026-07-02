@@ -9,7 +9,7 @@
 interface Props {
   currentSlug: string;
   allPosts: Array<{
-    slug: string;
+    id: string;
     data: {
       title: string;
       originalDate: string;
@@ -45,7 +45,7 @@ const sortedPosts = allPosts.sort((a, b) => {
 });
 
 // Find current post index
-const currentIndex = sortedPosts.findIndex((post) => post.slug === currentSlug);
+const currentIndex = sortedPosts.findIndex((post) => post.id === currentSlug);
 
 // Previous post is newer (earlier in array)
 const prevPost = currentIndex > 0 ? sortedPosts[currentIndex - 1] : null;
@@ -82,7 +82,7 @@ const baseUrl = lang === 'en' ? '/en/posts/' : '/posts/';
       {
         prevPost ? (
           <a
-            href={`${baseUrl}${prevPost.slug}`}
+            href={`${baseUrl}${prevPost.id}`}
             class={`nav-card nav-card--${(prevPost.data.ticketId?.split('-')[0] ?? '').toLowerCase()}`}
           >
             <span class="nav-direction">{t.previous}</span>
@@ -111,7 +111,7 @@ const baseUrl = lang === 'en' ? '/en/posts/' : '/posts/';
       {
         nextPost ? (
           <a
-            href={`${baseUrl}${nextPost.slug}`}
+            href={`${baseUrl}${nextPost.id}`}
             class={`nav-card nav-card--${(nextPost.data.ticketId?.split('-')[0] ?? '').toLowerCase()}`}
           >
             <span class="nav-direction">{t.next}</span>
