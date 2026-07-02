@@ -52,7 +52,7 @@ Feature branch 名稱常由沒 gu-log 上下文的 LLM 自動生成，只能當 
 
 預設走 feature branch + PR（命名 `<type>/<scope>-<desc>`，例 `fix/tribunal-badge`）——PR 給清楚的 review surface、讓 Vercel preview 在 merge 前先跑、revert 不沾其他 commit。流程（拉 branch → commit → push + PR → 盯 CI → 綠了自 merge → 刪 branch）是標準動作，solo repo 自己 merge 不等人；branch / merge 細節依 runtime playbook。Tribunal / 自動化 pipeline 同樣走 branch + PR。
 
-- **直推 `main` 的例外（不用 branch）**：prod 炸或 main CI broken 的緊急修復、純設定檔 / doc typo（無 code logic 風險）、user 明講「直接推 main」。
+- **沒有「直推 `main`」這條路**：main 有 server-side branch protection，直推一律被拒（實測 403，連 doc typo 也一樣）。緊急修復（prod 炸 / main CI broken）走同一條 branch + PR + auto-merge 流——CI 綠了自動合，實務上跟直推一樣快，不要浪費時間嘗試繞過。
 - **PR size discipline**：gu-log PR 不必為「讓 human 逐行看」刻意切小。review 主要由 agent 跑，human 看結論 / risk surface / CI / evidence。重點是 OpenSpec / tests / evidence / revertability 清楚，PR 大小本身不是問題。
 
 ## 🧭 主題路由表（要做某件事 → 先讀這份）
