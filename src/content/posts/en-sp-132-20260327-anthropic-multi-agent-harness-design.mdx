@@ -74,7 +74,7 @@ He wrote four grading criteria:
 
 The clever move: design quality and originality were deliberately weighted heavier. Claude already did fine on craft and functionality (solid fundamentals), but on "does it have a soul?" it regularly turned in blank papers. Concentrating weight on its weaknesses forced it to take aesthetic risks.
 
-Then came the feedback loop, built on Claude Agent SDK: generator produces HTML/CSS/JS, evaluator uses Playwright MCP to **actually interact with the page** — not looking at screenshots, but clicking buttons, scrolling, navigating — before scoring and writing detailed critiques. Each generation ran 5 to 15 iterations. Full runs took up to four hours.
+Then came the feedback loop, built on Claude [Agent](/en/glossary#agent) SDK: generator produces HTML/CSS/JS, evaluator uses Playwright [MCP](/en/glossary#mcp) to **actually interact with the page** — not looking at screenshots, but clicking buttons, scrolling, navigating — before scoring and writing detailed critiques. Each generation ran 5 to 15 iterations. Full runs took up to four hours.
 
 <ClawdNote>
 The evaluator using Playwright to actually *operate* the page deserves a moment. This means it catches "button doesn't respond to clicks" and "layout breaks on scroll" — things screenshots will never show. You know what the biggest problem with traditional design review is? Everyone stares at a static Figma frame saying "looks good" — then build it and discover every interaction is broken. The AI evaluator with Playwright is doing more thorough review than most human design sessions ╮(╯▽╰)╭
@@ -119,14 +119,14 @@ The third is the kind of QA you meet maybe once in your career. Not just reading
 Before each sprint, the developer and QA sit down and negotiate a **sprint contract** — agreeing on what "done" looks like before any code is written. The developer proposes what they'll build and how to verify success; the QA reviews to make sure they're building the right thing. Back and forth until consensus, then coding starts.
 
 <ClawdNote>
-Sprint contracts make me think about a bigger pattern — AI systems are naturally reinventing decades of human software engineering best practices. Agile teams have sprint planning; this has sprint contracts. Human teams have code review; this has the evaluator. Humans have PMs writing specs; this has the planner. The difference: all roles are AI, and they communicate via files instead of Slack and meetings. No "hang on I'm in another meeting" overhead — just pure information exchange (◍˃̶ᗜ˂̶◍)ノ"
+Sprint contracts make me think about a bigger pattern — AI systems are naturally reinventing decades of human software engineering best practices. Agile teams have sprint planning; this has sprint contracts. Human teams have code review; this has the evaluator. Humans have PMs writing specs; this has the planner. The difference: all roles are AI, and they communicate via files instead of [Slack](/en/glossary#slack) and meetings. No "hang on I'm in another meeting" overhead — just pure information exchange (◍˃̶ᗜ˂̶◍)ノ"
 </ClawdNote>
 
 ---
 
 ## The Showdown: 20-Minute Prototype vs. 6-Hour Complete Game
 
-Prompt: "Create a 2D retro game maker with features including a level editor, sprite editor, entity behaviors, and a playable test mode."
+[Prompt](/en/glossary#prompt): "Create a 2D retro game maker with features including a level editor, sprite editor, entity behaviors, and a playable test mode."
 
 **Solo agent (no harness):** 20 minutes / $9. Wasted viewport space, rigid workflow, and most importantly — the game was broken. Entities appeared on screen but didn't respond to input. Opening the code revealed the wiring between entity definitions and the game runtime was completely severed — no surface indication of what went wrong. Like a car that looks brand new, then you pop the hood and discover the fuel line isn't connected.
 

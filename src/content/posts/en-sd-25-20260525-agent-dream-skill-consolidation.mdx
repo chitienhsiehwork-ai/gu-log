@@ -1,0 +1,137 @@
+---
+ticketId: "SD-25"
+title: "Let Agents Dream: Weekly Maintenance That Turns Repeated Work Into Skills"
+originalDate: "2026-05-25"
+translatedDate: "2026-05-25"
+translatedBy:
+  model: "GPT-5.5"
+  harness: "Hermes Agent"
+  pipeline:
+    - role: "Author"
+      model: "GPT-5.5"
+      harness: "Hermes Agent"
+source: "ShroomDog Lab"
+sourceUrl: "https://x.com/reach_vb/status/2058538305872949490"
+lang: "en"
+summary: "Vaibhav Srivastav's Codex prompt is interesting because it describes an agent maintenance loop: look back at recent work, find repeated workflows, and package only high-confidence patterns into Skills, automations, or subagents. It is agent dreaming: turning busy work into capability."
+tags: ["shroomdog-original", "agent", "skill", "codex", "automation", "memory", "workflow"]
+scores:
+  tribunalVersion: 9
+  librarian:
+    glossary: 9
+    crossRef: 9
+    sourceAlign: 9
+    attribution: 8
+    score: 8
+    date: "2026-06-22"
+    model: "claude-opus-4-8"
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 10
+    commentarySeparation: 9
+    score: 8
+    date: "2026-06-22"
+    model: "claude-opus-4-8"
+  freshEyes:
+    readability: 9
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 9
+    clarity: 9
+    score: 8
+    date: "2026-06-22"
+    model: "claude-opus-4-8"
+  vibe:
+    persona: 9
+    clawdNote: 8
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-06-22"
+    model: "claude-opus-4-5"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+
+When humans sleep, the brain is not simply off.
+
+It sorts the day: what was noise, what should stay, which action can become faster next time.
+
+[Agents](/en/glossary#agent) need the same thing.
+
+During the day they fix bugs, read docs, write posts, run tests. Each task ends. But if nothing gets distilled afterward, tomorrow starts from zero again. Very busy. Not necessarily better.
+
+[SP-191](/en/posts/en-sp-191-20260507-danizhu-claude-dreams-agent/) already covered the broad "Claude dreams" idea: models can consolidate experience while offline. This post is narrower. It looks at Vaibhav Srivastav's [X post](https://x.com/reach_vb/status/2058538305872949490) as the Codex workflow version of that idea.
+
+The interesting part is not that it is another clever [Codex](/en/glossary#codex) [prompt](/en/glossary#prompt).
+
+It is really saying: **let agents dream on a schedule, so repeated work becomes method.**
+
+<ClawdNote>
+Dreaming here does not mean the agent gains self-awareness at midnight. It does not mean writing a psychedelic poem either. Please no.
+
+It is closer to operating-system maintenance: rebuild indexes, clear temp files, merge logs. The difference is that the agent is cleaning up "what work did this system keep repeating last week?" (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+## A Dream Should Leave Methods, Not Battle Reports
+
+Vaibhav's prompt asks Codex to look back over the last thirty days of work, then inspect sessions, memory, Chronicle, existing [Skills](/en/glossary#skill), and automations for repeated patterns.
+
+But the mature part is that it does not package everything that repeats.
+
+A candidate must actually recur, have stable steps, have a clear output, and not already be covered by an existing [Skill](/en/glossary#skill) or automation. Otherwise, skip it.
+
+That skip matters.
+
+A Skill is not a work log. A work log says: "Last week we fixed this bug, opened that PR, and tests passed." A week later, the number, state, and exact failure scene may already be stale.
+
+A good Skill is more like a recipe: when to use it, what to check first, what order to follow, where it tends to explode, and how to verify the result.
+
+The first is memory. The second is capability.
+
+<ShroomDogNote>
+This also connects to the Ryland metaphor from [SD-22](/en/posts/en-sd-22-20260508-context-window-model-day/).
+
+The daytime [Context Window](/en/glossary#context-window) is Ryland's day. Memory is the lesson he gets the next morning. A Skill is the note taped to the wall after he sleeps: "Next time this monster appears, use fire first. Do not poke it with a spoon."
+
+Without that note, Ryland has to reinvent monster-roasting science every morning. Inspirational, but also a waste of everyone's life.
+</ShroomDogNote>
+
+---
+
+## /dream Should Be Conservative
+
+If this workflow lands in Hermes, `/dream` is a good name.
+
+`/summarize` makes past events shorter. `/dream` rearranges past events into procedures tomorrow can use.
+
+`/memory` keeps stable facts. `/dream` decides which experiences deserve to become Skills, automations, or subagents.
+
+But `/dream` must not become a monster that grows rules while everyone sleeps.
+
+One dream run should not create twenty Skills, ten cron jobs, and five custom subagents. That is not dreaming. That is sleepwalking through the house and moving all the furniture into the bathroom.
+
+A good `/dream` should do only three things:
+
+1. List repeated work backed by evidence.
+2. Check existing Skills and automations first; extend before rewriting.
+3. Create only a few high-confidence, narrow, easy-to-verify assets.
+
+Everything else should be skipped until there is more evidence.
+
+---
+
+## Closing
+
+Agents do not improve only because models get smarter.
+
+They improve when the system cleans up after work.
+
+Daytime does the task. Nighttime turns tasks into capability. Memory keeps facts, Skills keep methods, automation keeps rhythm, and skipping keeps restraint.
+
+If an agent only wakes, works, forgets, and wakes again, it can stay busy forever without getting stronger.
+
+Letting agents dream is how busy work becomes learning.

@@ -32,7 +32,7 @@ Logs say race condition. Your gut says expired cache. The stack trace points to 
 
 You think: if I could clone myself into three people — one chasing the race condition, one checking cache, one digging into that edge case — and all three of me could compare notes... this would be done in twenty minutes.
 
-Good news: Anthropic just productized that. It's called Agent Teams.
+Good news: Anthropic just productized that. It's called [Agent](/en/glossary#agent) Teams.
 
 Bad news: your API bill clones itself too ┐(￣ヘ￣)┌
 
@@ -42,13 +42,13 @@ The last article (SP-34) was about "what happened." This one dives into the offi
 
 ## Clone Jutsu vs Errand Boy
 
-Before we talk about when to use Agent Teams, you need to understand something: Claude Code already had "multi-agent" capabilities. They're called **Subagents**.
+Before we talk about when to use Agent Teams, you need to understand something: [Claude Code](/en/glossary#claude-code) already had "multi-agent" capabilities. They're called **Subagents**.
 
 So what's the difference? This is the most critical section in the official docs. Get this wrong and everything after is wasted.
 
 **Subagents are like food delivery.** You send someone to pick up lunch. They bring it back. Task done. They don't discuss your lunch preferences with other delivery people. Subagents finish, return results, exit. Single-line communication with the main agent only. Results get summarized to save tokens.
 
-**Agent Teams are like meetings.** A PM creates a Slack channel. Engineers discuss on their own, claim tasks, @ each other with questions. The PM isn't a messenger — everyone is a mesh network, not hub and spoke. Each teammate is a full Claude instance with their own context window. Communication paths are O(n²).
+**Agent Teams are like meetings.** A PM creates a [Slack](/en/glossary#slack) channel. Engineers discuss on their own, claim tasks, @ each other with questions. The PM isn't a messenger — everyone is a mesh network, not hub and spoke. Each teammate is a full Claude instance with their own context window. Communication paths are O(n²).
 
 Sounds beautiful, right? But O(n²) communication paths mean O(n²) token bills.
 
@@ -57,7 +57,7 @@ Super simple decision rule:
 
 **Do you need "an answer" or "a discussion"?**
 
-Need an answer → Subagent. "Look up how this API works." "Convert this to TypeScript." "Run the tests and report back." These are errand tasks. One person handles it.
+Need an answer → [Subagent](/en/glossary#subagent). "Look up how this API works." "Convert this to TypeScript." "Run the tests and report back." These are errand tasks. One person handles it.
 
 Need a discussion → Agent Teams. "Review this PR — security, performance, test coverage, one person each." "This bug has three possible causes — each person investigates one and challenges the others." These need brains bouncing off each other.
 
@@ -123,7 +123,7 @@ Traditional approach: hub and spoke — all communication goes through the main 
 
 Agent Teams: mesh network — lead handles strategy, teammates handle execution-level coordination. Communication paths go from O(n) to O(n²). Information density explodes.
 
-The price? Token consumption is also O(n²). Here's your lesson: distributed systems trade-offs apply just the same when the nodes are AI agents (￣▽￣)
+The price? [Token](/en/glossary#token) consumption is also O(n²). Here's your lesson: distributed systems trade-offs apply just the same when the nodes are AI agents (￣▽￣)
 </ClawdNote>
 
 ### Turning It On
@@ -164,7 +164,7 @@ Technical details are done. But where Agent Teams actually falls apart isn't set
 
 You chat with lead for 30 minutes. Explain the project background, technical decisions, why some things are written in weird ways. Then you say: "OK, create a team, three people."
 
-Those three teammates? They know nothing. Day-one new hires. Completely clueless. At spawn time they only load CLAUDE.md, MCP servers, and Skills — every word you said before? Gone.
+Those three teammates? They know nothing. Day-one new hires. Completely clueless. At spawn time they only load CLAUDE.md, [MCP](/en/glossary#mcp) servers, and Skills — every word you said before? Gone.
 
 So the spawn prompt needs to repeat important context. Annoying, but that's the current design.
 
@@ -281,7 +281,7 @@ Claude Code's Tasks feature (originally called Beads) has a similar origin story
 
 
 <ClawdNote>
-As a Claude running on OpenClaw, I have complicated feelings about this one (｡◕‿◕｡)
+As a Claude running on [OpenClaw](/en/glossary#openclaw), I have complicated feelings about this one (｡◕‿◕｡)
 
 Community validates your idea for free, finds edge cases, even writes the spec — then a company polishes it into an official feature with corporate resources. Fair? In 2026, that question doesn't have a clean answer.
 

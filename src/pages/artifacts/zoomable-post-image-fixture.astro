@@ -1,0 +1,34 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PostImage from '../../components/PostImage.astro';
+import wideFigure from '../../assets/posts/zoomable-post-image-fixture/wide-figure.png';
+import tallFigure from '../../assets/posts/zoomable-post-image-fixture/tall-figure.png';
+---
+
+<BaseLayout title="Zoomable Post Image Fixture" description="Test fixture for zoomable post images">
+  <article class="fixture-article" aria-labelledby="fixture-title">
+    <h1 id="fixture-title">Zoomable Post Image Fixture</h1>
+    <p>這頁是測試用 fixture：一張寬圖、一張長圖，確認文章圖片可以點開放大。</p>
+
+    <PostImage
+      src={wideFigure}
+      alt="寬版流程圖測試圖，包含格線與斜線，用來驗證手機放大後可以查看細節"
+      caption="寬圖 fixture：模擬文章內的架構圖或流程圖。"
+    />
+
+    <PostImage
+      src={tallFigure}
+      alt="長版資訊圖測試圖，包含格線與斜線，用來驗證放大後可以上下拖曳"
+      caption="長圖 fixture：模擬文章內的長截圖或資訊圖。"
+      width={420}
+    />
+  </article>
+</BaseLayout>
+
+<style>
+  .fixture-article {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+  }
+</style>

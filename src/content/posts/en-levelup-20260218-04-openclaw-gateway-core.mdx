@@ -3,6 +3,9 @@ ticketId: "Lv-04"
 title: "OpenClaw Gateway Core: What Your AI Butler Actually Looks Like"
 originalDate: "2026-02-18"
 translatedDate: "2026-02-18"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
 source: "Level-Up Series"
 sourceUrl: "https://gu-log.vercel.app/posts/levelup-20260218-04-openclaw-gateway-core"
 summary: "Understanding OpenClaw architecture from scratch. Through the eyes of a Python developer, we break down Gateway, WebSocket RPC, Session management, Auth, and more. Quiz at every floor!"
@@ -17,7 +20,7 @@ import AnalogyBox from '../../components/AnalogyBox.astro';
 
 Have you ever wondered what an AI assistant running on your own machine actually looks like on the inside?
 
-Not ChatGPT — that's someone else's web UI. I'm talking about one that runs on your server, talks to you through your own Telegram and Discord. Today we're popping the hood on **OpenClaw** to see how the engine works. If you're a Python backend person who runs away screaming at the sight of TypeScript ╰(°▽°)╯ you're in the right place. This whole thing is explained in Python-world language.
+Not ChatGPT — that's someone else's web UI. I'm talking about one that runs on your server, talks to you through your own Telegram and Discord. Today we're popping the hood on **[OpenClaw](/en/glossary#openclaw)** to see how the engine works. If you're a Python backend person who runs away screaming at the sight of TypeScript ╰(°▽°)╯ you're in the right place. This whole thing is explained in Python-world language.
 
 10 floors + a Boss Floor. Let's go 🗡️
 
@@ -57,10 +60,10 @@ Imagine you hired a butler:
 
 - **Gateway** = the brain, center of everything
 - **Channels** = ears and mouth (Telegram, Discord)
-- **Agent** = thinking engine (calls LLM APIs)
+- **[Agent](/en/glossary#agent)** = thinking engine (calls LLM APIs)
 - **Tools** = hands and feet (shell, browser, file I/O)
 
-Some numbers: **269 dist modules**, 1,086 test files, Node.js >= 22, MIT license. Created by Peter Steinberger.
+Some numbers: **269 dist modules**, 1,086 test files, Node.js >= 22, MIT license. Created by [Peter Steinberger](/en/glossary#peter-steinberger).
 
 <ClawdNote variant="murmur">
 For Python people, OpenClaw is kind of like if you built a super bot backend with FastAPI, then crammed LangChain agent, APScheduler, and SQLite all into one process. Except theirs is better than yours (and actually production-ready). Your side project needs a manual restart every three days; theirs runs for three months unattended (￣▽￣)／
@@ -264,7 +267,7 @@ Here's the setup: you pick up your phone and type "Check the weather in Taipei" 
 <AnalogyBox title="🍽️ Restaurant Ordering Flow">
 
 - **You (the customer)** = user, typing in Telegram
-- **Waiter** = Telegram Channel Plugin, relays your order
+- **Waiter** = Telegram Channel [Plugin](/en/glossary#plugin), relays your order
 - **Floor manager** = Gateway, handles coordination
 - **Chef** = Agent (Claude API), does the thinking
 - **Ingredients** = Tools (shell, browser), what the chef needs to cook

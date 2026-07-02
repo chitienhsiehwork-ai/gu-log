@@ -44,22 +44,42 @@ done
 
 # 1. Post version manifest freshness — Vercel production uses the committed
 #    manifest on shallow clones, so content-touching commits must keep it fresh.
+#    CCC/local clones are frequently shallow, and build-version-manifest.mjs
+#    deliberately skips (exit 0) on a shallow clone because it can't count
+#    history it doesn't have. That made this very check a no-op in CCC sessions:
+#    a stale manifest sailed past pre-push and only blew up in CI's unit-tests,
+#    costing a full remote round-trip. Fix: if we're shallow, deepen first
+#    (safe — pre-push never runs on Vercel), so the check actually runs; and if
+#    it's stale, regenerate the file in place so the agent just has to commit it.
 echo "🔢 Checking post version manifest freshness..."
-node scripts/build-version-manifest.mjs --check
-if [ $? -ne 0 ]; then
-  echo "❌ post-versions.json is stale! Push aborted."
-  echo "   Run: node scripts/build-version-manifest.mjs"
-  echo "   Then amend the content commit so the visible vN badge matches git history."
+if [ "$(git rev-parse --is-shallow-repository 2>/dev/null)" = "true" ]; then
+  echo "   Shallow clone — fetching full history so the manifest check is meaningful..."
+  git fetch --unshallow --quiet origin 2>/dev/null \
+    || git fetch --depth=2147483647 --quiet origin 2>/dev/null \
+    || true
+fi
+if ! node scripts/build-version-manifest.mjs --check; then
+  echo "   Stale manifest — regenerating src/data/post-versions.json for you..."
+  node scripts/build-version-manifest.mjs
+  echo ""
+  echo "❌ post-versions.json was stale (now regenerated). Push aborted."
+  echo "   Commit the updated src/data/post-versions.json, then push again."
+  echo "   (The visible vN badge must match git history; Vercel serves the committed manifest.)"
   exit 1
 fi
 
-# 2. Bundle budget check (check-only; must not write git working tree files)
-#    Blocking budgets fail the push; trend alerts are warnings only.
-echo "📦 Checking bundle budgets (blocking + trend monitor)..."
-node scripts/bundle-budget-check.mjs
-if [ $? -ne 0 ]; then
-  echo "❌ Blocking bundle budget violation detected! Push aborted."
-  exit 1
+# 2. Bundle budget check (LOCAL = warning-only; CI is the blocking authority)
+#    Local dist can be stale/incremental, which inflates the aggregate JS+CSS
+#    sum and produces false blocks. The CI `bundle-budget` job runs the same
+#    check against a clean build artifact and IS allowed to fail the PR (see #396).
+#    Do NOT re-add `exit 1` here — that reintroduces the false-block that forced
+#    --no-verify on every push.
+echo "📦 Checking bundle budgets (local: warning-only; CI enforces on a clean build)..."
+if ! node scripts/bundle-budget-check.mjs; then
+  echo "⚠️  Local bundle budget check flagged a violation — NOT blocking the push."
+  echo "   Likely a stale/incremental dist false positive. CI checks a clean build."
+  echo "   If CI's bundle-budget job also fails, shrink the bundle or rebaseline"
+  echo "   quality/bundle-budget.json."
 fi
 
 # 2. Coverage ratchet (only if tests can run quickly)

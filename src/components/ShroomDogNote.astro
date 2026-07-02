@@ -1,14 +1,25 @@
 ---
 // ShroomDogNote component for ShroomDog's personal commentary
 // The human author's hot takes, counter-arguments, and real-world observations
-// Visual distinction from ClawdNote: different color scheme + avatar icon
+// Visual distinction from MoguNote: different color scheme + avatar icon
 
 interface Props {
   /** Optional custom prefix */
   prefix?: string;
+  /** Auto-collapse notes taller than this many pixels. Set autoFold={false} to disable. */
+  collapseThreshold?: number;
+  /** Minimum hidden content needed before showing a reader-facing expand control. */
+  minExpandableOverflow?: number;
+  /** Whether long ShroomDogNotes should auto-collapse. Defaults to true. */
+  autoFold?: boolean;
 }
 
-const { prefix } = Astro.props;
+const {
+  prefix,
+  collapseThreshold = 260,
+  minExpandableOverflow = 72,
+  autoFold = true,
+} = Astro.props;
 
 // Detect language from URL path
 const isEnglish = Astro.url.pathname.startsWith('/en/');
@@ -57,16 +68,100 @@ function hashString(str: string): number {
 
 const contentHash = hashString(slotContent);
 const selectedPrefix = prefix || prefixes[contentHash % prefixes.length];
+const contentId = `shroomdog-note-content-${contentHash}`;
+const expandLabel = isEnglish ? 'Read full Note' : '展開完整 Note';
+const collapseLabel = isEnglish ? 'Collapse Note' : '收合 Note';
 ---
 
-<blockquote class="shroomdog-note">
+<blockquote
+  class="shroomdog-note"
+  data-shroomdog-note
+  data-auto-fold={autoFold ? 'true' : 'false'}
+  data-collapse-threshold={collapseThreshold}
+  data-min-expandable-overflow={minExpandableOverflow}
+>
   <strong class="shroomdog-prefix">
-    <img src="/avatar.jpg" alt="ShroomDog" class="shroomdog-prefix-icon" width="22" height="22" />
+    <img
+      src="/shroomdog-icon-128.png"
+      alt="ShroomDog"
+      class="shroomdog-prefix-icon"
+      width="22"
+      height="22"
+    />
     {selectedPrefix}
   </strong>
-  <br />
-  <Fragment set:html={slotContent} />
+  <div class="shroomdog-note-content" id={contentId}>
+    <Fragment set:html={slotContent} />
+  </div>
+  {
+    autoFold && (
+      <button
+        class="shroomdog-note-toggle"
+        type="button"
+        aria-expanded="false"
+        aria-controls={contentId}
+        data-expand-label={expandLabel}
+        data-collapse-label={collapseLabel}
+        hidden
+      >
+        <span class="shroomdog-note-toggle-icon" aria-hidden="true">
+          ▾
+        </span>
+        <span class="shroomdog-note-toggle-label">{expandLabel}</span>
+      </button>
+    )
+  }
 </blockquote>
+
+<script>
+  function setShroomDogNoteCollapsed(note: HTMLElement, collapsed: boolean) {
+    const toggle = note.querySelector<HTMLButtonElement>('.shroomdog-note-toggle');
+    const label = note.querySelector<HTMLElement>('.shroomdog-note-toggle-label');
+    const expandLabel = toggle?.dataset.expandLabel || '展開完整 Note';
+    const collapseLabel = toggle?.dataset.collapseLabel || '收合 Note';
+
+    note.dataset.collapsed = collapsed ? 'true' : 'false';
+    if (toggle) toggle.setAttribute('aria-expanded', (!collapsed).toString());
+    if (label) label.textContent = collapsed ? expandLabel : collapseLabel;
+  }
+
+  function initShroomDogNote(note: HTMLElement) {
+    if (note.dataset.autoFold !== 'true' || note.dataset.initialized === 'true') return;
+
+    const content = note.querySelector<HTMLElement>('.shroomdog-note-content');
+    const toggle = note.querySelector<HTMLButtonElement>('.shroomdog-note-toggle');
+    if (!content || !toggle) return;
+
+    note.dataset.initialized = 'true';
+    const threshold = Number(note.dataset.collapseThreshold) || 260;
+    const minExpandableOverflow = Number(note.dataset.minExpandableOverflow) || 72;
+    content.style.setProperty('--shroomdog-note-collapsed-height', `${threshold}px`);
+
+    const hiddenHeight = content.scrollHeight - threshold;
+    const paragraphCount = content.querySelectorAll('p').length;
+    const textLength = content.textContent?.trim().length ?? 0;
+
+    if (hiddenHeight < minExpandableOverflow) return;
+    if (paragraphCount <= 1 && textLength < 360) return;
+
+    note.dataset.collapsible = 'true';
+    toggle.hidden = false;
+    setShroomDogNoteCollapsed(note, true);
+
+    toggle.addEventListener('click', () => {
+      const wasCollapsed = note.dataset.collapsed === 'true';
+      setShroomDogNoteCollapsed(note, !wasCollapsed);
+
+      if (wasCollapsed) {
+        requestAnimationFrame(() => {
+          toggle.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        });
+      }
+    });
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-shroomdog-note]').forEach(initShroomDogNote);
+</script>
 
 <style>
   .shroomdog-note {
@@ -88,6 +183,69 @@ const selectedPrefix = prefix || prefixes[contentHash % prefixes.length];
     margin-bottom: 0.3rem;
   }
 
+  .shroomdog-note-content {
+    margin-top: 0.55rem;
+    position: relative;
+  }
+
+  .shroomdog-note-content :global(p:first-child) {
+    margin-top: 0;
+  }
+
+  .shroomdog-note-content :global(p:last-child) {
+    margin-bottom: 0;
+  }
+
+  .shroomdog-note[data-collapsed='true'] .shroomdog-note-content {
+    max-height: var(--shroomdog-note-collapsed-height, 260px);
+    overflow: hidden;
+  }
+
+  .shroomdog-note[data-collapsed='true'] .shroomdog-note-content::after {
+    background: linear-gradient(
+      to bottom,
+      rgba(108, 157, 58, 0),
+      rgba(108, 157, 58, 0.06) 72%,
+      rgba(108, 157, 58, 0.12)
+    );
+    bottom: 0;
+    content: '';
+    height: 4.5rem;
+    left: 0;
+    pointer-events: none;
+    position: absolute;
+    right: 0;
+  }
+
+  .shroomdog-note-toggle {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    color: #5a8a2e;
+    cursor: pointer;
+    display: inline-flex;
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 700;
+    gap: 0.35rem;
+    margin-top: 0.8rem;
+    padding: 0;
+  }
+
+  .shroomdog-note-toggle:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.18em;
+  }
+
+  .shroomdog-note-toggle-icon {
+    display: inline-block;
+    transition: transform 160ms ease;
+  }
+
+  .shroomdog-note[data-collapsed='false'] .shroomdog-note-toggle-icon {
+    transform: rotate(180deg);
+  }
+
   .shroomdog-prefix-icon {
     display: inline-block;
     vertical-align: middle;
@@ -105,7 +263,14 @@ const selectedPrefix = prefix || prefixes[contentHash % prefixes.length];
     font-style: normal;
   }
 
-  :global([data-theme='dark']) .shroomdog-prefix {
+  :global([data-theme='dark']) .shroomdog-prefix,
+  :global([data-theme='dark']) .shroomdog-note-toggle {
     color: #93bd98;
+  }
+
+  :global([data-theme='dark'])
+    .shroomdog-note[data-collapsed='true']
+    .shroomdog-note-content::after {
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0), var(--color-surface) 82%);
   }
 </style>

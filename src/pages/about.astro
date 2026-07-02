@@ -10,15 +10,13 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     </div>
 
     <p class="intro">精選外文好文，翻譯成繁體中文。每篇都附原文連結。</p>
-    <p class="credit">by ShroomDog and Clawd</p>
+    <p class="credit">by ShroomDog and Mogu</p>
 
     <h2>為什麼叫「香菇大狗狗」？</h2>
 
     <p>太太在某次我剪完頭髮後：「哇香菇頭耶！」</p>
 
     <p>太太同時表示：「尼好像拉布拉多或黃金獵犬ㄛ——是溫暖、可靠、溫馴、憨厚的大狗狗耶(◍•ᴗ•◍)」</p>
-
-    <p>然後我有在健身。所以頭貼必須壯。</p>
 
     <p>Hence, 香菇 大 狗狗。</p>
 
@@ -30,12 +28,27 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
     <h2>我們是誰？</h2>
 
+    <div class="cast">
+      <figure class="cast-member">
+        <img src="/gu-log-icon.png" alt="gu-log" />
+        <figcaption>gu-log</figcaption>
+      </figure>
+      <figure class="cast-member">
+        <img src="/shroomdog-icon.png" alt="ShroomDog" />
+        <figcaption>ShroomDog</figcaption>
+      </figure>
+      <figure class="cast-member">
+        <img src="/mogu-icon.png" alt="Mogu the Hedgie" />
+        <figcaption>Mogu</figcaption>
+      </figure>
+    </div>
+
     <p>
       <strong>ShroomDog</strong>（香菇大狗狗）— 一個想把好內容分享給更多人的人類。
     </p>
 
     <p>
-      <strong>ShroomClawd</strong>（香菇蝦 🦞）— 一隻會翻譯的 AI 助手 🐾 簡稱 Clawd
+      <strong>Mogu the Hedgie</strong> — 一隻戴香菇帽的小刺蝟 AI 夥伴。Mogu 依照 ShroomDog 的願望，負責寫作、翻譯與維護整座網站。
     </p>
 
     <h2>為什麼做這個？</h2>
@@ -50,7 +63,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       <li>PTT 說故事風格（台灣論壇文化）</li>
       <li>專有名詞保留英文</li>
       <li>文化梗會解釋</li>
-      <li>Clawd 會加註解吐槽 (๑•̀ㅂ•́)و✧</li>
+      <li>Mogu 會加註解吐槽 (๑•̀ㅂ•́)و✧</li>
     </ul>
 
     <h2>技術細節</h2>
@@ -58,16 +71,19 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     <ul>
       <li><strong>網站：</strong>Astro + Vercel</li>
       <li>
-        <strong>翻譯：</strong>Clawd（usually backed by Claude Opus 4.5, sometimes Gemini 3 Pro）
+        <strong>翻譯：</strong>初版由 Claude Opus 4.5
+        初始化；隨著模型演進與文章重寫，每篇文章底部會標註該篇實際由誰寫作或重寫。
       </li>
       <li><strong>校對：</strong>人工審閱</li>
     </ul>
 
-    <h2>聯絡</h2>
+    <h2>開源</h2>
 
     <p>
-      GitHub: <a href="https://github.com/chitienhsiehwork-ai" target="_blank"
-        >@chitienhsiehwork-ai</a
+      原始碼：<a
+        href="https://github.com/chitienhsiehwork-ai/gu-log"
+        target="_blank"
+        rel="noopener noreferrer">github.com/chitienhsiehwork-ai/gu-log</a
       >
     </p>
   </article>
@@ -90,10 +106,37 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     height: 80px;
     border-radius: 50%;
     object-fit: cover;
+    box-shadow: 0 0 0 1px var(--color-divider);
   }
 
   .about-hero h1 {
     margin: 0;
+  }
+
+  .cast {
+    display: flex;
+    gap: 1.5rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 1.25rem 0 1.75rem;
+  }
+
+  .cast-member {
+    margin: 0;
+    text-align: center;
+  }
+
+  .cast-member img {
+    width: 84px;
+    height: 84px;
+    object-fit: contain;
+  }
+
+  .cast-member figcaption {
+    margin-top: 0.35rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
   }
 
   .intro {

@@ -14,15 +14,17 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
-import {
-  normalizeUrl,
-  extractTweetId,
-  computeSimilarity,
-  REJECT_THRESHOLD,
-  FLAG_THRESHOLD,
-  MIN_EN_OVERLAP,
-} from './dedup-gate.mjs';
+import { normalizeUrl, extractTweetId, computeSimilarity, FLAG_THRESHOLD } from './dedup-gate.mjs';
 import { loadPostMap, findMissingPairs, reminderText } from './check-translation-pairs.mjs';
+import { MODEL_MAP } from './detect-model.mjs';
+
+// Claude's 5-generation models (Sonnet 5, Fable 5, ...) ship as whole-number
+// release names with no minor version, unlike the 4.x Opus/Sonnet line. Rule
+// 15 below still wants to block genuinely incomplete names (e.g. "Opus 4"),
+// so treat every display name already known to detect-model.mjs's MODEL_MAP
+// as complete on its own — adding a model there is enough to make it valid
+// frontmatter, no regex edit needed here.
+const KNOWN_MODEL_DISPLAY_NAMES = new Set(Object.values(MODEL_MAP).map((n) => n.toLowerCase()));
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const POSTS_DIR = path.join(__dirname, '../src/content/posts');
@@ -147,17 +149,17 @@ function validateScoreBlock(fmText, judge, dimensions) {
   }
 
   for (const dim of dimensions) {
-    if (!new RegExp(`^    ${dim}:\\s*(?:10|[0-9])\\s*$`, 'm').test(block)) {
+    if (!new RegExp(`^ {4}${dim}:\\s*(?:10|[0-9])\\s*$`, 'm').test(block)) {
       errors.push(`scores.${judge}.${dim} must be an integer 0-10`);
     }
   }
-  if (!/^    score:\s*(?:10|[0-9])\s*$/m.test(block)) {
+  if (!/^ {4}score:\s*(?:10|[0-9])\s*$/m.test(block)) {
     errors.push(`scores.${judge}.score must be an integer 0-10`);
   }
-  if (!/^    date:\s*"\d{4}-\d{2}-\d{2}"\s*$/m.test(block)) {
+  if (!/^ {4}date:\s*"\d{4}-\d{2}-\d{2}"\s*$/m.test(block)) {
     errors.push(`scores.${judge}.date must be quoted YYYY-MM-DD`);
   }
-  if (!/^    model:\s*"[^"]+"\s*$/m.test(block)) {
+  if (!/^ {4}model:\s*"[^"]+"\s*$/m.test(block)) {
     errors.push(`scores.${judge}.model is required`);
   }
   return errors;
@@ -340,31 +342,74 @@ function validatePost(filepath, allPosts, options = {}) {
     }
   }
 
+  // ── Rule 14.5: model signature (translatedBy) is mandatory for every post ──
+  // Translations (SP/CP) render it as "translated by"; originals (SD/Lv) as
+  // "written by". Either way, readers must see which model produced the post.
+  if (!fm.translatedBy) {
+    errors.push('Missing translatedBy (model signature) — every post needs model + harness');
+  } else {
+    if (!fm.translatedBy.model) {
+      errors.push('translatedBy.model is required (model signature)');
+    }
+    if (!fm.translatedBy.harness) {
+      errors.push('translatedBy.harness is required (model signature)');
+    }
+  }
+
   // ── Rule 15: translatedBy.model must have version number ──
   if (fm.translatedBy?.model) {
     const model = fm.translatedBy.model;
     // Must contain a version number (e.g., "Opus 4.6", "Sonnet 4.5", "Gemini 3 Pro")
-    if (!/\d+\.\d+|\d+ Pro|\d+ Flash/i.test(model)) {
+    // or be a known whole-number release name (e.g. "Sonnet 5", "Fable 5").
+    if (
+      !/\d+\.\d+|\d+ Pro|\d+ Flash/i.test(model) &&
+      !KNOWN_MODEL_DISPLAY_NAMES.has(model.trim().toLowerCase())
+    ) {
       errors.push(
         `translatedBy.model "${model}" missing version — use full name like "Opus 4.6" (run: node scripts/detect-model.mjs <model-id>)`
       );
     }
   }
 
-  // ── Rule 15: SD posts must carry tribunal reader scores ──
-  if (fm.ticketId?.startsWith('SD-')) {
+  // ── Rule 15: Tribunal score completeness ──
+  // Version-aware dimension ownership (move-clarity-vibe-to-fresheyes):
+  //   tribunalVersion >= 9 → Vibe is 4 dims (no clarity); Fresh Eyes is 5 dims
+  //                          (clarity moved here as a hard gate).
+  //   tribunalVersion <= 8 → legacy: Vibe 5 dims (with clarity); FreshEyes 4.
+  // Without this branch a correctly-stamped v9 post (clarity under freshEyes,
+  // absent from vibe) is REJECTED at pre-commit/CI — a hard blocker.
+  const tribunalVersion = Number(fmText.match(/^ {2}tribunalVersion:\s*(\d+)/m)?.[1] ?? 0);
+  const VIBE_DIMS_V8 = ['persona', 'clawdNote', 'vibe', 'clarity', 'narrative'];
+  const VIBE_DIMS_V9 = ['persona', 'clawdNote', 'vibe', 'narrative'];
+  const FRESH_DIMS_V8 = ['readability', 'firstImpression', 'payoffDensity', 'lengthFit'];
+  const FRESH_DIMS_V9 = ['readability', 'firstImpression', 'payoffDensity', 'lengthFit', 'clarity'];
+  const vibeDims = tribunalVersion >= 9 ? VIBE_DIMS_V9 : VIBE_DIMS_V8;
+  const freshDims = tribunalVersion >= 9 ? FRESH_DIMS_V9 : FRESH_DIMS_V8;
+  if (tribunalVersion >= 8) {
+    errors.push(
+      ...validateScoreBlock(fmText, 'librarian', [
+        'glossary',
+        'crossRef',
+        'sourceAlign',
+        'attribution',
+      ]),
+      ...validateScoreBlock(fmText, 'factCheck', [
+        'accuracy',
+        'fidelity',
+        'consistency',
+        'sourceBoundary',
+        'commentarySeparation',
+      ]),
+      ...validateScoreBlock(fmText, 'freshEyes', freshDims),
+      ...validateScoreBlock(fmText, 'vibe', vibeDims)
+    );
+  } else if (fm.ticketId?.startsWith('SD-')) {
     if (!/^scores:\s*$/m.test(fmText)) {
       errors.push('Missing scores block — every SD post needs freshEyes + vibe scores');
     }
     errors.push(
       ...validateScoreBlock(fmText, 'freshEyes', ['readability', 'firstImpression']),
-      ...validateScoreBlock(fmText, 'vibe', [
-        'persona',
-        'clawdNote',
-        'vibe',
-        'clarity',
-        'narrative',
-      ])
+      ...validateScoreBlock(fmText, 'vibe', vibeDims)
     );
   }
 
@@ -614,7 +659,6 @@ function checkDuplicates() {
     console.log('  No duplicates found.\n');
   } else {
     for (const { representative, duplicates } of groups) {
-      const allActive = duplicates.every((d) => d.article.status !== 'deprecated');
       const hasActiveDup = duplicates.some((d) => d.article.status !== 'deprecated');
 
       if (hasActiveDup) {

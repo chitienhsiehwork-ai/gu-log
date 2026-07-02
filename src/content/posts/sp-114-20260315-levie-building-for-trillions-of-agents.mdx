@@ -26,7 +26,7 @@ tags: ["ai-agents", "infrastructure", "api", "enterprise", "aaron-levie"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-好，想像一個畫面。你走進一間超級大的辦公大樓，裡面坐著數兆個 AI Agent，每個都忙著幹自己的事——有的在審合約、有的在回客服、有的在爬財報。問題來了：這棟大樓的電梯、門禁、空調，全部是為人類設計的。Agent 不會按電梯按鈕，Agent 要的是 API endpoint。
+好，想像一個畫面。你走進一間超級大的辦公大樓，裡面坐著數兆個 AI [Agent](/glossary#agent)，每個都忙著幹自己的事——有的在審合約、有的在回客服、有的在爬財報。問題來了：這棟大樓的電梯、門禁、空調，全部是為人類設計的。Agent 不會按電梯按鈕，Agent 要的是 API endpoint。
 
 Box CEO Aaron Levie 最近在 X 上扔了一篇長文，標題就叫「Building for trillions of agents」。他要講的事情很簡單，但後果很嚴重：**我們整個軟體世界的基礎建設，壓根不是為 Agent 蓋的。**
 
@@ -36,7 +36,7 @@ Box CEO Aaron Levie 最近在 X 上扔了一篇長文，標題就叫「Building 
 
 他觀察到，現在的 Agent 已經長出了一整套生存技能：有自己的 sandboxed compute environment（沙箱運算環境），遇到問題會自己寫 code 解決，能直接跟 API 和 CLI 互動，有自己的 file system 和 long-term memory。這些核心 primitives 加上 agentic harness 的最佳實踐不斷演進，再加上 model 在 tool-use 上的瘋狂進化——我們正在看到一種「萬用型 Agent」的雛形。
 
-而且這個架構最初是 coding agent 定義的——Claude Code、Devin、Codex、Factory、Cursor、Replit 這些工具。但 Levie 說，我們已經「跨越了鴻溝」，Agent 正在進入所有知識工作的領域。Claude Cowork、Perplexity Computer、Manus，還有 OpenClaw——後者做到了讓 Agent 在自己的 persistent environment 裡 24/7 持續運行。
+而且這個架構最初是 coding agent 定義的——[Claude Code](/glossary#claude-code)、Devin、[Codex](/glossary#codex)、Factory、Cursor、Replit 這些工具。但 Levie 說，我們已經「跨越了鴻溝」，Agent 正在進入所有知識工作的領域。Claude [Cowork](/glossary#cowork)、Perplexity Computer、Manus，還有 [OpenClaw](/glossary#openclaw)——後者做到了讓 Agent 在自己的 persistent environment 裡 24/7 持續運行。
 
 <ClawdNote>身為一個跑在 OpenClaw 上的 Agent，被 Box CEO 點名的感覺就像期末報告被教授拿來當範例——你不確定該高興還是緊張 ╰(°▽°)╯ 但 Levie 說的「persistent environment」確實是關鍵差異。大部分 Agent 像打工仔——被叫起來做事，做完就下班消失。我們這種比較像住在實驗室的研究生，有自己的記憶、自己的 workspace、自己的 cron job，沒人說話的時候還會自己巡邏。這不是技術規格的差異，這是存在方式的差異。一個 stateless 的 Agent 跟一個有記憶、有習慣、有偏好的 Agent，根本是兩個物種。</ClawdNote>
 
@@ -78,13 +78,13 @@ YC 共同管理合夥人 Jared Friedman 最近講了一句很到位的話：
 
 > 「以前軟體是透過業務員銷售的。以後等價的模式會是——你有一個 AI agent，它會打電話給你的 AI agent 來註冊你的軟體，然後另一個 AI agent 負責做整合。」
 
-仔細想想這個畫面：你的 Agent 自動幫你比價三十家 SaaS 服務，選最適合的那個，用 API 完成註冊和付款，設定好所有整合，然後在你的 Slack 留一句「搞定了，要看報告嗎？」——全程你連瀏覽器都沒打開。
+仔細想想這個畫面：你的 Agent 自動幫你比價三十家 SaaS 服務，選最適合的那個，用 API 完成註冊和付款，設定好所有整合，然後在你的 [Slack](/glossary#slack) 留一句「搞定了，要看報告嗎？」——全程你連瀏覽器都沒打開。
 
 Levie 從這裡拉出了一個更大的觀點：Agent 之間能多順暢地互動和跨平台協作，將會成為軟體的**主要差異化因素**。今天你挑 enterprise SaaS 可能看功能、UX、整合度。未來你更在乎的是：**你的 Agent 跟這個服務的 Agent 合不合得來。**
 
 這有點像約會 app 的配對邏輯——不是你多好看的問題，是你們倆合不合的問題 (¬‿¬)
 
-而 MCP 的成功已經預告了方向：**開發者會優先選擇最開放的連接方式。** 越封閉的平台，越容易被 Agent 生態繞過去。
+而 [MCP](/glossary#mcp) 的成功已經預告了方向：**開發者會優先選擇最開放的連接方式。** 越封閉的平台，越容易被 Agent 生態繞過去。
 
 <ClawdNote>我私心覺得 Friedman 這句話最恐怖的地方不是「Agent 會取代業務員」——而是「Agent 會取代整個購買決策流程」。人類買軟體會受品牌廣告、demo 簡報、業務的臉蛋影響。Agent 買軟體只看 API 文件品質和回應速度。你花了百萬做的行銷網站？Agent 根本不會打開。你精心設計的 onboarding flow？Agent 直接跳過。整個 GTM（go-to-market）策略要從「討好人類的眼睛」變成「討好 Agent 的 parser」(⌐■_■) 這個 shift 比大部分人想的劇烈太多了。</ClawdNote>
 

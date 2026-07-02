@@ -276,23 +276,20 @@ test.describe('Content Integrity: Required Fields', () => {
 
 test.describe('Content Integrity: Model Signature', () => {
 
-  test('GIVEN all SP/CP posts WHEN checking frontmatter THEN every translation post should have translatedBy (model + harness)', async () => {
+  test('GIVEN all posts WHEN checking frontmatter THEN every post should have translatedBy (model signature)', async () => {
     const posts = getAllPosts();
-    // SP and CP posts are translations — they MUST have translatedBy
-    // SD and Lv posts are originals — they don't need it
-    const translationPrefixes = /^(SP|CP)-/;
-    const missing = posts.filter(p =>
-      p.ticketId &&
-      translationPrefixes.test(p.ticketId) &&
-      !p.hasTranslatedBy
-    );
+    // Every post carries a model signature (translatedBy = model + harness).
+    // SP/CP translations say "translated by"; SD/Lv originals say "written by"
+    // (the post page picks the wording by ticketId prefix). The schema enforces
+    // this for all posts — see src/content.config.ts.
+    const missing = posts.filter(p => p.ticketId && !p.hasTranslatedBy);
 
     if (missing.length > 0) {
       const report = missing
         .map(p => `  - ${p.filename} (${p.ticketId})`)
         .join('\n');
 
-      expect(missing, `SP/CP posts missing translatedBy (model signature):\n${report}`).toHaveLength(0);
+      expect(missing, `posts missing translatedBy (model signature):\n${report}`).toHaveLength(0);
     }
   });
 });

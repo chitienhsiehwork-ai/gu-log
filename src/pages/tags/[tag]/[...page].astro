@@ -37,18 +37,19 @@ export async function getStaticPaths({ paginate }: GetStaticPathsOptions) {
 }
 
 const { page, tag } = Astro.props;
+const displayTag = (tag: string) => (tag === 'clawd-picks' ? 'mogu-picks' : tag);
 const allPostsFull = await getCollection('posts');
 ---
 
-<BaseLayout title={`${tag} - 標籤 - gu-log`}>
+<BaseLayout title={`${displayTag(tag)} - 標籤 - gu-log`}>
   <article class="tag-page">
     <header class="page-header">
       <div class="breadcrumb">
-        <a href="/tags">標籤</a> / {tag}
+        <a href="/tags">標籤</a> / {displayTag(tag)}
       </div>
       <h1>
         <span class="tag-icon">#</span>
-        {tag}
+        {displayTag(tag)}
       </h1>
       <p class="subtitle">{page.total} 篇文章</p>
     </header>
@@ -63,7 +64,7 @@ const allPostsFull = await getCollection('posts');
               style={status !== 'published' ? 'opacity: 0.6; filter: grayscale(0.22);' : undefined}
             >
               <h2>
-                <a href={`/posts/${post.slug}`}>
+                <a href={`/posts/${post.id}`}>
                   {post.data.title}
                   {status !== 'published' && <PostStatusLabel status={status} />}
                 </a>
@@ -82,7 +83,7 @@ const allPostsFull = await getCollection('posts');
                     .filter((t: string) => t !== tag)
                     .map((t: string) => (
                       <a href={`/tags/${t}`} class="tag-chip">
-                        {t}
+                        {displayTag(t)}
                       </a>
                     ))}
                 </div>

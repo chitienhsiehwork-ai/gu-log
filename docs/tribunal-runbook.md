@@ -27,7 +27,8 @@ git push origin main
 ssh clawd-vm
 cd ~/clawd/projects/gu-log
 git stash push -m "wip" --include-untracked        # uncommitted tribunal rewrites live here
-git checkout main && git pull
+git fetch origin main
+git checkout main && git merge --ff-only origin/main
 git stash pop
 
 # If scripts/tribunal-loop.service changed, redeploy + reload:
@@ -82,6 +83,10 @@ Restart after stop: `systemctl --user start tribunal-loop`. `rc_exit_stopped` re
 # Live state
 cat .score-loop/state/runtime.json
 # Expected states: running / draining / idle_wait / stopped_by_request / stopped_by_quota
+
+# Runtime ledger + remote drift observability
+cat .score-loop/state/tribunal-progress.json
+cat .score-loop/state/runtime-git.json
 
 # Active claims (one per in-flight article)
 ls .score-loop/claims/
@@ -284,7 +289,7 @@ systemctl --user start tribunal-loop
 | Workers dispatched but log stays quiet for >1min | Worker sleeping inside `wait_for_*` (quota/quiet-hours left over from old code) | `sync` workers + restart |
 | Service inactive, `rc_exit_stopped` in log, flag still present | Someone touched the flag manually; supervisor cleared it on exit | `systemctl --user start tribunal-loop` |
 | Same article claimed by a dead pid, new workers blocked | Worker crashed without releasing claim | `scripts/tribunal-worker-bootstrap.sh status` to confirm workers are alive; supervisor runs `rc_gc_stale_claims` at startup; to force now: `rm -rf .score-loop/claims/<slug>.claim` |
-| `git pull failed: unstaged changes` warning in supervisor log | Dirty tribunal rewrites in main worktree from an earlier partial run | Non-fatal; supervisor continues with its current checkout. Clean up via `git stash` or `git checkout -- .` when safe. |
+| `Git drift: state=behind` or `state=diverged` in supervisor log | origin/main advanced while runtime kept local progress / content edits | Expected in fetch-only mode. Runtime keeps processing its current snapshot; use publisher or an explicit operator sync instead of rebasing the daemon worktree. |
 | New code on main isn't reaching running workers | Worker worktrees are stale (see "Worker worktree gotcha" above) | `scripts/tribunal-worker-bootstrap.sh sync` — or restart (supervisor auto-syncs) |
 | Article marked EXHAUSTED after 5 attempts | Real content / scoring issue, or model-induced flakiness | Open the stage log, look at scorer reasons; rewrite manually or flag for human review |
 | Controller stuck in `floor_stop` even though quota looks OK | usage-monitor cache stale, or feedforward over-counting | Check `quota-controller.json` for `five_hr_pct` / `seven_day_pct`; force cache refresh: `rm /tmp/usage-monitor-cache/claude.json` |

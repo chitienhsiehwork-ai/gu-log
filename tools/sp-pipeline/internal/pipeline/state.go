@@ -16,15 +16,16 @@ import (
 
 // Step integer encoding — matches scripts/sp-pipeline.sh step_to_int.
 const (
-	StepSetup  = 0
-	StepFetch  = 10
-	StepEval   = 15
-	StepDedup  = 17
-	StepWrite  = 20
-	StepReview = 30
-	StepRefine = 40
-	StepRalph  = 47
-	StepDeploy = 50
+	StepSetup    = 0
+	StepFetch    = 10
+	StepDedupURL = 12
+	StepEval     = 15
+	StepDedup    = 17
+	StepWrite    = 20
+	StepReview   = 30
+	StepRefine   = 40
+	StepRalph    = 47
+	StepDeploy   = 50
 )
 
 // State is the mutable snapshot of an in-flight pipeline run. Each step
@@ -69,6 +70,11 @@ type State struct {
 	// SkipValidate disables `node scripts/validate-posts.mjs` in Deploy.
 	// Tests only.
 	SkipValidate bool
+	// SkipDedup bypasses both dedup gates (Step 1.2 URL + Step 1.7 topic).
+	// Escape hatch for confirmed false positives — e.g. a topic-similarity
+	// BLOCK against a same-author post on a genuinely different thesis. The
+	// override is logged loudly so it never happens silently.
+	SkipDedup bool
 
 	// Angle is an optional narrative directive passed to the Write and
 	// Refine prompts. When non-empty, the article is structurally pivoted
@@ -82,10 +88,12 @@ type State struct {
 
 	// ── Dependencies injected by the caller ────────────────────────────
 
-	Cfg        *config.Config
-	Log        *logx.Logger
-	Dispatcher *llm.Dispatcher
-	Counter    *counter.Counter
+	Cfg              *config.Config
+	Log              *logx.Logger
+	Dispatcher       *llm.Dispatcher
+	WriterDispatcher *llm.Dispatcher
+	JudgeDispatcher  *llm.Dispatcher
+	Counter          *counter.Counter
 
 	// ── Fields populated during the run ────────────────────────────────
 
@@ -147,6 +155,20 @@ type State struct {
 
 	// Timings per step (seconds), matches bash summary output.
 	Timings map[string]int
+}
+
+func (s *State) writerDispatcher() *llm.Dispatcher {
+	if s.WriterDispatcher != nil {
+		return s.WriterDispatcher
+	}
+	return s.Dispatcher
+}
+
+func (s *State) judgeDispatcher() *llm.Dispatcher {
+	if s.JudgeDispatcher != nil {
+		return s.JudgeDispatcher
+	}
+	return s.Dispatcher
 }
 
 // NewState constructs a State with sensible defaults. Fields left empty

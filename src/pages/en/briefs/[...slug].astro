@@ -1,5 +1,5 @@
 ---
-import { getCollection } from 'astro:content';
+import { getCollection, render } from 'astro:content';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 
 const briefTypeIcons: Record<string, string> = {
@@ -14,13 +14,13 @@ export async function getStaticPaths() {
   });
 
   return briefs.map((brief) => ({
-    params: { slug: brief.slug },
+    params: { slug: brief.id },
     props: { brief },
   }));
 }
 
 const { brief } = Astro.props;
-const { Content } = await brief.render();
+const { Content } = await render(brief);
 const icon = briefTypeIcons[brief.data.briefType] || '📋';
 ---
 

@@ -76,6 +76,10 @@ describe('check-jingjing.isAllowed', () => {
     expect(jj.isAllowed('GPT-5')).toBe(true);
     expect(jj.isAllowed('K2.5')).toBe(true);
   });
+  it('allows common engineering terms ShroomDog accepts in zh-tw prose', () => {
+    expect(jj.isAllowed('vs')).toBe(true);
+    expect(jj.isAllowed('bug')).toBe(true);
+  });
   it('strips trailing punctuation before checking', () => {
     expect(jj.isAllowed('API.')).toBe(true);
   });
@@ -194,6 +198,16 @@ describe('check-pronoun-clarity', () => {
     const v = pron.findViolations(filepath);
     expect(v).toEqual([]);
   });
+
+  it('does NOT flag 我 inside the compound 自我 (self-, not a pronoun)', () => {
+    const filepath = tmpPath('pronoun-ziwo.mdx');
+    fs.writeFileSync(
+      filepath,
+      `---\nlang: zh-tw\n---\n一個會自我修正、能自我檢查的 loop 才靠得住。\n`
+    );
+    const v = pron.findViolations(filepath);
+    expect(v).toEqual([]);
+  });
 });
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -229,13 +243,36 @@ describe('frontmatter-scores', () => {
     expect(fmScores.VALID_JUDGES).toEqual(['librarian', 'factCheck', 'freshEyes', 'vibe']);
   });
 
-  it('JUDGE_DIMS has 5 vibe dimensions', () => {
-    expect(fmScores.JUDGE_DIMS.vibe).toEqual([
+  it('judgeDims(vibe, v8) has 5 dimensions (legacy, with clarity)', () => {
+    expect(fmScores.judgeDims('vibe', 8)).toEqual([
       'persona',
       'clawdNote',
       'vibe',
       'clarity',
       'narrative',
+    ]);
+  });
+
+  it('judgeDims(vibe, v9) has 4 dimensions (no clarity)', () => {
+    expect(fmScores.judgeDims('vibe', 9)).toEqual(['persona', 'clawdNote', 'vibe', 'narrative']);
+  });
+
+  it('judgeDims(freshEyes, v9) has 5 dimensions (clarity added)', () => {
+    expect(fmScores.judgeDims('freshEyes', 9)).toEqual([
+      'readability',
+      'firstImpression',
+      'payoffDensity',
+      'lengthFit',
+      'clarity',
+    ]);
+  });
+
+  it('judgeDims(freshEyes, v8) has 4 dimensions (legacy, no clarity)', () => {
+    expect(fmScores.judgeDims('freshEyes', 8)).toEqual([
+      'readability',
+      'firstImpression',
+      'payoffDensity',
+      'lengthFit',
     ]);
   });
 
@@ -304,5 +341,174 @@ otherKey: y`;
 
   it('serializeScores returns empty for empty input', () => {
     expect(fmScores.serializeScores({})).toBe('');
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// score-floor-check (version-aware required vibe dims)
+// ════════════════════════════════════════════════════════════════════════════
+import { execFileSync } from 'node:child_process';
+import { isBelowPublishBar } from '../src/utils/tribunal-scores';
+
+const FLOOR_CHECK = path.join(__dirname, '..', 'scripts', 'score-floor-check.mjs');
+
+function runFloorCheck(file: string): { code: number; stderr: string } {
+  try {
+    execFileSync('node', [FLOOR_CHECK, file], { encoding: 'utf-8' });
+    return { code: 0, stderr: '' };
+  } catch (e: any) {
+    return { code: e.status ?? 1, stderr: String(e.stderr ?? '') };
+  }
+}
+
+describe('score-floor-check version-aware vibe dims', () => {
+  it('v9 post passes with 4 vibe dims (no clarity) + composite >= 3', () => {
+    const f = tmpPath('floor-v9-ok.mdx');
+    fs.writeFileSync(
+      f,
+      `---
+lang: zh-tw
+scores:
+  tribunalVersion: 9
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-06-18"
+---
+body
+`
+    );
+    expect(runFloorCheck(f).code).toBe(0);
+  });
+
+  it('v9 post blocked when missing a required v9 dim (narrative)', () => {
+    const f = tmpPath('floor-v9-missing.mdx');
+    fs.writeFileSync(
+      f,
+      `---
+lang: zh-tw
+scores:
+  tribunalVersion: 9
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    score: 8
+    date: "2026-06-18"
+---
+body
+`
+    );
+    const r = runFloorCheck(f);
+    expect(r.code).toBe(1);
+    expect(r.stderr).toMatch(/narrative/);
+  });
+
+  it('v8 post still requires 5 vibe dims (clarity required)', () => {
+    const f = tmpPath('floor-v8-missing-clarity.mdx');
+    fs.writeFileSync(
+      f,
+      `---
+lang: zh-tw
+scores:
+  tribunalVersion: 8
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-06-18"
+---
+body
+`
+    );
+    const r = runFloorCheck(f);
+    expect(r.code).toBe(1);
+    expect(r.stderr).toMatch(/clarity/);
+  });
+
+  it('legacy v8 post with clarity present passes', () => {
+    const f = tmpPath('floor-v8-ok.mdx');
+    fs.writeFileSync(
+      f,
+      `---
+lang: zh-tw
+scores:
+  tribunalVersion: 8
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    clarity: 8
+    narrative: 8
+    score: 8
+    date: "2026-06-18"
+---
+body
+`
+    );
+    expect(runFloorCheck(f).code).toBe(0);
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// Translation-pair publish-bar parity
+//
+// Why this gate exists: the sp-pipeline only produces the zh-tw post; the en
+// version is authored separately, and it is easy to forget to mirror the zh
+// scores block into it. When that happens to a sub-8 post, isBelowPublishBar()
+// returns false for the score-less en file — so the en version silently leaks
+// onto the /en homepage and shows no "refining" badge, while its zh-tw twin is
+// correctly held back. (SP-237 shipped with exactly this bug.)
+//
+// A pre-merge visual check would catch it, but "remember to eyeball both
+// languages" is not a system — this assertion is. It runs in the per-PR
+// `unit-tests` job and reuses the real runtime helpers (parseScores +
+// isBelowPublishBar), so it can never drift from what the site actually does.
+// ════════════════════════════════════════════════════════════════════════════
+const POSTS_DIR = path.join(__dirname, '..', 'src', 'content', 'posts');
+
+function baseFilename(filename: string): string {
+  return filename.startsWith('en-') ? filename.slice(3) : filename;
+}
+
+function belowBarOf(filePath: string): boolean {
+  const content = fs.readFileSync(filePath, 'utf-8');
+  const split = fmScores.splitFrontmatter(content);
+  if (!split) return false;
+  const scores = fmScores.parseScores(split.fmText);
+  return isBelowPublishBar(scores);
+}
+
+describe('translation-pair publish-bar parity', () => {
+  it('every zh-tw + en pair agrees on isBelowPublishBar (no language leaks onto the homepage alone)', () => {
+    const files = fs.readdirSync(POSTS_DIR).filter((f) => f.endsWith('.mdx'));
+    const byBase = new Map<string, string[]>();
+    for (const f of files) {
+      const arr = byBase.get(baseFilename(f)) ?? [];
+      arr.push(f);
+      byBase.set(baseFilename(f), arr);
+    }
+
+    const mismatches: string[] = [];
+    for (const [, pair] of byBase) {
+      if (pair.length !== 2) continue; // only complete zh+en pairs
+      const en = pair.find((f) => f.startsWith('en-'));
+      const zh = pair.find((f) => !f.startsWith('en-'));
+      if (!en || !zh) continue; // two files but not a real cross-lang pair
+      const zhBelow = belowBarOf(path.join(POSTS_DIR, zh));
+      const enBelow = belowBarOf(path.join(POSTS_DIR, en));
+      if (zhBelow !== enBelow) {
+        mismatches.push(
+          `${zh} (belowBar=${zhBelow}) vs ${en} (belowBar=${enBelow}) — mirror the scores block across both languages`
+        );
+      }
+    }
+
+    expect(mismatches, mismatches.join('\n')).toEqual([]);
   });
 });

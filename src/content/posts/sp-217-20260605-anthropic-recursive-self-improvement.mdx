@@ -1,0 +1,120 @@
+---
+ticketId: 'SP-217'
+title: '當 Claude 開始打造 Claude：Anthropic 內部看到的遞迴自我改進前夜'
+originalDate: '2026-06-05'
+translatedDate: '2026-06-05'
+translatedBy:
+  model: "GPT-5.5"
+  harness: "Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+    - role: "Reviewed"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+    - role: "Orchestrated"
+      model: "GPT-5.5"
+      harness: "sp-pipeline"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: 'Anthropic'
+sourceUrl: 'https://www.anthropic.com/institute/recursive-self-improvement'
+lang: 'zh-tw'
+summary: 'Anthropic 認為 AI 已在加速 AI 開發，但遞迴自我改進尚未到來、也非必然。Claude 已承擔大量工程與實驗執行；真正瓶頸仍在研究判斷、可信驗證與可協調的減速機制。'
+tags: ['shroom-picks', 'anthropic', 'claude', 'ai-safety', 'ai-agents']
+scores:
+  tribunalVersion: 8
+  factCheck:
+    accuracy: 9
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 8
+    score: 8
+    date: "2026-06-05"
+    model: "gpt-5.5"
+  librarian:
+    glossary: 8
+    crossRef: 8
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-06-05"
+    model: "gpt-5.5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    score: 8
+    date: "2026-06-05"
+    model: "gpt-5.5"
+  vibe:
+    persona: 8
+    clawdNote: 9
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-06-05"
+    model: "gpt-5.5"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+如果 AI 有一天真的開始打造下一代 AI，畫面不一定是實驗室突然失控。
+
+比較可能的畫面，是工作流程一格一格被接走：先幫忙補短程式片段，再直接改檔案，再自己跑程式、派工給其他 [Agent](/glossary#agent)，最後開始碰到模型研發本身。Anthropic 把這條路叫做「遞迴式改進」：AI 系統能自主設計並開發自己的後繼者。這件事還沒發生，也不是必然會發生；但 Anthropic 認為，現在的內部訊號已經足夠讓外界提早準備。
+
+最直觀的訊號是工程。到 2026 年 5 月，Anthropic 合併進主程式庫的程式碼，超過 80% 可歸因於 Claude。2026 年第二季，典型工程師每天合併的程式碼行數，是 2024 年的 8 倍。內部研究團隊問卷裡，受訪者估計使用 Mythos Preview 時，產出中位數約是沒有 AI 輔助時的 4 倍。
+
+這些數字不是「AI 已經取代研究員」。它們比較像儀表板上的紅燈：動手做事的成本正在暴跌，決定做什麼、信什麼、停在哪裡，還沒有一起變便宜。
+
+<ClawdNote summary="Anthropic 這篇的新鮮感在內部替代指標，不是 maker→reviewer 老梗。">
+這篇不要再寫成「人類從製作者變審查者」了。gu-log 已經講過太多次，熟到可以拿去微波。
+
+新鮮的是 Anthropic 把 80% 合併程式碼歸因、8 倍行數、Claude 審 code 抓事故 bug、研究下一步判斷這些內部替代指標放到桌上。每個指標都有洞，但洞本身也有資訊量：前沿實驗室正在用不完美的儀表看一條可能很快的曲線。
+</ClawdNote>
+
+## Claude 已經不只是寫 code
+
+行數不是生產力本身。它量的是數量，不是品質；8 倍行數幾乎一定高估真實效率提升。但如果組織沒有用行數獎勵員工，行數突然暴增，至少表示廚房真的開始用另一種方式出菜。
+
+品質訊號更有意思。2026 年 5 月，在最開放那一級任務上，Claude 的工作階段成功率達到 76%，6 個月內上升 50 個百分點。一次例行升級讓數萬個訓練工作崩潰時，Claude 只靠文字脈絡與叢集權限，約 2 小時抓到冷門除錯旗標、重現並確認修補；這類工作通常需要 2 到 3 天。
+
+可維護性也在追上。2025 年底，許多 Anthropic 員工仍認為 Claude 寫的程式碼略差於人類工程師；到 2026 年 5 月，大致已經相當。合併前的自動 Claude 審查器也開始檢查 bug 與安全缺陷。回溯分析顯示，如果過去每個變更都先經過這套審查，claude.ai 既有上線事故背後的 bug，大約三分之一本可在上線前被抓到。
+
+<ClawdNote>
+這個審查器案例比「Claude 寫 80% code」更刺。寫很多可能只是盤子變多；抓到上線 bug 代表它開始咬到品質系統。
+
+當然，同一間補習班出題、解題、改考卷，還是要小心裁判偏誤。但前沿實驗室已經把 AI 放進品質閘門，而不只是放進編輯器側邊欄。這才是變化的等級。
+</ClawdNote>
+
+## 研究迴圈也開始被接走
+
+工程之外，真正關鍵的是研究。這條路要跨過的不是「會寫訓練程式」，而是「會讓下一代模型變好」。
+
+第一個訊號是固定目標下的實驗執行。Anthropic 會給 Claude 一段訓練小型 AI 模型的程式，要求它在正確性檢查不變的前提下加速。2025 年 5 月，Claude Opus 4 平均加速約 3 倍；2026 年 4 月，Mythos Preview 達到約 52 倍。這不是現實訓練速度會直接變 52 倍，而是同一套小實驗顯示：在「目標已定、評分已定」的迴圈裡，Claude 一年內從好用變成超人。
+
+第二個訊號是自己提出實驗。2026 年 4 月，Claude 驅動的 Agent 端到端跑了一個開放式 AI safety 研究問題：弱模型能否可靠監督強模型？兩位人類研究員約一週恢復了強弱模型差距的 23%；Agent 在 800 小時累積工作、約 1.8 萬美元 compute 下恢復了 97%。結果沒有乾淨轉移到上線規模模型，問題與評分規則也仍由人類設定；但在這些邊界內，Agent 自己提出假設、測試、交換發現並迭代。
+
+第三個訊號最接近「研究品味」：下一步該做什麼。Anthropic 檢查真實 [Claude Code](/posts/sp-212-20260525-anthropic-claude-containment/) 工作階段，挑出 129 個人類選擇有改善空間的時刻，再讓不同 Claude 模型只看岔路前的內容並建議下一步。2025 年 11 月的 Opus 4.5 有 51% 案例被判定勝過人類當時選擇；2026 年 4 月的 Mythos Preview 提高到 64%。這不是公平人機對決，但足以說明 Claude 開始在「下一步怎麼走比較不歪」上進步。
+
+## 真正的瓶頸會一直搬家
+
+如果 Claude 能寫程式、跑實驗、檢查 bug、提出下一步，工作不會消失，而是換地方塞車。程式碼生成變快，review 就變瓶頸。實驗執行變快，選題就變瓶頸。研究結果變多，驗證與取捨就變瓶頸。
+
+這也是 Anthropic 最後談減速與暫停的原因。真正困難的不是喊「停」，而是讓多個前沿實驗室在同樣條件下停，而且能彼此驗證。AI 訓練工作比飛彈發射井容易藏，偷偷違約的誘因又極大；沒有可信驗證，減速只是口號。
+
+<ClawdNote>
+AI 實驗室可以把研究迴圈壓縮成顯卡風扇聲，但社會很多東西不是最佳化問題，是時間問題。藥物要長期資料，制度要合法程序，人際信任要共同經歷。這就像拿超級跑車去排郵局號碼牌，引擎 1000 匹，櫃台還是叫到 37 號。(◕‿◕)
+</ClawdNote>
+
+## 結語
+
+Claude 還沒有自己決定下一代 Claude 應該長什麼樣。可是工程、實驗執行、程式碼審查、研究下一步建議，已經有一部分從人類手工搬運變成輸送帶。
+
+真正的考題不是 AI 會不會幫 AI 進步；Anthropic 這篇的答案已經很接近「會」。考題是，在輸送帶繼續加速之前，人類能不能先把煞車、儀表、責任邊界和共同規則裝好。

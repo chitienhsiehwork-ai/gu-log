@@ -27,8 +27,8 @@ const getTimelineStyle = (status: PostStatus) =>
   status === 'published' ? undefined : 'opacity: 0.6; filter: grayscale(0.22);';
 ---
 
-<BaseLayout title="ShroomDog Picks 全部文章">
-  <h1>📚 ShroomDog Picks</h1>
+<BaseLayout title="Gu-log Picks 全部文章">
+  <h1><img src="/gu-log-icon-trimmed.png" alt="" class="page-icon" /> Gu-log Picks</h1>
   <p class="page-subtitle">ShroomDog 精選長文翻譯</p>
   <p class="post-count">共 {page.total} 篇</p>
 
@@ -41,7 +41,7 @@ const getTimelineStyle = (status: PostStatus) =>
         return (
           <article class="post-preview" style={getTimelineStyle(status)}>
             <h3>
-              <a href={`/posts/${post.slug}`}>
+              <a href={`/posts/${post.id}`}>
                 {post.data.title}
                 {status !== 'published' && <PostStatusLabel status={status} />}
               </a>
@@ -63,6 +63,13 @@ const getTimelineStyle = (status: PostStatus) =>
 </BaseLayout>
 
 <style>
+  .page-icon {
+    width: 44px;
+    height: 44px;
+    vertical-align: middle;
+    margin-right: 0.5rem;
+  }
+
   .page-subtitle {
     color: var(--color-text-muted);
     font-size: 0.9rem;

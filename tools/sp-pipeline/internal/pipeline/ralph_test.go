@@ -58,7 +58,16 @@ func TestNormalizeRalphFrontmatter_StripsAndCanonicalises(t *testing.T) {
 	if err := os.WriteFile(f, []byte(ralphFixtureMDX), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := normalizeRalphFrontmatter(f); err != nil {
+	if err := normalizeRalphFrontmatter(f, PipelineStamp{
+		WriteModel:    "Opus 4.8",
+		WriteHarness:  "Claude Code CLI",
+		ReviewModel:   "GPT-5.5",
+		ReviewHarness: "Codex CLI",
+		RefineModel:   "Opus 4.8",
+		RefineHarness: "Claude Code CLI",
+		JudgeModel:    "GPT-5.5",
+		JudgeHarness:  "Codex CLI",
+	}); err != nil {
 		t.Fatalf("normalize: %v", err)
 	}
 	out, _ := os.ReadFile(f)
@@ -82,14 +91,54 @@ func TestNormalizeRalphFrontmatter_StripsAndCanonicalises(t *testing.T) {
 	if strings.Contains(s, `- role: "Old"`) {
 		t.Error("stale role 'Old' not stripped")
 	}
-	// Canonical summary harness for mac-cdx Codex migration.
-	if !strings.Contains(s, `harness: "Codex CLI"`) {
-		t.Error("canonical summary harness missing")
+	// Canonical summary records the writer, while review/scoring roles record
+	// Codex GPT-5.5.
+	for _, want := range []string{
+		`model: "Opus 4.8"`,
+		`harness: "Claude Code CLI"`,
+		`model: "GPT-5.5"`,
+		`harness: "Codex CLI + Tribunal"`,
+	} {
+		if !strings.Contains(s, want) {
+			t.Errorf("canonical mixed-role frontmatter missing %q in:\n%s", want, s)
+		}
+	}
+}
+
+func TestNormalizeRalphFrontmatter_HonoursMixedRoleStamp(t *testing.T) {
+	f := filepath.Join(t.TempDir(), "post.mdx")
+	if err := os.WriteFile(f, []byte(ralphFixtureMDX), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := normalizeRalphFrontmatter(f, PipelineStamp{
+		WriteModel:    "Opus 4.8",
+		WriteHarness:  "Claude Code CLI",
+		ReviewModel:   "GPT-5.5",
+		ReviewHarness: "Codex CLI",
+		RefineModel:   "Opus 4.8",
+		RefineHarness: "Claude Code CLI",
+		JudgeModel:    "GPT-5.5",
+		JudgeHarness:  "Codex CLI",
+	}); err != nil {
+		t.Fatalf("normalize: %v", err)
+	}
+	out, _ := os.ReadFile(f)
+	s := string(out)
+	for _, want := range []string{
+		`harness: "Claude Code CLI"`,
+		`model: "Opus 4.8"`,
+		`model: "GPT-5.5"`,
+		`harness: "Codex CLI"`,
+		`harness: "Claude Code CLI + Tribunal"`,
+	} {
+		if !strings.Contains(s, want) {
+			t.Errorf("mixed-role frontmatter missing %q in:\n%s", want, s)
+		}
 	}
 }
 
 func TestNormalizeRalphFrontmatter_MissingFile(t *testing.T) {
-	if err := normalizeRalphFrontmatter("/tmp/missing-xyz-123.mdx"); err == nil {
+	if err := normalizeRalphFrontmatter("/tmp/missing-xyz-123.mdx", PipelineStamp{}); err == nil {
 		t.Fatal("expected error for missing file")
 	}
 }
@@ -100,7 +149,7 @@ func TestNormalizeRalphFrontmatter_NoFrontmatter_Silent(t *testing.T) {
 	if err := os.WriteFile(f, []byte("just body, no frontmatter"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := normalizeRalphFrontmatter(f); err != nil {
+	if err := normalizeRalphFrontmatter(f, PipelineStamp{}); err != nil {
 		t.Fatalf("expected silent success on no-frontmatter, got %v", err)
 	}
 }

@@ -1,0 +1,226 @@
+---
+interface Step {
+  label: string;
+  goal: string;
+  output: string;
+}
+
+interface Props {
+  lang?: 'zh' | 'en';
+}
+
+const { lang = 'zh' } = Astro.props;
+
+const zhSteps: Step[] = [
+  { label: '1. 最小問題', goal: '先問「我需要懂到哪裡才不會卡住？」', output: '入口點' },
+  { label: '2. 粗糙地圖', goal: '只列最先要懂的 3 個概念，其他先延後。', output: '注意力邊界' },
+  { label: '3. 最小練習', goal: '做一個小到不怕失敗、真到有回饋的例子。', output: '牽引力' },
+  { label: '4. 講回來', goal: '用自己的話回答 5 個實務問題。', output: '理解檢查' },
+  {
+    label: '5. 留麵包屑',
+    goal: '記下學會什麼、還不確定什麼、下次從哪裡接。',
+    output: '可恢復記憶',
+  },
+];
+
+const enSteps: Step[] = [
+  {
+    label: '1. Minimum question',
+    goal: 'Ask what you need to understand so you are no longer stuck.',
+    output: 'Entry point',
+  },
+  {
+    label: '2. Rough map',
+    goal: 'Name the first three concepts and explicitly ignore the rest for now.',
+    output: 'Attention boundary',
+  },
+  {
+    label: '3. Tiny exercise',
+    goal: 'Run something small enough to fail safely but real enough to teach.',
+    output: 'Traction',
+  },
+  {
+    label: '4. Teach it back',
+    goal: 'Answer five practical questions in your own words.',
+    output: 'Understanding check',
+  },
+  {
+    label: '5. Breadcrumbs',
+    goal: 'Save what you learned, what is uncertain, and where to continue.',
+    output: 'Recoverable memory',
+  },
+];
+
+const steps = lang === 'en' ? enSteps : zhSteps;
+const labels =
+  lang === 'en'
+    ? {
+        title: 'Codex as a learning coach',
+        wrong: 'Wrong mental model',
+        right: 'Useful mental model',
+        lecture: '“Explain the tool” → 3,000-word lecture',
+        entrance: '“Find my entry point” → one next action',
+      }
+    : {
+        title: '把 Codex 當學習教練',
+        wrong: '錯的心智模型',
+        right: '有用的心智模型',
+        lecture: '「解釋這個工具」→ 3000 字講座',
+        entrance: '「幫我找入口」→ 下一個動作',
+      };
+---
+
+<section class="codex-learning-map" aria-label={labels.title}>
+  <div class="model-shift">
+    <div class="model-card bad">
+      <span>{labels.wrong}</span>
+      <strong>{labels.lecture}</strong>
+    </div>
+    <div class="arrow" aria-hidden="true">→</div>
+    <div class="model-card good">
+      <span>{labels.right}</span>
+      <strong>{labels.entrance}</strong>
+    </div>
+  </div>
+
+  <ol class="steps">
+    {
+      steps.map((step) => (
+        <li>
+          <div class="step-label">{step.label}</div>
+          <p>{step.goal}</p>
+          <span>{step.output}</span>
+        </li>
+      ))
+    }
+  </ol>
+</section>
+
+<style>
+  .codex-learning-map {
+    --clm-bg: linear-gradient(135deg, rgba(68, 71, 90, 0.96), rgba(40, 42, 54, 0.98));
+    --clm-glow: radial-gradient(circle at top left, rgba(255, 121, 198, 0.2), transparent 38%);
+    --clm-card-bg: rgba(40, 42, 54, 0.72);
+    --clm-step-bg: rgba(68, 71, 90, 0.42);
+    --clm-pill-bg: rgba(139, 233, 253, 0.12);
+    --clm-border: rgba(206, 205, 218, 0.32);
+    --clm-dashed-border: rgba(206, 205, 218, 0.34);
+    --clm-text: var(--color-text, #cecdda);
+    --clm-muted: var(--color-text-muted, #8a96c0);
+    --clm-strong: #f8f8f2;
+
+    margin: 2rem 0;
+    padding: 1rem;
+    border: 1px solid var(--clm-border);
+    border-radius: 18px;
+    background: var(--clm-glow), var(--clm-bg);
+    color: var(--clm-text);
+  }
+
+  :global([data-theme='light']) .codex-learning-map {
+    --clm-bg: #fdf6e3;
+    --clm-glow: radial-gradient(circle at top left, rgba(38, 139, 210, 0.18), transparent 36%);
+    --clm-card-bg: rgba(255, 255, 255, 0.45);
+    --clm-step-bg: rgba(255, 255, 255, 0.32);
+    --clm-pill-bg: rgba(88, 110, 117, 0.12);
+    --clm-border: var(--color-border, #d3cbb7);
+    --clm-dashed-border: rgba(88, 110, 117, 0.52);
+    --clm-text: var(--color-text, #556b73);
+    --clm-muted: var(--color-text-muted, #4a5a5e);
+    --clm-strong: var(--color-text, #556b73);
+  }
+
+  .model-shift {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 0.75rem;
+    align-items: stretch;
+    margin-bottom: 1rem;
+  }
+
+  .model-card {
+    border-radius: 14px;
+    padding: 0.9rem;
+    border: 1px solid var(--clm-border);
+    background: var(--clm-card-bg);
+  }
+
+  .model-card span,
+  .steps span {
+    display: inline-block;
+    font-size: 0.78rem;
+    letter-spacing: 0.03em;
+    color: var(--clm-muted);
+  }
+
+  .model-card strong {
+    display: block;
+    margin-top: 0.35rem;
+    line-height: 1.35;
+    color: var(--clm-strong);
+  }
+
+  .bad {
+    box-shadow: inset 4px 0 0 #dc322f;
+  }
+  .good {
+    box-shadow: inset 4px 0 0 #859900;
+  }
+
+  .arrow {
+    display: flex;
+    align-items: center;
+    font-size: 1.7rem;
+    color: var(--clm-muted);
+  }
+
+  .steps {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.65rem;
+  }
+
+  .steps li {
+    border: 1px dashed var(--clm-dashed-border);
+    border-radius: 14px;
+    padding: 0.75rem;
+    background: var(--clm-step-bg);
+  }
+
+  .step-label {
+    font-weight: 700;
+    margin-bottom: 0.35rem;
+    color: var(--clm-strong);
+  }
+
+  .steps p {
+    margin: 0 0 0.55rem;
+    font-size: 0.92rem;
+    line-height: 1.55;
+    color: var(--clm-text);
+  }
+
+  .steps span {
+    padding: 0.15rem 0.45rem;
+    border-radius: 999px;
+    background: var(--clm-pill-bg);
+  }
+
+  @media (max-width: 760px) {
+    .model-shift {
+      grid-template-columns: 1fr;
+    }
+
+    .arrow {
+      justify-content: center;
+      transform: rotate(90deg);
+    }
+
+    .steps {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

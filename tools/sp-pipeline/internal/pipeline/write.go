@@ -48,6 +48,10 @@ func (s *State) Write(ctx context.Context) error {
 		s.PromptTicketID = "PENDING"
 	}
 
+	disp := s.writerDispatcher()
+	if disp == nil {
+		return fmt.Errorf("write: writer dispatcher is nil")
+	}
 	prompt, err := prompts.Render("write", prompts.WriteData{
 		TicketID:       s.PromptTicketID,
 		OriginalDate:   s.OriginalDate,
@@ -56,8 +60,8 @@ func (s *State) Write(ctx context.Context) error {
 		SourceField:    s.ResolveSourceField(),
 		Angle:          s.Angle,
 		TweetURL:       s.TweetURL,
-		Model:          llm.DisplayName(s.Dispatcher.Providers()[0].Model()),
-		Harness:        llm.HarnessName(s.Dispatcher.Providers()[0].Model()),
+		Model:          llm.DisplayName(disp.Providers()[0].Model()),
+		Harness:        llm.HarnessName(disp.Providers()[0].Model()),
 		FirstTag:       s.firstTag(),
 		StyleGuide:     string(styleGuide),
 		Source:         string(source),
@@ -66,7 +70,7 @@ func (s *State) Write(ctx context.Context) error {
 		return fmt.Errorf("write: render prompt: %w", err)
 	}
 
-	res, err := s.Dispatcher.Run(ctx, prompt, llm.RunOptions{WorkDir: s.WorkDir})
+	res, err := disp.Run(ctx, prompt, llm.RunOptions{WorkDir: s.WorkDir})
 	if err != nil {
 		return NewStepError(14, fmt.Errorf("write: dispatcher failed: %w", err))
 	}
@@ -85,7 +89,7 @@ func (s *State) Write(ctx context.Context) error {
 		}
 	}
 
-	s.WriteModel = llm.DisplayName(res.Model)
+	s.WriteModel = llm.DisplayName(res.ActualModel)
 	s.WriteHarness = llm.HarnessName(res.Model)
 	s.Log.OK("Step 2: draft-v1.mdx written by %s", s.WriteModel)
 	return nil

@@ -29,7 +29,7 @@ const getTimelineStyle = (status: PostStatus) =>
 ---
 
 <BaseLayout title="ShroomDog Original - All Posts" lang="en">
-  <h1><img src="/gu-log-icon-trimmed.png" alt="" class="page-icon" /> ShroomDog Original</h1>
+  <h1><img src="/shroomdog-icon.png" alt="" class="page-icon" /> ShroomDog Original</h1>
   <p class="page-subtitle">Original content by ShroomDog</p>
   <p class="post-count">{page.total} posts</p>
 
@@ -42,7 +42,7 @@ const getTimelineStyle = (status: PostStatus) =>
         return (
           <article class="post-preview" style={getTimelineStyle(status)}>
             <h3>
-              <a href={`/en/posts/${post.slug}`}>
+              <a href={`/en/posts/${post.id}`}>
                 {post.data.title}
                 {status !== 'published' && <PostStatusLabel status={status} />}
               </a>
@@ -68,6 +68,13 @@ const getTimelineStyle = (status: PostStatus) =>
 <style>
   h1 {
     color: var(--color-accent);
+  }
+
+  .page-icon {
+    width: 44px;
+    height: 44px;
+    vertical-align: middle;
+    margin-right: 0.5rem;
   }
 
   .page-subtitle {

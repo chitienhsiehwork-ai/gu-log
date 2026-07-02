@@ -6,15 +6,22 @@ import (
 	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/llm"
 )
 
-// buildDispatcher returns a Dispatcher honoring the --fake-provider flag.
-// When the flag is set, the dispatcher is a single FakeProvider loaded
-// from JSON. Otherwise it is the real Codex-only chain. The old
-// Opus-primary/Gemini-assisted pipeline is intentionally not the default now
-// that those subscriptions are not assumed to be active.
-//
-// The opusOnly parameter is kept for CLI compatibility, but no longer changes
-// provider routing because Claude is not a safe default dependency.
+type dispatcherRole string
+
+const (
+	dispatcherWriter dispatcherRole = "writer"
+	dispatcherJudge  dispatcherRole = "judge"
+)
+
+// buildDispatcher returns a role-specific Dispatcher honoring the
+// --fake-provider flag. Writers use Claude Opus alias on Macs where Claude Code
+// is installed, falling back to full Codex GPT-5.5 only when Claude is absent.
+// Judges use full Codex GPT-5.5, never mini.
 func buildDispatcher(state *rootState, opusOnly bool) (*llm.Dispatcher, error) {
+	return buildDispatcherForRole(state, dispatcherWriter, opusOnly)
+}
+
+func buildDispatcherForRole(state *rootState, role dispatcherRole, opusOnly bool) (*llm.Dispatcher, error) {
 	if state.fakeProviderPath != "" {
 		fake, err := llm.LoadFakeFromJSON(state.fakeProviderPath)
 		if err != nil {
@@ -22,7 +29,22 @@ func buildDispatcher(state *rootState, opusOnly bool) (*llm.Dispatcher, error) {
 		}
 		return llm.NewDispatcher(state.log, fake)
 	}
-	providers := llm.DefaultWritingChain()
+	var providers []llm.Provider
+	switch role {
+	case dispatcherJudge:
+		providers = llm.JudgeChainWithClaudeFallback(state.judgeAllowClaude)
+	default:
+		providers = llm.WritingChain()
+	}
 	_ = opusOnly
-	return llm.NewDispatcher(state.log, providers...)
+	disp, err := llm.NewDispatcher(state.log, providers...)
+	if err != nil {
+		return nil, err
+	}
+	policy := llm.DefaultQuotaPolicy()
+	if role == dispatcherJudge {
+		policy.AllowClaudeJudgeFallback = state.judgeAllowClaude
+	}
+	disp.ConfigureQuotaPolicy(policy)
+	return disp, nil
 }

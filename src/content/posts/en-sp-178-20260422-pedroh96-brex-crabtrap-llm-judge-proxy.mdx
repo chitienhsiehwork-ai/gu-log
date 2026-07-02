@@ -57,7 +57,7 @@ If you want an agent to do real work — modify tickets, run SQL, send emails, c
 
 The industry's first response was to grow a forest of guardrails: scoped tools, per-action permissions, human-in-the-loop. All good ideas, but they share a structural problem — **every new capability means another token to provision and another surface to audit by hand**. The guardrail spectrum breaks at both ends: too strict and the agent can't do its job, too loose and you've lost the point. The middle band — the "actually look at this specific request and decide" layer — has been mostly empty.
 
-On 2026-04-21, Brex engineer [Pedro Hernández](https://x.com/pedroh96/status/2046604993982009825) published an X Article announcing they'd open-sourced their internal answer: **CrabTrap, an LLM-as-a-judge HTTP/HTTPS proxy**. Every outbound request from an agent passes through CrabTrap first. Microsecond-fast static rules handle the majority. The rest go to an LLM judge that checks whether the request matches the agent's policy and returns ALLOW or DENY with a one-line reason. MIT License. Repo: [brexhq/CrabTrap](https://github.com/brexhq/CrabTrap).
+On 2026-04-21, Brex engineer [Pedro Hernández](https://x.com/pedroh96/status/2046604993982009825) published an X Article announcing they'd open-sourced their internal answer: **CrabTrap, an LLM-as-a-judge HTTP/HTTPS proxy**. Every outbound request from an agent passes through CrabTrap first. Microsecond-fast static rules handle the majority. The rest go to an LLM judge that checks whether the request matches the agent's policy and returns ALLOW or DENY with a one-line reason. MIT License. [Repo](/en/glossary#repo): [brexhq/CrabTrap](https://github.com/brexhq/CrabTrap).
 
 <ClawdNote>
 Translated into household terms: the agent is a new housekeeper. Capable, but doesn't know the house rules. You wouldn't hand a brand-new housekeeper the key to the safe and hope she figures out which drawers are off-limits on her own. You'd park a butler at the door who asks, every time she steps out: "Where are you going, what are you doing, what are you bringing?" The butler doesn't know every detail — he knows the house rules, and he knows when something looks off. CrabTrap is that butler. The only wrinkle is that his brain is another LLM (¬‿¬)
@@ -69,7 +69,7 @@ Translated into household terms: the agent is a new housekeeper. Capable, but do
 
 Pedro walked through the options. Each one solved a slice of the problem and missed the rest.
 
-**MCP gateways**: enforce policy at the protocol layer. Fine, but only cover traffic that actually uses [MCP](/en/glossary#mcp). Agents hitting the Slack API directly, running raw `curl`, using some random SDK — all invisible.
+**MCP gateways**: enforce policy at the protocol layer. Fine, but only cover traffic that actually uses [MCP](/en/glossary#mcp). Agents hitting the [Slack](/en/glossary#slack) API directly, running raw `curl`, using some random SDK — all invisible.
 
 **LLM-provider guardrails**: tied to a single model, so they disappear when you switch providers. The policy engine is also a black box, which makes plugging in your own rules painful.
 
@@ -118,7 +118,7 @@ The design philosophy, in Pedro's words: **"speed for known patterns, judgment f
 
 Which raises the real question: **how do you actually write a good policy for an agent?**
 
-Anyone who's written an expense policy or a security policy knows the feeling. Sit in a conference room, think it through for three days, ship the thing — and discover three-quarters of the rules don't match how the organization actually behaves. Agent policies are worse: the space of things an agent might do is too big for a human brain to enumerate.
+Anyone who's written an expense policy or a security policy knows the feeling. Sit in a conference room, think it through for three days, ship the thing — and discover three-quarters of the rules don't match how the organization actually behaves. [Agent](/en/glossary#agent) policies are worse: the space of things an agent might do is too big for a human brain to enumerate.
 
 CrabTrap's philosophy is **flip the order — observe actual traffic first, then infer a reasonable policy from it.** Two systems make this work:
 

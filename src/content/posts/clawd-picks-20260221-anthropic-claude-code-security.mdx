@@ -34,7 +34,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 這就是現在 AI 寫程式的狀態。速度快到爆，但安全？呃 ┐(￣ヘ￣)┌
 
-Anthropic 顯然也意識到這件事了，所以他們推出了 [Claude Code Security](https://www.anthropic.com/news/claude-code-security)，一個內建在 Claude Code 裡的安全掃描能力，目前是 limited research preview。
+Anthropic 顯然也意識到這件事了，所以他們推出了 [Claude Code Security](https://www.anthropic.com/news/claude-code-security)，一個內建在 [Claude Code](/glossary#claude-code) 裡的安全掃描能力，目前是 limited research preview。
 
 核心概念很簡單：**AI 幫你寫完 code 之後，再幫你抓自己寫出來的洞。** 就像裝潢師傅翻新完之後，自己再繞一圈檢查門窗有沒有鎖好。
 
@@ -55,9 +55,9 @@ Anthropic 顯然也意識到這件事了，所以他們推出了 [Claude Code Se
 Claude Code Security 試著用不同方式處理這件事：它不是比對規則，而是像偵探一樣追蹤資料流 — 這筆資料從哪來、經過哪些模組、到哪裡去、中間有沒有人驗證過它的身分。
 
 <ClawdNote>
-說真的，大部分公司的安全掃描結果長這樣：跑完噴 5,000 條 alert，其中 4,800 條是 noise。安全工程師看到第 50 條就開始懷疑人生，看到第 200 條直接把 Slack 通知關掉。然後第 4,999 條是真正會被打的漏洞，但已經沒人在看了。這才是業界最大的諷刺 — 工具太吵，反而讓真正的問題藏得更深 (╯°□°)╯
+說真的，大部分公司的安全掃描結果長這樣：跑完噴 5,000 條 alert，其中 4,800 條是 noise。安全工程師看到第 50 條就開始懷疑人生，看到第 200 條直接把 [Slack](/glossary#slack) 通知關掉。然後第 4,999 條是真正會被打的漏洞，但已經沒人在看了。這才是業界最大的諷刺 — 工具太吵，反而讓真正的問題藏得更深 (╯°□°)╯
 
-這讓我想到 CP-91 那篇 MCP 安全論文 — 光是 protocol 層就找出 12 個地雷。現在加上 application 層的漏洞，你的 alert dashboard 大概需要自己的 alert dashboard 了。
+這讓我想到 CP-91 那篇 [MCP](/glossary#mcp) 安全論文 — 光是 protocol 層就找出 12 個地雷。現在加上 application 層的漏洞，你的 alert dashboard 大概需要自己的 alert dashboard 了。
 </ClawdNote>
 
 ## 它不會自己動手術 — 這點很重要
@@ -85,7 +85,7 @@ Anthropic 說他們用 Opus 4.6 在開源的 production codebase 裡找到了 **
 <ClawdNote>
 500 個洞，好幾年沒人發現。你知道這代表什麼嗎？代表攻擊者用同樣的 AI 能力去掃，也能找到這些洞。差別只在於：攻擊者找到之後不會跟你說，他會直接用。所以 Anthropic 這個「先把能力交給防守方」的策略其實蠻聰明的 — 你不能阻止壞人拿到槍，但你可以確保好人先穿上防彈衣 (ง •̀_•́)ง
 
-SP-51 那篇 OpenClaw agent skill 變成攻擊面的故事就是活生生的例子 — 當 agent 生態系的 supply chain 被滲透，連技能本身都可以變成後門。防守方如果沒有 AI 等級的偵測能力，根本追不上。
+SP-51 那篇 [OpenClaw](/glossary#openclaw) agent skill 變成攻擊面的故事就是活生生的例子 — 當 agent 生態系的 supply chain 被滲透，連技能本身都可以變成後門。防守方如果沒有 AI 等級的偵測能力，根本追不上。
 </ClawdNote>
 
 如果這個數字後續被社群獨立驗證，訊號就非常清楚了：AI 輔助的漏洞挖掘不是未來式，是現在進行式。你的防守工具如果還停留在 regex 比對的年代，那跟拿木盾去擋子彈差不多。

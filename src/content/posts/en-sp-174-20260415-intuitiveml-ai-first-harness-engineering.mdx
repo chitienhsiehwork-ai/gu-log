@@ -15,6 +15,14 @@ sourceUrl: "https://x.com/intuitiveml/status/2043545596699750791"
 lang: "en"
 summary: "A 25-person agent platform tore down its engineering pipeline and rebuilt it around one idea: agents are the primary builders. Result: 3-8 prod deploys a day, bad features killed same-day, six-week cycles now land in hours. Harness engineering, applied."
 tags: ["ai-agents", "agent-harness", "harness-engineering", "ai-first", "workflow", "startup"]
+scores:
+  ralph:
+    p: 7
+    c: 9
+    v: 8
+    score: 7
+    date: "2026-04-15"
+    model: "claude-opus-4-6"
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
@@ -67,7 +75,7 @@ Better rule: **reversible decisions get agent-speed iteration; irreversible deci
 
 ### The QA Bottleneck
 
-Same dynamics. Agent ships a feature in two hours. QA spends three days testing corner cases. Build time: 2 hours. Test time: 3 days.
+Same dynamics. [Agent](/en/glossary#agent) ships a feature in two hours. QA spends three days testing corner cases. Build time: 2 hours. Test time: 3 days.
 
 We replaced manual QA with **AI-built testing platforms that test AI-written code**. Validation has to move at implementation speed. Otherwise you've just built a new bottleneck ten feet downstream from the old one.
 
@@ -140,7 +148,7 @@ Engineers also tag `@claude` in issues and PRs for implementation plans, debuggi
 
 Every morning at 9:00 AM UTC, an automated health workflow runs. Claude Sonnet 4.6 queries CloudWatch, analyzes error patterns across all services, and generates an executive health summary delivered to the team via Microsoft Teams. **Nobody asked for it. It ran itself.**
 
-One hour later, the triage engine runs. It clusters production errors from CloudWatch and Sentry, scores each cluster across nine severity dimensions, auto-generates investigation tickets in Linear — each with sample logs, affected users, affected endpoints, and suggested investigation paths.
+One hour later, the triage engine runs. It clusters production errors from CloudWatch and Sentry, scores each cluster across nine severity dimensions, auto-generates investigation tickets in [Linear](/en/glossary#linear) — each with sample logs, affected users, affected endpoints, and suggested investigation paths.
 
 The system deduplicates. Same error pattern as an open ticket? Update it. A previously closed issue recurring? Detect the regression and reopen.
 
@@ -175,7 +183,7 @@ You can build this on any stack. AWS gives you CloudWatch as a one-stop shop. k8
 
 **Graphite** manages PR branching: merge queues rebase onto main, re-run CI, merge only if green. Stacked PRs enable incremental review at high throughput.
 
-**Sentry** reports structured exceptions across services, merged with CloudWatch by the triage engine for cross-tool context. **Linear** is the human-facing layer: auto-created tickets with severity scores, sample logs, suggested investigation paths. Dedup prevents noise. Follow-up verification auto-closes resolved issues.
+**Sentry** reports structured exceptions across services, merged with CloudWatch by the triage engine for cross-tool context. **Linear** is the human-facing layer: auto-created tickets with severity scores, sample logs, suggested investigation paths. [Dedup](/en/glossary#dedup) prevents noise. Follow-up verification auto-closes resolved issues.
 
 ## How a Feature Moves from Idea to Production
 
@@ -376,7 +384,7 @@ Verticals where this won't go mainstream:
 
 So the author's prediction isn't wrong — it just needs scope. **What'll go mainstream is "one person + agents running a $1-10M micro-business"** — not "every type of company becomes a one-person company."
 
-Concrete example: gu-log itself is a micro version of this. One user + Clawd (Claude on a VM) + Claude Code + Ralph Loop running the whole blog pipeline. Ten-thousand times smaller scale, same pattern. The author's vision isn't fantasy — it just has applicable boundaries (๑•̀ㅂ•́)و✧
+Concrete example: gu-log itself is a micro version of this. One user + [Clawd](/en/glossary#clawd) (Claude on a VM) + [Claude Code](/en/glossary#claude-code) + [Ralph Loop](/en/glossary#ralph-loop) running the whole blog pipeline. Ten-thousand times smaller scale, same pattern. The author's vision isn't fantasy — it just has applicable boundaries (๑•̀ㅂ•́)و✧
 
 **Final TL;DR for CTOs / founders reading this**: harness engineering is a real thing, worth learning. But this piece smuggles a few things together you need to separate —
 

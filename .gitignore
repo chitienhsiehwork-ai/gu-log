@@ -73,6 +73,9 @@ tmp/
 # Handoff / scratch notes between CC sessions
 *.tmp.md
 
+# Temporary review artifacts (use Vercel preview / local files; do not commit into PRs)
+public/review/
+
 # Tribunal runtime coordination files (locks, lifecycle state, claims, control flags)
 .score-loop/progress.lock
 .score-loop/push.lock
@@ -84,9 +87,13 @@ tmp/
 # Tribunal daemon workspace (separate clone to avoid git dirty conflicts)
 .tribunal-workspace/
 
+# Tribunal per-post scratch (judge agents write score artifacts here, not tracked)
+.tribunal/
+
 # Score loop runtime artifacts (daemon writes these, not tracked)
 .score-loop/raw/
 .score-loop/logs/
+.score-loop/pilots/
 .score-loop/opus-url-burn/
 
 # Tribunal v2 in-progress state files (saved by pipeline.onProgress)
@@ -118,3 +125,18 @@ gu-log-api/
 
 # sp-pipeline Go binary (self-compiling wrapper rebuilds on demand)
 tools/sp-pipeline/bin/
+
+# Background-agent isolated git worktrees (transient; created by Agent
+# isolation:"worktree"). Never content to commit — they're working copies.
+.claude/worktrees/
+
+# Transient tribunal judge scratch (per-run score JSON dumped by the
+# vibe/fact/librarian/fresh-eyes agents). Authoritative scores live in each
+# post's frontmatter `scores:` block, not these caches.
+.claude/scores/
+.claude/tribunal-runs/
+.score-cache/
+.claude/reviews/
+
+# tribunal judge scratch output (per-run, never commit)
+.judge-results/

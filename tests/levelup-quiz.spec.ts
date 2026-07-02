@@ -35,7 +35,7 @@ tags: ['test']
 
 import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
 import LevelUpProgress from '../../components/LevelUpProgress.astro';
-import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
 import AnalogyBox from '../../components/AnalogyBox.astro';
 
 <LevelUpProgress current={2} total={5} title="測試教學" />
@@ -54,13 +54,13 @@ import AnalogyBox from '../../components/AnalogyBox.astro';
   explanation="B 是正確答案，因為這是測試。"
 />
 
-<ClawdNote variant="murmur">
+<MoguNote variant="murmur">
 這是碎碎念風格的測試。
-</ClawdNote>
+</MoguNote>
 
-<ClawdNote>
+<MoguNote>
 這是一般 note 風格的測試。
-</ClawdNote>
+</MoguNote>
 
 <AnalogyBox title="🧪 測試類比">
 這就像是在測試一台新車上路前，先在工廠裡跑幾圈。
@@ -99,7 +99,9 @@ test.describe('LevelUpQuiz Component', () => {
     await expect(quiz.locator('.result-wrong')).toBeHidden();
   });
 
-  test('GIVEN a quiz WHEN user selects correct answer THEN shows green + explanation', async ({ page }) => {
+  test('GIVEN a quiz WHEN user selects correct answer THEN shows green + explanation', async ({
+    page,
+  }) => {
     await page.goto(TEST_URL, { waitUntil: 'networkidle' });
     await page.waitForTimeout(500); // Wait for hydration
 
@@ -125,7 +127,9 @@ test.describe('LevelUpQuiz Component', () => {
     }
   });
 
-  test('GIVEN a quiz WHEN user selects wrong answer THEN shows red + correct answer', async ({ page }) => {
+  test('GIVEN a quiz WHEN user selects wrong answer THEN shows red + correct answer', async ({
+    page,
+  }) => {
     await page.goto(TEST_URL, { waitUntil: 'networkidle' });
 
     const quiz = page.locator('.levelup-quiz').first();
@@ -149,7 +153,9 @@ test.describe('LevelUpQuiz Component', () => {
     await expect(quiz.locator('.result-correct')).toBeHidden();
   });
 
-  test('GIVEN a quiz already answered WHEN user clicks another option THEN nothing changes', async ({ page }) => {
+  test('GIVEN a quiz already answered WHEN user clicks another option THEN nothing changes', async ({
+    page,
+  }) => {
     await page.goto(TEST_URL, { waitUntil: 'networkidle' });
 
     const quiz = page.locator('.levelup-quiz').first();
@@ -164,7 +170,7 @@ test.describe('LevelUpQuiz Component', () => {
   });
 });
 
-test.describe('ClawdNote murmur variant', () => {
+test.describe('MoguNote murmur variant', () => {
   test.beforeAll(async () => {
     if (!fs.existsSync(testPostFullPath)) {
       fs.writeFileSync(testPostFullPath, TEST_MDX, 'utf-8');
@@ -181,8 +187,7 @@ test.describe('ClawdNote murmur variant', () => {
   test('GIVEN murmur variant WHEN rendered THEN has murmur styling class', async ({ page }) => {
     await page.goto(TEST_URL, { waitUntil: 'networkidle' });
 
-    // Find the murmur note (first .claude-note--murmur)
-    const murmur = page.locator('.claude-note--murmur').first();
+    const murmur = page.locator('.mogu-note--murmur').first();
     await expect(murmur).toBeVisible();
     await expect(murmur).toContainText('碎碎念');
   });
@@ -191,7 +196,7 @@ test.describe('ClawdNote murmur variant', () => {
     await page.goto(TEST_URL, { waitUntil: 'networkidle' });
 
     // The regular note should not have murmur class
-    const notes = page.locator('.claude-note:not(.claude-note--murmur)');
+    const notes = page.locator('.mogu-note:not(.mogu-note--murmur)');
     await expect(notes.first()).toBeVisible();
   });
 });
@@ -210,7 +215,9 @@ test.describe('LevelUpProgress Component', () => {
     }
   });
 
-  test('GIVEN progress component WHEN rendered THEN shows level and progress bar', async ({ page }) => {
+  test('GIVEN progress component WHEN rendered THEN shows level and progress bar', async ({
+    page,
+  }) => {
     await page.goto(TEST_URL, { waitUntil: 'networkidle' });
 
     const progress = page.locator('.levelup-progress').first();
@@ -222,7 +229,9 @@ test.describe('LevelUpProgress Component', () => {
     await expect(progress.locator('.progress-bar-fill')).toBeVisible();
   });
 
-  test('GIVEN progress component without title WHEN rendered THEN does not show title', async ({ page }) => {
+  test('GIVEN progress component without title WHEN rendered THEN does not show title', async ({
+    page,
+  }) => {
     await page.goto(TEST_URL, { waitUntil: 'networkidle' });
 
     // The second progress bar has no title

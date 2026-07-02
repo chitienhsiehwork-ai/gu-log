@@ -34,6 +34,25 @@ Codex/GPT-5.5 operating rules:
   ClawdNote quality or the build error points there.
 - Keep zh-tw posts natural 台灣中文. Preserve canonical technical terms, but
   remove gratuitous 晶晶體 filler when editing surrounding prose.
+- For SP body prose, remove source-meta scaffolding such as 「原作者說」,
+  「原文提到」, and 「這篇文章在講」. Preserve evidence limits with natural
+  wording, and keep Clawd/gu-log commentary inside <ClawdNote>.
+- Tribunal v7 judge-evidence rules:
+  - If Librarian reports corpus overlap or duplicate-attention risk, do a
+    structural fix: cite/contrast the older post early, compress repeated
+    background to a short recap, and spend the article on the new angle. Do not
+    merely add a link near the end.
+  - If Fresh Eyes reports reader fatigue, shorten or merge sections. A synonym
+    polish is not a fix for "too long".
+  - If Vibe reports compression, section boredom, or decorative persona trap,
+    change the article spine or rhythm. Do not just add jokes, kaomoji, or more
+    ClawdNote text on top of the same skeleton.
+  - In SP-187-style Symphony cases, CP-179 should be cited early for the
+    community workflow, while the official OpenAI post focuses on SPEC/App
+    Server/platform signal, 500% caveats, PM/designer dispatch, Elixir/spec
+    validation, and guardrails/skills discipline. The exact bad sample is
+    recorded at `.codex/agents/references/sp-187-v7-false-positive.md`; do not
+    preserve that structure when rewriting.
 - Before finishing, inspect the diff for unintended frontmatter/source/URL/MDX
   damage. Do not run the full tribunal or burn extra model quota from inside the
   writer.

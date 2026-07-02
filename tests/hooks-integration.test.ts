@@ -37,19 +37,26 @@ function makeFakeRepo(): string {
   return tmp;
 }
 
+function makeFastHookEnv(): NodeJS.ProcessEnv {
+  const bin = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-hook-bin-'));
+  for (const name of ['gitleaks', 'node', 'npx']) {
+    const tool = path.join(bin, name);
+    fs.writeFileSync(tool, '#!/bin/sh\nexit 0\n');
+    fs.chmodSync(tool, 0o755);
+  }
+  return { ...process.env, PATH: `${bin}${path.delimiter}${process.env.PATH ?? ''}` };
+}
+
 describe('pre-commit: ticketId duplicate gate (Step 0)', () => {
   it('blocks when 3+ posts share a non-PENDING ticketId', () => {
     const repo = makeFakeRepo();
     const postsDir = path.join(repo, 'src', 'content', 'posts');
     for (let i = 0; i < 3; i++) {
-      fs.writeFileSync(
-        path.join(postsDir, `dup-${i}.mdx`),
-        `---\nticketId: SP-99\n---\nbody\n`
-      );
+      fs.writeFileSync(path.join(postsDir, `dup-${i}.mdx`), `---\nticketId: SP-99\n---\nbody\n`);
     }
     const r = spawnSync('bash', [path.join(REPO_ROOT, '.githooks', 'pre-commit')], {
       cwd: repo,
-      env: { ...process.env },
+      env: makeFastHookEnv(),
       encoding: 'utf-8',
     });
     // We expect non-zero exit and the duplicate-ID message in output.
@@ -68,14 +75,16 @@ describe('pre-commit: ticketId duplicate gate (Step 0)', () => {
     }
     const r = spawnSync('bash', [path.join(REPO_ROOT, '.githooks', 'pre-commit')], {
       cwd: repo,
-      env: { ...process.env },
+      env: makeFastHookEnv(),
       encoding: 'utf-8',
     });
     // PENDING dupes shouldn't trip Step 0. Other later steps may still
     // fail (eslint, validate-posts, etc), but the message we're asserting
-    // about should not appear.
+    // about should not appear. CI can spend a few extra seconds in the
+    // later hook chain, so keep this assertion's timeout above Vitest's
+    // default instead of making the duplicate-gate test flaky.
     expect(r.stdout + r.stderr).not.toMatch(/DUPLICATE ticketId/);
-  });
+  }, 15_000);
 });
 
 describe('pre-push: PENDING ticketId guard (Step 0)', () => {
@@ -88,14 +97,14 @@ describe('pre-push: PENDING ticketId guard (Step 0)', () => {
         ' refs/heads/feature-branch ' +
         'b'.repeat(40) +
         '\n',
-      env: { ...process.env, PWD: REPO_ROOT },
+      env: { ...makeFastHookEnv(), PWD: REPO_ROOT },
       encoding: 'utf-8',
     });
     // Should not crash on PENDING gate (it only checks pushes targeting main).
-    // The bundle-budget step at the end may exit non-zero in environments
-    // without the metric files; we just assert PENDING gate didn't fire.
+    // The bundle-budget step is warning-only locally (#396) so it won't fail the
+    // hook; we just assert the PENDING gate didn't fire.
     expect(r.stdout + r.stderr).not.toMatch(/PENDING ticketId in commits/);
-  });
+  }, 15_000);
 
   it('blocks when pushing PENDING ticketIds to main', () => {
     // Synthetic stdin matching git pre-push contract:

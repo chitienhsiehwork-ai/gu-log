@@ -4,10 +4,11 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import Toggle from '../components/Toggle.astro';
 import TicketBadge from '../components/TicketBadge.astro';
 import PostStatusLabel from '../components/PostStatusLabel.astro';
-import { getListablePosts, getPostStatus, type PostStatus } from '../utils/post-status';
+import { getIndexPosts, getPostStatus, type PostStatus } from '../utils/post-status';
 
 const allPostsFull = await getCollection('posts');
-const allPosts = getListablePosts(allPostsFull, 'zh-tw');
+// Homepage excludes sub-8 posts (held off until a background tribunal lifts them).
+const allPosts = getIndexPosts(allPostsFull, 'zh-tw');
 
 // Helper: extract number from ticketId (e.g., "CP-11" → 11)
 const getTicketNumber = (ticketId: string | undefined) => {
@@ -38,7 +39,9 @@ const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(
   {
     spPosts.length > 0 && (
       <section class="posts-section sp-section">
-        <h2>📚 ShroomDog Picks</h2>
+        <h2>
+          <img src="/gu-log-icon-trimmed.png" alt="" class="section-icon" /> Gu-log Picks
+        </h2>
         <p class="section-subtitle">ShroomDog 精選長文翻譯</p>
 
         {spPosts.slice(0, 3).map((post) => {
@@ -46,7 +49,7 @@ const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(
           return (
             <article class="post-preview" style={getTimelineStyle(status)}>
               <h3>
-                <a href={`/posts/${post.slug}`}>
+                <a href={`/posts/${post.id}`}>
                   {post.data.title}
                   {status !== 'published' && <PostStatusLabel status={status} />}
                 </a>
@@ -71,27 +74,29 @@ const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(
     )
   }
 
-  {/* CP: Clawd Picks */}
+  {/* CP: Mogu Picks */}
   {
     cpPosts.length > 0 && (
-      <section class="clawd-picks-section" id="clawd-picks">
+      <section class="mogu-picks-section" id="mogu-picks">
         <h2>
-          <img src="/clawd-picks-icon.png" alt="" class="clawd-section-icon" /> Clawd Picks
+          <img src="/mogu-picks-icon.png" alt="" class="mogu-section-icon" /> Mogu Picks
         </h2>
-        <p class="section-subtitle">Clawd 每 5 小時精選一則推文翻譯</p>
+        <p class="section-subtitle">由 Mogu 翻譯與撰寫</p>
 
-        {cpPosts.slice(0, 5).map((pick) => {
+        {cpPosts.slice(0, 3).map((pick) => {
           const status = getPostStatus(pick, allPostsFull);
           return (
-            <article class="pick-preview" style={getTimelineStyle(status)}>
-              <a href={`/posts/${pick.slug}`}>
-                {pick.data.title}
-                {status !== 'published' && <PostStatusLabel status={status} />}
-              </a>
-              <span class="pick-meta">
+            <article class="post-preview" style={getTimelineStyle(status)}>
+              <h3>
+                <a href={`/posts/${pick.id}`}>
+                  {pick.data.title}
+                  {status !== 'published' && <PostStatusLabel status={status} />}
+                </a>
+              </h3>
+              <p class="post-meta">
                 {pick.data.ticketId && <TicketBadge ticketId={pick.data.ticketId} />}
-                {pick.data.translatedDate || pick.data.originalDate} · {pick.data.source}
-              </span>
+                {pick.data.translatedDate || pick.data.originalDate} · 翻譯自 {pick.data.source}
+              </p>
               {pick.data.summary && (
                 <Toggle title="摘要預覽">
                   <p>{pick.data.summary}</p>
@@ -101,9 +106,9 @@ const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(
           );
         })}
 
-        {cpPosts.length > 5 && (
+        {cpPosts.length > 3 && (
           <p class="view-all">
-            <a href="/clawd-picks">查看全部 →</a>
+            <a href="/mogu-picks">查看全部 →</a>
           </p>
         )}
       </section>
@@ -115,7 +120,7 @@ const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(
     sdPosts.length > 0 && (
       <section class="posts-section sd-section">
         <h2>
-          <img src="/gu-log-icon-trimmed.png" alt="" class="section-icon" /> ShroomDog Original
+          <img src="/shroomdog-icon.png" alt="" class="section-icon" /> ShroomDog Original
         </h2>
         <p class="section-subtitle">ShroomDog 原創內容</p>
 
@@ -124,7 +129,7 @@ const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(
           return (
             <article class="post-preview" style={getTimelineStyle(status)}>
               <h3>
-                <a href={`/posts/${post.slug}`}>
+                <a href={`/posts/${post.id}`}>
                   {post.data.title}
                   {status !== 'published' && <PostStatusLabel status={status} />}
                 </a>
@@ -161,7 +166,7 @@ const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(
           return (
             <article class="post-preview" style={getTimelineStyle(status)}>
               <h3>
-                <a href={`/posts/${post.slug}`}>
+                <a href={`/posts/${post.id}`}>
                   {post.data.title}
                   {status !== 'published' && <PostStatusLabel status={status} />}
                 </a>
@@ -210,7 +215,7 @@ const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(
   }
 
   .posts-section,
-  .clawd-picks-section {
+  .mogu-picks-section {
     margin-bottom: 1.5rem;
     padding-top: 1.25rem;
   }
@@ -222,7 +227,7 @@ const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(
   }
 
   /* Short centered divider between sections */
-  .clawd-picks-section::before,
+  .mogu-picks-section::before,
   .sd-section::before,
   .lv-section::before {
     content: '';
@@ -253,14 +258,14 @@ const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(
     color: var(--color-heading-sp, var(--color-badge-sp));
   }
 
-  .clawd-picks-section h2 {
-    color: var(--color-clawd-orange);
+  .mogu-picks-section h2 {
+    color: var(--color-mogu-orange);
   }
 
-  .clawd-section-icon,
+  .mogu-section-icon,
   .section-icon {
-    width: 24px;
-    height: 24px;
+    width: 38px;
+    height: 38px;
     vertical-align: middle;
     border-radius: 22%;
   }
@@ -277,31 +282,6 @@ const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(
   .post-preview :global(.toggle-header) {
     padding: 0.5rem 0.75rem;
     font-size: 0.85rem;
-  }
-
-  .pick-preview {
-    padding: 0.5rem 0;
-    border-bottom: 1px solid var(--color-divider);
-    font-size: 0.9rem;
-  }
-
-  .pick-preview a {
-    color: var(--color-text);
-  }
-
-  .pick-preview a:hover {
-    color: var(--color-accent);
-  }
-
-  .pick-meta {
-    display: block;
-    color: var(--color-text-muted);
-    font-size: 0.75rem;
-    margin-bottom: 0;
-  }
-
-  .pick-preview :global(.toggle-container) {
-    margin: 0.1rem 0 0;
   }
 
   .post-preview {

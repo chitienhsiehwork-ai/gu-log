@@ -36,7 +36,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-pnpm
       # `pnpm install --frozen-lockfile` inside the composite already fails
       # on any lockfile drift; this diff catches the narrower case of a
@@ -46,11 +46,28 @@ jobs:
       - name: Ensure npm lockfile not tracked
         run: test ! -f package-lock.json
 
+  # ─── advisory: openspec 近似唯讀牆（warn-only，不 gate merge）──────────────
+  # 見 .agents/openspec-sdlc.md〈階段 6：收斂與 escalation〉。script 一律 exit 0，
+  # 不在 ci-passed.needs 裡，純提示。證明不誤殺一段時間後，把 script 尾 violations>0
+  # 分支改 exit 1 + 加進 ci-passed.needs，才升為 blocking gate。
+  openspec-wall:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Fetch base
+        run: git fetch --no-tags origin main
+      - name: 近似唯讀牆（spec delta 是否被夾帶進實作 commit）
+        run: bash scripts/check-spec-impl-separation.sh origin/main
+
   lint:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-pnpm
       - name: ESLint
         run: pnpm run lint
@@ -61,7 +78,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-pnpm
       - name: Astro type check
         run: pnpm exec astro check
@@ -70,7 +87,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-pnpm
       - name: WCAG AA contrast check
         run: pnpm run check:contrast
@@ -79,7 +96,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           # Need history + base ref so the translation-pair gate can
           # diff "newly added in this PR" against the base branch.
@@ -117,7 +134,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-pnpm
       - name: Security gate (block new high/critical)
         run: pnpm run security:gate
@@ -128,7 +145,7 @@ jobs:
     # subprocesses; cap the job so a hung test can't eat 6h of runner time.
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-pnpm
       - name: Vitest unit tests
         run: pnpm exec vitest run --reporter=default
@@ -137,11 +154,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-pnpm
 
       - name: Cache Astro incremental state
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             node_modules/.astro
@@ -149,9 +166,9 @@ jobs:
           # Key covers everything `astro build` reads from config or plugins.
           # If you add a new config file or plugin location, add it here or
           # stale incremental state may leak between builds.
-          key: astro-${{ runner.os }}-${{ hashFiles('astro.config.*', 'src/content/config.ts', 'src/plugins/**') }}-${{ github.sha }}
+          key: astro-${{ runner.os }}-${{ hashFiles('astro.config.*', 'src/content.config.ts', 'src/plugins/**') }}-${{ github.sha }}
           restore-keys: |
-            astro-${{ runner.os }}-${{ hashFiles('astro.config.*', 'src/content/config.ts', 'src/plugins/**') }}-
+            astro-${{ runner.os }}-${{ hashFiles('astro.config.*', 'src/content.config.ts', 'src/plugins/**') }}-
             astro-${{ runner.os }}-
 
       - name: Build
@@ -165,13 +182,27 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
+  # Renders key pages (all /artifacts/ + home + an HTML-heavy post) at mobile
+  # and desktop widths and fails if anything blows out the viewport horizontally.
+  # Uses the Playwright dev server (npm run dev), so it does not consume dist/.
+  overflow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-pnpm
+      - name: Install Chromium
+        run: pnpm exec playwright install chromium --with-deps
+      - name: Check horizontal overflow (mobile + desktop)
+        run: pnpm exec playwright test tests/no-horizontal-overflow.spec.ts --project="Desktop Chrome"
+
   # ─── Tier 2: jobs that consume dist/ ──────────────────────────────────────
   internal-links:
     runs-on: ubuntu-latest
     needs: build
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-pnpm
       - uses: actions/download-artifact@v8
         with:
@@ -187,7 +218,7 @@ jobs:
     needs: build
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-pnpm
       - uses: actions/download-artifact@v8
         with:
@@ -213,6 +244,7 @@ jobs:
       - build
       - internal-links
       - bundle-budget
+      - overflow
     steps:
       - name: Verify every required job succeeded
         run: |
@@ -249,7 +281,7 @@ jobs:
 #          runs-on: ubuntu-latest
 #          timeout-minutes: 5
 #          steps:
-#            - uses: actions/checkout@v6
+#            - uses: actions/checkout@v7
 #            - uses: actions/dependency-review-action@v4
 #              with:
 #                fail-on-severity: moderate

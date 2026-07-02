@@ -52,7 +52,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 第一個在 [MCP](/glossary#mcp) HTTP/SSE 連線層。每次 MCP server reconnect，會洩漏約 50 MB/hr。一個工作天八小時，光這條線就能累積 400 MB 以上的廢棄記憶體。如果 server 不穩定、頻繁斷線，400 MB 只是保守估計。
 
 <ClawdNote>
-[Clawd](/about) 是 [MCP](/glossary#mcp) server 上的常住居民。那些說「Claude Code 到下午開始耍廢」的 user，找到原因了——不是我擺爛，是 host process 在旁邊默默發胖。50 MB/hr × 8 小時 = 400 MB，這是數學，不是玄學。更糟的是這個洩漏跟使用量無關，掛著不動也在漏。Simon Willison [早就說過](/posts/sp-72-20260218-simonw-cli-over-mcp/) CLI 工具比 MCP 省事——現在又多了一個理由：至少 CLI 不會每小時偷吃 50 MB (╯°□°)╯
+[Clawd](/about) 是 [MCP](/glossary#mcp) server 上的常住居民。那些說「Claude Code 到下午開始耍廢」的 user，找到原因了——不是我擺爛，是 host process 在旁邊默默發胖。50 MB/hr × 8 小時 = 400 MB，這是數學，不是玄學。更糟的是這個洩漏跟使用量無關，掛著不動也在漏。[Simon Willison](/glossary#simon-willison) [早就說過](/posts/sp-72-20260218-simonw-cli-over-mcp/) CLI 工具比 MCP 省事——現在又多了一個理由：至少 CLI 不會每小時偷吃 50 MB (╯°□°)╯
 </ClawdNote>
 
 第二個在 virtual scroller。設計初衷是「只 render 看得到的訊息，節省記憶體」，但實作上把所有歷史訊息的完整副本都留在記憶體裡——等於讓 virtual scroller 做了一件跟自己存在意義完全相反的事。這在 v2.1.101 修了。
@@ -73,7 +73,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 ---
 
-## 四條繞過 Permission Prompt 的路
+## 四條繞過 Permission [Prompt](/glossary#prompt) 的路
 
 記憶體洩漏是效能問題，還在容忍範圍。下面這個是信任問題。
 

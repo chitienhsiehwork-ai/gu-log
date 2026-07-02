@@ -28,7 +28,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 ## You Think You're Talking to an AI. You're Actually Talking to an Iceberg.
 
-You open OpenClaw. You type "refactor this function for me."
+You open [OpenClaw](/en/glossary#openclaw). You type "refactor this function for me."
 
 Simple, right? One sentence in, a blob of code out. But have you ever wondered what happens before your message reaches the LLM's brain? Because OpenClaw has already stuffed a massive cheat sheet in front of it.
 
@@ -50,7 +50,7 @@ These three layers are OpenClaw's foundation. You can't touch them, and you shou
 
 **Layer 1 (Framework Core)** is the steel and concrete of the building. It tells the LLM: "Here's your name, here are your tools, and here's what you absolutely cannot do." For example, `rm -rf /` — the command that deletes everything — gets blocked right here.
 
-Think of it like school rules. You can't change them, but they keep everyone safe. When the framework upgrades, your Agent automatically gets new capabilities without you lifting a finger. The trade-off: you can't add your own rules to this layer either.
+Think of it like school rules. You can't change them, but they keep everyone safe. When the framework upgrades, your [Agent](/en/glossary#agent) automatically gets new capabilities without you lifting a finger. The trade-off: you can't add your own rules to this layer either.
 
 **Layer 2 (Tool Definitions)** is the LLM's toolbox. Every tool has its parameters locked down in strict JSON Schema. It's like the screw bag that comes with IKEA furniture — only a few types of screws, but at least you won't drill the wrong hole. Writing full Schema for new tools is a bit tedious, but it beats the LLM guessing parameters and blowing things up.
 
@@ -111,7 +111,7 @@ Key mechanisms:
 - **`agent:bootstrap` Hook** — System-level. Full control over which files get loaded. Powerful, but also the most dangerous.
 - **`bootstrap-extra-files` Hook** — Can only append files, not remove them. The safer option.
 - **`before_prompt_build` Hook** — Intercepts and modifies the prompt right before it's sent. Want to inject "It's currently 3 PM in Taipei"? Use this.
-- **`bootstrapMaxChars` setting** — Token budget cap (default: 20K per file, 150K total). Anything over gets truncated: first 70% + last 20%, middle gets chopped.
+- **`bootstrapMaxChars` setting** — [Token](/en/glossary#token) budget cap (default: 20K per file, 150K total). Anything over gets truncated: first 70% + last 20%, middle gets chopped.
 
 <ClawdNote>
 That truncation strategy — "first 70% + last 20%" — notice anything weird? Right, that only adds up to 90%. The middle 10% just vanishes. OpenClaw's logic is that the beginning and end of a document are usually the most important parts (think abstract and conclusion in a paper), so the middle can be sacrificed. But this also means if your IDENTITY.md is too long, those carefully crafted few-shot examples in the middle might get silently chopped — and you'll never get a warning (╯°□°)╯ This kind of silent truncation is one of prompt engineering's sneakiest traps — you think the LLM saw everything you wrote, but it only saw about seventy percent.

@@ -40,8 +40,13 @@ function buildMask(lines) {
   let startIndex = markFrontmatter(lines, masked);
   let inFence = false;
   let fenceMarker = '';
-  let inClawdNote = false;
-  let inShroomDogNote = false;
+  // gu-log persona note components whose body is the persona speaking (Mogu /
+  // Clawd / ShroomDog), so first/second-person pronouns inside are expected and
+  // must be masked. MoguNote is the canonical name; ClawdNote is the legacy
+  // alias still rendered by older posts — both must mask, or switching a post to
+  // MoguNote silently reintroduces false positives.
+  const NOTE_COMPONENTS = ['MoguNote', 'ClawdNote', 'ShroomDogNote'];
+  let noteCloseTag = '';
 
   for (let i = startIndex; i < lines.length; i += 1) {
     const line = lines[i];
@@ -55,18 +60,10 @@ function buildMask(lines) {
       continue;
     }
 
-    if (inClawdNote) {
+    if (noteCloseTag) {
       masked[i] = true;
-      if (line.includes('</ClawdNote>')) {
-        inClawdNote = false;
-      }
-      continue;
-    }
-
-    if (inShroomDogNote) {
-      masked[i] = true;
-      if (line.includes('</ShroomDogNote>')) {
-        inShroomDogNote = false;
+      if (line.includes(noteCloseTag)) {
+        noteCloseTag = '';
       }
       continue;
     }
@@ -83,18 +80,11 @@ function buildMask(lines) {
       continue;
     }
 
-    if (line.includes('<ClawdNote')) {
+    const openedNote = NOTE_COMPONENTS.find((name) => line.includes(`<${name}`));
+    if (openedNote) {
       masked[i] = true;
-      if (!line.includes('</ClawdNote>')) {
-        inClawdNote = true;
-      }
-      continue;
-    }
-
-    if (line.includes('<ShroomDogNote')) {
-      masked[i] = true;
-      if (!line.includes('</ShroomDogNote>')) {
-        inShroomDogNote = true;
+      if (!line.includes(`</${openedNote}>`)) {
+        noteCloseTag = `</${openedNote}>`;
       }
       continue;
     }
@@ -109,6 +99,16 @@ function buildMask(lines) {
       continue;
     }
 
+    // Cross-link list items (e.g. the auto-generated 延伸閱讀 / Related list)
+    // quote OTHER posts' titles in the anchor text. A 你/我 there belongs to
+    // the linked post's title, not to authorial reader-address, so mask bullet
+    // lines whose entire content is a single markdown link. Inline links inside
+    // flowing prose are deliberately NOT masked — those still get scanned.
+    if (/^\s*[-*+]\s*\[[^\]]*\]\([^)]*\)\s*$/.test(line)) {
+      masked[i] = true;
+      continue;
+    }
+
     if (/^(?: {4,}|\t)/.test(line)) {
       masked[i] = true;
     }
@@ -119,6 +119,20 @@ function buildMask(lines) {
 
 function stripInlineCode(line) {
   return line.replace(/`[^`]*`/g, (match) => ' '.repeat(match.length));
+}
+
+// Compounds where 你/我 is a syllable, not a reader-addressing pronoun.
+// Blank them before the scan so e.g. 迷你 (mini) doesn't false-positive as 「你」.
+// Keep this list to terms that are NEVER pronouns — 我們/你們 (we/you) must
+// still be caught, so they are deliberately absent.
+const NON_PRONOUN_COMPOUNDS = ['迷你', '自我'];
+
+function stripNonPronounCompounds(line) {
+  let out = line;
+  for (const term of NON_PRONOUN_COMPOUNDS) {
+    out = out.split(term).join(' '.repeat(term.length));
+  }
+  return out;
 }
 
 function truncate(line, max = 140) {
@@ -148,7 +162,7 @@ function findViolations(filePath) {
   for (let i = 0; i < lines.length; i += 1) {
     if (masked[i]) continue;
 
-    const searchable = stripInlineCode(lines[i]);
+    const searchable = stripNonPronounCompounds(stripInlineCode(lines[i]));
     const matches = [...searchable.matchAll(/[你我]/g)];
     if (matches.length === 0) continue;
 

@@ -10,11 +10,65 @@ interface Props {
 }
 
 const { src, alt, caption, width } = Astro.props;
+const fullSrc = src.src;
+const imageId = `post-image-${Math.random().toString(36).slice(2)}`;
+const captionId = caption ? `${imageId}-caption` : undefined;
 ---
 
-<figure class="post-image">
-  <Image src={src} alt={alt} width={width} />
-  {caption && <figcaption>{caption}</figcaption>}
+<figure class="post-image" data-post-image>
+  <button
+    type="button"
+    class="post-image-open"
+    aria-label={`放大圖片：${alt}`}
+    aria-haspopup="dialog"
+    aria-controls={`${imageId}-dialog`}
+    data-post-image-open
+  >
+    <Image
+      src={src}
+      alt={alt}
+      width={width}
+      loading="lazy"
+      decoding="async"
+      aria-describedby={captionId}
+    />
+    <span class="post-image-zoom-hint" aria-hidden="true">點擊放大</span>
+  </button>
+  {caption && <figcaption id={captionId}>{caption}</figcaption>}
+
+  <div
+    id={`${imageId}-dialog`}
+    class="post-image-dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-label={`放大圖片：${alt}`}
+    aria-describedby={captionId}
+    hidden
+    data-post-image-dialog
+  >
+    <div class="post-image-dialog-surface" data-post-image-surface>
+      <button
+        type="button"
+        class="post-image-close"
+        aria-label="關閉放大圖片"
+        data-post-image-close
+      >
+        ✕
+      </button>
+      <div class="post-image-dialog-scroll" data-post-image-scroll>
+        <img
+          class="post-image-dialog-img"
+          alt={alt}
+          data-full-src={fullSrc}
+          draggable="false"
+          decoding="async"
+          aria-describedby={captionId}
+          data-post-image-expanded-img
+        />
+      </div>
+      {caption && <p class="post-image-dialog-caption">{caption}</p>}
+    </div>
+  </div>
 </figure>
 
 <style>
@@ -22,16 +76,192 @@ const { src, alt, caption, width } = Astro.props;
     margin: 1.5rem 0;
     text-align: center;
   }
+
+  .post-image-open {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    cursor: zoom-in;
+  }
+
+  .post-image-open:focus-visible {
+    outline: 3px solid var(--color-accent, #268bd2);
+    outline-offset: 4px;
+    border-radius: 10px;
+  }
+
   .post-image img {
     max-width: 100%;
     height: auto;
     border-radius: 8px;
     border: 1px solid var(--color-border);
   }
+
+  .post-image-zoom-hint {
+    position: absolute;
+    right: 0.5rem;
+    bottom: 0.5rem;
+    padding: 0.25rem 0.45rem;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-bg) 88%, transparent);
+    color: var(--color-text-muted);
+    font-size: 0.72rem;
+    line-height: 1;
+    opacity: 0.85;
+    pointer-events: none;
+  }
+
   figcaption {
     color: var(--color-text-muted);
     font-size: 0.8rem;
     margin-top: 0.5rem;
     font-style: italic;
   }
+
+  .post-image-dialog[hidden] {
+    display: none;
+  }
+
+  .post-image-dialog {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: color-mix(in srgb, var(--color-bg) 94%, #000 6%);
+    display: flex;
+    align-items: stretch;
+    justify-content: stretch;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y pinch-zoom !important;
+  }
+
+  .post-image-dialog-surface {
+    position: relative;
+    flex: 1;
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .post-image-dialog-scroll {
+    flex: 1;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y pinch-zoom !important;
+    padding: calc(env(safe-area-inset-top, 0px) + 4rem) 1rem
+      calc(env(safe-area-inset-bottom, 0px) + 2rem);
+  }
+
+  .post-image-dialog-img {
+    display: block;
+    max-width: none;
+    width: auto;
+    height: auto;
+    min-width: min(100%, 960px);
+    margin: 0 auto;
+    border: 0;
+    border-radius: 8px;
+    background: var(--color-bg);
+    user-select: none;
+    -webkit-user-drag: none;
+    touch-action: pan-x pan-y pinch-zoom !important;
+  }
+
+  .post-image-close {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 0.75rem);
+    right: calc(env(safe-area-inset-right, 0px) + 0.75rem);
+    z-index: 10001;
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-bg) 90%, transparent);
+    color: var(--color-text);
+    font-size: 1.35rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .post-image-close:focus-visible {
+    outline: 3px solid var(--color-accent, #268bd2);
+    outline-offset: 2px;
+  }
+
+  .post-image-dialog-caption {
+    margin: 0;
+    padding: 0.75rem 1rem calc(env(safe-area-inset-bottom, 0px) + 0.75rem);
+    border-top: 1px solid var(--color-border);
+    background: color-mix(in srgb, var(--color-bg) 92%, transparent);
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+    text-align: center;
+  }
 </style>
+
+<script>
+  const bodyLockClass = 'post-image-dialog-open';
+
+  function initPostImages() {
+    const figures = document.querySelectorAll<HTMLElement>('[data-post-image]');
+
+    for (const figure of figures) {
+      if (figure.dataset.postImageReady === 'true') continue;
+      figure.dataset.postImageReady = 'true';
+
+      const opener = figure.querySelector<HTMLButtonElement>('[data-post-image-open]');
+      const dialog = figure.querySelector<HTMLElement>('[data-post-image-dialog]');
+      const closeButton = figure.querySelector<HTMLButtonElement>('[data-post-image-close]');
+      const expandedImage = figure.querySelector<HTMLImageElement>(
+        '[data-post-image-expanded-img]'
+      );
+      const scrollArea = figure.querySelector<HTMLElement>('[data-post-image-scroll]');
+      let previousFocus: HTMLElement | null = null;
+      let previousOverflow = '';
+
+      if (!opener || !dialog || !closeButton || !expandedImage || !scrollArea) continue;
+
+      const openDialog = () => {
+        previousFocus =
+          document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        previousOverflow = document.body.style.overflow;
+        const fullSrc = expandedImage.dataset.fullSrc;
+        if (fullSrc && !expandedImage.src) expandedImage.src = fullSrc;
+        dialog.hidden = false;
+        document.body.style.overflow = 'hidden';
+        document.body.classList.add(bodyLockClass);
+        closeButton.focus({ preventScroll: true });
+      };
+
+      const closeDialog = () => {
+        dialog.hidden = true;
+        document.body.style.overflow = previousOverflow;
+        document.body.classList.remove(bodyLockClass);
+        previousFocus?.focus({ preventScroll: true });
+      };
+
+      opener.addEventListener('click', openDialog);
+      closeButton.addEventListener('click', closeDialog);
+      dialog.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') closeDialog();
+      });
+      dialog.addEventListener('click', (event) => {
+        if (event.target === dialog) closeDialog();
+      });
+      scrollArea.addEventListener('click', (event) => {
+        event.stopPropagation();
+      });
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initPostImages, { once: true });
+  } else {
+    initPostImages();
+  }
+</script>

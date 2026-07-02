@@ -71,7 +71,9 @@ export interface VibeJudgeOutput extends BaseJudgeOutput {
     persona: number;
     clawdNote: number;
     vibe: number;
-    clarity: number;
+    // Legacy (tribunalVersion <= 8): clarity was a Vibe dimension. For v9+ it
+    // moved to Fresh Eyes, so it's optional here for backward compatibility.
+    clarity?: number;
     narrative: number;
   };
 }
@@ -103,6 +105,12 @@ export interface FreshEyesJudgeOutput extends BaseJudgeOutput {
   scores: {
     readability: number;
     firstImpression: number;
+    payoffDensity: number;
+    lengthFit: number;
+    // tribunalVersion >= 9: clarity (pronoun / voice attribution) moved here
+    // from Vibe and is a non-compensating hard gate. Optional so v8 outputs
+    // (which never carried clarity under Fresh Eyes) still type-check.
+    clarity?: number;
   };
 }
 

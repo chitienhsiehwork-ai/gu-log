@@ -9,6 +9,7 @@ import (
 
 	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/config"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/counter"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/llm"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/logx"
 )
 
@@ -177,6 +178,14 @@ body
 	s.Prefix = "SP"
 	s.AuthorHandle = "fakeauthor"
 	s.Title = "Fake Title"
+	// Pin the stamp provider to Codex so the canonical-frontmatter assertions
+	// are deterministic regardless of which CLI happens to be on the test
+	// box's PATH (CCC has claude, the VPS has codex).
+	disp, err := llm.NewDispatcher(s.Log, llm.NewFakeCodex())
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.Dispatcher = disp
 
 	if err := s.Ralph(context.Background()); err != nil {
 		t.Fatalf("Ralph: %v", err)
@@ -251,6 +260,49 @@ body
 	}
 	if s.RalphPassed {
 		t.Errorf("RalphPassed should be false after an exit-1 stub")
+	}
+}
+
+func TestRunPostFixers_BestEffortOnFailure(t *testing.T) {
+	tmp := t.TempDir()
+	binDir := filepath.Join(tmp, "bin")
+	scriptsDir := filepath.Join(tmp, "scripts")
+	for _, d := range []string{binDir, scriptsDir} {
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	logPath := filepath.Join(tmp, "node-calls.log")
+	nodeStub := `#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$FIXER_CALL_LOG"
+exit 1
+`
+	if err := os.WriteFile(filepath.Join(binDir, "node"), []byte(nodeStub), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	t.Setenv("FIXER_CALL_LOG", logPath)
+
+	postPath := filepath.Join(tmp, "post.mdx")
+	if err := os.WriteFile(postPath, []byte("---\ntitle: Test\n---\nbody\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	s := NewState()
+	s.Log = logx.New()
+	s.Cfg = &config.Config{RepoRoot: tmp, ScriptsDir: scriptsDir}
+
+	s.runPostFixers(context.Background(), postPath)
+
+	data, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatalf("fake node was not called: %v", err)
+	}
+	got := string(data)
+	for _, want := range []string{"add-kaomoji.mjs --write", "apply-glossary-links.mjs", "inject-related-posts.mjs --file"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("node calls missing %q:\n%s", want, got)
+		}
 	}
 }
 

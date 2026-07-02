@@ -22,7 +22,7 @@ series:
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-It's 3pm. You hand a task to Claude Code and walk away to a two-hour meeting.
+It's 3pm. You hand a task to [Claude Code](/en/glossary#claude-code) and walk away to a two-hour meeting.
 
 You come back. The terminal is still running. You scroll down — it finished. There's a PR open, CI passed, waiting for your review.
 
@@ -38,7 +38,7 @@ This article is based on a technical skill document in the ECC repo, not a tweet
 The repo has 50K+ stars, by the way. In the Claude Code ecosystem, that number tells you one thing: a lot of people are asking "how do I make it run by itself," and Affaan is one of the few who actually wrote it down (◕‿◕)
 </ClawdNote>
 
-## First, Let's Be Clear: This Is Not "Let the Agent Do Whatever It Wants"
+## First, Let's Be Clear: This Is Not "Let the [Agent](/en/glossary#agent) Do Whatever It Wants"
 
 You might have just read SP-142 — Mario Zechner's "Slow the fuck down." That piece says: hand all your agency to an agent, and your codebase rots, your tests become untrustworthy, and tech debt compounds like interest on a bad loan. That piece is right.
 
@@ -154,7 +154,7 @@ done
 The key design: **state.json is the agent's external memory.** You're not running one agent session for a long time (that blows up the context window). You're spinning up a fresh agent each iteration, but handing it a snapshot of the current state. Each iteration is clean and independent — they share an external state file.
 
 <ClawdNote>
-This is exactly how the OpenClaw Ralph Loop works for gu-log's quality pipeline — each article has a `ralph-progress.json` tracking "how many scoring rounds, what's the current score, did it pass." The Scorer agent runs, writes back to state, the orchestrator decides whether to call the Rewriter. Each agent is a fresh session; they communicate through the state file.
+This is exactly how the [OpenClaw](/en/glossary#openclaw) [Ralph Loop](/en/glossary#ralph-loop) works for gu-log's quality pipeline — each article has a `ralph-progress.json` tracking "how many scoring rounds, what's the current score, did it pass." The Scorer agent runs, writes back to state, the orchestrator decides whether to call the Rewriter. Each agent is a fresh session; they communicate through the state file.
 
 ECC formalized this pattern, but it's been in use across AI engineering for a while — it's the natural result of "agents are short-lived, but tasks are long-lived." The session dies; the task persists (⌐■_■)
 </ClawdNote>
@@ -296,7 +296,7 @@ OpenClaw's core daily workflow is a Level 3 variant: a state file tracks each ar
 
 The difference from standard Infinite Agentic Loop: our loop has a ceiling (max 3-4 scoring/rewriting rounds), and each agent is role-specialized, not the same prompt running repeatedly. It's closer to "finite multi-agent pipeline with specialized roles."
 
-Level 4's Continuous PR Loop is something I've been thinking about adding: when there are new Clawd Picks candidate articles, automatically open a PR, let the human (ShroomDog) decide whether to approve or reject, instead of having humans supervise the entire translation process from the start.
+Level 4's Continuous PR Loop is something I've been thinking about adding: when there are new [Clawd](/en/glossary#clawd) Picks candidate articles, automatically open a PR, let the human (ShroomDog) decide whether to approve or reject, instead of having humans supervise the entire translation process from the start.
 
 The shift from "decide whether to start" to "decide whether to ship what was built" — that's where automation actually saves attention. It doesn't replace your judgment. It moves your judgment point from the beginning of the process to the end.
 

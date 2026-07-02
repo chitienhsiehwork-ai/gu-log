@@ -33,8 +33,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$ROOT_DIR"
 
+# shellcheck source=scripts/tribunal-helpers.sh
+source "$SCRIPT_DIR/tribunal-helpers.sh"
+
 POSTS_DIR="$ROOT_DIR/src/content/posts"
-PROGRESS_FILE="$ROOT_DIR/scores/tribunal-progress.json"
+PROGRESS_FILE="$(tribunal_progress_file_default "$ROOT_DIR")"
+# v9 (move-clarity-vibe-to-fresheyes): keep in lockstep with tribunal.sh and
+# frontmatter-scores.mjs CURRENT_TRIBUNAL_VERSION.
+TRIBUNAL_VERSION=9
 LOG_DIR="$ROOT_DIR/.score-loop/logs"
 LOG_FILE="$LOG_DIR/tribunal-quota-loop-$(date +%Y%m%d-%H%M%S).log"
 USAGE_MONITOR="${USAGE_MONITOR:-$HOME/clawd/scripts/usage-monitor.sh}"
@@ -87,6 +93,8 @@ tlog() {
 export RC_ROOT_DIR="$ROOT_DIR"
 # shellcheck source=scripts/tribunal-run-control.sh
 source "$SCRIPT_DIR/tribunal-run-control.sh"
+
+RUNTIME_GIT_STATE_FILE="$(tribunal_runtime_git_state_file "$ROOT_DIR")"
 trap 'rc_on_stop_signal TERM' TERM
 trap 'rc_on_stop_signal INT' INT
 
@@ -317,7 +325,7 @@ legacy_compute_tier_name() {
 
 # ─── Quota: Closed-loop controller ───────────────────────────────────────────
 # Parses usage-monitor.sh --json output into dual-window quota readings.
-# Preferred provider is OpenAI/Codex v4:
+# Preferred provider is OpenAI/Codex:
 #   session_remaining_pct + session_reset_min   → 5hr bucket
 #   weekly_remaining_pct  + weekly_reset_hr     → weekly bucket
 # Claude parsing is retained only for --legacy-quota / historical dev fixtures.
@@ -364,7 +372,7 @@ def parse_reset_to_sec(s):
 
 try:
     data = json.loads(sys.argv[1])
-    # Tribunal v4 runs on OpenAI/Codex GPT-5.5. usage-monitor exposes the
+    # Tribunal v8 runs on OpenAI/Codex GPT-5.5. usage-monitor exposes the
     # short OpenAI bucket as session_remaining_pct/session_reset_min and the
     # long bucket as weekly_remaining_pct/weekly_reset_hr.
     for p in data:
@@ -659,8 +667,8 @@ print(f'# rotated: kept {kept} entries', file=sys.stderr)
 
 # ─── Multi-worker supervisor helpers (Phase 2) ───────────────────────────────
 # Worker worktrees live at ~/clawd/projects/gu-log-worker-<id>. The "main"
-# repo (this script's ROOT_DIR) hosts the shared progress file, claims,
-# locks, and state. When WORKERS=1 we run in ROOT_DIR directly — no worker
+# repo (this script's ROOT_DIR) hosts the ignored runtime ledger, claims,
+# locks, and controller state. When WORKERS=1 we run in ROOT_DIR directly — no worker
 # worktrees, no env overrides — matching the pre-Phase-2 behavior.
 WORKER_IDS=()
 if (( WORKERS > 1 )); then
@@ -687,12 +695,13 @@ worker_worktree() {
   fi
 }
 
-# Ensure worker worktrees exist AND are synced with origin/main. Called once
-# at supervisor startup. Without the sync step, worker worktrees keep
-# whichever origin/main snapshot they had at `git worktree add` time, so
-# tribunal fixes merged to main never reach running workers.
+# Ensure worker worktrees exist AND are synced with the supervisor's active
+# code ref. Called once at supervisor startup. Without the sync step, worker
+# worktrees keep whichever snapshot they had at `git worktree add` time, so
+# tribunal fixes in the deployed runtime never reach running workers.
 ensure_worktrees() {
   (( WORKERS == 1 )) && return 0
+  export TRIBUNAL_WORKER_SYNC_REF="${TRIBUNAL_WORKER_SYNC_REF:-HEAD}"
   local id wt
   for id in "${WORKER_IDS[@]}"; do
     wt=$(worker_worktree "$id")
@@ -704,10 +713,20 @@ ensure_worktrees() {
       }
     fi
   done
-  # Fast-forward every worker worktree to whatever main currently is.
-  tlog "Syncing worker worktrees to origin/main…"
+  # Fast-forward every worker worktree to the supervisor's current sync ref.
+  tlog "Syncing worker worktrees to ${TRIBUNAL_WORKER_SYNC_REF}…"
   bash "$SCRIPT_DIR/tribunal-worker-bootstrap.sh" sync >> "$LOG_FILE" 2>&1 || \
     tlog "WARN: worktree sync reported errors (see log)"
+}
+
+run_publisher_autopilot() {
+  if [ "${TRIBUNAL_PUBLISHER_AUTOPILOT:-1}" != "1" ]; then
+    return 0
+  fi
+  local max_batch="${TRIBUNAL_PUBLISHER_MAX_BATCH:-10}"
+  if ! bash "$SCRIPT_DIR/tribunal-publisher-autopilot.sh" --max "$max_batch" >> "$LOG_FILE" 2>&1; then
+    tlog "WARN: tribunal publisher autopilot failed; will retry next iteration."
+  fi
 }
 
 # Try to claim the next unscored article that isn't already claimed.
@@ -731,11 +750,11 @@ spawn_worker() {
   wt=$(worker_worktree "$id")
   local slug="${article%.mdx}"
 
-  # Sync worker worktree to origin/main before each dispatch. Per-dispatch
-  # cost is one git fetch (~100ms with cached refs) plus a no-op hard reset
-  # if nothing changed; supervisor doesn't need a restart for new tribunal
-  # fixes to reach the next article's worker.
+  # Sync worker worktree to the supervisor's active sync ref before each
+  # dispatch. Per-dispatch cost is one no-op reset when nothing changed; when
+  # the sync ref is origin/main the bootstrap helper also fetches the remote.
   if (( WORKERS > 1 )); then
+    export TRIBUNAL_WORKER_SYNC_REF="${TRIBUNAL_WORKER_SYNC_REF:-HEAD}"
     bash "$SCRIPT_DIR/tribunal-worker-bootstrap.sh" sync "$id" >> "$LOG_FILE" 2>&1 || \
       tlog "  WARN: pre-dispatch sync failed for worker-$id (continuing with current snapshot)"
   fi
@@ -747,7 +766,7 @@ spawn_worker() {
     # supervisor; make it explicit again here in case the subshell's env
     # differs).
     export RC_ROOT_DIR="$ROOT_DIR"
-    export PROGRESS_FILE="$ROOT_DIR/scores/tribunal-progress.json"
+    export PROGRESS_FILE="$(tribunal_progress_file_default "$ROOT_DIR")"
     export TRIBUNAL_MAIN_REPO="$ROOT_DIR"
     export TRIBUNAL_SHARED_LOCK_DIR="$ROOT_DIR/.score-loop/locks"
     export TRIBUNAL_WORKER_ID="$id"
@@ -761,7 +780,8 @@ spawn_worker() {
 }
 
 # Wait for ANY worker to finish. Releases its claim, logs outcome, clears
-# tracking state. Propagates rc=77 (stopped_by_request) to exit_stopped.
+# tracking state. Propagates rc=77 (stopped_by_request) and rc=70
+# (runner infrastructure failure) into drain mode.
 wait_any_worker() {
   # bash: wait -n returns when ANY child exits, sets $? to its status.
   local rc=0
@@ -794,6 +814,11 @@ wait_any_worker() {
         stop_requested=true
         stop_source="${stop_source:-propagated-from-worker}"
         ;;
+    70) tlog "  [worker-$finished_id] $article_slug — runner_error propagated; draining to avoid poisoning more articles."
+        stop_requested=true
+        stop_source="${stop_source:-runner-error}"
+        rc_write_state "draining" "runner_error article=$article_slug"
+        ;;
     *)  tlog "  [worker-$finished_id] $article_slug — failed (rc=$rc)" ;;
   esac
 }
@@ -814,9 +839,7 @@ drain_and_exit() {
 # Copied from tribunal-batch-runner.sh (not a shared helper — keep in sync).
 get_unscored_articles() {
   # Ensure progress file exists
-  if [ ! -f "$PROGRESS_FILE" ] || ! jq empty "$PROGRESS_FILE" 2>/dev/null; then
-    echo '{}' > "$PROGRESS_FILE"
-  fi
+  ensure_tribunal_progress_file "$PROGRESS_FILE" "$ROOT_DIR"
 
   # List zh-tw articles (not en-, not demo), sorted newest-first by
   # frontmatter translatedDate (the date we first shipped this post).
@@ -840,13 +863,27 @@ get_unscored_articles() {
   local article full_path status
   for article in $all_zh_articles; do
     full_path="$POSTS_DIR/$article"
-    # Skip deprecated
-    if grep -q '^status: "deprecated"' "$full_path" 2>/dev/null; then
+    # Skip deprecated posts. Frontmatter may use quoted or unquoted YAML
+    # scalars, so parse only the first frontmatter block instead of matching
+    # one exact string.
+    if awk '
+      /^---$/ { c++; if (c == 2) exit; next }
+      c == 1 && /^status:/ {
+        sub(/^status:[[:space:]]*/, "", $0)
+        gsub(/^[[:space:]"'\''"]+|[[:space:]"'\''"]+$/, "", $0)
+        if ($0 == "deprecated") found = 1
+        exit
+      }
+      END { exit(found ? 0 : 1) }
+    ' "$full_path" 2>/dev/null; then
       continue
     fi
-    # Skip already passed or permanently exhausted (hit MAX_TOP_ATTEMPTS=5 in
-    # tribunal.sh — prevents sp-94-style infinite retry loop).
-    status=$(jq -r --arg a "$article" '.[$a].status // "pending"' "$PROGRESS_FILE" 2>/dev/null || echo "pending")
+    # Skip already passed or permanently exhausted only for the current
+    # tribunal version. Older PASS entries are intentionally reprocessed by
+    # the v8 judge-boundary gate, preserving newest-first order.
+    status=$(jq -r --arg a "$article" --argjson v "$TRIBUNAL_VERSION" \
+      'if ((.[$a].tribunalVersion // 0) >= $v) then (.[$a].status // "pending") else "pending" end' \
+      "$PROGRESS_FILE" 2>/dev/null || echo "pending")
     if [ "$status" = "PASS" ] || [ "$status" = "EXHAUSTED" ]; then
       continue
     fi
@@ -922,9 +959,19 @@ while true; do
   autoscale_check
   EFFECTIVE_WORKERS=$(autoscale_read_limit)
 
-  # ── Git pull in main repo (workers do their own in their worktrees) ──────
-  git pull --rebase --autostash origin main >> "$LOG_FILE" 2>&1 \
-    || { git rebase --abort 2>/dev/null; tlog "WARN: git pull failed, continuing"; }
+  # ── Fetch-only drift check in main repo (workers sync their disposable worktrees) ──
+  if ! tribunal_fetch_and_report_origin_main "$ROOT_DIR" "$LOG_FILE" "$RUNTIME_GIT_STATE_FILE" >/dev/null; then
+    tlog "WARN: origin/main fetch failed; runtime continues with current snapshot."
+  fi
+  git_state="$(jq -r '.state // "unknown"' "$RUNTIME_GIT_STATE_FILE" 2>/dev/null || printf 'unknown')"
+  git_ahead="$(jq -r '.ahead // 0' "$RUNTIME_GIT_STATE_FILE" 2>/dev/null || printf '0')"
+  git_behind="$(jq -r '.behind // 0' "$RUNTIME_GIT_STATE_FILE" 2>/dev/null || printf '0')"
+  git_dirty="$(jq -r '.trackedDirty // 0' "$RUNTIME_GIT_STATE_FILE" 2>/dev/null || printf '0')"
+  tlog "Git drift: state=$git_state ahead=$git_ahead behind=$git_behind tracked_dirty=$git_dirty"
+
+  # Publish already-passed artifacts toward main/prod. Keep this best-effort so
+  # publisher issues do not halt scoring workers.
+  run_publisher_autopilot
 
   # ── Find unscored articles ─────────────────────────────────────────────────
   mapfile -t ARTICLES < <(get_unscored_articles)

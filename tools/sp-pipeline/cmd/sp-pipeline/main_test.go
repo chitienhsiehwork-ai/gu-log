@@ -10,6 +10,9 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/llm"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/logx"
 )
 
 // makeFakeRepo creates a directory tree that satisfies config.Resolve()'s
@@ -47,6 +50,7 @@ func resetGlobals() {
 	flagTimeout = 0
 	flagWorkDir = ""
 	flagFakeProvider = ""
+	flagJudgeAllowClaude = false
 }
 
 func TestExitCodeFor(t *testing.T) {
@@ -101,7 +105,7 @@ func TestBuildRoot_HasAllSubcommands(t *testing.T) {
 func TestBuildRoot_PersistentFlags(t *testing.T) {
 	resetGlobals()
 	root := buildRoot()
-	for _, f := range []string{"json", "verbose", "timeout", "work-dir", "fake-provider"} {
+	for _, f := range []string{"json", "verbose", "timeout", "work-dir", "fake-provider", "judge-allow-claude"} {
 		if root.PersistentFlags().Lookup(f) == nil {
 			t.Errorf("persistent flag --%s not registered", f)
 		}
@@ -109,6 +113,60 @@ func TestBuildRoot_PersistentFlags(t *testing.T) {
 	// fake-provider should be hidden
 	if !root.PersistentFlags().Lookup("fake-provider").Hidden {
 		t.Error("--fake-provider should be hidden from --help")
+	}
+}
+
+func TestBuildDispatcherForRole_JudgeAllowClaudeToggle(t *testing.T) {
+	resetGlobals()
+	state := &rootState{log: logx.New()}
+
+	// The codex-vs-claude toggle only describes a box where codex is on PATH.
+	// On the CCC / Claude Code on the web sandbox (no codex), judges fall back
+	// to Claude regardless of the toggle — assert that branch separately.
+	if !llm.NewCodexGPT55Medium().Available() {
+		state.judgeAllowClaude = false
+		judge, err := buildDispatcherForRole(state, dispatcherJudge, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := len(judge.Providers()); got != 1 {
+			t.Fatalf("judge providers without codex = %d, want 1 (claude fallback)", got)
+		}
+		name := judge.Providers()[0].Name()
+		wantClaude := llm.NewClaudeOpus().Available()
+		if wantClaude && !strings.HasPrefix(name, "claude-") {
+			t.Fatalf("judge provider without codex = %s, want claude-*", name)
+		}
+		return
+	}
+
+	state.judgeAllowClaude = false
+	judge, err := buildDispatcherForRole(state, dispatcherJudge, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := len(judge.Providers()); got != 1 {
+		t.Fatalf("judge providers with toggle off = %d, want 1", got)
+	}
+
+	state.judgeAllowClaude = true
+	judge, err = buildDispatcherForRole(state, dispatcherJudge, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := len(judge.Providers()); got != 2 {
+		t.Fatalf("judge providers with toggle on = %d, want 2", got)
+	}
+	if !strings.HasPrefix(judge.Providers()[0].Name(), "codex-") || !strings.HasPrefix(judge.Providers()[1].Name(), "claude-") {
+		t.Fatalf("judge provider order = %s, %s", judge.Providers()[0].Name(), judge.Providers()[1].Name())
+	}
+
+	writer, err := buildDispatcherForRole(state, dispatcherWriter, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := len(writer.Providers()); got != 1 {
+		t.Fatalf("writer providers = %d, want exactly one resolved writer", got)
 	}
 }
 
@@ -205,8 +263,13 @@ func TestRoot_HelpDoesNotError(t *testing.T) {
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("--help should not return error: %v", err)
 	}
+	// gp-pipeline is the canonical command name; sp-pipeline must still be
+	// referenced as the retained backwards-compat shim.
+	if !strings.Contains(out.String(), "gp-pipeline") {
+		t.Fatalf("--help output missing 'gp-pipeline':\n%s", out.String())
+	}
 	if !strings.Contains(out.String(), "sp-pipeline") {
-		t.Fatalf("--help output missing 'sp-pipeline':\n%s", out.String())
+		t.Fatalf("--help output missing 'sp-pipeline' shim reference:\n%s", out.String())
 	}
 }
 

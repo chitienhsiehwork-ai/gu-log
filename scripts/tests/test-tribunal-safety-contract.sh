@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Static/no-token regressions for Tribunal v4 safety hardening.
+# Static/no-token regressions for Tribunal v8 safety hardening.
 
 set -euo pipefail
 
@@ -8,6 +8,7 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 TRIBUNAL="$ROOT_DIR/scripts/tribunal.sh"
 VIBE="$ROOT_DIR/scripts/vibe-scorer.sh"
 HELPERS="$ROOT_DIR/scripts/tribunal-helpers.sh"
+WRAPPER="$ROOT_DIR/scripts/cc-tribunal-loop-wrapper.sh"
 CODEX_AGENTS_DIR="$ROOT_DIR/.codex/agents"
 CODEX_WRITER="$CODEX_AGENTS_DIR/tribunal-writer.toml"
 
@@ -76,14 +77,44 @@ pass "Codex agent specs are separated from Claude Code frontmatter"
 if ! grep -q -- '--model gpt-5.5' "$HELPERS"; then
   fail "Codex tribunal helper is not pinned to GPT-5.5"
 fi
-if ! grep -q 'local model_id="gpt-5.5"' "$TRIBUNAL"; then
-  fail "Tribunal frontmatter/logging model_id is not pinned to GPT-5.5"
+if ! grep -q 'MIN_CODEX_VERSION="0.128.0"' "$TRIBUNAL"; then
+  fail "Tribunal does not reject known-broken old Codex CLI versions"
+fi
+if ! grep -Fq 'export PATH="$HOME/.local/bin:$HOME/bin:$PATH"' "$WRAPPER"; then
+  fail "Tribunal systemd wrapper does not prefer the current ~/.local/bin Codex before stale ~/bin"
+fi
+# model_id is provider-resolved now: codex pins GPT-5.5 (the maintained
+# runtime), claude is the CCC sandbox fallback. Guard both halves so a refactor
+# can't silently unpin the codex path or drop the resolver.
+if ! grep -q 'model_id="$(tribunal_llm_model_id' "$TRIBUNAL"; then
+  fail "Tribunal model_id is not resolved through the provider-aware tribunal_llm_model_id"
+fi
+if ! grep -q "printf 'gpt-5.5" "$HELPERS"; then
+  fail "Codex provider path no longer pins GPT-5.5 in tribunal_llm_model_id"
 fi
 unpinned_agents=$(grep -L '^model = "gpt-5.5"' "$CODEX_AGENTS_DIR"/*.toml || true)
 if [ -n "$unpinned_agents" ]; then
   fail "One or more Codex tribunal agent specs are not pinned to GPT-5.5: $unpinned_agents"
 fi
-pass "Tribunal v4 Codex model pinning remains GPT-5.5 end-to-end"
+pass "Tribunal model pinning: codex stays GPT-5.5, claude is the CCC fallback"
+
+# The internal progress ledger runner_label must be provider-aware too, sharing
+# the same resolver as the frontmatter model_id. A refactor must not regress it
+# back to a static codex-gpt-5.5-medium string (that would mislabel CCC Claude
+# runs as codex in calibration/audit data).
+if ! grep -q 'tribunal_runner_label()' "$HELPERS"; then
+  fail "tribunal_runner_label provider-aware helper is missing"
+fi
+if ! grep -q 'codex-%s-medium' "$HELPERS"; then
+  fail "tribunal_runner_label codex path no longer reproduces codex-gpt-5.5-medium"
+fi
+if ! grep -q 'runner_label="$(tribunal_runner_label' "$TRIBUNAL"; then
+  fail "Tribunal progress runner_label is not resolved through tribunal_runner_label"
+fi
+if grep -Eq 'codex-gpt-5\.5-medium:(factCheck|librarian|freshEyes|vibe)' "$TRIBUNAL"; then
+  fail "STAGES still hardcodes a static codex-gpt-5.5-medium runner_label column"
+fi
+pass "Progress ledger runner_label is provider-aware (codex/claude), not a static codex string"
 
 if ! grep -q 'temporary directory' "$CODEX_WRITER" || ! grep -q 'surgical editor' "$CODEX_WRITER"; then
   fail "Codex tribunal writer prompt lacks GPT-5.5 temp-dir/surgical-edit guardrails"

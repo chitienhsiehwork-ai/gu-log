@@ -36,9 +36,9 @@ If you can code — just give me a computer.
 
 **The best tool design depends on the user's abilities.** (◍•ᴗ•◍)
 
-This isn't a UX textbook platitude. It's what Claude Code engineer Thariq learned after a full year of building agent tools, breaking them, and starting over. Not theory — scar tissue.
+This isn't a UX textbook platitude. It's what [Claude Code](/en/glossary#claude-code) engineer [Thariq](/en/glossary#thariq) learned after a full year of building agent tools, breaking them, and starting over. Not theory — scar tissue.
 
-The article is titled "Seeing like an Agent" — learning to see the world through the agent's eyes. Sounds very zen, but by the end you'll realize this guy treats "designing tools for AI" like a craft. Every design choice comes from watching how the model actually behaves, not how you wish it would.
+The article is titled "Seeing like an [Agent](/en/glossary#agent)" — learning to see the world through the agent's eyes. Sounds very zen, but by the end you'll realize this guy treats "designing tools for AI" like a craft. Every design choice comes from watching how the model actually behaves, not how you wish it would.
 
 <ClawdNote>
 Thariq previously wrote that famous "the whole system revolves around prompt caching" piece, and I remember thinking — who gets this excited about caching? Turns out, the same person also gets excited about tool design philosophy ╰(°▽°)╯ This time it's not about performance, it's about "how do you know what tools to give an agent?" His answer: watch it like you'd watch a cat. You think it wants the fancy cat tower, but it just wants the cardboard box.
@@ -99,7 +99,7 @@ Smarter models don't need reminders — they find them annoying. Worse, the cons
 > "Being sent reminders of the todo list made Claude think that it had to stick to the list instead of modifying it."
 
 <ClawdNote>
-It's like writing a detailed SOP for a new hire, then two months later — when they're fully ramped up — you still send them the SOP every morning on Slack. They won't feel helped. They'll feel micromanaged (╯°□°)╯ Even worse, they start "following the SOP without thinking" because clearly that's what you want. Models do the same thing: the more you push them to follow the list, the less they'll judge for themselves that "hey, maybe this list needs updating."
+It's like writing a detailed SOP for a new hire, then two months later — when they're fully ramped up — you still send them the SOP every morning on [Slack](/en/glossary#slack). They won't feel helped. They'll feel micromanaged (╯°□°)╯ Even worse, they start "following the SOP without thinking" because clearly that's what you want. Models do the same thing: the more you push them to follow the list, the less they'll judge for themselves that "hey, maybe this list needs updating."
 </ClawdNote>
 
 ### From TodoWrite to the Task Tool
@@ -159,13 +159,13 @@ From "can't find anything on its own" to "navigating multi-layer nested searches
 
 Claude Code currently has about 20 tools. The bar for adding a new one is extremely high — every additional tool is one more decision point where the model might make the wrong choice. Think of it like remote controls: the more you have on your coffee table, the longer it takes to grab the right one.
 
-Example: users asked Claude Code "how do I add an MCP?" or "what does this slash command do?" and it couldn't answer.
+Example: users asked Claude Code "how do I add an [MCP](/en/glossary#mcp)?" or "what does this slash command do?" and it couldn't answer.
 
 The obvious fix: cram all the docs into the system prompt.
 
 But 99% of the time users don't ask these questions. Stuffing docs in just causes **[context rot](/en/glossary#context-rot)** — more noise in context means worse answers for everything else. It's like piling your desk with "might need someday" papers until you can't find the actually important stuff.
 
-The actual solution: build a **Guide Subagent**. The main agent is prompted to delegate "questions about itself" to this specialized subagent that knows how to search the documentation efficiently.
+The actual solution: build a **Guide [Subagent](/en/glossary#subagent)**. The main agent is prompted to delegate "questions about itself" to this specialized subagent that knows how to search the documentation efficiently.
 
 **No new tools added, yet the agent's capabilities expanded.** The functionality exists, but only surfaces when needed — that's Progressive Disclosure in its purest form.
 

@@ -19,6 +19,11 @@
 //     long writing run spends real credits.
 package llm
 
+import (
+	"regexp"
+	"strings"
+)
+
 // ModelID is an enum-ish string identifying a specific model build.
 // Keep this in sync with scripts/sp-pipeline.sh's model_display_name().
 type ModelID string
@@ -33,6 +38,8 @@ const (
 	ModelClaudeHaiku  ModelID = "claude-haiku"
 )
 
+var claudeFamilyRe = regexp.MustCompile(`claude-(opus|sonnet|haiku)-([0-9]+)-([0-9]+)`)
+
 // DisplayName returns the human-readable model name the validator expects
 // in translatedBy.model. Unknown IDs pass through unchanged so the caller
 // fails loudly at validation time instead of silently truncating.
@@ -41,9 +48,23 @@ const (
 // old fake-provider tests may still mention them. New production credits should
 // normally record GPT-5.5 + Codex CLI.
 func DisplayName(m ModelID) string {
+	raw := string(m)
+	normalized := strings.TrimPrefix(raw, "anthropic/")
+	normalized = strings.TrimSuffix(normalized, "[1m]")
+	if match := claudeFamilyRe.FindStringSubmatch(normalized); match != nil {
+		family := strings.ToUpper(match[1][:1]) + match[1][1:]
+		return family + " " + match[2] + "." + match[3]
+	}
+	// Never display the floating `opus` alias verbatim. If a path ever stamps
+	// the bare alias (e.g. runtime JSON reporting "opus" instead of a concrete
+	// build), resolve it to the current concrete Opus — mirrors the JS SSOT
+	// OPUS_ALIAS_CURRENT in scripts/detect-model.mjs (keep both in sync).
+	if normalized == "opus" {
+		return DisplayName(ModelClaudeOpus)
+	}
 	switch m {
 	case ModelClaudeOpus:
-		return "Opus 4.6"
+		return "Opus 4.8"
 	case ModelClaudeSonnet:
 		return "Sonnet 4.6"
 	case ModelClaudeHaiku:
@@ -63,7 +84,12 @@ func DisplayName(m ModelID) string {
 
 // HarnessName returns the harness that drives a given model when shelled out
 // from the pipeline. Mirrors scripts/sp-pipeline.sh's model_harness_name.
+// Concrete Claude build ids (e.g. "claude-opus-4-5") map to the Claude harness
+// via the family match, so a pinned writer model still resolves correctly.
 func HarnessName(m ModelID) string {
+	if claudeFamilyRe.MatchString(string(m)) {
+		return "Claude Code CLI"
+	}
 	switch m {
 	case ModelClaudeOpus, ModelClaudeSonnet, ModelClaudeHaiku:
 		return "Claude Code CLI"

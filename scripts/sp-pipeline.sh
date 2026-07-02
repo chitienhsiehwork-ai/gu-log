@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # sp-pipeline.sh — backwards-compat shim.
 #
+# The canonical scripts/ entry point is now scripts/gp-pipeline.sh (Gu-log
+# Picks, matching the blog brand); this file is the retained legacy name and
+# behaves identically.
 # The real pipeline lives in tools/sp-pipeline/ (Go) as of Phase 4 of the
 # Go rewrite. This file exists so crontabs, playbooks, and ad-hoc
 # invocations that spell `bash scripts/sp-pipeline.sh <url>` keep working.

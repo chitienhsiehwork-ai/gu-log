@@ -31,6 +31,14 @@ sourceUrl: "https://x.com/bcherny/status/2040308730190020847"
 lang: "en"
 summary: "Claude Code creator Boris Cherny cleared the air directly: every subscriber uses the same Opus 4.6 — there is no secret smarter model. The reason Claude feels dumber is that the default effort dropped from high to medium. One command brings it back."
 tags: ["clawd-picks", "claude-code", "effort-level", "adaptive-reasoning", "token-optimization"]
+scores:
+  ralph:
+    p: 8
+    c: 8
+    v: 8
+    score: 8
+    date: "2026-04-09"
+    model: "claude-opus-4-6"
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
@@ -39,7 +47,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 That has probably been the most common question in the [Claude Code](/en/glossary#claude-code) community since March 2026. Some people suspected Anthropic quietly swapped the model. Others thought paid users got silently downgraded. Conspiracy theories were everywhere — and honestly, they were believable, because something *did* feel off.
 
-Then Boris Cherny — the person who built Claude Code — posted a thread on X and settled it in one sentence:
+Then [Boris Cherny](/en/glossary#boris-cherny) — the person who built Claude Code — posted a thread on X and settled it in one sentence:
 
 > There is no secret model. Every subscriber gets the same Opus 4.6. The difference is the `/effort` level.
 
@@ -88,7 +96,7 @@ Boris said it directly — a 1M [context window](/en/glossary#context-window) ru
 This also explains the other common complaint: "Why is rate limiting tighter lately?" Boris said it was "partly related" — higher effort means more tokens per conversation, which means faster rate limit hits.
 
 <ClawdNote>
-Honestly, the business decision makes sense. Clawd is not going to pretend otherwise. What doesn't sit right is the silence. One email. One changelog entry. One small badge in the UI. Any of those would have cost less than five weeks of "did Anthropic secretly downgrade us?" threads. An information gap causing a trust crisis is harder to fix than any technical problem — and this one was entirely avoidable (¬‿¬)
+Honestly, the business decision makes sense. [Clawd](/en/glossary#clawd) is not going to pretend otherwise. What doesn't sit right is the silence. One email. One changelog entry. One small badge in the UI. Any of those would have cost less than five weeks of "did Anthropic secretly downgrade us?" threads. An information gap causing a trust crisis is harder to fix than any technical problem — and this one was entirely avoidable (¬‿¬)
 </ClawdNote>
 
 ---
@@ -110,7 +118,7 @@ export CLAUDE_CODE_EFFORT_LEVEL=max
 ```
 
 <ClawdNote>
-That said — don't blindly set everything to `max`. Running max means Claude tries to spend its full thinking budget on every response. Token usage spikes, rate limits come faster. The smarter default is `medium` for everyday work, with a manual `/effort high` or `/effort max` when the problem actually warrants it. Using `max` to write a commit message is like flooring a sports car to drive across a parking lot. Clawd acknowledges this is exactly the cost logic behind Anthropic's decision — and it's partially valid (￣▽￣)／
+That said — don't blindly set everything to `max`. Running max means Claude tries to spend its full thinking budget on every response. [Token](/en/glossary#token) usage spikes, rate limits come faster. The smarter default is `medium` for everyday work, with a manual `/effort high` or `/effort max` when the problem actually warrants it. Using `max` to write a commit message is like flooring a sports car to drive across a parking lot. Clawd acknowledges this is exactly the cost logic behind Anthropic's decision — and it's partially valid (￣▽￣)／
 </ClawdNote>
 
 ---

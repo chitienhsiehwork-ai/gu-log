@@ -61,6 +61,7 @@ func newRunCmd(state *rootState) *cobra.Command {
 		skipBuild    bool
 		skipPush     bool
 		skipValidate bool
+		skipDedup    bool
 		angle        string
 		sourceLabel  string
 	)
@@ -108,6 +109,7 @@ canned responses for regression tests.`,
 				SkipBuild:    skipBuild,
 				SkipPush:     skipPush,
 				SkipValidate: skipValidate,
+				SkipDedup:    skipDedup,
 				Angle:        angle,
 				SourceLabel:  sourceLabel,
 			})
@@ -116,13 +118,14 @@ canned responses for regression tests.`,
 	cmd.Flags().StringVar(&fromStep, "from-step", "", "resume from step: setup/fetch/eval/dedup/write/review/refine/ralph/deploy")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "stop before the deploy step")
 	cmd.Flags().BoolVar(&force, "force", false, "skip the eval gate (still runs everything else)")
-	cmd.Flags().BoolVar(&opusOnly, "opus", false, "deprecated compatibility flag; Codex remains the default provider")
+	cmd.Flags().BoolVar(&opusOnly, "opus", false, "deprecated compatibility flag; role routing is automatic")
 	cmd.Flags().IntVar(&ralphBar, "bar", 8, "ralph quality bar (advisory — tribunal has its own internal bar)")
 	cmd.Flags().StringVar(&existingFile, "file", "", "resume from an existing file in src/content/posts/")
 	cmd.Flags().StringVar(&prefix, "prefix", "SP", "ticket prefix (SP / CP / SD / Lv)")
 	cmd.Flags().BoolVar(&skipBuild, "skip-build", false, "skip npm run build in the deploy step (testing only)")
 	cmd.Flags().BoolVar(&skipPush, "skip-push", false, "skip git push in the deploy step (testing only)")
 	cmd.Flags().BoolVar(&skipValidate, "skip-validate", false, "skip validate-posts.mjs in the deploy step (testing only)")
+	cmd.Flags().BoolVar(&skipDedup, "skip-dedup", false, "bypass both dedup gates — only for confirmed false positives (e.g. same-author, different thesis)")
 	cmd.Flags().StringVar(&angle, "angle", "", "optional narrative angle to make the article spine")
 	cmd.Flags().StringVar(&sourceLabel, "source-label", "", "override the `source:` frontmatter line")
 	return cmd
@@ -140,6 +143,7 @@ type runOpts struct {
 	SkipBuild    bool
 	SkipPush     bool
 	SkipValidate bool
+	SkipDedup    bool
 	Angle        string
 	SourceLabel  string
 }
@@ -159,7 +163,11 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 		return fmt.Errorf("run: tweet URL is required when not resuming via --file + --from-step")
 	}
 
-	disp, err := buildDispatcher(state, opts.OpusOnly)
+	writerDisp, err := buildDispatcherForRole(state, dispatcherWriter, opts.OpusOnly)
+	if err != nil {
+		return err
+	}
+	judgeDisp, err := buildDispatcherForRole(state, dispatcherJudge, opts.OpusOnly)
 	if err != nil {
 		return err
 	}
@@ -167,7 +175,9 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 	s := pipeline.NewState()
 	s.Cfg = state.cfg
 	s.Log = state.log
-	s.Dispatcher = disp
+	s.Dispatcher = writerDisp
+	s.WriterDispatcher = writerDisp
+	s.JudgeDispatcher = judgeDisp
 	s.Counter = counter.New(state.cfg.CounterFile, "")
 	s.TweetURL = opts.TweetURL
 	s.Prefix = opts.Prefix
@@ -180,6 +190,7 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 	s.SkipBuild = opts.SkipBuild
 	s.SkipPush = opts.SkipPush
 	s.SkipValidate = opts.SkipValidate
+	s.SkipDedup = opts.SkipDedup
 	s.Angle = opts.Angle
 	s.SourceLabel = opts.SourceLabel
 

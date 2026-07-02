@@ -9,7 +9,7 @@
  */
 
 interface Post {
-  slug: string;
+  id: string;
   data: {
     title: string;
     ticketId?: string;
@@ -30,7 +30,7 @@ interface Props {
 const { currentSlug, allPosts, lang = 'zh-tw' } = Astro.props;
 
 // Find current post
-const currentPost = allPosts.find((p) => p.slug === currentSlug);
+const currentPost = allPosts.find((p) => p.id === currentSlug);
 if (!currentPost?.data.series) {
   // No series — render nothing
   return;
@@ -98,7 +98,7 @@ const t = labels[lang];
       {
         prevPost ? (
           <a
-            href={`${baseUrl}${prevPost.slug}`}
+            href={`${baseUrl}${prevPost.id}`}
             class="series-nav-link series-prev-link"
             data-series-prev
           >
@@ -115,7 +115,7 @@ const t = labels[lang];
       {
         nextPost ? (
           <a
-            href={`${baseUrl}${nextPost.slug}`}
+            href={`${baseUrl}${nextPost.id}`}
             class="series-nav-link series-next-link"
             data-series-next
           >
@@ -140,21 +140,21 @@ const t = labels[lang];
   <ol class="series-list" data-series-list aria-label={t.seriesList}>
     {
       seriesPosts.map((post) => {
-        const isCurrent = post.slug === currentSlug;
+        const isCurrent = post.id === currentSlug;
         return (
           <li
             class={`series-item${isCurrent ? ' series-item-current' : ''}`}
             data-series-item
             data-series-current={isCurrent ? 'true' : undefined}
           >
-            <span class="read-indicator" data-read-indicator data-slug={post.slug} />
+            <span class="read-indicator" data-read-indicator data-slug={post.id} />
             {isCurrent ? (
               <span class="series-item-link series-item-current-label" aria-current="page">
                 <span class="series-order">{post.data.series?.order}.</span>
                 <span class="series-item-title">{post.data.title}</span>
               </span>
             ) : (
-              <a href={`${baseUrl}${post.slug}`} class="series-item-link">
+              <a href={`${baseUrl}${post.id}`} class="series-item-link">
                 <span class="series-order">{post.data.series?.order}.</span>
                 <span class="series-item-title">{post.data.title}</span>
               </a>

@@ -4,8 +4,8 @@
  *
  * Types:
  * - SD: ShroomDog Original (accent color)
- * - SP: ShroomDog Picks (muted color)
- * - CP: Clawd Picks (clawd color)
+ * - SP: Gu-log Picks (muted color) — stored as SP- slug, displayed as GP-
+ * - CP: Mogu Picks (mogu color)
  * - Lv: Level-Up (purple)
  */
 interface Props {
@@ -21,10 +21,15 @@ const prefix = ticketId.split('-')[0];
 
 const labels: Record<string, string> = {
   SD: 'ShroomDog Original',
-  SP: 'ShroomDog Picks',
-  CP: 'Clawd Picks',
+  SP: 'Gu-log Picks',
+  CP: 'Mogu Picks',
   Lv: 'Level-Up',
 };
+
+// Display alias: the SP series is branded "Gu-log Picks" with a GP- ticket,
+// and the CP series is branded "Mogu Picks" with an MP- ticket, while the
+// underlying slug/URL/ticketId stays SP-/CP- (no URL breakage).
+const displayId = ticketId.replace(/^SP-/, 'GP-').replace(/^CP-/, 'MP-');
 
 const label = labels[prefix] || '';
 ---
@@ -34,7 +39,7 @@ const label = labels[prefix] || '';
     class={`ticket-badge ticket-${prefix.toLowerCase()}`}
     title={showTooltip && !showLabel ? label : undefined}
   >
-    {ticketId}
+    {displayId}
   </span>
   {showLabel && <span class={`ticket-label ticket-label-${prefix.toLowerCase()}`}>{label}</span>}
 </span>
@@ -90,7 +95,7 @@ const label = labels[prefix] || '';
     color: var(--color-badge-sp);
   }
 
-  /* CP: Clawd Picks - muted orange */
+  /* CP: Mogu Picks - muted orange */
   .ticket-cp {
     background-color: rgba(203, 117, 81, 0.15);
     color: var(--color-badge-cp);

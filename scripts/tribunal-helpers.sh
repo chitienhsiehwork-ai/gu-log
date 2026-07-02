@@ -13,11 +13,16 @@ get_ticket_id() {
 }
 
 # Validate vibe scorer JSON output — returns 0 if valid, 1 if not
-# Expects tribunal vibe scorer schema: { dimensions: { persona, clawdNote, vibe, clarity, narrative }, ... }
+# Expects tribunal vibe scorer schema. Note: clarity ownership is version-aware
+# (move-clarity-vibe-to-fresheyes) — for tribunalVersion <= 8 the vibe schema is
+# { persona, clawdNote, vibe, clarity, narrative }; for v9+ vibe drops clarity
+# (it moves to Fresh Eyes). This helper only spot-checks persona/clawdNote/vibe,
+# so it stays compatible with both versions.
 # Usage: validate_score_json "/tmp/vibe-score-SP-110.json" "sp-110-file.mdx"
 validate_score_json() {
   local json_file="$1"
   local expected_file="$2"
+  : "$expected_file"
 
   # File exists?
   [ -f "$json_file" ] || return 1
@@ -52,8 +57,11 @@ validate_score_json() {
 # Sets: SCORE_P, SCORE_C, SCORE_V
 read_scores() {
   local json_file="$1"
+  # shellcheck disable=SC2034 # Exported-by-convention globals used by callers.
   SCORE_P=$(jq -r '.dimensions.persona' "$json_file")
+  # shellcheck disable=SC2034 # Exported-by-convention globals used by callers.
   SCORE_C=$(jq -r '.dimensions.clawdNote' "$json_file")
+  # shellcheck disable=SC2034 # Exported-by-convention globals used by callers.
   SCORE_V=$(jq -r '.dimensions.vibe' "$json_file")
 }
 
@@ -151,6 +159,148 @@ tribunal_codex_cmd() {
   return 1
 }
 
+tribunal_codex_version() {
+  local codex_cmd
+  codex_cmd="$(tribunal_codex_cmd)" || return 1
+  $codex_cmd --version 2>/dev/null | awk '{print $NF; exit}'
+}
+
+tribunal_codex_version_at_least() {
+  local actual="$1" required="$2"
+  python3 - "$actual" "$required" <<'PY'
+import re, sys
+
+def parts(v):
+    nums = [int(x) for x in re.findall(r'\d+', v)[:3]]
+    return tuple((nums + [0, 0, 0])[:3])
+
+sys.exit(0 if parts(sys.argv[1]) >= parts(sys.argv[2]) else 1)
+PY
+}
+
+tribunal_progress_file_default() {
+  local root="${1:-${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}}"
+  printf '%s/.score-loop/state/tribunal-progress.json\n' "$root"
+}
+
+tribunal_legacy_progress_file() {
+  local root="${1:-${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}}"
+  printf '%s/scores/tribunal-progress.json\n' "$root"
+}
+
+tribunal_progress_migration_dir() {
+  local root="${1:-${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}}"
+  printf '%s/.score-loop/state/migrations\n' "$root"
+}
+
+tribunal_runtime_git_state_file() {
+  local root="${1:-${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}}"
+  printf '%s/.score-loop/state/runtime-git.json\n' "$root"
+}
+
+tribunal_publisher_state_file() {
+  local root="${1:-${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}}"
+  printf '%s/.score-loop/state/tribunal-publisher.json\n' "$root"
+}
+
+tribunal_triage_events_file() {
+  local root="${1:-${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}}"
+  printf '%s/.score-loop/state/tribunal-triage-events.json\n' "$root"
+}
+
+ensure_tribunal_progress_file() {
+  local target="$1"
+  local root="${2:-${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}}"
+  local legacy="${3:-$(tribunal_legacy_progress_file "$root")}"
+
+  mkdir -p "$(dirname "$target")" "$(tribunal_progress_migration_dir "$root")"
+
+  if [ -f "$target" ] && jq empty "$target" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  if [ "$target" != "$legacy" ] && [ -f "$legacy" ] && jq empty "$legacy" >/dev/null 2>&1; then
+    local stamp backup
+    stamp="$(TZ=Asia/Taipei date +%Y%m%d-%H%M%S)"
+    backup="$(tribunal_progress_migration_dir "$root")/legacy-tribunal-progress-$stamp.json"
+    cp "$legacy" "$backup"
+    cp "$legacy" "$target"
+    return 0
+  fi
+
+  printf '{}\n' > "$target"
+}
+
+tribunal_fetch_origin_main() {
+  local repo_dir="$1"
+  local log_file="$2"
+  git -C "$repo_dir" fetch --prune origin main >> "$log_file" 2>&1
+}
+
+tribunal_write_runtime_git_state() {
+  local repo_dir="$1"
+  local state_file="${2:-$(tribunal_runtime_git_state_file "$repo_dir")}"
+  local ts local_ref remote_ref counts ahead behind state tracked_dirty
+
+  mkdir -p "$(dirname "$state_file")"
+
+  ts="$(TZ=Asia/Taipei date -Iseconds)"
+  local_ref="$(git -C "$repo_dir" rev-parse HEAD 2>/dev/null || true)"
+  remote_ref="$(git -C "$repo_dir" rev-parse refs/remotes/origin/main 2>/dev/null || true)"
+  counts="$(git -C "$repo_dir" rev-list --left-right --count HEAD...refs/remotes/origin/main 2>/dev/null || printf '0\t0')"
+  ahead="$(printf '%s' "$counts" | awk '{print $1}')"
+  behind="$(printf '%s' "$counts" | awk '{print $2}')"
+  tracked_dirty="$(git -C "$repo_dir" status --porcelain --untracked-files=no 2>/dev/null | wc -l | tr -d ' ')"
+  [[ "$ahead" =~ ^[0-9]+$ ]] || ahead=0
+  [[ "$behind" =~ ^[0-9]+$ ]] || behind=0
+  [[ "$tracked_dirty" =~ ^[0-9]+$ ]] || tracked_dirty=0
+  [ -n "$local_ref" ] || local_ref="unknown"
+  [ -n "$remote_ref" ] || remote_ref="unknown"
+
+  if [ "$local_ref" = "unknown" ] || [ "$remote_ref" = "unknown" ]; then
+    state="unknown"
+  elif [ "$ahead" = "0" ] && [ "$behind" = "0" ]; then
+    state="in_sync"
+  elif [ "$ahead" = "0" ]; then
+    state="behind"
+  elif [ "$behind" = "0" ]; then
+    state="ahead"
+  else
+    state="diverged"
+  fi
+
+  jq -n \
+    --arg state "$state" \
+    --arg localHead "$local_ref" \
+    --arg originMainHead "$remote_ref" \
+    --arg updatedAt "$ts" \
+    --argjson ahead "${ahead:-0}" \
+    --argjson behind "${behind:-0}" \
+    --argjson trackedDirty "${tracked_dirty:-0}" \
+    '{state: $state, ahead: $ahead, behind: $behind, trackedDirty: $trackedDirty, localHead: $localHead, originMainHead: $originMainHead, updatedAt: $updatedAt}' \
+    > "$state_file"
+}
+
+tribunal_fetch_and_report_origin_main() {
+  local repo_dir="$1"
+  local log_file="$2"
+  local state_file="${3:-$(tribunal_runtime_git_state_file "$repo_dir")}"
+  local fetched="true"
+
+  if ! tribunal_fetch_origin_main "$repo_dir" "$log_file"; then
+    fetched="false"
+  fi
+
+  tribunal_write_runtime_git_state "$repo_dir" "$state_file"
+
+  local state ahead behind tracked_dirty
+  state="$(jq -r '.state // "unknown"' "$state_file" 2>/dev/null || printf 'unknown')"
+  ahead="$(jq -r '.ahead // 0' "$state_file" 2>/dev/null || printf '0')"
+  behind="$(jq -r '.behind // 0' "$state_file" 2>/dev/null || printf '0')"
+  tracked_dirty="$(jq -r '.trackedDirty // 0' "$state_file" 2>/dev/null || printf '0')"
+  printf '%s|%s|%s|%s|%s\n' "$fetched" "$state" "$ahead" "$behind" "$tracked_dirty"
+}
+
 # Run a repo-local agent spec through Codex. Codex custom agents live in
 # `.codex/agents/*.toml`, but `codex exec` has no stable `--agent` flag for this
 # non-interactive tribunal path, so we inline the project-scoped Codex agent
@@ -200,12 +350,634 @@ PROMPT
   local codex_cmd
   codex_cmd="$(tribunal_codex_cmd)" || return 127
   (
-    cd "$work_dir"
+    cd "$work_dir" || exit
     # Close stdin so non-interactive Codex runs don't inherit the caller's
     # open stdin and hang waiting for extra prompt text.
     exec </dev/null
+    # shellcheck disable=SC2086 # codex_cmd may be "node <bundled codex.js>".
     timeout "$timeout_sec" $codex_cmd exec --model gpt-5.5 -c "model_reasoning_effort=\"$reasoning_effort\"" --sandbox danger-full-access --skip-git-repo-check -- "$prompt"
   )
+}
+
+# ── Claude fallback (CCC sandbox: codex absent, only `claude` on PATH) ─────────
+# The tribunal is codex-first everywhere it exists (VPS/mac). In the Claude Code
+# on the web sandbox there is no codex, only `claude`, so these helpers let the
+# tribunal still score/rewrite via Claude rather than hard-failing exit 70.
+
+tribunal_claude_cmd() {
+  if command -v claude >/dev/null 2>&1; then
+    printf '%s\n' claude
+    return 0
+  fi
+  return 1
+}
+
+# Resolve the active tribunal LLM provider: "codex" when present (the
+# maintained judge runtime), else "claude" (CCC fallback). Returns 1 when
+# neither binary is on PATH. Codex always wins when both exist; this intentionally
+# mirrors the Go pipeline's JudgeChain, not the Opus writer chain.
+tribunal_llm_provider() {
+  if [ -n "${TRIBUNAL_FORCE_PROVIDER:-}" ]; then
+    case "$TRIBUNAL_FORCE_PROVIDER" in
+      codex)
+        tribunal_codex_cmd >/dev/null 2>&1 && printf 'codex\n' && return 0
+        ;;
+      claude)
+        tribunal_claude_cmd >/dev/null 2>&1 && printf 'claude\n' && return 0
+        ;;
+    esac
+    return 1
+  fi
+  if tribunal_codex_cmd >/dev/null 2>&1; then
+    printf 'codex\n'
+    return 0
+  fi
+  if tribunal_claude_cmd >/dev/null 2>&1; then
+    printf 'claude\n'
+    return 0
+  fi
+  return 1
+}
+
+# Resolve the legacy CLI writer provider. Tribunal-internal prose rewrites must
+# never fall back to Codex/GPT; the only CLI writer is explicit opt-in Claude.
+tribunal_writer_provider() {
+  if tribunal_claude_cmd >/dev/null 2>&1; then
+    printf 'claude\n'
+    return 0
+  fi
+  return 1
+}
+
+tribunal_writer_mode() {
+  if [ -n "${GP_WRITER_MODE:-}" ]; then
+    printf '%s\n' "$GP_WRITER_MODE"
+  else
+    printf 'none\n'
+  fi
+}
+
+# Parse the `model:` field from a .claude/agents/<name>.md spec so each judge
+# runs on its declared Claude build (vibe/fact-checker on opus, etc.). Falls
+# back to the legacy Opus scorer/writer calibration model when the field is absent.
+tribunal_claude_agent_model() {
+  local agent_name="$1"
+  if [ -z "${REPO_ROOT:-}" ]; then
+    REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  fi
+  local f="$REPO_ROOT/.claude/agents/$agent_name.md"
+  local m=""
+  if [ -f "$f" ]; then
+    m="$(awk -F'model:[[:space:]]*' '/^model:/ {print $2; exit}' "$f" | tr -d '"'"'"'[:space:]')"
+  fi
+  if [ -n "$m" ]; then
+    printf '%s\n' "$m"
+  else
+    printf 'claude-opus-4-6\n'
+  fi
+}
+
+# Resolve the floating `opus` alias to its concrete build for RECORDING only.
+# Selection stays on the alias (tribunal_claude_agent_model returns it verbatim
+# so `claude -p --model opus` still floats to Anthropic's latest Opus); this
+# resolver is applied at the recording boundary so frontmatter scores.*.model
+# and the progress ledger stamp the concrete version (e.g. claude-opus-4-8)
+# instead of the opaque literal "opus".
+#
+# The bash judge path can't cheaply read Claude Code's runtime JSON metadata
+# (the judge writes its score to a file; stdout is only grep'd for quota
+# errors), so we resolve via the single SSOT constant OPUS_ALIAS_CURRENT in
+# scripts/detect-model.mjs. Non-alias ids (claude-opus-4-5, gpt-5.5, …) pass
+# through untouched. Falls back to the input unchanged if node is unavailable.
+tribunal_resolve_recorded_model() {
+  local selector="$1"
+  if [ -z "${REPO_ROOT:-}" ]; then
+    REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  fi
+  local resolved=""
+  if command -v node >/dev/null 2>&1 && [ -r "$REPO_ROOT/scripts/detect-model.mjs" ]; then
+    resolved="$(node "$REPO_ROOT/scripts/detect-model.mjs" --id "$selector" 2>/dev/null)"
+  fi
+  if [ -n "$resolved" ]; then
+    printf '%s\n' "$resolved"
+  else
+    printf '%s\n' "$selector"
+  fi
+}
+
+# Programmatic model id stamped into frontmatter scores + progress for the
+# active provider, so a Claude-scored post is recorded honestly instead of
+# being mislabelled GPT-5.5. Optional agent_name yields the judge's declared
+# Claude build; without it, a coarse provider label is returned. When a judge
+# declares the floating `opus` alias, the recorded id is resolved to its
+# concrete build (selection still uses the alias — see tribunal_claude_exec).
+tribunal_llm_model_id() {
+  local agent_name="${1:-}"
+  case "$(tribunal_llm_provider 2>/dev/null)" in
+    claude)
+      if [ -n "$agent_name" ]; then
+        tribunal_resolve_recorded_model "$(tribunal_claude_agent_model "$agent_name")"
+      else
+        printf 'claude-opus-4-6\n'
+      fi
+      ;;
+    *)
+      printf 'gpt-5.5\n'
+      ;;
+  esac
+}
+
+# Provider-aware runner label stamped into the internal progress ledger
+# (.score-loop/state/tribunal-progress.json), the stage log lines, and the
+# runner-error records. Shares the exact same provider resolution as the
+# frontmatter model_id (tribunal_llm_provider + tribunal_llm_model_id) so a
+# Claude-scored run is recorded as Claude internally instead of being
+# mislabelled as the codex GPT-5.5 runner — no second provider-detection path.
+#
+# - codex  → codex-gpt-5.5-medium  (byte-for-byte unchanged so VPS/mac
+#            calibration history stays continuous)
+# - claude → the judge's declared Claude build, symmetric to the frontmatter
+#            model_id (e.g. claude-opus-4-6[1m])
+tribunal_runner_label() {
+  local agent_name="${1:-}"
+  local model
+  model="$(tribunal_llm_model_id "$agent_name")"
+  case "$(tribunal_llm_provider 2>/dev/null)" in
+    claude)
+      printf '%s\n' "$model"
+      ;;
+    *)
+      printf 'codex-%s-medium\n' "$model"
+      ;;
+  esac
+}
+
+tribunal_write_actual_provider() {
+  local provider="$1"
+  local agent_name="$2"
+  local out_file="${TRIBUNAL_ACTUAL_PROVIDER_FILE:-}"
+  [ -n "$out_file" ] || return 0
+  local model runner
+  model="$(TRIBUNAL_FORCE_PROVIDER="$provider" tribunal_llm_model_id "$agent_name")"
+  runner="$(TRIBUNAL_FORCE_PROVIDER="$provider" tribunal_runner_label "$agent_name")"
+  {
+    printf 'provider=%s\n' "$provider"
+    printf 'model_id=%s\n' "$model"
+    printf 'runner_label=%s\n' "$runner"
+  } > "$out_file"
+}
+
+# Claude equivalent of tribunal_codex_exec: inlines the .claude/agents/<name>.md
+# rubric (its YAML frontmatter is the persona/pass-bar contract) and runs
+# `claude -p` non-interactively. Under root (CCC) claude rejects
+# bypassPermissions, so we use acceptEdits, which still auto-approves the
+# judge's score-file write; non-root uses the broader bypassPermissions.
+tribunal_claude_exec() {
+  local work_dir="$1"
+  local agent_name="$2"
+  local user_prompt="$3"
+  if [ -z "${REPO_ROOT:-}" ]; then
+    REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  fi
+  local agent_file="$REPO_ROOT/.claude/agents/$agent_name.md"
+  local agent_spec=""
+  if [ -f "$agent_file" ]; then
+    agent_spec="$(cat "$agent_file")"
+  fi
+  local prompt
+  prompt="$(cat <<PROMPT
+You are running inside the gu-log tribunal automation as a non-interactive judge.
+
+## Claude Code agent spec: $agent_name
+The YAML frontmatter and body below define your persona, rubric, and pass bar.
+Follow them exactly. The runtime model is selected by this runner; ignore any
+tools/model runtime fields in the frontmatter.
+
+$agent_spec
+
+## Repo root
+$REPO_ROOT
+
+## User task
+$user_prompt
+PROMPT
+)"
+  local model timeout_sec claude_cmd
+  model="$(tribunal_claude_agent_model "$agent_name")"
+  timeout_sec="${TRIBUNAL_CODEX_TIMEOUT_SEC:-3600}"
+  claude_cmd="$(tribunal_claude_cmd)" || return 127
+  # Permission handling differs by uid:
+  #  - non-root (mac/VPS): auto mode runs free without prompting. NOTE: we used
+  #    to use bypassPermissions here, but on current CC `claude -p
+  #    --permission-mode bypassPermissions` exits 1 the moment the agent invokes
+  #    a tool (Edit/Write), so the writer never rewrote. auto mode auto-approves
+  #    the read/edit/write the writer+judge need (verified editing an
+  #    out-of-cwd post) and is the maintainer's chosen mode (no bypassPermissions).
+  #  - root (CCC sandbox): claude *rejects* bypassPermissions, so we fall back to
+  #    acceptEdits. But acceptEdits only auto-approves *edits*; the judge task
+  #    passes the post as a PATH (not inlined), so the judge must Read it — which
+  #    prompts for permission and then hangs forever against the </dev/null
+  #    stdin. We therefore pre-approve the read/search/compute/write tools a judge
+  #    actually uses via --allowed-tools, reproducing the non-root "never prompt"
+  #    behavior with an explicit, narrower allowlist (no MCP, no network). Tools
+  #    are comma-joined into a single arg so the variadic flag can't swallow the
+  #    trailing "$prompt" positional.
+  #    --allowed-tools is variadic, so we must NOT leave a trailing positional
+  #    after it or the flag swallows the prompt text as bogus tool rules. Feed
+  #    the prompt on stdin (claude -p reads stdin when no positional prompt is
+  #    given) so the allowlist token is the last arg with nothing to consume.
+  local -a perm_args
+  if [ "$(id -u)" = "0" ]; then
+    perm_args=(--permission-mode acceptEdits --allowed-tools "Read,Grep,Glob,Bash,Write,Edit,MultiEdit")
+  else
+    perm_args=(--permission-mode auto)
+  fi
+  (
+    cd "$work_dir" || exit
+    printf '%s' "$prompt" | timeout "$timeout_sec" "$claude_cmd" -p --model "$model" "${perm_args[@]}"
+  )
+}
+
+# Provider-agnostic single-shot exec. Drop-in replacement for direct
+# tribunal_codex_exec calls: routes to codex (primary) or claude (CCC
+# fallback). On the VPS/mac where codex exists this is byte-for-byte the old
+# codex path.
+tribunal_llm_exec_raw() {
+  local work_dir="$1"
+  local agent_name="$2"
+  local user_prompt="$3"
+  case "$(tribunal_llm_provider 2>/dev/null)" in
+    claude)
+      tribunal_claude_exec "$work_dir" "$agent_name" "$user_prompt"
+      ;;
+    codex)
+      tribunal_codex_exec "$work_dir" "$agent_name" "$user_prompt"
+      ;;
+    *)
+      echo "ERROR: no tribunal LLM provider available (need codex or claude on PATH)" >&2
+      # CCC sandbox fallback: the CLI judge path (codex / `claude -p`) is often
+      # unavailable in Claude Code on the web (codex not on PATH, claude CLI auth
+      # / exit 1). Instead of hard-failing, tell the CCC agent to run the judge
+      # via the Agent tool. This only prints on the error path, so it never
+      # changes the codex/claude success behaviour on the VPS/mac.
+      local _helper_dir
+      _helper_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+      if [ "$("$_helper_dir/detect-env.sh" 2>/dev/null)" = "CCC" ]; then
+        cat >&2 <<EOF
+↪ CCC fallback — score this judge with the Agent tool, do NOT skip:
+  1. Spawn a subagent. If your harness exposes the named project agents, use
+     subagent_type "$agent_name"; if it only exposes general-purpose, spawn
+     "general-purpose" and tell it to read and follow .claude/agents/$agent_name.md
+     exactly (zero parent context).
+  2. Have it write JSON to /tmp/tribunal-<ticketId>-<judge>.json.
+  3. Record the score with scripts/frontmatter-scores.mjs write <post> <judge> <json>.
+  See playbooks/CCC-playbook.md §沙箱 fallback for the full 4-judge protocol.
+EOF
+      fi
+      return 127
+      ;;
+  esac
+}
+
+tribunal_llm_exec() {
+  tribunal_llm_exec_raw "$@"
+}
+
+tribunal_writer_exec_broker() {
+  local work_dir="$1"
+  local agent_name="$2"
+  local user_prompt="$3"
+  if [ -z "${REPO_ROOT:-}" ]; then
+    REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  fi
+
+  local broker_dir="${GP_WRITER_BROKER_DIR:-$work_dir/.writer-broker}"
+  local timeout_sec="${GP_WRITER_BROKER_TIMEOUT:-1800}"
+  local poll_interval="${GP_WRITER_BROKER_POLL_INTERVAL:-2}"
+  local post_file="${TRIBUNAL_WRITER_POST_FILE:-unknown-post.mdx}"
+  local stage="${TRIBUNAL_WRITER_STAGE:-unknown}"
+  local attempt="${TRIBUNAL_WRITER_ATTEMPT:-0}"
+  local attempt_json="$attempt"
+  case "$attempt_json" in
+    ''|*[!0-9]*) attempt_json=0 ;;
+  esac
+
+  mkdir -p "$broker_dir"
+  local safe_post safe_stage epoch id request tmp done_marker failed_marker claimed_marker
+  safe_post="$(printf '%s' "$post_file" | tr -c 'A-Za-z0-9._-' '-')"
+  safe_stage="$(printf '%s' "$stage" | tr -c 'A-Za-z0-9._-' '-')"
+  epoch="$(date +%s)"
+  id="${safe_post}-${safe_stage}-${attempt_json}-${epoch}-$$-$RANDOM"
+  request="$broker_dir/$id.request.json"
+  tmp="$broker_dir/$id.request.json.tmp.$$"
+  done_marker="$broker_dir/$id.done"
+  failed_marker="$broker_dir/$id.failed"
+  claimed_marker="$broker_dir/$id.claimed"
+
+  local post_path en_post_path created_at
+  post_path="$REPO_ROOT/src/content/posts/$post_file"
+  en_post_path=""
+  if [ -f "$REPO_ROOT/src/content/posts/en-$post_file" ]; then
+    en_post_path="$REPO_ROOT/src/content/posts/en-$post_file"
+  fi
+  created_at="$(TZ=UTC date '+%Y-%m-%dT%H:%M:%SZ')"
+
+  jq -n \
+    --arg id "$id" \
+    --arg agent_name "$agent_name" \
+    --arg post_file "$post_file" \
+    --arg post_path "$post_path" \
+    --arg en_post_path "$en_post_path" \
+    --arg prompt "$user_prompt" \
+    --arg stage "$stage" \
+    --argjson attempt "$attempt_json" \
+    --arg created_at "$created_at" \
+    '{
+      id: $id,
+      agent_name: $agent_name,
+      post_file: $post_file,
+      post_path: $post_path,
+      en_post_path: $en_post_path,
+      prompt: $prompt,
+      stage: $stage,
+      attempt: $attempt,
+      created_at: $created_at
+    }' > "$tmp"
+  mv "$tmp" "$request"
+
+  printf 'writer broker request: %s\n' "$request"
+  printf 'writer broker dir: %s\n' "$broker_dir"
+
+  local start now
+  start="$(date +%s)"
+  while true; do
+    if [ -f "$done_marker" ]; then
+      rm -f "$request" "$done_marker" "$failed_marker" "$claimed_marker"
+      return 0
+    fi
+    if [ -f "$failed_marker" ]; then
+      echo "ERROR: tribunal-writer broker request failed: $request" >&2
+      rm -f "$request" "$done_marker" "$failed_marker" "$claimed_marker"
+      return 1
+    fi
+    now="$(date +%s)"
+    if [ $((now - start)) -ge "$timeout_sec" ]; then
+      echo "WARN: tribunal-writer broker timed out after ${timeout_sec}s waiting for $request" >&2
+      rm -f "$request" "$done_marker" "$failed_marker" "$claimed_marker"
+      return 1
+    fi
+    sleep "$poll_interval"
+  done
+}
+
+tribunal_writer_exec_raw() {
+  local work_dir="$1"
+  local agent_name="$2"
+  local user_prompt="$3"
+  case "$(tribunal_writer_mode)" in
+    subagent)
+      tribunal_writer_exec_broker "$work_dir" "$agent_name" "$user_prompt"
+      ;;
+    none)
+      echo "rewrite skipped (GP_WRITER_MODE=none)" >&2
+      return 76
+      ;;
+    cli)
+      case "$(tribunal_writer_provider 2>/dev/null)" in
+        claude)
+          tribunal_claude_exec "$work_dir" "$agent_name" "$user_prompt"
+          ;;
+        *)
+          echo "ERROR: GP_WRITER_MODE=cli requires claude on PATH; refusing Codex/GPT writer fallback" >&2
+          return 127
+          ;;
+      esac
+      ;;
+    *)
+      echo "ERROR: unsupported GP_WRITER_MODE='$(tribunal_writer_mode)' (expected none, subagent, or cli)" >&2
+      return 2
+      ;;
+  esac
+}
+
+tribunal_writer_exec_raw_legacy_cli() {
+  local work_dir="$1"
+  local agent_name="$2"
+  local user_prompt="$3"
+  case "$(tribunal_writer_provider 2>/dev/null)" in
+    claude)
+      tribunal_claude_exec "$work_dir" "$agent_name" "$user_prompt"
+      ;;
+    *)
+      echo "ERROR: GP_WRITER_MODE=cli requires claude on PATH; refusing Codex/GPT writer fallback" >&2
+      return 127
+      ;;
+  esac
+}
+
+tribunal_quota_alarm() {
+  local msg="$1"
+  local ts safe_msg
+  ts="$(TZ=Asia/Taipei date '+%Y-%m-%d %H:%M:%S %z')"
+  safe_msg="${msg//\"/\\\"}"
+  printf '[%s] [tribunal-quota] %s\n' "$ts" "$msg" >&2
+  osascript -e "display notification \"$safe_msg\" with title \"gp-pipeline\"" >/dev/null 2>&1 || true
+}
+
+tribunal_quota_error_file() {
+  local file="$1"
+  [ -s "$file" ] || return 1
+  grep -Eiq '(^|[^0-9])429([^0-9]|$)|rate[- ]limit|too many requests|resource exhausted|quota exceeded|quota exhausted|usage limit|limit reached|try again later|temporarily limited' "$file"
+}
+
+tribunal_quota_seconds_from_text() {
+  local text="$1"
+  python3 - "$text" <<'PY' 2>/dev/null || printf '0\n'
+import re, sys
+s = sys.argv[1]
+total = 0
+for n, unit in re.findall(r'(\d+)\s*([dhms])', s, flags=re.I):
+    n = int(n)
+    total += n * {'d': 86400, 'h': 3600, 'm': 60, 's': 1}[unit.lower()]
+print(total)
+PY
+}
+
+tribunal_quota_max_wait_seconds() {
+  tribunal_quota_seconds_from_text "${GP_QUOTA_MAX_WAIT:-6h}"
+}
+
+tribunal_quota_codexbar_block() {
+  local provider="$1"
+  local needle="codex"
+  local usage
+  case "$provider" in
+    claude*) needle="claude" ;;
+  esac
+  if [ -n "${TRIBUNAL_QUOTA_CODEXBAR_OUTPUT:-}" ]; then
+    usage="$TRIBUNAL_QUOTA_CODEXBAR_OUTPUT"
+  else
+    usage="$(timeout "${GP_CODEXBAR_TIMEOUT_SECONDS:-20}" codexbar usage 2>/dev/null || true)"
+  fi
+  printf '%s\n' "$usage" | awk -v needle="$needle" '
+    BEGIN { in_block=0 }
+    {
+      lower=tolower($0)
+      is_header=(lower ~ /codex/ || lower ~ /claude/)
+      if (index(lower, needle) > 0) in_block=1
+      else if (in_block && is_header) exit
+      if (in_block) print
+    }
+  '
+}
+
+tribunal_quota_percent_left_from_line() {
+  local line="$1"
+  printf '%s\n' "$line" | grep -Eio '[0-9]+[[:space:]]*%[[:space:]]*left' | head -1 | grep -Eo '[0-9]+' || true
+}
+
+tribunal_quota_parse_block() {
+  local block="$1"
+  local current_section="" line reset_text reset_seconds
+  local session_left="" session_reset=0 weekly_left="" weekly_reset=0
+  while IFS= read -r line; do
+    if [[ "$line" =~ ^[[:space:]]*Session: ]]; then
+      current_section="session"
+      session_left="$(tribunal_quota_percent_left_from_line "$line")"
+      continue
+    fi
+    if [[ "$line" =~ ^[[:space:]]*Weekly: ]]; then
+      current_section="weekly"
+      weekly_left="$(tribunal_quota_percent_left_from_line "$line")"
+      continue
+    fi
+    if [[ "$line" =~ ^[[:space:]]*Resets?[[:space:]]+in[[:space:]]+(.+) ]]; then
+      reset_text="${BASH_REMATCH[1]}"
+      reset_seconds="$(tribunal_quota_seconds_from_text "$reset_text")"
+      case "$current_section" in
+        session) session_reset="$reset_seconds" ;;
+        weekly) weekly_reset="$reset_seconds" ;;
+      esac
+    fi
+  done <<< "$block"
+  printf '%s|%s|%s|%s\n' "${session_left:-}" "${session_reset:-0}" "${weekly_left:-}" "${weekly_reset:-0}"
+}
+
+tribunal_quota_decision() {
+  local provider="$1"
+  local waits="$2"
+  local block tier reset_seconds max_wait max_waits parsed session_left session_reset weekly_left weekly_reset
+  max_wait="$(tribunal_quota_max_wait_seconds)"
+  max_waits="${GP_QUOTA_MAX_WAITS:-3}"
+  block="$(tribunal_quota_codexbar_block "$provider" || true)"
+  if [ -z "$block" ]; then
+    printf 'suspend|unknown|0|codexbar unavailable/unparseable\n'
+    return 0
+  fi
+  parsed="$(tribunal_quota_parse_block "$block")"
+  IFS='|' read -r session_left session_reset weekly_left weekly_reset <<< "$parsed"
+  if [ "${weekly_left:-}" = "0" ]; then
+    printf 'suspend|weekly|%s|weekly quota exhausted; resets in %s\n' "$weekly_reset" "$(tribunal_quota_human_duration "$weekly_reset")"
+    return 0
+  fi
+  tier="session"
+  reset_seconds="${session_reset:-0}"
+  if [ "$reset_seconds" -gt 0 ] && [ "$reset_seconds" -le "$max_wait" ] && [ "$waits" -lt "$max_waits" ]; then
+    printf 'wait|%s|%s|session quota exhausted; resets in %s\n' "$tier" "$reset_seconds" "$(tribunal_quota_human_duration "$reset_seconds")"
+  else
+    printf 'suspend|%s|%s|session quota exhausted; resets in %s\n' "$tier" "$reset_seconds" "$(tribunal_quota_human_duration "$reset_seconds")"
+  fi
+}
+
+tribunal_quota_human_duration() {
+  local seconds="${1:-0}"
+  if ! [[ "$seconds" =~ ^[0-9]+$ ]] || [ "$seconds" -le 0 ]; then
+    printf 'unknown'
+    return 0
+  fi
+  local days hours minutes out=""
+  days=$((seconds / 86400))
+  seconds=$((seconds % 86400))
+  hours=$((seconds / 3600))
+  seconds=$((seconds % 3600))
+  minutes=$((seconds / 60))
+  [ "$days" -gt 0 ] && out="${out}${days}d "
+  [ "$hours" -gt 0 ] && out="${out}${hours}h "
+  [ "$minutes" -gt 0 ] && out="${out}${minutes}m "
+  printf '%s' "${out% }"
+}
+
+tribunal_quota_write_status() {
+  local provider="$1" action="$2" tier="$3" reset_seconds="$4" reason="$5"
+  local out_file="${TRIBUNAL_QUOTA_STATUS_FILE:-}"
+  [ -n "$out_file" ] || return 0
+  {
+    printf 'provider=%s\n' "$provider"
+    printf 'action=%s\n' "$action"
+    printf 'tier=%s\n' "$tier"
+    printf 'reset_seconds=%s\n' "$reset_seconds"
+    printf 'reason=%s\n' "$reason"
+    printf 'resume_command=%s\n' "${TRIBUNAL_RESUME_COMMAND:-rerun the same tribunal command}"
+  } > "$out_file"
+}
+
+tribunal_quota_handle_file() {
+  local provider="$1"
+  local output_file="$2"
+  local waits="$3"
+  tribunal_quota_error_file "$output_file" || return 1
+  local decision action tier reset_seconds reason
+  decision="$(tribunal_quota_decision "$provider" "$waits")"
+  IFS='|' read -r action tier reset_seconds reason <<<"$decision"
+  local resume="${TRIBUNAL_RESUME_COMMAND:-rerun the same tribunal command}"
+  tribunal_quota_write_status "$provider" "$action" "$tier" "$reset_seconds" "$reason"
+  if [ "$action" = "wait" ]; then
+    local sleep_seconds buffer_seconds
+    buffer_seconds="$(tribunal_quota_seconds_from_text "${GP_QUOTA_WAIT_BUFFER:-120s}")"
+    sleep_seconds=$((reset_seconds + buffer_seconds))
+    tribunal_quota_alarm "$provider quota exhausted ($tier). $reason. Sleeping ${sleep_seconds}s before retry."
+    sleep "$sleep_seconds"
+    tribunal_quota_alarm "$provider quota wait elapsed; retrying tribunal step."
+    return 88
+  fi
+  tribunal_quota_alarm "$provider quota exhausted ($tier). $reason. Suspended; resume with: $resume"
+  return 89
+}
+
+tribunal_writer_exec() {
+  local work_dir="$1"
+  local agent_name="$2"
+  local user_prompt="$3"
+  local mode
+  mode="$(tribunal_writer_mode)"
+  if [ "$mode" != "cli" ]; then
+    tribunal_writer_exec_raw "$work_dir" "$agent_name" "$user_prompt"
+    return $?
+  fi
+
+  local waits=0 provider out rc qrc
+  provider="$(tribunal_writer_provider 2>/dev/null || true)"
+  while true; do
+    out="$(mktemp)"
+    rc=0
+    tribunal_writer_exec_raw_legacy_cli "$work_dir" "$agent_name" "$user_prompt" >"$out" 2>&1 || rc=$?
+    cat "$out"
+    if [ "$rc" -eq 0 ]; then
+      rm -f "$out"
+      return 0
+    fi
+    qrc=0
+    tribunal_quota_handle_file "$provider" "$out" "$waits" || qrc=$?
+    rm -f "$out"
+    if [ "$qrc" -eq 88 ]; then
+      waits=$((waits + 1))
+      continue
+    fi
+    if [ "$qrc" -eq 89 ]; then
+      return 75
+    fi
+    return "$rc"
+  done
 }
 
 # Run Codex with both a wall-clock timeout and an idle watchdog. The wall-clock
@@ -222,10 +994,18 @@ tribunal_codex_exec_watchdog() {
   local progress_file="${5:-}"
   local idle_timeout="${TRIBUNAL_CODEX_IDLE_TIMEOUT_SEC:-900}"
   local poll_interval="${TRIBUNAL_CODEX_IDLE_POLL_SEC:-30}"
-  local pid rc now last_change latest_mtime out_mtime progress_mtime
+  local pid rc now last_change latest_mtime out_mtime progress_mtime waits force_provider provider qrc
+  waits=0
+  force_provider="${TRIBUNAL_FORCE_PROVIDER:-}"
 
   : > "$output_file"
-  tribunal_codex_exec "$work_dir" "$agent_name" "$user_prompt" > "$output_file" 2>&1 &
+  while true; do
+  : > "$output_file"
+  if [ -n "$force_provider" ]; then
+    TRIBUNAL_FORCE_PROVIDER="$force_provider" tribunal_llm_exec "$work_dir" "$agent_name" "$user_prompt" > "$output_file" 2>&1 &
+  else
+    tribunal_llm_exec "$work_dir" "$agent_name" "$user_prompt" > "$output_file" 2>&1 &
+  fi
   pid=$!
   last_change="$(date +%s)"
 
@@ -245,7 +1025,7 @@ tribunal_codex_exec_watchdog() {
       last_change="$latest_mtime"
     fi
     if [ $((now - last_change)) -ge "$idle_timeout" ]; then
-      printf '[tribunal-watchdog] idle for %ss with no output/score-file progress; killing Codex pid %s\n' "$idle_timeout" "$pid" >> "$output_file"
+      printf '[tribunal-watchdog] idle for %ss with no output/score-file progress; killing judge pid %s\n' "$idle_timeout" "$pid" >> "$output_file"
       kill -TERM "$pid" 2>/dev/null || true
       sleep 5
       kill -KILL "$pid" 2>/dev/null || true
@@ -256,5 +1036,34 @@ tribunal_codex_exec_watchdog() {
 
   rc=0
   wait "$pid" || rc=$?
+  if [ "$rc" -eq 0 ]; then
+    provider="${force_provider:-$(tribunal_llm_provider 2>/dev/null || true)}"
+    tribunal_write_actual_provider "$provider" "$agent_name"
+    return 0
+  fi
+  provider="${force_provider:-$(tribunal_llm_provider 2>/dev/null || true)}"
+  if [ "$provider" = "codex" ] && [ "${GP_JUDGE_ALLOW_CLAUDE:-0}" = "1" ] && tribunal_claude_cmd >/dev/null 2>&1 && tribunal_quota_error_file "$output_file"; then
+    tribunal_quota_alarm "codex judge quota exhausted; trying explicit Claude judge fallback."
+    force_provider="claude"
+    waits=0
+    continue
+  fi
+  qrc=0
+  tribunal_quota_handle_file "$provider" "$output_file" "$waits" || qrc=$?
+  if [ "$qrc" -eq 88 ]; then
+    waits=$((waits + 1))
+    continue
+  fi
+  if [ "$qrc" -eq 89 ]; then
+    return 75
+  fi
   return "$rc"
+  done
+}
+
+# Provider-agnostic alias. The watchdog body now dispatches through
+# tribunal_llm_exec (codex primary, claude CCC fallback), so prefer this name
+# at call sites; the codex-specific name is kept for back-compat.
+tribunal_llm_exec_watchdog() {
+  tribunal_codex_exec_watchdog "$@"
 }

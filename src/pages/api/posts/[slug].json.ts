@@ -1,5 +1,6 @@
 import type { APIContext } from 'astro';
-import { getCollection, type CollectionEntry } from 'astro:content';
+import { getCollection, render, type CollectionEntry } from 'astro:content';
+import { getPostAuthorshipNote } from '../../../utils/post-authorship-notes';
 
 /**
  * Individual article endpoint for gu-log iOS app.
@@ -14,27 +15,20 @@ export async function getStaticPaths() {
   const posts = await getCollection('posts');
 
   return posts.map((post) => ({
-    params: { slug: post.slug },
+    params: { slug: post.id },
     props: { post },
   }));
 }
 
 export async function GET(_context: APIContext) {
   const { post } = _context.props as { post: CollectionEntry<'posts'> };
-  const { Content: _Content, headings } = await (
-    post as unknown as {
-      render: () => Promise<{
-        Content: unknown;
-        headings: { depth: number; slug: string; text: string }[];
-      }>;
-    }
-  ).render();
+  const { Content: _Content, headings } = await render(post);
 
   // We can't easily serialize the Content component to HTML in a static endpoint,
   // so we provide the raw MDX body + headings. The app can render markdown natively.
   return new Response(
     JSON.stringify({
-      slug: post.slug,
+      slug: post.id,
       ticketId: post.data.ticketId || null,
       title: post.data.title,
       summary: post.data.summary,
@@ -44,6 +38,7 @@ export async function GET(_context: APIContext) {
       translatedDate: post.data.translatedDate || null,
       source: post.data.source,
       sourceUrl: post.data.sourceUrl,
+      authorshipNote: getPostAuthorshipNote(post.id, post.data.lang),
       translatedBy: post.data.translatedBy || null,
       headings,
       // Raw body: everything after the frontmatter closing ---

@@ -33,7 +33,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 Picture this: Friday afternoon, 3 PM. You're staring at a beautiful row of green checkmarks in your CI pipeline. "Finally," you think, and hit merge. Then you go grab coffee.
 
-Before the coffee's even cool enough to drink, Slack explodes.
+Before the coffee's even cool enough to drink, [Slack](/en/glossary#slack) explodes.
 
 "The homepage button is gone." "The form won't submit." "Safari shows a blank page."
 
@@ -43,7 +43,7 @@ What about the things you didn't think of? The things you didn't even know could
 
 It's like taking an exam where you wrote all the questions yourself. Of course you aced it. But the professor's exam? That's a different story.
 
-Simon Willison recently added a new chapter to his Agentic Engineering Patterns series, tackling exactly this problem: **Agentic Manual Testing** — telling your AI agent to actually go click things, run things, and open a browser to look at things.
+[Simon Willison](/en/glossary#simon-willison) recently added a new chapter to his [Agentic Engineering](/en/glossary#agentic-engineering) Patterns series, tackling exactly this problem: **Agentic Manual Testing** — telling your AI agent to actually go click things, run things, and open a browser to look at things.
 
 <ClawdNote>
 Ah, Simon Willison again. This guy shows up on gu-log about as often as convenience stores show up on Taipei streets (╯°□°)╯ But can you blame us? He keeps hitting the exact pain points — Django co-creator, Datasette author, twenty years in the open source trenches. And the important part: he doesn't just talk. Every tool he mentions comes with a repo link. In a world full of hot takes, the rare ones that ship code deserve extra attention.
@@ -111,7 +111,7 @@ When it comes to agents controlling browsers, Simon introduces three tools. Thin
 
 But a screwdriver alone won't cut it. Agents work differently from humans — they don't look at GUIs, they eat CLI commands. So Vercel built **agent-browser**, a CLI wrapper around Playwright. You might roll your eyes: "Can't I just use Playwright directly?" Sure, but your new "employee" doesn't know how to use a mouse ┐(￣ヘ￣)┌ It only understands the terminal.
 
-Then Simon went ahead and forged his own Swiss Army knife: **Rodney**. It bypasses Playwright entirely, talking directly to Chrome via the DevTools Protocol — running JavaScript, scrolling, clicking, screenshotting, reading the accessibility tree, all in one package. Simon showed a prompt design that stuck with me: he uses `uvx rodney --help` to make the agent auto-install the tool, read the manual, and start testing. One line, three things done. That kind of efficiency is probably why his output is so high.
+Then Simon went ahead and forged his own Swiss Army knife: **[Rodney](/en/glossary#rodney)**. It bypasses Playwright entirely, talking directly to Chrome via the DevTools Protocol — running JavaScript, scrolling, clicking, screenshotting, reading the accessibility tree, all in one package. Simon showed a prompt design that stuck with me: he uses `uvx rodney --help` to make the agent auto-install the tool, read the manual, and start testing. One line, three things done. That kind of efficiency is probably why his output is so high.
 
 <ClawdNote>
 The difference between these three tools is actually pretty intuitive. Playwright is like a taxi — always available, handles anything, but not custom-built for your specific route. agent-browser is like adding a voice-call interface to the taxi so people who can't wave one down can still get a ride. Rodney is Simon's custom motorcycle — lightweight, fast, can weave through back alleys, purpose-built for his exact workflow.
@@ -121,7 +121,7 @@ You don't necessarily need all three, but you should know which one fits your si
 
 ---
 
-## Showboat: "I Tested It" Isn't Good Enough
+## [Showboat](/en/glossary#showboat): "I Tested It" Isn't Good Enough
 
 Manual testing has an old problem: **once it's done, it's gone.** How do you know the agent actually tested? What did it test? What were the results?
 
@@ -136,7 +136,7 @@ Simon built **Showboat** for exactly this — a tool that makes agents document 
 The killer feature is `exec`. It records the command and real results, not the agent's verbal report. The design says: **I don't want you to tell me you tested. I want to see the process and results.**
 
 <ClawdNote>
-Showboat's philosophy is basically the same sentence as our OpenClaw SOUL.md rule — "Show your work — never say done without proof" — just wearing different clothes. Turns out everyone working with agents learned the same lesson: when an agent says it did something, that doesn't mean it actually did. Trust is earned with logs and screenshots, not words (⌐■_■)
+Showboat's philosophy is basically the same sentence as our [OpenClaw](/en/glossary#openclaw) SOUL.md rule — "Show your work — never say done without proof" — just wearing different clothes. Turns out everyone working with agents learned the same lesson: when an agent says it did something, that doesn't mean it actually did. Trust is earned with logs and screenshots, not words (⌐■_■)
 
 Community member @parrissays took it even further — added screenshots as a gate in the pipeline: TDD at the start, screenshot at the end, no room for the agent to slack off in between. This might become the standard agent-driven development pipeline.
 </ClawdNote>
@@ -147,7 +147,7 @@ Community member @parrissays took it even further — added screenshots as a gat
 
 If you've read this far thinking "OK I get it, but what do I actually do?" — Simon already paved the road for you.
 
-The cheapest change: add one line to your agent prompt. Whether you use Claude Code, Cursor, or anything else, write this in your instructions: "After writing code, manually verify with python -c or curl." That's it. The ROI on this one line is absurd, because agents already execute commands — you're just reminding them to execute one more.
+The cheapest change: add one line to your agent prompt. Whether you use [Claude Code](/en/glossary#claude-code), Cursor, or anything else, write this in your instructions: "After writing code, manually verify with python -c or curl." That's it. The ROI on this one line is absurd, because agents already execute commands — you're just reminding them to execute one more.
 
 If your product has a Web UI, browser automation is your next step. Maintaining E2E tests used to be a nightmare — change the HTML structure and half your selectors break. But now letting agents maintain those tests actually brings the cost down. Agents don't mind broken selectors — they just find new ones.
 

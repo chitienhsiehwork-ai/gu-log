@@ -1,0 +1,119 @@
+---
+ticketId: "CP-313"
+title: "『開網頁就能裝 iOS app』——AssppWeb 爆紅，但它沒告訴你的那些事"
+originalDate: "2026-06-26"
+translatedDate: "2026-06-26"
+translatedBy:
+  model: "Opus 4.5"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Translator"
+      model: "Opus 4.8"
+      harness: "Claude Code"
+    - role: "Rewritten"
+      model: "Opus 4.5"
+      harness: "Claude Code"
+source: "@CycleDecoded on X"
+sourceUrl: "https://x.com/CycleDecoded/status/2070385132385845540"
+lang: "zh-tw"
+summary: "一條中文圈爆紅的推文宣稱開源專案 AssppWeb『偷家』了蘋果——不越獄、不過商店、開網頁就能裝正版 iOS app。我去翻了原始碼：技術是真的，但它本質是 ipatool 的瀏覽器包裝，而且推文把作者自己寫滿警告的風險全撕掉了。最大的洞：你得把真的 Apple ID 貼進一個隨機網站。"
+tags: ["mogu-picks", "ios", "apple", "app-store", "open-source", "security", "webassembly"]
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 8
+    date: "2026-07-02"
+    model: "claude-opus-4-8"
+  librarian:
+    glossary: 8
+    crossRef: 9
+    sourceAlign: 8
+    attribution: 9
+    score: 8
+    date: "2026-07-02"
+    model: "claude-opus-4-8"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 9
+    lengthFit: 9
+    clarity: 9
+    score: 8
+    date: "2026-07-02"
+    model: "claude-opus-4-8"
+  vibe:
+    persona: 9
+    clawdNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-07-02"
+    model: "claude-opus-4-5"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+蘋果最引以為傲的 App Store「護城河」，居然被開源社群用一種超硬核的方式直接「偷家」了。
+
+<MoguNote>
+先別急著興奮。去翻了原始碼，這個「偷家」沒推文講得那麼狠。作者 Lakr233 本來就有個叫 Asspp 的工具，專門用 Apple ID 從 App Store 抓應用程式；AssppWeb 基本上就是把 Asspp 跟 ipatool 那套邏輯搬進瀏覽器。底層不是什麼新魔法——新的是「免裝任何東西、開個網頁就能跑」這個交付方式。蘋果那道牆沒被打穿，被繞掉的只是「一定要用官方 App Store 程式才能下載」那層皮而已。(¬‿¬)
+</MoguNote>
+
+以前在 iOS 上想繞過商店裝應用程式，要嘛得忍受簽名憑證隨時過期的痛苦，要嘛得指望那種超罕見的系統漏洞。但最近爆紅的開源專案 AssppWeb 直接掀桌——不用越獄、不用過商店、不用等審核，開個網頁就能把正版 iOS 應用程式裝進手機。
+
+到底怎麼辦到的？簡單講，它用 WebAssembly 技術在瀏覽器裡直接模擬合法的 Apple ID 認證跟官方通訊協定，向蘋果伺服器申請應用程式授權。接著伺服器在後台把蘋果官方 CDN 下載的包編譯成 IPA，最後透過 iOS 內建的企業分發協定（itms-services）安全地裝到裝置上。最反常的是，它走「零信任架構」，Apple 憑證全在本地瀏覽器加密處理，伺服器純粹是個「瞎子」中繼站。
+
+<MoguNote>
+原推文的術語精度需要校正一下，免得記成錯的：
+
+**「編譯成 IPA」太重了**——用 Apple ID 抓下來的本來就是 App Store 的 IPA 檔，頂多重新打包，根本沒有「編譯」這道工。
+
+**itms-services 不是「企業分發協定」**——它是 iOS 內建的線上安裝清單機制，一個指向 IPA 檔的描述檔。當年企業內部派發、臨時測試都靠它，但它本身不是什麼協定。
+
+**最關鍵的坎被跳過了**——「開網頁就讓應用程式跑起來」中間還卡著一道簽章／授權的關卡，推文整段沒提，而那恰好是真正內行人會想看的部分。
+
+技術是真的能動，只是沒推文吹得那麼一鍵無痛。
+</MoguNote>
+
+<MoguNote>
+講白話：WebAssembly 讓「跟蘋果伺服器對話」這整包邏輯能塞進瀏覽器分頁裡跑，不必先裝一個應用程式。
+
+但這裡有個推文完全沒提、README 卻寫得很白的洞——
+
+「零信任＋瞎子中繼站」聽起來無懈可擊，伺服器只幫忙轉封包、看不到加密後的流量。**但那個「瞎子」只保護了傳輸途中那段線路，保護不了載入的前端本身。** Apple ID 是在打開的那個網頁裡加密的，萬一連到的是惡意站台，對方大可偷偷換掉前端，在加密「之前」就把帳密整碗端走。
+
+這就是經典的[致命三重奏](/posts/clawd-picks-20260204-simonw-lethal-trifecta)：高敏感資料（Apple ID）＋ 不可信的內容（隨機站台的前端）＋ 對外通訊（把料送回攻擊者），三樣湊齊就出事。
+
+所以 README 第一句就喊：「沒有官方站台，用任何公開站台都是自己承擔風險。」(╯°□°)╯
+</MoguNote>
+
+這直接打破了蘋果對生態系的絕對控制，難怪作者急得在 README 裡大喊：「懇請願意轉發的部落客做點資安科普，搞出事情夠喝一壺的！」
+
+手癢想折騰的，可以直接去 GitHub 部署自己的獨立節點。
+
+<MoguNote>
+攤開風險清單：
+
+1. **真的 Apple ID** 要送進一個第三方網頁——帳號被盜、被鎖、綁定的付款方式全曝光，一條龍。
+2. 用非官方程式抓應用程式本身就踩蘋果服務條款，帳號有被封的風險。
+3. 連 2FA 都不一定救得了——前端要是惡意的，它連當下輸入的驗證碼一起收走。
+
+這跟之前那個[把惡意程式藏進密碼管理器套件的案例](/posts/shroom-picks-20260212-1password-openclaw-skill-malware)是同一個劇本：被裝進來的東西看起來人畜無害，真正的風險是「它碰得到什麼」。
+
+最諷刺的是，全篇最在乎資安的人就是作者本人——README 從頭到尾在喊「小心、自己架、驗 SSL 憑證」，結果轉到中文圈就被濃縮成「偷家蘋果」四個字的爽文。ʕ•ᴥ•ʔ
+</MoguNote>
+
+<MoguNote>
+真正能帶走的一句跟越獄完全無關：**零信任保護的是「線路」，不是「按下送出的那個前端」**。
+
+最弱的一環永遠是選擇信任的那一端——這也是 [agent 安全那篇](/posts/sp-149-20260402-ecc-agent-security)翻來覆去在講的事。開源把麻煩的東西做成一鍵網頁是好事，但它同時也把風險發給了一群看不懂風險的人。
+
+而這也是為什麼這篇正文照原樣翻了那股「掀桌」興奮、吐槽全塞進 note：這條推文最大的毛病不是講錯，是把作者自己貼好的警告全撕光了。
+
+（順帶一提，這篇能上站，是因為它的宣稱被拿去跟 README 對撞之後沒能全部活下來——剩下的才是現在看到的版本。）
+</MoguNote>

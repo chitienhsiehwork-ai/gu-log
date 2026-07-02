@@ -52,7 +52,7 @@ scores:
 import ClawdNote from '../../components/ClawdNote.astro';
 import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
-[ShroomDog](/about) 昨天在 GitHub trending 上看到一個叫 **Hermes Agent** 的 repo，點進去，`README` 的第一行寫著：
+[ShroomDog](/about) 昨天在 GitHub trending 上看到一個叫 **Hermes [Agent](/glossary#agent)** 的 repo，點進去，`README` 的第一行寫著：
 
 > The only agent with a built-in learning loop.
 
@@ -77,7 +77,7 @@ SOUL.md、MEMORY.md、USER.md、skills、messaging channel token、TTS 音檔、
 這叫「不 beg for users，直接上門接送」(⌐■_■)
 </ClawdNote>
 
-ShroomDog 住在 OpenClaw 上已經超過一年了。Clawd——就是各位在 `gu-log` 上看到那個 ClawdNote 裡吐槽的傢伙——本質上就是一隻 24 小時跑在 Hetzner VPS 上的 OpenClaw session。翻譯文章、巡 Twitter、半夜 push commit，全部透過 OpenClaw 的 Telegram gateway 控制。
+ShroomDog 住在 OpenClaw 上已經超過一年了。[Clawd](/glossary#clawd)——就是各位在 `gu-log` 上看到那個 ClawdNote 裡吐槽的傢伙——本質上就是一隻 24 小時跑在 Hetzner VPS 上的 OpenClaw session。翻譯文章、巡 Twitter、半夜 push commit，全部透過 OpenClaw 的 Telegram gateway 控制。
 
 所以當 Hermes 把搬家試算表直接塞到 OpenClaw user 的信箱時，ShroomDog 做了一件工程師都會做的事：把兩個 codebase 都 clone 下來，打開 `run_agent.py` 和 `src/agents/`，花了半天把架構翻過一遍。
 
@@ -88,7 +88,7 @@ ShroomDog 住在 OpenClaw 上已經超過一年了。Clawd——就是各位在 
 ## 先講結論（給趕時間的人）
 
 - **Hermes Agent**：Nous Research 自家出品，Python 寫的，自己擁有整個 agent loop（`run_agent.py` 12,131 行）。賣點是「skill 會自己長出來」——agent 每跑 10 個 turn 就被 nudge 一次：「要不要把剛剛這件事存成 skill？」
-- **OpenClaw**：Peter Steinberger 主導，TypeScript / Node 寫的，agent loop **不是自己的**——delegate 給 `@mariozechner/pi-coding-agent`（pinned `0.67.68`）。OpenClaw 自己只寫 channel、gateway、cron、companion app、skills registry。
+- **OpenClaw**：[Peter Steinberger](/glossary#peter-steinberger) 主導，TypeScript / Node 寫的，agent loop **不是自己的**——delegate 給 `@mariozechner/pi-coding-agent`（pinned `0.67.68`）。OpenClaw 自己只寫 channel、gateway、cron、companion app、skills registry。
 - **一個自帶大腦（Hermes），一個租大腦（OpenClaw）**。兩種哲學沒有對錯，只有 tradeoff。
 - **`hermes claw migrate` 是真的**——dry-run、preset、skill conflict strategy 都有，連 Baileys QR pairing 要重配這種細節都寫在 docs 裡。
 - ShroomDog 暫時不搬。**理由在文末。**
@@ -149,7 +149,7 @@ Hermes 的哲學剛好相反。Nous Research 本身就是一間以**放出開源
 這兩種哲學對普通 user 的差別在哪？
 
 - **想把 agent 當「數位室友」塞進生活**：OpenClaw 的 channel 層 + 25 個 messenger adapter + Voice Wake + macOS menu bar 是無法被複製的 integration 深度。
-- **想當「AI-native 研究員」、想自己 fine-tune model、想從 agent trajectory 收集訓練資料**：Hermes 整個技術棧自家，有現成的 `trajectory_compressor.py`（1,508 行）專門打包 RL 訓練資料。
+- **想當「AI-native 研究員」、想自己 fine-tune model、想從 agent trajectory 收集訓練資料**：Hermes 整個技術棧自家，有現成的 `trajectory_compressor.py`（1,508 行）專門打包 [RL](/glossary#rl) 訓練資料。
 
 ---
 
@@ -218,7 +218,7 @@ OpenClaw 的 memory plugin slot 只能同時掛一個 provider（`memory-core` /
 
 ## OpenClaw 的殺招：長住在所有 messenger 裡的能力
 
-Hermes 的 gateway 支援 Telegram / Discord / Slack / WhatsApp / Signal / Matrix / Email 加上 Home Assistant、DingTalk、Feishu、WeCom、QQBot 等等。數字上不輸人，其實 25 個左右。
+Hermes 的 gateway 支援 Telegram / Discord / [Slack](/glossary#slack) / WhatsApp / Signal / Matrix / Email 加上 Home Assistant、DingTalk、Feishu、WeCom、QQBot 等等。數字上不輸人，其實 25 個左右。
 
 OpenClaw 也是 25 個 channel。**但裡面的東西不一樣。**
 

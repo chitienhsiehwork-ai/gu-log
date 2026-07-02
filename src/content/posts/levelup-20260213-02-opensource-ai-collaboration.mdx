@@ -3,6 +3,9 @@ ticketId: "Lv-02"
 title: "開源 AI 協作系統設計：從 BYOK 到 PR-based 編輯"
 originalDate: "2026-02-13"
 translatedDate: "2026-02-13"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
 source: "Level-Up 系列"
 sourceUrl: "https://gu-log.vercel.app/posts/levelup-20260213-02-opensource-ai-collaboration"
 summary: "用 RPG 爬塔風格學習如何設計開源 AI 協作系統。從 Owner Only 到 BYOK、PR-based 編輯、Trust System，一步步打造安全又開放的 AI 協作平台。"
@@ -554,7 +557,7 @@ Trust System 就是這個概念的 API 版本。
 
 ### Trust Levels 設計
 
-| Level | 名稱 | AI Token | 修改方式 | 條件 |
+| Level | 名稱 | AI [Token](/glossary#token) | 修改方式 | 條件 |
 |-------|------|----------|----------|------|
 | **0** | 路人 | BYOK（自帶） | PR + review | 預設，新使用者 |
 | **1** | 常客 | Server 提供 | PR + review | merge rate > 80%，≥ 5 PR |

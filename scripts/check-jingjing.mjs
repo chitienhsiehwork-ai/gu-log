@@ -13,8 +13,15 @@
 //   5. Universally understood acronyms (API, SDK, CLI, PM, CEO, ML, LLM, etc.)
 //
 // Anything else is 晶晶體 → flag. Fix by translating to natural zh-tw, OR
-// add the term to src/data/glossary.json in the same PR if it's a real
-// canonical industry term that loses meaning when translated.
+// add the term to src/data/glossary.json in the same PR only if it passes
+// GU-LOG_WRITER_PROMPT.md's glossary creation standard: canonical term,
+// likely reused, loses meaning when translated, and useful as a stable
+// gu-log mental-model anchor. A lint failure alone is never enough.
+//
+// Boundary ownership: adding or removing accepted English terms SHALL be
+// discussed with ShroomDog first. This list encodes ShroomDog's reading-flow
+// comfort, not just technical correctness; reviewers and agents must not
+// silently expand or shrink it.
 //
 // Usage:
 //   node scripts/check-jingjing.mjs <file.mdx>...
@@ -44,10 +51,11 @@ const GLOSSARY_PATH = path.join(REPO_ROOT, 'src/data/glossary.json');
 // These are English words/phrases that are universally OK in zh-tw posts
 // without needing a glossary entry. Keep this list tight — when in doubt,
 // add the term to glossary.json so it gets a definition + clawdNote.
+// Add/remove entries only after discussing the boundary with ShroomDog.
 
 const ALLOWLIST_RAW = `
 # Universally-understood acronyms
-API SDK CLI PM CEO CFO CTO COO ML LLM UI UX UI/UX SaaS REST RAG MCP
+API SDK CLI PM CEO CFO CTO COO ML LLM UI UX UI/UX SaaS REST RAG MCP Embedding
 HTTP HTTPS URL URI HTML JS TS CSS DNS UDP TCP TLS SSL OAuth JWT UUID XML JSON YAML SQL OS IDE
 AI AGI ASI ML/AI GA RC RL DL NN CNN RNN LSTM GAN VAE
 SP CP SD Lv FAQ Q1 Q2 Q3 Q4 H1 H2
@@ -66,14 +74,15 @@ PrevNextNav
 # AI labs / companies / orgs
 Anthropic OpenAI Google Meta Microsoft Apple Amazon AWS GCP Azure
 Cloudflare Stripe Vercel Astro MDX
+OpenRouter Perplexity Exa Parallel
 Browserbase
 Semrush DataReportal Feishu
 GitHub GitLab Bitbucket GitLab.com
-DeepMind XAI Mistral DeepSeek Qwen Kimi Cohere Stability
+DeepMind XAI Mistral DeepSeek Qwen Kimi MiniMax Cohere Stability
 Hugging Face HuggingFace Replicate Modal RunPod Lambda Together Together.ai
-Linear Notion Slack Discord Telegram WhatsApp Instagram Facebook Messenger
+Linear Notion Slack Gmail Calendar Discord Telegram WhatsApp Instagram Facebook Messenger
 Jira
-Ray-Ban Tesla Apple Samsung Sony Nintendo
+Ray-Ban Tesla Apple Samsung Sony Nintendo Mac Mobile mobile
 DeepLearning.AI deeplearning.ai
 LangChain LangGraph LlamaIndex Pinecone Weaviate Chroma Milvus
 Scale Insilico BenevolentAI Recursion Pharmaceuticals
@@ -82,12 +91,14 @@ Insilico Medicine
 Fierce Biotech
 The Batch
 The Verge The Register Hacker News HN HackerNews TechCrunch Wired Information Bloomberg Reuters NYTimes WSJ
+Fortune Brainstorm
+Tom's Hardware
 Substack Medium dev.to
 Twitter X x.com twitter.com fxtwitter
 Reddit StackOverflow Subreddit Reddit Answers
 
 # Frontier models and product names
-Symphony
+Symphony Fusion
 Claude Opus Sonnet Haiku
 GPT GPT-3 GPT-3.5 GPT-4 GPT-4o GPT-5 GPT-5.2 GPT-5.3 GPT-5.4
 Gemini Llama Mistral Qwen DeepSeek Kimi Grok Cohere Command
@@ -97,6 +108,8 @@ Codex Cursor Copilot Replit Bolt Lovable Devin Atlas
 Autobrowse
 PandaOmics Chemistry42 AlphaEvolve Concordia Gemma Nemotron NanoFold
 Muse Spark Llama Maverick Sonnet Opus K2 K2.5 R1
+# Model tier names (Gemini Flash, DeepSeek V4 Flash, etc.)
+Flash
 Agent Swarm
 
 # Programming languages / runtimes / tools
@@ -129,7 +142,7 @@ Mark Zuckerberg Elon Musk Bill Gates Paul Allen Tim Cook Steve Jobs
 Sundar Pichai Satya Nadella Jensen Huang
 Yann LeCun Geoffrey Hinton Yoshua Bengio
 Alexandr Wang Yang Mira Mira Murati
-Davide Paglieri Logan Cross Mahmoud Jake Cooper
+Davide Paglieri Logan Cross Mahmoud Jake Cooper Pascal
 Trump Newsom Jer Crane Pawel Pawel Huryn
 Harrison Chase Simon Willison Nat Friedman Patrick Collison
 Garry Tan Brian Chesky
@@ -137,23 +150,30 @@ Riley Goodside Ethan Mollick Andy Weir Ryland Grace Project Hail Mary
 Alex Kotliarskyi Victor Zhu Zach Brock Karri Saarinen daniel_mac8 daniel
 Jarrod Watts Matt Pocock
 Lisa MindOS_Lisa
+Dimillian Thomas Ricouard
 Kyle Jeong
+# Behavioral-economics / happiness researchers cited in SP-243
+Kahneman Deaton Angus Killingsworth
 
 # Places
 Albuquerque Hong Kong San Francisco SF Silicon Valley
 Cambridge Stanford MIT Berkeley Princeton Harvard
 Beijing Shanghai Shenzhen Hangzhou Tokyo Seoul Singapore London Paris Berlin
-Craigslist OpenTable Google Maps
+Craigslist OpenTable Google Maps Google Drive Dropbox Drive Pinterest
 
 # Common file/format/protocol identifiers
 Markdown markdown JSON YAML XML CSV TSV PDF EPUB DOCX MDX LaTeX
 RSS Atom JSONFeed iCal vCard
 gRPC WebSocket WebRTC GraphQL OpenAPI Swagger JSON-RPC
 JWT OAuth SAML SSO 2FA MFA TOTP
-SPEC.md WORKFLOW.md README.md CLAUDE.md
+SPEC.md WORKFLOW.md README.md CLAUDE.md SKILL.md AGENTS.md CONTRIBUTING.md
 SSH SCP SFTP FTP IMAP SMTP POP3
 Git GitHub Actions GitLab CI CircleCI Travis Jenkins
+WebAssembly Wasm itms-services
 
+# Apple ecosystem / iOS app distribution (added 2026-06-26 for CP AssppWeb post)
+App Store TestFlight IPA
+AssppWeb Asspp ipatool
 # Time / units / measure
 ml mg kg km mph rpm
 GB TB MB KB Mb Kb Gb Tb
@@ -161,6 +181,8 @@ ms us ns
 Hz MHz GHz THz
 RPM CPM BPM
 
+# Greek/foreign term italicized + glossed inline in body (SP-243 伊比鳩魯 ataraxia)
+ataraxia
 # Misc commonly-fine
 Inc Inc. Ltd LLC Corp Corp.
 v1 v2 v3 v4 v5
@@ -217,6 +239,11 @@ Hard Pro
 # gu-log persona names (not in glossary because they're meta-characters)
 Clawd ShroomDog OpenClaw
 
+# Product / feature / handle proper nouns (Codex ecosystem; SP-210)
+Storybook Remotion Studio Chronicle jxnlco
+# "center of gravity" — quoted source phrase (jxnlco's own wording)
+center gravity
+
 # Lab / div names whose individual words look generic but are part of proper noun
 Superintelligence
 Project Glasswing Firefox
@@ -257,6 +284,20 @@ commit
 # OSS signing protocol Mitchell uses for Ghostty releases (covered in CP-159);
 # X handle of SP-169's source author.
 Vouch dani
+# Added 2026-06-22 for SP-239 (Ghostty startup tradeoffs). D-Bus = the Linux
+# desktop message bus, a genuine proper noun Mitchell names in the source
+# ("registration (dbus)"); reusable across future Linux/terminal articles.
+D-Bus
+# Added 2026-06-12 for SP-221 (Zed DeltaDB). Zed = editor/company, DeltaDB =
+# the product, Nathan Sobo = founder; "delta" is DeltaDB's namesake atomic
+# unit (the article's core abstraction, analogous to commit) — keeping the
+# English preserves the tie to the product name.
+Zed DeltaDB Nathan Sobo delta
+# Added 2026-06-13 for SP-224 (self-repairing agent harness). Opik = the
+# open-source observability/repair platform (comet-ml/opik), Ollie = its
+# built-in coding agent, CrewAI = a multi-agent framework cited alongside
+# LangGraph. All product/feature proper nouns.
+Opik Ollie CrewAI
 
 # Added 2026-05-07 for SP-191 (Claude Dreams / context rot).
 # Dreams is Anthropic's Managed Agents memory-consolidation feature; danizhu is
@@ -265,6 +306,38 @@ Dreams dream
 Managed Agents Agents
 danizhu
 context rot
+# Added 2026-06-13 for CP-308 (Fable 5 / Mythos 5 export control).
+# X handle of the cited add-on commentary author (the timeline + ITAR parallel).
+gothburz
+
+# Added 2026-06-12 for SP-222 (Simon Willison / Fable relentlessly proactive).
+# Fable = Claude model name (sibling of allowlisted Opus/Sonnet/Haiku).
+# Browsers / engines / automation siblings of allowlisted Firefox/Chrome.
+# Datasette/PyObjC/SwiftUI/AgentsView = products & libraries; osascript/grep =
+# canonical CLI tools (grep is universal, same status as allowlisted "commit").
+# Web Component + Shadow DOM = W3C web-platform proper nouns. injection covers
+# the canonical "prompt injection" term. Johann Rehberger + Normalization /
+# Deviance = the cited essay "The Normalization of Deviance in AI". relentlessly
+# = the source post's titular phrase, introduced then translated inline.
+Fable
+Safari Playwright WebKit
+Datasette PyObjC SwiftUI AgentsView
+osascript grep
+Web Component Shadow
+injection
+Johann Rehberger Normalization Deviance
+relentlessly
+
+# Added 2026-06-17 for SP-232 (mvanhorn "WTF Is a Loop?" loop-engineering lineage).
+# Company names (Uber budget cap, Gartner hype-cycle stat), person names cited in
+# the discourse (Steve Yegge, Matthew Berman, DanKornas), and product/feature
+# proper nouns (Gas Town = Yegge's orchestration system, roborev = Kornas's
+# background commit-review tool). All proper nouns named in the source.
+Uber Gartner Yegge Matthew Berman DanKornas
+Gas Town roborev
+# AutoGPT = the 2023 goal-loop project; Huntley = Geoffrey Huntley, ralph loop's
+# author. Both are proper nouns anchoring the loop lineage section.
+AutoGPT Huntley
 
 # Added 2026-05-12 for SP-197 (Garry Tan AI agent complexity ratchet).
 # Proper nouns, source examples, research author names, and literal prior article titles.
@@ -431,6 +504,106 @@ apply
 format formats
 opening
 SOP
+
+# Added 2026-06-17 for SP (kvnkld "10 rules to ship polished UI").
+# kvnkld = X handle of the source author. Figma = the design tool the post
+# centers on (product proper noun, sibling of allowlisted Datasette/Zed).
+kvnkld Figma
+
+# Added 2026-06-17 for CP (rahulgs "english -> code interpreters" thread).
+# rahulgs = X handle of the source author (proper noun, same pattern as kvnkld).
+rahulgs
+
+# Added 2026-06-18 for SP (samueljmcd "verifier is the product").
+# ReAct and Reflexion are now glossary terms (src/data/glossary.json), so they
+# are auto-allowed via the glossary loader below — no hardcode needed. Posts
+# link them to /glossary#react and /glossary#reflexion, which carry the arXiv
+# links. Pattern: canonical external references route through the glossary
+# (definition + moguNote + url), not direct outbound links from the post body.
+# Jarred Sumner = Bun's creator (person, proper noun). struct / lifetime =
+# canonical Rust language keywords named in the port story (same status as the
+# allowlisted programming-language tokens). These are not glossary-worthy
+# (one-off mentions, not reusable canonical references), so they stay here.
+Jarred Sumner
+struct lifetime
+
+# Added 2026-06-22 for SP-240 (championswimmer process-vs-outcome / AI breaking
+# the peace). Shia LaBeouf = the actor behind the "Just do it" meme the source
+# cites (person, proper noun). Tropicana = the juice brand the lemonade-stand
+# analogy scales up into (company/product, proper noun). Both are one-off
+# proper-noun references named in the source, same category as the people /
+# company names already allowlisted above.
+Shia LaBeouf
+Tropicana
+
+# Added 2026-06-22 for SP-242 (Sakana Fugu orchestration "AI sovereignty" vs
+# Elie Bakouch's teardown). All proper nouns named in the two sources:
+# Sakana = the Japanese AI lab (company). Fugu / Ultra = the product and its
+# variant (Fugu Ultra). Elie Bakouch = the researcher behind the critique
+# (person). AutoResearch / TerminalBench / Bench (SWE Bench Pro) = benchmark
+# names cited from the tech report. Same category as the lab / product / person
+# / benchmark names already allowlisted above; none has a zh-tw translation.
+Sakana Fugu Ultra
+Elie Bakouch
+AutoResearch TerminalBench Bench
+
+# Added 2026-06-22 for CP-310 (Alisa Liu's NLP-PhD industry job-search notes).
+# All bona-fide proper nouns named in the single source, none with a natural
+# zh-tw translation (writer-prompt rule #2: people / libraries / products /
+# course + article titles stay English):
+#   Alisa Liu = the author (person). Lambert = Nathan Lambert, cited author.
+#   PyTorch / numpy = the ML libraries an interview tests. transformer /
+#   tokenizer / tokenization = canonical architecture + her research specialty.
+#   LeetCode / Neetcode / Blind (75) = interview-prep resources. Modeling /
+#   Scratch = the Stanford course title "Language Modeling from Scratch".
+#   Industry / Job = words in the source article title "Notes on the Industry
+#   Job Search" as it appears in the citation link.
+Alisa Liu Lambert
+PyTorch numpy transformer tokenizer tokenization
+LeetCode Neetcode Blind
+Modeling Scratch Industry Job
+
+# Added 2026-07-01 for CP-312 (Kun Chen's firstmate/secondmate/crewmate agent
+# org chart + per-task model routing). Kun Chen = the author (person), no
+# natural zh-tw translation (writer-prompt rule #2: people stay English).
+Kun Chen
+
+# Added 2026-07-01 for the Core-dump Lv 三部曲 (levelup-*-core-dump-*). All
+# bona-fide proper nouns named in the OpenAI source, none with a zh-tw
+# translation (same category as the product / library names already
+# allowlisted above):
+#   Rockset = OpenAI's C++ data service (acquired 2024) — the product the whole
+#     series debugs. libunwind = the GNU stack-unwinding library that carried
+#     the 18-year-old race (the "18 歲的鬼"). Level-Up = the gu-log tutorial
+#     series brand, same house-term status as ClawdNote / ShroomDogNote above.
+#   folly = Facebook/Meta's open-source C++ library (its fatal signal handler
+#     logs the stack trace) — product/library proper noun like libunwind.
+#   John Snow / Broad Street = the physician + London street of the 1854 cholera
+#     pump, the founding story of epidemiology (Post B's bug #1 analogy anchor).
+#   Unix = the OS family named when cross-linking the Unix-signals Lv post.
+Rockset libunwind Level-Up
+folly
+John Snow Broad Street
+Unix
+#   Enrico Fermi = the physicist behind "Fermi estimation" (order-of-magnitude
+#     back-of-envelope estimate), named in Post C's ClawdNote — person, proper noun.
+Enrico Fermi
+
+# Added 2026-06-20 for SD (Dan Koe spec-driven-life riff). Dan Koe = the source
+# author (person, X handle @thedankoe). Spec Kit (GitHub) and Kiro (Amazon) =
+# product names for the two spec-driven dev tools cited. cybernetics / kybernetes
+# = the Greek/English etymology the piece explicitly discusses alongside the
+# already-allowlisted Kubernetes (same word root). All proper nouns / named terms
+# under discussion, not decorative English.
+Dan Koe
+Spec Kit
+Kiro
+cybernetics kybernetes
+# @thedankoe = source X handle; the bracketed English string is the verbatim
+# title of the cited article, given with a zh-tw gloss right after (direct-quote
+# attribution, GU-LOG_WRITER_PROMPT §術語處理 rule 3).
+thedankoe
+How fix your entire life in day
 `;
 
 const HARDCODED = new Set();
@@ -521,6 +694,13 @@ function maskContent(text) {
   text = text.replace(/```[\s\S]*?```/g, (m) => m.replace(/[^\n]/g, ' '));
   text = text.replace(/~~~[\s\S]*?~~~/g, (m) => m.replace(/[^\n]/g, ' '));
 
+  // 2b. Mask JSX template-literal props (e.g. <Mermaid chart={`...`} />).
+  // The diagram/code source passed as a prop is not reader prose. The generic
+  // tag mask in step 5 only reaches the first '>', which here sits INSIDE the
+  // chart (`<br/>`, `-->`), so the diagram body would otherwise leak through
+  // and get scanned (fill/stroke/color/node labels → false positives).
+  text = text.replace(/=\{`[\s\S]*?`\}/g, (m) => m.replace(/[^\n]/g, ' '));
+
   // 3. Mask inline code `...`
   text = text.replace(/`[^`\n]*`/g, (m) => ' '.repeat(m.length));
 
@@ -531,6 +711,14 @@ function maskContent(text) {
   text = text.replace(/^import .*$/gm, (m) => ' '.repeat(m.length));
   // Mask HTML/MDX opening/closing tags (e.g. <ClawdNote>, </ClawdNote>) but leave inner content
   text = text.replace(/<\/?[A-Za-z][^>]*>/g, (m) => ' '.repeat(m.length));
+
+  // 5b. Mask cross-link list items (the auto-generated 延伸閱讀 / Related list).
+  // A bullet whose entire content is a single markdown link quotes ANOTHER
+  // post's title in the anchor text (e.g. CP-85「AI Vampire…」). English there
+  // belongs to that post — and is governed by that post's own jingjing run —
+  // not to this post's prose, so mask the whole line. Inline links inside
+  // flowing prose are left alone by this rule and still get scanned (step 6).
+  text = text.replace(/^\s*[-*+]\s*\[[^\]\n]*\]\([^)\n]*\)\s*$/gm, (m) => ' '.repeat(m.length));
 
   // 6. Mask markdown link URL part [text](url) — keep text, drop URL
   text = text.replace(/\[([^\]]*)\]\([^)]*\)/g, (_m, txt) => {
@@ -724,8 +912,8 @@ if (!__isCli) {
   console.error(
     `Fix options:\n` +
       `  1. Translate to natural zh-tw (preferred — see GU-LOG_WRITER_PROMPT.md §術語處理).\n` +
-      `  2. If genuinely a canonical industry term, add to src/data/glossary.json with definition + clawdNote.\n` +
-      `  3. If proper noun (product/people/lab) misclassified, add to ALLOWLIST_RAW in scripts/check-jingjing.mjs.\n` +
+      `  2. If genuinely a canonical/reusable term, apply GU-LOG_WRITER_PROMPT.md's glossary creation standard, discuss the boundary with ShroomDog, then add to src/data/glossary.json with definition + clawdNote.\n` +
+      `  3. If proper noun (product/people/lab) misclassified, discuss with ShroomDog before adding to ALLOWLIST_RAW in scripts/check-jingjing.mjs.\n` +
       (baselineRef
         ? `\nNote: --baseline-ref=${baselineRef} was used, so only new violations are reported; historical grandfathered violations are ignored.\n`
         : '')

@@ -82,6 +82,45 @@ describe('reading-tracker', () => {
     expect(typeof s.lastUpdated).toBe('string');
   });
 
+  it('markAsRead stores the current reader-facing revision', async () => {
+    const m = await import('../src/lib/reading-tracker');
+    m.markAsRead('sp-1', 'manual_mark_read', 'rev-current');
+
+    const record = m.getReadRecords({ 'sp-1': 'rev-current' })[0];
+    expect(record).toMatchObject({
+      slug: 'sp-1',
+      readRevision: 'rev-current',
+      revisionState: 'current',
+    });
+    expect(typeof record.readAt).toBe('string');
+  });
+
+  it('migrates v1 slug lists as unknown revision instead of current', async () => {
+    (globalThis as any).localStorage.setItem(
+      'gu-log-read-articles',
+      JSON.stringify({ version: 1, slugs: ['legacy-sp'], lastUpdated: '2026-04-01T00:00:00.000Z' })
+    );
+    const m = await import('../src/lib/reading-tracker');
+
+    expect(m.isRead('legacy-sp')).toBe(true);
+    expect(m.getReadRecords({ 'legacy-sp': 'rev-now' })[0]).toMatchObject({
+      slug: 'legacy-sp',
+      readRevision: null,
+      revisionState: 'unknown',
+    });
+  });
+
+  it('reports stale reads separately from current reads', async () => {
+    const m = await import('../src/lib/reading-tracker');
+    m.markAsRead('current', 'manual_mark_read', 'rev-1');
+    m.markAsRead('stale', 'manual_mark_read', 'rev-old');
+
+    const stats = m.getStats({ current: 'rev-1', stale: 'rev-new' });
+    expect(stats.current).toBe(1);
+    expect(stats.stale).toBe(1);
+    expect(stats.total).toBe(2);
+  });
+
   it('exportJson / importJson roundtrips', async () => {
     let m = await import('../src/lib/reading-tracker');
     m.markAsRead('x');
@@ -113,11 +152,65 @@ describe('reading-tracker', () => {
 // gist-sync
 // ════════════════════════════════════════════════════════════════════════════
 describe('gist-sync', () => {
-  it('mergeSync union-merges without duplicates', async () => {
+  it('mergeSync preserves latest per-post read revision', async () => {
     const m = await import('../src/lib/gist-sync');
-    expect(m.mergeSync(['a', 'b'], ['b', 'c']).sort()).toEqual(['a', 'b', 'c']);
-    expect(m.mergeSync([], ['x'])).toEqual(['x']);
-    expect(m.mergeSync(['x'], [])).toEqual(['x']);
+    const merged = m.mergeSync(
+      {
+        version: 2,
+        slugs: ['a', 'b'],
+        records: [
+          {
+            slug: 'a',
+            method: 'manual_mark_read',
+            confidence: 'legacy_or_manual',
+            readAt: '2026-04-01T00:00:00.000Z',
+            lastReadAt: '2026-04-01T00:00:00.000Z',
+            readRevision: 'rev-a-old',
+            revisionState: 'current',
+          },
+          {
+            slug: 'b',
+            method: 'manual_mark_read',
+            confidence: 'legacy_or_manual',
+            readAt: '2026-04-01T00:00:00.000Z',
+            lastReadAt: '2026-04-01T00:00:00.000Z',
+            readRevision: 'rev-b',
+            revisionState: 'current',
+          },
+        ],
+        lastUpdated: '2026-04-01T00:00:00.000Z',
+      },
+      {
+        version: 2,
+        slugs: ['a', 'c'],
+        records: [
+          {
+            slug: 'a',
+            method: 'active_scroll_end',
+            confidence: 'active_finish',
+            readAt: '2026-04-02T00:00:00.000Z',
+            lastReadAt: '2026-04-02T00:00:00.000Z',
+            readRevision: 'rev-a-new',
+            revisionState: 'current',
+          },
+          {
+            slug: 'c',
+            method: 'legacy_import',
+            confidence: 'legacy_or_manual',
+            readAt: '2026-04-01T00:00:00.000Z',
+            lastReadAt: '2026-04-01T00:00:00.000Z',
+            readRevision: null,
+            revisionState: 'unknown',
+          },
+        ],
+        lastUpdated: '2026-04-02T00:00:00.000Z',
+      }
+    );
+
+    expect(merged.slugs.sort()).toEqual(['a', 'b', 'c']);
+    expect(merged.records.find((record) => record.slug === 'a')?.readRevision).toBe('rev-a-new');
+    expect(merged.records.find((record) => record.slug === 'b')?.readRevision).toBe('rev-b');
+    expect(merged.records.find((record) => record.slug === 'c')?.revisionState).toBe('unknown');
   });
 
   it('getGitHubToken returns null when neither JWT nor PAT present', async () => {
@@ -125,15 +218,12 @@ describe('gist-sync', () => {
     expect(m.getGitHubToken()).toBeNull();
   });
 
-  it('getGitHubToken decodes JWT payload.github_token', async () => {
-    const payload = { github_token: 'ghp_test_token_long_enough' };
-    const b64 = (s: string) =>
-      Buffer.from(s).toString('base64').replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_');
-    const jwt = `header.${b64(JSON.stringify(payload))}.sig`;
-    (globalThis as any).atob = (s: string) => Buffer.from(s, 'base64').toString('binary');
+  it('getGuLogSessionToken returns the stored gu-log JWT', async () => {
+    const jwt = 'header.payload.sig';
     (globalThis as any).localStorage.setItem('gu-log-jwt', jwt);
     const m = await import('../src/lib/gist-sync');
-    expect(m.getGitHubToken()).toBe('ghp_test_token_long_enough');
+    expect(m.getGuLogSessionToken()).toBe(jwt);
+    expect(m.getGitHubToken()).toBeNull();
   });
 
   it('falls through to PAT when JWT lacks token', async () => {

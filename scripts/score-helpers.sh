@@ -12,6 +12,7 @@ ensure_score_dirs() {
   mkdir -p \
     "$SCORE_ROOT/scores" \
     "$SCORE_ROOT/.score-loop/logs" \
+    "$SCORE_ROOT/.score-loop/state" \
     "$SCORE_ROOT/.score-loop/tmp"
 
   [ -e "$SCORE_ROOT/scores/.gitkeep" ] || : > "$SCORE_ROOT/scores/.gitkeep"
@@ -249,6 +250,11 @@ PY
 validate_judge_score_json() {
   local judge="$1"
   local json_file="$2"
+  # Optional 3rd arg: tribunalVersion. Defaults to 8 (legacy) so direct callers
+  # and existing tests that pass only <judge> <file> keep the pre-clarity-move
+  # schema. tribunal.sh passes $TRIBUNAL_VERSION so v9 runs validate the new
+  # ownership (vibe loses clarity, freshEyes gains it).
+  local version="${3:-8}"
 
   [ -f "$json_file" ] || return 1
   normalize_json_file "$json_file" || return 1
@@ -277,19 +283,30 @@ validate_judge_score_json() {
       _validate_dim attribution || return 1
       ;;
     factCheck|fact-checker)
-      _validate_dim accuracy    || return 1
-      _validate_dim fidelity    || return 1
-      _validate_dim consistency || return 1
+      _validate_dim accuracy               || return 1
+      _validate_dim fidelity               || return 1
+      _validate_dim consistency            || return 1
+      _validate_dim sourceBoundary         || return 1
+      _validate_dim commentarySeparation   || return 1
       ;;
     freshEyes|fresh-eyes)
-      _validate_dim readability     || return 1
-      _validate_dim firstImpression || return 1
+      _validate_dim readability      || return 1
+      _validate_dim firstImpression  || return 1
+      _validate_dim payoffDensity    || return 1
+      _validate_dim lengthFit        || return 1
+      # v9+: clarity moved into Fresh Eyes (non-compensating hard gate).
+      if [ "$version" -ge 9 ]; then
+        _validate_dim clarity || return 1
+      fi
       ;;
     vibe|vibe-opus-scorer)
       _validate_dim persona    || return 1
       _validate_dim clawdNote  || return 1
       _validate_dim vibe       || return 1
-      _validate_dim clarity    || return 1
+      # v9+: clarity left Vibe for Fresh Eyes — no longer required here.
+      if [ "$version" -lt 9 ]; then
+        _validate_dim clarity || return 1
+      fi
       _validate_dim narrative  || return 1
       ;;
     *)

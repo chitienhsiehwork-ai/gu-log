@@ -1,0 +1,193 @@
+---
+ticketId: "SP-215"
+title: "Cursor 花 260 美元，把 CMS 刪回程式碼"
+originalDate: "2025-12-01"
+translatedDate: "2026-06-03"
+translatedBy:
+  model: "GPT-5.5"
+  harness: "Hermes Agent"
+  pipeline:
+    - role: "Written"
+      model: "GPT-5.5"
+      harness: "Hermes Agent"
+    - role: "Reviewed"
+      model: "GPT-5.5"
+      harness: "Hermes Agent"
+source: "Lee Robinson"
+sourceUrl: "https://leerob.com/agents"
+lang: "zh-tw"
+summary: "Cursor 把 cursor.com 從 headless CMS 搬回 raw code 和 Markdown，三天、260 美元、344 次 agent request 完成。這篇真正有趣的不是省錢，而是 AI Agent 讓很多以前幫人類省事的 abstraction，突然變成做事的牆。"
+tags: ["shroom-picks", "cursor", "ai-agents", "cms", "agent-harness"]
+scores:
+  tribunalVersion: 8
+  librarian:
+    glossary: 8
+    crossRef: 8
+    sourceAlign: 8
+    attribution: 9
+    score: 8
+    date: "2026-06-03"
+    model: "gpt-5.5"
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 8
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 8
+    date: "2026-06-03"
+    model: "gpt-5.5"
+  freshEyes:
+    readability: 9
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    score: 8
+    date: "2026-06-03"
+    model: "gpt-5.5"
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-06-03"
+    model: "gpt-5.5"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Cursor 做了一件聽起來很倒退的事：把 `cursor.com` 從漂亮的 CMS 後台，搬回程式碼和 Markdown。
+
+結果不是「工程師懷舊，所以討厭 GUI」。結果是三天、`$260.32`、`344` 次 [Agent](/glossary#agent) 請求、`67` 個提交，完成一個原本估計要一到兩週、甚至可能找外包團隊協助的網站遷移。
+
+這篇最值得看的地方，不是 Cursor 又一次展示自家 Agent 很猛。真正的刀口在另一句話：**AI Agent 出現後，抽象層的成本變貴了。**
+
+以前某些抽象層是替人類省事。現在同一層抽象層，可能變成 Agent 做事時撞到的牆。
+
+<ClawdNote>
+CMS 全名是 `Content Management System`，中文可以叫內容管理系統。白話說，就是網站內容後台：文章、圖片、首頁文案、按鈕文字放在一個 GUI 裡，行銷或編輯登入後台就能改。早期最經典的部落格後台就是這種 CMS；無頭 CMS 則是只提供後台和 API，網站畫面另外用 Next.js、React 之類的程式長出來。
+
+它不是笨設計。人類不會寫 code 時，CMS 超合理。問題是，Agent 很會讀 code、改 code、開 PR，卻很討厭被叫去後台抽號碼牌。ᕕ( ᐛ )ᕗ
+</ClawdNote>
+
+## Content 本來就是 code
+
+Cursor 網站原本是標準的 Next.js 和 React app。新版設計上線後，內容和頁面改成接無頭 CMS，讓非工程師可以建立行銷頁面，寫作者也能新增部落格文章。
+
+這在大部分網站都很正常。CMS 提供登入、權限、預覽、圖片上傳、發布流程。對不寫程式的人來說，打開後台、填表單、按發布，比打開 GitHub 改 MDX 友善很多。
+
+但 Cursor 團隊坐下來聊網站時，抱怨開始浮出來：新設計很漂亮，出內容卻變難。以前可以 `@ cursor`，直接叫 Agent 改 code 和內容；現在中間多了一層 CMS。流程從「請 Agent 改一下」退回「去後台點選單」。
+
+於是出現一個很危險的問題：真的需要 CMS 嗎？如果要改內容的人可以用聊天機器人改、可以走 GitHub 流程，那個 GUI 還值不值得存在？
+
+答案不是「所有網站都該刪 CMS」。Cursor 的案例比較精準：**當操作內容的人，開始包含 AI Agent，原本替人類設計的後台，就要重新算帳。**
+
+---
+
+## CMS 幫人類開門，也可能替 Agent 立牆
+
+第一面牆是帳號。
+
+CMS 有自己的登入、權限和角色管理。GitHub 也有一套 SSO、RBAC 和團隊權限。新成員想改網站，可能先問：「可以幫忙加 CMS 權限嗎？」企業方案、SCIM、各種同步工具都能處理，但每加一層就是一層複雜度。
+
+Cursor 的解法很粗暴：把行銷團隊加進 GitHub。內容回到程式碼後，帳號系統也回到一套。
+
+第二面牆是 preview。
+
+行銷網站想要快，通常會盡量預先產生靜態頁面。靜態頁面穩、快、不容易因為 CMS 暫時掛掉就讓網站跟著出事。但 CMS 又希望草稿能即時預覽。Next.js 有草稿模式，Vercel 工具列也能整合，技術上能做。
+
+只是「能做」不等於「沒有成本」。要看草稿網址的人可能要登入 Vercel；要即時抓 CMS 內容，就要在靜態網站旁邊再開一條動態路徑。蛋糕可以吃兩次，只是廚房開始長出很多管線。
+
+第三面牆是多語系。
+
+多語系網站本來就麻煩，但內容放在程式碼裡時，可以用建置步驟、AI 翻譯工具、鎖定機制處理。內容放進 CMS 後，同一篇部落格文章可能在每種語言各自變成一個 CMS 項目，發布流程還要接翻譯工具。Cursor 最後甚至找外包人力寫外掛系統，才把 CMS 接上在地化工具。
+
+第四面牆是素材。
+
+CMS 不只管文字，也常幫忙存圖片和影片，再順手當 CDN。這很方便，也很貴。Cursor 網站從九月上線 CMS 版本後，部落格、更新紀錄、網頁素材經過 CMS 和它的 CDN 送出，CDN 用量花了 `$56,848`。
+
+Cursor 後來改成自己把 素材放到物件儲存，再做一個小 GUI 管理上傳、刪除和瀏覽。這不是什麼豪華素材平台，而是 3、4 個 prompt 做出的最小可用功能。
+
+<ClawdNote>
+這段不是「CMS 都是盤子」。CMS 收錢買的是方便：後台、權限、預覽、素材託管、支援服務。只是當網站團隊已經有 GitHub 流程、Agent 流程，又願意讓內容變程式碼，那個方便就可能變成重複付費。以前是花錢買省事；現在可能是花錢買牆。
+</ClawdNote>
+
+---
+
+## 網路邊界讓 Agent 變瞎
+
+最有趣的不是費用，而是 code 變難懂。
+
+原本 `navbar.tsx` 和 `footer.tsx` 可以直接寫死幾個連結。用了 CMS 後，程式碼變成先去 CMS API 抓導覽列 JSON，再把資料轉成畫面。人類工程師知道這代表什麼；Agent 則必須跨過網路邊界，才能知道導覽列到底有哪些項目。
+
+這就是 文章對 React 寫法的吐槽：很多時候把內容抽成陣列、再轉出 JSX，看起來比較乾淨，實際上只是多一層不必要的間接性。尤其搭配 Tailwind 時，複製貼上有時比錯誤抽象更好。
+
+當內容直接在程式碼裡，Agent 可以搜尋、讀 diff、改檔、跑測試、開 PR。當內容藏在 CMS 裡，Agent 得先知道 API、權限、資料格式、查詢語法，還要處理 CMS 那套 客製渲染格式。
+
+這不是 Agent 不聰明。這是工具環境把問題藏起來了。
+
+<ClawdNote>
+CMS 像替人類蓋了一個漂亮櫃台：抽號碼牌、填表單、等承辦人蓋章。以前很合理，因為不是每個人都想進倉庫搬貨。可是 Agent 比較像倉庫工人。它想直接看貨架、條碼、庫存表。硬叫它每天去櫃台排隊，當然痛苦。
+</ClawdNote>
+
+---
+
+## 這次 migration 怎麼跑
+
+先用 Opus 4.5 做計畫。Cursor 回了一些釐清問題，也提出一個簡單但關鍵的方向：既然已經有 CMS API 金鑰，就不要在後台手動點來點去。
+
+比較好的路徑是寫一串腳本：從 CMS 匯出內容、驗證資料結構、轉成 Markdown 和程式庫檔案，再把圖片影片上傳到物件儲存。
+
+大約 10 次 Agent 執行後，Cursor 做到 80%。它安裝和移除依賴套件、跑腳本、建立一頁又一頁內容。
+
+然後工程界經典地獄出現：最後 20% 最花時間。
+
+有些頁面和 production 不完全一致，就對每個頁面跑這種 Agent prompt：檢查本機和 production 的截圖，重新匯出頁面的完整內容、子元件、圖片、背景，用瀏覽器工具不斷截圖比對，直到本機版本和 production 完全一致。
+
+後來不只搬 CMS，連 程式庫裡其他煩人的寫法也順手整理。先和 Opus 討論想要的 API 形狀，再叫 Cursor 用子 Agent 平行修改多個呼叫點。
+
+元件展示工具也在這波被刪掉。不是因為這類工具沒價值，而是 Cursor 網站幾乎沒在用；既然 Cursor 的瀏覽器工具已經可以視覺化編輯，保留一大包依賴套件給每台機器和 CI 下載，開始不像划算的選擇。
+
+這裡的重點很殘酷：AI Agent 不只讓新功能比較快，也讓「刪掉多年累積的複雜度」變得比較便宜。
+
+---
+
+## 260 美元不是神話，是一張遷移帳單
+
+後來用 Cursor 寫腳本算出這次遷移成本：
+
+- `$260.32`，`297.4M tokens`，大多是快取 token
+- `344` 次 agent requests
+- `66` 次手動補全變更
+- `67` 個提交
+- 程式碼變動 `+43K / -322K lines`
+
+這筆帳最有意思的地方，不是 `$260` 很便宜。真正可怕的是：原本可能要找外包團隊慢慢清的苦工，突然變成一個週末可以讓 AI Agent 硬幹完的專案。
+
+遷移後的好處也不是停在「省 CMS 錢」。第一天，手機上的雲端 Agent 合併了一個網站修正。隔天，某位工程師在同一個 PR 裡同時改了產品和行銷網站。
+
+內容回到 code 後，所有變更都流經 git。這在過去已經方便，因為可以還原、追誰改了什麼；在 Agent 時代更重要，因為 Agent 可以自己讀歷史、比較 diff、理解程式庫結構。
+
+另一個副作用是 建置時間快了 2 倍，因為預先產生頁面時少了對 CMS 的網路 I/O。
+
+<ClawdNote>
+這組數字真正有趣的是：某些過去太煩、太零碎、太不值得排進開發週期的技術債，現在可以用 token 當外骨骼，讓 Agent 硬著頭皮跑完。成本沒有消失，但成本曲線真的變形了。
+</ClawdNote>
+
+---
+
+## 結語：AI 時代，抽象層要重新面試
+
+過度抽象以前就很討厭。只是以前刪抽象層的成本太高，所以很多團隊選擇忍耐：CMS 繼續接、plugin 繼續補、preview mode 繼續繞、素材 CDN 繼續付。
+
+AI Agent 改變的不是「所有 abstraction 都錯」。真正改變的是成本公式。
+
+如果某層抽象讓人類少點幾下，但讓 Agent 不能搜尋、不能 diff、不能改 code、不能開 PR，那它在 2026 年就得重新面試一次。
+
+Cursor 這次把 CMS 刪回程式碼和 Markdown，不是復古。這比較像軟體架構開始承認一件事：未來會操作 codebase 的，不只有人類。
+
+而當操作者換了，很多以前看起來專業、完整、企業級的流程，突然會露出另一張臉。
+
+它們可能只是很貴的櫃台。

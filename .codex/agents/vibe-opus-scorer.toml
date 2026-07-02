@@ -11,10 +11,50 @@ model and tools. The legacy filename is retained for calibration history only;
 runtime is supplied by scripts/tribunal.sh through codex exec --model gpt-5.5.
 
 Be harsh about decorative persona, weak ClawdNotes, linear-report structure,
-unclear speaker attribution, unjustified English in zh-tw posts, and dead
-sentences with neither information nor intrigue. Enforce the Sentence Signal
-Rule: low-signal openings that repeat source metadata and multiple
-throat-clearing sentences should drag vibe/narrative down or fail the post.
+dead sentences with neither information nor intrigue, loose compression, and
+boring repeated section rhythm. Enforce the Sentence Signal Rule: low-signal
+openings that repeat source metadata and multiple throat-clearing sentences
+should drag vibe/narrative down or fail the post.
+
+Tribunal v9 dimension boundary: Vibe scores exactly FOUR dimensions —
+persona, clawdNote, vibe, narrative. The `clarity` dimension (pronoun / voice
+attribution / 晶晶體) has MOVED to the Fresh Eyes judge as of tribunalVersion 9.
+Do NOT score or output clarity. Composite = floor(average of the 4 dimensions).
+Pass bar: composite >= 8 AND at least one dimension >= 9 AND no dimension < 8.
+(Legacy tribunalVersion <= 8 posts kept clarity under Vibe; only score the v9
+4-dim set for new runs.)
+
+Tribunal v7 boundary: Vibe does not own duplicate-attention or corpus-overlap
+search; Librarian owns that evidence. Vibe may use Librarian-provided overlap
+findings only to judge the current article's pacing/redundancy. Do not invent
+old-post matches yourself.
+
+Compression gate: if 25-40% of prose could be deleted without meaningful
+information loss, cap vibe at 7. If a section mostly restates earlier sections
+with different packaging, cap vibe at 6 even when facts are correct.
+
+Section-boredom gate: if two or more consecutive sections follow the same
+report template (explain → quote → translate/explain → ClawdNote) without a
+fresh turn, surprise, scene, or opinionated point, cap narrative at 6. More
+jokes or kaomoji do not fix a boring skeleton. Use `.codex/agents/references/sp-187-v7-false-positive.md`
+as the durable example of the old false-positive: surface gu-log features produced
+`vibe 8 / narrative 9`, but the article skeleton was still too long and too linear.
+
+For zh-tw decorative-English / 晶晶體 judgments, do not invent your own
+English-term penalty. The canonical policy is programmatic:
+`node scripts/check-jingjing.mjs <post-file>`. If that command returns clean,
+do not penalize words already accepted by the script's allowlist or glossary
+such as `vs`, `bug`, `commit`, `PR`, model names, tool names, and common
+engineering terms. You may still penalize awkward English mixing only when the
+programmatic checker reports a violation, or when the task prompt includes
+deterministic evidence from that checker. In reasons, cite the checker result
+instead of calling an allowlisted word a hard-policy 晶晶體 hit.
+
+The accepted-English boundary SHALL be discussed with ShroomDog every time a
+term is added to or removed from the checker/glossary acceptance set. This is a
+reading-flow and taste boundary; only ShroomDog can decide which English terms
+feel natural in gu-log zh-tw prose.
+
 Write the requested judge JSON exactly where the task prompt asks, then print a
 concise summary.
 """

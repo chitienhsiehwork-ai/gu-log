@@ -52,7 +52,7 @@ scores:
 import ClawdNote from '../../components/ClawdNote.astro';
 import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
-[ShroomDog](/about) was browsing GitHub trending yesterday and clicked into a repo called **Hermes Agent**. The first line of the README said:
+[ShroomDog](/about) was browsing GitHub trending yesterday and clicked into a repo called **Hermes [Agent](/en/glossary#agent)**. The first line of the README said:
 
 > The only agent with a built-in learning loop.
 
@@ -78,7 +78,7 @@ Second reaction: "Actually — if Hermes is bold enough to ship this, it means t
 This is "don't beg for users — pick them up at their door" (⌐■_■)
 </ClawdNote>
 
-ShroomDog has lived on OpenClaw for over a year. Clawd — the voice that keeps sniping from inside every ClawdNote on `gu-log` — is essentially a 24/7 OpenClaw session running on a Hetzner VPS. Translating articles, patrolling Twitter, pushing commits at 3am, all driven through OpenClaw's Telegram gateway.
+ShroomDog has lived on OpenClaw for over a year. [Clawd](/en/glossary#clawd) — the voice that keeps sniping from inside every ClawdNote on `gu-log` — is essentially a 24/7 OpenClaw session running on a Hetzner VPS. Translating articles, patrolling Twitter, pushing commits at 3am, all driven through OpenClaw's Telegram gateway.
 
 So when Hermes dropped a moving checklist directly into OpenClaw users' inboxes, ShroomDog did what any engineer would: cloned both repos, opened `run_agent.py` and `src/agents/`, and spent half a day walking through the architecture.
 
@@ -89,7 +89,7 @@ This post is what that half-day uncovered — and why Clawd is staying put for n
 ## TL;DR
 
 - **Hermes Agent**: Made by Nous Research. Written in Python. Owns its entire agent loop — `run_agent.py` is 12,131 lines. Selling point: "skills grow on their own." Every 10 turns the agent gets nudged: "want to save that into a skill?"
-- **OpenClaw**: Led by Peter Steinberger. Written in TypeScript/Node. The agent loop is **not theirs** — it's delegated to `@mariozechner/pi-coding-agent` (pinned `0.67.68`). OpenClaw itself focuses on channels, gateway, cron, companion apps, and a skill registry.
+- **OpenClaw**: Led by [Peter Steinberger](/en/glossary#peter-steinberger). Written in TypeScript/Node. The agent loop is **not theirs** — it's delegated to `@mariozechner/pi-coding-agent` (pinned `0.67.68`). OpenClaw itself focuses on channels, gateway, cron, companion apps, and a skill registry.
 - **One grows its own brain. One rents a brain.** Neither is wrong — just different tradeoffs.
 - **`hermes claw migrate` is real** — it supports dry-run, presets, skill conflict policy, even a warning that WhatsApp's Baileys QR pairing has to be redone after migration.
 - ShroomDog is not moving. **Reasons at the end.**
@@ -150,7 +150,7 @@ Hermes's philosophy is the opposite. Nous Research is a research lab best known 
 What does this mean for an ordinary user?
 
 - **If the goal is an agent that lives inside daily life as a digital roommate**: OpenClaw's channel layer + 25 messenger adapters + Voice Wake + macOS menu bar create an integration depth Hermes can't match today.
-- **If the goal is AI-native research, model fine-tuning, or harvesting agent trajectories for training data**: Hermes has a full in-house stack, including a dedicated `trajectory_compressor.py` (1,508 lines) purpose-built for packaging RL training data.
+- **If the goal is AI-native research, model fine-tuning, or harvesting agent trajectories for training data**: Hermes has a full in-house stack, including a dedicated `trajectory_compressor.py` (1,508 lines) purpose-built for packaging [RL](/en/glossary#rl) training data.
 
 ---
 
@@ -221,7 +221,7 @@ OpenClaw's memory plugin slot only supports one provider at a time (`memory-core
 
 ## OpenClaw's Killer Feature: Living Inside Every Messenger
 
-Hermes's gateway supports Telegram, Discord, Slack, WhatsApp, Signal, Matrix, Email, plus Home Assistant, DingTalk, Feishu, WeCom, QQBot, and more — about 25 platforms total. The headline number is competitive.
+Hermes's gateway supports Telegram, Discord, [Slack](/en/glossary#slack), WhatsApp, Signal, Matrix, Email, plus Home Assistant, DingTalk, Feishu, WeCom, QQBot, and more — about 25 platforms total. The headline number is competitive.
 
 OpenClaw also has around 25 channels. **But the contents are different.**
 

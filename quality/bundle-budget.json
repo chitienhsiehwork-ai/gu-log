@@ -2,29 +2,29 @@
   "version": 2,
   "blocking": {
     "global": {
-      "jsMaxKB": 80,
-      "cssMaxKB": 65,
+      "jsMaxKB": 90,
+      "cssMaxKB": 120,
       "singleFileMaxKB": 300
     }
   },
   "trend": {
     "global": {
       "totalKB": {
-        "warnAtKB": 140000,
-        "criticalAtKB": 180000,
+        "warnAtKB": 200000,
+        "criticalAtKB": 240000,
         "growth": {
-          "warnPct": 3,
-          "criticalPct": 8,
-          "minDeltaKB": 250
+          "warnPct": 5,
+          "criticalPct": 12,
+          "minDeltaKB": 2000
         }
       },
       "htmlKB": {
-        "warnAtKB": 130000,
-        "criticalAtKB": 170000,
+        "warnAtKB": 185000,
+        "criticalAtKB": 220000,
         "growth": {
-          "warnPct": 3,
-          "criticalPct": 8,
-          "minDeltaKB": 250
+          "warnPct": 5,
+          "criticalPct": 12,
+          "minDeltaKB": 2000
         }
       }
     },
@@ -85,5 +85,5 @@
       }
     }
   },
-  "comment": "Level 5 / Plan C: JS-CSS budgets are blocking; HTML/total and key routes are trend monitors (non-blocking alerts)."
+  "comment": "Level 5 / Plan C: JS-CSS budgets are blocking; HTML/total and key routes are trend monitors (non-blocking alerts). Rebaselined 2026-06-12 (#396): clean build at 3087 routes was JS 52KB / CSS 64.91KB (CSS razor-thin vs old 65 cap, blocking every CSS change); aggregate KB scales with content count, so headroom set for ~2 quarters of growth. CI bundle-budget job (clean dist artifact) is the blocking authority; local pre-push is warning-only because incremental/stale dist inflates the JS-CSS sum and produces false blocks."
 }

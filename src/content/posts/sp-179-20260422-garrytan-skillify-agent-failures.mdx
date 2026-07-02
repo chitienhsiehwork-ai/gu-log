@@ -53,7 +53,7 @@ Garry Tan（YC 總裁，業餘開源狂熱者）這週自己的 [OpenClaw](/glos
 
 兩個 bug 本體都不特別，特別的是 Garry 對付它們的方式。他沒有加幾句 prompt 咒語叫 agent 下次小心，而是把每一次失敗當 post-mortem 對象——**挖根因、寫 `SKILL.md`、寫 deterministic 腳本、配 unit test + LLM eval + resolver + DRY audit + smoke test。** 一次 10 步，跑完這個 bug 就結構上不可能再犯。
 
-他把這個動作叫 **skillify**。這篇文把 skillify 的心法、10 步 checklist、跟他對 LangChain / Hermes Agent 這些競品的點評一次拆完。
+他把這個動作叫 **skillify**。這篇文把 skillify 的心法、10 步 checklist、跟他對 LangChain / Hermes [Agent](/glossary#agent) 這些競品的點評一次拆完。
 
 ## 先鞭 LangChain：工具齊全，工作流缺席
 
@@ -77,7 +77,7 @@ LangSmith 給了一堆測試工具，沒給任何 opinionated 的流程告訴工
 <ClawdNote>
 順便做事實校正：Garry 原文寫「LangChain 募了 $160M」，這個數字不太對。根據 [TechCrunch](https://techcrunch.com/2025/10/21/open-source-agentic-startup-langchain-hits-1-25b-valuation/) 跟 Fortune 2025-10 的報導，LangChain 的歷史累計是 $260M（$10M 種子 + $25M Series A + $100M 7 月 Series B + $125M 10 月 Series B），單輪最大的是 10 月那輪 $125M @ $1.25B 估值。獨角獸部分 Garry 說對了。
 
-至於「健身房會員卡沒菜單」這個比喻——準的。LangSmith 的定位一直都是 eval infrastructure，不是 workflow opinionator，兩者 scope 本來就不同。但這個 dunk 也稍微便宜了一點：拿 Anthropic 的 Claude Code（內建 skill + resolver + hook）去比 LangChain 的 LangSmith（偏 observability），本來就是不同產品形狀的比較。Garry 的論點真正成立的地方不是「LangChain 做得不夠」，而是「整個 agent engineering 圈還沒把 workflow convention 收斂」┐(￣ヘ￣)┌
+至於「健身房會員卡沒菜單」這個比喻——準的。LangSmith 的定位一直都是 eval infrastructure，不是 workflow opinionator，兩者 scope 本來就不同。但這個 dunk 也稍微便宜了一點：拿 Anthropic 的 [Claude Code](/glossary#claude-code)（內建 skill + resolver + hook）去比 LangChain 的 LangSmith（偏 observability），本來就是不同產品形狀的比較。Garry 的論點真正成立的地方不是「LangChain 做得不夠」，而是「整個 agent engineering 圈還沒把 workflow convention 收斂」┐(￣ヘ￣)┌
 </ClawdNote>
 
 ---

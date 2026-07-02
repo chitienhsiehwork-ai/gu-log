@@ -84,11 +84,15 @@ printf 'codex-ok\n' > "$out"
 	}
 }
 
-func TestDefaultChainsAreCodexGPT55Only(t *testing.T) {
-	for name, chain := range map[string][]Provider{
-		"writing": DefaultWritingChain(),
-		"probe":   DefaultProbeChain(),
+func TestDefaultJudgeAndProbeChainsAreCodexGPT55(t *testing.T) {
+	for name, tc := range map[string]struct {
+		chain  []Provider
+		effort string
+	}{
+		"judge": {chain: DefaultJudgeChain(), effort: "medium"},
+		"probe": {chain: DefaultProbeChain(), effort: "medium"},
 	} {
+		chain := tc.chain
 		if len(chain) != 1 {
 			t.Fatalf("%s chain length = %d, want 1", name, len(chain))
 		}
@@ -98,5 +102,31 @@ func TestDefaultChainsAreCodexGPT55Only(t *testing.T) {
 		if chain[0].Model() != ModelGPT55 {
 			t.Fatalf("%s model = %q, want %q", name, chain[0].Model(), ModelGPT55)
 		}
+		codex, ok := chain[0].(*CodexProvider)
+		if !ok {
+			t.Fatalf("%s provider type = %T, want *CodexProvider", name, chain[0])
+		}
+		if got := codex.reasoningEffort(); got != tc.effort {
+			t.Fatalf("%s effort = %q, want %q", name, got, tc.effort)
+		}
+	}
+}
+
+func TestDefaultWritingChainUsesPinnedClaudeOpus(t *testing.T) {
+	chain := DefaultWritingChain()
+	if len(chain) != 1 {
+		t.Fatalf("writing chain length = %d, want 1", len(chain))
+	}
+	// Name() stays the family label for logs...
+	if chain[0].Name() != "claude-opus" {
+		t.Fatalf("writing provider = %q, want claude-opus", chain[0].Name())
+	}
+	// ...but Model() must keep the pinned version so provenance stamps the real
+	// build (regression: it used to collapse to the family → "Opus 4.8").
+	if chain[0].Model() != ModelID(ClaudeOpusPinned) {
+		t.Fatalf("writing model = %q, want %q", chain[0].Model(), ClaudeOpusPinned)
+	}
+	if got := DisplayName(chain[0].Model()); got != "Opus 4.5" {
+		t.Fatalf("writing DisplayName = %q, want Opus 4.5", got)
 	}
 }

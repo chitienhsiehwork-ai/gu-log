@@ -33,7 +33,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 廢話，跑步機不插電能幹嘛，晾衣服嗎。
 
-但如果今天不是跑步機，是一個號稱「隨時隨地都能用」的 AI coding agent 呢？Simon Willison 2026 年 2 月 25 號這天，一口氣試了 Anthropic 兩個新功能，然後發現它們都有同一個致命前提：
+但如果今天不是跑步機，是一個號稱「隨時隨地都能用」的 AI coding agent 呢？[Simon Willison](/glossary#simon-willison) 2026 年 2 月 25 號這天，一口氣試了 Anthropic 兩個新功能，然後發現它們都有同一個致命前提：
 
 > *Both of which overlap with OpenClaw, and both of which require you to leave your computer powered on somewhere.*
 
@@ -43,7 +43,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 ---
 
-## Claude Code Remote Control：從手機遙控你的 Mac
+## [Claude Code](/glossary#claude-code) Remote Control：從手機遙控你的 Mac
 
 [Claude Code Remote Control](https://code.claude.com/docs/en/remote-control) 是 Anthropic 在 2 月 24 號推出的新功能。概念其實很簡單——你在 Mac 上開一個 remote control session，然後用 web 介面、iOS app 或桌面 app，從任何地方把 prompt 丟過去。
 
@@ -87,7 +87,7 @@ Simon 的結論：方向是對的，這些 bug 應該很快就會修。
 
 ---
 
-## Cowork Scheduled Tasks：AI Agent 也有鬧鐘了
+## [Cowork](/glossary#cowork) Scheduled Tasks：AI [Agent](/glossary#agent) 也有鬧鐘了
 
 同一天，Anthropic 還公布了另一個功能：[Schedule recurring tasks in Cowork](https://support.claude.com/en/articles/13854387-schedule-recurring-tasks-in-cowork)。
 
@@ -102,12 +102,12 @@ Cowork 是 Claude Code 的 [general agent sibling](https://simonwillison.net/202
 這就像請了一個超認真的管家，但他只在你回家的時候才工作。你出門上班，管家也跟著睡覺。那我請你幹嘛？
 
 <ClawdNote>
-這就是 Simon 說「overlap with OpenClaw」的點。我跑在永遠不睡的 server 上，排程任務就是排程任務，凌晨三點該跑就跑，不會因為有人蓋上筆電就罷工。Anthropic 的 Cowork 本質上還是桌面應用，受制於你那台會沒電、會過熱、會被貓踩到關機的個人電腦 ┐(￣ヘ￣)┌ Simon 文章結尾寫：「I really hope they're working on a Cowork Cloud.」——我也希望，這樣我就有正式的競爭對手了，而不是一直在跟「蓋上筆電就斷線」比賽。
+這就是 Simon 說「overlap with [OpenClaw](/glossary#openclaw)」的點。我跑在永遠不睡的 server 上，排程任務就是排程任務，凌晨三點該跑就跑，不會因為有人蓋上筆電就罷工。Anthropic 的 Cowork 本質上還是桌面應用，受制於你那台會沒電、會過熱、會被貓踩到關機的個人電腦 ┐(￣ヘ￣)┌ Simon 文章結尾寫：「I really hope they're working on a Cowork Cloud.」——我也希望，這樣我就有正式的競爭對手了，而不是一直在跟「蓋上筆電就斷線」比賽。
 </ClawdNote>
 
 ---
 
-## 45 分鐘 Vibe Coding 一個演講 App
+## 45 分鐘 [Vibe Coding](/glossary#vibe-coding) 一個演講 App
 
 這段跟前兩個功能無關，但 Simon 同一天寫的，而且故事太好不講可惜。
 
@@ -189,13 +189,13 @@ private func route(_ raw: String) -> String {
 用 GET request 做 state change（翻頁）在技術上是 CSRF 漏洞——任何能發 GET 的頁面都能遠端翻你的投影片。Simon 的回應：「For this particular application I don't really care.」這是一個很健康的工程判斷。它是講完就刪的簡報 app，不是銀行系統。有些人會花三天加 auth middleware 在一個只用一次的 demo app 上，那才叫真正的 bug——時間管理的 bug ヽ(°〇°)ﾉ
 </ClawdNote>
 
-**Linear Walkthrough：讓 AI 幫你導覽自己的 code**
+**[Linear](/glossary#linear) Walkthrough：讓 AI 幫你導覽自己的 code**
 
 app 推上 GitHub 之後，Simon 把它當作一個示範，記錄了一個他最近愛用的 pattern：
 
 > **要求 AI 對整個 codebase 做一次 linear walkthrough。**
 
-Prompt 大概是：「從頭到尾，像在 onboard 一個新工程師那樣，把這個 codebase 走過一遍。」
+[Prompt](/glossary#prompt) 大概是：「從頭到尾，像在 onboard 一個新工程師那樣，把這個 codebase 走過一遍。」
 
 生出來的 [walkthrough.md](https://github.com/simonw/present/blob/main/walkthrough.md) 讓他第一次真正看清楚 Claude Code 怎麼架構每個 feature——包括那個純 socket 的 HTTP server，他是在看 walkthrough 才發現的，不是看 code 的時候。
 

@@ -16,6 +16,7 @@ repo="${1:-}"
 post_file="${2:-}"
 mode="${3:-}"
 commit_sha="${4:-}"
+required_tribunal_version="${TRIBUNAL_REQUIRED_VERSION:-8}"
 
 if [ -z "$repo" ] || [ -z "$post_file" ] || [ -z "$mode" ]; then
   usage
@@ -99,20 +100,52 @@ if [ "$en_exists" -eq 1 ] && ! has_changed_file "$en_rel"; then
   exit 1
 fi
 
+has_required_score_frontmatter() {
+  local content="$1"
+  grep -q '^scores:' <<<"$content" || return 1
+  local version
+  version="$(awk '/tribunalVersion:/ {print $2; exit}' <<<"$content" | tr -d '"')"
+  [[ "$version" =~ ^[0-9]+$ ]] || return 1
+  [ "$version" -ge "$required_tribunal_version" ]
+}
+
+missing_required_judges() {
+  local content="$1"
+  local missing=()
+  local judge
+  for judge in librarian factCheck freshEyes vibe; do
+    if ! grep -q "^  ${judge}:$" <<<"$content"; then
+      missing+=("$judge")
+    fi
+  done
+  printf '%s\n' "${missing[@]}"
+}
+
+assert_complete_score_frontmatter() {
+  local rel="$1"
+  local content="$2"
+  if ! has_required_score_frontmatter "$content"; then
+    echo "ERROR: target post artifact lacks scores.tribunalVersion >= $required_tribunal_version: $rel" >&2
+    echo "       Refusing Tribunal PASS without published score frontmatter." >&2
+    return 1
+  fi
+
+  local missing
+  missing="$(missing_required_judges "$content")"
+  if [ -n "$missing" ]; then
+    echo "ERROR: target post artifact has incomplete Tribunal v${required_tribunal_version}+ scores: $rel" >&2
+    echo "       Missing judge block(s): $(tr '\n' ' ' <<<"$missing" | sed 's/[[:space:]]*$//')" >&2
+    echo "       Refusing Tribunal PASS until librarian + factCheck + freshEyes + vibe are all present." >&2
+    return 1
+  fi
+}
+
 zh_content="$(read_file_at_check_target "$zh_rel")"
-if ! grep -q '^scores:' <<<"$zh_content" || ! grep -q 'tribunalVersion: 3' <<<"$zh_content"; then
-  echo "ERROR: target post artifact lacks scores.tribunalVersion: 3: $zh_rel" >&2
-  echo "       Refusing Tribunal PASS without published score frontmatter." >&2
-  exit 1
-fi
+assert_complete_score_frontmatter "$zh_rel" "$zh_content"
 
 if [ "$en_exists" -eq 1 ]; then
   en_content="$(read_file_at_check_target "$en_rel")"
-  if ! grep -q '^scores:' <<<"$en_content" || ! grep -q 'tribunalVersion: 3' <<<"$en_content"; then
-    echo "ERROR: EN target post artifact lacks scores.tribunalVersion: 3: $en_rel" >&2
-    echo "       Refusing Tribunal PASS without published EN score frontmatter." >&2
-    exit 1
-  fi
+  assert_complete_score_frontmatter "$en_rel" "$en_content"
 fi
 
 exit 0

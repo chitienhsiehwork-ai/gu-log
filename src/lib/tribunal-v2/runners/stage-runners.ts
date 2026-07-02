@@ -46,7 +46,9 @@ export const stage0JudgeRunner: StageRunner<
   WorthinessJudgeOutput
 > = {
   async run(_input) {
-    throw new Error('Stage 0 (Worthiness Judge) is deprecated in v3. The v3 shell pipeline skips this stage.');
+    throw new Error(
+      'Stage 0 (Worthiness Judge) is deprecated in v3. The v3 shell pipeline skips this stage.'
+    );
   },
 };
 
@@ -101,7 +103,7 @@ Setup: read scripts/vibe-scoring-standard.md and GU-LOG_WRITER_PROMPT.md before 
 Stage 1 reference scores for relative comparison:
 ${JSON.stringify(input.stage1Scores, null, 2)}
 
-Score the CURRENT version of the post on the same 5 dimensions. The orchestrator will apply the relative pass bar (no dim drops > 1 from Stage 1) — you just score independently.
+Score the CURRENT version of the post on the same Vibe dimensions as Stage 1 (per scripts/vibe-scoring-standard.md — tribunalVersion 9+ is 4 dims: persona/clawdNote/vibe/narrative, since clarity moved to Fresh Eyes; legacy v8 was 5). The orchestrator will apply the relative pass bar (no dim drops > 1 from Stage 1) — you just score independently.
 
 Output shape is FinalVibeJudgeOutput: include scores, composite, pass (boolean), stage_1_scores (copy the reference above), degraded_dimensions (names of dims that dropped > 1 from Stage 1), is_degraded (any dropped > 1?).
 
@@ -135,7 +137,7 @@ export const stage2JudgeRunner: StageRunner<
       timeoutSec: TIMEOUT.JUDGE_FRESH_EYES,
       buildPrompt: (outputPath) => `Fresh-eyes review this post: ${articlePath}
 
-Score readability and firstImpression from a 3-month engineer persona per your agent instructions.
+Score all dimensions from a 3-month engineer persona per your agent instructions (tribunalVersion 9+: readability / firstImpression / payoffDensity / lengthFit / clarity, where clarity is a non-compensating hard gate moved here from Vibe; legacy v8 omits clarity).
 
 Write the v2 FreshEyesJudgeOutput JSON to: ${outputPath}
 Confirm with a one-line status on stdout.`,
@@ -195,7 +197,7 @@ export const stage3LibrarianRunner: StageRunner<
       timeoutSec: TIMEOUT.WORKER_LIBRARIAN,
       buildPrompt: (outputPath) => `Add library links to this post: ${articlePath}
 
-Per your agent instructions, add glossary links and cross-references where appropriate. Do NOT modify text or facts — only add links. Use your Write tool to save the updated file.
+Per your agent instructions, add glossary links and cross-references where appropriate. Apply the glossary creation standard as judgment, but this worker pass is link-only: do NOT create new glossary entries, invent anchors, modify text, or change facts. If a term looks like a missing glossary candidate, leave the prose unchanged and mention it in your stdout summary.
 
 Write the v2 LibrarianOutput JSON (glossary_links_added + cross_references_added) to: ${outputPath}
 Confirm with a one-line status on stdout.`,

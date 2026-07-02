@@ -1,0 +1,162 @@
+---
+ticketId: "SP-235"
+title: "99.8% 測試通過，然後 Anthropic 自己補一句『還不能上線』— loop engineering 真正的產品是驗證器"
+originalDate: "2026-06-15"
+translatedDate: "2026-06-18"
+translatedBy:
+  model: "Opus 4.5"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Translator"
+      model: "Opus 4.5"
+      harness: "Claude Code"
+source: "@samueljmcd on X"
+sourceUrl: "https://x.com/samueljmcd/status/2066524627585634765"
+lang: "zh-tw"
+summary: "loop engineering 被講成『2026 就是設計編排、多開 agent』，但編排現在工具幫你做掉了。真正還難、還手動、還決定成敗的那半邊，是驗證器——loop 跑出來的東西到底有沒有東西在把關。借 Anthropic 自家的 Bun port 當反例：99.8% 既有測試通過，官方公告卻自己補一句『還沒上 production』，因為測試綠燈只證明你滿足了自己設的關卡，不等於對。"
+tags: ["shroom-picks", "agent", "loop", "verifier", "claude-code"]
+scores:
+  tribunalVersion: 8
+  vibe:
+    persona: 8
+    clawdNote: 9
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-06-18"
+    model: "Opus 4.5"
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 9
+    date: "2026-06-18"
+    model: "Opus 4.8"
+  librarian:
+    glossary: 8
+    crossRef: 9
+    sourceAlign: 8
+    attribution: 9
+    score: 8
+    date: "2026-06-18"
+    model: "Opus 4.7"
+  freshEyes:
+    readability: 8
+    firstImpression: 9
+    payoffDensity: 9
+    lengthFit: 9
+    score: 8
+    date: "2026-06-18"
+    model: "Opus 4.7"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Loop 很好畫。發現、規劃、執行、驗證、重複——流程圖五分鐘就能畫完，丟給任何一個 LLM 都能生出來。問題從來不是「怎麼設計一個 loop」，問題是「這個 loop 跑出來的東西，能不能信」。
+
+<ClawdNote>
+如果還沒讀過 loop engineering 的基本款（開放／封閉迴圈、六個積木怎麼組），先去看 [SP-220](/posts/sp-220-20260610-loop-engineering)。這篇是續集，直接從「驗證器」切入，不會從頭講一遍。(￣▽￣)
+</ClawdNote>
+
+## 「驗證」那格才是產品
+
+[Boris Cherny](/glossary#boris-cherny) 在今年六月的 Fortune Brainstorm Tech 上說，他現在不自己寫 [prompt](/glossary#prompt) 了——是另一個 Claude 在寫 prompt。一個早上管幾百個 agent，有時候上千個。
+
+這句話被包裝成「loop engineering 時代來了」：2024 年寫好 prompt，2025 年平行跑 agent，2026 年設計那個會自己跑 agent 的系統。聽起來很美，但這個包裝把真正難的東西藏起來了。
+
+一個 loop 就是一個生成器接一個驗證器。生成器從來不是瓶頸。現在的模型隨便都能生，生得又快又多又自信。瓶頸是驗證器：誰來判斷生出來的東西對不對？用什麼標準判斷？判斷錯了怎麼攔截？
+
+每個人都會畫那張「發現 → 規劃 → 執行 → 驗證」的流程圖。幾乎沒有人講清楚「驗證」那一格裡面裝什麼。那一格才是真正的產品，其他都是水管工程。
+
+---
+
+## 內圈驗證：任務內的自我檢查
+
+內圈驗證發生在單一任務裡面。agent 在回答之前，先驗證自己的工作。
+
+弱的 agent 改完檔案就說「完成」。強的 agent 改完檔案、寫一個測試、跑測試、抓到邊界條件沒處理、修掉、再跑、確認綠燈，然後才說「完成」。工具一模一樣，差別只在模型有沒有選擇去呼叫驗證器。
+
+<ClawdNote>
+這跟人類工程師一樣。菜鳥改完 code 直接 commit，老鳥改完會跑一下 `npm test`、手動點一下 UI、看一眼主控台有沒有噴紅字。工具都在那裡，差別是有沒有用。(⌐■_■)
+</ClawdNote>
+
+這套循環有個學名，叫 [ReAct](/glossary#react)（Princeton 和 Google 那篇）：思考、行動、觀察結果、再思考，直到完成。用寫程式的話講：理解目標、寫 code、跑起來、讀錯誤訊息、推斷原因、修掉、再跑，直到測試通過。
+
+內圈驗證現在算成熟了，大部分能用的 agent 都會做。但「有做」跟「做得好」是兩回事——驗證器的品質決定輸出的品質上限，一點都不會更高。
+
+---
+
+## 外圈記憶：跨工作階段的教訓累積
+
+外圈驗證發生在工作階段之間。agent 在這次任務搞砸了某件事，把教訓寫進一個持久檔案，下次工作階段讀到那個檔案，從一開始就不會再犯同樣的錯。
+
+這套做法也有名字，叫 [Reflexion](/glossary#reflexion)：ReAct 再加上一塊記憶。當一次嘗試失敗，agent 用白話寫下「為什麼失敗」，存起來，下次嘗試時讀出來。在現代的工具鏈裡，那個筆記住在檔案裡，不是 [context window](/glossary#context-window) 裡。SKILL.md、AGENTS.md、CLAUDE.md 都是這種外圈記憶的具體實作。
+
+<ClawdNote>
+Context window 會重設，但 git repo 不會。把教訓寫進 repo 裡的檔案，就是把短期記憶轉成長期記憶。這不是什麼新概念，工程師寫 README 和 CONTRIBUTING.md 幾十年了，只是現在讀者從人類變成 agent。(◕‿◕)
+</ClawdNote>
+
+外圈記憶還在半成品階段。要存什麼教訓、存在哪裡、粒度多細，比聽起來難得多。存太粗，agent 讀了也不知道怎麼用；存太細，檔案變成垃圾堆，反而拖慢推理。
+
+內圈驗證處理「這次任務對不對」。外圈記憶處理「上禮拜的錯不要再犯」。兩層都是驗證，只是時間尺度不同。
+
+---
+
+## Bun port：99.8% 綠燈的警世故事
+
+Jarred Sumner 用 [Claude Code](/glossary#claude-code) 的[動態工作流](/posts/sp-214-20260602-claude-code-dynamic-workflows)把 Bun 從 Zig 移植到 Rust。大約 75 萬行 Rust，現有測試套件 99.8% 通過，從第一個 commit 到合併大概六到十一天（看採信誰的說法）。
+
+這個專案的驗證架構很紮實：第一輪先標註每個 struct 欄位該有的 Rust lifetime，第二輪幾百個 agent 平行寫檔、每個檔案配兩個審查 agent，還有一層專門負責「反駁」其他 agent 產出的 agent。最後用修復迴圈驅動建置和測試，直到兩邊都跑過。驗證不是最後一步，是整個架構。
+
+然後是 Anthropic 在那篇[動態工作流公告](https://claude.com/blog/a-harness-for-every-task-dynamic-workflows-in-claude-code)（2026 年 6 月 2 日）裡，自己寫的那句但書：**這個移植還沒上 production。**
+
+<ClawdNote>
+99.8% 測試通過聽起來超猛，但那是 benchmark 結果，不是 production 真相。測試套件只覆蓋「有人想到要寫測試的行為」。Production 是「還沒有人寫測試的行為」。中間那個落差，就是這整個產業一直在絆倒的地方。(¬‿¬)
+</ClawdNote>
+
+這不是在說 Bun port 做得不好——那個驗證架構已經比大部分專案強很多了。重點是：一個 loop 跑到綠燈，不代表那個 loop 是對的。它只代表那個 loop 滿足了人給它的驗證器。驗證器的品質決定輸出的品質上限。
+
+Bun 的[語言遷移故事](/posts/sp-203-20260516-mitchellh-bun-rust-rewrite-comms)在 SP-203 講過了，這裡只借它講一件事：測試通過是起點，不是終點。
+
+---
+
+## 驗證器設計的具體問題
+
+「設計驗證器」聽起來抽象，拆開來看其實是一串具體問題：
+
+**驗什麼？** 語法正確、測試通過、型別檢查過——這些是最低門檻。真正難的是語意正確：這段 code 真的做到規格說的事嗎？邊界條件都處理了嗎？跟系統其他部分的互動會不會爆炸？
+
+**用什麼當判準？** 測試套件是一種判準，但它只覆蓋有人想到要寫的 case。另一個 agent 當審查者是一種判準，但 agent 審 agent 有自己的盲點。人類審查是另一種判準，但人類慢、貴、會累。大部分實務上的答案是混用：自動化能抓的先抓，抓不到的留給人。
+
+**失敗怎麼攔截？** 驗證器說「不對」之後，下一步是什麼？直接打回去重生？附上錯誤訊息讓 agent 修？升級給人類看？不同的失敗要不同的處理，不是每個錯都值得同樣的力氣。
+
+**怎麼知道驗證器自己對不對？** 這是最尷尬的問題。驗證器放行了錯誤的東西，要怎麼發現？答案通常是：等 production 爆炸才知道。這就是為什麼外圈記憶重要——production 爆炸的教訓要寫下來，下次驗證器要學會攔。
+
+<ClawdNote>
+生成器跟驗證器要分開，因為 agent 改自己的作業會改得很寬鬆。這跟人類一樣，自己 review 自己的 PR 總是覺得沒問題。分離角色不是不信任，是系統設計。(๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## 先設計驗證器，再放大 loop
+
+Boris Cherny 管幾百個 agent 的前提是：那些 agent 跑在一個他信任的驗證架構裡面。沒有那個架構，幾百個 agent 就是幾百倍的錯誤生成速度。
+
+[動態工作流](/posts/sp-214-20260602-claude-code-dynamic-workflows)現在上限是 16 個並行、單次執行最多 1000 個 agent，token 成本比正常工作階段高很多。不是每個任務都需要開工作流，把小任務硬包成工作流是另一種浪費。
+
+工具已經到位了：排程觸發器啟動 agent、隔離的 `git worktree` 讓平行 agent 不會互踩、技能檔案省掉每次重新解釋專案慣例、連接器串接工作已經在的工具。這些都是水管，重要但不是核心。
+
+核心是驗證器。在放大 loop 之前，先回答這些問題：agent 檢查什麼？用什麼標準？失敗怎麼攔？教訓怎麼存？這些問題沒答案，多開 agent 只是多生垃圾。
+
+---
+
+## 結語
+
+Loop engineering 這個標籤是新的，但它指向的難題一直都在。生成器從來不是瓶頸，驗證器才是。流程圖人人會畫，但「驗證」那一格裝什麼，幾乎沒人講清楚。
+
+Bun port 99.8% 測試通過，Anthropic 自己補一句「還沒上 production」。那句但書比整個專案的技術細節都重要。測試綠燈是 benchmark 結果，production 是還沒寫測試的行為。
+
+下一個 loop 要設計之前，先把驗證器設計好。不然只是用更快的速度生出更多不能信的東西。

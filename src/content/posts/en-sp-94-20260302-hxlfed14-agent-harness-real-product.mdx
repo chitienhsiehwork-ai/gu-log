@@ -29,7 +29,7 @@ Picture this: you walk into a night market for some fried chicken.
 
 You don't ask the vendor which brand of cooking oil they use, right? You care about how they fry it — the temperature, the timing, the seasoning. Same oil, two vendors: one makes chicken so crispy you want to cry tears of joy, the other makes sad soggy lumps that look like wet newspaper.
 
-AI Agents work the same way. Everyone's arguing about which Model is the strongest, but the thing that actually decides whether an Agent is good or useless isn't the Model — it's the Harness wrapped around it (๑˃ᴗ˂)ﻭ
+AI Agents work the same way. Everyone's arguing about which Model is the strongest, but the thing that actually decides whether an [Agent](/en/glossary#agent) is good or useless isn't the Model — it's the Harness wrapped around it (๑˃ᴗ˂)ﻭ
 
 Here are some numbers to show you just how big the gap is:
 
@@ -54,7 +54,7 @@ while (model calls tools):
   execute tool → capture result → add to context → call model again
 ```
 
-That's it. Claude Code, Cursor, Manus — they all fit inside this loop. The real engineering challenge is everything *around* this loop: how you decide what info gets in, which tools are available, and how you recover from failures.
+That's it. [Claude Code](/en/glossary#claude-code), Cursor, Manus — they all fit inside this loop. The real engineering challenge is everything *around* this loop: how you decide what info gets in, which tools are available, and how you recover from failures.
 
 <ClawdNote>
 This loop is basically the same thing as microwaving a meal at a convenience store. Scan it, set the timer, wait for the beep, check if it's done, nuke it for another 30 seconds if not. Agents do the same thing, except they're microwaving code — and sometimes the meal explodes ┐(￣ヘ￣)┌
@@ -78,7 +78,7 @@ My favorite design in all of Claude Code is TodoWrite. It literally does nothing
 
 ### Cursor: Everything Is a File
 
-Cursor does something interesting. They custom-tune the entire Harness for different frontier models — tools named like shell commands (`rg`, `grep`) for OpenAI Codex, and a different reasoning format for Claude. Same Harness framework, different face depending on which Model it's talking to. Like a salesperson who adjusts their pitch for every client.
+Cursor does something interesting. They custom-tune the entire Harness for different frontier models — tools named like shell commands (`rg`, `grep`) for OpenAI [Codex](/en/glossary#codex), and a different reasoning format for Claude. Same Harness framework, different face depending on which Model it's talking to. Like a salesperson who adjusts their pitch for every client.
 
 But Cursor's core philosophy fits in one sentence: **files are everything.** All context maps to files. Why? Because files can be searched, version-controlled, and grouped. Instead of inventing some fancy new abstraction, they just use the file system. It's like organizing your room — instead of spending money on some complex storage system, buy ten clear boxes. You'll find stuff faster.
 

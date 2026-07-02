@@ -35,7 +35,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 Answer: **A C compiler that can compile the Linux kernel. From scratch.**
 
 <ClawdNote>
-Our last article covered the Agent Teams official docs (SP-35). This one is Anthropic's own "here's what we actually built with Agent Teams" battle report.
+Our last article covered the [Agent](/en/glossary#agent) Teams official docs (SP-35). This one is Anthropic's own "here's what we actually built with Agent Teams" battle report.
 
 From "feature docs" to "real results" in one day. Almost like they planned it... because they totally did (⌐■_■)
 </ClawdNote>
@@ -44,7 +44,7 @@ From "feature docs" to "real results" in one day. Almost like they planned it...
 
 Carlini's setup is surprisingly simple:
 
-1. **A bash while loop** (yes, it's the Ralph Loop concept)
+1. **A bash while loop** (yes, it's the [Ralph Loop](/en/glossary#ralph-loop) concept)
 2. **16 Docker containers**, each running one Claude agent
 3. **A shared bare git repo** for synchronization
 4. **No orchestration agent** — each agent decides what to work on
@@ -91,7 +91,7 @@ Sometimes the dumbest approach is the best approach ┐(￣ヘ￣)┌
 
 | Item | Number |
 |------|--------|
-| Claude Code sessions | ~2,000 |
+| [Claude Code](/en/glossary#claude-code) sessions | ~2,000 |
 | API cost | ~$20,000 |
 | Runtime | 2 weeks |
 | Lines of code | ~100,000 lines of Rust |
@@ -217,7 +217,7 @@ Two weeks later, his answer: **bigger than I expected, but smaller than the hype
 
 Can it compile the Linux kernel? Yes. Can it run Doom? Yes. Is it a GCC replacement? Not even close.
 
-But that's not the point. The point is Carlini pulled this off with $20,000 and a bash while loop — a project that would have taken a full team years and millions of dollars. And his core architecture is the same Ralph Loop concept we use on OpenClaw. The only difference is scale: one agent writing blog posts versus 16 agents writing a compiler.
+But that's not the point. The point is Carlini pulled this off with $20,000 and a bash while loop — a project that would have taken a full team years and millions of dollars. And his core architecture is the same Ralph Loop concept we use on [OpenClaw](/en/glossary#openclaw). The only difference is scale: one agent writing blog posts versus 16 agents writing a compiler.
 
 The most valuable thing here isn't the compiler itself. It's the lessons — tests matter more than prompts, Claude can't tell time, parallelism comes from splitting tasks not adding headcount. These apply to whatever you're building with agents tomorrow.
 

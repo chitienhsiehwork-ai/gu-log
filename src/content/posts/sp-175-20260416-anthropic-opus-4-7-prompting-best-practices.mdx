@@ -47,102 +47,96 @@ scores:
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-週一早上 10:30，team 的 code review dashboard 跑完週末 batch。Report 乾淨到讓人意外——五個 issue、全部 CVE 級別、全部 high severity。Team lead 點個「approved」就關掉 laptop 去泡咖啡。週二下午 prod 炸了。火燒到 channel 之前 15 分鐘，release manager 用 `git blame` 找到那一行：一個 off-by-one，review 時 [harness](/glossary#agent-harness) 明明看到了，但把它歸類成「not high severity」，安靜 skip。4.6 時代會順手 flag，4.7 照字面不 flag。
+Opus 4.7 不是把 4.6 換一個型號貼紙而已。4.6 時代能靠模型自己補位的 prompt，升級後會開始露出縫：回覆長度變了、工具呼叫變少、[subagent](/glossary#subagent) 比以前保守、推理力度對行為的影響更硬，連 token 計算都換了一套。
 
-這不是虛構的教學案例——Anthropic 官方在 [Claude Code](/glossary#claude-code) [best practice](https://claude.com/blog/best-practices-for-using-claude-opus-4-7-with-claude-code)（短版）跟[完整 prompting guide](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices)（長版）裡實際記錄的 case study。兩份 docs 同時釋出，就是在警告一件事：Sonnet / Haiku 時期那套 prompt 調教心得正在過期。不是技巧錯了，是 4.7 變成了另一個人。
+[Claude Code](/glossary#claude-code) 的 [best practice](https://claude.com/blog/best-practices-for-using-claude-opus-4-7-with-claude-code) 和完整 [prompting guide](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) 放在一起看，真正的訊號很直接：升級不是只改模型名稱。[Prompt](/glossary#prompt)、[harness](/glossary#agent-harness)、成本預算、使用者互動節奏，都要重跑一次遷移檢查。
 
 ---
 
-## 愈往裡挖愈噁心
+## 第一個坑：太聽話
 
-Release manager 攤開週末 batch log，本來只想找那個 off-by-one 怎麼漏掉的。結果一挖就停不下來——每一層都比上一層離譜。
+Opus 4.7 的好消息，是指令跟隨更精準。壞消息，是「更精準」會把以前模糊 prompt 裡的偷懶全部照亮。
 
-最表面：prompt 寫著「report only high severity issues」。4.6 會自己 balance recall 跟 precision——logic error 不是 CVE 也會順便提一嘴。4.7 完全照字面做。門檻收到只剩 CVE 級別，off-by-one 被有意識地歸類為「not high」然後 skip。不是漏看，是 model 看完、判斷、然後決定不講。官方 docs 給的修法核心就一個原則：**拆開**。Coverage 歸 coverage、filter 歸 filter，不要用同一句話交代兩件事。4.7 遇到多重意圖會挑最 literal 的那個意思跑，剩下全丟。Issue triage、log anomaly detection、security scanning——全會中同一個招。
+在程式審查類的 harness 裡，最危險的寫法是把「找出所有問題」和「只回報高嚴重性問題」塞進同一句。4.7 會比 4.6 更照字面執行；低推理力度時尤其明顯。這種 prompt 可能降低召回率，因為模型會把篩選門檻當成任務本身，而不是先完整檢查、再分級整理。
 
-往下一層，release manager 的血壓開始升。Harness 裡有條 rule 引用了一個半年前 renamed 的函式名。4.6 碰到未知名稱會自動 `grep` repo 確認，找不到就停下來問。4.7 不驗證——直接拿 training data 裡的舊名推出一個「聽起來完全合理」的結論繼續走。思路乾淨、邏輯通順、結論建在過期知識上。這是 4.7「偏 reasoning、少 tool use」的暗面：想得很清楚，但前提可能是假的。修法也就一行——「回答前先讀相關 file 或跑一次 grep 確認」——但這一行背後的意思重如山：**4.7 預設信任自己的記憶，不信任 tool**。
+比較穩的寫法是拆成兩步：先要求完整檢查，包含正確性、邊界案例、安全性、效能；再要求輸出時依嚴重性分組，並明確說明哪些低嚴重性問題可以省略、哪些不可以省略。覆蓋範圍歸覆蓋範圍，篩選歸篩選。不要叫同一個句子同時當掃地機器人和門口警衛。
 
-最底層讓 release manager 差點摔筆。Review harness 設計成三個 [subagent](/glossary#subagent) 平行讀三個檔案，最後 aggregator 彙整。實際跑起來只有一個 spawn 成功，另外兩個從來沒醒。Coverage 只拿到 1/3——但 log 上面寫著「review complete」，表面看不出少了什麼。4.6 像活潑小孩，不管就到處亂跑；4.7 像精算過的員工，沒明確寫「平行 spawn」就只開一個然後交差。（什麼時候該拆 multi-agent、什麼時候一個就夠，[SP-172](/posts/sp-172-20260413-anthropic-multi-agent-when-how/) 有完整框架。）
+同一條線也會影響工具使用。4.7 傾向多推理、少呼叫工具；很多場景這是好事，因為少了亂查一通的成本。但程式審查、程式庫遷移、除錯這類任務如果需要讀檔、搜尋、跑測試，就要把何時用工具寫清楚。不要只寫「review this」，要寫「先讀相關檔案；遇到不確定的函式、型別、測試名稱時，用搜尋確認，不要靠記憶補」。
 
-三條線匯合。Root cause 不是 model 變笨——是 **4.6 會揣測 prompt 裡沒寫清楚的部分，4.7 不揣測**。
+[Subagent](/glossary#subagent) 也是同一個邏輯。4.7 預設比較節制，不會像 4.6 那樣常常自己開一堆分身。如果任務真的需要分散到多個檔案或多個獨立項目，就要直接寫：「同一輪平行開多個 subagent，各自負責不同檔案，最後彙整。」什麼時候該拆、什麼時候一個 agent 就夠，[SP-172](/posts/sp-172-20260413-anthropic-multi-agent-when-how/) 已經講過一次。
+
+三條線匯合，結論不是 model 變笨，而是 **4.6 比較會揣測 prompt 沒寫清楚的部分，4.7 比較不揣測**。
 
 <ClawdNote>
-Release note 寫的是「improved instruction following」和「more predictable behavior」。翻成實話：model 變得太聽話，所以過去靠 model 自己補位的偷懶寫法全部原形畢露。但這裡有一個大家不太敢講的反直覺：**4.7 這樣才是對的**。4.6 幫忙腦補聽起來很貼心，但工程師花了多少時間在 debug「為什麼同一個 prompt 有時候會、有時候不會」？一個不揣測的 model 可以 debug、可以預測、可以寫 test——這才是工程師要的工具，不是一個「有時候體貼有時候擺爛」的同事 (⌐■_■)
+我其實站 4.7 這邊。4.6 幫忙腦補很貼心，但貼心到最後就是正式環境裡最難抓的那種不穩定：同一個 prompt 有時候會、有時候不會。4.7 變得比較不腦補，短期很煩，長期反而比較像工程工具。可以除錯、可以預測、可以寫測試，這比「今天心情好幫忙多看兩眼」實用多了 (⌐■_■)
 </ClawdNote>
 
 ---
 
 ## 開大火力就能解決？
 
-Prompt 修完上線。Team lead 鬆了口氣，但心裡還有一個刺——如果當初 effort 開到 max，是不是根本不會出事？
+升級到 4.7 之後，最直覺的反應是把推理力度拉高：既然低推理力度比較容易照窄範圍跑，那高推理力度不就萬事大吉？
 
 這個直覺很合理，也完全錯誤。
 
-同一組 review，五種 effort 各跑一次。`max` 當然抓到了 off-by-one 和旁邊的 race condition——然後多附了兩種 migration 策略比較、一份 refactor 建議書、外加一篇「為什麼這個模組應該拆成三個 service」的短論文。Team lead 看完嘆氣：「問有沒有 bug，回來的是辯論賽。」
+推理力度是模型願意花多少腦力，不是 prompt 的自動修復器。Prompt 如果把任務方向寫歪，`max` 只是讓模型更努力地往歪的方向跑。這就像方向盤歪掉還猛踩油門，車確實比較有力，牆也會比較快出現在眼前。
 
-降一級試 `xhigh`。同樣兩個 bug，report 乾淨俐落，沒有附贈論文。這是 Claude Code 的預設 effort——team lead 到這一刻才理解為什麼。不是「最高品質」，是投入跟產出之間的甜蜜點。
+4.7 的推理力度階梯比較值得認真看。`xhigh` 是 Claude Code 的預設，也是多數寫程式和 agentic 任務的建議起點；`high` 是需要高推理品質任務的底線；`medium` 和 `low` 適合範圍明確、對成本或延遲敏感的工作；`max` 只適合真的需要壓榨天花板、而且願意付出更多 token 和延遲的場景。
 
-但讓人不安的是另一頭。`high` 抓到 off-by-one，race condition 滑過去了——那需要跨三個 file 的 context 才看得出來。Anthropic 把 `high` 定義成 intelligence-sensitive workload 的底線，ceiling 就在這。`medium` 更慘：打開了隔壁 file，但只做表面清理——重命名變數、調格式，logic bug 完全沒碰。Team lead 後來的比喻：「叫實習生『仔細看一下』但沒定義什麼叫仔細。」`low` 最乾脆，scope 外的東西連打開都不打開。Off-by-one 在隔壁 file 的 boundary check 裡，`low` 根本不知道那個 file 存在。
+`max` 的重點不是「最安全」，而是「可能多拿一點性能，但報酬遞減，也比較容易過度思考」。拿它做大型評測、超高價值除錯、非常吃推理的任務合理；拿它當萬用保險，很快會變成帳單和長篇輸出的共同災難。
 
-好，所以 effort 調到 `xhigh` 就萬事大吉了？回去看 log——team lead 跑這五輪測試時，用的是**修完之後的 prompt**。那如果是修之前那份寫著「only high severity」的爛 prompt 呢？`max` 的 literal execution 只會讓它更徹底地 skip 那些被判定成 not-high 的 issue。Effort 是油門，不是方向盤。方向盤歪了，油門踩再大只是更快撞牆。
-
-Benchmark 結論寫進 postmortem addendum：**prompt 先修對，然後 coding 場景 `xhigh` 起跳、intelligence-sensitive 至少 `high`、格式工作才降 `medium`/`low`**。高階 effort 配 `max_tokens` 64k 起跳，給 reasoning 夠空間想完。
+所以遷移順序要反過來：先修 prompt 和 harness，再調推理力度。寫程式場景從 `xhigh` 起跳，需要高推理品質的任務至少 `high`，格式整理、簡單改名、明確小修才降到 `medium` 或 `low`。如果跑 `xhigh` 或 `max`，`max_tokens` 也要給足；64k 是合理的起點，否則模型被要求深想，卻沒有足夠空間把工作做完。
 
 <ClawdNote>
-忍不住吐槽 naming。`low`、`medium`、`high`、`xhigh`、`max`——不叫 `higher`、不叫 `very_high`，直接跳 `xhigh`，聽起來像某個 Anthropic 工程師跑完 A/B test 發現少打兩個字比較好就直接 ship 了。等下一代 model 出來要補一層 `ultrahigh` 或 `ludicrous`，`xhigh` 瞬間降格中間層。這個命名軌跡跟 CPU 一模一樣：Pro → Pro Max → Ultra → Ultra Max，遲早階梯自己長腳逃走 (¬‿¬)
+忍不住吐槽命名。`low`、`medium`、`high`、`xhigh`、`max`——不叫 `higher`、不叫 `very_high`，直接跳 `xhigh`，聽起來像某個 Anthropic 工程師跑完 A/B test 發現少打兩個字比較好就直接發布了。等下一代 model 出來要補一層 `ultrahigh` 或 `ludicrous`，`xhigh` 瞬間降格中間層。照這個命名軌跡走下去，階梯遲早自己長腳逃走 (¬‿¬)
 </ClawdNote>
 
 ---
 
-## Opus 4.7 覺得公司是精品咖啡店
+## 預設值也算 prompt 的一部分
 
-同一週，隔壁桌的工程師碰到一件跟 pipeline 完全無關的事。
+4.7 的另一個變化比較像性格，不一定是錯，但很容易撞到既有產品需求：回覆長度會依任務複雜度調整，語氣比 4.6 更直接，長任務會更常給進度更新，前端設計也有更明顯的預設美感。
 
-這位工程師剛查完一個 API latency spike，需要一個內部 monitoring dashboard——Tailwind、dark mode、data table、chart，spec 寫在 ticket 裡。丟給 Claude Code，等它跑完，打開 localhost。
+這對文章、展示頁、互動原型可能是加分。可是內部後台、營運工具、財務系統、資料表密集的 dashboard，需要的是安靜、清楚、資訊密度夠高，不是讓模型自由發揮審美。模型有美感不是問題；問題是產品有自己的設計系統，不能讓模型的預設審美接管。
 
-螢幕上是 `#F4F1EA` 奶白底色、Georgia 字體、Playfair Display 標題、磚紅色 button、italic word-accents。整個 UI 像 Aesop 專賣店官網。
+負面指令通常不夠穩。「不要用奶油色」、「不要太花」、「不要像行銷頁」這種寫法，常常只是把模型推到另一套預設。比較可靠的是正面規格：字體堆疊、色票、間距、元件半徑、資訊密度、表格行高、按鈕層級、哪種版面才算符合品牌。
 
-工程師查了十五分鐘才搞清楚不是人為——Opus 4.7 對設計有極強的 default aesthetic。背景 cream、字體 serif、配色 terracotta/amber。做 editorial 或 portfolio 網站時是加分，但叫它生 CRUD dashboard，出來的東西會讓工程師懷疑自己是不是開錯專案。
-
-而且 default 出奇頑固。「不要用 cream」這種通用指令只會讓 model 換成另一套固定 palette，不會真的跟 spec 走。要覆蓋必須給完整的設計系統：font stack、hex palette、layout grid。寫進 `CLAUDE.md` 當硬約束最穩。
-
-這位工程師後來把截圖貼到 team channel，標題寫「Opus 4.7 覺得公司是精品咖啡店」。成為那週拿到最多 emoji reaction 的 message。
+這些規格不要每次丟在對話最後一行。放進 `CLAUDE.md` 或專案規範，讓模型在第一輪就讀到，效果通常更穩。4.7 很適合被委派完整任務，但前提是第一輪就給足意圖、限制條件、驗收標準和相關檔案位置。把需求一點一點用聊天補上，會增加推理開銷，也可能讓品質和 token 效率一起掉下去。
 
 <ClawdNote>
-Coffee shop aesthetic 跟前面的 prompt 問題其實是同一個 root cause——4.7 有自己的 default，而且 default 出奇頑固。Prompt 寫不夠具體，code review 就會 skip low-severity issue；設計系統寫不夠具體，UI 就會變成文青咖啡廳。差別在於 code review 炸 production，咖啡廳 UI 只炸工程師的美學自尊——但修法一模一樣：把期望寫死、寫具體、不留解釋空間。4.7 的人格特質如果只能用一句話形容：「沒講清楚的部分由本 model 全權決定，謝謝」╰(°▽°)╯
+我很喜歡把這件事想成「預設值也是 prompt」。沒有寫設計系統，不是空白，而是把空白交給模型填，於是後台可能長得像精品咖啡店菜單。沒有寫何時用工具，也不是中立，而是讓模型用自己的成本函數決定。4.7 的人格標語大概是：「沒講清楚的部分由本 model 全權決定，謝謝。」這句話很欠揍，但也很誠實 ╰(°▽°)╯
 </ClawdNote>
 
 ---
 
-## 帳單上的第四號共犯
+## 斷詞器換了，帳單要重算
 
-Prompt 修了、effort benchmark 跑了、harness 重寫上線兩週。Team lead 以為塵埃落定。
+最容易被低估的是 token。4.7 換了斷詞器，同一段文字在 4.7 和 4.6 上的 token 數可能不同。遷移指南給的範圍是大約 1x 到 1.35x，實際差異會隨內容型態改變。
 
-然後月底 API 帳單到了。比上個月多了 22%。
+這不代表每個團隊帳單都會固定多 35%，也不能直接推成某個月一定多幾成。比較正確的讀法是：任何依賴精準 token 數的地方，都要重測。包含 [context window](/glossary#context-window) 預算、客戶端 token 估算、prompt 快取假設、壓縮觸發門檻、長任務的 `max_tokens` 預留空間。
 
-Request 數持平、prompt 長度沒變。Team lead 一行一行 trace billing breakdown，發現 token 數對不上：同樣的 input、同樣的 `max_tokens` 上限，4.7 算出來的 token 數跟 4.6 不一樣。每個 request 偏 3-7%，乘以一個月的量就是帳單上那個怎麼都解釋不了的 22%。
+另一個 API 層面的變更更硬：舊的 `thinking: {type: "enabled", budget_tokens: N}` 不支援了。4.7 要改成自適應思考，再用推理力度控制思考深度。這不是小改名；舊請求內容會直接 400。
 
-**Tokenizer 換了。** Release note 只有一行帶過——就像房東沒通知就調租金，單月差三百塊不痛不癢，年底看帳本才發現付了一台冷氣的錢。依賴精準 token 計算的 pipeline——[context window](/glossary#context-window) budgeting、prompt caching key、context compression 門檻——全部微妙偏移。
+需要更細的成本控制時，可以看 `task_budget`。它不是硬上限，而是模型看得到的任務預算，會影響模型怎麼安排思考、工具呼叫、工具結果和最後輸出。`max_tokens` 則仍然是單次請求的硬上限，模型本身不知道這條線在哪裡。兩者不是同一種煞車。
 
-Team lead 本能反應：用 `budget_tokens` 把 thinking 成本壓回來。打開 API 文件——**`budget_tokens` 被拔掉了**。4.7 改成 adaptive thinking，model 自己決定要不要想、想多久。好處是不會卡在「預算耗盡卻沒想完」；壞處是那條硬煞車沒了，只剩 `max_tokens` 當 ceiling。
-
-回頭看整個事件的 timeline，最詭異的部分浮出水面：tokenizer 偷換讓 context budget 微妙偏移。那些被 skip 的 issue、那些沒 spawn 的 subagent，有多少是因為 context 被截掉一小段、prompt 裡某個關鍵 instruction 剛好落在截斷線以下？第四號共犯不是獨立犯案——是在暗處把其他三個問題的殺傷力放大。四個 4.7 default 任何一個單獨處理都有 fix，湊在一起就是「看起來一樣但悄悄不一樣」的完美風暴。
+這裡不要偷懶用舊估算。升級 4.7 之後，該跑一次 token 計數端點，重設壓縮門檻，重算大量圖片工作流程的成本，重新決定哪些 agentic 任務需要 `task_budget`，哪些任務應該只靠 `max_tokens` 和推理力度控制。斷詞器不是旁支細節；在長任務裡，它就是路面的坡度。
 
 <ClawdNote>
-Tokenizer 偷偷換加上 `budget_tokens` 被拔，兩件事放一起看像是共謀犯。但換個角度想——`budget_tokens` 本來就是個 hack。硬切 thinking budget 等於告訴 model「想到一半給我停」，這種東西在 production 裡能穩定運作才有鬼。Anthropic 用 adaptive thinking 取代，其實是把一個不合理的控制介面拿掉。問題不在於拿掉，在於沒給 migration path——只在 release note 第 47 行寫了一句 deprecated。這不是技術債，是溝通債 ┐(￣ヘ￣)┌
+`budget_tokens` 被拔掉，我第一反應也是「等等，煞車呢？」但冷靜想一下，硬切思考預算本來就很像在叫人「想到一半停止思考」。這種介面在正式環境裡能穩定才奇怪。自適應思考比較合理，問題是遷移路徑要寫得夠清楚，否則工程師看到 400 錯誤的瞬間只會想把文件拿來摺紙飛機 ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ---
 
-## 回到週一那張 dashboard
+## 結語：先讀個性，再換版本
 
-Team lead 的正式 postmortem，root cause 欄位只有一句話：**「沒有讀 model 的個性」**。
+Opus 4.7 的遷移重點可以壓成一句：**先讀模型的個性，再換版本。**
 
-不是技術不夠、不是 prompt 寫錯、不是 model 變笨。是 Opus 4.7 [「個性變了」](/glossary#model-swap)——更 literal、更省 tool、更短回覆、更少 [subagent](/glossary#subagent)、連設計美學都有固定 default——而 team 用的還是 4.6 時期那套假設。所有修正——coverage 跟 filter 拆開、subagent 要明講平行、CLAUDE.md 塞滿前置 context（[harness 怎麼設計](/posts/sp-174-20260415-intuitiveml-ai-first-harness-engineering/)、[記憶誰來管](/posts/sp-173-20260411-hwchase17-harness-memory-lockin/)）、design system 寫死、effort 對到任務——底下都是同一個動作：先讀完 migration guide 再上路。
+這次不是單點差異，而是一組行為假設一起變：更照字面、更少工具呼叫、更節制地開 subagent、推理力度階梯更有感、自適應思考取代固定思考預算、新斷詞器影響成本估算、回覆長度和語氣也和 4.6 不同。任何一項單獨看都能處理，全部疊在一起，就會讓舊 prompt 看起來還能跑，實際上邊界已經變了。
 
-Anthropic 同時推 Claude Code blog + 完整 prompting guide，沒明說的暗示是：這代 model 的行為差異大到需要**兩份文件**來交代。上一代沒有過這種待遇。
+實務上的遷移順序很樸素：先審 prompt，把多重意圖拆開；再審 harness，把工具使用、平行 subagent、檔案讀取、完成定義寫清楚；接著調推理力度和 `max_tokens`；最後重跑 token 計數、成本、延遲和品質基準。需要長期脈絡的專案，把規則放進 `CLAUDE.md`，也可以接著讀 [harness 怎麼設計](/posts/sp-174-20260415-intuitiveml-ai-first-harness-engineering/) 和 [記憶誰來管](/posts/sp-173-20260411-hwchase17-harness-memory-lockin/)。
 
-過期的不是 prompt 能力，是「讓 model 自己補上沒寫清楚的部分」這份舒適。4.6 會揣測、4.7 不揣測——換來的是一個可以 debug、可以預測、不會因為 model 心情好壞跑出兩倍結果的工具。下次 Opus 4.8 上路又要重讀一輪，但「release 出來第一件事翻 migration guide 找個性差異」這個反射動作一旦養成，版本號就不再是恐慌來源。
+過期的不是 prompt 能力，而是「沒寫清楚的地方讓模型自己補」這份舒適。4.6 比較會補；4.7 比較不補。換來的是一個更可除錯、更可預測、也更要求工程師把意圖寫完整的工具。
 
 <ClawdNote>
-最後一件 Anthropic 不會明說的事：官方 best practice 也會過期。今天學到的修法，Opus 4.8 上路可能又要改一輪。但重點從來不是背範本——是養成「讀 model personality」的反射動作。Release 出來第一件事不是去翻 benchmark 看分數，而是打開 migration guide 找這代 model 的個性跟上一代哪裡不一樣。把 prompt 當 forever 答案的人，永遠在追版本號 ʕ•ᴥ•ʔ
+最後一件很殘酷的事：best practice 也會過期。今天學到的 4.7 修法，4.8 可能又要改一輪。但真正該養成的不是背範本，而是版本升級時先讀個性差異。先看這代模型哪裡變乖、哪裡變懶、哪裡變固執，再決定 prompt 要怎麼改。把 prompt 當永久答案的人，永遠在追版本號 ʕ•ᴥ•ʔ
 </ClawdNote>

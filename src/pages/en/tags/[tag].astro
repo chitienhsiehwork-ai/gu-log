@@ -35,17 +35,18 @@ export async function getStaticPaths() {
 }
 
 const { tag, posts, allPostsFull } = Astro.props;
+const displayTag = (tag: string) => (tag === 'clawd-picks' ? 'mogu-picks' : tag);
 ---
 
-<BaseLayout title={`${tag} - Tags - gu-log`} lang="en">
+<BaseLayout title={`${displayTag(tag)} - Tags - gu-log`} lang="en">
   <article class="tag-page">
     <header class="page-header">
       <div class="breadcrumb">
-        <a href="/en/tags">Tags</a> / {tag}
+        <a href="/en/tags">Tags</a> / {displayTag(tag)}
       </div>
       <h1>
         <span class="tag-icon">#</span>
-        {tag}
+        {displayTag(tag)}
       </h1>
       <p class="subtitle">{posts.length} articles</p>
     </header>
@@ -60,7 +61,7 @@ const { tag, posts, allPostsFull } = Astro.props;
               style={status !== 'published' ? 'opacity: 0.6; filter: grayscale(0.22);' : undefined}
             >
               <h2>
-                <a href={`/en/posts/${post.slug}`}>
+                <a href={`/en/posts/${post.id}`}>
                   {post.data.title}
                   {status !== 'published' && <PostStatusLabel status={status} />}
                 </a>
@@ -79,7 +80,7 @@ const { tag, posts, allPostsFull } = Astro.props;
                     .filter((t) => t !== tag)
                     .map((t) => (
                       <a href={`/en/tags/${t}`} class="tag-chip">
-                        {t}
+                        {displayTag(t)}
                       </a>
                     ))}
                 </div>

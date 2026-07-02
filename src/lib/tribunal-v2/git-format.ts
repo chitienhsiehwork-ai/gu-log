@@ -11,11 +11,7 @@
 
 import { basename } from 'node:path';
 import type { PipelineState, StageResult } from './pipeline';
-import type {
-  VibeJudgeOutput,
-  FinalVibeJudgeOutput,
-  FactLibJudgeOutput,
-} from './types';
+import type { VibeJudgeOutput, FinalVibeJudgeOutput, FactLibJudgeOutput } from './types';
 
 // ---------------------------------------------------------------------------
 // Branch Name
@@ -39,11 +35,28 @@ export function tribunalBranchName(articlePath: string): string {
 // ---------------------------------------------------------------------------
 
 function formatVibeScores(scores: VibeJudgeOutput['scores']): string {
-  return `persona:${scores.persona} clawdNote:${scores.clawdNote} vibe:${scores.vibe} clarity:${scores.clarity} narrative:${scores.narrative}`;
+  // `clarity` is version-dependent: for tribunalVersion <= 8 it's a Vibe
+  // dimension and appears here; for v9+ it moved to Fresh Eyes and is absent
+  // from the Vibe scores, so we only print it when present.
+  const parts = [
+    `persona:${scores.persona}`,
+    `clawdNote:${scores.clawdNote}`,
+    `vibe:${scores.vibe}`,
+  ];
+  if (scores.clarity !== undefined) {
+    parts.push(`clarity:${scores.clarity}`);
+  }
+  parts.push(`narrative:${scores.narrative}`);
+  return parts.join(' ');
 }
 
 function formatStageStatus<T>(label: string, stage: StageResult<T>, detail?: string): string {
-  const status = stage.status === 'passed' ? 'PASS' : stage.status === 'failed' ? 'FAIL' : stage.status.toUpperCase();
+  const status =
+    stage.status === 'passed'
+      ? 'PASS'
+      : stage.status === 'failed'
+        ? 'FAIL'
+        : stage.status.toUpperCase();
 
   let line = `${label}: ${status}`;
 
@@ -82,16 +95,12 @@ export function squashCommitMessage(state: PipelineState): string {
 
   // Stage 0
   const s0 = state.stages.stage0;
-  const s0Detail = s0.output
-    ? s0.output.pass ? 'no warn' : 'WARN'
-    : undefined;
+  const s0Detail = s0.output ? (s0.output.pass ? 'no warn' : 'WARN') : undefined;
   lines.push(formatStageStatus('Stage 0', s0, s0Detail));
 
   // Stage 1
   const s1 = state.stages.stage1;
-  const s1Detail = s1.output
-    ? formatVibeScores(s1.output.scores)
-    : undefined;
+  const s1Detail = s1.output ? formatVibeScores(s1.output.scores) : undefined;
   lines.push(formatStageStatus('Stage 1', s1, s1Detail));
 
   // Stage 2
@@ -137,7 +146,8 @@ export interface ParsedCommitMessage {
   }>;
 }
 
-const STAGE_LINE_REGEX = /^Stage (\d): (PASS|FAIL|WARN|PENDING|RUNNING|SKIPPED|NEEDS_REVIEW)(?:\s+@\s+loop\s+(\d+)\/(\d+))?(?:\s+\((.+)\))?$/;
+const STAGE_LINE_REGEX =
+  /^Stage (\d): (PASS|FAIL|WARN|PENDING|RUNNING|SKIPPED|NEEDS_REVIEW)(?:\s+@\s+loop\s+(\d+)\/(\d+))?(?:\s+\((.+)\))?$/;
 
 /**
  * Parse a tribunal squash commit message back into structured data.

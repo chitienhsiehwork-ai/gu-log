@@ -19,6 +19,11 @@ type CodexProvider struct {
 	ReasoningEffort string
 }
 
+// NewCodexGPT55Low returns a CodexProvider wired to GPT-5.5 low.
+func NewCodexGPT55Low() *CodexProvider {
+	return &CodexProvider{ModelName: "gpt-5.5", ReasoningEffort: "low"}
+}
+
 // NewCodexGPT55Medium returns a CodexProvider wired to GPT-5.5 medium.
 func NewCodexGPT55Medium() *CodexProvider {
 	return &CodexProvider{ModelName: "gpt-5.5", ReasoningEffort: "medium"}
@@ -47,6 +52,10 @@ func (c *CodexProvider) Model() ModelID {
 		return ModelGPT54
 	}
 }
+
+// ActualModel returns the explicit Codex model passed to the CLI. Codex does
+// not use a moving alias here: gpt-5.5 is the current full recommended model.
+func (c *CodexProvider) ActualModel() ModelID { return c.Model() }
 
 // Available implements Provider.
 func (c *CodexProvider) Available() bool {

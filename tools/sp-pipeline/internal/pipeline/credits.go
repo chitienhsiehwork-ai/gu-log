@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/frontmatter"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/llm"
 )
 
 // PipelineURL is the URL stamped into the pipelineUrl frontmatter field.
@@ -47,25 +48,28 @@ func (s *State) Credits(ctx context.Context) error {
 		return fmt.Errorf("credits: parse final.mdx: %w", err)
 	}
 
-	// Default the per-stage metadata to the mac-cdx Codex GPT-5.5 path.
-	// A real run populates these in Write/Review/Refine.
-	writeModel := nonEmpty(s.WriteModel, "GPT-5.5")
-	writeHarness := nonEmpty(s.WriteHarness, "Codex CLI")
-	reviewModel := nonEmpty(s.ReviewModel, "GPT-5.5")
-	reviewHarness := nonEmpty(s.ReviewHarness, "Codex CLI")
-	refineModel := nonEmpty(s.RefineModel, "GPT-5.5")
-	refineHarness := nonEmpty(s.RefineHarness, "Codex CLI")
+	// Default skipped-stage metadata to each role's runtime provider. Writers
+	// use Opus-on-Mac / Codex-on-VM; reviewers and tribunal judges use full
+	// Codex GPT-5.5.
+	writerModel, writerHarness := s.StampLabels()
+	judgeModel, judgeHarness := s.JudgeStampLabels()
+	writeModel := nonEmpty(s.WriteModel, writerModel)
+	writeHarness := nonEmpty(s.WriteHarness, writerHarness)
+	reviewModel := nonEmpty(s.ReviewModel, judgeModel)
+	reviewHarness := nonEmpty(s.ReviewHarness, judgeHarness)
+	refineModel := nonEmpty(s.RefineModel, writerModel)
+	refineHarness := nonEmpty(s.RefineHarness, writerHarness)
 
 	// Patch the top-level model line to match the actual writer.
 	f.SetNestedScalar("translatedBy", "model", quoted(writeModel))
 	// Replace harness with a summary string and inject the 4-entry pipeline.
-	f.SetNestedScalar("translatedBy", "harness", `"Codex CLI"`)
+	f.SetNestedScalar("translatedBy", "harness", quoted(writeHarness))
 
 	entries := []PipelineEntry{
 		{Role: "Written", Model: writeModel, Harness: writeHarness},
 		{Role: "Reviewed", Model: reviewModel, Harness: reviewHarness},
 		{Role: "Refined", Model: refineModel, Harness: refineHarness},
-		{Role: "Orchestrated", Model: "GPT-5.5", Harness: "sp-pipeline"},
+		{Role: "Orchestrated", Model: judgeModel, Harness: "sp-pipeline"},
 	}
 	f.SetNestedBlock("translatedBy", "pipeline", renderPipelineBlock("  pipeline", entries))
 	f.SetNestedScalar("translatedBy", "pipelineUrl", quoted(PipelineURL))
@@ -75,6 +79,40 @@ func (s *State) Credits(ctx context.Context) error {
 	}
 	s.Log.OK("Step 4.6: pipeline credits stamped")
 	return nil
+}
+
+// StampLabels resolves the (model, harness) display labels for the writer
+// provider. It reads the resolved dispatcher (deterministic for a given run and
+// for FakeProvider tests) and falls back to probing PATH when no dispatcher is
+// wired.
+func (s *State) StampLabels() (model, harness string) {
+	if s.Dispatcher != nil {
+		for _, p := range s.Dispatcher.Providers() {
+			if p.Available() {
+				return llm.DisplayName(p.Model()), llm.HarnessName(p.Model())
+			}
+		}
+	}
+	return llm.EffectiveStamp()
+}
+
+// JudgeStampLabels resolves the default judge model/harness used by review and
+// tribunal scoring when a specific per-stage result is unavailable.
+func (s *State) JudgeStampLabels() (model, harness string) {
+	if s.JudgeDispatcher != nil {
+		for _, p := range s.JudgeDispatcher.Providers() {
+			if p.Available() {
+				m := p.Model()
+				if reporter, ok := p.(interface{ ActualModel() llm.ModelID }); ok {
+					if actual := reporter.ActualModel(); actual != "" {
+						m = actual
+					}
+				}
+				return llm.DisplayName(m), llm.HarnessName(p.Model())
+			}
+		}
+	}
+	return llm.DisplayName(llm.ModelGPT55), llm.HarnessName(llm.ModelGPT55)
 }
 
 // renderPipelineBlock builds a YAML snippet for a translatedBy.pipeline

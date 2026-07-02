@@ -57,6 +57,9 @@ func TestResolve_FromEnv(t *testing.T) {
 	if cfg.FetchXArticle != filepath.Join(resolvedRoot, "scripts", "fetch-x-article.sh") {
 		t.Fatalf("FetchXArticle wrong: %q", cfg.FetchXArticle)
 	}
+	if cfg.FetchArticle != filepath.Join(resolvedRoot, "scripts", "fetch-article.py") {
+		t.Fatalf("FetchArticle wrong: %q", cfg.FetchArticle)
+	}
 	if cfg.ValidatePosts != filepath.Join(resolvedRoot, "scripts", "validate-posts.mjs") {
 		t.Fatalf("ValidatePosts wrong: %q", cfg.ValidatePosts)
 	}

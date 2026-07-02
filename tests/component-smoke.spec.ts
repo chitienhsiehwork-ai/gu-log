@@ -30,9 +30,9 @@ function attachConsoleErrorWatcher(page: import('@playwright/test').Page) {
 }
 
 test.describe('Component smoke — listing pages', () => {
-  test('clawd-picks listing renders with Pagination', async ({ page }) => {
+  test('mogu-picks listing renders with Pagination', async ({ page }) => {
     const errs = attachConsoleErrorWatcher(page);
-    await page.goto('/clawd-picks');
+    await page.goto('/mogu-picks');
     await expect(page.locator('main')).toBeVisible();
     // Pagination renders nav with prev/next or page links
     const pagination = page.locator('nav[aria-label*="agination" i], nav.pagination, .pagination');
@@ -90,7 +90,9 @@ test.describe('Component smoke — post page (RelatedArticles, ShareButton, Prev
     await page.goto('/posts/cp-291-20260414-anthropic-');
     await expect(page.locator('article').first()).toBeVisible();
     // ShareButton has a recognizable click target
-    const share = page.locator('[aria-label*="hare" i], button:has-text("Share"), a:has-text("Share")');
+    const share = page.locator(
+      '[aria-label*="hare" i], button:has-text("Share"), a:has-text("Share")'
+    );
     if ((await share.count()) > 0) {
       await expect(share.first()).toBeVisible();
     }

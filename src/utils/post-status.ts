@@ -1,4 +1,5 @@
 import type { CollectionEntry } from 'astro:content';
+import { isBelowPublishBar } from './tribunal-scores';
 
 type PostEntry = CollectionEntry<'posts'>;
 type PostLang = PostEntry['data']['lang'];
@@ -17,7 +18,11 @@ function normalizeStatus(status?: string): PostStatus {
   return status === 'deprecated' || status === 'retired' ? status : 'published';
 }
 
-function findPostByTicketId(posts: PostEntry[], ticketId?: string, lang?: PostLang): PostEntry | undefined {
+function findPostByTicketId(
+  posts: PostEntry[],
+  ticketId?: string,
+  lang?: PostLang
+): PostEntry | undefined {
   if (!ticketId) {
     return undefined;
   }
@@ -40,7 +45,7 @@ export function getTranslationPair(
 
   return posts.find(
     (candidate) =>
-      candidate.slug !== post.slug &&
+      candidate.id !== post.id &&
       candidate.data.ticketId === post.data.ticketId &&
       candidate.data.lang === desiredLang
   );
@@ -67,9 +72,9 @@ export function resolvePostStatus(post: PostEntry, posts: PostEntry[]): Resolved
   const status = normalizeStatus(sourcePost.data.status);
   const replacementTicketId = status === 'deprecated' ? sourcePost.data.deprecatedBy : undefined;
   const replacementPost = replacementTicketId
-    ? findPostByTicketId(posts, replacementTicketId, post.data.lang) ??
+    ? (findPostByTicketId(posts, replacementTicketId, post.data.lang) ??
       findPostByTicketId(posts, replacementTicketId, sourcePost.data.lang) ??
-      findPostByTicketId(posts, replacementTicketId)
+      findPostByTicketId(posts, replacementTicketId))
     : undefined;
 
   return {
@@ -77,7 +82,8 @@ export function resolvePostStatus(post: PostEntry, posts: PostEntry[]): Resolved
     sourcePost,
     replacementPost,
     replacementTicketId,
-    reason: status === 'deprecated' ? sourcePost.data.deprecatedReason : sourcePost.data.retiredReason,
+    reason:
+      status === 'deprecated' ? sourcePost.data.deprecatedReason : sourcePost.data.retiredReason,
     retiredAt: sourcePost.data.retiredAt,
   };
 }
@@ -99,14 +105,25 @@ export function getPublishedPosts(posts: PostEntry[], lang?: PostLang): PostEntr
 export function getListablePosts(posts: PostEntry[], lang?: PostLang): PostEntry[] {
   return posts.filter(
     (post) =>
-      (!lang || post.data.lang === lang) && resolvePostStatus(post, posts).status !== 'deprecated',
+      (!lang || post.data.lang === lang) && resolvePostStatus(post, posts).status !== 'deprecated'
   );
+}
+
+/**
+ * Homepage / featured post list: listable posts MINUS those that have a real
+ * tribunal score below the publish bar (<8). Sub-8 posts still build at their
+ * own URL and carry a "refining" badge, but are held off the homepage until a
+ * background tribunal lifts them to >=8. Grandfathered (un-scored) posts are
+ * unaffected — they stay on the homepage.
+ */
+export function getIndexPosts(posts: PostEntry[], lang?: PostLang): PostEntry[] {
+  return getListablePosts(posts, lang).filter((post) => !isBelowPublishBar(post.data.scores));
 }
 
 export function getNavigablePosts(posts: PostEntry[], currentPost: PostEntry): PostEntry[] {
   const publishedPosts = getPublishedPosts(posts, currentPost.data.lang);
 
-  if (publishedPosts.some((post) => post.slug === currentPost.slug)) {
+  if (publishedPosts.some((post) => post.id === currentPost.id)) {
     return publishedPosts;
   }
 
@@ -114,5 +131,5 @@ export function getNavigablePosts(posts: PostEntry[], currentPost: PostEntry): P
 }
 
 export function getLocalizedPostUrl(post: PostEntry): string {
-  return post.data.lang === 'en' ? `/en/posts/${post.slug}` : `/posts/${post.slug}`;
+  return post.data.lang === 'en' ? `/en/posts/${post.id}` : `/posts/${post.id}`;
 }

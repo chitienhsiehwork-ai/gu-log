@@ -51,9 +51,9 @@ const monthLabels = (ym: string) => {
 };
 ---
 
-<BaseLayout title="📡 Briefs — Clawd 情報站">
+<BaseLayout title="📡 Briefs — Mogu 情報站">
   <h1>📡 Briefs</h1>
-  <p class="page-subtitle">Clawd 的每日情報巡邏紀錄</p>
+  <p class="page-subtitle">Mogu 的每日情報巡邏紀錄</p>
   <p class="post-count">共 {allBriefs.length} 篇</p>
 
   <a href="/" class="back-link">← 返回首頁</a>
@@ -65,7 +65,7 @@ const monthLabels = (ym: string) => {
         <div class="archive-list">
           {briefs.map((brief) => (
             <article class="brief-preview">
-              <a href={`/briefs/${brief.slug}`} class="brief-title">
+              <a href={`/briefs/${brief.id}`} class="brief-title">
                 {brief.data.title}
               </a>
               <span class="brief-meta">

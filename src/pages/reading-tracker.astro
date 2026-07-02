@@ -2,8 +2,10 @@
 import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { getPublishedPosts } from '../utils/post-status';
+import { getPostReaderRevision } from '../utils/post-versions';
 
 const allPosts = getPublishedPosts(await getCollection('posts'), 'zh-tw');
+const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
 
 // Sort by date descending
 allPosts.sort((a, b) => {
@@ -14,8 +16,8 @@ allPosts.sort((a, b) => {
 
 type Group = { label: string; colorVar: string; posts: typeof allPosts };
 const groups: Record<string, Group> = {
-  CP: { label: 'Clawd Picks', colorVar: 'var(--color-badge-cp)', posts: [] },
-  SP: { label: 'ShroomDog Picks', colorVar: 'var(--color-badge-sp)', posts: [] },
+  CP: { label: 'Mogu Picks', colorVar: 'var(--color-badge-cp)', posts: [] },
+  SP: { label: 'Gu-log Picks', colorVar: 'var(--color-badge-sp)', posts: [] },
   SD: { label: 'ShroomDog Original', colorVar: 'var(--color-badge-sd)', posts: [] },
   Lv: { label: 'Level Up', colorVar: 'var(--color-badge-lv)', posts: [] },
 };
@@ -98,36 +100,37 @@ const totalArticles = allPosts.length;
       }
     </div>
 
-    <!-- GitHub Gist Sync card -->
-    <div class="sync-card" id="sync-card" style="display:none">
-      <!-- Shown when no token: PAT setup -->
-      <div id="sync-pat-setup" style="display:none">
+    <!-- GitHub Sync card -->
+    <div class="sync-card" id="sync-card" style="display:none" data-api-url={apiUrl}>
+      <div id="sync-oauth-setup" style="display:none">
         <div class="sync-card-header">
-          <span class="sync-card-title">🔗 Connect GitHub for Sync</span>
+          <span class="sync-card-title">🔗 GitHub OAuth Sync</span>
         </div>
         <p class="sync-desc">
-          貼入 GitHub PAT 即可把閱讀紀錄同步到你的 Private Gist，跨裝置不遺漏。
+          已改用 gu-log 登入狀態同步閱讀紀錄，不需要手貼 GitHub private token。
         </p>
-        <div class="sync-pat-row">
-          <input
-            type="password"
-            id="sync-pat-input"
-            placeholder="ghp_xxxxxxxxxxxx"
-            class="sync-pat-field"
-            autocomplete="off"
-            spellcheck="false"
-          />
-          <button id="sync-pat-save" class="action-btn">儲存</button>
-        </div>
-        <p class="sync-pat-hint">
-          只需勾選 <code>gist</code> scope —
-          <a
-            href="https://github.com/settings/tokens/new?scopes=gist&description=gu-log-reading-tracker"
-            target="_blank"
-            rel="noopener"
-            class="sync-link">點此建立 →</a
-          >
-        </p>
+        <a
+          id="sync-reauth-link"
+          class="sync-action-btn"
+          href={`${apiUrl}/auth/github?reader_sync=1`}
+        >
+          重新授權同步
+        </a>
+        <details class="legacy-sync-details">
+          <summary>Legacy token fallback</summary>
+          <p class="sync-pat-hint">只有 backend OAuth sync 暫時不可用時才用這條舊路。</p>
+          <div class="sync-pat-row">
+            <input
+              type="password"
+              id="sync-pat-input"
+              placeholder="***"
+              class="sync-pat-field"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <button id="sync-pat-save" class="action-btn">儲存 legacy token</button>
+          </div>
+        </details>
       </div>
 
       <!-- Shown when token available: sync controls -->
@@ -184,18 +187,21 @@ const totalArticles = allPosts.length;
             <ul class="article-list">
               {g.posts.map((post) => {
                 const date = post.data.translatedDate || post.data.originalDate || '';
+                const readerRevision = getPostReaderRevision(post.id);
                 return (
                   <li
                     class="article-row"
-                    data-slug={post.slug}
+                    data-slug={post.id}
                     data-group={prefix}
                     data-read="false"
+                    data-read-state="unread"
+                    data-current-revision={readerRevision}
                   >
                     <button class="article-toggle" aria-label="切換已讀狀態" type="button">
                       <span class="toggle-unread">☐</span>
                       <span class="toggle-read">☑</span>
                     </button>
-                    <a href={`/posts/${post.slug}`} class="article-title">
+                    <a href={`/posts/${post.id}`} class="article-title">
                       {post.data.title}
                     </a>
                     <span class="article-date">{date}</span>
@@ -218,11 +224,20 @@ const totalArticles = allPosts.length;
     isRead,
     markAsRead,
     markAsUnread,
-    getReadSlugs,
+    getReadRecords,
     exportJson,
     importJson,
   } from '../lib/reading-tracker';
-  import { getGitHubToken, pushToGist, pullFromGist, mergeSync } from '../lib/gist-sync';
+  import {
+    getGitHubToken,
+    getGuLogSessionToken,
+    pushToGist,
+    pushToReaderSyncApi,
+    pullFromGist,
+    pullFromReaderSyncApi,
+    mergeSync,
+    ReaderSyncApiError,
+  } from '../lib/gist-sync';
 
   // ── Sync constants ─────────────────────────────────────────────────────────
   const LAST_SYNC_KEY = 'gu-log-last-sync';
@@ -230,52 +245,92 @@ const totalArticles = allPosts.length;
 
   const totalArticles = document.querySelectorAll<HTMLElement>('.article-row').length;
 
+  function currentRevisionMap(): Record<string, string | null> {
+    const revisions: Record<string, string | null> = {};
+    document.querySelectorAll<HTMLElement>('.article-row').forEach((row) => {
+      revisions[row.dataset.slug!] = row.dataset.currentRevision || null;
+    });
+    return revisions;
+  }
+
+  function readRecordMap() {
+    return getReadRecords(currentRevisionMap()).reduce<
+      Record<string, ReturnType<typeof getReadRecords>[number]>
+    >((acc, record) => {
+      acc[record.slug] = record;
+      return acc;
+    }, {});
+  }
+
   function updateStats() {
-    const readSlugs = new Set(getReadSlugs());
-    const totalRead = readSlugs.size;
+    const readRecords = readRecordMap();
+    const totalCurrentRead = Object.values(readRecords).filter(
+      (record) => record.revisionState === 'current'
+    ).length;
+    const totalStaleRead = Object.values(readRecords).filter(
+      (record) => record.revisionState === 'stale'
+    ).length;
+    const totalUnknownRead = Object.values(readRecords).filter(
+      (record) => record.revisionState === 'unknown'
+    ).length;
+    const totalKnownRead = totalCurrentRead + totalStaleRead + totalUnknownRead;
 
     // Overall stats
-    document.getElementById('total-count')!.textContent = `${totalRead} / ${totalArticles}`;
-    const pct = totalArticles > 0 ? Math.round((totalRead / totalArticles) * 100) : 0;
+    document.getElementById('total-count')!.textContent = `${totalCurrentRead} / ${totalArticles}`;
+    const pct = totalArticles > 0 ? Math.round((totalCurrentRead / totalArticles) * 100) : 0;
     (document.getElementById('total-bar') as HTMLElement).style.width = `${pct}%`;
     document.getElementById('total-pct')!.textContent = `${pct}%`;
 
     // Subtitle
     document.getElementById('tracker-subtitle')!.textContent =
-      `已讀 ${totalRead} 篇，還有 ${totalArticles - totalRead} 篇等著你 (▿ω▿)`;
+      `最新已讀 ${totalCurrentRead} 篇，${totalStaleRead} 篇有新版，${totalUnknownRead} 篇版本未知，還有 ${totalArticles - totalKnownRead} 篇未讀 (▿ω▿)`;
 
     // Per-group stats
     document.querySelectorAll<HTMLElement>('[data-group-progress]').forEach((el) => {
       const prefix = el.dataset.groupProgress!;
       const rows = document.querySelectorAll<HTMLElement>(`.article-row[data-group="${prefix}"]`);
       const groupTotal = rows.length;
-      let groupRead = 0;
+      let groupCurrent = 0;
+      let groupStale = 0;
+      let groupUnknown = 0;
       rows.forEach((row) => {
-        if (readSlugs.has(row.dataset.slug!)) groupRead++;
+        const record = readRecords[row.dataset.slug!];
+        if (record?.revisionState === 'current') groupCurrent++;
+        if (record?.revisionState === 'stale') groupStale++;
+        if (record?.revisionState === 'unknown') groupUnknown++;
       });
-      const groupPct = groupTotal > 0 ? Math.round((groupRead / groupTotal) * 100) : 0;
+      const groupPct = groupTotal > 0 ? Math.round((groupCurrent / groupTotal) * 100) : 0;
       const countEl = document.querySelector<HTMLElement>(`[data-group-count="${prefix}"]`);
-      if (countEl) countEl.textContent = `${groupRead} / ${groupTotal}`;
+      if (countEl)
+        countEl.textContent = `${groupCurrent} / ${groupTotal}（新版 ${groupStale}、未知 ${groupUnknown}）`;
       const barEl = document.querySelector<HTMLElement>(`[data-group-bar="${prefix}"]`);
       if (barEl) barEl.style.width = `${groupPct}%`;
     });
   }
 
   function updateAllRows() {
-    const readSlugs = new Set(getReadSlugs());
+    const records = readRecordMap();
     document.querySelectorAll<HTMLElement>('.article-row').forEach((row) => {
       const slug = row.dataset.slug!;
-      const read = readSlugs.has(slug);
+      const record = records[slug];
+      const read = Boolean(record);
+      const state = record?.revisionState ?? 'unread';
       row.dataset.read = read ? 'true' : 'false';
+      row.dataset.readState = state;
       const toggleUnread = row.querySelector<HTMLElement>('.toggle-unread')!;
       const toggleRead = row.querySelector<HTMLElement>('.toggle-read')!;
       toggleUnread.style.display = read ? 'none' : '';
       toggleRead.style.display = read ? '' : 'none';
-      if (read) {
-        row.classList.add('is-read');
-      } else {
-        row.classList.remove('is-read');
-      }
+      row.classList.toggle('is-read', read);
+      row.classList.toggle('is-current-read', state === 'current');
+      row.classList.toggle('is-stale-read', state === 'stale');
+      row.classList.toggle('is-unknown-read', state === 'unknown');
+      row.title =
+        state === 'stale'
+          ? '以前讀過，但這篇現在有新版'
+          : state === 'unknown'
+            ? '已讀，但舊紀錄沒有版本資訊'
+            : '';
     });
     updateStats();
     applyFilter();
@@ -315,7 +370,7 @@ const totalArticles = allPosts.length;
       if (isRead(slug)) {
         markAsUnread(slug);
       } else {
-        markAsRead(slug);
+        markAsRead(slug, 'manual_mark_read', row.dataset.currentRevision || null);
       }
       updateAllRows();
     });
@@ -344,7 +399,7 @@ const totalArticles = allPosts.length;
         .forEach((row) => {
           const slug = row.dataset.slug!;
           if (action === 'read') {
-            markAsRead(slug);
+            markAsRead(slug, 'manual_mark_read', row.dataset.currentRevision || null);
           } else {
             markAsUnread(slug);
           }
@@ -390,21 +445,31 @@ const totalArticles = allPosts.length;
 
   // ── GitHub Gist Sync ───────────────────────────────────────────────────────
 
+  function syncApiUrl(): string {
+    return document.getElementById('sync-card')?.dataset.apiUrl || 'https://api.shroomdog.dev';
+  }
+
+  function setReauthUrl(url?: string) {
+    const link = document.getElementById('sync-reauth-link') as HTMLAnchorElement | null;
+    if (link && url) link.href = url;
+  }
+
   function updateSyncUI() {
     const syncCard = document.getElementById('sync-card')!;
-    const patSetup = document.getElementById('sync-pat-setup')!;
+    const oauthSetup = document.getElementById('sync-oauth-setup')!;
     const syncControls = document.getElementById('sync-controls')!;
 
-    const token = getGitHubToken();
+    const jwt = getGuLogSessionToken();
+    const legacyToken = getGitHubToken();
     syncCard.style.display = '';
 
-    if (!token) {
-      patSetup.style.display = '';
+    if (!jwt && !legacyToken) {
+      oauthSetup.style.display = '';
       syncControls.style.display = 'none';
       return;
     }
 
-    patSetup.style.display = 'none';
+    oauthSetup.style.display = 'none';
     syncControls.style.display = '';
 
     const lastSync = localStorage.getItem(LAST_SYNC_KEY);
@@ -430,7 +495,7 @@ const totalArticles = allPosts.length;
     }
   }
 
-  async function doSync(token: string, mode: 'merge' | 'push' | 'pull') {
+  async function doSync(mode: 'merge' | 'push' | 'pull') {
     const btns = ['sync-btn', 'push-btn', 'pull-btn'].map(
       (id) => document.getElementById(id) as HTMLButtonElement | null
     );
@@ -441,22 +506,32 @@ const totalArticles = allPosts.length;
     badge.className = 'sync-status-badge sync-status-syncing';
 
     try {
-      const localSlugs = getReadSlugs();
+      const localStore = JSON.parse(exportJson());
+      const legacyToken = getGitHubToken();
+      const useLegacy = !getGuLogSessionToken() && Boolean(legacyToken);
 
       if (mode === 'merge') {
-        const remote = await pullFromGist(token);
-        const merged = mergeSync(localSlugs, remote?.slugs ?? []);
-        if (merged.length !== localSlugs.length || merged.some((s) => !localSlugs.includes(s))) {
-          importJson(
-            JSON.stringify({ version: 1, slugs: merged, lastUpdated: new Date().toISOString() })
-          );
-          updateAllRows();
+        const remote = useLegacy
+          ? await pullFromGist(legacyToken!)
+          : await pullFromReaderSyncApi(syncApiUrl());
+        const merged = mergeSync(localStore, remote ?? []);
+        importJson(JSON.stringify(merged));
+        updateAllRows();
+        if (useLegacy) {
+          await pushToGist(legacyToken!, merged);
+        } else {
+          await pushToReaderSyncApi(syncApiUrl(), merged);
         }
-        await pushToGist(token, merged);
       } else if (mode === 'push') {
-        await pushToGist(token, localSlugs);
+        if (useLegacy) {
+          await pushToGist(legacyToken!, localStore);
+        } else {
+          await pushToReaderSyncApi(syncApiUrl(), localStore);
+        }
       } else if (mode === 'pull') {
-        const remote = await pullFromGist(token);
+        const remote = useLegacy
+          ? await pullFromGist(legacyToken!)
+          : await pullFromReaderSyncApi(syncApiUrl());
         if (remote) {
           importJson(JSON.stringify(remote));
           updateAllRows();
@@ -468,6 +543,10 @@ const totalArticles = allPosts.length;
       updateSyncUI();
     } catch (err) {
       const msg = err instanceof Error ? err.message : '同步失敗';
+      if (err instanceof ReaderSyncApiError && err.code === 'GITHUB_SCOPE_MISSING') {
+        setReauthUrl(err.reauthorizeUrl);
+        document.getElementById('sync-oauth-setup')!.style.display = '';
+      }
       badge.textContent = `❌ ${msg}`;
       badge.className = 'sync-status-badge sync-status-error';
     } finally {
@@ -484,8 +563,7 @@ const totalArticles = allPosts.length;
     localStorage.setItem('gu-log-github-pat', pat);
     input.value = '';
     updateSyncUI();
-    const tok = getGitHubToken();
-    if (tok) doSync(tok, 'merge').catch(() => {});
+    doSync('merge').catch(() => {});
   });
 
   document.getElementById('sync-pat-input')?.addEventListener('keydown', (e) => {
@@ -495,18 +573,15 @@ const totalArticles = allPosts.length;
   });
 
   document.getElementById('sync-btn')?.addEventListener('click', () => {
-    const tok = getGitHubToken();
-    if (tok) doSync(tok, 'merge');
+    doSync('merge');
   });
 
   document.getElementById('push-btn')?.addEventListener('click', () => {
-    const tok = getGitHubToken();
-    if (tok) doSync(tok, 'push');
+    doSync('push');
   });
 
   document.getElementById('pull-btn')?.addEventListener('click', () => {
-    const tok = getGitHubToken();
-    if (tok) doSync(tok, 'pull');
+    doSync('pull');
   });
 
   document.getElementById('sync-disconnect-btn')?.addEventListener('click', () => {
@@ -518,9 +593,8 @@ const totalArticles = allPosts.length;
   });
 
   // Auto-sync on page load (non-blocking)
-  {
-    const autoTok = getGitHubToken();
-    if (autoTok) doSync(autoTok, 'merge').catch(() => {});
+  if (getGuLogSessionToken() || getGitHubToken()) {
+    doSync('merge').catch(() => {});
   }
 
   // ── Listen for changes from article pages ──────────────────────────────────
@@ -811,6 +885,25 @@ const totalArticles = allPosts.length;
 
   .article-row.is-read .article-title {
     color: var(--color-text-muted);
+  }
+
+  .article-row.is-stale-read {
+    opacity: 0.58;
+    background: color-mix(in srgb, var(--color-border) 12%, transparent);
+  }
+
+  .article-row.is-stale-read .article-title::after {
+    content: ' 有新版';
+    margin-left: 0.4rem;
+    color: var(--color-text-muted);
+    font-size: 0.72rem;
+  }
+
+  .article-row.is-unknown-read .article-title::after {
+    content: ' 版本未知';
+    margin-left: 0.4rem;
+    color: var(--color-text-muted);
+    font-size: 0.72rem;
   }
 
   .article-date {

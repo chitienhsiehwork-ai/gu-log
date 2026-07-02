@@ -19,6 +19,15 @@
  *       score: 8
  *       date: "2026-04-07"
  *       model: "claude-sonnet-4-6"
+ *     factCheck:
+ *       accuracy: 8
+ *       fidelity: 9
+ *       consistency: 8
+ *       sourceBoundary: 8
+ *       commentarySeparation: 9
+ *       score: 8
+ *       date: "2026-05-17"
+ *       model: "gpt-5.5"
  *
  * write input: uniform agent JSON { judge, dimensions, score, verdict, reasons, model? }
  * get output: { dimensions, score, date, model? }
@@ -27,8 +36,11 @@
 import fs from 'fs';
 import process from 'node:process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { resolveRecordedModelId } from './detect-model.mjs';
 
 const VALID_JUDGES = ['librarian', 'factCheck', 'freshEyes', 'vibe'];
+// v9 (move-clarity-vibe-to-fresheyes): clarity moved from vibe → freshEyes.
+const CURRENT_TRIBUNAL_VERSION = 9;
 
 const __isCli =
   import.meta.url === pathToFileURL(process.argv[1] ?? '').href ||
@@ -187,12 +199,30 @@ function writeFrontmatter(filePath, fmText, body) {
 
 // ─── Dimension definitions per judge ──────────────────────────────────────
 
+// Legacy (tribunalVersion <= 8) dimension map. Kept as the default export shape
+// for backward-compat; version-aware resolution goes through judgeDims().
 const JUDGE_DIMS = {
   librarian: ['glossary', 'crossRef', 'sourceAlign', 'attribution'],
-  factCheck: ['accuracy', 'fidelity', 'consistency'],
-  freshEyes: ['readability', 'firstImpression'],
+  factCheck: ['accuracy', 'fidelity', 'consistency', 'sourceBoundary', 'commentarySeparation'],
+  freshEyes: ['readability', 'firstImpression', 'payoffDensity', 'lengthFit'],
   vibe: ['persona', 'clawdNote', 'vibe', 'clarity', 'narrative'],
 };
+
+// v9 (move-clarity-vibe-to-fresheyes): clarity moves vibe → freshEyes.
+const JUDGE_DIMS_V9 = {
+  librarian: ['glossary', 'crossRef', 'sourceAlign', 'attribution'],
+  factCheck: ['accuracy', 'fidelity', 'consistency', 'sourceBoundary', 'commentarySeparation'],
+  freshEyes: ['readability', 'firstImpression', 'payoffDensity', 'lengthFit', 'clarity'],
+  vibe: ['persona', 'clawdNote', 'vibe', 'narrative'],
+};
+
+/**
+ * Resolve a judge's owned dimensions for a given tribunalVersion.
+ * v >= 9 → new ownership (clarity under freshEyes); else legacy.
+ */
+function judgeDims(judge, version = CURRENT_TRIBUNAL_VERSION) {
+  return (version >= 9 ? JUDGE_DIMS_V9 : JUDGE_DIMS)[judge];
+}
 
 // ─── Operations ───────────────────────────────────────────────────────────
 
@@ -213,7 +243,9 @@ function opGet() {
 
   if (entry.score == null) process.exit(0);
 
-  const dims = JUDGE_DIMS[judge];
+  // Read with the post's own stamped version so v8 posts still surface
+  // clarity under vibe and v9 posts surface it under freshEyes.
+  const dims = judgeDims(judge, Number(scores.tribunalVersion ?? CURRENT_TRIBUNAL_VERSION));
   const dimensions = {};
   for (const dim of dims) {
     if (entry[dim] != null) dimensions[dim] = entry[dim];
@@ -258,8 +290,9 @@ function opWrite() {
   const today = new Date().toISOString().slice(0, 10);
   const scores = parseScores(parts.fmText);
 
-  // Build the new entry from uniform agent JSON
-  const dims = JUDGE_DIMS[judge];
+  // New tribunal writes are at CURRENT_TRIBUNAL_VERSION → use that ownership
+  // (v9: clarity belongs to freshEyes, not vibe).
+  const dims = judgeDims(judge, CURRENT_TRIBUNAL_VERSION);
   const entry = {};
 
   // Extract dimensions from agent JSON (supports both { dimensions: {...} } and flat { dim: score } formats)
@@ -277,14 +310,16 @@ function opWrite() {
       : Number(scoreData.score) || 0;
 
   entry.date = today;
-  if (scoreData.model) entry.model = scoreData.model;
+  // Never record the floating `opus` alias verbatim — resolve it to the
+  // concrete build (claude-opus-4-8) so scores.*.model is a real version. A
+  // direct CCC subagent write could otherwise stamp the literal "opus".
+  if (scoreData.model) entry.model = resolveRecordedModelId(scoreData.model);
 
   scores[judge] = entry;
 
-  // Ensure tribunalVersion is set (v3: all judges opus-4.7, vibe/writer opus-4.6[1m])
-  if (scores.tribunalVersion == null) {
-    scores.tribunalVersion = 3;
-  }
+  // New tribunal writes stamp the current version (v9): factCheck includes
+  // Source Boundary / Commentary Separation; clarity lives under freshEyes.
+  scores.tribunalVersion = CURRENT_TRIBUNAL_VERSION;
 
   let newFm = removeScoresBlock(parts.fmText);
   const scoresYaml = serializeScores(scores);
@@ -326,7 +361,10 @@ export {
   serializeScores,
   removeScoresBlock,
   JUDGE_DIMS,
+  JUDGE_DIMS_V9,
+  judgeDims,
   VALID_JUDGES,
+  CURRENT_TRIBUNAL_VERSION,
 };
 
 // ─── Dispatch ─────────────────────────────────────────────────────────────

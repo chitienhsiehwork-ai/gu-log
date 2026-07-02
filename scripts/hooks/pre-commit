@@ -70,20 +70,25 @@ fi
 echo "✓ No duplicate ticketIds"
 echo ""
 
-# ─── Step 0.1: Score gate — staged posts must have vibe scores ────
+# ─── Step 0.1: Score gate — staged posts must clear the score FLOOR ────
 # Only checks zh-tw primary posts (not en- translations).
 # Minimum: scores.vibe block with persona, clawdNote, vibe, clarity,
-# narrative (tribunal v2 format — scores.ralph was the v1 shape and
-# has been superseded; src/content/config.ts schema only declares
-# scores.vibe / librarian / factCheck / freshEyes).
+# narrative AND composite >= 3 (the FLOOR, not the editorial PASS bar).
 #
-# Scope: only enforced on newly ADDED posts (git diff-filter=A). Edits to
-# existing posts are trusted — typo fixes from humans, small rewordings,
-# and Edit with AI flows (`ai: edit <file>` commits produced by the
-# /ai/edit/confirm endpoint on gu-log-api) must not be blocked just
-# because some older post was committed without a score. Full rewrites
-# still get rescored because the tribunal v2 writer agent lands a fresh
-# scores.vibe block before it commits.
+# Philosophy (2026-06-10): the automated gate is a floor, not the ≥8 PASS
+# bar. A post may ship with a sub-8 score — it gets a visible "refining"
+# badge and is held out of the homepage until a background tribunal lifts
+# it to ≥8 (see CLAUDE.md §自動 gate 是 floor). But nothing garbage
+# (composite < 3) or score-less reaches main. The floor check is
+# scripts/score-floor-check.mjs.
+#
+# Scope: enforced on (a) newly ADDED zh-tw posts, and (b) MODIFIED zh-tw
+# posts whose READER-VISIBLE content changed (full rewrites). A rewrite is
+# a "modification" in git's eyes, so the old added-only gate let rewrites
+# slip through unscored (this is how #388 shipped with only 1 of 4 judges).
+# reader_visible_changed() compares the staged vs HEAD reader revision so a
+# backend-only edit (adding a scores block, fixing source/translatedBy)
+# does NOT trigger a rescore — only changes a reader would actually see.
 #
 # Exemption: posts whose ONLY diff vs HEAD is dedup/series housekeeping
 # (status: deprecated, deprecatedReason, deprecatedBy, series.*) skip the
@@ -106,13 +111,34 @@ fi
 if [ "$IS_MERGE_COMMIT" = "1" ]; then
     echo "📊 Score gate: merge commit detected — skipping (content was gated on source branches)"
 else
-    echo "📊 Score gate: checking staged posts for scores.vibe..."
+    echo "📊 Score gate: checking staged posts against score floor (composite >= 3)..."
 fi
 SCORE_MISSING=""
-# Only newly added zh-tw posts are subject to the score gate. Modifications
-# (Edit with AI, typo fixes, housekeeping) flow through is_metadata_only_diff
-# and the rewriter agent's own scoring, so we don't re-gate them here.
+# Newly ADDED zh-tw posts always go through the gate.
 STAGED_ZH_POSTS=$(git diff --cached -M --name-only --diff-filter=A -- "$POSTS_DIR"/*.mdx 2>/dev/null | grep -v '/en-' | sed '/^$/d' || true)
+# MODIFIED zh-tw posts go through the gate too, but only when their
+# reader-visible content changed (full rewrites) — see reader_visible_changed.
+STAGED_ZH_MODIFIED=$(git diff --cached -M --name-only --diff-filter=M -- "$POSTS_DIR"/*.mdx 2>/dev/null | grep -v '/en-' | sed '/^$/d' || true)
+
+# reader_visible_changed FILE → 0 (true) when the staged version's reader-facing
+# content (reader-visible frontmatter + body) differs from HEAD's. Backend-only
+# frontmatter (scores, translatedBy, pipeline, …) is excluded by the shared
+# hash, so adding a scores block alone is NOT a reader-visible change.
+reader_visible_changed() {
+    local file="$1"
+    # No HEAD version → brand-new content → treat as changed.
+    if ! git cat-file -e "HEAD:$file" 2>/dev/null; then
+        return 0
+    fi
+    local head_rev staged_rev
+    head_rev=$(git show "HEAD:$file" 2>/dev/null | node "$REPO_ROOT/scripts/reader-revision-of-stdin.mjs" 2>/dev/null || echo "ERR")
+    staged_rev=$(git show ":$file" 2>/dev/null | node "$REPO_ROOT/scripts/reader-revision-of-stdin.mjs" 2>/dev/null || echo "ERR")
+    # On any compute error, fail safe → gate it.
+    if [ "$head_rev" = "ERR" ] || [ "$staged_rev" = "ERR" ]; then
+        return 0
+    fi
+    [ "$head_rev" != "$staged_rev" ]
+}
 
 is_metadata_only_diff() {
     local file="$1"
@@ -141,22 +167,33 @@ is_metadata_only_diff() {
 is_internal_post_link_only_diff() {
     local file="$1"
     # Link maintenance should not re-lint grandfathered article prose.
+    # Normalize added/removed lines by stripping internal Markdown links; if the
+    # underlying text is identical, this is maintenance-only.
     if ! git cat-file -e "HEAD:$file" 2>/dev/null; then
         return 1
     fi
 
-    local diff_body
-    diff_body=$(git diff --cached --no-color -U0 -- "$file" \
-        | grep -E '^[+-]' \
-        | grep -vE '^(\+\+\+|---) ' \
-        || true)
-    if [ -z "$diff_body" ]; then
-        return 0
-    fi
-    if printf '%s\n' "$diff_body" | grep -vqE '^[+-].*/posts/'; then
-        return 1
-    fi
-    return 0
+    git diff --cached --no-color -U0 -- "$file" | python3 -c '
+import re, sys
+lines = []
+for line in sys.stdin:
+    if not (line.startswith("+") or line.startswith("-")):
+        continue
+    if line.startswith("+++ ") or line.startswith("--- "):
+        continue
+    lines.append(line.rstrip("\n"))
+if not lines:
+    sys.exit(0)
+def norm(line):
+    text = line[1:]
+    text = re.sub(r"\[([^\]\n]+)\]\(/(?:en/)?glossary#[^)\n]+\)", r"\1", text)
+    text = re.sub(r"\[([^\]\n]+)\]\(/posts/[^)\n]+\)", r"\1", text)
+    text = re.sub(r"\[([^\]\n]+)\]\(/en/posts/[^)\n]+\)", r"\1", text)
+    return text.strip()
+removed = sorted(norm(line) for line in lines if line.startswith("-"))
+added = sorted(norm(line) for line in lines if line.startswith("+"))
+sys.exit(0 if removed == added else 1)
+'
 }
 
 is_existing_ticket_post_addition() {
@@ -190,17 +227,34 @@ is_existing_ticket_post_addition() {
     printf '%s\n' "$existing_paths" | grep -vx "$file" >/dev/null 2>&1
 }
 
-if [ -z "$STAGED_ZH_POSTS" ]; then
+GATE_CANDIDATES=$(printf '%s\n%s\n' "$STAGED_ZH_POSTS" "$STAGED_ZH_MODIFIED" | sed '/^$/d' | sort -u)
+
+if [ -z "$GATE_CANDIDATES" ]; then
     echo "✓ No zh-tw posts staged"
 elif [ "$IS_MERGE_COMMIT" = "1" ]; then
     : # already printed the skip message above
 else
-    for file in $STAGED_ZH_POSTS; do
+    for file in $GATE_CANDIDATES; do
         FULL_PATH="$REPO_ROOT/$file"
         if [ ! -f "$FULL_PATH" ]; then continue; fi
 
+        # Modifications: only gate when reader-visible content changed (full
+        # rewrites). Added files have no HEAD version and always gate.
+        if git cat-file -e "HEAD:$file" 2>/dev/null; then
+            if ! reader_visible_changed "$file"; then
+                continue
+            fi
+        fi
+
         # Skip the gate if this is a metadata-only housekeeping edit.
         if is_metadata_only_diff "$file"; then
+            continue
+        fi
+
+        # Skip internal-link maintenance (glossary / cross-ref links) — same
+        # exemption the pronoun check uses, so adding /glossary# links to a
+        # grandfathered post doesn't force a rescore.
+        if is_internal_post_link_only_diff "$file"; then
             continue
         fi
 
@@ -215,44 +269,31 @@ else
             continue
         fi
 
-        # Check scores.vibe block with the 5 tribunal v2 dimensions.
-        # Matches both "^  vibe:" (nested under scores) and inline value
-        # styles; requires persona/clawdNote/vibe/clarity/narrative to
-        # appear within the block's first ~8 lines.
-        if ! grep -q "^  vibe:" "$FULL_PATH" 2>/dev/null; then
+        # Floor gate: scores.vibe present + complete (5 dims) + composite >= 3.
+        # Sub-8 is allowed (badged + held off the homepage); garbage (<3) and
+        # score-less posts are blocked. See scripts/score-floor-check.mjs.
+        if ! FLOOR_MSG=$(node "$REPO_ROOT/scripts/score-floor-check.mjs" "$FULL_PATH" 3 2>&1); then
             BASENAME=$(basename "$file")
-            SCORE_MISSING="$SCORE_MISSING  ⚠️  $BASENAME — missing scores.vibe\n"
-        else
-            # The "vibe:" key appears twice in a complete block (once as
-            # the block header, once as the internal "vibe" dimension),
-            # so HAS_VIBE must be ≥ 2.
-            BLOCK=$(grep -A8 "^  vibe:" "$FULL_PATH")
-            HAS_PERSONA=$(printf '%s\n' "$BLOCK" | grep -c "persona:" 2>/dev/null || echo 0)
-            HAS_CLAWD=$(printf '%s\n' "$BLOCK" | grep -c "clawdNote:" 2>/dev/null || echo 0)
-            HAS_VIBE=$(printf '%s\n' "$BLOCK" | grep -c "vibe:" 2>/dev/null || echo 0)
-            HAS_CLARITY=$(printf '%s\n' "$BLOCK" | grep -c "clarity:" 2>/dev/null || echo 0)
-            HAS_NARRATIVE=$(printf '%s\n' "$BLOCK" | grep -c "narrative:" 2>/dev/null || echo 0)
-            if [ "$HAS_PERSONA" -eq 0 ] || [ "$HAS_CLAWD" -eq 0 ] || [ "$HAS_VIBE" -lt 2 ] || [ "$HAS_CLARITY" -eq 0 ] || [ "$HAS_NARRATIVE" -eq 0 ]; then
-                BASENAME=$(basename "$file")
-                SCORE_MISSING="$SCORE_MISSING  ⚠️  $BASENAME — scores.vibe incomplete (need persona, clawdNote, vibe, clarity, narrative)\n"
-            fi
+            SCORE_MISSING="$SCORE_MISSING  ⚠️  $BASENAME — ${FLOOR_MSG}\n"
         fi
     done
 fi
 
 if [ -n "$SCORE_MISSING" ]; then
     echo ""
-    echo "❌ SCORE GATE FAILED — posts missing tribunal v2 scores.vibe:"
+    echo "❌ SCORE GATE FAILED — staged zh-tw posts below the score floor:"
     printf "$SCORE_MISSING"
     echo ""
-    echo "Every new zh-tw post must have a scores.vibe block before committing."
-    echo "Run tribunal v2, or manually score with:"
+    echo "Every new or rewritten zh-tw post needs a scores.vibe block with"
+    echo "composite >= 3 (the floor — NOT the ≥8 PASS bar; sub-8 may ship but"
+    echo "gets a 'refining' badge and is held off the homepage). Run the"
+    echo "tribunal, or score manually with:"
     echo "  node scripts/frontmatter-scores.mjs write <file> vibe '<json>'"
     echo ""
     echo "To bypass in emergency: git commit --no-verify"
     exit 1
 fi
-echo "✓ All staged posts have scores.vibe"
+echo "✓ All staged zh-tw posts clear the score floor (composite >= 3)"
 echo ""
 
 # ─── Step 0.15: Pronoun clarity check (你/我 ban in zh-tw body) ───
@@ -266,6 +307,14 @@ if [ -n "$STAGED_MDX" ] && [ "$IS_MERGE_COMMIT" != "1" ]; then
         case "$file" in
             */en-*) ;; # skip English
             *)
+                # Backend-only frontmatter edits (translatedBy/model/harness,
+                # scores, …) don't touch reader prose — don't re-lint a
+                # grandfathered tutorial's 你/我 just because we added a model
+                # signature. Mirrors the score gate's reader_visible_changed
+                # exemption above; new posts (no HEAD) still get linted.
+                if git cat-file -e "HEAD:$file" 2>/dev/null && ! reader_visible_changed "$file"; then
+                    continue
+                fi
                 if is_metadata_only_diff "$file"; then
                     continue
                 fi
@@ -307,10 +356,57 @@ if [ -n "$STAGED_MDX" ] && [ "$IS_MERGE_COMMIT" != "1" ]; then
             exit 1
         fi
         echo "✓ 晶晶體 check passed"
+
+        # ─── Step 0.165: AI-tells check (zh-tw translationese banlist) ───
+        # Deterministic gate for discrete, explicit-wordlist AI tells per the
+        # SP-232 decision (docs/shroomdog-editorial-feedback.md 2026-06-17,
+        # 「硬 lint 只留給有明確字表的 T3」). Density tells (T1/T2/T4) stay in the
+        # tribunal AI-Tell Trap rubric — only low-collision discrete phrases are
+        # hard-linted here. Banlist SSOT = BLOCKLIST in scripts/check-ai-tells.mjs;
+        # the failure message carries the natural替代. Same staged-only +
+        # merge-skip pattern as the two above.
+        echo "🤖 AI-tells check: scanning staged zh-tw posts for translationese..."
+        if ! node "$REPO_ROOT/scripts/check-ai-tells.mjs" $ZH_FILES; then
+            echo ""
+            echo "❌ AI-tells check FAILED."
+            echo "   Rewrite to natural zh-tw (see suggestions above),"
+            echo "   OR mark a genuine literal use with {/* ai-ok */} on that line."
+            exit 1
+        fi
+        echo "✓ AI-tells check passed"
     fi
 elif [ "$IS_MERGE_COMMIT" = "1" ]; then
     echo "🔍 Pronoun clarity: merge commit detected — skipping"
     echo "🈳 晶晶體 check: merge commit detected — skipping"
+    echo "🤖 AI-tells check: merge commit detected — skipping"
+fi
+
+# ─── Step 0.17: Glossary link coverage ratchet ─────────────────────
+# Phase 1 pre-commit gate: changed posts must link enabled glossary terms,
+# and changed glossary entries must be backfilled across existing posts.
+STAGED_GLOSSARY=$(git diff --cached --name-only --diff-filter=ACM -- src/data/glossary.json 2>/dev/null || true)
+if [ "$IS_MERGE_COMMIT" != "1" ]; then
+    if [ -n "$STAGED_MDX" ] || [ -n "$STAGED_GLOSSARY" ]; then
+        echo "🔗 Glossary links: checking staged post/glossary coverage..."
+        GLOSSARY_ARGS=""
+        if [ -n "$STAGED_MDX" ]; then
+            GLOSSARY_ARGS="$GLOSSARY_ARGS --files \"$STAGED_MDX\""
+        fi
+        if [ -n "$STAGED_GLOSSARY" ]; then
+            GLOSSARY_ARGS="$GLOSSARY_ARGS --changed-terms=HEAD"
+        fi
+        # shellcheck disable=SC2086
+        if ! eval node "$REPO_ROOT/scripts/check-glossary-links.mjs" $GLOSSARY_ARGS; then
+            echo ""
+            echo "❌ Glossary link coverage FAILED."
+            echo "   Run: node scripts/apply-glossary-links.mjs --all"
+            echo "   Or:  node scripts/apply-glossary-links.mjs --term <Term> <post.mdx>"
+            exit 1
+        fi
+        echo "✓ Glossary link coverage passed"
+    fi
+else
+    echo "🔗 Glossary links: merge commit detected — skipping"
 fi
 echo ""
 
@@ -373,6 +469,13 @@ content_gate_mdx_files() {
     local files=""
     local file
     for file in $STAGED_MDX; do
+        # Backend-only frontmatter edits (model signature, scores) don't change
+        # reader prose — skip the grandfathered-content enforcement (long
+        # ClawdNote summary etc.), same exemption the score/pronoun gates use.
+        # New posts (no HEAD) and reader-visible rewrites still validate.
+        if git cat-file -e "HEAD:$file" 2>/dev/null && ! reader_visible_changed "$file"; then
+            continue
+        fi
         if is_internal_post_link_only_diff "$file"; then
             continue
         fi
@@ -503,6 +606,22 @@ if [ -n "$CONTENT_GATE_MDX" ]; then
         echo "   Fix frontmatter model names or ensure OPENCLAW_MODEL mapping is correct."
         exit 1
     fi
+fi
+echo ""
+
+# ─── Step 1.9: Kaomoji unbreakable gate ─────────────────────────
+# Kaomoji must never split across a line (prod bug: w(ﾟДﾟ)w wrapped mid-face).
+# Locks remark-kaomoji-nowrap's coverage of the known kaomoji set and flags any
+# halfwidth-katakana bracket group it doesn't protect. Cheap pure-node — runs
+# unconditionally so a plugin regression is caught even without a post staged.
+echo "🙂 Kaomoji unbreakable check..."
+if ! node "$REPO_ROOT/scripts/check-kaomoji-unbreakable.mjs"; then
+    echo ""
+    echo "❌ Kaomoji unbreakable check FAILED."
+    echo "   A kaomoji can split across lines. Add its signal glyph to KAOMOJI_CHARS"
+    echo "   in src/plugins/remark-kaomoji-nowrap.mjs and its face to CORPUS in"
+    echo "   scripts/check-kaomoji-unbreakable.mjs."
+    exit 1
 fi
 echo ""
 

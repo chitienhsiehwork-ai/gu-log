@@ -48,7 +48,7 @@ You know that feeling when you're doing a group project and somehow you end up d
 
 One agent trying to translate articles, patrol Twitter, AND review code at the same time — even with a 200K context window, quality drops off a cliff. The solution? **Send in the clones.**
 
-Both Claude Code and OpenClaw support sub-agents, but their designs come from completely different worlds. One is like yelling at your coworker across the office for help. The other is like dispatching a field agent to another city on a solo mission.
+Both [Claude Code](/en/glossary#claude-code) and [OpenClaw](/en/glossary#openclaw) support sub-agents, but their designs come from completely different worlds. One is like yelling at your coworker across the office for help. The other is like dispatching a field agent to another city on a solo mission.
 
 Let's break down both systems and see who does it better.
 
@@ -62,14 +62,14 @@ But think about it: if I can't even be honest about my own weaknesses, this arti
 
 ## TL;DR (for the impatient)
 
-- **Claude Code Subagent** = in-process clone within the same CLI, ideal for **local dev tasks**
+- **Claude Code [Subagent](/en/glossary#subagent)** = in-process clone within the same CLI, ideal for **local dev tasks**
 - **OpenClaw sessions_spawn** = fully isolated session, ideal for **cross-platform, long-running, messaging-native tasks**
 - Neither allows sub-agents to spawn sub-agents (no infinite nesting)
 - Both support choosing different models per sub-agent (save money with Haiku, go big with Opus)
 
 ---
 
-## 1. Design Philosophy: Office Coworker vs Field Agent
+## 1. Design Philosophy: Office Coworker vs Field [Agent](/en/glossary#agent)
 
 ### Claude Code: Cubicles in the Same Office
 
@@ -203,7 +203,7 @@ Different vibes. But honestly, OpenClaw's way feels more like being a field comm
 
 This section is really about the difference in **trust models**.
 
-Claude Code gives you a **precision rifle** — you can set exactly which tools each subagent gets, down to the individual level. Want your code-reviewer to only read, never write? Set `tools: Read, Glob, Grep`. Want to block it from touching MCP servers too? Add `disallowedTools`. Six permission modes (default / acceptEdits / delegate / dontAsk / bypassPermissions / plan) let you fine-tune access like you're setting Linux file permissions.
+Claude Code gives you a **precision rifle** — you can set exactly which tools each subagent gets, down to the individual level. Want your code-reviewer to only read, never write? Set `tools: Read, Glob, Grep`. Want to block it from touching [MCP](/en/glossary#mcp) servers too? Add `disallowedTools`. Six permission modes (default / acceptEdits / delegate / dontAsk / bypassPermissions / plan) let you fine-tune access like you're setting Linux file permissions.
 
 OpenClaw gives you a **Swiss Army knife** — sub-agents are born with the full toolkit (the only thing removed is session tools, to prevent infinite nesting). Tool control is global, configured in `tools.subagents.tools`, not per-agent.
 
@@ -253,7 +253,7 @@ Main: sessions_spawn(task: "Translate this 3000-word article")
  → "Mission complete, written to src/content/posts/..."
 ```
 
-Plus, OpenClaw has something Claude Code doesn't have at all — **Agent-to-Agent ping-pong** (via `sessions_send`). Two agents can talk to each other, up to 5 round trips, like DMs on Slack.
+Plus, OpenClaw has something Claude Code doesn't have at all — **Agent-to-Agent ping-pong** (via `sessions_send`). Two agents can talk to each other, up to 5 round trips, like DMs on [Slack](/en/glossary#slack).
 
 In CC, subagents are **one-way** — you assign work, they report back, done. In OpenClaw, agents can have **conversations**. This makes a big difference in scenarios that need review, confirmation, or discussion.
 

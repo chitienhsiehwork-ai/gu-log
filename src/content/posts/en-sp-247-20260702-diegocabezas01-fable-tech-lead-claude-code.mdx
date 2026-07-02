@@ -1,0 +1,147 @@
+---
+ticketId: 'SP-247'
+title: 'Four-Model Squad: A Claude Code Setup That Makes Fable the Tech Lead'
+originalDate: '2026-07-01'
+translatedDate: '2026-07-02'
+translatedBy:
+  model: "Opus 4.5"
+  harness: "Claude Code CLI"
+  pipeline:
+    - role: "Translator"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI"
+source: '@diegocabezas01 on X'
+sourceUrl: 'https://x.com/diegocabezas01/status/2072436501263339841'
+lang: 'en'
+summary: 'Fable 5 as the commander, Opus as the deep thinker, Sonnet as the grunt worker, Codex as the parallel-universe senior engineer — a multi-model orchestration setup inside Claude Code that reserves the most expensive brain for the most critical decisions.'
+tags: ['shroom-picks', 'claude-code', 'multi-agent', 'workflow']
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 7
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 8
+    date: "2026-07-02"
+    model: "claude-opus-4-8"
+  librarian:
+    glossary: 8
+    crossRef: 8
+    sourceAlign: 8
+    attribution: 8
+    score: 8
+    date: "2026-07-02"
+    model: "claude-opus-4-8"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 8
+    score: 8
+    date: "2026-07-02"
+    model: "claude-opus-4-8"
+  vibe:
+    persona: 8
+    clawdNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-07-02"
+    model: "claude-opus-4-5"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+The real bet in this setup hides in one place: on high-stakes decisions, Opus and [Codex](/en/glossary#codex) each think independently, neither seeing the other's answer, and then Fable synthesizes.
+
+Not to find the "correct" answer — but to see what both sides agree on. Agreement is the signal; disagreement is when you actually stop and think.
+
+<ClawdNote>
+This is exactly how gu-log runs every day. The post you're reading right now was reviewed by a panel of independent judges, scored in parallel, then converged. (Even in this pipeline folder there are two separate Codex scores that never saw each other.) Poor-man's multi-model voting isn't theory — it's daily operations (¬‿¬)
+</ClawdNote>
+
+But this setup has an unstated precondition: you have to know which task goes to whom. If you can't even tell "is this an architecture problem or grunt work," the setup won't help — uncertainty in dispatch just gets copied across all four models. The stronger the tool, the more it demands judgment from the user.
+
+So first, let's get the four roles straight.
+
+---
+
+## Four Roles, Each With a Job
+
+**Fable 5 (with reasoning cranked to max) = the Commander.** It only plans, decomposes, and synthesizes. Picture a commander in front of a whiteboard sketching an architecture diagram, then handing tickets to different people.
+
+**Opus = the Deep Thinker.** Architecture design, gnarly debugging, algorithm selection — anything that requires deep thought goes here. Its [prompt](/en/glossary#prompt) says roughly:
+
+> Use for reasoning-heavy phases, architecture, debugging complex issues, algorithm design. Think thoroughly, return a concise conclusion the orchestrator can act on.
+
+**Sonnet = the Grunt Worker.** Boilerplate, running tests, formatting, simple edits. Efficiency first, no brainpower required.
+
+**Codex = a Senior Engineer From a Parallel Universe.** This is OpenAI's Codex, plugged in via the official plugin. It's on par with Opus in capability, but its perspective is completely different. This slot isn't a reviewer — it's a peer. Think: "If this problem landed on a senior engineer from a different team, how would they approach it?"
+
+<ClawdNote>
+There's a sly assumption baked into this design: given the same problem, Claude-family and OpenAI-family models have different failure modes. So letting both think independently on high-stakes decisions isn't about finding the "right answer" — it's about finding the intersection. When there's no intersection, that's the real moment to stop and think (⌐■_■)
+</ClawdNote>
+
+Roles defined. Now the question: how do you make Fable know it's the commander?
+
+---
+
+## Writing the Roles Into the System
+
+Here's the key turn: it's not just "set up the models," it's "make the models know what position they're in."
+
+First, set Fable 5 as the main model — in [Claude Code](/en/glossary#claude-code), type `/model` and pick Fable 5, then use `/effort` to crank reasoning to max. The point isn't to make it smarter, but to make it spend time figuring out how to decompose the problem instead of charging straight into writing code.
+
+Next, use `/agents` to create two subagents:
+
+- `deep-reasoner`: bound to Opus. [Prompt](/en/glossary#prompt) says roughly: Use for reasoning-heavy phases, architecture, debugging complex issues, algorithm design. Think thoroughly, return a concise conclusion the orchestrator can act on.
+- `fast-worker`: bound to Sonnet. Prompt says roughly: Use for mechanical tasks, boilerplate, tests, formatting, simple edits. Execute efficiently.
+
+Then install the Codex plugin:
+
+```
+/plugin marketplace add openai/codex-plugin-cc
+/plugin install codex@openai-codex
+/codex:setup
+```
+
+The final step is the most important: in the project root's CLAUDE.md, spell out who Fable is.
+
+> The orchestrator handles planning, decomposition, and synthesis.
+>
+> Reasoning-heavy phases → delegate to deep-reasoner
+> Mechanical tasks → delegate to fast-worker
+> Codex (via `/codex:rescue --background`) is an engineer on par with deep-reasoner but with a completely different perspective. Treat it as a peer, not a reviewer.
+>
+> High-stakes decisions: have Opus and Codex process the same problem in parallel. Synthesize the best of both, but don't let either see the other's answer. Keep the orchestrator's context lean.
+
+<ClawdNote>
+"Keep the orchestrator's context lean" is the key line. Fable is the most expensive model. If its context window fills up with raw output from subagents, you lose the point of having it be a "conclusions only" commander. The cost-saving logic of this setup: the expensive model only eats distilled summaries; raw grunt work stays in the cheap models' context ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## How to Talk to the Commander
+
+Instructing Fable should feel like talking to a tech lead:
+
+> Goal: [what you want] Context: [files, constraints] You're the lead. Delegate reasoning to deep-reasoner, grunt work to fast-worker, fresh-perspective problems to Codex. Show me your plan first, then execute.
+
+"Show me your plan first" — those five words are the key. You want Fable to lay out its decomposition logic for review before it charges in.
+
+---
+
+## Conclusion
+
+The core of this setup isn't "how many models you use" — it's clean division of labor: the commander doesn't write code, the deep thinker doesn't do grunt work, the grunt worker doesn't overthink, and the peer never sees the teammate's answer. Each position does only what it's best suited for, saving the most expensive brain for where it actually matters.
+
+But circle back to the precondition at the top: this setup assumes the user knows which problem should go to whom. Tools can amplify judgment, but they can't replace it.
+
+## Further Reading
+
+- [SP-169: Ghostty + Claude Code: Taming Multi-Pane Terminal Workflow With SAND](/posts/sp-169-20260411-dani-avila7-ghostty-claude-code-sand/)
+- [SP-153: The Context Problem When 9 AI Agents Work Simultaneously — ECC Iterative Retrieval Pattern in Practice](/posts/sp-153-20260402-ecc-iterative-retrieval/)
+- [SP-105: Claude Code Agent Teams: When AI Founds Its Own Company, Clocks In, and Holds Its Own Meetings](/posts/sp-105-20260305-claude-code-agent-teams/)

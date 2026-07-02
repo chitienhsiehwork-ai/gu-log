@@ -8,6 +8,7 @@
 
 set -euo pipefail
 export TZ=Asia/Taipei
+export PATH="$HOME/.local/bin:$HOME/bin:$PATH"
 export CLAUDE_CODE_OAUTH_TOKEN
 CLAUDE_CODE_OAUTH_TOKEN=$(head -1 "$HOME/.cc-cron-token")
 

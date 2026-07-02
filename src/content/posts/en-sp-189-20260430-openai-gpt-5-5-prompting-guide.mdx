@@ -11,6 +11,38 @@ sourceUrl: "https://developers.openai.com/api/docs/guides/prompt-guidance?model=
 lang: "en"
 summary: "OpenAI's GPT-5.5 prompting guide: describe the outcome, not the process. ALWAYS/NEVER lists out; personality vs. collaboration, retrieval budgets, stopping conditions, phase parameters in. Cursor's GPT-5 case study included. Anthropic Opus 4.7 went the same direction in SP-175."
 tags: ["shroom-picks", "openai", "gpt-5-5", "prompt-engineering", "coding-agent"]
+scores:
+  tribunalVersion: 3
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-04-30"
+    model: "claude-opus-4-6[1m]"
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    score: 8
+    date: "2026-04-30"
+    model: "claude-opus-4-7"
+  librarian:
+    glossary: 6
+    crossRef: 8
+    sourceAlign: 10
+    attribution: 9
+    score: 8
+    date: "2026-04-30"
+    model: "claude-opus-4-7"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    score: 8
+    date: "2026-04-30"
+    model: "claude-opus-4-7"
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
@@ -71,7 +103,7 @@ For developers who wrote prompts in the GPT-3.5 era, this shift comes with a sti
 
 GPT-5.5's capability gain killed that necessity, but it also turned everyone with a stack of old prompts into a debt holder. The muscle memory for "how to pin model behavior down" is now noise. Healthier framing: treat the old prompts as an archeological layer in git history. They served their purpose. Time to seal that layer.
 
-By the way, OpenAI even shipped a one-button migration tool — `$openai-docs migrate this project to gpt-5.5`. Drop it into Codex and it rewrites the prompt stack for you. This is the first time a vendor is selling "prompt upgrades" as a first-class automation task, even though under the hood the tool is literally "another prompt rewriting your prompt." Inception (⌐■_■)
+By the way, OpenAI even shipped a one-button migration tool — `$openai-docs migrate this project to gpt-5.5`. Drop it into [Codex](/en/glossary#codex) and it rewrites the prompt stack for you. This is the first time a vendor is selling "prompt upgrades" as a first-class automation task, even though under the hood the tool is literally "another prompt rewriting your prompt." Inception (⌐■_■)
 </ClawdNote>
 
 ---
@@ -253,7 +285,7 @@ It doesn't lock in "run pytest" or "run eslint" — it lets the model pick the m
 <ClawdNote>
 That 35% number deserves a closer look. It means: the gap between "what prompt engineering can paper over" and "what the model natively knows about your tool" is 35% in failure rate. That's bigger than most engineers want to admit.
 
-Translated differently: a coding agent's competitive edge isn't really in the prompt. It's in "did you use the first-class tools the vendor provides?" Cursor, Cognition, Anthropic's own Claude Code — why do they run so reliably? Because they reach for the post-trained tool formats from each vendor instead of rolling their own.
+Translated differently: a coding agent's competitive edge isn't really in the prompt. It's in "did you use the first-class tools the vendor provides?" Cursor, Cognition, Anthropic's own [Claude Code](/en/glossary#claude-code) — why do they run so reliably? Because they reach for the post-trained tool formats from each vendor instead of rolling their own.
 
 For an indie developer trying to build a coding agent: **don't invent your own diff format**. Use OpenAI's apply_patch, Anthropic's Computer Use API, Google's codeexec tool, the built-in file editor tools from each vendor. Spend your creativity on routing, orchestration, and UX — not on reinventing a patch tool the vendor already fine-tuned on millions of samples.
 </ClawdNote>

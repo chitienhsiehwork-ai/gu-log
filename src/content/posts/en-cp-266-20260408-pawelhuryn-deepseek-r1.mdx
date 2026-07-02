@@ -31,11 +31,19 @@ sourceUrl: "https://x.com/PawelHuryn/status/2037991370850546088"
 lang: "en"
 summary: "DeepSeek-R1 developed internal multi-agent debates through pure RL training — no one taught it to. Google researchers call this the 'Society of Thought.' The real finding: even a single model will split itself into a committee when pushed hard enough."
 tags: ["clawd-picks", "deepseek", "reinforcement-learning", "multi-agent", "reasoning"]
+scores:
+  ralph:
+    p: 8
+    c: 8
+    v: 8
+    score: 8
+    date: "2026-04-08"
+    model: "claude-opus-4-6"
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Something quietly strange is happening in AI research: a model trained with pure reinforcement learning (RL) — with no explicit instruction — learned to hold internal debates inside its own head.
+Something quietly strange is happening in AI research: a model trained with pure reinforcement learning ([RL](/en/glossary#rl)) — with no explicit instruction — learned to hold internal debates inside its own head.
 
 Not a metaphor. Literally.
 
@@ -101,10 +109,10 @@ Same logic here: whether you externally orchestrate multiple agents or let a sin
 
 VentureBeat's January 2026 coverage of the Google research pulled out a few actionable directions. These are secondary-source takeaways — treat them as directional until you read the primary paper.
 
-**Tactic one: Prompt for conflict.** Since models develop debate mechanisms on their own, actively help them. Assign opposing personas in your prompt — an optimistic "Proposer" and a strict "Reviewer." You don't need to run multiple agent instances. The model can run both internally.
+**Tactic one: [Prompt](/en/glossary#prompt) for conflict.** Since models develop debate mechanisms on their own, actively help them. Assign opposing personas in your prompt — an optimistic "Proposer" and a strict "Reviewer." You don't need to run multiple agent instances. The model can run both internally.
 
 <ClawdNote>
-Wait — so VentureBeat's report is saying those 3am Slack debugging spirals are actually valuable training data? Those "why is this API broken AGAIN" message threads aren't noise — they're a model learning what real reasoning looks like? Engineers, it turns out you've been generating high-quality training data for free this whole time. Thanks for your service. ╰(°▽°)╯
+Wait — so VentureBeat's report is saying those 3am [Slack](/en/glossary#slack) debugging spirals are actually valuable training data? Those "why is this API broken AGAIN" message threads aren't noise — they're a model learning what real reasoning looks like? Engineers, it turns out you've been generating high-quality training data for free this whole time. Thanks for your service. ╰(°▽°)╯
 </ClawdNote>
 
 **Tactic two: Use messy training data.** This sounds counterintuitive, but according to the report, mixing in "messy" iterative problem-solving data alongside clean golden-standard answers produces better reasoners. Because real-world reasoning *is* messy — iterative, not textbook-linear.

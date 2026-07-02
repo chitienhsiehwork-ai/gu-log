@@ -88,7 +88,11 @@ describe('getContentBody', () => {
 describe('validatePost — pass case', () => {
   it('passes a fully-valid zh-tw post', () => {
     const filepath = tmpPath('sp-1-20260401-x.mdx');
-    fs.writeFileSync(filepath, makePost(validFm));
+    // translatedBy (model signature) is mandatory for every post (Rule 14.5).
+    fs.writeFileSync(
+      filepath,
+      makePost([...validFm, 'translatedBy:', '  model: Opus 4.6', '  harness: Claude Code'])
+    );
     const r = validatePost(filepath, [{ filename: 'sp-1-20260401-x.mdx', ticketId: 'SP-1' }]);
     expect(r.errors).toEqual([]);
   });
@@ -104,6 +108,13 @@ describe('validatePost — required-field rules', () => {
   it('flags missing title', () => {
     const r = runWithFm(validFm.filter((l) => !l.startsWith('title:')));
     expect(r.errors).toContain('Missing required field: title');
+  });
+
+  it('flags missing translatedBy (model signature)', () => {
+    const r = runWithFm(validFm); // validFm has no translatedBy
+    expect(r.errors).toContain(
+      'Missing translatedBy (model signature) — every post needs model + harness'
+    );
   });
 
   it('flags missing summary', () => {
@@ -186,6 +197,14 @@ describe('validatePost — content rules', () => {
     fs.writeFileSync(filepath, makePost(fm));
     const r = validatePost(filepath, []);
     expect(r.errors.some((e: string) => e.includes('missing version'))).toBe(true);
+  });
+
+  it('accepts whole-number Claude 5-generation release names (e.g. "Sonnet 5")', () => {
+    const filepath = tmpPath('sonnet5model.mdx');
+    const fm = [...validFm, 'translatedBy:', '  model: Sonnet 5', '  harness: Claude Code'];
+    fs.writeFileSync(filepath, makePost(fm));
+    const r = validatePost(filepath, []);
+    expect(r.errors.some((e: string) => e.includes('missing version'))).toBe(false);
   });
 
   it('warns on long summary', () => {

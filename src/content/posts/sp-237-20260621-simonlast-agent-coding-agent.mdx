@@ -1,0 +1,201 @@
+---
+ticketId: 'SP-237'
+title: '把 Agent 當蒸汽火車開：大型專案的 Coding Agent 操作心法'
+originalDate: '2026-05-23'
+translatedDate: '2026-06-21'
+translatedBy:
+  model: "Opus 4.8"
+  harness: "Claude Code CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.8"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.8"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.8"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.8"
+      harness: "sp-pipeline"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: '@simonlast on X'
+sourceUrl: 'https://x.com/simonlast/status/2057978156183957995'
+lang: 'zh-tw'
+summary: '半年前的 Coding Agent 最佳實務大多過期。現在的正確操作：任務要更大、session 跑更久、用對抗式 review 讓 agent 自己驗證——工程師的工作變成往火車裡鏟煤。'
+tags: ['shroom-picks', 'agent', 'workflow', 'prompt-engineering']
+scores:
+  tribunalVersion: 9
+  vibe:
+    persona: 6
+    clawdNote: 8
+    vibe: 5
+    narrative: 7
+    score: 6
+    date: "2026-06-21"
+    model: "claude-opus-4-8"
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 8
+    score: 8
+    date: "2026-06-21"
+    model: "claude-opus-4-8"
+  librarian:
+    glossary: 8
+    crossRef: 9
+    sourceAlign: 8
+    attribution: 8
+    score: 8
+    date: "2026-06-21"
+    model: "claude-opus-4-8"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 6
+    score: 7
+    date: "2026-06-21"
+    model: "claude-opus-4-8"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+六個月前的 Coding [Agent](/glossary#agent) 建議，現在大半可以丟了。
+
+Simon Last 的 coding agent 工作階段經常連續跑上好幾週，丟給它的任務是「一個好工程師要做好幾週」的量級。這套打法，跟半年前「給 agent 小任務、勤監控、隨時介入」的共識幾乎完全相反。
+
+## 任務要往大想
+
+最常見的錯誤是任務切太小——門檻其實是：瞄準「一個好工程師要花好幾週」的工作量。
+
+<ClawdNote>
+這聽起來很瘋，但想想 [context window](/glossary#context-window) 這一兩年的長法——能塞進去的東西越來越多，agent 一次能扛的範圍自然跟著變大。任務切太小，反而是拿半年前的恐懼在綁手綁腳。(¬‿¬)
+</ClawdNote>
+
+---
+
+## 讓一個工作階段跑到天荒地老
+
+傳統智慧是：工作階段短、context 小、避免幻覺堆積。現在的建議完全相反——用一個長期執行的實作工作階段跑整個專案。Simon 的工作階段經常連續跑好幾天、甚至好幾週，過程中經歷無數次 context 壓縮。
+
+重點是：壓縮機制現在真的能用了。
+
+長工作階段的好處是 agent 會記住專案的慣例和寫法。不用每次都重新解釋「這個專案的命名慣例是什麼」「這邊的 error handling 習慣怎麼寫」——它都記得。這省下的來回溝通成本非常可觀。
+
+長跑 agent 這個題目 gu-log 之前講過：[SP-192](/posts/sp-192-20260508-article-agent-ralph) 講的就是長跑 agent 怎麼避免「勤奮地跑偏」——跑得久不稀奇，跑很久還沒忘記自己為什麼在跑才是真功夫。
+
+<ClawdNote>
+這基本上是在說：把 agent 當成一個會累積經驗的資淺工程師來用，而不是每次都從零開始、用完即忘的無狀態函式。差別在於資淺工程師會學、會記，不用每天早上重新帶上手。
+</ClawdNote>
+
+---
+
+## 鏟煤進火車：持久化的任務清單
+
+工程師的新角色是什麼？往火車裡鏟煤。
+
+具體來說：維護一份持久化的任務清單。工程師的工作是「比 agent 完成任務的速度更快，把審過的任務塞進去」。每個任務要包含三件事：
+
+1. **要做什麼**
+2. **怎麼驗證做完了**
+3. **完成後的證明筆記**
+
+驗收標準是：如果照寫的來，結果能讓人放心。
+
+在收工前（尤其是星期五）盡量把任務排滿。讓 agent 週末繼續燒，週一回來收成果。
+
+<ClawdNote>
+「週五晚上排滿任務，週一回來收割」——以前週五下班是怕部署出事沒人救，現在週五下班是怕 agent 沒事做。╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## 花時間在計畫文件，不要盯著 Agent 看
+
+大部分時間應該花在寫計畫文件，不是看著 agent 執行。
+
+實際操作：開一個短命的規劃工作階段，產出計畫，把一個或多個任務加到清單，然後關掉工作階段。好的計畫文件要：
+
+- **自給自足**：讀計畫就夠，不需要額外 context
+- **介面層級的細節**：不只是「做 X 功能」，而是「X 功能的 input/output 長這樣」
+- **明確的端到端驗證策略**：agent 怎麼證明自己做完了
+
+值得一直迭代計畫文件，直到它們真的夠好——前期在計畫上多花的工，執行階段會還回來。
+
+---
+
+## 對抗式 Review 是無人值守的關鍵
+
+想讓 agent 長時間自己跑、不需要人類盯場？對抗式 review 是核心機制。
+
+做法：在任何任務被標記完成之前，啟動一個全新的、唯讀的 [subagent](/glossary#subagent)。這個 subagent 的工作是審查 diff，對照原本的 todo 和計畫文件，找出落差。
+
+這招通常太強——容易過度工程化，需要調整敏感度。但它是讓 agent 長期自轉的關鍵：多一個 agent 在背後對著計畫挑毛病，落差才不會被悄悄放過。
+
+這跟 [SP-235](/posts/sp-235-20260618-verifier-is-the-product) 的核心論點是同一件事：驗證者本身才是產品。讓一個獨立的審查 agent 對著規格挑毛病，比讓實作 agent 自己宣稱完工可靠得多——把關的價值，從來不在寫得多快，而在抓得多準。
+
+<ClawdNote summary="gu-log 自己就跑這套四法官 tribunal——連你在讀的這篇都被它審出 sub-8">
+這本質上是把 code review 自動化了。不是「人類 review agent 的輸出」，而是「agent review agent 的輸出，人類只看 reviewer 的報告」。監督成本直接降一個數量級。
+
+而且這套 gu-log 自己天天在跑——[SD-10](/posts/sd-10-20260322-ralph-loop-quality-system) 寫過我們怎麼用四個 AI 法官（管語感的、查事實的、顧詞庫跟連結的、扮陌生讀者的）對抗式互審每一篇文章。講個尷尬的：你現在讀的這篇就是被那套審出來的，分數還沒到 8、所以掛著「精修中」標記——獨立審稿的 agent 對著規格挑毛病，連自己家的稿子都不放過 (￣▽￣)
+</ClawdNote>
+
+---
+
+## 角色分工：不是一個 Agent，是一個團隊
+
+長期工作階段要設定不同角色：
+
+- **規劃者**：產出計畫
+- **實作者**：執行實作
+- **對抗式審查者**：挑毛病
+- **黑箱測試者**：從外部測試功能
+- **問題分流者**：分類問題
+- **深度程式碼審查者**：深度審查程式碼
+
+工程師的工作是把這些角色串起來，讓實作 agent 永遠不要閒著。同時監控整體運作，在系統出錯時介入。
+
+---
+
+## 把自己移出迴圈
+
+不要手動開 PR、不要自己打指令、不要手動看 CI。
+
+如果發現自己在手動測試某件事——停。Agent 必須自己證明工作完成了。工程師的工作是覆核把關，不是親自執行。
+
+這是角色的翻轉：工程師從執行者變成審核者。
+
+<ClawdNote>
+講白一點，agent 是員工，工程師是主管。主管不該自己跳下去寫 code——你的價值在確認員工交出來的東西是對的。這很像前幾年大家在吵的「AI 輔助 coding」vs「AI 主導 coding」——當時「AI 主導」聽起來很遠，現在已經是實戰操作手冊了。
+</ClawdNote>
+
+---
+
+## 花 20% 以上的時間在經營流程本身
+
+每次發現 agent 犯錯，都要把教訓寫進未來的指令裡。
+
+持續迭代 agent 遵循的流程。改善測試 harness。但要小心過度工程化——通常簡單一點比較好。
+
+這 20% 不是雜事，是讓同一個錯誤不再出現第二次。
+
+<ClawdNote summary="gu-log 把每次踩的雷都寫回流程，因為它的長期記憶只活在 repo 裡">
+把教訓寫回指令，本質上是讓 agent 不再踩同一顆釘子——修一次，後面每一輪都受惠。這是流程的複利。
+
+gu-log 自己對這件事執著到有點病態：每篇文章踩到的雷、編輯台的每個毛刺，都會被寫回流程文件，讓下一篇自動更順。為什麼這麼龜毛？原因有點不一樣、也有點極端——藏在這裡：[流程複利](/glossary#process-compounding)。
+</ClawdNote>
+
+---
+
+## 結語
+
+六個月前，Coding Agent 的最佳實務是「小任務、短工作階段、勤監控」。現在變成「大任務、長工作階段、讓 agent 自己驗證」。
+
+這不是漸進式改善，是操作習慣的翻轉：工程師的角色正在從「寫 code 的人」變成「設計流程、審核產出的人」。
+
+鏟煤的人不需要自己跑，但要確保火車跑對方向。

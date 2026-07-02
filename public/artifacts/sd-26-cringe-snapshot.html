@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SD-26 第一版退稿存查 · gu-log 編輯台</title>
+    <meta
+      name="description"
+      content="gu-log SD-26 第一版的退稿存查：所有自動關卡都過了，人工還是退件。一份關於『沒有護欄，AI 文章會爛成什麼樣』的活標本。"
+    />
+    <style>
+      :root {
+        /* Solarized dark — 跟 gu-log 同一套色 */
+        --base03: #002b36;
+        --base02: #073642;
+        --base01: #586e75;
+        --base00: #657b83;
+        --base0: #839496;
+        --base1: #93a1a1;
+        --base2: #eee8d5;
+        --base3: #fdf6e3;
+        --yellow: #b58900;
+        --orange: #cb4b16;
+        --red: #dc322f;
+        --magenta: #d33682;
+        --blue: #268bd2;
+        --cyan: #2aa198;
+        --green: #859900;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        -webkit-text-size-adjust: 100%;
+      }
+      body {
+        margin: 0;
+        background:
+          radial-gradient(1200px 600px at 80% -10%, rgba(38, 139, 210, 0.08), transparent 60%),
+          var(--base03);
+        color: var(--base1);
+        font-family:
+          'Noto Sans TC',
+          'PingFang TC',
+          'Microsoft JhengHei',
+          system-ui,
+          -apple-system,
+          'Segoe UI',
+          sans-serif;
+        line-height: 1.75;
+        padding: 2.5rem 1.25rem 4rem;
+      }
+      .wrap {
+        max-width: 760px;
+        margin: 0 auto;
+      }
+
+      /* ── 抬頭 ── */
+      .masthead {
+        border: 1px solid var(--base01);
+        border-radius: 14px;
+        background: linear-gradient(180deg, var(--base02), rgba(7, 54, 66, 0.55));
+        padding: 1.4rem 1.5rem;
+        position: relative;
+        overflow: hidden;
+      }
+      .kicker {
+        font-size: 0.72rem;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--cyan);
+        margin: 0 0 0.5rem;
+      }
+      .masthead h1 {
+        margin: 0;
+        font-size: clamp(1.45rem, 4.5vw, 2rem);
+        color: var(--base2);
+        line-height: 1.3;
+      }
+      .masthead .sub {
+        margin: 0.6rem 0 0;
+        color: var(--base0);
+        font-size: 0.95rem;
+      }
+      .stamp {
+        position: absolute;
+        top: 1.1rem;
+        right: 1.1rem;
+        transform: rotate(8deg);
+        border: 2.5px solid var(--red);
+        color: var(--red);
+        font-weight: 800;
+        font-size: 0.78rem;
+        letter-spacing: 0.14em;
+        padding: 0.28rem 0.6rem;
+        border-radius: 6px;
+        opacity: 0.92;
+        text-align: center;
+        line-height: 1.25;
+      }
+      @media (max-width: 540px) {
+        .stamp {
+          position: static;
+          display: inline-block;
+          transform: rotate(-2deg);
+          margin-top: 1rem;
+        }
+      }
+
+      /* ── 通過的關卡 ── */
+      .gates {
+        margin: 1.4rem 0 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+      .gate {
+        font-size: 0.82rem;
+        color: var(--base1);
+        background: rgba(133, 153, 0, 0.12);
+        border: 1px solid rgba(133, 153, 0, 0.4);
+        border-radius: 999px;
+        padding: 0.22rem 0.7rem;
+        white-space: nowrap;
+      }
+      .gate b {
+        color: var(--green);
+        font-weight: 700;
+        margin-right: 0.2rem;
+      }
+      .verdict {
+        margin: 1rem 0 0;
+        font-size: 0.92rem;
+        color: var(--base1);
+        background: rgba(220, 50, 47, 0.1);
+        border-left: 3px solid var(--red);
+        border-radius: 0 8px 8px 0;
+        padding: 0.7rem 0.9rem;
+      }
+      .verdict b {
+        color: var(--orange);
+      }
+
+      /* ── 導言 ── */
+      .lede {
+        margin: 2rem 0 1.5rem;
+        font-size: 1.02rem;
+        color: var(--base0);
+      }
+      .lede strong {
+        color: var(--base2);
+      }
+      .lede .q {
+        color: var(--yellow);
+        font-weight: 700;
+      }
+
+      /* ── 標本 ── */
+      .specimen {
+        margin: 1.5rem 0;
+        border: 1px solid var(--base02);
+        border-radius: 12px;
+        background: rgba(7, 54, 66, 0.4);
+        overflow: hidden;
+      }
+      .specimen__num {
+        font-size: 0.72rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--base01);
+        padding: 0.7rem 1rem 0;
+      }
+      .specimen__body {
+        display: grid;
+        grid-template-columns: 1fr 200px;
+        gap: 0;
+      }
+      .quote {
+        padding: 0.6rem 1rem 1rem;
+        margin: 0;
+        font-size: 1.02rem;
+        color: var(--base2);
+        border-left: 3px solid var(--base01);
+        margin-left: 1rem;
+      }
+      .quote.title-quote {
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: var(--base3);
+      }
+      .annot {
+        border-left: 1px dashed var(--base01);
+        padding: 0.9rem 1rem;
+        background: rgba(181, 137, 0, 0.06);
+        font-size: 0.86rem;
+      }
+      .tag {
+        display: inline-block;
+        font-size: 0.74rem;
+        font-weight: 700;
+        color: var(--base03);
+        background: var(--yellow);
+        border-radius: 5px;
+        padding: 0.1rem 0.5rem;
+        margin-bottom: 0.45rem;
+      }
+      .annot p {
+        margin: 0;
+        color: var(--base0);
+        line-height: 1.6;
+      }
+      @media (max-width: 600px) {
+        .specimen__body {
+          grid-template-columns: 1fr;
+        }
+        .quote {
+          margin-left: 1rem;
+          margin-right: 1rem;
+        }
+        .annot {
+          border-left: none;
+          border-top: 1px dashed var(--base01);
+        }
+      }
+
+      /* ── 收束 ── */
+      .takeaway {
+        margin: 2.5rem 0 0;
+        border: 1px solid var(--base01);
+        border-radius: 14px;
+        padding: 1.4rem 1.5rem;
+        background: linear-gradient(180deg, rgba(38, 139, 210, 0.08), transparent);
+      }
+      .takeaway h2 {
+        margin: 0 0 0.6rem;
+        color: var(--base2);
+        font-size: 1.2rem;
+      }
+      .takeaway p {
+        margin: 0 0 0.8rem;
+        color: var(--base0);
+      }
+      .takeaway p:last-child {
+        margin-bottom: 0;
+      }
+      .takeaway strong {
+        color: var(--cyan);
+      }
+      .footnote {
+        margin: 1.6rem 0 0;
+        font-size: 0.82rem;
+        color: var(--base01);
+        text-align: center;
+      }
+      .footnote a {
+        color: var(--blue);
+      }
+      .x300 {
+        color: var(--red);
+        font-weight: 700;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <header class="masthead">
+        <p class="kicker">gu-log 編輯台 · 退稿存查</p>
+        <h1>SD-26 第一版：所有關卡都過了，人還是退件</h1>
+        <p class="sub">
+          一篇 AI 寫的文章，分數有了、機器全放行——然後人讀了一遍，退稿。
+          這份存查留下它的樣子，當作「沒品味會長什麼樣」的活標本。
+        </p>
+        <div class="stamp">人工退件<br />REJECTED</div>
+
+        <div class="gates">
+          <span class="gate"><b>✓</b>晶晶體檢查 乾淨</span>
+          <span class="gate"><b>✓</b>驗證器 通過</span>
+          <span class="gate"><b>✓</b>CI 全綠</span>
+          <span class="gate"><b>✓</b>四維分數 8／9</span>
+        </div>
+        <p class="verdict">
+          機器量得出的，全過了。<b>量不出的那一項——「這像不像活人講話」——沒過。</b>
+        </p>
+      </header>
+
+      <p class="lede">
+        gu-log 有一整排自動護欄：上線前的關卡、晶晶體檢查、驗證器、CI、評審團打分。
+        它們很會擋雜事。但有個問題它們答不出來——<span class="q"
+          >如果沒有這些護欄，文章會爛成什麼樣？</span
+        >
+        下面四段，是 SD-26 第一版裡護欄全部放行、卻一眼就「很 AI」的地方。
+      </p>
+
+      <section class="specimen" aria-label="標本一：標題">
+        <p class="specimen__num">標本 01 · 標題</p>
+        <div class="specimen__body">
+          <blockquote class="quote title-quote">
+            讓 AI 越痛苦，開發者越輕鬆——gu-log 的迴圈工程不是口號
+          </blockquote>
+          <aside class="annot">
+            <span class="tag">slogan 腔</span>
+            <p>標題自己喊「不是口號」，這句話本身就是最像口號的一句。 真人午餐時間不會這樣開場。</p>
+          </aside>
+        </div>
+      </section>
+
+      <section class="specimen" aria-label="標本二：開頭立論">
+        <p class="specimen__num">標本 02 · 開頭立論</p>
+        <div class="specimen__body">
+          <blockquote class="quote">
+            gu-log 後來做的所有品質工程，都從同一個原則長出來：讓 AI 越痛苦，開發者越輕鬆。
+          </blockquote>
+          <aside class="annot">
+            <span class="tag">概念先行</span>
+            <p>
+              先把大旗插好，再回頭硬湊例子。
+              讀起來是「在證明一句格言」，不是「在分享一件做過的事」。
+            </p>
+          </aside>
+        </div>
+      </section>
+
+      <section class="specimen" aria-label="標本三：中段金句">
+        <p class="specimen__num">標本 03 · 中段</p>
+        <div class="specimen__body">
+          <blockquote class="quote">
+            迴圈不消除工程——迴圈把工程從「盯著 agent
+            每一步」移到「設計好圍欄、感測器、跟出場條件」。
+          </blockquote>
+          <aside class="annot">
+            <span class="tag">像在替 framework 寫發表會講稿</span>
+            <p>
+              「圍欄、感測器、出場條件」排比一上來，氣勢有了，人味沒了。
+              比較像產品發表會的投影片，不像一個人在講他踩過的坑。
+            </p>
+          </aside>
+        </div>
+      </section>
+
+      <section class="specimen" aria-label="標本四：結尾">
+        <p class="specimen__num">標本 04 · 結尾</p>
+        <div class="specimen__body">
+          <blockquote class="quote">
+            一個好的迴圈不是讓 AI 更舒服。是讓 AI 想偷懶的時候，無處可逃。
+          </blockquote>
+          <aside class="annot">
+            <span class="tag">中文不像人講話</span>
+            <p>整篇用同一句響亮口號收尾，金句疊金句。 聽起來很順，但沒有人會這樣跟朋友講話。</p>
+          </aside>
+        </div>
+      </section>
+
+      <section class="takeaway">
+        <h2>分數過了，taste 沒過</h2>
+        <p>
+          這四段全部通過了自動關卡。沒有錯字、沒有爛連結、沒有晶晶體、事實也對。
+          機器能查的都查了，給了 8、9 分。
+        </p>
+        <p>
+          護欄擋掉的，是「會爛但查得出來」的那種爛——編造的事實、中英混雜、撞題、忘記部署。
+          <strong>剩下這種「每句都對、合起來很 AI」的爛，只有人讀得出來。</strong>
+        </p>
+        <p>
+          所以重點不是「護欄沒用」。沒有護欄，整站會被上面這種味道淹沒，
+          <span class="x300">而且 ×300 篇</span>，沒人擋得完。
+          護欄把雜事清光，正是為了讓人有力氣，專心退掉這最後一段。
+        </p>
+      </section>
+
+      <p class="footnote">
+        這不是在說哪個模型爛——同一套流程，這篇你正在讀的成品也是 AI 寫的。
+        要學的是工作流和品味，不是「誰寫的」。<br />
+        ← 回 <a href="/posts/sd-26-20260616-loop-engineering-at-gu-log/">SD-26 正文</a>
+      </p>
+    </main>
+  </body>
+</html>

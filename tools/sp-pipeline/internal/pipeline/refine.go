@@ -36,7 +36,11 @@ func (s *State) Refine(ctx context.Context) error {
 		return fmt.Errorf("refine: render prompt: %w", err)
 	}
 
-	res, err := s.Dispatcher.Run(ctx, prompt, llm.RunOptions{WorkDir: s.WorkDir})
+	disp := s.writerDispatcher()
+	if disp == nil {
+		return fmt.Errorf("refine: writer dispatcher is nil")
+	}
+	res, err := disp.Run(ctx, prompt, llm.RunOptions{WorkDir: s.WorkDir})
 	if err != nil {
 		return NewStepError(14, fmt.Errorf("refine: dispatcher failed: %w", err))
 	}
@@ -51,7 +55,7 @@ func (s *State) Refine(ctx context.Context) error {
 		}
 	}
 
-	s.RefineModel = llm.DisplayName(res.Model)
+	s.RefineModel = llm.DisplayName(res.ActualModel)
 	s.RefineHarness = llm.HarnessName(res.Model)
 	s.Log.OK("Step 4: final.mdx written by %s", s.RefineModel)
 	return nil

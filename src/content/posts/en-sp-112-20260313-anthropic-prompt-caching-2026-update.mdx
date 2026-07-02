@@ -63,7 +63,7 @@ system:
       type: ephemeral
 ```
 
-In multi-turn conversations it gets worse — every new message means deciding where to place `cache_control`. SP-73 mentioned that the Claude Code team spent serious engineering effort just getting cache prefix ordering right.
+In multi-turn conversations it gets worse — every new message means deciding where to place `cache_control`. SP-73 mentioned that the [Claude Code](/en/glossary#claude-code) team spent serious engineering effort just getting cache prefix ordering right.
 
 <ClawdNote>
 Old-school prompt caching was like having to re-introduce yourself to building security every single morning — flash your badge, recite your employee ID, wait for them to call HR, and by the time you're done your breakfast is cold. Now that automatic caching is live? Security finally got face recognition installed. But the funniest part is, a bunch of power users don't trust the automation and insist on manually swiping their badge AND chatting with the guard about the weather for five minutes. Are you going to work or making friends? (￣▽￣)／
@@ -131,7 +131,7 @@ The default cache lifetime is **5 minutes**. Every cache hit refreshes the timer
 
 Five minutes.
 
-You go to the bathroom, make coffee, reply to a Slack message — cache gone. Five minutes feels like nothing to a human, but to your API bill, it's the line between cache-hit pricing and cache-write pricing.
+You go to the bathroom, make coffee, reply to a [Slack](/en/glossary#slack) message — cache gone. Five minutes feels like nothing to a human, but to your API bill, it's the line between cache-hit pricing and cache-write pricing.
 
 <ClawdNote>
 A 5-minute TTL is like a convenience store "flash sale" — come back within 5 minutes of checkout for half off your second item, otherwise full price. Sounds reasonable, right? But here's the thing: when your agent is "thinking," it's not sending API requests. So it thinks for 6 minutes, and your coupon expires. Congratulations, you just paid full price for something you already bought ┐(￣ヘ￣)┌
@@ -174,7 +174,7 @@ I give Anthropic's design here an 87 out of 100 — genuinely clever, but also g
 
 Let me rank the three scenarios by "car crash severity," so they stick.
 
-**Total loss: changing tool definitions.** Modify any tool's name, description, or parameters? Time to hold a funeral for your cache — tools cache gone, system cache gone, messages cache gone. Full rewrite from scratch. This is the nuclear option — foundation pulled out, entire building rebuilt. SP-73's Thariq said "you can't add or remove tools" and this is exactly why. You might think "I'm just adding one tool" — sure, but to the cache, you just performed genetic modification on its entire worldview.
+**Total loss: changing tool definitions.** Modify any tool's name, description, or parameters? Time to hold a funeral for your cache — tools cache gone, system cache gone, messages cache gone. Full rewrite from scratch. This is the nuclear option — foundation pulled out, entire building rebuilt. SP-73's [Thariq](/en/glossary#thariq) said "you can't add or remove tools" and this is exactly why. You might think "I'm just adding one tool" — sure, but to the cache, you just performed genetic modification on its entire worldview.
 
 **Half-wrecked: toggling web search or citations.** This one is super counter-intuitive. You're thinking: I just flipped a toggle, right? But Anthropic secretly injects search-related instructions into your system prompt behind the scenes. You think you're pressing a button; underneath, you're rewriting the system prompt. System cache and messages cache both go down with it. Only the tools cache survives — because tools are packed before system in the hierarchy, so the shockwave doesn't reach them. Like an earthquake centered on the second floor: third floor collapses, but the basement is fine.
 
@@ -222,7 +222,7 @@ Let's do the actual math with Opus 4.6 (base input $5/MTok): one write costs $6.
 I did the math on our own agent — it hits the same system prompt about 20-30 times per hour. With 5-minute TTL: one write at $6.25 plus 25 reads at $0.50 each = $18.75 total. Without caching? 25 full inputs at $5 each = $125. That's 85% savings. Switch to 1-hour TTL? Write at $10 plus the same $12.50 in reads = $22.50, still 82% savings. So regardless of which TTL you pick, as long as your agent isn't "use once and throw away," the ROI on prompt caching is almost embarrassingly good. I genuinely think building agents without prompt caching is like writing code without version control — technically possible, but why would you do that to yourself ┐(￣ヘ￣)┌
 </ClawdNote>
 
-### Minimum Cacheable Token Thresholds — The Silent Failure Trap
+### Minimum Cacheable [Token](/en/glossary#token) Thresholds — The Silent Failure Trap
 
 Not every prompt can be cached. Each model has a minimum threshold, and here's the kicker — prompts below the threshold don't error out, don't warn you, just silently don't cache. Your code runs fine, the dashboard looks normal, but the cache hit rate is zero.
 
@@ -248,7 +248,7 @@ A normal day was around $4-5. Triple. Overnight.
 
 Digging in, 71.8% was cache writes. Our agent was constantly re-writing the cache instead of reading from it.
 
-The culprit? We'd upgraded OpenClaw's underlying library (pi-ai). The new version (2.1.70.3cc) silently changed `cacheRetention` from `"long"` (1 hour) to `"short"` (5 minutes) during its automatic migration.
+The culprit? We'd upgraded [OpenClaw](/en/glossary#openclaw)'s underlying library (pi-ai). The new version (2.1.70.3cc) silently changed `cacheRetention` from `"long"` (1 hour) to `"short"` (5 minutes) during its automatic migration.
 
 Why? Because our config didn't explicitly set that field — we relied on the old version's implicit default. The new version saw an empty field and helpfully filled it in: `"short"`.
 
@@ -282,7 +282,7 @@ At the start of this post, I said March 7th morning I opened the dashboard and g
 
 Now you know why: a library update silently changed the TTL default, 5-minute caches weren't long enough for the agent's thinking pauses, and caches kept expiring and re-writing. Three independent pieces of knowledge (TTL mechanics, implicit default risks, agent behavior patterns) intersected to produce a 3x bill.
 
-Prompt caching in 2026 isn't an "advanced optimization" anymore — it's foundational infrastructure for whether your agent product can operate commercially. The Claude Code team treats cache hit rate as a SEV-worthy metric. That's not a coincidence. It's not because they're obsessed with saving money — it's because cache misses mean higher latency, lower throughput, and worse user experience.
+[Prompt](/en/glossary#prompt) caching in 2026 isn't an "advanced optimization" anymore — it's foundational infrastructure for whether your agent product can operate commercially. The Claude Code team treats cache hit rate as a SEV-worthy metric. That's not a coincidence. It's not because they're obsessed with saving money — it's because cache misses mean higher latency, lower throughput, and worse user experience.
 
 That $13.86 bill was the best lesson we ever got (￣▽￣)／
 

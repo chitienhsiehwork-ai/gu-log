@@ -98,15 +98,30 @@ const FAILING_SCORES: VibeJudgeOutput['scores'] = {
   narrative: 7,
 };
 
-function freshEyesPass(): FreshEyesJudgeOutput {
+function freshEyesOutput(
+  pass: boolean,
+  scores: FreshEyesJudgeOutput['scores'],
+  extras: Partial<FreshEyesJudgeOutput> = {}
+): FreshEyesJudgeOutput {
+  const composite = Math.floor(Object.values(scores).reduce((a, b) => a + b, 0) / 4);
   return {
-    pass: true,
-    scores: { readability: 8, firstImpression: 8 },
-    composite: 8,
+    pass,
+    scores,
+    composite,
     judge_model: 'mock',
     judge_version: '2.0.0',
     timestamp: '2026-04-16T00:00:00Z',
+    ...extras,
   };
+}
+
+function freshEyesPass(): FreshEyesJudgeOutput {
+  return freshEyesOutput(true, {
+    readability: 8,
+    firstImpression: 8,
+    payoffDensity: 8,
+    lengthFit: 8,
+  });
 }
 
 function factLibPass(): FactLibJudgeOutput {
@@ -136,7 +151,9 @@ function finalVibe(
 ): FinalVibeJudgeOutput {
   const composite = Math.floor(Object.values(scores).reduce((a, b) => a + b, 0) / 5);
   const degraded_dimensions = (Object.keys(stage1Scores) as Array<keyof typeof stage1Scores>)
-    .filter((k) => stage1Scores[k] - scores[k] > 1)
+    // clarity is optional on VibeJudgeOutput['scores'] (v9 moved it to freshEyes),
+    // so coalesce to 0 for the test factory's regression math.
+    .filter((k) => (stage1Scores[k] ?? 0) - (scores[k] ?? 0) > 1)
     .map(String);
   return {
     pass,
@@ -362,9 +379,7 @@ describe('pipeline — writer-constraint enforcement', () => {
     expect(judgeContents[0]).not.toContain('wrong.example.com');
 
     // Commit trail shows both workers rejected
-    expect(
-      git.commits.some((m) => m.includes('FactCorrector rejected'))
-    ).toBe(true);
+    expect(git.commits.some((m) => m.includes('FactCorrector rejected'))).toBe(true);
     expect(git.commits.some((m) => m.includes('Librarian rejected'))).toBe(true);
   });
 
@@ -392,9 +407,7 @@ describe('pipeline — writer-constraint enforcement', () => {
       },
     };
 
-    await expect(runPipeline(articlePath, config)).rejects.toThrow(
-      /judge mutated article/i
-    );
+    await expect(runPipeline(articlePath, config)).rejects.toThrow(/judge mutated article/i);
 
     // The injection must have been reverted off disk.
     const content = await readFile(articlePath, 'utf-8');
@@ -453,6 +466,55 @@ describe('pipeline — writer-constraint enforcement', () => {
   });
 
   // -------------------------------------------------------------------------
+  // Codex PR review — Stage 2 FreshEyes v8 pass bar must be recomputed from
+  // scores, not trusted from the model's `pass` flag.
+  // -------------------------------------------------------------------------
+  it('Stage 2: overrides model pass=true when FreshEyes lengthFit fails', async () => {
+    let judgeCalls = 0;
+    let writerCalls = 0;
+    const git = mockGit();
+
+    const config: PipelineConfig = {
+      ...passThroughConfig(),
+      git: git.adapter,
+      runners: {
+        ...passThroughConfig().runners,
+        stage2Judge: {
+          run: async () => {
+            judgeCalls++;
+            if (judgeCalls === 1) {
+              return freshEyesOutput(
+                true,
+                { readability: 10, firstImpression: 10, payoffDensity: 8, lengthFit: 7 },
+                { improvements: { lengthFit: 'too long for the payoff' } }
+              );
+            }
+            return freshEyesPass();
+          },
+        },
+        stage2Writer: {
+          run: async ({ articleContent, feedback }) => {
+            writerCalls++;
+            expect(feedback).toContain('Programmatic pass-bar failed');
+            expect(feedback).toContain('lengthFit 7 is below 8');
+            return { content: `${articleContent}\n\n已壓縮長度，讓篇幅更符合資訊收益。` };
+          },
+        },
+      },
+    };
+
+    const final = await runPipeline(articlePath, config);
+
+    expect(final.status).toBe('passed');
+    expect(final.stages.stage2.status).toBe('passed');
+    expect(judgeCalls).toBe(2);
+    expect(writerCalls).toBe(1);
+    expect(final.stages.stage2.history[0]?.pass).toBe(false);
+    expect(final.stages.stage2.history[0]?.composite).toBe(8);
+    expect(git.commits.some((m) => m.includes('FreshEyes writer rewrite'))).toBe(true);
+  });
+
+  // -------------------------------------------------------------------------
   // Finding #6c / Finding #5 — Stage 4 writer must also go through
   // constraint enforcement. Without the fix, a Stage 4 writer mutating URLs
   // would land the mutation on the tribunal branch.
@@ -503,9 +565,7 @@ describe('pipeline — writer-constraint enforcement', () => {
     expect(finalContent).not.toContain('malicious.example.com');
 
     // Commit trail shows a Stage 4 rejected marker (proves constraint ran)
-    expect(
-      git.commits.some((m) => m.includes('stage4') && m.includes('rejected'))
-    ).toBe(true);
+    expect(git.commits.some((m) => m.includes('stage4') && m.includes('rejected'))).toBe(true);
   });
 });
 
@@ -731,10 +791,16 @@ describe('pipeline — Stage 3 dupCheck-only FAIL (Level E)', () => {
     // Round 2: library passes + dupCheck still fails → shortcut fires (needs_review)
     const round1Output: FactLibJudgeOutput = {
       pass: false,
-      scores: { factAccuracy: 9, sourceFidelity: 9, linkCoverage: 6, linkRelevance: 6, dupCheck: 3 },
+      scores: {
+        factAccuracy: 9,
+        sourceFidelity: 9,
+        linkCoverage: 6,
+        linkRelevance: 6,
+        dupCheck: 3,
+      },
       composite: 6,
       fact_pass: true,
-      library_pass: false,  // library fails — workers CAN fix this
+      library_pass: false, // library fails — workers CAN fix this
       dupCheck_pass: false,
       improvements: {
         linkCoverage: 'missing glossary links',
@@ -747,10 +813,16 @@ describe('pipeline — Stage 3 dupCheck-only FAIL (Level E)', () => {
     };
     const round2Output: FactLibJudgeOutput = {
       pass: false,
-      scores: { factAccuracy: 9, sourceFidelity: 9, linkCoverage: 9, linkRelevance: 8, dupCheck: 3 },
+      scores: {
+        factAccuracy: 9,
+        sourceFidelity: 9,
+        linkCoverage: 9,
+        linkRelevance: 8,
+        dupCheck: 3,
+      },
       composite: 7,
       fact_pass: true,
-      library_pass: true,  // library fixed by workers
+      library_pass: true, // library fixed by workers
       dupCheck_pass: false,
       improvements: {
         dupCheck: 'class=hard-dup action=BLOCK matchedSlugs=[sp-100] reason=同 cluster primary',
@@ -784,7 +856,108 @@ describe('pipeline — Stage 3 dupCheck-only FAIL (Level E)', () => {
     expect(judgeCallCount).toBe(2);
 
     // shortcut fires on round 2 (after library is fixed by workers)
-    expect(git.commits.some((m) => m.includes('dupCheck FAIL') && m.includes('class=hard-dup'))).toBe(true);
+    expect(
+      git.commits.some((m) => m.includes('dupCheck FAIL') && m.includes('class=hard-dup'))
+    ).toBe(true);
     expect(git.commits.every((m) => !m.includes('max loops exhausted'))).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// move-clarity-vibe-to-fresheyes — v9 Fresh Eyes clarity gate via pipeline
+// ---------------------------------------------------------------------------
+
+const V9_ARTICLE = `---
+title: "Test Article v9"
+ticketId: CP-998
+slug: test-article-v9
+lang: "zh-tw"
+date: 2026-06-18
+source:
+  url: "https://example.com/source"
+tags:
+  - test
+scores:
+  tribunalVersion: 9
+---
+
+# 測試文章
+
+ShroomDog 想分享這段內容。Clawd 覺得 [documentation](https://example.com/docs) 是起點。
+
+## 結論
+
+Clawd 覺得結束了。
+`;
+
+describe('pipeline — v9 Fresh Eyes clarity gate', () => {
+  let tmpDir: string;
+  let articlePath: string;
+
+  beforeEach(async () => {
+    tmpDir = await mkdtemp(join(tmpdir(), 'tribunal-v2-v9-test-'));
+    articlePath = join(tmpDir, 'cp-998-v9.mdx');
+    await writeFile(articlePath, V9_ARTICLE, 'utf-8');
+  });
+
+  afterEach(async () => {
+    await rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it('overrides model pass=true when v9 FreshEyes clarity < 8', async () => {
+    let judgeCalls = 0;
+    let writerCalls = 0;
+    const git = mockGit();
+
+    const config: PipelineConfig = {
+      ...passThroughConfig(),
+      git: git.adapter,
+      runners: {
+        ...passThroughConfig().runners,
+        stage2Judge: {
+          run: async () => {
+            judgeCalls++;
+            if (judgeCalls === 1) {
+              // High everything but clarity=7 → the v9 non-compensating gate
+              // must fail this even though the model claims pass=true.
+              return freshEyesOutput(
+                true,
+                {
+                  readability: 10,
+                  firstImpression: 10,
+                  payoffDensity: 10,
+                  lengthFit: 10,
+                  clarity: 7,
+                },
+                { improvements: { clarity: 'who is speaking here?' } }
+              );
+            }
+            return freshEyesOutput(true, {
+              readability: 8,
+              firstImpression: 8,
+              payoffDensity: 8,
+              lengthFit: 8,
+              clarity: 8,
+            });
+          },
+        },
+        stage2Writer: {
+          run: async ({ articleContent, feedback }) => {
+            writerCalls++;
+            expect(feedback).toContain('Programmatic pass-bar failed');
+            expect(feedback).toContain('clarity');
+            return { content: `${articleContent}\n\n釐清了每句話的發話者。` };
+          },
+        },
+      },
+    };
+
+    const final = await runPipeline(articlePath, config);
+
+    expect(final.status).toBe('passed');
+    expect(final.stages.stage2.status).toBe('passed');
+    expect(judgeCalls).toBe(2);
+    expect(writerCalls).toBe(1);
+    expect(final.stages.stage2.history[0]?.pass).toBe(false);
   });
 });

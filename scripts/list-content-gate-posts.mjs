@@ -79,11 +79,29 @@ function isMetadataOnlyDiff(baseRef, file) {
   );
 }
 
-function isInternalPostLinkOnlyDiff(baseRef, file) {
+function normalizeMaintenanceLinks(line) {
+  return line
+    .slice(1)
+    .replace(/\[([^\]\n]+)\]\(\/(?:en\/)?glossary#[^)\n]+\)/g, '$1')
+    .replace(/\[([^\]\n]+)\]\(\/posts\/[^)\n]+\)/g, '$1')
+    .trim();
+}
+
+function isLinkOnlyDiff(baseRef, file) {
   if (!existsAt(baseRef, file)) return false;
   const lines = diffBodyLines(baseRef, file);
   if (lines.length === 0) return true;
-  return lines.every((line) => line.includes('/posts/'));
+
+  const removed = lines
+    .filter((line) => line.startsWith('-'))
+    .map(normalizeMaintenanceLinks)
+    .sort();
+  const added = lines
+    .filter((line) => line.startsWith('+'))
+    .map(normalizeMaintenanceLinks)
+    .sort();
+
+  return JSON.stringify(removed) === JSON.stringify(added);
 }
 
 function isExistingTicketAddition(baseRef, file) {
@@ -108,7 +126,7 @@ const files = changed
   .filter((file) => !path.basename(file).startsWith('en-'))
   .filter((file) => fs.existsSync(file))
   .filter((file) => !isMetadataOnlyDiff(baseRef, file))
-  .filter((file) => !isInternalPostLinkOnlyDiff(baseRef, file))
+  .filter((file) => !isLinkOnlyDiff(baseRef, file))
   .filter((file) => !isExistingTicketAddition(baseRef, file));
 
 console.log(files.join('\n'));

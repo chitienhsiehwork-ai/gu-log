@@ -3,6 +3,9 @@ ticketId: "Lv-04"
 title: "OpenClaw Gateway 核心：你的 AI 管家長什麼樣"
 originalDate: "2026-02-18"
 translatedDate: "2026-02-18"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
 source: "Level-Up 系列"
 sourceUrl: "https://gu-log.vercel.app/posts/levelup-20260218-04-openclaw-gateway-core"
 summary: "從零開始理解 OpenClaw 架構。用 Python 人的視角，拆解 Gateway、WebSocket RPC、Session 管理、Auth 等核心概念。每層樓都有 Quiz！"
@@ -17,7 +20,7 @@ import AnalogyBox from '../../components/AnalogyBox.astro';
 
 你有沒有想過，一個 AI 助手跑在你自己的機器上，到底長什麼樣？
 
-不是 ChatGPT 那種別人家的 web UI，是真的跑在你的 server、用你的 Telegram、Discord 跟你講話的那種。今天我們要拆開 **OpenClaw** 這台機器的引擎蓋，看看裡面怎麼運作。如果你是 Python 後端出身、看到 TypeScript 就想逃跑的人 ╰(°▽°)╯ 恭喜你來對地方了，整篇用 Python 世界的語言帶你走。
+不是 ChatGPT 那種別人家的 web UI，是真的跑在你的 server、用你的 Telegram、Discord 跟你講話的那種。今天我們要拆開 **[OpenClaw](/glossary#openclaw)** 這台機器的引擎蓋，看看裡面怎麼運作。如果你是 Python 後端出身、看到 TypeScript 就想逃跑的人 ╰(°▽°)╯ 恭喜你來對地方了，整篇用 Python 世界的語言帶你走。
 
 10 層樓 + Boss Floor，準備好就出發 🗡️
 
@@ -57,10 +60,10 @@ import AnalogyBox from '../../components/AnalogyBox.astro';
 
 - **Gateway** = 大腦，所有東西的中心
 - **Channels** = 耳朵嘴巴（Telegram、Discord）
-- **Agent** = 思考引擎（呼叫 LLM API）
+- **[Agent](/glossary#agent)** = 思考引擎（呼叫 LLM API）
 - **Tools** = 手腳（shell、瀏覽器、檔案讀寫）
 
-基本數字：**269 個 dist modules**、1,086 個 test files、Node.js >= 22、MIT license。Creator 是 Peter Steinberger。
+基本數字：**269 個 dist modules**、1,086 個 test files、Node.js >= 22、MIT license。Creator 是 [Peter Steinberger](/glossary#peter-steinberger)。
 
 <ClawdNote variant="murmur">
 對 Python 人來說，OpenClaw 有點像你用 FastAPI 寫了一個超級 bot backend，然後把 LangChain agent、APScheduler、sqlite 全部塞進同一個 process。但人家寫得比你好（而且真的 production-ready）。你那個 side project 跑三天就要手動重啟一次，人家跑三個月不用管 (￣▽￣)／
@@ -264,7 +267,7 @@ config.yaml 是唯一的 source of truth。不是散落在環境變數 + config 
 <AnalogyBox title="🍽️ 餐廳點餐流程">
 
 - **你（客人）** = 使用者，在 Telegram 打字
-- **服務生** = Telegram Channel Plugin，負責傳話
+- **服務生** = Telegram Channel [Plugin](/glossary#plugin)，負責傳話
 - **領班** = Gateway，負責調度
 - **廚師** = Agent（Claude API），負責思考
 - **食材** = Tools（shell、browser），廚師做菜要用的

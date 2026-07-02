@@ -10,7 +10,7 @@
 # Usage:
 #   scripts/tribunal-worker-bootstrap.sh create <id>    # create worktree, pnpm install
 #   scripts/tribunal-worker-bootstrap.sh status         # list all worker worktrees
-#   scripts/tribunal-worker-bootstrap.sh sync [id]      # fast-forward worker(s) to origin/main
+#   scripts/tribunal-worker-bootstrap.sh sync [id]      # fast-forward worker(s) to sync ref
 #   scripts/tribunal-worker-bootstrap.sh remove <id>    # git worktree remove
 #   scripts/tribunal-worker-bootstrap.sh remove-all     # remove every gu-log-worker-*
 #
@@ -18,7 +18,7 @@
 #   - Disk cost is ~500MB per worker (pnpm node_modules per worktree).
 #   - Safe to run create on an id that already exists: prints a warning and
 #     exits 0 so this is idempotent for supervisor startup.
-#   - `sync` MUST be run after every main-branch change to tribunal code or
+#   - `sync` MUST be run after every tribunal-code change on the active sync ref or
 #     workers will continue running the stale snapshot of their worktree.
 #     Supervisor invokes `sync` at startup; also run it manually when you
 #     see new code on main that should reach running workers without a
@@ -29,6 +29,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MAIN_REPO="$(cd "$SCRIPT_DIR/.." && pwd)"
 WORKER_PARENT="$(dirname "$MAIN_REPO")"   # usually ~/clawd/projects
+SYNC_REF="${TRIBUNAL_WORKER_SYNC_REF:-origin/main}"
 
 usage() {
   grep '^# ' "$0" | sed 's/^# \{0,1\}//'
@@ -54,10 +55,15 @@ cmd_create() {
   fi
 
   cd "$MAIN_REPO"
-  echo "Creating worktree $path at origin/main…"
-  # Fetch first so origin/main is current; bootstrap from a clean main.
-  git fetch origin main
-  git worktree add "$path" origin/main
+  echo "Creating worktree $path at $SYNC_REF…"
+  # Only fetch when the sync ref points at a remote-tracking branch. For
+  # runtime branches we intentionally allow TRIBUNAL_WORKER_SYNC_REF=HEAD so
+  # workers follow the supervisor's currently deployed code, not stale
+  # origin/main.
+  if [[ "$SYNC_REF" == origin/* ]]; then
+    git fetch origin "${SYNC_REF#origin/}"
+  fi
+  git worktree add "$path" "$SYNC_REF"
 
   echo "Running pnpm install in $path (this will take a minute)…"
   cd "$path"
@@ -92,9 +98,11 @@ cmd_status() {
 cmd_sync() {
   local only_id="${1:-}"
   cd "$MAIN_REPO"
-  git fetch origin main >/dev/null 2>&1 || { echo "WARN: git fetch origin main failed" >&2; }
+  if [[ "$SYNC_REF" == origin/* ]]; then
+    git fetch origin "${SYNC_REF#origin/}" >/dev/null 2>&1 || { echo "WARN: git fetch $SYNC_REF failed" >&2; }
+  fi
   local target_sha
-  target_sha=$(git rev-parse origin/main)
+  target_sha=$(git rev-parse "$SYNC_REF")
 
   local dir id before_sha lockfile_changed pkg_changed
   local any=0
@@ -108,7 +116,7 @@ cmd_sync() {
 
     before_sha=$(git -C "$dir" rev-parse HEAD 2>/dev/null || echo "unknown")
     if [ "$before_sha" = "$target_sha" ]; then
-      echo "worker-$id: already at ${target_sha:0:8} (origin/main) — nothing to do"
+      echo "worker-$id: already at ${target_sha:0:8} ($SYNC_REF) — nothing to do"
       continue
     fi
 
@@ -125,7 +133,7 @@ cmd_sync() {
 
     echo "worker-$id: ${before_sha:0:8} -> ${target_sha:0:8}"
     # Reset is safe: worker worktrees are detached-HEAD, ephemeral snapshots
-    # rebuilt from origin/main. Nothing worth preserving lives in them.
+    # rebuilt from the active sync ref. Nothing worth preserving lives in them.
     if ! git -C "$dir" reset --hard "$target_sha" >/dev/null 2>&1; then
       echo "  ERROR: reset failed for worker-$id" >&2
       continue

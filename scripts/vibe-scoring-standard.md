@@ -1,22 +1,33 @@
-# Ralph Vibe Scoring Standard v2.0
+# Tribunal Vibe Scoring Standard
 
 > Golden standard for evaluating gu-log post quality.
-> Tribunal v2 calibrated 2026-04-08 by ShroomDog + Clawd.
+> Tribunal v8 FreshEyes length-fit update calibrated 2026-05-27 by ShroomDog + Iris.
+> **v9 (move-clarity-vibe-to-fresheyes):** `clarity` (pronoun / voice
+> attribution) moved from the Vibe judge to **Fresh Eyes** and became a
+> non-compensating hard gate. Vibe is now 4 dims, Fresh Eyes 5. This is
+> **version-gated**: posts at `tribunalVersion >= 9` use the new ownership;
+> `tribunalVersion <= 8` posts keep clarity under Vibe unchanged (no migration).
 > **SSOT for all 4 tribunal judges + writer agent.**
 
 ## Tribunal System Overview
 
-Tribunal v2 pipeline — 5 stages (0–4). All judges use **uniform 0-10 integer scale**. Composite = `Math.floor(avg of all dims)`.
+Tribunal v8 pipeline — 4 stages. All judges use **uniform 0-10 integer scale**. Composite = `Math.floor(avg of all dims)`.
+
+### v8 Judge Responsibility Boundary
+
+- **Librarian owns corpus overlap and duplicate-attention evidence.** It checks whether gu-log already covered the same concept, whether the post cites/contrasts relevant older posts early enough, and whether repeated background should be compressed.
+- **Fresh Eyes owns first-time reader fatigue.** It judges whether a human reader would skim, close the tab, or feel the article is longer than its information gain. **For v9+ it also owns `clarity`** (pronoun / voice attribution) as a non-compensating hard gate.
+- **Vibe owns article-internal rhythm and shareability.** It does not do corpus search. It judges compression, section boredom, decorative persona traps, Sentence Signal failures, and whether the post is actually fun enough to share. **For v9+ it no longer scores `clarity`** (moved to Fresh Eyes); 晶晶體 still drags `vibe` down via the penalty matrix.
+- **Writer consumes judge evidence.** Librarian overlap evidence must trigger early citation/compression; FreshEyes fatigue must trigger structural shortening; Vibe rhythm failures must trigger a new spine, not extra jokes.
 
 | Stage | Judge | Model | Dimensions | Pass Bar |
 |-------|-------|-------|------------|----------|
-| 0 | Worthiness Gate | Opus | coreInsight · expandability · audienceRelevance | WARN mode — always advances, marks frontmatter if low |
-| 1 | Vibe | Opus | persona · clawdNote · vibe · clarity · narrative | composite ≥ 8 AND one dim ≥ 9 AND no dim < 8 |
-| 2 | Fresh Eyes | Opus | readability · firstImpression | composite ≥ 8 |
-| 3 | FactLib (combined) | Opus | factAccuracy · sourceFidelity · linkCoverage · linkRelevance | fact_pass AND library_pass (independent) |
-| 4 | Final Vibe | Opus | persona · clawdNote · vibe · clarity · narrative | relative: no dim drops > 1 from Stage 1 |
+| 1 | Fact Checker | GPT-5.5 | accuracy · fidelity · consistency · sourceBoundary · commentarySeparation | fact core avg ≥ 8 AND sourceBoundary ≥ 8 AND commentarySeparation ≥ 8 |
+| 2 | Librarian | GPT-5.5 | glossary · crossRef · sourceAlign · attribution | composite ≥ 8 |
+| 3 | Fresh Eyes | GPT-5.5 | readability · firstImpression · payoffDensity · lengthFit · **clarity** (v9+) | composite ≥ 8 AND payoffDensity ≥ 8 AND lengthFit ≥ 8 AND **clarity ≥ 8** (v9+) |
+| 4 | Vibe | GPT-5.5 | persona · clawdNote · vibe · narrative (v9; legacy v8 also had clarity) | composite ≥ 8 AND one dim ≥ 9 AND no dim < 8 |
 
-## Uniform Agent Output JSON (v2)
+## Uniform Agent Output JSON (v8)
 
 All judges output the `BaseJudgeOutput` shape from `src/lib/tribunal-v2/types.ts`:
 
@@ -48,28 +59,30 @@ All judges output the `BaseJudgeOutput` shape from `src/lib/tribunal-v2/types.ts
 - `judge_version` — semver of this prompt (e.g. `"2.0.0"`).
 - `timestamp` — ISO 8601.
 
-Stage 3 (FactLib) extends this with `fact_pass` and `library_pass` booleans. Stage 4 (Final Vibe) extends with `stage_1_scores`, `degraded_dimensions`, `is_degraded`. See `types.ts` for exact shapes.
+The shell runtime normalizes legacy `scores`/`composite` output into this uniform JSON shape before validation.
 
 ## Pass Bar: Code is the Rule
 
 The orchestrator in `src/lib/tribunal-v2/pass-bar.ts` is the ultimate authority. Even if an agent sets `pass: true`, the orchestrator re-evaluates. Mismatches are logged — agents must keep `pass` aligned.
 
 ```typescript
-// Stage 1 / Stage 4 (Vibe)
+// Vibe
 composite >= 8 && max(scores) >= 9 && min(scores) >= 8
 
-// Stage 2 (Fresh Eyes), Stage 3 (FactLib per independent axis)
+// Fresh Eyes, Librarian
 composite >= 8
 
-// Stage 4 relative check — applied on top of Stage 4 absolute
-forEach dim: stage1Score - stage4Score <= 1
+// Fact Checker v7
+floor(avg(accuracy, fidelity, consistency)) >= 8
+sourceBoundary >= 8
+commentarySeparation >= 8
 ```
 
 Agents self-assess `pass` but the pass-bar lib wins. Log the discrepancy.
 
 ---
 
-## Stage 1: Librarian (Opus 4.7) — 4 Dimensions
+## Stage 2: Librarian (GPT-5.5) — 4 Dimensions
 
 ### glossary — Glossary Term Coverage
 Does every technical term that exists in `src/data/glossary.json` get linked or explained?
@@ -81,17 +94,19 @@ Does every technical term that exists in `src/data/glossary.json` get linked or 
 | 5 | Multiple key terms used without glossary connection |
 | 2 | Full of terms with zero glossary integration |
 
-### crossRef — Internal Cross-References + Identity Linking
-Do internal `/posts/slug/` links resolve? Are relevant connections made?
+### crossRef — Internal Cross-References + Corpus Overlap
+Does internal `/posts/slug/` links resolve? Are relevant connections made? Does the post avoid making readers re-read gu-log content that already exists?
 - First mention of **ShroomDog** → must link to `/about`
 - First mention of **Clawd/ShroomClawd** → must link to `/about`
+- When an older gu-log post already covers the same core workflow/concept, the new post must cite or contrast it early enough that readers understand what is new.
+- If overlap is substantial, Librarian must name the old post(s), the repeated sections, and the required writer action: early cite, one-sentence recap, compression, contrast, merge, or rejection.
 
 | Score | Description |
 |-------|-------------|
-| 10 | All refs verified, identity links present, obvious thematic connections made |
-| 8 | Refs valid, identity links present, 1-2 optional connections could be added |
-| 5 | Refs valid but obvious connections missing |
-| 2 | Broken links or missing required identity links |
+| 10 | All refs verified, identity links present, obvious thematic connections made, and overlapping old posts are cited/contrasted early with clear new angle |
+| 8 | Refs valid and important overlap handled, but 1-2 optional connections or compression opportunities remain |
+| 5 | Refs valid but obvious connections missing, or repeated background makes the post feel redundant without enough early contrast |
+| 2 | Broken links, missing required identity links, or same core claim/workflow repeated with no useful citation/contrast |
 
 ### sourceAlign — sourceUrl Alignment
 Does the content match what's at the declared `sourceUrl`?
@@ -110,14 +125,20 @@ Are quotes, stats, and opinions properly attributed?
 
 | Score | Description |
 |-------|-------------|
-| 10 | Perfect attribution — every claim sourced, every opinion clearly labeled as ClawdNote opinion |
+| 10 | Perfect attribution — quotes/stats/evidence limits are clear, and gu-log/Clawd opinions stay in ClawdNote |
 | 8 | Generally good, 1-2 minor gaps |
 | 5 | Multiple unattributed claims or opinion/fact blur in body |
 | 2 | Pervasive attribution failure |
 
 ---
 
-## Stage 2: Fact Checker (Opus) — 3 Dimensions
+## Tribunal v8 Calibration References
+
+Known false-positive examples live under `.codex/agents/references/`. Judges should treat these as calibration fixtures, not live article instructions.
+
+- `.codex/agents/references/sp-187-v7-false-positive.md` points to the exact git commit/blob for the rejected SP-187 sample and CP-179 overlap target. Use it to remember why v7 exists: Librarian must catch CP-179 overlap, FreshEyes must catch reader fatigue, and Vibe must not award `vibe 8 / narrative 9` to a long linear-report skeleton.
+
+## Stage 1: Fact Checker (GPT-5.5) — 5 Dimensions
 
 ### accuracy — Technical Accuracy
 
@@ -162,6 +183,30 @@ Are quotes, stats, and opinions properly attributed?
 | 1–2 | Argument fundamentally incoherent. |
 | 0 | No logical structure. |
 
+### sourceBoundary — SP Body Source Boundary
+
+SP readers already see `原文出處：`. SP body should not waste flow on source-meta scaffolding like 「原作者說」「原文提到」「這篇文章在講」 or English equivalents. Present source claims directly, preserving hedges and evidence boundaries in natural prose. Evidence boundaries should be contextual and reader-respecting, not legalistic disclaimers like 「不是公開 benchmark」「僅供參考」「不是保證所有人都能做到」 unless the claim is genuinely high-risk (benchmark, finance, medical, safety, legal, company revenue, or decision-critical numbers).
+
+| Score | Description |
+|-------|-------------|
+| 10 | Body has no source-meta scaffolding; evidence boundaries are smooth, contextual, and do not talk down to the reader. |
+| 8 | Mostly clean; 1–2 small source-meta slips. |
+| 6 | Repeated 「原作者說 / 原文提到」 transitions make the post feel like a report. |
+| 4 | Source-report framing shapes multiple sections. |
+| 2 | Body mostly narrates the source instead of translating/explaining it. |
+
+### commentarySeparation — Commentary Separation
+
+Clawd/gu-log opinions, interpretation, jokes, and source-meta commentary belong in `<ClawdNote>`, not SP body.
+
+| Score | Description |
+|-------|-------------|
+| 10 | Body stays source-derived; Clawd/gu-log stance and source-meta commentary live in ClawdNote. |
+| 8 | Mostly separated; 1–2 body sentences should move into ClawdNote. |
+| 6 | Several body opinions blur gu-log interpretation with source claims. |
+| 4 | Reader must guess whether a claim comes from source or gu-log. |
+| 2 | Commentary and source claims are heavily mixed. |
+
 ### Calibration Examples (Fact Checker)
 
 **High anchor — SP-14 (`ai-assistance-coding-skills.mdx`): accuracy 9 / fidelity 9 / consistency 9**
@@ -181,9 +226,11 @@ Are quotes, stats, and opinions properly attributed?
 
 ---
 
-## Stage 3: Fresh Eyes (Opus 4.7) — 2 Dimensions
+## Stage 3: Fresh Eyes (GPT-5.5) — readability · firstImpression · payoffDensity · lengthFit · clarity (v9; v8 had no clarity)
 
 **Persona: developer with ~3 months of experience.** Impatient, scared of jargon, will close the tab after 2 boring paragraphs. Does NOT know what ShroomDog, Clawd, or OpenClaw are.
+
+**Pass bar (v9+):** composite ≥ 8 AND payoffDensity ≥ 8 AND lengthFit ≥ 8 AND **clarity ≥ 8** — all three are non-compensating hard gates. (v8 had only payoffDensity / lengthFit gates and no clarity.)
 
 ### readability — Can You Follow Without Getting Lost?
 
@@ -195,6 +242,8 @@ Are quotes, stats, and opinions properly attributed?
 | 4 | Get the gist but multiple confusing paragraphs. Would not share. |
 | 2 | Lost in jargon. Gave up halfway. |
 
+**Unexplained-acronym rule:** an unexplained marketing / PM / business acronym the 3-month-engineer persona may not know (CTA, MVP, ICP, TAM, ARR, CAC, …) is a readability snag — cap `readability` at 7 for one, 6 if several. Note `scripts/check-jingjing.mjs` auto-allows any ≤6-char all-caps token as an "acronym," so the deterministic 晶晶體 lint will never catch these — Fresh Eyes is the judge that has to. (Universally-understood tech acronyms like API/SDK/CLI/MCP are fine; this is about jargon outside the reader's domain.)
+
 ### firstImpression — Would You Finish? Would You Share?
 
 | Score | Description |
@@ -205,11 +254,36 @@ Are quotes, stats, and opinions properly attributed?
 | 4 | Skimmed the second half. Meh. |
 | 2 | Closed tab after 3 paragraphs. |
 
+**Reader-fatigue rule:** Fresh Eyes does not do corpus search; Librarian owns old-post overlap evidence. But if the article itself repeatedly re-explains basics, spends multiple sections in recap mode, or feels longer than its information gain, cap `firstImpression` at 7. If a smart beginner can summarize the next section before reading it because the rhythm is predictable, cap `readability` or `firstImpression` at 6.
+
 **Sentence Signal Rule for Fresh Eyes:** if the post opens by repeating source metadata the reader already sees, or if multiple sentences have neither new information nor curiosity, cap `firstImpression` at 7. A smart impatient beginner does not reward throat-clearing.
+
+### clarity — Pronoun Clarity / Voice Attribution (v9+ — moved here from Vibe)
+
+**What we're measuring:** Does every sentence make it obvious who is speaking? This is a SEPARATE axis from readability — prose can flow smoothly yet still leave a stranger unsure whether a line is the author's opinion, the source author's claim, or an aside. Non-compensating hard gate (clarity < 8 fails the stage). For `tribunalVersion <= 8` this dimension lived under Vibe and is NOT scored here.
+
+| Score | Description |
+|-------|-------------|
+| 10 | Every sentence has a clear speaker/subject. Zero ambiguous pronouns. |
+| 8 | Rare ambiguity. Pronouns used only in clearly scoped contexts (ClawdNote, blockquote). |
+| 6 | Some 你/我 slip through in body but context usually disambiguates. |
+| 4 | Frequent 你/我 in body. Reader has to guess who's speaking. |
+| 2 | Confusing mess. Can't tell if "I" is author, AI, or original source. |
+
+**EN version:** Pronoun prohibition doesn't apply. Instead: every "you/I" must have a clear referent.
+
+| Score | EN Clarity Description |
+|-------|------------------------|
+| 10 | Every "you/I" has clear referent. Reader always knows who is speaking. |
+| 8 | Rare ambiguity. "You" consistently addresses reader; "I" is always Clawd in ClawdNote. |
+| 6 | Occasional "we" ambiguity (Clawd + reader? Author + Anthropic?). |
+| 4 | Multiple instances where reader can't tell if "I" is Clawd, original author, or ShroomDog. |
+
+**晶晶體 boundary:** for zh-tw posts, decorative-English mixing also hurts clarity, but cite the canonical programmatic gate `scripts/check-jingjing.mjs` rather than inventing a penalty for allowlisted words (model names, tool names, glossary terms, `vs`/`bug`/`commit`/`PR`). Penalize only when the checker reports a violation or its output is in the evidence packet.
 
 ---
 
-## Stage 4: Vibe Scorer (Opus) — 5 Dimensions
+## Stage 4: Vibe Scorer (GPT-5.5, Opus-calibrated rubric) — persona · clawdNote · vibe · narrative (v9; legacy v8 also had clarity)
 
 **Pass bar: composite ≥ 8 AND at least one dimension ≥ 9 AND no dimension < 8**
 
@@ -230,6 +304,15 @@ Read `GU-LOG_WRITER_PROMPT.md` before scoring. Study calibration examples below.
 
 **🔴 Decorative Persona Trap（SP-158 教訓，最多 5 分）:**
 Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear report? If yes → persona ≤ 5.
+
+**🔴 AI-Tell Trap（SP-232 教訓，密度型扣分）:**
+跨模型共有的「AI 腔」簽名——4.5 / 4.6 / 4.8 都犯，越新的模型「講洞見」越流暢，反而把這些套路用得越密。換模型不會減少它們，只有這一關擋得住。重點是**密度 + 是否 reflexive**，不是單次出現：承載 thesis 或笑點的單次用法是 earned，**保留**；句型慣性的反射用法是 filler，**扣分**。
+- **T1 反義對偶過載**：「不是 X，是 Y」「不在 X，在 Y」當每段收尾的反射動作。承載論點的 1–2 次保留；通篇靠它製造「金句感」→ 3 次以上 reflexive 用法 persona ≤ 7。
+- **T2 假深度 reframe**：「表面是 X，真正/深層才是 Y」「聽起來像 X，但其實 Y」「透露的訊息比表面更深」——用 scaffolding 假裝多給一層解讀。出現在多數 ClawdNote → persona ≤ 6。
+- **T3 空洞強化詞**：「拆得很乾淨 / 很漂亮 / 到位 / 精準」「這才是工程品味」這種沒有具體資訊、只負責讓句子聽起來收得漂亮的 flourish。要求改成具體內容；多處未改 → persona ≤ 7。
+- **T4 mic-drop 打燈**：每個 section 都用一句單獨成段的「人生哲理」收尾。偶一為之 OK；變成固定收法 → 連同 narrative 一起看 template 節奏。
+
+一句話判準：**earned（承載論點/笑點）留，reflexive（句型慣性）殺。**
 
 **EN version:**
 
@@ -261,6 +344,10 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 - 8+ 門檻：至少一半的 notes 要有明確 opinion（同意/不同意原文、challenge 某個假設）
 - Density target: ~1 note per 25 prose lines
 
+**🪞 Self-referential callback（自我指涉）= clawdNote 的高分訊號:**
+- 當原文講的東西 gu-log 自己也在做（對抗式 review → gu-log 的 tribunal；長跑 agent → pipeline；把教訓寫回指令 → playbook/prompt），一個把它接回 gu-log 自身、且**誠實**的 callback 是 highlight 級的 note——尤其敢自嘲的 meta（例：「你正在讀的這篇就是被 gu-log 四法官審過、拿 sub-8、還掛精修中 badge」）。真誠又貼題的 self-ref 可以是某個 note 上 9-10 的理由。
+- **但這不是免費加分**：硬塞、不貼題、純自誇（「順帶一提 gu-log 超強」）是 cringe，反而是 persona/vibe 的扣分項。callback 必須真實 + 自然 + 服務當下論點，否則寧可不放。判準：拿掉這個 self-ref，note 還成立嗎？成立才放。
+
 ### vibe — Fun / Chill / Informed
 
 **What we're measuring:** Would you want to share this with a friend?
@@ -276,26 +363,16 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 
 **Sentence Signal Rule:** every sentence must be informative or intriguing. If a sentence only repeats source metadata, throat-clears, or restates what the reader already sees in the byline/source block, it is dead weight. Multiple dead sentences cap vibe at 7; a dead opening usually means the post should fail unless the rest recovers hard.
 
-### clarity — Pronoun Clarity / Voice Attribution
+**Compression gate:** Vibe does not perform corpus-overlap search; that belongs to Librarian. Vibe does ask whether the article is internally loose. If 25–40% of prose could be deleted without losing meaningful information, cap `vibe` at 7. If a section mostly restates earlier sections with different packaging, cap `vibe` at 6 even when facts are correct.
 
-**What we're measuring:** Does every sentence make it obvious who is speaking?
+**Section-boredom gate:** inspect section rhythm. If two or more consecutive sections follow the same report template (`explain → quote → translate/explain → ClawdNote`) without a fresh turn, surprise, scene, or opinionated point, cap `narrative` at 6. Adding more jokes or kaomoji does not fix a boring skeleton.
 
-| Score | Description |
-|-------|-------------|
-| 10 | Every sentence has a clear speaker/subject. Zero ambiguous pronouns. |
-| 8 | Rare ambiguity. Pronouns used only in clearly scoped contexts (ClawdNote, blockquote). |
-| 6 | Some 你/我 slip through in body but context usually disambiguates. |
-| 4 | Frequent 你/我 in body. Reader has to guess who's speaking. |
-| 2 | Confusing mess. Can't tell if "I" is author, AI, or original source. |
+**Corpus boundary:** If Librarian evidence says the post overlaps an older gu-log piece, Vibe may use that evidence only to judge the current article's pacing and redundancy. Vibe must not invent or own the old-post search.
 
-**EN version:** Pronoun prohibition doesn't apply. Instead: every "you/I" must have a clear referent.
+**晶晶體 boundary:** Vibe Scorer must not invent its own English-term lint. For zh-tw posts, `scripts/check-jingjing.mjs` is the canonical programmatic gate and allowlist. If the checker returns clean, do not penalize accepted engineering terms such as `vs`, `bug`, `commit`, `PR`, model names, tool names, or glossary terms as hard-policy 晶晶體 hits. Penalize decorative English mixing only when the checker reports a violation, or when deterministic checker output is included in the evidence packet. The accepted-English boundary SHALL be discussed with ShroomDog every time a term is added to or removed from the checker/glossary acceptance set, because this boundary directly affects reading flow and only ShroomDog can decide which English terms feel natural in gu-log zh-tw prose.
 
-| Score | EN Clarity Description |
-|-------|------------------------|
-| 10 | Every "you/I" has clear referent. Reader always knows who is speaking. |
-| 8 | Rare ambiguity. "You" consistently addresses reader; "I" is always Clawd in ClawdNote. |
-| 6 | Occasional "we" ambiguity (Clawd + reader? Author + Anthropic?). |
-| 4 | Multiple instances where reader can't tell if "I" is Clawd, original author, or ShroomDog. |
+> **Note (v9):** the `clarity` dimension moved to **Stage 3 Fresh Eyes** — see
+> its rubric there. For `tribunalVersion <= 8` posts clarity was scored here.
 
 ### narrative — Narrative Structure / Rhythm / Emotional Arc
 
@@ -369,12 +446,13 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 ## Evaluation Protocol (All Judges)
 
 1. **Read the ENTIRE post** — don't skim
-2. **Score each dimension independently** (integer 0-10)
-3. **Calculate composite** = `Math.floor(avg of all dims)`
-4. **Apply pass bar** — per-judge rules above; set `pass` accordingly
-5. **If `pass === false`:** write actionable `improvements` per failing dimension + 1-3 `critical_issues` root causes
-6. **If `pass === true`:** omit `improvements` and `critical_issues` to save tokens
-7. **Output v2 JSON** — `BaseJudgeOutput` shape from `src/lib/tribunal-v2/types.ts` (`pass/scores/composite/improvements?/critical_issues?/judge_model/judge_version/timestamp`)
+2. **Respect v8 judge boundaries** — Librarian owns corpus overlap; Fresh Eyes owns reader fatigue; Vibe owns internal rhythm/shareability; Writer consumes evidence instead of inventing new scope
+3. **Score each dimension independently** (integer 0-10)
+4. **Calculate composite** = `Math.floor(avg of all dims)`
+5. **Apply pass bar** — per-judge rules above; set `pass` accordingly
+6. **If `pass === false`:** write actionable `improvements` per failing dimension + 1-3 `critical_issues` root causes
+7. **If `pass === true`:** omit `improvements` and `critical_issues` to save tokens
+8. **Output v2 JSON** — `BaseJudgeOutput` shape from `src/lib/tribunal-v2/types.ts` (`pass/scores/composite/improvements?/critical_issues?/judge_model/judge_version/timestamp`)
 
 ---
 
@@ -394,11 +472,11 @@ Tribunal 各角色目前統一由 `scripts/tribunal.sh` 透過 `codex exec --mod
 
 ### 歷史校準：為什麼不能只看表面 checklist
 
-SP-175 和 SP-177 的跨版本校準實驗（2026-04-17）顯示：
+SP-175、SP-177、SP-187 的校準案例顯示：
 
 - **Opus 4.6** scorer 給 SP-175 composite 7 FAIL — 正確抓到 "effort ladder and snippets sections revert to reference-doc mode"、"readers bookmark it, not share it for fun"
 - **Opus 4.7** scorer 給 SP-175 composite 8 PASS — 看到了同樣問題（「偏實用 cheat sheet 寫法」）**但沒扣分**。典型的 bar drift（評分標準飄移）。
-- **Opus 4.5** scorer 也給 8 PASS — 同樣沒扣到 FAIL。
+- **GPT-5.5 / Tribunal v5** 曾給 SP-187 `vibe: 8 / narrative: 9`，但 ShroomDog 人工判定「太長、廢話太多、重複 CP-179，而且『變基』語感很糟」。v7 修正責任邊界：Librarian 抓 CP-179 overlap；Vibe 抓 compression / section boredom / decorative pass trap；FreshEyes 抓讀者疲勞。
 
 結論：scorer 如果只逐項打勾（比喻有、ClawdNote 有、kaomoji 有），就會忽略整體結構是否真的有趣。GPT-5.5 也必須繼承這個校準教訓，否則只是換了一個更貴的橡皮章。
 

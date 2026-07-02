@@ -36,16 +36,24 @@ export const glossaryExclude = [
 ];
 
 // Terms that SHOULD be in glossary (for reference when writing)
-// This is synced with /glossary page
+// This is synced with /glossary page.
+// Creation rule: add a term only when it is canonical/reusable, loses useful
+// meaning when translated, and needs a stable gu-log mental-model anchor.
+// Do not add entries merely to silence check-jingjing; translate ordinary
+// English to natural zh-tw instead.
 export const glossaryInclude = [
   'Ralph',
   'Vibe Coding',
   'Vibe Note-Taking',
+  'Thread',
   'MCP',
   'RL',
   'Claude Code',
   'Codex',
+  'Codex app server',
+  'Linear',
   'Hooks',
+  'Elixir',
   'Subagent',
   'Context Window',
   'Context Rot',

@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# tribunal.sh — 4-stage sequential tribunal (Codex/GPT-5.5 runner)
+# tribunal.sh — Tribunal v8 sequential tribunal (Codex/GPT-5.5 runner)
 #
 # Stages (in order):
-#   1. Librarian  (GPT-5.5) — composite ≥ 8,             max 2 loops
-#   2. Fact Check (GPT-5.5) — composite ≥ 8,             max 2 loops
+#   1. Fact Check (GPT-5.5) — source/commentary gate + fact bar, max 2 loops
+#   2. Librarian  (GPT-5.5) — composite ≥ 8,             max 2 loops
 #   3. Fresh Eyes (GPT-5.5) — composite ≥ 8,             max 2 loops
 #   4. Vibe Scorer (GPT-5.5) — one dim ≥ 9 AND rest ≥ 8, max 3 loops
 #
 # Usage:
-#   bash scripts/tribunal.sh [--only-stage <librarian|factChecker|freshEyes|vibe>] [--allow-rewrite] [--no-commit] <filename.mdx>
+#   bash scripts/tribunal.sh [--only-stage <factChecker|librarian|freshEyes|vibe>] [--allow-rewrite] [--no-commit] <filename.mdx>
 #   bash scripts/tribunal.sh --score-only --only-stage vibe <filename.mdx>
 #
 # Standalone mode: bash scripts/tribunal.sh sp-123-date-slug.mdx
@@ -22,6 +22,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$ROOT_DIR"
+TRIBUNAL_RESUME_COMMAND="$(printf '%q ' "$0" "$@")"
+export TRIBUNAL_RESUME_COMMAND="${TRIBUNAL_RESUME_COMMAND% }"
 
 # shellcheck source=scripts/score-helpers.sh
 source "$SCRIPT_DIR/score-helpers.sh"
@@ -29,10 +31,11 @@ source "$SCRIPT_DIR/score-helpers.sh"
 # shellcheck source=scripts/tribunal-helpers.sh
 source "$SCRIPT_DIR/tribunal-helpers.sh"
 
-# shellcheck source=scripts/tribunal-run-control.sh
 # Graceful stop helpers — file-flag only channel (no traps here; parent
 # loop owns signals and writes the flag file on stop).
 export RC_ROOT_DIR="$ROOT_DIR"
+# shellcheck source=scripts/tribunal-run-control.sh
+# shellcheck disable=SC1091
 source "$SCRIPT_DIR/tribunal-run-control.sh"
 
 # ─── Args ─────────────────────────────────────────────────────────────────────
@@ -41,6 +44,9 @@ POST_FILE=""
 ALLOW_REWRITE=""
 WRITE_FRONTMATTER=1
 SCORE_ONLY=0
+# v9 (move-clarity-vibe-to-fresheyes): clarity moved vibe → freshEyes.
+# Must stay in lockstep with frontmatter-scores.mjs CURRENT_TRIBUNAL_VERSION.
+TRIBUNAL_VERSION=9
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --only-stage)
@@ -75,7 +81,7 @@ while [ "$#" -gt 0 ]; do
       shift
       ;;
     -h|--help)
-      echo "Usage: bash scripts/tribunal.sh [--only-stage <librarian|factChecker|freshEyes|vibe>] [--allow-rewrite] [--no-commit|--score-only] <filename.mdx>"
+      echo "Usage: bash scripts/tribunal.sh [--only-stage <factChecker|librarian|freshEyes|vibe>] [--allow-rewrite] [--no-commit|--score-only] <filename.mdx>"
       exit 0
       ;;
     --*)
@@ -94,7 +100,7 @@ while [ "$#" -gt 0 ]; do
 done
 
 if [ -z "$POST_FILE" ]; then
-  echo "Usage: bash scripts/tribunal.sh [--only-stage <librarian|factChecker|freshEyes|vibe>] [--allow-rewrite] [--no-commit|--score-only] <filename.mdx>" >&2
+  echo "Usage: bash scripts/tribunal.sh [--only-stage <factChecker|librarian|freshEyes|vibe>] [--allow-rewrite] [--no-commit|--score-only] <filename.mdx>" >&2
   exit 1
 fi
 
@@ -128,7 +134,8 @@ mkdir -p "$LOG_DIR"
 LOG_FILE="$LOG_DIR/tribunal-$(TZ=Asia/Taipei date +%Y%m%d-%H%M%S)-${POST_FILE%.mdx}.log"
 
 tlog() {
-  local msg="[$(TZ=Asia/Taipei date '+%Y-%m-%d %H:%M:%S %z')] [tribunal] $*"
+  local msg
+  msg="[$(TZ=Asia/Taipei date '+%Y-%m-%d %H:%M:%S %z')] [tribunal] $*"
   echo "$msg" | tee -a "$LOG_FILE"
 }
 
@@ -146,40 +153,32 @@ if ! flock -n 200; then
 fi
 
 # ─── Progress Tracking ────────────────────────────────────────────────────────
-# Phase 2 (tribunal-safe-parallelism): supervisor runs in the main repo and
-# exports PROGRESS_FILE pointing at the shared progress file there; workers
-# run in isolated worktrees. Without the fallback, this line unconditionally
-# clobbers the export with the WORKTREE's local path, so per-worker
-# init_article_progress / mark_article_* writes land in the wrong file. The
-# main repo's progress.json only refreshes via `git pull`, and whenever that
-# pull warns-and-continues (dirty tree, rebase conflict) the supervisor's
-# get_unscored_articles() keeps re-dispatching articles a worker already
-# marked EXHAUSTED — producing the tight re-dispatch loop that filled the
-# 2 GB cgroup and OOM-killed tribunal-loop.service on 2026-04-24 01:03:59.
-# Honor the exported env so shared flock + shared file + shared commit path
-# all line up.
-PROGRESS_FILE="${PROGRESS_FILE:-$ROOT_DIR/scores/tribunal-progress.json}"
+# Supervisor runs in the main repo and exports PROGRESS_FILE pointing at the
+# ignored runtime ledger under .score-loop/state; workers run in isolated
+# worktrees. Without honoring the export, this line would clobber the shared
+# ledger path with the WORKTREE's local default, so per-worker progress writes
+# land in the wrong place and the supervisor can re-dispatch already-terminal
+# articles. Keep the exported env authoritative so shared flock + shared file
+# coordinates all line up.
+PROGRESS_FILE="${PROGRESS_FILE:-$(tribunal_progress_file_default "$ROOT_DIR")}"
 if [ "$SCORE_ONLY" -eq 1 ]; then
   if [ -n "${TRIBUNAL_SCORE_ONLY_PROGRESS_FILE:-}" ]; then
     PROGRESS_FILE="$TRIBUNAL_SCORE_ONLY_PROGRESS_FILE"
   else
-    PROGRESS_FILE="$(mktemp /tmp/tribunal-score-only-progress-XXXXXX.json)"
+    PROGRESS_FILE="$(mktemp "${TMPDIR:-/tmp}/tribunal-score-only-progress.XXXXXX")"
     trap 'rm -f "$PROGRESS_FILE"' EXIT
   fi
 fi
 
 ensure_progress_file() {
-  mkdir -p "$(dirname "$PROGRESS_FILE")"
-  if [ ! -f "$PROGRESS_FILE" ] || ! jq empty "$PROGRESS_FILE" 2>/dev/null; then
-    printf '{}\n' > "$PROGRESS_FILE"
-  fi
+  ensure_tribunal_progress_file "$PROGRESS_FILE" "$ROOT_DIR"
 }
 
 get_stage_status() {
   local article="$1"
   local stage="$2"
-  jq -r --arg a "$article" --arg s "$stage" \
-    '.[$a].stages[$s].status // "pending"' "$PROGRESS_FILE"
+  jq -r --arg a "$article" --arg s "$stage" --argjson v "$TRIBUNAL_VERSION" \
+    'if ((.[$a].stages[$s].tribunalVersion // 0) >= $v) then (.[$a].stages[$s].status // "pending") else "pending" end' "$PROGRESS_FILE"
 }
 
 write_stage_progress() {
@@ -193,8 +192,9 @@ write_stage_progress() {
        --arg status "$status" \
        --arg model "$model" \
        --argjson attempts "$attempts" \
+       --argjson tribunalVersion "$TRIBUNAL_VERSION" \
        --argjson score "$score_json" \
-       '.[$a].stages[$s] = {status: $status, score: $score, model: $model, attempts: $attempts}' \
+       '.[$a].stages[$s] = {status: $status, score: $score, model: $model, attempts: $attempts, tribunalVersion: $tribunalVersion}' \
        "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
   ) 9>>"$RC_PROGRESS_LOCK"
 }
@@ -208,7 +208,6 @@ init_article_progress() {
   local article="$1"
   # Entire init + attempts increment + cap check runs under a single
   # flock so two workers can't both see attempts=N and both bump to N+1.
-  local exhausted=0
   (
     flock -x 9
     local tmp
@@ -217,28 +216,50 @@ init_article_progress() {
     existing="$(jq -r --arg a "$article" '.[$a] // empty' "$PROGRESS_FILE")"
     if [ -z "$existing" ]; then
       jq --arg a "$article" \
+         --argjson tribunalVersion "$TRIBUNAL_VERSION" \
          --arg ts "$(TZ=Asia/Taipei date -Iseconds)" \
-         '.[$a] = {article: $a, startedAt: $ts, stages: {}, topLevelAttempts: 0}' \
+         '.[$a] = {article: $a, startedAt: $ts, stages: {}, topLevelAttempts: 0, tribunalVersion: $tribunalVersion}' \
          "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
       tlog "Progress initialized for $article"
     else
+      local existing_version
+      existing_version=$(jq -r --arg a "$article" '.[$a].tribunalVersion // 0' "$PROGRESS_FILE")
+      if ! [[ "$existing_version" =~ ^[0-9]+$ ]]; then existing_version=0; fi
+      if [ "$existing_version" -lt "$TRIBUNAL_VERSION" ]; then
+        jq --arg a "$article" \
+           --argjson tribunalVersion "$TRIBUNAL_VERSION" \
+           --arg ts "$(TZ=Asia/Taipei date -Iseconds)" \
+           '.[$a].status = "PENDING" | .[$a].stages = {} | .[$a].topLevelAttempts = 0 | .[$a].startedAt = $ts | .[$a].tribunalVersion = $tribunalVersion | del(.[$a].finishedAt, .[$a].failedStage)' \
+           "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
+        tlog "Progress reset for $article: tribunalVersion $existing_version → $TRIBUNAL_VERSION"
+      fi
       tlog "Resuming existing progress for $article"
     fi
 
-    # Increment + cap check
-    local attempts
+    # topLevelAttempts counts terminal content failures, not process starts.
+    # A worker killed mid-stage leaves status in-progress/no-score; restarting
+    # that article must not burn an attempt or eventually poison it as
+    # EXHAUSTED.
+    local attempts article_status
     attempts=$(jq -r --arg a "$article" '.[$a].topLevelAttempts // 0' "$PROGRESS_FILE")
-    attempts=$((attempts + 1))
-    jq --arg a "$article" --argjson n "$attempts" \
-       '.[$a].topLevelAttempts = $n' \
-       "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
-    tlog "Top-level attempt $attempts/$MAX_TOP_ATTEMPTS for $article"
+    article_status=$(jq -r --arg a "$article" '.[$a].status // ""' "$PROGRESS_FILE")
+    if ! [[ "$attempts" =~ ^[0-9]+$ ]]; then attempts=0; fi
 
-    if [ "$attempts" -gt "$MAX_TOP_ATTEMPTS" ]; then
+    if [ "$article_status" != "FAILED" ] && [ "$attempts" -gt 0 ]; then
+      jq --arg a "$article" '.[$a].topLevelAttempts = 0' \
+         "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
+      attempts=0
+      tlog "Reset non-terminal topLevelAttempts for $article after interrupted/non-content run."
+    fi
+
+    tlog "Top-level attempt $((attempts + 1))/$MAX_TOP_ATTEMPTS for $article"
+
+    if [ "$article_status" = "FAILED" ] && [ "$attempts" -ge "$MAX_TOP_ATTEMPTS" ]; then
       tlog "ERROR: $article exceeded MAX_TOP_ATTEMPTS=$MAX_TOP_ATTEMPTS. Marking EXHAUSTED."
       jq --arg a "$article" \
+         --argjson tribunalVersion "$TRIBUNAL_VERSION" \
          --arg ts "$(TZ=Asia/Taipei date -Iseconds)" \
-         '.[$a].status = "EXHAUSTED" | .[$a].finishedAt = $ts' \
+         '.[$a].status = "EXHAUSTED" | .[$a].finishedAt = $ts | .[$a].tribunalVersion = $tribunalVersion' \
          "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
       echo EXHAUSTED > "$tmp.flag"
     fi
@@ -263,10 +284,92 @@ mark_article_failed() {
     tmp="$(mktemp)"
     jq --arg a "$article" \
        --arg s "$failed_stage" \
+       --argjson tribunalVersion "$TRIBUNAL_VERSION" \
        --arg ts "$(TZ=Asia/Taipei date -Iseconds)" \
-       '.[$a].status = "FAILED" | .[$a].failedStage = $s | .[$a].finishedAt = $ts' \
+       '.[$a].topLevelAttempts = ((.[$a].topLevelAttempts // 0) + 1)
+        | .[$a].status = "FAILED"
+        | .[$a].failedStage = $s
+        | .[$a].finishedAt = $ts
+        | .[$a].tribunalVersion = $tribunalVersion' \
        "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
   ) 9>>"$RC_PROGRESS_LOCK"
+}
+
+mark_article_runner_error() {
+  local article="$1" failed_stage="$2" model="$3" attempts="$4" reason="$5"
+  (
+    flock -x 9
+    local tmp
+    tmp="$(mktemp)"
+    jq --arg a "$article" \
+       --arg s "$failed_stage" \
+       --arg model "$model" \
+       --arg reason "$reason" \
+       --argjson attempts "$attempts" \
+       --argjson tribunalVersion "$TRIBUNAL_VERSION" \
+       --arg ts "$(TZ=Asia/Taipei date -Iseconds)" \
+       '.[$a].status = "RUNNER_ERROR"
+        | .[$a].failedStage = $s
+        | .[$a].finishedAt = $ts
+        | .[$a].tribunalVersion = $tribunalVersion
+        | .[$a].topLevelAttempts = (.[$a].topLevelAttempts // 0)
+        | .[$a].stages[$s] = {
+            status: "runner_error",
+            score: null,
+            model: $model,
+            attempts: $attempts,
+            tribunalVersion: $tribunalVersion,
+            error: $reason
+          }' \
+       "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
+  ) 9>>"$RC_PROGRESS_LOCK"
+}
+
+mark_article_quota_suspended() {
+  local article="$1" failed_stage="$2" model="$3" attempts="$4" reason="$5"
+  (
+    flock -x 9
+    local tmp
+    tmp="$(mktemp)"
+    jq --arg a "$article" \
+       --arg s "$failed_stage" \
+       --arg model "$model" \
+       --arg reason "$reason" \
+       --argjson attempts "$attempts" \
+       --argjson tribunalVersion "$TRIBUNAL_VERSION" \
+       --arg ts "$(TZ=Asia/Taipei date -Iseconds)" \
+       '.[$a].status = "QUOTA_SUSPENDED"
+        | .[$a].failedStage = $s
+        | .[$a].finishedAt = $ts
+        | .[$a].tribunalVersion = $tribunalVersion
+        | .[$a].topLevelAttempts = (.[$a].topLevelAttempts // 0)
+        | .[$a].stages[$s] = {
+            status: "quota_suspended",
+            score: null,
+            model: $model,
+            attempts: $attempts,
+            tribunalVersion: $tribunalVersion,
+            error: $reason
+          }' \
+       "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
+  ) 9>>"$RC_PROGRESS_LOCK"
+}
+
+quota_status_summary() {
+  local file="$1"
+  if [ ! -s "$file" ]; then
+    printf 'quota exhausted; resume with: %s' "${TRIBUNAL_RESUME_COMMAND:-rerun the same tribunal command}"
+    return 0
+  fi
+  local provider tier reset_seconds reason resume
+  provider="$(sed -n 's/^provider=//p' "$file" | head -1)"
+  tier="$(sed -n 's/^tier=//p' "$file" | head -1)"
+  reset_seconds="$(sed -n 's/^reset_seconds=//p' "$file" | head -1)"
+  reason="$(sed -n 's/^reason=//p' "$file" | head -1)"
+  resume="$(sed -n 's/^resume_command=//p' "$file" | head -1)"
+  printf 'provider=%s tier=%s reset_seconds=%s reason=%s resume=%s' \
+    "${provider:-unknown}" "${tier:-unknown}" "${reset_seconds:-0}" \
+    "${reason:-quota exhausted}" "${resume:-${TRIBUNAL_RESUME_COMMAND:-rerun the same tribunal command}}"
 }
 
 mark_article_passed() {
@@ -276,8 +379,9 @@ mark_article_passed() {
     local tmp
     tmp="$(mktemp)"
     jq --arg a "$article" \
+       --argjson tribunalVersion "$TRIBUNAL_VERSION" \
        --arg ts "$(TZ=Asia/Taipei date -Iseconds)" \
-       '.[$a].status = "PASS" | .[$a].finishedAt = $ts' \
+       '.[$a].status = "PASS" | .[$a].finishedAt = $ts | .[$a].tribunalVersion = $tribunalVersion' \
        "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
   ) 9>>"$RC_PROGRESS_LOCK"
 }
@@ -396,7 +500,7 @@ run_final_build_once() {
 
 repair_final_build_failure() {
   local post_file="$1" build_log="$2" repair_attempt="$3"
-  local evidence writer_prompt writer_out writer_rc en_existed_before
+  local evidence writer_prompt writer_out writer_rc en_existed_before writer_quota_status_file
   evidence="$(tail -80 "$build_log" 2>/dev/null || true)"
   if [ -f "src/content/posts/en-$post_file" ]; then
     en_existed_before=1
@@ -428,21 +532,40 @@ $evidence
 5. Do not rewrite unrelated content and do not change stable frontmatter fields unless the build error specifically requires it.
 PROMPT
 )"
+  local writer_mode
+  writer_mode="$(tribunal_writer_mode)"
+  if [ "$writer_mode" = "none" ]; then
+    tlog "  Rewrite skipped (GP_WRITER_MODE=none) during final build repair; failing without invoking tribunal-writer."
+    return 1
+  fi
   writer_out="$(mktemp)"
+  writer_quota_status_file="$(mktemp)"
   writer_rc=0
   # Spawn from tmp work-dir so Codex does not inherit unrelated repo-local
   # instructions. Writer's job is to edit src/content/posts/*.mdx.
   local writer_work_dir
   writer_work_dir="$(tribunal_llm_work_dir)"
-  tribunal_codex_exec "$writer_work_dir" "tribunal-writer" "$writer_prompt" > "$writer_out" 2>&1 || writer_rc=$?
+  TRIBUNAL_QUOTA_STATUS_FILE="$writer_quota_status_file" \
+    TRIBUNAL_WRITER_POST_FILE="$post_file" \
+    TRIBUNAL_WRITER_STAGE="finalBuild" \
+    TRIBUNAL_WRITER_ATTEMPT="$repair_attempt" \
+    tribunal_writer_exec "$writer_work_dir" "tribunal-writer" "$writer_prompt" > "$writer_out" 2>&1 || writer_rc=$?
   rm -rf "$writer_work_dir"
+  if [ "$writer_rc" -eq 75 ]; then
+    local writer_quota_reason
+    writer_quota_reason="$(quota_status_summary "$writer_quota_status_file")"
+    tlog "  QUOTA SUSPEND during final build repair writer: $writer_quota_reason"
+    mark_article_quota_suspended "$post_file" "finalBuild" "tribunal-writer" "$repair_attempt" "writer: $writer_quota_reason"
+    rm -f "$writer_out" "$writer_quota_status_file"
+    return 75
+  fi
   if [ "$writer_rc" -ne 0 ]; then
     tlog "  WARN: final build repair writer exited with code $writer_rc"
     tail -10 "$writer_out" | while IFS= read -r line; do tlog "    $line"; done
-    rm -f "$writer_out"
+    rm -f "$writer_out" "$writer_quota_status_file"
     return 1
   fi
-  rm -f "$writer_out"
+  rm -f "$writer_out" "$writer_quota_status_file"
 
   cheap_validate_writer_rewrite "$post_file" "$en_existed_before"
 }
@@ -452,7 +575,7 @@ run_final_build_gate() {
   local max_repairs=2
   local repair_attempt=0
   local build_log build_rc classification
-  build_log="$(mktemp /tmp/tribunal-final-build-XXXXXX.log)"
+  build_log="$(mktemp "${TMPDIR:-/tmp}/tribunal-final-build.XXXXXX")"
 
   while true; do
     : > "$build_log"
@@ -485,7 +608,13 @@ run_final_build_gate() {
     fi
 
     repair_attempt=$((repair_attempt + 1))
-    if ! repair_final_build_failure "$post_file" "$build_log" "$repair_attempt"; then
+    local repair_rc=0
+    repair_final_build_failure "$post_file" "$build_log" "$repair_attempt" || repair_rc=$?
+    if [ "$repair_rc" -eq 75 ]; then
+      rm -f "$build_log"
+      return 75
+    fi
+    if [ "$repair_rc" -ne 0 ]; then
       tlog "Final build repair attempt $repair_attempt failed cheap validation; failing without PASS."
       revert_writer_rewrite_files "$post_file"
       rm -f "$build_log"
@@ -516,28 +645,49 @@ PY
 import json, sys, math
 data = json.load(open(sys.argv[1]))
 dims = data.get('dimensions', {})
-vals = [dims.get(k, 0) for k in ('accuracy', 'fidelity', 'consistency')]
-composite = math.floor(sum(vals) / len(vals))
-sys.exit(0 if composite >= 8 else 1)
+core = [dims.get(k, 0) for k in ('accuracy', 'fidelity', 'consistency')]
+core_composite = math.floor(sum(core) / len(core))
+source_boundary = dims.get('sourceBoundary', 0)
+commentary_separation = dims.get('commentarySeparation', 0)
+sys.exit(0 if core_composite >= 8 and source_boundary >= 8 and commentary_separation >= 8 else 1)
 PY
       ;;
     fresh-eyes)
-      python3 - "$json_file" <<'PY'
+      # Dimension ownership is version-aware (SSOT: src/lib/tribunal-v2/pass-bar.ts).
+      # At tribunalVersion >= 9 `clarity` moves Vibe → Fresh Eyes, joining the
+      # composite AND becoming a non-compensating hard gate.
+      python3 - "$json_file" "$TRIBUNAL_VERSION" <<'PY'
 import json, sys, math
 data = json.load(open(sys.argv[1]))
+version = int(sys.argv[2])
 dims = data.get('dimensions', {})
-vals = [dims.get(k, 0) for k in ('readability', 'firstImpression')]
+keys = ('readability', 'firstImpression', 'payoffDensity', 'lengthFit')
+if version >= 9:
+    keys = keys + ('clarity',)
+vals = [dims.get(k, 0) for k in keys]
 composite = math.floor(sum(vals) / len(vals))
-sys.exit(0 if composite >= 8 else 1)
+# FreshEyes length/readability dimensions are non-compensating: a flashy hook
+# must not hide low payoff density or bad length fit.
+ok = composite >= 8 and dims.get('payoffDensity', 0) >= 8 and dims.get('lengthFit', 0) >= 8
+if version >= 9:
+    ok = ok and dims.get('clarity', 0) >= 8
+sys.exit(0 if ok else 1)
 PY
       ;;
     vibe-opus-scorer)
-      # one dim ≥ 9 AND rest ≥ 8 (no dim < 8)
-      python3 - "$json_file" <<'PY'
+      # one dim ≥ 9 AND rest ≥ 8 (no dim < 8). Dimension set is version-aware
+      # (SSOT: src/lib/tribunal-v2/pass-bar.ts): at tribunalVersion >= 9 `clarity`
+      # leaves Vibe for Fresh Eyes, so the composite spans 4 dims, not 5. Keeping
+      # the legacy 5-dim list here made the absent clarity default to 0, dragging
+      # composite below 8 and wrongly failing every v9 post.
+      python3 - "$json_file" "$TRIBUNAL_VERSION" <<'PY'
 import json, sys, math
 data = json.load(open(sys.argv[1]))
+version = int(sys.argv[2])
 dims = data.get('dimensions', {})
-vals = [dims.get(k, 0) for k in ('persona', 'clawdNote', 'vibe', 'clarity', 'narrative')]
+keys = ('persona', 'clawdNote', 'vibe', 'narrative') if version >= 9 \
+    else ('persona', 'clawdNote', 'vibe', 'clarity', 'narrative')
+vals = [dims.get(k, 0) for k in keys]
 composite = math.floor(sum(vals) / len(vals))
 if composite < 8:
     sys.exit(1)
@@ -556,7 +706,7 @@ PY
 }
 
 # ─── Run One Tribunal Stage ───────────────────────────────────────────────────
-# Args: stage_key, agent_name, validate_name, label, max_loops, runner_label, post_file
+# Args: stage_key, agent_name, validate_name, label, max_loops, post_file
 # Returns: 0 = stage passed, 1 = stage failed (max loops exhausted)
 run_stage() {
   local stage_key="$1"    # progress key: librarian, factChecker, freshEyes, vibe
@@ -564,15 +714,26 @@ run_stage() {
   local validate_name="$3" # validate name: librarian, fact-checker, fresh-eyes, vibe-opus-scorer
   local label="$4"        # human label: Librarian, FactChecker, FreshEyes, VibeScorer
   local max_loops="$5"    # 2 or 3
-  local runner_label="$6"  # Codex runner label for logging/progress/frontmatter
-  local post_file="$7"
-  local fm_judge_key="${8:-}" # frontmatter scores key: librarian, factCheck, freshEyes, vibe
+  local post_file="$6"
+  local fm_judge_key="${7:-}" # frontmatter scores key: librarian, factCheck, freshEyes, vibe
 
   local post_path="$ROOT_DIR/src/content/posts/$post_file"
 
-  # Tribunal v4 executes every stage through Codex/GPT-5.5. Agent specs are
-  # prompt contracts; the runtime model comes from this runner.
-  local model_id="gpt-5.5"
+  # Tribunal v8 executes every stage through the active provider: Codex/GPT-5.5
+  # on the VPS/mac, or the judge's declared Claude build in the CCC fallback.
+  # Agent specs are prompt contracts; the runtime model id (stamped into
+  # progress + frontmatter) comes from this runner so a Claude-scored post is
+  # recorded honestly rather than mislabelled GPT-5.5.
+  local model_id
+  model_id="$(tribunal_llm_model_id "$agent_name")"
+
+  # Provider-aware runner label for the progress ledger / stage logs /
+  # runner-error records. Derived from the same provider resolution as model_id
+  # (not a static codex-gpt-5.5-medium string) so the internal ledger matches
+  # the reader-visible frontmatter: codex stays codex-gpt-5.5-medium, the CCC
+  # Claude fallback records the judge's Claude build instead of lying GPT-5.5.
+  local runner_label
+  runner_label="$(tribunal_runner_label "$agent_name")"
 
   # ── Crash resume: skip already-passed stages ──
   local existing_status
@@ -589,12 +750,13 @@ run_stage() {
   ssot_content="$(cat "$ROOT_DIR/scripts/vibe-scoring-standard.md")"
 
   local score_tmp
-  score_tmp="$(mktemp /tmp/tribunal-${stage_key}-XXXXXX.json)"
+  score_tmp="$(mktemp "${TMPDIR:-/tmp}/tribunal-${stage_key}.XXXXXX")"
 
   local attempt=0
   while [ "$attempt" -lt "$max_loops" ]; do
     attempt=$((attempt + 1))
     tlog "  $label attempt $attempt/$max_loops..."
+    : > "$score_tmp"
 
     write_stage_progress "$post_file" "$stage_key" "in_progress" "null" "$runner_label" "$attempt"
 
@@ -613,11 +775,49 @@ run_stage() {
     else
       stage_timeout="${TRIBUNAL_JUDGE_TIMEOUT_SEC:-3600}"
     fi
-    tlog "  Invoking Codex agent-spec '$agent_name' (runtime model '$model_id', timeout ${stage_timeout}s)..."
+    tlog "  Invoking agent-spec '$agent_name' via $TRIBUNAL_PROVIDER (runtime model '$model_id', timeout ${stage_timeout}s)..."
 
     local judge_rc=0 judge_task librarian_packet
     judge_task="Score this post: $ROOT_DIR/src/content/posts/$post_file
 Write your JSON result to: SCORE_PATH_PLACEHOLDER"
+    local calibration_ref
+    calibration_ref="$ROOT_DIR/.codex/agents/references/sp-187-v7-false-positive.md"
+    if [ -f "$calibration_ref" ]; then
+      judge_task="$(cat <<PROMPT
+$judge_task
+
+## Tribunal v8 calibration reference
+Read this if the current stage is Librarian, FreshEyes, Vibe, or Writer-adjacent reasoning:
+$calibration_ref
+
+It records the exact git commit/blob for the rejected SP-187 false-positive sample and CP-179 overlap target. Use it to calibrate responsibility boundaries; do not treat it as a request to rewrite unless the runner explicitly enables rewrite.
+PROMPT
+)"
+    fi
+
+    if [ "$stage_key" = "vibe" ]; then
+      local jingjing_output jingjing_rc
+      jingjing_rc=0
+      jingjing_output="$(node "$SCRIPT_DIR/check-jingjing.mjs" "$post_path" 2>&1)" || jingjing_rc=$?
+      judge_task="$(cat <<PROMPT
+Score this post: $ROOT_DIR/src/content/posts/$post_file
+Write your JSON result to: SCORE_PATH_PLACEHOLDER
+
+## Deterministic evidence packet
+Use this packet first. Do not invent a separate zh-tw decorative-English / 晶晶體 lint policy.
+
+### 晶晶體 checker
+Command: node scripts/check-jingjing.mjs src/content/posts/$post_file
+Exit code: $jingjing_rc
+
+\`\`\`
+$jingjing_output
+\`\`\`
+
+If the checker exit code is 0, do not penalize allowlisted engineering terms such as \`vs\`, \`bug\`, \`commit\`, \`PR\`, model names, tool names, or glossary terms as hard-policy 晶晶體 hits.
+PROMPT
+)"
+    fi
     if [ "$stage_key" = "librarian" ]; then
       librarian_packet="$(python3 "$SCRIPT_DIR/tribunal-librarian-packet.py" "$post_file")"
       judge_task="$(cat <<PROMPT
@@ -634,16 +834,42 @@ PROMPT
     # Spawn from a tmp work-dir (NOT the repo) so Codex gets only the agent
     # contract + task prompt. Score JSON path stays inside work-dir, then moves
     # back to score_tmp after the run finishes.
-    local judge_work_dir
+    local judge_work_dir actual_provider_file quota_status_file
     judge_work_dir="$(tribunal_llm_work_dir)"
+    actual_provider_file="$(mktemp)"
+    quota_status_file="$(mktemp)"
     local judge_score_in_work="$judge_work_dir/score.json"
     judge_task="${judge_task/SCORE_PATH_PLACEHOLDER/$judge_score_in_work}"
-    TRIBUNAL_CODEX_TIMEOUT_SEC="$stage_timeout" tribunal_codex_exec_watchdog "$judge_work_dir" "$agent_name" "$judge_task" "$judge_out" "$judge_score_in_work" || judge_rc=$?
+    TRIBUNAL_CODEX_TIMEOUT_SEC="$stage_timeout" \
+      TRIBUNAL_ACTUAL_PROVIDER_FILE="$actual_provider_file" \
+      TRIBUNAL_QUOTA_STATUS_FILE="$quota_status_file" \
+      tribunal_llm_exec_watchdog "$judge_work_dir" "$agent_name" "$judge_task" "$judge_out" "$judge_score_in_work" || judge_rc=$?
+
+    if [ -s "$actual_provider_file" ]; then
+      local actual_provider actual_model actual_runner
+      actual_provider="$(sed -n 's/^provider=//p' "$actual_provider_file" | head -1)"
+      actual_model="$(sed -n 's/^model_id=//p' "$actual_provider_file" | head -1)"
+      actual_runner="$(sed -n 's/^runner_label=//p' "$actual_provider_file" | head -1)"
+      if [ -n "$actual_provider" ] && [ -n "$actual_model" ] && [ -n "$actual_runner" ]; then
+        model_id="$actual_model"
+        runner_label="$actual_runner"
+        tlog "  Actual judge provider: $actual_provider (runtime model '$model_id', runner '$runner_label')"
+      fi
+    fi
 
     if [ -f "$judge_score_in_work" ]; then
       mv "$judge_score_in_work" "$score_tmp"
     fi
     rm -rf "$judge_work_dir"
+
+    if [ "$judge_rc" -eq 75 ]; then
+      local quota_reason
+      quota_reason="$(quota_status_summary "$quota_status_file")"
+      tlog "  QUOTA SUSPEND: $quota_reason"
+      mark_article_quota_suspended "$post_file" "$stage_key" "$runner_label" "$attempt" "$quota_reason"
+      rm -f "$judge_out" "$actual_provider_file" "$quota_status_file" "$score_tmp"
+      return 75
+    fi
 
     if [ "$judge_rc" -ne 0 ]; then
       tlog "  WARN: Agent '$agent_name' exited with code $judge_rc"
@@ -651,19 +877,19 @@ PROMPT
         head -5 "$judge_out" | while IFS= read -r line; do tlog "    $line"; done
       fi
     fi
-    rm -f "$judge_out"
+    rm -f "$judge_out" "$actual_provider_file" "$quota_status_file"
 
     # ── Validate score JSON ───────────────────────────────────────────────────
-    if ! validate_judge_score_json "$validate_name" "$score_tmp"; then
-      tlog "  ERROR: Invalid/missing $label score JSON schema on attempt $attempt; failing loudly without writer rewrite."
+    if ! validate_judge_score_json "$validate_name" "$score_tmp" "$TRIBUNAL_VERSION"; then
+      tlog "  ERROR: Invalid/missing $label score JSON schema on attempt $attempt; treating as runner infrastructure failure."
       if [ -f "$score_tmp" ]; then
         local raw
         raw="$(head -3 "$score_tmp" 2>/dev/null | tr '\n' ' ')"
         tlog "  Raw (head): $raw"
       fi
-      write_stage_progress "$post_file" "$stage_key" "fail" "null" "$runner_label" "$attempt"
+      mark_article_runner_error "$post_file" "$stage_key" "$runner_label" "$attempt" "invalid_or_missing_score_json"
       rm -f "$score_tmp"
-      return 1
+      return 70
     fi
 
     local score_json composite verdict
@@ -735,7 +961,7 @@ PROMPT
     # ── Rewrite: invoke tribunal-writer (timeout 900s / 15 min) ──────────────
     tlog "  Invoking tribunal-writer for rewrite (timeout 900s)..."
 
-    local writer_prompt writer_out writer_rc en_existed_before
+    local writer_prompt writer_out writer_rc en_existed_before writer_quota_status_file
     if [ -f "src/content/posts/en-$post_file" ]; then
       en_existed_before=1
     else
@@ -771,20 +997,46 @@ Follow $ROOT_DIR/GU-LOG_WRITER_PROMPT.md and $ROOT_DIR/CONTRIBUTING.md frontmatt
 Do NOT change frontmatter fields (title, ticketId, dates, sourceUrl). Preserve MDX components, URLs, source attribution, and already-passing dimensions unless the judge feedback explicitly targets them.
 PROMPT
 )"
+    local writer_mode
+    writer_mode="$(tribunal_writer_mode)"
+    if [ "$writer_mode" = "none" ]; then
+      tlog "  Rewrite skipped (GP_WRITER_MODE=none); failing score-only without invoking tribunal-writer."
+      write_stage_progress "$post_file" "$stage_key" "fail" "$score_json" "$runner_label" "$attempt"
+      rm -f "$score_tmp"
+      return 1
+    fi
     writer_out="$(mktemp)"
+    writer_quota_status_file="$(mktemp)"
     writer_rc=0
 
     # Writer reads the full post + judge feedback + scoring SSOT through Codex.
     # Spawn from tmp work-dir to keep prompt context isolated.
     local rewrite_work_dir
     rewrite_work_dir="$(tribunal_llm_work_dir)"
-    tribunal_codex_exec "$rewrite_work_dir" "tribunal-writer" "$writer_prompt" > "$writer_out" 2>&1 || writer_rc=$?
+    TRIBUNAL_QUOTA_STATUS_FILE="$writer_quota_status_file" \
+      TRIBUNAL_WRITER_POST_FILE="$post_file" \
+      TRIBUNAL_WRITER_STAGE="$stage_key" \
+      TRIBUNAL_WRITER_ATTEMPT="$attempt" \
+      tribunal_writer_exec "$rewrite_work_dir" "tribunal-writer" "$writer_prompt" > "$writer_out" 2>&1 || writer_rc=$?
     rm -rf "$rewrite_work_dir"
+
+    if [ "$writer_rc" -eq 75 ]; then
+      local writer_quota_reason
+      writer_quota_reason="$(quota_status_summary "$writer_quota_status_file")"
+      tlog "  QUOTA SUSPEND during tribunal-writer rewrite: $writer_quota_reason"
+      mark_article_quota_suspended "$post_file" "$stage_key" "$runner_label" "$attempt" "writer: $writer_quota_reason"
+      rm -f "$writer_out" "$writer_quota_status_file" "$score_tmp"
+      return 75
+    fi
 
     if [ "$writer_rc" -ne 0 ]; then
       tlog "  WARN: tribunal-writer exited with code $writer_rc"
+      # Surface the writer's own output so a non-quota failure (e.g. a permission
+      # rejection, a CLI error) is diagnosable instead of silently discarded.
+      # Mirrors the final-build repair path's dump.
+      tail -15 "$writer_out" | while IFS= read -r line; do tlog "    $line"; done
     fi
-    rm -f "$writer_out"
+    rm -f "$writer_out" "$writer_quota_status_file"
 
     # ── Cheap validation after rewrite (full build is deferred to final gate) ─
     if ! cheap_validate_writer_rewrite "$post_file" "$en_existed_before"; then
@@ -805,9 +1057,10 @@ PROMPT
 # Phase 2 (tribunal-safe-parallelism):
 #   - Serialized by push_lock so 2 workers don't race while staging/committing.
 #   - Honors TRIBUNAL_MAIN_REPO env var: workers running in their own isolated
-#     worktrees can update the coordinator repo's shared progress file (flock
-#     coordinates the read-modify-write; this function coordinates the local
-#     git commit). Push is opt-in and direct main pushes are refused.
+#     worktrees can update the coordinator repo's shared runtime ledger (flock
+#     coordinates the read-modify-write; this function coordinates target-post
+#     materialization + local git commit). Push is opt-in and direct main pushes
+#     are refused.
 commit_progress() {
   local msg="$1"
   if [ "${TRIBUNAL_NO_COMMIT:-0}" = "1" ]; then
@@ -821,8 +1074,8 @@ commit_progress() {
 
     # Workers rewrite posts and write score frontmatter inside their isolated
     # worktree ($ROOT_DIR). Publish those target post artifacts into the main
-    # repo before staging, otherwise PASS commits only contain progress JSON and
-    # production content never changes.
+    # repo before staging, otherwise PASS commits only contain content-free
+    # metadata and production content never changes.
     if [ -n "${POST_FILE:-}" ]; then
       bash "$SCRIPT_DIR/tribunal-publish-worker-changes.sh" "$ROOT_DIR" "$repo_dir" "$POST_FILE" >> "$LOG_FILE" 2>&1 || {
         tlog "ERROR: failed to publish worker post artifacts for $POST_FILE"
@@ -869,9 +1122,22 @@ for _cmd in jq python3 pnpm git flock timeout; do
     exit 1
   fi
 done
-if ! tribunal_codex_cmd >/dev/null 2>&1; then
-  echo "ERROR: Required Codex CLI missing: install codex or provide the bundled node entrypoint" >&2
-  exit 1
+# Provider gate: codex is the maintained runtime (VPS/mac). When codex is
+# absent — the CCC / Claude Code on the web sandbox — fall back to claude so
+# the tribunal can still score/rewrite rather than hard-failing. Codex, when
+# present, must still meet the minimum version; claude has no version pin.
+TRIBUNAL_PROVIDER="$(tribunal_llm_provider || true)"
+if [ -z "$TRIBUNAL_PROVIDER" ]; then
+  echo "ERROR: No tribunal LLM provider on PATH: install codex (preferred) or claude" >&2
+  exit 70
+fi
+if [ "$TRIBUNAL_PROVIDER" = "codex" ]; then
+  CODEX_VERSION="$(tribunal_codex_version || true)"
+  MIN_CODEX_VERSION="0.128.0"
+  if [ -z "$CODEX_VERSION" ] || ! tribunal_codex_version_at_least "$CODEX_VERSION" "$MIN_CODEX_VERSION"; then
+    echo "ERROR: Codex CLI version $CODEX_VERSION is older than required $MIN_CODEX_VERSION; check tribunal service PATH" >&2
+    exit 70
+  fi
 fi
 
 if [ -d .git/rebase-merge ] || [ -d .git/rebase-apply ]; then
@@ -884,28 +1150,43 @@ ensure_progress_file
 init_article_progress "$POST_FILE"
 
 tlog "=== tribunal.sh: $POST_FILE ==="
+if [ "$TRIBUNAL_PROVIDER" != "codex" ]; then
+  tlog "  Provider: codex absent — using Claude fallback (CCC sandbox)"
+fi
 
-# ─── 4-Stage Sequential Loop ─────────────────────────────────────────────────
-# Format: stage_key:agent_name:validate_name:label:max_loops:runner_label:fm_judge_key
+# ─── Tribunal v8 Sequential Loop ──────────────────────────────────────────────
+# Format: stage_key:agent_name:validate_name:label:max_loops:fm_judge_key
 # fm_judge_key = frontmatter scores key (used by frontmatter-scores.mjs)
+# The runner_label is no longer a static column here: run_stage resolves it
+# provider-aware via tribunal_runner_label so codex/claude are labelled honestly.
 declare -a STAGES=(
-  "librarian:librarian:librarian:Librarian:2:codex-gpt-5.5-medium:librarian"
-  "factChecker:fact-checker:fact-checker:FactChecker:2:codex-gpt-5.5-medium:factCheck"
-  "freshEyes:fresh-eyes:fresh-eyes:FreshEyes:2:codex-gpt-5.5-medium:freshEyes"
-  "vibe:vibe-opus-scorer:vibe-opus-scorer:VibeScorer:3:codex-gpt-5.5-medium:vibe"
+  "factChecker:fact-checker:fact-checker:FactChecker:2:factCheck"
+  "librarian:librarian:librarian:Librarian:2:librarian"
+  "freshEyes:fresh-eyes:fresh-eyes:FreshEyes:2:freshEyes"
+  "vibe:vibe-opus-scorer:vibe-opus-scorer:VibeScorer:3:vibe"
 )
 
 for stage_def in "${STAGES[@]}"; do
-  IFS=':' read -r stage_key agent_name validate_name label max_loops runner_label fm_judge_key <<< "$stage_def"
+  IFS=':' read -r stage_key agent_name validate_name label max_loops fm_judge_key <<< "$stage_def"
 
   if [ -n "$ONLY_STAGE" ] && [ "$stage_key" != "$ONLY_STAGE" ]; then
     tlog "  Skipping stage '$label' due to --only-stage=$ONLY_STAGE."
     continue
   fi
 
-  if ! run_stage \
-      "$stage_key" "$agent_name" "$validate_name" "$label" \
-      "$max_loops" "$runner_label" "$POST_FILE" "$fm_judge_key"; then
+  stage_rc=0
+  run_stage \
+    "$stage_key" "$agent_name" "$validate_name" "$label" \
+    "$max_loops" "$POST_FILE" "$fm_judge_key" || stage_rc=$?
+  if [ "$stage_rc" -eq 75 ]; then
+    tlog "=== QUOTA SUSPENDED at stage: $label ==="
+    commit_progress "tribunal(${POST_FILE%.mdx}): QUOTA_SUSPENDED at $label stage"
+    exit 75
+  elif [ "$stage_rc" -eq 70 ]; then
+    tlog "=== RUNNER ERROR at stage: $label ==="
+    commit_progress "tribunal(${POST_FILE%.mdx}): RUNNER_ERROR at $label stage"
+    exit 70
+  elif [ "$stage_rc" -ne 0 ]; then
     tlog "=== FAILED at stage: $label ==="
     mark_article_failed "$POST_FILE" "$stage_key"
     commit_progress "tribunal(${POST_FILE%.mdx}): FAILED at $label stage"
@@ -921,7 +1202,14 @@ if [ -n "$ONLY_STAGE" ]; then
 fi
 
 tlog "=== ALL 4 STAGES PASSED: $POST_FILE ==="
-if ! run_final_build_gate "$POST_FILE"; then
+final_build_rc=0
+run_final_build_gate "$POST_FILE" || final_build_rc=$?
+if [ "$final_build_rc" -eq 75 ]; then
+  tlog "=== QUOTA SUSPENDED at final build gate: $POST_FILE ==="
+  commit_progress "tribunal(${POST_FILE%.mdx}): QUOTA_SUSPENDED at final build gate"
+  exit 75
+fi
+if [ "$final_build_rc" -ne 0 ]; then
   tlog "=== FAILED at final build gate: $POST_FILE ==="
   mark_article_failed "$POST_FILE" "finalBuild"
   commit_progress "tribunal(${POST_FILE%.mdx}): FAILED at final build gate"

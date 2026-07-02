@@ -1,6 +1,6 @@
 ---
-import { getCollection } from 'astro:content';
-import { getPostVersion } from '../../../utils/post-versions';
+import { getCollection, render } from 'astro:content';
+import { getPostReaderRevision, getPostVersion } from '../../../utils/post-versions';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import TableOfContents from '../../../components/TableOfContents.astro';
 import PrevNextNav from '../../../components/PrevNextNav.astro';
@@ -9,12 +9,15 @@ import RelatedArticles from '../../../components/RelatedArticles.astro';
 import PostStatusBanner from '../../../components/PostStatusBanner.astro';
 import Stage0WarnBanner from '../../../components/Stage0WarnBanner.astro';
 import Stage4DegradedBanner from '../../../components/Stage4DegradedBanner.astro';
+import Sub8RefiningBanner from '../../../components/Sub8RefiningBanner.astro';
+import { computeOverallComposite, isBelowPublishBar } from '../../../utils/tribunal-scores';
 import TicketBadge from '../../../components/TicketBadge.astro';
 import Giscus from '../../../components/Giscus.astro';
 import ShareButton from '../../../components/ShareButton.astro';
 import AiPopup from '../../../components/AiPopup.astro';
 import ReadStatusButton from '../../../components/ReadStatusButton.astro';
 import AiJudgeScore from '../../../components/AiJudgeScore.astro';
+import { getPostAuthorshipNote } from '../../../utils/post-authorship-notes';
 import {
   getLocalizedPostUrl,
   getNavigablePosts,
@@ -26,7 +29,7 @@ export async function getStaticPaths() {
   const posts = allPosts.filter((post) => post.data.lang === 'en');
 
   return posts.map((post) => ({
-    params: { slug: post.slug },
+    params: { slug: post.id },
     props: {
       post,
       allPosts,
@@ -35,28 +38,37 @@ export async function getStaticPaths() {
 }
 
 const { post, allPosts } = Astro.props;
-const { Content, headings } = await post.render();
+const { Content, headings } = await render(post);
 
-const isClawdPicks = post.data.tags?.includes('clawd-picks');
+const isMoguPicks =
+  post.data.tags?.includes('mogu-picks') || post.data.tags?.includes('clawd-picks');
 const ticketId = post.data.ticketId;
 const ticketPrefix = ticketId?.split('-')[0] || '';
 const isLevelUp = ticketId?.startsWith('Lv-') ?? false;
 const isShroomDogOriginal = ticketId?.startsWith('SD-') ?? false;
+// SD/Lv are originals — the model signature is "written by", not "translated by".
+const isOriginalPost = isLevelUp || isShroomDogOriginal;
 const isChatGptShareSource = post.data.sourceUrl.startsWith('https://chatgpt.com/share/');
 const showSourceCitation = !isLevelUp && (!isShroomDogOriginal || isChatGptShareSource);
 const sourceCitationLabel =
   isShroomDogOriginal && isChatGptShareSource ? 'Inspiration source' : 'Original source';
 
+// Reader-state records in the wild are keyed by the legacy entry id
+// (filename incl. extension) — keep sending that exact value as postId.
+const legacyPostId = post.filePath?.split('/').pop() ?? post.id;
 const postVersion = getPostVersion(post.id);
+const postReaderRevision = getPostReaderRevision(post.id);
+const authorshipNote = getPostAuthorshipNote(post.id, 'en');
 const postStatus = resolvePostStatus(post, allPosts);
 const navigablePosts = getNavigablePosts(allPosts, post);
 
 const ticketLabels: Record<string, string> = {
   SD: 'ShroomDog Original',
-  SP: 'ShroomDog Picks',
-  CP: 'Clawd Picks',
+  SP: 'Gu-log Picks',
+  CP: 'Mogu Picks',
 };
 const ticketLabel = ticketLabels[ticketPrefix] || '';
+const displayTag = (tag: string) => (tag === 'clawd-picks' ? 'mogu-picks' : tag);
 ---
 
 <BaseLayout title={`${post.data.title} - gu-log`} lang="en">
@@ -68,9 +80,9 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
           {ticketId && <TicketBadge ticketId={ticketId} />}
           <span class="meta-date">{post.data.translatedDate || post.data.originalDate}</span>
           {
-            isClawdPicks && (
-              <span class="clawd-picks-badge">
-                <img src="/clawd-picks-icon.png" alt="Clawd Picks" class="clawd-icon" />
+            isMoguPicks && (
+              <span class="mogu-picks-badge">
+                <img src="/mogu-picks-icon.png" alt="Mogu Picks" class="mogu-icon" />
               </span>
             )
           }
@@ -114,6 +126,12 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
     }
 
     {
+      isBelowPublishBar(post.data.scores) && (
+        <Sub8RefiningBanner composite={computeOverallComposite(post.data.scores) ?? 0} lang="en" />
+      )
+    }
+
+    {
       showSourceCitation && (
         <div class="source-citation">
           <strong>{sourceCitationLabel}:</strong>
@@ -137,7 +155,7 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
           <div class="post-tags">
             {post.data.tags.map((tag) => (
               <a href={`/en/tags/${tag}`} class="tag-chip">
-                {tag}
+                {displayTag(tag)}
               </a>
             ))}
           </div>
@@ -146,29 +164,39 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
     }
 
     {
-      post.data.translatedDate && post.data.translatedBy && (
+      ((post.data.translatedDate && post.data.translatedBy) || authorshipNote) && (
         <div class="translation-info">
-          {post.data.translatedBy.pipeline ? (
-            <>
-              <div>Translated on {post.data.translatedDate}</div>
-              {post.data.translatedBy.pipeline.map((step) => (
+          {post.data.translatedDate &&
+            post.data.translatedBy &&
+            (post.data.translatedBy.pipeline ? (
+              <>
                 <div>
-                  {step.role} by {step.model} ({step.harness})
+                  {isOriginalPost ? 'Written on' : 'Translated on'} {post.data.translatedDate}
                 </div>
-              ))}
-              {post.data.translatedBy.pipelineUrl && (
-                <div>
-                  <a href={post.data.translatedBy.pipelineUrl} target="_blank" rel="noopener">
-                    View pipeline script →
-                  </a>
-                </div>
-              )}
-            </>
-          ) : (
-            <>
-              Translated on {post.data.translatedDate} by {post.data.translatedBy.model} (
-              {post.data.translatedBy.harness})
-            </>
+                {post.data.translatedBy.pipeline.map((step) => (
+                  <div>
+                    {step.role} by {step.model} ({step.harness})
+                  </div>
+                ))}
+                {post.data.translatedBy.pipelineUrl && (
+                  <div>
+                    <a href={post.data.translatedBy.pipelineUrl} target="_blank" rel="noopener">
+                      View pipeline script →
+                    </a>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div>
+                {isOriginalPost ? 'Written on' : 'Translated on'} {post.data.translatedDate} by{' '}
+                {post.data.translatedBy.model} ({post.data.translatedBy.harness})
+              </div>
+            ))}
+          {authorshipNote && (
+            <div class="authorship-note">
+              <strong>Authorship note:</strong>
+              <span>{authorshipNote}</span>
+            </div>
           )}
         </div>
       )
@@ -176,16 +204,31 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
 
     {post.data.scores && <AiJudgeScore scores={post.data.scores} lang="en" />}
 
-    <ReadStatusButton slug={post.slug} lang="en" />
+    <ReadStatusButton
+      slug={post.id}
+      lang="en"
+      postId={legacyPostId}
+      ticketId={post.data.ticketId}
+      postVersion={Number(postVersion)}
+      readerRevision={postReaderRevision}
+      pathname={Astro.url.pathname}
+    />
 
-    <ShareButton title={post.data.title} lang="en" />
+    <ShareButton
+      title={post.data.title}
+      lang="en"
+      postId={legacyPostId}
+      ticketId={post.data.ticketId}
+      postVersion={Number(postVersion)}
+      pathname={Astro.url.pathname}
+    />
 
     {
       post.data.series ? (
-        <SeriesNav currentSlug={post.slug} allPosts={navigablePosts} lang="en" />
+        <SeriesNav currentSlug={post.id} allPosts={navigablePosts} lang="en" />
       ) : (
         <RelatedArticles
-          currentSlug={post.slug}
+          currentSlug={post.id}
           currentTags={post.data.tags ?? []}
           allPosts={navigablePosts}
           lang="en"
@@ -193,14 +236,14 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
       )
     }
 
-    <PrevNextNav currentSlug={post.slug} allPosts={navigablePosts} lang="en" />
+    <PrevNextNav currentSlug={post.id} allPosts={navigablePosts} lang="en" />
 
     <Giscus lang="en" />
 
     <div class="post-version-info">
       <span class="version-badge">v{postVersion}</span>
       <a
-        href={`https://github.com/chitienhsiehwork-ai/gu-log/commits/main/src/content/posts/${post.id}`}
+        href={`https://github.com/chitienhsiehwork-ai/gu-log/commits/main/${post.filePath}`}
         target="_blank"
         rel="noopener"
         class="version-history-link"
@@ -214,7 +257,7 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
     </footer>
   </article>
 
-  <AiPopup filePath={`src/content/posts/${post.id}`} postTitle={post.data.title} lang="en" />
+  <AiPopup filePath={`${post.filePath}`} postTitle={post.data.title} lang="en" />
 </BaseLayout>
 
 <style>
@@ -255,14 +298,14 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
   }
 
   .label-cp {
-    color: var(--color-clawd-orange);
+    color: var(--color-mogu-orange);
   }
 
-  .clawd-picks-badge {
+  .mogu-picks-badge {
     vertical-align: middle;
   }
 
-  .clawd-icon {
+  .mogu-icon {
     width: 24px;
     height: 24px;
     vertical-align: middle;
@@ -332,6 +375,14 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
     border-radius: 6px;
     font-size: 0.85rem;
     color: var(--color-text-muted);
+  }
+
+  .translation-info .authorship-note {
+    margin-top: 0.5rem;
+  }
+
+  .authorship-note strong {
+    color: var(--color-text);
   }
 
   .post-version-info {

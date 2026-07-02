@@ -2,9 +2,24 @@
 interface Props {
   slug: string;
   lang?: 'zh-tw' | 'en';
+  postId: string;
+  ticketId?: string;
+  postVersion: number;
+  readerRevision?: string | null;
+  pathname: string;
 }
 
-const { slug, lang = 'zh-tw' } = Astro.props;
+const {
+  slug,
+  lang = 'zh-tw',
+  postId,
+  ticketId,
+  postVersion,
+  readerRevision,
+  pathname,
+} = Astro.props;
+
+const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
 ---
 
 <div
@@ -12,6 +27,12 @@ const { slug, lang = 'zh-tw' } = Astro.props;
   data-read-button
   data-slug={slug}
   data-lang={lang}
+  data-post-id={postId}
+  data-ticket-id={ticketId}
+  data-post-version={postVersion}
+  data-reader-revision={readerRevision}
+  data-pathname={pathname}
+  data-api-url={apiUrl}
   style="display:none"
 >
   <button class="read-status-btn" type="button">
@@ -23,24 +44,57 @@ const { slug, lang = 'zh-tw' } = Astro.props;
 </div>
 
 <script>
-  import { isRead, toggleRead, getReadSlugs } from '../lib/reading-tracker';
-  import { getGitHubToken, pushToGist, pullFromGist, mergeSync } from '../lib/gist-sync';
+  import { isRead, toggleRead, markAsRead, exportJson, importJson } from '../lib/reading-tracker';
+  import {
+    getGitHubToken,
+    getGuLogSessionToken,
+    pushToGist,
+    pushToReaderSyncApi,
+    pullFromGist,
+    pullFromReaderSyncApi,
+    mergeSync,
+  } from '../lib/gist-sync';
+  import {
+    recordManualMarkRead,
+    recordReadAbandonCandidate,
+    recordReadFinish,
+  } from '../lib/human-signals';
+  import type { ArticleVersionSnapshot, GuLogLang } from '../lib/human-signals';
 
   const LAST_SYNC_KEY = 'gu-log-last-sync';
   const SYNC_DIRTY_KEY = 'gu-log-sync-dirty';
 
   let syncDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
+  function getSnapshot(el: HTMLElement): ArticleVersionSnapshot {
+    return {
+      postId: el.dataset.postId || el.dataset.slug || '',
+      ticketId: el.dataset.ticketId || undefined,
+      lang: (el.dataset.lang || 'zh-tw') as GuLogLang,
+      pathname: el.dataset.pathname || window.location.pathname,
+      postVersion: el.dataset.postVersion || '1',
+    };
+  }
+
   function scheduleDebouncedSync() {
     if (syncDebounceTimer !== null) clearTimeout(syncDebounceTimer);
     syncDebounceTimer = setTimeout(async () => {
       syncDebounceTimer = null;
-      const token = getGitHubToken();
-      if (!token) return;
+      const jwt = getGuLogSessionToken();
+      const legacyToken = getGitHubToken();
+      if (!jwt && !legacyToken) return;
       try {
-        const remote = await pullFromGist(token);
-        const merged = mergeSync(getReadSlugs(), remote?.slugs ?? []);
-        await pushToGist(token, merged);
+        const apiUrl =
+          document.querySelector<HTMLElement>('[data-read-button]')?.dataset.apiUrl ||
+          'https://api.shroomdog.dev';
+        const remote = jwt ? await pullFromReaderSyncApi(apiUrl) : await pullFromGist(legacyToken!);
+        const merged = mergeSync(JSON.parse(exportJson()), remote ?? []);
+        importJson(JSON.stringify(merged));
+        if (jwt) {
+          await pushToReaderSyncApi(apiUrl, merged);
+        } else {
+          await pushToGist(legacyToken!, merged);
+        }
         localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
         localStorage.removeItem(SYNC_DIRTY_KEY);
       } catch {
@@ -59,6 +113,7 @@ const { slug, lang = 'zh-tw' } = Astro.props;
 
       const slug = el.dataset.slug || '';
       const btn = el.querySelector<HTMLButtonElement>('.read-status-btn');
+      const readerRevision = el.dataset.readerRevision || null;
       if (!btn) return;
 
       function updateUI(read: boolean) {
@@ -89,7 +144,10 @@ const { slug, lang = 'zh-tw' } = Astro.props;
       updateUI(isRead(slug));
 
       btn.addEventListener('click', () => {
-        const nowRead = toggleRead(slug);
+        const nowRead = toggleRead(slug, readerRevision);
+        if (nowRead) {
+          recordManualMarkRead(getSnapshot(el));
+        }
         updateUI(nowRead);
         // Dispatch event for any dashboard that might be listening
         window.dispatchEvent(
@@ -112,33 +170,114 @@ const { slug, lang = 'zh-tw' } = Astro.props;
     const el = document.querySelector<HTMLElement>('[data-read-button]');
     if (!el) return;
     const slug = el.dataset.slug || '';
+    const readerRevision = el.dataset.readerRevision || null;
     if (!slug || isRead(slug)) return;
 
     const postContent = document.querySelector('.post-content');
     if (!postContent) return;
+    const postContentEl = postContent as HTMLElement;
+
+    const ACTIVE_WINDOW_MS = 5_000;
+    const FINISH_SCROLL_GUARD_PERCENT = 95;
+    let maxScrollPercent = 0;
+    let activeReadMs = 0;
+    let lastTickAt = Date.now();
+    let lastActivityAt = Date.now();
+    let finished = false;
+
+    function checkpointActiveRead() {
+      const now = Date.now();
+      const elapsedMs = Math.max(0, now - lastTickAt);
+      if (document.visibilityState === 'visible' && now - lastActivityAt <= ACTIVE_WINDOW_MS) {
+        activeReadMs += elapsedMs;
+      }
+      lastTickAt = now;
+      return activeReadMs;
+    }
+
+    function updateMaxScroll() {
+      const rect = postContentEl.getBoundingClientRect();
+      const visibleBottom = window.innerHeight - rect.top;
+      const percent = Math.max(0, Math.min(100, Math.round((visibleBottom / rect.height) * 100)));
+      if (percent > maxScrollPercent) maxScrollPercent = percent;
+    }
+
+    function noteReaderActivity() {
+      checkpointActiveRead();
+      lastActivityAt = Date.now();
+      updateMaxScroll();
+    }
+
+    function markDirtyForSync() {
+      if (localStorage.getItem(LAST_SYNC_KEY)) {
+        localStorage.setItem(SYNC_DIRTY_KEY, 'true');
+      }
+    }
+
+    function cleanupTracking() {
+      window.removeEventListener('scroll', noteReaderActivity);
+      window.removeEventListener('pointerdown', noteReaderActivity);
+      window.removeEventListener('keydown', noteReaderActivity);
+      window.removeEventListener('touchstart', noteReaderActivity);
+      document.removeEventListener('visibilitychange', checkpointActiveRead);
+      window.removeEventListener('pagehide', recordAbandonIfNeeded);
+      observer.disconnect();
+    }
+
+    function recordAbandonIfNeeded() {
+      const measuredActiveReadMs = checkpointActiveRead();
+      updateMaxScroll();
+      if (
+        finished ||
+        isRead(slug) ||
+        maxScrollPercent <= 0 ||
+        maxScrollPercent >= FINISH_SCROLL_GUARD_PERCENT
+      ) {
+        return;
+      }
+      recordReadAbandonCandidate(getSnapshot(el!), {
+        activeReadMs: measuredActiveReadMs,
+        maxScrollPercent,
+        finishability:
+          measuredActiveReadMs >= 30_000 && maxScrollPercent < 80
+            ? 'abandoned_suspected_boring'
+            : 'abandoned_unknown',
+      });
+      markDirtyForSync();
+    }
+
+    window.addEventListener('scroll', noteReaderActivity, { passive: true });
+    window.addEventListener('pointerdown', noteReaderActivity, { passive: true });
+    window.addEventListener('keydown', noteReaderActivity);
+    window.addEventListener('touchstart', noteReaderActivity, { passive: true });
+    document.addEventListener('visibilitychange', checkpointActiveRead);
+    window.addEventListener('pagehide', recordAbandonIfNeeded);
+    updateMaxScroll();
 
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
-          // Bottom of content visible — mark as read
-          import('../lib/reading-tracker').then(({ markAsRead }) => {
-            markAsRead(slug);
-            if (localStorage.getItem(LAST_SYNC_KEY)) {
-              localStorage.setItem(SYNC_DIRTY_KEY, 'true');
-            }
-            scheduleDebouncedSync();
-            // Update button UI
-            document.querySelectorAll<HTMLElement>('[data-read-button]').forEach((btn) => {
-              if (btn.dataset.slug === slug) {
-                btn.querySelector<HTMLElement>('.rs-icon-unread')!.style.display = 'none';
-                btn.querySelector<HTMLElement>('.rs-icon-read')!.style.display = '';
-                btn.querySelector<HTMLElement>('.rs-label-unread')!.style.display = 'none';
-                btn.querySelector<HTMLElement>('.rs-label-read')!.style.display = '';
-                btn.querySelector<HTMLButtonElement>('.read-status-btn')!.classList.add('is-read');
-              }
-            });
+          // Bottom of content visible — mark as read synchronously enough to avoid pagehide races.
+          finished = true;
+          markAsRead(slug, 'active_scroll_end', readerRevision);
+          recordReadFinish(getSnapshot(el!), {
+            method: 'active_scroll_end',
+            activeReadMs: checkpointActiveRead(),
+            maxScrollPercent: Math.max(maxScrollPercent, 100),
           });
-          observer.disconnect();
+          markDirtyForSync();
+          scheduleDebouncedSync();
+          // Update button UI
+          document.querySelectorAll<HTMLElement>('[data-read-button]').forEach((btn) => {
+            if (btn.dataset.slug === slug) {
+              btn.querySelector<HTMLElement>('.rs-icon-unread')!.style.display = 'none';
+              btn.querySelector<HTMLElement>('.rs-icon-read')!.style.display = '';
+              btn.querySelector<HTMLElement>('.rs-label-unread')!.style.display = 'none';
+              btn.querySelector<HTMLElement>('.rs-label-read')!.style.display = '';
+              btn.querySelector<HTMLButtonElement>('.read-status-btn')!.classList.add('is-read');
+            }
+          });
+          cleanupTracking();
         }
       },
       { threshold: 1.0, rootMargin: '0px 0px -50px 0px' }

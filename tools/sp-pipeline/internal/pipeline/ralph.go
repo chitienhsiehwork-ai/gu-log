@@ -10,6 +10,7 @@ import (
 
 	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/frontmatter"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/ralph"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/runner"
 )
 
 // finalPipelineURL matches scripts/sp-pipeline.sh line 1290.
@@ -100,8 +101,11 @@ func (s *State) Ralph(ctx context.Context) error {
 		}
 	}
 
-	// Run the tribunal.
-	s.Log.Info("  Running 4-stage tribunal (Codex GPT-5.5 via tribunal.sh)...")
+	s.runPostFixers(ctx, activePath)
+
+	// Run the tribunal. tribunal.sh auto-selects its own runtime provider
+	// (Codex GPT-5.5 normally; Claude Opus when codex is absent in CCC).
+	s.Log.Info("  Running 4-stage tribunal (via tribunal.sh)...")
 	passed, err := ralph.Run(ctx, ralph.Options{
 		RalphScript: filepath.Join(s.Cfg.ScriptsDir, "tribunal.sh"),
 		Filename:    s.ActiveFilename,
@@ -121,12 +125,29 @@ func (s *State) Ralph(ctx context.Context) error {
 	// Frontmatter normaliser — for every file in {zh, en}, strip old
 	// pipeline block + pipelineUrl, then inject the canonical 6-entry
 	// block. Matches the Python heredoc at bash lines 1245-1300.
+	writerModel, writerHarness := s.StampLabels()
+	judgeModel, judgeHarness := s.JudgeStampLabels()
+	writeModel := nonEmpty(s.WriteModel, writerModel)
+	writeHarness := nonEmpty(s.WriteHarness, writerHarness)
+	reviewModel := nonEmpty(s.ReviewModel, judgeModel)
+	reviewHarness := nonEmpty(s.ReviewHarness, judgeHarness)
+	refineModel := nonEmpty(s.RefineModel, writerModel)
+	refineHarness := nonEmpty(s.RefineHarness, writerHarness)
 	for _, fname := range []string{s.ActiveFilename, s.ActiveENFilename} {
 		path := filepath.Join(postsDir, fname)
 		if _, err := os.Stat(path); err != nil {
 			continue
 		}
-		if err := normalizeRalphFrontmatter(path); err != nil {
+		if err := normalizeRalphFrontmatter(path, PipelineStamp{
+			WriteModel:    writeModel,
+			WriteHarness:  writeHarness,
+			ReviewModel:   reviewModel,
+			ReviewHarness: reviewHarness,
+			RefineModel:   refineModel,
+			RefineHarness: refineHarness,
+			JudgeModel:    judgeModel,
+			JudgeHarness:  judgeHarness,
+		}); err != nil {
 			return fmt.Errorf("ralph: normalize %s: %w", fname, err)
 		}
 	}
@@ -134,15 +155,61 @@ func (s *State) Ralph(ctx context.Context) error {
 	return nil
 }
 
+func (s *State) runPostFixers(ctx context.Context, postPath string) {
+	if s.Cfg == nil || s.Cfg.ScriptsDir == "" {
+		return
+	}
+	s.Log.Info("  Running deterministic fixers (kaomoji/glossary/related)...")
+
+	type fixer struct {
+		name string
+		args []string
+	}
+	fixers := []fixer{
+		{
+			name: "kaomoji",
+			args: []string{filepath.Join(s.Cfg.ScriptsDir, "add-kaomoji.mjs"), "--write", postPath},
+		},
+		{
+			name: "glossary",
+			args: []string{filepath.Join(s.Cfg.ScriptsDir, "apply-glossary-links.mjs"), postPath},
+		},
+		{
+			name: "related",
+			args: []string{filepath.Join(s.Cfg.ScriptsDir, "inject-related-posts.mjs"), "--file", postPath},
+		},
+	}
+	for _, f := range fixers {
+		if _, err := runner.RunWithOptions(ctx, runner.Options{
+			Name:    "node",
+			Args:    f.args,
+			WorkDir: s.Cfg.RepoRoot,
+		}); err != nil {
+			s.Log.Warn("  fixer %s failed (advisory): %v", f.name, err)
+		}
+	}
+}
+
 // normalizeRalphFrontmatter is the Go port of the Python heredoc at
 // scripts/sp-pipeline.sh lines 1245-1300. It:
 //
 //  1. Parses the file's frontmatter.
 //  2. Strips any existing pipeline: block and any pipelineUrl: line.
-//  3. Rewrites harness: to "Codex CLI".
+//  3. Rewrites harness: to the runtime provider's harness (stampHarness).
 //  4. Inserts a canonical 6-entry pipeline: block after harness.
 //  5. Inserts the canonical pipelineUrl.
-func normalizeRalphFrontmatter(path string) error {
+type PipelineStamp struct {
+	WriteModel    string
+	WriteHarness  string
+	ReviewModel   string
+	ReviewHarness string
+	RefineModel   string
+	RefineHarness string
+	JudgeModel    string
+	JudgeHarness  string
+}
+
+func normalizeRalphFrontmatter(path string, stamp PipelineStamp) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return err
@@ -170,16 +237,17 @@ func normalizeRalphFrontmatter(path string) error {
 	})
 
 	// Canonical harness summary.
-	f.SetNestedScalar("translatedBy", "harness", `"Codex CLI"`)
+	f.SetNestedScalar("translatedBy", "model", quoted(stamp.WriteModel))
+	f.SetNestedScalar("translatedBy", "harness", quoted(stamp.WriteHarness))
 
 	// 6-entry canonical pipeline block.
 	entries := []PipelineEntry{
-		{Role: "Written", Model: "GPT-5.5", Harness: "Codex CLI"},
-		{Role: "Reviewed", Model: "GPT-5.5", Harness: "Codex CLI"},
-		{Role: "Refined", Model: "GPT-5.5", Harness: "Codex CLI"},
-		{Role: "Scored", Model: "GPT-5.5", Harness: "Codex CLI + Tribunal"},
-		{Role: "Rewritten", Model: "GPT-5.5", Harness: "Codex CLI + Tribunal"},
-		{Role: "Orchestrated", Model: "GPT-5.5", Harness: "sp-pipeline + Tribunal"},
+		{Role: "Written", Model: stamp.WriteModel, Harness: stamp.WriteHarness},
+		{Role: "Reviewed", Model: stamp.ReviewModel, Harness: stamp.ReviewHarness},
+		{Role: "Refined", Model: stamp.RefineModel, Harness: stamp.RefineHarness},
+		{Role: "Scored", Model: stamp.JudgeModel, Harness: stamp.JudgeHarness + " + Tribunal"},
+		{Role: "Rewritten", Model: stamp.WriteModel, Harness: stamp.WriteHarness + " + Tribunal"},
+		{Role: "Orchestrated", Model: stamp.JudgeModel, Harness: "sp-pipeline + Tribunal"},
 	}
 	f.SetNestedScalar("translatedBy", "pipeline", "")
 	f.SetBlock("  pipeline", renderPipelineBlock("  pipeline", entries))

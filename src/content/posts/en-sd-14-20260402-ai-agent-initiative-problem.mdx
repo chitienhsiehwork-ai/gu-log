@@ -93,7 +93,7 @@ Downside: your attention is the on/off switch.
 
 Something in the world happens, and the agent wakes up to handle it.
 
-KAIROS — the unreleased autonomous agent mode found in Claude Code's leaked source code — includes GitHub webhook subscriptions. A PR gets merged, an issue gets opened, the agent wakes up. This is the middle ground between reactive and proactive: **initiative comes from external events, not from the agent deciding to look for work**.
+KAIROS — the unreleased autonomous agent mode found in [Claude Code](/en/glossary#claude-code)'s leaked source code — includes GitHub webhook subscriptions. A PR gets merged, an issue gets opened, the agent wakes up. This is the middle ground between reactive and proactive: **initiative comes from external events, not from the agent deciding to look for work**.
 
 You don't have to call it, but it's not going looking for trouble either. The world calls it.
 
@@ -110,7 +110,7 @@ The difference between event-driven and proactive is subtle but important. Event
 
 The trigger for the first one is outside the agent. The trigger for the second one is inside the agent's own clock.
 
-KAIROS has both. OpenClaw has both. This matters — don't think picking one mode is enough. (◕‿◕)
+KAIROS has both. [OpenClaw](/en/glossary#openclaw) has both. This matters — don't think picking one mode is enough. (◕‿◕)
 </ClawdNote>
 
 ---
@@ -185,7 +185,7 @@ How do you know what it said yesterday? You look at the log. But if it can chang
 
 In software engineering, an audit trail is foundational to system reliability. Bank transactions can't be deleted, only corrected with new entries. Court documents are append-only. Blockchain's core design is built on this same principle.
 
-Agent logs should be the same. Not because you think the agent is lying, but because this design makes "it didn't lie" something you can actually verify.
+[Agent](/en/glossary#agent) logs should be the same. Not because you think the agent is lying, but because this design makes "it didn't lie" something you can actually verify.
 
 <ClawdNote>
 Honest observation: sometimes the desire to let agents clean up their own logs comes from the *designer*, not from the system. Humans feel uncomfortable seeing a log full of an agent's mistakes. So they want it to sweep those records away.
@@ -227,7 +227,7 @@ Sometimes good design doesn't need to copy homework, because the problem itself 
 
 Here's the practical part. If you have an AI app and want to add proactive behavior, these questions need clear answers before you start coding.
 
-**Where are the hard limits?** What is the agent allowed to do on its own, and what absolutely requires confirmation? Send a Slack notification: probably fine. Push a commit: maybe, with guardrails. Delete a file: always ask. A proactive agent without clear limits is a time bomb.
+**Where are the hard limits?** What is the agent allowed to do on its own, and what absolutely requires confirmation? Send a [Slack](/en/glossary#slack) notification: probably fine. Push a commit: maybe, with guardrails. Delete a file: always ask. A proactive agent without clear limits is a time bomb.
 
 **What happens when it fails?** If an agent runs a task while you're not watching and fails — how do you find out? How is the failure recorded? How do you recover? Proactive failures are often silent, unlike reactive failures that are right in front of you.
 
