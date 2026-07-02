@@ -51,21 +51,22 @@ Tier 3  checkbox    agent 自報                   ← SHALL NOT 當唯一依據
 
 升上來的是問題不是答案；直接生完整 change = 在問題沒搞懂前就 commit 一個解。explore 是 thinking-partner 工具，先釐清 intent。但 trivial（無 ambiguity）的 scenario 改可跳過 explore，不儀式化。（**注意**：對一條 in-flight change 的 scenario 微調，「一律走新 propose」vs「coach 核可後 controller in-place 改 delta」是流程重量的方向決策——見「需 coach 拍板」。）
 
-### D4：唯讀牆強制形態未定（需 coach 拍板）+ 一個查證出來的 drift
+### D4：唯讀牆強制 = (b) 近似 CI 為主 + (c) reviewer backstop（coach 已拍板）
 
 **查證發現（load-bearing）**：#481 宣稱「archive 由 CI 硬 gate」，但 `.github/workflows/` 實際**沒有**這個 gate（grep 全空，ci.yml 只有 lint / type-check / validate-content / security-gate / unit-tests / build 等 job）——archive-gate 目前是 **doc-only**。所以本 change **不能**「沿用 archive-gate CI 模式」（它不存在）。
 
-唯讀牆的強制形態是 open decision，三個候選都**不需要**先建 archive-gate CI：
+**coach 拍板**：唯讀牆強制走 **(b) 近似 CI 為主 + (c) reviewer backstop**，跳過 (a) runtime hook（#481 runtime-agnostic，cmux/codex builder 蓋不到）：
 
-- **(a) runtime PreToolUse hook**：對 builder subagent deny 寫入 `openspec/**/specs/**/*.md`。repo 有 `.claude/hooks/block-no-verify.sh` 先例，deterministic；但 #481 明訂不綁 runtime，cmux/codex builder 蓋不到。
-- **(b) 近似 CI 檢查**：PR 裡「同一 commit 同時動 spec delta + 實作檔」視為違規。不需要歸因到 builder identity（CI 做不到 per-commit 歸因）。
-- **(c) doc-only policy + reviewer 覆核**：最輕、最弱，靠 reviewer 抓。
+- **(b) 近似 CI 檢查**：PR 裡「同一 commit 同時動 spec delta + 實作檔」視為違規（不需要歸因到 builder identity——CI 做不到 per-commit 歸因，用「動作形狀」近似「誰做的」）。
+- **(c) reviewer backstop**：正確性 reviewer 覆核 builder 有沒有偷改 scenario。
+
+**順帶收 drift（coach 拍板一併收）**：把 `.agents/openspec-sdlc.md` 那句「archive 由 CI 強制」改誠實（現況 = policy，尚未 CI 強制）——留著假宣稱比不寫更危險。
 
 ## Risks / Trade-offs
 
-- **R1：Tier-1 覆蓋率不足**。不是每條 scenario 都編得成測試；落 Tier-2 的比例太高，主觀性就漏回來。緩解：Tier-2 verdict 強制標記 + reviewer 覆核 Tier 分類（不准把可測的推去 Tier-2），coach 終審能看見「有多少收斂是靠主觀」。
+- **R1：Tier-1 覆蓋率不足**。不是每條 scenario 都編得成測試；落 Tier-2 的比例太高，主觀性就漏回來。緩解：Tier-2 verdict 強制標記 + reviewer 覆核 Tier 分類（不准把可測的推去 Tier-2），coach 終審能看見「有多少收斂是靠主觀」。**coach 拍板：不設最低 Tier-1 覆蓋率門檻**（門檻會變 ceremony；覆核護欄已足夠擋 gaming）。
 - **R2：Tier-2 仍有不動點風險**（reviewer+builder 互捧）。緩解：reviewer 獨立 context、fresh eyes；必要時 pin 不同 model（沿用 tribunal blind eval 經驗）。
 - **R3：唯讀牆可能過嚴**——有些 scenario 的微調其實 trivial，硬升 coach 變 ceremony。緩解：D3 的「trivial 可跳過 explore」+ coach 核可後 controller in-place 改 delta 的輕量路徑（見需拍板項）。
-- **R4：max-N 取值**。太小把正常 iterate 誤判成卡關、太大失去「有界」意義。先取 tribunal per-stage `max_loops`（2–3）的量級，apply 後依實際 churn 校準；N 的家未定（見需拍板項）。
+- **R4：max-N 取值**。太小把正常 iterate 誤判成卡關、太大失去「有界」意義。先取 tribunal per-stage `max_loops`（2–3）的量級，apply 後依實際 churn 校準。**coach 拍板：N 的家 = `.agents/openspec-sdlc.md`，標「tunable、以此為準」**（沒有天然 config 檔；散文標明 SSOT 位置避免下個 drift）。
 - **R5：sync-back drift（本 change 自己製造）**。requirement 寫在 openspec spec，apply 又 sync 回 `.agents/openspec-sdlc.md` 散文 = 雙寫。緩解：**權威端 = openspec spec（archive 後進 `openspec/specs/`），`.agents/openspec-sdlc.md` 散文是 derived view，對不上時散文服從 spec**；tasks 5.3 的「無 drift」驗證 SHALL 點明這個方向性；sync 時不要把「13 行 shim」這種計數帶進散文。
-- **R6：#481 的 archive-gate CI 是 doc-only（查證發現的既有 drift）**。`.agents/openspec-sdlc.md` 寫「archive 由 CI 強制」，但 workflows 沒有對應 job。本 change 不依賴它；**是否在本 change 一起收這個 drift**（實作 gate，或把 #481 那句改成誠實）留給 coach（見需拍板項）。
+- **R6：#481 的 archive-gate CI 是 doc-only（查證發現的既有 drift）**。`.agents/openspec-sdlc.md` 寫「archive 由 CI 強制」，但 workflows 沒有對應 job。**coach 拍板：本 change 一併把那句改誠實**（現況 = policy、尚未 CI 強制），不留假宣稱（tasks 4.2）。

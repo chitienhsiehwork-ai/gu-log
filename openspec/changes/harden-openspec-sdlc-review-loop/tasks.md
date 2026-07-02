@@ -19,10 +19,11 @@
 - [ ] 3.3 規定 builder 的 writable scope 排除 `openspec/**/specs/**/*.md`（main specs + change delta 都對 builder 唯讀；階段 7 archive 由 controller 動）
 - [ ] 3.4 撞唯讀牆（需改 scenario）= design decision，自動停手升 coach；coach 核可後由 controller 改 delta、迴圈以新合約重啟輪數重計
 
-## 4. 唯讀牆強制點（形態待 coach 拍板，見 design D4）
+## 4. 唯讀牆強制點（coach 拍板：(b) 近似 CI + (c) reviewer backstop）
 
-- [ ] 4.1 依 coach 拍板的強制形態實作唯讀牆：(a) runtime PreToolUse hook / (b) 近似 CI「同 commit 動 spec + 實作 = 違規」/ (c) doc-only + reviewer 覆核
-- [ ] 4.2 **不依賴不存在的 archive-gate CI**（查證：workflows 無此 job）；若 coach 決定一併收 archive-gate doc-only drift，另立 task
+- [ ] 4.1 實作近似 CI 檢查：PR 裡「同一 commit 同時動 openspec spec 檔 + 實作檔」視為違規（script + ci.yml job）；不依賴不存在的 archive-gate CI
+- [ ] 4.2 reviewer backstop 寫進階段 6：正確性 reviewer 覆核 builder 有沒有偷改 scenario
+- [ ] 4.3 順帶收 drift：把 `.agents/openspec-sdlc.md`「archive 由 CI 強制」改誠實（現況 = policy、尚未 CI 強制）
 
 ## 5. 驗證
 
