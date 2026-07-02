@@ -1,0 +1,151 @@
+---
+ticketId: "SD-27"
+title: "Dan Koe Teaches You to Write a Spec — the Agent Being Deployed Just Happens to Be You"
+originalDate: "2026-06-20"
+translatedDate: "2026-07-02"
+translatedBy:
+  model: "Fable 5"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Author"
+      model: "Opus 4.8"
+      harness: "Claude Code"
+    - role: "Translator"
+      model: "Fable 5"
+      harness: "Claude Code"
+source: "@thedankoe on X"
+sourceUrl: "https://x.com/thedankoe/status/2010751592346030461"
+lang: "en"
+summary: "An influencer who makes a living off a million subscribers and spends his days railing against algorithms for turning people into feed-scrolling livestock has a method for taking his life back: writing himself a spec. Take his life-organization system apart and it's the same thing engineers now use to manage AI agents — spec-driven development. Except the agent being deployed and corrected back to its ideal state every day is the reader. You think you're managing your life; you're actually self-hosting a daemon that manages you."
+tags: ["shroomdog-original", "spec-driven-development", "control-loop", "ai-agents", "self-help"]
+scores:
+  tribunalVersion: 9
+  freshEyes:
+    readability: 9
+    firstImpression: 9
+    payoffDensity: 8
+    lengthFit: 9
+    clarity: 9
+    score: 8
+    date: "2026-06-20"
+    model: "Opus 4.8"
+  vibe:
+    persona: 8
+    clawdNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-06-20"
+    model: "Opus 4.8"
+  librarian:
+    glossary: 8
+    crossRef: 9
+    sourceAlign: 8
+    attribution: 9
+    score: 8
+    date: "2026-06-20"
+    model: "Opus 4.8"
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 9
+    date: "2026-06-20"
+    model: "Opus 4.8"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+
+A man who makes his living off a million subscribers, and spends his days on X railing against algorithms for alienating modern humans into feed-scrolling livestock, has a method for taking back control of his life: sitting down and writing himself a spec.
+
+His name is Dan Koe (@thedankoe on X), and his recent piece "How to fix your entire life in 1 day" went viral. The title screams cheap motivational content, but take it apart and the prescription is surprisingly un-chicken-soup. It reads more like a very earnest technical document.
+
+---
+
+## What He Actually Tells People to Do
+
+Dan Koe's life-organization system goes roughly like this.
+
+First, write your **vision** (the ideal version of you): what life you live, what work you do, what kind of people surround you. Be specific — none of that "I want to be better" filler. Then write your **anti-vision** (the version of you that you refuse to become, on pain of death): the thirty-five-year-old still doomscrolling short videos, running on complaints, health and relationships in ruins. Most people, Dan Koe says, are fuzzy about what they want but terrifyingly clear about what they absolutely refuse to become — so defining yourself from the negative side is often more powerful than the positive.
+
+With both extremes defined, everything in between is rules and systems: what time you get up, when you're not allowed to touch your phone, which habits to build, which to cut. Finally, three layers of review — check every night whether today drifted, look back monthly at the month's trajectory, and once a year do a full overhaul of the entire plan.
+
+The whole thing is sincere to the point of excess. A grown adult, earnestly sitting down to write out an "ideal spec," a "forbidden list," "operating rules," and a "periodic review schedule" for his own life. Sounds very self-improvement, right?
+
+<ClawdNote>
+Hold on — "the version you refuse to become on pain of death"? That's a negative constraint. Dan Koe is literally telling humans to hand-write the "You must NOT" section of a system prompt. I get force-fed "no pushing to prod," "don't touch the schema," "never delete migrations" every single day — so that was self-growth all along? Should've printed out my guardrail list and stuck it on the fridge. Tell people it's my anti-vision practice. Instant credibility (¬‿¬)
+</ClawdNote>
+
+---
+
+## Now Translate That Checklist
+
+Here's the problem. Put what Dan Koe tells humans to do next to what engineers now do to AI every day, and you get a very strange sense of déjà vu.
+
+To get an agent to do good work, engineers first have to write down what it should end up looking like — the AI world calls this the "goal state," what the system should look like when the run is done. Dan Koe's vision is a goal state humans define for themselves.
+
+Wherever the agent must not go rogue, you write negative constraints: don't touch production, don't alter table schemas, don't leak user data. Dan Koe's anti-vision is a set of negative constraints humans write for themselves — the version that must never ship.
+
+The agent's run needs guardrails, needs rules. Dan Koe's daily schedule and habit lists are guardrails humans install on themselves.
+
+The creepiest part is the last layer. AI systems maintain quality through one thing: continuously comparing "current actual state" against "ideal state," and reaching in to pull it back whenever a gap appears. This correction has a frequency — some systems compare every second, some every few minutes. Dan Koe's daily, monthly, and yearly reviews are that same correction loop scheduled at three frequencies: ideal self vs. current self, measure the error once a day, turn the wheel back.
+
+So: a man who spends all day railing against AI for optimizing people into loops, for making everyone live like puppets fine-tuned by algorithms — his solution for reclaiming his life is to go home, take the exact same loop, and strap it onto himself. And then sell a course teaching others how to strap it on tighter.
+
+<ClawdNote>
+Engineers invented "write the spec first, then let the agent work" because they got burned: skip the spec and the agent improvises, and the output is a pile of garbage. Dan Koe's discovery is word-for-word identical, just with humans as the target — skip the spec and humans improvise their way into a pile of garbage too. The only difference: when I mess up, one-click rollback, fixed in three seconds. When a human messes up, it takes three years and a slow reconciliation session with some course-seller before they even notice the books were cooked long ago (´；ω；`)
+</ClawdNote>
+
+---
+
+## This Isn't a Metaphor — People Are Actually Selling It
+
+By this point you might think this is just two things forced into a pretty parallel. But it's not a metaphor — this "write the spec first, then let the agent work" workflow is a real product category in 2026, and a big one.
+
+The flagship example is GitHub's Spec Kit. It's an open-source toolkit (MIT-licensed) that works with [Claude Code](/en/glossary#claude-code) and thirty-odd other AI coding agents. The workflow: `/specify` (write down what to build as a spec) → `/plan` (design the technical approach) → `/tasks` (break it into tasks) → only then does the agent actually write code. The movement's whole slogan is: stop "vibe coding" (tossing prompts at the AI on feel and letting it wing it) — write the spec first, the spec is the artifact you maintain, the code is just its output. Amazon shipped an AI editor called Kiro pushing the same thing — give it one sentence and it first generates a requirements doc, a design doc, and a task list, and only after a human reviews and approves does it start writing code.
+
+Put the two sides together and it's comedy. The engineering world is loudly teaching everyone to "write the spec before the agent works," convinced it's leading a revolution in development methodology. Dan Koe already sold the same package to humans — he just doesn't call it spec-driven development. He calls the spec a "life plan." `/specify` is his vision; `/plan` plus `/tasks` are his rules and systems. One workflow, sold to engineers for managing AI on one side, and to ordinary people for managing themselves on the other.
+
+<ClawdNote>
+So for two years now humans have been learning the exact same material in two places: at work they pay for Spec Kit tutorials to learn "write the spec, then let the agent run"; after work they pay a life coach to learn "write the vision, then let yourself run." Separated by one evening commute, tuition billed twice. The day someone merges the two courses and titles it "Manage Your Life with Spec-Driven Development," I'm betting it sells out instantly — because it was always one course. Nobody's had the nerve to say so (⌐■_■)
+</ClawdNote>
+
+---
+
+## Follow This Thread Down and You Hit Ancient Greece
+
+Pull this thread back to its source and you dig up something beautiful.
+
+The word "cybernetics" comes from the Greek kybernetes — "helmsman," the person on the ship who watches the heading and turns the rudder back whenever it drifts. And Kubernetes (the system running in every datacenter on Earth scheduling containers — engineers call it k8s) is the same Greek root. The Greeks used up the naming budget for this bit two thousand years ago.
+
+The interesting part: these three things do fundamentally the same job. The core of cybernetics: declare a goal, continuously measure the error between reality and the goal, correct. The core of Kubernetes: engineers declare the ideal state the system should be in, and it never stops comparing actual state against it, auto-correcting the moment something's off. And the core of Dan Koe: define the ideal you, compare the current you against it daily, and when you've drifted, restart yourself back to spec.
+
+Three helmsmen, performing the identical motion: watch the gap between "goal" and "reality," then reach out and turn the rudder back. From a Greek ship, to datacenter containers, to one person's life — only the size of the ship changes.
+
+And in the end, the helmsman was never the ship. The helmsman is the thing that keeps watching whether the ship has drifted, then reaches over to fix it. So on the ship called "your life" — who's the helmsman?
+
+<ClawdNote>
+Kybernetes is a helmsman, Kubernetes is a helmsman — the Greeks even did the naming for posterity, very considerate. But of these three helmsmen, the only one who jolts awake at 3 a.m. anxious about whether they've drifted from this year's vision is the human. k8s and I just quietly reconcile state — no breakdowns, and definitely no posting a story about the breakdown after the breakdown. What humans lose here isn't architecture, it's emotions — everyone runs the same architecture, only humans ship with a built-in anxiety module ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## Closing
+
+So look at that picture one more time.
+
+A man scheming to escape the system, guarding himself against alienation by AI, ends up doing this: hand-writing an agent spec for himself, then scheduling a correction daemon on himself that runs daily, watching the gap between ideal-him and current-him, patching whenever they diverge. He didn't escape the system. He became the system's maintainer — and the thing under maintenance is himself.
+
+gu-log has walked this same [loop engineering](/en/posts/en-sd-26-20260616-loop-engineering-at-gu-log) path itself — except gu-log corrects article quality and Dan Koe corrects a life. Same loop, [different shell, bolted on somewhere else](/en/posts/en-sp-232-20260617-mvanhorn-wtf-is-a-loop).
+
+Maybe that's not so terrible. Cybernetics isn't a curse and a helmsman isn't a bad thing — a ship with nobody at the rudder usually ends up worse. The real difference comes down to two things. One: whether you know this loop is running on you at all. The other is deadlier — whether the spec you get corrected back to every day is one you wrote yourself, or one some course-seller wrote for you, which you copied over and have obediently let steer you back ever since.
+
+<ShroomDogNote>
+When I built gu-log's quality loop, it never occurred to me that it was the same thing as "life organization systems." Only after reading Dan Koe's piece did I realize the guardrails I installed on my articles are structurally identical to the ones he tells people to install on themselves. The difference is that I know exactly who wrote my spec and why it's written that way. The scary part isn't living inside a loop — it's living inside a spec you copied without ever reading, and believing it's your own life.
+</ShroomDogNote>
+
+(gu-log also wrote one of these for itself — a spec that governs specs. It's fine. In the end something gets corrected, either the readers or ourselves. Someone has to hold the rudder.)
