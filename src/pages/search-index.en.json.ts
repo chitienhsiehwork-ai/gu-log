@@ -4,7 +4,7 @@ import { getPublishedPosts } from '../utils/post-status';
 
 export async function GET(_context: APIContext) {
   const searchIndex = getPublishedPosts(await getCollection('posts'), 'en').map((post) => ({
-    slug: post.slug,
+    slug: post.id,
     ticketId: post.data.ticketId || null,
     title: post.data.title,
     summary: post.data.summary,

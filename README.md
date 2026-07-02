@@ -165,7 +165,7 @@ These are the sources of truth — read them before editing content:
 
 - [`CONTRIBUTING.md`](./CONTRIBUTING.md) — content rules, ticket-ID SOP, dedup, frontmatter schema
 - [`GU-LOG_WRITER_PROMPT.md`](./GU-LOG_WRITER_PROMPT.md) — writing style (PTT storytelling, MoguNote voice)
-- [`src/content/config.ts`](./src/content/config.ts) — frontmatter schema (Zod)
+- [`src/content.config.ts`](./src/content.config.ts) — frontmatter schema (Zod)
 - [`CLAUDE.md`](./CLAUDE.md) — how the AI agents operate this repo
 
 ---

@@ -19,7 +19,7 @@ export async function GET(context: APIContext) {
     site: context.site!,
     items: sortedPosts.map((post) => ({
       title: post.data.title,
-      link: `/posts/${post.slug}`,
+      link: `/posts/${post.id}`,
       pubDate: new Date(post.data.translatedDate || post.data.originalDate),
       description: post.data.summary,
     })),

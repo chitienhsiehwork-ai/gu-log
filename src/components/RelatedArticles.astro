@@ -7,7 +7,7 @@
  */
 
 interface Post {
-  slug: string;
+  id: string;
   data: {
     title: string;
     ticketId?: string;
@@ -36,7 +36,7 @@ const baseUrl = lang === 'en' ? '/en/posts/' : '/posts/';
 
 // Compute tag-overlap score for all other posts in same lang
 const scored = allPosts
-  .filter((p) => p.slug !== currentSlug && !p.data.series)
+  .filter((p) => p.id !== currentSlug && !p.data.series)
   .map((p) => {
     const overlap = (p.data.tags ?? []).filter((tag) => currentTags.includes(tag)).length;
     return { post: p, overlap };
@@ -56,7 +56,7 @@ const related =
   scored.length > 0
     ? scored.map((s) => s.post)
     : allPosts
-        .filter((p) => p.slug !== currentSlug && !p.data.series)
+        .filter((p) => p.id !== currentSlug && !p.data.series)
         .sort(
           (a, b) =>
             new Date(b.data.originalDate).getTime() - new Date(a.data.originalDate).getTime()
@@ -78,10 +78,10 @@ const related =
             <li
               class={`related-card related-card--${prefix}`}
               data-related-item
-              data-slug={post.slug}
+              data-slug={post.id}
             >
-              <span class="read-dot" data-read-indicator data-slug={post.slug} />
-              <a href={`${baseUrl}${post.slug}`} class="related-link">
+              <span class="read-dot" data-read-indicator data-slug={post.id} />
+              <a href={`${baseUrl}${post.id}`} class="related-link">
                 {post.data.ticketId && (
                   <span class={`ticket-id ticket-id--${prefix}`}>{post.data.ticketId}</span>
                 )}
