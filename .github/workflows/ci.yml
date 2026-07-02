@@ -130,6 +130,32 @@ jobs:
           echo "Checking $(echo $CHANGED_MDX | wc -w) zh-tw post(s) for 晶晶體..."
           node scripts/check-jingjing.mjs $CHANGED_MDX
 
+  pending-ticket-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - name: Block PENDING posts from main
+        run: |
+          set -eu
+          pending_files="$(find src/content/posts -type f -name '*-pending-*.mdx' -print | sort)"
+          pending_ticket_ids="$(grep -RInE '^[[:space:]]*ticketId:[[:space:]]*["'\'']?[A-Za-z]+-PENDING["'\'']?[[:space:]]*$' src/content/posts --include='*.mdx' || true)"
+
+          if [ -n "$pending_files" ] || [ -n "$pending_ticket_ids" ]; then
+            echo "::error::PENDING posts cannot land on main. Follow CONTRIBUTING.md §編號分配（PENDING ticket pattern） and run scripts/allocate-ticket.mjs before merge."
+            if [ -n "$pending_files" ]; then
+              echo "PENDING filenames:"
+              printf '%s\n' "$pending_files"
+            fi
+            if [ -n "$pending_ticket_ids" ]; then
+              echo "PENDING ticketId values:"
+              printf '%s\n' "$pending_ticket_ids"
+            fi
+            exit 1
+          fi
+
+          echo "No PENDING posts found."
+
   security-gate:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -239,6 +265,7 @@ jobs:
       - type-check
       - contrast
       - validate-content
+      - pending-ticket-guard
       - security-gate
       - unit-tests
       - build

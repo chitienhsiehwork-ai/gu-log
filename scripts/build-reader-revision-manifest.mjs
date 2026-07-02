@@ -74,11 +74,17 @@ export function buildReaderRevisionManifest() {
   const manifest = {};
   for (const file of readdirSync(postsDir).sort()) {
     if (!file.endsWith('.mdx')) continue;
+    if (file.includes('-pending-')) continue;
     const postId = file.replace(/\.mdx$/, '');
     const content = readFileSync(join(postsDir, file), 'utf8');
+    if (hasPendingTicketId(content)) continue;
     manifest[postId] = computeReaderRevisionFromContent(content);
   }
   return manifest;
+}
+
+function hasPendingTicketId(content) {
+  return /^[ \t]*ticketId:[ \t]*["']?[A-Za-z]+-PENDING["']?[ \t]*$/m.test(content);
 }
 
 function writeOrCheckManifest() {

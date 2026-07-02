@@ -23,6 +23,7 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, '..');
 const outPath = join(repoRoot, 'src', 'data', 'post-versions.json');
+const postsDir = join(repoRoot, 'src', 'content', 'posts');
 const checkOnly = process.argv.includes('--check');
 
 // Skip regeneration if the clone is shallow — git log would miss history
@@ -63,6 +64,7 @@ function buildManifest() {
       if (trimmed && trimmed.startsWith('src/content/posts/') && trimmed.endsWith('.mdx')) {
         // Extract post id: "src/content/posts/cp-231-xxx.mdx" → "cp-231-xxx"
         const postId = trimmed.replace('src/content/posts/', '').replace('.mdx', '');
+        if (isPendingPost(postId)) continue;
         versions[postId] = (versions[postId] ?? 0) + 1;
       }
     }
@@ -87,6 +89,16 @@ function buildManifest() {
   mkdirSync(dirname(outPath), { recursive: true });
   writeFileSync(outPath, next);
   console.log(`✅ post-versions.json: ${count} posts tracked${mergeHint}`);
+}
+
+function isPendingPost(postId) {
+  if (postId.includes('-pending-')) return true;
+
+  const postPath = join(postsDir, `${postId}.mdx`);
+  if (!existsSync(postPath)) return false;
+
+  const content = readFileSync(postPath, 'utf8');
+  return /^[ \t]*ticketId:[ \t]*["']?[A-Za-z]+-PENDING["']?[ \t]*$/m.test(content);
 }
 
 buildManifest();
