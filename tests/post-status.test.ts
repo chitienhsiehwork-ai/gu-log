@@ -21,7 +21,7 @@ import { getPostVersion } from '../src/utils/post-versions';
 
 // Minimal duck-typed fake matching the runtime shape used by post-status.
 type FakePost = {
-  slug: string;
+  id: string;
   data: {
     ticketId: string;
     lang: 'zh-tw' | 'en';
@@ -34,12 +34,12 @@ type FakePost = {
 };
 
 function p(
-  slug: string,
+  id: string,
   ticketId: string,
   lang: 'zh-tw' | 'en',
   extra: Partial<FakePost['data']> = {}
 ): FakePost {
-  return { slug, data: { slug, ticketId, lang, ...extra } as FakePost['data'] };
+  return { id, data: { slug: id, ticketId, lang, ...extra } as FakePost['data'] };
 }
 
 const cast = (xs: FakePost[]) => xs as unknown as Parameters<typeof getPublishedPosts>[0];
@@ -65,7 +65,7 @@ describe('resolvePostStatus', () => {
     expect(r.status).toBe('deprecated');
     expect(r.replacementTicketId).toBe('SP-2');
     // Should prefer the en replacement when post is en
-    expect(r.replacementPost?.slug).toBe('en-sp-2-y');
+    expect(r.replacementPost?.id).toBe('en-sp-2-y');
     expect(r.reason).toBe('replaced');
   });
 
@@ -75,7 +75,7 @@ describe('resolvePostStatus', () => {
     const newZh = p('sp-2-y', 'SP-2', 'zh-tw');
     // No newEn
     const r = resolvePostStatus(en as any, cast([zh, en, newZh]));
-    expect(r.replacementPost?.slug).toBe('sp-2-y');
+    expect(r.replacementPost?.id).toBe('sp-2-y');
   });
 
   it('retired status carries reason + retiredAt', () => {
@@ -115,11 +115,11 @@ describe('getTranslationPair', () => {
   it('finds the en pair from a zh post', () => {
     const zh = p('sp-1-x', 'SP-1', 'zh-tw');
     const en = p('en-sp-1-x', 'SP-1', 'en');
-    expect(getTranslationPair(zh as any, cast([zh, en]))?.slug).toBe('en-sp-1-x');
+    expect(getTranslationPair(zh as any, cast([zh, en]))?.id).toBe('en-sp-1-x');
   });
 
   it('returns undefined when no ticketId', () => {
-    const orphan = { slug: 's', data: { ticketId: '', lang: 'zh-tw' } };
+    const orphan = { id: 's', data: { ticketId: '', lang: 'zh-tw' } };
     expect(getTranslationPair(orphan as any, cast([]))).toBeUndefined();
   });
 
@@ -139,18 +139,18 @@ describe('getPublishedPosts / getListablePosts', () => {
 
   it('getPublishedPosts excludes deprecated chains', () => {
     const r = getPublishedPosts(cast(all), 'zh-tw');
-    expect(r.map((p: any) => p.slug).sort()).toEqual(['sp-1-x', 'sp-3-z']);
+    expect(r.map((p: any) => p.id).sort()).toEqual(['sp-1-x', 'sp-3-z']);
   });
 
   it('getPublishedPosts filters by lang', () => {
-    expect(getPublishedPosts(cast(all), 'en').map((p: any) => p.slug)).toEqual(['en-sp-1-x']);
+    expect(getPublishedPosts(cast(all), 'en').map((p: any) => p.id)).toEqual(['en-sp-1-x']);
   });
 
   it('getListablePosts excludes deprecated but includes retired', () => {
     const retired = p('sp-4-r', 'SP-4', 'zh-tw', { status: 'retired' });
     const r = getListablePosts(cast([...all, retired]), 'zh-tw');
-    expect(r.map((p: any) => p.slug)).toContain('sp-4-r'); // retired listable
-    expect(r.map((p: any) => p.slug)).not.toContain('sp-2-y'); // deprecated NOT listable
+    expect(r.map((p: any) => p.id)).toContain('sp-4-r'); // retired listable
+    expect(r.map((p: any) => p.id)).not.toContain('sp-2-y'); // deprecated NOT listable
   });
 });
 
@@ -161,12 +161,12 @@ describe('getNavigablePosts', () => {
 
   it('returns published list when current is in it', () => {
     const r = getNavigablePosts(cast(all), zh1 as any);
-    expect(r.map((p: any) => p.slug)).toEqual(['sp-1-x']);
+    expect(r.map((p: any) => p.id)).toEqual(['sp-1-x']);
   });
 
   it('appends current post if it is itself non-published', () => {
     const r = getNavigablePosts(cast(all), zh2 as any);
-    expect(r.map((p: any) => p.slug).sort()).toEqual(['sp-1-x', 'sp-2-y']);
+    expect(r.map((p: any) => p.id).sort()).toEqual(['sp-1-x', 'sp-2-y']);
   });
 });
 

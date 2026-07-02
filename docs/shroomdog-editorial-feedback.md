@@ -535,7 +535,7 @@ Sprin asked whether Tribunal v7 FreshEyes covers “length should be just right,
 
 - 情境：CP-310（Alisa Liu 求職實錄 MP 翻譯）由 Opus 4.5 重寫成 V2 後，四法官給 Fact 9 / Vibe 8 / Librarian 8 / Fresh Eyes 8。ShroomDog 讀過 branch preview 後判定「acceptable」可 merge，但 ShroomDog 本人 vibe 只給 **6**，並指出值得讓「ShroomDog vibe score」有個正式存放位置。
 - 校準訊號：**機器 vibe 8 對人工 vibe 6 → 機器分偏寬約 2 分**。這跟 CP-300 那次「rewrite 概念精確但讀起來像 AI slop / boring」是同一條軸——tribunal 的 vibe judge 容易把「忠實、乾淨、無錯」讀成高分，但人類讀者要的是畫面感、節奏、不無聊。CP-310 V2 的中段（面試分類七連列）正是 fresh-eyes 也點到的「faithful but less warm / linear」，機器仍給 8，人類給 6。
-- 處置：(1) 新增 `scores.shroomDogVibe`（score / date / note）到 `src/content/config.ts`（frontmatter schema SSOT），讓 ShroomDog vibe 有正式欄位、跟 AI tribunal 並存、可被未來 UI / 背景 tribunal 當 ground truth。命名刻意用 `shroomDogVibe` 而非 `humanVibe`——這是具名編輯（ShroomDog）的分數，不是匿名 human。(2) CP-310 兩版 frontmatter 填 shroomDogVibe 6。shroomDogVibe **不是 commit gate**，純編輯 ground truth / 校準用。
+- 處置：(1) 新增 `scores.shroomDogVibe`（score / date / note）到 `src/content.config.ts`（frontmatter schema SSOT），讓 ShroomDog vibe 有正式欄位、跟 AI tribunal 並存、可被未來 UI / 背景 tribunal 當 ground truth。命名刻意用 `shroomDogVibe` 而非 `humanVibe`——這是具名編輯（ShroomDog）的分數，不是匿名 human。(2) CP-310 兩版 frontmatter 填 shroomDogVibe 6。shroomDogVibe **不是 commit gate**，純編輯 ground truth / 校準用。
 - Reusable lesson：(1) **機器 vibe 跟 ShroomDog vibe 要分開記、不要互相覆蓋**——機器分系統性偏寬，把兩者並列才看得出 gap、才能日後校準 vibe-scoring-standard。(2) 機器給 straight-8、人類給 6 的典型死因是「中段把 source 結構線性照搬、忠實但不暖」；rewrite 要主動破壞線性、加畫面，不能只追忠實乾淨。(3) merge 不被 ShroomDog 低分擋（floor 是 AI composite ≥3、homepage 是 AI vibe 一維 ≥9）；ShroomDog vibe 6 的角色是誠實記錄 + 餵背景精修，不是 ship gate。
 ## 2026-06-23 — SP-243（creatorpascal 金錢與快樂）：太多生硬詞彙 + MoguNote 不夠解釋性 + pipeline 還在吐 ClawdNote
 

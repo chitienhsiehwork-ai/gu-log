@@ -281,7 +281,7 @@ test.describe('Content Integrity: Model Signature', () => {
     // Every post carries a model signature (translatedBy = model + harness).
     // SP/CP translations say "translated by"; SD/Lv originals say "written by"
     // (the post page picks the wording by ticketId prefix). The schema enforces
-    // this for all posts — see src/content/config.ts.
+    // this for all posts — see src/content.config.ts.
     const missing = posts.filter(p => p.ticketId && !p.hasTranslatedBy);
 
     if (missing.length > 0) {

@@ -166,9 +166,9 @@ jobs:
           # Key covers everything `astro build` reads from config or plugins.
           # If you add a new config file or plugin location, add it here or
           # stale incremental state may leak between builds.
-          key: astro-${{ runner.os }}-${{ hashFiles('astro.config.*', 'src/content/config.ts', 'src/plugins/**') }}-${{ github.sha }}
+          key: astro-${{ runner.os }}-${{ hashFiles('astro.config.*', 'src/content.config.ts', 'src/plugins/**') }}-${{ github.sha }}
           restore-keys: |
-            astro-${{ runner.os }}-${{ hashFiles('astro.config.*', 'src/content/config.ts', 'src/plugins/**') }}-
+            astro-${{ runner.os }}-${{ hashFiles('astro.config.*', 'src/content.config.ts', 'src/plugins/**') }}-
             astro-${{ runner.os }}-
 
       - name: Build

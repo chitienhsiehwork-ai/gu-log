@@ -40,7 +40,7 @@ const getTimelineStyle = (status: PostStatus) =>
         const status = getPostStatus(pick, allPostsFull);
         return (
           <article class="pick-preview" style={getTimelineStyle(status)}>
-            <a href={`/en/posts/${pick.slug}`} class="pick-title">
+            <a href={`/en/posts/${pick.id}`} class="pick-title">
               {pick.data.title}
               {status !== 'published' && <PostStatusLabel status={status} />}
             </a>

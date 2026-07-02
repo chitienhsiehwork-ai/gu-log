@@ -9,7 +9,7 @@ describe('human signal UI wiring', () => {
   it('article pages pass a version snapshot into read and share controls', () => {
     for (const path of ['src/pages/posts/[...slug].astro', 'src/pages/en/posts/[...slug].astro']) {
       const src = read(path);
-      expect(src).toContain('postId={post.id}');
+      expect(src).toContain('postId={legacyPostId}');
       expect(src).toContain('ticketId={post.data.ticketId}');
       expect(src).toContain('postVersion={Number(postVersion)}');
       expect(src).toContain('pathname={Astro.url.pathname}');

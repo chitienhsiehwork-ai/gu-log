@@ -1,5 +1,5 @@
 ---
-import { getCollection } from 'astro:content';
+import { getCollection, render } from 'astro:content';
 import { getPostReaderRevision, getPostVersion } from '../../utils/post-versions';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import TableOfContents from '../../components/TableOfContents.astro';
@@ -26,7 +26,7 @@ export async function getStaticPaths() {
   const posts = allPosts.filter((post) => post.data.lang === 'zh-tw');
 
   return posts.map((post) => ({
-    params: { slug: post.slug },
+    params: { slug: post.id },
     props: {
       post,
       allPosts,
@@ -35,7 +35,7 @@ export async function getStaticPaths() {
 }
 
 const { post, allPosts } = Astro.props;
-const { Content, headings } = await post.render();
+const { Content, headings } = await render(post);
 
 const isMoguPicks =
   post.data.tags?.includes('mogu-picks') || post.data.tags?.includes('clawd-picks');
@@ -49,6 +49,9 @@ const isChatGptShareSource = post.data.sourceUrl.startsWith('https://chatgpt.com
 const showSourceCitation = !isLevelUp && (!isShroomDogOriginal || isChatGptShareSource);
 const sourceCitationLabel = isShroomDogOriginal && isChatGptShareSource ? '靈感來源' : '原文出處';
 
+// Reader-state records in the wild are keyed by the legacy entry id
+// (filename incl. extension) — keep sending that exact value as postId.
+const legacyPostId = post.filePath?.split('/').pop() ?? post.id;
 const postVersion = getPostVersion(post.id);
 const postReaderRevision = getPostReaderRevision(post.id);
 const authorshipNote = getPostAuthorshipNote(post.id, 'zh-tw');
@@ -201,9 +204,9 @@ const displayTag = (tag: string) => (tag === 'clawd-picks' ? 'mogu-picks' : tag)
     {post.data.scores && <AiJudgeScore scores={post.data.scores} lang="zh-tw" />}
 
     <ReadStatusButton
-      slug={post.slug}
+      slug={post.id}
       lang="zh-tw"
-      postId={post.id}
+      postId={legacyPostId}
       ticketId={post.data.ticketId}
       postVersion={Number(postVersion)}
       readerRevision={postReaderRevision}
@@ -213,7 +216,7 @@ const displayTag = (tag: string) => (tag === 'clawd-picks' ? 'mogu-picks' : tag)
     <ShareButton
       title={post.data.title}
       lang="zh-tw"
-      postId={post.id}
+      postId={legacyPostId}
       ticketId={post.data.ticketId}
       postVersion={Number(postVersion)}
       pathname={Astro.url.pathname}
@@ -223,10 +226,10 @@ const displayTag = (tag: string) => (tag === 'clawd-picks' ? 'mogu-picks' : tag)
 
     {
       post.data.series ? (
-        <SeriesNav currentSlug={post.slug} allPosts={navigablePosts} lang="zh-tw" />
+        <SeriesNav currentSlug={post.id} allPosts={navigablePosts} lang="zh-tw" />
       ) : (
         <RelatedArticles
-          currentSlug={post.slug}
+          currentSlug={post.id}
           currentTags={post.data.tags ?? []}
           allPosts={navigablePosts}
           lang="zh-tw"
@@ -234,14 +237,14 @@ const displayTag = (tag: string) => (tag === 'clawd-picks' ? 'mogu-picks' : tag)
       )
     }
 
-    <PrevNextNav currentSlug={post.slug} allPosts={navigablePosts} lang="zh-tw" />
+    <PrevNextNav currentSlug={post.id} allPosts={navigablePosts} lang="zh-tw" />
 
     <Giscus lang="zh-tw" />
 
     <div class="post-version-info">
       <span class="version-badge">v{postVersion}</span>
       <a
-        href={`https://github.com/chitienhsiehwork-ai/gu-log/commits/main/src/content/posts/${post.id}`}
+        href={`https://github.com/chitienhsiehwork-ai/gu-log/commits/main/${post.filePath}`}
         target="_blank"
         rel="noopener"
         class="version-history-link"
@@ -255,7 +258,7 @@ const displayTag = (tag: string) => (tag === 'clawd-picks' ? 'mogu-picks' : tag)
     </footer>
   </article>
 
-  <AiPopup filePath={`src/content/posts/${post.id}`} postTitle={post.data.title} lang="zh-tw" />
+  <AiPopup filePath={`${post.filePath}`} postTitle={post.data.title} lang="zh-tw" />
 </BaseLayout>
 
 <style>

@@ -27,7 +27,7 @@ export async function GET(_context: APIContext) {
 
   const feed = posts
     .map((post) => ({
-      slug: post.slug,
+      slug: post.id,
       ticketId: post.data.ticketId || null,
       prefix: getPrefix(post.data.ticketId),
       title: post.data.title,
@@ -45,7 +45,7 @@ export async function GET(_context: APIContext) {
             harness: post.data.translatedBy.harness,
           }
         : null,
-      url: `/posts/${post.slug}`,
+      url: `/posts/${post.id}`,
     }))
     // Sort by most recent date (translatedDate preferred, fallback originalDate)
     .sort((a, b) => {
