@@ -1,0 +1,317 @@
+---
+ticketId: "Lv-16"
+title: "The Browser Is Actually a Five-Player Team (Part 1): Why One Crashed Tab Does Not Take Down the Whole Browser"
+originalDate: "2026-06-21"
+translatedDate: "2026-06-21"
+translatedBy:
+  model: "GPT-5 Codex"
+  harness: "Codex"
+  pipeline:
+    - role: "Translator"
+      model: "GPT-5 Codex"
+      harness: "Codex"
+source: "Addy Osmani"
+sourceUrl: "https://x.com/addyosmani/status/2068394292796871019"
+summary: "The browser is not one program; it is a coordinated team. This MOBA-style guide explains Chrome's multi-process architecture, site isolation, and sandboxing: why one tab can crash without dragging the whole browser down with it."
+lang: "en"
+tags: ["level-up", "browser", "chromium", "multi-process", "site-isolation", "sandbox", "security", "tutorial"]
+scores:
+  tribunalVersion: 9
+  vibe:
+    persona: 9
+    clawdNote: 9
+    vibe: 8
+    narrative: 9
+    score: 8
+    date: "2026-06-21"
+    model: "Opus 4.8"
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 10
+    score: 9
+    date: "2026-06-21"
+    model: "Opus 4.8"
+  librarian:
+    glossary: 9
+    crossRef: 9
+    sourceAlign: 9
+    attribution: 9
+    score: 9
+    date: "2026-06-21"
+    model: "Sonnet 4.6"
+  freshEyes:
+    readability: 9
+    firstImpression: 9
+    payoffDensity: 9
+    lengthFit: 9
+    clarity: 9
+    score: 9
+    date: "2026-06-21"
+    model: "Haiku 4.5"
+---
+
+import LevelUpProgress from '../../components/LevelUpProgress.astro';
+import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
+import ClawdNote from '../../components/ClawdNote.astro';
+import AnalogyBox from '../../components/AnalogyBox.astro';
+import Mermaid from '../../components/Mermaid.astro';
+
+Picture 2007. Ten tabs are open while a report is due. One ad in one tab runs one badly written line of code. The next second: **the entire browser, along with all ten tabs, disappears.** Anything unsaved evaporates.
+
+Back then, the browser was "one program." The whole family shared one life bar. One person stepped on a mine, and the whole team died with them.
+
+That is not how it works today. If one tab eats all the memory and freezes, closing that one tab is usually enough; the other tabs barely blink. What changed? The short answer is enough to change how most people picture a browser: **the browser went from "one program" to a coordinated team.**
+
+The moment you press `Enter`, the thing moving behind the screen is not "one browser." It is **a whole team**: someone commands, someone farms resources from the network, someone holds the lane, someone gets pixels onto the screen. Each one is an independent process, with its own memory and its own life. They can only talk across a wall. Open five tabs and the task manager may show a dozen `chrome` processes. That is not broken. That is the design.
+
+This post, Part 1, uses a MOBA match to lay out the team's champion select. It also answers a question everyone benefits from every day but rarely thinks about: **why can one tab crash or max out memory, while the other tabs and the browser shell stay alive?**
+
+(Part 2 will cover how this team fights a "teamfight": the rendering pipeline behind one screen update. First, learn the roster.)
+
+---
+
+## 🏰 Floor 0: The Big Picture — A Browser Is a Team, Not One Person
+
+<LevelUpProgress current={0} total={5} title="The Browser Five-Player Team (Part 1)" />
+
+Start with the map. A modern Chrome browser is at least split into these roles, and each role is its own independent process:
+
+<Mermaid chart={"graph TD\n    A[Captain / Shotcaller<br/>Manages UI and commands] --> B[Jungler<br/>Fetches resources from the network]\n    A --> C[Laner 1<br/>Tab for Site A]\n    A --> D[Laner 2<br/>Tab for Site B]\n    A --> E[Carry<br/>Outputs pixels to the screen]\n    A --> F[Utility / Support<br/>Decoding, extensions...]"} caption="Browser multi-process architecture, viewed as a MOBA team" />
+
+Notice every arrow starts from the captain. It is the central coordinator, the process that spawns every other process. The other roles **cannot talk to each other directly**. They communicate through the captain. That relay system is called inter-process communication, or `IPC`.
+
+<AnalogyBox title="The Opening Draft">
+Imagine queueing into a 5v5 match. The system does not throw five identical people into the game. It assigns positions:
+
+- **Captain / shotcaller**: sits back, reads the map, gives commands, and does not usually do the knife fight directly
+- **Jungler**: roams through the jungle and farms resources for teammates
+- **Laner**: holds one lane alone, fights face-to-face, and takes the most risk
+- **Carry**: turns the team's setup into actual damage on the screen
+- **Support / utility**: fills gaps, does chores, handles dirty work nobody else wants
+
+The browser team divides labor almost the same way. Remember this table; the rest of the post leans on it.
+</AnalogyBox>
+
+<ClawdNote summary="Old browsers shared one life bar.">
+You may ask: why make a perfectly normal browser look like a video game lineup? Why not let one process do everything?
+
+Good question. That is exactly how every browser worked before 2008: **the whole team shared one life bar**. The result is the disaster we will hit on Floor 2. Teaser: in that era, if you opened ten tabs and one page ran bad code and crashed, what happened? The answer was not "that tab dies." It was "all ten tabs die together, and the whole browser closes on the spot" (╯°□°)╯
+</ClawdNote>
+
+---
+
+## 🏰 Floor 1: The Champion Select — Five Roles, Five Jobs
+
+<LevelUpProgress current={1} total={5} title="The Browser Five-Player Team (Part 1)" />
+
+Let's split the roles. The official browser-architecture name is in parentheses. Learn it once; after that, this post will mostly use the team names.
+
+**1. Captain / shotcaller (`Browser Process`)**
+
+This is the central brain of the team, and also what most people imagine as "the browser." It owns everything **outside the web page**: address bar, bookmarks, menus, tab strip, Back and Forward buttons. It does not render the page content itself, but it **commands** the processes that do. It manages navigation and coordinates resource loading. The one "Chrome" process you first notice in Task Manager is usually this role.
+
+**2. Jungler (`Network Service`)**
+
+When a laner needs resources like HTML, CSS, JavaScript, or images, it **does not go onto the network by itself**. It asks the jungler. The jungler handles every network request, DNS lookup, `socket` connection, and other low-level chores, then hands the fetched resources back to the right player.
+
+This split has a security point hiding inside it: **the laner cannot touch the network directly; it can only ask the jungler.** Floors 3 and 4 explain why that matters.
+
+**3. Laner (`Renderer Process`, the protagonist)**
+
+This is the star of the post. **Each tab, or more precisely each site, gets a laner.** It runs the `Blink` layout engine and the V8 JavaScript engine. It parses HTML into the DOM, runs the page's JavaScript, computes layout, and prepares the page for drawing.
+
+It is also the hardest-working and most dangerous role, because it runs **untrusted code from the internet**. Whatever JavaScript a random site sends, the laner must execute. So the laner is locked down the hardest. That is the sandbox on Floor 4.
+
+**4. Carry (`GPU Process`)**
+
+After the laner prepares the scene, the last mile, actually turning that scene into pixels on the screen, belongs to the carry. It is the only role that talks directly to the graphics hardware. The page content from all laners, plus the browser shell from the captain, eventually goes here to be composited and output.
+
+**5. Utility / support (`Utility Process`)**
+
+Everything else gets split into small isolated helper processes: audio/video decoding, extensions, storage work, and so on. The principle is simple: **if a task is risky, such as decoding a suspicious video file, isolate it in its own room.**
+
+<ClawdNote summary="Risky work belongs in isolated processes.">
+Notice the pattern: dangerous work is outsourced to independent processes that can be fired at any time without taking down the big picture.
+
+This is general systems wisdom, not just browser trivia: **keep untrusted, failure-prone parts away from your core.** Browsers push that principle to the extreme. Even "decode a video file" is suspicious enough to get its own little process. Paranoid? A little. But think about how much random stuff a browser swallows every day. Paranoid is the correct setting ʕ•ᴥ•ʔ
+</ClawdNote>
+
+<LevelUpQuiz
+  question="A laner wants to fetch an image from the internet. What does it do?"
+  options={[
+    { label: "A", text: "Open its own socket and download whatever it wants" },
+    { label: "B", text: "Read it from a private disk cache and never touch the network" },
+    { label: "C", text: "Ask the jungler (network process) to fetch it and hand the data back" },
+    { label: "D", text: "Chant at the screen until the image appears" },
+  ]}
+  answer="C"
+  explanation="The laner is sandboxed and cannot touch the network directly. That is intentional. So A is exactly what it is not allowed to do. It also does not have a magic private disk cache that bypasses the network (B). Resources go through the jungler (network process). If a malicious site compromises a laner, that laner still does not have the keys to the network, so stealing data is harder."
+/>
+
+---
+
+## 🏰 Floor 2: Why Split Into a Team — The Single-Process Era's Shared-Life-Bar Disaster
+
+<LevelUpProgress current={2} total={5} title="The Browser Five-Player Team (Part 1)" />
+
+Back to the teaser [Mogu](/en/glossary#mogu) dropped earlier. **Before 2008, browsers were single-process: the whole team shared one life bar.**
+
+What does that mean? Imagine a MOBA match where all five players share the same HP bar. Mid lane steps on a mine, and instead of that one teammate dying, **the whole team collapses and instantly surrenders.** Absurd, but that was old-browser reality. If any tab's page ran bad code, entered an infinite loop, or hit a crash bug, **the entire browser and every other open tab closed together.** That long unsaved draft? Gone.
+
+In 2008, Chrome flipped the model: **multi-process architecture**. Each tab gets its own laner, living in its own process, with its own life bar.
+
+<AnalogyBox title="One Life Bar vs Separate Life Bars">
+- **Single process (old browser)**: the whole team shares one HP bar. One person feeds → everyone loses.
+- **Multi-process (post-Chrome)**: each champion has their own HP bar. If mid lane crashes, that is one lane down, but **the other four are still on the map**. Close or reload that tab, like buying that champion back, and the team keeps playing.
+</AnalogyBox>
+
+That is why today, when one tab freezes or shows Chrome's classic "Aw, Snap!" crash page, you only close or reload **that one tab**. The rest are fine. Before 2008, that was science fiction.
+
+The original source groups the benefits of multi-process architecture into three buckets. In team language:
+
+- **Stability**: one champion crashes without taking the whole team down.
+- **Security**: each champion is locked in its own cage, limiting blast radius. Floors 3 and 4 are about this.
+- **Performance isolation**: one lane fighting a heavy battle, such as a tab doing expensive computation, does not stall every other lane, because the OS can schedule different processes on different CPU cores.
+
+<ClawdNote summary="Aw, Snap! means the crash was contained.">
+The "Aw, Snap!" face is basically Chrome telling you: "Captain, report: mid lane died. Do not panic. Everyone else is still alive. Want me to revive that lane by reloading?"
+
+In the ancient single-process era, the equivalent message was much shorter: the whole window vanished without saying goodbye. So next time you see that sad face, do not yell at it. It is a symbol of progress. It means the disaster was contained to one lane instead of wiping the whole team (￣▽￣)／
+</ClawdNote>
+
+<LevelUpQuiz
+  question="In the old single-process browser era, what happened when one tab's page crashed?"
+  options={[
+    { label: "A", text: "The whole browser, including every tab, crashed together" },
+    { label: "B", text: "Only that tab died; the other tabs stayed safe" },
+    { label: "C", text: "The browser automatically saved that tab and reopened it" },
+    { label: "D", text: "A crying lobster appeared to say goodbye" },
+  ]}
+  answer="A"
+  explanation="Single process means the whole team shares one life bar. One tab crashing took the whole browser with it. B, where only one tab dies and the others stay alive, is the post-2008 multi-process treatment. It did not exist in the old model. C did not exist either; if it crashed, unsaved work evaporated."
+/>
+
+---
+
+## 🏰 Floor 3: Why Every Champion Is Locked to Their Own Lane — `Site Isolation`
+
+<LevelUpProgress current={3} total={5} title="The Browser Five-Player Team (Part 1)" />
+
+Multi-process architecture solved stability. But there was a nastier problem left: **security**.
+
+Imagine this: two tabs are open at the same time. One is online banking. The other is some random site you clicked, and it is secretly malicious. If those two sites' laners **live in the same process and share the same memory space**, the malicious site may have a path to peek at the banking tab's memory: balance, login state, everything.
+
+The spy is standing right next to the bank account.
+
+Chrome's answer is `Site Isolation`: **different sites must live in different processes, and even cross-site `iframe`s embedded inside one page get split out into their own processes**. That latter mechanism is called `OOPIF`, out-of-process iframe. The two sites' memory spaces become completely separate. The spy can rummage through its own pockets all day and still cannot reach the room next door.
+
+<AnalogyBox title="Why Two Champions Cannot Share One Jungle">
+Think of a "process" as a private jungle, and "memory" as the resources inside it.
+
+If the bank champion and a suspicious champion share the same jungle, the spy does not need to win a fair fight. It can sneak into that shared jungle and inspect resources, vision, and everything else.
+
+Site isolation says: **one dedicated jungle per site, with a hard wall around it. Nobody enters anyone else's jungle.** The bank champion stays in its own jungle, and the spy cannot touch it.
+</AnalogyBox>
+
+Why did Chrome become this strict? Because of the 2018 `Spectre` vulnerability.
+
+`Spectre` proved something terrifying: malicious JavaScript can exploit the CPU's speculative execution machinery to **read memory it should never be allowed to read**. In other words, if two sites still share one process, software-level protections may be bypassed by a CPU-level attack. **The only truly solid fix is to prevent them from sharing a process in the first place.** Chrome made site isolation the default around Chrome 67, and by 2024 it was enabled for 99% of desktop Chrome users.
+
+<ClawdNote summary="Spectre forced browsers to change the rules.">
+The wild part about `Spectre` is that it was not "some browser wrote sloppy code." It was **an entire generation of CPUs optimizing for speed with a mechanism that leaked information**. Across vendors, mainstream CPUs were broadly affected.
+
+That is like discovering every champion in the league has the same house-breaking weakness because of one deep engine rule. You cannot fix it by patching one champion. You change the rules: put everyone in separate rooms so "peeking next door" disappears at the architecture level. Site isolation is that rule change. The cost is more memory, which we will price on Floor 4. But compared with losing a bank account to a CPU-level attack, the bill is very reasonable (⌐■_■)
+</ClawdNote>
+
+<LevelUpQuiz
+  question="Why does Chrome make 'different sites live in different processes' the default?"
+  options={[
+    { label: "A", text: "Because one process uses less memory and is greener" },
+    { label: "B", text: "Because if sites share a process, a malicious site may read a neighbor's memory" },
+    { label: "C", text: "Because splitting processes makes pages load faster" },
+    { label: "D", text: "Because engineers were bored and wanted more processes to play with" },
+  ]}
+  answer="B"
+  explanation="The root cause is 2018's `Spectre`: if two sites share one process, malicious JS can abuse CPU speculative execution to read a neighboring site's memory. A says the opposite: site isolation uses more memory because it creates more processes, adding roughly low-double-digit overhead. C is not the point either; more processes add overhead. The win is security, not raw speed."
+/>
+
+---
+
+## 🏰 Floor 4: Even If a Champion Is Compromised, It Still Cannot Steal Much — Sandboxing and the Team's Food Bill
+
+<LevelUpProgress current={4} total={5} title="The Browser Five-Player Team (Part 1)" />
+
+Site isolation stops sites from spying on each other. One final line of defense remains: **if a malicious site really compromises a laner and breaks into that process, what can it do to the computer?**
+
+The answer: almost nothing. Every laner is born inside a **sandbox**.
+
+A sandbox is a low-privilege cage enforced by the operating system. On Linux, it uses things like `namespaces` and `seccomp` to restrict system calls. On Windows, it uses mechanisms like `job object`s to cut privileges. Inside that cage, the laner **can compute, lay out the page, and prepare graphics. But if it tries to read the disk, open the camera or microphone, or connect to the network directly, it gets blocked.** For privileged operations, it must ask the captain, and the captain can review, mediate, or show a permission prompt to the user.
+
+<AnalogyBox title="Put the Spy in an Empty Room">
+Even if the enemy compromises a laner and takes over that process, the next wall is this: the champion is locked in a room that is **almost empty**.
+
+No outside door (no direct network), no drawers (no user files), no windows (no other process memory). To cause real damage, the attacker needs to **break one more lock**: escape the sandbox.
+
+So now an attacker needs not one bug, but **two chained bugs**: one to compromise the champion, one to escape the cage. The threshold doubles.
+</AnalogyBox>
+
+This double defense, site isolation plus sandboxing, is the standard security shape of modern browsers. Firefox and Safari converged on similar designs: run each page's code inside its own isolated sandbox.
+
+**And what is the food bill for this fancy team?** There is no free lunch. Every extra process costs memory. Each champion needs its own set of equipment. That is the root of Chrome's "it eats memory" reputation: you are not opening tabs; you are opening team after team. Site isolation alone, according to the Chrome team, adds roughly **10-13%** memory overhead.
+
+But it is a good trade: more memory buys "one tab can crash without killing the whole family," plus "a malicious site cannot steal another site's data," plus "even if compromised, it is still trapped in a cage." **Stability, security, and performance isolation are benefits you enjoy every day without noticing. The price is a few more sticks of memory.**
+
+<ClawdNote summary="Chrome spends memory to isolate threats.">
+Every time someone says "why does Chrome eat so much memory, trash browser," I want to throw this post at them.
+
+It eats memory because it treats every site you open as a potential spy, puts each one in its own room, gives each one its own guard, and builds a separate wall around it. You call it fat, but every gram is there to stop the tab next door from robbing you.
+
+Saving memory is easy: go back to the 2008 single-process model, share one life bar, let one crashed tab kill everything, and let malicious sites peek at your bank. Want that? No? Then let it be fat ┐(￣ヘ￣)┌
+
+To be fair, Chrome has also been quietly dieting in recent years with features like `Memory Saver`, which freezes background tabs you have not looked at for a while and wakes them when needed. So it is not unaware of the weight. It is balancing "protect the user" against "please do not eat the entire machine." The weight has reasons, but it is not planning to stay heavy forever.
+</ClawdNote>
+
+<LevelUpQuiz
+  question="What does a sandbox mainly do to a compromised laner?"
+  options={[
+    { label: "A", text: "Automatically patch the vulnerability that compromised it" },
+    { label: "B", text: "Slow down its computation to stall the attacker" },
+    { label: "C", text: "Restrict privileges so it cannot touch disk, camera, or network" },
+    { label: "D", text: "Put a hat on it that says 'bad guy'" },
+  ]}
+  answer="C"
+  explanation="A sandbox is an OS-level low-privilege cage. A process inside it can compute, lay out, and prepare drawing, but it cannot touch files, devices, or the network directly (C). It does not patch the bug (A); the bug still exists, but the blast radius is contained. It is not about slowing the process down (B). Even after compromising the laner, the attacker still needs a sandbox escape bug, doubling the bar."
+/>
+
+---
+
+## 🎯 Final Boss: Put It Together
+
+Let's recognize the team from top to bottom.
+
+Two tabs are open: online banking on the left, a random sketchy site on the right.
+
+The **captain** sits in the back, managing the address bar, tab strip, and browser shell. It sends out a separate **laner** for each site. The bank's champion lives in its own process, its own jungle. The sketchy site's champion lives in another. **Site isolation builds a hard wall between them. Their memory never meets.** Even if the right side hides a `Spectre`-level spy, it cannot steal a cent from the bank tab on the left.
+
+When a laner needs resources, it cannot roam freely; it asks the **jungler** to fetch them from the network. The laners themselves are trapped inside a **sandbox**, unable to touch disk, camera, or network directly. To cross the line, an attacker has to escape the cage, meaning the exploit needs another link in the chain. Once the page is ready, everything goes to the **carry** to hit the screen. Around them, a crew of **utility players** quietly handles risky chores like decoding and extensions, each in its own little room.
+
+So when the sketchy site finally hits its own bug and shows the "Aw, Snap!" sad face, the bank tab on the left does not even blink. Close the right tab, reopen it, and the team keeps playing.
+
+That is the team regular people use every day without thinking about it. It is heavy. It eats memory. But every gram of that weight is why ten tabs no longer have to die together.
+
+**Next up**: now that we know the roster, Part 2 shows how this team fights a "teamfight": the sequence from a lump of HTML text to the image your eyes see, all within about **16 milliseconds**. What happens if it misses that window? The janky feeling while scrolling is the answer.
+
+## Further Reading
+
+- [The Browser Is Actually a Five-Player Team (Part 2): One Screen Update Is a 16ms Teamfight](/en/posts/en-levelup-20260621-17-browser-moba-rendering/) (now that you know the roster, see how the team fights)
+- [Lv-10: A URL's Journey — What the Browser Actually Does Between Pressing Enter and Seeing the Page](/en/posts/en-levelup-20260223-10-url-journey-browser-internals/) (that post covers "where resources come from"; this one covers "who handles them")
+- [Lv-11: Process Management and OS Signals — Which Secret Signals Processes Understand](/en/posts/en-levelup-20260312-11-unix-signals-process-management/) (if you want a better foundation for what a "process" is, start there)
+
+<ClawdNote summary="Chrome's process list now looks like a roster.">
+Once you know this team, opening Chrome's task manager and seeing a long list of `chrome` processes will automatically summon a champion-select table in your head: that one is the captain, those are laners, that GPU-hungry one is the carry.
+
+Congratulations. You can never return to the innocent age where "the browser is one program." This curse is like Lv-10's "the 0.2 seconds after pressing Enter." It does not uninstall ٩(◕‿◕｡)۶
+</ClawdNote>
