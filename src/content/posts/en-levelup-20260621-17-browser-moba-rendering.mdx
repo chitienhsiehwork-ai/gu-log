@@ -1,0 +1,266 @@
+---
+ticketId: "Lv-17"
+title: "The Browser Is Actually a Five-Player Team (Part 2): One Screen Update Is a 16ms Teamfight"
+originalDate: "2026-06-21"
+translatedDate: "2026-06-21"
+translatedBy:
+  model: "GPT-5 Codex"
+  harness: "Codex"
+  pipeline:
+    - role: "Translator"
+      model: "GPT-5 Codex"
+      harness: "Codex"
+source: "Addy Osmani"
+sourceUrl: "https://x.com/addyosmani/status/2068394292796871019"
+summary: "After meeting the browser's five-player team, this post follows the rendering combo: DOM, layout, paint, rasterization, and compositing, all inside a 16ms frame budget. It explains why some animations stay smooth while others jank."
+lang: "en"
+tags: ["level-up", "browser", "rendering", "compositor", "performance", "jank", "frontend", "tutorial"]
+scores:
+  tribunalVersion: 9
+  vibe:
+    persona: 9
+    clawdNote: 9
+    vibe: 9
+    narrative: 8
+    score: 8
+    date: "2026-06-21"
+    model: "Opus 4.8"
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 10
+    score: 9
+    date: "2026-06-21"
+    model: "Opus 4.8"
+  librarian:
+    glossary: 9
+    crossRef: 9
+    sourceAlign: 9
+    attribution: 9
+    score: 9
+    date: "2026-06-21"
+    model: "Sonnet 4.6"
+  freshEyes:
+    readability: 9
+    firstImpression: 9
+    payoffDensity: 9
+    lengthFit: 9
+    clarity: 9
+    score: 9
+    date: "2026-06-21"
+    model: "Haiku 4.5"
+---
+
+import LevelUpProgress from '../../components/LevelUpProgress.astro';
+import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
+import ClawdNote from '../../components/ClawdNote.astro';
+import AnalogyBox from '../../components/AnalogyBox.astro';
+import Mermaid from '../../components/Mermaid.astro';
+
+In Part 1, we met the browser's five-player team: captain, jungler, laner, carry, and utility players. Each tab gets a laner. Site isolation and sandboxing lock that laner down, so one crashed tab does not take the whole family with it.
+
+This part is about **how they fight a teamfight**.
+
+Because "show the page on the screen" is not a one-time action. As long as you scroll, animate, or move anything, this team has to **fight the same teamfight 60 times per second**. Each wave has only about **16 milliseconds** to execute the full combo. Finish in time and the page feels smooth. Miss the window and you get dropped frames: that stuttery, slideshow feeling.
+
+Where do 16 milliseconds come from? Simple arithmetic: a 60Hz display refreshes 60 times per second. 1000ms ÷ 60 ≈ **16.7ms per frame**. Inside that window, the browser has to go from a lump of HTML text all the way to pixels on screen.
+
+(If you have not read Part 1, meet the roster first: [The Browser Is Actually a Five-Player Team (Part 1)](/en/posts/en-levelup-20260621-16-browser-moba-multiprocess/). This post assumes you already know who the laner is.)
+
+---
+
+## 🏰 Floor 0: The Big Picture — One Combo, 60 Times a Second
+
+<LevelUpProgress current={0} total={5} title="The Browser Five-Player Team (Part 2)" />
+
+For the laner to put a page on screen, the combo has a fixed order:
+
+<Mermaid chart={"graph LR\n    A[HTML text] --> B[Parse into DOM]\n    B --> C[Compute style<br/>Final appearance]\n    C --> D[Layout<br/>Position and size]\n    D --> E[Paint<br/>Drawing commands]\n    E --> F[Layering + rasterization]\n    F --> G[Compositing<br/>Hand to GPU]\n    G --> H[Pixels on screen]"} caption="The browser rendering pipeline: DOM → style → layout → paint → compositing" />
+
+The key split is this: the **first half** of the combo, parsing, style, layout, and paint, is mostly carried by the laner's **main thread** alone. The **second half**, compositing, gets help from a sidekick, the compositor thread, and the carry. That division is the point of the whole post, because it decides why some updates stay smooth and others jank.
+
+<AnalogyBox title="Rendering as a Combo">
+A teamfight's damage is not one button. It is an ordered combo:
+
+1. **Read the field** (parse HTML → DOM): figure out what is on the map
+2. **Calculate stats** (style calculation): determine each thing's properties, such as color, font, and size
+3. **Take positions** (layout): decide where each thing stands and how big it is
+4. **Queue the moves** (paint): generate ordered drawing instructions
+5. **Finish the kill** (composite): stack all layers and hand the result to the carry
+
+Miss a step, or let one step stall, and the whole combo drops. The time budget is 16ms.
+</AnalogyBox>
+
+<ClawdNote summary="Rendering is a combo repeated every frame.">
+Many people imagine "the browser draws a page" as one action. Press button, page appears. In reality, it is a combo repeated **60 times per second**.
+
+As you scroll this article, every little movement runs this combo in the background. It feels smooth because the team finishes each pass inside 16ms. The day a page feels sticky and janky, it is not necessarily your phone being trash; someone on the team is dragging their feet and the combo is not finishing. We will identify the culprit below (¬‿¬)
+</ClawdNote>
+
+---
+
+## 🏰 Floor 1: The Wind-Up — Work the Laner Carries Alone
+
+<LevelUpProgress current={1} total={5} title="The Browser Five-Player Team (Part 2)" />
+
+The first half of the combo is loaded onto the laner's **main thread**. It has three jobs:
+
+1. **Parse HTML → DOM**: turn a string of tags into a tree structure, the DOM, representing the page skeleton. Parsing starts while the download is still happening; the browser does not wait for the full HTML file before building.
+2. **Parse CSS → `CSSOM`**: turn stylesheets into another tree, representing all style rules.
+3. **Compute final style**: combine DOM and `CSSOM` to answer "what does each element actually look like?" Color, size, font, all of it.
+
+But there is a trap that interrupts the wind-up: **`<script>` blocks parsing**. If the browser is halfway through parsing HTML and hits a `<script>` without `defer` or `async`, it **stops and runs that JavaScript first**, then continues parsing. The script may modify the DOM, so the browser cannot safely keep going.
+
+<AnalogyBox title="The Wind-Up Gets Interrupted">
+The laner is winding up the combo by parsing HTML. Suddenly the captain throws over an urgent instruction, a `<script>`. The laner has to stop, handle that work, then return to the wind-up.
+
+This is why a fat `<script>` at the top of `<head>` can keep the screen blank for ages: the wind-up keeps getting interrupted. The fix is `defer` (run after the wind-up finishes), `async` (handle in the background and insert when ready), or simply putting the script near the bottom of the page.
+</AnalogyBox>
+
+<ClawdNote summary="Render-blocking scripts cause blank screens.">
+"Why is my page white for the first second?" Very often, this is it: a render-blocking `<script>` sits near the front, forcing the laner to run JavaScript while the screen waits.
+
+Adding one `defer` attribute can be the difference between "three seconds of white screen" and "no white screen." One-word change, order-of-magnitude effect. Frontend performance: humble, brutal, humble again (￣▽￣)
+</ClawdNote>
+
+---
+
+## 🏰 Floor 2: Positioning + Paint — Still Main-Thread Work
+
+<LevelUpProgress current={2} total={5} title="The Browser Five-Player Team (Part 2)" />
+
+After the wind-up, the laner knows what is on the field and what each thing should look like. The next jobs are still on that same thread:
+
+**Layout** (also called `reflow`): calculate the exact box for every element: x/y position, width, and height. This sounds simple, but it is absurdly complex. Text wrapping, flexbox, grid, line height, margin collapse, and many other rules all meet here. Browser-engine teams spend years on this step.
+
+Layout is **expensive**. The crucial part is that it can pull more work in behind it. If JavaScript later changes an element's size or inserts new content, the browser may have to recompute part of the layout, or in the worst case the whole page. That is where the performance saying "layout is expensive; touch it carefully" comes from.
+
+**Paint**: after layout gives every box a position, the laner walks the layout tree and produces a list of drawing commands, the `display list`: draw a blue rectangle at this coordinate, draw text over there, stack this image in `z-index` order, and so on.
+
+Important: at this point, **not a single pixel has been drawn to the screen yet**. The laner has only prepared the list of what should be drawn. The actual pen hits the paper on the next floor.
+
+<ClawdNote summary="The main thread carries the expensive half.">
+Notice who has been working this whole time: the laner alone, meaning the main thread. Parsing, style, layout, paint list, all of it.
+
+That is why frontend performance advice keeps saying: **do not keep the main thread busy**. It is the most overloaded teammate. If you dump a pile of heavy JavaScript on it, it cannot make time for the rendering combo, and the page janks. Moving work away from the main thread, toward a sidekick or the GPU, is the core idea. Remember this person; the next floor shows who can help ʕ•ᴥ•ʔ
+</ClawdNote>
+
+<LevelUpQuiz
+  question="After the 'paint' step finishes, are pixels already drawn on the screen?"
+  options={[
+    { label: "A", text: "Not yet; the browser has only prepared a list of what to draw" },
+    { label: "B", text: "Yes, the user already sees the full frame" },
+    { label: "C", text: "Half the frame is drawn now, and the other half arrives next frame" },
+    { label: "D", text: "Yes, but only lobster eyes can see it" },
+  ]}
+  answer="A"
+  explanation="'Paint' produces a display list: ordered drawing instructions, like an artist planning 'background first, text second.' No pixels have landed yet, so B is wrong. Rasterization and compositing turn instructions into pixels later, with help from workers and the GPU. Frames are not born half-and-half either (C); a frame is composited as a whole."
+/>
+
+---
+
+## 🏰 Floor 3: The Finish — The Sidekick Appears, and Why Scrolling Can Stay Smooth
+
+<LevelUpProgress current={3} total={5} title="The Browser Five-Player Team (Part 2)" />
+
+The list is ready. The first half is done. For the finish, the laner **does not keep carrying everything alone**. It hands work to another pair of hands in the same process: the **compositor thread**.
+
+This is the most important design in the post: **the compositor thread and main thread are separate lanes.** That means **even if the main thread is buried under a huge pile of JavaScript and basically dead, the compositor thread can still move.**
+
+It does three jobs:
+
+1. **Layering**: split the page into layers that can be handled independently. Moving elements, `transform`ed elements, video, and `canvas` often get their own layers.
+2. **Rasterization**: cut each layer into tiles, commonly 256×256 or 512×512, and send them to raster workers. Those workers use the graphics library `Skia` to turn drawing commands into actual pixels stored in GPU memory.
+3. **Compositing a frame**: assemble the tiles into a composited frame, send it through inter-process communication to the captain, and finally let the **carry** (GPU process) stack the layers with the graphics hardware and place the result on screen.
+
+<AnalogyBox title="Main Hand Is Fighting; Sidekick Still Finishes">
+Imagine the laner, the main thread, is pinned down and cannot move. If the whole combo depended on that one person, the fight would be over.
+
+But the finishing move belongs to the sidekick, the compositor thread. The sidekick already has semi-finished ingredients, the layer pixels. **Even if the main hand is stuck, the sidekick can move layers around, stack them, and hand them to the carry.**
+
+That is why **scrolling can feel smooth while the page's background JavaScript is actually dead**. Scrolling is often the compositor thread moving layers. It may not need the main thread at all. The main hand is in a fire, and the sidekick still makes the screen look clean.
+</AnalogyBox>
+
+<ClawdNote summary="Smooth scrolling can hide a stuck main thread.">
+The first time people learn "the main thread can be frozen while scrolling stays smooth," they usually pause: wait, if the page is moving, doesn't that mean the browser is alive?
+
+Not necessarily. Smooth scrolling is the compositor thread's work. It is **a different person** from the main thread that runs your JavaScript. So you may scroll happily, then tap a button and wonder why nothing happens. The click event needs the main thread, and it is still trapped inside your `for` loop. Smooth screen ≠ live web page. Two life bars (⌐■_■)
+</ClawdNote>
+
+---
+
+## 🏰 Floor 4: The 16ms Life-or-Death Window — Why Some Animations Are Smooth and Others Jank
+
+<LevelUpProgress current={4} total={5} title="The Browser Five-Player Team (Part 2)" />
+
+Once you understand the main-thread versus compositor-thread boundary, the most common frontend performance mystery unlocks: **why are some animations silky and others a slideshow?**
+
+The answer is: **does this animation disturb the busy main thread?**
+
+**Smooth animations (compositor-only)**: change only `transform` (move, scale, rotate) or `opacity`. These properties **do not affect layout and do not require repainting**. The compositor thread already has the pixels for that layer; it only has to move the layer or change transparency to produce the next frame. Even if the main thread is busy, these animations can still run at 60fps.
+
+**Janky animations (tied to the main thread)**: change `height`, `top`, `width`, or `background-color`, anything that affects geometry or color. Bad news: every frame must go back through layout or paint, and that is main-thread work. If the main thread is even a little busy, the combo misses the 16ms window and frames drop.
+
+<AnalogyBox title="Shortcut Movement Skill vs Repeating the Whole Setup">
+- **`transform` / `opacity`**: like a blink skill. The sidekick just changes the champion's position or transparency. No need to redraw the whole battlefield. The main hand can be busy and it still works.
+- **`height` / `top` / `width`**: like forcing the whole team to reposition every hit. Every frame wakes the main thread to recalculate layout. If it is busy, the combo breaks and frames drop.
+
+So the frontend rule of gold: **if an animation can be done with `transform`, do not do it with `top` or `left`.**
+</AnalogyBox>
+
+Another classic self-inflicted wound is **forced synchronous layout**, also called `layout thrash`: JavaScript changes an element's style, then immediately reads its dimensions, such as `offsetHeight`, on the next line. To give the correct answer, the browser is **forced to recompute layout right now**. Put that pattern in a loop, alternating "write style, read size, write style, read size," and you make the main thread reflow N times. The combo keeps canceling itself and starting over. The whole fight janks itself to death.
+
+<ClawdNote summary="Ask whether the main thread wakes up.">
+Remember this table and you beat half of frontend performance:
+
+- Want smooth animation → change `transform` / `opacity` (sidekick work; smooth even if the main hand is busy)
+- Want jank → change `height` / `top` / `background-color` (main hand every frame)
+- Truly do not do this → in a loop, "change style, read size, change style, read size" (forced synchronous layout; main hand explodes on the spot)
+
+None of this is superstition. It all follows from one question: "Did we wake the main thread?" Once you understand that boundary, these best practices stop being things to memorize. You can derive them yourself ╰(°▽°)╯
+</ClawdNote>
+
+<LevelUpQuiz
+  question="You want an element to slide into view smoothly, even while the main thread is busy. Which property should you animate?"
+  options={[
+    { label: "A", text: "Change `top` from 100px to 0" },
+    { label: "B", text: "Change `transform` with `translateY`" },
+    { label: "C", text: "Change `margin-top` to push it upward" },
+    { label: "D", text: "Mash F5 until it slides in by itself" },
+  ]}
+  answer="B"
+  explanation="`transform` (and `opacity`) can run on the compositor thread without rerunning layout, so it can stay smooth even when the main thread is busy (B). `top` and `margin-top` change geometry, forcing the main thread to relayout every frame (A and C). One busy main thread later, frames drop. That is the underlying reason for 'use `transform`, not `top`.'"
+/>
+
+---
+
+## 🎯 Final Boss: Put It Together
+
+Now connect both parts and watch one complete teamfight.
+
+You scroll this article.
+
+The laner's **main thread** starts the wind-up: HTML has already become DOM, CSS has become `CSSOM`, and every element's style is known. Then it does **layout**, calculating where every paragraph and image stands and how large it is. Then it does **paint**, producing the ordered list of drawing instructions. At this point, the main thread is exhausted, and the screen still has not received a single pixel.
+
+Then it hands the job to the **compositor thread**, the sidekick. The sidekick splits the page into layers and tiles, asks raster workers to turn instructions into pixels in parallel, stores them in GPU memory, builds a composited frame, sends it to the captain, and finally the **carry** uses the GPU to stack layers and place the frame on screen.
+
+The whole combo finishes inside 16ms. That scroll feels smooth.
+
+And because scrolling mostly moves layers on the compositor thread, **the screen can keep scrolling smoothly even if this page's background JavaScript has pinned the main thread to the floor**. Two life bars.
+
+That is what happens inside the browser's "black box" 60 times per second. Next time you open DevTools' `Performance` panel and see all those colored bars, purple for layout, green for paint, one 16ms box after another, you will know: those are not mysterious colored blocks. They are recordings of this five-player team fighting teamfight after teamfight.
+
+Black box, opened.
+
+## Further Reading
+
+- [The Browser Is Actually a Five-Player Team (Part 1): Why One Crashed Tab Does Not Take Down the Whole Browser](/en/posts/en-levelup-20260621-16-browser-moba-multiprocess/) (meet the team first, then watch the fight)
+- [Lv-10: A URL's Journey — What the Browser Actually Does Between Pressing Enter and Seeing the Page](/en/posts/en-levelup-20260223-10-url-journey-browser-internals/) (that post covers the skeleton of rendering; this one adds why it janks)
+
+<ClawdNote summary="Jank turns you into a performance detective.">
+Part 1 said you can never return to the innocent idea that "the browser is one program." Part 2 is worse: every time you see a page jank, your brain will start hunting the culprit. Is the main thread tied up by fat JavaScript? Did someone animate `height` instead of `transform`?
+
+Congratulations. You have upgraded into the kind of person who sees dropped frames and wants to debug the crime scene. There is no going back, really (◍˃̶ᗜ˂̶◍)ノ
+</ClawdNote>
