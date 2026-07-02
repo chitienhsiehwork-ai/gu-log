@@ -33,8 +33,8 @@
 //   node scripts/obsidian-import.mjs <draft.md> --dry-run        # 只印結果不寫檔
 //
 // 匯入後：
-//   1. 產生 src/content/posts/{series}-{N}-{date}-{slug}.mdx
-//   2. 自動 bump scripts/article-counter.json
+//   1. 產生 src/content/posts/{series}-pending-{date}-{slug}.mdx
+//   2. 使用 {series}-PENDING ticketId，merge 前再用 allocate-ticket.mjs 換真號
 //   3. 跑 scripts/validate-posts.mjs 驗證
 //   4. 印出下一步（git add / commit / tribunal）
 // ---------------------------------------------------------------------------
@@ -49,7 +49,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, '..');
 const POSTS_DIR = path.join(ROOT, 'src/content/posts');
-const COUNTER_PATH = path.join(ROOT, 'scripts/article-counter.json');
 
 // ---------------------------------------------------------------------------
 // 工具
@@ -61,6 +60,14 @@ function today() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+function dateString(value) {
+  if (!value) return today();
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString().slice(0, 10);
+  }
+  return String(value);
+}
+
 function slugify(input) {
   return String(input)
     .toLowerCase()
@@ -68,14 +75,6 @@ function slugify(input) {
     .trim()
     .replace(/\s+/g, '-')
     .slice(0, 60);
-}
-
-function readCounter() {
-  return JSON.parse(fs.readFileSync(COUNTER_PATH, 'utf-8'));
-}
-
-function writeCounter(counter) {
-  fs.writeFileSync(COUNTER_PATH, JSON.stringify(counter, null, 2) + '\n');
 }
 
 // ---------------------------------------------------------------------------
@@ -153,8 +152,8 @@ function convertWikilinks(body) {
 function buildFrontmatter(draft, ticketId, _slug) {
   const series = draft.series;
   const isOriginal = series === 'SD' || series === 'Lv';
-  const originalDate = draft.originalDate || today();
-  const translatedDate = draft.translatedDate || today();
+  const originalDate = dateString(draft.originalDate);
+  const translatedDate = dateString(draft.translatedDate);
 
   const fm = {
     ticketId,
@@ -276,15 +275,14 @@ function importOne(draftPath, { dryRun = false } = {}) {
     throw new Error(`[${draftPath}] ${seriesKey} 系列必填 source + sourceUrl`);
   }
 
-  // 1. 決定 ticket id
-  const counter = readCounter();
-  const n = counter[seriesKey].next;
-  const ticketId = `${seriesKey}-${n}`;
+  // 1. 決定 ticket id。Obsidian import 也遵守 PENDING SOP：
+  //    真號只在 merge / deploy 前由 scripts/allocate-ticket.mjs 配發。
+  const ticketId = `${seriesKey}-PENDING`;
 
   // 2. 決定檔名
-  const dateForSlug = (draft.originalDate || today()).replace(/-/g, '');
+  const dateForSlug = dateString(draft.originalDate).replace(/-/g, '');
   const slug = slugify(draft.slug || draft.title);
-  const filename = `${seriesKey.toLowerCase()}-${n}-${dateForSlug}-${slug}.mdx`;
+  const filename = `${seriesKey.toLowerCase()}-pending-${dateForSlug}-${slug}.mdx`;
   const outPath = path.join(POSTS_DIR, filename);
 
   // 3. Callout + wikilink 轉換
@@ -319,13 +317,11 @@ function importOne(draftPath, { dryRun = false } = {}) {
     return { filename, ticketId, dryRun: true };
   }
 
-  // 6. 寫檔 + bump counter
+  // 6. 寫檔
   if (fs.existsSync(outPath)) {
     throw new Error(`[${draftPath}] 目標檔案已存在：${outPath}`);
   }
   fs.writeFileSync(outPath, finalContent);
-  counter[seriesKey].next = n + 1;
-  writeCounter(counter);
 
   return { filename, ticketId, outPath };
 }
@@ -389,11 +385,12 @@ function main() {
   for (const r of imported) {
     console.log(`  • ${r.ticketId}: src/content/posts/${r.filename}`);
   }
-  console.log(`\n  git add scripts/article-counter.json src/content/posts/`);
+  console.log(`\n  git add src/content/posts/`);
   console.log(
     `  git commit -m "content(${imported[0].ticketId.toLowerCase()}): draft from obsidian"`
   );
   console.log(`  bash scripts/tribunal-batch-runner.sh  # 跑 tribunal`);
+  console.log(`  node scripts/allocate-ticket.mjs      # merge 前換真號並 bump counter`);
   console.log(`  git push`);
 }
 
