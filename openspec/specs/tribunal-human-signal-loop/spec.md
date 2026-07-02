@@ -24,21 +24,19 @@ Tribunal SHALL include unresolved per-article human signals in judge and writer 
 
 - **WHEN** an article has unresolved owner-trusted or owner-approved `abandoned_suspected_boring` or negative readability feedback
 - **THEN** FreshEyes SHALL receive a human signal packet describing the event kind, evidence, version, and timestamp
-- **AND** FreshEyes MAY use that evidence when scoring first impression, readability, or reader fatigue
+- **AND** FreshEyes MAY use that evidence when scoring first impression, readability, clarity, or reader fatigue
 
 #### Scenario: Vibe receives explicit boring feedback
 
 - **WHEN** ShroomDog leaves a versioned comment such as `這篇難看死了`
 - **THEN** Vibe SHALL receive that comment as versioned negative evidence
-- **AND** Vibe MAY use it when scoring narrative, clarity, vibe, or shareability
+- **AND** Vibe MAY use it when scoring narrative, vibe, or shareability
 
 #### Scenario: FactChecker receives factual-error feedback
 
 - **WHEN** a human feedback item is classified as a factual error or source fidelity issue
 - **THEN** FactChecker SHALL receive that evidence
 - **AND** unrelated judges SHALL NOT be forced to treat it as a vibe/readability failure
-
----
 
 ### Requirement: Human signal routing SHALL map feedback kinds to Tribunal dimensions
 
@@ -53,7 +51,7 @@ Gu-log SHALL define a routing policy from human signal kinds to Tribunal stages/
 #### Scenario: Confusion feedback routes to readability and clarity
 
 - **WHEN** feedbackType is `confusing` or `context_missing`
-- **THEN** the signal SHALL route to FreshEyes readability and Vibe clarity
+- **THEN** the signal SHALL route to FreshEyes readability and FreshEyes clarity
 - **AND** MAY route to Librarian if glossary or cross-reference gaps are implicated
 
 #### Scenario: Duplicate/seen-before feedback routes to Librarian or dedup capability
@@ -67,8 +65,6 @@ Gu-log SHALL define a routing policy from human signal kinds to Tribunal stages/
 - **WHEN** an article has a versioned `share_intent` signal
 - **THEN** Tribunal SHALL treat it as positive evidence for the version that was shared
 - **AND** writer SHOULD preserve the elements likely responsible unless other evidence shows they are harmful
-
----
 
 ### Requirement: Severe unresolved negative human signals SHALL trigger bounded requeue or review
 
