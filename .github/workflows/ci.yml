@@ -36,7 +36,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-pnpm
       # `pnpm install --frozen-lockfile` inside the composite already fails
       # on any lockfile drift; this diff catches the narrower case of a
@@ -55,7 +55,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Fetch base
@@ -67,7 +67,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-pnpm
       - name: ESLint
         run: pnpm run lint
@@ -78,7 +78,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-pnpm
       - name: Astro type check
         run: pnpm exec astro check
@@ -87,7 +87,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-pnpm
       - name: WCAG AA contrast check
         run: pnpm run check:contrast
@@ -96,7 +96,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           # Need history + base ref so the translation-pair gate can
           # diff "newly added in this PR" against the base branch.
@@ -134,7 +134,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-pnpm
       - name: Security gate (block new high/critical)
         run: pnpm run security:gate
@@ -145,7 +145,7 @@ jobs:
     # subprocesses; cap the job so a hung test can't eat 6h of runner time.
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-pnpm
       - name: Vitest unit tests
         run: pnpm exec vitest run --reporter=default
@@ -154,7 +154,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-pnpm
 
       - name: Cache Astro incremental state
@@ -189,7 +189,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-pnpm
       - name: Install Chromium
         run: pnpm exec playwright install chromium --with-deps
@@ -202,7 +202,7 @@ jobs:
     needs: build
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-pnpm
       - uses: actions/download-artifact@v8
         with:
@@ -218,7 +218,7 @@ jobs:
     needs: build
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-pnpm
       - uses: actions/download-artifact@v8
         with:
@@ -281,7 +281,7 @@ jobs:
 #          runs-on: ubuntu-latest
 #          timeout-minutes: 5
 #          steps:
-#            - uses: actions/checkout@v6
+#            - uses: actions/checkout@v7
 #            - uses: actions/dependency-review-action@v4
 #              with:
 #                fail-on-severity: moderate
