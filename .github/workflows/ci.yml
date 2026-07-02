@@ -46,6 +46,23 @@ jobs:
       - name: Ensure npm lockfile not tracked
         run: test ! -f package-lock.json
 
+  # ─── advisory: openspec 近似唯讀牆（warn-only，不 gate merge）──────────────
+  # 見 .agents/openspec-sdlc.md〈階段 6：收斂與 escalation〉。script 一律 exit 0，
+  # 不在 ci-passed.needs 裡，純提示。證明不誤殺一段時間後，把 script 尾 violations>0
+  # 分支改 exit 1 + 加進 ci-passed.needs，才升為 blocking gate。
+  openspec-wall:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Fetch base
+        run: git fetch --no-tags origin main
+      - name: 近似唯讀牆（spec delta 是否被夾帶進實作 commit）
+        run: bash scripts/check-spec-impl-separation.sh origin/main
+
   lint:
     runs-on: ubuntu-latest
     timeout-minutes: 5
