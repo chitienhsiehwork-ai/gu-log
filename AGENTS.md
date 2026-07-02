@@ -16,7 +16,7 @@
 
 沒搞清楚身份就動手 = 用錯 SOP（各 env 的 scope ceiling、merge policy、失敗處理都不一樣）。沒有例外，不能跳。Playbook 各自是 SSOT，定義各自的精神、scope ceiling、失敗處理、merge policy、品質 gate。**不要在這個檔案重複那些規則**，有要加規則就去編對應的 playbook 檔。
 
-共通底線（兩邊都不能跳）：commit atomic（一個 commit 一件事）；品質 gate 全保留（`pre-commit` / `pre-push` / `validate-posts.mjs` / tribunal 一個都不能關）；prod 炸或 main CI broken 立刻修（緊急事件無 scope 之分）；feature branch 完成後 **agent 自己開 PR + 盯 CI**、不留給 human（工具因 runtime 而異，Claude 見 `CLAUDE.md`、Codex 用 `gh`）；**gu-log 內容任務的完成定義是 production URL**——不停在 draft / PR / CI 綠 / preview，預設做到 merge → prod deploy → smoke test、回報可點 URL，只有關鍵內容 / 產品方向決策才停下問。
+共通底線（兩邊都不能跳）：commit atomic（一個 commit 一件事）；commit 可追溯到執行的 model——把 model 名放進 `git config user.name`（例 `Claude Fable 5`、`Codex GPT-5.5`），因為 squash merge 的 co-author 取自 git author 身份、訊息尾端同 email 的 Co-Authored-By trailer 會被去重折疊成通用名；品質 gate 全保留（`pre-commit` / `pre-push` / `validate-posts.mjs` / tribunal 一個都不能關）；prod 炸或 main CI broken 立刻修（緊急事件無 scope 之分）；feature branch 完成後 **agent 自己開 PR + 盯 CI**、不留給 human（工具因 runtime 而異，Claude 見 `CLAUDE.md`、Codex 用 `gh`）；**gu-log 內容任務的完成定義是 production URL**——不停在 draft / PR / CI 綠 / preview，預設做到 merge → prod deploy → smoke test、回報可點 URL，只有關鍵內容 / 產品方向決策才停下問。
 
 ## 🗣️ 回覆語言：一律繁體中文（zh-tw）
 
