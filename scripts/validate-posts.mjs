@@ -16,6 +16,15 @@ import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { normalizeUrl, extractTweetId, computeSimilarity, FLAG_THRESHOLD } from './dedup-gate.mjs';
 import { loadPostMap, findMissingPairs, reminderText } from './check-translation-pairs.mjs';
+import { MODEL_MAP } from './detect-model.mjs';
+
+// Claude's 5-generation models (Sonnet 5, Fable 5, ...) ship as whole-number
+// release names with no minor version, unlike the 4.x Opus/Sonnet line. Rule
+// 15 below still wants to block genuinely incomplete names (e.g. "Opus 4"),
+// so treat every display name already known to detect-model.mjs's MODEL_MAP
+// as complete on its own — adding a model there is enough to make it valid
+// frontmatter, no regex edit needed here.
+const KNOWN_MODEL_DISPLAY_NAMES = new Set(Object.values(MODEL_MAP).map((n) => n.toLowerCase()));
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const POSTS_DIR = path.join(__dirname, '../src/content/posts');
@@ -351,7 +360,11 @@ function validatePost(filepath, allPosts, options = {}) {
   if (fm.translatedBy?.model) {
     const model = fm.translatedBy.model;
     // Must contain a version number (e.g., "Opus 4.6", "Sonnet 4.5", "Gemini 3 Pro")
-    if (!/\d+\.\d+|\d+ Pro|\d+ Flash/i.test(model)) {
+    // or be a known whole-number release name (e.g. "Sonnet 5", "Fable 5").
+    if (
+      !/\d+\.\d+|\d+ Pro|\d+ Flash/i.test(model) &&
+      !KNOWN_MODEL_DISPLAY_NAMES.has(model.trim().toLowerCase())
+    ) {
       errors.push(
         `translatedBy.model "${model}" missing version — use full name like "Opus 4.6" (run: node scripts/detect-model.mjs <model-id>)`
       );
