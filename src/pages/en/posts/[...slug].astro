@@ -49,9 +49,21 @@ const isShroomDogOriginal = ticketId?.startsWith('SD-') ?? false;
 // SD/Lv are originals — the model signature is "written by", not "translated by".
 const isOriginalPost = isLevelUp || isShroomDogOriginal;
 const isChatGptShareSource = post.data.sourceUrl.startsWith('https://chatgpt.com/share/');
-const showSourceCitation = !isLevelUp && (!isShroomDogOriginal || isChatGptShareSource);
-const sourceCitationLabel =
-  isShroomDogOriginal && isChatGptShareSource ? 'Inspiration source' : 'Original source';
+// Lv tutorials are originals, but when one is built on a real external source
+// (not a self-referential gu-log link) the source should still be credited + linked.
+const hasExternalSource =
+  !!post.data.sourceUrl && !post.data.sourceUrl.includes('gu-log.vercel.app');
+const showSourceCitation =
+  (!isLevelUp && (!isShroomDogOriginal || isChatGptShareSource)) ||
+  (isLevelUp && hasExternalSource);
+const sourceCitationLabel = isLevelUp
+  ? 'Reference source'
+  : isShroomDogOriginal && isChatGptShareSource
+    ? 'Inspiration source'
+    : 'Original source';
+// Legacy Lv posts encoded the gu-log series name into `source`.
+// The Lv badge already carries that context, so credit only the real source.
+const sourceCitationText = post.data.source.replace(/^Level-Up Series\s*[／/]\s*/, '');
 
 // Reader-state records in the wild are keyed by the legacy entry id
 // (filename incl. extension) — keep sending that exact value as postId.
@@ -136,7 +148,7 @@ const displayTag = (tag: string) => (tag === 'clawd-picks' ? 'mogu-picks' : tag)
         <div class="source-citation">
           <strong>{sourceCitationLabel}:</strong>
           <a href={post.data.sourceUrl} target="_blank" rel="noopener">
-            {post.data.source}
+            {sourceCitationText}
           </a>
         </div>
       )
