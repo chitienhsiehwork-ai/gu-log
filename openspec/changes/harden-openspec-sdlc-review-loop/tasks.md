@@ -27,7 +27,7 @@
 
 ## 5. 驗證
 
-- [ ] 5.1 `openspec validate harden-openspec-sdlc-review-loop --strict` 通過
-- [ ] 5.2 `openspec validate --all` 通過
-- [ ] 5.3 `.agents/openspec-sdlc.md` 與本 spec 的 requirement 對得上（spec 權威、散文 derived）
-- [ ] 5.4 近似牆 script 本地測：propose/archive commit 不誤殺、spec+實作混動 commit 被抓
+- [x] 5.1 `openspec validate harden-openspec-sdlc-review-loop --strict` 通過
+- [x] 5.2 `openspec validate --all` 通過
+- [x] 5.3 `.agents/openspec-sdlc.md` 與本 spec 的 requirement 對得上（spec 權威、散文 derived）
+- [x] 5.4 近似牆 script 本地測：propose/archive commit 不誤殺、spec+實作混動 commit 被抓
