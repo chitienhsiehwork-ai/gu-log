@@ -7,5 +7,6 @@
 | --- | --- | --- | --- | --- |
 | CCC SOP (gu-log) | mastered (Lv.1–7)，boss 未打 | 七關 MCQ 全部一次答對 | 2026-06-18 | topics/ccc-sop.md |
 | Tribunal 24/7 readiness | mastered (Lv.1–9 full clear) | 9/9 MCQ 一次過；自己推出 claim 必須共享、用單機/clawd-vm 決策繞 boss | 2026-06-19 | topics/tribunal-24-7.md |
+| Spec-driven SDLC (openspec + multi-agent) | mastered (full clear) | 自己推導出 coach(macro) vs players(micro)、spec-altitude、reviewer+simplifier+implementor loop(=tribunal 形狀)、explore-first escalation；核心：一條 spec scenario = gate+rubric+邊界 | 2026-06-22 | topics/spec-driven-sdlc.md |
 
 Learner profile（taste / framing / 語氣）：`learner-profile.md`

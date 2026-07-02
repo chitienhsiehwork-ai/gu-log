@@ -67,7 +67,8 @@ Feature branch 名稱常由沒 gu-log 上下文的 LLM 自動生成，只能當 
 | **User 丟 URL → 預設寫 SP**（pipeline 用法 + 何時手動） | [`tools/sp-pipeline/SKILL.md`](tools/sp-pipeline/SKILL.md) + 下方〈URL = SP〉 |
 | **Draft 來源 / Obsidian import** | [`OBSIDIAN_SETUP.md`](OBSIDIAN_SETUP.md) |
 | **Dev / Build（tech stack、architecture、指令）** | [`docs/dev-reference.md`](docs/dev-reference.md) |
-| **OpenSpec spec / change** | [`openspec/`](openspec/) |
+| **用 openspec 做事（跑 `/opsx:propose`、動到有 spec delta 的 change）** | [`.agents/openspec-sdlc.md`](.agents/openspec-sdlc.md)（端到端流程 SSOT：九階段 / 三角色 / 人類檢查點 / archive gate）— MUST 動手前先讀 |
+| **OpenSpec spec / change（讀既有 spec、change 結構）** | [`openspec/`](openspec/) |
 | **agent 跨領域行為規則（SSOT 紀律、verbosity-drift、順手修 friction 全文）** | [`docs/agent-discipline.md`](docs/agent-discipline.md) |
 | **ShroomDog 修稿回饋 corpus** | [`docs/shroomdog-editorial-feedback.md`](docs/shroomdog-editorial-feedback.md) |
 

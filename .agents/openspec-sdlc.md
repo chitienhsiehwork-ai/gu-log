@@ -22,7 +22,7 @@ openspec 把「改什麼、為什麼改」攤成 proposal / design / tasks / spe
 | 3. 提案審查 | **1 個 AI subagent** review proposal 的疑慮（方向、scope、有沒有漏 artifact 如 design.md） | 1 reviewer | — |
 | 4. 通報 user | 把 **PR url + proposal.md 摘要**丟給 user | — | **人類檢查點 ①**（多半在這——propose + AI review 之後）。user 可讀可不讀；要擋方向就現在擋 |
 | 5. Apply | **builder subagent** 跑 `/opsx:apply` 做實作重活，push 到**同一個 draft PR**；controller 不親自下海 | — | — |
-| 6. 實作審查 | **2 個 AI subagent 平行**：一個查正確性 + 完整性，一個查簡潔度。**兩個都滿意才算過**，沒過就 iterate | 2 reviewers（平行） | — |
+| 6. 實作審查 | **2 個 AI subagent 平行**（正確性錨 spec scenario / 簡潔度錨 over-engineering）。收斂 = 所有 scenario 對上 **AND** 簡潔度無 blocking，有界 max-N；**不靠「reviewer 主觀滿意」**——詳見〈階段 6：收斂與 escalation〉 | 2 reviewers（平行） | — |
 | 7. Archive | `/opsx:archive`：archive 並 sync spec delta，commit 進**同一個 PR**（機制見 skill） | — | — |
 | 8. 終審 | PR 轉正（draft → ready），等 CI | — | **人類檢查點 ②**：review 最終 PR（含 archive 後的全貌） |
 | 9. Merge | CI 全綠 → auto-merge | — | — |
@@ -34,14 +34,13 @@ openspec 把「改什麼、為什麼改」攤成 proposal / design / tasks / spe
 
 中間（apply + 雙審 + archive）全自動，不打擾 user。除非 reviewer 卡關需要 user 拍板某個 critical design decision，否則不主動打斷。
 
-## 強制機制：CI archive-gate（絕對強制，零例外）
+## archive 是 merge 前的必經 gate（policy 絕對強制）
 
-階段 7 的 archive **不靠自律**，由 CI 強制。機制：
+階段 7 的 archive 是 merge 前 policy 層的硬性要求：PR **新引入**一個 active change（base main 上還沒有的），ready 後 MUST 在同一個 PR 內 archive。
 
-- **draft 階段不擋**（人類檢查點 ① 還在審 proposal），**轉 ready 後才生效**。
-- **檢查內容**：PR 若**新引入**一個 active change（base main 上還沒有的），ready 後就 MUST 在同一個 PR 內 archive，否則 CI 紅、auto-merge 卡住。
-- 實際觸發的 GitHub Actions event 與 branch protection 設定**以 workflow YAML 為準**，此處只定 policy。
-- **gate 只驗證、不執行**：archive 動作仍由人 / agent 跑（階段 7）；CI 只負責「沒做就擋」。
+- **⚠️ 現況（誠實揭露）**：這條**目前靠流程紀律 + 階段 6 reviewer 覆核 + 人類終審**維持，**CI 層強制尚未實作**——`.github/workflows/` 沒有對應 job（2026-07 查證）。不要以為有 CI 網接著：補上 CI job 之前，忘記 archive 只會被 reviewer / 終審抓，不會被機器擋。
+- **draft 階段不擋**（人類檢查點 ① 還在審 proposal），概念上**轉 ready 後才該生效**。
+- 未來若補 CI 強制：實際觸發的 GitHub Actions event 與 branch protection **以 workflow YAML 為準**，此處只定 policy；gate 只驗證、不執行 archive 動作。
 
 **語意邊界（為什麼這還是「零例外」）**：gate 擋的是「**這個 PR 新引入**的 change 沒收尾」。已經在 main 上的既有 change（gate 上線前留下的 backlog）= grandfathered，不溯及既往——那不是開後門，是物理上已成事實。對**未來每個新 change**，一律「一個 change = 一個 PR = propose + apply + archive」，沒有 `defer-archive` label、沒有 warning-only 模式。需要跨多 PR 的工作，拆成多個各自完成 + 各自 archive 的 capability，而不是讓一個 change 半開著跨 PR。
 
@@ -50,15 +49,31 @@ openspec 把「改什麼、為什麼改」攤成 proposal / design / tasks / spe
 - **propose 只動 doc**，錯了改起來便宜，1 個 reviewer 抓方向 / scope / 漏件就夠。
 - **apply 動真 code、有真 impact**，要雙視角：一個顧「對不對、有沒有做完」，一個顧「會不會過度複雜」。這兩個維度容易互相拉扯（為了完整而臃腫、為了簡潔而漏 case），分成兩個 agent 平行審，比一個 agent 兼顧可靠。
 
-## 三個角色：controller、builder、reviewer
+## 指揮鏈：coach → controller → workers
 
-重活外包，main agent 只當高層。三個角色各自獨立 context：
+最上層 human = coach，其下 main agent = controller，再下 subagents = workers。重活外包，上層只定方向。各自獨立 context：
 
-- **controller（main agent）**：不做重活。負責拆 task、給 spec、驗收產出、跟 user 對話拍板。**context 要乾淨**——它是跟 human 討論高層決策的介面，實作細節塞進來就會把這個介面弄髒、塞爆，之後沒空間跟 user 談方向。
+- **human = coach**：定高層方向、拍板 critical design decision（產品方向 / 架構 / 對外承諾 / 品牌調性）。只停在既有介入點——`opsx explore`（釐清 intent）、審 proposal（檢查點①）、終審（檢查點②）、以及 escalation 例外；**不落到 micro**。
+- **controller（main agent）**：不做重活。負責拆 task、給 spec、聚合 verdict 做收斂判定（驗收）、跟 coach 對話拍板。**context 要乾淨**——它是跟 human 討論高層決策的介面，實作細節塞進來就會把這個介面弄髒、塞爆，之後沒空間跟 user 談方向。
 - **builder subagent**：吃 proposal / design / tasks，在自己獨立的 context 做實作重活（寫 code、改多檔、debug、跑 `/opsx:apply`）。重活燒的 token 留在 builder 的 context，不污染 controller。
 - **reviewer subagent**：獨立 context 的新 agent，fresh eyes 審 builder 的產出（階段 6 兩個平行）——不是 controller 自己回頭看自己，盲點才抓得到。
 
 怎麼生出 builder / reviewer（Claude subagent、cmux 互動式 codex、GitHub MCP）看當下環境能力決定，不寫死。原則不變：**doing 外包給 builder、verifying 外包給 reviewer，controller 專心 orchestrate + 當 user 的翻譯層。**
+
+## 階段 6：收斂與 escalation
+
+階段 6 的「過關」不靠 reviewer 主觀滿意，而是可機器判定的收斂。核心洞察：**code 有客觀真值（測試），內容線 tribunal 用全主觀 LLM judge 是因為 prose 沒有——code 線不該照搬那個主觀性。**
+
+- **executable-first 三層**：scenario 能編成測試的走 **Tier-1**（測試綠才算對上）；真測不了的落 **Tier-2**（reviewer 逐條判 binary 對上/未對上，標記為主觀）；**Tier-3**（checkbox 自報）不可單獨採信。
+- **收斂定義**：所有 Tier-1 測試綠 **AND** 所有 Tier-2 判為對上 **AND** 簡潔度 reviewer 無未解 blocking finding。正確性 reviewer 用 spec scenario 當 rubric 逐條對帳；scenario 抓不到臃腫，所以簡潔度那一軌**不可省**（否則雙審之一被廢）。
+- **Tier 分類要被覆核**：builder 交 scenario→tier 清單（Tier-1 附測試），正確性 reviewer 覆核分類與 test↔scenario 對應忠實度，可把「不可測」宣稱打回 Tier-1（防 test-gaming）。
+- **controller 聚合**：收斂判定由 controller 聚合 reviewer verdict + 測試結果做，不讓渡給單一 reviewer。
+- **有界**：iterate 最多 **max-N = 3 輪**（tunable，**此處為 SSOT**）。耗盡仍未收斂 → 升 coach（= 落入既有 critical-decision 例外，**不是新增第三個人類檢查點**）。
+
+### escalation：唯讀牆 + explore-first
+
+- **唯讀牆**：builder 對 openspec spec 檔（`openspec/**/specs/**/*.md`，涵蓋 main specs + change delta）**唯讀**。需要改一條 scenario 才能修好 = 勝利條件變了 = design decision → builder 停手升 coach。強制走 **近似 CI（同一 commit 同時動 spec 檔 + 實作檔 = 違規）+ reviewer backstop**；不靠 runtime hook（builder runtime 不固定、蓋不全）。階段 1 propose（只動 spec）與階段 7 archive（controller sync main specs）不受此牆限制。
+- **升級順序**：先 `opsx explore` 釐清（trivial 無 ambiguity 可跳過），coach 核可後由 **controller（非 builder）改 spec delta**，迴圈以新合約重啟、max-N 重計。純實作 bug（不動 scenario）→ builder 在同 PR in-lane atomic 修，不升。
 
 ## 適用範圍
 
