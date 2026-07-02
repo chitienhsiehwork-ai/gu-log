@@ -243,6 +243,8 @@ tools/sp-pipeline/gp-pipeline run <url> --force
 
 **核心限制（2026-06-18 兩次 session 實測）**：CCC 的 `Agent` tool `model` 參數**只吃 alias**——`sonnet` / `opus` / `haiku` / `fable`——**沒有版本粒度**。`opus` alias 一律解析成「當前最新 Opus」（現在是 4.8）。所以**透過 `Agent` tool 永遠 spawn 不到 `claude-opus-4-5` 或任何指定舊版**，不管 named agent 的 frontmatter pin 寫的是什麼（named agent 在很多 CCC harness 還會 fall back 成 `general-purpose` + 繼承 parent model，pin 直接被無視，見上面 line 135 caveat）。
 
+**⚠️ 這條完全不限 tribunal / judge——任何任務都算。** 只要 user 在對話裡明講要某個 model 版本（「用 opus 4.5 重想這段 storyline」「拿 4.5 幫我腦力激盪」），不管那是寫作、翻譯、腦力激盪、debug 還是隨手委派，**一律 `claude -p --model <user 指定的完整 id>`，不准用 `Agent` tool**。原因：`Agent(model:"opus")` 會把版本**默默降級**成當前最新 Opus、**而且不會報錯**，user 拿到的根本不是他要的版本——這是最難事後察覺的失誤。本 repo 2026-06-20 session 就實際踩過：user 明講要 opus 4.5 重寫一段 storyline，CCC 卻用 `Agent(model:"opus")` 跑成 4.8，產出看起來沒問題、但版本是錯的。
+
 **要 pin 到指定版本，唯一可靠路徑 = `claude -p --model <完整-id>` subprocess**：
 
 ```bash
@@ -266,8 +268,9 @@ claude -p --model claude-opus-4-5 --allowed-tools "Read,Grep,Glob,Bash,Write,Edi
 | **Fact Checker** | 浮動 `opus` alias（追最新） | `Agent(subagent_type:"fact-checker")` 直接用就好，本來就要最新 |
 | **Fresh Eyes** | 浮動 `opus` alias（**刻意不 pin**，要 diversity 不要 taste 對齊） | `Agent(subagent_type:"fresh-eyes")` 直接用就好，跟 Fact Checker 同路 |
 | **Librarian** | 浮動 `opus` alias（**不 pin**） | `Agent(subagent_type:"librarian")` 直接用就好，跟 Fact Checker / Fresh Eyes 同路 |
+| **User 指定版本的任意任務**（ad-hoc，**不限 tribunal**） | user 對話當次明講的 id | **必須 `claude -p --model <user 講的完整 id>`**。Agent tool 會默默降級成最新 Opus、不報錯 |
 
-**規則一句話**：**版本要 pin（writer / rewriter / vibe，或 user 當次明講某 judge 用某版）→ `claude -p --model <frontmatter 的 id>`；版本不在乎 → `Agent` tool 省事**。不要無腦把所有東西都改成 `claude -p`（fact-check / 一般 tribunal 用 `Agent` tool 更省 token、也不會踩 stream idle timeout）。
+**規則一句話**：**版本要 pin（writer / rewriter / vibe，或 user 當次明講任何任務要用某版——不限 judge/tribunal）→ `claude -p --model <完整 id>`；版本不在乎 → `Agent` tool 省事**。不要無腦把所有東西都改成 `claude -p`（fact-check / 一般 tribunal 用 `Agent` tool 更省 token、也不會踩 stream idle timeout）。
 
 **`claude -p` 跑長生成的雷**：write / rewrite 這種 long creative generation 會踩 stream idle timeout（見〈Stream idle timeout 應對〉）。對策：prompt 走 stdin、輸出用 `<<<MDX_START>>>…<<<MDX_END>>>` sentinel 包住再 `awk` 抽出、judge 一律 `--allowed-tools` 顯式 allowlist（root 下 `bypassPermissions` 會被拒）。
 
