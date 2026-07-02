@@ -1,7 +1,17 @@
+import { existsSync } from 'node:fs';
 import { defineConfig, devices } from '@playwright/test';
 
 const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:4321';
 const useRemoteBaseURL = Boolean(process.env.PLAYWRIGHT_BASE_URL);
+
+// CCC sandboxes pre-install a pinned Chromium under PLAYWRIGHT_BROWSERS_PATH whose
+// build number can lag what playwright-core wants, and the on-demand download is
+// blocked by the sandbox proxy (ECONNREFUSED). When that pre-installed binary
+// exists, point Chromium projects at it instead of letting Playwright resolve a
+// missing build. On mac / CI (where the path is absent) executablePath stays
+// undefined and Playwright's default resolution is untouched.
+const preinstalledChromium = '/opt/pw-browsers/chromium';
+const chromiumExecutablePath = existsSync(preinstalledChromium) ? preinstalledChromium : undefined;
 
 const reporter = [['list']] as NonNullable<ReturnType<typeof defineConfig>['reporter']>;
 
@@ -48,12 +58,18 @@ export default defineConfig({
       name: 'Desktop Chrome',
       use: {
         ...devices['Desktop Chrome'],
-        launchOptions: { args: ['--no-sandbox', '--disable-setuid-sandbox'] },
+        launchOptions: {
+          args: ['--no-sandbox', '--disable-setuid-sandbox'],
+          executablePath: chromiumExecutablePath,
+        },
       },
     },
     {
       name: 'Mobile Chrome',
-      use: { ...devices['Pixel 5'] },
+      use: {
+        ...devices['Pixel 5'],
+        launchOptions: { executablePath: chromiumExecutablePath },
+      },
     },
     {
       name: 'Mobile Safari',

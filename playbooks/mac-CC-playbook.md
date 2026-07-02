@@ -56,6 +56,7 @@ mac-cdx / mac-CC 有的 CCC 沒有的：
 - **uiux-auditor skill**（`.claude/skills/uiux-auditor/`）：改完視覺跑一次，強制雙主題截圖 + WCAG 對比
 - **iCloud Drive 直接存取**：可以直接讀 Obsidian vault 裡的草稿（`~/Library/Mobile Documents/com~apple~CloudDocs/Obsidian/gu-log-drafts/`），跑 `pnpm run obsidian:import`
 - **沒有沙箱網路限制**：可以下載、可以 curl、可以 fetch 外部 API
+- **hosted X MCP 要接就在本地接，別在 CCC 試**：X 官方有 hosted X MCP（`https://api.x.com/mcp`，文件 `docs.x.com/tools/mcp`），透過 `npx @xdevplatform/xurl mcp` 這個 stdio bridge 連，能 live 搜尋 X / 查 user / 管 bookmarks / 發 Articles。但它需要 ① 你自己的 X dev app（CLIENT_ID/SECRET）② 一次性瀏覽器 OAuth 登入。CCC sandbox 擋 `x.com`（這也是抓推文要繞 fxtwitter 的原因）、又是 headless，這套基本通不了；mac-cdx / mac-CC 有真瀏覽器 + 正常對外網路，OAuth 登一次就能用。**單純讀推文寫 SP 仍走 `sp-source-fetch`（fxtwitter，免 auth、sandbox 也能跑）**，X MCP 只在需要 live 搜尋 / 互動 X API 時才值得接。
 - **Tribunal VM 存取**：tribunal daemon 跑在 `ssh clawd-vm`（`~/clawd/projects/gu-log`）。查狀態用 `/tribunal-monitor` skill（一鍵全面診斷），完整 ops 見 [`docs/tribunal-runbook.md`](../docs/tribunal-runbook.md)
 
 這些都該主動用，不要因為 CCC 不能用就不用。

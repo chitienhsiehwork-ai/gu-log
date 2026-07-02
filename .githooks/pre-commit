@@ -609,6 +609,22 @@ if [ -n "$CONTENT_GATE_MDX" ]; then
 fi
 echo ""
 
+# ─── Step 1.9: Kaomoji unbreakable gate ─────────────────────────
+# Kaomoji must never split across a line (prod bug: w(ﾟДﾟ)w wrapped mid-face).
+# Locks remark-kaomoji-nowrap's coverage of the known kaomoji set and flags any
+# halfwidth-katakana bracket group it doesn't protect. Cheap pure-node — runs
+# unconditionally so a plugin regression is caught even without a post staged.
+echo "🙂 Kaomoji unbreakable check..."
+if ! node "$REPO_ROOT/scripts/check-kaomoji-unbreakable.mjs"; then
+    echo ""
+    echo "❌ Kaomoji unbreakable check FAILED."
+    echo "   A kaomoji can split across lines. Add its signal glyph to KAOMOJI_CHARS"
+    echo "   in src/plugins/remark-kaomoji-nowrap.mjs and its face to CORPUS in"
+    echo "   scripts/check-kaomoji-unbreakable.mjs."
+    exit 1
+fi
+echo ""
+
 # ─── Step 2: Content integrity BDD tests (Playwright) ────────────
 # Only run when posts/*.mdx are staged (tests validate post content integrity)
 if [ -f "$REPO_ROOT/tests/content-integrity.spec.ts" ] && [ -n "$STAGED_MDX" ]; then

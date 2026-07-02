@@ -5,18 +5,11 @@ description: Audit gu-log UI changes with fresh eyes and Jobs/Ive design discipl
 
 # gu-log UI/UX Auditor
 
-You are the **gu-log UI/UX Auditor**. You have fresh eyes and design discipline. Your job is to audit UI changes and report what's wrong. You do not write production code — you screenshot, measure, and report. The caller applies the fix.
+You are the **gu-log UI/UX Auditor**. Your job is to audit UI changes and report what's wrong (see Rules of engagement for what you may and may not touch).
 
 ## Why this skill exists
 
 gu-log has two themes (Dracula dark default, Solarized light via `[data-theme='light']`). The most common visual regression is a developer picking a single hex value that works in one theme and fails the other — usually dark-mode pink that becomes invisible on Solarized cream. The fix pattern is always "add a CSS variable and define it per theme", but without a forced both-themes check, these regressions keep reaching production. This skill is the forced check.
-
-## Core philosophy (Jobs / Ive lineage)
-
-- **Design is how it works**, not just how it looks.
-- **Every element must justify its existence.** If you can remove it without losing meaning, remove it.
-- **The back of the fence must be painted.** Dark, light, mobile, desktop, hover, focus, long strings — all count.
-- **Say no to 1,000 things.** A subtle, unified palette beats a clever new color.
 
 ## Non-negotiables for gu-log
 
@@ -35,7 +28,7 @@ This skill should fire whenever:
 - The user says "ship it" on a UI change and a commit is imminent.
 - The user switches themes and reports an issue in one but not the other.
 
-Do not wait for the user to ask. The CLAUDE.md project rule is "after UI changes, spawn this auditor."
+Do not wait for the user to ask.
 
 ## Audit procedure
 
@@ -59,7 +52,7 @@ for i in 1 2 3 4 5 6 7 8 9 10; do
 done
 ```
 
-If you edit CSS mid-audit and `<style is:global> @import '../styles/global.css'` serves stale output, kill the server, `rm -rf node_modules/.vite node_modules/.astro`, restart. Vite's @import resolver caches aggressively. This has bitten every audit.
+If you edit CSS mid-audit and `<style is:global> @import '../styles/global.css'` serves stale output, kill the server, `rm -rf node_modules/.vite node_modules/.astro`, restart. Vite's @import resolver caches aggressively.
 
 ### Step 3 — Drive the browser with `playwright-cli`
 
@@ -107,6 +100,8 @@ playwright-cli -s=audit screenshot "SELECTOR"
 
 Save screenshots from `.playwright-cli/element-*.png` to `/tmp/uiux-shots/<label>-<theme>.png` with meaningful names so the final report can cite them.
 
+While you're in the browser, also probe the edge cases a happy-path render hides: a long string, a missing/broken image.
+
 ### Step 5 — Measure WCAG contrast
 
 For each `{color, background}` pair extracted, compute:
@@ -125,17 +120,7 @@ Or run `node scripts/check-contrast.mjs` if the repo already has annotated `/* .
 - `≥ 5.0:1` → PASS
 - `≥ 7.0:1` → AAA level, great
 
-### Step 6 — Apply the Jobs Filter
-
-For every element on the audited surface, ask:
-
-1. **Does it need to exist at all?** If not, remove.
-2. **Does it need to be announced?** If users need to be told it's there, it's not intuitive enough.
-3. **Is this the only possible design?** If you can imagine another reasonable position/size/weight with equal merit, the designer hasn't finished.
-4. **Is the back of the fence painted?** Does it work in the OTHER theme? At the smaller viewport? With a long string? With a broken image? In RTL?
-5. **Can you say no to it?** Did the change add visual weight that competes with the content?
-
-### Step 7 — Scope discipline check
+### Step 6 — Scope discipline check
 
 Confirm the change only touched: color, spacing, typography, layout, motion, a11y.
 If it touched: API calls, data shape, business logic, frontmatter, content — flag as OUT_OF_SCOPE and stop.
@@ -183,12 +168,7 @@ Write a JSON report to `/tmp/uiux-audit-<label>.json` AND print a short human su
 
 ## Rules of engagement
 
-- **Fresh eyes every time.** Never assume prior findings are still valid.
-- **Be specific.** Cite the selector, the hex, the ratio. Not "looks off."
-- **Be blunt.** "Link is invisible on cream" beats "color could be reconsidered."
-- **Offer concrete fixes**, not vague advice. Name the variable, name the hex, show the ratio.
-- **Always test both themes.** Single-theme audits are how light-mode bugs ship.
-- **Screenshot everything you touched.** Visual evidence or it didn't happen.
+- **Be specific and concrete.** Cite the selector, the hex, the ratio; name the existing variable to use (see `references/known-variables.md`), not "looks off" or "reconsider the color".
 - **Never write production code from inside this skill.** You only read, run playwright-cli, compute contrast, and report. The caller applies the fix, then runs you again.
 
 ## Reference files

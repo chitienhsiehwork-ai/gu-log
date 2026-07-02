@@ -562,6 +562,32 @@ Alisa Liu Lambert
 PyTorch numpy transformer tokenizer tokenization
 LeetCode Neetcode Blind
 Modeling Scratch Industry Job
+
+# Added 2026-07-01 for CP-312 (Kun Chen's firstmate/secondmate/crewmate agent
+# org chart + per-task model routing). Kun Chen = the author (person), no
+# natural zh-tw translation (writer-prompt rule #2: people stay English).
+Kun Chen
+
+# Added 2026-07-01 for the Core-dump Lv 三部曲 (levelup-*-core-dump-*). All
+# bona-fide proper nouns named in the OpenAI source, none with a zh-tw
+# translation (same category as the product / library names already
+# allowlisted above):
+#   Rockset = OpenAI's C++ data service (acquired 2024) — the product the whole
+#     series debugs. libunwind = the GNU stack-unwinding library that carried
+#     the 18-year-old race (the "18 歲的鬼"). Level-Up = the gu-log tutorial
+#     series brand, same house-term status as ClawdNote / ShroomDogNote above.
+#   folly = Facebook/Meta's open-source C++ library (its fatal signal handler
+#     logs the stack trace) — product/library proper noun like libunwind.
+#   John Snow / Broad Street = the physician + London street of the 1854 cholera
+#     pump, the founding story of epidemiology (Post B's bug #1 analogy anchor).
+#   Unix = the OS family named when cross-linking the Unix-signals Lv post.
+Rockset libunwind Level-Up
+folly
+John Snow Broad Street
+Unix
+#   Enrico Fermi = the physicist behind "Fermi estimation" (order-of-magnitude
+#     back-of-envelope estimate), named in Post C's ClawdNote — person, proper noun.
+Enrico Fermi
 `;
 
 const HARDCODED = new Set();

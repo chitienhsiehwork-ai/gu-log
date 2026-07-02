@@ -1,0 +1,502 @@
+---
+ticketId: "Lv-14"
+title: "Autopsy of a Crash (Part 2): The Coroner Won't Save You — Call the Epidemiologist"
+originalDate: "2026-07-01"
+translatedDate: "2026-07-01"
+translatedBy:
+  model: "Opus 4.5"
+  harness: "Claude Code"
+source: "Level-Up Series"
+sourceUrl: "https://gu-log.vercel.app/en/posts/en-levelup-20260701-core-dump-epidemiology"
+lang: "en"
+summary: "Autopsy trilogy, Part 2. Enter the sealed crime scene (the core dump), learn what the police tape line (red zone) is, what the first responder (signal handler) does; then upgrade from coroner to epidemiologist — use a year's worth of citywide death records to crack the first bug: a poisoned well (bad host)."
+tags: ["systems", "debugging", "epidemiology", "tutorial"]
+scores:
+  tribunalVersion: 9
+  vibe:
+    persona: 9
+    clawdNote: 8
+    vibe: 9
+    narrative: 9
+    score: 8
+    date: "2026-07-01"
+    model: "Opus 4.5"
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 9
+    date: "2026-07-01"
+    model: "Opus 4.8"
+  freshEyes:
+    readability: 9
+    firstImpression: 9
+    payoffDensity: 9
+    lengthFit: 9
+    clarity: 9
+    score: 9
+    date: "2026-07-01"
+    model: "Opus 4.8"
+  librarian:
+    glossary: 8
+    crossRef: 9
+    sourceAlign: 8
+    attribution: 9
+    score: 8
+    date: "2026-07-01"
+    model: "Opus 4.8"
+---
+
+import LevelUpProgress from '../../components/LevelUpProgress.astro';
+import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
+import ClawdNote from '../../components/ClawdNote.astro';
+import AnalogyBox from '../../components/AnalogyBox.astro';
+
+Last lesson, the investigator learned to read a corpse — figured out `%rip`, `stack`, `call`/`ret`, and how hitting-a-wall death works. But staring at a single corpse won't reveal the killer.
+
+This lesson has two objectives:
+
+1. **Enter the crime scene**: What that sealed autopsy report (the `core dump`) actually is, and why certain evidence survives after death
+2. **Identity upgrade**: From coroner to epidemiologist — use a year's worth of citywide death records to crack the first bug
+
+This is the middle act of the trilogy. By the end of this lesson, the investigator will catch the first ghost. The remaining victims — those who died in the middle of "teleportation" — are the main course for Post C (◕‿◕)
+
+---
+
+## 🏰 Floor 0: Recap + Today's Mission
+
+<LevelUpProgress current={0} total={8} title="Autopsy of a Crash (Part 2)" />
+
+Quick recap of Post A:
+
+- Program crash = casualty / sudden death
+- `stack` = a pile of visit notes; every function call pushes a new note saying "when done, return here"
+- `call` / `ret` = leave a note before going out / tear off the note and follow it home
+- `segfault` = note gets changed to an invalid address → `ret` follows it → hits a wall and dies
+- C++ is a city with no guardrails — anyone can tamper with anyone else's notes
+
+OpenAI's batch of deaths showed this: the victims' return notes had been changed to `NULL` (an empty address), or their `%rsp` was mysteriously shifted by 8 bytes. The investigator knows "how they died," but not "who did it."
+
+Staring hard at one corpse won't reveal the killer. Today's mission: enter the crime scene, learn new investigation tools, and assume a new identity for this case.
+
+<LevelUpQuiz
+  question="What was the core question left unsolved in Post A?"
+  options={[
+    { label: "A", text: "How programs run" },
+    { label: "B", text: "Who tampered with the notes, and when" },
+    { label: "C", text: "Whether C++ is good or not" },
+    { label: "D", text: "What the stack looks like" },
+  ]}
+  answer="B"
+  explanation="Post A covered the manner of death (hitting-a-wall death) and the mechanism (notes were tampered with), but the killer hasn't been caught. 'Who tampered with the notes, and when?' is the central question this entire trilogy is trying to answer."
+/>
+
+---
+
+## 🏰 Floor 1: `core dump` = The Sealed Crime Scene
+
+<LevelUpProgress current={1} total={8} title="Autopsy of a Crash (Part 2)" />
+
+When a program crashes, the operating system can save "the program's entire state at the moment of death" into a file. This file is called a `core dump`.
+
+<AnalogyBox title="📦 The Sealed Crime Scene">
+
+Imagine that right after a murder, investigators immediately vacuum-seal the entire scene:
+
+- The body's position
+- The notes on the desk
+- Every register's value
+- Every byte in memory
+
+Everything frozen, packaged, uploaded to a vault. Later, investigators can open this "sealed crime scene" anytime and re-examine every detail.
+
+That's a `core dump`.
+
+</AnalogyBox>
+
+Rockset engineers used folly's (Facebook's C++ library) `fatal signal handler` to handle crashes: the moment a crash happens, it automatically logs the `stack trace` (the call chain) and uploads the `core dump` to `Azure blob storage` for safekeeping.
+
+Rockset's query nodes are `replicated`, so a single crash doesn't hurt users much. But every crash represents a bug that needs fixing.
+
+<ClawdNote>
+The name `core dump` comes from the ancient days — back when `magnetic-core memory` was the standard, so "dumping memory" was literally called `core dump`. Modern computers haven't used magnetic cores for decades, but the name stuck. When engineers say "grab that `core` for me," they're talking about this sealed-crime-scene file.
+</ClawdNote>
+
+<LevelUpQuiz
+  question="What is a core dump?"
+  options={[
+    { label: "A", text: "A compression algorithm" },
+    { label: "B", text: "A complete snapshot of the program's state at the moment of crash, sealed for later analysis" },
+    { label: "C", text: "A CPU performance report" },
+    { label: "D", text: "A network connection log" },
+  ]}
+  answer="B"
+  explanation="A core dump is a complete state snapshot that the OS saves when a program crashes — registers, memory, stack, everything frozen and sealed. Investigators can open it later to reconstruct the scene."
+/>
+
+---
+
+## 🏰 Floor 2: The Who-Called-Whom Chain — Tracing with `%rbp`
+
+<LevelUpProgress current={2} total={8} title="Autopsy of a Crash (Part 2)" />
+
+Post A mentioned a detail: Rockset compiled with the `-fno-omit-frame-pointer` flag. Now let's explain why this matters.
+
+Inside every `stack frame` (visit note), besides the return address, there's also the "previous layer's `%rbp`." This lets the investigator start from the topmost note and trace upward along the `%rbp` chain to see the complete call sequence: who called whom, who called whom before that.
+
+<AnalogyBox title="🔗 The Who-Called-Whom Visit-Note Chain">
+
+Imagine each note not only says "when done, return here," but also has an extra line: "who sent me":
+
+```
+Note C: previous layer is B
+Note B: previous layer is A
+Note A: previous layer is main
+```
+
+Just start from the topmost note and follow this chain upward — you can reconstruct the entire "visit order." Who called function C? B did. Who called B? A. And A? `main`.
+
+This chain linked together by `%rbp` is the "who-called-whom" visit-note chain.
+
+</AnalogyBox>
+
+Some compilers omit `%rbp` for performance (with the `-fomit-frame-pointer` flag) — this saves one register per function, slightly faster. But the cost: when a crash happens, investigators can barely reconstruct the call chain.
+
+Rockset did the opposite with `-fno-omit-frame-pointer` — originally probably just for debugging convenience. Turns out this flag saved the engineers' lives in this investigation. Without this visit-note chain, investigators couldn't even piece together "who the victim met before dying."
+
+<ClawdNote>
+Post A's foreshadowing about "a compiler flag saving their lives" is this. `-fno-omit-frame-pointer` looks like just a debugging convenience option, but in a scenario where "notes get tampered with and the entire `stack` might be corrupted," this visit-note chain is the investigator's only tool for reconstructing what happened before the crime. This is why many production systems deliberately enable this flag — sacrificing a tiny bit of performance for observability.
+</ClawdNote>
+
+<LevelUpQuiz
+  question="What is the function of the visit-note chain (the linked list made from %rbp)?"
+  options={[
+    { label: "A", text: "Speed up program execution" },
+    { label: "B", text: "Let investigators trace the complete call sequence from the topmost note upward" },
+    { label: "C", text: "Compress memory usage" },
+    { label: "D", text: "Prevent notes from being tampered with" },
+  ]}
+  answer="B"
+  explanation="Each visit note stores 'the previous layer's %rbp,' forming a linked list. Investigators can start from the top and walk up this chain to see who called whom — this is critical for reconstructing what happened during a crash investigation."
+/>
+
+---
+
+## 🏰 Floor 3: The Police Tape Line (`red zone`) — Why Evidence Survives After Death
+
+<LevelUpProgress current={3} total={8} title="Autopsy of a Crash (Part 2)" />
+
+Now for a crucial detail: why can investigators see the contents of notes from "functions that already returned"?
+
+Logically, after function B finishes and executes `ret`, its `stack frame` "is no longer valid" — that memory can be overwritten by the next function. But the engineers wrote in their report: "X, this just-popped `stack frame`, looks normal except the return address is NULL." How did they see that?
+
+The answer is the **`red zone`** (the police tape line).
+
+<AnalogyBox title="🚧 The Police Tape Line">
+
+On x86-64 Linux, the `AMD64 System V ABI` specifies: the 128 bytes below `%rsp` are "police tape."
+
+- These 128 bytes are usable by user programs
+- The key point: the `kernel` promises not to cross this line
+
+This means when the `kernel` needs to deliver a `signal` to a program, it creates the `signal frame` **outside** those 128 bytes below `%rsp` — it won't overwrite anything inside the police tape.
+
+Just like at a crime scene, police tape goes up in a ring; when officers come in to work, they stand outside the tape, not stepping in and disturbing the evidence.
+
+</AnalogyBox>
+
+When a crash happens, folly's `signal handler` (next floor) runs on the same thread's `stack`. This handler will trample old notes that already returned — **but the evidence inside the police tape (the last 128 bytes) survives**.
+
+This is why the engineers could say: "X, this just-popped `stack frame`, looks normal except the return address is NULL." The police tape preserved their final bits of evidence.
+
+<ClawdNote>
+The name `red zone` is vivid — "red zone, no entry." In the `System V ABI` definition, these 128 bytes are "space `leaf functions` (functions that don't call anyone else) can use for local variables without adjusting `%rsp`." For investigators, the value is: the first responder on scene (`signal handler`) will trample the scene, but evidence inside the tape survives.
+</ClawdNote>
+
+<LevelUpQuiz
+  question="What is the value of the red zone (police tape line) in crash investigation?"
+  options={[
+    { label: "A", text: "Makes the program run faster" },
+    { label: "B", text: "The kernel promises not to step into these 128 bytes, so evidence here survives after the crash" },
+    { label: "C", text: "Used to store passwords" },
+    { label: "D", text: "Prevents hacker attacks" },
+  ]}
+  answer="B"
+  explanation="x86-64 Linux's System V ABI specifies the 128 bytes below %rsp as the red zone; the kernel won't step in when delivering signals. After a crash, the signal handler will trample old notes that already returned, but evidence inside the tape survives. This is how investigators could see 'the just-popped stack frame was normal except the return address was NULL.'"
+/>
+
+---
+
+## 🏰 Floor 4: The First Responder (`signal handler`)
+
+<LevelUpProgress current={4} total={8} title="Autopsy of a Crash (Part 2)" />
+
+When a program crashes, the `kernel` sends a `signal` to the program. For a `segfault`, the `kernel` sends `SIGSEGV` (`segmentation violation`).
+
+A program can register a `signal handler` ahead of time — when this signal arrives, don't die immediately; first let the program run a designated piece of code. Rockset uses folly's `fatal signal handler`, which records the `stack trace` and prepares the `core dump` when a crash happens.
+
+The problem: this handler **runs on the crashing thread's own `stack`** — sharing the same lifeline as the deceased.
+
+<AnalogyBox title="🚨 The First Responder Tramples the Scene">
+
+Imagine a murder happens, and the first cop on scene:
+
+- Walks in, looks around
+- Starts documenting evidence, taking photos
+- In the process of moving around, inevitably disturbs some things
+
+That's the `signal handler`. It has to run on the `stack`, taking up space, overwriting some "old notes no longer inside the police tape."
+
+Good news: evidence inside the tape (those 128 bytes) is safe. Bad news: old notes outside the tape get trampled.
+
+</AnalogyBox>
+
+Now here's some foreshadowing: Rockset uses `signals` more aggressively than typical programs.
+
+They have a mechanism called `coarse_thread_cputime_clock`: using the `timer_create` API, every few **milliseconds** of CPU time, a `SIGUSR2` (`signal user 2`) gets sent to every thread, letting the handler update a `thread-local` CPU time value. This tracks "how much total CPU time this query has used."
+
+This "signal every few milliseconds" design — just file it away as background knowledge for now. In Post C, it becomes part of the murder weapon.
+
+<ClawdNote>
+In the name `SIGUSR2`, `SIG` is `signal`, `USR2` is `user 2` — "user-defined signal number 2." Unix systems reserved two signals (`SIGUSR1` and `SIGUSR2`) for programs to define their own purposes. Rockset uses `SIGUSR2` for CPU time tracking. Every few milliseconds — this frequency is very aggressive for a typical program. Remember this setup; Post C will use it.
+</ClawdNote>
+
+<LevelUpQuiz
+  question="What is the role of the signal handler in crash investigation?"
+  options={[
+    { label: "A", text: "Prevents crashes from happening" },
+    { label: "B", text: "First responder when a crash occurs, records the stack trace, but tramples old notes outside the police tape" },
+    { label: "C", text: "Speeds up program execution" },
+    { label: "D", text: "Compresses the core dump file" },
+  ]}
+  answer="B"
+  explanation="The signal handler is the first code that runs in when a crash occurs. It executes on the crashing thread's stack, recording useful information (stack trace) but also trampling old notes that already returned. Fortunately, evidence inside the red zone survives."
+/>
+
+---
+
+## 🏰 Floor 5: Coroner vs Epidemiologist
+
+<LevelUpProgress current={5} total={8} title="Autopsy of a Crash (Part 2)" />
+
+Now we reach the heart of this lesson.
+
+OpenAI's engineers were stuck for days. They:
+
+- Carefully examined several `core dumps`
+- Deep-dived into one `misaligned-%rsp` case — reconstructing the history before the crime, reverse-engineering from `stack` and register contents
+- Read `kernel` source code, read Azure-specific `kernel` patches
+- Ran stress tests
+
+Tried everything. No results.
+
+<AnalogyBox title="🩺 Coroner vs Epidemiologist">
+
+There are two ways to work a case:
+
+**Coroner mode**:
+- Stare at one patient, run every test
+- Diagnose from a single case's details
+- "This person's return address is NULL, register state is this, call chain is that"
+
+**Epidemiologist mode**:
+- Look at the city's entire death population
+- Ask: When did this disease start? Which CPU model is it correlated with? Which region?
+- "Could there actually be two diseases, just with similar symptoms, being viewed as one?"
+
+The engineers had been in coroner mode. Time to switch.
+
+</AnalogyBox>
+
+This was the turning point of the entire investigation: **they decided to stop staring at individual `core dumps` and instead collect high-quality population data**.
+
+Why were they stuck for so long? Because they kept assuming "this is the same bug." Some cases had return addresses of `NULL`, some had `%rsp` shifted by 8 bytes — symptoms were somewhat similar, yet not quite identical. The engineers treated them as the same bug, but every hypothesis had counterexamples, and they couldn't catch anything.
+
+An epidemiologist would ask: **Is this really one disease? Or are there two diseases mixed together that just happened to be discovered at the same time?**
+
+<ClawdNote>
+This is what I consider the most brilliant insight in OpenAI's original article. Many hard-to-debug problems aren't hard because of technical details — they're hard because "you think you're solving one problem, but actually two unrelated problems are mixed together." The engineer's instinct is to deep-dive a single case — coroner mode. But when hypotheses keep getting knocked down, the move is to step back, collect population data, and look for patterns. This technique works in any domain.
+</ClawdNote>
+
+<LevelUpQuiz
+  question="When 'coroner mode' gets stuck, what's the breakthrough?"
+  options={[
+    { label: "A", text: "Stare even harder at the same case" },
+    { label: "B", text: "Switch to epidemiologist mode — collect population data, find patterns, ask 'could this actually be two bugs?'" },
+    { label: "C", text: "Give up" },
+    { label: "D", text: "Switch to a different computer and rerun" },
+  ]}
+  answer="B"
+  explanation="When coroner mode gets stuck (every hypothesis has counterexamples), the move is to step back and switch to epidemiologist mode. Collect population data, find patterns, ask 'is this really the same bug?' OpenAI engineers' breakthrough came when they decided to build clean population data at this point."
+/>
+
+---
+
+## 🏰 Floor 6: Building a Clean Dataset
+
+<LevelUpProgress current={6} total={8} title="Autopsy of a Crash (Part 2)" />
+
+After deciding to switch to epidemiologist mode, the first question: where does the data come from?
+
+The engineers initially wanted to use log text searches to automatically grab all cases. But `stack-corruption` bugs have a catch: **the logs themselves are corrupted**. Because the `stack` got mangled, the logged `stack traces` are also garbled. Text searches would have `false positives` (grabbing cases that aren't this bug) and also miss cases (this bug, but the log looks different).
+
+They changed approach:
+
+1. Had ChatGPT write a `script`
+2. The script downloads just the header of each `core` file (no need to download entire GB-sized files)
+3. Extracts register values
+4. Filters out known `false positives` using logs
+5. Automatically labels each crash as: `return-to-null` (return address is `NULL`) / `misaligned-stack` (`%rsp` misaligned) / `other`
+6. Runs in parallel across **an entire year of** production Rockset `core dumps`
+
+This is "filing every corpse in the city for a year."
+
+<AnalogyBox title="📊 Filing Every Corpse in the City">
+
+Imagine investigators stop autopsying one body at a time and instead:
+
+- Pull basic data from every corpse in the city over the past year
+- Time of death, location, cause-of-death classification, hardware model
+- Build it all into one big table
+
+Then start looking for patterns: what do these deaths have in common? What about those?
+
+</AnalogyBox>
+
+The moment clean data came out, correlations jumped out.
+
+**What they thought was one bug turned out to be two completely unrelated crash populations.**
+
+| Population | Characteristics |
+|------------|-----------------|
+| `return-to-null` | Scattered across many `clusters`, many regions; recently increased but no clear start date; no clean infrastructure boundary |
+| `misaligned-stack` | All from **one** region; clear start date; never happens on nodes that have been up for a while; although spanning multiple Azure VMs, pattern looks like "one physical machine is broken, hurting VMs that happen to land on it" |
+
+The two populations had completely different patterns.
+
+The engineers had been mixing them together, so every hypothesis had counterexamples — because hypotheses about `return-to-null` couldn't explain `misaligned-stack` cases, and of course that wouldn't work. View them separately, and the answers become clear.
+
+<ClawdNote>
+"Thought it was one bug, actually two" — this lesson is critical. The engineers initially (wrongly) ruled out hardware problems because "it happened across multiple regions, multiple hardware types." But that was because they were viewing two bugs as one. Once separated, the `misaligned-stack` population's pattern was obvious: all from the same region, clear start date, only happens on freshly booted nodes. This is textbook "one physical machine is broken."
+</ClawdNote>
+
+<LevelUpQuiz
+  question="After building a clean dataset, what did the engineers discover?"
+  options={[
+    { label: "A", text: "What they thought was one bug was actually two completely unrelated crash populations" },
+    { label: "B", text: "All crashes came from the same machine" },
+    { label: "C", text: "No patterns at all" },
+    { label: "D", text: "The logs were all correct" },
+  ]}
+  answer="A"
+  explanation="The moment clean data came out, correlations jumped out. The return-to-null population was scattered across many regions with no clear boundary; the misaligned-stack population was all from one region, had a clear start date, only happened on fresh nodes. Two completely different patterns — they'd been mixing them and couldn't catch anything."
+/>
+
+---
+
+## 🏰 Final Floor: Bug #1 — The Poisoned Well (John Snow)
+
+<LevelUpProgress current={7} total={8} title="Autopsy of a Crash (Part 2)" />
+
+In 1854, cholera broke out in London, killing hundreds within days. The prevailing theory was "miasma" — bad air causing disease.
+
+A doctor named John Snow didn't buy it. He drew a map, marking each death's address, and noticed a pattern: **deaths clustered around the Broad Street water pump**.
+
+John Snow went to inspect that pump and found the well water had been contaminated by a nearby cesspool. He convinced authorities to remove the pump handle so people couldn't draw water from it anymore.
+
+The cholera stopped.
+
+This is the origin story of epidemiology. John Snow had no microscope, no bacterial culture. What he used was **population data and pattern recognition**.
+
+<AnalogyBox title="🪣 A Poisoned Well = A Bad Host">
+
+OpenAI's `misaligned-stack` deaths had a pattern identical to John Snow's cholera:
+
+- All from the same region
+- Clear start date
+- Only happens on freshly booted nodes
+
+The engineers took their clean Kubernetes node list + timestamps and traced this population back, finding: **they all pointed to a single physical host**.
+
+That host was the poisoned well.
+
+</AnalogyBox>
+
+The engineers added that host to the `denylist` (capped the well).
+
+They stress-tested for weeks in a controlled environment and couldn't reproduce the register-corruption phenomenon — they never figured out exactly how that CPU was broken. But it didn't matter. **After taking that machine offline, the `misaligned-stack` crashes disappeared.**
+
+Just like John Snow didn't need to know what cholera bacteria looked like. He only needed to know: remove that pump handle, and the deaths stop.
+
+The engineers also made a few improvements along the way:
+
+- Enhanced the `fatal signal handler` to record register state. Now just looking at logs can detect similar issues without downloading entire `core dumps`
+- Changed the `control plane` to prefer VM reuse over recycling. This makes "bad nodes" easier to catch — if VMs on the same physical machine have unusually high death rates, that's suspicious
+- Updated the `runbook`
+
+**A poisoned well — just cap it.**
+
+<ClawdNote>
+The John Snow story is the classic opener for epidemiology. In 1854, the mainstream believed in "miasma"; Snow used data to prove them wrong. He had no microscope, no petri dishes — just a map and a pile of death records. This parallels OpenAI's engineers' situation: they couldn't reproduce the bug in a lab, but clean data was enough. Modern medicine calls John Snow "the father of epidemiology" — and his methodology works just as well when debugging infrastructure.
+</ClawdNote>
+
+---
+
+Now that the `misaligned-stack` population is separated out, the remaining `return-to-null` group suddenly makes much more sense.
+
+The engineers had earlier "ruled out `exception` unwinding (`exception unwinding`) as a possibility" because they thought they'd found counterexamples: some crashes happened in code paths that "don't use `exceptions` at all."
+
+But those counterexamples — **all came from the bad-hardware population**.
+
+Remove the bad-hardware population and look again: the remaining crashes **all happen during C++ `exception` throwing, while the `stack` is being unwound**.
+
+What is this exactly? What's that "teleportation" about? How does the murder weapon strike?
+
+Post C.
+
+<LevelUpQuiz
+  question="How did the engineers crack bug #1 (the bad host)?"
+  options={[
+    { label: "A", text: "Reproduced the bug in a lab and fixed the code" },
+    { label: "B", text: "Used clean population data to trace back to a single physical host, then took it offline (capped the well)" },
+    { label: "C", text: "Upgraded the kernel" },
+    { label: "D", text: "Switched to a different cloud provider" },
+  ]}
+  answer="B"
+  explanation="The engineers used clean data (Kubernetes nodes + timestamps) to trace the misaligned-stack population back to a single physical host. They couldn't reproduce the register-corruption phenomenon in a lab, but it didn't matter — after taking that machine offline (capping the well), the crashes disappeared. The John Snow method."
+/>
+
+---
+
+## 🎓 Level Clear Summary
+
+The investigator learned in this lesson:
+
+| Concept | One-Sentence Explanation |
+|---------|--------------------------|
+| **`core dump`** | The sealed crime scene — a complete state snapshot at the moment of crash |
+| **Visit-note chain** | A linked list using `%rbp`, reconstructing "who called whom" |
+| **`red zone`** | The police tape line; the kernel promises not to cross; these 128 bytes of evidence survive after the crash |
+| **`signal handler`** | The first responder on scene, tramples old notes outside the police tape |
+| **Coroner vs Epidemiologist** | Staring at individual cases vs looking at the whole population for patterns |
+| **Two populations** | `return-to-null` and `misaligned-stack` are two unrelated bugs |
+| **Poisoned well (John Snow)** | Bad host → `denylist` → crashes disappear |
+
+The investigator also learned the most important lesson: **when coroner mode gets stuck, switch to epidemiologist mode**. Build clean population data, ask "is this really one bug?" — the answer is often "no, it's two mixed together."
+
+The bad-hardware population is solved. The remaining `return-to-null` crashes all happen during "C++ throwing an `exception`, in the middle of unwinding the `stack`."
+
+What is that "teleportation"? How does the killer strike in the gap of a single instruction?
+
+Post C — catching the 18-year-old ghost.
+
+## 🔗 Further Reading
+
+Post C will cover `exception` unwinding, the race condition in `libunwind`, and the 100-picosecond murder window. Want to warm up first, or like this tower-climbing style?
+
+- [Autopsy of a Crash (Part 1): Learning to Read a Program's Corpse](/en/posts/en-levelup-20260701-core-dump-anatomy/)
+- [Unix Signals 101 — SIGUSR1 vs SIGTERM vs SIGKILL](/en/posts/en-levelup-20260312-11-unix-signals-process-management/)
+
+**(Post C coming next)**
