@@ -65,6 +65,9 @@ GraphQL Webhook
 USB SSD HDD CPU GPU TPU NPU RAM ROM VRAM
 IPO M&A B2B B2C P2P D2C
 KPI OKR ROI SLA SLO MTTR
+# xG = football expected-goals metric (same status as KPI/OKR — translating loses meaning)
+# Phil Chen career-advice post (2026-07-03)
+xG
 N/A TBD TBA
 
 # gu-log MDX components
@@ -86,6 +89,8 @@ Ray-Ban Tesla Apple Samsung Sony Nintendo Mac Mobile mobile
 DeepLearning.AI deeplearning.ai
 LangChain LangGraph LlamaIndex Pinecone Weaviate Chroma Milvus
 Scale Insilico BenevolentAI Recursion Pharmaceuticals
+# Helm AI — Phil Chen career-advice post (2026-07-03)
+Helm
 Eli Lilly Pfizer Moderna Roche Novartis
 Insilico Medicine
 Fierce Biotech
@@ -105,6 +110,9 @@ Gemini Llama Mistral Qwen DeepSeek Kimi Grok Cohere Command
 # Official model names must remain canonical English; don't translate to appease lint.
 Mythos
 Codex Cursor Copilot Replit Bolt Lovable Devin Atlas
+# Slackbot = Anthropic's first product demo named in the source
+# Phil Chen career-advice post (2026-07-03)
+Slackbot
 Autobrowse
 PandaOmics Chemistry42 AlphaEvolve Concordia Gemma Nemotron NanoFold
 Muse Spark Llama Maverick Sonnet Opus K2 K2.5 R1
@@ -154,6 +162,10 @@ Dimillian Thomas Ricouard
 Kyle Jeong
 # Behavioral-economics / happiness researchers cited in SP-243
 Kahneman Deaton Angus Killingsworth
+# Phil Chen career-advice post (2026-07-03): the author, his ex-colleague Vlad
+# Feinberg (Gemini lead), Alfred Lin (Sequoia), Michael (Truell) + Aman (Sanger)
+# = Cursor founders' first names as cited in the source
+Phil Chen Vlad Feinberg Alfred Lin Michael Aman
 
 # Places
 Albuquerque Hong Kong San Francisco SF Silicon Valley

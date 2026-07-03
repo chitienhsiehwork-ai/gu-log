@@ -36,7 +36,7 @@ Expected: first call takes ~3 seconds (cold compile), subsequent calls are insta
 | "Run everything except deploy" | `gp-pipeline run --dry-run <url>` | Stops before the deploy step |
 | "Is my environment set up correctly?" | `gp-pipeline doctor` | Walks PATH + repo-relative files, exits 0 if all required deps present |
 | "Can the LLM providers respond non-interactively?" | `gp-pipeline doctor --probe-llm` | Sends a 1-token canary to each provider, reports ok/error/missing |
-| "Just capture a tweet without running anything else" | `gp-pipeline fetch <url>` | Captures into `$REPO/tmp/sp-pending-<epoch>-pipeline/source-tweet.md` |
+| "Just capture a tweet without running anything else" | `gp-pipeline fetch <url>` | Captures into `$TMPDIR/sp-pending-<epoch>-pipeline/source-tweet.md` |
 | "What ticketId will the next SP use?" | `gp-pipeline counter next --prefix SP` | Reads counter without mutating |
 | "Allocate a new ticketId" | `gp-pipeline counter bump --prefix SP` | Atomically advances under `flock` |
 | "Is this source already covered?" | `gp-pipeline dedup --url <x> --title <t>` | Wraps `scripts/dedup-gate.mjs` |
@@ -52,7 +52,7 @@ All subcommands inherit these from the root command:
 - `--json` — single JSON object on stdout, human-readable logs on stderr. Use this whenever another agent parses the output
 - `--verbose` / `-v` — extra debug logs on stderr (currently reserved; no extra output yet)
 - `--timeout 50m` — wall-clock deadline for the whole invocation (Go duration string). Default 50m matches the bash pipeline's `PIPELINE_TIMEOUT=3000`
-- `--work-dir <dir>` — pin the pipeline work directory. Default is `$REPO/tmp/sp-pending-<unix>-pipeline`
+- `--work-dir <dir>` — pin the pipeline work directory. Default is `$TMPDIR/sp-pending-<unix>-pipeline` — deliberately **outside** the repo（scratch space；Codex route 用 `--skip-git-repo-check` 在裡面跑），找進行中的 run 不要在 `$REPO/tmp` 下翻
 
 ## pipeline-status.json
 
