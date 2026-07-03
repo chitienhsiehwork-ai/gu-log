@@ -39,7 +39,8 @@ type State struct {
 	// TweetURL is the original source URL. Empty when resuming via --file.
 	TweetURL string
 	// WorkDir is the absolute path to the per-run scratch directory.
-	// Usually $GU_LOG_DIR/tmp/sp-pending-<unix>-pipeline.
+	// Usually $TMPDIR/sp-pending-<unix>-pipeline — outside the repo; see
+	// resolveWorkDir in cmd/sp-pipeline/fetch.go.
 	WorkDir string
 	// Prefix is the ticket prefix: "SP", "CP", "SD", "Lv".
 	Prefix string
