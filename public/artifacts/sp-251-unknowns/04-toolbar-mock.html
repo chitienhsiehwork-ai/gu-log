@@ -1,0 +1,800 @@
+<!-- Copyright 2026 Anthropic PBC · SPDX-License-Identifier: Apache-2.0 -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mock before you wire — Know your unknowns</title>
+<style>
+  :root {
+    --ivory:  #FAF9F5;
+    --paper:  #FFFFFF;
+    --slate:  #141413;
+    --clay:   #D97757;
+    --clay-d: #B85C3E;
+    --oat:    #E3DACC;
+    --olive:  #788C5D;
+    --g100:   #F0EEE6;
+    --g200:   #E6E3DA;
+    --g300:   #D1CFC5;
+    --g500:   #87867F;
+    --g700:   #3D3D3A;
+    --serif: ui-serif, Georgia, "Times New Roman", Times, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ivory);
+    color: var(--slate);
+    font-family: var(--sans);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 24px 100px; }
+
+  /* ── header ─────────────────────────── */
+  header { padding: 56px 0 8px; position: relative; }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--g500);
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .eyebrow::before { content: ""; width: 24px; height: 1.5px; background: var(--clay); flex: none; }
+  .backlink {
+    position: absolute; top: 60px; right: 0;
+    font-family: var(--mono); font-size: 12px;
+    color: var(--g500); text-decoration: none;
+    letter-spacing: 0.04em;
+  }
+  .backlink:hover { color: var(--clay); }
+  h1 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(32px, 5vw, 46px);
+    line-height: 1.08;
+    letter-spacing: -0.015em;
+    margin: 0 0 10px;
+  }
+  .lede { font-size: 16.5px; color: var(--g700); max-width: 640px; margin: 0 0 30px; }
+
+  /* ── prompt box ─────────────────────── */
+  .promptbox {
+    background: var(--paper);
+    border: 1.5px solid var(--g300);
+    border-radius: 14px;
+    padding: 20px 24px 22px;
+    position: relative;
+    margin-bottom: 44px;
+  }
+  .promptbox .label {
+    font-family: var(--mono); font-size: 11px;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--clay); margin-bottom: 10px;
+  }
+  .promptbox blockquote {
+    margin: 0; padding: 0 0 0 18px;
+    border-left: 3px solid var(--oat);
+    font-family: var(--serif); font-style: italic;
+    font-size: 17.5px; line-height: 1.5; color: var(--slate);
+    max-width: 720px;
+  }
+  .copybtn {
+    position: absolute; top: 16px; right: 16px;
+    font-family: var(--mono); font-size: 11px;
+    letter-spacing: 0.04em;
+    background: var(--g100); color: var(--g700);
+    border: 1.5px solid var(--g300); border-radius: 8px;
+    padding: 5px 11px; cursor: pointer;
+  }
+  .copybtn:hover { border-color: var(--g500); }
+  .copybtn.done { background: var(--olive); border-color: var(--olive); color: #fff; }
+
+  /* ── divider ────────────────────────── */
+  .divider {
+    display: flex; align-items: center; gap: 16px;
+    font-family: var(--mono); font-size: 11px;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--g500); margin: 0 0 32px;
+  }
+  .divider::before, .divider::after {
+    content: ""; flex: 1; height: 1px; background: var(--g300);
+  }
+
+  /* ═══ THE ARTIFACT ═══════════════════ */
+  .artifact {
+    background: var(--paper);
+    border: 1.5px solid var(--g300);
+    border-radius: 14px;
+    padding: 22px;
+  }
+  @media (max-width: 480px) { .artifact { padding: 14px; } }
+  .art-head {
+    display: flex; flex-wrap: wrap; gap: 12px;
+    align-items: center; justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .art-title { font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--g500); }
+  .art-title b { color: var(--slate); font-weight: 600; }
+
+  /* segmented control */
+  .seg {
+    display: inline-flex; flex-wrap: wrap;
+    background: var(--g100);
+    border: 1.5px solid var(--g300);
+    border-radius: 10px; padding: 3px; gap: 3px;
+  }
+  .seg button {
+    font-family: var(--sans); font-size: 12.5px; font-weight: 500;
+    border: none; background: transparent; color: var(--g700);
+    padding: 6px 12px; border-radius: 7px; cursor: pointer;
+    white-space: nowrap;
+  }
+  .seg button:hover { color: var(--slate); }
+  .seg button.on {
+    background: var(--paper); color: var(--slate);
+    box-shadow: 0 1px 3px rgba(20,20,19,.12);
+  }
+  .seg button.on .dot { background: var(--clay); }
+  .seg .dot {
+    display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+    background: var(--g300); margin-right: 7px; vertical-align: 1px;
+  }
+
+  .variant-note {
+    font-size: 13px; color: var(--g500);
+    margin: 0 0 14px; min-height: 20px;
+  }
+  .variant-note b { color: var(--g700); font-weight: 600; }
+
+  /* ── stage ──────────────────────────── */
+  .stagewrap { position: relative; }
+  .stage {
+    position: relative;
+    background: #1C1B18;
+    border-radius: 12px;
+    overflow: hidden;
+    aspect-ratio: 16 / 9;
+    min-height: 220px;
+  }
+  .stage svg.scene { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+  .chip-tc, .chip-paused {
+    position: absolute; top: 10px;
+    font-family: var(--mono); font-size: 11px;
+    padding: 3px 9px; border-radius: 6px;
+    background: rgba(20,20,19,.72); color: var(--ivory);
+    letter-spacing: 0.06em; z-index: 3;
+  }
+  .chip-tc { left: 10px; }
+  .chip-paused { right: 10px; color: var(--oat); }
+  .chip-paused::before { content: "❚❚ "; font-size: 9px; }
+
+  /* seekbar */
+  .seekbar {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    padding: 26px 14px 10px; z-index: 3;
+    background: linear-gradient(to top, rgba(20,20,19,.78), rgba(20,20,19,0));
+  }
+  .seek-track { position: relative; height: 4px; border-radius: 2px; background: rgba(250,249,245,.25); }
+  .seek-buf   { position: absolute; left: 0; top: 0; bottom: 0; width: 62%; border-radius: 2px; background: rgba(250,249,245,.35); }
+  .seek-play  { position: absolute; left: 0; top: 0; bottom: 0; width: 34%; border-radius: 2px; background: var(--clay); }
+  .seek-head  {
+    position: absolute; left: 34%; top: 50%;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--clay); border: 2px solid var(--ivory);
+    transform: translate(-50%, -50%);
+  }
+  .seek-pins { position: absolute; left: 14px; right: 14px; bottom: 20px; height: 0; }
+  .seek-pin {
+    position: absolute; bottom: -3px; width: 7px; height: 7px;
+    border-radius: 2px; transform: translateX(-50%) rotate(45deg);
+    background: var(--oat); opacity: .9;
+  }
+
+  /* ── toolbar ────────────────────────── */
+  .toolbar {
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(28,27,24,.92);
+    border: 1.5px solid rgba(250,249,245,.16);
+    box-shadow: 0 8px 28px rgba(20,20,19,.35);
+    padding: 8px 12px;
+    z-index: 5;
+    color: var(--ivory);
+    max-width: 100%;
+  }
+  .tb-group { display: flex; align-items: center; gap: 4px; }
+  .tb-sep { width: 1px; align-self: stretch; margin: 2px 0; background: rgba(250,249,245,.18); flex: none; }
+
+  .tool {
+    width: 34px; height: 34px; flex: none;
+    display: grid; place-items: center;
+    border: 1.5px solid transparent; border-radius: 9px;
+    background: transparent; color: var(--g300);
+    cursor: pointer; padding: 0;
+  }
+  .tool:hover { color: var(--ivory); background: rgba(250,249,245,.08); }
+  .tool.on { background: var(--clay); border-color: var(--clay-d); color: #fff; }
+  .tool svg { width: 17px; height: 17px; display: block; }
+
+  .swatches { display: flex; align-items: center; gap: 6px; }
+  .swatch {
+    width: 18px; height: 18px; flex: none;
+    border-radius: 50%; cursor: pointer; padding: 0;
+    border: 2px solid rgba(250,249,245,.25);
+  }
+  .swatch.on { border-color: var(--ivory); box-shadow: 0 0 0 2px rgba(217,119,87,.55); }
+
+  .strokes { display: flex; align-items: center; gap: 4px; }
+  .stroke {
+    width: 26px; height: 26px; flex: none;
+    display: grid; place-items: center;
+    background: transparent; border: 1.5px solid transparent;
+    border-radius: 7px; cursor: pointer; padding: 0;
+  }
+  .stroke i { display: block; border-radius: 50%; background: var(--g300); }
+  .stroke.s1 i { width: 4px; height: 4px; }
+  .stroke.s2 i { width: 7px; height: 7px; }
+  .stroke.s3 i { width: 11px; height: 11px; }
+  .stroke:hover i { background: var(--ivory); }
+  .stroke.on { background: rgba(250,249,245,.12); border-color: rgba(250,249,245,.3); }
+  .stroke.on i { background: var(--ivory); }
+
+  .ann-chip {
+    font-family: var(--mono); font-size: 11px; white-space: nowrap;
+    background: rgba(227,218,204,.16); color: var(--oat);
+    border: 1px solid rgba(227,218,204,.3);
+    border-radius: 999px; padding: 3px 10px;
+  }
+  .cmt-btn {
+    display: flex; align-items: center; gap: 6px;
+    font-family: var(--sans); font-size: 12.5px; font-weight: 500;
+    background: transparent; color: var(--g300);
+    border: 1.5px solid rgba(250,249,245,.22); border-radius: 9px;
+    padding: 6px 11px; cursor: pointer; white-space: nowrap;
+  }
+  .cmt-btn:hover { color: var(--ivory); border-color: rgba(250,249,245,.45); }
+  .cmt-btn.on { background: var(--oat); color: var(--slate); border-color: var(--oat); }
+  .cmt-btn svg { width: 14px; height: 14px; }
+
+  /* variant: floating pill (default) */
+  .stagewrap.v-pill .toolbar {
+    position: absolute; left: 50%; bottom: 52px;
+    transform: translateX(-50%);
+    border-radius: 999px;
+    flex-wrap: nowrap;
+    width: max-content; max-width: calc(100% - 20px);
+    overflow-x: auto; scrollbar-width: none;
+  }
+  .stagewrap.v-pill .toolbar::-webkit-scrollbar { display: none; }
+
+  /* variant: docked left rail */
+  .stagewrap.v-rail .toolbar {
+    position: absolute; left: 10px; top: 50%;
+    transform: translateY(-50%);
+    flex-direction: column;
+    border-radius: 14px;
+    padding: 10px 8px;
+    gap: 8px;
+    max-height: calc(100% - 20px);
+    overflow-y: auto; scrollbar-width: none;
+  }
+  .stagewrap.v-rail .toolbar::-webkit-scrollbar { display: none; }
+  .stagewrap.v-rail .tb-group { flex-direction: column; }
+  .stagewrap.v-rail .tb-sep { width: auto; height: 1px; align-self: stretch; margin: 0 2px; }
+  .stagewrap.v-rail .swatches { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+  .stagewrap.v-rail .strokes { flex-direction: column; }
+  .stagewrap.v-rail .ann-chip { writing-mode: initial; padding: 3px 6px; font-size: 10px; }
+  .stagewrap.v-rail .cmt-btn span { display: none; }
+  .stagewrap.v-rail .cmt-btn { padding: 8px; }
+  .stagewrap.v-rail .tool, .stagewrap.v-rail .stroke { width: 32px; height: 32px; }
+
+  /* variant: docked under seekbar */
+  .stagewrap.v-dock .toolbar {
+    position: static; transform: none;
+    margin-top: 10px;
+    border-radius: 12px;
+    background: var(--g700);
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .stagewrap.v-dock .tb-sep { min-height: 22px; }
+
+  @media (max-width: 560px) {
+    .tool { width: 30px; height: 30px; }
+    .tool svg { width: 15px; height: 15px; }
+    .toolbar { gap: 7px; padding: 6px 9px; }
+    .stagewrap.v-pill .toolbar { bottom: 42px; }
+    .cmt-btn span { display: none; }
+    .cmt-btn { padding: 7px; }
+    .stagewrap.v-rail .swatches { grid-template-columns: 1fr; }
+    .stagewrap.v-rail .ann-chip { display: none; }
+  }
+
+  /* ── comment drawer ─────────────────── */
+  .drawer {
+    position: absolute; top: 0; right: 0; bottom: 0;
+    width: min(272px, 78%);
+    background: rgba(250,249,245,.97);
+    border-left: 1.5px solid var(--g300);
+    transform: translateX(105%);
+    transition: transform .28s cubic-bezier(.4,0,.2,1);
+    z-index: 6;
+    display: flex; flex-direction: column;
+    border-radius: 0 12px 12px 0;
+  }
+  .drawer.open { transform: translateX(0); }
+  .drawer-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 14px 10px;
+    border-bottom: 1.5px solid var(--g200);
+  }
+  .drawer-head h3 { margin: 0; font-family: var(--serif); font-weight: 500; font-size: 15px; letter-spacing: -0.01em; }
+  .drawer-head .cnt { font-family: var(--mono); font-size: 11px; color: var(--g500); }
+  .drawer-close {
+    border: none; background: none; cursor: pointer;
+    font-size: 16px; line-height: 1; color: var(--g500); padding: 4px;
+  }
+  .drawer-close:hover { color: var(--slate); }
+  .drawer-body { flex: 1; overflow-y: auto; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+  .cmt {
+    background: var(--paper);
+    border: 1.5px solid var(--g200);
+    border-radius: 10px;
+    padding: 9px 11px;
+    font-size: 12.5px;
+  }
+  .cmt .who { display: flex; align-items: baseline; gap: 7px; margin-bottom: 3px; }
+  .cmt .av {
+    width: 18px; height: 18px; border-radius: 50%; flex: none;
+    display: grid; place-items: center; align-self: center;
+    font-size: 9px; font-weight: 700; color: #fff;
+  }
+  .cmt .nm { font-weight: 600; font-size: 12px; }
+  .cmt .tc { font-family: var(--mono); font-size: 10px; color: var(--clay); }
+  .cmt p { margin: 0; color: var(--g700); }
+  .cmt .pin { font-family: var(--mono); font-size: 10px; color: var(--g500); margin-top: 4px; }
+  .drawer-input {
+    margin: 0 12px 12px; padding: 8px 11px;
+    border: 1.5px solid var(--g300); border-radius: 9px;
+    font-size: 12.5px; color: var(--g500); background: var(--paper);
+    cursor: text;
+  }
+
+  .art-footnote {
+    margin: 14px 2px 0; font-size: 12.5px; color: var(--g500);
+  }
+  .art-footnote code { font-family: var(--mono); font-size: 11.5px; background: var(--g100); padding: 1px 5px; border-radius: 4px; }
+
+  /* ── open questions card ────────────── */
+  .questions {
+    margin-top: 28px;
+    background: var(--paper);
+    border: 1.5px solid var(--g300);
+    border-radius: 14px;
+    padding: 22px 24px;
+  }
+  @media (max-width: 480px) { .questions { padding: 16px; } }
+  .questions .label {
+    font-family: var(--mono); font-size: 11px;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--clay); margin-bottom: 6px;
+  }
+  .questions h2 {
+    font-family: var(--serif); font-weight: 500;
+    font-size: 22px; letter-spacing: -0.012em; margin: 0 0 4px;
+  }
+  .questions .sub { font-size: 13.5px; color: var(--g500); margin: 0 0 18px; }
+  .q { padding: 14px 0; border-top: 1.5px solid var(--g100); }
+  .q:first-of-type { border-top: 1.5px solid var(--g200); }
+  .q-text { font-size: 14.5px; margin: 0 0 9px; }
+  .q-text .qn {
+    font-family: var(--mono); font-size: 11px; color: var(--g500);
+    margin-right: 8px;
+  }
+  .q-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  .chip {
+    font-family: var(--sans); font-size: 12.5px; font-weight: 500;
+    background: var(--g100); color: var(--g700);
+    border: 1.5px solid var(--g300); border-radius: 999px;
+    padding: 5px 13px; cursor: pointer;
+  }
+  .chip:hover { border-color: var(--g500); }
+  .chip.on { background: var(--slate); border-color: var(--slate); color: var(--ivory); }
+  .chip .k {
+    font-family: var(--mono); font-size: 10.5px; color: var(--clay);
+    margin-right: 6px;
+  }
+  .chip.on .k { color: var(--oat); }
+
+  /* ── reply template ─────────────────── */
+  .reply {
+    margin-top: 18px;
+    background: var(--g100);
+    border: 1.5px solid var(--g200);
+    border-radius: 12px;
+    padding: 14px 16px;
+    position: relative;
+  }
+  .reply .label {
+    font-family: var(--mono); font-size: 11px;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--g500); margin-bottom: 8px;
+  }
+  .reply pre {
+    margin: 0; font-family: var(--mono); font-size: 12px;
+    line-height: 1.7; color: var(--g700);
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .reply pre .picked { color: var(--slate); font-weight: 600; }
+  .reply pre .blank { color: var(--clay); }
+
+  /* ── footer ─────────────────────────── */
+  footer {
+    margin-top: 64px; padding-top: 20px;
+    border-top: 1.5px solid var(--g300);
+    font-size: 13px; color: var(--g500);
+  }
+  footer a { color: var(--clay); text-decoration-color: var(--oat); text-underline-offset: 3px; }
+  footer a:hover { text-decoration-color: var(--clay); }
+</style>
+<style id="gu-log-mirror-credit-style">.gu-log-mirror-credit{position:sticky;top:0;z-index:9999;padding:8px 14px;background:#111;color:#f7f3e8;border-bottom:1px solid rgba(255,255,255,.18);font:13px/1.45 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;text-align:center}.gu-log-mirror-credit a{color:#f4c86a;text-decoration:underline;text-underline-offset:2px}.gu-log-mirror-credit strong{font-weight:750}</style>
+</head>
+<body>
+<div class="gu-log-mirror-credit" role="note"><strong>Mirror copy for gu-log SP-251.</strong> Original by <a href="https://x.com/trq212">Thariq (@trq212)</a>: <a href="https://thariqs.github.io/html-effectiveness/unknowns/">Know your unknowns</a>. English original preserved; zh-tw version later.</div>
+<div class="wrap">
+
+  <header>
+    <a class="backlink" href="index.html">← All examples</a>
+    <div class="eyebrow">Know your unknowns · Pre-implementation</div>
+    <h1>Mock before you wire</h1>
+    <p class="lede">Before Claude touches the real codebase, ask for a throwaway HTML mock — you'll find out what you actually want the moment you can click it, not three PRs later.</p>
+
+    <div class="promptbox">
+      <div class="label">The prompt</div>
+      <button class="copybtn" id="copyPrompt">copy prompt</button>
+      <blockquote id="promptText">Before wiring anything up, make a single HTML file mocking Acme's new frame-annotation toolbar with fake data. I want to react to the layout before you touch the real app.</blockquote>
+    </div>
+  </header>
+
+  <div class="divider">What Claude produced</div>
+
+  <!-- ═══ ARTIFACT ═══ -->
+  <div class="artifact">
+    <div class="art-head">
+      <div class="art-title"><b>Acme</b> · frame-annotation toolbar · mock, no real code touched</div>
+      <div class="seg" id="variantSeg" role="tablist" aria-label="Toolbar layout variant">
+        <button class="on" data-v="v-pill"><span class="dot"></span>Floating pill</button>
+        <button data-v="v-rail"><span class="dot"></span>Docked left rail</button>
+        <button data-v="v-dock"><span class="dot"></span>Under seekbar</button>
+      </div>
+    </div>
+    <p class="variant-note" id="variantNote"><b>Floating pill, bottom-center.</b> Hovers above the seekbar; hides on playback. Closest to what Loom/Frame.io ship.</p>
+
+    <div class="stagewrap v-pill" id="stagewrap">
+      <div class="stage">
+        <!-- fake paused frame -->
+        <svg class="scene" viewBox="0 0 640 360" preserveAspectRatio="xMidYMid slice" aria-label="Paused video frame: sunset ride teaser, 00:41 — logo lockup annotated">
+          <!-- sky -->
+          <rect x="0" y="0" width="640" height="360" fill="#2A2722"/>
+          <rect x="0" y="0" width="640" height="230" fill="#3D3A32"/>
+          <circle cx="470" cy="118" r="46" fill="#D97757"/>
+          <circle cx="470" cy="118" r="46" fill="none" stroke="#E3DACC" stroke-opacity=".25" stroke-width="10"/>
+          <!-- far hills -->
+          <path d="M0 205 Q 110 150 230 198 T 470 192 T 640 178 V 360 H 0 Z" fill="#4A4A3C"/>
+          <!-- near hills -->
+          <path d="M0 250 Q 150 205 300 246 T 640 238 V 360 H 0 Z" fill="#5B6647"/>
+          <path d="M0 292 Q 200 258 400 288 T 640 280 V 360 H 0 Z" fill="#788C5D"/>
+          <!-- road -->
+          <path d="M270 360 L 315 240 L 331 240 L 410 360 Z" fill="#3D3D3A"/>
+          <path d="M322 240 L 322 268 M 328 282 L 332 310 M 336 326 L 342 356" stroke="#E3DACC" stroke-opacity=".5" stroke-width="3" stroke-linecap="round" fill="none"/>
+          <!-- rider silhouette -->
+          <g fill="#141413">
+            <circle cx="330" cy="252" r="9"/>
+            <circle cx="352" cy="252" r="9"/>
+            <path d="M330 252 L 341 238 L 352 252 Z" stroke="#141413" stroke-width="3" fill="none"/>
+            <path d="M341 238 L 338 222 L 346 218" stroke="#141413" stroke-width="4" stroke-linecap="round" fill="none"/>
+            <circle cx="348" cy="212" r="5"/>
+          </g>
+          <!-- title lockup being reviewed -->
+          <g>
+            <rect x="60" y="70" width="176" height="58" rx="6" fill="#141413" fill-opacity=".55"/>
+            <text x="76" y="98" font-family="Georgia, serif" font-size="22" fill="#FAF9F5" font-style="italic">Ridgeline '26</text>
+            <text x="76" y="117" font-family="monospace" font-size="10" letter-spacing="2" fill="#E3DACC">TEASER · CUT 04</text>
+          </g>
+          <!-- existing annotations (fake data) -->
+          <g>
+            <!-- box annotation on lockup -->
+            <rect x="52" y="62" width="192" height="74" rx="8" fill="none" stroke="#D97757" stroke-width="3"/>
+            <circle cx="52" cy="62" r="11" fill="#D97757"/>
+            <text x="52" y="66" text-anchor="middle" font-family="monospace" font-size="11" font-weight="bold" fill="#fff">1</text>
+            <!-- arrow annotation at sun flare -->
+            <path d="M560 220 Q 540 175 505 150" fill="none" stroke="#E3DACC" stroke-width="3"/>
+            <path d="M505 150 L 521 152 M 505 150 L 511 165" stroke="#E3DACC" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="560" cy="220" r="11" fill="#788C5D"/>
+            <text x="560" y="224" text-anchor="middle" font-family="monospace" font-size="11" font-weight="bold" fill="#fff">2</text>
+            <!-- pen scribble on road -->
+            <path d="M380 330 q 14 -12 28 -2 q 14 10 26 -4" fill="none" stroke="#D97757" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="380" cy="330" r="11" fill="#D97757"/>
+            <text x="380" y="334" text-anchor="middle" font-family="monospace" font-size="11" font-weight="bold" fill="#fff">3</text>
+          </g>
+        </svg>
+
+        <div class="chip-tc">00:00:41:07</div>
+        <div class="chip-paused">PAUSED</div>
+
+        <!-- seekbar -->
+        <div class="seekbar">
+          <div class="seek-pins">
+            <span class="seek-pin" style="left:34%"></span>
+            <span class="seek-pin" style="left:51%"></span>
+            <span class="seek-pin" style="left:78%"></span>
+          </div>
+          <div class="seek-track">
+            <div class="seek-buf"></div>
+            <div class="seek-play"></div>
+            <div class="seek-head"></div>
+          </div>
+        </div>
+
+        <!-- comment drawer -->
+        <aside class="drawer" id="drawer" aria-hidden="true">
+          <div class="drawer-head">
+            <h3>Comments <span class="cnt">@ 00:41</span></h3>
+            <button class="drawer-close" id="drawerClose" aria-label="Close comments">✕</button>
+          </div>
+          <div class="drawer-body">
+            <div class="cmt">
+              <div class="who"><span class="av" style="background:var(--clay)">MO</span><span class="nm">Maya Okafor</span><span class="tc">00:41:07</span></div>
+              <p>Lockup lands too early — we haven't earned the name yet. Can we hold it to the crest at 00:48?</p>
+              <div class="pin">↳ pinned to annotation #1</div>
+            </div>
+            <div class="cmt">
+              <div class="who"><span class="av" style="background:var(--olive)">DP</span><span class="nm">Dev Patel</span><span class="tc">00:41:07</span></div>
+              <p>Flare off the sun is clipping on HDR exports. Flagging for the color pass.</p>
+              <div class="pin">↳ pinned to annotation #2</div>
+            </div>
+            <div class="cmt">
+              <div class="who"><span class="av" style="background:var(--g500)">SR</span><span class="nm">Sam Ruiz</span><span class="tc">00:41:07</span></div>
+              <p>Road markings jitter one frame back. Probably the stabilization crop — see scribble.</p>
+              <div class="pin">↳ pinned to annotation #3</div>
+            </div>
+          </div>
+          <div class="drawer-input">Reply at 00:41…</div>
+        </aside>
+      </div>
+
+      <!-- toolbar (one markup, repositioned per variant) -->
+      <div class="toolbar" id="toolbar" role="toolbar" aria-label="Frame annotation tools">
+        <div class="tb-group" id="tools">
+          <button class="tool on" data-tool="select" title="Select (V)" aria-label="Select tool">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M5 3l14 8-6.5 1.5L9 19 5 3z"/></svg>
+          </button>
+          <button class="tool" data-tool="pen" title="Pen (P)" aria-label="Pen tool">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l4 4L8 20l-5 1 1-5L17 3z"/></svg>
+          </button>
+          <button class="tool" data-tool="arrow" title="Arrow (A)" aria-label="Arrow tool">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19L19 5M19 5h-8M19 5v8"/></svg>
+          </button>
+          <button class="tool" data-tool="box" title="Box (B)" aria-label="Box tool">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="6" width="16" height="12" rx="2"/></svg>
+          </button>
+          <button class="tool" data-tool="text" title="Text (T)" aria-label="Text tool">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 6V4h14v2M12 4v16M9 20h6"/></svg>
+          </button>
+          <button class="tool" data-tool="blur" title="Blur (U)" aria-label="Blur tool">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3s6 6.5 6 11a6 6 0 01-12 0c0-4.5 6-11 6-11z"/><path d="M9.5 14a2.5 2.5 0 002.5 2.5" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <div class="tb-sep"></div>
+        <div class="swatches" id="swatches" aria-label="Annotation color">
+          <button class="swatch on" style="background:#D97757" data-c="clay"   title="Clay"   aria-label="Clay"></button>
+          <button class="swatch" style="background:#788C5D" data-c="olive"  title="Olive"  aria-label="Olive"></button>
+          <button class="swatch" style="background:#E3DACC" data-c="oat"    title="Oat"    aria-label="Oat"></button>
+          <button class="swatch" style="background:#FAF9F5" data-c="white"  title="White"  aria-label="White"></button>
+          <button class="swatch" style="background:#141413" data-c="ink"    title="Ink"    aria-label="Ink"></button>
+        </div>
+        <div class="tb-sep"></div>
+        <div class="strokes" id="strokes" aria-label="Stroke width">
+          <button class="stroke s1" data-w="2" title="Thin"><i></i></button>
+          <button class="stroke s2 on" data-w="4" title="Medium"><i></i></button>
+          <button class="stroke s3" data-w="7" title="Thick"><i></i></button>
+        </div>
+        <div class="tb-sep"></div>
+        <span class="ann-chip" title="Annotations on this frame">3 ann.</span>
+        <button class="cmt-btn" id="cmtBtn" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12a8 8 0 01-8 8H4l2-3.2A8 8 0 1121 12z"/></svg>
+          <span>Comments</span>
+        </button>
+      </div>
+    </div>
+
+    <p class="art-footnote">Everything above is fake data in one static file — nothing reads from <code>apps/player</code> yet. Real wiring would live in <code>apps/player/src/annotate/Toolbar.tsx</code> behind the <code>frame_annotations</code> flag.</p>
+  </div>
+
+  <!-- ═══ OPEN QUESTIONS ═══ -->
+  <div class="questions">
+    <div class="label">Open questions for you</div>
+    <h2>Four layout calls I'd rather not guess</h2>
+    <p class="sub">Tap a chip to record your pick — the reply template below fills itself in.</p>
+
+    <div class="q" data-q="placement">
+      <p class="q-text"><span class="qn">Q1</span>Which placement should ship? The pill stays near the pointer but covers action in the lower third; the rail never occludes footage but is far from the seekbar; under-seekbar steals ~56px of player height.</p>
+      <div class="q-chips">
+        <button class="chip" data-a="Floating pill"><span class="k">A</span>Floating pill</button>
+        <button class="chip" data-a="Docked left rail"><span class="k">B</span>Docked left rail</button>
+        <button class="chip" data-a="Under the seekbar"><span class="k">C</span>Under the seekbar</button>
+      </div>
+    </div>
+
+    <div class="q" data-q="colorstroke">
+      <p class="q-text"><span class="qn">Q2</span>Color + stroke controls: always visible in the bar (what's mocked), or collapsed behind a popover on the active tool? Inline is one click faster; popover shrinks the pill by ~140px, which matters on 13″ laptops.</p>
+      <div class="q-chips">
+        <button class="chip" data-a="Always inline"><span class="k">A</span>Always inline</button>
+        <button class="chip" data-a="Popover on active tool"><span class="k">B</span>Popover on active tool</button>
+      </div>
+    </div>
+
+    <div class="q" data-q="drawer">
+      <p class="q-text"><span class="qn">Q3</span>The comment drawer currently overlays the right edge of the frame (open it via the Comments button). Should it instead push the video left so annotations are never covered while reading?</p>
+      <div class="q-chips">
+        <button class="chip" data-a="Overlay the frame"><span class="k">A</span>Overlay the frame</button>
+        <button class="chip" data-a="Push the video left"><span class="k">B</span>Push the video left</button>
+      </div>
+    </div>
+
+    <div class="q" data-q="blur">
+      <p class="q-text"><span class="qn">Q4</span>Blur is the only tool that needs server-side rendering on export. Keep it in the v1 toolbar (with a "processing on export" badge), or hold it for v1.1 so the first release ships all-client-side?</p>
+      <div class="q-chips">
+        <button class="chip" data-a="Ship blur in v1"><span class="k">A</span>Ship in v1</button>
+        <button class="chip" data-a="Hold blur for v1.1"><span class="k">B</span>Hold for v1.1</button>
+      </div>
+    </div>
+
+    <div class="reply">
+      <div class="label">My reactions — copy &amp; paste back</div>
+      <button class="copybtn" id="copyReply">copy reply</button>
+      <pre id="replyText"></pre>
+    </div>
+  </div>
+
+  <footer>Part of <a href="index.html">Know your unknowns</a> — companion examples to the blog post.</footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* clipboard helper with fallback */
+  function copyText(text, btn) {
+    function flash() {
+      var old = btn.textContent;
+      btn.textContent = "Copied";
+      btn.classList.add("done");
+      setTimeout(function () { btn.textContent = old; btn.classList.remove("done"); }, 1400);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(flash, function () { legacy(); });
+    } else { legacy(); }
+    function legacy() {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); flash(); } catch (e) {}
+      document.body.removeChild(ta);
+    }
+  }
+
+  /* copy prompt */
+  var promptBtn = document.getElementById("copyPrompt");
+  promptBtn.addEventListener("click", function () {
+    copyText(document.getElementById("promptText").textContent.trim(), promptBtn);
+  });
+
+  /* layout variant segmented control */
+  var seg = document.getElementById("variantSeg");
+  var stagewrap = document.getElementById("stagewrap");
+  var note = document.getElementById("variantNote");
+  var notes = {
+    "v-pill": "<b>Floating pill, bottom-center.</b> Hovers above the seekbar; hides on playback. Closest to what Loom/Frame.io ship.",
+    "v-rail": "<b>Docked left rail.</b> Never occludes footage; tools stack vertically like an editor. Costs the most horizontal room on small screens.",
+    "v-dock": "<b>Attached under the seekbar.</b> Zero occlusion, always visible — but steals ~56px of player height and sits far from where you draw."
+  };
+  Array.prototype.forEach.call(seg.querySelectorAll("button"), function (b) {
+    b.addEventListener("click", function () {
+      Array.prototype.forEach.call(seg.querySelectorAll("button"), function (x) { x.classList.remove("on"); });
+      b.classList.add("on");
+      stagewrap.className = "stagewrap " + b.dataset.v;
+      note.innerHTML = notes[b.dataset.v];
+    });
+  });
+
+  /* single-select helper for button groups */
+  function group(containerId, selector) {
+    var c = document.getElementById(containerId);
+    Array.prototype.forEach.call(c.querySelectorAll(selector), function (b) {
+      b.addEventListener("click", function () {
+        Array.prototype.forEach.call(c.querySelectorAll(selector), function (x) { x.classList.remove("on"); });
+        b.classList.add("on");
+      });
+    });
+  }
+  group("tools", ".tool");
+  group("swatches", ".swatch");
+  group("strokes", ".stroke");
+
+  /* comment drawer */
+  var drawer = document.getElementById("drawer");
+  var cmtBtn = document.getElementById("cmtBtn");
+  function setDrawer(open) {
+    drawer.classList.toggle("open", open);
+    drawer.setAttribute("aria-hidden", String(!open));
+    cmtBtn.setAttribute("aria-expanded", String(open));
+    cmtBtn.classList.toggle("on", open);
+  }
+  cmtBtn.addEventListener("click", function () { setDrawer(!drawer.classList.contains("open")); });
+  document.getElementById("drawerClose").addEventListener("click", function () { setDrawer(false); });
+
+  /* open-question chips → reply template */
+  var answers = { placement: null, colorstroke: null, drawer: null, blur: null };
+  var labels = {
+    placement: "Placement",
+    colorstroke: "Color/stroke controls",
+    drawer: "Comment drawer",
+    blur: "Blur tool"
+  };
+  var replyEl = document.getElementById("replyText");
+
+  function esc(s) {
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+  function renderReply() {
+    var n = 0;
+    var html = Object.keys(answers).map(function (k) {
+      n += 1;
+      var v = answers[k];
+      return n + ". " + esc(labels[k]) + ": " +
+        (v ? '<span class="picked">' + esc(v) + "</span>"
+           : '<span class="blank">___ (tap a chip above)</span>');
+    }).join("\n");
+    html += '\nOther notes: <span class="blank">___</span>';
+    replyEl.innerHTML = html;
+  }
+  function replyPlain() {
+    var n = 0;
+    return Object.keys(answers).map(function (k) {
+      n += 1;
+      return n + ". " + labels[k] + ": " + (answers[k] || "___");
+    }).join("\n") + "\nOther notes: ___";
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll(".q"), function (q) {
+    var key = q.dataset.q;
+    Array.prototype.forEach.call(q.querySelectorAll(".chip"), function (chip) {
+      chip.addEventListener("click", function () {
+        Array.prototype.forEach.call(q.querySelectorAll(".chip"), function (x) { x.classList.remove("on"); });
+        chip.classList.add("on");
+        answers[key] = chip.dataset.a;
+        renderReply();
+      });
+    });
+  });
+  renderReply();
+
+  var copyReplyBtn = document.getElementById("copyReply");
+  copyReplyBtn.addEventListener("click", function () {
+    copyText("My reactions to the toolbar mock:\n" + replyPlain(), copyReplyBtn);
+  });
+})();
+</script>
+</body>
+</html>
