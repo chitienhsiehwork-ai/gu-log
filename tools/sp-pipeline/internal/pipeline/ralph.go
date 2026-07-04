@@ -103,8 +103,10 @@ func (s *State) Ralph(ctx context.Context) error {
 
 	s.runPostFixers(ctx, activePath)
 
-	// Run the tribunal. tribunal.sh auto-selects its own runtime provider
-	// (Codex GPT-5.5 normally; Claude Opus when codex is absent in CCC).
+	// Run the tribunal. tribunal.sh resolves the runtime provider per judge:
+	// VibeScorer runs on Claude Opus 4.5 while Librarian/FactChecker/FreshEyes
+	// stay on Codex GPT-5.5 (mac/VPS). When codex is absent (CCC sandbox) all
+	// four judges fall back to Claude.
 	s.Log.Info("  Running 4-stage tribunal (via tribunal.sh)...")
 	passed, err := ralph.Run(ctx, ralph.Options{
 		RalphScript: filepath.Join(s.Cfg.ScriptsDir, "tribunal.sh"),

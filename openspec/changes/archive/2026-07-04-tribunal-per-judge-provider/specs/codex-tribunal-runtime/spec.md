@@ -1,8 +1,5 @@
-# codex-tribunal-runtime Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change migrate-tribunal-to-codex. Update Purpose after archive.
-## Requirements
 ### Requirement: Tribunal SHALL 依 judge 決定 runtime provider（VibeScorer=Claude Opus 4.5、其餘=Codex GPT-5.5）
 
 Canonical tribunal runner SHALL 以 per-judge 方式解析 runtime provider：
@@ -37,34 +34,3 @@ Provider 解析 SHALL 集中在一個 agent-aware helper；沒有帶 judge 身�
 - **WHEN** operator 在 codex 可用環境執行 `scripts/tribunal.sh --only-stage vibe <post>`
 - **THEN** 只有 VibeScorer stage SHALL 執行
 - **AND** 該 stage SHALL 透過 Claude Opus 4.5 執行
-
-### Requirement: `scripts/tribunal.sh` SHALL 是 canonical tribunal entrypoint
-
-Canonical single-post tribunal entrypoint SHALL 是 `scripts/tribunal.sh`。Legacy entrypoints 例如 `scripts/tribunal-all-claude.sh` MAY 作為 wrapper 保留，但 SHALL delegate 到 canonical runner。
-
-#### Scenario: Legacy wrapper invocation
-
-- **WHEN** 既有 automation 呼叫 `scripts/tribunal-all-claude.sh <post>`
-- **THEN** wrapper SHALL delegate 到 `scripts/tribunal.sh <post>`
-- **AND** 該 run SHALL 使用與 canonical command 相同的 Codex/GPT-5.5 runtime
-
-### Requirement: Tribunal score transfer SHALL 使用 explicit score files
-
-每個 tribunal judge SHALL 將 JSON score 寫入 runner 提供的 explicit score file path。runner SHALL 在寫入 frontmatter score metadata 前驗證 JSON schema。
-
-#### Scenario: Judge returns malformed JSON
-
-- **WHEN** judge 未能寫出 valid score JSON
-- **THEN** 該 stage SHALL validation fail
-- **AND** runner SHALL NOT 把 partial 或 untrusted score metadata 寫入 post
-
-### Requirement: VibeScorer compatibility wrapper SHALL 保留 legacy output
-
-`scripts/vibe-scorer.sh` SHALL delegate 到 canonical tribunal vibe stage，同時保留 older callers 預期的 legacy JSON output path contract。
-
-#### Scenario: Legacy vibe scorer caller 傳入 output path
-
-- **WHEN** 舊 script 呼叫 `scripts/vibe-scorer.sh <post> <output-path>`
-- **THEN** wrapper SHALL 執行 `scripts/tribunal.sh --only-stage vibe <post>`
-- **AND** wrapper SHALL 將 resulting vibe score JSON 寫到 `<output-path>`
-

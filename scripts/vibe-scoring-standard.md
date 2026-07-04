@@ -458,17 +458,17 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 
 ## Model 配置策略
 
-Tribunal 各角色目前統一由 `scripts/tribunal.sh` 透過 `codex exec --model gpt-5.5` 執行。Codex project-scoped agent 設定放在 `.codex/agents/*.toml`；`.claude/agents/*.md` 仍然是 Claude Code setup files，只能當 legacy rubric 參考，不能拿來當 Codex runtime selector。
+Tribunal runtime provider 由 `scripts/tribunal.sh` **per judge 解析**（`tribunal_judge_provider`）：三個客觀 judge（Librarian / FactChecker / FreshEyes）走 `codex exec --model gpt-5.5`，**VibeScorer 走 `claude -p --model claude-opus-4-5`**——讓主觀品味評分跟 writer/rewriter 同一個 Opus 品味來源（owner sign-off 2026-06-18）。Codex judge 的 project-scoped 設定放在 `.codex/agents/*.toml`；VibeScorer 的 runtime 來源是 `.claude/agents/vibe-opus-scorer.md` 的 `model:` 欄位。其餘 judge 的 `.claude/agents/*.md` 只在 CCC（codex 不可用）fallback 時當 runtime selector，平時是 legacy rubric。全域 `TRIBUNAL_FORCE_PROVIDER` 可覆寫所有 judge（emergency / A-B test）。
 
 ### 配置表
 
-| 角色 | Agent 檔案 | Model ID | 選用原因 |
-|------|-----------|----------|---------|
-| Writer / Translator | `tribunal-writer.md` | `gpt-5.5` | 跟 mac-cdx / clawd-vm Codex runtime 對齊，避免 Claude subscription 依賴 |
-| Vibe Scorer | `vibe-opus-scorer.md` | `gpt-5.5` | Legacy filename retained；runtime 用 GPT-5.5，rubric 保留 Opus calibration traps |
-| Librarian | `librarian.md` | `gpt-5.5` | 搭配 deterministic evidence packet，減少全庫掃描與漏 citation |
-| Fresh Eyes | `fresh-eyes.md` | `gpt-5.5` | 與其他 judge 同 runtime，避免 cross-model drift |
-| Fact Checker | `fact-checker.md` | `gpt-5.5` | 與其他 judge 同 runtime；事實查核仍要求 primary source discipline |
+| 角色 | Agent 檔案 | Runtime provider | Model ID | 選用原因 |
+|------|-----------|------------------|----------|---------|
+| Writer / Translator | `tribunal-writer.md` | Claude（有 claude 時）/ Codex fallback | `claude-opus-4-5` | pipeline `WritingChain`：mac/VPS 用 pinned Opus writer，無 Claude 才 fallback Codex |
+| Vibe Scorer | `vibe-opus-scorer.md` | **Claude**（mac/VPS）/ CCC 同 | `claude-opus-4-5` | 主觀品味評分跟 writer 同一 Opus 品味來源；runtime SSOT = `.claude/agents/vibe-opus-scorer.md` |
+| Librarian | `librarian.md` | **Codex**（CCC fallback Claude） | `gpt-5.5` | 搭配 deterministic evidence packet，減少全庫掃描與漏 citation |
+| Fresh Eyes | `fresh-eyes.md` | **Codex**（CCC fallback Claude） | `gpt-5.5` | 客觀 judge 同 runtime，避免 cross-model drift |
+| Fact Checker | `fact-checker.md` | **Codex**（CCC fallback Claude） | `gpt-5.5` | 客觀 judge 同 runtime；事實查核仍要求 primary source discipline |
 
 ### 歷史校準：為什麼不能只看表面 checklist
 
