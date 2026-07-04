@@ -615,6 +615,18 @@ cybernetics kybernetes
 # title of the cited article, given with a zh-tw gloss right after (direct-quote
 # attribution, GU-LOG_WRITER_PROMPT §術語處理 rule 3).
 thedankoe
+
+# Added 2026-07-03 for SP (Geoffrey Litt understand-agent-code thread).
+# All people (writer-prompt rule #2): Geoffrey Litt = source author (@geoffreylitt,
+# Notion engineer); Seymour Papert = education pioneer (Mathland / Logo);
+# Alan Kay = computing pioneer (Dynabook vision cited in the thread);
+# Andy Matuschak = "Books don't work" essayist; Margaret Storey = researcher
+# credited (with Simon Willison) for popularizing "Cognitive Debt".
+Geoffrey Litt
+Seymour Papert
+Alan Kay
+Andy Matuschak
+Margaret Storey
 How fix your entire life in day
 `;
 
