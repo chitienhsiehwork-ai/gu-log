@@ -152,7 +152,7 @@ Yann LeCun Geoffrey Hinton Yoshua Bengio
 Alexandr Wang Yang Mira Mira Murati
 Davide Paglieri Logan Cross Mahmoud Jake Cooper Pascal
 Trump Newsom Jer Crane Pawel Pawel Huryn
-Harrison Chase Simon Willison Nat Friedman Patrick Collison
+Harrison Chase Simon Willison Nat Friedman Patrick Collison Shihipar
 Garry Tan Brian Chesky
 Riley Goodside Ethan Mollick Andy Weir Ryland Grace Project Hail Mary
 Alex Kotliarskyi Victor Zhu Zach Brock Karri Saarinen daniel_mac8 daniel
