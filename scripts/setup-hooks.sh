@@ -45,4 +45,14 @@ git config --local merge.post-versions-regen.driver \
     "scripts/merge-post-versions.sh %O %A %B %P"
 echo "✓ Configured merge driver post-versions-regen"
 
+# ── Custom merge driver: article-counter-max ────────────────────────
+# .gitattributes marks `scripts/article-counter.json` as needing this
+# driver. The counter is monotonic, so concurrent `next` bumps resolve
+# with a JSON-aware max strategy while metadata conflicts fail closed.
+git config --local merge.article-counter-max.name \
+    "Merge article-counter.json by taking max next values"
+git config --local merge.article-counter-max.driver \
+    "scripts/merge-article-counter.sh %O %A %B %P"
+echo "✓ Configured merge driver article-counter-max"
+
 echo "Done!"

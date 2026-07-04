@@ -3,3 +3,7 @@
 # `scripts/setup-hooks.sh` (runs via `pnpm install` → `prepare` script)
 # and is defined in `scripts/merge-post-versions.sh`.
 src/data/post-versions.json merge=post-versions-regen
+
+# Article ticket counters are monotonic per prefix. Resolve concurrent branch
+# bumps by taking max(next), while leaving real metadata conflicts for humans.
+scripts/article-counter.json merge=article-counter-max
