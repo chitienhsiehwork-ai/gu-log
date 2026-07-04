@@ -13,10 +13,15 @@
 
 ## 3. 散文收斂
 
-- [x] 3.1 `CONTRIBUTING.md`〈🎯 兩層品質門檻〉補一行指回 `openspec/specs/publish-bar-visibility/spec.md`（archive 後生效的路徑），保留人話摘要、去除與 spec 重複的判定細節
+- [x] 3.1 `CONTRIBUTING.md`〈🎯 兩層品質門檻〉補 derived-view 宣告 + 指回 `openspec/specs/publish-bar-visibility/spec.md`（archive 後生效的路徑）；人話摘要與表格保留（判定語意以 spec 為權威，未刪散文細節）
 - [x] 3.2 檢查其他散文（playbooks、docs/）有沒有複述這條規則需要一併指回 spec：`rg -n "不上首頁|精修中|publish bar|PUBLISH_BAR" --glob '*.md'`
 
 ## 4. 驗證
 
 - [x] 4.1 測試綠：跑 repo 既有 unit test 指令確認新增測試通過
 - [x] 4.2 `bunx @fission-ai/openspec@latest validate --change backfill-publish-bar-visibility-spec`（若 CLI 提供 validate）確認 delta 格式合法
+
+## 5. Round 2 — 正確性 review 打回的 Tier-1 缺口
+
+- [ ] 5.1 playwright 頁面層測試（動態挑文章，不寫死 slug）：below-bar 文章頁 200 + 精修中 banner 含 composite 分數、passing 文章頁無 banner、grandfathered 文章頁無 banner
+- [ ] 5.2 ralph advisory Go unit test（stub script）：exit 1 → `passed=false, err=nil`；exit 0 → `passed=true`

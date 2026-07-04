@@ -14,9 +14,8 @@
 **Non-Goals**
 - 不改 PASS bar 計算（`tribunal-scoring-dimensions` 的地盤）
 - 不改 floor commit gate
-- 不改任何 UI 呈現細節（banner 文案、樣式）——spec 只鎖「有 / 沒有 banner」的行為
+- 不鎖 banner 文案與樣式——banner 的**有無**與 **composite 分數顯示**屬行為、由 spec 鎖定；措辭與視覺是 UI 自由度
 - **不把 below-bar 解釋成 globally hidden**：RSS / search / tag / 導覽照常包含 below-bar 文章（`getPublishedPosts()` 不排除），本 capability 只管首頁 / featured 列表與文章頁 banner
-- 不補 pipeline advisory 的 Go 測試（`ralph.go` 的 logged-and-continue 已有註解與實跑證據，Tier-2 由 reviewer 判定即可）
 
 ## Decisions
 
@@ -28,10 +27,13 @@
 
 Requirement 文字引用 `isBelowPublishBar()` / `getIndexPosts()` / `meetsPublishBar()` 作為語意錨點（這些是 code SSOT 的名字），但不規定它們住在哪個檔案——搬檔重構不算 spec 變更。
 
-### D3: Tier 分類預期
+### D3: Tier 分類——全部 Tier-1（round 2 修訂）
 
-- Tier-1（可 unit test）：首頁排除、passing 上首頁、grandfather 語意 —— 純函式，`vitest` 可直接綁
-- Tier-2（reviewer 判定）：banner 渲染（Astro component 條件渲染，已有 prod 實證）、pipeline advisory（Go 端，有 SP-251 實跑證據）
+原本把 banner 渲染與 pipeline advisory 歸 Tier-2，階段 6 正確性 reviewer 打回（可測即須測）：
+
+- 純函式層（`vitest`）：首頁排除、passing 上首頁、grandfather / partial-scores 語意
+- 頁面層（playwright + dev server）：below-bar 文章頁 200 + banner 存在含分數、passing / grandfathered 頁無 banner
+- pipeline 層（Go unit test + stub script）：tribunal exit 1 → `passed=false, err=nil`（advisory 契約）
 
 ## Risks / Trade-offs
 

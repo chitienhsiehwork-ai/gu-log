@@ -9,7 +9,7 @@
 #### Scenario: Below-bar post builds and serves
 
 - **WHEN** 一篇文章帶有真 tribunal 分數（`hasTribunalScore()`，即 `scores.vibe.score` 為數值），且 `meetsPublishBar()` 判定不成立（例：vibe narrative=7、composite=8）
-- **THEN** 該文章照常出現在 production build，其 `/posts/<slug>` URL 回 200
+- **THEN** 該文章照常出現在 production build，其文章頁 URL 回 200
 
 #### Scenario: Partial tribunal scores count as below bar
 
