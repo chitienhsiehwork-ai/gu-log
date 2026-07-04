@@ -7,6 +7,8 @@
 
 ## 🎯 兩層品質門檻：floor ≥3 才能 ship，PASS ≥8 才上首頁（2026-06-10 起）
 
+> 消費端行為（sub-8 照常發佈、首頁排除、精修中 banner、grandfather 例外、tribunal FAIL 對 pipeline 只是 advisory）的 formal spec 是 [`openspec/specs/publish-bar-visibility/spec.md`](openspec/specs/publish-bar-visibility/spec.md)；PASS bar 怎麼算則見 `openspec/specs/tribunal-scoring-dimensions/spec.md`。本節是人話摘要（derived view），判定語意對不上時以 spec 與 code 為準。
+
 gu-log 的品質把關**分兩層**，不要再把它當成「沒過 8 就不准 commit」的單一硬門檻：
 
 | 層 | 門檻 | 誰擋 | 沒過會怎樣 |
