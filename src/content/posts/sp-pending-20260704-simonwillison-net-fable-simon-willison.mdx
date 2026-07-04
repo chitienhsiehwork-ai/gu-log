@@ -6,6 +6,7 @@ translatedDate: '2026-07-04'
 translatedBy:
   model: "Opus 4.5"
   harness: "Claude Code CLI"
+
   pipeline:
     - role: "Written"
       model: "Opus 4.5"
@@ -16,11 +17,17 @@ translatedBy:
     - role: "Refined"
       model: "Opus 4.5"
       harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "GPT-5.5"
+      harness: "Codex CLI + Tribunal"
+    - role: "Rewritten"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI + Tribunal"
     - role: "Orchestrated"
       model: "GPT-5.5"
-      harness: "sp-pipeline"
-  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
-source: 'Simon Willison's Weblog'
+      harness: "sp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "Simon Willison's Weblog"
 sourceUrl: 'https://simonwillison.net/2026/Jul/3/judgement/'
 lang: 'zh-tw'
 summary: 'Simon Willison 從 Claude Code 團隊的爐邊對談學到一招：與其給 Fable 詳細規則，不如讓它自己判斷。延伸應用：讓 Fable 自己決定什麼任務該丟給比較省的模型跑。'
@@ -44,6 +51,23 @@ scores:
     score: 8
     date: "2026-07-04"
     model: "gpt-5.5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 9
+    clarity: 8
+    score: 8
+    date: "2026-07-04"
+    model: "gpt-5.5"
+  vibe:
+    persona: 8
+    clawdNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-07-04"
+    model: "claude-opus-4-5"
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
