@@ -70,12 +70,22 @@ scores:
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
+import PostImage from '../../components/PostImage.astro';
+import mapVsTerritory from '../../assets/posts/sp-251-fable-unknowns/map-vs-territory.png';
+import knownUnknownsQuadrant from '../../assets/posts/sp-251-fable-unknowns/known-unknowns-quadrant.png';
+import unknownDiscoveryLoop from '../../assets/posts/sp-251-fable-unknowns/unknown-discovery-loop.png';
 
 For trq212, Claude Fable 5 is the first model where the quality bottleneck clearly shifted—away from the model itself, and toward whether the user can articulate their "unknowns."
 
 <ClawdNote>
 He borrows a classic phrase: "The map is not the territory." The [prompt](/glossary#prompt) and context are the map; the codebase and real world are the territory. The gap between them is your "unknowns." When an agent stumbles into unknowns, it can only guess—and bad guesses blow up. This one line explains why the same model feels effortless for some and disastrous for others. The difference isn't the model. It's whose map is more accurate.
 </ClawdNote>
+
+<PostImage
+  src={mapVsTerritory}
+  alt="A diagram showing the same landscape as a simplified map on the left and as the real world on the right, where the real world includes a road closure, construction site, and pothole missing from the map"
+  caption="The map and the real world can describe the same place, but the map may be stale or omit tiny details that matter on foot. Prompts work the same way for agents."
+/>
 
 The methodology is dead simple: before, during, and after implementation, use different techniques to surface your "unknowns." You don't have to run the full playbook every time—think of it as a toolbox. The more unfamiliar the task, the more tools worth pulling out.
 
@@ -90,6 +100,12 @@ Before writing a prompt, figure out what you don't know. trq212 breaks it into f
 **Unknown Knowns:** Assumptions so obvious you'd never write them down, but you'd immediately spot if the implementation got them wrong. Example: "Of course the button goes here"—nobody says it, but everyone notices when it's wrong.
 
 **Unknown Unknowns:** Things you have no idea you don't know. You won't ask about them. You won't defend against them.
+
+<PostImage
+  src={knownUnknownsQuadrant}
+  alt="A four-quadrant diagram with Traditional Chinese labels, definitions, and everyday examples for known knowns, known unknowns, unknown knowns, and unknown unknowns, with the unknown unknowns quadrant shown as a dark pothole warning"
+  caption="The frame only becomes useful when the abstractions touch daily life: some things you know, some answers you know are missing, and the dangerous ones are the potholes you never expected."
+/>
 
 <ClawdNote>
 The four-quadrant breakdown isn't vocabulary trivia—it forces developers to admit something annoying: agents crash hardest in the "unknown unknowns" quadrant, precisely because users don't know to guard against them. The first three quadrants can be patched with experience. The fourth is pure minefield. This entire methodology, stripped down, is about detonating those mines while it's still cheap.
@@ -106,6 +122,12 @@ This isn't about writing prompts like legal contracts. Over-specify, and Claude 
 The point isn't "write more" or "write less"—it's distinguishing what needs to be locked down from what should stay open for Claude to navigate. Claude can actually help you find unknowns faster—it searches codebases and references quickly, and knows more than most people on most topics. The key is giving it starting context: where your thinking currently is, how familiar you are with the problem and codebase. Let it come alongside as a thinking partner.
 
 ---
+
+<PostImage
+  src={unknownDiscoveryLoop}
+  alt="A three-step loop showing unknown discovery before implementation through a map scan, during implementation through question marks in an editor, and after implementation through warning signs, a surprised user bubble, and expected-versus-actual mismatch"
+  caption="Unknowns can surface after delivery as a 'why did this happen?' symptom. The earlier they appear, the cheaper they are to handle."
+/>
 
 ## Pre-Implementation: Surface Your Blind Spots
 
