@@ -775,7 +775,7 @@ run_stage() {
     else
       stage_timeout="${TRIBUNAL_JUDGE_TIMEOUT_SEC:-3600}"
     fi
-    tlog "  Invoking agent-spec '$agent_name' via $TRIBUNAL_PROVIDER (runtime model '$model_id', timeout ${stage_timeout}s)..."
+    tlog "  Invoking agent-spec '$agent_name' via $(tribunal_judge_provider "$agent_name") (runtime model '$model_id', timeout ${stage_timeout}s)..."
 
     local judge_rc=0 judge_task librarian_packet
     judge_task="Score this post: $ROOT_DIR/src/content/posts/$post_file
@@ -1126,6 +1126,12 @@ done
 # absent — the CCC / Claude Code on the web sandbox — fall back to claude so
 # the tribunal can still score/rewrite rather than hard-failing. Codex, when
 # present, must still meet the minimum version; claude has no version pin.
+#
+# NOTE: TRIBUNAL_PROVIDER is the *global primary* — used only for this preflight
+# (availability + codex version) and the CCC-fallback log below. It is NOT the
+# per-stage truth: providers are resolved per judge via tribunal_judge_provider
+# (VibeScorer prefers Claude Opus 4.5, the other three stay Codex/GPT-5.5), and
+# each stage's real provider/model is recorded via actual_provider_file.
 TRIBUNAL_PROVIDER="$(tribunal_llm_provider || true)"
 if [ -z "$TRIBUNAL_PROVIDER" ]; then
   echo "ERROR: No tribunal LLM provider on PATH: install codex (preferred) or claude" >&2
