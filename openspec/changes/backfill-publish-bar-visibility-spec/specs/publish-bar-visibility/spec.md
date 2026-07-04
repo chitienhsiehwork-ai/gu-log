@@ -8,8 +8,13 @@
 
 #### Scenario: Below-bar post builds and serves
 
-- **WHEN** 一篇文章帶有完整 tribunal 分數，且 `meetsPublishBar()` 判定不成立（例：vibe narrative=7、composite=8）
+- **WHEN** 一篇文章帶有真 tribunal 分數（`hasTribunalScore()`，即 `scores.vibe.score` 為數值），且 `meetsPublishBar()` 判定不成立（例：vibe narrative=7、composite=8）
 - **THEN** 該文章照常出現在 production build，其 `/posts/<slug>` URL 回 200
+
+#### Scenario: Partial tribunal scores count as below bar
+
+- **WHEN** 一篇文章有 `scores.vibe.score` 數值但缺其他 judge 的分數
+- **THEN** 該文章不算 grandfathered——`isBelowPublishBar()` 判定成立，適用本 capability 全部 below-bar 行為
 
 #### Scenario: Tribunal FAIL is advisory to the pipeline
 
@@ -19,6 +24,8 @@
 ### Requirement: Below-bar posts SHALL be excluded from the homepage index
 
 首頁 / featured 文章列表 SHALL 排除 below publish bar 的文章。判定 SHALL 使用「有真分數 AND 未達完整 PASS bar」的語意（`isBelowPublishBar()`），PASS bar 的計算內容由 `tribunal-scoring-dimensions` spec 定義，本 capability 只消費其結果。
+
+排除範圍**僅限首頁 / featured 列表**：below-bar 不是全站隱藏——RSS、search、tag、前後篇導覽等其他 published surfaces（`getPublishedPosts()` 語意）MUST 照常包含 below-bar 文章。
 
 #### Scenario: Sub-8 post absent from homepage
 

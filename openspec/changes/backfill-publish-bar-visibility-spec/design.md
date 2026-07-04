@@ -15,6 +15,7 @@
 - 不改 PASS bar 計算（`tribunal-scoring-dimensions` 的地盤）
 - 不改 floor commit gate
 - 不改任何 UI 呈現細節（banner 文案、樣式）——spec 只鎖「有 / 沒有 banner」的行為
+- **不把 below-bar 解釋成 globally hidden**：RSS / search / tag / 導覽照常包含 below-bar 文章（`getPublishedPosts()` 不排除），本 capability 只管首頁 / featured 列表與文章頁 banner
 - 不補 pipeline advisory 的 Go 測試（`ralph.go` 的 logged-and-continue 已有註解與實跑證據，Tier-2 由 reviewer 判定即可）
 
 ## Decisions
