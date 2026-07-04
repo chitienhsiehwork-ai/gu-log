@@ -8,6 +8,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
+  getIndexPosts,
   getLocalizedPostUrl,
   getListablePosts,
   getNavigablePosts,
@@ -30,6 +31,7 @@ type FakePost = {
     deprecatedReason?: string;
     retiredReason?: string;
     retiredAt?: string;
+    scores?: any;
   };
 };
 
@@ -151,6 +153,84 @@ describe('getPublishedPosts / getListablePosts', () => {
     const r = getListablePosts(cast([...all, retired]), 'zh-tw');
     expect(r.map((p: any) => p.id)).toContain('sp-4-r'); // retired listable
     expect(r.map((p: any) => p.id)).not.toContain('sp-2-y'); // deprecated NOT listable
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// getIndexPosts — 兩層品質門檻的消費端（spec: publish-bar-visibility）
+// 首頁只放「沒有真分數（grandfathered）」或「過完整 PASS bar」的文章；
+// below-bar 只被擋在首頁外，其他 published surfaces（getPublishedPosts）照常收。
+// ════════════════════════════════════════════════════════════════════════════
+describe('getIndexPosts (publish-bar visibility)', () => {
+  // 完整過 PASS bar 的分數（對齊 tests/tribunal-scores.test.ts 的 passScores）
+  const passingScores = {
+    tribunalVersion: 9,
+    vibe: { persona: 9, clawdNote: 8, vibe: 8, narrative: 8, score: 8, date: '2026-07-04' },
+    factCheck: {
+      accuracy: 8,
+      fidelity: 8,
+      consistency: 8,
+      sourceBoundary: 8,
+      commentarySeparation: 8,
+      score: 8,
+      date: '2026-07-04',
+    },
+    librarian: {
+      glossary: 8,
+      crossRef: 8,
+      sourceAlign: 8,
+      attribution: 8,
+      score: 8,
+      date: '2026-07-04',
+    },
+    freshEyes: {
+      readability: 8,
+      firstImpression: 8,
+      payoffDensity: 8,
+      lengthFit: 8,
+      clarity: 8,
+      score: 8,
+      date: '2026-07-04',
+    },
+  };
+  // 有真分數（vibe.score 為數值）但沒過 bar → below bar
+  const sub8Scores = {
+    tribunalVersion: 9,
+    vibe: { persona: 7, clawdNote: 7, vibe: 7, narrative: 7, score: 7, date: '2026-07-04' },
+  };
+
+  const passing = p('sp-1-pass', 'SP-1', 'zh-tw', { scores: passingScores });
+  const sub8 = p('sp-2-sub8', 'SP-2', 'zh-tw', { scores: sub8Scores });
+  const grandfathered = p('sp-3-old', 'SP-3', 'zh-tw'); // 無 scores block
+  const all = [passing, sub8, grandfathered];
+
+  it('excludes below-bar posts from the homepage list', () => {
+    const ids = getIndexPosts(cast(all), 'zh-tw').map((post: any) => post.id);
+    expect(ids).not.toContain('sp-2-sub8');
+  });
+
+  it('includes posts that meet the full publish bar', () => {
+    const ids = getIndexPosts(cast(all), 'zh-tw').map((post: any) => post.id);
+    expect(ids).toContain('sp-1-pass');
+  });
+
+  it('keeps grandfathered (un-scored) posts on the homepage', () => {
+    const ids = getIndexPosts(cast(all), 'zh-tw').map((post: any) => post.id);
+    expect(ids).toContain('sp-3-old');
+  });
+
+  it('below-bar posts stay published on non-homepage surfaces (not globally hidden)', () => {
+    const ids = getPublishedPosts(cast(all), 'zh-tw').map((post: any) => post.id);
+    expect(ids).toContain('sp-2-sub8');
+  });
+
+  it('still excludes deprecated posts regardless of scores', () => {
+    const deprecated = p('sp-4-dep', 'SP-4', 'zh-tw', {
+      status: 'deprecated',
+      scores: passingScores,
+    });
+    const ids = getIndexPosts(cast([...all, deprecated]), 'zh-tw').map((post: any) => post.id);
+    expect(ids).not.toContain('sp-4-dep');
   });
 });
 

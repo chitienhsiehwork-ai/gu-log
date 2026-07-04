@@ -144,7 +144,7 @@ Vercel build / tribunal / validate-posts / CI 沒過：
 
 **⚠️ 實測 caveat（2026-06-13）**：不是每個 CCC 網頁 harness 都把 `.claude/agents/` 註冊成 `Agent` tool 的 `subagent_type`。有的 session `Agent` tool 只開 built-in 的 `general-purpose` / `Explore` / `Plan`，named agent（`vibe-opus-scorer` 等）會回 `Agent type '...' not found`。遇到這種：**spawn `general-purpose`，在 prompt 裡叫它「讀 `.claude/agents/<judge>.md` 並完全照著做（zero parent context）」**，效果等同——judge 一樣 zero-context、一樣寫同一份 JSON。差別只在 model pin 顧不到（named agent 走 frontmatter 的 pin，general-purpose 繼承 parent model），所以 `scores.*.model` 要記**實際**用到的 model，不要照抄 pin。agent 檔已補 `name:` frontmatter，環境若支援 project agent 就會吃到 named 路徑。`scripts/tribunal-helpers.sh` 在 CCC 偵測到沒有 CLI provider 時，也會把這條 fallback 指令印到 stderr。
 
-**品質門檻（SSOT = `CONTRIBUTING.md`〈🎯 兩層品質門檻〉；本段是 derived view）**：
+**品質門檻（SSOT = `CONTRIBUTING.md`〈🎯 兩層品質門檻〉；消費端可見性行為的 formal spec = `openspec/specs/publish-bar-visibility/spec.md`；本段是 derived view）**：
 - **Floor（merge/ship gate）**：`scores.vibe` 存在、該 tribunalVersion 要求的 vibe 維度齊、且 composite ≥ 3。沒過 floor → pre-commit 會擋，不能 merge。
 - **PASS（首頁 / featured gate）**：Vibe composite ≥ 8 AND 至少一維 ≥ 9 AND 無任何維 < 8；Fact core avg ≥ 8 AND sourceBoundary ≥ 8 AND commentarySeparation ≥ 8；Librarian composite ≥ 8；FreshEyes composite ≥ 8 AND payoffDensity ≥ 8 AND lengthFit ≥ 8 AND（v9）clarity ≥ 8。沒過 PASS 仍可 merge/ship，但掛「精修中」badge，且不上首頁 / featured。
 
