@@ -416,7 +416,10 @@ cheap_validate_writer_rewrite() {
   fi
 
   tlog "  Running cheap post validation for ${validate_paths[*]}..."
-  if ! node scripts/validate-posts.mjs "${validate_paths[@]}" >> "$LOG_FILE" 2>&1; then
+  # VALIDATE_PARTIAL_SCORES=1: mid-tribunal the later stages (freshEyes/vibe)
+  # have not scored yet, so block *presence* must not fail cheap validation.
+  # Present blocks are still fully structure-checked; the deploy gate stays strict.
+  if ! VALIDATE_PARTIAL_SCORES=1 node scripts/validate-posts.mjs "${validate_paths[@]}" >> "$LOG_FILE" 2>&1; then
     tlog "  ERROR: cheap validation failed: validate-posts rejected rewritten post files."
     return 1
   fi

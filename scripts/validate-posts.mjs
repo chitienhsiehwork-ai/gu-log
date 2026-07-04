@@ -385,31 +385,44 @@ function validatePost(filepath, allPosts, options = {}) {
   const FRESH_DIMS_V9 = ['readability', 'firstImpression', 'payoffDensity', 'lengthFit', 'clarity'];
   const vibeDims = tribunalVersion >= 9 ? VIBE_DIMS_V9 : VIBE_DIMS_V8;
   const freshDims = tribunalVersion >= 9 ? FRESH_DIMS_V9 : FRESH_DIMS_V8;
+  // VALIDATE_PARTIAL_SCORES=1: mid-tribunal mode for cheap validation in
+  // scripts/tribunal.sh — writer rewrites happen BEFORE later stages have
+  // scored, so requiring all four blocks here is a guaranteed failure.
+  // Relaxes ONLY block *presence*; any block that exists is still fully
+  // structure-checked. Deploy / pre-commit / CI never set this, so the
+  // final gate stays strict.
+  const partialScores = process.env.VALIDATE_PARTIAL_SCORES === '1';
+  const requireOrSkipMissing = (scoreErrors) =>
+    partialScores ? scoreErrors.filter((e) => !e.startsWith('Missing scores')) : scoreErrors;
   if (tribunalVersion >= 8) {
     errors.push(
-      ...validateScoreBlock(fmText, 'librarian', [
-        'glossary',
-        'crossRef',
-        'sourceAlign',
-        'attribution',
-      ]),
-      ...validateScoreBlock(fmText, 'factCheck', [
-        'accuracy',
-        'fidelity',
-        'consistency',
-        'sourceBoundary',
-        'commentarySeparation',
-      ]),
-      ...validateScoreBlock(fmText, 'freshEyes', freshDims),
-      ...validateScoreBlock(fmText, 'vibe', vibeDims)
+      ...requireOrSkipMissing([
+        ...validateScoreBlock(fmText, 'librarian', [
+          'glossary',
+          'crossRef',
+          'sourceAlign',
+          'attribution',
+        ]),
+        ...validateScoreBlock(fmText, 'factCheck', [
+          'accuracy',
+          'fidelity',
+          'consistency',
+          'sourceBoundary',
+          'commentarySeparation',
+        ]),
+        ...validateScoreBlock(fmText, 'freshEyes', freshDims),
+        ...validateScoreBlock(fmText, 'vibe', vibeDims),
+      ])
     );
   } else if (fm.ticketId?.startsWith('SD-')) {
-    if (!/^scores:\s*$/m.test(fmText)) {
+    if (!partialScores && !/^scores:\s*$/m.test(fmText)) {
       errors.push('Missing scores block — every SD post needs freshEyes + vibe scores');
     }
     errors.push(
-      ...validateScoreBlock(fmText, 'freshEyes', ['readability', 'firstImpression']),
-      ...validateScoreBlock(fmText, 'vibe', vibeDims)
+      ...requireOrSkipMissing([
+        ...validateScoreBlock(fmText, 'freshEyes', ['readability', 'firstImpression']),
+        ...validateScoreBlock(fmText, 'vibe', vibeDims),
+      ])
     );
   }
 

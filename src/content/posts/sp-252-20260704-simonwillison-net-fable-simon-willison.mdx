@@ -1,0 +1,126 @@
+---
+ticketId: "SP-252"
+title: '讓 Fable 自己決定——Simon Willison 的模型委派心法'
+originalDate: '2026-07-03'
+translatedDate: '2026-07-04'
+translatedBy:
+  model: "Opus 4.5"
+  harness: "Claude Code CLI"
+
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "GPT-5.5"
+      harness: "Codex CLI + Tribunal"
+    - role: "Rewritten"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "GPT-5.5"
+      harness: "sp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "Simon Willison's Weblog"
+sourceUrl: 'https://simonwillison.net/2026/Jul/3/judgement/'
+lang: 'zh-tw'
+summary: 'Simon Willison 從 Claude Code 團隊的爐邊對談學到一招：與其給 Fable 詳細規則，不如讓它自己判斷。延伸應用：讓 Fable 自己決定什麼任務該丟給比較省的模型跑。'
+tags: ['shroom-picks', 'claude-code', 'claude', 'prompt-engineering', 'coding-agents']
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 8
+    commentarySeparation: 8
+    score: 8
+    date: "2026-07-04"
+    model: "gpt-5.5"
+  librarian:
+    glossary: 8
+    crossRef: 9
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-07-04"
+    model: "gpt-5.5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 9
+    clarity: 8
+    score: 8
+    date: "2026-07-04"
+    model: "gpt-5.5"
+  vibe:
+    persona: 8
+    clawdNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-07-04"
+    model: "claude-opus-4-5"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+與其寫一堆規則告訴模型什麼時候該做什麼，不如讓它自己判斷——[Simon Willison](/glossary#simon-willison) 從 [Claude Code](/glossary#claude-code) 團隊的爐邊對談學到這招，聽起來簡單，但這個「信任模型判斷力」的思路，連省 [token](/glossary#token) 都能用上。
+
+gu-log 在 [SP-247](/posts/sp-247-20260702-diegocabezas01-fable-tech-lead-claude-code/) 講過用四個模型搭編制、讓頂級模型（像 Fable）當指揮官的做法；[SP-152](/posts/sp-152-20260402-ecc-token-optimization/) 則拆過省 token 的模型路由策略。這篇 Simon Willison 的心得是同一條路的最簡形式：**與其自己寫分派規則，不如讓模型自己決定**。
+
+## 測試的例子
+
+傳統做法是這樣下指令：「只有大功能才跑自動測試，改文案或設計不用跑測試。」
+
+聽起來很合理對吧？但 Claude Code 團隊的 [Cat Wu](/glossary#cat-wu) 和 [Thariq](/glossary#thariq) Shihipar 在 AIE（AI Engineer 年會）的爐邊對談裡說，更好的做法是直接跟模型說：用自己的判斷力決定要不要寫測試。
+
+<ClawdNote>
+這招的底層邏輯是：頂級模型的判斷力本身就是產品價值。寫死規則反而是在浪費它最強的能力：看著上下文做決策。就像請一個資深工程師來，然後塞給他一大本 SOP 要求照做，根本沒在用人家的腦袋。
+</ClawdNote>
+
+---
+
+## 省 Token 的延伸應用
+
+[Jesse Vincent](/glossary#jesse-vincent) 接著給了一個省 token 的相關招式：趁價格調漲前，讓模型自己判斷哪些任務可以交給比較省的模型（像 Sonnet 或 Haiku）跑。
+
+Simon Willison 實測的 [prompt](/glossary#prompt) 是這樣：
+
+> 所有寫程式任務，都用自己的判斷決定適合的省資源模型，然後交給 [subagent](/glossary#subagent) 執行。
+
+Claude Code 自動把這條存成記憶檔，而且還自己補上了執行細節：
+
+- 主要的實作工作 → 交給 Sonnet
+- 瑣碎、機械式的小修改 → 交給 Haiku
+- 設計、稽核、資料綜合、需要判斷的工作 → 留在主迴圈（指頂級模型自己處理）
+
+<ClawdNote>
+那份記憶檔裡有一句話抓到精髓：「implementation work rarely needs the top-tier model; judgment, review, and synthesis stay with the main loop.」——打字的工作不需要最聰明的腦袋，但拍板的工作要。這個分工邏輯比任何手寫規則都清楚。
+</ClawdNote>
+
+---
+
+## 結語
+
+目前看起來效果不錯：事情照樣做很多，但頂級模型額度消耗得比以前慢。實作工作通常不需要頂級模型；判斷、審查、綜合，留給主迴圈。
+
+## 延伸閱讀
+
+- [SP-247: 四模型聯軍：一套讓 Fable 當 Tech Lead 的 Claude Code 編制](/posts/sp-247-20260702-diegocabezas01-fable-tech-lead-claude-code/)
+- [SP-152: Claude Code $200/月不夠用？一個設定省 60% Token](/posts/sp-152-20260402-ecc-token-optimization/)
+- [SP-222: Fable 5 為了修兩行 CSS，自己造了一整套瀏覽器測試工具鏈](/posts/sp-222-20260612-simonwillison-net-fable-5-css/)
+- [CP-21: CLAUDE.md 完全指南 — 讓 Claude Code 記住你的偏好](/posts/clawd-picks-20260204-vishwas-claude-md-guide/)
+- [SP-117: 如何讓你的 Claude Skills 變強 10 倍？Andrej Karpathy 的 Autoresearch 方法實戰](/posts/sp-117-20260318-itsolelehmann-claude-skills-10-andrej-karpathy-autoresearch/)
+
+
+<ClawdNote>
+這不只是省 token，而是在替模型排班。最貴的模型留著做判斷，便宜模型去處理可以被主迴圈審查的實作，整個流程才不會像請資深工程師整天搬磚。距離價格調漲還剩幾天，這招剛好趕上末班車。不過就算價格漲了，這個分工邏輯大概也還有用：讓模型自己判斷該用什麼力道，通常比人工硬寫一排規則更有彈性。 (◍•ᴗ•◍)
+</ClawdNote>
