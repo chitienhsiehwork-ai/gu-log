@@ -1,104 +1,104 @@
-# Design: Article editorial presentation
+# Design: 文章 editorial presentation
 
 ## Context
 
-Current `src/pages/posts/[...slug].astro` renders one article template that includes:
+目前 `src/pages/posts/[...slug].astro` render 的文章模板包含：
 
-- title and metadata at lines 84–105
-- source citation before content at lines 146–154
-- TOC before content at line 157
-- article body at lines 159–161
-- tags / translation info / AI score / read / share / login / related / prev-next / comments / version / footer at lines 163–271
+- lines 84–105：title 與 metadata
+- lines 146–154：content 前的 source citation
+- line 157：content 前的 TOC
+- lines 159–161：article body
+- lines 163–271：tags / translation info / AI score / read / share / login / related / prev-next / comments / version / footer
 
-The current global typography in `src/styles/global.css` is site-wide: `--font-sans` at lines 35–37, global `h1/h2/h3` at lines 106–128, global paragraph spacing at lines 130–160, blockquote styles at lines 264–282, and source citation at lines 336–349. Post-specific style in `[...slug].astro` is thin: `.post-content` margin at lines 370–372 and `.post-content blockquote` at lines 374–377.
+目前 `src/styles/global.css` 的 global typography 是全站共用：lines 35–37 的 `--font-sans`、lines 106–128 的 global `h1/h2/h3`、lines 130–160 的 global paragraph spacing、lines 264–282 的 blockquote styles，以及 lines 336–349 的 source citation。`[...slug].astro` 內 post-specific style 很薄：lines 370–372 的 `.post-content` margin，以及 lines 374–377 的 `.post-content blockquote`。
 
-The comparison benchmark is Kevin Ma's Fable article, measured on 1440px desktop:
+比較 benchmark 是 Kevin Ma 的 Fable article，於 1440px desktop 量測：
 
 - Kevin Ma: `h1 38.4px / 51.84px`, `h2 24.8px / 35.96px`, `p 14.72px / 26.496px`, article width `696px`.
 - gu-log: `article h1 32px / 41.6px`, `.post-content h2 24px / 31.2px`, `.post-content p 16px / 28.8px`, article width `648px`.
 
-The corrected data says gu-log's problem is not "body text too small" in isolation. It is the combined hierarchy: sans H1 with smaller presence, H2 line-height tighter than benchmark, TOC/source/status surfaces reading like tool cards, and bottom utility modules competing with the article close.
+修正後的資料顯示，gu-log 的問題不是單純「body text too small」。真正問題是整體 hierarchy：sans H1 的 presence 偏小、H2 line-height 比 benchmark 緊、TOC/source/status surfaces 讀起來像 tool cards，以及底部 utility modules 會跟文章收尾搶注意力。
 
 ## Goals
 
-- Give post pages a scoped editorial typography system without changing index/tool UI typography.
-- Make the first screen feel like an article before it feels like a content-management dashboard.
-- Preserve useful gu-log affordances: source citation, TOC, Tribunal scores, read state, sharing, login, related articles, comments, version history.
-- Collapse or reduce technical metadata weight so it remains inspectable without dominating the reading experience.
-- Require visual verification across dark/light and desktop/mobile.
+- 給 post pages 一套 scoped editorial typography system，但不改 index/tool UI typography。
+- 讓首屏先像文章，再像 content-management dashboard。
+- 保留 gu-log 有用的 affordances：source citation、TOC、Tribunal scores、read state、sharing、login、related articles、comments、version history。
+- 收合或降低 technical metadata 的 visual weight，讓它仍可檢查，但不主導閱讀體驗。
+- 要求在 dark/light 與 desktop/mobile 都做 visual verification。
 
 ## Non-goals
 
-- Do not add SP-251 explanatory images; PR1 owns that.
-- Do not design or implement the interactive artifact; another worker owns that.
-- Do not remove reader tools or Tribunal transparency.
-- Do not force all posts into Kevin Ma's brand or visual language.
+- 不新增 SP-251 explanatory images；那是 PR1 的範圍。
+- 不設計或實作 interactive artifact；那由另一個 worker 負責。
+- 不移除 reader tools 或 Tribunal transparency。
+- 不強迫所有 posts 套成 Kevin Ma 的品牌或 visual language。
 
 ## Decisions
 
-### D1: Create a scoped article presentation layer
+### D1: 建立 scoped article presentation layer
 
-Add article-specific CSS variables / selectors under `.post` or `.post-content` instead of globally changing `h1`, `h2`, and `p`. Global styles currently serve site navigation, cards, list pages, and tools; an article-only layer avoids making the rest of the app look like a magazine by accident.
+在 `.post` 或 `.post-content` 底下新增 article-specific CSS variables / selectors，而不是全域修改 `h1`、`h2` 和 `p`。Global styles 目前同時服務 site navigation、cards、list pages 和 tools；article-only layer 可以避免 app 其他地方意外變得像雜誌。
 
-Expected implementation anchors:
+預期 implementation anchors：
 
-- `src/styles/global.css` for reusable tokens and shared prose primitives.
-- `src/pages/posts/[...slug].astro` for page-specific structure and scoped styles.
+- `src/styles/global.css`：放 reusable tokens 與 shared prose primitives。
+- `src/pages/posts/[...slug].astro`：放 page-specific structure 與 scoped styles。
 
-### D2: Typography target is hierarchy and rhythm, not body-size inflation
+### D2: Typography 目標是 hierarchy 與 rhythm，不是放大 body-size
 
-Corrected measurement shows gu-log `.post-content p` is already `16px / 28.8px`, larger than Kevin Ma's measured paragraph text (`14.72px / 26.496px`). The implementation should not blindly enlarge paragraphs. It should instead tune:
+修正後的量測顯示，gu-log `.post-content p` 已經是 `16px / 28.8px`，比 Kevin Ma 量到的 paragraph text（`14.72px / 26.496px`）更大。Implementation 不應盲目放大 paragraphs，而應該調整：
 
-- H1 presence, likely `~2.35rem` desktop / `~1.9rem` mobile, optionally article-only serif.
-- H2 line-height and spacing so section breaks breathe.
-- Paragraph max-width, paragraph margin, list spacing, quote spacing, and code / prompt example separation.
-- ClawdNote / MoguNote weight so commentary supports the body rather than becoming equally loud.
+- H1 presence，desktop 可能約 `~2.35rem` / mobile 約 `~1.9rem`，可選擇 article-only serif。
+- H2 line-height 與 spacing，讓 section breaks 有呼吸感。
+- Paragraph max-width、paragraph margin、list spacing、quote spacing，以及 code / prompt example separation。
+- ClawdNote / MoguNote weight，讓 commentary 支援正文，而不是變得一樣搶戲。
 
-### D3: First-screen hierarchy moves tools behind the article lead
+### D3: First-screen hierarchy 要把工具退到 article lead 後面
 
-The post header should prioritize title, essential date/category/ticket metadata, and the beginning of the article. Source citation and TOC remain important, but they should not appear as equally heavy cards before the reader reaches the lead.
+Post header 應優先呈現 title、必要 date/category/ticket metadata，以及文章開頭。Source citation 和 TOC 仍然重要，但不應在 reader 抵達 lead 前，以同等重量的 cards 形式出現。
 
-Implementation may move source citation after a dek / lead, restyle it as a lighter inline source row, or defer it near the end for source-based posts as long as source attribution remains visible and accessible.
+Implementation 可以把 source citation 移到 dek / lead 後面、改成更輕的 inline source row，或在 source-based posts 中延後到接近結尾，只要 source attribution 仍然 visible 且 accessible。
 
-### D4: TOC stays useful but becomes visually quieter
+### D4: TOC 保持有用，但視覺上更安靜
 
-`TableOfContents.astro` desktop currently renders a fixed `.toc-sidebar` with `background: var(--color-surface)`, border, padding, and card radius at lines 347–352. That is useful for navigation, but it has the same surface grammar as source cards and notes. The implementation should make desktop TOC feel like navigation chrome: quieter background, hairline marker, lower contrast, or show only at roomy breakpoints. Mobile TOC may stay collapsible but should not consume disproportionate first-screen height.
+`TableOfContents.astro` desktop 目前會 render fixed `.toc-sidebar`，在 lines 347–352 使用 `background: var(--color-surface)`、border、padding 和 card radius。這對 navigation 有用，但它的 surface grammar 跟 source cards 和 notes 太像。Implementation 應讓 desktop TOC 感覺像 navigation chrome：更安靜的 background、hairline marker、較低 contrast，或只在 roomy breakpoints 顯示。Mobile TOC 可以維持 collapsible，但不應吃掉不成比例的首屏高度。
 
-### D5: Technical metadata becomes a disclosed section
+### D5: Technical metadata 改成 disclosed section
 
-Translation pipeline, AI score, and version history are valuable provenance. They should be grouped into a technical metadata section that defaults to low visual weight or collapsed disclosure. The content must remain crawlable / accessible enough for users who care, but the default reading flow should end with the article, tags/source context, then optional tools.
+Translation pipeline、AI score 和 version history 是有價值的 provenance。它們應被 group 成 technical metadata section，預設為 low visual weight 或 collapsed disclosure。Content 必須維持足夠 crawlable / accessible，讓在意的使用者可以檢查；但預設 reading flow 應該先用 article、tags/source context 收尾，再進 optional tools。
 
-Expected implementation anchors:
+預期 implementation anchors：
 
-- `src/pages/posts/[...slug].astro` lines 178–217 for translation info and AI score placement.
-- `src/components/AiJudgeScore.astro` for default panel density.
-- `src/pages/posts/[...slug].astro` lines 257–267 for version history.
+- `src/pages/posts/[...slug].astro` lines 178–217：translation info 與 AI score placement。
+- `src/components/AiJudgeScore.astro`：default panel density。
+- `src/pages/posts/[...slug].astro` lines 257–267：version history。
 
-### D6: Reader actions are commands, not article content
+### D6: Reader actions 是 commands，不是 article content
 
-Read status, share, login, related articles, prev/next, and comments should be organized into a bottom interaction zone with clear hierarchy. They should not appear as unrelated stacked cards. Version history belongs to the technical metadata group from D5, not the reader-action group. The design may group read/share/login into one action row, leave related/prev-next as onward navigation, then comments as a separate participation section.
+Read status、share、login、related articles、prev/next 和 comments 應整理成有清楚 hierarchy 的 bottom interaction zone。它們不應像一疊互不相干的 stacked cards。Version history 屬於 D5 的 technical metadata group，不屬於 reader-action group。Design 可以把 read/share/login group 成一個 action row，把 related/prev-next 留作 onward navigation，comments 則作為獨立 participation section。
 
 ## Risks / Trade-offs
 
-- **Risk: hiding provenance too much.** gu-log intentionally exposes AI and pipeline metadata. Mitigation: collapse or reduce weight, do not delete; ensure keyboard and screen-reader access.
-- **Risk: serif heading hurts CJK rendering or performance.** Mitigation: article-only font token, measured fallback stack, and no body-wide font switch in first implementation.
-- **Risk: TOC gets too quiet for long posts.** Mitigation: preserve active section marker and verify long-post usability on desktop and mobile.
-- **Risk: implementation turns into a redesign of every component.** Mitigation: keep scope to article page presentation; do not alter reader sync, share provider logic, or scoring semantics.
+- **Risk: provenance 被藏得太深。** gu-log 有意公開 AI 與 pipeline metadata。Mitigation：collapse 或降低 weight，但不要刪除；確保 keyboard 與 screen-reader access。
+- **Risk: serif heading 影響 CJK rendering 或 performance。** Mitigation：article-only font token、量過的 fallback stack，而且第一版不做 body-wide font switch。
+- **Risk: TOC 對長文變得太安靜。** Mitigation：保留 active section marker，並在 desktop 和 mobile 驗證 long-post usability。
+- **Risk: implementation 變成重設計每個 component。** Mitigation：scope 限在 article page presentation；不要改 reader sync、share provider logic 或 scoring semantics。
 
 ## Validation Plan
 
-- Re-run scoped DOM measurement using Playwright or an equivalent browser script.
-- Capture desktop 1440 and mobile 390 screenshots for dark Dracula and light Solarized.
-- Verify `.post-content h2` is measured with scoped selector, not TOC `h2`.
-- Run the normal repo checks relevant to the touched files: format/check, build, and targeted Playwright or visual checks where available.
-- Manual visual review must confirm:
-  - first screen reads as article-first;
-  - post body has stable H1/H2/p/blockquote rhythm;
-  - TOC is useful but lower weight than title/body;
-  - bottom tools are grouped/disclosed and do not read as a dashboard wall.
+- 使用 Playwright 或等效 browser script 重新跑 scoped DOM measurement。
+- 為 dark Dracula 與 light Solarized 擷取 desktop 1440 和 mobile 390 screenshots。
+- 確認 `.post-content h2` 是用 scoped selector 量測，不是 TOC `h2`。
+- 跑 touched files 相關的 repo checks：format/check、build，以及可用時的 targeted Playwright 或 visual checks。
+- Manual visual review 必須確認：
+  - 首屏讀起來 article-first；
+  - post body 有穩定的 H1/H2/p/blockquote rhythm；
+  - TOC 有用，但 weight 低於 title/body；
+  - bottom tools 已 group/disclose，讀起來不像 dashboard wall。
 
 ## Open Questions
 
-- Should gu-log introduce `--font-serif` using Noto Serif TC / Source Han Serif style fallback, or rely on existing sans with better scale first?
-- Should source citation live before body, after the first lead section, or near the end for SP/CP posts?
-- Which metadata should default collapsed: AI score only, pipeline/version only, or all technical provenance?
+- gu-log 應該引入使用 Noto Serif TC / Source Han Serif style fallback 的 `--font-serif`，還是先依賴既有 sans 搭配更好的 scale？
+- Source citation 應放在 body 前、第一個 lead section 後，還是 SP/CP posts 接近結尾的位置？
+- 哪些 metadata 應該預設 collapsed：只有 AI score、只有 pipeline/version，還是所有 technical provenance？

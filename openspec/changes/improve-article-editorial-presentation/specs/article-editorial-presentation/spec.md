@@ -2,128 +2,128 @@
 
 ### Requirement: Article pages MUST use a scoped editorial typography layer
 
-Post pages SHALL define article-specific typography and prose rhythm under `.post`, `.post-header`, and/or `.post-content` rather than relying only on global `h1`, `h2`, and `p` rules.
+Post pages SHALL 在 `.post`、`.post-header` 和/或 `.post-content` 下定義 article-specific typography 與 prose rhythm，而不是只依賴 global `h1`、`h2` 和 `p` rules。
 
-The layer SHALL preserve the current UI typography for non-article surfaces while allowing article headings, section spacing, blockquotes, notes, and code / prompt examples to have a reading-oriented hierarchy.
+這一層 SHALL 保留 non-article surfaces 目前的 UI typography，同時讓 article headings、section spacing、blockquotes、notes，以及 code / prompt examples 擁有 reading-oriented hierarchy。
 
 #### Scenario: Article heading scale is scoped to posts
 
-- **GIVEN** the site renders a post page and a non-post page
-- **WHEN** article heading styles are changed
-- **THEN** the post H1 and `.post-content` headings SHALL receive the editorial scale
-- **AND** index cards, navigation, tools, and other non-post UI SHALL NOT inherit article-only heading scale by accident
+- **GIVEN** site render 一個 post page 和一個 non-post page
+- **WHEN** article heading styles 被修改
+- **THEN** post H1 與 `.post-content` headings SHALL 套用 editorial scale
+- **AND** index cards、navigation、tools，以及其他 non-post UI SHALL NOT 意外繼承 article-only heading scale
 
 #### Scenario: Scoped measurement uses article body selectors
 
-- **GIVEN** an agent verifies article typography
-- **WHEN** it measures H2 or paragraph styling
-- **THEN** it SHALL measure `.post-content h2` and `.post-content p`
-- **AND** it SHALL NOT use unscoped `h2` or `p` values when those selectors can match TOC, source citation, or metadata text
+- **GIVEN** agent 驗證 article typography
+- **WHEN** agent 量測 H2 或 paragraph styling
+- **THEN** agent SHALL 量測 `.post-content h2` 和 `.post-content p`
+- **AND** 當 unscoped selectors 可能 match 到 TOC、source citation 或 metadata text 時，agent SHALL NOT 使用 unscoped `h2` 或 `p` values
 
 #### Scenario: Body text is tuned by rhythm, not blind enlargement
 
-- **GIVEN** `.post-content p` is already at a readable size
-- **WHEN** an implementation improves prose readability
-- **THEN** it SHALL tune line-height, margins, measure, heading contrast, lists, quotes, and note density
-- **AND** it SHALL NOT treat body font-size inflation as the only required fix
+- **GIVEN** `.post-content p` 已經是可讀的 size
+- **WHEN** implementation 改善 prose readability
+- **THEN** implementation SHALL 調整 line-height、margins、measure、heading contrast、lists、quotes 和 note density
+- **AND** implementation SHALL NOT 把 body font-size inflation 視為唯一必要修正
 
 ---
 
 ### Requirement: First screen MUST prioritize the article over administrative metadata
 
-The first screen of a post page SHALL make the title and article lead the dominant reading path. Ticket/date/category/source/TOC/status metadata MAY appear near the top, but their visual weight SHALL be lower than the article title and lead.
+Post page 的首屏 SHALL 讓 title 與 article lead 成為主要 reading path。Ticket/date/category/source/TOC/status metadata MAY 出現在上方附近，但它們的 visual weight SHALL 低於 article title 與 lead。
 
 #### Scenario: Reader lands on a source-based post
 
-- **GIVEN** a reader opens an SP or CP post
-- **WHEN** the first viewport renders
-- **THEN** the title SHALL be the dominant element
-- **AND** essential metadata SHALL be scan-friendly
-- **AND** source attribution SHALL remain discoverable
-- **AND** source attribution, TOC, and status panels SHALL NOT collectively dominate the first viewport over the article lead
+- **GIVEN** reader 開啟一篇 SP 或 CP post
+- **WHEN** first viewport render
+- **THEN** title SHALL 是 dominant element
+- **AND** essential metadata SHALL 容易掃讀
+- **AND** source attribution SHALL 維持 discoverable
+- **AND** source attribution、TOC 和 status panels SHALL NOT 集體壓過 first viewport 中的 article lead
 
 #### Scenario: Source attribution remains accessible after hierarchy changes
 
-- **GIVEN** source citation is restyled or moved
-- **WHEN** a reader wants to inspect the original source
-- **THEN** the source link SHALL remain visible or clearly reachable from the post page
-- **AND** it SHALL preserve link semantics, target, and rel safety
+- **GIVEN** source citation 被 restyle 或移動
+- **WHEN** reader 想檢查 original source
+- **THEN** source link SHALL 在 post page 中維持 visible 或清楚可抵達
+- **AND** source link SHALL 保留 link semantics、target 與 rel safety
 
 ---
 
 ### Requirement: TOC MUST be useful navigation with lower visual weight than the article
 
-The table of contents SHALL remain available for long articles, but desktop and mobile TOC presentation SHALL avoid using the same heavy card grammar as primary article content, source cards, or metadata panels.
+Table of contents SHALL 對 long articles 維持 available，但 desktop 與 mobile TOC presentation SHALL 避免使用和 primary article content、source cards 或 metadata panels 一樣重的 card grammar。
 
 #### Scenario: Desktop reader uses TOC
 
-- **GIVEN** a desktop viewport wide enough to show the TOC sidebar
-- **WHEN** the reader scrolls a long article
-- **THEN** the TOC SHALL remain usable for navigation
-- **AND** the active section SHALL be identifiable
-- **AND** the TOC SHALL have lower visual prominence than the post title and article body
+- **GIVEN** desktop viewport 寬到足以顯示 TOC sidebar
+- **WHEN** reader scroll 一篇 long article
+- **THEN** TOC SHALL 維持 navigation 可用
+- **AND** active section SHALL 可辨識
+- **AND** TOC SHALL 比 post title 與 article body 有更低的 visual prominence
 
 #### Scenario: Mobile reader reaches content quickly
 
-- **GIVEN** a mobile viewport
-- **WHEN** the reader opens a post
-- **THEN** the TOC SHALL be discoverable if headings exist
-- **AND** it SHALL NOT consume disproportionate first-screen height before the article lead
+- **GIVEN** mobile viewport
+- **WHEN** reader 開啟 post
+- **THEN** 若 headings 存在，TOC SHALL 可被 discover
+- **AND** TOC SHALL NOT 在 article lead 前消耗不成比例的 first-screen height
 
 ---
 
 ### Requirement: Technical provenance MUST be grouped or disclosed after the editorial close
 
-Technical provenance such as translation pipeline, AI Tribunal scores, and version history SHALL remain available, but SHALL be grouped into a low-weight or collapsible technical metadata area after the article body.
+Translation pipeline、AI Tribunal scores 和 version history 等 technical provenance SHALL 維持 available，但 SHALL group 到 article body 後面的 low-weight 或 collapsible technical metadata area。
 
 #### Scenario: Reader finishes the article
 
-- **GIVEN** a reader reaches the end of `.post-content`
-- **WHEN** post metadata and tools render
-- **THEN** the page SHALL first provide an editorially coherent close such as tags, source context, or onward reading
-- **AND** technical provenance SHALL NOT interrupt the article close as multiple unrelated full-weight panels
+- **GIVEN** reader 抵達 `.post-content` 結尾
+- **WHEN** post metadata 與 tools render
+- **THEN** page SHALL 先提供 editorially coherent close，例如 tags、source context 或 onward reading
+- **AND** technical provenance SHALL NOT 以多個互不相關的 full-weight panels 打斷 article close
 
 #### Scenario: Provenance-focused reader inspects metadata
 
-- **GIVEN** a reader wants Tribunal scores, translation pipeline, or version history
-- **WHEN** the technical metadata section is collapsed or visually reduced
-- **THEN** the reader SHALL be able to open or inspect it with keyboard and pointer
-- **AND** the content SHALL preserve the same underlying data and links
+- **GIVEN** reader 想看 Tribunal scores、translation pipeline 或 version history
+- **WHEN** technical metadata section 被 collapsed 或 visually reduced
+- **THEN** reader SHALL 能用 keyboard 和 pointer 開啟或檢查它
+- **AND** content SHALL 保留同一份 underlying data 和 links
 
 ---
 
 ### Requirement: Reader tools MUST be organized as a coherent bottom action area
 
-Read status, sharing, login CTA, related articles, series navigation, prev/next navigation, and comments SHALL be organized so they support post completion rather than appearing as a stack of unrelated dashboard widgets.
+Read status、sharing、login CTA、related articles、series navigation、prev/next navigation 和 comments SHALL 被整理成支援 post completion 的形式，而不是看起來像一疊互不相干的 dashboard widgets。
 
-Version history SHALL remain grouped with technical provenance metadata, not with reader action controls.
+Version history SHALL 繼續與 technical provenance metadata grouped 在一起，而不是和 reader action controls 放在一起。
 
 #### Scenario: Post has all optional bottom modules
 
-- **GIVEN** a post has scores, tags, translation info, read tracking, share buttons, login CTA, related articles, prev/next nav, comments, and version info
-- **WHEN** the reader reaches the post footer area
-- **THEN** related modules SHALL be grouped by purpose
-- **AND** action controls SHALL be visually distinct from provenance metadata
-- **AND** onward navigation SHALL be visually distinct from comments
-- **AND** the combined footer SHALL NOT read as one continuous dashboard wall
+- **GIVEN** post 有 scores、tags、translation info、read tracking、share buttons、login CTA、related articles、prev/next nav、comments 和 version info
+- **WHEN** reader 抵達 post footer area
+- **THEN** related modules SHALL 依目的 grouped
+- **AND** action controls SHALL 在視覺上和 provenance metadata 區分開
+- **AND** onward navigation SHALL 在視覺上和 comments 區分開
+- **AND** combined footer SHALL NOT 讀起來像一整面連續 dashboard wall
 
 #### Scenario: Optional modules are absent
 
-- **GIVEN** a post lacks one or more optional modules
-- **WHEN** the footer renders
-- **THEN** the remaining groups SHALL keep stable spacing and hierarchy
-- **AND** absent modules SHALL NOT leave awkward gaps or duplicate separators
+- **GIVEN** post 缺少一個或多個 optional modules
+- **WHEN** footer render
+- **THEN** remaining groups SHALL 維持 stable spacing 與 hierarchy
+- **AND** absent modules SHALL NOT 留下 awkward gaps 或 duplicate separators
 
 ---
 
 ### Requirement: Editorial presentation changes MUST be visually verified across themes and viewports
 
-Any implementation of this capability SHALL be verified on both supported themes and on desktop and mobile article viewports.
+此 capability 的任何 implementation SHALL 在兩個 supported themes，以及 desktop 與 mobile article viewports 上完成驗證。
 
 #### Scenario: Implementation is ready for review
 
-- **GIVEN** an implementation changes post typography, first-screen hierarchy, TOC presentation, or bottom tool organization
-- **WHEN** the PR is prepared for review
-- **THEN** it SHALL include verification for dark Dracula desktop, light Solarized desktop, dark Dracula mobile, and light Solarized mobile
-- **AND** it SHALL include scoped selector measurements for `.post-content h2` and `.post-content p`
-- **AND** it SHALL confirm that PR1 image work and artifact work are outside the patch
+- **GIVEN** implementation 修改 post typography、first-screen hierarchy、TOC presentation 或 bottom tool organization
+- **WHEN** PR 準備進入 review
+- **THEN** PR SHALL include dark Dracula desktop、light Solarized desktop、dark Dracula mobile 和 light Solarized mobile 的 verification
+- **AND** PR SHALL include `.post-content h2` 與 `.post-content p` 的 scoped selector measurements
+- **AND** PR SHALL confirm PR1 image work 與 artifact work 不在 patch 範圍內
