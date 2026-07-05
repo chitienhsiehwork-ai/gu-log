@@ -25,6 +25,7 @@ const repoRoot = join(__dirname, '..');
 const outPath = join(repoRoot, 'src', 'data', 'post-versions.json');
 const postsDir = join(repoRoot, 'src', 'content', 'posts');
 const checkOnly = process.argv.includes('--check');
+const includeStaged = process.argv.includes('--include-staged');
 
 // Skip regeneration if the clone is shallow — git log would miss history
 // and we'd overwrite the committed manifest with incomplete counts.
@@ -68,13 +69,20 @@ function buildManifest() {
         versions[postId] = (versions[postId] ?? 0) + 1;
       }
     }
+
+    if (includeStaged) {
+      applyStagedPostTouches(versions);
+    }
   } catch (err) {
     console.error('⚠️  git log failed — writing empty manifest:', err.message);
   }
 
   const next = JSON.stringify(versions, null, 2) + '\n';
   const count = Object.keys(versions).length;
-  const mergeHint = revs === 'HEAD MERGE_HEAD' ? ' (merge-aware)' : '';
+  const hints = [];
+  if (revs === 'HEAD MERGE_HEAD') hints.push('merge-aware');
+  if (includeStaged) hints.push('including staged changes');
+  const hintText = hints.length > 0 ? ` (${hints.join(', ')})` : '';
 
   if (checkOnly) {
     const current = existsSync(outPath) ? readFileSync(outPath, 'utf8') : '';
@@ -82,13 +90,32 @@ function buildManifest() {
       console.error('❌ post-versions.json is stale. Run: node scripts/build-version-manifest.mjs');
       process.exit(1);
     }
-    console.log(`✅ post-versions.json fresh: ${count} posts tracked${mergeHint}`);
+    console.log(`✅ post-versions.json fresh: ${count} posts tracked${hintText}`);
     return;
   }
 
   mkdirSync(dirname(outPath), { recursive: true });
   writeFileSync(outPath, next);
-  console.log(`✅ post-versions.json: ${count} posts tracked${mergeHint}`);
+  console.log(`✅ post-versions.json: ${count} posts tracked${hintText}`);
+}
+
+function applyStagedPostTouches(versions) {
+  const staged = execSync('git diff --cached --name-status -M -- src/content/posts/', {
+    encoding: 'utf-8',
+    cwd: repoRoot,
+  });
+
+  for (const line of staged.split('\n')) {
+    if (!line.trim()) continue;
+    const parts = line.split('\t');
+    const status = parts[0] ?? '';
+    const postPath = status.startsWith('R') || status.startsWith('C') ? parts[2] : parts[1];
+    if (!postPath?.startsWith('src/content/posts/') || !postPath.endsWith('.mdx')) continue;
+
+    const postId = postPath.replace('src/content/posts/', '').replace('.mdx', '');
+    if (isPendingPost(postId)) continue;
+    versions[postId] = (versions[postId] ?? 0) + 1;
+  }
 }
 
 function isPendingPost(postId) {
