@@ -13,13 +13,18 @@ const { src, alt, caption, width } = Astro.props;
 const fullSrc = src.src;
 const imageId = `post-image-${Math.random().toString(36).slice(2)}`;
 const captionId = caption ? `${imageId}-caption` : undefined;
+
+const isEnglish = Astro.url.pathname.startsWith('/en/');
+const zoomHintLabel = isEnglish ? 'Click to enlarge' : '點擊放大';
+const enlargeLabel = isEnglish ? `Enlarge image: ${alt}` : `放大圖片：${alt}`;
+const closeLabel = isEnglish ? 'Close enlarged image' : '關閉放大圖片';
 ---
 
 <figure class="post-image" data-post-image>
   <button
     type="button"
     class="post-image-open"
-    aria-label={`放大圖片：${alt}`}
+    aria-label={enlargeLabel}
     aria-haspopup="dialog"
     aria-controls={`${imageId}-dialog`}
     data-post-image-open
@@ -32,7 +37,7 @@ const captionId = caption ? `${imageId}-caption` : undefined;
       decoding="async"
       aria-describedby={captionId}
     />
-    <span class="post-image-zoom-hint" aria-hidden="true">點擊放大</span>
+    <span class="post-image-zoom-hint" aria-hidden="true">{zoomHintLabel}</span>
   </button>
   {caption && <figcaption id={captionId}>{caption}</figcaption>}
 
@@ -41,18 +46,13 @@ const captionId = caption ? `${imageId}-caption` : undefined;
     class="post-image-dialog"
     role="dialog"
     aria-modal="true"
-    aria-label={`放大圖片：${alt}`}
+    aria-label={enlargeLabel}
     aria-describedby={captionId}
     hidden
     data-post-image-dialog
   >
     <div class="post-image-dialog-surface" data-post-image-surface>
-      <button
-        type="button"
-        class="post-image-close"
-        aria-label="關閉放大圖片"
-        data-post-image-close
-      >
+      <button type="button" class="post-image-close" aria-label={closeLabel} data-post-image-close>
         ✕
       </button>
       <div class="post-image-dialog-scroll" data-post-image-scroll>
