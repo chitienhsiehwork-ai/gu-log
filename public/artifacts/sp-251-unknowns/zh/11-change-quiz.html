@@ -1,0 +1,545 @@
+<!-- Copyright 2026 Anthropic PBC · SPDX-License-Identifier: Apache-2.0 -->
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Merge 前先考我 — 了解你的未知</title>
+<style>
+  :root{
+    --ivory:#FAF9F5; --paper:#FFFFFF; --slate:#141413; --clay:#D97757; --clay-d:#B85C3E;
+    --oat:#E3DACC; --olive:#788C5D; --g100:#F0EEE6; --g200:#E6E3DA; --g300:#D1CFC5;
+    --g500:#87867F; --g700:#3D3D3A;
+    --serif: ui-serif, Georgia, "Times New Roman", Times, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--ivory); color:var(--slate); font-family:var(--sans);
+    line-height:1.55; font-size:15px; padding:40px 20px 64px;
+  }
+  .page{max-width:980px;margin:0 auto}
+  h1,h2,h3{font-family:var(--serif);font-weight:500;letter-spacing:-0.015em;color:var(--slate)}
+
+  /* ---- page header ---- */
+  .topline{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+  .eyebrow{
+    font-family:var(--mono);font-size:12px;text-transform:uppercase;letter-spacing:0.12em;
+    color:var(--g500);display:flex;align-items:center;gap:10px;
+  }
+  .eyebrow::before{content:"";display:inline-block;width:24px;height:2px;background:var(--clay);flex:none}
+  .backlink{font-family:var(--mono);font-size:12px;color:var(--g500);text-decoration:none;white-space:nowrap}
+  .backlink:hover{color:var(--clay-d)}
+  h1.pagetitle{font-size:34px;line-height:1.15;margin-bottom:10px}
+  .lede{color:var(--g700);font-size:16px;max-width:64ch;margin-bottom:26px}
+
+  /* ---- prompt box ---- */
+  .promptcard{
+    background:var(--paper);border:1.5px solid var(--g300);border-radius:14px;
+    padding:22px 26px;margin-bottom:36px;position:relative;
+  }
+  .promptcard .label{
+    font-family:var(--mono);font-size:12px;text-transform:uppercase;letter-spacing:0.12em;
+    color:var(--clay);margin-bottom:12px;
+  }
+  .promptcard blockquote{
+    font-family:var(--serif);font-style:italic;font-size:17.5px;line-height:1.55;
+    color:var(--slate);border:none;
+  }
+  .copybtn{
+    position:absolute;top:18px;right:18px;font-family:var(--mono);font-size:11.5px;
+    padding:6px 12px;border:1.5px solid var(--g300);border-radius:8px;background:var(--g100);
+    color:var(--g700);cursor:pointer;transition:all .15s;
+  }
+  .copybtn:hover{border-color:var(--clay);color:var(--clay-d)}
+  .copybtn.copied{background:var(--olive);border-color:var(--olive);color:#fff}
+
+  /* ---- divider ---- */
+  .divider{display:flex;align-items:center;gap:16px;margin:0 0 34px;
+    font-family:var(--mono);font-size:12px;letter-spacing:0.12em;color:var(--g500);text-transform:uppercase;white-space:nowrap}
+  .divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--g300)}
+
+  /* =================== ARTIFACT =================== */
+  .artifact{background:var(--paper);border:1.5px solid var(--g300);border-radius:14px;overflow:hidden}
+  .art-head{padding:28px 34px 24px;border-bottom:1.5px solid var(--g200)}
+  .art-eyebrow{font-family:var(--mono);font-size:11.5px;text-transform:uppercase;letter-spacing:0.12em;color:var(--g500);margin-bottom:8px;display:flex;align-items:center;gap:10px}
+  .art-eyebrow::before{content:"";display:inline-block;width:24px;height:2px;background:var(--clay);flex:none}
+  .art-head h2{font-size:26px;margin-bottom:6px}
+  .art-head .sub{color:var(--g700);font-size:14.5px;max-width:66ch}
+  .branchline{font-family:var(--mono);font-size:12.5px;color:var(--g700);background:var(--g100);
+    border:1.5px solid var(--g300);border-radius:8px;padding:6px 10px;display:inline-block;margin-top:14px;overflow-x:auto;max-width:100%}
+  .branchline .arr{color:var(--g500);margin:0 6px}
+
+  .art-body{padding:30px 34px 38px}
+  @media (max-width:560px){
+    .art-head{padding:22px 18px 18px}
+    .art-body{padding:22px 18px 30px}
+    h1.pagetitle{font-size:27px}
+  }
+
+  /* stat chips */
+  .stats{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:34px}
+  .statchip{flex:1;min-width:130px;background:var(--g100);border:1.5px solid var(--g300);border-radius:12px;padding:14px 18px}
+  .statchip .num{font-family:var(--serif);font-size:28px;font-weight:500;letter-spacing:-0.02em;line-height:1.1}
+  .statchip .num.add{color:var(--olive)}
+  .statchip .num.del{color:var(--clay-d)}
+  .statchip .cap{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--g500);margin-top:4px}
+
+  .art-section{margin-bottom:38px}
+  .art-section h3{font-size:20px;margin-bottom:6px}
+  .art-section .secnote{color:var(--g500);font-size:13.5px;margin-bottom:16px}
+  .art-section p{color:var(--g700);margin-bottom:12px;max-width:70ch}
+  .art-section p strong{color:var(--slate)}
+
+  /* mental model diagram */
+  .flow-pair{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+  @media (max-width:680px){.flow-pair{grid-template-columns:1fr}}
+  .flowcard{border:1.5px solid var(--g300);border-radius:12px;padding:16px 16px 18px;background:var(--ivory)}
+  .flowcard.after{border-color:var(--clay)}
+  .flowcard .fc-label{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px}
+  .flowcard.before .fc-label{color:var(--g500)}
+  .flowcard.after .fc-label{color:var(--clay-d)}
+  .fnode{border:1.5px solid var(--g300);background:var(--paper);border-radius:8px;padding:7px 12px;
+    font-family:var(--mono);font-size:12px;color:var(--g700);text-align:center}
+  .fnode.new{border-color:var(--clay);background:#FBF1EC;color:var(--clay-d)}
+  .fnode.oatf{background:var(--oat)}
+  .farrow{display:flex;justify-content:center;align-items:center;height:22px;color:var(--g500);font-size:13px;line-height:1}
+  .farrow.lab{gap:8px;font-family:var(--mono);font-size:10.5px}
+  .fsplit{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .fsplit .farrow{height:20px}
+
+  /* behavior blocks */
+  .beh{border:1.5px solid var(--g300);border-radius:12px;margin-bottom:14px;overflow:hidden}
+  .beh-head{display:flex;align-items:baseline;gap:12px;padding:14px 18px;background:var(--g100)}
+  .beh-num{font-family:var(--mono);font-size:12px;color:var(--clay-d);font-weight:600;flex:none}
+  .beh-head h4{font-family:var(--serif);font-weight:500;font-size:16.5px;letter-spacing:-0.01em}
+  .beh-body{padding:14px 18px 16px}
+  .beh-row{display:grid;grid-template-columns:58px 1fr;gap:10px;margin-bottom:9px;font-size:14px}
+  .beh-row:last-child{margin-bottom:0}
+  .beh-row .k{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:0.1em;color:var(--g500);padding-top:3px}
+  .beh-row .v{color:var(--g700)}
+  .fchip{display:inline-block;font-family:var(--mono);font-size:11.5px;background:var(--g100);
+    border:1px solid var(--g300);border-radius:6px;padding:1.5px 7px;color:var(--g700);white-space:nowrap;margin:1px 2px 1px 0}
+
+  /* leans-on callout */
+  .leans{border:1.5px solid var(--g300);border-left:4px solid var(--olive);border-radius:12px;
+    background:var(--ivory);padding:16px 20px}
+  .leans .lab{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--olive);margin-bottom:6px}
+  .leans p{margin-bottom:0;font-size:14px}
+
+  /* ---- quiz ---- */
+  .quiz-rule{display:flex;align-items:center;gap:16px;margin:44px 0 8px;
+    font-family:var(--mono);font-size:11.5px;letter-spacing:0.12em;color:var(--g500);text-transform:uppercase}
+  .quiz-rule::before,.quiz-rule::after{content:"";flex:1;height:1px;background:var(--g300)}
+  .quiz-intro{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+  .quiz-intro h3{font-size:22px}
+  .quiz-intro .qsub{color:var(--g500);font-size:13.5px}
+  .scorebox{font-family:var(--mono);font-size:12.5px;color:var(--g700);background:var(--g100);
+    border:1.5px solid var(--g300);border-radius:10px;padding:8px 14px;white-space:nowrap}
+  .scorebox b{color:var(--slate)}
+
+  .q{border:1.5px solid var(--g300);border-radius:12px;padding:18px 20px;margin-bottom:16px;background:var(--paper)}
+  .q.answered-right{border-color:var(--olive)}
+  .q.answered-wrong{border-color:var(--clay)}
+  .q .qnum{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--g500);margin-bottom:6px}
+  .q .qtext{font-family:var(--serif);font-size:17px;line-height:1.45;margin-bottom:14px;letter-spacing:-0.01em}
+  .q .qtext code{font-family:var(--mono);font-size:14px;background:var(--g100);border:1px solid var(--g300);border-radius:5px;padding:1px 5px}
+  .opt{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;
+    border:1.5px solid var(--g300);border-radius:9px;background:var(--ivory);padding:10px 14px;
+    margin-bottom:8px;cursor:pointer;font:inherit;font-size:14px;color:var(--g700);transition:border-color .12s, background .12s}
+  .opt:hover{border-color:var(--g500)}
+  .opt .key{font-family:var(--mono);font-size:11.5px;color:var(--g500);flex:none;padding-top:2px}
+  .opt.sel-right{border-color:var(--olive);background:#F1F4EB;color:var(--slate)}
+  .opt.sel-right .key{color:var(--olive)}
+  .opt.sel-wrong{border-color:var(--clay);background:#FBF1EC;color:var(--slate)}
+  .opt.sel-wrong .key{color:var(--clay-d)}
+  .opt.reveal-right{border-color:var(--olive)}
+  .opt:disabled{cursor:default;opacity:1}
+  .opt.dim{opacity:.55}
+  .fb{border-radius:9px;padding:12px 15px;font-size:13.5px;margin-top:4px;display:none}
+  .fb.show{display:block}
+  .fb.good{background:#F1F4EB;border:1.5px solid var(--olive);color:var(--g700)}
+  .fb.good .fbtag{color:var(--olive)}
+  .fb.bad{background:#FBF1EC;border:1.5px solid var(--clay);color:var(--g700)}
+  .fb.bad .fbtag{color:var(--clay-d)}
+  .fbtag{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:0.1em;font-weight:600;margin-bottom:5px}
+  .fb .excerpt{margin-top:8px;border-left:3px solid var(--g300);padding:6px 12px;background:var(--paper);
+    border-radius:0 7px 7px 0;font-size:13px;color:var(--g700);font-style:italic;font-family:var(--serif)}
+  .fb .exlab{font-family:var(--mono);font-style:normal;font-size:10.5px;text-transform:uppercase;letter-spacing:0.09em;color:var(--g500);display:block;margin-bottom:3px}
+
+  /* result cards */
+  .result{display:none;margin-top:26px}
+  .result.show{display:block}
+  .cleared{border:1.5px solid var(--olive);border-radius:14px;background:#F1F4EB;padding:24px 26px}
+  .cleared .clr-head{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+  .clr-badge{width:34px;height:34px;border-radius:50%;background:var(--olive);color:#fff;display:flex;
+    align-items:center;justify-content:center;font-size:17px;flex:none}
+  .cleared h3{font-size:21px}
+  .cleared .clr-sub{color:var(--g700);font-size:14px;margin-bottom:16px}
+  .mergelist{list-style:none}
+  .mergelist li{display:flex;gap:10px;align-items:baseline;font-family:var(--mono);font-size:12.5px;
+    color:var(--g700);padding:7px 0;border-bottom:1px dashed var(--g300)}
+  .mergelist li:last-child{border-bottom:none}
+  .mergelist .tick{color:var(--olive);font-weight:700;flex:none}
+  .mergelist .pend{color:var(--g500);flex:none}
+  .reread{border:1.5px solid var(--clay);border-radius:14px;background:#FBF1EC;padding:22px 26px}
+  .reread h3{font-size:19px;margin-bottom:4px}
+  .reread p{color:var(--g700);font-size:14px;margin-bottom:12px}
+  .reread ul{list-style:none}
+  .reread li{margin-bottom:7px}
+  .reread a{color:var(--clay-d);font-size:14px;text-decoration:none;border-bottom:1px solid var(--clay)}
+  .reread a:hover{color:var(--slate)}
+  .retry{margin-top:14px;font-family:var(--mono);font-size:12px;padding:8px 16px;border:1.5px solid var(--g300);
+    border-radius:8px;background:var(--paper);color:var(--g700);cursor:pointer}
+  .retry:hover{border-color:var(--clay);color:var(--clay-d)}
+
+  footer{margin-top:44px;text-align:center;font-size:13px;color:var(--g500)}
+  footer a{color:var(--clay-d);text-decoration:none}
+  footer a:hover{text-decoration:underline}
+</style>
+<style id="gu-log-mirror-credit-style">.gu-log-mirror-credit{position:sticky;top:0;z-index:9999;padding:8px 14px;background:#111;color:#f7f3e8;border-bottom:1px solid rgba(255,255,255,.18);font:13px/1.45 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;text-align:center}.gu-log-mirror-credit a{color:#f4c86a;text-decoration:underline;text-underline-offset:2px}.gu-log-mirror-credit strong{font-weight:750}</style>
+</head>
+<body>
+<div class="gu-log-mirror-credit" role="note"><strong>Mirror copy for gu-log SP-251.</strong> Original by <a href="https://x.com/trq212">Thariq (@trq212)</a>: <a href="https://thariqs.github.io/html-effectiveness/unknowns/">Know your unknowns</a>. <a href="../11-change-quiz.html">English</a> ｜ 繁中</div>
+<div class="page">
+
+  <!-- ============ PAGE HEADER ============ -->
+  <div class="topline">
+    <div class="eyebrow">了解你的未知 · 實作後</div>
+    <a class="backlink" href="index.html">&larr; 所有範例</a>
+  </div>
+  <h1 class="pagetitle">Merge 前先考我</h1>
+  <p class="lede">要求一份<em>附帶你必須通過的測驗</em>的報告，把「我掃過 diff 了」變成驗證過的理解——artifact 不會讓你在真正理解之前感覺完成。</p>
+
+  <div class="promptcard">
+    <div class="label">Prompt</div>
+    <button class="copybtn" id="copyBtn">複製 Prompt</button>
+    <blockquote id="promptText">我想確保在 merge 前完全理解這個變更發生的一切。給我一份關於 export-feature diff 的 HTML 報告——脈絡、直覺、做了什麼——底部附帶我必須通過的測驗。</blockquote>
+  </div>
+
+  <div class="divider">Claude 產出的成品</div>
+
+  <!-- ============ ARTIFACT ============ -->
+  <div class="artifact">
+    <div class="art-head">
+      <div class="art-eyebrow">Acme · Merge 準備報告</div>
+      <h2>Clip 匯出：改了什麼、為什麼</h2>
+      <p class="sub">一個 14 檔 diff，把伺服器端 clip 匯出加到 review threads。讀完下面三個章節，然後通過測驗。如果通不過，你還沒準備好 merge——這就是重點。</p>
+      <div class="branchline">feature/clip-export<span class="arr">→</span>main · 14 files · 9 commits</div>
+    </div>
+
+    <div class="art-body">
+
+      <!-- stats -->
+      <div class="stats">
+        <div class="statchip"><div class="num">14</div><div class="cap">檔案變更</div></div>
+        <div class="statchip"><div class="num add">+612</div><div class="cap">行新增</div></div>
+        <div class="statchip"><div class="num del">&minus;148</div><div class="cap">行刪除</div></div>
+      </div>
+
+      <!-- mental model -->
+      <div class="art-section" id="sec-model">
+        <h3>心智模型</h3>
+        <p class="secnote">一張圖抵 14 個檔案：匯出請求現在的流向 vs. 之前。</p>
+        <p>在這個變更之前，「匯出 clip」意味著瀏覽器用 <code>MediaRecorder</code> 在客戶端拼接 frames 並上傳結果——慢、鎖住 tab、而且在 Safari 上壞掉。現在客戶端只<strong>請求</strong>匯出；一個新的 worker 從原始媒體伺服器端渲染，客戶端 poll job 直到 signed download URL 出現。</p>
+        <div class="flow-pair">
+          <div class="flowcard before">
+            <div class="fc-label">之前 · 客戶端渲染</div>
+            <div class="fnode">ReviewPlayer.tsx</div>
+            <div class="farrow">&darr;</div>
+            <div class="fnode">MediaRecorder capture（in-tab）</div>
+            <div class="farrow lab"><span>&darr;</span><span>~40–90 秒，tab 鎖住</span></div>
+            <div class="fnode">PUT /uploads（整個檔案）</div>
+            <div class="farrow">&darr;</div>
+            <div class="fnode oatf">S3 exports/ bucket</div>
+          </div>
+          <div class="flowcard after">
+            <div class="fc-label">之後 · 伺服器端 job</div>
+            <div class="fnode">ReviewPlayer.tsx</div>
+            <div class="farrow lab"><span>&darr;</span><span>POST /api/exports（回傳 job id）</span></div>
+            <div class="fnode new">export-worker（新，ffmpeg）</div>
+            <div class="fsplit">
+              <div><div class="farrow">&darr;</div><div class="fnode oatf">S3 exports/ bucket</div></div>
+              <div><div class="farrow">&darr;</div><div class="fnode new">jobs table（新）</div></div>
+            </div>
+            <div class="farrow lab"><span>&darr;</span><span>客戶端每 2 秒 poll</span></div>
+            <div class="fnode">GET /api/exports/:id → signed URL</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- non-obvious behaviors -->
+      <div class="art-section" id="sec-behaviors">
+        <h3>這帶來的三個不明顯行為</h3>
+        <p class="secnote">掃 diff 不會告訴你的部分。每一個都是刻意的——這是背後的原因。</p>
+
+        <div class="beh" id="beh-1">
+          <div class="beh-head"><span class="beh-num">01</span><h4>匯出從原始上傳渲染，不是審閱者看的 proxy</h4></div>
+          <div class="beh-body">
+            <div class="beh-row"><span class="k">什麼</span><span class="v">Worker 拉 <code class="fchip">media/originals/</code>，從不用 720p review proxy。因此匯出的 clip 可能比審閱者畫註解時看到的<em>更清晰</em>。</span></div>
+            <div class="beh-row"><span class="k">為什麼</span><span class="v">剪輯師匯出 clip 是要交給客戶的；送出壓縮的 proxy 會讓他們難堪。註解座標儲存為正規化（0–1），所以可以正確重新投射到全解析度 frame。</span></div>
+            <div class="beh-row"><span class="k">在哪</span><span class="v"><span class="fchip">worker/export/render.ts:41</span> <span class="fchip">worker/export/burn_in.ts:88</span></span></div>
+          </div>
+        </div>
+
+        <div class="beh" id="beh-2">
+          <div class="beh-head"><span class="beh-num">02</span><h4>Export job 能撐過 worker crash——透過 visibility timeout，不是重試</h4></div>
+          <div class="beh-body">
+            <div class="beh-row"><span class="k">什麼</span><span class="v">Job row 透過設定 <code class="fchip">locked_until = now() + 10min</code> 來認領。如果 worker 在渲染中途死掉，不會觸發重試；lock 只是過期，下一個閒置的 worker 會從頭撿起 job。</span></div>
+            <div class="beh-row"><span class="k">為什麼</span><span class="v">ffmpeg 渲染在中途不是 idempotent，而 retry queue 需要我們還不想要的 dead-letter 處理。Lock 過期用一個欄位就給了 at-least-once 語意。結果：crash 的 job 會顯示「處理中」最多 10 分鐘後才恢復。</span></div>
+            <div class="beh-row"><span class="k">在哪</span><span class="v"><span class="fchip">db/migrations/0142_export_jobs.sql</span> <span class="fchip">worker/export/claim.ts:19</span></span></div>
+          </div>
+        </div>
+
+        <div class="beh" id="beh-3">
+          <div class="beh-head"><span class="beh-num">03</span><h4>下載 URL 24 小時後過期——匯出檔案本身保留 7 天</h4></div>
+          <div class="beh-body">
+            <div class="beh-row"><span class="k">什麼</span><span class="v"><code class="fchip">GET /api/exports/:id</code> 回傳的 signed S3 URL 有效 24 小時，但底層物件要到 7 天 lifecycle rule 觸發才會刪除。重新呼叫 endpoint 會產生新的 URL，不需要重新渲染。</span></div>
+            <div class="beh-row"><span class="k">為什麼</span><span class="v">短 URL 限制連結被轉發到 workspace 外（匯出可能包含未發佈的素材）；較長的物件 TTL 意味著過期的 Slack 連結只需要一個 API call 就能復活，不用 90 秒重新渲染。</span></div>
+            <div class="beh-row"><span class="k">在哪</span><span class="v"><span class="fchip">api/exports/get.ts:57</span> <span class="fchip">infra/s3_lifecycle.tf:23</span></span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- leans on -->
+      <div class="art-section" id="sec-leans">
+        <div class="leans">
+          <div class="lab">這依賴的現有行為</div>
+          <p><strong>Workspace-scoped signed-URL auth。</strong> <span class="fchip">GET /api/exports/:id</span> 本身不做權限檢查——它重用已經守住每個 media route 的 <span class="fchip">requireWorkspaceMember</span> middleware。如果那個 middleware 的 session 處理有變（有一張公開 ticket，BL-2214，關於 guest reviewer sessions），匯出下載也會跟著變。這個 diff 裡沒有任何東西會標記出這件事。</p>
+        </div>
+      </div>
+
+      <!-- ============ QUIZ ============ -->
+      <div class="quiz-rule">第 2 部分 · 證明你懂</div>
+      <div class="quiz-intro">
+        <div>
+          <h3>Merge 前六個問題</h3>
+          <div class="qsub">不是瑣事——每一個都是你在 incident 或 review 時必須正確做出的決定。</div>
+        </div>
+        <div class="scorebox">分數：<b id="scoreNow">0</b> / <b>6</b> · 已答 <span id="answeredNow">0</span> 題</div>
+      </div>
+
+      <div id="quiz"></div>
+
+      <!-- results -->
+      <div class="result" id="resPass">
+        <div class="cleared">
+          <div class="clr-head"><div class="clr-badge">&#10003;</div><h3>可以 merge 了</h3></div>
+          <p class="clr-sub">6/6——你可以向被 page 的人解釋這個變更。下面是標準 checklist。</p>
+          <ul class="mergelist">
+            <li><span class="tick">&#10003;</span>理解已驗證（本測驗，6/6）</li>
+            <li><span class="tick">&#10003;</span>CI 在 feature/clip-export 綠燈 · 412 tests</li>
+            <li><span class="tick">&#10003;</span>Migration 0142 已審——純新增，無 backfill</li>
+            <li><span class="pend">&#9675;</span>用上面的摘要當 commit body 做 Squash-merge</li>
+            <li><span class="pend">&#9675;</span>部署後觀察 export-worker dashboard 30 分鐘</li>
+            <li><span class="pend">&#9675;</span>在 merge comment 註記 BL-2214 依賴</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="result" id="resFail">
+        <div class="reread">
+          <h3 id="failTitle">還不行——重讀這些章節</h3>
+          <p>你漏了下面的問題。缺口直接對應到報告：</p>
+          <ul id="failLinks"></ul>
+          <button class="retry" id="retryBtn">重置測驗 &amp; 再試一次</button>
+        </div>
+      </div>
+
+    </div><!-- /art-body -->
+  </div><!-- /artifact -->
+
+  <footer><a href="index.html">了解你的未知</a>系列的一部分——部落格文章的配套範例。</footer>
+</div>
+
+<script>
+(function(){
+  // ---- copy prompt ----
+  var copyBtn = document.getElementById('copyBtn');
+  copyBtn.addEventListener('click', function(){
+    var t = document.getElementById('promptText').textContent;
+    function done(){ copyBtn.textContent='已複製'; copyBtn.classList.add('copied');
+      setTimeout(function(){copyBtn.textContent='複製 Prompt';copyBtn.classList.remove('copied');},1600); }
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(t).then(done, function(){ fallback(); });
+    } else { fallback(); }
+    function fallback(){
+      var ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta);
+      ta.select(); try{document.execCommand('copy');}catch(e){} document.body.removeChild(ta); done();
+    }
+  });
+
+  // ---- quiz data ----
+  var QS = [
+    {
+      q:'審閱者說他們匯出的 clip「跟我註解的時候看起來不一樣」。假設沒有 bug，為什麼？',
+      opts:[
+        '匯出用較低 bitrate 重新編碼以保持檔案小',
+        '匯出從全解析度原檔渲染，但他們審閱的是 720p proxy',
+        '來源超過 1080p 時註解會被丟棄',
+        'Safari 渲染匯出跟 Chrome 不一樣'
+      ],
+      correct:1,
+      reinforce:'對——匯出拉 media/originals/，所以 clip 可能比審閱者看的 proxy 更清晰。預期行為，不是 bug。',
+      excerptFrom:'行為 01', anchor:'beh-1', anchorLabel:'行為 01 — 匯出從原檔渲染',
+      excerpt:'Worker 拉 media/originals/，從不用 720p review proxy。因此匯出的 clip 可能比審閱者畫註解時看到的更清晰。'
+    },
+    {
+      q:'一個 export-worker pod 在渲染中途被 OOM-kill。那個 job 會怎樣？',
+      opts:[
+        '移到 dead-letter queue 等手動重播',
+        '立即在另一個 worker 重試',
+        '顯示「處理中」直到 10 分鐘 lock 過期，然後另一個 worker 從頭重啟',
+        '永久失敗，使用者必須再點一次匯出'
+      ],
+      correct:2,
+      reinforce:'完全正確——不存在 retry queue。恢復靠 lock 過期：最多 10 分鐘顯示「處理中」，然後重新渲染。',
+      excerptFrom:'行為 02', anchor:'beh-2', anchorLabel:'行為 02 — 透過 lock 過期恢復 crash',
+      excerpt:'如果 worker 在渲染中途死掉，不會觸發重試；lock 只是過期，下一個閒置的 worker 會從頭撿起 job…crash 的 job 會顯示「處理中」最多 10 分鐘後才恢復。'
+    },
+    {
+      q:'客戶把匯出連結貼到 Slack；隊友 3 天後點進去收到 S3「過期」錯誤。最便宜的修法？',
+      opts:[
+        '重跑匯出——檔案 24 小時後就刪了',
+        '再呼叫一次 GET /api/exports/:id——物件還存在 7 天，所以只是產生新的 signed URL',
+        '把 s3_lifecycle.tf 的 lifecycle rule 改成 30 天',
+        '請 admin 把 exports/ bucket 設成 public-read'
+      ],
+      correct:1,
+      reinforce:'是的——只有 URL 過期（24h）。物件保留 7 天，所以一個新的 GET 回傳新連結，零重新渲染成本。',
+      excerptFrom:'行為 03', anchor:'beh-3', anchorLabel:'行為 03 — URL TTL vs 物件 TTL',
+      excerpt:'signed S3 URL 有效 24 小時，但底層物件要到 7 天 lifecycle rule 觸發才會刪除。重新呼叫 endpoint 會產生新的 URL，不需要重新渲染。'
+    },
+    {
+      q:'Ticket BL-2214 改變了 guest reviewer session 的驗證方式。為什麼這個 diff 讓那張 ticket 風險更高？',
+      opts:[
+        '訪客現在可以觸發無限匯出並耗盡 worker pool',
+        '匯出下載本身沒有 auth check——它繼承 requireWorkspaceMember 做的，所以 session 變更會悄悄改變誰可以下載',
+        'jobs table 以明文儲存 guest session token',
+        '不會——匯出跟 session 處理無關'
+      ],
+      correct:1,
+      reinforce:'正確——GET /api/exports/:id 完全借用 requireWorkspaceMember。改了 middleware，就改了匯出存取，這個 diff 裡沒有任何東西會標記出這件事。',
+      excerptFrom:'這依賴的現有行為', anchor:'sec-leans', anchorLabel:'Callout — 依賴 workspace auth middleware',
+      excerpt:'GET /api/exports/:id 本身不做權限檢查——它重用 requireWorkspaceMember middleware…如果那個 middleware 的 session 處理有變（BL-2214），匯出下載也會跟著變。'
+    },
+    {
+      q:'部署後，使用者回報「匯出卡在處理中 15 分鐘」。根據設計，15 分鐘告訴你什麼？',
+      opts:[
+        '沒什麼——大 clip 的長渲染是正常的',
+        '客戶端的 2 秒 polling loop 可能斷線了',
+        '有問題超出單次 crash：一次 crash 會在 10 分鐘 lock 視窗內自我修復，所以 15+ 分鐘表示重複失敗或 worker 卡住',
+        'S3 lifecycle rule 在渲染中途刪除了檔案'
+      ],
+      correct:2,
+      reinforce:'對——10 分鐘 lock 是自我修復預算。超過這個表示 job 重複失敗或 worker 卡住：要 page，不是等。',
+      excerptFrom:'行為 02', anchor:'beh-2', anchorLabel:'行為 02 — 10 分鐘恢復視窗',
+      excerpt:'Lock 過期用一個欄位就給了 at-least-once 語意。結果：crash 的 job 會顯示「處理中」最多 10 分鐘後才恢復。'
+    },
+    {
+      q:'為什麼註解仍然落在正確位置，即使匯出渲染的解析度跟 review player 不同？',
+      opts:[
+        'Worker 會先把匯出縮小到符合 proxy 解析度',
+        '註解座標儲存為正規化（0–1）並重新投射到任何渲染的 frame 大小',
+        '客戶端在匯出時重新發送註解像素',
+        'burn_in.ts 把註解對齊到固定的 1080p grid'
+      ],
+      correct:1,
+      reinforce:'是的——正規化座標是讓「從原檔渲染」安全的原因。像素空間儲存會破壞這個 diff 裡的每個註解。',
+      excerptFrom:'行為 01', anchor:'beh-1', anchorLabel:'行為 01 — 正規化註解座標',
+      excerpt:'註解座標儲存為正規化（0–1），所以可以正確重新投射到全解析度 frame。'
+    }
+  ];
+
+  var KEYS=['A','B','C','D'];
+  var answers=new Array(QS.length).fill(null); // true/false/null
+  var quizEl=document.getElementById('quiz');
+
+  function build(){
+    quizEl.innerHTML='';
+    answers=new Array(QS.length).fill(null);
+    QS.forEach(function(item,qi){
+      var qd=document.createElement('div'); qd.className='q'; qd.id='q'+qi;
+      var h='<div class="qnum">第 '+(qi+1)+' 題，共 '+QS.length+' 題</div>'
+        +'<div class="qtext">'+item.q+'</div>';
+      item.opts.forEach(function(o,oi){
+        h+='<button class="opt" data-q="'+qi+'" data-o="'+oi+'"><span class="key">'+KEYS[oi]+'</span><span>'+o+'</span></button>';
+      });
+      h+='<div class="fb" id="fb'+qi+'"></div>';
+      qd.innerHTML=h;
+      quizEl.appendChild(qd);
+    });
+    updateScore();
+    document.getElementById('resPass').classList.remove('show');
+    document.getElementById('resFail').classList.remove('show');
+  }
+
+  quizEl.addEventListener('click', function(e){
+    var btn=e.target.closest('.opt'); if(!btn||btn.disabled) return;
+    var qi=+btn.dataset.q, oi=+btn.dataset.o, item=QS[qi];
+    if(answers[qi]!==null) return;
+    var right=(oi===item.correct);
+    answers[qi]=right;
+    var qd=document.getElementById('q'+qi);
+    qd.classList.add(right?'answered-right':'answered-wrong');
+    qd.querySelectorAll('.opt').forEach(function(b){
+      b.disabled=true;
+      var boi=+b.dataset.o;
+      if(boi===oi) b.classList.add(right?'sel-right':'sel-wrong');
+      else if(boi===item.correct && !right) b.classList.add('reveal-right');
+      else b.classList.add('dim');
+    });
+    var fb=document.getElementById('fb'+qi);
+    if(right){
+      fb.className='fb good show';
+      fb.innerHTML='<div class="fbtag">&#10003; 正確</div>'+item.reinforce;
+    } else {
+      fb.className='fb bad show';
+      fb.innerHTML='<div class="fbtag">不對——正確答案是 '+KEYS[item.correct]+'</div>'
+        +'來自報告：'
+        +'<div class="excerpt"><span class="exlab">'+item.excerptFrom+'</span>'+item.excerpt+'</div>';
+    }
+    updateScore();
+    if(answers.every(function(a){return a!==null;})) finish();
+  });
+
+  function updateScore(){
+    var score=answers.filter(function(a){return a===true;}).length;
+    var done=answers.filter(function(a){return a!==null;}).length;
+    document.getElementById('scoreNow').textContent=score;
+    document.getElementById('answeredNow').textContent=done;
+  }
+
+  function finish(){
+    var score=answers.filter(function(a){return a===true;}).length;
+    if(score===QS.length){
+      document.getElementById('resPass').classList.add('show');
+      document.getElementById('resPass').scrollIntoView({behavior:'smooth',block:'nearest'});
+    } else {
+      var missed=[]; answers.forEach(function(a,i){ if(a!==true) missed.push(i); });
+      document.getElementById('failTitle').textContent='還不行：'+score+'/'+QS.length+'——重讀這些章節';
+      var seen={}, ul=document.getElementById('failLinks'); ul.innerHTML='';
+      missed.forEach(function(i){
+        var it=QS[i];
+        if(seen[it.anchor]) return; seen[it.anchor]=true;
+        var li=document.createElement('li');
+        li.innerHTML='<a href="#'+it.anchor+'">'+it.anchorLabel+'</a>';
+        ul.appendChild(li);
+      });
+      document.getElementById('resFail').classList.add('show');
+      document.getElementById('resFail').scrollIntoView({behavior:'smooth',block:'nearest'});
+    }
+  }
+
+  document.getElementById('retryBtn').addEventListener('click', function(){
+    build();
+    document.getElementById('quiz').scrollIntoView({behavior:'smooth',block:'start'});
+  });
+
+  build();
+})();
+</script>
+</body>
+</html>

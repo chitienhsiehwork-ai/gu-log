@@ -1,0 +1,653 @@
+<!-- Copyright 2026 Anthropic PBC · SPDX-License-Identifier: Apache-2.0 -->
+<!doctype html>
+<html lang="zh-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>指向參考實作——認識你的未知</title>
+<style>
+  :root {
+    --ivory:  #FAF9F5;
+    --paper:  #FFFFFF;
+    --slate:  #141413;
+    --clay:   #D97757;
+    --clay-d: #B85C3E;
+    --oat:    #E3DACC;
+    --olive:  #788C5D;
+    --g100:   #F0EEE6;
+    --g200:   #E6E3DA;
+    --g300:   #D1CFC5;
+    --g500:   #87867F;
+    --g700:   #3D3D3A;
+    --serif: ui-serif, Georgia, "Times New Roman", Times, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ivory);
+    color: var(--slate);
+    font-family: var(--sans);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 24px 100px; }
+
+  /* ── header ── */
+  header { padding: 56px 0 8px; position: relative; }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--g500);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+  .eyebrow::before { content: ""; width: 24px; height: 1.5px; background: var(--clay); flex: none; }
+  .backlink {
+    position: absolute; top: 60px; right: 0;
+    font-family: var(--mono); font-size: 12px;
+    color: var(--g500); text-decoration: none;
+  }
+  .backlink:hover { color: var(--clay); }
+  h1 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(32px, 5vw, 48px);
+    line-height: 1.08;
+    letter-spacing: -0.018em;
+    margin: 0 0 10px;
+  }
+  h2 {
+    font-family: var(--serif);
+    font-weight: 500;
+    letter-spacing: -0.012em;
+    font-size: 24px;
+    margin: 0 0 6px;
+  }
+  h3 { font-family: var(--serif); font-weight: 500; font-size: 18px; letter-spacing: -0.01em; margin: 0 0 4px; }
+  .lede { font-size: 16.5px; color: var(--g700); max-width: 640px; margin: 0 0 32px; }
+
+  /* ── prompt box ── */
+  .card {
+    background: var(--paper);
+    border: 1.5px solid var(--g300);
+    border-radius: 14px;
+  }
+  .promptbox { padding: 22px 26px 24px; margin-bottom: 44px; position: relative; }
+  .promptbox .label {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--clay); margin-bottom: 12px;
+  }
+  .promptbox blockquote {
+    margin: 0; padding: 0 0 0 18px;
+    border-left: 3px solid var(--oat);
+    font-family: var(--serif); font-style: italic;
+    font-size: 17.5px; line-height: 1.5; color: var(--slate);
+    max-width: 760px;
+  }
+  .copybtn {
+    position: absolute; top: 18px; right: 18px;
+    font-family: var(--mono); font-size: 11px;
+    padding: 6px 12px; border-radius: 8px;
+    border: 1.5px solid var(--g300); background: var(--ivory);
+    color: var(--g700); cursor: pointer;
+    transition: border-color 120ms, color 120ms;
+  }
+  .copybtn:hover { border-color: var(--clay); color: var(--clay); }
+  .copybtn.done { border-color: var(--olive); color: var(--olive); }
+
+  /* ── divider ── */
+  .divider {
+    display: flex; align-items: center; gap: 16px;
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--g500);
+    margin: 0 0 40px;
+  }
+  .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--g300); }
+
+  /* ══════════ artifact ══════════ */
+  .artifact { }
+  .art-head {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px;
+    margin-bottom: 6px;
+  }
+  .art-head h2 { font-size: clamp(24px, 3.4vw, 30px); }
+  .badge {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em;
+    text-transform: uppercase; padding: 3px 10px; border-radius: 999px;
+    border: 1.5px solid var(--g300); color: var(--g500); background: var(--paper);
+    white-space: nowrap;
+  }
+  .badge.await { border-color: var(--clay); color: var(--clay-d); background: #FBF1EC; }
+  .art-sub { color: var(--g700); font-size: 14.5px; margin: 0 0 8px; max-width: 720px; }
+  .art-paths {
+    font-family: var(--mono); font-size: 12px; color: var(--g500);
+    display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 10px 0 36px;
+  }
+  .art-paths span b { color: var(--g700); font-weight: 600; }
+
+  .sec { margin: 0 0 46px; }
+  .sec-eyebrow {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--g500);
+    display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+  }
+  .sec-eyebrow .num {
+    font-family: var(--mono); font-size: 11px;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--slate); color: var(--ivory);
+    display: inline-flex; align-items: center; justify-content: center;
+    flex: none;
+  }
+
+  /* section 1 — bullets */
+  .bullets { padding: 20px 24px 8px; }
+  .bullets ul { list-style: none; margin: 0; padding: 0; }
+  .bullets li {
+    display: flex; gap: 14px; align-items: baseline;
+    padding: 10px 0 14px; border-bottom: 1px dashed var(--g200);
+    font-size: 15px; color: var(--g700);
+  }
+  .bullets li:last-child { border-bottom: 0; }
+  .bullets li::before {
+    content: ""; align-self: center;
+    width: 8px; height: 8px; border-radius: 2px;
+    background: var(--clay); flex: none; transform: rotate(45deg);
+  }
+  .bullets li b { color: var(--slate); font-weight: 600; }
+  .bullets code, .prose code, td code, .note code {
+    font-family: var(--mono); font-size: 0.86em;
+    background: var(--g100); border: 1px solid var(--g200);
+    border-radius: 5px; padding: 1px 5px; white-space: nowrap;
+  }
+
+  /* section 2 — code pairs */
+  .pair { margin-bottom: 26px; }
+  .pair-title {
+    display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+  .pair-title .pt-n {
+    font-family: var(--mono); font-size: 11px; color: var(--clay-d);
+    letter-spacing: 0.08em;
+  }
+  .pair-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  @media (max-width: 760px) { .pair-grid { grid-template-columns: 1fr; } }
+  .codecard { overflow: hidden; display: flex; flex-direction: column; }
+  .codecard .chead {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    padding: 9px 14px;
+    background: var(--g100); border-bottom: 1.5px solid var(--g300);
+    font-family: var(--mono); font-size: 11px; color: var(--g500);
+    white-space: nowrap; overflow: hidden;
+  }
+  .codecard .chead .lang {
+    font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 2px 8px; border-radius: 999px; flex: none;
+  }
+  .lang.rust { background: var(--oat); color: var(--g700); }
+  .lang.ts { background: var(--slate); color: var(--ivory); }
+  .chead .fp { overflow: hidden; text-overflow: ellipsis; }
+  .codecard pre {
+    margin: 0; padding: 14px 16px;
+    overflow-x: auto;
+    font-family: var(--mono); font-size: 12.5px; line-height: 1.62;
+    color: var(--slate); flex: 1;
+    -webkit-overflow-scrolling: touch;
+  }
+  .codecard pre code { display: block; min-width: max-content; }
+  /* syntax palette */
+  .kw  { color: var(--clay-d); }
+  .ty  { color: var(--olive); font-weight: 600; }
+  .fn2 { color: var(--slate); font-weight: 600; }
+  .str { color: var(--olive); }
+  .nu  { color: var(--clay-d); }
+  .cm  { color: var(--g500); font-style: italic; }
+  /* matched highlight regions */
+  mark.hl {
+    background: #F6E8DF;
+    border-bottom: 2px solid var(--clay);
+    border-radius: 3px; padding: 0 2px; margin: 0 -2px;
+    color: inherit; cursor: default;
+    transition: background 120ms;
+  }
+  mark.hl sup {
+    font-family: var(--mono); font-size: 9px; color: var(--clay-d);
+    margin-left: 1px;
+  }
+  mark.hl.active { background: var(--oat); border-bottom-color: var(--clay-d); }
+  /* margin notes */
+  .notes { margin: 12px 2px 0; display: grid; gap: 8px; }
+  .note {
+    display: flex; gap: 10px; align-items: baseline;
+    font-size: 13.5px; color: var(--g700);
+  }
+  .note .nmark {
+    font-family: var(--mono); font-size: 10px; flex: none;
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 1.5px solid var(--clay); color: var(--clay-d);
+    display: inline-flex; align-items: center; justify-content: center;
+    align-self: center; cursor: default;
+    transition: background 120ms;
+  }
+  .note.active .nmark { background: var(--clay); color: var(--paper); }
+  .note b { color: var(--slate); font-weight: 600; }
+
+  /* tables */
+  .tbl-scroll { overflow-x: auto; border: 1.5px solid var(--g300); border-radius: 14px; background: var(--paper); }
+  table { border-collapse: collapse; width: 100%; min-width: 660px; font-size: 13.5px; }
+  th {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em;
+    text-transform: uppercase; text-align: left; color: var(--g500);
+    padding: 12px 16px; background: var(--g100);
+    border-bottom: 1.5px solid var(--g300);
+  }
+  td {
+    padding: 12px 16px; vertical-align: top;
+    border-bottom: 1px solid var(--g200); color: var(--g700);
+  }
+  tr:last-child td { border-bottom: 0; }
+  td b { color: var(--slate); font-weight: 600; }
+  th.col-keep { color: var(--olive); }
+  th.col-chg  { color: var(--clay-d); }
+  th.col-drop { color: var(--g500); }
+  .pill {
+    display: inline-block; font-family: var(--mono); font-size: 10px;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 2px 9px; border-radius: 999px; white-space: nowrap;
+  }
+  .pill.same { background: #EDF1E6; color: var(--olive); border: 1px solid #C9D4B8; }
+  .pill.equiv { background: #FBF1EC; color: var(--clay-d); border: 1px solid #EBC9B8; }
+
+  /* three-column preserved/changed/dropped */
+  .three { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  @media (max-width: 820px) { .three { grid-template-columns: 1fr; } }
+  .col { padding: 18px 18px 12px; }
+  .col .colhead {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.12em;
+    text-transform: uppercase; margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .col .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .col.keep .colhead { color: var(--olive); } .col.keep .dot { background: var(--olive); }
+  .col.chg  .colhead { color: var(--clay-d); } .col.chg .dot { background: var(--clay); }
+  .col.drop .colhead { color: var(--g500); } .col.drop .dot { background: var(--g300); }
+  .col ul { margin: 0; padding: 0; list-style: none; }
+  .col li {
+    font-size: 13.5px; color: var(--g700);
+    padding: 8px 0; border-top: 1px dashed var(--g200);
+  }
+  .col li:first-child { border-top: 0; }
+  .col li b { color: var(--slate); font-weight: 600; }
+  .col.drop li { color: var(--g500); }
+  .col.drop li b { color: var(--g700); }
+
+  /* confirm card */
+  .confirm {
+    border-color: var(--clay);
+    padding: 26px 28px;
+    display: flex; flex-wrap: wrap; gap: 20px 32px;
+    align-items: center; justify-content: space-between;
+    background: linear-gradient(0deg, #FBF4EF, var(--paper));
+  }
+  .confirm .ctext { max-width: 520px; }
+  .confirm .ctext p { margin: 6px 0 0; font-size: 14px; color: var(--g700); }
+  .cbtns { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn {
+    font-family: var(--mono); font-size: 12.5px;
+    padding: 11px 18px; border-radius: 10px; cursor: pointer;
+    border: 1.5px solid var(--slate);
+    transition: transform 100ms, background 120ms, color 120ms, border-color 120ms;
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn.primary { background: var(--slate); color: var(--ivory); }
+  .btn.primary:hover { background: var(--clay-d); border-color: var(--clay-d); }
+  .btn.primary.done { background: var(--olive); border-color: var(--olive); }
+  .btn.ghost { background: var(--paper); color: var(--g700); border-color: var(--g300); }
+  .btn.ghost:hover { border-color: var(--clay); color: var(--clay-d); }
+
+  footer {
+    margin-top: 80px; padding-top: 24px;
+    border-top: 1.5px solid var(--g300);
+    font-size: 13px; color: var(--g500);
+  }
+  footer a { color: var(--clay-d); text-decoration-color: var(--oat); text-underline-offset: 3px; }
+</style>
+<style id="gu-log-mirror-credit-style">.gu-log-mirror-credit{position:sticky;top:0;z-index:9999;padding:8px 14px;background:#111;color:#f7f3e8;border-bottom:1px solid rgba(255,255,255,.18);font:13px/1.45 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;text-align:center}.gu-log-mirror-credit a{color:#f4c86a;text-decoration:underline;text-underline-offset:2px}.gu-log-mirror-credit strong{font-weight:750}</style>
+</head>
+<body>
+<div class="gu-log-mirror-credit" role="note"><strong>gu-log SP-251 繁體中文翻譯版。</strong>原作：<a href="https://x.com/trq212">Thariq (@trq212)</a>：<a href="https://thariqs.github.io/html-effectiveness/unknowns/">Know your unknowns</a>。<a href="../07-reference-port.html">English</a></div>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">認識你的未知 · 實作前</div>
+    <a class="backlink" href="index.html">&larr; 所有範例</a>
+    <h1>指向參考實作</h1>
+    <p class="lede">當一個現有的實作已經編碼了你想要的行為，在移植任何一行程式碼之前，先讓 Claude 證明它理解了參考實作——作為一個可審核的產物。</p>
+
+    <div class="card promptbox">
+      <div class="label">Prompt</div>
+      <button class="copybtn" id="copyPrompt">複製 Prompt</button>
+      <blockquote id="promptText">vendor/rate-limiter 這個 Rust crate 實作了我想要的精確退避行為。讀懂它，然後在我們的 TypeScript API client 重新實作相同的語意——但先給我一份語意對照表，讓我確認你理解了。</blockquote>
+    </div>
+  </header>
+
+  <div class="divider">Claude 產出的內容</div>
+
+  <div class="artifact">
+
+    <div class="art-head">
+      <h2>語意對照表：<em style="font-style:italic;color:var(--clay-d)">rate-limiter</em> &rarr; Acme API client</h2>
+      <span class="badge await">待確認</span>
+    </div>
+    <p class="art-sub">這個 crate 做什麼、每個行為如何對應到 TypeScript、以及移植時無法直接翻譯的每一處。在你簽核這一頁之前，不會實作任何東西。</p>
+    <div class="art-paths">
+      <span><b>來源</b> vendor/rate-limiter（Rust，612 行，3 個模組）</span>
+      <span><b>目標</b> acme-web 的 src/api/retry/</span>
+      <span><b>已讀</b> bucket.rs · backoff.rs · budget.rs · 14 個測試</span>
+    </div>
+
+    <!-- ── 1. what it does ── -->
+    <section class="sec">
+      <div class="sec-eyebrow"><span class="num">1</span> 這個 crate 實際上做什麼</div>
+      <div class="card bullets">
+        <ul>
+          <li><span><b>Token bucket 准入</b>（<code>bucket.rs</code>）：每個送出的請求從一個桶子提取 1 個 token，桶子以 <code>rate_per_sec = 8</code> 的速度補充到 <code>burst_capacity = 40</code>。桶子一開始是<b>滿的</b>，所以一個冷啟動的 client 可以瞬間突發 40 個請求。</span></li>
+          <li><span><b>補充是 lazy 的且用整數截斷</b>：token 只在請求到達時鑄造，從 經過的奈秒數 × rate ÷ 10⁹ 計算。零頭 token 永遠不儲存——而是 <code>last_refill</code> 只在至少鑄造一個完整 token 時才前進，所以不足一個 token 的時間會結轉。</span></li>
+          <li><span><b>去相關的抖動退避</b>（<code>backoff.rs</code>）：可重試的失敗時，下次延遲從 <code>[base, min(prev × 3, cap)]</code> 均勻隨機抽取，<code>base = 250ms</code>，<code>cap = 30s</code>。每次抽取成為下次的種子——延遲是遊走的而不是鎖步倍增，這能在故障後讓 client 們去同步化。</span></li>
+          <li><span><b>重試預算</b>（<code>budget.rs</code>）：第二個獨立的桶子。每個<b>成功的首次嘗試</b>請求存入 1；每個<b>重試嘗試</b>提取 10。當餘額不夠提取時，完全拒絕重試（首次嘗試請求照樣送出）。這在持續故障期間把重試放大率限制在 ~10%。</span></li>
+          <li><span><b>失敗分類是呼叫者的工作</b>：crate 從不檢查錯誤。它暴露 <code>acquire()</code>、<code>next_delay()</code>、<code>try_withdraw()</code>，由呼叫者決定什麼算可重試。TS 移植保留這個邊界——Acme 的 <code>isRetryable()</code> 在 <code>src/api/errors.ts</code> 仍是唯一真相來源。</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ── 2. side-by-side ── -->
+    <section class="sec">
+      <div class="sec-eyebrow"><span class="num">2</span> 並排對照：Rust 原始碼 &rarr; 提議的 TypeScript</div>
+      <p class="art-sub" style="margin-bottom:20px">高亮區域跨欄對應——hover 任一處會同時亮起它對應的另一側和下方註解。</p>
+
+      <!-- pair A -->
+      <div class="pair">
+        <div class="pair-title"><span class="pt-n">對 A / 3</span><h3>Lazy 補充——整數截斷必須在浮點數世界存活</h3></div>
+        <div class="pair-grid">
+          <div class="card codecard">
+            <div class="chead"><span class="fp">vendor/rate-limiter/src/bucket.rs:41</span><span class="lang rust">Rust</span></div>
+            <pre><code><span class="kw">fn</span> <span class="fn2">refill</span>(&amp;<span class="kw">mut</span> <span class="kw">self</span>, now: <span class="ty">Instant</span>) {
+    <span class="kw">let</span> elapsed = now
+        .<mark class="hl" data-p="a1">saturating_duration_since<sup>1</sup></mark>(<span class="kw">self</span>.last_refill);
+    <span class="kw">let</span> new_tokens = <mark class="hl" data-p="a2">elapsed.as_nanos() <span class="kw">as</span> <span class="ty">u64</span>
+        * <span class="kw">self</span>.rate_per_sec <span class="kw">as</span> <span class="ty">u64</span>
+        / <span class="nu">1_000_000_000</span><sup>2</sup></mark>;
+    <span class="kw">if</span> <mark class="hl" data-p="a3">new_tokens &gt; <span class="nu">0</span><sup>3</sup></mark> {
+        <span class="kw">self</span>.tokens = (<span class="kw">self</span>.tokens + new_tokens)
+            .min(<span class="kw">self</span>.burst_capacity);
+        <mark class="hl" data-p="a3"><span class="kw">self</span>.last_refill = now;</mark>
+    }
+}</code></pre>
+          </div>
+          <div class="card codecard">
+            <div class="chead"><span class="fp">src/api/retry/tokenBucket.ts（提議）</span><span class="lang ts">TS</span></div>
+            <pre><code><span class="kw">private</span> <span class="fn2">refill</span>(now: <span class="ty">number</span>): <span class="ty">void</span> {
+  <span class="cm">// now 來自 performance.now()，不是 Date.now()</span>
+  <span class="kw">const</span> elapsedMs = <mark class="hl" data-p="a1"><span class="ty">Math</span>.max(<span class="nu">0</span>, now - <span class="kw">this</span>.lastRefill)<sup>1</sup></mark>;
+  <span class="kw">const</span> newTokens = <mark class="hl" data-p="a2"><span class="ty">Math</span>.floor(
+    (elapsedMs * <span class="kw">this</span>.ratePerSec) / <span class="nu">1000</span>
+  )<sup>2</sup></mark>;
+  <span class="kw">if</span> (<mark class="hl" data-p="a3">newTokens &gt; <span class="nu">0</span><sup>3</sup></mark>) {
+    <span class="kw">this</span>.tokens = <span class="ty">Math</span>.min(
+      <span class="kw">this</span>.tokens + newTokens,
+      <span class="kw">this</span>.burstCapacity
+    );
+    <mark class="hl" data-p="a3"><span class="kw">this</span>.lastRefill = now;</mark>
+  }
+}</code></pre>
+          </div>
+        </div>
+        <div class="notes">
+          <div class="note" data-p="a1"><span class="nmark">1</span><span><b>時鐘倒退。</b><code>saturating_duration_since</code> 把負的經過時間夾到零。<code>Date.now()</code> 在 NTP 校正時會倒跳；移植版使用單調的 <code>performance.now()</code> <em>並且</em>保留 <code>Math.max(0, …)</code> 作為同等的保護。</span></div>
+          <div class="note" data-p="a2"><span class="nmark">2</span><span><b>整數 vs 浮點數運算。</b>Rust 的 <code>u64</code> 除法截斷；JS 除法不會。<code>Math.floor</code> 恢復截斷。毫秒而非奈秒是安全的：在 <code>rate = 8</code> 時，<code>elapsedMs * 8</code> 遠低於 <code>2⁵³</code>，所以沒有精度損失。</span></div>
+          <div class="note" data-p="a3"><span class="nmark">3</span><span><b>承重的 guard。</b><code>last_refill</code> 只在鑄造完整 token 時前進。移除這個 guard（一個容易的「簡化」）會悄悄地在每次呼叫時丟棄不足一個 token 的進度——在低速率下，頻繁輪詢會讓桶子<em>永遠</em>無法補充。完全保留，加上一個回歸測試。</span></div>
+        </div>
+      </div>
+
+      <!-- pair B -->
+      <div class="pair">
+        <div class="pair-title"><span class="pt-n">對 B / 3</span><h3>去相關抖動——包含上界的範圍、遊走的種子</h3></div>
+        <div class="pair-grid">
+          <div class="card codecard">
+            <div class="chead"><span class="fp">vendor/rate-limiter/src/backoff.rs:27</span><span class="lang rust">Rust</span></div>
+            <pre><code><span class="kw">fn</span> <span class="fn2">next_delay</span>(&amp;<span class="kw">mut</span> <span class="kw">self</span>) -&gt; <span class="ty">Duration</span> {
+    <span class="kw">let</span> hi = (<mark class="hl" data-p="b1"><span class="kw">self</span>.prev_delay_ms.saturating_mul(<span class="nu">3</span>)<sup>4</sup></mark>)
+        .min(<span class="kw">self</span>.cap_ms);
+    <span class="kw">let</span> lo = <span class="kw">self</span>.base_ms;
+    <span class="kw">let</span> ms = <span class="kw">self</span>.rng
+        .<mark class="hl" data-p="b2">gen_range(lo..=hi.max(lo))<sup>5</sup></mark>;
+    <mark class="hl" data-p="b3"><span class="kw">self</span>.prev_delay_ms = ms;<sup>6</sup></mark>
+    <span class="ty">Duration</span>::from_millis(ms)
+}</code></pre>
+          </div>
+          <div class="card codecard">
+            <div class="chead"><span class="fp">src/api/retry/backoff.ts（提議）</span><span class="lang ts">TS</span></div>
+            <pre><code><span class="fn2">nextDelay</span>(): <span class="ty">number</span> {
+  <span class="kw">const</span> hi = <span class="ty">Math</span>.min(<mark class="hl" data-p="b1"><span class="kw">this</span>.prevDelayMs * <span class="nu">3</span><sup>4</sup></mark>, <span class="kw">this</span>.capMs);
+  <span class="kw">const</span> lo = <span class="kw">this</span>.baseMs;
+  <span class="kw">const</span> span = <span class="ty">Math</span>.max(hi, lo) - lo;
+  <span class="kw">const</span> ms = <mark class="hl" data-p="b2">lo + <span class="ty">Math</span>.floor(
+    <span class="kw">this</span>.random() * (span + <span class="nu">1</span>)
+  )<sup>5</sup></mark>;
+  <mark class="hl" data-p="b3"><span class="kw">this</span>.prevDelayMs = ms;<sup>6</sup></mark>
+  <span class="kw">return</span> ms;
+}</code></pre>
+          </div>
+        </div>
+        <div class="notes">
+          <div class="note" data-p="b1"><span class="nmark">4</span><span><b>飽和乘法。</b><code>saturating_mul(3)</code> 防止 <code>u64</code> 溢位。在 JS 裡這不可能溢位——<code>capMs = 30_000</code> 在 <code>2⁵³</code> 之前很久就限制了乘積——所以這個 guard 被刻意移除（見 §3，「已移除」欄）。</span></div>
+          <div class="note" data-p="b2"><span class="nmark">5</span><span><b>包含 vs 排除上界的範圍。</b>Rust 的 <code>lo..=hi</code> 包含兩端。天真的 <code>lo + random() * (hi - lo)</code> 永遠不會產生 <code>hi</code>。<code>Math.floor</code> 裡的 <code>+ 1</code> 恢復了包含上界——一個一字元的 bug 磁鐵，特別標出來讓你可以否決或認可。</span></div>
+          <div class="note" data-p="b3"><span class="nmark">6</span><span><b>有狀態的種子。</b>每次抽取成為下次迭代的 <code>prev</code>——這就是讓它<em>去相關</em>而非單純指數退避加抖動的原因。<code>reset()</code> 在成功時把 <code>prevDelayMs</code> 恢復成 <code>baseMs</code>，對應 crate 的 <code>Backoff::reset</code>。<code>this.random</code> 是可注入的用於確定性測試（crate 在測試中用有種子的 <code>SmallRng</code>）。</span></div>
+        </div>
+      </div>
+
+      <!-- pair C -->
+      <div class="pair">
+        <div class="pair-title"><span class="pt-n">對 C / 3</span><h3>重試預算——event loop 不需要的 mutex（有一個陷阱）</h3></div>
+        <div class="pair-grid">
+          <div class="card codecard">
+            <div class="chead"><span class="fp">vendor/rate-limiter/src/budget.rs:58</span><span class="lang rust">Rust</span></div>
+            <pre><code><span class="kw">pub fn</span> <span class="fn2">try_withdraw</span>(&amp;<span class="kw">self</span>) -&gt; <span class="ty">bool</span> {
+    <span class="kw">let mut</span> b = <mark class="hl" data-p="c1"><span class="kw">self</span>.inner.lock().unwrap()<sup>7</sup></mark>;
+    b.deposit_drip(<span class="ty">Instant</span>::now());
+    <span class="kw">if</span> <mark class="hl" data-p="c2">b.balance &gt;= <span class="ty">WITHDRAW_COST</span> {
+        b.balance -= <span class="ty">WITHDRAW_COST</span>;<sup>8</sup></mark>
+        <span class="kw">true</span>
+    } <span class="kw">else</span> {
+        <mark class="hl" data-p="c3"><span class="kw">false</span> <span class="cm">// refuse retry, don't queue</span><sup>9</sup></mark>
+    }
+}</code></pre>
+          </div>
+          <div class="card codecard">
+            <div class="chead"><span class="fp">src/api/retry/budget.ts（提議）</span><span class="lang ts">TS</span></div>
+            <pre><code><span class="fn2">tryWithdraw</span>(): <span class="ty">boolean</span> {
+  <span class="cm">// <mark class="hl" data-p="c1">無鎖：單執行緒 event loop<sup>7</sup></mark> —</span>
+  <span class="cm">// 但檢查和扣款之間不能有 await。</span>
+  <span class="kw">this</span>.depositDrip(<span class="kw">this</span>.clock());
+  <span class="kw">if</span> (<mark class="hl" data-p="c2"><span class="kw">this</span>.balance &gt;= <span class="ty">WITHDRAW_COST</span>) {
+    <span class="kw">this</span>.balance -= <span class="ty">WITHDRAW_COST</span>;<sup>8</sup></mark>
+    <span class="kw">return</span> <span class="kw">true</span>;
+  }
+  <span class="kw">return</span> <mark class="hl" data-p="c3"><span class="kw">false</span><sup>9</sup></mark>;
+}</code></pre>
+          </div>
+        </div>
+        <div class="notes">
+          <div class="note" data-p="c1"><span class="nmark">7</span><span><b>執行緒安全 → event loop。</b>crate 的 <code>Mutex</code> 存在是因為 Rust 呼叫者從 worker 執行緒提取。Acme 的 client 跑在一個 event loop 上，所以鎖消失了——<em>但它提供的原子性必須透過慣例保留</em>：<code>tryWithdraw</code> 端到端都是同步的，我會加一個 eslint <code>no-await-in-budget</code> 邊界註解加上一個測試確認這個方法永遠不回傳 Promise。</span></div>
+          <div class="note" data-p="c2"><span class="nmark">8</span><span><b>檢查後扣款保持融合。</b>兩邊形狀相同。這裡的失敗模式不是資料競爭——而是未來的重構在檢查和扣款之間插入一個 <code>await</code>（例如為了 log），讓兩個 in-flight 的重試都通過檢查。</span></div>
+          <div class="note" data-p="c3"><span class="nmark">9</span><span><b>拒絕，永遠不排隊。</b>預算空了時 crate 立刻回傳 <code>false</code>——請求要嘛作為首次嘗試送出，要嘛快速失敗。移植版絕對<em>不能</em>「好心地」把重試排隊等之後——那會重建預算本來要防止的重試風暴。</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 3. preserved / changed / dropped ── -->
+    <section class="sec">
+      <div class="sec-eyebrow"><span class="num">3</span> 行為：原樣保留 / 刻意修改 / 已移除</div>
+      <div class="three">
+        <div class="card col keep">
+          <div class="colhead"><span class="dot"></span>原樣保留</div>
+          <ul>
+            <li><b>補充截斷 + guard</b>——只有完整 token；<code>lastRefill</code> 只在鑄造時前進</li>
+            <li><b>抖動公式</b>——在 <code>[base, min(prev×3, cap)]</code> 上均勻分布，兩端都包含</li>
+            <li><b>預算經濟學</b>——首次嘗試成功 +1，重試 -10，上限 1000</li>
+            <li><b>桶子一開始是滿的</b>——40 個請求的冷啟動突發是刻意的（對應 crate 測試 <code>burst_at_t0</code>）</li>
+            <li><b>呼叫者分類錯誤</b>——limiter 從不檢查失敗</li>
+          </ul>
+        </div>
+        <div class="card col chg">
+          <div class="colhead"><span class="dot"></span>刻意修改</div>
+          <ul>
+            <li><b><code>Instant</code> → <code>performance.now()</code></b>——都是單調的；ms 解析度在 8/s 速率下足夠</li>
+            <li><b><code>u64</code> 奈秒 → <code>number</code> 毫秒</b>——所有乘積可證明 &lt; 2⁵³；<code>Math.floor</code> 重播整數除法</li>
+            <li><b><code>Mutex&lt;Budget&gt;</code> → 普通欄位</b>——原子性靠同步慣例 + 測試</li>
+            <li><b><code>SmallRng</code> → 可注入的 <code>random()</code></b>——預設是 <code>Math.random</code>，測試中用有種子的 stub</li>
+          </ul>
+        </div>
+        <div class="card col drop">
+          <div class="colhead"><span class="dot"></span>已移除（不需要）</div>
+          <ul>
+            <li><b><code>saturating_mul</code> 溢位 guard</b>——套用 cap 後在 ms 範圍不可達</li>
+            <li><b><code>Send + Sync</code> impl、<code>Arc</code> 複製</b>——沒有執行緒可以共享</li>
+            <li><b><code>tokio</code>/<code>async-std</code> feature flag</b>——移植版設計上與 runtime 無關</li>
+            <li><b>Prometheus counter</b>——Acme 改用 <code>telemetry.track()</code>；hook 點保留</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 4. edge cases ── -->
+    <section class="sec">
+      <div class="sec-eyebrow"><span class="num">4</span> 邊界情況：兩邊的預期行為</div>
+      <div class="tbl-scroll">
+        <table>
+          <thead>
+            <tr><th style="width:22%">邊界情況</th><th style="width:31%">Rust crate</th><th style="width:31%">TypeScript 移植</th><th>匹配</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>時鐘偏移</b><br>系統時鐘在工作階段中倒退 5 秒</td>
+              <td><code>Instant</code> 是單調的——不受影響。<code>saturating_duration_since</code> 是第二道防線。</td>
+              <td><code>performance.now()</code> 是單調的——不受影響。<code>Math.max(0,…)</code> 作為同樣的第二道防線保留。</td>
+              <td><span class="pill same">一致</span></td>
+            </tr>
+            <tr>
+              <td><b>t=0 時突發</b><br>全新 client 一次發 45 個請求</td>
+              <td>前 40 個立即准入（桶子一開始滿）；41-45 被拒絕直到補充。Crate 測試：<code>burst_at_t0</code>。</td>
+              <td>相同：40 個准入，5 個被拒絕並回傳 <code>RateLimited</code>。移植測試原封不動重播 crate 的 fixture 數字。</td>
+              <td><span class="pill same">一致</span></td>
+            </tr>
+            <tr>
+              <td><b>預算耗盡</b><br>持續 60 秒的 100% 失敗</td>
+              <td>餘額在 ~10 次重試後耗盡到 0；之後的重試被拒絕，首次嘗試繼續。重試率穩定在 存入/成本 = 成功率的 10%（這裡是 0）。</td>
+              <td>相同的經濟學，相同的穩定點。差異：拒絕會表面化為 <code>RetryBudgetExhausted</code> 錯誤，這樣 Acme 的上傳佇列可以顯示「重新連線中」而非靜默失敗。</td>
+              <td><span class="pill equiv">等效*</span></td>
+            </tr>
+            <tr>
+              <td><b>慢速滴入</b><br>rate 8/s 但每 20ms 輪詢一次（0.16 token/次輪詢）</td>
+              <td>guard 把不足一個 token 的時間結轉；無論輪詢節奏如何，每 ~125ms 鑄造一個 token。</td>
+              <td>相同，靠保留的 <code>newTokens > 0</code> guard（對 A，註解 3）。回歸測試在 20ms 輪詢下斷言鑄造節奏。</td>
+              <td><span class="pill same">一致</span></td>
+            </tr>
+            <tr>
+              <td><b>cap 時的延遲</b><br>第 10 次連續失敗</td>
+              <td>抽取範圍趨向 <code>[250ms, 30s]</code>；延遲保持 ≤ 30s 但仍有抖動——永遠不是固定的 30s（避免 client 們重新同步）。</td>
+              <td>相同的邊界，相同的非退化抖動——用有種子的 RNG 重播 crate 的 <code>cap_still_jitters</code> 測試向量驗證。</td>
+              <td><span class="pill same">一致</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="art-sub" style="margin-top:10px;font-size:13px">*「等效」= 相同的決定，不同的表面。Crate 回傳裸 <code>false</code>；移植版把它包成型別化的錯誤，因為 Acme 的 UI 需要區分「被限流」和「離線」。如果你傾向保留裸布林值，請標記這一列。</p>
+    </section>
+
+    <!-- ── 5. confirm ── -->
+    <section class="sec">
+      <div class="sec-eyebrow"><span class="num">5</span> 簽核</div>
+      <div class="card confirm">
+        <div class="ctext">
+          <h3>準備好了就開始移植</h3>
+          <p>回覆<b>「語意確認」</b>，我會實作 <code>tokenBucket.ts</code>、<code>backoff.ts</code> 和 <code>budget.ts</code>，先翻譯 crate 的 14 個測試。或者糾正上面的任何一列——引用它的編號（如「註解 5」、「預算耗盡列」），我會在寫程式碼之前修改對照表。</p>
+        </div>
+        <div class="cbtns">
+          <button class="btn primary" id="confirmBtn">複製「語意確認」</button>
+          <button class="btn ghost" id="correctBtn">複製糾正範本</button>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <footer>這是<a href="index.html">認識你的未知</a>的一部分——該文章的配套範例。</footer>
+</div>
+
+<script>
+(function () {
+  function copy(text, btn, doneLabel) {
+    var original = btn.textContent;
+    function done() {
+      btn.textContent = doneLabel;
+      btn.classList.add('done');
+      setTimeout(function () {
+        btn.textContent = original;
+        btn.classList.remove('done');
+      }, 1800);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, function () { fallback(); });
+    } else { fallback(); }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); done(); } catch (e) {}
+      document.body.removeChild(ta);
+    }
+  }
+
+  document.getElementById('copyPrompt').addEventListener('click', function () {
+    copy(document.getElementById('promptText').textContent.trim(), this, '已複製');
+  });
+  document.getElementById('confirmBtn').addEventListener('click', function () {
+    copy('語意確認', this, '已複製——貼回給 Claude');
+  });
+  document.getElementById('correctBtn').addEventListener('click', function () {
+    copy('語意對照表糾正：\n- 章節/列：\n- 你理解錯的地方：\n- 正確行為：', this, '已複製');
+  });
+
+  // link highlighted regions across columns + their margin notes
+  function setActive(p, on) {
+    var els = document.querySelectorAll('[data-p="' + p + '"]');
+    for (var i = 0; i < els.length; i++) {
+      els[i].classList.toggle('active', on);
+    }
+  }
+  var linked = document.querySelectorAll('mark.hl, .note');
+  for (var i = 0; i < linked.length; i++) {
+    (function (el) {
+      var p = el.getAttribute('data-p');
+      if (!p) return;
+      el.addEventListener('mouseenter', function () { setActive(p, true); });
+      el.addEventListener('mouseleave', function () { setActive(p, false); });
+    })(linked[i]);
+  }
+})();
+</script>
+</body>
+</html>
