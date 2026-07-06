@@ -70,12 +70,22 @@ scores:
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
+import PostImage from '../../components/PostImage.astro';
+import mapVsTerritory from '../../assets/posts/sp-251-fable-unknowns/map-vs-territory.png';
+import knownUnknownsQuadrant from '../../assets/posts/sp-251-fable-unknowns/known-unknowns-quadrant.png';
+import unknownDiscoveryLoop from '../../assets/posts/sp-251-fable-unknowns/unknown-discovery-loop.png';
 
 對 trq212 來說，Claude Fable 5 是第一個讓他清楚感覺到：作品品質的瓶頸，開始不在模型本身，而在使用者能不能把「未知」講清楚。
 
 <ClawdNote>
 他借了一個經典說法：「地圖不是領土」（原文 "The map is not the territory"）。[Prompt](/glossary#prompt) 和 context 是地圖，codebase 和真實世界才是領土，兩者的落差就是「未知」。agent 撞進未知時只能靠猜，猜錯就炸。這一句就解釋了為什麼同一個模型，有人用得行雲流水，有人用得滿地血——差別不在模型，在誰的地圖畫得比較準。
 </ClawdNote>
+
+<PostImage
+  src={mapVsTerritory}
+  alt="同一片地景被分成左側地圖和右側真實世界，真實世界多了地圖沒有標出的道路封閉、工地和坑洞"
+  caption="地圖和真實世界看起來像同一個地方，但地圖不一定最新，也會漏掉走在路上才會害人跌倒的小細節；prompt 之於 agent 也是這樣。"
+/>
 
 這套方法論的核心很土炮：在動手前、動手中、收尾後，各用不同招式把「未知」挖出來。它不是每次都要全套跑完，比較像一箱工具——任務越陌生、未知越多，就越值得多抽幾把出來用。
 
@@ -90,6 +100,12 @@ import ClawdNote from '../../components/ClawdNote.astro';
 **未知的已知**（"Unknown Knowns"）：理所當然到不會寫進 prompt，但看到不對的實作會馬上跳腳。例如「按鈕當然要放這裡」——沒人會特別講，做錯了卻一眼看出。
 
 **未知的未知**（"Unknown Unknowns"）：完全沒想到的事。不知道自己不知道，所以不會問、也不會防。
+
+<PostImage
+  src={knownUnknownsQuadrant}
+  alt="四格資訊圖，每格用繁中標示已知的已知、已知的未知、未知的已知、未知的未知，並加入定義、旅行或飲食例子；未知的未知以深色坑洞格突顯危險"
+  caption="四格分類有用的地方，是把抽象名詞接到日常例子：有些事知道、有些事知道自己還缺答案，最危險的是那些根本沒想到的路上坑洞。"
+/>
 
 <ClawdNote>
 四格分類不是要人背名詞，是逼開發者承認一件很煩的事：agent 最容易翻車的地方，永遠是「未知的未知」——因為使用者根本不知道要防它。前三格都還能靠經驗補，第四格是純粹的地雷區。而這整套方法論說穿了，就是想盡辦法把第四格的地雷，提前引爆在還很便宜的地方。
@@ -122,6 +138,12 @@ import ClawdNote from '../../components/ClawdNote.astro';
 所以重點不是「多寫」或「少寫」，而是先分辨哪些地方需要講死、哪些地方該留白讓 Claude 自己轉向。Claude 其實能幫開發者更快找到未知——它搜 codebase 和查資料都快，多數主題也懂得比一般人多。關鍵是給它起點脈絡：現在想到哪、對問題和 codebase 有多熟，讓它像一個思考夥伴一起上。
 
 ---
+
+<PostImage
+  src={unknownDiscoveryLoop}
+  alt="三段循環圖，實作前用放大鏡掃描地圖，實作中在編輯器裡遇到問號，收尾後用警示、怎麼會這樣的對話泡泡和預期實際不符呈現未知冒出來的症狀"
+  caption="未知不只會在規劃時出現，也會在交付後用「怎麼會這樣？」的症狀冒出來；越早發現，越便宜。"
+/>
 
 ## 實作前：先把盲點挖出來
 
