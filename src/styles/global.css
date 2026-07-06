@@ -444,7 +444,8 @@ blockquote.codex-note br {
   width: 2.15rem;
   height: 2.15rem;
   border-radius: 999px;
-  color: #fff8ef;
+  /* page bg as ink: dark #282a36 on orange ≈ 8.5:1, light cream on brown ≈ 5.6:1 */
+  color: var(--color-bg);
   background: var(--color-mogu-orange);
   font-weight: 900;
 }
@@ -456,7 +457,8 @@ blockquote.codex-note br {
   min-height: 1.2rem;
   padding: 0.08rem 0.38rem;
   border-radius: 999px;
-  color: var(--color-text-muted);
+  /* dark: brighter than __meta — the chip's alpha-mixed bg is lighter than the card */
+  color: #ccd4e8;
   background: color-mix(in srgb, var(--color-surface-hover) 72%, transparent);
   font-size: 0.66rem;
   font-weight: 800;
@@ -495,9 +497,15 @@ blockquote.codex-note br {
 }
 
 .artifact-callout__meta {
-  color: var(--color-text-muted);
+  /* dark: --color-text-muted is only 3.1:1 on the card surface; brighten locally */
+  color: #b2bcd8;
   font-size: 0.92rem;
   line-height: 1.5;
+}
+
+[data-theme='light'] .artifact-callout__meta,
+[data-theme='light'] .artifact-callout__tap {
+  color: var(--color-text-muted);
 }
 
 .artifact-callout__cta {
@@ -510,7 +518,8 @@ blockquote.codex-note br {
   margin-top: 0.6rem;
   padding: 0.5rem 0.72rem;
   border-radius: 999px;
-  color: #fff8ef;
+  /* page bg as ink — see .artifact-callout__icon */
+  color: var(--color-bg);
   background: var(--color-mogu-orange);
   box-shadow: 0 8px 18px rgba(255, 184, 108, 0.16);
   font-size: 0.92rem;
