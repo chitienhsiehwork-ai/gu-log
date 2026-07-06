@@ -1,0 +1,681 @@
+<!-- Copyright 2026 Anthropic PBC · SPDX-License-Identifier: Apache-2.0 -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blindspot pass — Know your unknowns</title>
+<style>
+  :root {
+    --ivory:  #FAF9F5;
+    --paper:  #FFFFFF;
+    --slate:  #141413;
+    --clay:   #D97757;
+    --clay-d: #B85C3E;
+    --oat:    #E3DACC;
+    --olive:  #788C5D;
+    --g100:   #F0EEE6;
+    --g200:   #E6E3DA;
+    --g300:   #D1CFC5;
+    --g500:   #87867F;
+    --g700:   #3D3D3A;
+    --serif: ui-serif, Georgia, "Times New Roman", Times, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--ivory);
+    color: var(--slate);
+    font-family: var(--sans);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 24px 100px; }
+
+  /* ── page header ─────────────────────── */
+  header.page-head {
+    padding: 56px 0 8px;
+    position: relative;
+  }
+  .head-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--g500);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .eyebrow::before {
+    content: "";
+    width: 24px; height: 1.5px;
+    background: var(--clay);
+    flex: none;
+  }
+  a.back {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--g500);
+    text-decoration: none;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  a.back:hover { color: var(--clay); }
+  h1 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(32px, 5vw, 46px);
+    line-height: 1.08;
+    letter-spacing: -0.018em;
+    margin: 18px 0 10px;
+  }
+  .lede {
+    font-size: 16px;
+    color: var(--g700);
+    max-width: 640px;
+    margin: 0 0 28px;
+  }
+
+  /* ── prompt box ──────────────────────── */
+  .prompt-card {
+    background: var(--paper);
+    border: 1.5px solid var(--g300);
+    border-radius: 14px;
+    padding: 22px 26px 24px;
+    position: relative;
+  }
+  .prompt-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--clay);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  blockquote.prompt {
+    margin: 0;
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 17.5px;
+    line-height: 1.55;
+    color: var(--slate);
+    border-left: 3px solid var(--oat);
+    padding-left: 18px;
+  }
+  button.copy-btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--g700);
+    background: var(--g100);
+    border: 1.5px solid var(--g300);
+    border-radius: 8px;
+    padding: 5px 12px;
+    cursor: pointer;
+    transition: border-color 120ms, color 120ms, background 120ms;
+    white-space: nowrap;
+  }
+  button.copy-btn:hover { border-color: var(--clay); color: var(--clay-d); }
+  button.copy-btn.copied {
+    background: var(--olive);
+    border-color: var(--olive);
+    color: var(--paper);
+  }
+
+  /* ── divider ─────────────────────────── */
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 44px 0 32px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--g500);
+    white-space: nowrap;
+  }
+  .divider::before, .divider::after {
+    content: "";
+    flex: 1;
+    height: 1.5px;
+    background: var(--g300);
+  }
+
+  /* ── artifact frame ──────────────────── */
+  .artifact {
+    background: var(--paper);
+    border: 1.5px solid var(--g300);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .artifact-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 18px;
+    border-bottom: 1.5px solid var(--g200);
+    background: var(--g100);
+  }
+  .artifact-bar .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--g300); }
+  .artifact-bar .file {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--g500);
+    margin-left: 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .artifact-body { padding: 34px 34px 40px; }
+  @media (max-width: 560px) { .artifact-body { padding: 24px 18px 30px; } }
+
+  .artifact-body h2 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 27px;
+    letter-spacing: -0.014em;
+    line-height: 1.15;
+    margin: 0 0 6px;
+  }
+  .artifact-body .sub {
+    font-size: 14px;
+    color: var(--g500);
+    margin: 0 0 24px;
+  }
+  .artifact-body .sub code {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    background: var(--g100);
+    border: 1px solid var(--g200);
+    border-radius: 5px;
+    padding: 1px 5px;
+    color: var(--g700);
+  }
+
+  /* asked vs walking into */
+  .vs-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 34px;
+  }
+  @media (max-width: 640px) { .vs-grid { grid-template-columns: 1fr; } }
+  .vs-cell {
+    border: 1.5px solid var(--g300);
+    border-radius: 12px;
+    padding: 16px 18px;
+    background: var(--ivory);
+  }
+  .vs-cell.actual { border-color: var(--clay); background: #FBF3EF; }
+  .vs-cell .vs-tag {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--g500);
+    margin-bottom: 8px;
+  }
+  .vs-cell.actual .vs-tag { color: var(--clay-d); }
+  .vs-cell p { margin: 0; font-size: 14px; color: var(--g700); }
+  .vs-cell p strong { color: var(--slate); }
+
+  /* stat strip */
+  .stat-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 26px;
+    padding: 14px 18px;
+    border: 1.5px solid var(--g200);
+    border-radius: 12px;
+    background: var(--g100);
+    margin-bottom: 36px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--g700);
+  }
+  .stat-strip b { color: var(--slate); font-weight: 600; }
+  .stat-strip .warn b { color: var(--clay-d); }
+
+  /* section labels inside artifact */
+  .art-eyebrow {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--g500);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0 0 18px;
+  }
+  .art-eyebrow::before {
+    content: "";
+    width: 24px; height: 1.5px;
+    background: var(--clay);
+    flex: none;
+  }
+
+  /* blindspot cards */
+  .bs-card {
+    border: 1.5px solid var(--g300);
+    border-radius: 12px;
+    background: var(--paper);
+    padding: 20px 22px 18px;
+    margin-bottom: 16px;
+  }
+  .bs-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+  .badge {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 6px;
+    border: 1.5px solid;
+    white-space: nowrap;
+  }
+  .badge.landmine { color: var(--clay-d); border-color: var(--clay); background: #FBF0EA; }
+  .badge.history { color: #8A6A3B; border-color: #C9B48E; background: var(--oat); }
+  .badge.convention { color: var(--g700); border-color: var(--g300); background: var(--g100); }
+  .badge.concept { color: #55663F; border-color: var(--olive); background: #EFF2E9; }
+  .bs-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--g500);
+  }
+  .bs-title {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 18.5px;
+    letter-spacing: -0.01em;
+    color: var(--slate);
+    margin: 0;
+    flex: 1 1 100%;
+  }
+  .bs-card p { font-size: 14px; color: var(--g700); margin: 0 0 10px; }
+  .bs-card p:last-of-type { margin-bottom: 0; }
+  .bs-card code, .bite code {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--g100);
+    border: 1px solid var(--g200);
+    border-radius: 5px;
+    padding: 1px 5px;
+    color: var(--g700);
+    word-break: break-word;
+  }
+  .bite {
+    display: flex;
+    gap: 10px;
+    font-size: 13.5px;
+    color: var(--g700);
+    background: var(--ivory);
+    border-left: 3px solid var(--clay);
+    border-radius: 0 8px 8px 0;
+    padding: 10px 14px;
+    margin: 12px 0;
+  }
+  .bite .bite-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--clay-d);
+    flex: none;
+    padding-top: 2px;
+  }
+
+  /* prompt chips */
+  .chip-row {
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .prompt-chip {
+    flex: 1;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--slate);
+    background: var(--g100);
+    border: 1.5px solid var(--g300);
+    border-radius: 9px;
+    padding: 10px 13px;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .prompt-chip::before {
+    content: "› ";
+    color: var(--clay);
+    font-weight: 600;
+  }
+  .chip-row button.copy-btn { align-self: flex-start; margin-top: 2px; }
+  @media (max-width: 480px) {
+    .chip-row { flex-direction: column; }
+    .chip-row button.copy-btn { align-self: flex-end; margin-top: 0; }
+  }
+
+  /* improved prompt card */
+  .final-card {
+    border: 1.5px solid var(--slate);
+    border-radius: 14px;
+    background: var(--paper);
+    padding: 24px 26px 26px;
+    margin-top: 38px;
+    box-shadow: 0 10px 28px rgba(20,20,19,.07);
+  }
+  .final-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+  .final-head .art-eyebrow { margin: 0; color: var(--clay-d); }
+  .final-card h3 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 22px;
+    letter-spacing: -0.012em;
+    margin: 8px 0 14px;
+  }
+  .final-prompt {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.65;
+    color: var(--slate);
+    background: var(--ivory);
+    border: 1.5px solid var(--g200);
+    border-radius: 10px;
+    padding: 18px 20px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin: 0;
+    overflow-x: auto;
+  }
+  .final-note {
+    font-size: 13px;
+    color: var(--g500);
+    margin: 14px 0 0;
+  }
+
+  /* footer */
+  footer {
+    margin-top: 56px;
+    padding-top: 22px;
+    border-top: 1.5px solid var(--g200);
+    font-size: 13px;
+    color: var(--g500);
+  }
+  footer a { color: var(--clay); text-decoration-color: var(--oat); text-underline-offset: 3px; }
+  footer a:hover { text-decoration-color: var(--clay); }
+</style>
+<style id="gu-log-mirror-credit-style">.gu-log-mirror-credit{position:sticky;top:0;z-index:9999;padding:8px 14px;background:#111;color:#f7f3e8;border-bottom:1px solid rgba(255,255,255,.18);font:13px/1.45 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;text-align:center}.gu-log-mirror-credit a{color:#f4c86a;text-decoration:underline;text-underline-offset:2px}.gu-log-mirror-credit strong{font-weight:750}</style>
+</head>
+<body>
+<div class="gu-log-mirror-credit" role="note"><strong>Mirror copy for gu-log SP-251.</strong> Original by <a href="https://x.com/trq212">Thariq (@trq212)</a>: <a href="https://thariqs.github.io/html-effectiveness/unknowns/">Know your unknowns</a>. English original preserved; zh-tw version later.</div>
+<div class="wrap">
+
+  <header class="page-head">
+    <div class="head-row">
+      <div class="eyebrow">Know your unknowns · Pre-implementation</div>
+      <a class="back" href="index.html">&larr; All examples</a>
+    </div>
+    <h1>Blindspot pass</h1>
+    <p class="lede">Before touching unfamiliar code, ask Claude to surface what you don't know you don't know — and to tell you how to prompt around each gap.</p>
+
+    <div class="prompt-card">
+      <div class="prompt-label">
+        <span>The prompt</span>
+        <button class="copy-btn" data-copy-target="user-prompt">Copy prompt</button>
+      </div>
+      <blockquote class="prompt" id="user-prompt">I'm adding a new SSO auth provider to Acme but I've never touched the auth module. Do a blindspot pass: find my unknown unknowns in this part of the codebase, explain each one, and tell me how to prompt you better for the implementation.</blockquote>
+    </div>
+  </header>
+
+  <div class="divider">What Claude produced</div>
+
+  <div class="artifact">
+    <div class="artifact-bar">
+      <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+      <span class="file">blindspot-pass · acme/services/auth · 47 files scanned</span>
+    </div>
+    <div class="artifact-body">
+
+      <h2>Unknown unknowns: the Acme auth module</h2>
+      <p class="sub">Scanned <code>services/auth/</code> (47 files), 214 commits touching it since Jan&nbsp;2025, 3 migrations in flight, 2 reverted attempts. Seven things you'd have learned the hard way.</p>
+
+      <div class="vs-grid">
+        <div class="vs-cell">
+          <div class="vs-tag">What you asked for</div>
+          <p>"Add a new SSO provider" — which sounds like: implement an interface, register it, write the redirect handlers, done. On a clean codebase, a two-day task.</p>
+        </div>
+        <div class="vs-cell actual">
+          <div class="vs-tag">What you're actually walking into</div>
+          <p>A module <strong>mid-migration on session storage</strong>, with <strong>one provider that quietly bypasses the middleware</strong> everyone assumes runs, a <strong>reverted previous attempt</strong> at exactly this task, and an <strong>identity-linking model</strong> that isn't visible from the provider interface at all.</p>
+        </div>
+      </div>
+
+      <div class="stat-strip">
+        <span class="warn"><b>4</b> landmines</span>
+        <span><b>2</b> unwritten conventions</span>
+        <span><b>1</b> missing concept</span>
+        <span><b>1</b> reverted attempt at this exact task (PR&nbsp;#2841)</span>
+      </div>
+
+      <div class="art-eyebrow">The blindspots</div>
+
+      <!-- 1 -->
+      <div class="bs-card">
+        <div class="bs-head">
+          <span class="badge landmine">Landmine</span>
+          <span class="bs-num">01</span>
+          <h3 class="bs-title">Sessions are double-written — the Redis store you'll find first is the wrong one</h3>
+        </div>
+        <p>Acme is mid-migration from Postgres-backed sessions to Redis (<code>MIG-118</code>, stalled since March). Every session write currently goes through <code>SessionBridge.write()</code>, which fans out to <em>both</em> <code>RedisSessionStore</code> and the legacy <code>pg_sessions</code> table. The migration was never finished, so reads still come from Postgres.</p>
+        <div class="bite"><span class="bite-tag">Why it bites</span><span>Grepping for "session" surfaces <code>RedisSessionStore</code> first — it looks canonical, has the newest code, and the best docs. Write to it directly and your logins will appear to work in dev (Redis reads are enabled there) and silently fail in prod, where reads still hit Postgres.</span></div>
+        <div class="chip-row">
+          <div class="prompt-chip" id="chip-1">When you create sessions for the new provider, route everything through SessionBridge — never RedisSessionStore or pg_sessions directly. Explain the MIG-118 read/write split before writing any session code.</div>
+          <button class="copy-btn" data-copy-target="chip-1">Copy</button>
+        </div>
+      </div>
+
+      <!-- 2 -->
+      <div class="bs-card">
+        <div class="bs-head">
+          <span class="badge landmine">Landmine</span>
+          <span class="bs-num">02</span>
+          <h3 class="bs-title">The SAML provider — your obvious template — bypasses the auth middleware</h3>
+        </div>
+        <p>Every provider except SAML mounts under <code>authPipeline</code>, which runs rate limiting, audit logging, and the device-trust check. <code>saml/handler.ts</code> mounts its ACS endpoint directly on the router because SP-initiated POST callbacks broke the CSRF layer in 2024, and nobody circled back. There's a <code>// TODO(priya): fold back into pipeline</code> from 14 months ago.</p>
+        <div class="bite"><span class="bite-tag">Why it bites</span><span>SAML is the most recently added provider, so it's the natural file to copy. Copy it and your new provider ships with no rate limiting and no audit trail — which won't fail any test, because the contract tests don't assert middleware presence.</span></div>
+        <div class="chip-row">
+          <div class="prompt-chip" id="chip-2">Use oauth/google.ts as the structural template, not saml/handler.ts — SAML intentionally bypasses authPipeline. Confirm the new provider's routes are mounted inside authPipeline and show me the mount point.</div>
+          <button class="copy-btn" data-copy-target="chip-2">Copy</button>
+        </div>
+      </div>
+
+      <!-- 3 -->
+      <div class="bs-card">
+        <div class="bs-head">
+          <span class="badge history">History</span>
+          <span class="bs-num">03</span>
+          <h3 class="bs-title">Someone already tried this — and it was reverted for a reason that still holds</h3>
+        </div>
+        <p>PR&nbsp;#2841 ("Add Okta OIDC provider", Sept&nbsp;2025) was merged and reverted nine days later. The revert commit explains why: Acme callback URLs must carry a tenant suffix (<code>/auth/callback/:provider/:workspaceSlug</code>) so workspace-scoped invite links survive the redirect round-trip. Okta's strict redirect-URI matching rejected the dynamic suffix, and invited users landed in the wrong workspace. The fix everyone agreed on — a state-parameter workspace claim signed with <code>AUTH_STATE_SECRET</code> — was designed in the revert thread but never built.</p>
+        <div class="bite"><span class="bite-tag">Why it bites</span><span>Nothing in the current code hints at this. You'd re-implement #2841's approach, pass every local test (single-workspace dev env), and rediscover the bug in production the first time an invited user signs in.</span></div>
+        <div class="chip-row">
+          <div class="prompt-chip" id="chip-3">Read the revert of PR #2841 first. Implement the signed state-parameter workspace claim it proposed instead of tenant-suffixed callback URLs, and add a test for the workspace-scoped invite flow.</div>
+          <button class="copy-btn" data-copy-target="chip-3">Copy</button>
+        </div>
+      </div>
+
+      <!-- 4 -->
+      <div class="bs-card">
+        <div class="bs-head">
+          <span class="badge concept">Missing concept</span>
+          <span class="bs-num">04</span>
+          <h3 class="bs-title">Identities and accounts are separate things — and the provider interface hides it</h3>
+        </div>
+        <p>Acme splits <code>users</code> from <code>identities</code>: one account can have several linked identities (email+password, Google, SAML), joined in the <code>identities</code> table. The provider interface only returns a profile; the linking decision happens in <code>identity/linker.ts</code>, keyed on verified email. Providers that can't guarantee verified emails (many SSO IdPs don't) must set <code>requiresManualLink: true</code> or the linker will happily merge two different people who share a corporate alias.</p>
+        <div class="bite"><span class="bite-tag">Why it bites</span><span>Implement the interface naively and everything works — until a customer's IdP sends an unverified or reassigned email and your provider silently attaches a stranger's identity to an existing account. This is an account-takeover bug, not a login bug.</span></div>
+        <div class="chip-row">
+          <div class="prompt-chip" id="chip-4">Walk me through identity/linker.ts before implementing. Decide explicitly whether this IdP guarantees verified emails; if not, set requiresManualLink and build the manual-link confirmation path.</div>
+          <button class="copy-btn" data-copy-target="chip-4">Copy</button>
+        </div>
+      </div>
+
+      <!-- 5 -->
+      <div class="bs-card">
+        <div class="bs-head">
+          <span class="badge landmine">Landmine</span>
+          <span class="bs-num">05</span>
+          <h3 class="bs-title">Token refresh is behind a flag that's on in dev and off in prod</h3>
+        </div>
+        <p>Refresh-token rotation is gated by <code>auth.refresh_rotation</code> in <code>flags.yaml</code>. It defaults to <code>true</code> in dev and staging, <code>false</code> in prod (a paused rollout after a clock-skew incident in May). With the flag off, prod sessions live exactly <code>ACCESS_TOKEN_TTL</code> (12h) and then hard-expire — there is no refresh path.</p>
+        <div class="bite"><span class="bite-tag">Why it bites</span><span>Any refresh logic you write will be tested against dev behavior and dead code in prod. Worse: if your provider assumes a refresh happens, prod users get logged out mid-session every 12 hours and the bug report will say "SSO randomly logs me out," pointing at your code.</span></div>
+        <div class="chip-row">
+          <div class="prompt-chip" id="chip-5">Implement against auth.refresh_rotation=false (prod reality). Make the provider work with hard 12h expiry, and note separately what changes if the rotation rollout resumes.</div>
+          <button class="copy-btn" data-copy-target="chip-5">Copy</button>
+        </div>
+      </div>
+
+      <!-- 6 -->
+      <div class="bs-card">
+        <div class="bs-head">
+          <span class="badge convention">Convention</span>
+          <span class="bs-num">06</span>
+          <h3 class="bs-title">Registering a provider takes three steps, and only two are discoverable</h3>
+        </div>
+        <p>A provider isn't live when it compiles. It must be (1)&nbsp;registered in <code>providers/registry.ts</code>, (2)&nbsp;inserted into the <code>auth_providers</code> table via a migration — the admin UI reads the DB, not the registry — and (3)&nbsp;added to the fixture list in <code>__tests__/provider-contract.spec.ts</code>, which runs the shared contract suite (state validation, replay protection, logout fan-out) against every registered provider. CI fails if the registry and fixture list disagree.</p>
+        <div class="bite"><span class="bite-tag">Why it bites</span><span>Skip the migration and the provider compiles, passes tests, and simply never appears in any workspace's SSO settings. Two engineers have independently lost half a day to this; it's in nobody's docs.</span></div>
+        <div class="chip-row">
+          <div class="prompt-chip" id="chip-6">Do all three registration steps: registry.ts, an auth_providers migration, and the provider-contract fixture list. Show me the contract suite passing for the new provider before we call it done.</div>
+          <button class="copy-btn" data-copy-target="chip-6">Copy</button>
+        </div>
+      </div>
+
+      <!-- 7 -->
+      <div class="bs-card">
+        <div class="bs-head">
+          <span class="badge landmine">Landmine</span>
+          <span class="bs-num">07</span>
+          <h3 class="bs-title">Logout isn't a function call — it's an event, and the review player listens</h3>
+        </div>
+        <p>Session revocation publishes <code>auth.session.revoked</code> on the internal event bus. The realtime review player holds its own long-lived playback grants and only releases them when it consumes that event. <code>logout.ts</code> handles this for existing providers, but SSO single-logout (SLO) callbacks arrive on a separate path and must publish the event themselves.</p>
+        <div class="bite"><span class="bite-tag">Why it bites</span><span>Miss the event and logout "works" — the session row is gone — but anyone with an open review tab keeps full playback access to private video until the grant TTL expires (up to 24h). For a company selling review workflows to studios, that's a security incident, not a bug.</span></div>
+        <div class="chip-row">
+          <div class="prompt-chip" id="chip-7">Handle SLO: any revocation path in the new provider must publish auth.session.revoked. Add a test asserting the review player's grant is released on IdP-initiated logout.</div>
+          <button class="copy-btn" data-copy-target="chip-7">Copy</button>
+        </div>
+      </div>
+
+      <!-- final -->
+      <div class="final-card">
+        <div class="final-head">
+          <div class="art-eyebrow">Your improved prompt</div>
+          <button class="copy-btn" data-copy-target="final-prompt">Copy prompt</button>
+        </div>
+        <h3>Everything above, folded into the prompt you should actually give me</h3>
+        <pre class="final-prompt" id="final-prompt">Add a new SSO auth provider to Acme. Constraints from the blindspot pass:
+
+1. Sessions: route all session writes through SessionBridge (MIG-118 is
+   unfinished; prod still reads from pg_sessions). Never touch
+   RedisSessionStore directly.
+2. Template: base the structure on oauth/google.ts, NOT saml/handler.ts —
+   SAML bypasses authPipeline. Mount all new routes inside authPipeline
+   and show me the mount point.
+3. History: read the revert of PR #2841 first. Implement the signed
+   state-parameter workspace claim (AUTH_STATE_SECRET) instead of
+   tenant-suffixed callback URLs, and test the workspace-invite flow.
+4. Identity linking: walk me through identity/linker.ts before coding.
+   If this IdP doesn't guarantee verified emails, set requiresManualLink
+   and build the confirmation path — do not auto-link.
+5. Flags: implement against auth.refresh_rotation=false (prod). Sessions
+   hard-expire at 12h; no refresh path. Note what changes if rotation
+   ships.
+6. Registration: all three steps — providers/registry.ts, an
+   auth_providers migration, and the provider-contract fixture list.
+   Show the contract suite green.
+7. Logout: every revocation path must publish auth.session.revoked, and
+   add a test that the review player's playback grant is released on
+   IdP-initiated logout.
+
+Work in this order: linker walkthrough → provider skeleton → callback +
+state claim → registration → SLO + events → contract tests. Stop and
+show me the plan after the walkthrough before writing code.</pre>
+        <p class="final-note">Seven sentences you couldn't have written this morning — each one bought with someone else's half-day. That's the point of the pass.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <footer>Part of <a href="index.html">Know your unknowns</a> — companion examples to the blog post.</footer>
+</div>
+
+<script>
+(function () {
+  function copyText(text, btn) {
+    function done() {
+      var prev = btn.textContent;
+      btn.textContent = "Copied";
+      btn.classList.add("copied");
+      setTimeout(function () {
+        btn.textContent = prev;
+        btn.classList.remove("copied");
+      }, 1600);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, function () { fallback(text); done(); });
+    } else {
+      fallback(text);
+      done();
+    }
+  }
+  function fallback(text) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest("button[data-copy-target]");
+    if (!btn) return;
+    var el = document.getElementById(btn.getAttribute("data-copy-target"));
+    if (!el) return;
+    copyText(el.textContent.trim(), btn);
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,646 @@
+<!-- Copyright 2026 Anthropic PBC · SPDX-License-Identifier: Apache-2.0 -->
+<!doctype html>
+<html lang="zh-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>訪談——認識你的未知</title>
+<style>
+  :root {
+    --ivory:  #FAF9F5;
+    --paper:  #FFFFFF;
+    --slate:  #141413;
+    --clay:   #D97757;
+    --clay-d: #B85C3E;
+    --oat:    #E3DACC;
+    --olive:  #788C5D;
+    --g100:   #F0EEE6;
+    --g200:   #E6E3DA;
+    --g300:   #D1CFC5;
+    --g500:   #87867F;
+    --g700:   #3D3D3A;
+    --serif: ui-serif, Georgia, "Times New Roman", Times, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ivory);
+    color: var(--slate);
+    font-family: var(--sans);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 24px 100px; }
+
+  /* ── header ─────────────────────────── */
+  header { padding: 56px 0 8px; position: relative; }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--g500);
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .eyebrow::before { content: ""; width: 24px; height: 1.5px; background: var(--clay); flex: none; }
+  .backlink {
+    position: absolute; top: 60px; right: 0;
+    font-family: var(--mono); font-size: 12px;
+    color: var(--g500); text-decoration: none;
+    letter-spacing: 0.04em;
+  }
+  .backlink:hover { color: var(--clay); }
+  h1 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(34px, 5vw, 50px);
+    line-height: 1.08;
+    letter-spacing: -0.018em;
+    margin: 0 0 10px;
+  }
+  .lede { font-size: 16.5px; color: var(--g700); max-width: 640px; margin: 0 0 30px; }
+
+  /* ── prompt box ─────────────────────── */
+  .promptbox {
+    background: var(--paper);
+    border: 1.5px solid var(--g300);
+    border-radius: 14px;
+    padding: 22px 24px 20px;
+    position: relative;
+  }
+  .promptbox .label {
+    font-family: var(--mono); font-size: 12px;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--clay); margin-bottom: 10px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .promptbox .label::before { content: ""; width: 24px; height: 1.5px; background: var(--clay); flex: none; }
+  .promptbox blockquote {
+    margin: 0; padding: 0;
+    font-family: var(--serif); font-style: italic;
+    font-size: 17.5px; line-height: 1.5; color: var(--slate);
+    max-width: 46em;
+  }
+  .copybtn {
+    position: absolute; top: 18px; right: 18px;
+    font-family: var(--mono); font-size: 11.5px;
+    letter-spacing: 0.04em;
+    background: var(--g100); color: var(--g700);
+    border: 1.5px solid var(--g300); border-radius: 7px;
+    padding: 5px 11px; cursor: pointer;
+  }
+  .copybtn:hover { border-color: var(--clay); color: var(--clay-d); }
+  .copybtn.done { background: var(--olive); border-color: var(--olive); color: #fff; }
+
+  /* ── divider ────────────────────────── */
+  .divider {
+    display: flex; align-items: center; gap: 16px;
+    margin: 44px 0 30px;
+    font-family: var(--mono); font-size: 12px;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--g500); white-space: nowrap;
+  }
+  .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--g300); }
+
+  /* ══ THE ARTIFACT ═════════════════════ */
+  .artifact {
+    background: var(--paper);
+    border: 1.5px solid var(--g300);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .art-head {
+    padding: 16px 22px;
+    border-bottom: 1.5px solid var(--g200);
+    display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+    background: var(--g100);
+  }
+  .art-head .t { font-family: var(--serif); font-weight: 500; font-size: 17px; letter-spacing: -0.01em; }
+  .art-head .s { font-family: var(--mono); font-size: 11.5px; color: var(--g500); }
+
+  .art-body { display: grid; grid-template-columns: 216px 1fr; min-height: 480px; }
+  @media (max-width: 720px) { .art-body { grid-template-columns: 1fr; min-height: 0; } }
+
+  /* rail */
+  .rail {
+    border-right: 1.5px solid var(--g200);
+    padding: 20px 16px;
+    background: var(--ivory);
+  }
+  @media (max-width: 720px) {
+    .rail { border-right: none; border-bottom: 1.5px solid var(--g200); padding: 14px 16px; }
+  }
+  .rail .rail-label {
+    font-family: var(--mono); font-size: 10.5px;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--g500); margin-bottom: 12px;
+  }
+  .rail-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 8px; margin: 0 -8px;
+    border-radius: 8px;
+    font-size: 12.5px; color: var(--g500);
+    cursor: default;
+    border: none; background: none; width: calc(100% + 16px);
+    text-align: left; font-family: var(--sans);
+  }
+  .rail-item.done { color: var(--g700); cursor: pointer; }
+  .rail-item.done:hover { background: var(--g100); }
+  .rail-item.current { color: var(--slate); font-weight: 600; background: var(--g100); }
+  .rail-dot {
+    width: 11px; height: 11px; border-radius: 50%; flex: none;
+    border: 2px solid var(--dotc, var(--g300));
+    background: transparent;
+  }
+  .rail-item.done .rail-dot { background: var(--dotc); }
+  .rail-item.current .rail-dot { box-shadow: 0 0 0 3px var(--g200); }
+  .rail-item .rail-q { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rail-item .tick { margin-left: auto; font-size: 11px; color: var(--olive); flex: none; }
+  .rail-meta {
+    margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--g200);
+    font-family: var(--mono); font-size: 11px; color: var(--g500); line-height: 1.8;
+  }
+  .rail-meta b { color: var(--g700); font-weight: 600; }
+  @media (max-width: 720px) {
+    .rail .rail-q, .rail .tick, .rail-meta, .rail .rail-label { display: none; }
+    .rail { display: flex; align-items: center; gap: 10px; }
+    .rail-item { width: auto; padding: 4px; margin: 0; }
+  }
+
+  /* stage */
+  .stage { padding: 28px 30px 30px; position: relative; }
+  @media (max-width: 720px) { .stage { padding: 22px 18px 24px; } }
+  .qcard { animation: qin .28s ease both; }
+  .qcard.leaving { animation: qout .18s ease both; }
+  @keyframes qin  { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  @keyframes qout { from { opacity: 1; } to { opacity: 0; transform: translateY(-8px); } }
+
+  .badge {
+    display: inline-block;
+    font-family: var(--mono); font-size: 11px;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 3px 9px; border-radius: 5px;
+    color: #fff; background: var(--g500);
+    margin-bottom: 4px;
+  }
+  .qnum { font-family: var(--mono); font-size: 11.5px; color: var(--g500); margin-left: 10px; }
+  .qtext {
+    font-family: var(--serif); font-weight: 500;
+    font-size: clamp(20px, 3vw, 25px); line-height: 1.25;
+    letter-spacing: -0.012em;
+    margin: 10px 0 6px; max-width: 34em;
+  }
+  .why {
+    font-size: 13.5px; color: var(--g500); margin: 0 0 22px;
+    display: flex; gap: 8px; align-items: baseline;
+  }
+  .why::before { content: "↳"; color: var(--clay); flex: none; }
+
+  .opts { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 620px) { .opts { grid-template-columns: 1fr; } }
+  .opt {
+    text-align: left;
+    background: var(--ivory);
+    border: 1.5px solid var(--g300);
+    border-radius: 11px;
+    padding: 14px 16px;
+    cursor: pointer;
+    font-family: var(--sans);
+    color: var(--slate);
+    transition: border-color .12s, background .12s, transform .12s;
+  }
+  .opt:hover { border-color: var(--clay); background: var(--paper); transform: translateY(-1px); }
+  .opt.picked { border-color: var(--clay); background: var(--paper); box-shadow: 0 0 0 3px rgba(217,119,87,.15); }
+  .opt .ot { font-weight: 600; font-size: 14.5px; display: block; margin-bottom: 3px; }
+  .opt .od { font-size: 12.5px; color: var(--g500); line-height: 1.45; display: block; }
+
+  .otherrow { display: flex; gap: 8px; margin-top: 12px; }
+  .otherrow input {
+    flex: 1; min-width: 0;
+    font-family: var(--sans); font-size: 14px;
+    padding: 10px 13px;
+    border: 1.5px solid var(--g300); border-radius: 9px;
+    background: var(--ivory); color: var(--slate);
+  }
+  .otherrow input::placeholder { color: var(--g500); }
+  .otherrow input:focus { outline: none; border-color: var(--clay); background: var(--paper); }
+  .otherrow button {
+    font-family: var(--mono); font-size: 12px;
+    padding: 0 16px; border-radius: 9px; cursor: pointer;
+    border: 1.5px solid var(--g300); background: var(--g100); color: var(--g700);
+  }
+  .otherrow button:hover { border-color: var(--clay); color: var(--clay-d); }
+
+  .navrow { display: flex; justify-content: space-between; align-items: center; margin-top: 24px; }
+  .backbtn {
+    font-family: var(--mono); font-size: 12px;
+    background: none; border: none; cursor: pointer;
+    color: var(--g500); padding: 6px 0;
+  }
+  .backbtn:hover { color: var(--clay-d); }
+  .backbtn[disabled] { visibility: hidden; }
+  .navhint { font-family: var(--mono); font-size: 11px; color: var(--g500); }
+
+  /* summary */
+  .sum-h { font-family: var(--serif); font-weight: 500; font-size: 24px; letter-spacing: -0.012em; margin: 4px 0 4px; }
+  .sum-sub { font-size: 14px; color: var(--g500); margin: 0 0 20px; }
+  .dtable { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .dtable-scroll { overflow-x: auto; }
+  .dtable th {
+    font-family: var(--mono); font-size: 10.5px;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--g500); font-weight: 500;
+    text-align: left; padding: 8px 12px 8px 0;
+    border-bottom: 1.5px solid var(--g300);
+    white-space: nowrap;
+  }
+  .dtable td { padding: 10px 12px 10px 0; border-bottom: 1px solid var(--g200); vertical-align: top; }
+  .dtable tr:last-child td { border-bottom: none; }
+  .dtable .pill {
+    font-family: var(--mono); font-size: 10px;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    color: #fff; padding: 2px 7px; border-radius: 4px; white-space: nowrap;
+  }
+  .dtable .topic { color: var(--g500); white-space: nowrap; }
+  .dtable .dec { font-weight: 600; }
+  .dtable .redo {
+    font-family: var(--mono); font-size: 11px; color: var(--g500);
+    background: none; border: none; cursor: pointer; padding: 0;
+  }
+  .dtable .redo:hover { color: var(--clay-d); }
+
+  .genblock { margin-top: 26px; }
+  .genblock .gb-label {
+    font-family: var(--mono); font-size: 11px;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--clay); margin-bottom: 8px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .genblock .gb-label::before { content: ""; width: 18px; height: 1.5px; background: var(--clay); flex: none; }
+  .genwrap { position: relative; }
+  .genwrap pre {
+    margin: 0;
+    background: var(--slate);
+    color: var(--g200);
+    border-radius: 11px;
+    padding: 18px 20px;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .genwrap .copybtn { top: 12px; right: 12px; background: var(--g700); border-color: var(--g700); color: var(--g300); }
+  .genwrap .copybtn:hover { color: var(--paper); border-color: var(--g500); }
+  .genwrap .copybtn.done { background: var(--olive); border-color: var(--olive); color: #fff; }
+  .restart {
+    margin-top: 18px;
+    font-family: var(--mono); font-size: 12px;
+    background: none; border: none; cursor: pointer;
+    color: var(--g500); padding: 0;
+  }
+  .restart:hover { color: var(--clay-d); }
+
+  footer {
+    margin-top: 56px; padding-top: 22px;
+    border-top: 1px solid var(--g300);
+    font-size: 13px; color: var(--g500);
+  }
+  footer a { color: var(--clay); text-decoration-color: var(--oat); text-underline-offset: 3px; }
+  footer a:hover { text-decoration-color: var(--clay); }
+</style>
+<style id="gu-log-mirror-credit-style">.gu-log-mirror-credit{position:sticky;top:0;z-index:9999;padding:8px 14px;background:#111;color:#f7f3e8;border-bottom:1px solid rgba(255,255,255,.18);font:13px/1.45 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;text-align:center}.gu-log-mirror-credit a{color:#f4c86a;text-decoration:underline;text-underline-offset:2px}.gu-log-mirror-credit strong{font-weight:750}</style>
+</head>
+<body>
+<div class="gu-log-mirror-credit" role="note"><strong>gu-log SP-251 繁體中文翻譯版。</strong>原作：<a href="https://x.com/trq212">Thariq (@trq212)</a>：<a href="https://thariqs.github.io/html-effectiveness/unknowns/">Know your unknowns</a>。<a href="../06-interview.html">English</a></div>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">認識你的未知 · 實作前</div>
+    <a class="backlink" href="index.html">← 所有範例</a>
+    <h1>訪談</h1>
+    <p class="lede">與其猜測曖昧的需求，不如讓 Claude 來訪談你——一次一個問題，按照「答案會在多大程度上改變架構」來排序。</p>
+
+    <div class="promptbox">
+      <div class="label">Prompt</div>
+      <button class="copybtn" id="copyPrompt">複製 Prompt</button>
+      <blockquote id="promptText">針對標註匯出功能中還不明確的地方，一次問我一個問題來訪談我。優先問那些我的答案會改變架構的問題。</blockquote>
+    </div>
+  </header>
+
+  <div class="divider">Claude 產出的內容</div>
+
+  <div class="artifact">
+    <div class="art-head">
+      <span class="t">標註匯出 — 規格訪談</span>
+      <span class="s">acme/web · 7 個待決定問題 · 按影響範圍排序</span>
+    </div>
+    <div class="art-body">
+      <nav class="rail" id="rail" aria-label="訪談進度"></nav>
+      <div class="stage" id="stage"></div>
+    </div>
+  </div>
+
+  <footer>這是<a href="index.html">認識你的未知</a>的一部分——該文章的配套範例。</footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var RADII = {
+    arch:  { label: "架構", color: "var(--clay)" },
+    data:  { label: "資料模型",   color: "var(--clay-d)" },
+    ux:    { label: "使用者體驗",           color: "var(--olive)" },
+    pol:   { label: "細節打磨",       color: "var(--g500)" }
+  };
+
+  var QUESTIONS = [
+    {
+      id: "runtime",
+      radius: "arch",
+      short: "匯出在哪執行",
+      topic: "執行模型",
+      q: "匯出檔案的產生實際上應該在哪裡執行？",
+      why: "這決定了我們需不需要任務佇列、通知路徑、和產物儲存空間——或以上皆否。其他一切都建立在這個決定之上。",
+      opts: [
+        { t: "同步在 API 請求中", d: "簡單，但一個 2 小時剪輯配 400 則留言的審核會超過 30 秒閘道逾時。" },
+        { t: "透過現有 sidekiq 佇列的背景任務", d: "重用 jobs/export_worker 中 proxy 轉碼的模式；需要「完成」通知。" },
+        { t: "完全在前端從標註 API 組裝", d: "不需要任何新後端，但格式受限於瀏覽器能組裝的，而且日後要擴展時幫不上忙。" }
+      ]
+    },
+    {
+      id: "scope",
+      radius: "arch",
+      short: "匯出範圍",
+      topic: "單次匯出的範圍",
+      q: "單次匯出的單位是什麼？",
+      why: "專案層級的匯出意味著要 fan-out 跨影片、分頁、和 manifest 格式——大約是單一影片的 3 倍工作量。",
+      opts: [
+        { t: "一次一支影片", d: "符合審核頁面的心智模型；專案匯出目前就是點 N 次。" },
+        { t: "整個專案（所有影片）", d: "Meridian Post 帳號要求的；意味著 zip 打包和每支影片的 manifest。" },
+        { t: "任意使用者選取的範圍", d: "最有彈性，UI 最多；需要一個目前不存在的選取模型。" }
+      ]
+    },
+    {
+      id: "drawings",
+      radius: "data",
+      short: "包含手繪標註？",
+      topic: "手繪標註",
+      q: "手繪的影格標註要匯出，還是只匯出文字留言？",
+      why: "手繪以 canvas stroke JSON 存在 annotation_shapes 裡；包含它們意味著要在伺服器端點陣化或輸出原始向量。",
+      opts: [
+        { t: "只有文字留言（v1）", d: "最快上線；手繪顯示為「[第 4211 格有手繪]」的佔位符。" },
+        { t: "把手繪點陣化成 PNG 靜態圖", d: "最適合 PDF 報告；需要 headless 渲染步驟——縮圖 worker 接近但不完全一樣。" },
+        { t: "包含原始 stroke JSON", d: "無損且便宜，但只對要重新匯入 Acme 的人有用。" }
+      ]
+    },
+    {
+      id: "timecode",
+      radius: "data",
+      short: "時間戳格式",
+      topic: "時間戳表示方式",
+      q: "標註的時間戳在匯出中應該如何表示？",
+      why: "我們存的是毫秒；剪輯軟體用的是 SMPTE 時碼。轉換需要來源的 fps，而 3% 的舊上傳 fps 是 null。",
+      opts: [
+        { t: "SMPTE 時碼 (HH:MM:SS:FF)", d: "Resolve 和 Premiere 預期的格式；需要為舊影片補填 fps。" },
+        { t: "單純的秒數 / 毫秒", d: "沒有轉換風險，但每個剪輯師都要手動換算，有些人會算錯。" },
+        { t: "兩個欄位都給，永遠", d: "檔案稍微寬一點；永遠沒有人需要問哪個是正確的。" }
+      ]
+    },
+    {
+      id: "formats",
+      radius: "ux",
+      short: "v1 支援哪些格式",
+      topic: "匯出格式",
+      q: "v1 要支援哪些格式？",
+      why: "每種格式大致是獨立的工作，但選擇傳達了這個功能是給誰用的——製片、剪輯師、還是客戶。",
+      opts: [
+        { t: "只有 CSV", d: "pipeline 建好之後一個下午的工作量；製片可以隨意樞紐分析。" },
+        { t: "PDF 審核報告", d: "面向客戶的產物，有縮圖；只有在手繪能點陣化時才有意義。" },
+        { t: "NLE 標記檔（EDL / Resolve CSV）", d: "論壇帖子裡的進階使用者需求；時碼問題變得至關重要。" },
+        { t: "CSV + NLE 標記，PDF 之後再做", d: "同時涵蓋內部和剪輯師工作流程，不被點陣化擋住。" }
+      ]
+    },
+    {
+      id: "access",
+      radius: "ux",
+      short: "誰能匯出",
+      topic: "匯出權限",
+      q: "誰可以匯出？",
+      why: "訪客審核者用未驗證的分享連結——如果他們能匯出，標註就悄悄離開了權限邊界。",
+      opts: [
+        { t: "任何能看影片的人", d: "包含分享連結訪客；規則最簡單，資料外洩面最大。" },
+        { t: "只有專案成員", d: "訪客可以繼續留言但不能批量匯出；UI 需要顯示停用狀態的說明。" },
+        { t: "只有擁有者和管理員", d: "最保守；可能會產生「你能幫我匯出嗎」的雜事。" }
+      ]
+    },
+    {
+      id: "naming",
+      radius: "pol",
+      short: "檔案與命名",
+      topic: "檔案命名與打包",
+      q: "匯出檔案如何命名和打包？",
+      why: "純粹是慣例，但上線後的第一張客服單永遠是「哪個檔案是哪個剪輯版」。",
+      opts: [
+        { t: "{project}_{video}_{date}.csv，平鋪", d: "可預測且可 grep；長標題在 80 字元處截斷。" },
+        { t: "每次匯出一個 zip 加 manifest.json", d: "不管範圍大小一次匯出一個產物；單檔案情況下有輕微摩擦。" },
+        { t: "讓使用者在匯出時選擇", d: "為幾乎沒人會改的東西建一個設定畫面。" }
+      ]
+    }
+  ];
+
+  var answers = new Array(QUESTIONS.length).fill(null); // {text, custom}
+  var current = 0;   // index, or QUESTIONS.length => summary
+  var rail = document.getElementById("rail");
+  var stage = document.getElementById("stage");
+
+  function answeredCount() {
+    return answers.filter(function (a) { return a !== null; }).length;
+  }
+
+  function esc(s) {
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  function renderRail() {
+    var html = '<div class="rail-label">訪談進度</div>';
+    QUESTIONS.forEach(function (q, i) {
+      var r = RADII[q.radius];
+      var cls = "rail-item" + (i === current ? " current" : "") + (answers[i] ? " done" : "");
+      html += '<button type="button" class="' + cls + '" data-i="' + i + '" style="--dotc:' + r.color + '"' +
+        (answers[i] ? '' : ' tabindex="-1"') + '>' +
+        '<span class="rail-dot"></span><span class="rail-q">' + esc(q.short) + '</span>' +
+        (answers[i] ? '<span class="tick">✓</span>' : '') + '</button>';
+    });
+    html += '<div class="rail-meta"><b>' + answeredCount() + '</b> / 7 已回答<br>' +
+      '<span style="color:var(--clay)">●</span> 架構 &nbsp;' +
+      '<span style="color:var(--clay-d)">●</span> 資料<br>' +
+      '<span style="color:var(--olive)">●</span> 體驗 &nbsp;' +
+      '<span style="color:var(--g500)">●</span> 細節</div>';
+    rail.innerHTML = html;
+    rail.querySelectorAll(".rail-item.done").forEach(function (el) {
+      el.addEventListener("click", function () { go(parseInt(el.dataset.i, 10)); });
+    });
+  }
+
+  function renderQuestion() {
+    var q = QUESTIONS[current];
+    var r = RADII[q.radius];
+    var picked = answers[current];
+    var html = '<div class="qcard">' +
+      '<span class="badge" style="background:' + r.color + '">' + esc(r.label) + '</span>' +
+      '<span class="qnum">問題 ' + (current + 1) + ' / ' + QUESTIONS.length + '</span>' +
+      '<h2 class="qtext">' + esc(q.q) + '</h2>' +
+      '<p class="why">' + esc(q.why) + '</p>' +
+      '<div class="opts">';
+    q.opts.forEach(function (o, oi) {
+      var isPicked = picked && !picked.custom && picked.text === o.t;
+      html += '<button type="button" class="opt' + (isPicked ? ' picked' : '') + '" data-oi="' + oi + '">' +
+        '<span class="ot">' + esc(o.t) + '</span><span class="od">' + esc(o.d) + '</span></button>';
+    });
+    html += '</div>' +
+      '<div class="otherrow">' +
+      '<input type="text" id="otherInput" placeholder="其他——輸入你自己的答案…" value="' +
+        (picked && picked.custom ? esc(picked.text) : '') + '">' +
+      '<button type="button" id="otherGo">回答 ↵</button></div>' +
+      '<div class="navrow">' +
+      '<button type="button" class="backbtn" id="backBtn"' + (current === 0 ? ' disabled' : '') + '>← 上一題</button>' +
+      '<span class="navhint">選一張卡片繼續</span>' +
+      '</div></div>';
+    stage.innerHTML = html;
+
+    stage.querySelectorAll(".opt").forEach(function (el) {
+      el.addEventListener("click", function () {
+        var o = q.opts[parseInt(el.dataset.oi, 10)];
+        answers[current] = { text: o.t, custom: false };
+        el.classList.add("picked");
+        renderRail();
+        setTimeout(function () { go(current + 1); }, 240);
+      });
+    });
+    var input = stage.querySelector("#otherInput");
+    function submitOther() {
+      var v = input.value.trim();
+      if (!v) { input.focus(); return; }
+      answers[current] = { text: v, custom: true };
+      renderRail();
+      go(current + 1);
+    }
+    stage.querySelector("#otherGo").addEventListener("click", submitOther);
+    input.addEventListener("keydown", function (e) { if (e.key === "Enter") submitOther(); });
+    stage.querySelector("#backBtn").addEventListener("click", function () { go(current - 1); });
+  }
+
+  function buildFollowupPrompt() {
+    var lines = [
+      "這是我們在訪談中決定的——請用這些限制",
+      "實作標註匯出功能：",
+      ""
+    ];
+    QUESTIONS.forEach(function (q, i) {
+      var a = answers[i];
+      lines.push((i + 1) + ". " + q.topic + "：" + (a ? a.text : "（未回答——自行判斷）") +
+        (a && a.custom ? " [我自己的說法——不清楚就問]" : ""));
+    });
+    lines.push("");
+    lines.push("把架構和資料模型決策（1-4）視為固定。");
+    lines.push("如果 5-7 中有任何與它們衝突的地方，寫程式碼之前先提出。");
+    lines.push("先給出簡短計畫，然後開始實作。");
+    return lines.join("\n");
+  }
+
+  function renderSummary() {
+    var rows = "";
+    QUESTIONS.forEach(function (q, i) {
+      var r = RADII[q.radius];
+      var a = answers[i];
+      rows += "<tr>" +
+        '<td><span class="pill" style="background:' + r.color + '">' + esc(r.label) + '</span></td>' +
+        '<td class="topic">' + esc(q.topic) + '</td>' +
+        '<td class="dec">' + (a ? esc(a.text) + (a.custom ? ' <span style="font-weight:400;color:var(--g500)">（你的說法）</span>' : '') : '<span style="color:var(--g500)">—</span>') + '</td>' +
+        '<td><button type="button" class="redo" data-i="' + i + '">編輯</button></td>' +
+        "</tr>";
+    });
+    stage.innerHTML = '<div class="qcard">' +
+      '<span class="badge" style="background:var(--olive)">訪談完成</span>' +
+      '<h2 class="sum-h">七個決定，零個假設。</h2>' +
+      '<p class="sum-sub">下面每一個答案都會在實作過程中被靜默猜測。</p>' +
+      '<div class="dtable-scroll"><table class="dtable"><thead><tr>' +
+      '<th>範圍</th><th>問題</th><th>決定</th><th></th>' +
+      '</tr></thead><tbody>' + rows + '</tbody></table></div>' +
+      '<div class="genblock">' +
+      '<div class="gb-label">產生的後續 Prompt</div>' +
+      '<div class="genwrap"><button type="button" class="copybtn" id="copyGen">複製</button>' +
+      '<pre id="genPre">' + esc(buildFollowupPrompt()) + '</pre></div>' +
+      '</div>' +
+      '<button type="button" class="restart" id="restartBtn">↺ 重新開始</button>' +
+      '</div>';
+
+    stage.querySelectorAll(".redo").forEach(function (el) {
+      el.addEventListener("click", function () { go(parseInt(el.dataset.i, 10)); });
+    });
+    wireCopy(stage.querySelector("#copyGen"), function () { return buildFollowupPrompt(); });
+    stage.querySelector("#restartBtn").addEventListener("click", function () {
+      answers = new Array(QUESTIONS.length).fill(null);
+      go(0);
+    });
+  }
+
+  function go(idx) {
+    var card = stage.querySelector(".qcard");
+    var doRender = function () {
+      current = idx;
+      renderRail();
+      if (current >= QUESTIONS.length) renderSummary();
+      else renderQuestion();
+    };
+    if (card) {
+      card.classList.add("leaving");
+      setTimeout(doRender, 160);
+    } else {
+      doRender();
+    }
+  }
+
+  function wireCopy(btn, getText) {
+    btn.addEventListener("click", function () {
+      var text = getText();
+      var done = function () {
+        var orig = btn.textContent;
+        btn.textContent = "已複製 ✓";
+        btn.classList.add("done");
+        setTimeout(function () { btn.textContent = orig; btn.classList.remove("done"); }, 1600);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text); done(); });
+      } else {
+        fallbackCopy(text); done();
+      }
+    });
+  }
+  function fallbackCopy(text) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+
+  wireCopy(document.getElementById("copyPrompt"), function () {
+    return document.getElementById("promptText").textContent;
+  });
+
+  renderRail();
+  renderQuestion();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,653 @@
+<!-- Copyright 2026 Anthropic PBC · SPDX-License-Identifier: Apache-2.0 -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Point at a reference — Know your unknowns</title>
+<style>
+  :root {
+    --ivory:  #FAF9F5;
+    --paper:  #FFFFFF;
+    --slate:  #141413;
+    --clay:   #D97757;
+    --clay-d: #B85C3E;
+    --oat:    #E3DACC;
+    --olive:  #788C5D;
+    --g100:   #F0EEE6;
+    --g200:   #E6E3DA;
+    --g300:   #D1CFC5;
+    --g500:   #87867F;
+    --g700:   #3D3D3A;
+    --serif: ui-serif, Georgia, "Times New Roman", Times, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ivory);
+    color: var(--slate);
+    font-family: var(--sans);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 24px 100px; }
+
+  /* ── header ── */
+  header { padding: 56px 0 8px; position: relative; }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--g500);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+  .eyebrow::before { content: ""; width: 24px; height: 1.5px; background: var(--clay); flex: none; }
+  .backlink {
+    position: absolute; top: 60px; right: 0;
+    font-family: var(--mono); font-size: 12px;
+    color: var(--g500); text-decoration: none;
+  }
+  .backlink:hover { color: var(--clay); }
+  h1 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(32px, 5vw, 48px);
+    line-height: 1.08;
+    letter-spacing: -0.018em;
+    margin: 0 0 10px;
+  }
+  h2 {
+    font-family: var(--serif);
+    font-weight: 500;
+    letter-spacing: -0.012em;
+    font-size: 24px;
+    margin: 0 0 6px;
+  }
+  h3 { font-family: var(--serif); font-weight: 500; font-size: 18px; letter-spacing: -0.01em; margin: 0 0 4px; }
+  .lede { font-size: 16.5px; color: var(--g700); max-width: 640px; margin: 0 0 32px; }
+
+  /* ── prompt box ── */
+  .card {
+    background: var(--paper);
+    border: 1.5px solid var(--g300);
+    border-radius: 14px;
+  }
+  .promptbox { padding: 22px 26px 24px; margin-bottom: 44px; position: relative; }
+  .promptbox .label {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--clay); margin-bottom: 12px;
+  }
+  .promptbox blockquote {
+    margin: 0; padding: 0 0 0 18px;
+    border-left: 3px solid var(--oat);
+    font-family: var(--serif); font-style: italic;
+    font-size: 17.5px; line-height: 1.5; color: var(--slate);
+    max-width: 760px;
+  }
+  .copybtn {
+    position: absolute; top: 18px; right: 18px;
+    font-family: var(--mono); font-size: 11px;
+    padding: 6px 12px; border-radius: 8px;
+    border: 1.5px solid var(--g300); background: var(--ivory);
+    color: var(--g700); cursor: pointer;
+    transition: border-color 120ms, color 120ms;
+  }
+  .copybtn:hover { border-color: var(--clay); color: var(--clay); }
+  .copybtn.done { border-color: var(--olive); color: var(--olive); }
+
+  /* ── divider ── */
+  .divider {
+    display: flex; align-items: center; gap: 16px;
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--g500);
+    margin: 0 0 40px;
+  }
+  .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--g300); }
+
+  /* ══════════ artifact ══════════ */
+  .artifact { }
+  .art-head {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px;
+    margin-bottom: 6px;
+  }
+  .art-head h2 { font-size: clamp(24px, 3.4vw, 30px); }
+  .badge {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em;
+    text-transform: uppercase; padding: 3px 10px; border-radius: 999px;
+    border: 1.5px solid var(--g300); color: var(--g500); background: var(--paper);
+    white-space: nowrap;
+  }
+  .badge.await { border-color: var(--clay); color: var(--clay-d); background: #FBF1EC; }
+  .art-sub { color: var(--g700); font-size: 14.5px; margin: 0 0 8px; max-width: 720px; }
+  .art-paths {
+    font-family: var(--mono); font-size: 12px; color: var(--g500);
+    display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 10px 0 36px;
+  }
+  .art-paths span b { color: var(--g700); font-weight: 600; }
+
+  .sec { margin: 0 0 46px; }
+  .sec-eyebrow {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--g500);
+    display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+  }
+  .sec-eyebrow .num {
+    font-family: var(--mono); font-size: 11px;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--slate); color: var(--ivory);
+    display: inline-flex; align-items: center; justify-content: center;
+    flex: none;
+  }
+
+  /* section 1 — bullets */
+  .bullets { padding: 20px 24px 8px; }
+  .bullets ul { list-style: none; margin: 0; padding: 0; }
+  .bullets li {
+    display: flex; gap: 14px; align-items: baseline;
+    padding: 10px 0 14px; border-bottom: 1px dashed var(--g200);
+    font-size: 15px; color: var(--g700);
+  }
+  .bullets li:last-child { border-bottom: 0; }
+  .bullets li::before {
+    content: ""; align-self: center;
+    width: 8px; height: 8px; border-radius: 2px;
+    background: var(--clay); flex: none; transform: rotate(45deg);
+  }
+  .bullets li b { color: var(--slate); font-weight: 600; }
+  .bullets code, .prose code, td code, .note code {
+    font-family: var(--mono); font-size: 0.86em;
+    background: var(--g100); border: 1px solid var(--g200);
+    border-radius: 5px; padding: 1px 5px; white-space: nowrap;
+  }
+
+  /* section 2 — code pairs */
+  .pair { margin-bottom: 26px; }
+  .pair-title {
+    display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+  .pair-title .pt-n {
+    font-family: var(--mono); font-size: 11px; color: var(--clay-d);
+    letter-spacing: 0.08em;
+  }
+  .pair-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  @media (max-width: 760px) { .pair-grid { grid-template-columns: 1fr; } }
+  .codecard { overflow: hidden; display: flex; flex-direction: column; }
+  .codecard .chead {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    padding: 9px 14px;
+    background: var(--g100); border-bottom: 1.5px solid var(--g300);
+    font-family: var(--mono); font-size: 11px; color: var(--g500);
+    white-space: nowrap; overflow: hidden;
+  }
+  .codecard .chead .lang {
+    font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 2px 8px; border-radius: 999px; flex: none;
+  }
+  .lang.rust { background: var(--oat); color: var(--g700); }
+  .lang.ts { background: var(--slate); color: var(--ivory); }
+  .chead .fp { overflow: hidden; text-overflow: ellipsis; }
+  .codecard pre {
+    margin: 0; padding: 14px 16px;
+    overflow-x: auto;
+    font-family: var(--mono); font-size: 12.5px; line-height: 1.62;
+    color: var(--slate); flex: 1;
+    -webkit-overflow-scrolling: touch;
+  }
+  .codecard pre code { display: block; min-width: max-content; }
+  /* syntax palette */
+  .kw  { color: var(--clay-d); }
+  .ty  { color: var(--olive); font-weight: 600; }
+  .fn2 { color: var(--slate); font-weight: 600; }
+  .str { color: var(--olive); }
+  .nu  { color: var(--clay-d); }
+  .cm  { color: var(--g500); font-style: italic; }
+  /* matched highlight regions */
+  mark.hl {
+    background: #F6E8DF;
+    border-bottom: 2px solid var(--clay);
+    border-radius: 3px; padding: 0 2px; margin: 0 -2px;
+    color: inherit; cursor: default;
+    transition: background 120ms;
+  }
+  mark.hl sup {
+    font-family: var(--mono); font-size: 9px; color: var(--clay-d);
+    margin-left: 1px;
+  }
+  mark.hl.active { background: var(--oat); border-bottom-color: var(--clay-d); }
+  /* margin notes */
+  .notes { margin: 12px 2px 0; display: grid; gap: 8px; }
+  .note {
+    display: flex; gap: 10px; align-items: baseline;
+    font-size: 13.5px; color: var(--g700);
+  }
+  .note .nmark {
+    font-family: var(--mono); font-size: 10px; flex: none;
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 1.5px solid var(--clay); color: var(--clay-d);
+    display: inline-flex; align-items: center; justify-content: center;
+    align-self: center; cursor: default;
+    transition: background 120ms;
+  }
+  .note.active .nmark { background: var(--clay); color: var(--paper); }
+  .note b { color: var(--slate); font-weight: 600; }
+
+  /* tables */
+  .tbl-scroll { overflow-x: auto; border: 1.5px solid var(--g300); border-radius: 14px; background: var(--paper); }
+  table { border-collapse: collapse; width: 100%; min-width: 660px; font-size: 13.5px; }
+  th {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em;
+    text-transform: uppercase; text-align: left; color: var(--g500);
+    padding: 12px 16px; background: var(--g100);
+    border-bottom: 1.5px solid var(--g300);
+  }
+  td {
+    padding: 12px 16px; vertical-align: top;
+    border-bottom: 1px solid var(--g200); color: var(--g700);
+  }
+  tr:last-child td { border-bottom: 0; }
+  td b { color: var(--slate); font-weight: 600; }
+  th.col-keep { color: var(--olive); }
+  th.col-chg  { color: var(--clay-d); }
+  th.col-drop { color: var(--g500); }
+  .pill {
+    display: inline-block; font-family: var(--mono); font-size: 10px;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 2px 9px; border-radius: 999px; white-space: nowrap;
+  }
+  .pill.same { background: #EDF1E6; color: var(--olive); border: 1px solid #C9D4B8; }
+  .pill.equiv { background: #FBF1EC; color: var(--clay-d); border: 1px solid #EBC9B8; }
+
+  /* three-column preserved/changed/dropped */
+  .three { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  @media (max-width: 820px) { .three { grid-template-columns: 1fr; } }
+  .col { padding: 18px 18px 12px; }
+  .col .colhead {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.12em;
+    text-transform: uppercase; margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .col .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .col.keep .colhead { color: var(--olive); } .col.keep .dot { background: var(--olive); }
+  .col.chg  .colhead { color: var(--clay-d); } .col.chg .dot { background: var(--clay); }
+  .col.drop .colhead { color: var(--g500); } .col.drop .dot { background: var(--g300); }
+  .col ul { margin: 0; padding: 0; list-style: none; }
+  .col li {
+    font-size: 13.5px; color: var(--g700);
+    padding: 8px 0; border-top: 1px dashed var(--g200);
+  }
+  .col li:first-child { border-top: 0; }
+  .col li b { color: var(--slate); font-weight: 600; }
+  .col.drop li { color: var(--g500); }
+  .col.drop li b { color: var(--g700); }
+
+  /* confirm card */
+  .confirm {
+    border-color: var(--clay);
+    padding: 26px 28px;
+    display: flex; flex-wrap: wrap; gap: 20px 32px;
+    align-items: center; justify-content: space-between;
+    background: linear-gradient(0deg, #FBF4EF, var(--paper));
+  }
+  .confirm .ctext { max-width: 520px; }
+  .confirm .ctext p { margin: 6px 0 0; font-size: 14px; color: var(--g700); }
+  .cbtns { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn {
+    font-family: var(--mono); font-size: 12.5px;
+    padding: 11px 18px; border-radius: 10px; cursor: pointer;
+    border: 1.5px solid var(--slate);
+    transition: transform 100ms, background 120ms, color 120ms, border-color 120ms;
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn.primary { background: var(--slate); color: var(--ivory); }
+  .btn.primary:hover { background: var(--clay-d); border-color: var(--clay-d); }
+  .btn.primary.done { background: var(--olive); border-color: var(--olive); }
+  .btn.ghost { background: var(--paper); color: var(--g700); border-color: var(--g300); }
+  .btn.ghost:hover { border-color: var(--clay); color: var(--clay-d); }
+
+  footer {
+    margin-top: 80px; padding-top: 24px;
+    border-top: 1.5px solid var(--g300);
+    font-size: 13px; color: var(--g500);
+  }
+  footer a { color: var(--clay-d); text-decoration-color: var(--oat); text-underline-offset: 3px; }
+</style>
+<style id="gu-log-mirror-credit-style">.gu-log-mirror-credit{position:sticky;top:0;z-index:9999;padding:8px 14px;background:#111;color:#f7f3e8;border-bottom:1px solid rgba(255,255,255,.18);font:13px/1.45 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;text-align:center}.gu-log-mirror-credit a{color:#f4c86a;text-decoration:underline;text-underline-offset:2px}.gu-log-mirror-credit strong{font-weight:750}</style>
+</head>
+<body>
+<div class="gu-log-mirror-credit" role="note"><strong>Mirror copy for gu-log SP-251.</strong> Original by <a href="https://x.com/trq212">Thariq (@trq212)</a>: <a href="https://thariqs.github.io/html-effectiveness/unknowns/">Know your unknowns</a>. English original preserved; zh-tw version later.</div>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Know your unknowns · Pre-implementation</div>
+    <a class="backlink" href="index.html">&larr; All examples</a>
+    <h1>Point at a reference</h1>
+    <p class="lede">When an existing implementation already encodes the behavior you want, make Claude prove it understood the reference — as a reviewable artifact — before a single line gets ported.</p>
+
+    <div class="card promptbox">
+      <div class="label">The prompt</div>
+      <button class="copybtn" id="copyPrompt">copy prompt</button>
+      <blockquote id="promptText">This Rust crate in vendor/rate-limiter implements the exact backoff behavior I want. Read it and reimplement the same semantics in our TypeScript API client &mdash; but first show me a semantics map so I can confirm you understood it.</blockquote>
+    </div>
+  </header>
+
+  <div class="divider">What Claude produced</div>
+
+  <div class="artifact">
+
+    <div class="art-head">
+      <h2>Semantics map: <em style="font-style:italic;color:var(--clay-d)">rate-limiter</em> &rarr; Acme API client</h2>
+      <span class="badge await">awaiting confirmation</span>
+    </div>
+    <p class="art-sub">What the crate does, how each behavior maps to TypeScript, and every place the port cannot be a literal translation. Nothing gets implemented until you sign off on this page.</p>
+    <div class="art-paths">
+      <span><b>source</b> vendor/rate-limiter (Rust, 612 loc, 3 modules)</span>
+      <span><b>target</b> src/api/retry/ in acme-web</span>
+      <span><b>read</b> bucket.rs · backoff.rs · budget.rs · 14 tests</span>
+    </div>
+
+    <!-- ── 1. what it does ── -->
+    <section class="sec">
+      <div class="sec-eyebrow"><span class="num">1</span> What the crate actually does</div>
+      <div class="card bullets">
+        <ul>
+          <li><span><b>Token bucket admission</b> (<code>bucket.rs</code>): every outgoing request withdraws 1 token from a bucket that refills at <code>rate_per_sec = 8</code> up to <code>burst_capacity = 40</code>. The bucket starts <b>full</b>, so a cold client can burst 40 requests instantly.</span></li>
+          <li><span><b>Refill is lazy and integer-truncated</b>: tokens are minted only when a request arrives, from elapsed nanoseconds &times; rate &divide; 10&#8313;. Fractional tokens are never stored &mdash; instead, <code>last_refill</code> only advances when at least one whole token is minted, so sub-token elapsed time carries forward.</span></li>
+          <li><span><b>Decorrelated jitter backoff</b> (<code>backoff.rs</code>): on retryable failure, the next delay is drawn uniformly from <code>[base, min(prev &times; 3, cap)]</code> with <code>base = 250ms</code>, <code>cap = 30s</code>. Each draw seeds the next &mdash; delays wander rather than doubling in lockstep, which desynchronizes clients after an outage.</span></li>
+          <li><span><b>Retry budget</b> (<code>budget.rs</code>): a second, separate bucket. Every <b>successful first-try</b> request deposits 1; every <b>retry attempt</b> withdraws 10. When the balance can&rsquo;t cover a withdrawal, retries are refused entirely (first-try requests still go out). This caps retry amplification at ~10% during a sustained outage.</span></li>
+          <li><span><b>Failure classification is the caller&rsquo;s job</b>: the crate never inspects errors. It exposes <code>acquire()</code>, <code>next_delay()</code>, <code>try_withdraw()</code> and the caller decides what counts as retryable. The TS port keeps that boundary &mdash; Acme&rsquo;s <code>isRetryable()</code> in <code>src/api/errors.ts</code> stays the single source of truth.</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ── 2. side-by-side ── -->
+    <section class="sec">
+      <div class="sec-eyebrow"><span class="num">2</span> Side-by-side: Rust source &rarr; proposed TypeScript</div>
+      <p class="art-sub" style="margin-bottom:20px">Highlighted regions correspond across columns &mdash; hover one to light up its counterpart and the gotcha note it maps to.</p>
+
+      <!-- pair A -->
+      <div class="pair">
+        <div class="pair-title"><span class="pt-n">PAIR A / 3</span><h3>Lazy refill &mdash; integer truncation must survive the float world</h3></div>
+        <div class="pair-grid">
+          <div class="card codecard">
+            <div class="chead"><span class="fp">vendor/rate-limiter/src/bucket.rs:41</span><span class="lang rust">Rust</span></div>
+            <pre><code><span class="kw">fn</span> <span class="fn2">refill</span>(&amp;<span class="kw">mut</span> <span class="kw">self</span>, now: <span class="ty">Instant</span>) {
+    <span class="kw">let</span> elapsed = now
+        .<mark class="hl" data-p="a1">saturating_duration_since<sup>1</sup></mark>(<span class="kw">self</span>.last_refill);
+    <span class="kw">let</span> new_tokens = <mark class="hl" data-p="a2">elapsed.as_nanos() <span class="kw">as</span> <span class="ty">u64</span>
+        * <span class="kw">self</span>.rate_per_sec <span class="kw">as</span> <span class="ty">u64</span>
+        / <span class="nu">1_000_000_000</span><sup>2</sup></mark>;
+    <span class="kw">if</span> <mark class="hl" data-p="a3">new_tokens &gt; <span class="nu">0</span><sup>3</sup></mark> {
+        <span class="kw">self</span>.tokens = (<span class="kw">self</span>.tokens + new_tokens)
+            .min(<span class="kw">self</span>.burst_capacity);
+        <mark class="hl" data-p="a3"><span class="kw">self</span>.last_refill = now;</mark>
+    }
+}</code></pre>
+          </div>
+          <div class="card codecard">
+            <div class="chead"><span class="fp">src/api/retry/tokenBucket.ts (proposed)</span><span class="lang ts">TS</span></div>
+            <pre><code><span class="kw">private</span> <span class="fn2">refill</span>(now: <span class="ty">number</span>): <span class="ty">void</span> {
+  <span class="cm">// now comes from performance.now(), not Date.now()</span>
+  <span class="kw">const</span> elapsedMs = <mark class="hl" data-p="a1"><span class="ty">Math</span>.max(<span class="nu">0</span>, now - <span class="kw">this</span>.lastRefill)<sup>1</sup></mark>;
+  <span class="kw">const</span> newTokens = <mark class="hl" data-p="a2"><span class="ty">Math</span>.floor(
+    (elapsedMs * <span class="kw">this</span>.ratePerSec) / <span class="nu">1000</span>
+  )<sup>2</sup></mark>;
+  <span class="kw">if</span> (<mark class="hl" data-p="a3">newTokens &gt; <span class="nu">0</span><sup>3</sup></mark>) {
+    <span class="kw">this</span>.tokens = <span class="ty">Math</span>.min(
+      <span class="kw">this</span>.tokens + newTokens,
+      <span class="kw">this</span>.burstCapacity
+    );
+    <mark class="hl" data-p="a3"><span class="kw">this</span>.lastRefill = now;</mark>
+  }
+}</code></pre>
+          </div>
+        </div>
+        <div class="notes">
+          <div class="note" data-p="a1"><span class="nmark">1</span><span><b>Clock going backwards.</b> <code>saturating_duration_since</code> clamps negative elapsed time to zero. <code>Date.now()</code> can jump backwards under NTP correction; the port uses monotonic <code>performance.now()</code> <em>and</em> keeps <code>Math.max(0, &hellip;)</code> as a belt-and-suspenders match.</span></div>
+          <div class="note" data-p="a2"><span class="nmark">2</span><span><b>Integer vs float math.</b> Rust&rsquo;s <code>u64</code> division truncates; JS division doesn&rsquo;t. <code>Math.floor</code> restores truncation. Millis instead of nanos is safe: at <code>rate = 8</code>, <code>elapsedMs * 8</code> stays far below <code>2&#8309;&sup3;</code>, so no precision loss.</span></div>
+          <div class="note" data-p="a3"><span class="nmark">3</span><span><b>The load-bearing guard.</b> <code>last_refill</code> only advances when a whole token is minted. Dropping this guard (an easy &ldquo;simplification&rdquo;) silently discards sub-token progress on every call &mdash; at low rates the bucket would <em>never</em> refill under frequent polling. Preserved exactly, plus a regression test.</span></div>
+        </div>
+      </div>
+
+      <!-- pair B -->
+      <div class="pair">
+        <div class="pair-title"><span class="pt-n">PAIR B / 3</span><h3>Decorrelated jitter &mdash; inclusive range, wandering seed</h3></div>
+        <div class="pair-grid">
+          <div class="card codecard">
+            <div class="chead"><span class="fp">vendor/rate-limiter/src/backoff.rs:27</span><span class="lang rust">Rust</span></div>
+            <pre><code><span class="kw">fn</span> <span class="fn2">next_delay</span>(&amp;<span class="kw">mut</span> <span class="kw">self</span>) -&gt; <span class="ty">Duration</span> {
+    <span class="kw">let</span> hi = (<mark class="hl" data-p="b1"><span class="kw">self</span>.prev_delay_ms.saturating_mul(<span class="nu">3</span>)<sup>4</sup></mark>)
+        .min(<span class="kw">self</span>.cap_ms);
+    <span class="kw">let</span> lo = <span class="kw">self</span>.base_ms;
+    <span class="kw">let</span> ms = <span class="kw">self</span>.rng
+        .<mark class="hl" data-p="b2">gen_range(lo..=hi.max(lo))<sup>5</sup></mark>;
+    <mark class="hl" data-p="b3"><span class="kw">self</span>.prev_delay_ms = ms;<sup>6</sup></mark>
+    <span class="ty">Duration</span>::from_millis(ms)
+}</code></pre>
+          </div>
+          <div class="card codecard">
+            <div class="chead"><span class="fp">src/api/retry/backoff.ts (proposed)</span><span class="lang ts">TS</span></div>
+            <pre><code><span class="fn2">nextDelay</span>(): <span class="ty">number</span> {
+  <span class="kw">const</span> hi = <span class="ty">Math</span>.min(<mark class="hl" data-p="b1"><span class="kw">this</span>.prevDelayMs * <span class="nu">3</span><sup>4</sup></mark>, <span class="kw">this</span>.capMs);
+  <span class="kw">const</span> lo = <span class="kw">this</span>.baseMs;
+  <span class="kw">const</span> span = <span class="ty">Math</span>.max(hi, lo) - lo;
+  <span class="kw">const</span> ms = <mark class="hl" data-p="b2">lo + <span class="ty">Math</span>.floor(
+    <span class="kw">this</span>.random() * (span + <span class="nu">1</span>)
+  )<sup>5</sup></mark>;
+  <mark class="hl" data-p="b3"><span class="kw">this</span>.prevDelayMs = ms;<sup>6</sup></mark>
+  <span class="kw">return</span> ms;
+}</code></pre>
+          </div>
+        </div>
+        <div class="notes">
+          <div class="note" data-p="b1"><span class="nmark">4</span><span><b>Saturating multiply.</b> <code>saturating_mul(3)</code> guards <code>u64</code> overflow. In JS this can&rsquo;t overflow &mdash; <code>capMs = 30_000</code> bounds the product long before <code>2&#8309;&sup3;</code> &mdash; so the guard is deliberately dropped (see &sect;3, &ldquo;dropped&rdquo; column).</span></div>
+          <div class="note" data-p="b2"><span class="nmark">5</span><span><b>Inclusive vs exclusive range.</b> Rust&rsquo;s <code>lo..=hi</code> includes both endpoints. Naive <code>lo + random() * (hi - lo)</code> never yields <code>hi</code>. The <code>+ 1</code> inside <code>Math.floor</code> restores inclusivity &mdash; a one-character bug magnet, called out so you can veto or bless it.</span></div>
+          <div class="note" data-p="b3"><span class="nmark">6</span><span><b>Stateful seed.</b> Each draw becomes the next iteration&rsquo;s <code>prev</code> &mdash; this is what makes it <em>decorrelated</em> rather than plain expo-backoff-with-jitter. <code>reset()</code> restores <code>prevDelayMs = baseMs</code> on success, matching the crate&rsquo;s <code>Backoff::reset</code>. <code>this.random</code> is injectable for deterministic tests (crate uses a seeded <code>SmallRng</code> in its tests).</span></div>
+        </div>
+      </div>
+
+      <!-- pair C -->
+      <div class="pair">
+        <div class="pair-title"><span class="pt-n">PAIR C / 3</span><h3>Retry budget &mdash; a mutex the event loop doesn&rsquo;t need (with one trap)</h3></div>
+        <div class="pair-grid">
+          <div class="card codecard">
+            <div class="chead"><span class="fp">vendor/rate-limiter/src/budget.rs:58</span><span class="lang rust">Rust</span></div>
+            <pre><code><span class="kw">pub fn</span> <span class="fn2">try_withdraw</span>(&amp;<span class="kw">self</span>) -&gt; <span class="ty">bool</span> {
+    <span class="kw">let mut</span> b = <mark class="hl" data-p="c1"><span class="kw">self</span>.inner.lock().unwrap()<sup>7</sup></mark>;
+    b.deposit_drip(<span class="ty">Instant</span>::now());
+    <span class="kw">if</span> <mark class="hl" data-p="c2">b.balance &gt;= <span class="ty">WITHDRAW_COST</span> {
+        b.balance -= <span class="ty">WITHDRAW_COST</span>;<sup>8</sup></mark>
+        <span class="kw">true</span>
+    } <span class="kw">else</span> {
+        <mark class="hl" data-p="c3"><span class="kw">false</span> <span class="cm">// refuse retry, don&rsquo;t queue</span><sup>9</sup></mark>
+    }
+}</code></pre>
+          </div>
+          <div class="card codecard">
+            <div class="chead"><span class="fp">src/api/retry/budget.ts (proposed)</span><span class="lang ts">TS</span></div>
+            <pre><code><span class="fn2">tryWithdraw</span>(): <span class="ty">boolean</span> {
+  <span class="cm">// <mark class="hl" data-p="c1">no lock: single-threaded event loop<sup>7</sup></mark> —</span>
+  <span class="cm">// but NO await between check and debit.</span>
+  <span class="kw">this</span>.depositDrip(<span class="kw">this</span>.clock());
+  <span class="kw">if</span> (<mark class="hl" data-p="c2"><span class="kw">this</span>.balance &gt;= <span class="ty">WITHDRAW_COST</span>) {
+    <span class="kw">this</span>.balance -= <span class="ty">WITHDRAW_COST</span>;<sup>8</sup></mark>
+    <span class="kw">return</span> <span class="kw">true</span>;
+  }
+  <span class="kw">return</span> <mark class="hl" data-p="c3"><span class="kw">false</span><sup>9</sup></mark>;
+}</code></pre>
+          </div>
+        </div>
+        <div class="notes">
+          <div class="note" data-p="c1"><span class="nmark">7</span><span><b>Thread-safety &rarr; event loop.</b> The crate&rsquo;s <code>Mutex</code> exists because Rust callers withdraw from worker threads. Acme&rsquo;s client runs on one event loop, so the lock disappears &mdash; <em>but the atomicity it provided must be preserved by convention</em>: <code>tryWithdraw</code> is synchronous end-to-end, and I&rsquo;ll add an eslint <code>no-await-in-budget</code> boundary comment plus a test that the method never returns a Promise.</span></div>
+          <div class="note" data-p="c2"><span class="nmark">8</span><span><b>Check-then-debit stays fused.</b> Same shape both sides. The failure mode isn&rsquo;t data races here &mdash; it&rsquo;s a future refactor inserting an <code>await</code> (e.g., to log) between the check and the debit, letting two in-flight retries both pass the check.</span></div>
+          <div class="note" data-p="c3"><span class="nmark">9</span><span><b>Refuse, never queue.</b> On an empty budget the crate returns <code>false</code> immediately &mdash; the request either goes out as a first try or fails fast. The port must <em>not</em> &ldquo;helpfully&rdquo; enqueue the retry for later; that would rebuild the retry storm the budget exists to prevent.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 3. preserved / changed / dropped ── -->
+    <section class="sec">
+      <div class="sec-eyebrow"><span class="num">3</span> Behaviors: preserved / deliberately changed / dropped</div>
+      <div class="three">
+        <div class="card col keep">
+          <div class="colhead"><span class="dot"></span>Preserved exactly</div>
+          <ul>
+            <li><b>Refill truncation + guard</b> &mdash; whole tokens only; <code>lastRefill</code> advances only on mint</li>
+            <li><b>Jitter formula</b> &mdash; uniform over <code>[base, min(prev&times;3, cap)]</code>, inclusive both ends</li>
+            <li><b>Budget economics</b> &mdash; +1 per first-try success, &minus;10 per retry, ceiling 1000</li>
+            <li><b>Bucket starts full</b> &mdash; 40-request cold burst is intentional (matches crate test <code>burst_at_t0</code>)</li>
+            <li><b>Caller classifies errors</b> &mdash; limiter never inspects failures</li>
+          </ul>
+        </div>
+        <div class="card col chg">
+          <div class="colhead"><span class="dot"></span>Deliberately changed</div>
+          <ul>
+            <li><b><code>Instant</code> &rarr; <code>performance.now()</code></b> &mdash; both monotonic; ms resolution is sufficient at rate 8/s</li>
+            <li><b><code>u64</code> nanos &rarr; <code>number</code> ms</b> &mdash; all products provably &lt; 2&#8309;&sup3;; <code>Math.floor</code> replays integer division</li>
+            <li><b><code>Mutex&lt;Budget&gt;</code> &rarr; plain fields</b> &mdash; atomicity by sync-only convention + test</li>
+            <li><b><code>SmallRng</code> &rarr; injected <code>random()</code></b> &mdash; defaults to <code>Math.random</code>, seeded stub in tests</li>
+          </ul>
+        </div>
+        <div class="card col drop">
+          <div class="colhead"><span class="dot"></span>Dropped (not needed)</div>
+          <ul>
+            <li><b><code>saturating_mul</code> overflow guards</b> &mdash; unreachable once cap is applied in ms range</li>
+            <li><b><code>Send + Sync</code> impls, <code>Arc</code> cloning</b> &mdash; no threads to share across</li>
+            <li><b><code>tokio</code>/<code>async-std</code> feature flags</b> &mdash; port is runtime-agnostic by construction</li>
+            <li><b>Prometheus counters</b> &mdash; Acme emits via <code>telemetry.track()</code> instead; hook points kept</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 4. edge cases ── -->
+    <section class="sec">
+      <div class="sec-eyebrow"><span class="num">4</span> Edge cases: expected behavior on both sides</div>
+      <div class="tbl-scroll">
+        <table>
+          <thead>
+            <tr><th style="width:22%">Edge case</th><th style="width:31%">Rust crate</th><th style="width:31%">TypeScript port</th><th>Match</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>Clock skew</b><br>system clock steps back 5s mid-session</td>
+              <td><code>Instant</code> is monotonic &mdash; unaffected. <code>saturating_duration_since</code> is a second fence.</td>
+              <td><code>performance.now()</code> is monotonic &mdash; unaffected. <code>Math.max(0,&hellip;)</code> kept as the same second fence.</td>
+              <td><span class="pill same">identical</span></td>
+            </tr>
+            <tr>
+              <td><b>Burst at t=0</b><br>fresh client fires 45 requests at once</td>
+              <td>First 40 admitted instantly (bucket starts full); 41&ndash;45 rejected until refill. Crate test: <code>burst_at_t0</code>.</td>
+              <td>Same: 40 admitted, 5 rejected with <code>RateLimited</code>. Port test replays the crate&rsquo;s fixture numbers verbatim.</td>
+              <td><span class="pill same">identical</span></td>
+            </tr>
+            <tr>
+              <td><b>Budget exhaustion</b><br>sustained 100% failure for 60s</td>
+              <td>Balance drains to 0 in ~10 retries; further retries refused, first-tries continue. Retry rate settles at deposit&divide;cost = 10% of success rate (0 here).</td>
+              <td>Same economics, same settle point. Difference: refusal surfaces as <code>RetryBudgetExhausted</code> error so Acme&rsquo;s upload queue can show &ldquo;reconnecting&rdquo; instead of failing silently.</td>
+              <td><span class="pill equiv">equivalent*</span></td>
+            </tr>
+            <tr>
+              <td><b>Slow drip</b><br>rate 8/s but polled every 20ms (0.16 tokens/poll)</td>
+              <td>Guard carries sub-token time forward; a token mints every ~125ms regardless of poll cadence.</td>
+              <td>Same, via the preserved <code>newTokens &gt; 0</code> guard (Pair A, note 3). Regression test asserts mint cadence at 20ms polling.</td>
+              <td><span class="pill same">identical</span></td>
+            </tr>
+            <tr>
+              <td><b>Delay at cap</b><br>10th consecutive failure</td>
+              <td>Draw range collapses toward <code>[250ms, 30s]</code>; delay stays &le; 30s but still jittered &mdash; never a fixed 30s (avoids re-synchronizing clients).</td>
+              <td>Same bounds, same non-degenerate jitter &mdash; verified with a seeded RNG replaying the crate&rsquo;s <code>cap_still_jitters</code> test vector.</td>
+              <td><span class="pill same">identical</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="art-sub" style="margin-top:10px;font-size:13px">* &ldquo;equivalent&rdquo; = same decision, different surface. The crate returns bare <code>false</code>; the port wraps it in a typed error because Acme&rsquo;s UI needs to distinguish &ldquo;rate limited&rdquo; from &ldquo;offline&rdquo;. Flag this row if you&rsquo;d rather keep the bare boolean.</p>
+    </section>
+
+    <!-- ── 5. confirm ── -->
+    <section class="sec">
+      <div class="sec-eyebrow"><span class="num">5</span> Sign-off</div>
+      <div class="card confirm">
+        <div class="ctext">
+          <h3>Ready to port when you are</h3>
+          <p>Reply <b>&ldquo;semantics confirmed&rdquo;</b> and I&rsquo;ll implement <code>tokenBucket.ts</code>, <code>backoff.ts</code>, and <code>budget.ts</code> with the crate&rsquo;s 14 tests translated first. Or correct any row above &mdash; quote its number (e.g. &ldquo;note 5&rdquo;, &ldquo;budget exhaustion row&rdquo;) and I&rsquo;ll revise the map before writing code.</p>
+        </div>
+        <div class="cbtns">
+          <button class="btn primary" id="confirmBtn">copy &ldquo;semantics confirmed&rdquo;</button>
+          <button class="btn ghost" id="correctBtn">copy correction template</button>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <footer>Part of <a href="index.html">Know your unknowns</a> &mdash; companion examples to the blog post.</footer>
+</div>
+
+<script>
+(function () {
+  function copy(text, btn, doneLabel) {
+    var original = btn.textContent;
+    function done() {
+      btn.textContent = doneLabel;
+      btn.classList.add('done');
+      setTimeout(function () {
+        btn.textContent = original;
+        btn.classList.remove('done');
+      }, 1800);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, function () { fallback(); });
+    } else { fallback(); }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); done(); } catch (e) {}
+      document.body.removeChild(ta);
+    }
+  }
+
+  document.getElementById('copyPrompt').addEventListener('click', function () {
+    copy(document.getElementById('promptText').textContent.trim(), this, 'Copied');
+  });
+  document.getElementById('confirmBtn').addEventListener('click', function () {
+    copy('semantics confirmed', this, 'Copied — paste it back to Claude');
+  });
+  document.getElementById('correctBtn').addEventListener('click', function () {
+    copy('Correction to the semantics map:\n- section/row: \n- what you got wrong: \n- correct behavior: ', this, 'Copied');
+  });
+
+  // link highlighted regions across columns + their margin notes
+  function setActive(p, on) {
+    var els = document.querySelectorAll('[data-p="' + p + '"]');
+    for (var i = 0; i < els.length; i++) {
+      els[i].classList.toggle('active', on);
+    }
+  }
+  var linked = document.querySelectorAll('mark.hl, .note');
+  for (var i = 0; i < linked.length; i++) {
+    (function (el) {
+      var p = el.getAttribute('data-p');
+      if (!p) return;
+      el.addEventListener('mouseenter', function () { setActive(p, true); });
+      el.addEventListener('mouseleave', function () { setActive(p, false); });
+    })(linked[i]);
+  }
+})();
+</script>
+</body>
+</html>
