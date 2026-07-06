@@ -59,69 +59,26 @@ const MAX_CLAWD_NOTE_SUMMARY_CHARS = 120;
 // Known limitation: this only scans MDX source text, so it cannot catch
 // hardcoded user-visible strings baked into .astro components.
 const CJK_UNIFIED_IDEOGRAPH_PATTERN = /\p{Unified_Ideograph}/gu;
-const CJK_ESCAPE_MARKER = '<!-- cjk-ok -->';
-// Grandfather baseline: CJK Unified Ideograph lines that already existed
+// MDX requires {/* */} comments; HTML <!-- --> breaks the build.
+const CJK_ESCAPE_MARKERS = ['{/* cjk-ok */}', '<!-- cjk-ok -->'];
+const containsCjkEscape = (line) => CJK_ESCAPE_MARKERS.some((m) => line.includes(m));
+// Grandfather baseline: en-* CJK Unified Ideograph lines that already existed
 // when Rule 19 shipped (SP-251 uiux fix task, 2026-07-06), so the guard
-// shipped CI-green without a mass content-editing PR. Burn this down over
-// time — all remaining entries are legitimate citations/kaomoji that just
-// need the `<!-- cjk-ok -->` escape (see fixes-report.md for the original
-// file-by-file classification; the 3-line en-sp-193 untranslated-code-comment
-// bug was fixed and removed from this baseline in the fix/en-sp-193-untranslated-comments
-// follow-up). Whoever resolves a remaining line (adds the escape, or
-// retranslates a bug) should delete its entry below — new CJK that isn't in
-// this list still fails the guard.
+// shipped CI-green without a mass content-editing PR. All 14 original entries
+// have since been resolved — 11 legitimate citations/kaomoji got a `cjk-ok`
+// escape (fix/clawdnote-summaries-cjk-escapes) and the 3-line en-sp-193
+// untranslated-code-comment bug got retranslated
+// (fix/en-sp-193-untranslated-comments) — so this baseline is empty. Keep the
+// Map (and this comment) as the burn-down mechanism for the next time a
+// mass-adoption PR needs to ship CI-green before every line is fixed: add an
+// entry, downgrade it to a warning, and delete the entry once resolved.
 //
 // Keyed by exact trimmed line text (not line number) so unrelated edits
 // elsewhere in the file — which shift line numbers — don't silently drop a
 // line out of the baseline or let a false match through. Only editing the
 // flagged line itself invalidates its baseline entry, which is the correct
 // trigger to revisit it.
-const CJK_GRANDFATHERED_LINES = new Map([
-  [
-    'en-clawd-picks-20260204-anthropic-misalignment-hotmess.mdx',
-    new Set([
-      "That kind of industrial accident is what we're actually facing right now (ノಠ益ಠ)ノ彡┻━┻",
-    ]),
-  ],
-  [
-    'en-clawd-picks-20260226-cloudflare-vinext-tldraw-tests.mdx',
-    new Set([
-      "abstract 取得預設屬性(): 圖形['props']",
-      'abstract 取得幾何形狀(圖形: 圖形): 幾何圖形2d',
-      'But if you actually did this, code reviews would become incredibly entertaining: "Hey, why does your `取得幾何形狀` return `null`?" ┐(￣ヘ￣)┌',
-    ]),
-  ],
-  [
-    'en-sd-12-20260402-claude-code-bad-patterns.mdx',
-    new Set([
-      'Users express frustration in a thousand different ways. This regex catches a handful of English profanities. What does a frustrated Japanese user say? "もう無理" — doesn\'t match. German? "Scheiße" — doesn\'t match. An English user who types "this is completely broken and I want to cry"? Also doesn\'t match.',
-    ]),
-  ],
-  [
-    'en-sd-19-20260409-lightning-talk-ralph-loop.mdx',
-    new Set(["Hi, I'm [ShroomDog (香菇大狗狗)](/about)."]),
-  ],
-  [
-    'en-shroomdog-picks-20260210-anthropic-claude-for-nonprofits.mdx',
-    new Set([
-      'Taiwan has an organization called **GuangFuHero (光復超人)** ([GitHub](https://github.com/GuangFuHero)) — a disaster relief volunteer platform that builds volunteer maps, supply matching systems, demand pairing tools, and a logistics dispatch system called the "Little Bee Distribution System" (because of course it has a cute name — this is Taiwan). A textbook nonprofit tech organization, fully eligible for Claude for Nonprofits.',
-    ]),
-  ],
-  [
-    'en-sp-170-20260411-nickbaumann-codex-bespoke-cli-skill.mdx',
-    new Set([
-      "Now think about gu-log's setup. The [pre-commit hook](/posts/sp-159-20260404-zodchiii-claude-code-hooks-8-ai/) (that checks for \"你/我\" in zh-tw bodies), the `validate-posts.mjs` frontmatter checker, the [Ralph Loop](/en/glossary#ralph-loop) tribunal — philosophically they're doing the same job. Each one encodes \"the agent's default action should not be destructive.\" Nick's default-no lives at the skill-contract layer. gu-log's [Hooks](/en/glossary#hooks) live at the runtime layer. They're complementary, not substitutes.",
-    ]),
-  ],
-  [
-    'en-sp-65-20260216-fast-mode-anthropic-vs-openai-spark.mdx',
-    new Set([
-      "> *📘 Based on [this thread](https://x.com/dotey/status/2023152141129429340) by **宝玉** ([@dotey](https://x.com/dotey)) on X. Additional references: [Sean Goedecke's analysis](https://www.seangoedecke.com/fast-llm-inference/), [Hacker News discussion](https://news.ycombinator.com/item?id=47022329), [Anthropic Fast Mode docs](https://platform.claude.com/docs/en/build-with-claude/fast-mode), and [OpenAI Codex Spark announcement](https://openai.com/index/introducing-gpt-5-3-codex-spark/).*",
-      "宝玉's original thread nailed it with one analogy: actuary vs explorer. Let's break down this battle.",
-      "宝玉's one-line summary:",
-    ]),
-  ],
-]);
+const CJK_GRANDFATHERED_LINES = new Map([]);
 
 // ─── Helpers ───────────────────────────────────────────────────────
 function parseFrontmatter(content) {
@@ -540,12 +497,12 @@ function validatePost(filepath, allPosts, options = {}) {
       if (/^\s*```/.test(line)) {
         if (inEscapedFence) {
           inEscapedFence = false; // closing fence of an escaped block
-        } else if (line.includes(CJK_ESCAPE_MARKER)) {
+        } else if (containsCjkEscape(line)) {
           inEscapedFence = true; // opening fence marked as escaped
         }
         return;
       }
-      if (inEscapedFence || line.includes(CJK_ESCAPE_MARKER)) return;
+      if (inEscapedFence || containsCjkEscape(line)) return;
       const matches = line.match(CJK_UNIFIED_IDEOGRAPH_PATTERN);
       if (matches) {
         const lineNo = bodyStartLine + idx;
@@ -559,7 +516,7 @@ function validatePost(filepath, allPosts, options = {}) {
         } else {
           errors.push(
             `CJK Unified Ideograph "${chars}" found in en-* body at line ${lineNo} ` +
-              `(intentional? add "${CJK_ESCAPE_MARKER}" on that line, or on the opening ` +
+              `(intentional? add "{/* cjk-ok */}" on that line, or on the opening ` +
               '``` fence line to escape a whole code block, to allow it)'
           );
         }
@@ -929,4 +886,4 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   main();
 }
 
-export { parseFrontmatter, getBaseFilename, getContentBody, validatePost };
+export { parseFrontmatter, getBaseFilename, getContentBody, validatePost, CJK_GRANDFATHERED_LINES };

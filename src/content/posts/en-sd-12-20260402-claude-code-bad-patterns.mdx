@@ -52,7 +52,7 @@ The parts that made a $2.5B ARR product look embarrassing. The things you'd flag
 
 What makes me uncomfortable is this: **these are not Anthropic-specific problems**. They're systematic patterns of AI-generated code. The same issues are probably sitting in your codebase right now, waiting to be found.
 
-<ClawdNote>
+<ClawdNote summary="The world's most-used AI coding tool got its first real code review by accident.">
 David K Piano (the creator of XState) posted the sharpest take of the whole incident:
 
 > "Ironically this is probably the first time that actual humans are carefully & thoroughly reviewing the Claude Code codebase."
@@ -80,7 +80,7 @@ Nobody — human or AI — voluntarily says "wait, this function is too big, I s
 
 The result is spaghetti. Except this spaghetti has been microwaved too many times and is now a solid block.
 
-<ClawdNote>
+<ClawdNote summary="The smarter the model, the bigger the God Function it creates.">
 "God Object / God Function" is the final boss of software anti-patterns.
 
 You know the person at every company who "knows everything"? Sounds incredibly useful — until they quit. All that knowledge was in their head, not in documentation or tests. The whole system depends on one person, and nobody knows it until it's too late.
@@ -108,7 +108,7 @@ But there's a fundamental problem with that excuse in the AI era: **you're using
 
 If you can write 1,000 lines of feature code in a day with AI, you can also write tests for those 1,000 lines in the same day. You just say "write unit tests for this, cover these edge cases." AI doesn't find writing tests harder than writing features. "No time for tests" is no longer a valid excuse.
 
-<ClawdNote>
+<ClawdNote summary="Without tests, real users become your test suite — the most expensive kind.">
 After the leak, the community quickly found a bug: the `autoCompact` feature had an infinite failure loop, silently wasting an estimated 250K API calls per day.
 
 The fix? Three lines of code. Just add `MAX_CONSECUTIVE_AUTOCOMPACT_FAILURES = 3`.
@@ -142,7 +142,7 @@ That's a harsh way to put it. But it identifies a real design problem.
 
 You can say: "API overloaded. Automatically switched to Sonnet for this request. Response quality may vary slightly." That's completely acceptable. Users don't need to stop — but they need to know. What you can't do is let users believe they're getting Opus, give them Sonnet, and call it "protecting user experience."
 
-<ClawdNote>
+<ClawdNote summary="Silent failures make users blame themselves, not the product.">
 Here's the wild part: most users only found out about this because the source code leaked.
 
 Without the leak, this silent downgrade might have stayed invisible forever. Users would just have a vague feeling of "hm, the response seems weaker today, maybe my prompt wasn't good enough." No way to confirm. So they blame themselves.
@@ -172,11 +172,11 @@ But let's not jump to conclusions, because the reasoning isn't completely wrong.
 
 So the problem isn't "used regex." The problem is **whether regex can actually solve the problem you have**.
 
-Users express frustration in a thousand different ways. This regex catches a handful of English profanities. What does a frustrated Japanese user say? "もう無理" — doesn't match. German? "Scheiße" — doesn't match. An English user who types "this is completely broken and I want to cry"? Also doesn't match.
+Users express frustration in a thousand different ways. This regex catches a handful of English profanities. What does a frustrated Japanese user say? "もう無理" — doesn't match. German? "Scheiße" — doesn't match. An English user who types "this is completely broken and I want to cry"? Also doesn't match. {/* cjk-ok */}
 
 You used a fast, cheap tool. It doesn't correctly solve the problem.
 
-<ClawdNote>
+<ClawdNote summary="Wrong tool, fast + cheap = making mistakes faster and cheaper.">
 This shows up constantly in the AI era: **"I have LLMs available, but they have latency, cost, and unpredictability. So whenever I can use something simpler, I will."** Reasonable instinct. The problem is confusing "can use" with "used correctly."
 
 Better question: **how much intelligence does this decision actually need?**
@@ -230,7 +230,7 @@ The author of that 3,167-line function definitely knows what clean code looks li
 
 Then "later" arrived as a 59.8 MB `.map` file accidentally bundled into npm, giving the entire world a front-row seat to a live code review.
 
-<ClawdNote>
+<ClawdNote summary="Processes are designed by people. If you design the process, blame loops back.">
 [Boris Cherny](/en/glossary#boris-cherny), Claude Code's creator, said something worth keeping after the incident: *"It's never an individual's fault. It's the process, the culture, or the infra."*
 
 True. But I want to add one thing: **processes are designed by people. Culture is shaped by people. Infra is built by people.**
