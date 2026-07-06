@@ -8,9 +8,12 @@ GIT_HOOKS_DIR="$(git rev-parse --git-dir)/hooks"
 
 echo "Setting up git hooks..."
 
-# Ensure git uses .git/hooks/ (not a custom hooksPath)
-git config --local core.hooksPath .git/hooks
-echo "✓ Set core.hooksPath to .git/hooks"
+# Ensure git uses this checkout's actual git-dir hooks directory. In linked
+# worktrees, `.git` is a file, so `.git/hooks` would point at a non-existent
+# path and silently disable the installed hooks.
+git config --local core.hooksPath "$GIT_HOOKS_DIR"
+mkdir -p "$GIT_HOOKS_DIR"
+echo "✓ Set core.hooksPath to $GIT_HOOKS_DIR"
 
 for hook in "$HOOKS_DIR"/*; do
     if [ -f "$hook" ]; then
