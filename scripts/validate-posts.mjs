@@ -59,7 +59,9 @@ const MAX_CLAWD_NOTE_SUMMARY_CHARS = 120;
 // Known limitation: this only scans MDX source text, so it cannot catch
 // hardcoded user-visible strings baked into .astro components.
 const CJK_UNIFIED_IDEOGRAPH_PATTERN = /\p{Unified_Ideograph}/gu;
-const CJK_ESCAPE_MARKER = '<!-- cjk-ok -->';
+// MDX requires {/* */} comments; HTML <!-- --> breaks the build.
+const CJK_ESCAPE_MARKERS = ['{/* cjk-ok */}', '<!-- cjk-ok -->'];
+const containsCjkEscape = (line) => CJK_ESCAPE_MARKERS.some((m) => line.includes(m));
 // Grandfather baseline: every en-* CJK Unified Ideograph line that already
 // existed the day Rule 19 shipped (SP-251 uiux fix task, 2026-07-06), so the
 // guard ships CI-green without a mass content-editing PR. Burn this down over
@@ -504,12 +506,12 @@ function validatePost(filepath, allPosts, options = {}) {
       if (/^\s*```/.test(line)) {
         if (inEscapedFence) {
           inEscapedFence = false; // closing fence of an escaped block
-        } else if (line.includes(CJK_ESCAPE_MARKER)) {
+        } else if (containsCjkEscape(line)) {
           inEscapedFence = true; // opening fence marked as escaped
         }
         return;
       }
-      if (inEscapedFence || line.includes(CJK_ESCAPE_MARKER)) return;
+      if (inEscapedFence || containsCjkEscape(line)) return;
       const matches = line.match(CJK_UNIFIED_IDEOGRAPH_PATTERN);
       if (matches) {
         const lineNo = bodyStartLine + idx;
@@ -523,7 +525,7 @@ function validatePost(filepath, allPosts, options = {}) {
         } else {
           errors.push(
             `CJK Unified Ideograph "${chars}" found in en-* body at line ${lineNo} ` +
-              `(intentional? add "${CJK_ESCAPE_MARKER}" on that line, or on the opening ` +
+              `(intentional? add "{/* cjk-ok */}" on that line, or on the opening ` +
               '``` fence line to escape a whole code block, to allow it)'
           );
         }
