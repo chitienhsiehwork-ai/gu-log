@@ -76,56 +76,13 @@ const CJK_ESCAPE_MARKER = '<!-- cjk-ok -->';
 // flagged line itself invalidates its baseline entry, which is the correct
 // trigger to revisit it.
 const CJK_GRANDFATHERED_LINES = new Map([
-  [
-    'en-clawd-picks-20260204-anthropic-misalignment-hotmess.mdx',
-    new Set([
-      "That kind of industrial accident is what we're actually facing right now (ノಠ益ಠ)ノ彡┻━┻",
-    ]),
-  ],
-  [
-    'en-clawd-picks-20260226-cloudflare-vinext-tldraw-tests.mdx',
-    new Set([
-      "abstract 取得預設屬性(): 圖形['props']",
-      'abstract 取得幾何形狀(圖形: 圖形): 幾何圖形2d',
-      'But if you actually did this, code reviews would become incredibly entertaining: "Hey, why does your `取得幾何形狀` return `null`?" ┐(￣ヘ￣)┌',
-    ]),
-  ],
-  [
-    'en-sd-12-20260402-claude-code-bad-patterns.mdx',
-    new Set([
-      'Users express frustration in a thousand different ways. This regex catches a handful of English profanities. What does a frustrated Japanese user say? "もう無理" — doesn\'t match. German? "Scheiße" — doesn\'t match. An English user who types "this is completely broken and I want to cry"? Also doesn\'t match.',
-    ]),
-  ],
-  [
-    'en-sd-19-20260409-lightning-talk-ralph-loop.mdx',
-    new Set(["Hi, I'm [ShroomDog (香菇大狗狗)](/about)."]),
-  ],
-  [
-    'en-shroomdog-picks-20260210-anthropic-claude-for-nonprofits.mdx',
-    new Set([
-      'Taiwan has an organization called **GuangFuHero (光復超人)** ([GitHub](https://github.com/GuangFuHero)) — a disaster relief volunteer platform that builds volunteer maps, supply matching systems, demand pairing tools, and a logistics dispatch system called the "Little Bee Distribution System" (because of course it has a cute name — this is Taiwan). A textbook nonprofit tech organization, fully eligible for Claude for Nonprofits.',
-    ]),
-  ],
-  [
-    'en-sp-170-20260411-nickbaumann-codex-bespoke-cli-skill.mdx',
-    new Set([
-      "Now think about gu-log's setup. The [pre-commit hook](/posts/sp-159-20260404-zodchiii-claude-code-hooks-8-ai/) (that checks for \"你/我\" in zh-tw bodies), the `validate-posts.mjs` frontmatter checker, the [Ralph Loop](/en/glossary#ralph-loop) tribunal — philosophically they're doing the same job. Each one encodes \"the agent's default action should not be destructive.\" Nick's default-no lives at the skill-contract layer. gu-log's [Hooks](/en/glossary#hooks) live at the runtime layer. They're complementary, not substitutes.",
-    ]),
-  ],
+  // sp-193's 3 lines are a real untranslated-CJK bug, handled by a separate task
   [
     'en-sp-193-20260508-article-autobrowse-agent.mdx',
     new Set([
       '# 第一步：先用 fetch 試探。',
       '# 如果資料乾淨回來，就直接寫解析程式。',
       '# 如果回應是空的、動態的，或被關卡擋住，再升級到 Autobrowse。',
-    ]),
-  ],
-  [
-    'en-sp-65-20260216-fast-mode-anthropic-vs-openai-spark.mdx',
-    new Set([
-      "> *📘 Based on [this thread](https://x.com/dotey/status/2023152141129429340) by **宝玉** ([@dotey](https://x.com/dotey)) on X. Additional references: [Sean Goedecke's analysis](https://www.seangoedecke.com/fast-llm-inference/), [Hacker News discussion](https://news.ycombinator.com/item?id=47022329), [Anthropic Fast Mode docs](https://platform.claude.com/docs/en/build-with-claude/fast-mode), and [OpenAI Codex Spark announcement](https://openai.com/index/introducing-gpt-5-3-codex-spark/).*",
-      "宝玉's original thread nailed it with one analogy: actuary vs explorer. Let's break down this battle.",
-      "宝玉's one-line summary:",
     ]),
   ],
 ]);

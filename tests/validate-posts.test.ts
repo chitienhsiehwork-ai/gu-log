@@ -278,8 +278,8 @@ describe('validatePost — en-* CJK Unified Ideograph guard', () => {
   it('downgrades a grandfathered baseline line to a warning instead of an error', () => {
     // Must use the real filename + exact line text from CJK_GRANDFATHERED_LINES
     // in scripts/validate-posts.mjs — the baseline is keyed by both.
-    const filepath = tmpPath('en-sd-19-20260409-lightning-talk-ralph-loop.mdx');
-    fs.writeFileSync(filepath, makeEnPost(enFm, "Hi, I'm [ShroomDog (香菇大狗狗)](/about)."));
+    const filepath = tmpPath('en-sp-193-20260508-article-autobrowse-agent.mdx');
+    fs.writeFileSync(filepath, makeEnPost(enFm, '# 第一步：先用 fetch 試探。'));
     const r = validatePost(filepath, []);
     expect(r.errors.some((e: string) => e.includes('CJK Unified Ideograph'))).toBe(false);
     expect(r.warnings.some((w: string) => w.includes('grandfathered'))).toBe(true);
@@ -288,7 +288,7 @@ describe('validatePost — en-* CJK Unified Ideograph guard', () => {
   it('still fails a NEW (non-baseline) CJK line in an otherwise-grandfathered file', () => {
     // The baseline exempts specific line *text*, not the whole file — a
     // different offending line in the same file must still fail.
-    const filepath = tmpPath('en-sd-19-20260409-lightning-talk-ralph-loop.mdx');
+    const filepath = tmpPath('en-sp-193-20260508-article-autobrowse-agent.mdx');
     fs.writeFileSync(filepath, makeEnPost(enFm, '這是全新的違規句子，不在 baseline 裡。'));
     const r = validatePost(filepath, []);
     expect(r.errors.some((e: string) => e.includes('CJK Unified Ideograph'))).toBe(true);
