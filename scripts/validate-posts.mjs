@@ -60,15 +60,16 @@ const MAX_CLAWD_NOTE_SUMMARY_CHARS = 120;
 // hardcoded user-visible strings baked into .astro components.
 const CJK_UNIFIED_IDEOGRAPH_PATTERN = /\p{Unified_Ideograph}/gu;
 const CJK_ESCAPE_MARKER = '<!-- cjk-ok -->';
-// Grandfather baseline: every en-* CJK Unified Ideograph line that already
-// existed the day Rule 19 shipped (SP-251 uiux fix task, 2026-07-06), so the
-// guard ships CI-green without a mass content-editing PR. Burn this down over
-// time — 11 of these 14 lines are legitimate citations/kaomoji that just need
-// the `<!-- cjk-ok -->` escape (see fixes-report.md for the file-by-file
-// classification); the 3 lines in en-sp-193 are a real untranslated-CJK bug
-// in a fenced code block, reported but not fixed here. Whoever resolves a
-// line (adds the escape, or retranslates the bug) should delete its entry
-// below — new CJK that isn't in this list still fails the guard.
+// Grandfather baseline: CJK Unified Ideograph lines that already existed
+// when Rule 19 shipped (SP-251 uiux fix task, 2026-07-06), so the guard
+// shipped CI-green without a mass content-editing PR. Burn this down over
+// time — all remaining entries are legitimate citations/kaomoji that just
+// need the `<!-- cjk-ok -->` escape (see fixes-report.md for the original
+// file-by-file classification; the 3-line en-sp-193 untranslated-code-comment
+// bug was fixed and removed from this baseline in the fix/en-sp-193-untranslated-comments
+// follow-up). Whoever resolves a remaining line (adds the escape, or
+// retranslates a bug) should delete its entry below — new CJK that isn't in
+// this list still fails the guard.
 //
 // Keyed by exact trimmed line text (not line number) so unrelated edits
 // elsewhere in the file — which shift line numbers — don't silently drop a
@@ -110,14 +111,6 @@ const CJK_GRANDFATHERED_LINES = new Map([
     'en-sp-170-20260411-nickbaumann-codex-bespoke-cli-skill.mdx',
     new Set([
       "Now think about gu-log's setup. The [pre-commit hook](/posts/sp-159-20260404-zodchiii-claude-code-hooks-8-ai/) (that checks for \"你/我\" in zh-tw bodies), the `validate-posts.mjs` frontmatter checker, the [Ralph Loop](/en/glossary#ralph-loop) tribunal — philosophically they're doing the same job. Each one encodes \"the agent's default action should not be destructive.\" Nick's default-no lives at the skill-contract layer. gu-log's [Hooks](/en/glossary#hooks) live at the runtime layer. They're complementary, not substitutes.",
-    ]),
-  ],
-  [
-    'en-sp-193-20260508-article-autobrowse-agent.mdx',
-    new Set([
-      '# 第一步：先用 fetch 試探。',
-      '# 如果資料乾淨回來，就直接寫解析程式。',
-      '# 如果回應是空的、動態的，或被關卡擋住，再升級到 Autobrowse。',
     ]),
   ],
   [
