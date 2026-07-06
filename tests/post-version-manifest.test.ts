@@ -103,6 +103,47 @@ describe('post version manifest freshness', () => {
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('post-versions.json fresh');
   }, 60_000);
+
+  it('can precompute the manifest for staged post changes before commit', () => {
+    const repo = makeSyntheticRepo();
+
+    spawnSync('node', ['scripts/build-version-manifest.mjs'], {
+      cwd: repo,
+      encoding: 'utf-8',
+    });
+    run('git', ['add', 'src/data/post-versions.json'], repo);
+    run('git', ['commit', '-qm', 'fresh manifest'], repo);
+
+    fs.appendFileSync(
+      path.join(repo, 'src', 'content', 'posts', 'sp-999-regression.mdx'),
+      '\nedit\n'
+    );
+    run('git', ['add', 'src/content/posts/sp-999-regression.mdx'], repo);
+
+    const stagedResult = spawnSync(
+      'node',
+      ['scripts/build-version-manifest.mjs', '--include-staged'],
+      {
+        cwd: repo,
+        encoding: 'utf-8',
+      }
+    );
+    expect(stagedResult.status).toBe(0);
+
+    const manifest = JSON.parse(
+      fs.readFileSync(path.join(repo, 'src', 'data', 'post-versions.json'), 'utf-8')
+    );
+    expect(manifest['sp-999-regression']).toBe(2);
+
+    run('git', ['add', 'src/data/post-versions.json'], repo);
+    run('git', ['commit', '-qm', 'edit post with precomputed manifest'], repo);
+
+    const checkResult = spawnSync('node', ['scripts/build-version-manifest.mjs', '--check'], {
+      cwd: repo,
+      encoding: 'utf-8',
+    });
+    expect(checkResult.status).toBe(0);
+  });
 });
 
 describe('reader-facing revision manifest', () => {
