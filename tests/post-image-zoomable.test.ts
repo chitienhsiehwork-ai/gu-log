@@ -11,8 +11,16 @@ describe('PostImage zoomable image contract', () => {
     expect(component).toContain('aria-haspopup="dialog"');
     expect(component).toContain('role="dialog"');
     expect(component).toContain('aria-modal="true"');
-    expect(component).toContain('aria-label="關閉放大圖片"');
+    expect(component).toContain('aria-label={closeLabel}');
     expect(component).toContain('figcaption id={captionId}');
+  });
+
+  it('localizes visible zoom labels for en pages instead of hardcoding zh-tw', () => {
+    const component = source();
+
+    expect(component).toContain("Astro.url.pathname.startsWith('/en/')");
+    expect(component).toContain("'Click to enlarge'");
+    expect(component).toContain('點擊放大');
   });
 
   it('preserves native iPhone pinch zoom instead of blocking touch gestures', () => {
