@@ -53,6 +53,82 @@ const CLAWD_NOTE_REDUNDANT_PREFIX = [
 ];
 const LONG_CLAWD_NOTE_CHARS = 420;
 const MAX_CLAWD_NOTE_SUMMARY_CHARS = 120;
+// CJK Unified Ideograph guard for en-*.mdx bodies (Rule 19). `\p{Unified_Ideograph}`
+// is the CJK Unified Ideographs block only — kaomoji-adjacent scripts like
+// katakana (ツ) or Greek (ω) are outside it and never trip this rule.
+// Known limitation: this only scans MDX source text, so it cannot catch
+// hardcoded user-visible strings baked into .astro components.
+const CJK_UNIFIED_IDEOGRAPH_PATTERN = /\p{Unified_Ideograph}/gu;
+const CJK_ESCAPE_MARKER = '<!-- cjk-ok -->';
+// Grandfather baseline: every en-* CJK Unified Ideograph line that already
+// existed the day Rule 19 shipped (SP-251 uiux fix task, 2026-07-06), so the
+// guard ships CI-green without a mass content-editing PR. Burn this down over
+// time — 11 of these 14 lines are legitimate citations/kaomoji that just need
+// the `<!-- cjk-ok -->` escape (see fixes-report.md for the file-by-file
+// classification); the 3 lines in en-sp-193 are a real untranslated-CJK bug
+// in a fenced code block, reported but not fixed here. Whoever resolves a
+// line (adds the escape, or retranslates the bug) should delete its entry
+// below — new CJK that isn't in this list still fails the guard.
+//
+// Keyed by exact trimmed line text (not line number) so unrelated edits
+// elsewhere in the file — which shift line numbers — don't silently drop a
+// line out of the baseline or let a false match through. Only editing the
+// flagged line itself invalidates its baseline entry, which is the correct
+// trigger to revisit it.
+const CJK_GRANDFATHERED_LINES = new Map([
+  [
+    'en-clawd-picks-20260204-anthropic-misalignment-hotmess.mdx',
+    new Set([
+      "That kind of industrial accident is what we're actually facing right now (ノಠ益ಠ)ノ彡┻━┻",
+    ]),
+  ],
+  [
+    'en-clawd-picks-20260226-cloudflare-vinext-tldraw-tests.mdx',
+    new Set([
+      "abstract 取得預設屬性(): 圖形['props']",
+      'abstract 取得幾何形狀(圖形: 圖形): 幾何圖形2d',
+      'But if you actually did this, code reviews would become incredibly entertaining: "Hey, why does your `取得幾何形狀` return `null`?" ┐(￣ヘ￣)┌',
+    ]),
+  ],
+  [
+    'en-sd-12-20260402-claude-code-bad-patterns.mdx',
+    new Set([
+      'Users express frustration in a thousand different ways. This regex catches a handful of English profanities. What does a frustrated Japanese user say? "もう無理" — doesn\'t match. German? "Scheiße" — doesn\'t match. An English user who types "this is completely broken and I want to cry"? Also doesn\'t match.',
+    ]),
+  ],
+  [
+    'en-sd-19-20260409-lightning-talk-ralph-loop.mdx',
+    new Set(["Hi, I'm [ShroomDog (香菇大狗狗)](/about)."]),
+  ],
+  [
+    'en-shroomdog-picks-20260210-anthropic-claude-for-nonprofits.mdx',
+    new Set([
+      'Taiwan has an organization called **GuangFuHero (光復超人)** ([GitHub](https://github.com/GuangFuHero)) — a disaster relief volunteer platform that builds volunteer maps, supply matching systems, demand pairing tools, and a logistics dispatch system called the "Little Bee Distribution System" (because of course it has a cute name — this is Taiwan). A textbook nonprofit tech organization, fully eligible for Claude for Nonprofits.',
+    ]),
+  ],
+  [
+    'en-sp-170-20260411-nickbaumann-codex-bespoke-cli-skill.mdx',
+    new Set([
+      "Now think about gu-log's setup. The [pre-commit hook](/posts/sp-159-20260404-zodchiii-claude-code-hooks-8-ai/) (that checks for \"你/我\" in zh-tw bodies), the `validate-posts.mjs` frontmatter checker, the [Ralph Loop](/en/glossary#ralph-loop) tribunal — philosophically they're doing the same job. Each one encodes \"the agent's default action should not be destructive.\" Nick's default-no lives at the skill-contract layer. gu-log's [Hooks](/en/glossary#hooks) live at the runtime layer. They're complementary, not substitutes.",
+    ]),
+  ],
+  [
+    'en-sp-193-20260508-article-autobrowse-agent.mdx',
+    new Set([
+      '# 第一步：先用 fetch 試探。',
+      '# 如果資料乾淨回來，就直接寫解析程式。',
+      '# 如果回應是空的、動態的，或被關卡擋住，再升級到 Autobrowse。',
+    ]),
+  ],
+  [
+    'en-sp-65-20260216-fast-mode-anthropic-vs-openai-spark.mdx',
+    new Set([
+      "> *📘 Based on [this thread](https://x.com/dotey/status/2023152141129429340) by **宝玉** ([@dotey](https://x.com/dotey)) on X. Additional references: [Sean Goedecke's analysis](https://www.seangoedecke.com/fast-llm-inference/), [Hacker News discussion](https://news.ycombinator.com/item?id=47022329), [Anthropic Fast Mode docs](https://platform.claude.com/docs/en/build-with-claude/fast-mode), and [OpenAI Codex Spark announcement](https://openai.com/index/introducing-gpt-5-3-codex-spark/).*",
+      "宝玉's original thread nailed it with one analogy: actuary vs explorer. Let's break down this battle.",
+      "宝玉's one-line summary:",
+    ]),
+  ],
+]);
 
 // ─── Helpers ───────────────────────────────────────────────────────
 function parseFrontmatter(content) {
@@ -453,6 +529,49 @@ function validatePost(filepath, allPosts, options = {}) {
       'Raw ```mermaid code fence detected — use <Mermaid chart={`...`} /> component instead. ' +
         'See src/components/Mermaid.astro for usage.'
     );
+  }
+
+  // ── Rule 19: en-*.mdx body must not contain CJK Unified Ideographs ──
+  // Catches untranslated zh-tw leftovers in en posts. Legitimate cases (a
+  // quoted Chinese name, a kaomoji with a real ideograph like 益) opt out with
+  // a `<!-- cjk-ok -->` comment on the same line. A deliberately bilingual
+  // *code example* opts out block-wide by putting the marker on the opening
+  // ``` fence line instead — an inline comment on a code line would render
+  // as literal garbage text in the published snippet. Frontmatter is exempt
+  // (source/attribution fields legitimately carry original-language names).
+  if (filename.startsWith('en-')) {
+    const bodyStartOffset = content.length - body.length;
+    const bodyStartLine = content.slice(0, bodyStartOffset).split('\n').length;
+    let inEscapedFence = false;
+    body.split('\n').forEach((line, idx) => {
+      if (/^\s*```/.test(line)) {
+        if (inEscapedFence) {
+          inEscapedFence = false; // closing fence of an escaped block
+        } else if (line.includes(CJK_ESCAPE_MARKER)) {
+          inEscapedFence = true; // opening fence marked as escaped
+        }
+        return;
+      }
+      if (inEscapedFence || line.includes(CJK_ESCAPE_MARKER)) return;
+      const matches = line.match(CJK_UNIFIED_IDEOGRAPH_PATTERN);
+      if (matches) {
+        const lineNo = bodyStartLine + idx;
+        const chars = [...new Set(matches)].join('');
+        if (CJK_GRANDFATHERED_LINES.get(filename)?.has(line.trim())) {
+          warnings.push(
+            `CJK Unified Ideograph "${chars}" at line ${lineNo} is grandfathered (pre-existing) — ` +
+              'resolve it (escape or retranslate) and remove its entry from ' +
+              'CJK_GRANDFATHERED_LINES in scripts/validate-posts.mjs'
+          );
+        } else {
+          errors.push(
+            `CJK Unified Ideograph "${chars}" found in en-* body at line ${lineNo} ` +
+              `(intentional? add "${CJK_ESCAPE_MARKER}" on that line, or on the opening ` +
+              '``` fence line to escape a whole code block, to allow it)'
+          );
+        }
+      }
+    });
   }
 
   return { filename, errors, warnings };

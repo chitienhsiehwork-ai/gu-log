@@ -224,6 +224,88 @@ describe('validatePost — content rules', () => {
   });
 });
 
+describe('validatePost — en-* CJK Unified Ideograph guard', () => {
+  const enFm = validFm.map((l) =>
+    l.startsWith('lang:') ? 'lang: en' : l.startsWith('ticketId:') ? 'ticketId: SP-2' : l
+  );
+  // makePost()'s shared padding is zh-tw text, which would itself trip this
+  // en-only rule — build these fixtures with English padding instead so each
+  // assertion isolates the exact behavior under test.
+  const enPadding = 'Enough English filler content to clear the minimum length. '.repeat(4);
+  function makeEnPost(fmLines: string[], body: string): string {
+    return `---\n${fmLines.join('\n')}\n---\n${enPadding}\n\n${body}\n`;
+  }
+
+  it('flags an untranslated CJK Unified Ideograph in an en-* body', () => {
+    const filepath = tmpPath('en-sp-2-x.mdx');
+    fs.writeFileSync(filepath, makeEnPost(enFm, 'This has a leftover 測試字 in it.'));
+    const r = validatePost(filepath, []);
+    expect(r.errors.some((e: string) => e.includes('CJK Unified Ideograph'))).toBe(true);
+  });
+
+  it('does not flag zh-tw posts (rule is en-only)', () => {
+    const filepath = tmpPath('sp-2-x.mdx');
+    fs.writeFileSync(filepath, makePost(validFm, `Body content with kaomoji ${KAOMOJI} 測試字.`));
+    const r = validatePost(filepath, []);
+    expect(r.errors.some((e: string) => e.includes('CJK Unified Ideograph'))).toBe(false);
+  });
+
+  it('does not flag katakana or Greek letters (outside the Unified Ideograph block)', () => {
+    const filepath = tmpPath('en-sp-3-x.mdx');
+    fs.writeFileSync(filepath, makeEnPost(enFm, 'Kaomoji like (◕ω◕) and ツ or ω are fine.'));
+    const r = validatePost(filepath, []);
+    expect(r.errors.some((e: string) => e.includes('CJK Unified Ideograph'))).toBe(false);
+  });
+
+  it('allows an inline escape via "<!-- cjk-ok -->" on the same line', () => {
+    const filepath = tmpPath('en-sp-4-x.mdx');
+    fs.writeFileSync(
+      filepath,
+      makeEnPost(enFm, 'Quoting a name like 測試字 is fine here. <!-- cjk-ok -->')
+    );
+    const r = validatePost(filepath, []);
+    expect(r.errors.some((e: string) => e.includes('CJK Unified Ideograph'))).toBe(false);
+  });
+
+  it('allows escaping a whole code block via the marker on the opening fence line', () => {
+    const filepath = tmpPath('en-sp-5-x.mdx');
+    const body = ['```typescript <!-- cjk-ok -->', 'const x = "測試字";', '```'].join('\n');
+    fs.writeFileSync(filepath, makeEnPost(enFm, body));
+    const r = validatePost(filepath, []);
+    expect(r.errors.some((e: string) => e.includes('CJK Unified Ideograph'))).toBe(false);
+  });
+
+  it('downgrades a grandfathered baseline line to a warning instead of an error', () => {
+    // Must use the real filename + exact line text from CJK_GRANDFATHERED_LINES
+    // in scripts/validate-posts.mjs — the baseline is keyed by both.
+    const filepath = tmpPath('en-sd-19-20260409-lightning-talk-ralph-loop.mdx');
+    fs.writeFileSync(filepath, makeEnPost(enFm, "Hi, I'm [ShroomDog (香菇大狗狗)](/about)."));
+    const r = validatePost(filepath, []);
+    expect(r.errors.some((e: string) => e.includes('CJK Unified Ideograph'))).toBe(false);
+    expect(r.warnings.some((w: string) => w.includes('grandfathered'))).toBe(true);
+  });
+
+  it('still fails a NEW (non-baseline) CJK line in an otherwise-grandfathered file', () => {
+    // The baseline exempts specific line *text*, not the whole file — a
+    // different offending line in the same file must still fail.
+    const filepath = tmpPath('en-sd-19-20260409-lightning-talk-ralph-loop.mdx');
+    fs.writeFileSync(filepath, makeEnPost(enFm, '這是全新的違規句子，不在 baseline 裡。'));
+    const r = validatePost(filepath, []);
+    expect(r.errors.some((e: string) => e.includes('CJK Unified Ideograph'))).toBe(true);
+  });
+
+  it('does not exempt frontmatter (only the body is scanned, not the guard bypass)', () => {
+    // Frontmatter itself is out of scope for this rule (source/attribution
+    // fields legitimately carry original-language names) — confirm a CJK
+    // name in frontmatter alone does not trigger the body guard.
+    const filepath = tmpPath('en-sp-6-x.mdx');
+    const fm = [...enFm, 'source: "凡人小北 @frxiaobei"'];
+    fs.writeFileSync(filepath, makeEnPost(fm, `Body content with kaomoji ${KAOMOJI}.`));
+    const r = validatePost(filepath, []);
+    expect(r.errors.some((e: string) => e.includes('CJK Unified Ideograph'))).toBe(false);
+  });
+});
+
 describe('validatePost — cross-file rules', () => {
   it('flags duplicate ticketId across non-paired files', () => {
     const filepath = tmpPath('sp-1-a.mdx');
@@ -253,6 +335,8 @@ describe('validatePost — cross-file rules', () => {
       { filename: 'sp-1-x.mdx', ticketId: 'SP-1' },
       { filename: 'en-sp-1-x.mdx', ticketId: 'SP-2' },
     ]);
-    expect(r.errors.some((e: string) => e.includes('Translation pair ticketId mismatch'))).toBe(true);
+    expect(r.errors.some((e: string) => e.includes('Translation pair ticketId mismatch'))).toBe(
+      true
+    );
   });
 });
