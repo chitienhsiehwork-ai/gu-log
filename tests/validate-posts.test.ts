@@ -20,7 +20,8 @@ const tmpPath = (name: string) => path.join(TMP, path.basename(name));
 // validate-posts.mjs is plain JS without .d.ts; widen to any.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const v = vModule as any;
-const { parseFrontmatter, getBaseFilename, getContentBody, validatePost } = v;
+const { parseFrontmatter, getBaseFilename, getContentBody, validatePost, CJK_GRANDFATHERED_LINES } =
+  v;
 
 const KAOMOJI = '(◕‿◕)';
 
@@ -275,23 +276,39 @@ describe('validatePost — en-* CJK Unified Ideograph guard', () => {
     expect(r.errors.some((e: string) => e.includes('CJK Unified Ideograph'))).toBe(false);
   });
 
+  // CJK_GRANDFATHERED_LINES is expected to shrink to empty as legit citations
+  // get escaped and bugs get retranslated (it's zero as of this writing — see
+  // scripts/validate-posts.mjs's comment on the Map). These two tests inject
+  // a synthetic entry via the exported Map so the downgrade-to-warning
+  // mechanism itself stays covered regardless of the baseline's real size.
+  const BASELINE_TEST_FILE = 'en-baseline-test-fixture.mdx';
+  const BASELINE_TEST_LINE = '# 這是測試用的 baseline 豁免行。';
+
   it('downgrades a grandfathered baseline line to a warning instead of an error', () => {
-    // Must use the real filename + exact line text from CJK_GRANDFATHERED_LINES
-    // in scripts/validate-posts.mjs — the baseline is keyed by both.
-    const filepath = tmpPath('en-sp-193-20260508-article-autobrowse-agent.mdx');
-    fs.writeFileSync(filepath, makeEnPost(enFm, '# 第一步：先用 fetch 試探。'));
-    const r = validatePost(filepath, []);
-    expect(r.errors.some((e: string) => e.includes('CJK Unified Ideograph'))).toBe(false);
-    expect(r.warnings.some((w: string) => w.includes('grandfathered'))).toBe(true);
+    CJK_GRANDFATHERED_LINES.set(BASELINE_TEST_FILE, new Set([BASELINE_TEST_LINE]));
+    try {
+      const filepath = tmpPath(BASELINE_TEST_FILE);
+      fs.writeFileSync(filepath, makeEnPost(enFm, BASELINE_TEST_LINE));
+      const r = validatePost(filepath, []);
+      expect(r.errors.some((e: string) => e.includes('CJK Unified Ideograph'))).toBe(false);
+      expect(r.warnings.some((w: string) => w.includes('grandfathered'))).toBe(true);
+    } finally {
+      CJK_GRANDFATHERED_LINES.delete(BASELINE_TEST_FILE);
+    }
   });
 
   it('still fails a NEW (non-baseline) CJK line in an otherwise-grandfathered file', () => {
     // The baseline exempts specific line *text*, not the whole file — a
     // different offending line in the same file must still fail.
-    const filepath = tmpPath('en-sp-193-20260508-article-autobrowse-agent.mdx');
-    fs.writeFileSync(filepath, makeEnPost(enFm, '這是全新的違規句子，不在 baseline 裡。'));
-    const r = validatePost(filepath, []);
-    expect(r.errors.some((e: string) => e.includes('CJK Unified Ideograph'))).toBe(true);
+    CJK_GRANDFATHERED_LINES.set(BASELINE_TEST_FILE, new Set([BASELINE_TEST_LINE]));
+    try {
+      const filepath = tmpPath(BASELINE_TEST_FILE);
+      fs.writeFileSync(filepath, makeEnPost(enFm, '這是全新的違規句子，不在 baseline 裡。'));
+      const r = validatePost(filepath, []);
+      expect(r.errors.some((e: string) => e.includes('CJK Unified Ideograph'))).toBe(true);
+    } finally {
+      CJK_GRANDFATHERED_LINES.delete(BASELINE_TEST_FILE);
+    }
   });
 
   it('does not exempt frontmatter (only the body is scanned, not the guard bypass)', () => {

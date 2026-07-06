@@ -1,0 +1,767 @@
+<!-- Copyright 2026 Anthropic PBC · SPDX-License-Identifier: Apache-2.0 -->
+<!doctype html>
+<html lang="zh-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>可調整的計畫 — 了解你的未知</title>
+<style>
+  :root {
+    --ivory:  #FAF9F5;
+    --paper:  #FFFFFF;
+    --slate:  #141413;
+    --clay:   #D97757;
+    --clay-d: #B85C3E;
+    --oat:    #E3DACC;
+    --olive:  #788C5D;
+    --g100:   #F0EEE6;
+    --g200:   #E6E3DA;
+    --g300:   #D1CFC5;
+    --g500:   #87867F;
+    --g700:   #3D3D3A;
+    --serif: ui-serif, Georgia, "Times New Roman", Times, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ivory);
+    color: var(--slate);
+    font-family: var(--sans);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 24px 100px; }
+  @media (max-width: 480px) { .wrap { padding: 0 16px 80px; } }
+
+  /* ── page header ─────────────────────── */
+  header.page-head { padding: 56px 0 40px; position: relative; }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--g500);
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .eyebrow::before { content: ""; width: 24px; height: 1.5px; background: var(--clay); flex-shrink: 0; }
+  a.back {
+    position: absolute; top: 60px; right: 0;
+    font-family: var(--mono); font-size: 12px;
+    color: var(--g500); text-decoration: none;
+  }
+  a.back:hover { color: var(--clay); }
+  @media (max-width: 640px) { a.back { position: static; display: inline-block; margin-bottom: 16px; } }
+  h1 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(32px, 5vw, 46px);
+    line-height: 1.08;
+    letter-spacing: -0.018em;
+    margin: 0 0 14px;
+  }
+  .lede { font-size: 16.5px; color: var(--g700); max-width: 640px; margin: 0 0 32px; }
+
+  /* prompt box */
+  .prompt-card {
+    background: var(--paper);
+    border: 1.5px solid var(--g300);
+    border-radius: 14px;
+    padding: 22px 26px 24px;
+    position: relative;
+  }
+  .prompt-card .p-label {
+    font-family: var(--mono); font-size: 12px;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--clay); margin-bottom: 12px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .prompt-card .p-label::before { content: ""; width: 24px; height: 1.5px; background: var(--clay); }
+  .prompt-card blockquote {
+    margin: 0;
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 17.5px;
+    line-height: 1.5;
+    color: var(--slate);
+    max-width: 62ch;
+  }
+  button.copy-btn {
+    position: absolute; top: 18px; right: 20px;
+    font-family: var(--mono); font-size: 11.5px;
+    background: var(--g100); color: var(--g700);
+    border: 1.5px solid var(--g300); border-radius: 8px;
+    padding: 5px 12px; cursor: pointer;
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  button.copy-btn:hover { border-color: var(--clay); color: var(--clay-d); }
+  button.copy-btn.copied { background: var(--olive); border-color: var(--olive); color: #fff; }
+  @media (max-width: 640px) {
+    button.copy-btn { position: static; margin-top: 14px; }
+  }
+
+  /* divider row */
+  .produced {
+    display: flex; align-items: center; gap: 16px;
+    margin: 48px 0 36px;
+    font-family: var(--mono); font-size: 12px;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--g500); white-space: nowrap;
+  }
+  .produced::before, .produced::after { content: ""; height: 1px; background: var(--g300); flex: 1; }
+
+  /* ══ THE ARTIFACT ══════════════════════ */
+  .artifact {
+    background: var(--paper);
+    border: 1.5px solid var(--g300);
+    border-radius: 14px;
+    padding: 34px 38px 40px;
+  }
+  @media (max-width: 640px) { .artifact { padding: 22px 18px 28px; } }
+
+  .artifact h2.plan-title {
+    font-family: var(--serif); font-weight: 500;
+    font-size: clamp(24px, 3.6vw, 32px);
+    letter-spacing: -0.015em;
+    margin: 0 0 4px;
+  }
+  .plan-sub { font-size: 14px; color: var(--g500); margin: 0 0 20px; }
+  .plan-sub code { font-family: var(--mono); font-size: 12.5px; background: var(--g100); border-radius: 5px; padding: 1px 6px; }
+
+  /* chips */
+  .chips { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 22px; }
+  .chip {
+    display: flex; align-items: baseline; gap: 8px;
+    font-size: 13px; color: var(--g700);
+    background: var(--g100); border: 1.5px solid var(--g200);
+    border-radius: 999px; padding: 6px 16px;
+  }
+  .chip .k { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--g500); }
+  .chip .v { font-weight: 600; color: var(--slate); }
+  .chip .v.risk { color: var(--clay-d); }
+
+  /* sort banner */
+  .sort-banner {
+    background: var(--oat);
+    border: 1.5px solid var(--g300);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin: 0 0 40px;
+    font-size: 14.5px;
+    color: var(--g700);
+    display: flex; gap: 14px; align-items: flex-start;
+  }
+  .sort-banner .glyph {
+    font-family: var(--mono); font-size: 15px; line-height: 1.35;
+    color: var(--clay-d); white-space: pre; flex-shrink: 0;
+    padding-top: 1px;
+  }
+  .sort-banner strong { color: var(--slate); }
+
+  /* section chrome inside artifact */
+  .plan-sec { margin: 0 0 46px; }
+  .plan-sec:last-of-type { margin-bottom: 0; }
+  .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; flex-wrap: wrap; }
+  .sec-letter {
+    font-family: var(--mono); font-size: 13px; font-weight: 600;
+    background: var(--slate); color: var(--ivory);
+    width: 26px; height: 26px; border-radius: 8px;
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .sec-letter.soft { background: var(--g300); color: var(--g700); }
+  .sec-head h3 {
+    font-family: var(--serif); font-weight: 500;
+    font-size: 22px; letter-spacing: -0.01em; margin: 0;
+  }
+  .sec-head .likelihood {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em;
+    text-transform: uppercase; border-radius: 6px; padding: 3px 9px;
+  }
+  .likelihood.hi { background: var(--clay); color: #fff; }
+  .likelihood.lo { background: var(--g100); color: var(--g500); border: 1px solid var(--g200); }
+  .sec-intro { font-size: 14px; color: var(--g500); margin: 0 0 22px; max-width: 66ch; }
+
+  h4.sub {
+    font-family: var(--mono); font-size: 12px;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--g500); margin: 34px 0 14px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  h4.sub::before { content: ""; width: 16px; height: 1.5px; background: var(--clay); }
+  h4.sub:first-of-type { margin-top: 0; }
+
+  /* ── schema diagram ── */
+  .schema-wrap { display: grid; grid-template-columns: minmax(0, 340px) 1fr; gap: 22px; align-items: start; }
+  @media (max-width: 720px) { .schema-wrap { grid-template-columns: 1fr; } }
+
+  .table-box {
+    border: 1.5px solid var(--slate);
+    border-radius: 10px;
+    overflow: hidden;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    background: var(--paper);
+  }
+  .table-box .t-name {
+    background: var(--slate); color: var(--ivory);
+    padding: 8px 14px; font-size: 12.5px; letter-spacing: 0.03em;
+  }
+  .table-box .t-name .new-badge {
+    float: right; background: var(--olive); color: #fff;
+    font-size: 9.5px; letter-spacing: 0.1em; border-radius: 4px;
+    padding: 2px 6px; margin-top: 1px;
+  }
+  .col-row {
+    display: flex; justify-content: space-between; gap: 12px;
+    padding: 6px 14px;
+    border-top: 1px solid var(--g200);
+    color: var(--g700);
+  }
+  .col-row .cn { color: var(--slate); }
+  .col-row .ct { color: var(--g500); white-space: nowrap; }
+  .col-row.flag {
+    background: #FBF1EC;
+    border-left: 3px solid var(--clay);
+    padding-left: 11px;
+  }
+  .col-row.flag .cn { color: var(--clay-d); font-weight: 600; }
+  .col-row.alt-note {
+    background: var(--g100);
+    color: var(--g500);
+    font-style: italic;
+    border-left: 3px solid var(--g300);
+    padding-left: 11px;
+    display: block;
+  }
+  .fk { color: var(--g500); font-size: 11px; }
+
+  /* variant switching */
+  [data-variant="main"] .v-alt { display: none; }
+  [data-variant="alt"]  .v-main { display: none; }
+
+  .choice-card {
+    border: 1.5px solid var(--g300);
+    border-radius: 12px;
+    padding: 16px 18px 18px;
+    margin-bottom: 14px;
+    background: var(--ivory);
+  }
+  .choice-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+  .choice-flag {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em;
+    background: var(--clay); color: #fff;
+    border-radius: 6px; padding: 3px 8px;
+  }
+  .choice-head .ch-title { font-weight: 600; font-size: 14.5px; }
+  button.alt-toggle {
+    margin-left: auto;
+    font-family: var(--mono); font-size: 11.5px;
+    background: var(--paper); color: var(--clay-d);
+    border: 1.5px solid var(--clay); border-radius: 8px;
+    padding: 5px 12px; cursor: pointer;
+    transition: background .15s;
+  }
+  button.alt-toggle:hover { background: #FBF1EC; }
+  @media (max-width: 560px) { button.alt-toggle { margin-left: 0; } }
+  .choice-body { font-size: 13.5px; color: var(--g700); }
+  .choice-body .pick-label {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--olive); margin-bottom: 3px;
+  }
+  .choice-body .pick-label.alt-l { color: var(--clay-d); }
+  .choice-body ul { margin: 8px 0 0; padding-left: 18px; }
+  .choice-body li { margin-bottom: 4px; }
+  .choice-body li::marker { color: var(--g500); }
+  .tradeoff { color: var(--g500); font-size: 12.5px; margin-top: 8px; }
+  .tradeoff strong { color: var(--clay-d); font-weight: 600; }
+
+  /* ── code blocks with margin notes ── */
+  .code-grid { display: grid; grid-template-columns: minmax(0, 1fr) 230px; gap: 18px; align-items: start; margin-bottom: 22px; }
+  @media (max-width: 720px) { .code-grid { grid-template-columns: 1fr; } }
+  .code-block {
+    background: var(--slate);
+    border-radius: 10px;
+    padding: 16px 0;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--g200);
+  }
+  .code-block .cl-line { padding: 0 18px; white-space: pre; }
+  .code-block .cl-line.flagged {
+    background: rgba(217,119,87,0.16);
+    border-left: 3px solid var(--clay);
+    padding-left: 15px;
+  }
+  .code-block .cm { color: #8a8a82; }
+  .code-block .kw { color: #E8B4A0; }
+  .code-block .ty { color: #C7CBA3; }
+  .code-block .st { color: #D9C7A7; }
+  .code-block .fnum {
+    display: inline-block; font-size: 10px; font-weight: 700;
+    background: var(--clay); color: #fff; border-radius: 50%;
+    width: 15px; height: 15px; line-height: 15px; text-align: center;
+    margin-left: 10px; vertical-align: 1px;
+  }
+  .margin-notes { display: flex; flex-direction: column; gap: 12px; }
+  .m-note {
+    font-size: 12.5px; color: var(--g700);
+    background: var(--g100); border: 1px solid var(--g200);
+    border-radius: 10px; padding: 10px 12px;
+  }
+  .m-note .n-num {
+    display: inline-block; font-family: var(--mono); font-size: 10px; font-weight: 700;
+    background: var(--clay); color: #fff; border-radius: 50%;
+    width: 15px; height: 15px; line-height: 15px; text-align: center;
+    margin-right: 7px; vertical-align: 1px;
+  }
+  .m-note code { font-family: var(--mono); font-size: 11.5px; background: var(--paper); border: 1px solid var(--g200); border-radius: 4px; padding: 0 4px; }
+
+  /* ── UX flow strip ── */
+  .flow-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; margin-bottom: 8px; }
+  @media (max-width: 720px) { .flow-strip { grid-template-columns: 1fr 1fr; gap: 18px 0; } }
+  @media (max-width: 420px) { .flow-strip { grid-template-columns: 1fr; } }
+  .flow-step { position: relative; padding: 0 18px 0 0; }
+  .flow-step + .flow-step { padding-left: 18px; }
+  .flow-step:not(:last-child)::after {
+    content: "→";
+    position: absolute; right: -1px; top: 34px;
+    color: var(--g500); font-size: 15px;
+    transform: translateX(50%);
+  }
+  @media (max-width: 720px) {
+    .flow-step:nth-child(2)::after { display: none; }
+    .flow-step { padding: 0 14px 0 0; }
+  }
+  @media (max-width: 420px) { .flow-step::after { display: none !important; } .flow-step { padding: 0; } }
+  .fs-num {
+    font-family: var(--mono); font-size: 11px; color: var(--g500);
+    margin-bottom: 6px;
+  }
+  .fs-card {
+    border: 1.5px solid var(--g300); border-radius: 10px;
+    background: var(--ivory); padding: 12px 13px;
+    min-height: 108px;
+  }
+  .fs-card.weak { border: 1.5px dashed var(--clay); background: #FBF1EC; }
+  .fs-card .fs-t { font-weight: 600; font-size: 13.5px; margin-bottom: 4px; }
+  .fs-card .fs-d { font-size: 12px; color: var(--g500); line-height: 1.45; }
+  .weak-tag {
+    display: inline-block; font-family: var(--mono); font-size: 10px;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    background: var(--clay); color: #fff; border-radius: 5px;
+    padding: 2px 7px; margin-bottom: 6px;
+  }
+  .flow-note { font-size: 13px; color: var(--g700); background: var(--g100); border-left: 3px solid var(--clay); border-radius: 0 8px 8px 0; padding: 10px 14px; margin-top: 16px; max-width: 64ch; }
+
+  /* ── sequencing timeline ── */
+  .seq { list-style: none; margin: 0; padding: 0; }
+  .seq li {
+    display: grid; grid-template-columns: 30px 1fr auto; gap: 12px;
+    align-items: baseline;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--g200);
+    font-size: 14px;
+  }
+  .seq li:last-child { border-bottom: none; }
+  .seq .s-num {
+    font-family: var(--mono); font-size: 12px; color: var(--paper);
+    background: var(--g500); border-radius: 6px;
+    width: 22px; height: 22px; display: inline-flex;
+    align-items: center; justify-content: center;
+    position: relative; top: 3px;
+  }
+  .seq .s-body strong { font-weight: 600; }
+  .seq .s-body .dep { color: var(--g500); font-size: 12.5px; }
+  .seq .s-est { font-family: var(--mono); font-size: 12px; color: var(--g500); white-space: nowrap; }
+  @media (max-width: 480px) { .seq li { grid-template-columns: 30px 1fr; } .seq .s-est { grid-column: 2; } }
+
+  /* ── mechanical details ── */
+  details.mech {
+    border: 1.5px solid var(--g300);
+    border-radius: 12px;
+    background: var(--g100);
+  }
+  details.mech summary {
+    cursor: pointer;
+    padding: 14px 18px;
+    font-size: 14px; font-weight: 600;
+    list-style: none;
+    display: flex; align-items: center; gap: 10px;
+  }
+  details.mech summary::-webkit-details-marker { display: none; }
+  details.mech summary::before {
+    content: "▸"; color: var(--g500); font-size: 13px;
+    transition: transform .15s; display: inline-block;
+  }
+  details.mech[open] summary::before { transform: rotate(90deg); }
+  details.mech summary .count {
+    font-family: var(--mono); font-size: 11px; color: var(--g500);
+    font-weight: 400; margin-left: auto;
+  }
+  .mech-list { list-style: none; margin: 0; padding: 4px 18px 16px 40px; }
+  .mech-list li {
+    font-size: 13.5px; color: var(--g700);
+    padding: 6px 0; border-top: 1px solid var(--g200);
+  }
+  .mech-list li:first-child { border-top: none; }
+  .mech-list code { font-family: var(--mono); font-size: 12px; background: var(--paper); border: 1px solid var(--g200); border-radius: 4px; padding: 0 5px; }
+  .mech-list .why { color: var(--g500); font-size: 12px; }
+
+  /* ── quick-reply card ── */
+  .tweak-card {
+    margin-top: 44px;
+    border: 1.5px solid var(--slate);
+    border-radius: 14px;
+    background: var(--ivory);
+    padding: 22px 24px 24px;
+  }
+  .tweak-card h3 {
+    font-family: var(--serif); font-weight: 500; font-size: 21px;
+    letter-spacing: -0.01em; margin: 0 0 4px;
+  }
+  .tweak-card > p { font-size: 13.5px; color: var(--g500); margin: 0 0 16px; }
+  .tweak-row {
+    display: flex; gap: 12px; align-items: flex-start;
+    background: var(--paper); border: 1.5px solid var(--g300);
+    border-radius: 10px; padding: 12px 14px; margin-bottom: 10px;
+  }
+  .tweak-row:last-child { margin-bottom: 0; }
+  .tweak-row .t-num {
+    font-family: var(--mono); font-size: 11px; font-weight: 700;
+    background: var(--oat); color: var(--g700); border-radius: 6px;
+    padding: 2px 8px; flex-shrink: 0; margin-top: 2px;
+  }
+  .tweak-row .t-body { font-size: 13.5px; color: var(--g700); }
+  .tweak-row .t-body .t-q { font-family: var(--serif); font-style: italic; color: var(--slate); }
+  .tweak-row button.copy-btn { position: static; flex-shrink: 0; margin: 0 0 0 auto; }
+  @media (max-width: 560px) { .tweak-row { flex-wrap: wrap; } .tweak-row button.copy-btn { margin-left: 40px; } }
+
+  /* footer */
+  footer.site-foot {
+    margin-top: 56px; padding-top: 24px;
+    border-top: 1.5px solid var(--g300);
+    font-size: 13.5px; color: var(--g500);
+  }
+  footer.site-foot a { color: var(--clay); text-decoration-color: var(--oat); text-underline-offset: 3px; }
+  footer.site-foot a:hover { text-decoration-color: var(--clay); }
+</style>
+<style id="gu-log-mirror-credit-style">.gu-log-mirror-credit{position:sticky;top:0;z-index:9999;padding:8px 14px;background:#111;color:#f7f3e8;border-bottom:1px solid rgba(255,255,255,.18);font:13px/1.45 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;text-align:center}.gu-log-mirror-credit a{color:#f4c86a;text-decoration:underline;text-underline-offset:2px}.gu-log-mirror-credit strong{font-weight:750}</style>
+</head>
+<body>
+<div class="gu-log-mirror-credit" role="note"><strong>Mirror copy for gu-log SP-251.</strong> Original by <a href="https://x.com/trq212">Thariq (@trq212)</a>: <a href="https://thariqs.github.io/html-effectiveness/unknowns/">Know your unknowns</a>. <a href="../08-implementation-plan.html">English</a> ｜ 繁中</div>
+<div class="wrap">
+
+  <header class="page-head">
+    <a class="back" href="index.html">← 所有範例</a>
+    <div class="eyebrow">了解你的未知 · 實作前</div>
+    <h1>可調整的計畫</h1>
+    <p class="lede">不要依執行順序排列計畫，而是依照<em>你</em>有多大可能會修改每個部分來排序——這樣值得你關注的決策會浮上來，機械性的工作則沉到底部。</p>
+
+    <div class="prompt-card">
+      <div class="p-label">Prompt</div>
+      <blockquote id="the-prompt">用 HTML 寫一份註解匯出的實作計畫，但開頭放我最可能想調整的決策：資料模型變更、新的 type interface、以及任何面向使用者的部分。把機械性的重構藏到最底下——那部分我相信你。</blockquote>
+      <button class="copy-btn" onclick="copyText(this, document.getElementById('the-prompt').textContent)">複製 Prompt</button>
+    </div>
+  </header>
+
+  <div class="produced">Claude 產出的成品</div>
+
+  <!-- ═══════════ THE ARTIFACT ═══════════ -->
+  <div class="artifact">
+
+    <h2 class="plan-title">實作計畫：註解匯出</h2>
+    <p class="plan-sub">Acme · 將審閱的註解匯出為可分享的 PDF 或 CSV · 分支 <code>feat/annotation-export</code></p>
+
+    <div class="chips">
+      <div class="chip"><span class="k">工作量</span><span class="v">~2.5 人天</span></div>
+      <div class="chip"><span class="k">異動檔案</span><span class="v">13 個（3 個新增）</span></div>
+      <div class="chip"><span class="k">風險</span><span class="v risk">低至中</span></div>
+      <div class="chip"><span class="k">資料庫遷移</span><span class="v">1 個，純新增</span></div>
+    </div>
+
+    <div class="sort-banner">
+      <div class="glyph">↑ 要調整
+↓ 信任我</div>
+      <div><strong>這份計畫按「你可能會調整的程度」排序，而非執行順序。</strong>從上往下讀 = 最值得你關注的優先。A 區包含所有判斷性決策；B 區是建置順序；C 區是機械性工作，可以完全跳過。</div>
+    </div>
+
+    <!-- ── SECTION A ─────────────────────── -->
+    <section class="plan-sec">
+      <div class="sec-head">
+        <span class="sec-letter">A</span>
+        <h3>你可能會想修改的決策</h3>
+        <span class="likelihood hi">高調整可能性</span>
+      </div>
+      <p class="sec-intro">三個我做了判斷、但你可能不同意的領域。每個標記的選擇都顯示我考慮過的替代方案——可以切換比較。</p>
+
+      <h4 class="sub">A1 · 資料模型 — 新增 <span style="text-transform:none">annotation_exports</span> 表</h4>
+
+      <div class="schema-wrap">
+        <div class="table-box" id="schema" data-variant="main">
+          <div class="t-name">annotation_exports <span class="new-badge">新增</span></div>
+          <div class="col-row"><span class="cn">id</span><span class="ct">uuid pk</span></div>
+          <div class="col-row"><span class="cn">review_id</span><span class="ct">uuid <span class="fk">→ reviews</span></span></div>
+          <div class="col-row"><span class="cn">requested_by</span><span class="ct">uuid <span class="fk">→ users</span></span></div>
+          <div class="col-row"><span class="cn">status</span><span class="ct">enum(queued, rendering, ready, failed)</span></div>
+          <div class="col-row"><span class="cn">options</span><span class="ct">jsonb</span></div>
+          <div class="col-row flag v-main"><span class="cn">snapshot ①</span><span class="ct">jsonb</span></div>
+          <div class="col-row alt-note v-alt">① 沒有 snapshot 欄位 — renderer 在渲染時即時 JOIN <b>annotations</b></div>
+          <div class="col-row flag v-main2"><span class="cn">artifact_url ②</span><span class="ct">text null</span></div>
+          <div class="col-row flag v-main2"><span class="cn">rendered_at</span><span class="ct">timestamptz null</span></div>
+          <div class="col-row alt-note v-alt2">② 不儲存產出物 — <b>GET /exports/:id/download</b> 按需渲染</div>
+          <div class="col-row"><span class="cn">created_at</span><span class="ct">timestamptz</span></div>
+        </div>
+
+        <div>
+          <div class="choice-card" data-variant="main" id="c1">
+            <div class="choice-head">
+              <span class="choice-flag">選擇 ①</span>
+              <span class="ch-title">快照 vs. 即時 join</span>
+              <button class="alt-toggle" onclick="toggleChoice(1)">查看替代方案 →</button>
+            </div>
+            <div class="choice-body">
+              <div class="v-main">
+                <div class="pick-label">計畫的選擇 — 反正規化快照</div>
+                在請求匯出時，將註解 payload 複製到 <b>snapshot jsonb</b>。匯出是該審閱<i>當下</i>的記錄：後續的編輯、解決、刪除都不會改寫歷史。
+                <ul>
+                  <li>即使審閱被歸檔，匯出仍然有效。</li>
+                  <li>Renderer 只讀一筆——不會在 <b>annotations</b> + <b>annotation_replies</b> 產生 N+1 問題。</li>
+                </ul>
+                <p class="tradeoff"><strong>成本：</strong>重度審閱約 ~40 KB/row；快照可能相對即時討論串變得過時。</p>
+              </div>
+              <div class="v-alt">
+                <div class="pick-label alt-l">替代方案 — 渲染時即時 join</div>
+                跳過快照；renderer 在產生檔案時才 join <b>annotations</b>。匯出永遠反映當前狀態。
+                <ul>
+                  <li>沒有重複資料，沒有過時問題。</li>
+                  <li>重新下載同一份匯出可能會產生<i>不同</i>的檔案——對稽核用途來說很意外。</li>
+                </ul>
+                <p class="tradeoff"><strong>選這個如果：</strong>匯出是工作文件，不是記錄。一句話告訴我：<i>「用即時 join。」</i></p>
+              </div>
+            </div>
+          </div>
+
+          <div class="choice-card" data-variant="main" id="c2">
+            <div class="choice-head">
+              <span class="choice-flag">選擇 ②</span>
+              <span class="ch-title">儲存產出物 vs. 按需渲染</span>
+              <button class="alt-toggle" onclick="toggleChoice(2)">查看替代方案 →</button>
+            </div>
+            <div class="choice-body">
+              <div class="v-main">
+                <div class="pick-label">計畫的選擇 — 渲染一次，存到 blob storage</div>
+                Worker 渲染 PDF/CSV 一次，然後寫入 <b>artifact_url</b>。下載會轉向 signed URL——便宜、可快取，而且可以分享給沒有 Acme 帳號的審閱者。
+                <p class="tradeoff"><strong>成本：</strong>需要管理 blob 生命週期；我會加一個 30 天 TTL 清理（C 區，項目 6）。</p>
+              </div>
+              <div class="v-alt">
+                <div class="pick-label alt-l">替代方案 — 每次下載都渲染</div>
+                不儲存檔案：<b>GET /exports/:id/download</b> 串流一個全新的渲染。零儲存，但大型審閱每次下載約 2–4 秒，而且沒有可分享的公開連結。
+                <p class="tradeoff"><strong>選這個如果：</strong>儲存/合規規定讓儲存副本變得麻煩。</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h4 class="sub">A2 · 新的 type interface</h4>
+
+      <div class="code-grid">
+        <div class="code-block"><!--
+     --><div class="cl-line"><span class="cm">// src/types/exports.ts (新增)</span></div><!--
+     --><div class="cl-line"><span class="kw">export interface</span> <span class="ty">ExportRequest</span> {</div><!--
+     --><div class="cl-line">  reviewId: <span class="ty">ReviewId</span>;</div><!--
+     --><div class="cl-line flagged">  format: <span class="st">'pdf'</span> | <span class="st">'csv'</span>;<span class="fnum">1</span></div><!--
+     --><div class="cl-line flagged">  range: <span class="st">'all'</span> | <span class="st">'unresolved'</span> | <span class="ty">TimecodeRange</span>;<span class="fnum">2</span></div><!--
+     --><div class="cl-line">  includeReplies: <span class="kw">boolean</span>;   <span class="cm">// 預設 true</span></div><!--
+     --><div class="cl-line flagged">  includeDrawings: <span class="kw">boolean</span>;  <span class="cm">// 預設 false</span><span class="fnum">3</span></div><!--
+     --><div class="cl-line">}</div><!--
+     --><div class="cl-line">&nbsp;</div><!--
+     --><div class="cl-line"><span class="kw">export interface</span> <span class="ty">AnnotationSnapshot</span> {</div><!--
+     --><div class="cl-line">  id: <span class="ty">AnnotationId</span>;</div><!--
+     --><div class="cl-line">  timecode: <span class="kw">string</span>;          <span class="cm">// "00:04:12.08"</span></div><!--
+     --><div class="cl-line">  author: { id: <span class="ty">UserId</span>; name: <span class="kw">string</span> };</div><!--
+     --><div class="cl-line">  body: <span class="kw">string</span>;</div><!--
+     --><div class="cl-line flagged">  state: <span class="st">'open'</span> | <span class="st">'resolved'</span>;<span class="fnum">4</span></div><!--
+     --><div class="cl-line">  replies: <span class="ty">ReplySnapshot</span>[];</div><!--
+     --><div class="cl-line">}</div><!--
+     --></div>
+        <div class="margin-notes">
+          <div class="m-note"><span class="n-num">1</span>先做 PDF + CSV。之後要加 <code>'xlsx'</code> 或 <code>'srt'</code> 只需一個 union member + 一個 renderer。</div>
+          <div class="m-note"><span class="n-num">2</span><code>TimecodeRange</code> 讓製作人可以只匯出某一場景的筆記。如果沒人要這個，拿掉可以省約半天。</div>
+          <div class="m-note"><span class="n-num">3</span>繪圖標記會點陣化到 PDF。預設關閉，因為會讓渲染時間增加三倍。</div>
+          <div class="m-note"><span class="n-num">4</span>刻意把內部的 5 狀態機在匯出時簡化為 2 狀態。如果審閱者需要看到 <code>'wont_fix'</code>，告訴我。</div>
+        </div>
+      </div>
+
+      <h4 class="sub">A3 · UX 流程</h4>
+
+      <div class="flow-strip">
+        <div class="flow-step">
+          <div class="fs-num">步驟 1</div>
+          <div class="fs-card">
+            <div class="fs-t">匯出按鈕</div>
+            <div class="fs-d">審閱工具列溢出選單中的新項目，放在「複製分享連結」旁邊。</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="fs-num">步驟 2</div>
+          <div class="fs-card">
+            <div class="fs-t">選項彈窗</div>
+            <div class="fs-d">格式、範圍、包含回覆、包含繪圖。重用設定裡的 <b>ModalForm</b>。</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="fs-num">步驟 3</div>
+          <div class="fs-card weak">
+            <span class="weak-tag">這份計畫最弱的部分</span>
+            <div class="fs-t">背景任務 + toast</div>
+            <div class="fs-d">匯出在 worker 渲染；使用者收到「我們會通知你」的 toast，可以繼續瀏覽。</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="fs-num">步驟 4</div>
+          <div class="fs-card">
+            <div class="fs-t">完成通知</div>
+            <div class="fs-d">鈴鐺通知 + 下載連結；也會列在審閱 → 匯出分頁。</div>
+          </div>
+        </div>
+      </div>
+      <p class="flow-note"><b>為什麼步驟 3 最弱：</b>大部分匯出會在 3 秒內完成，所以 fire-and-forget 的 toast 可能感覺小題大做——但 400 個註解加繪圖的審閱要約 20 秒，太長不能 block。混合方式（最多等 4 秒，然後 fallback 到通知）體驗更好，但會多約半天工時。你決定。</p>
+    </section>
+
+    <!-- ── SECTION B ─────────────────────── -->
+    <section class="plan-sec">
+      <div class="sec-head">
+        <span class="sec-letter">B</span>
+        <h3>執行順序</h3>
+        <span class="likelihood lo">建置順序</span>
+      </div>
+      <p class="sec-intro">我實際會用的建置順序。每一步都在 CI 綠燈落地；步驟 5 翻 flag 之前不會有任何使用者可見的東西上線。</p>
+      <ol class="seq">
+        <li><span class="s-num">1</span><span class="s-body"><strong>Migration + model。</strong> <span class="dep">建立 <b>annotation_exports</b>，接 Sequelize model、factory、fixtures。</span></span><span class="s-est">0.5d</span></li>
+        <li><span class="s-num">2</span><span class="s-body"><strong>Types + request validation。</strong> <span class="dep">A2 的所有內容，加上 <b>POST /api/reviews/:id/exports</b> 的 zod schema。</span></span><span class="s-est">0.25d</span></li>
+        <li><span class="s-num">3</span><span class="s-body"><strong>Renderer。</strong> <span class="dep">先做 CSV（簡單），再透過現有的 <b>@acme/render</b> service 做 PDF。</span></span><span class="s-est">1d</span></li>
+        <li><span class="s-num">4</span><span class="s-body"><strong>Worker job + blob 上傳。</strong> <span class="dep">Queue 到 <b>exports.render</b>；重試 ×3 然後 <b>status = failed</b>。</span></span><span class="s-est">0.25d</span></li>
+        <li><span class="s-num">5</span><span class="s-body"><strong>UI：選單項目、彈窗、toast、匯出分頁。</strong> <span class="dep">放在 flag <b>export_annotations</b> 後面。</span></span><span class="s-est">0.5d</span></li>
+        <li><span class="s-num">6</span><span class="s-body"><strong>測試、文件、flag 對 Acme 團隊開放。</strong></span><span class="s-est">0.25d</span></li>
+      </ol>
+    </section>
+
+    <!-- ── SECTION C ─────────────────────── -->
+    <section class="plan-sec">
+      <div class="sec-head">
+        <span class="sec-letter soft">C</span>
+        <h3>機械性工作（相信我）</h3>
+        <span class="likelihood lo">低調整可能性</span>
+      </div>
+      <p class="sec-intro">這個功能需要的重構和接線。這裡沒有判斷性決策——刻意收起來。</p>
+      <details class="mech">
+        <summary>無聊但必要 <span class="count">8 個任務 · 總共約 0.5d，已含在上面的估時</span></summary>
+        <ul class="mech-list">
+          <li>把 <code>AnnotationSerializer</code> 從 <code>api/annotations.ts</code> 抽到 <code>lib/serializers/</code>，讓 export worker 可以重用。<span class="why">純搬移，沒有行為變更。</span></li>
+          <li>完成 <code>CommentMarker</code> → <code>AnnotationMarker</code> 的重新命名——還有 3 個檔案 import deprecated alias。</li>
+          <li>把 <code>annotation_exports</code> 加到 fixture loader 和 CI database-reset script。</li>
+          <li>在 <code>workers/index.ts</code> 註冊 <code>exports.render</code>，並加到 dead-letter alert 清單。</li>
+          <li>在 <code>flags.yaml</code> 建立 feature flag <code>export_annotations</code>，預設關閉。</li>
+          <li>在 <code>jobs/cleanup.ts</code> 加一個每日 TTL 清理過期 export blob（只在選擇 ② 維持現狀時需要）。</li>
+          <li>擴充 <code>openapi.yaml</code> 加上兩個新 endpoint，並重新產生 client。</li>
+          <li>把 timecode 格式化 helper 從 <code>player/utils.ts</code> 移到 <code>lib/time.ts</code>——PDF renderer 需要它，但不該 import player bundle。</li>
+        </ul>
+      </details>
+    </section>
+
+    <!-- ── quick replies ─────────────────── -->
+    <div class="tweak-card">
+      <h3>調整這三件事</h3>
+      <p>你可以發送的最高槓桿回覆。複製一個、編輯、發送——我會修改計畫。</p>
+      <div class="tweak-row">
+        <span class="t-num">①</span>
+        <div class="t-body"><span class="t-q">「選擇 ① 改成即時 join——這裡的匯出是工作文件，不是記錄。」</span></div>
+        <button class="copy-btn" onclick="copyText(this, '選擇 ① 改成即時 join——這裡的匯出是工作文件，不是記錄。')">複製</button>
+      </div>
+      <div class="tweak-row">
+        <span class="t-num">②</span>
+        <div class="t-body"><span class="t-q">「把 TimecodeRange 從 ExportRequest 拿掉；沒人要求過依場景匯出。」</span></div>
+        <button class="copy-btn" onclick="copyText(this, '把 TimecodeRange 從 ExportRequest 拿掉；沒人要求過依場景匯出。')">複製</button>
+      </div>
+      <div class="tweak-row">
+        <span class="t-num">③</span>
+        <div class="t-body"><span class="t-q">「步驟 3 用混合方式：最多等 4 秒 inline，然後 fallback 到通知。」</span></div>
+        <button class="copy-btn" onclick="copyText(this, '步驟 3 用混合方式：最多等 4 秒 inline，然後 fallback 到通知。')">複製</button>
+      </div>
+    </div>
+
+  </div><!-- /artifact -->
+
+  <footer class="site-foot">
+    <a href="index.html">了解你的未知</a>系列的一部分——部落格文章的配套範例。
+  </footer>
+
+</div>
+
+<script>
+  function copyText(btn, text) {
+    var done = function () {
+      var orig = btn.dataset.orig || btn.textContent;
+      btn.dataset.orig = orig;
+      btn.textContent = '已複製';
+      btn.classList.add('copied');
+      setTimeout(function () {
+        btn.textContent = orig;
+        btn.classList.remove('copied');
+      }, 1600);
+    };
+    var fallback = function () {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); done(); } catch (e) {}
+      document.body.removeChild(ta);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, fallback);
+    } else {
+      fallback();
+    }
+  }
+
+  // Choice toggles: swap both the choice card body and the matching schema rows.
+  function toggleChoice(n) {
+    var card = document.getElementById('c' + n);
+    var toAlt = card.getAttribute('data-variant') === 'main';
+    var next = toAlt ? 'alt' : 'main';
+    card.setAttribute('data-variant', next);
+    card.querySelector('.alt-toggle').textContent = toAlt ? '← 回到計畫的選擇' : '查看替代方案 →';
+    // schema rows for choice n use classes v-main/v-alt (n=1) or v-main2/v-alt2 (n=2)
+    var suffix = n === 1 ? '' : '2';
+    var schema = document.getElementById('schema');
+    schema.querySelectorAll('.v-main' + suffix).forEach(function (el) {
+      el.style.display = toAlt ? 'none' : '';
+    });
+    schema.querySelectorAll('.v-alt' + suffix).forEach(function (el) {
+      el.style.display = toAlt ? 'block' : 'none';
+    });
+  }
+
+  // Initialize schema alt rows hidden (choice 2 rows aren't covered by the
+  // [data-variant] CSS on #schema since both choices share one diagram).
+  document.querySelectorAll('#schema .v-alt, #schema .v-alt2').forEach(function (el) {
+    el.style.display = 'none';
+  });
+  document.querySelectorAll('#schema .v-main2').forEach(function (el) {
+    el.style.display = '';
+  });
+</script>
+</body>
+</html>

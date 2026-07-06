@@ -62,32 +62,23 @@ const CJK_UNIFIED_IDEOGRAPH_PATTERN = /\p{Unified_Ideograph}/gu;
 // MDX requires {/* */} comments; HTML <!-- --> breaks the build.
 const CJK_ESCAPE_MARKERS = ['{/* cjk-ok */}', '<!-- cjk-ok -->'];
 const containsCjkEscape = (line) => CJK_ESCAPE_MARKERS.some((m) => line.includes(m));
-// Grandfather baseline: every en-* CJK Unified Ideograph line that already
-// existed the day Rule 19 shipped (SP-251 uiux fix task, 2026-07-06), so the
-// guard ships CI-green without a mass content-editing PR. Burn this down over
-// time — 11 of these 14 lines are legitimate citations/kaomoji that just need
-// the `<!-- cjk-ok -->` escape (see fixes-report.md for the file-by-file
-// classification); the 3 lines in en-sp-193 are a real untranslated-CJK bug
-// in a fenced code block, reported but not fixed here. Whoever resolves a
-// line (adds the escape, or retranslates the bug) should delete its entry
-// below — new CJK that isn't in this list still fails the guard.
+// Grandfather baseline: en-* CJK Unified Ideograph lines that already existed
+// when Rule 19 shipped (SP-251 uiux fix task, 2026-07-06), so the guard
+// shipped CI-green without a mass content-editing PR. All 14 original entries
+// have since been resolved — 11 legitimate citations/kaomoji got a `cjk-ok`
+// escape (fix/clawdnote-summaries-cjk-escapes) and the 3-line en-sp-193
+// untranslated-code-comment bug got retranslated
+// (fix/en-sp-193-untranslated-comments) — so this baseline is empty. Keep the
+// Map (and this comment) as the burn-down mechanism for the next time a
+// mass-adoption PR needs to ship CI-green before every line is fixed: add an
+// entry, downgrade it to a warning, and delete the entry once resolved.
 //
 // Keyed by exact trimmed line text (not line number) so unrelated edits
 // elsewhere in the file — which shift line numbers — don't silently drop a
 // line out of the baseline or let a false match through. Only editing the
 // flagged line itself invalidates its baseline entry, which is the correct
 // trigger to revisit it.
-const CJK_GRANDFATHERED_LINES = new Map([
-  // sp-193's 3 lines are a real untranslated-CJK bug, handled by a separate task
-  [
-    'en-sp-193-20260508-article-autobrowse-agent.mdx',
-    new Set([
-      '# 第一步：先用 fetch 試探。',
-      '# 如果資料乾淨回來，就直接寫解析程式。',
-      '# 如果回應是空的、動態的，或被關卡擋住，再升級到 Autobrowse。',
-    ]),
-  ],
-]);
+const CJK_GRANDFATHERED_LINES = new Map([]);
 
 // ─── Helpers ───────────────────────────────────────────────────────
 function parseFrontmatter(content) {
@@ -895,4 +886,4 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   main();
 }
 
-export { parseFrontmatter, getBaseFilename, getContentBody, validatePost };
+export { parseFrontmatter, getBaseFilename, getContentBody, validatePost, CJK_GRANDFATHERED_LINES };
