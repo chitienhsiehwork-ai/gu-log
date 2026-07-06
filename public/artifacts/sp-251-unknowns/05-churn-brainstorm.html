@@ -1,0 +1,718 @@
+<!-- Copyright 2026 Anthropic PBC · SPDX-License-Identifier: Apache-2.0 -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brainstorm the intervention — Know your unknowns</title>
+<style>
+  :root {
+    --ivory:  #FAF9F5;
+    --paper:  #FFFFFF;
+    --slate:  #141413;
+    --clay:   #D97757;
+    --clay-d: #B85C3E;
+    --oat:    #E3DACC;
+    --olive:  #788C5D;
+    --g100:   #F0EEE6;
+    --g200:   #E6E3DA;
+    --g300:   #D1CFC5;
+    --g500:   #87867F;
+    --g700:   #3D3D3A;
+    --serif: ui-serif, Georgia, "Times New Roman", Times, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--ivory);
+    color: var(--slate);
+    font-family: var(--sans);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 24px 160px; }
+
+  /* ── header ─────────────────────────── */
+  header.page-head {
+    padding: 56px 0 8px;
+    position: relative;
+  }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--g500);
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .eyebrow::before {
+    content: "";
+    width: 24px; height: 1.5px;
+    background: var(--clay);
+    flex: none;
+  }
+  a.back {
+    position: absolute;
+    top: 58px; right: 0;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--g500);
+    text-decoration: none;
+  }
+  a.back:hover { color: var(--clay); }
+  h1 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(32px, 4.6vw, 46px);
+    line-height: 1.08;
+    letter-spacing: -0.018em;
+    margin: 0 0 10px;
+  }
+  .lede {
+    font-size: 16px;
+    color: var(--g700);
+    max-width: 640px;
+    margin: 0 0 30px;
+  }
+
+  /* ── prompt box ─────────────────────── */
+  .prompt-card {
+    background: var(--paper);
+    border: 1.5px solid var(--g300);
+    border-radius: 14px;
+    padding: 22px 24px 24px;
+    position: relative;
+  }
+  .prompt-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--clay);
+    margin-bottom: 12px;
+  }
+  .prompt-card blockquote {
+    margin: 0;
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 17.5px;
+    line-height: 1.5;
+    color: var(--slate);
+    max-width: 60ch;
+  }
+  button.copy-prompt {
+    position: absolute;
+    top: 16px; right: 16px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--g700);
+    background: var(--g100);
+    border: 1.5px solid var(--g300);
+    border-radius: 8px;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: border-color 120ms, color 120ms;
+  }
+  button.copy-prompt:hover { border-color: var(--clay); color: var(--clay-d); }
+  button.copy-prompt.copied { color: var(--olive); border-color: var(--olive); }
+  @media (max-width: 560px) {
+    button.copy-prompt { position: static; margin-top: 14px; }
+  }
+
+  /* ── divider ────────────────────────── */
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 46px 0 34px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--g500);
+    white-space: nowrap;
+  }
+  .divider::before, .divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--g300);
+  }
+
+  /* ── artifact frame ─────────────────── */
+  .artifact {
+    background: var(--paper);
+    border: 1.5px solid var(--g300);
+    border-radius: 14px;
+    padding: 30px clamp(16px, 3.5vw, 34px) 34px;
+  }
+  .artifact h2 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(23px, 3vw, 29px);
+    letter-spacing: -0.015em;
+    line-height: 1.15;
+    margin: 6px 0 6px;
+  }
+  .art-eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--g500);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .art-eyebrow::before {
+    content: "";
+    width: 24px; height: 1.5px;
+    background: var(--clay);
+    flex: none;
+  }
+  .art-sub {
+    font-size: 14.5px;
+    color: var(--g700);
+    max-width: 66ch;
+    margin: 0 0 26px;
+  }
+  .art-sub code {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    background: var(--g100);
+    border-radius: 5px;
+    padding: 1px 5px;
+  }
+
+  /* ── spectrum strip ─────────────────── */
+  .spectrum {
+    margin: 8px 0 34px;
+  }
+  .spec-labels {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--g500);
+    margin-bottom: 10px;
+  }
+  .spec-labels .lo { color: var(--olive); }
+  .spec-labels .hi { color: var(--clay-d); }
+  .spec-track {
+    position: relative;
+    height: 56px;
+  }
+  .spec-line {
+    position: absolute;
+    left: 0; right: 0; top: 27px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--olive), var(--oat) 45%, var(--clay));
+    border-radius: 1px;
+  }
+  .spec-dot {
+    position: absolute;
+    top: 27px;
+    transform: translate(-50%, -50%);
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: var(--paper);
+    border: 2px solid var(--g500);
+    color: var(--g700);
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    transition: border-color 120ms, background 120ms, color 120ms, transform 120ms;
+  }
+  .spec-dot:hover { border-color: var(--slate); transform: translate(-50%, -50%) scale(1.12); }
+  .spec-dot.on {
+    background: var(--clay);
+    border-color: var(--clay-d);
+    color: #fff;
+  }
+  .spec-ticks {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--g500);
+    margin-top: 2px;
+  }
+  @media (max-width: 560px) {
+    .spec-dot { width: 24px; height: 24px; font-size: 10.5px; }
+    .spec-labels { font-size: 9px; }
+  }
+
+  /* ── intervention cards ─────────────── */
+  .cards { display: flex; flex-direction: column; gap: 14px; }
+  .iv {
+    border: 1.5px solid var(--g300);
+    border-radius: 12px;
+    background: var(--ivory);
+    padding: 18px 20px 16px;
+    scroll-margin-top: 20px;
+    transition: border-color 140ms, background 140ms;
+  }
+  .iv.checked { border-color: var(--clay); background: #FDF6F2; }
+  .iv-top {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .iv-num {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--clay-d);
+    flex: none;
+  }
+  .iv h3 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 19px;
+    letter-spacing: -0.01em;
+    margin: 0;
+    flex: 1 1 auto;
+    min-width: 200px;
+  }
+  .chips { display: flex; gap: 8px; align-items: center; flex: none; }
+  .effort {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    border-radius: 999px;
+    padding: 3px 10px;
+    border: 1.5px solid transparent;
+  }
+  .effort.s  { background: #EEF2E6; color: var(--olive); border-color: #C9D4B6; }
+  .effort.m  { background: var(--oat); color: #7A6A4F; border-color: var(--g300); }
+  .effort.l  { background: #F8E7DE; color: var(--clay-d); border-color: #EBC5B4; }
+  .effort.xl { background: var(--clay); color: #fff; border-color: var(--clay-d); }
+  .path {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--g700);
+    background: var(--g100);
+    border: 1px solid var(--g200);
+    border-radius: 6px;
+    padding: 2px 8px;
+    margin: 8px 0 2px;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+  .iv-body { font-size: 14px; color: var(--g700); margin: 8px 0 0; }
+  .iv-body strong { color: var(--slate); font-weight: 600; }
+  .iv-found {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--g500);
+  }
+  .iv-impact {
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+    margin-top: 10px;
+    font-size: 13.5px;
+    color: var(--g700);
+  }
+  .iv-impact .tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--olive);
+    flex: none;
+  }
+  .iv-foot {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--g300);
+  }
+  label.resonate {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--g700);
+    cursor: pointer;
+    user-select: none;
+  }
+  label.resonate input {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    border: 1.5px solid var(--g500);
+    border-radius: 5px;
+    background: var(--paper);
+    cursor: pointer;
+    margin: 0;
+    display: grid;
+    place-content: center;
+    transition: border-color 120ms, background 120ms;
+  }
+  label.resonate input::before {
+    content: "";
+    width: 9px; height: 9px;
+    transform: scale(0);
+    transition: transform 100ms;
+    clip-path: polygon(14% 44%, 0 60%, 40% 100%, 100% 16%, 84% 4%, 38% 71%);
+    background: #fff;
+  }
+  label.resonate input:checked { background: var(--clay); border-color: var(--clay-d); }
+  label.resonate input:checked::before { transform: scale(1.15); }
+  .iv.checked label.resonate { color: var(--clay-d); }
+
+  /* ── sticky reply bar ───────────────── */
+  .replybar {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    background: var(--slate);
+    color: var(--ivory);
+    z-index: 50;
+    box-shadow: 0 -8px 24px rgba(20,20,19,.15);
+  }
+  .replybar-inner {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .rb-count {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--oat);
+    flex: none;
+    white-space: nowrap;
+  }
+  .rb-count b { color: var(--clay); font-size: 15px; }
+  .rb-reply {
+    flex: 1;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--g300);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+  .rb-reply.live { color: var(--ivory); }
+  button.rb-copy {
+    flex: none;
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.03em;
+    background: var(--clay);
+    color: #fff;
+    border: 1.5px solid var(--clay-d);
+    border-radius: 8px;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: background 120ms, opacity 120ms;
+  }
+  button.rb-copy:hover:not(:disabled) { background: var(--clay-d); }
+  button.rb-copy:disabled { opacity: .35; cursor: default; }
+  button.rb-copy.copied { background: var(--olive); border-color: var(--olive); }
+  @media (max-width: 640px) {
+    .replybar-inner { flex-wrap: wrap; gap: 8px; padding: 10px 16px; }
+    .rb-reply { order: 3; flex-basis: 100%; }
+  }
+
+  /* ── footer ─────────────────────────── */
+  footer {
+    margin-top: 56px;
+    font-size: 13px;
+    color: var(--g500);
+  }
+  footer a { color: var(--clay); text-decoration-color: var(--oat); text-underline-offset: 3px; }
+  footer a:hover { text-decoration-color: var(--clay); }
+</style>
+<style id="gu-log-mirror-credit-style">.gu-log-mirror-credit{position:sticky;top:0;z-index:9999;padding:8px 14px;background:#111;color:#f7f3e8;border-bottom:1px solid rgba(255,255,255,.18);font:13px/1.45 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;text-align:center}.gu-log-mirror-credit a{color:#f4c86a;text-decoration:underline;text-underline-offset:2px}.gu-log-mirror-credit strong{font-weight:750}</style>
+</head>
+<body>
+<div class="gu-log-mirror-credit" role="note"><strong>Mirror copy for gu-log SP-251.</strong> Original by <a href="https://x.com/trq212">Thariq (@trq212)</a>: <a href="https://thariqs.github.io/html-effectiveness/unknowns/">Know your unknowns</a>. English original preserved; zh-tw version later.</div>
+<div class="wrap">
+
+  <header class="page-head">
+    <a class="back" href="index.html">&larr; All examples</a>
+    <div class="eyebrow">Know your unknowns &middot; Pre-implementation</div>
+    <h1>Brainstorm the intervention</h1>
+    <p class="lede">Before committing to a fix, ask for the whole option space — grounded in what actually exists in the code — so the choice you make is informed by alternatives you didn't know you had.</p>
+
+    <div class="prompt-card">
+      <div class="prompt-label">The prompt</div>
+      <blockquote>&ldquo;Here's my rough problem: Acme users churn after onboarding. Search the codebase and brainstorm 10 places we could intervene, from cheapest to most ambitious. I'll tell you which ones resonate.&rdquo;</blockquote>
+      <button class="copy-prompt" id="copyPrompt" type="button">copy prompt</button>
+    </div>
+  </header>
+
+  <div class="divider">What Claude produced</div>
+
+  <div class="artifact">
+    <div class="art-eyebrow">Acme &middot; post-onboarding churn</div>
+    <h2>10 places to intervene, cheapest to most ambitious</h2>
+    <p class="art-sub">I searched <code>apps/web</code>, <code>services/</code>, and <code>packages/</code> for onboarding, invite, and first-session code paths. A pattern showed up: <strong>a lot of retention machinery already exists but is disconnected</strong> — the cheapest options below are mostly wiring, not building. Check the ones that resonate and copy the reply at the bottom.</p>
+
+    <div class="spectrum">
+      <div class="spec-labels">
+        <span class="lo">Ship this afternoon</span>
+        <span class="hi">Quarter-long bet</span>
+      </div>
+      <div class="spec-track" id="specTrack">
+        <div class="spec-line"></div>
+        <button class="spec-dot" style="left:3%"  data-n="1"  type="button" title="Fix the dead-end empty state">1</button>
+        <button class="spec-dot" style="left:10%" data-n="2"  type="button" title="Turn on the sample project">2</button>
+        <button class="spec-dot" style="left:19%" data-n="3"  type="button" title="Show pending invites in-app">3</button>
+        <button class="spec-dot" style="left:29%" data-n="4"  type="button" title="Wire up the milestones checklist">4</button>
+        <button class="spec-dot" style="left:39%" data-n="5"  type="button" title="Engineer the first-comment moment">5</button>
+        <button class="spec-dot" style="left:49%" data-n="6"  type="button" title="Rescue silently failed first uploads">6</button>
+        <button class="spec-dot" style="left:60%" data-n="7"  type="button" title="Watch-together first session">7</button>
+        <button class="spec-dot" style="left:71%" data-n="8"  type="button" title="Review workflow templates">8</button>
+        <button class="spec-dot" style="left:84%" data-n="9"  type="button" title="Built-in quick screen recording">9</button>
+        <button class="spec-dot" style="left:96%" data-n="10" type="button" title="First-class client review portals">10</button>
+      </div>
+      <div class="spec-ticks"><span>wiring</span><span>new UI</span><span>new lifecycle</span><span>new surface</span></div>
+    </div>
+
+    <div class="cards">
+
+      <div class="iv" id="iv1">
+        <div class="iv-top">
+          <span class="iv-num">#1</span>
+          <h3>Fix the dead-end empty state</h3>
+          <div class="chips"><span class="effort s">S</span></div>
+        </div>
+        <span class="path">apps/web/src/onboarding/EmptyState.tsx</span>
+        <p class="iv-body"><span class="iv-found">Found in code —</span> The zero-projects dashboard renders the illustration and the copy <em>&ldquo;No projects yet&rdquo;</em> — and nothing else. <code>NewProjectButton</code> exists two directories over but was never imported here; the only way forward is the tiny &ldquo;+&rdquo; in the top nav. Every churned user's last screen was probably this one.</p>
+        <div class="iv-impact"><span class="tag">Impact</span>100% of new users hit this screen; a real CTA plus a &ldquo;drop a video anywhere&rdquo; hint removes the most literal dead end in the product.</div>
+        <div class="iv-foot"><label class="resonate"><input type="checkbox" data-n="1"> This resonates</label></div>
+      </div>
+
+      <div class="iv" id="iv2">
+        <div class="iv-top">
+          <span class="iv-num">#2</span>
+          <h3>Turn on the sample project that already exists</h3>
+          <div class="chips"><span class="effort s">S</span></div>
+        </div>
+        <span class="path">apps/web/src/projects/sampleProject.ts</span>
+        <p class="iv-body"><span class="iv-found">Found in code —</span> Someone built a complete seeded demo project — &ldquo;Product teaser v3&rdquo; with a 45s clip, four timestamped comments, and one resolved thread — behind the flag <code>sample_project_v1</code>. The flag is still <strong>false for everyone</strong> and the file hasn't been touched in 8 months. The feature is done; it was just never shipped.</p>
+        <div class="iv-impact"><span class="tag">Impact</span>New users see what a live review looks like before they've uploaded anything. Cheapest possible &ldquo;aha&rdquo; — flip a flag, verify the seed script.</div>
+        <div class="iv-foot"><label class="resonate"><input type="checkbox" data-n="2"> This resonates</label></div>
+      </div>
+
+      <div class="iv" id="iv3">
+        <div class="iv-top">
+          <span class="iv-num">#3</span>
+          <h3>Show pending invites inside the app</h3>
+          <div class="chips"><span class="effort s">S</span></div>
+        </div>
+        <span class="path">services/mailer/templates/invite.mjml &middot; apps/web/src/team/TeamPanel.tsx</span>
+        <p class="iv-body"><span class="iv-found">Found in code —</span> Invites go out as email only. <code>TeamPanel</code> queries <code>team_members</code> but ignores the <code>invites</code> table entirely — an inviter can't see that their teammate never accepted, and there's no resend. For a <strong>collaborative</strong> review tool, a solo user is a churn-in-waiting.</p>
+        <div class="iv-impact"><span class="tag">Impact</span>Surfacing &ldquo;2 invites pending &middot; resend&rdquo; turns invisible invite decay into a visible, fixable state.</div>
+        <div class="iv-foot"><label class="resonate"><input type="checkbox" data-n="3"> This resonates</label></div>
+      </div>
+
+      <div class="iv" id="iv4">
+        <div class="iv-top">
+          <span class="iv-num">#4</span>
+          <h3>Wire the milestones table to a dashboard checklist</h3>
+          <div class="chips"><span class="effort m">M</span></div>
+        </div>
+        <span class="path">services/api/src/models/userMilestones.ts &middot; apps/web/src/dashboard/Dashboard.tsx</span>
+        <p class="iv-body"><span class="iv-found">Found in code —</span> The backend already records <code>first_upload</code>, <code>first_comment</code>, <code>first_invite_accepted</code>, and <code>first_approval</code> in <code>user_milestones</code> — but <strong>no client code reads the table</strong>. It exists purely for an analytics dashboard. All the ingredients for a &ldquo;3 of 4 steps done&rdquo; checklist are sitting there.</p>
+        <div class="iv-impact"><span class="tag">Impact</span>Checklists reliably lift activation; this one needs one endpoint and one component because tracking already works.</div>
+        <div class="iv-foot"><label class="resonate"><input type="checkbox" data-n="4"> This resonates</label></div>
+      </div>
+
+      <div class="iv" id="iv5">
+        <div class="iv-top">
+          <span class="iv-num">#5</span>
+          <h3>Engineer the first-comment moment</h3>
+          <div class="chips"><span class="effort m">M</span></div>
+        </div>
+        <span class="path">apps/web/src/review/CommentComposer.tsx &middot; apps/web/src/review/Timeline.tsx</span>
+        <p class="iv-body"><span class="iv-found">Found in code —</span> Timestamped comments are Acme's core loop, but the affordance is hidden: clicking the timeline seeds the timestamp into the composer, and nothing teaches this. <code>Timeline.tsx</code> has a <code>TODO: first-run hint?</code> from the original author. Add a ghost pin on first play — &ldquo;click anywhere to comment at this moment&rdquo;.</p>
+        <div class="iv-impact"><span class="tag">Impact</span>If first-session comment rate is the activation metric (it should be), this is the most direct lever on it.</div>
+        <div class="iv-foot"><label class="resonate"><input type="checkbox" data-n="5"> This resonates</label></div>
+      </div>
+
+      <div class="iv" id="iv6">
+        <div class="iv-top">
+          <span class="iv-num">#6</span>
+          <h3>Rescue silently failed first uploads</h3>
+          <div class="chips"><span class="effort m">M</span></div>
+        </div>
+        <span class="path">services/ingest/src/transcode/queue.ts</span>
+        <p class="iv-body"><span class="iv-found">Found in code —</span> When transcode fails (unsupported codec, oversized ProRes, corrupt moov atom), the job moves to <code>failed</code>, logs to Sentry, and <strong>tells the user nothing</strong> — the project card just shows a spinner forever. There's a retry-with-fallback-preset code path that's only reachable from an internal admin script.</p>
+        <div class="iv-impact"><span class="tag">Impact</span>A user whose first upload hangs forever doesn't file a ticket — they leave. Auto-retry plus an honest error email converts a silent churn path into a support path.</div>
+        <div class="iv-foot"><label class="resonate"><input type="checkbox" data-n="6"> This resonates</label></div>
+      </div>
+
+      <div class="iv" id="iv7">
+        <div class="iv-top">
+          <span class="iv-num">#7</span>
+          <h3>Watch-together first session for teams</h3>
+          <div class="chips"><span class="effort l">L</span></div>
+        </div>
+        <span class="path">apps/web/src/review/PresenceProvider.tsx &middot; services/realtime/</span>
+        <p class="iv-body"><span class="iv-found">Found in code —</span> Live presence is fully built — shared playhead, live cursors, &ldquo;Maya is watching&rdquo; badges — but it only lights up if two people <em>happen</em> to open the same review. Nothing engineers that coincidence. Add a &ldquo;review together&rdquo; scheduling nudge when a teammate accepts an invite, deep-linking both into the same session.</p>
+        <div class="iv-impact"><span class="tag">Impact</span>Teams that experience one live session likely retain at a different rate than solo users; this makes the multiplayer moment deliberate instead of lucky.</div>
+        <div class="iv-foot"><label class="resonate"><input type="checkbox" data-n="7"> This resonates</label></div>
+      </div>
+
+      <div class="iv" id="iv8">
+        <div class="iv-top">
+          <span class="iv-num">#8</span>
+          <h3>Ship five review-workflow templates</h3>
+          <div class="chips"><span class="effort l">L</span></div>
+        </div>
+        <span class="path">packages/workflows/src/definitions/</span>
+        <p class="iv-body"><span class="iv-found">Found in code —</span> Approval workflows (rough cut &rarr; client review &rarr; final sign-off) are fully configurable — and start <strong>completely blank</strong>. The definitions directory contains only <code>__fixtures__</code> for tests. Judging by a comment in <code>WorkflowEditor.tsx</code>, power users copy a shared Notion doc to set theirs up. Ship 5 opinionated templates: agency delivery, YouTube pipeline, client sign-off, internal QA, localization pass.</p>
+        <div class="iv-impact"><span class="tag">Impact</span>Templates convert &ldquo;configure this abstraction&rdquo; into &ldquo;pick your job&rdquo; — the classic fix for blank-canvas churn in workflow tools.</div>
+        <div class="iv-foot"><label class="resonate"><input type="checkbox" data-n="8"> This resonates</label></div>
+      </div>
+
+      <div class="iv" id="iv9">
+        <div class="iv-top">
+          <span class="iv-num">#9</span>
+          <h3>Built-in quick screen &amp; camera recording</h3>
+          <div class="chips"><span class="effort xl">XL</span></div>
+        </div>
+        <span class="path">new surface &middot; services/ingest already accepts chunked webm</span>
+        <p class="iv-body"><span class="iv-found">Found in code —</span> Today Acme's onboarding has a hard external dependency: <strong>you need a finished video before the product is useful</strong>. But <code>services/ingest</code> already accepts chunked webm uploads (built for the mobile app), so a MediaRecorder-based &ldquo;record your screen, get feedback&rdquo; flow needs no pipeline work — &ldquo;just&rdquo; the capture UI. Removes the biggest reason a trial goes idle: nothing to review yet.</p>
+        <div class="iv-impact"><span class="tag">Impact</span>Changes who can activate — designers and PMs without an editor can create the first reviewable artifact themselves. Big build, big surface area.</div>
+        <div class="iv-foot"><label class="resonate"><input type="checkbox" data-n="9"> This resonates</label></div>
+      </div>
+
+      <div class="iv" id="iv10">
+        <div class="iv-top">
+          <span class="iv-num">#10</span>
+          <h3>First-class client review portals</h3>
+          <div class="chips"><span class="effort xl">XL</span></div>
+        </div>
+        <span class="path">services/auth/src/guestTokens.ts &middot; apps/web/src/share/</span>
+        <p class="iv-body"><span class="iv-found">Found in code —</span> Guest share links exist but are deliberately crippled: tokens expire after 24h, guests can't comment, and there's a <code>// TODO(sasha): revisit guest perms after launch</code> from two years ago. The users who churn are often the ones whose <em>clients</em> wouldn't sign up. Make guests first-class — persistent portal, comment-with-name, no account — and every external review becomes a retention loop (and an acquisition one).</p>
+        <div class="iv-impact"><span class="tag">Impact</span>Attacks the structural cause: Acme's value depends on people who refuse to create accounts. Quarter-long bet with auth, billing, and abuse-prevention implications.</div>
+        <div class="iv-foot"><label class="resonate"><input type="checkbox" data-n="10"> This resonates</label></div>
+      </div>
+
+    </div>
+  </div>
+
+  <footer>Part of <a href="index.html">Know your unknowns</a> — companion examples to the blog post.</footer>
+</div>
+
+<div class="replybar">
+  <div class="replybar-inner">
+    <span class="rb-count"><b id="rbNum">0</b> resonate</span>
+    <span class="rb-reply" id="rbReply">Check the interventions that resonate — your reply builds here.</span>
+    <button class="rb-copy" id="rbCopy" type="button" disabled>copy reply</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  var PROMPT = "Here's my rough problem: Acme users churn after onboarding. Search the codebase and brainstorm 10 places we could intervene, from cheapest to most ambitious. I'll tell you which ones resonate.";
+
+  function copyText(text, btn, label, doneLabel) {
+    function done() {
+      btn.classList.add('copied');
+      btn.textContent = doneLabel;
+      setTimeout(function () {
+        btn.classList.remove('copied');
+        btn.textContent = label;
+      }, 1600);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, function () { fallback(); });
+    } else { fallback(); }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch (e) {}
+      document.body.removeChild(ta);
+      done();
+    }
+  }
+
+  var copyPromptBtn = document.getElementById('copyPrompt');
+  copyPromptBtn.addEventListener('click', function () {
+    copyText(PROMPT, copyPromptBtn, 'copy prompt', 'copied');
+  });
+
+  var boxes = Array.prototype.slice.call(document.querySelectorAll('label.resonate input'));
+  var dots = {};
+  Array.prototype.forEach.call(document.querySelectorAll('.spec-dot'), function (d) {
+    dots[d.getAttribute('data-n')] = d;
+    d.addEventListener('click', function () {
+      var card = document.getElementById('iv' + d.getAttribute('data-n'));
+      if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  });
+
+  var rbNum = document.getElementById('rbNum');
+  var rbReply = document.getElementById('rbReply');
+  var rbCopy = document.getElementById('rbCopy');
+  var currentReply = '';
+
+  function update() {
+    var picked = boxes
+      .filter(function (b) { return b.checked; })
+      .map(function (b) { return parseInt(b.getAttribute('data-n'), 10); })
+      .sort(function (a, b) { return a - b; });
+
+    boxes.forEach(function (b) {
+      var n = b.getAttribute('data-n');
+      var card = document.getElementById('iv' + n);
+      if (card) card.classList.toggle('checked', b.checked);
+      if (dots[n]) dots[n].classList.toggle('on', b.checked);
+    });
+
+    rbNum.textContent = picked.length;
+    if (picked.length === 0) {
+      currentReply = '';
+      rbReply.textContent = 'Check the interventions that resonate — your reply builds here.';
+      rbReply.classList.remove('live');
+      rbCopy.disabled = true;
+    } else {
+      var list = picked.map(function (n) { return '#' + n; }).join(', ');
+      currentReply = 'These resonate: ' + list + ' — start with #' + picked[0];
+      rbReply.textContent = '“' + currentReply + '”';
+      rbReply.classList.add('live');
+      rbCopy.disabled = false;
+    }
+  }
+
+  boxes.forEach(function (b) { b.addEventListener('change', update); });
+  rbCopy.addEventListener('click', function () {
+    if (currentReply) copyText(currentReply, rbCopy, 'copy reply', 'copied');
+  });
+
+  update();
+})();
+</script>
+</body>
+</html>

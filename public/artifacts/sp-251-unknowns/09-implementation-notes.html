@@ -1,0 +1,611 @@
+<!-- Copyright 2026 Anthropic PBC · SPDX-License-Identifier: Apache-2.0 -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Implementation notes — Know your unknowns</title>
+<style>
+  :root {
+    --ivory:  #FAF9F5;
+    --paper:  #FFFFFF;
+    --slate:  #141413;
+    --clay:   #D97757;
+    --clay-d: #B85C3E;
+    --oat:    #E3DACC;
+    --olive:  #788C5D;
+    --g100:   #F0EEE6;
+    --g200:   #E6E3DA;
+    --g300:   #D1CFC5;
+    --g500:   #87867F;
+    --g700:   #3D3D3A;
+    --serif: ui-serif, Georgia, "Times New Roman", Times, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ivory);
+    color: var(--slate);
+    font-family: var(--sans);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 24px 100px; }
+
+  /* ── header ── */
+  header.page { padding: 56px 0 8px; position: relative; }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--g500);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+  .eyebrow::before { content: ""; width: 24px; height: 1.5px; background: var(--clay); flex: none; }
+  a.back {
+    position: absolute;
+    top: 60px; right: 0;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--g500);
+    text-decoration: none;
+  }
+  a.back:hover { color: var(--clay-d); }
+  h1 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(32px, 5vw, 46px);
+    line-height: 1.08;
+    letter-spacing: -0.015em;
+    margin: 0 0 10px;
+  }
+  .lede { font-size: 16.5px; color: var(--g700); max-width: 640px; margin: 0 0 30px; }
+
+  /* ── prompt box ── */
+  .promptcard {
+    background: var(--paper);
+    border: 1.5px solid var(--g300);
+    border-radius: 14px;
+    padding: 22px 26px 24px;
+    position: relative;
+  }
+  .promptcard .label {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--clay);
+    margin-bottom: 12px;
+  }
+  .promptcard blockquote {
+    margin: 0;
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 17.5px;
+    line-height: 1.6;
+    color: var(--slate);
+    max-width: 62ch;
+  }
+  button.copybtn {
+    position: absolute;
+    top: 18px; right: 18px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: var(--g700);
+    background: var(--g100);
+    border: 1.5px solid var(--g300);
+    border-radius: 8px;
+    padding: 6px 12px;
+    cursor: pointer;
+  }
+  button.copybtn:hover { border-color: var(--g500); }
+  button.copybtn.done { color: var(--olive); border-color: var(--olive); background: var(--paper); }
+
+  /* ── divider ── */
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 48px 0 30px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--g500);
+    white-space: nowrap;
+  }
+  .divider::before, .divider::after { content: ""; height: 1.5px; background: var(--g300); flex: 1; }
+
+  /* ── artifact: notes document ── */
+  .doc {
+    background: var(--paper);
+    border: 1.5px solid var(--g300);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .doc-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 14px;
+    padding: 14px 22px;
+    border-bottom: 1.5px solid var(--g200);
+    background: var(--g100);
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--g700);
+  }
+  .doc-head .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--olive); flex: none; }
+  .doc-head .path { overflow-wrap: anywhere; }
+  .doc-head .meta { margin-left: auto; color: var(--g500); }
+
+  .doc-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 22px 22px 0;
+  }
+  .stat {
+    flex: 1 1 130px;
+    background: var(--ivory);
+    border: 1.5px solid var(--g200);
+    border-radius: 10px;
+    padding: 12px 16px 10px;
+  }
+  .stat .n { font-family: var(--serif); font-weight: 500; font-size: 30px; line-height: 1.1; letter-spacing: -0.02em; }
+  .stat .t { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--g500); margin-top: 3px; }
+  .stat.dev .n { color: var(--clay-d); }
+  .stat.you .n { color: var(--slate); }
+  .stat.you { border-color: var(--oat); background: #F6F0E4; }
+
+  /* filter chips */
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 18px 22px 4px;
+  }
+  .chip {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: 1.5px solid var(--g300);
+    background: var(--paper);
+    color: var(--g700);
+    cursor: pointer;
+  }
+  .chip:hover { border-color: var(--g500); }
+  .chip.on { background: var(--slate); border-color: var(--slate); color: var(--ivory); }
+  .chip .ct { color: var(--g500); }
+  .chip.on .ct { color: var(--g300); }
+
+  /* timeline */
+  .timeline { padding: 16px 22px 26px; }
+  .entry {
+    display: grid;
+    grid-template-columns: 52px 14px 1fr;
+    gap: 0 14px;
+    position: relative;
+  }
+  .entry .ts {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--g500);
+    padding-top: 4px;
+    text-align: right;
+  }
+  .entry .rail { position: relative; }
+  .entry .rail::before {
+    content: "";
+    position: absolute;
+    left: 50%; top: 0; bottom: 0;
+    width: 1.5px;
+    background: var(--g200);
+    transform: translateX(-50%);
+  }
+  .entry.rail-first .rail::before { top: 10px; }
+  .entry.rail-last .rail::before { bottom: auto; height: 10px; }
+  .entry.rail-first.rail-last .rail::before { display: none; }
+  .entry .node {
+    position: absolute;
+    left: 50%; top: 8px;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    transform: translateX(-50%);
+    background: var(--g300);
+    border: 2px solid var(--paper);
+    box-shadow: 0 0 0 1.5px var(--g300);
+  }
+  .entry.t-plan .node    { background: var(--olive); box-shadow: 0 0 0 1.5px var(--olive); }
+  .entry.t-dev .node     { background: var(--clay);  box-shadow: 0 0 0 1.5px var(--clay); }
+  .entry.t-disc .node    { background: var(--oat);   box-shadow: 0 0 0 1.5px var(--g500); }
+  .entry.t-human .node   { background: var(--slate); box-shadow: 0 0 0 1.5px var(--slate); }
+  .entry .body { padding: 0 0 22px; min-width: 0; }
+  .badge {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 2.5px 9px;
+    border-radius: 6px;
+    margin-bottom: 6px;
+  }
+  .t-plan  .badge { color: var(--olive); background: #EEF1E8; border: 1px solid #C9D4B8; }
+  .t-dev   .badge { color: #fff; background: var(--clay); border: 1px solid var(--clay); }
+  .t-disc  .badge { color: var(--g700); background: var(--g100); border: 1px solid var(--g300); }
+  .t-human .badge { color: var(--ivory); background: var(--slate); border: 1px solid var(--slate); }
+  .entry h3 {
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 15px;
+    margin: 0 0 4px;
+    letter-spacing: -0.005em;
+  }
+  .entry p { margin: 0; font-size: 14px; color: var(--g700); max-width: 68ch; }
+  .entry code, .devgrid code, .n2 code {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    background: var(--g100);
+    border: 1px solid var(--g200);
+    border-radius: 5px;
+    padding: 1px 5px;
+    overflow-wrap: anywhere;
+  }
+  .ts-mobile { display: none; }
+
+  /* deviation sub-fields */
+  .devgrid {
+    margin-top: 10px;
+    border: 1.5px solid var(--oat);
+    border-left: 3px solid var(--clay);
+    border-radius: 10px;
+    background: #FBF6EC;
+    overflow: hidden;
+  }
+  .devgrid .row {
+    display: grid;
+    grid-template-columns: 158px 1fr;
+    gap: 12px;
+    padding: 9px 14px;
+    font-size: 13.5px;
+    color: var(--g700);
+  }
+  .devgrid .row + .row { border-top: 1px solid #EFE5D2; }
+  .devgrid .k {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--clay-d);
+    padding-top: 2px;
+  }
+  .devgrid .row.chosen .k { color: var(--olive); }
+  .devgrid .row.chosen .v { color: var(--slate); font-weight: 500; }
+  @media (max-width: 560px) {
+    .devgrid .row { grid-template-columns: 1fr; gap: 2px; }
+    .entry { grid-template-columns: 14px 1fr; }
+    .entry .ts { display: none; }
+    .ts-mobile { display: inline; font-family: var(--mono); font-size: 11px; color: var(--g500); margin-left: 8px; }
+  }
+
+  /* attempt #2 block */
+  .next {
+    margin-top: 26px;
+    background: var(--paper);
+    border: 1.5px solid var(--g300);
+    border-radius: 14px;
+    padding: 24px 26px 22px;
+    position: relative;
+  }
+  .next .label {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--clay);
+    margin-bottom: 8px;
+  }
+  .next h2 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 24px;
+    letter-spacing: -0.01em;
+    margin: 0 0 6px;
+  }
+  .next .sub { font-size: 14px; color: var(--g500); margin: 0 0 14px; max-width: 60ch; }
+  .next ol { margin: 0; padding-left: 22px; }
+  .next li { font-size: 14.5px; color: var(--g700); margin-bottom: 10px; max-width: 70ch; }
+  .next li strong { color: var(--slate); font-weight: 600; }
+
+  footer {
+    margin-top: 64px;
+    padding-top: 22px;
+    border-top: 1.5px solid var(--g300);
+    font-size: 13.5px;
+    color: var(--g500);
+  }
+  footer a { color: var(--clay-d); text-decoration-color: var(--oat); text-underline-offset: 3px; }
+
+  .hidden { display: none; }
+</style>
+<style id="gu-log-mirror-credit-style">.gu-log-mirror-credit{position:sticky;top:0;z-index:9999;padding:8px 14px;background:#111;color:#f7f3e8;border-bottom:1px solid rgba(255,255,255,.18);font:13px/1.45 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;text-align:center}.gu-log-mirror-credit a{color:#f4c86a;text-decoration:underline;text-underline-offset:2px}.gu-log-mirror-credit strong{font-weight:750}</style>
+</head>
+<body>
+<div class="gu-log-mirror-credit" role="note"><strong>Mirror copy for gu-log SP-251.</strong> Original by <a href="https://x.com/trq212">Thariq (@trq212)</a>: <a href="https://thariqs.github.io/html-effectiveness/unknowns/">Know your unknowns</a>. English original preserved; zh-tw version later.</div>
+<div class="wrap">
+
+  <header class="page">
+    <div class="eyebrow">Know your unknowns &middot; During implementation</div>
+    <a class="back" href="index.html">&larr; All examples</a>
+    <h1>Implementation notes</h1>
+    <p class="lede">Instead of letting mid-build surprises vanish into the scrollback, ask the agent to log every deviation from the plan as it happens — so the surprises become inputs to your next attempt.</p>
+
+    <div class="promptcard">
+      <div class="label">The prompt</div>
+      <button class="copybtn" id="copyPrompt">copy prompt</button>
+      <blockquote id="promptText">&ldquo;Keep an implementation-notes file as you build the export feature. If you hit an edge case that forces you to deviate from the plan, pick the conservative option, log it under &lsquo;Deviations&rsquo;, and keep going.&rdquo;</blockquote>
+    </div>
+  </header>
+
+  <div class="divider">What Claude produced</div>
+
+  <div class="doc">
+    <div class="doc-head">
+      <span class="dot"></span>
+      <span class="path">docs/notes/export-feature-implementation.md</span>
+      <span class="meta">run started 14:02 &middot; last write 16:51 &middot; branch feat/review-export</span>
+    </div>
+
+    <div class="doc-summary">
+      <div class="stat"><div class="n">11</div><div class="t">entries</div></div>
+      <div class="stat dev"><div class="n">4</div><div class="t">deviations</div></div>
+      <div class="stat you"><div class="n">2</div><div class="t">need your judgment</div></div>
+    </div>
+
+    <div class="chips" role="tablist" aria-label="Filter entries">
+      <button class="chip on" data-f="all">All <span class="ct">11</span></button>
+      <button class="chip" data-f="dev">Deviations <span class="ct">4</span></button>
+      <button class="chip" data-f="human">For you <span class="ct">2</span></button>
+    </div>
+
+    <div class="timeline" id="timeline">
+
+      <div class="entry t-plan" data-t="plan">
+        <div class="ts">14:02</div>
+        <div class="rail"><span class="node"></span></div>
+        <div class="body">
+          <span class="badge">Plan-confirmed</span><span class="ts-mobile">14:02</span>
+          <h3>Step 1 — export job model and queue wiring, as planned</h3>
+          <p>Added <code>ExportJob</code> in <code>apps/api/src/exports/exportJob.ts</code>, enqueued on the existing BullMQ <code>media-tasks</code> queue with a dedicated <code>export</code> job name. Migration <code>0121_export_jobs</code> matches the plan's schema exactly (status enum, <code>requested_by</code>, <code>review_id</code>, <code>format</code>).</p>
+        </div>
+      </div>
+
+      <div class="entry t-plan" data-t="plan">
+        <div class="ts">14:18</div>
+        <div class="rail"><span class="node"></span></div>
+        <div class="body">
+          <span class="badge">Plan-confirmed</span><span class="ts-mobile">14:18</span>
+          <h3>Step 2 — <code>POST /api/v1/reviews/:id/export</code> endpoint</h3>
+          <p>Request validation reuses the zod schemas in <code>apps/api/src/validation/</code> as the plan specified. <code>format</code> accepts <code>mp4-burnin | csv | bundle</code>. Returns <code>202</code> with a job id; polling endpoint deferred to step 6 per plan.</p>
+        </div>
+      </div>
+
+      <div class="entry t-disc" data-t="disc">
+        <div class="ts">14:29</div>
+        <div class="rail"><span class="node"></span></div>
+        <div class="body">
+          <span class="badge">Discovery</span><span class="ts-mobile">14:29</span>
+          <h3><code>Review.duration_ms</code> is denormalized and occasionally stale</h3>
+          <p>Three fixture reviews have <code>duration_ms</code> that disagrees with the source asset's probe data (looks like re-uploads never refresh it). Export reads duration from <code>MediaAsset.probe.duration</code> instead — same approach <code>playbackManifest.ts</code> already takes. No plan change, just noting the trap for anyone who touches this later.</p>
+        </div>
+      </div>
+
+      <div class="entry t-dev" data-t="dev">
+        <div class="ts">14:41</div>
+        <div class="rail"><span class="node"></span></div>
+        <div class="body">
+          <span class="badge">Deviation 1 of 4</span><span class="ts-mobile">14:41</span>
+          <h3>Legacy annotations don't always have frame timestamps</h3>
+          <div class="devgrid">
+            <div class="row"><div class="k">What the plan said</div><div class="v">Every annotation has a <code>frame_ts</code>; burn-in renderer can sort and place them all on the timeline.</div></div>
+            <div class="row"><div class="k">What the code revealed</div><div class="v">~12% of rows in <code>annotations</code> predate migration <code>0087</code> and have <code>frame_ts = NULL</code> — they were general review comments before per-frame annotations existed.</div></div>
+            <div class="row chosen"><div class="k">Conservative choice</div><div class="v">Exclude null-timestamp annotations from the video burn-in; include them in the CSV sidecar with <code>frame_ts</code> left blank and a <code>legacy_comment</code> flag. Nothing is silently dropped from the export bundle.</div></div>
+            <div class="row"><div class="k">Revisit</div><div class="v">Could interpolate a timestamp from <code>created_at</code> offset against the review session — decide whether that's honest enough to show in the video.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="entry t-plan" data-t="plan">
+        <div class="ts">15:05</div>
+        <div class="rail"><span class="node"></span></div>
+        <div class="body">
+          <span class="badge">Plan-confirmed</span><span class="ts-mobile">15:05</span>
+          <h3>Step 3 — annotation burn-in via ffmpeg <code>drawtext</code>/<code>drawbox</code>, as planned</h3>
+          <p>Filtergraph builder in <code>apps/worker/src/exports/burnin.ts</code>. The plan's per-annotation overlay windows (<code>enable='between(t,a,b)'</code>) work; verified against the 40-annotation stress fixture — render time 1.4x realtime on the worker instance class, inside the plan's 2x budget.</p>
+        </div>
+      </div>
+
+      <div class="entry t-dev" data-t="dev">
+        <div class="ts">15:22</div>
+        <div class="rail"><span class="node"></span></div>
+        <div class="body">
+          <span class="badge">Deviation 2 of 4</span><span class="ts-mobile">15:22</span>
+          <h3>The queue round-trips <code>Date</code> objects as strings</h3>
+          <div class="devgrid">
+            <div class="row"><div class="k">What the plan said</div><div class="v"><code>ExportJobPayload.requestedAt: Date</code>, passed through to the worker and compared against the review's <code>updated_at</code> to detect stale exports.</div></div>
+            <div class="row"><div class="k">What the code revealed</div><div class="v">BullMQ JSON-serializes payloads into Redis, so the worker receives an ISO string, not a <code>Date</code>. The staleness comparison silently coerced and passed in unit tests, but failed on a redelivered job in the integration run.</div></div>
+            <div class="row chosen"><div class="k">Conservative choice</div><div class="v">Typed the payload as wire format (<code>requestedAt: string</code> ISO-8601), parse once at the worker boundary in <code>exportConsumer.ts</code>. No custom serializer.</div></div>
+            <div class="row"><div class="k">Revisit</div><div class="v">Other <code>media-tasks</code> payloads likely have the same latent bug — a shared zod codec for job payloads would fix the class of problem.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="entry t-dev" data-t="dev">
+        <div class="ts">15:48</div>
+        <div class="rail"><span class="node"></span></div>
+        <div class="body">
+          <span class="badge">Deviation 3 of 4</span><span class="ts-mobile">15:48</span>
+          <h3>Zip streaming already exists — dropped the planned <code>archiver</code> dependency</h3>
+          <div class="devgrid">
+            <div class="row"><div class="k">What the plan said</div><div class="v">Add <code>archiver</code> to build the export bundle (video + CSV + thumbnails) as a zip stream to S3.</div></div>
+            <div class="row"><div class="k">What the code revealed</div><div class="v"><code>packages/media/src/zipStream.ts</code> already does streaming zip with backpressure handling — it powers the bulk asset download feature and has been in production since March.</div></div>
+            <div class="row chosen"><div class="k">Conservative choice</div><div class="v">Reused <code>zipStream.ts</code> as-is. One fewer dependency, and bundle exports inherit the same tested backpressure behavior as bulk downloads.</div></div>
+            <div class="row"><div class="k">Revisit</div><div class="v"><code>zipStream</code> lives in <code>packages/media</code> but is now used by two features — worth promoting to <code>packages/shared</code> in a cleanup pass.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="entry t-disc" data-t="disc">
+        <div class="ts">16:07</div>
+        <div class="rail"><span class="node"></span></div>
+        <div class="body">
+          <span class="badge">Discovery</span><span class="ts-mobile">16:07</span>
+          <h3>A websocket progress channel convention already exists</h3>
+          <p>The transcode pipeline emits <code>media:progress:{assetId}</code> events. Followed the same convention — exports emit <code>export:progress:{jobId}</code> — so the frontend can reuse <code>useProgressChannel()</code> from <code>apps/web/src/hooks/</code> instead of the polling UI the plan sketched. Kept the polling endpoint too, as the fallback.</p>
+        </div>
+      </div>
+
+      <div class="entry t-dev" data-t="dev">
+        <div class="ts">16:20</div>
+        <div class="rail"><span class="node"></span></div>
+        <div class="body">
+          <span class="badge">Deviation 4 of 4</span><span class="ts-mobile">16:20</span>
+          <h3>Guest reviewers can view reviews but can't download assets</h3>
+          <div class="devgrid">
+            <div class="row"><div class="k">What the plan said</div><div class="v">Export permission = review-level ACL: anyone who can open the review can export it.</div></div>
+            <div class="row"><div class="k">What the code revealed</div><div class="v">Workspace-level <code>guest_reviewer</code> role grants review access with <code>can_download_assets = false</code> — clients use it to let external stakeholders comment without taking the media offsite. A review-ACL-only check would let guests exfiltrate source video via export.</div></div>
+            <div class="row chosen"><div class="k">Conservative choice</div><div class="v">Export returns <code>403</code> for <code>guest_reviewer</code> across all formats, mirroring the existing asset-download check in <code>assetAccess.ts</code>. Strictest defensible reading.</div></div>
+            <div class="row"><div class="k">Revisit</div><div class="v">Arguably guests should still get the CSV (annotations only, no media). That's a product call, not mine — logged below.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="entry t-human" data-t="human">
+        <div class="ts">16:33</div>
+        <div class="rail"><span class="node"></span></div>
+        <div class="body">
+          <span class="badge">Todo for human</span><span class="ts-mobile">16:33</span>
+          <h3>Decide the guest-reviewer export policy</h3>
+          <p>Current behavior (from Deviation 4): guests get <code>403</code> on every export format. If you want guests to export the annotation CSV without media, it's a ~10-line change in <code>exportPolicy.ts</code> plus one test — but it changes what &ldquo;can't download assets&rdquo; means to customers, so it should be your call. Blocking neither merge nor QA.</p>
+        </div>
+      </div>
+
+      <div class="entry t-human" data-t="human">
+        <div class="ts">16:51</div>
+        <div class="rail"><span class="node"></span></div>
+        <div class="body">
+          <span class="badge">Todo for human</span><span class="ts-mobile">16:51</span>
+          <h3>Confirm the retention window for export bundles</h3>
+          <p>The plan didn't specify a TTL for generated bundles. I put them under the <code>exports/</code> S3 prefix with a 7-day lifecycle rule, matching share-link expiry — conservative, and nothing customer-visible promises longer. But if contracts or the data-retention policy say otherwise, the lifecycle rule in <code>infra/s3.tf</code> is the one line to change.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="next">
+    <div class="label">Fold back into the plan</div>
+    <h2>What this changes about attempt #2</h2>
+    <p class="sub">Three lines to paste into the next plan or prompt, so the next run doesn't rediscover today's surprises.</p>
+    <button class="copybtn" id="copyNext">copy bullets</button>
+    <ol id="nextList">
+      <li><strong>State the legacy-data caveat up front:</strong> ~12% of annotations (pre-migration-0087) have null <code>frame_ts</code>. Decide interpolate-vs-sidecar before implementation starts, not at 14:41 mid-build.</li>
+      <li><strong>Spec queue payloads as wire types:</strong> BullMQ round-trips through JSON, so payload interfaces should use ISO strings, never <code>Date</code> — and a shared zod codec for <code>media-tasks</code> payloads would retire the whole bug class.</li>
+      <li><strong>Inventory existing utilities before adding dependencies:</strong> <code>zipStream.ts</code> and <code>useProgressChannel()</code> both existed and both beat the plan's version. Add a &ldquo;search for prior art&rdquo; step to the plan template, and settle the guest-reviewer export policy before the next feature touches ACLs.</li>
+    </ol>
+  </div>
+
+  <footer>
+    Part of <a href="index.html">Know your unknowns</a> — companion examples to the blog post.
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  // ── copy buttons ──
+  function wireCopy(btnId, getText) {
+    var btn = document.getElementById(btnId);
+    var original = btn.textContent;
+    btn.addEventListener('click', function () {
+      var text = getText();
+      function done() {
+        btn.textContent = 'Copied';
+        btn.classList.add('done');
+        setTimeout(function () {
+          btn.textContent = original;
+          btn.classList.remove('done');
+        }, 1600);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () { fallback(text); done(); });
+      } else {
+        fallback(text); done();
+      }
+    });
+  }
+  function fallback(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+
+  wireCopy('copyPrompt', function () {
+    return "Keep an implementation-notes file as you build the export feature. If you hit an edge case that forces you to deviate from the plan, pick the conservative option, log it under 'Deviations', and keep going.";
+  });
+
+  wireCopy('copyNext', function () {
+    var items = document.querySelectorAll('#nextList li');
+    var out = [];
+    items.forEach(function (li, i) { out.push((i + 1) + '. ' + li.textContent.replace(/\s+/g, ' ').trim()); });
+    return out.join('\n');
+  });
+
+  // ── filter chips ──
+  var chips = document.querySelectorAll('.chip');
+  var entries = document.querySelectorAll('.entry');
+  function markRailEnds() {
+    var visible = Array.prototype.filter.call(entries, function (e) {
+      return !e.classList.contains('hidden');
+    });
+    entries.forEach(function (e) {
+      e.classList.remove('rail-first', 'rail-last');
+    });
+    if (visible.length) {
+      visible[0].classList.add('rail-first');
+      visible[visible.length - 1].classList.add('rail-last');
+    }
+  }
+  chips.forEach(function (chip) {
+    chip.addEventListener('click', function () {
+      chips.forEach(function (c) { c.classList.remove('on'); });
+      chip.classList.add('on');
+      var f = chip.getAttribute('data-f');
+      entries.forEach(function (e) {
+        var t = e.getAttribute('data-t');
+        var show = (f === 'all') || (f === 'dev' && t === 'dev') || (f === 'human' && t === 'human');
+        e.classList.toggle('hidden', !show);
+      });
+      markRailEnds();
+    });
+  });
+  markRailEnds();
+})();
+</script>
+</body>
+</html>
