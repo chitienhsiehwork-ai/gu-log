@@ -41,6 +41,9 @@ src/
 
 ```bash
 pnpm run dev                   # 本地開發 localhost:4321
+                               # 雷：改 src/styles/global.css 後 HMR 可能吃到舊的
+                               # 內嵌 CSS（實測兩次）——清 node_modules/.vite 與
+                               # .astro/ 再重啟，並 curl page 確認新值有 serve 出來
 pnpm run build                 # 生產 build
 pnpm exec astro check          # TypeScript 檢查
 node scripts/validate-posts.mjs # 驗證所有文章
