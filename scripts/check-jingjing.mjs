@@ -628,6 +628,41 @@ Alan Kay
 Andy Matuschak
 Margaret Storey
 How fix your entire life in day
+
+# Added 2026-07-09 for SP-253 (TypeScript 7.0 Go port announcement). All
+# bona-fide proper nouns named in the Microsoft source, none with a zh-tw
+# translation (writer-prompt rule #2: people / products / companies stay
+# English; same categories as the company / tool / person names above):
+#   Sentry / Canva / Vanta / Bluesky / PowerBI = companies whose migration
+#     numbers the announcement cites. Parcel = the bundler whose C++ file
+#     watcher was ported to Go. Turbopack / Biome / Volar / esbuild / swc /
+#     jest / ESLint / typescript-eslint = the JS toolchain products named in
+#     the ecosystem-impact section (tool proper nouns, sibling of Vite/Webpack
+#     status above).
+#   Devon Govett = Parcel's creator (person).
+#   ECMAScript / Unicode / JSDoc = standards / spec proper nouns (sibling of
+#     the allowlisted WebAssembly / OpenAPI).
+#   goroutine = canonical Go language keyword (same status as the struct /
+#     lifetime Rust tokens above). Workers / Worker = Web Workers, the
+#     canonical browser API name. Visual = Visual Studio (Studio already
+#     allowlisted above). Closure = Google Closure Compiler annotation style.
+#   Services = part of the "Microsoft News Services" team proper noun (same
+#     pattern as Modeling / Scratch title words above).
+Sentry Canva Vanta Bluesky PowerBI
+Parcel Turbopack Biome Volar esbuild swc jest
+ESLint eslint typescript-eslint
+Devon Govett
+ECMAScript Unicode JSDoc
+goroutine
+Workers Worker
+Visual Closure
+Services
+#   Webpack / Babel = the JS-era toolchain products the ClawdNote contrasts
+#     with the Rust/Go wave (tool proper nouns, sibling of Vite / React above).
+Webpack Babel
+#   surrogate pair = Unicode spec term glossed inline right after its zh-tw
+#     translation 代理對 (same status as the allowlisted ataraxia gloss).
+surrogate pair
 `;
 
 const HARDCODED = new Set();
