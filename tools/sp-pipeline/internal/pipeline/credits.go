@@ -12,8 +12,9 @@ import (
 )
 
 // PipelineURL is the URL stamped into the pipelineUrl frontmatter field.
-// Matches the value at scripts/sp-pipeline.sh line 1161.
-const PipelineURL = "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+// Points at this repo's pipeline entry (scripts/sp-pipeline.sh execs into
+// tools/sp-pipeline), not the retired clawd-workspace feed pipeline.
+const PipelineURL = "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
 
 // PipelineEntry is one row of the translatedBy.pipeline block.
 type PipelineEntry struct {

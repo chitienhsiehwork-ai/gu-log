@@ -106,7 +106,7 @@ body
 		`- role: "Reviewed"`,
 		`- role: "Refined"`,
 		`- role: "Orchestrated"`,
-		`  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace`,
+		`  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"`,
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("credits output missing %q", want)
