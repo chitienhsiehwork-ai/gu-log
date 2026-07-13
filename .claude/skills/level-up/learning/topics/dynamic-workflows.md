@@ -9,12 +9,14 @@
 - 2026-07-13: workflow vs agent 的 control-flow 判準一次答對（固定 5 出口的 ticket 分類 → routing workflow，不需 model 握 control flow），並正確排除「語意理解 = 需要 agent」的誘餌。
 - 2026-07-13: 自己提出「include/exclude 決策應該內嵌在每關、不要攢到最後」——等於自行推導出 evaluator-in-the-loop 優於 end-stage 驗收，直接用在學習流程設計上。
 - 2026-07-13: orchestrator-workers 分界（runtime dispatcher 決定派哪些 judge）MCQ 答對。
+- 2026-07-13: multi-agent 何時值得 15× token（廣度可平行 + 超過單一 context + 任務價值）MCQ 一次答對，並正確排除「序列 evaluator-optimizer 假扮 multi-agent」誘餌。
 - 2026-07-13: 憑對自家 tribunal 的正確直覺（「有很多 rewriter↔judge loop」）抓到教學者的事實 drift，並要求派 subagent ground-truth。實查結果：tribunal.sh 是 4 個 sequential stage、每 stage 各自帶 judge→writer→re-judge loop（= 四個 evaluator-optimizer 串 chain），非 parallelization；過標由 check_pass_bar code 判定，judge verdict 不算數。
 
 ## Known Gaps
 - （2026-07-13 曾把「worker 在做評估」誤判成 evaluator-optimizer，但後續證明其直覺（tribunal 有 rewrite loops）比出題者的題目前提更接近實作。pattern 形狀判準已在重驗 MCQ 證實掌握 → 移出 gap。）
 
 ## Teaching Notes
+- MCQ 互動協定（learner 指定，已寫進 SKILL.md）：多題編號 1/2/3 + ABCD，接受 `1A 2D` 極簡回覆；MCQ 同時當決策工具（[理解] / [判決] 混排），判決包成選項而不是「我建議 X 有異議再說」。
 - 框架沿用 Vainglory 高端類比（教練賽前腳本 = workflow / captain 場上 shotcall = agent / dynamic workflow = 宏觀腳本+微觀 shotcall），命中。
 - 可直接掛在已 mastered 的 coach(macro) vs players(micro)（spec-driven SDLC）上。
 - 本輪同時是 gu-log 選材任務：每關結尾做該關素材的 include/exclude 判決（learner 指定的流程）。

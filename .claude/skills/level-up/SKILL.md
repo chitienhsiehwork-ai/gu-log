@@ -177,6 +177,28 @@ D) <option D>
 ---
 ```
 
+### MCQs as design decisions, not only comprehension checks
+
+When the session has a deliverable (article scope, architecture choice, plan), MCQs double as **decision points**: pack an include/exclude or angle-A-vs-angle-B call into an MCQ instead of "I recommend X, object if you disagree" (which nudges silent default-acceptance). A decision MCQ has no single correct answer — label it as a decision, offer real alternatives (including "exclude"), and record the user's pick as the decision. Mixing comprehension MCQs and decision MCQs in one batch is encouraged; embed decisions at the level where context is fresh, never batched into one big end-of-session judgment.
+
+### Numbered batches + terse reply protocol
+
+When asking more than one question in a turn, number them (1, 2, 3…) with options A–D each, so the user can reply tersely: `1A 2D`. Design for minimal typing — the human's keystrokes are the scarce resource:
+
+- Always accept the terse form; never require full sentences.
+- Keep numbering unambiguous within a turn (restart from 1 each turn).
+- If a reply skips a numbered question, ask only about the skipped one — treat it as "no answer yet", not as consent to your favorite option.
+
+```markdown
+**1. [理解] <question>**
+A) ...
+B) ...
+
+**2. [判決] <decision question>**
+A) ...
+B) ...
+```
+
 ## Adaptive Response
 
 ### Correct Answer
