@@ -1,7 +1,7 @@
 # Dynamic Workflows 與 task/token 效率
 
 ## Current Level
-- Status: learning（Lv.1-2 過，進 Lv.3 token 經濟學）
+- Status: learning（Lv.1-4 過，進 Lv.5 dynamic workflow 本體）
 - Last updated: 2026-07-13
 - Confidence: 高（learner 已 mastered spec-driven SDLC / tribunal，直接高段位開講）
 
@@ -10,6 +10,8 @@
 - 2026-07-13: 自己提出「include/exclude 決策應該內嵌在每關、不要攢到最後」——等於自行推導出 evaluator-in-the-loop 優於 end-stage 驗收，直接用在學習流程設計上。
 - 2026-07-13: orchestrator-workers 分界（runtime dispatcher 決定派哪些 judge）MCQ 答對。
 - 2026-07-13: multi-agent 何時值得 15× token（廣度可平行 + 超過單一 context + 任務價值）MCQ 一次答對，並正確排除「序列 evaluator-optimizer 假扮 multi-agent」誘餌。
+- 2026-07-13: context engineering 四招中 isolate+compress 組合（subagent 髒活隔離 + 只回結論）MCQ 一次答對。
+- 2026-07-13: 主動抓航向 drift——指出教學一直在講 multi-agent 而非主目標 dynamic workflow。回應：補上「dynamic（結構何時決定）⊥ multi-agent（worker 數量）」正交性澄清，Lv.5 轉正為 dynamic 本體。
 - 2026-07-13: 憑對自家 tribunal 的正確直覺（「有很多 rewriter↔judge loop」）抓到教學者的事實 drift，並要求派 subagent ground-truth。實查結果：tribunal.sh 是 4 個 sequential stage、每 stage 各自帶 judge→writer→re-judge loop（= 四個 evaluator-optimizer 串 chain），非 parallelization；過標由 check_pass_bar code 判定，judge verdict 不算數。
 
 ## Known Gaps
