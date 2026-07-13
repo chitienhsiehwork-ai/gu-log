@@ -580,6 +580,16 @@ Modeling Scratch Industry Job
 # natural zh-tw translation (writer-prompt rule #2: people stay English).
 Kun Chen
 
+# Added 2026-07-13 for SP-255 (Nadella tweet). Proper nouns named in the
+# source (writer-prompt rule #2: people / companies stay English):
+#   Kenneth Arrow = Nobel economist, original information-paradox author.
+#   Karp = Alex Karp, Palantir CEO ("Alex" is already allowlisted above).
+#   Palantir = the company (same category as the labs above).
+# "Reverse Information Paradox" = the coined term the whole post is about;
+# translating away the original name loses searchability (xG-style rationale).
+Kenneth Arrow Karp Palantir
+Reverse Information Paradox
+
 # Added 2026-07-01 for the Core-dump Lv 三部曲 (levelup-*-core-dump-*). All
 # bona-fide proper nouns named in the OpenAI source, none with a zh-tw
 # translation (same category as the product / library names already
