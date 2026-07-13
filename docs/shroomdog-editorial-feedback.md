@@ -561,3 +561,12 @@ Sprin asked whether Tribunal v7 FreshEyes covers “length should be just right,
   3. `GU-LOG_WRITER_PROMPT.md` 加一條 policy pointer 指回 `BLOCKLIST`（**不複製字表**，避免 token 成本 + 過度迴避失真 + drift）。
 - 範圍紀律（照 SP-232）：**只有「有明確字表、低誤殺」的離散 tell 進硬 lint**；密度型（T1 反義對偶 / T2 假深度 reframe / T4 mic-drop）繼續走 tribunal 的 AI-Tell Trap rubric（`scripts/vibe-scoring-standard.md`），不碰。
 - Reusable lesson：(1) **直覺說某詞很 AI 時，先 grep 全站**——但「數量多」≠「合理」，多通常只代表**沒清的 debt**（`拆過` 17 處就是）。grep 的真正用途是抓**例外**（唯一 1 處字面 SP-216 要留）+ 量化 sweep 範圍，不是拿數量替 tell 平反。(2) banned-term 字表的 SSOT = lint 的 `BLOCKLIST`，corpus / writer prompt 只當 derived view 指回去，不抄第二份。(3) 硬 lint 只收「離散 + 低誤殺 + 有明確字表」的詞；密度型交給 LLM judge，這條邊界 SP-232 就劃好了。(4) 退役一個會冒回來的詞，光 sweep + 寫 prompt 不夠，要有 deterministic gate 擋下一次；字面用法用逐行 escape 當壓力閥。
+
+## 2026-07-13 — SP-255 session：「競對」ban（簡中縮寫，台灣繁中不用）
+
+### Feedback: 從沒在 zh-tw 看過「競對」，要 programmatic ban
+
+- ShroomDog feedback：`競對？正文是用競隊還是競爭對手？ We shall ban the usage of 競對 programatically as i have never seen such zh-tw usage.`
+- 情境：SP-255（反向資訊悖論）收工回報時，agent 的聊天訊息用了「實習生離職去競對」。正文本身沒中鏢（兩處都寫「競爭對手」），但「競對」是簡中圈的縮略用法（競爭對手→競對），台灣繁中不存在，屬於跨模型都可能吐出來的簡中滲透詞。全站 grep 零命中——這次是**在滲進文章之前**先立 gate。
+- 修法：`scripts/check-ai-tells.mjs` 的 `BLOCKLIST`（banned-phrase SSOT）加 `競對` → 建議「競爭對手」。符合 SP-232 劃的硬 lint 邊界：離散、低誤殺（zh-tw 沒有「競」「對」連用的慣用法）、有明確替代詞。
+- Reusable lesson：(1) 簡中縮略詞（競對、視頻、質量這類）跟 AI tell 同樣走 `BLOCKLIST` 硬 lint——它是 deterministic 字表問題，不用等 tribunal 抓。(2) agent 聊天回報的用字也是 ShroomDog 的 review surface：文章沒滲進去不代表沒問題，被點名的詞照樣立 gate，把「還沒發生的 drift」擋在前面。
