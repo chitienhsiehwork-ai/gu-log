@@ -23,6 +23,10 @@
 - 可直接掛在已 mastered 的 coach(macro) vs players(micro)（spec-driven SDLC）上。
 - 本輪同時是 gu-log 選材任務：每關結尾做該關素材的 include/exclude 判決（learner 指定的流程）。
 
+## 素材事實（ground-truthed）
+- gu-log 已有 SP-214（2026-06-02，zh+en，tribunal v8 過）= Anthropic dynamic workflows 官方公告翻譯。新文章 dedup 底線：不重複公告的 what/how。
+- Claude Code dynamic workflows（research preview）：runtime 生成 JS 編排腳本、確定性執行、1000 agent / 16 併發上限、budget API、ultracode 常駐 opt-in。對應框架：generate 級 dynamic + 生成後 static 執行的混血；script-holds-the-loop = write+isolate+compress。
+
 ## Scope 判決（gu-log 文章素材，逐關累積）
 - Lv.1 workflow vs agent 判準：**include**，但 learner 修正角度——不轉述 Anthropic 2024「不要建 agent」教條（已過時：2026 baseline 是人人有 Claude Code/Codex 現成 agent），改寫成「agent vs workflow trade-off + 什麼時候從 agent 手上拿回 control flow」。吐槽點：2024 聖經 2026 還被原文背誦。
 - Lv.2 五大 patterns：**include**，但不做名詞解釋文——用自家 tribunal 當實例講「pattern 名字描述 control flow 形狀（有無回饋循環、拆解權在誰手上）」+「真實系統是 pattern 組合技（tribunal = 四個 evaluator-optimizer 串 chain）」+「code wins over agent verdict（check_pass_bar）」。附教訓：憑印象描述系統形狀會翻車，要讀實作。
