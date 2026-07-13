@@ -1,16 +1,18 @@
 # Dynamic Workflows 與 task/token 效率
 
 ## Current Level
-- Status: learning（Lv.1 過，進 Lv.2）
+- Status: learning（Lv.1-2 過，進 Lv.3 token 經濟學）
 - Last updated: 2026-07-13
 - Confidence: 高（learner 已 mastered spec-driven SDLC / tribunal，直接高段位開講）
 
 ## Evidence
 - 2026-07-13: workflow vs agent 的 control-flow 判準一次答對（固定 5 出口的 ticket 分類 → routing workflow，不需 model 握 control flow），並正確排除「語意理解 = 需要 agent」的誘餌。
 - 2026-07-13: 自己提出「include/exclude 決策應該內嵌在每關、不要攢到最後」——等於自行推導出 evaluator-in-the-loop 優於 end-stage 驗收，直接用在學習流程設計上。
+- 2026-07-13: orchestrator-workers 分界（runtime dispatcher 決定派哪些 judge）MCQ 答對。
+- 2026-07-13: 憑對自家 tribunal 的正確直覺（「有很多 rewriter↔judge loop」）抓到教學者的事實 drift，並要求派 subagent ground-truth。實查結果：tribunal.sh 是 4 個 sequential stage、每 stage 各自帶 judge→writer→re-judge loop（= 四個 evaluator-optimizer 串 chain），非 parallelization；過標由 check_pass_bar code 判定，judge verdict 不算數。
 
 ## Known Gaps
-- 2026-07-13: 把「worker 在做評估」誤判成 evaluator-optimizer（正解 parallelization）。已重講：pattern 名字描述 control flow 形狀（有無回饋循環），不是 worker 的工作內容。待同關重驗。
+- （2026-07-13 曾把「worker 在做評估」誤判成 evaluator-optimizer，但後續證明其直覺（tribunal 有 rewrite loops）比出題者的題目前提更接近實作。pattern 形狀判準已在重驗 MCQ 證實掌握 → 移出 gap。）
 
 ## Teaching Notes
 - 框架沿用 Vainglory 高端類比（教練賽前腳本 = workflow / captain 場上 shotcall = agent / dynamic workflow = 宏觀腳本+微觀 shotcall），命中。
@@ -19,6 +21,7 @@
 
 ## Scope 判決（gu-log 文章素材，逐關累積）
 - Lv.1 workflow vs agent 判準：**include**，但 learner 修正角度——不轉述 Anthropic 2024「不要建 agent」教條（已過時：2026 baseline 是人人有 Claude Code/Codex 現成 agent），改寫成「agent vs workflow trade-off + 什麼時候從 agent 手上拿回 control flow」。吐槽點：2024 聖經 2026 還被原文背誦。
+- Lv.2 五大 patterns：**include**，但不做名詞解釋文——用自家 tribunal 當實例講「pattern 名字描述 control flow 形狀（有無回饋循環、拆解權在誰手上）」+「真實系統是 pattern 組合技（tribunal = 四個 evaluator-optimizer 串 chain）」+「code wins over agent verdict（check_pass_bar）」。附教訓：憑印象描述系統形狀會翻車，要讀實作。
 
 ## Next Suggested Levels
 - Lv.2 五大 workflow patterns 光譜 → Lv.3 token 經濟學 → Lv.4 context engineering 四招 → Lv.5 dynamic runtime graphs 研究前緣 → Lv.6 彙整骨架
