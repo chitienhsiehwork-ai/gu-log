@@ -94,6 +94,19 @@ const BLOCKLIST = [
     suggest: '競爭對手',
     why: '簡中縮寫，台灣繁中不用「競對」，寫全「競爭對手」',
   },
+  {
+    // 2026-07-13: ShroomDog 點名「評測」聽起來是支語，gu-log 全面退役
+    // （既有 83 處 grandfather，staged-only lint 逼下次編輯時清）。
+    pattern: '評測',
+    suggest: '評估 / 評估基準 / 基準測試 / 跑分',
+    why: 'ShroomDog 拍板退役：改講「評估」；指 benchmark/evals 用「評估基準」「基準測試」',
+  },
+  {
+    // 同日順手 ban 更赤裸的支語雙胞胎（全站 grep 零命中，先立 gate）。
+    pattern: '測評',
+    suggest: '評估 / 開箱 / 實測',
+    why: '支語（測評=評測的倒裝），台灣繁中用「評估」「實測」',
+  },
 ];
 
 // Lines carrying this marker opt out of the scan (genuine literal use).

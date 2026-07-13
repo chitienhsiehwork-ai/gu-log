@@ -570,3 +570,15 @@ Sprin asked whether Tribunal v7 FreshEyes covers “length should be just right,
 - 情境：SP-255（反向資訊悖論）收工回報時，agent 的聊天訊息用了「實習生離職去競對」。正文本身沒中鏢（兩處都寫「競爭對手」），但「競對」是簡中圈的縮略用法（競爭對手→競對），台灣繁中不存在，屬於跨模型都可能吐出來的簡中滲透詞。全站 grep 零命中——這次是**在滲進文章之前**先立 gate。
 - 修法：`scripts/check-ai-tells.mjs` 的 `BLOCKLIST`（banned-phrase SSOT）加 `競對` → 建議「競爭對手」。符合 SP-232 劃的硬 lint 邊界：離散、低誤殺（zh-tw 沒有「競」「對」連用的慣用法）、有明確替代詞。
 - Reusable lesson：(1) 簡中縮略詞（競對、視頻、質量這類）跟 AI tell 同樣走 `BLOCKLIST` 硬 lint——它是 deterministic 字表問題，不用等 tribunal 抓。(2) agent 聊天回報的用字也是 ShroomDog 的 review surface：文章沒滲進去不代表沒問題，被點名的詞照樣立 gate，把「還沒發生的 drift」擋在前面。
+
+## 2026-07-13 — 「評測」「測評」退役（支語感），改用「評估 / 評估基準」
+
+### Feedback: 比起評測，評估是不是更好？評測聽起來是支語，ban it programmatically
+
+- ShroomDog feedback：`比起評測，評估是不是更好？ 評測聽起來是中國用語、支語, which i hate and plz ban it from gu-log programmatically.`
+- 情境：SP-255 正文有 3 處「評測」（私有的評測 / 拿回評測權 / 優化評測，都在翻 Nadella 的 "private evals"）。全站 grep：**83 處 / 29 篇 zh-tw 文章**——AI benchmark 語境下各家 model 很愛吐「評測」，累積成 debt。「測評」（更赤裸的支語倒裝）零命中。
+- 修法：
+  1. `scripts/check-ai-tells.mjs` `BLOCKLIST` 加「評測」→ 建議「評估 / 評估基準 / 基準測試 / 跑分」；順手加「測評」（零命中，先立 gate）。
+  2. SP-255 當場清掉 3 處（評測→評估基準 / 評測權→評估基準的主導權）。
+  3. 其餘 82 處 / 28 篇照「拆過」前例 **grandfather**：lint 是 staged-only，舊文凍結，下次被實質編輯時連帶逼修。不做全站 bulk sweep——每處語境不同（benchmark / evals / 開箱），機械替換會出怪句。
+- Reusable lesson：(1) 「評估」是 gu-log 的預設詞；指 benchmark/evals 這種「一組可重跑的測試」用「評估基準」或「基準測試」，指 3C 開箱用「實測」。(2) 高頻支語（83 處等級）的退役 SOP 跟「拆過」一樣：lint 擋新增 + 最新文章當場清 + 舊文 grandfather 等編輯時逼修，不硬掃全站。
