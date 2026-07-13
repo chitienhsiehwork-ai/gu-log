@@ -86,6 +86,14 @@ const BLOCKLIST = [
     suggest: '直接收尾，讓比喻自己落地',
     why: '像 AI 筆記／考前重點整理，破壞故事感結尾',
   },
+  {
+    // 2026-07-13: SP-255 session 回報訊息裡出現「競對」，ShroomDog 點名
+    // 從沒在台灣繁中看過這種用法——這是簡中縮寫（競爭對手的縮略）。
+    // 低誤殺：zh-tw 沒有「競」「對」連用的慣用法。
+    pattern: '競對',
+    suggest: '競爭對手',
+    why: '簡中縮寫，台灣繁中不用「競對」，寫全「競爭對手」',
+  },
 ];
 
 // Lines carrying this marker opt out of the scan (genuine literal use).
