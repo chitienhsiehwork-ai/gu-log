@@ -18,6 +18,8 @@
 - 2026-07-14: 一次答對「ephemeral sandbox vs durable thread」——正確推出 idle 釋放後未 push 改動蒸發、thread 上下文可重建 session。
 - 2026-07-14: 一次答對「DM 走個人 connectors、org Access bundle 不跟人走」——權限綁頻道不綁玩家的模型成立。
 - 2026-07-14: learner 對教學格式提出修正：壓縮 glossary 行無效，重要概念需完整段落（已寫入 user-profile）。
+- 2026-07-14: 一次答對 webhook 訊息流向（LINE 雲主動 POST 進 VPS），且自己畫出 user → LINE cloud → webhook 的鏈。
+- 2026-07-14: 主動提問 reverse proxy 的用途並自陳不熟其應用——已插入補課。
 
 ## Key Research Facts（供出題 ground truth，已查證）
 - Claude tag：thread=session、ephemeral sandbox（idle 釋放、回覆重建）、thread+memory 持久；per-channel Access bundles、default-deny network、Agent Proxy 邊界注入憑證；channel 用量吃 org pool（預設 $1,000/月）、DM 吃個人帳號；Team/Enterprise 限定、需 org Owner、ZDR 不可用；官方無 Teams/LINE 版。
@@ -28,7 +30,7 @@
 - （待記）
 
 ## Known Gaps
-- （待觀察）
+- reverse proxy 的實務用途（TLS termination、port 隔離、path routing）不熟——2026-07-14 已補課，待後續驗證是否吸收。
 
 ## Teaching Notes
 - 用 Vainglory 高端術語（shotcalling、objective trade、open lobby、private server griefing），不解釋基礎。
