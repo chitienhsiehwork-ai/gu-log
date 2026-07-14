@@ -1,0 +1,35 @@
+# Claude Tag + OpenClaw self-host（LINE / Teams）
+
+## Learner Goal
+- 產出 gu-log 系列文：讀者 (c) 雙軌拆篇——公司同事（Teams 企業部署說服/教學）+ gu-log 一般讀者（Claude tag 介紹 + LINE 自架）。
+- 目的：介紹 Claude tag 行為與 use case，並示範用 OpenClaw 重現於 LINE（個人 VPS gateway）與 MS Teams（公司 on-prem k8s，原本幻想純內網）。
+- 用 shotcall 決定文章 include/exclude；user 是 shotcaller。
+
+## Chosen Frame
+- 類比 A：Vainglory「官方 ranked（Claude tag：Anthropic 代管）vs 自架私服（OpenClaw：自由接平台但維運/資安自扛）」。深度 3（深挖細節，含企業部署暗礁）。
+
+## Current Level
+- Status: learning（Level 1 進行中）
+- Last updated: 2026-07-14
+- Confidence: n/a（尚無 MCQ 證據）
+
+## Evidence
+- 2026-07-14: Level 0 完成——選 (c) 雙讀者拆篇、類比 A、深度 3。
+
+## Key Research Facts（供出題 ground truth，已查證）
+- Claude tag：thread=session、ephemeral sandbox（idle 釋放、回覆重建）、thread+memory 持久；per-channel Access bundles、default-deny network、Agent Proxy 邊界注入憑證；channel 用量吃 org pool（預設 $1,000/月）、DM 吃個人帳號；Team/Enterprise 限定、需 org Owner、ZDR 不可用；官方無 Teams/LINE 版。
+- OpenClaw：LINE/Teams channel 皆官方支援；LINE 需 public HTTPS webhook（VPS 可行）、5000 字 chunk、markdown stripped、pairing 預設；Teams 需 Azure Bot（2025-07-31 後僅 Single Tenant）、public webhook（純內網不可行）、admin consent、15/30s webhook timeout。
+- 安全：CVE-2026-25253（port 18789 + 無認證 → 惡意網站接管 agent）、4 萬+ 裸奔實例、ClawHub ~824 惡意 skill、link-preview 間接 prompt injection。
+
+## Decisions（shotcall 結果）
+- （待記）
+
+## Known Gaps
+- （待觀察）
+
+## Teaching Notes
+- 用 Vainglory 高端術語（shotcalling、objective trade、open lobby、private server griefing），不解釋基礎。
+- 數字/門檻一律引上方 research facts，不憑記憶。
+
+## Next Suggested Levels
+- L1 官方 ranked 遊戲規則（session/sandbox 模型）→ L2 入場資格與計費 → L3 私服架構（gateway/webhook）→ L4 shotcall 拆篇 → L5 Teams 內網破滅 + shotcall 主軸 → L6 安全事件 + shotcall 擺放 → L7 LINE 篇 scope shotcall → L8 敘事主線 + include/exclude 總表
