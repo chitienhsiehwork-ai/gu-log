@@ -11,4 +11,4 @@
 | Self-help / 行為改變概念（Dan Koe 拆解） | mastered（判準+angle 層 full clear） | Lv.1–4 全一次過；自己挖 cybernetics↔Kubernetes 字根、提出「niche=angle 函數」、逼出 agent 三層定義 | 2026-06-20 | topics/self-help-concepts.md |
 | Founder framework〈Before It Was Obvious〉 | mastered (Lv.1–5 full clear) | 5/5 MCQ 一次過；自己把 yin/wedge/hair-on-fire 套到 gu-log 並用無職轉生當 benchmark 自評 | 2026-06-20 | topics/founder-framework-before-obvious.md |
 
-Learner profile（taste / framing / 語氣）：`learner-profile.md`
+Learner profile（taste / framing / 語氣）：`user-profile.md`
