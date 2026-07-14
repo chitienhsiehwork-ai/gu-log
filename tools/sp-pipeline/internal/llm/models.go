@@ -32,6 +32,7 @@ const (
 	ModelClaudeOpus   ModelID = "claude-opus"
 	ModelGemini31Pro  ModelID = "gemini-3.1-pro-preview"
 	ModelGPT55        ModelID = "gpt-5.5"
+	ModelGPT56Sol     ModelID = "gpt-5.6-sol"
 	ModelGPT54        ModelID = "gpt-5.4"
 	ModelGPT53Codex   ModelID = "gpt-5.3-codex"
 	ModelClaudeSonnet ModelID = "claude-sonnet"
@@ -73,6 +74,8 @@ func DisplayName(m ModelID) string {
 		return "Gemini 3.1 Pro"
 	case ModelGPT55:
 		return "GPT-5.5"
+	case ModelGPT56Sol:
+		return "GPT-5.6-Sol"
 	case ModelGPT54:
 		return "GPT-5.4"
 	case ModelGPT53Codex:
@@ -95,7 +98,7 @@ func HarnessName(m ModelID) string {
 		return "Claude Code CLI"
 	case ModelGemini31Pro:
 		return "Gemini CLI"
-	case ModelGPT55, ModelGPT54, ModelGPT53Codex:
+	case ModelGPT56Sol, ModelGPT55, ModelGPT54, ModelGPT53Codex:
 		return "Codex CLI"
 	default:
 		return "Unknown Harness"

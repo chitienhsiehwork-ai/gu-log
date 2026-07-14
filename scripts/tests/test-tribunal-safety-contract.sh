@@ -74,8 +74,8 @@ if ! grep -q 'Ignore YAML' "$HELPERS" || ! grep -q 'frontmatter runtime fields' 
 fi
 pass "Codex agent specs are separated from Claude Code frontmatter"
 
-if ! grep -q -- '--model gpt-5.5' "$HELPERS"; then
-  fail "Codex tribunal helper is not pinned to GPT-5.5"
+if ! grep -Fq -- '--model "${GP_CODEX_MODEL:-gpt-5.5}"' "$HELPERS"; then
+  fail "Codex tribunal helper does not preserve GPT-5.5 as the default model"
 fi
 if ! grep -q 'MIN_CODEX_VERSION="0.128.0"' "$TRIBUNAL"; then
   fail "Tribunal does not reject known-broken old Codex CLI versions"
@@ -83,20 +83,20 @@ fi
 if ! grep -Fq 'export PATH="$HOME/.local/bin:$HOME/bin:$PATH"' "$WRAPPER"; then
   fail "Tribunal systemd wrapper does not prefer the current ~/.local/bin Codex before stale ~/bin"
 fi
-# model_id is provider-resolved now: codex pins GPT-5.5 (the maintained
-# runtime), claude is the CCC sandbox fallback. Guard both halves so a refactor
-# can't silently unpin the codex path or drop the resolver.
+# model_id is provider-resolved now: codex defaults to GPT-5.5 while allowing
+# an explicit run-scoped override; claude is the CCC sandbox fallback. Guard
+# both halves so a refactor cannot drop the default or provenance resolver.
 if ! grep -q 'model_id="$(tribunal_llm_model_id' "$TRIBUNAL"; then
   fail "Tribunal model_id is not resolved through the provider-aware tribunal_llm_model_id"
 fi
-if ! grep -q "printf 'gpt-5.5" "$HELPERS"; then
-  fail "Codex provider path no longer pins GPT-5.5 in tribunal_llm_model_id"
+if ! grep -Fq '"${GP_CODEX_MODEL:-gpt-5.5}"' "$HELPERS"; then
+  fail "Codex provider path no longer records the selected run-scoped model"
 fi
 unpinned_agents=$(grep -L '^model = "gpt-5.5"' "$CODEX_AGENTS_DIR"/*.toml || true)
 if [ -n "$unpinned_agents" ]; then
   fail "One or more Codex tribunal agent specs are not pinned to GPT-5.5: $unpinned_agents"
 fi
-pass "Tribunal model pinning: codex stays GPT-5.5, claude is the CCC fallback"
+pass "Tribunal model selection: GPT-5.5 default + explicit run-scoped override, claude fallback unchanged"
 
 # The internal progress ledger runner_label must be provider-aware too, sharing
 # the same resolver as the frontmatter model_id. A refactor must not regress it
