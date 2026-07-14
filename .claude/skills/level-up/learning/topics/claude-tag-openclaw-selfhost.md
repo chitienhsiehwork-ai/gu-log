@@ -15,6 +15,7 @@
 
 ## Evidence
 - 2026-07-14: Level 0 完成——選 (c) 雙讀者拆篇、類比 A、深度 3。
+- 2026-07-14: 一次答對「ephemeral sandbox vs durable thread」——正確推出 idle 釋放後未 push 改動蒸發、thread 上下文可重建 session。
 
 ## Key Research Facts（供出題 ground truth，已查證）
 - Claude tag：thread=session、ephemeral sandbox（idle 釋放、回覆重建）、thread+memory 持久；per-channel Access bundles、default-deny network、Agent Proxy 邊界注入憑證；channel 用量吃 org pool（預設 $1,000/月）、DM 吃個人帳號；Team/Enterprise 限定、需 org Owner、ZDR 不可用；官方無 Teams/LINE 版。
