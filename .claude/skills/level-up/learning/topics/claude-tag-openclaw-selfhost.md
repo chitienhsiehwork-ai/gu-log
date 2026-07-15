@@ -9,9 +9,20 @@
 - 類比 A：Vainglory「官方 ranked（Claude tag：Anthropic 代管）vs 自架私服（OpenClaw：自由接平台但維運/資安自扛）」。深度 3（深挖細節，含企業部署暗礁）。
 
 ## Current Level
-- Status: learning（Level 1 進行中）
-- Last updated: 2026-07-14
-- Confidence: n/a（尚無 MCQ 證據）
+- Status: shotcall 全部拍板完，待起手寫「Claude tag 介紹篇」
+- Last updated: 2026-07-15
+- Confidence: 決策層 full clear
+
+## 核心互動模式（這位 learner 怎麼跑 level-up）
+- **邊學邊改題目**：不是被動答 MCQ，而是每關拿到概念就反手修正教學本身（砍「壓縮 glossary 行」、砍編號改用名字、砍 Caddy 教學只留價值）。教學格式的決策權他要拿在手上。
+- **概念一到手就外推成真架構**：學完 webhook inbound 鐵律，當場自己推出「換 self-hosted GitLab issues surface 就能徹底繞掉開門問題」——比原訂 Teams DMZ 方案高一階。level-up 的價值對他是「給零件、他自己組」，不是「給答案」。
+- **主動挖底層 gap**：撞到不熟的（reverse proxy、TCP vs HTTP 分層）會直接停下來問，且自帶類比（TCP=電話線 / HTTP=電話裡的語言）——正確就沿用他的類比續教。
+- **要求有用+有趣+安全三者兼得**，不接受為了安全而閹割（安全危機篇堅持攻擊者視角當鉤子，只是 payload 換成心智模型）。
+
+## 這位 learner 特別厲害的點
+- 篇三 GitLab-issues pivot：抓到「問題不是 webhook，是平台的雲不是你的」——self-host GitLab = 把郵局搬進大樓，inbound 問題整類消失。這是本場最強一手。
+- 雙軌結局的組織現實判斷：知道 GitLab 各部門各自架、只有 Teams 打得到全公司，所以 depth（GitLab）vs reach（Teams DMZ）並列而非主從。
+- 產品判斷：識破「Claude tag 迭代太快、當基礎課考讀者站不住」，把介紹篇從 Lv 改判 SD。
 
 ## Evidence
 - 2026-07-14: Level 0 完成——選 (c) 雙讀者拆篇、類比 A、深度 3。
@@ -43,6 +54,9 @@
 
 - 2026-07-15 LINE 篇 scope 定案：A 可複製骨架軸，但 learner 修正——**反代只提「為什麼有用」，工具名 Caddy 全文只出現一次**（「Mogu 自己會挑 Caddy」），重點是「知道可以用反代」這個決策，不教 Caddy 怎麼設。原則：一次性決策不佔教學篇幅，講價值不講操作。反代的價值定調 = **更安全**（gateway 藏 localhost、公網只露單一門單一路徑，正好是安全危機篇 0.0.0.0 裸奔第一爆的反面），一句話帶到即可。
 - 2026-07-15 稱呼修正：文章一律用名字（LINE 篇/Teams 篇…）不用編號（已寫入 user-profile）。
+- 2026-07-15 介紹篇型別改判：Lv → **SD**（Claude tag 迭代太快、不是可考的基礎，且四篇全 SD 語氣才統一）。四篇型別最終：全 SD。
+- 2026-07-15 反代加梗：反代炫砲點後放「攻擊者哭哭」聲（18789 連不上→打 443 被擋→算不出 HMAC 簽章），安全危機篇是主旋律、LINE 篇客串一句。fact-check 雷：無簽章通常回 403 不是 401，寫時挑對。
+- 產出順序：介紹篇（SD）先立地基（其他三篇內連它），再 LINE / Teams / 安全危機——理由是「地基」而非「Lv 單純」。（順序待 learner 最終拍板）
 
 ## Known Gaps
 - reverse proxy 的實務用途（TLS termination、port 隔離、path routing）不熟——2026-07-14 已補課，待後續驗證是否吸收。
