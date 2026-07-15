@@ -4,6 +4,7 @@
 
 ## 類比框架（analogy framing）
 - **主框架：Vainglory（手機 MOBA）。命中。** learner 自報 **Vainglorious Silver，約 top 0.1% playerbase** → 高端玩家。**可以直接用進階機制當類比**（shotcalling、objective trade、overextend、lane equity、Kraken timing、captain rotation），不要從新手村解釋基礎。
+  - **🚫 硬規則（2026-07-15，learner 明確下令）：Vainglory 只活在 level-up 的即時聊天裡（幫 shotcall / quiz），NEVER 進 gu-log 文章——太小眾、沒品味。** 文章要用類比只能用**大眾概念（MOBA、objective trade 這種通俗層）**，不准出現「Vainglory」「Vainglorious」「Kraken」「Captain」這類專有名詞。寫文/找 reviewer 時要主動擋掉這種小眾梗。
 - **Roguelike 不熟、沒命中** → 避免再用。
 - 抓 big picture 最快的路徑：**一個強類比一路扛到底**。類比要**承載**概念本身（learner 跟著故事就吸收到真概念），不是貼旁邊當裝飾。
 

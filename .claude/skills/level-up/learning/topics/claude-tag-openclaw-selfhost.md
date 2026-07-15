@@ -5,8 +5,9 @@
 - 目的：介紹 Claude tag 行為與 use case，並示範用 OpenClaw 重現於 LINE（個人 VPS gateway）與 MS Teams（公司 on-prem k8s，原本幻想純內網）。
 - 用 shotcall 決定文章 include/exclude；user 是 shotcaller。
 
-## Chosen Frame
-- 類比 A：Vainglory「官方 ranked（Claude tag：Anthropic 代管）vs 自架私服（OpenClaw：自由接平台但維運/資安自扛）」。深度 3（深挖細節，含企業部署暗礁）。
+## Chosen Frame（僅限 level-up 聊天，NOT 進文章）
+- 類比 A：Vainglory「官方 ranked（Claude tag：Anthropic 代管）vs 自架私服（OpenClaw：自由接平台但維運/資安自扛）」。深度 3。
+- **🚫 2026-07-15 learner 下令：Vainglory 框架只在 level-up 即時聊天用，NEVER 寫進 gu-log 四篇文章。** 文章要用類比只能用大眾層（MOBA / 官方伺服器 vs 私服 這種通俗說法），不准出現 Vainglory 專有名詞。已寫入 user-profile。reviewer subagent 必須主動抓這種小眾梗。
 
 ## Current Level
 - Status: shotcall 全部拍板完，待起手寫「Claude tag 介紹篇」
