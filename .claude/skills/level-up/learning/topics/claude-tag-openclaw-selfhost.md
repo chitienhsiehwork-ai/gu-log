@@ -20,6 +20,7 @@
 - 2026-07-14: learner 對教學格式提出修正：壓縮 glossary 行無效，重要概念需完整段落（已寫入 user-profile）。
 - 2026-07-14: 一次答對 webhook 訊息流向（LINE 雲主動 POST 進 VPS），且自己畫出 user → LINE cloud → webhook 的鏈。
 - 2026-07-14: 主動提問 reverse proxy 的用途並自陳不熟其應用——已插入補課。
+- 2026-07-14: 主動提問「來源 IP 是 HTTP 還是 TCP 層」，自建 TCP=電話線 / HTTP=電話裡講的語言 類比（正確）——網路分層概念在建立中，適合用此類比續教。
 
 ## Key Research Facts（供出題 ground truth，已查證）
 - Claude tag：thread=session、ephemeral sandbox（idle 釋放、回覆重建）、thread+memory 持久；per-channel Access bundles、default-deny network、Agent Proxy 邊界注入憑證；channel 用量吃 org pool（預設 $1,000/月）、DM 吃個人帳號；Team/Enterprise 限定、需 org Owner、ZDR 不可用；官方無 Teams/LINE 版。
@@ -27,7 +28,10 @@
 - 安全：CVE-2026-25253（port 18789 + 無認證 → 惡意網站接管 agent）、4 萬+ 裸奔實例、ClawHub ~824 惡意 skill、link-preview 間接 prompt injection。
 
 ## Decisions（shotcall 結果）
-- （待記）
+- 2026-07-14 拆篇：四路全開——① Lv「Claude tag 是什麼」② SD「OpenClaw × LINE 個人自架」③ SD「OpenClaw × Teams 企業部署」④ SD「2026 OpenClaw 安全危機始末」（獨立成篇）。切線紀律：④ 講事件始末與教訓，③ 的安全章節只講「部署時怎麼防」並內連 ④。
+
+## Context（影響教學方向的 learner 自報資訊）
+- learner 團隊計畫：OpenClaw 部署在 intranet-only on-prem k8s、出網受限，走 forward proxy 在「預期方向」注入憑證（自行重現 Agent Proxy 模式）。L5 需正面處理「inbound webhook 與此計畫的衝突」。
 
 ## Known Gaps
 - reverse proxy 的實務用途（TLS termination、port 隔離、path routing）不熟——2026-07-14 已補課，待後續驗證是否吸收。
