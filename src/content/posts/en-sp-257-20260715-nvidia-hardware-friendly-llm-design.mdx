@@ -1,11 +1,12 @@
 ---
-ticketId: 'SP-PENDING'
+ticketId: "SP-257"
 title: 'An LLM Needs More Than Parameters: GPUs Want Neatly Tiled Models'
 originalDate: '2026-07-10'
 translatedDate: '2026-07-15'
 translatedBy:
   model: "GPT-5.6-Sol"
   harness: "Codex CLI"
+
   pipeline:
     - role: "Written"
       model: "GPT-5.6-Sol"
@@ -16,9 +17,15 @@ translatedBy:
     - role: "Refined"
       model: "GPT-5.6-Sol"
       harness: "Codex CLI"
+    - role: "Scored"
+      model: "GPT-5.6-Sol"
+      harness: "Codex CLI + Tribunal"
+    - role: "Rewritten"
+      model: "GPT-5.6-Sol"
+      harness: "Codex CLI + Tribunal"
     - role: "Orchestrated"
       model: "GPT-5.6-Sol"
-      harness: "sp-pipeline"
+      harness: "sp-pipeline + Tribunal"
   pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
 source: 'NVIDIA Technical Blog'
 sourceUrl: 'https://developer.nvidia.com/blog/ai-model-co-design-hardware-friendly-llm-design/'
