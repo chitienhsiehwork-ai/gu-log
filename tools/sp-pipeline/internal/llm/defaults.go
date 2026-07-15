@@ -1,5 +1,7 @@
 package llm
 
+import "os"
+
 // DefaultWritingChain returns the provider ordering used for article writing
 // and refine steps. On Macs with Claude Code installed, the pinned Opus build
 // is the writer (NewClaudeOpusWriter), so the writing voice doesn't drift when
@@ -39,6 +41,9 @@ func ProbeChain() []Provider {
 // silently writing with a different voice. If Claude is absent, Codex GPT-5.5
 // keeps VM runs alive.
 func WritingChain() []Provider {
+	if os.Getenv("GP_WRITER_PROVIDER") == "codex" {
+		return []Provider{NewCodexGPT55Medium()}
+	}
 	claude := NewClaudeOpusWriter()
 	if claude.Available() {
 		return []Provider{claude}

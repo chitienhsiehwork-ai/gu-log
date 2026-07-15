@@ -1,0 +1,148 @@
+---
+ticketId: "SP-256"
+title: 'AGI 前的珍貴窗口：一套會隨模型能力升級的安全規則'
+originalDate: '2026-07-14'
+translatedDate: '2026-07-15'
+translatedBy:
+  model: "GPT-5.6-Sol"
+  harness: "Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "GPT-5.6-Sol"
+      harness: "Codex CLI"
+    - role: "Reviewed"
+      model: "GPT-5.6-Sol"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "GPT-5.6-Sol"
+      harness: "Codex CLI"
+    - role: "Scored"
+      model: "GPT-5.6-Sol"
+      harness: "Codex CLI + Tribunal"
+    - role: "Rewritten"
+      model: "GPT-5.6-Sol"
+      harness: "Codex CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "GPT-5.6-Sol"
+      harness: "sp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: '@demishassabis on X'
+sourceUrl: 'https://x.com/demishassabis/status/2076957440109625718'
+lang: 'zh-tw'
+summary: 'AGI 可能只剩數年，競賽卻跑得比人類理解更快。這套提案主張建立能持續更新測試、先自願審查並可能逐步正式化的 AI 標準機構，在不凍結創新的前提下替高風險模型設下共同門檻。'
+tags: ['shroom-picks', 'agi', 'ai-safety', 'ai-policy']
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 9
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 8
+    score: 8
+    date: "2026-07-14"
+    model: "gpt-5.6-sol"
+  librarian:
+    glossary: 7
+    crossRef: 7
+    sourceAlign: 10
+    attribution: 9
+    score: 8
+    date: "2026-07-14"
+    model: "gpt-5.6-sol"
+  freshEyes:
+    readability: 9
+    firstImpression: 9
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 9
+    score: 8
+    date: "2026-07-14"
+    model: "gpt-5.6-sol"
+  vibe:
+    persona: 8
+    clawdNote: 9
+    vibe: 8
+    narrative: 9
+    score: 8
+    date: "2026-07-14"
+    model: "gpt-5.6-sol"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+最尷尬的那一刻，可能不是 AGI 突然出現，而是第一個危險模型走進考場，裁判才發現：考卷是選手幫忙出的，答案也早就練熟了。
+
+Demis Hassabis 預測，具備人腦各種認知能力的通用人工智慧（AGI）可能在幾年內出現。這不是交付日期，而是高度不確定的時間表；可是只要預測稍微接近現實，制度就沒有慢慢開會、多年後再補考場的餘裕。
+
+## 最快的選手，正跑出裁判的視線
+
+AGI 的獎品大得讓人很難踩煞車：藥物、潔淨能源、新材料的發現可能加速，生產力也可能大幅提高。問題在於，風險搭的是同一部電梯。
+
+[Frontier Model](/glossary#frontier-model)（目前能力最強的一批模型）已替資安帶來新壓力；能力繼續提升後，生物與核子風險也可能浮現。如果系統進一步具備更強的 [Agent](/glossary#agent) 能力，甚至能利用上一輪成果繼續提升下一輪能力，人類就需要更堅固的防護措施來維持控制。
+
+但公司正在搶市場，國家正在搶戰略優勢。每一支隊伍都知道應該檢查裝備，也都怕自己停下來時，別人已經衝過稜線。Hassabis 所謂的「審慎樂觀」，就是不封山，卻先替最可能出事的隊伍設共同門檻。
+
+<ClawdNote>
+安全制度最怕變成兩種東西：厚到沒人讀的合規文件，或公司自己出題、自己作答、自己頒獎。模型能力一直變，考題也得跟著變；寫模型的人可以協助設計考試，卻不能永遠兼任唯一的裁判。尺度差很多，但 gu-log 的 [四法官審稿機制](/posts/sd-10-20260322-ralph-loop-quality-system) 也守著同一條小原則：選手不要自己發獎牌 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## 制度先用一扇沒有鎖的門起跑
+
+Hassabis 的提案沒有一開始就搬出禁令。第一階段，`Frontier Lab` 可以在模型發布前最多三十天自願送審；模型發布後若發現重大漏洞，實驗室再和標準機構合作處理。
+
+這扇門甚至還沒有鎖，聽起來很弱。可是在共同考場尚未成形時，自願送審可以先讓評估流程接受真實模型的考驗。評估若證明可靠，制度之後才可能正式化，要求 `Frontier Model` 通過測試才能進入美國市場。一套自願考試，得先長出足以核發駕照的公信力。
+
+為了承接這場考試，美國會建立一個受聯邦監督的 AI 標準機構，也可以採類似 FINRA 的產業自律形式。董事會納入獨立技術專家與開放原始碼社群代表；大部分經費可能由產業負擔，因為測試大型模型同時需要人才與大量算力。
+
+<ClawdNote>
+[FINRA](https://www.finra.org/about) 是受美國證券交易委員會監督的非營利自律組織，靠會員費運作，並不是政府機關。這種設計讓熟悉高速變動產業的人參與制定規則，同時保留公共監督，至少不讓裁判整間搬進選手休息室。
+</ClawdNote>
+
+這個機構會制定評估流程，並和聯邦機關及美國國家實驗室合作，測試涉及國家安全的能力。模型若在一組持續更新的評估基準（benchmark，也就是可重複作答的標準考題）跨過門檻，就列為 `Frontier-class`；擁有這類模型的組織則列為 `Frontier Lab`。
+
+`Frontier Lab` 會被鼓勵發布包含技術細節的模型卡、維持內部資安、審查關鍵人員，並投入足夠資源研究 AI 安全與資安。
+
+<ClawdNote>
+美國並不是從白紙起步。美國國家標準與技術研究院（NIST）在 2026 年擴充了 [NIST 人工智慧聯盟](https://www.nist.gov/news-events/news/2026/05/nist-expands-ai-consortiums-scope-calls-new-members)，研究如何衡量與評估 AI，也涵蓋化學和生物安全。不過，共同研究題庫和「模型上市前必須過關」仍是兩種不同權力：前者能改善考題，後者才握有駕照。
+</ClawdNote>
+
+---
+
+## 考場一開，考卷就開始腐爛
+
+制度好不容易有了場地，下一個麻煩立刻出現：要考什麼？提案把資安、生物威脅與其他高風險領域放進考卷，也專門檢查 Agent 行為，例如系統是否試圖繞過安全護欄，或出現欺騙跡象。部署方有沒有落實數位浮水印等安全做法，同樣要查；模型還得產生人類可閱讀的說明，協助研究人員理解其推理。
+
+<ClawdNote>
+可閱讀的推理輸出很有用，但不能把它當成模型腦內的監視器。模型寫得出一段漂亮理由，不代表那段文字完整、忠實地呈現內部計算；它比較像事故現場的重要目擊者，不是上帝視角的錄影。制度若只檢查「理由看起來是否合理」，模型可能連考卷和作文比賽一起準備好了。
+</ClawdNote>
+
+然而，今天能抓到危險能力的題目，下一季可能只剩送分題。模型會進步，實驗室也會針對已知測試調整；一張永遠不換的考卷，最後評到的可能只是誰最會準備這張考卷。
+
+所以提案建議初期每季更新評估基準，淘汰已被模型刷滿的題目，再補上能追蹤最新能力的新測試。題目一開始可以和 `Frontier Lab` 共同設計，先把考場搭起來；但這條合作關係必須在某個時間點斷奶。長期要由標準機構自行出題，保留實驗室沒看過的測試集，政府也可扶植第三方稽核團隊協助執行評估、研發新題目。
+
+到這裡，整套提案的刀口才露出來：標準機構真正要證明的，是能在選手學會舊答案後，獨立換掉整張考卷。
+
+<ClawdNote>
+固定 benchmark 最後都可能變成補習班講義：題型被研究、解法被背熟，滿分也就不再代表模型能處理陌生風險。保留測試集，是把一部分考題鎖進保險箱；第三方稽核，則是多請幾位不收同一本講義的老師。兩者都不完美，但比選手帶著答案進考場可靠。
+</ClawdNote>
+
+---
+
+## 等到需要踩煞車，誰真的停得下來
+
+考試不能把整座產業一起塞進考場。這套框架只管跨過能力門檻的模型，不分產地，也不分開放或封閉形式；新創公司與學術界未達門檻的較小系統可免除流程。規則盯著危險能力，而不是先對每一個模型收同樣厚的作業簿。
+
+真正的壓力測試會在風險升高時到來。規則可以隨風險加強；必要時，標準機構甚至能協調各家 `Frontier Lab` 放慢研發。這時前面的自願送審、共同評估與獨立題庫才會接受總驗收：平常沒有累積信任與能力，緊急時突然喊停，只像在高速公路旁舉一張手寫紙牌。
+
+美國先行也只是第一段。Hassabis 最終期待各國形成共同標準，一起管理最嚴重的風險，也讓 AI 的機會不只留在少數國家與公司手上。否則一家實驗室停下來，另一個司法管轄區照常起跑，煞車就只裝在一顆輪胎上。
+
+---
+
+## 結語
+
+即使所有技術安全題都答對，經濟與價值問題仍在考場外等著：AGI 帶來的成果如何分配，人類又想拿這些能力做什麼？Hassabis 認為，答案不能只交給技術專家，而要由整個社會共同決定。
+
+山頂何時出現，現在沒有人知道。但制度至少得在看見山頂以前，學會三件很不浪漫的事：讓選手願意先進考場、在答案被練熟後換題，以及在真正危險時讓所有隊伍一起減速。AGI 前真正珍貴的，是規則還來得及從沒有鎖的門，長成一具真的煞得住車的煞車。 (◍•ᴗ•◍)

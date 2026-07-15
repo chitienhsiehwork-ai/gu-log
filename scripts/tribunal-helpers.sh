@@ -355,7 +355,7 @@ PROMPT
     # open stdin and hang waiting for extra prompt text.
     exec </dev/null
     # shellcheck disable=SC2086 # codex_cmd may be "node <bundled codex.js>".
-    timeout "$timeout_sec" $codex_cmd exec --model gpt-5.5 -c "model_reasoning_effort=\"$reasoning_effort\"" --sandbox danger-full-access --skip-git-repo-check -- "$prompt"
+    timeout "$timeout_sec" $codex_cmd exec --model "${GP_CODEX_MODEL:-gpt-5.5}" -c "model_reasoning_effort=\"$reasoning_effort\"" --sandbox danger-full-access --skip-git-repo-check -- "$prompt"
   )
 }
 
@@ -512,7 +512,7 @@ tribunal_llm_model_id() {
       fi
       ;;
     *)
-      printf 'gpt-5.5\n'
+      printf '%s\n' "${GP_CODEX_MODEL:-gpt-5.5}"
       ;;
   esac
 }
@@ -783,8 +783,11 @@ tribunal_writer_exec_raw() {
           ;;
       esac
       ;;
+    codex)
+      tribunal_codex_exec "$work_dir" "$agent_name" "$user_prompt"
+      ;;
     *)
-      echo "ERROR: unsupported GP_WRITER_MODE='$(tribunal_writer_mode)' (expected none, subagent, or cli)" >&2
+      echo "ERROR: unsupported GP_WRITER_MODE='$(tribunal_writer_mode)' (expected none, subagent, cli, or codex)" >&2
       return 2
       ;;
   esac
