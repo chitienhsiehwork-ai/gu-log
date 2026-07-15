@@ -256,6 +256,8 @@ Clawd/gu-log opinions, interpretation, jokes, and source-meta commentary belong 
 
 **Reader-fatigue rule:** Fresh Eyes does not do corpus search; Librarian owns old-post overlap evidence. But if the article itself repeatedly re-explains basics, spends multiple sections in recap mode, or feels longer than its information gain, cap `firstImpression` at 7. If a smart beginner can summarize the next section before reading it because the rhythm is predictable, cap `readability` or `firstImpression` at 6.
 
+**Metaphor mapping-reset gate:** A metaphor should let the reader reuse one mental map. If the post moves among more than three independent metaphor systems, or repeatedly recasts the same actors into new roles, the reader must rebuild that map instead. Cap `readability` at 6 and `payoffDensity` at 7; the stage must fail. Three is a ceiling, not a target. One planned metaphor carried consistently is ideal, and direct prose with no metaphor is valid. Do not penalize a brief comparison that clearly extends the same mapping; flag a new system only when roles or causal relationships must be remapped.
+
 **Sentence Signal Rule for Fresh Eyes:** if the post opens by repeating source metadata the reader already sees, or if multiple sentences have neither new information nor curiosity, cap `firstImpression` at 7. A smart impatient beginner does not reward throat-clearing.
 
 ### clarity — Pronoun Clarity / Voice Attribution (v9+ — moved here from Vibe)
@@ -367,6 +369,8 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 
 **Section-boredom gate:** inspect section rhythm. If two or more consecutive sections follow the same report template (`explain → quote → translate/explain → ClawdNote`) without a fresh turn, surprise, scene, or opinionated point, cap `narrative` at 6. Adding more jokes or kaomoji does not fix a boring skeleton.
 
+**Metaphor coherence gate:** Count independent metaphor systems, not decorative words. If the article uses more than three, or keeps reassigning the same actors across unrelated worlds (for example model/lab/regulator becoming contestant/judge, then driver/licensing office, then car/brake), cap `persona` and `narrative` at 6. A high score requires either direct prose or one planned core metaphor whose mapping remains stable from setup through payoff. Extra analogies do not compensate for a weak spine; they are cognitive debt.
+
 **Corpus boundary:** If Librarian evidence says the post overlaps an older gu-log piece, Vibe may use that evidence only to judge the current article's pacing and redundancy. Vibe must not invent or own the old-post search.
 
 **晶晶體 boundary:** Vibe Scorer must not invent its own English-term lint. For zh-tw posts, `scripts/check-jingjing.mjs` is the canonical programmatic gate and allowlist. If the checker returns clean, do not penalize accepted engineering terms such as `vs`, `bug`, `commit`, `PR`, model names, tool names, or glossary terms as hard-policy 晶晶體 hits. Penalize decorative English mixing only when the checker reports a violation, or when deterministic checker output is included in the evidence packet. The accepted-English boundary SHALL be discussed with ShroomDog every time a term is added to or removed from the checker/glossary acceptance set, because this boundary directly affects reading flow and only ShroomDog can decide which English terms feel natural in gu-log zh-tw prose.
@@ -392,6 +396,8 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 **Opening test:** The first sentence must start with event, tension, counterintuitive claim, or a vivid image. Openings like 「原作者這篇分析文講了一個……」 / "This article discusses..." repeat source metadata and should cap narrative at 7.
 
 **SP-158 教訓:** decorative persona (surface features + linear structure) = narrative ≤ 5.
+
+**SP-256 教訓:** fluent sentences and individually understandable metaphors can still produce a bad reading experience when every section opens a new world. The pre-rewrite draft cycled through exam room, judging, licensing, unlocked-door, and highway-brake frames. Each image made sense alone; together they forced repeated role remapping and buried the source argument. Treat this as a fail, not a minor polish note.
 
 ---
 
