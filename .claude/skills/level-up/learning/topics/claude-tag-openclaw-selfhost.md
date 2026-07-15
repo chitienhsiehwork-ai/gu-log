@@ -30,6 +30,9 @@
 ## Decisions（shotcall 結果）
 - 2026-07-14 拆篇：四路全開——① Lv「Claude tag 是什麼」② SD「OpenClaw × LINE 個人自架」③ SD「OpenClaw × Teams 企業部署」④ SD「2026 OpenClaw 安全危機始末」（獨立成篇）。切線紀律：④ 講事件始末與教訓，③ 的安全章節只講「部署時怎麼防」並內連 ④。
 
+- 2026-07-14 Teams 篇主軸：選 A 夢碎敘事軸（隨後 learner 自提 pivot 方案，篇三定位待 L5-2 shotcall 重議）。
+- 2026-07-14 learner 自提加碼方案：放棄 Teams，改 self-hosted GitLab issues 當 agent surface（issue thread = session、glab CLI、worktree per issue、egress proxy 注入憑證）——徹底解掉 inbound 問題。視為候選架構納入篇三決策。
+
 ## Context（影響教學方向的 learner 自報資訊）
 - learner 團隊計畫：OpenClaw 部署在 intranet-only on-prem k8s、出網受限，走 forward proxy 在「預期方向」注入憑證（自行重現 Agent Proxy 模式）。L5 需正面處理「inbound webhook 與此計畫的衝突」。
 
