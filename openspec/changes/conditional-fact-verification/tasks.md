@@ -3,7 +3,8 @@
 - [ ] 1.1 In `.claude/agents/fact-checker.md`, add a "claim-scope classification" step: judge reads the full post and labels it claim-bearing / claim-free (definition + the borderline "one embedded claim stays claim-bearing" rule from design.md). State explicitly the classification is the judge's, not read from any flag.
 - [ ] 1.2 In the same file, add the claim-free branch to the `accuracy` dimension: reflects source-argument faithfulness only, not penalized for un-verifiability, not padded with N/A, one-line report basis. Keep misattribution/garbled-argument as a real accuracy fault (no auto-10).
 - [ ] 1.3 State the always-on invariant near the top of the agent spec: fidelity / sourceBoundary / commentarySeparation are scored for every post; the Fact Checker stage is never skipped; no `--skip-factcheck` flag exists.
-- [ ] 1.4 Mirror 1.1–1.3 into the Codex twin `.codex/agents/fact-checker.toml` if it exists, so VM runs behave identically (skip if no twin present; note in PR).
+- [ ] 1.4 Add a **claim-free calibration anchor** to the agent's Calibration Examples: CP-314 (`cp-314-20260714-ryolu-when-the-dream-becomes-the-job.mdx`) as the worked example — classified claim-free, `accuracy: N` with the one-line basis. A concrete number anchor is required; without it "top of the band" stays open to interpretation and just relocates the inconsistency this change exists to kill.
+- [ ] 1.5 Mirror 1.1–1.4 into the Codex twin `.codex/agents/fact-checker.toml` if it exists, so VM runs behave identically (skip if no twin present; note in PR).
 
 ## 2. Scoring standard mirror (P0)
 

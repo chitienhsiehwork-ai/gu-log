@@ -4,6 +4,8 @@
 
 Each judge's composite SHALL be computed as `floor(sum(owned dimensions) / count(owned dimensions))`, where the owned dimension set is resolved by `tribunalVersion`. A dimension that a claim-scope classification renders inapplicable (e.g. `accuracy` on a claim-free post per `tribunal-verification-scope`) SHALL still contribute a real numeric score to its judge's composite — it SHALL NOT be dropped from the mean or treated as absent. This keeps every judge's composite computed over the same dimension count for both claim-bearing and claim-free posts, so the pass bar means the same thing for both.
 
+Note: the Fact Checker's **pass gate** is the 3-dimension fact-core `floor(avg(accuracy, fidelity, consistency))` (plus the `sourceBoundary ≥ 8` and `commentarySeparation ≥ 8` side gates), not a 5-dimension owned composite. The claim-free accuracy value feeds that 3-dimension fact-core; the two side-gate dimensions are evaluated independently and are unaffected by claim scope.
+
 #### Scenario: Vibe composite over four dimensions at version 9+
 
 - **WHEN** a `tribunalVersion >= 9` post has Vibe dims persona/clawdNote/vibe/narrative
