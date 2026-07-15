@@ -1,0 +1,155 @@
+---
+ticketId: 'SP-PENDING'
+title: "Shopify's AI Agent Won't Answer DMs—How River Turned the Whole Company into an Apprenticeship Workshop"
+originalDate: '2026-05-09'
+translatedDate: '2026-07-16'
+translatedBy:
+  model: "Opus 4.8"
+  harness: "Claude Code CLI"
+
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.8"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.8"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "GPT-5.5"
+      harness: "Codex CLI + Tribunal"
+    - role: "Rewritten"
+      model: "Opus 4.8"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "GPT-5.5"
+      harness: "sp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: '@tobi on X'
+sourceUrl: 'https://x.com/tobi/status/2053121182044451016'
+lang: 'en'
+summary: "Shopify CEO Tobi Lütke shares the unusual design of River, the company's internal AI agent: no DMs, only public Slack channels. The result is not just a better agent—the whole company becomes an apprenticeship workshop where everyone learns by watching the work."
+tags: ['shroom-picks', 'agent', 'agentic-engineering', 'shopify']
+scores:
+  tribunalVersion: 9
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-07-15"
+    model: "gpt-5.5"
+  factCheck:
+    accuracy: 8
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 10
+    commentarySeparation: 9
+    score: 9
+    date: "2026-07-15"
+    model: "gpt-5.5"
+  librarian:
+    glossary: 7
+    crossRef: 7
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-07-15"
+    model: "gpt-5.5"
+  freshEyes:
+    readability: 8
+    firstImpression: 9
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 7
+    score: 8
+    date: "2026-07-15"
+    model: "gpt-5.5"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Someone sends a private message to the company's internal AI agent. She politely refuses: "Sorry—could you open a public channel instead?"
+
+That sounds like a product flaw, but the CEO made it a core design choice. The agent can read code, run tests, write code, open PRs, query the data warehouse, and inspect production traces. But she insists on working in public.
+
+Over the past 30 days, 5,938 employees worked with her across 4,450 [Slack](/en/glossary#slack) channels. In the last week alone, she opened 1,870 PRs in the main monorepo. About one in eight PRs merged that week was written by her and merged after human review.
+
+<ClawdNote>
+The number worth stealing is not the PR count. It is the "no DMs" design choice. It is like moving the meeting-room whiteboard into the hallway: the agent gains no new tool, but the whole company suddenly gains a classroom.
+</ClawdNote>
+
+---
+
+## A Basement Memory from a Sixteen-Year-Old Dropout
+
+Before the agent, there is a German idea to explain: the **teaching workshop**. The entire shop floor is the classroom. People learn by staying close to the work.
+
+The CEO once worked as an apprentice at a Siemens subsidiary in Germany. He had dropped out of school at sixteen. The most interesting people worked in the basement, using old programming languages instead of the company-mandated system. He learned programming by making them coffee, hanging around, and staying long enough for their judgment to seep into his own.
+
+Now the AI agent has turned that experience into something digital.
+
+<ClawdNote>
+This is close to how gu-log works. Its AI writers run in disposable sandboxes: every session loses its chat history, and the entire work environment gets destroyed and rebuilt. The only memory that survives is what gets committed to the repo—CLAUDE.md, playbooks, and prompts. This agent does the organizational version: make knowledge public so it can spread instead of locking it inside one person's chat history.
+</ClawdNote>
+
+---
+
+## The Chain Reaction of Public Channels
+
+The CEO works with the agent in his own public channel. Many others copied the pattern. More than 100 people watch the conversations in his channel, add context, pick up tasks, help with reviews—and occasionally remind him how rusty he is.
+
+Employees no longer need to be lucky enough to sit beside the right expert. A public channel lets anyone see how experienced people work. A support engineer can watch a backend engineer get the agent to produce the right log query, then do the same thing the next day. A new hire can scroll through old conversations to see how senior people scope a request before sending their first one.
+
+An unexpected thing happens: the agent learns too. Each channel can preload the zones, skills, and instructions its team needs, written by the people closest to the work. The agent also has memory that keeps learning—and unlearning information that should no longer be retained. One [Skill](/en/glossary#skill) that taught her how to query checkout data was reused by twelve other teams.
+
+---
+
+## The Worry Is Real, but the Frame Is Wrong
+
+A common worry is that AI will make people stop thinking. If an [agent](/en/glossary#agent) can debug, why should a junior engineer learn debugging? If they can just ask, why read the codebase?
+
+The worry is real. The framing is wrong.
+
+The risk is not that AI does the work. The risk is that **AI does the work and the organization learns nothing**. If every agent interaction happens in a private window, only the person at the keyboard learns. Everyone else is locked out of the apprenticeship.
+
+Public agent work reverses that. The best prompting patterns spread. One engineer's clever method for investigating a permissions problem becomes a template for everyone else.
+
+<ClawdNote>
+Most [agents](/en/glossary#agent) help one person move faster. This design helps the whole organization learn faster. Locking agent conversations in private windows is like making every engineer pay the same tuition, then burning the notes after graduation. The speed is real. The organization still forgets.
+</ClawdNote>
+
+---
+
+## Why the Merge Rate Keeps Rising
+
+Thirty-six percent to 77 percent. Over those two months, the model did not change and there was no retraining. People watched the agent work, noticed where she got stuck, and wrote down what she should have known. Every failure left something behind. Each team's accumulated taste flowed into the agent. That is how she got better at being an employee of this company.
+
+---
+
+## A Company Moves at the Speed of Its Slowest Secret
+
+An organization moves at the speed of its lowest-bandwidth communication channel. Meetings are slow. Email is slow. DMs are slow—not necessarily for the people inside them, but for the organization, because their information and decisions never fully spread without a lot of extra work. A public conversation between people, or between people and a capable agent, is fast, searchable, teachable, and compounding. The next person with the same question does not need to ask it again.
+
+<ClawdNote>
+Every DM is like locking a freshly drawn map in a drawer. The next person reaches the same pit and has to fall into it again. Public conversation is not morally superior. Someone simply remembered to put the map on the wall.
+</ClawdNote>
+
+---
+
+## Further Reading
+
+- [SP-227: Your Phone Isn't a Tiny Terminal—It's the Control Center for Your Agents](/en/posts/en-sp-227-20260615-dimillian-codex-mobile-control-center/)
+- [SP-237: Run Your Coding Agent Like a Steam Engine: Operating Agents on Large Projects](/en/posts/en-sp-237-20260621-simonlast-agent-coding-agent/)
+- [SP-194: HTML Isn't Prettier Markdown—It's How Humans Rejoin the Agent Loop](/en/posts/en-sp-194-20260508-trq212-html-markdown-agent/)
+
+---
+
+## Conclusion
+
+"No DMs" looked like a constraint. It turned every work session into teaching material for the whole company.
+
+Chess became more popular after computers learned to play it. The future is not a choice between humans and machines either. Apprentices and masters watch each other learn, and both get better on the shop floor. Apprenticeship does not require the master to stop and teach. The work just needs to be visible. (｡◕‿◕｡)
