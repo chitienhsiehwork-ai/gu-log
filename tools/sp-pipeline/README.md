@@ -153,7 +153,7 @@ The existing Node / Python helpers (`validate-posts.mjs`, `detect-model.mjs`, `f
 - [x] `gp-pipeline fetch <url>` captures a tweet into the work dir (native Go validator, no shell-out)
 - [x] `gp-pipeline counter next/bump --prefix SP` uses syscall.Flock, 20-goroutine concurrency test
 - [x] `gp-pipeline dedup` wraps `dedup-gate.mjs`, exit 13 on BLOCK
-- [x] `gp-pipeline eval` runs two evaluators via FakeProvider (CCC) or real LLM chain (mac-CC), GO/GO / SKIP/SKIP / split exit codes
+- [x] `gp-pipeline eval` runs two evaluators via FakeProvider (CCC) or real LLM chain (local Claude actor), GO/GO / SKIP/SKIP / split exit codes
 - [x] `gp-pipeline write` renders `internal/prompts/write.tmpl` with source + style guide, outputs draft-v1.mdx
 - [x] `gp-pipeline review` / `gp-pipeline refine` run their respective prompts with stdout fallback
 - [x] `gp-pipeline credits` stamps the 4-entry pipeline block via `frontmatter.SetBlock` — verified round-trip on real SP-170
@@ -163,7 +163,7 @@ The existing Node / Python helpers (`validate-posts.mjs`, `detect-model.mjs`, `f
 - [x] `scripts/sp-pipeline.sh` is a 49-line shim that translates env vars → flags and execs into the Go binary
 - [x] No binary checked into git (self-compiling wrapper handles cold start)
 
-**CCC sandbox cannot verify** (mac-cdx responsibility):
+**CCC sandbox cannot verify** (local Codex actor responsibility):
 - Real `codex exec --model gpt-5.5` invocation under the installed Codex CLI
 - Full production run on a live source URL with the real LLM chain
 

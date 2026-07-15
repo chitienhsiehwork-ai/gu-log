@@ -8,7 +8,7 @@ TBD - created by archiving change harden-openspec-sdlc-review-loop. Update Purpo
 SDLC SHALL 明訂三層角色，每一層只做自己那層的事：
 
 - **human = coach**：定高層方向、拍板 critical design decision（產品方向 / 架構 / 對外承諾 / 品牌調性）。只停在 #481 既有的介入點——`opsx explore`（釐清 intent）、審 proposal（檢查點①）、終審（檢查點②），以及 escalation 例外；不落到 micro。
-- **main agent（mac-CC / CCC）= controller / orchestrator**：不做實作重活，負責拆 task、給 spec、聚合驗收、當 coach 的對話介面，context 維持乾淨。
+- **main agent（local machine actor / CCC）= controller / orchestrator**：不做實作重活，負責拆 task、給 spec、聚合驗收、當 coach 的對話介面，context 維持乾淨。
 - **subagents = workers**：builder（做實作）與 reviewer（審產出、產逐條 verdict），各自獨立 context。
 
 #### Scenario: 角色不越界
@@ -92,4 +92,3 @@ builder 的 writable scope SHALL 排除 openspec spec 檔（`openspec/**/specs/*
 
 - **WHEN** bug 只需改 code / tasks 即可讓既有 scenario 對上
 - **THEN** builder SHALL 在同一個 PR in-lane atomic 修，不升 coach、不開新 change
-

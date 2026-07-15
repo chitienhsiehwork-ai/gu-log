@@ -1,6 +1,6 @@
 # gu-log Content Creation Guide
 
-> **🪪 誰來生這份 prose**：gu-log 文章的寫 / 改寫 / vibe 評分 voice 是 owner-pin 在某一代 Opus（ShroomDog sign-off）。**CCC（Cloud Claude Code）的 session model 會浮動（現在 Opus 4.8），不准拿來直接生 / 改 / 評文章 prose**——寫 / 改寫委派 `tribunal-writer` agent、vibe 評分委派 `vibe-opus-scorer` agent，model pin 的 SSOT = 這兩個 agent 的 `model:` frontmatter。理由與機械工作例外見 [`CCC-playbook` 文章寫作 SOP](playbooks/CCC-playbook.md)。mac-CC 走 pipeline / tribunal runner，pin 已內建。
+> **🪪 誰來生這份 prose**：gu-log 文章的寫 / 改寫 / vibe 評分 voice 是 owner-pin 在某一代 Opus（ShroomDog sign-off）。**CCC（Cloud Claude Code）的 session model 會浮動（現在 Opus 4.8），不准拿來直接生 / 改 / 評文章 prose**——寫 / 改寫委派 `tribunal-writer` agent、vibe 評分委派 `vibe-opus-scorer` agent，model pin 的 SSOT = 這兩個 agent 的 `model:` frontmatter。理由與機械工作例外見 [`CCC-playbook` 文章寫作 SOP](playbooks/CCC-playbook.md)。Local Claude actor（例如 `m1-cc`）走 pipeline / tribunal runner，pin 已內建。
 
 ## 🧬 ShroomDog Feedback Corpus
 

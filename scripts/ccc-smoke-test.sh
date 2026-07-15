@@ -129,7 +129,7 @@ if $FIX; then
   # Playwright chromium：CCC sandbox 不預裝瀏覽器 binary（npm 的 playwright 套件
   # 有，但 ~/.cache/ms-playwright 是空的），uiux-auditor / playwright-cli / verify
   # 第一次要截圖就卡「Executable doesn't exist」。在背景非同步補下載（~100MB），
-  # 不擋 session 開場；等真的要截圖時通常已經裝好。只在 CCC（remote）跑——mac-CC
+  # 不擋 session 開場；等真的要截圖時通常已經裝好。只在 CCC（remote）跑——local machine actor
   # 自己管 local Playwright，不要在 user 的 Mac 偷下載。
   #
   # ⚠️ 不要用 `ls chromium-*` 當「已裝就跳過」的判斷——那是版本盲的：playwright 套件
@@ -159,7 +159,7 @@ if $FIX; then
   # OpenSpec CLI：CCC sandbox 不預裝。SDD 流程（openspec-propose / apply）要 `openspec`
   # binary（repo 已 init openspec/，但 binary 不在 fresh sandbox）。套件名是
   # @fission-ai/openspec —— npm 的裸名 `openspec` 是 0.0.0 空殼，別裝那個。小套件，
-  # 同步裝即可；idempotent：已在 PATH 就跳過。只在 CCC 跑（mac-CC 自己管 local）。
+  # 同步裝即可；idempotent：已在 PATH 就跳過。只在 CCC 跑（local machine actor 自己管 local）。
   if [ "${CLAUDE_CODE_REMOTE:-}" = "true" ]; then
     if command -v openspec >/dev/null 2>&1; then
       pass "openspec CLI 已存在，跳過安裝"

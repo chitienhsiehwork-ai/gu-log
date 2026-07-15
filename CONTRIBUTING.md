@@ -37,7 +37,7 @@ gu-log 的品質把關**分兩層**，不要再把它當成「沒過 8 就不准
 - gu-log 寫的就是 AI 品質，**把 AI 自評分數攤在陽光下、連 sub-8 的也誠實標記**，本身就是這個 blog 的調性。
 - 背景 tribunal 可以排程慢慢把存量往上拉，不用塞在 ship 的關鍵路徑上。
 
-實作介面：自動 gate = `scripts/score-floor-check.mjs`（pre-commit 呼叫）；首頁過濾 = `getIndexPosts()`（`src/utils/post-status.ts`）；badge = `Sub8RefiningBanner.astro`；composite 計算 = `src/utils/tribunal-scores.ts`。重寫 loop：mac-CC 有 `bash scripts/tribunal-batch-runner.sh`、CCC 可以呼叫 `tribunal-writer` agent + `vibe-scorer.sh`。
+實作介面：自動 gate = `scripts/score-floor-check.mjs`（pre-commit 呼叫）；首頁過濾 = `getIndexPosts()`（`src/utils/post-status.ts`）；badge = `Sub8RefiningBanner.astro`；composite 計算 = `src/utils/tribunal-scores.ts`。重寫 loop：local Claude actor（例如 `m1-cc`）有 `bash scripts/tribunal-batch-runner.sh`、CCC 可以呼叫 `tribunal-writer` agent + `vibe-scorer.sh`。
 
 ## 📝 Markdown 文件語言：預設繁中
 
