@@ -13,6 +13,15 @@
 - 寫 SP / CP / SD / Lv 前，如果任務涉及文章品質或風格，先快速掃這份檔案的近期條目。
 - 當同一類 feedback 出現 3 次以上，應該蒸餾進 `GU-LOG_WRITER_PROMPT.md`，必要時再同步到 pipeline prompt；不要永遠只留在 corpus 裡。
 
+## 2026-07-16 — SP-256：比喻不是免費造型，換世界會收認知稅
+
+### Feedback: 一篇最多三套比喻，理想是一開始選好一套並貫穿全文
+
+- ShroomDog feedback：`譬喻禁止多餘三個。理想情況是一開始就規劃好用哪個譬喻，然後從頭到尾都用同個譬喻/故事觀，不然譬喻根本不會幫到使用者理解，只會增加認知負擔`；並要求 writer、Vibe 與 Fresh Eyes 都嚴格抓出這種錯誤。
+- 情境：SP-256 的句子個別自然，但從考場、裁判、駕照、沒有鎖的門一路跳到高速公路煞車。同一批角色每換一個世界就得重新配對，Hassabis 的原始論證反而被二創式 explainer 蓋住。
+- 修法：全文改回 source-first；writer 原則與 Vibe / Fresh Eyes 的評分門檻分別收斂到 `GU-LOG_WRITER_PROMPT.md` 與 `scripts/vibe-scoring-standard.md`，不在 feedback corpus 複製會 drift 的分數細節。
+- Reusable lesson：比喻只有在讀者能沿用同一張 mental map 時才省腦。每開一個新世界都要付 mapping reset tax；不要把「很多比喻」誤認成 persona 或好懂。
+
 ## 2026-06-21 — SP-237: 自我指涉 callback 是 MoguNote 的靈魂
 
 ### Feedback: 原文講的東西 gu-log 自己也在做時，MoguNote 要把它接回 gu-log 自身
