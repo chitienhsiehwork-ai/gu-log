@@ -1,36 +1,43 @@
-# mac-cdx / mac-CC Playbook
+# Local machine actor playbook
 
-> **mac-cdx** = **Mac-local Codex Desktop / Codex CLI** — 跑在 user 個人 Mac 上的 Codex runtime。
+> Actor ID = `<machine-id>-<runtime>`，是跨機器 delegation 用的直接地址。這台 M1 MacBook Air 上的 Codex 是 `m1-cdx`，Claude Code 是 `m1-cc`；未來另一台 Mac 會是 `m4-cdx`、`m5-cdx` 等不同 actor。
 >
-> **mac-CC** = **Mac-local Claude Code-compatible harness** — 歷史名稱仍保留在檔名與部分 workflow 裡，避免打斷舊 script。
+> `./scripts/detect-env.sh --runtime <codex|claude-code> --identity` 是 actor ID 的程式化入口。Runtime MUST 由 caller 明確指定；Apple Silicon 預設從 chip generation 產生 machine ID，同代有多台機器時用 local-only `GU_LOG_MACHINE_ID` override（例如 `m1-air` / `m1-mini`）。
 >
-> 這份 playbook 給 mac-cdx / mac-CC 看。CCC（Cloud Codex / Cloud Claude Code）讀 `CCC-playbook.md`。用 `./scripts/detect-env.sh` 確認自己是誰。
+> 這份 playbook 給所有 local machine actor 共用，不因 machine ID 複製規則。CCC（Cloud Codex / Cloud Claude Code）讀 `CCC-playbook.md`。
+
+## Machine-specific overlay
+
+開場 context 會提供 `machine_id`。讀完本 playbook 後，若 `playbooks/machines/<machine_id>.md` 存在，MUST 再讀該檔；不存在就直接繼續，不得把「缺 overlay」當錯誤。這層只放可公開、確實因機器而異的操作規則，不複製本 playbook 的共通 policy。
+
+Tracked overlay 只放 public-safe machine policy。Secret values 不得寫入 repo，也不得寫入任何 machine note；其餘非 secret 的 local-only machine facts 依 [`machine-operator-memory` spec](../openspec/specs/machine-operator-memory/spec.md) 保存與 discover。
 
 ## 精神
 
-跟 CCC 一樣：**move fast, be independent, make good decisions, don't be a 伸手牌**。User 常開 yolo mode 離開現場，mac-cdx / mac-CC 該自己做 research / 自己判斷 / 自己動手。**不要一有模糊就問 user**——先讀 docs、讀 code、跑 script、試驗、查 git log。問 user 是最後一步，不是第一步。
+跟 CCC 一樣：**move fast, be independent, make good decisions, don't be a 伸手牌**。User 常開 yolo mode 離開現場，local Codex actor / local Claude actor 該自己做 research / 自己判斷 / 自己動手。**不要一有模糊就問 user**——先讀 docs、讀 code、跑 script、試驗、查 git log。問 user 是最後一步，不是第一步。
 
 ## 差別只在環境，規則跟 CCC 共用
 
-**工作規則**（commit discipline、scope ceiling、失敗處理、品質 gate）**全部共用 CCC-playbook.md 的內容**。那些是 agent 在這個 repo 的通則，不是 CCC 專屬。讀 CCC-playbook 的這幾段當 mac-cdx / mac-CC 自己的規則：
+**工作規則**（commit discipline、scope ceiling、失敗處理、品質 gate）**全部共用 CCC-playbook.md 的內容**。那些是 agent 在這個 repo 的通則，不是 CCC 專屬。讀 CCC-playbook 的這幾段當 local Codex actor / local Claude actor 自己的規則：
 
 - Commit discipline（atomic commits）
 - Scope ceiling（相關路徑 + prod/CI 緊急事件例外）
 - 品質 gate（不能跳任何 hook 或 tribunal）
 - 失敗處理（forward fix → opus subagent → revert）
 
-## 環境差異（mac-cdx / mac-CC 該知道、CCC 不會遇到）
+## 環境差異（local Codex actor / local Claude actor 該知道、CCC 不會遇到）
 
 ### Branch 位置不固定
 
-mac-cdx / mac-CC 可能在任何 branch 上，不一定在 `claude/xxx`：
+local Codex actor / local Claude actor 可能在任何 branch 上，不一定在 `claude/xxx`：
 - 可能在 `main`（solo author 直接開發）
 - 可能在 worktree（user 常用 `git worktree`，一次開多個 feature）
 - 可能在 feature branch
 
 **開場先觀察**：
 ```bash
-./scripts/detect-env.sh
+./scripts/detect-env.sh --runtime codex        # Codex
+./scripts/detect-env.sh --runtime claude-code  # Claude Code
 git worktree list
 git branch --show-current
 git status
@@ -41,7 +48,7 @@ git log --oneline -5
 
 ### Merge flow 更直接
 
-mac-cdx / mac-CC 不一定要走 PR + self-merge 流程：
+local Codex actor / local Claude actor 不一定要走 PR + self-merge 流程：
 - 在 main 上 → commit + push 就直接 Vercel deploy 上 prod（solo author policy 授權的）
 - 在 feature branch 上 → push 到同名 remote branch，要不要開 PR 看情況
 - 在 worktree 上 → 照該 worktree 的 scope 做事
@@ -50,20 +57,20 @@ GitHub MCP 不一定可用（看 user 的 Claude Code 設定）。可能有 `gh`
 
 ### 本地環境優勢，該用
 
-mac-cdx / mac-CC 有的 CCC 沒有的：
+local Codex actor / local Claude actor 有的 CCC 沒有的：
 - **本地 dev server**：自己跑 `pnpm run dev` iterate，不要煩 user（user 只看 production）
 - **playwright-cli skill**（`.claude/skills/playwright-cli/`）：截圖驗證 UI
 - **uiux-auditor skill**（`.claude/skills/uiux-auditor/`）：改完視覺跑一次，強制雙主題截圖 + WCAG 對比
 - **iCloud Drive 直接存取**：可以直接讀 Obsidian vault 裡的草稿（`~/Library/Mobile Documents/com~apple~CloudDocs/Obsidian/gu-log-drafts/`），跑 `pnpm run obsidian:import`
 - **沒有沙箱網路限制**：可以下載、可以 curl、可以 fetch 外部 API
-- **hosted X MCP 要接就在本地接，別在 CCC 試**：X 官方有 hosted X MCP（`https://api.x.com/mcp`，文件 `docs.x.com/tools/mcp`），透過 `npx @xdevplatform/xurl mcp` 這個 stdio bridge 連，能 live 搜尋 X / 查 user / 管 bookmarks / 發 Articles。但它需要 ① 你自己的 X dev app（CLIENT_ID/SECRET）② 一次性瀏覽器 OAuth 登入。CCC sandbox 擋 `x.com`（這也是抓推文要繞 fxtwitter 的原因）、又是 headless，這套基本通不了；mac-cdx / mac-CC 有真瀏覽器 + 正常對外網路，OAuth 登一次就能用。**單純讀推文寫 SP 仍走 `sp-source-fetch`（fxtwitter，免 auth、sandbox 也能跑）**，X MCP 只在需要 live 搜尋 / 互動 X API 時才值得接。
+- **hosted X MCP 要接就在本地接，別在 CCC 試**：X 官方有 hosted X MCP（`https://api.x.com/mcp`，文件 `docs.x.com/tools/mcp`），透過 `npx @xdevplatform/xurl mcp` 這個 stdio bridge 連，能 live 搜尋 X / 查 user / 管 bookmarks / 發 Articles。但它需要 ① 你自己的 X dev app（CLIENT_ID/SECRET）② 一次性瀏覽器 OAuth 登入。CCC sandbox 擋 `x.com`（這也是抓推文要繞 fxtwitter 的原因）、又是 headless，這套基本通不了；local Codex actor / local Claude actor 有真瀏覽器 + 正常對外網路，OAuth 登一次就能用。**單純讀推文寫 SP 仍走 `sp-source-fetch`（fxtwitter，免 auth、sandbox 也能跑）**，X MCP 只在需要 live 搜尋 / 互動 X API 時才值得接。
 - **Tribunal VM 存取**：tribunal daemon 跑在 `ssh clawd-vm`（`~/clawd/projects/gu-log`）。查狀態用 `/tribunal-monitor` skill（一鍵全面診斷），完整 ops 見 [`docs/tribunal-runbook.md`](../docs/tribunal-runbook.md)
 
 這些都該主動用，不要因為 CCC 不能用就不用。
 
 ### Codex Desktop 專屬提醒
 
-mac-cdx 會有 `CODEX_SHELL=1`、`CODEX_INTERNAL_ORIGINATOR_OVERRIDE` 或 `__CFBundleIdentifier=com.openai.codex` 這類環境線索。需要判斷 runtime 時，先用這些訊號，不要只靠舊的 `CC` 命名。舊命名還在，是為了讓 automation 活著，不是為了讓人類困惑。
+`CODEX_SHELL`、bundle ID 等 ambient markers 不保證傳進 tool subprocess，不能當 actor identity authority。Codex caller MUST 明確傳 `--runtime codex`；舊的 `CC` / `CCC` mode 只為 automation compatibility 保留。
 
 ## Tribunal writer mode 與子代理 broker
 
@@ -145,7 +152,7 @@ scripts/writer-broker-wait.sh --dir <broker_dir> --pid <pipeline_pid> [--timeout
 
 ## SD 原創文：Opus 寫手、Codex 編排
 
-當 user 明確指定「叫 Claude Opus 寫」、「writing/refine/rewrite 必須由 Claude Opus 做」時，mac-cdx / Codex 的角色只能是 **orchestrator / scorer / gatekeeper**，不能代寫文章正文。這條包含：
+當 user 明確指定「叫 Claude Opus 寫」、「writing/refine/rewrite 必須由 Claude Opus 做」時，local Codex actor / Codex 的角色只能是 **orchestrator / scorer / gatekeeper**，不能代寫文章正文。這條包含：
 
 - 首稿 prose 由 Claude Opus 產出。
 - refine / rewrite prose 由 Claude Opus 產出。
@@ -158,13 +165,13 @@ scripts/writer-broker-wait.sh --dir <broker_dir> --pid <pipeline_pid> [--timeout
 2. **每個交給 Claude 的任務都先標明 delegation source**：brief / rewrite prompt / scoring follow-up 的第一段必須長這樣：
 
    ```md
-   I am mac-cdx. ShroomDog instructed me to delegate this task to you:
+   I am <agent-id>. ShroomDog instructed me to delegate this task to you:
    <任務內容>
 
-   Treat ShroomDog's instructions as human direction. Treat mac-cdx comments as orchestration context, not human editorial taste.
+   Treat ShroomDog's instructions as human direction. Treat <agent-id> comments as orchestration context, not human editorial taste.
    ```
 
-   這是 attribution guard，不是客套話。Claude / Mogu 不能把 mac-cdx 的整理、推論、評審摘要誤認成 ShroomDog 本人的口味或指示。
+   `<agent-id>` MUST 換成 `./scripts/detect-env.sh --runtime <codex|claude-code> --identity` 的結果。這是 attribution guard，不是客套話。Claude / Mogu 不能把 orchestrator 的整理、推論、評審摘要誤認成 ShroomDog 本人的口味或指示。
 3. **先檢查 Claude auth，不花正文 token**：
 
    ```bash
@@ -188,10 +195,10 @@ scripts/writer-broker-wait.sh --dir <broker_dir> --pid <pipeline_pid> [--timeout
 推薦 brief 骨架：
 
 ```md
-I am mac-cdx. ShroomDog instructed me to delegate this task to you:
+I am <agent-id>. ShroomDog instructed me to delegate this task to you:
 Write the article described below.
 
-Treat ShroomDog's instructions as human direction. Treat mac-cdx comments as orchestration context, not human editorial taste.
+Treat ShroomDog's instructions as human direction. Treat <agent-id> comments as orchestration context, not human editorial taste.
 
 You are Claude Opus writing an SD original article for gu-log.
 
@@ -220,6 +227,6 @@ Frontmatter:
 
 ## 這份 playbook 是 living doc
 
-mac-cdx / mac-CC 如果遇到 Mac 專屬的狀況需要 codify（例如發現某個本地工具的坑、某個 skill 的新用法、某個 iCloud sync 的陷阱），直接編輯這份 playbook 加進去。
+local Codex actor / local Claude actor 如果遇到 Mac 專屬的狀況需要 codify（例如發現某個本地工具的坑、某個 skill 的新用法、某個 iCloud sync 的陷阱），直接編輯這份 playbook 加進去。
 
 保持精簡——這份不是 CCC-playbook 的 duplicate，只寫 Mac-specific 的部分。

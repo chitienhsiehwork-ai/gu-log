@@ -20,7 +20,7 @@
 ## 3. 開場路由
 
 - [ ] 3.1 在 `scripts/detect-env.sh` 或其輸出的 playbook routing 中新增 content / editorial work 的 charter 入口提示。
-- [ ] 3.2 在 `playbooks/mac-CC-playbook.md` 補上：mac-CC 進行寫文、修文、內容規則、writer prompt、judge prompt 工作前 MUST 讀 `openspec/specs/editorial-charter/spec.md`。
+- [ ] 3.2 在 `playbooks/local-agent-playbook.md` 補上：local machine actor 進行寫文、修文、內容規則、writer prompt、judge prompt 工作前 MUST 讀 `openspec/specs/editorial-charter/spec.md`。
 - [ ] 3.3 在 `playbooks/CCC-playbook.md` 補上相同 charter 入口規則，避免 Cloud worker 漏讀。
 - [ ] 3.4 若本 change 尚未封存，routing 暫時指向 `openspec/changes/add-editorial-charter/specs/editorial-charter/spec.md`；封存後改指向 `openspec/specs/editorial-charter/spec.md`。
 
