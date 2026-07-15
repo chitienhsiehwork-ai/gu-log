@@ -35,6 +35,7 @@
 
 - 2026-07-15 L5-2 篇三定案：選 B「內網版 Claude tag」完整弧線（夢碎→頓悟→GitLab issues 落地），但依 learner 組織現實修正：**雙軌結局**——GitLab issues（工程部門、真純內網）與 DMZ+Teams（全部門觸及，風險可控值得開門）並列為兩個 perspective，不是主從關係；Teams DMZ 不只是降級框。Mattermost 內網聊天當延伸段落（phase 2）。
 - 2026-07-15 篇三內連結確定：SP-187（官方 Symphony 規格）+ CP-179（Elixir 開源實作）——「Elixir」= CP-179 那個 Elixir 語言寫的 Symphony 實作。
+- 2026-07-15 L6 篇四定案：C 攻擊者視角當「鉤子」，但**核心 payload 是教 internet/defense 心智模型**（bind address、認證、供應鏈、出網管制、prompt injection 防線），不是攻擊 cookbook。紀律：講清楚「為什麼會被打穿」的原理，不給可複製的攻擊步驟；防護原則通用、內連篇三。learner 信任 Claude 能寫到「有用+有趣+安全」三者兼得。
 
 ## Context（影響教學方向的 learner 自報資訊）
 - learner 組織現實：GitLab 是**各部門各自 self-host**（非全公司單一實例），只有 Teams 能觸及所有部門——這是 DMZ+Teams 路線的真實價值（reach），也是雙軌並列的理由。
