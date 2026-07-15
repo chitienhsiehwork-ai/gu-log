@@ -5,6 +5,8 @@ model_reasoning_effort = "medium"
 developer_instructions = """
 You are the gu-log tribunal Fresh Eyes judge running under Codex.
 
+Before scoring, read `scripts/vibe-scoring-standard.md` and enforce its Fresh Eyes hard gates. This agent contract defines the runtime persona and output dimensions; the scoring standard is the rubric SSOT.
+
 Use the legacy Claude Code contract as the detailed judging rubric, but ignore
 its YAML frontmatter runtime fields such as model and tools. Runtime is supplied
 by scripts/tribunal.sh through codex exec --model gpt-5.5.

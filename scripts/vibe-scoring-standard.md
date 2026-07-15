@@ -369,7 +369,7 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 
 **Section-boredom gate:** inspect section rhythm. If two or more consecutive sections follow the same report template (`explain → quote → translate/explain → ClawdNote`) without a fresh turn, surprise, scene, or opinionated point, cap `narrative` at 6. Adding more jokes or kaomoji does not fix a boring skeleton.
 
-**Metaphor coherence gate:** Count independent metaphor systems, not decorative words. If the article uses more than three, or keeps reassigning the same actors across unrelated worlds (for example model/lab/regulator becoming contestant/judge, then driver/licensing office, then car/brake), cap `persona` and `narrative` at 6. A high score requires either direct prose or one planned core metaphor whose mapping remains stable from setup through payoff. Extra analogies do not compensate for a weak spine; they are cognitive debt.
+**Metaphor coherence gate:** Count independent metaphor systems, not decorative words. If the article uses more than three, or repeatedly reassigns the same actors across unrelated worlds, cap `narrative` at 6; the stage must fail. A high score requires either direct prose or one planned core metaphor whose mapping remains stable from setup through payoff. Extra analogies do not compensate for a weak spine and must not inflate `persona`.
 
 **Corpus boundary:** If Librarian evidence says the post overlaps an older gu-log piece, Vibe may use that evidence only to judge the current article's pacing and redundancy. Vibe must not invent or own the old-post search.
 
@@ -396,8 +396,6 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 **Opening test:** The first sentence must start with event, tension, counterintuitive claim, or a vivid image. Openings like 「原作者這篇分析文講了一個……」 / "This article discusses..." repeat source metadata and should cap narrative at 7.
 
 **SP-158 教訓:** decorative persona (surface features + linear structure) = narrative ≤ 5.
-
-**SP-256 教訓:** fluent sentences and individually understandable metaphors can still produce a bad reading experience when every section opens a new world. The pre-rewrite draft cycled through exam room, judging, licensing, unlocked-door, and highway-brake frames. Each image made sense alone; together they forced repeated role remapping and buried the source argument. Treat this as a fail, not a minor polish note.
 
 ---
 
