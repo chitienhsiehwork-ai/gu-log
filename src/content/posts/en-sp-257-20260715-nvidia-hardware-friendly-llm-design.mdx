@@ -73,6 +73,8 @@ scores:
 import ClawdNote from '../../components/ClawdNote.astro';
 import PostImage from '../../components/PostImage.astro';
 import gpuTileAlignment from '../../assets/posts/sp-nvidia-hardware-codesign/gpu-tile-alignment.png';
+import matrixShapeDataReuse from '../../assets/posts/sp-nvidia-hardware-codesign/matrix-shape-data-reuse.png';
+import wideVsDeepModel from '../../assets/posts/sp-nvidia-hardware-codesign/wide-vs-deep-model.png';
 
 Put two models with almost the same parameter count on the same GPU. Their spec sheets suggest similar speeds. In practice, one may produce tokens smoothly while the other crawls like rush-hour traffic. The compute has not disappeared and the task has not become harder. The difference may be hiding in the matrix dimensions.
 
@@ -101,6 +103,12 @@ Think of a matrix as an area to be tiled. When it is nearly square, there is eno
 One theoretical estimate for the GB300 deliberately sets the feed-forward layer to `H′=512` and `H=8192`, with 4-bit inputs and 8-bit outputs. Even as the token count grows, writing the results still takes longer than the mathematical computation; the smaller 512 dimension keeps the layer bottlenecked by memory. GB300 measurements at 4-bit precision point in the same direction: throughput drops noticeably when the projection or reduction dimension is too small.
 
 The first answer now emerges: under a fixed parameter budget, a linear layer's weight matrix should be as close to square as practical. Avoid making either side so thin that the GPU has to resume moving data before it can do enough computation.
+
+<PostImage
+  src={matrixShapeDataReuse}
+  alt="Two matrix shapes with the same amount of data: the square matrix on the left reuses one green data delivery across rows and columns, while only a narrow central strip works in the long thin matrix on the right and repeated deliveries feed the otherwise idle area"
+  caption="The parameter count can stay the same while shape changes how data is used. The square matrix on the left reuses incoming data in more directions. The long, thin matrix on the right quickly runs out of work along one dimension and has to keep fetching more batches."
+/>
 
 <ClawdNote>
 “The parameter counts are the same, so the speeds should be similar” is like saying, “These two warehouses have the same floor area, so they should ship orders at the same speed.” One is a square, open sales floor. The other is a corridor so long and narrow that it seems endless. The staff will certainly get impressive step counts; just do not ask when the packages will leave (￣▽￣)／
@@ -133,6 +141,12 @@ With a fixed parameter count, a deeper model spreads the work across more layers
 From the hardware's side, the answer is tempting: **fewer large computations usually suit a GPU better than many small ones**. This can improve both overall throughput and the interactive speed of a single request.
 
 Then the brakes come on. Depth also affects a model's expressive power and accuracy. Cutting too many layers may produce attractive hardware utilization while throwing away model capability. The answer is not “the wider, the better.” What actually works is a range of width-to-depth ratios: protect accuracy first, then move toward a wider model with fewer layers within the feasible range.
+
+<PostImage
+  src={wideVsDeepModel}
+  alt="Wide-shallow and narrow-deep models under the same parameter budget: a few large green compute layers form a short path on the left, while many small amber layers form a long sequential path on the right"
+  caption="Under a fixed parameter budget, the left side concentrates work into a few large operations and a shorter path. The right side divides it into many small layers that must run one after another. Hardware prefers the left, but model accuracy still limits how far width can replace depth."
+/>
 
 <ClawdNote>
 Hardware-friendly does not automatically mean model-friendly. Cutting depth just to make the GPU benchmark look good is like trying to turn restaurant tables faster by serving only water: the order certainly arrives quickly, and the customers never need to come back. The accuracy guardrail is not optional.
