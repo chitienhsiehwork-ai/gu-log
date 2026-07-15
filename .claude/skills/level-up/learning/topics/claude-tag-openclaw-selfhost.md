@@ -41,6 +41,9 @@
 - learner 組織現實：GitLab 是**各部門各自 self-host**（非全公司單一實例），只有 Teams 能觸及所有部門——這是 DMZ+Teams 路線的真實價值（reach），也是雙軌並列的理由。
 - learner 團隊計畫：OpenClaw 部署在 intranet-only on-prem k8s、出網受限，走 forward proxy 在「預期方向」注入憑證（自行重現 Agent Proxy 模式）。L5 需正面處理「inbound webhook 與此計畫的衝突」。
 
+- 2026-07-15 LINE 篇 scope 定案：A 可複製骨架軸，但 learner 修正——**反代只提「為什麼有用」，工具名 Caddy 全文只出現一次**（「Mogu 自己會挑 Caddy」），重點是「知道可以用反代」這個決策，不教 Caddy 怎麼設。原則：一次性決策不佔教學篇幅，講價值不講操作。反代的價值定調 = **更安全**（gateway 藏 localhost、公網只露單一門單一路徑，正好是安全危機篇 0.0.0.0 裸奔第一爆的反面），一句話帶到即可。
+- 2026-07-15 稱呼修正：文章一律用名字（LINE 篇/Teams 篇…）不用編號（已寫入 user-profile）。
+
 ## Known Gaps
 - reverse proxy 的實務用途（TLS termination、port 隔離、path routing）不熟——2026-07-14 已補課，待後續驗證是否吸收。
 
