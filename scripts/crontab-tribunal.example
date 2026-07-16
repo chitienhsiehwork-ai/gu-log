@@ -3,6 +3,7 @@
 # Replace the placeholder values below from local machine context before
 # installing. Do not commit a real host checkout or account-specific path.
 GU_LOG_DIR=/path/to/gu-log
+USAGE_MONITOR=/path/to/usage-monitor.sh
 TRIBUNAL_LOG_DIR=/path/to/gu-log-logs
 #
 # Runs the 4-stage Codex/GPT-5.5 tribunal on backlog articles.
@@ -10,6 +11,7 @@ TRIBUNAL_LOG_DIR=/path/to/gu-log-logs
 # Environment requirements:
 #   Codex CLI auth     — seed via interactive `codex` login on the VM
 #   GU_LOG_DIR         — path to gu-log repo (set below)
+#   USAGE_MONITOR      — executable quota monitor path (set below; fail closed if missing)
 #   TZ                 — Asia/Taipei for correct quiet-hours logic
 #
 # Quiet hours are enforced inside tribunal.sh itself

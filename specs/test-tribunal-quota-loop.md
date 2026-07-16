@@ -115,6 +115,7 @@ Resume threshold = 10% (inclusive). Hysteresis gap = 3-10% prevents flapping.
 | Check | Expected | Actual | Status |
 |-------|----------|--------|--------|
 | Deployment path source | `EnvironmentFile=%h/.config/gu-log/tribunal.env` | Match | PASS |
+| Quota monitor source | executable `USAGE_MONITOR` from the same host-local env file | Match | PASS |
 | ExecStart | `GU_LOG_DIR`-relative wrapper invocation | Match | PASS |
 | Restart | on-failure | on-failure | PASS |
 | RestartSec | 60 | 60 | PASS |

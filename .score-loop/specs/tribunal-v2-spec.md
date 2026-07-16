@@ -960,8 +960,8 @@ send_telegram_alert() {
   # Builder must use the operator-configured Telegram env file on the VM.
   # Its actual path comes from local machine context, not this tracked spec.
   # Expected: TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in env or config file
-  local config_file="${TELEGRAM_ENV_FILE:?Set TELEGRAM_ENV_FILE in deployment config}"
-  if [ ! -f "$config_file" ]; then
+  local config_file="${TELEGRAM_ENV_FILE:-}"
+  if [ -z "$config_file" ] || [ ! -f "$config_file" ]; then
     return  # No telegram config, skip alerting
   fi
   source "$config_file"
@@ -1035,11 +1035,11 @@ claude -p --dangerously-skip-permissions "$PROMPT" \
 
 ```
 # 11:55 TST = 03:55 UTC
-55 3 * * * bash ~/gu-log/scripts/tribunal-monitor-cron.sh
+55 3 * * * bash "$GU_LOG_DIR/scripts/tribunal-monitor-cron.sh"
 # 18:00 TST = 10:00 UTC
-0 10 * * * bash ~/gu-log/scripts/tribunal-monitor-cron.sh
+0 10 * * * bash "$GU_LOG_DIR/scripts/tribunal-monitor-cron.sh"
 # 23:00 TST = 15:00 UTC
-0 15 * * * bash ~/gu-log/scripts/tribunal-monitor-cron.sh
+0 15 * * * bash "$GU_LOG_DIR/scripts/tribunal-monitor-cron.sh"
 ```
 
 ### Acceptance Criteria (6a — Heartbeat)

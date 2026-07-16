@@ -53,19 +53,19 @@ tlog() {
 # ─── Quota Check ──────────────────────────────────────────────────────────────
 # Check remaining quota via usage-monitor.sh --json. The off-repo executable is
 # injected explicitly or discovered on PATH; its host path is not a repo fact.
-# Returns 0 if above floor, 1 if below.
+# Returns 0 if above floor, 1 if below, 2 if quota cannot be verified.
 USAGE_MONITOR="${USAGE_MONITOR:-$(command -v usage-monitor.sh || true)}"
 
 check_quota_above_floor() {
   if [ ! -x "$USAGE_MONITOR" ]; then
-    tlog "  usage-monitor.sh not found. Continuing optimistically."
-    return 0
+    tlog "  ERROR: usage-monitor.sh not found; refusing to run without a quota reading."
+    return 2
   fi
 
   local json remaining
   json=$(bash "$USAGE_MONITOR" --json 2>/dev/null) || {
-    tlog "  Cannot read quota (usage-monitor error). Continuing optimistically."
-    return 0
+    tlog "  ERROR: usage-monitor failed; refusing to run without a quota reading."
+    return 2
   }
 
   remaining=$(python3 -c "
@@ -83,8 +83,8 @@ except Exception:
 " "$json" 2>/dev/null) || remaining=-1
 
   if [ "$remaining" = "-1" ]; then
-    tlog "  Cannot determine quota percentage. Continuing optimistically."
-    return 0
+    tlog "  ERROR: quota percentage is unavailable; refusing to run."
+    return 2
   fi
 
   local used=$((100 - remaining))
@@ -186,11 +186,21 @@ for article in "${ARTICLES[@]}"; do
     break
   fi
 
-  # Check quota before each article
-  if ! check_quota_above_floor; then
-    tlog "Quota floor reached. Stopping."
-    break
-  fi
+  # Check quota before each article. Missing/invalid telemetry is an error,
+  # not permission to burn unbounded quota.
+  quota_rc=0
+  check_quota_above_floor || quota_rc=$?
+  case "$quota_rc" in
+    0) ;;
+    1)
+      tlog "Quota floor reached. Stopping."
+      break
+      ;;
+    *)
+      tlog "Quota cannot be verified. Aborting batch (fail closed)."
+      exit 1
+      ;;
+  esac
 
   PROCESSED=$((PROCESSED + 1))
   tlog ""

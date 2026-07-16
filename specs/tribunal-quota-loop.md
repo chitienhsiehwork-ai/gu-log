@@ -193,8 +193,9 @@ After=network-online.target
 
 [Service]
 Type=simple
+# Host-local file defines GU_LOG_DIR and executable USAGE_MONITOR.
 EnvironmentFile=%h/.config/gu-log/tribunal.env
-ExecStart=/bin/bash -c 'cd "$$GU_LOG_DIR" && exec bash scripts/tribunal-quota-loop.sh'
+ExecStart=/bin/bash -c ': "$${GU_LOG_DIR:?Missing GU_LOG_DIR in tribunal.env}"; : "$${USAGE_MONITOR:?Missing USAGE_MONITOR in tribunal.env}"; test -x "$$USAGE_MONITOR" || exit 78; cd "$$GU_LOG_DIR" && exec bash scripts/tribunal-quota-loop.sh'
 Restart=on-failure
 RestartSec=60
 Environment=TZ=Asia/Taipei

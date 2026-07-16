@@ -19,24 +19,79 @@
 
 ## Deploy
 
-Host and checkout mappings are local-only. Before operating the VM, load `TRIBUNAL_HOST` and remote `GU_LOG_DIR` from the local machine note; worker worktrees live beside `GU_LOG_DIR` as `gu-log-worker-{a,b}`.
+Host and checkout mappings are local-only. Before operating the VM, load `TRIBUNAL_HOST`、remote `GU_LOG_DIR` 與 remote `USAGE_MONITOR` from the local machine note; worker worktrees live beside `GU_LOG_DIR` as `gu-log-worker-{a,b}`.
 
 ```bash
-# On Mac: push the change
-git push origin main
+# On Mac: merge the approved PR through the protected branch flow first.
 
-# On the Tribunal VM（values come from the local machine note）
+# One-time bootstrap（rerun whenever either remote path changes）.
+# GU_LOG_DIR and USAGE_MONITOR are absolute paths on the remote host.
 : "${TRIBUNAL_HOST:?Set TRIBUNAL_HOST}"
 : "${GU_LOG_DIR:?Set remote GU_LOG_DIR}"
-ssh "$TRIBUNAL_HOST" "cd '$GU_LOG_DIR' && exec bash -l"
-git stash push -m "wip" --include-untracked        # uncommitted tribunal rewrites live here
+: "${USAGE_MONITOR:?Set remote USAGE_MONITOR}"
+
+case "$GU_LOG_DIR$USAGE_MONITOR" in
+  *$'\n'*|*$'\r'*|*"'"*)
+    echo "Remote paths must not contain newlines or single quotes" >&2
+    return 1 2>/dev/null || exit 1
+    ;;
+esac
+
+GU_LOG_DIR_B64=$(printf '%s' "$GU_LOG_DIR" | base64 | tr -d '\n')
+USAGE_MONITOR_B64=$(printf '%s' "$USAGE_MONITOR" | base64 | tr -d '\n')
+ssh "$TRIBUNAL_HOST" bash -s -- "$GU_LOG_DIR_B64" "$USAGE_MONITOR_B64" <<'CONFIG'
+set -euo pipefail
+GU_LOG_DIR=$(printf '%s' "$1" | base64 --decode)
+USAGE_MONITOR=$(printf '%s' "$2" | base64 --decode)
+
+git -C "$GU_LOG_DIR" rev-parse --show-toplevel >/dev/null
+test -x "$USAGE_MONITOR"
+
+config_dir="$HOME/.config/gu-log"
+config_file="$config_dir/tribunal.env"
+install -d -m 700 "$config_dir"
+tmp=$(mktemp "$config_dir/.tribunal.env.XXXXXX")
+trap 'rm -f "$tmp"' EXIT
+{
+  printf "GU_LOG_DIR='%s'\n" "$GU_LOG_DIR"
+  printf "USAGE_MONITOR='%s'\n" "$USAGE_MONITOR"
+} > "$tmp"
+chmod 600 "$tmp"
+mv "$tmp" "$config_file"
+trap - EXIT
+CONFIG
+
+# Every deploy runs inside one explicit remote block. The remote side loads
+# the same host-local config consumed by systemd and the monitor skill.
+ssh "$TRIBUNAL_HOST" bash -s <<'DEPLOY'
+set -euo pipefail
+deploy_env="$HOME/.config/gu-log/tribunal.env"
+if [ ! -r "$deploy_env" ]; then
+  echo "Missing $deploy_env; run the bootstrap block first" >&2
+  exit 78
+fi
+set -a
+# shellcheck source=/dev/null
+. "$deploy_env"
+set +a
+: "${GU_LOG_DIR:?Missing GU_LOG_DIR in $deploy_env}"
+: "${USAGE_MONITOR:?Missing USAGE_MONITOR in $deploy_env}"
+test -x "$USAGE_MONITOR"
+cd "$GU_LOG_DIR"
+
+did_stash=false
+if ! git diff --quiet || ! git diff --cached --quiet || [ -n "$(git ls-files --others --exclude-standard)" ]; then
+  git stash push -m "wip" --include-untracked      # uncommitted tribunal rewrites live here
+  did_stash=true
+fi
 git fetch origin main
 git checkout main && git merge --ff-only origin/main
-git stash pop
+if [ "$did_stash" = true ]; then
+  git stash pop
+fi
 
-# The service template reads GU_LOG_DIR from the host-local
-# ~/.config/gu-log/tribunal.env. Populate it from local machine context once.
 # If scripts/tribunal-loop.service changed, redeploy + reload:
+install -d -m 700 "$HOME/.config/systemd/user"
 cp scripts/tribunal-loop.service ~/.config/systemd/user/tribunal-loop.service
 systemctl --user daemon-reload
 
@@ -51,6 +106,7 @@ systemctl --user start tribunal-loop   # supervisor auto-syncs worker worktrees 
 pkill -TERM -f tribunal-all-claude.sh
 # supervisor exits on next iteration (top-of-loop stop check)
 systemctl --user start tribunal-loop
+DEPLOY
 ```
 
 ## Worker worktree gotcha

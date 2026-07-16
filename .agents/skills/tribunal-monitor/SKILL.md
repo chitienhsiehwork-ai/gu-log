@@ -5,12 +5,11 @@ description: Check the remote Tribunal VM daemon — service health, progress, q
 
 # Tribunal Monitor
 
-Check the gu-log tribunal daemon running on the operator-configured Tribunal VM. Reports service health, processing progress, quota, git sync state, and recent judge results in one shot.
-
 ## Prerequisites
 
-- Export `TRIBUNAL_HOST` and `GU_LOG_DIR` from local-only machine context before running. Read the runtime's machine note (for Codex, `~/.codex/machine.md`) for the current values; never copy those values into tracked files.
-- Requires `dangerouslyDisableSandbox: true` (SSH uses Unix sockets)
+- Export `TRIBUNAL_HOST` from the runtime's local-only machine note; never copy its value into tracked files.
+- Provision the remote host-local `~/.config/gu-log/tribunal.env` with `GU_LOG_DIR` and `USAGE_MONITOR` by following `docs/tribunal-runbook.md`.
+- If SSH is restricted, use the runtime's minimum necessary escalation instead of disabling unrelated safeguards.
 
 ## Procedure
 
@@ -18,15 +17,23 @@ Run this single SSH command to collect all diagnostic data at once:
 
 ```bash
 : "${TRIBUNAL_HOST:?Set TRIBUNAL_HOST from the local machine note}"
-: "${GU_LOG_DIR:?Set GU_LOG_DIR from the local machine note}"
 
-ssh "$TRIBUNAL_HOST" bash -s -- "$GU_LOG_DIR" <<'MONITOR'
+ssh "$TRIBUNAL_HOST" bash -s <<'MONITOR'
 set -euo pipefail
-GU_LOG_DIR=$1
+deploy_env="$HOME/.config/gu-log/tribunal.env"
+if [ ! -r "$deploy_env" ]; then
+  echo "Missing $deploy_env; follow docs/tribunal-runbook.md" >&2
+  exit 78
+fi
+set -a
+# shellcheck source=/dev/null
+. "$deploy_env"
+set +a
+: "${GU_LOG_DIR:?Missing GU_LOG_DIR in $deploy_env}"
 cd "$GU_LOG_DIR"
 
 echo "══════ SERVICE ══════"
-systemctl --user status tribunal-loop 2>&1 | head -15
+systemctl --user status tribunal-loop 2>&1 | head -15 || true
 echo
 
 echo "══════ RUNTIME STATE ══════"
@@ -42,8 +49,9 @@ fi
 echo
 
 echo "══════ QUOTA ══════"
+jq . .score-loop/state/quota-controller.json 2>/dev/null || echo "(no quota-controller.json)"
 journalctl --user -u tribunal-loop --no-pager -n 200 --output=cat 2>/dev/null \
-  | grep -oP 'Tier \w+: \d+% remaining' | tail -1 || echo "(no quota line found)"
+  | grep 'CONTROLLER:' | tail -5 || echo "(no controller log line found)"
 echo
 
 echo "══════ UNSCORED COUNT ══════"
@@ -53,12 +61,12 @@ echo
 
 echo "══════ RECENT RESULTS (last 15) ══════"
 journalctl --user -u tribunal-loop --no-pager -n 500 --output=cat 2>/dev/null \
-  | grep -E '(PASSED|failed \(rc=|FAIL)' | tail -15
+  | grep -E '(PASSED|failed \(rc=|FAIL)' | tail -15 || true
 echo
 
 echo "══════ GIT SYNC ══════"
 LOCAL=$(git rev-parse HEAD)
-git fetch origin 2>/dev/null
+git fetch origin 2>/dev/null || true
 REMOTE=$(git rev-parse origin/main 2>/dev/null || echo "fetch-failed")
 if [ "$LOCAL" = "$REMOTE" ]; then
   echo "✓ in sync with origin/main ($LOCAL)"
@@ -76,13 +84,15 @@ systemctl --user show tribunal-loop --property=MemoryPeak 2>/dev/null || echo "(
 
 echo "══════ WORKER WORKTREES ══════"
 WORKER_PARENT=$(dirname "$GU_LOG_DIR")
+found_worker=false
 for wt in "$WORKER_PARENT"/gu-log-worker-*; do
   if [ -d "$wt" ]; then
+    found_worker=true
     WT_HEAD=$(cd "$wt" && git rev-parse --short HEAD 2>/dev/null || echo "?")
-    echo "  $(basename $wt): $WT_HEAD"
+    echo "  $(basename "$wt"): $WT_HEAD"
   fi
 done
-[ ! -d "$WORKER_PARENT/gu-log-worker-a" ] && echo "  (no worker worktrees found)"
+[ "$found_worker" = true ] || echo "  (no worker worktrees found)"
 MONITOR
 ```
 
@@ -97,9 +107,8 @@ MONITOR
 | `activating` | Starting up | Wait |
 
 ### Runtime state values (`runtime.json`)
-- `running` — actively processing
-- `stopped_by_request` — graceful stop via flag file or signal
-- `quota_paused` — below quota floor (3%), waiting for recovery (10%)
+
+Treat the exact value in `runtime.json` as authoritative. Current state names and transitions are defined by `scripts/tribunal-run-control.sh`; do not infer them from an old static list in this skill.
 
 ### Common issues
 1. **git pull failing**: VM can't sync with origin/main. Usually SSH key or network issue. Fix inside the checkout: `git pull origin main`
@@ -114,9 +123,19 @@ ssh "$TRIBUNAL_HOST" 'systemctl --user start tribunal-loop'
 
 ### Quick stop (graceful)
 ```bash
-ssh "$TRIBUNAL_HOST" bash -s -- "$GU_LOG_DIR" <<'STOP'
+ssh "$TRIBUNAL_HOST" bash -s <<'STOP'
 set -euo pipefail
-touch "$1/.score-loop/control/stop-graceful"
+deploy_env="$HOME/.config/gu-log/tribunal.env"
+if [ ! -r "$deploy_env" ]; then
+  echo "Missing $deploy_env; follow docs/tribunal-runbook.md" >&2
+  exit 78
+fi
+set -a
+# shellcheck source=/dev/null
+. "$deploy_env"
+set +a
+: "${GU_LOG_DIR:?Missing GU_LOG_DIR in $deploy_env}"
+touch "$GU_LOG_DIR/.score-loop/control/stop-graceful"
 STOP
 ```
 

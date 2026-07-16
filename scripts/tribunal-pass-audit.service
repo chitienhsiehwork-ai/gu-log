@@ -5,7 +5,7 @@ After=network-online.target
 [Service]
 Type=oneshot
 EnvironmentFile=%h/.config/gu-log/tribunal.env
-ExecStart=/bin/bash -lc 'cd "$$GU_LOG_DIR" || exit; git fetch origin main >/dev/null 2>&1 || true; bash scripts/tribunal-audit-pass-commits.sh --range 2b1bc361..origin/main'
+ExecStart=/bin/bash -lc ': "$${GU_LOG_DIR:?Missing GU_LOG_DIR in tribunal.env}"; cd "$$GU_LOG_DIR" || exit; git fetch origin main >/dev/null 2>&1 || true; bash scripts/tribunal-audit-pass-commits.sh --range 2b1bc361..origin/main'
 Environment=TZ=Asia/Taipei
 
 [Install]
