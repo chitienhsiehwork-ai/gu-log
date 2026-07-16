@@ -10,7 +10,7 @@
  *   Layer 3: Intra-queue pairwise comparison (--queue flag)
  *
  * CLI:
- *   node scripts/dedup-gate.mjs --url URL --title TITLE [--tags t1,t2] [--series MP|SP]
+ *   node scripts/dedup-gate.mjs --url URL --title TITLE [--tags t1,t2] [--series GP|MP]
  *   node scripts/dedup-gate.mjs --queue '{"url":...}' '{"url":...}'   (batch mode)
  *   node scripts/dedup-gate.mjs ... --dry-run
  *
@@ -412,8 +412,21 @@ function parseArgs(argv) {
         .map((t) => t.trim())
         .filter(Boolean);
       i++;
-    } else if (flag === '--series' && next) {
-      args.series = next.toUpperCase();
+    } else if (flag === '--series') {
+      if (!next || next.startsWith('--')) {
+        throw new Error('--series requires GP or MP');
+      }
+      const series = next.toUpperCase();
+      if (series === 'SP') {
+        throw new Error('retired series "SP"; use "GP"');
+      }
+      if (series === 'CP') {
+        throw new Error('retired series "CP"; use "MP"');
+      }
+      if (!['GP', 'MP'].includes(series)) {
+        throw new Error(`unsupported series "${next}"; expected GP or MP`);
+      }
+      args.series = series;
       i++;
     } else if (flag === '--queue') {
       // Consume all remaining positional args after --queue as JSON objects
@@ -467,7 +480,7 @@ function main() {
   // ── Single candidate check ──
   if (!args.url && !args.title) {
     process.stderr.write(
-      'Usage: node scripts/dedup-gate.mjs --url URL --title TITLE [--tags t1,t2] [--series MP|SP] [--dry-run]\n'
+      'Usage: node scripts/dedup-gate.mjs --url URL --title TITLE [--tags t1,t2] [--series GP|MP] [--dry-run]\n'
     );
     process.exit(2);
   }

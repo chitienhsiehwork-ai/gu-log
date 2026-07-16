@@ -18,6 +18,11 @@ const base = {
     label: 'Mogu Picks',
     description: 'Articles autonomously picked and translated by Mogu',
   },
+  Lv: {
+    next: 18,
+    label: 'Level-Up',
+    description: 'Beginner tutorials',
+  },
 };
 
 function text(value: unknown): string {
@@ -52,9 +57,9 @@ describe('article-counter merge driver', () => {
   it('accepts a one-sided label change', () => {
     const ours = structuredClone(base);
     const theirs = structuredClone(base);
-    ours.GP.label = 'Gu-log Picks / GP';
+    ours.GP.label = 'Gu-log Picks updated';
 
-    expect(merge(ours, theirs).GP.label).toBe('Gu-log Picks / GP');
+    expect(merge(ours, theirs).GP.label).toBe('Gu-log Picks updated');
   });
 
   it('fails when both sides change the same label differently', () => {
@@ -69,6 +74,32 @@ describe('article-counter merge driver', () => {
   it('fails on malformed JSON', () => {
     expect(() => mergeArticleCounterText(text(base), '{ nope', text(base))).toThrow(
       'ours: invalid JSON'
+    );
+  });
+
+  it.each([
+    ['SP', 'GP'],
+    ['CP', 'MP'],
+  ])('rejects retired prefix %s with a %s hint', (legacy, canonical) => {
+    const bad = structuredClone(base) as Record<string, unknown>;
+    bad[legacy] = bad[canonical];
+    delete bad[canonical];
+
+    expect(() => mergeArticleCounterText(text(bad), text(base), text(base))).toThrow(
+      `retired prefix ${legacy}; use ${canonical}`
+    );
+  });
+
+  it('rejects missing and unknown counter keys', () => {
+    const missing = structuredClone(base) as Record<string, unknown>;
+    delete missing.MP;
+    expect(() => mergeArticleCounterText(text(missing), text(base), text(base))).toThrow(
+      'missing required prefix MP'
+    );
+
+    const unknown = { ...structuredClone(base), XX: { next: 1 } };
+    expect(() => mergeArticleCounterText(text(unknown), text(base), text(base))).toThrow(
+      'unsupported prefix XX'
     );
   });
 });

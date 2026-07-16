@@ -42,15 +42,13 @@ describe('normalizeUrl', () => {
   });
 
   it('strips utm_* params', () => {
-    expect(
-      normalizeUrl('https://example.com/x?utm_source=a&utm_medium=b&id=42')
-    ).toBe('https://example.com/x?id=42');
+    expect(normalizeUrl('https://example.com/x?utm_source=a&utm_medium=b&id=42')).toBe(
+      'https://example.com/x?id=42'
+    );
   });
 
   it('strips bare ref / source params', () => {
-    expect(normalizeUrl('https://example.com/x?ref=hn&id=1')).toBe(
-      'https://example.com/x?id=1'
-    );
+    expect(normalizeUrl('https://example.com/x?ref=hn&id=1')).toBe('https://example.com/x?id=1');
   });
 
   it('applies known alias claude.com/blog/auto-mode → anthropic.com/engineering/...', () => {
@@ -79,9 +77,7 @@ describe('extractTweetId', () => {
   });
 
   it('extracts from twitter.com URL', () => {
-    expect(extractTweetId('https://twitter.com/karpathy/status/9876543210')).toBe(
-      '9876543210'
-    );
+    expect(extractTweetId('https://twitter.com/karpathy/status/9876543210')).toBe('9876543210');
   });
 
   it('handles mobile/www subdomains', () => {
@@ -194,7 +190,7 @@ describe('layer1Match (URL gate)', () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const articles: any[] = [
     {
-      file: 'sp-1-x.mdx',
+      file: 'gp-1-x.mdx',
       ticketId: 'GP-1',
       title: 'Auto Mode',
       tags: [],
@@ -204,7 +200,7 @@ describe('layer1Match (URL gate)', () => {
       keywordText: 'Auto Mode',
     },
     {
-      file: 'cp-1-x.mdx',
+      file: 'mp-1-x.mdx',
       ticketId: 'MP-1',
       title: 'Tweet pick',
       tags: [],
@@ -216,10 +212,7 @@ describe('layer1Match (URL gate)', () => {
   ];
 
   it('matches normalized URL aliases', () => {
-    const r = layer1Match(
-      'https://www.anthropic.com/engineering/claude-code-auto-mode',
-      articles
-    );
+    const r = layer1Match('https://www.anthropic.com/engineering/claude-code-auto-mode', articles);
     expect(r?.article.ticketId).toBe('GP-1');
     expect(r?.reason).toBe('URL match');
   });
@@ -243,7 +236,7 @@ describe('layer2Match (topic similarity)', () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const articles: any[] = [
     {
-      file: 'sp-100.mdx',
+      file: 'gp-100.mdx',
       ticketId: 'GP-100',
       title: 'Building agent teams with claude-code',
       tags: ['agent-teams', 'claude-code'],
@@ -336,7 +329,7 @@ describe('parseArgs', () => {
       '--tags',
       'a, b ,c',
       '--series',
-      'sp',
+      'gp',
     ]);
     expect(args.url).toBe('https://x.com/a/status/1');
     expect(args.title).toBe('Hi');
@@ -344,12 +337,20 @@ describe('parseArgs', () => {
     expect(args.series).toBe('GP');
   });
 
+  it.each([
+    ['SP', 'use "GP"'],
+    ['CP', 'use "MP"'],
+  ])('rejects retired series %s', (series, hint) => {
+    expect(() => parseArgs(['--series', series])).toThrow(hint);
+  });
+
+  it('rejects unknown or missing series values', () => {
+    expect(() => parseArgs(['--series', 'SD'])).toThrow('expected GP or MP');
+    expect(() => parseArgs(['--series'])).toThrow('requires GP or MP');
+  });
+
   it('parses --queue list of JSON strings', () => {
-    const args = parseArgs([
-      '--queue',
-      '{"url":"u1","title":"t1"}',
-      '{"url":"u2","title":"t2"}',
-    ]);
+    const args = parseArgs(['--queue', '{"url":"u1","title":"t1"}', '{"url":"u2","title":"t2"}']);
     expect(args.queue.length).toBe(2);
     expect(args.queue[0].url).toBe('u1');
   });
