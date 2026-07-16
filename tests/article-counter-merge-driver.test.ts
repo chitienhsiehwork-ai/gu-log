@@ -8,12 +8,12 @@ const base = {
     label: 'ShroomDog Original',
     description: 'Original articles written by ShroomDog',
   },
-  SP: {
+  GP: {
     next: 253,
     label: 'Gu-log Picks',
     description: 'Articles picked by ShroomDog',
   },
-  CP: {
+  MP: {
     next: 314,
     label: 'Mogu Picks',
     description: 'Articles autonomously picked and translated by Mogu',
@@ -52,9 +52,9 @@ describe('article-counter merge driver', () => {
   it('accepts a one-sided label change', () => {
     const ours = structuredClone(base);
     const theirs = structuredClone(base);
-    ours.GP.label = 'Gu-log Picks / SP';
+    ours.GP.label = 'Gu-log Picks / GP';
 
-    expect(merge(ours, theirs).GP.label).toBe('Gu-log Picks / SP');
+    expect(merge(ours, theirs).GP.label).toBe('Gu-log Picks / GP');
   });
 
   it('fails when both sides change the same label differently', () => {
