@@ -132,9 +132,9 @@ Migration ordering：
 只有 final human checkpoint② 通過後才開始 live cutover。Repo migration 與外部 producer 必須用可回退的 stop-the-world cutover，避免 merge 前後仍有舊 CP/Clawd output 寫回：
 
 1. Graceful stop Mogu Picks cron / daemon / queue producer；Tribunal 只在其 invocation path 受影響時一併停。
-2. Merge repo，讓 VM main checkout 同步到同一 commit。
-3. 將 VM prompt / config / runner invocation 切到 Mogu / MP / `tools/gp-pipeline`；Unix user 與 filesystem coordinate 不改。
+2. 不對現有 stale/dirty VM checkout 做 pull/reset；從 merged `origin/main` 建立 blue/green fresh worktree，舊 checkout 保留作 rollback evidence。
+3. 透過 `openclaw cron`（SQLite-backed scheduler）修改 job；不得編輯已遷移的 `jobs.json` backup。新增 repo 外 `mp-writer.md`，更新 Shroom Feed enqueue path，再將 invocation 指向 Mogu / MP / `tools/gp-pipeline`；Unix user 與 filesystem coordinate 不改。
 4. 跑一個不 publish 的 dry-run / canary，驗證只產生 canonical contract。
 5. Resume producer 並監看第一輪輸出。
 
-若 canary 失敗，producer 維持停止，回退 repo commit 與 invocation 到同一已知可用版本後才恢復；不得在新舊 contract 混合時繼續產稿。
+若 canary 失敗，producer 維持停止，job message 指回保留的舊 entrypoint 並跑舊 dry-run；通過後才恢復。不得刪除診斷 worktree、手改 scheduler SQLite/backup，或在新舊 contract 混合時繼續產稿。

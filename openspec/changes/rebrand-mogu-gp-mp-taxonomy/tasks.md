@@ -20,7 +20,8 @@
 - [ ] 2.4 Counter implementation / tests 支援 GP/MP key；先保留過渡讀取直到 corpus/counter file 同步切換。
 - [ ] 2.5 建立 `tools/gp-pipeline/` canonical Go module / command，更新 defaults、prompts、fixtures、doctor；舊 path 暫時只作 branch 過渡。
 - [ ] 2.6 Mogu Picks automation 支援 Mogu / MP 的 prompt、config、queue、runner、candidate vocabulary、branch/commit output。
-- [ ] 2.7 Feed API 明確 bump taxonomy/schema version，並 audit gu-log-ios consumer 對 prefix、ticketId、slug、URL 的解析；需要跨 repo 修改時建立連結的 tracking/PR，不讓 break 靜默發生。
+- [ ] 2.7 Static feed bump 到 v2、prefix 改 GP/MP、detail response 加 `schemaVersion: 2`，並共用 localized URL helper 修正 EN feed link 目前指到 404 的既存 bug；更新 API/snapshot tests。
+- [ ] 2.8 gu-log-ios audit evidence：目前只有 untracked local prototype、沒有 deployed/tracked consumer，所以不阻擋本 PR；正式 ship iOS 前另行建立 repo並改為 consume feed v2，刪除 SP/CP/legacy-slug fallback。
 
 ## 3. Corpus and route migration
 
@@ -60,8 +61,9 @@
 
 - [ ] 7.1 將 delta specs sync 到 `openspec/specs/`，把 change archive 到同一個 PR；correctness / simplify review 與 CI 全綠。
 - [ ] 7.2 執行 SDLC final human checkpoint②：呈現完整 diff、migration evidence、breaking impact、review findings、CI 與 rollback；取得 ShroomDog 對 merge + live cutover 的明確批准。
-- [ ] 7.3 Checkpoint② 通過後 graceful stop live Mogu Picks producer，記錄停機前 queue / commit / service 狀態。
+- [ ] 7.3 Checkpoint② 通過後確認現況已 disabled 的 CP Writer / Shroom Feed producer fence 仍成立；若已被恢復則 graceful disable 並等待 active run 結束。不要停止整個 OpenClaw gateway。
 - [ ] 7.4 因 `.github/workflows/deploy-smoke-test.yml` 必須更新且 operator policy 禁止 automation 越過 workflow-path guard，若現有權限不能完成 merge approval，交由 ShroomDog 執行；這是操作授權，不是產品設計決策。
-- [ ] 7.5 Merge 後同步 VM checkout，切換 prompt/config/runner invocation，執行 no-publish canary；成功才 resume producer，失敗則回退 repo + invocation 後再恢復。
-- [ ] 7.6 等待 Vercel production deploy，smoke test canonical GP/MP/Mogu URLs；舊 route 回 404，search/feed/API 不輸出 SP/CP/Clawd contract。
-- [ ] 7.7 回報 production URLs、breaking behavior、model/harness/env signature 與任何保留的 deployment-coordinate exception。
+- [ ] 7.5 Merge 後從 `origin/main` 建 blue/green fresh VM worktree（舊 checkout stale/dirty，不 pull/reset）；用 `openclaw cron` 切 job message/name，新增 repo 外 `mp-writer.md` 並更新 Shroom Feed MP enqueue path，不手改 SQLite / migrated JSON。
+- [ ] 7.6 在 fresh checkout 以 `tools/gp-pipeline/gp-pipeline doctor` 與 GP/MP `run --dry-run` 做 no-publish canary；只產 GP/MP-PENDING + MoguNote、repo保持 clean 才 resume。失敗則 job 指回保留的舊 entrypoint，通過舊 dry-run 後才恢復。
+- [ ] 7.7 等待 Vercel production deploy，smoke test canonical GP/MP/Mogu URLs；舊 route 回 404，search/feed/API 不輸出 SP/CP/Clawd contract。
+- [ ] 7.8 回報 production URLs、breaking behavior、model/harness/env signature 與任何保留的 deployment-coordinate exception。
