@@ -218,7 +218,7 @@ func TestCounterNext_Integration(t *testing.T) {
 	}
 }
 
-func TestLegacyTaxonomyFailsAtCLIIngress(t *testing.T) {
+func TestRetiredTaxonomyFailsAtCLIIngress(t *testing.T) {
 	root := makeFakeRepo(t)
 	t.Setenv("GU_LOG_DIR", root)
 
@@ -227,11 +227,11 @@ func TestLegacyTaxonomyFailsAtCLIIngress(t *testing.T) {
 		args []string
 		want string
 	}{
-		{name: "counter SP", args: []string{"counter", "next", "--prefix", "SP"}, want: `use "GP"`},
-		{name: "run CP", args: []string{"run", "--prefix", "CP", "--dry-run"}, want: `use "MP"`},
-		{name: "dedup CP", args: []string{"dedup", "--series", "CP"}, want: `use "MP"`},
-		{name: "deploy SP", args: []string{"deploy", "--active-file", "sp-pending-test.mdx", "--prefix", "SP", "--dry-run"}, want: `use "GP"`},
-		{name: "write SP-PENDING", args: []string{"write", "--source", filepath.Join(root, "source.md"), "--ticket-id", "SP-PENDING"}, want: "GP-PENDING"},
+		{name: "counter rejects retired GP predecessor", args: []string{"counter", "next", "--prefix", "SP"}, want: `use "GP"`},
+		{name: "run rejects retired MP predecessor", args: []string{"run", "--prefix", "CP", "--dry-run"}, want: `use "MP"`},
+		{name: "dedup rejects retired MP predecessor", args: []string{"dedup", "--series", "CP"}, want: `use "MP"`},
+		{name: "deploy rejects retired GP predecessor", args: []string{"deploy", "--active-file", "gp-pending-test.mdx", "--prefix", "SP", "--dry-run"}, want: `use "GP"`},
+		{name: "write rejects retired pending ticket", args: []string{"write", "--source", filepath.Join(root, "source.md"), "--ticket-id", "SP-PENDING"}, want: "GP-PENDING"},
 	}
 
 	if err := os.WriteFile(filepath.Join(root, "source.md"), []byte("source"), 0o644); err != nil {
@@ -293,8 +293,18 @@ func TestRoot_HelpDoesNotError(t *testing.T) {
 	if !strings.Contains(out.String(), "gp-pipeline") {
 		t.Fatalf("--help output missing 'gp-pipeline':\n%s", out.String())
 	}
-	if strings.Contains(out.String(), "sp-pipeline") {
-		t.Fatalf("--help output exposes retired 'sp-pipeline':\n%s", out.String())
+	retiredCommand := "sp-pipeline"
+	if strings.Contains(out.String(), retiredCommand) {
+		t.Fatalf("--help output exposes retired command %q:\n%s", retiredCommand, out.String())
+	}
+
+	resetGlobals()
+	cmd = buildRoot()
+	cmd.SetOut(&bytes.Buffer{})
+	cmd.SetErr(&bytes.Buffer{})
+	cmd.SetArgs([]string{retiredCommand})
+	if err := cmd.Execute(); err == nil {
+		t.Fatalf("retired command %q unexpectedly resolved", retiredCommand)
 	}
 }
 

@@ -706,6 +706,132 @@
       "token": "Clawd",
       "expectedCount": 4,
       "reason": "Factual git-authorship provenance retained verbatim."
+    },
+    {
+      "path": "tools/gp-pipeline/cmd/gp-pipeline/main_test.go",
+      "rule": "legacy-prefix-value",
+      "token": "SP",
+      "expectedCount": 2,
+      "reason": "CLI regression cases prove counter and deploy reject the retired GP predecessor; neither case translates or continues."
+    },
+    {
+      "path": "tools/gp-pipeline/cmd/gp-pipeline/main_test.go",
+      "rule": "legacy-prefix-value",
+      "token": "CP",
+      "expectedCount": 2,
+      "reason": "CLI regression cases prove run and dedup reject the retired MP predecessor at ingress; neither case aliases it."
+    },
+    {
+      "path": "tools/gp-pipeline/cmd/gp-pipeline/main_test.go",
+      "rule": "pipeline-command",
+      "token": "sp-pipeline",
+      "expectedCount": 1,
+      "reason": "Root-command regression guard proves the retired command is neither advertised nor dispatchable."
+    },
+    {
+      "path": "tools/gp-pipeline/cmd/gp-pipeline/main_test.go",
+      "rule": "ticket-id",
+      "token": "SP-PENDING",
+      "expectedCount": 1,
+      "reason": "Write-command regression guard proves a retired pending ticket fails instead of being rewritten."
+    },
+    {
+      "path": "tools/gp-pipeline/internal/counter/counter_test.go",
+      "rule": "ticket-id",
+      "token": "SP-PENDING",
+      "expectedCount": 1,
+      "reason": "Counter validation negative fixture proves the retired pending ticket is rejected with a canonical diagnostic."
+    },
+    {
+      "path": "tools/gp-pipeline/internal/counter/counter_test.go",
+      "rule": "ticket-id",
+      "token": "CP-314",
+      "expectedCount": 1,
+      "reason": "Counter validation negative fixture proves the retired numbered ticket is rejected with a canonical diagnostic."
+    },
+    {
+      "path": "tools/gp-pipeline/internal/deploy/deploy_test.go",
+      "rule": "ticket-id",
+      "token": "SP-PENDING",
+      "expectedCount": 1,
+      "reason": "Deploy regression fixture proves retired frontmatter fails before ticket allocation or counter mutation."
+    },
+    {
+      "path": "scripts/dedup-gate.mjs",
+      "rule": "legacy-prefix-value",
+      "token": "SP",
+      "expectedCount": 2,
+      "reason": "Dedup ingress explicitly recognizes and rejects the retired GP predecessor without translating it."
+    },
+    {
+      "path": "scripts/dedup-gate.mjs",
+      "rule": "legacy-prefix-value",
+      "token": "CP",
+      "expectedCount": 2,
+      "reason": "Dedup ingress explicitly recognizes and rejects the retired MP predecessor without translating it."
+    },
+    {
+      "path": "scripts/frontmatter-scores.mjs",
+      "rule": "schema-key",
+      "token": "clawdNote",
+      "expectedCount": 2,
+      "reason": "Score writer recursively detects the retired key and fails instead of silently stripping it."
+    },
+    {
+      "path": "scripts/obsidian-import.mjs",
+      "rule": "legacy-prefix-value",
+      "token": "SP",
+      "expectedCount": 2,
+      "reason": "Obsidian importer explicitly recognizes the retired GP predecessor and exits non-zero."
+    },
+    {
+      "path": "scripts/obsidian-import.mjs",
+      "rule": "legacy-prefix-value",
+      "token": "CP",
+      "expectedCount": 1,
+      "reason": "Obsidian importer explicitly recognizes the retired MP predecessor and exits non-zero."
+    },
+    {
+      "path": "scripts/validate-posts.mjs",
+      "rule": "component",
+      "token": "ClawdNote",
+      "expectedCount": 1,
+      "reason": "Content validator names the retired component only to reject it with a MoguNote diagnostic."
+    },
+    {
+      "path": "scripts/validate-posts.mjs",
+      "rule": "legacy-route",
+      "token": "clawd-picks",
+      "expectedCount": 1,
+      "reason": "Content-type tag denylist keeps the retired route-derived tag invalid."
+    },
+    {
+      "path": "scripts/validate-posts.mjs",
+      "rule": "legacy-route",
+      "token": "shroom-picks",
+      "expectedCount": 1,
+      "reason": "Content-type tag denylist keeps the retired route-derived tag invalid."
+    },
+    {
+      "path": "scripts/validate-posts.mjs",
+      "rule": "legacy-route",
+      "token": "shroomdog-picks",
+      "expectedCount": 1,
+      "reason": "Content-type tag denylist keeps the retired route-derived tag invalid."
+    },
+    {
+      "path": "scripts/validate-posts.mjs",
+      "rule": "schema-key",
+      "token": "clawdNote",
+      "expectedCount": 2,
+      "reason": "Content validator detects the retired score key and fails with a canonical diagnostic."
+    },
+    {
+      "path": "src/content.config.ts",
+      "rule": "schema-key",
+      "token": "clawdNote",
+      "expectedCount": 3,
+      "reason": "Zod poison fields ensure the retired score key fails validation instead of being stripped."
     }
   ]
 }

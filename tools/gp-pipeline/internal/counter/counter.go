@@ -43,25 +43,24 @@ const DefaultLockPath = "/tmp/gu-log-counter.lock"
 // ValidPrefixes are the four ticket prefixes the gu-log repo knows about.
 var ValidPrefixes = []string{"GP", "MP", "SD", "Lv"}
 
-// legacyPrefixHint maps prefixes retired by the Mogu/GP/MP rebrand to their
-// canonical replacements, so callers get an actionable error instead of a
-// bare "unknown prefix".
-var legacyPrefixHint = map[string]string{
+// retiredPrefixHint gives rejected predecessors an actionable error without
+// accepting or translating them.
+var retiredPrefixHint = map[string]string{
 	"SP": "GP",
 	"CP": "MP",
 }
 
 var ticketIDPattern = regexp.MustCompile(`^(GP|MP|SD|Lv)-(PENDING|[0-9]+)$`)
-var legacyTicketIDPattern = regexp.MustCompile(`^(SP|CP)-(PENDING|[0-9]+)$`)
+var retiredTicketIDPattern = regexp.MustCompile(`^(SP|CP)-(PENDING|[0-9]+)$`)
 
 // ValidatePrefix returns nil for a canonical prefix and an actionable error
-// otherwise. Retired legacy prefixes (SP, CP) name their canonical
-// replacement; they are never silently translated.
+// otherwise. Recognized retired values name the canonical contract, but are
+// never accepted or translated.
 func ValidatePrefix(p string) error {
 	if validPrefix(p) {
 		return nil
 	}
-	if canonical, ok := legacyPrefixHint[p]; ok {
+	if canonical, ok := retiredPrefixHint[p]; ok {
 		return fmt.Errorf("counter: prefix %q was retired by the Mogu/GP/MP rebrand — use %q", p, canonical)
 	}
 	return fmt.Errorf("counter: invalid prefix %q (want one of %v)", p, ValidPrefixes)
@@ -75,14 +74,14 @@ func PendingTicketID(prefix string) (string, error) {
 	return prefix + "-PENDING", nil
 }
 
-// ValidateTicketID rejects unqualified PENDING values and retired SP/CP
-// tickets. It never translates input silently.
+// ValidateTicketID rejects unqualified PENDING values and retired ticket IDs.
+// It never translates input silently.
 func ValidateTicketID(ticketID string) error {
 	if ticketIDPattern.MatchString(ticketID) {
 		return nil
 	}
-	if match := legacyTicketIDPattern.FindStringSubmatch(ticketID); match != nil {
-		canonical := legacyPrefixHint[match[1]] + "-" + match[2]
+	if match := retiredTicketIDPattern.FindStringSubmatch(ticketID); match != nil {
+		canonical := retiredPrefixHint[match[1]] + "-" + match[2]
 		return fmt.Errorf("counter: ticket ID %q was retired by the Mogu/GP/MP rebrand — use %q", ticketID, canonical)
 	}
 	if ticketID == "PENDING" {
@@ -267,7 +266,7 @@ func validPrefix(p string) bool {
 
 func validateEntries(entries map[string]Entry) error {
 	for prefix := range entries {
-		if canonical, retired := legacyPrefixHint[prefix]; retired {
+		if canonical, retired := retiredPrefixHint[prefix]; retired {
 			return fmt.Errorf("counter file contains retired prefix %q — use %q", prefix, canonical)
 		}
 		if !validPrefix(prefix) {

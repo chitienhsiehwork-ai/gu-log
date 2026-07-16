@@ -173,9 +173,9 @@ func TestTicketIDValidation(t *testing.T) {
 	}
 }
 
-func TestReadRejectsLegacyAndUnknownCounterKeys(t *testing.T) {
+func TestReadRejectsRetiredAndUnknownCounterKeys(t *testing.T) {
 	for name, replacement := range map[string]string{
-		"legacy":  strings.Replace(fixtureCounter, `"GP"`, `"SP"`, 1),
+		"retired": strings.Replace(fixtureCounter, `"GP"`, `"SP"`, 1),
 		"unknown": strings.Replace(fixtureCounter, `"GP"`, `"XX"`, 1),
 	} {
 		t.Run(name, func(t *testing.T) {

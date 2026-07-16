@@ -95,8 +95,8 @@ canned responses for regression tests.`,
 			if len(args) == 1 {
 				tweetURL = args[0]
 			}
-			// Fail at ingress, not at deploy: a retired SP/CP prefix must
-			// never ride through fetch/eval/write before erroring.
+			// Fail at ingress: any non-canonical prefix must not reach the
+			// fetch, evaluation, or writing stages.
 			if err := counter.ValidatePrefix(prefix); err != nil {
 				return err
 			}

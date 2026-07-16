@@ -12,7 +12,7 @@ import (
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/logx"
 )
 
-func TestRunRejectsLegacyPendingBeforeCounterBump(t *testing.T) {
+func TestRunRejectsRetiredPendingBeforeCounterBump(t *testing.T) {
 	root := t.TempDir()
 	postsDir := filepath.Join(root, "src", "content", "posts")
 	scriptsDir := filepath.Join(root, "scripts")
@@ -61,6 +61,6 @@ func TestRunRejectsLegacyPendingBeforeCounterBump(t *testing.T) {
 		t.Fatal(readErr)
 	}
 	if next != 259 {
-		t.Fatalf("counter advanced on rejected legacy input: next = %d", next)
+		t.Fatalf("counter advanced on rejected retired input: next = %d", next)
 	}
 }
