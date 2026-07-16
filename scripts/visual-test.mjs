@@ -45,7 +45,7 @@ async function checkPage(page, viewport) {
     const prefixTexts = [];
     for (let i = 0; i < Math.min(moguNoteCount, 5); i++) {
       const note = moguNotes.nth(i);
-      const prefix = note.locator('.clawd-prefix');
+      const prefix = note.locator('.mogu-prefix');
       const hasPrefix = (await prefix.count()) > 0;
 
       if (!hasPrefix) {

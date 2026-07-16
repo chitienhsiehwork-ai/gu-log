@@ -58,7 +58,7 @@ const ALLOWLIST_RAW = `
 API SDK CLI PM CEO CFO CTO COO ML LLM UI UX UI/UX SaaS REST RAG MCP Embedding
 HTTP HTTPS URL URI HTML JS TS CSS DNS UDP TCP TLS SSL OAuth JWT UUID XML JSON YAML SQL OS IDE
 AI AGI ASI ML/AI GA RC RL DL NN CNN RNN LSTM GAN VAE
-SP CP SD Lv FAQ Q1 Q2 Q3 Q4 H1 H2
+GP MP SD Lv FAQ Q1 Q2 Q3 Q4 H1 H2
 PR CI CD DevOps PR/CI Q&A FAQ TODO DONE WIP
 EOL EOS DRM
 GraphQL Webhook
@@ -166,7 +166,7 @@ Kahneman Deaton Angus Killingsworth
 # Feinberg (Gemini lead), Alfred Lin (Sequoia), Michael (Truell) + Aman (Sanger)
 # = Cursor founders' first names as cited in the source
 Phil Chen Vlad Feinberg Alfred Lin Michael Aman
-# Ryo Lu — Cursor Head of Design, cited author of GP-30 + the CP
+# Ryo Lu — Cursor Head of Design, cited author of GP-30 + the MP
 # when-the-dream-becomes-the-job post (2026-07-15)
 Ryo Lu
 
@@ -186,7 +186,7 @@ SSH SCP SFTP FTP IMAP SMTP POP3
 Git GitHub Actions GitLab CI CircleCI Travis Jenkins
 WebAssembly Wasm itms-services
 
-# Apple ecosystem / iOS app distribution (added 2026-06-26 for CP AssppWeb post)
+# Apple ecosystem / iOS app distribution (added 2026-06-26 for MP AssppWeb post)
 App Store TestFlight IPA
 AssppWeb Asspp ipatool
 # Time / units / measure
@@ -520,16 +520,16 @@ format formats
 opening
 SOP
 
-# Added 2026-06-17 for SP (kvnkld "10 rules to ship polished UI").
+# Added 2026-06-17 for GP (kvnkld "10 rules to ship polished UI").
 # kvnkld = X handle of the source author. Figma = the design tool the post
 # centers on (product proper noun, sibling of allowlisted Datasette/Zed).
 kvnkld Figma
 
-# Added 2026-06-17 for CP (rahulgs "english -> code interpreters" thread).
+# Added 2026-06-17 for MP (rahulgs "english -> code interpreters" thread).
 # rahulgs = X handle of the source author (proper noun, same pattern as kvnkld).
 rahulgs
 
-# Added 2026-06-18 for SP (samueljmcd "verifier is the product").
+# Added 2026-06-18 for GP (samueljmcd "verifier is the product").
 # ReAct and Reflexion are now glossary terms (src/data/glossary.json), so they
 # are auto-allowed via the glossary loader below — no hardcode needed. Posts
 # link them to /glossary#react and /glossary#reflexion, which carry the arXiv
@@ -629,7 +629,7 @@ cybernetics kybernetes
 # attribution, GU-LOG_WRITER_PROMPT §術語處理 rule 3).
 thedankoe
 
-# Added 2026-07-03 for SP (Geoffrey Litt understand-agent-code thread).
+# Added 2026-07-03 for GP (Geoffrey Litt understand-agent-code thread).
 # All people (writer-prompt rule #2): Geoffrey Litt = source author (@geoffreylitt,
 # Notion engineer); Seymour Papert = education pioneer (Mathland / Logo);
 # Alan Kay = computing pioneer (Dynabook vision cited in the thread);

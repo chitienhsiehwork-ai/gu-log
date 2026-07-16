@@ -6,7 +6,7 @@
 // Vault 草稿的樣貌（iPhone / Mac 在 Obsidian 裡寫的東西）：
 //
 //   ---
-//   series: SD               # SD / SP / CP / Lv
+//   series: SD               # SD / GP / MP / Lv
 //   title: "文章標題"
 //   summary: "一兩句話摘要"
 //   source: "ShroomDog Lab"            # SD 可省；GP/MP 必填
@@ -18,14 +18,14 @@
 //
 //   這裡寫正文。Mogu / ShroomDog 的吐槽框用 Obsidian callout 語法：
 //
-//   > [!clawd] Mogu 吐槽
+//   > [!mogu] Mogu 吐槽
 //   > 內容 1
 //   > 內容 2
 //
 //   > [!shroomdog]
 //   > ShroomDog 自己講話
 //
-//   連結：[[sp-100-slug]] → 會轉成 /posts/gp-100-slug
+//   連結：[[gp-100-slug]] → 會轉成 /posts/gp-100-slug
 //
 // 使用方式：
 //   node scripts/obsidian-import.mjs <path-to-draft.md>          # import 單一檔
@@ -82,12 +82,17 @@ function slugify(input) {
 // ---------------------------------------------------------------------------
 
 const CALLOUT_MAP = {
-  clawd: 'MoguNote',
-  clawdnote: 'MoguNote',
+  mogu: 'MoguNote',
+  mogunote: 'MoguNote',
   shroomdog: 'ShroomDogNote',
   shroomdognote: 'ShroomDogNote',
   sd: 'ShroomDogNote',
 };
+
+const RETIRED_CALLOUTS = new Map([
+  ['clawd', 'mogu'],
+  ['clawdnote', 'mogunote'],
+]);
 
 function convertCallouts(body) {
   // Obsidian callout 語法：
@@ -106,6 +111,10 @@ function convertCallouts(body) {
     const match = line.match(/^>\s*\[!(\w+)\](.*)$/);
     if (match) {
       const type = match[1].toLowerCase();
+      const replacement = RETIRED_CALLOUTS.get(type);
+      if (replacement) {
+        throw new Error(`Retired Obsidian callout [!${type}]; use [!${replacement}]`);
+      }
       const component = CALLOUT_MAP[type];
       if (component) {
         usedComponents.add(component);
@@ -141,6 +150,13 @@ function convertWikilinks(body) {
   return body.replace(/\[\[([^\]|]+)(\|([^\]]+))?\]\]/g, (_, target, _alias, label) => {
     const text = label || target;
     const slug = target.replace(/\.mdx?$/, '');
+    const retired = slug.match(/^(en-)?(sp|cp)-/i);
+    if (retired) {
+      const replacement = retired[2].toLowerCase() === 'sp' ? 'gp' : 'mp';
+      throw new Error(
+        `Retired wikilink target "${target}"; use ${retired[1] ?? ''}${replacement}-*`
+      );
+    }
     return `[${text}](/posts/${slug})`;
   });
 }
@@ -183,7 +199,7 @@ function buildFrontmatter(draft, ticketId, _slug) {
       ],
     };
   } else {
-    // SP / CP：先給占位，使用者匯入後再照 detect-model.mjs 校正
+    // GP/MP：先給占位，使用者匯入後再照 detect-model.mjs 校正
     fm.translatedBy = {
       model: draft.model || 'Opus 4.6',
       harness: draft.harness || 'Claude Code',
@@ -256,7 +272,7 @@ function importOne(draftPath, { dryRun = false } = {}) {
   let body = parsed.content;
 
   if (!draft.series) {
-    throw new Error(`[${draftPath}] frontmatter 缺 series (SD / SP / CP / Lv)`);
+    throw new Error(`[${draftPath}] frontmatter 缺 series (SD / GP / MP / Lv)`);
   }
   if (!draft.title) {
     throw new Error(`[${draftPath}] frontmatter 缺 title`);
@@ -265,12 +281,16 @@ function importOne(draftPath, { dryRun = false } = {}) {
     throw new Error(`[${draftPath}] frontmatter 缺 summary`);
   }
   const series = String(draft.series).toUpperCase();
+  if (series === 'SP' || series === 'CP') {
+    const replacement = series === 'SP' ? 'GP' : 'MP';
+    throw new Error(`[${draftPath}] series "${draft.series}" 已停用，請改用 ${replacement}`);
+  }
   if (!['SD', 'GP', 'MP', 'LV'].includes(series)) {
-    throw new Error(`[${draftPath}] series "${draft.series}" 不合法，必須是 SD / SP / CP / Lv`);
+    throw new Error(`[${draftPath}] series "${draft.series}" 不合法，必須是 SD / GP / MP / Lv`);
   }
   const seriesKey = series === 'LV' ? 'Lv' : series;
 
-  // SP / CP 必填 source / sourceUrl
+  // GP/MP 必填 source / sourceUrl
   if ((seriesKey === 'GP' || seriesKey === 'MP') && (!draft.source || !draft.sourceUrl)) {
     throw new Error(`[${draftPath}] ${seriesKey} 系列必填 source + sourceUrl`);
   }
@@ -367,6 +387,10 @@ function main() {
       console.error(`✗ ${t}: ${err.message}`);
       results.push({ ok: false, draft: t, error: err.message });
     }
+  }
+
+  if (results.some((r) => !r.ok)) {
+    process.exitCode = 1;
   }
 
   const imported = results.filter((r) => r.ok && !r.dryRun);

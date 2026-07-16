@@ -16,7 +16,7 @@ const COMPLETED_DIR = '.score-loop/progress/completed';
 
 /** Derive a stable slug from articlePath for the progress filename */
 function slugFromPath(articlePath: string): string {
-  // "src/content/posts/mp-280-2026-04-10-slug.mdx" → "cp-280-2026-04-10-slug"
+  // "src/content/posts/mp-280-2026-04-10-slug.mdx" → "mp-280-2026-04-10-slug"
   return basename(articlePath, '.mdx');
 }
 

@@ -9,7 +9,7 @@ Why this exists
 `scripts/fetch-x-article.sh` only ever returns the single focal tweet. When a
 user drops a thread URL (e.g. https://x.com/openrouter/status/2065856853989270011),
 the pipeline silently captured just tweet #1 ("How it works 👇") and dropped the
-rest of the thread — so the SP translated half a sentence.
+rest of the thread — so the GP translated half a sentence.
 
 The public mirrors (fxtwitter / vxtwitter / syndication) and X's guest
 `TweetResultByRestId` all return a single tweet; none enumerate the thread.
