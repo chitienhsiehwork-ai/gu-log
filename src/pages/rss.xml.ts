@@ -2,6 +2,7 @@ import rss from '@astrojs/rss';
 import type { APIContext } from 'astro';
 import { getCollection } from 'astro:content';
 import { getPublishedPosts } from '../utils/post-status';
+import { getLocalizedPostUrl } from '../utils/post-urls';
 
 export async function GET(context: APIContext) {
   const posts = getPublishedPosts(await getCollection('posts'), 'zh-tw');
@@ -19,7 +20,7 @@ export async function GET(context: APIContext) {
     site: context.site!,
     items: sortedPosts.map((post) => ({
       title: post.data.title,
-      link: `/posts/${post.id}`,
+      link: getLocalizedPostUrl(post),
       pubDate: new Date(post.data.translatedDate || post.data.originalDate),
       description: post.data.summary,
     })),
