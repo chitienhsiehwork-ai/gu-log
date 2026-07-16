@@ -66,16 +66,30 @@ echo
 
 echo "══════ GIT SYNC ══════"
 LOCAL=$(git rev-parse HEAD)
-git fetch origin 2>/dev/null || true
-REMOTE=$(git rev-parse origin/main 2>/dev/null || echo "fetch-failed")
-if [ "$LOCAL" = "$REMOTE" ]; then
-  echo "✓ in sync with origin/main ($LOCAL)"
+if git fetch origin 2>/dev/null; then
+  REMOTE=$(git rev-parse origin/main)
+  if [ "$LOCAL" = "$REMOTE" ]; then
+    echo "✓ in sync with origin/main ($LOCAL)"
+  else
+    COUNTS=$(git rev-list --left-right --count HEAD...origin/main)
+    set -- $COUNTS
+    AHEAD=$1
+    BEHIND=$2
+    if [ "$AHEAD" -gt 0 ] && [ "$BEHIND" -gt 0 ]; then
+      echo "⚠ diverged from origin/main: ahead $AHEAD, behind $BEHIND commits"
+    elif [ "$AHEAD" -gt 0 ]; then
+      echo "ℹ ahead of origin/main by $AHEAD commits"
+    else
+      echo "⚠ behind origin/main by $BEHIND commits"
+    fi
+    echo "  local:  $LOCAL"
+    echo "  remote: $REMOTE"
+    if [ "$BEHIND" -gt 0 ]; then
+      git log -10 --oneline HEAD..origin/main
+    fi
+  fi
 else
-  BEHIND=$(git log --oneline HEAD..origin/main 2>/dev/null | wc -l)
-  echo "⚠ behind origin/main by $BEHIND commits"
-  echo "  local:  $LOCAL"
-  echo "  remote: $REMOTE"
-  git log --oneline HEAD..origin/main 2>/dev/null | head -10
+  echo "⚠ sync unknown: git fetch origin failed; cached origin/main was not trusted"
 fi
 echo
 

@@ -10,7 +10,7 @@
 
 **Key files**
 - `scripts/tribunal-quota-loop.sh` — the daemon / supervisor. SSOT for long-running runtime.
-- `scripts/tribunal-all-claude.sh` — per-article worker (4 stages).
+- `scripts/tribunal.sh` — current per-article 4-stage runner; the supervisor dispatch code is the process-target SSOT.
 - `scripts/tribunal-run-control.sh` — shared stop / claim / flock helpers.
 - `scripts/tribunal-worker-bootstrap.sh` — manage worker worktrees.
 - `scripts/tribunal-batch-runner.sh` — bounded one-shot (cron / manual). **Not a daemon** — use `tribunal-quota-loop.sh` for daemon.
@@ -120,8 +120,12 @@ fi
 cd "$GU_LOG_DIR"
 
 touch .score-loop/control/stop-graceful
-pkill -TERM -f '[t]ribunal-all-claude.sh' || true
+# Queue a unit stop first so Restart=on-failure cannot race the recovery, then
+# signal every process in this unit's cgroup without depending on worker names.
+systemctl --user stop --no-block tribunal-loop
+systemctl --user kill --kill-whom=all --signal=KILL tribunal-loop || true
 until [ "$(systemctl --user is-active tribunal-loop)" != "active" ]; do sleep 10; done
+rm -f .score-loop/control/stop-graceful
 systemctl --user start tribunal-loop
 RECOVER
 ```
