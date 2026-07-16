@@ -244,11 +244,6 @@ is_existing_ticket_post_addition() {
     printf '%s\n' "$existing_paths" | grep -vx "$file" >/dev/null 2>&1
 }
 
-is_exact_taxonomy_migration_diff() {
-    local file="$1"
-    node "$REPO_ROOT/scripts/migrate-brand-taxonomy.mjs" --check-staged-file "$file" >/dev/null 2>&1
-}
-
 GATE_CANDIDATES=$(printf '%s\n%s\n' "$STAGED_ZH_POSTS" "$STAGED_ZH_MODIFIED" | sed '/^$/d' | sort -u)
 
 if [ -z "$GATE_CANDIDATES" ]; then
@@ -259,14 +254,6 @@ else
     for file in $GATE_CANDIDATES; do
         FULL_PATH="$REPO_ROOT/$file"
         if [ ! -f "$FULL_PATH" ]; then continue; fi
-
-        # A repo-wide taxonomy codemod changes reader-visible identifiers but
-        # is not an editorial rewrite. Exempt only when the staged blob is
-        # byte-for-byte the deterministic transform of HEAD; any neighboring
-        # content edit still goes through the normal score gate.
-        if is_exact_taxonomy_migration_diff "$file"; then
-            continue
-        fi
 
         # Modifications: only gate when reader-visible content changed (full
         # rewrites). Added files have no HEAD version and always gate.
@@ -337,9 +324,6 @@ if [ -n "$STAGED_MDX" ] && [ "$IS_MERGE_COMMIT" != "1" ]; then
         case "$file" in
             */en-*) ;; # skip English
             *)
-                if is_exact_taxonomy_migration_diff "$file"; then
-                    continue
-                fi
                 # Backend-only frontmatter edits (translatedBy/model/harness,
                 # scores, …) don't touch reader prose — don't re-lint a
                 # grandfathered tutorial's 你/我 just because we added a model
@@ -502,9 +486,6 @@ content_gate_mdx_files() {
     local files=""
     local file
     for file in $STAGED_MDX; do
-        if is_exact_taxonomy_migration_diff "$file"; then
-            continue
-        fi
         # Backend-only frontmatter edits (model signature, scores) don't change
         # reader prose — skip the grandfathered-content enforcement (long
         # MoguNote summary etc.), same exemption the score/pronoun gates use.
