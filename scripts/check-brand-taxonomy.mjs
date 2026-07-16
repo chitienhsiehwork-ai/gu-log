@@ -118,7 +118,7 @@ const CANONICAL_REFERENCE_RULES = [
 ];
 
 const LEGACY_SERIES_TERM =
-  '(?:series|post(?:s)?|article(?:s)?|ticket(?:Id)?|prefix(?:es)?|slug|route|tag|pipeline|writer|queue|candidate(?:s)?|counter|workflow|feed|translation|translator|command|path|contract|taxonomy|namespace|content|系列|文章|票號|編號|前綴|管線|流程|翻譯|寫手|佇列|候選|路由|標籤|契約|分類法|命名空間|內容)';
+  '(?:series|post(?:s)?|article(?:s)?|takeaway(?:s)?|ticket(?:Id)?|prefix(?:es)?|slug|route|tag|pipeline|writer|queue|candidate(?:s)?|counter|workflow|feed|translation|translator|command|path|contract|taxonomy|namespace|content|系列|文章|票號|編號|前綴|管線|流程|翻譯|寫手|佇列|候選|路由|標籤|契約|分類法|命名空間|內容)';
 const DEFINITIVE_SERIES_LINE =
   /\b(?:ticketPrefixes|prefix(?:es)?|series)\b\s*[:=]|--(?:prefix|series)\b/i;
 const SERIES_TERM_BEFORE = new RegExp(
@@ -208,6 +208,34 @@ export function scanLegacyText(file, text) {
       left.rule.localeCompare(right.rule) ||
       left.token.localeCompare(right.token)
   );
+}
+
+export function canonicalizeSeriesTaxonomyText(text) {
+  let canonical = text
+    .replace(/\bSP-(?=\d+|PENDING\b|N+\b)/g, 'GP-')
+    .replace(/\bCP-(?=\d+|PENDING\b|N+\b)/g, 'MP-')
+    .replace(/\bSP(?=\d+\b)/g, 'GP')
+    .replace(/\bCP(?=\d+\b)/g, 'MP')
+    .replace(/\bsp-(?=\d+|pending\b|N+\b)/g, 'gp-')
+    .replace(/\bcp-(?=\d+|pending\b|N+\b)/g, 'mp-')
+    .replace(/\bsp(?=\d+\b)/g, 'gp')
+    .replace(/\bcp(?=\d+\b)/g, 'mp');
+
+  const semanticPrefixes = scanLegacyText('<canonicalization>', text)
+    .filter(({ rule }) => rule === 'legacy-prefix-value')
+    .sort((left, right) => right.index - left.index);
+  for (const finding of semanticPrefixes) {
+    const replacement = finding.token === 'SP' ? 'GP' : 'MP';
+    canonical =
+      canonical.slice(0, finding.index) +
+      replacement +
+      canonical.slice(finding.index + finding.token.length);
+  }
+  return canonical;
+}
+
+export function isCanonicalSeriesTaxonomyOnlyChange(before, after) {
+  return before !== after && canonicalizeSeriesTaxonomyText(before) === after;
 }
 
 function canonicalTargetIsTracked(target, trackedFiles) {
@@ -460,30 +488,52 @@ function printHumanResult(result, findingCount) {
 
 if (path.resolve(process.argv[1] ?? '') === fileURLToPath(import.meta.url)) {
   const mode = process.argv[2] ?? '--check';
-  const policyFlagIndex = process.argv.indexOf('--policy');
-  const policyPath =
-    policyFlagIndex >= 0 ? path.resolve(process.argv[policyFlagIndex + 1]) : DEFAULT_POLICY_PATH;
-  const policy = readPolicy(policyPath);
-  const findings = scanRepository(policy);
-  const result = applyResidualPolicy(findings, policy);
-  const report = { schemaVersion: 1, findings, ...result };
-
-  if (mode === '--json' || mode === '--inventory') {
-    console.log(JSON.stringify(report, null, 2));
-    if (mode === '--inventory') process.exitCode = 0;
-  } else if (mode === '--check') {
-    printHumanResult(result, findings.length);
+  if (mode === '--check-canonical-staged-file') {
+    const file = process.argv[3];
+    if (!file || path.isAbsolute(file) || file.split('/').includes('..')) {
+      process.exitCode = 2;
+    } else {
+      try {
+        const before = execFileSync('git', ['show', `HEAD:${file}`], {
+          cwd: ROOT,
+          encoding: 'utf8',
+        });
+        const after = execFileSync('git', ['show', `:${file}`], {
+          cwd: ROOT,
+          encoding: 'utf8',
+        });
+        process.exitCode = isCanonicalSeriesTaxonomyOnlyChange(before, after) ? 0 : 1;
+      } catch {
+        process.exitCode = 1;
+      }
+    }
   } else {
-    console.error(
-      'usage: node scripts/check-brand-taxonomy.mjs [--check|--json|--inventory] [--policy path]'
-    );
-    process.exitCode = 2;
-  }
+    const policyFlagIndex = process.argv.indexOf('--policy');
+    const policyPath =
+      policyFlagIndex >= 0 ? path.resolve(process.argv[policyFlagIndex + 1]) : DEFAULT_POLICY_PATH;
+    const policy = readPolicy(policyPath);
+    const findings = scanRepository(policy);
+    const result = applyResidualPolicy(findings, policy);
+    const report = { schemaVersion: 1, findings, ...result };
 
-  if (
-    mode !== '--inventory' &&
-    (result.blockers.length || result.staleExceptions.length || result.policyErrors.length)
-  ) {
-    process.exitCode = 1;
+    if (mode === '--json' || mode === '--inventory') {
+      console.log(JSON.stringify(report, null, 2));
+      if (mode === '--inventory') process.exitCode = 0;
+    } else if (mode === '--check') {
+      printHumanResult(result, findings.length);
+    } else {
+      console.error(
+        'usage: node scripts/check-brand-taxonomy.mjs ' +
+          '[--check|--json|--inventory|--check-canonical-staged-file path] [--policy path]'
+      );
+      process.exitCode = 2;
+    }
+
+    if (
+      mode !== '--inventory' &&
+      (result.blockers.length || result.staleExceptions.length || result.policyErrors.length)
+    ) {
+      process.exitCode = 1;
+    }
   }
 }

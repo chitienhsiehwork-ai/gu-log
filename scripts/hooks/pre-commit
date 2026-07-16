@@ -244,6 +244,11 @@ is_existing_ticket_post_addition() {
     printf '%s\n' "$existing_paths" | grep -vx "$file" >/dev/null 2>&1
 }
 
+is_canonical_taxonomy_only_diff() {
+    local file="$1"
+    node "$REPO_ROOT/scripts/check-brand-taxonomy.mjs" --check-canonical-staged-file "$file" >/dev/null 2>&1
+}
+
 GATE_CANDIDATES=$(printf '%s\n%s\n' "$STAGED_ZH_POSTS" "$STAGED_ZH_MODIFIED" | sed '/^$/d' | sort -u)
 
 if [ -z "$GATE_CANDIDATES" ]; then
@@ -254,6 +259,10 @@ else
     for file in $GATE_CANDIDATES; do
         FULL_PATH="$REPO_ROOT/$file"
         if [ ! -f "$FULL_PATH" ]; then continue; fi
+
+        if is_canonical_taxonomy_only_diff "$file"; then
+            continue
+        fi
 
         # Modifications: only gate when reader-visible content changed (full
         # rewrites). Added files have no HEAD version and always gate.
@@ -324,6 +333,9 @@ if [ -n "$STAGED_MDX" ] && [ "$IS_MERGE_COMMIT" != "1" ]; then
         case "$file" in
             */en-*) ;; # skip English
             *)
+                if is_canonical_taxonomy_only_diff "$file"; then
+                    continue
+                fi
                 # Backend-only frontmatter edits (translatedBy/model/harness,
                 # scores, …) don't touch reader prose — don't re-lint a
                 # grandfathered tutorial's 你/我 just because we added a model
@@ -486,6 +498,9 @@ content_gate_mdx_files() {
     local files=""
     local file
     for file in $STAGED_MDX; do
+        if is_canonical_taxonomy_only_diff "$file"; then
+            continue
+        fi
         # Backend-only frontmatter edits (model signature, scores) don't change
         # reader prose — skip the grandfathered-content enforcement (long
         # MoguNote summary etc.), same exemption the score/pronoun gates use.

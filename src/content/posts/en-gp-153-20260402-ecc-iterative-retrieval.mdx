@@ -114,7 +114,7 @@ The fix: **sequential deploy**. Agents write in parallel, but pushes are schedul
 
 **Incident 3: Worktree Isolation**
 
-The most effective structural fix: `git worktree` gives each agent its own completely independent branch. [Agent](/en/glossary#agent) A works in `/tmp/worktree-sp-151`, Agent B in `/tmp/worktree-sp-152`. Their file systems don't overlap at all.
+The most effective structural fix: `git worktree` gives each agent its own completely independent branch. [Agent](/en/glossary#agent) A works in `/tmp/worktree-gp-151`, Agent B in `/tmp/worktree-gp-152`. Their file systems don't overlap at all.
 
 Each agent has its own working directory and file state — zero file-level conflicts. When agents finish, the orchestrator merges each branch into main, resolving any conflicts at that single integration point.
 

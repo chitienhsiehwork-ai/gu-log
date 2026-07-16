@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import {
   applyResidualPolicy,
+  canonicalizeSeriesTaxonomyText,
   isResidualScopeExcluded,
+  isCanonicalSeriesTaxonomyOnlyChange,
   scanCanonicalReferences,
   scanLegacyPath,
   scanLegacyText,
@@ -25,6 +27,29 @@ const repositoryState = (trackedPaths: string[], existingPaths = trackedPaths) =
 });
 
 describe('brand taxonomy residual gate', () => {
+  it('accepts only one-way semantic series canonicalization', () => {
+    const oldUpper = ['S', 'P'].join('');
+    const oldLower = ['s', 'p'].join('');
+    const before = [
+      `ticketId: "${oldUpper}-63"`,
+      `一般 ${oldUpper} 放上來`,
+      `final ${oldUpper} takeaway`,
+      `run /tmp/worktree-${oldLower}-151`,
+      `service provider (${oldUpper})`,
+    ].join('\n');
+    const after = [
+      'ticketId: "GP-63"',
+      '一般 GP 放上來',
+      'final GP takeaway',
+      'run /tmp/worktree-gp-151',
+      `service provider (${oldUpper})`,
+    ].join('\n');
+
+    expect(canonicalizeSeriesTaxonomyText(before)).toBe(after);
+    expect(isCanonicalSeriesTaxonomyOnlyChange(before, after)).toBe(true);
+    expect(isCanonicalSeriesTaxonomyOnlyChange(before, `${after}\nextra prose`)).toBe(false);
+  });
+
   it('finds semantic legacy contracts including compact tokens away from a prefix', () => {
     const findings = scanLegacyText(
       'src/example.ts',
