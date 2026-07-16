@@ -15,7 +15,7 @@ import (
 
 // finalPipelineURL is the pipelineUrl value ralph re-stamps after the
 // tribunal rewrites frontmatter; it must match credits.PipelineURL.
-const finalPipelineURL = "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/tools/gp-pipeline"
+const finalPipelineURL = "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
 
 // Ralph is pipeline Step 4.7. It:
 //

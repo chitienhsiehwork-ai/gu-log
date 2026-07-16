@@ -13,7 +13,7 @@ import (
 
 // PipelineURL is the URL stamped into the pipelineUrl frontmatter field.
 // Points at this repo's canonical pipeline entry (tools/gp-pipeline).
-const PipelineURL = "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/tools/gp-pipeline"
+const PipelineURL = "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
 
 // PipelineEntry is one row of the translatedBy.pipeline block.
 type PipelineEntry struct {

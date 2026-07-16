@@ -77,7 +77,7 @@ func TestNormalizeRalphFrontmatter_StripsAndCanonicalises(t *testing.T) {
 	if strings.Contains(s, "https://stale.example.com/path") {
 		t.Error("stale pipelineUrl not stripped")
 	}
-	if !strings.Contains(s, "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/tools/gp-pipeline") {
+	if !strings.Contains(s, "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline") {
 		t.Error("canonical pipelineUrl not stamped")
 	}
 	// 6-entry block landed
@@ -155,7 +155,7 @@ func TestNormalizeRalphFrontmatter_NoFrontmatter_Silent(t *testing.T) {
 }
 
 func TestFinalPipelineURL_Constant(t *testing.T) {
-	want := "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/tools/gp-pipeline"
+	want := "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
 	if finalPipelineURL != want {
 		t.Fatalf("finalPipelineURL drift: %q, want %q", finalPipelineURL, want)
 	}

@@ -121,7 +121,7 @@ body
 		`- role: "Reviewed"`,
 		`- role: "Refined"`,
 		`- role: "Orchestrated"`,
-		`  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/tools/gp-pipeline"`,
+		`  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"`,
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("credits output missing %q", want)
@@ -223,7 +223,7 @@ body
 		`- role: "Scored"`,
 		`- role: "Rewritten"`,
 		`- role: "Orchestrated"`,
-		`blob/main/tools/gp-pipeline`,
+		`tree/main/tools/gp-pipeline`,
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("ralph frontmatter missing %q\n---\n%s", want, got)

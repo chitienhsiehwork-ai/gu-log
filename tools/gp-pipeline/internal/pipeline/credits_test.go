@@ -85,7 +85,7 @@ func TestRenderPipelineBlock_RootKey(t *testing.T) {
 
 func TestPipelineURL_Constant(t *testing.T) {
 	// Pin the canonical pipelineUrl that gets written to frontmatter.
-	want := "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/tools/gp-pipeline"
+	want := "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
 	if PipelineURL != want {
 		t.Fatalf("PipelineURL drift: got %q, want %q", PipelineURL, want)
 	}
