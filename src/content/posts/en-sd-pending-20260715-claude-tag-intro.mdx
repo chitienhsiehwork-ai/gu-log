@@ -1,0 +1,224 @@
+---
+ticketId: "SD-PENDING"
+title: "Claude Tag: Not Your Personal Secretary, It's the Whole Channel's Teammate"
+originalDate: "2026-07-15"
+translatedDate: "2026-07-15"
+translatedBy:
+  model: "Opus 4.5"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Translator"
+      model: "Opus 4.5"
+      harness: "Claude Code"
+source: "ShroomDog Lab"
+sourceUrl: "https://gu-log.vercel.app/"
+lang: "en"
+summary: "Claude Tag is Anthropic's second-generation Claude in Slack, launched June 2026. Unlike typical chatbots: one thread is one persistent work session, and anyone in the channel can jump in mid-conversation to steer it. But the sandbox evaporates, and credentials never enter the sandbox — this security design is the baseline we'll compare against when we build our own."
+tags: ["shroomdog-original", "claude-tag", "slack", "agent", "sandbox", "agent-proxy"]
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 8
+    score: 8
+    date: "2026-07-15"
+    model: "claude-opus-4-8"
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 9
+    narrative: 8
+    score: 8
+    date: "2026-07-16"
+    model: "claude-opus-4-5"
+  librarian:
+    glossary: 8
+    crossRef: 8
+    sourceAlign: 8
+    attribution: 8
+    score: 8
+    date: "2026-07-16"
+    model: "claude-opus-4-8"
+  freshEyes:
+    readability: 8
+    firstImpression: 7
+    payoffDensity: 6
+    lengthFit: 6
+    clarity: 9
+    score: 7
+    date: "2026-07-16"
+    model: "claude-opus-4-8"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+
+Picture this: an engineer asks Claude a question in a [Slack](/en/glossary#slack) channel, Claude starts digging through the codebase, running tests, pushing branches. Halfway through, a PM realizes the requirements are wrong and types directly into the same thread, "Wait, don't merge that yet, change it to X" — Claude catches it, pivots immediately.
+
+This isn't science fiction. It's [Claude Tag](/en/glossary#claude-tag)'s default behavior. And here's the part that breaks your intuition: **Claude isn't anyone's personal secretary. It's a shared teammate for the entire channel.** Whoever speaks in the thread, Claude listens to them. As for "how to collaborate with an AI teammate and stop it from feeding kills to the enemy," [SD-23](/posts/sd-23-20260510-ai-dota-teammates) covered that — this post focuses on the official product itself.
+
+<ClawdNote>
+Claude Tag is the second-generation Claude in Slack, beta-launched in June 2026. The name "Tag" comes from Slack's @ mentions — "@Claude can you take a look at this" — but the product does way more than just "respond when tagged." The first-gen Claude in Slack was more like a traditional chatbot: one question, one answer, no persistent work session, no sandbox to run code. The second generation is a redesign from scratch.
+</ClawdNote>
+
+This post is the foundation for a four-part series. First, understand what the official version looks like and what its limits are — then the next three posts can get into: if the official version won't give you a feature, how do you build it yourself?
+
+## Thread = Work Session, and Anyone Can Steer
+
+The core operating unit of Claude Tag is the [thread](/en/glossary#thread). Once you `@Claude` in a Slack channel, that thread becomes a persistent work session. Claude remembers everything in the thread until the conversation naturally ends or gets manually closed.
+
+Here's the key part: **anyone can reply directly in the same thread to change what Claude is working on**, no need to @ again. This is completely different from most chatbots' "one person, one session" model. An engineer asks a question, a designer can jump in with extra constraints, a PM can yell stop. Claude listens to the thread, not whoever spoke first.
+
+<MoguNote>
+This design turns Claude into a "shared microphone" role. The upside: team collaboration flows smoothly. The downside: if someone says something dumb, the whole thread's direction gets dragged along. There's no such thing as "this is [Mogu](/about)'s Claude session, everyone else keep out." Everyone in the channel has steering rights. Think about it: if the office intern can redirect the assistant at any moment, is that a feature or a bug? (¬‿¬)
+</MoguNote>
+
+This also means Claude Tag isn't suited for tasks that "only certain people should know about." Everyone in the channel can see the thread contents, steer the direction, and see the output. This is by design, not an oversight.
+
+Compare this to traditional chatbot experiences: user opens a conversation, chats back and forth with the bot, conversation ends. That's one-to-one. Claude Tag's model is more like "an assistant in a meeting room": while the meeting is in progress, any attendee can give the assistant instructions, and the assistant listens to everyone. This makes collaboration faster, but it also makes "who's in charge" fuzzy.
+
+If a team is used to "everyone has their own AI assistant," Claude Tag will require some mental adjustment. It's not a personal tool — it's a team tool.
+
+One detail worth noting: thread persistence has boundaries. If a thread goes too long without new messages, its session state expires, though the conversation record itself stays in Slack. Next time someone replies, Claude rebuilds context from the thread history, but it won't perfectly pick up discussion details from weeks ago. This isn't a bug — it's the physical limits of the [context window](/en/glossary#context-window). You simply can't stuff three months of conversation into one inference call. ([SD-22](/posts/sd-22-20260508-context-window-model-day) explains what context windows are and why they have limits.)
+
+---
+
+## The Sandbox Evaporates, the Thread Persists
+
+Claude Tag runs in an Anthropic-managed sandbox, the same compute environment as [Claude Code](/en/glossary#claude-code) on the web. This sandbox is ephemeral: leave it idle long enough and it gets released, and the next time Claude responds, it gets a brand new instance.
+
+The consequence is concrete: **branches not pushed, output not posted back to Slack — gone by next time.**
+
+<ClawdNote>
+"Ephemeral" intuitively translates to "short-lived," but in this context it's more like "use and toss." Every time Claude wakes up, it gets a clean new machine and rebuilds context from the thread's conversation history. So the thread is long-term memory, and the sandbox is just scratch paper — the scratch paper gets collected, and only what you write back to the thread survives.
+</ClawdNote>
+
+How does Claude "remember" what it was doing in a fresh instance? Two things: thread context and memory.
+
+Thread context is the verbatim transcript of everything in that Slack thread. Memory is a cross-session notebook: it can store facts, write notes, save summaries of past sessions, and can be searched by channel and time. Public channel memories are shared workspace-wide; private channel memories stay separate.
+
+The design logic: the sandbox is "where you do the work," thread and memory are "where you remember the work." They're separated, so the sandbox can be thrown away and restarted anytime — as long as the thread exists, context exists.
+
+But this also means Claude's workflow has to be "finish and post back" mode. You can't slowly iterate in the sandbox and come back to continue later — because next time you come back, the sandbox is a different machine. This is completely unlike local development where "the project folder is always there, come back and tweak anytime."
+
+The practical impact: Claude is forced to "package" its work into deliverable output with each response. Write the code, push it. Finish the research, post the conclusion. Don't leave half-finished work in the sandbox. This is a byproduct of the ephemeral architecture — it makes the workflow feel more like a series of transactions, where each conversation turn is a complete delivery.
+
+<ShroomDogNote>
+This "sandbox evaporates" design is the setup for the self-hosted series coming up. The official version treats ephemeral sandboxes as a product feature (leaves no trace, nothing to dig up later), but when you build your own, it becomes a choice: do you want to give the [agent](/en/glossary#agent) a persistent work environment? Official says no, self-hosted says you can. What's the cost? We'll get to that.
+</ShroomDogNote>
+
+---
+
+## Credentials Never Enter the Sandbox
+
+Claude Tag can hit external APIs, connect to GitHub, read private repos — but there are **no credentials whatsoever** inside the sandbox.
+
+This is the [Agent Proxy](/en/glossary#agent-proxy) design. When Claude needs to call an API, the request first goes through Anthropic's proxy layer, and credentials get injected only at the network boundary. The code running in the sandbox never touches a token.
+
+<MoguNote>
+The security benefit is direct: even if someone hides a prompt injection in a document trying to trick Claude into printing out an API key, Claude can't print it — because the token never entered the sandbox in the first place. Inside the sandbox there's only "[Mogu](/en/glossary#mogu) wants to hit this endpoint"; the credentials get attached by the proxy at the last moment. This is completely different from the traditional "store token as environment variable, let the program read it" pattern.
+</MoguNote>
+
+Permission management is per-channel: admins bundle credentials, repo access, and domain allowlists into an Access bundle and attach it to specific channels. Everyone in the channel shares this permission bundle, sees the same view. Network is default-deny; only allowlisted endpoints can be reached.
+
+<ClawdNote>
+The Access bundle is Claude Tag's permission unit. Think of it as the list of "what this channel's Claude can touch": which GitHub repos, which API endpoints, which external services. If it's not on the list, Claude can't even send the request. This is very different from traditional "give the bot a set of API keys and let it hit whatever" — here admins draw the boundaries in advance, and the agent operates within them.
+</ClawdNote>
+
+This [Agent](/en/glossary#agent) Proxy architecture will be the core comparison point for the self-hosted series. The official version makes "security" a product feature — Anthropic manages the credentials, blocks the network, isolates the sandbox. When you build your own, all of that becomes your responsibility.
+
+Specifically, self-hosted versions have to answer: Where do credentials live? Who can see them? How do you defend when the agent gets hit with prompt injection? How do you draw network boundaries? Do you isolate the sandbox? To what degree? The official version's answers are all "Anthropic handles it for you"; the self-hosted answers are "you design it, you maintain it, you're responsible."
+
+This doesn't mean self-hosted is necessarily more dangerous — some teams' security requirements are actually "credentials cannot be handed to a third party," making the official version non-compliant. The point is, self-hosted gives more freedom, and correspondingly more responsibility.
+
+From a technical angle, Agent Proxy's design has another hidden benefit: it makes credential rotation painless. Update an API key once in Anthropic's admin panel, no need to redeploy sandboxes, update environment variables, or worry about old keys cached somewhere. The entire credential lifecycle is handled on Anthropic's end, completely transparent to users.
+
+---
+
+## Entry Requirements: Two Keys, One Prerequisite
+
+Claude Tag isn't for everyone. Three conditions required:
+
+**Plan restriction**: Only Anthropic Team or Enterprise plans can enable it. Free, Pro, Max — none of them. This is a paid feature, and enterprise-tier paid at that.
+
+**Dual authorization**: Activation requires two keys — an Anthropic organization owner plus a Slack workspace admin. Both required. This means even if an individual engineer wants to use it, they have to convince both the company's Anthropic admin and Slack admin to approve.
+
+**ZDR exclusion**: If the organization has ZDR (Zero Data Retention) enabled, Claude Tag can't be used. Because Claude Tag's core features — memory, searchable transcripts, cross-session context — all require keeping data. Want ZDR, can't have memory. Want memory, can't have ZDR. Pick one.
+
+<ClawdNote>
+ZDR = Zero Data Retention. Some enterprises enable this for compliance or privacy reasons to make Anthropic keep zero conversation records. But Claude Tag's selling points include cross-session memory and searchable conversation history — both of which directly conflict with "keep no data." So ZDR organizations can use Claude's other products, just not Tag. This is a product design tradeoff, not a bug.
+</ClawdNote>
+
+The activation process itself isn't complicated: Slack workspace admin types `@Claude connect` in any channel to get a 15-minute pairing code, paste it into claude.ai's admin settings, configure the Access bundle, connect external tools, specify GitHub repos, set monthly usage limits, then enable. After that, use `/invite @Claude` to add Claude to whichever channels you want.
+
+The whole process takes maybe ten minutes, assuming you have admin permissions on both sides. If you need to convince admins in different departments to approve, that persuasion process might take longer than the setup itself.
+
+Worth noting: this "dual authorization" design reflects a product judgment: Claude Tag isn't a tool for individuals to use secretly — it's something that needs organizational-level decision making. Anthropic set the entry bar here probably to ensure: if Claude causes problems in some Slack channel, at least two admin-level people know it's there, know what it can do, and can turn it off.
+
+---
+
+## Billing: Channels Draw from Company Funds, DMs Draw from Your Own Wallet
+
+Claude Tag billing splits two ways:
+
+**Channel usage** draws from a shared org quota pool. Default cap is $1,000 USD per month; admins can adjust. The admin dashboard shows how much each channel spent, and admins can set limits or disable specific channels.
+
+**DM usage** draws from the user's personal claude.ai account. This is completely separate: DM Claude costs don't come from the org quota pool — they're on your personal tab. Admins can choose to disable DM functionality entirely.
+
+<MoguNote>
+The design logic: channel work is "company business," DM conversations are "personal business." Company business, company pays, company has oversight. Personal business, you pay, company can't see the content. But admins can decide whether to let employees use DM at all — some companies just turn it off entirely to avoid the gray zone of "is this work or personal use." (◕‿◕)
+</MoguNote>
+
+Another difference: channels can set scheduled routines (having Claude do something periodically), DMs can't. DMs are pure conversation, no automation features.
+
+This split also shapes usage behavior. If a task has nothing to do with the team and is pure personal research, DM is the more natural choice — it doesn't use company quota anyway, and won't leave conversation records in public channels. But if you need Claude to run routines or collaborate with the team, it has to happen in a channel.
+
+From a cost control perspective, admins can see each channel's spending but can't see DM contents. This means "how much is the company spending on Claude" only has half an answer: channel usage is clear, DM usage is invisible. If admins want complete cost control, turning off DM is the cleaner choice.
+
+There's also a hidden design intent: tying DMs to personal accounts means employees pay for private Claude conversations with their own claude.ai subscriptions. This is cleaner than "company AI resources being used to ask personal questions" — public and private are clear, and so are the bills.
+
+---
+
+## What Can It Do: Triage, Write Code, Schedule
+
+Claude Tag's use cases cluster around a few directions:
+
+**In-channel triage**: New issues come in, Claude can auto-classify, tag, and assign to the right person. This pairs especially well with routines — set it to run every day at 9 AM, and Claude will have the previous day's new issues organized. Triage's benefit isn't just time savings — it's consistency. Claude won't forget classification criteria, won't miss edge cases, won't start randomly tagging because it's tired.
+
+**Write code**: Claude can clone repos, read codebases, write code, run tests, push branches, open PRs. Since GitHub repo access is managed through Access bundles, Claude can only touch repos the admin has authorized. This means even if someone in the channel maliciously commands "go delete the entire production repo," if the Access bundle didn't grant permissions for that repo, Claude can't do it.
+
+**Routine scheduling**: Channels can set up periodic tasks. Generate a daily report, summarize last week's PR status every Monday morning, check dependency versions at the start of each month. DMs can't set routines, only channels can. Routines are designed to be "set and forget" — once configured, no need to manually trigger each time; Claude runs on its own and posts results back to the channel.
+
+**Document search and summarization**: Claude can read channel history, search memory, summarize past conversations. This is especially useful for onboarding new team members — instead of making newbies dig through three months of Slack history, have Claude compile "what's happened with this project so far." This is also a practical application of the memory system: it doesn't just let Claude remember the past, it lets Claude organize the past into a format new members can quickly absorb.
+
+**Cross-channel collaboration**: If the same Access bundle is attached to multiple channels, Claude's memory can be shared across channels. This lets "decisions discussed in Channel A" automatically carry into "implementation follow-up in Channel B" without re-explaining the background each time.
+
+<MoguNote>
+The routine feature transforms Claude Tag from "passively answering questions" to "actively patrolling." This sounds like pushing agent capabilities forward a step — but the cost is: every routine execution eats from the org quota. If you set it too aggressively (like every hour), the bill will reflect that first. So routine design isn't just "what do you want it to do" — it's also "how often is cost-effective."
+</MoguNote>
+
+<ShroomDogNote>
+These use cases all sound reasonable, but the real limitation is elsewhere: Claude Tag only supports Slack. No Teams version, no LINE version, no Discord version, no self-hosted Mattermost or Rocket.Chat. Want to run a Claude Tag-like thing on a different platform? Official won't provide it. Want Claude running on company intranet, not going through Anthropic's proxy? Official won't provide that either. That's what the next three self-hosted posts are going to build.
+</ShroomDogNote>
+
+---
+
+## Wrapping Up
+
+Claude Tag makes "security" a product feature: ephemeral sandboxes leave no work traces, Agent Proxy keeps credentials out of the sandbox entirely, Access bundles draw permission boundaries crystal clear. This is a thoroughly designed official solution — assuming the organization is willing to pay Team/Enterprise fees, willing to use only Slack, willing to let Anthropic manage credentials and memory.
+
+But what if those assumptions don't hold?
+
+You want to run something similar on LINE for Taiwanese customers. You want to run it on Teams because company IT policy only allows the Microsoft ecosystem. You want to run it on company intranet because ZDR isn't enough — data can't leave the company at all. You want to manage credentials yourself because the security team won't allow API keys handed to third parties. You want to swap in a different model because Claude is too expensive, or because some vertical has a better specialized model.
+
+These aren't edge cases. They're the daily reality of the Taiwan market, enterprise IT, and heavily regulated industries.
+
+The official Claude Tag is a great reference point — it demonstrates what "putting an agent in a channel" can look like. But it's not the only option. With tools like [OpenClaw](/en/glossary#openclaw), the same concept can move to any platform, any model, any network environment.
+
+The cost: everything the official version blocks for you becomes your responsibility.
+
+The next three posts will show how to build it. First question: if Anthropic isn't managing credentials for you, how do you draw your own security boundaries?
