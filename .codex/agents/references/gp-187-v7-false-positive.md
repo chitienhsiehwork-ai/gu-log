@@ -1,25 +1,27 @@
 # Tribunal v7 calibration reference: GP-187 false positive
 
-This reference preserves the known-bad sample that triggered Tribunal v7. It is intentionally a git pointer instead of an edited copy, so judges can compare against the exact article that human review rejected.
+<!-- md-zh-tw: ignore -->
+
+This reference preserves the known-bad sample that triggered Tribunal v7. It is intentionally a git pointer into the pre-rebrand history instead of an edited or taxonomy-canonicalized copy, so judges can compare against the exact article that human review rejected.
 
 ## Exact git pointers
 
-- Repo commit: `ab4c06704bce3873262ee0566fe178481af0202c`
-- Bad sample: `src/content/posts/gp-187-20260428-openai-symphony-codex-orchestration.mdx`
-- Bad sample blob: `0b4dc53271f1753115094f2b2a774bd1c0ed7a62`
-- Overlap target: `src/content/posts/mp-179-20260316-daniel-mac8-symphony-manage-work-not-agents.mdx`
-- Overlap target blob: `c6f90bdf228f1729ede2b2f21e784bff4f46121b`
+- Repo commit: `9231349f3943dece009e6f7e8e57a82358771ff1`
+- Bad sample: `src/content/posts/sp-187-20260428-openai-symphony-codex-orchestration.mdx`
+- Bad sample blob: `427a522714f2f531592a6457263ed588dff7630f`
+- Overlap target: `src/content/posts/cp-179-20260316-daniel-mac8-symphony-manage-work-not-agents.mdx`
+- Overlap target blob: `5e63a0184374eeba7cfadb7f84ad13cd0b9acc8e`
 
 To inspect the exact rejected article:
 
 ```bash
-git show ab4c06704bce3873262ee0566fe178481af0202c:src/content/posts/gp-187-20260428-openai-symphony-codex-orchestration.mdx
+git show 9231349f3943dece009e6f7e8e57a82358771ff1:src/content/posts/sp-187-20260428-openai-symphony-codex-orchestration.mdx
 ```
 
 To inspect the already-covered MP-179 baseline:
 
 ```bash
-git show ab4c06704bce3873262ee0566fe178481af0202c:src/content/posts/mp-179-20260316-daniel-mac8-symphony-manage-work-not-agents.mdx
+git show 9231349f3943dece009e6f7e8e57a82358771ff1:src/content/posts/cp-179-20260316-daniel-mac8-symphony-manage-work-not-agents.mdx
 ```
 
 ## Human review signal
