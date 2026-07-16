@@ -9,25 +9,25 @@ import { test, expect } from '@playwright/test';
 
 // Expected dark-theme colors by prefix (from CSS vars in global.css)
 const EXPECTED_COLORS: Record<string, { text: string; bg: string }> = {
-  SD: { text: 'rgb(44, 161, 140)', bg: 'rgba(38, 139, 121, 0.15)' },
-  SP: { text: 'rgb(74, 169, 238)', bg: 'rgba(38, 139, 210, 0.15)' },
-  CP: { text: 'rgb(224, 150, 118)', bg: 'rgba(203, 117, 81, 0.15)' },
+  SD: { text: 'rgb(105, 210, 160)', bg: 'rgba(38, 139, 121, 0.15)' },
+  GP: { text: 'rgb(139, 233, 253)', bg: 'rgba(38, 139, 210, 0.15)' },
+  MP: { text: 'rgb(255, 184, 108)', bg: 'rgba(203, 117, 81, 0.15)' },
 };
 
 test.describe('Ticket Badge Colors', () => {
-  test('GIVEN a post page with PrevNextNav WHEN viewing ticket badges THEN CP badges should be orange, not blue', async ({
+  test('GIVEN a post page with PrevNextNav WHEN viewing ticket badges THEN MP badges should be orange, not blue', async ({
     page,
   }) => {
-    // Navigate to a post that has CP neighbors in PrevNextNav
+    // Navigate to a post that has MP neighbors in PrevNextNav
     // Use the listing page to find a MP post first
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
     // Find a MP post link to click
-    const cpBadge = page.locator('.ticket-cp').first();
-    const hasCp = (await cpBadge.count()) > 0;
+    const mpBadge = page.locator('.ticket-mp').first();
+    const hasMp = (await mpBadge.count()) > 0;
 
-    if (!hasCp) {
+    if (!hasMp) {
       test.skip(true, 'No MP posts found on index');
       return;
     }
@@ -50,9 +50,7 @@ test.describe('Ticket Badge Colors', () => {
     await page.waitForLoadState('networkidle');
 
     // Now check the PrevNextNav for ticket badge colors
-    const navTicketIds = page.locator(
-      '.prev-next-nav .ticket-badge, .prev-next-nav .nav-ticket-id'
-    );
+    const navTicketIds = page.locator('.prev-next-nav .nav-ticket');
     const navCount = await navTicketIds.count();
 
     expect(navCount).toBeGreaterThan(0);

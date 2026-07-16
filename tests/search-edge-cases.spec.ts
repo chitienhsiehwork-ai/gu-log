@@ -2,8 +2,8 @@ import { test, expect } from './fixtures';
 
 /**
  * Search Edge Cases
- * 
- * Tests search functionality edge cases: empty input, no results, 
+ *
+ * Tests search functionality edge cases: empty input, no results,
  * keyboard navigation, Cmd+K shortcut, Escape close, special chars.
  */
 
@@ -37,7 +37,9 @@ test.describe('Search - Keyboard Navigation', () => {
     await expect(modal).toHaveAttribute('aria-hidden', 'true');
   });
 
-  test('GIVEN search results WHEN pressing ArrowDown THEN highlights next result', async ({ page }) => {
+  test('GIVEN search results WHEN pressing ArrowDown THEN highlights next result', async ({
+    page,
+  }) => {
     await page.goto(BASE);
     await page.click('[data-search-trigger]');
     await page.waitForSelector('[data-search-modal][aria-hidden="false"]');
@@ -54,7 +56,9 @@ test.describe('Search - Keyboard Navigation', () => {
     await expect(firstResult).toHaveClass(/selected/);
   });
 
-  test('GIVEN highlighted result WHEN pressing Enter THEN navigates to that post', async ({ page }) => {
+  test('GIVEN highlighted result WHEN pressing Enter THEN navigates to that post', async ({
+    page,
+  }) => {
     await page.goto(BASE);
     await page.click('[data-search-trigger]');
     await page.waitForSelector('[data-search-modal][aria-hidden="false"]');
@@ -76,7 +80,9 @@ test.describe('Search - Keyboard Navigation', () => {
     await expect(page).toHaveURL(new RegExp(href!.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   });
 
-  test('GIVEN search results WHEN pressing ArrowUp from first THEN wraps to last', async ({ page }) => {
+  test('GIVEN search results WHEN pressing ArrowUp from first THEN wraps to last', async ({
+    page,
+  }) => {
     await page.goto(BASE);
     await page.click('[data-search-trigger]');
     await page.waitForSelector('[data-search-modal][aria-hidden="false"]');
@@ -87,7 +93,7 @@ test.describe('Search - Keyboard Navigation', () => {
 
     // First ArrowDown to select first item (index 0)
     await input.press('ArrowDown');
-    
+
     // ArrowUp should wrap to last item
     await input.press('ArrowUp');
 
@@ -104,38 +110,42 @@ test.describe('Search - Edge Cases', () => {
     await page.waitForSelector('[data-search-modal][aria-hidden="false"]');
 
     const results = page.locator('[data-search-results]');
-    const html = await results.innerHTML();
-    expect(html.trim()).toBe('');
+    await expect(results.locator('.search-result-item')).toHaveCount(0);
+    await expect(results.locator('.search-no-results')).toHaveCount(0);
   });
 
-  test('GIVEN search query with no matches WHEN searching THEN shows no-results message', async ({ page }) => {
+  test('GIVEN search query with no matches WHEN searching THEN shows no-results message', async ({
+    page,
+  }) => {
     await page.goto(BASE);
     await page.click('[data-search-trigger]');
     await page.waitForSelector('[data-search-modal][aria-hidden="false"]');
 
     const input = page.locator('[data-search-input]');
     await input.fill('zzzznonexistentquery12345');
-    
+
     // Wait for debounce and search
     await expect(page.locator('.search-no-results')).toBeVisible({ timeout: 5000 });
   });
 
-  test('GIVEN ticket ID search WHEN entering SP-THEN matches partial ticket IDs', async ({ page }) => {
+  test('GIVEN ticket ID search WHEN entering GP- THEN matches partial ticket IDs', async ({
+    page,
+  }) => {
     await page.goto(BASE);
     await page.click('[data-search-trigger]');
     await page.waitForSelector('[data-search-modal][aria-hidden="false"]');
 
     const input = page.locator('[data-search-input]');
-    await input.fill('SP-');
+    await input.fill('GP-');
     await page.waitForSelector('.search-result-item', { timeout: 8000 });
 
-    // Results should contain SP ticket badges
+    // Results should contain GP ticket badges
     const tickets = page.locator('.search-result-ticket');
     const count = await tickets.count();
     expect(count).toBeGreaterThan(0);
-    
+
     const firstTicket = await tickets.first().textContent();
-    expect(firstTicket).toMatch(/^SP-/);
+    expect(firstTicket).toMatch(/^GP-/);
   });
 
   test('GIVEN open search modal WHEN clicking overlay THEN closes modal', async ({ page }) => {

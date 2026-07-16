@@ -9,7 +9,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   getIndexPosts,
-  getLocalizedPostUrl,
   getListablePosts,
   getNavigablePosts,
   getPostStatus,
@@ -18,6 +17,7 @@ import {
   isPostNonPublished,
   resolvePostStatus,
 } from '../src/utils/post-status';
+import { getLocalizedPostUrl } from '../src/utils/post-urls';
 import { getPostVersion } from '../src/utils/post-versions';
 
 // Minimal duck-typed fake matching the runtime shape used by post-status.
@@ -48,20 +48,20 @@ const cast = (xs: FakePost[]) => xs as unknown as Parameters<typeof getPublished
 
 describe('resolvePostStatus', () => {
   it('returns published when post + zh source are both published', () => {
-    const zh = p('sp-1-x', 'GP-1', 'zh-tw');
+    const zh = p('gp-1-x', 'GP-1', 'zh-tw');
     const en = p('en-gp-1-x', 'GP-1', 'en');
     const r = resolvePostStatus(en as any, cast([zh, en]));
     expect(r.status).toBe('published');
   });
 
   it('en post inherits "deprecated" from its zh-tw pair', () => {
-    const zh = p('sp-1-x', 'GP-1', 'zh-tw', {
+    const zh = p('gp-1-x', 'GP-1', 'zh-tw', {
       status: 'deprecated',
       deprecatedBy: 'GP-2',
       deprecatedReason: 'replaced',
     });
     const en = p('en-gp-1-x', 'GP-1', 'en');
-    const newZh = p('sp-2-y', 'GP-2', 'zh-tw');
+    const newZh = p('gp-2-y', 'GP-2', 'zh-tw');
     const newEn = p('en-gp-2-y', 'GP-2', 'en');
     const r = resolvePostStatus(en as any, cast([zh, en, newZh, newEn]));
     expect(r.status).toBe('deprecated');
@@ -72,16 +72,16 @@ describe('resolvePostStatus', () => {
   });
 
   it('falls back to source-lang replacement when target lang missing', () => {
-    const zh = p('sp-1-x', 'GP-1', 'zh-tw', { status: 'deprecated', deprecatedBy: 'GP-2' });
+    const zh = p('gp-1-x', 'GP-1', 'zh-tw', { status: 'deprecated', deprecatedBy: 'GP-2' });
     const en = p('en-gp-1-x', 'GP-1', 'en');
-    const newZh = p('sp-2-y', 'GP-2', 'zh-tw');
+    const newZh = p('gp-2-y', 'GP-2', 'zh-tw');
     // No newEn
     const r = resolvePostStatus(en as any, cast([zh, en, newZh]));
-    expect(r.replacementPost?.id).toBe('sp-2-y');
+    expect(r.replacementPost?.id).toBe('gp-2-y');
   });
 
   it('retired status carries reason + retiredAt', () => {
-    const zh = p('sp-1-x', 'GP-1', 'zh-tw', {
+    const zh = p('gp-1-x', 'GP-1', 'zh-tw', {
       status: 'retired',
       retiredReason: 'shut down',
       retiredAt: '2026-04-01',
@@ -94,19 +94,19 @@ describe('resolvePostStatus', () => {
   });
 
   it('normalizes unknown status string to "published"', () => {
-    const zh = p('sp-1-x', 'GP-1', 'zh-tw', { status: 'mystery' as any });
+    const zh = p('gp-1-x', 'GP-1', 'zh-tw', { status: 'mystery' as any });
     expect(resolvePostStatus(zh as any, cast([zh])).status).toBe('published');
   });
 });
 
 describe('getPostStatus / isPostNonPublished', () => {
   it('without posts list returns the raw normalized status', () => {
-    const zh = p('sp-1-x', 'GP-1', 'zh-tw', { status: 'deprecated' });
+    const zh = p('gp-1-x', 'GP-1', 'zh-tw', { status: 'deprecated' });
     expect(getPostStatus(zh as any)).toBe('deprecated');
   });
 
   it('with posts list resolves through translation pair', () => {
-    const zh = p('sp-1-x', 'GP-1', 'zh-tw', { status: 'retired' });
+    const zh = p('gp-1-x', 'GP-1', 'zh-tw', { status: 'retired' });
     const en = p('en-gp-1-x', 'GP-1', 'en');
     expect(getPostStatus(en as any, cast([zh, en]))).toBe('retired');
     expect(isPostNonPublished(en as any, cast([zh, en]))).toBe(true);
@@ -115,7 +115,7 @@ describe('getPostStatus / isPostNonPublished', () => {
 
 describe('getTranslationPair', () => {
   it('finds the en pair from a zh post', () => {
-    const zh = p('sp-1-x', 'GP-1', 'zh-tw');
+    const zh = p('gp-1-x', 'GP-1', 'zh-tw');
     const en = p('en-gp-1-x', 'GP-1', 'en');
     expect(getTranslationPair(zh as any, cast([zh, en]))?.id).toBe('en-gp-1-x');
   });
@@ -126,22 +126,22 @@ describe('getTranslationPair', () => {
   });
 
   it('returns undefined when no pair exists', () => {
-    const zh = p('sp-1-x', 'GP-1', 'zh-tw');
+    const zh = p('gp-1-x', 'GP-1', 'zh-tw');
     expect(getTranslationPair(zh as any, cast([zh]))).toBeUndefined();
   });
 });
 
 describe('getPublishedPosts / getListablePosts', () => {
-  const zh1 = p('sp-1-x', 'GP-1', 'zh-tw');
+  const zh1 = p('gp-1-x', 'GP-1', 'zh-tw');
   const en1 = p('en-gp-1-x', 'GP-1', 'en');
-  const zh2 = p('sp-2-y', 'GP-2', 'zh-tw', { status: 'deprecated', deprecatedBy: 'GP-3' });
+  const zh2 = p('gp-2-y', 'GP-2', 'zh-tw', { status: 'deprecated', deprecatedBy: 'GP-3' });
   const en2 = p('en-gp-2-y', 'GP-2', 'en');
-  const zh3 = p('sp-3-z', 'GP-3', 'zh-tw');
+  const zh3 = p('gp-3-z', 'GP-3', 'zh-tw');
   const all = [zh1, en1, zh2, en2, zh3];
 
   it('getPublishedPosts excludes deprecated chains', () => {
     const r = getPublishedPosts(cast(all), 'zh-tw');
-    expect(r.map((p: any) => p.id).sort()).toEqual(['sp-1-x', 'sp-3-z']);
+    expect(r.map((p: any) => p.id).sort()).toEqual(['gp-1-x', 'gp-3-z']);
   });
 
   it('getPublishedPosts filters by lang', () => {
@@ -149,10 +149,10 @@ describe('getPublishedPosts / getListablePosts', () => {
   });
 
   it('getListablePosts excludes deprecated but includes retired', () => {
-    const retired = p('sp-4-r', 'GP-4', 'zh-tw', { status: 'retired' });
+    const retired = p('gp-4-r', 'GP-4', 'zh-tw', { status: 'retired' });
     const r = getListablePosts(cast([...all, retired]), 'zh-tw');
-    expect(r.map((p: any) => p.id)).toContain('sp-4-r'); // retired listable
-    expect(r.map((p: any) => p.id)).not.toContain('sp-2-y'); // deprecated NOT listable
+    expect(r.map((p: any) => p.id)).toContain('gp-4-r'); // retired listable
+    expect(r.map((p: any) => p.id)).not.toContain('gp-2-y'); // deprecated NOT listable
   });
 });
 
@@ -199,54 +199,54 @@ describe('getIndexPosts (publish-bar visibility)', () => {
     vibe: { persona: 7, moguNote: 7, vibe: 7, narrative: 7, score: 7, date: '2026-07-04' },
   };
 
-  const passing = p('sp-1-pass', 'GP-1', 'zh-tw', { scores: passingScores });
-  const sub8 = p('sp-2-sub8', 'GP-2', 'zh-tw', { scores: sub8Scores });
-  const grandfathered = p('sp-3-old', 'GP-3', 'zh-tw'); // 無 scores block
+  const passing = p('gp-1-pass', 'GP-1', 'zh-tw', { scores: passingScores });
+  const sub8 = p('gp-2-sub8', 'GP-2', 'zh-tw', { scores: sub8Scores });
+  const grandfathered = p('gp-3-old', 'GP-3', 'zh-tw'); // 無 scores block
   const all = [passing, sub8, grandfathered];
 
   it('excludes below-bar posts from the homepage list', () => {
     const ids = getIndexPosts(cast(all), 'zh-tw').map((post: any) => post.id);
-    expect(ids).not.toContain('sp-2-sub8');
+    expect(ids).not.toContain('gp-2-sub8');
   });
 
   it('includes posts that meet the full publish bar', () => {
     const ids = getIndexPosts(cast(all), 'zh-tw').map((post: any) => post.id);
-    expect(ids).toContain('sp-1-pass');
+    expect(ids).toContain('gp-1-pass');
   });
 
   it('keeps grandfathered (un-scored) posts on the homepage', () => {
     const ids = getIndexPosts(cast(all), 'zh-tw').map((post: any) => post.id);
-    expect(ids).toContain('sp-3-old');
+    expect(ids).toContain('gp-3-old');
   });
 
   it('below-bar posts stay published on non-homepage surfaces (not globally hidden)', () => {
     const ids = getPublishedPosts(cast(all), 'zh-tw').map((post: any) => post.id);
-    expect(ids).toContain('sp-2-sub8');
+    expect(ids).toContain('gp-2-sub8');
   });
 
   it('still excludes deprecated posts regardless of scores', () => {
-    const deprecated = p('sp-4-dep', 'GP-4', 'zh-tw', {
+    const deprecated = p('gp-4-dep', 'GP-4', 'zh-tw', {
       status: 'deprecated',
       scores: passingScores,
     });
     const ids = getIndexPosts(cast([...all, deprecated]), 'zh-tw').map((post: any) => post.id);
-    expect(ids).not.toContain('sp-4-dep');
+    expect(ids).not.toContain('gp-4-dep');
   });
 });
 
 describe('getNavigablePosts', () => {
-  const zh1 = p('sp-1-x', 'GP-1', 'zh-tw');
-  const zh2 = p('sp-2-y', 'GP-2', 'zh-tw', { status: 'deprecated' });
+  const zh1 = p('gp-1-x', 'GP-1', 'zh-tw');
+  const zh2 = p('gp-2-y', 'GP-2', 'zh-tw', { status: 'deprecated' });
   const all = [zh1, zh2];
 
   it('returns published list when current is in it', () => {
     const r = getNavigablePosts(cast(all), zh1 as any);
-    expect(r.map((p: any) => p.id)).toEqual(['sp-1-x']);
+    expect(r.map((p: any) => p.id)).toEqual(['gp-1-x']);
   });
 
   it('appends current post if it is itself non-published', () => {
     const r = getNavigablePosts(cast(all), zh2 as any);
-    expect(r.map((p: any) => p.id).sort()).toEqual(['sp-1-x', 'sp-2-y']);
+    expect(r.map((p: any) => p.id).sort()).toEqual(['gp-1-x', 'gp-2-y']);
   });
 });
 

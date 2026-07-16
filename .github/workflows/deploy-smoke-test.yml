@@ -52,7 +52,7 @@ jobs:
         run: |
           FAILED=0
           TOTAL=0
-          
+
           # Get all non-English post slugs, sorted by date (newest first), take top 10
           for f in $(ls src/content/posts/*.mdx | grep -v 'en-' | sort -r | head -10); do
             slug=$(basename "$f" .mdx)
@@ -67,10 +67,10 @@ jobs:
               echo "✅ $slug → 200"
             fi
           done
-          
+
           echo ""
           echo "=== Results: $((TOTAL - FAILED))/$TOTAL passed ==="
-          
+
           if [ "$FAILED" -gt 0 ]; then
             echo "::error::🚨 $FAILED of $TOTAL articles returned non-200 status!"
             exit 1
@@ -91,11 +91,17 @@ jobs:
           done
           [ "$FAILED" -eq 0 ]
 
-      - name: Smoke test — legacy picks listing pages stay retired
+      - name: Smoke test — legacy listing and post paths stay retired
         if: github.event.deployment_status.state == 'success'
         run: |
           FAILED=0
-          for route in clawd-picks shroomdog-picks en/clawd-picks en/shroomdog-picks; do
+          for route in \
+            clawd-picks shroomdog-picks shroom-picks \
+            en/clawd-picks en/shroomdog-picks en/shroom-picks \
+            posts/sp-7-20260130-clawdbot-architecture-deep-dive \
+            en/posts/en-sp-7-20260130-clawdbot-architecture-deep-dive \
+            posts/cp-291-20260414-anthropic- \
+            en/posts/en-cp-291-20260414-anthropic-; do
             STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://gu-log.vercel.app/$route")
             if [ "$STATUS" != "404" ]; then
               echo "::error::🚨 Retired /$route unexpectedly returned HTTP $STATUS"

@@ -22,7 +22,7 @@ const SD_MID_POST = '/posts/sd-12-20260402-claude-code-bad-patterns';
 const SD_FIRST_POST = '/posts/sd-11-20260402-ai-agent-memory-architecture';
 
 // Post WITHOUT series
-const NO_SERIES_POST = '/posts/claude-is-a-space-to-think';
+const NO_SERIES_POST = '/posts/gp-24-20260204-claude-is-a-space-to-think';
 
 // EN version
 const ECC_MID_POST_EN = '/en/posts/en-gp-144-20260402-ecc-instinct-system';
@@ -71,7 +71,7 @@ test.describe('SeriesNav Component — Prev/Next Navigation', () => {
     await expect(seriesPrevLink).toBeVisible();
 
     const href = await seriesPrevLink.getAttribute('href');
-    expect(href).toContain('sp-143');
+    expect(href).toContain('gp-143');
   });
 
   test('5. Series next link points to correct series sibling', async ({ page }) => {
@@ -82,7 +82,7 @@ test.describe('SeriesNav Component — Prev/Next Navigation', () => {
     await expect(seriesNextLink).toBeVisible();
 
     const href = await seriesNextLink.getAttribute('href');
-    expect(href).toContain('sp-146');
+    expect(href).toContain('gp-146');
   });
 
   test('6. First post in series has no series-prev link', async ({ page }) => {
@@ -216,7 +216,7 @@ test.describe('Related Articles — Non-series Posts', () => {
     await expect(relatedSection).toBeVisible();
 
     // All related items should have links to real posts
-    const relatedLinks = relatedSection.locator('a[data-related-item]');
+    const relatedLinks = relatedSection.locator('[data-related-item] a.related-link');
     const count = await relatedLinks.count();
     expect(count).toBeGreaterThan(0);
 

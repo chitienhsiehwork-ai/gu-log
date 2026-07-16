@@ -190,7 +190,7 @@ describe('check-pronoun-clarity', () => {
   });
 
   it('does NOT flag 你/我 inside MoguNote', () => {
-    const filepath = tmpPath('pronoun-clawd.mdx');
+    const filepath = tmpPath('pronoun-mogu.mdx');
     fs.writeFileSync(
       filepath,
       `---\nlang: zh-tw\n---\n正文沒有事兒。\n<MoguNote>\n我覺得你應該來看這個\n</MoguNote>\n`

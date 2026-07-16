@@ -10,7 +10,9 @@ test.describe('Search Bar', () => {
     await page.waitForSelector('[data-search-modal][aria-hidden="false"]');
   });
 
-  test('GIVEN search results WHEN displaying date THEN should NOT show "undefined"', async ({ page }) => {
+  test('GIVEN search results WHEN displaying date THEN should NOT show "undefined"', async ({
+    page,
+  }) => {
     // Type a broad query to get results
     const input = page.locator('[data-search-input]');
     await input.fill('Claude');
@@ -34,7 +36,9 @@ test.describe('Search Bar', () => {
     }
   });
 
-  test('GIVEN multiple search results WHEN rendered THEN each entry should be visually separated', async ({ page }) => {
+  test('GIVEN multiple search results WHEN rendered THEN each entry should be visually separated', async ({
+    page,
+  }) => {
     // Search for something that returns multiple results
     const input = page.locator('[data-search-input]');
     await input.fill('AI');
@@ -73,9 +77,11 @@ test.describe('Search Bar', () => {
     }
   });
 
-  test('GIVEN a search result WHEN viewing it THEN ticket badge, title, and source should be clearly distinct', async ({ page }) => {
+  test('GIVEN a search result WHEN viewing it THEN ticket badge, title, and source should be clearly distinct', async ({
+    page,
+  }) => {
     const input = page.locator('[data-search-input]');
-    await input.fill('SP-');
+    await input.fill('GP-');
     await page.waitForSelector('.search-result-item', { timeout: 5000 });
 
     const firstItem = page.locator('.search-result-item').first();
@@ -89,9 +95,13 @@ test.describe('Search Bar', () => {
     await expect(title).toBeVisible();
 
     // Title font size should be larger than source
-    const titleSize = await title.evaluate((el) => parseFloat(window.getComputedStyle(el).fontSize));
+    const titleSize = await title.evaluate((el) =>
+      parseFloat(window.getComputedStyle(el).fontSize)
+    );
     const source = firstItem.locator('.search-result-source');
-    const sourceSize = await source.evaluate((el) => parseFloat(window.getComputedStyle(el).fontSize));
+    const sourceSize = await source.evaluate((el) =>
+      parseFloat(window.getComputedStyle(el).fontSize)
+    );
     expect(titleSize).toBeGreaterThan(sourceSize);
   });
 });

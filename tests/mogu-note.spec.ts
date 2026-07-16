@@ -8,7 +8,7 @@ import { test, expect } from './fixtures';
  */
 
 test.describe('MoguNote Component', () => {
-  const testPostUrl = '/posts/claude-is-a-space-to-think';
+  const testPostUrl = '/posts/gp-24-20260204-claude-is-a-space-to-think';
 
   test('GIVEN a post with MoguNote WHEN page loads THEN MoguNote should be visible', async ({
     page,
@@ -25,6 +25,10 @@ test.describe('MoguNote Component', () => {
     const prefix = page.locator('.mogu-note .mogu-prefix').first();
     await expect(prefix).toBeVisible();
     await expect(prefix).toContainText('Mogu');
+    await expect(prefix.getByRole('link', { name: 'Mogu 詞彙說明' })).toHaveAttribute(
+      'href',
+      '/glossary#mogu'
+    );
   });
 
   test('GIVEN MoguNote content WHEN rendered THEN should not be empty', async ({ page }) => {

@@ -43,33 +43,33 @@ describe('reading-tracker', () => {
 
   it('markAsRead persists across reloads', async () => {
     let m = await import('../src/lib/reading-tracker');
-    m.markAsRead('sp-1');
-    expect(m.isRead('sp-1')).toBe(true);
+    m.markAsRead('gp-1');
+    expect(m.isRead('gp-1')).toBe(true);
 
     vi.resetModules();
     m = await import('../src/lib/reading-tracker');
-    expect(m.isRead('sp-1')).toBe(true);
-    expect(m.getReadSlugs()).toEqual(['sp-1']);
+    expect(m.isRead('gp-1')).toBe(true);
+    expect(m.getReadSlugs()).toEqual(['gp-1']);
   });
 
   it('markAsRead is idempotent (no duplicate slugs)', async () => {
     const m = await import('../src/lib/reading-tracker');
-    m.markAsRead('sp-1');
-    m.markAsRead('sp-1');
-    expect(m.getReadSlugs()).toEqual(['sp-1']);
+    m.markAsRead('gp-1');
+    m.markAsRead('gp-1');
+    expect(m.getReadSlugs()).toEqual(['gp-1']);
   });
 
   it('markAsUnread removes the slug', async () => {
     const m = await import('../src/lib/reading-tracker');
-    m.markAsRead('sp-1');
-    m.markAsUnread('sp-1');
-    expect(m.isRead('sp-1')).toBe(false);
+    m.markAsRead('gp-1');
+    m.markAsUnread('gp-1');
+    expect(m.isRead('gp-1')).toBe(false);
   });
 
   it('toggleRead returns the new state', async () => {
     const m = await import('../src/lib/reading-tracker');
-    expect(m.toggleRead('sp-1')).toBe(true);
-    expect(m.toggleRead('sp-1')).toBe(false);
+    expect(m.toggleRead('gp-1')).toBe(true);
+    expect(m.toggleRead('gp-1')).toBe(false);
   });
 
   it('getStats reports total + slugs + lastUpdated', async () => {
@@ -84,11 +84,11 @@ describe('reading-tracker', () => {
 
   it('markAsRead stores the current reader-facing revision', async () => {
     const m = await import('../src/lib/reading-tracker');
-    m.markAsRead('sp-1', 'manual_mark_read', 'rev-current');
+    m.markAsRead('gp-1', 'manual_mark_read', 'rev-current');
 
-    const record = m.getReadRecords({ 'sp-1': 'rev-current' })[0];
+    const record = m.getReadRecords({ 'gp-1': 'rev-current' })[0];
     expect(record).toMatchObject({
-      slug: 'sp-1',
+      slug: 'gp-1',
       readRevision: 'rev-current',
       revisionState: 'current',
     });
@@ -98,13 +98,13 @@ describe('reading-tracker', () => {
   it('migrates v1 slug lists as unknown revision instead of current', async () => {
     (globalThis as any).localStorage.setItem(
       'gu-log-read-articles',
-      JSON.stringify({ version: 1, slugs: ['legacy-sp'], lastUpdated: '2026-04-01T00:00:00.000Z' })
+      JSON.stringify({ version: 1, slugs: ['legacy-gp'], lastUpdated: '2026-04-01T00:00:00.000Z' })
     );
     const m = await import('../src/lib/reading-tracker');
 
-    expect(m.isRead('legacy-sp')).toBe(true);
-    expect(m.getReadRecords({ 'legacy-sp': 'rev-now' })[0]).toMatchObject({
-      slug: 'legacy-sp',
+    expect(m.isRead('legacy-gp')).toBe(true);
+    expect(m.getReadRecords({ 'legacy-gp': 'rev-now' })[0]).toMatchObject({
+      slug: 'legacy-gp',
       readRevision: null,
       revisionState: 'unknown',
     });
