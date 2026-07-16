@@ -11,9 +11,8 @@
  */
 
 // Consumer-side shape: the banner only reads isDegraded/degradedDimensions.
-// Dimension keys are optional because the Vibe-owned set is version-resolved
-// (tribunalVersion >= 9 drops clarity from Vibe), while the core content
-// schema still requires all five — this stays compatible with both.
+// Dimension keys are optional because the Vibe-owned set is version-resolved:
+// tribunalVersion >= 9 drops clarity from Vibe, while v8 may still include it.
 interface Stage4Scores {
   persona?: number;
   moguNote?: number;
@@ -29,7 +28,7 @@ interface Props {
   lang?: 'zh-tw' | 'en';
 }
 
-const { stage4Scores, lang = 'zh-tw' } = Astro.props;
+const { stage4Scores, lang = 'zh-tw' } = Astro.props as Props;
 const { degradedDimensions = [] } = stage4Scores;
 
 const labels = {
