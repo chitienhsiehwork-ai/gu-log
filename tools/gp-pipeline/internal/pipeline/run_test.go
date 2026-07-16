@@ -22,6 +22,10 @@ import (
 // file. The FakeProvider is seeded with plausible responses for
 // eval/write/review/refine.
 func makeRunHarness(t *testing.T) (*State, string) {
+	return makeRunHarnessForPrefix(t, "GP")
+}
+
+func makeRunHarnessForPrefix(t *testing.T, prefix string) (*State, string) {
 	t.Helper()
 	tmp := t.TempDir()
 	scriptsDir := filepath.Join(tmp, "scripts")
@@ -119,12 +123,9 @@ process.exit(0);
 		ValidatePosts: filepath.Join(scriptsDir, "validate-posts.mjs"),
 	}
 
-	fake := llm.NewFakeClaude().WithResponses(
-		llm.FakeResponse{Output: `{"verdict":"GO","reason":"substantial","suggested_title":"Fake Title"}`, WriteFile: "eval-codex-primary.json"},
-		llm.FakeResponse{Output: `{"verdict":"GO","reason":"on topic","suggested_title":"Fake Title"}`, WriteFile: "eval-codex.json"},
-		llm.FakeResponse{Output: `---
+	draftOutput := strings.ReplaceAll(`---
 title: "Fake Title"
-ticketId: "GP-PENDING"
+ticketId: "PREFIX-PENDING"
 originalDate: "2026-04-11"
 translatedDate: "2026-04-11"
 translatedBy:
@@ -137,24 +138,14 @@ summary: "fake summary"
 tags: ["ai", "agents"]
 ---
 body
-`, WriteFile: "draft-v1.mdx"},
+`, "PREFIX-PENDING", prefix+"-PENDING")
+	refinedOutput := strings.ReplaceAll(draftOutput, "body\n", "body refined\n")
+	fake := llm.NewFakeClaude().WithResponses(
+		llm.FakeResponse{Output: `{"verdict":"GO","reason":"substantial","suggested_title":"Fake Title"}`, WriteFile: "eval-codex-primary.json"},
+		llm.FakeResponse{Output: `{"verdict":"GO","reason":"on topic","suggested_title":"Fake Title"}`, WriteFile: "eval-codex.json"},
+		llm.FakeResponse{Output: draftOutput, WriteFile: "draft-v1.mdx"},
 		llm.FakeResponse{Output: "- Blocker: nothing to fix\n", WriteFile: "review.md"},
-		llm.FakeResponse{Output: `---
-title: "Fake Title"
-ticketId: "GP-PENDING"
-originalDate: "2026-04-11"
-translatedDate: "2026-04-11"
-translatedBy:
-  model: "Opus 4.6"
-  harness: "Claude Code CLI"
-source: "@fakeauthor on X"
-sourceUrl: "https://x.com/fakeauthor/status/1"
-lang: "zh-tw"
-summary: "fake summary"
-tags: ["ai", "agents"]
----
-body refined
-`, WriteFile: "final.mdx"},
+		llm.FakeResponse{Output: refinedOutput, WriteFile: "final.mdx"},
 	)
 	disp, err := llm.NewDispatcher(logx.New(), fake)
 	if err != nil {
@@ -167,7 +158,8 @@ body refined
 	s.Dispatcher = disp
 	s.Counter = counter.New(counterFile, filepath.Join(tmp, ".counter.lock"))
 	s.TweetURL = "https://x.com/fakeauthor/status/1"
-	s.Prefix = "GP"
+	s.Prefix = prefix
+	s.PromptTicketID = prefix + "-PENDING"
 	s.WorkDir = filepath.Join(tmp, "tmp", "gp-pending-run-test")
 	s.SkipBuild = true
 	s.SkipPush = true
@@ -276,15 +268,19 @@ func TestRun_EvalSkipExit12(t *testing.T) {
 }
 
 func TestRun_DryRunSkipsDeploy(t *testing.T) {
-	s, _ := makeRunHarness(t)
-	s.DryRun = true
-	_, _ = SetupWorkDir(s)
+	for _, prefix := range []string{"GP", "MP"} {
+		t.Run(prefix, func(t *testing.T) {
+			s, _ := makeRunHarnessForPrefix(t, prefix)
+			s.DryRun = true
+			_, _ = SetupWorkDir(s)
 
-	if err := Run(context.Background(), s); err != nil {
-		t.Fatalf("Run --dry-run: %v", err)
-	}
-	if s.PromptTicketID != "GP-PENDING" {
-		t.Errorf("dry-run should not allocate ticket: got %q", s.PromptTicketID)
+			if err := Run(context.Background(), s); err != nil {
+				t.Fatalf("Run --dry-run: %v", err)
+			}
+			if want := prefix + "-PENDING"; s.PromptTicketID != want {
+				t.Errorf("dry-run should keep %s without allocation: got %q", want, s.PromptTicketID)
+			}
+		})
 	}
 }
 
