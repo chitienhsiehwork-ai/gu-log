@@ -106,6 +106,11 @@ export function reminderText() {
   ].join('\n');
 }
 
+/**
+ * @param {string} baseRef
+ * @param {string} [cwd]
+ * @returns {string[]}
+ */
 export function gitDiffAddedVsBase(baseRef, cwd = undefined) {
   const tryRef = (ref) => {
     try {
