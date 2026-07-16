@@ -70,8 +70,8 @@ describe('parseFrontmatter', () => {
 
 describe('getBaseFilename', () => {
   it('strips en- prefix', () => {
-    expect(getBaseFilename('en-gp-1-x.mdx')).toBe('sp-1-x.mdx');
-    expect(getBaseFilename('sp-1-x.mdx')).toBe('sp-1-x.mdx');
+    expect(getBaseFilename('en-gp-1-x.mdx')).toBe('gp-1-x.mdx');
+    expect(getBaseFilename('gp-1-x.mdx')).toBe('gp-1-x.mdx');
   });
 });
 
@@ -88,19 +88,19 @@ describe('getContentBody', () => {
 
 describe('validatePost — pass case', () => {
   it('passes a fully-valid zh-tw post', () => {
-    const filepath = tmpPath('sp-1-20260401-x.mdx');
+    const filepath = tmpPath('gp-1-20260401-x.mdx');
     // translatedBy (model signature) is mandatory for every post (Rule 14.5).
     fs.writeFileSync(
       filepath,
       makePost([...validFm, 'translatedBy:', '  model: Opus 4.6', '  harness: Claude Code'])
     );
-    const r = validatePost(filepath, [{ filename: 'sp-1-20260401-x.mdx', ticketId: 'GP-1' }]);
+    const r = validatePost(filepath, [{ filename: 'gp-1-20260401-x.mdx', ticketId: 'GP-1' }]);
     expect(r.errors).toEqual([]);
   });
 });
 
 describe('validatePost — required-field rules', () => {
-  function runWithFm(fmLines: string[], filename = 'sp-1-x.mdx') {
+  function runWithFm(fmLines: string[], filename = 'gp-1-20260401-x.mdx') {
     const filepath = tmpPath(filename);
     fs.writeFileSync(filepath, makePost(fmLines));
     return validatePost(filepath, []);
@@ -134,10 +134,77 @@ describe('validatePost — required-field rules', () => {
   });
 
   it('accepts GP/MP/SD/Lv ticketId', () => {
-    for (const tid of ['GP-1', 'MP-1', 'SD-1', 'Lv-1', 'GP-PENDING']) {
-      const r = runWithFm(validFm.map((l) => (l.startsWith('ticketId:') ? `ticketId: ${tid}` : l)));
+    for (const [tid, filename] of [
+      ['GP-1', 'gp-1-20260401-x.mdx'],
+      ['MP-1', 'mp-1-20260401-x.mdx'],
+      ['SD-1', 'sd-1-20260401-x.mdx'],
+      ['Lv-1', 'levelup-20260401-x.mdx'],
+      ['GP-PENDING', 'gp-pending-20260401-x.mdx'],
+    ] as const) {
+      const r = runWithFm(
+        validFm.map((l) => (l.startsWith('ticketId:') ? `ticketId: ${tid}` : l)),
+        filename
+      );
       expect(r.errors.some((e: string) => e.includes('Invalid ticketId format'))).toBe(false);
     }
+  });
+
+  it('rejects retired SP/CP ticketIds with an actionable canonical replacement', () => {
+    const sp = runWithFm(
+      validFm.map((l) => (l.startsWith('ticketId:') ? 'ticketId: SP-258' : l)),
+      'gp-258-20260401-x.mdx'
+    );
+    expect(sp.errors.some((e: string) => e.includes('use GP-258'))).toBe(true);
+
+    const cp = runWithFm(
+      validFm.map((l) => (l.startsWith('ticketId:') ? 'ticketId: CP-314' : l)),
+      'mp-314-20260401-x.mdx'
+    );
+    expect(cp.errors.some((e: string) => e.includes('use MP-314'))).toBe(true);
+  });
+
+  it('rejects retired SP/CP ticket references in frontmatter fields', () => {
+    const r = runWithFm([
+      ...validFm,
+      'status: deprecated',
+      'deprecatedBy: SP-165',
+      'translatedBy:',
+      '  model: Opus 4.6',
+      '  harness: Claude Code',
+    ]);
+    expect(r.errors.some((e: string) => e.includes('use GP-165'))).toBe(true);
+  });
+
+  it('treats an empty scores block as absent, not as a partially-written v8 tribunal', () => {
+    const r = runWithFm([
+      ...validFm,
+      'scores:',
+      'translatedBy:',
+      '  model: Opus 4.6',
+      '  harness: Claude Code',
+    ]);
+    expect(r.errors.some((e: string) => e.startsWith('Missing scores.'))).toBe(false);
+  });
+
+  it('validates an unstamped legacy judge as v8 without requiring unwritten judges', () => {
+    const r = runWithFm([
+      ...validFm,
+      'scores:',
+      '  vibe:',
+      '    persona: 8',
+      '    moguNote: 8',
+      '    vibe: 8',
+      '    clarity: 8',
+      '    narrative: 8',
+      '    score: 8',
+      '    date: "2026-04-02"',
+      '    model: "Opus 4.6"',
+      'translatedBy:',
+      '  model: Opus 4.6',
+      '  harness: Claude Code',
+    ]);
+    expect(r.errors.some((e: string) => e.startsWith('Missing scores.'))).toBe(false);
+    expect(r.errors.some((e: string) => e.includes('scores.vibe'))).toBe(false);
   });
 
   it('flags malformed originalDate', () => {
@@ -167,7 +234,7 @@ describe('validatePost — required-field rules', () => {
 
 describe('validatePost — content rules', () => {
   it('flags missing kaomoji', () => {
-    const filepath = tmpPath('no-kaomoji.mdx');
+    const filepath = tmpPath('gp-1-20260401-nokao.mdx');
     const padding = '正文充足內容'.repeat(40);
     fs.writeFileSync(filepath, `---\n${validFm.join('\n')}\n---\n${padding}\nNo face here.\n`);
     const r = validatePost(filepath, []);
@@ -175,14 +242,14 @@ describe('validatePost — content rules', () => {
   });
 
   it('flags content too short', () => {
-    const filepath = tmpPath('short.mdx');
+    const filepath = tmpPath('gp-1-20260401-short.mdx');
     fs.writeFileSync(filepath, `---\n${validFm.join('\n')}\n---\ntiny ${KAOMOJI}\n`);
     const r = validatePost(filepath, []);
     expect(r.errors.some((e: string) => e.includes('Content too short'))).toBe(true);
   });
 
   it('flags raw ```mermaid code fence', () => {
-    const filepath = tmpPath('mermaid.mdx');
+    const filepath = tmpPath('gp-1-20260401-mermaid.mdx');
     const padding = '正文充足內容'.repeat(40);
     fs.writeFileSync(
       filepath,
@@ -193,7 +260,7 @@ describe('validatePost — content rules', () => {
   });
 
   it('flags translatedBy.model without version number', () => {
-    const filepath = tmpPath('badmodel.mdx');
+    const filepath = tmpPath('gp-1-20260401-badmodel.mdx');
     const fm = [...validFm, 'translatedBy:', '  model: Opus', '  harness: Claude Code'];
     fs.writeFileSync(filepath, makePost(fm));
     const r = validatePost(filepath, []);
@@ -201,7 +268,7 @@ describe('validatePost — content rules', () => {
   });
 
   it('accepts whole-number Claude 5-generation release names (e.g. "Sonnet 5")', () => {
-    const filepath = tmpPath('sonnet5model.mdx');
+    const filepath = tmpPath('gp-1-20260401-sonnet5.mdx');
     const fm = [...validFm, 'translatedBy:', '  model: Sonnet 5', '  harness: Claude Code'];
     fs.writeFileSync(filepath, makePost(fm));
     const r = validatePost(filepath, []);
@@ -209,7 +276,7 @@ describe('validatePost — content rules', () => {
   });
 
   it('warns on long summary', () => {
-    const filepath = tmpPath('longsummary.mdx');
+    const filepath = tmpPath('gp-1-20260401-longsummary.mdx');
     const longSummary = 'x'.repeat(310);
     const fm = validFm.map((l) => (l.startsWith('summary:') ? `summary: "${longSummary}"` : l));
     fs.writeFileSync(filepath, makePost(fm));
@@ -218,7 +285,7 @@ describe('validatePost — content rules', () => {
   });
 
   it('warns on filename without date', () => {
-    const filepath = tmpPath('no-date-in-name.mdx');
+    const filepath = tmpPath('gp-1-nodate.mdx');
     fs.writeFileSync(filepath, makePost(validFm));
     const r = validatePost(filepath, []);
     expect(r.warnings.some((w: string) => w.includes('date'))).toBe(true);
@@ -245,7 +312,7 @@ describe('validatePost — en-* CJK Unified Ideograph guard', () => {
   });
 
   it('does not flag zh-tw posts (rule is en-only)', () => {
-    const filepath = tmpPath('sp-2-x.mdx');
+    const filepath = tmpPath('gp-1-20260401-zhtw.mdx');
     fs.writeFileSync(filepath, makePost(validFm, `Body content with kaomoji ${KAOMOJI} 測試字.`));
     const r = validatePost(filepath, []);
     expect(r.errors.some((e: string) => e.includes('CJK Unified Ideograph'))).toBe(false);
@@ -281,7 +348,7 @@ describe('validatePost — en-* CJK Unified Ideograph guard', () => {
   // scripts/validate-posts.mjs's comment on the Map). These two tests inject
   // a synthetic entry via the exported Map so the downgrade-to-warning
   // mechanism itself stays covered regardless of the baseline's real size.
-  const BASELINE_TEST_FILE = 'en-baseline-test-fixture.mdx';
+  const BASELINE_TEST_FILE = 'en-gp-2-baseline.mdx';
   const BASELINE_TEST_LINE = '# 這是測試用的 baseline 豁免行。';
 
   it('downgrades a grandfathered baseline line to a warning instead of an error', () => {
@@ -323,33 +390,119 @@ describe('validatePost — en-* CJK Unified Ideograph guard', () => {
   });
 });
 
+describe('validatePost — canonical filename gate (GP/MP)', () => {
+  function runNamed(filename: string, ticketId: string) {
+    const filepath = tmpPath(filename);
+    const fm = validFm.map((line) => {
+      if (line.startsWith('ticketId:')) return `ticketId: ${ticketId}`;
+      if (line.startsWith('lang:') && filename.startsWith('en-')) return 'lang: en';
+      return line;
+    });
+    fs.writeFileSync(filepath, makePost(fm));
+    return validatePost(filepath, []);
+  }
+
+  it('accepts canonical gp-N / mp-N / pending filenames', () => {
+    for (const [filename, tid] of [
+      ['gp-258-20260401-x.mdx', 'GP-258'],
+      ['en-gp-258-20260401-x.mdx', 'GP-258'],
+      ['mp-314-20260401-x.mdx', 'MP-314'],
+      ['gp-pending-20260401-x.mdx', 'GP-PENDING'],
+      ['mp-pending-20260401-x.mdx', 'MP-PENDING'],
+    ] as const) {
+      const r = runNamed(filename, tid);
+      expect(
+        r.errors.some((e: string) => e.includes('filename')),
+        `${filename} should carry no filename error, got: ${r.errors.join('; ')}`
+      ).toBe(false);
+    }
+  });
+
+  it('rejects a GP ticket living in a legacy sp-* filename', () => {
+    const r = runNamed('sp-258-20260401-x.mdx', 'GP-258');
+    expect(r.errors.some((e: string) => e.includes('gp-258-'))).toBe(true);
+  });
+
+  it('rejects a GP/MP filename whose number disagrees with the ticketId', () => {
+    const r = runNamed('gp-259-20260401-x.mdx', 'GP-258');
+    expect(r.errors.some((e: string) => e.includes('gp-258-'))).toBe(true);
+  });
+});
+
+describe('validatePost — retired series tags', () => {
+  it.each(['clawd-picks', 'mogu-picks', 'shroom-picks', 'shroomdog-picks', 'gu-log-picks'])(
+    'rejects retired content-type tag %s (series identity comes from ticketId)',
+    (tag) => {
+      const filepath = tmpPath('gp-1-20260401-x.mdx');
+      fs.writeFileSync(filepath, makePost([...validFm, `tags: ["${tag}", "agent"]`]));
+      const r = validatePost(filepath, []);
+      expect(r.errors.some((e: string) => e.includes(tag))).toBe(true);
+    }
+  );
+
+  it('accepts ordinary topic tags', () => {
+    const filepath = tmpPath('gp-1-20260401-x.mdx');
+    fs.writeFileSync(filepath, makePost([...validFm, 'tags: ["agent", "claude-code"]']));
+    const r = validatePost(filepath, []);
+    expect(r.errors.some((e: string) => e.includes('tag'))).toBe(false);
+  });
+});
+
+describe('validatePost — retired clawdNote/ClawdNote contract', () => {
+  it('rejects a clawdNote score key in frontmatter with a moguNote diagnostic', () => {
+    const filepath = tmpPath('gp-1-20260401-x.mdx');
+    const fm = [
+      ...validFm,
+      'scores:',
+      '  vibe:',
+      '    persona: 8',
+      '    clawdNote: 8',
+      '    vibe: 8',
+      '    narrative: 8',
+      '    score: 8',
+      '    date: "2026-07-01"',
+      '    model: "gpt-5.5"',
+    ];
+    fs.writeFileSync(filepath, makePost(fm));
+    const r = validatePost(filepath, []);
+    expect(r.errors.some((e: string) => e.includes('moguNote'))).toBe(true);
+  });
+
+  it('rejects a ClawdNote component in the body with a MoguNote diagnostic', () => {
+    const filepath = tmpPath('gp-1-20260401-x.mdx');
+    fs.writeFileSync(filepath, makePost(validFm, `<ClawdNote>還在用舊元件</ClawdNote> ${KAOMOJI}`));
+    const r = validatePost(filepath, []);
+    expect(r.errors.some((e: string) => e.includes('MoguNote'))).toBe(true);
+  });
+});
+
 describe('validatePost — cross-file rules', () => {
   it('flags duplicate ticketId across non-paired files', () => {
-    const filepath = tmpPath('sp-1-a.mdx');
+    const filepath = tmpPath('gp-1-a.mdx');
     fs.writeFileSync(filepath, makePost(validFm));
     const r = validatePost(filepath, [
-      { filename: 'sp-1-a.mdx', ticketId: 'GP-1' },
-      { filename: 'sp-1-b.mdx', ticketId: 'GP-1' },
+      { filename: 'gp-1-a.mdx', ticketId: 'GP-1' },
+      { filename: 'gp-1-b.mdx', ticketId: 'GP-1' },
     ]);
     expect(r.errors.some((e: string) => e.includes('Duplicate ticketId'))).toBe(true);
   });
 
   it('does NOT flag PENDING ticketId duplicates (multiple drafts share)', () => {
     const fm = validFm.map((l) => (l.startsWith('ticketId:') ? 'ticketId: GP-PENDING' : l));
-    const filepath = tmpPath('pending.mdx');
+    const filepath = tmpPath('gp-pending-20260401-a.mdx');
     fs.writeFileSync(filepath, makePost(fm));
     const r = validatePost(filepath, [
-      { filename: 'pending.mdx', ticketId: 'GP-PENDING' },
-      { filename: 'other-pending.mdx', ticketId: 'GP-PENDING' },
+      { filename: 'gp-pending-20260401-a.mdx', ticketId: 'GP-PENDING' },
+      { filename: 'gp-pending-20260401-b.mdx', ticketId: 'GP-PENDING' },
     ]);
     expect(r.errors.some((e: string) => e.includes('Duplicate ticketId'))).toBe(false);
   });
 
   it('flags translation-pair ticketId mismatch', () => {
-    const filepath = tmpPath('sp-1-x.mdx');
+    const filepath = tmpPath('gp-1-x.mdx');
     fs.writeFileSync(filepath, makePost(validFm));
     const r = validatePost(filepath, [
-      { filename: 'sp-1-x.mdx', ticketId: 'GP-1' },
+      { filename: 'gp-1-x.mdx', ticketId: 'GP-1' },
       { filename: 'en-gp-1-x.mdx', ticketId: 'GP-2' },
     ]);
     expect(r.errors.some((e: string) => e.includes('Translation pair ticketId mismatch'))).toBe(

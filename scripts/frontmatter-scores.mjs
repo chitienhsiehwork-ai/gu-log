@@ -41,6 +41,9 @@ import { resolveRecordedModelId } from './detect-model.mjs';
 const VALID_JUDGES = ['librarian', 'factCheck', 'freshEyes', 'vibe'];
 // v9 (move-clarity-vibe-to-fresheyes): clarity moved from vibe → freshEyes.
 const CURRENT_TRIBUNAL_VERSION = 9;
+// Unstamped posts predate the v9 ownership move. Reading them as the current
+// version would silently hide their legacy Vibe clarity score.
+const LEGACY_TRIBUNAL_VERSION = 8;
 
 const __isCli =
   import.meta.url === pathToFileURL(process.argv[1] ?? '').href ||
@@ -245,7 +248,7 @@ function opGet() {
 
   // Read with the post's own stamped version so v8 posts still surface
   // clarity under vibe and v9 posts surface it under freshEyes.
-  const dims = judgeDims(judge, Number(scores.tribunalVersion ?? CURRENT_TRIBUNAL_VERSION));
+  const dims = judgeDims(judge, Number(scores.tribunalVersion ?? LEGACY_TRIBUNAL_VERSION));
   const dimensions = {};
   for (const dim of dims) {
     if (entry[dim] != null) dimensions[dim] = entry[dim];
@@ -272,6 +275,16 @@ function opWrite() {
     scoreData = JSON.parse(scoreJsonStr);
   } catch (e) {
     process.stderr.write(`Invalid score JSON: ${e.message}\n`);
+    process.exit(1);
+  }
+
+  const containsRetiredClawdNote = (value) => {
+    if (!value || typeof value !== 'object') return false;
+    if (Object.prototype.hasOwnProperty.call(value, 'clawdNote')) return true;
+    return Object.values(value).some(containsRetiredClawdNote);
+  };
+  if (containsRetiredClawdNote(scoreData)) {
+    process.stderr.write('Retired score key clawdNote; use moguNote\n');
     process.exit(1);
   }
 
@@ -365,6 +378,7 @@ export {
   judgeDims,
   VALID_JUDGES,
   CURRENT_TRIBUNAL_VERSION,
+  LEGACY_TRIBUNAL_VERSION,
 };
 
 // ─── Dispatch ─────────────────────────────────────────────────────────────

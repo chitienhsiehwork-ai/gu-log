@@ -37,7 +37,8 @@ const VALID_LANGS = ['zh-tw', 'en'];
 // and by manual drafters working on parallel branches. The deploy step
 // swaps PENDING for a real number allocated from article-counter.json at
 // the last moment (see CONTRIBUTING.md §並行撰寫防 ID collision).
-const TICKET_PATTERN = /^(SP|CP|SD|Lv)-(?:\d+|PENDING)$/;
+const TICKET_PATTERN = /^(GP|MP|SD|Lv)-(?:\d+|PENDING)$/;
+const RETIRED_TICKET_PATTERN = /^(SP|CP)-(\d+|PENDING)$/;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const URL_PATTERN = /^https?:\/\/.+/;
 const MIN_CONTENT_LENGTH = 200; // characters, excluding frontmatter
@@ -47,12 +48,19 @@ const REDUNDANT_BOTTOM_CITATION_PATTERNS = [
   /\n---\s*\n+\*\*Source[：:]\*\*/i,
   /\n##\s*原文出處/,
 ];
-const CLAWD_NOTE_REDUNDANT_PREFIX = [
+const MOGU_NOTE_REDUNDANT_PREFIX = [
   /<MoguNote\b[^>]*>\s*\n?\s*\*\*Mogu[：:]\*\*/i,
   /<MoguNote\b[^>]*>\s*\n?\s*Mogu[：:]\s/i,
 ];
-const LONG_CLAWD_NOTE_CHARS = 420;
-const MAX_CLAWD_NOTE_SUMMARY_CHARS = 120;
+const LONG_MOGU_NOTE_CHARS = 420;
+const MAX_MOGU_NOTE_SUMMARY_CHARS = 120;
+const RETIRED_SERIES_TAGS = new Set([
+  'clawd-picks',
+  'mogu-picks',
+  'shroom-picks',
+  'shroomdog-picks',
+  'gu-log-picks',
+]);
 // CJK Unified Ideograph guard for en-*.mdx bodies (Rule 19). `\p{Unified_Ideograph}`
 // is the CJK Unified Ideographs block only — kaomoji-adjacent scripts like
 // katakana (ツ) or Greek (ω) are outside it and never trip this rule.
@@ -65,9 +73,9 @@ const containsCjkEscape = (line) => CJK_ESCAPE_MARKERS.some((m) => line.includes
 // Grandfather baseline: en-* CJK Unified Ideograph lines that already existed
 // when Rule 19 shipped (GP-251 uiux fix task, 2026-07-06), so the guard
 // shipped CI-green without a mass content-editing PR. All 14 original entries
-// have since been resolved — 11 legitimate citations/kaomoji got a `cjk-ok`
-// escape (fix/clawdnote-summaries-cjk-escapes) and the 3-line en-sp-193
-// untranslated-code-comment bug got retranslated
+// have since been resolved — 11 legitimate citations/kaomoji got explicit
+// `cjk-ok` escapes, and the three-line English GP-193 translation bug got
+// retranslated
 // (fix/en-gp-193-untranslated-comments) — so this baseline is empty. Keep the
 // Map (and this comment) as the burn-down mechanism for the next time a
 // mass-adoption PR needs to ship CI-green before every line is fixed: add an
@@ -152,6 +160,46 @@ function getContentBody(content) {
 
 function getFrontmatterText(content) {
   return content.match(/^---\n([\s\S]*?)\n---/)?.[1] ?? '';
+}
+
+function retiredTicketDiagnostic(value) {
+  const match = value.match(RETIRED_TICKET_PATTERN);
+  if (!match) return null;
+  const replacement = match[1] === 'SP' ? 'GP' : 'MP';
+  return `Retired ticket reference ${value}; use ${replacement}-${match[2]}`;
+}
+
+/**
+ * Find retired ticket IDs only in reference-bearing frontmatter fields. This
+ * avoids treating a factual mention in a title or source attribution as a
+ * schema reference while still handling inline and block YAML arrays.
+ */
+function findRetiredTicketReferences(fmText) {
+  const references = [];
+  const lines = fmText.split('\n');
+  let inAcknowledgedOverlap = false;
+  let overlapIndent = 0;
+
+  for (const line of lines) {
+    const indent = line.match(/^\s*/)?.[0].length ?? 0;
+    const fieldMatch = line.match(/^\s*(deprecatedBy|acknowledgedOverlapWith):\s*(.*)$/);
+    if (fieldMatch) {
+      inAcknowledgedOverlap = fieldMatch[1] === 'acknowledgedOverlapWith';
+      overlapIndent = indent;
+      references.push(...(fieldMatch[2].match(/\b(?:SP|CP)-(?:\d+|PENDING)\b/g) ?? []));
+      continue;
+    }
+
+    if (inAcknowledgedOverlap) {
+      if (line.trim() && indent <= overlapIndent) {
+        inAcknowledgedOverlap = false;
+        continue;
+      }
+      references.push(...(line.match(/\b(?:SP|CP)-(?:\d+|PENDING)\b/g) ?? []));
+    }
+  }
+
+  return [...new Set(references)];
 }
 
 function getScoreBlock(fmText, judge) {
@@ -259,7 +307,28 @@ function validatePost(filepath, allPosts, options = {}) {
   if (!fm.ticketId) {
     errors.push('Missing ticketId');
   } else if (!TICKET_PATTERN.test(fm.ticketId)) {
-    errors.push(`Invalid ticketId format: "${fm.ticketId}" (expected SP-N, CP-N, SD-N, or Lv-N)`);
+    const retiredDiagnostic = retiredTicketDiagnostic(fm.ticketId);
+    errors.push(
+      retiredDiagnostic ??
+        `Invalid ticketId format: "${fm.ticketId}" (expected GP-N, MP-N, SD-N, or Lv-N)`
+    );
+  }
+
+  for (const reference of findRetiredTicketReferences(fmText)) {
+    errors.push(retiredTicketDiagnostic(reference));
+  }
+
+  // GP/MP ticket identity and filename identity are one contract. The en-
+  // locale prefix is transport-only and is removed before comparing.
+  const gpMpTicket = fm.ticketId?.match(/^(GP|MP)-(\d+|PENDING)$/);
+  if (gpMpTicket) {
+    const expectedPrefix = `${gpMpTicket[1].toLowerCase()}-${gpMpTicket[2].toLowerCase()}-`;
+    const baseFilename = getBaseFilename(filename).toLowerCase();
+    if (!baseFilename.startsWith(expectedPrefix)) {
+      errors.push(
+        `GP/MP filename must match ticketId ${fm.ticketId}; expected filename starting with "${expectedPrefix}"`
+      );
+    }
   }
 
   // ── Rule 4: Date formats ──
@@ -292,6 +361,21 @@ function validatePost(filepath, allPosts, options = {}) {
   // ── Rule 7: tags is an array (if present) ──
   if (fm.tags !== undefined && !Array.isArray(fm.tags)) {
     errors.push('tags must be an array');
+  } else if (Array.isArray(fm.tags)) {
+    for (const tag of fm.tags) {
+      if (RETIRED_SERIES_TAGS.has(tag)) {
+        errors.push(
+          `Retired series tag "${tag}" is not allowed; series identity comes from ticketId`
+        );
+      }
+    }
+  }
+
+  if (/^\s+clawdNote\s*:/m.test(fmText)) {
+    errors.push('Retired score key clawdNote; use moguNote');
+  }
+  if (/\bClawdNote\b/.test(body)) {
+    errors.push('Retired ClawdNote component/import; use MoguNote');
   }
 
   // ── Rule 8: No duplicate bottom citations ──
@@ -303,7 +387,7 @@ function validatePost(filepath, allPosts, options = {}) {
   }
 
   // ── Rule 9: MoguNote no redundant prefix ──
-  for (const pattern of CLAWD_NOTE_REDUNDANT_PREFIX) {
+  for (const pattern of MOGU_NOTE_REDUNDANT_PREFIX) {
     if (pattern.test(content)) {
       errors.push('MoguNote contains redundant "Mogu:" prefix (component auto-adds it)');
       break;
@@ -313,14 +397,14 @@ function validatePost(filepath, allPosts, options = {}) {
   // ── Rule 10: Long MoguNote requires writer-authored summary ──
   if (options.enforceLongMoguNoteSummary) {
     for (const note of extractMoguNotes(content)) {
-      if (note.length > LONG_CLAWD_NOTE_CHARS && !note.hasSummary) {
+      if (note.length > LONG_MOGU_NOTE_CHARS && !note.hasSummary) {
         errors.push(
           `MoguNote #${note.index} is long (${note.length} chars) and needs summary="短版一句話"`
         );
       }
-      if (note.summaryLength > MAX_CLAWD_NOTE_SUMMARY_CHARS) {
+      if (note.summaryLength > MAX_MOGU_NOTE_SUMMARY_CHARS) {
         errors.push(
-          `MoguNote #${note.index} summary is too long (${note.summaryLength} chars, max ${MAX_CLAWD_NOTE_SUMMARY_CHARS})`
+          `MoguNote #${note.index} summary is too long (${note.summaryLength} chars, max ${MAX_MOGU_NOTE_SUMMARY_CHARS})`
         );
       }
     }
@@ -404,7 +488,11 @@ function validatePost(filepath, allPosts, options = {}) {
   //   tribunalVersion <= 8 → legacy: Vibe 5 dims (with clarity); FreshEyes 4.
   // Without this branch a correctly-stamped v9 post (clarity under freshEyes,
   // absent from vibe) is REJECTED at pre-commit/CI — a hard blocker.
-  const tribunalVersion = Number(fmText.match(/^ {2}tribunalVersion:\s*(\d+)/m)?.[1] ?? 0);
+  const hasTribunalScores = /^ {2}(?:tribunalVersion|librarian|factCheck|freshEyes|vibe):/m.test(
+    fmText
+  );
+  const tribunalVersionMatch = fmText.match(/^ {2}tribunalVersion:\s*(\d+)/m);
+  const tribunalVersion = Number(tribunalVersionMatch?.[1] ?? 8);
   const VIBE_DIMS_V8 = ['persona', 'moguNote', 'vibe', 'clarity', 'narrative'];
   const VIBE_DIMS_V9 = ['persona', 'moguNote', 'vibe', 'narrative'];
   const FRESH_DIMS_V8 = ['readability', 'firstImpression', 'payoffDensity', 'lengthFit'];
@@ -420,7 +508,7 @@ function validatePost(filepath, allPosts, options = {}) {
   const partialScores = process.env.VALIDATE_PARTIAL_SCORES === '1';
   const requireOrSkipMissing = (scoreErrors) =>
     partialScores ? scoreErrors.filter((e) => !e.startsWith('Missing scores')) : scoreErrors;
-  if (tribunalVersion >= 8) {
+  if (hasTribunalScores && tribunalVersionMatch && tribunalVersion >= 8) {
     errors.push(
       ...requireOrSkipMissing([
         ...validateScoreBlock(fmText, 'librarian', [
