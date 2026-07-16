@@ -3,15 +3,18 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { isCanonicalSeriesTaxonomyOnlyChange } from './check-brand-taxonomy.mjs';
+
 const POSTS_DIR = 'src/content/posts';
 
-function git(args, options = {}) {
+function git(args, { trim = true, ...options } = {}) {
   try {
-    return execFileSync('git', args, {
+    const output = execFileSync('git', args, {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
       ...options,
-    }).trim();
+    });
+    return trim ? output.trim() : output;
   } catch {
     return '';
   }
@@ -61,8 +64,20 @@ function ticketExistsAt(ref, ticket, currentFile) {
     .some((file) => file !== currentFile);
 }
 
-function diffBodyLines(baseRef, file) {
-  const diff = git(['diff', '--no-color', '-U0', `${baseRef}...HEAD`, '--', file]);
+function diffBodyLines(baseRef, baseFile, currentFile) {
+  const files = baseFile === currentFile ? [currentFile] : [baseFile, currentFile];
+  const diff = git([
+    '-c',
+    'diff.renameLimit=0',
+    'diff',
+    '-M',
+    '--no-color',
+    '-U0',
+    '--end-of-options',
+    `${baseRef}...HEAD`,
+    '--',
+    ...files,
+  ]);
   if (!diff) return [];
   return diff
     .split('\n')
@@ -70,9 +85,9 @@ function diffBodyLines(baseRef, file) {
     .filter((line) => !line.startsWith('+++ ') && !line.startsWith('--- '));
 }
 
-function isMetadataOnlyDiff(baseRef, file) {
-  if (!existsAt(baseRef, file)) return false;
-  const lines = diffBodyLines(baseRef, file);
+function isMetadataOnlyDiff(baseRef, baseFile, currentFile) {
+  if (!existsAt(baseRef, baseFile)) return false;
+  const lines = diffBodyLines(baseRef, baseFile, currentFile);
   if (lines.length === 0) return true;
   return lines.every((line) =>
     /^[+-]\s*(status|deprecatedReason|deprecatedBy|series|name|order):/.test(line)
@@ -87,9 +102,9 @@ function normalizeMaintenanceLinks(line) {
     .trim();
 }
 
-function isLinkOnlyDiff(baseRef, file) {
-  if (!existsAt(baseRef, file)) return false;
-  const lines = diffBodyLines(baseRef, file);
+function isLinkOnlyDiff(baseRef, baseFile, currentFile) {
+  if (!existsAt(baseRef, baseFile)) return false;
+  const lines = diffBodyLines(baseRef, baseFile, currentFile);
   if (lines.length === 0) return true;
 
   const removed = lines
@@ -104,29 +119,65 @@ function isLinkOnlyDiff(baseRef, file) {
   return JSON.stringify(removed) === JSON.stringify(added);
 }
 
-function isExistingTicketAddition(baseRef, file) {
-  if (existsAt(baseRef, file)) return false;
-  return ticketExistsAt(baseRef, readTicketId(file), file);
+function isExistingTicketAddition(baseRef, baseFile, currentFile) {
+  if (existsAt(baseRef, baseFile)) return false;
+  return ticketExistsAt(baseRef, readTicketId(currentFile), currentFile);
+}
+
+function isCanonicalTaxonomyOnlyChange(baseRef, baseFile, currentFile) {
+  if (!existsAt(baseRef, baseFile) || !fs.existsSync(currentFile)) return false;
+  const oldContent = git(['show', `${baseRef}:${baseFile}`], { trim: false });
+  const newContent = fs.readFileSync(currentFile, 'utf8');
+  return isCanonicalSeriesTaxonomyOnlyChange(oldContent, newContent);
+}
+
+function parseNameStatus(output) {
+  const fields = output.split('\0');
+  const entries = [];
+
+  for (let index = 0; index < fields.length;) {
+    const status = fields[index++];
+    if (!status) continue;
+
+    const baseFile = fields[index++];
+    if (!baseFile) break;
+
+    if (status.startsWith('R')) {
+      const currentFile = fields[index++];
+      if (!currentFile) break;
+      entries.push({ baseFile, currentFile });
+    } else {
+      entries.push({ baseFile, currentFile: baseFile });
+    }
+  }
+
+  return entries;
 }
 
 const baseRef = argValue('--base', 'origin/main');
 const changed = git([
+  '-c',
+  'diff.renameLimit=0',
   'diff',
-  '--name-only',
   '-M',
+  '--name-status',
+  '-z',
   '--diff-filter=ACMRT',
+  '--end-of-options',
   `${baseRef}...HEAD`,
   '--',
   `${POSTS_DIR}/*.mdx`,
 ]);
 
-const files = changed
-  .split('\n')
-  .filter(Boolean)
-  .filter((file) => !path.basename(file).startsWith('en-'))
-  .filter((file) => fs.existsSync(file))
-  .filter((file) => !isMetadataOnlyDiff(baseRef, file))
-  .filter((file) => !isLinkOnlyDiff(baseRef, file))
-  .filter((file) => !isExistingTicketAddition(baseRef, file));
+const files = parseNameStatus(changed)
+  .filter(({ currentFile }) => !path.basename(currentFile).startsWith('en-'))
+  .filter(({ currentFile }) => fs.existsSync(currentFile))
+  .filter(
+    ({ baseFile, currentFile }) => !isCanonicalTaxonomyOnlyChange(baseRef, baseFile, currentFile)
+  )
+  .filter(({ baseFile, currentFile }) => !isMetadataOnlyDiff(baseRef, baseFile, currentFile))
+  .filter(({ baseFile, currentFile }) => !isLinkOnlyDiff(baseRef, baseFile, currentFile))
+  .filter(({ baseFile, currentFile }) => !isExistingTicketAddition(baseRef, baseFile, currentFile))
+  .map(({ currentFile }) => currentFile);
 
 console.log(files.join('\n'));
