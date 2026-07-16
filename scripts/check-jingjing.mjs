@@ -676,6 +676,42 @@ Webpack Babel
 #   surrogate pair = Unicode spec term glossed inline right after its zh-tw
 #     translation 代理對 (same status as the allowlisted ataraxia gloss).
 surrogate pair
+
+# Added 2026-07-15 for the Claude Tag + OpenClaw self-host series (LINE / Teams /
+# security). All bona-fide proper nouns — companies, products, or canonical
+# named features in the sources, none with a zh-tw translation (writer-prompt
+# rule #2: people / products / companies / named features stay English):
+#   Mattermost / Rocket.Chat = self-hostable team-chat products (OpenClaw channels).
+#   ClawHub = OpenClaw's skill marketplace (proper product name).
+#   Censys / Bitsight / PromptArmor = security research firms cited for the 2026
+#     exposed-instance scan counts + the prompt-injection write-up.
+#   ngrok / cloudflared / Caddy = tunnelling / reverse-proxy products.
+#   worktree = canonical git term (sibling of the allowlisted monorepo / goroutine).
+#   pod = Kubernetes pod (sibling of the allowlisted K8s / Kubernetes / Docker).
+#   Exchange / Graph / Bot Framework = Microsoft product / API / SDK proper nouns
+#     (Microsoft Exchange server, Microsoft Graph API, Azure Bot Framework).
+#   Agent Proxy / Access bundle = Anthropic Claude Tag feature names, referenced
+#     by name across all four posts (Agent already allowlisted via Agent Swarm).
+#   Flex = LINE Flex Message component name.
+Mattermost Rocket.Chat ClawHub
+Censys Bitsight PromptArmor
+ngrok cloudflared Caddy
+worktree pod
+Exchange Graph Bot Framework
+Agent Proxy Access bundle
+Flex
+#   localhost / cross-origin = canonical networking terms whose zh-tw renderings
+#     lose precision (sibling of the allowlisted TCP / TLS / HTTP / DNS / OAuth).
+#   Let's Encrypt = the free CA product named in the reverse-proxy section.
+localhost cross-origin
+Let's Encrypt
+#   OneDrive / Outlook = Microsoft product proper nouns (Graph API scopes named
+#     in the Teams post). DMZ = canonical network-security acronym (sibling of
+#     the allowlisted VPN-class terms); glossed 非軍事區 inline on first use.
+OneDrive Outlook DMZ
+#   LINE Developers / Messaging API = LINE's developer-console + product-API
+#     proper nouns (same category as the Microsoft product names above).
+Developers Messaging
 `;
 
 const HARDCODED = new Set();

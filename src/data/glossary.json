@@ -863,5 +863,25 @@
     "category": "concepts",
     "enDefinition": "No-operation, borrowed from programming (an instruction that does nothing). In a prompt or skill, a line that might as well not be there, because it asks for behavior the model already does by default (\"be thorough\", \"write maintainable code\"). The test: delete the line and run again; if the output does not change, it was a no-op.",
     "enMoguNote": "The prompt-engineering version of printing \"please answer carefully\" on an exam. The model was already trying; the extra line just bloats the skill and burns tokens. Writing prompts is like writing code: an instruction that does nothing is dead code to delete."
+  },
+  {
+    "term": "Claude Tag",
+    "en": "Claude Tag",
+    "definition": "Anthropic 2026 年六月推出的第二代 Claude in Slack。在 Slack 頻道 @Claude 即可召喚，一個 thread 就是一個持久工作階段，頻道成員都能中途插話引導。跑在 Anthropic 代管的暫時性沙箱裡，憑證由 Agent Proxy 在邊界注入、從不進沙箱。",
+    "moguNote": "把它想成「頻道共用的隊友」，不是「你的私人秘書」——誰在 thread 裡講話它就聽誰的。付月費買的有一半是「不用自己扛安全」。",
+    "enDefinition": "The second-generation Claude in Slack, launched by Anthropic in June 2026. Mention @Claude in a channel to summon it; one thread is one persistent session that anyone in the channel can steer. It runs in an Anthropic-managed ephemeral sandbox, with credentials injected at the boundary by Agent Proxy and never present inside the sandbox.",
+    "related": ["Agent", "Agent Proxy", "Claude Code"],
+    "definedIn": [],
+    "category": "products"
+  },
+  {
+    "term": "Agent Proxy",
+    "en": "Agent Proxy",
+    "definition": "一種讓憑證從不進 agent 執行環境的設計：agent 要打外部 API 時，請求先經過代理層，在網路邊界才把憑證注入。沙箱裡的程式從頭到尾碰不到 token，就算被 prompt injection 騙也印不出憑證。Claude Tag 用它管憑證；自架 OpenClaw 時可用出網代理自行重現。",
+    "moguNote": "錢包不放桌上，出門結帳時才由櫃檯幫你刷卡。就算小偷翻遍你家（prompt injection），也翻不到那張卡。",
+    "enDefinition": "A design that keeps credentials out of the agent runtime: when the agent calls an external API, the request passes through a proxy layer that injects the credential only at the network boundary. Code in the sandbox never touches the token, so even a successful prompt injection cannot print it. Claude Tag uses this to manage credentials; self-hosted OpenClaw can reproduce it with an egress proxy.",
+    "related": ["Agent", "Claude Tag", "OpenClaw"],
+    "definedIn": [],
+    "category": "concepts"
   }
 ]

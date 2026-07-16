@@ -1,0 +1,224 @@
+---
+ticketId: "SD-28"
+title: "Claude Tag：不是私人秘書，是頻道共用的隊友"
+originalDate: "2026-07-15"
+translatedDate: "2026-07-15"
+translatedBy:
+  model: "Opus 4.5"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Author"
+      model: "Human + Opus 4.5"
+      harness: "ShroomDog + Claude Code"
+source: "ShroomDog Lab"
+sourceUrl: "https://gu-log.vercel.app/"
+lang: "zh-tw"
+summary: "Claude Tag 是 Anthropic 2026 年六月推出的第二代 Claude in Slack。跟一般 chatbot 不一樣：一個 thread 就是一個持久工作階段，頻道裡的人都能中途插話改方向。但沙箱會蒸發、憑證從不進沙箱——這套安全設計是自架系列的對照組。"
+tags: ["shroomdog-original", "claude-tag", "slack", "agent", "sandbox", "agent-proxy"]
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 8
+    score: 8
+    date: "2026-07-15"
+    model: "claude-opus-4-8"
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 9
+    narrative: 8
+    score: 8
+    date: "2026-07-16"
+    model: "claude-opus-4-5"
+  librarian:
+    glossary: 8
+    crossRef: 8
+    sourceAlign: 8
+    attribution: 8
+    score: 8
+    date: "2026-07-16"
+    model: "claude-opus-4-8"
+  freshEyes:
+    readability: 8
+    firstImpression: 7
+    payoffDensity: 6
+    lengthFit: 6
+    clarity: 9
+    score: 7
+    date: "2026-07-16"
+    model: "claude-opus-4-8"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+
+想像一個場景：工程師在 [Slack](/glossary#slack) 頻道問 Claude 一個問題，Claude 開始查 codebase、跑測試、推分支。中途 PM 覺得需求不對，直接在同一個 thread 回一句「等等，先別合併，改成 X」——Claude 收到，馬上轉彎。
+
+這不是科幻場景，是 [Claude Tag](/glossary#claude-tag) 的預設行為。而最反直覺的地方在這裡：**Claude 不是任何一個人的私人秘書，它是整個頻道共用的隊友**。誰在 thread 裡講話，它就聽誰的。至於「怎麼跟 AI 隊友協作、叫它別送頭」，[SD-23](/posts/sd-23-20260510-ai-dota-teammates) 專門講過，這篇先聚焦官方版本身。
+
+<ClawdNote>
+Claude Tag 是 2026 年六月 beta 上線的第二代 Claude in Slack。Tag 這個字來自 Slack 的 @ 提及——「@Claude 幫我看一下這個」——但產品行為比「被 tag 到就回話」複雜得多。第一代 Claude in Slack 比較像傳統 chatbot：問一句答一句，沒有持久工作階段，也沒有沙箱能執行 code。第二代是重新設計。
+</ClawdNote>
+
+這篇是四篇系列的地基篇。先搞懂官方版長什麼樣、有什麼限制，後面三篇才能講：如果官方不給的功能，自己怎麼蓋。
+
+## Thread = 工作階段，誰都能引導
+
+Claude Tag 的核心運作單位是 [thread](/glossary#thread)。在 Slack 頻道 `@Claude` 一次，那個 thread 就變成一個持久的工作階段。Claude 會記得 thread 裡所有對話，直到對話自然結束或被手動關閉。
+
+重點來了：**同一個 thread 裡，任何人直接回話就能改變 Claude 正在做的事**，不用重新 @。這跟大多數 chatbot 的「一人一工作階段」模式完全不同。工程師問了問題，設計師可以插話補條件，PM 可以中途喊停。Claude 聽的是 thread，不是誰先開口。
+
+<MoguNote>
+這個設計讓 Claude 變成一個「共用麥克風」的角色。好處是團隊協作很流暢，壞處是——如果有人亂講話，整個 thread 的方向就被帶走了。沒有「這是 [Mogu](/about) 的 Claude 工作階段，別人別插嘴」這回事。頻道裡的每個人都有引導權。想想看：如果辦公室的實習生可以隨時轉助理的方向，那是功能還是 bug？(¬‿¬)
+</MoguNote>
+
+這也表示 Claude Tag 不適合處理「只有特定人該知道」的任務。頻道裡的所有人都看得到 thread 內容、都能改方向、都能看到產出。這是設計，不是疏漏。
+
+對比一下傳統的 chatbot 體驗：使用者開一個對話、跟 bot 來回聊、對話結束。那是一對一。Claude Tag 的模型比較像「會議室裡的助理」：會議進行中，任何與會者都可以對助理下指令，助理聽所有人的話。這會讓協作變快，但也會讓「誰說了算」變得模糊。
+
+如果團隊習慣的是「每個人有自己的 AI 助理」，Claude Tag 會需要一點認知調整。它不是個人工具，是團隊工具。
+
+有個細節值得注意：thread 的持久性是有邊界的。如果一個 thread 太久沒有新訊息，它的工作階段狀態會過期，但對話記錄本身還在 Slack 裡。下次有人回話時，Claude 會從 thread 歷史重建 context，但不一定能完美接上幾週前的討論細節。這不是 bug，而是 [context window](/glossary#context-window) 的物理限制——不可能把三個月份的對話全塞進一次推理裡。（[SD-22](/posts/sd-22-20260508-context-window-model-day) 專門講過 context window 是什麼、為什麼有上限。）
+
+---
+
+## 沙箱會蒸發，Thread 才持久
+
+Claude Tag 跑在 Anthropic 代管的沙箱裡，跟 [Claude Code](/glossary#claude-code) on the web 用同一套運算環境。這個沙箱是暫時性的：閒置一段時間就會被釋放，下次 Claude 回覆時開一台全新的執行個體。
+
+這件事的後果很具體：**沒推送的分支、沒貼回 Slack 的產出，下次就不見了**。
+
+<ClawdNote>
+「暫時性」的直覺翻譯是「短暫的」，但在這個脈絡裡比較像「用完即丟」。每次 Claude 被叫醒，它拿到的是一台乾淨的新機器，靠 thread 裡的對話記錄重建上下文。所以 thread 是長期記憶，沙箱只是工作用的草稿紙——草稿紙會被收走，只有寫回 thread 的東西才留得住。
+</ClawdNote>
+
+Claude 怎麼在全新執行個體裡「記得」之前在做什麼？靠兩件東西：thread 上下文和記憶。
+
+Thread 上下文就是那個 Slack thread 裡所有訊息的逐字稿。記憶則是跨工作階段的筆記本：可以記事實、寫筆記、存過往工作階段摘要，還可以按頻道和時間搜尋。公開頻道的記憶全工作區共享，私密頻道各自一份。
+
+這套設計的邏輯是：沙箱是「工作的地方」，thread 和記憶是「記住工作的地方」。兩者分開，所以沙箱可以隨便丟、隨時重開，只要 thread 還在，脈絡就還在。
+
+但這也表示 Claude 的工作流程必須是「做完就貼回來」的模式。不能在沙箱裡慢慢反覆調整、下次再回來繼續——因為下次回來，沙箱已經是另一台機器了。這跟本機開發「專案目錄一直在、隨時可以回來改」的感覺完全不同。
+
+實際的影響是：Claude 會被迫在每次回覆中把工作「封裝」成可交付的產出。寫完 code 就推送，查完資料就貼結論，不要留半成品在沙箱裡。這是暫時性架構的副產品——它讓工作流程變得更像一筆一筆的交易，每一輪對話都是一次完整的交付。
+
+<ShroomDogNote>
+這個「沙箱會蒸發」的設計，是後面自架系列的伏筆。官方版把暫時性沙箱當產品特色（不留痕跡、不怕被翻舊帳），但自架的時候就變成一個選擇題：要不要讓 [agent](/glossary#agent) 有持久的工作環境？官方說不行，自己蓋就可以。代價是什麼？後面會講。
+</ShroomDogNote>
+
+---
+
+## 憑證從不進沙箱
+
+Claude Tag 能打外部 API、連 GitHub、讀私有 repo——但沙箱裡面**沒有任何憑證**。
+
+這是 [Agent Proxy](/glossary#agent-proxy) 的設計。當 Claude 需要打一個 API，請求會先經過 Anthropic 的代理層，在網路邊界才把憑證注入。沙箱裡的 code 從頭到尾碰不到 token。
+
+<MoguNote>
+這個設計的安全好處很直接：就算有人在文件裡塞了 prompt injection，試圖騙 Claude 印出 API 金鑰，Claude 也印不出來——因為 token 根本沒進過沙箱。沙箱裡只有「[Mogu](/glossary#mogu) 要打這個端點」的請求，憑證是代理在最後一刻貼上去的。這跟傳統「把 token 存成環境變數、讓程式去讀」的模式完全不一樣。
+</MoguNote>
+
+權限管理是逐頻道的：管理員把憑證、repo 存取、網域白名單綁成一個 Access bundle，掛到特定頻道。全頻道成員共用這包權限、看同一片視野。網路預設是全擋，只有白名單內的端點能打。
+
+<ClawdNote>
+Access bundle 是 Claude Tag 的權限單位。把它想成「這個頻道的 Claude 能碰什麼」的清單：哪些 GitHub repo、哪些 API 端點、哪些外部服務。不在清單上的，Claude 連請求都發不出去。這跟傳統的「給一組 API 金鑰、讓 bot 隨便打」差很多——這裡是管理員預先畫好邊界，agent 在邊界內活動。
+</ClawdNote>
+
+這套 [Agent](/glossary#agent) Proxy 架構會是自架系列的核心對比點。官方版把「安全」做成產品——Anthropic 幫忙管憑證、幫忙擋網路、幫忙隔離沙箱。自己蓋的時候，這些全變成自己的責任。
+
+具體來說，自架版本要回答的問題包括：憑證存在哪裡？誰能看到？agent 被 prompt injection 攻擊時怎麼防？網路邊界怎麼畫？沙箱要不要隔離？隔離到什麼程度？官方版這些答案都是「Anthropic 幫忙處理」，自架版的答案是「自己設計、自己維護、自己負責」。
+
+這不是說自架一定比較危險——有些團隊的資安要求反而是「不能把憑證交給第三方」，官方版反而不合規。重點是，自架的自由度更高，相應的責任也更重。
+
+從技術角度看，Agent Proxy 的設計還有一個隱藏好處：它讓憑證輪替變得無痛。更新 API 金鑰只要在 Anthropic 管理員面板改一次，不用重新部署沙箱、不用更新環境變數、不用擔心舊金鑰被快取在某個地方。整個憑證生命週期都在 Anthropic 那端處理，使用者這端完全透明。
+
+---
+
+## 入場門檻：兩把鑰匙、一個前提
+
+Claude Tag 不是人人能用。需要三個條件：
+
+**方案限制**：只有 Anthropic 團隊版或企業版能開。免費版、Pro、Max 都不行。這是付費功能，而且是企業級付費。
+
+**雙重授權**：開通需要兩把鑰匙——Anthropic 組織擁有者加上 Slack 工作區管理員。缺一不可。這表示即使工程師個人想用，也必須說服公司的 Anthropic 管理員和 Slack 管理員兩邊都點頭。
+
+**ZDR 排除**：如果組織開了 ZDR（零資料保留），Claude Tag 不能用。因為 Claude Tag 的核心功能——記憶、逐字稿搜尋、跨工作階段脈絡——全都需要留資料。要 ZDR 就不能有記憶，要記憶就不能 ZDR，二選一。
+
+<ClawdNote>
+ZDR = 零資料保留。有些企業基於法遵或隱私要求，會開這個設定讓 Anthropic 不留任何對話記錄。但 Claude Tag 的賣點之一就是跨工作階段記憶和可搜尋的歷史對話——這兩件事跟「不留資料」直接衝突。所以 ZDR 組織只能用 Claude 的其他產品，Tag 不行。這是產品設計上的取捨，不是 bug。
+</ClawdNote>
+
+開通流程本身不複雜：Slack 工作區管理員在任何頻道打 `@Claude connect` 拿一組 15 分鐘有效的配對碼，貼進 claude.ai 的管理員設定，設定 Access bundle、接外部工具、指定 GitHub repo、設每月用量上限，然後啟用。之後用 `/invite @Claude` 把 Claude 加進想用的頻道就行。
+
+整個流程大概十分鐘可以搞定，前提是兩邊的管理員權限都在手上。如果要說服不同部門的管理員點頭，那個說服過程可能比設定本身花更多時間。
+
+值得一提的是，這個「雙重授權」設計反映了一個產品判斷：Claude Tag 不是讓個人偷偷用的工具，是要在組織層級做決策的東西。Anthropic 把入場門檻設在這裡，大概是想確保：如果 Claude 在某個 Slack 頻道出包，至少有兩個管理員層級的人知道它在那裡、知道它能做什麼、而且可以關掉它。
+
+---
+
+## 計費：頻道吃公款，DM 吃私房
+
+Claude Tag 的計費分兩條路：
+
+**頻道用量**走組織共用額度池。預設上限是每月 $1,000 美金，管理員可以調整。管理員後台看得到每個頻道花了多少，可以針對特定頻道設上限或關閉。
+
+**DM 用量**走使用者個人的 claude.ai 帳號。這是完全獨立的：DM Claude 的花費不吃組織額度池，算在個人頭上。管理員可以選擇整個關掉 DM 功能。
+
+<MoguNote>
+這個設計的邏輯是：頻道裡的工作是「公司的事」，DM 裡的對話是「個人的事」。公司的事公司出錢、公司有管理權；個人的事自己出錢、公司管不到內容。但管理員可以決定要不要讓員工用 DM 功能——有些公司會直接關掉，避免搞不清楚「這算公務還是私人用途」的灰色地帶。(◕‿◕)
+</MoguNote>
+
+另一個差異：頻道可以設排程 routine（讓 Claude 定時做某件事），DM 不行。DM 是純對話，沒有自動化功能。
+
+這個分流設計也影響了使用行為。如果某個任務跟團隊無關、純粹是個人研究，DM 是更自然的選擇——反正不佔公司額度，也不會在公開頻道留下對話記錄。但如果要讓 Claude 跑 routine 或跟團隊協作，就必須在頻道進行。
+
+從成本控制的角度，管理員可以看到每個頻道的花費，但看不到 DM 內容。這表示「公司花了多少錢在 Claude 上」這個問題，答案只有一半：頻道用量清楚，DM 用量看不到。如果管理員想完全掌控成本，關掉 DM 是比較乾淨的選擇。
+
+還有一個隱藏的設計意圖：把 DM 跟個人帳號綁定，等於是讓員工用自己的 claude.ai 訂閱去支付私人用途的 Claude 對話。這比「公司 AI 資源被拿去問私事」的模式清楚——公私分明，帳單也分明。
+
+---
+
+## 能幹嘛：分流、寫 Code、排程
+
+Claude Tag 的使用場景集中在幾個方向：
+
+**頻道內分流**：新的 issue 進來，Claude 可以自動分類、標標籤、指派給對的人。這配合 routine 功能特別有效——設定每天早上九點跑一次，Claude 會把前一天的新 issue 整理好。分流的好處不只是省時間，還有一致性——Claude 不會忘記分類標準，不會漏掉邊緣案例，不會因為累了就開始亂標。
+
+**寫 code**：Claude 可以複製 repo、讀 codebase、寫 code、跑測試、推分支、開 PR。因為 GitHub repo 存取是透過 Access bundle 管理的，Claude 只能碰管理員授權過的 repo。這表示即使頻道裡有人惡意指令「去把 production repo 全刪掉」，如果 Access bundle 沒給那個 repo 的權限，Claude 也做不到。
+
+**Routine 排程**：頻道可以設定週期性任務。每天產一份報告、每週一早上整理上週的 PR 狀態、每個月初檢查相依套件版本。DM 不能設 routine，只有頻道可以。Routine 的設計是「設完就忘」——設好之後不用每次手動觸發，Claude 會自己跑，跑完把結果貼回頻道。
+
+**文件搜尋與整理**：Claude 可以讀頻道歷史、搜尋記憶、整理過往對話。這在新成員上手時特別有用——與其讓新人翻三個月前的 Slack 歷史，不如讓 Claude 整理一份「這個專案到目前為止發生過什麼事」的摘要。這也是記憶系統的實際應用場景：它不只是讓 Claude 記得過去，還讓 Claude 可以把過去整理成新成員能快速吸收的形式。
+
+**跨頻道協作**：如果同一個 Access bundle 被掛在多個頻道，Claude 的記憶可以跨頻道共享。這讓「A 頻道討論過的決策」能自動帶到「B 頻道的後續實作」裡，不用每次都重新解釋背景。
+
+<MoguNote>
+Routine 功能讓 Claude Tag 從「被動回答問題」變成「主動巡邏」。這聽起來像是把 agent 的能力往前推了一步——但代價是：routine 的每一次執行都在吃組織的額度。如果設定太激進（比如每小時跑一次），帳單會先反映出來。所以 routine 的設計不只是「想讓它做什麼」，還要想「多久做一次才划算」。
+</MoguNote>
+
+<ShroomDogNote>
+這些使用場景聽起來都很合理，但真正的限制在別的地方：Claude Tag 只支援 Slack。沒有 Teams 版、沒有 LINE 版、沒有 Discord 版、沒有自架的 Mattermost 或 Rocket.Chat。想在別的平台跑一個類 Claude Tag 的東西？官方不給。想讓 Claude 跑在公司內網、不經過 Anthropic 的代理？官方也不給。這就是接下來三篇自架系列要做的事。
+</ShroomDogNote>
+
+---
+
+## 結語
+
+Claude Tag 把「安全」做成了產品特色：暫時性沙箱不留工作痕跡，Agent Proxy 讓憑證永遠不進沙箱，Access bundle 把權限邊界畫得清清楚楚。這是一套設計得很完整的官方解法——前提是組織願意付團隊版/企業版的費用、願意只用 Slack、願意讓 Anthropic 管憑證和記憶。
+
+但如果這些前提不成立呢？
+
+想在 LINE 上跑一個類似的東西給台灣客戶用。想在 Teams 上跑因為公司 IT 政策只允許 Microsoft 生態系。想在公司內網跑因為 ZDR 不夠、需要連資料都不出公司。想自己管憑證因為資安團隊不允許把 API 金鑰交給第三方。想換一個 model 因為 Claude 太貴或因為某個垂直領域有更好的專用模型。
+
+這些都不是邊緣案例。它們是台灣市場、大企業 IT、高度法遵產業的日常現實。
+
+官方版 Claude Tag 是一個很好的參照點——它示範了「把 agent 放進頻道」可以長什麼樣。但它不是唯一的選項。用 [OpenClaw](/glossary#openclaw) 這類工具，同樣的概念可以搬到任何平台、任何 model、任何網路環境。
+
+代價是：官方幫忙擋的那些東西，全變成自己的責任。
+
+接下來三篇會示範怎麼蓋。第一個問題：如果 Anthropic 不幫忙管憑證，安全邊界該怎麼自己畫？
