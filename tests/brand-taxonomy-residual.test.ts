@@ -85,6 +85,7 @@ describe('brand taxonomy residual gate', () => {
         'https://github.com/example/clawd-workspace/blob/main/README.md',
         'ssh clawd@legacy.example',
         'checkout=%h/clawd/projects/gu-log',
+        'linuxCheckout=/home/moltbot/clawd/projects/gu-log',
         'repo = Path.home() / "clawd" / "projects" / "gu-log"',
       ].join('\n')
     );
@@ -102,6 +103,7 @@ describe('brand taxonomy residual gate', () => {
         'external-workspace-coordinate:clawd-workspace',
         'deployment-coordinate:clawd@legacy.example',
         'deployment-coordinate:%h/clawd',
+        'deployment-coordinate:/home/moltbot/clawd',
         'deployment-coordinate:Path.home() / "clawd"',
       ])
     );

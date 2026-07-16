@@ -163,6 +163,13 @@
     },
     {
       "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "deployment-coordinate",
+      "token": "/home/moltbot/clawd",
+      "expectedCount": 2,
+      "reason": "Regression fixture and assertion for a legacy checkout nested under a generic Linux user's home."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
       "rule": "external-workspace-coordinate",
       "token": "clawd-workspace",
       "expectedCount": 2,
@@ -349,6 +356,272 @@
       "token": "SP-N",
       "expectedCount": 2,
       "reason": "Regression fixture and assertion for a template retired ticket ID."
+    },
+    {
+      "path": ".github/workflows/deploy-smoke-test.yml",
+      "rule": "legacy-route",
+      "token": "clawd-picks",
+      "expectedCount": 2,
+      "reason": "Breaking-route smoke regression: the retired listing URLs must return 404 without redirects."
+    },
+    {
+      "path": ".github/workflows/deploy-smoke-test.yml",
+      "rule": "legacy-route",
+      "token": "shroom-picks",
+      "expectedCount": 2,
+      "reason": "Breaking-route smoke regression: the retired listing URLs must return 404 without redirects."
+    },
+    {
+      "path": ".github/workflows/deploy-smoke-test.yml",
+      "rule": "legacy-route",
+      "token": "shroomdog-picks",
+      "expectedCount": 2,
+      "reason": "Breaking-route smoke regression: the retired listing URLs must return 404 without redirects."
+    },
+    {
+      "path": ".github/workflows/deploy-smoke-test.yml",
+      "rule": "post-slug",
+      "token": "cp-291-20260414-anthropic-",
+      "expectedCount": 2,
+      "reason": "Breaking-route smoke regression: a retired CP post URL and its English pair must return 404."
+    },
+    {
+      "path": ".github/workflows/deploy-smoke-test.yml",
+      "rule": "post-slug",
+      "token": "sp-7-20260130-clawdbot-architecture-deep-dive",
+      "expectedCount": 2,
+      "reason": "Breaking-route smoke regression: a retired SP post URL and its English pair must return 404."
+    },
+    {
+      "path": "tests/brand-routes.spec.ts",
+      "rule": "legacy-prefix-value",
+      "token": "SP",
+      "expectedCount": 1,
+      "reason": "Breaking-route regression label names the retired series whose artifact URLs must stay unavailable."
+    },
+    {
+      "path": "tests/brand-routes.spec.ts",
+      "rule": "legacy-route",
+      "token": "clawd-picks",
+      "expectedCount": 3,
+      "reason": "Breaking-route regression requests retired listing and asset URLs and requires direct 404 responses."
+    },
+    {
+      "path": "tests/brand-routes.spec.ts",
+      "rule": "legacy-route",
+      "token": "shroom-picks",
+      "expectedCount": 2,
+      "reason": "Breaking-route regression requests retired listing URLs and requires direct 404 responses."
+    },
+    {
+      "path": "tests/brand-routes.spec.ts",
+      "rule": "legacy-route",
+      "token": "shroomdog-picks",
+      "expectedCount": 2,
+      "reason": "Breaking-route regression requests retired listing URLs and requires direct 404 responses."
+    },
+    {
+      "path": "tests/brand-routes.spec.ts",
+      "rule": "post-slug",
+      "token": "sp-194-html-loop",
+      "expectedCount": 1,
+      "reason": "Breaking-route regression requires this retired artifact path to return 404 without redirect."
+    },
+    {
+      "path": "tests/brand-routes.spec.ts",
+      "rule": "post-slug",
+      "token": "sp-245-trim-noop",
+      "expectedCount": 1,
+      "reason": "Breaking-route regression requires this retired artifact path to return 404 without redirect."
+    },
+    {
+      "path": "tests/brand-routes.spec.ts",
+      "rule": "post-slug",
+      "token": "sp-251-unknowns",
+      "expectedCount": 1,
+      "reason": "Breaking-route regression requires this retired artifact path to return 404 without redirect."
+    },
+    {
+      "path": "tests/brand-routes.spec.ts",
+      "rule": "post-slug",
+      "token": "sp-7-20260130-clawdbot-architecture-deep-dive",
+      "expectedCount": 1,
+      "reason": "Breaking-route regression requires this retired post URL to return 404 while the GP URL resolves."
+    },
+    {
+      "path": "tests/pipeline-taxonomy.test.ts",
+      "rule": "legacy-prefix-value",
+      "token": "CP",
+      "expectedCount": 1,
+      "reason": "Negative taxonomy regression passes the retired prefix and requires an MP replacement diagnostic."
+    },
+    {
+      "path": "tests/pipeline-taxonomy.test.ts",
+      "rule": "legacy-prefix-value",
+      "token": "SP",
+      "expectedCount": 1,
+      "reason": "Negative taxonomy regression passes the retired prefix and requires a GP replacement diagnostic."
+    },
+    {
+      "path": "tests/pipeline-taxonomy.test.ts",
+      "rule": "legacy-route",
+      "token": "clawd-picks",
+      "expectedCount": 3,
+      "reason": "Negative migration regression requires retired automation filenames to remain absent."
+    },
+    {
+      "path": "tests/pipeline-taxonomy.test.ts",
+      "rule": "pipeline-command",
+      "token": "sp-pipeline",
+      "expectedCount": 2,
+      "reason": "Negative migration regression requires the retired pipeline directory and wrapper to remain absent."
+    },
+    {
+      "path": "tests/pipeline-taxonomy.test.ts",
+      "rule": "ticket-id",
+      "token": "CP-PENDING",
+      "expectedCount": 1,
+      "reason": "Negative prompt regression requires the retired pending ticket form to remain absent."
+    },
+    {
+      "path": "tests/post-version-manifest.test.ts",
+      "rule": "post-slug",
+      "token": "sp-999-regression",
+      "expectedCount": 7,
+      "reason": "Synthetic Git rename-history regression verifies legacy touches project onto the canonical GP manifest key."
+    },
+    {
+      "path": "tests/tribunal-frontmatter-schema.test.ts",
+      "rule": "legacy-prefix-value",
+      "token": "CP",
+      "expectedCount": 2,
+      "reason": "Schema rejection contract names the retired prefix and requires actionable MP diagnostics."
+    },
+    {
+      "path": "tests/tribunal-frontmatter-schema.test.ts",
+      "rule": "legacy-prefix-value",
+      "token": "SP",
+      "expectedCount": 2,
+      "reason": "Schema rejection contract names the retired prefix and requires actionable GP diagnostics."
+    },
+    {
+      "path": "tests/tribunal-frontmatter-schema.test.ts",
+      "rule": "schema-key",
+      "token": "clawdNote",
+      "expectedCount": 6,
+      "reason": "Schema rejection fixtures require the retired score key to fail with a moguNote diagnostic."
+    },
+    {
+      "path": "tests/tribunal-frontmatter-schema.test.ts",
+      "rule": "ticket-id",
+      "token": "CP-314",
+      "expectedCount": 1,
+      "reason": "Schema rejection fixture requires this retired ticket ID to produce the canonical MP replacement."
+    },
+    {
+      "path": "tests/tribunal-frontmatter-schema.test.ts",
+      "rule": "ticket-id",
+      "token": "SP-165",
+      "expectedCount": 2,
+      "reason": "Schema rejection fixtures require retired cross-reference IDs to produce canonical GP diagnostics."
+    },
+    {
+      "path": "tests/tribunal-frontmatter-schema.test.ts",
+      "rule": "ticket-id",
+      "token": "SP-258",
+      "expectedCount": 1,
+      "reason": "Schema rejection fixture requires this retired ticket ID to produce the canonical GP replacement."
+    },
+    {
+      "path": "tests/tribunal-frontmatter-schema.test.ts",
+      "rule": "ticket-id",
+      "token": "SP-PENDING",
+      "expectedCount": 1,
+      "reason": "Schema rejection fixture requires the retired pending ID to produce the canonical GP replacement."
+    },
+    {
+      "path": "tests/tribunal-frontmatter-scores.test.ts",
+      "rule": "schema-key",
+      "token": "clawdNote",
+      "expectedCount": 6,
+      "reason": "Frontmatter writer rejection fixtures require the retired score key to fail instead of being stripped."
+    },
+    {
+      "path": "tests/validate-posts.test.ts",
+      "rule": "component",
+      "token": "ClawdNote",
+      "expectedCount": 4,
+      "reason": "Content validation regression requires the retired component input to fail with a MoguNote diagnostic."
+    },
+    {
+      "path": "tests/validate-posts.test.ts",
+      "rule": "legacy-prefix-value",
+      "token": "CP",
+      "expectedCount": 2,
+      "reason": "Content validation rejection contract names the retired prefix and requires MP diagnostics."
+    },
+    {
+      "path": "tests/validate-posts.test.ts",
+      "rule": "legacy-prefix-value",
+      "token": "SP",
+      "expectedCount": 2,
+      "reason": "Content validation rejection contract names the retired prefix and requires GP diagnostics."
+    },
+    {
+      "path": "tests/validate-posts.test.ts",
+      "rule": "legacy-route",
+      "token": "clawd-picks",
+      "expectedCount": 1,
+      "reason": "Negative tag fixture requires the retired content-type tag to remain invalid."
+    },
+    {
+      "path": "tests/validate-posts.test.ts",
+      "rule": "legacy-route",
+      "token": "shroom-picks",
+      "expectedCount": 1,
+      "reason": "Negative tag fixture requires the retired content-type tag to remain invalid."
+    },
+    {
+      "path": "tests/validate-posts.test.ts",
+      "rule": "legacy-route",
+      "token": "shroomdog-picks",
+      "expectedCount": 1,
+      "reason": "Negative tag fixture requires the retired content-type tag to remain invalid."
+    },
+    {
+      "path": "tests/validate-posts.test.ts",
+      "rule": "post-slug",
+      "token": "sp-258-20260401-x",
+      "expectedCount": 1,
+      "reason": "Filename validation regression requires a GP ticket in a retired SP filename to fail."
+    },
+    {
+      "path": "tests/validate-posts.test.ts",
+      "rule": "schema-key",
+      "token": "clawdNote",
+      "expectedCount": 3,
+      "reason": "Content validation regression requires the retired score key to fail with a moguNote diagnostic."
+    },
+    {
+      "path": "tests/validate-posts.test.ts",
+      "rule": "ticket-id",
+      "token": "CP-314",
+      "expectedCount": 1,
+      "reason": "Content validation fixture requires this retired ticket ID to produce the canonical MP replacement."
+    },
+    {
+      "path": "tests/validate-posts.test.ts",
+      "rule": "ticket-id",
+      "token": "SP-165",
+      "expectedCount": 1,
+      "reason": "Content validation fixture requires this retired cross-reference to produce the canonical GP replacement."
+    },
+    {
+      "path": "tests/validate-posts.test.ts",
+      "rule": "ticket-id",
+      "token": "SP-258",
+      "expectedCount": 1,
+      "reason": "Content validation fixture requires this retired ticket ID to produce the canonical GP replacement."
     },
     {
       "path": "src/content/posts/gp-64-20260216-openclaw-creator-joins-openai.mdx",

@@ -66,11 +66,11 @@ describe('Search Relevance — en', () => {
 describe('Search Relevance — highlight quality', () => {
   it('should not produce single-character match indices for "interactive"', () => {
     const results = fuseZh.search('interactive', { limit: 5 });
-    const sp90 = results.find((r) => r.item.ticketId === 'GP-90');
-    expect(sp90).toBeDefined();
+    const gp90 = results.find((r) => r.item.ticketId === 'GP-90');
+    expect(gp90).toBeDefined();
 
     // Check that match indices are meaningful (>= 3 chars each)
-    for (const match of sp90!.matches || []) {
+    for (const match of gp90!.matches || []) {
       const longIndices = match.indices.filter(([s, e]) => e - s >= 2);
       // At least one meaningful match should exist
       if (match.key === 'title' || match.key === 'summary') {

@@ -51,9 +51,7 @@ describe('checkUrlsUnchanged', () => {
     const after = 'Read the docs for details';
     const result = checkUrlsUnchanged(before, after);
     expect(result.pass).toBe(false);
-    expect(result.violations).toEqual([
-      { type: 'removed', url: 'https://a.com' },
-    ]);
+    expect(result.violations).toEqual([{ type: 'removed', url: 'https://a.com' }]);
   });
 
   it('detects added URL', () => {
@@ -61,24 +59,22 @@ describe('checkUrlsUnchanged', () => {
     const after = 'Some text with https://new.com';
     const result = checkUrlsUnchanged(before, after);
     expect(result.pass).toBe(false);
-    expect(result.violations).toEqual([
-      { type: 'added', url: 'https://new.com' },
-    ]);
+    expect(result.violations).toEqual([{ type: 'added', url: 'https://new.com' }]);
   });
 
   it('detects mutated URL (same domain, different path)', () => {
-    const before = 'Visit [post](https://gu-log.vercel.app/posts/sp-1)';
-    const after = 'Visit [post](https://gu-log.vercel.app/posts/sp-one)';
+    const before = 'Visit [post](https://gu-log.vercel.app/posts/gp-1)';
+    const after = 'Visit [post](https://gu-log.vercel.app/posts/gp-one)';
     const result = checkUrlsUnchanged(before, after);
     expect(result.pass).toBe(false);
     // Old URL removed, new URL added
     expect(result.violations).toContainEqual({
       type: 'removed',
-      url: 'https://gu-log.vercel.app/posts/sp-1',
+      url: 'https://gu-log.vercel.app/posts/gp-1',
     });
     expect(result.violations).toContainEqual({
       type: 'added',
-      url: 'https://gu-log.vercel.app/posts/sp-one',
+      url: 'https://gu-log.vercel.app/posts/gp-one',
     });
   });
 
@@ -235,7 +231,8 @@ describe('checkFrontmatterPreserved', () => {
   });
 
   it('detects multiple violations', () => {
-    const before = '---\ntitle: A\nticketId: GP-100\nsourceUrl: https://x.com/a\nlang: zh-tw\n---\n';
+    const before =
+      '---\ntitle: A\nticketId: GP-100\nsourceUrl: https://x.com/a\nlang: zh-tw\n---\n';
     const after = '---\ntitle: B\nticketId: GP-999\nsourceUrl: https://x.com/b\nlang: en\n---\n';
     const result = checkFrontmatterPreserved(before, after, protectedFields);
     expect(result.pass).toBe(false);
@@ -247,9 +244,7 @@ describe('checkFrontmatterPreserved', () => {
     const after = '---\ntitle: A\n---\n';
     const result = checkFrontmatterPreserved(before, after, ['sourceUrl']);
     expect(result.pass).toBe(false);
-    expect(result.violations).toEqual([
-      { field: 'sourceUrl', before: 'https://x.com', after: '' },
-    ]);
+    expect(result.violations).toEqual([{ field: 'sourceUrl', before: 'https://x.com', after: '' }]);
   });
 
   it('allows unprotected fields to change', () => {

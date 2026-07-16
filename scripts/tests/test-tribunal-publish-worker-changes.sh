@@ -83,7 +83,7 @@ scores:
 Rewritten EN body with Tribunal changes.
 POST
 
-bash "$HELPER" "$worker" "$main" "cp-999-test.mdx"
+bash "$HELPER" "$worker" "$main" "mp-999-test.mdx"
 
 grep -q 'Rewritten body with Tribunal changes' "$main/src/content/posts/mp-999-test.mdx" \
   || fail "zh post rewrite was not copied from worker to main"
@@ -100,7 +100,7 @@ fi
 pass "worker Tribunal rewrites are published into main repo and stageable"
 
 same_main_hash_before="$(git -C "$main" hash-object src/content/posts/mp-999-test.mdx)"
-bash "$HELPER" "$main" "$main" "cp-999-test.mdx"
+bash "$HELPER" "$main" "$main" "mp-999-test.mdx"
 same_main_hash_after="$(git -C "$main" hash-object src/content/posts/mp-999-test.mdx)"
 [ "$same_main_hash_before" = "$same_main_hash_after" ] || fail "same-repo publish should be a no-op"
 pass "same-repo publish is safe no-op"

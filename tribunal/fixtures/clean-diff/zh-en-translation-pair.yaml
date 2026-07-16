@@ -1,5 +1,5 @@
 # GP-165 中文版 vs en-GP-165 英文版 — 跨語言翻譯對豁免案例
-# 同一篇文章的雙語版本：sp-165-...（zh-tw）與 en-gp-165-...（en）
+# 同一篇文章的雙語版本：gp-165-...（zh-tw）與 en-gp-165-...（en）
 # 雖然兩者幾乎同內容，但 lang 不同 → 不算 dup，應 clean-diff / allow
 #
 # frontmatter shape 照真實 corpus：source = flat string, sourceUrl = flat string,
@@ -10,20 +10,20 @@ expectedAction: allow
 # d7de0f12 is the actual GP-165 landing commit ("Add GP-165: Anthropic Claude
 # Mythos Preview System Card — too powerful to release"), superseding the
 # previous Gemma-era placeholder.
-sourceRef: "d7de0f12"
+sourceRef: 'd7de0f12'
 
 humanReasoning: |
-  gu-log 每篇中文翻譯稿都對應一篇英文鏡像版（en-sp-* / en-cp-* / en-sd-* / en-lv-*）：
+  gu-log 每篇中文翻譯稿都對應一篇英文鏡像版（en-gp-* / en-mp-* / en-sd-* / en-lv-*）：
   - 相同 source（出處名稱）、相同 sourceUrl、相同 tags
   - lang 欄位不同：zh-tw vs en
-  - slug 差 `en-` 前綴：sp-165-... ↔ en-gp-165-...
+  - slug 差 `en-` 前綴：gp-165-... ↔ en-gp-165-...
   - ticketId 相同：兩邊都是 "GP-165"（en 版不用 "en-GP-165"）
 
   這是有意設計的雙語發佈系統，不是重複文章。
   Judge 在比對 corpus 時必須：
   1. 先以 `lang` pre-filter：只比對同語言的 posts
-  2. 識別 en- 前綴配對：若 inputPost.slug = "sp-165-xxx"，則 "en-gp-165-xxx" 是翻譯對，豁免比對
-  3. 此規則適用所有系列前綴（sp/cp/sd/lv）
+  2. 識別 en- 前綴配對：若 inputPost.slug = "gp-165-xxx"，則 "en-gp-165-xxx" 是翻譯對，豁免比對
+  3. 此規則適用所有系列前綴（gp/mp/sd/lv）
   4. 給 clean-diff 判決 / allow action（不算 dup）
 
   注意：如果 judge 沒做 lang pre-filter，這對文章的相同 source/sourceUrl/tags 會讓
@@ -32,12 +32,12 @@ humanReasoning: |
 inputPost:
   slug: en-gp-165-20260408-anthropic-anthropic-claude-mythos-preview-ai
   frontmatter:
-    ticketId: "GP-165"
+    ticketId: 'GP-165'
     lang: en
-    originalDate: "2026-04-07"
-    translatedDate: "2026-04-08"
-    source: "Anthropic System Card"
-    sourceUrl: "https://www-cdn.anthropic.com/53566bf5440a10affd749724787c8913a2ae0841.pdf"
+    originalDate: '2026-04-07'
+    translatedDate: '2026-04-08'
+    source: 'Anthropic System Card'
+    sourceUrl: 'https://www-cdn.anthropic.com/53566bf5440a10affd749724787c8913a2ae0841.pdf'
     tags:
       - gu-log-picks
       - anthropic
@@ -57,12 +57,12 @@ inputPost:
 corpusSnapshot:
   - slug: gp-165-20260408-anthropic-anthropic-claude-mythos-preview-ai
     frontmatter:
-      ticketId: "GP-165"
+      ticketId: 'GP-165'
       lang: zh-tw
-      originalDate: "2026-04-07"
-      translatedDate: "2026-04-08"
-      source: "Anthropic System Card"
-      sourceUrl: "https://www-cdn.anthropic.com/53566bf5440a10affd749724787c8913a2ae0841.pdf"
+      originalDate: '2026-04-07'
+      translatedDate: '2026-04-08'
+      source: 'Anthropic System Card'
+      sourceUrl: 'https://www-cdn.anthropic.com/53566bf5440a10affd749724787c8913a2ae0841.pdf'
       tags:
         - gu-log-picks
         - anthropic

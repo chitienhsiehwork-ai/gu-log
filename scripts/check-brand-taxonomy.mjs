@@ -67,7 +67,7 @@ const TEXT_RULES = [
   {
     rule: 'deployment-coordinate',
     pattern:
-      /\bclawd-vm\b|\/home\/clawd\b|~\/clawd\b|\$HOME\/clawd\b|\bclawd@[A-Za-z0-9._-]+\b|%h\/clawd\b|Path\.home\(\)\s*\/\s*(?:"clawd"|'clawd'|clawd\b)/g,
+      /\bclawd-vm\b|\/home\/clawd\b|\/home\/[A-Za-z0-9._-]+\/clawd\b|~\/clawd\b|\$HOME\/clawd\b|\bclawd@[A-Za-z0-9._-]+\b|%h\/clawd\b|Path\.home\(\)\s*\/\s*(?:"clawd"|'clawd'|clawd\b)/g,
   },
 ];
 

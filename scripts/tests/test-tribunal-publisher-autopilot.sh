@@ -20,14 +20,14 @@ cat > "$runtime/.score-loop/state/tribunal-publisher.json" <<'JSON'
 {
   "schemaVersion": 1,
   "entries": {
-    "sp-1-test.mdx": { "publishState": "branch_pushed", "batchId": "batch-1" },
-    "sp-2-test.mdx": { "publishState": "pr_open", "batchId": "batch-2" },
-    "sp-3-test.mdx": { "publishState": "pr_open", "batchId": "batch-3" }
+    "gp-1-test.mdx": { "publishState": "branch_pushed", "batchId": "batch-1" },
+    "gp-2-test.mdx": { "publishState": "pr_open", "batchId": "batch-2" },
+    "gp-3-test.mdx": { "publishState": "pr_open", "batchId": "batch-3" }
   },
   "batches": {
-    "batch-1": { "batchId": "batch-1", "branch": "publisher/batch-1", "entries": ["sp-1-test.mdx"], "state": "branch_pushed" },
-    "batch-2": { "batchId": "batch-2", "branch": "publisher/batch-2", "entries": ["sp-2-test.mdx"], "state": "pr_open" },
-    "batch-3": { "batchId": "batch-3", "branch": "publisher/batch-3", "entries": ["sp-3-test.mdx"], "state": "pr_open" }
+    "batch-1": { "batchId": "batch-1", "branch": "publisher/batch-1", "entries": ["gp-1-test.mdx"], "state": "branch_pushed" },
+    "batch-2": { "batchId": "batch-2", "branch": "publisher/batch-2", "entries": ["gp-2-test.mdx"], "state": "pr_open" },
+    "batch-3": { "batchId": "batch-3", "branch": "publisher/batch-3", "entries": ["gp-3-test.mdx"], "state": "pr_open" }
   }
 }
 JSON
@@ -102,8 +102,8 @@ grep -q '^42$' "$ready_log" || fail "draft publisher PR should be marked ready"
 grep -q '^42$' "$guard_log" || fail "merge guard should run for ready'd PR"
 grep -q '^43$' "$guard_log" || fail "merge guard should run for already-ready PR"
 grep -q '^batch-1 publisher/batch-1$' "$create_log" || fail "branch_pushed batch should recover a PR"
-[ "$(jq -r '.entries["sp-1-test.mdx"].publishState' "$runtime/.score-loop/state/tribunal-publisher.json")" = "pr_open" ] || fail "recovered PR should move entry to pr_open"
-[ "$(jq -r '.entries["sp-1-test.mdx"].prNumber' "$runtime/.score-loop/state/tribunal-publisher.json")" = "41" ] || fail "recovered PR should store prNumber"
+[ "$(jq -r '.entries["gp-1-test.mdx"].publishState' "$runtime/.score-loop/state/tribunal-publisher.json")" = "pr_open" ] || fail "recovered PR should move entry to pr_open"
+[ "$(jq -r '.entries["gp-1-test.mdx"].prNumber' "$runtime/.score-loop/state/tribunal-publisher.json")" = "41" ] || fail "recovered PR should store prNumber"
 pass "autopilot recovers missing PRs and advances open PRs"
 
 cat > "$TMP/open-empty.json" <<'JSON'
@@ -121,7 +121,7 @@ JSON
   TRIBUNAL_PUBLISHER_AUTOPILOT_CREATE_PR_HOOK="$TMP/create-hook.sh" \
   bash scripts/tribunal-publisher-autopilot.sh --skip-apply)
 
-[ "$(jq -r '.entries["sp-3-test.mdx"].publishState' "$runtime/.score-loop/state/tribunal-publisher.json")" = "published" ] || fail "merged publisher PR should reconcile to published"
-[ "$(jq -r '.entries["sp-3-test.mdx"].mergeCommit' "$runtime/.score-loop/state/tribunal-publisher.json")" = "abc123def456" ] || fail "published entry should record merge commit"
+[ "$(jq -r '.entries["gp-3-test.mdx"].publishState' "$runtime/.score-loop/state/tribunal-publisher.json")" = "published" ] || fail "merged publisher PR should reconcile to published"
+[ "$(jq -r '.entries["gp-3-test.mdx"].mergeCommit' "$runtime/.score-loop/state/tribunal-publisher.json")" = "abc123def456" ] || fail "published entry should record merge commit"
 [ "$(jq -r '.batches["batch-3"].state' "$runtime/.score-loop/state/tribunal-publisher.json")" = "published" ] || fail "batch state should reconcile to published"
 pass "autopilot reconciles merged publisher PRs back into published state"

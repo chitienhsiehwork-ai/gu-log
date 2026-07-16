@@ -239,7 +239,7 @@ describe('pipeline — writer-constraint enforcement', () => {
 
   beforeEach(async () => {
     tmpDir = await mkdtemp(join(tmpdir(), 'tribunal-v2-pipeline-test-'));
-    articlePath = join(tmpDir, 'cp-999-test.mdx');
+    articlePath = join(tmpDir, 'mp-999-test.mdx');
     await writeFile(articlePath, MINIMAL_ARTICLE, 'utf-8');
   });
 
@@ -580,7 +580,7 @@ describe('pipeline — Stage 3 dupCheck-only FAIL (Level E)', () => {
 
   beforeEach(async () => {
     tmpDir = await mkdtemp(join(tmpdir(), 'tribunal-v2-dupcheck-test-'));
-    articlePath = join(tmpDir, 'cp-999-dup-test.mdx');
+    articlePath = join(tmpDir, 'mp-999-dup-test.mdx');
     await writeFile(articlePath, MINIMAL_ARTICLE, 'utf-8');
   });
 
@@ -613,7 +613,7 @@ describe('pipeline — Stage 3 dupCheck-only FAIL (Level E)', () => {
       dupCheck_pass: false,
       improvements: {
         dupCheck:
-          'class=hard-dup action=BLOCK matchedSlugs=[sp-165-20260408-some-slug] reason=與 GP-165 同 cluster primary，無 independentDiff',
+          'class=hard-dup action=BLOCK matchedSlugs=[gp-165-20260408-some-slug] reason=與 GP-165 同 cluster primary，無 independentDiff',
       },
       critical_issues: ['duplicate detected — manual review required'],
       judge_model: 'mock',
@@ -805,7 +805,7 @@ describe('pipeline — Stage 3 dupCheck-only FAIL (Level E)', () => {
       dupCheck_pass: false,
       improvements: {
         linkCoverage: 'missing glossary links',
-        dupCheck: 'class=hard-dup action=BLOCK matchedSlugs=[sp-100] reason=同 cluster primary',
+        dupCheck: 'class=hard-dup action=BLOCK matchedSlugs=[gp-100] reason=同 cluster primary',
       },
       critical_issues: ['library incomplete', 'duplicate detected'],
       judge_model: 'mock',
@@ -826,7 +826,7 @@ describe('pipeline — Stage 3 dupCheck-only FAIL (Level E)', () => {
       library_pass: true, // library fixed by workers
       dupCheck_pass: false,
       improvements: {
-        dupCheck: 'class=hard-dup action=BLOCK matchedSlugs=[sp-100] reason=同 cluster primary',
+        dupCheck: 'class=hard-dup action=BLOCK matchedSlugs=[gp-100] reason=同 cluster primary',
       },
       critical_issues: ['duplicate detected'],
       judge_model: 'mock',
@@ -897,7 +897,7 @@ describe('pipeline — v9 Fresh Eyes clarity gate', () => {
 
   beforeEach(async () => {
     tmpDir = await mkdtemp(join(tmpdir(), 'tribunal-v2-v9-test-'));
-    articlePath = join(tmpDir, 'cp-998-v9.mdx');
+    articlePath = join(tmpDir, 'mp-998-v9.mdx');
     await writeFile(articlePath, V9_ARTICLE, 'utf-8');
   });
 
