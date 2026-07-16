@@ -21,9 +21,9 @@ The application SHALL NOT store SP/CP and translate them to GP/MP only at render
 
 ### Requirement: Canonical series routes and CLI paths SHALL match the taxonomy
 
-Gu-log Picks SHALL use route `/gu-log-picks`, ticket prefix `GP`, and canonical filename `gp-N-YYYYMMDD-slug.mdx`（English pair: `en-gp-N-YYYYMMDD-slug.mdx`）. Mogu Picks SHALL use route `/mogu-picks`, ticket prefix `MP`, canonical filename `mp-N-YYYYMMDD-slug.mdx`（English pair: `en-mp-N-YYYYMMDD-slug.mdx`）, and Mogu-named queue / prompt / runner files. English listing routes SHALL use the same path below `/en`. The canonical translation CLI and Go module path SHALL be `gp-pipeline` and `tools/gp-pipeline`.
+Gu-log Picks SHALL use route `/gu-log-picks`, ticket prefix `GP`, allocated filename `gp-N-YYYYMMDD-slug.mdx`, and pending filename `gp-pending-YYYYMMDD-slug.mdx`（English pair adds `en-`）. Mogu Picks SHALL use route `/mogu-picks`, ticket prefix `MP`, allocated filename `mp-N-YYYYMMDD-slug.mdx`, pending filename `mp-pending-YYYYMMDD-slug.mdx`, and Mogu-named queue / prompt / runner files. English listing routes SHALL use the same path below `/en`. The canonical translation CLI and Go module path SHALL be `gp-pipeline` and `tools/gp-pipeline`.
 
-Series identity SHALL come from `ticketId`; legacy content-type tags `clawd-picks`, `shroom-picks`, and `shroomdog-picks` SHALL be removed without replacement rather than copied into new `gu-log-picks` / `mogu-picks` tag buckets.
+Series identity SHALL come from `ticketId`; content-type tags `clawd-picks`, `mogu-picks`, `shroom-picks`, `shroomdog-picks`, and any transitional `gu-log-picks` SHALL be removed without replacement.
 
 #### Scenario: Reader opens a canonical series page
 

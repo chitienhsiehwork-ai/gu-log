@@ -26,9 +26,10 @@ Frontmatter SHALL 支援以下選填欄位：`seriesId`、`dedup`（含子欄位
 - `factCheck`：`{ accuracy?, fidelity?, consistency?, sourceBoundary?, commentarySeparation?, score, date, model? }`
 - `freshEyes`：`{ readability?, firstImpression?, payoffDensity?, lengthFit?, clarity?, score, date, model? }`
 - `vibe`：`{ persona?, moguNote?, vibe?, clarity?, narrative?, score, date, model? }`
-- `stage4Scores`：`{ persona, moguNote, vibe, clarity, narrative, degradedDimensions?, isDegraded }`
 
 每個 judge 子物件為選填（允許累進寫入）。維度分數為 0-10 整數，`score` 為 composite（`floor(avg)`），`date` 為 ISO 8601 字串，`model` 為 model label 字串（選填）。各 `tribunalVersion` 實際必填維度與 clarity ownership SHALL 由 `tribunal-scoring-dimensions` 決定，避免在 storage superset 重複 version table。Persona-note key 在所有版本一律為 `moguNote`；`clawdNote` SHALL NOT be accepted or silently stripped as a fallback key。
+
+Top-level `stage4Scores` 結構為 `{ persona, moguNote, vibe, clarity, narrative, degradedDimensions?, isDegraded }`，不是 `scores` 的子欄位。
 
 #### Scenario: 只有部分 judge 分數的 post build 成功
 

@@ -1,8 +1,8 @@
 ## 0. Proposal gate
 
-- [ ] 0.1 建立 draft PR，記錄 ShroomDog 已核准 breaking URL / schema / taxonomy cutover。
-- [ ] 0.2 Proposal reviewer 審查 `proposal.md` / `design.md` / specs，確認完整 migration、living specs 與 factual exclusions 沒有互相矛盾。
-- [ ] 0.3 記錄 user checkpoint：ShroomDog 已明確選擇 ground-up Mogu / GP / MP，不保留舊 URL / schema / command compatibility。
+- [x] 0.1 建立 draft PR，記錄 ShroomDog 已核准 breaking URL / schema / taxonomy cutover。
+- [x] 0.2 Proposal reviewer 審查 `proposal.md` / `design.md` / specs，確認完整 migration、living specs 與 factual exclusions 沒有互相矛盾。
+- [x] 0.3 記錄 user checkpoint：ShroomDog 已明確選擇 ground-up Mogu / GP / MP，不保留舊 URL / schema / command compatibility。
 
 ## 1. Inventory and migration manifest
 
@@ -10,6 +10,7 @@
 - [ ] 1.2 產生並 commit 所有 SP→GP、CP→MP post 的 tracked old→new ticketId / filename / slug manifest（含 language / pair）；驗證一對一、無碰撞、translation pair 完整。
 - [ ] 1.3 列出 derived data、cross-reference、queue、pipeline、route、asset、CSS、test fixture 與 OpenSpec example consumers。
 - [ ] 1.4 建立 deterministic residual checker 與窄化 allowlist；先用現況 red test 證明會抓到 legacy contract。
+- [ ] 1.5 Residual fixtures SHALL 包含不在字首的舊 ID/slug token（例如 `SP63`、`sp57`），避免 checker 只會抓 `sp-` / `cp-` 開頭。
 
 ## 2. Core additive-read migration（只允許暫存在 feature branch）
 
@@ -34,7 +35,7 @@
 - [ ] 4.1 Schema / validator / counter / API / pipeline 移除 SP/CP 舊讀取並啟用 hard failure diagnostics。
 - [ ] 4.2 刪除 `ClawdNote.astro`、legacy listing route、redirect、`tools/sp-pipeline`、SP wrapper / shim、舊 binary 與 runtime fallback。
 - [ ] 4.3 將 listing routes 收斂成 GP `/gu-log-picks` 與 MP `/mogu-picks`（含 `/en`）；舊 listing/post URL 回 404，不 redirect / render。
-- [ ] 4.4 清除 `clawd-picks` / `shroom-picks` / `shroomdog-picks` content-type tags，不建立新的 series tag；UI 以 ticketId 為 series SSOT。
+- [ ] 4.4 清除 `clawd-picks` / `mogu-picks` / `shroom-picks` / `shroomdog-picks` / 過渡 `gu-log-picks` content-type tags，不建立新的 series tag；UI 以 ticketId 為 series SSOT。
 - [ ] 4.5 啟用 deterministic residual checker；immutable history scope 與 active exact exceptions 按 design 中央化。
 
 ## 5. Docs, prompts, assets, and active specs
@@ -43,6 +44,7 @@
 - [ ] 5.2 更新 Mogu/GP/MP public assets、alt text、ARIA labels、CSS class / variable names與 visual comments；被其他狀態元件借用的 SP/CP 色彩改為 semantic tokens。
 - [ ] 5.3 透過 delta/archive 更新 active OpenSpec examples 的 ticket IDs / agent identity；保留 archive/history 的原始決策證據。
 - [ ] 5.4 Tracked deployment docs / scripts 改用 `tribunal VM`、`$HOME`、`$GU_LOG_DIR` 等中性表達；machine-specific `clawd-vm` / `/home/clawd` mapping 留在 local machine note，無法移除者才做 exact exception。
+- [ ] 5.5 更新外部 identity SSOT：本機 `~/.config/machine.md` 將 host role 改為 Mogu + Iris（保留 legacy host coordinate）；VM `~/clawd/AGENTS.md`、Mogu Picks prompt/config 與相關 skills 將 public/operator identity 改為 Mogu，絕不輸出或搬動 secrets。
 
 ## 6. Verification
 
@@ -50,15 +52,16 @@
 - [ ] 6.2 Post validation、content gates、glossary checks、counter tests、Tribunal tests 與完整 JS/TS test suite 通過。
 - [ ] 6.3 `tools/gp-pipeline` Go tests、doctor、fetch/eval/write/counter/deploy dry-run fixtures 通過。
 - [ ] 6.4 `pnpm exec astro check` 與 `pnpm run build` 通過；所有 repo-owned post links resolve。
-- [ ] 6.5 記錄 pathname breaking evidence：Reader Tracker / synced slug、post API identity、Giscus pathname threads、human signals 與舊外部 URL 的預期行為，不把有意 break 誤判成漏測。
+- [ ] 6.5 記錄 pathname breaking evidence：Reader Tracker / synced slug、post API identity、Giscus pathname threads、human signals、RSS item links 與舊外部 URL 的預期行為，不把有意 break 或 RSS client 視為新 item 的結果誤判成漏測。
 - [ ] 6.6 以 uiux-auditor 檢查 dark/light、mobile/desktop 的首頁、GP/MP listing、文章 badge、MoguNote 與搜尋結果。
 - [ ] 6.7 Implementation correctness reviewer + simplify reviewer 的 findings 全部處理或明確記錄。
 
 ## 7. VM cutover, archive, and ship
 
-- [ ] 7.1 Graceful stop live Mogu Picks producer；記錄停機前 queue / commit / service 狀態。
-- [ ] 7.2 將 delta specs sync 到 `openspec/specs/`，把 change archive 到同一個 PR。
-- [ ] 7.3 Draft PR CI 全綠後轉 ready。因 `.github/workflows/deploy-smoke-test.yml` 必須更新且 operator policy 禁止 automation 越過 workflow-path guard，若現有權限不能完成 approval，將 merge approval 明確交給 ShroomDog；這是操作授權，不是產品決策。
-- [ ] 7.4 Merge 後同步 VM checkout，切換 prompt/config/runner invocation，執行 no-publish canary；成功才 resume producer，失敗則回退 repo + invocation 後再恢復。
-- [ ] 7.5 等待 Vercel production deploy，smoke test canonical GP/MP/Mogu URLs；舊 route 回 404，search/feed/API 不輸出 SP/CP/Clawd contract。
-- [ ] 7.6 回報 production URLs、breaking behavior、model/harness/env signature 與任何保留的 deployment-coordinate exception。
+- [ ] 7.1 將 delta specs sync 到 `openspec/specs/`，把 change archive 到同一個 PR；correctness / simplify review 與 CI 全綠。
+- [ ] 7.2 執行 SDLC final human checkpoint②：呈現完整 diff、migration evidence、breaking impact、review findings、CI 與 rollback；取得 ShroomDog 對 merge + live cutover 的明確批准。
+- [ ] 7.3 Checkpoint② 通過後 graceful stop live Mogu Picks producer，記錄停機前 queue / commit / service 狀態。
+- [ ] 7.4 因 `.github/workflows/deploy-smoke-test.yml` 必須更新且 operator policy 禁止 automation 越過 workflow-path guard，若現有權限不能完成 merge approval，交由 ShroomDog 執行；這是操作授權，不是產品設計決策。
+- [ ] 7.5 Merge 後同步 VM checkout，切換 prompt/config/runner invocation，執行 no-publish canary；成功才 resume producer，失敗則回退 repo + invocation 後再恢復。
+- [ ] 7.6 等待 Vercel production deploy，smoke test canonical GP/MP/Mogu URLs；舊 route 回 404，search/feed/API 不輸出 SP/CP/Clawd contract。
+- [ ] 7.7 回報 production URLs、breaking behavior、model/harness/env signature 與任何保留的 deployment-coordinate exception。
