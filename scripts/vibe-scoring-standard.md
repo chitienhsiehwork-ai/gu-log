@@ -256,6 +256,8 @@ Clawd/gu-log opinions, interpretation, jokes, and source-meta commentary belong 
 
 **Reader-fatigue rule:** Fresh Eyes does not do corpus search; Librarian owns old-post overlap evidence. But if the article itself repeatedly re-explains basics, spends multiple sections in recap mode, or feels longer than its information gain, cap `firstImpression` at 7. If a smart beginner can summarize the next section before reading it because the rhythm is predictable, cap `readability` or `firstImpression` at 6.
 
+**Metaphor mapping-reset gate:** A metaphor should let the reader reuse one mental map. If the post moves among more than three independent metaphor systems, or repeatedly recasts the same actors into new roles, the reader must rebuild that map instead. Cap `readability` at 6 and `payoffDensity` at 7; the stage must fail. Three is a ceiling, not a target. One planned metaphor carried consistently is ideal, and direct prose with no metaphor is valid. Do not penalize a brief comparison that clearly extends the same mapping; flag a new system only when roles or causal relationships must be remapped.
+
 **Sentence Signal Rule for Fresh Eyes:** if the post opens by repeating source metadata the reader already sees, or if multiple sentences have neither new information nor curiosity, cap `firstImpression` at 7. A smart impatient beginner does not reward throat-clearing.
 
 ### clarity — Pronoun Clarity / Voice Attribution (v9+ — moved here from Vibe)
@@ -366,6 +368,8 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 **Compression gate:** Vibe does not perform corpus-overlap search; that belongs to Librarian. Vibe does ask whether the article is internally loose. If 25–40% of prose could be deleted without losing meaningful information, cap `vibe` at 7. If a section mostly restates earlier sections with different packaging, cap `vibe` at 6 even when facts are correct.
 
 **Section-boredom gate:** inspect section rhythm. If two or more consecutive sections follow the same report template (`explain → quote → translate/explain → ClawdNote`) without a fresh turn, surprise, scene, or opinionated point, cap `narrative` at 6. Adding more jokes or kaomoji does not fix a boring skeleton.
+
+**Metaphor coherence gate:** Count independent metaphor systems, not decorative words. If the article uses more than three, or repeatedly reassigns the same actors across unrelated worlds, cap `narrative` at 6; the stage must fail. A high score requires either direct prose or one planned core metaphor whose mapping remains stable from setup through payoff. Extra analogies do not compensate for a weak spine and must not inflate `persona`.
 
 **Corpus boundary:** If Librarian evidence says the post overlaps an older gu-log piece, Vibe may use that evidence only to judge the current article's pacing and redundancy. Vibe must not invent or own the old-post search.
 

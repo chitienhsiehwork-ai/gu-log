@@ -166,6 +166,9 @@ Kahneman Deaton Angus Killingsworth
 # Feinberg (Gemini lead), Alfred Lin (Sequoia), Michael (Truell) + Aman (Sanger)
 # = Cursor founders' first names as cited in the source
 Phil Chen Vlad Feinberg Alfred Lin Michael Aman
+# Ryo Lu — Cursor Head of Design, cited author of SP-30 + the CP
+# when-the-dream-becomes-the-job post (2026-07-15)
+Ryo Lu
 
 # Places
 Albuquerque Hong Kong San Francisco SF Silicon Valley

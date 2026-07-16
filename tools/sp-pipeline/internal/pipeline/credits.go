@@ -113,6 +113,11 @@ func (s *State) JudgeStampLabels() (model, harness string) {
 			}
 		}
 	}
+	for _, p := range llm.DefaultJudgeChain() {
+		if p.Available() {
+			return llm.DisplayName(p.Model()), llm.HarnessName(p.Model())
+		}
+	}
 	return llm.DisplayName(llm.ModelGPT55), llm.HarnessName(llm.ModelGPT55)
 }
 

@@ -118,7 +118,9 @@ missing_required_judges() {
       missing+=("$judge")
     fi
   done
-  printf '%s\n' "${missing[@]}"
+  if [ "${#missing[@]}" -gt 0 ]; then
+    printf '%s\n' "${missing[@]}"
+  fi
 }
 
 assert_complete_score_frontmatter() {

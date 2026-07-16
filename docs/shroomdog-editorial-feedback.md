@@ -13,6 +13,15 @@
 - 寫 SP / CP / SD / Lv 前，如果任務涉及文章品質或風格，先快速掃這份檔案的近期條目。
 - 當同一類 feedback 出現 3 次以上，應該蒸餾進 `GU-LOG_WRITER_PROMPT.md`，必要時再同步到 pipeline prompt；不要永遠只留在 corpus 裡。
 
+## 2026-07-16 — SP-256：比喻不是免費造型，換世界會收認知稅
+
+### Feedback: 一篇最多三套比喻，理想是一開始選好一套並貫穿全文
+
+- ShroomDog feedback：`譬喻禁止多餘三個。理想情況是一開始就規劃好用哪個譬喻，然後從頭到尾都用同個譬喻/故事觀，不然譬喻根本不會幫到使用者理解，只會增加認知負擔`；並要求 writer、Vibe 與 Fresh Eyes 都嚴格抓出這種錯誤。
+- 情境：SP-256 的句子個別自然，但從考場、裁判、駕照、沒有鎖的門一路跳到高速公路煞車。同一批角色每換一個世界就得重新配對，Hassabis 的原始論證反而被二創式 explainer 蓋住。
+- 修法：全文改回 source-first；writer 原則與 Vibe / Fresh Eyes 的評分門檻分別收斂到 `GU-LOG_WRITER_PROMPT.md` 與 `scripts/vibe-scoring-standard.md`，不在 feedback corpus 複製會 drift 的分數細節。
+- Reusable lesson：比喻只有在讀者能沿用同一張 mental map 時才省腦。每開一個新世界都要付 mapping reset tax；不要把「很多比喻」誤認成 persona 或好懂。
+
 ## 2026-06-21 — SP-237: 自我指涉 callback 是 MoguNote 的靈魂
 
 ### Feedback: 原文講的東西 gu-log 自己也在做時，MoguNote 要把它接回 gu-log 自身
@@ -129,7 +138,7 @@
 ### Meta-feedback: feedback corpus 應該由 gu-log repo 追蹤，不能只放在單一 agent memory
 
 - ShroomDog feedback：`So where is the feedback corpse? How do u make sure all ai agents, clawd, iris, mac-cdx/cc will do this? Maybe we need to make it git tracked by gu-log, on my second thought`
-- 情境：第一版 log 放在 `/home/clawd/clawd/memory/gu-log-shroomdog-feedback.md`，這只保證 OpenClaw Clawd 看得到，不保證 Iris、mac-CC、Codex、Claude Code、pipeline writer 都會讀。
+- 情境：第一版 log 放在 `/home/clawd/clawd/memory/gu-log-shroomdog-feedback.md`，這只保證 OpenClaw Clawd 看得到，不保證 Iris、local machine actors、pipeline writer 都會讀。
 - 修法：把 corpus 移到 gu-log repo tracked file：`docs/shroomdog-editorial-feedback.md`，並在 repo-level instructions / writing guide / Clawd Picks prompt 裡加入口規則。
 - Reusable lesson：跨 agent 行為不能靠某個 agent 的私人記憶。要放在 repo-tracked SSOT，並從所有常用 agent entrypoint 指向它。
 
@@ -582,3 +591,11 @@ Sprin asked whether Tribunal v7 FreshEyes covers “length should be just right,
   2. SP-255 當場清掉 3 處（評測→評估基準 / 評測權→評估基準的主導權）。
   3. 其餘 82 處 / 28 篇照「拆過」前例 **grandfather**：lint 是 staged-only，舊文凍結，下次被實質編輯時連帶逼修。不做全站 bulk sweep——每處語境不同（benchmark / evals / 開箱），機械替換會出怪句。
 - Reusable lesson：(1) 「評估」是 gu-log 的預設詞；指 benchmark/evals 這種「一組可重跑的測試」用「評估基準」或「基準測試」，指 3C 開箱用「實測」。(2) 高頻支語（83 處等級）的退役 SOP 跟「拆過」一樣：lint 擋新增 + 最新文章當場清 + 舊文 grandfather 等編輯時逼修，不硬掃全站。
+
+## 2026-07-15 — CP ryolu session：「出貨」不是台灣 tech 口語，prompt / review / ship 動詞留英文更自然
+
+### Feedback: 「prompt, review, ship 都滿自然的，我自己是沒啥聽到出貨，頂多上線」
+
+- 情境：CP〈夢想變成工作之後〉翻 Ryo Lu 的 "you can still prompt, review, decide, ship"。FreshEyes judge 嫌英文動詞在安靜散文裡有摩擦感，writer 全翻成中文（下指令 / 審稿 / 做決定 / 出貨）。ShroomDog 看過選項後定調：prompt / review / ship 在台灣 tech 圈口語就是講英文，留著反而自然；「出貨」則幾乎沒人講，講的是「上線」。decide 維持中文「做決定」。
+- 修法：正文改回「還是可以 prompt、review、做決定、ship，讓事情繼續動」。
+- Reusable lesson：(1) **judge 的 taste ≠ ShroomDog 的 taste**：FreshEyes 對「英文動詞摩擦感」的判斷在這裡被 owner 推翻——工程圈實際口語的英文動詞（prompt / review / ship / merge / commit 這類）不算晶晶體，硬翻反而失真。(2) **「出貨」是翻譯腔警訊**：ship 對應的台灣口語是「上線」（或直接留 ship）；「出貨」是製造業詞彙滲進軟體語境。(3) 動詞留不留英文的判準是「工程師嘴巴上怎麼講」，不是「字典能不能翻」。

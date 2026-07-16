@@ -112,6 +112,29 @@ func TestDefaultJudgeAndProbeChainsAreCodexGPT55(t *testing.T) {
 	}
 }
 
+func TestCodexOnlyRunScopedOverrideUsesRequestedModel(t *testing.T) {
+	t.Setenv("GP_CODEX_MODEL", "gpt-5.6-sol")
+	t.Setenv("GP_WRITER_PROVIDER", "codex")
+
+	for name, chain := range map[string][]Provider{
+		"writer": WritingChain(),
+		"judge":  DefaultJudgeChain(),
+	} {
+		if len(chain) != 1 {
+			t.Fatalf("%s chain length = %d, want 1", name, len(chain))
+		}
+		if got := chain[0].Model(); got != ModelGPT56Sol {
+			t.Fatalf("%s model = %q, want %q", name, got, ModelGPT56Sol)
+		}
+		if got := DisplayName(chain[0].Model()); got != "GPT-5.6-Sol" {
+			t.Fatalf("%s display name = %q, want GPT-5.6-Sol", name, got)
+		}
+		if got := HarnessName(chain[0].Model()); got != "Codex CLI" {
+			t.Fatalf("%s harness = %q, want Codex CLI", name, got)
+		}
+	}
+}
+
 func TestDefaultWritingChainUsesPinnedClaudeOpus(t *testing.T) {
 	chain := DefaultWritingChain()
 	if len(chain) != 1 {
