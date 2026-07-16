@@ -5,7 +5,7 @@
 ## 檢查項目
 
 ### 1. Frontmatter 完整性
-- [ ] 有 `ticketId` (格式: SP-XX, SD-XX, CP-XX)
+- [ ] 有 `ticketId`（格式：GP-N、MP-N、SD-N、Lv-N；draft 可用對應的 `-PENDING`）
 - [ ] 有 `title` (中文標題優先，英文標題可接受)
 - [ ] 有 `originalDate` (原文發布日期，格式: YYYY-MM-DD)
 - [ ] 有 `translatedDate` (翻譯日期，格式: YYYY-MM-DD，optional)

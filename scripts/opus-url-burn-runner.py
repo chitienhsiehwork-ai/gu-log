@@ -32,7 +32,7 @@ STOP = False
 
 TASKS: list[tuple[str, str]] = [
     (
-        "sp_draft",
+        "gp_draft",
         """
 You start from exactly one URL:
 {url}
@@ -162,15 +162,15 @@ def extract_candidates(limit: int, include_all: bool = False) -> list[dict[str, 
         if not url or not re.match(r"https?://", url):
             continue
         slug = path.name
-        if not include_all and not (slug.startswith(("sp-", "cp-")) or ticket.startswith(("SP-", "CP-"))):
+        if not include_all and not (slug.startswith(("gp-", "mp-")) or ticket.startswith(("GP-", "MP-"))):
             continue
         hay = " ".join([slug, ticket, fm.get("title", ""), url])
         score = 0
-        if slug.startswith("sp-181"):
+        if slug.startswith("gp-181"):
             score += 10000
         if KEYWORDS.search(hay):
             score += 500
-        num_m = re.search(r"(?:sp|cp)-(\d+)", slug)
+        num_m = re.search(r"(?:gp|mp)-(\d+)", slug)
         if num_m:
             score += int(num_m.group(1))
         body_len = len(text.split("---", 2)[-1])
