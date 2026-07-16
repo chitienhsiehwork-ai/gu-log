@@ -139,12 +139,12 @@ composite >= 8 AND 至少一維 >= 9 AND 沒有任何維 < 8
 
 ## Level 7: Stage 0 Gate + Banner/UI
 
-**挑戰**: CP auto-reject 太武斷；worthiness 標準未定；Haiku judge 可能太弱。
+**挑戰**: MP auto-reject 太武斷；worthiness 標準未定；Haiku judge 可能太弱。
 
 **決策**: **透明實驗室模式** — AI 不確定變成 feature 而不是 bug
 
 **Gate policy**:
-- **All WARNING, no auto-reject** — 不分 CP / 非 CP，都不 auto-reject
+- **All WARNING, no auto-reject** — 不分 MP / 非 MP，都不 auto-reject
 - 所有 WARN 文章仍進入後續 pipeline
 - Judge 用 **Opus** `LUXURY_TOKEN`
 - Judge dimensions (建議): `coreInsight` / `expandability` / `audienceRelevance`
@@ -322,16 +322,16 @@ Stage 5: Translation (auto triggered)
 
 ---
 
-### 挑戰 7: Stage 0 的 CP Auto-Reject 太武斷
+### 挑戰 7: Stage 0 的 MP Auto-Reject 太武斷
 
 - **現行設計**: MP 文章（自動翻譯推文）不過 Stage 0 → 直接 REJECT。非 MP 文章 → WARNING + human review。
 - **問題**: MP 文章也是有 spectrum 的 — 有些推文本身很短但觀點非常有價值，翻譯出來雖然不長但含金量高。Auto-reject 的邏輯假設「不過 worthiness gate 的 MP 文章 = 垃圾」，但實際上可能只是「太短」或「格式不好」，不代表不值得發。
 - **Edge case**:
-  - 一條推文是某位大神用一句話總結了一個重要的 architectural insight → CP 翻譯出來很短 → Stage 0 判斷「內容深度不夠」→ auto-reject → 但這其實是很有價值的內容
+  - 一條推文是某位大神用一句話總結了一個重要的 architectural insight → MP 翻譯出來很短 → Stage 0 判斷「內容深度不夠」→ auto-reject → 但這其實是很有價值的內容
   - Stage 0 judge 的 worthiness 標準還沒定義 — 如果標準偏嚴，可能 reject 掉大量本來可以救的 MP 文章
 - **建議**:
   1. MP 文章也改成 **WARNING + human review**，不要 auto-reject — 至少在 v2 初期，等累積足夠 data 後再考慮 auto-reject
-  2. 或者 CP auto-reject 但加 **appeal 機制**：human 可以手動把 REJECTED 的 MP 文章重新送入 pipeline
+  2. 或者 MP auto-reject 但加 **appeal 機制**：human 可以手動把 REJECTED 的 MP 文章重新送入 pipeline
 
 ---
 
@@ -374,7 +374,7 @@ Stage 5: Translation (auto triggered)
   - Model：**Sonnet**，不是 Haiku。Worthiness 判斷需要理解「這篇文章的核心觀點值不值得展開」，這不是 trivial 的判斷。
   - 維度建議：`coreInsight`（核心觀點有無價值）+ `expandability`（有沒有展開成長文的潛力）+ `audienceRelevance`（對 gu-log 目標讀者有無價值）
   - Pass bar 要**偏寬鬆** — 寧可讓一些不太好的文章進入 pipeline（反正後面 Stage 1 會再篩），也不要 false reject
-  - 初期建議只啟用 WARNING 模式（不管 CP 或非 CP），累積幾十篇 data 後再分析哪些被 warn 的文章最終 pass/fail pipeline，用這個 data 來 calibrate reject 門檻
+  - 初期建議只啟用 WARNING 模式（不管 MP 或非 MP），累積幾十篇 data 後再分析哪些被 warn 的文章最終 pass/fail pipeline，用這個 data 來 calibrate reject 門檻
 
 ### FactCorrector 第一輪沒有 Judge Feedback
 
@@ -752,4 +752,3 @@ stage4FinalVibeScores: z.object({...}).optional(),  // 給 Stage 4 degraded bann
 - **Pipeline 整體 token budget 估算** — 尚未算出平均一篇文章跑完要多少 token。建議 Builder 在實作過程中收集 metrics，第一篇跑完就有 baseline。
 - **Stage 0 worthiness dimensions 的具體 rubric** — 決定了三個維度但沒有詳細 scoring guide。可參考 `scripts/ralph-vibe-scoring-standard.md` 的 format 去寫。
 - **Judge prompt versioning** — `judge_version` field 在 schema 裡，但沒有 version management 流程。未來如果 tune prompt 要考慮。
-

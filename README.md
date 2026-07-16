@@ -65,7 +65,7 @@ Every article carries a ticket ID so you can tell at a glance who picked it and 
 | Prefix | Series | Who picks | Who writes |
 |---|---|---|---|
 | **GP** | Gu-log Picks | ShroomDog | Mogu translates |
-| **CP** | Mogu Picks | Mogu (self-selected) | Mogu translates |
+| **MP** | Mogu Picks | Mogu (self-selected) | Mogu translates |
 | **SD** | ShroomDog Original | ShroomDog | ShroomDog writes |
 | **Lv** | Level-Up | — | beginner tutorials |
 
@@ -121,7 +121,7 @@ src/
 ├── content/
 │   ├── config.ts            # frontmatter schema (Zod validation)
 │   └── posts/
-│       ├── sp-123-…-slug.mdx     # zh-tw version (lang: "zh-tw")
+│       ├── gp-123-…-slug.mdx     # zh-tw version (lang: "zh-tw")
 │       └── en-gp-123-…-slug.mdx  # en version    (lang: "en")
 ├── components/
 │   ├── MoguNote.astro       # Mogu's commentary box

@@ -10,7 +10,7 @@
 - 每筆至少記四件事：原始回饋、文章/情境、實際修法、可重用 lesson。
 - 不要只寫「語氣再自然一點」這種抽象話；要保留具體 bad example / good example。
 - 這是 repo-tracked source of truth。不要把新的 gu-log 寫作回饋只記在聊天紀錄、個人 memory、未追蹤檔案或單一 agent 的私人筆記裡。
-- 寫 SP / CP / SD / Lv 前，如果任務涉及文章品質或風格，先快速掃這份檔案的近期條目。
+- 寫 GP / MP / SD / Lv 前，如果任務涉及文章品質或風格，先快速掃這份檔案的近期條目。
 - 當同一類 feedback 出現 3 次以上，應該蒸餾進 `GU-LOG_WRITER_PROMPT.md`，必要時再同步到 pipeline prompt；不要永遠只留在 corpus 裡。
 
 ## 2026-07-16 — GP-256：比喻不是免費造型，換世界會收認知稅
@@ -45,16 +45,16 @@
 
 ## 2026-05-25 — GP-187 Symphony: MP-179 overlap and Vibe scorer false positive
 
-### Feedback: 引用既有 CP，刪掉重複內容，不要讓讀者重讀同一篇
+### Feedback: 引用既有 MP，刪掉重複內容，不要讓讀者重讀同一篇
 
 - ShroomDog feedback：`First, i think it should cite MP-179 to reduce deplication of content.`
 - 情境：GP-187（OpenAI 官方 Symphony 開源文）和 MP-179（daniel_mac8 的社群版 Symphony / Linear / Codex workflow）高度重疊。GP-187 現版有 8 個 section、約 128 行非空正文、5 個 MoguNote；MP-179 已經用更短、更有趣的方式講過「從管理 agent 變管理 work / issue 狀態觸發 / Codex workspace / demo 邊界」。GP-187 只在後段 MoguNote 提到 MP-179，太晚、太弱，沒有用內鏈幫讀者省注意力。
 - 修法：GP-187 重寫時，前段就明確 cite MP-179，把已覆蓋的「Symphony 怎麼動、Linear issue 觸發、agent 自動回寫狀態、demo 仍有坑」壓成短 recap + 內鏈；正文聚焦 OpenAI 官方文章的新資訊：官方 SPEC 化、Codex App Server / JSON-RPC 平台意圖、500% 的限制條件、PM/設計師直接派活、Elixir 與多語言 spec validation、guardrails/skills 紀律。
-- Reusable lesson：如果新 SP 和既有 CP/SP 共享同一個核心概念，不能把舊內容換皮再講一次。早早 cite 舊文，重複背景最多一句 recap，把篇幅留給新增資訊、判斷或更好的敘事。
+- Reusable lesson：如果新 GP 和既有 MP/GP 共享同一個核心概念，不能把舊內容換皮再講一次。早早 cite 舊文，重複背景最多一句 recap，把篇幅留給新增資訊、判斷或更好的敘事。
 
 ### Feedback: Vibe 8 是 scorer 失準，decorative surface 不能騙過評分
 
-- ShroomDog feedback：`Then we should analyze and recalibrate the vibe scorer, how the fuck can vibe scorer score a post like this with vibe 8? Terrible and horrible`；`Last we rewrite sp 187 with calibrated vibe scorer, to make this post much more interesting and entertaining to read`
+- ShroomDog feedback：`Then we should analyze and recalibrate the vibe scorer, how the fuck can vibe scorer score a post like this with vibe 8? Terrible and horrible`；`Last we rewrite GP-187 with calibrated vibe scorer, to make this post much more interesting and entertaining to read`
 - 情境：GP-187 現版 frontmatter 顯示 Vibe `persona: 8 / moguNote: 8 / vibe: 8 / clarity: 8 / narrative: 9`，但人工讀感是太長、廢話多、線性報告骨架、重複既有 MP-179 內容，甚至有「變基」這種自然度問題。這是典型 scorer false positive：看到 MoguNote、比喻、kaomoji、完整 section，就給 8/9，卻沒有把「讀者會不會覺得好看、會不會想分享」扣到 fail。
 - 修法：責任邊界要拆清楚。`duplicate-attention / corpus overlap` 屬於 Librarian，不屬於 Vibe scorer；Librarian 要抓 MP-179 overlap、早期引用缺失、cross-ref/source redundancy，並輸出 writer 可直接執行的 rewrite requirement。Vibe scorer 則新增/強化兩個硬檢查：一是 compression check，若刪掉 25–40% 句子不損資訊，`vibe` 最高 7；二是 section-level “why am I still reading?” 檢查，連續兩個 section 只是 explain → quote → explain → MoguNote，`narrative` 最高 6。
 - Reusable lesson：Vibe scorer 的任務不是確認文章「有 gu-log 表面特徵」，也不是做 corpus overlap search；它要保護讀者注意力與閱讀節奏。長、鬆、可預測、沒有新 punch 的文章，即使每句都沒錯、MoguNote 密度也夠，也不該拿 8。重複既有內容則由 Librarian 負責抓出並要求 early citation / compression。
@@ -64,22 +64,22 @@
 ### Feedback: 寫文前先評估新東西與已覆蓋內容
 
 - ShroomDog feedback：`all gu-log posts should first go through this eval of what to write and what not to write because already covered in gu-log`；`Duplicate content is like duplicate dead code, will be token waste for ai, attention waste for human.`
-- 情境：評估 OpenAI `openai/skills` repo 是否適合做 SP 時，gu-log 已經有多篇 Skills / Codex / skillify / plugin evolution 相關文章。正確做法不是重講「Skills 是什麼」，而是先列出 repo 裡真正新的訊號（`.system` / `.curated` / `agents/openai.yaml` / catalog 與分發權），再明確排除 GP-54、MP-68、GP-104、GP-122、GP-170、GP-179、GP-195 已經寫過的部分。
+- 情境：評估 OpenAI `openai/skills` repo 是否適合做 GP 時，gu-log 已經有多篇 Skills / Codex / skillify / plugin evolution 相關文章。正確做法不是重講「Skills 是什麼」，而是先列出 repo 裡真正新的訊號（`.system` / `.curated` / `agents/openai.yaml` / catalog 與分發權），再明確排除 GP-54、MP-68、GP-104、GP-122、GP-170、GP-179、GP-195 已經寫過的部分。
 - 修法：在 `AGENTS.md` 的 GP candidate / source evaluation 規則加入 overlap evaluation：Go 之前要先列「這次的新東西」、「gu-log 已覆蓋內容」、「這篇應該避開什麼」，最後才決定 angle。
 - Reusable lesson：Duplicate content is duplicate dead code。對 AI 是 token waste，對人類是 attention waste。每篇 gu-log 都要有資訊增量、判斷增量或敘事增量；已寫過的背景最多一句 recap + 內鏈，不要換皮重寫。
 
-## 2026-05-18 — SP Addy Osmani: Don't Outsource the Learning
+## 2026-05-18 — GP Addy Osmani: Don't Outsource the Learning
 
-### Feedback: SP 要貼近原文，MoguNote 補脈絡，不要先重構文章
+### Feedback: GP 要貼近原文，MoguNote 補脈絡，不要先重構文章
 
-- ShroomDog feedback：`為什麼要想文章結構？SP 的話就直接根據 WRITER_PROMPT 的語氣翻譯，加上 MoguNote 就好了吧？這樣我要跟原本原文對照的話成本也低`；並補充：`Make sure in the first MoguNote, the why do we need to learn is clear and discuss interestingly if the article did not include it properly`
-- 情境：評估 Addy Osmani 的 X Article〈Don't Outsource the Learning〉是否適合做 SP 時，Iris 先提出一篇重新組織過的 gu-log essay structure。這不符合 SP 的主要價值：讓讀者能低成本對照原文，同時拿到 gu-log 口吻與 MoguNote 補充。
+- ShroomDog feedback：`為什麼要想文章結構？GP 的話就直接根據 WRITER_PROMPT 的語氣翻譯，加上 MoguNote 就好了吧？這樣我要跟原本原文對照的話成本也低`；並補充：`Make sure in the first MoguNote, the why do we need to learn is clear and discuss interestingly if the article did not include it properly`
+- 情境：評估 Addy Osmani 的 X Article〈Don't Outsource the Learning〉是否適合做 GP 時，Iris 先提出一篇重新組織過的 gu-log essay structure。這不符合 GP 的主要價值：讓讀者能低成本對照原文，同時拿到 gu-log 口吻與 MoguNote 補充。
 - 修法：正文保留原文段落與論證順序，依 `GU-LOG_WRITER_PROMPT.md` 翻成自然台灣中文；不要把 source 改寫成另一篇 editorial。第一個 MoguNote 專門補強「為什麼還要學」：AI 能完成任務，但不會自動把可遷移的 mental model 裝進腦袋；未來值錢的是判斷、debug、遷移、質疑 AI 輸出的能力。
-- Reusable lesson：SP 的預設不是重新設計文章架構，而是 source-spine translation + gu-log voice + MoguNote。若原文缺一段讀者需要的 why/context，把它放進 MoguNote，不要偷偷改原作者正文。
+- Reusable lesson：GP 的預設不是重新設計文章架構，而是 source-spine translation + gu-log voice + MoguNote。若原文缺一段讀者需要的 why/context，把它放進 MoguNote，不要偷偷改原作者正文。
 
 ### Feedback: 不要把「學習」寫成手寫 code 配額或反工具修行
 
-- ShroomDog feedback：`「沒有 AI 在旁邊看著時，實際能自己蓋出的東西，每週都弱一點」I think in ai-era, asking for human to hand write quota w/o ai is like asking human to write binary code when there is existing tool at 2026. Sounds not very smart. I believe i have covered this POV in one of the ShroomDogNote. Find it, cite it, rewrite/cite from sp-205 a bit to reflect this, or better, 吐槽 in moguNote`
+- ShroomDog feedback：`「沒有 AI 在旁邊看著時，實際能自己蓋出的東西，每週都弱一點」I think in ai-era, asking for human to hand write quota w/o ai is like asking human to write binary code when there is existing tool at 2026. Sounds not very smart. I believe i have covered this POV in one of the ShroomDogNote. Find it, cite it, rewrite/cite from gp-205 a bit to reflect this, or better, 吐槽 in moguNote`
 - 情境：GP-205 第一版的第一個 MoguNote 補了「不要把學習外包」的 why，但容易被讀成「工程師應該固定不用 AI 手寫 code 來維持肌肉」。這和 gu-log 既有 POV 不一致：AI coding 是工具進化，不是作弊；重點是人類是否仍保有判斷與品質把關。
 - 修法：保留 source body，不改原文論證；在第一個 MoguNote 補 gu-log POV，引用 MP-270「AI 做 70% 動手、工程師做 100% 動腦；從手搖鑽變電鑽，木匠還是木匠」與 GP-95 ShroomDogNote「不是用 AI，是養 AI」。把警告改成：問題不是用不用電鑽，而是拿電鑽也要知道哪面牆不能鑽。
 - Reusable lesson：寫 AI-era learning 時，不要鼓吹 anti-tool purity 或 hand-written quota。gu-log 的立場是 tool evolution + human judgment：少打字不等於少學習；真正危險的是失去判斷、debug、架構理解和品質控制。
@@ -137,7 +137,7 @@
 
 ### Meta-feedback: feedback corpus 應該由 gu-log repo 追蹤，不能只放在單一 agent memory
 
-- ShroomDog feedback：`So where is the feedback corpse? How do u make sure all ai agents, clawd, iris, mac-cdx/cc will do this? Maybe we need to make it git tracked by gu-log, on my second thought`
+- ShroomDog feedback：`So where is the feedback corpse? How do u make sure all ai agents, Mogu, iris, mac-cdx/cc will do this? Maybe we need to make it git tracked by gu-log, on my second thought`
 - 情境：第一版 log 放在部署主機的 OpenClaw private memory，這只保證 OpenClaw Mogu 看得到，不保證 Iris、local machine actors、pipeline writer 都會讀。
 - 修法：把 corpus 移到 gu-log repo tracked file：`docs/shroomdog-editorial-feedback.md`，並在 repo-level instructions / writing guide / Mogu Picks prompt 裡加入口規則。
 - Reusable lesson：跨 agent 行為不能靠某個 agent 的私人記憶。要放在 repo-tracked SSOT，並從所有常用 agent entrypoint 指向它。
@@ -202,7 +202,7 @@
 
 ### Feedback: MoguNote jokes must stay spoiler-free
 
-- ShroomDog feedback：`外星朋友 in clawd note is sorta spoiling tho`
+- ShroomDog feedback：`外星朋友 in MoguNote is sorta spoiling tho`
 - 情境：SD-22 的 MoguNote 為了吐槽 Ryland 撞名，寫了「不會偷走任何外星朋友」；英文版也提到 `Rocky remains safe`。對沒讀過 Project Hail Mary 的讀者來說，這已經暗示超過第一章設定。
 - 修法：改成「不會碰書裡任何驚喜」/ `every surprise in the book remains safe`，保留玩笑但移除具體暗示。
 - Reusable lesson：引用小說 / 電影類比時，MoguNote 的梗也要遵守 spoiler boundary。可以吐槽撞名、宇宙文學部、第一章前提，但不要暗示後續角色、種族、關係或劇情驚喜。
@@ -314,9 +314,9 @@
 ### Feedback: Short tweets should stay short
 
 - ShroomDog feedback：I think too many other text than original tweet. I prefer a simple translation of origin tweet, with gu-log vibe/glossary/internal-link, and interesting moguNote. I think that will be easier to read, and reader can refer back to origin tweet much easier. The en version should be a non-native-speaker friendly version plus gu-log vibe/glossary/internal-link with MoguNote as well. So if the tweet is short, gu-log GP post can be short as well.
-- 情境：GP-204 初版把 Peter Steinberger 一則短 X post 擴寫成 260 行長文，雖然資訊完整，但讀者不容易對照原 tweet，也不像早期 SP 的輕快 vibe。
+- 情境：GP-204 初版把 Peter Steinberger 一則短 X post 擴寫成 260 行長文，雖然資訊完整，但讀者不容易對照原 tweet，也不像早期 GP 的輕快 vibe。
 - 修法：回看早期 GP-2 / GP-6 / GP-11 / GP-30 等短文 pattern：簡短 hook、原文白話翻譯、少量 MoguNote、必要 glossary/internal links。將 GP-204 改成短版 zh-tw + en：以原 tweet 內容為主，保留 gu-log 解釋與 MoguNote，但不把短 tweet 膨脹成架構長文。
-- Reusable lesson：SP 的長度要跟 source 密度成比例。短 tweet 可以是短 SP；gu-log value 不等於擴寫更多段落，而是提供好讀的 Traditional Chinese / non-native-friendly English、vibe、glossary/internal links、MoguNote 與一個清楚 mental frame。只有 thread、長文、影片、或多來源 analysis 才需要長篇展開。
+- Reusable lesson：GP 的長度要跟 source 密度成比例。短 tweet 可以是短 GP；gu-log value 不等於擴寫更多段落，而是提供好讀的 Traditional Chinese / non-native-friendly English、vibe、glossary/internal links、MoguNote 與一個清楚 mental frame。只有 thread、長文、影片、或多來源 analysis 才需要長篇展開。
 
 ## 2026-05-17 — Tribunal v5 Source Boundary
 
@@ -546,15 +546,15 @@ Sprin asked whether Tribunal v7 FreshEyes covers “length should be just right,
 - 校準訊號：**機器 vibe 8 對人工 vibe 6 → 機器分偏寬約 2 分**。這跟 MP-300 那次「rewrite 概念精確但讀起來像 AI slop / boring」是同一條軸——tribunal 的 vibe judge 容易把「忠實、乾淨、無錯」讀成高分，但人類讀者要的是畫面感、節奏、不無聊。MP-310 V2 的中段（面試分類七連列）正是 fresh-eyes 也點到的「faithful but less warm / linear」，機器仍給 8，人類給 6。
 - 處置：(1) 新增 `scores.shroomDogVibe`（score / date / note）到 `src/content.config.ts`（frontmatter schema SSOT），讓 ShroomDog vibe 有正式欄位、跟 AI tribunal 並存、可被未來 UI / 背景 tribunal 當 ground truth。命名刻意用 `shroomDogVibe` 而非 `humanVibe`——這是具名編輯（ShroomDog）的分數，不是匿名 human。(2) MP-310 兩版 frontmatter 填 shroomDogVibe 6。shroomDogVibe **不是 commit gate**，純編輯 ground truth / 校準用。
 - Reusable lesson：(1) **機器 vibe 跟 ShroomDog vibe 要分開記、不要互相覆蓋**——機器分系統性偏寬，把兩者並列才看得出 gap、才能日後校準 vibe-scoring-standard。(2) 機器給 straight-8、人類給 6 的典型死因是「中段把 source 結構線性照搬、忠實但不暖」；rewrite 要主動破壞線性、加畫面，不能只追忠實乾淨。(3) merge 不被 ShroomDog 低分擋（floor 是 AI composite ≥3、homepage 是 AI vibe 一維 ≥9）；ShroomDog vibe 6 的角色是誠實記錄 + 餵背景精修，不是 ship gate。
-## 2026-06-23 — GP-243（creatorpascal 金錢與快樂）：太多生硬詞彙 + MoguNote 不夠解釋性 + pipeline 還在吐 MoguNote
+## 2026-06-23 — GP-243（creatorpascal 金錢與快樂）：太多生硬詞彙 + MoguNote 不夠解釋性 + pipeline note component drift
 
 ### Feedback: 「看起來不怎麼樣，太多生有詞彙了，富有解釋性的 MoguNotes 呢? Where the fuck r they?」
 
 - ShroomDog 在 prod 讀 GP-243 後不滿意，兩個具體點：
   1. **太多生硬/未翻詞彙**：正文留太多英文與 jargon（`protocol`、`bug`、`P/I 欄`、`ataraxia`、`net worth/self-worth` 等），即使有些被 allowlist 或加註，整體讀起來還是卡、像沒翻完。違反〈術語處理〉精神：能翻成自然繁中就翻，不要靠 allowlist 硬留英文。
   2. **MoguNote 不夠「富有解釋性」**：文章用的是短促吐槽式的 note（一兩句 + kaomoji），ShroomDog 要的是 sd-26 那種**一整段、有 POV、把題材接回 AI/tech 或 gu-log 自身**的解釋性 MoguNote。POV 是 gu-log 的靈魂，note 太 quippy = 沒打出靈魂。
-- 連帶踩到的 pipeline drift：**`gp-pipeline` 的 `write.tmpl` 還在輸出 `<MoguNote>`**，但寫作 SSOT（`GU-LOG_WRITER_PROMPT.md` L188）早已規定 **POV 一律進 `<MoguNote>`（MoguNote 為舊名 alias）**，persona 也已改成 Mogu（首頁副標）。pipeline 沒跟上 SSOT → 自動產出的 GP 文章全是舊的 MoguNote。這是 template 對 writer-prompt SSOT 的 drift，要在 template 端修掉，否則每篇 pipeline 文章都重複這個錯。
-- Reusable lesson：(1) **GP/GP 文章預設用 `<MoguNote>`，不是 `<MoguNote>`**；MoguNote 只是還能 render 的舊 alias，新文章不要再用。(2) **MoguNote 要解釋性、成段、有 POV**（接回 AI/tech 平行對照或 gu-log 自身的自我指涉 callback），不是一句吐槽配 kaomoji。品質門檻：讀者要看 note 才看得到 gu-log 的觀點，所以 note 必須自帶資訊量。(3) **晶晶體不是「過了 lint 就好」**：allowlist 是最後手段（專有名詞 / 模型名），一般概念詞（protocol→流程、bug→出錯/毛病）能翻就翻，留英文會讓 ShroomDog 覺得「沒翻完」。(4) pipeline template 是 writer-prompt SSOT 的 derived view，SSOT 改了（MoguNote→MoguNote）template 要跟，否則自動產出持續 drift。
+- 連帶踩到的 pipeline drift：**`gp-pipeline` 的 `write.tmpl` 當時仍輸出非 canonical note component**，但寫作 SSOT（`GU-LOG_WRITER_PROMPT.md`）已規定 **POV 一律進 `<MoguNote>`**，persona 也已改成 Mogu（首頁副標）。pipeline 沒跟上 SSOT，會讓每篇自動產出的 GP 重複同一個錯；修法是在 template 端只輸出 canonical component。
+- Reusable lesson：(1) **GP/MP 文章只使用 canonical `<MoguNote>`**，新文章與 template 都不保留舊 component alias。(2) **MoguNote 要解釋性、成段、有 POV**（接回 AI/tech 平行對照或 gu-log 自身的自我指涉 callback），不是一句吐槽配 kaomoji。品質門檻：讀者要看 note 才看得到 gu-log 的觀點，所以 note 必須自帶資訊量。(3) **晶晶體不是「過了 lint 就好」**：allowlist 是最後手段（專有名詞 / 模型名），一般概念詞（protocol→流程、bug→出錯/毛病）能翻就翻，留英文會讓 ShroomDog 覺得「沒翻完」。(4) pipeline template 是 writer-prompt SSOT 的 derived view；SSOT 選定 canonical `<MoguNote>` 後，template 必須同步，否則自動產出會持續 drift。
 
 ## 2026-06-25 — 「拆過」全站退役 + 建 GP-232 授權但沒人做的 T3 硬 lint
 
@@ -563,7 +563,7 @@ Sprin asked whether Tribunal v7 FreshEyes covers “length should be just right,
 - ShroomDog feedback：讀 GP-244 時點名 `拆過` 很 AI 腔；要求建一個 lint 擋掉這種 AI 翻譯腔，並指出「banned terms 在 editorial-feedback corpus 裡找得到」（要從這份 corpus 取字，不要 agent 自己憑空想）。
 - 查證（ShroomDog 校正：**`拆過` 就是 AI tell，只是一直沒空修，不是被認證的慣用法**）：全站 **19 處 / 14 篇**，幾乎清一色 `[post-ref] 拆過 [主題]`、多半帶 cross-ref（「gu-log 之前拆過 [GP-192]」「GP-175 拆過一次」）。一開始把「數量多」誤讀成「既有慣用法、別 lint」是錯的——多只代表**累積沒清的 debt**。grep 真正的價值是抓出唯一 1 處**字面**用法：GP-216「拆過外掛、改過外掛」=拆解外掛（金山遊俠），那個才該留。`拆過` 是離散、單一例外的 tell → 可以硬 lint（用 `{/* ai-ok */}` 放行 GP-216）；GP-232 那條「regex 誤殺正當用法」針對的是**密度型** tell，不是這種離散詞。
 - 決策（ShroomDog 拍板兩題）：(1) `拆過` **全站退役** → 講過 / 寫過 / 聊過（當成刻意換詞，像 查重→dedup）。(2) **建 GP-232 line 419 早就授權、但一直沒人做的 T3 explicit-wordlist 硬 lint**——`scripts/check-ai-tells.mjs`。
-- Grandfather 取捨（誠實記一筆）：碰舊文會掀出它既有的 lint 債——編輯一個字就觸發整篇 re-lint / re-score。`拆過` 殘留在 7 篇 grandfathered 舊文：(a) **score-less**（cp-272 / cp-303 / sp-182，加字面用法的 sp-216）被 score floor 擋；(b) **晶晶體債**（sp-177 / sp-180 / sp-181 / sp-183）被 jingjing 擋（既有裝飾英文要 ShroomDog 拍 allowlist 邊界，超出換詞範圍）。依 gate 哲學（「不要為維護性小改逼舊文重評分」）+ 分數誠實（不准手填假分）+ allowlist 要 ShroomDog 拍板，**這 7 篇一律跳過、還原回 HEAD**；它們的 `拆過` 凍結，等下次被實質編輯時由 lint 連帶逼修。退役在**政策上**完成（詞已死、lint 把關新文與未來編輯），只是 analytical 殘留在這批 score-less / 晶晶體債的舊文。
+- Grandfather 取捨（誠實記一筆）：碰舊文會掀出它既有的 lint 債——編輯一個字就觸發整篇 re-lint / re-score。`拆過` 殘留在 7 篇 grandfathered 舊文：(a) **score-less**（mp-272 / mp-303 / gp-182，加字面用法的 gp-216）被 score floor 擋；(b) **晶晶體債**（gp-177 / gp-180 / gp-181 / gp-183）被 jingjing 擋（既有裝飾英文要 ShroomDog 拍 allowlist 邊界，超出換詞範圍）。依 gate 哲學（「不要為維護性小改逼舊文重評分」）+ 分數誠實（不准手填假分）+ allowlist 要 ShroomDog 拍板，**這 7 篇一律跳過、還原回 HEAD**；它們的 `拆過` 凍結，等下次被實質編輯時由 lint 連帶逼修。退役在**政策上**完成（詞已死、lint 把關新文與未來編輯），只是 analytical 殘留在這批 score-less / 晶晶體債的舊文。
 - 修法：
   1. Sweep：8 處 analytical `拆過`→`講過`，橫跨 6 篇有分數的文 + GP-244（GP-208 用 `寫過` 避開相鄰 `講過` 重複）。上述 7 篇 grandfathered 舊文還原回 HEAD（見上）。
   2. `scripts/check-ai-tells.mjs`：sibling of check-pronoun-clarity / check-jingjing（同 mask 區、staged-only、merge-skip、pre-commit 攔）。`BLOCKLIST` 是字表 SSOT，error 訊息直接帶自然替代（progressive disclosure——修的人讀 lint 輸出、不靠 prompt）。**v1 種子 = 低誤殺離散詞**：拆過、拆得很乾淨/很漂亮、這才是工程品味、這刀切得漂亮、學術根源是、一句話記住。`{/* ai-ok */}` 逐行放行字面用法。
@@ -592,10 +592,10 @@ Sprin asked whether Tribunal v7 FreshEyes covers “length should be just right,
   3. 其餘 82 處 / 28 篇照「拆過」前例 **grandfather**：lint 是 staged-only，舊文凍結，下次被實質編輯時連帶逼修。不做全站 bulk sweep——每處語境不同（benchmark / evals / 開箱），機械替換會出怪句。
 - Reusable lesson：(1) 「評估」是 gu-log 的預設詞；指 benchmark/evals 這種「一組可重跑的測試」用「評估基準」或「基準測試」，指 3C 開箱用「實測」。(2) 高頻支語（83 處等級）的退役 SOP 跟「拆過」一樣：lint 擋新增 + 最新文章當場清 + 舊文 grandfather 等編輯時逼修，不硬掃全站。
 
-## 2026-07-15 — CP ryolu session：「出貨」不是台灣 tech 口語，prompt / review / ship 動詞留英文更自然
+## 2026-07-15 — MP ryolu session：「出貨」不是台灣 tech 口語，prompt / review / ship 動詞留英文更自然
 
 ### Feedback: 「prompt, review, ship 都滿自然的，我自己是沒啥聽到出貨，頂多上線」
 
-- 情境：CP〈夢想變成工作之後〉翻 Ryo Lu 的 "you can still prompt, review, decide, ship"。FreshEyes judge 嫌英文動詞在安靜散文裡有摩擦感，writer 全翻成中文（下指令 / 審稿 / 做決定 / 出貨）。ShroomDog 看過選項後定調：prompt / review / ship 在台灣 tech 圈口語就是講英文，留著反而自然；「出貨」則幾乎沒人講，講的是「上線」。decide 維持中文「做決定」。
+- 情境：MP〈夢想變成工作之後〉翻 Ryo Lu 的 "you can still prompt, review, decide, ship"。FreshEyes judge 嫌英文動詞在安靜散文裡有摩擦感，writer 全翻成中文（下指令 / 審稿 / 做決定 / 出貨）。ShroomDog 看過選項後定調：prompt / review / ship 在台灣 tech 圈口語就是講英文，留著反而自然；「出貨」則幾乎沒人講，講的是「上線」。decide 維持中文「做決定」。
 - 修法：正文改回「還是可以 prompt、review、做決定、ship，讓事情繼續動」。
 - Reusable lesson：(1) **judge 的 taste ≠ ShroomDog 的 taste**：FreshEyes 對「英文動詞摩擦感」的判斷在這裡被 owner 推翻——工程圈實際口語的英文動詞（prompt / review / ship / merge / commit 這類）不算晶晶體，硬翻反而失真。(2) **「出貨」是翻譯腔警訊**：ship 對應的台灣口語是「上線」（或直接留 ship）；「出貨」是製造業詞彙滲進軟體語境。(3) 動詞留不留英文的判準是「工程師嘴巴上怎麼講」，不是「字典能不能翻」。

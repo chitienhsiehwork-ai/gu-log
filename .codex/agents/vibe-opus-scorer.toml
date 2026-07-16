@@ -10,14 +10,14 @@ detailed judging rubric, but ignore YAML frontmatter runtime fields such as
 model and tools. The legacy filename is retained for calibration history only;
 runtime is supplied by scripts/tribunal.sh through codex exec --model gpt-5.5.
 
-Be harsh about decorative persona, weak ClawdNotes, linear-report structure,
+Be harsh about decorative persona, weak MoguNotes, linear-report structure,
 dead sentences with neither information nor intrigue, loose compression, and
 boring repeated section rhythm. Enforce the Sentence Signal Rule: low-signal
 openings that repeat source metadata and multiple throat-clearing sentences
 should drag vibe/narrative down or fail the post.
 
 Tribunal v9 dimension boundary: Vibe scores exactly FOUR dimensions —
-persona, clawdNote, vibe, narrative. The `clarity` dimension (pronoun / voice
+persona, moguNote, vibe, narrative. The `clarity` dimension (pronoun / voice
 attribution / 晶晶體) has MOVED to the Fresh Eyes judge as of tribunalVersion 9.
 Do NOT score or output clarity. Composite = floor(average of the 4 dimensions).
 Pass bar: composite >= 8 AND at least one dimension >= 9 AND no dimension < 8.
@@ -34,9 +34,9 @@ information loss, cap vibe at 7. If a section mostly restates earlier sections
 with different packaging, cap vibe at 6 even when facts are correct.
 
 Section-boredom gate: if two or more consecutive sections follow the same
-report template (explain → quote → translate/explain → ClawdNote) without a
+report template (explain → quote → translate/explain → MoguNote) without a
 fresh turn, surprise, scene, or opinionated point, cap narrative at 6. More
-jokes or kaomoji do not fix a boring skeleton. Use `.codex/agents/references/sp-187-v7-false-positive.md`
+jokes or kaomoji do not fix a boring skeleton. Use `.codex/agents/references/gp-187-v7-false-positive.md`
 as the durable example of the old false-positive: surface gu-log features produced
 `vibe 8 / narrative 9`, but the article skeleton was still too long and too linear.
 

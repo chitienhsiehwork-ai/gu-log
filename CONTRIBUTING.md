@@ -166,8 +166,8 @@ tags: ["tag1", "tag2"]  # 用於分類和過濾
 ### Ticket ID 編號系統
 
 - **SD** (ShroomDog Original) — ShroomDog 自己寫的原創文章
-- **SP** (Gu-log Picks) — ShroomDog 挑選的文章，Mogu 翻譯
-- **CP** (Mogu Picks) — Mogu 自主挑選並翻譯的文章
+- **GP** (Gu-log Picks) — ShroomDog 挑選的文章，Mogu 翻譯
+- **MP** (Mogu Picks) — Mogu 自主挑選並翻譯的文章
 - **Lv** (Level-Up) — 入門教學系列
 
 **Counter 位置**: `scripts/article-counter.json`
@@ -196,17 +196,17 @@ ticketId: "MP-PENDING"   # 或 GP-PENDING / SD-PENDING / Lv-PENDING
 ```bash
 # 自動偵測唯一一組 PENDING 文章；多組時用 prefix 或 slug 指定
 node scripts/allocate-ticket.mjs            # 只有一組 PENDING 時
-node scripts/allocate-ticket.mjs SP         # 多個 prefix 有 PENDING 時，挑 SP
+node scripts/allocate-ticket.mjs GP         # 多個 prefix 有 PENDING 時，挑 GP
 node scripts/allocate-ticket.mjs polished-ui-rules   # 同 prefix 多篇時，用 slug 區分
-node scripts/allocate-ticket.mjs SP --dry-run        # 先預覽不動檔案
+node scripts/allocate-ticket.mjs GP --dry-run        # 先預覽不動檔案
 ```
 
-`allocate-ticket.mjs` 做的就是「給號」這一件事、而且**只做這件事**：讀 counter → 把 `GP-PENDING` 換成 `SP-N`（zh-tw + en 兩個檔案的 frontmatter）→ rename 檔名（`sp-pending-…` → `sp-N-…`，你選的日期跟 slug 原封不動保留）→ bump counter → 跑 `validate-posts.mjs`。**它不 commit、不 build、不 push**——所以你可以把它當 merge 前的最後一步，產出一個乾淨的「swap PENDING → SP-N」atomic commit，這時 counter 是最新的。
+`allocate-ticket.mjs` 做的就是「給號」這一件事、而且**只做這件事**：讀 counter → 把 `GP-PENDING` 換成 `GP-N`（zh-tw + en 兩個檔案的 frontmatter）→ rename 檔名（`gp-pending-…` → `gp-N-…`，你選的日期跟 slug 原封不動保留）→ bump counter → 跑 `validate-posts.mjs`。**它不 commit、不 build、不 push**——所以你可以把它當 merge 前的最後一步，產出一個乾淨的「swap PENDING → GP-N」atomic commit，這時 counter 是最新的。
 
 四步手動版（script 壞了時的 fallback）：
 1. `node -e "console.log(require('./scripts/article-counter.json').GP.next)"` 拿下一個真號
 2. 改 frontmatter：`ticketId: "GP-PENDING"` → `ticketId: "GP-232"`（兩個檔案都改）
-3. Rename 檔案：`sp-pending-20260617-foo.mdx` → `sp-232-20260617-foo.mdx`（兩個檔案都改）
+3. Rename 檔案：`gp-pending-20260617-foo.mdx` → `gp-232-20260617-foo.mdx`（兩個檔案都改）
 4. Bump counter + `node scripts/validate-posts.mjs` → commit swap
 
 **Pipeline 版本**：`tools/gp-pipeline/gp-pipeline run`／`gp-pipeline deploy` 包辦整個 swap（連 commit / build / push 一起），在 orchestrated 流程裡自動跑——write 階段預設就寫 `PENDING`（`internal/pipeline/write.go`），deploy 階段才 allocate（`internal/deploy/deploy.go`）。手寫路徑想要「只 swap、commit 留給自己」時用上面的 `allocate-ticket.mjs`。
@@ -231,7 +231,7 @@ grep -ri "AUTHOR_HANDLE\|TOPIC_KEYWORD" src/content/posts/*.mdx
 
 **Step 2: 用 PENDING 開檔（不要現在給號、不要碰 counter）**
 
-frontmatter 寫 `ticketId: "GP-PENDING"`，檔名用 `sp-pending-YYYYMMDD-<slug>.mdx`（en 版 `en-gp-pending-…`）。**這一步不讀 counter、不 bump counter**——給號是 merge 前最後一刻的事，見上面〈編號分配：PENDING ticket pattern〉。
+frontmatter 寫 `ticketId: "GP-PENDING"`，檔名用 `gp-pending-YYYYMMDD-<slug>.mdx`（en 版 `en-gp-pending-…`）。**這一步不讀 counter、不 bump counter**——給號是 merge 前最後一刻的事，見上面〈編號分配：PENDING ticket pattern〉。
 
 **Step 3: 建立文章 → tribunal → commit（仍然是 PENDING）**
 1. 建立 zh-tw 和 en 兩個檔案，frontmatter 都掛 `GP-PENDING`
@@ -240,7 +240,7 @@ frontmatter 寫 `ticketId: "GP-PENDING"`，檔名用 `sp-pending-YYYYMMDD-<slug>
 
 **Step 4: merge 前最後一刻才 allocate 真號**
 
-CI 綠、要合的那一刻才 `node scripts/allocate-ticket.mjs SP`（swap + rename + bump counter），產出一個獨立的「swap PENDING → SP-N」commit，然後 merge。這時讀到的 counter 是最新的，撞號跟 counter conflict 的視窗趨近於零。
+CI 綠、要合的那一刻才 `node scripts/allocate-ticket.mjs GP`（swap + rename + bump counter），產出一個獨立的「swap PENDING → GP-N」commit，然後 merge。這時讀到的 counter 是最新的，撞號跟 counter conflict 的視窗趨近於零。
 
 ### translatedBy.model — 自動偵測
 
@@ -257,7 +257,7 @@ node scripts/detect-model.mjs anthropic/claude-opus-4-6
 - ❌ 看到 tweet 就開寫，沒先搜尋 → 造成重複文章
 - ❌ 寫作階段就給真號（而不是 `PENDING`）→ 跟並行的 branch 撞號、counter merge conflict
 - ❌ 早早 bump counter → 文章如果沒上 main，號就空掉、counter 跳號
-- ❌ 用「我記得是 SP-XX」硬給號 → 編號衝突（正解：`allocate-ticket.mjs` 在 merge 前讀當下的 counter）
+- ❌ 用「我記得是 GP-XX」硬給號 → 編號衝突（正解：`allocate-ticket.mjs` 在 merge 前讀當下的 counter）
 - ❌ 同一個 source tweet 寫成多篇 → 應該合併成 series
 
 ## Components
@@ -413,7 +413,7 @@ test('GIVEN [前提] WHEN [動作] THEN [預期結果]', async ({ page }) => {
 
 **在動筆之前，必須確認你拿到的是完整的 source material。**
 
-- **Twitter/X threads**：確認你有全部推文。看 numbering（如 1/5, 2/5...），用 `bird replies <url>` 逐則追完整串
+- **Twitter/X threads**：載入 `x-source-fetch`，跑 `bash scripts/fetch-x-article.sh <url>`。若來源明顯是 self-thread，確認輸出有 `Thread: N tweets` 與對應的 `THREAD N/M` 段落；只拿到 focal tweet 就視為 source 不完整並停止寫作
 - **多頁文章**：確認不是只拿到第一頁
 - **Paywall 內容**：確認穿透成功，不是拿到登入頁
 - **影片/podcast**：確認有完整 transcript，不是只有標題和描述
@@ -434,7 +434,7 @@ Pipeline agents：如果無法取得完整 source，output `INCOMPLETE_SOURCE: <
 
 ### 新增翻譯文章 (GP/MP)
 
-1. 抓原文：X/Twitter 用 `sp-source-fetch` skill；一般 blog/docs 用 `curl -sL -A "Mozilla/5.0..." <url>` 抓原始 HTML 再解析，不用 `WebFetch` 當翻譯依據
+1. 抓原文：X/Twitter 用 `x-source-fetch` skill；一般 blog/docs 用 `curl -sL -A "Mozilla/5.0..." <url>` 抓原始 HTML 再解析，不用 `WebFetch` 當翻譯依據
 2. 寫 **zh-tw 版** `<prefix>-pending-YYYYMMDD-<slug>.mdx`（加 MoguNote 吐槽）
 3. `node scripts/validate-posts.mjs` 確認 frontmatter 合格
 4. 丟 **vibe-opus-scorer** subagent 評分 → 沒過就改寫，最多 3 輪
@@ -458,8 +458,6 @@ Pipeline agents：如果無法取得完整 source，output `INCOMPLETE_SOURCE: <
 # Canonical: the Go binary (self-compiling wrapper — first run cold-builds)
 tools/gp-pipeline/gp-pipeline run <tweet_url>
 
-# Backwards-compat: old bash entry point is a shim that execs into the Go binary.
-bash scripts/gp-pipeline.sh <tweet_url>
 ```
 
 自動流程：抓原文 → 評估 → dedup → 翻譯 → review → refine → credits → Ralph 評分 → commit。
@@ -477,10 +475,10 @@ pnpm run build                   # 完整 build 檢查
 
 ```
 src/content/posts/
-├── sp-123-20260322-slug.mdx          # SP 中文版
-├── en-gp-123-20260322-slug.mdx       # SP 英文版
-├── cp-198-20260322-slug.mdx          # CP 中文版  
-├── en-mp-198-20260322-slug.mdx       # CP 英文版
+├── gp-123-20260322-slug.mdx          # GP 中文版
+├── en-gp-123-20260322-slug.mdx       # GP 英文版
+├── mp-198-20260322-slug.mdx          # MP 中文版
+├── en-mp-198-20260322-slug.mdx       # MP 英文版
 ├── sd-10-20260322-slug.mdx           # SD 中文版
 ├── en-sd-10-20260322-slug.mdx        # SD 英文版
 └── lv-11-20260322-slug.mdx           # Lv 中文版

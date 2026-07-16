@@ -30,7 +30,7 @@ Tracked overlay 只放 public-safe machine policy。Secret values 不得寫入 r
 ### Branch 位置不固定
 
 local Codex actor / local Claude actor 可能在任何 branch 上，不一定在 `claude/xxx`：
-- 可能在 `main`（solo author 直接開發）
+- 可能從 `main` 開場，但開始修改前仍要建立 feature branch
 - 可能在 worktree（user 常用 `git worktree`，一次開多個 feature）
 - 可能在 feature branch
 
@@ -46,12 +46,12 @@ git log --oneline -5
 
 不要假設在 main。不要擅自切 branch。尊重 user 當下的 working state——如果 user 已經在某個 branch 上 iterate，就在那個 branch 上做。
 
-### Merge flow 更直接
+### Merge flow
 
-local Codex actor / local Claude actor 不一定要走 PR + self-merge 流程：
-- 在 main 上 → commit + push 就直接 Vercel deploy 上 prod（solo author policy 授權的）
-- 在 feature branch 上 → push 到同名 remote branch，要不要開 PR 看情況
-- 在 worktree 上 → 照該 worktree 的 scope 做事
+Branch 與 merge policy 以 Tier-0 `AGENTS.md` 為 SSOT；local actor 也沒有直推 `main` 的例外：
+- 從 `main` 開場 → 修改前建立 feature branch
+- 在 feature branch 上 → commit、push、開 PR、盯 CI，綠了依當前任務 gate 自行 merge
+- 在 worktree 上 → 照該 worktree 的 scope 做事，完成後走同一套 PR 流程
 
 GitHub MCP 不一定可用（看 user 的 Claude Code 設定）。可能有 `gh` CLI、可能沒有。觀察現況，不要硬叫 MCP tool。
 
@@ -63,7 +63,7 @@ local Codex actor / local Claude actor 有的 CCC 沒有的：
 - **uiux-auditor skill**（`.claude/skills/uiux-auditor/`）：改完視覺跑一次，強制雙主題截圖 + WCAG 對比
 - **iCloud Drive 直接存取**：可以直接讀 Obsidian vault 裡的草稿（`~/Library/Mobile Documents/com~apple~CloudDocs/Obsidian/gu-log-drafts/`），跑 `pnpm run obsidian:import`
 - **沒有沙箱網路限制**：可以下載、可以 curl、可以 fetch 外部 API
-- **hosted X MCP 要接就在本地接，別在 CCC 試**：X 官方有 hosted X MCP（`https://api.x.com/mcp`，文件 `docs.x.com/tools/mcp`），透過 `npx @xdevplatform/xurl mcp` 這個 stdio bridge 連，能 live 搜尋 X / 查 user / 管 bookmarks / 發 Articles。但它需要 ① 你自己的 X dev app（CLIENT_ID/SECRET）② 一次性瀏覽器 OAuth 登入。CCC sandbox 擋 `x.com`（這也是抓推文要繞 fxtwitter 的原因）、又是 headless，這套基本通不了；local Codex actor / local Claude actor 有真瀏覽器 + 正常對外網路，OAuth 登一次就能用。**單純讀推文寫 SP 仍走 `sp-source-fetch`（fxtwitter，免 auth、sandbox 也能跑）**，X MCP 只在需要 live 搜尋 / 互動 X API 時才值得接。
+- **hosted X MCP 要接就在本地接，別在 CCC 試**：X 官方有 hosted X MCP（`https://api.x.com/mcp`，文件 `docs.x.com/tools/mcp`），透過 `npx @xdevplatform/xurl mcp` 這個 stdio bridge 連，能 live 搜尋 X / 查 user / 管 bookmarks / 發 Articles。但它需要 ① 你自己的 X dev app（CLIENT_ID/SECRET）② 一次性瀏覽器 OAuth 登入。CCC sandbox 擋 `x.com`（這也是抓推文要繞 fxtwitter 的原因）、又是 headless，這套基本通不了；local Codex actor / local Claude actor 有真瀏覽器 + 正常對外網路，OAuth 登一次就能用。**單純讀推文寫 GP 仍走 `x-source-fetch`（fxtwitter，免 auth、sandbox 也能跑）**，X MCP 只在需要 live 搜尋 / 互動 X API 時才值得接。
 - **Tribunal VM 存取**：先從 local-only machine note 取得 `TRIBUNAL_HOST` 與 `GU_LOG_DIR`，再用 `/tribunal-monitor` skill 做一鍵診斷；tracked repo 不保存實際 SSH／Unix 座標。完整 ops 見 [`docs/tribunal-runbook.md`](../docs/tribunal-runbook.md)
 
 這些都該主動用，不要因為 CCC 不能用就不用。

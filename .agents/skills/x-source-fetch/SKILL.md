@@ -1,19 +1,19 @@
 ---
-name: sp-source-fetch
-description: Fetch the full body of an X/Twitter post or X Article for SP/CP translation before running sp-pipeline; fails loudly on incomplete sources.
+name: x-source-fetch
+description: Fetch the full focal body of an X/Twitter post or X Article for GP/MP translation before gp-pipeline runs; fail loudly when that focal source is incomplete.
 ---
 
-# sp-source-fetch
+# x-source-fetch
 
 Fetch an X URL's full translatable body, or fail loud. One script, one contract.
 
 ## When to use
 
-- User drops an `https://x.com/...` or `https://twitter.com/...` URL and asks for an SP or CP
-- `sp-pipeline run <url>` (the Go binary in `tools/sp-pipeline/`) or `sp-pipeline fetch <url>` is the natural next step and the source capture stage needs the body
+- User drops an `https://x.com/...` or `https://twitter.com/...` URL and asks for a GP or MP
+- `gp-pipeline run <url>` or `gp-pipeline fetch <url>` is the natural next step and the source capture stage needs the body
 - Any time "I need the tweet content but curl returns gibberish"
 
-> **Note**: as of Phase 4 of the Go rewrite, the canonical entry point is `tools/sp-pipeline/sp-pipeline run <url>`. The `scripts/sp-pipeline.sh` bash script still works (it's a thin shim that execs the Go binary), but agents should prefer the Go CLI when writing new tooling. The `sp-pipeline fetch <url>` subcommand internally calls `scripts/fetch-x-article.sh` — the same helper this skill documents. If you just need the raw capture for manual inspection, `bash scripts/fetch-x-article.sh <url>` is still the most direct path.
+> **Note**: the canonical entry point is `tools/gp-pipeline/gp-pipeline run <url>`. Its `fetch <url>` subcommand internally calls `scripts/fetch-x-article.sh` — the same helper this skill documents. If you only need the raw capture for manual inspection, `bash scripts/fetch-x-article.sh <url>` is the most direct path.
 
 Do NOT use for:
 - Non-X URLs (blog posts, arXiv, GitHub README) — those go through `scripts/fetch-article.py`
@@ -52,7 +52,7 @@ bash scripts/fetch-x-article.sh <tweet_url> --json
    - If only `text` / `raw_text` / `note_tweet` populated → emit plain body
 3. If fxtwitter is down, fall back to `https://api.vxtwitter.com/Twitter/status/<id>`
    - Plain tweets: fine
-   - X Articles: vxtwitter returns only `article.preview_text` (~200 chars). The renderer surfaces the preview PLUS an `INCOMPLETE_SOURCE_WARNING` marker. Treat as incomplete — do not ship an SP based on a preview.
+   - X Articles: vxtwitter returns only `article.preview_text` (~200 chars). The renderer surfaces the preview PLUS an `INCOMPLETE_SOURCE_WARNING` marker. Treat as incomplete — do not ship a GP based on a preview.
 4. Both failed / empty body → stderr `INCOMPLETE_SOURCE: <reason>`, exit 2
 
 ## Anti-patterns (do not do these, they will bite you)
@@ -61,7 +61,7 @@ bash scripts/fetch-x-article.sh <tweet_url> --json
 - **`curl https://x.com/...`** — returns React SSR shell with no body text.
 - **`curl https://x.com/i/article/<id>`** — same React shell.
 - **`playwright-cli goto x.com/...`** — the gu-log sandbox blocks external HTTPS, `goto` hangs on `domcontentloaded`. Even with the route-abort workaround, x.com auth-walls anonymous browsers.
-- **Reading only `tweet.text` from vxtwitter for a long-form article** — the body is NOT in `text`; it's in `article` (truncated to preview). Silent data loss. This used to be the default path via the old `fetch-x-api-fallback.sh` and caused SPs that quoted 200 chars of a 2000-char article.
+- **Reading only `tweet.text` from vxtwitter for a long-form article** — the body is NOT in `text`; it's in `article` (truncated to preview). Silent data loss. This used to be the default path via the old `fetch-x-api-fallback.sh` and caused GPs that quoted 200 chars of a 2000-char article.
 - **Assuming an empty `text` field means an empty tweet** — when `text` is a `t.co` link and `article` is populated, the body lives in `article.content.blocks`.
 
 ## Quick sanity checks after fetching
@@ -85,12 +85,12 @@ The OpenClaw [x-tweet-fetcher](https://github.com/ythx-101/x-tweet-fetcher) skil
 - Public Nitter instances are mostly dead as of 2026
 - fxtwitter's JSON endpoint is not blocked, needs no auth, and returns full X Article bodies
 
-For the VPS-Clawd path, the OpenClaw skill is a better long-term answer. For this repo's Codex path, `fetch-x-article.sh` is the only thing that works — so use it.
+For the VPS-Mogu path, the OpenClaw skill is a better long-term answer. For this repo's Codex path, `fetch-x-article.sh` is the only thing that works — so use it.
 
 ## What to do on INCOMPLETE_SOURCE
 
-Per `CONTRIBUTING.md`'s Source Completeness section: **stop writing**. Do not fill in gaps from memory or Clawd's guess at what the tweet probably said. Either:
+Per `CONTRIBUTING.md`'s Source Completeness section: **stop writing**. Do not fill in gaps from memory or Mogu's guess at what the tweet probably said. Either:
 
 1. Retry later (transient fxtwitter outage is possible)
 2. Ask the user to paste the body directly
-3. Skip this SP / drop from queue
+3. Skip this GP / drop from queue

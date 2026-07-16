@@ -9,7 +9,7 @@ import { getLocalizedPostUrl } from '../../utils/post-urls';
  *
  * Schema v2 (breaking, Mogu GP/MP taxonomy):
  *   - `schemaVersion: 2` replaces the old `version: 1` field
- *   - `prefix` only emits canonical GP/MP/SD/Lv; legacy SP/CP no longer exist
+ *   - `prefix` only emits canonical GP/MP/SD/Lv; retired prefixes are never emitted
  *   - `url` is the localized route (en posts link under /en/posts/)
  *
  * Returns all article metadata sorted by date (newest first).

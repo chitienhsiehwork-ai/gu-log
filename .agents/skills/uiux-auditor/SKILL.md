@@ -63,12 +63,12 @@ If you edit CSS mid-audit and `<style is:global> @import '../styles/global.css'`
 
 ### Step 3 — Drive the browser with `playwright-cli`
 
-Use the `playwright-cli` skill (already installed at `.Codex/skills/playwright-cli/`). Do not spawn `node -e "require('playwright')..."` scripts — that is the old way and is slower, more token-heavy, and bypasses session reuse.
+Use the `playwright-cli` skill at `.agents/skills/playwright-cli/`. Do not spawn `node -e "require('playwright')..."` scripts — that is the old way and is slower, more token-heavy, and bypasses session reuse.
 
 This environment's sandbox blocks external HTTPS (`ERR_INVALID_AUTH_CREDENTIALS` on google fonts, etc.), and `<link rel="stylesheet" href="https://fonts.googleapis.com/...">` will hang `domcontentloaded` forever. **Install a network route to abort external requests before every `goto`.** Without this, every audit times out at 30 seconds.
 
 ```bash
-URL="http://127.0.0.1:4321/posts/cp-272-20260410-semianalysis-typescript-Codex-60-ai"
+URL="http://127.0.0.1:4321/posts/mp-272-20260410-semianalysis-typescript-claude-code-60-ai"
 playwright-cli -s=audit open
 playwright-cli -s=audit resize 390 844
 playwright-cli -s=audit run-code "async page => {

@@ -4,7 +4,7 @@ description: "Tribunal Writer — rewrite agent for the tribunal quality pipelin
 # PINNED: claude-opus-4-5 (owner sign-off 2026-06-18: ShroomDog wants the
 # writer, rewriter, AND vibe-scorer all on Opus 4.5 for one consistent taste
 # across generate + grade; supersedes the prior 4-6 pin).
-# Prior rationale, still valid: claude-opus-4-6. This is the SP / rewrite voice — maintainer has
+# Prior rationale, still valid: claude-opus-4-6. This is the GP / rewrite voice — maintainer has
 # explicitly rejected Opus 4.7's writing style (too press-release, loses LHY
 # persona). Do NOT bump to "opus" alias or 4.7 without owner sign-off. The
 # previous [1m] context variant requires usage credits this account does not

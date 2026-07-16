@@ -7,7 +7,7 @@
 ## 來源擷取
 
 - `chatgpt-share-fetch` — 在寫作或轉換前，先把 `chatgpt.com/share/...` 對話內容抓到 `sources/chatgpt/...`。
-- `sp-source-fetch` — 在跑 SP/CP pipeline 前，先抓完整 X/Twitter post 或 X Article 內文。
+- `x-source-fetch` — 在跑 GP/MP pipeline 前，先抓完整 X/Twitter post、self-thread 或 X Article 內文。
 
 ## 內容與審查工作流
 

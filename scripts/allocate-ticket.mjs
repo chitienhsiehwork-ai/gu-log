@@ -73,7 +73,7 @@ function findPendingPairs() {
       const replacement = file.replace(/^(en-)?sp-/i, '$1gp-').replace(/^(en-)?cp-/i, '$1mp-');
       return `  - ${file} (rename to ${replacement})`;
     });
-    throw new Error(`Retired SP/CP pending filename(s) found:\n${hints.join('\n')}`);
+    throw new Error(`Retired taxonomy pending filename(s) found:\n${hints.join('\n')}`);
   }
   const files = allFiles.filter((f) => PENDING_RE.test(f));
   // Group by base name (strip the en- prefix) so a zh-tw post and its English

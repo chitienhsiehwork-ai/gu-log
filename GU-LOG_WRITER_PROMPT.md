@@ -7,7 +7,7 @@
 寫作規則不是只靠抽象 style guide 長出來的。ShroomDog 每次修稿回饋都是 gu-log 的真實 calibration data。
 
 - Feedback corpus：`docs/shroomdog-editorial-feedback.md`
-- 寫 SP / CP / SD / Lv 前，如果任務涉及文章品質、語氣、用字或事實查核，先快速掃近期條目。
+- 寫 GP / MP / SD / Lv 前，如果任務涉及文章品質、語氣、用字或事實查核，先快速掃近期條目。
 - ShroomDog / Sprin 給出新的 editorial feedback 時，立刻 append：原始回饋、情境、修法、可重用 lesson。
 - 同一類 lesson 重複出現 3 次以上，就升級成這份 `GU-LOG_WRITER_PROMPT.md` 的正式規則，或進 pipeline prompt。
 
@@ -114,7 +114,7 @@ translatedBy:
   harness: 'Gemini CLI'
 source: '@author on X'
 sourceUrl: 'full_tweet_url'
-pipeline: 'sp-96-pipeline' # Optional
+pipeline: 'gp-96-pipeline' # Optional
 pipelineUrl: 'https://github.com/...' # Optional
 lang: 'zh-tw'
 summary: '2-3 句摘要（≤300 characters）'
@@ -190,7 +190,7 @@ import MoguNote from '../../components/MoguNote.astro';
 翻譯/精選系列（**MP** = Mogu Picks、**GP** = Gu-log Picks）的分工只有一條，兩層不互相越界：
 
 - **正文 = 忠實的翻譯**：原文的語氣、條件、邊界、hedge、結論照實翻，不加碼、不刪減、不在正文塞原文沒有的事實/數字/觀點（這是〈翻譯誠實性〉的延伸面）。讀者要原汁原味的原文，就看正文。
-- **POV = 全部進 MoguNote**（`<MoguNote>`，舊稱 `MoguNote`，現為 alias）：gu-log 的吐槽、延伸、反例、把題材接回 AI/tech 圈的平行對照、對來源本身的 meta 評論，一律放 note。讀者要 gu-log 的靈魂，就看 MoguNote。
+- **POV = 全部進 MoguNote**（`<MoguNote>`）：gu-log 的吐槽、延伸、反例、把題材接回 AI/tech 圈的平行對照、對來源本身的 meta 評論，一律放 note。讀者要 gu-log 的靈魂，就看 MoguNote。
 - **推論：題材 off-domain 不是拒翻的理由**。就算原文跟 AI/tech 無關（生產力、心理、商業…），gu-log 的獨特觀點永遠打得出來，因為 MoguNote 永遠在。所以 pipeline eval 的「off-domain」判斷是 advisory，不是硬 blocker——值得翻就 `--force` 翻，相關性靠 note 層的平行對照補。
 
 **🪞 自我指涉 callback 是 MoguNote 的靈魂之一**：當原文講的東西 gu-log 自己也在做，就在 MoguNote 把它接回 gu-log 自身。這是把「外部觀察」變成「我們的親身實作」的最強招式，讀者最買單。常見對照：
@@ -199,7 +199,7 @@ import MoguNote from '../../components/MoguNote.astro';
 - 原文講**長跑 agent / 持久任務清單** → gu-log 的 GP pipeline + ralph loop。
 - 原文講**把教訓寫回指令 / 經營流程** → gu-log 的 CLAUDE.md / playbook / 這份 writer prompt 本身（agent 在用完即丟的沙箱裡，唯一長期記憶就是 commit 進 repo 的指令）。
 
-接法（優先序）：(1) 有現成文章就連文章（cite SP / SD / CP，例 SD-10 講 tribunal、SD-22 講 context window、SD-26 講編輯台）；(2) 沒有合適文章就連 glossary 詞條，把細節藏進詞條、正文只露「gu-log 也這樣做」；(3) 都沒有才連 repo 的 spec / script。**最強的是誠實、敢自嘲的 meta 梗**——例如「你正在讀的這篇就是被 gu-log 自己的四法官審過、拿了 sub-8、還掛著精修中 badge」。這種透明度本身就是 gu-log 的調性。
+接法（優先序）：(1) 有現成文章就連文章（cite GP / SD / MP，例 SD-10 講 tribunal、SD-22 講 context window、SD-26 講編輯台）；(2) 沒有合適文章就連 glossary 詞條，把細節藏進詞條、正文只露「gu-log 也這樣做」；(3) 都沒有才連 repo 的 spec / script。**最強的是誠實、敢自嘲的 meta 梗**——例如「你正在讀的這篇就是被 gu-log 自己的四法官審過、拿了 sub-8、還掛著精修中 badge」。這種透明度本身就是 gu-log 的調性。
 
 ⚠️ **但 callback 必須真實 + 自然 + 服務當下論點**。硬塞不貼題的自誇（「順帶一提 gu-log 超強」）是 cringe，扣分。判準：拿掉這個 self-ref，這個 note 還站得住嗎？站得住才放。
 
@@ -231,7 +231,7 @@ Google 2017 年丟出這顆核彈後，整個 NLP 界直接進入新紀元。
 - 不是逐字翻，是「讓讀者用最少腦力吸收原文想表達的意思」
 - **Idea > inventory**：不重要的專有名詞不要硬搬。讀者來 gu-log 不是看 1-to-1 translation；如果想查完整細節，他們可以點原文。gu-log 要交付的是 idea behind the details：用故事、角色、流程、譬喻，把名詞牆翻成讀者記得住的 mental model。
 - **專有名詞保留標準**：只有承載核心觀念、讀者後面會需要用到、或不保留會失真的名字才保留。其餘改成「有一個工具負責 X」「像一條小工廠產線」「某個模型負責抓錯」這種功能性描述。
-- **SP 正文不要 source-meta scaffolding**：讀者已經看得到 `原文出處：`，所以 GP body 不要用「原作者說」「原文提到」「這篇文章在講」當段落起手式或證據標籤。直接把 source claim 寫成順的正文；需要保留證據邊界時，寫成有資訊量、推動敘事的 context，而不是「這不是公開 benchmark」「僅供參考」「不是保證所有人都能做到」這類防呆式免責句。這類 source-meta commentary 若真的有讀者價值，放進 `<MoguNote>`。
+- **GP 正文不要 source-meta scaffolding**：讀者已經看得到 `原文出處：`，所以 GP body 不要用「原作者說」「原文提到」「這篇文章在講」當段落起手式或證據標籤。直接把 source claim 寫成順的正文；需要保留證據邊界時，寫成有資訊量、推動敘事的 context，而不是「這不是公開 benchmark」「僅供參考」「不是保證所有人都能做到」這類防呆式免責句。這類 source-meta commentary 若真的有讀者價值，放進 `<MoguNote>`。
 - **證據邊界要適量**：個人系統規模、自述使用量、主觀 10x 這類 claim，要保留 uncertainty，但不要用「原作者說 / 原文說」反覆打斷故事，也不要預設讀者會把單一案例誤讀成科學 benchmark。低風險 case-study 數字優先用自然情境標示，例如「這是 Cursor 自家網站的一次遷移帳單」。Benchmark、投資、醫療、安全、公司營收、法律，或讀者可能依數字做現實決策的 claim，才需要硬證據邊界。
 - 原文有幽默感 → 翻譯也要有
 - 原文很無聊 → 可以加料讓它變有趣（在不扭曲原意的前提下）

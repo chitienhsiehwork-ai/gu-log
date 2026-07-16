@@ -28,7 +28,7 @@ Pipeline 自己負責 eval、跨系列 dedup、寫作、review、refine、credit
 
 - 草稿 ticket 是 `MP-PENDING`，檔名是 `mp-pending-*`；正式號碼只由 deploy 配置。
 - 正式 MP 檔名是 `mp-N-*`，ticket 是 `MP-N`。
-- 不得手改 counter，不得使用 SP／CP alias，不得建立 `mogu-picks-*` series tag 或舊式文章檔名。
+- 不得手改 counter，不得使用 retired prefix alias，不得建立 `mogu-picks-*` series tag 或舊式文章檔名。
 - Dedup 若 BLOCK 就換候選；WARN 只有在差異化 thesis 能具體說明時才繼續。
 - 不得用 `--skip-dedup`、`--skip-validate`、`--skip-build` 或 hook bypass 讓失敗變綠。
 - Source 不完整、品質 gate 未過、CI 未綠、production URL 未驗證，都不算完成。

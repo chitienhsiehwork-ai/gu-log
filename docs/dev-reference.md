@@ -18,7 +18,7 @@ src/
 ├── content/
 │   ├── config.ts              # Content collection schema
 │   └── posts/
-│       ├── sp-123-date-slug.mdx   # 中文版 (lang: "zh-tw")
+│       ├── gp-123-date-slug.mdx   # 中文版 (lang: "zh-tw")
 │       └── en-gp-123-date-slug.mdx # 英文版 (lang: "en")
 ├── components/
 │   ├── MoguNote.astro        # Mogu 吐槽框（所有系列通用）

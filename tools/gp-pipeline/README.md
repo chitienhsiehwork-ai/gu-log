@@ -15,7 +15,7 @@ tools/gp-pipeline/gp-pipeline --help
 | SD | 原創文章 | `SD-N`／`SD-PENDING` | `sd-`／`sd-pending-` |
 | Lv | 入門教學 | `Lv-N`／`Lv-PENDING` | `lv-`／`lv-pending-` |
 
-SP／CP、舊檔名 slug、舊 tool path 與 shell wrapper 都已退役。CLI 會針對舊 prefix 回傳可採取行動的錯誤，不提供 compatibility alias。
+非 canonical prefix、舊檔名 slug、舊 tool path 與 shell wrapper 都已退役。CLI 會針對非 canonical prefix 回傳可採取行動的錯誤，不提供 compatibility alias。
 
 ## Why Go
 
