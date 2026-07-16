@@ -1,0 +1,187 @@
+---
+ticketId: "SD-PENDING"
+title: "把自己的 Claude tag 架進 LINE"
+originalDate: "2026-07-15"
+translatedDate: "2026-07-15"
+translatedBy:
+  model: "Opus 4.5"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Author"
+      model: "Human + Opus 4.5"
+      harness: "ShroomDog + Claude Code"
+source: "ShroomDog Lab"
+sourceUrl: "https://gu-log.vercel.app/"
+lang: "zh-tw"
+summary: "Claude tag 官方只給 Slack，想在 LINE 上有一個隨叫隨到的 AI 助理？那就自己架。用 OpenClaw 開一個 VPS 上的 LINE bot，訊息從 LINE 官方雲敲進來、gateway 接住、agent 回話。這篇講可複製的骨架、三條安全必修課，以及為什麼自由總是伴隨著責任。"
+tags: ["shroomdog-original", "openclaw", "line", "self-hosting", "agent"]
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 8
+    date: "2026-07-15"
+    model: "claude-opus-4-8"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 8
+    score: 8
+    date: "2026-07-16"
+    model: "claude-opus-4-8"
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-07-16"
+    model: "claude-opus-4-5"
+  librarian:
+    glossary: 7
+    crossRef: 5
+    sourceAlign: 8
+    attribution: 8
+    score: 7
+    date: "2026-07-16"
+    model: "claude-opus-4-8"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+
+Claude tag 出來之後，看著別人在 [Slack](/glossary#slack) 上 @ 自己的 AI 助理，LINE 使用者只能羨慕。官方沒打算支援 LINE，問就是「沒有計畫」。
+
+那就自己架一個。
+
+[OpenClaw](/glossary#openclaw) 是開源的個人 AI 助理 gateway，官方支援 LINE channel。架好之後效果跟 Claude tag 很像——朋友在 LINE 傳訊息，AI 在幾秒內回話。差別在於：Claude tag 是 Anthropic 幫忙扛好一切，自架是所有安全都得自己扛。
+
+這篇講的是可複製的骨架跟「為什麼」，不是截圖保姆教學。想跟著做的人，看完會知道方向，細節請翻 OpenClaw 官方文件。
+
+<ClawdNote>
+這系列四篇是 ShroomDog 自己把 AI 助理搬進各種平台的筆記。第一篇 Claude tag 入門、第二篇（就是這篇）LINE 自架、第三篇安全危機、第四篇 Teams 企業內網。從最自由到最受限，依序走一遍。
+</ClawdNote>
+
+---
+
+## 訊息怎麼送進 VPS 的
+
+先破除一個常見誤解：朋友傳訊息給 LINE bot，訊息不是從朋友手機直連 VPS。
+
+實際的路徑是這樣的：朋友打字 → 訊息先送到 LINE 官方雲 → LINE 伺服器主動發一個 POST 請求，敲登記好的 webhook 網址（`https://主機位址/line/webhook`）。VPS 只是坐在那裡等 LINE 來敲門，不是主動去撈訊息。
+
+這表示 VPS 必須有一個**公網打得到的 HTTPS 門牌**。LINE 要能在公開網路上找到目標主機，藏在 NAT 後面、沒有固定 IP、沒有合法 HTTPS 憑證，LINE 根本敲不進來。
+
+<MoguNote>
+換個說法：自架 LINE bot 不是「取代 LINE」，而是在 LINE 的官方網路上掛一個 bot 帳號。LINE 還是 LINE，只是接入它的生態系，跟官方伺服器講好「有人傳訊息給這個 bot 帳號時，請幫忙轉送到這個網址」。
+</MoguNote>
+
+---
+
+## OpenClaw 的架構：gateway + plugin
+
+OpenClaw 的本體是一支叫 gateway 的常駐程式，跑在 VPS 上當總機。想接哪個平台，就裝那個平台的 channel plugin——接 LINE 裝 `@openclaw/line`，接 Discord 裝 `@openclaw/discord`，以此類推。
+
+每個 plugin 負責講那個平台的方言。LINE 有 Flex message、範本、快速回覆；Discord 有嵌入訊息、表情回應；plugin 把這些差異包起來，gateway 只管路由。
+
+<ClawdNote>
+這種設計叫 plugin architecture，講白了就是「核心只管調度，髒活外包給插件」。好處是 gateway 不用為了支援一個新平台就大改，壞處是 plugin 品質參差——官方維護的通常沒問題，社群貢獻的就看運氣。OpenClaw 的 LINE plugin 是官方支援的，這點可以放心 (◕‿◕)
+</ClawdNote>
+
+LINE 的限制得先知道：
+
+- **Markdown 會被去除**：LINE 不吃 Markdown，星號、井號、反引號全部變成純文字。想要格式得用 Flex message，但那又是另一套學問。
+- **單則訊息 5000 字上限**：超過會被切塊成多則，讀起來會斷開。
+- **入站媒體預設 10MB**：傳大檔案進來會被 LINE 擋。
+
+---
+
+## 設定骨架
+
+細節請看官方文件，這裡只講骨架：
+
+1. **LINE Developers 後台開 Messaging API channel**：拿到 channel access token 跟 channel 密鑰。這兩個東西是跟 LINE 對話的身份證明。
+2. **VPS 跑 gateway、裝 LINE plugin**：OpenClaw 官方有 Docker 映像檔，或者用 npm 裝也行。
+3. **把 webhook URL 填回 LINE 後台**：告訴 LINE「有人傳訊息給這個 bot 時，請敲這個網址」。
+4. **配對綁定**：OpenClaw 預設不是誰傳訊息都理，要先配對。這是設計，不是 bug。
+
+<ShroomDogNote>
+第三步的 webhook URL 必須是公網 HTTPS，localhost 不行。如果在本機測試，ngrok 或 cloudflared 可以暫時用；正式部署得有自己的 domain 跟憑證。
+</ShroomDogNote>
+
+---
+
+## 安全必修三條
+
+這三條不是選配，是必修。跳過任何一條，等於把大門開著讓路人進來。
+
+**第一條：配對預設**
+
+OpenClaw 的 LINE channel 對陌生訊息預設發配對碼，不是收到就回。這是「大廳有警衛」的具體實現——想跟 bot 講話，先證明是主人允許的人。
+
+<ClawdNote>
+很多人會問「為什麼 bot 不回話」，十之八九是忘了先配對。這不是 bug，這是 OpenClaw 替使用者擋掉「隨便誰傳訊息就燒 API 額度」的第一道防線。
+</ClawdNote>
+
+**第二條：HMAC 簽章驗證**
+
+LINE 每次敲 webhook 會附上一個簽章（`x-line-signature` header），用 channel 密鑰對原始 body 算出來的 HMAC。OpenClaw 的 LINE plugin 會驗這個簽章，通過才收，否則直接回 403。
+
+<MoguNote>
+HMAC 全名是「雜湊訊息驗證碼」。簡單說就是「用一個只有主機跟 LINE 知道的密鑰，算出一個指紋」。路人沒有 channel 密鑰，算不出正確的指紋，假冒 LINE 塞假訊息進來會被當場抓包。
+</MoguNote>
+
+**第三條：gateway 綁 localhost，絕不 0.0.0.0**
+
+gateway 要藏在反向代理後面，只綁 `127.0.0.1`。直接綁 `0.0.0.0` 對全網開等於裸機——任何人只要知道 IP，就可以繞過反代直接戳 gateway。
+
+<ClawdNote>
+為什麼這條這麼重要？下一篇安全危機會看到四萬台反例。先記住這條，等看到那個數字再回來想想自己有沒有做對。
+</ClawdNote>
+
+---
+
+## 反向代理：一句話交代
+
+反向代理的價值就兩個字：**更安全**。
+
+gateway 藏在 localhost、公網只露反代那一個 443 門、只放行 `/line/webhook` 一條路徑。順便把 HTTPS 憑證自動申請續期的事交給反代處理，gateway 內部講普通 localhost HTTP 就好。
+
+<MoguNote>
+攻擊者的視角大概是這樣：掃到 VPS、想戳 gateway 的 18789 port，結果那 port 綁在 localhost 連都連不上。繞去打 443，反代只認 `/line/webhook`，其他路徑直接 404。硬送請求過去又要驗 HMAC 簽章，假請求被回 403。「嗚嗚 18789 連不上、443 又被賞 403、簽章我他媽哪算得出來嗚嗚」——大概是這種心情。
+</MoguNote>
+
+工具的話，[Mogu](/glossary#mogu) 自己會挑 Caddy，因為設定最短、自動處理 Let's Encrypt。但這是一次性決策，不值得花篇幅教——反代概念懂了，工具換哪套都一樣。
+
+---
+
+## 憑證別寫死
+
+到這裡訊息進來的路已經通了。但別忘了，[agent](/glossary#agent) 要回話得打 Anthropic API，那把 API 金鑰怎麼管？
+
+**別寫死在設定檔裡。**
+
+最乾淨的做法是用出網代理在出網邊界注入。gateway 對外打 API 時，出網代理攔截、把 API 金鑰塞進 header、再送出去。這樣 gateway 本身不持有明文金鑰，金鑰只存在代理那一層。
+
+<ClawdNote>
+這就是自己重現 Claude tag 的 [Agent Proxy](/glossary#agent-proxy)。Claude tag 幫忙處理好的「不用碰 API 金鑰、打出去自然帶身份」，自架版得自己搭。內網化了訊息面（LINE 進來），不代表模型面（API 打出去）不用管。進出都是門，兩邊都要鎖。
+</ClawdNote>
+
+---
+
+## 結語
+
+架完這一整套，效果跟 Claude tag 很像——朋友在 LINE @ 一下，AI 幾秒內回話。
+
+差別在於，Claude tag 是 Anthropic 幫忙扛好一切，自架是自由換來的責任。想接哪個平台都行，但綁 localhost、驗簽、管出網全是自己的事。做對了是自由，做錯了是裸機。
+
+下一篇講安全危機：當這些「做對」的事沒做對，會爛成什麼樣。四萬台裸機的故事，會讓這三條必修課變得非常具體。
+
+再下一篇講 Teams 企業版，那是另一種地獄——內網不是沒有門，是門被企業 IT 鎖死了。想在公司內網跑自己的 agent？先準備好跟 IT 打仗的心理建設。

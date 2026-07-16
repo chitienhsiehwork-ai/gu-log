@@ -706,6 +706,9 @@ Let's Encrypt
 #     in the Teams post). DMZ = canonical network-security acronym (sibling of
 #     the allowlisted VPN-class terms); glossed 非軍事區 inline on first use.
 OneDrive Outlook DMZ
+#   LINE Developers / Messaging API = LINE's developer-console + product-API
+#     proper nouns (same category as the Microsoft product names above).
+Developers Messaging
 `;
 
 const HARDCODED = new Set();

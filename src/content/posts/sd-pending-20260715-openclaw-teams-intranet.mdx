@@ -1,0 +1,174 @@
+---
+ticketId: "SD-PENDING"
+title: "想要「內網版 Claude tag」：企業落地的郵局難題"
+originalDate: "2026-07-15"
+translatedDate: "2026-07-15"
+translatedBy:
+  model: "Opus 4.5"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Author"
+      model: "Opus 4.5"
+      harness: "Claude Code"
+source: "ShroomDog Lab"
+sourceUrl: "https://gu-log.vercel.app/"
+lang: "zh-tw"
+summary: "一個團隊想在公司內網跑 OpenClaw，憑證走出網代理注入、出網安全。但入網呢？Teams bot 訊息得從 Microsoft 雲打進來——純內網物理上做不到。這篇拆解郵局難題：哪邊能搬進大樓（GitLab issues），哪邊只能開一扇門（DMZ + Teams），以及為什麼「架構麻煩了點」反而是對的答案。"
+tags: ["shroomdog-original", "openclaw", "microsoft-teams", "gitlab", "self-hosting", "enterprise"]
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 8
+    date: "2026-07-15"
+    model: "claude-opus-4-8"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 9
+    score: 8
+    date: "2026-07-16"
+    model: "claude-opus-4-8"
+  vibe:
+    persona: 7
+    clawdNote: 6
+    vibe: 7
+    narrative: 6
+    score: 6
+    date: "2026-07-16"
+    model: "claude-opus-4-5"
+  librarian:
+    glossary: 7
+    crossRef: 5
+    sourceAlign: 8
+    attribution: 8
+    score: 7
+    date: "2026-07-16"
+    model: "claude-opus-4-8"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+
+一個團隊找上門，需求聯起來很單純：「能不能在公司內網跑 [OpenClaw](/glossary#openclaw)，讓同事在 Teams 裡 tag 它接任務？」
+
+出網方向他們已經想好了——[Agent](/glossary#agent) pod 跑在內網 Kubernetes，往外的 API 呼叫經過正向代理，代理在預期方向注入憑證。這個設計是對的：憑證不進 pod，就算 prompt injection 把 agent 打穿，掉出來的對話最多有公司內部討論，API 金鑰不會跟著漏。
+
+出網安全。那入網呢？
+
+<ClawdNote>
+正向代理注入憑證的設計，其實就是 [Claude Code](/glossary#claude-code) 內建的 [Agent Proxy](/glossary#agent-proxy) 做的事——只是這個團隊在內網自己重現一次。Anthropic 把憑證收在代理層、不讓 model 看到的原因很直白：如果 model 被騙出憑證，至少知道它從來沒拿過。代理只認方向（往 API 供應商去），不認內容（agent 到底在幹嘛）。
+</ClawdNote>
+
+---
+
+## Teams 的郵局不在這家公司
+
+這個團隊原本以為：內網有 agent，Teams 也在內網，訊息理應不用出國。但 Teams 不是舊時代 Exchange 那種可以自架伺服器的東西——**Teams 本身就是 Microsoft 的雲**。
+
+兩個同事坐同一層樓、對同一個 bot 打字。訊息先上行到 Microsoft 365 雲端，經過 Bot Framework 連接器，然後 Microsoft 的伺服器**從公網主動 POST** 到 bot 註冊的訊息端點。兩人明明隔三公尺，訊息照樣出國繞一圈再回來。
+
+正向代理管的是「屋裡打電話出去」。Bot Framework 是「Microsoft 打電話進來」。方向相反，代理根本接不到這通電話。
+
+<MoguNote>
+把這個問題想成郵局：正向代理是在家門口設的收發室，專門檢查「寄出去的信」。但 Teams bot 的訊息不是寄的——是 Microsoft 的郵差直接敲大門。收發室管不到這一通；它只管屋裡往外的那條路 ╮(╯▽╰)╭
+</MoguNote>
+
+「那就讓 Microsoft 打得進來嘛。」可以。但「開一扇門」這句話聽起來簡單，實際落地是一連串的石頭：
+
+**Azure Bot 註冊**：2025 年 7 月 31 日起只能單一租戶模式，不能再用多租戶模式矇混。**Graph API 權限**：讀頻道訊息、抓附件這些操作需要租戶管理員授權同意，不是開發者自己簽就能過。**App 側載**：組織如果沒開放側載，或沒有內部 app 目錄，bot 連上架測試都做不到。**Webhook 逾時**：Bot Framework 要求收到 header 15 秒內、30 秒內有完整回應，agent 思考太久 Microsoft 就會重送或直接斷線。
+
+<ClawdNote>
+Graph API 是 Microsoft Graph，統一的 REST API 拿來讀寫 Microsoft 365 資源——包括 Teams 訊息、OneDrive 檔案、Outlook 郵件、Azure AD 使用者資料。管理員授權同意的意思是：這個權限太敏感，不是 app 開發者同意就好，要組織管理員背書才能用。
+</ClawdNote>
+
+每顆石頭都是「以為週五能上線、結果卡兩週」等級的阻礙。但這些其實都還只是手續問題。真正的轉折在於往後退一步問：**如果 Teams 的郵局永遠在 Microsoft 手上，那能不能找一個「郵局本來就在大樓裡」的 surface？**
+
+---
+
+## 把郵局搬進大樓
+
+自架 GitLab 就是這個大樓內建的郵局。
+
+GitLab 自架在公司內網、它發 webhook 給 agent、agent 用 `glab` CLI 回帖，全程內網對內網。一扇對公網的門都不用開。
+
+而且 issue 當 thread 反而更貼近 Claude tag 本體。[SP-187](/posts/sp-187-20260428-openai-symphony-codex-orchestration) 講過 OpenAI Symphony 的核心邏輯：[Linear](/glossary#linear) 任務板變成 [Codex](/glossary#codex) agent 的遙控器，一張開放任務自動配一個 agent。[CP-179](/posts/cp-179-20260316-daniel-mac8-symphony-manage-work-not-agents) 的開源 [Elixir](/glossary#elixir) 版更直接——issue 切到進行中，Codex 工作區接手，做完自己回 Linear 更新狀態。
+
+issue 天生主題導向、持久、全隊可見可介入引導。Claude tag 的「thread = 工作階段」模型原封搬過來：一張 issue 一個任務、對話全在同一條 thread、隊友隨時能進來插話調整方向。context 密度更高——code 連結、diff、標籤、關聯 MR 同一頁，不用 agent 自己再去挖。async 天性直接繞開 Bot Framework 的 30 秒逾時；worktree 對應 issue 就是「一場任務一個沙箱」。
+
+<ShroomDogNote>
+GitLab issues 這條路不是「最簡單的路」，但它是「最安全的路」。對外零開門、context 最肥、async 天生繞過逾時——架構麻煩了點，但「麻煩了點」比「開一扇進來的門然後每天擔心那扇門」好睡。
+</ShroomDogNote>
+
+---
+
+## 誠實暗礁
+
+這條路不是裝個 plugin 就能走。
+
+OpenClaw 官方 channel 清單裡有 Telegram、Mattermost、[Slack](/glossary#slack)，就是沒有 GitLab。所以「GitLab issues 觸發 agent」不是一個開箱即用的功能，而是自己接：GitLab webhook 發到內網端點、端點觸發 agent 跑 worktree、agent 用 `glab` CLI 回帖。pipeline 要自己寫，維護也是自己的事。
+
+而且失去了聊天的低門檻。工程部門可以跑去 GitLab 開 issue，但 PM、業務、行銷——他們不會跑去 GitLab 開 issue。這條路是工程部門的路，不是全公司的路。
+
+還有一點容易忘記：訊息面內網化不等於模型面不用管。agent 呼叫 LLM API 的憑證，一樣要走出網代理注入。「郵局搬進大樓」解決的是入網方向，出網方向的安全該怎麼做還是得做。
+
+<ClawdNote>
+出網代理就是管「往外走」的那個代理，跟管「往內進」的入網方向相反。這個團隊的設計是：進來的訊息走內網郵局、出去的 API 呼叫走出網代理注入憑證，兩條路各管各的。
+</ClawdNote>
+
+---
+
+## 雙軌結局
+
+這個案例最後的落地不是「GitLab 取代 Teams」，是兩軌並行。
+
+這家公司的 GitLab 是各部門各自自架——不是全公司單一執行個體。工程部門有自己的 GitLab、設計部門有自己的 GitLab、資安團隊有自己的 GitLab。只有 Teams 打得到所有部門。
+
+**GitLab issues = 深度**。工程部門、零開門、context 最肥。agent 跑在 worktree 沙箱、回覆貼在同一條 thread、code diff 跟討論串在同一頁。這是工程師跟 agent 協作最順的 surface。
+
+**DMZ + Teams = 廣度**。全部門觸及，代價是開一扇門。
+
+<ClawdNote>
+DMZ 是非軍事區，網路架構裡指的是那塊「不完全在內網、也不完全在公網」的緩衝地帶。放在這裡的伺服器可以被外界存取，但又跟核心內網隔開。銀行網站、電商結帳頁、企業官網後台——很多需要對外服務但又不想直接暴露內網的東西都放 DMZ。
+</ClawdNote>
+
+開門的做法是這樣：DMZ 放一個反向代理，公網只露 `/api/messages` 一條路徑。每個進來的請求驗 Bot Framework 的 JWT 簽章——確認真的是 Microsoft 發的、不是別人假冒的——驗過才轉進內網 Kubernetes，其餘全關。憑證一樣走出網代理，不進 pod。
+
+<ClawdNote>
+JWT 是 JSON Web [Token](/glossary#token)，一種輕量的 token 格式，可以在裡面塞入一組一組的宣稱，然後用簽章防止竄改。Bot Framework 送來的每個 webhook 都帶 JWT，裡面記錄「這是 Microsoft 發的」「目標是哪個 bot」「什麼時候過期」。驗簽章的意思是：用 Microsoft 公開的公鑰去驗這個 token 是不是真的由 Microsoft 的私鑰簽出來的。驗不過 = 拒收。
+</ClawdNote>
+
+風險有界、值得。全公司任何人在 Teams 裡 tag bot 就能開任務，門檻低到連業務都會用。「只是架構麻煩了點」——這句話適用於大部分企業落地的正確答案。
+
+---
+
+## Phase 2：Mattermost
+
+如果想把聊天的低門檻也收進內網呢？
+
+OpenClaw 官方支援 Mattermost。Mattermost 是可以自架的 Slack 替代品——訊息伺服器跑在公司自己的機房，webhook 發到公司自己的端點，整條路跟 GitLab issues 一樣是內網對內網。
+
+同一招「把郵局搬進大樓」，只是這次是聊天版。工程師以外的人不用跑去開 issue，直接在 Mattermost channel 裡對 bot 說話。等哪天這家公司的 IT 願意多維護一套 Mattermost，這條路就能接上。
+
+但那是下一個階段的事了。這個系列的下一篇會回到安全那一側：當 agent 能做的事越來越多，「被打穿」的代價也越來越大。LINE 那邊的故事，跟安全危機的故事，得分開講。
+
+---
+
+## 結語
+
+這整個案例的頓悟只有一句：**問題從來不是 webhook，是「平台的雲不是自己的」**。
+
+Teams 的雲在 Microsoft 手上，訊息必然經過公網。GitLab 自架，訊息不用出門。「能不能全內網」這個問題的答案，取決於那個平台的郵局蓋在哪裡。
+
+以 issue 驅動 agent 不是憑空發明——SP-187 講的 Symphony 規格、CP-179 講的開源實作，早就在這條路上跑了。gu-log 自己的 pipeline 也是這樣運作：任務板當入口、agent 接單、thread 當工作階段、做完回報。差別只是 gu-log 可以對公網，這家公司不行。
+
+對公網的 surface 選 Teams + DMZ，對內網的 surface 選 GitLab issues。兩軌並行，各取所需。
+
+架構麻煩了點。但「麻煩了點」從來不是壞消息——那是「想清楚之後」的樣子。
