@@ -10,12 +10,16 @@
  * Design ref: .score-loop/specs/tribunal-v2-mental-model.md Stage 4 section
  */
 
+// Consumer-side shape: the banner only reads isDegraded/degradedDimensions.
+// Dimension keys are optional because the Vibe-owned set is version-resolved
+// (tribunalVersion >= 9 drops clarity from Vibe), while the core content
+// schema still requires all five — this stays compatible with both.
 interface Stage4Scores {
-  persona: number;
-  moguNote: number;
-  vibe: number;
-  clarity: number;
-  narrative: number;
+  persona?: number;
+  moguNote?: number;
+  vibe?: number;
+  clarity?: number;
+  narrative?: number;
   degradedDimensions?: string[];
   isDegraded: boolean;
 }
@@ -77,7 +81,7 @@ const t = labels[lang];
     padding: 0;
     border-radius: 8px;
     border: 1px solid rgba(108, 191, 255, 0.25); /* blue/cyan tone */
-    border-left: 4px solid var(--color-badge-sp); /* cyan badge color */
+    border-left: 4px solid var(--color-status-info);
     background: rgba(108, 191, 255, 0.05);
     overflow: hidden;
   }
@@ -91,7 +95,7 @@ const t = labels[lang];
   .banner-title {
     font-size: 0.85rem;
     font-weight: 700;
-    color: var(--color-badge-sp);
+    color: var(--color-status-info);
   }
 
   .banner-body {
@@ -137,7 +141,7 @@ const t = labels[lang];
     border-radius: 12px;
     font-size: 0.78rem;
     font-family: monospace;
-    color: var(--color-badge-sp);
+    color: var(--color-status-info);
   }
 
   .no-details {

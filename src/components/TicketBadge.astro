@@ -4,8 +4,8 @@
  *
  * Types:
  * - SD: ShroomDog Original (accent color)
- * - SP: Gu-log Picks (muted color) — stored as SP- slug, displayed as GP-
- * - CP: Mogu Picks (mogu color)
+ * - GP: Gu-log Picks (muted blue)
+ * - MP: Mogu Picks (mogu orange)
  * - Lv: Level-Up (purple)
  */
 interface Props {
@@ -16,20 +16,15 @@ interface Props {
 
 const { ticketId, showTooltip = true, showLabel = false } = Astro.props;
 
-// Extract prefix (SD, SP, CP)
+// Extract prefix (SD, GP, MP, Lv)
 const prefix = ticketId.split('-')[0];
 
 const labels: Record<string, string> = {
   SD: 'ShroomDog Original',
-  SP: 'Gu-log Picks',
-  CP: 'Mogu Picks',
+  GP: 'Gu-log Picks',
+  MP: 'Mogu Picks',
   Lv: 'Level-Up',
 };
-
-// Display alias: the GP series is branded "Gu-log Picks" with a GP- ticket,
-// and the MP series is branded "Mogu Picks" with an MP- ticket, while the
-// underlying slug/URL/ticketId stays SP-/CP- (no URL breakage).
-const displayId = ticketId.replace(/^SP-/, 'GP-').replace(/^CP-/, 'MP-');
 
 const label = labels[prefix] || '';
 ---
@@ -39,7 +34,7 @@ const label = labels[prefix] || '';
     class={`ticket-badge ticket-${prefix.toLowerCase()}`}
     title={showTooltip && !showLabel ? label : undefined}
   >
-    {displayId}
+    {ticketId}
   </span>
   {showLabel && <span class={`ticket-label ticket-label-${prefix.toLowerCase()}`}>{label}</span>}
 </span>
@@ -84,26 +79,26 @@ const label = labels[prefix] || '';
     color: var(--color-badge-sd);
   }
 
-  /* SP: Gu-log Picks - muted blue */
-  .ticket-sp {
+  /* GP: Gu-log Picks - muted blue */
+  .ticket-gp {
     background-color: rgba(38, 139, 210, 0.15);
-    color: var(--color-badge-sp);
+    color: var(--color-badge-gp);
     border: 1px solid transparent;
   }
 
-  .ticket-label-sp {
-    color: var(--color-badge-sp);
+  .ticket-label-gp {
+    color: var(--color-badge-gp);
   }
 
-  /* CP: Mogu Picks - muted orange */
-  .ticket-cp {
+  /* MP: Mogu Picks - muted orange */
+  .ticket-mp {
     background-color: rgba(203, 117, 81, 0.15);
-    color: var(--color-badge-cp);
+    color: var(--color-badge-mp);
     border: 1px solid transparent;
   }
 
-  .ticket-label-cp {
-    color: var(--color-badge-cp);
+  .ticket-label-mp {
+    color: var(--color-badge-mp);
   }
 
   /* Lv: Level-Up - muted purple */
@@ -122,11 +117,11 @@ const label = labels[prefix] || '';
     background-color: rgba(29, 106, 92, 0.12);
     border-color: rgba(29, 106, 92, 0.35);
   }
-  :global([data-theme='light']) .ticket-sp {
+  :global([data-theme='light']) .ticket-gp {
     background-color: rgba(25, 93, 140, 0.12);
     border-color: rgba(25, 93, 140, 0.35);
   }
-  :global([data-theme='light']) .ticket-cp {
+  :global([data-theme='light']) .ticket-mp {
     background-color: rgba(133, 77, 53, 0.12);
     border-color: rgba(133, 77, 53, 0.35);
   }

@@ -230,8 +230,8 @@ const t = i18n[lang];
 
     let allMatches: FuseResult<SearchEntry>[];
 
-    // Special-case: ticket ID prefix search (SD, SP, CP, Lv) — exact prefix match
-    const isTicketPrefix = /^(sd|sp|cp|lv)[-\s]?\d*/i.test(trimmed);
+    // Special-case: ticket ID prefix search (SD, GP, MP, Lv) — exact prefix match
+    const isTicketPrefix = /^(sd|gp|mp|lv)[-\s]?\d*/i.test(trimmed);
     if (isTicketPrefix) {
       const lower = trimmed.toLowerCase();
       const ticketMatches = searchIndex
