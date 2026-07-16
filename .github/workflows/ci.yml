@@ -104,6 +104,8 @@ jobs:
       - uses: ./.github/actions/setup-pnpm
       - name: Validate posts (frontmatter + content policy)
         run: pnpm run validate:posts
+      - name: Block retired brand taxonomy contracts
+        run: pnpm run taxonomy:check
       - name: Dedup check (block active duplicates)
         run: node scripts/validate-posts.mjs --check-duplicates
 

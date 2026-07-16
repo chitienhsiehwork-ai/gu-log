@@ -42,7 +42,17 @@ while read -r _local_ref local_sha remote_ref remote_sha; do
   esac
 done
 
-# 1. Post version manifest freshness — Vercel production uses the committed
+# 1. Retired brand contracts are a merge blocker. Exact historical and
+#    fail-closed-test exceptions live in the scanner policy; everything else
+#    must use the canonical Mogu / GP / MP taxonomy before a branch is pushed.
+echo "🏷️  Checking retired brand taxonomy contracts..."
+if ! pnpm run taxonomy:check; then
+  echo ""
+  echo "❌ Retired brand taxonomy residuals remain. Push aborted."
+  exit 1
+fi
+
+# 2. Post version manifest freshness — Vercel production uses the committed
 #    manifest on shallow clones, so content-touching commits must keep it fresh.
 #    CCC/local clones are frequently shallow, and build-version-manifest.mjs
 #    deliberately skips (exit 0) on a shallow clone because it can't count
@@ -68,7 +78,7 @@ if ! node scripts/build-version-manifest.mjs --check; then
   exit 1
 fi
 
-# 2. Bundle budget check (LOCAL = warning-only; CI is the blocking authority)
+# 3. Bundle budget check (LOCAL = warning-only; CI is the blocking authority)
 #    Local dist can be stale/incremental, which inflates the aggregate JS+CSS
 #    sum and produces false blocks. The CI `bundle-budget` job runs the same
 #    check against a clean build artifact and IS allowed to fail the PR (see #396).
@@ -82,7 +92,7 @@ if ! node scripts/bundle-budget-check.mjs; then
   echo "   quality/bundle-budget.json."
 fi
 
-# 2. Coverage ratchet (only if tests can run quickly)
+# 4. Coverage ratchet (only if tests can run quickly)
 # Skip for now - tests take too long for pre-push
 # echo "🧪 Checking test coverage ratchet..."
 # bash scripts/coverage-ratchet.sh

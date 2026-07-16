@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 
 import {
   applyResidualPolicy,
@@ -12,6 +14,18 @@ import {
 } from '../scripts/check-brand-taxonomy.mjs';
 
 type ResidualPolicy = Parameters<typeof applyResidualPolicy>[1];
+const REPO_ROOT = path.resolve(__dirname, '..');
+
+function yamlJobBlock(yaml: string, job: string): string {
+  const marker = `\n  ${job}:\n`;
+  const start = yaml.indexOf(marker);
+  if (start < 0) throw new Error(`missing CI job: ${job}`);
+
+  const bodyStart = start + marker.length;
+  const nextJobOffset = yaml.slice(bodyStart).search(/\n {2}[a-z0-9-]+:\n/);
+  const end = nextJobOffset < 0 ? yaml.length : bodyStart + nextJobOffset;
+  return yaml.slice(start, end);
+}
 
 const policy = (overrides: Partial<ResidualPolicy> = {}): ResidualPolicy => ({
   schemaVersion: 1,
@@ -27,6 +41,23 @@ const repositoryState = (trackedPaths: string[], existingPaths = trackedPaths) =
 });
 
 describe('brand taxonomy residual gate', () => {
+  it('is wired into the required CI path and both tracked pre-push mirrors', () => {
+    const packageJson = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'package.json'), 'utf8'));
+    const ci = fs.readFileSync(path.join(REPO_ROOT, '.github/workflows/ci.yml'), 'utf8');
+    const validateContent = yamlJobBlock(ci, 'validate-content');
+    const aggregateGate = yamlJobBlock(ci, 'ci-passed');
+    const sourceHook = fs.readFileSync(path.join(REPO_ROOT, 'scripts/hooks/pre-push'), 'utf8');
+    const mirrorHook = fs.readFileSync(path.join(REPO_ROOT, '.githooks/pre-push'), 'utf8');
+
+    expect(packageJson.scripts['taxonomy:check']).toBe(
+      'node scripts/check-brand-taxonomy.mjs --check'
+    );
+    expect(validateContent).toContain('run: pnpm run taxonomy:check');
+    expect(aggregateGate).toContain('      - validate-content');
+    expect(sourceHook).toContain('pnpm run taxonomy:check');
+    expect(mirrorHook).toBe(sourceHook);
+  });
+
   it('accepts only one-way semantic series canonicalization', () => {
     const oldUpper = ['S', 'P'].join('');
     const oldLower = ['s', 'p'].join('');
