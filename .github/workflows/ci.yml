@@ -274,17 +274,27 @@ jobs:
       - overflow
     steps:
       - name: Verify every required job succeeded
+        env:
+          RESULTS: ${{ toJSON(needs) }}
         run: |
           # Positive-match semantics: every leaf job's result MUST be "success".
           # success / failure / cancelled / skipped — only success passes. This
           # is the conservative choice: a skip from an `if:` shortcut or a
           # cancel-in-progress race would silently slip through a failure-only
-          # grep, leaving branch protection green on an incomplete run.
-          results='${{ toJSON(needs) }}'
-          echo "$results"
-          passed=$(printf '%s' "$results" | grep -Eo '"result":"success"' | wc -l | tr -d ' ')
-          total=$(printf '%s' "$results" | grep -Eo '"result":"[^"]+"' | wc -l | tr -d ' ')
+          # check, leaving branch protection green on an incomplete run.
+          #
+          # Parse with jq, never grep: toJSON(needs) pretty-prints with a space
+          # after the colon (`"result": "success"`), so a colon-tight grep
+          # counts 0 matches on both sides and 0 == 0 passes forever.
+          # The total-is-zero guard below fails closed on that whole bug class.
+          echo "$RESULTS"
+          passed=$(printf '%s' "$RESULTS" | jq '[.[] | select(.result == "success")] | length')
+          total=$(printf '%s' "$RESULTS" | jq 'length')
           echo "Success: $passed / $total"
+          if [ "$total" -eq 0 ]; then
+            echo "::error::Parsed zero jobs from the needs context — the gate itself is miswired; failing closed."
+            exit 1
+          fi
           if [ "$passed" != "$total" ]; then
             echo "::error::One or more required jobs did not succeed (failure / cancelled / skipped)."
             exit 1
