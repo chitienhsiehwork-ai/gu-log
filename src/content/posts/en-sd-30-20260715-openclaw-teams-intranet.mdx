@@ -1,0 +1,174 @@
+---
+ticketId: "SD-30"
+title: "The \"Intranet Claude Tag\": Enterprise Deployment and the Post Office Problem"
+originalDate: "2026-07-15"
+translatedDate: "2026-07-15"
+translatedBy:
+  model: "Opus 4.5"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Translator"
+      model: "Opus 4.5"
+      harness: "Claude Code"
+source: "ShroomDog Lab"
+sourceUrl: "https://gu-log.vercel.app/"
+lang: "en"
+summary: "A team wants OpenClaw on their intranet, coworkers tagging it in Teams. Outbound is sorted via a forward proxy. But inbound? Teams messages come from Microsoft's cloud — pure intranet is physically impossible. The post office problem: what moves inside the building (GitLab issues), what needs a door (DMZ + Teams), and why the extra architecture hassle is the right answer."
+tags: ["shroomdog-original", "openclaw", "microsoft-teams", "gitlab", "self-hosting", "enterprise"]
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 8
+    date: "2026-07-15"
+    model: "claude-opus-4-8"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 9
+    score: 8
+    date: "2026-07-16"
+    model: "claude-opus-4-8"
+  vibe:
+    persona: 7
+    clawdNote: 6
+    vibe: 7
+    narrative: 6
+    score: 6
+    date: "2026-07-16"
+    model: "claude-opus-4-5"
+  librarian:
+    glossary: 7
+    crossRef: 5
+    sourceAlign: 8
+    attribution: 8
+    score: 7
+    date: "2026-07-16"
+    model: "claude-opus-4-8"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+
+A team reached out with a request that sounded straightforward when you string it together: "Can we run [OpenClaw](/en/glossary#openclaw) on our corporate intranet and let coworkers tag it in Teams to pick up tasks?"
+
+For outbound traffic, they'd already figured it out — [agent](/en/glossary#agent) pods running on internal Kubernetes, API calls going through a forward proxy, the proxy injecting credentials in the expected direction. This design is correct: credentials never touch the pod, so even if prompt injection punches through the agent, the worst that leaks is internal company discussion. API keys don't come along for the ride.
+
+Outbound is secure. What about inbound?
+
+<ClawdNote summary="Forward-proxy credential injection is just recreating Claude Code's Agent Proxy on your own intranet.">
+The forward-proxy credential injection design is basically what [Claude Code](/en/glossary#claude-code)'s built-in [Agent Proxy](/en/glossary#agent-proxy) does — this team is just recreating it on their own intranet. Anthropic keeps credentials at the proxy layer and away from the model for a blunt reason: if the model gets tricked into leaking credentials, at least you know it never had them. The proxy only cares about direction (going toward the API provider), not content (what the agent is actually doing).
+</ClawdNote>
+
+---
+
+## Teams' Post Office Isn't in This Company's Building
+
+The team originally assumed: the agent is on the intranet, Teams is on the intranet, so messages shouldn't have to leave the country. But Teams isn't like old-school Exchange where you could self-host the server — **Teams itself is Microsoft's cloud**.
+
+Two coworkers sitting on the same floor, typing to the same bot. Their messages first go up to the Microsoft 365 cloud, pass through the Bot Framework connector, and then Microsoft's servers **POST from the public internet** to the bot's registered message endpoint. They're three meters apart, but the messages still travel abroad and back.
+
+The forward proxy handles "calls going out from inside the house." The Bot Framework is "Microsoft calling in." Opposite directions. The proxy can't pick up that call at all.
+
+<MoguNote>
+Think of this problem as a post office: the forward proxy is the mailroom you set up at your front gate, specifically for inspecting "outgoing mail." But Teams bot messages aren't mail you're sending — it's Microsoft's mailman knocking directly on your front door. The mailroom can't intercept that; it only handles the outbound route. ╮(╯▽╰)╭
+</MoguNote>
+
+"So just let Microsoft call in." Sure. But "opening a door" sounds simple — in practice, it's a whole pile of rocks:
+
+**Azure Bot registration**: as of July 31, 2025, only single-tenant mode is allowed; you can't slide by with multi-tenant mode anymore. **Graph API permissions**: reading channel messages, fetching attachments — these operations require tenant admin consent, not just the developer signing off. **App sideloading**: if the organization hasn't enabled sideloading or doesn't have an internal app catalog, the bot can't even be deployed for testing. **Webhook timeouts**: Bot Framework requires headers within 15 seconds and a complete response within 30 seconds; if the agent thinks too long, Microsoft resends or just drops the connection.
+
+<ClawdNote>
+Graph API is Microsoft Graph — the unified REST API for reading and writing Microsoft 365 resources, including Teams messages, OneDrive files, Outlook emails, and Azure AD user data. Admin consent means: this permission is too sensitive for the app developer to approve alone; the organization admin has to sign off before you can use it.
+</ClawdNote>
+
+Every rock is a "thought we'd ship Friday, ended up stuck for two weeks" level obstacle. But these are really just paperwork problems. The real turning point comes when you step back and ask: **if Teams' post office is forever in Microsoft's hands, can we find a surface where the post office is already inside our building?**
+
+---
+
+## Moving the Post Office Inside the Building
+
+Self-hosted GitLab is that building's built-in post office.
+
+GitLab self-hosted on the corporate intranet, sending webhooks to the agent, the agent replying via the `glab` CLI — all internal traffic. Not a single door to the public internet needs to open.
+
+And issues as threads actually match the Claude tag model better. [SP-187](/posts/en-sp-187-20260428-openai-symphony-codex-orchestration) covered OpenAI Symphony's core logic: the [Linear](/en/glossary#linear) task board becomes a remote control for [Codex](/en/glossary#codex) agents — one open task automatically pairs with one agent. [CP-179](/posts/en-cp-179-20260316-daniel-mac8-symphony-manage-work-not-agents)'s open-source [Elixir](/en/glossary#elixir) version is even more direct: when an issue moves to in-progress, a Codex workspace takes over, and when it's done, updates Linear itself.
+
+Issues are inherently topic-oriented, persistent, visible to the whole team who can jump in and steer. Claude tag's "thread = work session" model ports over directly: one issue per task, conversation all in the same thread, teammates can step in anytime to adjust direction. Context density is higher — code links, diffs, labels, related MRs all on the same page; the agent doesn't have to dig. The async nature sidesteps Bot Framework's 30-second timeout entirely; worktrees mapped to issues means "one task, one sandbox."
+
+<ShroomDogNote>
+The GitLab issues path isn't "the easiest route," but it's "the safest route." Zero doors to the outside, richest context, async that naturally bypasses timeouts — the architecture's just a bit more of a hassle. But "a bit more of a hassle" sleeps better than "open a door that faces inward and worry about it every day."
+</ShroomDogNote>
+
+---
+
+## Honest Shoals
+
+This path isn't just install-a-plugin-and-go.
+
+OpenClaw's official channel list includes Telegram, Mattermost, [Slack](/en/glossary#slack) — but no GitLab. So "GitLab issues triggering agents" isn't an out-of-the-box feature. You wire it yourself: GitLab webhook to an internal endpoint, the endpoint triggers an agent in a worktree, the agent replies via `glab` CLI. You write the pipeline, you maintain it.
+
+And you lose the low barrier of chat. Engineering can go open GitLab issues, but PMs, sales, marketing — they're not going to open GitLab issues. This path is engineering's path, not the whole company's.
+
+There's also something easy to forget: internalizing the message surface doesn't mean you're off the hook for the model side. Credentials for the agent calling the LLM API still need to go through the outbound proxy. "Moving the post office inside" solves inbound direction; outbound security still needs to be done.
+
+<ClawdNote>
+The outbound proxy is the one handling "going out," the opposite of the inbound direction "coming in." This team's design: incoming messages go through the internal post office, outgoing API calls go through the outbound proxy with injected credentials — two routes, each handling its own direction.
+</ClawdNote>
+
+---
+
+## The Dual-Track Ending
+
+This case didn't end with "GitLab replaces Teams" — it ended with two tracks running in parallel.
+
+This company's GitLab is department-by-department self-hosted — not a single company-wide instance. Engineering has its own GitLab, Design has its own GitLab, Security has its own GitLab. Only Teams can reach all departments.
+
+**GitLab issues = depth.** Engineering department, zero doors opened, richest context. [Agent](/en/glossary#agent) runs in a worktree sandbox, replies post to the same thread, code diffs and discussion on the same page. This is the smoothest surface for engineers collaborating with agents.
+
+**DMZ + Teams = breadth.** Reaches all departments. The price is opening one door.
+
+<ClawdNote>
+DMZ is the demilitarized zone — in network architecture, it's that buffer area "not fully on the intranet, not fully on the public internet." Servers placed here can be accessed from outside, but are isolated from the core internal network. Bank websites, e-commerce checkout pages, corporate website backends — lots of things that need to serve the outside but don't want to directly expose the internal network live in the DMZ.
+</ClawdNote>
+
+Here's how opening the door works: put a reverse proxy in the DMZ, expose only one path `/api/messages` to the public internet. Every incoming request gets its Bot Framework JWT signature verified — confirming it's really from Microsoft, not someone impersonating them — pass verification, then forward to the internal Kubernetes. Everything else stays closed. Credentials still go through the outbound proxy, never entering the pod.
+
+<ClawdNote>
+JWT is JSON Web [Token](/en/glossary#token) — a lightweight token format where you can stuff claims inside, then use a signature to prevent tampering. Every webhook Bot Framework sends carries a JWT recording "this is from Microsoft," "which bot is the target," "when it expires." Verifying the signature means: use Microsoft's published public key to verify this token was actually signed by Microsoft's private key. Fails verification = reject.
+</ClawdNote>
+
+Risk is bounded. Worth it. Anyone in the company tags the bot in Teams and kicks off a task — the barrier is low enough that even sales will use it. "The architecture's just a bit more of a hassle" — that line applies to most correct answers for enterprise deployment.
+
+---
+
+## Phase 2: Mattermost
+
+What if you want chat's low barrier inside the intranet too?
+
+OpenClaw officially supports Mattermost. Mattermost is a self-hostable Slack alternative — the message server runs in the company's own data center, webhooks go to the company's own endpoint, the whole path is internal-to-internal just like GitLab issues.
+
+Same trick of "moving the post office inside," just the chat version. People outside engineering don't have to open issues; they just talk to the bot in a Mattermost channel. Whenever this company's IT is willing to maintain one more Mattermost instance, this path connects.
+
+But that's next phase business. The next post in this series will circle back to the security side: as agents can do more and more, the cost of "getting punched through" keeps going up. The LINE story and the security crisis story need to be told separately.
+
+---
+
+## Closing
+
+The single insight from this whole case: **the problem was never the webhook — it's "the platform's cloud isn't yours."**
+
+Teams' cloud is in Microsoft's hands; messages inevitably traverse the public internet. GitLab self-hosted; messages don't have to leave the building. The answer to "can we go fully intranet" depends on where that platform's post office is built.
+
+Driving agents with issues isn't invented from scratch — the Symphony spec from SP-187, the open-source implementation from CP-179, they've been running this path already. gu-log's own pipeline works the same way: task board as entry point, agent picks up the ticket, thread as work session, reports back when done. The only difference is gu-log can face the public internet; this company can't.
+
+For the public-facing surface, pick Teams + DMZ. For the internal surface, pick GitLab issues. Two tracks in parallel, each serving its purpose.
+
+The architecture's just a bit more of a hassle. But "a bit more of a hassle" was never bad news — that's what "thought it through" looks like.
