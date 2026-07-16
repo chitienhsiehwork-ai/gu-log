@@ -30,16 +30,11 @@ echo ""
 pids=()
 for post in "${POSTS[@]}"; do
   for model in "${MODELS[@]}"; do
-    ticket="${post%%-2*}"           # sp-175 / mogu-picks
-    ticket="${ticket%%-*}-${ticket##*-}"
     # Just use first 6 chars of filename stem for tag
     stem="${post%.mdx}"
-    short=$(echo "$stem" | awk -F'-' '{
-      if ($1 == "clawd") print "cp-85"
-      else print $1"-"$2
-    }')
+    short=$(echo "$stem" | awk -F'-' '{ print $1"-"$2 }')
     short=$(echo "$short" | tr -d '/')
-    tag="${short}_${model##claude-opus-}"    # sp-175_4-5 / cp-85_4-7
+    tag="${short}_${model##claude-opus-}"    # gp-175_4-5 / mp-85_4-7
     out="$OUT_DIR/${tag}.json"
     log="$OUT_DIR/${tag}.log"
     rm -f "$out"

@@ -18,7 +18,7 @@ get_ticket_id() {
 # { persona, moguNote, vibe, clarity, narrative }; for v9+ vibe drops clarity
 # (it moves to Fresh Eyes). This helper only spot-checks persona/moguNote/vibe,
 # so it stays compatible with both versions.
-# Usage: validate_score_json "/tmp/vibe-score-GP-110.json" "sp-110-file.mdx"
+# Usage: validate_score_json "/tmp/vibe-score-GP-110.json" "gp-110-file.mdx"
 validate_score_json() {
   local json_file="$1"
   local expected_file="$2"
