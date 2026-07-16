@@ -23,7 +23,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -106,12 +106,26 @@ export function reminderText() {
   ].join('\n');
 }
 
-function gitDiffAddedVsBase(baseRef) {
+export function gitDiffAddedVsBase(baseRef, cwd = undefined) {
   const tryRef = (ref) => {
     try {
-      const out = execSync(
-        `git diff --name-only --diff-filter=A ${ref}...HEAD -- 'src/content/posts/*.mdx'`,
-        { encoding: 'utf-8' }
+      // A repository-wide taxonomy migration can exceed Git's configured
+      // rename ceiling; exhaustive detection keeps those files out of A.
+      const out = execFileSync(
+        'git',
+        [
+          '-c',
+          'diff.renameLimit=0',
+          'diff',
+          '-M',
+          '--name-only',
+          '--diff-filter=A',
+          '--end-of-options',
+          `${ref}...HEAD`,
+          '--',
+          'src/content/posts/*.mdx',
+        ],
+        { cwd, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'] }
       );
       return out.split('\n').filter(Boolean);
     } catch {
