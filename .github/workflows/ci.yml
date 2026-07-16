@@ -107,7 +107,7 @@ jobs:
       - name: Dedup check (block active duplicates)
         run: node scripts/validate-posts.mjs --check-duplicates
 
-      - name: Translation pair gate (PR only — block new SP/CP/SD/Lv missing zh-tw or en)
+      - name: Translation pair gate (PR only — block new GP/MP/SD/Lv missing zh-tw or en)
         if: github.event_name == 'pull_request'
         run: |
           git fetch origin ${{ github.base_ref }} --depth=1

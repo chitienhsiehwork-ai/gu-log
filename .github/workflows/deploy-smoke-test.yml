@@ -76,40 +76,58 @@ jobs:
             exit 1
           fi
 
-      - name: Smoke test — check Clawd Picks listing page
+      - name: Smoke test — check canonical picks listing pages
         if: github.event.deployment_status.state == 'success'
         run: |
-          STATUS=$(curl -L -s -o /dev/null -w "%{http_code}" "https://gu-log.vercel.app/clawd-picks")
-          if [ "$STATUS" != "200" ]; then
-            echo "::error::🚨 Clawd Picks page returned HTTP $STATUS"
-            exit 1
-          fi
-          echo "✅ Clawd Picks listing: 200"
+          FAILED=0
+          for route in gu-log-picks mogu-picks en/gu-log-picks en/mogu-picks; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://gu-log.vercel.app/$route")
+            if [ "$STATUS" != "200" ]; then
+              echo "::error::🚨 /$route returned HTTP $STATUS"
+              FAILED=$((FAILED + 1))
+            else
+              echo "✅ /$route: 200"
+            fi
+          done
+          [ "$FAILED" -eq 0 ]
 
-      - name: Smoke test — check article count matches repo
+      - name: Smoke test — legacy picks listing pages stay retired
         if: github.event.deployment_status.state == 'success'
         run: |
-          # Count non-English posts in repo
-          REPO_COUNT=$(ls src/content/posts/*.mdx | grep -v 'en-' | wc -l)
-          
-          # Fetch the homepage and count post links (rough check)
-          BODY=$(curl -L -s "https://gu-log.vercel.app/clawd-picks")
-          # Count <a> links to /posts/ on the listing page
-          LIVE_COUNT=$(echo "$BODY" | grep -o 'href="/posts/' | wc -l)
-          
-          echo "Repo posts: $REPO_COUNT"
-          echo "Live Clawd Picks links: $LIVE_COUNT"
-          
-          # Allow some slack (SP posts won't be on CP page), but CP count should match
-          CP_REPO=$(ls src/content/posts/clawd-picks-*.mdx | grep -v 'en-' | wc -l)
-          echo "Repo CP posts: $CP_REPO"
-          
-          DIFF=$((CP_REPO - LIVE_COUNT))
-          if [ "$DIFF" -gt 2 ] || [ "$DIFF" -lt -2 ]; then
-            echo "::warning::⚠️ CP count mismatch: repo=$CP_REPO vs live=$LIVE_COUNT (diff=$DIFF)"
-          else
-            echo "✅ CP count matches (repo=$CP_REPO, live=$LIVE_COUNT)"
-          fi
+          FAILED=0
+          for route in clawd-picks shroomdog-picks en/clawd-picks en/shroomdog-picks; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://gu-log.vercel.app/$route")
+            if [ "$STATUS" != "404" ]; then
+              echo "::error::🚨 Retired /$route unexpectedly returned HTTP $STATUS"
+              FAILED=$((FAILED + 1))
+            else
+              echo "✅ Retired /$route: 404"
+            fi
+          done
+          [ "$FAILED" -eq 0 ]
+
+      - name: Smoke test — check picks listings contain canonical posts
+        if: github.event.deployment_status.state == 'success'
+        run: |
+          FAILED=0
+          for series in gp mp; do
+            case "$series" in
+              gp) route="gu-log-picks" ;;
+              mp) route="mogu-picks" ;;
+            esac
+
+            REPO_COUNT=$(find src/content/posts -maxdepth 1 -type f -name "${series}-*.mdx" | wc -l | tr -d ' ')
+            BODY=$(curl -s "https://gu-log.vercel.app/$route")
+            LIVE_COUNT=$(printf '%s' "$BODY" | grep -o 'href="/posts/' | wc -l | tr -d ' ' || true)
+
+            if [ "$REPO_COUNT" -eq 0 ] || [ "$LIVE_COUNT" -eq 0 ]; then
+              echo "::error::🚨 $series listing is empty: repo=$REPO_COUNT live=$LIVE_COUNT"
+              FAILED=$((FAILED + 1))
+            else
+              echo "✅ $series listing has canonical posts: repo=$REPO_COUNT live-first-page=$LIVE_COUNT"
+            fi
+          done
+          [ "$FAILED" -eq 0 ]
 
       - name: Notify Telegram — smoke test failed
         if: failure() && github.event.deployment_status.state == 'success'
