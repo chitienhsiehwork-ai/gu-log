@@ -45,7 +45,7 @@ sys.exit(0 if composite >= 8 else 1)
 
 ### Rationale
 
-Real data: `cp-pending-*` passed with accuracy=7, fidelity=8, consistency=9 → floor(24/3) = 8 → PASS. A fact checker that lets accuracy=7 through is not doing its job. The reviewer report flagged this as High severity.
+Real data: `mp-pending-*` passed with accuracy=7, fidelity=8, consistency=9 → floor(24/3) = 8 → PASS. A fact checker that lets accuracy=7 through is not doing its job. The reviewer report flagged this as High severity.
 
 ### Acceptance Criteria
 

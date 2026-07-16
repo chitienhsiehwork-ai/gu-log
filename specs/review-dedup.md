@@ -51,16 +51,16 @@ BLOCK: Queue item[1] is duplicate of item[0] (URL match)
 ### Regression tests with known duplicates — PASS
 
 ```
-$ node scripts/dedup-gate.mjs --url "https://x.com/AndrewYNg/status/2031051809499054099" --title "test" --tags "" --series CP --dry-run
+$ node scripts/dedup-gate.mjs --url "https://x.com/AndrewYNg/status/2031051809499054099" --title "test" --tags "" --series MP --dry-run
 BLOCK: Duplicate of GP-111 (tweet ID match): Andrew Ng 推出 Context Hub：幫 Coding Agent 補上最新 API 文件
 
-$ node scripts/dedup-gate.mjs --url "https://twitter.com/karpathy/status/2037200624450936940" --title "test" --tags "" --series CP --dry-run
+$ node scripts/dedup-gate.mjs --url "https://twitter.com/karpathy/status/2037200624450936940" --title "test" --tags "" --series MP --dry-run
 BLOCK: Duplicate of MP-235 (tweet ID match): Karpathy：寫 Code 是最簡單的部分，組裝 IKEA 傢俱才是地獄
 
-$ node scripts/dedup-gate.mjs --url "https://example.com/new" --title "Claude Code Auto Mode" --tags "claude-code" --series CP --dry-run
+$ node scripts/dedup-gate.mjs --url "https://example.com/new" --title "Claude Code Auto Mode" --tags "claude-code" --series MP --dry-run
 BLOCK: Duplicate of GP-127 (topic similarity: 0.467): Claude Code Auto Mode：讓 AI 自己判斷哪些指令該擋、哪些放行
 
-$ node scripts/dedup-gate.mjs --url "https://example.com/new" --title "totally unique article about quantum computing" --tags "quantum" --series SP --dry-run
+$ node scripts/dedup-gate.mjs --url "https://example.com/new" --title "totally unique article about quantum computing" --tags "quantum" --series GP --dry-run
 PASS
 ```
 
@@ -77,8 +77,8 @@ All known duplicate groups correctly blocked. Unique topic correctly passes.
 **Evidence**: Lines 838-857 in `scripts/gp-pipeline.sh` — "Step 1.7: dedup gate" runs before Step 2 (Write Draft). BLOCK causes `exit 1`. WARN logs but continues.
 
 ### [x] Both pipelines BLOCK verdict stops the flow — PASS
-- CP: Step 3.5 instructs "BLOCK -> 換一篇推文" (mandatory stop)
-- SP: L846 `exit 1` on BLOCK
+- MP: Step 3.5 instructs "BLOCK -> 換一篇推文" (mandatory stop)
+- GP: L846 `exit 1` on BLOCK
 
 ### Minor finding: gp-pipeline.sh missing --tags
 GP pipeline does not pass `--tags` to dedup-gate (L840-843), while the spec example includes `--tags "$TAGS"`. Impact is low — title alone catches the known duplicates — but tags would improve matching accuracy for borderline cases.
@@ -91,13 +91,13 @@ All 8 articles deprecated across 7 groups with correct frontmatter:
 
 | Group | Deprecated | deprecatedBy | deprecatedReason | Correct? |
 |-------|-----------|-------------|------------------|----------|
-| 1 | MP-250 | GP-127 | Same topic, SP deeper | PASS |
-| 1 | MP-261 | GP-127 | Same topic, SP deeper | PASS |
+| 1 | MP-250 | GP-127 | Same topic, GP deeper | PASS |
+| 1 | MP-261 | GP-127 | Same topic, GP deeper | PASS |
 | 2 | MP-218 | MP-235 | MP-235 covers full blog post | PASS |
-| 3 | MP-238 | GP-138 | Same tweet, SP curated | PASS |
-| 4 | MP-66 | GP-50 | Same tweet, SP curated | PASS |
+| 3 | MP-238 | GP-138 | Same tweet, GP curated | PASS |
+| 4 | MP-66 | GP-50 | Same tweet, GP curated | PASS |
 | 5 | MP-156 | MP-151 | MP-151 higher quality + cross-links | PASS |
-| 6 | MP-160 | GP-111 | Same tweet, SP curated | PASS |
+| 6 | MP-160 | GP-111 | Same tweet, GP curated | PASS |
 | 7 | GP-35 | GP-105 | GP-105 more comprehensive | PASS |
 
 All deprecated articles have `status: "deprecated"`, `deprecatedReason`, and `deprecatedBy` fields.
@@ -146,7 +146,7 @@ These were not assigned to either builder per the CTO's task breakdown (only Pha
 | Area | Verdict |
 |------|---------|
 | dedup-gate.mjs (Layer 1/2/3) | PASS |
-| Pipeline integration (CP + SP) | PASS |
+| Pipeline integration (MP + GP) | PASS |
 | 7 duplicate groups cleaned up | PASS |
 | PostStatusBanner + listing filter | PASS |
 | Build | PASS |

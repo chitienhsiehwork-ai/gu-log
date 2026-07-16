@@ -312,7 +312,7 @@
           "verdict": "PASS",
           "reasons": {
             "accuracy": "Core numbers verify: text-embedding-3-small=1536 dims, 1536x4~=6KB, 50M*1536*4~=300GB, 5B*1536*4~=30TB, int8 quant ~75GB, Standard_E32s_v5=256GiB RAM, Azure Blob hot ~$0.02/GB/mo, Milvus etcd+MinIO+pods architecture. Minor imprecisions: HNSW graph overhead (~1.5-2x raw vectors) unaccounted so '300GB RAM' slightly understates real HNSW footprint; '~1KB per chunk' is on the small end vs common 2-4KB -- neither changes the order-of-magnitude conclusion.",
-            "fidelity": "SD original from ShroomDog Lab -- no external source to misrepresent. MoguNote and ShroomDogNote blocks cleanly separate opinion/speculation from the body's factual analysis. Cross-refs to /posts/cp-244 (Karpathy), /posts/sd-11 (agent memory), /posts/recursive-language-models-mit, /glossary#context-window, /glossary#agent all point to internal resources and are not overstated.",
+            "fidelity": "SD original from ShroomDog Lab -- no external source to misrepresent. MoguNote and ShroomDogNote blocks cleanly separate opinion/speculation from the body's factual analysis. Cross-refs to /posts/mp-244 (Karpathy), /posts/sd-11 (agent memory), /posts/recursive-language-models-mit, /glossary#context-window, /glossary#agent all point to internal resources and are not overstated.",
             "consistency": "Argument arc coherent throughout: problem (fire truck / succulent) -> math (per-user sandbox sizing) -> IO contrast at 10K users -> thought experiment at 1M users -> three-cliff taxonomy (user count, per-user data, cross-user search) -> conclusion. Cost comparisons ($16 vs $3,000; $1,600 vs $180,000) follow from the stated assumptions without internal contradiction. Opinions in Mogu/ShroomDog blocks clearly marked; no fact/speculation blurring."
           }
         },
@@ -657,7 +657,7 @@
           "verdict": "PASS",
           "reasons": {
             "glossary": "All key technical terms linked to glossary anchors: agent, MCP, OpenClaw, agent-harness, context-window — every glossary term that appears in the post is properly anchored on first use.",
-            "crossRef": "All 3 internal post links resolve to real slugs (sp-149 ECC agent security, sd-18 permission engineering, sp-158 Braintrust trace); no identity link needed since 'Mogu'/'ShroomDog' are not named in body prose, only via the MoguNote component.",
+            "crossRef": "All 3 internal post links resolve to real slugs (gp-149 ECC agent security, sd-18 permission engineering, gp-158 Braintrust trace); no identity link needed since 'Mogu'/'ShroomDog' are not named in body prose, only via the MoguNote component.",
             "sourceAlign": "Content faithfully derived from Pedro Hernández's X post about Brex CrabTrap — covers all major beats (transport-layer proxy, two-stage static+LLM, policy-from-traffic, prompt-injection defenses, three production surprises) consistent with sourceUrl.",
             "attribution": "Pedro's quotes are speaker-tagged ('Pedro 引的'/'Pedro 的原話'); the '<3% LLM requests' stat is explicitly bounded to Brex Corporate environment; the 'fastest-growing on GitHub' claim is flagged as Pedro's claim not objective fact; MoguNote opinions are visually separated from body via the component."
           }
@@ -750,7 +750,7 @@
           "verdict": "PASS",
           "reasons": {
             "glossary": "OpenClaw linked to /glossary#openclaw on first mention. Claude Code, Agent, Subagent, Hooks are used naturally in body/MoguNote without explicit glossary links but the meaning is self-evident in context; no critical unexplained term. Minor gap only.",
-            "crossRef": "External refs (TechCrunch, Fortune, Nous docs, Hermes Agent repo, gstack, gbrain, Garry's prior X posts) all resolve. No ShroomDog/Mogu prose mention requiring /about link. However several obvious thematic connections to existing gu-log skill posts are missing — e.g. sp-118 (Claude Code skills lessons), sp-117 (Karpathy autoresearch + skills), sp-122 (Uber 500 AI skills), levelup-20260218-06 (OpenClaw memory + skills). Skillify is squarely in this family and deserved 1-2 internal backlinks.",
+            "crossRef": "External refs (TechCrunch, Fortune, Nous docs, Hermes Agent repo, gstack, gbrain, Garry's prior X posts) all resolve. No ShroomDog/Mogu prose mention requiring /about link. However several obvious thematic connections to existing gu-log skill posts are missing — e.g. gp-118 (Claude Code skills lessons), gp-117 (Karpathy autoresearch + skills), gp-122 (Uber 500 AI skills), levelup-20260218-06 (OpenClaw memory + skills). Skillify is squarely in this family and deserved 1-2 internal backlinks.",
             "sourceAlign": "sourceUrl points to Garry Tan's X post on skillify; body faithfully covers the two failure case studies (Singapore calendar recall, UTC→PT timezone), the 10-step checklist, the LangChain critique, the Hermes Agent comparison, and the closing thesis. Content clearly derived from source.",
             "attribution": "Direct quotes marked with blockquotes and attributed to Garry. $160M → $260M fact correction cited to TechCrunch and Fortune inside MoguNote (fact-check flag clearly separated from body claim). Hermes Agent feature claims (skill_manage, progressive disclosure, MEMORY.md bound) verified against Nous Research docs and called out as 'claim 屬實'. MoguNote commentary is visually isolated via the component, keeping opinion layer distinct from reporting layer."
           }
@@ -843,7 +843,7 @@
           "verdict": "PASS",
           "reasons": {
             "glossary": "All four glossary terms used (agent, MCP, Cowork, Claude Code) are linked with /glossary#... anchors on first mention.",
-            "crossRef": "Three internal post links verified (sp-129 Cloudflare Dynamic Workers, sp-167 Managed Agents used twice, sp-179 skillify); ShroomDog/Mogu names don't appear in body so identity links N/A.",
+            "crossRef": "Three internal post links verified (gp-129 Cloudflare Dynamic Workers, gp-167 Managed Agents used twice, gp-179 skillify); ShroomDog/Mogu names don't appear in body so identity links N/A.",
             "sourceAlign": "Content faithfully tracks the Anthropic blog — three-path framing, Cloudflare 2500/1K benchmark, Elicitation Form/URL modes, CIMD, Vaults, 85%/37% numbers, Plugin+skill pattern all present.",
             "attribution": "Every blockquote attributed to Anthropic 原文 with clear speaker tags; all statistics cited (3億/月 SDK, 85% tool-def reduction, 37% multi-step, ~2500 endpoints); MoguNote opinions clearly sandboxed from body facts."
           }
@@ -1747,8 +1747,8 @@
     "status": "PASS",
     "finishedAt": "2026-05-18T10:40:18+08:00"
   },
-  "sp-206-20260519-article-ai.mdx": {
-    "article": "sp-206-20260519-article-ai.mdx",
+  "gp-206-20260519-article-ai.mdx": {
+    "article": "gp-206-20260519-article-ai.mdx",
     "failedStage": "freshEyes",
     "finishedAt": "2026-05-19T02:44:41+08:00",
     "stages": {

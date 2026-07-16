@@ -49,14 +49,14 @@ Spec 整體方向正確、設計原則清楚。但有 3 個 FAIL 項目必須修
 
 | File | `cl` value |
 |---|---|
-| `cp-244-*.mdx` | 8 |
+| `mp-244-*.mdx` | 8 |
 | `en-mp-244-*.mdx` | 9 |
 | `sd-18-*.mdx` | 10 |
 | `en-sd-18-*.mdx` | 9 |
-| `sp-164-*.mdx` | 8 |
+| `gp-164-*.mdx` | 8 |
 | `en-gp-164-*.mdx` | 8 |
-| `cp-262-*.mdx` | 9 |
-| `sp-158-*.mdx` | 10 |
+| `mp-262-*.mdx` | 9 |
+| `gp-158-*.mdx` | 10 |
 
 **Root cause**: `frontmatter-scores.mjs` (L244) writes `cl` when clarity is provided, but `config.ts` (L47-54) Zod schema only defines `p`, `c`, `v` — no `cl`. Zod `.object()` default behavior = strip unknown keys silently. So `cl` passes build but is **silently dropped at runtime**, meaning the clarity score is **lost**.
 
@@ -170,7 +170,7 @@ New tribunal judges (`librarian`, `factCheck`, `freshEyes`, `vibe`) are NOT in t
 ### TIER 4: Posts with `cl:` drift (data, not code)
 
 8 posts with `cl:` field in `ralph` block that Zod silently strips:
-- `cp-244`, `en-cp-244`, `sd-18`, `en-sd-18`, `sp-164`, `en-sp-164`, `cp-262`, `sp-158`
+- `mp-244`, `en-mp-244`, `sd-18`, `en-sd-18`, `gp-164`, `en-gp-164`, `mp-262`, `gp-158`
 
 ---
 
