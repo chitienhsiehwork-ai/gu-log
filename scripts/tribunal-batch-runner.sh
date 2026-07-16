@@ -56,44 +56,144 @@ tlog() {
 # Returns 0 if above floor, 1 if below, 2 if quota cannot be verified.
 USAGE_MONITOR="${USAGE_MONITOR:-$(command -v usage-monitor.sh || true)}"
 
+tribunal_batch_active_providers() {
+  local global_provider vibe_provider fallback_provider writer_mode writer_provider provider providers=""
+
+  global_provider=$(tribunal_llm_provider 2>/dev/null) || return 1
+  vibe_provider=$(tribunal_judge_provider vibe-opus-scorer 2>/dev/null) || return 1
+
+  fallback_provider=""
+  if [ "${GP_JUDGE_ALLOW_CLAUDE:-0}" = "1" ] && tribunal_claude_cmd >/dev/null 2>&1; then
+    fallback_provider="claude"
+  fi
+
+  writer_mode=$(tribunal_writer_mode 2>/dev/null) || return 1
+  writer_provider=""
+  case "$writer_mode" in
+    none|subagent) ;;
+    cli)
+      writer_provider=$(tribunal_writer_provider 2>/dev/null) || return 1
+      ;;
+    codex)
+      writer_provider="codex"
+      ;;
+    *) return 1 ;;
+  esac
+
+  for provider in "$global_provider" "$vibe_provider" "$fallback_provider" "$writer_provider"; do
+    [ -n "$provider" ] || continue
+    case "$provider" in
+      codex|claude) ;;
+      *) return 1 ;;
+    esac
+    case "|$providers|" in
+      *"|$provider|"*) ;;
+      *) providers="${providers}${providers:+|}$provider" ;;
+    esac
+  done
+
+  [ -n "$providers" ] || return 1
+  printf '%s\n' "$providers"
+}
+
 check_quota_above_floor() {
   if [ ! -x "$USAGE_MONITOR" ]; then
     tlog "  ERROR: usage-monitor.sh not found; refusing to run without a quota reading."
     return 2
   fi
 
-  local json remaining
+  local json active_providers quota_result quota_state remaining details
   json=$(bash "$USAGE_MONITOR" --json 2>/dev/null) || {
     tlog "  ERROR: usage-monitor failed; refusing to run without a quota reading."
     return 2
   }
 
-  remaining=$(python3 -c "
-import json, sys
+  active_providers=$(tribunal_batch_active_providers) || {
+    tlog "  ERROR: cannot resolve active tribunal providers; refusing to run."
+    return 2
+  }
+
+  if ! quota_result=$(
+    python3 - "$json" "$active_providers" "$QUOTA_FLOOR_PCT" 2>&1 <<'PY'
+import json
+import math
+import sys
+
+
+def percentage(entry, key, provider):
+    value = entry.get(key)
+    if isinstance(value, bool):
+        raise ValueError(f"{provider} {key} is not numeric")
+    try:
+        value = float(value)
+    except (TypeError, ValueError):
+        raise ValueError(f"{provider} {key} is missing or invalid")
+    if not math.isfinite(value) or not 0 <= value <= 100:
+        raise ValueError(f"{provider} {key} is outside 0..100")
+    return value
+
+
+def fmt(value):
+    return f"{value:g}"
+
+
 try:
     data = json.loads(sys.argv[1])
-    for p in data:
-        if p.get('provider') == 'claude' and p.get('status') == 'ok':
-            val = min(p['five_hr_remaining_pct'], p['weekly_remaining_pct'])
-            print(int(val))
-            sys.exit(0)
-    print(-1)
-except Exception:
-    print(-1)
-" "$json" 2>/dev/null) || remaining=-1
+    active = [provider for provider in sys.argv[2].split("|") if provider]
+    floor = float(sys.argv[3])
+    if not isinstance(data, list) or not active:
+        raise ValueError("usage-monitor payload or active provider set is empty")
+    if not math.isfinite(floor) or not 0 <= floor <= 100:
+        raise ValueError("quota floor is outside 0..100")
 
-  if [ "$remaining" = "-1" ]; then
-    tlog "  ERROR: quota percentage is unavailable; refusing to run."
+    entries = {}
+    for entry in data:
+        if not isinstance(entry, dict):
+            continue
+        provider = str(entry.get("provider", "")).lower()
+        entries.setdefault(provider, []).append(entry)
+    effective_values = []
+    details = []
+
+    for runtime_provider in active:
+        usage_provider = "openai" if runtime_provider == "codex" else runtime_provider
+        candidates = list(entries.get(usage_provider, []))
+        if runtime_provider == "codex":
+            candidates.extend(entries.get("codex", []))
+        if not candidates:
+            raise ValueError(f"missing active provider: {runtime_provider}")
+        if len(candidates) != 1:
+            raise ValueError(f"duplicate active provider telemetry: {runtime_provider}")
+        entry = candidates[0]
+        if entry.get("status") != "ok":
+            raise ValueError(f"active provider is not healthy: {runtime_provider}")
+
+        short_key = "session_remaining_pct" if runtime_provider == "codex" else "five_hr_remaining_pct"
+        short = percentage(entry, short_key, runtime_provider)
+        weekly = percentage(entry, "weekly_remaining_pct", runtime_provider)
+        effective_values.append(min(short, weekly))
+        details.append(f"{runtime_provider}:short={fmt(short)},weekly={fmt(weekly)}")
+
+    minimum = min(effective_values)
+    state = "low" if minimum <= floor else "ok"
+    print(f"{state}|{fmt(minimum)}|{';'.join(details)}")
+except Exception as exc:
+    print(str(exc), file=sys.stderr)
+    sys.exit(1)
+PY
+  ); then
+    tlog "  ERROR: invalid quota telemetry for active providers ($active_providers): $quota_result"
     return 2
   fi
 
-  local used=$((100 - remaining))
-  tlog "  Quota: ~${used}% used, ${remaining}% remaining (floor: ${QUOTA_FLOOR_PCT}%)"
+  IFS='|' read -r quota_state remaining details <<< "$quota_result"
+  tlog "  Quota: active=${active_providers}; ${details}; minimum=${remaining}% (floor: ${QUOTA_FLOOR_PCT}%)"
 
-  if [ "$remaining" -le "$QUOTA_FLOOR_PCT" ]; then
-    tlog "  STOP: Quota at or below ${QUOTA_FLOOR_PCT}% floor."
+  if [ "$quota_state" = "low" ]; then
+    tlog "  STOP: At least one active provider is at or below the ${QUOTA_FLOOR_PCT}% floor."
     return 1
   fi
+  [ "$quota_state" = "ok" ] || return 2
   return 0
 }
 
@@ -111,7 +211,9 @@ get_unscored_articles() {
   all_zh_articles=$(
     for f in "$POSTS_DIR"/*.mdx; do
       base=$(basename "$f")
-      case "$base" in en-*|demo*) continue ;; esac
+      if [[ "$base" == en-* || "$base" == demo* ]]; then
+        continue
+      fi
       td=$(awk '/^---$/{c++; if(c==2) exit; next} c==1 && /^translatedDate:/ {gsub(/[" ]/,"",$2); print $2; exit}' "$f")
       [ -z "$td" ] && continue
       printf '%s|%s\n' "$td" "$base"
@@ -154,8 +256,12 @@ git_behind="$(jq -r '.behind // 0' "$RUNTIME_GIT_STATE_FILE" 2>/dev/null || prin
 git_dirty="$(jq -r '.trackedDirty // 0' "$RUNTIME_GIT_STATE_FILE" 2>/dev/null || printf '0')"
 tlog "Git drift: state=$git_state ahead=$git_ahead behind=$git_behind tracked_dirty=$git_dirty"
 
-# Get unscored articles
-mapfile -t ARTICLES < <(get_unscored_articles)
+# Get unscored articles. Use an indexed-array loop instead of mapfile so the
+# bounded runner remains executable with macOS's Bash 3.2.
+ARTICLES=()
+while IFS= read -r article; do
+  ARTICLES[${#ARTICLES[@]}]="$article"
+done < <(get_unscored_articles)
 TOTAL=${#ARTICLES[@]}
 tlog "Found $TOTAL unscored articles to process."
 
