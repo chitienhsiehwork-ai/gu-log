@@ -125,9 +125,11 @@ describe('pre-push: PENDING ticketId guard (Step 0)', () => {
     // mutating the repo, so this test just confirms the guard ran. The
     // gate output ("PENDING ticketId in commits being pushed to ...")
     // would appear if any committed file has -PENDING. We assert that
-    // the hook accepts the stdin contract and doesn't crash.
+    // the hook accepts the stdin contract and doesn't crash. The real hook
+    // also checks the full post-version manifest, so give that deterministic
+    // work the same headroom as the sibling pre-push test above.
     expect(typeof r.status).toBe('number');
-  });
+  }, 15_000);
 });
 
 describe('pre-commit: hook script is valid bash', () => {
