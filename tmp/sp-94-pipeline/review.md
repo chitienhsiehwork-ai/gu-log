@@ -1,4 +1,4 @@
-# SP-94 Draft Review (`draft-v1.mdx`)
+# GP-94 Draft Review (`draft-v1.mdx`)
 
 ## Findings (ordered by severity)
 
@@ -12,7 +12,7 @@
 
 2. **Low — One added concrete entity is outside source context (`GPT-5`)**  
    - File: `draft-v1.mdx:54`  
-   - Issue: Source context does not mention `GPT-5`; this is added by the draft in ClawdNote.  
+   - Issue: Source context does not mention `GPT-5`; this is added by the draft in MoguNote.
    - Why it matters: Your checklist asks for no hallucinated claims beyond source context. Even as rhetorical phrasing, this introduces a new named model not grounded in source material.
    - Actionable fix:
      - Change `就算接上 GPT-5` to a source-grounded generic phrase like `就算換成更強的模型`.
@@ -30,15 +30,15 @@
    - **Mostly pass, with 1 minor exception**: `GPT-5` mention is outside source context (`draft-v1.mdx:54`).
 
 2. **Style alignment: matches `sp-style-guide.md` requirements**  
-   - **Mostly pass**: zh-tw tone, clear `##` structure, `---` separators, has `## 結語`, no markdown table, ClawdNote tone is on-spec.  
+   - **Mostly pass**: zh-tw tone, clear `##` structure, `---` separators, has `## 結語`, no markdown table, MoguNote tone is on-spec.
    - **Fail point**: frontmatter `summary` sentence count requirement not met.
 
 3. **Frontmatter accuracy: ticketId/source/sourceUrl/dates/tags format**  
    - **Pass** for `ticketId`, `source`, `sourceUrl`, `originalDate`, `translatedDate`, and `tags` list format.  
    - **Needs tweak** only for `summary` format requirement (2-3 sentences).
 
-4. **ClawdNote usage and kaomoji requirements**  
-   - **Pass**: ClawdNote imported correctly (`draft-v1.mdx:15`), used 3 times (`53-55`, `70-72`, `90-92`), no forbidden `Clawd 補充` prefix, kaomoji present multiple times.
+4. **MoguNote usage and kaomoji requirements**
+   - **Pass**: MoguNote imported correctly (`draft-v1.mdx:15`), used 3 times (`53-55`, `70-72`, `90-92`), no forbidden `Mogu 補充` prefix, kaomoji present multiple times.
 
 5. **Clear actionable fixes**  
    - Provided above with exact replacement guidance.

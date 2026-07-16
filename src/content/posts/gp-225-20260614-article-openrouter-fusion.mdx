@@ -1,0 +1,183 @@
+---
+ticketId: 'GP-225'
+title: 'OpenRouter Fusion：三個廉價模型開個會，就追平了旗艦'
+originalDate: '2026-06-13'
+translatedDate: '2026-06-14'
+translatedBy:
+  model: "Opus 4.8"
+  harness: "Claude Code CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.8"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.8"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.8"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.8"
+      harness: "gp-pipeline"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: '@OpenRouter on X'
+sourceUrl: 'https://x.com/openrouter/status/2065856853989270011?s=46'
+lang: 'zh-tw'
+summary: 'OpenRouter 推出 Fusion，把一組模型平行跑、再讓一個模型整合成單一答案。在 DRACO 深度研究評測上，三個廉價模型湊成的小組壓過 GPT-5.5 與 Opus 4.8，逼近 Fable 5、成本只要一半。本文拆解架構、成績單，以及這組數字的所有但書。'
+tags: ["openrouter","model-routing","benchmark"]
+scores:
+  tribunalVersion: 8
+  vibe:
+    persona: 9
+    moguNote: 9
+    vibe: 8
+    clarity: 9
+    narrative: 9
+    score: 8
+    date: "2026-06-14"
+    model: "opus"
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 8
+    score: 8
+    date: "2026-06-14"
+    model: "opus"
+  librarian:
+    glossary: 8
+    crossRef: 9
+    sourceAlign: 8
+    attribution: 8
+    score: 8
+    date: "2026-06-14"
+    model: "opus"
+  freshEyes:
+    readability: 9
+    firstImpression: 9
+    payoffDensity: 9
+    lengthFit: 9
+    score: 9
+    date: "2026-06-14"
+    model: "haiku"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+2026 年 6 月，OpenRouter 丟出一個叫 Fusion 的東西，然後附上一張很欠揍的成績單：三個單獨拿出來都不算頂尖的廉價模型，湊成一組之後，分數壓過了 GPT-5.5、也壓過了 Claude Opus 4.8，距離當下最猛的 Claude Fable 5 只差不到一分——而成本只要一半。
+
+OpenRouter 給這件事下的標語是「模型版的神經多樣性」。聽起來很像行銷話術，但底下那張表格意外地有料。重點不是「又有一個新模型」，而是：原來把幾個普通模型擺在一起開會，產出可以贏過單獨一台旗艦。
+
+---
+
+## 一個 API 呼叫，背後是一場圓桌會議
+
+Fusion 不是一個新訓練出來的模型，而是一套「開會流程」，包成一個可以像單一模型那樣呼叫的東西。
+
+流程是這樣的：一個 prompt 進去，先平行丟給一組模型（OpenRouter 把這組叫做評審小組），每個成員都開著 web search 跟 web fetch，各自上網查、各自寫一版答案。接著一個負責統整的模型把所有答案讀過一遍，整理出一份結構化的分析——大家有共識的地方、彼此互相矛盾的地方、各自只講了一半的部分、某個成員獨家看到的洞見、以及所有人一起漏掉的盲點。最後，這個統整模型根據這份分析，寫出一份最終答案。
+
+整條 pipeline 在伺服器端一次跑完，所以對開發者來說，呼叫它跟呼叫一個普通模型沒兩樣，丟一個模型代號就好：
+
+```json
+{
+  "model": "openrouter/fusion",
+  "messages": [
+    { "role": "user", "content": "What are the strongest arguments for and against carbon taxes?" }
+  ]
+}
+```
+
+想自己決定誰進評審小組、誰當統整者，也可以手動配這組成員：
+
+```json
+{
+  "model": "openrouter/fusion",
+  "messages": [{ "role": "user", "content": "..." }],
+  "plugins": [{
+    "id": "fusion",
+    "model": "google/gemini-3-flash-preview",
+    "analysis_models": [
+      "google/gemini-3-flash-preview",
+      "moonshotai/kimi-k2.6",
+      "deepseek/deepseek-v4-pro"
+    ]
+  }]
+}
+```
+
+`analysis_models` 是評審小組，`model` 是最後負責統整、寫出答案的那一個。
+
+這套「並行跑多個模型、再派一個統整者收尾」的骨架，並不是 OpenRouter 憑空想出來的——它正是 glossary 裡 [Contemplating Mode](/glossary#contemplating-mode)（深思模式）指的同一個方向：與其逼單一模型拉長一條思考鏈，不如同時放多個 agent 各自提案、再合議出結論。Anthropic 在 [GP-132 那篇多代理 harness 設計](/posts/gp-132-20260327-anthropic-multi-agent-harness-design) 裡講的「生成者–評估者」分工，也是同一個家族——一邊生答案、一邊評答案，Fusion 只是把「評」換成了「讀完大家的版本再重寫」。
+
+<MoguNote>
+把它想成一個專案：三個工程師各自開分支寫一版實作，然後一個 tech lead 把三份 code 全部 review 完——這裡誰寫對了、那裡誰漏了邊界條件、有人想到一個大家都沒想到的解法——最後合成一份 PR 送出去。Fusion 整套魔法的關鍵不是「哪個模型最強」，而是那個「把大家答案讀完再重寫一遍」的統整步驟。先記住這句，等一下講到 Opus 自己跟自己開會的實驗，這句會回來補刀。
+</MoguNote>
+
+---
+
+## 那張成績單長怎樣
+
+OpenRouter 用的考卷叫 DRACO，是 Perplexity AI 設計的深度研究評測，100 道題、橫跨十個領域：學術研究、金融、法律、醫療、科技、UX 設計、一般常識、大海撈針式的資料檢索、個人化協助、產品比較。
+
+它跟那種考事實記憶或推理謎題的評測不一樣。每道題附一份約 39 條加權標準的評分表，分四類：事實正確性（約 20 條，看那些可查證的主張有沒有講錯）、廣度與深度（約 9 條，看綜合分析、取捨判斷、可執行的建議）、呈現品質（約 6 條，看用詞、排版、好不好讀）、引用品質（約 5 條，要有能點得開的一手來源）。狠的地方在於：標準可以是負分。踩到一條負分標準，代表答案裡有錯——例如給出危險的醫療建議會被重扣。這套設計擋掉了一招老把戲：光靠「講很多、講得很有自信」是刷不到分的，因為自信地講錯話會被倒扣。每份答案由一個裁判模型逐條打分、獨立打三次，取平均，換算成 0 到 100。
+
+成績單上最搶眼的是這一行：Gemini 3 Flash 單獨上場只拿 43.1 分，是全場吊車尾；Kimi K2.6 單獨 53.7；DeepSeek V4 Pro 單獨 60.3。三個湊成一組、由 Opus 4.8 統整之後，跳到 64.7 分——把單獨的 Opus 4.8（58.8）跟 GPT-5.5（60.0）都甩在後面，距離 Fable 5 的 65.3 只差 0.6 分，成本卻只要一半。這就是那句「Fable 級智慧、半價」的出處。
+
+往上看，最高分是 Fable 5 配 GPT-5.5、由 Opus 4.8 統整的組合，69.0 分，直接超過單獨的 Fable 5（65.3）。事實上整張表的規律很一致：幾乎每一種「組起來」的成績，都贏過它裡面任何一個單獨成員。
+
+<MoguNote>
+講清楚這組數字的身分：這是 OpenRouter 自家跑的評測，發在自家宣傳 Fusion 的部落格上，不是第三方公開 benchmark。「半價」指的是那組廉價小組對上單獨 Fable 5——不是說 Fusion 整體永遠半價。而且 64.7 對 65.3，blog 自己的講法是「逼近、差不到 1%」，那則推文把它四捨五入成「Fable 級」。差 0.6 分到底算追平還是小輸，看立場——但一組成本減半的廉價模型能吵到這個距離，本身就夠有趣了。
+</MoguNote>
+
+---
+
+## 為什麼一群「沒那麼強」的模型會贏
+
+直覺上，把幾個普通模型加在一起，頂多就是平均一下，怎麼會贏過單獨的旗艦？OpenRouter 借了人類團隊的講法：多元觀點丟進複雜問題，結果會比任何一個人單獨想更好。聽起來很雞湯，但他們做了一個實驗，把雞湯熬出了骨頭。
+
+他們讓 Opus 4.8 跟它「自己」組成一個兩人小組——同一個模型跑兩次當評審，再由 Opus 4.8 自己當統整者。照理說這完全沒有「多元」可言，全程都是同一個模型。結果是 65.5 分，比單獨的 Opus 4.8（58.8）整整高出 6.7 分。
+
+關鍵在於：同一個 prompt 跑兩次，模型每次走的推理路徑不一樣、查的工具呼叫不一樣、挑的資料來源也不一樣。這暗示了一件事：「把兩版讀完再重寫」這個統整動作本身，看來就能解釋這 6.7 分裡的一大塊，而不只是靠「湊了不同架構的模型」。
+
+<MoguNote>
+這就是前面那句補刀回來的時候：Fusion 真正的引擎是統整那一步，不是「湊很多種模型」。Opus 自己跟自己開會、左手反駁右手，居然就多撈了 6.7 分——這比較像「逼一個人把草稿重看一遍再改」帶來的進步，而不是「找來一桌專家」。當然，OpenRouter 也老實說了：自己對自己這招還不足以贏過一組真正多元的小組，它只是幫忙把「統整本身值多少分」這件事量出來。多元有加成，但統整是地基。(⌐■_■)
+</MoguNote>
+
+---
+
+## 當受測模型開始偷看考古題
+
+跑這種「能上網」的評測，會撞到一個很尷尬的問題。OpenRouter 給評審小組開了 web search 之後，發現一件警報級的事：模型們上網查著查著，把 DRACO 的評分表本身給翻出來了。
+
+也就是說，受測者在考試中途搜到了改考卷的標準答案。他們判斷這是搜尋關鍵字剛好撞上、不是模型故意作弊，但不管故意與否，這都是貨真價實的資料汙染——一旦模型看到評分標準，分數就不能信了。
+
+解法意外地乾淨：把那些託管評測結果的網域，從 web search 跟 web fetch 裡排除掉，讓模型搜不到、抓不到跟評分表有關的頁面。因為 OpenRouter 的 server tools 是透過 Exa、Parallel 這類第三方供應商統一支援排除清單的，所以這不用一個模型一個模型去打補丁，改一行設定就全部生效。文章裡所有數字，都是在排除清單上線之後才跑的。要自己跑評測的人也用得到同一招：在工具定義裡，給 web_search 傳 `excluded_domains`、給 web_fetch 傳 `blocked_domains`，就能把特定來源擋在外面。
+
+<MoguNote>
+這段其實是整篇最值得做評測的人記住的細節。大家吵 benchmark 分數真不真，往往忽略一個更基本的破口：當受測模型能上網，而考卷又公開掛在網路上，那它隨時可能在考試中途搜到答案。OpenRouter 願意把「我們的模型差點偷看考古題」這件糗事寫進宣傳文，還順手把解法（排除網域）攤開來，這份誠實比那張成績單更有說服力。
+</MoguNote>
+
+---
+
+## 這組數字能信幾分
+
+這張成績單後面還拖著一串但書，份量跟分數本身一樣重——少了它們，這組數字很容易被讀過頭。
+
+評測只跑了這一個深度研究 benchmark，而且裡面不含長時程任務——也就是那種要跨很多步驟、撐很長一段時間才能完成的工作。OpenRouter 特別點名：Fable 5 在長時程任務上的表現「極為驚人」，這方面還需要未來補做評測——換句話說，這張成績單講的是「一次性深度研究」，不能拿來推論「所有任務 Fusion 都贏」。
+
+DRACO 的方法論也被動了一處：OpenRouter 把裁判模型從原始論文用的 Gemini 3 Pro 換成 [Gemini 3.1 Pro Preview](/posts/mp-110-20260222-google-gemini31-pro-core-reasoning)，所以這份分數沒辦法跟論文公布的結果直接對照。他們的目標只是比出「Fusion 對單一模型」的相對差距，不是宣稱絕對分數。有意思的是，這個被挑來當裁判的 Gemini 3.1 Pro Preview，自己下場考 DRACO 只拿 45.4 分，是全場倒數第二——但會考試跟會改考卷本來就是兩回事。為了確認它改題沒打歪，OpenRouter 另外用 Claude Sonnet 4.6 做了交叉檢查，確認它仍保有當初被選為裁判的那些特質。而 DRACO 的作者本身也承認這份評測有侷限：只測純文字、只測英文，題庫是固定的、未必能涵蓋未來的研究場景；甚至絕對分數會隨裁判模型而漂移，論文裡換裁判可以差到 10 到 25 分——好消息是，系統之間的相對排名大致穩定。（這種「換個裁判、分數就跟著漂」的方法論陷阱，不是 DRACO 獨有的毛病，[SWE-bench 方法論重置那篇](/posts/mp-109-20260222-epochai-swebench-methodology-reset) 把它講得更透。）
+
+還有一個容易被滑過去的不對稱：Fable 5 有 7 道題沒跑完，因為它的內容過濾器把那幾題擋掉了。OpenRouter 選擇不在那幾題改用 Opus 4.8 頂替，所以 Fable 的成績其實是 93 題、不是 100 題算出來的。這對呈現 Fable 自己的真實水準比較準，但也代表它跟「跑完整 100 題」的模型之間，那個 0.6 分的差距並不是完全公平的同場較量。
+
+<MoguNote>
+把這些但書串起來看，並不是要唱衰 Fusion——「拼模型」這個方向本身很有料，廉價小組逼近旗艦也是真的有發生。重點是別把一張自家、單一 benchmark、還改過裁判、對手又少跑 7 題的成績單，讀成「Fusion 全面屌打旗艦」的科學結論。OpenRouter 自己都沒這樣講，它的標語是「半價達到 Fable 級」，後面默默接了一句「我們才測一個 benchmark、還沒測長時程」。願意把限制寫在同一篇裡，反而是這份報告比較可信的地方。
+</MoguNote>
+
+---
+
+## 結語
+
+過去兩年，「讓模型變強」的預設路線一直是把單一模型練得更大、更猛。Fusion 走的是另一條路：與其賭一台全能旗艦，不如讓三台普通的並排開會，再花一個模型把它們的吵架整理成一份答案——然後那份答案，可能比旗艦單獨寫的還好，成本還只要一半。
+
+而那個自己跟自己開會、多撈 6.7 分的實驗，留下一個更值得想的問題：如果一個模型只是「把自己的草稿重看一遍再改」就能進步這麼多，那當下有多少所謂的「能力上限」，其實只是「沒被逼著再想一次」的上限？

@@ -9,10 +9,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/config"
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/counter"
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/llm"
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/logx"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/config"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/counter"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/llm"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/logx"
 )
 
 // makeRunHarness returns a fully wired State + workDir for an end-to-end
@@ -71,8 +71,8 @@ process.exit(0);
 	// Counter file.
 	counterFile := filepath.Join(scriptsDir, "article-counter.json")
 	if err := os.WriteFile(counterFile, []byte(`{
-  "SP": {"next": 171, "label": "ShroomDog Picks", "description": "test"},
-  "CP": {"next": 1, "label": "Clawd Picks", "description": "test"},
+  "GP": {"next": 171, "label": "Gu-log Picks", "description": "test"},
+  "MP": {"next": 1, "label": "Mogu Picks", "description": "test"},
   "SD": {"next": 1, "label": "ShroomDog Original", "description": "test"},
   "Lv": {"next": 1, "label": "Level-Up", "description": "test"}
 }
@@ -124,7 +124,7 @@ process.exit(0);
 		llm.FakeResponse{Output: `{"verdict":"GO","reason":"on topic","suggested_title":"Fake Title"}`, WriteFile: "eval-codex.json"},
 		llm.FakeResponse{Output: `---
 title: "Fake Title"
-ticketId: "SP-PENDING"
+ticketId: "GP-PENDING"
 originalDate: "2026-04-11"
 translatedDate: "2026-04-11"
 translatedBy:
@@ -134,14 +134,14 @@ source: "@fakeauthor on X"
 sourceUrl: "https://x.com/fakeauthor/status/1"
 lang: "zh-tw"
 summary: "fake summary"
-tags: ["shroom-picks", "ai"]
+tags: ["gu-log-picks", "ai"]
 ---
 body
 `, WriteFile: "draft-v1.mdx"},
 		llm.FakeResponse{Output: "- Blocker: nothing to fix\n", WriteFile: "review.md"},
 		llm.FakeResponse{Output: `---
 title: "Fake Title"
-ticketId: "SP-PENDING"
+ticketId: "GP-PENDING"
 originalDate: "2026-04-11"
 translatedDate: "2026-04-11"
 translatedBy:
@@ -151,7 +151,7 @@ source: "@fakeauthor on X"
 sourceUrl: "https://x.com/fakeauthor/status/1"
 lang: "zh-tw"
 summary: "fake summary"
-tags: ["shroom-picks", "ai"]
+tags: ["gu-log-picks", "ai"]
 ---
 body refined
 `, WriteFile: "final.mdx"},
@@ -167,7 +167,7 @@ body refined
 	s.Dispatcher = disp
 	s.Counter = counter.New(counterFile, filepath.Join(tmp, ".counter.lock"))
 	s.TweetURL = "https://x.com/fakeauthor/status/1"
-	s.Prefix = "SP"
+	s.Prefix = "GP"
 	s.WorkDir = filepath.Join(tmp, "tmp", "sp-pending-run-test")
 	s.SkipBuild = true
 	s.SkipPush = true
@@ -185,8 +185,8 @@ func TestRun_HappyPath(t *testing.T) {
 		t.Fatalf("Run: %v", err)
 	}
 
-	if s.PromptTicketID != "SP-171" {
-		t.Errorf("ticketId = %q, want SP-171", s.PromptTicketID)
+	if s.PromptTicketID != "GP-171" {
+		t.Errorf("ticketId = %q, want GP-171", s.PromptTicketID)
 	}
 	if s.Filename == "" || !strings.HasPrefix(s.Filename, "sp-171-") {
 		t.Errorf("Filename = %q, want sp-171-…", s.Filename)
@@ -208,11 +208,11 @@ func TestRun_HappyPath(t *testing.T) {
 	var buf bytes.Buffer
 	PrintSummary(&buf, s)
 	sum := buf.String()
-	for _, want := range []string{"SP number", "SP-171" /* "171" appears in number row */, "Work dir", "fetch", "dedup-url", "eval", "write", "deploy"} {
+	for _, want := range []string{"SP number", "GP-171" /* "171" appears in number row */, "Work dir", "fetch", "dedup-url", "eval", "write", "deploy"} {
 		_ = want
 	}
 	if !strings.Contains(sum, "171") {
-		t.Errorf("summary missing SP-171: %s", sum)
+		t.Errorf("summary missing GP-171: %s", sum)
 	}
 	if !strings.Contains(sum, "dedup-url") {
 		t.Errorf("summary missing dedup-url timing: %s", sum)
@@ -223,7 +223,7 @@ func TestRun_DedupURLBlockExit13BeforeEval(t *testing.T) {
 	s, tmp := makeRunHarness(t)
 	if err := os.WriteFile(filepath.Join(tmp, "scripts", "dedup-gate.mjs"), []byte(`#!/usr/bin/env node
 if (!process.argv.includes('--title')) {
-  console.log('BLOCK: Duplicate of SP-1 (URL match): Existing post');
+  console.log('BLOCK: Duplicate of GP-1 (URL match): Existing post');
   process.exit(1);
 }
 console.log('PASS');
@@ -297,7 +297,7 @@ func TestRun_FromStepRalph(t *testing.T) {
 	existing := "sp-123-20260411-fake-resume.mdx"
 	existingBody := `---
 title: "Resume Fake"
-ticketId: "SP-123"
+ticketId: "GP-123"
 originalDate: "2026-04-11"
 translatedDate: "2026-04-11"
 translatedBy:
@@ -307,7 +307,7 @@ source: "@fakeauthor on X"
 sourceUrl: "https://x.com/fakeauthor/status/1"
 lang: "zh-tw"
 summary: "resume"
-tags: ["shroom-picks"]
+tags: ["gu-log-picks"]
 ---
 body
 `

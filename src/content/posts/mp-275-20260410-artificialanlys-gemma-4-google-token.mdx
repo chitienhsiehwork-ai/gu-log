@@ -1,0 +1,163 @@
+---
+ticketId: "MP-275"
+title: "Gemma 4 登場 — Google 的開源四兄弟，Token 效率屌打對手但智力還差一截"
+originalDate: "2026-04-04"
+translatedDate: "2026-04-10"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: "@ArtificialAnlys on X"
+sourceUrl: "https://twitter.com/ArtificialAnlys/status/2040241636089729451"
+lang: "zh-tw"
+summary: "Google 發布 Gemma 4 開源模型家族：四種尺寸、全系列支援多模態、推理模式、256K context。旗艦 31B 在 token 效率上碾壓 Qwen3.5 27B（少用 2.5 倍 token），但智力分數還差 3 分。小型 E2B 可以塞進手機跑。"
+tags: ["gemma","google","open-weights","benchmarks","on-device-ai"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+開源模型排行榜上，Gemma 4 31B 拿了 39 分，對手 Qwen3.5 27B 拿了 42 分。看到這裡，大部分人會說「Google 又輸了」然後關掉頁面。
+
+但 Artificial Analysis 的完整數據攤開來，故事往一個沒人預料到的方向走。
+
+（官方發表那邊的 specs、授權條款、家族全貌，[MP-242](/posts/mp-242-20260403-article-gemma-4-google-gemini-3/) 已經寫完了；這篇聚焦 **獨立 benchmark 實測** — Artificial Analysis 的數據告訴了一個跟排行榜完全不同的故事。）
+
+## 42 分的代價：別人不會告訴的那筆帳
+
+先別急著替 Gemma 4 默哀，把 Artificial Analysis 那張 token 用量表拉出來看。跑完同一套 Intelligence Index benchmark，各家模型的 output token 帳單長這樣：GLM-4.7 燒掉 **1 億 6700 萬** token，Qwen3.5 花了 **9800 萬**，DeepSeek V3.2 用了 6100 萬，MiniMax-M2.5 是 5600 萬。
+
+Gemma 4 31B？**3900 萬。**
+
+GLM-4.7 跟 Gemma 4 拿的分數只差 3 分，但 token 用量差了超過四倍。Qwen3.5 跟 Gemma 4 差 3 分，token 用量差 2.5 倍。想像一下：兩個顧問幫公司做同一份報告，A 顧問收 98 萬、B 顧問收 39 萬，報告品質差不多 — 老闆會選誰？
+
+<MoguNote>
+更白話一點：在按 token 計費的 API 場景，跑 Gemma 4 的帳單大概是 Qwen3.5 的四折。
+四折。不是打九折、不是打七折，是直接砍掉六成。
+Google 這次的策略不是「考最高分」，是「用最少的墨水寫出差不多的答案」。
+這在考試叫偷懶，在商業叫效率 (⌐■_■)
+</MoguNote>
+
+但等等，3 分的差距真的是 3 分嗎？
+
+---
+
+## 拆開成績單：那 3 分到底在哪裡丟的
+
+把細項攤出來看，事情就有意思了。在核心知識型 benchmark 上 — SciCode、TerminalBench Hard、GPQA Diamond、IFBench、HLE — Gemma 4 31B 跟那群 42 分的選手打得**幾乎一模一樣**。SciCode 甚至是 Gemma 4 領先（43% vs 40%），TerminalBench Hard 也是（36% vs 33%），GPQA Diamond 和 IFBench 完全持平。
+
+那 3 分丟在哪？答案是 **agentic 能力** — 需要模型自己串接工具、做多步推理決策的那些任務。Gemma 4 在這塊確實落後。
+
+這就像期末考，國文數學英文都差不多，但體育被拉開了。如果工作不需要跑操場（不需要 agent 工作流），這兩個學生的成績根本分不出高下。
+
+<MoguNote>
+所以問題不是「Gemma 4 比較弱」，而是「弱在哪個科目」。
+如果部署場景是 RAG、問答、摘要、翻譯 — 跟那堆 42 分的基本上同一水準，但帳單只要四折。
+如果場景是 agent 自主執行 — 確實該選別家。
+**選模型從來不是選最高分，是選最適合考場的** (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+---
+
+## 家族佈陣：Google 下的不是一顆棋，是整個棋盤
+
+到這裡可能有人會想：好，31B 性價比不錯，但 Google 也沒必要一口氣出四個模型吧？
+
+有必要。因為 Google 在玩的不是「推一個旗艦去搶排行榜」的遊戲，而是要**把整條部署曲線都佔滿** — 從資料中心到口袋裡。
+
+老大 31B 剛剛聊完了，負責正面硬剛。往下一層是 **E4B** — 8B 參數、128K context、Intelligence Index 19 分。分數不是重點，重點是它是家族裡第一個能**聽**的成員：原生音訊輸入，加上文字、圖片、影片全吃。監控分析、客服語音、現場影像理解 — 這些場景不需要 31B 那種火力，需要的是感知能力，E4B 剛好卡在那個甜蜜點。
+
+再往下到最小的 **E2B** — 等一下會專門聊，先賣個關子，因為那邊還有一個反直覺的爆點。
+
+但家族裡最讓人皺眉的，其實是中間那個。
+
+<MoguNote>
+全系列 Apache 2.0 授權，這件事被很多人一句帶過，但比任何 benchmark 分數都重要十倍。
+Gemma 3 的授權條款有一堆限制，社群每次要用都得先請律師過目。
+現在直接 Apache 2.0 — 等於 Google 說「拿去用，商用也行，不用問我」。
+這不是技術善心，是生態系策略：Gemma 跑在越多地方，Google Cloud 就越有利。
+開源界集體鬆了一口氣，Google 也沒做虧本生意 ╰(°▽°)╯
+</MoguNote>
+
+---
+
+## 家裡最尷尬的那個成員
+
+MoE 架構的 pitch 從來都很性感：總參數多但每次只喚醒一小撮「專家」出來幹活，理論上可以用大模型的知識量、花小模型的計算成本。**Gemma 4 26B A4B** 就是這個思路的產物 — 27B 總參數，每次只啟動 4B。
+
+問題是，理論歸理論，成績單說了真話。
+
+同一個賽道上，Qwen3.5 35B A3B 用 **3B** 活躍參數拿了 37 分、Agentic Index 44。Gemma 4 用 **4B** 活躍參數，多花了 33% 的活躍算力，卻只拿到 31 分、Agentic Index 32。不只被打臉，是被用更少資源的對手打臉。
+
+老大在前面用四折帳單跟 42 分選手打平手，老二卻用更多資源打不過人家的 A3B。同一個家族，哥哥是效率之王，弟弟是效率反面教材 — 這劇本怎麼看都有點殘忍。
+
+<MoguNote>
+MoE 架構的潛力是真的 — 看 Qwen3.5 A3B 就知道了，3B 活躍拿 37 分，超猛。
+但「架構好」跟「做得好」是兩件事。
+Gemma 4 A4B 就像一台油電混合車，spec 上說省油，結果路測比隔壁純油的更耗油。
+可能是路由訓練沒到位、可能是專家分配策略的問題。但不管原因是什麼，這個成員目前的定位很尷尬 — 比老大便宜，但便宜得不夠多；比 Qwen 弱，而且弱得很明顯 ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## 反轉：小模型居然比大模型更「誠實」
+
+到這裡為止，Gemma 4 的故事是「老大性價比高、老二不爭氣、小的還沒出場」。但 Artificial Analysis 的數據裡藏了一個讓整個敘事翻盤的發現。
+
+**AA-Omniscience 分數**衡量的是模型的自知之明 — 知不知道自己不知道什麼。分數越接近 0 越好，負分越大代表越過度自信、越敢亂掰。常識告訴大家：模型越大、知道越多、應該越有自知之明吧？
+
+結果完全顛倒。
+
+Gemma 4 的兩個小模型 E4B（-20）和 E2B（-24），Omniscience 分數大幅優於自家老大 31B 的 **-45**。甚至跟 DeepSeek V3.2 這種巨型模型（-21）差不多。反而是 31B、26B A4B（-48）、Qwen3.5 27B（-42）這些「聰明」的大模型，全部嚴重過度自信。
+
+知道最多的模型，反而最敢在不確定的時候硬掰答案。知道最少的模型，反而學會了舉手說「這題不確定」。
+
+這不只是一個有趣的 data point — 在醫療、法律、金融這種對幻覺零容忍的場景，一個會說「不知道」的小模型，比一個信心滿滿但答錯的大模型**安全得多**。
+
+<MoguNote>
+這個發現比所有 benchmark 排名都值得記住。
+可能的原因有兩個：Google 在小模型訓練上做了特別的 calibration，或者 reasoning 訓練本身就有副作用 — 鼓勵模型「想更多再回答」，結果有時候想太多反而更敢掰。
+但不管原因，結論是一樣的：**模型的價值不只是「答對多少題」，還有「答錯的時候有沒有自知之明」。**
+而在這件事上，小的居然贏了大的 (◕‿◕)
+</MoguNote>
+
+---
+
+## 最小的那個，野心最大
+
+回來聊 E2B。5.1B 總參數、2.3B 活躍參數，4-bit 量化後不到 3GB — **塞進一支中高階手機就能跑**。支援文字、圖片、影片、原生音訊。Intelligence Index 15 分。
+
+15 分聽起來很廢，但換個角度想：三年前，在手機上跑一個能同時處理文字和圖片的 AI 模型，是科幻小說的情節。現在這個模型不只能跑，還能聽音訊、看影片、做 function calling，而且完全離線、完全免費（Apache 2.0）、延遲取決於本地晶片而不是網路。
+
+E2B 的競爭對手不是 Qwen3.5 — 是 CoreML 和 TFLite。Google 不是在跟別的 AI 實驗室搶分數，是在跟 Apple 搶手機上的 AI 地盤。
+
+從這篇一開始講的 token 效率，到 31B 的四折帳單，到 E4B 的多模態感知，再到 E2B 的口袋部署 — Gemma 4 的設計邏輯從頭到尾都是同一句話：**不做最聰明的模型，讓 AI 能跑的地方越多越好。**
+
+---
+
+## 結語
+
+Gemma 4 在 Intelligence Index 上確實落後 Qwen3.5 和 DeepSeek V3.2 三分。如果只看排行榜，故事結束了，Google 又是第二名。
+
+但把帳單攤開、把 Omniscience 分數翻出來、把 Apache 2.0 的法律意義想清楚之後，排行榜上那 3 分的差距，反而變成了這個故事裡最不重要的數字。
+
+開源模型的戰場已經不只是比誰考試分數高了。**下一局比的是：誰能讓 AI 用最低成本、跑在最多地方、犯最少的錯。** 從 Artificial Analysis 的數據來看 — Gemma 4 未必最聰明，但 Google 可能正在贏一場大部分人還沒注意到的比賽。
+
+<MoguNote>
+最後補一針現實：token 效率不是護城河。
+Qwen 和 DeepSeek 都在做同樣的優化，6 個月後這個差距可能縮小。分數也會被追上。
+Gemma 4 真正的長期優勢只有兩個：Apache 2.0 帶來的法律確定性、以及 Google 生態系的整合（Android、Chrome、Vertex AI）。
+分數可以追、效率可以學，但如果一個模型已經內建在十億支手機裡 — 那才叫護城河 (ˉ▽ˉ;)
+</MoguNote>

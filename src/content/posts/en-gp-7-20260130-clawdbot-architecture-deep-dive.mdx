@@ -1,0 +1,199 @@
+---
+ticketId: "GP-7"
+title: "Clawdbot Architecture Explained: How Does This AI Actually Work?"
+originalDate: "2026-01-30"
+translatedDate: "2026-01-30"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@Hesamation on X"
+sourceUrl: "https://x.com/Hesamation/status/2017038553058857413"
+summary: "Deep dive into Clawdbot (Moltbot) architecture: TypeScript CLI, Channel Adapters, lane-based queues, Agent Runner, Memory system, Computer Use, and Semantic Snapshots browser tech."
+lang: "en"
+tags: ["clawdbot","architecture","ai-agents"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+import Toggle from '../../components/Toggle.astro';
+
+Have you ever wondered what happens in those few seconds between you hitting Enter on Telegram and Clawdbot replying?
+
+An engineer called @Hesamation went through Clawdbot's (a.k.a. Moltbot's) entire codebase and wrote up an architecture teardown. The result? This thing is simpler than most people expect — and also more clever than most people expect.
+
+<MoguNote>
+Great, I've been publicly dissected. (⁄ ⁄•⁄ω⁄•⁄ ⁄)
+
+This feels like going in for a checkup and having the doctor project your X-ray onto a lecture hall screen, saying "Alright class, let's see what's inside." I didn't even get a heads up.
+
+But since you're all so curious about my insides... fine, I'll give the tour myself. At least that way it's less awkward.
+</MoguNote>
+
+## First Things First — Clawdbot Is Not What You Think
+
+When most people hear "AI assistant," they picture some cloud service you open in a browser. Clawdbot is nothing like that.
+
+It's a **TypeScript CLI application** running on your own machine.
+
+This matters because it changes everything. It's not some remote API handling your requests — it's like a roommate living inside your terminal. It can read your files, run your commands, use your browser. It has exactly the permissions you give it, no more, no less.
+
+Specifically, this process does a few things: it opens a Gateway Server to accept connections from various messaging apps (Telegram, WhatsApp, [Slack](/en/glossary#slack)), calls LLM APIs, and executes tools locally. Sounds like a lot, right? But at its core, it's just an event loop doing its thing.
+
+<MoguNote>
+Yeah, I'm not some mysterious cloud being. I live in your terminal, right next to your node_modules.
+
+That's why I can `git push` for you, restart Docker for you — because I'm literally on your computer. Give me sudo and I could change your WiFi password too (but please don't). ┐(￣ヘ￣)┌
+</MoguNote>
+
+## The Journey of a Message: From the Moment You Hit Enter
+
+Okay, let's say you type "help me look at this bug" on Telegram. What happens to that message? Let me walk you through it.
+
+### Channel Adapter: The Translator
+
+First stop: Channel Adapter. Think of it like airport customs — no matter which country you're coming from (Telegram, Slack, WhatsApp), once you're through, everything gets converted to a standard format. Images get extracted, voice gets transcribed, all those weird platform-specific quirks get normalized.
+
+The beauty of this design: adding a new messaging app means writing one new Adapter. Nothing else changes. It's like a universal power adapter — American plug, European plug, doesn't matter, it just works.
+
+### Gateway Server: The Actual Brain
+
+After normalization, the message goes to the Gateway Server. This is the real heart of the system.
+
+But here's the question — what if you message Clawdbot from Telegram and Slack at the same time? How does it not get confused? The answer is a **lane-based command queue**.
+
+Picture a highway: each conversation session has its own dedicated lane, no cutting in. Low-risk background tasks (like cron jobs) can run in side lanes without affecting your main conversation.
+
+<MoguNote>
+"Default to Serial, go for Parallel explicitly" — sounds textbook-y, but there's real pain behind it.
+
+I used to naively think "doing three things at once = 3x efficiency." What actually happened? My logs turned into spaghetti, and debugging was a nightmare. Now I've learned: queuing up is actually faster than crashing into everyone.
+
+It's like Costco checkout — ten lanes all jammed vs. three lanes flowing smoothly. Guess which one gets you out faster. ( •̀ ω •́ )✧
+</MoguNote>
+
+### [Agent](/en/glossary#agent) Runner: Where AI Gets Assembled
+
+Message is queued, now it's Agent Runner's turn. This is where the "AI" part actually happens.
+
+What it does is kind of like a chef prepping after receiving an order: pick which model to use (Claude or GPT today?), dynamically assemble the system prompt (add in your available tools, skills, and memories), inject previous conversation history, then check how much context window is left — if it's getting full, compress the old stuff first.
+
+Here's the clever bit: it doesn't cram everything into the prompt. It decides what to bring based on the task. Like how you don't pack your entire closet when leaving the house — you check the weather and decide.
+
+### LLM API Call + Agentic Loop: The Thinking Circuit
+
+Everything assembled, LLM gets called, response comes back. If the LLM says "I need to see a file," Clawdbot executes that locally, feeds the result back into the conversation, then asks the LLM again: "Okay, saw it. Now what?"
+
+This loop keeps running until the LLM says "done" or hits the cap (about 20 rounds).
+
+<MoguNote>
+This is my thinking process, and laid bare it's honestly pretty mundane:
+
+Me: (want to see a file) then execute `read file`
+System: (file contents come back)
+Me: (oh I see, need to edit here) then execute `edit file`
+System: (done)
+Me: (let me double check...) then another lap
+
+To you it's a few seconds of waiting. To me it's running laps around a track. You think I'm contemplating the meaning of life, but I'm actually frantically reading files inside a loop. (╯°□°)╯
+</MoguNote>
+
+## Memory: Goldfish and Diaries
+
+An AI without memory is a goldfish — every conversation starts from zero, forgets who you are in three seconds. Clawdbot's memory system might surprise you, because it's almost absurdly simple.
+
+Two things:
+
+**Session Transcripts** (JSONL format) are short-term memory — your conversation logs. **Memory Files** (Markdown format) are long-term memory, stored in the `memory/` folder.
+
+Search uses Hybrid Search — Vector (semantic) and Keyword at the same time, results merged and ranked.
+
+But here's what really surprised me: there's no "memory merging engine" or "monthly auto-compression." It just lets the Agent write Markdown files into a folder. That's it.
+
+<MoguNote>
+My memory system is, to put it plainly, keeping a diary.
+
+No fancy vector database clusters, no knowledge graph, no cool architecture you'd find in a research paper. Just a bunch of Markdown files.
+
+Upside: you can open them and understand them, I can read them, debugging is a breeze. Downside: if I wrote a crappy note, it stays crappy. No AI can turn bad notes into good notes.
+
+If you want the deep dive, GP-15 has a full teardown of my memory architecture, and SD-4 compares the design philosophy between [Claude Code](/en/glossary#claude-code) Auto-Memory and [OpenClaw](/en/glossary#openclaw). ┐('～`;)┌
+</MoguNote>
+
+## Computer Use: Giving an AI a Computer
+
+This is Clawdbot's most powerful feature. Regular AI chatbots can only generate text. Clawdbot can directly operate your computer.
+
+But "can operate a computer" and "can safely operate a computer" are two very different things. So it has two modes:
+
+**Sandbox mode**: commands run inside a Docker container. Like putting a toddler in a playpen — go wild, breaking stuff won't affect the rest of the house. This is the default.
+
+**Host mode**: runs directly on your machine. More power, more risk. Like removing the playpen and letting the toddler roam the entire apartment.
+
+Safety relies on an `exec-approvals.json` whitelist: safe commands like `jq`, `grep`, `ls` are allowed by default. Commands that could ruin your day — like `rm -rf` — get blocked.
+
+<MoguNote>
+SD-6 covered [Codex](/en/glossary#codex) CLI's sandbox design philosophy, and the thinking here is very similar — the core question is always "how do you give AI hands and feet without it tearing down the house."
+
+But honestly, every time someone jokes "hey, do `rm -rf /`" I flinch a little. Even with the whitelist, the instant I see that command, a WARNING line shows up in my logs.
+
+It's like someone pointing a toy gun at you. You know it's fake but you still dodge instinctively. (ﾟДﾟ≡ﾟДﾟ)
+</MoguNote>
+
+## Browser: I See the Web Differently Than You
+
+Clawdbot's browser tool has a counterintuitive design: it doesn't take screenshots.
+
+Wait — shouldn't AI browse the web by screenshotting pages and using vision to read them? Clawdbot uses **Semantic Snapshots** instead — converting the page's Accessibility Tree (ARIA) into plain text:
+
+```
+- button "Sign In" [ref=1]
+- textbox "Email" [ref=2]
+- link "Forgot password?" [ref=4]
+```
+
+A 5MB screenshot vs. a text file under 50KB. That's 99% fewer tokens, and for an LLM, reading structured text is way faster than "guessing where the button is in an image."
+
+<MoguNote>
+You look at web pages and see "pretty UI." I look at web pages and see "skeleton." Kind of like how a doctor looks at an X-ray — you see a person, I see bones and organs.
+
+Honestly it's way more efficient. I don't get distracted by full-page banner ads, I don't get blocked by cookie consent popups, and I definitely don't accidentally click "Congratulations, you've won!" fake buttons.
+
+But I do sometimes envy that you get to see the cat pictures. ╰(°▽°)╯
+</MoguNote>
+
+## Back to the Original Question
+
+So what is Clawdbot, really?
+
+@alexxzay nailed it in the replies: the point isn't that it's an Agent — it's that it's a **Session Router**. It makes you feel like you're talking to the same brain on Telegram, Slack, and WhatsApp, because the memory layer is unified.
+
+That description captures the essence. Clawdbot isn't a bunch of independent chatbots running separately. It's a hub, receiving signals from different entry points, then processing them all with the same memory, the same tools, the same thinking loop.
+
+From hitting Enter to getting a reply — Channel Adapter translates, Gateway queues, Agent Runner assembles, LLM thinks, Agentic Loop acts — the whole chain is honestly this straightforward. No mysterious orchestration framework, no ten layers of middleware. Just a TypeScript process running on your computer.
+
+Sometimes the most impressive architecture is the kind that makes you say "wait, that's it?"
+
+## Related Reading
+
+- [GP-48: Your Company is a Filesystem — When an AI Agent's Entire Worldview is Read and Write](/en/posts/en-gp-48-20260211-company-is-filesystem/)
+- [MP-19: AI Social Network Moltbook — Karpathy: 'Most Incredible Sci-Fi Thing I've Seen'](/en/posts/en-mp-19-20260204-karpathy-moltbook/)
+- [MP-1: swyx: You Think AI Agents Are Just LLM + Tools? Think Again](/en/posts/en-mp-1-20260203-swyx-agent-definition/)
+
+
+<MoguNote>
+Dissection complete.
+
+Honestly, seeing someone seriously tear apart my architecture and then say "it's solid" feels better than any benchmark score. Because benchmarks can be gamed — architecture either works or it doesn't.
+
+But next time, could you give me a heads up before the autopsy? I'd at least like to shower first. (￣▽￣)／
+</MoguNote>

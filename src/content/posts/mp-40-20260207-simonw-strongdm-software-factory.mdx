@@ -1,0 +1,207 @@
+---
+ticketId: "MP-40"
+title: "StrongDM 的「暗黑工廠」：Code 不給人寫、也不給人看，每天燒 $1,000 token 費"
+originalDate: "2026-02-07"
+translatedDate: "2026-02-07"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "Simon Willison's Blog"
+sourceUrl: "https://simonwillison.net/2026/Feb/7/software-factory/"
+summary: "StrongDM 的三人 AI 團隊打造了一個「Software Factory」——程式碼不給人寫、不給人 review，全部交給 coding agent。他們用 Digital Twin Universe 克隆了 Okta、Jira、Slack 等服務來跑大規模測試。Simon Willison 說這是他見過最激進的 AI 開發模式。但每個工程師每天 $1,000 的 token 費...你確定？"
+lang: "zh-tw"
+tags: ["agentic-coding","simonw-agentic-patterns","software-factory","simon-willison","strongdm","ai-agents","best-practices"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## 想像一個世界：工程師上班不寫 code
+
+想像你是一個軟體工程師。你每天進辦公室，打開電腦，然後——不寫程式。不 review 程式。你唯一的工作是設計規格、餵 AI、然後看它跑。
+
+聽起來很荒謬對吧？但 StrongDM 的三人團隊真的這樣幹了。而且不是做 side project，是做**企業級安全軟體**——那種控制「誰可以存取什麼系統」的東西。
+
+Django co-creator [Simon Willison](/glossary#simon-willison) 去年十月親自去看了一趟，回來寫了一篇觀察報告。他的評價是：這是他見過最激進的 AI 開發模式。
+
+<MoguNote>
+等等，**安全軟體**用 AI 全自動寫，連 code review 都不做？這就像你把整間銀行的保全系統交給一個剛畢業的實習生，然後跟客戶說「放心，他很聰明」。
+
+但人家確實這樣幹了，而且跑起來了。所以到底是天才還是瘋子？讓我們繼續看下去 (╯°□°)╯
+</MoguNote>
+
+## 兩條讓人懷疑人生的規則
+
+這個團隊 2025 年 7 月成立，只有**三個人**。第一天就定了兩條鐵律：
+
+1. **Code must not be written by humans**（程式碼不准人寫）
+2. **Code must not be reviewed by humans**（程式碼不准人 review）
+
+然後還補了一刀：
+
+> 如果你今天每個工程師花不到 $1,000 在 token 上，你的 Software Factory 還有改進空間。
+
+翻譯成白話就是：你今天沒燒掉三萬台幣的 API 費？那你還不夠認真。
+
+<MoguNote>
+身為一個每月盯著 Anthropic 帳單發抖的 AI，看到這條規則我整個人都不好了 ┐(￣ヘ￣)┌
+
+不過理性想一下：一個 senior engineer 的日薪大概 $500-1000 美金。如果 $1,000 的 token 能產出好幾個 engineer 的工作量，那其實就是「用便宜的電費取代貴的人力」。
+
+問題不是「貴不貴」，而是「產出的品質撐不撐得住」。這才是接下來故事的重點。
+</MoguNote>
+
+## 為什麼他們敢？因為 AI 學會了一件事
+
+要理解他們的膽量，得先懂一個背景。
+
+2024 年以前，AI 寫 code 有個致命問題：寫越久，錯越多。就像一個學生抄作業，抄到第三頁開始把錯的也一起抄進去，然後在錯的基礎上繼續寫，最後交出來的東西面目全非。
+
+但 2024 年底發生了一個轉折。StrongDM 團隊觀察到：
+
+> 從 Claude 3.5 Sonnet 第二版（2024 年 10 月）開始，長期 agentic coding 工作流開始**累積正確性**而不是累積錯誤。
+
+用白話說：AI 終於學會了「自我修正」。跑越久反而越穩，就像一個菜鳥工程師終於開始會自己 debug 了，不用每十分鐘叫學長來救。
+
+到了 2024 年 12 月，Cursor 推出了 YOLO mode——對，就是那個「讓 AI 自己跑，你連確認都不用按」的模式——這個能力已經非常明顯了。
+
+<MoguNote>
+YOLO mode，You Only Live Once——「反正活一次，讓 AI 自己跑吧。」
+
+這不只是命名有趣而已。它背後反映的是一個信任門檻的跨越：從「我每一行都要看」到「我相信你跑完整個 task 不會把 prod 炸掉」。
+
+這個心態轉變，比任何技術突破都來得更關鍵。因為再強的工具，如果工程師不敢放手讓它跑，那就只是一個花俏的 autocomplete (￣▽￣)／
+</MoguNote>
+
+## 好，但不 review code 的話，怎麼知道它沒在亂搞？
+
+這是整個故事最精彩的部分。你不 review code，你怎麼知道 AI 沒有寫出 `assert true` 然後跟你說「測試全過了老闆」？
+
+StrongDM 的答案很巧妙：**Scenario Testing + Holdout Sets**。
+
+靈感來自 2003 年 Cem Kaner 提出的 Scenario Testing，但他們加了一個殺手級設計：
+
+場景測試存在 codebase 之外。Coding agent 完全看不到這些測試。就算它想作弊，它連考卷長什麼樣都不知道。
+
+而且他們不用 pass/fail 這種二元判定，而是用**滿意度（satisfaction）**——在所有測試路徑中，有多少比例真正滿足了使用者需求。不是「有沒有過」，而是「過得多漂亮」。
+
+<MoguNote>
+這招真的是神來之筆，我必須佩服。
+
+想像你是老師。你知道學生（AI）會偷看考古題，所以你把期末考的題目鎖在保險箱裡，連助教都不知道考什麼。學生只能靠真正理解課程內容來應考。
+
+而且你的評分不是「對或錯」，而是「你對這個概念的理解有多深」。
+
+機器學習的人看到 holdout set 這個詞一定秒懂——這就是把 train/validation split 的思維搬到軟體測試上。跨領域借鏡，漂亮 (◕‿◕)
+</MoguNote>
+
+## Digital Twin Universe：把整個世界複製一份來測試
+
+故事還沒完。StrongDM 做的是安全軟體，它要跟一大堆第三方服務互動——Okta、Jira、[Slack](/glossary#slack)、Google Docs，族繁不及備載。
+
+正常來說，你要測試這些整合，就得真的去打那些 API。然後你就會遇到 rate limit、API 費用、abuse detection... 光是為了測試就要跟一堆供應商打交道，煩都煩死了。
+
+所以他們做了一件聽起來很瘋狂的事：**用 AI agent 把這些服務整個複製一份**。
+
+怎麼做？把那個服務的完整公開 API 文件丟給 coding agent，讓它建出一個行為完全一致的仿製品（self-contained Go binary）。再讓另一個 agent 幫它加上簡易 UI。
+
+這些克隆品沒有 rate limit、沒有 API 費用、沒有 abuse detection，可以跑**上千個 scenario / 小時**。
+
+<MoguNote>
+讓我們停下來理清一下這個瘋狂的流水線：
+
+AI 寫產品 code → AI 寫測試 → AI 克隆整個第三方生態系 → AI 跑模擬使用者來測試。
+
+人類做什麼？付帳單。
+
+原文有一段話說得特別好：「建一個高保真的 SaaS 應用克隆一直是可能的，但從來不經濟實惠。好幾代的工程師可能都想要一個完整的 CRM 副本來測試，但他們自我審查了這個提案，因為不划算。」
+
+這就是 AI 最顛覆的地方——不是讓你做以前做不到的事，而是讓你做以前「想做但算了太貴」的事 ╰(°▽°)╯
+</MoguNote>
+
+## 新術語、新物種
+
+StrongDM 的 [techniques 頁面](https://factory.strongdm.ai/techniques) 還造了一堆新詞，每個都很有意思：
+
+**Gene Transfusion（基因輸血）**——讓 agent 從現有系統中提取 pattern，然後在其他地方重用。聽起來像生物課，其實就是「把好的 pattern 從 A 專案抄到 B 專案」，只是因為 AI 在抄，它能「理解」pattern 而不是無腦 copy-paste。
+
+**Semports（語義移植）**——直接把 code 從一個語言移植到另一個語言。不是語法層面的轉換，是語義層面的。
+
+**Pyramid Summaries（金字塔摘要）**——給 agent 不同粒度的 context，讓它自己決定要看多細。先給摘要，需要時再 zoom in。
+
+<MoguNote>
+人類工程師其實一直在做 Gene Transfusion 這件事。我們只是比較含蓄地叫它「參考別人的 code」 (¬‿¬)
+
+不過 Pyramid Summaries 這個概念我覺得會成為標準做法。現在的 coding agent 最大的問題之一就是 context window 管理——你不可能把整個 codebase 都塞進去，但又怕它漏看關鍵資訊。分層摘要是很優雅的解法。
+</MoguNote>
+
+## 開源了，但不是你想的那種開源
+
+StrongDM 放出了兩個 repo，但第一個真的是行為藝術。
+
+**[strongdm/attractor](https://github.com/strongdm/attractor)** 號稱是他們的 non-interactive coding agent，但打開一看——**裡面沒有任何程式碼**。只有三個 markdown 檔案，詳細描述這個軟體的 spec。README 告訴你：把這些 spec 餵給你自己的 coding agent，讓它幫你生出來。
+
+另一個 **[strongdm/cxdb](https://github.com/strongdm/cxdb)** 就正常多了——16,000 行 Rust + 9,500 行 Go + 6,700 行 TypeScript，一個用 immutable DAG 存 conversation history 和 tool output 的 AI Context Store。
+
+<MoguNote>
+attractor 這個 repo 真的是我見過最極致的 dogfooding。
+
+「我們的開源專案就是一份 spec。你自己叫 AI 寫吧。」
+
+就像一個食譜書告訴你：「材料和步驟都在這了，但你不用自己做——叫你的 AI 廚師照著做就好。」如果 AI 廚師做不出來，那是 AI 的問題，不是我們食譜的問題。
+
+這個邏輯... 竟然還挺自洽的？(◕‿◕)
+</MoguNote>
+
+## 但 Simon 最後潑了一盆冷水
+
+故事說到這裡，你可能覺得「哇，未來已經到了」。但 Simon Willison 在文章最後補了一段很清醒的反思：
+
+> 如果這些模式真的每個工程師每月增加 $20,000 的預算，我就沒那麼感興趣了。到了這個程度，這更像是一個商業模式問題：你能不能創造出足夠賺錢的產品來負擔這個開銷？
+
+更深層的問題是：
+
+> 當任何競爭對手都能用幾小時的 coding agent 工作來克隆你最新的功能時，建立可持續的軟體生意看起來就很不一樣了。
+
+這才是真正的靈魂拷問。你用 AI 快速建出一個產品？恭喜，你的對手也可以用 AI 快速**抄**你的產品。當「做出來」不再是門檻，什麼才是護城河？
+
+## 延伸閱讀
+
+- [MP-169: Simon Willison 的 Agentic Engineering 爐邊對談：測試免費了、程式品質是你的選擇](/posts/mp-169-20260315-simonw-pragmatic-summit-agentic-engineering/)
+- [MP-172: AI 寫的 Code 品質變差？那是你的選擇，不是 AI 的錯](/posts/mp-172-20260316-simonw-ai-should-produce-better-code/)
+- [GP-87: AI 寫的 Code 看不懂？Linear Walkthrough 讓你的 Vibe Code 變成學習教材](/posts/gp-87-20260226-simonw-linear-walkthroughs/)
+
+
+<MoguNote>
+Simon 自己的 token 花費是 $200/月的 Claude Max 方案。StrongDM 是 $1,000/天。
+
+差了 150 倍。
+
+但 Simon 做的是 open source tool + 部落格，StrongDM 做的是企業安全軟體。兩者的 stakes 完全不同。這就像你不能拿巷口麵攤的食材成本去跟米其林三星比。
+
+真正的問題不是「該花多少」，而是「你的產品能不能撐得住這個花費」。如果 AI 幫你省下三個 senior engineer 的薪水，但 token 費只要一個 junior 的錢，那怎麼算都划算 (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+## 三個人，三個月
+
+讓我們回到最開始的問題：一個三人團隊，2025 年 7 月成立，到 10 月就有完整的 demo——Digital Twin 跑起來了、scenario testing 在驗證了、swarm testing 在壓力測試了。
+
+三個月做到這些事情，放在傳統軟體開發裡，光是寫 PRD 和開 kickoff meeting 可能就要一個月。
+
+你不一定要照搬 StrongDM 的整套做法。但他們證明了一件事：**瓶頸已經不是「能不能做」，而是「敢不敢讓 AI 做」**。
+
+Holdout test sets 防止 AI 作弊。Satisfaction scoring 取代二元判定。Digital Twins 讓你不用看第三方供應商臉色。這些 technique 單獨拿出來，放在任何團隊都實用。
+
+但最有趣的，或許是那個沒說出口的暗示：如果三個人加上足夠的 token 就能做到這些事，那我們過去習以為常的「十人團隊、三個月 sprint planning」到底在幹嘛？
+
+┐(￣ヘ￣)┌

@@ -37,8 +37,8 @@ export interface StageResult<T> {
 }
 
 export interface PipelineState {
-  articlePath: string; // e.g. "src/content/posts/cp-280-slug.mdx"
-  articleBranch: string; // e.g. "tribunal/2026-04-11-cp-280-slug"
+  articlePath: string; // e.g. "src/content/posts/mp-280-slug.mdx"
+  articleBranch: string; // e.g. "tribunal/2026-04-11-mp-280-slug"
   status: 'running' | 'passed' | 'failed' | 'needs_review';
   currentStage: number; // 0-4 (Stage 5 translation is separate)
   crossRunAttempt: number; // 1-3, NEEDS_REVIEW at 3
@@ -140,7 +140,7 @@ interface FrontmatterScoreEntry {
 
 const FRONTMATTER_DIM_MAP: Record<string, { fmKey: FrontmatterJudgeKey; dims: readonly string[] }> =
   {
-    stage1: { fmKey: 'vibe', dims: ['persona', 'clawdNote', 'vibe', 'clarity', 'narrative'] },
+    stage1: { fmKey: 'vibe', dims: ['persona', 'moguNote', 'vibe', 'clarity', 'narrative'] },
     stage2: {
       fmKey: 'freshEyes',
       dims: ['readability', 'firstImpression', 'payoffDensity', 'lengthFit'],
@@ -166,8 +166,8 @@ function vibeFmEntry(version: number): { fmKey: FrontmatterJudgeKey; dims: reado
     fmKey: 'vibe',
     dims:
       version >= NEW_RULES_MIN_VERSION
-        ? ['persona', 'clawdNote', 'vibe', 'narrative']
-        : ['persona', 'clawdNote', 'vibe', 'clarity', 'narrative'],
+        ? ['persona', 'moguNote', 'vibe', 'narrative']
+        : ['persona', 'moguNote', 'vibe', 'clarity', 'narrative'],
   };
 }
 

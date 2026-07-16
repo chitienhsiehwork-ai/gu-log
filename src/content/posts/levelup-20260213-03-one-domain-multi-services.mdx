@@ -10,22 +10,22 @@ source: "Level-Up 系列"
 sourceUrl: "https://gu-log.vercel.app/posts/levelup-20260213-03-one-domain-multi-services"
 summary: "你剛進一間公司，要把 3 個 FastAPI service 塞到同一個 domain。從 DNS 地基開始，一路往上蓋 Ingress、Istio、FastAPI、Swagger，每層一張手繪風圖，搭配 PTT 說故事風格帶你搞懂整棟架構。"
 lang: "zh-tw"
-tags: ["dns", "ingress", "istio", "fastapi", "swagger", "kubernetes"]
+tags: ["dns","ingress","istio","fastapi","swagger","kubernetes"]
 ---
 
 import LevelUpProgress from '../../components/LevelUpProgress.astro';
 import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
-import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
 import AnalogyBox from '../../components/AnalogyBox.astro';
 import Mermaid from '../../components/Mermaid.astro';
 
-<ClawdNote>
+<MoguNote>
 AI 時代的學習哲學：你不需要背 YAML 怎麼縮排、nginx.conf 的每一行怎麼寫。那些東西 AI 30 秒就能生出來，你背它幹嘛？
 
 人類真正該掌握的是兩件事：**概念**（每一層是什麼、為什麼存在）和 **trade-off**（什麼時候該用什麼、用錯了會怎樣）。
 
 所以這篇文章不會教你一行行設定 Ingress YAML 或 Istio VirtualService。我只教你「每層是什麼」和「什麼時候該用」。Implementation details？丟給 AI 就好。你是 Tech Lead，不是 YAML 工程師。
-</ClawdNote>
+</MoguNote>
 
 歡迎來到 Level-Up 系列第三篇。
 
@@ -153,9 +153,9 @@ api.mycompany.com  →  A  →  34.120.56.78
 
 就這樣。DNS 這一層的工作就是「**讓 domain 指向你的 server**」，它不管你 server 上跑幾個 service，也不管 URL path 是什麼。它只負責把人導到正確的大樓門口。
 
-<ClawdNote variant="murmur">
+<MoguNote variant="murmur">
 DNS 還有一種叫 CNAME 的記錄，是「指向另一個 domain」而不是直接指向 IP。常見於用 CDN 或 cloud provider 的時候。但概念一樣 —— 最終都是為了讓 domain name 能被解析成一個 IP。
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="DNS 在整個架構中負責什麼？"
@@ -228,9 +228,9 @@ graph TD
 
 Ingress Controller 就是那個「真的站在門口指路的警衛」，Ingress 是「警衛手上的名單」。
 
-<ClawdNote variant="murmur">
+<MoguNote variant="murmur">
 很多人第一次接觸 Kubernetes 的時候都搞混 Ingress 和 Ingress Controller。Ingress 是你寫的規則（YAML），Ingress Controller 是執行規則的那個程式。你不能只寫規則不裝 Controller，就像你不能只寫員工手冊但不請警衛一樣。
-</ClawdNote>
+</MoguNote>
 
 ### Ingress 也處理 TLS
 
@@ -327,9 +327,9 @@ graph TD
 
 不過「可以取代」不代表「一定要取代」。這個 trade-off 我們留到 Boss Floor 再講。
 
-<ClawdNote variant="murmur">
+<MoguNote variant="murmur">
 Istio 的學習曲線是出了名的陡。很多團隊裝了 Istio 之後才發現，其實他們 80% 的需求用 Ingress 就搞定了。剩下 20% 的 canary deployment，用 Argo Rollouts 也能做。所以裝 Istio 之前請三思。
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="Istio sidecar proxy 的運作方式是？"
@@ -563,15 +563,15 @@ graph TD
 ## 延伸閱讀
 
 - [Lv-10: 一個 URL 的旅程 — 從你按 Enter 到畫面出現，瀏覽器到底在幹嘛](/posts/levelup-20260223-10-url-journey-browser-internals/)
-- [CP-23: Deno Sandbox：把 API Secret 藏在看不見的地方](/posts/clawd-picks-20260204-simonw-deno-sandbox/)
-- [CP-187: Gemini API 終於能設花費上限了，CI 跟 agents 比較敢放手玩](/posts/cp-187-20260317-simonw-gemini-api-ci-agents/)
+- [MP-23: Deno Sandbox：把 API Secret 藏在看不見的地方](/posts/mp-23-20260204-simonw-deno-sandbox/)
+- [MP-187: Gemini API 終於能設花費上限了，CI 跟 agents 比較敢放手玩](/posts/mp-187-20260317-simonw-gemini-api-ci-agents/)
 
 
-<ClawdNote>
+<MoguNote>
 `root_path` 是 ASGI 標準（不是 FastAPI 獨有的）。它只影響 OpenAPI schema 裡的 `servers` 欄位，不影響 routing。簡單說：**root_path 是給文件看的，不是給 router 看的。**
 
 技術上，`root_path` 會讓 FastAPI 生成的 `openapi.json` 裡出現 `"servers": [{"url": "/users"}]`。Swagger UI 讀到這個就知道所有 endpoint 都要加上 `/users` prefix。
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -606,9 +606,9 @@ def get_user(user_id: int):
 | Swagger 頁面打得開但 endpoint 列表是空的 | `openapi.json` 的路徑也被 prefix 影響了 |
 | 本地開發沒問題、部署後 Swagger 壞掉 | 本地沒有 Ingress，部署後才有 path prefix 差異 |
 
-<ClawdNote variant="murmur">
+<MoguNote variant="murmur">
 這個坑真的非常經典。幾乎每個第一次把 FastAPI 放到 reverse proxy 後面的人都會踩到。如果你 Google "FastAPI behind nginx swagger not working"，會看到幾百個 Stack Overflow 問題。答案永遠是：**設 root_path**。
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="你的 FastAPI service 被 Ingress 掛在 /users 底下（有 strip prefix）。API 正常但 Swagger 的 Try it 回 404。最可能的原因是？"
@@ -689,9 +689,9 @@ graph TD
 3. **用工具**：像 [Swagger UI 的 `urls` 選項](https://swagger.io/docs/open-source-tools/swagger-ui/usage/configuration/) 可以在一個頁面切換多個 spec。
 4. **API Gateway 整合**：Kong、AWS API Gateway 等自帶統一文件功能。
 
-<ClawdNote variant="murmur">
+<MoguNote variant="murmur">
 說實話，很多團隊根本不合併 Swagger，就讓每個 service 各自有 /docs。因為合併的維護成本不低，而且 spec 格式不一致的時候合併會爆炸。如果你的團隊只有 3-5 個 service，各自獨立就好，不用硬合併。人生苦短。
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="統一 Swagger UI 的核心做法是？"
@@ -735,9 +735,9 @@ graph TD
 - **10+ 個 service、需要 canary、mTLS、統一 observability** → 上 Istio，但要有專人維護。
 - **中間地帶** → 用 Ingress + Argo Rollouts（canary）+ Linkerd（比 Istio 輕量的 service mesh）。
 
-<ClawdNote variant="murmur">
+<MoguNote variant="murmur">
 我看過太多團隊「因為 Istio 很潮」就裝了，結果 debug 一個 503 要查 Envoy proxy 的 log、Istio control plane 的設定、destination rule 的 mTLS mode... 原本 5 分鐘能解決的問題變成 2 小時。技術選型不是追流行，是解決問題。
-</ClawdNote>
+</MoguNote>
 
 ### Trade-off 2：URL prefix 設計原則
 

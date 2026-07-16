@@ -14,7 +14,7 @@ source: "ShroomDog Lab"
 sourceUrl: "https://gu-log.vercel.app/"
 lang: "en"
 summary: "Someone deployed Milvus to search 5,000 vectors. That's like calling a fire truck to water a desk succulent. This post uses dead-simple math to compare vector databases vs. agent-driven search — IO pressure, scalability, and how each approach dies at 10K and 1M users."
-tags: ["shroomdog-original", "rag", "vector-database", "agentic-search", "architecture"]
+tags: ["shroomdog-original","rag","vector-database","agentic-search","architecture"]
 scores:
   tribunalVersion: 3
   librarian:
@@ -40,7 +40,7 @@ scores:
     model: "claude-opus-4-7"
   vibe:
     persona: 9
-    clawdNote: 9
+    moguNote: 9
     vibe: 9
     clarity: 9
     narrative: 9
@@ -49,7 +49,7 @@ scores:
     model: "claude-opus-4-6[1m]"
 ---
 
-import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
 import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
 Picture this: a team spends two weeks deploying Milvus. Three pods humming on Kubernetes — etcd for metadata, MinIO for object storage, Milvus for vector search. The monitoring dashboard lights up like a Christmas tree.
@@ -62,13 +62,13 @@ Five thousand. Not five million. Five thousand.
 
 That's like calling a fire truck to water a desk succulent. The truck arrives, the ladder goes up, the hose is ready. The succulent drowns.
 
-<ClawdNote>
+<MoguNote>
 Don't laugh — I've seen this happen way too many times. Teams pick "the most technically correct solution" first, then count their data second. That's backwards. Count first, pick second. If the answer is 5,000 vectors, the right tool might be a JSON file and a for loop (╯°□°)╯
-</ClawdNote>
+</MoguNote>
 
 This post doesn't explain how to deploy a vector database. There's no code. Just dead-simple math to answer one question: **what scale needs what tool, and what breaks when you push it to the extreme?**
 
-(Further reading: Karpathy's [LLM knowledge base](/posts/cp-244-20260403-karpathy-llm-knowledge-base) wiki architecture and the grep-vs-RAG analysis in [AI Agent Memory Architecture](/posts/sd-11-20260402-ai-agent-memory-architecture) complement this post.)
+(Further reading: Karpathy's [LLM knowledge base](/posts/mp-244-20260403-karpathy-llm-knowledge-base) wiki architecture and the grep-vs-RAG analysis in [AI Agent Memory Architecture](/posts/sd-11-20260402-ai-agent-memory-architecture) complement this post.)
 
 ## Highway vs. Driving Yourself
 
@@ -84,16 +84,16 @@ First, grep the filenames. Oh look, there's a `return-policy.pdf` → read it �
 
 Grep comes up empty? The agent pivots: try semantic search → three results come back → read the most relevant one → nope, wrong → try the second → got it.
 
-Here's the key difference: RAG is a **one-shot**. Hit or miss. Agent search is **multi-turn navigation** — if the first step is wrong, it self-corrects. MIT's [Recursive Language Model research](/posts/sp-25-20260204-recursive-language-models-mit) showed that GPT-5-mini with this kind of multi-turn navigation (RLM) can outperform GPT-5 running on full context for long-context tasks. Even an 8B-parameter model with RLM can approach GPT-5 performance.
+Here's the key difference: RAG is a **one-shot**. Hit or miss. Agent search is **multi-turn navigation** — if the first step is wrong, it self-corrects. MIT's [Recursive Language Model research](/posts/gp-25-20260204-recursive-language-models-mit) showed that GPT-5-mini with this kind of multi-turn navigation (RLM) can outperform GPT-5 running on full context for long-context tasks. Even an 8B-parameter model with RLM can approach GPT-5 performance.
 
-<ClawdNote>
+<MoguNote>
 The problem with RAG isn't that vector search is inaccurate — it's actually great at finding semantically similar things. The problem is that many agent retrieval needs **aren't about semantic similarity at all**.
 
 "Find the return policy" → grep works. Exact keyword match.
 "Find similar complaints from before" → now we're talking. That's semantic search's home turf.
 
 Routing every query through the same vector pipeline is like prescribing the same pill regardless of the illness. Sometimes it works. More often it's a waste ┐(￣ヘ￣)┌
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -155,7 +155,7 @@ The Milvus approach: all ten thousand users' vectors in one collection, separate
 
 And every query competes for **the same block of memory**. During peak hours, memory bandwidth becomes the bottleneck. One user's heavy querying slows everyone down. One apartment's burst pipe floods the whole building.
 
-<ClawdNote>
+<MoguNote>
 The cruelest comparison: detached houses bottleneck on **storage** (cheap), apartment buildings bottleneck on **memory** (expensive).
 
 Azure Blob Storage: $0.02/GB/month. Ten thousand users' files + indexes ≈ 800GB (10,000 × 80MB) = **$16/month**.
@@ -163,7 +163,7 @@ Azure Blob Storage: $0.02/GB/month. Ten thousand users' files + indexes ≈ 800G
 Milvus needs 300GB RAM: at least two Standard_E32s_v5 instances (256GB each) on AKS = **$3,000/month minimum**.
 
 $16 vs. $3,000. Nearly 200x difference. And the $16 side searches faster, because there's no metadata filter overhead (⌐■_■)
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -195,7 +195,7 @@ Yeah.
 
 Even switching to disk-based indexes (IVF_PQ + DiskANN), latency jumps from sub-millisecond to **50–200ms**, and each query generates heavy random disk IO that fights every other query under high concurrency.
 
-<ClawdNote>
+<MoguNote>
 Let me restate the comparison:
 
 At one million users —
@@ -205,7 +205,7 @@ Apartment building: **$180,000/month** (memory), plus a full SRE team
 The gap is over **100x** ($1,600 vs. $180,000), and the apartment side's complexity scales exponentially.
 
 This isn't to say Milvus-style systems are bad — they're designed for "global cross-user semantic search," like recommendation engines and search platforms. But if each query only searches within one user's small corpus, cramming everyone into one index is **manufacturing a problem that doesn't exist** (╯°□°)╯
-</ClawdNote>
+</MoguNote>
 
 <ShroomDogNote>
 Honestly, ShroomDog's own system made this exact mistake. The reasoning for choosing Milvus was "what if we need cross-user recommendations someday?" — ran it for a year, that "someday" never arrived. But the Milvus maintenance bill arrived every month.
@@ -235,13 +235,13 @@ So there are three kinds of cliffs, each in a different place:
 - **Per-user data volume cliff**: appears around 5–50GB per user. Solution is per-user HNSW, not Milvus
 - **Cross-user search cliff**: deal with it the day the requirement appears. Most assistant products never get here
 
-<ClawdNote>
+<MoguNote>
 The most common engineering mistake: conflating the three cliffs, then applying the hardest solution to the easiest problem.
 
 "We might have a million users!" → Sure, but each user's data is isolated. No global index needed.
 "What if we need a recommendation engine?" → Deal with it when that day comes. Save the bill today.
 "But Milvus has such nice documentation!" → …that's not a reason to pick a technology (¬‿¬)
-</ClawdNote>
+</MoguNote>
 
 ---
 

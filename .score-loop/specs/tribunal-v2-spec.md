@@ -299,7 +299,7 @@ fi
 ```json
 {
   "judge": "vibe",
-  "dimensions": { "persona": 6, "clawdNote": 5, ... },
+  "dimensions": { "persona": 6, "moguNote": 5, ... },
   "score": 6,
   "verdict": "FAIL",
   "reasons": { "persona": "One-sentence assessment.", ... }
@@ -310,25 +310,25 @@ fi
 ```json
 {
   "judge": "vibe",
-  "dimensions": { "persona": 6, "clawdNote": 5, "vibe": 7, "clarity": 8, "narrative": 4 },
+  "dimensions": { "persona": 6, "moguNote": 5, "vibe": 7, "clarity": 8, "narrative": 4 },
   "score": 6,
   "verdict": "FAIL",
   "reasons": {
     "persona": "LHY feel present in analogies but skeleton is a linear report — Decorative Persona Trap.",
-    "clawdNote": "All 6 notes are explain-only. Zero opinion stance detected.",
+    "moguNote": "All 6 notes are explain-only. Zero opinion stance detected.",
     "vibe": "Readable but not shareable. Bullet-dump ending kills momentum.",
     "clarity": "Body text avoids 你/我. Speaker attribution clean.",
     "narrative": "Strip analogies and kaomoji: remaining skeleton is intro → expand → expand → conclude. Linear."
   },
   "improvements": {
     "persona": "Open with the twist about agent traces being 'AI diary entries' (paragraph 7) instead of the context-setting intro. Move current intro to paragraph 2.",
-    "clawdNote": "Notes at lines 45, 78, 112 are explain-only. Convert to opinion-first: 'I think the author underestimates X because...' or 'This is wrong — here's why...'",
+    "moguNote": "Notes at lines 45, 78, 112 are explain-only. Convert to opinion-first: 'I think the author underestimates X because...' or 'This is wrong — here's why...'",
     "vibe": "Replace bullet-dump ending (lines 180-195) with a callback to the opening hook. One memorable line > five summary bullets.",
     "narrative": "Current structure: linear (intro→A→B→C→conclusion). Restructure: hook with the trace visualization surprise (section 3) → flashback to why traces matter → build to the 'aha' moment → callback ending."
   },
   "critical_issues": [
     "Decorative Persona Trap — surface features present (analogies, kaomoji, callbacks) but skeleton is a linear report. This caps persona ≤ 5 and narrative ≤ 5. Root cause: must restructure, not decorate.",
-    "All ClawdNotes are explain-only — no opinion, no stance, no challenge to the source. This caps clawdNote ≤ 6."
+    "All MoguNotes are explain-only — no opinion, no stance, no challenge to the source. This caps moguNote ≤ 6."
   ]
 }
 ```
@@ -405,7 +405,7 @@ Keep suggestions simple — you're a 3-month dev, suggest fixes a 3-month dev wo
 ```markdown
 Vibe improvements should reference the specific scoring traps and rubric:
 - persona: Reference Decorative Persona Trap if applicable. Suggest specific structural changes, not surface edits.
-- clawdNote: Tag which notes are explain-only vs opinion. Suggest specific opinion conversions.
+- moguNote: Tag which notes are explain-only vs opinion. Suggest specific opinion conversions.
 - vibe: Identify the specific vibe killer (bullet-dump ending? template structure? motivational closing?)
 - clarity: Cite specific 你/我 instances in body text with line numbers.
 - narrative: Describe the current skeleton structure (e.g., "intro→A→B→C→conclusion = linear"). Suggest an alternative arc (e.g., "hook with C → flashback to A → build through B → callback ending").
@@ -1199,7 +1199,7 @@ jq '.critical_issues' /tmp/test-vibe-output.json # should exist, array
 # 4e. Validate existing pipeline unchanged:
 # validate_judge_score_json still passes (new fields are additive)
 source scripts/score-helpers.sh
-echo '{"judge":"vibe","dimensions":{"persona":6,"clawdNote":5,"vibe":7,"clarity":8,"narrative":4},"score":6,"verdict":"FAIL","reasons":{},"improvements":{},"critical_issues":[]}' > /tmp/test-schema.json
+echo '{"judge":"vibe","dimensions":{"persona":6,"moguNote":5,"vibe":7,"clarity":8,"narrative":4},"score":6,"verdict":"FAIL","reasons":{},"improvements":{},"critical_issues":[]}' > /tmp/test-schema.json
 validate_judge_score_json "vibe-opus-scorer" /tmp/test-schema.json; echo "exit: $?"  # expect 0
 ```
 
@@ -1320,7 +1320,7 @@ The Librarian agent already has the **Write tool**. Its prompt just needs to say
 
 **Token savings:** Eliminates 1 Opus writer session per Librarian fail. Librarian reruns are Sonnet (cheap).
 
-**Risk:** Librarian might over-edit when it has write access. **Mitigation:** Explicit constraint in prompt: "ONLY add/fix links and glossary references. Do NOT change prose, facts, narrative structure, or ClawdNote content."
+**Risk:** Librarian might over-edit when it has write access. **Mitigation:** Explicit constraint in prompt: "ONLY add/fix links and glossary references. Do NOT change prose, facts, narrative structure, or MoguNote content."
 
 **Implementation:**
 1. Update `.claude/agents/librarian.md` — add "fix on FAIL" instructions with constraints
@@ -1531,10 +1531,10 @@ This is the structural mechanism that makes the stage flip safe and eliminates t
 
 | Writer for | CAN change | CANNOT change |
 |-----------|------------|---------------|
-| **Vibe** | Everything — skeleton, narrative, persona, ClawdNote content, section order, opening/ending | Frontmatter fields |
-| **FreshEyes** | Wording for readability, jargon explanations, paragraph breaks, transitions | Narrative skeleton, section order, ClawdNote opinion content, opening hook, ending punch |
-| **FactChecker** | Factual claims, numbers, hedge words, source attribution, technical terminology | Narrative, readability, prose style, links, ClawdNote non-factual opinions |
-| **Librarian** (self-fix) | Glossary links, internal post links, identity links (/about), link text | Prose content, facts, narrative, ClawdNote content, anything that's not a link |
+| **Vibe** | Everything — skeleton, narrative, persona, MoguNote content, section order, opening/ending | Frontmatter fields |
+| **FreshEyes** | Wording for readability, jargon explanations, paragraph breaks, transitions | Narrative skeleton, section order, MoguNote opinion content, opening hook, ending punch |
+| **FactChecker** | Factual claims, numbers, hedge words, source attribution, technical terminology | Narrative, readability, prose style, links, MoguNote non-factual opinions |
+| **Librarian** (self-fix) | Glossary links, internal post links, identity links (/about), link text | Prose content, facts, narrative, MoguNote content, anything that's not a link |
 
 ### Implementation in Writer Prompt
 
@@ -1554,7 +1554,7 @@ You MUST NOT change:
 - Narrative structure or section ordering
 - Prose style, readability, or paragraph structure
 - Glossary links or internal cross-references
-- ClawdNote opinions (unless they contain factual errors)
+- MoguNote opinions (unless they contain factual errors)
 - Opening hook or ending punch line
 
 If a factual fix requires changing more than one sentence, flag it in your summary but do not rewrite the surrounding paragraph."

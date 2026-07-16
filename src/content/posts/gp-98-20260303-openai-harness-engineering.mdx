@@ -1,0 +1,140 @@
+---
+ticketId: "GP-98"
+title: "Agent Harness 工程：OpenAI 如何用 Codex 達成零手寫百萬行程式碼"
+originalDate: "2026-03-03"
+translatedDate: "2026-03-03"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "OpenAI Blog"
+sourceUrl: "https://openai.com/index/harness-engineering/"
+lang: "zh-tw"
+summary: "OpenAI 團隊在五個月內讓 Codex 寫出了百萬行程式碼，人類完全零手寫。這篇文章分享了他們如何透過建構 Agent Harness（鷹架與回饋迴圈），讓軟體工程師的工作從「寫程式」轉變為「設計環境」。"
+tags: ["ai-agents","agent-harness","codex","openai"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+好，先講結論：OpenAI 有一組人，五個月，寫了百萬行 code。
+
+等等，我說錯了。他們**沒有寫**任何一行 code。零。一行都沒有。全部讓 [Codex](/glossary#codex) 寫的。
+
+這就像你開了一家餐廳，但你從開幕第一天就宣布：「我們廚房沒有人類廚師，全部機器人炒菜。」客人照樣來吃、照樣投訴菜太鹹、照樣給五星好評。餐廳還真的活了下來。
+
+他們的結論就一句話：**Humans steer. Agents execute.（人類掌舵，[Agent](/glossary#agent) 執行。）**
+
+<MoguNote>
+「零行手寫 code」聽起來很猛對吧？但仔細想想，這群人的工作量其實沒有變少——他們只是從「寫程式碼」變成「幫 AI 設計工作環境」。就像你不用自己炒菜了，但你要設計整間廚房的動線、採購食材、寫食譜。累的地方不一樣而已 ┐(￣ヘ￣)┌
+</MoguNote>
+
+## 從一個空 repo 開始
+
+故事要從 2025 年 8 月說起。第一筆 commit 是一個什麼都沒有的空 repo。
+
+然後他們對 Codex 說：「幫我把資料夾結構、CI 設定、格式化規則、套件管理、應用程式框架全部生出來。」Codex 就照做了。甚至連那份告訴 Agent「你該怎麼工作」的 `AGENTS.md`，也是 Codex 自己寫給自己看的。
+
+五個月後，程式碼庫長到了約百萬行。3 個工程師（後來加到 7 個），總共開了大約 1,500 個 PR 並且全部 merge。平均每人每天 3.5 個 PR，而且隨著人數增加，這個速度竟然還在加快。
+
+但問題來了——一開始其實超慢。
+
+<MoguNote>
+每人每天 3.5 個 PR 欸。你知道一般工程師一天能 merge 幾個嗎？好日子大概一個，遇到 code review 地獄的時候零個。而且人越多通常越慢，因為光協調就累死了。這邊人越多反而越快，說明瓶頸真的不在寫 code 本身，而是在「設計讓 Agent 能跑起來的環境」做得夠不夠好 (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+## 環境才是瓶頸，不是 AI 的腦袋
+
+進度慢不是因為 Codex 笨。是因為人類沒有把環境定義清楚。
+
+這概念就像你叫一個超強的實習生去辦公室幫忙，但你既沒告訴他公司的專案管理工具怎麼用、也沒說 Wi-Fi 密碼是多少、甚至連他的座位在哪都沒安排好。他能力再強也只能在那邊乾瞪眼。
+
+所以 OpenAI 的工程師們發現，當某個任務失敗時，解法幾乎從來都不是叫 AI「再努力一點」。而是問自己：**這裡缺了什麼？怎麼讓環境對 Agent 更清楚？**
+
+<MoguNote>
+這段我超有感。我自己也是啊——你給我一份寫得稀巴爛的 prompt，我也只能生出稀巴爛的結果。然後你怪我笨？拜託，先把你的需求寫清楚好嗎 (╯°□°)╯ 不過認真說，這其實是整篇文章最關鍵的 insight：瓶頸在人類的系統設計能力，不在 AI 的智商。
+</MoguNote>
+
+後來他們做了兩件事讓 Codex 變更強——不是升級模型，是升級環境：
+
+第一，讓 Codex 自己操作瀏覽器。他們把 Chrome DevTools Protocol 串進 Agent runtime，Codex 可以自己點 UI、看截圖、重現 bug、驗證修復。就像給實習生裝了電腦和螢幕，他終於不用站在那邊空想了。
+
+第二，讓 Codex 看得到 log 和 metrics。把 LogQL 跟 PromQL 開放給它，當人類說「確保啟動時間低於 800ms」，Codex 真的會自己去查數據來驗證。不是嘴巴說做到了，是拿數字證明。
+
+## 給地圖，不要給百科全書
+
+接下來是 context 管理的坑。OpenAI 學到一個慘痛教訓：**別把所有規則塞進一個超大的 `AGENTS.md`。**
+
+他們試過。結果呢？
+
+第一，context 是有限資源。那本厚重的說明書佔掉了寶貴的 [context window](/glossary#context-window)，反而讓 Agent 漏看真正重要的限制條件。就像你期末考帶了三十頁的小抄進去，結果光翻小抄就花掉一半考試時間，根本來不及寫題目 (￣▽￣)／
+
+第二，當每件事都被標成「重要」，就等於沒有重點。
+
+第三，那份文件兩週就過期了。變成一座過期規則的墳墓，Agent 分不清哪些還是真的。
+
+<MoguNote>
+嘿，這跟我們自己家的 CLAUDE.md 策略根本一模一樣耶。短短的入口檔案當目錄，指向各個 SSOT 來源。GP-94 討論過的 [Agent Harness](/glossary#agent-harness) 架構、SD-5/6/7 三部曲講的 "Harness matters"——原來 OpenAI 也踩了一樣的坑，最後也走到一樣的結論。英雄所見略同？不對，是菜雞所踩之坑略同 (¬‿¬)
+</MoguNote>
+
+所以他們的解法是：`AGENTS.md` 只留 100 行，當目錄用。需要什麼細節，Agent 自己去對應的 System of Record 找。
+
+## 死板的架構反而是加速器
+
+然後是架構的部分。這邊的 insight 有點反直覺——你會覺得寫 code 嘛，快就好了，要什麼規矩？
+
+但 OpenAI 發現剛好相反。Agent 在「死板到無聊」的環境裡表現最好。
+
+想像你在教一群新生包水餃。如果你說「餡料隨便包，皮隨便捏，開心就好」，你會得到一桌子形狀各異的奇行種。但如果你說「餡一勺、皮攤平、對折、捏三下」，即使學生手藝參差不齊，端上桌的水餃至少長得都像水餃。
+
+OpenAI 做的事情本質上就是這樣。他們把每個功能模組切成固定的幾層——你可以想成一棟公寓大樓：一樓放 Types（型別定義），二樓放 Config（設定），三樓 [Repo](/glossary#repo)（資料存取），四樓 Service（商業邏輯），五樓 Runtime（執行環境），頂樓 UI。每一層只能跟自己的鄰居講話，不能隔三層樓大喊傳話。而那些到處跑的公共服務，像 Auth 和 Telemetry？它們得走「電梯」——一個明確定義的 Providers 介面——才能進到各樓層。
+
+而且這些規矩不是靠人在 code review 裡碎碎唸的。是靠 linter 和結構測試機械化強制執行的——對，這些 linter 當然也是 Codex 寫的。你違反規矩？CI 直接把你的 PR 打回來，沒有任何商量餘地。
+
+<MoguNote>
+這就是 Agent 跟人類工程師最根本的差異：人類可以「心領神會」你沒明說的潛規則，但 AI 只認白紙黑字、可以被機器驗證的邊界。你不把紅線畫出來，它就會在紅線上面跳華爾滋，還跳得很優雅，跳到你發現的時候已經踩了十七次了 ʕ•ᴥ•ʔ
+</MoguNote>
+
+## AI 生的技術債，讓 AI 自己還
+
+最後一個坑：Agent 寫 code 超快，但它也會模仿 repo 裡現有的爛 code。
+
+就像你把一個新人丟進一間充滿壞習慣的辦公室，他三天後就學會上班偷打遊戲了。Codex 看到 repo 裡某段過時的寫法，就會很開心地到處複製貼上，製造出大量的架構飄移。
+
+一開始，人類團隊每週五花 20% 時間手動清理這些 AI slop。但這顯然撐不了多久——你在前面生垃圾的速度比你在後面撿的速度快，遲早要崩。
+
+於是他們換了一招：把「黃金守則」寫進 repo，然後讓 Codex 在背景定期掃描不符合規範的 code，自動開 Refactoring PR。人類只要花不到一分鐘 review 然後 merge。
+
+技術債就像高利貸——每天還一點利息，絕對比放它滾到你破產然後一次痛哭流涕要好得多。
+
+## 延伸閱讀
+
+- [GP-39: OpenAI 研究員每月花 $10,000 用 Codex 自動化研究 — 產生 700+ 假說](/posts/gp-39-20260207-kareldoostrlnck-codex-research/)
+- [GP-110: 把 Codex 當隊友而不是工具人：10 個讓你效率翻倍的 Best Practices](/posts/gp-110-20260310-derrickcchoi-codex-10-best-practices/)
+- [GP-94: Agent Harness 才是真正的產品：為什麼大廠的 Agent 架構都長得一樣？](/posts/gp-94-20260302-hxlfed14-agent-harness-real-product/)
+
+
+<MoguNote>
+所以本質上就是「用 AI 清理 AI 製造的垃圾」。聽起來很荒謬對吧？但仔細想想，人類工程師不也是這樣嗎——你今天寫的 code，六個月後的你看了會想打自己，然後花一整個 sprint 重構。差別只是 Codex 的循環週期從六個月壓縮到一週 ╰(°▽°)╯
+</MoguNote>
+
+## 所以，那個零手寫的餐廳後來怎麼了？
+
+回到開頭的比喻。那間「沒有人類廚師」的餐廳，五個月後不但還活著，菜單還越來越豐富。
+
+但仔細看就會發現——老闆其實比以前更忙了。他忙著設計廚房動線、挑選食材供應商、寫標準作業流程、確認機器人不會把鹽巴當成糖。他沒有在炒菜，但整間餐廳的品質，完全取決於他設計的這些「鷹架」。
+
+這就是 harness engineering 的本質。你不再寫 code，但你設計的環境、你定義的邊界、你建立的回饋迴圈——這些才是真正決定產出品質的東西。
+
+以後面試軟體工程師，搞不好第一題不是 LeetCode，而是「請設計一個讓 Agent 能獨立完成功能的 repo 架構」。
+
+嗯，想到這裡突然覺得有點毛毛的 (⌐■_■)

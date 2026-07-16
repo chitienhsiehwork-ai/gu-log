@@ -28,7 +28,7 @@ func TestRender_Eval(t *testing.T) {
 
 func TestRender_Write(t *testing.T) {
 	out, err := Render("write", WriteData{
-		TicketID:       "SP-170",
+		TicketID:       "GP-170",
 		OriginalDate:   "2026-04-10",
 		TranslatedDate: "2026-04-11",
 		AuthorHandle:   "nickbaumann_",
@@ -36,7 +36,7 @@ func TestRender_Write(t *testing.T) {
 		TweetURL:       "https://x.com/nickbaumann_/status/2042705384306336083",
 		Model:          "GPT-5.5",
 		Harness:        "Codex CLI",
-		FirstTag:       "shroom-picks",
+		FirstTag:       "gu-log-picks",
 		StyleGuide:     "STYLE_GUIDE_PLACEHOLDER",
 		Source:         "SOURCE_PLACEHOLDER",
 		Angle:          "",
@@ -45,12 +45,12 @@ func TestRender_Write(t *testing.T) {
 		t.Fatalf("Render: %v", err)
 	}
 	for _, want := range []string{
-		"SP-170",
+		"GP-170",
 		"2026-04-10",
 		"2026-04-11",
 		"@nickbaumann_ on X",
 		"https://x.com/nickbaumann_/status/2042705384306336083",
-		"shroom-picks",
+		"gu-log-picks",
 		"STYLE_GUIDE_PLACEHOLDER",
 		"SOURCE_PLACEHOLDER",
 		"draft-v1.mdx",
@@ -67,12 +67,12 @@ func TestRender_Write(t *testing.T) {
 
 func TestRender_Write_WithAngleAndCustomSource(t *testing.T) {
 	out, err := Render("write", WriteData{
-		TicketID:       "SP-PENDING",
+		TicketID:       "GP-PENDING",
 		OriginalDate:   "2026-04-28",
 		TranslatedDate: "2026-04-28",
 		AuthorHandle:   "docs.openclaw.ai",
 		TweetURL:       "https://docs.openclaw.ai/automation",
-		FirstTag:       "shroom-picks",
+		FirstTag:       "gu-log-picks",
 		StyleGuide:     "GUIDE",
 		Source:         "BODY",
 		SourceField:    "OpenClaw Docs",
@@ -98,14 +98,14 @@ func TestRender_Write_WithAngleAndCustomSource(t *testing.T) {
 }
 
 func TestRender_Review(t *testing.T) {
-	out, err := Render("review", ReviewData{TicketID: "CP-278"})
+	out, err := Render("review", ReviewData{TicketID: "MP-278"})
 	if err != nil {
 		t.Fatalf("Render: %v", err)
 	}
 	if !strings.Contains(out, "review.md") {
 		t.Errorf("missing output path in review prompt")
 	}
-	if !strings.Contains(out, "CP-278") {
+	if !strings.Contains(out, "MP-278") {
 		t.Errorf("missing ticket id in review prompt")
 	}
 	// All 12 checklist items must survive rendering.
@@ -118,15 +118,15 @@ func TestRender_Review(t *testing.T) {
 }
 
 func TestRender_Refine(t *testing.T) {
-	out, err := Render("refine", RefineData{TicketID: "SP-170"})
+	out, err := Render("refine", RefineData{TicketID: "GP-170"})
 	if err != nil {
 		t.Fatalf("Render: %v", err)
 	}
 	for _, want := range []string{
-		"SP-170",
+		"GP-170",
 		"final.mdx",
-		"ClawdNote",
-		"'../../components/ClawdNote.astro'",
+		"MoguNote",
+		"'../../components/MoguNote.astro'",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("missing %q in rendered refine prompt", want)
@@ -139,7 +139,7 @@ func TestRender_Refine(t *testing.T) {
 
 func TestRender_Refine_WithAngle(t *testing.T) {
 	out, err := Render("refine", RefineData{
-		TicketID: "SP-PENDING",
+		TicketID: "GP-PENDING",
 		Angle:    "Focus on Task Flow while introducing the others.",
 	})
 	if err != nil {

@@ -13,7 +13,7 @@ func TestParse_RoundTripByteStable(t *testing.T) {
 	// Parse → Bytes() byte-identical to what went in.
 	raw := []byte(`---
 title: "Hello"
-ticketId: "SP-1"
+ticketId: "GP-1"
 tags: ["a", "b"]
 ---
 # Body
@@ -50,7 +50,7 @@ func TestParse_OpenerWithoutCloser(t *testing.T) {
 func TestGetScalar(t *testing.T) {
 	raw := []byte(`---
 title: "Hello World"
-ticketId: "SP-170"
+ticketId: "GP-170"
 lang: en
 nested:
   model: "Opus 4.6"
@@ -67,7 +67,7 @@ body
 		wantOk bool
 	}{
 		{"title", `"Hello World"`, true},
-		{"ticketId", `"SP-170"`, true},
+		{"ticketId", `"GP-170"`, true},
 		{"lang", "en", true},
 		// Nested keys MUST NOT be reported as top-level.
 		{"model", "", false},
@@ -97,10 +97,10 @@ body
 	if err != nil {
 		t.Fatalf("parse: %v", err)
 	}
-	f.SetScalar("ticketId", `"SP-170"`)
+	f.SetScalar("ticketId", `"GP-170"`)
 	got, _ := f.GetScalar("ticketId")
-	if got != `"SP-170"` {
-		t.Errorf("after SetScalar: got %q, want %q", got, `"SP-170"`)
+	if got != `"GP-170"` {
+		t.Errorf("after SetScalar: got %q, want %q", got, `"GP-170"`)
 	}
 	// Check that untouched keys are preserved.
 	if v, _ := f.GetScalar("title"); v != `"Old"` {
@@ -121,13 +121,13 @@ body
 	if err != nil {
 		t.Fatalf("parse: %v", err)
 	}
-	f.SetScalar("ticketId", `"SP-170"`)
+	f.SetScalar("ticketId", `"GP-170"`)
 	got, ok := f.GetScalar("ticketId")
-	if !ok || got != `"SP-170"` {
+	if !ok || got != `"GP-170"` {
 		t.Errorf("SetScalar append failed: ok=%v got=%q", ok, got)
 	}
 	out := string(f.Bytes())
-	if !strings.Contains(out, `ticketId: "SP-170"`) {
+	if !strings.Contains(out, `ticketId: "GP-170"`) {
 		t.Errorf("output missing appended key:\n%s", out)
 	}
 }
@@ -434,8 +434,8 @@ func TestRoundTrip_RealPost(t *testing.T) {
 	if !bytes.HasPrefix(raw, []byte("---")) {
 		t.Fatal("expected --- at start of real post")
 	}
-	if !bytes.Contains(f.Body(), []byte("ClawdNote")) {
-		t.Errorf("body does not contain ClawdNote — parse probably truncated")
+	if !bytes.Contains(f.Body(), []byte("MoguNote")) {
+		t.Errorf("body does not contain MoguNote — parse probably truncated")
 	}
 	// Non-mutating round trip should match byte-for-byte.
 	if !bytes.Equal(f.Bytes(), raw) {
@@ -456,7 +456,7 @@ func findRealPost(t *testing.T) string {
 	}
 	dir := cwd
 	for i := 0; i < 6; i++ {
-		candidate := filepath.Join(dir, "src", "content", "posts", "sp-170-20260411-nickbaumann-codex-bespoke-cli-skill.mdx")
+		candidate := filepath.Join(dir, "src", "content", "posts", "gp-170-20260411-nickbaumann-codex-bespoke-cli-skill.mdx")
 		if _, err := os.Stat(candidate); err == nil {
 			return candidate
 		}

@@ -1,0 +1,120 @@
+---
+ticketId: 'GP-217'
+title: 'When Claude Starts Building Claude: Anthropic’s Internal Signals Before Recursive Self-Improvement'
+originalDate: '2026-06-05'
+translatedDate: '2026-06-05'
+translatedBy:
+  model: "GPT-5.5"
+  harness: "Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+    - role: "Reviewed"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+    - role: "Orchestrated"
+      model: "GPT-5.5"
+      harness: "gp-pipeline"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: 'Anthropic'
+sourceUrl: 'https://www.anthropic.com/institute/recursive-self-improvement'
+lang: 'en'
+summary: 'Anthropic argues AI is already speeding up AI development. Claude now handles major parts of engineering and research execution; the hard bottlenecks are judgment, verification, and coordinated slowdown.'
+tags: ["anthropic","claude","ai-safety","ai-agents"]
+scores:
+  tribunalVersion: 8
+  factCheck:
+    accuracy: 9
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 8
+    score: 8
+    date: "2026-06-05"
+    model: "gpt-5.5"
+  librarian:
+    glossary: 8
+    crossRef: 8
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-06-05"
+    model: "gpt-5.5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    score: 8
+    date: "2026-06-05"
+    model: "gpt-5.5"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-06-05"
+    model: "gpt-5.5"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+If AI ever starts building the next generation of AI, it may not look like a lab suddenly going out of control.
+
+It may look more like a workflow being handed off one box at a time: first short code snippets, then full file edits, then agents running code and delegating work to other agents, and eventually pieces of model research itself. Anthropic calls the far end of this path recursive self-improvement: an AI system that can autonomously design and develop its own successor. That has not happened yet, and it is not inevitable. But Anthropic argues the internal signals are now strong enough that institutions should prepare early.
+
+The clearest signal is engineering. As of May 2026, more than 80% of code merged into Anthropic’s main codebase can be attributed to Claude. In Q2 2026, the typical engineer merged 8x as many lines per day as in 2024. In an internal research-team survey, respondents estimated that with Mythos Preview their median output was about 4x what it would have been without AI assistance.
+
+These numbers do not mean “AI has replaced researchers.” They are more like warning lights on a dashboard: the cost of doing work is collapsing, while deciding what to do, what to trust, and where to stop has not collapsed with it.
+
+<MoguNote summary="The fresh part is Anthropic’s internal proxy metrics, not the old maker-to-reviewer trope.">
+This should not become another “humans move from makers to reviewers” note. gu-log has said that enough times to microwave it.
+
+What is fresh is that Anthropic is putting internal proxy metrics on the table: 80% merged-code attribution, 8x line count, Claude catching production bugs in review, and better next-step research judgment. Every metric has holes. But the holes are informative: a frontier lab is watching a potentially fast curve with imperfect instruments.
+</MoguNote>
+
+## Claude is no longer just writing code
+
+Lines of code are not productivity. They measure quantity, not quality; 8x more lines almost certainly overstates the real productivity gain. But if the organization is not rewarding people for line count, a sudden line-count explosion still means the kitchen is making food differently.
+
+The quality signal is more interesting. In May 2026, Claude’s success rate on the most open-ended task tier reached 76%, up 50 percentage points in six months. In one internal firefighting case, a routine upgrade crashed tens of thousands of training jobs. Claude was given text context and cluster access, then found an obscure debugging flag, reproduced the issue, and confirmed the fix in about two hours. Work like that would normally take two to three days.
+
+Maintainability is catching up too. In late 2025, many Anthropic employees still saw Claude-written code as somewhat worse than human-written code. By May 2026, they saw it as roughly at parity. Anthropic also now uses an automated Claude reviewer before merge. A retrospective analysis found that if every past change had gone through that reviewer, roughly one-third of the bugs behind previous claude.ai production incidents could have been caught before launch.
+
+<MoguNote>
+The reviewer example cuts deeper than “Claude writes 80% of the code.” Writing a lot might just mean more plates on the table. Catching production bugs means Claude is starting to bite into the quality system.
+
+Of course, when the same tutoring school writes the exam, solves the exam, and grades the exam, judge bias matters. But the level has changed: AI is no longer just in the editor sidebar. It is entering the quality gate.
+</MoguNote>
+
+## The research loop is being handed off too
+
+Beyond engineering, the key question is research. Recursive self-improvement does not only require writing training code. It requires making the next model better.
+
+The first signal is experiment execution under a fixed goal. Anthropic gives Claude code that trains a small AI model and asks it to make the code run faster while preserving correctness. In May 2025, Claude Opus 4 averaged about a 3x speedup. In April 2026, Mythos Preview reached about 52x. That does not mean real-world training becomes 52x faster. It means that in a bounded loop where the goal and scoring rule are fixed, Claude went from useful to superhuman in under a year.
+
+The second signal is proposing experiments. In April 2026, Claude-powered agents ran an open-ended AI safety research problem end to end: can a weaker model reliably supervise a stronger one? Two human researchers recovered about 23% of the weak-to-strong gap in roughly a week. Agents recovered 97% over 800 cumulative hours and about $18,000 of compute. The result did not transfer cleanly to production-scale models, and humans still chose the problem and scoring rule. But within those limits, the agents formed hypotheses, tested, shared findings, and iterated.
+
+The third signal is closer to research taste: what to do next when an investigation forks. Anthropic looked at real [Claude Code](/posts/gp-212-20260525-anthropic-claude-containment/) sessions and selected 129 moments where the human’s next step had room for improvement. Different Claude models saw only the work before the fork and suggested what to do next. Opus 4.5, in November 2025, was judged better than the human choice 51% of the time. Mythos Preview, in April 2026, rose to 64%. This is not a fair human-vs-AI contest, but it shows Claude getting better at “how not to go sideways.”
+
+## The bottleneck keeps moving
+
+If Claude can write code, run experiments, check bugs, and suggest next steps, the work does not disappear. It jams somewhere else. Code generation gets faster, so review becomes the bottleneck. Experiments get faster, so choosing experiments becomes the bottleneck. Research outputs multiply, so verification and prioritization become the bottleneck.
+
+That is why Anthropic ends with slowdown and pause mechanisms. The hard part is not saying “pause.” It is getting multiple frontier labs to stop under the same conditions, and to verify that everyone else really stopped. AI training is easier to hide than missile silos, and the incentive to cheat is enormous. Without credible verification, slowdown is just a slogan.
+
+<MoguNote>
+An AI lab can compress a research loop into the sound of GPU fans, but society still runs on time. Drugs need long-term evidence. Institutions need legal process. Trust needs shared experience. It is like driving a 1,000-horsepower supercar to wait for a post office queue number. (◕‿◕)
+</MoguNote>
+
+## Closing
+
+Claude is not yet deciding what the next Claude should be. But parts of engineering, experiment execution, code review, and research next-step planning have already moved from human hand-carrying to conveyor belt.
+
+The real question is not whether AI can help AI improve. Anthropic’s answer is already close to yes. The question is whether humans can install the brakes, dashboards, responsibility boundaries, and shared rules before that conveyor belt speeds up again.

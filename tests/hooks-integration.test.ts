@@ -52,7 +52,7 @@ describe('pre-commit: ticketId duplicate gate (Step 0)', () => {
     const repo = makeFakeRepo();
     const postsDir = path.join(repo, 'src', 'content', 'posts');
     for (let i = 0; i < 3; i++) {
-      fs.writeFileSync(path.join(postsDir, `dup-${i}.mdx`), `---\nticketId: SP-99\n---\nbody\n`);
+      fs.writeFileSync(path.join(postsDir, `dup-${i}.mdx`), `---\nticketId: GP-99\n---\nbody\n`);
     }
     const r = spawnSync('bash', [path.join(REPO_ROOT, '.githooks', 'pre-commit')], {
       cwd: repo,
@@ -70,7 +70,7 @@ describe('pre-commit: ticketId duplicate gate (Step 0)', () => {
     for (let i = 0; i < 3; i++) {
       fs.writeFileSync(
         path.join(postsDir, `pending-${i}.mdx`),
-        `---\nticketId: SP-PENDING\n---\nbody\n`
+        `---\nticketId: GP-PENDING\n---\nbody\n`
       );
     }
     const r = spawnSync('bash', [path.join(REPO_ROOT, '.githooks', 'pre-commit')], {

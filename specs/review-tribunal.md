@@ -16,7 +16,7 @@
 
 - [x] **fact-checker.md**: model opus, 3 dims (accuracy, fidelity, consistency), composite ≥ 8, calibration anchors present — PASS
   - Evidence: `.claude/agents/fact-checker.md:3` model: opus; lines 28-77 define 3 dims 0-10; line 108 pass bar ≥ 8
-  - Calibration: SP-14 (9/9/9) at line 81, CP-153 (8/8/9) at line 90
+  - Calibration: GP-14 (9/9/9) at line 81, MP-153 (8/8/9) at line 90
   - No old scale references (0-4, 0-3) found: `grep '0-4\|0-3\|N/4\|N/3'` = 0 matches
 
 - [x] **fresh-eyes.md**: model haiku, pass bar ≥ 8, persona = 3-month engineer — PASS
@@ -24,7 +24,7 @@
   - No "≥ 7" references found
 
 - [x] **vibe-opus-scorer.md**: model opus, **5 dims** (+narrative), pass bar: composite ≥ 8 AND one ≥ 9 AND no dim < 8 — PASS
-  - Evidence: `.claude/agents/vibe-opus-scorer.md:3` model: opus; 5 dims at lines 26-54 (persona, clawdNote, vibe, clarity, narrative)
+  - Evidence: `.claude/agents/vibe-opus-scorer.md:3` model: opus; 5 dims at lines 26-54 (persona, moguNote, vibe, clarity, narrative)
   - Pass bar at lines 82-83, 87-88, 123
   - Note: original schema spec said 4 dims, but `tribunal-metrics-review.md` Decision 3 added `narrative`. Implementation correct.
 
@@ -45,7 +45,7 @@
 - [x] **AC-3**: `scores.freshEyes` has `readability`, `firstImpression` (0-10) + metadata — PASS
   - Evidence: `src/content/config.ts:68-76`
 
-- [x] **AC-4**: `scores.vibe` has `persona`, `clawdNote`, `vibe`, `clarity`, `narrative` (0-10) + metadata — PASS
+- [x] **AC-4**: `scores.vibe` has `persona`, `moguNote`, `vibe`, `clarity`, `narrative` (0-10) + metadata — PASS
   - Evidence: `src/content/config.ts:77-89`
 
 - [x] **AC-5**: No `harness` field in tribunal judge blocks — PASS
@@ -92,7 +92,7 @@
 ### Documentation
 
 - [x] **AC-24**: `CLAUDE.md` reads "Fresh Eyes ≥ 8", Vibe 5 dims, Librarian 4 dims — PASS
-  - Evidence: `CLAUDE.md:90` "Vibe Scorer (Opus): 五維評分（Persona / ClawdNote / Vibe / Clarity / Narrative，0-10）"
+  - Evidence: `CLAUDE.md:90` "Vibe Scorer (Opus): 五維評分（Persona / MoguNote / Vibe / Clarity / Narrative，0-10）"
   - `CLAUDE.md:92` "Librarian (Sonnet): Glossary / cross-ref + identity linking / sourceAlign / attribution"
   - `CLAUDE.md:94` "Fresh Eyes ≥ 8"
   - No "≥ 7" references found
@@ -149,19 +149,19 @@
 - [x] **Build check after writer rewrites** — PASS
   - Evidence: Lines 373-391: `pnpm run build`, git revert on failure
 
-### SP Pipeline Integration
+### GP Pipeline Integration
 
 - [x] **Step 4.7 calls ralph-all-claude.sh** — PASS
-  - Evidence: `scripts/sp-pipeline.sh:1106` — `bash "$GU_LOG_DIR/scripts/ralph-all-claude.sh" "$ACTIVE_FILENAME"`
+  - Evidence: `scripts/gp-pipeline.sh:1106` — `bash "$GU_LOG_DIR/scripts/ralph-all-claude.sh" "$ACTIVE_FILENAME"`
 
 - [x] **--opus mode is default** — PASS
-  - Evidence: `scripts/sp-pipeline.sh:267` — `OPUS_MODE=true  # all-claude: Opus is default`
+  - Evidence: `scripts/gp-pipeline.sh:267` — `OPUS_MODE=true  # all-claude: Opus is default`
 
 - [x] **Gemini/Codex removed from required tools** — PASS
-  - Evidence: `scripts/sp-pipeline.sh:152-155` — `check_required_tools()` only checks `jq node npm git`; comment: "bird, gemini, codex removed from critical path"
+  - Evidence: `scripts/gp-pipeline.sh:152-155` — `check_required_tools()` only checks `jq node npm git`; comment: "bird, gemini, codex removed from critical path"
 
 - [x] **Step 1.7 dedup gate NOT broken** — PASS
-  - Evidence: `scripts/sp-pipeline.sh:831-858` — dedup gate code intact and unchanged
+  - Evidence: `scripts/gp-pipeline.sh:831-858` — dedup gate code intact and unchanged
 
 ### Scoring SSOT
 
@@ -203,7 +203,7 @@
 - [x] **MR-3**: Fresh Eyes persona = "~3 months of experience", bar ≥ 8 — PASS
   - Evidence: `fresh-eyes.md:11`, `fresh-eyes.md:53`
 
-- [x] **MR-4**: Fact Checker has calibration examples (SP-14, CP-153) — PASS
+- [x] **MR-4**: Fact Checker has calibration examples (GP-14, MP-153) — PASS
   - Evidence: `fact-checker.md:81-97`
 
 - [x] **MR-5**: SSOT includes EN-specific Persona/Clarity anchors; cultural accessibility in EN Persona — PASS

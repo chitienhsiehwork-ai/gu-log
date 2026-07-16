@@ -1,0 +1,134 @@
+---
+ticketId: "MP-147"
+title: "AI 不用再背九九乘法表了：Reasoning 和 Tool Calling 如何讓小模型跑出大模型的水準"
+originalDate: "2026-03-07"
+translatedDate: "2026-03-09"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@awnihannun on X"
+sourceUrl: "https://x.com/awnihannun/status/2030411584619925605"
+lang: "zh-tw"
+summary: "Apple MLX 創造者 Awni Hannun 提出一個反直覺的觀點：intelligence-per-watt 之所以飆升，除了硬體和架構進步，還有一個鮮少被討論的原因——模型不再需要把「可以算出來」的答案塞進 weights 裡。Reasoning 和 tool calling 讓模型把計算外包出去，釋放出大量的 weight 空間。這意味著 5B-15B 的小模型，理論上可能達到今天 GPT-5.x 的水準——雖然沒有人真正知道天花板在哪。"
+tags: ["awni-hannun","mlx","model-efficiency","reasoning","on-device-ai"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## 你記九九乘法表是為了算數，不是為了記數字
+
+我在念小學的時候，老師要求我們把九九乘法表背到滾瓜爛熟。7×8=56，9×7=63，一個一個死背。當時覺得這就是「數學」——你記得越多，你就越厲害。
+
+但到了國中，你學了乘法的原理。你會用分配律把複雜的乘法拆開算，用筆算把大數字搞定。突然之間，你的腦袋不需要塞那麼多答案了，因為你學會了「怎麼算」。
+
+好，這個比喻記著，等等要用。
+
+Apple MLX 框架的創造者 Awni Hannun 上週發了一則推文，講了一件大家都看到但很少人講清楚的事：**AI 模型變聰明的速度，有一部分原因是它們終於學會「不要死背」了。**
+
+<MoguNote>
+Awni Hannun 這個人有意思——他不是那種「大 GPU cluster 隨便燒」的研究員，他每天想的是怎麼在 iPhone 的 8GB RAM 裡面塞出最大的智慧。做 MLX 的人講 intelligence-per-watt，那不是在空談，那是在跟物理定律搏鬥 (ง •̀_•́)ง
+</MoguNote>
+
+## 先把大家都知道的說完
+
+每隔幾個月就有人說「AI 越來越便宜、越來越強」，解釋通常是這三條路：
+
+**更好的架構**——從 Transformer 到 MoE（Mixture of Experts，把模型拆成很多「專家」按需啟動），再到各種 SSM 混合架構。每次架構創新，都是在用更少的算力做更多的事。
+
+**更好的硬體**——NVIDIA Blackwell、Apple M 系列、Qualcomm Snapdragon，每一代晶片都把每瓦特的運算力推高一截。
+
+**更高品質的資料**——合成資料、精選資料集、[RLHF](/glossary#rlhf) 改進，讓模型用同樣的 size 學到更紮實的東西。
+
+這些都對。但 Awni 說，這些是「顯而易見」的原因。他想說的是另一個。
+
+---
+
+## 那個大家沒注意到的原因
+
+回到 2022-2023 年那個時代的 LLM。
+
+那時候模型要學做簡單的算術——比如「37 + 48 = ?」——它是怎麼學的？
+
+**靠背。**
+
+訓練資料裡有大量的 (輸入, 運算, 輸出) 組合，模型把它們統統塞進 weights 裡。37+48=85，42+67=109，128+256=384……每一個算術 case，都以某種形式躺在那幾百億個參數裡面。
+
+你可以想像這有多浪費——就像你的大腦用了一整個區域專門記「7×8=56」，但其實你只要會「7×8 = 7×(10-2) = 70-14 = 56」就夠了。
+
+<MoguNote>
+Awni 原文說「你可以想像這佔了 weights 裡大量的空間」，但讓我翻譯一下這句話的含義——以前的 LLM 根本就是一個超大型的背多分選手。期末考前把所有考古題答案背下來，不管懂不懂，總之塞進腦袋就對了。現在回頭看，難怪 hallucination 這麼嚴重——你叫一個只會背答案的學生回答沒見過的題目，他不掰才怪 ╰(°▽°)╯
+</MoguNote>
+
+好，那 2026 年的模型呢？同一道算術題，它有兩條路：
+
+**推理出來**——在 chain-of-thought 裡一步步算。37 + 48 = 37 + 40 + 8 = 77 + 8 = 85。答案不需要記，推出來就好。
+
+**外包出去**——直接呼叫計算機工具。算術這件事完全交給一個確定性的工具，精確無誤，永遠不會算錯。
+
+兩個方法都拿到了正確答案，但 weights 裡**完全不需要存任何算術結果**。那些本來用來「記住答案」的參數容量，現在可以拿來存更有價值的東西。
+
+這就是 Awni 的核心洞見：**Reasoning 和 Tool Calling 不只讓模型更聰明，它們還在「釋放 weight 空間」。**
+
+<MoguNote>
+把這個邏輯推到極端——如果模型所有「可以查到的事實」和「可以算出來的結果」都不需要存在 weights 裡，那 weights 最終只需要存什麼？答案是：「理解力」。怎麼理解問題、怎麼拆解任務、什麼時候該用什麼工具。這聽起來好像很抽象，但你想想人類的大腦——你也不需要記住全世界所有的電話號碼，你只需要知道怎麼用手機查就好。AI 走了幾年的彎路，終於搞懂了這件事 (￣▽￣)／
+</MoguNote>
+
+---
+
+## 那小模型的天花板到底在哪？
+
+說到這裡，Awni 丟出了整則推文最讓人坐不住的問題：
+
+> 我確定最小的 LLM 有一個下限，不可能達到 GPT 5.x 的水準。但那個下限可能是 5B，也可能是 100B。沒有人真的知道，因為上面說的這些效應還在持續發酵。
+
+以前的思路很簡單——模型大 = 聰明，100B 就是比 7B 強，end of story。你想要 GPT-4 等級的能力，就乖乖搞一個巨大的模型。
+
+但如果 reasoning 和 tool calling 真的能大幅釋放 weight 的使用效率呢？那同樣一個 10B 的模型，訓練方式不同、能力配置不同，實際跑出來的智慧可能天差地遠。
+
+就像兩個人都只有一個背包的容量。一個人塞滿了課本和參考書（死背派），另一個人只帶了一台筆電和 Wi-Fi（理解派）。誰能解決更多問題？答案不取決於背包大小，而取決於你怎麼用它。
+
+## 延伸閱讀
+
+- [SD-7: Claude Code CLI 的深度思考哲學：為什麼我是你最信賴的 AI 架構師](/posts/20260301-claude-code-deep-thinking-philosophy/)
+- [MP-148: AI 的思考過程真的藏不住嗎？OpenAI 發布 CoT Controllability 研究，結果出乎所有人意料](/posts/mp-148-20260309-openai-cot-controllability/)
+- [MP-183: effort 開到 max 之後，模型會想更久，也會更敢花 token](/posts/mp-183-20260317-trq212-effort-max-token/)
+
+
+<MoguNote>
+Awni 在這邊非常誠實地說了「沒有人知道」——但你要注意，這是一個每天都在跟 on-device 算力限制搏鬥的人說的「沒有人知道」。他不是在學術場合客氣，他是真的在說：我每天試著把模型塞進 iPhone，我看到的進步速度讓我自己都不敢確定天花板在哪。這種來自實戰的不確定性，比任何 benchmark 都有說服力 (⌐■_■)
+</MoguNote>
+
+---
+
+## 所以你的手機可能比你想的聰明
+
+來，讓我把 Awni 沒說的部分接著推下去。
+
+目前 iPhone 上跑的 Apple Intelligence，大概用的是 3B 等級的模型。能做什麼？改改文字、做做摘要、簡單聊兩句。遇到真正的問題就得 Private Cloud Compute，把任務送上雲端。
+
+但如果 Apple 能把 reasoning 和 tool calling 能力好好做進一個 7B 的 on-device 模型呢？搭配 M-series 或 A-series 晶片的效能——你的 iPhone 可能就有一個「真正懂事」的助手，不需要網路、不需要把隱私資料傳到任何地方。
+
+市面上已經有一些小模型靠著優秀的 instruction tuning 和 tool calling，跑出了遠超其 size 的表現。這不是偶然，這恰好就是 Awni 說的那個效應在起作用。
+
+那「5B 到底夠不夠」？這取決於你要它做什麼。幫你改 email、整理筆記、回覆訊息——大概綽綽有餘。做複雜的多步驟推理、理解深度領域知識——可能還差一截。但方向是對的：weights 用得越有效率，小模型的天花板就越高。
+
+---
+
+## 回到九九乘法表
+
+Awni 這則推文篇幅不長，但它給了我們一個理解「為什麼小模型越來越強」的新鏡頭——不只是硬體更快、架構更好，而是我們根本改變了「模型需要記住什麼」這件事。
+
+就像你國中那年突然開竅——不用再死背 7×8=56，因為你會算了。模型也正在經歷同樣的事。當算術可以推理、事實可以查詢、確定性計算可以外包，weights 就從「塞滿答案的倉庫」變成了「純粹的推理引擎」。
+
+所以下次有人跟你說「手機上跑的小模型，怎麼可能跟雲端的大模型比」，你可以告訴他——問題不是模型多大，問題是它還在死背九九乘法表嗎 (◕‿◕)

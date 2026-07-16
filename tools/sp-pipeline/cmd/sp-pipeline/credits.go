@@ -8,12 +8,12 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/pipeline"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/pipeline"
 )
 
 // newCreditsCmd is a hidden-friendly standalone entry point for the
 // credits frontmatter patch. Exposed primarily for debugging —
-// most callers use it through `sp-pipeline run`.
+// most callers use it through `gp-pipeline run`.
 func newCreditsCmd(state *rootState) *cobra.Command {
 	var (
 		finalPath   string

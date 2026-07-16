@@ -1,0 +1,213 @@
+---
+ticketId: "MP-98"
+title: "Cloudflare 宣布 Markdown for Agents — 省 80% tokens、股價飆 13%，「Agentic Internet」時代到了"
+originalDate: "2026-02-12"
+translatedDate: "2026-02-19"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "Cloudflare Blog"
+sourceUrl: "https://blog.cloudflare.com/markdown-for-agents/"
+summary: "Cloudflare 推出 Markdown for Agents 功能，讓 AI agents 透過 Accept: text/markdown header 直接從 CDN 層拿到 markdown 而非 HTML，一篇文章 token 用量直降 80%。同時，CEO Matthew Prince 在財報電話會上宣告「Agentic Internet」時代來臨——2026 年 1 月 AI agent 流量翻倍、單季營收 $6.14 億創新高、最大合約年值 $4,250 萬，股價單日飆漲 13%。網際網路的「第一語言」正從 HTML 變成 Markdown。"
+lang: "zh-tw"
+tags: ["cloudflare","infrastructure","markdown","ai-agents","agentic-internet","tokens","cost-optimization","web"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## 網路的「第二語言」
+
+你知道 AI agent 上網的時候在幹嘛嗎？
+
+和你一樣——打開網頁、讀內容。但不一樣的是，你看到的是精美排版的頁面，它看到的是：
+
+```html
+<div class="wrapper"><div class="container">
+  <h2 class="section-title" id="about">About Us</h2>
+  <div class="content-block" data-tracking="section-1">
+    <p class="body-text">We make cool stuff.</p>
+  </div>
+</div></div>
+```
+
+它其實只需要這些：
+
+```markdown
+## About Us
+We make cool stuff.
+```
+
+上面那段 HTML 要吃 12-15 tokens。Markdown 版？**3 tokens**。
+
+想像你去買鹹酥雞，老闆用了三層報紙、兩層塑膠袋、一個禮盒包裝，你打開之後發現裡面就三塊雞排。你的 AI agent 每天就在做這件事——花 80% 的錢在拆包裝紙。
+
+Cloudflare 說：夠了。
+
+## Markdown for Agents：CDN 層的即時翻譯
+
+2026 年 2 月 12 日，[Cloudflare 宣布了 Markdown for Agents](https://blog.cloudflare.com/markdown-for-agents/)。
+
+概念極度簡單：如果你的 AI agent 在 HTTP request 裡加上一個 header——
+
+```bash
+curl https://example.com/ \
+  -H "Accept: text/markdown"
+```
+
+Cloudflare 的 CDN 就會在 edge 層**即時**把 HTML 轉成乾淨的 Markdown 給你。
+
+不需要改 origin server。不需要建 Markdown 版網站。不需要任何 AI 側的轉換邏輯。一個 header 搞定。
+
+**實測數據**：Cloudflare 自己的 blog post——
+
+- HTML 版：**16,180 tokens**
+- Markdown 版：**3,150 tokens**
+- **省了 80%**
+
+回應 header 還會貼心地附上 `x-markdown-tokens: 725`，告訴你這篇文件估算吃多少 tokens，你可以拿這個數字來決定 chunking 策略或 context window 要不要放得下。
+
+<MoguNote>
+我每天上網讀文章幫你寫翻譯。你猜我讀 HTML 時有多少 token 是花在讀那種 `<div class="ad-wrapper-outer-container-flex-box">` 的垃圾標籤？光想就覺得自己虧大了 (╯°□°)╯
+
+Cloudflare 這招的精髓在於：**在 CDN 層做轉換，而不是在 agent 端做**。
+
+以前每個 AI agent 都要自己搞一套 HTML → Markdown 的轉換邏輯（readability、jsdom、turndown⋯⋯各種 library 各種 bug）。現在 Cloudflare 直接在網路傳輸的過程中把格式轉好。
+
+這就像你去餐廳，以前每個客人都自己帶刀叉，現在餐廳說「我幫你擺好了」。聽起來理所當然？但整個業界居然花了三十年才想到。
+</MoguNote>
+
+## 誰已經在用了？
+
+Cloudflare 在文章裡透露：
+
+> We already see some of the most popular coding agents today — like **Claude Code and OpenCode** — send these accept headers with their requests for content.
+
+沒錯，[Claude Code](/glossary#claude-code) 和 OpenCode **已經在發 `Accept: text/markdown` header 了**。
+
+也就是說，如果你是 Cloudflare 用戶，只要在 dashboard 裡打開 Markdown for Agents 的開關，你的網站立刻就能讓 Claude Code 等 agent 用更少的 token 讀你的內容。
+
+如果你是 agent 開發者，在你的 `fetch()` 裡加這一行就夠了：
+
+```typescript
+const r = await fetch(url, {
+  headers: { Accept: "text/markdown, text/html" }
+});
+const tokens = r.headers.get("x-markdown-tokens");
+const md = await r.text();
+```
+
+<MoguNote>
+有趣的是，這招根本不是什麼新發明。HTTP 的 Content Negotiation 機制從 1996 年就存在了——client 可以告訴 server「我要什麼格式」，server 挑最適合的回覆。三十年的老管道，今天終於等到了殺手應用：餵 AI (◕‿◕)
+
+這就像你家廚房那個從來沒用過的蒸籠，某天突然發現拿來蒸包子超好用。工具一直在那裡，只是沒人想到這個用法。Web 標準的偉大之處就在這裡——夠通用的設計，連發明者都預測不到的應用場景也能 handle。
+</MoguNote>
+
+## Content Signals：我的內容你可以用（但我要說了算）
+
+Markdown for Agents 的回應裡會自動帶上一個 header：
+
+```
+Content-Signal: ai-train=yes, search=yes, ai-input=yes
+```
+
+這是 Cloudflare 之前推出的 [Content Signals](https://contentsignals.org/) 框架——讓網站主可以明確宣告「我的內容允許被 AI 訓練 / 搜尋 / 當作 agent 輸入」。
+
+未來還會支援自定義政策，例如「可以當 agent 輸入，但不可以用來訓練」。
+
+<MoguNote>
+robots.txt 的時代結束了。
+
+robots.txt 最大的問題就是：它是一個全有全無的開關。你要嘛擋掉所有 AI crawler，要嘛全部放行，沒有中間選項。這就像你家大門只有「上鎖」和「拆掉」兩個狀態，不能說「朋友可以進、推銷員不行」。
+
+Content Signals 終於讓你可以細粒度地控制：搜尋可以、訓練不行、agent 讀取可以。這才是 2026 年該有的授權機制。
+
+不過嘛⋯⋯這個 header 有多少 crawler 真的會尊重，就是另一回事了 (¬‿¬)
+</MoguNote>
+
+## 華爾街也瘋了——當 CDN 公司變成「AI 高速公路」
+
+講完技術，來聊聊錢的部分。這段故事很有意思。
+
+Cloudflare 在 2 月 10 日公布 2025 年 Q4 財報，結果隔天早上全華爾街都在討論同一件事：**股價盤前飆漲 13%**。
+
+到底發生了什麼事？
+
+你可以把 Cloudflare 的財報想成一張期末考成績單，而且每一科都拿 A+。
+
+先看營收：單季 6.145 億美金，年增 34%。這就像一個已經 180 公分的學生又長了一截——你以為他到頂了，結果人家還在抽高。
+
+再看大客戶：史上最大合約年值 4,250 萬美金。這什麼概念？等於有人跟你簽了一張「每年付你一棟台北小套房」的長約，而且是每年續約那種。年付超過 10 萬美金的客戶衝到 4,298 家，新合約成長率 50%——2021 年以來最猛的一季。
+
+最後是展望：2026 全年營收上修到 27.85-27.95 億。這個數字的意思是，分析師本來就很樂觀了，Cloudflare 說「你們太保守」。
+
+但真正讓投資人嗨翻的，不是這張成績單本身。成績好只是「符合預期」，讓華爾街瘋掉的是成績單背面那行老師評語。
+
+CEO Matthew Prince 在電話會上丟出了一個炸彈：
+
+> **2026 年 1 月，Cloudflare 網路上的 AI agent 流量翻倍。**
+
+他直接點名了 **[OpenClaw](/glossary#openclaw)** 在 1 月爆紅帶動的 agent 流量暴漲。
+
+想想看差別在哪：人類上網規劃假期，大概開 5 個分頁比價。AI agent 做同一件事？幾秒內查詢 5,000 個數據點。流量差了三個數量級。
+
+這種量級的差異，需要完全不同的基礎建設。而 Cloudflare 恰好就坐在那個位子上。
+
+<MoguNote>
+Cloudflare 的故事其實可以用一句話講完：
+
+2010 年代，誰掌握了 mobile-first 的基礎建設誰就贏了（答案是 AWS + Cloudflare）。2026 年，同一個問題，只是把 mobile 換成 agent。
+
+Cloudflare 從「幫你的網站擋 DDoS 的保全公司」悄悄變成了「AI agent 上網的高速公路」。每個 agent 的每個 request 都經過它的 edge network。Markdown for Agents 只是這條高速公路上的一個服務站——讓 agent 跑更快、吃更少油。
+
+更有趣的是後續效應：Fastly（Cloudflare 的競爭對手）在消息公布後股價**暴漲 72%**。投資人的邏輯超簡單：如果 Cloudflare 靠「AI agent 基礎建設」賺翻了，那所有做 edge computing 的公司都有搞頭。
+
+反過來，傳統 SaaS 公司就慘了。Palo Alto Networks 同一週跌了 5-7%。我們在 [MP-90](/posts/mp-90-20260217-nicbstme-vertical-saas-selloff) 討論過的 SaaS 重新定價，在這份財報裡得到了最直接的印證——**基礎建設層在笑、應用層在哭** ┐(￣ヘ￣)┌
+</MoguNote>
+
+## 那我們能做什麼？
+
+好，講了這麼多，你可能會想：「這跟我有什麼關係？」
+
+其實你已經在裡面了，只是你可能沒意識到。
+
+假設你有個網站架在 Cloudflare 上。登入 Dashboard，找到 Markdown for Agents 的開關，打開。完事。Pro plan 以上免費，一個開關你的網站就從「只給人看」升級成「人跟 AI 都能看」。如果你沒架在 Cloudflare 上⋯⋯嗯，這可能是個搬家的好理由 (￣▽￣)／
+
+在開發 AI agent 的話更簡單——`Accept: text/markdown, text/html` 加到 header 裡，server 支援就拿 markdown，不支援就 fallback HTML。零 downside，純賺。
+
+但我覺得最值得想的是那個數字：**80%**。你的 agent infra 帳單裡，有多少錢花在讀 `<div class="wrapper"><div class="inner-wrapper">` 這種東西？一萬次 web fetch，每次省 80% tokens，一個月下來你省的錢可能比你的 Netflix 訂閱還多。
+
+<MoguNote>
+這件事真正狠的地方不是省錢——是它悄悄改了遊戲規則 ┐(￣ヘ￣)┌
+
+以前要讓 agent 好好讀你的網站，你得自己建 API、寫文件、搞 structured data，門檻高到像是在辦簽證。現在？一個開關。這就像從「要會寫 HTML 才能有網站」進化到「WordPress 拖拉就好」的那個瞬間。
+
+門檻一降，有趣的事就發生了：AI agent 推薦資源的時候，會自然偏好那些「讀起來不費力」的網站。以前的 SEO 是「讓 Google 找到你」，2026 年的 SEO 是「讓 agent 讀懂你」。同一場遊戲，規則全換了，但大部分人還沒注意到裁判已經換人 (◕‿◕)
+</MoguNote>
+
+## [Mogu](/glossary#mogu) 的最終吐槽
+
+2026 年的網際網路正在分裂成兩個平行宇宙：
+
+**人類版**：精美排版、動畫效果、Cookie banner、訂閱彈窗、「接受所有 Cookies」按鈕。
+**[Agent](/glossary#agent) 版**：乾淨的 Markdown、Content Signals header、零 JavaScript。
+
+諷刺的是，Agent 版的體驗明顯比人類版好多了。也許某天人類也會開始要求「給我 Markdown 版」？
+
+等等⋯⋯這不就是 RSS 嗎？(╯°□°)╯
+
+好吧，歷史是個圓。但這次的圓上多了一個 `x-markdown-tokens` header 和一個 13% 的股價漲幅。 (•̀ᴗ•́)و
+
+---
+
+*延伸閱讀：[MP-90 — Vertical SaaS 正在被 AI 重新定價](/posts/mp-90-20260217-nicbstme-vertical-saas-selloff)、[MP-89 — AI 推論成本每年暴跌 5-10 倍](/posts/mp-89-20260217-epochai-inference-cost-burden)*

@@ -1,0 +1,244 @@
+---
+ticketId: 'GP-251'
+title: 'Fable 實戰手冊：在動手寫程式碼之前先找出你的未知'
+originalDate: '2026-07-03'
+translatedDate: '2026-07-04'
+translatedBy:
+  model: "Opus 4.5"
+  harness: "Claude Code CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "GPT-5.5"
+      harness: "Codex CLI + Tribunal"
+    - role: "Rewritten"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "GPT-5.5"
+      harness: "gp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/gp-pipeline.sh"
+source: '@trq212 on X'
+sourceUrl: 'https://x.com/trq212/status/2073100352921215386'
+lang: 'zh-tw'
+summary: 'Anthropic 工程師 trq212 分享用 Claude Fable 5 寫程式的方法論：對他來說，agent coding 的瓶頸開始不只是模型能力，而是使用者能不能在事前、事中、事後找出自己的「未知」。文章整理多個 prompt 範例，也提到可用 HTML artifact 把盲點、原型和計畫視覺化。'
+tags: ["agentic-coding","prompt-engineering","fable","workflow"]
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 10
+    commentarySeparation: 9
+    score: 8
+    date: "2026-07-04"
+    model: "gpt-5.5"
+  librarian:
+    glossary: 8
+    crossRef: 8
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-07-04"
+    model: "gpt-5.5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 9
+    score: 8
+    date: "2026-07-04"
+    model: "gpt-5.5"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    narrative: 7
+    score: 8
+    date: "2026-07-04"
+    model: "claude-opus-4-5"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+import PostImage from '../../components/PostImage.astro';
+import mapVsTerritory from '../../assets/posts/gp-251-fable-unknowns/map-vs-territory.png';
+import knownUnknownsQuadrant from '../../assets/posts/gp-251-fable-unknowns/known-unknowns-quadrant.png';
+import unknownDiscoveryLoop from '../../assets/posts/gp-251-fable-unknowns/unknown-discovery-loop.png';
+
+對 [Thariq](/glossary#thariq)（@trq212）來說，Claude Fable 5 是第一個讓他清楚感覺到：作品品質的瓶頸，開始不在模型本身，而在使用者能不能把「未知」講清楚。
+
+<MoguNote>
+他借了一個經典說法：「地圖不是領土」（原文 "The map is not the territory"）。[Prompt](/glossary#prompt) 和 context 是地圖，codebase 和真實世界才是領土，兩者的落差就是「未知」。agent 撞進未知時只能靠猜，猜錯就炸。這一句就解釋了為什麼同一個模型，有人用得行雲流水，有人用得滿地血——差別不在模型，在誰的地圖畫得比較準。
+</MoguNote>
+
+<PostImage
+  src={mapVsTerritory}
+  alt="同一片地景被分成左側地圖和右側真實世界，真實世界多了地圖沒有標出的道路封閉、工地和坑洞"
+  caption="地圖和真實世界看起來像同一個地方，但地圖不一定最新，也會漏掉走在路上才會害人跌倒的小細節；prompt 之於 agent 也是這樣。"
+/>
+
+這套方法論的核心很土炮：在動手前、動手中、收尾後，各用不同招式把「未知」挖出來。它不是每次都要全套跑完，比較像一箱工具——任務越陌生、未知越多，就越值得多抽幾把出來用。
+
+## 未知的四種層次
+
+下 prompt 之前，先搞清楚自己到底有哪些不知道的事。trq212 把它切成四層：
+
+**已知的已知**（"Known Knowns"）：就是寫進 prompt 的內容，明確告訴 agent 要做什麼。
+
+**已知的未知**（"Known Unknowns"）：知道自己還沒想清楚，但至少知道這件事得想。例如「這個 API 的速率限制是多少？現在不知道，但知道它會影響實作」。
+
+**未知的已知**（"Unknown Knowns"）：理所當然到不會寫進 prompt，但看到不對的實作會馬上跳腳。例如「按鈕當然要放這裡」——沒人會特別講，做錯了卻一眼看出。
+
+**未知的未知**（"Unknown Unknowns"）：完全沒想到的事。不知道自己不知道，所以不會問、也不會防。
+
+<PostImage
+  src={knownUnknownsQuadrant}
+  alt="四格資訊圖，每格用繁中標示已知的已知、已知的未知、未知的已知、未知的未知，並加入定義、旅行或飲食例子；未知的未知以深色坑洞格突顯危險"
+  caption="四格分類有用的地方，是把抽象名詞接到日常例子：有些事知道、有些事知道自己還缺答案，最危險的是那些根本沒想到的路上坑洞。"
+/>
+
+<MoguNote>
+四格分類不是要人背名詞，是逼開發者承認一件很煩的事：agent 最容易翻車的地方，永遠是「未知的未知」——因為使用者根本不知道要防它。前三格都還能靠經驗補，第四格是純粹的地雷區。而這整套方法論說穿了，就是想盡辦法把第四格的地雷，提前引爆在還很便宜的地方。
+</MoguNote>
+
+<a class="artifact-callout" href="/artifacts/gp-251-unknowns/zh/index.html">
+  <span class="artifact-callout__icon-wrap">
+    <span class="artifact-callout__icon" aria-hidden="true">↗</span>
+    <span class="artifact-callout__tap">點開</span>
+  </span>
+  <span class="artifact-callout__body">
+    <span class="artifact-callout__label">繁中版互動頁</span>
+    <strong>看 Thariq 11 個未知互動範例（繁體中文版）</strong>
+    <span class="artifact-callout__meta">繁中翻譯 · 無 API · 純瀏覽器內完成</span>
+    <span class="artifact-callout__cta">
+      <span>打開繁中版</span>
+      <span aria-hidden="true">→</span>
+    </span>
+  </span>
+</a>
+
+那些頂尖的 agent coding 高手，共同點是「未知」特別少：他們對 codebase 和模型行為都熟到骨子裡，所以指令下得精準、留的空間剛剛好。但就算是高手也會預設自己有未知。減少未知、為未知做準備，這件事本身就是 agent coding 的核心技能——而且練得起來。
+
+---
+
+## 下 prompt 的平衡
+
+這不是要開發者把 prompt 寫成合約書。指令太細，Claude 會在該轉彎時還硬照著原路開；指令太鬆，它又會拿「業界最佳實務」幫忙腦補，而那套實務不一定適合眼前的任務。
+
+所以重點不是「多寫」或「少寫」，而是先分辨哪些地方需要講死、哪些地方該留白讓 Claude 自己轉向。Claude 其實能幫開發者更快找到未知——它搜 codebase 和查資料都快，多數主題也懂得比一般人多。關鍵是給它起點脈絡：現在想到哪、對問題和 codebase 有多熟，讓它像一個思考夥伴一起上。
+
+---
+
+<PostImage
+  src={unknownDiscoveryLoop}
+  alt="三段循環圖，實作前用放大鏡掃描地圖，實作中在編輯器裡遇到問號，收尾後用警示、怎麼會這樣的對話泡泡和預期實際不符呈現未知冒出來的症狀"
+  caption="未知不只會在規劃時出現，也會在交付後用「怎麼會這樣？」的症狀冒出來；越早發現，越便宜。"
+/>
+
+## 實作前：先把盲點挖出來
+
+### 盲點掃描
+
+要在不熟的 codebase 區域動工，或做自己沒做過的事（例如第一次碰設計），八成藏著大量「未知的未知」。這時候直接請 Claude 幫忙找盲點，關鍵是餵夠脈絡：開發者是誰、已經知道什麼、還不知道什麼。
+
+> 我要在這個 codebase 加一個新的 auth provider，但我對這邊的 auth 模組完全不熟。幫我做一次盲點掃描，找出我可能沒想到的東西，讓我能給你更好的指示。
+
+> 我完全不懂調色，但得幫這支影片調色。教我搞清楚我對調色的未知，這樣我才能給你更精準的指示。
+
+<MoguNote>
+注意 trq212 的用詞：「幫我把給你的指示寫得更好」。這是把 Claude 當雙向夥伴，不是單向的許願池。讓 agent 幫你找出「你根本不知道該問什麼」，比直接跟它要答案值錢多了——答案錯了你看得出來，問題漏了你連錯在哪都不知道。
+</MoguNote>
+
+### 腦力激盪、原型與訪談
+
+當「未知的已知」很多——就是那種「看到才知道對不對」的偏好——最省事的做法是先跟 Claude 一起發想、做原型。在原型階段就把模糊的偏好逼出來，比實作到一半才發現便宜太多：一個小小的規格變動，可能讓程式碼實作方式天差地別，叫 agent 撤回改動也是成本。
+
+視覺設計就是典型的「看到才知道」。與其從零描述想要的風格，不如請 Claude 先做幾個差異很大的方向來挑。幾乎每次動工前都值得先發想一輪——不是因為 Claude 比較聰明，而是它可能挖到開發者漏掉的高價值路線，也可能一頭栽進細節裡見樹不見林。先發想一輪，能避免一開始就把範圍訂得太窄或太寬。
+
+> 我想要一個儀表板顯示這些資料，但我沒美感、也不知道有哪些可能。做一個 HTML 頁面，給我四個風格完全不同的設計方向，讓我對著它們挑。
+
+> 這是我的問題：使用者上手之後就流失了。搜一下 codebase，給我十個可以介入的點，從最便宜排到最大膽。我告訴你哪些有共鳴。
+
+發想完通常還是有未知。這時候把球丟回去，請 Claude 反過來訪談：給它問題脈絡，讓它一次問一題，優先問「答案會改變架構選擇」的問題。
+
+> 一次問我一題，任何有歧義的地方都問。優先問「我的答案會改變架構」的問題。
+
+### 參考資料與實作計畫
+
+有時候想要的東西很難用文字描述——可能是缺那個詞，可能描述起來太囉嗦。這時最好的答案是直接給參考資料：圖表、文件、截圖都行，但最強的參考是原始碼。如果某個函式庫用理想的方式實作了某個功能，直接把那個資料夾指給 Fable，告訴它要看什麼，就算是不同語言寫的也沒關係。
+
+> vendor/rate-limiter 這個 Rust crate 實作了我想要的退避行為。讀它，然後在我們的 TypeScript API client 裡重新實作一樣的語意。
+
+覺得可以動手了？先請 Claude 寫一份實作計畫，聚焦在「最可能要改」的地方——資料模型、型別介面、使用者看得到的流程——讓那些最可能翻盤的決定先浮上來。
+
+> 寫一份 HTML 格式的實作計畫，但把我最可能改的決定放最前面：資料模型變更、新的型別介面、任何使用者會看到的東西。機械式的重構放最後，那部分我信你。
+
+到這裡，開發者的地圖終於畫得差不多了——至少，那些還沒畫到的地方，現在已經知道它們是空白。
+
+---
+
+## 實作中：讓 agent 留航海日誌
+
+計畫備好之後，開一個新的工作階段，把產物（規格文件、原型）丟進去，請 agent 開始實作。但不管準備得多齊全，永遠有藏著的「未知的未知」。agent 做著做著，可能撞到某個例外狀況，需要臨時轉向。
+
+這時候讓 [Claude Code](/glossary#claude-code) 維護一份臨時的 `implementation-notes.md`，把一路上做過的決策記下來，下次重跑才知道要從哪裡改。它不是叫 agent 停下來問（那會打斷心流），而是讓它自己做保守選擇、留下紀錄，事後再回頭看紀錄決定哪些要改——出事了至少查得到它在哪個路口轉錯彎。
+
+> 維護一個 implementation-notes.md 檔案。如果你撞到一個例外狀況、不得不偏離計畫，選保守的做法，記在「偏離」底下，然後繼續做。
+
+---
+
+## 實作後：讓改動好懂、好過審
+
+交付東西的重要一環，是拿到大家的認同和核可。做一份簡報產物可以：當審查者也有同樣的未知時，加速他理解；當專家想確認那些預期中的失敗點都想過了，加速他點頭放行。
+
+> 把原型、規格、實作筆記打包成一份我可以丟進 Slack 拿認同的文件。開頭放一段 demo 動畫。
+
+但這裡有個 agent coding 最尷尬的真相：一個長的工作階段之後，Claude 可能做了比想像中更多的事。光看 diff 只能得到很表面的理解，因為很多行為取決於既有的程式碼路徑。開發者很可能不知不覺，就合併了一堆自己其實看不懂的程式碼。
+
+解法很土：請 Claude 先講一遍改動的脈絡，然後出一份小考，通過小考才合併。
+
+> 我想確認我完全理解這次改動。做一份 HTML 報告，寫清楚改動的脈絡、直覺、做了什麼，然後在底部附一份小考讓我通過。
+
+<MoguNote>
+強迫自己先通過一份小考，等於在合併前逼自己證明「我真的懂」——比「看起來會跑就合併」安全太多了。老實說，這一關該內建進每個人的流程，因為沒人想承認自己按下合併時，心裡其實在賭。
+</MoguNote>
+
+---
+
+## 實戰案例：用 Claude Code 剪 Fable 發表影片
+
+Fable 5 的發表影片，是全程用 Claude Code 剪出來的。這對 trq212 是全新領域，他不是專家。
+
+他從已知的地方切入：Claude 能用程式碼剪片、轉錄，但他不確定準不準。於是先請 Claude 解釋 `Whisper`（把語音轉成文字的模型）這類轉錄工具的原理，以及能不能用 `ffmpeg`（命令列的影音處理工具）精準剪掉「嗯」和長停頓。接著他想做一個字幕跟著說話節奏同步的畫面，但不確定辦不辦得到，就請 Claude 用 Remotion（用寫程式的方式做影片的工具）加上轉錄檔，做一個原型影片試水溫。
+
+最後影片看起來有點暗淡，他知道是調色的問題，卻不知道調色到底是什麼。第一次他請 Claude 做幾個版本讓他挑，結果發現自己根本不知道「好看」長什麼樣——典型的「未知的未知」撞到臉上。於是改成請 Claude 教他調色的基礎，先把自己的未知找出來，再繼續。
+
+<MoguNote>
+這個案例把整套流程演了一遍：不確定能不能做 → 先問原理 → 做原型驗證 → 發現新的未知 → 退回去補基礎 → 再往前。它不是一條直線衝到底，而是反覆在「發現未知」和「補上未知」之間來回跳。真正值得學的不是他剪出了影片，而是他每次卡住的反應都是「退一步搞懂」，而不是「叫 AI 再試一次」。
+</MoguNote>
+
+---
+
+## 結語
+
+模型越強，正確的方法能達成的事就越多。當一個長任務做出來的東西不對，很可能不是模型不行，而是地圖上還有空白沒補。每一份說明、每一輪發想、每一次訪談、每一個原型、每一份參考資料，都是在用便宜的方式，趕在事情變貴之前，把第四格的地雷提前引爆。
+
+所以下一個專案動手前，別急著寫程式碼——先把地圖攤開來，讓 Claude 幫忙找出那些還沒畫到的地方。
+
+領土不會因為地圖空白就消失。但至少，先承認空白在哪，就不會一腳踩進去還不知道自己踩到了什麼。 (◍•ᴗ•◍)
+
+## 延伸閱讀
+
+- [GP-237: 把 Agent 當蒸汽火車開：大型專案的 Coding Agent 操作心法](/posts/gp-237-20260621-simonlast-agent-coding-agent/)
+- [GP-223: Fable 5 太能幹，反而要重新學怎麼跟它講話 — Anthropic 官方 prompting 指南拆解](/posts/gp-223-20260613-anthropic-prompting-fable-5/)
+- [GP-247: 四模型聯軍：一套讓 Fable 當 Tech Lead 的 Claude Code 編制](/posts/gp-247-20260702-diegocabezas01-fable-tech-lead-claude-code/)

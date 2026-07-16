@@ -49,7 +49,7 @@ function hasKaomoji(content) {
 /**
  * Find the best insertion point and add a kaomoji.
  * Strategy:
- * 1. Try the last ClawdNote's closing content line
+ * 1. Try the last MoguNote's closing content line
  * 2. Otherwise, find the last substantive paragraph line
  */
 function addKaomoji(content) {
@@ -78,7 +78,7 @@ function addKaomoji(content) {
     if (line.startsWith('#')) continue;
     if (line.startsWith('import ')) continue;
     if (line.startsWith('<') && (line.startsWith('</') || line.endsWith('/>'))) continue;
-    if (line === '<ClawdNote>' || line === '</ClawdNote>') continue;
+    if (line === '<MoguNote>' || line === '</MoguNote>') continue;
 
     // Found a substantive line — must be our own prose, not quotes/URLs/citations
     if (

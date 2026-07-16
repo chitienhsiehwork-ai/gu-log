@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/config"
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/llm"
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/logx"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/config"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/llm"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/logx"
 )
 
 // newTestState returns a State + fake dispatcher wired up to a temp work
@@ -175,7 +175,7 @@ func TestWrite_HappyPath(t *testing.T) {
 	for _, want := range []string{
 		"PENDING",
 		"source: @fakeauthor on X",
-		"shroom-picks",
+		"gu-log-picks",
 		"Fake tweet body",
 		"LHY tone",
 	} {

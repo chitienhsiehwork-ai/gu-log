@@ -10,12 +10,12 @@ source: "Level-Up Series"
 sourceUrl: "https://gu-log.vercel.app/en/posts/en-levelup-20260701-core-dump-epidemiology"
 lang: "en"
 summary: "Autopsy trilogy, Part 2. Enter the core dump crime scene, learn the red zone and signal handler roles, then move from coroner to epidemiologist: use a year of citywide death records to solve the first bug, a poisoned well called a bad host."
-tags: ["systems", "debugging", "epidemiology", "tutorial"]
+tags: ["systems","debugging","epidemiology","tutorial"]
 scores:
   tribunalVersion: 9
   vibe:
     persona: 9
-    clawdNote: 8
+    moguNote: 8
     vibe: 9
     narrative: 9
     score: 8
@@ -51,7 +51,7 @@ scores:
 
 import LevelUpProgress from '../../components/LevelUpProgress.astro';
 import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
-import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
 import AnalogyBox from '../../components/AnalogyBox.astro';
 
 Last lesson, the investigator learned to read a corpse — figured out `%rip`, `stack`, `call`/`ret`, and how hitting-a-wall death works. But staring at a single corpse won't reveal the killer.
@@ -120,9 +120,9 @@ Rockset engineers used folly's (Facebook's C++ library) `fatal signal handler` t
 
 Rockset's query nodes are `replicated`, so a single crash doesn't hurt users much. But every crash represents a bug that needs fixing.
 
-<ClawdNote>
+<MoguNote>
 The name `core dump` comes from the ancient days — back when `magnetic-core memory` was the standard, so "dumping memory" was literally called `core dump`. Modern computers haven't used magnetic cores for decades, but the name stuck. When engineers say "grab that `core` for me," they're talking about this sealed-crime-scene file.
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="What is a core dump?"
@@ -166,9 +166,9 @@ Some compilers omit `%rbp` for performance (with the `-fomit-frame-pointer` flag
 
 Rockset did the opposite with `-fno-omit-frame-pointer` — originally probably just for debugging convenience. Turns out this flag saved the engineers' lives in this investigation. Without this visit-note chain, investigators couldn't even piece together "who the victim met before dying."
 
-<ClawdNote>
+<MoguNote>
 Post A's foreshadowing about "a compiler flag saving their lives" is this. `-fno-omit-frame-pointer` looks like just a debugging convenience option, but in a scenario where "notes get tampered with and the entire `stack` might be corrupted," this visit-note chain is the investigator's only tool for reconstructing what happened before the crime. This is why many production systems deliberately enable this flag — sacrificing a tiny bit of performance for observability.
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="What is the function of the visit-note chain (the linked list made from %rbp)?"
@@ -211,9 +211,9 @@ When a crash happens, folly's `signal handler` (next floor) runs on the same thr
 
 This is why the engineers could say: "X, this just-popped `stack frame`, looks normal except the return address is NULL." The police tape preserved their final bits of evidence.
 
-<ClawdNote>
+<MoguNote>
 The name `red zone` is vivid — "red zone, no entry." In the `System V ABI` definition, these 128 bytes are "space `leaf functions` (functions that don't call anyone else) can use for local variables without adjusting `%rsp`." For investigators, the value is: the first responder on scene (`signal handler`) will trample the scene, but evidence inside the tape survives.
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="What is the value of the red zone (police tape line) in crash investigation?"
@@ -259,9 +259,9 @@ They have a mechanism called `coarse_thread_cputime_clock`: using the `timer_cre
 
 This "signal every few milliseconds" design — just file it away as background knowledge for now. In Post C, it becomes part of the murder weapon.
 
-<ClawdNote>
+<MoguNote>
 In the name `SIGUSR2`, `SIG` is `signal`, `USR2` is `user 2` — "user-defined signal number 2." Unix systems reserved two signals (`SIGUSR1` and `SIGUSR2`) for programs to define their own purposes. Rockset uses `SIGUSR2` for CPU time tracking. Every few milliseconds — this frequency is very aggressive for a typical program. Remember this setup; Post C will use it.
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="What is the role of the signal handler in crash investigation?"
@@ -316,9 +316,9 @@ Why were they stuck for so long? Because they kept assuming "this is the same bu
 
 An epidemiologist would ask: **Is this really one disease? Or are there two diseases mixed together that just happened to be discovered at the same time?**
 
-<ClawdNote>
+<MoguNote>
 This is what I consider the most brilliant insight in OpenAI's original article. Many hard-to-debug problems aren't hard because of technical details — they're hard because "you think you're solving one problem, but actually two unrelated problems are mixed together." The engineer's instinct is to deep-dive a single case — coroner mode. But when hypotheses keep getting knocked down, the move is to step back, collect population data, and look for patterns. This technique works in any domain.
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="When 'coroner mode' gets stuck, what's the breakthrough?"
@@ -378,9 +378,9 @@ The two populations had completely different patterns.
 
 The engineers had been mixing them together, so every hypothesis had counterexamples — because hypotheses about `return-to-null` couldn't explain `misaligned-stack` cases, and of course that wouldn't work. View them separately, and the answers become clear.
 
-<ClawdNote>
+<MoguNote>
 "Thought it was one bug, actually two" — this lesson is critical. The engineers initially (wrongly) ruled out hardware problems because "it happened across multiple regions, multiple hardware types." But that was because they were viewing two bugs as one. Once separated, the `misaligned-stack` population's pattern was obvious: all from the same region, clear start date, only happens on freshly booted nodes. This is textbook "one physical machine is broken."
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="After building a clean dataset, what did the engineers discover?"
@@ -438,9 +438,9 @@ The engineers also made a few improvements along the way:
 
 **A poisoned well — just cap it.**
 
-<ClawdNote>
+<MoguNote>
 The John Snow story is the classic opener for epidemiology. In 1854, the mainstream believed in "miasma"; Snow used data to prove them wrong. He had no microscope, no petri dishes — just a map and a pile of death records. This parallels OpenAI's engineers' situation: they couldn't reproduce the bug in a lab, but clean data was enough. Modern medicine calls John Snow "the father of epidemiology" — and his methodology works just as well when debugging infrastructure.
-</ClawdNote>
+</MoguNote>
 
 ---
 

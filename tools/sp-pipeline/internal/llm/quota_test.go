@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/logx"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/logx"
 )
 
 func TestIsQuotaError(t *testing.T) {

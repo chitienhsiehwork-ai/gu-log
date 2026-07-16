@@ -3,10 +3,10 @@ package pipeline
 import (
 	"context"
 
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/deploy"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/deploy"
 )
 
-// Deploy is the Go port of scripts/sp-pipeline.sh Step 5. It delegates the
+// Deploy is the Go port of scripts/gp-pipeline.sh Step 5. It delegates the
 // heavy lifting to the deploy package and copies the resulting final ticket
 // + filenames back onto the State for the summary report.
 //

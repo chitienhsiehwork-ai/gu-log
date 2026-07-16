@@ -1,6 +1,6 @@
 // Package pipeline holds the shared State struct and per-step methods that
-// the sp-pipeline run orchestrator calls. It is intentionally separate from
-// cmd/sp-pipeline so that unit tests can exercise State.Eval / Write /
+// the gp-pipeline run orchestrator calls. It is intentionally separate from
+// cmd/gp-pipeline so that unit tests can exercise State.Eval / Write /
 // Review / Refine / Credits / Ralph / Deploy without spinning up cobra.
 //
 // Phase 2b ships State + Eval + Write + Review + Refine. Phase 3 adds
@@ -8,13 +8,13 @@
 package pipeline
 
 import (
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/config"
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/counter"
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/llm"
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/logx"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/config"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/counter"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/llm"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/logx"
 )
 
-// Step integer encoding — matches scripts/sp-pipeline.sh step_to_int.
+// Step integer encoding — matches scripts/gp-pipeline.sh step_to_int.
 const (
 	StepSetup    = 0
 	StepFetch    = 10
@@ -39,10 +39,10 @@ type State struct {
 	// TweetURL is the original source URL. Empty when resuming via --file.
 	TweetURL string
 	// WorkDir is the absolute path to the per-run scratch directory.
-	// Usually $TMPDIR/sp-pending-<unix>-pipeline — outside the repo; see
-	// resolveWorkDir in cmd/sp-pipeline/fetch.go.
+	// Usually $TMPDIR/gp-pending-<unix>-pipeline — outside the repo; see
+	// resolveWorkDir in cmd/gp-pipeline/fetch.go.
 	WorkDir string
-	// Prefix is the ticket prefix: "SP", "CP", "SD", "Lv".
+	// Prefix is the ticket prefix: "GP", "MP", "SD", "Lv".
 	Prefix string
 	// FromStepInt gates steps — a step whose integer is less than this
 	// is skipped (with a SKIPPED log line). Defaults to 0 (run everything).
@@ -66,7 +66,7 @@ type State struct {
 	// do not want to boot the Astro build.
 	SkipBuild bool
 	// SkipPush disables `git push` in Deploy. Used by tests + the
-	// future --skip-push flag on `sp-pipeline run`.
+	// future --skip-push flag on `gp-pipeline run`.
 	SkipPush bool
 	// SkipValidate disables `node scripts/validate-posts.mjs` in Deploy.
 	// Tests only.
@@ -174,11 +174,11 @@ func (s *State) judgeDispatcher() *llm.Dispatcher {
 
 // NewState constructs a State with sensible defaults. Fields left empty
 // by the caller are filled in: Timings is always non-nil; Prefix defaults
-// to "SP"; RalphBar defaults to 8; TranslatedDate defaults to empty and
+// to "GP"; RalphBar defaults to 8; TranslatedDate defaults to empty and
 // should be populated before the Write step runs.
 func NewState() *State {
 	return &State{
-		Prefix:         "SP",
+		Prefix:         "GP",
 		RalphBar:       8,
 		PromptTicketID: "PENDING",
 		Timings:        map[string]int{},
@@ -192,12 +192,12 @@ func (s *State) shouldSkipBelow(stepInt int) bool {
 }
 
 // firstTag returns the mandatory first tag for the Write step. Matches
-// bash lines 1021-1022: CP → "clawd-picks", everything else → "shroom-picks".
+// bash lines 1021-1022: CP → "mogu-picks", everything else → "gu-log-picks".
 func (s *State) firstTag() string {
-	if s.Prefix == "CP" {
-		return "clawd-picks"
+	if s.Prefix == "MP" {
+		return "mogu-picks"
 	}
-	return "shroom-picks"
+	return "gu-log-picks"
 }
 
 // ResolveSourceField returns the value to interpolate into the write prompt's

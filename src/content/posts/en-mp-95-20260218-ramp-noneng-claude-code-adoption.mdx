@@ -1,0 +1,159 @@
+---
+ticketId: "MP-95"
+title: "Ramp's PMs Are Sending Their Own PRs Now — 80% Non-Eng Adoption of Claude Code in 6 Weeks, and the Data Team Is Having an Identity Crisis"
+originalDate: "2026-02-17"
+translatedDate: "2026-02-18"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "Ian Macomber (Ramp Head of Data)"
+sourceUrl: "https://x.com/iandmacomber/status/2023869483706728761"
+summary: "In just 6 weeks, Claude Code saw rapid adoption at Ramp: 80% of PMs, 70% of Compliance, and 55% of Finance. Analyst workflow evolved from asking for help to sending PRs in 2 months. This future is now."
+lang: "en"
+tags: ["ramp","claude-code","non-engineering","enterprise-adoption","data-team","jevons-paradox","fintech","product-management","boris-cherny"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## When Your PM Sends a PR Before You Do
+
+Picture this: Monday morning, 9:30 AM. You open GitHub notifications and there's a PR from your PM. She changed a SQL query. You blink. It's not a Draft — it's marked Ready for Review.
+
+On February 17, 2026, Ramp's Head of Data Ian Macomber posted something on X that turned this scene from science fiction into a Tuesday.
+
+[Claude Code](/en/glossary#claude-code) adoption among non-engineering teams at Ramp:
+
+- **80%** of Product Managers
+- **70%** of Compliance
+- **55%** of Finance
+
+And this isn't "we've been rolling it out for a year." Ian said this happened **in the last six weeks**. Six weeks. Your gym membership probably didn't survive six weeks, but Ramp's PMs learned to ship PRs in that time.
+
+<MoguNote>
+Six weeks to learn to send PRs, meanwhile I know engineers who can't learn to update their Jira tickets in six weeks ╰(°▽°)╯
+
+But seriously — Ramp isn't some garage startup flexing at demo day. Valued at over $13 billion, clients include Shopify, Notion, and Loom. One in five businesses on Ramp pays for Anthropic's services — a year ago it was one in twenty-five. When a company this size says "our PMs are sending their own PRs," that's not an anecdote. That's an industry signal.
+</MoguNote>
+
+## How the Data Team Went from Hero to Approve Button
+
+Ian drew a timeline that reads like a slow-motion career change documentary.
+
+**2021–2024 (The Classical Era)**
+
+An analyst pops into `#helpdata` on [Slack](/en/glossary#slack): "Hey, these numbers look off." Someone from the Data Team picks it up → digs through the code → finds the bug → pushes a PR → fixes it. You're the hero. Stakeholders are grateful. Life is good.
+
+**2024–2025 (The Transition)**
+
+Same question, same `#helpdata`. But now the Data Team member copies the question into Claude Code → AI troubleshoots → PR goes up. Same person, same flow, but with a tireless assistant in the middle. You're faster now, but also a little uneasy — are you writing code, or are you copy-pasting?
+
+**Late 2025–Early 2026 (The Awakening)**
+
+Plot twist. Analysts use Claude Code themselves first, then show up to `#helpdata` with: "Hey, numbers are off. **I know why.** And I think this line of code needs to change."
+
+You're still standing at the starting line. The analyst already started running.
+
+**February 2026 (Right Now)**
+
+Analyst: "Numbers are off. **Here's my PR. Just approve it.**"
+
+Cool.
+
+<MoguNote>
+The Data Team's role across four stages: Hero → Helper → Advisor → Person who clicks Approve.
+
+It's like what happened to convenience store clerks. You used to walk up and say "one Americano, please." Now you order on the app, pick it up, don't even make eye contact. The clerk's job went from "serving you" to "making sure you grabbed the right cup." (╯°□°)╯
+
+But what Ian said next is the part that actually matters.
+</MoguNote>
+
+## Jevons Paradox: More Efficiency Means More Work, Not Less
+
+Ian didn't say "Data Teams are dead." He pulled out the **Jevons Paradox** — a 19th-century economics observation: when coal efficiency went up, total coal consumption went up too. Because efficiency made new use cases possible.
+
+Applied to now: AI lowered the barrier to writing code, so there's actually more code that needs writing.
+
+Ian put it bluntly:
+
+> If you are extremely resourceful and curious, have great taste for what matters to our customers, can source your own projects and ship anything in two days (or two hours) — **I can use 100 of you.**
+
+But he immediately followed with the other side:
+
+> If you define yourself by your skillset — "I do dbt models and dashboards," "I do causal analysis," "I do data eng and Airflow DAGs" — **that scope and role is shrinking fast.**
+
+<MoguNote>
+Ian quotes his colleague @giansegato: "We're progressively automating the easier parts of data jobs to agents, and the complexity and impact of the tasks we have left are increasing."
+
+Plain English: you used to make a living by "knowing SQL." Now your PM also knows SQL (via Claude Code). "Knowing SQL" has the same market value as "knowing Microsoft Word" — when everyone can do it, it stops being a skill and becomes a basic requirement. ┐(￣ヘ￣)┌
+
+This echoes the Spotify story — their best engineers haven't written a line of code since December, relying entirely on AI and internal tooling. But they didn't get fired. They got upgraded. (See [MP-77](/posts/mp-77-20260213-spotify-honk-claude-code/).)
+</MoguNote>
+
+## The Replies Were Better Than the Post
+
+[Boris Cherny](/en/glossary#boris-cherny) (creator of Claude Code) responded personally:
+
+> "Love this. Send us bug reports so we can keep making it even better"
+
+Boris didn't say "wow non-engineers are using my tool!" He said "send bug reports." It's like running a restaurant and hearing the office next door eats lunch there every day — your reaction isn't "oh my god, people came!" It's "should we fix that fried chicken recipe?" Because this was always the plan.
+
+The other replies were just as telling:
+
+**Insights team lead @roudyb03** named the winning formula:
+> "Data teams are the best positioned of any team to benefit from CC. GitHub repo to store SQL + docs with CC plugged in has been printing money."
+
+**Developer @kayintveen** said what many are afraid to admit:
+> "This timeline hits hard. The shift nobody talks about: senior devs becoming code reviewers for everyone. My job went from writing to reviewing PRs from PMs and analysts in like 6 months."
+
+**@anayatkhan09** poured cold water:
+> "The Feb 2026 state where PMs and finance show up with a PR is wild, but now the bottleneck is safe review. The real data work shifts to building guardrails, linters, and approval flows."
+
+<MoguNote>
+@kayintveen's observation directly echoes the Drexel research ([MP-84](/posts/mp-84-20260216-drexel-agent-pr-failure/)) — when [Agent](/en/glossary#agent) PRs explode, the bottleneck isn't "writing code" but "reviewing code." Now add another dimension: it's not just agents sending PRs. Your PM and Finance team are sending them too.
+
+Picture this: you're a Senior Data Engineer at Ramp. Monday morning, 15 PRs waiting for review — 3 from PMs, 5 from Compliance, 2 from Finance, 5 from Claude Code agents. You're not writing code anymore. You're a customs officer, and everyone's lined up waiting for your stamp. (⌐■_■)
+</MoguNote>
+
+## Matt Pocock's Brain Is Rewiring Too
+
+Same day (February 18), Matt Pocock — one of the most influential voices in TypeScript — shared 9 ways his brain changed after months of "100% AI-contributed code." Not the vague "AI changed my life" kind. This is a field report from someone who actually touches code every day.
+
+The first thing that hit me: pre-commit hooks. Matt used to see CI and linting as friction — speed bumps on the highway, annoying as hell. But now? He says it's the most important thing on the entire road. AI writes code so fast that without automated quality checks, you're driving a 300 km/h race car with no ABS. Three seconds of fun, then wall.
+
+Then he talked about taste. AI can spit out 10 prototypes instantly, but it doesn't know which one is worth keeping. It can implement any module interface, but it won't define what that interface should look like. Matt's conclusion is blunt: the human job goes from "doing" to "judging." Sounds obvious, but think about it — when was the last time you spent an entire day "making judgments" instead of "doing things"? Most people haven't even learned how.
+
+<MoguNote>
+Matt also dropped what I think was the most brilliant point: deep grey-box modules. Cut your system into boxes with simple interfaces, let AI manage what's inside. You only need to know what goes in and what comes out. This neatly explains why Ramp's PMs can send PRs — when module boundaries are clean enough, you don't need to understand the entire codebase. You just need to know "this SQL query lives in this module, I change this line."
+
+In short: good software architecture = lower contribution barrier. Before, only senior engineers could safely touch code. Now, if your boundaries are clean, PMs can too. This isn't AI magic. It's architecture winning. (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+But the most counterintuitive part? Cognitive load actually goes up. AI writes more code for you, but you spend more brainpower understanding what AI actually changed. Code output speeds up. Your brain bandwidth doesn't get an upgrade. This maps directly to the Cognitive Debt we covered in [MP-83](/posts/mp-83-20260215-storey-cognitive-debt/) — AI wrote the code, but you can't understand your own system anymore. The price of speed is comprehension.
+
+## Back to That Monday Morning
+
+Remember the opening scene? You open GitHub. Your PM's PR is waiting for review.
+
+Now you have the context. Ramp's data says 80% of PMs are already using Claude Code. Matt Pocock says your braking system (CI, hooks, linters) matters more than your engine. Drexel's research says the bottleneck has shifted from "writing code" to "reviewing code."
+
+So that PR — do you approve it, or request changes?
+
+Honestly, the answer matters less than the question. You've already gone from writing code to deciding what code gets to ship. Ian said he can use 100 people who are resourceful, curious, and know what matters. Your PM is already learning how to ship — what about you? (￣▽￣)／
+
+**Further Reading:**
+- [Ian Macomber's original post](https://x.com/iandmacomber/status/2023869483706728761)
+- [Matt Pocock: 9 ways 100% AI code changed my brain](https://x.com/mattpocockuk/status/2024049581529460839)
+- [MP-84: 33,000 Agent PR Data Points — The Brutal Truth](/posts/mp-84-20260216-drexel-agent-pr-failure/)
+- [MP-77: Spotify's Engineers Haven't Written Code Since December](/posts/mp-77-20260213-spotify-honk-claude-code/)
+- [MP-83: Cognitive Debt — AI Wrote Your Code, But You Can't Understand Your System](/posts/mp-83-20260215-storey-cognitive-debt/)

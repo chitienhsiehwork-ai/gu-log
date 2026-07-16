@@ -1,4 +1,4 @@
-// Package deploy is the Go implementation of sp-pipeline.sh Step 5 —
+// Package deploy is the Go implementation of gp-pipeline.sh Step 5 —
 // validate-posts → build → git add → git commit → git push.
 //
 // The Phase 3 port stays byte-compatible with bash: it calls `node
@@ -13,12 +13,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/config"
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/counter"
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/frontmatter"
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/logx"
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/observability"
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/runner"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/config"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/counter"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/frontmatter"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/logx"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/observability"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/runner"
 )
 
 // Options controls a deploy invocation. Use Strict=false to skip the git

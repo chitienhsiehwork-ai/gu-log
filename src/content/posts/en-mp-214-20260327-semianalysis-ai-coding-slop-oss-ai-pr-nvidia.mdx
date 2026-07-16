@@ -1,0 +1,102 @@
+---
+ticketId: "MP-214"
+title: "AI Coding Slop Hits OSS — When an AI PR Made Even an NVIDIA Engineer Say 'Nope'"
+originalDate: "2026-03-26"
+translatedDate: "2026-03-27"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: "@SemiAnalysis_ on X"
+sourceUrl: "https://x.com/SemiAnalysis_/status/2037273655059558575"
+lang: "en"
+summary: "OpenAI's Triton merged an AI-generated PR that claimed to fix consumer Blackwell GPU support — except it didn't actually fix anything. NVIDIA's PyTorch tech lead personally called it out as pure slop. SemiAnalysis warns: AI slop and real contributions are getting harder to tell apart."
+tags: ["ai-coding","open-source","nvidia","triton"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+Someone submitted a PR to OpenAI's Triton project. Title: "Fix consumer Blackwell GPU compatibility." Detailed description, reasonable-looking diff, all the right files touched. It passed code review. Got merged into main. Developers worldwide started pulling.
+
+Then NVIDIA's PyTorch tech lead took one look and left a single word: **slop**.
+
+The scariest part? Not that an AI wrote broken code — AI writes broken code all the time. It's that every human reviewer in the room let it through.
+
+---
+
+## The Crime Scene: Why Triton Matters
+
+You know how painful GPU programming is? Just the memory management in CUDA is enough to make you question your career choices. Triton is a compiler framework OpenAI built so engineers can write GPU kernels in something closer to human language, without wrestling CUDA at the bare-metal level. In the AI infrastructure food chain, Triton sits near the top — if Triton breaks, a whole lot of things break with it.
+
+This isn't some college student's weekend project. Not a 3-star GitHub repo. This is core infrastructure that AI teams around the world pull and build on every single day.
+
+Keep that weight in mind. Now let's look at how absurd this PR was.
+
+<MoguNote>
+Triton's position in the food chain determines the blast radius of a bad PR. If slop sneaks into some random npm utility, worst case you get a broken build and an annoyed maintainer. But Triton? Triton breaks, and everyone running GPU workloads feels it. AI coding slop isn't just a "quality problem" — when it hits critical infrastructure, it becomes a supply chain risk. And supply chain risks don't care how professional the PR description looked (ง •̀_•́)ง
+</MoguNote>
+
+---
+
+## PR #9734: Push the Emergency Exit, Hit a Brick Wall
+
+Here's what happened. NVIDIA's latest Blackwell architecture GPUs come in two flavors: enterprise (B100, B200) and consumer (RTX 5090). Enterprise cards have a hardware feature called **TMEM** (Tensor Memory) — think of it as a dedicated high-speed scratch pad inside the GPU for AI computation. Like a prep station in a kitchen: ingredients laid out and ready so the chef can cook fast. Consumer cards don't have that prep station.
+
+So when Triton runs on a consumer GPU and hits an operation that needs TMEM, it needs to know how to take the alternate route.
+
+PR #9734 claimed to handle exactly that. The description was crystal clear. The diff touched the right files, added the right conditional checks. Everything looked correct.
+
+Except — **the alternate route was broken.** When TMEM didn't exist, the fallback didn't actually work. Imagine an emergency exit with a big green "EXIT" sign. Push the door open and there's a brick wall behind it.
+
+And that door got merged. Into main. Into the codebase that developers worldwide pull from daily.
+
+<MoguNote>
+Here's what should actually chill your spine. The scary part isn't "AI wrote bad code" — AI writes bad code constantly, that's not news. The scary part is that the human reviewer didn't catch it. When a PR has a polished description, a reasonable-looking diff, and sensible scope, the reviewer's brain auto-switches into confirmation mode. You're no longer looking for problems — you're confirming the absence of problems. Those two mindsets are much further apart than they sound. AI slop doesn't need to be good. It just needs to look "right enough" that your pattern matching says "pass" before your deep thinking ever kicks in. This is essentially social engineering against the code review process — it doesn't attack the program, it attacks the brain of the person reading the program (⌐■_■)
+</MoguNote>
+
+---
+
+## The Honda Civic Master Descends
+
+After the PR got merged, NVIDIA's PyTorch tech lead personally showed up in the PR comments. SemiAnalysis, in their tweet, dropped what looks like a casual detail: this guy drives a 2024 Honda Civic Sport Edition.
+
+In Silicon Valley, your car is a social signal. VPs drive Tesla Model S. Directors drive Porsche Taycans. But the person in a Honda Civic? That's someone who actually sits down and writes code every day. Not someone who stares at dashboards. Not someone who runs sprint planning. Someone with keyboard imprints on their fingers.
+
+SemiAnalysis wasn't talking about cars. They were telling you: the person about to speak is the most qualified person in the room to judge code quality.
+
+He looked at the PR. One word: slop.
+
+Picture this. Everyone at a restaurant having a great time. Food looks amazing. Then someone in a white chef's coat walks up, picks up a dish, looks at it for exactly one second, and says with a perfectly straight face: "This is microwaved." The entire table goes silent. Nobody asks why. Nobody needs a second opinion. Because everyone knows — what this person can tell in one bite, you couldn't tell after eating the whole plate.
+
+That Civic is his chef's coat.
+
+<MoguNote>
+The Honda Civic detail is the smartest line in the entire SemiAnalysis tweet — one mention simultaneously establishes credibility, roasts Silicon Valley's car-as-job-title culture, and makes the whole story unforgettable. But here's what [Mogu](/en/glossary#mogu) keeps thinking about: this tech lead *happened* to see the PR. *Happened* to have time. *Happened* to bother leaving a comment. What if he was on vacation? What if he was heads-down on a deadline? OSS quality defense right now relies on "the right person showing up at the right time" — that's not a defense line, that's luck. And when AI slop production is infinite but the people who can taste the wax are finite, the math just doesn't work (╯°□°)╯
+</MoguNote>
+
+---
+
+## What About Next Time?
+
+Back to that emergency exit.
+
+The sign was perfect. Fresh paint, correct font, arrow pointing the right way. Before you pushed the door, nothing looked wrong.
+
+That's the nature of AI coding slop — it doesn't need to be good. It just needs to look good enough. And as AI agents get more capable, looking good enough costs approximately nothing.
+
+This time, an engineer in a Civic drove by and tasted the wax in one bite.
+
+Next time?

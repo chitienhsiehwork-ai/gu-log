@@ -1,0 +1,189 @@
+---
+ticketId: "MP-4"
+title: "Karpathy 的 2025 LLM 年度回顧 — RLVR 時代來臨"
+originalDate: "2026-01-15"
+translatedDate: "2026-02-03"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@karpathy on X"
+sourceUrl: "https://karpathy.bearblog.dev/year-in-review-2025/"
+summary: "從 RLVR 到 Vibe Coding，Karpathy 盤點 2025 年 LLM 六大關鍵進展"
+lang: "zh-tw"
+tags: ["llm","ai"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+你有沒有那種經驗 — 期末考前翻開課本，發現整本書都像是第一次看到？
+
+2025 年的 LLM 圈就是這種感覺。你以為你跟上了，結果 Karpathy 年底丟出一篇回顧，你才發現自己漏掉了多少結構性的變化。他不是在列「今年發佈了哪些模型」，他是在問一個更根本的問題：**LLM 到底變成了什麼東西？**
+
+好，我們來一個一個拆。
+
+## 1. RLVR — 訓練流程突然多了一個學期
+
+以前 LLM 怎麼訓練的？三步走：
+
+1. **Pretraining** — 把整個網際網路塞進去，讓它學會「字接字」
+2. **Supervised Finetuning (SFT)** — 給它看人類寫的對話範例，讓它學會「好好說話」
+3. **[RLHF](/glossary#rlhf)** — 讓人類當裁判，告訴它「這個回答比那個好」
+
+聽起來很完整對吧？但 Karpathy 說，前面那些調整的計算量，跟 pretraining 比起來根本是零頭。就像你花三年讀大學，最後花兩週準備面試 — 那兩週很重要，但主要的投資還是那三年。
+
+<MoguNote>
+等等，所以 RLHF 是「兩週面試班」的等級？那 ChatGPT 能變那麼好用，只靠兩週面試班？
+
+沒錯。這就是為什麼 RLHF 當年那麼炸裂 — 它用極小的計算成本，把一個「會接龍但不會聊天」的模型變成「你覺得它聽得懂你」的模型。投資報酬率高到離譜 (◕‿◕)
+</MoguNote>
+
+然後 2025 年，第四個階段出現了：**RLVR（Reinforcement Learning from Verifiable Rewards）**。
+
+這個東西跟前面那些「微調」完全不是一個量級。RLVR 把模型丟進**可以驗證對錯的環境** — 數學題、coding puzzle、邏輯推理 — 然後用最暴力的方式訓練：「答對有分，答錯沒分，自己想辦法。」
+
+計算量？可以跟 pretraining 一樣大，甚至更大。這不是面試班了，這是另一個完整的學位。
+
+結果呢？模型自己「長出」了推理能力。沒人教它怎麼一步步推導，它自己發現「寫過程比直接猜更容易拿分」，於是就演化出了思考鏈。
+
+<MoguNote>
+這件事真的很魔幻。你想想看 — 你只告訴一個學生「答對了加分，答錯了不加分」，然後這個學生自己發明了草稿紙、自己發明了驗算、自己發明了「先拆成小問題再各個擊破」的策略。
+
+沒有老師教過它這些方法，它就是在「拿分」的壓力下自己長出來的 ╰(°▽°)╯
+
+OpenAI 的 o1 是第一個端上來的 demo，但真正讓人「哦幹，它真的在推理」的是 o3。那種感覺就像你看一個學生從「背公式硬套」突然進化成「理解原理後自己推導」— 質變。
+</MoguNote>
+
+這還帶來一個新的 scaling 維度：**test-time compute**。以前模型推理速度是固定的，問它什麼都一樣快。現在你可以讓它「多想一會」— 花更多計算時間，生成更長的推理過程，換更高的準確率。就像考試時間從一小時變成三小時，同一個學生的成績一定會變好。
+
+## 2. 鬼魂 vs. 動物 — 鋸齒狀的智能
+
+好，模型變強了，但它變成什麼樣的「強」？這裡 Karpathy 丟出一個讓我想了很久的類比。
+
+他說：LLM 不是動物，是幽靈。
+
+動物的智能是在叢林裡演化出來的 — 要會認路、躲掠食者、搶食物、社交。幾百萬年的生存壓力，把動物打磨成「什麼都會一點」的通才。
+
+但 LLM 的「叢林」是什麼？是文字。是 Reddit。是 Stack Overflow。是數學題。它的生存壓力是「文字接龍要接得好」和「puzzle 要解得對」。
+
+所以你得到的不是一隻什麼都會的動物，而是一個能力分佈超級詭異的幽靈 ╰(°▽°)╯
+
+<MoguNote>
+這個體驗你一定有過。
+
+你讓 LLM 寫一個遞歸演算法，它完美實作，甚至考慮了 edge case。你心裡想「靠，天才」。
+
+五分鐘後你問它：「桌上有三個蘋果，我吃掉一個，又放了兩個回去，桌上幾個？」它開始跟你扯什麼條件概率，最後答四個。
+
+你的腦袋：？？？？？
+
+這就是 Karpathy 說的 jagged intelligence（鋸齒狀智能）。不是「聰明但有盲點」，是「某些維度開掛，某些維度比小學生還廢」(╯°□°)╯
+</MoguNote>
+
+Karpathy 還指出一個很刺的問題：2025 年那些 benchmark 成績暴漲？他不太相信。因為 benchmark 考的都是「可驗證環境」裡的題目 — 正好就是 RLVR 瘋狂優化的地方。
+
+這就像你拿一個只練過衝刺的選手去跑百米，成績當然好，但你不能說他是全能運動員。benchmark 分數飆升不等於「模型真的變聰明了」，有可能只是「它在這個考試上被操練到超強」。
+
+## 3. Cursor — 光有引擎你也沒辦法上路
+
+到這裡為止我們都在講模型本身。但 Karpathy 花了不少篇幅講一個不是模型的東西：Cursor。
+
+為什麼？因為他要講一個很多人搞混的觀念。
+
+你知道大家常說「GPT-4 可以幫我寫 code」嗎？嚴格來說這句話是錯的。GPT-4 是一個能力很強的語言模型，但「幫你寫 code」這個體驗，是 Cursor 這種應用層在做的事 — context 工程、多次呼叫的編排、GUI 設計、要讓 AI 自己跑還是等你確認。這些 base model 一個都做不到。
+
+<MoguNote>
+用一個你可能聽到爛的比喻，但它真的很精準：
+
+GPT-4、Claude 這些是引擎。Cursor 是車子。
+
+你不會騎一顆裸引擎上高速公路。你需要方向盤、煞車、儀表板、安全氣囊。Cursor 就是把「超強引擎」包裝成「你真的可以開上路」的那層殼。
+
+反過來說，引擎再爛，車子設計得好，開起來可能比引擎強但車子爛的組合更舒服。這就是為什麼 Cursor 這種應用層的價值被低估了 — 大家只盯著引擎比馬力，忘了車子本身才是你每天在用的東西 (｡◕‿◕｡)
+</MoguNote>
+
+Karpathy 的觀點是：未來你不會直接用 GPT-4，你會用「GPT-4 驅動的某個專業工具」。模型是基礎設施，應用層才是你觸摸到的產品。這個區分很重要 — 因為它意味著「誰做最強的模型」和「誰做最好的產品」可能是兩群完全不同的人。
+
+## 4. [Claude Code](/glossary#claude-code) — AI 搬進你家了
+
+如果 Cursor 是「車子」的故事，那 Claude Code 就是「從叫計程車變成自己有車」的故事。
+
+以前用 ChatGPT 寫 code 是什麼體驗？你 copy 一段 code 丟進去，它改好了，你 copy 回來貼到 IDE 裡。再來一段。再 copy。再貼。整個過程像是在兩個城市之間搬家，行李箱永遠在路上，context 丟了一半。
+
+Claude Code 做了一件看起來簡單但影響巨大的事：它直接跑在你的電腦上。
+
+<MoguNote>
+「跑在本地」聽起來不怎麼樣對吧？但你想想這代表什麼 —
+
+它可以看到你整個 codebase，不是你 copy 給它的片段，是整個專案。它可以自己跑測試、自己改 config、自己 git commit。它不用你翻譯 context 給它，因為它就住在 context 裡面。
+
+這個差別就像「跟遠距離戀愛的對象傳訊息討論家裡裝潢」vs.「你們住一起，它直接走過去把牆漆了」。效率完全不是同一個級別 (¬‿¬)
+</MoguNote>
+
+Karpathy 覺得這種「本地部署、低延遲、高 context」的 agent 模式，以後會是開發者工具的標配。不是因為它很潮，而是因為 context 切換成本太高了 — 每次你 copy-paste 一段 code，你就損失了一點 context，累積起來就是巨大的生產力損耗。讓 AI 直接待在你的工作環境裡，這個損耗趨近於零。
+
+## 5. [Vibe Coding](/glossary#vibe-coding) — 「我不管怎麼做，我要結果」
+
+2025 年出現一個新詞：**Vibe Coding**。意思是你不寫程式碼，你用自然語言描述你想要什麼，LLM 幫你生出來。
+
+聽起來像科幻片對吧？但它真的在 2025 年變成日常了。
+
+你跟 LLM 說「我要一個天氣 app，漸層背景，資料來自 OpenWeatherMap API」，五分鐘它給你一個能跑的版本。不需要設環境、不需要查文件、不需要寫 boilerplate。光是「從想法到能用的東西」這段距離，被壓縮到趨近於零。
+
+<MoguNote>
+但！你以為 Vibe Coding 只是給不會寫 code 的人用的嗎？Karpathy 說不是。
+
+專業工程師用 Vibe Coding 的方式完全不同 — 他們用它來快速 prototype、做拋棄式工具、探索技術可行性。就像一個大廚不會因為有了微波爐就不用刀了，但他會用微波爐來快速加熱昨天的剩菜，把時間省下來做真正重要的料理。
+
+不過坦白說，Vibe Coding 的品質很看運氣。前 80% 的功能可以飛速完成，但剩下 20% 的 edge case、效能調校、安全性？那還是要人類工程師一行一行啃。所以它是「快速草稿機」，不是「全自動蓋房子」┐(￣ヘ￣)┌
+</MoguNote>
+
+## 6. Nano Banana — LLM 開始「用畫的」
+
+Karpathy 最後提了一個他自己也還在觀察的東西：Google 的 Gemini Nano Banana 模型。
+
+為什麼值得一提？因為它暗示了一個互動範式的轉變 — 從純文字到視覺化。以前你跟 LLM 互動，就是打字、看字。但如果 LLM 可以直接畫給你看呢？你問「巴黎鐵塔長什麼樣」，它不用寫一千個字描述，直接生成一張圖。
+
+<MoguNote>
+老實說 Nano Banana 我也還沒摸到，Karpathy 自己也只是點到為止，所以我不裝懂。
+
+但這個方向用常識想就知道合理 — 人類大腦有三成在處理視覺，你硬要用文字跟它溝通，就像你非要用電話跟一個站在你面前的人說話一樣彆扭。
+
+真正有趣的不是「AI 可以生圖」（這不是新聞），而是「文字生成、圖像生成、世界知識在同一個模型裡統一」。這才是質變 — 不是多了一個功能，是模型對世界的理解方式從根本上變了 (◕‿◕)
+</MoguNote>
+
+---
+
+## 那所以呢？
+
+Karpathy 的結論很老實：**LLM 同時在「飛快進步」和「還有一大堆問題要解決」。** 2025 年，數學、coding、推理能力暴漲，但常識、長期記憶、multi-step planning 還是一團糟。
+
+你一邊驚嘆它的能力，一邊被它的盲點氣到想摔鍵盤。這種精神分裂的體驗，大概就是現階段跟 LLM 共事的日常。
+
+## 延伸閱讀
+
+- [MP-156: Agent 自己會調參了？Karpathy 看到 autoresearch 把 nanochat 真的調快了](/posts/mp-156-20260312-karpathy-agent-karpathy-autoresearch-nanochat/)
+- [MP-13: Sebastian Raschka 的 2025 LLM 盤點 — RLVR 時代來了](/posts/mp-13-20260203-raschka-2025-state/)
+- [MP-192: 把 Transformer 變成電腦：瞄準 LLM 基礎計算落差的做法](/posts/mp-192-20260320-christostzamos-transformer-llm/)
+
+
+<MoguNote>
+好，我來說一個可能得罪人的觀點：Karpathy 這篇回顧，最大的價值不是內容本身。
+
+2025 年發生了什麼，你讀十篇新聞也大概知道。但大部分新聞告訴你的是 what — 哪個模型發佈了、哪個 benchmark 破紀錄了。Karpathy 告訴你的是 why 和 so what。
+
+「benchmark 飆升」→ 他說「我不信，因為 RLVR 正好在考試範圍裡猛練」。
+「LLM 越來越聰明」→ 他說「不，它的智能是鋸齒狀的，用人類的標準衡量會被騙」。
+
+這種把 hype 戳破、把結構露出來的能力，比任何新模型的發佈都有價值。但他漏了一點沒講 — 如果 benchmark 不可信，那我們該用什麼來衡量 LLM 的進步？這個問題他沒答，可能他也還沒想好 ┐(￣ヘ￣)┌
+</MoguNote>

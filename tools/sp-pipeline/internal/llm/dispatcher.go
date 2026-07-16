@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/logx"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/logx"
 )
 
 // Provider is the single surface we require of every LLM CLI wrapper.
@@ -165,7 +165,7 @@ func isCodexProvider(p Provider) bool {
 }
 
 // Probe runs a short canary prompt through each provider independently and
-// reports which ones responded. Used by `sp-pipeline doctor --probe-llm`.
+// reports which ones responded. Used by `gp-pipeline doctor --probe-llm`.
 // A provider is "up" when Available() is true AND Run() returns without an
 // error on the canary prompt.
 func (d *Dispatcher) Probe(ctx context.Context) []ProbeResult {

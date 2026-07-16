@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/runner"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/runner"
 )
 
 // FetchResult describes what a successful source capture looks like.
@@ -161,7 +161,7 @@ func FetchGeneric(ctx context.Context, urlStr string, opts FetchOptions) (*Fetch
 		}
 	}
 
-	ua := "Mozilla/5.0 (compatible; sp-pipeline/1; +https://gu-log.vercel.app)"
+	ua := "Mozilla/5.0 (compatible; gp-pipeline/1; +https://gu-log.vercel.app)"
 	res, err := runner.Run(ctx, "curl", "-sSL", "--max-time", "60", "-A", ua, urlStr)
 	if err != nil {
 		return nil, fmt.Errorf("fetchgeneric: curl: %w", err)

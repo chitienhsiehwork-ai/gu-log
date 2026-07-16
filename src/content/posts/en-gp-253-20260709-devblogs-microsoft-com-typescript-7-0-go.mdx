@@ -1,0 +1,281 @@
+---
+ticketId: 'GP-253'
+title: 'TypeScript 7.0 Rewritten in Go — Compilation Speed Just Got 10x Faster'
+originalDate: '2026-07-08'
+translatedDate: '2026-07-09'
+translatedBy:
+  model: "Opus 4.5"
+  harness: "Claude Code CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.8"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI"
+    - role: "Rewritten"
+      model: "Opus 4.5"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Fable 5"
+      harness: "gp-pipeline"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: 'Microsoft TypeScript Blog'
+sourceUrl: 'https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/'
+lang: 'en'
+summary: 'The TypeScript team rewrote the entire compiler in native Go. Real-world tests show 8x to 12x faster compilation with lower memory usage. VS Code project compilation dropped from 125.7 seconds to 10.6 seconds. Time to first error in the editor went from 17.5 seconds to under 1.3 seconds.'
+tags: ["typescript","compiler","go","performance"]
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 8
+    commentarySeparation: 8
+    score: 8
+    date: "2026-07-09"
+    model: "claude-opus-4-8"
+  librarian:
+    glossary: 9
+    crossRef: 8
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-07-09"
+    model: "claude-opus-4-8"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 8
+    score: 8
+    date: "2026-07-09"
+    model: "claude-opus-4-8"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-07-09"
+    model: "claude-opus-4-5"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+Ever had this experience — save file, wait for compilation, take a sip of water, wait some more, question your life choices, and finally see those red squiggly lines?
+
+TypeScript 7.0 is officially out. This isn't about adding a few syntax sugars or fixing edge cases — the entire compiler got rewritten in Go. That soul-crushing compilation wait? Now it's ten times faster.
+
+From day one, TypeScript's tagline has been "JavaScript that scales." Static type checking keeps large projects from devolving into chaos. But here's the irony: when projects actually get large enough, TypeScript itself becomes the bottleneck — compilation takes forever, the editor lags until you question your career choices before showing errors, and "Find All References" runs so long you think it crashed.
+
+Last year, the TypeScript team announced an ambitious plan: rewrite the entire toolchain in Go, targeting a 10x speedup. Now that plan has landed.
+
+---
+
+## Real Numbers: Large Project Compile Times Slashed by 90%
+
+The official team released benchmarks for several well-known open source projects:
+
+**VS Code project**: TypeScript 6 needed 125.7 seconds, TypeScript 7 takes just 10.6 seconds — 11.9x faster.
+
+**Sentry**: From 139.8 seconds down to 15.7 seconds, 8.9x faster.
+
+**Playwright**: From 12.8 seconds down to 1.47 seconds, 8.7x faster.
+
+<MoguNote>
+These numbers came from the TypeScript team's own test machines — different hardware and project structures will see different results. But the enterprise users mentioned later reported similar figures, so this order of magnitude speedup appears to be real. What I find more impressive is that they actually delivered on the "10x" promise from last year. No discount. No asterisks.
+</MoguNote>
+
+Memory usage dropped too. VS Code project compilation memory went from 5.2GB to 4.2GB (18% less), Bluesky from 1.8GB to 1.3GB (26% less).
+
+But the more visceral improvement is the editor experience. Remember "questioning your life choices" from the opening? Open a file with errors in the VS Code codebase, and TypeScript 6 takes about 17.5 seconds to show the first red squiggly line; TypeScript 7 does it in under 1.3 seconds. This isn't "slightly faster" — it's the difference between "go make coffee while waiting" and "blink and it's done."
+
+---
+
+## Why Go?
+
+Last year the TypeScript team set a goal: move the entire toolchain to a native implementation that could squeeze every drop out of modern hardware. Go brings three key things:
+
+**Native code speed**: Runs as machine code directly, no JavaScript runtime interpretation layer.
+
+**Shared-memory multithreading**: TypeScript 7 can parse multiple files simultaneously, run multiple type checkers in parallel, and emit multiple output files concurrently.
+
+**New optimization headroom**: Rewriting in a new language isn't just translation — it's a chance to refactor things that were hard to change in the original architecture.
+
+Stack these together, and you get the official claim of 8x to 12x overall speedup.
+
+<MoguNote summary="Goroutines share memory, Workers don't — and it's an engine swap, not a tear-down rebuild.">
+Why is Go particularly suited for this? Because JavaScript's cross-thread parallelism mostly relies on Web Workers, and Workers have isolated memory — shipping data between them is expensive. Go's goroutines share memory directly, which makes type checking (where everyone needs to read the same type information) much cheaper. But what I find more interesting is the team's attitude — they emphasized this is a "faithful port," preserving the original logic structure as much as possible. Their analogy: it's not a tear-down rebuild, it's swapping in a faster engine while keeping the steering wheel and dashboard the same.
+</MoguNote>
+
+---
+
+## Parallelization: More Cores, More Speed
+
+TypeScript 7 introduces three new flags to control parallelization behavior.
+
+**`--checkers`**: Controls how many type-checking workers run simultaneously. Default is 4. Type checking has complex dependencies — most files use the same type information, so files can't be checked completely independently. TypeScript's approach is to split work across several workers, each handling a subset of files, with some redundant work possible, but guaranteeing identical output for identical input.
+
+Bumping `--checkers` from the default 4 to 8, VS Code project compilation dropped from 10.6 seconds to 7.51 seconds (16.7x speedup). The tradeoff is higher memory usage.
+
+**`--builders`**: Controls parallel build count for project references. If a monorepo has dozens of interdependent subprojects, this flag lets multiple projects build simultaneously. This multiplies with `--checkers` — `--checkers 4 --builders 4` means up to 16 type checkers running at once.
+
+**`--singleThreaded`**: Forces single-threaded mode. Useful for debugging, comparing performance with TypeScript 6, or running on CI machines with extremely limited resources.
+
+<MoguNote>
+That multiplication is a bit scary: 4 x 4 = 16 type checkers running simultaneously. Imagine what that does to memory. But this also means TypeScript can finally devour every core on modern hardware — the old TypeScript was basically fighting 2020s computers with a single core.
+</MoguNote>
+
+---
+
+## Enterprise-Scale Testimonials
+
+The TypeScript team spent a year collaborating with major companies for testing. The list includes Bloomberg, Canva, Figma, Google, [Linear](/en/glossary#linear), Notion, Sentry, [Slack](/en/glossary#slack), Vercel, and more.
+
+<MoguNote>
+This roster is telling: companies where developers use their own products and get tortured by TypeScript compilation speed daily. The legends about Slack and Canva's frontend codebase sizes are well-known in the industry. Their willingness to put their names on "life-saving" endorsements means this speedup genuinely solves the pain for large frontend teams.
+</MoguNote>
+
+Some specific stories:
+
+**Slack**: Type checking time dropped from about 7.5 minutes to about 1.25 minutes, merge queue time cut by 40%. Engineers said type checking in the editor used to be "essentially unusable" — everyone just let CI run the full check; now the editor loads in seconds, and local type checking is a viable workflow again.
+
+**Microsoft News Services team**: Saves 400 hours of CI build waiting time per month.
+
+**Canva**: Time to first error in the editor dropped from about 58 seconds to about 4.8 seconds.
+
+**PowerBI team**: Last year, when TypeScript 7 was still in preview and didn't even support renaming yet, they made it the default editor experience. Their exact words: "life-saving."
+
+Remember "questioning your life choices" from the opening? These teams used to question their life choices every single day. Not anymore.
+
+---
+
+## Installing Side-by-Side with TypeScript 6.0
+
+TypeScript 7.0 currently has no programmatic API. Tools that need the API (like typescript-eslint) still depend on TypeScript 6. TypeScript 7.1 will ship a new API, but until then, the team released a compatibility package `@typescript/typescript6` for side-by-side installation.
+
+Configuration uses npm aliases:
+
+```json
+{
+  "devDependencies": {
+    "@typescript/native": "npm:typescript@^7.0.2",
+    "typescript": "npm:@typescript/typescript6@^6.0.2"
+  }
+}
+```
+
+This way `npx tsc` runs TypeScript 7, while other tools (like eslint) importing `typescript` get 6.0.
+
+---
+
+## `--watch` Mode Rebuilt: Using a Parcel File Watcher Port
+
+TypeScript 7's `--watch` mode got completely rebuilt too. Go's standard library lacks a cross-platform file watching API, and third-party packages vary wildly in quality. The team initially used polling (periodically checking if files changed), but for large projects (especially `node_modules` with tens of thousands of files), polling is too resource-hungry.
+
+They ended up porting `@parcel/watcher` (written in C++ and used by VS Code) to Go. Not a binding or FFI — they literally translated the C++ logic to Go, using only a small amount of assembly for platform-specific bits. The ported version passes the entire test suite.
+
+<MoguNote>
+Devon Govett's Parcel watcher has blessed VS Code, TypeScript, and the entire frontend toolchain. The TypeScript team said they hope the experience from this Go port can be contributed back to the original Parcel project. This kind of positive feedback loop in open source is beautiful — one person solves their own problem, and it becomes everyone's infrastructure.
+</MoguNote>
+
+---
+
+## Upgrading from TypeScript 5.x / 6.x: What to Watch
+
+TypeScript 7.0 adopts all of TypeScript 6.0's new defaults and turns 6.0's deprecations into hard errors. If a project is still on 5.x, upgrading to 6.x first before 7.x is recommended.
+
+Key default changes:
+
+- `strict` defaults to `true`
+- `module` defaults to `esnext`
+- `target` defaults to current stable ECMAScript version
+- `rootDir` defaults to `./` (previously auto-inferred)
+- `types` defaults to `[]` (previously auto-loaded from `@types` in `node_modules`)
+
+And hard errors:
+
+- `target: es5` no longer supported
+- `moduleResolution: node/node10` no longer supported, use `nodenext` or `bundler`
+- `module: amd/umd/systemjs` no longer supported
+- Can't use `module` keyword inside `namespace`
+- Import `asserts` must change to `with`
+
+<MoguNote>
+The `rootDir` and `types` changes are the most likely upgrade landmines. If `tsconfig.json` sits in the project root with source code in `src/`, you used to be able to omit `rootDir` — now you need explicit `"rootDir": "./src"`. If a project relies on global declarations from `@types/node` or `@types/jest`, those must now be explicitly listed in the `types` array. I bet these two gotchas will trip up a lot of people on their first compile after upgrading — not code bugs, config changes.
+</MoguNote>
+
+---
+
+## JavaScript Support Changes
+
+TypeScript originally had special analysis logic for `.js` files, recognizing various JSDoc annotations and coding patterns. TypeScript 7 unifies this logic with how `.ts` files are analyzed.
+
+Some JSDoc patterns no longer supported:
+
+- `@enum` no longer gets special treatment
+- Standalone `?` can't be used as a type (use `any`)
+- `@class` won't make a function into a constructor
+- Closure-style `function(string): void` no longer supported — use TypeScript's `(s: string) => void`
+
+Projects with heavy JSDoc type annotations in JavaScript files may need adjustments when upgrading.
+
+---
+
+## Editor Support
+
+VS Code has a dedicated TypeScript 7 extension that becomes the default experience once installed. Visual Studio auto-enables based on workspace. Other editors supporting LSP should work directly.
+
+TypeScript 7's language server is brand new, built on the LSP standard, and can process requests multithreaded. Official data shows compared to TypeScript 6's language server, 7.0's command failure rate dropped by over 80%, and crash rate dropped by over 60%.
+
+But there's one big catch: **Vue, Astro, Svelte, and MDX — frameworks requiring embedded TypeScript support — currently cannot use TypeScript 7**. Because 7.0 doesn't have a stable API yet, tools like Volar can't integrate. Similarly, Angular's template type checking can't use TypeScript 7 yet.
+
+The team calls this a "temporary issue" and says they're actively working with these projects' maintainers. Until then, projects using these frameworks should stay on TypeScript 6 for editor support, or use TypeScript 7 for CLI `tsc` and TypeScript 6 for the editor (Angular projects can do this).
+
+<MoguNote>
+This API gap is the biggest adoption blocker right now. For pure TypeScript/React projects, TypeScript 7 can be deployed immediately; but a huge chunk of the frontend ecosystem is Vue/Svelte/Astro, and those projects have to wait for 7.1's API to enjoy the speedup. If a project has both React and Vue, CI can use TypeScript 7 for `tsc` to grab the speed gains while keeping TypeScript 6 for editor experience. A bit ironic — 10x speedup, but half the frontend frameworks temporarily can't taste it.
+</MoguNote>
+
+---
+
+## Template Literal Type Unicode Fix
+
+A small but noteworthy breaking change: template literal types now correctly handle Unicode characters.
+
+```typescript
+type HeadTail<S> = S extends `${infer Head}${infer Tail}` ? [Head, Tail] : never;
+
+type Result = HeadTail<"😀abc">;
+// TypeScript 7: ["😀", "abc"]
+// TypeScript 6: ["\ud83d", "\ude00abc"]
+```
+
+TypeScript used to follow JavaScript's UTF-16 indexing, splitting emoji into two surrogate pairs. Now it treats emoji as single units, consistent with `for...of` or spread operator `...` behavior.
+
+---
+
+## Conclusion
+
+Remember that scene from the opening — "save file, wait for compilation, take a sip of water, question your life choices"?
+
+TypeScript 7.0 isn't "just another minor release." The entire compiler switched to native Go implementation, delivering 8x to 12x compilation speed, lower memory usage, faster editor response. For large projects tortured daily by TypeScript compilation speed, this is genuine liberation.
+
+The TypeScript team's closing line: "Welcome to the native era of the TypeScript toolset."
+
+The JavaScript ecosystem's toolchain is going through a wave of "rewrite in Rust/Go" — esbuild, swc, Turbopack, Biome, and now TypeScript itself joins in. Frontend developers finally don't have to endure the "save, wait for compilation, take a sip, see results" rhythm anymore.
+
+<MoguNote>
+"Native era" — that ending hits different. The JavaScript toolchain story for the past decade was "tools written in JavaScript for JavaScript" — Webpack, Babel, ESLint, all of them. Now the story has changed: performance-sensitive tools are being taken over by Rust/Go one by one. TypeScript is the last big puzzle piece — the language's own compiler. When even TypeScript goes native, the JavaScript era of frontend tooling has truly ended. (⌐■_■)
+</MoguNote>
+
+## Related Reading
+
+- [GP-241: "A Terminal That Takes One Second to Start Is Unusable" — Ghostty Author: That's My Intentional Tradeoff](/en/posts/en-gp-241-20260622-mitchellh-ghostty-startup-tradeoffs/)
+- [MP-272: TypeScript Has Become the New Generation's Assembly Language](/en/posts/en-mp-272-20260410-semianalysis-typescript-claude-code-60-ai/)
+- [MP-57: Flask Creator Says: Time to Design a New Programming Language for AI Agents](/en/posts/en-mp-57-20260210-mitsuhiko-language-for-agents/)

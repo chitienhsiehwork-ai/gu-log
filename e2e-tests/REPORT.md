@@ -31,7 +31,7 @@
 - **homepage-load-time**: 1868ms < 15s
 - **lang-zh-TW**: lang="zh-TW"
 - **og:title**: ShroomDog
-- **og:description**: 香菇大狗狗的翻譯閱讀筆記 - ShroomDog and Clawd…
+- **og:description**: 香菇大狗狗的翻譯閱讀筆記 - ShroomDog and Mogu…
 - **og:image**: https://gu-log.vercel.app/og-image.png
 - **canonical**: https://gu-log.vercel.app/
 - **viewport-meta**: width=device-width, initial-scale=1.0
@@ -72,7 +72,7 @@
 - **back-to-top-hidden**: Button hidden at top of page
 - **back-to-top-visible-after-scroll**: Button visible after scrolling
 - **back-to-top-click**: Scroll position after click: 4px
-- **briefs-title**: Title: "📡 Briefs — Clawd 情報站"
+- **briefs-title**: Title: "📡 Briefs — Mogu 情報站"
 - **briefs-content**: Found 11 brief links
 - **pwa-manifest**: https://gu-log.vercel.app/manifest.webmanifest
 - **pwa-manifest-fetch**: Status: 200
@@ -84,7 +84,7 @@
 - **homepage-load-time**: 1290ms < 15s
 - **lang-zh-TW**: lang="zh-TW"
 - **og:title**: ShroomDog
-- **og:description**: 香菇大狗狗的翻譯閱讀筆記 - ShroomDog and Clawd…
+- **og:description**: 香菇大狗狗的翻譯閱讀筆記 - ShroomDog and Mogu…
 - **og:image**: https://gu-log.vercel.app/og-image.png
 - **canonical**: https://gu-log.vercel.app/
 - **viewport-meta**: width=device-width, initial-scale=1.0
@@ -125,7 +125,7 @@
 - **back-to-top-hidden**: Button hidden at top of page
 - **back-to-top-visible-after-scroll**: Button visible after scrolling
 - **back-to-top-click**: Scroll position after click: 0px
-- **briefs-title**: Title: "📡 Briefs — Clawd 情報站"
+- **briefs-title**: Title: "📡 Briefs — Mogu 情報站"
 - **briefs-content**: Found 11 brief links
 - **pwa-manifest**: https://gu-log.vercel.app/manifest.webmanifest
 - **pwa-manifest-fetch**: Status: 200

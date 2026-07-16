@@ -20,8 +20,8 @@
 # ─── Alternatively: run tribunal.sh directly on a specific file ───
 # 30 9 * * 1-5 TZ=Asia/Taipei GU_LOG_DIR=/home/clawd/clawd/projects/gu-log bash /home/clawd/clawd/projects/gu-log/scripts/tribunal.sh <filename.mdx> >> /home/clawd/logs/tribunal.log 2>&1
 
-# ─── SP pipeline invocation (Go binary, canonical as of Phase 4) ──────────
-# 0 10 * * 1-5 TZ=Asia/Taipei GU_LOG_DIR=/home/clawd/clawd/projects/gu-log /home/clawd/clawd/projects/gu-log/tools/sp-pipeline/sp-pipeline run <tweet_url> >> /home/clawd/logs/sp-pipeline.log 2>&1
+# ─── GP pipeline invocation (Go binary, canonical as of Phase 4) ──────────
+# 0 10 * * 1-5 TZ=Asia/Taipei GU_LOG_DIR=/home/clawd/clawd/projects/gu-log /home/clawd/clawd/projects/gu-log/tools/gp-pipeline/gp-pipeline run <tweet_url> >> /home/clawd/logs/gp-pipeline.log 2>&1
 
 # ─── Backwards-compat shim (still works — execs into the Go binary above) ─
-# 0 10 * * 1-5 TZ=Asia/Taipei GU_LOG_DIR=/home/clawd/clawd/projects/gu-log bash /home/clawd/clawd/projects/gu-log/scripts/sp-pipeline.sh <tweet_url> >> /home/clawd/logs/sp-pipeline.log 2>&1
+# 0 10 * * 1-5 TZ=Asia/Taipei GU_LOG_DIR=/home/clawd/clawd/projects/gu-log bash /home/clawd/clawd/projects/gu-log/scripts/gp-pipeline.sh <tweet_url> >> /home/clawd/logs/gp-pipeline.log 2>&1

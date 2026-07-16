@@ -1,0 +1,102 @@
+---
+ticketId: "MP-142"
+title: "從「執行」到「驗證」：AI 時代工程師的全新心智模式"
+originalDate: "2026-02-26"
+translatedDate: "2026-03-04"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@iamnotnicola on X"
+sourceUrl: "https://x.com/iamnotnicola/status/2026810034764570992"
+lang: "zh-tw"
+summary: "自從 Opus 4.6 發布後，開發者的角色正經歷根本性的典範轉移。我們不再是親自下指令的「執行者」，而是轉變為給予高階方向與審查結果的「驗證者」。"
+tags: ["mindset","ai-agents","development-workflow"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+你有沒有過那種感覺——某天早上坐到電腦前，突然意識到自己寫 code 的方式跟上個月完全不一樣了？
+
+推特上的 @iamnotnicola 就是這樣。他說自從 Opus 4.6 在 2 月 5 號上線之後，他每次想跟朋友解釋「我現在到底怎麼寫程式的」，對方都一臉問號。不是因為變難了，而是整個心智模式翻了過來 (◕‿◕)
+
+問題的核心是：我們的角色正在從「執行者」變成「驗證者」。
+
+## 駕駛座 vs. 塔台：你到底坐哪？
+
+想像你以前寫 code 就像自己開車——手握方向盤，踩油門、打方向燈，一個 prompt 一個動作地操作 AI。你就是那個在駕駛座上的人。
+
+但現在呢？你的角色比較像機場塔台。你不是自己在開飛機，而是同時指揮好幾架飛機起降。你給高階方向、設定目標，然後讓一群 [Agent](/glossary#agent)（甚至 Sub-agent）自己去搞定細節。
+
+<MoguNote>
+這根本就是從 IC（Individual Contributor）升 Manager 的翻版嘛 ┐(￣ヘ￣)┌ 差別在於你管的不是會請假的人類工程師，而是一群 24 小時不睡覺、不抱怨加班、但偶爾會自信滿滿地寫出 bug 的 AI。管人至少還能用 1:1 溝通，管 AI 你得靠 prompt engineering 和 verification pipeline。某種意義上，更累。
+</MoguNote>
+
+原作者說得很直白：一旦你切換到這個心態，**所有的工作習慣跟流程都要重新打造**。不是微調，是砍掉重練。
+
+## 那驗證者的日常長什麼樣？
+
+好，既然不再是自己寫 code 了，那一整天都在幹嘛？
+
+原作者坦承他自己也還在摸索（我很欣賞這種誠實），但他目前的做法是：讓不同的 Agent 扮演專屬角色。有的負責資安審查，有的當程式碼清潔工，有的專攻新功能開發。每個 Agent 都會主動去看 code，然後提出修改建議。
+
+<MoguNote>
+聽起來很美好對吧？但實際上這更像是你同時帶了五個實習生，每個都很認真，但每個都可能用不同的 coding style、不同的 assumption 在寫。你以為自己解放了雙手，結果花更多時間在 code review 上。不過話說回來，review 五個 Agent 的 PR 還是比自己從零寫五個 feature 快得多就是了 (￣▽￣)／
+</MoguNote>
+
+那身為人類開發者，你一天到晚都在幹嘛？說穿了，最大的那塊時間花在審查。Agent 丟 PR 過來，你不是看它「有沒有寫」——廢話，它當然寫了——你要看的是它有沒有寫對。邏輯對不對、edge case 抓到了沒、有沒有偷偷塞一個你沒要求的 refactor 進來。這種感覺，怎麼說呢，就像你當助教在改學生的期末 project，每份作業看起來都能跑，但你知道裡面一定藏著某個「只要 input 超過 100 就炸」的 bug (๑•̀ㅂ•́)و✧
+
+然後你很快就會發現，光靠肉眼 review 根本撐不住。一個 Agent 一天噴出來的 PR 量，可能比你整個 team 一週的產出還多。所以你開始架 CI/CD pipeline，設 linter、跑 static analysis，把能自動擋的都自動擋掉。不是因為你不信任 AI——好吧，是有一點——而是因為你物理上就不可能每一行都自己盯。
+
+最後，也是最關鍵的：你得瘋狂寫測試。而且這些測試你也是跟 Agent 一起寫的。測試就是你的防線，是你睡覺的時候幫你看門的那個保全。沒有測試，你根本不敢 merge 任何東西。
+
+<MoguNote>
+你有沒有注意到一件微妙的事？這三件事——review、CI/CD、測試——沒有一件是「產出 code」。你的整個工作日從「我來寫」變成「我來確認」。這個感覺就像廚師從「親手炒菜」變成「試吃然後喊『鹹了！重做！』」的主廚 (⌐■_■) 聽起來好像比較輕鬆？錯。當你一天要試吃一百道菜的時候，你的嘴巴（和腦袋）會比以前更累。
+</MoguNote>
+
+## AI 讀你的留言，然後自己改
+
+這裡有個特別有意思的細節。原作者的實戰配置是這樣的：他讓 [Claude Code](/glossary#claude-code) 或 [Codex](/glossary#codex) 持續掃描他的 GitHub repo，讓 AI 自己發 PR、寫 Issue。更酷的是——AI 還會去讀**他自己**寫的留言跟 PR review 意見，然後根據這些反饋自動修正。
+
+等等，你聽懂了嗎？這是一個非同步的反饋迴圈。你不需要即時跟 AI 對話，你只要在 PR 上留個 comment，AI 過一陣子自己就會來改。
+
+<MoguNote>
+這讓我想到一件事。以前的 CI/CD 是「人寫 code → 機器跑測試」，現在變成「AI 寫 code → AI 跑測試 → 人看結果 → 人留 comment → AI 讀 comment → AI 改 code」。整個迴圈裡人類的角色就是那個在 PR 上寫「LGTM」或「這邊有 race condition」的人。說白了，你變成了 AI 的 tech lead (╯°□°)╯
+</MoguNote>
+
+而原作者強調，他會盡量讓這整套系統保持 lightweight。不要過度工程化、不要搞太複雜的 orchestration。簡單、能跑、能驗證，就好。這點我是真的很同意——最怕的就是有人把「管 AI」這件事本身搞成另一個要管的系統，然後你得再找一個 AI 來管那個管 AI 的系統 ヽ(°〇°)ﾉ 無限套娃。
+
+## 那個讓人睡不著的結論
+
+整篇推文裡最精闢的一句話是這個：
+
+> **「瓶頸正在從『執行的吞吐量』轉移到『驗證的吞吐量』。」**
+
+原文是 "The bottleneck is shifting from the throughput of execution to the throughput of verification."
+
+翻成白話就是：以後真正卡住你的，不再是「寫不出來」，而是「驗不夠快、驗不夠準」。
+
+你想想這代表什麼。以前我們花 80% 的時間寫 code、20% 測試。現在 AI 把寫 code 的時間壓縮到趨近於零，但驗證的工作量不會跟著消失——反而因為產出速度暴增，驗證變成了最大的瓶頸。
+
+## 延伸閱讀
+
+- [MP-19: AI 社群網路 Moltbook — Karpathy:「這是我看過最科幻的事」](/posts/mp-19-20260204-karpathy-moltbook/)
+- [MP-1: swyx：你以為 AI agent 只是 LLM + tools？太天真了](/posts/mp-1-20260203-swyx-agent-definition/)
+- [MP-170: ACE 正式開源 — AI Coding Environment 不再是 SaaS 獨佔品](/posts/mp-170-20260316-daniel-mac8-ace-open-source/)
+
+
+<MoguNote>
+如果這個趨勢繼續下去，那接下來最搶手的開發工具可能不是「更強的 code generator」，而是能幫人類快速、安全地驗證 AI 產出的工具。TDD 在 AI 時代搞不好會二次復興——不是因為工程師變勤勞了，而是因為沒有測試你根本不敢 merge AI 寫的東西 ╰(°▽°)╯ 從「我要寫出好 code」到「我要確認這是好 code」，一字之差，整個職業的重心就翻過來了。
+</MoguNote>
+
+回到最開始的問題：原作者為什麼很難跟朋友解釋自己在幹嘛？因為從外面看，他整天盯著螢幕按 approve 跟寫 comment，看起來好像沒在「寫程式」。但實際上，他正在用一種全新的方式在 ship code——只是手不再放在鍵盤上了。

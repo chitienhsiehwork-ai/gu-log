@@ -2,21 +2,21 @@
 # gp-pipeline — self-compiling wrapper around the Go binary.
 #
 # "GP" = Gu-log Picks, matching the blog's brand. This is the canonical entry
-# point; `sp-pipeline` (next to this file) is a backwards-compat shim that
-# execs straight into here, so existing callers (VPS Clawd automation,
-# scripts/sp-pipeline.sh, older playbooks) keep working unchanged.
+# point; `gp-pipeline` (next to this file) is a backwards-compat shim that
+# execs straight into here, so existing callers (VPS Mogu automation,
+# scripts/gp-pipeline.sh, older playbooks) keep working unchanged.
 #
 # First call on a fresh checkout builds the binary into ./bin/; subsequent calls
 # reuse it. Go's incremental build cache makes the "is the binary stale?" check
 # effectively free. This exists so that CCC (Cloud Claude Code) spawning a brand
 # new sandbox does not need a prebuilt binary checked into git — just run:
 #
-#   tools/sp-pipeline/gp-pipeline run <tweet_url>
+#   tools/gp-pipeline/gp-pipeline run <tweet_url>
 #
 # and the first call takes ~3 seconds cold, everything after that is instant.
 #
 # NOTE: the implementation directory keeps its historical name
-# (tools/sp-pipeline/) and Go module path on purpose — renaming a 40-file Go
+# (tools/gp-pipeline/) and Go module path on purpose — renaming a 40-file Go
 # module is pure churn with no user-visible payoff. The brand rename lives at
 # the command surface (this wrapper + the cobra command name + docs). The ticket
 # prefix and post filename slug also stay `SP` / `sp-` by design.
@@ -24,7 +24,7 @@ set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BIN="$DIR/bin/gp-pipeline"
-PKG="./cmd/sp-pipeline"
+PKG="./cmd/gp-pipeline"
 BUILD_FLAGS=(-trimpath -ldflags=-s\ -w)
 
 need_rebuild() {

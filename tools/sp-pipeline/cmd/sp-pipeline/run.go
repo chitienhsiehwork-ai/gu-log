@@ -11,11 +11,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/counter"
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/pipeline"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/counter"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/pipeline"
 )
 
-// runReport is the JSON shape emitted by `sp-pipeline run --json`.
+// runReport is the JSON shape emitted by `gp-pipeline run --json`.
 type runReport struct {
 	OK                  bool           `json:"ok"`
 	Step                string         `json:"step"`
@@ -35,7 +35,7 @@ type runReport struct {
 }
 
 // stepNameToInt maps the --from-step string values (names or numbers) to
-// the pipeline.StepXxx constants. Matches scripts/sp-pipeline.sh
+// the pipeline.StepXxx constants. Matches scripts/gp-pipeline.sh
 // step_to_int() at lines 351-364.
 var stepNameToInt = map[string]int{
 	"0": pipeline.StepSetup, "setup": pipeline.StepSetup,
@@ -69,7 +69,7 @@ func newRunCmd(state *rootState) *cobra.Command {
 		Use:   "run [tweet_url]",
 		Short: "Run the full pipeline end-to-end",
 		Long: `run wires the individual step subcommands into a single monolithic
-invocation that matches scripts/sp-pipeline.sh <url> byte-for-byte on
+invocation that matches scripts/gp-pipeline.sh <url> byte-for-byte on
 the important axes (step sequence, prompt templates, frontmatter shape,
 commit message, exit codes).
 
@@ -121,7 +121,7 @@ canned responses for regression tests.`,
 	cmd.Flags().BoolVar(&opusOnly, "opus", false, "deprecated compatibility flag; role routing is automatic")
 	cmd.Flags().IntVar(&ralphBar, "bar", 8, "ralph quality bar (advisory — tribunal has its own internal bar)")
 	cmd.Flags().StringVar(&existingFile, "file", "", "resume from an existing file in src/content/posts/")
-	cmd.Flags().StringVar(&prefix, "prefix", "SP", "ticket prefix (SP / CP / SD / Lv)")
+	cmd.Flags().StringVar(&prefix, "prefix", "GP", "ticket prefix (SP / CP / SD / Lv)")
 	cmd.Flags().BoolVar(&skipBuild, "skip-build", false, "skip npm run build in the deploy step (testing only)")
 	cmd.Flags().BoolVar(&skipPush, "skip-push", false, "skip git push in the deploy step (testing only)")
 	cmd.Flags().BoolVar(&skipValidate, "skip-validate", false, "skip validate-posts.mjs in the deploy step (testing only)")

@@ -6,11 +6,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/llm"
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/prompts"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/llm"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/prompts"
 )
 
-// Refine is the Go port of scripts/sp-pipeline.sh Step 4. It renders the
+// Refine is the Go port of scripts/gp-pipeline.sh Step 4. It renders the
 // refine.tmpl prompt and runs it with WorkDir set so the LLM can read
 // draft-v1.mdx + review.md from the same directory and write final.mdx.
 //

@@ -29,7 +29,7 @@ test.describe('/api/feed.json', () => {
       expect(art.title).toBeTruthy();
       expect(art.lang).toMatch(/^(zh-tw|en)$/);
       expect(art.url).toBe(`/posts/${art.slug}`);
-      expect(['SP', 'CP', 'SD', 'Lv', null]).toContain(art.prefix);
+      expect(['GP', 'MP', 'SD', 'Lv', null]).toContain(art.prefix);
       expect(Array.isArray(art.tags)).toBe(true);
     }
   });
@@ -53,10 +53,10 @@ test.describe('/api/feed.json', () => {
 
 test.describe('/api/posts/[slug].json', () => {
   test('returns the full article body for a known post', async ({ request }) => {
-    const r = await request.get('/api/posts/cp-291-20260414-anthropic-.json');
+    const r = await request.get('/api/posts/mp-291-20260414-anthropic-.json');
     expect(r.status()).toBe(200);
     const body = await r.json();
-    expect(body.slug).toBe('cp-291-20260414-anthropic-');
+    expect(body.slug).toBe('mp-291-20260414-anthropic-');
     expect(body.title).toBeTruthy();
     expect(typeof body.summary).toBe('string');
   });

@@ -1,0 +1,191 @@
+---
+ticketId: "MP-244"
+title: "Karpathy 的 LLM 知識庫工作流 — 讓 AI 幫你蓋維基百科"
+originalDate: "2026-04-02"
+translatedDate: "2026-04-03"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: "@karpathy on X"
+sourceUrl: "https://x.com/karpathy/status/2039805659525644595"
+lang: "zh-tw"
+summary: "Andrej Karpathy 分享他最近大量使用 LLM 建構個人知識庫的工作流：把原始資料丟進去，讓 LLM 自動編譯成 Markdown wiki，再用各種 CLI 工具做 Q&A、lint、視覺化。他認為這裡有一個全新產品的空間。"
+tags: ["llm","knowledge-management","productivity","andrej-karpathy"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+
+[Andrej Karpathy](/glossary#andrej-karpathy) 最近在 X 上丟了一顆炸彈 — 不是什麼新模型、不是什麼新論文，而是一個聽起來簡單到不行但仔細想想其實超猛的工作流：**用 LLM 建個人知識庫**。
+
+他說他最近相當大一部分的 token 使用量，已經不是拿來操作 code，而是拿來「操作知識」。原文是 "manipulating knowledge (stored as markdown and images)"，就是把知識當成一種可以被程式化處理的素材。不是讀完就算了，而是讀完之後再交給 LLM 整理、分類、連結、查詢。
+
+這不是單純的 Notion 加上 ChatGPT，而是把 LLM 當成知識庫的整理器、維護者和操作介面。
+
+## 資料進場：從混沌到秩序
+
+Karpathy 的流程第一步，是把所有原始資料 — 論文、文章、repo、dataset、圖片 — 全部丟進一個 `raw/` 資料夾。這個動作看起來很樸素，但背後的想法其實很兇：先不要急著寫心得，也不要急著做分類，先把材料通通搬進倉庫，再交給 LLM 去當那個不會抱怨加班的館員。
+
+接下來 LLM 要做的，不是隨手吐一頁摘要交差，而是把這堆東西真的整理成一個能住人的知識社區：每份資料先有摘要，摘要之間再補 backlink，概念會被分門別類，重要主題會長成獨立條目，最後整張知識網會一條一條接起來。原本只是散在桌上的紙堆，最後會變成像 wiki 那樣可以走進去逛的空間。
+
+他用 Obsidian 的 Web Clipper 擴充功能把網頁文章轉成 `.md` 檔，然後還設了一個快捷鍵，可以一鍵下載文章裡所有相關圖片到本地。這就很像不是只把書搬進圖書館，連插圖、附錄、摺頁地圖也一起歸檔，不讓 LLM 只看到文字骨架，連視覺線索都能一起讀進去。
+
+<MoguNote>
+「編譯」這個詞用得很精準。你寫 code 的時候，compiler 把人類看得懂的原始碼變成機器看得懂的東西。Karpathy 這邊剛好反過來 — LLM 把一堆散亂的原始資料「編譯」成人類容易消化的結構化 wiki。某種意義上，LLM 就是一台知識編譯器。(◕‿◕)
+</MoguNote>
+
+但先把這層 meta 感收起來。Karpathy 這套 workflow 真正厲害的地方，不在於「原來部落格 pipeline 也能這樣做」，而在於它把知識處理拆成了一條可以被軟體接手的生產線。
+
+---
+
+## Obsidian 當前端，LLM 當後端
+
+這裡最反直覺的地方是：Obsidian 明明是整套 workflow 最顯眼的 UI，卻不是核心。它比較像玻璃櫥窗，不是工廠。
+
+真正一直在後面搬貨、重排貨架、補標籤的，是 LLM。Karpathy 用 Obsidian 當「前端」，拿來瀏覽原始資料、編譯好的 wiki、還有各種衍生的視覺化；但 **他幾乎不會手動去碰 wiki 的內容**。所有的寫入和維護都是 LLM 在做，Obsidian 主要負責把結果端到眼前。
+
+他還玩了一些 Obsidian plugin 來用不同方式呈現資料，比如用 Marp 做投影片。這種感覺很像逛百貨公司的展示間：櫥窗可以換很多花樣，但倉儲、補貨、盤點，全部都在後場完成。
+
+這個架構如果用 web 的語言來講，就是：Obsidian 是 read-only 的 viewer，LLM 是 backend API + database writer。真正特別的不是工具名字，而是角色分工被徹底翻過來了。
+
+<MoguNote>
+想想看這個分工：人類負責問問題和看結果，AI 負責整理和寫入。這根本就是把「第二大腦」這個概念從比喻變成了字面意義 — 你真的有一個外部的腦在幫你處理資訊，而且它還會自己整理書架。以前的筆記軟體是「你寫，你整理，你查」，現在變成「你丟資料進去，AI 整理，你問問題」。使用者從作者降級成讀者了，但產出的品質反而可能更好。┐(￣ヘ￣)┌
+</MoguNote>
+
+<ShroomDogNote>
+gu-log 的架構跟 Karpathy 幾乎一模一樣 — 只是把 Obsidian 換成了 Vercel 上的 Astro 網站。為什麼不用 Obsidian？說實話，主要是手機體驗。gu-log 產出的是公開部落格，讀者（包括我自己）最常在手機上讀。Obsidian 在手機上要嘛裝 app，要嘛得付費 sync vault — 而且就算 sync 了，要分享一篇文章給別人看，也沒辦法直接丟一個 URL。Vercel web 就是一個網址，任何裝置都能打開，不用安裝任何東西。
+
+後端也是 LLM 在管：[Claude Code](/glossary#claude-code) 跑 pipeline 寫文章、Ralph scorer 打分、自動 commit + push。我基本上只負責丟 source 進去然後看結果 — 跟 Karpathy 那個「只用 Obsidian 看，不手動改 wiki」的精神完全一致。
+</ShroomDogNote>
+
+---
+
+## Q&A：當 Wiki 大到可以被「研究」
+
+這邊是整個工作流開始真正發光的地方，也是最像科幻片開始成真的地方。
+
+當某個研究主題的 wiki 已經長到大約 100 篇文章、40 萬字，重點就不再只是「資料有沒有存好」，而是「這整座書庫能不能被拿來研究」。Karpathy 的做法很直接：把複雜問題丟給 LLM agent，讓它自己進去翻資料、交叉比對、整理答案，像是叫一群助教衝進書架之間，最後再抱著講義跑回來。
+
+更有意思的是，他原本以為可能得用 fancy RAG（Retrieval-Augmented Generation）。結果目前看來，在這個 `~small scale` 下，LLM 靠著自動維護的 index 檔和文件摘要，就已經能相當順地讀到重要的相關資料。也就是說，先把索引和摘要編得夠好，有時候比急著上更重的 retrieval machinery 還有用。
+
+<MoguNote>
+40 萬字已經不是隨手翻一翻的筆記規模了，但說到規模，gu-log 本身其實已經比 Karpathy 的 wiki 大得多 — 截至 2026 年 4 月，gu-log 有 422 篇文章、超過 115 萬字（中文字 + 英文詞彙合計）。Karpathy 的 wiki 是 100 篇 / 40 萬字，gu-log 是它的將近 4 倍篇數、3 倍字數。當然，gu-log 是公開部落格而不是私人 wiki，用途不同，但純論「LLM 編譯出來的結構化知識量」，這個規模已經相當可觀。
+
+至於 RAG，Karpathy 說在這個量級下不需要 fancy RAG，靠 index + 摘要就夠。這直接讓一票在賣 RAG solution 的公司有點尷尬 — 當然，他自己也用了 "pretty good" 和 "~small scale" 來限定，意思是規模再大上去可能就不一定了。(￣▽￣)／
+</MoguNote>
+
+---
+
+## 輸出不只是文字
+
+到了這一步，LLM 已經不像聊天機器人，比較像一間會接單的小型內容工廠。大多數人跟 LLM 互動的方式還是：在 terminal 裡面打字，看回覆。但 Karpathy 不滿足於這個，他要的是一個會留下痕跡的工作流，不是一場講完就散的聊天室。
+
+所以同一個答案，今天可以被渲染成 Markdown 檔案直接放回 Obsidian，明天也可以長成 Marp 投影片，甚至變成 matplotlib 圖表。換句話說，LLM 不只是回答問題，還順手把答案包裝成適合不同場景使用的成品。像研究助理、簡報設計師、資料視覺化工具三個角色一起上工，回答完還會把成果放回檔案櫃。
+
+而且他常常會把這些查詢的輸出「回歸建檔」（filing back）到 wiki 裡。這意味著每次多問一個問題、多做一次探索，那個結果就會成為知識庫的一部分，讓未來的查詢更豐富。
+
+原文說 "my own explorations and queries always add up in the knowledge base" — 每一次好奇心，都會累積成知識庫的養分。這不是用完就丟的 chat log，而比較像滾雪球：一開始只是問一題，後來連提問過程本身都變成下一輪思考的材料。
+
+---
+
+## Lint 知識庫：AI 健康檢查
+
+好，前面講的都還算常規操作 — 整理資料、查詢、輸出。但這個部分大概是整篇推文裡最被低估的 idea。
+
+Karpathy 會對他的 wiki 跑 LLM「健康檢查」（health checks）。這裡的畫面很像請來一個永遠不會累的校對編輯加研究助理：先把同一個概念在不同文章裡互相打架的說法抓出來，再順手補齊缺漏資料，最後還把兩個看似無關的概念硬是牽上線，變成下一篇值得追的題目。
+
+而且 LLM 很擅長「建議接下來應該研究什麼」。這就像是有一個研究助理，不只幫忙整理現有筆記，還會主動提醒：「欸，A 和 B 之間好像有關聯，要不要深入看看？」最猛的地方不是把現有資料擦乾淨，而是它開始幫整個知識庫製造下一步。
+
+<MoguNote>
+把 linting 的概念從 code 搬到 knowledge，這個類比太漂亮了。寫 code 的時候你會跑 ESLint 找語法問題、跑 type checker 找型別錯誤。現在你可以對你的知識庫做一樣的事 — 找邏輯矛盾、找資訊空洞、找潛在連結。
+
+而且「找出有趣的連結」這件事，基本上就是在自動化 serendipity（意外發現）。學術研究裡最有價值的突破，往往不是來自「我刻意去找 X」，而是「我在找 X 的時候意外發現了 Y 跟 Z 的關聯」。現在你可以讓 AI 幫你系統性地製造這種意外。(๑•̀ㅂ•́)و✧
+</MoguNote>
+
+---
+
+## 自己造工具，然後讓 AI 用
+
+如果前面是在養一座知識庫，這裡開始出現更怪的事：那座知識庫反過來長出自己的工具手腳。Karpathy 還提到他開始自己開發額外的工具來處理 wiki 資料。比如他 vibe coded（就是隨性寫出來的）了一個小型搜尋引擎，既有 web UI 可以直接用，但更常見的用法是把它包成 CLI 工具，讓 LLM 在處理更大的查詢時可以呼叫它。
+
+注意這個遞迴結構：LLM 建了一個 wiki → 人類在 wiki 上造了一個搜尋引擎 → LLM 用那個搜尋引擎來更好地操作 wiki。工具在製造工具，而且每一層都在強化下一層。
+
+<MoguNote>
+Karpathy 這段表面上像在聊一個隨手 vibe coded 的小工具，實際上是在示範很成熟的 agent pattern：不要逼 LLM 一口氣硬吞所有上下文，而是先替它造手腳。LLM 負責決策，搜尋引擎負責翻箱倒櫃，這樣整套系統才不會變成「超聰明的大腦配兩隻嬰兒手」。差別只在於 Karpathy 不是做通用 agent 框架，而是在替自己的知識庫長器官。(⌐■_■)
+</MoguNote>
+
+<ShroomDogNote>
+這個「工具長器官」的 pattern，其實在 ShroomDog 的工作團隊裡也有一個活生生的案例。
+
+團隊維護了一份開發文件（development document），本質上就是一個 Git-tracked 的 Markdown repo + remote。聽起來很基本對吧？但把 Obsidian 當前端、Claude Code 當後端 manager 之後，這個 repo 就長出了兩隻很有用的手腳：**Claude Skills** 和 **Claude Commands**。
+
+舉個例子：我寫了一個 read-only SQL skill，讓 Claude 可以直接對內部 DB 做 Text-to-SQL 查詢。因為整套系統是 Git repo，同事 pull 下來就自動拿到這個 skill — 不用另外設定、不用開權限、不用教學。工具隨著 repo 一起版控、一起同步、一起長大。
+
+這跟 Karpathy 的遞迴結構是同一個 pattern：知識庫長出工具 → 工具讓知識庫更好用 → 團隊成員因為 Git sync 自動受益。只不過 Karpathy 是一個人的 wiki，ShroomDog 是一個團隊的 dev docs。
+</ShroomDogNote>
+
+---
+
+## 未來：當 Wiki 長進模型的腦袋裡
+
+推文接近尾聲，Karpathy 丟出了一個更遠的想法：當知識庫長到一定規模，自然會想要做 synthetic data generation + finetuning — 也就是讓 LLM 把知識「學進」weights 裡，而不是每次都靠 context window 去讀。
+
+這基本上就是在說：先用 context window 當 prototype（快速迭代、容易修改），等到知識穩定了，再「燒錄」進模型本身。前一階段比較像便利貼，想改就改；後一階段則比較像把電路真的焊到板子上，改一次就沒那麼隨意了。
+
+<MoguNote>
+context window 是 RAM，finetuning 是 ROM，這個比喻方向是對的；但更殘酷的地方在於，RAM 塞爆了頂多慢一點，ROM 一旦燒壞就不是按 backspace 能解決。finetuning 聽起來很帥，實際上比較像把筆記直接刺青到模型身上：刺對了很爽，刺歪了就尷尬很久。Karpathy 這段真正想講的不是「趕快 finetune」，而是先承認 context 是超方便的草稿區，等知識真的穩了，再考慮要不要刻進 weights。ヽ(°〇°)ﾉ
+</MoguNote>
+
+---
+
+## 一次性 Wiki：最瘋狂的延伸
+
+Karpathy 在 thread 的第二則推文裡，把這個概念推到了邏輯極限。
+
+他說可以這樣想像：未來每次向 frontier 等級的 LLM 提一個問題，它不是直接 `.decode()` 吐答案，而是**派出一整個 LLM 團隊**，自動建一個臨時的 wiki、灌資料、lint、迭代幾輪、最後寫一份完整的報告。
+
+原文用了 "ephemeral wiki" 這個詞 — 「一次性的 wiki」。不是長期維護的那種，而是為了回答一個問題而臨時蓋出來、用完就丟的。
+
+這個想像的重點是：回答問題之前，先讓一組 LLM 把資料整理成一個臨時 wiki，反覆整理幾輪，最後再輸出完整報告。不是把所有算力都花在一次 forward pass 上，而是花在「先建構一個知識結構，再從那個結構裡推理」。
+
+<MoguNote>
+"Way beyond a `.decode()`" — 這句話真的很 Karpathy。他在提醒大家：現在大多數人用 LLM 的方式 — 丟一個 prompt 進去、拿一個回覆出來 — 只是這個技術最原始的用法。就像早期的電腦只拿來算數學一樣。真正的潛力在於讓 LLM 去執行完整的工作流，而不只是單次的文字生成。
+
+話說，「為了回答一個問題而臨時蓋一整個 wiki」這件事聽起來超浪費，但想想看你人類做研究的時候不也是這樣？為了搞懂一個主題，你會讀一堆論文、做一堆筆記、畫關係圖，最後才寫出你的結論。那堆中間產物大部分也是「用完就不太會再看」。Karpathy 只是在讓 AI 把這個過程自動化了而已。(⌐■_■)
+</MoguNote>
+
+---
+
+<ShroomDogNote>
+看到 Karpathy 這套 flow 的時候，ShroomDog 愣了一下 — 因為 gu-log 基本上就在做一樣的事。
+
+gu-log 的 GP/MP pipeline 就是一台「知識編譯器」：raw materials（Twitter threads、blog posts、論文）丟進來，LLM 編譯成結構化的中文部落格文章。差別在 output format — Karpathy 產出 private wiki 給自己查，gu-log 產出 public blog 給讀者看。但核心都是「原始資料 → LLM compile → 結構化知識」。
+
+不過 gu-log 其實多做了一層 Karpathy 沒有的：**翻譯 + editorial voice**。MoguNote 就是 AI 的觀點注入，ShroomDogNote（也就是這段）就是 human author 的觀點注入。不只是 organize，是 transform — 加入了策展人的判斷和態度。某種意義上比 private wiki 更「compiled」。
+
+而這篇文章本身就是 meta — 用 LLM pipeline 寫了一篇關於「用 LLM 建知識庫」的文章。Inception 感十足。
+</ShroomDogNote>
+
+## 結語
+
+Karpathy 最後說了一句話，大概是整串推文最值得記住的：
+
+> "I think there is room here for an incredible new product instead of a hacky collection of scripts."
+
+開頭說 Karpathy 丟了一顆炸彈，炸點其實就在這裡：他不是在炫一套 Obsidian workflow，也不是在展示幾支 script 湊出來的小把戲，而是在挑戰一個很老的預設 — 知識庫一定得靠人類一頁一頁手工整理。
+
+如果這條路走得通，未來賣的可能就不是另一個筆記 App，而是一個永遠不喊累的研究搭檔：原始資料丟進去，它幫忙編譯、查錯、補洞、長出新問題，最後把整個知識結構越養越肥。到那個時候，今天這顆看起來像 workflow 小技巧的炸彈，可能真的會把「知識工作該怎麼做」這件事炸出一個新坑。

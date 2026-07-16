@@ -41,7 +41,7 @@ const { post, allPosts } = Astro.props;
 const { Content, headings } = await render(post);
 
 const isMoguPicks =
-  post.data.tags?.includes('mogu-picks') || post.data.tags?.includes('clawd-picks');
+  post.data.tags?.includes('mogu-picks') || post.data.tags?.includes('mogu-picks');
 const ticketId = post.data.ticketId;
 const ticketPrefix = ticketId?.split('-')[0] || '';
 const isLevelUp = ticketId?.startsWith('Lv-') ?? false;
@@ -80,7 +80,7 @@ const ticketLabels: Record<string, string> = {
   CP: 'Mogu Picks',
 };
 const ticketLabel = ticketLabels[ticketPrefix] || '';
-const displayTag = (tag: string) => (tag === 'clawd-picks' ? 'mogu-picks' : tag);
+const displayTag = (tag: string) => (tag === 'mogu-picks' ? 'mogu-picks' : tag);
 ---
 
 <BaseLayout title={`${post.data.title} - gu-log`} lang="en">

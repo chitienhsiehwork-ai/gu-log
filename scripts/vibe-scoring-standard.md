@@ -25,7 +25,7 @@ Tribunal v8 pipeline — 4 stages. All judges use **uniform 0-10 integer scale**
 | 1 | Fact Checker | GPT-5.5 | accuracy · fidelity · consistency · sourceBoundary · commentarySeparation | fact core avg ≥ 8 AND sourceBoundary ≥ 8 AND commentarySeparation ≥ 8 |
 | 2 | Librarian | GPT-5.5 | glossary · crossRef · sourceAlign · attribution | composite ≥ 8 |
 | 3 | Fresh Eyes | GPT-5.5 | readability · firstImpression · payoffDensity · lengthFit · **clarity** (v9+) | composite ≥ 8 AND payoffDensity ≥ 8 AND lengthFit ≥ 8 AND **clarity ≥ 8** (v9+) |
-| 4 | Vibe | GPT-5.5 | persona · clawdNote · vibe · narrative (v9; legacy v8 also had clarity) | composite ≥ 8 AND one dim ≥ 9 AND no dim < 8 |
+| 4 | Vibe | GPT-5.5 | persona · moguNote · vibe · narrative (v9; legacy v8 also had clarity) | composite ≥ 8 AND one dim ≥ 9 AND no dim < 8 |
 
 ## Uniform Agent Output JSON (v8)
 
@@ -97,7 +97,7 @@ Does every technical term that exists in `src/data/glossary.json` get linked or 
 ### crossRef — Internal Cross-References + Corpus Overlap
 Does internal `/posts/slug/` links resolve? Are relevant connections made? Does the post avoid making readers re-read gu-log content that already exists?
 - First mention of **ShroomDog** → must link to `/about`
-- First mention of **Clawd/ShroomClawd** → must link to `/about`
+- First mention of **Mogu/Mogu** → must link to `/about`
 - When an older gu-log post already covers the same core workflow/concept, the new post must cite or contrast it early enough that readers understand what is new.
 - If overlap is substantial, Librarian must name the old post(s), the repeated sections, and the required writer action: early cite, one-sentence recap, compression, contrast, merge, or rejection.
 
@@ -110,7 +110,7 @@ Does internal `/posts/slug/` links resolve? Are relevant connections made? Does 
 
 ### sourceAlign — sourceUrl Alignment
 Does the content match what's at the declared `sourceUrl`?
-- SP/CP translations: content addresses the source topic?
+- GP/MP translations: content addresses the source topic?
 - SD originals: sourceUrl points to self → auto 8/10
 
 | Score | Description |
@@ -125,7 +125,7 @@ Are quotes, stats, and opinions properly attributed?
 
 | Score | Description |
 |-------|-------------|
-| 10 | Perfect attribution — quotes/stats/evidence limits are clear, and gu-log/Clawd opinions stay in ClawdNote |
+| 10 | Perfect attribution — quotes/stats/evidence limits are clear, and gu-log/Mogu opinions stay in MoguNote |
 | 8 | Generally good, 1-2 minor gaps |
 | 5 | Multiple unattributed claims or opinion/fact blur in body |
 | 2 | Pervasive attribution failure |
@@ -136,7 +136,7 @@ Are quotes, stats, and opinions properly attributed?
 
 Known false-positive examples live under `.codex/agents/references/`. Judges should treat these as calibration fixtures, not live article instructions.
 
-- `.codex/agents/references/sp-187-v7-false-positive.md` points to the exact git commit/blob for the rejected SP-187 sample and CP-179 overlap target. Use it to remember why v7 exists: Librarian must catch CP-179 overlap, FreshEyes must catch reader fatigue, and Vibe must not award `vibe 8 / narrative 9` to a long linear-report skeleton.
+- `.codex/agents/references/gp-187-v7-false-positive.md` points to the exact git commit/blob for the rejected GP-187 sample and MP-179 overlap target. Use it to remember why v7 exists: Librarian must catch MP-179 overlap, FreshEyes must catch reader fatigue, and Vibe must not award `vibe 8 / narrative 9` to a long linear-report skeleton.
 
 ## Stage 1: Fact Checker (GPT-5.5) — 5 Dimensions
 
@@ -159,12 +159,12 @@ Known false-positive examples live under `.codex/agents/references/`. Judges sho
 
 | Score | Description |
 |-------|-------------|
-| 10 | Translation perfectly faithful. All hedges preserved. Every caveat included. ClawdNote clearly separated. |
+| 10 | Translation perfectly faithful. All hedges preserved. Every caveat included. MoguNote clearly separated. |
 | 9 | Near-perfect. One very minor paraphrase but meaning preserved. |
 | 8 | Faithful with slight nuance loss expected from good translation. Hedges mostly preserved. |
 | 7 | Generally faithful but 1–2 hedges converted from uncertain to certain ("might" → "is"), OR one caveat omitted. |
 | 5–6 | Multiple uncertainty erasures. OR major caveats stripped. OR conclusions extended beyond source. |
-| 3–4 | Significant departure. ClawdNote opinions bleed into body without attribution. |
+| 3–4 | Significant departure. MoguNote opinions bleed into body without attribution. |
 | 1–2 | Fundamental misrepresentation of source. |
 | 0 | Completely fabricated or inverted from source. |
 
@@ -174,18 +174,18 @@ Known false-positive examples live under `.codex/agents/references/`. Judges sho
 
 | Score | Description |
 |-------|-------------|
-| 10 | Argument flows perfectly. Every conclusion supported by evidence. ClawdNote opinions clearly marked. Zero contradictions. |
+| 10 | Argument flows perfectly. Every conclusion supported by evidence. MoguNote opinions clearly marked. Zero contradictions. |
 | 9 | Excellent logic. Minor gap in one step but overall coherent. |
-| 8 | Good logical flow. ClawdNotes mostly distinguish opinion vs. fact. |
+| 8 | Good logical flow. MoguNotes mostly distinguish opinion vs. fact. |
 | 7 | Generally consistent. 1 logical leap or mild contradiction careful readers would notice. |
-| 5–6 | Noticeable gaps. ClawdNotes blur fact/speculation without marking. |
+| 5–6 | Noticeable gaps. MoguNotes blur fact/speculation without marking. |
 | 3–4 | Multiple inconsistencies. Argument breaks down in 1+ sections. |
 | 1–2 | Argument fundamentally incoherent. |
 | 0 | No logical structure. |
 
-### sourceBoundary — SP Body Source Boundary
+### sourceBoundary — GP Body Source Boundary
 
-SP readers already see `原文出處：`. SP body should not waste flow on source-meta scaffolding like 「原作者說」「原文提到」「這篇文章在講」 or English equivalents. Present source claims directly, preserving hedges and evidence boundaries in natural prose. Evidence boundaries should be contextual and reader-respecting, not legalistic disclaimers like 「不是公開 benchmark」「僅供參考」「不是保證所有人都能做到」 unless the claim is genuinely high-risk (benchmark, finance, medical, safety, legal, company revenue, or decision-critical numbers).
+GP readers already see `原文出處：`. GP body should not waste flow on source-meta scaffolding like 「原作者說」「原文提到」「這篇文章在講」 or English equivalents. Present source claims directly, preserving hedges and evidence boundaries in natural prose. Evidence boundaries should be contextual and reader-respecting, not legalistic disclaimers like 「不是公開 benchmark」「僅供參考」「不是保證所有人都能做到」 unless the claim is genuinely high-risk (benchmark, finance, medical, safety, legal, company revenue, or decision-critical numbers).
 
 | Score | Description |
 |-------|-------------|
@@ -197,24 +197,24 @@ SP readers already see `原文出處：`. SP body should not waste flow on sourc
 
 ### commentarySeparation — Commentary Separation
 
-Clawd/gu-log opinions, interpretation, jokes, and source-meta commentary belong in `<ClawdNote>`, not SP body.
+Mogu/gu-log opinions, interpretation, jokes, and source-meta commentary belong in `<MoguNote>`, not GP body.
 
 | Score | Description |
 |-------|-------------|
-| 10 | Body stays source-derived; Clawd/gu-log stance and source-meta commentary live in ClawdNote. |
-| 8 | Mostly separated; 1–2 body sentences should move into ClawdNote. |
+| 10 | Body stays source-derived; Mogu/gu-log stance and source-meta commentary live in MoguNote. |
+| 8 | Mostly separated; 1–2 body sentences should move into MoguNote. |
 | 6 | Several body opinions blur gu-log interpretation with source claims. |
 | 4 | Reader must guess whether a claim comes from source or gu-log. |
 | 2 | Commentary and source claims are heavily mixed. |
 
 ### Calibration Examples (Fact Checker)
 
-**High anchor — SP-14 (`ai-assistance-coding-skills.mdx`): accuracy 9 / fidelity 9 / consistency 9**
+**High anchor — GP-14 (`ai-assistance-coding-skills.mdx`): accuracy 9 / fidelity 9 / consistency 9**
 - Anthropic official research, research-grade stats (52 engineers, p=0.01)
 - Research limitations explicitly preserved in Toggle component
 - Driving lesson narrative arc; opinion/fact clearly separated
 
-**Medium anchor — CP-153 (`cp-153-20260312-nvidia-nemotron3-super-120b-mamba-moe.mdx`): accuracy 8 / fidelity 8 / consistency 9**
+**Medium anchor — MP-153 (`mp-153-20260312-nvidia-nemotron3-super-120b-mamba-moe.mdx`): accuracy 8 / fidelity 8 / consistency 9**
 - Source: @ArtificialAnlys tweet — specific but tweet-level authority
 - Technical architecture (Mamba + Transformer MoE) correct
 - No uncertainty erasure; tweet origin limits traceability
@@ -222,13 +222,13 @@ Clawd/gu-log opinions, interpretation, jokes, and source-meta commentary belong 
 **Low anchor (hypothetical pattern — 5–6):**
 - Source says "outperforms on benchmark X in controlled settings"
 - Translation says "在所有任務上領先 40%" (uncertainty erasure + stat fabrication)
-- 40% figure absent from source; ClawdNote presents as verified fact
+- 40% figure absent from source; MoguNote presents as verified fact
 
 ---
 
 ## Stage 3: Fresh Eyes (GPT-5.5) — readability · firstImpression · payoffDensity · lengthFit · clarity (v9; v8 had no clarity)
 
-**Persona: developer with ~3 months of experience.** Impatient, scared of jargon, will close the tab after 2 boring paragraphs. Does NOT know what ShroomDog, Clawd, or OpenClaw are.
+**Persona: developer with ~3 months of experience.** Impatient, scared of jargon, will close the tab after 2 boring paragraphs. Does NOT know what ShroomDog, Mogu, or OpenClaw are.
 
 **Pass bar (v9+):** composite ≥ 8 AND payoffDensity ≥ 8 AND lengthFit ≥ 8 AND **clarity ≥ 8** — all three are non-compensating hard gates. (v8 had only payoffDensity / lengthFit gates and no clarity.)
 
@@ -267,7 +267,7 @@ Clawd/gu-log opinions, interpretation, jokes, and source-meta commentary belong 
 | Score | Description |
 |-------|-------------|
 | 10 | Every sentence has a clear speaker/subject. Zero ambiguous pronouns. |
-| 8 | Rare ambiguity. Pronouns used only in clearly scoped contexts (ClawdNote, blockquote). |
+| 8 | Rare ambiguity. Pronouns used only in clearly scoped contexts (MoguNote, blockquote). |
 | 6 | Some 你/我 slip through in body but context usually disambiguates. |
 | 4 | Frequent 你/我 in body. Reader has to guess who's speaking. |
 | 2 | Confusing mess. Can't tell if "I" is author, AI, or original source. |
@@ -277,15 +277,15 @@ Clawd/gu-log opinions, interpretation, jokes, and source-meta commentary belong 
 | Score | EN Clarity Description |
 |-------|------------------------|
 | 10 | Every "you/I" has clear referent. Reader always knows who is speaking. |
-| 8 | Rare ambiguity. "You" consistently addresses reader; "I" is always Clawd in ClawdNote. |
-| 6 | Occasional "we" ambiguity (Clawd + reader? Author + Anthropic?). |
-| 4 | Multiple instances where reader can't tell if "I" is Clawd, original author, or ShroomDog. |
+| 8 | Rare ambiguity. "You" consistently addresses reader; "I" is always Mogu in MoguNote. |
+| 6 | Occasional "we" ambiguity (Mogu + reader? Author + Anthropic?). |
+| 4 | Multiple instances where reader can't tell if "I" is Mogu, original author, or ShroomDog. |
 
 **晶晶體 boundary:** for zh-tw posts, decorative-English mixing also hurts clarity, but cite the canonical programmatic gate `scripts/check-jingjing.mjs` rather than inventing a penalty for allowlisted words (model names, tool names, glossary terms, `vs`/`bug`/`commit`/`PR`). Penalize only when the checker reports a violation or its output is in the evidence packet.
 
 ---
 
-## Stage 4: Vibe Scorer (GPT-5.5, Opus-calibrated rubric) — persona · clawdNote · vibe · narrative (v9; legacy v8 also had clarity)
+## Stage 4: Vibe Scorer (GPT-5.5, Opus-calibrated rubric) — persona · moguNote · vibe · narrative (v9; legacy v8 also had clarity)
 
 **Pass bar: composite ≥ 8 AND at least one dimension ≥ 9 AND no dimension < 8**
 
@@ -304,13 +304,13 @@ Read `GU-LOG_WRITER_PROMPT.md` before scoring. Study calibration examples below.
 | 5-6 | 像新聞稿或 Wikipedia。「各位觀眾好，今天這篇文章非常硬核」= 典型的 5 分開場。結尾像勵志文。 |
 | 1-4 | 完全沒有 persona，機器翻譯質感。 |
 
-**🔴 Decorative Persona Trap（SP-158 教訓，最多 5 分）:**
+**🔴 Decorative Persona Trap（GP-158 教訓，最多 5 分）:**
 Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear report? If yes → persona ≤ 5.
 
-**🔴 AI-Tell Trap（SP-232 教訓，密度型扣分）:**
+**🔴 AI-Tell Trap（GP-232 教訓，密度型扣分）:**
 跨模型共有的「AI 腔」簽名——4.5 / 4.6 / 4.8 都犯，越新的模型「講洞見」越流暢，反而把這些套路用得越密。換模型不會減少它們，只有這一關擋得住。重點是**密度 + 是否 reflexive**，不是單次出現：承載 thesis 或笑點的單次用法是 earned，**保留**；句型慣性的反射用法是 filler，**扣分**。
 - **T1 反義對偶過載**：「不是 X，是 Y」「不在 X，在 Y」當每段收尾的反射動作。承載論點的 1–2 次保留；通篇靠它製造「金句感」→ 3 次以上 reflexive 用法 persona ≤ 7。
-- **T2 假深度 reframe**：「表面是 X，真正/深層才是 Y」「聽起來像 X，但其實 Y」「透露的訊息比表面更深」——用 scaffolding 假裝多給一層解讀。出現在多數 ClawdNote → persona ≤ 6。
+- **T2 假深度 reframe**：「表面是 X，真正/深層才是 Y」「聽起來像 X，但其實 Y」「透露的訊息比表面更深」——用 scaffolding 假裝多給一層解讀。出現在多數 MoguNote → persona ≤ 6。
 - **T3 空洞強化詞**：「拆得很乾淨 / 很漂亮 / 到位 / 精準」「這才是工程品味」這種沒有具體資訊、只負責讓句子聽起來收得漂亮的 flourish。要求改成具體內容；多處未改 → persona ≤ 7。
 - **T4 mic-drop 打燈**：每個 section 都用一句單獨成段的「人生哲理」收尾。偶一為之 OK；變成固定收法 → 連同 narrative 一起看 template 節奏。
 
@@ -328,13 +328,13 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 
 **EN cultural accessibility** is part of persona: analogies must work for global EN readers (e.g., "Honda Civic of coding tools" > unexplained 鹹酥雞 reference).
 
-### clawdNote — 吐槽 + 洞察品質
+### moguNote — 吐槽 + 洞察品質
 
-**What we're measuring:** Are the Clawd Notes fun, insightful, and opinionated? Or just Wikipedia footnotes?
+**What we're measuring:** Are the Mogu Notes fun, insightful, and opinionated? Or just Wikipedia footnotes?
 
 | Score | Description |
 |-------|-------------|
-| 10 | 每個 note 都是 highlight — 有吐槽有觀點有比喻，讀者會專門來看 Clawd 怎麼說。 |
+| 10 | 每個 note 都是 highlight — 有吐槽有觀點有比喻，讀者會專門來看 Mogu 怎麼說。 |
 | 9 | 吐槽精準、比喻有趣、有自己的立場。偶爾有一兩個偏分析但整體很讚。 |
 | 8 | 有吐槽但某些 note 偏「解釋」多於「有趣」。功能性夠但 edge 少了一截。 |
 | 7 | 分析正確，但自己的吐槽聲量不夠。 |
@@ -346,7 +346,7 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 - 8+ 門檻：至少一半的 notes 要有明確 opinion（同意/不同意原文、challenge 某個假設）
 - Density target: ~1 note per 25 prose lines
 
-**🪞 Self-referential callback（自我指涉）= clawdNote 的高分訊號:**
+**🪞 Self-referential callback（自我指涉）= moguNote 的高分訊號:**
 - 當原文講的東西 gu-log 自己也在做（對抗式 review → gu-log 的 tribunal；長跑 agent → pipeline；把教訓寫回指令 → playbook/prompt），一個把它接回 gu-log 自身、且**誠實**的 callback 是 highlight 級的 note——尤其敢自嘲的 meta（例：「你正在讀的這篇就是被 gu-log 四法官審過、拿 sub-8、還掛精修中 badge」）。真誠又貼題的 self-ref 可以是某個 note 上 9-10 的理由。
 - **但這不是免費加分**：硬塞、不貼題、純自誇（「順帶一提 gu-log 超強」）是 cringe，反而是 persona/vibe 的扣分項。callback 必須真實 + 自然 + 服務當下論點，否則寧可不放。判準：拿掉這個 self-ref，note 還成立嗎？成立才放。
 
@@ -356,7 +356,7 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 
 | Score | Description |
 |-------|-------------|
-| 10 | 讀完想轉發、想討論。既學到東西又被逗樂。CP-85 = benchmark 10. |
+| 10 | 讀完想轉發、想討論。既學到東西又被逗樂。MP-85 = benchmark 10. |
 | 9 | 讀起來很舒服，有教育性也有趣味。不會讓人中途 scroll past。 |
 | 8 | 好讀，有些段落很精彩，但整體沒有完全「黏住」讀者。 |
 | 7 | 合格，能讀下去，但不會讓人想分享給朋友。 |
@@ -367,7 +367,7 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 
 **Compression gate:** Vibe does not perform corpus-overlap search; that belongs to Librarian. Vibe does ask whether the article is internally loose. If 25–40% of prose could be deleted without losing meaningful information, cap `vibe` at 7. If a section mostly restates earlier sections with different packaging, cap `vibe` at 6 even when facts are correct.
 
-**Section-boredom gate:** inspect section rhythm. If two or more consecutive sections follow the same report template (`explain → quote → translate/explain → ClawdNote`) without a fresh turn, surprise, scene, or opinionated point, cap `narrative` at 6. Adding more jokes or kaomoji does not fix a boring skeleton.
+**Section-boredom gate:** inspect section rhythm. If two or more consecutive sections follow the same report template (`explain → quote → translate/explain → MoguNote`) without a fresh turn, surprise, scene, or opinionated point, cap `narrative` at 6. Adding more jokes or kaomoji does not fix a boring skeleton.
 
 **Metaphor coherence gate:** Count independent metaphor systems, not decorative words. If the article uses more than three, or repeatedly reassigns the same actors across unrelated worlds, cap `narrative` at 6; the stage must fail. A high score requires either direct prose or one planned core metaphor whose mapping remains stable from setup through payoff. Extra analogies do not compensate for a weak spine and must not inflate `persona`.
 
@@ -386,44 +386,44 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 |-------|-------------|
 | 10 | 情緒起伏明確，每個 section 節奏不同，結尾 callback 開頭，讀完有「靠，這句要記住」的感覺 |
 | 9 | 有起伏有節奏，結尾有收 punch，個別段落可再加強 |
-| 8 | 有變化但某些段落回到 explain → bullets → ClawdNote 的 template 節奏 |
+| 8 | 有變化但某些段落回到 explain → bullets → MoguNote 的 template 節奏 |
 | 6 | 線性結構（介紹 → 展開 → 再展開 → 結尾），沒有情緒高低點 |
-| 4 | SP-158 level — 骨架是報告，表面裝飾改不了結構問題 |
+| 4 | GP-158 level — 骨架是報告，表面裝飾改不了結構問題 |
 | 2 | 純 bullet dump，沒有 narrative 可言 |
 
-**Key test:** Strip analogies, kaomoji, and ClawdNotes. Is the remaining skeleton a linear textbook report? If yes → narrative ≤ 5.
+**Key test:** Strip analogies, kaomoji, and MoguNotes. Is the remaining skeleton a linear textbook report? If yes → narrative ≤ 5.
 
 **Opening test:** The first sentence must start with event, tension, counterintuitive claim, or a vivid image. Openings like 「原作者這篇分析文講了一個……」 / "This article discusses..." repeat source metadata and should cap narrative at 7.
 
-**SP-158 教訓:** decorative persona (surface features + linear structure) = narrative ≤ 5.
+**GP-158 教訓:** decorative persona (surface features + linear structure) = narrative ≤ 5.
 
 ---
 
 ## Calibration Examples — Vibe Scorer
 
-### Score 10 — CP-85「AI Vampire / Steve Yegge」
+### Score 10 — MP-85「AI Vampire / Steve Yegge」
 - **Why 10:** Storytelling 不想停。$/hr 公式讓人記住。Colin Robinson 比喻完美。結尾 callback 多篇文章。
-- **ShroomDog note:** Vibe outstanding 但 ClawdNote 密度可再高。
+- **ShroomDog note:** Vibe outstanding 但 MoguNote 密度可再高。
 
-### Score 9 — CP-30「Anthropic Misalignment Hot Mess」
-- **Why 9:** 比喻到位（金魚讀文章、期末考、學渣選C）。口語自然。Clawd Notes 有吐槽有自嘲。
+### Score 9 — MP-30「Anthropic Misalignment Hot Mess」
+- **Why 9:** 比喻到位（金魚讀文章、期末考、學渣選C）。口語自然。Mogu Notes 有吐槽有自嘲。
 
-### Score 3 — SP-93「Levelsio 清空待辦清單」
+### Score 3 — GP-93「Levelsio 清空待辦清單」
 - **Why 3:** 題材超有趣但被寫成新聞稿。開場「各位觀眾好，今天這篇文章非常硬核」太生硬。
 - **ShroomDog note:** 明明 Levelsio 的故事很 exciting，讀起來卻超爆無聊。3/3/3。
 
-### Score 2/2/3 — SP-110「Codex 10 Best Practices」
-- **Why 2/2/3:** Persona 離 LHY 差距巨大。ClawdNote 全部無聊且用了 CodexNote/GeminiNote 暴露 pipeline diff。
+### Score 2/2/3 — GP-110「Codex 10 Best Practices」
+- **Why 2/2/3:** Persona 離 LHY 差距巨大。MoguNote 全部無聊且用了 CodexNote/GeminiNote 暴露 pipeline diff。
 
-### Score 3/3/5 → Rewrite — SP-158「Agent Trace Improvement Loop」
-- **Why 3/3/5:** 表面特徵齊全（貓比喻、callback 結尾、ClawdNote 密度夠）但讀起來仍然是線性報告。ClawdNotes 全部在「解釋 + 正經比喻」，沒有一個有自己立場的 opinion。narrative = 4（SP-158 的核心問題）。
-- **⚠️ Key lesson:** 這種「表面合格但骨子裡無聊」的文章比 SP-93（完全沒 persona）更危險，因為 scorer 會被騙。
+### Score 3/3/5 → Rewrite — GP-158「Agent Trace Improvement Loop」
+- **Why 3/3/5:** 表面特徵齊全（貓比喻、callback 結尾、MoguNote 密度夠）但讀起來仍然是線性報告。MoguNotes 全部在「解釋 + 正經比喻」，沒有一個有自己立場的 opinion。narrative = 4（GP-158 的核心問題）。
+- **⚠️ Key lesson:** 這種「表面合格但骨子裡無聊」的文章比 GP-93（完全沒 persona）更危險，因為 scorer 會被騙。
 - **📚 Before/After Study Pair:**
   - Before: `fa338ed` — decorative persona trap (persona 3 / vibe 5 / narrative 4)
-  - After: `74095c4` — opinion-first ClawdNotes + narrative tension
+  - After: `74095c4` — opinion-first MoguNotes + narrative tension
   - `git diff fa338ed 74095c4 -- src/content/posts/sp-158*`
 
-### Score 6 → 8 — SP-192「Codex Goals / Ralph Loop」
+### Score 6 → 8 — GP-192「Codex Goals / Ralph Loop」
 - **Why before 6:** 初版 facts 沒錯，但把 Jarrod 原文的刀口磨平成「長跑 Agent 需要結構」的通用教學。骨架是 Ralph Loop → 三個洞 → 工程流程，缺少 Codex Goals 解剖帶來的 tension；讀者看完知道要做事前釐清、多 Agent、外部記憶，但不會記得「Codex Goals 解的是不要熄火，不是不要迷路」。
 - **Why after 8:** 重寫後把主軸改成 Codex Goals 產品化 Ralph Loop，但只解決續航；真正的問題是長跑 Agent 可以不休息地跑偏。三個補件（訪談、多 Agent、新脈絡、外部記憶）不再像清單，而是一路回答「如何避免勤奮地跑偏」。
 - **⚠️ Key lesson:** Source fidelity 不只是 facts 對不對；原文的「刀口」也要保留。把尖銳 critique 寫成 generic best practices，即使每句都正確，vibe 也會塌。
@@ -432,18 +432,18 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
   - After: `c9e332e1` — Codex Goals tension + endurance-vs-direction spine (vibe 8)
   - `git diff c8fd389b c9e332e1 -- src/content/posts/sp-192*`
 
-### 綜合五分的標準 — SP-175「Opus 4.7 prompting cheat sheet」
-- **為什麼是五分（7/8/7/9/7，composite 7 FAIL）:** SP-175 是 cheat sheet 偽裝成 blog post 的典型案例。表面有比喻（tokenizer 房東換租金、effort 咖啡機粗細、snippet 換合約夥伴）、有 ClawdNote、有 kaomoji —— 所有 decorative 特徵齊全。但骨架是教科書：三件必知大事 → Effort 五級階梯 → 4.6→4.7 行為差異 → 可 copy 的 prompt snippets。**拿掉比喻之後就是 release notes**。
+### 綜合五分的標準 — GP-175「Opus 4.7 prompting cheat sheet」
+- **為什麼是五分（7/8/7/9/7，composite 7 FAIL）:** GP-175 是 cheat sheet 偽裝成 blog post 的典型案例。表面有比喻（tokenizer 房東換租金、effort 咖啡機粗細、snippet 換合約夥伴）、有 MoguNote、有 kaomoji —— 所有 decorative 特徵齊全。但骨架是教科書：三件必知大事 → Effort 五級階梯 → 4.6→4.7 行為差異 → 可 copy 的 prompt snippets。**拿掉比喻之後就是 release notes**。
 - **Scorer 判讀差異（2026-04-17 跨版本實驗）**：
   - Opus 4.6 scorer: composite 7 FAIL — 抓到 "effort ladder and snippets sections revert to reference-doc mode — listing 5 levels in order and pasting code blocks is writing, not talking"、"readers bookmark it, not share it for fun"
   - Opus 4.7 scorer: composite 8 PASS — reasons 裡看到了同樣問題（「偏實用 cheat sheet 寫法」「snippet 集錦那段偏 reference dump」「結尾偏 checklist」）**但沒扣分**。典型 bar drift。
   - Opus 4.5 scorer: composite 8 PASS — 也沒扣到 FAIL。
-- **⚠️ 最關鍵的教訓 — 這就是 decorative persona trap 的 2026 年版本**：SP-158 是「貓比喻 + 正經 ClawdNote」偽裝，SP-175 是「房東/咖啡機比喻 + 有立場 ClawdNote」偽裝。比 SP-158 更難抓，因為 ClawdNote 真的有 opinion。但骨架一樣 linear。
-- **歷史校準備註**：這個案例來自 2026-04-17 的 Opus 4.6 / 4.7 cross-model scoring。現在 tribunal runtime 已遷移到 Codex/GPT-5.5，但這段仍保留作為「decorative persona trap」的校準樣本：scorer 看到比喻、ClawdNote、kaomoji 時，不能只打勾，必須拆骨架。
-- **Strip test 怎麼做**：遮住所有 `<ClawdNote>` 區塊、遮住段落裡的第一個比喻句，只讀剩下的 body。如果讀起來像 release notes / cheat sheet / reference doc，narrative 就 ≤ 5。SP-175 通過 strip test 就是一份 release notes。
+- **⚠️ 最關鍵的教訓 — 這就是 decorative persona trap 的 2026 年版本**：GP-158 是「貓比喻 + 正經 MoguNote」偽裝，GP-175 是「房東/咖啡機比喻 + 有立場 MoguNote」偽裝。比 GP-158 更難抓，因為 MoguNote 真的有 opinion。但骨架一樣 linear。
+- **歷史校準備註**：這個案例來自 2026-04-17 的 Opus 4.6 / 4.7 cross-model scoring。現在 tribunal runtime 已遷移到 Codex/GPT-5.5，但這段仍保留作為「decorative persona trap」的校準樣本：scorer 看到比喻、MoguNote、kaomoji 時，不能只打勾，必須拆骨架。
+- **Strip test 怎麼做**：遮住所有 `<MoguNote>` 區塊、遮住段落裡的第一個比喻句，只讀剩下的 body。如果讀起來像 release notes / cheat sheet / reference doc，narrative 就 ≤ 5。GP-175 通過 strip test 就是一份 release notes。
 
-### Score 6 — CP-146「Simon Willison Anti-Patterns」
-- **Why 6:** 開頭不錯，但中段變成 plain reporting。ClawdNote 引用社群回覆但自己的聲量不夠。
+### Score 6 — MP-146「Simon Willison Anti-Patterns」
+- **Why 6:** 開頭不錯，但中段變成 plain reporting。MoguNote 引用社群回覆但自己的聲量不夠。
 
 ---
 
@@ -476,13 +476,13 @@ Tribunal runtime provider 由 `scripts/tribunal.sh` **per judge 解析**（`trib
 
 ### 歷史校準：為什麼不能只看表面 checklist
 
-SP-175、SP-177、SP-187 的校準案例顯示：
+GP-175、GP-177、GP-187 的校準案例顯示：
 
-- **Opus 4.6** scorer 給 SP-175 composite 7 FAIL — 正確抓到 "effort ladder and snippets sections revert to reference-doc mode"、"readers bookmark it, not share it for fun"
-- **Opus 4.7** scorer 給 SP-175 composite 8 PASS — 看到了同樣問題（「偏實用 cheat sheet 寫法」）**但沒扣分**。典型的 bar drift（評分標準飄移）。
-- **GPT-5.5 / Tribunal v5** 曾給 SP-187 `vibe: 8 / narrative: 9`，但 ShroomDog 人工判定「太長、廢話太多、重複 CP-179，而且『變基』語感很糟」。v7 修正責任邊界：Librarian 抓 CP-179 overlap；Vibe 抓 compression / section boredom / decorative pass trap；FreshEyes 抓讀者疲勞。
+- **Opus 4.6** scorer 給 GP-175 composite 7 FAIL — 正確抓到 "effort ladder and snippets sections revert to reference-doc mode"、"readers bookmark it, not share it for fun"
+- **Opus 4.7** scorer 給 GP-175 composite 8 PASS — 看到了同樣問題（「偏實用 cheat sheet 寫法」）**但沒扣分**。典型的 bar drift（評分標準飄移）。
+- **GPT-5.5 / Tribunal v5** 曾給 GP-187 `vibe: 8 / narrative: 9`，但 ShroomDog 人工判定「太長、廢話太多、重複 MP-179，而且『變基』語感很糟」。v7 修正責任邊界：Librarian 抓 MP-179 overlap；Vibe 抓 compression / section boredom / decorative pass trap；FreshEyes 抓讀者疲勞。
 
-結論：scorer 如果只逐項打勾（比喻有、ClawdNote 有、kaomoji 有），就會忽略整體結構是否真的有趣。GPT-5.5 也必須繼承這個校準教訓，否則只是換了一個更貴的橡皮章。
+結論：scorer 如果只逐項打勾（比喻有、MoguNote 有、kaomoji 有），就會忽略整體結構是否真的有趣。GPT-5.5 也必須繼承這個校準教訓，否則只是換了一個更貴的橡皮章。
 
 ### 修改 model 配置的流程
 

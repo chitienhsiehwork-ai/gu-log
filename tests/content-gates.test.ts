@@ -155,15 +155,15 @@ describe('check-pronoun-clarity', () => {
     expect(pron.stripInlineCode('use `你好` here')).toBe('use      here');
   });
 
-  it('buildMask masks frontmatter / fences / ClawdNote / blockquote', () => {
+  it('buildMask masks frontmatter / fences / MoguNote / blockquote', () => {
     const lines = [
       '---',
       'title: Hi',
       '---',
       'body line with 你',
-      '<ClawdNote>',
+      '<MoguNote>',
       '我來吐槽',
-      '</ClawdNote>',
+      '</MoguNote>',
       '> 引用 我',
       '```',
       'code 我 here',
@@ -173,8 +173,8 @@ describe('check-pronoun-clarity', () => {
     const mask = pron.buildMask(lines);
     expect(mask[0]).toBe(true); // frontmatter
     expect(mask[2]).toBe(true);
-    expect(mask[4]).toBe(true); // ClawdNote open
-    expect(mask[5]).toBe(true); // ClawdNote inner
+    expect(mask[4]).toBe(true); // MoguNote open
+    expect(mask[5]).toBe(true); // MoguNote inner
     expect(mask[7]).toBe(true); // blockquote
     expect(mask[8]).toBe(true); // fence
     expect(mask[9]).toBe(true); // fence inner
@@ -189,11 +189,11 @@ describe('check-pronoun-clarity', () => {
     expect(v[0].chars).toContain('你');
   });
 
-  it('does NOT flag 你/我 inside ClawdNote', () => {
+  it('does NOT flag 你/我 inside MoguNote', () => {
     const filepath = tmpPath('pronoun-clawd.mdx');
     fs.writeFileSync(
       filepath,
-      `---\nlang: zh-tw\n---\n正文沒有事兒。\n<ClawdNote>\n我覺得你應該來看這個\n</ClawdNote>\n`
+      `---\nlang: zh-tw\n---\n正文沒有事兒。\n<MoguNote>\n我覺得你應該來看這個\n</MoguNote>\n`
     );
     const v = pron.findViolations(filepath);
     expect(v).toEqual([]);
@@ -246,7 +246,7 @@ describe('frontmatter-scores', () => {
   it('judgeDims(vibe, v8) has 5 dimensions (legacy, with clarity)', () => {
     expect(fmScores.judgeDims('vibe', 8)).toEqual([
       'persona',
-      'clawdNote',
+      'moguNote',
       'vibe',
       'clarity',
       'narrative',
@@ -254,7 +254,7 @@ describe('frontmatter-scores', () => {
   });
 
   it('judgeDims(vibe, v9) has 4 dimensions (no clarity)', () => {
-    expect(fmScores.judgeDims('vibe', 9)).toEqual(['persona', 'clawdNote', 'vibe', 'narrative']);
+    expect(fmScores.judgeDims('vibe', 9)).toEqual(['persona', 'moguNote', 'vibe', 'narrative']);
   });
 
   it('judgeDims(freshEyes, v9) has 5 dimensions (clarity added)', () => {
@@ -292,7 +292,7 @@ scores:
   tribunalVersion: 3
   vibe:
     persona: 8
-    clawdNote: 9
+    moguNote: 9
     vibe: 8
     clarity: 9
     narrative: 8
@@ -312,7 +312,7 @@ scores:
       tribunalVersion: 3,
       vibe: {
         persona: 8,
-        clawdNote: 9,
+        moguNote: 9,
         vibe: 8,
         clarity: 9,
         narrative: 8,
@@ -356,7 +356,8 @@ function runFloorCheck(file: string): { code: number; stderr: string } {
   try {
     execFileSync('node', [FLOOR_CHECK, file], { encoding: 'utf-8' });
     return { code: 0, stderr: '' };
-  } catch (e: any) {
+  } catch (error: unknown) {
+    const e = error as { status?: number; stderr?: unknown };
     return { code: e.status ?? 1, stderr: String(e.stderr ?? '') };
   }
 }
@@ -372,7 +373,7 @@ scores:
   tribunalVersion: 9
   vibe:
     persona: 8
-    clawdNote: 8
+    moguNote: 8
     vibe: 8
     narrative: 8
     score: 8
@@ -394,7 +395,7 @@ scores:
   tribunalVersion: 9
   vibe:
     persona: 8
-    clawdNote: 8
+    moguNote: 8
     vibe: 8
     score: 8
     date: "2026-06-18"
@@ -417,7 +418,7 @@ scores:
   tribunalVersion: 8
   vibe:
     persona: 8
-    clawdNote: 8
+    moguNote: 8
     vibe: 8
     narrative: 8
     score: 8
@@ -441,7 +442,7 @@ scores:
   tribunalVersion: 8
   vibe:
     persona: 8
-    clawdNote: 8
+    moguNote: 8
     vibe: 8
     clarity: 8
     narrative: 8
@@ -458,12 +459,12 @@ body
 // ════════════════════════════════════════════════════════════════════════════
 // Translation-pair publish-bar parity
 //
-// Why this gate exists: the sp-pipeline only produces the zh-tw post; the en
+// Why this gate exists: the gp-pipeline only produces the zh-tw post; the en
 // version is authored separately, and it is easy to forget to mirror the zh
 // scores block into it. When that happens to a sub-8 post, isBelowPublishBar()
 // returns false for the score-less en file — so the en version silently leaks
 // onto the /en homepage and shows no "refining" badge, while its zh-tw twin is
-// correctly held back. (SP-237 shipped with exactly this bug.)
+// correctly held back. (GP-237 shipped with exactly this bug.)
 //
 // A pre-merge visual check would catch it, but "remember to eyeball both
 // languages" is not a system — this assertion is. It runs in the per-PR

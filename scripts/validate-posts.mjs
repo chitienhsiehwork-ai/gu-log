@@ -31,9 +31,9 @@ const POSTS_DIR = path.join(__dirname, '../src/content/posts');
 const _COUNTER_FILE = path.join(__dirname, 'article-counter.json');
 
 // ─── Config ────────────────────────────────────────────────────────
-const _VALID_PREFIXES = ['SP', 'CP', 'SD', 'Lv'];
+const _VALID_PREFIXES = ['GP', 'MP', 'SD', 'Lv'];
 const VALID_LANGS = ['zh-tw', 'en'];
-// PENDING is a legitimate in-flight ticket state used by the sp-pipeline
+// PENDING is a legitimate in-flight ticket state used by the gp-pipeline
 // and by manual drafters working on parallel branches. The deploy step
 // swaps PENDING for a real number allocated from article-counter.json at
 // the last moment (see CONTRIBUTING.md §並行撰寫防 ID collision).
@@ -48,8 +48,8 @@ const REDUNDANT_BOTTOM_CITATION_PATTERNS = [
   /\n##\s*原文出處/,
 ];
 const CLAWD_NOTE_REDUNDANT_PREFIX = [
-  /<ClawdNote\b[^>]*>\s*\n?\s*\*\*Clawd[：:]\*\*/i,
-  /<ClawdNote\b[^>]*>\s*\n?\s*Clawd[：:]\s/i,
+  /<MoguNote\b[^>]*>\s*\n?\s*\*\*Mogu[：:]\*\*/i,
+  /<MoguNote\b[^>]*>\s*\n?\s*Mogu[：:]\s/i,
 ];
 const LONG_CLAWD_NOTE_CHARS = 420;
 const MAX_CLAWD_NOTE_SUMMARY_CHARS = 120;
@@ -63,12 +63,12 @@ const CJK_UNIFIED_IDEOGRAPH_PATTERN = /\p{Unified_Ideograph}/gu;
 const CJK_ESCAPE_MARKERS = ['{/* cjk-ok */}', '<!-- cjk-ok -->'];
 const containsCjkEscape = (line) => CJK_ESCAPE_MARKERS.some((m) => line.includes(m));
 // Grandfather baseline: en-* CJK Unified Ideograph lines that already existed
-// when Rule 19 shipped (SP-251 uiux fix task, 2026-07-06), so the guard
+// when Rule 19 shipped (GP-251 uiux fix task, 2026-07-06), so the guard
 // shipped CI-green without a mass content-editing PR. All 14 original entries
 // have since been resolved — 11 legitimate citations/kaomoji got a `cjk-ok`
 // escape (fix/clawdnote-summaries-cjk-escapes) and the 3-line en-sp-193
 // untranslated-code-comment bug got retranslated
-// (fix/en-sp-193-untranslated-comments) — so this baseline is empty. Keep the
+// (fix/en-gp-193-untranslated-comments) — so this baseline is empty. Keep the
 // Map (and this comment) as the burn-down mechanism for the next time a
 // mass-adoption PR needs to ship CI-green before every line is fixed: add an
 // entry, downgrade it to a warning, and delete the entry once resolved.
@@ -191,9 +191,9 @@ function validateScoreBlock(fmText, judge, dimensions) {
   return errors;
 }
 
-function extractClawdNotes(content) {
+function extractMoguNotes(content) {
   const notes = [];
-  const pattern = /<ClawdNote\b([^>]*)>([\s\S]*?)<\/ClawdNote>/g;
+  const pattern = /<MoguNote\b([^>]*)>([\s\S]*?)<\/MoguNote>/g;
   let match;
 
   while ((match = pattern.exec(content)) !== null) {
@@ -302,25 +302,25 @@ function validatePost(filepath, allPosts, options = {}) {
     }
   }
 
-  // ── Rule 9: ClawdNote no redundant prefix ──
+  // ── Rule 9: MoguNote no redundant prefix ──
   for (const pattern of CLAWD_NOTE_REDUNDANT_PREFIX) {
     if (pattern.test(content)) {
-      errors.push('ClawdNote contains redundant "Clawd:" prefix (component auto-adds it)');
+      errors.push('MoguNote contains redundant "Mogu:" prefix (component auto-adds it)');
       break;
     }
   }
 
-  // ── Rule 10: Long ClawdNote requires writer-authored summary ──
-  if (options.enforceLongClawdNoteSummary) {
-    for (const note of extractClawdNotes(content)) {
+  // ── Rule 10: Long MoguNote requires writer-authored summary ──
+  if (options.enforceLongMoguNoteSummary) {
+    for (const note of extractMoguNotes(content)) {
       if (note.length > LONG_CLAWD_NOTE_CHARS && !note.hasSummary) {
         errors.push(
-          `ClawdNote #${note.index} is long (${note.length} chars) and needs summary="短版一句話"`
+          `MoguNote #${note.index} is long (${note.length} chars) and needs summary="短版一句話"`
         );
       }
       if (note.summaryLength > MAX_CLAWD_NOTE_SUMMARY_CHARS) {
         errors.push(
-          `ClawdNote #${note.index} summary is too long (${note.summaryLength} chars, max ${MAX_CLAWD_NOTE_SUMMARY_CHARS})`
+          `MoguNote #${note.index} summary is too long (${note.summaryLength} chars, max ${MAX_CLAWD_NOTE_SUMMARY_CHARS})`
         );
       }
     }
@@ -369,7 +369,7 @@ function validatePost(filepath, allPosts, options = {}) {
   }
 
   // ── Rule 14.5: model signature (translatedBy) is mandatory for every post ──
-  // Translations (SP/CP) render it as "translated by"; originals (SD/Lv) as
+  // Translations (GP/MP) render it as "translated by"; originals (SD/Lv) as
   // "written by". Either way, readers must see which model produced the post.
   if (!fm.translatedBy) {
     errors.push('Missing translatedBy (model signature) — every post needs model + harness');
@@ -405,8 +405,8 @@ function validatePost(filepath, allPosts, options = {}) {
   // Without this branch a correctly-stamped v9 post (clarity under freshEyes,
   // absent from vibe) is REJECTED at pre-commit/CI — a hard blocker.
   const tribunalVersion = Number(fmText.match(/^ {2}tribunalVersion:\s*(\d+)/m)?.[1] ?? 0);
-  const VIBE_DIMS_V8 = ['persona', 'clawdNote', 'vibe', 'clarity', 'narrative'];
-  const VIBE_DIMS_V9 = ['persona', 'clawdNote', 'vibe', 'narrative'];
+  const VIBE_DIMS_V8 = ['persona', 'moguNote', 'vibe', 'clarity', 'narrative'];
+  const VIBE_DIMS_V9 = ['persona', 'moguNote', 'vibe', 'narrative'];
   const FRESH_DIMS_V8 = ['readability', 'firstImpression', 'payoffDensity', 'lengthFit'];
   const FRESH_DIMS_V9 = ['readability', 'firstImpression', 'payoffDensity', 'lengthFit', 'clarity'];
   const vibeDims = tribunalVersion >= 9 ? VIBE_DIMS_V9 : VIBE_DIMS_V8;
@@ -595,8 +595,8 @@ function loadActiveZhTwArticles() {
  *
  *   URL match           → also requires title similarity ≥ 0.4 OR meaningful
  *                         English overlap ≥ 4. Without this, deliberate series
- *                         that share a sourceUrl (ECC SP-143…SP-153 from one
- *                         GitHub repo, batch-340 SP-60/61/62 from one digest)
+ *                         that share a sourceUrl (ECC GP-143…GP-153 from one
+ *                         GitHub repo, batch-340 GP-60/61/62 from one digest)
  *                         all fire as false positives.
  *   Topic similarity    → score ≥ 0.5 AND overlap ≥ 4 (vs the single-candidate
  *                         gate's 0.3 / 2). At 0.30 with overlap 2, any two
@@ -818,7 +818,7 @@ function main() {
 
   for (const filepath of filesToValidate) {
     const result = validatePost(filepath, allPosts, {
-      enforceLongClawdNoteSummary: isFileListMode,
+      enforceLongMoguNoteSummary: isFileListMode,
     });
 
     if (result.errors.length > 0 || result.warnings.length > 0) {

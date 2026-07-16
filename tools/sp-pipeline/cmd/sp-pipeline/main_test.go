@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/llm"
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/logx"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/llm"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/logx"
 )
 
 // makeFakeRepo creates a directory tree that satisfies config.Resolve()'s
@@ -27,8 +27,8 @@ func makeFakeRepo(t *testing.T) string {
 		t.Fatal(err)
 	}
 	mustWrite(t, filepath.Join(scriptsDir, "article-counter.json"), `{
-  "SP": { "next": 10, "label": "SP", "description": "" },
-  "CP": { "next": 20, "label": "CP", "description": "" },
+  "GP": { "next": 10, "label": "GP", "description": "" },
+  "MP": { "next": 20, "label": "MP", "description": "" },
   "SD": { "next": 30, "label": "SD", "description": "" },
   "Lv": { "next": 40, "label": "Lv", "description": "" }
 }`)
@@ -184,7 +184,7 @@ func TestNewStubCmds_ReturnsNil(t *testing.T) {
 	}
 }
 
-// TestCounterNext_Integration runs `sp-pipeline counter next --prefix SP`
+// TestCounterNext_Integration runs `gp-pipeline counter next --prefix GP`
 // against a synthetic repo and confirms the printed ticket ID matches the
 // counter's "next" semantics (current value, no mutation).
 func TestCounterNext_Integration(t *testing.T) {
@@ -196,7 +196,7 @@ func TestCounterNext_Integration(t *testing.T) {
 	var stdout bytes.Buffer
 	cmd.SetOut(&stdout)
 	cmd.SetErr(&bytes.Buffer{})
-	cmd.SetArgs([]string{"counter", "next", "--prefix", "SP"})
+	cmd.SetArgs([]string{"counter", "next", "--prefix", "GP"})
 
 	if err := cmd.ExecuteContext(context.Background()); err != nil {
 		t.Fatalf("counter next: %v", err)
@@ -219,8 +219,8 @@ func TestCounterNext_Integration(t *testing.T) {
 		t.Fatal(err)
 	}
 	// "next" reports next-allocatable BUT does not mutate file.
-	if c["SP"].Next != 10 {
-		t.Fatalf("counter file mutated by 'next': SP.next=%d, want 10", c["SP"].Next)
+	if c["GP"].Next != 10 {
+		t.Fatalf("counter file mutated by 'next': GP.next=%d, want 10", c["GP"].Next)
 	}
 }
 
@@ -235,7 +235,7 @@ func TestCounterBump_MutatesFile(t *testing.T) {
 	cmd := buildRoot()
 	cmd.SetOut(&bytes.Buffer{})
 	cmd.SetErr(&bytes.Buffer{})
-	cmd.SetArgs([]string{"counter", "bump", "--prefix", "CP"})
+	cmd.SetArgs([]string{"counter", "bump", "--prefix", "MP"})
 
 	if err := cmd.ExecuteContext(context.Background()); err != nil {
 		t.Fatalf("counter bump: %v", err)
@@ -248,8 +248,8 @@ func TestCounterBump_MutatesFile(t *testing.T) {
 	if err := json.Unmarshal(raw, &c); err != nil {
 		t.Fatal(err)
 	}
-	if c["CP"].Next != 21 {
-		t.Fatalf("counter not bumped: CP.next=%d, want 21", c["CP"].Next)
+	if c["MP"].Next != 21 {
+		t.Fatalf("counter not bumped: MP.next=%d, want 21", c["MP"].Next)
 	}
 }
 
@@ -263,13 +263,13 @@ func TestRoot_HelpDoesNotError(t *testing.T) {
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("--help should not return error: %v", err)
 	}
-	// gp-pipeline is the canonical command name; sp-pipeline must still be
+	// gp-pipeline is the canonical command name; gp-pipeline must still be
 	// referenced as the retained backwards-compat shim.
 	if !strings.Contains(out.String(), "gp-pipeline") {
 		t.Fatalf("--help output missing 'gp-pipeline':\n%s", out.String())
 	}
-	if !strings.Contains(out.String(), "sp-pipeline") {
-		t.Fatalf("--help output missing 'sp-pipeline' shim reference:\n%s", out.String())
+	if !strings.Contains(out.String(), "gp-pipeline") {
+		t.Fatalf("--help output missing 'gp-pipeline' shim reference:\n%s", out.String())
 	}
 }
 

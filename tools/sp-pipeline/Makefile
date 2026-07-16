@@ -1,6 +1,6 @@
-BIN         := bin/sp-pipeline
+BIN         := bin/gp-pipeline
 GO          ?= go
-PKG         := ./cmd/sp-pipeline
+PKG         := ./cmd/gp-pipeline
 BUILD_FLAGS := -trimpath -ldflags="-s -w"
 
 .PHONY: all build test vet fmt clean run doctor fetch

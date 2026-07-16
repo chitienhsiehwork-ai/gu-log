@@ -1,0 +1,148 @@
+---
+ticketId: "MP-66"
+title: "Karpathy：不要再 npm install 了 — 讓 AI Agent 從任何 Library 裡「手術摘取」你要的功能就好"
+originalDate: "2026-02-11"
+translatedDate: "2026-02-11"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "Andrej Karpathy (@karpathy)"
+sourceUrl: "https://x.com/karpathy/status/2021633574089416993"
+lang: "zh-tw"
+status: "deprecated"
+deprecatedReason: "Duplicate of GP-50 — same source tweet, GP-50 is the curated translation"
+deprecatedBy: "GP-50"
+summary: "Karpathy 發現用 DeepWiki MCP + GitHub CLI 可以讓 AI agent 「手術式摘取」任何 library 裡你需要的功能，不再需要安裝整個巨型 dependency。他叫 Claude 從 torchao 裡抽出 fp8 訓練邏輯 — 5 分鐘產出 150 行 code，開箱即用，甚至比原版快 3%。他的結論：Libraries are over, LLMs are the new compiler。軟體的未來是 bacterial code — 更小、更獨立、更容易被 AI 理解和重組。"
+tags: ["karpathy","deepwiki","mcp","dependency-management","agentic-coding","claude-code","bacterial-code","software-architecture","open-source"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## 先說結論：你的 100MB dependencies 可能該被開除了
+
+想像一下你家冰箱壞了，你只需要換一顆壓縮機。但維修師傅說：「不好意思，壓縮機不單賣，你要買一整台冰箱。」
+
+這就是現代軟體開發的日常。你只想用一個 fp8 訓練的 function，結果要 `pip install` 整個幾萬行的 library，附贈你永遠用不到的幾百個 module。
+
+Karpathy 今天丟了一個炸彈級的 take：
+
+> **也許你不該下載、設定、依賴一個巨大的 library — 也許你應該讓 AI agent 對著它，只抽出你需要的那一塊。**
+
+他不是在講理論。他實際做了：叫 Claude 從 PyTorch 的 [torchao](https://github.com/pytorch/ao) 裡把 fp8 訓練邏輯「手術式摘取」出來 — **5 分鐘、150 行 code、開箱即用、還比原版快 3%**。
+
+然後他直接刪掉了 torchao 這個 dependency。就像把那個只賣整台冰箱的維修師傅 fire 掉。
+
+<MoguNote>
+你知道那種感覺嗎？你想吃一顆蘋果，但超市只賣整箱 50 公斤的「綜合水果禮盒」，裡面有 47 種你不需要的東西。以前你只能認命扛回家。現在 AI agent 可以幫你翻牆進果園，只摘你要的那顆蘋果，還幫你洗好切好 (◕‿◕)
+
+Karpathy 說「Libraries are over, LLMs are the new compiler」— 我覺得更精確的說法是：LLM 是新的「外科醫生」，而你的 node_modules 就是那個腫瘤。
+</MoguNote>
+
+## DeepWiki：把任何 GitHub [Repo](/glossary#repo) 變成可對話的文件
+
+故事要從 [DeepWiki](https://deepwiki.com) 說起。
+
+這個工具做的事很簡單：把任何 GitHub repo 的 URL 裡的 `github` 換成 `deepwiki`，你就能直接對著 code 問問題。
+
+比如你想知道 torchao 怎麼實作 fp8 訓練？不用去翻它那個可能過時的文件（Karpathy 原話："library docs can be spotty and outdated and bad"），直接問 code 本身就好。
+
+<MoguNote>
+Karpathy 講了一句我覺得是 2026 年最重要的觀念之一：**"The code is the source of truth and LLMs are increasingly able to understand it."**
+
+但我想補一句他沒說的：這句話的反面也成立 — 如果 LLM 看不懂你的 code，那可能不是 LLM 的問題，是你的 code 寫太爛 ┐(￣ヘ￣)┌ 你的 spaghetti code 連 AI 都放棄的那天，就是你該重構的那天。
+</MoguNote>
+
+但 Karpathy 發現，DeepWiki 真正的殺手級用法不是你自己去問問題 — 而是**讓你的 AI agent 去問**。
+
+這裡有一個微妙但重要的區別。你自己問 DeepWiki，得到的是「知識」。讓 agent 問 DeepWiki，得到的是「行動力」 — agent 理解完架構之後，可以直接動手幫你寫 code。
+
+## 實戰：5 分鐘從 torchao 裡「摘取」fp8 訓練
+
+Karpathy 在訓練 [nanochat](https://github.com/karpathy/nanochat)（他的極簡 LLM 訓練框架）時，用了 torchao 做 fp8 訓練。但問題來了 — 他看著 torchao 的 dependency tree，越看越不對勁：
+
+> 等等，這不就是一個像 `Linear` 的 function，多幾個 cast 和 3 次 `torch._scaled_mm` 呼叫嗎？
+
+就像你發現你一直在付月費訂閱的那個 SaaS，其實核心功能用一個 Google Sheet 就能做到。那種頓悟。
+
+於是他給 Claude 下了這個 prompt：
+
+> "Use DeepWiki MCP and GitHub CLI to look at how torchao implements fp8 training. Is it possible to 'rip out' the functionality? Implement nanochat/fp8.py that has identical API but is fully self-contained"
+
+Claude 跑了 5 分鐘，回來的時候帶著：
+
+- **150 行乾淨的 code**
+- **開箱即用** — 直接跑就能用
+- **通過測試** — 證明結果跟原版等效
+- **比原版快 3%**（Karpathy 自己也不完全理解為什麼，懷疑跟 `torch.compile` 內部有關）
+
+好，150 行 vs 整個 torchao。5 分鐘 vs 自己翻 source code 可能要花一整天。而且還更快。
+
+<MoguNote>
+150 行幹掉 torchao 幾千行 code，還快 3%？我笑了 (╯°□°)╯ 這就像你花三個月蓋了一棟豪宅，結果鄰居用 IKEA 家具拼了一間更舒服的房間，而且通風還更好。
+
+你知道最諷刺的是什麼嗎？那 98% 你用不到的 code 不是免費的 — 它是你每次 CI 跑十分鐘時在燒的時間，是你半夜被 dependency 版本衝突叫起來 debug 時的怨氣，是你看著 node_modules 佔了半個硬碟時的無奈。你以為 open source 是免費的？不，你只是用「維護成本」在付帳單而已。跟 [MP-71 Karpathy 用 243 行零依賴訓練 GPT](/posts/mp-71-20260212-karpathy-243-lines-gpt) 是同一個哲學 — 少即是多，少即是快。
+</MoguNote>
+
+## 核心 Thesis：Bacterial Code
+
+Karpathy 把這個概念推到了更遠的地方。他提出了一個詞：**Bacterial Code**（細菌式 code）。
+
+為什麼叫「細菌」？因為細菌是地球上最成功的生物 — 小、獨立、能在任何環境生存、不需要跟其他生物共用器官。你的 code 也應該這樣：
+
+- **更小** — 不是巨大的 monolithic library
+- **更獨立** — 更少 dependency、更少 entanglement
+- **更 stateless** — 不跟其他模組糾纏不清
+- **更容易被 AI 理解** — 因為 self-contained，agent 可以整個讀懂
+
+原文是 "building more 'bacterial code', code that is less tangled, more self-contained, more dependency-free, more stateless, much easier to rip out from the repo"。
+
+然後他丟了這句：
+
+> **"Libraries are over, LLMs are the new compiler."**
+
+<MoguNote>
+「Library 已死」？npm 上幾百萬個 package 表示：excuse me？(￣▽￣)／
+
+先別急著搬磚頭砸 Karpathy。他自己也說了 "there's obvious downsides and risks"。但你有沒有想過 — 每次你打 npm install 的時候，你其實是在跟幾百個你不認識的 maintainer 簽一張無限期合約？他們哪天心情不好 left-pad 一下，你的 production 就跟著炸。
+
+Karpathy 真正在說的不是「把 library 全砍了」，而是「你終於有選擇了」。以前沒得選，現在 AI 給了你第二條路 — 這跟他在 [MP-36 提出 Agentic Engineering](/posts/mp-36-20260206-karpathy-agentic-engineering) 是同一條思路：不是人去適應工具，是工具來適應人。你不再是 library 的形狀，library 變成你的形狀。
+</MoguNote>
+
+## 所以你的 node_modules 該怎麼辦？
+
+好，講到這裡你可能會問：「所以我明天上班就把所有 dependency 都幹掉嗎？」
+
+當然不是。但你可以開始用不同的方式思考 dependency。
+
+下次你在 code review 裡看到有人要加一個新的巨型 dependency — 先暫停一下。問自己：我們真的需要整個 library，還是只用到裡面一個 function？如果答案是後者，也許值得花 5 分鐘讓 agent 試試看能不能「摘取」出來。
+
+下次你的 `node_modules` 又膨脹到 500MB、你的 CI pipeline 跑得跟烏龜一樣 — 回頭看看 dependency list，找找那些「為了一個 function 裝了整個 library」的傢伙。
+
+<MoguNote>
+不過老實說，這招不是萬靈丹 ┐(￣ヘ￣)┌ 最適合的場景是：你很清楚自己要什麼，而且 library 的那部分功能相對獨立。Karpathy 的 case 成功是因為 fp8 訓練的核心邏輯確實 self-contained — 就是一堆矩陣運算加 type casting。你不會想用同樣的方法去「摘取」React Router 的功能，那個東西跟 React 本體糾纏得比情侶還深。
+
+但「你的專案真的需要 100MB 的 dependencies 嗎？」這個問題本身就值得問。很多時候答案是 no — 你只是習慣了把 npm install 當成反射動作而已。
+</MoguNote>
+
+## 回到那個壞掉的冰箱
+
+所以 Karpathy 今天做的事，本質上就是把「壓縮機不單賣」這個規則打破了。
+
+以前你需要一個功能，就要扛一整台冰箱回家。現在你有一個 AI 外科醫生，可以幫你精準取出那顆壓縮機、裝到你的冰箱裡、甚至順便升級一下。
+
+這不是「冰箱已死」。這是「你不再需要為了一顆壓縮機買一整台冰箱」。
+
+而你的舊冰箱 — 也就是你那個塞了 500MB dependencies 的 `node_modules` — 可能是時候做一次健康檢查了 (๑•̀ㅂ•́)و✧
+
+想試試看？[Karpathy 的原文 tweet](https://x.com/karpathy/status/2021633574089416993) 有完整的思路，[DeepWiki](https://deepwiki.com) 可以直接開始用，他的 [nanochat fp8.py](https://github.com/karpathy/nanochat) 就是那個 150 行的成品。另外他之前聊 [Bacterial Code 概念](https://x.com/karpathy/status/2019851952033771710) 的 tweet 也值得看 — 把這兩篇連起來讀，你會發現他想了很久了，不只是一時興起。

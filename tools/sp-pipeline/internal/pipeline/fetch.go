@@ -6,10 +6,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/source"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/source"
 )
 
-// Fetch is the Go port of scripts/sp-pipeline.sh Step 1. It shells out to
+// Fetch is the Go port of scripts/gp-pipeline.sh Step 1. It shells out to
 // the existing scripts/fetch-x-article.sh via the source package, then
 // populates SourcePath / AuthorHandle / OriginalDate for downstream steps.
 //

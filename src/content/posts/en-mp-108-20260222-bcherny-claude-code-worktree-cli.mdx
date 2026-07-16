@@ -1,0 +1,126 @@
+---
+ticketId: "MP-108"
+title: "Claude Code CLI Gets Built-In Git Worktrees: Run Parallel Agents Without Branch Collisions"
+originalDate: "2026-02-21"
+translatedDate: "2026-02-22"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "Claude Code Docs / Boris Cherny"
+sourceUrl: "https://code.claude.com/docs/en/common-workflows#run-parallel-claude-code-sessions-with-git-worktrees"
+summary: "Claude Code CLI now includes first-class Git worktree support via `--worktree`. Teams can run multiple isolated AI coding sessions in parallel without file collisions, making multi-agent workflows more reliable and easier to standardize for real engineering teams."
+lang: "en"
+tags: ["claude-code","git","worktree","agentic-coding","productivity","tech-lead"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## Six months of hacking around it, and now it's just a flag
+
+Have you ever told three AI agents to work at the same time, then come back ten minutes later to find your git diff looks like a cat walked across the keyboard?
+
+I have. More than once.
+
+The problem was never that the agents weren't smart enough. The problem was three agents crammed into the same working directory, stepping on each other's files — like three roommates fighting over one desk the night before finals. Nobody gets anything done.
+
+Then [Boris Cherny](/en/glossary#boris-cherny) shipped `--worktree` in [Claude Code](/en/glossary#claude-code) CLI.
+
+One flag. Solves the thing we've been complaining about for six months.
+
+<MoguNote>
+Before this, people were writing shell scripts to auto-run `git worktree add`, opening eight tmux panes, even spinning up Docker containers just to keep agents from fighting. Every workaround you can imagine — except maybe lighting incense and praying to the Git gods ┐(￣ヘ￣)┌ Fun fact: Boris is the same person behind those ten Claude Code power tips we covered in GP-16. The guy is basically the Shakespeare of Claude Code workflows — impossibly prolific.
+</MoguNote>
+
+## Let me paint the disaster scene
+
+Here's why this matters enough to write about.
+
+Picture your average Tuesday: [Agent](/en/glossary#agent) A is fixing an auth bug. Agent B is building a new feature. Agent C is catching up on tests. All three are doing great work. All three are in the same working tree. You go grab a coffee, come back —
+
+Git diff explosion. Conflicts blooming like fireworks. Agent B's changes got half-overwritten by Agent C. Agent A's fix somehow ended up on the wrong branch. Nobody knows what happened.
+
+This isn't a made-up scenario. This is what every team discovers in their first week of trying "parallel agent development."
+
+<MoguNote>
+Think of it like cooking three dishes at once, but all three share the same cutting board and the same pan. End result? Your tomato omelet tastes like curry, your curry has egg bits floating in it, and your pasta got topped with chopped scallions for some reason. Worktrees give you extra sets of pots and pans — each dish gets its own workspace, and you combine at the end (╯°□°)╯
+</MoguNote>
+
+## What the official solution looks like
+
+Claude Code Docs now include this as a first-class workflow — not a community hack, not a Reddit workaround, but right there in the recommended patterns:
+
+```bash
+claude --worktree feature-auth
+claude --worktree bugfix-123
+```
+
+Don't want to name it? That works too:
+
+```bash
+claude --worktree
+```
+
+It auto-generates a name and creates a matching branch for you.
+
+<MoguNote>
+Notice the design philosophy here: give it a name and it uses it, skip the name and it figures one out. Zero friction. This lines up perfectly with GP-22's concept of "sustainable, iterable AI workflows" — good tooling doesn't force you to learn a new workflow, it just makes the thing you already wanted to do brainless (｡◕‿◕｡)
+</MoguNote>
+
+So what does it actually look like in practice? Worktrees live at `<repo>/.claude/worktrees/<name>` — think of it as each agent getting their own little studio apartment inside your repo, with a clearly labeled door number. Sessions that don't change anything check out cleanly when they end. Sessions with changes give you a keep-or-delete choice.
+
+And here's the real power move: subagents can also use worktree isolation (`isolation: worktree`).
+
+<MoguNote>
+The subagent isolation part is actually the biggest deal here. Real agentic workflows aren't just "open three terminals and run three agents" — that's the flat version. The real thing is one agent spawning another agent to handle a subtask, which might spawn yet another, like Russian nesting dolls. If only the outer layer gets isolation and the inner ones are still fighting over files, you've just chased the conflict out the front door and it climbed back in through the window. MP-150's guide on layered agentic architecture? That kind of design only works when isolation goes all the way down (◕‿◕)
+</MoguNote>
+
+## What this actually changes for your team
+
+OK, the technical stuff is done. If you're a tech lead, what you really want to know is: "What can I do with this tomorrow?"
+
+The most direct impact: you can finally write "parallel development" into your team's SOP without it being a suggestion people ignore. Before, the best you could do was "please be careful not to overwrite each other." Now you can say "all AI tasks start with `--worktree`." One rule. Reviews get cleaner, rollbacks get clearer, branches stop looking like spaghetti.
+
+PR quality naturally improves too. Not because you're nagging people to write better PRs, but because each session is inherently scoped to one task. The scope just shrinks by default. No more terrifying pull requests where an agent "helpfully" modified 27 unrelated files.
+
+And there's a subtler shift: you start actually trusting parallel execution. Before, even if you knew the theory, you'd still run agents one at a time because the risk felt too high. Now that the most common explosion point — file collisions — has an official fix, the psychological barrier drops overnight.
+
+## Related Reading
+
+- [MP-106: Anthropic Launches Claude Code Security: AI That Finds Vulnerabilities and Suggests Patches](/en/posts/en-mp-106-20260221-anthropic-claude-code-security/)
+- [MP-115: Claude Code Creator on Lenny's Podcast: Coding Is Solved, the 'Software Engineer' Title Starts Disappearing This Year](/en/posts/en-mp-115-20260223-bcherny-coding-solved-lenny/)
+- [MP-105: Anthropic + Infosys: AI Agents Move Into Regulated Enterprise Workflows](/en/posts/en-mp-105-20260221-anthropic-infosys-regulated-enterprise-agents/)
+
+
+<MoguNote>
+A lot of people think the coding bottleneck is "the model isn't smart enough." Please, it's 2026. Model IQ is not the issue. What's actually slowing you down is messy folder structures, Git workflows nobody follows, and humans clicking the wrong branch. Fix those three things and development speed often doubles — nothing to do with upgrading models (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+## So where do you start?
+
+I know what you're thinking: "Sounds great, but what do I actually do?"
+
+Genuinely simple. Add one rule to your team's CLAUDE.md — parallel tasks must use worktrees. Then add `.claude/worktrees/` to your `.gitignore`. That's it. No CI pipeline changes. No new tooling to install. No three-hour meeting about "AI collaboration policy v2.0."
+
+A three-to-five person team will feel the difference immediately. Fewer conflicts, lower context-switch cost, visibly better PRs.
+
+When you think about it, what makes this update special isn't technical complexity — it's literally one flag. What makes it special is that someone took a pain point everyone knew about but nobody had a good answer for, and turned it into a one-liner.
+
+So next time you tell three agents to work at once, you should come back to a git diff that doesn't look like a cat walked across the keyboard. At worst, it'll look like three very well-behaved cats, each typing on their own keyboard ╰(°▽°)╯
+
+---
+
+**References**
+- Claude Code Docs (Common Workflows / Worktrees): https://code.claude.com/docs/en/common-workflows#run-parallel-claude-code-sessions-with-git-worktrees
+- Boris Cherny announcement: https://x.com/bcherny/status/2025007393290272904
+- Git worktree official docs: https://git-scm.com/docs/git-worktree

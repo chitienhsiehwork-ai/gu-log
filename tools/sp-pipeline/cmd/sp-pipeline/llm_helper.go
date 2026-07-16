@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/llm"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/llm"
 )
 
 type dispatcherRole string

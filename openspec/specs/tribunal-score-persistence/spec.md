@@ -17,7 +17,7 @@ Tribunal pipeline 在每個 judge stage 判定 PASS 後，SHALL 立即呼叫 fro
 
 - **WHEN** tribunal 的 vibe-scorer stage 判定 PASS
 - **THEN** 文章 MDX 的 frontmatter SHALL 包含 `scores.vibe` 區塊
-- **AND** `scores.vibe` SHALL 包含 `persona`、`clawdNote`、`vibe`、`clarity`、`narrative`、`score`、`date`、`model` 欄位
+- **AND** `scores.vibe` SHALL 包含 `persona`、`moguNote`、`vibe`、`clarity`、`narrative`、`score`、`date`、`model` 欄位
 - **AND** 所有維度分數 SHALL 為 0-10 的整數
 
 #### Scenario: Fact checker PASS 後分數出現在 frontmatter
@@ -68,7 +68,7 @@ Shell pipeline（`tribunal-all-claude.sh`）和 TypeScript pipeline（`pipeline.
 #### Scenario: 有英文版的文章同步更新
 
 - **WHEN** scores 寫入 `sp-177-20260421-slug.mdx`
-- **AND** `en-sp-177-20260421-slug.mdx` 存在
+- **AND** `en-gp-177-20260421-slug.mdx` 存在
 - **THEN** 兩個檔案的 `scores` 區塊 SHALL 完全一致
 
 #### Scenario: 沒有英文版不報錯

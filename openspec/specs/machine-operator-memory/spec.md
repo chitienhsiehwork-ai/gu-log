@@ -9,7 +9,7 @@ Local machine actor（例如 `m1-cdx`）與 clawd-vm 的 machine-specific facts 
 
 #### Scenario: Record clawd-vm roles
 
-- **WHEN** operator 記錄 clawd-vm hosts Clawd and Iris
+- **WHEN** operator 記錄 clawd-vm hosts Mogu and Iris
 - **THEN** 該 record SHALL 存在 local machine note
 - **AND** 該 record SHALL NOT 被 commit 到 gu-log public docs
 

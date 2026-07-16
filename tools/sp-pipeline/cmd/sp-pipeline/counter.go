@@ -7,10 +7,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/counter"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/counter"
 )
 
-// counterReport is the JSON shape emitted by `sp-pipeline counter --json`.
+// counterReport is the JSON shape emitted by `gp-pipeline counter --json`.
 type counterReport struct {
 	OK        bool   `json:"ok"`
 	Operation string `json:"operation"` // "next" | "bump" | "read"
@@ -26,16 +26,16 @@ func newCounterCmd(state *rootState) *cobra.Command {
 		Short: "Read / bump the ticket counter",
 		Long: `counter reads from and safely mutates scripts/article-counter.json.
 
-It replaces the "flock + jq + mv" dance in scripts/sp-pipeline.sh with a
+It replaces the "flock + jq + mv" dance in scripts/gp-pipeline.sh with a
 Go-native atomic bump backed by syscall.Flock on /tmp/gu-log-counter.lock.
 
 Two subcommands:
 
-  sp-pipeline counter next --prefix SP
+  gp-pipeline counter next --prefix GP
       Print the value that WILL be allocated next, without mutating the
       file. Useful for dry runs and dashboards.
 
-  sp-pipeline counter bump --prefix SP
+  gp-pipeline counter bump --prefix GP
       Atomically advance the counter by 1 and print the value that WAS
       allocated (the ticketId the caller should use for their new post).
       This is the write-side primitive that the deploy step uses.`,
@@ -50,7 +50,7 @@ Two subcommands:
 			return runCounterNext(state, prefix)
 		},
 	}
-	nextCmd.Flags().StringVar(&prefix, "prefix", "SP", "ticket prefix (SP / CP / SD / Lv)")
+	nextCmd.Flags().StringVar(&prefix, "prefix", "GP", "ticket prefix (SP / CP / SD / Lv)")
 
 	var bumpPrefix string
 	bumpCmd := &cobra.Command{
@@ -60,7 +60,7 @@ Two subcommands:
 			return runCounterBump(state, bumpPrefix)
 		},
 	}
-	bumpCmd.Flags().StringVar(&bumpPrefix, "prefix", "SP", "ticket prefix (SP / CP / SD / Lv)")
+	bumpCmd.Flags().StringVar(&bumpPrefix, "prefix", "GP", "ticket prefix (SP / CP / SD / Lv)")
 
 	root.AddCommand(nextCmd, bumpCmd)
 	return root

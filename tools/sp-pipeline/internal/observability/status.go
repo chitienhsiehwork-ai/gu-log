@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/config"
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/runner"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/config"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/runner"
 )
 
 const (

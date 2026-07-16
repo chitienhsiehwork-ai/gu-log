@@ -8,15 +8,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/frontmatter"
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/ralph"
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/runner"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/frontmatter"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/ralph"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/runner"
 )
 
-// finalPipelineURL matches scripts/sp-pipeline.sh line 1290.
-const finalPipelineURL = "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+// finalPipelineURL matches scripts/gp-pipeline.sh line 1290.
+const finalPipelineURL = "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/gp-pipeline.sh"
 
-// Ralph is the Go port of scripts/sp-pipeline.sh Step 4.7. It:
+// Ralph is the Go port of scripts/gp-pipeline.sh Step 4.7. It:
 //
 //  1. Computes the ActiveFilename (sp-pending-YYYYMMDD-<author>-<slug>.mdx
 //     for new articles; the caller-provided filename when resuming).
@@ -193,7 +193,7 @@ func (s *State) runPostFixers(ctx context.Context, postPath string) {
 }
 
 // normalizeRalphFrontmatter is the Go port of the Python heredoc at
-// scripts/sp-pipeline.sh lines 1245-1300. It:
+// scripts/gp-pipeline.sh lines 1245-1300. It:
 //
 //  1. Parses the file's frontmatter.
 //  2. Strips any existing pipeline: block and any pipelineUrl: line.
@@ -249,7 +249,7 @@ func normalizeRalphFrontmatter(path string, stamp PipelineStamp) error {
 		{Role: "Refined", Model: stamp.RefineModel, Harness: stamp.RefineHarness},
 		{Role: "Scored", Model: stamp.JudgeModel, Harness: stamp.JudgeHarness + " + Tribunal"},
 		{Role: "Rewritten", Model: stamp.WriteModel, Harness: stamp.WriteHarness + " + Tribunal"},
-		{Role: "Orchestrated", Model: stamp.JudgeModel, Harness: "sp-pipeline + Tribunal"},
+		{Role: "Orchestrated", Model: stamp.JudgeModel, Harness: "gp-pipeline + Tribunal"},
 	}
 	f.SetNestedScalar("translatedBy", "pipeline", "")
 	f.SetBlock("  pipeline", renderPipelineBlock("  pipeline", entries))

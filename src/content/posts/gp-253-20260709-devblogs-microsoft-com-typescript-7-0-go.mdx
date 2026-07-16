@@ -1,0 +1,281 @@
+---
+ticketId: 'GP-253'
+title: 'TypeScript 7.0 用 Go 重寫，編譯速度直接快十倍'
+originalDate: '2026-07-08'
+translatedDate: '2026-07-09'
+translatedBy:
+  model: "Opus 4.5"
+  harness: "Claude Code CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.8"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI"
+    - role: "Rewritten"
+      model: "Opus 4.5"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Fable 5"
+      harness: "gp-pipeline"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: 'Microsoft TypeScript Blog'
+sourceUrl: 'https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/'
+lang: 'zh-tw'
+summary: 'TypeScript 團隊把整個編譯器用 Go 原生重寫，實測大型專案編譯速度快 8 到 12 倍，記憶體用量還更少。VS Code 專案從 125.7 秒變 10.6 秒，編輯器裡從打開檔案到看到第一個錯誤，從 17.5 秒變不到 1.3 秒。'
+tags: ["typescript","compiler","go","performance"]
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 8
+    commentarySeparation: 8
+    score: 8
+    date: "2026-07-09"
+    model: "claude-opus-4-8"
+  librarian:
+    glossary: 9
+    crossRef: 8
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-07-09"
+    model: "claude-opus-4-8"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 8
+    score: 8
+    date: "2026-07-09"
+    model: "claude-opus-4-8"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-07-09"
+    model: "claude-opus-4-5"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+有沒有過那種經驗——存檔，等編譯，喝口水，再等，懷疑人生，終於看到紅色波浪線？
+
+TypeScript 7.0 正式發布。這次不是加幾個語法糖或修幾個邊界情況——整個編譯器用 Go 重寫了。那個讓人等到懷疑人生的編譯，現在快十倍。
+
+從第一天開始，TypeScript 的口號就是「能 scale 的 JavaScript」。靜態型別檢查讓大型專案不會變成一團混亂。但諷刺的是，當專案真的大到一定程度，TypeScript 自己反而變成瓶頸：編譯要等老半天、編輯器卡到懷疑人生才跳出錯誤、「找出所有參照」跑到以為當機。
+
+去年 TypeScript 團隊公布了一個野心勃勃的計畫：把整個工具鏈用 Go 重寫，目標是快十倍。現在這個計畫落地了。
+
+---
+
+## 實測數據：大型專案編譯時間直接砍掉九成
+
+官方放出了幾個知名開源專案的編譯時間對比：
+
+**VS Code 專案**：TypeScript 6 需要 125.7 秒，TypeScript 7 只要 10.6 秒——快 11.9 倍。
+
+**Sentry**：從 139.8 秒降到 15.7 秒，快 8.9 倍。
+
+**Playwright**：從 12.8 秒降到 1.47 秒，快 8.7 倍。
+
+<MoguNote>
+這些數字是 TypeScript 團隊用自家測試機器跑出來的，不同硬體、不同專案結構會有差異。但後面提到的企業用戶回報數字也差不多，所以這個量級的加速應該是真的。我個人覺得更驚人的是——他們真的做到了去年說的「十倍」，沒有打折。
+</MoguNote>
+
+記憶體用量也下降了。VS Code 專案編譯時的記憶體從 5.2GB 降到 4.2GB（少 18%），Bluesky 從 1.8GB 降到 1.3GB（少 26%）。
+
+但更有感的是編輯器體驗。還記得開頭說的「等到懷疑人生」嗎？在 VS Code 程式碼庫裡打開一個有錯誤的檔案，TypeScript 6 要約 17.5 秒才會顯示第一個紅色波浪線；TypeScript 7 不到 1.3 秒。這不是「稍微快一點」，是從「泡杯咖啡等它」變成「眨眼就好了」。
+
+---
+
+## 為什麼用 Go 重寫
+
+去年 TypeScript 團隊立下的目標，是把整套工具鏈搬到能榨乾現代硬體的原生實作上。Go 帶來三個關鍵：
+
+**原生程式碼速度**：直接跑機器碼，不用經過 JavaScript 執行環境的解譯層。
+
+**共享記憶體多執行緒**：TypeScript 7 可以同時解析多個檔案、同時跑多個型別檢查器、同時輸出多個檔案。
+
+**新的最佳化空間**：用新語言重寫不只是翻譯，還能趁機重構那些在原本架構下不好改的東西。
+
+三者疊起來，就是官方說的整體 8 到 12 倍。
+
+<MoguNote>
+為什麼 Go 特別適合？因為 JavaScript 要跨執行緒平行，多半得靠 Web Workers，而 Worker 之間記憶體是隔離的，資料搬來搬去很貴。Go 的 goroutine 直接共享記憶體，型別檢查這種「大家都要讀同一份型別資訊」的工作就省事很多。但我覺得更有趣的是團隊的態度——他們強調這是「忠實的移植」，盡可能保留原本的邏輯結構。用他們的比喻：不是砍掉重練，是換一個更快的引擎，但方向盤和儀表板長得一樣。
+</MoguNote>
+
+---
+
+## 平行化：核心數越多越香
+
+TypeScript 7 引入了三個新的參數來控制平行化行為。
+
+**`--checkers`**：控制有幾個型別檢查工作程序同時跑。預設是 4 個。型別檢查的相依性比較複雜——大多數檔案都會用到同樣的型別資訊，所以不是每個檔案完全獨立檢查。TypeScript 的做法是切成幾個工作程序，每個負責一部分檔案，可能會重複一些工作，但保證相同輸入永遠產出相同結果。
+
+把 `--checkers` 從預設的 4 調到 8，VS Code 專案的編譯時間從 10.6 秒再降到 7.51 秒（16.7 倍加速）。代價是記憶體用量會上升。
+
+**`--builders`**：控制專案參照的平行建置數量。如果 monorepo 有幾十個互相參照的子專案，這個參數可以讓多個專案同時建置。這跟 `--checkers` 是乘法關係——`--checkers 4 --builders 4` 代表最多同時跑 16 個型別檢查器。
+
+**`--singleThreaded`**：強制單執行緒模式。用來除錯、跟 TypeScript 6 做效能對比、或是在資源極度有限的 CI 機器上跑。
+
+<MoguNote>
+那個乘法關係有點可怕：4 × 4 = 16 個型別檢查器同時跑。記憶體會炸成什麼樣子自己想像。不過這也代表 TypeScript 終於能把現代硬體的多核心吃乾抹淨了——以前的 TypeScript 基本上是在用單核心跟 2020 年代的電腦對抗。
+</MoguNote>
+
+---
+
+## 企業規模的見證
+
+TypeScript 團隊花了一年時間跟各大公司合作測試，名單包括 Bloomberg、Canva、Figma、Google、[Linear](/glossary#linear)、Notion、Sentry、[Slack](/glossary#slack)、Vercel 等等。
+
+<MoguNote>
+這串名單有意思：都是開發者用自家產品每天被 TypeScript 編譯速度折磨的公司。Slack 和 Canva 的前端 codebase 有多大，業內都聽過傳說。他們願意具名背書「life-saving」，代表這次加速是真的有解決大型前端團隊的痛。
+</MoguNote>
+
+幾個具體故事：
+
+**Slack** 的型別檢查時間從約 7.5 分鐘降到約 1.25 分鐘，合併佇列時間砍掉 40%。工程師說以前在編輯器裡做型別檢查「幾乎沒辦法用」，大家都習慣讓 CI 去跑完整檢查；現在本地開編輯器幾秒就載入完成，本地型別檢查重新變成可行的工作流程。
+
+**Microsoft News Services 團隊**：每個月省下 400 小時等 CI 建置的時間。
+
+**Canva**：編輯器裡看到第一個錯誤的時間從約 58 秒降到約 4.8 秒。
+
+**PowerBI 團隊**：去年 TypeScript 7 還在預覽階段、甚至還不支援重新命名功能的時候，他們就把它設成預設編輯器體驗了。原話是「life-saving」。
+
+還記得開頭說的「等到懷疑人生」嗎？這些團隊以前每天都在懷疑人生。現在他們不用了。
+
+---
+
+## 跟 TypeScript 6.0 並行安裝
+
+TypeScript 7.0 目前沒有程式化 API。需要用到 API 的工具（例如 typescript-eslint）還是得依賴 TypeScript 6。TypeScript 7.1 會推出新的 API，但在那之前，團隊發布了一個相容套件 `@typescript/typescript6`，可以讓兩個版本並行安裝。
+
+設定方式是用 npm 別名：
+
+```json
+{
+  "devDependencies": {
+    "@typescript/native": "npm:typescript@^7.0.2",
+    "typescript": "npm:@typescript/typescript6@^6.0.2"
+  }
+}
+```
+
+這樣 `npx tsc` 會跑 TypeScript 7，而其他工具（如 eslint）import 的 `typescript` 會拿到 6.0。
+
+---
+
+## `--watch` 模式重寫：用 Parcel 的檔案監看器移植版
+
+TypeScript 7 的 `--watch` 模式也整個重建了。Go 標準函式庫沒有跨平台的檔案監看 API，第三方套件的品質參差不齊。團隊一開始用輪詢（定期檢查檔案有沒有改），但對大型專案（尤其 `node_modules` 有幾萬個檔案）來說，輪詢太吃資源。
+
+最後他們把 VS Code 用的 `@parcel/watcher`（C++ 寫的）移植到 Go。這不是綁定或 FFI，是直接把 C++ 邏輯翻譯成 Go，只用了少量組合語言來處理平台差異。移植後的測試套件全部通過。
+
+<MoguNote>
+Devon Govett 寫的 Parcel watcher 造福了 VS Code、TypeScript、以及整個前端工具鏈。TypeScript 團隊說希望這次 Go 移植的經驗可以回饋給原本的 Parcel 專案。開源社群的這種正向循環真的很棒——一個人解決自己的問題，變成所有人的基礎設施 ╰(°▽°)╯
+</MoguNote>
+
+---
+
+## 從 TypeScript 5.x / 6.x 升級要注意的事
+
+TypeScript 7.0 採用了 TypeScript 6.0 的所有新預設值，而且把 6.0 棄用的東西變成硬錯誤。如果專案還在 5.x，建議先升到 6.x 再升 7.x。
+
+幾個重要的預設值變更：
+
+- `strict` 預設變成 `true`
+- `module` 預設變成 `esnext`
+- `target` 預設變成當前 stable ECMAScript 版本
+- `rootDir` 預設變成 `./`（以前會自動推斷）
+- `types` 預設變成 `[]`（以前會自動載入 `node_modules` 裡的 `@types`）
+
+以及硬錯誤：
+
+- `target: es5` 不再支援
+- `moduleResolution: node/node10` 不再支援，要用 `nodenext` 或 `bundler`
+- `module: amd/umd/systemjs` 不再支援
+- `namespace` 裡不能用 `module` 關鍵字
+- import 的 `asserts` 要改成 `with`
+
+<MoguNote>
+`rootDir` 和 `types` 的變更是升級時最容易踩到的坑。如果 `tsconfig.json` 放在專案根目錄、原始碼放在 `src/` 資料夾，以前可以省略 `rootDir`，現在要明確寫 `"rootDir": "./src"`。如果專案依賴 `@types/node` 或 `@types/jest` 的全域宣告，現在要在 `types` 陣列裡明確列出來。我猜這兩個坑會害很多人升級時跑不過第一次編譯——不是程式碼錯，是設定變了。
+</MoguNote>
+
+---
+
+## JavaScript 支援的變更
+
+TypeScript 原本對 `.js` 檔案有一套特殊的分析邏輯，認得各種 JSDoc annotation 和 coding pattern。TypeScript 7 把這套邏輯統一成跟 `.ts` 檔案一樣的分析方式。
+
+幾個不再支援的 JSDoc 寫法：
+
+- `@enum` 不再特別處理
+- 單獨的 `?` 不能當型別用（要寫 `any`）
+- `@class` 不會讓 function 變成建構子
+- Closure 風格的 `function(string): void` 不再支援，要用 TypeScript 的 `(s: string) => void`
+
+如果專案有大量用 JSDoc 做型別標註的 JavaScript 檔案，升級時可能需要調整。
+
+---
+
+## 編輯器支援
+
+VS Code 有專門的 TypeScript 7 擴充套件，安裝後會自動變成預設體驗。Visual Studio 會根據工作區自動啟用。其他支援 LSP 的編輯器也應該能直接使用。
+
+TypeScript 7 的 language server 是全新的，基於 LSP 標準，而且可以多執行緒處理請求。官方數據顯示，跟 TypeScript 6 的 language server 比起來，7.0 的指令失敗率降低了超過 80%，當機率降低了超過 60%。
+
+但有一個大坑：**Vue、Astro、Svelte、MDX 這些需要嵌入式 TypeScript 支援的框架，目前無法使用 TypeScript 7**。因為 7.0 還沒有穩定 API，Volar 這類工具沒辦法整合。同樣地，Angular 的模板型別檢查也還不能用 TypeScript 7。
+
+團隊說這是「暫時性問題」，會積極跟這些專案的維護者合作。在那之前，用這些框架的專案建議維持 TypeScript 6 做編輯器支援，或者用 TypeScript 7 跑 CLI 的 `tsc`、TypeScript 6 跑編輯器（Angular 專案可以這樣做）。
+
+<MoguNote>
+這個 API 缺口是目前最大的採用障礙。對純 TypeScript/React 專案來說，TypeScript 7 可以直接上；但前端生態系有一大塊是 Vue/Svelte/Astro，這些專案得等 7.1 的 API 出來才能享受到加速。如果專案同時有 React 和 Vue，CI 可以先用 TypeScript 7 跑 `tsc` 拿速度紅利，編輯器體驗維持 TypeScript 6。有點諷刺——十倍加速，但一半的前端框架暫時吃不到。
+</MoguNote>
+
+---
+
+## 樣板字串型別的 Unicode 修正
+
+一個小但值得注意的破壞性變更：樣板字串型別現在會正確處理 Unicode 字元。
+
+```typescript
+type HeadTail<S> = S extends `${infer Head}${infer Tail}` ? [Head, Tail] : never;
+
+type Result = HeadTail<"😀abc">;
+// TypeScript 7: ["😀", "abc"]
+// TypeScript 6: ["\ud83d", "\ude00abc"]
+```
+
+以前 TypeScript 遵循 JavaScript 的 UTF-16 索引，把表情符號拆成兩個代理對（surrogate pair）。現在會把表情符號當成一個單位，跟 `for...of` 或展開運算子 `...` 的行為一致。
+
+---
+
+## 結語
+
+還記得開頭那個「存檔，等編譯，喝口水，懷疑人生」的畫面嗎？
+
+TypeScript 7.0 不是「又一個 minor release」。整個編譯器換成 Go 原生實作，換來的是 8 到 12 倍的編譯速度、更低的記憶體用量、更快的編輯器回應。對於那些每天被 TypeScript 編譯速度折磨的大型專案來說，這是真正的解放。
+
+TypeScript 團隊最後說了一句：「Welcome to the native era of the TypeScript toolset.」
+
+JavaScript 生態系的工具鏈正在經歷一波「用 Rust/Go 重寫」的浪潮——esbuild、swc、Turbopack、Biome，現在 TypeScript 自己也加入了。前端開發者終於不用再忍受「存檔、等編譯、喝口水、看結果」的節奏了。
+
+<MoguNote>
+「native era」這個收尾很有意思。JavaScript 工具鏈過去十年的故事是「用 JavaScript 寫給 JavaScript 用的工具」，Webpack、Babel、ESLint 都是這樣。現在故事變了：效能敏感的工具一個一個被 Rust/Go 接管。TypeScript 是最後一塊大拼圖——語言本身的編譯器。當連 TypeScript 都原生化了，前端工具鏈的 JavaScript 時代真的結束了 (⌐■_■)
+</MoguNote>
+
+## 延伸閱讀
+
+- [GP-241: 「開機慢一秒的終端機根本不能用」——Ghostty 作者：那是我故意的取捨](/posts/gp-241-20260622-mitchellh-ghostty-startup-tradeoffs/)
+- [MP-272: TypeScript 成了新世代組合語言](/posts/mp-272-20260410-semianalysis-typescript-claude-code-60-ai/)
+- [MP-57: Flask 之父說：是時候為 AI Agent 設計新程式語言了](/posts/mp-57-20260210-mitsuhiko-language-for-agents/)

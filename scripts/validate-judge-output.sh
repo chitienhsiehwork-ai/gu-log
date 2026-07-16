@@ -97,7 +97,7 @@ case "$JUDGE" in
     ;;
   vibe|vibe-opus-scorer)
     validate_dim persona
-    validate_dim clawdNote
+    validate_dim moguNote
     validate_dim vibe
     # v9+: clarity left Vibe for Fresh Eyes — no longer required here.
     if [ "$VERSION" -lt 9 ]; then

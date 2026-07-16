@@ -144,12 +144,12 @@
 **Context**: `08-git-commit-format.pseudo.ts` Test Group C
 
 **Options**:
-- A) `tribunal/cp-280-slug` (簡潔)
-- B) `tribunal/2026-04-11-cp-280-slug` (時間序清楚)
-- C) `tribunal/cp-280-slug-r1` (retry suffix 明確)
+- A) `tribunal/mp-280-slug` (簡潔)
+- B) `tribunal/2026-04-11-mp-280-slug` (時間序清楚)
+- C) `tribunal/mp-280-slug-r1` (retry suffix 明確)
 
 **Answer**: **B (日期 prefix)** — CTO decided (2026-04-11)
-**Reason**: `tribunal/2026-04-11-cp-280-slug` — 文章多了以後 `git branch` 按時間排會很方便。Retry 時 force-push 到同個 branch（保留一個 canonical source of truth），不用 `-r1` suffix。
+**Reason**: `tribunal/2026-04-11-mp-280-slug` — 文章多了以後 `git branch` 按時間排會很方便。Retry 時 force-push 到同個 branch（保留一個 canonical source of truth），不用 `-r1` suffix。
 **Impl Notes**: Branch format: `tribunal/YYYY-MM-DD-<ticketId-lowercase>-<slug>`。Builder 寫 `generateBranchName()` helper。同一篇文章 re-run 直接 force-push，不另開 branch。
 
 ---

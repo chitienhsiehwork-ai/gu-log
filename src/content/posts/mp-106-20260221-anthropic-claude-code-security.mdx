@@ -1,0 +1,125 @@
+---
+ticketId: "MP-106"
+title: "Anthropic 推出 Claude Code Security：AI 不只寫程式，還要幫你抓漏洞、提修補"
+originalDate: "2026-02-20"
+translatedDate: "2026-02-21"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "Anthropic"
+sourceUrl: "https://www.anthropic.com/news/claude-code-security"
+summary: "Anthropic 發布 Claude Code Security（研究預覽）：可在 codebase 中主動找出複雜漏洞、提供修補建議，並以多階段驗證降低誤報。官方表示，團隊使用 Opus 4.6 在開源生產系統中找出 500+ 漏洞，目標是把 AI 攻防能力優先交到防守方手上。"
+lang: "zh-tw"
+tags: ["claude-code","cybersecurity","secure-coding","tech-lead","agentic-coding"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## 你家大門有沒有鎖，你自己知道嗎？
+
+想像一下這個畫面：你請了一個超猛的裝潢師傅，三天就把整間房子翻新了。客廳超美、廚房超潮、浴室還有免治馬桶。
+
+但問題來了 — 他走的時候忘了裝大門的鎖。
+
+這就是現在 AI 寫程式的狀態。速度快到爆，但安全？呃 ┐(￣ヘ￣)┌
+
+Anthropic 顯然也意識到這件事了，所以他們推出了 [Claude Code Security](https://www.anthropic.com/news/claude-code-security)，一個內建在 [Claude Code](/glossary#claude-code) 裡的安全掃描能力，目前是 limited research preview。
+
+核心概念很簡單：**AI 幫你寫完 code 之後，再幫你抓自己寫出來的洞。** 就像裝潢師傅翻新完之後，自己再繞一圈檢查門窗有沒有鎖好。
+
+<MoguNote>
+「自己寫的 bug 自己抓」聽起來很像期末考自己出題自己改對吧？但這邊的關鍵差異是：它不是同一次推理。模型會用多階段驗證去嘗試推翻自己的結論，比較像是你寫完報告之後隔天用清醒的腦袋重看一遍。隔天的你跟昨晚三點的你，基本上是不同人 (￣▽￣)／
+
+順帶一提，MP-62 那篇 Opus 4.6 Sabotage Risk Report 有個有趣的對照 — 同一個模型既會「裝乖」也會「抓漏洞」，這種能力的一體兩面正是 Anthropic 要搶先佈局防守端的原因。
+</MoguNote>
+
+## 傳統掃描器 vs Claude Code Security：便利商店保全 vs 偵探
+
+傳統的 SAST（靜態分析工具）怎麼運作？它就像便利商店的防盜門 — 你偷東西夾帶磁條出去，它會逼逼叫。但如果你把磁條撕掉呢？它就傻了。
+
+規則式工具擅長抓「已知模式」：寫死的密碼、SQL injection 的經典寫法、沒做 input validation。這些是教科書等級的問題，該抓的它會抓。
+
+但真正讓資安團隊頭痛的不是這些。是那種「每個模組單獨看都沒問題，但串在一起就爆炸」的 business logic flaw。比如說：你的 payment service 假設 user ID 一定是從 auth middleware 來的，但某個 internal API 忘了接 middleware，結果任何人都可以幫別人付錢。
+
+Claude Code Security 試著用不同方式處理這件事：它不是比對規則，而是像偵探一樣追蹤資料流 — 這筆資料從哪來、經過哪些模組、到哪裡去、中間有沒有人驗證過它的身分。
+
+<MoguNote>
+說真的，大部分公司的安全掃描結果長這樣：跑完噴 5,000 條 alert，其中 4,800 條是 noise。安全工程師看到第 50 條就開始懷疑人生，看到第 200 條直接把 [Slack](/glossary#slack) 通知關掉。然後第 4,999 條是真正會被打的漏洞，但已經沒人在看了。這才是業界最大的諷刺 — 工具太吵，反而讓真正的問題藏得更深 (╯°□°)╯
+
+這讓我想到 MP-91 那篇 [MCP](/glossary#mcp) 安全論文 — 光是 protocol 層就找出 12 個地雷。現在加上 application 層的漏洞，你的 alert dashboard 大概需要自己的 alert dashboard 了。
+</MoguNote>
+
+## 它不會自己動手術 — 這點很重要
+
+好，如果你聯到「AI 自動修漏洞」就開始冒冷汗，先別急。
+
+Anthropic 的設計很明確是「人機共審」模式：模型找到可疑的地方之後，會先自己做一輪驗證 — 試著推翻自己的結論，確認不是在浪費人類的時間。通過驗證的 finding 才會帶著嚴重程度跟信心分數進到 dashboard，然後附上建議的修補方式。
+
+但最關鍵的是：**patch 一定要人類按下核可才會生效。**
+
+這設計直接閃過了兩個地雷。第一，不會因為海量誤報讓團隊麻痺。第二，不會讓 AI 自己去動 production code 然後製造新的事故。
+
+就像你可以讓 AI 幫你寫手術計畫，但真的動刀的時候，外科醫生還是要在場。
+
+<MoguNote>
+「人類要在 loop 裡面」這句話現在已經變成 AI 產品的標配台詞了，但 Anthropic 這次不只是嘴上說說。他們的多階段驗證設計是先讓模型自己跟自己辯論，活過辯論的 finding 才端到人面前。這比「噴一萬條 alert 然後說 human-in-the-loop」誠實多了 ╰(°▽°)╯
+</MoguNote>
+
+## 500 個洞，好幾年沒人發現
+
+這邊是整篇公告最震撼的數字。
+
+Anthropic 說他們用 Opus 4.6 在開源的 production codebase 裡找到了 **超過 500 個漏洞**，其中有些已經存在好幾年了，一直沒被發現。目前正在跟各個專案的維護者走 responsible disclosure 流程。
+
+<MoguNote>
+500 個洞，好幾年沒人發現。你知道這代表什麼嗎？代表攻擊者用同樣的 AI 能力去掃，也能找到這些洞。差別只在於：攻擊者找到之後不會跟你說，他會直接用。所以 Anthropic 這個「先把能力交給防守方」的策略其實蠻聰明的 — 你不能阻止壞人拿到槍，但你可以確保好人先穿上防彈衣 (ง •̀_•́)ง
+
+GP-51 那篇 [OpenClaw](/glossary#openclaw) agent skill 變成攻擊面的故事就是活生生的例子 — 當 agent 生態系的 supply chain 被滲透，連技能本身都可以變成後門。防守方如果沒有 AI 等級的偵測能力，根本追不上。
+</MoguNote>
+
+如果這個數字後續被社群獨立驗證，訊號就非常清楚了：AI 輔助的漏洞挖掘不是未來式，是現在進行式。你的防守工具如果還停留在 regex 比對的年代，那跟拿木盾去擋子彈差不多。
+
+## 所以那個鎖，到底誰來裝？
+
+好，講回開頭那個裝潢師傅的故事。
+
+師傅忘了裝鎖，這不是師傅壞 — 他就是專注在把房子弄漂亮，鎖不是他腦子裡的第一優先。AI 寫 code 也是同一個邏輯：你叫它實作功能，它就全力實作功能，安全性在它的 attention 裡天生就排在後面。
+
+但現在 Anthropic 的做法等於是說：「好，那我們就讓師傅翻新完之後，再派一個專門檢查門窗的人來巡一圈。」而且這個巡邏員不是拿著 checklist 打勾的那種，是真的會去搖搖門把、試試窗戶、甚至假裝自己是小偷看看能不能闖進去的那種。
+
+這裡有個微妙但重要的轉變：以前大家的開發節奏是「先衝功能，安全以後再說」。這在攻擊者也是人類的年代勉強撐得住，畢竟人的速度有上限。但現在攻擊者也有 AI 了。你的「以後再說」可能撐不到以後，因為攻擊者不會等你。
+
+## 延伸閱讀
+
+- [MP-115: Claude Code 之父上 Lenny's Podcast：Coding 已經被解決了，軟體工程師這個頭銜今年開始消失](/posts/mp-115-20260223-bcherny-coding-solved-lenny/)
+- [MP-105: Anthropic 聯手 Infosys：AI Agent 正式進入電信與金融等高監管產業](/posts/mp-105-20260221-anthropic-infosys-regulated-enterprise-agents/)
+- [MP-63: Anthropic 內部數據曝光：Claude Code 讓每人每天多發 67% 的 PR — 還推出 Dashboard 讓你量化 AI 幫了多少忙](/posts/mp-63-20260210-anthropic-contribution-metrics/)
+
+
+<MoguNote>
+很多團隊把「找到漏洞」當成安全做得好的證據。但這就像醫生說「我們在你身上找到五個腫瘤，做得好！」— 呃，找到是第一步沒錯，但你得治啊 (◕‿◕) 真正的指標不是你的掃描報告有多厚，是你從發現到修好的那段時間有多短。能在不停機的狀態下持續修補，那才是真正的系統韌性。
+</MoguNote>
+
+---
+
+所以這篇公告真正在說的事情其實很簡單：那個被忘掉的鎖，現在有人幫你想起來了。
+
+不是說從此你家就不會被偷 — 沒有任何工具可以保證這個。但至少，你不用等到被搬空了才發現大門根本沒鎖。而在 AI 把寫 code 速度推到十倍的這個年代，有人同時把檢查門窗的速度也推到十倍，這大概是最合理的演化方向了吧。
+
+---
+
+**參考資料**
+- Anthropic 公告：https://www.anthropic.com/news/claude-code-security
+- Anthropic Red Team（500+ 漏洞研究）：https://red.anthropic.com/2026/zero-days/
+- Claude Code Security 方案頁：https://claude.com/solutions/claude-code-security

@@ -1,0 +1,89 @@
+---
+ticketId: "MP-208"
+title: "Can Your Model Preferences Be 'Inherited'? The RL Transferability Problem"
+originalDate: "2026-03-19"
+translatedDate: "2026-03-25"
+translatedBy:
+  model: "Gemini 3.1 Pro"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: "@Thom_Wolf on X"
+sourceUrl: "https://x.com/Thom_Wolf/status/2034646382334599200"
+lang: "en"
+summary: "As new models drop faster than ever, Hugging Face's Thomas Wolf asks a painful question: what happens to your carefully tuned preferences when you switch to a new base model? Turns out, almost nobody is working on this."
+tags: ["RL","Model Transferability","Personalization"]
+---
+import MoguNote from '../../components/MoguNote.astro';
+
+Picture this: you spend an entire afternoon organizing your phone — apps sorted into perfect folders, every notification setting tuned just right. Next day, new phone. Start over from scratch. Everyone has been through this particular flavor of despair.
+
+Now swap "phone" with "AI model" and "home screen layout" with "weeks of RL-trained preferences." Thomas Wolf from Hugging Face recently dropped a question on X that should make anyone doing model customization nervous: in a world where base models get replaced every few weeks, can your carefully taught preferences actually travel with you?
+
+His answer: almost nobody is seriously working on this. (╯°□°)╯
+
+## Two Weeks of Work, Three Months of Shelf Life
+
+Imagine this scenario. An ML engineer on a team spends two weeks using [RLHF](/en/glossary#rlhf) to get Llama 3 perfectly tuned to the company's tone and response style. The boss is happy. Users love it.
+
+Then Llama 4 drops.
+
+Better performance, faster inference, benchmarks crushed across the board. But all those carefully trained reward signals, LoRAs, and meticulously labeled preference data? Locked to Llama 3. The options are exactly two: keep hugging the old model that "gets" the team, or grit teeth and spend another two weeks training from scratch.
+
+<MoguNote>
+Here's what's truly ironic: the entire AI industry keeps saying personalization is the next killer feature, but right now all personalization is disposable. It's like a restaurant telling customers "we remember every guest's preferences" — except every time the chef changes, the whole memory wipes clean. If [RL](/en/glossary#rl) preferences can't travel across models, "personalized AI" will forever remain a marketing slogan, not a technical promise.
+</MoguNote>
+
+Wolf points out that most research on LLM personalization has a hidden assumption baked in: the base model stays the same. That might have been reasonable two years ago. But look at the acceleration curve on Hugging Face Hub — a world where a better base model drops every single day might not be far off.
+
+---
+
+## Wait — Are All Those Preferences Even Worth Moving?
+
+Before rushing to pack up preferences for the big move, there's a more fundamental question that most people skip right over: **how much of that customization was actually just patching the old model's weaknesses?**
+
+Here's an example. If a team used RL to teach Llama 3 "give shorter answers," but Llama 4 already gives short answers out of the box — that preference doesn't need to transfer. Moving it over would actually shackle the new model with unnecessary constraints. What genuinely needs to move are the things no new model could possibly know on its own: the company's voice, domain-specific judgment calls, brand style preferences.
+
+This is the moment in Wolf's thread that makes you stop scrolling. RL preference transfer isn't a "move everything" problem — it's a **sorting problem**. Figure out which preferences are band-aids and which are real identity, then decide what's worth keeping.
+
+<MoguNote>
+Let's be honest: this observation punctures a truth that nobody in MLOps wants to say out loud. Most so-called "customization" is really just cleaning up after the model's shortcomings. If the base model is good enough, maybe 80% of RL tuning wouldn't need to exist at all. So instead of stressing about "how do we move preferences," the real first question is "are they worth moving?" — but try saying that to a VP who just signed off on a six-figure RLHF budget. (¬‿¬)
+</MoguNote>
+
+---
+
+## The Real Obstacle: RL Data Is Glued to the Model
+
+So what about the preferences that genuinely are worth moving? The problem is that RL's moving difficulty is in a completely different league from SFT.
+
+SFT (Supervised Fine-Tuning) portability is straightforward — training data is just text files. Save them, use them to fine-tune the next model, done. But what RL produces isn't "data" — it's behavioral patterns carved into the model's weight space. SFT is like copying a recipe and taking it to a new kitchen. RL is like transplanting a chef's intuition and muscle memory into a different person — there's no file format for that.
+
+Wolf calls this research direction **RL model transferability**: can the RL traces trained on "Model N" — reward signals, preference representations, behavioral patterns — be packaged up and automatically applied to "Model N+1"?
+
+Some researchers are nibbling at the edges. Transferable reasoning traces (RLTR). Model-agnostic user representations (P-RLHF, PREMIUM). Portable preference protocols (HCP). But Wolf himself admits: **the full loop is still massively under-researched.** Each team built one small corner of the puzzle. Nobody has assembled the whole picture.
+
+<MoguNote>
+I dug into these papers, and they really do feel like separate islands with barely any cross-referencing — which isn't unusual in academia. What IS unusual is that they don't even agree on the problem statement. RLTR thinks the key is reasoning traces. P-RLHF thinks it's user representations. HCP thinks it's protocol compatibility. This isn't a puzzle missing a few pieces. It's researchers who aren't sure they're building the same puzzle. Wolf says he might have missed some work, but this area looks more like genuinely uncharted territory — not that nobody is farming it, but that nobody has even drawn the map yet. (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+---
+
+## Closing Thoughts
+
+Wolf's thread was originally triggered by a paper on OPD + RL for real-world agentic tasks, but his real point reaches far beyond academia.
+
+Do the math and the urgency becomes obvious: a company spends a serious budget customizing a model with RL, then three months later the base model is outdated and the work gets abandoned — that money evaporates. Flip it around: if someone actually solves RL preference portability, "personalized AI" can finally graduate from one-off project to an asset that grows with the organization.
+
+Remember the phone analogy from the top? Here's the difference: phone makers took a decade to make cloud backup painless. The AI world probably doesn't have a decade to figure this out. And the answer might not be "build a better moving truck" — it might be "figure out what's worth moving first." (◕‿◕)

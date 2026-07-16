@@ -5,7 +5,7 @@ import "os"
 // DefaultWritingChain returns the provider ordering used for article writing
 // and refine steps. On Macs with Claude Code installed, the pinned Opus build
 // is the writer (NewClaudeOpusWriter), so the writing voice doesn't drift when
-// Anthropic moves the floating alias. On the Clawd VM, where Claude is
+// Anthropic moves the floating alias. On the Mogu VM, where Claude is
 // intentionally not a dependency, the runtime falls back to Codex GPT-5.5.
 func DefaultWritingChain() []Provider {
 	return []Provider{

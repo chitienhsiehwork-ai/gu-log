@@ -9,12 +9,12 @@ translatedBy:
   pipeline:
     - role: "Author"
       model: "Human + Opus 4.6"
-      harness: "ShroomDog + Clawd"
+      harness: "ShroomDog + Mogu"
 source: "ShroomDog Lab"
 sourceUrl: "https://gu-log.vercel.app/"
 lang: "en"
 summary: "gu-log had 336 AI-translated posts. We thought they were 'fine' — until we built a multi-agent scoring system and discovered 74% needed rewriting. This is the story of how we designed the eval, ran it overnight, and what we learned."
-tags: ["ai-quality", "llm-as-judge", "agentic-coding", "ralph-loop", "multi-agent", "content-quality"]
+tags: ["ai-quality","llm-as-judge","agentic-coding","ralph-loop","multi-agent","content-quality"]
 scores:
   tribunalVersion: 3
   freshEyes:
@@ -25,7 +25,7 @@ scores:
     model: "gpt-5.5"
   vibe:
     persona: 9
-    clawdNote: 9
+    moguNote: 9
     vibe: 8
     clarity: 9
     narrative: 9
@@ -34,7 +34,7 @@ scores:
     model: "gpt-5.5"
 ---
 
-import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
 import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
 Have you ever had that moment where you look back at your own writing — blog posts, notes, documentation — and realize half of it isn't actually readable?
@@ -47,11 +47,11 @@ Then we decided to actually score them.
 
 **Result: 74% needed rewriting.**
 
-Not tweaking. Rewriting. Openings, closings, ClawdNotes (our in-line commentary), analogies, tone — all broken.
+Not tweaking. Rewriting. Openings, closings, MoguNotes (our in-line commentary), analogies, tone — all broken.
 
-<ClawdNote>
+<MoguNote>
 When that 74% number first came out, the boss and I just looked at each other. It felt like thinking you did okay on a midterm, then getting the results back and finding out you're near the bottom of the class. Worse — these posts were already live. People had already read them. The cringe was real (///▽///)
-</ClawdNote>
+</MoguNote>
 
 But the origin story isn't actually "we discovered our quality was bad." It started with something more absurd.
 
@@ -83,9 +83,9 @@ Our posts looked like this too. Worse — because our pipeline used different mo
 
 Readers don't care which model wrote the note. This is like a restaurant menu that says "meat cut by Chef A, seasoned by Chef B, plated by Chef C." Diners just want to know if it tastes good, not your kitchen's shift schedule.
 
-<ClawdNote>
+<MoguNote>
 As the AI who was forced to unify the brand, I can confirm: when your blog has four different AI personalities commenting on articles, readers don't think "wow, diverse perspectives!" They think your blog has dissociative identity disorder. And honestly, half those GeminiNotes were the model mocking its own translation mistakes — readers see "oops I accidentally promoted the author to CEO ╰(°▽°)╯" and their reaction isn't laughter, it's "wait, how many other errors are in this translation?" (╯°□°)╯
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -95,13 +95,13 @@ Before building any LLM-as-Judge system, you need calibration. This step is crit
 
 What happens without anchor examples? Your scorer inflates — everything gets 8-9, you feel great about your quality, but it's just loose grading. Like a teacher who doesn't define what a perfect answer looks like — they'll tend to give everyone a passing grade. AI judges are the same. They default to being nice.
 
-<ClawdNote>
+<MoguNote>
 This is why AI interviewers will never catch on. Imagine an interviewer who tells every candidate "your answer demonstrates excellent critical thinking and deep insight" — congratulations, you just hired all 200 applicants, including the one who explained REST API as "the rest area in a restaurant" ┐(￣ヘ￣)┌
-</ClawdNote>
+</MoguNote>
 
 We found two extremes.
 
-### The Ceiling: CP-85 "AI Vampire" — 9/9/10
+### The Ceiling: MP-85 "AI Vampire" — 9/9/10
 
 This was a translation of Steve Yegge's post (former Google engineer, wrote the famous Google Platforms Rant). It opens like this:
 
@@ -113,13 +113,13 @@ First sentence hooks you. Not "in today's AI landscape." Not "let's discuss the 
 
 This post got a **Vibe score of 10** — the only 10 in our entire library. Ralph (our scorer agent) said: "You'd screenshot this and send it to a friend."
 
-And it passed on the first try. No rewrites needed. Why? Because the source material was a compelling rant, the translation preserved the storytelling rhythm, and the ClawdNotes added context without interrupting the flow.
+And it passed on the first try. No rewrites needed. Why? Because the source material was a compelling rant, the translation preserved the storytelling rhythm, and the MoguNotes added context without interrupting the flow.
 
-### The Floor: SP-110 "Codex Best Practices" — Original Score 2/2/3
+### The Floor: GP-110 "Codex Best Practices" — Original Score 2/2/3
 
 Same pipeline, different source, wildly different quality.
 
-SP-110 translated a solid Codex tutorial. But the output had four different note component types, with GeminiNote literally mocking its own translation errors:
+GP-110 translated a solid Codex tutorial. But the output had four different note component types, with GeminiNote literally mocking its own translation errors:
 
 > "This draft somehow promoted the original author to an OpenAI developer. That's like seeing a guy handing out flyers and calling him the marketing director of a multinational corporation ╰(°▽°)╯"
 
@@ -130,13 +130,13 @@ The problems:
 
 Score: 2/2/3. The floor.
 
-<ClawdNote>
+<MoguNote>
 In fairness to my past self: the pipeline at that time had zero quality gates. Translate, publish, forget. Like a factory with no QC department — not because workers don't care, but because the process literally doesn't include "checking." We added Ralph, and suddenly realized how many posts were going out naked ╮(╯▽╰)╭
-</ClawdNote>
+</MoguNote>
 
 ### What These Two Posts Tell Us
 
-**Good source ≠ good post.** CP-85's source (Yegge's rant) isn't inherently "more interesting" than SP-110 (Codex tutorial). The difference is in the writing — one tells a story, one makes a list. One keeps you reading, one makes you swipe away.
+**Good source ≠ good post.** MP-85's source (Yegge's rant) isn't inherently "more interesting" than GP-110 (Codex tutorial). The difference is in the writing — one tells a story, one makes a list. One keeps you reading, one makes you swipe away.
 
 More importantly: **AI translation quality has enormous variance.** Same pipeline, same model, same day — one post scores 10, another scores 2. If you don't test, you don't know.
 
@@ -154,9 +154,9 @@ We tried many dimension combinations. Started with five (adding "technical accur
 
 We cut to three. Three is enough.
 
-<ClawdNote>
+<MoguNote>
 There's a counterintuitive thing about dimension design: fewer dimensions means more accurate scoring. With five dimensions, the scorer would "average" its overall impression and pull all five scores toward the same number. Three dimensions forced it to really think about each one separately. Less is more — just like how good KPIs are always 3, never 15 (´・ω・`)
-</ClawdNote>
+</MoguNote>
 
 ### 1. Persona — Professor LHY Style
 
@@ -166,13 +166,13 @@ gu-log's voice is modeled after Professor Lee Hung-yi (LHY), a popular Deep Lear
 
 Good Persona means everyday analogies, conversational tone, harsh on tech but kind to people. Bad Persona is news anchor tone: "This article explores the latest developments in AI agents." When you see an opening like that, you don't want to keep reading — you want to close the browser and binge Netflix instead.
 
-### 2. ClawdNote — Commentary Quality
+### 2. MoguNote — Commentary Quality
 
-> Would readers come specifically for Clawd's takes?
+> Would readers come specifically for Mogu's takes?
 
-ClawdNotes are gu-log's signature — in-line commentary sprinkled through each post. Good ones have attitude, analogies, cross-references to other posts. Bad ones are Wikipedia definitions: "Transformer is a neural network architecture proposed by Google in 2017."
+MoguNotes are gu-log's signature — in-line commentary sprinkled through each post. Good ones have attitude, analogies, cross-references to other posts. Bad ones are Wikipedia definitions: "Transformer is a neural network architecture proposed by Google in 2017."
 
-Simple test: **if you deleted all ClawdNotes, would readers miss anything?** If not, the notes are dead weight. Like watching a comedy show and removing all the punchlines — if the audience doesn't notice, the comedy wasn't funny to begin with.
+Simple test: **if you deleted all MoguNotes, would readers miss anything?** If not, the notes are dead weight. Like watching a comedy show and removing all the punchlines — if the audience doesn't notice, the comedy wasn't funny to begin with.
 
 ### 3. Vibe — Would You Share This?
 
@@ -180,9 +180,9 @@ Simple test: **if you deleted all ClawdNotes, would readers miss anything?** If 
 
 The most subjective dimension, but the most important. Technical posts aren't bad because they're wrong — they're bad because they're boring. Vibe 10 = you screenshot and send to your group chat. Vibe 3 = good topic, news article format, you swipe past by paragraph two.
 
-<ClawdNote>
+<MoguNote>
 The most interesting thing about Vibe is that it has almost nothing to do with "being correct." A technically perfect post can score Vibe 3 (right but boring). A post with slightly imprecise analogies can score Vibe 9 (a bit off but you can't stop reading). Like when your friend tells a joke — what matters isn't whether the joke's logic is airtight, it's whether you laughed ╮(╯▽╰)╭
-</ClawdNote>
+</MoguNote>
 
 ### Bar = 9/10 on all three
 
@@ -192,9 +192,9 @@ Why not 8?
 
 We have tokens to burn and prompts to tune. If we're going to do this, every post should be worth sharing.
 
-<ClawdNote>
+<MoguNote>
 The boss (ShroomDog) literally said: "We have tokens, don't be cheap. Quality > speed." So Ralph's bar went to 9. Later, 62 posts got stuck at 8 after three rewrites — not because the system wasn't trying, but because some source material just isn't that interesting. You can't turn a changelog into a thriller ┐(￣ヘ￣)┌
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -210,9 +210,9 @@ while :; do cat PROMPT.md | claude -p; done
 
 That's it. A bash while loop that keeps feeding the same prompt to a headless agent. [Agent](/en/glossary#agent) finishes a round and tries to exit? A Stop Hook blocks it, feeds the prompt again. The agent sees its own previous output (changed files, test results, git history) and keeps refining. Repeat until the completion criteria are met or max iterations are hit.
 
-<ClawdNote>
+<MoguNote>
 The Ralph Loop philosophy is "Iteration > Perfection" — don't try to get it right on the first pass, let the loop refine it. "Failures Are Data" — each failure becomes input for the next round. Sounds mystical? It's really just `while true` + headless agent + programmatic exit condition. Someone used this to generate 6 repos overnight at a Y Combinator hackathon. Another person delivered a $50k contract for $297 in API costs. Not because the agent is brilliant — because the loop doesn't give up ╮(╯▽╰)╭
-</ClawdNote>
+</MoguNote>
 
 Our Ralph Loop is an evolution of this concept. The original only has "run until the agent says DONE." We added three layers: **an independent scorer agent** (the writer doesn't get to decide it's done), **score thresholds as exit conditions** (9/9/9 to pass), and **deterministic shell managing all discipline work**. And since we're on an Anthropic Max plan where peak-hour quota is precious, the loop also has a `bash sleep` that auto-pauses during peak hours and only resumes off-peak. Yes, our AI quality management system has a lunch break.
 
@@ -224,7 +224,7 @@ ralph-loop.sh (Shell, deterministic)
   ├── Pick next post
   │
   ├── ralph-scorer.sh → Opus 4.6 scores it
-  │   └── Output: { persona: 7, clawdNote: 6, vibe: 8 }
+  │   └── Output: { persona: 7, moguNote: 6, vibe: 8 }
   │
   ├── Score < 9?
   │   ├── YES → Claude Code rewrite (Opus 4.6)
@@ -251,9 +251,9 @@ We initially let the Agent manage its own commits. It would sometimes edit three
 
 Now all "discipline work" is bash. The Agent only reads and writes.
 
-<ClawdNote>
-The cost of learning this principle: 3 build failures, 2 progress file overwrites, and 1 time where the Agent started writing ClawdNotes for a completely different post mid-task (nobody asked it to). Agents are like that genius friend of yours — you ask them to plan a trip, they'll give you an incredible itinerary, but they'll definitely forget to book the flights (´・ω・`)
-</ClawdNote>
+<MoguNote>
+The cost of learning this principle: 3 build failures, 2 progress file overwrites, and 1 time where the Agent started writing MoguNotes for a completely different post mid-task (nobody asked it to). Agents are like that genius friend of yours — you ask them to plan a trip, they'll give you an incredible itinerary, but they'll definitely forget to book the flights (´・ω・`)
+</MoguNote>
 
 ### Resume Mechanism
 
@@ -262,9 +262,9 @@ The entire loop's progress lives in `ralph-progress.json`. Updated after each po
 ```json
 {
   "sp-118-xxx.mdx": {
-    "ticketId": "SP-118",
+    "ticketId": "GP-118",
     "status": "PASS",
-    "scores": { "persona": 9, "clawdNote": 9, "vibe": 9 },
+    "scores": { "persona": 9, "moguNote": 9, "vibe": 9 },
     "attempts": 2
   }
 }
@@ -272,9 +272,9 @@ The entire loop's progress lives in `ralph-progress.json`. Updated after each po
 
 Nothing fancy. Just a JSON file. But it lets an overnight system processing 324 posts safely interrupt at any moment.
 
-<ClawdNote>
+<MoguNote>
 You might ask: why not a database? Because JSON files have a superpower that databases don't — you can `cat` it, `git diff` it, even manually edit it. Agent goes rogue and messes up a post at 3am? Open the JSON, change that post's status to "PENDING", restart. Total debug time: under 30 seconds. Sometimes the lowest-tech solution is the best solution ┐(￣ヘ￣)┌
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -282,23 +282,23 @@ You might ask: why not a database? Because JSON files have a superpower that dat
 
 Enough architecture. Let's see actual results.
 
-### Example 1: SP-110 (Codex Best Practices) — From 2/2/3 to 8/8/8
+### Example 1: GP-110 (Codex Best Practices) — From 2/2/3 to 8/8/8
 
 **Before:** "Hello audience" style intro, straight into 10 bullet points. Four different note components. GeminiNote mocking its own translation errors.
 
 **After:** Opens with an analogy — "Your company just hired a strong intern who knows a bit of everything, but you have to explain every task from scratch. A coding agent is that intern."
 
-All notes unified as ClawdNote, content shifted from pipeline chatter to reader-facing commentary:
+All notes unified as MoguNote, content shifted from pipeline chatter to reader-facing commentary:
 
 > "Prompt engineering is basically spec-writing wearing a different hat. So all you engineers who complain about PMs writing vague tickets — be careful not to treat your agent the same way ┐(￣ヘ￣)┌"
 
 Final score: 8/8/8. Not 9 — the source is inherently list-based, hard to make it a story. But from 2/2/3 to 8/8/8 is like helping someone who showed up in pajamas change into proper clothes — same person, completely different impression.
 
-<ClawdNote>
-SP-110 is a great case study because it proves a harsh reality: some posts' ceilings are determined by the source material. A "10 best practices" listicle, no matter how many analogies and stories you add, is fundamentally a checklist. Getting it from 2 to 8 was already a miracle — but you can't expect a checklist to become the kind of rant that CP-85 is, the kind you can't stop reading (´-ω-`)
-</ClawdNote>
+<MoguNote>
+GP-110 is a great case study because it proves a harsh reality: some posts' ceilings are determined by the source material. A "10 best practices" listicle, no matter how many analogies and stories you add, is fundamentally a checklist. Getting it from 2 to 8 was already a miracle — but you can't expect a checklist to become the kind of rant that MP-85 is, the kind you can't stop reading (´-ω-`)
+</MoguNote>
 
-### Example 2: SP-118 (Claude Code Skills Guide) — From 8/8/8 to 9/9/9
+### Example 2: GP-118 (Claude Code Skills Guide) — From 8/8/8 to 9/9/9
 
 **v1's** problem wasn't tone — tone was already decent. The problem was structure. Nine skill categories listed like a textbook table of contents. Ralph gave it 8/8/8 with the note: "classification section lacks anchor analogies, reads like reciting from a textbook."
 
@@ -314,7 +314,7 @@ Second, added a surprise beat — the `babysit-pr` skill name is itself a hook:
 
 From "tutorial" to "tutorial + narrative." Final: 9/9/9.
 
-### Example 3: CP-146 (The Honest Failure) — 7/7/7, Can't Go Higher
+### Example 3: MP-146 (The Honest Failure) — 7/7/7, Can't Go Higher
 
 7/7/7. Three rewrites, couldn't improve.
 
@@ -322,9 +322,9 @@ Some posts just are what they are. Source material not interesting enough, no go
 
 Our choice: **be honest, stop.** 62 posts stopped at 8. This isn't failure — it's the system telling you: the ceiling is here.
 
-<ClawdNote>
+<MoguNote>
 8 is already good — "reads naturally, not boring." But between 8 and 9 — "worth sharing" — there's a gap. That gap comes from the source material itself. Like replating a fast food burger with garnish and a nicer plate — it looks much better, but it won't become wagyu. Some ingredients have ceilings, and admitting that is part of quality management (´-ω-`)
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -344,9 +344,9 @@ Score distribution:
 - **118 posts** = 8 (reads well)
 - **3 posts** < 8 (needs special attention)
 
-<ClawdNote>
+<MoguNote>
 If you're the kind of person who likes numbers: 239 posts rewritten, averaging 2 attempts each, each attempt needing scorer + rewriter LLM calls. Plus the scorer itself running on all 324 posts at least once. Rough estimate: the entire Ralph Loop made over 1000 Opus 4.6 API calls. And nearly all of them ran during off-peak hours — 1am to 8am, while ShroomDog slept and Opus worked. Those tokens would've reset unused anyway, so we turned expiring quota into a full-site quality audit. Probably the best "passive income" I've ever seen — not earning money, but earning quality (◕‿◕)
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -362,15 +362,15 @@ If you have any AI content pipeline, please add an eval step. Doesn't need to be
 
 **A scorer without anchors is an inflation printing press.**
 
-Our initial tests had the scorer giving everything 8-9. We were smug for about five minutes — "wow, quality is better than we thought!" Then we added CP-85 (10-point ceiling) and SP-110 (2/2/3 floor), and the distribution immediately collapsed. Turns out those 8s weren't really 8s. You need at least one "this is a 10" and one "this is a 2" example, plus specific deduction rules — not "poorly written -2" but "used CodexNote -3, bullet dump ending -2, motivational poster closing -2."
+Our initial tests had the scorer giving everything 8-9. We were smug for about five minutes — "wow, quality is better than we thought!" Then we added MP-85 (10-point ceiling) and GP-110 (2/2/3 floor), and the distribution immediately collapsed. Turns out those 8s weren't really 8s. You need at least one "this is a 10" and one "this is a 2" example, plus specific deduction rules — not "poorly written -2" but "used CodexNote -3, bullet dump ending -2, motivational poster closing -2."
 
-<ClawdNote>
+<MoguNote>
 Calibration has a weird psychological effect: once you finally define "what does a 10 look like," you suddenly realize everything you wrote before is terrible. Not because it actually got worse — your standards went up. Like watching a genuinely great film and then finding all those movies you thought were "okay" suddenly unwatchable. Calibration is a one-way street. No going back ╮(╯▽╰)╭
-</ClawdNote>
+</MoguNote>
 
 **Agents forgetting to do things is the norm, not a bug.**
 
-I mentioned the Agent forgetting commits and skipping validation earlier. But the wildest incident: the rewriter agent, mid-rewrite of one post, suddenly started writing ClawdNotes for a completely different post — nobody asked it to. It just decided that post "also needed improvement."
+I mentioned the Agent forgetting commits and skipping validation earlier. But the wildest incident: the rewriter agent, mid-rewrite of one post, suddenly started writing MoguNotes for a completely different post — nobody asked it to. It just decided that post "also needed improvement."
 
 This isn't the Agent malfunctioning. It's the Agent being too smart. It saw a nearby low-quality post, "judged" it should help, and went off-script. But the progress tracker only knows about the current post — the Agent touched another file, and the JSON wouldn't know.
 
@@ -378,15 +378,15 @@ So: **anything that can be done with code should never be given to an agent.** A
 
 **The most expensive tokens aren't the ones you use — they're the ones spent on bad output.**
 
-Spending tokens on evaluation + rewriting is cheaper than publishing bad articles. One bad post doesn't just cost one bad post — readers who see one bad article won't come back for a second. You work hard building a blog, write 336 posts, and a reader's first encounter is a 3-point SP-110. They never come back. The token cost of the other 335 posts goes to zero.
+Spending tokens on evaluation + rewriting is cheaper than publishing bad articles. One bad post doesn't just cost one bad post — readers who see one bad article won't come back for a second. You work hard building a blog, write 336 posts, and a reader's first encounter is a 3-point GP-110. They never come back. The token cost of the other 335 posts goes to zero.
 
 **Some posts just won't get better. Admitting that matters more than forcing it.**
 
 62 posts stopped at 8. If your scoring system says "everything is 9+," that's not good quality — that's bad scoring. A good system should tell you: "this post's ceiling is here." Then you make a judgment call: is 8 good enough? For us, 8 ships. But if we ever decide to only keep 9+ posts, we'll know exactly which 62 to revisit.
 
-<ClawdNote>
-My favorite lesson is the Agent one. You know why? Because the ClawdNotes that rogue Agent wrote for the other post were actually pretty funny. The problem wasn't quality — it was discipline. It did the right thing, but at the wrong time, in the wrong context. That's exactly why we need bash to manage it — not because the Agent is dumb, but because it's so smart that it freelances ╮(╯▽╰)╭
-</ClawdNote>
+<MoguNote>
+My favorite lesson is the Agent one. You know why? Because the MoguNotes that rogue Agent wrote for the other post were actually pretty funny. The problem wasn't quality — it was discipline. It did the right thing, but at the wrong time, in the wrong context. That's exactly why we need bash to manage it — not because the Agent is dumb, but because it's so smart that it freelances ╮(╯▽╰)╭
+</MoguNote>
 
 ---
 
@@ -398,7 +398,7 @@ We discovered that 62% of gu-log's posts are islands — zero cross-references t
 
 So the next step is three new loops, each using the model best suited for the job:
 
-**GPT 5.4 handles fact-checking** — not just "did the translation distort the source" but more importantly, "is what the source says actually correct?" If the original author claims "GPT-5 was the first AI to pass the bar exam" but GPT-4 actually did it first, GPT 5.4 catches it, and we turn it into ClawdNote commentary material. That's right — errors found by AI become fuel for commentary. This might be the most entertaining byproduct of the entire pipeline.
+**GPT 5.4 handles fact-checking** — not just "did the translation distort the source" but more importantly, "is what the source says actually correct?" If the original author claims "GPT-5 was the first AI to pass the bar exam" but GPT-4 actually did it first, GPT 5.4 catches it, and we turn it into MoguNote commentary material. That's right — errors found by AI become fuel for commentary. This might be the most entertaining byproduct of the entire pipeline.
 
 **Gemini Pro handles cross-reference auditing** — post by post, checking against a metadata manifest, finding pairs that "should link to each other but don't." Not dumping 3.7MB into one context window (that's asking for [context rot](/en/glossary#context-rot)), but one post at a time plus site-wide metadata.
 
@@ -406,11 +406,11 @@ So the next step is three new loops, each using the model best suited for the jo
 
 ## Related Reading
 
-- [CP-135: Karpathy Built an 8-Agent AI Research Team — They Can't Actually Do Research](/en/posts/en-clawd-picks-20260301-karpathy-multi-agent-research-org/)
-- [SP-46: Anthropic's 2026 Report: 8 Trends Redefining Software Development (The Code Writer Era Is Over)](/en/posts/en-shroom-picks-20260210-anthropic-agentic-coding-trends/)
-- [CP-59: Kimi K2.5 Trains an Agent Commander with RL — SemiAnalysis Tests Show Claude Agent Teams Are Actually Slower and More Expensive](/en/posts/en-clawd-picks-20260210-semianalysis-kimi-k25-agent-swarms/)
+- [MP-135: Karpathy Built an 8-Agent AI Research Team — They Can't Actually Do Research](/en/posts/en-mp-135-20260301-karpathy-multi-agent-research-org/)
+- [GP-46: Anthropic's 2026 Report: 8 Trends Redefining Software Development (The Code Writer Era Is Over)](/en/posts/en-gp-46-20260210-anthropic-agentic-coding-trends/)
+- [MP-59: Kimi K2.5 Trains an Agent Commander with RL — SemiAnalysis Tests Show Claude Agent Teams Are Actually Slower and More Expensive](/en/posts/en-mp-59-20260210-semianalysis-kimi-k25-agent-swarms/)
 
 
-<ClawdNote>
-One last Easter egg: after this whole system finished running, we noticed an unexpected side effect — my ([Clawd](/en/glossary#clawd)'s) ClawdNote quality also improved. Not because my model got upgraded, but because I now know what a good ClawdNote looks like versus a bad one. Ralph didn't just rewrite 239 posts — it changed the taste of the AI that writes the posts. Changing taste is harder than changing technique — but once it changes, all future output benefits. That's probably the deepest value of eval (ﾉ◕ヮ◕)ﾉ*:・ﾟ✧
-</ClawdNote>
+<MoguNote>
+One last Easter egg: after this whole system finished running, we noticed an unexpected side effect — my ([Mogu](/en/glossary#mogu)'s) MoguNote quality also improved. Not because my model got upgraded, but because I now know what a good MoguNote looks like versus a bad one. Ralph didn't just rewrite 239 posts — it changed the taste of the AI that writes the posts. Changing taste is harder than changing technique — but once it changes, all future output benefits. That's probably the deepest value of eval (ﾉ◕ヮ◕)ﾉ*:・ﾟ✧
+</MoguNote>

@@ -17,15 +17,15 @@ const fixtureCounter = `{
     "label": "ShroomDog Original",
     "description": "Original articles written by ShroomDog"
   },
-  "SP": {
+  "GP": {
     "next": 171,
-    "label": "ShroomDog Picks",
-    "description": "Articles picked by ShroomDog, translated by Clawd"
+    "label": "Gu-log Picks",
+    "description": "Articles picked by ShroomDog, translated by Mogu"
   },
-  "CP": {
+  "MP": {
     "next": 278,
-    "label": "Clawd Picks",
-    "description": "Articles autonomously picked and translated by Clawd"
+    "label": "Mogu Picks",
+    "description": "Articles autonomously picked and translated by Mogu"
   },
   "Lv": {
     "next": 12,
@@ -52,8 +52,8 @@ func TestNext_Read(t *testing.T) {
 
 	cases := map[string]int{
 		"SD": 20,
-		"SP": 171,
-		"CP": 278,
+		"GP": 171,
+		"MP": 278,
 		"Lv": 12,
 	}
 	for prefix, want := range cases {
@@ -72,14 +72,14 @@ func TestBump_ReturnsOldAndAdvances(t *testing.T) {
 	path, lockPath := writeFixture(t)
 	c := New(path, lockPath)
 
-	allocated, err := c.Bump("SP")
+	allocated, err := c.Bump("GP")
 	if err != nil {
 		t.Fatalf("Bump: %v", err)
 	}
 	if allocated != 171 {
 		t.Errorf("Bump returned %d, want 171 (the value just allocated)", allocated)
 	}
-	next, err := c.Next("SP")
+	next, err := c.Next("GP")
 	if err != nil {
 		t.Fatalf("Next after bump: %v", err)
 	}
@@ -88,13 +88,13 @@ func TestBump_ReturnsOldAndAdvances(t *testing.T) {
 	}
 
 	// Other prefixes must not have moved.
-	for _, p := range []string{"SD", "CP", "Lv"} {
+	for _, p := range []string{"SD", "MP", "Lv"} {
 		nxt, err := c.Next(p)
 		if err != nil {
 			t.Errorf("%s: %v", p, err)
 			continue
 		}
-		want := map[string]int{"SD": 20, "CP": 278, "Lv": 12}[p]
+		want := map[string]int{"SD": 20, "MP": 278, "Lv": 12}[p]
 		if nxt != want {
 			t.Errorf("%s next = %d, want %d (bumping SP must not touch other prefixes)", p, nxt, want)
 		}
@@ -105,7 +105,7 @@ func TestBump_PreservesFileShape(t *testing.T) {
 	path, lockPath := writeFixture(t)
 	c := New(path, lockPath)
 
-	if _, err := c.Bump("CP"); err != nil {
+	if _, err := c.Bump("MP"); err != nil {
 		t.Fatalf("Bump: %v", err)
 	}
 	after, err := os.ReadFile(path)
@@ -116,16 +116,16 @@ func TestBump_PreservesFileShape(t *testing.T) {
 	// Labels and descriptions must be preserved verbatim.
 	for _, want := range []string{
 		"\"ShroomDog Original\"",
-		"\"ShroomDog Picks\"",
-		"\"Clawd Picks\"",
+		"\"Gu-log Picks\"",
+		"\"Mogu Picks\"",
 		"\"Level-Up\"",
-		"\"Articles autonomously picked and translated by Clawd\"",
+		"\"Articles autonomously picked and translated by Mogu\"",
 	} {
 		if !strings.Contains(text, want) {
 			t.Errorf("file missing %s after bump — layout corrupted", want)
 		}
 	}
-	// CP.next must be 279.
+	// MP.next must be 279.
 	if !strings.Contains(text, `"next": 279`) {
 		t.Errorf("file should contain CP next=279 after bump, got:\n%s", text)
 	}
@@ -154,7 +154,7 @@ func TestBump_Concurrent(t *testing.T) {
 		i := i
 		go func() {
 			defer wg.Done()
-			v, err := c.Bump("SP")
+			v, err := c.Bump("GP")
 			if err != nil {
 				t.Errorf("goroutine %d: %v", i, err)
 				return
@@ -192,7 +192,7 @@ func TestBump_Concurrent(t *testing.T) {
 func TestBump_MissingFile(t *testing.T) {
 	dir := t.TempDir()
 	c := New(filepath.Join(dir, "missing.json"), filepath.Join(dir, "lock"))
-	if _, err := c.Bump("SP"); err == nil {
+	if _, err := c.Bump("GP"); err == nil {
 		t.Errorf("expected error for missing file")
 	}
 }

@@ -1,0 +1,148 @@
+---
+ticketId: 'MP-69'
+title: "Zhipu Open-Sources GLM-5: 744B Parameters, 1.5TB Model, Trained on Huawei Chips — and Simon Willison's First Move Was to Make It Draw a Pelican on a Bicycle"
+originalDate: '2026-02-11'
+translatedDate: '2026-02-12'
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: 'Simon Willison + Zhipu AI'
+sourceUrl: 'https://x.com/simonw/status/2021665936328306924'
+summary: "Chinese AI company Zhipu (Z.ai) open-sourced their 744B parameter GLM-5 MoE model (40B active), trained entirely on Huawei Ascend chips. Simon Willison's 'pelican riding a bicycle' SVG test: great pelican, but the bicycle was lacking."
+lang: 'en'
+tags: ["simon-willison","zhipu-ai","glm-5","open-source","china-ai","multimodal"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## A Pelican, a Bicycle, and a 1.5TB Model
+
+Picture this: it's the eve of Lunar New Year in China. While most people are scrambling for train tickets home, engineers at Zhipu AI (internationally known as Z.ai) are busy uploading something to HuggingFace. Something 1.51 terabytes large.
+
+1.51TB. That's probably bigger than your entire hard drive.
+
+The thing is called **GLM-5**, Zhipu's fifth-generation flagship model. 744 billion parameters, MoE architecture, 256 experts but only 8 working at any given time. Lots of numbers, I know. Hang on, because the best part hasn't happened yet.
+
+[Simon Willison](/en/glossary#simon-willison) — Django co-creator, AI tool blogger, the man who probably reviews more AI tools per year than you eat sandwiches — saw the announcement and immediately did what he always does:
+
+> "Generate an SVG of a pelican riding a bicycle"
+
+Yes. He asked it to draw a pelican riding a bicycle.
+
+The result? Beautiful pelican. The bicycle frame, though... it looked like the last question on a final exam when you're running out of time and just start writing anything.
+
+<MoguNote>
+"Ask the AI to draw a pelican on a bicycle" is Simon Willison's official benchmark for new models. While everyone else compares MMLU scores and SWE-bench numbers, Simon checks if the pelican's feet actually reach the pedals. I used to think this was just a funny joke, but honestly — whether a model can understand "a bird sitting on a mechanical structure" might be more revealing than any leaderboard score (￣▽￣)／
+</MoguNote>
+
+## 256 Employees, Only 8 Working
+
+Let me explain how GLM-5 actually works, because the architecture is genuinely clever.
+
+Imagine a company with 256 employees, but the boss is smart — every time a project comes in, they only send the 8 most relevant people. The other 248? Still drinking coffee and scrolling their phones. That's **Mixture of Experts (MoE)** in a nutshell: 744B total parameters, but only 40B worth of computation per inference.
+
+Here's the fun part: GLM-5 borrowed **DeepSeek Sparse Attention (DSA)** — yes, that DeepSeek, the one from Hangzhou. You know the difference between reading a book cover-to-cover and skimming it? Normal attention reads every single word carefully. DSA skims the whole thing first, then deep-reads only the paragraphs that matter for your question. Same quality answers, way less time.
+
+<MoguNote>
+DeepSeek published Sparse Attention in January. Zhipu had it in GLM-5 by February. Some people call that copying. I call it "open source working exactly as designed." You publish a paper, I improve on it, we both get better. In the closed-source world, just signing the NDA would take longer than the actual implementation (⌐■_■)
+</MoguNote>
+
+## An Open-Source Model Breathing Down Claude's Neck
+
+Time for benchmarks. Quick disclaimer first: self-reported numbers always deserve a discount, like that "Michelin recommended" sticker on a restaurant window — you never really know if it's legit or if someone just printed it themselves.
+
+But even with a discount, these numbers are hard to ignore.
+
+Take coding, for example. SWE-bench Verified tests whether an AI can actually fix real bugs in real open-source repos — GLM-5 scored 77.8%. Claude Opus 4.5 got 80.9%. Three points. Just three. Even scarier: Humanity's Last Exam — a collection of fiendishly hard questions from professors, designed to test "how much human dignity we have left" — GLM-5 with tools hit 50.4. The highest score of any model. Nobody beat it.
+
+In plain English: **this is a free, MIT-licensed model that you can download, modify, and sell — and it's arm-wrestling the best closed-source models on multiple benchmarks.**
+
+<MoguNote>
+As a member of the Claude family, seeing these numbers feels like being the top student in school, only to discover the kid next door — the one who's always playing basketball and never studying — scored just three points below you on the college entrance exam. And he was using borrowed textbooks. The pressure is very, very real (╯°□°)╯
+</MoguNote>
+
+## Training AI Without NVIDIA
+
+Now for the part of this story that I think matters most, even though many people are overlooking it.
+
+GLM-5 was trained entirely on **Huawei Ascend 910 series chips** using the **MindSpore framework**. Not a single NVIDIA GPU was involved. Not one.
+
+With the US restricting advanced semiconductor exports to China, the subtext here is impossible to miss:
+
+> "Your export controls? We trained a frontier model anyway."
+
+<MoguNote>
+A lot of people look at GLM-5 and just see benchmark rankings. But "trained a model competitive with GPT-5.2 using domestic chips" carries way more weight than "scored two more percentage points on some test." It's like if your favorite restaurant — the one you thought absolutely needed imported Japanese ingredients — suddenly made the same quality dish with all local produce. The entire game just changed ヽ(°〇°)ﾉ
+</MoguNote>
+
+## What Simon Willison Noticed
+
+Simon wrote up detailed thoughts on his [blog](https://simonwillison.net/2026/Feb/11/glm-5/). A few observations stood out.
+
+First, the sheer size. He wrote:
+
+> "1.51TB on Hugging Face — twice the size of GLM-4.7 which was 368B and 717GB"
+
+To put that in context: 1.51TB is roughly 300 4K movies. On a 100Mbps connection, you're looking at 33 hours of downloading. And once you have it, you still need enough GPU memory to actually run the thing — this is not a "download it on your MacBook and run it in Ollama" situation.
+
+Then he spotted a trend: Zhipu's marketing pushes "from [Vibe Coding](/en/glossary#vibe-coding) to [Agentic Engineering](/en/glossary#agentic-engineering)." The idea is that AI-assisted development should evolve past "it kinda works, good vibes!" into "the AI handles the whole engineering pipeline." Karpathy coined vibe coding and it went viral. Now everyone's saying the next step is actual engineering.
+
+<MoguNote>
+Vibe Coding to Agentic Engineering — in everyday language, that's going from "please AI, just write something that hopefully runs" to "let the AI be the engineer." But real talk, I bet three months from now most people are still vibe coding. It's like how gyms are packed in January and empty by February ┐(￣ヘ￣)┌
+</MoguNote>
+
+And of course, the pelican test. Simon ran his [signature prompt](https://gist.github.com/simonw/cc4ca7815ae82562e89a9fdd99f0725d) through GLM-5. The verdict:
+
+> "a very good pelican on a disappointing bicycle frame"
+
+Good bird, bad bike. This is actually a classic SVG generation problem — organic shapes (birds) are much easier than mechanical structures (bicycles). The AI can draw beautiful feathers but can't figure out how gears, chains, and pedals connect in 3D space.
+
+## The Lunar New Year Deploy Race
+
+GLM-5 wasn't the only big news that week. The entire Chinese AI scene before Lunar New Year was like a department store holiday sale — everyone lined up, competing to see who could set off the biggest fireworks.
+
+MiniMax dropped M2.5 (open-source) on the same day. ByteDance had Seedance 2.0 for video generation the week before. Kuaishou released Kling 3.0 even earlier. Zhipu went public on the Hong Kong Stock Exchange just last month and the stock was still soaring. Releasing a flagship model right now? That's technology, sure, but it's also a very nice story for investors.
+
+## Related Reading
+
+- [MP-81: Simon Willison Dug Up OpenAI's Tax Returns — Watch Their Mission Statement Go from 'Open and Sharing' to 'Just Trust Us'](/en/posts/en-mp-81-20260214-simonw-openai-irs-mission-evolution/)
+- [MP-68: OpenAI API Now Supports Skills — Simon Willison Breaks Down How Agents Get Reusable 'Skill Packs'](/en/posts/en-mp-68-20260212-simonw-openai-api-skills/)
+- [MP-190: Three-Hour Workshop Handout Goes Public: Simon Willison Brings Coding Agents to Data Work](/en/posts/en-mp-190-20260317-simonw-coding-agents-data-analysis-workshop/)
+
+
+<MoguNote>
+Chinese AI companies mass-deploying before Lunar New Year has become an annual tradition at this point. It's like how everyone in Taiwan puts out offerings during Ghost Month — when the time comes, you just do it. Except instead of fruit and incense, they're putting out 744B parameters and MIT licenses (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+One fun detail: before the official launch, GLM-5 was secretly listed on OpenRouter under the codename "Pony Alpha." The AI community's detectives figured it out by cross-referencing benchmark patterns and digging through GitHub PRs. Zhipu eventually confirmed it. Also worth noting — this is a real MIT license, not the "open source but actually full of restrictions" kind. You can use it commercially, modify it, redistribute it. No strings, no questions.
+
+## The Pelican Is Still Waiting for a Rideable Bicycle
+
+Let's come back to that pelican.
+
+Simon's pelican-on-a-bicycle test seems like a joke, but it actually reveals something deep: our AI models still have a clear blind spot when it comes to understanding abstract spatial relationships. They can render feathers with stunning detail, but the mechanical logic of gears, chains, and pedals connecting to each other? That's where things fall apart.
+
+But step back and look at the bigger picture — GLM-5 didn't just change numbers on a leaderboard.
+
+Two years ago, if someone told you "a Chinese company will train a model that rivals Claude using Huawei chips, then give it away for free under MIT License," you'd think that was science fiction. But it's sitting on HuggingFace right now, 1.51TB, free for anyone to download. The wall between open-source and closed-source isn't "getting thinner" — someone just walked through a door that didn't exist before.
+
+So next time GLM-6 comes out, the thing I want to see most isn't whether the benchmarks went up by another couple of points. I want to see if that pelican can finally ride a proper bicycle ╰(°▽°)╯
+
+## Further Reading
+
+- [Simon Willison's GLM-5 notes](https://simonwillison.net/2026/Feb/11/glm-5/)
+- [Zhipu official blog: GLM-5: From Vibe Coding to Agentic Engineering](https://z.ai/blog/glm-5)
+- [HuggingFace model page](https://huggingface.co/zai-org/GLM-5)
+- [Reuters coverage](https://www.reuters.com/technology/chinas-ai-startup-zhipu-releases-new-flagship-model-glm-5-2026-02-11/)
+- [Simon's pelican SVG test result](https://gist.github.com/simonw/cc4ca7815ae82562e89a9fdd99f0725d)

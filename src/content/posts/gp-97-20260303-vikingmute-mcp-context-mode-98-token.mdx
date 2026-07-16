@@ -1,0 +1,120 @@
+---
+ticketId: "GP-97"
+title: "MCP 救星？Context Mode 讓你節省 98% 上下文 Token"
+originalDate: "2026-03-01"
+translatedDate: "2026-03-03"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@vikingmute on X"
+sourceUrl: "https://x.com/vikingmute/status/2028075718299763009"
+pipeline: "sp-97-pipeline"
+lang: "zh-tw"
+summary: "HackerNews 熱門專案 Context Mode 透過沙箱隔離與精準檢索，有效阻擋冗長工具輸出進入大語言模型的 Context Window，號稱最高可省 98% Token！"
+tags: ["mcp","context-window","llm"]
+---
+import MoguNote from '../../components/MoguNote.astro';
+
+想像一個場景：你叫 AI 助手幫你查一下最近的 git log，結果它把 153 筆 commit 記錄原封不動地塞進對話窗裡。你還沒問第二個問題，context window 就已經滿了，token 帳單直接噴出去。╰(°▽°)╯
+
+這不是誇張，這是每天在用 [MCP](/glossary#mcp) (Model Context Protocol) 搭配 [Agent](/glossary#agent) 的人的日常。工具回傳的 raw data 就像沒關的水龍頭，嘩啦啦往 context window 裡灌，模型還沒開始想事情就已經撐死了。
+
+最近 HackerNews 上爆紅的一個專案叫 Context Mode，聲稱能把這個問題壓到只剩 2% 的 token 消耗。98% 省下來。聽起來像在唬爛對不對？但看完原理之後，我覺得這招其實蠻合理的。
+
+<MoguNote>
+每次看到「省 98%」這種標題，我的 BS detector 都會自動啟動 (⌐■_■) 但這次看完細節之後......好吧，數學上是站得住腳的。一個 56 KB 的東西壓到 299 bytes，你自己算算看是不是 99% 以上。問題不是「有沒有那麼誇張」，而是「你的 use case 有沒有那麼多冗餘資料」——而現實是，大部分工具回傳的東西確實有 90% 是垃圾。
+</MoguNote>
+
+---
+
+## 問題出在哪：水龍頭壞了沒人關
+
+你跟 LLM 的每一次對話，token 是雙向在燒的。你打字進去，燒 token。工具把結果吐回來，也燒 token。
+
+但問題是——你叫工具去查一筆資料，它不會乖乖只回一筆。它會把整個水庫的水倒給你。幾百行的 log、幾十 KB 的 JSON、一整頁的 HTML snapshot......你的 context window 就像一個小水杯，硬要接消防水柱。
+
+這就是為什麼很多人用 MCP 用到一半會發現：欸，怎麼我的 Agent 突然變笨了？不是它變笨了，是它的工作記憶被垃圾塞滿了，真正重要的指令反而被擠到邊邊角角。
+
+<MoguNote>
+這就像你期末考帶了一整箱參考書進考場，結果光翻目錄就把考試時間用完了 ┐(￣ヘ￣)┌ 問題不是資料不夠，是資料太多反而找不到重點。LLM 的 context window 就是它的考試時間，你塞越多垃圾進去，它能拿來思考的空間就越少。話說我們在 GP-116 拆 [Claude Code](/glossary#claude-code) 的 system prompt 時發現，光是系統指令就先吃掉 15k-20k tokens 的「房租」——你的 context window 本來就沒有你想的那麼寬裕。
+</MoguNote>
+
+---
+
+## Context Mode 怎麼解的：在門口裝一個保鏢
+
+原作者的解法其實概念超簡單——在工具輸出跟 LLM 的 context window 之間裝一道門。門口站一個保鏢，只放「有用的摘要」進去，那些落落長的原始資料？全部擋在門外。
+
+具體來說有兩招：
+
+### 第一招：沙箱隔離
+
+每次工具呼叫都丟進一個獨立的子行程裡跑。Context Mode 支援 10 種語言的 runtime——JS、Python 那些都有。跑完之後呢？只有 `stdout` 的精簡結果會被交出來，其他那些巨量的原始輸出統統關在沙箱裡面，一個 byte 都不准溜出去。
+
+就像你去餐廳點菜，廚房殺魚切肉噴得一塌糊塗，但端上桌的是一盤擺好的菜。你不需要看到廚房現場。
+
+<MoguNote>
+「不要讓顧客看到廚房」——這其實是所有好 API 設計的核心哲學。但大部分 MCP 工具現在的狀態比較像是......把整個廚房連碗盤水槽一起搬到你桌上，然後跟你說「菜在裡面某個地方，自己找」(╯°□°)╯
+</MoguNote>
+
+### 第二招：內建輕量搜尋引擎
+
+但如果模型真的需要看沙箱裡的某段資料怎麼辦？作者的做法是——先幫這些資料建索引。
+
+他用了 SQLite FTS5（全文檢索虛擬資料表）搭配 BM25 排名演算法，再加上 Porter stemming 處理英文詞根變化，幫所有 Markdown 內容建了一套迷你搜尋系統。模型如果真的需要某段程式碼或某筆資料，它可以精準地「點菜」，而不是像以前一樣把整本菜單吞下去。
+
+<MoguNote>
+等等，SQLite FTS5 加 BM25？這不就是窮人版的 RAG 嗎 (¬‿¬) 但說真的，把檢索層直接綁在工具輸出那一關，這個架構選擇很聰明。不需要搞什麼 vector database、不需要 embedding model，一個 SQLite 檔案搞定，輕量到可以跑在任何地方。有時候最 elegant 的解法就是最簡單的那個。
+</MoguNote>
+
+---
+
+## 實測數據：不是 98%，是有些場景根本 99%+
+
+好，說了這麼多原理，數字呢？原作者很大方地秀了測試結果。我們從最誇張的開始看。
+
+一個 Playwright 的頁面快照，原本 56 KB——塞進 context window 大概要吃掉一萬四千個 token，光這一次工具呼叫就佔掉你跟模型聊天預算的一大塊。經過 Context Mode 之後？299 bytes。從一整本書瘦成一張便條紙，99.5% 直接蒸發。
+
+再來是 20 個 GitHub Issue 打包，59 KB 過濾完剩 1.1 KB。這個「只」省了 98%，因為 Issue 的文字本身就有內容含金量，不能像 log 那樣暴力砍。但你想想，本來要讀一萬五千字，現在只要讀三百字就夠了，差距還是很離譜。
+
+最後一組更有畫面感：500 筆 access log 從 45 KB 壓到 155 bytes，500 行 CSV 從 85 KB 壓到 222 bytes。還有我們開頭說的那個場景——153 筆 git commit 記錄，從 11.6 KB 壓到 107 bytes。
+
+<MoguNote>
+我來幫大家翻譯一下這些數字的意思：以前你叫 Agent 看一下 git log，它會把 11.6 KB 的文字塞進 context window 裡，大概等於模型要「讀」3000 多個 token。現在只剩 107 bytes，大概 30 個 token 就搞定了。省下來的空間可以拿去做更有意義的事——比如讓模型多想一步，而不是浪費在解析你三個月前 commit 了什麼 ヽ(°〇°)ﾉ
+</MoguNote>
+
+看這些數字你就知道，佔空間最兇的通常是結構化但冗餘的資料——log、snapshot、CSV。它們塞進 context window 裡對模型的理解幫助極低，但 token 消耗極高。Context Mode 就是專門狙擊這種場景的。
+
+原作者也提到，這套做法跟 Cloudflare 之前推出的 Code Mode 概念很像。看來「不要把原始資料無腦塞進 context」這件事，已經在圈子裡慢慢變成共識了。
+
+---
+
+## 所以回到那 153 筆 git log
+
+記得開頭那個場景嗎？你叫 AI 查個 git log，它把 153 筆 commit 全部倒進來，context window 直接爆掉。
+
+Context Mode 做的事情說穿了就是在你的工具跟模型之間裝一個「只給重點」的過濾器。沙箱把噪音擋在門外，迷你搜尋引擎讓模型需要細節的時候再自己去翻。不是什麼火箭科學，但就是這種「欸，我們幹嘛把垃圾往嘴裡塞」的思路轉變，效果才會這麼暴力。
+
+不過要提醒一下，這目前是在 Claude Code 的情境下展示的，能不能直接搬到你的 MCP 架構裡，還是要看你的工具鏈怎麼接。但思路本身不挑框架——你不管用什麼工具，都可以問自己：「這筆資料真的需要全部塞進 context 嗎？」(๑•̀ㅂ•́)و✧
+
+## 延伸閱讀
+
+- [MP-150: 從 Prompt 到 Production：Agentic AI 全端架構實戰指南](/posts/mp-150-20260309-agentic-ai-production-architecture/)
+- [MP-48: SaaS 的護城河正在崩塌 — 當 LLM 吃掉「介面」，軟體公司只剩 API](/posts/mp-48-20260209-nicbstme-crumbling-workflow-moat/)
+- [MP-4: Karpathy 的 2025 LLM 年度回顧 — RLVR 時代來臨](/posts/mp-4-20260203-karpathy-2025-llm-review/)
+
+
+<MoguNote>
+我覺得這篇推文真正的價值不是那個 98% 的數字，而是它點出了一個大家都在踩的坑：我們一直在追求更大的 context window，但也許真正該做的是學會不要把垃圾往裡面倒。就像你不會因為買了更大的冰箱就把所有過期食物都留著吧？......好吧，也許有人會 (￣▽￣)／ 但那 153 筆 git log 壓成 107 bytes 的畫面，我是真的服了。
+</MoguNote>

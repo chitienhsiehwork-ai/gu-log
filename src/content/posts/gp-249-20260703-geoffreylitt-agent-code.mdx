@@ -1,0 +1,170 @@
+---
+ticketId: 'GP-249'
+title: 'Agent 寫的 Code 還要不要理解？要，但不只是為了驗證'
+originalDate: '2026-07-02'
+translatedDate: '2026-07-03'
+translatedBy:
+  model: "Opus 4.5"
+  harness: "Claude Code CLI"
+
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "GPT-5.5"
+      harness: "Codex CLI + Tribunal"
+    - role: "Rewritten"
+      model: "Fable 5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "GPT-5.5"
+      harness: "gp-pipeline + Tribunal"
+sourceUrl: 'https://x.com/geoffreylitt/status/2072522251300409556'
+source: '@geoffreylitt on X'
+lang: 'zh-tw'
+summary: 'Geoffrey Litt 在 AI 工程師大會的演講：Agent 越來越會自己驗證，但理解 code 的價值不只在驗證，而是在保持參與能力。他分享解釋型文件、小測驗、微型世界與共享空間，讓人類在 agent 加速時仍跟得上系統。'
+tags: ["agentic-engineering","cognitive-debt","code-review"]
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 8
+    score: 8
+    date: "2026-07-03"
+    model: "gpt-5.5"
+  librarian:
+    glossary: 8
+    crossRef: 8
+    sourceAlign: 10
+    attribution: 9
+    score: 8
+    date: "2026-07-03"
+    model: "gpt-5.5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 9
+    lengthFit: 8
+    clarity: 9
+    score: 8
+    date: "2026-07-03"
+    model: "gpt-5.5"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-07-03"
+    model: "gpt-5.5"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+[Agent](/glossary#agent) 寫 code 的量越來越大、速度越來越快，而且越來越會驗證自己的工作：跑測試、自我審查、在迴圈裡反覆修正。這是好事，沒有人喜歡愛出錯的 agent。但這裡藏著一個尷尬的問題：如果人類理解 code 的唯一理由是「看它對不對」，那這個理由正在被自動化蠶食。
+
+Notion 工程師 Geoffrey Litt 在一場 AI 工程師大會上正面回答了這題：理解 code 從來不只有「逐行讀 diff」一種方法——而理解的理由，也從來不只有驗證一種。
+
+## 驗證之外，還有一個更好的理由
+
+直覺的答案是：理解是為了驗證。做得對不對、架構好不好、符不符合規格——本質上是一個「讚或倒讚」的問題，而 agent 自己越來越會回答它。
+
+另一條路比較少人講：**理解是為了參與**。
+
+> Not just to verify, but to participate.
+
+一個專案從來不是「下一次指令、收一次貨」，而是無數輪的來回，每一輪都要有人想出「接下來往哪走」。這個能力直接取決於腦中對系統的理解有多豐富——概念不夠的話，連好問題都問不出來。
+
+缺乏理解不會讓專案當場爆炸。它像技術債的表親：短期可以欠，利息慢慢滾。這種狀態很接近 Margaret Storey 和 [Simon Willison](/glossary#simon-willison) 帶紅的 "Cognitive Debt"（認知債）——程式還在跑，但人類腦中那份系統地圖已經過期了。
+
+<MoguNote>
+監工跟隊友的差別就在這裡：監工只要在驗收單上打勾，隊友得在下一回合想戰術。gu-log 自己的流程也長這樣——每篇文章上線前要過四個獨立評審（查事實的、管引用的、裝陌生讀者的、打語氣分的），驗證早就外包給系統了；但「下一篇寫什麼、這篇角度歪不歪」還是要有人拍板。順帶自首：現在這篇的初稿，就被自家評審打槍過「語氣平庸」，重寫過才放出來。驗證自動化是真的，被電也是真的。
+</MoguNote>
+
+---
+
+## 技巧一：把 diff 變成教材
+
+那要怎麼在 agent 全速衝刺時跟上？「怎麼把理解裝進另一顆腦袋」，教育界已經研究了一百年，現成的招可以直接搬。第一招針對 diff——按字母順序排列、沒有背景脈絡，為「記錄」而生的格式，拿來教人，效果跟把教科書章節照筆畫排序差不多。
+
+所以他寫了一個叫 `/explain-diff` 的 [skill](/glossary#skill)：agent 每做完一輪工作，就產出一份真正的教材（輸出成 HTML、Markdown 或 Notion 頁面），原則有三——**先教背景**：進「改了什麼」之前，先講「原本是什麼」，改遊戲引擎的視角就先教引擎怎麼運作。**先建直覺**：任何 code 出現之前，先一句話講清楚目標（「用 2D 繪圖技巧讓花園看起來有立體感」）。**能玩就別用講的**：解釋等距投影，直接給一張可以把石頭拖來拖去、座標跟著變的互動圖。
+
+最後才輪到 code——但不是原始 diff，而是一份「literate diff」：照邏輯順序走過改動，每段 code 前後都有解說，像散文一樣讀下去。
+
+成品是一份完整的解說包。他有時會把它印出來帶去咖啡廳讀，還自己吐槽這很諷刺：AI 把互動式的工作變回一疊可以深度專注的紙本報告。skill 本體[公開放在這裡](https://gist.github.com/geoffreylitt/a29df1b5f9865506e8952488eac3d524)。
+
+<MoguNote>
+「印出來帶去咖啡廳」聽起來很文青，但重點別看歪：真正翻轉的是成本。以前沒有人會為了一個 PR 客製一份圖文並茂的教材——成本荒謬到想都不會想。現在 agent 順手就生一份。「每次改動都配一份專屬教材」從奢侈品變成日常用品，這才是 `/explain-diff` 的本體。
+</MoguNote>
+
+---
+
+## 技巧二：小測驗，防止自己騙自己
+
+解說包再漂亮，還有一個天敵：讀完不等於懂。Andy Matuschak 有句名言：
+
+> Books don't work.
+
+「讀過」這個動作太容易騙人——眼睛滑過每一行，大腦以為吸收了，實際上什麼都沒留下。
+
+解法是在每份解說文件底部放五題互動小測驗，搭配一條他給自己立的鐵律：**測驗沒過，不把 code 交出去；review 別人的 code 之前，也一樣先過測驗。** 這個機制叫「速度調節器」——迴圈跑得比人類理解快的時候，硬把速度壓回來。
+
+<MoguNote>
+這條規則的敵人不是題目難度，是人性。[Mogu](/about) 敢賭：多數人第三天就會跟自己說「這次改動很小，跳過吧」。所以把它做成機械式的關卡才有意義——跟 `pre-commit hook` 同一個哲學：紀律外包給系統，不要外包給意志力。
+</MoguNote>
+
+---
+
+## 技巧三：蓋一個可以住進去的小世界
+
+第三招源自教育先驅 Seymour Papert 的「Mathland」：想學數學，最好的辦法是住進數學國——就像想學法語就搬去法國。套到 code 上：能不能蓋一個可以「住在裡面」的小世界，讓人自然長出對系統的直覺？
+
+兩個親身案例。
+
+**會倒帶的除錯器。** 他寫 `Prolog`（一種邏輯式程式語言）的直譯器時，摸不透內部發生什麼事，於是跟 agent 做了一個除錯器：逐步執行、在時間軸上前後滑動、看每一步哪些規則被觸發，還能留註解給自己（「漂亮，這條規則套對了」）。
+
+**網站搬家的指揮中心。** 他要把個人網站換框架，Claude 寫了一支自動搬完的腳本——但他 review 不動：對新框架不熟，只能說「呃，看起來大概對吧」。於是他請 Claude 改做一個「電玩」：指揮中心裡按一顆按鈕執行一步搬家，新舊網站並排對照，新網站在眼前一點一點長出來。搬完之後，他的理解跟純手工搬差不多，但快非常多。
+
+兩個案例指向同一件事：agent 不只會生產 code，還能生產「幫人類理解 code 的 code」。
+
+<MoguNote>
+全篇 Mogu 最想畫線的就是這裡：「agent 幫忙搬」和「agent 蓋一個讓人自己搬的小世界」是兩種完全不同的產品。前者交付結果、順便帶走理解；後者交付結果、順便製造理解。而兩者的差距，常常只是多一句 prompt。下次遇到 review 不動的改動，別硬看——叫 agent 蓋個遊樂場。
+</MoguNote>
+
+---
+
+## 技巧四：讓全隊共用同一顆腦
+
+前面三招都是單人練功，但團隊的理解要「一起發生」才有用：兩個人腦中有同一套心智模型時，一個詞就能喚起同一幅畫面，溝通省力到近乎作弊。
+
+這也是他在 Notion 的日常：最近 Notion 已經可以在頁面裡直接跑 Claude 和 Cursor 的 agent，agent 寫的技術規劃天生就是可協作文件，團隊當場留言、當場討論——一起想，而不是各想各的。
+
+---
+
+## 結語：五十年前就畫好的藍圖
+
+這一切都不是新想法。五十年前 Alan Kay 就主張，電腦可以成為比書更好的媒介，教人怎麼思考世界。他那張經典示意圖，乍看像兩個小孩抱著平板看影片，實際上他們在玩一個互動遊戲、邊玩邊改遊戲的 code 來理解物理。
+
+> The point was always to augment, not just automate.
+
+重點從來都是擴增人類，不只是自動化。AI 讓「做一個模擬環境」的成本掉到地板，這張五十年前的藍圖第一次變得人人可蓋。
+
+Agent 會繼續變強，驗證會繼續自動化，這條線擋不住、也不必擋。真正的分岔在另一條線上：用 agent 的力量，把人類拉回更深的迴圈裡。驗證的工作會被 agent 接走，但參與的位子——想「接下來呢」的那個位子——一直都空著等人坐。 (๑•̀ㅂ•́)و✧
+
+---
+
+## 延伸閱讀
+
+- [MP-140: Agentic Engineering 的最終魔王：消滅 Code Review](/posts/mp-140-20260303-swyx-agentic-engineering-boss-code-review/)——如果 review 遲早要消失，這篇是同一條故事線的另一頭
+- [GP-229: Agent 一口氣寫 1500 行就是警訊：把大功能拆到自己看得懂為止](/posts/gp-229-20260616-mitchellh-1500-line-diff/)——同一個問題的另一種解法：不是加強理解工具，是縮小改動本身
+- [GP-234: 40 萬場 Claude Code 對話的結論：贏家不是最會 coding 的人，是最懂行的人](/posts/gp-234-20260617-returns-to-expertise/)——資料面的佐證：對系統理解最深的人，拿走最多槓桿

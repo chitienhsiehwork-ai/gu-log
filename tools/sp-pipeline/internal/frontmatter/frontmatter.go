@@ -1,5 +1,5 @@
 // Package frontmatter provides text-level read and write of MDX frontmatter
-// blocks. It exists because four separate steps of scripts/sp-pipeline.sh
+// blocks. It exists because four separate steps of scripts/gp-pipeline.sh
 // touch frontmatter by running `sed -i` against specific lines — an approach
 // that works but is hard to test, hard to compose, and hard to read when
 // things go wrong.
@@ -183,7 +183,7 @@ func (f *File) GetScalar(key string) (string, bool) {
 // the key is not present.
 //
 // The value is written verbatim — the caller is responsible for quoting
-// (e.g. `"SP-170"` with quotes, or an unquoted identifier). This matches
+// (e.g. `"GP-170"` with quotes, or an unquoted identifier). This matches
 // how the existing bash sed commands behave and keeps the contract simple.
 func (f *File) SetScalar(key, value string) {
 	for i, line := range f.lines {

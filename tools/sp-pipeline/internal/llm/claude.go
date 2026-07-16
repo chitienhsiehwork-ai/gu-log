@@ -6,15 +6,15 @@ import (
 	"os"
 	"strings"
 
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/runner"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/runner"
 )
 
 // ClaudeProvider shells out to `claude -p --model <model>`. It is retained as
-// a historical compatibility wrapper only; the maintained SP pipeline runtime
-// and doctor probe chain do not include Claude by default because the Clawd VM
+// a historical compatibility wrapper only; the maintained GP pipeline runtime
+// and doctor probe chain do not include Claude by default because the Mogu VM
 // should not assume Anthropic env/login exists.
 //
-//   - Non-root (VPS Clawd, dev laptops) → bypassPermissions: the broadest
+//   - Non-root (VPS Mogu, dev laptops) → bypassPermissions: the broadest
 //     setting and the one the bash pipeline historically used.
 //   - Root (CCC sandboxes / Claude Code on the web) → acceptEdits: claude
 //     refuses bypassPermissions and --dangerously-skip-permissions under

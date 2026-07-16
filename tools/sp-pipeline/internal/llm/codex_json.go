@@ -8,7 +8,7 @@ import (
 )
 
 // SanitizeCodexJSON is the Go port of the Python heredoc at
-// scripts/sp-pipeline.sh lines 893-906. Codex occasionally appends log
+// scripts/gp-pipeline.sh lines 893-906. Codex occasionally appends log
 // lines after the valid JSON object; the sanitiser extracts the first line
 // that starts with '{' AND parses as a complete JSON object, discarding
 // everything else. If no such line is found, the input is returned

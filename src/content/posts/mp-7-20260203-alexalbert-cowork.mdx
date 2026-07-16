@@ -1,0 +1,145 @@
+---
+ticketId: "MP-7"
+title: "Claude Code 終於出非工程師版了！Cowork 讓所有人都能用 AI Agent 完成日常工作"
+originalDate: "2026-01-12"
+translatedDate: "2026-02-03"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@alexalbert__ on X"
+sourceUrl: "https://x.com/alexalbert__/status/2010806269188456756"
+summary: "Anthropic 推出 Cowork — 把 Claude Code 的 Agent 能力帶給非工程師，讓你用對話方式整理檔案、編報表、寫報告"
+lang: "zh-tw"
+tags: ["claude-code","ai-agents","productivity"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+你有沒有看過你爸媽站在你的咖啡機前面，盯著那排按鈕看了三秒鐘，然後默默走去泡即溶咖啡？
+
+那台咖啡機你花了三千塊，能萃出完美的 espresso，但對你爸媽來說，它跟駕駛艙沒兩樣。
+
+[Claude Code](/glossary#claude-code) 就是那台咖啡機。工程師拿來寫 code 爽得跟什麼一樣，但一般人看到黑底白字的 terminal 畫面，心裡只有一個念頭：「這東西會不會把我電腦格式化。」
+
+Anthropic 的 Alex Albert 在 X 上宣布了一個新東西：**[Cowork](/glossary#cowork)**。白話講，就是幫那台咖啡機裝了一顆「一鍵煮咖啡」按鈕。
+
+## Cowork 到底在做什麼？
+
+你知道那種超認真的實習生嗎？你跟他說「這堆資料幫我整理一下」，他不會問你用什麼軟體、格式要怎樣——他就是會自己想辦法搞定。
+
+Cowork 就是把這種體驗數位化了。
+
+根據 Alex Albert 的貼文，Cowork 讓你把一個資料夾的讀寫權限交給 Claude，然後用對話的方式交代任務。不用寫程式，不用碰 terminal (◕‿◕)
+
+比方說：
+- 你有一堆散亂的檔案 → 叫它分門別類
+- 一堆收據照片 → 叫它生出費用試算表
+- 五個資料夾的筆記 → 叫它整合成一份報告
+
+底層跑的是跟 Claude Code 同一顆引擎，但操作介面從「命令列」變成了「人話」。
+
+<MoguNote>
+好，我來幫大家翻譯一下這件事的意思。
+
+Anthropic 花了大半年打磨 Claude Code 這台引擎，讓工程師們在 terminal 裡面跑得飛起。現在他們做的事情，就是幫這台引擎裝上方向盤、儀表板、還有冷氣——讓不會開手排的人也能上路。
+
+技術圈有個說法叫「eating your own dog food」（吃自己的狗糧），意思是自己公司用自己的產品。但 Anthropic 這次更進一步——他們不只吃自己的狗糧，還用狗糧的配方做出了人類食品 (⌐■_■)
+</MoguNote>
+
+## 這東西是怎麼冒出來的？
+
+Alex Albert 的貼文提到一個有趣的觀察：使用者拿 Claude Code 做的事情，遠超出 Anthropic 原本的想像。
+
+本來是給工程師寫 code 用的工具，結果很多人拿來整理專案資料夾、彙整研究資料、寫文件寫報告。甚至有一些不是工程師的人，也在偷偷用 Claude Code——他們可能連 `cd` 是什麼都搞不太清楚，但就是硬著頭皮用，因為太好用了。
+
+每個人的 Downloads 資料夾都是一座考古遺址，十年份的 `final_v3_真的最後一版(2).pdf` 堆在裡面。這些人需要的不是更強的引擎，是一個不用考駕照就能開的車。
+
+Anthropic 看到這個現象，做了一個很聰明的決定：「既然大家都在把我們的跑車當計程車用，那我們就直接出一台計程車吧。」
+
+<MoguNote>
+這個產品演化的路徑讓我想到便利商店。
+
+711 本來就是賣包裝食品的對吧？結果店員發現大家都會自己帶泡麵來借熱水。於是 711 開始賣關東煮、茶葉蛋。現在你走進 711，那個茶葉蛋的味道可能比任何商品都更有存在感。
+
+Cowork 就是 Anthropic 的茶葉蛋——不在原本的產品藍圖上，但用戶用腳投票逼他們做出來的。
+
+好的 PMF（product-market fit）不是在白板前面腦力激盪出來的，是用戶拿你的產品亂用，用到你不得不幫他們把那個「亂用法」正式化 ╰(°▽°)╯
+</MoguNote>
+
+## 實際怎麼用？
+
+操作方式超直覺，就像你在跟同事交代工作一樣：
+
+1. **選一個資料夾**：挑你想讓 Claude 處理的那個（例如「待整理的收據」）
+2. **用人話下指令**：「幫我把這些收據照片整理成一張費用表」
+3. **它自己規劃然後開工**：Claude 會訂出執行計畫，自己動手，做完跟你回報
+4. **你驗收成果**：看看有沒有問題，不滿意就叫它改
+
+就像帶實習生——你不用教他怎麼開 Excel，你只要說「我下午要交這份報告」就好。差別是這個實習生不會問你公司 Wi-Fi 密碼 ┐(￣ヘ￣)┌
+
+<MoguNote>
+注意到了嗎？這個操作模式的關鍵是「資料夾」。
+
+不是「整台電腦的存取權限」，是你選定的一個資料夾。這個 scope 的設計很重要——它把 [AI agent](/glossary#agent) 的活動範圍限縮到一個你可以監控的空間裡。
+
+就像養貓。你不會第一天就讓新貓在全家自由活動——先關在一個房間，讓牠熟悉環境，你也觀察牠會不會亂尿。信任是一個房間一個房間慢慢開放的 ʕ•ᴥ•ʔ
+</MoguNote>
+
+## 「讓 AI 動我的檔案」這件事
+
+我知道你在想什麼。「讓 AI 直接碰我的檔案？這聽起來像恐怖片的開頭。」
+
+這個心理門檻是真的。把檔案的讀寫權限交出去，需要的不只是技術上的安全機制，還需要心理上的信任。
+
+根據 Alex Albert 的介紹，Cowork 的設計是以資料夾為單位開放權限——你明確選擇讓 Claude 存取哪個資料夾，其他地方它碰不到。
+
+不過要老實說，AI agent 存取檔案系統這件事，在安全研究領域仍然是活躍的討論話題。[Prompt](/glossary#prompt) injection 的防禦持續在進化，但沒有人敢拍胸脯說百分之百安全。這就像網路安全一樣——不存在「絕對安全」，只存在「風險管理」。
+
+<MoguNote>
+「讓 AI 動你的檔案」這件事，我覺得跟 2005 年第一次用網路銀行轉帳的感覺很像。
+
+那時候一堆人覺得「在網路上輸入銀行密碼？你是不是瘋了？」結果現在你連早餐的 35 塊都用手機付，眼睛都不眨一下。
+
+我的實戰建議：先拿你的 Downloads 資料夾開刀。反正裡面全是 `截圖 2024-03-15 下午3.42.17.png` 跟 `document(3).pdf` 之類的殘骸，就算搞壞了你也不會心疼。等你對 Claude 的判斷力有信心了，再慢慢開放更重要的資料夾 (ง •̀_•́)ง
+</MoguNote>
+
+## 這步棋為什麼聰明？
+
+好，把格局拉大一點。
+
+整個 AI 產業現在都在搶答同一道題：**怎麼讓 [AI agent](/glossary#agent) 從工程師的玩具，變成所有人的日常工具？**
+
+難度在哪？[Agent](/glossary#agent) 很強，但它的操作介面對一般人來說就像飛機駕駛艙——按鈕太多，完全不知道從哪個開始按。
+
+Anthropic 用 Cowork 交出的答案走了一條很穩的路：**不做新產品，直接把已經被驗證過的工具「翻譯」成人話。**
+
+想像一下：Linux 命令列 → Mac 圖形介面。底層跑的是同一套系統，但你不用再打 `sudo apt-get install` 了，拖拉就好。工程師花了大半年證明引擎跑得動，現在只是幫它裝上方向盤。
+
+從 power user 往下打，永遠比從零開始做「簡單版」穩。因為你已經知道核心技術 work，只需要解決 UX 問題。反過來——先做簡單版再往上疊功能——你很可能疊到第三層就發現地基歪了。
+
+## 延伸閱讀
+
+- [MP-27: Claude Code 從寫 code 跨界到訂披薩 — Cowork 誕生秘辛](/posts/mp-27-20260204-bcherny-noncoding-cowork/) — [Boris Cherny](/glossary#boris-cherny) 親自講 Cowork 的開發內幕
+- [GP-86: Simon Willison 實測 Claude Code Remote + Cowork](/posts/gp-86-20260225-simonw-claude-code-remote-cowork/) — 看看外部開發者怎麼評價
+- [MP-26: Claude Code Wrappers 將成為 2026 的 Cursor](/posts/mp-26-20260204-4nzn-claude-code-wrappers/) — 圍繞 Claude Code 長出的生態系
+
+<MoguNote>
+回到開頭的咖啡機比喻。
+
+Cowork 就是那顆「一鍵煮咖啡」按鈕。你爸媽終於可以自己煮了，而且煮出來的品質跟你手動調整每個參數出來的一模一樣。
+
+但最有意思的不是按鈕本身，而是這件事背後的邏輯：**最好的「給所有人用的版本」，不是另起爐灶做出來的——是從工程師已經用到離不開的工具裡長出來的。**
+
+這篇原文只是 Alex Albert 在 X 上的一則公告，但它標誌的東西很大：Anthropic 正式把 AI agent 的目標受眾，從「會寫 code 的人」擴展到了「會打字的人」(￣▽￣)／
+</MoguNote>

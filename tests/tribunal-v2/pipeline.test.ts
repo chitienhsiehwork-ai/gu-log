@@ -32,7 +32,7 @@ import type {
 
 const MINIMAL_ARTICLE = `---
 title: "Test Article"
-ticketId: CP-999
+ticketId: MP-999
 slug: test-article
 lang: "zh-tw"
 date: 2026-04-16
@@ -44,11 +44,11 @@ tags:
 
 # 測試文章
 
-ShroomDog 想分享這段內容。Clawd 覺得 [documentation](https://example.com/docs) 是起點。
+ShroomDog 想分享這段內容。Mogu 覺得 [documentation](https://example.com/docs) 是起點。
 
 ## 結論
 
-Clawd 覺得結束了。
+Mogu 覺得結束了。
 `;
 
 // ---------------------------------------------------------------------------
@@ -84,7 +84,7 @@ function stage0Pass(): WorthinessJudgeOutput {
 
 const PASSING_SCORES: VibeJudgeOutput['scores'] = {
   persona: 9,
-  clawdNote: 8,
+  moguNote: 8,
   vibe: 8,
   clarity: 8,
   narrative: 8,
@@ -92,7 +92,7 @@ const PASSING_SCORES: VibeJudgeOutput['scores'] = {
 
 const FAILING_SCORES: VibeJudgeOutput['scores'] = {
   persona: 7,
-  clawdNote: 7,
+  moguNote: 7,
   vibe: 7,
   clarity: 7,
   narrative: 7,
@@ -424,7 +424,7 @@ describe('pipeline — writer-constraint enforcement', () => {
     const git = mockGit();
 
     // Stage 1 scores: all high
-    const stage1Scores = { persona: 9, clawdNote: 9, vibe: 9, clarity: 9, narrative: 9 };
+    const stage1Scores = { persona: 9, moguNote: 9, vibe: 9, clarity: 9, narrative: 9 };
 
     const config: PipelineConfig = {
       ...passThroughConfig(),
@@ -612,7 +612,7 @@ describe('pipeline — Stage 3 dupCheck-only FAIL (Level E)', () => {
       dupCheck_pass: false,
       improvements: {
         dupCheck:
-          'class=hard-dup action=BLOCK matchedSlugs=[sp-165-20260408-some-slug] reason=與 SP-165 同 cluster primary，無 independentDiff',
+          'class=hard-dup action=BLOCK matchedSlugs=[sp-165-20260408-some-slug] reason=與 GP-165 同 cluster primary，無 independentDiff',
       },
       critical_issues: ['duplicate detected — manual review required'],
       judge_model: 'mock',
@@ -869,7 +869,7 @@ describe('pipeline — Stage 3 dupCheck-only FAIL (Level E)', () => {
 
 const V9_ARTICLE = `---
 title: "Test Article v9"
-ticketId: CP-998
+ticketId: MP-998
 slug: test-article-v9
 lang: "zh-tw"
 date: 2026-06-18
@@ -883,11 +883,11 @@ scores:
 
 # 測試文章
 
-ShroomDog 想分享這段內容。Clawd 覺得 [documentation](https://example.com/docs) 是起點。
+ShroomDog 想分享這段內容。Mogu 覺得 [documentation](https://example.com/docs) 是起點。
 
 ## 結論
 
-Clawd 覺得結束了。
+Mogu 覺得結束了。
 `;
 
 describe('pipeline — v9 Fresh Eyes clarity gate', () => {

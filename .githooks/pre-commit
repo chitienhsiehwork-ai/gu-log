@@ -17,8 +17,8 @@ set -e
 POSTS_DIR="src/content/posts"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-STAGED_MDX=$(git diff --cached -M --name-only --diff-filter=ACM -- "$POSTS_DIR"/*.mdx 2>/dev/null || true)
-STAGED_POST_CHANGES=$(git diff --cached -M --name-only --diff-filter=ACMRD -- "$POSTS_DIR" 2>/dev/null || true)
+STAGED_MDX=$(git -c diff.renameLimit=0 diff --cached -M --name-only --diff-filter=ACM -- "$POSTS_DIR/*.mdx" 2>/dev/null || true)
+STAGED_POST_CHANGES=$(git -c diff.renameLimit=0 diff --cached -M --name-only --diff-filter=ACMRD -- "$POSTS_DIR" 2>/dev/null || true)
 
 # ─── Step -3: Regenerate post manifests for staged content changes ──
 # `post-versions.json` is derived from git history. Pre-commit runs before the
@@ -89,7 +89,7 @@ echo ""
 
 # ─── Step 0.1: Score gate — staged posts must clear the score FLOOR ────
 # Only checks zh-tw primary posts (not en- translations).
-# Minimum: scores.vibe block with persona, clawdNote, vibe, clarity,
+# Minimum: scores.vibe block with persona, moguNote, vibe, clarity,
 # narrative AND composite >= 3 (the FLOOR, not the editorial PASS bar).
 #
 # Philosophy (2026-06-10): the automated gate is a floor, not the ≥8 PASS
@@ -132,10 +132,10 @@ else
 fi
 SCORE_MISSING=""
 # Newly ADDED zh-tw posts always go through the gate.
-STAGED_ZH_POSTS=$(git diff --cached -M --name-only --diff-filter=A -- "$POSTS_DIR"/*.mdx 2>/dev/null | grep -v '/en-' | sed '/^$/d' || true)
+STAGED_ZH_POSTS=$(git -c diff.renameLimit=0 diff --cached -M --name-only --diff-filter=A -- "$POSTS_DIR/*.mdx" 2>/dev/null | grep -v '/en-' | sed '/^$/d' || true)
 # MODIFIED zh-tw posts go through the gate too, but only when their
 # reader-visible content changed (full rewrites) — see reader_visible_changed.
-STAGED_ZH_MODIFIED=$(git diff --cached -M --name-only --diff-filter=M -- "$POSTS_DIR"/*.mdx 2>/dev/null | grep -v '/en-' | sed '/^$/d' || true)
+STAGED_ZH_MODIFIED=$(git -c diff.renameLimit=0 diff --cached -M --name-only --diff-filter=M -- "$POSTS_DIR/*.mdx" 2>/dev/null | grep -v '/en-' | sed '/^$/d' || true)
 
 # reader_visible_changed FILE → 0 (true) when the staged version's reader-facing
 # content (reader-visible frontmatter + body) differs from HEAD's. Backend-only
@@ -244,6 +244,11 @@ is_existing_ticket_post_addition() {
     printf '%s\n' "$existing_paths" | grep -vx "$file" >/dev/null 2>&1
 }
 
+is_exact_taxonomy_migration_diff() {
+    local file="$1"
+    node "$REPO_ROOT/scripts/migrate-brand-taxonomy.mjs" --check-staged-file "$file" >/dev/null 2>&1
+}
+
 GATE_CANDIDATES=$(printf '%s\n%s\n' "$STAGED_ZH_POSTS" "$STAGED_ZH_MODIFIED" | sed '/^$/d' | sort -u)
 
 if [ -z "$GATE_CANDIDATES" ]; then
@@ -254,6 +259,14 @@ else
     for file in $GATE_CANDIDATES; do
         FULL_PATH="$REPO_ROOT/$file"
         if [ ! -f "$FULL_PATH" ]; then continue; fi
+
+        # A repo-wide taxonomy codemod changes reader-visible identifiers but
+        # is not an editorial rewrite. Exempt only when the staged blob is
+        # byte-for-byte the deterministic transform of HEAD; any neighboring
+        # content edit still goes through the normal score gate.
+        if is_exact_taxonomy_migration_diff "$file"; then
+            continue
+        fi
 
         # Modifications: only gate when reader-visible content changed (full
         # rewrites). Added files have no HEAD version and always gate.
@@ -324,6 +337,9 @@ if [ -n "$STAGED_MDX" ] && [ "$IS_MERGE_COMMIT" != "1" ]; then
         case "$file" in
             */en-*) ;; # skip English
             *)
+                if is_exact_taxonomy_migration_diff "$file"; then
+                    continue
+                fi
                 # Backend-only frontmatter edits (translatedBy/model/harness,
                 # scores, …) don't touch reader prose — don't re-lint a
                 # grandfathered tutorial's 你/我 just because we added a model
@@ -351,8 +367,8 @@ if [ -n "$STAGED_MDX" ] && [ "$IS_MERGE_COMMIT" != "1" ]; then
         if ! node "$REPO_ROOT/scripts/check-pronoun-clarity.mjs" $ZH_FILES; then
             echo ""
             echo "❌ Pronoun clarity check FAILED."
-            echo "   你/我 found in article body (outside ClawdNote/blockquote/code)."
-            echo "   Use specific names (ShroomDog, Clawd, 讀者) or restructure sentences."
+            echo "   你/我 found in article body (outside MoguNote/blockquote/code)."
+            echo "   Use specific names (ShroomDog, Mogu, 讀者) or restructure sentences."
             exit 1
         fi
         echo "✓ Pronoun clarity passed"
@@ -376,7 +392,7 @@ if [ -n "$STAGED_MDX" ] && [ "$IS_MERGE_COMMIT" != "1" ]; then
 
         # ─── Step 0.165: AI-tells check (zh-tw translationese banlist) ───
         # Deterministic gate for discrete, explicit-wordlist AI tells per the
-        # SP-232 decision (docs/shroomdog-editorial-feedback.md 2026-06-17,
+        # GP-232 decision (docs/shroomdog-editorial-feedback.md 2026-06-17,
         # 「硬 lint 只留給有明確字表的 T3」). Density tells (T1/T2/T4) stay in the
         # tribunal AI-Tell Trap rubric — only low-collision discrete phrases are
         # hard-linted here. Banlist SSOT = BLOCKLIST in scripts/check-ai-tells.mjs;
@@ -429,7 +445,7 @@ echo ""
 
 # ─── Step 0.2: Topic dedup gate for newly added zh-tw posts ──────
 echo "🧠 Topic dedup gate: checking newly added zh-tw posts..."
-ADDED_ZH_POSTS=$(git diff --cached -M --name-only --diff-filter=A -- "$POSTS_DIR"/*.mdx 2>/dev/null | grep -v '/en-' || true)
+ADDED_ZH_POSTS=$(git -c diff.renameLimit=0 diff --cached -M --name-only --diff-filter=A -- "$POSTS_DIR/*.mdx" 2>/dev/null | grep -v '/en-' || true)
 
 if [ -z "$ADDED_ZH_POSTS" ]; then
     echo "✓ No newly added zh-tw posts"
@@ -486,9 +502,12 @@ content_gate_mdx_files() {
     local files=""
     local file
     for file in $STAGED_MDX; do
+        if is_exact_taxonomy_migration_diff "$file"; then
+            continue
+        fi
         # Backend-only frontmatter edits (model signature, scores) don't change
         # reader prose — skip the grandfathered-content enforcement (long
-        # ClawdNote summary etc.), same exemption the score/pronoun gates use.
+        # MoguNote summary etc.), same exemption the score/pronoun gates use.
         # New posts (no HEAD) and reader-visible rewrites still validate.
         if git cat-file -e "HEAD:$file" 2>/dev/null && ! reader_visible_changed "$file"; then
             continue
@@ -554,14 +573,10 @@ else
     if [ -n "$LINT_FILES" ]; then
         # --max-warnings=-1 means unlimited warnings; we only block on errors
         if ! npx eslint --no-warn-ignored $LINT_FILES 2>&1; then
-            LINT_EXIT=$?
-            # eslint exit code 1 = lint errors found
-            if [ "$LINT_EXIT" -eq 1 ]; then
-                echo ""
-                echo "❌ ESLint found errors. Fix them before committing."
-                echo "   Run: pnpm run lint:fix"
-                exit 1
-            fi
+            echo ""
+            echo "❌ ESLint found errors. Fix them before committing."
+            echo "   Run: pnpm run lint:fix"
+            exit 1
         fi
         echo "✓ ESLint passed"
     fi

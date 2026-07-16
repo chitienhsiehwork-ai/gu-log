@@ -18,7 +18,7 @@ import { getPublishedPosts } from '../../utils/post-status';
 export async function GET(_context: APIContext) {
   const posts = getPublishedPosts(await getCollection('posts'));
 
-  // Derive prefix (SP/CP/Lv/SD) from ticketId
+  // Derive prefix (GP/MP/Lv/SD) from ticketId
   const getPrefix = (ticketId?: string): string | null => {
     if (!ticketId) return null;
     const match = ticketId.match(/^(SP|CP|Lv|SD)-/);

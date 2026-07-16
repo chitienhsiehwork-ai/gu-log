@@ -5,7 +5,7 @@
 // Why shell out instead of porting: tribunal.sh is the canonical shell runner,
 // battle-tested bash with its own flock, quiet-hours logic, and progress
 // JSON checkpoint. It has exit-code-1-on-failure semantics and does NOT
-// call back into sp-pipeline.sh, so wrapping it is safe and the Go port
+// call back into gp-pipeline.sh, so wrapping it is safe and the Go port
 // of the tribunal itself is explicitly Phase 5 (optional polish).
 package ralph
 
@@ -15,7 +15,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/runner"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/runner"
 )
 
 // Options controls the ralph invocation. All fields are required.

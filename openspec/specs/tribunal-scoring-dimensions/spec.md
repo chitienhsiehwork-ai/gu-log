@@ -10,7 +10,7 @@ The tribunal scoring system SHALL assign every scoring dimension to exactly one 
 #### Scenario: Vibe owns four dimensions at version 9+
 
 - **WHEN** a post is scored at `tribunalVersion >= 9`
-- **THEN** the Vibe judge SHALL own exactly `persona`, `clawdNote`, `vibe`, `narrative`
+- **THEN** the Vibe judge SHALL own exactly `persona`, `moguNote`, `vibe`, `narrative`
 - **AND** the Vibe judge SHALL NOT score `clarity`
 
 #### Scenario: Fresh Eyes owns five dimensions at version 9+
@@ -23,7 +23,7 @@ The tribunal scoring system SHALL assign every scoring dimension to exactly one 
 #### Scenario: Legacy ownership preserved at version 8 and below
 
 - **WHEN** a post is scored or read at `tribunalVersion <= 8`
-- **THEN** the Vibe judge SHALL own `persona`, `clawdNote`, `vibe`, `clarity`, `narrative`
+- **THEN** the Vibe judge SHALL own `persona`, `moguNote`, `vibe`, `clarity`, `narrative`
 - **AND** the Fresh Eyes judge SHALL own `readability`, `firstImpression`, `payoffDensity`, `lengthFit`
 
 ### Requirement: Per-judge composite SHALL be the floored mean of that judge's owned dimensions, version-aware
@@ -32,8 +32,8 @@ Each judge's composite SHALL be computed as `floor(sum(owned dimensions) / count
 
 #### Scenario: Vibe composite over four dimensions at version 9+
 
-- **WHEN** a `tribunalVersion >= 9` post has Vibe dims persona/clawdNote/vibe/narrative
-- **THEN** the Vibe composite SHALL equal `floor((persona + clawdNote + vibe + narrative) / 4)`
+- **WHEN** a `tribunalVersion >= 9` post has Vibe dims persona/moguNote/vibe/narrative
+- **THEN** the Vibe composite SHALL equal `floor((persona + moguNote + vibe + narrative) / 4)`
 
 #### Scenario: Fresh Eyes composite over five dimensions at version 9+
 
@@ -86,7 +86,7 @@ The pre-commit floor gate SHALL require `scores.vibe` to contain every Vibe-owne
 #### Scenario: Version 9+ post requires four vibe dimensions
 
 - **WHEN** a new or reader-visible-edited `tribunalVersion >= 9` zh-tw post is committed
-- **THEN** the floor gate SHALL require persona/clawdNote/vibe/narrative present AND composite >= 3
+- **THEN** the floor gate SHALL require persona/moguNote/vibe/narrative present AND composite >= 3
 - **AND** SHALL NOT require `clarity` under `scores.vibe`
 
 #### Scenario: Version 8 post still requires five vibe dimensions

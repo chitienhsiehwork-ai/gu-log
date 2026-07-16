@@ -1,17 +1,17 @@
 // Package counter manages the ticket ID counter for gu-log post prefixes
 // (SP, CP, SD, Lv). It replaces the "flock + jq + mv" atomic bump dance
-// in scripts/sp-pipeline.sh with a Go native implementation backed by
+// in scripts/gp-pipeline.sh with a Go native implementation backed by
 // syscall.Flock on a per-process lock file.
 //
 // Storage format is scripts/article-counter.json, a simple object:
 //
 //	{
-//	  "SP": {
+//	  "GP": {
 //	    "next": 171,
-//	    "label": "ShroomDog Picks",
-//	    "description": "Articles picked by ShroomDog, translated by Clawd"
+//	    "label": "Gu-log Picks",
+//	    "description": "Articles picked by ShroomDog, translated by Mogu"
 //	  },
-//	  "CP": { ... },
+//	  "MP": { ... },
 //	  "SD": { ... },
 //	  "Lv": { ... }
 //	}
@@ -36,11 +36,11 @@ import (
 	"syscall"
 )
 
-// DefaultLockPath is /tmp/gu-log-counter.lock, matching scripts/sp-pipeline.sh.
+// DefaultLockPath is /tmp/gu-log-counter.lock, matching scripts/gp-pipeline.sh.
 const DefaultLockPath = "/tmp/gu-log-counter.lock"
 
 // ValidPrefixes are the four ticket prefixes the gu-log repo knows about.
-var ValidPrefixes = []string{"SP", "CP", "SD", "Lv"}
+var ValidPrefixes = []string{"GP", "MP", "SD", "Lv"}
 
 // Entry mirrors one prefix entry in article-counter.json.
 type Entry struct {
@@ -154,7 +154,7 @@ func (c *Counter) withLock(fn func() (int, error)) (int, error) {
 // elsewhere: it requires the prefix key to appear on its own line and
 // the "next" key to appear within the next four lines of the same block.
 func surgicalBump(raw []byte, prefix string) (int, []byte, error) {
-	// Match: "SP": { ... "next": NUMBER
+	// Match: "GP": { ... "next": NUMBER
 	// We allow up to 6 lines of whitespace / comments between the prefix
 	// line and the "next" line so we are robust to small layout variations.
 	pattern := fmt.Sprintf(`(?m)^(\s*"%s"\s*:\s*\{[^}]*?"next"\s*:\s*)(\d+)`, regexp.QuoteMeta(prefix))

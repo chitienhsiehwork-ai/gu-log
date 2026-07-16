@@ -2,7 +2,7 @@
 # .claude/hooks/session-start.sh — auto-provision CCC sandbox at session start
 #
 # 為什麼存在：CCC 每次都是全新 sandbox（fresh clone，node_modules 沒裝、git
-# hooks 沒掛、sp-pipeline 還沒 compile）。以前每個 CCC 開場都要記得手動補，
+# hooks 沒掛、gp-pipeline 還沒 compile）。以前每個 CCC 開場都要記得手動補，
 # 忘了就踩「hook 沒跑就 commit」這類本該擋掉的問題。這支 hook 在 session 一
 # 開始就把環境補好，未來 CCC 一醒來就能直接開工。
 #

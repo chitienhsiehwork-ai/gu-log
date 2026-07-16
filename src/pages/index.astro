@@ -10,7 +10,7 @@ const allPostsFull = await getCollection('posts');
 // Homepage excludes sub-8 posts (held off until a background tribunal lifts them).
 const allPosts = getIndexPosts(allPostsFull, 'zh-tw');
 
-// Helper: extract number from ticketId (e.g., "CP-11" → 11)
+// Helper: extract number from ticketId (e.g., "MP-11" → 11)
 const getTicketNumber = (ticketId: string | undefined) => {
   if (!ticketId) return 0;
   const match = ticketId.match(/\d+$/);
@@ -35,7 +35,7 @@ const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(
 ---
 
 <BaseLayout title="ShroomDog">
-  {/* SP: ShroomDog Picks — 最頻繁更新 */}
+  {/* SP: Gu-log Picks — 最頻繁更新 */}
   {
     spPosts.length > 0 && (
       <section class="posts-section sp-section">
@@ -67,7 +67,7 @@ const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(
 
         {spPosts.length > 3 && (
           <p class="view-all">
-            <a href="/shroomdog-picks">查看全部 →</a>
+            <a href="/gu-log-picks">查看全部 →</a>
           </p>
         )}
       </section>

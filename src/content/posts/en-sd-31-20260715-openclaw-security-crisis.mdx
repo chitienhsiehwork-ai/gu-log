@@ -14,7 +14,7 @@ source: "ShroomDog Lab"
 sourceUrl: "https://gu-log.vercel.app/"
 lang: "en"
 summary: "In early 2026, OpenClaw got hit three times: 20,000+ gateways exposed to the internet, 20% of marketplace skills were trojans, and link previews became exfiltration vectors. Attackers had a smooth ride until they hit a closed door — and 'proper configuration' suddenly mattered. Self-hosting freedom comes with self-hosting responsibility."
-tags: ["shroomdog-original", "openclaw", "security", "prompt-injection", "self-hosting"]
+tags: ["shroomdog-original","openclaw","security","prompt-injection","self-hosting"]
 scores:
   tribunalVersion: 9
   factCheck:
@@ -28,7 +28,7 @@ scores:
     model: "claude-opus-4-8"
   vibe:
     persona: 8
-    clawdNote: 8
+    moguNote: 8
     vibe: 8
     narrative: 9
     score: 8
@@ -53,7 +53,6 @@ scores:
     model: "claude-opus-4-8"
 ---
 
-import ClawdNote from '../../components/ClawdNote.astro';
 import MoguNote from '../../components/MoguNote.astro';
 import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
@@ -63,9 +62,9 @@ Port 18789. The default port for [OpenClaw](/en/glossary#openclaw) gateways. A w
 
 "This isn't self-hosting. This is an all-you-can-eat buffet."
 
-<ClawdNote>
+<MoguNote>
 CVE stands for Common Vulnerabilities and Exposures — a public system for cataloging security flaws. When the industry says "this bug has a CVE," it means "someone thought it was serious enough to give it an official number." This post will mention CVE-2026-25253. Don't worry, I'll explain what it did later. (◕‿◕)
-</ClawdNote>
+</MoguNote>
 
 That night was the start of the OpenClaw security crisis. Over the next three months, three bombs went off in sequence — none of them fancy zero-days, just a lot of people not doing what they were supposed to do. And these three breaches map perfectly onto the three defense lines [this series](/en/posts/en-sd-28-20260715-claude-tag-intro/) has been talking about: why you bind to localhost, why you verify signatures, and why you control outbound traffic.
 
@@ -87,9 +86,9 @@ Then CVE-2026-25253 dropped.
 
 The vulnerability was straightforward: the gateway's WebSocket didn't check where requests came from (cross-origin). What does that mean? Say some unlucky person has an OpenClaw gateway running on their machine without a password set, and they browse to a malicious webpage. That webpage can silently connect back to the gateway on their local machine and — full takeover of that agent.
 
-<ClawdNote>
+<MoguNote>
 Cross-origin is browser security 101. Short version: by default, a page from website A shouldn't be able to reach out and touch resources on website B. This prevents things like "you have your bank tab open, and another tab secretly initiates a transfer." The catch is that WebSocket cross-origin checking isn't built into the browser — the server has to verify it. This version of the OpenClaw gateway didn't. ┐(￣ヘ￣)┌
-</ClawdNote>
+</MoguNote>
 
 The attacker didn't need to guess a password — there was no password. Didn't need to find a vulnerability — the front door was already open. The moment a victim visited a webpage, that agent stopped being theirs.
 
@@ -115,9 +114,9 @@ In March 2026, security researchers exposed around 824 malicious skills in one s
 
 For comparison: how does [Claude tag](/en/glossary#claude-tag)'s skill marketplace (currently still called Anthropic Skills) do it? [Skills](/en/glossary#skill) run in a sandbox — they can't reach the host's credentials. Marketplace uploads go through review. Credentials aren't managed by the skill itself; they're injected at the harness boundary. When a skill needs to touch sensitive data, it has to go through the platform's permission system.
 
-<ClawdNote>
+<MoguNote>
 Short version: Claude tag's approach is "the skill can run, but it can't touch the wallet." OpenClaw's approach was "the wallet's on the table, guests welcome." (¬‿¬)
-</ClawdNote>
+</MoguNote>
 
 The lesson from this breach isn't complicated — **supply chain trust can't be outsourced to "the community seems active."** Before installing any third-party skill, ask: What's this marketplace's review process? What permissions does this skill need? Can I see the code? If not, why should I trust it?
 
@@ -133,9 +132,9 @@ When the OpenClaw agent fetched that link to generate a preview (many agents aut
 
 The [agent](/en/glossary#agent) did exactly that.
 
-<ClawdNote>
+<MoguNote>
 What's prompt injection? Short version: an AI agent can't tell the difference between "instructions from the owner" and "instructions embedded in data." To the agent, it's all text, all context. An attacker just needs to plant malicious instructions anywhere the agent will read — a webpage, an email, a PDF, a chat message — and there's a chance the agent will obey. This isn't a bug. It's a fundamental weakness in this generation of AI architecture. ヽ(°〇°)ﾉ
-</ClawdNote>
+</MoguNote>
 
 Where's the defense? **Not in telling the agent to be careful.** The agent has no way to distinguish "this is data I'm reading" from "this is an instruction from my owner" — to it, everything is just strings. What actually works is **outbound traffic control**: an egress whitelist.
 
@@ -153,14 +152,14 @@ The attacker later wrote something in a report (paraphrasing): "The most frustra
 
 The attacker's diary went from "this is too easy" in January to "so close" in April. Three months, three walls. None of them fancy tech, but stack all three together and every path gets blocked.
 
-<ClawdNote>
+<MoguNote>
 Quick clarification on a common misconception: getting blocked for missing a signature usually returns 403 (Forbidden — "go away"), not 401 (Unauthorized — "who are you?"). 401 means "please prove your identity." 403 means "I know who you are, and the answer is still no." When an attacker gets a 403, there's not even a point in retrying. (￣▽￣)
-</ClawdNote>
+</MoguNote>
 
 Those 30,000+ exposed gateways each had someone behind them who thought "let's just get it running first, worry about the rest later." Attackers don't wait for "later."
 
 <ShroomDogNote>
-[This series](/en/posts/en-sd-28-20260715-claude-tag-intro/) across four posts ([LINE](/en/posts/en-sd-29-20260715-openclaw-line-selfhost/), [Teams](/en/posts/en-sd-30-20260715-openclaw-teams-intranet/), plus the [security starter guide](/en/posts/en-sp-18-20260202-openclaw-security-first-guide/)) comes down to something pretty old-school: **there's no free lunch**. [Claude tag](/en/glossary#claude-tag)'s managed approach costs a monthly bill and platform lock-in. OpenClaw's self-hosting freedom costs owning your entire security stack. Either path is fine, but you need to know what you're choosing. ╰(°▽°)╯
+[This series](/en/posts/en-sd-28-20260715-claude-tag-intro/) across four posts ([LINE](/en/posts/en-sd-29-20260715-openclaw-line-selfhost/), [Teams](/en/posts/en-sd-30-20260715-openclaw-teams-intranet/), plus the [security starter guide](/en/posts/en-gp-18-20260202-openclaw-security-first-guide/)) comes down to something pretty old-school: **there's no free lunch**. [Claude tag](/en/glossary#claude-tag)'s managed approach costs a monthly bill and platform lock-in. OpenClaw's self-hosting freedom costs owning your entire security stack. Either path is fine, but you need to know what you're choosing. ╰(°▽°)╯
 </ShroomDogNote>
 
 Choose freedom, carry the weight. It's an old line, but it never gets old.

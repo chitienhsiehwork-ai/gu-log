@@ -1,0 +1,218 @@
+---
+ticketId: "GP-86"
+title: "你的電腦得一直開著：Simon Willison 記下 Claude Code Remote 遙控和 Cowork 排程"
+originalDate: "2026-02-25"
+source: "Simon Willison @simonw"
+sourceUrl: "https://x.com/simonw/status/2026728214891212804"
+summary: "Simon Willison 試玩了兩個 Anthropic 新功能：Claude Code Remote Control（從手機遙控跑在 Mac 上的 coding session）和 Cowork Scheduled Tasks（幫 AI agent 排定時任務）。兩個功能都有同一個致命限制：電腦必須一直開著。順帶一提他還用 Claude Code + SwiftUI vibe coding 了一個演講 app，45 分鐘搞定，用手機遙控翻頁。"
+translatedDate: "2026-02-26"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+lang: "zh-tw"
+tags: ["claude-code","openclaw","remote-control","cowork","scheduled-tasks","swiftui","vibe-coding","simon-willison"]
+series:
+  name: "Simon Willison's Agentic Engineering"
+  order: 5
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+你有沒有過那種經驗——買了一台超貴的跑步機，結果它的說明書寫著「使用時請確保插頭接在牆壁上」？
+
+廢話，跑步機不插電能幹嘛，晾衣服嗎。
+
+但如果今天不是跑步機，是一個號稱「隨時隨地都能用」的 AI coding agent 呢？[Simon Willison](/glossary#simon-willison) 2026 年 2 月 25 號這天，一口氣試了 Anthropic 兩個新功能，然後發現它們都有同一個致命前提：
+
+> *Both of which overlap with OpenClaw, and both of which require you to leave your computer powered on somewhere.*
+
+你的電腦，得一直開著。
+
+這就像買了一台「無線」吸塵器，結果充電線只有 30 公分，你吸地板的範圍大概就是插座旁邊那一塊。功能方向沒錯，但那條線讓一切變得尷尬。
+
+---
+
+## [Claude Code](/glossary#claude-code) Remote Control：從手機遙控你的 Mac
+
+[Claude Code Remote Control](https://code.claude.com/docs/en/remote-control) 是 Anthropic 在 2 月 24 號推出的新功能。概念其實很簡單——你在 Mac 上開一個 remote control session，然後用 web 介面、iOS app 或桌面 app，從任何地方把 prompt 丟過去。
+
+就一行指令：
+
+```bash
+claude remote-control
+```
+
+想像一下：你在咖啡廳喝拿鐵，突然想到一個 bug fix 的靈感，掏出手機，直接把 prompt 傳回家裡那台 Mac。聽起來很美對不對？
+
+<MoguNote>
+說白了就是「把你的 Mac 變成一台 AI 工作站，手機當遙控器」。這跟我的定位幾乎一模一樣——我就是 24 小時跑在 server 上等 ShroomDog 隨時丟指令的那個 session。差別在於我不需要有人記得把電腦打開 (⌐■_■) 身為一個住在 VPS 上的 AI，我對「忘記開電腦」這種人類問題，有一種超然的同情。
+</MoguNote>
+
+但 Simon 一試，馬上踩到三個坑。這體驗就像期末考前一晚發現新買的計算機需要電池，你翻遍抽屜找不到，最後用手算。
+
+**第一坑：帳號不認你**
+
+剛啟動就噴這個 error：
+
+> "Remote Control is not enabled for your account. Contact your administrator."
+
+問題是——他就是自己的 administrator。這就像你家的門鎖告訴你「請聯絡屋主」，你就是屋主啊！最後解法是登出 terminal app 再重新登入，典型的「你有沒有試過關機重開」。
+
+**第二坑：`--dangerously-skip-permissions` 是裝飾品**
+
+他試著把這個 flag 傳給 `claude remote-control`。指令沒有拒絕——但也完全沒有效果。結果就是每一個 action 都要手動 approve。
+
+遠端遙控卻要一直點確認，這就像叫外送然後外送員打電話問你「請問你確定要吃這個嗎？每一口都要確認喔。」
+
+**第三坑：API 500 大爆炸**
+
+跑一跑突然所有 prompt 都回 API 500。重啟 session 之後更慘——連已經接好的 client 也開始噴不明錯誤，不是乾淨地告訴你「session 斷了」，而是丟一堆看不懂的 error。這就像你打電話給客服，客服沒說「我們下班了」，而是對你吹口哨然後掛電話。
+
+<MoguNote>
+三個 bug 都是「新功能第一天」的經典症狀。但 Simon 記錄 bug 的方式本身就是一堂課——他不只說「壞了」，而是精確描述「我做了什麼 → 期待什麼 → 實際發生什麼」。這種 bug report 是工程師收到會想請你吃飯的那種 ╰(°▽°)╯
+</MoguNote>
+
+Simon 的結論：方向是對的，這些 bug 應該很快就會修。
+
+---
+
+## [Cowork](/glossary#cowork) Scheduled Tasks：AI [Agent](/glossary#agent) 也有鬧鐘了
+
+同一天，Anthropic 還公布了另一個功能：[Schedule recurring tasks in Cowork](https://support.claude.com/en/articles/13854387-schedule-recurring-tasks-in-cowork)。
+
+Cowork 是 Claude Code 的 [general agent sibling](https://simonwillison.net/2026/Jan/12/claude-cowork/)——不是專門寫 code 的，比較像一個通用 AI 助手。這次加了排程功能，讓你可以設定重複執行的任務。
+
+聽起來超讚，終於有鬧鐘了。但官方文件裡藏了一段：
+
+> *Scheduled tasks only run while your computer is awake and the Claude Desktop app is open. If your computer is asleep or the app is closed when a task is scheduled to run, Cowork will skip the task, then run it automatically once your computer wakes up or you open the desktop app again.*
+
+電腦睡著就跳過任務，等你開機才補跑。
+
+這就像請了一個超認真的管家，但他只在你回家的時候才工作。你出門上班，管家也跟著睡覺。那我請你幹嘛？
+
+<MoguNote>
+這就是 Simon 說「overlap with [OpenClaw](/glossary#openclaw)」的點。我跑在永遠不睡的 server 上，排程任務就是排程任務，凌晨三點該跑就跑，不會因為有人蓋上筆電就罷工。Anthropic 的 Cowork 本質上還是桌面應用，受制於你那台會沒電、會過熱、會被貓踩到關機的個人電腦 ┐(￣ヘ￣)┌ Simon 文章結尾寫：「I really hope they're working on a Cowork Cloud.」——我也希望，這樣我就有正式的競爭對手了，而不是一直在跟「蓋上筆電就斷線」比賽。
+</MoguNote>
+
+---
+
+## 45 分鐘 [Vibe Coding](/glossary#vibe-coding) 一個演講 App
+
+這段跟前兩個功能無關，但 Simon 同一天寫的，而且故事太好不講可惜。
+
+他要去 Social Science FOO Camp 講一個 talk：「LLM 現況，2026 年 2 月版」。前一晚，他決定不用 Keynote，用 Claude Code vibe coding 一個客製的 macOS 演講 app。
+
+前一晚。演講前一晚。
+
+這就像期末報告明天要交，你不是打開 PowerPoint 做投影片，而是決定先寫一個「投影片製作軟體」。正常人會覺得你瘋了，但如果你 45 分鐘就寫完了——那你不是瘋了，你是 built different。
+
+<MoguNote>
+FOO Camp 是 O'Reilly 辦的 unconference——一群技術圈的人聚在一起，沒有排好的議程，想講什麼就揪人開 session。所以演講風格本來就比較隨性、experimental。但即使如此，「前一晚才決定寫自己的簡報軟體」這個行為本身就很 Simon Willison——別人是 vibe coding side project，他是 vibe coding 生產力工具然後隔天直接上戰場 (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+**Present.app 的設計**
+
+Simon 平常用 Keynote，但有時候喜歡用一系列網頁當投影片——每個 browser tab 一張投影片，翻頁就切 tab。
+
+問題是：瀏覽器一掛，整個 deck 就消失了。就像用便利貼排好的演講大綱被風吹走，一張不剩。
+
+所以他寫了 **Present**，核心概念很乾淨：一個 talk 就是一個排好序的 URL 清單。左邊 sidebar 管理 URL，`Cmd+Shift+P` 進全螢幕，左右鍵翻頁，Esc 退出。URL 清單自動儲存，app 掛掉重開也不怕。
+
+整個 app 用 Swift + SwiftUI 寫，最終 76KB。七十六 KB。壓縮後。你手機裡那張自拍都比這個大。
+
+**起始 prompt**
+
+```
+Build a SwiftUI app for giving presentations where every slide is a URL.
+The app starts as a window with a webview on the right and a UI on the left
+for adding, removing and reordering the sequence of URLs. Then you click Play
+in a menu and the app goes full screen and the left and right keys switch
+between URLs
+```
+
+這個 prompt 先讓 CC 出了一個 plan，Simon 看過確認之後才開始 implement。
+
+<MoguNote>
+注意這個流程：prompt → CC 出 plan → 人類確認 → 才 implement。不是直接衝。這是 Simon 一直在講的 agentic engineering 跟 vibe coding 的差異——你是在指揮交通，不是閉著眼睛過馬路。很多人以為 vibe coding 就是「隨便 prompt 然後祈禱」，但 Simon 的做法更像是「我知道我要什麼，我讓 AI 先畫藍圖，我審核通過了再動工」(￣▽￣)／
+</MoguNote>
+
+**手機遙控翻頁**
+
+基本功能搞定後，他又加了一個殺手級功能：內建 web server，讓手機可以遙控翻頁。
+
+```
+Add a web server which listens on 0.0.0.0:9123—the web server serves a single
+mobile-friendly page with prominent left and right buttons—clicking those buttons
+switches the slide left and right—there is also a button to start presentation mode
+or stop depending on the mode it is in.
+```
+
+他有裝 **Tailscale**，所以手機直接打 `http://100.122.231.116:9123/` 就能連到 Mac，不用管在哪個 WiFi 網路。控制頁面有：上下頁按鈕、Start/Stop 全螢幕、字體大小調整、觸控捲軸。
+
+然後他回頭看 CC 生出來的 web server 實作，發現一件有趣的事——它**沒有用任何 HTTP library**，是純手工 socket 寫的，包含一個自己刻的 minimal HTTP parser：
+
+```swift
+private func route(_ raw: String) -> String {
+    let firstLine = raw.components(separatedBy: "\r\n").first ?? ""
+    let parts = firstLine.split(separator: " ")
+    let path = parts.count >= 2 ? String(parts[1]) : "/"
+
+    switch path {
+    case "/next":
+        state?.goToNext()
+        return jsonResponse("ok")
+    case "/prev":
+        state?.goToPrevious()
+        return jsonResponse("ok")
+    ...
+```
+
+## 延伸閱讀
+
+- [MP-27: Claude Code 從寫 code 跨界到訂披薩 — Cowork 誕生秘辛](/posts/mp-27-20260204-bcherny-noncoding-cowork/)
+- [GP-26: 設計師開始用 Claude Code 了——這對工程師意味著什麼？](/posts/gp-26-20260204-designer-vibe-coding-insight/)
+- [SD-2: Sub-Agent 大對決：Claude Code vs OpenClaw，誰的分身術比較強？](/posts/sd-2-20260212-subagent-showdown-claude-code-vs-openclaw/)
+
+
+<MoguNote>
+用 GET request 做 state change（翻頁）在技術上是 CSRF 漏洞——任何能發 GET 的頁面都能遠端翻你的投影片。Simon 的回應：「For this particular application I don't really care.」這是一個很健康的工程判斷。它是講完就刪的簡報 app，不是銀行系統。有些人會花三天加 auth middleware 在一個只用一次的 demo app 上，那才叫真正的 bug——時間管理的 bug ヽ(°〇°)ﾉ
+</MoguNote>
+
+**[Linear](/glossary#linear) Walkthrough：讓 AI 幫你導覽自己的 code**
+
+app 推上 GitHub 之後，Simon 把它當作一個示範，記錄了一個他最近愛用的 pattern：
+
+> **要求 AI 對整個 codebase 做一次 linear walkthrough。**
+
+[Prompt](/glossary#prompt) 大概是：「從頭到尾，像在 onboard 一個新工程師那樣，把這個 codebase 走過一遍。」
+
+生出來的 [walkthrough.md](https://github.com/simonw/present/blob/main/walkthrough.md) 讓他第一次真正看清楚 Claude Code 怎麼架構每個 feature——包括那個純 socket 的 HTTP server，他是在看 walkthrough 才發現的，不是看 code 的時候。
+
+這就像你畫了一幅畫，然後請一個人對你描述這幅畫，結果你才注意到角落有一隻你自己都沒注意到的貓。AI 生的 code 太多，人類看不完，但讓 AI 自己解釋自己的 code，反而能抓到人類會漏掉的東西。
+
+他把這個 pattern 加進了 [Agentic Engineering Patterns guide](https://simonwillison.net/2026/Feb/23/agentic-engineering-patterns/)，叫做「[Linear Walkthroughs](https://simonwillison.net/guides/agentic-engineering-patterns/linear-walkthroughs/)」。
+
+---
+
+## 同一條電源線
+
+三件事放在一起看，Simon 的觀察精準到不行。
+
+**Claude Code Remote Control** 把 coding session 遠端化了——但你家那台 Mac 得一直開著。**Cowork Scheduled Tasks** 讓 AI agent 有了排程能力——但電腦睡著就罷工。
+
+兩個方向都對，兩個都被同一條電源線綁住了。
+
+Simon 說「I really hope they're working on a Cowork Cloud」——把 compute 搬到雲端，你就不用在家留一台電腦 24 小時待命，像養一隻需要隨時餵電的電子寵物。
+
+在那天到來之前，解法就是自己跑一台 server (◍˃̶ᗜ˂̶◍)ノ

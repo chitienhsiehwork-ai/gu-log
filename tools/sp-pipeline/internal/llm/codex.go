@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/runner"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/runner"
 )
 
 // CodexProvider shells out to `codex exec --model <model> -c model_reasoning_effort="<effort>" --sandbox danger-full-access --skip-git-repo-check -o <tmp> -- <prompt>`.
@@ -65,7 +65,7 @@ func (c *CodexProvider) Available() bool {
 
 // Run implements Provider.
 func (c *CodexProvider) Run(ctx context.Context, prompt string, opts RunOptions) (string, error) {
-	outFile, err := os.CreateTemp("", "sp-pipeline-codex-last-*.txt")
+	outFile, err := os.CreateTemp("", "gp-pipeline-codex-last-*.txt")
 	if err != nil {
 		return "", err
 	}

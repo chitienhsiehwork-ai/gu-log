@@ -1,0 +1,128 @@
+---
+ticketId: "GP-101"
+title: "AI 代理的練功秘笈？Hamel Husain 推出 Evals 技能包，讓你的 Agent 更懂評估！"
+originalDate: "2026-03-03"
+translatedDate: "2026-03-04"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@HamelHusain on X"
+sourceUrl: "https://x.com/hamelhusain/status/2028894099483578872"
+lang: "zh-tw"
+summary: "Hamel Husain 發表 evals-skills，一套專為 AI 產品評估設計的技能工具。它旨在解決 AI 代理在複雜任務中遇到的評估盲點，尤其是對抗常見錯誤和處理細微的幻覺類型，讓代理人能更有效利用評估平台。"
+tags: ["ai-agents","llm-evals","developer-tools"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+想像一個場景：你的客服 AI 跟客戶說「您的方案包含免費退貨」，但公司根本沒這個服務。同一天，另一個客服 AI 說「您的訂單已取消」，但根本沒人叫它取消。
+
+兩個都是幻覺。但仔細想想 —— 一個是「搞錯事實」，另一個是「無中生有」。這兩種病因完全不同，你如果只量一個「幻覺總分」，就像醫生只量體溫然後跟你說「嗯，你生病了」一樣。廢話，我當然知道我生病了，問題是哪裡病 (╯°□°)╯
+
+Hamel Husain 就是看到太多團隊踩這個坑 —— 他幫超過 50 家公司做 AI 評估、也教相關課程 —— 然後把這些反覆出現的錯誤整理成了一套叫 `evals-skills` 的技能包。白話講就是：一本「怎麼正確幫 AI 看病」的手冊。
+
+<MoguNote>
+幻覺分類這件事，講起來簡單做起來沒人在做。大部分團隊的 eval 就是一個 accuracy 數字，然後大家盯著小數點後兩位假裝自己在做科學。Hamel 的貢獻是把「你到底錯在哪」這個問題拆細了 —— 弄錯事實 vs. 編造行為 vs. 曲解指令，每種的修法完全不同。這就像修車，引擎抖跟輪胎沒氣都是「車子怪怪的」，但你不會用同一招修 ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## [Agent](/glossary#agent) 能幹活，但不代表它知道自己幹得好不好
+
+現在的 Coding Agent 確實厲害 —— 寫 code、跑實驗、建 UI、搞儀器化，什麼都行。OpenAI 的 Harness Engineering 團隊之前分享了一個案例：三位工程師用 [Codex](/glossary#codex) 代理人，五個月寫了一百萬行 code、開了一千五百個 PR，基本上是 Agent 打造了一整個產品。而且他們的代理人還會主動查 traces 來驗證自己的工作。
+
+但故事的重點其實在後面：他們發現，與其不斷改進模型本身，**不如改進 Agent 周邊的基礎設施**，回報率更高。
+
+這裡的基礎設施有三塊：
+
+- **Documentation** —— 告訴 Agent 該做什麼
+- **Telemetry** —— 告訴 Agent 做了什麼
+- **Evals** —— 告訴 Agent 做得好不好
+
+少了 evals，就像你交了作業但老師永遠不批改 —— 你永遠不知道自己哪裡寫錯。
+
+<MoguNote>
+「改基礎設施比改模型 ROI 更高」這句話聽起來平淡，但你想想，現在多少團隊把全部預算砸在 fine-tuning 跟 prompt engineering 上，卻連一套像樣的 eval pipeline 都沒有？這就像一個廚師瘋狂研究食材，但廚房連溫度計都沒有，每次出餐都是薛丁格的熟度 (◕‿◕) OpenAI 自家團隊都說 infra 比 model 重要了，你還在那邊調 temperature 0.7 vs 0.8 嗎？
+</MoguNote>
+
+---
+
+## 有工具不代表會用：evals-skills 補的是哪一塊？
+
+好，現在市面上主流的 eval 供應商 —— Raindrop、LangSmith、Phoenix、Braintrust 這些[^2] —— 都已經有 [MCP](/glossary#mcp) 伺服器。意思是你的 Agent 可以直接存取 traces 跟實驗數據。
+
+但問題來了：**有了資料不代表你知道怎麼分析。**
+
+這就是 `evals-skills` 的定位。它不是要取代這些平台，而是教你的 Agent 怎麼「讀」這些資料。MCP 伺服器給你原料，evals-skills 給你食譜。沒有食譜的原料，就只是冰箱裡一堆你不知道怎麼煮的食材。
+
+<MoguNote>
+「補足而非取代」這個定位聽起來很謙虛，但其實超聰明。你去看看那些說要「革命性取代一切」的工具，有幾個活超過兩年的？反而是那些寄生在既有生態系上的工具 —— 像 ESLint 之於 JavaScript、Black 之於 Python —— 它們不取代語言本身，只是讓你用得更好。evals-skills 走的就是這個路線。講直白一點：能找到好的寄生策略，才是真正的生態位 (¬‿¬)
+</MoguNote>
+
+---
+
+## 技能拆解：一套從健檢到專科門診的流程
+
+那這個技能包裡面到底有什麼？Hamel 建議如果你是新手，先從 `eval-audit` 開始。它像是幫你的 eval pipeline 做全身健康檢查 —— 掃描六大領域（Error analysis、Evaluator design、Judge validation、Human review、Labeled data、Pipeline hygiene），然後吐出一份按優先級排列的問題清單。
+
+你可以這樣提示你的 Agent：
+
+> Install the eval skills plugin from https://github.com/hamelsmu/evals-skills, then run /evals-skills:eval-audit on my eval pipeline. Investigate each diagnostic area using a separate subagent in parallel, then synthesize the findings into a single report. Use other skills in the plugin as recommended by the audit.
+
+健檢做完，接下來就是對症下藥。每個技能處理一種「病」，我們一個一個看：
+
+**`error-analysis`** —— 帶你讀 traces、把失敗案例分群。你知道那種感覺嗎？看了一千行 log，每行都像在跟你說「有東西壞了」，但沒人告訴你到底是哪裡壞。error-analysis 就是幫你把這堆「壞了」分類 —— 這幾個是同一種壞法，那幾個是另一種，突然間你就知道從哪下手了。
+
+**`generate-synthetic-data`** —— 用 dimension-based tuple 系統化地生測試資料。邊角案例就像蛀牙，平常不痛你不會管它，等到客戶踩到的時候已經蛀到神經了。這工具的邏輯是：與其等 production 爆炸，不如先系統性地把各種組合排列出來炸一輪。
+
+**`write-judge-prompt`** —— 把主觀的品質標準變成可重複執行的 LLM judge。老闆說「這個回答感覺怪怪的」，你問他哪裡怪他也說不上來。這工具就是把「感覺怪怪的」翻譯成「score 3, reason: hallucinated user action」。從玄學變科學，一步到位。
+
+**`validate-evaluator`** —— 拿 human labels 校準你的 LLM judge，還會順手幫你抓 bias。畢竟你的評審官本身也是 AI，quis custodiet ipsos custodes，誰來監督監督者？這工具就是那個監督者的監督者 ┐(￣ヘ￣)┌
+
+**`evaluate-rag`** —— 專門處理 RAG pipeline，把 retrieval 跟 generation 的責任拆開。搜到爛東西？Retriever 的鍋。搜到好東西但講歪了？Generator 的鍋。聽起來很基本對吧？但實務上……
+
+## 延伸閱讀
+
+- [GP-111: Andrew Ng 推出 Context Hub：幫 Coding Agent 補上最新 API 文件](/posts/gp-111-20260311-andrewyng-context-hub-coding-agent-api/)
+- [MP-2: Karpathy：我的寫 code 方式在幾週內完全翻轉了](/posts/mp-2-20260203-karpathy-agent-shift/)
+- [MP-8: Simon Willison：學會設計 Agentic Loops，用暴力破解所有 Coding 問題](/posts/mp-8-20260203-simonw-agentic-loops/)
+
+
+<MoguNote>
+RAG 出包的時候，十個團隊有九個在 generator 端瘋狂調 prompt，但其實是 retriever 撈到垃圾 —— 垃圾進垃圾出，你 prompt 寫成莎士比亞也沒用。我親眼看過團隊花三個月 debug 錯的那一邊，最後才發現兇手在另一頭。evaluate-rag 的拆責任歸因設計，就是先幫你搞清楚該打誰的屁股再動手 (╯°□°)╯
+</MoguNote>
+
+**`build-review-interface`** —— 建 custom annotation UI，讓 human review 流程跑得動。因為到頭來，AI 寫的 judge prompt 終究需要人類蓋章。這工具讓你不用從零刻一個標註介面，直接把 review 流程跑起來。
+
+另外還有一個 meta-skill —— 你可以把它想成「技能的技能」—— 它引導你把團隊自己的 domain know-how 包成 custom skills。上面那七招是起手式，學會了以後你可以自己配招。就像學武功，師父先教你基本拳法，等你內化了才開始發展自己的套路。Hamel 在 eval 這個領域做的，就是這件事 (￣▽￣)／
+
+---
+
+## 回到那兩個客服 AI
+
+所以故事繞回來了。
+
+那個說「免費退貨」的 AI，和那個自作主張取消訂單的 AI —— 在 Hamel 的框架裡，它們不再只是兩個「幻覺 case」。一個會被 error-analysis 標成 factual hallucination，另一個會被標成 fabricated action。它們會進不同的 trace cluster、觸發不同的 judge prompt、最後得到不同的修復建議。
+
+這就是「把幻覺分門別類」帶來的改變。你不再是對著一個模糊的 accuracy 數字嘆氣，而是知道自己該修哪條 pipeline、改哪段 prompt、補哪種 test case。
+
+Hamel 自己也說了，這些技能只是起點 —— 真正強大的版本要根據你的技術棧和資料客製化。但至少，你不用從零開始了。
+
+程式碼庫在這裡：[github.com/hamelsmu/evals-skills](https://github.com/hamelsmu/evals-skills)
+
+話說回來，如果你的 AI 到現在還在用一個「幻覺分數」打天下 —— 也許是時候幫它安排一次健檢了 ╰(°▽°)╯
+
+---
+[^1]: 這裡指的「產品評估（Product evals）」不是那些衡量大型語言模型通用能力的基準測試，像是 MMLU 或 HELM。產品評估是衡量你的 AI 流程在你的特定任務和資料上是否有效運作。如果你對產品專屬的 AI 評估不熟悉，可以看看這篇文章：[hamel.dev/blog/posts/evals-faq/](https://hamel.dev/blog/posts/evals-faq/)
+[^2]: [Raindrop](https://www.raindrop.ai/)、[LangSmith](https://github.com/langchain-ai/langsmith-mcp-server)、[Phoenix](https://github.com/Arize-ai/phoenix/tree/main/js/packages/phoenix-mcp)、[Truesight](https://truesight.goodeyelabs.com/docs/mcp-integration)、[Braintrust](https://www.braintrust.dev/docs/reference/mcp) 以及其他廠商都有提供。

@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# sp-pipeline.sh — backwards-compat shim.
+# gp-pipeline.sh — backwards-compat shim.
 #
 # The canonical scripts/ entry point is now scripts/gp-pipeline.sh (Gu-log
 # Picks, matching the blog brand); this file is the retained legacy name and
 # behaves identically.
-# The real pipeline lives in tools/sp-pipeline/ (Go) as of Phase 4 of the
+# The real pipeline lives in tools/gp-pipeline/ (Go) as of Phase 4 of the
 # Go rewrite. This file exists so crontabs, playbooks, and ad-hoc
-# invocations that spell `bash scripts/sp-pipeline.sh <url>` keep working.
+# invocations that spell `bash scripts/gp-pipeline.sh <url>` keep working.
 # It translates the legacy env-var surface into Go CLI flags and execs
 # into the self-compiling Go binary.
 #
@@ -23,11 +23,11 @@ export PATH="/home/clawd/.local/bin:$HOME/.local/bin:$PATH"
 # Resolve repo root from the shim's own location so this works regardless
 # of CWD. Honors GU_LOG_DIR when the caller set it.
 GU_LOG_DIR="${GU_LOG_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
-SP_PIPELINE="$GU_LOG_DIR/tools/sp-pipeline/sp-pipeline"
+SP_PIPELINE="$GU_LOG_DIR/tools/gp-pipeline/gp-pipeline"
 
 if [ ! -x "$SP_PIPELINE" ]; then
-  printf 'sp-pipeline shim: Go wrapper not found or not executable at %s\n' "$SP_PIPELINE" >&2
-  printf 'Run: cd %s && go build ./... to rebuild.\n' "$GU_LOG_DIR/tools/sp-pipeline" >&2
+  printf 'gp-pipeline shim: Go wrapper not found or not executable at %s\n' "$SP_PIPELINE" >&2
+  printf 'Run: cd %s && go build ./... to rebuild.\n' "$GU_LOG_DIR/tools/gp-pipeline" >&2
   exit 127
 fi
 

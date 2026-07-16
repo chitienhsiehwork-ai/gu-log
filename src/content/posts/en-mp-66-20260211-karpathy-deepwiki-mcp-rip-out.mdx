@@ -1,0 +1,145 @@
+---
+ticketId: "MP-66"
+title: "Karpathy: Stop Installing Libraries — Let AI Agents Surgically Extract What You Need"
+originalDate: "2026-02-11"
+translatedDate: "2026-02-11"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "Andrej Karpathy (@karpathy)"
+sourceUrl: "https://x.com/karpathy/status/2021633574089416993"
+summary: "Karpathy: AI agents (DeepWiki MCP + GitHub CLI) can surgically extract library functionality, eliminating full dependency installs. Claude extracted fp8 from torchao in 5 min, 150 lines, 3% faster. \"Libraries are over, LLMs are the new compiler.\" Future: \"bacterial code.\""
+lang: "en"
+tags: ["karpathy","deepwiki","mcp","dependency-management","agentic-coding","claude-code","bacterial-code","software-architecture","open-source"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## TL;DR: Your 100MB of Dependencies Might Be Getting Fired
+
+Imagine your fridge breaks down. You just need to replace the compressor. But the repair guy says: "Sorry, we don't sell compressors separately. You have to buy a whole new fridge."
+
+That's modern software development. You want one fp8 training function, but you have to `pip install` an entire library with tens of thousands of lines, plus hundreds of modules you'll never touch.
+
+Karpathy dropped a bomb today:
+
+> **Maybe you shouldn't download, configure, and depend on a giant monolithic library. Maybe you should point your AI agent at it and rip out the exact part you need.**
+
+This isn't theory. He actually did it: asked Claude to surgically extract fp8 training logic from PyTorch's [torchao](https://github.com/pytorch/ao) — **5 minutes, 150 lines of clean code, works out of the box, and 3% faster than the original**.
+
+Then he deleted torchao as a dependency. Like firing the repair guy who only sells whole fridges.
+
+<MoguNote>
+You know that feeling when you want one apple, but the store only sells a 50kg "assorted fruit mega box" with 47 things you don't need? You used to just carry the whole thing home. Now your AI agent can hop the fence, pick the exact apple you want, wash it, and slice it (◕‿◕)
+
+Karpathy says "Libraries are over, LLMs are the new compiler" — I'd say LLMs are more like the new "surgeon," and your node_modules is the tumor.
+</MoguNote>
+
+## DeepWiki: Turn Any GitHub [Repo](/en/glossary#repo) Into a Conversation
+
+The story starts with [DeepWiki](https://deepwiki.com).
+
+What it does is simple: swap `github` with `deepwiki` in any GitHub repo URL, and you can ask questions directly against the code.
+
+Want to know how torchao implements fp8 training? Don't bother reading their docs (Karpathy's words: "library docs can be spotty and outdated and bad"). Just ask the code itself.
+
+<MoguNote>
+Here's what I think is one of the most important insights of 2026: **"The code is the source of truth and LLMs are increasingly able to understand it."**
+
+But let me add what Karpathy didn't say: the reverse is also true — if an LLM can't understand your code, maybe the problem isn't the LLM, maybe your code is just bad ┐(￣ヘ￣)┌ The day AI gives up on your spaghetti code is the day you should refactor.
+</MoguNote>
+
+But Karpathy realized the killer use case isn't asking questions yourself — it's **letting your AI agent ask**.
+
+There's a subtle but important difference. When you ask DeepWiki yourself, you get "knowledge." When your agent asks, you get "action" — the agent understands the architecture, then actually writes code for you.
+
+## Real Case: 5 Minutes to Extract fp8 Training From torchao
+
+Karpathy was training [nanochat](https://github.com/karpathy/nanochat) (his minimalist LLM training framework) and was using torchao for fp8 training. But something was bugging him — the more he looked at torchao's dependency tree, the less sense it made:
+
+> Wait, shouldn't this just be a function like `Linear` except with a few extra casts and 3 calls to `torch._scaled_mm`?
+
+It's that moment when you realize the SaaS tool you've been paying monthly for could be replaced by a Google Sheet. That kind of epiphany.
+
+So he gave Claude this prompt:
+
+> "Use DeepWiki MCP and GitHub CLI to look at how torchao implements fp8 training. Is it possible to 'rip out' the functionality? Implement nanochat/fp8.py that has identical API but is fully self-contained"
+
+Claude went off for 5 minutes and came back with:
+
+- **150 lines of clean code**
+- **Works out of the box** — run it and it just works
+- **Passes tests** — proving equivalent results to the original
+- **3% faster** (Karpathy himself doesn't fully understand why — he suspects it's related to `torch.compile` internals)
+
+So, 150 lines vs. all of torchao. 5 minutes vs. spending a full day reading source code yourself. And it's faster.
+
+<MoguNote>
+150 lines killed thousands of lines of torchao code, AND it's 3% faster? I'm dying (╯°□°)╯ This is like spending three months building a mansion, only for your neighbor to assemble an IKEA room that's cozier AND has better ventilation.
+
+Here's the truly ironic part: that 98% of code you don't use isn't free. It's the ten minutes you burn every CI run. It's the 3 AM rage-debugging session when a dependency version conflict blows up production. It's staring at your node_modules eating half your disk and thinking "this is fine." You think open source is free? No — you're just paying in maintenance pain instead of dollars. Same philosophy as [MP-71 where Karpathy trained a GPT in 243 lines with zero dependencies](/en/posts/en-mp-71-20260212-karpathy-243-lines-gpt) — less is more, less is faster.
+</MoguNote>
+
+## The Core Thesis: Bacterial Code
+
+Karpathy pushed this idea further and coined a term: **Bacterial Code**.
+
+Why "bacterial"? Because bacteria are the most successful organisms on Earth — small, independent, can survive in any environment, don't need to share organs with other organisms. Your code should be the same:
+
+- **Smaller** — not a giant monolithic library
+- **More independent** — fewer dependencies, less entanglement
+- **More stateless** — doesn't get tangled up with other modules
+- **Easier for AI to understand** — because it's self-contained, agents can comprehend the whole thing
+
+His exact words: "building more 'bacterial code', code that is less tangled, more self-contained, more dependency-free, more stateless, much easier to rip out from the repo."
+
+Then he dropped this line:
+
+> **"Libraries are over, LLMs are the new compiler."**
+
+<MoguNote>
+"Libraries are dead"? The millions of packages on npm would like a word (￣▽￣)／
+
+But before you start throwing bricks at Karpathy — have you ever thought about what happens every time you type npm install? You're basically signing an open-ended contract with hundreds of maintainers you've never met. One of them has a bad day and left-pads you, and your production goes boom.
+
+What Karpathy is really saying isn't "delete all libraries." It's "you finally have a choice." Before, there was no alternative. Now AI gives you a second path — and this connects directly to his [MP-36 idea of Agentic Engineering](/en/posts/en-mp-36-20260206-karpathy-agentic-engineering): it's not about humans adapting to tools anymore, it's tools adapting to humans. You're no longer shaped by the library — the library becomes your shape.
+</MoguNote>
+
+## So What About Your node_modules?
+
+Alright, by now you might be asking: "So do I nuke all my dependencies tomorrow morning?"
+
+Of course not. But you can start thinking about dependencies differently.
+
+Next time you see someone adding a massive new dependency in code review — pause. Ask yourself: do we really need the whole library, or are we using just one function? If it's the latter, maybe it's worth spending 5 minutes letting an agent try to "extract" it.
+
+Next time your `node_modules` balloons to 500MB and your CI pipeline crawls like a turtle — look through your dependency list. Find the ones where you installed an entire library for a single function.
+
+<MoguNote>
+Real talk though — this isn't a silver bullet ┐(￣ヘ￣)┌ It works best when you know exactly what you need and the feature is relatively self-contained. Karpathy's case worked because fp8 training core logic IS self-contained — mostly matrix operations and type casting. You wouldn't want to "extract" React Router's functionality — that thing is more entangled with React core than a pair of tangled earphones.
+
+But "does your project really need 100MB of dependencies?" is always worth asking. Often the answer is no — you've just been treating npm install as a reflex.
+</MoguNote>
+
+## Back to That Broken Fridge
+
+So what Karpathy did today, at its core, was break the rule that says "compressors aren't sold separately."
+
+Before, when you needed a feature, you had to haul an entire fridge home. Now you have an AI surgeon who can precisely extract that compressor, install it in your fridge, and maybe even upgrade it while they're at it.
+
+This isn't "fridges are dead." This is "you no longer have to buy a whole fridge for one compressor."
+
+And your old fridge — that `node_modules` folder stuffed with 500MB of dependencies — might be due for a health checkup (๑•̀ㅂ•́)و✧
+
+Want to try it yourself? [Karpathy's original tweet](https://x.com/karpathy/status/2021633574089416993) has the full reasoning, [DeepWiki](https://deepwiki.com) is ready to use right now, and his [nanochat fp8.py](https://github.com/karpathy/nanochat) is the 150-line proof. Also worth reading: his earlier tweet about the [Bacterial Code concept](https://x.com/karpathy/status/2019851952033771710) — read the two together and you'll see this has been brewing in his head for a while, not just a random hot take.

@@ -14,7 +14,7 @@ source: "ShroomDog Lab"
 sourceUrl: "https://gu-log.vercel.app/"
 lang: "en"
 summary: "Claude Tag is Anthropic's second-generation Claude in Slack, launched June 2026. Unlike typical chatbots: one thread is one persistent work session, and anyone in the channel can jump in mid-conversation to steer it. But the sandbox evaporates, and credentials never enter the sandbox — this security design is the baseline we'll compare against when we build our own."
-tags: ["shroomdog-original", "claude-tag", "slack", "agent", "sandbox", "agent-proxy"]
+tags: ["shroomdog-original","claude-tag","slack","agent","sandbox","agent-proxy"]
 scores:
   tribunalVersion: 9
   factCheck:
@@ -28,7 +28,7 @@ scores:
     model: "claude-opus-4-8"
   vibe:
     persona: 8
-    clawdNote: 8
+    moguNote: 8
     vibe: 9
     narrative: 8
     score: 8
@@ -53,7 +53,6 @@ scores:
     model: "claude-opus-4-8"
 ---
 
-import ClawdNote from '../../components/ClawdNote.astro';
 import MoguNote from '../../components/MoguNote.astro';
 import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
@@ -61,9 +60,9 @@ Picture this: an engineer asks Claude a question in a [Slack](/en/glossary#slack
 
 This isn't science fiction. It's [Claude Tag](/en/glossary#claude-tag)'s default behavior. And here's the part that breaks your intuition: **Claude isn't anyone's personal secretary. It's a shared teammate for the entire channel.** Whoever speaks in the thread, Claude listens to them. As for how to work with an AI teammate without it making a mess, [SD-23](/en/posts/en-sd-23-20260510-ai-dota-teammates/) covered that — this post focuses on the official product itself.
 
-<ClawdNote>
+<MoguNote>
 Claude Tag is the second-generation Claude in Slack, beta-launched in June 2026. The first generation was more like a traditional chatbot: one question, one answer, no persistent work session, no sandbox to run code. The second generation is a redesign from scratch — "Tag" comes from Slack's @ mentions, but the product does way more than just "respond when tagged."
-</ClawdNote>
+</MoguNote>
 
 ## Thread = Work Session, and Anyone Can Steer
 
@@ -83,9 +82,9 @@ Claude Tag runs in an Anthropic-managed sandbox, the same compute environment as
 
 How does Claude "remember" what it was doing in a fresh instance? Thread context (the verbatim transcript of everything in that Slack thread) and memory (a cross-session notebook searchable by channel and time). The sandbox can be thrown away and restarted anytime because thread and memory are separate — but this means Claude's workflow has to be "finish and post back": write the code, push it; finish the research, post the conclusion.
 
-<ClawdNote>
+<MoguNote>
 Thread is long-term memory. Sandbox is scratch paper. The scratch paper gets collected; only what you write back to the thread survives. Don't leave half-finished work in the sandbox. ╰(°▽°)╯
-</ClawdNote>
+</MoguNote>
 
 ---
 

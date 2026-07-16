@@ -209,16 +209,16 @@ describe('checkFrontmatterPreserved', () => {
   const protectedFields = ['title', 'ticketId', 'sourceUrl', 'lang'];
 
   it('passes when protected fields are unchanged', () => {
-    const before = '---\ntitle: Hello\nticketId: SP-100\nlang: zh-tw\n---\nBody A';
-    const after = '---\ntitle: Hello\nticketId: SP-100\nlang: zh-tw\n---\nBody B';
+    const before = '---\ntitle: Hello\nticketId: GP-100\nlang: zh-tw\n---\nBody A';
+    const after = '---\ntitle: Hello\nticketId: GP-100\nlang: zh-tw\n---\nBody B';
     const result = checkFrontmatterPreserved(before, after, protectedFields);
     expect(result.pass).toBe(true);
     expect(result.violations).toEqual([]);
   });
 
   it('fails when title is modified', () => {
-    const before = '---\ntitle: Original\nticketId: SP-100\n---\nBody';
-    const after = '---\ntitle: Original (revised)\nticketId: SP-100\n---\nBody';
+    const before = '---\ntitle: Original\nticketId: GP-100\n---\nBody';
+    const after = '---\ntitle: Original (revised)\nticketId: GP-100\n---\nBody';
     const result = checkFrontmatterPreserved(before, after, protectedFields);
     expect(result.pass).toBe(false);
     expect(result.violations).toEqual([
@@ -227,16 +227,16 @@ describe('checkFrontmatterPreserved', () => {
   });
 
   it('fails when ticketId is changed', () => {
-    const before = '---\ntitle: A\nticketId: SP-100\n---\nBody';
-    const after = '---\ntitle: A\nticketId: SP-101\n---\nBody';
+    const before = '---\ntitle: A\nticketId: GP-100\n---\nBody';
+    const after = '---\ntitle: A\nticketId: GP-101\n---\nBody';
     const result = checkFrontmatterPreserved(before, after, protectedFields);
     expect(result.pass).toBe(false);
     expect(result.violations[0].field).toBe('ticketId');
   });
 
   it('detects multiple violations', () => {
-    const before = '---\ntitle: A\nticketId: SP-100\nsourceUrl: https://x.com/a\nlang: zh-tw\n---\n';
-    const after = '---\ntitle: B\nticketId: SP-999\nsourceUrl: https://x.com/b\nlang: en\n---\n';
+    const before = '---\ntitle: A\nticketId: GP-100\nsourceUrl: https://x.com/a\nlang: zh-tw\n---\n';
+    const after = '---\ntitle: B\nticketId: GP-999\nsourceUrl: https://x.com/b\nlang: en\n---\n';
     const result = checkFrontmatterPreserved(before, after, protectedFields);
     expect(result.pass).toBe(false);
     expect(result.violations).toHaveLength(4);

@@ -33,7 +33,7 @@ pnpm-debug.log*
 # ralph loop runtime logs & artifacts
 .ralph/
 logs/
-scripts/clawd-picks.log
+scripts/mogu-picks.log
 scripts/.x-cookies.json
 .fetch-tweets.sh
 .ralph-script.sh
@@ -98,7 +98,7 @@ public/review/
 
 # Tribunal v2 in-progress state files (saved by pipeline.onProgress)
 # and completion records moved there by `markCompleted`. Both are VM-local
-# audit data — a `git add -A` during Clawd's auto-publish flow would
+# audit data — a `git add -A` during Mogu's auto-publish flow would
 # otherwise sweep these into article commits and flood main with noise.
 # The pipeline's own per-stage `git commit` messages on the tribunal side
 # branch already serve as the canonical audit trail.
@@ -106,7 +106,7 @@ public/review/
 .score-loop/progress/completed/*.json
 # Exception: the three cp-290 e2e smoke tests committed in PR #124 as
 # illustrative reference data. These are intentionally tracked.
-!.score-loop/progress/completed/cp-290-e2e-smoke-*.json
+!.score-loop/progress/completed/mp-290-e2e-smoke-*.json
 
 # Dedup guard cache (auto-generated)
 scripts/.dedup-cache.json
@@ -123,8 +123,8 @@ gu-log-api/
 # pnpm store (local dev)
 .pnpm-store/
 
-# sp-pipeline Go binary (self-compiling wrapper rebuilds on demand)
-tools/sp-pipeline/bin/
+# gp-pipeline Go binary (self-compiling wrapper rebuilds on demand)
+tools/gp-pipeline/bin/
 
 # Background-agent isolated git worktrees (transient; created by Agent
 # isolation:"worktree"). Never content to commit — they're working copies.

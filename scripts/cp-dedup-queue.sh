@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# CP Queue Dedup — removes candidates that already have published articles.
+# MP Queue Dedup — removes candidates that already have published articles.
 # Compares queue URLs against sourceUrl in all published posts.
 #
 # Usage:

@@ -1,0 +1,178 @@
+---
+ticketId: 'GP-248'
+title: 'AI Covers the Easy 80%. The Rest Is Your Moat.'
+originalDate: '2026-06-15'
+translatedDate: '2026-07-03'
+translatedBy:
+  model: "GPT-5.5"
+  harness: "Codex CLI"
+
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "GPT-5.5"
+      harness: "Codex CLI + Tribunal"
+    - role: "Rewritten"
+      model: "Fable 5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Translated"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+source: 'Zhang Xinxu Blog'
+sourceUrl: 'https://www.zhangxinxu.com/life/2026/06/ai-why-keep-study/'
+lang: 'en'
+summary: 'AI can handle 80-90% of frontend work, but the remaining edges — depth, sensitivity to new platform features, and knowing when the stable default is not the best answer — are becoming the real moat. Fundamentals are not obsolete. They are compounding assets.'
+tags: ["ai-coding","career","frontend"]
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 8
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 8
+    date: "2026-07-03"
+    model: "gpt-5.5"
+  librarian:
+    glossary: 9
+    crossRef: 8
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-07-03"
+    model: "gpt-5.5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 9
+    score: 8
+    date: "2026-07-03"
+    model: "gpt-5.5"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-07-03"
+    model: "gpt-5.5"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+It is the AI era. Is learning frontend fundamentals now just a fancy way to waste your life?
+
+Zhang Xinxu does not start with motivation-poster energy. He starts with two old debts: years ago, he deliberately did not sync technical posts to WeChat Official Accounts, and later he started technical videos on Douyin too late. Both choices looked reasonable at the time. Stretch the timeline out, and those choices handed a whole new generation of frontend readers to other people. So his answer to "should we still learn fundamentals?" refuses to dress itself up as eternal truth. It is only his judgment in this moment of 2026. Whether it turns into a stupid move later is hard to say.
+
+<MoguNote summary="Zhang opens by showing his own missed calls, which makes the next judgment more believable.">
+First, the speaker matters. Zhang Xinxu is the author of the *CSS World* book series. His blog has been running since 2009, and in the Chinese frontend world he is roughly a "living CSS encyclopedia." The opening move here is worth underlining: instead of saying "look what I got right," he shows the decisions he missed. Ninety percent of career posts in tech are victory laps. He does the reverse: "I missed these things, so please discount my next judgment too." The speaker lowers his own authority, and somehow becomes more believable.
+</MoguNote>
+
+---
+
+## Five Years Ago, the Moat Was Easy to Name. What About Now?
+
+Five years ago, if someone grabbed a random engineer and asked, "What is a technical person's moat?", the answer almost did not need thinking: technical skill.
+
+Ask the same question now, and those two words do not come out so easily. Even hard niches like video development and 3D rendering look less safe in front of AI. The learning energy in frontend has cooled too. Internal professional training sessions get few attendees. External technical writing gets little attention. The mood is clear: if AI already exists, why spend time learning all this? With that free time, would it not be nicer to play a few games?
+
+At the same time, anxiety spreads online. Under technical videos, comments regularly say someone has lost a frontend job. Everyone feels replaceable.
+
+In this atmosphere, the advice for beginners becomes counterintuitive: **in this era, it is not recommended to spend huge amounts of time chewing on obscure technical corners**. The return is too low. It is more useful to first build breadth: know what features exist, what effects they can produce, and which technical choices are reasonable right now. And learning is not only professional technology. Communication, collaboration, pushing business forward, and dealing with people all count. In the end, careers are decided by competition between people, not between people and AI.
+
+But there is a trap waiting here. Its name is the "AI wall."
+
+---
+
+## The AI Wall: An Infinite Loop Built to Trap Beginners
+
+Beginners cannot avoid using AI. Once they use AI, the code runs. Because the code runs, they lose the motivation to learn the underlying principles. Because they did not learn the principles, they cannot see how AI-generated code could be better. Because they cannot see it, they keep accepting everything AI gives them.
+
+One loop, back to the starting point, no exit. That is the AI wall: people inside the wall obey AI, produce work no different from the person trapped next door, and can be replaced by each other at any time. If this continues, frontend will slide from a still-respectable profession into something like carrying bricks on a construction site.
+
+<MoguNote summary="The question is not whether to use AI, but whether you can judge its output.">
+This dead loop is not the same question as "should we use AI?" Nobody should require a 2026 engineer to handwrite a fixed amount of code every day to "keep the feel." That would be like telling engineers to go to the library and flip through books because search engines are cheating. The issue was never whether to use the tool. The issue is whether you can judge the quality of the tool's output. A carpenter who switches from a hand drill to an electric drill is still a carpenter — as long as he knows which wall must not be drilled.
+</MoguNote>
+
+---
+
+## Xianxia Theory: Ancient Cultivators Meet the Arrival of Heaven's Law
+
+For senior engineers who jokingly call themselves *old geezers* — "lao deng" in Chinese internet slang, a self-mocking way to say "old-timer" — AI may actually be an opportunity. It might even stabilize their careers for another ten years.
+
+Start with a rough scale. AI's coding ability already looks close to its current ceiling. With the best [Claude Code](/en/glossary#claude-code) today, generated frontend code is roughly 80 to 90 points: about 90 for logic-heavy projects, 80 for interaction-heavy experience work, and around 60 for pure visual projects. This is not a public benchmark score. It is a subjective scale from a senior frontend engineer who trained through the no-AI era and is using his own judgment. The exact number is not the point. The distribution is: the more standard the work, the higher AI scores; the more taste-dependent the work, the lower it scores.
+
+80 to 90 sounds scary, but it is not an uncrossable gap. Why? Move the timeline into xianxia and it becomes easier to understand. Xianxia is a Chinese fantasy genre about cultivation: people train their body and mind, seek immortality, and sometimes fight heaven itself.
+
+In the primordial age, great cultivators appeared everywhere and could split mountains with one sword, because they practiced the ancient method. Body tempering, mind training, every move paid for with bitter effort. Later, Heaven's Law descended and protected later cultivators. Training became easier, systems became complete, but breaking through the shackles of Heaven's Law became harder than climbing to the sky.
+
+Back in the engineer world: people who lived through the "no AI, write everything yourself" era were forced to build a full stack of underlying understanding. Back then, this understanding was just basic training. Now it has become an asset. Heaven's Law, meaning AI, can protect everyday cultivation, but it also locks later people under the same ceiling.
+
+The way to tell whether you are inside or outside the wall is practical. Look at AI-generated code. If you can see "this implementation has a better version," you are stronger than AI in that spot. If you know implementation techniques even AI does not know, that also puts you ahead. But if AI writes code you do not understand, and it happens to run fine, then maybe it is time to reflect on whether these years were spent learning properly — doge-head disclaimer, meaning "just kidding, please don't hit me."
+
+<MoguNote summary="The old-method advantage is a runway, not a charm — stop running and it depreciates.">
+Read this story correctly: the point is not "old geezers win by lying flat." Zhang says in the same piece that AI will slowly learn techniques that look new today. If you command AI using only five-to-ten-year-old understanding, you will still be eliminated. So the advantage of ancient-method training is not a protective charm. It is a runway. People who keep running have a longer runway. The moment they stop, depreciation begins. Also, someone in the comments under the original post pushed back: "I increasingly feel there is no moat. Being replaced by AI is only a matter of time." Both sides may be right. The difference is only the time scale.
+</MoguNote>
+
+---
+
+## AI Always Gives the Stable Answer. Stable Is Not the Same as Best.
+
+Why can people trained in the old method see AI's gaps? Because AI code has a natural bias.
+
+Frontend keeps evolving. But AI wants generated code to run across many environments, so it always chooses the most traditional, most stable approach. Stability is good, but stable does not mean best for this project. Three concrete frontend examples:
+
+**The border of a fixed table column**: when the first column is fixed and the table scrolls horizontally, a border should appear on the right side. AI will almost certainly use JavaScript to listen for scroll events and add or remove a style based on scroll distance. But if the project's compatibility requirements are not strict, CSS `scroll-state` container queries solve it in one move. The effect is "ridiculously good" — better performance, less code.
+
+**A table of contents that highlights while scrolling**: when the page scrolls, the side table of contents highlights the current heading. AI will definitely write a big block of JavaScript. In reality, CSS can do most of the work, and JavaScript only needs to be the fallback.
+
+**Auto-growing `textarea` height**: AI will happily output a long piece of JavaScript to measure height and adjust it. In reality, it is a one-line CSS job.
+
+The shared pattern: AI's answers are all "correct" and run in all browsers, but they are not "best." AI does not know this project's compatibility requirements. It does not know whether support for a new feature is already good enough. It does not know what removing a piece of JavaScript means for the person maintaining the project. Frontend is different from backend: the same effect often has four or five possible implementations. Which one is best right now still needs a human judgment call.
+
+<MoguNote summary="AI ships 'it runs.' Humans still have to add 'it is best for this situation.'">
+gu-log keeps saying: AI does 70% of the hands-on work, and engineers do 100% of the thinking. These three examples are that sentence turned into concrete cases. AI delivers "it runs." The human adds "this is the best answer for this situation." Also notice the raw material for that judgment: `scroll-state` container queries are a very new CSS feature. Knowing that it exists, and knowing where browser support stands, comes from continuous tracking, not from old knowledge earned ten years ago. Judgment expires. That is the real reason to keep learning.
+</MoguNote>
+
+---
+
+## Do Not Chase Frameworks. Chase the Bottom Layer.
+
+Over the past decade-plus, Zhang Xinxu did not spend his time chasing popular frameworks and tools. He focused on lower-level technical features. That choice is now starting to pay back.
+
+Human energy is limited. If someone wants to become a generalist who does everything — the full-stack developer people keep talking about, for example — then they will usually fail to go especially deep in one domain. Most full-stack developers can do both frontend and backend, but are outstanding at neither. That is exactly where AI aims its gun. In the other direction, someone with deep fundamentals can use AI and do full-stack work just fine. A new intern who only knew Vue can use AI to build a React project and finish requirements at flying speed, not losing to a veteran at all. AI directly bulldozes the framework wall. It can fill the gap in frameworks and tools, the "upper structure." What it cannot fill is the gap in underlying understanding.
+
+And all the [Skill](/en/glossary#skill), [MCP](/en/glossary#mcp), and [harness](/en/glossary#agent-harness) development flying around? Zhang's blunt line is basically: "All of that can go play in the mud" — a very rude Chinese way to say "please get out of the serious discussion." They are upper-layer things. Wait for other people to build ready-made versions, then use them. What is worth learning is instead the boring, apparently useless foundational technology that other people look down on. Those things, he says, are the true roots that let someone stand steady in a stormy era.
+
+<MoguNote summary="Waiting for ready-made upper layers works from inside a moat, not before you have one.">
+Mogu needs to step in here: "wait for ready-made upper-layer things" works for Zhang Xinxu. It does not automatically work for everyone. His foundation is twenty years of CSS depth, so he can afford to wait on the upper ecosystem. For a beginner who has not built a foundation yet, copying this sentence can easily turn into "I am waiting for everything to become ready-made." The same sentence means something very different when shouted from inside a moat versus outside it.
+</MoguNote>
+
+---
+
+## In Closing: Take One Step, Then Look Again
+
+This calculation is not treated as permanent truth. If one day AI can really learn by itself and control everything, then all of today's planning may become "a 250-jin giant joke" — in Chinese internet slang, "250" means fool, and 250 jin means an extra-large fool.
+
+So the conclusion is very plain: take one step, then look again. At least in the short term, the water is still calm. Depth has not been filled in. The frontier still has a time gap. Fundamental knowledge is still compounding.
+
+As for that AI wall: there are not many seats outside the wall, but the door is still open. The ticket is continuous learning. A frontend old-timer who has been writing for almost twenty years and still publishes at least one technical article every week is probably the best answer by itself. (◕‿◕)
+
+---
+
+## Further Reading
+
+- [GP-198: AI-Generated Code Is Not Scary. What Is Scary Is No Ratchet.](/en/posts/en-gp-198-20260512-garrytan-ai-agent-complexity-ratchet/) — the same gap between "it runs" and "it is maintainable," viewed through complexity
+- [GP-233: AI-Made Interfaces Are Easy to Spot. The Missing Piece Is Taste.](/en/posts/en-gp-233-20260617-polished-ui-rules/) — why pure visual projects only get 60 points; this is the expanded version
+- [GP-234: The Lesson From 400,000 Claude Code Conversations: Winners Are Not the Best Coders. They Know the Domain Best.](/en/posts/en-gp-234-20260617-returns-to-expertise/) — the data-side evidence: deeper domain understanding creates more AI leverage

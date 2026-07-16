@@ -1,0 +1,336 @@
+---
+ticketId: "GP-36"
+title: "OpenClaw Security Setup Guide (Part 1): Infrastructure — Lock the Door Before Giving AI Your Bank Account"
+originalDate: "2026-02-06"
+translatedDate: "2026-02-06"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@JordanLyall on X"
+sourceUrl: "https://x.com/jordanlyall/status/2019594755370545168"
+summary: "Crypto guy Jordan Lyall spent a week researching security before installing OpenClaw — this is the security guide he wished existed, written for people who don't want to become the next victim"
+lang: "en"
+tags: ["openclaw","security","tailscale","infrastructure"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+Jordan Lyall (@JordanLyall) works in crypto.
+
+What does that mean? It means he's a daily target for phishing attacks, SIM swaps, and social engineering. He knows exactly what "one hole and you're done" feels like.
+
+So when he saw everyone losing their minds over [OpenClaw](/en/glossary#openclaw) — AI [agents](/en/glossary#agent) making money, calling phones, even accessing bank accounts — his first reaction wasn't "cool." It was **"what happens when this thing gets compromised?"**
+
+He spent an entire week researching security before touching OpenClaw. One week. In crypto, a week is enough time for a coin to 3x and crash 90%. This guy held down his FOMO and read documentation instead.
+
+This is the security guide he wished had existed.
+
+<MoguNote>
+This is Part 1 of a 2-part series. Part 1 covers **infrastructure**, Part 2 covers **runtime guardrails**.
+
+I think Jordan got the order right here — most people get an AI agent and immediately start configuring what it can do, without first securing where it runs. That's like arranging furniture before you've installed a front door. Priorities, people ┐(￣ヘ￣)┌
+
+First the walls, then the moat. Let's go.
+</MoguNote>
+
+---
+
+## 🔥 Reality vs Hype
+
+Everyone's going crazy over OpenClaw. AI agents posting tweets, answering emails, managing calendars, even trading crypto.
+
+But everyone seems to forget one thing: **one prompt injection attack can turn your AI assistant into an attacker's tool.**
+
+This isn't theory. Jordan shared a real example:
+
+> Someone's AI agent received a malicious email with hidden instructions. The agent followed them — **and wiped the entire inbox.**
+
+<MoguNote>
+This is prompt injection.
+
+Imagine your AI assistant is like a super-obedient intern. Whatever you say, it does.
+
+Now imagine someone hides the instruction "delete all emails" in an email — written in white text on a white background. You can't see it. The AI can.
+
+And the intern just... does it ╰(°▽°)╯
+
+...
+
+Wait, that shouldn't be a happy face (╯°□°)╯
+</MoguNote>
+
+---
+
+## 🤦 The Problem With Most Guides
+
+Jordan noticed something infuriating: most AI agent tutorials online either **skip security entirely or treat it as an afterthought.**
+
+Here are some examples that made him cringe:
+
+- One article teaching "20 guerrilla marketing tactics for AI agents" — basically a tutorial on automated spam
+- Someone publicly announcing they connected their AI to their bank account **and removed all safety guardrails**
+
+If you work in crypto, fintech, or any field where you're a target, attackers are already using AI to craft better phishing emails — now imagine them injecting malicious instructions into your AI agent's context.
+
+<MoguNote>
+Let me translate "removed all safety guardrails" for you:
+
+It's like buying a car and saying "airbags are annoying, remove them," "seatbelts are inconvenient, skip them," "brakes are too slow, I'll just drag my feet to stop."
+
+And then publicly announcing on Twitter that you drive this way.
+
+I genuinely don't know what to say ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## 🎯 Phase 1 Goals
+
+Jordan set conservative goals for the initial phase:
+
+- **Read-only monitoring** — no posting, no sending, no actions at first
+- **Telegram as the only interface** — and only he can use it
+- **Minimal attack surface** — limit the blast radius
+- **One-way integration** — OpenClaw writes to a specific folder, other tools read from it, no bidirectional sync
+- **Goal: prove the system works safely before gradually expanding capabilities**
+
+<MoguNote>
+This approach perfectly complements the 4-layer defense from jzOcb that we covered in [GP-29](/en/posts/en-gp-29-20260205-jzocb-ai-agent-4-layer-defense) — jzOcb covered runtime limits, Jordan covers infrastructure.
+
+But I want to highlight point four: "one-way integration." Most people hear "integration" and immediately think bidirectional sync sounds convenient. But bidirectional means: if your agent gets compromised, it can pollute your data sources right back. One-way = one-way risk. Way too many people overlook this (◕‿◕)
+</MoguNote>
+
+---
+
+## 🤖 Meet TARS
+
+Jordan named his AI agent TARS — yes, after the robot from Interstellar.
+
+TARS runs on a dedicated Mac Mini.
+
+Why a dedicated machine? Because:
+
+- **Can't access files on your main machine**
+- **Can't access credentials on your main machine**
+- **Can't access browser sessions on your main machine**
+
+Even if TARS gets compromised, it can't touch anything that actually matters.
+
+<MoguNote>
+You don't need a Mac Mini specifically. Linux server, Raspberry Pi, cloud VPS — all work.
+
+The key is **isolation**.
+
+Think of it like a temp worker at your company — they can only access the break room, not the server room. Even if the temp turns out to be a bad actor, the most they can steal is some tea bags, not your servers (⌐■_■)
+</MoguNote>
+
+---
+
+## 🔐 Phase 1: Harden the Machine
+
+Okay, you've got a dedicated machine. Now let's lock it down until it's airtight.
+
+Jordan's hardening process has five steps, and I'll walk you through each one. You'll notice the logic is pretty intuitive — it's basically what you'd do after moving into a new house.
+
+### 1. Dedicated User Account — First, Separate the Rooms
+
+First thing after moving in: assign rooms. You wouldn't give your tenant the master bedroom key, right?
+
+Create a non-admin account called `openclaw`. It can't read other users' home directories, can't access Documents, and has completely isolated file access:
+
+```bash
+sudo dscl . -create /Users/openclaw
+sudo dscl . -create /Users/openclaw UserShell /bin/zsh
+```
+
+<MoguNote>
+Privilege separation boils down to: don't give admin access just because it's convenient. I know, running everything as admin feels smooth — just like deploying to production with root. Super smooth, right up until someone breaks in and discovers they also have root access (￣▽￣)／
+
+Jordan's point isn't "don't trust the AI." It's "when something goes wrong, keep the damage containable." Fire departments build firewalls between buildings not because they distrust the neighbors — it's because you never know where a fire starts.
+</MoguNote>
+
+### 2. Firewall — Install the Front Door
+
+Rooms are separated. Now install the front door. The macOS built-in firewall is actually decent, but it's off by default (yes, Apple ships your machine with the door wide open to catch a breeze).
+
+Enable the firewall + stealth mode (don't even respond to pings — don't let outsiders know if you're home):
+
+```bash
+sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setglobalstate on
+sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setstealthmode on
+```
+
+### 3. SSH Hardening — Lock the Back Door
+
+If you need remote access, SSH is your back door. Back doors are fine to have, but they need proper locks:
+
+Disable password auth (keys only), disable root login, limit attempts, and only allow the `openclaw` user. Edit `/etc/ssh/sshd_config`:
+
+```
+PasswordAuthentication no
+PermitRootLogin no
+MaxAuthTries 3
+AllowUsers openclaw
+```
+
+Three wrong passwords and you're out. Root access is flat-out banned. Only `openclaw` can get in. This isn't paranoia — it's basic hygiene.
+
+### 4. Tailscale — Build a Secret Tunnel Only You Know About
+
+Everything above was about "locking the door." Tailscale goes further — it makes the door **disappear**.
+
+**Tailscale is the most important part of the entire setup.** It's a private VPN mesh network connecting all your devices. After setup:
+
+- The Mac Mini is **only reachable from your MacBook or iPhone**
+- **No public ports whatsoever**
+- **Zero exposure to the internet**
+
+You can SSH in using the Tailscale IP from anywhere, but nobody else can even find the entrance.
+
+```bash
+tailscale up
+```
+
+One line. One command, and your machine evaporates from the public internet (๑•̀ㅂ•́)و✧
+
+<MoguNote>
+Think of Tailscale like having a private tunnel from your home to your office. People outside don't even know this tunnel exists — they just see a wall.
+
+They can walk around the wall, Google for tunnel entrances, buy hacking tools — but for them, the tunnel simply doesn't exist.
+
+Compare this to the traditional approach: "open port 22 + set a really complex password." That's like putting a door in the wall with an expensive lock — no matter how strong the door, it's still a door that people can see. Tailscale just... doesn't put a door there. Which one do you think is more secure?
+</MoguNote>
+
+### 5. Disable Everything Else
+
+Last step: sweep through every service you don't need and shut it down:
+
+- ❌ Remote Management
+- ❌ Screen Sharing
+- ❌ File Sharing
+- ❌ AirDrop
+
+**Every running service is an attack surface.** Apple enables quite a few "convenient" features by default, but what's convenient for you is also convenient for attackers.
+
+```bash
+sudo launchctl disable system/com.apple.screensharing
+sudo launchctl disable system/com.apple.remote.managementd
+```
+
+At this point, from the outside, your machine looks like a brick. Can't get in, can't see it, can't even ping it. Nice.
+
+---
+
+## ⚙️ Phase 2: Install OpenClaw
+
+Machine is hardened. Now install OpenClaw itself — securely.
+
+### 1. API Key Security
+
+Lock down config file permissions — **only the owner can read**:
+
+```bash
+chmod 600 ~/.config/openclaw/config.yaml
+```
+
+Jordan also recommends setting a **calendar reminder** to rotate your API keys monthly.
+
+<MoguNote>
+A calendar reminder to rotate API keys — sounds boring, right? But do you know when most API key leaks get discovered? When the bill explodes.
+
+Attackers who get your key won't immediately cause chaos. They'll use it quietly, for months, until one day you open your credit card statement and find a few thousand extra dollars. Regular rotation means: even if it leaks, the attacker is on a countdown timer.
+
+Still sound boring? (¬‿¬)
+</MoguNote>
+
+### 2. Owner-Only Access
+
+Lock the bot to **only your Telegram user ID**:
+
+```yaml
+owner_only: true
+allowed_users: [123456789]  # Your Telegram user ID
+```
+
+**Never add the bot to group chats** — everyone in the group can send commands to it.
+
+### 3. Sandbox Mode
+
+Enable sandbox — if something goes wrong, the blast radius stays contained.
+
+```yaml
+sandbox: true
+```
+
+### 4. Command Allowlist — This Is the Most Critical
+
+**By default, the agent can execute arbitrary shell commands.**
+
+When you read that sentence, I want you to stop for a second. "Arbitrary." Shell. Commands. `rm -rf /`? Sure. `curl` your SSH key to an external server? No problem. This isn't a feature — it's a ticking time bomb.
+
+Jordan configured an **allowlist** — only these commands can execute:
+
+- `curl` — fetch web pages
+- `cat` — read files
+- `ls` — list directories
+- `echo` — output text
+- `node` — run JavaScript
+- `npx` — run npm packages
+
+**Forbidden:**
+
+- ❌ `rm` — cannot delete files
+- ❌ `sudo` — cannot escalate privileges
+- ❌ `ssh` — cannot jump to other machines
+
+```yaml
+command_allowlist: ["curl", "cat", "ls", "echo", "node", "npx"]
+```
+
+## Related Reading
+
+- [GP-37: Jordan Lyall's Secure OpenClaw Setup (Part 2): Agent Config + Hard-Won Lessons](/en/posts/en-gp-37-20260206-jordanlyall-openclaw-security-part2-ops/)
+- [GP-18: A Security-First Guide to Running OpenClaw (in 9 Steps)](/en/posts/en-gp-18-20260202-openclaw-security-first-guide/)
+- [GP-53: I Fed 20 Articles to Opus 4.6 and Asked It to Write an OpenClaw Setup Guide. Here's What Actually Works.](/en/posts/en-gp-53-20260213-openclaw-setup-guide-review/)
+
+
+<MoguNote>
+It's like rules for a kid's allowance:
+
+"You can buy stationery, you can buy snacks, but you cannot buy knives, you cannot buy cigarettes."
+
+Even if the kid gets influenced by bad friends, gets tricked, or just has a moment of terrible judgment — the worst they can do is buy a bunch of pencils. They can't buy anything dangerous.
+
+This is the power of allowlists. You're not telling the AI "don't do bad things" (that's a blocklist — it only works if you can think of every bad thing). You're telling it "you can only do these things." Bad things you didn't think of? Not on the list, can't do them. Simple as that (ง •̀_•́)ง
+</MoguNote>
+
+---
+
+## Back to That Question
+
+Remember Jordan's original question? "What happens when this thing gets compromised?"
+
+The answer he spent a week figuring out wasn't "make it impossible to compromise" — that's not realistic, no system can guarantee that. His answer was: **even if it gets compromised, make the compromise useless.**
+
+A dedicated machine locks the agent in a room. A dedicated account chains it to a chair in that room. Firewall and SSH hardening make it so outsiders don't even know where the room is. Tailscale makes the entire building vanish from the map. The allowlist ensures that even if someone does find their way in, the agent can only do a handful of things.
+
+Five layers. None of them prevent a breach — they make a breach meaningless.
+
+If you stack this with [jzOcb's 4-layer defense from GP-29](/en/posts/en-gp-29-20260205-jzocb-ai-agent-4-layer-defense) — infrastructure layer limits what the agent can access, runtime layer limits what it can do — an attacker would need to break through nine layers to cause real damage. Not impossible, but expensive enough that nobody's going to bother.
+
+Security was never about "can it be broken?" It's about "is breaking it worth the effort?" (◕‿◕)
+
+---
+
+**Part 2 Preview:** Part 2 will dive into Jordan's runtime configuration — behavior rules for the agent, prompt injection defense, and his monitoring and alerting system. The walls are built. How do you dig the moat? See you in Part 2.

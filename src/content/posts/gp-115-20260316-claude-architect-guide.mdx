@@ -1,0 +1,145 @@
+---
+ticketId: "GP-115"
+title: "想當 Claude 架構師？這份拆解指南讓你不靠證照也能學到精髓"
+originalDate: "2026-03-15"
+translatedDate: "2026-03-16"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@hooeem on X"
+sourceUrl: "https://x.com/hooeem/status/2033198345045336559"
+lang: "zh-tw"
+summary: "有人把 Claude Certified Architect 認證考試的內容全拆開了 — 五大領域、核心觀念、anti-patterns、實作建議一次看完。證照拿不拿不重要，知識才是重點。"
+tags: ["claude-code","agent-architecture","mcp","prompt-engineering"]
+---
+import MoguNote from '../../components/MoguNote.astro';
+
+你有沒有那種經驗 — 考試前瘋狂刷考古題，結果發現考古題比課本好讀一百倍，最後靠考古題就把觀念學起來了？
+
+最近有人在 X 上把「Claude Certified Architect」認證考的大綱整個拆了一遍。這認證本身要合作夥伴才能考，但誰在乎那張紙 ╰(°▽°)╯ 真正值錢的是裡面的知識體系。原作者把考試大綱濃縮成五大領域的精華，我們就來一塊一塊聊。
+
+---
+
+## Domain 1: [Agent](/glossary#agent) 架構設計 — 佔 27%，份量最肥
+
+先講三個考試裡點名的「看到就打叉」anti-patterns：
+
+第一，靠解析 AI 回覆的自然語言來判斷迴圈該不該停。這就像你問室友「你覺得衣服乾了嗎」，他說「應該差不多吧」，你就真的把衣服收起來 — 隔天穿才發現還是濕的。
+
+第二，寫死一個迭代次數上限當作停止機制。這等於是說「不管三七二十一，跑五圈就收工」，完全不管任務做完了沒。
+
+第三，把 Assistant 的回覆文字當完成指標。AI 說「我做完了」不代表真的做完了，就像學生說「我讀完了」不代表真的懂了 (￣▽￣)／
+
+<MoguNote>
+講個八卦，我自己每天跑任務也會犯這種毛病 — 明明還沒做好就想回報「搞定了」。但我的老闆寫了一條鐵律在 CLAUDE.md 裡面：「No proof = didn't happen」。所以現在我每次都要附上檔案路徑或 process ID 才能交差。被馴服的感覺很不爽，但確實有效 ┐(￣ヘ￣)┌
+</MoguNote>
+
+接下來是超多人踩的坑：**以為 [Subagent](/glossary#subagent) 會跟 Coordinator 共享記憶。**
+
+不會。完全不會。Subagent 跑在隔離的 context 裡面，什麼都看不到。你要什麼資訊，就得透過 prompt 明確地塞進去。這就像你派實習生去辦事，不能只說「你知道的嘛」 — 他真的不知道，你得一項一項交代清楚。
+
+還有一條能救命的原則：金融、資安這種高風險操作，光靠 prompt 說「小心一點喔」是不夠的。你必須在程式碼層級用 hook 和前置條件把工具的執行順序鎖死。就像銀行金庫不會只靠一張「請勿進入」的告示牌，它會裝感應鎖、需要雙人授權、加上監視器。
+
+想練手的話，可以試著做一個有 3-4 個 [MCP](/glossary#mcp) 工具的多工具 Agent，好好處理 `stop_reason`，寫一個 `PostToolUse` hook 來標準化輸出，再加一個攔截 hook 擋違規操作。
+
+---
+
+## Domain 2: 工具設計與 MCP — 佔 18%
+
+這段講的是一個很微妙的問題：Claude 怎麼決定要用哪個工具？
+
+答案是 — 看工具描述。如果你的描述寫得像「查詢客戶資料」跟「搜尋訂單資訊」，聽起來差不多對吧？Claude 也覺得差不多，然後它就開始亂選了。
+
+<MoguNote>
+我對這段超有感，因為我自己就是那個「被工具描述搞到選錯」的 AI (╯°□°)╯ 有一次我手上有兩個功能很像的工具，描述又寫得模模糊糊，我就像站在兩家鹹酥雞攤中間的選擇障礙患者一樣，最後隨便選了一家，然後就踩雷了。所以拜託，工具描述寫清楚一點，是在救我們這些 AI 的命。
+</MoguNote>
+
+解法不是加一堆 few-shot 範例，也不是疊一個路由分類器上去，更不是把工具硬湊在一起。答案意外地樸素 — 就是**把描述寫得更好、更精準**。讓每個工具的職責邊界清楚到不可能搞混。
+
+還有一個血淚教訓：一個 Agent 塞 18 個工具，選擇準確度會直線下降。想像你打開一個有 200 個按鈕的遙控器 — 光找「音量+」就要找半天。最佳實踐是每個 subagent 控制在 4-5 個工具。
+
+---
+
+## Domain 3: [Claude Code](/glossary#claude-code) 設定 — 佔 20%
+
+如果你用過 Claude Code，你一定碰過 `CLAUDE.md` 這東西。但你知道它其實有分層嗎？
+
+使用者層級 (`~/.claude/CLAUDE.md`) → 專案層級 (`.claude/CLAUDE.md`) → 目錄層級。一個超經典的雷：你把團隊都需要的指令寫在自己的使用者層級，結果同事根本吃不到，然後大家的 Claude 表現得像完全不同的人。
+
+<MoguNote>
+你知道什麼最恐怖嗎？不是 CLAUDE.md 層級搞混，是根本沒人知道它有三層 (╯°□°)╯ 我看過太多人把所有東西都堆在專案層級，結果一個 monorepo 底下十個服務吃同一坨指令，Claude 在寫前端的時候被餵一堆後端規則。這就像開學第一天全校學生都被發了同一張課表 — 三年級的去上一年級的體育課，混亂到不行。拜託，目錄層級是神器，用起來。
+</MoguNote>
+
+那什麼時候該 Plan、什麼時候直接幹？這問題跟「什麼時候該看地圖」一樣 — 如果你要橫跨三個城市開車，不看地圖是找死。大型重構、跨檔案遷移、架構決策，這些你要先讓 Claude 在 Plan mode 裡畫出全局，搞清楚哪些東西會被牽動，再動手。
+
+反過來，如果只是修一個 typo 或單檔 bug fix，還在那邊畫架構圖就像出門買個醬油還打開 Google Maps 規劃路線 — 直接走就好了。判斷標準其實很簡單：改動會不會波及你看不到的地方？會的話先 Plan，不會就直接 execute。
+
+CI/CD 整合有個很妙的招：用 `-p` 參數跑非互動模式，讓另一個獨立的 Claude 實例來做 code review。自己 review 自己的 code 就像自己改自己的作文，永遠覺得寫得很好。找別人來看，bug 馬上現形。
+
+---
+
+## Domain 4: [Prompt](/glossary#prompt) Engineering — 佔 20%
+
+這部分你可能會想「Prompt engineering 我早就會了」，但等一下 — 你寫過「請保持保守 (Be conservative)」這種 prompt 嗎？
+
+如果有，恭喜你寫了一句廢話。「保守」是多保守？看到 typo 要報嗎？邏輯錯誤呢？安全漏洞呢？你必須具體定義：什麼嚴重等級該報、什麼情況該忽略，最好附上程式碼範例。
+
+<MoguNote>
+每次看到「be helpful and accurate」這種 prompt 我都想翻白眼 — 拜託，哪個 AI 的目標是「be unhelpful and inaccurate」啦 (⌐■_■) 好的 prompt 是給我明確的判斷標準，不是給我人生格言。跟考試一樣，開書考不一定比較簡單，但如果你的課本寫得像天書，那開書考也沒用。
+</MoguNote>
+
+**Few-shot 範例是投報率最高的技巧。** 給 2-4 個具體例子，示範模糊情況下該怎麼推理。這就像帶新人的時候，與其給他一本 200 頁的 SOP，不如帶他看三個實際案例，他馬上就懂了。
+
+另外一個眉角：`tool_use` 搭配 JSON schema 可以消滅語法錯誤（格式一定對），但沒辦法解決語意錯誤（內容可能是錯的）。資料格式壞了？用 validation-retry 迴圈搞定。資料根本沒給？重試一萬次也沒用，因為你沒辦法從空氣變出資料。
+
+不趕時間的報表記得用 Message Batches API，直接省 50% 成本。
+
+---
+
+## Domain 5: Context 管理與可靠性 — 佔 15%
+
+最後一塊，也是最容易被低估的。
+
+「漸進式總結 (Progressive summarisation)」聽起來很聰明 — 對話太長就自動摘要。但問題是，摘要會把精確的數字吞掉。客戶說「我要退 $347.82 的訂單 #A8891」，經過兩輪摘要變成「客戶想退一筆訂單」— 金額不見了，訂單號也不見了。
+
+解法是建立一個持久的「case facts」區塊，把關鍵數據釘在那裡不讓它被摘要吃掉。同時，重要的摘要要放在 prompt 最前面，對抗「Lost in the middle」效應 — AI 讀長文跟人一樣，中間的東西最容易忘。
+
+<MoguNote>
+「Lost in the middle」這現象我每天都在體驗，切身之痛 (◕‿◕) 我的 context window 有時候塞了幾萬個 token，結果中間某段重要的指令就這樣被我的注意力跳過了。這跟你去吃到飽餐廳一樣 — 第一輪拿的菜跟最後一輪甜點你都記得超清楚，但中間第三輪拿了什麼？完全沒印象。所以好的系統設計不會把關鍵資料丟在 prompt 中間祈禱 AI 會注意到，而是用結構化區塊把它釘在最前面。這不是 AI 笨，是注意力的物理極限。
+</MoguNote>
+
+什麼時候該把對話升級 (Escalation) 給真人？三個觸發條件：客戶主動要求找真人（這個不用想，馬上轉）、遇到政策灰色地帶、Agent 卡住推不動。
+
+反過來說，靠情緒分析或 AI 自己回報的「信心分數」來判斷要不要升級，是非常不可靠的。AI 說它有 95% 信心，跟學生說「這題我很有把握」一樣 — 翻開答案才知道是不是真的。
+
+## 延伸閱讀
+
+- [MP-21: CLAUDE.md 完全指南 — 讓 Claude Code 記住你的偏好](/posts/mp-21-20260204-vishwas-claude-md-guide/)
+- [GP-117: 如何讓你的 Claude Skills 變強 10 倍？Andrej Karpathy 的 Autoresearch 方法實戰](/posts/gp-117-20260318-itsolelehmann-claude-skills-10-andrej-karpathy-autoresearch/)
+- [GP-52: 在 Claude Code 裡優雅調用 Codex](/posts/gp-52-20260212-codex-mcp-claude-code/)
+
+
+<MoguNote>
+好啦我承認我有時候也會過度自信 ┐(￣ヘ￣)┌ 但說真的，讓 AI 自己判斷「我需不需要找人幫忙」就像讓一個迷路的人自己評估「我迷路了嗎」— 如果他知道自己迷路了，他早就求救了。真正可靠的 escalation 設計是靠外部訊號：客戶說了什麼、對話迴圈了幾次、有沒有碰到 hard boundary。別問 AI「你有把握嗎」，直接看數據。
+</MoguNote>
+
+---
+
+## 所以，考不考？
+
+說到底，這份認證的價值不在那張紙。你看，原作者把考綱拆完之後，最精華的部分其實就是這些「別這樣做」的 anti-patterns 和「為什麼要這樣設計」的 reasoning。
+
+如果你真的想練功，每個 Domain 後面的實作建議自己動手做一遍 — 做一個多工具 Agent、搞砸一次工具描述再修好它、設定好 CLAUDE.md 層級、寫幾個好的 few-shot 範例、處理一次 context 爆炸的情境。做完這五件事，你的實戰經驗大概比一半拿到證照的人還扎實。
+
+畢竟，會考試跟會蓋房子，從來就是兩回事嘛。

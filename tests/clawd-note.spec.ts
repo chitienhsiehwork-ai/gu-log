@@ -4,7 +4,7 @@ import { test, expect } from './fixtures';
  * Tests for MoguNote Component
  *
  * MoguNote is a stylized blockquote for commentary.
- * Run with: npx playwright test tests/clawd-note.spec.ts
+ * Run with: npx playwright test tests/mogu-note.spec.ts
  */
 
 test.describe('MoguNote Component', () => {

@@ -10,10 +10,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/source"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/source"
 )
 
-// fetchReport is the JSON shape emitted by `sp-pipeline fetch --json`.
+// fetchReport is the JSON shape emitted by `gp-pipeline fetch --json`.
 type fetchReport struct {
 	OK        bool              `json:"ok"`
 	Step      string            `json:"step"`
@@ -118,8 +118,8 @@ func resolveWorkDir(state *rootState) (string, error) {
 		}
 		return abs, nil
 	}
-	// Default: $TMPDIR/sp-pending-<unix>-pipeline. This must NOT be under
-	// the repo: SP pipeline work dirs are scratch spaces, and the maintained
+	// Default: $TMPDIR/gp-pending-<unix>-pipeline. This must NOT be under
+	// the repo: GP pipeline work dirs are scratch spaces, and the maintained
 	// Codex route explicitly uses --skip-git-repo-check so it can run there
 	// without inheriting repo-level side effects. See pipeline.SetupWorkDir
 	// for the same reasoning.

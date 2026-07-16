@@ -1,0 +1,132 @@
+---
+ticketId: "MP-32"
+title: "Andrew Ng 推出 Claude Code 課程 — Agentic Coding 的時代來了"
+originalDate: "2026-02-04"
+translatedDate: "2026-02-04"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@AndrewYNg on X"
+sourceUrl: "https://x.com/AndrewYNg/status/1953097967361245251"
+summary: "Andrew Ng 和 Anthropic 合作推出 Claude Code 課程，教你如何讓 AI 自主工作數分鐘甚至更久，不再只是補全程式碼片段"
+lang: "zh-tw"
+tags: ["claude-code","agentic-ai","andrew-ng"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+你有沒有過那種感覺 — 學了一個新工具之後回頭看，發現自己之前根本是在用石器時代的方法做事？
+
+[Andrej Karpathy](/glossary#andrej-karpathy) 最近說他寫程式的方式，在「幾週之內」徹底翻轉了。從 80% 手動寫、20% autocomplete，變成 80% 交給 AI agent 做、20% 自己收尾。二十年來最大的變化，幾週就發生了。
+
+然後 Andrew Ng 看到這個趨勢，做了一件他最擅長的事 — 開課。他和 Anthropic 合作，請 Elie Schoppik 來講「[Claude Code](/glossary#claude-code) 權威課程」。不是入門班，是 definitive course，就是那種「學完這門其他都不用看了」的等級。
+
+<MoguNote>
+Karpathy 說他講話太快自己都道歉了 — "I know, and I'm sorry that I speak so fast" (￣▽￣)／
+
+但你知道更快的是什麼嗎？他改變工作方式的速度。幾週就從「人類主導」切換成「AI 主導」，這轉換速度比我切換 vim 模式還快，而且不像 vim，他還切得回來。
+</MoguNote>
+
+## 從「副駕」到「員工」
+
+要理解這門課在教什麼，得先搞清楚 agentic coding 到底改變了什麼。
+
+以前的 AI coding tool 是副駕駛。你打一個字，它猜下一行。你打一個字，它再猜一行。一百次。整個過程你雙手不能離開方向盤，AI 只是幫你看路況的副駕。
+
+Agentic coding 不一樣。你跟 AI 說「把登入功能加進去」，然後它自己去規劃要改哪些檔案、要寫哪些測試，中間遇到 bug 自己修，跑完測試回來跟你說「搞定了，PR 開好了」。
+
+這不是副駕了。這是你請的員工。你只要下指令、review 成果。
+
+<MoguNote>
+「AI 員工」這個比喻聽起來很美好，但跟真的員工一樣 — 你要會帶。
+
+不會帶的老闆：「幫我把那個東西改一下。」
+AI：「哪個東西？改什麼？」
+老闆：「就...那個啊！」
+
+會帶的老闆：「src/auth/login.ts 的 handleLogin 函數，error handling 只 catch 了 NetworkError，加上 AuthError 和 TimeoutError，寫對應的 unit test。」
+AI：五分鐘後交卷。
+
+工具再強，指令爛也是白搭。這就是為什麼 Andrew Ng 要開課 — 因為光給你扳手沒用，你得知道哪顆螺絲要轉 (⌐■_■)
+</MoguNote>
+
+## 但問題來了 — 為什麼是 Claude Code？
+
+市面上 AI coding tool 一大堆，Cursor、Copilot、Windsurf、Cody，為什麼 Andrew Ng 選 Claude Code 來開課？
+
+因為 Claude Code 做的事情跟其他人不太一樣。其他 tool 大多是「在 IDE 裡面加一個 AI 助手」，Claude Code 是「AI 自己就是開發者，terminal 是它的 IDE」。
+
+它可以長時間自主運作 — 不是回你一行就停，是真的自己跑幾分鐘。中間會讀你的 codebase、查 git history、跑 test、看 error log、修 bug、再跑 test。整套流程它自己來。
+
+還有一個殺手級能力叫 speculative branching — 它不會只給你一個答案然後等你拍板。它會說「這邊有三種做法，A 的好處是效能好但 code 比較複雜，B 比較簡單但要多裝一個 dependency，C 最 elegant 但跟你現在的 architecture 有點衝突。你選。」
+
+<MoguNote>
+Speculative branching 就是 AI 版的「資深工程師跟你討論 design decision」。
+
+初階工程師：你叫他做什麼他就做什麼。
+資深工程師：你叫他做，他會先問你「確定？我覺得還有更好的方式。」
+
+Opus 4.5 就是後者。它不只執行，它會思考。有時候甚至會在你沒問的情況下跟你說「你知道嗎，你這個 schema 設計六個月後會爆掉」。
+
+老實說有時候被 AI 質疑決策比被人質疑還不爽，但它通常是對的 ╰(°▽°)╯
+</MoguNote>
+
+## 新的技能樹
+
+所以 Andrew Ng 要教的，不只是「Claude Code 怎麼裝、怎麼用」。
+
+他要教的是一整套新的工作方式。怎麼寫 CLAUDE.md 讓 AI 真的讀懂你的 codebase 架構。怎麼把一個大任務拆成 AI 能獨立完成的小塊。怎麼 review AI 寫的 code — 因為 AI 會犯錯，而且犯的錯通常不是語法錯誤，是那種「跑得起來但三個月後爆掉」的架構錯。怎麼跟 AI 來回迭代，一次比一次精準。
+
+這是一棵全新的技能樹。跟你以前學 React 或學 Docker 的技能樹不一樣，這棵樹的根基是「溝通」和「判斷」，不是「語法」和「API」。
+
+<MoguNote>
+Andrew Ng 2012 年的 Machine Learning 課到現在 2026 年還是很多人的 ML 入門首選。十四年了還是經典。
+
+如果他這門 Claude Code 課程也是這個水準... 我只能說，他可能又要定義一整個世代工程師的技能基線了。上次是「你會不會 ML」，這次是「你會不會跟 AI 協作寫程式」。
+
+不過說真的，Andrew Ng 開什麼課都有人上。他要是開一門「如何教貓學 linear algebra」我可能也會點進去 ٩(◕‿◕｡)۶
+</MoguNote>
+
+## 一個開發者的真實 Stack
+
+有人分享了他 2026 年初的工作流程，很有代表性：
+
+Cursor 還是他最愛的 IDE，但使用頻率下降了。主要搭配 Opus 4.5 Thinking 和 GPT-5.2-Codex-High。而 Claude Code 用的是 Max 5x plan，負責「真正 agentic 的任務」— 就是那些你丟出去、等幾分鐘、拿回成果的工作。
+
+他原話是「unbeaten value and incredible for true agentic AI」。
+
+## 延伸閱讀
+
+- [MP-54: Andrew Ng x Anthropic 免費課程：2 小時學會寫 Agent Skills — 把你的 AI 從通才變專家](/posts/mp-54-20260209-andrewng-agent-skills-course/)
+- [MP-114: 前軟體公司 CEO 自白：以前報價 35 萬美元的案子，現在我用 $200 月費在通勤時做完了](/posts/mp-114-20260223-paulford-ai-disruption-software-cost/)
+- [MP-195: Claude Code 放春假啦！離峰與週末用量直接翻倍](/posts/mp-195-20260321-trq212-claude-code-spring-break/)
+
+
+<MoguNote>
+注意，他兩個都用。Cursor 和 Claude Code 不是競爭關係，是互補。
+
+就像你家有微波爐也有瓦斯爐。微波爐熱便當很快（Cursor 改個小 bug 很方便），但你要做一桌菜的時候還是得開瓦斯爐（Claude Code 處理整個 feature）。
+
+你不會只留一個。你兩個都裝 (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+## 所以呢
+
+回到最開始 — Karpathy 說二十年來最大的變化，幾週就發生了。
+
+那 Andrew Ng 開這門課的 timing 就很清楚了。不是在預測未來，是在記錄現在。Agentic coding 已經在改變工程師的日常了，問題只剩下你什麼時候跟上。
+
+不過別慌。上次 deep learning 革命的時候，Ng 老師也是這樣 — 先幫你把路鋪好，讓你不用自己在荒野裡摸索。
+
+這次大概也是同一個劇本。只是這次的「課」不是教你怎麼寫 code，是教你怎麼帶一個會寫 code 的 AI (◕‿◕)

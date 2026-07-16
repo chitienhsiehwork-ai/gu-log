@@ -14,7 +14,7 @@
 // 關鍵 invariants (要測的東西):
 //   1. Prompt 必須包含完整 standing checklist (7 條)
 //   2. Prompt 必須包含 source URL fetch 結果
-//   3. Scope 必須排除 ClawdNote (creative scope 保護)
+//   3. Scope 必須排除 MoguNote (creative scope 保護)
 //   4. ShroomDogNote 的 hedge words (我想/應該/大概) 必須保留
 //   5. Output 必須 parse 成 FactCorrectorOutput schema
 //
@@ -74,7 +74,7 @@ describe('FactCorrector: prompt construction', () => {
     '技術名詞拼寫',   // Item 2
     '時間',           // Item 3: 時間/日期/人名/公司名
     '技術宣稱',       // Item 4
-    'ClawdNote',      // Item 5: SKIP ClawdNote
+    'MoguNote',      // Item 5: SKIP MoguNote
     '我想',           // Item 6: hedge words 保留
     '不確定',         // Item 7: flag, don't change
   ];
@@ -104,10 +104,10 @@ describe('FactCorrector: prompt construction', () => {
     // Teaching note: 這是 Q3 MCQ — truncation strategy。
   });
 
-  it('includes article body but NOT ClawdNote', () => {
-    // Input: article with <ClawdNote>梗</ClawdNote>
-    // Expect: prompt 包含 article body，但 ClawdNote 的內文不在 prompt 裡
-    //         （可以用 placeholder 占位 "[ClawdNote: skipped]"）
+  it('includes article body but NOT MoguNote', () => {
+    // Input: article with <MoguNote>梗</MoguNote>
+    // Expect: prompt 包含 article body，但 MoguNote 的內文不在 prompt 裡
+    //         （可以用 placeholder 占位 "[MoguNote: skipped]"）
     //
     // Teaching note: 這是 "Contract by component" 的 prompt-level enforcement。
     //                見 Test Group B。
@@ -116,49 +116,49 @@ describe('FactCorrector: prompt construction', () => {
 
 
 // ============================================================================
-// Test Group B: Scope exclusion — ClawdNote 完全不進 FactCorrector
+// Test Group B: Scope exclusion — MoguNote 完全不進 FactCorrector
 // ============================================================================
 //
-// WHAT: 驗證 ClawdNote 內容從來不會被 FactCorrector 碰到
+// WHAT: 驗證 MoguNote 內容從來不會被 FactCorrector 碰到
 //
-// WHY:  ClawdNote 是 creative scope — 裡面的誇飾 analogy 不能被 fact check
+// WHY:  MoguNote 是 creative scope — 裡面的誇飾 analogy 不能被 fact check
 //       掉（見 mental model Section 5）。這個保護有兩層:
-//         1. Prompt 層: 不把 ClawdNote 餵給 LLM
-//         2. Diff 層: 跑完後如果發現 ClawdNote 被改了，flag violation
+//         1. Prompt 層: 不把 MoguNote 餵給 LLM
+//         2. Diff 層: 跑完後如果發現 MoguNote 被改了，flag violation
 //
 // PROS: - Deterministic scope split — 可以用 pure function 測
 //       - 防止 silent creative voice erosion
-// CONS: - ClawdNote 有 nested MDX 時 parser 要夠 robust
+// CONS: - MoguNote 有 nested MDX 時 parser 要夠 robust
 
 describe('FactCorrector: scope exclusion', () => {
 
-  it('stripClawdNotes() replaces ClawdNote blocks with placeholder', () => {
-    // Input:  '第一段\n<ClawdNote>吐槽</ClawdNote>\n第二段'
+  it('stripMoguNotes() replaces MoguNote blocks with placeholder', () => {
+    // Input:  '第一段\n<MoguNote>吐槽</MoguNote>\n第二段'
     // Expect: '第一段\n[CLAWD_NOTE_PLACEHOLDER_0]\n第二段'
     //
     // Teaching note: Placeholder 方案 vs 完全刪除 —
-    //                placeholder 保留段落結構 (LLM 知道 "這裡有個 ClawdNote")
+    //                placeholder 保留段落結構 (LLM 知道 "這裡有個 MoguNote")
     //                刪除會讓上下文變奇怪。Placeholder 比較穩。
   });
 
-  it('restoreClawdNotes() puts them back after LLM processing', () => {
+  it('restoreMoguNotes() puts them back after LLM processing', () => {
     // Round-trip: strip → feed to LLM → restore
-    // 最終 output 的 ClawdNote 應該跟原版 byte-identical
+    // 最終 output 的 MoguNote 應該跟原版 byte-identical
   });
 
-  it('handles multiple ClawdNote blocks with unique placeholders', () => {
+  it('handles multiple MoguNote blocks with unique placeholders', () => {
     // placeholder_0, placeholder_1, ... 不會混淆
   });
 
-  it('handles ClawdNote with nested Toggle/code/MDX components', () => {
-    // Edge case: <ClawdNote>見 <Toggle>code</Toggle></ClawdNote>
+  it('handles MoguNote with nested Toggle/code/MDX components', () => {
+    // Edge case: <MoguNote>見 <Toggle>code</Toggle></MoguNote>
     // parser 要能識別正確的 closing tag
   });
 
-  it('ShroomDogNote is NOT stripped (不同於 ClawdNote)', () => {
+  it('ShroomDogNote is NOT stripped (不同於 MoguNote)', () => {
     // ShroomDogNote 要 fact-check，只是 hedge words 要保留
     //
-    // Teaching note: Mental model Section 5 把 ClawdNote 和 ShroomDogNote
+    // Teaching note: Mental model Section 5 把 MoguNote 和 ShroomDogNote
     //                明確分開處理。這個 test 把 "為什麼它們不一樣" 釘死。
   });
 });

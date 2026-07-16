@@ -58,8 +58,8 @@ if (!vibe) {
 const tribunalVersion = Number(frontmatter?.scores?.tribunalVersion ?? 0);
 const dims =
   tribunalVersion >= 9
-    ? ['persona', 'clawdNote', 'vibe', 'narrative']
-    : ['persona', 'clawdNote', 'vibe', 'clarity', 'narrative'];
+    ? ['persona', 'moguNote', 'vibe', 'narrative']
+    : ['persona', 'moguNote', 'vibe', 'clarity', 'narrative'];
 const missing = dims.filter((d) => typeof vibe[d] !== 'number');
 if (missing.length) {
   console.error(`scores.vibe incomplete (missing: ${missing.join(', ')})`);

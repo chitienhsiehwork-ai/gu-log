@@ -10,10 +10,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/dedup"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/dedup"
 )
 
-// dedupReport is the JSON shape emitted by `sp-pipeline dedup --json`.
+// dedupReport is the JSON shape emitted by `gp-pipeline dedup --json`.
 type dedupReport struct {
 	OK        bool     `json:"ok"`
 	Step      string   `json:"step"`
@@ -55,7 +55,7 @@ Exit codes:
 	}
 	cmd.Flags().StringVar(&url, "url", "", "source URL to check (X URL or article URL)")
 	cmd.Flags().StringVar(&title, "title", "", "proposed title to check for similarity")
-	cmd.Flags().StringVar(&series, "series", "SP", "ticket prefix (SP / CP / SD / Lv)")
+	cmd.Flags().StringVar(&series, "series", "GP", "ticket prefix (SP / CP / SD / Lv)")
 	return cmd
 }
 

@@ -10,7 +10,7 @@ const allPostsFull = await getCollection('posts');
 // Homepage excludes sub-8 posts (held off until a background tribunal lifts them).
 const allPosts = getIndexPosts(allPostsFull, 'en');
 
-// Helper: extract number from ticketId (e.g., "CP-11" → 11)
+// Helper: extract number from ticketId (e.g., "MP-11" → 11)
 const getTicketNumber = (ticketId: string | undefined) => {
   if (!ticketId) return 0;
   const match = ticketId.match(/\d+$/);
@@ -35,7 +35,7 @@ const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(
 ---
 
 <BaseLayout title="ShroomDog - Making AI Fun Again" lang="en">
-  {/* SP: ShroomDog Picks — most frequently updated */}
+  {/* SP: Gu-log Picks — most frequently updated */}
   {
     spPosts.length > 0 && (
       <section class="posts-section sp-section">
@@ -67,7 +67,7 @@ const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(
 
         {spPosts.length > 3 && (
           <p class="view-all">
-            <a href="/en/shroomdog-picks">View all →</a>
+            <a href="/en/gu-log-picks">View all →</a>
           </p>
         )}
       </section>

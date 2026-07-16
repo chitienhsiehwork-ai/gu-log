@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/config"
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/counter"
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/llm"
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/logx"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/config"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/counter"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/llm"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/logx"
 )
 
 // findRepoRoot walks up from the test binary's CWD looking for CLAUDE.md.
@@ -38,7 +38,7 @@ func TestSanitizeSlug(t *testing.T) {
 		"The best tools I give Codex are bespoke CLIs": "the-best-tools-i-give-codex-are-bespoke-clis",
 		"don't pad":                  "dont-pad",
 		"":                           "article",
-		"SP-170":                     "sp-170",
+		"GP-170":                     "sp-170",
 		"   leading-and-trailing   ": "leading-and-trailing",
 	}
 	for in, want := range cases {
@@ -74,7 +74,7 @@ func TestCredits_RoundTrip(t *testing.T) {
 	}
 	finalSeed := `---
 title: "Fake Article"
-ticketId: "SP-PENDING"
+ticketId: "GP-PENDING"
 originalDate: "2026-04-11"
 translatedDate: "2026-04-11"
 translatedBy:
@@ -84,7 +84,7 @@ source: "@fakeauthor on X"
 sourceUrl: "https://x.com/fakeauthor/status/1"
 lang: "zh-tw"
 summary: "fake summary"
-tags: ["shroom-picks"]
+tags: ["gu-log-picks"]
 ---
 body
 `
@@ -121,14 +121,14 @@ body
 		`- role: "Reviewed"`,
 		`- role: "Refined"`,
 		`- role: "Orchestrated"`,
-		`  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"`,
+		`  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/gp-pipeline.sh"`,
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("credits output missing %q", want)
 		}
 	}
 	// Sibling top-level keys must survive.
-	if !strings.Contains(got, `ticketId: "SP-PENDING"`) {
+	if !strings.Contains(got, `ticketId: "GP-PENDING"`) {
 		t.Errorf("ticketId clobbered")
 	}
 	if !strings.Contains(got, `lang: "zh-tw"`) {
@@ -164,7 +164,7 @@ exit 0
 	// Seed a final.mdx in the work dir.
 	finalSeed := `---
 title: "Fake Title"
-ticketId: "SP-PENDING"
+ticketId: "GP-PENDING"
 originalDate: "2026-04-11"
 translatedDate: "2026-04-11"
 translatedBy:
@@ -174,7 +174,7 @@ source: "@fakeauthor on X"
 sourceUrl: "https://x.com/fakeauthor/status/1"
 lang: "zh-tw"
 summary: "fake summary"
-tags: ["shroom-picks"]
+tags: ["gu-log-picks"]
 ---
 body
 `
@@ -190,7 +190,7 @@ body
 		PostsDir:   postsDir,
 	}
 	s.WorkDir = workDir
-	s.Prefix = "SP"
+	s.Prefix = "GP"
 	s.AuthorHandle = "fakeauthor"
 	s.Title = "Fake Title"
 	// Pin the stamp provider to Codex so the canonical-frontmatter assertions
@@ -223,7 +223,7 @@ body
 		`- role: "Scored"`,
 		`- role: "Rewritten"`,
 		`- role: "Orchestrated"`,
-		`blob/main/scripts/sp-pipeline.sh`,
+		`blob/main/scripts/gp-pipeline.sh`,
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("ralph frontmatter missing %q\n---\n%s", want, got)
@@ -266,7 +266,7 @@ body
 	s.Log = logx.New()
 	s.Cfg = &config.Config{RepoRoot: tmp, ScriptsDir: scriptsDir, PostsDir: postsDir}
 	s.WorkDir = workDir
-	s.Prefix = "SP"
+	s.Prefix = "GP"
 	s.AuthorHandle = "fake"
 	s.Title = "Fake"
 
@@ -339,8 +339,8 @@ func TestDeploy_DryRunWithFakeGitRepo(t *testing.T) {
 	}
 	counterFile := filepath.Join(scriptsDir, "article-counter.json")
 	if err := os.WriteFile(counterFile, []byte(`{
-  "SP": { "next": 171, "label": "ShroomDog Picks", "description": "test" },
-  "CP": { "next": 1, "label": "Clawd Picks", "description": "test" },
+  "GP": { "next": 171, "label": "Gu-log Picks", "description": "test" },
+  "MP": { "next": 1, "label": "Mogu Picks", "description": "test" },
   "SD": { "next": 1, "label": "ShroomDog Original", "description": "test" },
   "Lv": { "next": 1, "label": "Level-Up", "description": "test" }
 }
@@ -375,7 +375,7 @@ body
 	s.Log = logx.New()
 	s.Cfg = cfg
 	s.Counter = counter.New(counterFile, filepath.Join(tmp, ".counter.lock"))
-	s.Prefix = "SP"
+	s.Prefix = "GP"
 	s.ActiveFilename = pendingName
 	s.ActiveENFilename = ""
 	s.Title = "Fake"
@@ -401,8 +401,8 @@ body
 	if s.SPNumber != 171 {
 		t.Errorf("SPNumber = %d, want 171", s.SPNumber)
 	}
-	if s.PromptTicketID != "SP-171" {
-		t.Errorf("PromptTicketID = %q, want SP-171", s.PromptTicketID)
+	if s.PromptTicketID != "GP-171" {
+		t.Errorf("PromptTicketID = %q, want GP-171", s.PromptTicketID)
 	}
 	// Pending file should have been renamed.
 	if _, err := os.Stat(filepath.Join(postsDir, s.Filename)); err != nil {
@@ -410,7 +410,7 @@ body
 	}
 	// Its ticketId should be the allocated one.
 	data, _ := os.ReadFile(filepath.Join(postsDir, s.Filename))
-	if !strings.Contains(string(data), `ticketId: "SP-171"`) {
+	if !strings.Contains(string(data), `ticketId: "GP-171"`) {
 		t.Errorf("ticketId not replaced in %s:\n%s", s.Filename, data)
 	}
 }

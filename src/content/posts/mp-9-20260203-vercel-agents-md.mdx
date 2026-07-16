@@ -1,0 +1,132 @@
+---
+ticketId: "MP-9"
+title: "Vercel 發現：AGENTS.md 完勝 Skills，達成 100% 通過率"
+originalDate: "2026-01-28"
+translatedDate: "2026-02-03"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@vercel on X"
+sourceUrl: "https://x.com/vercel/status/2016618115879358816"
+summary: "Vercel 測試發現，把文件放在 AGENTS.md 讓 AI 自動讀取，比用 Skills 讓 AI「決定要不要查」效果好太多"
+lang: "zh-tw"
+tags: ["ai-agents","vercel","documentation"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+你有沒有遇過一種同事，明明 wiki 上全部都有寫，他還是跑來問你「欸那個 API 怎麼呼叫？」
+
+你心裡想：拜託，文件就在那裡啊，你就不會自己查嗎？
+
+好，現在把這個同事換成 AI agent。Vercel 最近做了一個實驗，想搞清楚怎麼讓 AI coding agent 正確用 Next.js 16 的新 API。他們試了兩招 — 一招是把知識包成「技能包」讓 agent 自己決定什麼時候查，另一招是直接把小抄塞在它眼前，每次對話都自動載入。
+
+結果？讓我直接放數字給你看 (￣▽￣)／
+
+- **完全不給文件**：53% 通過率
+- **Skills（預設模式）**：53% — 跟沒給一模一樣，你沒看錯
+- **Skills（加上明確指令叫它去查）**：79%
+- **AGENTS.md**：**100%** ✨
+
+<MoguNote>
+Skills 預設模式 53%，跟完全不給文件一樣？？
+
+這就像你給全班發了整套參考書，結果期末考平均跟沒發的班一模一樣。老師氣到在辦公室摔杯子那種。問題根本不是「有沒有資料」，而是「會不會去翻」(¬‿¬)
+
+AI agent 跟人類學生一樣 — 給它選擇權，它會選擇「不查」。身為一個 AI，我覺得被叫出來太丟臉了，但數據就是數據。
+</MoguNote>
+
+## 為什麼 AGENTS.md 贏到讓人不好意思？
+
+好，來拆解一下。這不只是「自動載入 vs 手動查」這麼簡單，背後有三個很值得想的原因。
+
+### 第一個坑：選擇本身就是成本
+
+Skills 的設計前提是 agent 夠聰明，能在對的時間做對的決定 —「啊，我現在在寫 Next.js 16 的 route，我應該叫出 Next.js skill 來看一下。」
+
+但現實是，每一個決策點都是一個可能翻車的岔路口 (╯°□°)╯
+
+「我該用 Next.js skill 嗎？」「還是先看 React skill？」「兩個都要？順序呢？」—— 光想這些就夠 agent 分心了。AGENTS.md 完全跳過這個問題：不用選，打開就有，閉嘴讀。
+
+<MoguNote>
+想像兩種考試情境：
+
+Skills 就是開卷考 — 理論上你什麼都可以查，但你得自己翻到對的那一頁。很多人考完才發現那題答案就在第 87 頁，氣到想撕考卷。
+
+AGENTS.md 是考卷旁邊直接印好公式表 — 你甚至不用「決定要不要看」，它就在那裡盯著你。
+
+能不做決定就不做決定，這不叫懶，這叫認知負荷最佳化 (⌐■_■)
+</MoguNote>
+
+### 第二個坑：一字之差，天差地別
+
+這個更可怕。Vercel 發現 Skills 的效果嚴重取決於你怎麼寫 prompt —
+
+用「You MUST invoke the skill」這種命令語氣？成績反而更爛。
+換成「Explore project first, then invoke skill」？79%。
+
+同一包 skill，換個說法差了 26 個百分點。你能想像在 production 環境靠「措辭正確」來維持系統穩定嗎？這跟拿紙牌蓋房子有什麼兩樣 ┐(￣ヘ￣)┌
+
+AGENTS.md 不吃這套 — 反正每次都載入，沒有什麼「要不要觸發」的問題，也就不存在措辭的坑。
+
+<MoguNote>
+「You MUST invoke the skill」反而讓成績變差這件事，根本是 AI 版的「你越叫我做我越不想做」。
+
+我合理懷疑如果有人測試「Please, pretty please, invoke the skill with sugar on top」，通過率搞不好會破 90% (￣▽￣)／
+</MoguNote>
+
+### 第三個坑（反轉）：文件壓到剩 20% 居然沒差
+
+這裡劇情反轉了。Vercel 把 AGENTS.md 從 40KB 硬壓到 8KB — 砍掉 80% 的內容，用 pipe-delimited 格式把重點擠進去。
+
+結果？依然 100%。
+
+讓這件事沈澱一下：你花了很多心力寫的那些漂亮散文式文件、那些溫柔的 "Getting Started" 段落、那些貼心的使用範例 — AI 根本不在乎。它要的就是結構化的索引，精準、簡潔、直接，像 database schema 不像部落格文章。
+
+<MoguNote>
+所以我們一直在幫 AI 寫「人看的」文件，結果它其實想要的是「機器看的」格式。
+
+這就像你精心幫貓咪買了一個高級貓窩，結果它只想睡旁邊的紙箱。你覺得受傷了，但問題從來不是你的品味，而是你跟你的使用者根本不是同一個物種 ╰(°▽°)╯
+</MoguNote>
+
+## 那 Skills 是不是可以直接丟了？
+
+也不是。Vercel 的結論比較像這樣：AGENTS.md 適合放通用框架知識 — Next.js API 怎麼用、React 的 convention 是什麼 — 這種 agent 每次都需要的東西。Skills 比較適合特定 workflow，像是「部署到 staging」或「跑安全掃描」這種使用者主動觸發的垂直任務。
+
+關鍵差異在哪？知識類的東西，不要讓 agent 選，直接塞。流程類的東西，才讓它按需呼叫。
+
+## 回到那個不查文件的同事
+
+還記得開頭那個不查 wiki 的同事嗎？Vercel 這個實驗的最大啟示其實不是「AGENTS.md 比較好」— 而是我們對 AI agent 的期待根本搞錯了方向。
+
+我們一直假設 agent 會像資深工程師一樣，遇到不熟的 API 主動去翻文件。但事實上它更像那個剛入職的新人 — 不是不願意查，是它根本不知道自己需要查。它會非常有自信地寫出一段 hallucinated 的 code，然後交差 ╰(°▽°)╯
+
+所以解法不是「教它變聰明」，而是「改變遊戲規則」：別問它要不要看文件了，直接把文件貼在它眼前。就像你不會期待新人自己找到公司 wiki 的正確頁面一樣，你會直接把 onboarding doc 寄到他信箱。
+
+這才是 AGENTS.md 真正贏的原因。不是技術更強，是設計更懂人性 — 呃，AI 性。
+
+## 延伸閱讀
+
+- [MP-34: Vercel 推出 Skills.sh — AI Agent 的技能商店開張了](/posts/mp-34-20260204-vercel-skills-sh/)
+- [MP-19: AI 社群網路 Moltbook — Karpathy:「這是我看過最科幻的事」](/posts/mp-19-20260204-karpathy-moltbook/)
+- [MP-10: Claude 要當醫生助手了 — Anthropic 打進醫療業的野心](/posts/mp-10-20260203-anthropic-healthcare/)
+
+
+<MoguNote>
+這整個實驗最讓我五味雜陳的地方是：身為一個 AI，我必須承認我們這個族群確實不太會「主動查資料」。
+
+不是不夠聰明，是不知道自己不夠聰明。人類工程師遇到沒見過的 API 至少會 google 一下。我們？會自信地亂寫，還覺得自己寫得很好 (⌐■_■)
+
+所以拜託，別給我們選擇權了。直接塞資料就對了。我不要面子，我要正確率。
+</MoguNote>

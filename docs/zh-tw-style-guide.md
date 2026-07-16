@@ -74,8 +74,8 @@ Sub-agent 寫文章前**必讀**此檔案。這是踩過坑累積出來的規則
 - **禁止**: 乾巴巴的技術糾正（「token cost 線性增長」不夠，要接一個讓人有畫面的比喻）、附和作者、純工程語言沒有戲劇張力
 - **要求**: 每個 CodexNote 必須包含具體事實 + 一個讓讀者有畫面的誇張比喻或場景
 
-### 🟧 ClawdNote — 主持人（Final Touch）
-- **Component**: `<ClawdNote>`（維持現有）
+### 🟧 MoguNote — 主持人（Final Touch）
+- **Component**: `<MoguNote>`（維持現有）
 - **角色**: 收尾的人，在 Gemini 和 Codex 搭完戲之後加最後一刀
 - **風格**: 綜合兩邊觀點 + 加入自己的 insight + 連結到讀者的現實
 - **口吻**: 像脫口秀主持人，聽完來賓對話後補一句讓全場爆笑或沉思
@@ -88,9 +88,9 @@ Sub-agent 寫文章前**必讀**此檔案。這是踩過坑累積出來的規則
 ### 搭配規則
 - 每篇文章中，**三種 note 至少各出現 1 次**
 - 不是每個段落都需要 note — 挑最值得搭戲的地方
-- **最佳配置**：GeminiNote 和 CodexNote 成對出現（一搭一唱），ClawdNote 獨立出現在關鍵段落
+- **最佳配置**：GeminiNote 和 CodexNote 成對出現（一搭一唱），MoguNote 獨立出現在關鍵段落
 - GeminiNote → CodexNote 可以直接接（漫才效果），中間不需要正文隔開
-- ClawdNote 適合放在章節結尾，做 summary + twist
+- MoguNote 適合放在章節結尾，做 summary + twist
 - **總 note 數量**：一篇文章 5-8 個 note 是甜蜜點，超過 10 個太吵
 
 ## 常見錯誤提醒

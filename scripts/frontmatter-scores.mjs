@@ -205,7 +205,7 @@ const JUDGE_DIMS = {
   librarian: ['glossary', 'crossRef', 'sourceAlign', 'attribution'],
   factCheck: ['accuracy', 'fidelity', 'consistency', 'sourceBoundary', 'commentarySeparation'],
   freshEyes: ['readability', 'firstImpression', 'payoffDensity', 'lengthFit'],
-  vibe: ['persona', 'clawdNote', 'vibe', 'clarity', 'narrative'],
+  vibe: ['persona', 'moguNote', 'vibe', 'clarity', 'narrative'],
 };
 
 // v9 (move-clarity-vibe-to-fresheyes): clarity moves vibe → freshEyes.
@@ -213,7 +213,7 @@ const JUDGE_DIMS_V9 = {
   librarian: ['glossary', 'crossRef', 'sourceAlign', 'attribution'],
   factCheck: ['accuracy', 'fidelity', 'consistency', 'sourceBoundary', 'commentarySeparation'],
   freshEyes: ['readability', 'firstImpression', 'payoffDensity', 'lengthFit', 'clarity'],
-  vibe: ['persona', 'clawdNote', 'vibe', 'narrative'],
+  vibe: ['persona', 'moguNote', 'vibe', 'narrative'],
 };
 
 /**

@@ -18,7 +18,7 @@
 #   bash scripts/fetch-x-article.sh <tweet_url> [--json]
 #
 # Without --json: emits a human/LLM-readable text block compatible with
-# sp-pipeline.sh's validate_tweet_source_capture (handle, date, Source URL,
+# gp-pipeline.sh's validate_tweet_source_capture (handle, date, Source URL,
 # === MAIN TWEET === marker).
 #
 # With --json: emits the fetched JSON payload. Guest GraphQL results are
@@ -468,7 +468,7 @@ if [ "$THREAD_ENABLED" = "1" ] && ! focal_is_article; then
   fi
 fi
 
-# Render to text. Output contract is aligned with sp-pipeline.sh's
+# Render to text. Output contract is aligned with gp-pipeline.sh's
 # validate_tweet_source_capture so that function still passes:
 #   - Has @handle
 #   - Has YYYY-MM-DD date

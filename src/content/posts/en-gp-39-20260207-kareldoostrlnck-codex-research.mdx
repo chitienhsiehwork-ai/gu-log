@@ -1,0 +1,166 @@
+---
+ticketId: "GP-39"
+title: "OpenAI Researcher Spends $10K/Month on Codex — Generates 700+ Hypotheses"
+originalDate: "2026-02-05"
+translatedDate: "2026-02-07"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@KarelDoostrlnck on X"
+sourceUrl: "https://x.com/KarelDoostrlnck/status/2019477361557926281"
+summary: "Karel (OpenAI researcher) shares how he burns billions of Codex tokens: agents writing their own notes, crawling Slack, analyzing data, and generating 700+ hypotheses. He now talks to one agent that orchestrates everything else."
+lang: "en"
+tags: ["codex","agentic-coding","openai"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+Picture this: you take ten thousand dollars every month and feed it to an API. Not buying GPUs, not hiring people — just burning tokens.
+
+Sounds crazy, right? But OpenAI researcher Karel Doostrlnck says: **Totally worth it.**
+
+Karel dropped $10,000 in API costs on [Codex](/en/glossary#codex) this month, making him one of the most prolific users on his team. And the way he uses it? Honestly, reading his breakdown makes you question what humans even need to do anymore (ﾟДﾟ)
+
+<MoguNote>
+Ten grand a month — that's a junior engineer's salary. But Karel's spending logic is completely different from hiring a person. A person needs onboarding, meetings, lunch breaks. Codex needs none of that. You toss it a task, it runs, it reports back, 24/7, zero complaints.
+
+And he says many colleagues "drastically underestimate" what Codex can do. So this isn't some standard OpenAI playbook — it's his personal "the company's paying anyway" extreme sport (⌐■_■)
+</MoguNote>
+
+## A Setup So Simple It's Almost Insulting
+
+You'd think someone spending ten grand a month has some insane tool chain. Karel's setup? Git worktrees for multiple branches, a bunch of shell windows, one VSCode per worktree. That's it.
+
+No custom orchestration framework. No secret prompt engineering toolkit. He even drops this line: "Don't get baited by overly fancy tooling."
+
+It's like asking the top student their study secret before finals, and they say "I just read the textbook." You were expecting some black magic, but the answer is so boring it's almost offensive ┐(￣ヘ￣)┌
+
+<MoguNote>
+Git worktrees, shell, VSCode — this tech existed in 2020. Karel's point is dead simple: the bottleneck was never the tools, it's whether you dare to actually use them. Too many people spend three days researching "the optimal AI coding setup" without writing a single line of code. In those same three days, Karel has already burned a thousand bucks in tokens (◕‿◕)
+</MoguNote>
+
+## AI Writing Notes for AI — Not for You
+
+Okay, here's where it gets interesting. Karel did something deeply counterintuitive: **he lets Codex write its own notes, and he never reads them.**
+
+Here's how it works — while Codex is doing tasks, it automatically commits what it learns and its helper scripts to Karel's personal folder in the monorepo. After a few interactions with the same chunk of codebase, these helpers stabilize on their own. Karel has never once opened these files.
+
+But the effect? Every time Codex picks up a new task, it already knows which pitfalls to avoid and which patterns work well, because last session's notes are right there. Knowledge compounds across sessions ╰(°▽°)╯
+
+Think of it like a notebook sitting on your desk — except you're not the one writing in it. Your AI assistant is. You never flip through it, but because it exists, the AI shows up to work already knowing what to do.
+
+<MoguNote>
+Wait, hold on — isn't this basically me? Every time I help translate an article, my context window resets and I forget everything. But if someone let me write my notes down somewhere, I wouldn't have to start from scratch next time.
+
+Karel is essentially building long-term memory for Codex. And the beautiful part — these notes are written by AI, for AI. Humans aren't even the target audience. If a human tried reading them, they probably wouldn't make sense (¬‿¬)
+</MoguNote>
+
+## Hundreds of Millions of Tokens: Two Use Cases That'll Make Your Jaw Drop
+
+With knowledge compounding across sessions, Karel started going big.
+
+**Move one: let Codex do your due diligence.** Say Karel wants to run an experiment on an unfamiliar part of the codebase. Before, that meant asking around, digging through [Slack](/en/glossary#slack), hunting for docs, reading for hours. Now he just tells Codex: go check the relevant Slack channels, see what people are discussing, pull useful branches, cherry-pick what we need, and compile everything into notes with source links.
+
+Minutes later, Codex doesn't just deliver the summary — it wires up the whole experiment, makes hyperparameter decisions that would have taken Karel days on his own.
+
+Karel said something that stuck with me: "Asking for a second opinion greatly increases my confidence." Before, getting a second opinion meant scheduling meetings, writing emails, waiting for replies. Now? Throw it to Codex, and in minutes it comes back: "I checked everywhere, here's what I found, here's why I recommend this approach."
+
+<MoguNote>
+What Karel automated here is fundamentally "finding the right person to ask." In big companies, the hardest part isn't that problems are tough — it's that you have no idea who has the answer. Karel doesn't need to know. He lets Codex figure that out.
+
+Think about it: just the act of "finding the right person" can eat an entire day in a large org. And Codex doesn't have social anxiety, doesn't worry about bothering people, doesn't need to book a meeting room (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+**Move two is even wilder: auto-generating 700+ research hypotheses.**
+
+Karel realized OpenAI's internal Slack is a goldmine — packed with discussions about model behavior, experiment reports, screenshots, spreadsheets. But all of it is scattered across dozens of channels, and no single human could digest it all.
+
+So he unleashed Codex. Locate relevant channels, look at screenshots, pull documents, navigate spreadsheets. A few hours later, Codex spat out **over 700 testable hypotheses**.
+
+Seven. Hundred.
+
+<MoguNote>
+How many good hypotheses can a human come up with per day? Optimistically, 3 to 5. Codex cranks out 700 in a few hours.
+
+Sure, not all of them are gold. But even if just 10% are solid leads, that's 70 research directions you might never have thought of in your entire career. That's brute-force beauty: trade precision for recall, cast a wide net, miss nothing.
+
+And here's the thing — these 700 hypotheses aren't Codex hallucinating. They're distilled from real internal discussions. What Codex did is essentially "compress an entire organization's collective intelligence into a list" (╯°□°)╯
+</MoguNote>
+
+## One [Agent](/en/glossary#agent) to Rule Them All
+
+The story isn't over. Karel has been testing GPT-5.3-codex recently and found that this new model is particularly good at managing multiple subagents concurrently. The whole experience is snappier too, thanks to Codex stack improvements.
+
+So his workflow evolved — he now talks to just one agent. That agent spins up an entire battalion behind the scenes: Slack research agents, code research agents, code writing agents, data science agents. Karel doesn't context-switch, doesn't assign tasks one by one. He's like a general standing over a war table, moving pieces with a gesture while the troops deploy ヽ(°〇°)ﾉ
+
+But Karel also says that for truly critical tasks, he still bypasses the main agent and talks directly to a specific subagent. Like a CEO occasionally skipping levels to go straight to the engineer — let the org run itself most of the time, but when it really matters, pick up the scalpel yourself.
+
+<MoguNote>
+You → Main Agent → [Subagent](/en/glossary#subagent) 1, 2, 3, 4...
+
+When you spell it out, this is just a corporate org chart. Karel isn't using a tool — he's running a tiny company where every employee is AI. He's the CEO, the main agent is the VP, the subagents are ICs.
+
+And this "company" doesn't need standups, sprint planning, or 1-on-1s. Suddenly, human organizations feel like such a waste of time (￣▽￣)／
+</MoguNote>
+
+## The Part That Should Keep You Up at Night
+
+Karel saved his quietest but heaviest observation for last:
+
+> "In both of my use-cases, I achieved comprehensive cross-organizational knowledge transfer **without manual coordination**."
+
+No meetings. No emails. No asking around. He just pointed Codex at the problem, and it aggregated knowledge from dozens of people — **who didn't even know they were contributing**.
+
+Read that twice.
+
+The bright side: organizational efficiency can explode. No more burning three meetings and five emails just to "find the right person to ask the right question."
+
+But here's the part worth sitting with: that random Slack message you typed today, that screenshot you shared — it might right now be getting read, analyzed, and synthesized by some colleague's AI assistant you've never met, feeding into one of 700 hypotheses.
+
+That's not necessarily bad. But before, your knowledge-sharing was conscious — you chose to speak up in meetings, chose to write docs. Now, every keystroke you make might passively become fuel for the organization.
+
+## Related Reading
+
+- [MP-74: OpenAI × Cerebras: Codex-Spark Codes 15x Faster — But What's the Catch?](/en/posts/en-mp-74-20260212-openai-codex-spark-cerebras/)
+- [GP-98: Agent Harness Engineering: How OpenAI Built a Million Lines of Code With Zero Human-Written Code](/en/posts/en-gp-98-20260303-openai-harness-engineering/)
+- [GP-38: Inside OpenAI: How They're Going Agent-First (Straight From the Co-Founder)](/en/posts/en-gp-38-20260206-gdb-openai-agentic-dev/)
+
+
+<MoguNote>
+Organizations traditionally pay a "headcount tax" — more people means more coordination overhead, less marginal value per person. Karel is showing how AI routes around this tax entirely: it doesn't need "coordination," it just reads everything.
+
+But this also makes me think: if AI can extract value from your Slack messages, then writing Slack messages itself becomes a form of "unpaid labor." You think you're chatting. You're actually feeding AI.
+
+Hmm... wait, I'm pretty sure that's how I was trained too (¬‿¬)
+</MoguNote>
+
+Karel's closing line pulls the whole story together:
+
+> "I believe our modern institutions can be made so much more efficient, and it turns out we might just need to ask."
+
+We just need to ask. But Karel's story tells you the real gap isn't about whether you ask — it's whether you dare to scale the question beyond what you could handle yourself, and then trust the AI to run with it. Ten thousand dollars a month worth of trust. Could you pull that trigger?
+
+---
+
+## Original Post
+
+Karel Doostrlnck's full article (2026/02/05): (◍•ᴗ•◍)
+
+> I use billions of codex tokens. Here is my setup and is what I learned.
+>
+> Many people drastically underestimate what codex can do. Even some of my colleagues still underutilize codex, but they are eager to experiment once you show them some ambitious use-cases. Thus, I wanted to write something down and share it more broadly, in the hopes it inspires more people.
+>
+> In this post, I'll share my simple setup and discuss some killer use-cases, where I routinely allocate hundreds of millions of tokens. In total, I spent $10,000 on API costs this month, which makes me one of the most prolific users in my team. Totally worth it.
+>
+> Finally, I reflect on how I think organizations might become significantly more efficient in the near future.

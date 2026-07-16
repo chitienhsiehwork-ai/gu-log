@@ -11,9 +11,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/config"
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/logx"
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/pipeline"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/config"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/logx"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/pipeline"
 )
 
 // evalReport is the --json output shape.
@@ -40,7 +40,7 @@ func newEvalCmd(state *rootState) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "eval",
 		Short: "Evaluate whether a captured source is SP-worthy",
-		Long: `eval runs the two-evaluator gate that Step 1.5 of sp-pipeline.sh does.
+		Long: `eval runs the two-evaluator gate that Step 1.5 of gp-pipeline.sh does.
 
 It renders the Codex eval prompt twice, passes both runs
 through the LLM dispatcher with --work-dir as CWD so the prompts' "write

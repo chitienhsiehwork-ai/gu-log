@@ -9,7 +9,7 @@
  *   node scripts/inject-related-posts.mjs --input /tmp/crosslink-suggestions.json --dry-run
  *   node scripts/inject-related-posts.mjs --input /tmp/crosslink-suggestions.json
  *   node scripts/inject-related-posts.mjs --dry-run          # generates suggestions inline
- *   node scripts/inject-related-posts.mjs --file src/content/posts/sp-123-foo.mdx --dry-run
+ *   node scripts/inject-related-posts.mjs --file src/content/posts/gp-123-foo.mdx --dry-run
  *
  * Options:
  *   --input <file>    Path to suggestions JSON (default: generate inline)
@@ -61,23 +61,23 @@ function buildSection(lang, suggestedLinks) {
 
 // ─── Injection logic ─────────────────────────────────────────────────
 /**
- * Finds the position just before the LAST <ClawdNote> block,
+ * Finds the position just before the LAST <MoguNote> block,
  * or falls back to the very end of the file.
  */
 function findInsertionPoint(content) {
-  // Find all <ClawdNote> occurrences in the body
+  // Find all <MoguNote> occurrences in the body
   const bodyStart = content.indexOf('\n---\n', 4) + 5; // skip frontmatter
   const body = content.slice(bodyStart);
 
-  // Find the last <ClawdNote> in the body
-  const lastIdx = body.lastIndexOf('<ClawdNote>');
+  // Find the last <MoguNote> in the body
+  const lastIdx = body.lastIndexOf('<MoguNote>');
   if (lastIdx === -1) {
-    // No ClawdNote — append at end
+    // No MoguNote — append at end
     return content.length;
   }
 
-  // Walk back to find the start of the paragraph/block before <ClawdNote>
-  // We want to insert before any blank lines leading into the last ClawdNote
+  // Walk back to find the start of the paragraph/block before <MoguNote>
+  // We want to insert before any blank lines leading into the last MoguNote
   let insertPos = bodyStart + lastIdx;
 
   // Back up past blank lines
@@ -85,7 +85,7 @@ function findInsertionPoint(content) {
   while (i >= bodyStart && (content[i] === '\n' || content[i] === '\r')) {
     i--;
   }
-  // insertPos = position after last non-blank char before the ClawdNote block
+  // insertPos = position after last non-blank char before the MoguNote block
   insertPos = i + 1;
 
   return insertPos;

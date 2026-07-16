@@ -50,7 +50,7 @@ const REPO_ROOT = path.resolve(__dirname, '..');
 const POSTS_DIR = path.join(REPO_ROOT, 'src', 'content', 'posts');
 const COUNTER_FILE = path.join(REPO_ROOT, 'scripts', 'article-counter.json');
 
-const VALID_PREFIXES = ['SP', 'CP', 'SD', 'Lv'];
+const VALID_PREFIXES = ['GP', 'MP', 'SD', 'Lv'];
 const PENDING_RE = /^(en-)?(sp|cp|sd|lv)-pending-(.+)\.mdx$/i;
 
 /** Find every PENDING post pair under src/content/posts. */

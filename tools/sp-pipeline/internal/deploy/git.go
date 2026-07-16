@@ -3,7 +3,7 @@ package deploy
 import (
 	"context"
 
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/runner"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/runner"
 )
 
 func gitAdd(ctx context.Context, repoRoot string, paths ...string) error {

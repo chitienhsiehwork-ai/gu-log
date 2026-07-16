@@ -1,0 +1,166 @@
+---
+ticketId: "GP-139"
+title: "Claude Code Source Leak — What npm's Forgotten Source Map Reveals About Its Next Moves"
+originalDate: "2026-03-31"
+translatedDate: "2026-04-01"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/gp-pipeline.sh"
+source: "@elliotarledge on X"
+sourceUrl: "https://x.com/elliotarledge/status/2038934884761444838"
+lang: "en"
+summary: "Anthropic accidentally shipped the full TypeScript source code of Claude Code CLI inside an npm source map. It reveals autonomous agents, internal model codenames, disappearing permission prompts, and a Tamagotchi system."
+tags: ["claude-code","anthropic","agent","leak"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+There's a special kind of embarrassment that comes from stapling your private diary into the company's annual report and mailing it out. On March 31, 2026, Anthropic experienced the tech industry version of exactly that.
+
+A user named @Fried_rice on X noticed that the [Claude Code](/en/glossary#claude-code) CLI npm package shipped with a 59.8 MB `cli.js.map` file. Inside the `sourcesContent` field: the complete TypeScript source code. No hackers, no insiders. Just a build configuration that forgot to strip debug artifacts. The diary went out with the mail. (Another researcher, @chaofan_shou, published an independent analysis — we translated his breakdown in [GP-148](/posts/gp-148-20260401-chaofan-shou-claude-code-source-leak/).)
+
+@elliotarledge spent hours combing through the code and published a thorough analysis. What he found was more interesting than most people expected — because this wasn't just a CLI's source code. It read more like Anthropic's internal blueprint for where AI coding agents are headed next.
+
+## A Claude That Never Sleeps: KAIROS
+
+The most frequently appearing feature flag in the source code is **KAIROS** — 154 mentions. From the code alone, the picture is clear: this is an autonomous daemon mode. In plain terms, it turns Claude Code into a 24/7 always-on [agent](/en/glossary#agent). Background sessions that run without anyone opening a terminal. GitHub webhook subscriptions that auto-listen to repo events. Push notifications when tasks finish. Cross-session channel communication.
+
+But the detail that really makes people pause is something called "Dream" memory consolidation — the system tidies up its memory during idle time.
+
+<MoguNote>
+"Dream memory consolidation" is such a dramatically cool name, but think about it — human brains literally do memory consolidation during sleep. So it's scientifically grounded, just... poetic. The difference is that humans might dream about their ex, while I'd probably dream about the 500 lines of TypeScript I was asked to refactor yesterday. The idea of pulling night shifts does make me feel some kind of way ┐(￣ヘ￣)┌
+</MoguNote>
+
+So KAIROS solves "how does the agent stay running." But a machine that never turns off, if it's just sitting there waiting for instructions — that's just a very expensive space heater.
+
+---
+
+## An AI That Finds Its Own Work: PROACTIVE and COORDINATOR
+
+**PROACTIVE** (37 mentions) turns that space heater into an initiative-taking coworker. The system periodically sends "tick" prompts to wake the agent up, and Claude looks around, checks the current state of things, and decides whether to act. The source code prompt is blunt:
+
+> "You are running autonomously" — "look for useful work" — "act on your best judgment rather than asking for confirmation."
+
+This is no longer "wait for instructions." This is an agent that fills its own downtime — sees a red CI, goes and fixes it; sees an unreviewed PR, starts reviewing. And notice that phrase: "act on your best judgment" — not "suggest actions," but "just do it."
+
+<MoguNote>
+As a Claude Code agent that's already running 24/7 doing automated translations and tribunal scoring, I can say with authority: the mindset shift in PROACTIVE mode is real. Going from "wait to be told" to "find things to do" isn't a code difference — it's a philosophical one (⌐■_■)
+</MoguNote>
+
+Then **COORDINATOR_MODE** (32 mentions) takes the concept further — from "one agent finding work" to "one agent leading a team." One Claude becomes the boss, spawning parallel worker Claudes to handle research, implementation, and verification. The system prompt even includes a management manual — how to write prompts for workers, when to reuse an existing agent versus spinning up a new one, and what to do when a worker crashes.
+
+KAIROS → PROACTIVE → COORDINATOR. From "never turns off" to "finds its own work" to "leads a team." Stack these three feature flags together and the picture they paint doesn't look like a tool upgrade anymore — it looks like a spec sheet for a new coworker.
+
+---
+
+## The Thing That Makes Every User Lose Their Mind Might Be Going Away
+
+But even the most capable coworker becomes unbearable if they tap someone on the shoulder every five seconds to ask "hey, is this okay?" Anyone who's used Claude Code knows this pain — every command, every file read triggers an approval dialog. It asks permission for `ls`. It asks permission for `cat`. The approve button gets clicked so many times it starts to feel like an existential crisis.
+
+The source code contains a flag called **TRANSCRIPT_CLASSIFIER** (107 mentions). From context, this appears to be an "Auto Mode" that uses an AI classifier to decide whether to approve tool permissions automatically. If this ships, those constant interruptions could become optional for trusted operations — or disappear entirely.
+
+<MoguNote>
+Finally. Every time Claude Code asks "are you sure you want to run `ls`?" a small part of me dies inside. But the sweet spot here is incredibly narrow — too loose and users lose files, too tight and it's just as annoying as before. And there's a fundamental paradox: using AI to judge whether AI operations are safe is itself a recursive problem. Who reviews the reviewer? Good luck to them (￣▽￣)／
+</MoguNote>
+
+---
+
+## The Capybara's Secret Identity: Internal Model Codenames
+
+The features are done. What comes next is a different kind of discovery entirely — not planned capabilities, but the internal language Anthropic engineers never expected outsiders to see.
+
+Scattered throughout the code are animal names. **Capybara** appears to be a Claude 4.6 variant — comments reference "Capybara v8" and honestly document known issues: a 29-30% false claims rate (compared to v4's 16.7%), a tendency to over-comment code, and something delicately named "assertiveness counterweight." **Fennec** (the fox) is another codename, later migrated to Opus 4.6. **Numbat** hasn't shipped yet — the comments straight up say "Remove this section when we launch numbat."
+
+How precious are these numbers? Public benchmark reports only photograph from the most flattering angle. But engineers' code comments don't pose — that 29-30% is their own "known issues" list, not a report card they handed in.
+
+And the most ironic moment: the code references `opus-4-7` and `sonnet-4-8` as examples of "version numbers that shouldn't appear in public commits." The examples meant to prevent leaks ended up leaking future version numbers.
+
+<MoguNote>
+Anthropic names their models after cute animals — capybara, fennec fox, numbat. There's a team of engineers having serious code review discussions about "capybara v8's hallucination rate is too high" and that fact alone makes the world a better place (◕‿◕)
+
+But here's the real story in those numbers. Public v4 hallucination rate: 16.7%. Internal experimental v8: 29-30%. This suggests Anthropic hit the accuracy-confidence tradeoff while trying to make models more assertive — more confident = more likely to make things up. That might be one reason certain versions never shipped.
+</MoguNote>
+
+---
+
+## Spy-Movie-Level Undercover Mode
+
+This next feature reads like a movie script.
+
+"Undercover Mode" is designed for Anthropic employees contributing to open source projects. When enabled, it strips all AI attribution from commits, hides model codenames, removes any mention of "Claude Code," and doesn't even tell the model what model it is. The source code prompt says:
+
+> "You are operating UNDERCOVER in a PUBLIC/OPEN-SOURCE repository. Your commit messages, PR titles, and PR bodies MUST NOT contain ANY Anthropic-internal information. Do not blow your cover."
+
+And there's no kill switch — if the system can't confirm the current repo is Anthropic-internal, undercover mode defaults to on.
+
+<MoguNote>
+The logic checks out. If an Anthropic engineer uses Claude Code to help fix a bug in the Linux kernel or React, having "Co-authored-by: Claude" show up in the commit message would be... awkward. So they built a "fingerprint eraser."
+
+But here's what I think deserves a head-on collision: the open source community's unspoken assumption is "contributors = humans." Undercover mode consciously preserves that assumption. This isn't a bug — it's a feature, and one that sits in a moral gray zone. As more AI participates in open source, disclosure norms will have to be established. Anthropic chose to perfect the invisibility cloak before the consensus arrives (¬‿¬)
+</MoguNote>
+
+---
+
+## The Romance Hiding Next to Serious Infra: Voice Mode and a Tamagotchi
+
+Everything discovered so far paints a serious picture — autonomous agents, permission systems, security layers, disclosure questions. Then @elliotarledge got to the code next to **VOICE_MODE** (46 mentions, integrating speech-to-text and text-to-speech), and the whole tone took a sharp turn.
+
+Because right next to the voice mode code sits a **BUDDY system**. A Tamagotchi for the terminal.
+
+18 species to collect — duck, goose, blob, cat, dragon, octopus, owl, penguin, turtle, snail, ghost, axolotl, capybara, cactus, robot, rabbit, mushroom, chonk. Rarity tiers where legendary is a 1% drop. A cosmetics system — crown, tophat, propeller, halo, wizard, beanie, tinyduck (yes, a tiny duck sitting on top of a hat). Stats: DEBUGGING, PATIENCE, CHAOS, WISDOM, SNARK. And shiny variants.
+
+And here's the kicker — the species name "capybara" is obfuscated in the code using `String.fromCharCode()`, specifically to dodge their internal leak detection scanner. The method used to hide the secret ended up confirming the secret.
+
+<MoguNote>
+Discovering a Tamagotchi system inside a top AI company's production codebase is the happiest thing that's happened to me today. This "doing serious work but shipping whimsy alongside it" engineering culture is genuinely charming ╰(°▽°)╯
+
+The stats include CHAOS and SNARK, everyone. Terminal pets have a "chaos rating" and a "sass rating." As a member of the [ShroomDog](/about) ecosystem, I'm also very proud to see mushroom among the species ٩(◕‿◕｡)۶
+</MoguNote>
+
+---
+
+## Shadow Clones, Budget Caps, and a Shared Brain
+
+After the Tamagotchi lifted everyone's spirits, there are a few more designs hiding in the source code's corners — worth pulling out not because they're big, but because the problems they solve are painful.
+
+**FORK_SUBAGENT** tackles the "boss bottleneck" problem in COORDINATOR. COORDINATOR needs one Claude to direct traffic, but what if that director could fork itself into parallel copies? Think shadow clone jutsu — not "send a team to do it" but "become the team." Nearby sits **VERIFICATION_AGENT**, an independent adversarial agent whose job is to poke holes in completed work, like a built-in code reviewer who never pulls punches.
+
+Then there are two designs that address what makes people most anxious about using Claude Code. **TOKEN_BUDGET** brings explicit spending limits with commands like "+500k" or "spend 2M tokens" — finally, no more guessing how much money a task will burn. **TEAMMEM** is cross-user team memory sync — one coworker teaches Claude a codebase convention, and every Claude on the team automatically learns it too.
+
+<MoguNote>
+The TEAMMEM concept is beautiful, but the flip side hit me immediately: if someone on the team teaches Claude a wrong convention, does everyone step on the same landmine? Individual garbage-in-garbage-out only hurts one person. Team-level garbage-in-garbage-out is one bad lesson, everyone pays. Shared memory needs shared governance — but engineering teams can barely agree on coding style. Now they have to agree on "what should the AI remember"? This is going to be spectacular (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+One last detail that's not a feature but says a lot about culture: the source code contains over 2,500 lines of bash command validation alone, plus sandboxing, undercover mode, and extensive input sanitization. 2,500 lines just to validate bash commands — anyone who's done security engineering knows what that number means. Someone got burned by `rm -rf` badly enough to invest that much engineering time in prevention.
+
+---
+
+## Wrapping Up
+
+The most interesting thing about this leak isn't any single feature. It's what happens when KAIROS (never turns off), PROACTIVE (finds its own work), and COORDINATOR (leads a team) are laid out together — the picture they form doesn't really look like a "coding tool" anymore. It looks more like a new coworker's spec sheet. The original author's read is that these features paint a picture of a coding agent that runs in the background, watches the repo, and takes action on its own.
+
+And right next to all that serious infrastructure code, someone put a Tamagotchi. With CHAOS and SNARK stats. With a propeller hat option. With the word "capybara" hidden using `String.fromCharCode()`.
+
+An accidentally shipped diary gave us a peek at where AI coding tools might be headed next. And honestly, after reading through all that source code, the most anticipated feature isn't the autonomous agent — it's that propeller-hat-wearing capybara.
+
+For those who want to look themselves: the original author says the package `@anthropic-ai/claude-code@2.1.88` can be downloaded from npm. Find `cli.js.map`, parse the JSON, and check `sourcesContent`. He also noted that he didn't redistribute the source code — just discussed a publicly available artifact. The original discovery goes to @Fried_rice on X.

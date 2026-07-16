@@ -12,7 +12,7 @@ ZH_FILES=()
 while IFS= read -r line; do
   ZH_FILES+=("$line")
 done < <(
-  for f in src/content/posts/clawd-picks-*.mdx; do
+  for f in src/content/posts/mogu-picks-*.mdx; do
     [[ "$f" == *en-* ]] && continue
     tid=$(grep "^ticketId:" "$f" | sed "s/ticketId: *[\"']//;s/[\"']//")
     [[ "$tid" == CP-* ]] || continue
@@ -60,7 +60,7 @@ python3 -c "
 import json
 with open('scripts/article-counter.json') as f:
     data = json.load(f)
-data['CP']['next'] = $((TOTAL + 1))
+data['MP']['next'] = $((TOTAL + 1))
 with open('scripts/article-counter.json', 'w') as f:
     json.dump(data, f, indent=2)
     f.write('\n')
@@ -71,17 +71,17 @@ echo ""
 echo "=== Verification ==="
 GAPS=0
 for i in $(seq 1 $TOTAL); do
-  if ! grep -q "^ticketId: *\"CP-$i\"" src/content/posts/clawd-picks-*.mdx 2>/dev/null && \
-     ! grep -q "^ticketId: *'CP-$i'" src/content/posts/clawd-picks-*.mdx 2>/dev/null; then
+  if ! grep -q "^ticketId: *\"CP-$i\"" src/content/posts/mogu-picks-*.mdx 2>/dev/null && \
+     ! grep -q "^ticketId: *'CP-$i'" src/content/posts/mogu-picks-*.mdx 2>/dev/null; then
     echo "  ❌ CP-$i: MISSING in zh"
     GAPS=$((GAPS + 1))
   fi
 done
-[ $GAPS -eq 0 ] && echo "  ✅ zh: CP-1 through CP-$TOTAL, zero gaps!"
+[ $GAPS -eq 0 ] && echo "  ✅ zh: MP-1 through CP-$TOTAL, zero gaps!"
 
 # Verify — zh/en pairs match
 MISMATCHES=0
-for f in src/content/posts/clawd-picks-*.mdx; do
+for f in src/content/posts/mogu-picks-*.mdx; do
   [[ "$f" == *en-* ]] && continue
   base=$(basename "$f")
   en="src/content/posts/en-$base"

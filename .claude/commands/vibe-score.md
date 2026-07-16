@@ -15,25 +15,25 @@ Then read the ENTIRE post file: `src/content/posts/$ARGUMENTS`. Every line.
 ## Five Scoring Dimensions (0-10 each)
 
 1. **persona** — 李宏毅 teaching feel? Life analogies, oral voice, harsh on tech but kind to people?
-2. **clawdNote** — Opinionated, 吐槽-filled, personality? Or Wikipedia footnotes?
+2. **moguNote** — Opinionated, 吐槽-filled, personality? Or Wikipedia footnotes?
 3. **vibe** — Would you share this with a friend? Can you read it on your phone without swiping away?
-4. **clarity** — Pronoun clarity / voice attribution. Body text 你/我 = bad; ClawdNote/blockquote exempt.
+4. **clarity** — Pronoun clarity / voice attribution. Body text 你/我 = bad; MoguNote/blockquote exempt.
 5. **narrative** — Real narrative arc with rhythm and emotional peaks? Or a linear report with decorative persona?
 
 ## Scoring Anchors
-- **10** = CP-85 (AI Vampire) — storytelling you can't stop
-- **9** = CP-30 (Anthropic Misalignment) — great analogies, natural oral feel
+- **10** = MP-85 (AI Vampire) — storytelling you can't stop
+- **9** = MP-30 (Anthropic Misalignment) — great analogies, natural oral feel
 - **8** = publish bar baseline
-- **6** = CP-146 / Lv-07 — plain, natural, but boring
-- **3/3/5** = SP-158 — decorative persona trap
-- **2/2/3** = SP-110 — cringy AI notes, boring everything
+- **6** = MP-146 / Lv-07 — plain, natural, but boring
+- **3/3/5** = GP-158 — decorative persona trap
+- **2/2/3** = GP-110 — cringy AI notes, boring everything
 
 ## Penalties
-- CodexNote/GeminiNote/ClaudeCodeNote used → clawdNote -3
+- CodexNote/GeminiNote/ClaudeCodeNote used → moguNote -3
 - Bullet-dump ending → vibe -2 AND narrative -2
 - 「各位觀眾好」opening → persona -2
 - Motivational-poster closing → vibe -2
-- ClawdNote = pure definition without personality → clawdNote -2
+- MoguNote = pure definition without personality → moguNote -2
 - Decorative persona trap → persona cap 5, narrative cap 5
 
 ## Composite & Pass Bar
@@ -51,7 +51,7 @@ Write the result to `/tmp/vibe-score-<ticketId>.json` using EXACTLY this structu
   "judge": "vibe",
   "dimensions": {
     "persona": 9,
-    "clawdNote": 8,
+    "moguNote": 8,
     "vibe": 8,
     "clarity": 9,
     "narrative": 8
@@ -60,7 +60,7 @@ Write the result to `/tmp/vibe-score-<ticketId>.json` using EXACTLY this structu
   "verdict": "PASS",
   "reasons": {
     "persona": "LHY feel strong; convenience-store analogy lands perfectly.",
-    "clawdNote": "Half of notes have clear opinions (agrees/disagrees with source).",
+    "moguNote": "Half of notes have clear opinions (agrees/disagrees with source).",
     "vibe": "Good read overall, one bullet-heavy section drags a bit.",
     "clarity": "Body text keeps subjects named; no pronoun ambiguity.",
     "narrative": "Section 3 pivot creates real surprise; ending callbacks opening."
@@ -69,7 +69,7 @@ Write the result to `/tmp/vibe-score-<ticketId>.json` using EXACTLY this structu
 ```
 
 **Required top-level keys (exactly 5):** `judge`, `dimensions`, `score`, `verdict`, `reasons`.
-**Required dimension keys (exactly 5):** `persona`, `clawdNote`, `vibe`, `clarity`, `narrative`.
+**Required dimension keys (exactly 5):** `persona`, `moguNote`, `vibe`, `clarity`, `narrative`.
 **Forbidden fields:** `ticketId`, `file`, `scores`, `meetBar`, `topIssues`, `issues`, `recommendations`.
 
 Rules:

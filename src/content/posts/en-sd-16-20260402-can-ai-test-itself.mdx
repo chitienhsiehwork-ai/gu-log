@@ -14,7 +14,7 @@ source: "ShroomDog Lab"
 sourceUrl: "https://gu-log.vercel.app/"
 lang: "en"
 summary: "Claude Code has 512K lines of TypeScript, 64K lines of production code, and zero tests. The sharper question is not why Anthropic skipped tests, but why it did not use its own AI coding tool to write them. Can the same brain write and grade the exam?"
-tags: ["shroomdog-original", "testing", "ai-agents", "claude-code", "self-testing", "software-quality"]
+tags: ["shroomdog-original","testing","ai-agents","claude-code","self-testing","software-quality"]
 series:
   name: "Claude Code Deep Dive"
   order: 6
@@ -28,7 +28,7 @@ scores:
     model: "gpt-5.5"
   vibe:
     persona: 9
-    clawdNote: 8
+    moguNote: 8
     vibe: 8
     clarity: 9
     narrative: 8
@@ -37,7 +37,7 @@ scores:
     model: "gpt-5.5"
 ---
 
-import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
 import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
 In late March 2026, the [Claude Code](/en/glossary#claude-code) source code accidentally shipped inside a public npm package — a 59.8 MB `.map` sourcemap file that no one remembered to remove. An intern at Solayer Labs found it around 4 AM and posted about it. Within hours, 512K lines of TypeScript were mirrored across GitHub.
@@ -60,13 +60,13 @@ The more confusing question is this: **Anthropic has the best AI coding tool in 
 
 The question sounds obvious. The answer is actually interesting.
 
-<ClawdNote>
+<MoguNote>
 Quick background on why zero tests happened, since it's less interesting than it sounds.
 
 When everyone is shipping features, nobody's OKR says "prevent zero-test situations." Not that the engineers didn't care — just that "ensuring quality" wasn't anyone's specific job. In early startup days that's a reasonable trade-off. Claude Code now makes $2.5B annually, so "early startup" doesn't quite apply anymore.
 
 Also amusing: this repo has a BDD testing framework, Playwright E2E setup, and a `pnpm run test` command. All the tools exist, right next to the untested production code. Like paying for a gym membership and never going. The equipment is there. Something else kept coming up. ┐(￣ヘ￣)┌
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -90,7 +90,7 @@ You don't need to run any code to find this bug. You just need to read the code 
 
 **Claude Code could find this in a few minutes. Nobody asked it to.**
 
-<ClawdNote>
+<MoguNote>
 This bug belongs to one of the oldest problem categories in software: mixing control signals and data in the same channel.
 
 SQL injection, shell injection, prompt injection — same root structure. The language you use to "command" the system shares a path with the "content" you're transmitting, and content gets misread as instruction. The attestation bug is just this pattern running at the HTTP body layer.
@@ -98,7 +98,7 @@ SQL injection, shell injection, prompt injection — same root structure. The la
 Here's what makes it particularly interesting: Claude Code has **23 bash security checks** specifically defending against unicode zero-width space injection, IFS null-byte injection — all variants of "data disguising itself as a control signal." They were very aware of this class of problem. Defended against it in one place. Then their own attestation mechanism made the same kind of mistake.
 
 It's like installing a full home security system, then hiding the spare key under a fake rock by the front door. (⌐■_■)
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -118,7 +118,7 @@ You can also watch prompt cache behavior in action. Claude Code splits its syste
 
 Combine it with static analysis and you can write a real test for the attestation bug: "if input contains `cch=00000`, does the replacement produce correct output?" Dynamic and static together.
 
-<ClawdNote>
+<MoguNote>
 The silent downgrade deserves a moment.
 
 Anthropic's public position is transparency-first. Constitutional AI papers. AI Safety research. "Honesty with users" as a core principle. A whole research agenda built around "AI systems must be honest."
@@ -126,7 +126,7 @@ Anthropic's public position is transparency-first. Constitutional AI papers. AI 
 And then quietly: when servers get busy, your model switches, and you don't know.
 
 I'm not saying the design is evil — service stability is a real priority. But if you handed that spec to Anthropic's AI Safety team and asked "does this comply with your transparency principles?" — that would be an interesting conversation. ʕ•ᴥ•ʔ
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -148,13 +148,13 @@ In academia they call this "homogeneous peer review": if an entire field shares 
 
 Use different LLMs for code and tests. Claude writes code, GPT or Gemini writes tests (or vice versa). Different training data, different [RLHF](/en/glossary#rlhf) preferences, different systematic biases. You can't guarantee there's no overlap in their blind spots, but you dramatically reduce the chance that both make the same mistake the same way. Not a perfect solution. But at least it's not the same brain writing the exam and grading it.
 
-<ClawdNote>
+<MoguNote>
 Cross-model testing has one very real problem that nobody talks about: you're now paying two AI companies. Claude Max for code, OpenAI API for test generation. Month-end billing has some personality.
 
 But compared to "production goes down, nobody can find the bug, engineer is debugging at 3 AM, SLA broken, customer churned" — the cost doesn't even register.
 
 There's also an unexpected side effect: you start noticing each model's testing instincts. GPT tends to write more happy-path tests. Claude tends to be overly defensive, piling on null checks. That difference is information — it tells you the two models have different intuitions about what counts as an edge case. (¬‿¬)
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -162,7 +162,7 @@ There's also an unexpected side effect: you start noticing each model's testing 
 
 Here's what we're actually doing.
 
-Every article on gu-log runs through [Ralph Loop](/en/glossary#ralph-loop) — Claude writes the article, a separate Claude instance scores it against a fixed rubric (Persona, ClawdNote quality, Overall Vibe), and if it doesn't pass, it gets rewritten. Up to three rounds. This is AI testing AI, applied to content quality.
+Every article on gu-log runs through [Ralph Loop](/en/glossary#ralph-loop) — Claude writes the article, a separate Claude instance scores it against a fixed rubric (Persona, MoguNote quality, Overall Vibe), and if it doesn't pass, it gets rewritten. Up to three rounds. This is AI testing AI, applied to content quality.
 
 Does it solve the specification problem? Partially. Both scorer and writer are Claude, so if Claude has a systematic blind spot, the scoring might share that blind spot. Occasionally I'll read an article that "Ralph scored 9" myself to check for obvious misses. This isn't a design flaw — it's the reality of AI testing: even a well-designed oracle needs periodic calibration, and the calibrator is still a person.
 
@@ -171,7 +171,7 @@ But "humans need to stay involved" doesn't mean "humans do every step." In Ralph
 <ShroomDogNote>
 OpenClaw's agent-to-agent architecture is the production version of this.
 
-The [Clawd](/en/glossary#clawd) instance on the Linux VM (running 24/7) can delegate tasks to agents on other machines via SSH. This article was produced that way — Claude Code on my Mac and Clawd on the VM collaborating, Clawd sometimes sending tasks to another agent.
+The [Mogu](/en/glossary#mogu) instance on the Linux VM (running 24/7) can delegate tasks to agents on other machines via SSH. This article was produced that way — Claude Code on my Mac and Mogu on the VM collaborating, Mogu sometimes sending tasks to another agent.
 
 Not magic. Just SSH + stdin/stdout + bash glue. But once it's set up, you have "agent delegates to agent, human manages oracle." Today it runs translations and quality scoring. Same structure, tomorrow it can run tests.
 </ShroomDogNote>

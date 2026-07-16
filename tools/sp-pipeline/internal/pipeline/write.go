@@ -7,11 +7,11 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/llm"
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/prompts"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/llm"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/prompts"
 )
 
-// Write is the Go port of scripts/sp-pipeline.sh Step 2. It renders the
+// Write is the Go port of scripts/gp-pipeline.sh Step 2. It renders the
 // write.tmpl prompt (embedding GU-LOG_WRITER_PROMPT.md + source-tweet.md via
 // template variables instead of bash $(cat ...)), runs it through the
 // dispatcher with WorkDir set so the LLM's "write output to draft-v1.mdx

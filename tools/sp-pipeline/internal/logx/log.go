@@ -1,4 +1,4 @@
-// Package logx is the minimal structured logger used by sp-pipeline.
+// Package logx is the minimal structured logger used by gp-pipeline.
 //
 // Two output modes: human (colored, matches the existing bash script's
 // [INFO]/[OK]/[WARN]/[ERROR] prefix convention so dashboards and humans that

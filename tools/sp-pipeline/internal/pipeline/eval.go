@@ -9,11 +9,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/llm"
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/prompts"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/llm"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/prompts"
 )
 
-// StepError wraps an error with a pipeline exit code so cmd/sp-pipeline's
+// StepError wraps an error with a pipeline exit code so cmd/gp-pipeline's
 // main.go can translate it into os.Exit without knowing about every step's
 // internal failure modes. This mirrors the ExitError type in main.go but
 // lives in the pipeline package so State methods do not need to import the
@@ -39,7 +39,7 @@ type evalJSON struct {
 	SuggestedTitle string `json:"suggested_title"`
 }
 
-// Eval is the Go port of scripts/sp-pipeline.sh Step 1.5. It runs two
+// Eval is the Go port of scripts/gp-pipeline.sh Step 1.5. It runs two
 // independent Codex evaluator passes and requires them both to return GO.
 // The old Opus/Gemini-assisted route is intentionally retired from the
 // default pipeline because those subscriptions are not assumed to exist.
@@ -137,7 +137,7 @@ func (s *State) Eval(ctx context.Context) error {
 	default:
 		s.Log.Warn("Codex primary verdict: %s | reason: %s", primaryVerdict.Verdict, primaryVerdict.Reason)
 		s.Log.Warn("Codex verdict: %s | reason: %s", codexVerdict.Verdict, codexVerdict.Reason)
-		s.Log.Warn("SPLIT DECISION — run with --force to override, or let Clawd decide")
+		s.Log.Warn("SPLIT DECISION — run with --force to override, or let Mogu decide")
 		return NewStepError(2, fmt.Errorf("eval: split verdict (codexPrimary=%s, codex=%s)",
 			primaryVerdict.Verdict, codexVerdict.Verdict))
 	}

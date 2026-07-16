@@ -10,7 +10,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/pipeline"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/pipeline"
 )
 
 type writeReport struct {
@@ -73,7 +73,7 @@ set these from the upstream fetch + counter steps.`,
 	cmd.Flags().StringVar(&originalDate, "original-date", "", "YYYY-MM-DD of the source publication")
 	cmd.Flags().StringVar(&authorHandle, "author", "", "author handle WITHOUT @ prefix")
 	cmd.Flags().StringVar(&tweetURL, "tweet-url", "", "canonical source URL")
-	cmd.Flags().StringVar(&prefix, "prefix", "SP", "ticket prefix (SP / CP / SD / Lv) — controls first tag")
+	cmd.Flags().StringVar(&prefix, "prefix", "GP", "ticket prefix (SP / CP / SD / Lv) — controls first tag")
 	cmd.Flags().StringVar(&translatedDate, "translated-date", "", "YYYY-MM-DD of the translation run (defaults to today)")
 	cmd.Flags().BoolVar(&opusOnly, "opus", false, "deprecated compatibility flag; writer routing is automatic")
 	cmd.Flags().StringVar(&angle, "angle", "", "optional narrative angle to make the article spine")

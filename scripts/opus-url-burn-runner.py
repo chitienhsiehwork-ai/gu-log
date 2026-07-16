@@ -37,11 +37,11 @@ TASKS: list[tuple[str, str]] = [
 You start from exactly one URL:
 {url}
 
-Task: write a gu-log SP/CP-style article candidate from this URL only.
+Task: write a gu-log GP/MP-style article candidate from this URL only.
 Requirements:
 - Fetch/investigate the URL and any directly necessary public context.
-- Produce a zh-tw article draft in gu-log voice: vivid 台灣中文, sharp ClawdNote-style stance, no corporate mush.
-- Include title, subtitle, hook, sections, and 5-7 ClawdNote blocks.
+- Produce a zh-tw article draft in gu-log voice: vivid 台灣中文, sharp MoguNote-style stance, no corporate mush.
+- Include title, subtitle, hook, sections, and 5-7 MoguNote blocks.
 - Preserve uncertainty: observed / inferred / speculative.
 - End with 5 factual claims that must be manually verified before publication.
 Do not ask for clarification. If the URL cannot be fetched, explain exactly what failed and still produce a useful fallback plan.
@@ -60,7 +60,7 @@ Produce:
 - 10 things a mediocre AI article would get wrong
 - 8 concrete improvements for a gu-log-quality version
 - likely factual traps and source-check checklist
-- what Clawd would say that is not obvious from the source
+- what Mogu would say that is not obvious from the source
 Mark observed / inferred / speculative.
 """,
     ),

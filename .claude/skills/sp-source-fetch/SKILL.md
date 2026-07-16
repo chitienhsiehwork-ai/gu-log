@@ -1,6 +1,6 @@
 ---
 name: sp-source-fetch
-description: Fetch the full body of an X / Twitter post or X Article (long-form) for SP or CP translation. Use this whenever the user drops an X URL and wants a translation post, or whenever sp-pipeline.sh is about to run. In sandbox environments (Claude Code on the web, any box without outbound x.com access) this is the ONLY reliable path — WebFetch is blocked, playwright can't reach x.com, and naive curl to x.com returns a React shell. Handles both plain tweets and X Articles with `article.content.blocks[]` rendered as markdown. Fails loudly with `INCOMPLETE_SOURCE: <reason>` exit 2 when the body genuinely can't be retrieved, so the caller never writes a post based on a preview snippet.
+description: Fetch the full body of an X / Twitter post or X Article (long-form) for SP or MP translation. Use this whenever the user drops an X URL and wants a translation post, or whenever gp-pipeline.sh is about to run. In sandbox environments (Claude Code on the web, any box without outbound x.com access) this is the ONLY reliable path — WebFetch is blocked, playwright can't reach x.com, and naive curl to x.com returns a React shell. Handles both plain tweets and X Articles with `article.content.blocks[]` rendered as markdown. Fails loudly with `INCOMPLETE_SOURCE: <reason>` exit 2 when the body genuinely can't be retrieved, so the caller never writes a post based on a preview snippet.
 ---
 
 # sp-source-fetch
@@ -10,10 +10,10 @@ Fetch an X URL's full translatable body, or fail loud. One script, one contract.
 ## When to use
 
 - User drops an `https://x.com/...` or `https://twitter.com/...` URL and asks for an SP or CP
-- `sp-pipeline run <url>` (the Go binary in `tools/sp-pipeline/`) or `sp-pipeline fetch <url>` is the natural next step and the source capture stage needs the body
+- `gp-pipeline run <url>` (the Go binary in `tools/gp-pipeline/`) or `gp-pipeline fetch <url>` is the natural next step and the source capture stage needs the body
 - Any time "I need the tweet content but curl returns gibberish"
 
-> **Note**: as of Phase 4 of the Go rewrite, the canonical entry point is `tools/sp-pipeline/sp-pipeline run <url>`. The `scripts/sp-pipeline.sh` bash script still works (it's a thin shim that execs the Go binary), but agents should prefer the Go CLI when writing new tooling. The `sp-pipeline fetch <url>` subcommand internally calls `scripts/fetch-x-article.sh` — the same helper this skill documents. If you just need the raw capture for manual inspection, `bash scripts/fetch-x-article.sh <url>` is still the most direct path.
+> **Note**: as of Phase 4 of the Go rewrite, the canonical entry point is `tools/gp-pipeline/gp-pipeline run <url>`. The `scripts/gp-pipeline.sh` bash script still works (it's a thin shim that execs the Go binary), but agents should prefer the Go CLI when writing new tooling. The `gp-pipeline fetch <url>` subcommand internally calls `scripts/fetch-x-article.sh` — the same helper this skill documents. If you just need the raw capture for manual inspection, `bash scripts/fetch-x-article.sh <url>` is still the most direct path.
 
 Do NOT use for:
 - Non-X URLs (blog posts, arXiv, GitHub README) — those go through `scripts/fetch-article.py`
@@ -134,11 +134,11 @@ The OpenClaw [x-tweet-fetcher](https://github.com/ythx-101/x-tweet-fetcher) skil
 - Public Nitter instances are mostly dead as of 2026
 - fxtwitter's JSON endpoint is not blocked, needs no auth, and returns full X Article bodies
 
-For the VPS-Clawd path, the OpenClaw skill is a better long-term answer. For this repo's Claude Code path, `fetch-x-article.sh` is the only thing that works — so use it.
+For the VPS-Mogu path, the OpenClaw skill is a better long-term answer. For this repo's Claude Code path, `fetch-x-article.sh` is the only thing that works — so use it.
 
 ## What to do on INCOMPLETE_SOURCE
 
-Per `CONTRIBUTING.md`'s Source Completeness section: **stop writing**. Do not fill in gaps from memory or Clawd's guess at what the tweet probably said. Either:
+Per `CONTRIBUTING.md`'s Source Completeness section: **stop writing**. Do not fill in gaps from memory or Mogu's guess at what the tweet probably said. Either:
 
 1. Retry later (transient fxtwitter outage is possible)
 2. Ask the user to paste the body directly

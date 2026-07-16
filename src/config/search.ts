@@ -6,6 +6,6 @@ export const searchConfig = {
   // Debounce delay in milliseconds
   debounceMs: 150,
 
-  // Enable searching by ticket ID (e.g., "SD-1", "SP-14")
+  // Enable searching by ticket ID (e.g., "SD-1", "GP-14")
   enableTicketSearch: true,
 };

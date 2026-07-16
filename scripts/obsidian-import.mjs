@@ -9,23 +9,23 @@
 //   series: SD               # SD / SP / CP / Lv
 //   title: "文章標題"
 //   summary: "一兩句話摘要"
-//   source: "ShroomDog Lab"            # SD 可省；SP/CP 必填
-//   sourceUrl: "https://..."           # SD 可省；SP/CP 必填
+//   source: "ShroomDog Lab"            # SD 可省；GP/MP 必填
+//   sourceUrl: "https://..."           # SD 可省；GP/MP 必填
 //   author: "@foo on X"                # 選填
 //   tags: [ai-agent, memory]           # 選填
 //   originalDate: 2026-04-11            # 選填，省略 = 今天
 //   ---
 //
-//   這裡寫正文。Clawd / ShroomDog 的吐槽框用 Obsidian callout 語法：
+//   這裡寫正文。Mogu / ShroomDog 的吐槽框用 Obsidian callout 語法：
 //
-//   > [!clawd] Clawd 吐槽
+//   > [!clawd] Mogu 吐槽
 //   > 內容 1
 //   > 內容 2
 //
 //   > [!shroomdog]
 //   > ShroomDog 自己講話
 //
-//   連結：[[sp-100-slug]] → 會轉成 /posts/sp-100-slug
+//   連結：[[sp-100-slug]] → 會轉成 /posts/gp-100-slug
 //
 // 使用方式：
 //   node scripts/obsidian-import.mjs <path-to-draft.md>          # import 單一檔
@@ -78,12 +78,12 @@ function slugify(input) {
 }
 
 // ---------------------------------------------------------------------------
-// Callout 轉換：Obsidian callout → <ClawdNote> / <ShroomDogNote>
+// Callout 轉換：Obsidian callout → <MoguNote> / <ShroomDogNote>
 // ---------------------------------------------------------------------------
 
 const CALLOUT_MAP = {
-  clawd: 'ClawdNote',
-  clawdnote: 'ClawdNote',
+  clawd: 'MoguNote',
+  clawdnote: 'MoguNote',
   shroomdog: 'ShroomDogNote',
   shroomdognote: 'ShroomDogNote',
   sd: 'ShroomDogNote',
@@ -169,7 +169,7 @@ function buildFrontmatter(draft, ticketId, _slug) {
   if (draft.author) fm.author = draft.author;
   if (draft.tags && draft.tags.length) fm.tags = draft.tags;
 
-  // SP/CP 需要 translatedBy；SD/Lv 給 Author pipeline
+  // GP/MP 需要 translatedBy；SD/Lv 給 Author pipeline
   if (isOriginal) {
     fm.translatedBy = {
       model: draft.model || 'Opus 4.6',
@@ -265,13 +265,13 @@ function importOne(draftPath, { dryRun = false } = {}) {
     throw new Error(`[${draftPath}] frontmatter 缺 summary`);
   }
   const series = String(draft.series).toUpperCase();
-  if (!['SD', 'SP', 'CP', 'LV'].includes(series)) {
+  if (!['SD', 'GP', 'MP', 'LV'].includes(series)) {
     throw new Error(`[${draftPath}] series "${draft.series}" 不合法，必須是 SD / SP / CP / Lv`);
   }
   const seriesKey = series === 'LV' ? 'Lv' : series;
 
   // SP / CP 必填 source / sourceUrl
-  if ((seriesKey === 'SP' || seriesKey === 'CP') && (!draft.source || !draft.sourceUrl)) {
+  if ((seriesKey === 'GP' || seriesKey === 'MP') && (!draft.source || !draft.sourceUrl)) {
     throw new Error(`[${draftPath}] ${seriesKey} 系列必填 source + sourceUrl`);
   }
 
@@ -291,8 +291,8 @@ function importOne(draftPath, { dryRun = false } = {}) {
 
   // 4. import 需要的 component
   const imports = [];
-  if (converted.usedComponents.has('ClawdNote')) {
-    imports.push("import ClawdNote from '../../components/ClawdNote.astro';");
+  if (converted.usedComponents.has('MoguNote')) {
+    imports.push("import MoguNote from '../../components/MoguNote.astro';");
   }
   if (converted.usedComponents.has('ShroomDogNote')) {
     imports.push("import ShroomDogNote from '../../components/ShroomDogNote.astro';");

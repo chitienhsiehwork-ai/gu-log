@@ -16,10 +16,10 @@ Source of truth: `src/styles/global.css` `:root` block + `[data-theme='light']` 
 | `--color-accent` | `#ff79c6` | Link + brand accent (hot pink) |
 | `--color-border` | `#44475a` | Dividers |
 | `--color-badge-sd` | `#69d2a0` | ShroomDog Original green |
-| `--color-badge-sp` | `#8be9fd` | ShroomDog Picks cyan |
-| `--color-badge-cp` | `#ffb86c` | Clawd Picks orange |
+| `--color-badge-sp` | `#8be9fd` | Gu-log Picks cyan |
+| `--color-badge-cp` | `#ffb86c` | Mogu Picks orange |
 | `--color-badge-lv` | `#bd93f9` | Level-up purple |
-| `--color-clawd-orange` | `#ffb86c` | Clawd's note border |
+| `--color-clawd-orange` | `#ffb86c` | Mogu's note border |
 | `--color-heading-sd` | `#5ab88a` | SD section headings (dimmed green) |
 | `--color-heading-sp` | `#6bb8d6` | SP section headings (dimmed cyan) |
 | `--color-source-link` | `#ffb3e0` | Source-citation link — 5.54:1 on `#44475a` |

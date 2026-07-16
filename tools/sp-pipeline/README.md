@@ -1,12 +1,12 @@
 # gp-pipeline
 
-The gu-log SP/CP translation pipeline, Go edition. `scripts/sp-pipeline.sh` is now a thin shim that execs into this binary.
+The gu-log GP/MP translation pipeline, Go edition. `scripts/gp-pipeline.sh` is now a thin shim that execs into this binary.
 
 > **Status**: Phase 4 complete. `run` is the canonical entry point. `doctor`, `fetch`, `eval`, `write`, `review`, `refine`, `credits`, `ralph`, `deploy`, `dedup`, `counter`, and `run` are all implemented. Phase 5 (native port of `fetch-x-article.sh` and `tribunal.sh`) is explicitly out of scope — those stay as bash helpers.
 
 ## Why a Go rewrite
 
-`scripts/sp-pipeline.sh` is 1428 lines of bash that orchestrates a 10-step pipeline: fetch → eval → dedup → write → review → refine → credits → ralph tribunal → deploy. It works, but it has hit the complexity ceiling of bash:
+`scripts/gp-pipeline.sh` is 1428 lines of bash that orchestrates a 10-step pipeline: fetch → eval → dedup → write → review → refine → credits → ralph tribunal → deploy. It works, but it has hit the complexity ceiling of bash:
 
 - Two inline Python heredoc validators (embedded `python3 - <<'PY'` blocks) that cannot be tested in isolation
 - A home-grown LLM dispatcher (`run_with_fallback`) with ~60 lines of tempfile bookkeeping per call
@@ -15,7 +15,7 @@ The gu-log SP/CP translation pipeline, Go edition. `scripts/sp-pipeline.sh` is n
 - `flock` + `jq` + `mv` dance to bump `scripts/article-counter.json` atomically
 - An `--from-step` flag whose implementation is an integer-threshold check duplicated at every step
 
-None of these are wrong — they are just pushing bash past its good zone. Go gets us: proper testing, typed errors, `context.Context` propagation, one code path per LLM provider, native frontmatter round-tripping with `yaml.v3`, and the kind of `--help` discipline Nick Baumann's bespoke-CLI post is entirely about (and which SP-170 translates in detail, if you want the philosophy).
+None of these are wrong — they are just pushing bash past its good zone. Go gets us: proper testing, typed errors, `context.Context` propagation, one code path per LLM provider, native frontmatter round-tripping with `yaml.v3`, and the kind of `--help` discipline Nick Baumann's bespoke-CLI post is entirely about (and which GP-170 translates in detail, if you want the philosophy).
 
 ## Design philosophy (bespoke CLI + skill)
 
@@ -45,7 +45,7 @@ Global flags: `--json` (machine output), `--verbose`, `--timeout 50m`, `--work-d
 Use it through the CLI:
 
 ```bash
-tools/sp-pipeline/gp-pipeline status /tmp/sp-pending-...-pipeline
+tools/gp-pipeline/gp-pipeline status /tmp/gp-pending-...-pipeline
 ```
 
 The `status` command refreshes the saved status with live repo facts:
@@ -83,16 +83,16 @@ See [`SKILL.md`](./SKILL.md) for the agent-facing subcommand contract.
 The binary is **not checked into git**. Use the self-compiling wrapper:
 
 ```bash
-tools/sp-pipeline/gp-pipeline doctor
+tools/gp-pipeline/gp-pipeline doctor
 ```
 
-First invocation cold-builds into `tools/sp-pipeline/bin/sp-pipeline` (takes ~3 seconds); subsequent invocations reuse the binary and are effectively instant. Go's incremental build cache handles source-file change detection.
+First invocation cold-builds into `tools/gp-pipeline/bin/gp-pipeline` (takes ~3 seconds); subsequent invocations reuse the binary and are effectively instant. Go's incremental build cache handles source-file change detection.
 
 Direct build (if you prefer):
 
 ```bash
-cd tools/sp-pipeline
-make build      # or: go build -o bin/sp-pipeline ./cmd/sp-pipeline
+cd tools/gp-pipeline
+make build      # or: go build -o bin/gp-pipeline ./cmd/gp-pipeline
 make test       # or: go test ./...
 make doctor     # build + run doctor
 ```
@@ -105,13 +105,13 @@ Requirements:
 ## Repository layout
 
 ```
-tools/sp-pipeline/
+tools/gp-pipeline/
 ├── gp-pipeline                      # self-compiling bash wrapper (entry point)
 ├── Makefile                         # build / test / vet / fmt / clean targets
 ├── go.mod / go.sum                  # Go module
 ├── README.md                        # this file
 ├── SKILL.md                         # agent-facing usage guide
-├── cmd/sp-pipeline/
+├── cmd/gp-pipeline/
 │   ├── main.go                      # cobra root + typed ExitError + stub subcommands
 │   ├── doctor.go                    # `doctor` implementation
 │   ├── fetch.go                     # `fetch` implementation
@@ -139,7 +139,7 @@ tools/sp-pipeline/
 | **2b** | `eval`, `write`, `review`, `refine`, `internal/prompts` (embed.FS + text/template), `FakeProvider` for CCC unit tests | 🟡 medium | **done** |
 | **3** | `credits`, `ralph` (wraps `tribunal.sh`), `deploy` (counter bump → rename → validate → build → commit → push) | 🟡 medium | **done** |
 | **2c** | `run` orchestrator with `--from-step`, `--dry-run`, `--force`, `--opus`, `--file`, etc. | 🟡 medium | **done** |
-| **4** | Docs cutover, `scripts/sp-pipeline.sh` → 49-line shim, `CLAUDE.md`/`CONTRIBUTING.md`/`crontab-tribunal.example` updated | 🟢 low | **done** |
+| **4** | Docs cutover, `scripts/gp-pipeline.sh` → 49-line shim, `CLAUDE.md`/`CONTRIBUTING.md`/`crontab-tribunal.example` updated | 🟢 low | **done** |
 | 5 | Native port of `fetch-x-article.sh` + `tribunal.sh` | 🟠 high | **out of scope** — bash helpers stay |
 | 6 | Delete the shim | 🟢 low | **not planned** — 49-line shim is free insurance for unknown callers |
 
@@ -156,11 +156,11 @@ The existing Node / Python helpers (`validate-posts.mjs`, `detect-model.mjs`, `f
 - [x] `gp-pipeline eval` runs two evaluators via FakeProvider (CCC) or real LLM chain (local Claude actor), GO/GO / SKIP/SKIP / split exit codes
 - [x] `gp-pipeline write` renders `internal/prompts/write.tmpl` with source + style guide, outputs draft-v1.mdx
 - [x] `gp-pipeline review` / `gp-pipeline refine` run their respective prompts with stdout fallback
-- [x] `gp-pipeline credits` stamps the 4-entry pipeline block via `frontmatter.SetBlock` — verified round-trip on real SP-170
+- [x] `gp-pipeline credits` stamps the 4-entry pipeline block via `frontmatter.SetBlock` — verified round-trip on real GP-170
 - [x] `gp-pipeline ralph --file <mdx>` wraps `scripts/tribunal.sh`, runs the frontmatter normaliser, log-and-continues on tribunal failure
 - [x] `gp-pipeline deploy` bumps counter → renames pending → replaces frontmatter ticketId → validates → builds → commits → pushes (with `SkipBuild`/`SkipPush`/`SkipValidate` test hooks)
-- [x] `gp-pipeline run <url>` walks all 9 steps end-to-end in the happy path; `--from-step ralph --file <mdx>` resumes on SP-170
-- [x] `scripts/sp-pipeline.sh` is a 49-line shim that translates env vars → flags and execs into the Go binary
+- [x] `gp-pipeline run <url>` walks all 9 steps end-to-end in the happy path; `--from-step ralph --file <mdx>` resumes on GP-170
+- [x] `scripts/gp-pipeline.sh` is a 49-line shim that translates env vars → flags and execs into the Go binary
 - [x] No binary checked into git (self-compiling wrapper handles cold start)
 
 **CCC sandbox cannot verify** (local Codex actor responsibility):
@@ -169,7 +169,7 @@ The existing Node / Python helpers (`validate-posts.mjs`, `detect-model.mjs`, `f
 
 ## References
 
-- Nick Baumann, "The best tools I give Codex are bespoke CLIs" — this is the literal design brief for the CLI shape. Gu-log's SP-170 is a translation: `src/content/posts/sp-170-20260411-nickbaumann-codex-bespoke-cli-skill.mdx`
-- `scripts/sp-pipeline.sh` — production pipeline, the source of truth for pipeline behaviour
+- Nick Baumann, "The best tools I give Codex are bespoke CLIs" — this is the literal design brief for the CLI shape. Gu-log's GP-170 is a translation: `src/content/posts/gp-170-20260411-nickbaumann-codex-bespoke-cli-skill.mdx`
+- `scripts/gp-pipeline.sh` — production pipeline, the source of truth for pipeline behaviour
 - `scripts/tribunal.sh` — 4-stage tribunal, wrapped in Phase 3 and ported in Phase 5
 - `scripts/fetch-x-article.sh` — tweet capture script, wrapped today and ported in Phase 5

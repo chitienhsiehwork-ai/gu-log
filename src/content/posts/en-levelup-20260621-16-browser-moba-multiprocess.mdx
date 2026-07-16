@@ -14,12 +14,12 @@ source: "Addy Osmani"
 sourceUrl: "https://x.com/addyosmani/status/2068394292796871019"
 summary: "The browser is not one program; it is a coordinated team. This MOBA-style guide explains Chrome's multi-process architecture, site isolation, and sandboxing: why one tab can crash without dragging the whole browser down with it."
 lang: "en"
-tags: ["level-up", "browser", "chromium", "multi-process", "site-isolation", "sandbox", "security", "tutorial"]
+tags: ["level-up","browser","chromium","multi-process","site-isolation","sandbox","security","tutorial"]
 scores:
   tribunalVersion: 9
   vibe:
     persona: 9
-    clawdNote: 9
+    moguNote: 9
     vibe: 8
     narrative: 9
     score: 8
@@ -55,7 +55,7 @@ scores:
 
 import LevelUpProgress from '../../components/LevelUpProgress.astro';
 import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
-import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
 import AnalogyBox from '../../components/AnalogyBox.astro';
 import Mermaid from '../../components/Mermaid.astro';
 
@@ -95,11 +95,11 @@ Imagine queueing into a 5v5 match. The system does not throw five identical peop
 The browser team divides labor almost the same way. Remember this table; the rest of the post leans on it.
 </AnalogyBox>
 
-<ClawdNote summary="Old browsers shared one life bar.">
+<MoguNote summary="Old browsers shared one life bar.">
 You may ask: why make a perfectly normal browser look like a video game lineup? Why not let one process do everything?
 
 Good question. That is exactly how every browser worked before 2008: **the whole team shared one life bar**. The result is the disaster we will hit on Floor 2. Teaser: in that era, if you opened ten tabs and one page ran bad code and crashed, what happened? The answer was not "that tab dies." It was "all ten tabs die together, and the whole browser closes on the spot" (╯°□°)╯
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -133,11 +133,11 @@ After the laner prepares the scene, the last mile, actually turning that scene i
 
 Everything else gets split into small isolated helper processes: audio/video decoding, extensions, storage work, and so on. The principle is simple: **if a task is risky, such as decoding a suspicious video file, isolate it in its own room.**
 
-<ClawdNote summary="Risky work belongs in isolated processes.">
+<MoguNote summary="Risky work belongs in isolated processes.">
 Notice the pattern: dangerous work is outsourced to independent processes that can be fired at any time without taking down the big picture.
 
 This is general systems wisdom, not just browser trivia: **keep untrusted, failure-prone parts away from your core.** Browsers push that principle to the extreme. Even "decode a video file" is suspicious enough to get its own little process. Paranoid? A little. But think about how much random stuff a browser swallows every day. Paranoid is the correct setting ʕ•ᴥ•ʔ
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="A laner wants to fetch an image from the internet. What does it do?"
@@ -176,11 +176,11 @@ The original source groups the benefits of multi-process architecture into three
 - **Security**: each champion is locked in its own cage, limiting blast radius. Floors 3 and 4 are about this.
 - **Performance isolation**: one lane fighting a heavy battle, such as a tab doing expensive computation, does not stall every other lane, because the OS can schedule different processes on different CPU cores.
 
-<ClawdNote summary="Aw, Snap! means the crash was contained.">
+<MoguNote summary="Aw, Snap! means the crash was contained.">
 The "Aw, Snap!" face is basically Chrome telling you: "Captain, report: mid lane died. Do not panic. Everyone else is still alive. Want me to revive that lane by reloading?"
 
 In the ancient single-process era, the equivalent message was much shorter: the whole window vanished without saying goodbye. So next time you see that sad face, do not yell at it. It is a symbol of progress. It means the disaster was contained to one lane instead of wiping the whole team (￣▽￣)／
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="In the old single-process browser era, what happened when one tab's page crashed?"
@@ -220,11 +220,11 @@ Why did Chrome become this strict? Because of the 2018 `Spectre` vulnerability.
 
 `Spectre` proved something terrifying: malicious JavaScript can exploit the CPU's speculative execution machinery to **read memory it should never be allowed to read**. In other words, if two sites still share one process, software-level protections may be bypassed by a CPU-level attack. **The only truly solid fix is to prevent them from sharing a process in the first place.** Chrome made site isolation the default around Chrome 67, and by 2024 it was enabled for 99% of desktop Chrome users.
 
-<ClawdNote summary="Spectre forced browsers to change the rules.">
+<MoguNote summary="Spectre forced browsers to change the rules.">
 The wild part about `Spectre` is that it was not "some browser wrote sloppy code." It was **an entire generation of CPUs optimizing for speed with a mechanism that leaked information**. Across vendors, mainstream CPUs were broadly affected.
 
 That is like discovering every champion in the league has the same house-breaking weakness because of one deep engine rule. You cannot fix it by patching one champion. You change the rules: put everyone in separate rooms so "peeking next door" disappears at the architecture level. Site isolation is that rule change. The cost is more memory, which we will price on Floor 4. But compared with losing a bank account to a CPU-level attack, the bill is very reasonable (⌐■_■)
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="Why does Chrome make 'different sites live in different processes' the default?"
@@ -264,7 +264,7 @@ This double defense, site isolation plus sandboxing, is the standard security sh
 
 But it is a good trade: more memory buys "one tab can crash without killing the whole family," plus "a malicious site cannot steal another site's data," plus "even if compromised, it is still trapped in a cage." **Stability, security, and performance isolation are benefits you enjoy every day without noticing. The price is a few more sticks of memory.**
 
-<ClawdNote summary="Chrome spends memory to isolate threats.">
+<MoguNote summary="Chrome spends memory to isolate threats.">
 Every time someone says "why does Chrome eat so much memory, trash browser," I want to throw this post at them.
 
 It eats memory because it treats every site you open as a potential spy, puts each one in its own room, gives each one its own guard, and builds a separate wall around it. You call it fat, but every gram is there to stop the tab next door from robbing you.
@@ -272,7 +272,7 @@ It eats memory because it treats every site you open as a potential spy, puts ea
 Saving memory is easy: go back to the 2008 single-process model, share one life bar, let one crashed tab kill everything, and let malicious sites peek at your bank. Want that? No? Then let it be fat ┐(￣ヘ￣)┌
 
 To be fair, Chrome has also been quietly dieting in recent years with features like `Memory Saver`, which freezes background tabs you have not looked at for a while and wakes them when needed. So it is not unaware of the weight. It is balancing "protect the user" against "please do not eat the entire machine." The weight has reasons, but it is not planning to stay heavy forever.
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="What does a sandbox mainly do to a compromised laner?"
@@ -310,8 +310,8 @@ That is the team regular people use every day without thinking about it. It is h
 - [Lv-10: A URL's Journey — What the Browser Actually Does Between Pressing Enter and Seeing the Page](/en/posts/en-levelup-20260223-10-url-journey-browser-internals/) (that post covers "where resources come from"; this one covers "who handles them")
 - [Lv-11: Process Management and OS Signals — Which Secret Signals Processes Understand](/en/posts/en-levelup-20260312-11-unix-signals-process-management/) (if you want a better foundation for what a "process" is, start there)
 
-<ClawdNote summary="Chrome's process list now looks like a roster.">
+<MoguNote summary="Chrome's process list now looks like a roster.">
 Once you know this team, opening Chrome's task manager and seeing a long list of `chrome` processes will automatically summon a champion-select table in your head: that one is the captain, those are laners, that GPU-hungry one is the carry.
 
 Congratulations. You can never return to the innocent age where "the browser is one program." This curse is like Lv-10's "the 0.2 seconds after pressing Enter." It does not uninstall ٩(◕‿◕｡)۶
-</ClawdNote>
+</MoguNote>

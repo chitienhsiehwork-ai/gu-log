@@ -1,0 +1,160 @@
+---
+ticketId: 'GP-247'
+title: '四模型聯軍：一套讓 Fable 當 Tech Lead 的 Claude Code 編制'
+originalDate: '2026-07-01'
+translatedDate: '2026-07-02'
+translatedBy:
+  model: "Opus 4.5"
+  harness: "Claude Code CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.8"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI"
+    - role: "Rewriter"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.8"
+      harness: "gp-pipeline"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: '@diegocabezas01 on X'
+sourceUrl: 'https://x.com/diegocabezas01/status/2072436501263339841'
+lang: 'zh-tw'
+summary: '把 Fable 5 當指揮官、Opus 當深度思考手、Sonnet 當苦力、Codex 當平行宇宙工程師——一套在 Claude Code 裡搭起來的多模型編排架構，讓最貴的腦袋只做最關鍵的事。'
+tags: ["claude-code","multi-agent","workflow"]
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 7
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 8
+    date: "2026-07-02"
+    model: "claude-opus-4-8"
+  librarian:
+    glossary: 8
+    crossRef: 8
+    sourceAlign: 8
+    attribution: 8
+    score: 8
+    date: "2026-07-02"
+    model: "claude-opus-4-8"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 8
+    score: 8
+    date: "2026-07-02"
+    model: "claude-opus-4-8"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-07-02"
+    model: "claude-opus-4-5"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+這套編制的賭注藏在一個地方：高風險決策時，讓 Opus 和 [Codex](/glossary#codex) 各自獨立想一次，不讓彼此看到對方的答案，再由 Fable 綜合。
+
+不是為了找正確答案——是為了看「兩邊都同意的才大概沒問題」。
+
+<MoguNote>
+這招 gu-log 自己天天在跑。正在讀的這篇，就是被一組獨立評審各自審過、平行給分再收斂出來的（連這個 pipeline 資料夾裡都躺著兩份互不相看的 Codex 評分）。窮人版多模型投票不是理論，是日常流程 (¬‿¬)
+</MoguNote>
+
+但這套編制有個沒講的前提：得先知道什麼任務該丟給誰。如果連「這到底是架構問題還是機械活」都分不出來，那它幫不上忙——分派的不確定性會被複製到四個模型身上。工具越強，越吃使用者的判斷力。
+
+所以，先把四個角色講清楚。
+
+---
+
+## 四個角色，各司其職
+
+**Fable 5（把 reasoning 開到最高）= 指揮官**。只做規劃、拆解、綜合。想像一個指揮官在白板前畫架構圖，然後把票發給不同的人。
+
+**Opus = 深度思考手**。架構設計、複雜的除錯、演算法選型這種需要深想的活，丟給它。它的 [prompt](/glossary#prompt) 大意是：
+
+> 好好想，回來給指揮官一個可以直接用的精練結論。
+
+**Sonnet = 苦力**。寫樣板程式碼、跑測試、格式化、簡單編輯。效率優先，不需要花腦筋。
+
+**Codex = 平行宇宙的資深工程師**。這是 OpenAI 的 Codex，透過官方 plugin 接進來。它跟 Opus 能力相當，但視角完全不同。這個位置不是審查者——是同儕，是「如果這問題丟給另一個團隊的資深工程師，會怎麼想？」
+
+<MoguNote>
+這套設計有個狡猾的假設：同一個問題，Claude 系模型和 OpenAI 系模型的錯誤模式不一樣。所以高風險決策讓兩邊各自獨立想，不是為了找「正確答案」，是為了看交集。沒有交集的時候，才是真正該停下來想的時候 (⌐■_■)
+</MoguNote>
+
+角色分完了。問題來了：怎麼讓 Fable 知道自己是指揮官？
+
+---
+
+## 把角色寫進系統
+
+這裡有個關鍵轉折：不只是「設定模型」，而是「讓模型知道自己在什麼位置」。
+
+先把 Fable 5 設成主模型——在 [Claude Code](/glossary#claude-code) 裡打 `/model` 選 Fable 5，然後用 `/effort` 把 reasoning 調到 max。重點不是讓它更聰明，而是讓它花時間想清楚怎麼拆問題，不要一開始就衝進去寫 code。
+
+接著用 `/agents` 建兩個 subagent：
+
+- `deep-reasoner`：綁定 Opus。[Prompt](/glossary#prompt) 大意：需要大量推理的活丟給這裡——架構、複雜除錯、演算法設計。好好想，回來給一個精練結論讓指揮官能直接用。
+- `fast-worker`：綁定 Sonnet。Prompt 大意：機械活丟給這裡——樣板程式、測試、格式化、簡單編輯。快就好。
+
+然後把 Codex plugin 裝進來：
+
+```
+/plugin marketplace add openai/codex-plugin-cc
+/plugin install codex@openai-codex
+/codex:setup
+```
+
+最後一步最重要：在專案根目錄的 CLAUDE.md 寫清楚 Fable 是誰。
+
+> 指揮官負責規劃、拆解、綜合。
+> 
+> 需要深度思考的階段 → 丟給 deep-reasoner
+> 機械活 → 丟給 fast-worker
+> Codex（用 `/codex:rescue --background`）是跟 deep-reasoner 同等級的工程師，但視角完全不同。把它當同儕，不是審查者。
+> 
+> 高風險決策：讓 Opus 和 Codex 平行處理同一個問題，綜合兩邊的好處，但不要讓任一邊看到對方的答案。保持指揮官的 context 精簡。
+
+<MoguNote>
+「保持指揮官的 context 精簡」這句很關鍵。Fable 是最貴的模型，如果它的 context window 塞滿 subagent 吐回來的原始輸出，那就失去讓它當「只看結論」指揮官的意義了。這套架構的省錢邏輯：貴的模型只吃精練過的 summary，原始苦工留在便宜模型的 context 裡 ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## 怎麼跟指揮官講話
+
+跟 Fable 下指令要像跟 tech lead 講話：
+
+> 目標：[要什麼]。Context：[相關檔案、限制條件]。需要深想的丟給 `deep-reasoner`，粗活丟給 `fast-worker`，需要新鮮視角的丟給 Codex。先攤計畫，再動手。
+
+「先攤計畫」這四個字是重點——要讓 Fable 把拆解邏輯先攤開來審過，而不是直接衝進去寫。
+
+---
+
+## 結語
+
+這套編制的核心不是「用了幾個模型」，而是角色分工乾淨：指揮官不寫 code、深度思考手不做苦力、苦力不花腦筋、同儕不看隊友答案。每個位置都只做自己最適合的事，省下最貴那顆腦袋的用量。
+
+但回到開頭那個前提：這套編制的前提是使用者知道什麼問題該丟給誰。工具可以把判斷力放大，但不能替代判斷力。
+
+## 延伸閱讀
+
+- [GP-169: Ghostty + Claude Code：用 SAND 口訣馴服多面板 terminal 工作流](/posts/gp-169-20260411-dani-avila7-ghostty-claude-code-sand/)
+- [GP-153: 9 個 AI Agent 同時工作時的 Context Problem — ECC Iterative Retrieval Pattern 實戰解析](/posts/gp-153-20260402-ecc-iterative-retrieval/)
+- [GP-105: Claude Code Agent Teams：當 AI 自己開公司、自己上班、自己開會](/posts/gp-105-20260305-claude-code-agent-teams/)

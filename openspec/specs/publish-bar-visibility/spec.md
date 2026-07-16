@@ -19,7 +19,7 @@ TBD - created by archiving change backfill-publish-bar-visibility-spec. Update P
 
 #### Scenario: Tribunal FAIL is advisory to the pipeline
 
-- **WHEN** sp-pipeline 的 tribunal 階段回報 FAIL（任一 judge 未達 pass bar）
+- **WHEN** gp-pipeline 的 tribunal 階段回報 FAIL（任一 judge 未達 pass bar）
 - **THEN** pipeline 記錄警告並繼續 best-effort deploy，MUST NOT 因此以非零 exit code 中止部署流程
 
 ### Requirement: Below-bar posts SHALL be excluded from the homepage index

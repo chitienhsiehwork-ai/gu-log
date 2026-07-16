@@ -1,0 +1,203 @@
+---
+ticketId: 'GP-249'
+title: 'Should Humans Still Understand Agent-Written Code? Yes — But Not Just to Verify It'
+originalDate: '2026-07-02'
+translatedDate: '2026-07-03'
+translatedBy:
+  model: "GPT-5.5"
+  harness: "Codex CLI"
+
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "GPT-5.5"
+      harness: "Codex CLI + Tribunal"
+    - role: "Rewritten"
+      model: "Fable 5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "GPT-5.5"
+      harness: "gp-pipeline + Tribunal"
+    - role: "Translated"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+sourceUrl: 'https://x.com/geoffreylitt/status/2072522251300409556'
+source: '@geoffreylitt on X'
+lang: 'en'
+summary: 'Geoffrey Litt asks a sharp question for the agent era: if agents can write and verify more code by themselves, why should humans still understand the code? His answer is that understanding is not only for verification. It is how humans keep participating.'
+tags: ["agentic-engineering","cognitive-debt","code-review"]
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 8
+    score: 8
+    date: "2026-07-03"
+    model: "gpt-5.5"
+  librarian:
+    glossary: 8
+    crossRef: 8
+    sourceAlign: 10
+    attribution: 9
+    score: 8
+    date: "2026-07-03"
+    model: "gpt-5.5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 9
+    lengthFit: 8
+    clarity: 9
+    score: 8
+    date: "2026-07-03"
+    model: "gpt-5.5"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-07-03"
+    model: "gpt-5.5"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+[Agents](/en/glossary#agent) are writing more code, writing it faster, and getting better at verifying their own work: running tests, reviewing themselves, looping until the result looks right. This is good. Nobody is asking for agents that confidently ship broken code.
+
+But it creates an awkward question: if the only reason humans understand code is "to check whether it is correct," then that reason is being eaten by automation.
+
+Notion engineer Geoffrey Litt answered this directly at an AI engineering conference. Understanding code was never only about reading a diff line by line. And the reason to understand code was never only verification.
+
+## Beyond Verification, There Is a Better Reason
+
+The obvious answer is: understanding is for verification. Is the work correct? Is the architecture good? Does it match the spec? At the end, this sounds like a thumbs-up or thumbs-down problem, and agents are getting better at answering it themselves.
+
+The less-discussed path is this: **understanding is for participation**.
+
+> Not just to verify, but to participate.
+
+A project is never just "give one instruction, receive one delivery." It is many rounds of back-and-forth. In every round, someone has to decide what should happen next. That ability depends directly on how rich your mental model of the system is. If your concepts are too thin, you cannot even ask good questions.
+
+Lack of understanding usually does not make a project explode immediately. It is more like a cousin of technical debt: you can borrow against it for a while, and the interest quietly grows. This is close to "Cognitive Debt," a term popularized by Margaret Storey and [Simon Willison](/en/glossary#simon-willison): the program still runs, but the system map inside the human brain is already out of date.
+
+<MoguNote summary="A supervisor only checks the delivery; a teammate needs enough understanding to choose the next move.">
+This is the difference between a supervisor and a teammate. A supervisor only needs to stamp the acceptance form. A teammate needs to plan the next move.
+
+gu-log's own workflow works like this too. Every article goes through four independent judges before publishing: one checks facts, one checks attribution, one pretends to be a fresh reader, and one scores the vibe. Verification is already outsourced to the system. But "what should we write next?" and "is this angle going crooked?" still need someone to decide.
+
+Confession time: the first draft of this very article was rejected by gu-log's own judges for being too bland. Automation verified it. Automation also roasted it. Both things are true.
+</MoguNote>
+
+---
+
+## Technique One: Turn the Diff Into a Lesson
+
+So how do humans keep up while agents sprint? Education has studied "how to move understanding into another brain" for about a century. We can steal the good parts.
+
+The first technique targets the diff. A raw diff is sorted for record-keeping, not teaching. It has no background, no story, no learning path. Using a raw diff to teach a human is like giving someone a textbook whose chapters are sorted alphabetically. Technically organized, spiritually cursed.
+
+So Litt wrote a [skill](/en/glossary#skill) called `/explain-diff`. After an agent finishes a round of work, it produces a real teaching artifact: HTML, Markdown, or a Notion page. The principles are simple:
+
+**Teach the background first.** Before explaining what changed, explain what existed before. If the change touches a game engine camera, first explain how the camera works.
+
+**Build intuition before code.** Before showing any code, state the goal in one plain sentence: "Use 2D drawing tricks to make the garden look 3D."
+
+**If it can be interactive, do not merely explain it.** To explain isometric projection, give the reader a small diagram where they can drag rocks around and watch the coordinates change.
+
+Only after that comes the code. But not the raw diff. It becomes a "literate diff": changes are presented in logical order, with explanation before and after each code block, so the whole thing reads like an essay.
+
+The result is a complete explanation packet. Litt sometimes prints it out and takes it to a cafe to read. He also jokes about the irony: AI turned an interactive coding workflow back into a stack of paper you can study deeply. The skill itself is [published here](https://gist.github.com/geoffreylitt/a29df1b5f9865506e8952488eac3d524).
+
+<MoguNote summary="The real shift is cost: a custom lesson for every change used to be absurd; now it can be routine.">
+"Print it out and read it at a cafe" sounds very literary, but do not stare at the aesthetic and miss the point. The real shift is cost.
+
+In the past, nobody would make a custom illustrated lesson for every PR. The cost was absurd. Now an agent can casually generate one. "Every change comes with its own teaching material" went from luxury product to daily commodity. That is the real body of `/explain-diff`.
+</MoguNote>
+
+---
+
+## Technique Two: Add Quizzes So You Cannot Fool Yourself
+
+A beautiful explanation packet still has one natural enemy: reading does not equal understanding. Andy Matuschak has a famous line:
+
+> Books don't work.
+
+"I read it" is a very convincing lie. Your eyes passed over every line, your brain felt productive, and almost nothing stayed.
+
+The fix is to put five interactive quiz questions at the bottom of each explanation. Litt pairs this with a strict rule for himself: **if he does not pass the quiz, he does not ship the code; before reviewing someone else's code, he must pass the quiz too.**
+
+He calls this a speed governor. When the loop is moving faster than human understanding, the quiz forces the speed back down.
+
+<MoguNote>
+The enemy of this rule is not quiz difficulty. It is human nature. [Mogu](/en/about) is willing to bet most people would start saying on day three: "This change is small, I'll skip it this time."
+
+That is why turning it into a mechanical gate matters. Same philosophy as a `pre-commit hook`: outsource discipline to the system, not to willpower.
+</MoguNote>
+
+---
+
+## Technique Three: Build a Small World You Can Live Inside
+
+The third technique comes from education pioneer Seymour Papert and his idea of "Mathland": if you want to learn math, the best way is to live in a land where math is natural, the same way moving to France helps you learn French.
+
+Applied to code, the question becomes: can we build a small world you can "live inside," so your intuition for the system grows naturally?
+
+Litt gives two personal examples.
+
+**A debugger that can rewind time.** When he was writing an interpreter for `Prolog`, a logic programming language, he could not feel what was happening internally. So he worked with an agent to build a debugger: step through execution, scrub backward and forward on a timeline, see which rules fired at each step, and leave notes to himself like, "nice, this rule applied correctly."
+
+**A control room for moving a website.** He wanted to migrate his personal website to a new framework. Claude wrote a script that could do the migration automatically, but he could not really review it: he did not know the new framework well enough, so all he could say was, "uh, looks probably fine?"
+
+So he asked Claude to build a "video game" instead. In a control room, he pressed one button to run one migration step. The old and new websites sat side by side. The new site grew in front of him, step by step. By the end, he understood the migration almost as well as if he had done it by hand, but much faster.
+
+Both examples point to the same idea: agents can generate code, but they can also generate **code that helps humans understand code**.
+
+<MoguNote summary="An agent can deliver the result, or build a small world where the human gains understanding too.">
+This is the part Mogu wants to underline three times. "The agent helps migrate the site" and "the agent builds a little world where the human can migrate the site step by step" are completely different products.
+
+The first delivers the result and accidentally carries away the understanding. The second delivers the result and manufactures understanding on the way. The difference is often just one extra prompt.
+
+Next time a change is too hard to review, do not heroically stare at the diff until your soul leaves your body. Ask the agent to build a playground.
+</MoguNote>
+
+---
+
+## Technique Four: Let the Team Share One Brain
+
+The first three techniques are for one person's understanding. But team understanding needs to happen together. When two people share the same mental model, one word can bring up the same picture in both minds. Communication suddenly feels like cheating.
+
+This is also part of Litt's daily work at Notion. Recently, Notion can run Claude and Cursor agents directly inside pages. Technical plans written by agents are naturally collaborative documents. The team can comment, discuss, and think together in the same space, instead of each person building a private mental model alone.
+
+---
+
+## Conclusion: The Blueprint Was Drawn Fifty Years Ago
+
+None of this is a new dream. Fifty years ago, Alan Kay argued that computers could become a better medium than books: not just to store information, but to teach people how to think about the world. In his classic drawing, it looks at first like two children holding tablets and watching a video. What they are actually doing is playing an interactive game and editing the game's code to understand physics.
+
+> The point was always to augment, not just automate.
+
+The point was always to augment humans, not merely automate work. AI dropped the cost of "building a simulation environment" to the floor. A blueprint from fifty years ago suddenly became buildable by almost anyone.
+
+Agents will keep getting stronger. Verification will keep getting automated. That line cannot be stopped, and it does not need to be stopped.
+
+The real fork is on another line: using agent power to pull humans back into a deeper loop. The work of verification may move to agents. But the seat of participation — the seat where someone asks "what next?" — is still waiting for a human to sit down. (๑•̀ㅂ•́)و✧
+
+---
+
+## Further Reading
+
+- [MP-140: The Final Boss of Agentic Engineering: Killing Code Review](/en/posts/en-mp-140-20260303-swyx-agentic-engineering-boss-code-review/) — if review will eventually disappear, this is the other end of the same story
+- [GP-229: When an Agent Writes 1,500 Lines at Once, That Is a Warning Sign](/en/posts/en-gp-229-20260616-mitchellh-1500-line-diff/) — another solution to the same problem: instead of adding better understanding tools, shrink the change itself
+- [GP-234: 400,000 Claude Code Conversations Say the Winner Is Not the Best Coder, but the Person With the Most Expertise](/en/posts/en-gp-234-20260617-returns-to-expertise/) — the data-side proof: the people with the deepest system understanding get the most leverage

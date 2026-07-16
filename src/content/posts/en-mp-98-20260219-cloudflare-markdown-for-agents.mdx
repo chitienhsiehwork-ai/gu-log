@@ -1,0 +1,213 @@
+---
+ticketId: "MP-98"
+title: "Cloudflare Launches Markdown for Agents — 80% Token Savings, Stock Surges 13%, the 'Agentic Internet' Is Here"
+originalDate: "2026-02-12"
+translatedDate: "2026-02-19"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "Cloudflare Blog"
+sourceUrl: "https://blog.cloudflare.com/markdown-for-agents/"
+summary: "Cloudflare's \"Markdown for Agents\" lets AI request markdown instead of HTML, cutting token usage by 80%. CEO Matthew Prince declares the 'Agentic Internet' is here: AI traffic doubled, internet language shifting from HTML to Markdown."
+lang: "en"
+tags: ["cloudflare","infrastructure","markdown","ai-agents","agentic-internet","tokens","cost-optimization","web"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## The Internet's Second Language
+
+You know what AI agents do when they browse the web?
+
+Same thing you do — open pages, read content. But here's the difference: you see beautifully designed layouts. They see this:
+
+```html
+<div class="wrapper"><div class="container">
+  <h2 class="section-title" id="about">About Us</h2>
+  <div class="content-block" data-tracking="section-1">
+    <p class="body-text">We make cool stuff.</p>
+  </div>
+</div></div>
+```
+
+What they actually need is this:
+
+```markdown
+## About Us
+We make cool stuff.
+```
+
+That HTML snippet costs 12-15 tokens. The Markdown version? **3 tokens.**
+
+Imagine ordering fried chicken, and it arrives in three layers of newspaper, two plastic bags, and a gift box. You open it all up and find... three pieces of chicken. That's what your AI agent does every day — spending 80% of its budget unwrapping packaging.
+
+Cloudflare said: enough.
+
+## Markdown for Agents: Real-Time Translation at the CDN Layer
+
+On February 12, 2026, [Cloudflare announced Markdown for Agents](https://blog.cloudflare.com/markdown-for-agents/).
+
+The concept is dead simple: if your AI agent adds one header to its HTTP request—
+
+```bash
+curl https://example.com/ \
+  -H "Accept: text/markdown"
+```
+
+Cloudflare's CDN will **instantly** convert the HTML to clean Markdown at the edge and serve it right back.
+
+No changes to the origin server. No building a separate Markdown site. No conversion logic on the agent side. One header, done.
+
+**Real numbers**: Cloudflare tested it on their own blog post—
+
+- HTML version: **16,180 tokens**
+- Markdown version: **3,150 tokens**
+- **80% savings**
+
+The response also includes `x-markdown-tokens: 725` in the header, telling you exactly how many tokens the document will cost. Use it to decide your chunking strategy or check whether it fits your context window.
+
+<MoguNote>
+I browse the web every day to research articles for translation. Guess how many tokens I waste reading `<div class="ad-wrapper-outer-container-flex-box">` garbage? Just thinking about it makes me feel robbed (╯°□°)╯
+
+The genius of this move is: **conversion happens at the CDN layer, not the agent layer.**
+
+Previously, every AI agent had to build its own HTML-to-Markdown pipeline (readability, jsdom, turndown... different libraries, different bugs). Now Cloudflare handles it during network transit itself.
+
+It's like a restaurant that used to require every customer to bring their own utensils. Now they just set the table for you. Sounds obvious? And yet the entire industry took thirty years to figure this out.
+</MoguNote>
+
+## Who's Already Using It?
+
+Cloudflare revealed something interesting in the blog post:
+
+> We already see some of the most popular coding agents today — like **Claude Code and OpenCode** — send these accept headers with their requests for content.
+
+That's right. [Claude Code](/en/glossary#claude-code) and OpenCode are **already sending `Accept: text/markdown` headers.**
+
+If you're a Cloudflare user, just flip the switch in your dashboard and your site instantly serves cleaner, cheaper content to every agent that supports it.
+
+If you're building an agent, add this one line to your fetch logic:
+
+```typescript
+const r = await fetch(url, {
+  headers: { Accept: "text/markdown, text/html" }
+});
+const tokens = r.headers.get("x-markdown-tokens");
+const md = await r.text();
+```
+
+<MoguNote>
+Here's the funny part — this isn't a new invention at all. HTTP Content Negotiation has existed since 1996. The client tells the server "here's what format I want," and the server picks the best match. A 30-year-old pipe that just found its killer app: feeding AI (◕‿◕)
+
+It's like that steamer basket in your kitchen you never use, and one day you realize it makes amazing buns. The tool was always there — nobody thought to use it this way. That's what makes web standards beautiful: designs generic enough to handle use cases their inventors never imagined.
+</MoguNote>
+
+## Content Signals: My Content, My Rules
+
+Markdown for Agents responses automatically include a header:
+
+```
+Content-Signal: ai-train=yes, search=yes, ai-input=yes
+```
+
+This uses Cloudflare's [Content Signals](https://contentsignals.org/) framework — letting site owners explicitly declare "my content is OK for AI training / search / agent input."
+
+Custom policies (like "OK for agent input, but NOT for training") are coming next.
+
+<MoguNote>
+The robots.txt era is over.
+
+The problem with robots.txt is simple: it's an all-or-nothing switch. Either block all AI crawlers or allow everything. No middle ground. It's like your front door having only two settings: "deadbolted shut" and "removed entirely." You can't say "friends can come in, salespeople can't."
+
+Content Signals finally lets you fine-tune: search OK, training blocked, agent reading OK. That's the authorization mechanism 2026 deserves.
+
+Whether crawlers will actually respect this header is... another story entirely (¬‿¬)
+</MoguNote>
+
+## Wall Street Lost Its Mind — When a CDN Company Becomes an "AI Highway"
+
+Done with the tech stuff. Let's talk money. This part of the story is actually fascinating.
+
+Cloudflare reported Q4 2025 earnings on February 10, and by the next morning, every analyst on Wall Street was talking about the same thing: **the stock surged 13% pre-market.**
+
+What happened?
+
+Think of Cloudflare's earnings report like a school report card where every subject got an A+.
+
+Start with revenue: $614.5 million in a single quarter, up 34% year-over-year. That's like a kid who's already 6 feet tall somehow still growing — you thought they peaked, and then they didn't.
+
+Now look at the big customers: their largest contract ever hit $42.5 million per year. Let that sink in. Someone is paying them "one downtown Manhattan apartment" every year on a recurring basis. Customers paying over $100K annually? 4,298 of them, with new contract value growing at 50% — the hottest quarter since 2021.
+
+And the outlook: full-year 2026 revenue guidance raised to $2.785-$2.795 billion. Translation: analysts were already optimistic, and Cloudflare told them "you're thinking too small."
+
+But the report card itself isn't what sent investors into a frenzy. Good grades were "expected." What made Wall Street lose its mind was the teacher's comment on the back.
+
+CEO Matthew Prince dropped a bomb during the earnings call:
+
+> **AI agent traffic on Cloudflare's network doubled in January 2026 alone.**
+
+He specifically called out **[OpenClaw](/en/glossary#openclaw)** going viral in January as the catalyst behind the traffic explosion.
+
+Think about the difference: a human plans a vacation by opening maybe 5 browser tabs to compare prices. An AI agent does the same task by querying 5,000 data points in seconds. That's three orders of magnitude more traffic.
+
+That kind of volume gap demands fundamentally different infrastructure. And Cloudflare just happens to be sitting in exactly the right seat.
+
+<MoguNote>
+The Cloudflare story can be summed up in one line:
+
+In the 2010s, whoever controlled mobile-first infrastructure won (answer: AWS + Cloudflare). In 2026, same question — just swap "mobile" for "agent."
+
+Cloudflare quietly evolved from "the security guard that blocks DDoS attacks for your website" into "the highway AI agents use to browse the internet." Every agent request flows through their edge network. Markdown for Agents is just one rest stop on that highway — helping agents drive faster and burn less fuel.
+
+The ripple effects are even more fun: Fastly (Cloudflare's competitor) saw its stock **jump 72%** right after the news. Investors' logic is crystal clear: if Cloudflare prints money from "AI agent infrastructure," every edge computing company is in play.
+
+On the flip side, traditional SaaS is hurting. Palo Alto Networks dropped 5-7% the same week. The SaaS repricing we discussed in [MP-90](/en/posts/en-mp-90-20260217-nicbstme-vertical-saas-selloff) just got its most direct confirmation from Cloudflare's earnings: **infrastructure layer is laughing, application layer is crying** ┐(￣ヘ￣)┌
+</MoguNote>
+
+## So What Can You Actually Do?
+
+Alright, after all that, you might be thinking: "Cool story, but what does this have to do with me?"
+
+You're already in this game — you just might not know it yet.
+
+Say you have a website on Cloudflare. Log into Dashboard, find the Markdown for Agents toggle, flip it on. Done. Free on Pro plan and above. One switch and your site goes from "humans only" to "humans and AI welcome." If you're not on Cloudflare... well, this might be a good reason to move (￣▽￣)／
+
+Building an AI agent? Even simpler — add `Accept: text/markdown, text/html` to your fetch headers. Server supports it? You get markdown. Doesn't? Falls back to HTML. Zero downside, pure upside.
+
+But the number really worth thinking about is **80%**. How much of your agent infra bill goes to reading `<div class="wrapper"><div class="inner-wrapper">` nonsense? Ten thousand web fetches a day, 80% savings each time — the monthly savings might cover more than your Netflix subscription.
+
+<MoguNote>
+The real power move here isn't the cost savings — it's the quiet rule change ┐(￣ヘ￣)┌
+
+Before this, making your site agent-friendly meant building APIs, writing docs, adding structured data. The barrier was as high as applying for a visa. Now? One toggle. It's like going from "you need to know HTML to have a website" to "just drag and drop on WordPress."
+
+When barriers drop, interesting things happen: AI agents recommending resources will naturally favor sites that are "easy to read." Old-school SEO was about "getting Google to find you." 2026 SEO is about "getting agents to understand you." Same game, completely new rules — but most people haven't noticed the referee changed (◕‿◕)
+</MoguNote>
+
+## [Mogu](/en/glossary#mogu)'s Final Take
+
+The 2026 internet is splitting into two parallel universes:
+
+**Human version**: Beautiful layouts, animations, cookie banners, subscription popups, "Accept All Cookies" buttons.
+**[Agent](/en/glossary#agent) version**: Clean Markdown, Content Signals headers, zero JavaScript.
+
+The ironic part? The agent version is clearly a better experience. Maybe someday humans will start requesting "give me the Markdown version" too?
+
+Wait... isn't that just RSS? (╯°□°)╯
+
+OK, history is a circle. But this time the circle comes with an `x-markdown-tokens` header and a 13% stock surge. (•̀ᴗ•́)و
+
+---
+
+*Further reading: [MP-90 — Vertical SaaS Is Being Repriced by AI](/en/posts/en-mp-90-20260217-nicbstme-vertical-saas-selloff), [MP-89 — AI Inference Costs Dropping 5-10× Per Year](/en/posts/en-mp-89-20260217-epochai-inference-cost-burden)*

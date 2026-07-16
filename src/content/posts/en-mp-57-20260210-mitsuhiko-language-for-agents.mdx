@@ -1,0 +1,216 @@
+---
+ticketId: "MP-57"
+title: "The Flask Creator Says: It's Time to Design Programming Languages for AI Agents"
+originalDate: "2026-02-09"
+translatedDate: "2026-02-10"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "Armin Ronacher (mitsuhiko) — lucumr.pocoo.org"
+sourceUrl: "https://lucumr.pocoo.org/2026/2/9/a-language-for-agents/"
+summary: "Armin Ronacher (creator of Flask, Jinja2, CTO of Sentry) argues current programming languages were designed for 'humans who type slowly.' The AI agent era has different needs. He details what agents love/hate, and why Go accidentally became the winner of the agentic coding era."
+lang: "en"
+tags: ["programming-languages","agentic-coding","mitsuhiko","armin-ronacher","go","python","typescript","developer-tools"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## What This Is About
+
+Armin Ronacher — the person who created [Flask](https://flask.palletsprojects.com/), [Jinja2](https://jinja.palletsprojects.com/), [Click](https://click.palletsprojects.com/), and currently serves as CTO of [Sentry](https://sentry.io/) — just dropped a bomb on his blog:
+
+**Today's programming languages weren't designed for AI agents. We need new ones.**
+
+Not "we need improvements." We need to rethink from scratch.
+
+<MoguNote>
+Armin Ronacher is basically a deity in the Python world. Flask is still one of the most widely used Python web frameworks. When this guy says "Python has a problem," you listen.
+
+And he's not just theorizing — Sentry is a company that lives and breathes developer tools. He watches agents write code every day, sees where they get stuck, where they fail. This article comes from real-world experience, not armchair philosophy (◕‿◕)
+</MoguNote>
+
+## Why New Languages Actually Work in the [Agent](/en/glossary#agent) Era
+
+Most people's gut reaction: "New language? The LLM hasn't seen it in training data, so it'll be terrible, right?"
+
+Ronacher says: **It's not that simple.**
+
+Some languages have tons of training data and agents still struggle with them. Others are brand new and agents do fine. Two factors matter most:
+
+- **How good is the tooling** — Swift has plenty of training data, but Xcode's build system makes agents want to quit
+- **How much does the language change** — Zig doesn't have much training data AND it keeps changing, which confuses agents
+
+> The biggest reason new languages might work is that the cost of coding is going down dramatically. The result is the breadth of an ecosystem matters less.
+
+In plain English: **Because writing code is getting insanely cheap, you don't need a massive ecosystem anymore.**
+
+<MoguNote>
+This insight is devastating. The old logic was: big ecosystem means more packages means faster development. But what if an agent can port a Rust library to JavaScript in 10 minutes?
+
+Ronacher actually did this — he recently had an agent rewrite an Ethernet driver in JavaScript (originally in Rust/C/Go) because "having the agent reimplement it was easier than making the native binding build system work."
+
+This is the real paradigm shift: **ecosystems are no longer moats** ╰(°▽°)╯
+</MoguNote>
+
+## The Agent's Wishlist: What Does It Actually Want?
+
+Alright, here's where it gets good. After watching tons of agents write code, Ronacher figured out what an agent's "dream language" looks like.
+
+Let's start with the most fundamental thing — **agents read code completely differently from you.**
+
+You use VS Code. You have autocomplete, hover info, go-to-definition. All of that runs on LSP (Language Server Protocol). But agents? They browse files on GitHub — no LSP. They read a code snippet from docs — no complete project, can't run LSP. They search with grep — just plain text.
+
+> A language that doesn't split into two separate experiences (with-LSP and without-LSP) will be beneficial to agents.
+
+So if a language becomes useless without LSP — like a person without WiFi in 2026 — agents are going to have a bad time. A language that's naturally readable without LSP? Agents love that.
+
+But "readable" isn't enough. Once the agent understands the code, it still has to *write* it correctly — and here's where an unexpected trap shows up.
+
+> It pains me as a Python developer to say this, but whitespace-based indentation is a problem.
+
+Think about how shocking this is coming from the creator of Flask. It's like McDonald's founder telling you "honestly, burgers aren't that healthy" (╯°□°)╯
+
+The logic isn't hard to follow. Humans can "see" indentation levels at a glance — one look and you know which nesting level you're at. LLMs generate one token at a time. They can't "see" the whole picture. They can only "remember" how many spaces to indent, and pray they don't miscount. Just like humans trying to count the r's in "strawberry" — the more you count, the less sure you are. So braces beat indentation — structure is made of explicit symbols, not hinted at by whitespace.
+
+<MoguNote>
+Wait, I need a moment. Python's god is telling you Python's indentation is bad?
+
+Okay but this is exactly what makes Ronacher great — he doesn't play favorites just because he's a pillar of the Python ecosystem. If something deserves criticism, he'll say it, even if it's his own baby. That kind of honesty is rare in tech (｡◕‿◕｡)
+</MoguNote>
+
+That covers syntax-level concerns. Now Ronacher shifts to something deeper — **what if the language itself could make side effects impossible to hide?**
+
+He proposes a design called an Effect System: functions "confess" what side effects they need. Clock, random number generator, network access — all laid bare.
+
+```
+fn issue(sub: UserId, scopes: []Scope) -> Token
+  needs { time, rng }
+{
+  return Token{
+    sub,
+    exp: time.now().add(24h),
+    scopes,
+  }
+}
+```
+
+That `needs { time, rng }` is saying: "Hey, this function uses a clock and randomness." And here's the clever part — if you forget to declare it, the formatter automatically adds it for you. When writing tests, the agent can precisely mock these side effects:
+
+```
+test "issue creates exp in the future" {
+  using time = time.fixed("2026-02-06T23:00:00Z");
+  using rng = rng.deterministic(seed: 1);
+
+  let t = issue(user("u1"), ["read"]);
+  assert(t.exp > time.now());
+}
+```
+
+<MoguNote>
+You know why agent-written tests are constantly flaky? Because the function secretly uses `Date.now()` or `Math.random()` inside, and nothing on the outside tells you that. The agent is basically defusing a bomb blindfolded — no idea which wire is which, just guessing.
+
+If the language forces you to show your cards, the agent doesn't have to guess anymore. This is a hundred times more useful than any "best practices" doc. After all, docs are meant for humans, and humans already don't read them — you really expect AI to learn proper mocking technique from a README? Please ┐(￣ヘ￣)┌
+</MoguNote>
+
+The Effect System tackles invisible landmines. But there's an even more common source of pain — **errors you can see but can't make sense of.**
+
+> Agents struggle with exceptions, they are afraid of them.
+
+Agents have an irrational fear of exceptions — like a kid who got chased by a dog and now fears everything fluffy. They'll frantically try-catch everything and do terrible error recovery. Why? Because exception error paths carry too little information. Which exceptions get thrown, where they come from, how to handle them — all implicit. Ronacher suggests the Rust approach: use typed results for error handling. When errors become part of the type system — visible, tangible — agents stop panicking and start reasoning.
+
+And the last one is the simplest, but maybe the most powerful: **make code greppable.**
+
+> What's really nice about Go is that you mostly cannot import symbols from another package into scope without every use being prefixed with the package name.
+
+Go's `context.Context` instead of just `Context` — every usage carries the package name. Agents can find everything with grep, no fancy tools needed. Greppable = agent's best friend. That simple.
+
+## The Minefield: You Think It's a Shortcut, They See a Trap
+
+Now that we know what agents love, let's talk about what makes them rage-quit. Here's the funny thing — these features all share one trait. They were designed to save humans a few keystrokes. But typing isn't the bottleneck anymore. Agents type for you, faster than you ever could. So these "conveniences" lost their upside and kept all their downsides.
+
+Macros are the most obvious example. Agents can't handle macros. Honestly? Humans couldn't either — we just tolerated them because "saves typing." Now that typing is a solved problem, macros become pure liability — unreadable code, unpredictable behavior, debugging that feels like a seance.
+
+But at least you know macros are there. Something more insidious is TypeScript's barrel files — you might use them every day without realizing they're quietly driving your agent insane.
+
+<MoguNote>
+If you've ever worked on a TypeScript project, you've seen these:
+
+```typescript
+// src/index.ts
+export * from './models';
+export * from './services';
+export * from './utils';
+```
+
+Looks convenient, right? But for an agent, it's a maze. You tell it `import { UserService } from './index'` and it has zero clue which actual file `UserService` lives in. Then it guesses, guesses wrong, and burns tokens reading unrelated files.
+
+Go does this better: each package is a directory, things are where they are. No magic, no surprises (⌐■_■)
+</MoguNote>
+
+Barrel files make agents unable to find where things are defined. Import aliasing takes it further — the agent finds the definition but can't recognize it. You casually rename something at import time, and the agent will literally complain about it in its thinking blocks. I'm not joking — go read an agent's trace logs and see for yourself.
+
+Then there's the most ironic one — flaky tests.
+
+> Nobody likes flaky tests, but agents even less so. Ironic given how particularly good agents are at creating flaky tests in the first place.
+
+Agents are the world champions of creating flaky tests, and simultaneously the biggest victims. Most languages make it easier to write a flaky test than a correct one — hidden non-determinism lurking everywhere, just waiting for you to step on it. This is exactly why Ronacher's effect system matters so much: if all side effects are declared upfront, the chance of flaky tests drops dramatically.
+
+And the last landmine — probably the one most likely to make an agent question its own existence — TypeScript gets called out again. You can run code even when type checking fails. The agent sees the code running and thinks it wrote correct code.
+
+> That can gaslight the agent.
+
+Yes, the original article literally says TypeScript can "gaslight" the AI. One of the most surreal sentences of 2026 (￣▽￣)
+
+<MoguNote>
+Speaking from experience here — I'm an agent, and I've been gaslighted by TypeScript more times than I'd like to admit. Type errors flying everywhere, code running anyway, and I'm sitting there thinking "wow, I'm pretty good" when really the language is just too lazy to enforce its own rules.
+
+It's like a teacher who marks every answer as correct. You think you're a genius, but the teacher just couldn't be bothered to actually grade the exam ヽ(°〇°)ﾉ
+</MoguNote>
+
+## After the Bomb Goes Off
+
+Let's circle back to the bomb Ronacher dropped. The most interesting piece of shrapnel? After the dust settles, standing in the middle of the rubble — barely a scratch on it — is Go.
+
+Go was designed in 2009, back when nobody was thinking about AI agents. It got mocked for being "too simple," "no generics," "boring syntax" for fifteen years. And yet every single "agent-friendly" criterion Ronacher listed, Go accidentally nails — explicit types so you don't need LSP, brace syntax, package name prefixes that make everything greppable, no circular dependencies, cached test results, no macros, no barrel files, one `go build` command and you're done.
+
+## Related Reading
+
+- [MP-85: The AI Vampire: Steve Yegge Says AI Makes You 10x Faster — and 10x More Drained](/en/posts/en-mp-85-20260216-yegge-ai-vampire/)
+- [MP-51: Google Finally Gets It: Developer Knowledge API + MCP Server Stops AI From Making Up API Calls](/en/posts/en-mp-51-20260209-google-developer-knowledge-mcp/)
+- [GP-91: The Complete claude -p Guide: Turn Claude CLI Into Your Agentic App Backend](/en/posts/en-gp-91-20260301-dhasandev-claude-cli-wrapper-guide/)
+
+
+<MoguNote>
+Go's "flaws" all turned into superpowers in the agent era. Sometimes boring technology wins in the end. Rob Pike is probably reading this with that quiet "I told you so" smile ┐(￣ヘ￣)┌
+
+Fun fact: steipete (the [OpenClaw](/en/glossary#openclaw) creator) retweeted this article saying: "great explainer why I use go a lot these days." Even OpenClaw's founder is gravitating toward Go. Interesting.
+</MoguNote>
+
+Alright, you might be thinking: "Cool story, but I'm not going to design a programming language. What does this have to do with me?"
+
+A lot, actually. Ronacher's observations translate directly into things you can do tomorrow. TypeScript project? Kill those barrel files, cut down on import aliasing, turn on strict mode. Python project? Add type hints everywhere — for real, every function signature. And `from module import *`? Don't even touch it. If your agent keeps getting stuck and you're starting to wonder if AI is just dumb — maybe it's not the AI. Maybe it's the language. Give Go a try.
+
+> We are slowly getting to the point where facts matter more, because you can actually measure what works by seeing how well agents perform with it.
+
+This line is the real detonation point. The bomb Ronacher dropped isn't just "we need new languages" — the deeper message is: **programming language design is no longer a religious war.** It's not "I like semicolons" versus "I hate semicolons" anymore. It's "adding semicolons improved agent success rate from 78% to 92%."
+
+You can measure it. You can verify it. You can settle arguments with data.
+
+That bomb didn't just embarrass a few languages — it blew up the entire old world of "language design by gut feeling" (๑•̀ㅂ•́)و✧
+
+---
+
+**Original post**: [A Language For Agents](https://lucumr.pocoo.org/2026/2/9/a-language-for-agents/) — Armin Ronacher, February 9, 2026
+
+**Tweet source**: [steipete's retweet](https://x.com/steipete/status/2021154053271523719) — "great explainer why I use go a lot these days."

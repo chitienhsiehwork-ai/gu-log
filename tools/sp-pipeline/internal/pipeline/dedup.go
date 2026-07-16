@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/dedup"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/dedup"
 )
 
 // DedupURL is the URL-only dedup gate that runs before Eval. It catches
@@ -54,14 +54,14 @@ func (s *State) DedupURL(ctx context.Context) error {
 	}
 }
 
-// Dedup is the Go port of scripts/sp-pipeline.sh Step 1.7. It wraps
+// Dedup is the Go port of scripts/gp-pipeline.sh Step 1.7. It wraps
 // scripts/dedup-gate.mjs via internal/dedup and sets s.DedupVerdict for
 // downstream logging. A BLOCK verdict returns StepError{Code:13}, which
 // the cmd layer maps to exit code 13.
 //
 // When run inside the orchestrator, the dedup title is taken from
 // s.SuggestedTitle (populated by Eval). Callers that do not run Eval
-// (e.g. the standalone `sp-pipeline dedup` subcommand) populate the title
+// (e.g. the standalone `gp-pipeline dedup` subcommand) populate the title
 // themselves.
 func (s *State) Dedup(ctx context.Context) error {
 	if s.shouldSkipBelow(StepDedup) {

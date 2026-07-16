@@ -41,11 +41,11 @@ function buildMask(lines) {
   let inFence = false;
   let fenceMarker = '';
   // gu-log persona note components whose body is the persona speaking (Mogu /
-  // Clawd / ShroomDog), so first/second-person pronouns inside are expected and
-  // must be masked. MoguNote is the canonical name; ClawdNote is the legacy
+  // Mogu / ShroomDog), so first/second-person pronouns inside are expected and
+  // must be masked. MoguNote is the canonical name; MoguNote is the legacy
   // alias still rendered by older posts — both must mask, or switching a post to
   // MoguNote silently reintroduces false positives.
-  const NOTE_COMPONENTS = ['MoguNote', 'ClawdNote', 'ShroomDogNote'];
+  const NOTE_COMPONENTS = ['MoguNote', 'MoguNote', 'ShroomDogNote'];
   let noteCloseTag = '';
 
   for (let i = startIndex; i < lines.length; i += 1) {

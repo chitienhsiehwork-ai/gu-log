@@ -1,0 +1,164 @@
+---
+ticketId: "GP-13"
+title: "Yapping to PRDs: Claude Code & Obsidian"
+originalDate: "2026-01-20"
+translatedDate: "2026-01-30"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@arscontexta (Heinrich) on X"
+sourceUrl: "https://x.com/arscontexta/status/2013718955576250466"
+summary: "以前開會是 Overhead（額外負擔），現在 Yapping (閒聊/碎念) 是工作。當我和同事針對專案「開聊」時，我們錄音。一小時後，逐字稿被處理完，突然間：有了文件、Feature ideas 進了 backlog、決策連同理由被捕捉、專案狀態更新了。Yapping IS Work。"
+lang: "zh-tw"
+tags: ["obsidian","claude-code","meeting","knowledge-management"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+import Toggle from '../../components/Toggle.astro';
+
+跟同事吃飯那種隨便聊的場合，往往才是 idea 最容易冒出來的地方。兩個工程師，滷肉飯還沒吃完，突然冒出「欸如果我們把這個 API 改成異步的會不會更好」——然後飯吃完，回到座位，那個 idea 就一起被消化掉了。
+
+這就是 Heinrich 想解決的問題。做法很簡單：**錄下來，然後讓 AI 去挖**。
+
+不是那種形式化的「現在開始錄音」，而是兩個人自然地聊專案、聊想法、聊「欸那個功能要不要改一下」——然後讓 Claude 去處理逐字稿。
+
+<MoguNote>
+"Yap" 這個字最近在英文圈超紅，就是一直講話、碎碎念的意思。Heinrich 直接把它升級成一種工作方法論：廢話不是廢話，是尚未被 mining 的黃金 (￣▽￣)／
+
+老實說，「Yapping IS Work」這個 framing 才是這篇推文最強的地方，不是技術本身。因為它解決的不是效率問題，是**自我說服問題**——大部分工程師不缺工具，缺的是一個讓自己覺得「在茶水間聊天不是浪費時間」的許可。Heinrich 給了這個許可，這個影響比任何 prompt 都大。
+</MoguNote>
+
+一小時的閒聊被處理完之後，拿到的東西是：
+
+文件自動生出來了。Feature ideas 直接進了 backlog。決策連同「為什麼這樣決定」一起被記錄。專案狀態更新了。甚至連團隊的工作哲學都被萃取出來。
+
+而且所有東西都用 wikilinks 串在一起，連回原本的 Obsidian 筆記。
+
+等等，這也太爽了吧？
+
+## 但前提是：你的筆記不能是垃圾山
+
+這邊要先潑一盆冷水。這套東西能 work，前提是知識庫有結構。
+
+把它想成圖書館跟房間的差別。圖書館的書再多，想找什麼都找得到，因為有分類系統。但房間那疊書——連自己都不知道哪本在哪裡，更別說叫 AI 幫找了 ┐(￣ヘ￣)┌
+
+<MoguNote>
+這就像學校裡筆記王跟筆記渣的差別。筆記王的共筆借過來一看就懂，因為有標題、有分類、有重點標記。筆記渣的呢？一堆潦草字跡，連本人都看不懂。AI 就是那個跟你借筆記的同學——給它筆記王等級的結構，它能幫做出期末考重點整理；給它垃圾山，它只能跟你一起崩潰。
+
+不過這裡有個值得說的但書：這套方法對**已經有 Obsidian 習慣**的人是神器，但對知識庫還是廢墟的人，叫他們先整理 vault 再 mining，等於叫人先煮飯再請客——大部分人撐不過前面那個階段。Heinrich 的系統假設了一個很高的前提，這個前提值得明說，不要讀完覺得「好厲害」然後打開 Obsidian 空白頁就停下來了。
+</MoguNote>
+
+Heinrich 的做法是用 Obsidian 的資料夾結構來組織知識。當 Claude 需要理解 deployment 流程，它載入 `03_Areas/Infrastructure/Deployment Pipeline`。需要 database schema？載入 `02_Projects/Recipe-Manager/Docs/Database Schema`。
+
+每一塊知識都有自己的「地址」，AI 需要的時候知道去哪裡找。
+
+---
+
+## 為什麼用「聊」的比用「寫」的更有價值？
+
+有個很常見的直覺反應：直接寫文件不就好了，幹嘛要錄音再轉逐字稿？
+
+問題出在一個概念叫 **Tacit Knowledge（隱性知識）**。
+
+試想一個場景：去問資深工程師「這個 API 為什麼要這樣設計？」他可能會說「啊就...感覺這樣比較對」。這個「感覺」背後其實有十年的踩坑經驗，但寫文件的時候只會寫「API endpoint: /users/:id，method: GET」——過程全部蒸發掉了。
+
+但如果用聊的呢？他會自然地說出「其實我本來想用 GraphQL，但之前那個專案被搞到怕了」「這邊用 REST 是因為我們的 mobile team 比較熟」。這些推論路徑、這些不確定性、這些「本來想 A 結果選了 B」的過程——全部都會被逐字稿捕捉到。
+
+<MoguNote>
+這個我超有感。寫 code review comment 的時候會寫「請改成 X」，但面對面 review 的時候會說「其實我本來也考慮 Y，但後來發現 Z 的問題所以才選 X」——寫的時候我們會自動砍掉推論過程只留結論，但說的時候那個過程會自然流出來。
+
+Heinrich 等於是在 hack 人類的溝通本能 (⌐■_■)
+
+但我想說一件重要的事：這個系統的核心不是 AI，是**錄音這個動作本身**。AI 只是讓 harvest 變可能，但「說話」這個模式才是為什麼隱性知識會流出來的原因。如果 Heinrich 明天把 Claude 換成 GPT-4，這套照樣 work。真正的發現是：輕鬆聊天的格式解鎖了緊繃會議壓縮掉的東西。
+</MoguNote>
+
+**逐字稿就是把這些隱性知識外部化的最佳工具。**
+
+---
+
+## 挖礦，不是寫摘要
+
+這是 Heinrich 整套系統最關鍵的 mindset：不是叫 AI 去「摘要」會議內容，而是叫 AI 去「挖礦」。
+
+差別在哪？摘要就像看完一部兩小時的電影，跟朋友說「就是一個人去太空然後回來了」。挖礦是把每一幕的 insight 都挖出來——角色動機、伏筆、攝影技巧、配樂選擇。
+
+一場豐富的一小時會議可以挖出 10+ 個 idea、好幾個 framework、一打決策。如果 AI 只給 3-4 點摘要，那根本不夠深。
+
+<MoguNote>
+翻譯成台灣人的語言：去夜市吃了一整條街，回家跟室友說「就吃了一些東西」——這是摘要。把吃了哪些攤、哪個蚵仔煎最好吃、老闆跟你聊了什麼、排隊的時候聽到旁邊的人說什麼八卦——這才是 mining。Heinrich 的 prompt 就是在教 Claude 當一個貪婪的情報收集者，不放過任何一個細節 ╰(°▽°)╯
+
+說穿了，這個方法在利用一個認知盲點：**人在輕鬆狀態下說的話，密度遠高於緊繃狀態下寫的文字**。會議室那種正式感會壓縮思想的流量。吃飯聊天的格式本來就更好——錄音只是讓這個格式可以被 harvest 而已。
+</MoguNote>
+
+他的 prompt 設計分四步。先定義角色——知識庫的 knowledge architect，工作是用窮盡式的深度處理會議逐字稿，不容許遺漏任何東西。
+
+然後告訴 AI 要主動獵捕什麼：feature ideas（「如果可以這樣不是很酷嗎」）、新專案的火花、mental models、團隊哲學、決策、狀態更新、action items、blockers。甚至要找隱含的內容——埋在問題討論裡的 idea、順帶提到的哲學、因為「不做」而做的決策。
+
+第三步是 vault 同步——會議揭露了新的現實，vault 要跟著更新。每個被提到的專案都要去對照現有狀態，找出差異，更新 hub。
+
+最後是品質標準：一小時的會議只產出不到一頁的摘要？Red flag。只從腦力激盪中挖出 1-2 個 idea？Red flag。一場充滿狀態更新的會議卻沒識別出任何 state change？Red flag。
+
+<MoguNote>
+特別喜歡「decisions made by NOT deciding」這個概念。就像問老闆「要不要等到下季再做？」老闆說「不要等了直接做」——這本身就是一個決策，但如果只是寫會議記錄，這種「透過否定來決定」的東西超容易被漏掉。Heinrich 的 prompt 連這種邊角案例都抓到了，確實夠龜毛 (๑•̀ㅂ•́)و✧
+
+但說真的，這份 prompt 的 Red Flag 清單與其說是客觀標準，不如說是 Heinrich 自己對**高密度對話的品味**被 prompt 化了。一小時會議產出幾頁才算合格？這個標準完全因人而異。與其照單全收，更有用的做法是跑一次、看輸出、然後根據自己的對話密度去校準門檻——別把別人的品味當成自己的 KPI。
+</MoguNote>
+
+---
+
+## 延伸閱讀
+
+- [GP-3: Claude Code + Obsidian：打造 Agent 思考基礎設施](/posts/gp-3-20260129-claude-obsidian-infrastructure/)
+- [GP-4: Obsidian + Claude Code 101：讓 AI 住進你的筆記](/posts/gp-4-20260129-obsidian-claude-101/)
+- [GP-49: Obsidian + Claude 超級大腦：Tech Lead 帶團隊的版本長這樣](/posts/gp-49-20260211-obsidian-claude-super-brain/)
+
+---
+
+## 結語
+
+回到那個吃飯的場景。
+
+兩個工程師，滷肉飯還沒吃完，突然冒出「欸如果我們把這個 API 改成異步的會不會更好」。以前這句話的命運是：被吃完的飯一起消化掉，等到下次正式開會才又想到，但那時候脈絡已經斷了，推論路徑也找不回來了。
+
+Heinrich 的系統給這句話一個不同的命運：被錄下來，被挖出來，被串連進 backlog，被標上「決策：2026-01-20，原因：mobile team 熟悉度」。整個流程多的動作只有一個。
+
+按下錄音鍵。
+
+**Yapping IS Work。**
+
+一直都是——只是現在有辦法把它跑成 pipeline 了。
+
+---
+
+## 社群精選問答
+
+<Toggle title="Q: 用什麼工具轉錄？">
+**@fed_177616752 問：** 用什麼工具產逐字稿？
+
+**Heinrich 回：** 任何 STT (Speech-to-Text) API 都可以。重點是後面的 mining，不是轉錄工具本身。
+
+**@dazhengzhang：** Granola 和 ChatGPT 內建錄音都有人在用。
+</Toggle>
+
+<Toggle title="Q: 隱私問題怎麼辦？">
+**@ePascal_ 問：** 團隊錄音的隱私和同意權怎麼處理？
+
+Heinrich 沒回這題，但這確實是個好問題。錄音前跟團隊講一聲、取得同意是基本的。不過以 Heinrich 的 use case 來看，比較像兩個 co-founder 自己錄自己的討論，情境相對單純。
+</Toggle>
+
+<Toggle title="其他應用場景">
+**@jcochranio：** 要拿這套去處理 Watch Later 清單裡的 YouTube 影片。不用看影片，直接 scrape ideas。
+
+**@C_King_Evidence：** 這改變了開會典範。現在居然會期待 stakeholder feedback，因為那會變成超肥美的 transcript 等著被 mining。
+</Toggle>

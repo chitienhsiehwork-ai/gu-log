@@ -120,7 +120,7 @@ export GP_WRITER_BROKER_TIMEOUT=1800
 
 ```bash
 GP_WRITER_MODE=subagent GP_WRITER_BROKER_DIR="$broker_dir" \
-  tools/sp-pipeline/gp-pipeline ralph ... &
+  tools/gp-pipeline/gp-pipeline ralph ... &
 pipeline_pid=$!
 
 while true; do
@@ -156,7 +156,7 @@ scripts/writer-broker-wait.sh --dir <broker_dir> --pid <pipeline_pid> [--timeout
 
 - 首稿 prose 由 Claude Opus 產出。
 - refine / rewrite prose 由 Claude Opus 產出。
-- Codex 可以整理 brief、挑 context、跑 validator、跑 scorer、萃取評審 feedback、檢查 frontmatter、修格式錯誤；但不能自己補正文段落、改寫句子、加 ClawdNote 當成內容。
+- Codex 可以整理 brief、挑 context、跑 validator、跑 scorer、萃取評審 feedback、檢查 frontmatter、修格式錯誤；但不能自己補正文段落、改寫句子、加 MoguNote 當成內容。
 - Claude 不可用時，停在「可交接的 Opus brief + scoring plan」，不要用 Codex 代筆硬完成。
 
 低 token 工作流：
@@ -206,7 +206,7 @@ Output only MDX.
 
 Non-negotiable:
 - zh-tw, Taiwan wording.
-- No 「你 / 我」 in body; allowed inside ClawdNote / ShroomDogNote only.
+- No 「你 / 我」 in body; allowed inside MoguNote / ShroomDogNote only.
 - Writing/refine/rewrite must be your prose; Codex is only orchestrating.
 - Fast-forward boring implementation details.
 

@@ -1,6 +1,6 @@
-// Command sp-pipeline is the Go implementation behind scripts/sp-pipeline.sh.
-// See tools/sp-pipeline/README.md for the migration history and
-// tools/sp-pipeline/SKILL.md for the agent-facing subcommand contract.
+// Command gp-pipeline is the Go implementation behind scripts/gp-pipeline.sh.
+// See tools/gp-pipeline/README.md for the migration history and
+// tools/gp-pipeline/SKILL.md for the agent-facing subcommand contract.
 package main
 
 import (
@@ -14,8 +14,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/config"
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/logx"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/config"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/logx"
 )
 
 // Version is hardcoded; Phase 2 will replace this with ldflags injection
@@ -54,9 +54,9 @@ func buildRoot() *cobra.Command {
 
 	root := &cobra.Command{
 		Use:   "gp-pipeline",
-		Short: "gu-log translation pipeline (a.k.a. sp-pipeline; Gu-log Picks)",
-		Long: `gp-pipeline ("Gu-log Picks") is the Go rewrite of gu-log's SP/CP
-translation pipeline. The legacy command name sp-pipeline is retained as a
+		Short: "gu-log translation pipeline (a.k.a. gp-pipeline; Gu-log Picks)",
+		Long: `gp-pipeline ("Gu-log Picks") is the Go rewrite of gu-log's GP/MP
+translation pipeline. The legacy command name gp-pipeline is retained as a
 backwards-compat shim and keeps working identically; the ticket prefix and post
 filename slug also stay SP / sp- by design.
 
@@ -76,7 +76,7 @@ one step at a time without inheriting the whole pipeline's side effects:
   doctor     check that every external dependency is reachable
   counter    read / bump the ticket counter
 
-Use --help on any subcommand for details. See tools/sp-pipeline/README.md
+Use --help on any subcommand for details. See tools/gp-pipeline/README.md
 for the migration history and current operational notes.`,
 		Version:       Version,
 		SilenceErrors: true,
@@ -107,7 +107,7 @@ for the migration history and current operational notes.`,
 	root.PersistentFlags().DurationVar(&flagTimeout, "timeout", 50*time.Minute,
 		"wall-clock timeout for the entire invocation (e.g. 50m, 1h30m)")
 	root.PersistentFlags().StringVar(&flagWorkDir, "work-dir", "",
-		"override the work directory (default: $TMPDIR/sp-pending-<epoch>-pipeline; lives outside the repo; Codex is invoked with --skip-git-repo-check)")
+		"override the work directory (default: $TMPDIR/gp-pending-<epoch>-pipeline; lives outside the repo; Codex is invoked with --skip-git-repo-check)")
 	root.PersistentFlags().StringVar(&flagFakeProvider, "fake-provider", "",
 		"(test only) path to a JSON file with canned LLM responses; replaces the real provider chain")
 	_ = root.PersistentFlags().MarkHidden("fake-provider")

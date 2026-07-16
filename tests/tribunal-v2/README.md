@@ -44,7 +44,7 @@ Tribunal v2 的 mental model 和 decisions 都 locked 了（見 `.score-loop/spe
 | --------------------------------------- | ------------------------------------------------------------ |
 | **Vibe 好不好**                         | 主觀判斷，沒有 oracle                                        |
 | **FactCorrector 真的找到錯誤嗎**        | 需要 eval dataset（標註過的文章集）才能測                    |
-| **ClawdNote 梗好不好笑**                | 人類都無法 agree，測個屁                                     |
+| **MoguNote 梗好不好笑**                | 人類都無法 agree，測個屁                                     |
 | **Judge calibration（分數準不準）**     | 需要 human-labeled ground truth                              |
 | **實際翻譯品質**                        | 同上                                                         |
 | **LLM 真的遵守 negative constraint 嗎** | 測不到 — 只能測「我們有沒有用 programmatic diff check 兜底」 |
@@ -96,7 +96,7 @@ Tribunal v2 的 mental model 和 decisions 都 locked 了（見 `.score-loop/spe
 | 01  | `pseudo/01-writer-constraints.pseudo.ts` | Programmatic diff check — URLs/headings/frontmatter 在 writer 跑完後必須不變 | ★★☆  |
 | 02  | `pseudo/02-pass-bar.pseudo.ts`           | Pass bar 公式（Stage 1 absolute, Stage 4 relative）                          | ★☆☆  |
 | 03  | `pseudo/03-judge-schemas.pseudo.ts`      | Judge output JSON 的 shape validation（Zod / TS types）                      | ★★☆  |
-| 04  | `pseudo/04-fact-corrector.pseudo.ts`     | Standing checklist 塞進 prompt、source URL fetch、ClawdNote scope 排除       | ★★★  |
+| 04  | `pseudo/04-fact-corrector.pseudo.ts`     | Standing checklist 塞進 prompt、source URL fetch、MoguNote scope 排除       | ★★★  |
 | 05  | `pseudo/05-stage-transitions.pseudo.ts`  | Stage 之間的 state machine（PASS/FAIL/retry/max loops/NEEDS_REVIEW）         | ★★★  |
 | 06  | `pseudo/06-frontmatter.pseudo.ts`        | Frontmatter schema 擴充（`warnedByStage0`, `warnReason`, `stage4Scores`）    | ★☆☆  |
 | 07  | `pseudo/07-banner-rendering.pseudo.ts`   | Banner UI 從 frontmatter 讀資料並渲染（Astro component）                     | ★★☆  |

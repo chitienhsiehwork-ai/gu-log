@@ -2,24 +2,24 @@
 
 Agent-facing usage guide. If you are a future agent session picking up work on gu-log, read this before running any `gp-pipeline` subcommand.
 
-> **Status**: Phase 4 complete. Every subcommand is live. `gp-pipeline run <url>` is the canonical entry point. `scripts/sp-pipeline.sh` is a thin shim that execs into this binary.
+> **Status**: Phase 4 complete. Every subcommand is live. `gp-pipeline run <url>` is the canonical entry point. `scripts/gp-pipeline.sh` is a thin shim that execs into this binary.
 
-## Naming: gp-pipeline vs sp-pipeline
+## Naming: gp-pipeline vs gp-pipeline
 
-The command was renamed `sp-pipeline` → **`gp-pipeline`** ("Gu-log Picks", matching the blog brand). Both wrappers (`tools/sp-pipeline/gp-pipeline` and the retained `tools/sp-pipeline/sp-pipeline` shim) and both scripts (`scripts/gp-pipeline.sh`, `scripts/sp-pipeline.sh`) work identically — `sp-pipeline` simply execs `gp-pipeline`. On purpose, **only the command surface moved**: the Go module directory keeps its historical name `tools/sp-pipeline/` (renaming a 40-file module is pure churn), and the **ticket prefix + post filename slug stay `SP` / `sp-`**. So a `gp-pipeline` run still produces `sp-NNN-…` posts — that mismatch is intentional and brand-correct (SP = "Shroom Picks" lineage under the GP umbrella).
+The command was renamed `gp-pipeline` → **`gp-pipeline`** ("Gu-log Picks", matching the blog brand). Both wrappers (`tools/gp-pipeline/gp-pipeline` and the retained `tools/gp-pipeline/gp-pipeline` shim) and both scripts (`scripts/gp-pipeline.sh`, `scripts/gp-pipeline.sh`) work identically — `gp-pipeline` simply execs `gp-pipeline`. On purpose, **only the command surface moved**: the Go module directory keeps its historical name `tools/gp-pipeline/` (renaming a 40-file module is pure churn), and the **ticket prefix + post filename slug stay `SP` / `sp-`**. So a `gp-pipeline` run still produces `sp-NNN-…` posts — that mismatch is intentional and brand-correct (SP = "Gu-log Picks" lineage under the GP umbrella).
 
 ## What this binary is
 
-`gp-pipeline` is the Go rewrite of `scripts/sp-pipeline.sh`. It exists because the bash pipeline hit 1428 lines, embedded two Python validators, and grew an in-house LLM dispatcher — all of which are easier to test, compose, and reason about in Go.
+`gp-pipeline` is the Go rewrite of `scripts/gp-pipeline.sh`. It exists because the bash pipeline hit 1428 lines, embedded two Python validators, and grew an in-house LLM dispatcher — all of which are easier to test, compose, and reason about in Go.
 
-Design brief: Nick Baumann's "bespoke CLI + skill wrapper" pattern (translated as gu-log SP-170). Every step of the pipeline is a separate subcommand. Every subcommand has `--json` output so another agent can parse the result and compose the next step.
+Design brief: Nick Baumann's "bespoke CLI + skill wrapper" pattern (translated as gu-log GP-170). Every step of the pipeline is a separate subcommand. Every subcommand has `--json` output so another agent can parse the result and compose the next step.
 
 ## The build step
 
 The binary is not checked into git. Before running any subcommand, the self-compiling wrapper handles the first-time build automatically:
 
 ```bash
-tools/sp-pipeline/gp-pipeline doctor
+tools/gp-pipeline/gp-pipeline doctor
 ```
 
 Expected: first call takes ~3 seconds (cold compile), subsequent calls are instant. If the wrapper reports `"go" not found on PATH`, install Go >= 1.24 before continuing.
@@ -36,7 +36,7 @@ Expected: first call takes ~3 seconds (cold compile), subsequent calls are insta
 | "Run everything except deploy" | `gp-pipeline run --dry-run <url>` | Stops before the deploy step |
 | "Is my environment set up correctly?" | `gp-pipeline doctor` | Walks PATH + repo-relative files, exits 0 if all required deps present |
 | "Can the LLM providers respond non-interactively?" | `gp-pipeline doctor --probe-llm` | Sends a 1-token canary to each provider, reports ok/error/missing |
-| "Just capture a tweet without running anything else" | `gp-pipeline fetch <url>` | Captures into `$TMPDIR/sp-pending-<epoch>-pipeline/source-tweet.md` |
+| "Just capture a tweet without running anything else" | `gp-pipeline fetch <url>` | Captures into `$TMPDIR/gp-pending-<epoch>-pipeline/source-tweet.md` |
 | "What ticketId will the next SP use?" | `gp-pipeline counter next --prefix SP` | Reads counter without mutating |
 | "Allocate a new ticketId" | `gp-pipeline counter bump --prefix SP` | Atomically advances under `flock` |
 | "Is this source already covered?" | `gp-pipeline dedup --url <x> --title <t>` | Wraps `scripts/dedup-gate.mjs` |
@@ -52,7 +52,7 @@ All subcommands inherit these from the root command:
 - `--json` — single JSON object on stdout, human-readable logs on stderr. Use this whenever another agent parses the output
 - `--verbose` / `-v` — extra debug logs on stderr (currently reserved; no extra output yet)
 - `--timeout 50m` — wall-clock deadline for the whole invocation (Go duration string). Default 50m matches the bash pipeline's `PIPELINE_TIMEOUT=3000`
-- `--work-dir <dir>` — pin the pipeline work directory. Default is `$TMPDIR/sp-pending-<unix>-pipeline` — deliberately **outside** the repo（scratch space；Codex route 用 `--skip-git-repo-check` 在裡面跑），找進行中的 run 不要在 `$REPO/tmp` 下翻
+- `--work-dir <dir>` — pin the pipeline work directory. Default is `$TMPDIR/gp-pending-<unix>-pipeline` — deliberately **outside** the repo（scratch space；Codex route 用 `--skip-git-repo-check` 在裡面跑），找進行中的 run 不要在 `$REPO/tmp` 下翻
 
 ## pipeline-status.json
 
@@ -79,7 +79,7 @@ These three flags shape the LLM output without changing the step sequence. Use t
 Example: SP from a docs page with a custom angle:
 
 ```bash
-tools/sp-pipeline/gp-pipeline run \
+tools/gp-pipeline/gp-pipeline run \
   --angle "Focus on Task Flow while introducing the others. Use intriguing stories to cover the knowledge." \
   --source-label "OpenClaw Docs" \
   https://docs.openclaw.ai/automation
@@ -95,7 +95,7 @@ Every subcommand emits a single JSON object on stdout when `--json` is set:
   "step": "fetch",
   "url": "https://x.com/nickbaumann_/status/...",
   "output": {
-    "sourceFile": "/.../tmp/sp-pending-.../source-tweet.md",
+    "sourceFile": "/.../tmp/gp-pending-.../source-tweet.md",
     "handle": "@nickbaumann_",
     "date": "2026-04-10",
     "fetchedVia": "fxtwitter",
@@ -143,7 +143,7 @@ Distinct per failure mode so agents can branch on `$?` without parsing stderr:
 **Safe to run autonomously** (read-only, tmp-scoped, or file-scoped under --file):
 
 - `doctor`, `doctor --probe-llm`
-- `fetch` (writes only to `tmp/sp-pending-<epoch>-pipeline/`)
+- `fetch` (writes only to `tmp/gp-pending-<epoch>-pipeline/`)
 - `counter next` (read-only)
 - `dedup` (read-only, invokes the Node gate)
 - `eval`, `write`, `review`, `refine` (each writes only under `--work-dir`)
@@ -186,11 +186,11 @@ fetch shelled out to `scripts/fetch-x-article.sh`, got output, but the native Go
 
 You are on a machine without Go 1.24+. Install it from https://go.dev/dl/ or ask the user to do so. On CCC sandboxes Go is pre-installed at `/usr/local/go/bin/go`.
 
-## Relationship to `scripts/sp-pipeline.sh`
+## Relationship to `scripts/gp-pipeline.sh`
 
-The bash wrapper is now a compatibility shim. The production implementation lives in `tools/sp-pipeline/` and uses Codex/GPT-5.5 by default.
+The bash wrapper is now a compatibility shim. The production implementation lives in `tools/gp-pipeline/` and uses Codex/GPT-5.5 by default.
 
-Safe assumption: `bash scripts/sp-pipeline.sh <url>` and `tools/sp-pipeline/gp-pipeline run <url>` exercise the same Go pipeline surface. Use `--dry-run` for rehearsal.
+Safe assumption: `bash scripts/gp-pipeline.sh <url>` and `tools/gp-pipeline/gp-pipeline run <url>` exercise the same Go pipeline surface. Use `--dry-run` for rehearsal.
 
 ## Reporting issues
 

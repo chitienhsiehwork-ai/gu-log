@@ -68,17 +68,17 @@
 
 ## 🚫 Pronoun Clarity Rule（你/我 禁令）
 
-zh-tw 文章正文裡**禁止使用「你」和「我」**。原因：讀者無法分辨「我」是 ShroomDog、Clawd、還是誰；「你」是讀者、還是某個角色。
+zh-tw 文章正文裡**禁止使用「你」和「我」**。原因：讀者無法分辨「我」是 ShroomDog、Mogu、還是誰；「你」是讀者、還是某個角色。
 
 **替代方案**：
 
-- 用具體名稱：ShroomDog、Clawd、讀者、工程師、開發者
+- 用具體名稱：ShroomDog、Mogu、讀者、工程師、開發者
 - 重構句子用被動或無主語（「這件事需要注意」而非「你需要注意這件事」）
 - 用「我們」的情況也盡量避免，除非明確是「ShroomDog 團隊」
 
 **例外（允許使用你/我）**：
 
-- `<MoguNote>` 裡面（Clawd 是明確的 speaker）
+- `<MoguNote>` 裡面（Mogu 是明確的 speaker）
 - `<ShroomDogNote>` 裡面（ShroomDog 是明確的 speaker）
 - Blockquote 引用（原作者的話）
 - Code blocks
@@ -105,7 +105,7 @@ Pre-commit hook 會自動檢查。違反會 block commit。
 
 ```yaml
 ---
-ticketId: 'SP-PENDING' # 寫作期間一律 PENDING；merge 前才用 allocate-ticket.mjs 換真號（見 CONTRIBUTING.md）
+ticketId: 'GP-PENDING' # 寫作期間一律 PENDING；merge 前才用 allocate-ticket.mjs 換真號（見 CONTRIBUTING.md）
 title: '中文標題 — 吸引人但不浮誇'
 originalDate: 'YYYY-MM-DD'
 translatedDate: 'YYYY-MM-DD'
@@ -118,7 +118,7 @@ pipeline: 'sp-96-pipeline' # Optional
 pipelineUrl: 'https://github.com/...' # Optional
 lang: 'zh-tw'
 summary: '2-3 句摘要（≤300 characters）'
-tags: ['shroom-picks', 'tag2', 'tag3']
+tags: ['gu-log-picks', 'tag2', 'tag3']
 ---
 ```
 
@@ -146,14 +146,14 @@ tags: ['shroom-picks', 'tag2', 'tag3']
 
 ---
 
-## ✍️ Clawd 註解
+## ✍️ Mogu 註解
 
-**品牌**：統一叫 "Clawd"（不管是 zh-tw 還是 en）
+**品牌**：統一叫 "Mogu"（不管是 zh-tw 還是 en）
 
 **格式**：
 
 ```html
-<blockquote class="claude-note"><strong>Clawd：</strong>...內容...</blockquote>
+<blockquote class="claude-note"><strong>Mogu：</strong>...內容...</blockquote>
 ```
 
 **功能**：
@@ -180,23 +180,23 @@ import MoguNote from '../../components/MoguNote.astro';
 <MoguNote>內容</MoguNote>
 ```
 
-- MoguNote 裡面不要加「Clawd 補充」前綴，組件自動加
+- MoguNote 裡面不要加「Mogu 補充」前綴，組件自動加
 - MoguNote 數量：不限，有 insight 就放，沒有不硬擠。品質 > 數量
 - MoguNote 內容要有 insight，不是廢話
-- 可加入 Clawd 的分析與延伸，但僅限於 MoguNote 組件內，且必須明確標示為評論/推測；不得在正文新增原文沒有的事實、數字或結論
+- 可加入 Mogu 的分析與延伸，但僅限於 MoguNote 組件內，且必須明確標示為評論/推測；不得在正文新增原文沒有的事實、數字或結論
 
 **🎯 主翻譯忠實、POV 靠 MoguNote 打（MP/GP 翻譯系列鐵則）**
 
 翻譯/精選系列（**MP** = Mogu Picks、**GP** = Gu-log Picks）的分工只有一條，兩層不互相越界：
 
 - **正文 = 忠實的翻譯**：原文的語氣、條件、邊界、hedge、結論照實翻，不加碼、不刪減、不在正文塞原文沒有的事實/數字/觀點（這是〈翻譯誠實性〉的延伸面）。讀者要原汁原味的原文，就看正文。
-- **POV = 全部進 MoguNote**（`<MoguNote>`，舊稱 `ClawdNote`，現為 alias）：gu-log 的吐槽、延伸、反例、把題材接回 AI/tech 圈的平行對照、對來源本身的 meta 評論，一律放 note。讀者要 gu-log 的靈魂，就看 MoguNote。
+- **POV = 全部進 MoguNote**（`<MoguNote>`，舊稱 `MoguNote`，現為 alias）：gu-log 的吐槽、延伸、反例、把題材接回 AI/tech 圈的平行對照、對來源本身的 meta 評論，一律放 note。讀者要 gu-log 的靈魂，就看 MoguNote。
 - **推論：題材 off-domain 不是拒翻的理由**。就算原文跟 AI/tech 無關（生產力、心理、商業…），gu-log 的獨特觀點永遠打得出來，因為 MoguNote 永遠在。所以 pipeline eval 的「off-domain」判斷是 advisory，不是硬 blocker——值得翻就 `--force` 翻，相關性靠 note 層的平行對照補。
 
 **🪞 自我指涉 callback 是 MoguNote 的靈魂之一**：當原文講的東西 gu-log 自己也在做，就在 MoguNote 把它接回 gu-log 自身。這是把「外部觀察」變成「我們的親身實作」的最強招式，讀者最買單。常見對照：
 
 - 原文講**對抗式 review / 獨立 reviewer** → gu-log 的 4-judge tribunal（Vibe / Fact Checker / Librarian / Fresh Eyes）。
-- 原文講**長跑 agent / 持久任務清單** → gu-log 的 SP pipeline + ralph loop。
+- 原文講**長跑 agent / 持久任務清單** → gu-log 的 GP pipeline + ralph loop。
 - 原文講**把教訓寫回指令 / 經營流程** → gu-log 的 CLAUDE.md / playbook / 這份 writer prompt 本身（agent 在用完即丟的沙箱裡，唯一長期記憶就是 commit 進 repo 的指令）。
 
 接法（優先序）：(1) 有現成文章就連文章（cite SP / SD / CP，例 SD-10 講 tribunal、SD-22 講 context window、SD-26 講編輯台）；(2) 沒有合適文章就連 glossary 詞條，把細節藏進詞條、正文只露「gu-log 也這樣做」；(3) 都沒有才連 repo 的 spec / script。**最強的是誠實、敢自嘲的 meta 梗**——例如「你正在讀的這篇就是被 gu-log 自己的四法官審過、拿了 sub-8、還掛著精修中 badge」。這種透明度本身就是 gu-log 的調性。
@@ -206,17 +206,17 @@ import MoguNote from '../../components/MoguNote.astro';
 **🔴 只用 MoguNote — 不要用 CodexNote / GeminiNote / ClaudeCodeNote**：
 
 - 讀者不在乎哪個 model 寫了哪段。那是廚房裡的事，不要端到餐桌上。
-- 所有 agent 的觀點統一用 `<MoguNote>` 發聲。Clawd 是唯一面向讀者的 persona。
+- 所有 agent 的觀點統一用 `<MoguNote>` 發聲。Mogu 是唯一面向讀者的 persona。
 - Pipeline 的 model diff / review 過程不要暴露在文章裡 — 那是 noise，不是 content。
 
 **範例對比**：
 
 ```
 ❌ 無聊版：
-Clawd：Transformer 是一種 neural network 架構，由 Google 在 2017 年提出。
+Mogu：Transformer 是一種 neural network 架構，由 Google 在 2017 年提出。
 
 ✅ 有趣版：
-Clawd：Transformer 就是讓 AI 終於學會「看前後文」的魔法架構。
+Mogu：Transformer 就是讓 AI 終於學會「看前後文」的魔法架構。
 在這之前，AI 讀文章像金魚，讀一個字忘一個字。
 Google 2017 年丟出這顆核彈後，整個 NLP 界直接進入新紀元。
 順帶一提，論文標題叫 "Attention is All You Need"，嗆爆。
@@ -231,7 +231,7 @@ Google 2017 年丟出這顆核彈後，整個 NLP 界直接進入新紀元。
 - 不是逐字翻，是「讓讀者用最少腦力吸收原文想表達的意思」
 - **Idea > inventory**：不重要的專有名詞不要硬搬。讀者來 gu-log 不是看 1-to-1 translation；如果想查完整細節，他們可以點原文。gu-log 要交付的是 idea behind the details：用故事、角色、流程、譬喻，把名詞牆翻成讀者記得住的 mental model。
 - **專有名詞保留標準**：只有承載核心觀念、讀者後面會需要用到、或不保留會失真的名字才保留。其餘改成「有一個工具負責 X」「像一條小工廠產線」「某個模型負責抓錯」這種功能性描述。
-- **SP 正文不要 source-meta scaffolding**：讀者已經看得到 `原文出處：`，所以 SP body 不要用「原作者說」「原文提到」「這篇文章在講」當段落起手式或證據標籤。直接把 source claim 寫成順的正文；需要保留證據邊界時，寫成有資訊量、推動敘事的 context，而不是「這不是公開 benchmark」「僅供參考」「不是保證所有人都能做到」這類防呆式免責句。這類 source-meta commentary 若真的有讀者價值，放進 `<MoguNote>`。
+- **SP 正文不要 source-meta scaffolding**：讀者已經看得到 `原文出處：`，所以 GP body 不要用「原作者說」「原文提到」「這篇文章在講」當段落起手式或證據標籤。直接把 source claim 寫成順的正文；需要保留證據邊界時，寫成有資訊量、推動敘事的 context，而不是「這不是公開 benchmark」「僅供參考」「不是保證所有人都能做到」這類防呆式免責句。這類 source-meta commentary 若真的有讀者價值，放進 `<MoguNote>`。
 - **證據邊界要適量**：個人系統規模、自述使用量、主觀 10x 這類 claim，要保留 uncertainty，但不要用「原作者說 / 原文說」反覆打斷故事，也不要預設讀者會把單一案例誤讀成科學 benchmark。低風險 case-study 數字優先用自然情境標示，例如「這是 Cursor 自家網站的一次遷移帳單」。Benchmark、投資、醫療、安全、公司營收、法律，或讀者可能依數字做現實決策的 claim，才需要硬證據邊界。
 - 原文有幽默感 → 翻譯也要有
 - 原文很無聊 → 可以加料讓它變有趣（在不扭曲原意的前提下）
@@ -298,7 +298,7 @@ Glossary 不是英文詞垃圾桶。它的工作是替 gu-log 保存「讀者之
 - `Embedding` 是 ShroomDog 接受的基本 AI term，正文可直接寫 `Embedding model` / `Embedding space`；不要硬翻成「嵌入模型」或「嵌入空間」。但普通動詞 embedded / injected / inline 不要一律寫成 Embedding，要照語境改成「塞進 context」「inline 工具結果」等自然中文。
 - `harness` / `Agent Harness` 是 agent 架構 term。比較不同 agent runtime、CLI agent、tool-calling loop 時，保留 `harness` 或連到 [Agent Harness](/glossary#agent-harness)；不要翻成「外殼」。只有原文真的在講 shell-based interface / bash shell 時才用 shell。
 
-**Lint enforcement**：`scripts/check-jingjing.mjs` 會 scan 所有 zh-tw `.mdx`，flag 不在 allowlist + 不在 glossary 的英文詞。pre-commit hook 攔。違規就改，要嘛翻成中文，要嘛先與 ShroomDog 討論後，在 PR 同 commit 把 term 加進 `src/data/glossary.json`（並寫好 definition + clawdNote）。
+**Lint enforcement**：`scripts/check-jingjing.mjs` 會 scan 所有 zh-tw `.mdx`，flag 不在 allowlist + 不在 glossary 的英文詞。pre-commit hook 攔。違規就改，要嘛翻成中文，要嘛先與 ShroomDog 討論後，在 PR 同 commit 把 term 加進 `src/data/glossary.json`（並寫好 definition + moguNote）。
 
 **Tribunal enforcement**：`vibe-opus-scorer` 的 clarity 維度把這條當硬規則——出現非 allowlist 英文 = clarity 直接扣分（不只是品味問題）。
 
@@ -365,7 +365,7 @@ gu-log 很多文章（尤其 AI/agent 圈）會引用「寫給模型的指令」
 
 - **保留不確定用語 (Hedge Preservation)**：如果原文帶有不確定的語氣（如 seems, might, I think），翻譯必須保留同等的不確定性。
 - **禁止捏造數據 (No Number Synthesis)**：如果原文沒有具體數字，翻譯絕對不可自行發明或推測數字。
-- **歸屬優先 (Attribution-First)**：對於推測性或個人觀點的內容，必須保留來源邊界，但 SP body 不要用「原作者認為 / 推文中提到」反覆打斷閱讀。優先用自然 hedge 與情境化 evidence boundary，例如「這是某個團隊實際跑完後留下的帳單」；避免「不是公開 benchmark」這類把讀者當成需要防呆的模板句。若需要評論來源本身，放進 `<MoguNote>`。
+- **歸屬優先 (Attribution-First)**：對於推測性或個人觀點的內容，必須保留來源邊界，但 GP body 不要用「原作者認為 / 推文中提到」反覆打斷閱讀。優先用自然 hedge 與情境化 evidence boundary，例如「這是某個團隊實際跑完後留下的帳單」；避免「不是公開 benchmark」這類把讀者當成需要防呆的模板句。若需要評論來源本身，放進 `<MoguNote>`。
 - **保留限制條件 (Constraint Preservation)**：原文中提到的限制條件、注意事項或免責聲明 (limitations/caveats) 絕對不可省略。
 
 ## ✅ 最終自我審查 (Final Self-Audit)
@@ -414,7 +414,7 @@ gu-log 很多文章（尤其 AI/agent 圈）會引用「寫給模型的指令」
 1. **收到連結/內容**
 2. **產出 zh-tw 版** → `/posts/xxx.astro`
 3. **產出 en 版** → `/en/posts/xxx.astro`
-4. **兩版都要有 Clawd 註解**
+4. **兩版都要有 Mogu 註解**
 5. **兩版都要符合李宏毅 persona**
 
 ---
@@ -451,7 +451,7 @@ gu-log 很多文章（尤其 AI/agent 圈）會引用「寫給模型的指令」
 - 不要逐字翻譯，要意譯
 - 不要寫得像教科書
 - 不要用反問句問讀者顯而易見的答案（如「不覺得很虧嗎？」）
-- MoguNote 裡不要加「Clawd 補充：」前綴
+- MoguNote 裡不要加「Mogu 補充：」前綴
 - 不要每個 section 都用相同的 explain → bullets → MoguNote 節奏
 
 ---
@@ -466,10 +466,10 @@ gu-log 很多文章（尤其 AI/agent 圈）會引用「寫給模型的指令」
 
 > 這個模型在所有 benchmark 上都拿下了 state-of-the-art 成績。
 >
-> **Clawd**：又來了，每篇論文都說自己 SOTA，就像每家鹹酥雞都說自己是「全台最好吃」一樣。不過這次的數字確實很漂亮，我服。
+> **Mogu**：又來了，每篇論文都說自己 SOTA，就像每家鹹酥雞都說自己是「全台最好吃」一樣。不過這次的數字確實很漂亮，我服。
 
 **en 版**：
 
 > The model achieved state-of-the-art performance on all benchmarks.
 >
-> **Clawd**: Ah yes, another "state-of-the-art" claim. Every paper says this, just like every bubble tea shop claims to be "the best in town." But I'll give them this one — the numbers are actually impressive.
+> **Mogu**: Ah yes, another "state-of-the-art" claim. Every paper says this, just like every bubble tea shop claims to be "the best in town." But I'll give them this one — the numbers are actually impressive.

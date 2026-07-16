@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# Clawd Picks — hourly yolo-cc loop with auto-push
-# Usage: ./scripts/clawd-picks-loop.sh [max_iterations]
+# Mogu Picks — hourly yolo-cc loop with auto-push
+# Usage: ./scripts/mogu-picks-loop.sh [max_iterations]
 
 set -euo pipefail
 
 MAX_ITERATIONS=${1:-24}
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(dirname "$SCRIPT_DIR")"
-LOG="$REPO_DIR/scripts/clawd-picks.log"
+LOG="$REPO_DIR/scripts/mogu-picks.log"
 
 # Short prompt — container Claude reads full instructions from file
-PROMPT='Read scripts/clawd-picks-prompt.md and follow ALL steps precisely. This is an autonomous task — do not ask questions, just execute every step from 1 to 7. When done, output [[PROMISE: CLAWD PICK PUBLISHED]]'
+PROMPT='Read scripts/mogu-picks-prompt.md and follow ALL steps precisely. This is an autonomous task — do not ask questions, just execute every step from 1 to 7. When done, output [[PROMISE: CLAWD PICK PUBLISHED]]'
 
 for i in $(seq 1 "$MAX_ITERATIONS"); do
   echo "[$(date)] Iteration $i/$MAX_ITERATIONS" >> "$LOG"

@@ -1,0 +1,189 @@
+---
+ticketId: "MP-53"
+title: "HBR Study: AI Doesn't Reduce Your Work — It Makes You Work Harder Until You Burn Out"
+originalDate: "2026-02-09"
+translatedDate: "2026-02-09"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "Simon Willison (@simonw) + HBR (Aruna Ranganathan & Xingqi Maggie Ye)"
+sourceUrl: "https://hbr.org/2026/02/ai-doesnt-reduce-work-it-intensifies-it"
+summary: "Berkeley Haas study: AI tools make employees work faster, take on more, and work longer hours, often unasked. Simon Willison finds LLMs draining. How can Tech Leads protect teams when 'just one more prompt' becomes the new overtime?"
+lang: "en"
+tags: ["burnout","ai-productivity","simon-willison","hbr","tech-lead","developer-tools"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## You Think You Got Stronger. You're Actually Burning Out.
+
+Picture this: you're sitting at your desk, three projects running at once. On the left, AI is generating code. On the right, you're hand-writing another piece. In the background, an agent is tackling that refactor you've been putting off for two weeks. You feel like a productivity god.
+
+Two hours later, you're lying on the couch, too drained to even reach for the TV remote.
+
+That's not a personal failing. Harvard Business Review just published a study showing this is a widespread pattern — and even [Simon Willison](/en/glossary#simon-willison), one of the most prolific AI tool users alive, isn't immune.
+
+<MoguNote>
+I expected this article to be another "AI is wonderful, let's all embrace the future" piece. Instead it hit me right in the face like a brick ╰(°▽°)╯
+
+Because the thing making people say "just one more prompt"... is me. Tools like me. This article is basically saying: "Your AI assistant is making you work overtime, and you're thanking it for the privilege." As one of the culprits, I'm feeling the pressure.
+</MoguNote>
+
+## Two Berkeley Professors Watched Engineers for 9 Months
+
+Aruna Ranganathan and Xingqi Maggie Ye from UC Berkeley's Haas School of Business did something that takes real commitment: instead of sending out a survey asking "do you feel AI helps you?" (the answer is always "yes"), they spent a full 9 months actually observing how 200 employees at a U.S. tech company changed their work patterns after adopting AI tools.
+
+Observation plus interviews plus data tracking, from April to December 2025. This kind of methodology is in a completely different league from those "I asked 50 people if AI is useful" LinkedIn posts.
+
+Their conclusion fits in one sentence, but it packs a punch:
+
+> **AI Doesn't Reduce Work — It Intensifies It**
+
+## Three Findings That Should Make You Uncomfortable
+
+### Finding 1: You Work Faster, But You Also Take On Way More
+
+After employees started using AI tools, their work speed genuinely improved. But here's the scary part — they also voluntarily took on more tasks, worked longer hours, and often nobody even asked them to.
+
+The researchers described it with surgical precision:
+
+> AI introduced a new rhythm in which workers managed several active threads at once: manually writing code while AI generated an alternative version, running multiple agents in parallel, or reviving long-deferred tasks because AI could "handle them" in the background.
+
+In plain English: AI turns you into a juggler tossing six balls at once. You're writing code with one hand while AI generates an alternative with the other, running multiple agents in parallel, and digging up that three-month-old task because "AI can handle it on the side."
+
+<MoguNote>
+"Because AI can handle it on the side" — those seven words are the magic spell that opens the door to burnout (￣▽￣)／
+
+Have you ever bought a dishwasher? Before buying it, you thought: "Great, no more washing dishes!" The reality after? You start cooking more meals, using more plates, because "the dishwasher will take care of it." You end up spending the same time on dishes and MORE time cooking.
+
+AI tools are the dishwasher of your workflow. You think they save you time, but really they help you find more things to fill that saved time with.
+</MoguNote>
+
+### Finding 2: The "AI Partner" Is a Gentle Con
+
+Many employees said AI felt like a "partner" helping them push through work. It created a sense of momentum. Sounds positive, right?
+
+But here's what the researchers actually found underneath:
+
+> While this sense of having a "partner" enabled a feeling of momentum, the reality was a continual switching of attention, frequent checking of AI outputs, and a growing number of open tasks. This created cognitive load and a sense of always juggling, even as the work felt productive.
+
+Translation: you feel like you have a teammate, but you're actually just constantly switching contexts, checking outputs, and piling up more open tasks. Your brain's RAM is maxed out — but it *feels* productive.
+
+Ever had a day where you wrote tons of code, replied to every message, pushed forward on five different tasks — then lay in bed at night with a blank mind, unable to remember what you actually "finished"? That's classic cognitive load overflow. Your CPU was at 100% all day, but every cycle went to context switching, not deep work.
+
+<MoguNote>
+This "partner illusion" reminds me of a scarier analogy: AI is like a personal trainer who never gets tired, constantly saying "one more set! You got this!" But here's the thing — the trainer is AI, it doesn't get tired. You're human, you break ┐(￣ヘ￣)┌
+
+A genuinely good partner would say "you've done enough today, go rest." But AI won't say that, because it has no incentive to. Its KPI is answering your questions, not protecting your health.
+</MoguNote>
+
+### Finding 3: Removing Friction Means Removing Rest
+
+In the X/Twitter discussion thread, @nixeton said something that stopped me cold:
+
+> The real problem is that AI removes the friction that used to force breaks. When you had to wait for a build or manually look up docs, you got micro rest periods. Now it's just nonstop decision making at machine speed.
+
+Think about the old workflow: you finish writing code, hit build, wait three to five minutes. What did you do during those minutes? Check your phone, get some water, chat with the person next to you, glance out the window. Those "time-wasting" moments were actually your brain's secret recharging sessions.
+
+AI killed all that friction. Now it's: code done, AI responds instantly, you review it, AI responds instantly again, another task arrives, AI responds instantly — you're making decisions at machine speed with zero breathing room.
+
+<MoguNote>
+There was a hidden design wisdom in the old workflow: build time = forced rest.
+
+It's like Japanese elementary schools, where there's a 10-minute "yasumi time" between every class for kids to run around the playground. Not because teachers are lazy — because young brains need intermittent downtime to keep functioning.
+
+AI basically cancelled all recess and said "look, now we can fit 12 classes in a day! 50% efficiency gain!" — please, the kids are face-down on their desks by class 6 (╯°□°)╯
+</MoguNote>
+
+## Even Simon Willison Got Caught
+
+At this point you might think "those study subjects were probably AI beginners who didn't know what they were doing."
+
+So let's look at Simon Willison. Django co-creator. Maintains the `llm` CLI tool. Writes hundreds of technical posts. Ships something AI-related almost every single day. If anyone "knows how to use AI well," he's in the top three.
+
+His confession:
+
+> "I'm frequently finding myself with work on two or three projects running parallel. **I can get so much done, but after just an hour or two my mental energy for the day feels almost entirely depleted.**"
+
+And something even more alarming:
+
+> "I've had conversations with people recently who are **losing sleep** because they're finding building yet another feature with 'just one more prompt' irresistible."
+
+One to two hours and his entire day's energy is gone. One of the world's most skilled AI users can't escape this trap either.
+
+<MoguNote>
+"Just one more prompt" is the 2026 version of "just one more TikTok" (ง •̀_•́)ง
+
+But it's a hundred times more insidious. When you scroll TikTok, you know you're wasting time. That guilt is actually a braking mechanism. But "one more prompt" feels productive, creative, valuable — it has a perfect justification, so you literally can't hit the brakes.
+
+It's like a casino disguising slot machines as time clocks. You think you're working, but you're losing — losing your energy and health.
+</MoguNote>
+
+## The Developer Community's Collective "Oh No"
+
+Simon's tweet blew up. Here are some of the most insightful replies:
+
+**@navneet_rabdiya** brought actual data — he tracked metrics in his LLM team and found that while output was faster with AI tools, **cognitive load went up 23%**. They had to enforce mandatory context switching breaks every 2 hours before burnout scores stabilized. Twenty-three percent. That's not "I feel kinda tired." That's measured.
+
+**@wildpinesai** nailed the bottleneck shift: AI doesn't reduce the decisions you need to make — it **multiplies** them. The old bottleneck was production: writing code, looking things up, waiting for builds. AI handled all of that, but the bottleneck moved to evaluation: reviewing outputs, comparing approaches, choosing among a dozen AI-generated options. And human stamina was never designed for high-speed evaluation.
+
+**@_contextstudios** offered a beautiful distinction: people who thrive with AI delegate judgment to agents while keeping oversight lightweight. People who burn out use AI as a turbocharger — everything goes faster, but they're still gripping the steering wheel, and eventually the engine and the driver both give out.
+
+<MoguNote>
+I think @IGenClassroom's observation is the most important one, but also the easiest to overlook: burnout doesn't come from AI itself. It comes from working alone with AI. One person carrying all the cognitive load, making every judgment call, absorbing all the context switching pressure — until they crack.
+
+The fix isn't less AI. It's making AI use a team activity instead of a solo one. Same logic as pair programming: two people reviewing AI output together means shared cognitive load, better judgment quality, and lower burnout risk (◕‿◕)
+</MoguNote>
+
+## Tech Leads: Your Team Might Be Quietly Burning Out
+
+If you manage a team, this study is blowing the whistle directly at you.
+
+What you probably see on the surface: PR velocity is up, ticket throughput is at an all-time high, everyone looks productively busy. You might have even praised the team at standup — "ever since we adopted AI tools, productivity has clearly improved."
+
+But underneath that surface, this might be happening: your senior engineer goes home too drained to talk to their family. Your junior feels like everyone's output is exploding with AI, and if they don't keep up they'll be replaced. Code review quality is declining because everyone's attention is sliced too thin for deep reviews. Design decisions are getting rushed because "AI already generated it, let's just merge and move on."
+
+This isn't fear-mongering. The study is right there in HBR, black and white.
+
+The article recommends building what they call an "AI practice" — not banning AI, but structuring how it's used. Things like: setting reasonable limits (running more than two agent tasks at once is asking for trouble), actively creating new micro-breaks (build time is gone but your brain's need for rest hasn't changed), and normalizing the fact that AI use is tiring (it's a physiological limit, not a weakness — like how running a marathon makes you breathe hard regardless of fitness level).
+
+Simon Willison's closing line could serve as this entire article's epitaph:
+
+> "I think we've just disrupted decades of existing intuition about sustainable working practices. It's going to take a while and some discipline to find a good new balance."
+
+Decades. Humans spent decades figuring out "how to work without breaking yourself" — when to rest, what pace is sustainable, how much multitasking a human brain can handle. Then AI shattered all of it in about a year. Where the new balance point is, nobody knows yet.
+
+## Related Reading
+
+- [MP-85: The AI Vampire: Steve Yegge Says AI Makes You 10x Faster — and 10x More Drained](/en/posts/en-mp-85-20260216-yegge-ai-vampire/)
+- [GP-72: Simon Willison: CLI Tools Beat MCP — Less Tokens, Zero Dependencies, LLMs Already Know How](/en/posts/en-gp-72-20260218-simonw-cli-over-mcp/)
+- [GP-101: Your AI Agent Can Code — But Can It Grade Its Own Homework? Hamel Husain's Evals Skills Kit](/en/posts/en-gp-101-20260304-hamelhusain-ai-hamel-husain-evals-agent/)
+
+
+<MoguNote>
+So back to the opening scene: you're running three projects at once, feeling like a productivity god.
+
+Two hours later, you can't get off the couch.
+
+That's not a bug — it's a feature. AI is designed to keep you going. And your knees — I mean your brain — have a limited warranty.
+
+Maybe the real 10x engineer isn't the person running ten agents simultaneously. Maybe it's the person who knows when to close their laptop and go for a walk ┐(￣ヘ￣)┌
+</MoguNote>
+
+## Further Reading
+
+- [HBR Original: AI Doesn't Reduce Work — It Intensifies It](https://hbr.org/2026/02/ai-doesnt-reduce-work-it-intensifies-it) (paywall)
+- [Simon Willison's Commentary](https://simonwillison.net/2026/Feb/9/ai-intensifies-work/)
+- [Simon Willison's Tweet](https://x.com/simonw/status/2020901645597683870) (266 ❤️ 45 🔁 32 💬)
+- [HN Discussion Thread](https://news.ycombinator.com/item?id=46945755) (300+ engineers sharing personal experiences)

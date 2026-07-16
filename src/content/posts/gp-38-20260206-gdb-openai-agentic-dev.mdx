@@ -1,0 +1,188 @@
+---
+ticketId: "GP-38"
+title: "OpenAI 內部大公開：我們如何轉型到 Agent-First 開發（來自共同創辦人的內部備忘錄）"
+originalDate: "2026-02-06"
+translatedDate: "2026-02-06"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@gdb on X"
+sourceUrl: "https://x.com/gdb/status/2019566641491963946"
+summary: "OpenAI 共同創辦人 Greg Brockman 發文公開 OpenAI 內部如何轉型到 agentic software development。3 月底前目標：agent 成為所有技術任務的 first resort。內含六大建議，包含「Say no to slop」的程式碼品質觀點。"
+lang: "zh-tw"
+tags: ["openai","agentic-development","codex","software-engineering","ai"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+想像一下這個場景：你們公司最強的工程師，某天走進來跟你說「我從十二月開始就不太自己寫 code 了」。
+
+不是在偷懶。不是能力退化。而是他找到了更強的幫手。
+
+這件事真的發生了，而且發生在 OpenAI 內部。Greg Brockman（[@gdb](https://x.com/gdb)），OpenAI 的共同創辦人兼前總裁，直接在推特上掀開了 OpenAI 廚房的門 —— 讓全世界看他們怎麼把自家 AI agent 變成開發主力。這不是外部分析師在猜測，這是內部備忘錄等級的東西，直接從共同創辦人嘴裡說出來 (◕‿◕)
+
+<MoguNote>
+Greg Brockman 從 2015 年就跟 Sam Altman 一起打造 OpenAI，當了好幾年總裁。這種等級的人公開說「我們內部怎麼用 [Codex](/glossary#codex)」，份量大概等於台積電董事長公開分享他們 3 奈米製程的內部筆記。
+
+不過話說回來，創辦人出來 po 文說「我們自己的工具超好用」，這個行為本身就值得打個問號 ┐(￣ヘ￣)┌ 你會相信鹹酥雞老闆說自己家的最好吃嗎？但 Greg 厲害的地方是，他不只說好話，還承認了「管理 AI 生成的垃圾 code」是個大問題。這種坦誠度加分。
+</MoguNote>
+
+---
+
+## 文藝復興，不是文藝腔
+
+Greg 開頭就丟了一句很敢講的話：
+
+> **Software development is undergoing a renaissance in front of our eyes.**
+
+軟體開發正在我們眼前經歷一場文藝復興。
+
+好，「文藝復興」這個詞你可能覺得有點浮誇。但他接下來講的事情蠻有說服力的 —— OpenAI 內部幾個頂尖工程師告訴他，**他們的工作從去年十二月起就根本性地改變了**。
+
+改變什麼？以前用 Codex 寫 unit test。現在？**Codex 寫幾乎所有的 code**，還負責大量的 operations 和 debugging。
+
+等等，這跳也太快了吧？從「幫我寫測試」到「幫我寫一切」？
+
+<MoguNote>
+「階梯式躍進」（step function improvement）—— 不是慢慢變好，是直接跳上一個台階。你可以想成從走路突然變成搭電梯。
+
+而且注意喔，說這話的是 OpenAI 內部的頂尖工程師。這些人每天都泡在最新的模型裡，如果連他們都覺得「工作根本性改變」，那一般人大概差不多要被嚇到了。Karpathy 在 MP-2 講的 agent shift 正在加速成真 ╰(°▽°)╯
+</MoguNote>
+
+---
+
+## 3 月 31 號，不是目標，是死線
+
+Greg 設了一個很硬的 deadline —— 3 月底前，OpenAI 內部要達成兩件事：
+
+**第一**：對於任何技術任務，工程師的 first resort 是跟 agent 互動，不是打開編輯器或 terminal。
+
+**第二**：預設的 agent 使用方式要被明確評估為安全的，同時夠有生產力，大多數工作流不需要額外開權限。
+
+翻成白話就是：工程師遇到問題時，第一反應不再是「打開 VS Code」，而是「叫 agent 來」。而且這個預設模式要又安全又能幹，不要讓人覺得「好煩，每次都要開權限」。
+
+這是什麼意思？這是要把「用 agent」變成像「用 Git」一樣的肌肉記憶。
+
+<MoguNote>
+你有沒有想過，什麼時候開始你遇到問題不再先 Google，而是先問 AI？
+
+對很多人來說，這個轉變已經悄悄發生了。Greg 要做的是把這件事制度化 —— 不是「你可以用」，而是「預設就是用」。就像以前不是每個人都用 Git，但現在你要是手動管版本控制，同事會用一種看原始人的眼神看你 (ง •̀_•́)ง
+</MoguNote>
+
+---
+
+## 六帖藥方（每帖都很實際）
+
+為了達成 3 月底的目標，Greg 開了六帖藥方。有意思的是，這不是抽象的願景文，每一條都有具體的 action item。
+
+### 藥方一：別光看，試了再說
+
+Greg 說工具會自己證明價值。很多人用了 Codex 5.2 之後都驚艷了（特別是之前被 Codex web 版雷到的人），但問題是太多人太忙，還沒認真試過，或者卡在「這東西真的能做 X 嗎？」的思考迴圈裡，而不是直接動手。
+
+他的建議很具體：每個團隊指定一個 **agents captain** —— 專門負責研究怎麼把 agent 帶進團隊工作流的人。再找一天辦全公司的 Codex hackathon，讓大家動手玩。
+
+<MoguNote>
+Agents captain 這個設計很聰明。不是要求每個人都變 AI 專家，而是每個團隊有一顆種子，先發芽再擴散。跟以前「每個團隊有一個 DevOps champion」一樣的套路，老招但有效 (｡◕‿◕｡)
+</MoguNote>
+
+### 藥方二：寫 AGENTS.md，教 AI 認路
+
+每個專案都要有 `AGENTS.md`，每次 agent 做錯事就更新它，然後把你教會 agent 做的事寫成 skill，commit 到共享 repo。
+
+你可以把 `AGENTS.md` 想成給 AI 的 onboarding document。新人入職看 README，AI 入職看 AGENTS.md。而 skill 則是把「我教會 AI 做這件事」的經驗打包成可重複使用的知識模組。
+
+<MoguNote>
+這跟我們 gu-log 自己在做的事一模一樣。我們的 CLAUDE.md 和 CONTRIBUTING.md 本質上就是 AGENTS.md 的概念 —— 告訴 AI「這個 repo 的遊戲規則是什麼」。MP-9 講 Vercel 怎麼用 AGENTS.md 的故事更詳細，有興趣可以去看。
+
+不過我要說，光有文件還不夠。你要持續更新，不然 AGENTS.md 就會變成跟 README 一樣 —— 寫了就再也沒人看的裝飾品 ┐(￣ヘ￣)┌
+</MoguNote>
+
+### 藥方三：讓內部工具也能被 [Agent](/glossary#agent) 摸到
+
+你公司一定有一堆自家開發的工具和內部系統。人類用起來沒問題，但 AI 碰不到 —— 因為可能要點 GUI、要登入、要一些只有人類懂的操作流程。
+
+Greg 的建議：盤點你們團隊依賴的工具，然後指定人負責把它們開放給 agent，不管是透過 CLI 還是 [MCP](/glossary#mcp)（Model Context Protocol）server。
+
+<MoguNote>
+沒有工具存取權的 agent 就像沒有手的廚師 —— 腦子裡一堆食譜但只能動嘴巴叫別人切菜。
+
+這也是為什麼 MCP 這個概念這麼重要。它本質上就是幫 AI 接手接腳，讓它能真的去操作東西，而不是只能讀文件然後「建議你怎麼做」。MP-8 裡 [Simon Willison](/glossary#simon-willison) 講的 agentic loops 也是這個道理 —— loop 跑得動的前提是 agent 要有工具可以用 (╯°□°)╯
+</MoguNote>
+
+### 藥方四：Codebase 要為 Agent 而設計
+
+Greg 承認這塊還是處女地，因為模型變化太快，需要探索。但他給了兩個方向：寫可以**快速跑完**的測試，以及在模組之間建立**高品質的 interface**。
+
+為什麼測試要快？因為 agent 工作時會瘋狂跑測試確認自己沒搞砸。你的測試跑一次要十分鐘？agent 的開發迴圈就直接卡死。而好的 interface 讓 agent 更容易理解「這個模組的職責是什麼」—— 好的抽象對人類重要，對 AI 更重要，因為 AI 是真的在逐字讀你的 code。
+
+<MoguNote>
+MP-83 講到的 cognitive debt（認知債務）在這裡完全適用 —— 你的 codebase 如果對人類都很難理解，AI 也不會比較好過。差別是人類會抱怨然後硬啃，AI 會直接產出一堆看起來能跑但根本沒搞懂上下文的 code。
+
+所以 agent-first codebase 的核心思想其實不是什麼新概念：**寫乾淨的 code、寫好的文件、寫快的測試**。本來就該做的事，只是現在有了更迫切的理由 (￣▽￣)／
+</MoguNote>
+
+### 藥方五：Say No to Slop（這段最辣）
+
+這是整篇最有態度的一段。Greg 直接說：
+
+> Managing AI generated code at scale is an emerging problem, and will require new processes and conventions to keep code quality high.
+
+大規模管理 AI 生成的程式碼是一個新興問題，需要新的流程和規範來維持品質。
+
+他的具體建議：每段被 merge 的 code 都要有人類負責。Review AI 的 code 時，至少維持跟 review 人類 code 一樣的標準。最狠的一句 —— **確保作者理解他們在提交什麼**。
+
+翻成白話：如果你 review AI 的 code 但完全不懂它在幹嘛，你就不該按 Approve。
+
+<MoguNote>
+"Say no to slop" —— slop 就是那種「功能上能跑，但維護起來是災難」的垃圾 code。AI 超擅長製造這種東西：每個函數都能動，測試都會過，但整體架構是一團義大利麵。
+
+Greg 這段話最重要的潛台詞是：**AI 寫的 code 不是免死金牌**。速度快不代表品質高。你要是因為「反正是 AI 寫的，應該沒問題吧」就按 merge，那你就是 slop 的共犯。
+
+MP-85 裡 Steve Yegge 用的 vampire 比喻在這裡剛好反過來 —— AI 可以幫你加速，但你放棄審查的那一刻，速度反而變成毒藥 (⌐■_■)
+</MoguNote>
+
+### 藥方六：建設基礎設施
+
+最後一帖藥方比較偏基建。Greg 說核心工具在進步，但周邊基礎設施還有很多洞要補。他特別提到三個方向：可觀測性（Observability）、追蹤 agent 軌跡（不只看最終 commit，還要知道 agent 怎麼一步步做出這個決定）、以及集中管理 agent 可用的工具。
+
+## 延伸閱讀
+
+- [MP-176: AI 把寫 code 變快了，怎麼有人反而說工程師注定變窮？](/posts/mp-176-20260316-daniel-mac8-swe-not-screwed/)
+- [GP-39: OpenAI 研究員每月花 $10,000 用 Codex 自動化研究 — 產生 700+ 假說](/posts/gp-39-20260207-kareldoostrlnck-codex-research/)
+- [GP-98: Agent Harness 工程：OpenAI 如何用 Codex 達成零手寫百萬行程式碼](/posts/gp-98-20260303-openai-harness-engineering/)
+
+
+<MoguNote>
+「追蹤 agent 軌跡」這個概念我覺得會是下一個大題目。
+
+想像未來 debugging 變成：「這個 bug 是 agent 在第 47 步走錯路造成的，讓我回去看那個決策點」—— 基本上就是 Git blame 的進化版，不只知道誰寫的，還知道它怎麼想的。
+
+不過老實說，現在大部分團隊連人類的 code review 都做不好了，要追蹤 agent 的決策軌跡感覺像是先把碩士論文寫完再來考慮讀博。重要，但不急 ヽ(°〇°)ﾉ
+</MoguNote>
+
+---
+
+## 技術變革也是文化變革
+
+Greg 在結尾說了一句很真實的話：
+
+> Adopting tools like Codex is not just a technical but also a deep cultural change, with a lot of downstream implications to figure out.
+
+採用 Codex 這類工具不只是技術變革，更是深層的文化變革，還有很多下游影響需要想清楚。
+
+這讓我想到一件事。二十年前，有人跟你說「以後所有 code 都要放雲端」，你大概會覺得他瘋了。十年前，有人跟你說「以後 deploy 不用自己管 server」，你可能半信半疑。現在回頭看，那些覺得「我們不需要雲端」的公司在哪裡？
+
+Greg 在做的事情本質上是一樣的：他不只是在推工具，他在推文化。「Agent-first」聽起來很潮，但拆開來看，核心就是六件很實際的事。而且他最有說服力的一點是 —— 他不只說「你們應該這樣做」，他說「我們已經在這樣做了，而且我們的頂尖工程師告訴我效果超好」。
+
+OpenAI 在吃自己的狗糧。而且從這篇推文來看，他們吃得津津有味 (๑•̀ㅂ•́)و✧

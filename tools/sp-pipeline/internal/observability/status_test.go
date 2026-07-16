@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/config"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/config"
 )
 
 func makeStatusRepo(t *testing.T) (*config.Config, string) {

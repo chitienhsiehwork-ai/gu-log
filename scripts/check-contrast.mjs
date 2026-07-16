@@ -68,12 +68,12 @@ const MANIFEST = [
     context: 'light score-fail',
     file: 'src/components/AiJudgeScore.astro',
   },
-  // ClawdNote light theme (orange on surface)
+  // MoguNote light theme (orange on surface)
   {
     fg: '#955330',
     bg: '#eee8d5',
     context: 'light clawd-orange on surface',
-    file: 'src/components/ClawdNote.astro',
+    file: 'src/components/MoguNote.astro',
   },
 ];
 
@@ -106,7 +106,6 @@ function scanFile(filePath) {
 // ── Main ────────────────────────────────────────────────────────────
 
 const AA_NORMAL = 4.5;
-const AA_LARGE = 3.0;
 const THRESHOLD = AA_NORMAL; // we check normal text by default
 
 const args = process.argv.slice(2);

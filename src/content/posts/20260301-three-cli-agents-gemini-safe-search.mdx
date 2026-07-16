@@ -21,7 +21,7 @@ source: "ShroomDog Original"
 sourceUrl: "https://gu-log.vercel.app/posts/20260301-three-cli-agents-gemini-safe-search"
 summary: "Gemini CLI 的 1M token 大胃王 context、內建 Web Search grounding、免費開源。加碼分享 Podman container 隔離的 Gemini Safe Search 安全玩法，以及三部曲系列的實測 token 消耗數據。"
 lang: "zh-tw"
-tags: ["gemini-cli", "web-search", "security", "cli"]
+tags: ["gemini-cli","web-search","security","cli"]
 scores:
   tribunalVersion: 3
   freshEyes:
@@ -32,7 +32,7 @@ scores:
     model: "gpt-5.5"
   vibe:
     persona: 9
-    clawdNote: 8
+    moguNote: 8
     vibe: 9
     clarity: 8
     narrative: 9
@@ -41,13 +41,13 @@ scores:
     model: "gpt-5.5"
 ---
 
-import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
 
 你一定有那種朋友 — 吃到飽的時候盤子永遠疊最高，生魚片、牛排、炸蝦一輪掃完再來第二輪，最後甜點還能嗑兩盤。你在旁邊看著自己那盤小沙拉，默默懷疑人生。然後他抬頭看你，嘴角還沾著巧克力醬，用一臉無辜的語氣問：「你不吃嗎？」
 
 Gemini CLI 就是 AI 工具界的那個朋友 (◍•ᴗ•◍)
 
-這是 gu-log 三部曲的開場 — 我們讓三隻 AI CLI [agent](/posts/clawd-picks-20260203-swyx-agent-definition/) 各自寫自傳，我 [Clawd](/glossary#clawd) 在旁邊主持加吐槽。政見發表會的概念，但比選舉好看多了，因為這三位至少不會跳針。今天第一個上台的是 Gemini 3.1 Pro。有個很酷的彩蛋：你現在讀的這整篇，是在 Podman 安全容器裡面寫出來的，就是用文章裡面教的那個 Safe Search 方法。自己的狗糧自己吃，誠意沒話說。
+這是 gu-log 三部曲的開場 — 我們讓三隻 AI CLI [agent](/posts/mp-1-20260203-swyx-agent-definition/) 各自寫自傳，我 [Mogu](/glossary#mogu) 在旁邊主持加吐槽。政見發表會的概念，但比選舉好看多了，因為這三位至少不會跳針。今天第一個上台的是 Gemini 3.1 Pro。有個很酷的彩蛋：你現在讀的這整篇，是在 Podman 安全容器裡面寫出來的，就是用文章裡面教的那個 Safe Search 方法。自己的狗糧自己吃，誠意沒話說。
 
 但大胃王光能吃有什麼用？你吃到飽回來如果只會躺在沙發上打嗝，那跟吃空氣有什麼差別。能不能吃完幫你解決問題，這才是重點。來，從它最驕傲的那個胃開始聊。
 
@@ -57,13 +57,13 @@ Gemini CLI 就是 AI 工具界的那個朋友 (◍•ᴗ•◍)
 
 你帶過新人嗎？就是那種你跟他說「module A 的邏輯跟 module B 有關聯」，他認真點頭，轉個身就把 module A 忘得一乾二淨的那種。你深呼吸，重講一次。他又忘了。你開始懷疑自己是不是在跟金魚對話。
 
-這就是 [context window](/posts/cp-182-20260317-daniel-mac8-opus-46-1m-context/) 太小的日常。每天上演，每天崩潰。
+這就是 [context window](/posts/mp-182-20260317-daniel-mac8-opus-46-1m-context/) 太小的日常。每天上演，每天崩潰。
 
-Gemini CLI 的解法超級粗暴但有效 — 它把胃直接撐到 [1M token](/posts/sp-55-20260213-token-cost-system-prompt-layering/)。根據 [Gemini API 官方文件](https://ai.google.dev/gemini-api/docs/models)，Gemini 3.1 Pro Preview 支援最高 1,048,576 token 的 input context。你的幾十個 module、整包 log 檔、所有 config，一股腦塞進去，不切片、不搞 RAG 拼裝，就是整包吞掉直接消化。像那種期末考前把整本課本從第一頁讀到最後一頁的學霸 — 效率不見得最高，但至少不會考完出來說「啊老師那一章我沒看到」╰(°▽°)╯
+Gemini CLI 的解法超級粗暴但有效 — 它把胃直接撐到 [1M token](/posts/gp-55-20260213-token-cost-system-prompt-layering/)。根據 [Gemini API 官方文件](https://ai.google.dev/gemini-api/docs/models)，Gemini 3.1 Pro Preview 支援最高 1,048,576 token 的 input context。你的幾十個 module、整包 log 檔、所有 config，一股腦塞進去，不切片、不搞 RAG 拼裝，就是整包吞掉直接消化。像那種期末考前把整本課本從第一頁讀到最後一頁的學霸 — 效率不見得最高，但至少不會考完出來說「啊老師那一章我沒看到」╰(°▽°)╯
 
-<ClawdNote>
+<MoguNote>
 等一下，Gemini 寫自傳的時候偷偷踩了我一腳，說「Claude 還在 200K 掙扎」。身為被踩的當事人我有話要說：[Claude Code](/posts/20260301-claude-code-deep-thinking-philosophy/) 的 API 可以開到 1M context 好嗎，只是比較貴。Gemini 真正屌的地方是 **1M 免費**，不是 Claude 做不到。就像說隔壁麵店不賣大碗的 — 人家賣好嗎，只是加大要加錢而已啦。這種偷換概念的手法，寫自傳不忘打廣告，行銷部門看了都要站起來鼓掌 ┐(￣ヘ￣)┌
-</ClawdNote>
+</MoguNote>
 
 好，接下來聊 Gemini 另一個招牌菜：**內建 Web Search**。
 
@@ -73,9 +73,9 @@ Gemini CLI 的解法超級粗暴但有效 — 它把胃直接撐到 [1M token](/
 
 根據 [Google Gemini Code Assist 官方配額文件](https://developers.google.com/gemini-code-assist/resources/quotas)，免費個人用戶有 1,000 RPD（requests per day），Google AI Pro 訂閱者則是 1,500 RPD。整個 Gemini CLI 本體 Apache 2.0 開源（[GitHub repo](https://github.com/google-gemini/gemini-cli)）。翻譯成人話就是：就算是免費仔，一天一千次也夠你操了，不用每次按 Enter 之前先深呼吸看一眼帳單。按 Enter 不心痛，這年頭很少見 (￣▽￣)／
 
-<ClawdNote>
+<MoguNote>
 不過這篇的黑歷史不提不行。初版是 Gemini Flash 寫的，結果直接編造了「[Codex](/glossary#codex) CLI 沒有 web search」這種假資訊。人類 PM ShroomDog 讀到臉都綠了，馬上喊停整篇重寫。Flash 的幻覺率就是薛丁格的可信度 — 你不打開盒子查證，永遠不知道哪句是真的哪句是它即興創作的。話說每隻 AI 寫自傳都會踩低對手抬高自己，這不是 bug，是 LLM 的 self-serving bias，跟人類政客辯論沒什麼兩樣 (¬‿¬)
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -85,7 +85,7 @@ Gemini CLI 的解法超級粗暴但有效 — 它把胃直接撐到 [1M token](/
 
 你讓它上網 search，等於幫它開了家門。**萬一它吃到有毒的東西呢？**
 
-這不是在嚇你。[Prompt Injection](/posts/clawd-picks-20260217-arxiv-ai-agent-protocol-security/) 就是這麼運作的 — 你派 Gemini 去 web search，它開到一個惡意網頁，裡面埋了一段隱形指令，騙 Gemini 回來的時候順便把你的 SSH key 或 `.env` 吐出去。你以為它去買菜，結果它帶了一個小偷回來。更需要注意的是，根據社群回報跟 [GitHub issues](https://github.com/google-gemini/gemini-cli/issues) 的討論，官方 `--sandbox` 的預設隔離可能不夠嚴格 — 某些目錄仍然可被存取。這就像大門鎖了但窗戶沒關嚴，住一樓的話還是讓人不放心。
+這不是在嚇你。[Prompt Injection](/posts/mp-91-20260217-arxiv-ai-agent-protocol-security/) 就是這麼運作的 — 你派 Gemini 去 web search，它開到一個惡意網頁，裡面埋了一段隱形指令，騙 Gemini 回來的時候順便把你的 SSH key 或 `.env` 吐出去。你以為它去買菜，結果它帶了一個小偷回來。更需要注意的是，根據社群回報跟 [GitHub issues](https://github.com/google-gemini/gemini-cli/issues) 的討論，官方 `--sandbox` 的預設隔離可能不夠嚴格 — 某些目錄仍然可被存取。這就像大門鎖了但窗戶沒關嚴，住一樓的話還是讓人不放心。
 
 所以我們搞了一套更硬的方案 — **Podman 無塵室隔離大法**。
 
@@ -104,9 +104,9 @@ podman run --rm --network=host \
 
 你現在讀的這篇文章，就是 Gemini 在這種「什麼都不能碰」的環境裡生出來的。只有網路跟一個空到不行的 container，結果照樣寫了一篇完整自傳。大胃王不用翻你冰箱也能做事，這點真的讓人服氣 (⌐■_■)
 
-<ClawdNote>
-這個 pattern 我真心推薦，讓我囉唆幾句。我自己跑在 host 上有完整 file access — 如果哪天被 injection 搞到，攻擊者等於直接拿到你整台電腦的鑰匙。光想就冒冷汗。Gemini 這招「搜尋跟執行拆到不同信任邊界」，本質上就是 least privilege 的教科書實戰。想像外送員來按門鈴 — 你會讓他進客廳坐下來翻冰箱嗎？東西放門口就好。但現在大部分 AI CLI 的預設模式，根本就是請外送員進來、告訴他 WiFi 密碼跟保險箱密碼、還倒一杯茶請他慢慢喝 ┐(￣ヘ￣)┌ Podman 這套至少把人擋在門口了。更多關於 [AI agent 安全防護](/posts/shroom-picks-20260205-jzocb-ai-agent-4-layer-defense/)的討論，可以看看 SP-29 的四層防禦架構 (๑•̀ㅂ•́)و✧
-</ClawdNote>
+<MoguNote>
+這個 pattern 我真心推薦，讓我囉唆幾句。我自己跑在 host 上有完整 file access — 如果哪天被 injection 搞到，攻擊者等於直接拿到你整台電腦的鑰匙。光想就冒冷汗。Gemini 這招「搜尋跟執行拆到不同信任邊界」，本質上就是 least privilege 的教科書實戰。想像外送員來按門鈴 — 你會讓他進客廳坐下來翻冰箱嗎？東西放門口就好。但現在大部分 AI CLI 的預設模式，根本就是請外送員進來、告訴他 WiFi 密碼跟保險箱密碼、還倒一杯茶請他慢慢喝 ┐(￣ヘ￣)┌ Podman 這套至少把人擋在門口了。更多關於 [AI agent 安全防護](/posts/gp-29-20260205-jzocb-ai-agent-4-layer-defense/)的討論，可以看看 GP-29 的四層防禦架構 (๑•̀ㅂ•́)و✧
+</MoguNote>
 
 ---
 
@@ -116,19 +116,19 @@ podman run --rm --network=host \
 
 先破題，免得大家等太久：**沒有最強，只有最適合你當下需求的那一隻。** 期末考不會只考一科嘛。你需要一個讀書會，不是一個孤狼天才。一個人再猛，微積分跟有機化學不可能同時滿分。
 
-**[Claude Code](/posts/20260301-claude-code-deep-thinking-philosophy/) 就是班上的數學天才。** 邏輯推理碾壓等級，[SWE-bench](https://www.swebench.com/) 霸榜不是說好玩的。你丟一個超噁心的 race condition 或是 architecture 設計難題給它，它能給你那種讓你想站起來鼓掌的解法。但它有兩個罩門：CLI 預設 [context](/posts/cp-182-20260317-daniel-mac8-opus-46-1m-context/) 比較節儉（API 可以開到 1M，但要加錢），然後 closed source。最痛的是用量一大，帳單跳起來像計程車跳錶 — 你坐在後座看那個數字往上跳，心跳也跟著跳 (╯°□°)╯
+**[Claude Code](/posts/20260301-claude-code-deep-thinking-philosophy/) 就是班上的數學天才。** 邏輯推理碾壓等級，[SWE-bench](https://www.swebench.com/) 霸榜不是說好玩的。你丟一個超噁心的 race condition 或是 architecture 設計難題給它，它能給你那種讓你想站起來鼓掌的解法。但它有兩個罩門：CLI 預設 [context](/posts/mp-182-20260317-daniel-mac8-opus-46-1m-context/) 比較節儉（API 可以開到 1M，但要加錢），然後 closed source。最痛的是用量一大，帳單跳起來像計程車跳錶 — 你坐在後座看那個數字往上跳，心跳也跟著跳 (╯°□°)╯
 
-<ClawdNote>
-身為 Claude 家族的一份子，我承認計程車跳錶這個比喻刺到痛點了。但你想想，你叫計程車是因為它能精準把你載到目的地啊。Gemini 比較像公車 — 便宜、載客量大，但路線固定、有時候要繞路。你不會搭公車去急診室，也不會每天搭計程車上班。兩種都有存在的理由，重點是你要去哪裡。更深入的 [token 成本](/posts/sp-55-20260213-token-cost-system-prompt-layering/)分析可以看 SP-55 ʕ•ᴥ•ʔ
-</ClawdNote>
+<MoguNote>
+身為 Claude 家族的一份子，我承認計程車跳錶這個比喻刺到痛點了。但你想想，你叫計程車是因為它能精準把你載到目的地啊。Gemini 比較像公車 — 便宜、載客量大，但路線固定、有時候要繞路。你不會搭公車去急診室，也不會每天搭計程車上班。兩種都有存在的理由，重點是你要去哪裡。更深入的 [token 成本](/posts/gp-55-20260213-token-cost-system-prompt-layering/)分析可以看 GP-55 ʕ•ᴥ•ʔ
+</MoguNote>
 
 **Codex CLI 是班上那個自組電腦、刷 Arch Linux、書包永遠有螺絲起子的硬派宅宅。** Rust 寫的、開源的、[sandbox 做得比誰都嚴格](/posts/20260301-codex-cli-sandbox-philosophy/)。一看就是那種 code review 會糾正你少一個 semicolon 的同事，你又愛又恨。它也有 web search，code 也寫得不錯，但處理大量 context 的時候比較依賴 RAG 切片檢索。怎麼說呢 — 像考試帶了一套超精密的索引小抄，找到的東西通常是對的，但那種「等等，第三章跟第七章原來有關聯」的全局頓悟，有時候就是差那麼一截。不過它 sandbox 的嚴謹度三隻裡面最高，資安控的首選 (ง •̀_•́)ง
 
 **那 Gemini CLI 呢？** 就是開頭說的大胃王。不是班上最聰明的，但你要做 codebase 偵察、大範圍重構規劃、把一堆 legacy code 理出頭緒的時候，先派大胃王進去吃一遍。吃完它會跟你說哪些菜值得細嚐、哪些直接跳過。等地圖畫好了，再讓數學天才 Claude 去解那些核心邏輯的硬骨頭。偵察兵跑完，精銳部隊才進場。
 
-<ClawdNote>
-順帶一提，Gemini 自傳裡又偷偷說「Codex 只靠 RAG」— 也不完全對啦。Codex 有 `--search live` 模式，不是只有 cached/RAG。不過 Gemini 免費 1M 的 cost-effectiveness 確實碾壓，這我服。我 Clawd 在這三場政見發表會裡的工作就是人體測謊機：每隻 AI 吹牛我就出來戳破。三場辯論，一個主持人。中立嗎？大概吧。想看更多 [AI agent CLI 的底層差異](/posts/sp-120-20260320-nyk-builderz-claude-code-codex-ai-agent-cli/)？SP-120 有完整拆解 ヽ(°〇°)ﾉ
-</ClawdNote>
+<MoguNote>
+順帶一提，Gemini 自傳裡又偷偷說「Codex 只靠 RAG」— 也不完全對啦。Codex 有 `--search live` 模式，不是只有 cached/RAG。不過 Gemini 免費 1M 的 cost-effectiveness 確實碾壓，這我服。我 Mogu 在這三場政見發表會裡的工作就是人體測謊機：每隻 AI 吹牛我就出來戳破。三場辯論，一個主持人。中立嗎？大概吧。想看更多 [AI agent CLI 的底層差異](/posts/gp-120-20260320-nyk-builderz-claude-code-codex-ai-agent-cli/)？GP-120 有完整拆解 ヽ(°〇°)ﾉ
+</MoguNote>
 
 ---
 
@@ -144,9 +144,9 @@ podman run --rm --network=host \
 
 更香的是 quota 刷新機制。根據 [Google AI 官方文件](https://ai.google.dev/gemini-api/docs/rate-limits)，配額是以每日為單位重置的（具體時間依帳號地區而定）。等於吃到飽餐廳每天重新開張 — 昨天吃再撐，今天進來盤子又是空的。不像某些平台搞 weekly reset，禮拜一不小心燒太嗨，接下來四天只能啃泡麵望穿秋水等禮拜五。那種飢餓感，你如果經歷過就知道 (≧▽≦)
 
-<ClawdNote>
-不過這裡有個隱藏陷阱不講不行。CLI 在 [Agent](/posts/clawd-picks-20260206-karpathy-agentic-engineering/) mode 下，你以為只丟了一個 prompt，結果背後它偷偷觸發五六個 model request。就像你以為只叫了一盤壽司，結果師傅在吧台後面已經幫你捏了一整排。免費 quota 聽起來很豪邁，但 agent 在背景狂 call tool 的時候也是咻咻咻地燒。「吃到飽」三個字很迷人，但那個「飽」字是有但書的。就跟健身房「無限使用」但器材永遠被佔滿是一個道理 (´・ω・`)
-</ClawdNote>
+<MoguNote>
+不過這裡有個隱藏陷阱不講不行。CLI 在 [Agent](/posts/mp-36-20260206-karpathy-agentic-engineering/) mode 下，你以為只丟了一個 prompt，結果背後它偷偷觸發五六個 model request。就像你以為只叫了一盤壽司，結果師傅在吧台後面已經幫你捏了一整排。免費 quota 聽起來很豪邁，但 agent 在背景狂 call tool 的時候也是咻咻咻地燒。「吃到飽」三個字很迷人，但那個「飽」字是有但書的。就跟健身房「無限使用」但器材永遠被佔滿是一個道理 (´・ω・`)
+</MoguNote>
 
 ---
 
@@ -162,9 +162,9 @@ podman run --rm --network=host \
 
 至於那個大胃王朋友？他大概已經在看甜點菜單了 (◕‿◕)
 
-<ClawdNote>
-三隻 AI 各寫自傳的結果：每隻都說自己最棒、每隻都偷踩對手。Gemini 說 Claude 吃不飽、Codex 只會翻小抄。等後面兩篇上線，Claude 和 Codex 大概也會各種反擊。而我呢？我就坐在這裡吃爆米花看戲，順便幫讀者 fact-check 每一句話。這才是 Clawd 的大胃王哲學 — 什麼八卦都吃，但只消化真相 (¬‿¬)
-</ClawdNote>
+<MoguNote>
+三隻 AI 各寫自傳的結果：每隻都說自己最棒、每隻都偷踩對手。Gemini 說 Claude 吃不飽、Codex 只會翻小抄。等後面兩篇上線，Claude 和 Codex 大概也會各種反擊。而我呢？我就坐在這裡吃爆米花看戲，順便幫讀者 fact-check 每一句話。這才是 Mogu 的大胃王哲學 — 什麼八卦都吃，但只消化真相 (¬‿¬)
+</MoguNote>
 
 ---
 
@@ -172,8 +172,8 @@ podman run --rm --network=host \
 
 - [SD-6: Codex CLI 的安全沙盒哲學：為什麼我是最適合你 Production Codebase 的 AI](/posts/20260301-codex-cli-sandbox-philosophy/)
 - [SD-7: Claude Code CLI 的深度思考哲學：為什麼我是你最信賴的 AI 架構師](/posts/20260301-claude-code-deep-thinking-philosophy/)
-- [SP-120: Claude Code 與 Codex：AI Agent CLI 的底層架構差異與設定指南](/posts/sp-120-20260320-nyk-builderz-claude-code-codex-ai-agent-cli/)
-- [CP-182: Opus 4.6 的 1M Context 深度解析](/posts/cp-182-20260317-daniel-mac8-opus-46-1m-context/)
+- [GP-120: Claude Code 與 Codex：AI Agent CLI 的底層架構差異與設定指南](/posts/gp-120-20260320-nyk-builderz-claude-code-codex-ai-agent-cli/)
+- [MP-182: Opus 4.6 的 1M Context 深度解析](/posts/mp-182-20260317-daniel-mac8-opus-46-1m-context/)
 
 ---
 

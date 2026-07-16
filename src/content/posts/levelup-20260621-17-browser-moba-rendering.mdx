@@ -14,12 +14,12 @@ source: "Addy Osmani"
 sourceUrl: "https://x.com/addyosmani/status/2068394292796871019"
 summary: "認完瀏覽器這支五人隊，這篇看他們怎麼打團戰：從一坨 HTML 字串到你眼睛看到的畫面，是一套 DOM → 排版 → 上色 → 合成的連招，而且每秒要打 60 次、每次只有 16 毫秒。看懂這套連招，你就會懂為什麼有的動畫滑順、有的卻一直卡——以及為什麼滑頁面明明很順，背景的 JS 卻在當。"
 lang: "zh-tw"
-tags: ["level-up", "browser", "rendering", "compositor", "performance", "jank", "frontend", "tutorial"]
+tags: ["level-up","browser","rendering","compositor","performance","jank","frontend","tutorial"]
 scores:
   tribunalVersion: 9
   vibe:
     persona: 9
-    clawdNote: 9
+    moguNote: 9
     vibe: 9
     narrative: 8
     score: 8
@@ -55,7 +55,7 @@ scores:
 
 import LevelUpProgress from '../../components/LevelUpProgress.astro';
 import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
-import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
 import AnalogyBox from '../../components/AnalogyBox.astro';
 import Mermaid from '../../components/Mermaid.astro';
 
@@ -93,11 +93,11 @@ import Mermaid from '../../components/Mermaid.astro';
 少一步、或某一步卡住，整套連招就接不起來。而時間只有 16 毫秒。
 </AnalogyBox>
 
-<ClawdNote>
+<MoguNote>
 很多人以為「瀏覽器把網頁畫出來」是一個動作，按一下就好。其實它是一套**每秒重複 60 次**的連招。
 
 你現在滑這篇文章，每往下滑一點，這套連招就在背景跑一遍。你覺得很順，是因為這支隊伍每次都在 16 毫秒內打完。哪天你滑某個網頁覺得「怎麼卡卡的」，不是你手機爛，是那支隊伍有人拖到後腿、連招接不完——下面會抓出兇手是誰 (¬‿¬)
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -119,11 +119,11 @@ import Mermaid from '../../components/Mermaid.astro';
 這就是為什麼把肥大的 `<script>` 塞在 `<head>` 最前面，會讓畫面遲遲出不來——前搖一直被打斷。解法是加 `defer`（等前搖比完再執行）或 `async`（背景處理、好了再插入），或乾脆把腳本丟到頁面最底下。
 </AnalogyBox>
 
-<ClawdNote>
+<MoguNote>
 「為什麼我網頁第一秒是白的？」十之八九就是這個——某個會擋住畫面的 `<script>` 卡在前面，守線英雄被迫先去跑 JS，畫面只好乾等。
 
 加一個 `defer` 屬性，常常就是「白畫面三秒」變「白畫面零秒」的差別。一個字的修改，效能差一個數量級。前端的世界就是這麼樸實無華又樸實無華 (￣▽￣)
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -141,11 +141,11 @@ import Mermaid from '../../components/Mermaid.astro';
 
 注意：到這裡**還沒有任何一個像素被畫到螢幕上**。守線英雄只是把「要畫什麼」這份清單列好了。真正的下筆，是下一層的事。
 
-<ClawdNote>
+<MoguNote>
 有沒有發現，到目前為止累死累活的都是守線英雄一個人（主執行緒）：解析、算樣式、排版、列上色清單，全是它扛。
 
 這就是為什麼前端優化老是在講「**別讓主執行緒太忙**」。它是隊上最忙的人，你又丟一堆肥 JS 給它跑，它就排不出時間比連招、畫面就卡。把工作從主執行緒搬走（搬給副手或 GPU），是效能優化的核心思路。記住這個人，下一層就要看誰能幫它分擔 ʕ•ᴥ•ʔ
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="到「上色」這一步結束，螢幕上畫好像素了嗎？"
@@ -183,11 +183,11 @@ import Mermaid from '../../components/Mermaid.astro';
 這就是為什麼——**滑一個頁面覺得很順，但其實那個網頁背景的 JS 正在當**。滑動只是合成執行緒在挪圖層，根本不需要主執行緒參與。主手在火海裡，副手還是把畫面收得漂漂亮亮。
 </AnalogyBox>
 
-<ClawdNote>
+<MoguNote>
 這個「主執行緒卡死、滑動還是很順」的現象，第一次知道的人都會愣一下：蛤，畫面在動不就代表瀏覽器沒當嗎？
 
 不一定。滑動順是合成執行緒的功勞，它跟跑你 JS 的主執行緒是**兩個人**。所以你可能滑得很爽，但一點按鈕發現「咦怎麼沒反應」——因為按鈕的事件要主執行緒處理，而它正埋在你那段 `for` 迴圈裡出不來。畫面順 ≠ 網頁活著，這是兩條命 (⌐■_■)
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -212,7 +212,7 @@ import Mermaid from '../../components/Mermaid.astro';
 
 還有一個經典自爆叫 **強制同步重排（`layout thrash`）**：在 JS 裡剛改完某個元素的樣式，下一行馬上又去讀它的尺寸（像 `offsetHeight`）。瀏覽器為了給出正確答案，**被迫當場立刻重算排版**——而且如果在迴圈裡反覆「改一下、讀一下」，等於逼主執行緒重排 N 次。連招打到一半一直被自己取消後搖重來，整波團戰就這樣卡死。
 
-<ClawdNote>
+<MoguNote>
 記住這張對照表，你就贏過一半的前端：
 
 - 動畫要順 → 動 `transform` / `opacity`（副手的活，主手在忙也順）
@@ -220,7 +220,7 @@ import Mermaid from '../../components/Mermaid.astro';
 - 千萬別做 → 在迴圈裡「改樣式、讀尺寸、改樣式、讀尺寸」（強制同步重排，主手原地爆炸）
 
 這些不是玄學，全部都能用「主執行緒到底有沒有被驚動」一句話推出來。懂了上面那條分界線，這些 best practice 你不用背，自己就推得出來 ╰(°▽°)╯
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="想讓一個元素滑進畫面、即使主執行緒很忙也順順跑，該動哪個性質？"
@@ -259,8 +259,8 @@ import Mermaid from '../../components/Mermaid.astro';
 - [瀏覽器其實是一支五人隊（上）：為什麼一個分頁當掉，不會帶走整個瀏覽器](/posts/levelup-20260621-16-browser-moba-multiprocess/)（先認人，再看團戰）
 - [Lv-10：一個 URL 的旅程 — 從按下網址到畫面出現，瀏覽器到底在幹嘛](/posts/levelup-20260223-10-url-journey-browser-internals/)（那篇也講了繪製流程的骨架，這篇補上「為什麼會卡」）
 
-<ClawdNote>
+<MoguNote>
 上集說「你再也回不去『瀏覽器是一個程式』的純真年代」。這集更慘：你以後每次看到網頁卡卡的，腦中會自動開始抓兇手——是主執行緒被肥 JS 綁死？還是有人在動 `height` 不動 `transform`？
 
 恭喜你升級成「看到掉幀就想抓兇手除錯」的那種人。回不去了，真的 (◍˃̶ᗜ˂̶◍)ノ
-</ClawdNote>
+</MoguNote>

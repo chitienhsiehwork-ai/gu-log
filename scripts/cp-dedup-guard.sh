@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================================
-# CP Dedup Guard — Three-layer duplicate detection for CP candidate queue
+# CP Dedup Guard — Three-layer duplicate detection for MP candidate queue
 # ============================================================================
 #
 # Layer 1: URL Normalization + Exact Match

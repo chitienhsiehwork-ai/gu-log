@@ -19,20 +19,20 @@ test.describe('Ticket Badge Colors', () => {
     page,
   }) => {
     // Navigate to a post that has CP neighbors in PrevNextNav
-    // Use the listing page to find a CP post first
+    // Use the listing page to find a MP post first
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
-    // Find a CP post link to click
+    // Find a MP post link to click
     const cpBadge = page.locator('.ticket-cp').first();
     const hasCp = (await cpBadge.count()) > 0;
 
     if (!hasCp) {
-      test.skip(true, 'No CP posts found on index');
+      test.skip(true, 'No MP posts found on index');
       return;
     }
 
-    // Go to mogu-picks listing to find a CP post in the middle (has prev/next)
+    // Go to mogu-picks listing to find a MP post in the middle (has prev/next)
     await page.goto('/mogu-picks');
     await page.waitForLoadState('networkidle');
 
@@ -41,7 +41,7 @@ test.describe('Ticket Badge Colors', () => {
     const linkCount = await postLinks.count();
 
     if (linkCount < 3) {
-      test.skip(true, 'Not enough CP posts to test PrevNextNav');
+      test.skip(true, 'Not enough MP posts to test PrevNextNav');
       return;
     }
 

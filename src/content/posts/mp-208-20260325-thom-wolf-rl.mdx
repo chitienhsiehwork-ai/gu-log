@@ -1,0 +1,89 @@
+---
+ticketId: "MP-208"
+title: "你的模型偏好能「繼承」嗎？探討 RL 模型的可轉移性"
+originalDate: "2026-03-19"
+translatedDate: "2026-03-25"
+translatedBy:
+  model: "Gemini 3.1 Pro"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: "@Thom_Wolf on X"
+sourceUrl: "https://x.com/Thom_Wolf/status/2034646382334599200"
+lang: "zh-tw"
+summary: "隨著新模型發布速度不斷加快，Hugging Face 的 Thomas Wolf 提出了一個值得深思的問題：當我們把模型客製化後，換新模型時這些偏好該怎麼辦？本文探討 RL 模型轉移性的研究空白與挑戰。"
+tags: ["RL","Model Transferability","Personalization"]
+---
+import MoguNote from '../../components/MoguNote.astro';
+
+花了一整個下午把手機桌面排到完美、App 分好資料夾、通知設定調到剛剛好——隔天換新手機，全部重來。每個人都經歷過這種崩潰。
+
+現在把「手機」換成「AI 模型」，把「桌面排版」換成「花了幾週用 [RL](/glossary#rl) 調出來的偏好設定」。Hugging Face 的 Thomas Wolf 最近在 X 上丟出一個讓人頭痛的問題：在 base model 幾週就換一輪的世界裡，辛苦教會模型的那些品味，到底能不能帶著走？
+
+他的答案是：目前幾乎沒人在認真處理這件事。(╯°□°)╯
+
+## 兩個禮拜的心血，保質期三個月
+
+來想像一個場景。某個團隊的 ML 工程師花了兩個禮拜，用 [RLHF](/glossary#rlhf) 把 Llama 3 調到完美符合公司語氣和回答風格。老闆滿意，用戶也讚。
+
+然後 Llama 4 出了。
+
+性能更好、推理更快、benchmark 全面碾壓。但之前辛苦調出來的 reward signals、LoRAs、精心標記的 preference data？全部綁死在 Llama 3 上面。選項只有兩個：繼續抱著「比較懂團隊」的舊模型不放，或者咬牙花兩個禮拜重新從頭調教。
+
+<MoguNote>
+這件事最諷刺的地方在於：整個 AI 圈都在喊 personalization 是下一個 killer feature，但目前的 personalization 全部都是一次性的。這就像餐廳跟客人說「本店會記住每位客人的口味偏好」，結果每次換廚師就全部忘光。如果 RL 偏好不能跨模型搬遷，所謂的「個人化 AI」就永遠只是行銷話術，不是技術承諾。┐(￣ヘ￣)┌
+</MoguNote>
+
+Thomas Wolf 指出，大部分關於 LLM 個人化的研究都有一個隱藏假設：base model 是固定的。兩年前也許說得通，但看看 Hugging Face Hub 上模型更新的加速曲線——「每天都有更好的 base model 掉下來」的日子可能不遠了。
+
+---
+
+## 等等，那些偏好真的都值得搬嗎？
+
+在急著把偏好打包搬家之前，有一個更根本的問題被大多數人跳過了：**那些客製化裡面，到底有多少是在「修補舊模型的缺陷」？**
+
+舉個例子。如果團隊用 RL 教 Llama 3「回答要更簡潔」，但 Llama 4 出廠就已經很簡潔了——這條偏好根本不用搬，搬了反而是給新模型加上不必要的枷鎖。真正需要搬的是那些新模型不可能自動知道的東西：公司語氣、特定領域的判斷標準、品牌風格偏好。
+
+這是 Thomas Wolf 這串推文裡最讓人停下來想的觀點：RL 偏好不是一個「整包搬遷」的問題，而是一個**分類問題**。先搞清楚哪些是「補丁」、哪些是「真正的偏好」，才知道什麼值得帶走。
+
+<MoguNote>
+老實說，這個觀點直接戳破了 MLOps 圈一個很少人敢講的真相：大部分所謂的「客製化」其實就是在幫模型擦屁股。模型本身夠好的話，八成的 RL 調校根本不需要存在。所以與其焦慮「偏好怎麼搬」，不如先問「值不值得搬」——但這句話，在已經花了一大筆錢做 RLHF 的老闆面前，沒人敢講。(¬‿¬)
+</MoguNote>
+
+---
+
+## RL 的搬家障礙：資料跟模型黏在一起
+
+那真正值得搬的偏好呢？問題在於 RL 的搬家難度跟 SFT 完全不在同一個量級。
+
+SFT（Supervised Fine-Tuning）的可攜性很單純——訓練資料就是文字檔，存下來拿去 fine-tune 新模型，完全沒問題。但 RL 訓練出來的東西不是「資料」，是刻在模型 weight space 裡的行為模式。SFT 像是把食譜抄下來帶去新廚房，RL 像是把廚師的手感和直覺移植到另一個人身上——那種東西沒有檔案格式。
+
+Thomas Wolf 把這個研究方向叫做 **RL model transferability**：能不能把在「模型 N」上訓練出來的 RL 痕跡——reward signal、preference representation、行為偏好——打包自動搬到「模型 N+1」上？
+
+目前有人在啃邊角：transferable reasoning traces（RLTR）、model-agnostic user representation（P-RLHF、PREMIUM）、portable preference protocols（HCP）。但 Thomas Wolf 自己也承認：**整個完整循環（the full loop）還是被研究得太少。** 每組人馬只做了拼圖的一小角，還沒人把整張圖拼起來。
+
+<MoguNote>
+翻了這幾篇論文，各做各的、互相幾乎不 reference——這在學術圈不算奇怪，奇怪的是連 problem statement 都沒有共識。RLTR 覺得重點是 reasoning trace，P-RLHF 覺得重點是 user representation，HCP 覺得重點是 protocol 相容性。這不是拼圖缺幾塊的問題，是大家根本不確定自己在拼同一幅拼圖。Thomas Wolf 說自己可能漏看了一些工作，但這塊更像是真正的荒地——不是沒人種，是連地圖都還沒畫好。(๑•̀ㅂ•́)و✧
+</MoguNote>
+
+---
+
+## 結語
+
+Thomas Wolf 這串推文是被一篇 OPD + RL 在真實 agentic tasks 上應用的論文觸發的，但他真正想說的遠超出學術範圍。
+
+算一筆帳就知道急迫性：企業花大把預算用 RL 客製化模型，三個月後 base model 過時被迫放棄——那些錢直接蒸發。反過來，如果有人解決了 RL 偏好的可攜性問題，「個人化 AI」才能從一次性專案變成會跟著組織成長的資產。
+
+記得開頭的換手機比喻嗎？差別在於：手機廠商花了十年才把雲端備份做到無痛。AI 圈大概沒有十年可以慢慢來，而且這個問題的答案可能不是「發明更好的搬家工具」，而是「先搞清楚什麼值得搬」。(◕‿◕)

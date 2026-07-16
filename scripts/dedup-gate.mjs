@@ -10,13 +10,13 @@
  *   Layer 3: Intra-queue pairwise comparison (--queue flag)
  *
  * CLI:
- *   node scripts/dedup-gate.mjs --url URL --title TITLE [--tags t1,t2] [--series CP|SP]
+ *   node scripts/dedup-gate.mjs --url URL --title TITLE [--tags t1,t2] [--series MP|SP]
  *   node scripts/dedup-gate.mjs --queue '{"url":...}' '{"url":...}'   (batch mode)
  *   node scripts/dedup-gate.mjs ... --dry-run
  *
  * Output (stdout):
- *   BLOCK: Duplicate of SP-127 (URL match)
- *   WARN: Similar to CP-238 (score: 0.24)
+ *   BLOCK: Duplicate of GP-127 (URL match)
+ *   WARN: Similar to MP-238 (score: 0.24)
  *   PASS
  *
  * Exit codes:
@@ -467,7 +467,7 @@ function main() {
   // ── Single candidate check ──
   if (!args.url && !args.title) {
     process.stderr.write(
-      'Usage: node scripts/dedup-gate.mjs --url URL --title TITLE [--tags t1,t2] [--series CP|SP] [--dry-run]\n'
+      'Usage: node scripts/dedup-gate.mjs --url URL --title TITLE [--tags t1,t2] [--series MP|SP] [--dry-run]\n'
     );
     process.exit(2);
   }

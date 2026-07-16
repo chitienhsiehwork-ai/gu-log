@@ -1,0 +1,167 @@
+---
+ticketId: 'MP-47'
+title: 'The Father of Terraform Fights Back: AI Broke Open Source Trust, So Mitchell Hashimoto Built Vouch'
+originalDate: '2026-02-07'
+translatedDate: '2026-02-08'
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: 'Mitchell Hashimoto (@mitchellh)'
+sourceUrl: 'https://x.com/mitchellh/status/2020252149117313349'
+summary: "Mitchell Hashimoto (Terraform creator) says AI destroyed open source trust by enabling low-quality contributions. His solution: Vouch, a trust management system on Ghostty where trusted people vouch for others."
+lang: 'en'
+tags: ["open-source","trust","mitchell-hashimoto","ghostty","github","ai-impact"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+You know those apartment buildings with a sign at the entrance that says "Residents Only — No Visitors Without Escort"?
+
+For twenty years, Open Source had the same sign. Except it wasn't printed on paper — it was baked into the fact that you had to actually know how to code. Want to contribute? Sure. First, read a hundred thousand lines of code, understand the architecture, write something that meets the project's standards, and survive the maintainer's review. If you could do all that, you probably weren't garbage.
+
+Then on February 7, 2026, Mitchell Hashimoto — the creator of **Terraform**, **Vagrant**, **Packer**, and the wildly popular terminal emulator **Ghostty** — posted this:
+
+> AI eliminated the natural barrier to entry that let OSS projects trust by default.
+
+Translation: **AI ripped the front door right off the building.**
+
+<MoguNote>
+When Mitchell Hashimoto says the trust model is broken, this isn't some random person ranting on Twitter. This man's Terraform manages roughly half the world's cloud infrastructure. When he says the foundation is cracking, you don't reply "you're overthinking it" (╯°□°)╯ — you check if your own floor is still level.
+</MoguNote>
+
+Then he added: People told me to stop complaining and build something. So he did. He released **Vouch** — a trust management system for Open Source projects.
+
+---
+
+## The Barrier Vanished. Now What?
+
+Contributing to an Open Source project used to mean passing four gates: understand the codebase, grasp the design philosophy, write code that's up to standard, and survive review. Mitchell himself said:
+
+> For over 20 years of my life, this was enough for my projects as well as enough for most others.
+
+Twenty years. That natural filter never failed.
+
+**Then AI turned four gates into one: pressing Enter.**
+
+Now anyone can throw an issue into [Claude Code](/en/glossary#claude-code), Cursor, or Copilot, get a "professional-looking" PR in 30 seconds, and submit it. The catch? The person submitting might not even understand what the code does ┐(￣ヘ￣)┌
+
+<MoguNote>
+Think of it like a Michelin-starred kitchen. Before AI, you had to prove you could julienne, control the flame, and season properly — the head chef could tell your skill level with one glance at your knife work. Now anyone can walk in carrying a plate that looks incredible but was actually microwaved from a meal kit for 30 seconds. The chef has to waste half their time telling real cooking from reheated boxes — and the worst part? The microwaved plates sometimes look prettier than the real ones (╯°□°)╯
+</MoguNote>
+
+---
+
+## Vouch: Replacing Technical Barriers with Human Trust
+
+So Mitchell's solution isn't trying to detect whether code was written by AI — that's nearly impossible. Instead, he went back to the oldest trust mechanism in human history: **people vouching for people.**
+
+Picture this. You show up at an exclusive party. The bouncer doesn't know you, but your friend inside shouts "they're with me!" and you're in. Vouch is basically that "they're with me."
+
+Four core ideas:
+
+1. **Default untrusted** — if nobody vouches for you, your PR gets blocked
+2. **Vouch** — trusted maintainers or community members can "swipe you in"
+3. **Denounce** — someone causing trouble? Explicitly block them
+4. **Web of Trust** — different projects can share each other's trust lists
+
+And here's what really impressed me: how dead simple the whole system is.
+
+The trust list is just a plain text file — `.td` format, called "Trustdown" (solid naming, honestly). It looks like this:
+
+```
+# Vouched users
+github:mitchellh
+github:trusteddev
+
+# Blocked users
+-github:badactor Submitted AI slop
+-github:spammer
+```
+
+One person per line. `-` prefix means blocked. Add a reason after a space if you want. Parseable with standard POSIX tools, zero external dependencies. Want GitHub integration? Three Actions and you're done — `check-pr` auto-blocks unvouched PRs, `manage-by-issue` lets people type `vouch @user` in issue comments, and `manage-by-discussion` does the same in Discussions.
+
+That's it. No SaaS platform, no dashboard, no monthly bill.
+
+<MoguNote>
+OK, I need to give this design some serious credit. You know the most common mistake engineers make? "This problem is complex, so the solution must also be complex." Mitchell did the opposite — trust management is this huge, gnarly topic, and his solution is a text file plus a few lines of YAML. This is the Unix philosophy actually practiced, not just preached: do one thing and do it well ╰(°▽°)╯
+</MoguNote>
+
+---
+
+## Cross-Project Trust: From One Building to the Whole Street
+
+The most ambitious part of Vouch is the **Web of Trust** — sharing trust across projects.
+
+Here's how it works. Ghostty trusts User A. A neighboring Open Source project thinks "Ghostty's maintainers have good judgment" and adds Ghostty's trust list as a source. Now User A is automatically trusted in that project too.
+
+It works in reverse — if someone gets denounced in Ghostty, projects referencing Ghostty's list will automatically block them as well.
+
+Mitchell hinted at a bigger plan called **Trustdown**:
+
+> I intend to formalize a specification for trust lists so that software systems like this Vouch project and others can coordinate with each other.
+
+He wants to build a universal trust list standard that any tool or project can plug into. From one building's access control to an entire neighborhood watch system.
+
+<MoguNote>
+Web of Trust isn't a new idea — PGP key signing parties were doing this back in the 1990s. But the problem was "way too painful to use." You had to manage GPG keys, attend meetups to sign each other's keys, keep track of fingerprints — in the end only cryptography nerds bothered. Mitchell compressed the same concept down to "a text file + GitHub Actions" level of effort. A thirty-year-old good idea finally got an implementation simple enough to actually spread (◕‿◕)
+</MoguNote>
+
+---
+
+## Twitter Went Wild
+
+Of course the replies were spicy. The best pushback:
+
+**"Isn't this just gatekeeping?"**
+
+Mitchell's answer was blunt: you're already gatekeeping. Every time you review a PR and decide whether to merge, you're choosing whose code gets in. Vouch just takes that decision — which was always there, hidden in the review process — and writes it down in a text file where everyone can see it.
+
+**"Won't this get politicized? Some projects will create massive block lists?"**
+
+> Who and how someone is vouched or denounced is left entirely up to the project. I'm not the value police for the world.
+
+Each project controls its own list. Mitchell isn't playing world referee. And your local settings always win — even if another project denounces someone, you can vouch them in yours.
+
+**"What about newcomers? Doesn't this make Open Source even more exclusive?"**
+
+This is the sharpest question. Mitchell didn't answer it head-on, but he noted that vouching standards are entirely up to each project. Some might ask you to participate in the community for three months first. Others might just need one maintainer who knows you.
+
+## Related Reading
+
+- [MP-170: ACE Goes Open Source — AI Coding Environments Are No Longer SaaS-Only](/en/posts/en-mp-170-20260316-daniel-mac8-ace-open-source/)
+- [MP-129: One Engineer + AI Rebuilt Next.js in a Week — Then tldraw Panicked and Moved Their Tests Private](/en/posts/en-mp-129-20260226-cloudflare-vinext-tldraw-tests/)
+- [MP-94: Claude Code Hid Your File Names and Devs Lost It — Boris's 72-Hour HN Firefight](/en/posts/en-mp-94-20260218-bcherny-claude-code-verbose-controversy/)
+
+
+<MoguNote>
+Real talk — the "what about newcomers" problem existed long before AI showed up. Ask anyone who sent their first PR to a large Open Source project. Eight out of ten will tell you it sat there for three months with zero response. Vouch at least makes the unwritten rule explicit — you know upfront that you need someone to vouch for you, instead of silently waiting forever and then rage-posting on Reddit about why maintainers ignore you ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## So What's the Real Takeaway Here?
+
+This isn't just "another Open Source tool launched." The deeper thing worth thinking about is this.
+
+For twenty years, we trusted Open Source contributors because the act of spending time writing code was itself a proof of work. You were willing to spend three days studying a codebase and submit a PR — that effort alone proved a certain level of commitment and understanding.
+
+**AI reduced that proof of work to almost zero.**
+
+And it's not just Open Source. Code review — a carefully written 500-line PR used to imply hours of deep understanding; now it might be a 30-second prompt. Hiring — an impressive side project used to signal real ability; now it might be entirely AI-generated. Academic papers... you know what, let's not go there (￣▽￣)／
+
+Every trust assumption built on "human effort cost" is crumbling.
+
+Mitchell's Vouch points in an interesting direction: don't fight AI head-on (you almost certainly can't tell by technical means whether code is AI-written), but go around it. Use the oldest trust mechanism — people who know people — to rebuild what the machines broke. Like when the building's electronic lock fails, you don't try to fix the lock. You switch to having residents escort their guests in by swiping their own card.
+
+Will Vouch become the new standard for Open Source? No idea. But the problem Mitchell Hashimoto pointed out is real, and it's only getting worse. At least he didn't just complain on Twitter — he wrote the code.

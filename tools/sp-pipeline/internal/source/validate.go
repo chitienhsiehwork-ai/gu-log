@@ -1,7 +1,7 @@
 // Package source handles fetching and validating article / tweet captures.
 //
 // validate.go is the native Go port of the two Python heredoc validators
-// embedded in scripts/sp-pipeline.sh (validate_tweet_source_capture and
+// embedded in scripts/gp-pipeline.sh (validate_tweet_source_capture and
 // validate_article_source_capture). The bash versions are the source of
 // truth while they still exist; any divergence should be caught by the
 // table-driven tests in validate_test.go.
@@ -64,7 +64,7 @@ var (
 // ValidateTweetCapture returns nil if content looks like a real tweet capture
 // or a *ValidationError when it looks like contaminated output.
 //
-// Rules (mirroring scripts/sp-pipeline.sh validate_tweet_source_capture):
+// Rules (mirroring scripts/gp-pipeline.sh validate_tweet_source_capture):
 //   - must be at least 120 bytes and 3 non-empty lines long
 //   - must not contain 2+ distinct "bad markers" (tool-exec scaffolding)
 //   - must have either (@handle AND ISO-date) OR (@handle AND a source-shape
@@ -142,7 +142,7 @@ var articleCodeMarkers = []string{
 	"webpack",
 }
 
-// ValidateArticleCapture applies the same validator used by sp-pipeline.sh
+// ValidateArticleCapture applies the same validator used by gp-pipeline.sh
 // for non-tweet article captures (readability-lxml output, curl+sed
 // fallback, etc). Rules:
 //

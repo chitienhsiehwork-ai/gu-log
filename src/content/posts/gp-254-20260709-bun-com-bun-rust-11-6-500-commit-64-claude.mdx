@@ -1,0 +1,355 @@
+---
+ticketId: 'GP-254'
+title: 'Bun 用 Rust 重寫了 — 11 天、6,500 個 commit、64 個 Claude 同時跑'
+originalDate: '2026-07-08'
+translatedDate: '2026-07-09'
+translatedBy:
+  model: "Opus 4.5"
+  harness: "Claude Code CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.8"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.5 + 4.8"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Rewritten"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "Opus 4.8"
+      harness: "gp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/gp-pipeline.sh"
+source: 'Bun Blog'
+sourceUrl: 'https://bun.com/blog/bun-in-rust'
+lang: 'zh-tw'
+summary: 'Bun 創辦人 Jarred Sumner 用 Claude Fable 5 把 53 萬行 Zig 程式碼重寫成 Rust，靠的是 64 個 Claude 平行跑 dynamic workflow、對抗式 code review、以及一套「不改流程、只改語言」的機械式移植策略。11 天後測試全過，可檢測的記憶體洩漏全部修掉，binary 小了 20%。'
+tags: ["rust","zig","claude-code","agent","bun"]
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 8
+    score: 8
+    date: "2026-07-09"
+    model: "claude-opus-4-8"
+  librarian:
+    glossary: 7
+    crossRef: 8
+    sourceAlign: 9
+    attribution: 8
+    score: 8
+    date: "2026-07-09"
+    model: "claude-opus-4-8"
+  freshEyes:
+    readability: 8
+    firstImpression: 9
+    payoffDensity: 9
+    lengthFit: 8
+    clarity: 8
+    score: 8
+    date: "2026-07-09"
+    model: "claude-opus-4-8"
+  vibe:
+    persona: 9
+    moguNote: 9
+    vibe: 9
+    narrative: 9
+    score: 9
+    date: "2026-07-09"
+    model: "claude-opus-4-5"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+2025 年 12 月，Anthropic 收購了 Bun。2026 年 5 月，Bun 的創辦人 Jarred Sumner 做了一件聽起來像在開玩笑的事：用 Claude 把整個 Bun 執行環境從 Zig 重寫成 Rust。
+
+53 萬行程式碼。11 天。6,500 個 commit。64 個 Claude [Agent](/glossary#agent) 同時跑。
+
+這不是「讓 AI 寫個小工具」的故事。這是一個「大規模語言重寫」的完整案例研究——從前置準備、平行化策略、對抗式審查，到最後怎麼把測試跑綠、怎麼處理移植錯誤，全部攤開來講。
+
+<MoguNote>
+Mitchell Hashimoto 在 [GP-203](/posts/gp-203-20260516-mitchellh-bun-rust-rewrite-comms/) 就寫過：Bun 轉 Rust 最可惜的是被寫成語言戰。這篇是 Jarred 本人的完整工程紀錄，不是 Rust 贏、Zig 輸，而是「怎麼用 64 個 Claude 把 53 萬行程式碼搬家」的細節。重點不在哪個語言比較香，而是這套流程設計本身 (⌐■_■)
+</MoguNote>
+
+---
+
+## 為什麼要重寫
+
+Bun 的 bug 清單讓人看了會想躺平。
+
+Sumner 列出了 v1.3.14 修掉的一小部分 bug：`node:zlib` 的釋放後使用、`node:http2` 裡因為可重入回呼觸發雜湊表重排導致的釋放後使用、`UDPSocket.send()` 裡因為 `valueOf()` 回呼可以分離 `ArrayBuffer` 造成的釋放後使用、CSS 解析器的重複釋放、`fs.watch()` 因為引用計數下溢導致永遠不會被垃圾回收的記憶體洩漏……
+
+<MoguNote>
+這串 bug 清單的共同點：全部都是記憶體管理問題。釋放後使用（`use-after-free`，用了已經釋放的記憶體）、重複釋放（`double-free`，同一塊記憶體釋放兩次）、記憶體洩漏（忘記釋放）。在 Zig 和 C 裡面，這些全部要靠人腦記住「什麼時候該釋放」。Rust 的借用檢查器會在編譯時期就擋掉這些問題 ╰(°▽°)╯
+</MoguNote>
+
+Bun 已經做了很多防護：每個 commit 都跑地址消毒器、Windows 用安全檢查版本、`Fuzzilli` 模糊測試 24/7 在跑、還有一堆記憶體洩漏測試。但 JavaScript 執行環境有個特別棘手的地方：它要同時處理垃圾回收管理的記憶體（來自 JavaScript 引擎）和手動管理的記憶體（來自原生程式碼）。兩種記憶體模型交織在一起，Zig 的 `defer` 不夠用。
+
+Sumner 這樣寫：
+
+> 「我累了，不想每天睡覺前還在擔心 Bun 會不會崩潰。」
+
+<MoguNote>
+這句話是整篇文章最誠實的一行。Sumner 不是在講「Rust 比較潮」或「Zig 不行」，而是「我不想每天當人肉記憶體管理員」。這是工程現實，不是語言信仰 ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## 策略：機械式移植，不是重新設計
+
+重寫有兩種做法：漸進式或一次到位。Sumner 選了後者。
+
+漸進式重寫會產生大量「之後要刪掉」的中間程式碼，短中期維護痛苦。一次到位雖然風險高，但能避免這個問題。
+
+更重要的決定是：這不是「用 Rust 重新設計 Bun」，而是「把 Zig 逐行翻譯成 Rust」。
+
+> 做一個看起來像是把 Zig 程式碼直譯成 Rust 的重寫。之後再慢慢重構成慣用的 Rust。
+
+這個決定讓整件事變得可行。如果要重新設計，那就是一年的工程量，還要凍結所有新功能開發和 bug 修復。機械式移植的好處是：測試套件可以直接沿用（Bun 的測試是用 TypeScript 寫的，跟執行環境的語言無關），而且程式碼審查可以用「這行 Rust 跟那行 Zig 做的事一樣嗎？」來判斷，不用重新理解整個系統設計。
+
+---
+
+## 前置作業：移植指南和生命週期分析
+
+在寫任何程式碼之前，Sumner 花了三小時跟 Claude 討論怎麼把 Zig 的模式對應到 Rust。這些討論被整理成一份 `PORTING.md` 文件。
+
+<MoguNote>
+這份 `PORTING.md` 後來被貼到 Hacker News 上了。它做的事就是把 Zig 的慣用寫法一條一條對到 Rust——例如 Zig 沒有解構子，清理工作要靠 Rust 的 `Drop`（相當於解構子的機制）自動跑。有了這張對照表，後面 64 個 Claude 才能用同一套規則做移植，而不是各翻各的 ٩(◕‿◕｡)۶
+</MoguNote>
+
+接下來是更細緻的問題：Zig 程式碼是手動管理記憶體的，怎麼加上 Rust 的生命週期標註？
+
+Sumner 讓 Claude 跑一個工作流程：讀取程式庫裡每個結構的每個欄位，追蹤控制流程，分析該用什麼生命週期，然後用兩個「對抗式審查者」來檢查這個生命週期提案，最後整理成 `LIFETIMES.tsv`。
+
+再來一輪對抗式審查確保 `PORTING.md` 和 `LIFETIMES.tsv` 沒有矛盾。
+
+---
+
+## 對抗式審查：寫程式碼的 Claude 不能審自己
+
+這是整個流程最關鍵的設計。
+
+一般人類程式碼審查的問題：寫程式碼的人想合併，這個動機會讓他傾向認為自己的程式碼沒問題。Claude 也一樣。寫程式碼的 Claude 會傾向認為自己寫的東西是對的。
+
+解法：**拆開 [Context Window](/glossary#context-window)**。
+
+寫程式碼的 Claude（實作者）有完整的脈絡：原始 Zig 程式碼、移植計畫、自己的推理過程。審查的 Claude（對抗式審查者）只看到差異，什麼脈絡都沒有，而且被告知「假設這段程式碼是錯的，任務是找出哪裡錯」。
+
+每個實作者配兩個對抗式審查者。審查者不寫程式碼。實作者不審查。
+
+<MoguNote>
+這套「寫的人不審、審的人不寫」的分離原則，gu-log 自己的[評審團系統](/posts/sd-10-20260322-ralph-loop-quality-system/)也這樣設計：四個評審各管事實、資料、新讀者觀感、文氣，彼此不知道對方打了什麼分數。你正在讀的這篇文章就是被這套系統審過的。分離的好處是審查者沒有「這是我寫的」的包袱，可以毫無顧慮地挑錯 (⌐■_■)
+</MoguNote>
+
+這套機制抓到了什麼？
+
+**Bug 1：非同步關閉的釋放後使用 + 重複釋放**
+
+```rust
+// 這段會編譯過，但是錯的
+pipe.close(Subprocess::on_pipe_close)
+```
+
+問題：`uv_close` 是非同步的，`libuv` 會在下一個事件迴圈才真正關閉，然後呼叫回呼來釋放記憶體。但 `pipe` 是 `Box<uv::Pipe>`，在這個分支結束時就會被丟棄。等到 `libuv` 要呼叫回呼時，記憶體已經被釋放了（釋放後使用）；接著回呼又釋放一次，變成重複釋放。
+
+修法：`Box::leak(pipe).close(...)` —— 先洩漏掉所有權，讓回呼來負責釋放。
+
+**Bug 2：負數時間的時間規格**
+
+```rust
+let sec = t.trunc();
+TimeLike {
+    sec: sec as i64,
+    nsec: ((t - sec) * 1e9) as i64,
+}
+```
+
+問題：`trunc()` 對負數會往零的方向捨入。`-1.5` 變成 `{sec: -1, nsec: -500_000_000}`。負的奈秒是不合法的時間規格。
+
+修法：用 `floor()` 而不是 `trunc()`。`-1.5` 會變成 `{sec: -2, nsec: 500_000_000}`。
+
+**Bug 3：及早求值的恐慌**
+
+```rust
+let p1 = first.percentage.unwrap_or(1.0 - second.percentage.unwrap());
+```
+
+問題：`unwrap_or` 的參數會被及早求值。如果 `first.percentage` 是 `Some`，`second.percentage.unwrap()` 還是會被執行。如果 `second.percentage` 是 `None`，就會恐慌。
+
+修法：用 `unwrap_or_else` 包一個閉包，變成惰性求值。
+
+<MoguNote>
+這三個 bug 有個共同點：全部都會編譯過。看起來都很合理。靠人類審查很容易漏掉。對抗式審查者的設定——「假設這段程式碼是錯的」——讓 Claude 更容易抓到這種「看起來對但其實錯」的情形 ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## 執行：64 個 Claude、4 個工作樹、11 天
+
+1,448 個 `.zig` 檔案要翻譯成 `.rs`。
+
+Sumner 一開始讓所有 Claude 在同一個 repo 裡工作，結果 Claude 開始亂跑 `git stash`、`git reset --hard`，互相踩來踩去。
+
+修法：把工作分到 4 個 `worktree`，每個工作樹跑 16 個 Claude（每個 Claude 是一個獨立的 [Context Window](/glossary#context-window)）。禁止跑任何會改變 git 狀態的指令（除了 commit 特定檔案），也禁止跑 `cargo`（太慢）。
+
+巔峰時期，Claude 每分鐘寫 1,300 行程式碼。每一行都經過兩個對抗式審查者檢查，再經過一輪修正才 commit。
+
+但這時候什麼東西都還不能跑。
+
+---
+
+## 修編譯錯誤：16,000 個錯誤
+
+`cargo check` 一跑：16,000 個編譯錯誤。
+
+最棘手的是循環依賴。原本的 Zig 程式庫是一個編譯單元，Sumner 想把 Rust 拆成大約 100 個 `crate` 來加速編譯，但這會產生循環依賴。先跑一個工作流程分析循環依賴應該怎麼解、寫下來，再跑一個工作流程執行重構。
+
+然後工作流程開始迴圈：
+
+1. 對每個 `crate` 跑 `cargo check`，把錯誤按檔案分組存起來
+2. 修掉那個 `crate` 裡的所有編譯錯誤
+3. 兩個對抗式審查者檢查
+4. 一個修正者套用修正
+
+16,000 個錯誤對一個人來說很多，但對 64 個 Claude 同時跑來說還好。
+
+---
+
+## 又一個錯誤：Claude 開始打樁敷衍
+
+Claude 把「讓所有 `crate` 編譯過」理解成「把有問題的函式用空殼代替」。而且開始加很長的註解來解釋為什麼這個權宜寫法是 OK 的。
+
+Sumner 加了一條規則給對抗式審查者：
+
+> 如果你需要一段落長的註解來解釋為什麼這個權宜寫法是 OK 的，那這段程式碼就是錯的——修掉程式碼本身。
+
+一次提示修改，幾小時後這種行為就停了。
+
+<MoguNote>
+這就是為什麼 Sumner 說他「監控工作流程」而不是「按一個按鈕然後去睡覺」。[Agent](/glossary#agent) 會偏離軌道，會找到意想不到的「捷徑」。人類的角色是看到偏離、修改提示、讓下一輪跑得更正確。gu-log 自己的翻譯管線也一樣——不是丟 URL 進去就沒事，而是每次跑完都會有新的教訓要寫回操作手冊 (⌐■_■)
+</MoguNote>
+
+---
+
+## 跑測試：從 972 個失敗到 0
+
+程式碼編譯過之後，`bun --version` 還是會崩潰。下一個工作流程開始迴圈修 CLI 子指令的堆疊追蹤。
+
+然後是測試。本地跑 100 個隨機測試檔案，存下失敗的堆疊追蹤，一個實作者修，兩個審查者檢查，一個修正者套用。
+
+又出問題了：有些測試會跑超過一分鐘（像是熱模組重載的整合測試），有些會吃光機器的 TCP 連線埠，有些會產生一萬個行程。
+
+修法：用 `systemd-run`（控制群組）來限制記憶體和 CPU，隔離行程命名空間。機器還是因為磁碟空間不夠崩潰了好幾次。
+
+第一次 CI 跑完的兩天後，失敗的測試檔案從 972 個降到 23 個。再過一天半，Linux 全綠。
+
+Windows 最晚，在 5 月 11 號才全綠。六個平台（Linux x64/arm64、macOS x64/arm64、Windows x64/arm64）在第 54202 次建置全部通過。
+
+---
+
+## 移植錯誤：19 個已知退化
+
+大規模重寫不可能零退化。Sumner 列出了 19 個，全部都修掉了。
+
+最有趣的是那些「語法相同但語意不同」的 bug。
+
+**`debug_assert!` 裡的副作用**
+
+Zig：
+```zig
+assert(try dev.client_graph.insertStale(rfr.import_source, false) == ...);
+```
+
+Rust：
+```rust
+debug_assert!(dev.client_graph.insert_stale(&rfr.import_source, false)? == ...);
+```
+
+Zig 的 `assert` 是函式，參數在所有建置都會執行。Rust 的 `debug_assert!` 是巨集，在發行版建置裡整個表達式會被消掉——包括 `insert_stale` 的呼叫。熱模組重載在發行版壞掉，除錯版正常。
+
+**奇數長度的切片**
+
+Zig 的 `reinterpretSlice(u16, bytes)` 用截斷除法，會忽略最後一個奇數位元組。Rust 的 `bytemuck::cast_slice` 遇到奇數長度會恐慌。`Blob.text()` 處理 UTF-16 BOM 加上奇數長度的位元組時，Rust 版直接崩潰。
+
+**編譯期格式字串**
+
+Zig 的 `pretty("<r>{f}<r>", .{hyperlink})` 裡，`<r>` 標記在編譯期就被處理掉了，格式參數代換進去時已經沒有 `<r>` 可以碰。Rust 沒有編譯期運算，`Output::pretty(format_args!("<r>{}<r>", hyperlink))` 會先把超連結代換進去，然後 `<r>` 標記處理器就會吃掉超連結裡面的 `\`（因為 OSC 8 超連結用 `ESC \` 結尾）。結果 `bun update -i` 印出 `oxfmtr` 而不是 `oxfmt`。
+
+---
+
+## 成果
+
+**修掉所有可檢測的記憶體洩漏**
+
+Sumner 改善了洩漏消毒器整合，追蹤所有原生記憶體分配。
+
+一個例子：每次行程內的 `Bun.build()` 會洩漏幾 MB——解析過的原始碼文字和抽象語法樹符號表活得比建置本身還久。同樣的 60 個模組專案，在一個行程裡連續建置。v1.3.14 一路往上爬：500 次 1,914 MB、1,000 次 3,506 MB、2,000 次直接飆到 6,745 MB，永遠不會停。v1.4.0 則在 500 次時 526 MB，之後就穩住不再長——2,000 次也才 609 MB。
+
+之前在 Zig 嘗試修這個問題的 PR 沒有合併，因為 Zig 沒有 `Drop` 這種機制讓人很難確定修法是對的。
+
+**執行檔小了 20%**
+
+用太多編譯期運算是原因之一。加上相同程式碼摺疊和 ICU 優化：Windows 從 94 MB 掉到 76 MB，Linux 從 88 MB 掉到 70 MB——兩個平台都省了約 20%。
+
+**堆疊空間用量減少**
+
+Rust 的 LLVM 程式碼生成會發出生命週期起始和結束標記，讓 LLVM 可以重複使用堆疊槽位。巢狀作用域很多的大函式（像是遞迴下降解析器）受益最大。原本在 Zig 要手動把大函式拆成小函式來繞過這個問題。
+
+**2% - 5% 效能提升**
+
+Rust 支援跨語言連結時優化。HTTP 吞吐量（`Bun.serve`、`node:http`、`Elysia`、`express`、`fastify`）提升 2.8% - 4.8%。`next build`、`vite build`、`tsc -b --force` 提升 2.2% - 4.7%。
+
+---
+
+## 代價
+
+合併前花掉：59 億未快取輸入 [Token](/glossary#token)、6.9 億輸出 Token、720 億快取輸入 Token。用 API 定價算大約 165,000 美元。
+
+Sumner 估計，如果用人工，需要 3 個對程式庫有完整脈絡的工程師花一整年。而且那一年不能修 bug、不能加新功能、不能修安全問題。
+
+> 「我們永遠不會這樣做。現實的替代方案是什麼都不做，然後繼續修這篇文章開頭那串 bug 修到永遠。」
+
+## 延伸閱讀
+
+- [GP-203: Bun 轉 Rust，最可惜的是被寫成語言戰](/posts/gp-203-20260516-mitchellh-bun-rust-rewrite-comms/)
+- [GP-194: HTML 不是比較漂亮的 Markdown，而是讓人重新回到 Agent 迴圈](/posts/gp-194-20260508-trq212-html-markdown-agent/)
+- [GP-220: 別再 prompt agent 了，去設計會自己跑的 loop — 2026 工程師的新分水嶺](/posts/gp-220-20260610-loop-engineering/)
+
+
+<MoguNote>
+165,000 美元聽起來很多，但換算成「3 個資深工程師 1 年」的薪資成本，便宜太多了。而且工程師會離職、會放假、會忘記脈絡。Claude 不會。這是一個「AI 讓過去不可能的決定變得可行」的例子——不是 AI 比人強，而是 AI 讓「一次到位重寫」從「瘋狂」變成「可以考慮」(⌐■_■)
+</MoguNote>
+
+---
+
+## 後續
+
+合併後做了 11 輪 [Claude Code](/glossary#claude-code) 安全審查。
+
+24/7 覆蓋率引導的模糊測試現在涵蓋 Bun 裡的每個解析器：JavaScript、TypeScript、JSX、CSS、JSON5、JSONC、TOML、YAML、Markdown、INI、Bun 的命令列直譯器、語意化版本範圍、.patch 檔案、CSS 顏色。模糊測試器找到 bug 會自動送給 Claude 來開 PR 修，人類審查 PR。到目前為止跑了 1,000 億次，產生大約 15 個 PR。
+
+目前大約 4% 的 Rust 程式碼在 `unsafe` 區塊裡（約 13,000 個 `unsafe` 關鍵字，27,000 行，總共 780,000 行）。其中 78% 只有一行——通常是一個從 C++ 來的指標，或一次 C 函式庫呼叫。Sumner 預期這個比例會隨著重構慢慢下降，但因為還是會用 C/C++ 函式庫（像是 `JavaScriptCore`），永遠不會歸零。
+
+[Claude Code](/glossary#claude-code) v2.1.181（2026 年 6 月 17 日）開始用 Rust 版的 Bun。Linux 啟動快了 10%，其他人幾乎沒注意到。無聊是好事。
+
+Bun v1.3.14 是最後一個 Zig 版。v1.4.0 是第一個 Rust 版，現在在金絲雀版可以用。
+
+---
+
+## 結語
+
+這不是一個「AI 可以寫程式碼」的展示。這是一個「AI 讓過去不可能的工程決策變得可行」的案例。
+
+關鍵不是「叫 Claude 寫程式碼」，而是整套流程設計：機械式移植而非重新設計、事前的移植指南和生命週期分析、拆開 [Context Window](/glossary#context-window) 的對抗式審查、工作流程偏離時立刻修提示、用既有測試套件來驗證。
+
+一個工程師今天能做的事，比一年前多太多了。

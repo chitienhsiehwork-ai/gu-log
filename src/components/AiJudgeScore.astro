@@ -6,7 +6,7 @@
  *   Librarian (Opus 4.7)    → glossary · crossRef · sourceAlign · attribution
  *   Fact Check (GPT-5.5)    → accuracy · fidelity · consistency · sourceBoundary · commentarySeparation
  *   Fresh Eyes (GPT-5.5)    → readability · firstImpression · payoffDensity · lengthFit · clarity (v9+)
- *   Vibe (Opus 4.6[1m])     → persona · clawdNote · vibe · narrative (v9; legacy v8 also clarity)
+ *   Vibe (Opus 4.6[1m])     → persona · moguNote · vibe · narrative (v9; legacy v8 also clarity)
  *
  * clarity ownership is version-aware (move-clarity-vibe-to-fresheyes): v9+ posts
  * carry it under freshEyes, v8 posts under vibe. Per-dimension `!== undefined`
@@ -50,7 +50,7 @@ interface Props {
     };
     vibe?: {
       persona?: number;
-      clawdNote?: number;
+      moguNote?: number;
       vibe?: number;
       clarity?: number;
       narrative?: number;
@@ -107,7 +107,7 @@ const labels = {
   payoffDensity: 'PayoffDensity',
   lengthFit: 'LengthFit',
   persona: 'Persona',
-  clawdNote: 'MoguNote',
+  moguNote: 'MoguNote',
   vibe_dim: 'Vibe',
   clarity: 'Clarity',
   narrative: 'Narrative',
@@ -398,12 +398,12 @@ const labels = {
                   <strong class={scoreColor(scores.vibe.persona)}>{scores.vibe.persona}</strong>
                 </span>
               )}
-              {scores.vibe.clawdNote !== undefined && (
+              {scores.vibe.moguNote !== undefined && (
                 <span class="dim-item">
                   <span class="dim-label" data-short="Note">
-                    {labels.clawdNote}
+                    {labels.moguNote}
                   </span>
-                  <strong class={scoreColor(scores.vibe.clawdNote)}>{scores.vibe.clawdNote}</strong>
+                  <strong class={scoreColor(scores.vibe.moguNote)}>{scores.vibe.moguNote}</strong>
                 </span>
               )}
               {scores.vibe.vibe !== undefined && (

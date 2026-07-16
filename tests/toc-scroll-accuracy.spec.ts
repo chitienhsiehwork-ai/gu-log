@@ -15,7 +15,7 @@ import { test, expect } from './fixtures';
  */
 
 // Use a long post with many sections
-const LONG_POST_URL = '/posts/shroom-picks-20260211-obsidian-cli-ai-era';
+const LONG_POST_URL = '/posts/gp-47-20260211-obsidian-cli-ai-era';
 // Fallback to a known long post if the above doesn't exist
 const FALLBACK_POST_URL = '/posts/claude-is-a-space-to-think';
 

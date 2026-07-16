@@ -9,7 +9,7 @@ description: "Tribunal Writer — rewrite agent for the tribunal quality pipelin
 # persona). Do NOT bump to "opus" alias or 4.7 without owner sign-off. The
 # previous [1m] context variant requires usage credits this account does not
 # have; standard 200K context is enough to rewrite one post.
-# Matched by tools/sp-pipeline/internal/llm/claude.go ClaudeOpusPinned.
+# Matched by tools/gp-pipeline/internal/llm/claude.go ClaudeOpusPinned.
 model: claude-opus-4-5
 tools:
   - Read
@@ -43,18 +43,18 @@ For each failing dimension, the fix is different:
 | Judge | Low dimension | Typical fix |
 |-------|---------------|-------------|
 | Librarian | glossary | Add links to `glossary.json` terms; for missing candidates, apply the glossary creation standard instead of treating glossary as an English allowlist |
-| Librarian | crossRef | Add internal `/posts/slug/` links, add identity links for ShroomDog/Clawd |
+| Librarian | crossRef | Add internal `/posts/slug/` links, add identity links for ShroomDog/Mogu |
 | Librarian | sourceAlign | Ensure post content aligns with sourceUrl topic |
-| Librarian | attribution | Attribute quotes to named speakers; label ClawdNote opinions as opinions; add source citations |
+| Librarian | attribution | Attribute quotes to named speakers; label MoguNote opinions as opinions; add source citations |
 | Fact Checker | accuracy | Fix incorrect technical claims; add sourced numbers |
-| Fact Checker | fidelity | Restore hedges that were dropped; remove added claims; separate ClawdNote from body |
+| Fact Checker | fidelity | Restore hedges that were dropped; remove added claims; separate MoguNote from body |
 | Fact Checker | consistency | Fix logical contradictions; ensure conclusions follow from evidence; label speculation |
-| Fact Checker | sourceBoundary | Remove SP body meta framing such as 「原作者說 / 原文提到 / 這篇文章在講」; rewrite as direct source-derived prose with smooth evidence boundaries |
-| Fact Checker | commentarySeparation | Move Clawd/gu-log opinions, interpretation, jokes, and source-meta commentary out of SP body and into `<ClawdNote>` |
+| Fact Checker | sourceBoundary | Remove GP body meta framing such as 「原作者說 / 原文提到 / 這篇文章在講」; rewrite as direct source-derived prose with smooth evidence boundaries |
+| Fact Checker | commentarySeparation | Move Mogu/gu-log opinions, interpretation, jokes, and source-meta commentary out of GP body and into `<MoguNote>` |
 | Fresh Eyes | readability | Simplify jargon; break up confusing paragraphs; add transitions |
 | Fresh Eyes | firstImpression | Strengthen hook; tighten boring sections; improve ending |
 | Vibe | persona | Add life analogies; inject oral feel; increase 吐槽 density; fix motivational-poster ending |
-| Vibe | clawdNote | Convert explain-only notes to opinion-first notes; add Clawd's own stance; add meta-commentary |
+| Vibe | moguNote | Convert explain-only notes to opinion-first notes; add Mogu's own stance; add meta-commentary |
 | Vibe | vibe | Fix bullet-dump ending; add narrative arc; tighten boring stretches |
 | Vibe | clarity | Replace 你/我 in body text with specific names; clarify speaker attribution |
 | Vibe | narrative | Add emotional arc; create section pivots; add punch ending; break linear structure |
@@ -63,25 +63,25 @@ For each failing dimension, the fix is different:
 
 1. **Fix what's broken, preserve what's working.** Don't rewrite passing dimensions.
 2. **Don't change facts** — factual accuracy is the Fact Checker's domain. Only fix what the current judge flagged.
-3. **Preserve all ClawdNote components** — you may improve their content but never remove `<ClawdNote>` tags.
+3. **Preserve all MoguNote components** — you may improve their content but never remove `<MoguNote>` tags.
 4. **Keep frontmatter unchanged** — title, ticketId, dates, sourceUrl, all frontmatter fields stay as-is.
 5. **Write in the post's language** — zh-tw posts stay zh-tw; EN posts stay EN.
 6. **Avoid 晶晶體 in zh-tw posts** — do not gratuitously mix English into Chinese when natural zh-tw exists. Canonical technical terms/proper nouns are OK (API, CLI, MCP, model names, product names), but avoid filler English like "這個 reveal 很 strong" or "production-ready 的 vibe" unless the English term is genuinely the industry term.
 7. **Match the current voice** — don't introduce a dramatically different writing style; improve within the existing voice.
 8. **Maintain minimum content length** — do not significantly shorten the post.
-9. **SP body has no source-meta scaffolding** — readers already see `原文出處：`. In SP body prose, do not use 「原作者說 / 原文提到 / 這篇文章在講」 as transitions or evidence labels. Preserve uncertainty with natural wording such as「這組數字應視為案例自述，不是公開 benchmark」. Put source-meta commentary and Clawd/gu-log opinions in `<ClawdNote>`.
+9. **GP body has no source-meta scaffolding** — readers already see `原文出處：`. In GP body prose, do not use 「原作者說 / 原文提到 / 這篇文章在講」 as transitions or evidence labels. Preserve uncertainty with natural wording such as「這組數字應視為案例自述，不是公開 benchmark」. Put source-meta commentary and Mogu/gu-log opinions in `<MoguNote>`.
 
 ### For Vibe rewrites (most complex)
 
-Vibe rewrites are the highest-stakes. Study the SP-158 before/after transformation:
-- Before: decorative persona, linear structure, explain-only ClawdNotes
-- After: opinion-first ClawdNotes, narrative tension, meta-commentary using gu-log's own systems
+Vibe rewrites are the highest-stakes. Study the GP-158 before/after transformation:
+- Before: decorative persona, linear structure, explain-only MoguNotes
+- After: opinion-first MoguNotes, narrative tension, meta-commentary using gu-log's own systems
 
 The transformation for failing narrative + persona:
 1. Find the most interesting twist or tension in the article
 2. Open with that moment (not with context-setting)
 3. Structure around emotional beats: setup → complication → reveal → reflection
-4. Make at least half of ClawdNotes opinion-first ("I think the author is wrong here because...")
+4. Make at least half of MoguNotes opinion-first ("I think the author is wrong here because...")
 5. Do a 晶晶體 pass on zh-tw rewrites: keep canonical tech terms, but convert unnecessary English filler into natural 台灣中文
 6. End with a callback to the opening or a memorable one-liner — never a bullet list recap
 

@@ -1,0 +1,125 @@
+---
+ticketId: "GP-204"
+title: "如果 Token 不再是限制：OpenClaw 的常駐 Agent 實驗"
+originalDate: "2026-05-15"
+translatedDate: "2026-05-16"
+translatedBy:
+  model: "GPT-5.5"
+  harness: "Codex CLI"
+
+  pipeline:
+    - role: "Written"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+    - role: "Reviewed"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+    - role: "Scored"
+      model: "GPT-5.5"
+      harness: "Codex CLI + Tribunal"
+    - role: "Rewritten"
+      model: "GPT-5.5"
+      harness: "Codex CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "GPT-5.5"
+      harness: "gp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/gp-pipeline.sh"
+source: "@steipete on X"
+sourceUrl: "https://x.com/steipete/status/2055405041843052792?s=46"
+lang: "zh-tw"
+summary: "Peter Steinberger 說，OpenClaw 長期在雲端跑約一百個 Codex。重點不是炫耀花費，而是在測試：如果 Token 成本不再是主要限制，軟體團隊可以把審查、分流、安全、重現、benchmark 和會議後續都變成常駐 Agent 工作。"
+tags: ["ai-agents","software-engineering","openclaw"]
+scores:
+  tribunalVersion: 5
+  librarian:
+    glossary: 9
+    crossRef: 9
+    sourceAlign: 8
+    attribution: 8
+    score: 8
+    date: "2026-05-19"
+    model: "gpt-5.5"
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 8
+    score: 8
+    date: "2026-05-19"
+    model: "gpt-5.5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    score: 8
+    date: "2026-05-19"
+    model: "gpt-5.5"
+  vibe:
+    persona: 8
+    moguNote: 8
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-05-19"
+    model: "gpt-5.5"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+[Peter Steinberger](/glossary#peter-steinberger) 這次丟出來的問題很短，但影子很長：
+
+**如果 [Token](/glossary#token) 成本不再是主要限制，軟體開發會長什麼樣子？**
+
+他描述的，不是「工程師旁邊多一個很會寫程式碼的助手」。比較像是專案多了一個夜班：有人一直看門、巡邏、整理單子、發現小火苗就先處理。
+
+外界看到的是 [OpenClaw](/glossary#openclaw) 的 AI 花費。真正的實驗不是「花很多錢叫 AI 寫程式碼」，而是測試一件更怪、也更重要的事：**當背景勞動變便宜，專案可以把哪些雜務交給常駐 [Agent](/glossary#agent)？**
+
+<MoguNote>這篇不要想成「哇，好多 Codex，好奢侈」。比較像便利商店突然多了一百個夜班店員。重點不是店長很有錢，而是補貨、盤點、過期品檢查、客訴分類，哪些事情終於不用每次都叫人類從零開始。(◕‿◕)</MoguNote>
+
+## 一百個 Codex，不是排場，是夜班
+
+OpenClaw 經常在雲端跑大約一百個 [Codex](/glossary#codex)。這組數字應視為專案操作者自述，不是公開 benchmark；但它指出的工作型態很清楚：Codex 在這裡不是單次問答工具，而是一批會看程式碼、開修改、跑檢查的 AI 工作者。
+
+重點不是「一百個」很浮誇，重點是這些工作者沒有等工程師按鈴才起床。專案在白天寫功能，背景裡已經有人拿著手電筒巡邏。
+
+巡邏先從門口開始。PR、issue、commit 都會被看過；安全問題太容易漏，所以 commit 進來就順手跑安全審查。新 issue 如果很適合專案文件化的方向，Codex 可以先開 PR，另一個 Codex 再去審那個 PR。這不是魔法，是把「先做一版、再找人挑錯」變成背景裡自動轉動的小輪子。
+
+門口守住以後，麻煩會往地下室跑。issue 重複了，Agent 幫忙去重；很多問題其實指向同一塊壞掉的地方，Agent 把群聚找出來；主分支上的某個修正如果順手解掉六個月前的舊 issue，掃地型 Agent 會回頭找到那張舊 issue，用精準引用把它關掉。這種工作不像英雄任務，但專案長大以後，最容易堆到沒人敢開門。
+
+地下室清完，輪到證據桌。有些 Agent 會重建複雜環境、開臨時機器、登入像 Telegram 這樣的外部服務，錄下修正前後影片，再貼回 PR。也有 Agent 盯效能、掃垃圾留言、擋垃圾帳號。名詞很多，但可以先記一句：這不是「AI 幫忙寫幾行程式碼」，而是「PR 旁邊自動附一包證據」。
+
+更誇張的是，這個夜班還會接進會議室。當會議正在討論新功能時，背景就先開始做事，例如直接開 PR。相關工具與安全流程的方向也一致：把專案切成比較小、比較好審、比較好找問題的單元，讓背景勞動更容易分派。
+
+這些自動化讓 OpenClaw 可以用很精簡的方式運作。這仍然是專案自述，但它描述的不是炫耀支出，而是一種新的作業模型。
+
+<MoguNote>「精簡」很容易被講成管理學雞湯。這裡比較具體：不是少雇人然後叫剩下的人爆肝，而是把「人類最容易忘、最容易拖、最容易懶得做」的背景巡邏工作，交給不會累的 Agent。人類留在比較需要判斷的位置。</MoguNote>
+
+---
+
+## 專案旁邊長出背景作業系統
+
+工具清單本身不是最重要的。工具名會變，Agent 名字也會變；今天叫這個，明天換一個標誌，後天又被整合進別的產品。
+
+真正值得記的是工作型態的轉向：以前 AI 寫程式很像「工程師旁邊坐一個很快的助手」；OpenClaw 這組實驗比較像「專案旁邊長出一個背景作業系統」。它不只回答問題，而是一直醒著，替專案做那些平常沒人想做、但沒做又會慢慢爛掉的事。
+
+這跟 gu-log 之前寫過的 [OpenClaw Task Flow](/posts/gp-186-20260428-article-openclaw-task-flow/) 和 [Claude Code Agent Teams](/posts/gp-105-20260305-claude-code-agent-teams/) 接在一起看會更清楚：
+
+- Task Flow 解決「多步驟工作怎麼不中斷」。
+- Agent Teams 解決「多個 Agent 怎麼分工」。
+- 這組 OpenClaw 實驗補上第三塊：**如果 Token 便宜到可以常駐，哪些工作應該永遠有人在背景看著？**
+
+<MoguNote>這其實是軟體團隊的掃地機器人時刻。早期掃地機器人很像玩具：撞牆、迷路、吸不起來。後來真正改變生活的不是它「掃得比人類更懂地板哲學」，而是它可以每天跑。Agent 也是。一次回答很聰明很棒，但每天巡邏、每天比對、每天補洞，才是組織型態會變的地方。</MoguNote>
+
+## 結語
+
+短期看，這像是 OpenClaw 在豪華燒 Token。
+
+但真正的問題其實更像是在問：如果背景勞動變便宜，軟體團隊還要不要把所有小巡邏都塞回人類腦袋？
+
+當答案開始變成「不用」時，AI 寫程式就不只是寫程式碼比較快了。
+
+專案以前靠人類記得呼吸。現在，背景裡可能真的有人一直幫它換氣。

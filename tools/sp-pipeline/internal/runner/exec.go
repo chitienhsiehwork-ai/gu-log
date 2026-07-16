@@ -1,4 +1,4 @@
-// Package runner is the single place where sp-pipeline shells out to external
+// Package runner is the single place where gp-pipeline shells out to external
 // binaries. Centralising it buys us:
 //
 //   - Consistent context-based timeout propagation (replaces the bash

@@ -69,7 +69,7 @@ export interface WorthinessJudgeOutput extends BaseJudgeOutput {
 export interface VibeJudgeOutput extends BaseJudgeOutput {
   scores: {
     persona: number;
-    clawdNote: number;
+    moguNote: number;
     vibe: number;
     // Legacy (tribunalVersion <= 8): clarity was a Vibe dimension. For v9+ it
     // moved to Fresh Eyes, so it's optional here for backward compatibility.
@@ -151,7 +151,7 @@ export interface FactLibJudgeOutput extends BaseJudgeOutput {
  * Stage 3 FactCorrector worker output.
  * Worker-first: proactively fixes facts before judge evaluates.
  * Uses standing checklist + source URL fetch for guidance.
- * Scope: body + ShroomDogNote ONLY — ClawdNote is excluded (creative scope).
+ * Scope: body + ShroomDogNote ONLY — MoguNote is excluded (creative scope).
  */
 // LUXURY_TOKEN: Opus FactCorrector worker — has source URL for verification (downgrade path: Sonnet)
 export interface FactCorrectorOutput {
@@ -170,7 +170,7 @@ export interface FactCorrectorOutput {
   }>;
 
   source_urls_fetched: string[]; // 實際 fetch 過的 URL list
-  scope_violations_detected: string[]; // if ClawdNote was touched, log here
+  scope_violations_detected: string[]; // if MoguNote was touched, log here
 }
 
 /**

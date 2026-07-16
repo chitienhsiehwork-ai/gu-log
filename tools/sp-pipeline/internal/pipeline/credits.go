@@ -7,14 +7,14 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/frontmatter"
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/llm"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/frontmatter"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/llm"
 )
 
 // PipelineURL is the URL stamped into the pipelineUrl frontmatter field.
-// Points at this repo's pipeline entry (scripts/sp-pipeline.sh execs into
-// tools/sp-pipeline), not the retired clawd-workspace feed pipeline.
-const PipelineURL = "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+// Points at this repo's pipeline entry (scripts/gp-pipeline.sh execs into
+// tools/gp-pipeline), not the retired clawd-workspace feed pipeline.
+const PipelineURL = "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/gp-pipeline.sh"
 
 // PipelineEntry is one row of the translatedBy.pipeline block.
 type PipelineEntry struct {
@@ -23,7 +23,7 @@ type PipelineEntry struct {
 	Harness string
 }
 
-// Credits is the Go port of scripts/sp-pipeline.sh Step 4.6. It rewrites
+// Credits is the Go port of scripts/gp-pipeline.sh Step 4.6. It rewrites
 // the nested `translatedBy.model` and `translatedBy.harness` scalars and
 // injects a 4-entry `translatedBy.pipeline` block + `pipelineUrl` field.
 // This runs BEFORE ralph — ralph then overwrites the pipeline block with
@@ -70,7 +70,7 @@ func (s *State) Credits(ctx context.Context) error {
 		{Role: "Written", Model: writeModel, Harness: writeHarness},
 		{Role: "Reviewed", Model: reviewModel, Harness: reviewHarness},
 		{Role: "Refined", Model: refineModel, Harness: refineHarness},
-		{Role: "Orchestrated", Model: judgeModel, Harness: "sp-pipeline"},
+		{Role: "Orchestrated", Model: judgeModel, Harness: "gp-pipeline"},
 	}
 	f.SetNestedBlock("translatedBy", "pipeline", renderPipelineBlock("  pipeline", entries))
 	f.SetNestedScalar("translatedBy", "pipelineUrl", quoted(PipelineURL))

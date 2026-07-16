@@ -21,9 +21,9 @@ setup_repo() {
   git -C "$repo" init -q
   git -C "$repo" config user.email test@example.invalid
   git -C "$repo" config user.name "Tribunal Guard Test"
-  cat > "$repo/src/content/posts/cp-999-test.mdx" <<'POST'
+  cat > "$repo/src/content/posts/mp-999-test.mdx" <<'POST'
 ---
-ticketId: CP-999
+ticketId: MP-999
 title: Test
 lang: zh-tw
 translatedDate: 2026-04-29
@@ -56,7 +56,7 @@ scores:
     model: "gpt-5.5"
   vibe:
     persona: 8
-    clawdNote: 8
+    moguNote: 8
     vibe: 8
     clarity: 8
     narrative: 8
@@ -67,9 +67,9 @@ scores:
 
 Original body.
 POST
-  cat > "$repo/src/content/posts/en-cp-999-test.mdx" <<'POST'
+  cat > "$repo/src/content/posts/en-mp-999-test.mdx" <<'POST'
 ---
-ticketId: CP-999
+ticketId: MP-999
 title: Test EN
 lang: en
 translatedDate: 2026-04-29
@@ -102,7 +102,7 @@ scores:
     model: "gpt-5.5"
   vibe:
     persona: 8
-    clawdNote: 8
+    moguNote: 8
     vibe: 8
     clarity: 8
     narrative: 8
@@ -145,12 +145,12 @@ python3 - <<PY
 from pathlib import Path
 import json
 repo=Path('$repo2')
-(repo/'src/content/posts/cp-999-test.mdx').write_text((repo/'src/content/posts/cp-999-test.mdx').read_text().replace('Original body.', 'Rewritten body.'))
-(repo/'src/content/posts/en-cp-999-test.mdx').write_text((repo/'src/content/posts/en-cp-999-test.mdx').read_text().replace('Original EN body.', 'Rewritten EN body.'))
+(repo/'src/content/posts/mp-999-test.mdx').write_text((repo/'src/content/posts/mp-999-test.mdx').read_text().replace('Original body.', 'Rewritten body.'))
+(repo/'src/content/posts/en-mp-999-test.mdx').write_text((repo/'src/content/posts/en-mp-999-test.mdx').read_text().replace('Original EN body.', 'Rewritten EN body.'))
 p=repo/'scores/tribunal-progress.json'
 p.write_text(json.dumps({'cp-999-test.mdx': {'status': 'PASS'}}, indent=2) + '\n')
 PY
-git -C "$repo2" add scores/tribunal-progress.json src/content/posts/cp-999-test.mdx src/content/posts/en-cp-999-test.mdx
+git -C "$repo2" add scores/tribunal-progress.json src/content/posts/mp-999-test.mdx src/content/posts/en-mp-999-test.mdx
 bash "$ASSERT" "$repo2" cp-999-test.mdx --staged
 pass "postcondition accepts staged PASS with target artifacts"
 
@@ -161,13 +161,13 @@ python3 - <<PY
 from pathlib import Path
 import json
 repo=Path('$repo2b')
-for name in ['cp-999-test.mdx', 'en-cp-999-test.mdx']:
+for name in ['cp-999-test.mdx', 'en-mp-999-test.mdx']:
     p = repo/'src/content/posts'/name
     p.write_text(p.read_text().replace('tribunalVersion: 8', 'tribunalVersion: 6').replace('Original', 'Rewritten'))
 p=repo/'scores/tribunal-progress.json'
 p.write_text(json.dumps({'cp-999-test.mdx': {'status': 'PASS', 'tribunalVersion': 6}}, indent=2) + '\n')
 PY
-git -C "$repo2b" add scores/tribunal-progress.json src/content/posts/cp-999-test.mdx src/content/posts/en-cp-999-test.mdx
+git -C "$repo2b" add scores/tribunal-progress.json src/content/posts/mp-999-test.mdx src/content/posts/en-mp-999-test.mdx
 if bash "$ASSERT" "$repo2b" cp-999-test.mdx --staged >/tmp/guard-v6-out 2>&1; then
   cat /tmp/guard-v6-out >&2
   fail "postcondition accepted pre-v8 score frontmatter for a new PASS"
@@ -185,7 +185,7 @@ python3 - <<PY
 from pathlib import Path
 import json, re
 repo=Path('$repo2c')
-for name in ['cp-999-test.mdx', 'en-cp-999-test.mdx']:
+for name in ['cp-999-test.mdx', 'en-mp-999-test.mdx']:
     p = repo/'src/content/posts'/name
     text = p.read_text().replace('Original', 'Rewritten')
     text = re.sub(r'\n  librarian:\n    glossary: 8\n    crossRef: 8\n    sourceAlign: 8\n    attribution: 8\n    score: 8\n    date: "2026-05-30"\n    model: "gpt-5.5"', '', text)
@@ -193,7 +193,7 @@ for name in ['cp-999-test.mdx', 'en-cp-999-test.mdx']:
 p=repo/'scores/tribunal-progress.json'
 p.write_text(json.dumps({'cp-999-test.mdx': {'status': 'PASS', 'tribunalVersion': 8}}, indent=2) + '\n')
 PY
-git -C "$repo2c" add scores/tribunal-progress.json src/content/posts/cp-999-test.mdx src/content/posts/en-cp-999-test.mdx
+git -C "$repo2c" add scores/tribunal-progress.json src/content/posts/mp-999-test.mdx src/content/posts/en-mp-999-test.mdx
 if bash "$ASSERT" "$repo2c" cp-999-test.mdx --staged >/tmp/guard-missing-judge-out 2>&1; then
   cat /tmp/guard-missing-judge-out >&2
   fail "postcondition accepted v8 score frontmatter missing Librarian"
@@ -232,12 +232,12 @@ python3 - <<PY
 from pathlib import Path
 import json
 repo=Path('$repo4')
-(repo/'src/content/posts/cp-999-test.mdx').write_text((repo/'src/content/posts/cp-999-test.mdx').read_text().replace('Original body.', 'Rewritten body.'))
-(repo/'src/content/posts/en-cp-999-test.mdx').write_text((repo/'src/content/posts/en-cp-999-test.mdx').read_text().replace('Original EN body.', 'Rewritten EN body.'))
+(repo/'src/content/posts/mp-999-test.mdx').write_text((repo/'src/content/posts/mp-999-test.mdx').read_text().replace('Original body.', 'Rewritten body.'))
+(repo/'src/content/posts/en-mp-999-test.mdx').write_text((repo/'src/content/posts/en-mp-999-test.mdx').read_text().replace('Original EN body.', 'Rewritten EN body.'))
 p=repo/'scores/tribunal-progress.json'
 p.write_text(json.dumps({'cp-999-test.mdx': {'status': 'PASS'}}, indent=2) + '\n')
 PY
-git -C "$repo4" add scores/tribunal-progress.json src/content/posts/cp-999-test.mdx src/content/posts/en-cp-999-test.mdx
+git -C "$repo4" add scores/tribunal-progress.json src/content/posts/mp-999-test.mdx src/content/posts/en-mp-999-test.mdx
 git -C "$repo4" commit -q -m 'tribunal(cp-999-test): all 4 stages PASS + final build'
 bash "$AUDIT" --repo "$repo4" --limit 10
 pass "audit accepts PASS commits with target post artifacts"

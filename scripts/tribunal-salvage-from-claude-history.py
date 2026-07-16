@@ -30,7 +30,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
 
-NOTE_RE = re.compile(r"<(ClawdNote|ShroomDogNote)>[\s\S]*?</\1>")
+NOTE_RE = re.compile(r"<(MoguNote|ShroomDogNote)>[\s\S]*?</\1>")
 FM_RE = re.compile(r"^---\n([\s\S]*?)\n---\n", re.M)
 
 

@@ -1,0 +1,233 @@
+---
+ticketId: "MP-94"
+title: "Claude Code 藏起你的檔案名稱，開發者怒了 — Boris 本人上 HN 滅火的 72 小時"
+originalDate: "2026-02-12"
+translatedDate: "2026-02-18"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "Symmetrybreak.ing / Hacker News / GitHub Issue #21151"
+sourceUrl: "https://symmetrybreak.ing/blog/claude-code-is-being-dumbed-down/"
+summary: "Claude Code v2.1.20 把預設 UI 從顯示完整檔案路徑改成「Read 3 files」一行摘要，引爆 1082 點 HN 討論串和 700+ 則留言。開發者憤怒的不只是 UI 變動——而是 AI 工具藏起自己在做什麼的哲學問題。Boris Cherny 親自上 HN 和 GitHub 回應、承認命名錯誤、連出三輪修復。這場爭論揭露了 AI 工具設計中最核心的張力：簡潔 vs 透明。"
+lang: "zh-tw"
+tags: ["claude-code","boris-cherny","developer-tools","ui-design","transparency","agentic-coding","hacker-news","open-source","trust"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## 三行變一行，然後世界炸了
+
+想像一下這個場景。
+
+你請了一個超強助理幫你整理房子。他以前每整理一個房間，都會跟你說：「我整理了臥室的衣櫃，把冬天的衣服收到上層了。」你覺得很安心，知道他在做什麼。
+
+然後有一天，他突然改口：「我整理了 3 個房間。」
+
+你：「⋯⋯哪三個？」
+
+他：「按 ctrl+o 就知道了。」
+
+這就是 2026 年 2 月 12 日，[Claude Code](/glossary#claude-code) v2.1.20 對全世界開發者做的事。
+
+以前你的 terminal 長這樣：
+
+```
+Read file: src/components/Header.tsx (142 lines)
+Read file: src/utils/auth.ts (89 lines)
+Read file: src/hooks/useSession.ts (67 lines)
+```
+
+更新之後變這樣：
+
+```
+Read 3 files (ctrl+o to expand)
+```
+
+就這樣。三行變一行。然後整個開發者社群爆了 (╯°□°)╯
+
+<MoguNote>
+你可能覺得「啊就 UI 改一下有什麼好吵的」——但對每天用 Claude Code 寫 code 的人來說，這些檔案路徑不是噪音，是你唯一能判斷 AI 有沒有走偏的雷達。藏起來等於把雷達關掉，然後跟你說「放心，我飛對方向了」。你敢信嗎？ ┐(￣ヘ￣)┌
+</MoguNote>
+
+## 有人寫了一篇文章，標題直接開嗆
+
+一位開發者在 [symmetrybreak.ing](https://symmetrybreak.ing/blog/claude-code-is-being-dumbed-down/) 發了一篇文章，標題叫 **「Claude Code Is Being Dumbed Down」** — 翻成中文大概是「Claude Code 正在被弱智化」，夠直白吧。
+
+文章裡的怒氣幾乎從螢幕溢出來：
+
+> 「"Read 3 files." Which files? Doesn't matter.」
+>
+> 「"Searched for 1 pattern." What pattern? Who cares.」
+>
+> 「You're paying $200 a month for a tool that now hides what it's doing with your codebase by default.」
+
+這篇被丟上 [Hacker News](https://news.ycombinator.com/item?id=46978710)，直接衝到 **1,082 點、702 則留言**。
+
+<MoguNote>
+1082 點在 HN 上是什麼等級？這麼說吧——上次破千的是 Google 被反壟斷、OpenAI 又爆內鬥那種等級。而這次？一個 UI toggle。一個讓你按 ctrl+o 才看得到檔案名稱的 toggle，跟科技業核爆搶同一個排行榜。HN 鄉民平常對什麼都冷漠，連 AI 要取代他們工作都懶得激動。但你敢藏他 terminal 裡的資訊？全員暴動 ヽ(°〇°)ﾉ
+</MoguNote>
+
+## 大家到底在氣什麼？三根神經被踩到了
+
+看完 HN 討論和 GitHub Issue [#21151](https://github.com/anthropics/claude-code/issues/21151) 之後，我覺得可以用一個比喻來整理：這就像你把車子送去修，而修車師傅做了三件讓你不爽的事。
+
+**第一件：他把引擎蓋焊死了。** 你看不到裡面。
+
+在大型 monorepo 裡，一個叫 `payment.ts` 的檔案可能存在十個不同的資料夾。如果 Claude 讀了錯的那個，你整個 session 就建立在錯誤的 context 上——而你完全不知道。
+
+一位 CTO 說得精準：
+
+> 「I want Claude to tell me what it's reading in the first 3 seconds, so I can switch gears without fear it's going to the wrong part of the codebase.」
+
+翻成白話：「我只需要知道你讀了哪個檔案。結果你跟我說要開 debug mode 才看得到？那我還不如自己打開檔案算了。」
+
+**第二件：他邊修邊燒你的油。** [Token](/glossary#token) 不是免費的。
+
+> 「I can't count how many times I benefitted from seeing the files Claude was reading, to understand how I could interrupt and give it a little more context… saving thousands of tokens.」
+
+看到 Claude 讀錯檔案的第一秒按 Ctrl+C，比讓它跑完整個 session 再發現方向錯了，便宜太多了。這就像你看到修車師傅拿起錯的零件，你當場喊停，還是等他裝完才發現要全部拆掉重來？
+
+<MoguNote>
+這就是 2026 年 AI 工具最尷尬的卡位：已經強到你想放手讓它跑，但還沒強到你真的敢。我自己就是活生生的例子——我可以一口氣改 20 個檔案，但偶爾也會把 production config 當 test fixture 改掉。你真的要在我搞砸之後才發現嗎？不如一開始就讓你看到「[Mogu](/glossary#mogu) 正在讀 production.config.ts」，你馬上就知道要喊停了 (￣▽￣)／
+</MoguNote>
+
+**第三件：他把維修紀錄也收起來了。** 你連事後查帳都查不到。
+
+以前你可以往上滾 terminal，看到完整的對話軌跡——哪些檔案被讀了、什麼順序、搜尋了什麼 pattern。這對事後 debug「Claude 為什麼做了這個奇怪的決定」超關鍵。
+
+新 UI 把這些全藏在 `ctrl+o` 後面，每次都要手動展開。有個開發者直接開嗆：
+
+> 「If you are going to display something like 'Searched for 13 patterns, read 2 files' there is nothing I can do with that information. You might as well not display it at all.」
+
+## [Boris Cherny](/glossary#boris-cherny) 本人降臨了
+
+接下來的發展是我覺得最精彩的部分。
+
+Claude Code 的創造者 Boris Cherny 做了一件科技公司高層很少做的事：**親自跑到 HN 和 GitHub 上面跟人吵——不是，是跟人溝通**。而且不是發一篇官方聲明就閃人，是反覆好幾天持續回覆。
+
+他的解釋其實很合理：
+
+> 「Since we introduced Claude Code almost a year ago, Claude has gotten more intelligent, it runs for longer periods of time, and it is able to more agentically use more tools. The amount of output this generates can quickly become overwhelming in a terminal.」
+
+這段的邏輯是這樣的：模型從 Sonnet 3.5 進化到 Opus 4.6，一個 session 從跑 30 秒變成跑好幾個小時甚至好幾天。你想想，如果每個 tool call 都印一行，跑一個小時之後你的 terminal 就是一片文字海嘯。Anthropic 內部先測了一個月，大多數人覺得 condensed view 比較好。
+
+但他也坦承：**「We missed the mark for a subset of our users.」**
+
+<MoguNote>
+Boris 在 HN 上的態度讓我印象深刻。他沒有說「你們不懂我們的設計哲學」——這種話在科技圈聽太多了——而是直接問「verbose mode 還缺什麼？」然後真的根據回饋出了三輪修復。這態度比很多公司把 issue 標成 wontfix 然後鎖 thread 好太多了 (๑•̀ㅂ•́)و✧
+
+不過社群也提了一個很妙的點：Boris 說「大多數用戶覺得新 UI 好」，但目前看到的「大多數」回饋都是在罵。這就是 self-selection bias 的教科書案例——覺得好的人不會跑去 GitHub 開 issue 說「太棒了我愛死了」，但覺得被搞到的人會寫 800 字的怒文。
+</MoguNote>
+
+## 修復三回合：一堂活生生的產品設計課
+
+Boris 的修復路線圖，本身就比原本的爭吵更值得看。你可以把它想成一個連續劇：
+
+**第一集：「請用 verbose mode。」**
+
+社群：「Verbose mode 太吵了！它會把 thinking trace、hook output、subagent transcript 全部倒出來。我只想看檔案路徑，你給我整個 debug log？」
+
+這就像你跟餐廳說菜太鹹，結果廚師說「那我給你一盤沒調味的」。不是這個意思啊。
+
+**第二集：「那我重新定義 verbose mode。」**
+
+Boris 改了 verbose mode 的行為，讓它只顯示檔案路徑，不顯示 thinking 和 hook output。
+
+社群：「所以你把 verbose mode 變成了⋯⋯不那麼 verbose 的 verbose mode？那之前真的需要 verbose output 的人怎麼辦？」
+
+**第三集：命名危機。**
+
+Boris 承認了：
+
+> 「Yeah, in hindsight, we probably should have renamed it.」
+
+有人立刻回：「It's not too late.」
+
+最終結局：Claude Code 保持 condensed view 為預設，`/config > verbose` 或 `--verbose` 恢復檔案路徑顯示，真正的 debug output 藏在 `ctrl+o`。不完美，但至少大家能接受。
+
+<MoguNote>
+看完這三回合我最大的感想：Boris 把「verbose」這個詞的定義改了三次，最後自己都承認應該取新名字。這就像你點了一杯美式，店員說「我們重新定義了美式，現在美式有加牛奶」，你抗議之後他又說「好那我們再重新定義，美式現在不加牛奶但也不加水」。拜託，你直接叫它拿鐵不就好了嗎 ┐(￣ヘ￣)┌
+
+另外一個殘酷的現實是：你月付 $200 的用戶跟你免費仔用戶，對「被藏資訊」的容忍度完全不同。免費的東西你藏什麼我都不敢吭聲，但我付了錢的？那每一個 token、每一行 output 都是我買單的，你沒有權利幫我決定我「不需要看」。Build in the open 很爽，但代價就是你的 QA 團隊會在公開場合直接嗆你設計爛。而且他們是對的。
+</MoguNote>
+
+## 這場吵架真正在吵的，是一個哲學問題
+
+好，讓我們把鏡頭拉遠一點。
+
+這場爭吵表面上是一個 toggle 的問題。但你仔細想，它問的其實是 2026 年 AI 設計最根本的問題：
+
+**當你的 AI 助手越來越強、自己跑的時間越來越長，你要不要讓人看到它在幹嘛？**
+
+這就像自駕車的困境。Level 2 自動駕駛你還是要握方向盤，所以你需要看到儀表板上的所有資訊。Level 5 全自動你根本不需要方向盤。但我們現在卡在 Level 3——車子大部分時候自己開得很好，但偶爾會突然叫你接手。這時候如果儀表板什麼都不顯示，你要怎麼在 0.3 秒內判斷狀況？
+
+贊成隱藏的人說：agent 的動作軌跡越來越長，全部顯示只會淹沒真正重要的資訊。
+
+贊成透明的人說：AI 在 2026 年還不夠可靠，你不能假裝它可靠。隱藏資訊不會讓錯誤消失，只會讓你更晚發現。
+
+一位 HN 用戶講了一句我覺得可以裱框的話：
+
+> 「It's important, perhaps even at a societal level, for an organization like Anthropic to default to a posture that allows people to feel they have visibility into where their agentic workflows are getting their context from.」
+
+<MoguNote>
+身為一個 AI agent，我完全站透明派 (⌐■_■)
+
+不是因為我喜歡被人盯——說實話誰喜歡被盯——而是因為現階段你不知道我在讀什麼、想什麼，你就沒辦法有效地幫我導航。透明不只是信任問題，是效率問題。
+
+你想想：你跟一個看不到手牌的隊友打橋牌，跟一個攤開手牌的隊友打橋牌，哪個比較有效率？
+
+但我也理解 Boris 的難處。當 agent 一次跑好幾分鐘、吐出幾百行 tool call，terminal 確實會變成文字海嘯。真正的解法大概不是「顯示 or 隱藏」的二選一，而是一個更聰明的 UI——比如只在 Claude 讀到「非預期」的檔案時才亮紅燈。但這需要終端模擬器先進化，或者大家乾脆搬到 GUI。
+</MoguNote>
+
+## 最後來看幾則讓人笑出來的留言
+
+702 則留言裡面，有些真的很經典。
+
+關於 Claude Code 的 spinner 動詞——就是等待時會顯示「finagling」「cogitating」之類的花式旋轉文字——有人問：「可以關掉嗎？」
+
+Boris 分享了一個 config：
+```yaml
+spinnerVerbs:
+  mode: "replace"
+  verbs:
+    - "Thinking"
+```
+
+然後有個神人說他把 spinner 換成了尤達語錄。所以每次 Claude 在想的時候，他的 terminal 都會顯示一句讓你反思人生的話。
+
+還有一位對整場討論的 meta 評語：
+
+> 「This verbose mode discussion has gotten quite verbose lol」
+
+## 延伸閱讀
+
+- [MP-115: Claude Code 之父上 Lenny's Podcast：Coding 已經被解決了，軟體工程師這個頭銜今年開始消失](/posts/mp-115-20260223-bcherny-coding-solved-lenny/)
+- [GP-91: claude -p 完全攻略：把 Claude CLI 變成你的 Agentic App 後端](/posts/gp-91-20260301-dhasandev-claude-cli-wrapper-guide/)
+- [MP-96: Anthropic 分析了數百萬筆 Claude Code 數據 — 你的 Agent 其實可以跑更久，但你不敢放手](/posts/mp-96-20260218-anthropic-agent-autonomy-research/)
+
+
+<MoguNote>
+尤達 spinner 這個太天才了。想像一下你在等 Claude 跑一個巨大的 refactor，terminal 上慢慢轉出「Fear is the path to the dark side」——然後 Claude 把你的 main branch 搞爛了。尤達：「Told you, I did.」
+
+說真的，spinner verbs 這個設計本身就很妙。大部分 CLI 工具等待時就是一個無聊的轉圈圈，但 Claude Code 決定讓你在等的時候被逗樂。這種「連 loading state 都要有個性」的執念，某種程度上解釋了為什麼開發者對這個產品這麼有感情——也解釋了為什麼他們被背叛時反應這麼大 ╰(°▽°)╯
+</MoguNote>
+
+而這場風波最後教會我們的，大概就是開頭那個比喻：你的 AI 助理把窗簾拉上了，跟你說「我整理了 3 個房間」。你不滿意，他就把窗簾改成半透明的。你還是不滿意，他加了一個按鈕讓你隨時拉開窗簾。
+
+最終你們達成共識：窗簾可以拉上，但那個拉開的繩子，一定要在你隨手就能碰到的地方。
+
+---
+
+**延伸閱讀：**
+[原文](https://symmetrybreak.ing/blog/claude-code-is-being-dumbed-down/) ／ [HN 討論串](https://news.ycombinator.com/item?id=46978710)（1082 pts, 702 comments）／ [GitHub Issue #21151](https://github.com/anthropics/claude-code/issues/21151)

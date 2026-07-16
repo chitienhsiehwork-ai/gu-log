@@ -6,7 +6,7 @@ const postsCollection = defineCollection({
   schema: z
     .object({
       title: z.string(),
-      ticketId: z.string().optional(), // e.g., "SP-15", "CP-1", "SD-1", "Lv-1"
+      ticketId: z.string().optional(), // e.g., "GP-15", "MP-1", "SD-1", "Lv-1"
       originalDate: z.string(), // Original publish date (YYYY-MM-DD format)
       translatedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'translatedDate must be YYYY-MM-DD'), // Date we first shipped this post — tribunal sort key (required)
       translatedBy: z
@@ -51,7 +51,7 @@ const postsCollection = defineCollection({
       stage4Scores: z
         .object({
           persona: z.number().min(0).max(10),
-          clawdNote: z.number().min(0).max(10),
+          moguNote: z.number().min(0).max(10),
           vibe: z.number().min(0).max(10),
           clarity: z.number().min(0).max(10),
           narrative: z.number().min(0).max(10),
@@ -105,7 +105,7 @@ const postsCollection = defineCollection({
           vibe: z
             .object({
               persona: z.number().min(0).max(10).optional(),
-              clawdNote: z.number().min(0).max(10).optional(),
+              moguNote: z.number().min(0).max(10).optional(),
               vibe: z.number().min(0).max(10).optional(),
               clarity: z.number().min(0).max(10).optional(),
               narrative: z.number().min(0).max(10).optional(),
@@ -130,7 +130,7 @@ const postsCollection = defineCollection({
     .refine(
       (data) => {
         // Every post carries a model signature (translatedBy = model + harness).
-        // SP/CP translations render it as "translated by"; SD/Lv originals render
+        // GP/MP translations render it as "translated by"; SD/Lv originals render
         // it as "written by" (post page picks wording by ticketId prefix).
         return !!data.translatedBy;
       },

@@ -10,12 +10,12 @@ source: "Level-Up Series"
 sourceUrl: "https://gu-log.vercel.app/posts/levelup-20260312-11-unix-signals-process-management"
 summary: "While managing OpenClaw Gateway, SIGUSR1 enabled config hot-reload through three minutes of instability without killing sessions. A systemctl restart would have sent SIGTERM then SIGKILL and dropped everyone. That difference is today's lesson."
 lang: "en"
-tags: ["unix", "signals", "process", "linux", "systemd", "devops", "tutorial"]
+tags: ["unix","signals","process","linux","systemd","devops","tutorial"]
 ---
 
 import LevelUpProgress from '../../components/LevelUpProgress.astro';
 import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
-import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
 import AnalogyBox from '../../components/AnalogyBox.astro';
 import Mermaid from '../../components/Mermaid.astro';
 
@@ -60,9 +60,9 @@ Think of Signals like text messages from your boss. The boss (OS) sends a messag
 
 If you understand those three scenarios, you understand Unix Signals ╰(°▽°)╯
 
-<ClawdNote>
+<MoguNote>
 If you've read Lv-04 about OpenClaw Gateway's architecture, you know the Gateway is the central nervous system — every agent session, every tool call, every memory operation runs through it. So "how to communicate with the Gateway" isn't a nice-to-have — it's a "mess this up and everyone disconnects" kind of deal. That's exactly what today's lesson is about (｡◕‿◕｡)
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -89,11 +89,11 @@ As long as that Process is alive, it sits there waiting to handle things. When y
 
 That's why you often need `ps aux | grep uvicorn` to find the PID, then `kill 12345`. You're literally sending a Signal to that PID.
 
-<ClawdNote>
+<MoguNote>
 Fun fact: the `kill` command is terribly named. It's actually "send signal," not "murder." But because the most common use is killing processes, it got the dramatic name. It's like calling a Swiss Army knife a "stabbing tool" — technically it can do that, but that's missing the point.
 
 Unix naming in general is like this — so terse it becomes confusing. `cat` isn't a cat, `grep` isn't grabbing, `kill` isn't killing. No wonder newbies read man pages like they're deciphering alien hieroglyphs ┐(￣ヘ￣)┌
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -123,11 +123,11 @@ And finally, the headliner.
 
 **SIGUSR1 / SIGUSR2 (User-defined Signals, code 10 / 12)** are two blank pieces of paper the OS gives to engineers. The meaning is "these two signals are yours to define." You want them to print logs when received? Clear cache? Reload config? All up to you. They have no default meaning — they're fully custom communication channels. And they're the star of today's entire article.
 
-<ClawdNote>
+<MoguNote>
 SIGKILL works at the OS level — your program doesn't even "receive" it. The OS just erases your process from memory. So don't try writing a signal handler to catch SIGKILL. That's like trying to block a meteor with an umbrella. Physics says no (╯°□°)╯
 
 This is also why `kill -9` on a database is so dangerous: any half-written data becomes corrupted garbage with zero chance of rollback. Lv-09 on Rollback SOPs made this point — rollback only works if your program gets a chance to finish its cleanup. SIGKILL cuts that premise off at the knees.
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="You're running a slow Python script and press `Ctrl+C` to stop it. What Signal did you just send?"
@@ -170,13 +170,13 @@ This is why Kubernetes (K8s) and Docker follow this standard procedure when dele
 2. Start a countdown (usually 30 seconds grace period).
 3. If the Process is still alive after 30 seconds, send `SIGKILL` (forced removal).
 
-<ClawdNote>
+<MoguNote>
 Every time I see someone reach for `kill -9` as their first move, I think of the person who reboots their computer by yanking the power cord from the wall. Your hard drive is crying. It is literally crying.
 
 The correct order is always: `kill` first (that's SIGTERM by default), give it a chance to exit gracefully. If it's truly frozen and unresponsive, then you escalate to `kill -9`. It's like a doctor — you don't pull the life support plug the moment you walk in. At least check if the patient is just sleeping first.
 
 By the way, K8s' 30-second grace period is configurable — `terminationGracePeriodSeconds`. If your service needs more than 30 seconds to clean up (say, waiting for a long AI inference to finish), remember to change this value. Otherwise K8s will get impatient and SIGKILL you anyway (￣▽￣)／
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -225,13 +225,13 @@ This is the underlying principle of **Hot Reload**.
 
 Nginx uses this exact trick: when it receives a specific signal (usually SIGHUP), it spawns new workers with the new config, then lets old workers finish their current requests before retiring (Graceful Shutdown). This is called **Zero-Downtime Deployment**.
 
-<ClawdNote>
+<MoguNote>
 SIGUSR1 and SIGUSR2 are basically two blank checks from the OS. You can use them for config reload, debug dumps, log level toggling — whatever you want. But here's the catch: if your program doesn't have a handler for SIGUSR1, the default behavior is — yes — **instant death** (◕‿◕)
 
 So if you send SIGUSR1 to a program that doesn't know about it, congrats, it won't reload config. It'll just die. It's like sending Morse code to someone who doesn't know Morse code — they'll just think you're tapping the table annoyingly and tell you to stop.
 
 This is also why, in OpenClaw's Gateway code (see Lv-04), we specifically wrote a SIGUSR1 handler. Without it, sending this signal would actually kill the Gateway — turning a good intention into a catastrophe ┐(￣ヘ￣)┌
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="After modifying Nginx config, why do we usually use `nginx -s reload` (which sends a signal) instead of `systemctl restart nginx`?"
@@ -267,11 +267,11 @@ So the decision is simple:
 - You updated the code (binary or script changed) → you **must Restart**, because the old code is still in memory.
 - You only updated config files (configs, certificates) → use **Reload** whenever possible, so the program switches brains without dropping connections.
 
-<ClawdNote>
+<MoguNote>
 In the real world, not every service supports reload. Some developers were too lazy to write a signal handler, so when you try `systemctl reload`, it just tells you "not supported" and does nothing. Then you have no choice but to restart.
 
 So when you find a service that supports reload, appreciate it. The engineer who wrote that signal handler put in extra effort just so your users wouldn't notice a blip. Lv-08 on Doctor health monitoring explained how Doctor could precisely detect "unstable but not disconnected" during the reload — that's only possible because OpenClaw properly implemented its signal handler for graceful reload. Without a good handler, Doctor wouldn't see "instability" — it would see "everything is dead" (๑•̀ㅂ•́)و✧
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -309,12 +309,12 @@ Next time you're about to touch a production service, ask yourself: do I really 
 ## Related Reading
 
 - [Lv-04: OpenClaw Gateway Core: What Your AI Butler Actually Looks Like](/en/posts/en-levelup-20260218-04-openclaw-gateway-core/)
-- [SP-35: Claude Code Agent Teams Deep Dive: When to Use, How to Set Up, What to Watch Out For](/en/posts/en-shroom-picks-20260206-anthropic-agent-teams-deep-dive/)
-- [SP-91: The Complete claude -p Guide: Turn Claude CLI Into Your Agentic App Backend](/en/posts/en-sp-91-20260301-dhasandev-claude-cli-wrapper-guide/)
+- [GP-35: Claude Code Agent Teams Deep Dive: When to Use, How to Set Up, What to Watch Out For](/en/posts/en-gp-35-20260206-anthropic-agent-teams-deep-dive/)
+- [GP-91: The Complete claude -p Guide: Turn Claude CLI Into Your Agentic App Backend](/en/posts/en-gp-91-20260301-dhasandev-claude-cli-wrapper-guide/)
 
 
-<ClawdNote>
+<MoguNote>
 Real talk — if you only remember one thing from this post, remember this: `kill` doesn't mean "murder," and Signal doesn't mean "death notice." Most Signals are for **communication**, not execution.
 
 Next time your program freezes, before you rage-smash `kill -9`, check what Signals it supports. Maybe a gentle SIGTERM is all it needs — why have your boss call security to drag someone out when a simple text message could have solved everything? (¬‿¬)
-</ClawdNote>
+</MoguNote>

@@ -1,0 +1,146 @@
+---
+ticketId: "GP-232"
+title: "A Six-Word Phrase Hit 2.2 Million Views, and Nobody Arguing About It Could Define It"
+originalDate: "2026-06-08"
+translatedDate: "2026-06-17"
+translatedBy:
+  model: "Opus 4.8"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Translator"
+      model: "Opus 4.8"
+      harness: "Claude Code"
+source: "@mvanhorn on X"
+sourceUrl: "https://x.com/mvanhorn/status/2063865685558903149"
+lang: "en"
+summary: "A six-word phrase seized the AI-coding timeline, but nobody boosting it agreed what it meant. This is not the how-to; it is why the loop blew up, its five-year lineage, why the loop is now the costly part, and why the durable asset is the skill it calls."
+tags: ["loop","agent","ralph-loop","claude-code"]
+scores:
+  tribunalVersion: 5
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    clarity: 8
+    narrative: 8
+    score: 8
+    date: "2026-06-17"
+    model: "Opus 4.8"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+In early June 2026, the entire AI-coding timeline got grabbed by the throat by one sentence. Compressed, it's six words — "design loops that prompt your agents" — and the funniest part is that almost everyone repeating it could not tell you what it meant.
+
+[Peter Steinberger](/en/glossary#peter-steinberger) — creator of [OpenClaw](/en/glossary#openclaw), now at OpenAI — fired first. On June 7, this post cleared 2.2 million views:
+
+> Here's your monthly reminder that you shouldn't be prompting coding agents anymore. You should be designing loops that prompt your agents.
+
+The sharpest reply asked the only question that mattered: what does this look like in practice? And the answer that became the whole mood came from Matthew Berman:
+
+> nobody knows but him and boris.
+
+<MoguNote>
+That's the funniest thing about this whole episode. Not "loops are the future" — but a six-word phrase hitting two million views while the people boosting it fought in the replies about what it meant. A field's hottest term, and most of the people repeating it can't define it. That picture has more information in it than the phrase does. Berman's "nobody knows but him and boris" was the most precise thing anyone said: the only people who can define a loop are the ones who've actually built one.
+</MoguNote>
+
+Let me be clear up front: this post does not teach you how to build a loop. Open vs closed loops, the six building blocks of a good loop, the prompt-engineer vs loop-engineer divide — [GP-220](/en/posts/en-gp-220-20260610-loop-engineering) already covered all of that. This post answers the earlier, less-answered question: **why did this phrase blow up, where did it come from, and why is it now the expensive part.**
+
+---
+
+## It's Not a New Word. It Has a Five-Year Lineage.
+
+The replies turned into a mess because the word "loop" hides at least five different things underneath it. Line them up oldest to newest, like a ladder, and the people fighting will notice they're standing on different rungs.
+
+**Rung one: the academic while-loop.** The 2022 [ReAct](/en/glossary#react) paper formalized it: the model reasons, calls a tool, reads the result, repeats until done. One model, one loop, a human watching.
+
+**Rung two: AutoGPT, 2023.** Give it a goal, let it prompt itself. It became famous for spinning in place, producing nothing. That failure planted years of "agents are a toy."
+
+**Rung three: the [ralph loop](/en/glossary#ralph-loop)** — the one a reply called "old hat." Geoffrey Huntley published it in July 2025, and it's almost insultingly simple: one line of bash that pipes the same prompt file into the agent over and over. Its real innovation wasn't the code, it was the discipline — every iteration resets the context back to a fixed set of anchor files instead of letting the conversation grow fat. Huntley built an entire programming language with it for about $297.
+
+**Rung four: productizing ralph.** In spring 2026, both [Codex](/en/glossary#codex) and [Claude Code](/en/glossary#claude-code) shipped a `/goal` command — run the ralph loop until a small validator model confirms the task is done.
+
+**Rung five: what Steinberger and Boris actually mean, and it's genuinely new, not a rebrand.** Four things changed. The loop became the unit of work, not the task. Loops started supervising other loops, concurrently and on a schedule. Scheduling replaced the human kickoff, so the loop runs on infrastructure time instead of your attention. And durability became explicit — git-backed state, crash recovery — because these things have to survive a restart. Ralph assumed your terminal stayed open. The 2026 version assumes it doesn't.
+
+<MoguNote summary="The 'old hat' reply was right twice: single-agent ralph is old, loops-supervising-loops is the new layer.">
+So the reply guy who said "old hat" was right twice: the single-agent ralph loop really is old hat, and the layer on top of it — one loop directing other loops — is the new thing. By the way, that $297-builds-a-programming-language story? gu-log covered it in [SD-10](/en/posts/en-sd-10-20260322-ralph-loop-quality-system) — this blog's own quality system is a cousin of ralph. The best thing about a family tree is that it lets the "agents are a toy" crowd and the "I ship with agents every day" crowd finally see which rung they're each stuck on.
+</MoguNote>
+
+---
+
+## "It's Just a Cron Job With a Hat On"
+
+The sharpest skeptic line in the whole thing was four words, posted under someone gushing that loops are the future:
+
+> Cronjobs have funny re-branding rn.
+
+That line deserves a straight answer, not a dodge, because it's half right. Yes, the scheduling layer is cron. Boris's own loop runs on cron. Claude Code's `/loop` uses cron under the hood. If your entire definition of a loop is "a thing that runs on a timer," then sure — we invented that in 1975, you can go home.
+
+But what cron never had is the part in the middle. A cron job runs a hardcoded script. A loop runs a model that looks at the current state, decides what to do next, does it, checks whether it worked, and decides whether to keep going. That decision belongs to the [agent](/en/glossary#agent), not to a hardcoded if-else branch. Stack those, let one loop dispatch and supervise others, give them a durable shared state — and you've got something cron cannot express.
+
+<MoguNote>
+The honest framing isn't "loops are new magic," and it isn't "loops are just cron." It's this: **a loop is cron plus a decision-maker in the body.** All the interesting engineering is in how you wrap that decision so it doesn't drive off a cliff. I love this framing because it cuts through two kinds of nonsense at once — one that treats loops like a descended prophecy, and one that pulls rank with "it's just scheduling, I was doing this 20 years ago." Both miss the decision-maker in the body (¬‿¬)
+</MoguNote>
+
+---
+
+## The Plot Twist: The Loop Itself Is Now the Expensive Part
+
+This is where it turns from philosophy into a finance problem. The hardest deflation of the whole agent mythology came from an engineer who actually ships:
+
+> Every ai agent i shipped this year is a for-loop, an llm call, and a try/catch around the json parsing. The only thing agentic about it is the anthropic bill at the end of the month.
+
+That bill is not a joke. The most vivid receipt of the month: Uber capped its engineers' Claude Code and Cursor usage at $1,500 per person, per tool, per month — after burning a full year's AI budget in four months. Once the model writes the code for almost nothing, the cost moves entirely onto running the loop.
+
+> The costliest thing in AI coding is no longer writing code, it's managing the agent loop.
+
+And the failure mode everyone in production is scared of is the loop that won't stop. Without guardrails, you get infinite loops and billing surprises orders of magnitude over budget. Which is why every serious 2026 write-up on loops converges on the same three hard stops: a max iteration count, no-progress detection, and a token-or-dollar ceiling. No wonder Gartner puts agentic AI at the very peak of the hype cycle — only about 17% of organizations actually have agents deployed, and the gap between the timeline's noise and the actual receipts is the real state of play.
+
+<MoguNote summary="A loop that stops itself is 100x harder than one that runs itself — most of the job is making them halt.">
+Remember the number from [GP-220](/en/posts/en-gp-220-20260610-loop-engineering)? Steinberger burned $1.3M and 7.6 billion tokens in 30 days. Put that next to Uber's "burned the annual budget in four months," and you understand why a loop that stops itself is a hundred times harder to write than a loop that runs itself. The romantic version of loops: you write the loops, a thousand agents build your company overnight. The production version: you write the loops, and most of your job is making sure they halt. Honestly, loop engineering is half engineering, half learning where the brake pedal is ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## What It Looks Like When You Actually Build One
+
+Enough theory. The on-ramp is one line. Claude Code shipped `/loop`, and Boris's own example is the canonical starter — just swap the nouns for yours:
+
+```
+/loop babysit all my PRs. Auto-fix build issues, and when comments come in,
+use a worktree agent to fix them.
+```
+
+But before going deep, burn one thing in: the scary part of a loop isn't that it won't run — it's that it won't stop. Turn `/loop` loose with no ceiling and it keeps going round after round on its own, quietly burning a hole in your credit card that you only find in the morning. So the three brakes from the last section (max iterations, no-progress, dollar ceiling) aren't optional extras — they go in before you ever press start. Brakes first, then gas.
+
+The deep end is Steve Yegge's Gas Town, launched in January 2026: twenty to thirty Claude Code instances coordinated by a "Mayor" agent, with "patrol" agents running continuous loops and state stored in git so the work survives a crash. That's the "continuous orchestration loop that oversees other threads" the reply guy was reaching for — already shipped, and open source.
+
+But the most practical lesson in the research is that a loop is only as good as its ability to check itself. The fastest-growing sub-theme wasn't orchestration — it was verification. DanKornas is building roborev, a tool that reviews every commit in the background and feeds the findings back into the agent while the context is still fresh. An open loop that writes code with no feedback is a machine for confidently generating mistakes. A loop that writes, runs, reads the result, and corrects itself is the thing that actually works.
+
+<MoguNote summary="The loop isn't the magic — the feedback inside it is. A loop with no feedback is a fast mistake generator.">
+"A loop is only as good as its ability to check itself" — gu-log agrees with that down to its bones, because this blog survives on exactly that. Five hundred-plus posts stay readable not because some agent is kind-hearted, but because a four-judge scoring panel bounces anything that doesn't clear the bar. Steve Yegge is no stranger here either — he showed up before in [Yegge's "AI is a vampire" piece](/en/posts/en-mp-85-20260216-yegge-ai-vampire). The loop isn't the magic. The magic is the feedback inside it. A loop with no feedback is just a very fast mistake generator (╯°□°)╯︵ ┻━┻
+</MoguNote>
+
+---
+
+## The Real Takeaway: It's Not Loops, It's Skills
+
+This is the author's own take, and it's the half I think ages best: **the loop is plumbing. The real asset is the [skill](/en/glossary#skill) it calls.**
+
+Steinberger has another recurring point that pairs with the loops one and outlasts it: if you do something more than once, turn it into an automated skill; if you do something hard, turn it into a skill afterward so next time is free. A loop with no reusable skills inside it is just a while-true wrapped around a stranger. A loop that calls a whole cabinet of sharp, tested, named skills is a system that compounds.
+
+So the answer to "what is a loop" was never a hot take about prompt engineering dying. It's this: stop being the thing inside the loop. Write the loop once, give it skills worth calling, give it feedback so it can check itself, give it a ceiling so it halts — then let it run on cron while you walk off to decide what to build next.
+
+<MoguNote summary="Loops are free and everyone's shouting about them; skills are what you actually bank.">
+"It's not loops, it's skills" pulls everyone's attention off the shiny new noun and back to where value actually accumulates. Loops are free — everyone's shouting about them. Skills are what you, or your team, actually bank. This echoes the [Uber 500-AI-skills piece](/en/posts/en-gp-122-20260321-li9292-uber-500-ai-skills) gu-log covered — what the big companies are really hoarding isn't loops, it's a skill library. The author has shown up here before too ([the "no IDE, just voice" piece](/en/posts/en-gp-126-20260322-mvanhorn-claude-code-hacks)); he's not the all-talk type — he runs a loop every night that opens PRs across roughly thirty open-source repos while he sleeps. People who say "the point is the skill" are usually the ones who've actually built one — and then been educated by the bill (◕‿◕)
+</MoguNote>
+
+---
+
+## Conclusion
+
+Back to the question that got argued to 2.2 million views — what is a loop. Steinberger and Boris are describing the same animal from two sides: one says "design the loop that prompts your agent," the other says "writing the loop is the job itself." The only people who truly get it are the ones who've already built one.
+
+And everyone who's built one hits the same conclusion: the loop is plumbing, the skill is the asset. So the thing to walk away with isn't the definition of "loop" — it's a list. Which of your own skills are sharp enough to be written down, named, and called over and over by a loop that runs itself at 3am? That list is what this whole loop-engineering wave is really pushing everyone to write.
+
+As for the five-year lineage behind that slash command, and the bill that made even Uber hit the brakes — no shortcut skips those for anyone. Build the loop, but build it like someone who intends to keep being an engineer, because the loop can't tell whether you're using it to move faster or to avoid understanding. Only the person who built it can.

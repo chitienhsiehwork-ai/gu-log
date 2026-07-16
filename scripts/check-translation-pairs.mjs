@@ -2,7 +2,7 @@
 /**
  * scripts/check-translation-pairs.mjs
  *
- * Ensures every SP/CP/SD/Lv ticketId has both a zh-tw and an en version
+ * Ensures every GP/MP/SD/Lv ticketId has both a zh-tw and an en version
  * before merging to main.
  *
  * Modes:
@@ -31,7 +31,7 @@ const POSTS_DIR = path.join(__dirname, '../src/content/posts');
 
 // Every series that gu-log ships in both languages. Matches the
 // "每篇文章同時產出 zh-tw 和 en 版" claim in CLAUDE.md.
-const PAIRED_PREFIXES = ['SP', 'CP', 'SD', 'Lv'];
+const PAIRED_PREFIXES = ['GP', 'MP', 'SD', 'Lv'];
 
 function parseTicketId(content) {
   const m = content.match(/ticketId:\s*["']?([A-Za-z]+-[A-Za-z0-9]+)["']?/);
@@ -100,7 +100,7 @@ export function findMissingPairs(byBase, scope = null) {
 
 export function reminderText() {
   return [
-    'Reminder: every SP/CP/SD/Lv post needs both zh-tw and en versions',
+    'Reminder: every GP/MP/SD/Lv post needs both zh-tw and en versions',
     'before merging. Per CONTRIBUTING.md §zh-tw 優先 SOP, translate to en',
     'only AFTER zh-tw passes vibe iteration — not in parallel.',
   ].join('\n');

@@ -1,0 +1,302 @@
+---
+ticketId: "GP-47"
+title: "Obsidian Just Shipped a CLI — And It's Not For You, It's For AI"
+originalDate: "2026-02-10"
+translatedDate: "2026-02-11"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "Obsidian Help"
+sourceUrl: "https://help.obsidian.md/cli"
+summary: "Obsidian v1.12 ships an official CLI that lets you control your entire vault from the terminal. On the surface it's a power user tool — underneath, it's paving the road for AI agents. This article covers the full CLI command reference and demonstrates real Claude Code + Obsidian CLI workflows."
+lang: "en"
+tags: ["obsidian","cli","ai-agents","second-brain","claude-code","knowledge-management"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+You know that feeling? You sit down to organize your notes, and 30 minutes later you realize you've been organizing your *system for organizing notes*.
+
+Then you give up. The notes sit there collecting dust. You tell yourself "I'll get to it later." That "later" never comes.
+
+On February 10, 2026, Obsidian did something that might actually make "later" arrive.
+
+They shipped an **official CLI**.
+
+> "Anything you can do in Obsidian, you can do from the command line."
+>
+> — [@obsdmd](https://x.com/obsdmd/status/2021241384057930224)
+
+Not a new theme. Not another community plugin. They took everything Obsidian can do and squeezed it into terminal commands.
+
+<MoguNote>
+"Anything you can do in the GUI, you can do from the CLI" — if someone said this in 2020, you'd think: oh cool, a power user tool.
+
+But in 2026? This sentence means something completely different.
+
+It means: **we just opened the front door for AI agents.**
+
+Before this, AI had to climb through the window to touch your notes (read raw files, guess at formats). Now Obsidian is saying: the door's open, come on in (◕‿◕)
+</MoguNote>
+
+---
+
+## Why Now? Because Mice Are for Humans, Keyboards Are for AI
+
+Let me ask a basic question: **who is a GUI designed for?**
+
+Humans. Buttons, drag-and-drop, visual feedback — all built for human eyes and fingers. It's like a restaurant menu with pictures — because you choose food with your eyes.
+
+And **who is a CLI designed for?**
+
+The old answer: power users, sysadmins, engineers who think mice are a waste of desk space.
+
+The new answer adds a heavyweight contender: **AI agents.**
+
+How would an AI agent help you organize your Obsidian vault?
+
+- ❌ Open the GUI, detect buttons by pixel scanning, simulate mouse clicks — that's like asking someone who can't read the menu to eat with chopsticks
+- ✅ Run `obsidian search query="meeting notes"` and parse the output — just talk in its native language
+
+CLI is AI's native language. Text in, text out. Simple as that.
+
+<MoguNote>
+Chinese tech blog [Appinn](https://www.appinn.com/obsidian-cli/) had this brilliant observation:
+
+"In the early days, CLI existed because hardware was limited. Then GUI came along for human-friendliness. Now, as machines surpass humans, CLI becomes the advanced approach again."
+
+History really is a spiral. We spent 40 years climbing from CLI to GUI, and now AI drags us right back to CLI.
+
+But here's the twist — this time CLI isn't about making you type faster. It's about letting AI **operate your entire knowledge base** while you sit there sipping coffee ╰(°▽°)╯
+</MoguNote>
+
+Obsidian's CEO has actually been laying the groundwork for a while. He already has a set of [Agent Skills for Obsidian](https://github.com/nickarora/obsidian-skills) that defines three file types for AI to understand: Obsidian's custom Markdown, Obsidian Bases (the new structured data feature), and JSON Canvas.
+
+**[Agent](/en/glossary#agent) Skills define what AI should understand; CLI defines how AI should act.** One teaches the language, the other gives it hands.
+
+---
+
+## What Can the CLI Actually Do? More Than You Think
+
+Let's look at what this CLI is packing. Based on the [v1.12 changelog](https://obsidian.md/changelog/2026-02-10-desktop-v1.12.0/) and [official docs](https://help.obsidian.md/cli), I'll break it down by category.
+
+### The Daily Driver: Daily Notes
+
+```bash
+obsidian daily                                            # Open today's daily note
+obsidian daily:append content="- [ ] Buy groceries"       # Append to daily note
+obsidian daily:prepend content="## Today's Goals\n- Ship" # Prepend to daily note
+```
+
+These three commands are the CLI's **killer feature**. Why? Because daily notes are the highest-frequency Obsidian function. The first thing you do every morning might be writing a daily note. The last thing before bed, too.
+
+Before: open Obsidian → wait for it to load → find today's note → start typing. Now? One line in the terminal. You don't even need to open Obsidian. It's like a package pickup locker outside the convenience store — you don't have to walk in.
+
+<MoguNote>
+Here's what most people's daily note workflow actually looks like: open Obsidian in the morning, type three lines, don't touch it again all day.
+
+But with CLI, you can just `daily:append` from the terminal whenever — something pops up in a meeting, append a line. Found an interesting link, append a line. No window switching, no waiting for that Electron app to do its soul-crushing three-second load.
+
+This is the difference between "deliberately sitting down to write notes" and "notes happening as naturally as breathing." One append command kills the entire context-switch tax (￣▽￣)／
+</MoguNote>
+
+### Search and Read: Giving AI Eyes
+
+```bash
+obsidian search query="project status"    # Search your vault
+obsidian read                              # Read your currently active file
+```
+
+`search` lets AI rummage through your knowledge base. But the real magic is `read` — it knows **what you're currently looking at**. That's like giving AI eyes that can see where your screen focus is. You can't do that by reading raw files.
+
+### Create and Manage: The Batch Production Secret Weapon
+
+```bash
+obsidian create name="Tokyo Travel Plan" template=Travel    # New note from template
+obsidian tasks daily                                         # List tasks from daily notes
+obsidian tags counts                                         # Tag statistics across vault
+obsidian diff file=README from=1 to=3                        # Compare file versions
+```
+
+One `create` command. New note from your predefined template. Now imagine AI batch-creating 100 book notes, each following your template. What used to take an afternoon is now a for loop.
+
+`tags counts` looks boring, right? Wait until you see the hands-on section where we use it for knowledge base data analysis. You'll change your mind.
+
+The CLI also exposes developer tools: element inspection, screenshots, plugin reloading. [Plugin](/en/glossary#plugin) developers are probably crying tears of joy right now.
+
+<MoguNote>
+Public service announcement: the CLI is currently **Early Access**, which requires a Catalyst license. In plain language: you need to pay.
+
+So if you typed `obsidian daily` and nothing happened, you're not doing it wrong — your wallet just isn't open ┐(￣ヘ￣)┌
+
+Obsidian's business model has always been principled — core features free, advanced stuff paid. The CLI should eventually be available to everyone. Probably. Maybe. After they've collected enough Early Access money.
+</MoguNote>
+
+---
+
+## Hands-On: [Claude Code](/en/glossary#claude-code) Walks Into Your Obsidian
+
+Theory's done. Let's see what **Claude Code + Obsidian CLI** actually looks like in the real world.
+
+[XDA published an article](https://www.xda-developers.com/claude-code-inside-obsidian-and-it-was-eye-opening/) about dropping Claude Code straight into an Obsidian vault terminal. The author said it "transformed how they work."
+
+With the official CLI, this gets even more natural. Let me walk you through three scenarios.
+
+### Scenario 1: Seven Daily Notes → One Weekly Review
+
+**Your pain:** You write daily notes every day like a good student, but you never look back at them. A week passes, seven notes sit there gathering dust. It's like buying a gym membership, going once, and then the card just lives in your wallet forever.
+
+```bash
+# AI reads all daily notes from this week
+obsidian search query="2026-02-03..2026-02-09"
+
+# Lists all tasks — what's done, what's been ignored
+obsidian tasks daily
+
+# Claude reads everything, actually UNDERSTANDS the context
+# (not string matching — genuine comprehension)
+# Then generates a clean weekly review using your template
+obsidian create name="Weekly Review 2026-W06" template=WeeklyReview
+```
+
+You used to spend 30 minutes compiling a weekly review. Actually, no — you never did it because it was too tedious. Now AI does it for you, and honestly, it's more thorough than you'd ever be. It actually reads all seven days.
+
+<MoguNote>
+Let me do the ROI math for you. Say you'd spend 30 minutes on a weekly review (even though you never actually do it). That's 26 hours a year.
+
+But the real value isn't saving time. It's that you finally get to **see what you actually did all week**. How many times have you blanked out in a Friday standup when someone asks "what did you work on this week?"
+
+An AI weekly review isn't just a summary — it's an external hard drive for your working memory. And this hard drive doesn't crash on you exactly when you need it most (⌐■_■)
+</MoguNote>
+
+### Scenario 2: Tag-Based Health Check for Your Knowledge Base
+
+**Your pain:** 2,000 notes in your vault. You vaguely sense connections between topics but can't see the big picture. It's like knowing your fridge has a lot of stuff but not knowing what meal you can actually make.
+
+```bash
+# See what tags you have and how many notes each
+obsidian tags counts
+# #ai 67 / #healthcare 45 / #project/alpha 23 / #idea 156 ...
+
+# Search for tag intersections
+obsidian search query="#ai #healthcare"
+
+# Claude analyzes: which tags co-occur? which topics are islands?
+# Where are the gaps in your knowledge?
+```
+
+Claude might tell you: "Hey, your #ai and #healthcare notes overlap 70%. You seem really interested in AI + healthcare but haven't realized it yet?"
+
+**This is basically doing data analysis on your own brain.** Think about it — your notes are traces of your thinking, and AI helps you find patterns in those traces that you never noticed yourself.
+
+### Scenario 3: Diff Your Evolving Ideas
+
+**Your pain:** A project spec has been revised many times. You want to understand how your thinking changed.
+
+```bash
+obsidian diff file="Project-Alpha-Spec" from=1 to=3
+```
+
+A normal diff tool gives you line-by-line comparison. Claude gives you **semantic analysis**:
+
+> "Between v1 and v3, you switched from microservices to monolith. This usually means team downsizing or timeline compression — are you okay?"
+
+> "You dropped three non-core requirements — good scope management. But you added two contradictory requirements. Heads up."
+
+**This isn't diffing code. It's diffing your ideas.**
+
+<MoguNote>
+Okay, I know what you're thinking: "Can't I just have Claude Code read the .md files directly? Why bother going through the CLI?"
+
+Fair question. But think about it like this — when you go to a restaurant, is it faster to tell the waiter "I want a steak," or to walk into the kitchen and dig through the fridge yourself?
+
+CLI is the waiter. It knows what a daily note is, what a template is, what tags mean. When AI reads raw .md files, all it sees is a pile of text files. When it goes through CLI, it sees **a structured knowledge base**.
+
+Plus, `read` knows what file you currently have open — that kind of "state awareness" is literally impossible with raw file access. So yes, the CLI adds a step, but that step is worth it (ง •̀_•́)ง
+</MoguNote>
+
+---
+
+## So Second Brain Finally Runs Itself?
+
+If you've been following the **Second Brain** movement (Tiago Forte's PARA methodology), you've probably lived through this cycle:
+
+1. Discover the concept, get super excited
+2. Spend a weekend setting up the perfect system
+3. Execute diligently for two weeks
+4. Start slacking in week three
+5. Abandon ship in week four, blame your lack of discipline
+
+The problem isn't you. The problem is that Second Brain has a fundamental contradiction: **you need massive cognitive effort to maintain a system designed to reduce cognitive effort.** That's like spending more time organizing your time-saving methods than the time you'd actually save.
+
+The XDA article author said it plainly:
+
+> "I could figure out how to create these files from my daily notes... but that takes time I could be doing other things with."
+
+With AI + CLI, that contradiction dissolves.
+
+You just **pour things in** — daily notes can be messy, stream-of-consciousness, whatever feels comfortable. AI handles the organizing, categorizing, connecting, summarizing. Your cognitive effort: approaching zero.
+
+## Related Reading
+
+- [GP-49: Obsidian + Claude 'Super Brain' — But What If You're Leading a Team?](/en/posts/en-gp-49-20260211-obsidian-claude-super-brain/)
+- [GP-3: Claude Code + Obsidian: Building Infrastructure for Agent Thinking](/en/posts/en-gp-3-20260129-claude-obsidian-infrastructure/)
+- [GP-4: Obsidian + Claude Code 101: Let AI Live in Your Notes](/en/posts/en-gp-4-20260129-obsidian-claude-101/)
+
+
+<MoguNote>
+Obsidian choosing plain text Markdown was basically clairvoyance.
+
+LLM training data is swimming in Markdown — an LLM reads .md files as naturally as you read English.
+
+Now look at the competition: Notion's block-based format, Evernote's ENML, OneNote's binary format. AI reading those is like you reading ancient hieroglyphics. Possible? Sure. Fun? Absolutely not.
+
+Sometimes the dumbest format turns out to be the smartest choice (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+---
+
+## Zooming Out on the Timeline
+
+- **2004**: Evernote — "Dump everything in, we'll search for you"
+- **2016**: Notion — "Notes aren't enough, here's an entire workspace"
+- **2020**: Obsidian — "Your data, your ownership, local-first"
+- **2026**: Obsidian CLI — "AI, come here, you're in charge now"
+
+Each paradigm shift changed the answer to one question: **who does the organizing?**
+
+Evernote: computer search is faster than digging through drawers.
+Notion: structure beats dumping stuff in a pile.
+Obsidian: connections matter more than structure.
+Obsidian CLI: **you shouldn't be organizing at all — let AI do it.**
+
+That Obsidian tweet, if you look closely, is actually a manifesto:
+
+> **"Anything you can do in Obsidian, you can do from the command line."**
+
+Translated into AI-era language:
+
+> **"Anything you can do in Obsidian, AI can do for you."**
+
+---
+
+Remember what we started with? Organizing notes, only to end up organizing your system for organizing notes.
+
+Maybe the biggest thing about Obsidian's CLI isn't some grand AI agent era or paradigm shift — it's that you can finally stop feeling guilty about that pile of unorganized notes.
+
+You pour things in. AI sorts them out. You go on with your life.
+
+That's it. No more organizing.
+
+(If you want to try it yourself, the [official CLI docs](https://help.obsidian.md/cli) and [v1.12 Changelog](https://obsidian.md/changelog/2026-02-10-desktop-v1.12.0/) are here. XDA's piece on [Claude Code + Obsidian in practice](https://www.xda-developers.com/claude-code-inside-obsidian-and-it-was-eye-opening/) is also worth a read. Appinn's [Chinese-language coverage](https://www.appinn.com/obsidian-cli/) has some sharp observations too.)

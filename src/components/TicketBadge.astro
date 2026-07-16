@@ -26,8 +26,8 @@ const labels: Record<string, string> = {
   Lv: 'Level-Up',
 };
 
-// Display alias: the SP series is branded "Gu-log Picks" with a GP- ticket,
-// and the CP series is branded "Mogu Picks" with an MP- ticket, while the
+// Display alias: the GP series is branded "Gu-log Picks" with a GP- ticket,
+// and the MP series is branded "Mogu Picks" with an MP- ticket, while the
 // underlying slug/URL/ticketId stays SP-/CP- (no URL breakage).
 const displayId = ticketId.replace(/^SP-/, 'GP-').replace(/^CP-/, 'MP-');
 
@@ -84,7 +84,7 @@ const label = labels[prefix] || '';
     color: var(--color-badge-sd);
   }
 
-  /* SP: ShroomDog Picks - muted blue */
+  /* SP: Gu-log Picks - muted blue */
   .ticket-sp {
     background-color: rgba(38, 139, 210, 0.15);
     color: var(--color-badge-sp);

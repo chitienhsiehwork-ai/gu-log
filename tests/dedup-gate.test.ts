@@ -195,7 +195,7 @@ describe('layer1Match (URL gate)', () => {
   const articles: any[] = [
     {
       file: 'sp-1-x.mdx',
-      ticketId: 'SP-1',
+      ticketId: 'GP-1',
       title: 'Auto Mode',
       tags: [],
       sourceUrl: 'https://claude.com/blog/auto-mode',
@@ -205,7 +205,7 @@ describe('layer1Match (URL gate)', () => {
     },
     {
       file: 'cp-1-x.mdx',
-      ticketId: 'CP-1',
+      ticketId: 'MP-1',
       title: 'Tweet pick',
       tags: [],
       sourceUrl: 'https://x.com/simonw/status/12345',
@@ -220,13 +220,13 @@ describe('layer1Match (URL gate)', () => {
       'https://www.anthropic.com/engineering/claude-code-auto-mode',
       articles
     );
-    expect(r?.article.ticketId).toBe('SP-1');
+    expect(r?.article.ticketId).toBe('GP-1');
     expect(r?.reason).toBe('URL match');
   });
 
   it('matches tweet ID across x.com / twitter.com', () => {
     const r = layer1Match('https://twitter.com/simonw/status/12345', articles);
-    expect(r?.article.ticketId).toBe('CP-1');
+    expect(r?.article.ticketId).toBe('MP-1');
     expect(r?.reason).toBe('tweet ID match');
   });
 
@@ -244,7 +244,7 @@ describe('layer2Match (topic similarity)', () => {
   const articles: any[] = [
     {
       file: 'sp-100.mdx',
-      ticketId: 'SP-100',
+      ticketId: 'GP-100',
       title: 'Building agent teams with claude-code',
       tags: ['agent-teams', 'claude-code'],
       sourceUrl: '',
@@ -262,7 +262,7 @@ describe('layer2Match (topic similarity)', () => {
     );
     expect(r.verdict).toBe('BLOCK');
     expect(r.score).toBeGreaterThanOrEqual(REJECT_THRESHOLD);
-    expect(r.article?.ticketId).toBe('SP-100');
+    expect(r.article?.ticketId).toBe('GP-100');
   });
 
   it('PASSes for unrelated topics', () => {
@@ -341,7 +341,7 @@ describe('parseArgs', () => {
     expect(args.url).toBe('https://x.com/a/status/1');
     expect(args.title).toBe('Hi');
     expect(args.tags).toEqual(['a', 'b', 'c']);
-    expect(args.series).toBe('SP');
+    expect(args.series).toBe('GP');
   });
 
   it('parses --queue list of JSON strings', () => {

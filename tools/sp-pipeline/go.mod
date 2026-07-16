@@ -1,4 +1,4 @@
-module github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline
+module github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline
 
 go 1.24.7
 

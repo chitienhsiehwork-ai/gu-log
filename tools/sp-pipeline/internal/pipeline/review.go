@@ -6,11 +6,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/llm"
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/prompts"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/llm"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/prompts"
 )
 
-// Review is the Go port of scripts/sp-pipeline.sh Step 3. It renders the
+// Review is the Go port of scripts/gp-pipeline.sh Step 3. It renders the
 // review.tmpl prompt and runs it through the dispatcher with WorkDir set
 // so the LLM can read draft-v1.mdx by relative path and write review.md
 // to the same directory. The review prompt does NOT embed the draft text

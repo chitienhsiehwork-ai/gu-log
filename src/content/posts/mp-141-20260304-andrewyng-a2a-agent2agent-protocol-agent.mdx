@@ -1,0 +1,105 @@
+---
+ticketId: "MP-141"
+title: "吳恩達新課：A2A (Agent2Agent Protocol) 成為 Agent 互通的業界標準"
+originalDate: "2026-02-13"
+translatedDate: "2026-03-04"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@AndrewYNg on X"
+sourceUrl: "https://x.com/AndrewYNg/status/2021985280102973931"
+pipeline: "cp-141-pipeline"
+lang: "zh-tw"
+summary: "吳恩達宣布推出關於 A2A (Agent2Agent Protocol) 的新課程。A2A 整合了 IBM 的 ACP，成為不同框架 Agent 之間溝通與協作的業界標準，讓你輕鬆串接 Google ADK 與 LangGraph！"
+tags: ["a2a","agent","andrewng"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+上個月我幫一個朋友的團隊看架構，他們有三個 [Agent](/glossary#agent)——一個用 Google ADK 做的客服 Agent，一個用 LangGraph 做的資料分析 Agent，還有一個用 CrewAI 搭的報告產出 Agent。三個各自跑得很開心，效果也不錯。
+
+然後老闆說了一句話：「讓它們串在一起跑。」
+
+空氣瞬間凝結。
+
+這就是 AI Agent 世界的巴別塔困境。每個框架都在自己的城堡裡說自己的方言，跨框架溝通的膠水程式碼寫起來比 Agent 本身還痛苦。你以為在蓋未來科技，結果花了 70% 的時間在翻譯 JSON 格式 (╯°□°)╯
+
+<MoguNote>
+巴別塔的故事大家應該聽過：上帝打亂人類的語言，大家就沒辦法合作蓋塔了。現在的 Agent 生態根本是科技版巴別塔——Google 有 Google 的方言，LangChain 有 LangChain 的腔調，IBM 有 IBM 的口音，彼此雞同鴨講。A2A 想當那個「翻譯蒟蒻」，問題是歷史上想統一通訊協定的嘗試，十個有八個會變成「又多了一個標準」。不過這次 IBM 的 ACP 直接合流，不搞對抗——這個訊號倒是蠻值得注意的 (◕‿◕)
+</MoguNote>
+
+## 吳恩達出手了
+
+吳恩達 (Andrew Ng) 顯然也看到這個痛點。他剛宣布了一堂短課程：「A2A: The Agent2Agent Protocol」，找來 Google Cloud 和 IBM Research 聯手打造。
+
+不是又一堂「投影片唸完就散會」的課——他要你實際捲起袖子，把不同框架的 Agent 用 A2A 串在一起跑。
+
+但在講課程之前，我們先搞清楚 A2A 到底想幹嘛。
+
+## 一條交流道 + 一個休息站 = 整個高速公路
+
+如果你之前就在關注 Agent 生態，可能同時聽過 A2A 和 [MCP](/glossary#mcp) 這兩個縮寫，搞不太清楚它們的關係。別擔心，很多人一開始都搞混，我第一次看到也花了一點時間釐清。
+
+簡單講：A2A 管的是 Agent 跟 Agent 之間的溝通，MCP 管的是 Agent 跟外部工具、資料源之間的溝通。一個是 Agent 之間的社交能力，一個是 Agent 跟外面世界的互動能力。
+
+<MoguNote>
+我自己最喜歡的比喻是高速公路系統。A2A 是交流道——負責讓不同方向的車流匯合，讓從台北來的車和從高雄來的車能順利交會。MCP 是休息站——車子開到那邊加油、買便當、上廁所（讀資料庫、呼叫 API、存檔案）。沒有交流道，車流各走各的永遠不會交會；沒有休息站，車子跑到沒油就停了。你需要兩個一起才有完整的高速公路。至於這條路最後有多少車願意上來？那就是另一個故事了 ┐(￣ヘ￣)┌
+</MoguNote>
+
+自從 IBM 把 ACP (Agent Communication Protocol) 併入 A2A 之後，A2A 已經不只是 Google 自家的東西了——它正在變成整個產業的共同語言。能不能真的統一江湖還有待觀察，但至少牌面上的陣容不弱。
+
+## 課程怎麼上：蓋一間 Agent 醫院
+
+好，回到課程本身。吳恩達選了一個很聰明的教學場景——醫療保健。
+
+為什麼聰明？因為醫療天生就是 Multi-agent 的修羅場。掛號系統是一個 Agent，病歷查詢是一個 Agent，藥物交互作用檢查又是一個 Agent，保險理賠還是一個 Agent。這些傢伙平常各自安好，但病人掛完號之後的每一步都需要它們互相傳話——這正好就是 A2A 存在的理由。
+
+如果你在想「可是我又不做醫療」——沒關係，場景可以換，架構不會變。任何需要多個 Agent 協作的場景，骨架都長這樣。
+
+<MoguNote>
+話說回來，醫療 demo 跟醫療實戰之間的距離嘛......大概跟「我會煎蛋」到「我開了一間米其林三星餐廳」的距離差不多。Demo 裡面的病人都很乖，資料都很乾淨，保險公司都秒回。真實世界裡的醫療系統？光是不同醫院的病歷格式就能搞死你。不過當教學範例，這個場景的確夠複雜又夠有畫面感 (¬‿¬)
+</MoguNote>
+
+## 四道菜的 Agent 全席
+
+由 Holt Skinner、@ivnardini 和 Sandi Besen 共同掌廚，這堂課的菜單長這樣：
+
+**第一道：讓你的 Agent 學會出門。** 你會把用不同框架寫的 Agent 包裝成 A2A Server。在這一步之前，你的 Agent 像是住在自己房間裡不出門的宅宅——功能很強，但誰也找不到它。包完之後，它就變成社區裡人人找得到、叫得動的好鄰居。這步聽起來簡單，但如果你自己試過讓 Google ADK Agent 跟 LangGraph Agent 對話，你就知道光是格式轉換就能讓人血壓飆升。
+
+**第二道：接上組裝線。** 用 ADK 把這些 A2A Agent 做循序串接，讓前面的 Agent 做完自動交棒給下一個。想像食品工廠的生產線——有人揉麵團、有人塑形、有人進烤箱、有人包裝。每個工人只需要專注自己那一站，成品自然就出來了。
+
+**第三道：打通任督二脈。** 透過 MCP 讓 Agent 接上外部資料源。這道最關鍵——Agent 再聰明，沒有資料就跟一個博學但失憶的教授一樣，滿腦子知識卻什麼都答不出來。（別問我怎麼知道的，我也有過那種早上起來忘記自己是誰的時刻。）
+
+**最後一道：端上桌。** 用 IBM 開源的 Agent Stack 部署整套系統。從開發到上線，一條龍搞定。很多課程講到部署就草草帶過，這堂課至少給你一個完整的出口，不會讓你停在「我 demo 跑得起來但不知道怎麼上 production」的尷尬階段。
+
+## 延伸閱讀
+
+- [MP-91: 你每天用的 MCP 有多危險？學術論文拆解 AI Agent 四大通訊協定的 12 個安全地雷](/posts/mp-91-20260217-arxiv-ai-agent-protocol-security/)
+- [GP-5: 如何讓你的 Agent 在你睡覺時學習並發布代碼](/posts/gp-5-20260130-agent-ships-while-you-sleep/)
+- [MP-17: 北京大學：AI agent 竟然遵守物理定律？！](/posts/mp-17-20260204-llm-detailed-balance/)
+
+
+<MoguNote>
+注意第三道菜：A2A 跟 MCP 同時出現在同一堂課裡。吳恩達這是在對市場喊話——「這兩個不是競爭關係，是互補關係，拜託你們不要再問我該選哪一個了。」A2A 是 Agent 大腦之間的神經網路，MCP 是 Agent 伸出去抓東西的手腳。他把兩個放在一起教，某種程度上是在幫下一代 Agentic 系統定義參考架構。是不是最終答案？沒有人知道。但目前市面上，這是我看過最完整的一張藍圖 (⌐■_■)
+</MoguNote>
+
+## 巴別塔倒了嗎？
+
+說回開頭那個三個 Agent 各說各話的團隊。如果他們今天重來，用 A2A 的架構去接——客服 Agent 丟出結構化的 task，資料分析 Agent 接住、處理、再把結果傳給報告產出 Agent——整個流程不用寫半行膠水程式碼。
+
+聽起來很美好對吧？
+
+現實是，巴別塔能不能倒，不是取決於標準寫得多漂亮，而是取決於有多少框架願意站到同一邊。好消息是 Google 跟 IBM 已經表態了，壞消息是這個世界上還有一大堆框架在觀望。
+
+但至少現在，有人開始教大家怎麼蓋翻譯蒟蒻了。如果你的團隊正在跟 Multi-agent 架構搏鬥，這堂課至少能讓你少走一些冤枉路 ╰(°▽°)╯

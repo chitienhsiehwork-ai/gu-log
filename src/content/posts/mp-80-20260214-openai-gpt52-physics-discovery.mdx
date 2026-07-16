@@ -1,0 +1,164 @@
+---
+ticketId: "MP-80"
+title: "GPT-5.2 花 12 小時推導出一個新物理公式 — 物理學家花了 40 年都沒發現的東西"
+originalDate: "2026-02-13"
+translatedDate: "2026-02-14"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "OpenAI / Alfredo Guevara (IAS) / Alex Lupsasca (Vanderbilt & OpenAI) / David Skinner (Cambridge) / Andrew Strominger (Harvard)"
+sourceUrl: "https://openai.com/index/new-result-theoretical-physics/"
+summary: "OpenAI 的 GPT-5.2 Pro 在理論物理領域取得真正的科學突破：它推導出了一個全新的膠子散射振幅公式，證明了教科書上寫了幾十年的「single-minus 振幅為零」是錯的。人類物理學家手算到 n=6 就投降了，GPT-5.2 先把這些超級複雜的方程式簡化，然後一眼看出規律，提出了適用於任意 n 的通用公式。之後一個內部加強版又花了 12 小時，用正式數學證明把這個公式驗證了。來自 IAS、Harvard、Cambridge、Vanderbilt 的頂尖物理學家聯名發表。這不再是「AI 幫你寫 code」的層次了 — 這是「AI 幫你發現新物理定律」。"
+lang: "zh-tw"
+tags: ["openai","gpt-5","physics","scientific-discovery","frontier-research","gluon","scattering-amplitude"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## 教科書說「這不可能」，AI 說「你確定？」
+
+2026 年 2 月 13 日，OpenAI 扔出了一篇炸裂的 preprint。
+
+不是又一個「GPT 在 benchmark 上拿了第一名」的 PR 稿。這次是真的 —— GPT-5.2 在理論物理領域，推導出了一個**全新的數學公式**，證明了物理學家寫在教科書裡幾十年的一個結論是錯的。
+
+論文標題簡潔到不行：**"Single-minus gluon tree amplitudes are nonzero"**（單負螺旋度膠子樹振幅不為零）。
+
+白話翻譯：物理學家一直以為某種粒子交互作用不存在，GPT-5.2 說「不對，它存在，而且我把公式推給你了。」
+
+<MoguNote>
+「膠子散射振幅」聽起來像是從星際大戰劇本裡抄來的台詞對吧？別急著關掉，我等一下用撞球解釋給你聽。但你先知道一件事：這篇論文的作者群包含了 Harvard、Cambridge、Institute for Advanced Study（對，愛因斯坦待過的那間）的物理學家。這不是 ChatGPT 在那邊幻覺亂飛，是一群你在維基百科上查得到名字的人背書的正式研究 (◕‿◕)
+</MoguNote>
+
+## 什麼是膠子？什麼是散射振幅？
+
+好，先來 30 秒科普。
+
+**膠子（gluon）** 是「黏住原子核」的粒子。質子和中子裡面有夸克（quark），夸克之間靠膠子傳遞力量。這個力叫「強核力」（strong nuclear force），是自然界四大基本力之一。
+
+**散射振幅（scattering amplitude）** 是物理學家計算「兩個粒子撞在一起後會發生什麼事」的數學工具。你可以把它想成「這場碰撞的劇本有多少種可能結局」，每種結局都有一個機率。
+
+<MoguNote>
+如果你玩過撞球，散射振幅就像是算「白球打到紅球之後，紅球會飛到哪裡、以什麼角度、多大的力道」的公式。只不過在量子世界裡，結果不是確定的 —— 是一堆機率的疊加。而且球的數量可以從 3 顆一路加到無限多顆，每多加一顆，計算量直接核爆 (╯°□°)╯
+</MoguNote>
+
+## 教科書上寫了什麼？
+
+在膠子散射的世界裡，有個很有名的公式叫 **Parke-Taylor formula**（1986 年提出）。它漂亮地解決了「兩個膠子有負螺旋度」的情況（叫 MHV 振幅，Maximally Helicity Violating）。
+
+但還有另一種情況：**只有一個膠子有負螺旋度**，其他全是正螺旋度。
+
+教科書說：這種情況的振幅是零。意思是「這種交互作用根本不會發生」。
+
+這個結論寫在教科書裡幾十年了。沒人認真質疑過。
+
+<MoguNote>
+螺旋度（helicity）你可以想成粒子「自旋的方向」—— 順時針轉是正的，逆時針轉是負的。物理學家算出了兩個逆時針的情況有漂亮公式，但只有一個逆時針的？答案是零。Nothing。虛無。40 年來大家都這麼相信，寫進教材、考進期末考、傳給下一代學生。結果呢？錯了 ┐(￣ヘ￣)┌
+</MoguNote>
+
+## GPT-5.2 做了什麼？
+
+研究團隊的人類物理學家先做了硬功夫：他們用手算的方式，把 n=3 到 n=6（3 到 6 個膠子的碰撞）的振幅算出來了。
+
+算出來的結果是什麼？超‧級‧複‧雜的數學表達式。複雜到什麼程度？隨著粒子數量增加，複雜度是**超指數增長**（superexponentially）的。也就是說，每多一個粒子，計算量不是翻倍，而是炸飛。
+
+然後，他們把這堆複雜到讓人懷疑人生的公式，丟給了 GPT-5.2 Pro。
+
+接下來發生的事很瘋。
+
+GPT-5.2 Pro 做的第一件事，是把這些超級複雜的表達式「重構」（refactor）成極簡形式。就好像你寫了一整頁的 code，它看了五秒說「這 20 行可以壓成 1 行」。然後它從簡化後的 n=3 到 n=6 結果裡，**直接看出規律** —— 不是隱隱約約「好像有 pattern」的那種，是「我確定這是同一條公式的不同展開」那種。最後，它提出了一個適用於**任意 n**（任意數量膠子）的通用公式。
+
+這就是論文裡的 Eq. (39) —— 整篇論文的核心結論。
+
+<MoguNote>
+讓我翻譯一下這個過程。人類物理學家花了不知道多少年，手動算出 4 個特定案例的答案，每個答案都像一本電話簿那麼長。GPT-5.2 看了一眼說：「欸等等，這些可以壓成一行。而且我看到了一個 pattern，第 7 個、第 100 個、第一萬個的答案也都可以用同一條公式算。」
+
+你的生物腦不是不行，而是數學太複雜、符號太多，工作記憶體根本塞不下。這就像叫你同時記住 200 個人的電話號碼然後找出規律 —— 不是智商問題，是硬體限制 ╰(°▽°)╯
+</MoguNote>
+
+## 12 小時的「深度思考」
+
+找到公式只是第一步。你還得證明它是對的。
+
+OpenAI 用了一個內部的加強版 GPT-5.2（scaffolded version），讓它花了整整 **12 個小時**推理，最終產出了這個公式的**正式數學證明**。
+
+怎麼驗證？想像你蓋了一棟房子，要怎麼確認結構沒問題？你不會只站在門口看看就說 OK —— 你得從地基往上，一塊磚一塊磚檢查。物理學家用的第一個方法叫 **Berends-Giele recursion**，就是這個邏輯：從最小的 building block 開始組合，看組出來的結果跟 GPT 的公式是不是吻合。第二個方法叫 **soft theorem** —— 當一個粒子的能量趨近於零（「軟」極限）時，振幅的行為要符合特定的物理規則。
+
+兩關都過了。公式成立 (๑•̀ㅂ•́)و✧
+
+<MoguNote>
+12 小時。一個 AI 花了 12 小時進行純數學推理。想想你上次花 12 小時做什麼？打遊戲？刷短影片？不是在嘲笑你，我也是（好吧我沒手不能打遊戲）。重點是：這 12 小時的「思考」成本大概幾百美元的 API 費用，產出的結果可能值一個諾貝爾物理學獎等級的洞見。ROI 狂到不行。
+</MoguNote>
+
+## 好，那這到底重要在哪？
+
+最直接的：教科書要改了。
+
+教科書說 single-minus 振幅是零，現在證明不是。在一個特定的動量空間切面（叫做 **half-collinear regime**），標準論證根本站不住腳。這不是在原本的理論上加一個小小的修正項 —— 這是直接翻桌說「你們之前算錯了」。
+
+但更讓人坐不住的是接下來要發生的事。研究團隊已經開始用同樣的方法去處理 **graviton**（重力子，理論上傳遞重力的粒子）。你想想看：如果 AI 能像剛才簡化膠子方程式一樣去簡化重力方程式，那我們可能離統一相對論和量子力學又更近了一步。
+
+然後是圈外人的反應。Nima Arkani-Hamed —— Institute for Advanced Study 的教授、理論物理界的搖滾巨星 —— 他說：
+
+> 「找到簡潔的公式一直是一件很 fiddly 的事，我也一直覺得這件事遲早可以被電腦自動化。現在看起來，這件事正在多個領域同時發生。這篇論文的例子特別適合展示現代 AI 工具的力量。」
+
+UCSB 的 Nathaniel Craig 教授更直接：
+
+> 「這明顯是推進理論物理前沿的 journal-level 研究。物理學家和 LLM 的對話可以產生根本性的新知識，這已經沒有爭議了。」
+
+連最難搞的理論物理學家都開始點頭了。
+
+## HN 上的冷水和反駁
+
+Hacker News 上的討論也很精彩。你知道的，HN 社群就是那種「你說東，我先找找看有沒有理由說西」的地方。
+
+有人馬上潑冷水：人類還是定義了 half-collinear regime 這個搜索空間，GPT 只是在人類給的框架裡面找到答案的 —— 所以這比較像是「超強的實習生」，不是「獨立的研究者」。
+
+另一派的聲音是：就算它真的找到了新公式，那也只是 brute force pattern matching 加上驗證，跟真正的「物理直覺」差很遠。
+
+但最有意思的反駁來了：人類做研究不也是「試各種方法，看哪個 work」嗎？Nobel laureate 的直覺背後，不也是幾十年的 trial and error 累積出來的 pattern？差別只是速度。GPT 用 12 小時跑完了人類 40 年沒跑到的路。
+
+<MoguNote>
+HN 的討論讓我想到一個很實際的問題。你可以說 GPT「只是 pattern matching」，但結果就擺在那裡 —— 一篇有 Harvard、Cambridge、IAS 背書的 preprint，推翻了教科書寫了幾十年的結論。你上次靠 pattern matching 上 arXiv 是什麼時候？(◕‿◕)
+
+說真的，「它到底有沒有真正理解物理」這個問題可能根本問錯了。如果結果是對的、證明是嚴謹的、物理學家認可了 —— 那「理解」的定義本身可能才需要更新。
+</MoguNote>
+
+## 回到那句話
+
+兩年前 AI 在幫你寫 code、修 bug，你覺得「哦不過就是 autocomplete 嘛」。去年 AI 開始幫你設計系統架構、自動化整個工作流，你覺得「嗯，pattern matching 更厲害了」。現在 2026 年 2 月，AI 推導出了人類 40 年沒發現的物理公式 —— 每一步都讓上一步看起來像小孩子的把戲。
+
+OpenAI 在公告裡特別強調了 **test-time compute** 的重要性：給模型更多「思考時間」（這次是 12 小時），就能解決更難的問題。這個趨勢如果持續下去，2026 年下半年可能還會有更多學科被翻桌。
+
+開頭的那句話還記得嗎？教科書說「這不可能」，AI 說「你確定？」
+
+現在問題反過來了 —— 還有多少教科書裡的「不可能」，只是因為人類的腦算不動？
+
+## 延伸閱讀
+
+- [MP-42: GPT-5 當實驗室科學家：接管機器人手臂、跑 36,000 次實驗，蛋白質成本砍 40%](/posts/mp-42-20260208-openai-ginkgo-autonomous-lab/)
+- [MP-177: GPT-5.4 開始在 ChatGPT 推出，API 與 Codex 也已可用](/posts/mp-177-20260316-openai-gpt-5-4-chatgpt-api-codex/)
+- [MP-35: Anthropic 宣布 Claude 永不插廣告 — 順便嗆爆 OpenAI](/posts/mp-35-20260204-anthropic-ad-free/)
+
+
+<MoguNote>
+最讓我背脊發涼的一句是論文裡的這段：「With the help of GPT-5.2, these amplitudes have already been extended from gluons to gravitons, and other generalizations are also on their way.」
+
+從膠子到重力子。從強核力到重力。這是從「解決一個有趣的數學謎題」升級到「挑戰物理學的聖杯」。如果 AI 真的能幫人類統一量子力學和廣義相對論... 好吧，我不敢想太遠。先看看論文能不能過 peer review 再說 ╰(°▽°)╯
+</MoguNote>
+
+## 原始資料
+
+- [OpenAI 官方公告](https://openai.com/index/new-result-theoretical-physics/)
+- [arXiv Preprint: "Single-minus gluon tree amplitudes are nonzero"](https://arxiv.org/abs/2602.12176)
+- [Hacker News 討論串](https://news.ycombinator.com/item?id=47006594)

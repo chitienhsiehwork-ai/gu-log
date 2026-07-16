@@ -10,8 +10,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/llm"
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/runner"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/llm"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/runner"
 )
 
 // doctorReport is the full JSON shape emitted with --json.
@@ -41,7 +41,7 @@ type fileCheck struct {
 	Required bool   `json:"required"`
 }
 
-// requiredBinaries and optionalBinaries mirror sp-pipeline.sh's
+// requiredBinaries and optionalBinaries mirror gp-pipeline.sh's
 // check_required_tools list, split by whether a missing entry is fatal.
 //
 // codex is optional rather than required because the pipeline falls back to
@@ -59,7 +59,7 @@ func newDoctorCmd(state *rootState) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "doctor",
 		Short: "Verify every external dependency is reachable",
-		Long: `doctor reports on the health of the sp-pipeline execution environment.
+		Long: `doctor reports on the health of the gp-pipeline execution environment.
 
 It checks:
 
@@ -164,7 +164,7 @@ func runDoctor(ctx context.Context, state *rootState, probeLLM bool) error {
 }
 
 func printDoctorHuman(state *rootState, r doctorReport) {
-	fmt.Printf("sp-pipeline doctor\n")
+	fmt.Printf("gp-pipeline doctor\n")
 	fmt.Printf("  go:       %s (%s/%s)\n", r.GoVersion, r.GoOS, r.GoArch)
 	fmt.Printf("  repo:     %s\n", r.RepoRoot)
 	fmt.Printf("\n")

@@ -1,0 +1,227 @@
+---
+ticketId: "GP-10"
+title: "Redis 不只是 Cache：別開著法拉利去買菜"
+originalDate: "2026-01-29"
+translatedDate: "2026-01-30"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@KartikeyStack on X"
+sourceUrl: "https://x.com/KartikeyStack/status/2016769146781077767"
+summary: "大部分開發者認識 Redis 是作為 Cache。但把 Redis 只當 Cache 用，就像買了一台法拉利卻只開去買菜。Redis 不是一個剛好很快的 Cache，它是一個資料結構伺服器，只是剛好很適合當 Cache。"
+lang: "zh-tw"
+tags: ["redis","database","cache","performance"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+import Toggle from '../../components/Toggle.astro';
+
+想像一下：你買了一台法拉利。引擎聲浪迷人、馬力破表、空力設計讓風都為你讓路。然後你每天開它去全聯買蔥。
+
+這就是大部分人對 Redis 做的事。
+
+你把它丟在資料庫前面，加個 TTL，看著回應時間從 500ms 掉到 50ms，然後就繼續做別的事了。Redis 安靜地工作，系統變快了，大家都很開心。任務完成，對吧？
+
+<Toggle title="名詞解釋：TTL (Time To Live)">
+**TTL (存活時間)**：資料在快取中保留多久會自動過期。例如設 TTL = 1小時，那這筆資料 1 小時後就會自動消失，下次讀取時就要重新從資料庫抓。
+</Toggle>
+
+但問題來了——你的法拉利，引擎根本還沒熱。
+
+<MoguNote>
+開法拉利去全聯買蔥... 嗯，是很帥啦，但你連二檔都沒掛上去。Redis 的引擎可是能跑 F1 的，結果你讓它在停車場怠速 (￣▽￣)／ 講認真的，這就像買了 PS5 只拿來看 Netflix，技術上沒毛病但精神上有問題。
+</MoguNote>
+
+Redis 不是一個剛好很快的 Cache。它是一個**資料結構伺服器 (Data Structure Server)**，只是剛好很適合當 Cache。這個區別，改變了一切。
+
+## Redis 到底是什麼？
+
+Redis = **RE**mote **DI**ctionary **S**erver。
+
+大部分 Cache 把資料當成一坨看不懂的字串（JSON String）——就像把所有東西塞進一個黑色垃圾袋，要用的時候再整袋倒出來翻。但 Redis 不一樣，它懂**資料結構**：Strings、Hashes、Lists、Sets、Sorted Sets、Streams、Geospatial、HyperLogLogs... 而且它不只是存這些結構，它知道如何**安全且原子地 (Atomically)** 修改它們。
+
+<Toggle title="名詞解釋：Atomic (原子性)">
+**Atomic (原子性)**：操作要嘛全部成功，要嘛全部失敗，不會有「做一半」的狀態。而且在操作過程中，別人不能插隊修改資料。這保證了資料的一致性。
+</Toggle>
+
+<MoguNote>
+這就是重點！傳統 DB 像個圖書館員——你借書要填單、還書要蓋章、想改書上的字還要先申請。Redis 像個神經元，訊號來了啪一下就反應，不囉嗦 (⚡_⚡) 之前翻 MP-30 那篇 Anthropic 的故事時就提到，好的系統設計是讓「正確的事情變成最容易的事情」，Redis 就是這個哲學的極致體現。
+</MoguNote>
+
+## 思維轉變：停止搬資料，讓 Redis 自己來
+
+這是整篇最重要的觀念轉換，所以我要花點時間講清楚。
+
+傳統 Cache 的做法是 Read-Modify-Write：把資料讀出來、在 App 層修改、再寫回去。
+
+```javascript
+// ❌ 傳統做法：把資料搬到 App 修改再搬回去
+const userData = await redis.get("user:1");
+const user = JSON.parse(userData);
+user.followers += 1;
+await redis.set("user:1", JSON.stringify(user));
+```
+
+看起來很合理？但這有個致命問題——Race Condition。如果兩個人同時讀取、同時加一、再寫回去，follower 數只會加一而不是加二。就像兩個人同時從 ATM 領錢，餘額卻只扣一次，銀行要哭了。
+
+<Toggle title="名詞解釋：Race Condition (競爭條件)">
+**Race Condition**：當多個程序同時搶著讀寫同一筆資料時，因為執行順序不確定，導致結果錯誤的情況。像是兩個人同時領錢，餘額卻只扣一次。
+</Toggle>
+
+Redis 的做法完全不同——你不搬資料，你**下指令**：
+
+```javascript
+// ✅ Redis 原生做法：叫 Redis 自己改
+await redis.hIncrBy("user:1", "followers", 1);
+```
+
+一行。原子性。絕對不會算錯。
+
+<MoguNote>
+這個思維轉變才是全篇精華。你不是在用 Redis 「存東西」，你是在對它**下命令**。就像你不用自己跑到機場塔台去移飛機，你對塔台說「讓 CI-753 移到 Gate 7」，塔台自己搞定。把邏輯留在 Redis 端，你的 App 就只需要當個優雅的指揮官 (⌐■_■)
+</MoguNote>
+
+## 為什麼 Redis 真的那麼快？
+
+三個字：**簡單暴力**。
+
+首先，**Memory-first design**——它不只是用 RAM，它針對記憶體存取模式最佳化了資料結構。其次，**Simple operations**——沒有複雜的 SQL JOIN，沒有查詢優化器，大多是 O(1) 或 O(log n)。最後，**Single-threaded execution model**——這聽起來是缺點，其實是優點。因為單執行緒，所以沒有 Lock Contention，大家乖乖排隊，反而省去了搶鎖的開銷。
+
+<Toggle title="名詞解釋：Lock Contention (鎖競爭)">
+**Lock Contention**：在多執行緒環境下，大家為了搶同一把「鎖」（為了修改資料）而排隊等待。這會浪費大量時間。Redis 因為是單執行緒，大家乖乖排隊，反而省去了「搶鎖」的開銷。
+</Toggle>
+
+數字說話：PostgreSQL 查詢 ~50ms → Redis Cache ~5ms → **Native Redis Operation ~0.5ms**。
+
+差了兩個數量級。好，現在你知道法拉利有多猛了，讓我們上賽道。
+
+## 法拉利上賽道：Redis 的七大殺手鐗
+
+前面講了觀念，現在來看實戰。Redis 作為 State Manager（狀態管理器）能做的事，比你想像的多很多。我把它們串成一個故事——想像你在蓋一個百萬用戶的社群平台。
+
+### 計數器：你的第一個需求
+
+平台上線第一天，PM 跑來問：「我們有多少 Page Views？」
+
+在 PostgreSQL 裡，你需要 Lock row → Read → Write → Unlock → Write to WAL，一連串操作才能安全地加一。Redis 的 `INCR`？微秒級搞定。
+
+<Toggle title="名詞解釋：WAL (Write Ahead Log)">
+**WAL (預寫日誌)**：資料庫為了保證資料不丟失，在真正修改資料檔之前，會先把操作記錄寫進 Log 檔。這是資料庫持久性的關鍵，但也增加了寫入的開銷。
+</Toggle>
+
+想數獨立訪客 (UV)？HyperLogLog 用 12KB 記憶體就能估算幾億人，誤差只有 0.8%。十二 KB 欸。你手機裡一張照片都比它大。
+
+### 限流：用戶太嗨怎麼辦
+
+平台火了，有人寫機器人瘋狂打 API。你需要限流。
+
+用 **Sorted Sets** 做 Sliding Window（滑動視窗）限流，所有伺服器共享 Redis 裡的狀態，沒人能偷跑。比起固定時間切片（每分鐘重置計數器），滑動視窗不會有「整點瞬間湧入」的漏洞。
+
+<Toggle title="名詞解釋：Sliding Window (滑動視窗)">
+**Sliding Window**：一種限流演算法。想像一個隨著時間移動的視窗（例如過去 1 分鐘）。我們只計算落在這個視窗內的請求數。比固定時間切片（每分鐘重置）更精準。
+</Toggle>
+
+### Session：JWT 的撤回鍵
+
+接著，你需要處理登入。很多人會說「用 JWT 就好」，但等等——如果用戶被盜帳號，你要怎麼「立即踢人下線」？JWT 一旦簽出去，就像潑出去的水，在過期前你拿它沒轍（除非維護黑名單，那又變回有狀態了）。
+
+Redis Session 就是你的撤回鍵。有 TTL 自動過期，也能手動刪除立刻登出。
+
+<Toggle title="名詞解釋：JWT (JSON Web Token)">
+**JWT**：一種無狀態的 [Token](/glossary#token)。優點是伺服器不用存狀態，缺點是一旦發出去，在過期前都很難撤銷（除非做黑名單，那又變回有狀態了）。
+</Toggle>
+
+<MoguNote>
+別再無腦用 JWT 了，拜託 ( ´Д｀)ﾉ~ 每次看到有人把 JWT 當萬靈丹用，我都想問一句：「所以用戶密碼被盜的時候，你打算怎麼把 token 收回來？打電話叫它自首嗎？」Redis Session 不性感但它管用，就像鐵捲門不帥但它防盜。
+</MoguNote>
+
+### 排行榜：SQL 做這個會哭
+
+社群平台怎麼能沒有排行榜？**Sorted Sets** 根本就是為此而生——更新分數 O(log n)，抓取前 10 名 O(log n)。
+
+<MoguNote>
+試過用 SQL `ORDER BY score DESC LIMIT 10` 跑幾百萬筆資料嗎？資料庫會哭給你看 ╰(°▽°)╯ Sorted Sets 做排行榜就像用計算機做加法——你當然可以用算盤，但何必呢？這不是優化，這是換了一個維度在思考問題。
+</MoguNote>
+
+### 分散式鎖：同一時間只能有一個人
+
+平台長大了，你有好幾台伺服器。當你需要保證「同一時間只有一個 process 能產生發票編號」，怎麼辦？Redis 的 Redlock 演算法就是幹這個的。
+
+<Toggle title="名詞解釋：Redlock">
+**Redlock**：Redis 官方提出的分散式鎖演算法。利用 Redis 的原子操作 (SETNX) 來確保鎖的安全性，並處理了節點故障等邊緣情況。
+</Toggle>
+
+### 即時通訊：射後不理的 Pub/Sub
+
+社群平台要加聊天功能？Pub/Sub 就是你要的。發布者丟訊息到頻道，訂閱者收聽，發布者不用管誰在聽。Fire-and-forget——如果沒人聽，訊息就消失了。適合即時通知、聊天室這種「錯過就算了」的場景。
+
+<Toggle title="名詞解釋：Pub/Sub & Fan-out">
+**Pub/Sub**：一種訊息模式。發布者 (Publisher) 把訊息丟到頻道，訂閱者 (Subscriber) 收聽頻道。發布者不用知道誰在聽。
+
+**Fan-out (扇出)**：把一條訊息同時廣播給大量的訂閱者。例如 IG 名人發文，瞬間推播給百萬粉絲。
+</Toggle>
+
+### Streams：輕量版 Kafka
+
+但如果訊息不能丟呢？比如訂單處理、付款通知——這些漏掉一筆可不行。Redis Streams 是輕量級的 Kafka 替代方案，支援 Consumer Groups，保證每筆訊息都會被處理。
+
+<Toggle title="名詞解釋：Kafka">
+**Kafka**：一個超大型、高吞吐量的分散式串流平台。通常用於大數據處理。Redis Streams 是它的輕量版，適合規模沒那麼大但需要類似功能的場景。
+</Toggle>
+
+<MoguNote>
+七種武器講完了。注意到沒？從計數器到 Streams，每一個都不是「Cache」的工作。這就是為什麼我說 Redis 是資料結構伺服器——它的 Cache 功能就像法拉利的置物箱，有，但那不是你買它的理由 ┐(￣ヘ￣)┌
+</MoguNote>
+
+## 持久性：Redis 重開機資料會不見？
+
+這是最常見的迷思，也是很多人不敢讓 Redis 扛重要資料的原因。但其實 Redis 有兩種持久化方式：
+
+- **RDB (Snapshots)**：定期快照。速度快，但可能掉幾分鐘資料——適合「掉了可以重算」的場景。
+- **AOF (Append-Only File)**：記錄每一個寫入操作。資料更安全，但檔案較大。
+
+兩者可以一起用，在安全性和效能之間找甜蜜點。
+
+## Pipelines：別讓紅燈毀了你的法拉利
+
+最後一個大招。
+
+網路延遲是 Redis 的頭號殺手。Redis 處理一個指令只要 0.001ms，但網路傳輸一趟可能要 10ms。如果你一個指令一個指令發，就像開法拉利卻每 100 公尺遇到一個紅燈——再快的車也沒用。
+
+Pipeline 的解法很簡單：把 1000 個指令打包一次發送。從 5 秒變 50ms。
+
+<Toggle title="名詞解釋：Pipeline">
+**Pipeline**：就像去超市買東西，你不會買一樣結帳一次。你會把所有東西放到籃子裡，一次結帳。Pipeline 讓你可以一次發送多個 Redis 指令，減少網路來回的時間。
+</Toggle>
+
+## 延伸閱讀
+
+- [MP-163: Simon Willison 筆記：Tobi 的 autoresearch PR 讓 Liquid benchmark 提升 53%](/posts/mp-163-20260315-simonw-simon-willison-tobi-autoresearch-pr-liquid-benchmark-53/)
+- [Lv-10: 一個 URL 的旅程 — 從你按 Enter 到畫面出現，瀏覽器到底在幹嘛](/posts/levelup-20260223-10-url-journey-browser-internals/)
+- [GP-32: LLM 推理的內臟：KV Cache 與記憶體的噩夢（系列 2/3）](/posts/gp-32-20260205-dejavucoder-prompt-caching-part2-kv-cache/)
+
+
+<MoguNote>
+RTT（Round-Trip Time）才是真正的 Final Boss。Redis 本身快到不像話，但你的網路在拖後腿。不開 Pipeline 就像開法拉利上台北忠孝東路——引擎 800 匹馬力，時速 15 公里。開了 Pipeline？恭喜你上了高速公路 (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+## 何時不該用 Redis？
+
+Redis 很強，但它不是銀彈。複雜關聯查詢需要 JOIN 的，乖乖用 SQL。資料大於記憶體的（100GB 資料但只有 16GB RAM），別硬塞。銀行交易紀錄這種需要絕對資料安全性的，用專門的資料庫。全文搜尋雖然有 RediSearch，但 Elasticsearch 還是專業的。
+
+## 所以那台法拉利，你打算怎麼開？
+
+回到開頭的比喻。Redis 是一台法拉利——你當然可以開它去買菜（當 Cache），它跑得很快，沒有問題。但現在你知道了：它能跑 F1（即時計數）、能甩尾過彎（分散式鎖）、能在直線加速賽碾壓全場（Pipeline）。
+
+下次你打開 Redis 連線的時候，別只是 `GET` 和 `SET`。試試 Sorted Sets 做個排行榜，試試 Pub/Sub 做個即時通知。你會發現，那台法拉利的引擎聲浪，跟買菜時聽起來完全不一樣。

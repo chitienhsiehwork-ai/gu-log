@@ -32,38 +32,38 @@ describe('article-counter merge driver', () => {
   it('takes max next when both sides bump the same prefix', () => {
     const ours = structuredClone(base);
     const theirs = structuredClone(base);
-    ours.SP.next = 254;
-    theirs.SP.next = 257;
+    ours.GP.next = 254;
+    theirs.GP.next = 257;
 
-    expect(merge(ours, theirs).SP.next).toBe(257);
+    expect(merge(ours, theirs).GP.next).toBe(257);
   });
 
   it('keeps independent next bumps on different prefixes', () => {
     const ours = structuredClone(base);
     const theirs = structuredClone(base);
-    ours.SP.next = 254;
-    theirs.CP.next = 316;
+    ours.GP.next = 254;
+    theirs.MP.next = 316;
 
     const merged = merge(ours, theirs);
-    expect(merged.SP.next).toBe(254);
-    expect(merged.CP.next).toBe(316);
+    expect(merged.GP.next).toBe(254);
+    expect(merged.MP.next).toBe(316);
   });
 
   it('accepts a one-sided label change', () => {
     const ours = structuredClone(base);
     const theirs = structuredClone(base);
-    ours.SP.label = 'Gu-log Picks / SP';
+    ours.GP.label = 'Gu-log Picks / SP';
 
-    expect(merge(ours, theirs).SP.label).toBe('Gu-log Picks / SP');
+    expect(merge(ours, theirs).GP.label).toBe('Gu-log Picks / SP');
   });
 
   it('fails when both sides change the same label differently', () => {
     const ours = structuredClone(base);
     const theirs = structuredClone(base);
-    ours.SP.label = 'One label';
-    theirs.SP.label = 'Another label';
+    ours.GP.label = 'One label';
+    theirs.GP.label = 'Another label';
 
-    expect(() => merge(ours, theirs)).toThrow('SP.label: both sides changed differently');
+    expect(() => merge(ours, theirs)).toThrow('GP.label: both sides changed differently');
   });
 
   it('fails on malformed JSON', () => {

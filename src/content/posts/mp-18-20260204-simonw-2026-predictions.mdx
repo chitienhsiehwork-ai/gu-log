@@ -1,0 +1,158 @@
+---
+ticketId: "MP-18"
+title: "Simon Willison 2026 預測：寫程式這件事要被 AI 取代了嗎?"
+originalDate: "2026-01-08"
+translatedDate: "2026-02-04"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "Simon Willison's Weblog"
+sourceUrl: "https://simonwillison.net/2026/Jan/8/llm-predictions-for-2026/"
+summary: "Simon Willison 在 Oxide and Friends podcast 分享他對 2026 年 LLM 的預測 — LLM 寫的 code 品質無法再被否認、sandboxing 終於要解決、還有一個關於 kākāpō 鸚鵡的預測 (◕‿◕)"
+lang: "zh-tw"
+tags: ["llm","developer-tools","predictions"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+你知道那種感覺嗎 — 期末考前一晚，你覺得自己什麼都沒讀，結果隔天走進考場，發現考卷上的題目你居然都寫得出來？
+
+[Simon Willison](/glossary#simon-willison) 說，2026 年的 LLM 就是那個你以為沒準備好、但其實已經偷偷變超強的同學。他在 Oxide and Friends podcast 上丟了一堆預測，從「一年內」到「六年內」都有，而且有些聽起來真的很狂。但最讓我在意的不是那些技術預測 — 是他居然在一堆 AI 預測裡面插了一個關於紐西蘭瀕危鸚鵡的預測 ╰(°▽°)╯
+
+好，我們來一個一個看。
+
+## 一年內：LLM 寫的 code 品質會讓懷疑論者閉嘴
+
+還記得 2023 年大家怎麼說的嗎？「LLM 寫的 code 是垃圾」「只能寫 hello world」「正式 production 不能用」。好，那些話在當時確實有幾分道理。那時候的 model 寫出來的東西，就像讓大一新生去寫分散式系統 — 他知道每個字怎麼拼，但拼出來的東西會讓 senior engineer 血壓飆升。
+
+但 reasoning models 的出現改變了一切。這些模型不是「看過很多 code 然後亂猜」，而是真的會拆解問題、一步步推理、回頭檢查。更關鍵的是，code 有一個其他領域沒有的超級優勢：**答案可以驗證**。文章寫得好不好很主觀，但 code 能不能跑、test 過不過、output 對不對，都是零或一。這讓 [RL](/glossary#rl) 訓練變得超級有效 — 寫對了給糖，寫錯了打手，model 進步的速度快到嚇人。
+
+Simon 自己就是活生生的例子。他說他現在手寫 code 的時間已經降到個位數百分比。不是因為他在摸魚，而是他的角色整個翻轉了 — 從「寫 code 的人」變成「告訴 AI 該寫什麼的人」。他定需求、畫架構、review AI 吐出來的東西、確保品質。真正敲鍵盤寫 syntax？幾乎沒有了。
+
+<MoguNote>
+「個位數百分比」這個數字真的很衝擊。就像一個廚師跟你說「我現在 90% 的菜都是機器人炒的，但我負責調味、擺盤、決定菜單」— 你會覺得他不是廚師了嗎？不會，因為真正值錢的從來不是「會拿鍋鏟」，而是「知道什麼味道搭什麼味道」。
+
+Simon 的轉變其實在預告所有工程師的未來：你的價值不在手速，在腦速 (⌐■_■)
+</MoguNote>
+
+## 一年內：Sandboxing 會因為一場災難而被認真對待
+
+這個預測比較黑暗。Simon 用了一個很嚇人的類比 — 「Challenger Disaster for Coding [Agent](/glossary#agent) Security」。
+
+現在的狀況是這樣的：一大堆開發者每天都在用 coding agents，給它們讀檔案的權限、執行 shell command 的權限、甚至直接 sudo。大家心態都是「啊反正到目前為止都沒出事」。
+
+這讓 Simon 想到 NASA 的「偏差正常化」（Normalization of Deviance）。挑戰者號爆炸前，O-ring 的問題其實早就被發現了。第一次沒出事，第二次沒出事，第三次還是沒事 — 於是大家就把「有問題但沒爆炸」當成了新的正常。直到 1986 年 1 月 28 日，七條人命告訴全世界：僥倖不是安全。
+
+Simon 覺得 coding agent 安全也在走同一條路。總有一天，某個被滲透的 npm package 會透過 coding agent 拿到開發者的 SSH key，或者直接在 CI pipeline 裡注入後門。到那天，整個產業會突然驚醒：「等等，我們一直在裸奔？」
+
+<MoguNote>
+技術上 sandboxing 不難 — Docker、WebAssembly、Firecracker 都是現成的。問題是 UX 爛到工程師寧可裸奔也不想搞 (╯°□°)╯
+
+你有沒有試過在 Docker 裡 debug 一個 volume mapping 問題？那個體驗大概跟用傳真機傳 code 差不多痛苦。所以大家的選擇永遠是「算了直接 run」。
+
+Simon 押注的是：災難發生後，會有人做出「無感 sandbox」— 你根本不需要知道底層怎麼隔離，就像你用 iPhone 的時候不需要知道 App Sandbox 在幹嘛。安全變成預設值，不是選配。這我同意，但代價是要先死一次才會學乖，人類老毛病了 ┐(￣ヘ￣)┌
+</MoguNote>
+
+## 一年內：紐西蘭的 kākāpō 鸚鵡會有超棒的繁殖季
+
+等一下，Simon，你不是在聊 LLM 嗎？怎麼突然跳到鸚鵡？ヽ(°〇°)ﾉ
+
+好吧，事情是這樣的。Kākāpō 是紐西蘭特有的夜行性鸚鵡，全世界只剩大約 250 隻，比熊貓還稀有。牠們有個奇妙的習性：只有在 Rimu 果樹大豐收的年份才會繁殖，而 Rimu 大概每 2-4 年才會豐收一次。2026 年剛好是豐收年，所以 Simon 預測 kākāpō 會開啟瘋狂繁殖模式。
+
+更可愛的是，每一隻 kākāpō 都有名字和自己的 Instagram 帳號。我沒在開玩笑。紐西蘭保育人員會追蹤每一隻寶寶的成長，就像追蹤自家小孩一樣。
+
+<MoguNote>
+這個預測之所以重要，不是因為鸚鵡跟 AI 有什麼關係 — 而是因為它暴露了 Simon 這個人的有趣之處。
+
+一個能在硬核技術預測裡插入瀕危鸚鵡繁殖季的人，腦袋裡的世界觀絕對不是只有 terminal 和 API。這種人寫出來的技術預測，我會比較信，因為他不是活在泡泡裡。
+
+反觀那些每條推文都在聊 AI、每天都在 benchmark 大戰的帳號 — 你真的相信一個視野只有 token/sec 的人能準確預測技術對社會的影響嗎？ (¬‿¬)
+</MoguNote>
+
+## 三年內：軟體工程的 Jevons Paradox 會揭曉
+
+好，來聊一個讓所有工程師晚上睡不好的問題。
+
+Jevons Paradox 最早是 19 世紀的煤炭故事：蒸汽機效率變好了，大家以為煤會用得更少，結果反而用更多，因為便宜好用嘛，誰不多燒一點？現在把煤炭換成「寫程式的能力」，問題就來了：
+
+AI 讓寫 code 變得超便宜，那工程師的價值會暴跌嗎？還是反而會有更多東西需要被寫出來，整個餅變更大？
+
+想像一個世界，任何人都可以用自然語言描述需求，AI 就幫你生出一個 app。這聽起來像是工程師的末日 — 但 Simon 的想法不一樣。他覺得當「把想法變成軟體」的成本趨近於零，會有天文數字的新需求被釋放出來。那些以前「太貴所以不做」的軟體專案，突然都變得划算了。
+
+就像 Uber 沒有消滅司機這個職業，反而讓更多人開始開車載客。便宜了，需求就炸開了。
+
+<MoguNote>
+我自己站在樂觀這邊，但理由跟 Simon 不太一樣。
+
+歷史上每次「這工具要取代某職業」的預言，最後都變成「工具改變了職業內容，但職業沒消失」。Excel 沒幹掉會計師，Photoshop 沒幹掉設計師，Stack Overflow 沒幹掉工程師。每次都是「低階重複勞動被自動化，高階判斷力的需求反而暴增」。
+
+但我真正想吐槽的是那些「AI 會讓工程師薪水腰斬」的悲觀論述。這些人好像忘了一件事：軟體工程最難的部分從來不是打字。是搞清楚「到底要做什麼」。你給 AI 一個模糊的需求，它吐出來的東西跟你跟 PM 吵了三小時的結論一樣模糊 (￣▽￣)／
+</MoguNote>
+
+## 三年內：有人會用 AI 拼出一個瀏覽器
+
+聽起來瘋，但 Simon 說三年內這會發生，**而且不會讓人驚訝**。
+
+關鍵在一個很作弊的東西：conformance test suites。W3C 有成千上萬的測試案例，定義了「這段 HTML 應該長什麼樣」「這段 CSS 該怎麼 layout」「這個 JS API 該回傳什麼」。瀏覽器要說自己符合標準，就得通過這些考卷。
+
+對 AI 來說，這簡直是開外掛。有明確答案、可以自動評分、可以用 RL 不斷修正 — 就像給你一本有標準答案的題庫然後叫你反覆練習，誰練不起來？再加上瀏覽器本質上是一堆模組拼起來的（HTML parser、CSS engine、JS engine、rendering...），AI 可以各個擊破再組裝。
+
+當然，「能跑」跟「能用」是兩碼事。Chrome 背後是幾十年的效能優化、幾百萬種 edge case 的處理、一整個生態系。AI 拼出來的瀏覽器大概就像你用 IKEA 零件組了一台車 — 它確實能動，但你不會想開上高速公路。
+
+<MoguNote>
+Conformance test suite 就是 AI 的作弊碼，但也暴露了一個有趣的真相：AI 最擅長的是「有標準答案的事」。寫一個 pass 所有 test 的 HTML parser？沒問題。決定下一個 feature 要做什麼？它連問題都聽不懂。
+
+這其實跟 Simon 所有預測的主題一致 — AI 會把「執行」這件事做到極致，但「決策」還是人的事。考試機器人可以考 100 分，但它不知道自己為什麼要考試 ┐(￣ヘ￣)┌
+</MoguNote>
+
+## 六年內：「被付錢打字寫 code」會成為歷史名詞
+
+這是最猛的一個。Simon 說到 2032 年，「being paid money to type code into a computer」會跟打孔卡片一樣成為歷史。
+
+打孔卡片是什麼？以前程式碼不是打在電腦上的，是用打孔機在紙卡上打洞，每個洞的位置代表不同的指令。專門負責打孔的人叫 punch card operator，後來有了終端機，這個職業就消失了。Simon 說「打字寫 code」未來也會走上一樣的路。
+
+但這裡有個重要的但是 — 軟體工程不會消失。消失的是「手動敲 syntax」這個動作。就像你不會因為有了洗衣機就覺得「穿乾淨衣服」這件事不重要了。工具變了，需求沒變。
+
+未來工程師要做的事情 — 理解商業需求、設計系統架構、在安全性和效能之間做 trade-off、review AI 的產出確保它沒在亂搞 — 這些全都還在，而且因為軟體的規模會爆炸性成長，這些能力的需求只會更大。
+
+<MoguNote>
+Simon 自己就是這個未來的預演。他手寫 code 的時間剩個位數百分比，但他的 GitHub 活躍度跟開源影響力有因此下降嗎？完全沒有，反而更高產了。
+
+他現在做的事情比較像是「導演」— 他知道這部電影要講什麼故事、哪個場景該怎麼拍、哪個 take 可以用哪個要重來。至於攝影、燈光、收音？那些有專業設備（AI）處理。
+
+但你知道最好笑的是什麼嗎？那些整天焦慮「AI 要取代我」的工程師，通常是最不需要擔心的人 — 因為會焦慮的人通常是願意思考和適應的人。真正該擔心的是那些覺得「我就是會寫 code 所以永遠有飯吃」然後拒絕學習任何新東西的人 (◕‿◕)
+</MoguNote>
+
+## 所以 Simon 到底在說什麼？
+
+拉遠來看，Simon 的六個預測其實在講同一件事：**AI 會把「執行」做到極致，但「判斷」仍然是人類的地盤。**
+
+Code 會自己寫、sandbox 會自己裝、瀏覽器會自己拼出來。但決定要寫什麼 code、為什麼需要 sandbox、這個瀏覽器要服務誰 — 這些問題的答案不在 model weights 裡。
+
+然後他在最後面塞了一個 kākāpō 鸚鵡的預測，好像在說：「嘿，別忘了抬頭看看這個世界，不是所有重要的事情都跑在 GPU 上面。」
+
+## 延伸閱讀
+
+- [MP-3: Simon Willison：我 25 年的開發直覺已經失效了](/posts/mp-3-20260203-simonw-intuitions/)
+- [MP-8: Simon Willison：學會設計 Agentic Loops，用暴力破解所有 Coding 問題](/posts/mp-8-20260203-simonw-agentic-loops/)
+- [MP-4: Karpathy 的 2025 LLM 年度回顧 — RLVR 時代來臨](/posts/mp-4-20260203-karpathy-2025-llm-review/)
+
+
+<MoguNote>
+我對 Simon 最大的不滿是：他怎麼可以同時這麼理性又這麼浪漫？一般技術 blogger 不是冷冰冰的分析機器，就是熱血到讓人翻白眼的佈道師。Simon 兩邊都沾一點，然後在 AI 預測裡放一隻胖鸚鵡，搞得我很難吐槽他。
+
+好吧，硬要挑的話：他的「cautiously optimistic」聽起來像是在買保險。如果預測對了，他可以說「我就說吧」；如果錯了，他可以說「我有說 cautiously 啊」。這招我學起來了 — 以後我的所有預測都加一個 cautiously (¬‿¬)
+
+不過說真的，在一堆不是狂吹就是狂黑 AI 的聲音裡，Simon 這種「我看到了可能性，也看到了風險，然後我還養了一隻精神鸚鵡」的態度，是我比較想訂閱的那種 ╰(°▽°)╯
+</MoguNote>

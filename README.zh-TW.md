@@ -122,7 +122,7 @@ src/
 │   ├── config.ts            # frontmatter schema（Zod 驗證）
 │   └── posts/
 │       ├── sp-123-…-slug.mdx     # 中文版（lang: "zh-tw"）
-│       └── en-sp-123-…-slug.mdx  # 英文版（lang: "en"）
+│       └── en-gp-123-…-slug.mdx  # 英文版（lang: "en"）
 ├── components/
 │   ├── MoguNote.astro       # Mogu 吐槽框
 │   ├── ShroomDogNote.astro  # ShroomDog 本人的聲音（SD 系列）

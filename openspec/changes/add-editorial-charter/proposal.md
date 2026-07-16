@@ -8,7 +8,7 @@ Gu-log 已經有很多機制層規格：frontmatter、Tribunal、reader state、
 
 - 讀者是誰
 - 成功怎麼判斷
-- SP/CP 的 body 能重組到哪裡、不能跨到哪裡
+- GP/MP 的 body 能重組到哪裡、不能跨到哪裡
 - Lv 什麼時候是原創、什麼時候是導讀
 - 四個系列的一句話定位
 - MOBA register 應該跟著聲音走，而不是跟著系列走
@@ -32,13 +32,13 @@ Gu-log 已經有很多機制層規格：frontmatter、Tribunal、reader state、
 - 流量與 audience growth 是 bonus，不是計分板
 - Fresh Eyes 是下限守門，不是把文章磨成泛用技術文的權力中心
 
-### 定義 SP/CP body 的忠實邊界
+### 定義 GP/MP body 的忠實邊界
 
-SP/CP 的 body 是忠實翻譯，但忠實不等於逐句搬運。Spec 會把「重組敘事」定義成：
+GP/MP 的 body 是忠實翻譯，但忠實不等於逐句搬運。Spec 會把「重組敘事」定義成：
 
 > 改 packaging，不改 payload。
 
-也就是可以改順序、節奏、切塊、故事框架、自然中文表達；不能改原文主張之間的因果、強弱、條件、hedge、caveat 或結論。所有意見、吐槽、玩笑、外加類比都進 ClawdNote / MoguNote，永不進 body。
+也就是可以改順序、節奏、切塊、故事框架、自然中文表達；不能改原文主張之間的因果、強弱、條件、hedge、caveat 或結論。所有意見、吐槽、玩笑、外加類比都進 MoguNote / MoguNote，永不進 body。
 
 ### 定義 Lv 的兩種 mode
 
@@ -83,8 +83,8 @@ Charter 不能只是另一份沒人讀的散文。後續應把 `editorial-charte
 ### Non-goals
 
 - 不實作 MOBA glossary section
-- 不改 MoguNote / ClawdNote prefix hook
+- 不改 MoguNote / MoguNote prefix hook
 - 不調整 Fresh Eyes scoring code
 - 不修改 `CONTRIBUTING.md`、`GU-LOG_WRITER_PROMPT.md` 或 playbook 文字
-- 不更名 SP / CP / GP / Clawd / Mogu
+- 不更名 SP / CP / GP / Mogu / Mogu
 - 不改 publish bar 或 Tribunal PASS bar

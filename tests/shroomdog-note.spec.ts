@@ -1,7 +1,7 @@
 import { test, expect } from './fixtures';
 
 test.describe('ShroomDogNote auto-fold', () => {
-  const testPostUrl = '/posts/sp-205-20260517-addyosmani-dont-outsource-learning/';
+  const testPostUrl = '/posts/gp-205-20260517-addyosmani-dont-outsource-learning/';
   const sd26PostUrl = '/posts/sd-26-20260616-loop-engineering-at-gu-log/';
 
   test('GIVEN a long ShroomDogNote WHEN page loads THEN it is collapsed behind a toggle', async ({ page }) => {

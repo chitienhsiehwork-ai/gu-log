@@ -7,7 +7,7 @@
 
 ## Background
 
-The tribunal system (4-judge quality gate) has been stopped since 2026-03-22. Only the inline single-scorer (Vibe Scorer in sp-pipeline.sh Step 4.7) is active. The full 4-judge orchestrator was never cron'd.
+The tribunal system (4-judge quality gate) has been stopped since 2026-03-22. Only the inline single-scorer (Vibe Scorer in gp-pipeline.sh Step 4.7) is active. The full 4-judge orchestrator was never cron'd.
 
 Current codebase uses Gemini CLI and Codex CLI for some judges — these introduce external dependencies and cost. CEO wants to consolidate to all-Claude using existing $200/month Anthropic Max quota, starting with cheap models and tuning up only if quality is insufficient.
 
@@ -70,12 +70,12 @@ Stage 4: Vibe Scorer (Opus) ↔ Writer (Opus)
 - Build check (`pnpm run build`) after every writer rewrite, git revert on failure
 
 ### C. Remove Gemini/Codex dependencies from critical path
-- `sp-pipeline.sh`: make `--opus` mode the default (skip Gemini/Codex fallback chain)
+- `gp-pipeline.sh`: make `--opus` mode the default (skip Gemini/Codex fallback chain)
 - `check_required_tools()`: remove `bird`, `gemini`, `codex` from required list
 - Keep old code as dead code for now (don't delete)
 
 ### D. Integration
-- **New articles**: Replace sp-pipeline.sh Step 4.7 with 4-stage loop call
+- **New articles**: Replace gp-pipeline.sh Step 4.7 with 4-stage loop call
 - **Backlog**: `tribunal-all-claude.sh <filename>` standalone mode
 - **Cron on VM**: Add entry following existing CC cron pattern (OAuth token, TZ, logging)
 - Quiet hours preserved: weekday 20:00-02:00 TST pause
@@ -117,7 +117,7 @@ Mixed models (Haiku + Sonnet + Opus) will be cheaper and faster than all-Opus. H
 - [ ] Writer receives judge feedback + scoring standard SSOT
 - [ ] Progress tracking records per-stage results
 - [ ] Standalone mode works: `bash scripts/tribunal-all-claude.sh <filename>`
-- [ ] Integration with sp-pipeline.sh Step 4.7
+- [ ] Integration with gp-pipeline.sh Step 4.7
 - [ ] Build check after every rewrite
 - [ ] Cron entry on VM with OAuth token, TZ, logging
 - [ ] Quiet hours: weekday 20:00-02:00 TST pause
@@ -134,7 +134,7 @@ Mixed models (Haiku + Sonnet + Opus) will be cheaper and faster than all-Opus. H
 - Modifying the scoring rubric itself
 - Migrating historical scores from gemini/codex JSON files
 - Removing old Gemini/Codex code entirely (leave as dead code)
-- Changing sp-pipeline.sh writer/review/refine stages (Steps 2-4)
+- Changing gp-pipeline.sh writer/review/refine stages (Steps 2-4)
 
 ## Dependencies
 - Anthropic Max plan active

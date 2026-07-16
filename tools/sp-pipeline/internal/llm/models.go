@@ -12,7 +12,7 @@
 //   - A Dispatcher composes a fallback chain. The default chain is Codex
 //     GPT-5.5 primary, matching the current local Codex actor workflow where Codex CLI
 //     is the maintained local LLM harness.
-//   - Canary probes (sp-pipeline doctor --probe-llm) send a single short
+//   - Canary probes (gp-pipeline doctor --probe-llm) send a single short
 //     prompt through each provider independently, reporting which ones
 //     respond non-interactively. This is the load-bearing early warning
 //     that will catch CLI auth / non-interactive execution failures before a
@@ -25,7 +25,7 @@ import (
 )
 
 // ModelID is an enum-ish string identifying a specific model build.
-// Keep this in sync with scripts/sp-pipeline.sh's model_display_name().
+// Keep this in sync with scripts/gp-pipeline.sh's model_display_name().
 type ModelID string
 
 const (
@@ -86,7 +86,7 @@ func DisplayName(m ModelID) string {
 }
 
 // HarnessName returns the harness that drives a given model when shelled out
-// from the pipeline. Mirrors scripts/sp-pipeline.sh's model_harness_name.
+// from the pipeline. Mirrors scripts/gp-pipeline.sh's model_harness_name.
 // Concrete Claude build ids (e.g. "claude-opus-4-5") map to the Claude harness
 // via the family match, so a pinned writer model still resolves correctly.
 func HarnessName(m ModelID) string {

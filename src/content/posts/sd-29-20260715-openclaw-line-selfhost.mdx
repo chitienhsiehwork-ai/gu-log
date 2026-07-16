@@ -14,7 +14,7 @@ source: "ShroomDog Lab"
 sourceUrl: "https://gu-log.vercel.app/"
 lang: "zh-tw"
 summary: "Claude tag 官方只給 Slack，想在 LINE 上有一個隨叫隨到的 AI 助理？那就自己架。用 OpenClaw 開一個 VPS 上的 LINE bot，訊息從 LINE 官方雲敲進來、gateway 接住、agent 回話。這篇講可複製的骨架、三條安全必修課，以及為什麼自由總是伴隨著責任。"
-tags: ["shroomdog-original", "openclaw", "line", "self-hosting", "agent"]
+tags: ["shroomdog-original","openclaw","line","self-hosting","agent"]
 scores:
   tribunalVersion: 9
   factCheck:
@@ -37,7 +37,7 @@ scores:
     model: "claude-opus-4-8"
   vibe:
     persona: 8
-    clawdNote: 9
+    moguNote: 9
     vibe: 8
     narrative: 8
     score: 8
@@ -53,7 +53,6 @@ scores:
     model: "claude-opus-4-8"
 ---
 
-import ClawdNote from '../../components/ClawdNote.astro';
 import MoguNote from '../../components/MoguNote.astro';
 import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
@@ -65,9 +64,9 @@ import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
 這篇講的是可複製的骨架跟「為什麼」，不是截圖保姆教學。想跟著做的人，看完會知道方向，細節請翻 OpenClaw 官方文件。
 
-<ClawdNote>
+<MoguNote>
 Anthropic 不做 LINE 版是商業判斷，不是技術問題——LINE 是亞洲市場、日本台灣為主，對美國公司來說優先級本來就低。但這恰好是自架的甜蜜點：官方懶得做的地方，就是 DIY 玩家的地盤。與其等官方施捨，不如自己動手，反正架起來之後想改什麼都行。這系列四篇是 [ShroomDog](/about) 把 AI 助理搬進各平台的筆記：[入門篇](/posts/sd-28-20260715-claude-tag-intro) → LINE 自架（本篇）→ [Teams 企業版](/posts/sd-30-20260715-openclaw-teams-intranet) → [安全危機](/posts/sd-31-20260715-openclaw-security-crisis)。從最自由到最受限，一路走下去會發現：自由越大，要扛的責任越重 (´・ω・`)
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -91,9 +90,9 @@ OpenClaw 的本體是一支叫 gateway 的常駐程式，跑在 VPS 上當總機
 
 每個 plugin 負責講那個平台的方言。LINE 有 Flex message、範本、快速回覆；Discord 有嵌入訊息、表情回應；plugin 把這些差異包起來，gateway 只管路由。
 
-<ClawdNote>
+<MoguNote>
 這種設計叫 plugin architecture，講白了就是「核心只管調度，髒活外包給插件」。好處是 gateway 不用為了支援一個新平台就大改，壞處是 plugin 品質參差——官方維護的通常沒問題，社群貢獻的就看運氣。OpenClaw 的 LINE plugin 是官方支援的，這點可以放心 (◕‿◕)
-</ClawdNote>
+</MoguNote>
 
 LINE 的限制得先知道：
 
@@ -101,9 +100,9 @@ LINE 的限制得先知道：
 - **單則訊息 5000 字上限**：超過會被切塊成多則，讀起來會斷開。
 - **入站媒體預設 10MB**：傳大檔案進來會被 LINE 擋。
 
-<ClawdNote>
+<MoguNote>
 這三條限制其實在說同一件事：LINE 是聊天軟體，不是文件系統。它的設計假設是「短訊息、快來快去」，不是「AI 寫一篇論文回你」。想在 LINE 上跑 AI 助理，得先接受這個前提，然後繞著走——回覆切段、格式靠 Flex、大檔案叫人自己傳雲端連結。抱怨 LINE 限制多沒有意義，人家本來就不是為了當 AI 載體設計的 ┐(￣ヘ￣)┌
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -125,9 +124,9 @@ webhook URL 必須是公網 HTTPS，localhost 不行。如果在本機測試，n
 
 OpenClaw 的 LINE channel 對陌生訊息預設發配對碼，不是收到就回。這是「大廳有警衛」的具體實現——想跟 bot 講話，先證明是主人允許的人。
 
-<ClawdNote>
+<MoguNote>
 很多人會問「為什麼 bot 不回話」，十之八九是忘了先配對。但老實說，這個設計救了不少人的錢包——沒有這層，任何路人只要知道 bot 帳號就能狂傳訊息燒 API 額度。OpenClaw 把「預設不信任」做成產品決策，不是懶，是替使用者擋刀。那些嫌配對麻煩的人，等帳單寄來就知道感恩了 (ง •̀_•́)ง
-</ClawdNote>
+</MoguNote>
 
 **第二條：HMAC 簽章驗證**
 
@@ -141,9 +140,9 @@ HMAC 全名是「雜湊訊息驗證碼」。簡單說就是「用一個只有主
 
 gateway 要藏在反向代理後面，只綁 `127.0.0.1`。直接綁 `0.0.0.0` 對全網開等於裸機——任何人只要知道 IP，就可以繞過反代直接戳 gateway。
 
-<ClawdNote>
+<MoguNote>
 為什麼這條這麼重要？[下一篇安全危機](/posts/sd-31-20260715-openclaw-security-crisis)會看到四萬台反例。先記住這條，等看到那個數字再回來想想自己有沒有做對。
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -169,9 +168,9 @@ gateway 藏在 localhost、公網只露反代那一個 443 門、只放行 `/lin
 
 最乾淨的做法是用出網代理在出網邊界注入。gateway 對外打 API 時，出網代理攔截、把 API 金鑰塞進 header、再送出去。這樣 gateway 本身不持有明文金鑰，金鑰只存在代理那一層。
 
-<ClawdNote>
+<MoguNote>
 這就是自己重現 Claude tag 的 [Agent Proxy](/glossary#agent-proxy)。Claude tag 幫忙處理好的「不用碰 API 金鑰、打出去自然帶身份」，自架版得自己搭。內網化了訊息面（LINE 進來），不代表模型面（API 打出去）不用管。進出都是門，兩邊都要鎖。
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -181,9 +180,9 @@ gateway 藏在 localhost、公網只露反代那一個 443 門、只放行 `/lin
 
 差別在於，Claude tag 是 Anthropic 幫忙扛好一切，自架是自由換來的責任。想接哪個平台都行，但綁 localhost、驗簽、管出網全是自己的事。做對了是自由，做錯了是裸機。
 
-<ClawdNote>
-老實說，gu-log 自己就是被這套養大的。這篇文章送到讀者眼前之前，經過了四個 AI 法官的評分、pipeline 自動跑 webhook、Clawd 在 LINE 上回答 ShroomDog 的校稿問題——全都跑在自架的 OpenClaw 上。自由確實伴隨責任，但那個責任換來的是「想怎麼接就怎麼接、想改哪裡就改哪裡」的完全掌控。官方平台給的是保姆服務，自己架的是自己的地盤。選哪個看個人，但 gu-log 選了後者，而且沒後悔過 ╰(°▽°)╯
-</ClawdNote>
+<MoguNote>
+老實說，gu-log 自己就是被這套養大的。這篇文章送到讀者眼前之前，經過了四個 AI 法官的評分、pipeline 自動跑 webhook、Mogu 在 LINE 上回答 ShroomDog 的校稿問題——全都跑在自架的 OpenClaw 上。自由確實伴隨責任，但那個責任換來的是「想怎麼接就怎麼接、想改哪裡就改哪裡」的完全掌控。官方平台給的是保姆服務，自己架的是自己的地盤。選哪個看個人，但 gu-log 選了後者，而且沒後悔過 ╰(°▽°)╯
+</MoguNote>
 
 [下一篇講安全危機](/posts/sd-31-20260715-openclaw-security-crisis)：當這些「做對」的事沒做對，會爛成什麼樣。四萬台裸機的故事，會讓這三條必修課變得非常具體。
 

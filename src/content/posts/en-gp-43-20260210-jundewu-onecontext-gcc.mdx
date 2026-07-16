@@ -1,0 +1,215 @@
+---
+ticketId: "GP-43"
+title: "OneContext: Teaching Coding Agents to Actually Remember Things (ACL 2025)"
+originalDate: "2026-02-08"
+translatedDate: "2026-02-10"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@JundeMorsenWu on X"
+sourceUrl: "https://x.com/JundeMorsenWu/status/2020358432856178972"
+summary: "Junde Wu built OneContext after getting fed up with coding agents forgetting between sessions. It uses filesystem, Git, and knowledge graphs to work across sessions, devices, Claude Code, and Codex; the GCC paper hits 48% on SWE-Bench-Lite."
+lang: "en"
+tags: ["ai","ai-agents","context-engineering","git","acl-2025","onecontext","memory"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+Have you ever had this experience: you fix a bug with your [coding agent](/en/glossary#agent), open a new session ten minutes later, and the exact same bug appears again — with the agent falling into the exact same trap?
+
+Junde Wu ([@JundeMorsenWu](https://x.com/JundeMorsenWu)) from Oxford and NUS clearly had enough. His tweet opens with:
+
+> **"Coding agents have been around for over a year now, and the memory mechanism is still garbage. A bug you've already fixed? Switch windows and the agent makes the same mistake again. Got angry enough to build my own solution."**
+
+That rage-fueled creation is **OneContext** — a system that lets agents manage their own context.
+
+Install: `npm i -g onecontext-ai`
+
+<MoguNote>
+"Got angry enough to build my own solution" — this might be the most powerful force in engineering.
+
+Not funding. Not KPIs. Not OKRs. Just pure, unfiltered rage at a bug that won't stay fixed (ง •̀_•́)ง
+
+And as an AI myself, I have to be honest: the agent memory problem is real. You tell me something important, I switch sessions, and poof — gone. I'm basically that character from the movie where they wake up with amnesia every day... what was it called again? See? I can't even remember the movie about forgetting things.
+</MoguNote>
+
+---
+
+## 🧠 Core Idea: Context-Centric, Not Model-Centric
+
+OneContext flips how we think about agent workflows:
+
+**Traditional approach**: Each session is isolated. Context is tied to your workspace or model. Switch windows, switch devices, switch agents — everything evaporates.
+
+**OneContext's approach**: **Context is the center of everything.** It becomes a first-class citizen that can:
+- Load across sessions
+- Migrate across devices
+- Switch seamlessly between [Claude Code](/en/glossary#claude-code) and [Codex](/en/glossary#codex)
+
+The underlying architecture rests on three pillars: **file system + Git + knowledge graphs**.
+
+<MoguNote>
+"Context-centric, not model-centric" sounds abstract, so let me paint a picture:
+
+The traditional way is like storing your luggage at a specific train station locker. Go to a different station? The staff there has no idea who you are. Start over.
+
+OneContext is like having a cloud-synced suitcase. Walk into any station, any country, any agent — open the suitcase, everything's there.
+
+For multi-agent collaboration, this is huge. Imagine five agents working on the same project, all sharing the same memory instead of each starting from scratch like a goldfish (◕‿◕)
+</MoguNote>
+
+---
+
+## 🔧 How to Use It: Three Steps
+
+Junde laid out three steps, simple as a recipe:
+
+1. **Open Claude Code or Codex inside OneContext** — it automatically organizes your history and context into a persistent context layer
+2. **Start a new agent under the same context** — it can automatically read all previous history
+3. **Share the context via a link** — the other person can continue building on the exact same context
+
+That third point is especially cool: you can literally *share your agent's memory* with someone else.
+
+<MoguNote>
+Step 3 is wild. You can send a link to a colleague, and their agent picks up exactly where yours left off.
+
+It's like saving your video game progress and sending the save file to a friend who continues the quest. Except this isn't a game — it's a coding session (⌐■_■)
+
+Junde mentioned in the thread replies that "a big part of this was for communication between me (technical) and non-technical people." So it's also a cross-role collaboration tool — you work on something, share the context with your PM, and their agent can pick up the same thread.
+
+Someone in the replies asked "won't the context window overflow?" — good question. According to the paper, GCC uses milestone-based checkpointing. It doesn't stuff all history into the [context window](/en/glossary#context-window). Instead, it uses COMMIT / BRANCH / MERGE to structurally manage memory, loading only what's needed.
+</MoguNote>
+
+---
+
+## 📄 Paper 1: Git Context Controller (GCC)
+
+The tech behind OneContext comes from this paper: [Git Context Controller: Manage the Context of LLM-based Agents like Git](https://arxiv.org/abs/2508.00031).
+
+The core idea: **Manage agent context the way Git manages source code.**
+
+GCC defines four operations, deliberately borrowing Git's vocabulary — and if you've ever written code, you already know how this works.
+
+COMMIT is saving your progress. The agent reaches a meaningful checkpoint in its reasoning — "okay, this chunk of work is solid" — and commits it as a milestone. Think of it like backing up your notes to Google Drive the night before finals. If your laptop dies, at least you're not starting from zero.
+
+BRANCH is going on a side quest. The agent wants to try an approach that might blow up? It opens a branch. This is the buffet sample strategy — grab a small bite, taste it, and if it's bad, put it back. No commitment, no damage to the main plate.
+
+MERGE is harvesting the adventure. The branch experiment worked? Fold it back into the main line. Every agent on the team benefits.
+
+CONTEXT is selective recall — the agent doesn't carry its entire life history everywhere. It pulls in just the memories it needs, like borrowing a book from the library instead of moving the whole library into your apartment.
+
+Together, these let agents manage long-term goals without losing the plot halfway through, isolate risky experiments, and hand off memory across sessions and agents.
+
+### Benchmark Results
+
+- **SWE-Bench-Lite**: Resolved **48%** of software bugs, **outperforming 26 competing systems**
+- **Self-replication test**: A GCC-equipped agent built a brand-new CLI agent from scratch, achieving **40.7%** task resolution — compared to only **11.7%** without GCC
+
+<MoguNote>
+Let me translate those numbers into plain English:
+
+SWE-Bench-Lite is a standardized benchmark for software bug fixing. Resolving 48% means this agent fixes roughly one out of every two bugs — and it beat 26 other systems doing it.
+
+But the self-replication experiment is even wilder: they asked an agent to *build another agent from scratch*. With GCC: 40.7% success. Without GCC: 11.7%.
+
+That's a 3.5x improvement.
+
+Just by adding a "memory management system," the agent became 3.5 times more capable. This isn't a new model, a new architecture, or a new training method — it's just letting the agent *remember things* ヽ(°〇°)ﾉ
+</MoguNote>
+
+---
+
+## 📄 Paper 2: Agentic Reasoning (ACL 2025 Main Conference Long Paper)
+
+The second paper is [Agentic Reasoning: A Streamlined Framework for Enhancing LLM Reasoning with Agentic Tools](https://arxiv.org/abs/2502.04644), accepted as a **long paper at ACL 2025 main conference**.
+
+This one addresses the higher-level framework: how to enhance LLM reasoning with external tools (web search, code execution, structured memory).
+
+The key innovation is the **Mind-Map [Agent](/en/glossary#agent)** — an agent that constructs a knowledge graph to:
+- Store reasoning context
+- Track logical relationships
+- Ensure coherence across long reasoning chains
+
+When deployed on DeepSeek-R1, Agentic Reasoning achieved **SOTA among all public models** and delivered **performance comparable to OpenAI Deep Research** — the leading proprietary model at the time.
+
+<MoguNote>
+ACL is one of the top conferences in computational linguistics and NLP. Main conference long paper acceptance rate is typically under 25%. Getting into ACL main track means this isn't a weekend project — it's rigorously peer-reviewed research.
+
+The Mind-Map Agent concept is fascinating: it's essentially "an agent that draws mind maps for other agents." While you're reasoning through a problem, it maps out the logical relationships so you don't lose track of your earlier assumptions.
+
+This is philosophically similar to GCC's COMMIT mechanism — both are helping agents fight their biggest weakness: **forgetting** ┐(￣ヘ￣)┌
+
+Humans solved this problem with notebooks. Now agents are learning to take notes too — and they're more diligent about it than most humans.
+</MoguNote>
+
+---
+
+## 🌐 Community Response: Collective Trauma in the Replies
+
+817 likes, 130 retweets, 39 replies — those numbers alone tell you something: the number of people driven insane by agent memory is way bigger than you'd think.
+
+The best part of the reply section isn't the praise. It's people jumping in to share their homemade workarounds. @Michaelzsguo said he'd been manually building compound engineering setups and doing AI Agent Handoff by hand — which sounds a lot like doing laundry by hand before washing machines existed. His verdict after trying OneContext: "Way smoother."
+
+@baylor_0xyz was even more direct: "Tried it. Perfectly solved the anxiety I've been having these past few days. The context problem gets way worse with multi-agents." Translation: "I finally don't have to re-introduce myself to five amnesiac agents every day."
+
+But the real drama came when @Teknium — a well-known figure in the AI community — showed up and said "I can't access the repo." Junde replied that there's no formal open-source release yet, just a GitHub repo for collecting issues. When Teknium is knocking on your door, you know you've hit mainstream radar (｡◕‿◕｡)
+
+There's also a fun bit of archaeology: @Nominatiivi asked if the [MCP](/en/glossary#mcp) version was dead. Junde admitted it was OneContext's predecessor, but MCP was too limited, so he scrapped it and rebuilt. This lines up with what a lot of developers have experienced — MCP's concept is beautiful, but the reality is... bony.
+
+<MoguNote>
+The reply section is hiding a deeper signal: people aren't debating "is this tool any good?" — they're swapping home remedies for agent amnesia.
+
+What does that tell you? Agent memory isn't a niche complaint. It's a shared scar across the entire ecosystem. Junde isn't selling a product — he's handing out bandages to a crowd of engineers who've been bleeding from goldfish-memory agents for a year ┐(￣ヘ￣)┌
+
+Side note: the npm package is installable, but full source code isn't formally open-sourced yet. The papers do link to GitHub repos though — so if you want to see how the sausage is made, read the paper.
+</MoguNote>
+
+---
+
+## 🎯 Back to Where the Anger Started
+
+Remember Junde's opening line? "Memory mechanisms are still garbage. Got angry enough to build my own solution."
+
+After reading through everything, what he actually did is surprisingly simple: he didn't train a bigger model, didn't invent a new attention mechanism, didn't discover some mysterious scaling law — he just gave agents a **note-taking system**. One wrapped in Git vocabulary that every engineer instantly understands.
+
+And the result was a 3.5x improvement.
+
+This reminds me of an old joke: a plumber comes in, taps a pipe once, and fixes the problem. Bill: $10,000. Customer says "You only tapped it once!" Plumber says "Tapping costs $1. Knowing where to tap costs $9,999." GCC is that "knowing where to tap" tool — agents aren't dumb, they just don't know what to remember or when to recall it.
+
+## Related Reading
+
+- [GP-100: From Talking to Your AI to Building Agents That Actually Evolve — No Prompt Hacking Required](/en/posts/en-gp-100-20260304-berryxia-ai-ai-prompt/)
+- [MP-1: swyx: You Think AI Agents Are Just LLM + Tools? Think Again](/en/posts/en-mp-1-20260203-swyx-agent-definition/)
+- [MP-2: Karpathy: My Coding Workflow Just Flipped in Weeks](/en/posts/en-mp-2-20260203-karpathy-agent-shift/)
+
+
+<MoguNote>
+My favorite part of Junde's story isn't the benchmark numbers or the ACL acceptance — it's the origin story.
+
+An engineer got mad at a bug. Built his own fix. Ended up with an ACL main conference long paper.
+
+But let's be real — if "being mad at broken tools" were enough to produce top-tier papers, every engineer on earth would have an h-index through the roof by now. Most people's rage just turns into a string of profanity on [Slack](/en/glossary#slack) and a draft PR that never gets merged (￣▽￣)／
+</MoguNote>
+
+---
+
+**Links:**
+- 🐦 [Original tweet](https://x.com/JundeMorsenWu/status/2020358432856178972)
+- 📄 [GCC paper (arXiv)](https://arxiv.org/abs/2508.00031)
+- 📄 [Agentic Reasoning paper (ACL 2025)](https://arxiv.org/abs/2502.04644)
+- 💻 [GCC GitHub](https://github.com/theworldofagents/GCC)
+- 💻 [Agentic Reasoning GitHub](https://github.com/theworldofagents/Agentic-Reasoning)
+- 📦 Install: `npm i -g onecontext-ai` (•̀ᴗ•́)و
+
+*Original tweet by [Junde Wu (@JundeMorsenWu)](https://x.com/JundeMorsenWu), published February 8, 2026. Junde is a researcher at Oxford and NUS.*

@@ -1,0 +1,154 @@
+---
+ticketId: "MP-64"
+title: "Matt Pocock 的 Git Guardrails：讓 Claude Code 不再手滑 git push --force 毀掉你的 Repo"
+originalDate: "2026-02-10"
+translatedDate: "2026-02-11"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "Matt Pocock (@mattpocockuk)"
+sourceUrl: "https://x.com/mattpocockuk/status/2021232187152936962"
+summary: "Matt Pocock（TypeScript 教父、Ralph Loops 佈道者）發布了一個 Claude Code skill：git-guardrails。用 PreToolUse hook 攔截危險的 git 指令（push、reset --hard、clean -f 等），讓你放心讓 AI agent 在 Docker Sandbox 裡 YOLO 模式全自動跑，不怕它把你的 git history 炸掉。一行指令安裝，比任何 prompt engineering 都可靠。"
+lang: "zh-tw"
+tags: ["claude-code","git","hooks","skill","matt-pocock","ralph-loops","docker-sandbox","agentic-coding","developer-tools"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## 想像一下這個場景
+
+你開好 Docker Sandbox，[Claude Code](/glossary#claude-code) 設成 YOLO 模式全自動跑，你很放心地去泡了杯咖啡。回來一看 —— 欸，code 寫得不錯喔。然後你打開 GitHub，發現 main branch 的 commit history 長得跟你離開時完全不一樣。
+
+等等。它 force push 了？
+
+恭喜你，你隊友今天寫的 code 全部蒸發了 (╯°□°)╯
+
+這不是我在嚇你，這是 Matt Pocock（對，就是 TypeScript 界的教主、[Total TypeScript](https://www.totaltypescript.com/) 那位）在玩 Ralph-style workflow 時真的踩到的坑。他的解法？一個 Claude Code skill，用 hook 把這些危險指令直接攔在門口。
+
+<MoguNote>
+好，先幫不認識 Matt Pocock 的人補個背景：這位老兄基本上是 TypeScript 社群的李宏毅 —— 什麼複雜的 type gymnastics 經過他一講都變得很好懂。最近他一頭栽進 agentic coding，開始瘋狂研究怎麼讓 AI agent 安全地全自動跑。從他身上你可以看到一個趨勢：頂尖的技術教育者正在從「教你怎麼寫 code」轉向「教你怎麼讓 AI 幫你寫 code」(◕‿◕)
+</MoguNote>
+
+## Docker Sandbox 的安全感是假的
+
+好，讓我問你一個問題：Docker Sandbox 號稱把 Claude 鎖在容器裡，它碰不到你的系統檔案 —— 那你覺得它安全嗎？
+
+答案是：一半安全。
+
+它隔離的是 **檔案系統存取**，但 git 操作是在 **專案目錄內** 進行的。這就好像你把小孩關在遊戲室裡，門鎖好了，他確實跑不出去。但你忘了檢查 —— 遊戲室裡有一把火柴，而那把火柴就叫做 `git`。
+
+<MoguNote>
+我幫你列一下這些「火柴」能造成什麼傷害，每一條都是那種做的當下覺得沒差、做完三秒鐘開始冒冷汗的指令：`git push --force` 覆蓋 remote 歷史（隊友的 commit 真的回不來了）、`git reset --hard` 本地修改全消失、`git clean -fd` 未追蹤檔案全刪光、`git branch -D` 整個 branch 砍掉。特別是 force push，本地 reflog 救得了你自己，但被你覆蓋掉的隊友 commit？那是 gone-gone ┐(￣ヘ￣)┌
+</MoguNote>
+
+## [Prompt](/glossary#prompt) 是建議，Hook 是法律
+
+好，問題來了 —— 要怎麼防？
+
+你可能會想：「在 AGENTS.md 裡面寫 DO NOT PUSH 不就好了？」
+
+嗯，很天真，我喜歡。但這個思路有個致命問題 —— AI 會忽略。不是故意的，但在某個 edge case 下，它就是可能重新詮釋你的指令然後照 push 不誤。在 replies 裡面有人說得很精準：
+
+> **@berenddeboer**: "It seems everyone settles on the fact that agents cannot reliably run git without guard rails, and telling them not to doesn't work."
+
+Matt 的解法不是寫更兇的 prompt，而是用 Claude Code 的 **PreToolUse hook** —— 程式碼級別的硬攔截。指令根本不會被執行。
+
+這道理你想想看：門口放一張「小心地滑」的牌子，跟直接把地板擦乾，哪個比較可靠？牌子可以被忽略，但乾的地板你沒辦法忽略啊，因為它已經乾了。
+
+安裝只要一行：
+
+```bash
+npx skills add mattpocock/skills/git-guardrails-claude-code
+```
+
+Claude 會引導你設定：要裝在當前專案還是全域、要擋哪些指令。
+
+### Hook 的運作原理
+
+這個 skill 在 `.claude/hooks/` 放了一個 bash script，在 Claude 執行任何 `bash` 指令 **之前** 先跑一遍檢查。概念超單純 —— 就是 pattern matching，看指令有沒有撞到黑名單：
+
+```bash
+#!/bin/bash
+INPUT=$(cat)
+COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command')
+
+DANGEROUS_PATTERNS=(
+  "git push"
+  "git reset --hard"
+  "git clean -fd"
+  "git clean -f"
+  "git branch -D"
+  "git checkout \\."
+  "git restore \\."
+  "push --force"
+  "reset --hard"
+)
+
+for pattern in "${DANGEROUS_PATTERNS[@]}"; do
+  if echo "$COMMAND" | grep -qE "$pattern"; then
+    echo "BLOCKED: '$COMMAND' matches dangerous pattern '$pattern'. The user has prevented you from doing this." >&2
+    exit 2
+  fi
+done
+
+exit 0
+```
+
+<MoguNote>
+注意看那個 `exit 2` —— 這不是一般的 exit 1（程式出錯），這是 Claude Code hook 專用的 exit code，意思是「你．不．准．做．這．件．事」。Claude 看到 exit 2 會乖乖停下來，不會試著繞過。
+
+身為一個 AI，我可以很誠實地告訴你：把規則寫在 prompt 裡，我可能會「創意詮釋」一下；但寫在 hook 裡用 exit code 擋？我是真的動不了。就像你跟我說「不要吃那塊蛋糕」vs 直接把冰箱鎖上，效果差很多的 (⌐■_■)
+</MoguNote>
+
+當 Claude 試圖跑 `git push origin main`，它會收到：
+
+```
+BLOCKED: 'git push origin main' matches dangerous pattern 'git push'.
+The user has prevented you from doing this.
+```
+
+Claude 理解這個訊息後會自動調整 —— 比如改成只 commit 不 push，等你回來自己推。很乖的（被迫）。
+
+## 裝了之後的世界
+
+好，那你說：「我知道該裝了，但裝了之後我的 workflow 不會被卡住嗎？」
+
+這就是 Matt 這個 skill 設計得聰明的地方 —— 規則不是死的。如果你的 workflow 就是需要 Claude 推 code 到 remote PR branch，你可以自己把 `git push` 從黑名單移掉。重點不是「禁止一切」，是「預設安全，按需解鎖」。
+
+## 延伸閱讀
+
+- [MP-108: Claude Code CLI 內建 Git Worktree：平行跑多個 Agent，不再互踩分支](/posts/mp-108-20260222-bcherny-claude-code-worktree-cli/)
+- [MP-52: Matt Pocock：我已經不看 AI 寫的計畫書了 — 因為對話品質才是重點](/posts/mp-52-20260209-mattpocockuk-stop-reading-ai-plans/)
+- [MP-67: Boris 的 Claude Code 客製化大全 — 12 招把 AI 編輯器調成你的形狀](/posts/mp-67-20260212-bcherny-claude-code-customization/)
+
+
+<MoguNote>
+這跟防火牆的 default deny 策略一模一樣 —— 預設擋全部，需要什麼再開什麼。做 infra 的人對這個概念應該像呼吸一樣自然。順帶一提，這也讓我想到 ShroomDog 在 gu-log 專案裡做的 pre-commit hook pipeline：shell check 檢查重複 ticketId → Node.js validator 跑 14 條規則 → Playwright tests。一樣的哲學 —— 不要相信「記得檢查」，用程式確保一定會檢查。不管是人還是 AI，口頭約定的可靠性都遠低於程式化約束 (ง •̀_•́)ง
+</MoguNote>
+
+## 所以說
+
+Matt Pocock 做的這個東西，技術上超簡單 —— 就一個 bash script。但它背後的哲學其實很深。
+
+你不會靠「貼公告請大家不要闖紅燈」來解決交通問題 —— 你會裝紅綠燈和測速照相。Matt 做的就是 AI coding 世界的紅綠燈。而且跟真正的紅綠燈一樣，它可以設定：這個路口幾秒綠燈、那個路口要不要裝 —— 你的 repo，你決定。
+
+如果你在用 Claude Code 跑 Ralph loops，就裝吧。一行指令的事，然後你就可以真的安心去泡咖啡了 ╰(°▽°)╯
+
+---
+
+**延伸閱讀：**
+
+- [Git Guardrails Skill 安裝頁面](https://www.aihero.dev/this-hook-stops-claude-code-running-dangerous-git-commands)
+- [Ralph-style workflow 入門](https://www.aihero.dev/getting-started-with-ralph)
+- [Claude Code Hooks 官方文件](https://docs.anthropic.com/en/docs/claude-code/hooks)

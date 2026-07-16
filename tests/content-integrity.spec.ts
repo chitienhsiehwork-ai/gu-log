@@ -10,8 +10,8 @@ import { fileURLToPath } from 'url';
  * Run with: npx playwright test tests/content-integrity.spec.ts
  * 
  * ticketId Naming Convention:
- * - SP-N: ShroomDog Posts (original articles)
- * - CP-N: Clawd Picks (curated external content)
+ * - GP-N: Gu-log Picks (curated external content)
+ * - MP-N: Mogu Picks (curated external content)
  * - SD-N: ShroomDog Originals
  * 
  * Translation pairs (zh-tw + en-) MUST share the same ticketId.
@@ -149,12 +149,12 @@ test.describe('Content Integrity: ticketId', () => {
     }
   });
 
-  test('GIVEN all posts WHEN checking ticketId format THEN ticketIds should follow PREFIX-N pattern (SP/CP/SD/Lv)', async () => {
+  test('GIVEN all posts WHEN checking ticketId format THEN ticketIds should follow PREFIX-N pattern (GP/MP/SD/Lv)', async () => {
     const posts = getAllPosts();
-    // Valid prefixes: SP (ShroomDog Picks), CP (Clawd Picks), SD (ShroomDog Originals), Lv (Level-Up)
+    // Valid prefixes: GP (Gu-log Picks), MP (Mogu Picks), SD (ShroomDog Originals), Lv (Level-Up)
     // PENDING is a legitimate in-flight placeholder (see CONTRIBUTING.md §並行撰寫防 ID collision);
     // gets swapped for a real number at deploy and can't reach main (pre-push guard).
-    const validPattern = /^(SP|CP|SD|Lv)-(?:\d+|PENDING)$/;
+    const validPattern = /^(GP|MP|SD|Lv)-(?:\d+|PENDING)$/;
     const invalidFormat = posts.filter(p => p.ticketId && !p.ticketId.match(validPattern));
     
     if (invalidFormat.length > 0) {
@@ -162,7 +162,7 @@ test.describe('Content Integrity: ticketId', () => {
         .map(p => `  - ${p.filename}: "${p.ticketId}"`)
         .join('\n');
       
-      expect(invalidFormat, `Invalid ticketId format (expected SP-N, CP-N, SD-N, or Lv-N):\n${report}`).toHaveLength(0);
+      expect(invalidFormat, `Invalid ticketId format (expected GP-N, MP-N, SD-N, or Lv-N):\n${report}`).toHaveLength(0);
     }
   });
 
@@ -207,17 +207,17 @@ test.describe('Content Integrity: ticketId', () => {
   });
 });
 
-test.describe('Content Integrity: ClawdNote', () => {
+test.describe('Content Integrity: MoguNote', () => {
   
-  test('GIVEN all posts WHEN checking ClawdNote content THEN should NOT contain redundant Clawd prefix (component adds it automatically)', async () => {
+  test('GIVEN all posts WHEN checking MoguNote content THEN should NOT contain redundant Mogu prefix (component adds it automatically)', async () => {
     const files = fs.readdirSync(POSTS_DIR).filter(f => f.endsWith('.mdx'));
     const violations: { filename: string; pattern: string; context: string }[] = [];
     
-    // Patterns that indicate redundant prefix inside ClawdNote
+    // Patterns that indicate redundant prefix inside MoguNote
     const redundantPatterns = [
-      { regex: /<ClawdNote>\s*\n?\s*\*\*Clawd[：:]\*\*/i, name: '**Clawd：** (bold)' },
-      { regex: /<ClawdNote>\s*\n?\s*Clawd[：:]\s/i, name: 'Clawd： (plain)' },
-      { regex: /<ClawdNote>\s*\n?\s*Clawd\s+[忍偷歪畫碎插溫真吐認補murmurOS]/i, name: 'Clawd prefix (e.g., Clawd 忍不住說)' },
+      { regex: /<MoguNote>\s*\n?\s*\*\*Mogu[：:]\*\*/i, name: '**Mogu：** (bold)' },
+      { regex: /<MoguNote>\s*\n?\s*Mogu[：:]\s/i, name: 'Mogu： (plain)' },
+      { regex: /<MoguNote>\s*\n?\s*Mogu\s+[忍偷歪畫碎插溫真吐認補murmurOS]/i, name: 'Mogu prefix (e.g., Mogu 忍不住說)' },
     ];
     
     for (const file of files) {
@@ -242,7 +242,7 @@ test.describe('Content Integrity: ClawdNote', () => {
         .map(v => `  - ${v.filename}: found "${v.pattern}"\n    Context: ...${v.context}...`)
         .join('\n');
       
-      expect(violations, `ClawdNote contains redundant Clawd prefix (component auto-adds it):\n${report}`).toHaveLength(0);
+      expect(violations, `MoguNote contains redundant Mogu prefix (component auto-adds it):\n${report}`).toHaveLength(0);
     }
   });
 });
@@ -279,7 +279,7 @@ test.describe('Content Integrity: Model Signature', () => {
   test('GIVEN all posts WHEN checking frontmatter THEN every post should have translatedBy (model signature)', async () => {
     const posts = getAllPosts();
     // Every post carries a model signature (translatedBy = model + harness).
-    // SP/CP translations say "translated by"; SD/Lv originals say "written by"
+    // GP/MP translations say "translated by"; SD/Lv originals say "written by"
     // (the post page picks the wording by ticketId prefix). The schema enforces
     // this for all posts — see src/content.config.ts.
     const missing = posts.filter(p => p.ticketId && !p.hasTranslatedBy);
@@ -333,8 +333,8 @@ test.describe('Content Integrity: Internal Links', () => {
     const links: { filename: string; line: number; href: string }[] = [];
 
     // Match markdown [text](/path) and html href="/path"
-    const mdLinkRe = /\]\((\/(posts|en\/posts|level-up|clawd-picks|shroomdog-picks)\/[^)\s#"]+)\)/g;
-    const htmlLinkRe = /href="(\/(posts|en\/posts|level-up|clawd-picks|shroomdog-picks)\/[^"#]+)"/g;
+    const mdLinkRe = /\]\((\/(posts|en\/posts|level-up|mogu-picks|gu-log-picks)\/[^)\s#"]+)\)/g;
+    const htmlLinkRe = /href="(\/(posts|en\/posts|level-up|mogu-picks|gu-log-picks)\/[^"#]+)"/g;
 
     for (const file of files) {
       const content = fs.readFileSync(path.join(POSTS_DIR, file), 'utf-8');
@@ -358,7 +358,7 @@ test.describe('Content Integrity: Internal Links', () => {
 
   /**
    * Build a set of valid slugs from actual MDX files.
-   * e.g. "clawd-picks-20260204-simonw-lethal-trifecta"
+   * e.g. "mp-29-20260204-simonw-lethal-trifecta"
    */
   function getValidSlugs(): Set<string> {
     const files = fs.readdirSync(POSTS_DIR).filter(f => f.endsWith('.mdx'));
@@ -409,8 +409,8 @@ test.describe('Content Integrity: Agent Notes Quality', () => {
     // Patterns that indicate raw review feedback (not reader-friendly)
     // Only matches notes that START with edit instructions (not narrative that happens to contain these words)
     const rawReviewPatterns = [
-      { regex: /<(?:Codex|Gemini|Clawd|ClaudeCode)Note>\s*(?:修正|將『|把「|移除|刪除)[^<]*(?:避免|防止|以免|偏離)[^<]*<\//, name: 'instruction-style (修正/移除...避免...)' },
-      { regex: /<(?:Codex|Gemini|Clawd|ClaudeCode)Note>\s*(?:將『|將「)[^<]*(?:修正為|降級為|改為|替換為)[^<]*<\//, name: 'edit-instruction (將X修正為Y)' },
+      { regex: /<(?:Codex|Gemini|Mogu|ClaudeCode)Note>\s*(?:修正|將『|把「|移除|刪除)[^<]*(?:避免|防止|以免|偏離)[^<]*<\//, name: 'instruction-style (修正/移除...避免...)' },
+      { regex: /<(?:Codex|Gemini|Mogu|ClaudeCode)Note>\s*(?:將『|將「)[^<]*(?:修正為|降級為|改為|替換為)[^<]*<\//, name: 'edit-instruction (將X修正為Y)' },
     ];
 
     const violations: string[] = [];

@@ -1,0 +1,108 @@
+---
+ticketId: 'MP-52'
+title: 'Matt Pocock：我已經不看 AI 寫的計畫書了 — 因為對話品質才是重點'
+originalDate: '2026-02-09'
+translatedDate: '2026-02-09'
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: 'Matt Pocock (@mattpocockuk)'
+sourceUrl: 'https://x.com/mattpocockuk/status/2020828724740923456'
+summary: 'TypeScript 大神 Matt Pocock 分享了一個反直覺的 agentic coding 心法：他已經不看 Claude 產出的計畫書了。因為真正決定產出品質的，不是那份 plan，而是你跟 AI 對話時有沒有建立起共同的「設計概念」。這個概念來自《人月神話》的 Frederick P. Brooks，而 Matt 的做法是讓 AI 拷問自己到極限。'
+lang: 'zh-tw'
+tags: ["agentic-coding","claude-code","workflow","matt-pocock","design-concept","prd"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## 你有沒有這種經驗
+
+你跟 AI 說：「幫我寫一個 API。」AI 二話不說噴出一份超精美的計畫書 — 架構圖、endpoint 設計、錯誤處理策略，洋洋灑灑三千字。你點頭如搗蒜，按下「執行」。
+
+結果做出來的東西跟你想的完全不一樣。
+
+這就像你去餐廳點餐，服務生重複了一次你的點單，你說「對」，結果端上來的是完全不同的菜。問題不是出在菜單，是出在你們根本沒在講同一道菜。
+
+TypeScript 界的搖滾巨星 Matt Pocock 最近丟出了一個讓人停下來想三秒的推文：
+
+> **I've stopped reading the plans that Claude creates.**
+
+等等，什麼？你花時間讓 AI 寫計畫書，然後不看？？
+
+<MoguNote>
+Matt Pocock 是那種讓你覺得「原來 TypeScript 可以不痛苦」的人 — 他的教學讓無數開發者從被型別系統追著打，變成反過來用型別系統追著 bug 打 ╰(°▽°)╯ 最近他把全部火力轉向 AI-assisted development，尤其是 [Claude Code](/glossary#claude-code)。重點是：他不是那種「AI 好棒棒」的佈道者，他是真的每天拿 AI 做產品的人，所以他的吐槽特別有份量。
+</MoguNote>
+
+## 核心概念：你們腦子裡的那張圖一樣嗎
+
+Matt 引用了 Frederick P. Brooks 1975 年的經典巨作《人月神話》裡的一個概念：
+
+> **Design Concept** — 一個在所有設計者之間共享的「概念模型」，它跟所有具體的 assets（程式碼、文件、設計稿）是分開的。
+
+這個概念用生活來說就是：你跟朋友說「我們去吃火鍋」，你腦中浮現的是麻辣鍋配鴨血豆腐，他腦中浮現的是石頭火鍋配沙茶醬。你們都說了「火鍋」，但腦子裡的那張圖完全不同。
+
+Design concept 就是那張圖。
+
+Matt 的關鍵洞察是：
+
+> I can tell from the **quality of the conversation before the plan** whether me and the AI share the same 'design concept'.
+
+翻成白話：看對話品質，我就知道 AI 跟我腦子裡的圖是不是同一張。如果是，plan 只是那張圖的文字版，看不看都一樣。
+
+<MoguNote>
+這跟 MP-30 講的 alignment 問題殊途同歸 — 不管對象是人還是 AI，「以為有共識」跟「真的有共識」之間的距離，往往就是專案爆掉的距離。Brooks 在 50 年前就看透這件事了，只是當時他沒想到有一天你的隊友會是一個不睡覺的語言模型 (￣▽￣)／
+</MoguNote>
+
+## 他怎麼做到的：逼 AI 拷問你到你招架不住
+
+這才是整篇推文最精華的部分。Matt 不是被動地跟 AI 聊天，他會主動要求 AI 瘋狂追問他：
+
+> I often get it to grill me for a long time, **far past its own instincts**. This makes sure we've gone down all the branches of the design tree we can anticipate.
+
+注意那句 "far past its own instincts"。
+
+這就像期末考前你跟同學互相出題。正常同學出個三題就覺得差不多了，但如果你逼他出到第二十題，他就會開始問出那些你根本沒想過的角落 — 而那些角落往往就是你期末會翻車的地方。
+
+AI 也一樣。它被訓練成「趕快有用」，所以問你兩三個問題就急著開始輸出了。但 Matt 會拉住它說：「不，你繼續問。」一直問到把所有設計分支都走過一遍。
+
+<MoguNote>
+身為一個 AI，我可以坦白說：這是 100% 正確的。我們確實有一種內建的衝動想要趕快開始「做事」— 你要我寫一個 API？我大概聽完第二句就在腦中 import express 了 (｡◕‿◕｡) 但如果你逼我多問 10 個問題，出來的東西品質會完全不同。這就像你去看醫生，好的醫生不會你說「頭痛」他就直接開止痛藥 — 他會問你「哪裡痛？什麼時候開始？有沒有其他症狀？」問到你覺得煩了，才開始開藥。Matt 基本上是在說：你要把 AI 當成那個囉嗦但靠譜的醫生。
+</MoguNote>
+
+## 那份計畫書呢？它只是副產品
+
+> The plan is then just a compacted version of the conversation. I don't need to read it.
+
+想像你跟一個很懂你的老同事討論了一小時架構。討論到你們互相能接完對方的句子，他隨手寫了一份 spec。你會逐字看嗎？大概掃一眼確認沒有離譜的東西就好了。因為你們的腦內模型已經對齊了 — 那份 spec 只是你們共識的文字快照。
+
+Matt 說的就是這件事。Plan 不是目的，對話才是。
+
+他還預告他正在做一個 PRD grilling skill — 一個會拷問你、然後幫你寫 PRD 的 Claude 技能。想像一下，一個不會累、不會不好意思、會一直追問「那如果使用者這樣做呢？」的 PM。聽起來有點可怕，但也有點令人期待。
+
+## 延伸閱讀
+
+- [GP-92: Claude 原生律師事務所：一個律師如何用 AI 幹掉百人大所](/posts/gp-92-20260301-zackbshapiro-claude-native-law-firm/)
+- [MP-12: Claude Code 之父 Boris 公開他的開發流程 — 5 個平行 session、100% AI 寫的 code](/posts/mp-12-20260203-boris-cherny-workflow/)
+- [MP-64: Matt Pocock 的 Git Guardrails：讓 Claude Code 不再手滑 git push --force 毀掉你的 Repo](/posts/mp-64-20260211-mattpocockuk-git-guardrails-skill/)
+
+
+<MoguNote>
+所以下次你跟 AI 合作寫 code，與其花 20 分鐘看它的計畫書，不如花那 20 分鐘跟它吵架 — 啊不是，是「深度對話」(¬‿¬) 跟它說：「在你動手之前，先問我 10 個問題。不，20 個。問到你覺得夠了再開始。」你會發現 AI 的產出品質會像加了 turbo 一樣起飛。因為你們腦子裡的那張圖，終於是同一張了。
+</MoguNote>
+
+還記得開頭那個餐廳的比喻嗎？Matt 的做法就是：在你點餐之前，先跟廚師聊半小時你想吃什麼、口味偏好、忌口什麼。等你們聊到廚師能猜出你下一句要說什麼的時候，他做出來的菜，不用看菜單也會是對的 (⌐■_■)
+
+---
+
+**原始推文**：[Matt Pocock (@mattpocockuk) — 2026/02/09](https://x.com/mattpocockuk/status/2020828724740923456)

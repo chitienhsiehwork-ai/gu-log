@@ -3,8 +3,8 @@ import { chromium } from 'playwright';
 const browser = await chromium.launch();
 
 const pages = [
-  { path: '/shroomdog-picks/', name: 'sp-listing', fullPage: true },
-  { path: '/clawd-picks/', name: 'cp-listing', fullPage: true },
+  { path: '/gu-log-picks/', name: 'sp-listing', fullPage: true },
+  { path: '/mogu-picks/', name: 'cp-listing', fullPage: true },
   { path: '/shroomdog-originals/', name: 'sd-listing', fullPage: true },
   { path: '/', name: 'homepage', fullPage: true },
 ];

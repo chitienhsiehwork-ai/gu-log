@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/observability"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/observability"
 )
 
 // SetupWorkDir populates s.WorkDir with an absolute path (creating the
@@ -51,7 +51,7 @@ func SetupWorkDir(s *State) (cleanup func(), err error) {
 // → Review → Refine → Credits → Ralph → Deploy → Summary. Each step
 // honors s.FromStepInt so callers can resume partway through.
 //
-// Run is the Go equivalent of invoking scripts/sp-pipeline.sh <url>. It
+// Run is the Go equivalent of invoking scripts/gp-pipeline.sh <url>. It
 // does NOT manage work-dir setup — call SetupWorkDir first — and does NOT
 // print a step summary on the way out; the caller handles that via
 // PrintSummary so the `run` subcommand can emit it in both human and
@@ -119,7 +119,7 @@ func writeSnapshotBestEffort(s *State, currentStep, lastCompleted, runState, err
 }
 
 // PrintSummary writes a human-readable pipeline summary to w, matching
-// the field layout of scripts/sp-pipeline.sh Step 6. Used by the run
+// the field layout of scripts/gp-pipeline.sh Step 6. Used by the run
 // subcommand after Run returns.
 func PrintSummary(w io.Writer, s *State) {
 	fmt.Fprintf(w, "\nPipeline Summary\n")

@@ -32,7 +32,7 @@ function makePost(fmLines: string[], body = `Body content with kaomoji ${KAOMOJI
 }
 
 const validFm = [
-  'ticketId: SP-1',
+  'ticketId: GP-1',
   'title: Hello',
   'originalDate: 2026-04-01',
   'translatedDate: 2026-04-02',
@@ -45,7 +45,7 @@ const validFm = [
 describe('parseFrontmatter', () => {
   it('parses flat YAML', () => {
     const fm = parseFrontmatter(makePost(validFm));
-    expect(fm.ticketId).toBe('SP-1');
+    expect(fm.ticketId).toBe('GP-1');
     expect(fm.title).toBe('Hello');
     expect(fm.lang).toBe('zh-tw');
   });
@@ -70,7 +70,7 @@ describe('parseFrontmatter', () => {
 
 describe('getBaseFilename', () => {
   it('strips en- prefix', () => {
-    expect(getBaseFilename('en-sp-1-x.mdx')).toBe('sp-1-x.mdx');
+    expect(getBaseFilename('en-gp-1-x.mdx')).toBe('sp-1-x.mdx');
     expect(getBaseFilename('sp-1-x.mdx')).toBe('sp-1-x.mdx');
   });
 });
@@ -94,7 +94,7 @@ describe('validatePost — pass case', () => {
       filepath,
       makePost([...validFm, 'translatedBy:', '  model: Opus 4.6', '  harness: Claude Code'])
     );
-    const r = validatePost(filepath, [{ filename: 'sp-1-20260401-x.mdx', ticketId: 'SP-1' }]);
+    const r = validatePost(filepath, [{ filename: 'sp-1-20260401-x.mdx', ticketId: 'GP-1' }]);
     expect(r.errors).toEqual([]);
   });
 });
@@ -133,8 +133,8 @@ describe('validatePost — required-field rules', () => {
     expect(r.errors.some((e: string) => e.includes('Invalid ticketId format'))).toBe(true);
   });
 
-  it('accepts SP/CP/SD/Lv ticketId', () => {
-    for (const tid of ['SP-1', 'CP-1', 'SD-1', 'Lv-1', 'SP-PENDING']) {
+  it('accepts GP/MP/SD/Lv ticketId', () => {
+    for (const tid of ['GP-1', 'MP-1', 'SD-1', 'Lv-1', 'GP-PENDING']) {
       const r = runWithFm(validFm.map((l) => (l.startsWith('ticketId:') ? `ticketId: ${tid}` : l)));
       expect(r.errors.some((e: string) => e.includes('Invalid ticketId format'))).toBe(false);
     }
@@ -160,7 +160,7 @@ describe('validatePost — required-field rules', () => {
   });
 
   it('flags zh-tw lang on en- filename', () => {
-    const r = runWithFm(validFm, 'en-sp-1-x.mdx');
+    const r = runWithFm(validFm, 'en-gp-1-x.mdx');
     expect(r.errors.some((e: string) => e.includes('filename starts with "en-"'))).toBe(true);
   });
 });
@@ -227,7 +227,7 @@ describe('validatePost — content rules', () => {
 
 describe('validatePost — en-* CJK Unified Ideograph guard', () => {
   const enFm = validFm.map((l) =>
-    l.startsWith('lang:') ? 'lang: en' : l.startsWith('ticketId:') ? 'ticketId: SP-2' : l
+    l.startsWith('lang:') ? 'lang: en' : l.startsWith('ticketId:') ? 'ticketId: GP-2' : l
   );
   // makePost()'s shared padding is zh-tw text, which would itself trip this
   // en-only rule — build these fixtures with English padding instead so each
@@ -238,7 +238,7 @@ describe('validatePost — en-* CJK Unified Ideograph guard', () => {
   }
 
   it('flags an untranslated CJK Unified Ideograph in an en-* body', () => {
-    const filepath = tmpPath('en-sp-2-x.mdx');
+    const filepath = tmpPath('en-gp-2-x.mdx');
     fs.writeFileSync(filepath, makeEnPost(enFm, 'This has a leftover 測試字 in it.'));
     const r = validatePost(filepath, []);
     expect(r.errors.some((e: string) => e.includes('CJK Unified Ideograph'))).toBe(true);
@@ -252,14 +252,14 @@ describe('validatePost — en-* CJK Unified Ideograph guard', () => {
   });
 
   it('does not flag katakana or Greek letters (outside the Unified Ideograph block)', () => {
-    const filepath = tmpPath('en-sp-3-x.mdx');
+    const filepath = tmpPath('en-gp-3-x.mdx');
     fs.writeFileSync(filepath, makeEnPost(enFm, 'Kaomoji like (◕ω◕) and ツ or ω are fine.'));
     const r = validatePost(filepath, []);
     expect(r.errors.some((e: string) => e.includes('CJK Unified Ideograph'))).toBe(false);
   });
 
   it('allows an inline escape via "<!-- cjk-ok -->" on the same line', () => {
-    const filepath = tmpPath('en-sp-4-x.mdx');
+    const filepath = tmpPath('en-gp-4-x.mdx');
     fs.writeFileSync(
       filepath,
       makeEnPost(enFm, 'Quoting a name like 測試字 is fine here. <!-- cjk-ok -->')
@@ -269,7 +269,7 @@ describe('validatePost — en-* CJK Unified Ideograph guard', () => {
   });
 
   it('allows escaping a whole code block via the marker on the opening fence line', () => {
-    const filepath = tmpPath('en-sp-5-x.mdx');
+    const filepath = tmpPath('en-gp-5-x.mdx');
     const body = ['```typescript <!-- cjk-ok -->', 'const x = "測試字";', '```'].join('\n');
     fs.writeFileSync(filepath, makeEnPost(enFm, body));
     const r = validatePost(filepath, []);
@@ -315,7 +315,7 @@ describe('validatePost — en-* CJK Unified Ideograph guard', () => {
     // Frontmatter itself is out of scope for this rule (source/attribution
     // fields legitimately carry original-language names) — confirm a CJK
     // name in frontmatter alone does not trigger the body guard.
-    const filepath = tmpPath('en-sp-6-x.mdx');
+    const filepath = tmpPath('en-gp-6-x.mdx');
     const fm = [...enFm, 'source: "凡人小北 @frxiaobei"'];
     fs.writeFileSync(filepath, makeEnPost(fm, `Body content with kaomoji ${KAOMOJI}.`));
     const r = validatePost(filepath, []);
@@ -328,19 +328,19 @@ describe('validatePost — cross-file rules', () => {
     const filepath = tmpPath('sp-1-a.mdx');
     fs.writeFileSync(filepath, makePost(validFm));
     const r = validatePost(filepath, [
-      { filename: 'sp-1-a.mdx', ticketId: 'SP-1' },
-      { filename: 'sp-1-b.mdx', ticketId: 'SP-1' },
+      { filename: 'sp-1-a.mdx', ticketId: 'GP-1' },
+      { filename: 'sp-1-b.mdx', ticketId: 'GP-1' },
     ]);
     expect(r.errors.some((e: string) => e.includes('Duplicate ticketId'))).toBe(true);
   });
 
   it('does NOT flag PENDING ticketId duplicates (multiple drafts share)', () => {
-    const fm = validFm.map((l) => (l.startsWith('ticketId:') ? 'ticketId: SP-PENDING' : l));
+    const fm = validFm.map((l) => (l.startsWith('ticketId:') ? 'ticketId: GP-PENDING' : l));
     const filepath = tmpPath('pending.mdx');
     fs.writeFileSync(filepath, makePost(fm));
     const r = validatePost(filepath, [
-      { filename: 'pending.mdx', ticketId: 'SP-PENDING' },
-      { filename: 'other-pending.mdx', ticketId: 'SP-PENDING' },
+      { filename: 'pending.mdx', ticketId: 'GP-PENDING' },
+      { filename: 'other-pending.mdx', ticketId: 'GP-PENDING' },
     ]);
     expect(r.errors.some((e: string) => e.includes('Duplicate ticketId'))).toBe(false);
   });
@@ -349,8 +349,8 @@ describe('validatePost — cross-file rules', () => {
     const filepath = tmpPath('sp-1-x.mdx');
     fs.writeFileSync(filepath, makePost(validFm));
     const r = validatePost(filepath, [
-      { filename: 'sp-1-x.mdx', ticketId: 'SP-1' },
-      { filename: 'en-sp-1-x.mdx', ticketId: 'SP-2' },
+      { filename: 'sp-1-x.mdx', ticketId: 'GP-1' },
+      { filename: 'en-gp-1-x.mdx', ticketId: 'GP-2' },
     ]);
     expect(r.errors.some((e: string) => e.includes('Translation pair ticketId mismatch'))).toBe(
       true

@@ -7,8 +7,8 @@ import { fileURLToPath } from 'url';
  * Tests for AiPopup filePath correctness.
  *
  * Bug context: Astro Content Collections `post.id` already includes the `.mdx`
- * extension (e.g. "clawd-picks-151.mdx"). The page template was appending
- * `.mdx` again, producing paths like "src/content/posts/clawd-picks-151.mdx.mdx"
+ * extension (e.g. "mogu-picks-151.mdx"). The page template was appending
+ * `.mdx` again, producing paths like "src/content/posts/mogu-picks-151.mdx.mdx"
  * → 404 on the API side.
  *
  * These tests ensure the double-extension bug never recurs.

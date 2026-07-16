@@ -64,7 +64,7 @@ type EvalData struct {
 
 // WriteData is the template data for write.tmpl.
 type WriteData struct {
-	TicketID       string // e.g. "SP-PENDING" or "SP-170"
+	TicketID       string // e.g. "GP-PENDING" or "GP-170"
 	OriginalDate   string // YYYY-MM-DD
 	TranslatedDate string // YYYY-MM-DD (today)
 	AuthorHandle   string // without @ prefix
@@ -77,7 +77,7 @@ type WriteData struct {
 	TweetURL   string // full canonical URL
 	Model      string // frontmatter translatedBy.model
 	Harness    string // frontmatter translatedBy.harness
-	FirstTag   string // "shroom-picks" (SP/SD) | "clawd-picks" (CP)
+	FirstTag   string // "gu-log-picks" (SP/SD) | "mogu-picks" (CP)
 	StyleGuide string // full contents of GU-LOG_WRITER_PROMPT.md
 	Source     string // full contents of source-tweet.md
 }

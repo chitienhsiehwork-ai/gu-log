@@ -25,7 +25,7 @@ The tribunal engine is architecturally ready for a 24/7 run (atomic claims, grac
 
 ## Impact
 
-- **Model routing:** `scripts/tribunal-helpers.sh` (provider/model dispatch ~358-401, the "Ignore model" prompt note ~336-338), `.codex/agents/*.toml` + `.claude/agents/*.md` (`model` fields already set), `tools/sp-pipeline/internal/llm/defaults.go` (Go writer chain — already Opus).
+- **Model routing:** `scripts/tribunal-helpers.sh` (provider/model dispatch ~358-401, the "Ignore model" prompt note ~336-338), `.codex/agents/*.toml` + `.claude/agents/*.md` (`model` fields already set), `tools/gp-pipeline/internal/llm/defaults.go` (Go writer chain — already Opus).
 - **Safety contract test:** `scripts/tests/test-tribunal-safety-contract.sh` — **currently green and asserts the exact things this change removes** (the `--model gpt-5.5` hardcode at line 77, the "Ignore YAML / frontmatter runtime fields" prompt at line 72, the static `codex-gpt-5.5-medium` runner label at 109/115, and `^model = "gpt-5.5"` pinned across all `.codex/agents/*.toml` at line 95). It MUST be updated in lockstep or routing edits turn it red.
 - **Runtime enablement:** `scripts/tribunal-loop.service`, `scripts/cc-tribunal-loop-wrapper.sh`, `scripts/cc-cron-tribunal.sh` (set `GP_WRITER_MODE`).
 - **Alerting:** `scripts/tribunal-helpers.sh` (`tribunal_quota_alarm` ~778-785; the macOS `osascript` no-op is at line 784; existing alarm call sites at ~938/940/943/1046), `scripts/tribunal-quota-loop.sh` (**add** alarm hooks — it has none today; all current alarm calls live in `tribunal-helpers.sh`).

@@ -8,7 +8,7 @@ function passScores(overrides: Partial<NonNullable<Scores>> = {}): Scores {
     tribunalVersion: 9,
     vibe: {
       persona: 9,
-      clawdNote: 8,
+      moguNote: 8,
       vibe: 8,
       narrative: 8,
       score: 8,
@@ -54,7 +54,7 @@ describe('tribunal publish bar', () => {
     const scores = passScores({
       vibe: {
         persona: 8,
-        clawdNote: 8,
+        moguNote: 8,
         vibe: 8,
         narrative: 8,
         score: 8,
@@ -88,7 +88,7 @@ describe('tribunal publish bar', () => {
       tribunalVersion: 8,
       vibe: {
         persona: 9,
-        clawdNote: 8,
+        moguNote: 8,
         vibe: 8,
         clarity: 8,
         narrative: 8,
@@ -121,7 +121,7 @@ describe('tribunal publish bar', () => {
       tribunalVersion: 9,
       vibe: {
         persona: 9,
-        clawdNote: 8,
+        moguNote: 8,
         vibe: 8,
         narrative: 8,
         score: 8,

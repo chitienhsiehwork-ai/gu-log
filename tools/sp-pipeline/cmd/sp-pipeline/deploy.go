@@ -10,8 +10,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/counter"
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/pipeline"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/counter"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/pipeline"
 )
 
 type deployReport struct {
@@ -44,7 +44,7 @@ func newDeployCmd(state *rootState) *cobra.Command {
 		Short: "Allocate a ticket ID, rename pending files, validate, build, commit, push",
 		Long: `deploy is Step 5 of the pipeline. It:
 
-  1. Bumps the SP/CP/SD/Lv counter under flock
+  1. Bumps the GP/MP/SD/Lv counter under flock
   2. Renames the pending file in src/content/posts/ to the final name
   3. Replaces any PENDING ticketId references in the frontmatter
   4. Runs node scripts/validate-posts.mjs (unless --skip-validate)
@@ -53,7 +53,7 @@ func newDeployCmd(state *rootState) *cobra.Command {
   7. Commits with "Add <TICKET>: <TITLE>"
   8. Pushes to the default remote (unless --dry-run)
 
-Most callers invoke this through "sp-pipeline run"; the standalone
+Most callers invoke this through "gp-pipeline run"; the standalone
 subcommand is for recovering a partially-deployed article.`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return runDeployCmd(cmd.Context(), state, deployCmdOpts{
@@ -76,7 +76,7 @@ subcommand is for recovering a partially-deployed article.`,
 	cmd.Flags().StringVar(&dateStamp, "date-stamp", "", "YYYYMMDD for the final filename")
 	cmd.Flags().StringVar(&authorSlug, "author-slug", "", "sanitised author handle for the final filename")
 	cmd.Flags().StringVar(&titleSlug, "title-slug", "", "sanitised title for the final filename")
-	cmd.Flags().StringVar(&prefix, "prefix", "SP", "ticket prefix (SP / CP / SD / Lv)")
+	cmd.Flags().StringVar(&prefix, "prefix", "GP", "ticket prefix (SP / CP / SD / Lv)")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "skip validate, build, and push (for testing)")
 	cmd.Flags().BoolVar(&skipBuild, "skip-build", false, "skip npm run build")
 	cmd.Flags().BoolVar(&skipValidate, "skip-validate", false, "skip node scripts/validate-posts.mjs")

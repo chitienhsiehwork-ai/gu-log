@@ -122,7 +122,7 @@ src/
 │   ├── config.ts            # frontmatter schema (Zod validation)
 │   └── posts/
 │       ├── sp-123-…-slug.mdx     # zh-tw version (lang: "zh-tw")
-│       └── en-sp-123-…-slug.mdx  # en version    (lang: "en")
+│       └── en-gp-123-…-slug.mdx  # en version    (lang: "en")
 ├── components/
 │   ├── MoguNote.astro       # Mogu's commentary box
 │   ├── ShroomDogNote.astro  # ShroomDog's own voice (SD series)

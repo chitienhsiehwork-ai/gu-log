@@ -6,7 +6,7 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)) + "/..")
 
 # 1. Collect all zh CP files with their current ticketId
 zh_files = []
-for f in sorted(glob.glob("src/content/posts/clawd-picks-*.mdx")):
+for f in sorted(glob.glob("src/content/posts/mogu-picks-*.mdx")):
     if "/en-" in f:
         continue
     with open(f) as fh:
@@ -62,7 +62,7 @@ print(f"\nChanged: {changes} zh files")
 # 3. Update counter
 with open("scripts/article-counter.json") as f:
     counter = json.load(f)
-counter["CP"]["next"] = total + 1
+counter["MP"]["next"] = total + 1
 with open("scripts/article-counter.json", "w") as f:
     json.dump(counter, f, indent=2)
     f.write("\n")
@@ -74,7 +74,7 @@ print("\n=== Verification ===")
 gaps = 0
 for i in range(1, total + 1):
     found = False
-    for f in glob.glob("src/content/posts/clawd-picks-*.mdx"):
+    for f in glob.glob("src/content/posts/mogu-picks-*.mdx"):
         if "/en-" in f:
             continue
         with open(f) as fh:
@@ -85,11 +85,11 @@ for i in range(1, total + 1):
         print(f"  ❌ CP-{i}: MISSING")
         gaps += 1
 if gaps == 0:
-    print(f"  ✅ zh: CP-1 through CP-{total}, zero gaps!")
+    print(f"  ✅ zh: MP-1 through CP-{total}, zero gaps!")
 
 # Check pair matches
 mismatches = 0
-for f in glob.glob("src/content/posts/clawd-picks-*.mdx"):
+for f in glob.glob("src/content/posts/mogu-picks-*.mdx"):
     if "/en-" in f:
         continue
     base = os.path.basename(f)

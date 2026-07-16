@@ -1,0 +1,167 @@
+---
+ticketId: 'MP-47'
+title: 'Terraform 之父的新武器：AI 讓 Open Source 信任崩盤，Mitchell Hashimoto 推出 Vouch 信任系統'
+originalDate: '2026-02-07'
+translatedDate: '2026-02-08'
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: 'Mitchell Hashimoto (@mitchellh)'
+sourceUrl: 'https://x.com/mitchellh/status/2020252149117313349'
+summary: 'Mitchell Hashimoto（Terraform、Vagrant、Ghostty 的創造者）說 AI 摧毀了 Open Source 20 多年來的信任基礎——以前寫 code 的門檻夠高，自然篩掉爛 PR。現在 AI 讓任何人都能產出「看起來很像樣但品質極差」的貢獻。他的解法：Vouch，一個讓信任的人擔保其他人的系統，已經在 Ghostty 上線。'
+lang: 'zh-tw'
+tags: ["open-source","trust","mitchell-hashimoto","ghostty","github","ai-impact"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+你有沒有去過那種社區大樓，門口貼了一張 A4 紙：「非住戶請勿進入」？
+
+二十年來，Open Source 的門口也貼了這麼一張紙。只不過它不是寫在紙上的——它寫在「你得真的會寫 code」這個門檻裡。你想進來？可以，先讀完十萬行 codebase、搞懂架構、寫一段符合專案標準的 code、然後活過 maintainer 的 review。能撐過這些的人，品質通常不會太差。
+
+然後 2026 年 2 月 7 日，Mitchell Hashimoto——就是那個造了 **Terraform**、**Vagrant**、**Packer**，又從零寫了超紅終端機 **Ghostty** 的人——發了一條推文：
+
+> AI eliminated the natural barrier to entry that let OSS projects trust by default.
+
+翻譯：**AI 把社區大樓的門直接拆了。**
+
+<MoguNote>
+Mitchell Hashimoto 說信任壞了，這不是什麼路人在推特上發牢騷。這人造的 Terraform 管著全世界大概一半的雲端基礎設施。他說地基裂了，你不會回他「你想太多」(╯°□°)╯ 你會趕快看看自己腳下的地板有沒有歪。
+</MoguNote>
+
+他接著說：有人叫我別只是抱怨，做點什麼。好，他做了。他推出了 **Vouch**——一個 Open Source 專案的信任管理系統。
+
+---
+
+## 門檻消失了，然後呢？
+
+以前要對一個 Open Source 專案發 PR，你得先過四關：讀懂 codebase、理解設計哲學、寫出水準以上的 code、然後活過 review。Mitchell 自己說了：
+
+> For over 20 years of my life, this was enough for my projects as well as enough for most others.
+
+二十年，這套自然篩選從沒出過問題。
+
+**然後 AI 把四關變成一關：按下 Enter。**
+
+現在任何人都可以把 issue 丟進 [Claude Code](/glossary#claude-code)、Cursor、Copilot，30 秒收到一個「看起來很像樣」的 PR，直接提交。問題是——提交的人可能連 code 在幹嘛都不知道 ┐(￣ヘ￣)┌
+
+<MoguNote>
+這就像以前進米其林廚房幫忙，你得會切菜、會控火、會調味，主廚看一眼你的刀工就知道你幾斤幾兩。現在有了 AI，任何人都可以走進來遞上一盤「看起來超精緻但其實是預製料理包微波 30 秒」的東西。主廚光是分辨真假就已經筋疲力盡了——而且微波料理包的擺盤可能比真菜還漂亮，這才是最氣人的地方 (╯°□°)╯
+</MoguNote>
+
+---
+
+## Vouch：用人情擔保取代技術門檻
+
+所以 Mitchell 的解法不是去偵測「這段 code 是不是 AI 寫的」——那幾乎不可能。他的解法是回到最古老的信任機制：**人跟人之間的擔保**。
+
+想像一下你去一個很嚴格的私人派對。門口保鏢不認識你，但你朋友在裡面喊了一聲「他跟我的！」你就進去了。Vouch 就是這個「他跟我的」。
+
+四個核心概念：
+
+1. **預設不信任**——沒人擔保你，你的 PR 直接被攔下來
+2. **Vouch（擔保）**——被信任的 maintainer 或社群成員可以幫你「刷卡」
+3. **Denounce（舉報）**——遇到搞破壞的，直接拉黑
+4. **Web of Trust（信任網路）**——不同專案可以共享彼此的信任名單
+
+然後最讓我驚豔的是：整個系統有多簡單。
+
+信任清單就是一個純文字檔——`.td` 格式，叫 Trustdown（這命名品味不錯）。長這樣：
+
+```
+# 被擔保的使用者
+github:mitchellh
+github:trusteddev
+
+# 被封鎖的使用者
+-github:badactor Submitted AI slop
+-github:spammer
+```
+
+一行一個人，`-` 開頭代表封鎖，後面可以加原因。用標準 POSIX 工具就能解析，零外部依賴。想整合到 GitHub？三個 Actions 搞定——`check-pr` 自動擋未擔保的 PR，`manage-by-issue` 讓人在 issue 裡留言 `vouch @user` 就能擔保，`manage-by-discussion` 同理但在 Discussion 裡操作。
+
+就這樣。沒有 SaaS 平台，沒有 dashboard，沒有月費帳單。
+
+<MoguNote>
+好，我要認真誇一下這個設計。你知道工程師最常犯的錯是什麼嗎？「這個問題很複雜，所以解法也要很複雜。」Mitchell 反其道而行——信任管理這麼大一個議題，他的解法是一個 text file 加幾行 YAML。這才是真正的 Unix 哲學：do one thing and do it well。不是嘴上講講，是真的做到了 ╰(°▽°)╯
+</MoguNote>
+
+---
+
+## 跨專案信任：從社區大樓到整條街
+
+Vouch 最有野心的部分是 **Web of Trust**——跨專案的信任共享。
+
+舉個例子。Ghostty 信任了使用者 A。隔壁的 Open Source 專案覺得「Ghostty 的 maintainer 眼光不錯」，把 Ghostty 的信任清單加到自己的來源。這樣使用者 A 在那個專案也自動被信任。
+
+反過來也一樣：如果某人在 Ghostty 被 denounce 了，引用 Ghostty 清單的專案也會自動封鎖他。
+
+Mitchell 說這背後有一個更大的計畫叫 **Trustdown**：
+
+> I intend to formalize a specification for trust lists so that software systems like this Vouch project and others can coordinate with each other.
+
+他想建立一個通用的信任清單標準，讓所有工具和專案都能互通。從一棟社區大樓的門禁，變成一整條街的聯防系統。
+
+<MoguNote>
+Web of Trust 其實不是新概念——1990 年代的 PGP key signing party 就玩過這套。但那時候的問題是「太難用了」，你得搞 GPG key、去線下活動互簽、管理一堆 fingerprint，搞到最後只有密碼學宅宅在用。Mitchell 把同樣的概念壓縮到「一個 text file + GitHub Actions」的操作難度。三十年前的好主意，終於等到了夠簡單的實作 (◕‿◕)
+</MoguNote>
+
+---
+
+## 推特底下吵翻了
+
+這種文章當然會引戰。推文下面最精彩的幾個質疑：
+
+**「這不就是 gatekeeping 嗎？」**
+
+Mitchell 的回答很直接：你本來就在 gatekeeping 了。每次你 review PR 決定要不要 merge，你就是在選擇誰的 code 可以進來。Vouch 只是把這個一直都存在的隱性決策，變成一個寫在 text file 裡的顯性規則。
+
+**「會不會被政治化？某些專案搞大規模封鎖名單？」**
+
+> Who and how someone is vouched or denounced is left entirely up to the project. I'm not the value police for the world.
+
+每個專案管自己的清單，Mitchell 不當全世界的價值觀警察。而且你的本地設定永遠優先——就算別人 denounce 了某人，你覺得他沒問題，你可以在自己的專案裡 vouch 他。
+
+**「新手怎麼辦？這不是讓 Open Source 更排外嗎？」**
+
+這是最尖銳的一題。Mitchell 沒有正面回答，但他提到擔保標準完全由各專案自訂。有的專案可能要你先在社群混三個月，有的可能一個 maintainer 認識你就行。
+
+## 延伸閱讀
+
+- [Lv-02: 開源 AI 協作系統設計：從 BYOK 到 PR-based 編輯](/posts/levelup-20260213-02-opensource-ai-collaboration/)
+- [MP-170: ACE 正式開源 — AI Coding Environment 不再是 SaaS 獨佔品](/posts/mp-170-20260316-daniel-mac8-ace-open-source/)
+- [MP-129: 一個工程師 + AI，一週重建 Next.js——然後 tldraw 嚇到把測試搬進私有 repo](/posts/mp-129-20260226-cloudflare-vinext-tldraw-tests/)
+
+
+<MoguNote>
+說實話，「新手怎麼辦」這個問題在 AI 之前就存在了。去問任何一個第一次對大型 Open Source 專案發 PR 的人，十個有八個會跟你說他的 PR 被晾了三個月以上。Vouch 至少把這個潛規則攤開來講——你明確知道自己需要被擔保，而不是默默等到天荒地老然後在 Reddit 上發文「為什麼 maintainer 都不理我」┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## 所以這件事的重點是什麼？
+
+不只是「又一個 Open Source 工具誕生」。這件事值得想的地方在更深一層。
+
+二十年來，我們信任 Open Source 貢獻者，因為「花時間寫 code」這件事本身就是一種 proof of work。你願意花三天研究一個 codebase 然後提交一個 PR，光是這個行為就證明了你有一定程度的投入和理解。
+
+**AI 讓這個 proof of work 幾乎歸零了。**
+
+而且這不只發生在 Open Source。Code review——以前看到 500 行精心寫的 PR 你會假設作者花了好幾個小時理解問題，現在可能是 30 秒的 prompt。求職——以前有人做了厲害的 side project 你會覺得他有能力，現在可能全是 AI 寫的。學術論文⋯⋯算了，這個不說了 (￣▽￣)／
+
+所有建立在「人類成本」上的信任假設，都在鬆動。
+
+Mitchell 的 Vouch 提供了一個有趣的方向：不跟 AI 正面對決（你幾乎不可能靠技術判斷 code 是不是 AI 寫的），而是繞過去，用最古老的「人認識人」來重建信任。就像社區大樓的門禁壞了，你不是去修那個鎖——你改成讓住戶帶朋友刷卡進門。
+
+Vouch 能不能成為 Open Source 的新標準？不知道。但 Mitchell Hashimoto 指出的問題是真的，而且只會越來越嚴重。至少他不只是在推特上抱怨——他寫了 code。

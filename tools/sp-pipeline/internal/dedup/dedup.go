@@ -13,7 +13,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/runner"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/runner"
 )
 
 // Verdict is the three-state outcome dedup-gate.mjs returns.
@@ -36,7 +36,7 @@ type Result struct {
 }
 
 // Options controls the dedup check. All fields are required except
-// Series, which defaults to "SP" to match the bash pipeline's default
+// Series, which defaults to "GP" to match the bash pipeline's default
 // when the prefix is not explicitly set.
 type Options struct {
 	ScriptPath string // absolute path to scripts/dedup-gate.mjs
@@ -57,7 +57,7 @@ func Check(ctx context.Context, opts Options) (*Result, error) {
 	}
 	series := opts.Series
 	if series == "" {
-		series = "SP"
+		series = "GP"
 	}
 
 	args := []string{
@@ -95,7 +95,7 @@ func Check(ctx context.Context, opts Options) (*Result, error) {
 
 func parseVerdict(stdout string) Verdict {
 	// The gate prints either a standalone verdict line ("PASS" / "WARN" /
-	// "BLOCK") or a prefixed line like "BLOCK: Duplicate of SP-170 (tweet
+	// "BLOCK") or a prefixed line like "BLOCK: Duplicate of GP-170 (tweet
 	// ID match): ...". Some older revisions use "[BLOCK]" brackets. Scan
 	// ALL lines from top to bottom and return the first match, since the
 	// BLOCK reason is typically printed on a single line followed by
@@ -123,7 +123,7 @@ func parseMatches(stdout string) []string {
 		}
 	}
 	// Fallback: the gate often prints the match inline on the verdict line
-	// itself ("BLOCK: Duplicate of CP-52 (topic similarity: 0.420): ...")
+	// itself ("BLOCK: Duplicate of MP-52 (topic similarity: 0.420): ...")
 	// rather than as a bulleted list. Without this, a real BLOCK reports
 	// "0 match(es)", which reads like a false gate error. Recover the
 	// reason from the verdict line when no bullets were found.

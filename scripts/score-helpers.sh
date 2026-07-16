@@ -301,7 +301,7 @@ validate_judge_score_json() {
       ;;
     vibe|vibe-opus-scorer)
       _validate_dim persona    || return 1
-      _validate_dim clawdNote  || return 1
+      _validate_dim moguNote  || return 1
       _validate_dim vibe       || return 1
       # v9+: clarity left Vibe for Fresh Eyes — no longer required here.
       if [ "$version" -lt 9 ]; then

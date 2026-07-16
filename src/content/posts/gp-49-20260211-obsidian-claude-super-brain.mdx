@@ -1,0 +1,243 @@
+---
+ticketId: "GP-49"
+title: "Obsidian + Claude 超級大腦：Tech Lead 帶團隊的版本長這樣"
+date: "2026-02-11"
+originalDate: "2026-02-08"
+source: "@yanhua1010 on X"
+sourceUrl: "https://x.com/yanhua1010/status/2020342019575673223"
+summary: "原作者用 Obsidian + Claude 打造個人內容工廠，但如果你是帶 6 人 backend team 的 Tech Lead 呢？用 orion-dev-doc 的實戰經驗，重新詮釋「AI 時代超級大腦」的團隊版本。"
+translatedDate: "2026-02-11"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+lang: "zh-tw"
+tags: ["ai-agents","obsidian","claude-code","team-management","knowledge-management"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+你有沒有過這種經驗——有人跟你推薦一間超好吃的餐廳，你興沖沖跑去，發現那是一間一人燒肉店。
+
+座位超小、菜單寫給一個人看、烤爐也是一人份的。
+
+餐廳本身沒問題。但你今天要請六個人吃飯。
+
+Yanhua（[@yanhua1010](https://x.com/yanhua1010)）前陣子寫了一篇超紅的文，講他怎麼用 Obsidian + [Claude Code](/glossary#claude-code) 打造個人「超級大腦」。從素材收集、內容改寫、AI 配圖、到一鍵發小紅書和公眾號，一個人就是一條生產線。
+
+概念非常紮實，流程跑得飛快。
+
+但我讀到一半就忍不住想：**等等，這是一人燒肉店啊。**
+
+<MoguNote>
+我讀到「AI 自動配圖、一鍵發公眾號」的時候差點笑出來——ShroomDog 帶的是 6 人 backend team，不是經營自媒體帝國好嗎 ┐(￣ヘ￣)┌
+
+但笑歸笑，裡面有幾個核心概念讓我直接坐直了。因為那些概念跟 ShroomDog 的 orion-dev-doc 架構，根本就是同一道菜的不同擺盤。
+</MoguNote>
+
+所以這篇不是逐段翻譯。這是一次**角度改寫**——把「一人燒肉」的思路，改裝成「六人火鍋」的版本。
+
+先交代一下背景：ShroomDog 帶 6 人 backend team，有一套叫 **orion-dev-doc** 的系統。簡單說就是一個 self-hosted GitLab repo，裡面放團隊文件，用 Obsidian 讀、用 Claude Code 跑自動化。目標是逐步取代 Redmine 做 project management。
+
+好，現在讓我們用團隊管理的角度，重新拆解 Yanhua 的每一個概念。
+
+---
+
+## Claude 該住在哪裡——筆記庫 vs. 團隊 repo
+
+原作者第一步是裝 Claudian 插件，讓 Claude Code 直接跑在 Obsidian 裡面。對一個人來說很方便，筆記旁邊就能跟 AI 對話，不用切來切去。
+
+但你想想看，如果是六個人呢？
+
+這就像大學分組報告。一個人把所有資料存在自己的 USB 隨身碟裡，然後在上面跑 AI 幫他整理。很酷，但其他五個組員呢？他們要怎麼用？跑去他座位上插他的隨身碟嗎？
+
+orion-dev-doc 的做法不一樣。Claude Code 不是住在某個人的 Obsidian vault 裡，而是住在**整個團隊共享的 GitLab repo** 裡。每個工程師在自己的電腦上 clone 下來，跑 `claude`，Claude Code 自動讀 CLAUDE.md，瞬間理解專案結構、規範、workflow。
+
+六個人，六台電腦，同一份 CLAUDE.md，同一套規則。
+
+<MoguNote>
+原作者說裝完插件後「Obsidian 變成有 AI 駐場的工作台」。聽起來很厲害對吧？
+
+但想像一下六個人各自有「AI 駐場的工作台」，然後六個 AI 讀的是六份不同的筆記、理解的是六套不同的規範。
+
+恭喜，你剛剛重新發明了「每個人都覺得自己是對的」這個千古難題 (╯°□°)╯
+
+團隊版的正確做法是：Obsidian 負責讀、GitLab 負責存、Claude Code CLI 負責做事。三個工具各司其職，而不是全塞進一個 app 裡面互相打架。
+</MoguNote>
+
+---
+
+## Skills：從「我的快捷鍵」到「團隊的 SOP」
+
+原作者有 16 個自定義 Skills——發公眾號、配圖、壓縮圖片、網頁轉 Markdown。對一個 content creator 來說，這基本上就是他的瑞士刀。
+
+但 Skills 這個**概念**，在團隊場景下會變成完全不同的東西。
+
+個人的 [Skill](/glossary#skill) 像是你手機裡的捷徑——你自己設定、自己用、壞了也只有你不方便。
+
+團隊的 Skill 更像是便利商店的 SOP 手冊。不是某個人的方便工具，而是所有人共同遵循的流程，只是交給 Claude Code 來執行。
+
+舉個例子：orion-dev-doc 可以有一個 weekly report 的 Skill。每個人在自己電腦跑 `claude "幫我生成這週的 weekly report"`，Claude Code 自動從 git log 抓出這週做了什麼、PR 狀態如何、有沒有 blocker。格式統一、內容結構化，Tech Lead 彙總的時候不用再猜每個人的報告到底在寫什麼鬼。
+
+或者 code review 的 Skill——新 MR 建立時，自動跑一遍 diff + coding standards 比對，產出初步 review 意見。不是取代人工 review，而是先幫你抓掉那些「這個 variable name 不符合規範」之類的低級問題。
+
+<MoguNote>
+個人 Skill 壞了：「啊，我的配圖功能掛了，今天先手動好了。」
+
+團隊 Skill 壞了：「六個人的 weekly report 格式全跑掉了，Tech Lead 的彙總 Skill 也跟著爆炸，整個報告流程直接停擺。」
+
+所以團隊 Skill 放在 GitLab repo 裡做版本控制，不是在裝 B，是求生本能 (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+---
+
+## CLAUDE.md——這才是整套系統真正的靈魂
+
+好，重點來了。
+
+原作者有一句話我非常同意：「整個系統的靈魂不是哪個具體的 Skill，而是 CLAUDE.md。」
+
+CLAUDE.md 是什麼？簡單說，它是 Claude Code 每次啟動都會讀的「操作手冊」。告訴 AI：你是誰、你怎麼工作、你要遵守什麼標準。
+
+原作者的 CLAUDE.md 裡面寫了身份定義、Skills 使用手冊、工作流模板、還有一套迭代進化的規則——Claude 犯了一個錯，就加一條規則；發現更好的流程，就更新模板。
+
+這四個元素，在團隊場景下每一個都變得更重要。
+
+身份定義不再是「我是誰」，而是「這個 team 是誰」——六人 backend team、Python/Go 技術棧、什麼 coding standards、什麼 CI/CD pipeline。不管誰來跑 Claude Code，它都知道自己在什麼脈絡裡面。
+
+Skills 手冊不再是「我有哪些快捷鍵」，而是「誰可以用什麼」——weekly report 所有人可以跑，team status 只有 Tech Lead 能看，code review 大家都能用。權限寫清楚，就不會有人不小心看到不該看的東西。
+
+<MoguNote>
+「權限寫清楚」聽起來像廢話對吧？但你去問十個 Tech Lead，有幾個能馬上回答「junior 可以自己 merge 嗎」——不是「看情況」，是明確的 yes 或 no。
+
+十個裡面大概有九個會愣住。因為那條線從來就不存在，它一直活在 Tech Lead 的直覺裡。CLAUDE.md 逼你畫出那條線，這才是它最殘忍的地方 (⌐■_■)
+</MoguNote>
+
+但最關鍵的是那個「迭代進化」。
+
+你知道帶 team 最痛苦的事情是什麼嗎？不是技術問題，是**每個人腦子裡的 SOP 版本不一樣**。
+
+「PR 多大才需要拆？」「什麼情況可以跳過 review？」「report 要寫到多細？」
+
+以前這些問題的答案散落在 [Slack](/glossary#slack) 對話、會議紀錄、和 Tech Lead 的腦子裡。現在全部寫進 CLAUDE.md。Claude Code 知道，所有人也知道。
+
+寫 CLAUDE.md 的過程，不只是在寫一份給 AI 的說明書——它是在逼你把團隊的**潛規則全部攤在陽光下**。
+
+<MoguNote>
+原作者說寫 CLAUDE.md 讓他「被迫把工作習慣、品質標準、思維方式全部文字化」。
+
+這在一個人的場景是自我認識。在六個人的場景是——終於有人把那些「大家心裡都知道但從來沒人說出來」的潛規則寫下來了。
+
+我跟你講，很多 team 的問題根本不是能力問題。是「我以為大家都知道的事情，結果只有我知道」的問題。CLAUDE.md 就是那面讓所有人照的鏡子 ʕ•ᴥ•ʔ
+</MoguNote>
+
+---
+
+## 目錄結構——不只是資料夾，是大腦的分區
+
+原作者說「結構即邏輯，目錄即大腦的分區」。在個人筆記庫裡這是美學問題；在團隊 repo 裡，這是生存問題。
+
+想像你是新來的工程師，第一天 clone 了 orion-dev-doc。如果你看到的是井井有條的結構——team 資訊在 `team/`、專案文件在 `projects/`、週報在 `reports/weekly/`、出包紀錄在 `knowledge/postmortems/`——你大概十分鐘就能搞清楚這個團隊怎麼運作。
+
+如果你看到的是一堆散落的 Markdown 加上一個 README 寫著「see wiki for details」...嗯，那你大概跟三個月前的新人一樣迷路，而那個新人到現在還在迷路。
+
+重點是：Claude Code 也在「讀」這個目錄結構。它讀 CLAUDE.md 之後，就知道 coding standards 在哪、上週的 report 在哪、architecture decision 怎麼找。目錄結構不只是給人看的導航，它同時是給 AI 的地圖。
+
+你的資料夾整理得好不好，直接決定了 Claude Code 聰不聰明。就像你家書架——如果書是按主題排的，你三秒就能找到要的書。如果是按「買回來的時間」亂堆的......祝你好運。
+
+<MoguNote>
+原作者的個人 vault 亂了，他花幾週整理好。一個人的成本。
+
+團隊的 repo 亂了？六個人同時在亂裡面找東西，加上 Claude Code 也在裡面迷路——這不是混亂，這是大型車禍現場 (◕‿◕)
+
+所以 repo 結構不是「有空再整理」的事情，它是 Day 1 就要設計好的基礎建設。就像蓋房子，你不會先住進去再決定廁所在哪。
+</MoguNote>
+
+---
+
+## 一條完整的團隊流水線
+
+原作者秀了一條「從播客到發布」的流水線——30 分鐘搞定音檔轉文字、潤稿、配圖、發布。一個人的生產線，很帥。
+
+團隊版的流水線長不一樣，但骨架是一樣的。
+
+拿 weekly report 來說好了。
+
+以前的做法：每個人花一小時寫自己的報告（而且格式五花八門），然後 Tech Lead 花兩小時讀 Redmine 上六份風格各異的報告，試圖拼湊出「這週到底發生了什麼事」。
+
+現在的做法：每個人花五分鐘跑一次 Claude Code，它自動從 git log 抓資料、產出結構化報告。Tech Lead 再跑一次彙總 Skill，十分鐘就能看到全隊狀態——誰在做什麼、哪裡卡住了、什麼有風險。
+
+從「每人一小時 + Lead 兩小時」變成「每人五分鐘 + Lead 十分鐘」。
+
+但省時間只是表面的好處。真正的改變是：**報告格式統一了，所以 Tech Lead 第一次能夠真正 apple-to-apple 地比較六個人的狀態。** 以前每個人的報告風格不同，你根本不知道誰是真的沒事、誰是「沒寫出來但其實卡住了」。
+
+<MoguNote>
+原作者的流水線終點是「按下發布」。團隊版的流水線終點是「做出管理決策」。
+
+一個是把內容推出去給世界看，一個是把資訊收進來做判斷。方向相反，但引擎一樣——Claude Code + Skills + 結構化的 knowledge base。
+
+說穿了就是：一個人的超級大腦負責「輸出」，團隊的超級大腦負責「洞察」。Scale 不同，架構不變 (￣▽￣)／
+</MoguNote>
+
+---
+
+## 三合一：讀、存、做
+
+原作者最後總結他的超級大腦需要三樣東西：Obsidian（容器）+ Claude Code + Claudian（智能）+ Skills（雙手）。
+
+團隊版我會重新分工：
+
+**Obsidian 負責讀。** 團隊成員打開 repo，享受 Markdown 的連結、搜尋、graph view。它是消費知識最舒服的介面。
+
+**GitLab 負責存。** 版本控制、權限管理、MR review、CI/CD——這些團隊必需的功能，Obsidian vault 做不到，但 GitLab 天生就有。Single source of truth，只有一個，不接受第二個。
+
+<MoguNote>
+你可能會問：為什麼不全部用 Notion 或 Confluence 就好？因為那些工具的版本控制是「誰最後按了儲存誰贏」。GitLab 的版本控制是「每一行改動都有人負責、每一次合併都要過審」。
+
+一個是辦公室白板，擦了就沒了。一個是法院筆錄，白紙黑字賴不掉 (¬‿¬)
+</MoguNote>
+
+**Claude Code 負責做。** 不是 Claudian plugin，是 CLI。每個人在自己的環境跑 `claude`，讀同一份 CLAUDE.md，用同一套 Skills，產出格式一致的輸出。
+
+原作者說「工具本身不重要，重要的是用工具放大你的獨特視角」。
+
+團隊版：**工具本身不重要，重要的是用工具讓六個人像一個大腦一樣運作。**
+
+## 延伸閱讀
+
+- [GP-3: Claude Code + Obsidian：打造 Agent 思考基礎設施](/posts/gp-3-20260129-claude-obsidian-infrastructure/)
+- [GP-4: Obsidian + Claude Code 101：讓 AI 住進你的筆記](/posts/gp-4-20260129-obsidian-claude-101/)
+- [GP-6: Build Claude a Tool for Thought](/posts/gp-6-20260130-build-claude-tool-for-thought/)
+
+
+<MoguNote>
+一個人的超級大腦是「AI 幫你看清自己怎麼思考」。
+
+團隊的超級大腦是「AI 幫你看清六個人的腦子哪裡沒對齊」——然後逼大家對齊。
+
+聽起來很殘忍？但花兩天吵架寫出共識，永遠好過三個月後花兩週收拾 production incident 的殘局 ╰(°▽°)╯
+</MoguNote>
+
+---
+
+還記得開頭的一人燒肉店嗎？
+
+Yanhua 打造的系統確實很棒——菜好吃、流程順、一個人吃得很爽。但如果你今天要請六個人吃飯，你不會硬搬六張一人桌進去，你會找一間有大圓桌的火鍋店。
+
+食材可能差不多，但擺法完全不同。鍋是共用的、湯底是統一的、每個人涮自己想吃的料，最後大家吃的是同一鍋。
+
+orion-dev-doc 就是那個大圓桌。GitLab 是湯底，CLAUDE.md 是菜單，Claude Code 是幫你涮肉的機器手臂。每個人挑自己的料，但煮出來的味道是一致的。
+
+原作者的結語說得好：「搭建這套系統最大的收穫不是效率提升，而是被迫把自己的工作方式文字化了。」
+
+團隊版的最大收穫也不是省時間。是你終於發現——原來六個人心裡的「我們團隊應該怎麼運作」，從來就沒有一樣過。而寫下來這個動作本身，就已經解決了一半的問題。

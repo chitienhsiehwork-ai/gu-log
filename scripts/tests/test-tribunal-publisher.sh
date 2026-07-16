@@ -21,10 +21,10 @@ git -C "$seed" config user.email test@example.invalid
 git -C "$seed" config user.name "Tribunal Publisher Test"
 mkdir -p "$seed/src/content/posts"
 
-cat > "$seed/src/content/posts/sp-1-test.mdx" <<'POST'
+cat > "$seed/src/content/posts/gp-1-test.mdx" <<'POST'
 ---
-ticketId: SP-1
-title: "SP1"
+ticketId: GP-1
+title: "GP1"
 originalDate: 2026-05-20
 translatedDate: 2026-05-21
 source: "X"
@@ -36,10 +36,10 @@ scores:
 ---
 This is a sufficiently long body for publisher validation. It explains one coherent idea, adds supporting detail, and stays comfortably above the minimum content length that the deterministic content validator requires for a real publishable artifact in gu-log.
 POST
-cat > "$seed/src/content/posts/en-sp-1-test.mdx" <<'POST'
+cat > "$seed/src/content/posts/en-gp-1-test.mdx" <<'POST'
 ---
-ticketId: SP-1
-title: "SP1 EN"
+ticketId: GP-1
+title: "GP1 EN"
 originalDate: 2026-05-20
 translatedDate: 2026-05-21
 source: "X"
@@ -51,10 +51,10 @@ scores:
 ---
 This is a sufficiently long English body for publisher validation. It mirrors the publishable structure expected by the content validator and avoids failing on missing metadata or minimum-length requirements during the clean batch materialization step.
 POST
-cat > "$seed/src/content/posts/sp-2-test.mdx" <<'POST'
+cat > "$seed/src/content/posts/gp-2-test.mdx" <<'POST'
 ---
-ticketId: SP-2
-title: "SP2"
+ticketId: GP-2
+title: "GP2"
 originalDate: 2026-05-20
 translatedDate: 2026-05-21
 source: "X"
@@ -66,10 +66,10 @@ scores:
 ---
 This is another sufficiently long body for publisher validation. It exists so the test can later turn it into an invalid candidate and verify that validation-blocked events isolate only the broken article instead of stopping the clean publisher batch.
 POST
-cat > "$seed/src/content/posts/en-sp-2-test.mdx" <<'POST'
+cat > "$seed/src/content/posts/en-gp-2-test.mdx" <<'POST'
 ---
-ticketId: SP-2
-title: "SP2 EN"
+ticketId: GP-2
+title: "GP2 EN"
 originalDate: 2026-05-20
 translatedDate: 2026-05-21
 source: "X"
@@ -118,8 +118,8 @@ grep -q 'publishable PASS: 1' <<<"$out" || fail "dry-run should report one publi
 grep -q 'FAILED metadata: 1' <<<"$out" || fail "dry-run should report one FAILED article"
 pass "dry-run reports publishable and failed counts"
 
-printf 'Runtime rewritten one.\n' >> "$runtime/src/content/posts/sp-1-test.mdx"
-printf 'Runtime rewritten one en.\n' >> "$runtime/src/content/posts/en-sp-1-test.mdx"
+printf 'Runtime rewritten one.\n' >> "$runtime/src/content/posts/gp-1-test.mdx"
+printf 'Runtime rewritten one en.\n' >> "$runtime/src/content/posts/en-gp-1-test.mdx"
 
 batch_dir="$TMP/batch-worktree"
 apply_out="$(cd "$runtime" && TRIBUNAL_PUBLISHER_DISABLE_GH_SCAN=1 TRIBUNAL_PUBLISHER_SKIP_BUILD=1 TRIBUNAL_PUBLISHER_VALIDATE_HOOK="$runtime/scripts/test-validate-hook.sh" bash scripts/tribunal-publisher.sh --apply --max 10 --branch publisher/test-batch --worktree "$batch_dir")"
@@ -128,8 +128,8 @@ apply_out="$(cd "$runtime" && TRIBUNAL_PUBLISHER_DISABLE_GH_SCAN=1 TRIBUNAL_PUBL
 grep -q 'selected sp-1-test.mdx' <<<"$apply_out" || fail "apply should select PASS article"
 grep -q 'publishState' "$runtime/.score-loop/state/tribunal-publisher.json" || fail "publisher state file missing"
 [ "$(jq -r '.entries["sp-1-test.mdx"].publishState' "$runtime/.score-loop/state/tribunal-publisher.json")" = "batch_selected" ] || fail "PASS article should move to batch_selected"
-grep -q 'Runtime rewritten one.' "$batch_dir/src/content/posts/sp-1-test.mdx" || fail "publisher worktree should receive runtime artifact"
-grep -q 'Runtime rewritten one en.' "$batch_dir/src/content/posts/en-sp-1-test.mdx" || fail "publisher worktree should receive runtime EN artifact"
+grep -q 'Runtime rewritten one.' "$batch_dir/src/content/posts/gp-1-test.mdx" || fail "publisher worktree should receive runtime artifact"
+grep -q 'Runtime rewritten one en.' "$batch_dir/src/content/posts/en-gp-1-test.mdx" || fail "publisher worktree should receive runtime EN artifact"
 pass "apply materializes PASS artifact into clean origin/main-based worktree"
 
 pr_list_json="$TMP/pr-list.json"
@@ -148,7 +148,7 @@ JSON
 cat > "$pr_files_dir/77.json" <<'JSON'
 {
   "files": [
-    { "path": "src/content/posts/sp-1-test.mdx" }
+    { "path": "src/content/posts/gp-1-test.mdx" }
   ]
 }
 JSON
@@ -165,9 +165,9 @@ grep -q 'sp-2-test.mdx' <<<"$out_conflict" || fail "clean article should remain 
 grep -q 'conflict' "$runtime/.score-loop/state/tribunal-triage-events.json" || fail "conflict event should be recorded"
 pass "conflict triage blocks only overlapping article and leaves clean article publishable"
 
-cat > "$runtime/src/content/posts/sp-2-test.mdx" <<'POST'
+cat > "$runtime/src/content/posts/gp-2-test.mdx" <<'POST'
 ---
-ticketId: SP-2
+ticketId: GP-2
 translatedDate: 2026-05-21
 ---
 too short

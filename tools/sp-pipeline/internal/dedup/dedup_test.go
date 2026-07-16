@@ -16,9 +16,9 @@ func TestParseVerdict(t *testing.T) {
 		{"PASS prefixed", "PASS: looks fine\n", VerdictPass},
 		{"PASS bracketed", "[PASS]\n", VerdictPass},
 		{"plain WARN", "WARN\n", VerdictWarn},
-		{"WARN with score", "WARN: similar to SP-12 (score: 0.24)\n", VerdictWarn},
+		{"WARN with score", "WARN: similar to GP-12 (score: 0.24)\n", VerdictWarn},
 		{"plain BLOCK", "BLOCK\n", VerdictBlock},
-		{"BLOCK with reason", "BLOCK: Duplicate of SP-170 (tweet ID match): foo\n", VerdictBlock},
+		{"BLOCK with reason", "BLOCK: Duplicate of GP-170 (tweet ID match): foo\n", VerdictBlock},
 		{"empty", "", ""},
 		{"junk", "hello world\n", ""},
 		{"first match wins", "BLOCK: x\nPASS\n", VerdictBlock},
@@ -56,9 +56,9 @@ func TestParseMatches(t *testing.T) {
 // parseMatches must still recover the reason so the caller does not report
 // a misleading "0 match(es)".
 func TestParseMatchesInlineBlockFallback(t *testing.T) {
-	in := "BLOCK: Duplicate of CP-52 (topic similarity: 0.420): Some Title"
+	in := "BLOCK: Duplicate of MP-52 (topic similarity: 0.420): Some Title"
 	got := parseMatches(in)
-	want := "Duplicate of CP-52 (topic similarity: 0.420): Some Title"
+	want := "Duplicate of MP-52 (topic similarity: 0.420): Some Title"
 	if len(got) != 1 || got[0] != want {
 		t.Fatalf("parseMatches inline = %v, want [%q]", got, want)
 	}
