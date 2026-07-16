@@ -70,6 +70,7 @@ Feature branch 名稱常由沒 gu-log 上下文的 LLM 自動生成，只能當 
 | **用 openspec 做事（跑 `/opsx:propose`、動到有 spec delta 的 change）** | [`.agents/openspec-sdlc.md`](.agents/openspec-sdlc.md)（端到端流程 SSOT：九階段 / 三角色 / 人類檢查點 / archive gate）— MUST 動手前先讀 |
 | **OpenSpec spec / change（讀既有 spec、change 結構）** | [`openspec/`](openspec/) |
 | **agent 跨領域行為規則（SSOT 紀律、verbosity-drift、順手修 friction 全文）** | [`docs/agent-discipline.md`](docs/agent-discipline.md) |
+| **動手建機制前先審「該不該做」（對抗式 reviewer subagent、何時跑、不做就記成決策）** | [`docs/value-review-runbook.md`](docs/value-review-runbook.md) |
 | **ShroomDog 修稿回饋 corpus** | [`docs/shroomdog-editorial-feedback.md`](docs/shroomdog-editorial-feedback.md) |
 
 ### 🔗 User 丟連結 = 要寫 SP（預設走 pipeline，不要手動寫）
