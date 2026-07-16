@@ -8,9 +8,9 @@
 
 - [x] 1.1 產生 active tree 的 legacy-token 盤點，依 contract、事實名詞、歷史與部署座標分類。
 - [x] 1.2 產生並 commit 所有 SP→GP、CP→MP 文章的 tracked old→new ticketId／檔名／slug manifest（含語言與配對）；驗證一對一、無碰撞、翻譯配對完整。
-- [ ] 1.3 列出衍生資料、跨檔引用、佇列、pipeline、路由、資產、CSS、測試 fixture 與 OpenSpec 範例消費端。
-- [ ] 1.4 建立 deterministic 遺留項檢查器與窄化允許清單；先用現況失敗測試證明會抓到 legacy contract。
-- [ ] 1.5 遺留項測試資料 SHALL 包含不在字首的舊 ID／slug token（例如 `SP63`、`sp57`），避免檢查器只會抓 `sp-`／`cp-` 開頭。
+- [x] 1.3 列出衍生資料、跨檔引用、佇列、pipeline、路由、資產、CSS、測試 fixture 與 OpenSpec 範例消費端。
+- [x] 1.4 建立 deterministic 遺留項檢查器與窄化允許清單；先用現況失敗測試證明會抓到 legacy contract。
+- [x] 1.5 遺留項測試資料 SHALL 包含不在字首的舊 ID／slug token（例如 `SP63`、`sp57`），避免檢查器只會抓 `sp-`／`cp-` 開頭。
 
 ## 2. 核心 additive-read 遷移（只允許暫存在 feature branch）
 
