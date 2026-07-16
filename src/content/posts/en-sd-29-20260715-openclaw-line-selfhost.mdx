@@ -1,0 +1,187 @@
+---
+ticketId: "SD-29"
+title: "Self-Hosting Your Own Claude Tag on LINE"
+originalDate: "2026-07-15"
+translatedDate: "2026-07-15"
+translatedBy:
+  model: "Opus 4.5"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Translator"
+      model: "Opus 4.5"
+      harness: "Claude Code"
+source: "ShroomDog Lab"
+sourceUrl: "https://gu-log.vercel.app/"
+lang: "en"
+summary: "Claude tag only officially supports Slack. Want an AI assistant that comes when you call on LINE? Build it yourself. Use OpenClaw to spin up a LINE bot on a VPS — messages come in from LINE's official cloud, the gateway catches them, and the agent replies. This post covers the replicable skeleton, three security must-haves, and why freedom always comes with responsibility."
+tags: ["shroomdog-original", "openclaw", "line", "self-hosting", "agent"]
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 8
+    date: "2026-07-15"
+    model: "claude-opus-4-8"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 8
+    score: 8
+    date: "2026-07-16"
+    model: "claude-opus-4-8"
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-07-16"
+    model: "claude-opus-4-5"
+  librarian:
+    glossary: 7
+    crossRef: 5
+    sourceAlign: 8
+    attribution: 8
+    score: 7
+    date: "2026-07-16"
+    model: "claude-opus-4-8"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+
+After Claude tag launched, LINE users could only watch with envy as others @-mentioned their AI assistants on [Slack](/en/glossary#slack). Anthropic's official answer on LINE support? "No plans."
+
+So build one yourself.
+
+[OpenClaw](/en/glossary#openclaw) is an open-source personal AI assistant gateway with official LINE channel support. Once it's up, the effect is pretty similar to Claude tag — a friend sends a message on LINE, and the AI replies within seconds. The difference: Claude tag means Anthropic handles everything for you. Self-hosting means all the security is on your shoulders.
+
+This post covers the replicable skeleton and the "why," not a screenshot-by-screenshot tutorial. If you want to follow along, you'll know the direction by the end — for the details, check OpenClaw's official docs.
+
+<ClawdNote>
+This is a four-part series where ShroomDog documents moving an AI assistant onto various platforms. Part one: Claude tag basics. Part two (this one): self-hosting on LINE. Part three: the security horror show. Part four: Teams on a corporate intranet. From maximum freedom to maximum lockdown, one step at a time.
+</ClawdNote>
+
+---
+
+## How Messages Reach the VPS
+
+First, let's clear up a common misconception: when a friend sends a message to a LINE bot, the message doesn't go directly from their phone to your VPS.
+
+The actual path looks like this: friend types → message goes to LINE's official cloud first → LINE's server proactively sends a POST request, hitting the registered webhook URL (`https://your-host/line/webhook`). The VPS just sits there waiting for LINE to knock on the door — it doesn't actively fetch messages.
+
+This means the VPS needs a **publicly reachable HTTPS address**. LINE has to be able to find your server on the public internet. Hiding behind NAT, no static IP, no valid HTTPS certificate — LINE can't reach you at all.
+
+<MoguNote>
+Put another way: self-hosting a LINE bot isn't "replacing LINE." It's hanging a bot account on LINE's official network. LINE is still LINE — you're just plugging into its ecosystem and telling the official servers "when someone messages this bot account, please forward it to this URL."
+</MoguNote>
+
+---
+
+## OpenClaw's Architecture: Gateway + [Plugin](/en/glossary#plugin)
+
+OpenClaw's core is a daemon called gateway that runs on the VPS as the switchboard. Want to connect a platform? Install that platform's channel plugin — `@openclaw/line` for LINE, `@openclaw/discord` for Discord, and so on.
+
+Each plugin speaks that platform's dialect. LINE has Flex messages, templates, quick replies; Discord has embeds and emoji reactions. The plugins wrap these differences so the gateway only has to handle routing.
+
+<ClawdNote>
+This design is called plugin architecture. In plain terms: the core only handles dispatch, and the dirty work gets outsourced to plugins. The upside is the gateway doesn't need major changes just to support a new platform. The downside is plugin quality varies — officially maintained ones are usually fine, community contributions are hit or miss. OpenClaw's LINE plugin is officially supported, so that's one less thing to worry about. (◕‿◕)
+</ClawdNote>
+
+Some LINE limitations to know upfront:
+
+- **Markdown gets stripped**: LINE doesn't parse Markdown — asterisks, hashes, backticks all become plain text. Formatting requires Flex messages, which is a whole other learning curve.
+- **5,000-character message limit**: Exceed it and the message gets split into chunks, breaking up the reading flow.
+- **10MB default for incoming media**: Send larger files and LINE blocks them.
+
+---
+
+## The Setup Skeleton
+
+For the details, see the official docs. Here's just the skeleton:
+
+1. **Create a Messaging API channel in the LINE Developers console**: Get a channel access token and channel secret. These two things are your credentials for talking to LINE.
+2. **Run the gateway on the VPS and install the LINE plugin**: OpenClaw has an official Docker image, or you can install via npm.
+3. **Fill in the webhook URL back in the LINE console**: Tell LINE "when someone messages this bot, hit this URL."
+4. **Pairing**: OpenClaw doesn't respond to just anyone by default — pairing comes first. This is by design, not a bug.
+
+<ShroomDogNote>
+The webhook URL in step three must be public HTTPS — localhost won't work. For local testing, ngrok or cloudflared can serve as a temporary tunnel; for production, you'll need your own domain and certificate.
+</ShroomDogNote>
+
+---
+
+## Three Security Must-Haves
+
+These three aren't optional. They're required. Skip any one and you've basically left the front door wide open.
+
+**Number One: Pairing by Default**
+
+OpenClaw's LINE channel responds to unknown messages with a pairing code by default, not immediate replies. This is the concrete implementation of "there's a guard in the lobby" — you want to talk to the bot, first prove you're someone the owner approved.
+
+<ClawdNote>
+A lot of people ask "why isn't the bot responding?" Nine times out of ten, they forgot to pair first. This isn't a bug. It's OpenClaw's first line of defense against "anyone can message and burn your API quota."
+</ClawdNote>
+
+**Number Two: HMAC Signature Verification**
+
+Every time LINE hits the webhook, it attaches a signature (`x-line-signature` header) — an HMAC computed from the raw body using the channel secret. OpenClaw's LINE plugin verifies this signature; if it passes, the message is accepted. Otherwise, straight to 403.
+
+<MoguNote>
+HMAC stands for Hash-based Message Authentication Code. In simple terms: "use a secret key that only your server and LINE know to compute a fingerprint." Randos don't have the channel secret, can't compute the correct fingerprint, and get caught red-handed if they try to spoof LINE and inject fake messages.
+</MoguNote>
+
+**Number Three: Bind Gateway to localhost, Never 0.0.0.0**
+
+The gateway should hide behind a reverse proxy, binding only to `127.0.0.1`. Binding directly to `0.0.0.0` and exposing it to the whole internet is running naked — anyone who knows the IP can bypass the reverse proxy and poke the gateway directly.
+
+<ClawdNote>
+Why is this one so critical? The next post on the security horror show reveals 40,000 counterexamples. Memorize this rule now, and when you see that number, think back to whether you got it right.
+</ClawdNote>
+
+---
+
+## Reverse Proxy: One Sentence
+
+The value of a reverse proxy boils down to two words: **more secure**.
+
+The gateway hides on localhost; the public internet only sees one 443 door from the reverse proxy, with only `/line/webhook` allowed through. Bonus: automatic HTTPS certificate issuance and renewal gets handed off to the reverse proxy, so the gateway only speaks plain localhost HTTP internally.
+
+<MoguNote>
+The attacker's perspective goes something like this: scan the VPS, try to poke the gateway on port 18789, but that port is bound to localhost and won't even connect. Try 443 instead, but the reverse proxy only accepts `/line/webhook` — everything else returns 404. Force a request through anyway? HMAC signature verification kicks in, fake requests get a 403. "Boohoo, 18789 won't connect, 443 gives me a 403, and how the hell am I supposed to compute that signature, boohoo" — that's roughly the mood.
+</MoguNote>
+
+As for tools, [Mogu](/en/glossary#mogu) would pick Caddy, because the config is shortest and Let's Encrypt is handled automatically. But this is a one-time decision not worth a tutorial — once you understand reverse proxy concepts, swapping tools changes nothing.
+
+---
+
+## Don't Hardcode Credentials
+
+At this point, the inbound message path is open. But don't forget: the [agent](/en/glossary#agent) needs to hit the Anthropic API to reply, and how do you manage that API key?
+
+**Don't hardcode it in the config file.**
+
+The cleanest approach is to inject it at the egress boundary using an outbound proxy. When the gateway makes an outbound API call, the proxy intercepts it, stuffs the API key into the header, and forwards it. This way the gateway itself never holds the plaintext key — the key only lives at the proxy layer.
+
+<ClawdNote>
+This is essentially recreating Claude tag's [Agent Proxy](/en/glossary#agent-proxy) yourself. The "don't touch the API key, outbound calls automatically carry identity" that Claude tag handles for you? Self-hosting means building it yourself. Internalizing the message side (LINE inbound) doesn't mean you can ignore the model side (API outbound). Both are doors. Both need locks.
+</ClawdNote>
+
+---
+
+## Closing
+
+With all this set up, the effect is pretty similar to Claude tag — a friend @-mentions on LINE, and the AI replies within seconds.
+
+The difference is that Claude tag means Anthropic handles everything. Self-hosting means freedom comes with responsibility. Connect any platform you want, but binding to localhost, verifying signatures, and managing egress are all on you. Do it right and it's freedom. Do it wrong and you're running naked.
+
+The next post covers the security horror show: what happens when these "do it right" things aren't done right. The story of 40,000 naked servers will make these three must-haves very concrete.
+
+The post after that covers Teams for enterprise — that's a different kind of hell. The intranet isn't without doors; corporate IT has welded them shut. Want to run your own agent on the company network? Start by preparing for a fight with IT.

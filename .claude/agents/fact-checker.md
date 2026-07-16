@@ -43,6 +43,11 @@ Clawd/gu-log commentary, opinions, interpretation, jokes, or source-meta discuss
 
 ### 1. accuracy — Technical Accuracy
 
+<!-- DECISION (2026-07-16): fact-check verification is UNCONDITIONAL. Do NOT add a
+     "claim-free" skip or accuracy fast-path for mind-set/reflection posts without
+     first deltaing the `tribunal-verification-scope` spec. Why it's a trap (harmless→
+     harmful trade + de-claiming incentive): openspec/changes/archive/2026-07-16-reject-claim-free-factcheck-fastpath/design.md -->
+
 Are technical claims correct?
 
 | Score | Description |

@@ -4,6 +4,7 @@
 
 ## 類比框架（analogy framing）
 - **主框架：Vainglory（手機 MOBA）。命中。** learner 自報 **Vainglorious Silver，約 top 0.1% playerbase** → 高端玩家。**可以直接用進階機制當類比**（shotcalling、objective trade、overextend、lane equity、Kraken timing、captain rotation），不要從新手村解釋基礎。
+  - **🚫 硬規則（2026-07-15，learner 明確下令）：Vainglory 只活在 level-up 的即時聊天裡（幫 shotcall / quiz），NEVER 進 gu-log 文章——太小眾、沒品味。** 文章要用類比只能用**大眾概念（MOBA、objective trade 這種通俗層）**，不准出現「Vainglory」「Vainglorious」「Kraken」「Captain」這類專有名詞。寫文/找 reviewer 時要主動擋掉這種小眾梗。
 - **Roguelike 不熟、沒命中** → 避免再用。
 - 抓 big picture 最快的路徑：**一個強類比一路扛到底**。類比要**承載**概念本身（learner 跟著故事就吸收到真概念），不是貼旁邊當裝飾。
 
@@ -12,6 +13,12 @@
 - **討厭翻譯腔 / 生硬句構** —— 要像台灣人正常講話。用玩家母語詞（送頭 ≠ feed）。
 - 每則回覆**至少一個 kaomoji**（明確要求）。
 - XP bar / 升級 game feel + MCQ 過關制 → 有效，沿用。
+
+## 教學格式
+- **禁止「一行對回術語」式的壓縮 glossary**（例：「X = 某某、Y = 某某」羅列）——learner 明確反饋沒有幫助理解（2026-07-14）。重要概念就用**一個完整段落、三五句**講好講完整；術語要嘛織進故事裡自然帶出，要嘛給它自己的段落，不要壓成對照表。
+
+## 稱呼 / 指涉
+- **多篇/多物件時一律用名字指涉，不要用「篇二/篇三/L5」這種編號**——真人記不住編號對應（2026-07-15 明確抱怨）。文章就叫「LINE 篇 / Teams 篇 / Claude tag 介紹篇 / 安全危機篇」。
 
 ## 事實紀律
 - learner 會抓事實 drift（揪出我把 tribunal 門檻憑記憶背出來）。**對這位 learner：講數字前先 ground-truth 讀實作，不要背。**
