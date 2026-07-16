@@ -10,8 +10,12 @@ echo "Setting up git hooks..."
 
 # Ensure git uses this checkout's actual git-dir hooks directory. In linked
 # worktrees, `.git` is a file, so `.git/hooks` would point at a non-existent
-# path and silently disable the installed hooks.
-git config --local core.hooksPath "$GIT_HOOKS_DIR"
+# path and silently disable the installed hooks. `--local` writes the shared
+# common config, which lets the last worktree running this installer hijack
+# every sibling. Enable Git's per-worktree config and keep the hook path local
+# to this checkout instead.
+git config --local extensions.worktreeConfig true
+git config --worktree core.hooksPath "$GIT_HOOKS_DIR"
 mkdir -p "$GIT_HOOKS_DIR"
 echo "✓ Set core.hooksPath to $GIT_HOOKS_DIR"
 
