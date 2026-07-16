@@ -95,18 +95,35 @@ install -d -m 700 "$HOME/.config/systemd/user"
 cp scripts/tribunal-loop.service ~/.config/systemd/user/tribunal-loop.service
 systemctl --user daemon-reload
 
-# If tribunal code changed AND workers are running:
-#   option A (preferred, no token waste) — drain + restart
+# If tribunal code changed AND workers are running, drain + restart. Do not
+# combine this path with the force-terminate recovery below.
 touch .score-loop/control/stop-graceful
 # wait for service inactive (minutes → up to 60min if article is mid-stage)
 until [ "$(systemctl --user is-active tribunal-loop)" != "active" ]; do sleep 10; done
 systemctl --user start tribunal-loop   # supervisor auto-syncs worker worktrees at startup
-
-#   option B (if drain stalls) — kill workers, let supervisor exit
-pkill -TERM -f tribunal-all-claude.sh
-# supervisor exits on next iteration (top-of-loop stop check)
-systemctl --user start tribunal-loop
 DEPLOY
+```
+
+只有 graceful drain 明確卡住時，才由 operator **另跑**以下 recovery；它不會接在正常 deploy 後自動執行：
+
+```bash
+ssh "$TRIBUNAL_HOST" bash -s <<'RECOVER'
+set -euo pipefail
+deploy_env="$HOME/.config/gu-log/tribunal.env"
+if [ ! -r "$deploy_env" ]; then
+  echo "Missing $deploy_env; run the bootstrap block first" >&2
+  exit 78
+fi
+# shellcheck source=/dev/null
+. "$deploy_env"
+: "${GU_LOG_DIR:?Missing GU_LOG_DIR in $deploy_env}"
+cd "$GU_LOG_DIR"
+
+touch .score-loop/control/stop-graceful
+pkill -TERM -f '[t]ribunal-all-claude.sh' || true
+until [ "$(systemctl --user is-active tribunal-loop)" != "active" ]; do sleep 10; done
+systemctl --user start tribunal-loop
+RECOVER
 ```
 
 ## Worker worktree gotcha
