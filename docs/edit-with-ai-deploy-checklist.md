@@ -1,3 +1,5 @@
+<!-- md-zh-tw: ignore -->
+
 # Edit with AI Deploy Checklist
 
 最後更新：2026-03-08
@@ -8,7 +10,7 @@
 
 - Frontend: `gu-log` on Vercel
 - Production URL: `https://gu-log.vercel.app`
-- API backend: `gu-log-api` on VM `clawd@46.225.20.205`
+- API backend: `gu-log-api` on the operator-configured deployment host（實際 host mapping 只放 local machine note）
 - Public API URL: `https://api.shroomdog.dev`
 - Tunnel: `cloudflared-gu-log.service`
 - Backend service: `gu-log-api.service`

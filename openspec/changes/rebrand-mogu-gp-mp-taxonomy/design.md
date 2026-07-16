@@ -1,3 +1,5 @@
+<!-- md-zh-tw: ignore -->
+
 ## Context
 
 repo 已經出現 `MoguNote` 與 GP/MP 顯示名稱，但 canonical storage 仍是 Clawd/SP/CP。這種 display alias 讓畫面暫時好看，卻把 drift 往 schema、pipeline、URL、tests 與每篇新文章擴散。本設計選擇一次性 schema-and-content cutover，讓 public vocabulary 與 machine vocabulary 完全一致。
@@ -58,7 +60,7 @@ Residual inventory 分三類：
 
 1. **必改 contract**：persona、component、schema key、series、ticket、slug、tag、pipeline、route、asset、CSS、測試與 active docs。
 2. **保留 factual term**：`Claude` / `Claude Code` / `Anthropic` / `OpenClaw`、第三方名稱、來源原文與精確引文。
-3. **外部 deployment coordinate**：legacy `clawd-vm` SSH alias、Unix user、`/home/clawd`、`~/clawd`。它們是外部系統目前的實際地址，不是 public brand。Machine-specific mapping 留在 local machine note；tracked scripts / docs 應優先改用 `$HOME`、`$GU_LOG_DIR`、`tribunal VM` 等中性表達。只有無法在本 change 安全移除的 exact coordinate 才可逐條 allowlist。
+3. **外部 deployment coordinate**：legacy SSH alias、Unix user、host-specific home path。它們是外部系統目前的實際地址，不是 public brand。Machine-specific mapping 留在 local machine note；tracked scripts / docs 應使用 `$TRIBUNAL_HOST`、`$GU_LOG_DIR`、`$HOME`、`Tribunal VM` 等中性表達。只有無法在本 change 安全移除的 exact coordinate 才可逐條 allowlist。
 
 `sources/**` 與 archived OpenSpec decision records 是 immutable history trees，可由中央 scanner policy 具名排除；verbatim editorial feedback 可保留引文，但 active lesson / instruction 仍須使用 canonical vocabulary。Active code / docs / posts 的例外必須以 exact path + exact token + reason 集中記錄，不能靠 blanket path exception 躲過 gate。Scanner 不掃 bare `SP` / `CP` 子字串，只掃 ticket、slug、route、tag、label、component、schema key、command 等語意明確 pattern。
 

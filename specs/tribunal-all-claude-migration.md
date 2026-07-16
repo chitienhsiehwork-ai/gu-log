@@ -89,7 +89,7 @@ Stage 4: Vibe Scorer (Opus) ↔ Writer (Opus)
 ### F. Fix Reviewer-identified gaps
 - Update `scripts/score-helpers.sh` `validate_judge_score_json()`: add cases for `librarian`, `fact-checker`, `fresh-eyes`, `vibe-opus-scorer` judge names with their respective JSON schemas
 - Update rate-limit backoff defaults to include haiku/sonnet judge names
-- VM gu-log repo path is `/home/clawd/clawd/projects/gu-log/` (NOT `~/gu-log/`)
+- VM gu-log repo path is supplied through `GU_LOG_DIR`; tracked specs SHALL NOT assume a particular account home or checkout layout.
 
 ### G. Frontmatter score format
 - Each judge writes its own block in frontmatter (4 blocks total)

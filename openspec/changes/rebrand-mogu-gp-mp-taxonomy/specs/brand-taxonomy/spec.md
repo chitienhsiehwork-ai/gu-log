@@ -1,3 +1,5 @@
+<!-- md-zh-tw: ignore -->
+
 ## ADDED Requirements
 
 ### Requirement: Public and machine taxonomy SHALL share one canonical vocabulary
@@ -80,7 +82,7 @@ Existing SP and CP article numbers SHALL map one-to-one to the same numeric GP a
 
 ### Requirement: Factual names and deployment coordinates SHALL not be corrupted by branding migration
 
-The migration SHALL preserve accurate references to third-party products and entities, including `Claude`, `Claude Code`, `Anthropic` and `OpenClaw`, and SHALL preserve verbatim source quotations and archived decision evidence. External hostnames, SSH aliases, Unix users and filesystem paths that still contain `clawd` MAY remain only when they are actual deployment coordinates rather than persona branding.
+The migration SHALL preserve accurate references to third-party products and entities, including `Claude`, `Claude Code`, `Anthropic` and `OpenClaw`, and SHALL preserve verbatim source quotations and archived decision evidence. External hostnames, SSH aliases, Unix users and filesystem paths that still contain retired naming MAY remain only when they are actual deployment coordinates rather than persona branding.
 
 Immutable history trees such as `sources/**` and archived OpenSpec decision records MAY be named as scanner-scope exclusions. Active code, docs, posts and authoring inputs SHALL NOT use broad directory exclusions: every allowed residual there SHALL be centralized as exact path + exact token/pattern + reason + expected count. The scanner SHALL target semantically explicit ticket, slug, route, tag, label, component, schema-key and command patterns rather than bare `SP` / `CP` substrings.
 
@@ -92,7 +94,7 @@ Immutable history trees such as `sources/**` and archived OpenSpec decision reco
 
 #### Scenario: Operator still uses a legacy SSH coordinate
 
-- **WHEN** an operator must still connect through an actual `clawd-vm` alias or `/home/clawd` path
+- **WHEN** an operator must still connect through an actual legacy SSH alias or host-specific Unix path
 - **THEN** the coordinate MAY remain in local machine context or external runtime config
 - **AND** tracked repo docs / scripts SHALL prefer neutral host/path variables
 - **AND** any unavoidable active-tree coordinate SHALL have an exact allowlist entry and reason

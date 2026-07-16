@@ -138,7 +138,7 @@
 ### Meta-feedback: feedback corpus 應該由 gu-log repo 追蹤，不能只放在單一 agent memory
 
 - ShroomDog feedback：`So where is the feedback corpse? How do u make sure all ai agents, clawd, iris, mac-cdx/cc will do this? Maybe we need to make it git tracked by gu-log, on my second thought`
-- 情境：第一版 log 放在 `/home/clawd/clawd/memory/gu-log-shroomdog-feedback.md`，這只保證 OpenClaw Mogu 看得到，不保證 Iris、local machine actors、pipeline writer 都會讀。
+- 情境：第一版 log 放在部署主機的 OpenClaw private memory，這只保證 OpenClaw Mogu 看得到，不保證 Iris、local machine actors、pipeline writer 都會讀。
 - 修法：把 corpus 移到 gu-log repo tracked file：`docs/shroomdog-editorial-feedback.md`，並在 repo-level instructions / writing guide / Mogu Picks prompt 裡加入口規則。
 - Reusable lesson：跨 agent 行為不能靠某個 agent 的私人記憶。要放在 repo-tracked SSOT，並從所有常用 agent entrypoint 指向它。
 

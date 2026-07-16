@@ -4,8 +4,10 @@ After=network-online.target
 
 [Service]
 Type=simple
-WorkingDirectory=%h/clawd/projects/gu-log
-ExecStart=/bin/bash %h/clawd/projects/gu-log/scripts/cc-tribunal-loop-wrapper.sh --workers 1
+# Local-only deployment config provides GU_LOG_DIR. systemd `$$` passes a
+# literal `$` to bash so the host value is expanded only at runtime.
+EnvironmentFile=%h/.config/gu-log/tribunal.env
+ExecStart=/bin/bash -c 'cd "$$GU_LOG_DIR" && exec bash scripts/cc-tribunal-loop-wrapper.sh --workers 1'
 Restart=on-failure
 RestartSec=60
 Environment=TZ=Asia/Taipei

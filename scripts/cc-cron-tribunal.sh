@@ -4,15 +4,17 @@
 # Follows existing CC cron pattern (cc-cron-cp-writer.sh).
 # Runs tribunal-batch-runner.sh which processes unscored articles newest→oldest.
 #
-# Install: Add to crontab on VM
-#   0 */2 * * * /home/clawd/clawd/projects/gu-log/scripts/cc-cron-tribunal.sh
+# Install: add to crontab on the Tribunal VM. Load the actual checkout path
+# from local machine context instead of copying it into this tracked example:
+#   0 */2 * * * GU_LOG_DIR=/path/to/gu-log /path/to/gu-log/scripts/cc-cron-tribunal.sh
 
 set -euo pipefail
 export TZ=Asia/Taipei
 export CLAUDE_CODE_OAUTH_TOKEN
 CLAUDE_CODE_OAUTH_TOKEN=$(head -1 "$HOME/.cc-cron-token")
 
-GU_LOG_DIR="$HOME/clawd/projects/gu-log"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+GU_LOG_DIR="${GU_LOG_DIR:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 LOG="/tmp/tribunal-cron-$(date +%Y%m%d-%H%M).log"
 
 cd "$GU_LOG_DIR"

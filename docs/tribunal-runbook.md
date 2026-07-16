@@ -1,6 +1,8 @@
+<!-- md-zh-tw: ignore -->
+
 # Tribunal operations runbook
 
-> gu-log tribunal runtime is a quota-aware, graceful-stop daemon running on clawd-vm. It runs 4 judges (Librarian / FactChecker / FreshEyes / VibeScorer) against unscored posts and auto-rewrites failures. This doc covers the day-to-day operational moves.
+> gu-log tribunal runtime is a quota-aware, graceful-stop daemon running on the operator-configured Tribunal VM. It runs 4 judges (Librarian / FactChecker / FreshEyes / VibeScorer) against unscored posts and auto-rewrites failures. This doc covers the day-to-day operational moves.
 
 **Canonical specs (archived)**
 - `openspec/changes/archive/2026-04-23-tribunal-graceful-run-control/` — Phase 1, stop contract
@@ -17,20 +19,23 @@
 
 ## Deploy
 
-VPS path: `~/clawd/projects/gu-log` (main worktree) + `~/clawd/projects/gu-log-worker-{a,b}` (worker worktrees).
+Host and checkout mappings are local-only. Before operating the VM, load `TRIBUNAL_HOST` and remote `GU_LOG_DIR` from the local machine note; worker worktrees live beside `GU_LOG_DIR` as `gu-log-worker-{a,b}`.
 
 ```bash
 # On Mac: push the change
 git push origin main
 
-# On VPS
-ssh clawd-vm
-cd ~/clawd/projects/gu-log
+# On the Tribunal VM（values come from the local machine note）
+: "${TRIBUNAL_HOST:?Set TRIBUNAL_HOST}"
+: "${GU_LOG_DIR:?Set remote GU_LOG_DIR}"
+ssh "$TRIBUNAL_HOST" "cd '$GU_LOG_DIR' && exec bash -l"
 git stash push -m "wip" --include-untracked        # uncommitted tribunal rewrites live here
 git fetch origin main
 git checkout main && git merge --ff-only origin/main
 git stash pop
 
+# The service template reads GU_LOG_DIR from the host-local
+# ~/.config/gu-log/tribunal.env. Populate it from local machine context once.
 # If scripts/tribunal-loop.service changed, redeploy + reload:
 cp scripts/tribunal-loop.service ~/.config/systemd/user/tribunal-loop.service
 systemctl --user daemon-reload
@@ -54,7 +59,7 @@ systemctl --user start tribunal-loop
 
 Symptoms:
 - Merged a bug fix to main, restarted service, workers still show old behavior.
-- `cat ~/clawd/projects/gu-log/scripts/<file>` shows new code; `cat ~/clawd/projects/gu-log-worker-a/scripts/<same-file>` shows old code.
+- From the main checkout, `cat scripts/<file>` shows new code; `cat ../gu-log-worker-a/scripts/<same-file>` shows old code.
 
 Fix:
 ```bash
@@ -95,7 +100,7 @@ ls .score-loop/claims/
 ls -t .score-loop/logs/tribunal-quota-loop-*.log | head -1 | xargs tail -f
 
 # Tail per-article log (inside a worker worktree)
-ls -t ~/clawd/projects/gu-log-worker-a/.score-loop/logs/tribunal-*.log | head -1 | xargs tail -f
+ls -t ../gu-log-worker-a/.score-loop/logs/tribunal-*.log | head -1 | xargs tail -f
 
 # Process tree
 ps -ef --forest | grep -E "tribunal|bash scripts/tribunal"
@@ -127,7 +132,7 @@ scripts/tribunal-worker-bootstrap.sh remove a
 scripts/tribunal-worker-bootstrap.sh remove-all
 ```
 
-Disk cost: ~500MB per worker (pnpm `node_modules` per worktree). On clawd-vm (75GB, historically ~45GB used) this is fine for 2–3 workers.
+Disk cost: ~500MB per worker (pnpm `node_modules` per worktree). Check the configured Tribunal VM's current capacity before increasing the worker count; machine-specific capacity belongs in local machine context.
 
 ## Final build gate + shared build lock
 
@@ -294,5 +299,5 @@ systemctl --user start tribunal-loop
 | Article marked EXHAUSTED after 5 attempts | Real content / scoring issue, or model-induced flakiness | Open the stage log, look at scorer reasons; rewrite manually or flag for human review |
 | Controller stuck in `floor_stop` even though quota looks OK | usage-monitor cache stale, or feedforward over-counting | Check `quota-controller.json` for `five_hr_pct` / `seven_day_pct`; force cache refresh: `rm /tmp/usage-monitor-cache/claude.json` |
 | `ARTICLE_COST_PCT` too high/low | Calibration EMA hasn't converged (cold start), or multi-worker noise | Check `quota-history.jsonl` for recent deltas; controller will self-correct after ~5 single-worker articles |
-| Controller in `fallback` mode | usage-monitor.sh returns error (OAuth token expired, API down) | SSH to VM, run `~/clawd/scripts/usage-monitor.sh --json` manually to diagnose |
+| Controller in `fallback` mode | usage-monitor.sh returns error (OAuth token expired, API down) | SSH to the configured VM, run `"$USAGE_MONITOR" --json` manually to diagnose |
 | Extra usage alarm (`extra_limit` mode) | Extra usage approaching monthly cap | Check `extra_used_usd` / `extra_limit_usd` in quota-controller.json; adjust limit in Anthropic console if intentional |

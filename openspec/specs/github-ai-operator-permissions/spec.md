@@ -1,7 +1,7 @@
 # github-ai-operator-permissions Specification
 
 ## Purpose
-TBD - created by archiving change secure-clawd-vm-github-operator. Update Purpose after archive.
+定義 AI GitHub operator 的 organization boundary、gu-log least-privilege token 與 rotation audit contract。
 ## Requirements
 ### Requirement: Broad operator token SHALL 被限制在 AI lab organization
 
@@ -16,7 +16,7 @@ Iris / Mogu 的 broad GitHub operator credentials SHALL 只作用在 dedicated A
 
 ### Requirement: gu-log token SHALL 是 selected-repository 且 least-privilege
 
-任何放在 clawd-vm 上、用於 gu-log automation 的 GitHub token，SHALL 預設只 scope 到 gu-log repository；若額外 selected repository 是同一 gu-log operating lane 的必要範圍，MUST 有 explicit human approval 與 evidence 記錄。該 token SHALL 只包含 branch、commit、PR、status、check inspection workflow 所需權限。
+任何放在 remote automation host、用於 gu-log automation 的 GitHub token，SHALL 預設只 scope 到 gu-log repository；若額外 selected repository 是同一 gu-log operating lane 的必要範圍，MUST 有 explicit human approval 與 evidence 記錄。該 token SHALL 只包含 branch、commit、PR、status、check inspection workflow 所需權限。
 
 #### Scenario: 為 gu-log 建立 token
 
@@ -53,11 +53,10 @@ gu-log automation token MUST NOT 包含 delete repositories、transfer repositor
 
 ### Requirement: Tokens SHALL 被命名並可稽核 rotation
 
-clawd-vm 使用的 GitHub tokens SHALL 有 descriptive names，並在 secret-free machine notes 中記錄 rotation dates。
+Remote automation host 使用的 GitHub tokens SHALL 有 descriptive names，並在 secret-free machine notes 中記錄 rotation dates。
 
 #### Scenario: Token rotation
 
-- **WHEN** operator rotation clawd-vm token
+- **WHEN** operator rotation remote automation host token
 - **THEN** machine note SHALL 記錄 token purpose 與 rotation date
 - **AND** machine note SHALL NOT 記錄 token value
-

@@ -15,6 +15,7 @@ import json
 import os
 import random
 import re
+import shutil
 import signal
 import subprocess
 import sys
@@ -277,10 +278,10 @@ def run_one(model: str, label: str, prompt: str, trial_dir: Path, task: str, can
 
 
 def usage_sample() -> dict[str, Any]:
-    script = Path.home() / "clawd/scripts/usage-monitor.sh"
-    if not script.exists():
+    script = os.environ.get("USAGE_MONITOR") or shutil.which("usage-monitor.sh")
+    if not script:
         return {"error": "usage-monitor missing"}
-    p = subprocess.run(["bash", str(script), "--json"], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=30)
+    p = subprocess.run(["bash", script, "--json"], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=30)
     try:
         return {"exit_code": p.returncode, "data": json.loads(p.stdout)}
     except Exception:

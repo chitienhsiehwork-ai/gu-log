@@ -44,8 +44,8 @@
 - [ ] 5.1 更新 `CONTRIBUTING.md`、`GU-LOG_WRITER_PROMPT.md`、AGENTS／CLAUDE routing、playbooks、runbooks、judge 提示與 skill 文件，只保留正式術語。
 - [ ] 5.2 更新 Mogu／GP／MP public assets、alt text、ARIA labels、CSS class／variable names 與 visual comments；被其他狀態元件借用的 SP／CP 色彩改為 semantic tokens。
 - [ ] 5.3 透過 delta／archive 更新 active OpenSpec examples 的 ticket IDs 與 agent identity；保留 archive／history 的原始決策證據。
-- [ ] 5.4 Tracked 部署文件與 scripts 改用 `tribunal VM`、`$HOME`、`$GU_LOG_DIR` 等中性表達；machine-specific `clawd-vm`／`/home/clawd` mapping 留在 local machine note，無法移除者才做 exact exception。
-- [ ] 5.5 更新外部 identity SSOT：本機 `~/.config/machine.md` 將 host role 改為 Mogu + Iris（保留 legacy host coordinate）；VM `~/clawd/AGENTS.md`、Mogu Picks prompt／config 與相關 skills 將 public／operator identity 改為 Mogu，絕不輸出或搬動 secrets。
+- [ ] 5.4 Tracked 部署文件與 scripts 改用 `Tribunal VM`、`$TRIBUNAL_HOST`、`$GU_LOG_DIR`、`$HOME` 等中性表達；machine-specific mapping 留在 local machine note，無法移除者才做 exact exception。
+- [ ] 5.5 更新外部 identity SSOT：本機 `~/.config/machine.md` 將 host role 改為 Mogu + Iris（保留 legacy host coordinate）；VM external checkout 的 `AGENTS.md`、Mogu Picks prompt／config 與相關 skills 將 public／operator identity 改為 Mogu，絕不輸出或搬動 secrets。
 
 ## 6. 驗證
 

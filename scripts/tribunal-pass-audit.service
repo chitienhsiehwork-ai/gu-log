@@ -4,8 +4,8 @@ After=network-online.target
 
 [Service]
 Type=oneshot
-WorkingDirectory=%h/clawd/projects/gu-log
-ExecStart=/bin/bash -lc 'git fetch origin main >/dev/null 2>&1 || true; bash scripts/tribunal-audit-pass-commits.sh --range 2b1bc361..origin/main'
+EnvironmentFile=%h/.config/gu-log/tribunal.env
+ExecStart=/bin/bash -lc 'cd "$$GU_LOG_DIR" || exit; git fetch origin main >/dev/null 2>&1 || true; bash scripts/tribunal-audit-pass-commits.sh --range 2b1bc361..origin/main'
 Environment=TZ=Asia/Taipei
 
 [Install]

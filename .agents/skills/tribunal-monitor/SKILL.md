@@ -1,15 +1,15 @@
 ---
 name: tribunal-monitor
-description: Check tribunal daemon status on clawd-vm — service health, progress, quota, git sync, recent results. Use when the user asks about tribunal status, wants to know if it's running, how many articles are left, or if something looks stuck. Also use proactively before any tribunal config change to understand current state.
+description: Check the remote Tribunal VM daemon — service health, progress, quota, git sync, recent results. Use when the user asks about tribunal status, wants to know if it's running, how many articles are left, or if something looks stuck. Also use proactively before any tribunal config change to understand current state.
 ---
 
 # Tribunal Monitor
 
-Check the gu-log tribunal daemon running on clawd-vm (Hetzner VPS). Reports service health, processing progress, quota, git sync state, and recent judge results in one shot.
+Check the gu-log tribunal daemon running on the operator-configured Tribunal VM. Reports service health, processing progress, quota, git sync state, and recent judge results in one shot.
 
 ## Prerequisites
 
-- SSH access to `clawd-vm` (alias for `clawd@46.225.20.205`)
+- Export `TRIBUNAL_HOST` and `GU_LOG_DIR` from local-only machine context before running. Read the runtime's machine note (for Codex, `~/.codex/machine.md`) for the current values; never copy those values into tracked files.
 - Requires `dangerouslyDisableSandbox: true` (SSH uses Unix sockets)
 
 ## Procedure
@@ -17,9 +17,13 @@ Check the gu-log tribunal daemon running on clawd-vm (Hetzner VPS). Reports serv
 Run this single SSH command to collect all diagnostic data at once:
 
 ```bash
-ssh clawd-vm bash -s <<'MONITOR'
+: "${TRIBUNAL_HOST:?Set TRIBUNAL_HOST from the local machine note}"
+: "${GU_LOG_DIR:?Set GU_LOG_DIR from the local machine note}"
+
+ssh "$TRIBUNAL_HOST" bash -s -- "$GU_LOG_DIR" <<'MONITOR'
 set -euo pipefail
-cd ~/clawd/projects/gu-log
+GU_LOG_DIR=$1
+cd "$GU_LOG_DIR"
 
 echo "══════ SERVICE ══════"
 systemctl --user status tribunal-loop 2>&1 | head -15
@@ -71,13 +75,14 @@ echo "══════ MEMORY (peak) ══════"
 systemctl --user show tribunal-loop --property=MemoryPeak 2>/dev/null || echo "(n/a)"
 
 echo "══════ WORKER WORKTREES ══════"
-for wt in ~/clawd/projects/gu-log-worker-*; do
+WORKER_PARENT=$(dirname "$GU_LOG_DIR")
+for wt in "$WORKER_PARENT"/gu-log-worker-*; do
   if [ -d "$wt" ]; then
     WT_HEAD=$(cd "$wt" && git rev-parse --short HEAD 2>/dev/null || echo "?")
     echo "  $(basename $wt): $WT_HEAD"
   fi
 done
-[ ! -d ~/clawd/projects/gu-log-worker-a ] && echo "  (no worker worktrees found)"
+[ ! -d "$WORKER_PARENT/gu-log-worker-a" ] && echo "  (no worker worktrees found)"
 MONITOR
 ```
 
@@ -97,19 +102,22 @@ MONITOR
 - `quota_paused` — below quota floor (3%), waiting for recovery (10%)
 
 ### Common issues
-1. **git pull failing**: VM can't sync with origin/main. Usually SSH key or network issue. Fix: `cd ~/clawd/projects/gu-log && git pull origin main`
+1. **git pull failing**: VM can't sync with origin/main. Usually SSH key or network issue. Fix inside the checkout: `git pull origin main`
 2. **Stop flag stuck**: `.score-loop/control/stop-graceful` exists but nobody removed it. Fix: `rm .score-loop/control/stop-graceful` then restart
 3. **Worker worktrees stale**: Workers running old code. Fix: `scripts/tribunal-worker-bootstrap.sh sync`
 4. **Progress file missing/corrupt**: Usually after a reset. Service creates a fresh one on next start.
 
 ### Restart command
 ```bash
-ssh clawd-vm 'systemctl --user start tribunal-loop'
+ssh "$TRIBUNAL_HOST" 'systemctl --user start tribunal-loop'
 ```
 
 ### Quick stop (graceful)
 ```bash
-ssh clawd-vm 'touch ~/clawd/projects/gu-log/.score-loop/control/stop-graceful'
+ssh "$TRIBUNAL_HOST" bash -s -- "$GU_LOG_DIR" <<'STOP'
+set -euo pipefail
+touch "$1/.score-loop/control/stop-graceful"
+STOP
 ```
 
 ## Output format

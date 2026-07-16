@@ -957,10 +957,10 @@ main() {
 send_telegram_alert() {
   local severity="$1"
   local heartbeat_file="$2"
-  # Builder must discover the existing Telegram bot token + chat ID
-  # from /home/clawd/clawd/ on the VM
+  # Builder must use the operator-configured Telegram env file on the VM.
+  # Its actual path comes from local machine context, not this tracked spec.
   # Expected: TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in env or config file
-  local config_file="$HOME/clawd/config/telegram.env"
+  local config_file="${TELEGRAM_ENV_FILE:?Set TELEGRAM_ENV_FILE in deployment config}"
   if [ ! -f "$config_file" ]; then
     return  # No telegram config, skip alerting
   fi
@@ -979,8 +979,8 @@ $(jq -r '.checks | to_entries[] | select(.value.status != "ok") | "- \(.key): \(
 #### Cron setup
 
 ```
-# On VM: crontab -e
-*/15 * * * * bash ~/gu-log/scripts/tribunal-heartbeat.sh
+# On VM: crontab -e（GU_LOG_DIR is injected by deployment config）
+*/15 * * * * bash "$GU_LOG_DIR/scripts/tribunal-heartbeat.sh"
 ```
 
 ### 6b. Full Monitor (3x/day cron)
@@ -992,9 +992,9 @@ This script is invoked by cron and calls CC for a full analysis session.
 ```bash
 #!/bin/bash
 # tribunal-monitor-cron.sh — 3x/day full monitor using CC session
-# Cron: 55 3 * * * bash ~/gu-log/scripts/tribunal-monitor-cron.sh   # 11:55 TST
-#       0 10 * * * bash ~/gu-log/scripts/tribunal-monitor-cron.sh    # 18:00 TST
-#       0 15 * * * bash ~/gu-log/scripts/tribunal-monitor-cron.sh    # 23:00 TST
+# Cron: 55 3 * * * bash "$GU_LOG_DIR/scripts/tribunal-monitor-cron.sh"   # 11:55 TST
+#       0 10 * * * bash "$GU_LOG_DIR/scripts/tribunal-monitor-cron.sh"    # 18:00 TST
+#       0 15 * * * bash "$GU_LOG_DIR/scripts/tribunal-monitor-cron.sh"    # 23:00 TST
 # (Cron times are UTC; TST = UTC+8)
 set -uo pipefail
 export TZ=Asia/Taipei
@@ -1018,7 +1018,7 @@ fi)
 $(cat "$HEARTBEAT_FILE" 2>/dev/null || echo "No heartbeat file found")
 
 ## Tasks
-1. Check quota: run \$HOME/clawd/scripts/usage-monitor.sh --json
+1. Check quota: run \$USAGE_MONITOR --json
 2. Read scores/tribunal-progress.json — summarize: total PASS, FAILED, NEEDS_REVIEW, pending
 3. For FAILED articles: what stage failed? How many retries?
 4. Check service: systemctl --user status tribunal-loop.service
@@ -1239,8 +1239,8 @@ bash scripts/tribunal-quota-loop.sh --dry-run
 ## Notes
 
 - **Progress file dual schema**: The current `tribunal-progress.json` has two schemas — old entries use ticketId as key with `{iterations: N}`, new entries use filename as key with `{article, stages, status}`. Changes 2-3 only affect the new schema. Old entries are irrelevant to the tribunal pipeline.
-- **VM deployment**: Changes 1-5 are pushed to git, VM picks up via `git pull`. Change 6 requires cron setup on the VM (`ssh clawd-vm`).
-- **Builder should discover Telegram infrastructure**: Check `/home/clawd/clawd/` for existing bot token, chat ID, and any existing alerting scripts. Do NOT create a new bot if one exists.
+- **VM deployment**: Changes 1-5 are pushed to git, VM picks up via `git pull`. Change 6 requires cron setup through `ssh "$TRIBUNAL_HOST"`; the actual host mapping remains local-only.
+- **Builder should discover Telegram infrastructure**: Read the operator-configured notifier env / directory from local machine context. Do NOT scan a hard-coded home path or create a new bot if one exists.
 - **Quiet hours interaction**: Changes 5 (headroom) and existing quiet hours are orthogonal. Quiet hours block processing during weekday 20-02 TST. Headroom decides whether to process when NOT in quiet hours. Both checks remain in place.
 
 ---

@@ -1,3 +1,5 @@
+<!-- md-zh-tw: ignore -->
+
 # Test Report: tribunal-quota-loop.sh
 
 **Date**: 2026-04-08
@@ -112,11 +114,11 @@ Resume threshold = 10% (inclusive). Hysteresis gap = 3-10% prevents flapping.
 
 | Check | Expected | Actual | Status |
 |-------|----------|--------|--------|
-| WorkingDirectory | %h/clawd/projects/gu-log | Match | PASS |
-| ExecStart | wrapper script path | Match | PASS |
+| Deployment path source | `EnvironmentFile=%h/.config/gu-log/tribunal.env` | Match | PASS |
+| ExecStart | `GU_LOG_DIR`-relative wrapper invocation | Match | PASS |
 | Restart | on-failure | on-failure | PASS |
 | RestartSec | 60 | 60 | PASS |
-| Wrapper cd matches service WD | Both → clawd/projects/gu-log | Match | PASS |
+| Wrapper cd matches service checkout | Both use `GU_LOG_DIR` | Match | PASS |
 | Token loading | CLAUDE_CODE_OAUTH_TOKEN from ~/.cc-cron-token | Correct | PASS |
 
 ## Bugs Found

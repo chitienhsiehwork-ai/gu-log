@@ -51,8 +51,10 @@ tlog() {
 }
 
 # ─── Quota Check ──────────────────────────────────────────────────────────────
-# Check remaining quota via usage-monitor.sh --json. Returns 0 if above floor, 1 if below.
-USAGE_MONITOR="$HOME/clawd/scripts/usage-monitor.sh"
+# Check remaining quota via usage-monitor.sh --json. The off-repo executable is
+# injected explicitly or discovered on PATH; its host path is not a repo fact.
+# Returns 0 if above floor, 1 if below.
+USAGE_MONITOR="${USAGE_MONITOR:-$(command -v usage-monitor.sh || true)}"
 
 check_quota_above_floor() {
   if [ ! -x "$USAGE_MONITOR" ]; then

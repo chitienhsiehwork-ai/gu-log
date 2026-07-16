@@ -11,7 +11,7 @@
 
 ## 內容與審查工作流
 
-- `tribunal-monitor` — 檢查 `clawd-vm` 上的 tribunal daemon，包含 service health、quota、git sync、最近 judge results。
+- `tribunal-monitor` — 檢查 operator 設定的 Tribunal VM daemon，包含 service health、quota、git sync、最近 judge results。
 - `uiux-auditor` — 視覺變更 ship 前，檢查 gu-log dark / light theme 的 UI 狀態。
 
 ## OpenSpec / source-command 輔助工具

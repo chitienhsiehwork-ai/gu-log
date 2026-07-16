@@ -1,3 +1,5 @@
+<!-- md-zh-tw: ignore -->
+
 ## 1. Per-role model routing (P0 — unblocks the intended split)
 
 - [ ] 1.1 In `scripts/tribunal-helpers.sh`, add a role→provider resolver: `{writer, rewriter, vibe}`→claude; `{fact-checker, librarian, fresh-eyes, orchestrator}`→codex. Resolve each role's **model** by reading its config field (`.claude/agents/<role>.md` / `.codex/agents/<role>.toml`), not a literal in the resolver — the build values are owned by `tribunal-model-pinning-strategy`.
@@ -19,7 +21,7 @@
 
 ## 4. Operator alerting (P1)
 
-- [ ] 4.1 Replace the macOS `osascript` `tribunal_quota_alarm` (helpers.sh ~778-785; `osascript` at line 784) with an injectable notifier (env-configured command / clawd Telegram notifier).
+- [ ] 4.1 Replace the macOS `osascript` `tribunal_quota_alarm` (helpers.sh ~778-785; `osascript` at line 784) with an injectable notifier (env-configured command / host Telegram notifier).
 - [ ] 4.2 Add alarm hooks to `tribunal-quota-loop.sh` (it has none today — current alarm calls live in `tribunal-helpers.sh`) firing the notifier on stall / EXHAUSTED spike / `fallback` / `floor_stop`; fall back to an observable log line when no channel is configured.
 
 ## 5. Accurate monitoring (P1)
@@ -34,4 +36,4 @@
 ## 7. Verify
 
 - [ ] 7.1 Shell tests green; `node scripts/validate-posts.mjs` unaffected; `openspec validate tribunal-24-7-deploy-readiness --strict` passes.
-- [ ] 7.2 Dry-run on clawd-vm: confirm a failing article is rewritten (not skipped), writer/vibe run on the configured Claude/Opus model, other judges on the configured Codex/GPT-5.5 model, and the monitor shows live controller state.
+- [ ] 7.2 Dry-run on the operator-configured Tribunal VM: confirm a failing article is rewritten (not skipped), writer/vibe run on the configured Claude/Opus model, other judges on the configured Codex/GPT-5.5 model, and the monitor shows live controller state.
