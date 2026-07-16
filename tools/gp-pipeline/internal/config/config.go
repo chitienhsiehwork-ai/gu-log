@@ -3,8 +3,8 @@
 // The Go binary is expected to run from anywhere inside the gu-log repo. To
 // find the repo root we walk up from the current working directory looking
 // for a sentinel (CLAUDE.md at the top level), which is the same convention
-// the existing bash scripts use (they hard-code GU_LOG_DIR via $HOME/clawd/
-// projects/gu-log but fall back to pwd).
+// the existing bash scripts use: prefer GU_LOG_DIR, then discover from the
+// current working directory.
 package config
 
 import (

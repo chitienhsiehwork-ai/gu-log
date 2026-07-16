@@ -83,7 +83,7 @@ Feature branch 名稱常由沒 gu-log 上下文的 LLM 自動生成，只能當 
 
 `AGENTS.md` 只放 Tier-0 憲法 / bootstrap / 路由表；`CLAUDE.md` 補 Claude Code 專屬細節。Tier-1 = `playbooks/` 依 runtime 分流；Tier-2 = 主題 SSOT（`CONTRIBUTING.md`、`GU-LOG_WRITER_PROMPT.md`、`docs/agent-discipline.md`、`docs/dev-reference.md`、`docs/tribunal-runbook.md`、`tools/gp-pipeline/SKILL.md`…，逐項見上方路由表）。完整檔案樹是 repo layout 的副本、會 drift——要找檔用 `rg --files`，不在 Tier-0 常駐一棵樹。
 
-操作這個 repo 的 agent：local machine actor（例如 `m1-cdx` / `m1-cc`）或 CCC 先讀本檔 → `detect-env.sh` → 對應 playbook → 按主題讀 Tier-2；Mogu（OpenClaw runtime）走 `~/clawd/AGENTS.md` + `scripts/mogu-picks-prompt.md`。兩條路最後都指向 `CONTRIBUTING.md` 和 `GU-LOG_WRITER_PROMPT.md`。**改規則只改 SSOT 來源檔，不要在 Tier-0 或 task prompt 複製一份。**
+操作這個 repo 的 agent：local machine actor（例如 `m1-cdx` / `m1-cc`）或 CCC 先讀本檔 → `detect-env.sh` → 對應 playbook → 按主題讀 Tier-2；Mogu（OpenClaw runtime）先讀 runtime-local `AGENTS.md`，再讀本 repo 的 `scripts/mogu-picks-prompt.md`。兩條路最後都指向 `CONTRIBUTING.md` 和 `GU-LOG_WRITER_PROMPT.md`。**改規則只改 SSOT 來源檔，不要在 Tier-0 或 task prompt 複製一份。**
 
 ## Quality: Vibe Scoring + Tribunal
 

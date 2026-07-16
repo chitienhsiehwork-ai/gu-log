@@ -28,9 +28,8 @@ func (g *GeminiProvider) Model() ModelID {
 }
 
 // Available implements Provider. We look for `gemini` on PATH; the bash
-// scripts sometimes call a `gemini-safe-search.sh` wrapper, but that lives
-// outside the repo (in ~/clawd/scripts/) and is not a hard dependency of
-// the Go binary itself.
+// scripts sometimes call a runtime-local `gemini-safe-search.sh` wrapper, but
+// that external wrapper is not a hard dependency of the Go binary itself.
 func (g *GeminiProvider) Available() bool {
 	_, err := runner.LookPath("gemini")
 	return err == nil

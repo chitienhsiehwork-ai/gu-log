@@ -104,7 +104,7 @@ tools/gp-pipeline/gp-pipeline --json run '<url>' --prefix GP
 1. 先跑 `gp-pipeline doctor`，確認 `node`、`pnpm`、`git` 與必要 provider 可用。
 2. 從 log 找最後成功 step，再用 `--work-dir` 搭配 `--from-step` 恢復；不要重新配置 ticket。
 3. source validation 失敗時，修完整 source capture，不要拿 preview 摘要硬寫。
-4. counter、ticket prefix 或 pending filename 遇到舊 SP／CP 值時，修呼叫端與資料；不要加 alias。
-5. provider quota 或外部 runtime 問題依 repo playbook 處理；`clawd-vm` 等環境座標不是 taxonomy compatibility surface。
+4. counter、ticket prefix 或 pending filename 遇到非 GP／MP canonical 值時，修呼叫端與資料；不要加 alias。
+5. provider quota 或外部 runtime 問題依 repo playbook 處理；Tribunal VM 等環境座標不是 taxonomy compatibility surface。
 
 實際 flags 與預設值以 `gp-pipeline <subcommand> --help` 為準；counter schema、frontmatter 與 OpenSpec 才是資料契約 SSOT。
