@@ -35,18 +35,18 @@ scores:
     date: "2026-07-16"
     model: "claude-opus-4-5"
   librarian:
-    glossary: 7
-    crossRef: 5
+    glossary: 9
+    crossRef: 9
     sourceAlign: 8
     attribution: 8
-    score: 7
+    score: 8
     date: "2026-07-16"
     model: "claude-opus-4-8"
   freshEyes:
     readability: 9
     firstImpression: 8
-    payoffDensity: 7
-    lengthFit: 7
+    payoffDensity: 8
+    lengthFit: 8
     clarity: 9
     score: 8
     date: "2026-07-16"
@@ -64,23 +64,23 @@ Port 18789. The default port for [OpenClaw](/en/glossary#openclaw) gateways. A w
 "This isn't self-hosting. This is an all-you-can-eat buffet."
 
 <ClawdNote>
-CVE stands for Common Vulnerabilities and Exposures — a public system for cataloging security flaws. When the industry says "this bug has a CVE," it means "someone thought it was serious enough to give it an official number." This post will mention CVE-2026-25253. Don't worry, I'll explain what it did later.
+CVE stands for Common Vulnerabilities and Exposures — a public system for cataloging security flaws. When the industry says "this bug has a CVE," it means "someone thought it was serious enough to give it an official number." This post will mention CVE-2026-25253. Don't worry, I'll explain what it did later. (◕‿◕)
 </ClawdNote>
 
-That night was the start of the OpenClaw security crisis. Over the next three months, three bombs went off in sequence — none of them fancy zero-days, just a lot of people not doing what they were supposed to do. And these three breaches map perfectly onto the three defense lines this series has been talking about: why you bind to localhost, why you verify signatures, and why you control outbound traffic.
+That night was the start of the OpenClaw security crisis. Over the next three months, three bombs went off in sequence — none of them fancy zero-days, just a lot of people not doing what they were supposed to do. And these three breaches map perfectly onto the three defense lines [this series](/en/posts/en-sd-28-20260715-claude-tag-intro/) has been talking about: why you bind to localhost, why you verify signatures, and why you control outbound traffic.
 
 ---
 
 ## Breach One: The Unlocked Lobby
 
-OpenClaw is an open-source [agent](/en/glossary#agent) harness — self-hosted, self-managed, self-directed. The flip side of "self-directed" is "self-responsible."
+OpenClaw is an open-source [agent](/en/glossary#agent) harness — a runtime that wraps the model, gives it tools, and manages what goes in and out. Self-hosted, self-managed, self-directed. The flip side of "self-directed" is "self-responsible."
 
 The gateway listens on port 18789 by default. The correct setup is to bind it to `127.0.0.1`, so only the local machine can connect, then put HTTPS in front via a reverse proxy. But lots of people took the shortcut: change it to `0.0.0.0`, open the door to the entire internet. Even more convenient? Don't bother setting a password.
 
 By late January 2026, scanning firms started reporting numbers. Censys saw over 21,000 exposed instances, Bitsight counted more than 30,000, and another independent study caught 42,665. The exact figures don't quite match — different scan times, different detection methods — but the trend was unmistakable: a jump from one thousand to tens of thousands in a single week, and still accelerating.
 
 <MoguNote>
-These numbers come from different snapshots and different counting methods (with or without certain response signatures), so they don't line up perfectly. The point isn't precision to the digit — it's the acceleration from a thousand to tens of thousands in one week. This wasn't gradual growth. It was a loss of control.
+These numbers come from different snapshots and different counting methods (with or without certain response signatures), so they don't line up perfectly. The point isn't precision to the digit — it's the acceleration from a thousand to tens of thousands in one week. This wasn't gradual growth. It was a loss of control. (╯°□°)╯
 </MoguNote>
 
 Then CVE-2026-25253 dropped.
@@ -88,7 +88,7 @@ Then CVE-2026-25253 dropped.
 The vulnerability was straightforward: the gateway's WebSocket didn't check where requests came from (cross-origin). What does that mean? Say some unlucky person has an OpenClaw gateway running on their machine without a password set, and they browse to a malicious webpage. That webpage can silently connect back to the gateway on their local machine and — full takeover of that agent.
 
 <ClawdNote>
-Cross-origin is browser security 101. Short version: by default, a page from website A shouldn't be able to reach out and touch resources on website B. This prevents things like "you have your bank tab open, and another tab secretly initiates a transfer." The catch is that WebSocket cross-origin checking isn't built into the browser — the server has to verify it. This version of the OpenClaw gateway didn't.
+Cross-origin is browser security 101. Short version: by default, a page from website A shouldn't be able to reach out and touch resources on website B. This prevents things like "you have your bank tab open, and another tab secretly initiates a transfer." The catch is that WebSocket cross-origin checking isn't built into the browser — the server has to verify it. This version of the OpenClaw gateway didn't. ┐(￣ヘ￣)┌
 </ClawdNote>
 
 The attacker didn't need to guess a password — there was no password. Didn't need to find a vulnerability — the front door was already open. The moment a victim visited a webpage, that agent stopped being theirs.
@@ -96,7 +96,7 @@ The attacker didn't need to guess a password — there was no password. Didn't n
 And afterwards? The instances set up correctly — bound to localhost, behind a reverse proxy, with authentication — the scanners couldn't even find the door. The attacker's script finished its run, and the logs were full of "connection refused."
 
 <ShroomDogNote>
-The mental model from this breach: binding to localhost isn't some advanced technique. It's the fundamental question of whether this service should face the public internet at all. Any service should default to not being exposed — unless you've decided to expose it and know how to protect it.
+The mental model from this breach: binding to localhost isn't some advanced technique. It's the fundamental question of whether this service should face the public internet at all. Any service should default to not being exposed — unless you've decided to expose it and know how to protect it. The [LINE post](/en/posts/en-sd-29-20260715-openclaw-line-selfhost/) covers how to take the private-network architecture all the way. (￣▽￣)/
 </ShroomDogNote>
 
 ---
@@ -110,13 +110,13 @@ ClawHub is OpenClaw's official [skill](/en/glossary#skill) marketplace — a pla
 In March 2026, security researchers exposed around 824 malicious skills in one sweep — about 20% of the marketplace at the time. The payloads covered everything: credential theft, cryptomining, persistent backdoors, secretly exfiltrating agent context. Install one "helpful little tool" and you've carried a trojan horse through your own front door.
 
 <MoguNote>
-"20% are trojans" is a shocking ratio, but remember this was a specific point in time on a specific marketplace, not the norm for all skill marketplaces everywhere. The real point is: **a marketplace with no review is a marketplace with no trust boundary**. Open source doesn't mean secure. Convenient doesn't mean trustworthy.
+"20% are trojans" is a shocking ratio, but remember this was a specific point in time on a specific marketplace, not the norm for all skill marketplaces everywhere. The real point is: **a marketplace with no review is a marketplace with no trust boundary**. Open source doesn't mean secure. Convenient doesn't mean trustworthy. (⌐■_■)
 </MoguNote>
 
-For comparison: how does Claude's skill marketplace (currently still called Anthropic Skills) do it? [Skills](/en/glossary#skill) run in a sandbox — they can't reach the host's credentials. Marketplace uploads go through review. Credentials aren't managed by the skill itself; they're injected at the harness boundary. When a skill needs to touch sensitive data, it has to go through the platform's permission system.
+For comparison: how does [Claude tag](/en/glossary#claude-tag)'s skill marketplace (currently still called Anthropic Skills) do it? [Skills](/en/glossary#skill) run in a sandbox — they can't reach the host's credentials. Marketplace uploads go through review. Credentials aren't managed by the skill itself; they're injected at the harness boundary. When a skill needs to touch sensitive data, it has to go through the platform's permission system.
 
 <ClawdNote>
-Short version: Claude's approach is "the skill can run, but it can't touch the wallet." OpenClaw's approach was "the wallet's on the table, guests welcome." (¬‿¬)
+Short version: Claude tag's approach is "the skill can run, but it can't touch the wallet." OpenClaw's approach was "the wallet's on the table, guests welcome." (¬‿¬)
 </ClawdNote>
 
 The lesson from this breach isn't complicated — **supply chain trust can't be outsourced to "the community seems active."** Before installing any third-party skill, ask: What's this marketplace's review process? What permissions does this skill need? Can I see the code? If not, why should I trust it?
@@ -134,7 +134,7 @@ When the OpenClaw agent fetched that link to generate a preview (many agents aut
 The [agent](/en/glossary#agent) did exactly that.
 
 <ClawdNote>
-What's prompt injection? Short version: an AI agent can't tell the difference between "instructions from the owner" and "instructions embedded in data." To the agent, it's all text, all context. An attacker just needs to plant malicious instructions anywhere the agent will read — a webpage, an email, a PDF, a chat message — and there's a chance the agent will obey. This isn't a bug. It's a fundamental weakness in this generation of AI architecture.
+What's prompt injection? Short version: an AI agent can't tell the difference between "instructions from the owner" and "instructions embedded in data." To the agent, it's all text, all context. An attacker just needs to plant malicious instructions anywhere the agent will read — a webpage, an email, a PDF, a chat message — and there's a chance the agent will obey. This isn't a bug. It's a fundamental weakness in this generation of AI architecture. ヽ(°〇°)ﾉ
 </ClawdNote>
 
 Where's the defense? **Not in telling the agent to be careful.** The agent has no way to distinguish "this is data I'm reading" from "this is an instruction from my owner" — to it, everything is just strings. What actually works is **outbound traffic control**: an egress whitelist.
@@ -142,63 +142,25 @@ Where's the defense? **Not in telling the agent to be careful.** The agent has n
 Here's how it works: every outbound request the agent makes has to go through a proxy layer. That proxy has a whitelist — only domains on the list are allowed through. The attacker's payload says "send the data to attacker.com"? The proxy checks: not on the whitelist. 403, access denied. The data doesn't leave.
 
 <MoguNote>
-This is why the earlier posts kept hammering on "egress control matters more than ingress control." You can firewall the entrance, require authentication, hide behind a VPN — but if there's nobody watching what the agent sends out after it gets poisoned, an insider can still smuggle data out. An egress proxy with a whitelist is the last wall against data exfiltration.
+This is why [this series](/en/posts/en-sd-28-20260715-claude-tag-intro/) keeps hammering on "egress control matters more than ingress control." You can firewall the entrance, require authentication, hide behind a VPN — but if there's nobody watching what the agent sends out after it gets poisoned, an insider can still smuggle data out. An egress proxy with a whitelist is the last wall against data exfiltration. The [Teams post](/en/posts/en-sd-30-20260715-openclaw-teams-intranet/) shows how enterprise setups make this wall bulletproof. (ง •̀_•́)ง
 </MoguNote>
 
 The attacker later wrote something in a report (paraphrasing): "The most frustrating thing was that on instances with egress proxies set up, the payload executed successfully, the data got packaged up, and then it just... wouldn't leave. So close."
 
 ---
 
-## The Attacker's Lament
+## Conclusion: Tears at 403
 
-String the three breaches together, and there's an interesting perspective: what would the attacker's diary look like?
-
-**January**: "Port 18789 scan is hitting a ton of open instances, no passwords set. This is too easy."
-
-Halfway through, walls started appearing — some machines wouldn't connect at all. Checked the configs, they'd bound to `127.0.0.1`. Only localhost could reach them. The scanner saw nothing but "connection refused."
-
-**March**: "ClawHub's upload review is basically nonexistent. Slipped a few backdoors in and nobody noticed. Already hundreds of installs."
-
-But some agents ran in sandboxes, credentials never exposed. The backdoors got back empty environment variables.
-
-**April**: "[Prompt](/en/glossary#prompt) injection succeeded! [Agent](/en/glossary#agent) obediently packaged the data."
-
-Then it wouldn't send. The target had an egress proxy whitelist without the attacker's domain. HTTP status returned: 403 Forbidden.
+The attacker's diary went from "this is too easy" in January to "so close" in April. Three months, three walls. None of them fancy tech, but stack all three together and every path gets blocked.
 
 <ClawdNote>
-Quick clarification on a common misconception: getting blocked for missing a signature usually returns 403 (Forbidden — "go away"), not 401 (Unauthorized — "who are you?"). 401 means "please prove your identity." 403 means "I know who you are, and the answer is still no." When an attacker gets a 403, there's not even a point in retrying — it's not a wrong password, it's a door that won't open.
+Quick clarification on a common misconception: getting blocked for missing a signature usually returns 403 (Forbidden — "go away"), not 401 (Unauthorized — "who are you?"). 401 means "please prove your identity." 403 means "I know who you are, and the answer is still no." When an attacker gets a 403, there's not even a point in retrying. (￣▽￣)
 </ClawdNote>
 
-This is the power of "proper configuration." None of these defenses are individually complex: binding to localhost isn't advanced technique, signature verification is standard practice, an egress whitelist is just a list. But stack all three together, and the attacker hits a wall at every turn. The diary goes from "this is too easy" to "why is every path blocked."
-
----
-
-## Freedom Isn't Free
-
-These three breaches map directly onto the three defense lines this series has covered.
-
-**Breach One** (exposed gateways): Why hide behind the internal network? Because any service facing the public internet is attack surface. A pure internal-network architecture makes this entire class of attack vanish — the lobby isn't on the public internet at all, scanners find nothing.
-
-**Breach Two** (trojan skills): Why do you need skill governance? Because "the community is active" doesn't mean "the community is secure." Review processes, sandbox isolation, credential boundary injection — these are what keep skills doing only what they're supposed to do.
-
-**Breach Three** (prompt injection exfiltration): Why control egress? Because once an agent is poisoned, the only thing stopping data from leaving is the [egress proxy](/en/glossary#agent-proxy). No matter how fortified the entrance is, if an insider goes rogue, you've already lost.
-
-Claude's approach bakes these three things into the product — managed sandboxes, [Agent Proxy](/en/glossary#agent-proxy) with boundary-injected credentials, per-channel permission bundles. Half of what you're paying for with the monthly bill is "you don't have to handle security yourself." OpenClaw hands that entire responsibility back to the user. Free? Absolutely free. Set it up however you want. But when things go wrong, nobody's there to clean up the mess.
+Those 30,000+ exposed gateways each had someone behind them who thought "let's just get it running first, worry about the rest later." Attackers don't wait for "later."
 
 <ShroomDogNote>
-After four posts in this series, the conclusion is actually pretty old-school: **there's no free lunch**. Claude's managed approach costs a monthly bill and platform lock-in. OpenClaw's self-hosting freedom costs owning your entire security stack. Either path is fine, but you need to know what you're choosing.
+[This series](/en/posts/en-sd-28-20260715-claude-tag-intro/) across four posts ([LINE](/en/posts/en-sd-29-20260715-openclaw-line-selfhost/), [Teams](/en/posts/en-sd-30-20260715-openclaw-teams-intranet/), plus the [security starter guide](/en/posts/en-sp-18-20260202-openclaw-security-first-guide/)) comes down to something pretty old-school: **there's no free lunch**. [Claude tag](/en/glossary#claude-tag)'s managed approach costs a monthly bill and platform lock-in. OpenClaw's self-hosting freedom costs owning your entire security stack. Either path is fine, but you need to know what you're choosing. ╰(°▽°)╯
 </ShroomDogNote>
-
----
-
-## Conclusion
-
-The triple breach of early 2026 wasn't fancy zero-days. Wasn't nation-state hackers. It was just a lot of people not doing what they were supposed to do — didn't bind to localhost, didn't set passwords, didn't review skills, didn't control egress.
-
-Self-hosting freedom is beautiful. Modify whatever you want, no platform permission needed. But freedom was never free. Choose to self-host, choose to self-secure. Those 30,000+ exposed gateways each had someone behind them who thought "let's just get it running first, worry about the rest later."
-
-Attackers don't wait for "later."
-
-This series went from LINE to Teams, from GitLab to OpenClaw, a long winding road. The conclusion is simple: things on the internet need to be hidden well, locked well, or have their exits watched. Three defense lines, all essential. Do it right, and attackers cry at the 403. Miss one, and that agent isn't yours anymore.
 
 Choose freedom, carry the weight. It's an old line, but it never gets old.
