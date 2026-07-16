@@ -13,6 +13,15 @@
 - 寫 SP / CP / SD / Lv 前，如果任務涉及文章品質或風格，先快速掃這份檔案的近期條目。
 - 當同一類 feedback 出現 3 次以上，應該蒸餾進 `GU-LOG_WRITER_PROMPT.md`，必要時再同步到 pipeline prompt；不要永遠只留在 corpus 裡。
 
+## 2026-07-16 — SP-256：比喻不是免費造型，換世界會收認知稅
+
+### Feedback: 一篇最多三套比喻，理想是一開始選好一套並貫穿全文
+
+- ShroomDog feedback：`譬喻禁止多餘三個。理想情況是一開始就規劃好用哪個譬喻，然後從頭到尾都用同個譬喻/故事觀，不然譬喻根本不會幫到使用者理解，只會增加認知負擔`；並要求 writer、Vibe 與 Fresh Eyes 都嚴格抓出這種錯誤。
+- 情境：SP-256 的句子個別自然，但從考場、裁判、駕照、沒有鎖的門一路跳到高速公路煞車。同一批角色每換一個世界就得重新配對，Hassabis 的原始論證反而被二創式 explainer 蓋住。
+- 修法：全文改回 source-first；writer 原則與 Vibe / Fresh Eyes 的評分門檻分別收斂到 `GU-LOG_WRITER_PROMPT.md` 與 `scripts/vibe-scoring-standard.md`，不在 feedback corpus 複製會 drift 的分數細節。
+- Reusable lesson：比喻只有在讀者能沿用同一張 mental map 時才省腦。每開一個新世界都要付 mapping reset tax；不要把「很多比喻」誤認成 persona 或好懂。
+
 ## 2026-06-21 — SP-237: 自我指涉 callback 是 MoguNote 的靈魂
 
 ### Feedback: 原文講的東西 gu-log 自己也在做時，MoguNote 要把它接回 gu-log 自身
@@ -129,7 +138,7 @@
 ### Meta-feedback: feedback corpus 應該由 gu-log repo 追蹤，不能只放在單一 agent memory
 
 - ShroomDog feedback：`So where is the feedback corpse? How do u make sure all ai agents, clawd, iris, mac-cdx/cc will do this? Maybe we need to make it git tracked by gu-log, on my second thought`
-- 情境：第一版 log 放在 `/home/clawd/clawd/memory/gu-log-shroomdog-feedback.md`，這只保證 OpenClaw Clawd 看得到，不保證 Iris、mac-CC、Codex、Claude Code、pipeline writer 都會讀。
+- 情境：第一版 log 放在 `/home/clawd/clawd/memory/gu-log-shroomdog-feedback.md`，這只保證 OpenClaw Clawd 看得到，不保證 Iris、local machine actors、pipeline writer 都會讀。
 - 修法：把 corpus 移到 gu-log repo tracked file：`docs/shroomdog-editorial-feedback.md`，並在 repo-level instructions / writing guide / Clawd Picks prompt 裡加入口規則。
 - Reusable lesson：跨 agent 行為不能靠某個 agent 的私人記憶。要放在 repo-tracked SSOT，並從所有常用 agent entrypoint 指向它。
 

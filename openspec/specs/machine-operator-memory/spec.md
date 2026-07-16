@@ -5,7 +5,7 @@ TBD - created by archiving change secure-clawd-vm-github-operator. Update Purpos
 ## Requirements
 ### Requirement: Machine-specific operational memory SHALL 是 local-only
 
-mac-cdx 與 clawd-vm 的 machine-specific facts SHALL 存在 local machine note；若 dotfiles 提供 bootstrap copy，內容 MUST secret-free，且不得把 token value 或 private key 寫進 public project docs。
+Local machine actor（例如 `m1-cdx`）與 clawd-vm 的 machine-specific facts SHALL 存在 local machine note；若 dotfiles 提供 bootstrap copy，內容 MUST secret-free，且不得把 token value 或 private key 寫進 public project docs。
 
 #### Scenario: Record clawd-vm roles
 
@@ -27,9 +27,8 @@ Machine memory MUST NOT 包含 private keys、token values、passwords、recover
 
 當這台 Mac 有 local clawd-vm context 時，`~/.codex/AGENTS.md` SHALL 包含指向 local-only machine note 的 short pointer，讓 local Codex sessions 知道去哪裡找 machine-specific information。
 
-#### Scenario: Codex starts on mac-cdx
+#### Scenario: Codex starts as a local machine actor
 
 - **WHEN** Codex 在這台 Mac 讀取 global instructions
 - **THEN** Codex SHALL 能 discover local machine note location
 - **AND** global instruction SHALL remind agents 不要把 secrets 寫進該 note
-

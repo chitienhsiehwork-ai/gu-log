@@ -10,7 +10,7 @@
 //     (installed by the user) handle their own authentication, and we
 //     inherit whatever credentials they already have.
 //   - A Dispatcher composes a fallback chain. The default chain is Codex
-//     GPT-5.5 primary, matching the current mac-cdx workflow where Codex CLI
+//     GPT-5.5 primary, matching the current local Codex actor workflow where Codex CLI
 //     is the maintained local LLM harness.
 //   - Canary probes (sp-pipeline doctor --probe-llm) send a single short
 //     prompt through each provider independently, reporting which ones
