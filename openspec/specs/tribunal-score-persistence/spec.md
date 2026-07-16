@@ -67,7 +67,7 @@ Shell pipeline（`tribunal-all-claude.sh`）和 TypeScript pipeline（`pipeline.
 
 #### Scenario: 有英文版的文章同步更新
 
-- **WHEN** scores 寫入 `sp-177-20260421-slug.mdx`
+- **WHEN** scores 寫入 `gp-177-20260421-slug.mdx`
 - **AND** `en-gp-177-20260421-slug.mdx` 存在
 - **THEN** 兩個檔案的 `scores` 區塊 SHALL 完全一致
 
@@ -111,4 +111,3 @@ Legacy shell pipeline（`tribunal-all-claude.sh`）和 v2 TypeScript pipeline（
 - **WHEN** `scores.vibe` 已存在（來自之前的 tribunal run）
 - **AND** 同一文章重新跑 tribunal，vibe-scorer 再次 PASS 得到新分數
 - **THEN** `scores.vibe` SHALL 更新為新分數
-

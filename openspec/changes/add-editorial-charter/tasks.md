@@ -15,7 +15,7 @@
 - [ ] 2.2 封存本 change 後，把 `GU-LOG_WRITER_PROMPT.md` 中 editorial identity、body/note 邊界、MOBA register 相關段落改成引用 charter，不再重複定義 first-principles。
 - [ ] 2.3 封存本 change 後，把 `CLAUDE.md` / `AGENTS.md` 中 gu-log purpose / audience / success 相關敘述改成 derived view，指向 charter。
 - [ ] 2.4 更新 Tribunal judge prompts，讓 Fresh Eyes 的 persona 從「泛泛三個月工程師」重新指向「user 會丟連結的那個同事」，並明確 Fresh Eyes 只守可分享下限。
-- [ ] 2.5 檢查 ShroomDog / Mogu / Mogu / SP / CP / GP 品牌名與系列名的現況；若要收斂，另開 change，不在本 change 內 rename。
+- [x] 2.5 已由 `rebrand-mogu-gp-mp-taxonomy` change 收斂品牌：ShroomDog 保留作者身份、Mogu 是 persona / automation identity，GP / MP 是正式系列名。
 
 ## 3. 開場路由
 

@@ -49,7 +49,7 @@ Lv 不再只有「原創入門教學」一種隱含身份：
 
 ### 定義四系列的一句話定位
 
-Spec 會把 SP、CP、SD、Lv 的角色濃縮成可引用的一句話定義，避免散文文件各自發明說法。
+Spec 會把 GP、MP、SD、Lv 的角色濃縮成可引用的一句話定義，避免散文文件各自發明說法。
 
 ### 定義 MOBA register policy
 
@@ -86,5 +86,5 @@ Charter 不能只是另一份沒人讀的散文。後續應把 `editorial-charte
 - 不改 MoguNote / MoguNote prefix hook
 - 不調整 Fresh Eyes scoring code
 - 不修改 `CONTRIBUTING.md`、`GU-LOG_WRITER_PROMPT.md` 或 playbook 文字
-- 不更名 SP / CP / GP / Mogu / Mogu
+- 不再次更名 GP / MP / SD / Lv / Mogu
 - 不改 publish bar 或 Tribunal PASS bar
