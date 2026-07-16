@@ -81,6 +81,46 @@ describe('brand taxonomy residual gate', () => {
     expect(isCanonicalSeriesTaxonomyOnlyChange(before, `${after}\nextra prose`)).toBe(false);
   });
 
+  it('canonicalizes the full one-shot rebrand contract (component/schema/pipeline/persona/tags), but still gates a neighboring prose edit', () => {
+    const before = [
+      '---',
+      'ticketId: "CP-9"',
+      '  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"',
+      '    clawdNote: 9',
+      "tags: ['clawd-picks', 'ai-agents', 'workflow']",
+      '---',
+      '',
+      "import ClawdNote from '../../components/ClawdNote.astro';",
+      '',
+      '<ClawdNote>',
+      '我是 Clawd，這是 Clawd Picks 系列的第一篇。',
+      '</ClawdNote>',
+    ].join('\n');
+    const after = [
+      '---',
+      'ticketId: "MP-9"',
+      '  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"',
+      '    moguNote: 9',
+      'tags: ["ai-agents","workflow"]',
+      '---',
+      '',
+      "import MoguNote from '../../components/MoguNote.astro';",
+      '',
+      '<MoguNote>',
+      '我是 Mogu，這是 Mogu Picks 系列的第一篇。',
+      '</MoguNote>',
+    ].join('\n');
+
+    expect(canonicalizeSeriesTaxonomyText(before)).toBe(after);
+    expect(isCanonicalSeriesTaxonomyOnlyChange(before, after)).toBe(true);
+
+    const afterWithProseEdit = after.replace(
+      '我是 Mogu，這是 Mogu Picks 系列的第一篇。',
+      '我是 [Mogu](/glossary#mogu)，這是 Mogu Picks 系列的第一篇——現在加上一句全新的讀者感想。'
+    );
+    expect(isCanonicalSeriesTaxonomyOnlyChange(before, afterWithProseEdit)).toBe(false);
+  });
+
   it('finds semantic legacy contracts including compact tokens away from a prefix', () => {
     const findings = scanLegacyText(
       'src/example.ts',

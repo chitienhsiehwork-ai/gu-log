@@ -18,14 +18,14 @@
       "path": "scripts/check-brand-taxonomy.mjs",
       "rule": "component",
       "token": "ClawdNote",
-      "expectedCount": 1,
+      "expectedCount": 3,
       "reason": "Scanner rule definition for the retired component contract."
     },
     {
       "path": "scripts/check-brand-taxonomy.mjs",
       "rule": "external-workspace-coordinate",
       "token": "clawd-workspace",
-      "expectedCount": 1,
+      "expectedCount": 2,
       "reason": "Scanner rule definition for the retired external workspace coordinate."
     },
     {
@@ -44,6 +44,13 @@
     },
     {
       "path": "scripts/check-brand-taxonomy.mjs",
+      "rule": "legacy-full-persona",
+      "token": "ShroomClawd",
+      "expectedCount": 1,
+      "reason": "Scanner canonicalization pattern for the retired compound persona contract."
+    },
+    {
+      "path": "scripts/check-brand-taxonomy.mjs",
       "rule": "legacy-identifier",
       "token": "--color-clawd",
       "expectedCount": 1,
@@ -58,23 +65,37 @@
     },
     {
       "path": "scripts/check-brand-taxonomy.mjs",
+      "rule": "legacy-prefix-value",
+      "token": "CP",
+      "expectedCount": 1,
+      "reason": "Scanner canonicalization comment documenting the retired CP series counter idiom."
+    },
+    {
+      "path": "scripts/check-brand-taxonomy.mjs",
+      "rule": "legacy-prefix-value",
+      "token": "SP",
+      "expectedCount": 1,
+      "reason": "Scanner canonicalization comment documenting the retired SP series counter idiom."
+    },
+    {
+      "path": "scripts/check-brand-taxonomy.mjs",
       "rule": "legacy-route",
       "token": "clawd-picks",
-      "expectedCount": 2,
+      "expectedCount": 4,
       "reason": "Scanner rule and path definitions for retired listing routes."
     },
     {
       "path": "scripts/check-brand-taxonomy.mjs",
       "rule": "legacy-route",
       "token": "shroom-picks",
-      "expectedCount": 1,
+      "expectedCount": 2,
       "reason": "Scanner rule definition for retired listing routes."
     },
     {
       "path": "scripts/check-brand-taxonomy.mjs",
       "rule": "legacy-route",
       "token": "shroomdog-picks",
-      "expectedCount": 1,
+      "expectedCount": 2,
       "reason": "Scanner rule definition for retired listing routes."
     },
     {
@@ -102,7 +123,7 @@
       "path": "scripts/check-brand-taxonomy.mjs",
       "rule": "persona",
       "token": "Clawd",
-      "expectedCount": 1,
+      "expectedCount": 2,
       "reason": "Scanner rule definition for the retired persona."
     },
     {
@@ -130,7 +151,7 @@
       "path": "tests/brand-taxonomy-residual.test.ts",
       "rule": "component",
       "token": "ClawdNote",
-      "expectedCount": 3,
+      "expectedCount": 7,
       "reason": "Regression fixtures and assertions for the retired component."
     },
     {
@@ -255,9 +276,23 @@
     {
       "path": "tests/brand-taxonomy-residual.test.ts",
       "rule": "legacy-route",
+      "token": "clawd-picks",
+      "expectedCount": 1,
+      "reason": "Test fixture for the retired series tag dropped from frontmatter tags arrays."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "legacy-route",
       "token": "shroomdog-picks",
       "expectedCount": 2,
       "reason": "Regression fixture and assertion for a retired listing route."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "legacy-series-name",
+      "token": "Clawd Picks",
+      "expectedCount": 1,
+      "reason": "Test fixture for the retired series display-name canonicalization."
     },
     {
       "path": "tests/brand-taxonomy-residual.test.ts",
@@ -270,7 +305,7 @@
       "path": "tests/brand-taxonomy-residual.test.ts",
       "rule": "persona",
       "token": "Clawd",
-      "expectedCount": 9,
+      "expectedCount": 11,
       "reason": "Regression fixtures and assertions for exact persona exceptions."
     },
     {
@@ -326,7 +361,7 @@
       "path": "tests/brand-taxonomy-residual.test.ts",
       "rule": "schema-key",
       "token": "clawdNote",
-      "expectedCount": 2,
+      "expectedCount": 3,
       "reason": "Regression fixture and assertion for the retired score key."
     },
     {
@@ -335,6 +370,13 @@
       "token": "CP-12",
       "expectedCount": 2,
       "reason": "Regression fixture and assertion for a retired ticket ID."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "ticket-id",
+      "token": "CP-9",
+      "expectedCount": 1,
+      "reason": "Test fixture for the full-contract canonicalization regression."
     },
     {
       "path": "tests/brand-taxonomy-residual.test.ts",
@@ -926,10 +968,38 @@
     },
     {
       "path": "tests/list-content-gate-posts.test.ts",
+      "rule": "component",
+      "token": "ClawdNote",
+      "expectedCount": 4,
+      "reason": "Test fixture for the component contract rewrite exclusion in the content gate."
+    },
+    {
+      "path": "tests/list-content-gate-posts.test.ts",
+      "rule": "legacy-route",
+      "token": "clawd-picks",
+      "expectedCount": 1,
+      "reason": "Test fixture filename for the retired descriptive slug rename exclusion."
+    },
+    {
+      "path": "tests/list-content-gate-posts.test.ts",
       "rule": "post-slug",
       "token": "sp-1-migration",
       "expectedCount": 1,
       "reason": "Content-gate regression names the retired slug only to prove a taxonomy rename with reader-prose edits remains gated."
+    },
+    {
+      "path": "tests/list-content-gate-posts.test.ts",
+      "rule": "schema-key",
+      "token": "clawdNote",
+      "expectedCount": 1,
+      "reason": "Test fixture for the schema-key contract rewrite exclusion in the content gate."
+    },
+    {
+      "path": "tests/list-content-gate-posts.test.ts",
+      "rule": "ticket-id",
+      "token": "CP-1",
+      "expectedCount": 2,
+      "reason": "Test fixture ticket for the component/schema/pipeline contract rewrite exclusion."
     },
     {
       "path": "tests/list-content-gate-posts.test.ts",

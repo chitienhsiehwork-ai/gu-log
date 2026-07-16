@@ -89,4 +89,52 @@ describe('list-content-gate-posts taxonomy migration scope', () => {
       fs.rmSync(repo, { recursive: true, force: true });
     }
   });
+
+  it('exempts a rename that also carries the component/schema-key/pipeline contract rewrite', () => {
+    const repo = makeRepo();
+
+    try {
+      const oldFile = 'src/content/posts/clawd-picks-1-migration.mdx';
+      const newFile = 'src/content/posts/mp-1-migration.mdx';
+      // Stable body content keeps the old/new blob similarity above git's
+      // default rename-detection threshold, matching how real posts (mostly
+      // untouched prose plus a handful of contract-field rewrites) trigger
+      // rename detection in practice.
+      const oldBody = [
+        '---',
+        'ticketId: "CP-1"',
+        '  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"',
+        '    clawdNote: 9',
+        '---',
+        '',
+        "import ClawdNote from '../../components/ClawdNote.astro';",
+        '<ClawdNote>marker note</ClawdNote>',
+        post('CP-1', 'post-1'),
+      ].join('\n');
+      const newBody = [
+        '---',
+        'ticketId: "MP-1"',
+        '  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"',
+        '    moguNote: 9',
+        '---',
+        '',
+        "import MoguNote from '../../components/MoguNote.astro';",
+        '<MoguNote>marker note</MoguNote>',
+        post('MP-1', 'post-1'),
+      ].join('\n');
+      fs.writeFileSync(path.join(repo, oldFile), oldBody);
+      git(repo, ['add', '.']);
+      git(repo, ['commit', '-qm', 'seed legacy post']);
+      git(repo, ['branch', 'base']);
+
+      git(repo, ['mv', oldFile, newFile]);
+      fs.writeFileSync(path.join(repo, newFile), newBody);
+      git(repo, ['add', '.']);
+      git(repo, ['commit', '-qm', 'canonicalize taxonomy']);
+
+      expect(runGate(repo)).toEqual([]);
+    } finally {
+      fs.rmSync(repo, { recursive: true, force: true });
+    }
+  });
 });
