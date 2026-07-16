@@ -9,10 +9,9 @@ import (
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/runner"
 )
 
-// ClaudeProvider shells out to `claude -p --model <model>`. It is retained as
-// a historical compatibility wrapper only; the maintained GP pipeline runtime
-// and doctor probe chain do not include Claude by default because the Mogu VM
-// should not assume Anthropic env/login exists.
+// ClaudeProvider shells out to `claude -p --model <model>`. It is the preferred
+// local writer when Claude Code is available and an explicit judge fallback;
+// Mogu VM runs fall back to Codex when the Claude CLI is absent.
 //
 //   - Non-root (VPS Mogu, dev laptops) → bypassPermissions: the broadest
 //     setting and the one the bash pipeline historically used.

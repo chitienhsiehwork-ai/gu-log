@@ -1,7 +1,7 @@
 // Package llm is the dispatcher layer around the external language model
-// CLIs the pipeline can call. The maintained production runtime is Codex;
-// older Claude/Gemini wrappers remain only for compatibility tests and
-// historical fallback experiments.
+// CLIs the pipeline can call. Writing prefers the pinned Claude writer when
+// available and otherwise uses Codex; judges default to Codex with an explicit
+// Claude fallback policy. Gemini is available only for experiments.
 //
 // Design notes:
 //
@@ -45,9 +45,8 @@ var claudeFamilyRe = regexp.MustCompile(`claude-(opus|sonnet|haiku)-([0-9]+)-([0
 // in translatedBy.model. Unknown IDs pass through unchanged so the caller
 // fails loudly at validation time instead of silently truncating.
 //
-// Claude/Gemini display names are retained because historical frontmatter and
-// old fake-provider tests may still mention them. New production credits should
-// normally record GPT-5.5 + Codex CLI.
+// Claude/Gemini display names remain valid provenance values. Production
+// credits record whichever configured provider actually handled the step.
 func DisplayName(m ModelID) string {
 	raw := string(m)
 	normalized := strings.TrimPrefix(raw, "anthropic/")

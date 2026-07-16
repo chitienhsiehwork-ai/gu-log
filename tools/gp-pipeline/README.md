@@ -79,7 +79,7 @@ internal/runner/            external command boundary
 cd tools/gp-pipeline
 go fmt ./...
 go test ./...
-go build ./cmd/gp-pipeline
+go build -o bin/gp-pipeline ./cmd/gp-pipeline
 ```
 
 若 sandbox 不允許使用使用者的 Go build cache，可只把 cache 指到暫存目錄：

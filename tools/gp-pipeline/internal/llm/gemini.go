@@ -7,10 +7,8 @@ import (
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/runner"
 )
 
-// GeminiProvider shells out to the Gemini CLI. It is retained as a historical
-// compatibility wrapper only; the maintained GP pipeline runtime and doctor
-// probe chain do not include Gemini by default because the Mogu VM should not
-// assume a Gemini subscription or login exists.
+// GeminiProvider shells out to the Gemini CLI. It is not in the maintained
+// writer, judge, or doctor chains; the type remains for explicit experiments.
 type GeminiProvider struct {
 	// ModelName is passed as --model, defaults to "gemini-3.1-pro-preview".
 	ModelName string

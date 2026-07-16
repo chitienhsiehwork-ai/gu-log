@@ -386,15 +386,6 @@ body
 	s.SkipPush = true
 	s.SkipValidate = true
 
-	// Drop a no-op validator AND swap npm for a shim so we don't hit
-	// the real tooling. Prepend a local bin dir to PATH.
-	binDir := filepath.Join(tmp, "bin")
-	_ = os.MkdirAll(binDir, 0o755)
-	_ = os.WriteFile(filepath.Join(scriptsDir, "validate-posts.mjs"), []byte(""), 0o644)
-	_ = os.WriteFile(filepath.Join(binDir, "npm"), []byte("#!/usr/bin/env bash\nexit 0\n"), 0o755)
-	oldPath := os.Getenv("PATH")
-	t.Setenv("PATH", binDir+":"+oldPath)
-
 	if err := s.Deploy(context.Background()); err != nil {
 		t.Fatalf("Deploy: %v", err)
 	}
