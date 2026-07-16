@@ -5,7 +5,7 @@
 ## Requirements
 ### Requirement: Broad operator token SHALL 被限制在 AI lab organization
 
-Iris / Mogu 的 broad GitHub operator credentials SHALL 只作用在 dedicated AI lab organization，prefer name 為 `shroomdog-ai-lab`，並且 SHALL NOT 包含 `chitienhsiehwork-ai/gu-log`。
+Iris / Mogu 的 broad GitHub operator credentials SHALL 只作用在 dedicated AI lab organization，prefer name 為 `shroomdog-ai-lab`，並且 SHALL NOT 包含 `chitienhsiehwork-ai/gu-log`。Legacy host or Unix account names SHALL NOT change this permission boundary.
 
 #### Scenario: 為 Iris 或 Mogu 建立 broad token
 

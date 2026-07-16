@@ -64,18 +64,18 @@ Residual inventory 分三類：
 
 `sources/**` 與 archived OpenSpec decision records 是 immutable history trees，可由中央 scanner policy 具名排除；verbatim editorial feedback 可保留引文，但 active lesson / instruction 仍須使用 canonical vocabulary。Active code / docs / posts 的例外必須以 exact path + exact token + reason 集中記錄，不能靠 blanket path exception 躲過 gate。Scanner 不掃 bare `SP` / `CP` 子字串，只掃 ticket、slug、route、tag、label、component、schema key、command 等語意明確 pattern。
 
-### D6 — Code/schema first，content second，alias last
+### D6 — Merge-ready contract 只保留 canonical 值
 
 Migration ordering：
 
 1. 產生 tracked inventory 與 rename manifest，釘住 pair / duplicate / counter invariants。
-2. Core commit 暫時 additive-read：validators、types、serialization、routing、counter、pipeline 與 tests 能讀舊值並完整支援新 contract；這個過渡只允許存在 feature branch 中。
-3. Corpus commit 以 deterministic codemod 搬移全部 score data、ticket references、內鏈、tags 與 filenames；第二次執行必須 zero diff。
+2. Validators、types、serialization、routing、counter、pipeline 與 tests 的最終狀態只接受 canonical contract；已退役輸入必須 fail closed。
+3. Corpus 以 deterministic codemod 搬移全部 score data、ticket references、內鏈、tags 與 filenames；第二次執行必須 zero diff。
 4. 更新 UI / CSS / assets / docs / prompts / OpenSpec examples。
 5. Cleanup commit 移除舊 read、aliases / shims / legacy routes，啟用 hard residual gate並重新產生 derived manifests。
-6. 跑 residual gate、內容驗證、unit / integration / Go tests、Astro check/build、兩主題視覺 QA 與 production smoke test。
+6. 合併前跑 residual gate、內容驗證、unit / integration / Go tests、Astro check/build、兩主題視覺 QA 與 preview／local route evidence；合併後 production smoke 依 cutover runbook 執行。
 
-不能先搬 content 再補 checker；那會讓中間狀態無法判斷是真錯還是 tooling drift。
+Tracked inventory、rename manifest 與 residual checker 必須在 final acceptance 前一起存在，讓任何中間 commit 都能對照不變量，而不是用未留證據的人工改名宣稱完成。
 
 ## Invariants
 
@@ -124,14 +124,14 @@ Migration ordering：
 - **大量 rename 造成 pair / link 漏改**：以 rename manifest、link resolver 與 pair audit 擋住。
 - **score schema 只改一半**：以 fixture 同時涵蓋 parse → judge output → persist → render，並禁止 fallback key。
 - **歷史引文被誤改**：codemod 只做 syntax-aware / exact-pattern migration；prose residual 另行人工語意審查。
-- **external VM automation 尚在讀舊檔名**：repo merge 前盤點外部 entrypoint；若不能原子切換，先在 VM 更新 invocation 到新 canonical path，再 merge。Unix identity 本身不在本 change 改名。
+- **external VM automation 尚在讀舊檔名**：repo merge 前只盤點外部 entrypoint，並在人類檢查點②後取得 producer fence；合併前不改 invocation。外部 entrypoint 只從 merged `origin/main` 的 fresh worktree 切換。Unix identity 本身不在本 change 改名。
 - **post-version / reader state 重新識別文章**：這是已接受的 breaking behavior；derived manifest 必須反映新 slugs，不能用 alias 偽裝舊 identity。
 - **git-history generator 把舊 slug 長回來**：`post-versions` 目前會掃完整 history；rename 後必須先改 generator 以 current canonical post set 為輸出 domain，再重新產生，不能把歷史路徑當 live key。
 - **Giscus thread mapping 失聯**：pathname 變更會使舊文章討論串不再自動接回；這是已接受的 breaking behavior，production smoke evidence 必須明確記錄，不能誤報為無影響。
 
 ## Live VM cutover
 
-只有 final human checkpoint② 通過後才開始 live cutover。Repo migration 與外部 producer 必須用可回退的 stop-the-world cutover，避免 merge 前後仍有舊 CP/Clawd output 寫回：
+流程固定為 final human checkpoint② → producer fence → merge → external cutover。Repo migration 與外部 producer 必須用可回退的 stop-the-world cutover，避免 merge 前後仍有已退役 contract output 寫回：
 
 1. Graceful stop Mogu Picks cron / daemon / queue producer；Tribunal 只在其 invocation path 受影響時一併停。
 2. 不對現有 stale/dirty VM checkout 做 pull/reset；從 merged `origin/main` 建立 blue/green fresh worktree，舊 checkout 保留作 rollback evidence。
