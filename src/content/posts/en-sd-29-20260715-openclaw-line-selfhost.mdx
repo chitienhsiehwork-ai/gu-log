@@ -37,18 +37,18 @@ scores:
     model: "claude-opus-4-8"
   vibe:
     persona: 8
-    clawdNote: 8
+    clawdNote: 9
     vibe: 8
     narrative: 8
     score: 8
     date: "2026-07-16"
     model: "claude-opus-4-5"
   librarian:
-    glossary: 7
-    crossRef: 5
+    glossary: 8
+    crossRef: 9
     sourceAlign: 8
     attribution: 8
-    score: 7
+    score: 8
     date: "2026-07-16"
     model: "claude-opus-4-8"
 ---
@@ -57,7 +57,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 import MoguNote from '../../components/MoguNote.astro';
 import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
-After Claude tag launched, LINE users could only watch with envy as others @-mentioned their AI assistants on [Slack](/en/glossary#slack). Anthropic's official answer on LINE support? "No plans."
+After [Claude tag](/en/glossary#claude-tag) launched, LINE users could only watch with envy as others @-mentioned their AI assistants on [Slack](/en/glossary#slack). Anthropic's official answer on LINE support? "No plans."
 
 So build one yourself.
 
@@ -65,8 +65,8 @@ So build one yourself.
 
 This post covers the replicable skeleton and the "why," not a screenshot-by-screenshot tutorial. If you want to follow along, you'll know the direction by the end — for the details, check OpenClaw's official docs.
 
-<ClawdNote>
-This is a four-part series where ShroomDog documents moving an AI assistant onto various platforms. Part one: Claude tag basics. Part two (this one): self-hosting on LINE. Part three: the security horror show. Part four: Teams on a corporate intranet. From maximum freedom to maximum lockdown, one step at a time.
+<ClawdNote summary="Anthropic skipping LINE is a business call — which makes it the perfect DIY sweet spot.">
+Anthropic skipping LINE is a business call, not a technical limitation — LINE is an Asia-focused platform, mostly Japan and Taiwan, so it's low priority for a US company. But that's exactly the sweet spot for self-hosting: the places official platforms won't go are the DIY player's turf. Instead of waiting for handouts, just build it yourself — once it's up, you can change anything you want. This four-part series is [ShroomDog](/en/about) documenting the journey of moving an AI assistant onto various platforms: [part one (basics)](/en/posts/en-sd-28-20260715-claude-tag-intro) → LINE self-hosting (this one) → [Teams enterprise](/en/posts/en-sd-30-20260715-openclaw-teams-intranet) → [the security horror show](/en/posts/en-sd-31-20260715-openclaw-security-crisis). From maximum freedom to maximum lockdown — and the further you go, the heavier the responsibility (´・ω・`)
 </ClawdNote>
 
 ---
@@ -101,19 +101,18 @@ Some LINE limitations to know upfront:
 - **5,000-character message limit**: Exceed it and the message gets split into chunks, breaking up the reading flow.
 - **10MB default for incoming media**: Send larger files and LINE blocks them.
 
+<ClawdNote summary="LINE's limits all say one thing: it's a chat app, not a file system. Stop fighting it.">
+These three limitations are really saying the same thing: LINE is a chat app, not a file system. It's designed for "short messages, quick back-and-forth," not "AI writes you a dissertation." If you want to run an AI assistant on LINE, you have to accept that premise first, then work around it — chunk your replies, use Flex for formatting, tell people to send cloud links for large files. Complaining about LINE's limitations is pointless; it was never designed to be an AI carrier in the first place. ┐(￣ヘ￣)┌
+</ClawdNote>
+
 ---
 
 ## The Setup Skeleton
 
-For the details, see the official docs. Here's just the skeleton:
-
-1. **Create a Messaging API channel in the LINE Developers console**: Get a channel access token and channel secret. These two things are your credentials for talking to LINE.
-2. **Run the gateway on the VPS and install the LINE plugin**: OpenClaw has an official Docker image, or you can install via npm.
-3. **Fill in the webhook URL back in the LINE console**: Tell LINE "when someone messages this bot, hit this URL."
-4. **Pairing**: OpenClaw doesn't respond to just anyone by default — pairing comes first. This is by design, not a bug.
+For the details, see the official docs. Here's just the skeleton. The logic goes like this: first grab your credentials from LINE (channel access token and channel secret), then spin up the gateway on your VPS with the LINE plugin installed, go back to the LINE console to register your webhook URL so it knows "when someone messages this bot, hit this address." Finally, don't forget pairing — OpenClaw doesn't respond to just anyone by default, you need to pair first. That's by design, not a bug.
 
 <ShroomDogNote>
-The webhook URL in step three must be public HTTPS — localhost won't work. For local testing, ngrok or cloudflared can serve as a temporary tunnel; for production, you'll need your own domain and certificate.
+The webhook URL must be public HTTPS — localhost won't work. For local testing, ngrok or cloudflared can serve as a temporary tunnel; for production, you'll need your own domain and certificate.
 </ShroomDogNote>
 
 ---
@@ -127,7 +126,7 @@ These three aren't optional. They're required. Skip any one and you've basically
 OpenClaw's LINE channel responds to unknown messages with a pairing code by default, not immediate replies. This is the concrete implementation of "there's a guard in the lobby" — you want to talk to the bot, first prove you're someone the owner approved.
 
 <ClawdNote>
-A lot of people ask "why isn't the bot responding?" Nine times out of ten, they forgot to pair first. This isn't a bug. It's OpenClaw's first line of defense against "anyone can message and burn your API quota."
+A lot of people ask "why isn't the bot responding?" Nine times out of ten, they forgot to pair first. But honestly, this design has saved plenty of wallets — without it, any rando who knows the bot account can spam messages and burn your API quota. OpenClaw baked "distrust by default" into the product, not out of laziness, but to take a bullet for users. People who complain about the pairing hassle will learn to be grateful when the bill arrives. (ง •̀_•́)ง
 </ClawdNote>
 
 **Number Two: HMAC Signature Verification**
@@ -143,7 +142,7 @@ HMAC stands for Hash-based Message Authentication Code. In simple terms: "use a 
 The gateway should hide behind a reverse proxy, binding only to `127.0.0.1`. Binding directly to `0.0.0.0` and exposing it to the whole internet is running naked — anyone who knows the IP can bypass the reverse proxy and poke the gateway directly.
 
 <ClawdNote>
-Why is this one so critical? The next post on the security horror show reveals 40,000 counterexamples. Memorize this rule now, and when you see that number, think back to whether you got it right.
+Why is this one so critical? [The next post on the security horror show](/en/posts/en-sd-31-20260715-openclaw-security-crisis) reveals 40,000 counterexamples. Memorize this rule now, and when you see that number, think back to whether you got it right.
 </ClawdNote>
 
 ---
@@ -182,6 +181,10 @@ With all this set up, the effect is pretty similar to Claude tag — a friend @-
 
 The difference is that Claude tag means Anthropic handles everything. Self-hosting means freedom comes with responsibility. Connect any platform you want, but binding to localhost, verifying signatures, and managing egress are all on you. Do it right and it's freedom. Do it wrong and you're running naked.
 
-The next post covers the security horror show: what happens when these "do it right" things aren't done right. The story of 40,000 naked servers will make these three must-haves very concrete.
+<ClawdNote summary="gu-log itself runs on self-hosted OpenClaw — freedom with responsibility, no regrets.">
+Honestly, gu-log itself was raised on this exact stack. Before this post reached your eyes, it went through scoring by four AI judges, automated webhook-triggered pipeline runs, and Clawd answering ShroomDog's proofreading questions on LINE — all running on self-hosted OpenClaw. Freedom really does come with responsibility, but that responsibility buys you "connect whatever you want, change whatever you want" — total control. Official platforms give you a babysitter. Self-hosting gives you your own turf. Which one you pick is personal, but gu-log picked the latter, and hasn't regretted it once. ╰(°▽°)╯
+</ClawdNote>
 
-The post after that covers Teams for enterprise — that's a different kind of hell. The intranet isn't without doors; corporate IT has welded them shut. Want to run your own agent on the company network? Start by preparing for a fight with IT.
+[The next post covers the security horror show](/en/posts/en-sd-31-20260715-openclaw-security-crisis): what happens when these "do it right" things aren't done right. The story of 40,000 naked servers will make these three must-haves very concrete.
+
+The post after that covers [Teams for enterprise](/en/posts/en-sd-30-20260715-openclaw-teams-intranet) — that's a different kind of hell. The intranet isn't without doors; corporate IT has welded them shut. Want to run your own agent on the company network? Start by preparing for a fight with IT.
