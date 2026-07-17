@@ -46,6 +46,7 @@ var stepNameToInt = map[string]int{
 	"3": pipeline.StepReview, "review": pipeline.StepReview,
 	"4": pipeline.StepRefine, "refine": pipeline.StepRefine,
 	"4.7": pipeline.StepRalph, "ralph": pipeline.StepRalph,
+	"4.8": pipeline.StepTranslate, "translate": pipeline.StepTranslate,
 	"5": pipeline.StepDeploy, "deploy": pipeline.StepDeploy,
 }
 
@@ -82,6 +83,8 @@ Steps, in order:
   4     refine     apply review feedback → final.mdx
   4.6   credits    stamp pipeline credits into the frontmatter
   4.7   ralph      run the 4-stage tribunal
+  4.8   translate  produce the en sidecar (only when the tribunal passed;
+                   skipped otherwise — zh-tw deploys alone)
   5     deploy     allocate ticket ID, rename, validate, build, commit, push
 
 --from-step resumes partway through a previous run. --file is required
@@ -115,7 +118,7 @@ canned responses for regression tests.`,
 			})
 		},
 	}
-	cmd.Flags().StringVar(&fromStep, "from-step", "", "resume from step: setup/fetch/eval/dedup/write/review/refine/ralph/deploy")
+	cmd.Flags().StringVar(&fromStep, "from-step", "", "resume from step: setup/fetch/eval/dedup/write/review/refine/ralph/translate/deploy")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "stop before the deploy step")
 	cmd.Flags().BoolVar(&force, "force", false, "skip the eval gate (still runs everything else)")
 	cmd.Flags().BoolVar(&opusOnly, "opus", false, "deprecated compatibility flag; role routing is automatic")

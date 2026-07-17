@@ -155,6 +155,15 @@ tags: ["shroom-picks", "ai"]
 ---
 body refined
 `, WriteFile: "final.mdx"},
+		llm.FakeResponse{Output: `---
+title: "Fake Title"
+ticketId: "SP-PENDING"
+lang: "en"
+summary: "fake summary"
+tags: ["shroom-picks", "ai"]
+---
+translated body
+`, WriteFile: "translated-en.mdx"},
 	)
 	disp, err := llm.NewDispatcher(logx.New(), fake)
 	if err != nil {
@@ -202,6 +211,11 @@ func TestRun_HappyPath(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(s.WorkDir, "pipeline-status.json")); err != nil {
 		t.Errorf("pipeline-status.json missing: %v", err)
+	}
+	if s.ActiveENFilename == "" {
+		t.Errorf("translate step should have set ActiveENFilename when RalphPassed")
+	} else if _, err := os.Stat(filepath.Join(s.Cfg.PostsDir, s.ActiveENFilename)); err != nil {
+		t.Errorf("en sidecar missing: %v", err)
 	}
 
 	// Summary output.
@@ -316,6 +330,18 @@ body
 	}
 	s.ExistingFile = existing
 	s.AuthorHandle = "fakeauthor"
+	// FromStepInt=StepRalph still runs ralph AND translate (48 >= 47), so the
+	// dispatcher needs one response for translate even though write/review/
+	// refine are skipped and never touch the queue.
+	translateFake := llm.NewFakeClaude().WithResponses(llm.FakeResponse{
+		Output:    "---\ntitle: \"Resume Fake\"\nlang: \"en\"\n---\ntranslated\n",
+		WriteFile: "translated-en.mdx",
+	})
+	translateDisp, err := llm.NewDispatcher(logx.New(), translateFake)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.Dispatcher = translateDisp
 	_, _ = SetupWorkDir(s)
 
 	if err := Run(context.Background(), s); err != nil {
