@@ -255,7 +255,36 @@ func normalizeRalphFrontmatter(path string, stamp PipelineStamp) error {
 	f.SetBlock("  pipeline", renderPipelineBlock("  pipeline", entries))
 	f.SetNestedScalar("translatedBy", "pipelineUrl", quoted(finalPipelineURL))
 
+	// The `source:` value is LLM-authored free text (from --source-label
+	// or the writer's own choice, e.g. "Simon Willison's Weblog") and its
+	// quoting is whatever the writer LLM happened to produce — unquoted,
+	// single-quoted, or double-quoted-but-unescaped are all possible and
+	// some of those are invalid YAML (gu-log #546). Deterministically
+	// re-serialize it here, the last frontmatter normalizer before the
+	// file lands in posts dir, so the on-disk value is always valid YAML
+	// regardless of what the LLM wrote.
+	if raw, ok := f.GetScalar("source"); ok {
+		f.SetScalar("source", quoted(unquoteBestEffort(raw)))
+	}
+
 	return os.WriteFile(path, f.Bytes(), 0o644)
+}
+
+// unquoteBestEffort strips a single layer of surrounding quotes (either
+// double or single) from a raw frontmatter scalar value, if present. It is
+// deliberately not a full YAML scalar unescaper — frontmatter.go's package
+// doc explicitly scopes this package to line-level text surgery, not a
+// YAML round-trip engine (see internal/frontmatter/frontmatter.go). This
+// is "good enough to recover the writer's intended text" for the one call
+// site that needs it (normalizeRalphFrontmatter's `source:` re-quote),
+// not a general-purpose YAML scalar parser.
+func unquoteBestEffort(raw string) string {
+	if len(raw) >= 2 {
+		if (raw[0] == '"' && raw[len(raw)-1] == '"') || (raw[0] == '\'' && raw[len(raw)-1] == '\'') {
+			return raw[1 : len(raw)-1]
+		}
+	}
+	return raw
 }
 
 // extractTitle scans a file's frontmatter for the title: line.
