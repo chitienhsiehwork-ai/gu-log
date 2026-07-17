@@ -107,6 +107,12 @@ jobs:
       - name: Dedup check (block active duplicates)
         run: node scripts/validate-posts.mjs --check-duplicates
 
+      - name: Reader revision manifest freshness (blocking)
+        # Content-derived hash check — no git history needed, safe on any
+        # checkout depth. Guards repo hygiene: committed manifest must match
+        # posts content (prod builds regenerate it via fail-closed prebuild).
+        run: node scripts/build-reader-revision-manifest.mjs --check
+
       - name: Translation pair gate (PR only — block new SP/CP/SD/Lv missing zh-tw or en)
         if: github.event_name == 'pull_request'
         run: |
