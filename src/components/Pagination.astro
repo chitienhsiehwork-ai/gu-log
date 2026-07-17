@@ -41,7 +41,9 @@ const show = page.lastPage > 1;
             {t.prev}
           </a>
         ) : (
-          <span class="pagination-link pagination-prev pagination-disabled">{t.prev}</span>
+          <span class="pagination-link pagination-prev pagination-disabled" aria-disabled="true">
+            {t.prev}
+          </span>
         )}
 
         <span class="pagination-info">{t.pageOf(page.currentPage, page.lastPage)}</span>
@@ -51,7 +53,9 @@ const show = page.lastPage > 1;
             {t.next}
           </a>
         ) : (
-          <span class="pagination-link pagination-next pagination-disabled">{t.next}</span>
+          <span class="pagination-link pagination-next pagination-disabled" aria-disabled="true">
+            {t.next}
+          </span>
         )}
       </div>
     </nav>
@@ -79,7 +83,7 @@ const show = page.lastPage > 1;
     border-radius: 6px;
     font-size: 0.9rem;
     font-weight: 500;
-    color: var(--color-accent);
+    color: var(--color-source-link);
     background: var(--color-surface);
     border: 1px solid var(--color-border);
     text-decoration: none;
