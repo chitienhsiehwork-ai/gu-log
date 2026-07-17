@@ -60,6 +60,15 @@ function writePost(repo: string, filename: string, ticketId: string): void {
   );
 }
 
+function runPrePush(repo: string, stdin: string) {
+  return spawnSync('bash', [path.join(REPO_ROOT, '.githooks', 'pre-push')], {
+    cwd: repo,
+    input: stdin,
+    env: makeFastHookEnv(),
+    encoding: 'utf-8',
+  });
+}
+
 describe('pre-commit: ticketId duplicate gate (Step 0)', () => {
   it('blocks when 3+ posts share a non-PENDING ticketId', () => {
     const repo = makeFakeRepo();
@@ -108,12 +117,7 @@ describe('pre-push: PENDING ticketId guard (Step 0) — real committed diff', ()
     const headSha = commitAll(repo, 'add pending post');
 
     const stdin = `refs/heads/main ${headSha} refs/heads/main ${baseSha}\n`;
-    const r = spawnSync('bash', [path.join(REPO_ROOT, '.githooks', 'pre-push')], {
-      cwd: repo,
-      input: stdin,
-      env: makeFastHookEnv(),
-      encoding: 'utf-8',
-    });
+    const r = runPrePush(repo, stdin);
 
     expect(r.status).toBe(1);
     expect(r.stdout + r.stderr).toMatch(
@@ -129,12 +133,7 @@ describe('pre-push: PENDING ticketId guard (Step 0) — real committed diff', ()
     const headSha = commitAll(repo, 'add pending post');
 
     const stdin = `refs/heads/feature-x ${headSha} refs/heads/feature-x ${baseSha}\n`;
-    const r = spawnSync('bash', [path.join(REPO_ROOT, '.githooks', 'pre-push')], {
-      cwd: repo,
-      input: stdin,
-      env: makeFastHookEnv(),
-      encoding: 'utf-8',
-    });
+    const r = runPrePush(repo, stdin);
 
     expect(r.stdout + r.stderr).not.toMatch(/PENDING ticketId in commits/);
     expect(r.status).toBe(0);
@@ -160,12 +159,7 @@ describe('pre-push: PENDING ticketId guard (Step 0) — real committed diff', ()
     execSync('git fetch -q origin', { cwd: repo });
 
     const stdin = `refs/heads/main ${headSha} refs/heads/main ${'0'.repeat(40)}\n`;
-    const r = spawnSync('bash', [path.join(REPO_ROOT, '.githooks', 'pre-push')], {
-      cwd: repo,
-      input: stdin,
-      env: makeFastHookEnv(),
-      encoding: 'utf-8',
-    });
+    const r = runPrePush(repo, stdin);
 
     expect(r.status).toBe(1);
     expect(r.stdout + r.stderr).toMatch(/PENDING ticketId in commits/);
@@ -178,12 +172,7 @@ describe('pre-push: PENDING ticketId guard (Step 0) — real committed diff', ()
     const headSha = commitAll(repo, 'add real post');
 
     const stdin = `refs/heads/main ${headSha} refs/heads/main ${baseSha}\n`;
-    const r = spawnSync('bash', [path.join(REPO_ROOT, '.githooks', 'pre-push')], {
-      cwd: repo,
-      input: stdin,
-      env: makeFastHookEnv(),
-      encoding: 'utf-8',
-    });
+    const r = runPrePush(repo, stdin);
 
     expect(r.stdout + r.stderr).not.toMatch(/PENDING ticketId in commits/);
     expect(r.status).toBe(0);
