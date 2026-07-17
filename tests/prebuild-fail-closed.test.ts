@@ -48,11 +48,22 @@ function makeSyntheticPrebuildDir(options: { copyScripts: string[] }): string {
   return tmp;
 }
 
-// ─── .vercelignore rule evaluation (gitignore-style, last match wins) ───────
-// Deliberately supports only the pattern shapes .vercelignore actually uses
-// (plain paths / directory prefixes / `!` negation). If someone adds a glob,
-// the guard below fails the test so the matcher gets extended consciously —
-// instead of silently mis-evaluating the packaging contract.
+// ─── .vercelignore rule evaluation (gitignore-style semantics) ─────────────
+// Deliberately supports only the pattern shapes .vercelignore actually uses:
+// plain file paths, a bare directory prefix (`dir/`), a directory's
+// immediate-children wildcard (`dir/*`), and `!` negation. If someone adds a
+// different glob shape, the guard below fails the test so the matcher gets
+// extended consciously — instead of silently mis-evaluating the packaging
+// contract.
+//
+// Real gitignore/vercelignore semantics (not just "last match wins"): once a
+// path is under a directory matched by a BARE `dir/` exclude, no later `!`
+// negation can re-include it — git refuses to descend into an ignored
+// directory to check per-file rules. This bit us for real: the previous
+// `.vercelignore` used `scripts/` (bare) with `!scripts/build-version-manifest.mjs`
+// below it, and the negation silently never took effect — masked for years by
+// `prebuild`'s `|| true`. Only a `dir/*` pattern (excludes contents, not the
+// directory traversal itself) leaves room for a later negation to work.
 function vercelignoreRules(): { negated: boolean; pattern: string }[] {
   const content = fs.readFileSync(path.join(REPO_ROOT, '.vercelignore'), 'utf-8');
   return content
@@ -62,21 +73,37 @@ function vercelignoreRules(): { negated: boolean; pattern: string }[] {
     .map((line) => {
       const negated = line.startsWith('!');
       const pattern = negated ? line.slice(1) : line;
-      expect(pattern, `glob patterns not supported by this test matcher: ${line}`).not.toMatch(
-        /[*?[\]]/
-      );
+      expect(
+        pattern,
+        `glob patterns not supported by this test matcher: ${line}`
+      ).toMatch(/^[^*?[\]]+\/?$|^[^*?[\]]+\/\*$/);
       return { negated, pattern };
     });
 }
 
+function patternDir(pattern: string): string {
+  return pattern.replace(/\/\*$/, '').replace(/\/+$/, '');
+}
+
 function patternMatches(filePath: string, pattern: string): boolean {
-  const normalized = pattern.replace(/^\//, '').replace(/\/+$/, '');
-  return filePath === normalized || filePath.startsWith(`${normalized}/`);
+  const dir = patternDir(pattern);
+  return filePath === dir || filePath.startsWith(`${dir}/`);
 }
 
 function isExcludedByVercelignore(filePath: string): boolean {
+  const rules = vercelignoreRules();
+
+  const hardExcludedByAncestorDir = rules.some(
+    ({ negated, pattern }) =>
+      !negated &&
+      pattern.endsWith('/') &&
+      !pattern.endsWith('/*') &&
+      patternMatches(filePath, pattern)
+  );
+  if (hardExcludedByAncestorDir) return true;
+
   let excluded = false;
-  for (const { negated, pattern } of vercelignoreRules()) {
+  for (const { negated, pattern } of rules) {
     if (patternMatches(filePath, pattern)) excluded = !negated;
   }
   return excluded;
@@ -128,6 +155,14 @@ describe('deploy packaging includes every prebuild generator', () => {
         false
       );
     }
+  });
+
+  it('still excludes non-negated files under the same directory (matcher is not a no-op)', () => {
+    // Regression guard for the real bug this suite caught: a bare `scripts/`
+    // exclude (instead of `scripts/*`) silently defeats every negation below
+    // it. Assert the matcher still excludes an unrelated file under
+    // `scripts/` so a "return false always" regression would fail here.
+    expect(isExcludedByVercelignore('scripts/some-other-script.mjs')).toBe(true);
   });
 });
 
