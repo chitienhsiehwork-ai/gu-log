@@ -59,6 +59,10 @@ if !s.RalphPassed {
 
 **不做的事**：不讓 translate 檢查 `GP_WRITER_MODE`（那是 bash tribunal rewrite loop 專屬機制，Go 側 write/refine 從未檢查它，translate 比照既有行為，新增檢查反而是不一致的特例）；不把 translate 塞進 `write` 本身（write 仍只認領 zh-tw draft，符合 zh-tw-first 的階段劃分）。
 
+**Note（Opus proposal reviewer 提出、已採納）**：`translate.go` 的 `Translate()` method SHALL 比照其餘 step method 自己的既有 pattern，開頭先做 `s.shouldSkipBelow(StepTranslate)`——`run.go` 的執行迴圈本身不對每個 step 做 per-step gating，`--from-step` resume 完全靠每個 step method 自己在開頭檢查，這是既有一致模式（見 `write.go:29`、`ralph.go:34`、`credits.go:36`），translate 沒有理由是例外。
+
+**Note（en sidecar 的 frontmatter 安全網範圍，已採納）**：D3 的第 2 層（ralph normaliser 對 `source` 做確定性重新序列化）只作用在 zh-tw 的 `s.ActiveFilename`——`translate` 在 ralph 之後才跑（因為要等 `RalphPassed` 才知道要不要翻），所以新產生的 en sidecar 的 `source:` 欄位不會經過這層重新序列化。en sidecar 的安全網只有 D3 第 3 層（`validate-posts.mjs` 真 YAML 解析，在 deploy 流程裡）——意思是 en 檔案若有不安全引號會讓 deploy 失敗（fail closed），而不是像 zh-tw 版那樣被自動修正。這個行為可接受（deploy 本來就該在無效 YAML 時失敗），但設計上不是「ralph 是進 posts dir 前最後一道 normalizer」的無例外陳述——en 檔案繞過了這一關，只被最後一道 validate 擋。
+
 ### D3：YAML 安全序列化——不換 frontmatter.go 的契約，換掉不安全的引號函式 + 加一層確定性重新序列化 + validate-posts 真解析
 
 **為什麼不換 `frontmatter.go` 的契約**：package doc 明講設計目標是 byte-stable、O(frontmatter-length)、不做全量 YAML round-trip；既有測試（`TestParse_RoundTripByteStable`、`TestRoundTrip_RealPost`、`TestSetScalar_ReplaceExisting/AppendMissing`）鎖住這個保證。既有 caller（`deploy.go` 的 `SetScalar("ticketId", `"`+ticketID+`"`)`、`credits.go`/`ralph.go` 透過 `quoted()` 的 `SetNestedScalar`）都是「呼叫方自己先加引號、`SetScalar` 逐字寫入」的契約，換成真序列化器會破壞這個契約與上述測試。
@@ -67,7 +71,7 @@ if !s.RalphPassed {
 
 1. **修 `quoted()` 本身**：`internal/pipeline/credits.go` 的 `quoted()` 目前只包一層雙引號、不跳脫內嵌 `"`/`\`。搬到 `internal/frontmatter` package，變成 exported `frontmatter.QuoteScalar(s string) string`，正確跳脫（`\` → `\\`、`"` → `\"`），`credits.go`/`ralph.go` 既有呼叫點原地替換成 `frontmatter.QuoteScalar`。這是 2-3 行邏輯改動 + 搬家，byte-for-byte 相容既有無特殊字元的輸入。
 2. **ralph normaliser 新增一段確定性重新序列化 `source` 欄位**：`normalizeRalphFrontmatter`（`ralph.go`）目前只碰 `translatedBy.*` 和 `pipeline` block；新增一步讀出現有 `source:` 的值（用 `f.GetScalar("source")`，剝掉既有引號取得裸字串)，再用 `frontmatter.QuoteScalar` 重新寫回。這一步保證**無論 LLM 在 write 階段選了什麼引號策略**（沒引號、單引號、雙引號但沒跳脫），最終進 posts dir 的檔案都會被 ralph 這關重新序列化成保證合法的 YAML——時機點正確（write/review/refine 都在 ralph 之前跑完，ralph 是進 posts dir 前的最後一道 frontmatter normalizer）。
-3. **`validate-posts.mjs` 換成真 YAML 解析**：`scripts/validate-posts.mjs` 的 `parseFrontmatter()` 目前是手刻 regex（`kv.match(/^(\w[\w.]*?):\s*(.+)/)` 等）。repo 已經在多處（`scripts/dedup-gate.mjs`、`scripts/score-floor-check.mjs` 等）用 `yaml` npm 套件（`package.json` 既有 dependency，非新增）。把 `parseFrontmatter` 換成 `yaml.parse()`，無效 YAML 直接拋出並被 validator 標記為失敗——這是 defense-in-depth：就算未來有其他欄位（不只 `source`）被自由文字污染，也會在 `validate-posts.mjs`（deploy 流程與 CI 都會跑）擋下，不會漏到 `pnpm run build`。
+3. **`validate-posts.mjs` 換成真 YAML 解析**：`scripts/validate-posts.mjs` 的 `parseFrontmatter()` 目前是手刻 regex（`kv.match(/^(\w[\w.]*?):\s*(.+)/)` 等）。repo 已經在多處（`scripts/dedup-gate.mjs`、`scripts/score-floor-check.mjs` 等）用 `yaml` npm 套件（`package.json` 既有 dependency，非新增）。把 `parseFrontmatter` 換成 `yaml.parse()`，無效 YAML 直接拋出並被 validator 標記為失敗——這是 defense-in-depth：就算未來有其他欄位（不只 `source`）被自由文字污染，也會在 `validate-posts.mjs`（deploy 流程與 CI 都會跑）擋下，不會漏到 `pnpm run build`。**這一步 SHALL 保留現有 `parseFrontmatter` 的回傳型別契約**（scalar 一律字串、`tags` 是字串陣列）——現有實作是「先 regex 抓出來、再手動剝引號」，回傳的永遠是字串；`yaml.parse()` 原生會把未加引號的日期解成 JS `Date`、數字解成 number，直接吃原始回傳會靜默改變下游 ~19 條規則（`DATE_PATTERN.test(fm.originalDate)`、`URL_PATTERN.test(fm.sourceUrl)` 等）的行為。實作在 `yaml.parse()` 之後加一層淺層 coercion，確保「怎麼讀」換了但「讀出什麼型別」不變。
 
 **風險**：`yaml.parse()` 對現有 1150+ 篇文章的 frontmatter 必須全部能解析成功，否則會製造大量新的 false-positive 失敗。實作時 MUST 先跑一次 `yaml.parse()` 掃過所有既有 posts（不改任何檔案，純驗證），確認零解析錯誤，才能把它接進 blocking path；若發現既有檔案解析失敗，先修那些檔案（machine-detectable、atomic commit）或retreat 到「新檔案才強制、既有檔案 warn-only」的縮小範圍，並在 tasks.md 記錄實際結果。
 

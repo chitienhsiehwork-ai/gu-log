@@ -13,7 +13,7 @@
 
 - [ ] 2.1 `internal/pipeline/state.go`：新增 `StepTranslate = 48`（Ralph=47、Deploy=50 之間）
 - [ ] 2.2 `internal/prompts/translate.tmpl`（新增）：指示 LLM 把整篇 zh-tw MDX 譯成道地英文 MDX，`lang: "en"`，套用 `GU-LOG_WRITER_PROMPT.md` 既有 en 版規則（quote 保留原文、不逐字翻譯）
-- [ ] 2.3 `internal/pipeline/translate.go`（新增）：`(s *State) Translate(ctx)`——`s.RalphPassed == false` 時 log warn 並直接 return nil（不擋 deploy）；否則讀 `postsDir/s.ActiveFilename`，跑 writer dispatcher，寫出 `postsDir/s.ActiveENFilename`
+- [ ] 2.3 `internal/pipeline/translate.go`（新增）：`(s *State) Translate(ctx)`——比照其餘 step method 自己的既有 pattern，開頭先 `s.shouldSkipBelow(StepTranslate)`（`--from-step` resume 自我把關，run.go 的迴圈不做 per-step gating，這是每個 step method 自己的責任，比照 `write.go:29`/`ralph.go:34`/`credits.go:36`）；接著 `s.RalphPassed == false` 時 log warn 並直接 return nil（不擋 deploy）；否則讀 `postsDir/s.ActiveFilename`，跑 writer dispatcher，寫出 `postsDir/s.ActiveENFilename`
 - [ ] 2.4 `internal/pipeline/run.go`：`steps` slice 在 `"ralph"` 之後、`"deploy"` 之前插入 `{"translate", s.Translate}`；`PrintSummary` 的 timing 列表同步加 `translate`
 - [ ] 2.5 `cmd/sp-pipeline/run.go`：`stepNameToInt` map 加 `"4.8"`/`"translate"` → `pipeline.StepTranslate`，`Long` help text 的 step 列表同步更新
 - [ ] 2.6 `cmd/sp-pipeline/translate.go`（新增）：standalone `gp-pipeline translate --file <zh-tw.mdx>` 子命令，供人工對已過 tribunal 的既有檔案補 en
@@ -28,7 +28,7 @@
 - [ ] 3.2 `internal/pipeline/credits.go` 的 `quoted()` 呼叫點全部改用 `frontmatter.QuoteScalar`；移除本地 `quoted()`（或改為委派新 helper，視呼叫方便性）
 - [ ] 3.3 `internal/pipeline/ralph.go` 的 `normalizeRalphFrontmatter`：新增一步，讀出既有 `source:` 值（`f.GetScalar` 剝除既有引號）、用 `frontmatter.QuoteScalar` 重新序列化寫回，保證無論 LLM 原本怎麼寫引號，最終都合法
 - [ ] 3.4 `internal/pipeline/ralph_test.go` 或新測試：驗證帶撇號（`Simon Willison's Weblog`）、雙引號、冒號的 `source` 值經 ralph normaliser 後產出合法可被 `gopkg.in/yaml.v3`（測試依賴）解析的 frontmatter
-- [ ] 3.5 `scripts/validate-posts.mjs`：`parseFrontmatter()` 換成 repo 既有 `yaml` npm package 的 `yaml.parse()`；無效 YAML 直接標記為 validate 失敗（沿用既有錯誤回報格式）
+- [ ] 3.5 `scripts/validate-posts.mjs`：`parseFrontmatter()` 換成 repo 既有 `yaml` npm package的 `yaml.parse()`，**但 SHALL 保留既有回傳值契約**——現有實作回傳的是「所有 scalar 都已剝引號成字串、`tags` 是字串陣列」的 flat object，下游 ~19 條規則（`DATE_PATTERN.test(fm.originalDate)`、`URL_PATTERN.test(fm.sourceUrl)`、model-version regex、`fm.summary.length` 等）都假設這個型別契約。直接吃 `yaml.parse()` 的原始回傳會把未加引號的日期解成 JS `Date`、數字解成 number，靜默改變下游規則的行為。實作 SHALL 在 `yaml.parse()` 之後加一層淺層 coercion（scalar → String()、保留 `tags` 為字串陣列），讓對外契約不變，只換掉「怎麼讀」不換「讀出什麼型別」；無效 YAML 直接標記為 validate 失敗（沿用既有錯誤回報格式）
 - [ ] 3.6 `scripts/validate-posts.mjs` 對應測試（若有現成 test 檔）新增案例：apostrophe/quote/colon 混合的 hostile-but-valid `source` 值 SHALL 通過驗證；真正無效的 YAML（未跳脫的引號）SHALL 被擋
 
 ## 4. 直接派生文件更新
@@ -39,6 +39,6 @@
 
 - [ ] 5.1 `cd tools/sp-pipeline && go build ./...`
 - [ ] 5.2 `cd tools/sp-pipeline && go test ./...`
-- [ ] 5.3 `node scripts/validate-posts.mjs`（全庫，換解析器後）零新增失敗
+- [ ] 5.3 `node scripts/validate-posts.mjs`（全庫，換解析器後）對現有 1157 篇文章 SHALL 零新增失敗（比對換解析器前後的結果，不只是「有跑完」）
 - [ ] 5.4 `pnpm run build` 通過
 - [ ] 5.5 `openspec validate fix-sp-pipeline-fail-closed --strict` 通過
