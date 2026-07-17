@@ -94,12 +94,14 @@ function isMetadataOnlyDiff(baseRef, baseFile, currentFile) {
   );
 }
 
-function normalizeMaintenanceLinks(line) {
-  return line
-    .slice(1)
+function normalizeGlossaryAndPostLinks(text) {
+  return text
     .replace(/\[([^\]\n]+)\]\(\/(?:en\/)?glossary#[^)\n]+\)/g, '$1')
-    .replace(/\[([^\]\n]+)\]\(\/posts\/[^)\n]+\)/g, '$1')
-    .trim();
+    .replace(/\[([^\]\n]+)\]\(\/posts\/[^)\n]+\)/g, '$1');
+}
+
+function normalizeMaintenanceLinks(line) {
+  return normalizeGlossaryAndPostLinks(line.slice(1)).trim();
 }
 
 function isLinkOnlyDiff(baseRef, baseFile, currentFile) {
@@ -128,7 +130,15 @@ function isCanonicalTaxonomyOnlyChange(baseRef, baseFile, currentFile) {
   if (!existsAt(baseRef, baseFile) || !fs.existsSync(currentFile)) return false;
   const oldContent = git(['show', `${baseRef}:${baseFile}`], { trim: false });
   const newContent = fs.readFileSync(currentFile, 'utf8');
-  return isCanonicalSeriesTaxonomyOnlyChange(oldContent, newContent);
+  if (isCanonicalSeriesTaxonomyOnlyChange(oldContent, newContent)) return true;
+  // Glossary/post-link (un)wrapping is already gate-exempt on its own via
+  // isLinkOnlyDiff, so a canonical taxonomy rename that also carries link
+  // wrapping stays mechanical: normalize links on both sides and re-check.
+  // Any reader-prose edit still breaks the exact-equality comparison.
+  const oldNormalized = normalizeGlossaryAndPostLinks(oldContent);
+  const newNormalized = normalizeGlossaryAndPostLinks(newContent);
+  if (oldNormalized === oldContent && newNormalized === newContent) return false;
+  return isCanonicalSeriesTaxonomyOnlyChange(oldNormalized, newNormalized);
 }
 
 function parseNameStatus(output) {

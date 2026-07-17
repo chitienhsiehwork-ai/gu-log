@@ -68,6 +68,56 @@ describe('list-content-gate-posts taxonomy migration scope', () => {
     }
   });
 
+  it('exempts a taxonomy rename that also wraps a glossary link', () => {
+    const repo = makeRepo();
+
+    try {
+      const oldFile = 'src/content/posts/sp-1-migration.mdx';
+      const newFile = 'src/content/posts/gp-1-migration.mdx';
+      fs.writeFileSync(path.join(repo, oldFile), post('SP-1', 'post-1', 'Mogu says hi\n'));
+      git(repo, ['add', '.']);
+      git(repo, ['commit', '-qm', 'seed legacy post']);
+      git(repo, ['branch', 'base']);
+
+      git(repo, ['mv', oldFile, newFile]);
+      fs.writeFileSync(
+        path.join(repo, newFile),
+        post('GP-1', 'post-1', '[Mogu](/glossary#mogu) says hi\n')
+      );
+      git(repo, ['add', '.']);
+      git(repo, ['commit', '-qm', 'rename and wrap glossary link']);
+
+      expect(runGate(repo)).toEqual([]);
+    } finally {
+      fs.rmSync(repo, { recursive: true, force: true });
+    }
+  });
+
+  it('still gates a taxonomy rename with a glossary link and a prose edit', () => {
+    const repo = makeRepo();
+
+    try {
+      const oldFile = 'src/content/posts/sp-1-migration.mdx';
+      const newFile = 'src/content/posts/gp-1-migration.mdx';
+      fs.writeFileSync(path.join(repo, oldFile), post('SP-1', 'post-1', 'Mogu says hi\n'));
+      git(repo, ['add', '.']);
+      git(repo, ['commit', '-qm', 'seed legacy post']);
+      git(repo, ['branch', 'base']);
+
+      git(repo, ['mv', oldFile, newFile]);
+      fs.writeFileSync(
+        path.join(repo, newFile),
+        post('GP-1', 'post-1', '[Mogu](/glossary#mogu) says hi with brand new prose\n')
+      );
+      git(repo, ['add', '.']);
+      git(repo, ['commit', '-qm', 'rename, wrap link, edit prose']);
+
+      expect(runGate(repo)).toEqual([newFile]);
+    } finally {
+      fs.rmSync(repo, { recursive: true, force: true });
+    }
+  });
+
   it('still gates a path-changing rename that also edits reader prose', () => {
     const repo = makeRepo();
 
