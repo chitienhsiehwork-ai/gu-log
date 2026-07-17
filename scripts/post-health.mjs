@@ -23,6 +23,17 @@ const progress = JSON.parse(fs.readFileSync(PROGRESS_FILE, 'utf8'));
 const scored = progress.posts;
 
 // Parse all zh-tw posts
+// Strip markup tags to a fixpoint so nested fragments (e.g. `<scr<x>ipt`)
+// cannot survive a single-pass replace; output is only used for counting.
+function stripMarkupTags(text) {
+  let previous;
+  do {
+    previous = text;
+    text = text.replace(/<[^>]*>/g, '');
+  } while (text !== previous);
+  return text;
+}
+
 const files = fs.readdirSync(POSTS_DIR).filter((f) => f.endsWith('.mdx') && !f.startsWith('en-'));
 
 const posts = files.map((file) => {
@@ -48,8 +59,7 @@ const posts = files.map((file) => {
   // Word count (rough)
   const bodyStart = content.indexOf('---', content.indexOf('---') + 3) + 3;
   const body = content.slice(bodyStart);
-  const wordCount = body
-    .replace(/<[^>]+>/g, '')
+  const wordCount = stripMarkupTags(body)
     .replace(/import.*\n/g, '')
     .trim()
     .split(/\s+/).length;

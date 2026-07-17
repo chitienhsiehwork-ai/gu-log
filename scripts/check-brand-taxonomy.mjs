@@ -536,9 +536,14 @@ function scanRepository(policy) {
   for (const file of listRepoFiles()) {
     if (isResidualScopeExcluded(file, policy)) continue;
     const absolute = path.join(ROOT, file);
-    if (!fs.existsSync(absolute) || !fs.statSync(absolute).isFile()) continue;
+    let buffer;
+    try {
+      buffer = fs.readFileSync(absolute);
+    } catch {
+      // Deleted, replaced by a directory, or unreadable since listing.
+      continue;
+    }
     findings.push(...scanLegacyPath(file));
-    const buffer = fs.readFileSync(absolute);
     if (!buffer.subarray(0, 8192).includes(0)) {
       const text = buffer.toString('utf8');
       findings.push(...scanLegacyText(file, text));

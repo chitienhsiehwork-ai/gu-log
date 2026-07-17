@@ -21,7 +21,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const POSTS_DIR = path.join(__dirname, '../src/content/posts');
@@ -106,7 +106,7 @@ if (INPUT_FILE) {
 } else {
   process.stderr.write('No --input file given. Generating suggestions inline...\n');
   const suggestScript = path.join(__dirname, 'suggest-crosslinks.mjs');
-  const output = execSync(`node ${suggestScript}`, { encoding: 'utf-8' });
+  const output = execFileSync(process.execPath, [suggestScript], { encoding: 'utf-8' });
   suggestions = JSON.parse(output);
   process.stderr.write(`Generated ${suggestions.length} suggestions inline.\n`);
 }

@@ -25,7 +25,6 @@ function repoWithFullGitHistory(cwd: string): string {
     (candidate): candidate is string => Boolean(candidate)
   );
 
-  let lastError: unknown;
   for (const ref of candidates) {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-version-full-'));
     try {
@@ -35,9 +34,10 @@ function repoWithFullGitHistory(cwd: string): string {
         cwd
       );
       return tmp;
-    } catch (error) {
+    } catch {
+      // Fall through to the next candidate; the unshallow fallback below
+      // is the one whose failure is worth surfacing.
       fs.rmSync(tmp, { recursive: true, force: true });
-      lastError = error;
     }
   }
 
@@ -48,10 +48,8 @@ function repoWithFullGitHistory(cwd: string): string {
     return tmp;
   } catch (error) {
     fs.rmSync(tmp, { recursive: true, force: true });
-    lastError = error;
+    throw error;
   }
-
-  throw lastError;
 }
 
 function makeSyntheticRepo(postId = 'gp-999-regression'): string {

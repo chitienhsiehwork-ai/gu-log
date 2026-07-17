@@ -217,7 +217,7 @@ test.describe('Content Integrity: MoguNote', () => {
     const redundantPatterns = [
       { regex: /<MoguNote>\s*\n?\s*\*\*Mogu[：:]\*\*/i, name: '**Mogu：** (bold)' },
       { regex: /<MoguNote>\s*\n?\s*Mogu[：:]\s/i, name: 'Mogu： (plain)' },
-      { regex: /<MoguNote>\s*\n?\s*Mogu\s+[忍偷歪畫碎插溫真吐認補murmurOS]/i, name: 'Mogu prefix (e.g., Mogu 忍不住說)' },
+      { regex: /<MoguNote>\s*\n?\s*Mogu\s+[忍偷歪畫碎插溫真吐認補murOS]/i, name: 'Mogu prefix (e.g., Mogu 忍不住說)' },
     ];
     
     for (const file of files) {

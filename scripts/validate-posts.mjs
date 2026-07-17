@@ -202,6 +202,17 @@ function findRetiredTicketReferences(fmText) {
   return [...new Set(references)];
 }
 
+// Strip markup tags to a fixpoint so nested fragments (e.g. `<scr<x>ipt`)
+// cannot survive a single-pass replace; output is only used for counting.
+function stripMarkupTags(text) {
+  let previous;
+  do {
+    previous = text;
+    text = text.replace(/<[^>]*>/g, '');
+  } while (text !== previous);
+  return text;
+}
+
 function getScoreBlock(fmText, judge) {
   const lines = fmText.split('\n');
   const start = lines.findIndex((line) => line === `  ${judge}:`);
@@ -254,11 +265,9 @@ function extractMoguNotes(content) {
       attrs.match(/\bsummary\s*=\s*\{"([^"]*)"\}/) ??
       attrs.match(/\bsummary\s*=\s*\{'([^']*)'\}/);
 
-    const text = inner
-      .replace(/```[\s\S]*?```/g, '')
-      .replace(/`[^`\n]+`/g, '')
-      .replace(/<[^>]+>/g, '')
-      .replace(/\s+/g, '');
+    const text = stripMarkupTags(
+      inner.replace(/```[\s\S]*?```/g, '').replace(/`[^`\n]+`/g, '')
+    ).replace(/\s+/g, '');
 
     notes.push({
       index: notes.length + 1,
@@ -412,10 +421,7 @@ function validatePost(filepath, allPosts, options = {}) {
 
   // ── Rule 11: Minimum content length ──
   // Strip imports and component tags for length check
-  const cleanBody = body
-    .replace(/^import\s+.*$/gm, '')
-    .replace(/<\/?[\w]+[^>]*>/g, '')
-    .trim();
+  const cleanBody = stripMarkupTags(body.replace(/^import\s+.*$/gm, '')).trim();
   if (cleanBody.length < MIN_CONTENT_LENGTH) {
     errors.push(`Content too short (${cleanBody.length} chars, minimum ${MIN_CONTENT_LENGTH})`);
   }

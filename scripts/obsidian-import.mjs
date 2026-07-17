@@ -337,11 +337,15 @@ function importOne(draftPath, { dryRun = false } = {}) {
     return { filename, ticketId, dryRun: true };
   }
 
-  // 6. 寫檔
-  if (fs.existsSync(outPath)) {
-    throw new Error(`[${draftPath}] 目標檔案已存在：${outPath}`);
+  // 6. 寫檔（wx = 檔案已存在就失敗，不做 check-then-write）
+  try {
+    fs.writeFileSync(outPath, finalContent, { flag: 'wx' });
+  } catch (error) {
+    if (error?.code === 'EEXIST') {
+      throw new Error(`[${draftPath}] 目標檔案已存在：${outPath}`);
+    }
+    throw error;
   }
-  fs.writeFileSync(outPath, finalContent);
 
   return { filename, ticketId, outPath };
 }
