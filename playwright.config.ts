@@ -26,11 +26,23 @@ try {
         reports: [
           ['v8'],
           ['console-details'],
-          ['json', { file: './quality/coverage/coverage.json' }],
+          // Path is relative to outputFile's dir (quality/coverage/), not cwd —
+          // the previous './quality/coverage/coverage.json' doubled the prefix.
+          ['json', { file: './coverage.json' }],
         ],
         entryFilter: (entry: { url: string }) => {
-          // Only measure our own code, not node_modules or external
-          return entry.url.includes('/src/') || entry.url.includes('/scripts/');
+          // Static build serves bundled/hashed output under /_astro/ (not the
+          // /src/ paths that only exist in dev-server mode) plus first-party
+          // inline <script> blocks, which V8 attributes to the page's own
+          // URL. Exclude known third-party embeds instead of allowlisting
+          // internal paths, since inline scripts don't carry a /_astro/ marker.
+          const thirdPartyHosts = ['giscus.app', 'fonts.googleapis.com', 'fonts.gstatic.com'];
+          try {
+            const host = new URL(entry.url).hostname;
+            return !thirdPartyHosts.some((h) => host === h || host.endsWith('.' + h));
+          } catch {
+            return true;
+          }
         },
         sourceFilter: (sourcePath: string) => {
           return !sourcePath.includes('node_modules');
