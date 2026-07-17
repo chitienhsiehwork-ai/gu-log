@@ -158,7 +158,7 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 	if opts.FromStep != "" {
 		v, ok := stepNameToInt[strings.ToLower(opts.FromStep)]
 		if !ok {
-			return fmt.Errorf("run: unknown step %q; valid: setup / fetch / eval / dedup / write / review / refine / ralph / deploy", opts.FromStep)
+			return fmt.Errorf("run: unknown step %q; valid: setup / fetch / eval / dedup / write / review / refine / ralph / translate / deploy", opts.FromStep)
 		}
 		fromStepInt = v
 	}
