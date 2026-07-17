@@ -918,29 +918,112 @@ function ensureRemoteBaselineRef(baselineRef) {
   });
 }
 
+let baselineRenameMap = null;
+
+function getBaselineRenameMap(baselineRef) {
+  if (baselineRenameMap) return baselineRenameMap;
+  baselineRenameMap = new Map();
+  try {
+    const output = execFileSync(
+      'git',
+      [
+        '-c',
+        'diff.renameLimit=0',
+        'diff',
+        '-M',
+        '--name-status',
+        '-z',
+        '--diff-filter=R',
+        '--end-of-options',
+        baselineRef,
+        '--',
+        'src/content/posts/*.mdx',
+      ],
+      { cwd: REPO_ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }
+    );
+    const fields = output.split('\0');
+    for (let index = 0; index + 2 < fields.length; index += 3) {
+      const status = fields[index];
+      const oldPath = fields[index + 1];
+      const newPath = fields[index + 2];
+      if (status?.startsWith('R') && oldPath && newPath) {
+        baselineRenameMap.set(newPath, oldPath);
+      }
+    }
+  } catch {
+    // No rename information available; fall back to same-path lookup only.
+  }
+  return baselineRenameMap;
+}
+
+function baselineFromRaw(raw, filePath) {
+  const { violations } = checkText(raw, filePath);
+  const keys = new Set(violations.map(violationKey));
+  const wordCounts = new Map();
+  for (const v of violations) {
+    const word = v.word.toLowerCase();
+    wordCounts.set(word, (wordCounts.get(word) || 0) + 1);
+  }
+  return { keys, wordCounts };
+}
+
 function getBaselineViolations(filePath, baselineRef) {
-  if (!baselineRef) return new Set();
+  if (!baselineRef) return null;
 
   const repoRelative = path.relative(REPO_ROOT, path.resolve(filePath));
-  try {
-    const raw = readBaselineFile(repoRelative, baselineRef);
-    const { violations } = checkText(raw, filePath);
-    return new Set(violations.map(violationKey));
-  } catch {
-    try {
-      ensureRemoteBaselineRef(baselineRef);
-      const raw = readBaselineFile(repoRelative, baselineRef);
-      const { violations } = checkText(raw, filePath);
-      return new Set(violations.map(violationKey));
-    } catch {
-      // New file or unavailable baseline: all violations are new.
-      return new Set();
+  const candidates = [repoRelative];
+  // Renamed files keep their grandfathered baseline: resolve the pre-rename
+  // path so a pure rename does not resurface pre-existing violations.
+  const renamedFrom = getBaselineRenameMap(baselineRef).get(repoRelative);
+  if (renamedFrom) candidates.push(renamedFrom);
+
+  for (const fetchFirst of [false, true]) {
+    for (const candidate of candidates) {
+      try {
+        if (fetchFirst) ensureRemoteBaselineRef(baselineRef);
+        return baselineFromRaw(readBaselineFile(candidate, baselineRef), filePath);
+      } catch {
+        // Try the next candidate / fetch round.
+      }
     }
   }
+  // New file or unavailable baseline: all violations are new.
+  return null;
+}
+
+function filterBaselineViolations(violations, baseline) {
+  if (!baseline) return violations;
+
+  // Pass 1: exact context matches are grandfathered and consume their
+  // word's baseline budget.
+  const remainingCounts = new Map(baseline.wordCounts);
+  const drifted = [];
+  for (const v of violations) {
+    if (baseline.keys.has(violationKey(v))) {
+      const word = v.word.toLowerCase();
+      remainingCounts.set(word, (remainingCounts.get(word) || 0) - 1);
+    } else {
+      drifted.push(v);
+    }
+  }
+
+  // Pass 2: a violation whose surrounding context drifted (e.g. the sentence
+  // was reworded around a pre-existing proper noun) stays grandfathered while
+  // the word's total baseline count is not exceeded. A genuinely new
+  // decorative word — or one more occurrence of an old one — always flags.
+  return drifted.filter((v) => {
+    const word = v.word.toLowerCase();
+    const left = remainingCounts.get(word) || 0;
+    if (left > 0) {
+      remainingCounts.set(word, left - 1);
+      return false;
+    }
+    return true;
+  });
 }
 
 // ── Exports for tests ──────────────────────────────────────────────
-export { isAllowed, maskContent, checkText, checkFile };
+export { isAllowed, maskContent, checkText, checkFile, filterBaselineViolations, violationKey };
 
 // ── Main ───────────────────────────────────────────────────────────
 
@@ -980,10 +1063,8 @@ if (!__isCli) {
       process.exit(2);
     }
     if (skipped) continue;
-    const baselineViolations = getBaselineViolations(filePath, baselineRef);
-    const newViolations = baselineViolations.size
-      ? violations.filter((v) => !baselineViolations.has(violationKey(v)))
-      : violations;
+    const baseline = getBaselineViolations(filePath, baselineRef);
+    const newViolations = filterBaselineViolations(violations, baseline);
     if (newViolations.length === 0) continue;
 
     filesWithViolations.push({ filePath, violations: newViolations });

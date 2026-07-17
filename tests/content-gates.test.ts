@@ -113,6 +113,50 @@ describe('check-jingjing.maskContent', () => {
   });
 });
 
+describe('check-jingjing.filterBaselineViolations', () => {
+  const v = (word: string, context: string) => ({ word, context, line: 1 });
+  const baselineOf = (...violations: Array<{ word: string; context: string }>) => {
+    const keys = new Set(violations.map((entry) => jjModule.violationKey(entry)));
+    const wordCounts = new Map<string, number>();
+    for (const entry of violations) {
+      const word = entry.word.toLowerCase();
+      wordCounts.set(word, (wordCounts.get(word) || 0) + 1);
+    }
+    return { keys, wordCounts };
+  };
+
+  it('passes everything through without a baseline', () => {
+    const current = [v('approach', '這個 approach 很好')];
+    expect(jjModule.filterBaselineViolations(current, null)).toEqual(current);
+  });
+
+  it('grandfathers exact context matches', () => {
+    const shared = v('approach', '這個 approach 很好');
+    expect(jjModule.filterBaselineViolations([shared], baselineOf(shared))).toEqual([]);
+  });
+
+  it('grandfathers a context-drifted word while its count does not increase', () => {
+    const baseline = baselineOf(v('foundation', '轉為 foundation 舊句子'));
+    const drifted = [v('foundation', '改寫過的句子提到 foundation')];
+    expect(jjModule.filterBaselineViolations(drifted, baseline)).toEqual([]);
+  });
+
+  it('flags the excess occurrence when a word count increases', () => {
+    const baseline = baselineOf(v('foundation', '轉為 foundation 舊句子'));
+    const current = [
+      v('foundation', '改寫過的句子提到 foundation'),
+      v('foundation', '第二個新增的 foundation'),
+    ];
+    expect(jjModule.filterBaselineViolations(current, baseline)).toHaveLength(1);
+  });
+
+  it('always flags a word absent from the baseline', () => {
+    const baseline = baselineOf(v('foundation', '轉為 foundation 舊句子'));
+    const current = [v('solid', '很 solid 的新句子')];
+    expect(jjModule.filterBaselineViolations(current, baseline)).toEqual(current);
+  });
+});
+
 describe('check-jingjing.checkFile', () => {
   it('flags decorative english in zh-tw post', () => {
     const filepath = tmpPath('jj-flag.mdx');
