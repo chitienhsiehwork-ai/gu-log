@@ -14,6 +14,40 @@ permissions:
   contents: read
 
 jobs:
+  # ─── Baseline freshness gate ──────────────────────────────────────
+  # coverage-ratchet and link-check can't push their refreshed baseline
+  # straight to main (branch protection) or open a PR for it (this repo's
+  # Actions permissions block Actions-created PRs — a repo-owner setting,
+  # see the "Stage ... baseline refresh" steps below for the full story).
+  # They instead force-push to a fixed staging branch, which means the
+  # committed baseline on main only moves when a human (or the next agent
+  # session) turns that staging branch into a merged PR. This job makes
+  # that dependency itself the visible, actionable signal instead of
+  # letting the baseline silently drift stale again like it did before
+  # this fix (broken-links: unnoticed for a month; coverage: unnoticed for
+  # 5 months).
+  baseline-freshness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check committed baseline age
+        run: |
+          MAX_AGE_DAYS=3
+          today=$(date -u +%s)
+          fail=0
+          for f in quality/coverage-baseline.json quality/broken-links-baseline.json; do
+            date_str=$(jq -r '.date' "$f")
+            baseline_ts=$(date -u -d "$date_str" +%s)
+            age_days=$(( (today - baseline_ts) / 86400 ))
+            if [ "$age_days" -gt "$MAX_AGE_DAYS" ]; then
+              echo "::error file=$f::Baseline is $age_days days old (date: $date_str, max: $MAX_AGE_DAYS). A staging branch is likely waiting to be merged — check nightly/coverage-baseline-staging and nightly/links-baseline-staging."
+              fail=1
+            else
+              echo "✅ $f is $age_days day(s) old (within ${MAX_AGE_DAYS}-day budget)."
+            fi
+          done
+          exit $fail
+
   # ─── Build first (shared dependency for visual-test / lighthouse / budget / links) ──
   build:
     runs-on: ubuntu-latest
@@ -166,7 +200,6 @@ jobs:
     continue-on-error: true
     permissions:
       contents: write
-      actions: write
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-pnpm
@@ -202,36 +235,32 @@ jobs:
           retention-days: 14
       - name: Run coverage ratchet (advisory)
         run: bash scripts/coverage-ratchet.sh
-      - name: Persist coverage baseline + history via PR
-        # main has branch protection with an empty bypass_actors list (verified
-        # via the Rulesets API — nothing, not even Actions, can push directly),
-        # so a durable update has to go through the same branch + PR +
-        # auto-merge path every other change in this repo uses.
+      - name: Stage coverage baseline + history refresh
+        # main's branch protection has an empty bypass_actors list (verified
+        # via the Rulesets API) — no push, not even from Actions, lands there
+        # directly. Opening a PR isn't an option either: this repo's Actions
+        # permissions have "create and approve pull requests" disabled
+        # (gh api .../actions/permissions/workflow → can_approve_pull_request_reviews:
+        # false), which is a repo-owner security setting no workflow-level
+        # `permissions:` block can override — confirmed by hitting
+        # "GitHub Actions is not permitted to create or approve pull requests"
+        # on a live dispatch run. So this force-pushes the fresh file to a
+        # fixed staging branch instead. That push itself isn't blocked (it's
+        # not main). A human or the next agent session turns it into a real
+        # PR with one command once the staleness check (below) goes red:
+        #   gh pr create --base main --head nightly/coverage-baseline-staging && gh pr merge --auto --squash
         if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           if git diff --quiet -- quality/coverage-baseline.json quality/coverage-history.json; then
-            echo "No coverage baseline/history change, skipping PR."
+            echo "No coverage baseline/history change, skipping staging push."
             exit 0
           fi
-          BRANCH="chore/nightly-coverage-baseline-${{ github.run_id }}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout -b "$BRANCH"
+          git checkout -B nightly/coverage-baseline-staging
           git add quality/coverage-baseline.json quality/coverage-history.json
           git commit -m "chore(quality): update coverage ratchet baseline + history"
-          git push origin "$BRANCH"
-          gh pr create --base main --head "$BRANCH" \
-            --title "chore(quality): nightly coverage ratchet baseline refresh" \
-            --body "Automated baseline/history update from Nightly Deep Check run ${{ github.run_id }}. Data-only, no app code changed."
-          # A PR opened with the default GITHUB_TOKEN does not trigger
-          # ci.yml's pull_request event (GitHub's anti-recursion guard), so
-          # the required ci-passed check would otherwise never start.
-          # workflow_dispatch is explicitly exempt from that guard — use it
-          # to get a real check run attached to this branch's head SHA.
-          gh workflow run ci.yml --ref "$BRANCH"
-          gh pr merge "$BRANCH" --auto --squash
+          git push --force origin nightly/coverage-baseline-staging
 
   # ─── Full Link Check (internal + external with baseline ratchet) ──
   link-check:
@@ -239,8 +268,6 @@ jobs:
     needs: build
     permissions:
       contents: write
-      pull-requests: write
-      actions: write
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-pnpm
@@ -250,38 +277,29 @@ jobs:
           path: dist/
       - name: Full link check (internal + external)
         run: pnpm run links:check -- --ci
-      - name: Persist broken-links baseline via PR
+      - name: Stage broken-links baseline refresh
         # Runs even when the check step above exits 1/2 (new breakage found) —
-        # the baseline must still ratchet forward so tomorrow's run only flags
+        # the baseline must still move forward so tomorrow's run only flags
         # genuinely NEW breakage instead of re-flagging tonight's known ones.
-        # main's branch protection has an empty bypass_actors list, so this
-        # goes through the same branch + PR + auto-merge path as any other
-        # change instead of a direct push (which would 403).
+        # Force-pushes to a fixed staging branch instead of opening a PR —
+        # see the coverage-ratchet job's "Stage coverage baseline..." step for
+        # why (main's branch protection blocks direct pushes, and this repo's
+        # Actions permissions block Actions-created PRs; that's a repo-owner
+        # setting, not something this workflow can fix). Same one-command
+        # follow-up once the staleness check goes red:
+        #   gh pr create --base main --head nightly/links-baseline-staging && gh pr merge --auto --squash
         if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           if git diff --quiet -- quality/broken-links-baseline.json; then
-            echo "No broken-links baseline change, skipping PR."
+            echo "No broken-links baseline change, skipping staging push."
             exit 0
           fi
-          BRANCH="chore/nightly-links-baseline-${{ github.run_id }}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout -b "$BRANCH"
+          git checkout -B nightly/links-baseline-staging
           git add quality/broken-links-baseline.json
           git commit -m "chore(quality): refresh broken-links baseline"
-          git push origin "$BRANCH"
-          gh pr create --base main --head "$BRANCH" \
-            --title "chore(quality): nightly broken-links baseline refresh" \
-            --body "Automated baseline update from Nightly Deep Check run ${{ github.run_id }}. Data-only, no app code changed."
-          # A PR opened with the default GITHUB_TOKEN does not trigger
-          # ci.yml's pull_request event (GitHub's anti-recursion guard), so
-          # the required ci-passed check would otherwise never start.
-          # workflow_dispatch is explicitly exempt from that guard — use it
-          # to get a real check run attached to this branch's head SHA.
-          gh workflow run ci.yml --ref "$BRANCH"
-          gh pr merge "$BRANCH" --auto --squash
+          git push --force origin nightly/links-baseline-staging
 
   # ─── Notify on failure (aggregate, single Telegram ping) ──────────
   notify-failure:
@@ -294,6 +312,7 @@ jobs:
       - bundle-budget-record
       - link-check
       - coverage-ratchet
+      - baseline-freshness
     if: failure()
     steps:
       - name: Collect failed jobs
@@ -307,6 +326,7 @@ jobs:
             [bundle-budget-record]='${{ needs.bundle-budget-record.result }}'
             [link-check]='${{ needs.link-check.result }}'
             [coverage-ratchet]='${{ needs.coverage-ratchet.result }}'
+            [baseline-freshness]='${{ needs.baseline-freshness.result }}'
           )
           failed=""
           for name in "${!jobs[@]}"; do
