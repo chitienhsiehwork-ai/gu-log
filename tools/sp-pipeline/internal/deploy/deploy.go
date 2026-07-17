@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/config"
@@ -20,6 +21,39 @@ import (
 	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/observability"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/runner"
 )
+
+// dateStampRe matches the YYYYMMDD filename date-stamp format used by both
+// ralph.go's pending-filename builder and the final deploy filename.
+var dateStampRe = regexp.MustCompile(`^\d{8}$`)
+
+// validateFilenameSlots fails loud, before any counter bump / rename /
+// commit / push, when the caller has not supplied everything needed to
+// build a well-formed final filename. Without this, an operator invoking
+// the standalone `deploy` subcommand without --date-stamp/--author-slug/
+// --title-slug would silently produce a filename like "sp-252---.mdx"
+// (see gu-log #546). Deliberately does NOT try to derive the missing
+// slots by reverse-parsing ActiveFilename: the pending filename format
+// (<prefix>-pending-YYYYMMDD-<author>-<title>.mdx) has no delimiter
+// between the author and title slugs, so a guessed split could produce a
+// well-formed but semantically wrong filename instead of failing loud.
+func validateFilenameSlots(opts Options) error {
+	var missing []string
+	if opts.DateStamp == "" {
+		missing = append(missing, "--date-stamp")
+	} else if !dateStampRe.MatchString(opts.DateStamp) {
+		return fmt.Errorf("deploy: --date-stamp must be YYYYMMDD, got %q", opts.DateStamp)
+	}
+	if opts.AuthorSlug == "" {
+		missing = append(missing, "--author-slug")
+	}
+	if opts.TitleSlug == "" {
+		missing = append(missing, "--title-slug")
+	}
+	if len(missing) > 0 {
+		return fmt.Errorf("deploy: missing required flag(s) %s — refusing to build a filename with empty slots (see gu-log #546)", strings.Join(missing, ", "))
+	}
+	return nil
+}
 
 // Options controls a deploy invocation. Use Strict=false to skip the git
 // push (used by --dry-run and by tests that own a fake git repo).
@@ -71,6 +105,9 @@ func Run(ctx context.Context, opts Options) (*Result, error) {
 	}
 	if opts.ActiveFilename == "" {
 		return nil, fmt.Errorf("deploy: ActiveFilename required")
+	}
+	if err := validateFilenameSlots(opts); err != nil {
+		return nil, err
 	}
 
 	postsDir := opts.Cfg.PostsDir
