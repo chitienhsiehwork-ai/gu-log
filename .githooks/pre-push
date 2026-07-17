@@ -18,9 +18,12 @@ while read -r _local_ref local_sha remote_ref remote_sha; do
         continue
       fi
       # For a brand-new remote branch, remote_sha is all-zeros; diff from
-      # the merge-base with the default main instead.
+      # the merge-base with the actual remote-tracking ref instead. Using
+      # local HEAD here is wrong: HEAD is normally the same commit as
+      # local_sha, so merge-base(local_sha, HEAD) collapses to local_sha
+      # itself and produces an empty diff, silently no-opping the guard.
       if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
-        DIFF_BASE="$(git merge-base "$local_sha" HEAD 2>/dev/null || echo "")"
+        DIFF_BASE="$(git merge-base "$local_sha" "origin/${remote_ref#refs/heads/}" 2>/dev/null || echo "")"
       else
         DIFF_BASE="$remote_sha"
       fi
