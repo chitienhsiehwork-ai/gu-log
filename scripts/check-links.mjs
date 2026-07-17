@@ -22,6 +22,18 @@ const ROOT = resolve(import.meta.dirname, '..');
 const POSTS_DIR = join(ROOT, 'src', 'content', 'posts');
 const DIST_DIR = join(ROOT, 'dist');
 
+// undici can emit a socket-level 'error' event asynchronously, after fetch()'s
+// own promise has already settled inside checkExternalLink's try/catch — that
+// event bypasses per-request error handling entirely and crashes the whole
+// process, discarding every result from the ~900-link scan that ran before it.
+// Log and keep going instead of losing a full night's run to one flaky host.
+process.on('uncaughtException', (err) => {
+  console.error(`⚠️  Uncaught error during link check (continuing): ${err.message}`);
+});
+process.on('unhandledRejection', (err) => {
+  console.error(`⚠️  Unhandled rejection during link check (continuing): ${err?.message ?? err}`);
+});
+
 // Rate limiting: max 5 requests/second
 const RATE_LIMIT = 5;
 const RATE_WINDOW = 1000; // ms
