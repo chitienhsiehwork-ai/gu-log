@@ -217,6 +217,11 @@ export function scanLegacyText(file, text) {
 // bare regexes cannot re-derive the assigned ticket number for a descriptive
 // legacy slug like `clawd-picks-20260203-swyx-agent-definition`. Missing on
 // branches/checkouts that predate or postdate the migration -> empty map, no-op.
+// A rename pair is only usable when both sides look like real post slugs;
+// a short or malformed manifest entry must never drive a split/join over
+// arbitrary text (the canonicalizer would silently rewrite reader prose).
+const RENAME_SLUG_SHAPE = /^[A-Za-z0-9][A-Za-z0-9-]{7,}$/;
+
 let cachedSlugRenameMap;
 function loadSlugRenameMap() {
   if (cachedSlugRenameMap) return cachedSlugRenameMap;
@@ -224,7 +229,12 @@ function loadSlugRenameMap() {
   try {
     const manifest = JSON.parse(fs.readFileSync(RENAME_MANIFEST_PATH, 'utf8'));
     for (const entry of manifest.entries ?? []) {
-      if (typeof entry?.oldSlug === 'string' && typeof entry?.newSlug === 'string') {
+      if (
+        typeof entry?.oldSlug === 'string' &&
+        typeof entry?.newSlug === 'string' &&
+        RENAME_SLUG_SHAPE.test(entry.oldSlug) &&
+        RENAME_SLUG_SHAPE.test(entry.newSlug)
+      ) {
         cachedSlugRenameMap.set(entry.oldSlug, entry.newSlug);
       }
     }
