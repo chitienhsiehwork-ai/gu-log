@@ -41,4 +41,4 @@
 - [x] 5.2 `cd tools/sp-pipeline && go test ./...`
 - [x] 5.3 `node scripts/validate-posts.mjs`（全庫，換解析器後）對現有 1157 篇文章 SHALL 零新增失敗（比對換解析器前後的結果，不只是「有跑完」）
 - [x] 5.4 `pnpm run build` 通過
-- [~] 5.5 `openspec validate fix-sp-pipeline-fail-closed --strict`——openspec CLI 在本 worktree 不可用（`npx openspec` 因本機 npm cache 權限問題無法安裝，非 blocking，記錄於最終報告）；proposal/design/tasks/spec delta 結構已比照既有已 archive 的 change（`2026-07-04-tribunal-per-judge-provider`）人工核對格式一致
+- [x] 5.5 `openspec validate --specs --strict --no-interactive`（已安裝的 OpenSpec CLI，於本 worktree 獨立重跑）：32 passed, 0 failed（32 items），含 `spec/sp-pipeline-publish-integrity`
