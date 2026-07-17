@@ -19,6 +19,10 @@ roadmap（issue #585）P1 列的 fail-open publishing 風險。
   不可能漏掉 `build-reader-revision-manifest.mjs`。
 - PR CI 增加 **blocking** 的 Reader revision manifest freshness check
   （`build-reader-revision-manifest.mjs --check`），並納入 `ci-passed` 聚合 gate。
+  （誠實定位：`.vercelignore` 修好後 production 每次 build 都會重生 manifest，
+  擋 stale 上線的主防線是 fail-closed prebuild + 打包；CI check 保的是
+  committed 檔案與內容一致的 repo hygiene——本機 dev、hook、以及任何直接
+  讀 committed manifest 的路徑。）
 - 保護既有 `post-versions.json` 政策：它是 full-git-history 導出，shallow 建置
   （Vercel / CCC）必須繼續使用 committed 檔案、不得被錯誤重生——本 change 的
   regression test 把這條固定下來，防止 prebuild 改動順手弱化它。

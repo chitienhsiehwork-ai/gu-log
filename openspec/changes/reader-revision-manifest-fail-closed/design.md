@@ -67,9 +67,10 @@
    `node scripts/build-reader-revision-manifest.mjs --check`**，而不是開新 job。
    - `validate-content` 已在 `ci-passed.needs` 裡，內容類檢查語意相符，
      省一個 runner 冷啟動。
-   - 不跑 `pnpm versions:check`（它串了 version manifest check；CI checkout
-     是 shallow，version check 會走 shallow-skip 變 no-op，跑了只是噪音；
-     `post-versions.json` freshness 已由 unit test 用完整 history 驗）。
+   - 不跑 `pnpm versions:check`（它串了 version manifest check；
+     `post-versions.json` freshness 已由 `tests/post-version-manifest.test.ts`
+     的 `repoWithFullGitHistory` 用完整 history 在 unit-tests job 驗過，
+     `validate-content` 雖是 `fetch-depth: 0` 也能跑，但再跑一次是重複防線）。
 4. **測試放 `tests/prebuild-fail-closed.test.ts`（vitest，進既有 unit-tests
    job）**，涵蓋四條 scenario：
    - generator 缺席 → prebuild command 非零退出（synthetic dir 實跑 shell）。
@@ -82,8 +83,13 @@
 ## Risks / Trade-offs
 
 - [prebuild 變嚴，某些奇異本機環境 build 會炸] → 這正是 fail-closed 的目的；
-  generator 在無 git 環境（reader：不用 git）與 shallow 環境（version：
-  內部跳過）都已安全，炸 = 真問題。
+  reader generator 不讀 git、version generator 在 shallow 環境內部跳過，
+  常見環境（Vercel / CCC / CI / 本機）都不會誤炸。
+- [Residual risk（既有、非本 change 引入或修復）] → version generator 在
+  git **完全缺席**時會 catch 例外、用空 `{}` 覆寫 committed 的
+  `post-versions.json` 並 exit 0——這是既有的 fail-open 殘洞，本 change
+  不改變也不宣稱修復它；spec 只 pin shallow scenario。收斂它屬
+  `automate-post-version-manifest-freshness` 或 follow-up 的範圍。
 - [`.vercelignore` 允許清單日後又漏新 generator] → regression test 用
   「解析 prebuild 引用 → 對照 ignore 規則」的通用契約擋住，不是寫死檔名。
 - [CI shallow checkout 讓 reader `--check` 誤判] → reader manifest 是
