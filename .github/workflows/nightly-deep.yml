@@ -166,6 +166,7 @@ jobs:
     continue-on-error: true
     permissions:
       contents: write
+      actions: write
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-pnpm
@@ -224,6 +225,12 @@ jobs:
           gh pr create --base main --head "$BRANCH" \
             --title "chore(quality): nightly coverage ratchet baseline refresh" \
             --body "Automated baseline/history update from Nightly Deep Check run ${{ github.run_id }}. Data-only, no app code changed."
+          # A PR opened with the default GITHUB_TOKEN does not trigger
+          # ci.yml's pull_request event (GitHub's anti-recursion guard), so
+          # the required ci-passed check would otherwise never start.
+          # workflow_dispatch is explicitly exempt from that guard — use it
+          # to get a real check run attached to this branch's head SHA.
+          gh workflow run ci.yml --ref "$BRANCH"
           gh pr merge "$BRANCH" --auto --squash
 
   # ─── Full Link Check (internal + external with baseline ratchet) ──
@@ -233,6 +240,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      actions: write
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-pnpm
@@ -267,6 +275,12 @@ jobs:
           gh pr create --base main --head "$BRANCH" \
             --title "chore(quality): nightly broken-links baseline refresh" \
             --body "Automated baseline update from Nightly Deep Check run ${{ github.run_id }}. Data-only, no app code changed."
+          # A PR opened with the default GITHUB_TOKEN does not trigger
+          # ci.yml's pull_request event (GitHub's anti-recursion guard), so
+          # the required ci-passed check would otherwise never start.
+          # workflow_dispatch is explicitly exempt from that guard — use it
+          # to get a real check run attached to this branch's head SHA.
+          gh workflow run ci.yml --ref "$BRANCH"
           gh pr merge "$BRANCH" --auto --squash
 
   # ─── Notify on failure (aggregate, single Telegram ping) ──────────

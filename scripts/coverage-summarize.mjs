@@ -19,7 +19,14 @@ const COVERAGE_MAP_PATH = join(ROOT, 'quality', 'coverage', 'coverage', 'coverag
 const OUT_PATH = join(ROOT, 'quality', 'coverage', 'summary.json');
 
 function pct(covered, total) {
-  return total === 0 ? 100 : (covered / total) * 100;
+  // total === 0 means entryFilter matched nothing — that's collection having
+  // silently regressed to zero, not "100% covered". Reporting 100 here would
+  // let coverage-ratchet.sh read it as an improvement and ratchet the
+  // baseline up to a number nothing actually measured.
+  if (total === 0) {
+    throw new Error('No entries matched entryFilter — coverage collection produced zero data.');
+  }
+  return (covered / total) * 100;
 }
 
 async function main() {
