@@ -49,16 +49,16 @@
 
 ## 6. 驗證
 
-- [ ] 6.1 遺留項檢查器通過：active contract legacy occurrences 為零，immutable-history exclusion 與 active exact exceptions 都有精確理由。
-- [ ] 6.2 文章驗證、內容門檻、glossary checks、counter 測試、Tribunal 測試與完整 JS／TS test suite 通過。
-- [ ] 6.3 `tools/gp-pipeline` Go tests、doctor、fetch／eval／write／counter／deploy dry-run 測試資料通過。
-- [ ] 6.4 `pnpm exec astro check` 與 `pnpm run build` 通過；所有 repo-owned post links resolve。
-- [ ] 6.5 記錄 pathname 破壞性變更證據：Reader Tracker／synced slug、post API identity、Giscus pathname threads、human signals、RSS item links 與舊外部 URL 的預期行為，不把有意中斷或 RSS client 視為新 item 的結果誤判成漏測。
-- [ ] 6.6 以 uiux-auditor 檢查 dark／light、mobile／desktop 的首頁、GP／MP listing、文章 badge、MoguNote 與搜尋結果。
-- [ ] 6.7 Implementation correctness reviewer 與 simplify reviewer 的 findings 全部處理或明確記錄。
+- [x] 6.1 遺留項檢查器通過：active contract legacy occurrences 為零，immutable-history exclusion 與 active exact exceptions 都有精確理由。
+- [x] 6.2 文章驗證、內容門檻、glossary checks、counter 測試、Tribunal 測試與完整 JS／TS test suite 通過。
+- [x] 6.3 `tools/gp-pipeline` Go tests、doctor、fetch／eval／write／counter／deploy dry-run 測試資料通過。
+- [x] 6.4 `pnpm exec astro check` 與 `pnpm run build` 通過；所有 repo-owned post links resolve。
+- [x] 6.5 記錄 pathname 破壞性變更證據：Reader Tracker／synced slug、post API identity、Giscus pathname threads、human signals、RSS item links 與舊外部 URL 的預期行為，不把有意中斷或 RSS client 視為新 item 的結果誤判成漏測。
+- [x] 6.6 以 uiux-auditor 檢查 dark／light、mobile／desktop 的首頁、GP／MP listing、文章 badge、MoguNote 與搜尋結果。
+- [x] 6.7 Implementation correctness reviewer 與 simplify reviewer 的 findings 全部處理或明確記錄。
 
 ## 7. Spec sync 與 cutover 交付包
 
-- [ ] 7.1 將 delta 規格 intelligent merge 到 `openspec/specs/`，完成 correctness／simplify review 與本機驗證，讓 change 達到 archive-ready；實際 archive 是所有 checkbox 完成後的 workflow 動作。
+- [x] 7.1 將 delta 規格 intelligent merge 到 `openspec/specs/`，完成 correctness／simplify review 與本機驗證，讓 change 達到 archive-ready；實際 archive 是所有 checkbox 完成後的 workflow 動作。
 - [x] 7.2 `docs/rebrand-cutover-runbook.md` 已定義離線終審、人類檢查點②、producer fence、合併、fresh VM、no-publish canary、Vercel 正式環境 smoke 與回退順序；實際 live cutover 明確留在 archive 後。
 - [x] 7.3 Cutover evidence template 已涵蓋 model／harness／env signature、CI、雙主題 UI、破壞性影響、rollback、正式路由與 #585 reliability roadmap 接續項目。

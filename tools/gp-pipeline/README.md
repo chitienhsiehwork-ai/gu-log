@@ -93,6 +93,6 @@ GOCACHE=/tmp/gu-log-go-cache go test ./...
 ## Source of truth
 
 - CLI 行為：`cmd/gp-pipeline` 與 `internal/**` tests。
-- Taxonomy／migration contract：`openspec/changes/rebrand-mogu-gp-mp-taxonomy/`，archive 後由 main specs 接手。
+- Taxonomy／migration contract：main specs（`openspec/specs/brand-taxonomy/` 等）；歷史決策見 `openspec/changes/archive/2026-07-17-rebrand-mogu-gp-mp-taxonomy/`。
 - 內容與發布規則：repo 的 `AGENTS.md`、`CONTRIBUTING.md` 與對應 playbook。
 - 本 README 是操作導覽；若與 code／spec 不同，以 code／spec 為準並修正本檔。
