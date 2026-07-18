@@ -36,6 +36,22 @@ func gitPush(ctx context.Context, repoRoot string) error {
 	return err
 }
 
+func gitStagedPaths(ctx context.Context, repoRoot string) ([]string, error) {
+	res, err := runner.RunWithOptions(ctx, runner.Options{
+		Name:    "git",
+		Args:    []string{"diff", "--cached", "--name-only", "-z", "--"},
+		WorkDir: repoRoot,
+	})
+	if err != nil {
+		return nil, err
+	}
+	raw := strings.TrimSuffix(string(res.Stdout), "\x00")
+	if raw == "" {
+		return nil, nil
+	}
+	return strings.Split(raw, "\x00"), nil
+}
+
 func gitHasStagedChanges(ctx context.Context, repoRoot string, paths ...string) (bool, error) {
 	args := append([]string{"diff", "--cached", "--quiet", "--exit-code", "--"}, paths...)
 	res, err := runner.RunWithOptions(ctx, runner.Options{

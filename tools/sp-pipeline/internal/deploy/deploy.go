@@ -108,6 +108,9 @@ func RunExisting(ctx context.Context, opts Options) (*Result, error) {
 	if opts.ActiveFilename == "" {
 		return nil, fmt.Errorf("deploy existing: ActiveFilename required")
 	}
+	if err := rejectPreExistingStagedChanges(ctx, opts.Cfg.RepoRoot); err != nil {
+		return nil, err
+	}
 
 	postsDir := opts.Cfg.PostsDir
 	activePath := filepath.Join(postsDir, opts.ActiveFilename)
@@ -204,6 +207,9 @@ func Run(ctx context.Context, opts Options) (*Result, error) {
 	if err := validateFilenameSlots(opts); err != nil {
 		return nil, err
 	}
+	if err := rejectPreExistingStagedChanges(ctx, opts.Cfg.RepoRoot); err != nil {
+		return nil, err
+	}
 
 	postsDir := opts.Cfg.PostsDir
 
@@ -259,16 +265,11 @@ func Run(ctx context.Context, opts Options) (*Result, error) {
 
 	// 4. Validate (unless skipped).
 	if !opts.SkipValidate {
-		validateErr := runValidate(ctx, opts.Cfg.RepoRoot, opts.Cfg.ValidatePosts)
-		if validateErr != nil {
-			// If the failing output mentions our new files, die + rm.
-			if strings.Contains(validateErr.Error(), finalFilename) || strings.Contains(validateErr.Error(), finalEN) {
-				_ = os.Remove(filepath.Join(postsDir, finalFilename))
-				_ = os.Remove(filepath.Join(postsDir, finalEN))
-				return nil, fmt.Errorf("deploy: validate-posts rejected %s: %w", finalFilename, validateErr)
-			}
-			// Pre-existing failure not tied to our files — warn and continue.
-			opts.Log.Warn("deploy: validate-posts reported issues not tied to %s; continuing", finalFilename)
+		if err := runValidate(ctx, opts.Cfg.RepoRoot, opts.Cfg.ValidatePosts); err != nil {
+			// Validation is a publish gate, not a best-effort diagnostic. Keep
+			// the allocated/renamed files in place for explicit recovery, but do
+			// not build, stage, commit, or push after any non-zero validator exit.
+			return nil, fmt.Errorf("deploy: validate-posts rejected fresh publish for %s: %w", finalFilename, err)
 		}
 	}
 
@@ -306,6 +307,21 @@ func Run(ctx context.Context, opts Options) (*Result, error) {
 		Filename:       finalFilename,
 		ENFilename:     finalEN,
 	}, nil
+}
+
+// rejectPreExistingStagedChanges keeps deploy from swallowing operator-owned
+// index state. Both fresh and recovery deploys eventually run an unrestricted
+// `git commit` so hooks can add derived manifests; an already non-empty index
+// must therefore fail before counter, file, build, or index mutation.
+func rejectPreExistingStagedChanges(ctx context.Context, repoRoot string) error {
+	paths, err := gitStagedPaths(ctx, repoRoot)
+	if err != nil {
+		return fmt.Errorf("deploy: inspect pre-existing staged changes: %w", err)
+	}
+	if len(paths) == 0 {
+		return nil
+	}
+	return fmt.Errorf("deploy: pre-existing staged changes %q; refusing to commit pipeline output; operator staging preserved", paths)
 }
 
 func checkPendingArtifacts(repoRoot string) error {

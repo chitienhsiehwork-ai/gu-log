@@ -183,6 +183,101 @@ func TestRun_MalformedDateStamp(t *testing.T) {
 	}
 }
 
+func TestRun_PreExistingStagedChangesFailBeforeMutationAndPreserveIndex(t *testing.T) {
+	opts, counterFile, postsDir := newTestOptions(t, nil)
+	repoRoot := opts.Cfg.RepoRoot
+	operatorFile := filepath.Join(repoRoot, "operator-note.txt")
+	if err := os.WriteFile(operatorFile, []byte("keep staged\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runGitForDeployTest(t, repoRoot, "add", "operator-note.txt")
+	stagedBefore := runGitForDeployTest(t, repoRoot, "diff", "--cached", "--name-status")
+	headBefore := runGitForDeployTest(t, repoRoot, "rev-parse", "HEAD")
+	counterBefore, err := os.ReadFile(counterFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = Run(context.Background(), opts)
+	if err == nil {
+		t.Fatal("expected fresh deploy to reject pre-existing staged changes")
+	}
+	if !strings.Contains(err.Error(), "pre-existing staged changes") || !strings.Contains(err.Error(), "operator-note.txt") {
+		t.Fatalf("error = %q, want explicit staged-path refusal", err)
+	}
+	if stagedAfter := runGitForDeployTest(t, repoRoot, "diff", "--cached", "--name-status"); stagedAfter != stagedBefore {
+		t.Fatalf("operator staging changed: before=%q after=%q", stagedBefore, stagedAfter)
+	}
+	if headAfter := runGitForDeployTest(t, repoRoot, "rev-parse", "HEAD"); headAfter != headBefore {
+		t.Fatalf("fresh deploy committed despite preflight refusal: before=%s after=%s", headBefore, headAfter)
+	}
+	counterAfter, err := os.ReadFile(counterFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(counterAfter) != string(counterBefore) {
+		t.Fatal("fresh deploy bumped the counter before staged-change refusal")
+	}
+	if _, err := os.Stat(filepath.Join(postsDir, opts.ActiveFilename)); err != nil {
+		t.Fatalf("fresh deploy renamed the pending file before refusal: %v", err)
+	}
+}
+
+func TestRun_ValidatorSystemicFailureStopsBeforeBuildCommitAndPush(t *testing.T) {
+	opts, _, _ := newTestOptions(t, func(o *Options) {
+		o.SkipValidate = false
+		o.SkipBuild = false
+		o.SkipPush = false
+	})
+	repoRoot := opts.Cfg.RepoRoot
+	opts.Cfg.ValidatePosts = filepath.Join(repoRoot, "scripts", "validate-posts.mjs")
+	headBefore := runGitForDeployTest(t, repoRoot, "rev-parse", "HEAD")
+
+	binDir := t.TempDir()
+	callsFile := filepath.Join(t.TempDir(), "calls.log")
+	realGit, err := exec.LookPath("git")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fakeNode := "#!/bin/sh\nprintf 'validate\\n' >> \"$DEPLOY_TEST_CALLS\"\nprintf 'validator subprocess crashed before checking posts\\n'\nexit 7\n"
+	fakeNPM := "#!/bin/sh\nprintf 'build\\n' >> \"$DEPLOY_TEST_CALLS\"\n"
+	fakeGit := `#!/bin/sh
+case "$1" in
+  commit|push) printf 'git:%s\n' "$1" >> "$DEPLOY_TEST_CALLS" ;;
+esac
+exec "$DEPLOY_TEST_REAL_GIT" "$@"
+`
+	for name, contents := range map[string]string{"node": fakeNode, "npm": fakeNPM, "git": fakeGit} {
+		if err := os.WriteFile(filepath.Join(binDir, name), []byte(contents), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	t.Setenv("DEPLOY_TEST_CALLS", callsFile)
+	t.Setenv("DEPLOY_TEST_REAL_GIT", realGit)
+	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	_, err = Run(context.Background(), opts)
+	if err == nil {
+		t.Fatal("expected systemic validator failure to stop fresh deploy")
+	}
+	if !strings.Contains(err.Error(), "validate-posts") || !strings.Contains(err.Error(), "validator subprocess crashed") {
+		t.Fatalf("error = %q, want validator failure and captured output", err)
+	}
+	calls, readErr := os.ReadFile(callsFile)
+	if readErr != nil {
+		t.Fatal(readErr)
+	}
+	if got := strings.TrimSpace(string(calls)); got != "validate" {
+		t.Fatalf("post-validator commands ran: %q; want validate only", got)
+	}
+	if headAfter := runGitForDeployTest(t, repoRoot, "rev-parse", "HEAD"); headAfter != headBefore {
+		t.Fatalf("validator failure was committed: before=%s after=%s", headBefore, headAfter)
+	}
+	if staged := runGitForDeployTest(t, repoRoot, "diff", "--cached", "--name-only"); staged != "" {
+		t.Fatalf("validator failure left pipeline output staged: %q", staged)
+	}
+}
+
 func TestRun_AllSlotsProvided_NoMalformedFilename(t *testing.T) {
 	opts, _, postsDir := newTestOptions(t, nil)
 
@@ -299,6 +394,51 @@ func TestRunExisting_NoContentChangesIsExplicitSuccess(t *testing.T) {
 	}
 	if got := runGitForDeployTest(t, repoRoot, "status", "--porcelain"); got != "" {
 		t.Fatalf("no-op existing deploy left repo dirty:\n%s", got)
+	}
+}
+
+func TestRunExisting_PreExistingStagedChangesFailAndPreserveIndex(t *testing.T) {
+	opts, _, postsDir := newTestOptions(t, nil)
+	repoRoot := opts.Cfg.RepoRoot
+	existing := "sp-251-20260717-fakeauthor-faketitle.mdx"
+	if err := os.Rename(filepath.Join(postsDir, opts.ActiveFilename), filepath.Join(postsDir, existing)); err != nil {
+		t.Fatal(err)
+	}
+	opts.ActiveFilename = existing
+	opts.TicketID = "SP-251"
+	runGitForDeployTest(t, repoRoot, "add", "-A")
+	runGitForDeployTest(t, repoRoot, "commit", "-q", "-m", "existing baseline")
+
+	enFilename := "en-" + existing
+	if err := os.WriteFile(filepath.Join(postsDir, enFilename), []byte("---\ntitle: \"Fake\"\n---\ntranslated\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	operatorFile := filepath.Join(repoRoot, "operator-note.txt")
+	if err := os.WriteFile(operatorFile, []byte("keep staged\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runGitForDeployTest(t, repoRoot, "add", "operator-note.txt")
+	stagedBefore := runGitForDeployTest(t, repoRoot, "diff", "--cached", "--name-status")
+	headBefore := runGitForDeployTest(t, repoRoot, "rev-parse", "HEAD")
+
+	_, err := RunExisting(context.Background(), opts)
+	if err == nil {
+		t.Fatal("expected existing deploy to reject pre-existing staged changes")
+	}
+	if !strings.Contains(err.Error(), "pre-existing staged changes") || !strings.Contains(err.Error(), "operator-note.txt") {
+		t.Fatalf("error = %q, want explicit staged-path refusal", err)
+	}
+	if stagedAfter := runGitForDeployTest(t, repoRoot, "diff", "--cached", "--name-status"); stagedAfter != stagedBefore {
+		t.Fatalf("operator staging changed: before=%q after=%q", stagedBefore, stagedAfter)
+	}
+	if got := runGitForDeployTest(t, repoRoot, "diff", "--cached", "--name-only", "--", "src/content/posts/"+enFilename); got != "" {
+		t.Fatalf("existing deploy staged its sidecar before refusing: %q", got)
+	}
+	if headAfter := runGitForDeployTest(t, repoRoot, "rev-parse", "HEAD"); headAfter != headBefore {
+		t.Fatalf("existing deploy committed despite preflight refusal: before=%s after=%s", headBefore, headAfter)
+	}
+	if _, err := os.Stat(filepath.Join(postsDir, enFilename)); err != nil {
+		t.Fatalf("existing deploy removed the unstaged sidecar on refusal: %v", err)
 	}
 }
 
