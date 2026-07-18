@@ -47,6 +47,28 @@ function makeFastHookEnv(): NodeJS.ProcessEnv {
   return { ...process.env, PATH: `${bin}${path.delimiter}${process.env.PATH ?? ''}` };
 }
 
+function commitAll(repo: string, message: string): string {
+  execSync('git add -A', { cwd: repo });
+  execSync(`git commit -q -m "${message}"`, { cwd: repo });
+  return execSync('git rev-parse HEAD', { cwd: repo, encoding: 'utf-8' }).trim();
+}
+
+function writePost(repo: string, filename: string, ticketId: string): void {
+  fs.writeFileSync(
+    path.join(repo, 'src', 'content', 'posts', filename),
+    `---\nticketId: ${ticketId}\n---\nbody\n`
+  );
+}
+
+function runPrePush(repo: string, stdin: string) {
+  return spawnSync('bash', [path.join(REPO_ROOT, '.githooks', 'pre-push')], {
+    cwd: repo,
+    input: stdin,
+    env: makeFastHookEnv(),
+    encoding: 'utf-8',
+  });
+}
+
 describe('pre-commit: tmp/ untracked guard (Step -0.5)', () => {
   it('blocks a tracked-file rename into ignored tmp/', () => {
     const repo = makeFakeRepo();
@@ -111,47 +133,135 @@ describe('pre-commit: ticketId duplicate gate (Step 0)', () => {
   }, 15_000);
 });
 
-describe('pre-push: PENDING ticketId guard (Step 0)', () => {
-  it('passes when no PENDING ticketIds being pushed', () => {
-    const r = spawnSync('bash', [path.join(REPO_ROOT, '.githooks', 'pre-push')], {
-      cwd: REPO_ROOT,
-      input:
-        'refs/heads/feature-branch ' +
-        'a'.repeat(40) +
-        ' refs/heads/feature-branch ' +
-        'b'.repeat(40) +
-        '\n',
-      env: { ...makeFastHookEnv(), PWD: REPO_ROOT },
-      encoding: 'utf-8',
-    });
-    // Should not crash on PENDING gate (it only checks pushes targeting main).
-    // The bundle-budget step is warning-only locally (#396) so it won't fail the
-    // hook; we just assert the PENDING gate didn't fire.
+describe('pre-push: PENDING ticketId guard (Step 0) — real committed diff', () => {
+  it('rejects a push to main whose committed diff carries a PENDING ticketId', () => {
+    const repo = makeFakeRepo();
+    const baseSha = commitAll(repo, 'base');
+    writePost(repo, 'sp-pending.mdx', 'SP-PENDING');
+    const headSha = commitAll(repo, 'add pending post');
+
+    const stdin = `refs/heads/main ${headSha} refs/heads/main ${baseSha}\n`;
+    const r = runPrePush(repo, stdin);
+
+    expect(r.status).toBe(1);
+    expect(r.stdout + r.stderr).toMatch(
+      /PENDING ticketId in commits being pushed to refs\/heads\/main/
+    );
+    expect(r.stdout + r.stderr).toMatch(/sp-pending\.mdx/);
+  });
+
+  it('rejects an existing post modified from a real ticketId to PENDING', () => {
+    const repo = makeFakeRepo();
+    writePost(repo, 'sp-existing.mdx', 'SP-42');
+    const baseSha = commitAll(repo, 'base real post');
+    writePost(repo, 'sp-existing.mdx', 'SP-PENDING');
+    const headSha = commitAll(repo, 'restore pending ticket');
+
+    const stdin = `refs/heads/main ${headSha} refs/heads/main ${baseSha}\n`;
+    const r = runPrePush(repo, stdin);
+
+    expect(r.status).toBe(1);
+    expect(r.stdout + r.stderr).toMatch(/PENDING ticketId in commits/);
+    expect(r.stdout + r.stderr).toMatch(/sp-existing\.mdx/);
+  });
+
+  it('reads local_sha blobs even when a dirty worktree hides the committed PENDING value', () => {
+    const repo = makeFakeRepo();
+    const baseSha = commitAll(repo, 'base');
+    writePost(repo, 'sp-pending.mdx', 'SP-PENDING');
+    const headSha = commitAll(repo, 'commit pending post');
+
+    // This uncommitted edit is exactly the old fail-open: the hook used the
+    // commit diff for filenames but plain grep for content, so it saw SP-42 in
+    // the worktree and missed SP-PENDING in headSha.
+    writePost(repo, 'sp-pending.mdx', 'SP-42');
+
+    const stdin = `refs/heads/main ${headSha} refs/heads/main ${baseSha}\n`;
+    const r = runPrePush(repo, stdin);
+
+    expect(r.status).toBe(1);
+    expect(r.stdout + r.stderr).toMatch(/PENDING ticketId in commits/);
+    expect(r.stdout + r.stderr).toMatch(/sp-pending\.mdx/);
+  });
+
+  it('rejects a renamed post whose committed ticketId changes to PENDING', () => {
+    const repo = makeFakeRepo();
+    const original = path.join(repo, 'src', 'content', 'posts', 'sp-real.mdx');
+    const renamed = path.join(repo, 'src', 'content', 'posts', 'sp-renamed.mdx');
+    const stableBody = Array.from({ length: 20 }, (_, i) => `stable line ${i}`).join('\n');
+    fs.writeFileSync(original, `---\nticketId: SP-42\n---\n${stableBody}\n`);
+    const baseSha = commitAll(repo, 'base real post');
+
+    fs.renameSync(original, renamed);
+    fs.writeFileSync(renamed, `---\nticketId: SP-PENDING\n---\n${stableBody}\n`);
+    const headSha = commitAll(repo, 'rename post and restore pending ticket');
+
+    const nameStatus = execSync(
+      `git diff -M --name-status ${baseSha}..${headSha} -- src/content/posts`,
+      { cwd: repo, encoding: 'utf-8' }
+    );
+    expect(nameStatus).toMatch(/^R\d+\s/);
+
+    const stdin = `refs/heads/main ${headSha} refs/heads/main ${baseSha}\n`;
+    const r = runPrePush(repo, stdin);
+
+    expect(r.status).toBe(1);
+    expect(r.stdout + r.stderr).toMatch(/PENDING ticketId in commits/);
+    expect(r.stdout + r.stderr).toMatch(/sp-renamed\.mdx/);
+  });
+
+  it('allows the exact same committed PENDING work when pushed to a feature branch', () => {
+    const repo = makeFakeRepo();
+    const baseSha = commitAll(repo, 'base');
+    writePost(repo, 'sp-pending.mdx', 'SP-PENDING');
+    const headSha = commitAll(repo, 'add pending post');
+
+    const stdin = `refs/heads/feature-x ${headSha} refs/heads/feature-x ${baseSha}\n`;
+    const r = runPrePush(repo, stdin);
+
     expect(r.stdout + r.stderr).not.toMatch(/PENDING ticketId in commits/);
+    expect(r.status).toBe(0);
   }, 15_000);
 
-  it('blocks when pushing PENDING ticketIds to main', () => {
-    // Synthetic stdin matching git pre-push contract:
-    //   <local-ref> <local-sha> <remote-ref> <remote-sha>
-    // refs/heads/main triggers the gate; we use HEAD as local_sha, all-zeros
-    // remote_sha so DIFF_BASE = merge-base.
-    const headSha = execSync('git rev-parse HEAD', { cwd: REPO_ROOT, encoding: 'utf-8' }).trim();
+  it('blocks the first main push to a truly empty bare remote', () => {
+    // remote_sha is all-zeros and origin/main genuinely does not exist. The
+    // safe baseline is therefore the empty tree: every post in local_sha is
+    // about to become remote content and must be inspected.
+    const repo = makeFakeRepo();
+
+    const originDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-hook-origin-'));
+    execSync(`git init -q --bare "${originDir}"`);
+    execSync(`git remote add origin "${originDir}"`, { cwd: repo });
+
+    writePost(repo, 'sp-pending.mdx', 'SP-PENDING');
+    const headSha = commitAll(repo, 'add pending post');
+
+    const originMain = spawnSync(
+      'git',
+      ['show-ref', '--verify', '--quiet', 'refs/remotes/origin/main'],
+      { cwd: repo }
+    );
+    expect(originMain.status).toBe(1);
+
     const stdin = `refs/heads/main ${headSha} refs/heads/main ${'0'.repeat(40)}\n`;
-    // We fake the workspace by writing a temp posts/ entry into the real
-    // repo's index? No — use a worktree to keep it isolated.
-    const r = spawnSync('bash', [path.join(REPO_ROOT, '.githooks', 'pre-push')], {
-      cwd: REPO_ROOT,
-      input: stdin,
-      env: { ...process.env },
-      encoding: 'utf-8',
-    });
-    // We can't *force* a PENDING file to appear in the diff without
-    // mutating the repo, so this test just confirms the guard ran. The
-    // gate output ("PENDING ticketId in commits being pushed to ...")
-    // would appear if any committed file has -PENDING. We assert that
-    // the hook accepts the stdin contract and doesn't crash.
-    expect(typeof r.status).toBe('number');
+    const r = runPrePush(repo, stdin);
+
+    expect(r.status).toBe(1);
+    expect(r.stdout + r.stderr).toMatch(/PENDING ticketId in commits/);
   });
+
+  it('passes a push to main with a real committed diff and no PENDING ticketId', () => {
+    const repo = makeFakeRepo();
+    const baseSha = commitAll(repo, 'base');
+    writePost(repo, 'sp-real.mdx', 'SP-42');
+    const headSha = commitAll(repo, 'add real post');
+
+    const stdin = `refs/heads/main ${headSha} refs/heads/main ${baseSha}\n`;
+    const r = runPrePush(repo, stdin);
+
+    expect(r.stdout + r.stderr).not.toMatch(/PENDING ticketId in commits/);
+    expect(r.status).toBe(0);
+  }, 15_000);
 });
 
 describe('pre-commit: hook script is valid bash', () => {
