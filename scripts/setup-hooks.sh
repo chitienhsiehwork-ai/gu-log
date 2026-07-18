@@ -18,6 +18,17 @@ echo "Setting up git hooks..."
 # most recently.
 git config --local extensions.worktreeConfig true
 git config --worktree core.hooksPath "$GIT_HOOKS_DIR"
+
+# Migrate clones that ran the pre-worktree-safe setup script. That version
+# stored an absolute hooksPath in the shared .git/config, so every sibling
+# worktree inherited one checkout's hooks. The current worktree override above
+# is already safe; remove only the legacy clone-scoped key so it cannot keep
+# redirecting siblings that have not run this version yet.
+if git config --local --get-all core.hooksPath >/dev/null 2>&1; then
+    git config --local --unset-all core.hooksPath
+    echo "✓ Removed legacy clone-scoped core.hooksPath"
+fi
+
 mkdir -p "$GIT_HOOKS_DIR"
 echo "✓ Set worktree-scoped core.hooksPath to $GIT_HOOKS_DIR"
 

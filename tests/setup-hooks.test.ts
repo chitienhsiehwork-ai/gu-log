@@ -43,8 +43,24 @@ describe('setup-hooks linked-worktree isolation', () => {
     git(repo, 'worktree', 'add', '-q', '-b', 'test-first', first, 'HEAD');
     git(repo, 'worktree', 'add', '-q', '-b', 'test-second', second, 'HEAD');
 
+    const commonDir = path.resolve(repo, git(repo, 'rev-parse', '--git-common-dir'));
+    const commonConfig = path.join(commonDir, 'config');
+    const legacySharedHooksPath = path.join(git(first, 'rev-parse', '--absolute-git-dir'), 'hooks');
+    git(repo, 'config', '--file', commonConfig, 'core.hooksPath', legacySharedHooksPath);
+    expect(git(repo, 'config', '--file', commonConfig, '--get', 'core.hooksPath')).toBe(
+      legacySharedHooksPath
+    );
+
     execFileSync('bash', ['scripts/setup-hooks.sh'], { cwd: first });
     const firstHooksPath = git(first, 'config', '--worktree', '--get', 'core.hooksPath');
+
+    const migratedCommonHooksPath = spawnSync(
+      'git',
+      ['config', '--file', commonConfig, '--get', 'core.hooksPath'],
+      { encoding: 'utf-8' }
+    );
+    expect(migratedCommonHooksPath.status).toBe(1);
+
     execFileSync('bash', ['scripts/setup-hooks.sh'], { cwd: second });
     const secondHooksPath = git(second, 'config', '--worktree', '--get', 'core.hooksPath');
 
@@ -55,10 +71,9 @@ describe('setup-hooks linked-worktree isolation', () => {
     expect(firstHooksPath).not.toBe(secondHooksPath);
     expect(git(first, 'config', '--worktree', '--get', 'core.hooksPath')).toBe(firstHooksPath);
 
-    const commonDir = path.resolve(repo, git(repo, 'rev-parse', '--git-common-dir'));
     const commonHooksPath = spawnSync(
       'git',
-      ['config', '--file', path.join(commonDir, 'config'), '--get', 'core.hooksPath'],
+      ['config', '--file', commonConfig, '--get', 'core.hooksPath'],
       { encoding: 'utf-8' }
     );
     expect(commonHooksPath.status).toBe(1);
