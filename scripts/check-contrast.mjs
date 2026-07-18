@@ -106,7 +106,6 @@ function scanFile(filePath) {
 // ── Main ────────────────────────────────────────────────────────────
 
 const AA_NORMAL = 4.5;
-const AA_LARGE = 3.0;
 const THRESHOLD = AA_NORMAL; // we check normal text by default
 
 const args = process.argv.slice(2);
