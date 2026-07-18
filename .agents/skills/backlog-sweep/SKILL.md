@@ -5,44 +5,37 @@ description: Sweep gu-log GitHub issues and PRs with consistent triage categorie
 
 # Backlog Sweep SOP
 
-Use this when asked to clean up gu-log GitHub issues, pull requests, tracking issues, or a mixed backlog. The point is to avoid inventing a new triage policy every time.
+Use this for GitHub/project hygiene. Route article work to `.agents/skills/sp-pipeline-sop/SKILL.md`.
 
-This SOP is for GitHub/project hygiene, not article writing. For article pipeline work, use `.agents/skills/sp-pipeline-sop/SKILL.md`.
+## Mutation Contract
 
-## Safety Gates
+Fan-out analysis is always read-only. The controller declares its mutation scope before changing GitHub or git state; it never infers authority for irreversible cleanup or unresolved product/content decisions.
 
-These actions are never safe-autonomous in a sweep and must be left for explicit user decision:
-
-- PR merge
-- Branch deletion
-- Force-push or history rewrite
-- Closing/deleting issues or PRs when information would be lost
-- Bulk label/status edits with ambiguous product meaning
-- Any data-loss or irreversible cleanup
-
-CI status is the agent's job to watch. Do not ask the user to relay check status; use `gh pr checks --watch <pr>` or the available GitHub connector for the current runtime.
+Review-and-merge is allowed when the declared task scope or runtime playbook authorizes it and the PR passes normal review, safety, and CI gates. Closure requires declared scope plus recorded evidence. CI follow-through and post-merge cleanup follow the runtime playbook.
 
 ## Categories
 
-| Category | Meaning | Allowed autonomous action |
-|---|---|---|
-| `must-ship` | Required for production health, broken main, broken deploy, security, data integrity, or an already-committed user promise | Prepare fix plan, identify owner/PR, run checks; do not merge without the repo's normal gate |
-| `review-needed` | Looks useful but needs human/product/editorial judgment before action | Summarize decision needed and propose options |
-| `stale-archive` | Old, superseded, duplicate, already shipped, or no longer relevant | Recommend archive/close target and evidence; do not close/delete without explicit approval |
-| `blocked-by-user` | Needs user credential, policy choice, content direction, billing, external account, or private context | State blocker and exact question |
-| `safe-autonomous` | Reversible, low-risk, clearly scoped maintenance with no product decision | Execute after reporting intent, then verify and report diff/checks |
+| Category          | Meaning                                                                                                                    | Allowed autonomous action                                                         |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `must-ship`       | Required for production health, broken main, broken deploy, security, data integrity, or an already-committed user promise | Execute through normal gates; stop only on a genuine blocker or critical decision |
+| `review-needed`   | Looks useful but needs human/product/editorial judgment before action                                                      | Summarize decision needed and propose options                                     |
+| `stale-archive`   | Old, superseded, duplicate, already shipped, or no longer relevant                                                         | Record evidence; close only when the declared mutation scope permits it           |
+| `blocked-by-user` | Needs user credential, policy choice, content direction, billing, external account, or private context                     | State blocker and exact question                                                  |
+| `safe-autonomous` | Reversible, low-risk, clearly scoped maintenance with no product decision                                                  | Execute, verify, and report                                                       |
 
-When uncertain, classify as `review-needed`, not `safe-autonomous`.
+When uncertain, gather more evidence first. Use `review-needed` only when a material product, content, or policy judgment remains unresolved.
 
 ## Sweep Flow
 
-### 1. Read Current GitHub State
+### 1. Bootstrap and Read Current State
 
-Gather issues, PRs, and any tracking issue the user named. Prefer machine-readable output:
+Follow the identity bootstrap in `AGENTS.md` first, including `./scripts/detect-env.sh --runtime <codex|claude-code>`, then read the routed runtime playbook. Read `.agents/openspec-sdlc.md` too when OpenSpec changes are in scope.
+
+Gather issues, PRs, and any tracking issue the user named. Prefer machine-readable output. Set the CLI limit above the known backlog size; if the result reaches that limit, continue with a paginated API or connector query until complete.
 
 ```bash
-gh issue list --state open --limit 200 --json number,title,labels,assignees,updatedAt,createdAt,url
-gh pr list --state open --limit 200 --json number,title,headRefName,baseRefName,isDraft,mergeStateStatus,reviewDecision,statusCheckRollup,updatedAt,createdAt,url,labels
+gh issue list --state open --limit 1000 --json number,title,labels,assignees,updatedAt,createdAt,url
+gh pr list --state open --limit 1000 --json number,title,headRefName,baseRefName,isDraft,mergeStateStatus,reviewDecision,statusCheckRollup,updatedAt,createdAt,url,labels
 ```
 
 If a tracking issue exists, read it before classifying:
@@ -51,21 +44,15 @@ If a tracking issue exists, read it before classifying:
 gh issue view <number> --json number,title,body,comments,labels,url
 ```
 
-Also read repo-local policy first when the sweep may touch agent workflow, content workflow, or OpenSpec:
-
-- `AGENTS.md`
-- `CLAUDE.md`
-- `playbooks/mac-CC-playbook.md` or `playbooks/CCC-playbook.md` after `./scripts/detect-env.sh`
-- `.agents/openspec-sdlc.md` when OpenSpec changes are involved
-
 ### 2. Fan Out Read-Only Analysis
 
 Fan-out workers may inspect issues, PR diffs, CI status, labels, linked commits, and related docs. They must not mutate GitHub state.
 
-Each read-only analysis result uses this fixed shape:
+Each read-only analysis result uses this shape:
 
 ```md
 ## Item
+
 - Type: issue | PR | tracking
 - Number:
 - Title:
@@ -80,18 +67,15 @@ Each read-only analysis result uses this fixed shape:
 
 ### 3. Consolidate Into One Report
 
-The controller produces a single sweep report with:
+The controller produces one report with:
 
 - Counts by category
 - Priority list, highest urgency first
 - Per-item row with `number`, `title`, `category`, `evidence`, `recommended action`, `risk`
-- Tracking issue update plan
-- Safe-autonomous execution plan, if any
-- Explicit list of actions requiring user decision
+- Mutations completed or proposed, with verification
+- Explicit list of decisions that remain genuinely blocked on the user
 
-Use stable language. Do not hide uncertain calls inside confident labels.
-
-### 4. Update Tracking Issue Plan
+### 4. Update Tracking Issue
 
 If the user asked for an actual tracking issue update, prepare a concise body/comment with:
 
@@ -103,63 +87,26 @@ If the user asked for an actual tracking issue update, prepare a concise body/co
 - Items blocked on user
 - Safe-autonomous items completed or queued
 
-Posting the update is allowed only when the user asked for GitHub state to be updated, or when the current repo playbook clearly authorizes this class of maintenance. Otherwise, include the proposed text in the report.
+Post only when the declared mutation scope or runtime playbook authorizes the update. Otherwise, include proposed text in the report.
 
-### 5. Execute Only Safe-Autonomous Items
+### 5. Execute Authorized Items
 
-Before mutating, re-check that each item is still `safe-autonomous`:
+Immediately before mutation, refresh the item and confirm that it remains inside the declared scope, has no unresolved critical/data-loss decision, and has the required gates plus an item-specific verification path.
 
-- The action is reversible
-- The scope is narrow
-- No product/content decision is embedded
-- No merge/branch deletion/force-push/data-loss risk is involved
-- CI or validation command is known
-
-After executing, run the relevant check and report:
+After executing, run only the checks relevant to that item and report them. Examples:
 
 ```bash
 git status --short
-gh pr checks --watch <pr>
+gh pr checks <pr> --watch
 ```
 
 Use the available equivalent if the runtime uses GitHub MCP instead of `gh`.
-
-## Reporting Format
-
-```md
-# Backlog Sweep Report
-
-## Summary
-- Scope:
-- Queried:
-- Counts:
-
-## Priority List
-1. ...
-
-## Triage Table
-| Item | Category | Evidence | Recommended action | Risk |
-|---|---|---|---|---|
-
-## Tracking Issue Update Plan
-...
-
-## Safe-Autonomous Actions
-- Completed:
-- Deferred:
-
-## Requires User Decision
-- ...
-
-## Verification
-- ...
-```
 
 ## Controller Prompt Shape
 
 ```text
 Read .agents/skills/backlog-sweep/SKILL.md.
 Scope: <issues/PRs/tracking issue/query>.
-Mutation allowed: <none|tracking-comment-only|safe-autonomous>.
-Return the standard sweep report and do not merge/delete/force-push.
+Mutation allowed: <explicit scope, or none>.
+Return one evidence-backed report. Do not perform irreversible cleanup outside the declared scope; merge and branch cleanup follow the runtime playbook.
 ```

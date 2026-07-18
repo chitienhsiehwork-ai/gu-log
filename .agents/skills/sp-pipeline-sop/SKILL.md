@@ -1,101 +1,61 @@
 ---
 name: sp-pipeline-sop
-description: Run or resume gu-log SP pipeline work without re-pasting long prompts; indexes modes, inputs, artifacts, required repo docs, and invariants.
+description: Route gu-log SP draft, review, refine, translation, and publish work without re-pasting long prompts.
 ---
 
 # SP Pipeline SOP
 
-Use this when an agent is asked to draft, review, refine, translate, or ship a gu-log SP article. The goal is to make the controller prompt short: read this SOP, then read the linked repo documents for the mode you are doing.
-
 This SOP is an index and workflow contract. It does not replace the writing guide, contribution rules, pipeline CLI docs, or frontmatter schema.
 
-## Canonical Entry Points
-
-- Automated pipeline: `tools/sp-pipeline/gp-pipeline run <url>`
-- Resume or inspect: `tools/sp-pipeline/gp-pipeline status <work-dir>`
-- Single-step commands: `tools/sp-pipeline/gp-pipeline {fetch,eval,dedup,write,review,refine,credits,ralph,deploy}`
-- Legacy compatibility shim: `scripts/sp-pipeline.sh`
-
-Read `tools/sp-pipeline/SKILL.md` before running commands. It is the command-surface SSOT for flags, exit codes, approval boundaries, and current `gp-pipeline` behavior.
+Read `tools/sp-pipeline/SKILL.md` before running commands. CLI flags and behavior are authoritative in the current binary (`gp-pipeline <subcommand> --help`) and Go implementation; prose docs are derived views.
 
 ## Mode Table
 
-| Mode | Fixed inputs | Fixed artifacts | Must read |
-|---|---|---|---|
-| `draft` | Full source capture, `ticketId` or `SP-PENDING`, source URL, optional angle/source label | `<work-dir>/source-tweet.md`, `<work-dir>/draft-v1.mdx` | `tools/sp-pipeline/SKILL.md`, `CONTRIBUTING.md`, `GU-LOG_WRITER_PROMPT.md`, `docs/shroomdog-editorial-feedback.md`, `tools/sp-pipeline/internal/prompts/write.tmpl` |
-| `review` | `<work-dir>/draft-v1.mdx`, source capture or source URL context | `<work-dir>/review.md` | `CONTRIBUTING.md`, `GU-LOG_WRITER_PROMPT.md`, `docs/shroomdog-editorial-feedback.md`, `tools/sp-pipeline/internal/prompts/review.tmpl`, `scripts/vibe-scoring-standard.md` |
-| `refine` | `<work-dir>/draft-v1.mdx`, `<work-dir>/review.md`, source capture | `<work-dir>/final.mdx` | `CONTRIBUTING.md`, `GU-LOG_WRITER_PROMPT.md`, `docs/shroomdog-editorial-feedback.md`, `tools/sp-pipeline/internal/prompts/refine.tmpl` |
-| `translate-en` | Stable zh-tw final article | `src/content/posts/en-<same-post-file>.mdx` | `scripts/en-translation-guide.md`, `CONTRIBUTING.md`, `GU-LOG_WRITER_PROMPT.md` |
-| `ship` | Validated `final.mdx` or existing pending post, tribunal result, en counterpart when required | `src/content/posts/sp-*.mdx`, `src/content/posts/en-sp-*.mdx`, updated `scripts/article-counter.json` when swapping PENDING | `tools/sp-pipeline/SKILL.md`, `CONTRIBUTING.md`, `docs/tribunal-runbook.md`, `scripts/validate-posts.mjs` |
-
-For a full automated run, the mode sequence is:
-
-```text
-fetch -> eval -> dedup -> write -> review -> refine -> credits -> ralph -> deploy
-```
-
-The work-dir artifact names are intentionally stable: `source-tweet.md`, `draft-v1.mdx`, `review.md`, `final.mdx`, `tribunal-stdout.txt`, and `pipeline-status.json`.
+| Mode           | Fixed inputs                                                                             | Fixed artifacts                                                         | Must read                                                                                                                                                                  |
+| -------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `draft`        | Full source capture, `ticketId` or `SP-PENDING`, source URL, optional angle/source label | `<work-dir>/source-tweet.md`, `<work-dir>/draft-v1.mdx`                 | `tools/sp-pipeline/SKILL.md`, `CONTRIBUTING.md`, `GU-LOG_WRITER_PROMPT.md`, `docs/shroomdog-editorial-feedback.md`, `tools/sp-pipeline/internal/prompts/write.tmpl`        |
+| `review`       | `<work-dir>/draft-v1.mdx`, source capture or source URL context                          | `<work-dir>/review.md`                                                  | `CONTRIBUTING.md`, `GU-LOG_WRITER_PROMPT.md`, `docs/shroomdog-editorial-feedback.md`, `tools/sp-pipeline/internal/prompts/review.tmpl`, `scripts/vibe-scoring-standard.md` |
+| `refine`       | `<work-dir>/draft-v1.mdx`, `<work-dir>/review.md`, source capture                        | `<work-dir>/final.mdx`                                                  | `CONTRIBUTING.md`, `GU-LOG_WRITER_PROMPT.md`, `docs/shroomdog-editorial-feedback.md`, `tools/sp-pipeline/internal/prompts/refine.tmpl`                                     |
+| `translate-en` | Stable zh-tw final article                                                               | `src/content/posts/en-<same-post-file>.mdx`                             | `tools/sp-pipeline/SKILL.md`, `scripts/en-translation-guide.md`, `CONTRIBUTING.md`                                                                                         |
+| `ship`         | Validated `final.mdx` or an existing post, tribunal result, en counterpart when required | Published post pair; counter update only for a fresh PENDING allocation | `tools/sp-pipeline/SKILL.md`, `CONTRIBUTING.md`, `docs/tribunal-runbook.md`                                                                                                |
 
 ## Required Invariants
 
-- **Source completeness**: do not write from a truncated, contaminated, paywalled, or preview-only capture. For X/Twitter sources, use `.agents/skills/sp-source-fetch/SKILL.md` or `gp-pipeline fetch`; stop on `INCOMPLETE_SOURCE` or `INCOMPLETE_SOURCE_WARNING`.
-- **Source Boundary**: SP body presents source claims directly and smoothly. Source-meta commentary, gu-log interpretation, jokes, and extrapolation belong in notes, not in body prose.
-- **MoguNote position**: new SP prose uses `<MoguNote>` for gu-log/Clawd commentary. If an older prompt or template mentions `ClawdNote`, resolve the naming through `GU-LOG_WRITER_PROMPT.md`; do not introduce `CodexNote`, `GeminiNote`, or model-specific reader-facing personas.
+- **Source completeness**: do not write from a truncated, contaminated, paywalled, or preview-only capture. Route X/Twitter sources through `.agents/skills/sp-source-fetch/SKILL.md` or `gp-pipeline fetch` and honor their fail-closed result.
+- **Commentary component**: resolve legacy `ClawdNote` references through `GU-LOG_WRITER_PROMPT.md`; do not invent model-specific reader-facing personas.
 - **Frontmatter correctness**: schema authority lives in `src/content.config.ts`; contribution workflow lives in `CONTRIBUTING.md`. Use `SP-PENDING` while drafting unless the ship step is intentionally allocating the final number.
 - **zh-tw first**: zh-tw is the canonical article. Iterate, score, and stabilize zh-tw before producing or updating the English sidecar.
-- **Validation**: run `node scripts/validate-posts.mjs` after article/frontmatter changes. For ship-ready changes, also run the build gate required by the current repo playbook or pipeline step.
+- **Validation**: run the article and build gates required by the current repo playbook or pipeline step.
 - **Provenance honesty**: when content is regenerated by a different model or harness, update `translatedBy` / pipeline provenance in the same edit according to `CONTRIBUTING.md` and the pipeline helpers.
-- **No pasted mega-prompt dependency**: a worker should not need the controller to paste the full style guide, frontmatter block, Source Boundary policy, or review checklist. The worker reads this SOP plus the mode's required files.
+- **No pasted mega-prompt dependency**: the controller supplies only task-specific context; the worker reads this SOP plus the mode's required files.
 
-## Mode Details
+## Publish and Recovery Routing
 
-### Draft
-
-Prefer:
+Prefer `run` for pipeline-owned work. For an existing final zh-tw post, these recovery paths validate, build, commit, and push without allocating a new ticket or renaming the post:
 
 ```bash
-tools/sp-pipeline/gp-pipeline write --source <source-file> --work-dir <work-dir>
+# Create the missing en sidecar, then publish the existing pair.
+tools/sp-pipeline/gp-pipeline run --from-step translate --file <existing-zh-filename>.mdx
+
+# Publish an existing final post whose sidecar is already ready.
+tools/sp-pipeline/gp-pipeline run --from-step deploy --file <existing-zh-filename>.mdx
 ```
 
-Use `gp-pipeline run <url>` when the task is a normal end-to-end SP from a URL and approval boundaries allow it. Use `--dry-run` when rehearsing without deploy.
-
-Draft output must be a complete MDX article in `<work-dir>/draft-v1.mdx`, with valid frontmatter and zh-tw body. It must cover all captured source material proportionally, including linked content and full threads when present.
-
-### Review
-
-Prefer:
+Use standalone `deploy` only for a fresh PENDING allocation. This example is a derived view of `gp-pipeline deploy --help`; all required filename metadata is explicit because the command deliberately refuses to infer ambiguous slugs:
 
 ```bash
-tools/sp-pipeline/gp-pipeline review --draft <work-dir>/draft-v1.mdx
+tools/sp-pipeline/gp-pipeline deploy \
+  --active-file <pending-zh-filename>.mdx \
+  --active-en-file <pending-en-filename>.mdx \
+  --date-stamp YYYYMMDD \
+  --author-slug <author-slug> \
+  --title-slug <title-slug> \
+  --title "<article title>"
 ```
 
-Review output is `<work-dir>/review.md`. Findings should be actionable, severity-labeled, and tied to source quotes plus proposed replacement text. Treat certainty preservation, number integrity, coverage completeness, Source Boundary, and frontmatter as blocking review surfaces.
+`--active-file` and optional `--active-en-file` are filenames inside `src/content/posts/`, not work-dir paths. Omit `--active-en-file` for a zh-tw-only publish; set `--prefix` only when the default SP prefix is wrong. Do not use testing-only skip flags for a real publish.
 
-### Refine
-
-Prefer:
-
-```bash
-tools/sp-pipeline/gp-pipeline refine --draft <work-dir>/draft-v1.mdx --review <work-dir>/review.md
-```
-
-Refine output is `<work-dir>/final.mdx`. Apply review feedback without weakening source fidelity, frontmatter accuracy, or the chosen narrative angle.
-
-### Translate EN
-
-Only translate after zh-tw is stable. The English sidecar keeps the same post identity with `en-` filename prefix and `lang: "en"`. Translation is not a second editorial rewrite pass; it preserves the zh-tw article's structure, source boundaries, links, and notes while using natural English.
-
-### Ship
-
-Prefer pipeline deploy when the pipeline produced the article:
-
-```bash
-# --active-file takes the PENDING filename inside src/content/posts/, not a work-dir path
-tools/sp-pipeline/gp-pipeline deploy --active-file <pending-post-filename>.mdx
-# add --active-en-file <en-pending-filename>.mdx when an en- sidecar exists
-```
-
-Manual ship path follows `CONTRIBUTING.md`: validate, run tribunal, write scores, create/update the en sidecar, and swap `SP-PENDING` to a real number only at the merge-ready point. Do not push `PENDING` to protected production branches.
+Fresh deploy fails before allocation when filename inputs, the staged index, or pending-post validation are invalid. After allocation starts, a build, commit, or push error can leave partial state; inspect git status, the counter, and actual post filenames before recovery, and never blindly rerun standalone `deploy`.
 
 ## Minimal Controller Prompt Shape
 
@@ -107,5 +67,3 @@ Source URL / file: <path-or-url>.
 Angle or constraints: <short task-specific delta only>.
 Return: path(s), validation run, blockers.
 ```
-
-Anything longer should usually be replaced by a repo file reference.
