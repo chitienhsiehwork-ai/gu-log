@@ -171,6 +171,29 @@ jobs:
       - name: Security gate (block new high/critical)
         run: pnpm run security:gate
 
+  # Blocking secret scan — same tool/config as the local pre-commit hook
+  # (scripts/hooks/pre-commit step -1), but hooks only fire on machines that
+  # have gitleaks installed; this is the backstop that can't be skipped.
+  # Uses .gitleaks.toml at repo root (auto-detected by the action). No
+  # GITLEAKS_LICENSE needed — this is a personal-account repo, not an org.
+  gitleaks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Job only has contents: read (see top-of-file minimal-permissions
+          # note) — no pull-requests: write, so PR-comment mode would just
+          # 403 silently. Detection still fails the job either way; disable
+          # the comment feature explicitly instead of relying on that.
+          GITLEAKS_ENABLE_COMMENTS: false
+
   unit-tests:
     runs-on: ubuntu-latest
     # vitest run is fast (~5s locally) but tribunal-v2/pipeline.test.ts spawns
@@ -214,19 +237,65 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
-  # Renders key pages (all /artifacts/ + home + an HTML-heavy post) at mobile
-  # and desktop widths and fails if anything blows out the viewport horizontally.
-  # Uses the Playwright dev server (npm run dev), so it does not consume dist/.
-  overflow:
+  # ─── Spec ownership gate ───────────────────────────────────────────────
+  # See tests/spec-ownership.json + scripts/check-spec-ownership.mjs. Fails
+  # if any tests/*.spec.ts is unowned, multiply-classified, stale, has an
+  # unconditional skip while classified blocking/nightly, an expired
+  # quarantine, or if any workflow hand-lists a spec path instead of
+  # consuming `--list <class>`. This is what stops a spec from silently
+  # falling out of every workflow again (the #585 finding: ~29 of 40 specs
+  # were referenced nowhere). Node-only script — no pnpm install needed.
+  spec-ownership:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - name: Verify Playwright spec ownership
+        run: node scripts/check-spec-ownership.mjs
+
+  # ─── Core interaction blocking gate ─────────────────────────────────────
+  # Bounded, stable, fast set of specs promoted out of the "referenced by
+  # nothing" pile (#585 P1-3). Selection criteria: verified green in
+  # isolation, no live network dependency (mocked routes only), core reader
+  # interactions (search, TOC, login CTA, cross-page smoke, viewport
+  # overflow). See tests/spec-ownership.json for the full
+  # blocking/nightly/quarantined classification and per-spec reasoning.
+  # The spec list is generated from the registry via --list blocking, not
+  # hand-copied, so it can never silently drift from the registry's
+  # classification. --retries=0 here (global config defaults to 2 in CI)
+  # so a newly-flaky promoted spec fails loudly on the first PR that hits
+  # it instead of being retried into a false green.
+  e2e-core:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-pnpm
+      - name: Cache Playwright browsers
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
       - name: Install Chromium
         run: pnpm exec playwright install chromium --with-deps
-      - name: Check horizontal overflow (mobile + desktop)
-        run: pnpm exec playwright test tests/no-horizontal-overflow.spec.ts --project="Desktop Chrome"
+      - name: Run core interaction specs (blocking)
+        # Checked assignment, not an inline $(...) — bash -e does not check
+        # the exit code of a command substitution used as bare arguments, so
+        # a --list failure (bad registry, zero matches, script crash) would
+        # silently expand to nothing and Playwright would run every spec in
+        # the project instead of failing the step. `SPECS=$(...)` assigns
+        # the exit code to the assignment itself, which -e does check.
+        # $SPECS is intentionally unquoted below (word-splits into multiple
+        # file args); the registry only ever produces tests/*.spec.ts paths.
+        run: |
+          set -euo pipefail
+          SPECS=$(node scripts/check-spec-ownership.mjs --list blocking)
+          pnpm exec playwright test --project="Desktop Chrome" --retries=0 $SPECS
 
   # ─── Tier 2: jobs that consume dist/ ──────────────────────────────────────
   internal-links:
@@ -273,11 +342,13 @@ jobs:
       - validate-content
       - pending-ticket-guard
       - security-gate
+      - gitleaks
       - unit-tests
       - build
       - internal-links
       - bundle-budget
-      - overflow
+      - spec-ownership
+      - e2e-core
     steps:
       - name: Verify every required job succeeded
         env:

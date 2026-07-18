@@ -140,7 +140,7 @@ export function buildUnsafeMask(content) {
 
   maskRegex(content, mask, /```[\s\S]*?```/g);
   maskRegex(content, mask, /`[^`\n]+`/g);
-  maskRegex(content, mask, /!?\[[^\]\n]*\]\([^\)\n]+\)/g);
+  maskRegex(content, mask, /!?\[[^\]\n]*\]\([^)\n]+\)/g);
   maskRegex(content, mask, /https?:\/\/[^\s)]+/g);
 
   const lines = content.split(/\n/);

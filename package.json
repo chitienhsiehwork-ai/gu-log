@@ -2,6 +2,9 @@
   "name": "gu-log",
   "type": "module",
   "version": "0.0.1",
+  "engines": {
+    "node": ">=22 <23"
+  },
   "scripts": {
     "dev": "astro dev",
     "prebuild": "node scripts/build-version-manifest.mjs && node scripts/build-reader-revision-manifest.mjs",
@@ -18,8 +21,8 @@
     "tribunal:run": "tsx scripts/tribunal-v2-run.ts",
     "tribunal:list": "tsx scripts/tribunal-v2-run.ts --list-in-progress",
     "tribunal:spark-benchmark": "node scripts/spark-tribunal-benchmark.mjs",
-    "lint": "eslint src/",
-    "lint:fix": "eslint src/ --fix",
+    "lint": "eslint src/ scripts/ tests/ e2e-tests/",
+    "lint:fix": "eslint src/ scripts/ tests/ e2e-tests/ --fix",
     "format": "prettier --write \"src/components/**/*.{astro,js,ts}\" \"src/layouts/**/*.{astro,js,ts}\" \"src/pages/**/*.{astro,js,ts}\" \"src/config/**/*.{js,ts}\" \"src/styles/**/*.css\" \"scripts/**/*.{js,mjs,cjs,ts}\" \"*.{mjs,cjs,ts}\"",
     "format:check": "prettier --check \"src/components/**/*.{astro,js,ts}\" \"src/layouts/**/*.{astro,js,ts}\" \"src/pages/**/*.{astro,js,ts}\" \"src/config/**/*.{js,ts}\" \"src/styles/**/*.css\" \"scripts/**/*.{js,mjs,cjs,ts}\" \"*.{mjs,cjs,ts}\"",
     "validate:posts": "node scripts/validate-posts.mjs && node scripts/check-glossary-links.mjs --all",
@@ -28,6 +31,7 @@
     "content:check": "pnpm run validate:posts && pnpm run build",
     "lockfile:check": "pnpm install --frozen-lockfile && git diff --exit-code -- pnpm-lock.yaml",
     "security:gate": "node scripts/security-gate.mjs",
+    "spec:ownership": "node scripts/check-spec-ownership.mjs",
     "prepare": "[ -f scripts/setup-hooks.sh ] && scripts/setup-hooks.sh || true",
     "lighthouse": "lhci autorun --config=lighthouserc.cjs",
     "lighthouse:collect": "lhci collect --config=lighthouserc.cjs",
