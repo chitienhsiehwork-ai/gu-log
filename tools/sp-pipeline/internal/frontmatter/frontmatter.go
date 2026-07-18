@@ -460,10 +460,9 @@ func (f *File) StripLinesMatching(pred func(line string) bool) {
 // backslashes and embedded double quotes so the result is always valid
 // YAML regardless of what s contains (apostrophes, colons, quotes, ...).
 //
-// If s is already wrapped in double quotes, it is returned unchanged
-// rather than double-wrapped — this preserves the existing behaviour of
-// the informal `quoted()` helper callers used before this was
-// extracted, so re-quoting an already-quoted value is a no-op.
+// s is the semantic scalar value, not pre-serialized YAML. A value whose
+// first and last characters happen to be quotes must therefore have those
+// literal quotes escaped instead of being mistaken for YAML syntax.
 //
 // This exists because free-text values that flow into frontmatter (an
 // LLM-authored `source:` field, an operator-supplied --source-label,
@@ -474,9 +473,6 @@ func (f *File) StripLinesMatching(pred func(line string) bool) {
 // caller is responsible for quoting, per the package doc) — QuoteScalar
 // is the one true way callers SHOULD produce that quoted value.
 func QuoteScalar(s string) string {
-	if strings.HasPrefix(s, `"`) && strings.HasSuffix(s, `"`) && len(s) >= 2 {
-		return s
-	}
 	escaped := strings.ReplaceAll(s, `\`, `\\`)
 	escaped = strings.ReplaceAll(escaped, `"`, `\"`)
 	return `"` + escaped + `"`

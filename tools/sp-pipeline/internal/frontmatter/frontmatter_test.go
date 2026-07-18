@@ -484,7 +484,7 @@ func TestQuoteScalar(t *testing.T) {
 		{"backslash", `C:\path\to\file`, `"C:\\path\\to\\file"`},
 		{"colon", "Note: this is a title", `"Note: this is a title"`},
 		{"empty string", "", `""`},
-		{"already double-quoted, no special chars", `"Already Quoted"`, `"Already Quoted"`},
+		{"literal surrounding double quotes", `"Already Quoted"`, `"\"Already Quoted\""`},
 		{"backslash and quote together", `say \"hi\"`, `"say \\\"hi\\\""`},
 	}
 	for _, tc := range cases {
@@ -496,13 +496,12 @@ func TestQuoteScalar(t *testing.T) {
 	}
 }
 
-func TestQuoteScalar_NoDoubleWrapWhenAlreadyQuoted(t *testing.T) {
-	// A value that already looks double-quoted (e.g. a caller that built
-	// `"` + ticketID + `"` itself, like deploy.go's replacePendingTicketID)
-	// must not be wrapped a second time.
+func TestQuoteScalar_PreservesLiteralSurroundingQuotes(t *testing.T) {
+	// QuoteScalar accepts a semantic value. Surrounding quotes are content,
+	// not a signal that the caller already serialized YAML.
 	got := QuoteScalar(`"SP-171"`)
-	want := `"SP-171"`
+	want := `"\"SP-171\""`
 	if got != want {
-		t.Errorf("QuoteScalar(%q) = %q, want %q (should not double-wrap)", `"SP-171"`, got, want)
+		t.Errorf("QuoteScalar(%q) = %q, want %q", `"SP-171"`, got, want)
 	}
 }

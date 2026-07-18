@@ -182,6 +182,21 @@ func TestNormalizeRalphFrontmatter_ReQuotesSourceForSafeYAML(t *testing.T) {
 			sourceLine: `source: "@fakeauthor on X"`,
 			wantLine:   `source: "@fakeauthor on X"`,
 		},
+		{
+			name:       "valid double-quoted YAML escapes keep their semantic value",
+			sourceLine: `source: "He said \"hi\" at C:\\tmp"`,
+			wantLine:   `source: "He said \"hi\" at C:\\tmp"`,
+		},
+		{
+			name:       "valid single-quoted YAML decodes doubled apostrophes",
+			sourceLine: `source: 'Simon Willison''s Weblog'`,
+			wantLine:   `source: "Simon Willison's Weblog"`,
+		},
+		{
+			name:       "literal surrounding quotes remain part of the value",
+			sourceLine: `source: '"quoted label"'`,
+			wantLine:   `source: "\"quoted label\""`,
+		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

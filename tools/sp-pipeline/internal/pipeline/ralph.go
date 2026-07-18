@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"go.yaml.in/yaml/v3"
+
 	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/frontmatter"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/ralph"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/runner"
@@ -264,21 +266,42 @@ func normalizeRalphFrontmatter(path string, stamp PipelineStamp) error {
 	// file lands in posts dir, so the on-disk value is always valid YAML
 	// regardless of what the LLM wrote.
 	if raw, ok := f.GetScalar("source"); ok {
-		f.SetScalar("source", quoted(unquoteBestEffort(raw)))
+		value, err := decodeYAMLScalar(raw)
+		if err != nil {
+			// Writer output can itself be invalid YAML (the original #546
+			// failure). Only use delimiter stripping as a recovery path after
+			// the real parser rejects the scalar; valid escapes must be decoded
+			// semantically before canonical re-serialization.
+			value = unquoteInvalidScalarBestEffort(raw)
+		}
+		f.SetScalar("source", quoted(value))
 	}
 
 	return os.WriteFile(path, f.Bytes(), 0o644)
 }
 
-// unquoteBestEffort strips a single layer of surrounding quotes (either
-// double or single) from a raw frontmatter scalar value, if present. It is
-// deliberately not a full YAML scalar unescaper — frontmatter.go's package
-// doc explicitly scopes this package to line-level text surgery, not a
-// YAML round-trip engine (see internal/frontmatter/frontmatter.go). This
-// is "good enough to recover the writer's intended text" for the one call
-// site that needs it (normalizeRalphFrontmatter's `source:` re-quote),
-// not a general-purpose YAML scalar parser.
-func unquoteBestEffort(raw string) string {
+// decodeYAMLScalar parses one raw YAML scalar and returns its semantic value.
+// A Node keeps numbers/bools/null as their original scalar text while still
+// decoding YAML quote and escape syntax for strings.
+func decodeYAMLScalar(raw string) (string, error) {
+	var doc yaml.Node
+	if err := yaml.Unmarshal([]byte("value: "+raw+"\n"), &doc); err != nil {
+		return "", err
+	}
+	if len(doc.Content) != 1 || len(doc.Content[0].Content) != 2 {
+		return "", fmt.Errorf("source is not a single YAML scalar")
+	}
+	value := doc.Content[0].Content[1]
+	if value.Kind != yaml.ScalarNode {
+		return "", fmt.Errorf("source is YAML kind %d, want scalar", value.Kind)
+	}
+	return value.Value, nil
+}
+
+// unquoteInvalidScalarBestEffort strips one matching quote delimiter from
+// invalid writer output. Valid YAML never reaches this fallback; it exists to
+// recover common malformed forms such as 'Simon Willison's Weblog'.
+func unquoteInvalidScalarBestEffort(raw string) string {
 	if len(raw) >= 2 {
 		if (raw[0] == '"' && raw[len(raw)-1] == '"') || (raw[0] == '\'' && raw[len(raw)-1] == '\'') {
 			return raw[1 : len(raw)-1]
