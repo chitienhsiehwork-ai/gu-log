@@ -106,7 +106,7 @@ test.describe('AiPopup filePath — E2E Request Validation', () => {
     if (!isDesktop) test.skip();
   });
 
-  const TEST_POST = '/posts/claude-is-a-space-to-think';
+  const TEST_POST = '/posts/sp-24-20260204-claude-is-a-space-to-think';
 
   async function setupLoggedIn(page: import('@playwright/test').Page) {
     await page.goto(TEST_POST);
@@ -171,7 +171,7 @@ test.describe('AiPopup filePath — E2E Request Validation', () => {
     expect(capturedFilePath).toBeTruthy();
     expect(capturedFilePath).toMatch(/\.mdx$/);
     expect(capturedFilePath).not.toMatch(/\.mdx\.mdx/);
-    // Should look like: src/content/posts/claude-is-a-space-to-think.mdx
+    // Should look like: src/content/posts/sp-24-20260204-claude-is-a-space-to-think.mdx
     expect(capturedFilePath).toMatch(/^src\/content\/posts\/[a-z0-9-]+\.mdx$/);
   });
 
