@@ -9,7 +9,7 @@ import { test, expect } from './fixtures';
 
 test.describe('Table of Contents', () => {
   // Use a post that definitely has TOC (multiple h2 headings)
-  const testPostUrl = '/posts/claude-is-a-space-to-think';
+  const testPostUrl = '/posts/sp-24-20260204-claude-is-a-space-to-think';
 
   // Configure retries for flaky TOC animations
   test.describe.configure({ retries: 2 });

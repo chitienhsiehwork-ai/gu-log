@@ -7,7 +7,7 @@ import { test, expect } from './fixtures';
  * Covers: initial state, scroll progress, completion.
  */
 
-const TEST_POST = '/posts/claude-is-a-space-to-think';
+const TEST_POST = '/posts/sp-24-20260204-claude-is-a-space-to-think';
 
 test.describe('Reading Progress Bar', () => {
   test('GIVEN a post page WHEN loaded THEN progress bar should exist at 0%', async ({ page }) => {

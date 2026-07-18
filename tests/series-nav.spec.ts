@@ -22,7 +22,7 @@ const SD_MID_POST = '/posts/sd-12-20260402-claude-code-bad-patterns';
 const SD_FIRST_POST = '/posts/sd-11-20260402-ai-agent-memory-architecture';
 
 // Post WITHOUT series
-const NO_SERIES_POST = '/posts/claude-is-a-space-to-think';
+const NO_SERIES_POST = '/posts/sp-24-20260204-claude-is-a-space-to-think';
 
 // EN version
 const ECC_MID_POST_EN = '/en/posts/en-sp-144-20260402-ecc-instinct-system';
