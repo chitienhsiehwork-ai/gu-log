@@ -154,9 +154,9 @@ func nonEmpty(s, fallback string) string {
 	return s
 }
 
+// quoted is a thin alias for frontmatter.QuoteScalar, kept so existing call
+// sites in this file don't need an import-qualified rename. See #546 — the
+// old local implementation didn't escape embedded quotes/backslashes.
 func quoted(s string) string {
-	if strings.HasPrefix(s, `"`) && strings.HasSuffix(s, `"`) {
-		return s
-	}
-	return `"` + s + `"`
+	return frontmatter.QuoteScalar(s)
 }
