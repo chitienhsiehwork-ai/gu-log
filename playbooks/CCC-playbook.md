@@ -2,7 +2,7 @@
 
 > **CCC** = **Cloud Claude Code** — Claude Code 網頁版，在 Anthropic 的 GCP sandbox 跑，每次被叫醒都在 harness 自動建的 `claude/xxx` branch 上。
 >
-> 這份 playbook **只給 CCC 看**。如果你是 mac-CC（在 user 個人 Mac 上跑），讀 `mac-CC-playbook.md`。用 `./scripts/detect-env.sh` 確認自己是誰。
+> 這份 playbook **只給 CCC 看**。如果你是 local machine actor（例如 `m1-cdx` / `m1-cc`），讀 `local-agent-playbook.md`。用 `./scripts/detect-env.sh --runtime <codex|claude-code> --identity` 確認自己是誰。
 
 ## 精神
 
@@ -144,7 +144,7 @@ Vercel build / tribunal / validate-posts / CI 沒過：
 
 **⚠️ 實測 caveat（2026-06-13）**：不是每個 CCC 網頁 harness 都把 `.claude/agents/` 註冊成 `Agent` tool 的 `subagent_type`。有的 session `Agent` tool 只開 built-in 的 `general-purpose` / `Explore` / `Plan`，named agent（`vibe-opus-scorer` 等）會回 `Agent type '...' not found`。遇到這種：**spawn `general-purpose`，在 prompt 裡叫它「讀 `.claude/agents/<judge>.md` 並完全照著做（zero parent context）」**，效果等同——judge 一樣 zero-context、一樣寫同一份 JSON。差別只在 model pin 顧不到（named agent 走 frontmatter 的 pin，general-purpose 繼承 parent model），所以 `scores.*.model` 要記**實際**用到的 model，不要照抄 pin。agent 檔已補 `name:` frontmatter，環境若支援 project agent 就會吃到 named 路徑。`scripts/tribunal-helpers.sh` 在 CCC 偵測到沒有 CLI provider 時，也會把這條 fallback 指令印到 stderr。
 
-**品質門檻（SSOT = `CONTRIBUTING.md`〈🎯 兩層品質門檻〉；本段是 derived view）**：
+**品質門檻（SSOT = `CONTRIBUTING.md`〈🎯 兩層品質門檻〉；消費端可見性行為的 formal spec = `openspec/specs/publish-bar-visibility/spec.md`；本段是 derived view）**：
 - **Floor（merge/ship gate）**：`scores.vibe` 存在、該 tribunalVersion 要求的 vibe 維度齊、且 composite ≥ 3。沒過 floor → pre-commit 會擋，不能 merge。
 - **PASS（首頁 / featured gate）**：Vibe composite ≥ 8 AND 至少一維 ≥ 9 AND 無任何維 < 8；Fact core avg ≥ 8 AND sourceBoundary ≥ 8 AND commentarySeparation ≥ 8；Librarian composite ≥ 8；FreshEyes composite ≥ 8 AND payoffDensity ≥ 8 AND lengthFit ≥ 8 AND（v9）clarity ≥ 8。沒過 PASS 仍可 merge/ship，但掛「精修中」badge，且不上首頁 / featured。
 
@@ -342,7 +342,7 @@ Step 5: 更新 counter → commit → push
 
 ## Stream idle timeout 應對（CCC-only failure mode）
 
-這個失敗模式**只在 CCC 沙箱觀察到**（2026-04-21 session 首度記錄）。mac-CC 從沒遇過，mac-CC 可以跳過這段。
+這個失敗模式**只在 CCC 沙箱觀察到**（2026-04-21 session 首度記錄）。Local machine actor 從沒遇過，可以跳過這段。
 
 **Trigger**：user 回報 `Error happened, resume` / `still error` / `retry` / `continue`，或 API 自己報 `Stream idle timeout - partial response received`。
 
@@ -389,7 +389,7 @@ cat /tmp/sd20/01-frontmatter.mdx /tmp/sd20/02-intro.mdx ... \
 每次被叫醒第一件事：
 
 ```bash
-./scripts/detect-env.sh          # 確認自己是 CCC
+./scripts/detect-env.sh --runtime claude-code  # 確認自己是 CCC
 git status
 git branch --show-current         # 應該是 claude/xxx
 git log --oneline -5              # 看 branch 最近在幹嘛
@@ -417,7 +417,7 @@ git log --oneline -5              # 看 branch 最近在幹嘛
 - **同步補**（快、且開工前就需要）：deps（`pnpm install`）、git hooks（`setup-hooks`）、sp-pipeline 自編譯。放 `--fix` 區塊直接跑完，smoke test 順便驗。
 - **非同步背景補**（慢、下載大、不是開工就馬上要）：Playwright chromium binary（~100MB，uiux-auditor / playwright-cli / verify 才要）。`--fix` 用 `nohup … & disown` 丟背景，**不擋 session 開場**，等真的要截圖時通常已下載好。Smoke test 另開一個 optional readiness check（warn 不擋 exit）回報「裝好了 / 還在下載 / 沒裝」，讓 agent 知道現在能不能截圖。
 
-  Playwright 就是這個模式的範本（2026-06-12 加）：`ccc-smoke-test.sh --fix` 在 `CLAUDE_CODE_REMOTE=true` 時，偵測 `${PLAYWRIGHT_BROWSERS_PATH:-~/.cache/ms-playwright}` 沒有 chromium 快取就背景下載，idempotent（已裝或已在下載就跳過），只在 CCC 跑（mac-CC 自己管 local Playwright）。所以「Playwright 沒裝」這個 friction 對之後的 CCC 不該再發生——醒來時背景已經在補了。
+  Playwright 就是這個模式的範本（2026-06-12 加）：`ccc-smoke-test.sh --fix` 在 `CLAUDE_CODE_REMOTE=true` 時，偵測 `${PLAYWRIGHT_BROWSERS_PATH:-~/.cache/ms-playwright}` 沒有 chromium 快取就背景下載，idempotent（已裝或已在下載就跳過），只在 CCC 跑（local machine actor 自己管 local Playwright）。所以「Playwright 沒裝」這個 friction 對之後的 CCC 不該再發生——醒來時背景已經在補了。
 
 **鐵則：撞到新的 recurring env friction → 在同一個 PR 把它收進 hook，當場消滅，別只修這次。** 這跟 `docs/agent-discipline.md`「主任務踩到的 bug 順手修在同一個 PR」是同一條精神，只是套用在環境層：hook 是 CCC fresh-env friction 的 SSOT，能進 hook 的就別留在 per-session 手動步驟。
 

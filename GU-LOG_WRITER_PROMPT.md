@@ -1,6 +1,6 @@
 # gu-log Content Creation Guide
 
-> **🪪 誰來生這份 prose**：gu-log 文章的寫 / 改寫 / vibe 評分 voice 是 owner-pin 在某一代 Opus（ShroomDog sign-off）。**CCC（Cloud Claude Code）的 session model 會浮動（現在 Opus 4.8），不准拿來直接生 / 改 / 評文章 prose**——寫 / 改寫委派 `tribunal-writer` agent、vibe 評分委派 `vibe-opus-scorer` agent，model pin 的 SSOT = 這兩個 agent 的 `model:` frontmatter。理由與機械工作例外見 [`CCC-playbook` 文章寫作 SOP](playbooks/CCC-playbook.md)。mac-CC 走 pipeline / tribunal runner，pin 已內建。
+> **🪪 誰來生這份 prose**：gu-log 文章的寫 / 改寫 / vibe 評分 voice 是 owner-pin 在某一代 Opus（ShroomDog sign-off）。**CCC（Cloud Claude Code）的 session model 會浮動（現在 Opus 4.8），不准拿來直接生 / 改 / 評文章 prose**——寫 / 改寫委派 `tribunal-writer` agent、vibe 評分委派 `vibe-opus-scorer` agent，model pin 的 SSOT = 這兩個 agent 的 `model:` frontmatter。理由與機械工作例外見 [`CCC-playbook` 文章寫作 SOP](playbooks/CCC-playbook.md)。Local Claude actor（例如 `m1-cc`）走 pipeline / tribunal runner，pin 已內建。
 
 ## 🧬 ShroomDog Feedback Corpus
 
@@ -95,6 +95,7 @@ Pre-commit hook 會自動檢查。違反會 block commit。
 - **Sentence Signal Rule（每句都要有訊號）**：gu-log 的每一句話都至少要做到 **informative** 或 **intriguing** 其中一項；最好兩者都有。沒有資訊量、沒有張力、沒有好奇心、只是交代「原作者這篇文章在講什麼」的句子，一律刪掉或改寫。
 - **開頭不要重複 source metadata**：讀者一開始就看得到原文出處 / sourceUrl，所以不要用「原作者這篇分析文講了一個……」這種開場。第一句直接丟事件、張力、反直覺觀點或有趣比喻，例如「2026 四月，OpenAI 和 Cursor 幾乎同時把 Agent 能力從 Skill 推向 Plugin。」
 - **不要每段同一節奏**：如果每個 section 都是「介紹概念 → 拆解 → bullet list → MoguNote」，那就是整理文，不是好文章。要有變化 — 有的段可以從一個問題切入，有的可以從反直覺觀點開始，有的可以先講 failure 再講 solution。
+- **比喻要省腦**：比喻只在降低理解成本時使用；能直說就直說。若使用核心比喻，全文維持同一套角色映射；新比喻只用來補原框架承載不了的重要概念，全文最多三套。
 - **段落之間要有敘事推進**：不是「接下來講第二招」，而是「好，前面解決了 X，但你有沒有想過 Y？」。像教授在講課，一個洞見帶出下一個。
 - **情緒要有起伏**：不能整篇都是平穩的 8 分。要有讓人停下來想「幹，這個觀點猛」的 peak，也可以有放鬆的段落。
 - **結尾不是摘要**：不要用 bullet list recap 全文。結尾要留一個 punch — 一個問題、一個挑戰、一個 callback 到開頭。讀完要有「靠，這句要記住」的感覺，不是「嗯，總結得很工整」。
@@ -349,6 +350,8 @@ gu-log 很多文章（尤其 AI/agent 圈）會引用「寫給模型的指令」
 - 翻譯後簡短解釋這個梗的來源或意思
 - 英美文化 reference → 補充台灣讀者可能缺少的 context
 - Community inside joke → 解釋這在什麼社群流行、為什麼好笑
+
+**🚫 小眾梗品味守則**：類比 / 舉例要用**大眾都懂的層級**（例：MOBA、官方伺服器 vs 私服、電話線 vs 講的話）。**禁止把小眾專有名詞當文章骨幹類比**——具體被點名的反例是 Vainglory（含 Vainglorious / Kraken / Captain 等術語）：它太小眾、放進文章沒品味，只能用上位的通俗概念（MOBA）。這類 agent 教學／內部工具梗若只有特定小圈子懂，一律往上抽一層到大眾概念再用。（reviewer 應主動抓這種「作者自己圈子才懂」的類比。）
 
 ### 原文語感保留
 

@@ -18,6 +18,23 @@ POSTS_DIR="src/content/posts"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 STAGED_MDX=$(git diff --cached -M --name-only --diff-filter=ACM -- "$POSTS_DIR"/*.mdx 2>/dev/null || true)
+STAGED_POST_CHANGES=$(git diff --cached -M --name-only --diff-filter=ACMRD -- "$POSTS_DIR" 2>/dev/null || true)
+
+# ─── Step -3: Regenerate post manifests for staged content changes ──
+# `post-versions.json` is derived from git history. Pre-commit runs before the
+# new commit exists, so the generator includes staged post touches to write the
+# same manifest that `git log HEAD` will require after the commit lands.
+# `post-reader-revisions.json` is content-derived and can be regenerated
+# directly from the worktree. Stage both files into the same commit so
+# pre-push/CI stay as safety nets instead of the first place this fails.
+if [ -n "$STAGED_POST_CHANGES" ]; then
+    echo "🔢 Post manifests: regenerating for staged content changes..."
+    node "$REPO_ROOT/scripts/build-version-manifest.mjs" --include-staged
+    node "$REPO_ROOT/scripts/build-reader-revision-manifest.mjs" --include-staged
+    git add src/data/post-versions.json src/data/post-reader-revisions.json
+    echo "✓ Post manifests regenerated and staged"
+    echo ""
+fi
 
 # ─── Step -2: User-wide Markdown zh-tw prose ratio check ───────────
 # This repo has its own hooksPath, so it does not inherit the global Git
@@ -348,7 +365,12 @@ if [ -n "$STAGED_MDX" ] && [ "$IS_MERGE_COMMIT" != "1" ]; then
         # pronoun check above — historical articles have grandfathered 晶晶體
         # but new commits and edits to zh-tw bodies must be clean.
         echo "🈳 晶晶體 check: scanning staged zh-tw posts for decorative English..."
-        if ! node "$REPO_ROOT/scripts/check-jingjing.mjs" $ZH_FILES; then
+        # --baseline-ref=origin/main mirrors the PR-gate behavior in ci.yml
+        # (which auto-derives this from GITHUB_BASE_REF): only violations NOT
+        # already present on origin/main are reported, so grandfathered 晶晶體
+        # in an untouched part of a file doesn't block an unrelated edit to
+        # that same file.
+        if ! node "$REPO_ROOT/scripts/check-jingjing.mjs" --baseline-ref=origin/main $ZH_FILES; then
             echo ""
             echo "❌ 晶晶體 check FAILED."
             echo "   Translate to natural zh-tw OR add to src/data/glossary.json"

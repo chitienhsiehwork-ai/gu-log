@@ -26,11 +26,22 @@ try {
         reports: [
           ['v8'],
           ['console-details'],
-          ['json', { file: './quality/coverage/coverage.json' }],
+          // Path is relative to outputFile's dir (quality/coverage/), not cwd —
+          // the previous './quality/coverage/coverage.json' doubled the prefix.
+          ['json', { file: './coverage.json' }],
         ],
         entryFilter: (entry: { url: string }) => {
-          // Only measure our own code, not node_modules or external
-          return entry.url.includes('/src/') || entry.url.includes('/scripts/');
+          // Static build serves bundled/hashed output under /_astro/ (not the
+          // /src/ paths that only exist in dev-server mode) plus first-party
+          // inline <script> blocks, which V8 attributes to the page's own
+          // URL — neither carries a stable path marker, but both share our
+          // own origin. Match same-origin instead of hand-maintaining a
+          // third-party host denylist that silently misses new embeds.
+          try {
+            return new URL(entry.url).origin === new URL(baseURL).origin;
+          } catch {
+            return true;
+          }
         },
         sourceFilter: (sourcePath: string) => {
           return !sourcePath.includes('node_modules');

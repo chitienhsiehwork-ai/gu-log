@@ -7,11 +7,11 @@
 
 ## 🪪 開場第一件事：先確認自己是誰，再讀對應 playbook（Tier 1）
 
-**任何 coding-agent instance 進到這個 repo，第一件事必須跑 `./scripts/detect-env.sh` 確認自己的身份**，再讀對應的 playbook：
+**任何 coding-agent instance 進到這個 repo，第一件事必須明確帶自己的 runtime 跑 identity detection**（Codex：`./scripts/detect-env.sh --runtime codex`；Claude Code：`./scripts/detect-env.sh --runtime claude-code`），再讀對應的 playbook。不要依賴 tool subprocess 繼承 ambient runtime env：
 
 | Instance | 跑在哪 | Playbook |
 |---|---|---|
-| **mac-cdx / mac-CC** (Local Codex / Claude Code) | user 個人 Mac，互動式 iterate | [`playbooks/mac-CC-playbook.md`](playbooks/mac-CC-playbook.md) |
+| **Local machine actors**（例：`m1-cdx` / `m1-cc`） | user 個人 Mac，互動式 iterate；machine prefix 讓 agent 可被直接 routing | [`playbooks/local-agent-playbook.md`](playbooks/local-agent-playbook.md) |
 | **CCC** (Cloud Codex / Cloud Claude Code) | 網頁版，Linux sandbox，auto-branch | [`playbooks/CCC-playbook.md`](playbooks/CCC-playbook.md) |
 
 沒搞清楚身份就動手 = 用錯 SOP（各 env 的 scope ceiling、merge policy、失敗處理都不一樣）。沒有例外，不能跳。Playbook 各自是 SSOT，定義各自的精神、scope ceiling、失敗處理、merge policy、品質 gate。**不要在這個檔案重複那些規則**，有要加規則就去編對應的 playbook 檔。
@@ -70,6 +70,7 @@ Feature branch 名稱常由沒 gu-log 上下文的 LLM 自動生成，只能當 
 | **用 openspec 做事（跑 `/opsx:propose`、動到有 spec delta 的 change）** | [`.agents/openspec-sdlc.md`](.agents/openspec-sdlc.md)（端到端流程 SSOT：九階段 / 三角色 / 人類檢查點 / archive gate）— MUST 動手前先讀 |
 | **OpenSpec spec / change（讀既有 spec、change 結構）** | [`openspec/`](openspec/) |
 | **agent 跨領域行為規則（SSOT 紀律、verbosity-drift、順手修 friction 全文）** | [`docs/agent-discipline.md`](docs/agent-discipline.md) |
+| **動手建機制前先審「該不該做」（對抗式 reviewer subagent、何時跑、不做就記成決策）** | [`docs/value-review-runbook.md`](docs/value-review-runbook.md) |
 | **ShroomDog 修稿回饋 corpus** | [`docs/shroomdog-editorial-feedback.md`](docs/shroomdog-editorial-feedback.md) |
 
 ### 🔗 User 丟連結 = 要寫 SP（預設走 pipeline，不要手動寫）
@@ -82,7 +83,7 @@ Feature branch 名稱常由沒 gu-log 上下文的 LLM 自動生成，只能當 
 
 `AGENTS.md` 只放 Tier-0 憲法 / bootstrap / 路由表；`CLAUDE.md` 補 Claude Code 專屬細節。Tier-1 = `playbooks/` 依 runtime 分流；Tier-2 = 主題 SSOT（`CONTRIBUTING.md`、`GU-LOG_WRITER_PROMPT.md`、`docs/agent-discipline.md`、`docs/dev-reference.md`、`docs/tribunal-runbook.md`、`tools/sp-pipeline/SKILL.md`…，逐項見上方路由表）。完整檔案樹是 repo layout 的副本、會 drift——要找檔用 `rg --files`，不在 Tier-0 常駐一棵樹。
 
-操作這個 repo 的 agent：mac-cdx / mac-CC / CCC 先讀本檔 → `detect-env.sh` → 對應 playbook → 按主題讀 Tier-2；Clawd/OpenClaw 走 `~/clawd/AGENTS.md` + `scripts/clawd-picks-prompt.md`。兩條路最後都指向 `CONTRIBUTING.md` 和 `GU-LOG_WRITER_PROMPT.md`。**改規則只改 SSOT 來源檔，不要在 Tier-0 或 task prompt 複製一份。**
+操作這個 repo 的 agent：local machine actor（例如 `m1-cdx` / `m1-cc`）或 CCC 先讀本檔 → `detect-env.sh` → 對應 playbook → 按主題讀 Tier-2；Clawd/OpenClaw 走 `~/clawd/AGENTS.md` + `scripts/clawd-picks-prompt.md`。兩條路最後都指向 `CONTRIBUTING.md` 和 `GU-LOG_WRITER_PROMPT.md`。**改規則只改 SSOT 來源檔，不要在 Tier-0 或 task prompt 複製一份。**
 
 ## Quality: Vibe Scoring + Tribunal
 

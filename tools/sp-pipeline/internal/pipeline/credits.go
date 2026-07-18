@@ -12,8 +12,9 @@ import (
 )
 
 // PipelineURL is the URL stamped into the pipelineUrl frontmatter field.
-// Matches the value at scripts/sp-pipeline.sh line 1161.
-const PipelineURL = "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+// Points at this repo's pipeline entry (scripts/sp-pipeline.sh execs into
+// tools/sp-pipeline), not the retired clawd-workspace feed pipeline.
+const PipelineURL = "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
 
 // PipelineEntry is one row of the translatedBy.pipeline block.
 type PipelineEntry struct {
@@ -112,6 +113,11 @@ func (s *State) JudgeStampLabels() (model, harness string) {
 			}
 		}
 	}
+	for _, p := range llm.DefaultJudgeChain() {
+		if p.Available() {
+			return llm.DisplayName(p.Model()), llm.HarnessName(p.Model())
+		}
+	}
 	return llm.DisplayName(llm.ModelGPT55), llm.HarnessName(llm.ModelGPT55)
 }
 
@@ -148,9 +154,9 @@ func nonEmpty(s, fallback string) string {
 	return s
 }
 
+// quoted is a thin alias for frontmatter.QuoteScalar, kept so existing call
+// sites in this file don't need an import-qualified rename. See #546 — the
+// old local implementation didn't escape embedded quotes/backslashes.
 func quoted(s string) string {
-	if strings.HasPrefix(s, `"`) && strings.HasSuffix(s, `"`) {
-		return s
-	}
-	return `"` + s + `"`
+	return frontmatter.QuoteScalar(s)
 }

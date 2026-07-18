@@ -46,6 +46,9 @@ for (const theme of THEMES) {
           // Giscus is hosted on giscus.app and themed via remote CSS URL, so local test runs
           // can otherwise produce external-noise violations unrelated to this repo's DOM/CSS.
           .exclude('iframe.giscus-frame')
+          // WCAG 2.1 SC 1.4.3: text that is part of an inactive UI component has no
+          // contrast requirement. aria-disabled="true" marks that state explicitly.
+          .exclude('[aria-disabled="true"]')
           .analyze();
 
         // Collect violations with useful debug info

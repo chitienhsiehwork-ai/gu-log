@@ -1,33 +1,94 @@
 #!/usr/bin/env bash
-# detect-env.sh — 判斷這個 coding-agent instance 是 mac-cdx / mac-CC 還是 CCC
+# detect-env.sh — 判斷這個 coding-agent instance 的可路由 actor identity
 #
-# mac-cdx (Local Codex Desktop): user 個人 Mac，Codex Desktop / Codex CLI，互動式 iterate
-# mac-CC  (Local Claude Code):   user 個人 Mac，Claude Code-compatible local harness
-# CCC     (Cloud Codex/CC):      Cloud sandbox，auto-branch
+# m1-cdx (example): M1 Mac 上的 Codex Desktop / Codex CLI
+# m1-cc  (example): M1 Mac 上的 Claude Code-compatible local harness
+# CCC              Cloud sandbox，auto-branch
 #
 # 用法：
 #   ./scripts/detect-env.sh             # 印 mode (stdout) + 提示 (stderr)
 #   mode=$(./scripts/detect-env.sh)     # 只拿 mode 字串
+#   ./scripts/detect-env.sh --runtime codex --context
+#   ./scripts/detect-env.sh --runtime claude-code --identity
 #
 # 第一件事：任何 agent session 開場就跑一下這個，確認自己是誰，
 # 然後去讀對應的 playbook：
-#   - mac-cdx / mac-CC → playbooks/mac-CC-playbook.md
+#   - local machine actor → playbooks/local-agent-playbook.md
 #   - CCC              → playbooks/CCC-playbook.md
 #
 # （mode 字串維持 CC / CCC 的 legacy 輸出，避免破壞舊 script。）
 
 set -euo pipefail
 
+output_kind=mode
+explicit_runtime=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --context) output_kind=context ;;
+    --identity) output_kind=identity ;;
+    --runtime)
+      shift
+      if [[ $# -eq 0 ]]; then
+        echo "usage: $0 [--context|--identity] [--runtime codex|claude-code]" >&2
+        exit 2
+      fi
+      explicit_runtime="$1"
+      ;;
+    *)
+      echo "usage: $0 [--context|--identity] [--runtime codex|claude-code]" >&2
+      exit 2
+      ;;
+  esac
+  shift
+done
+
+if [[ "$output_kind" != "mode" && -z "$explicit_runtime" ]]; then
+  echo "--context and --identity require --runtime codex|claude-code" >&2
+  exit 2
+fi
+
 branch="$(git branch --show-current 2>/dev/null || echo 'unknown')"
 uname_s="$(uname -s)"
 cwd="$(pwd)"
-codex_origin="${CODEX_INTERNAL_ORIGINATOR_OVERRIDE:-}"
-bundle_id="${__CFBundleIdentifier:-}"
+
+detect_machine_id() {
+  local configured_id="${GU_LOG_MACHINE_ID:-}"
+  local chip=""
+
+  if [[ -n "$configured_id" ]]; then
+    if [[ ! "$configured_id" =~ ^[a-z0-9][a-z0-9-]*$ ]]; then
+      echo "invalid GU_LOG_MACHINE_ID: $configured_id" >&2
+      return 2
+    fi
+    echo "$configured_id"
+    return
+  fi
+
+  if [[ "$uname_s" == "Darwin" ]]; then
+    chip="$(system_profiler SPHardwareDataType 2>/dev/null | awk -F ': ' '/Chip:/{print $2; exit}')"
+    if [[ "$chip" =~ Apple[[:space:]]+M([0-9]+) ]]; then
+      echo "m${BASH_REMATCH[1]}"
+      return
+    fi
+    echo "mac"
+    return
+  fi
+
+  echo "local"
+}
+
+machine_id="$(detect_machine_id)"
 
 codex_runtime=false
-if [[ -n "${CODEX_SHELL:-}" || "$bundle_id" == "com.openai.codex" || "$codex_origin" == *Codex* ]]; then
-  codex_runtime=true
-fi
+case "$explicit_runtime" in
+  codex) codex_runtime=true ;;
+  claude-code) codex_runtime=false ;;
+  "") ;;
+  *)
+    echo "invalid runtime: $explicit_runtime" >&2
+    exit 2
+    ;;
+esac
 
 # CCC 判斷條件（三個都要中才算 CCC）：
 #   1. branch 開頭是 claude/（harness 自動建的 branch）
@@ -43,20 +104,30 @@ ccc_cwd=false
 if $ccc_branch && $ccc_os && $ccc_cwd; then
   mode=CCC
   human_mode=CCC
+  machine_id=cloud
 elif $codex_runtime; then
   mode=CC
-  human_mode=mac-cdx
+  human_mode="${machine_id}-cdx"
 else
   mode=CC
-  human_mode=mac-CC
+  human_mode="${machine_id}-cc"
 fi
 
-echo "$mode"
+if $codex_runtime; then
+  runtime_id=codex
+else
+  runtime_id=claude-code
+fi
 
-# 提示訊息走 stderr，這樣 `mode=$(./scripts/detect-env.sh)` 只會拿到純 mode
-{
+if [[ "$mode" == "CCC" ]]; then
+  environment_id=cloud
+else
+  environment_id=local
+fi
+
+emit_context() {
   echo
-  echo "env: mode=$human_mode branch=$branch os=$uname_s cwd=$cwd"
+  echo "env: agent_id=$human_mode machine_id=$machine_id runtime=$runtime_id environment=$environment_id branch=$branch os=$uname_s cwd=$cwd"
   if [[ "$mode" == "CCC" ]]; then
     cat <<'TIPS'
 
@@ -66,23 +137,37 @@ You are Cloud Codex/Claude Code (CCC).
   - Quality gates (pre-commit, pre-push, tribunal) are non-negotiable
   - FULL PLAYBOOK: playbooks/CCC-playbook.md ← read this next
 TIPS
-  elif [[ "$human_mode" == "mac-cdx" ]]; then
+  elif $codex_runtime; then
     cat <<'TIPS'
 
-You are Local Codex Desktop / Codex CLI (mac-cdx).
+You are a machine-addressable Local Codex Desktop / Codex CLI actor.
   - Observe env first: git worktree list, current branch, git status
   - User often uses worktrees — do NOT assume you're on main
   - Use Codex-native tools when available; do not assume Claude Code-only tooling
-  - FULL PLAYBOOK: playbooks/mac-CC-playbook.md ← legacy path, mac-cdx rules live there
+  - FULL PLAYBOOK: playbooks/local-agent-playbook.md
 TIPS
   else
     cat <<'TIPS'
 
-You are Local Claude Code (mac-CC).
+You are a machine-addressable Local Claude Code actor.
   - Observe env first: git worktree list, current branch, git status
   - User often uses worktrees — do NOT assume you're on main
   - Same yolo spirit as CCC; be independent, don't be a 伸手牌
-  - FULL PLAYBOOK: playbooks/mac-CC-playbook.md ← read this next
+  - FULL PLAYBOOK: playbooks/local-agent-playbook.md
 TIPS
   fi
-} >&2
+}
+
+case "$output_kind" in
+  context) emit_context ;;
+  identity) echo "$human_mode" ;;
+  mode)
+    echo "$mode"
+    if [[ -n "$explicit_runtime" ]]; then
+      # 提示訊息走 stderr，這樣 `mode=$(...)` 仍只會拿到純 legacy mode。
+      emit_context >&2
+    else
+      echo "runtime not specified; mode-only result. Re-run with --runtime codex|claude-code for authoritative actor context." >&2
+    fi
+    ;;
+esac

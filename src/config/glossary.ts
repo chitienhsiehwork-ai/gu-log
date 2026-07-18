@@ -15,6 +15,7 @@ export const glossaryExclude = [
   // Basic AI/ML terms
   'LLM',
   'API',
+  'Benchmark',
   'Token',
   'Prompt',
   'Embedding',

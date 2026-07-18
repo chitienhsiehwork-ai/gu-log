@@ -355,7 +355,7 @@ PROMPT
     # open stdin and hang waiting for extra prompt text.
     exec </dev/null
     # shellcheck disable=SC2086 # codex_cmd may be "node <bundled codex.js>".
-    timeout "$timeout_sec" $codex_cmd exec --model gpt-5.5 -c "model_reasoning_effort=\"$reasoning_effort\"" --sandbox danger-full-access --skip-git-repo-check -- "$prompt"
+    timeout "$timeout_sec" $codex_cmd exec --model "${GP_CODEX_MODEL:-gpt-5.5}" -c "model_reasoning_effort=\"$reasoning_effort\"" --sandbox danger-full-access --skip-git-repo-check -- "$prompt"
   )
 }
 
@@ -397,6 +397,36 @@ tribunal_llm_provider() {
     return 0
   fi
   return 1
+}
+
+# Agent-aware provider preference for a tribunal judge. Defaults to the global
+# tribunal_llm_provider for every judge EXCEPT vibe-opus-scorer, which prefers
+# Claude so the subjective taste score runs on the owner-pinned Opus build
+# (.claude/agents/vibe-opus-scorer.md model: claude-opus-4-5). The three
+# objective judges (librarian / fact-checker / fresh-eyes) keep the global
+# default: Codex on mac/VPS, Claude in the CCC codex-absent fallback.
+#
+# Precedence: global TRIBUNAL_FORCE_PROVIDER wins for ALL judges (emergency /
+# A-B test) because tribunal_llm_provider already honors it, so delegating
+# preserves the override. Availability: vibe prefers Claude only when the claude
+# binary is on PATH; otherwise it falls through to the global resolver exactly
+# like any other judge, so a box without Claude degrades gracefully instead of
+# hard-failing (this is by design — vibe=Claude is guaranteed only when both
+# codex and claude are present).
+#
+# Callers without a judge identity (empty agent_name) get the global resolver
+# byte-for-byte, so every existing non-judge call path is unchanged.
+tribunal_judge_provider() {
+  local agent_name="${1:-}"
+  if [ -n "${TRIBUNAL_FORCE_PROVIDER:-}" ]; then
+    tribunal_llm_provider
+    return
+  fi
+  if [ "$agent_name" = "vibe-opus-scorer" ] && tribunal_claude_cmd >/dev/null 2>&1; then
+    printf 'claude\n'
+    return 0
+  fi
+  tribunal_llm_provider
 }
 
 # Resolve the legacy CLI writer provider. Tribunal-internal prose rewrites must
@@ -473,7 +503,7 @@ tribunal_resolve_recorded_model() {
 # concrete build (selection still uses the alias — see tribunal_claude_exec).
 tribunal_llm_model_id() {
   local agent_name="${1:-}"
-  case "$(tribunal_llm_provider 2>/dev/null)" in
+  case "$(tribunal_judge_provider "$agent_name" 2>/dev/null)" in
     claude)
       if [ -n "$agent_name" ]; then
         tribunal_resolve_recorded_model "$(tribunal_claude_agent_model "$agent_name")"
@@ -482,7 +512,7 @@ tribunal_llm_model_id() {
       fi
       ;;
     *)
-      printf 'gpt-5.5\n'
+      printf '%s\n' "${GP_CODEX_MODEL:-gpt-5.5}"
       ;;
   esac
 }
@@ -502,7 +532,7 @@ tribunal_runner_label() {
   local agent_name="${1:-}"
   local model
   model="$(tribunal_llm_model_id "$agent_name")"
-  case "$(tribunal_llm_provider 2>/dev/null)" in
+  case "$(tribunal_judge_provider "$agent_name" 2>/dev/null)" in
     claude)
       printf '%s\n' "$model"
       ;;
@@ -606,7 +636,7 @@ tribunal_llm_exec_raw() {
   local work_dir="$1"
   local agent_name="$2"
   local user_prompt="$3"
-  case "$(tribunal_llm_provider 2>/dev/null)" in
+  case "$(tribunal_judge_provider "$agent_name" 2>/dev/null)" in
     claude)
       tribunal_claude_exec "$work_dir" "$agent_name" "$user_prompt"
       ;;
@@ -753,8 +783,11 @@ tribunal_writer_exec_raw() {
           ;;
       esac
       ;;
+    codex)
+      tribunal_codex_exec "$work_dir" "$agent_name" "$user_prompt"
+      ;;
     *)
-      echo "ERROR: unsupported GP_WRITER_MODE='$(tribunal_writer_mode)' (expected none, subagent, or cli)" >&2
+      echo "ERROR: unsupported GP_WRITER_MODE='$(tribunal_writer_mode)' (expected none, subagent, cli, or codex)" >&2
       return 2
       ;;
   esac
@@ -1037,11 +1070,11 @@ tribunal_codex_exec_watchdog() {
   rc=0
   wait "$pid" || rc=$?
   if [ "$rc" -eq 0 ]; then
-    provider="${force_provider:-$(tribunal_llm_provider 2>/dev/null || true)}"
+    provider="${force_provider:-$(tribunal_judge_provider "$agent_name" 2>/dev/null || true)}"
     tribunal_write_actual_provider "$provider" "$agent_name"
     return 0
   fi
-  provider="${force_provider:-$(tribunal_llm_provider 2>/dev/null || true)}"
+  provider="${force_provider:-$(tribunal_judge_provider "$agent_name" 2>/dev/null || true)}"
   if [ "$provider" = "codex" ] && [ "${GP_JUDGE_ALLOW_CLAUDE:-0}" = "1" ] && tribunal_claude_cmd >/dev/null 2>&1 && tribunal_quota_error_file "$output_file"; then
     tribunal_quota_alarm "codex judge quota exhausted; trying explicit Claude judge fallback."
     force_provider="claude"

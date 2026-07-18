@@ -8,7 +8,7 @@ import { test, expect } from './fixtures';
  */
 
 test.describe('MoguNote Component', () => {
-  const testPostUrl = '/posts/claude-is-a-space-to-think';
+  const testPostUrl = '/posts/sp-24-20260204-claude-is-a-space-to-think';
 
   test('GIVEN a post with MoguNote WHEN page loads THEN MoguNote should be visible', async ({
     page,

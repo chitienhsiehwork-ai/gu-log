@@ -20,7 +20,8 @@ const tmpPath = (name: string) => path.join(TMP, path.basename(name));
 // validate-posts.mjs is plain JS without .d.ts; widen to any.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const v = vModule as any;
-const { parseFrontmatter, getBaseFilename, getContentBody, validatePost } = v;
+const { parseFrontmatter, getBaseFilename, getContentBody, validatePost, CJK_GRANDFATHERED_LINES } =
+  v;
 
 const KAOMOJI = '(◕‿◕)';
 
@@ -65,6 +66,51 @@ describe('parseFrontmatter', () => {
   it('returns null on missing frontmatter', () => {
     expect(parseFrontmatter('no frontmatter here')).toBeNull();
   });
+
+  // gu-log #546: LLM-authored frontmatter can contain apostrophes, embedded
+  // quotes, and colons in free-text fields like `source:`. The old
+  // regex-based scanner silently accepted invalid YAML that never survived
+  // to the real Astro/YAML parser at build time. Since validate-posts.mjs
+  // now parses with a real YAML library, these hostile-but-VALID values
+  // must still parse, and genuinely invalid YAML must throw.
+  // validFm already sets `source`/`originalDate` — override in place
+  // rather than appending, since real YAML (unlike the old regex scanner)
+  // correctly rejects duplicate keys.
+  const withOverride = (key: string, line: string) => [
+    ...validFm.filter((l) => !l.startsWith(`${key}:`)),
+    line,
+  ];
+
+  it('parses a source label with an apostrophe when properly double-quoted', () => {
+    const fm = parseFrontmatter(makePost(withOverride('source', 'source: "Simon Willison\'s Weblog"')));
+    expect(fm.source).toBe("Simon Willison's Weblog");
+  });
+
+  it('parses a source label with an embedded colon', () => {
+    const fm = parseFrontmatter(makePost(withOverride('source', 'source: "Note: a title with a colon"')));
+    expect(fm.source).toBe('Note: a title with a colon');
+  });
+
+  it('parses a source label with an embedded double quote (escaped)', () => {
+    const fm = parseFrontmatter(makePost(withOverride('source', 'source: "He said \\"hi\\""')));
+    expect(fm.source).toBe('He said "hi"');
+  });
+
+  it('throws on genuinely invalid YAML (unterminated single-quoted scalar)', () => {
+    // A single-quoted YAML scalar cannot contain a bare apostrophe — this
+    // is exactly the SP-252 failure mode from gu-log #546.
+    const bad = makePost(withOverride('source', "source: 'Simon Willison's Weblog'"));
+    expect(() => parseFrontmatter(bad)).toThrow(/Invalid YAML/);
+  });
+
+  it('coerces an unquoted date scalar back to a plain string, not a JS Date', () => {
+    // yaml.parse() natively turns unquoted YYYY-MM-DD into a JS Date;
+    // downstream rules do string ops (DATE_PATTERN.test, etc.) against
+    // originalDate/translatedDate, so it must come back as a string.
+    const fm = parseFrontmatter(makePost(withOverride('originalDate', 'originalDate: 2026-07-17')));
+    expect(typeof fm.originalDate).toBe('string');
+    expect(fm.originalDate).toBe('2026-07-17');
+  });
 });
 
 describe('getBaseFilename', () => {
@@ -95,6 +141,39 @@ describe('validatePost — pass case', () => {
     );
     const r = validatePost(filepath, [{ filename: 'sp-1-20260401-x.mdx', ticketId: 'SP-1' }]);
     expect(r.errors).toEqual([]);
+  });
+
+  it('passes a post whose source label has an apostrophe (properly quoted)', () => {
+    const filepath = tmpPath('sp-2-20260401-x.mdx');
+    fs.writeFileSync(
+      filepath,
+      makePost([
+        ...validFm.filter((l) => !l.startsWith('source:')),
+        'source: "Simon Willison\'s Weblog"',
+        'translatedBy:',
+        '  model: Opus 4.6',
+        '  harness: Claude Code',
+      ])
+    );
+    const r = validatePost(filepath, [{ filename: 'sp-2-20260401-x.mdx', ticketId: 'SP-1' }]);
+    expect(r.errors).toEqual([]);
+  });
+});
+
+describe('validatePost — invalid YAML (gu-log #546)', () => {
+  it('reports invalid YAML as a validation error instead of crashing', () => {
+    const filepath = tmpPath('sp-3-20260401-x.mdx');
+    fs.writeFileSync(
+      filepath,
+      makePost([
+        ...validFm.filter((l) => !l.startsWith('source:')),
+        // Unterminated single-quoted scalar — the exact SP-252 shape.
+        "source: 'Simon Willison's Weblog'",
+      ])
+    );
+    const r = validatePost(filepath, []);
+    expect(r.errors.length).toBeGreaterThan(0);
+    expect(r.errors.some((e: string) => /Invalid YAML/.test(e))).toBe(true);
   });
 });
 
@@ -224,6 +303,104 @@ describe('validatePost — content rules', () => {
   });
 });
 
+describe('validatePost — en-* CJK Unified Ideograph guard', () => {
+  const enFm = validFm.map((l) =>
+    l.startsWith('lang:') ? 'lang: en' : l.startsWith('ticketId:') ? 'ticketId: SP-2' : l
+  );
+  // makePost()'s shared padding is zh-tw text, which would itself trip this
+  // en-only rule — build these fixtures with English padding instead so each
+  // assertion isolates the exact behavior under test.
+  const enPadding = 'Enough English filler content to clear the minimum length. '.repeat(4);
+  function makeEnPost(fmLines: string[], body: string): string {
+    return `---\n${fmLines.join('\n')}\n---\n${enPadding}\n\n${body}\n`;
+  }
+
+  it('flags an untranslated CJK Unified Ideograph in an en-* body', () => {
+    const filepath = tmpPath('en-sp-2-x.mdx');
+    fs.writeFileSync(filepath, makeEnPost(enFm, 'This has a leftover 測試字 in it.'));
+    const r = validatePost(filepath, []);
+    expect(r.errors.some((e: string) => e.includes('CJK Unified Ideograph'))).toBe(true);
+  });
+
+  it('does not flag zh-tw posts (rule is en-only)', () => {
+    const filepath = tmpPath('sp-2-x.mdx');
+    fs.writeFileSync(filepath, makePost(validFm, `Body content with kaomoji ${KAOMOJI} 測試字.`));
+    const r = validatePost(filepath, []);
+    expect(r.errors.some((e: string) => e.includes('CJK Unified Ideograph'))).toBe(false);
+  });
+
+  it('does not flag katakana or Greek letters (outside the Unified Ideograph block)', () => {
+    const filepath = tmpPath('en-sp-3-x.mdx');
+    fs.writeFileSync(filepath, makeEnPost(enFm, 'Kaomoji like (◕ω◕) and ツ or ω are fine.'));
+    const r = validatePost(filepath, []);
+    expect(r.errors.some((e: string) => e.includes('CJK Unified Ideograph'))).toBe(false);
+  });
+
+  it('allows an inline escape via "<!-- cjk-ok -->" on the same line', () => {
+    const filepath = tmpPath('en-sp-4-x.mdx');
+    fs.writeFileSync(
+      filepath,
+      makeEnPost(enFm, 'Quoting a name like 測試字 is fine here. <!-- cjk-ok -->')
+    );
+    const r = validatePost(filepath, []);
+    expect(r.errors.some((e: string) => e.includes('CJK Unified Ideograph'))).toBe(false);
+  });
+
+  it('allows escaping a whole code block via the marker on the opening fence line', () => {
+    const filepath = tmpPath('en-sp-5-x.mdx');
+    const body = ['```typescript <!-- cjk-ok -->', 'const x = "測試字";', '```'].join('\n');
+    fs.writeFileSync(filepath, makeEnPost(enFm, body));
+    const r = validatePost(filepath, []);
+    expect(r.errors.some((e: string) => e.includes('CJK Unified Ideograph'))).toBe(false);
+  });
+
+  // CJK_GRANDFATHERED_LINES is expected to shrink to empty as legit citations
+  // get escaped and bugs get retranslated (it's zero as of this writing — see
+  // scripts/validate-posts.mjs's comment on the Map). These two tests inject
+  // a synthetic entry via the exported Map so the downgrade-to-warning
+  // mechanism itself stays covered regardless of the baseline's real size.
+  const BASELINE_TEST_FILE = 'en-baseline-test-fixture.mdx';
+  const BASELINE_TEST_LINE = '# 這是測試用的 baseline 豁免行。';
+
+  it('downgrades a grandfathered baseline line to a warning instead of an error', () => {
+    CJK_GRANDFATHERED_LINES.set(BASELINE_TEST_FILE, new Set([BASELINE_TEST_LINE]));
+    try {
+      const filepath = tmpPath(BASELINE_TEST_FILE);
+      fs.writeFileSync(filepath, makeEnPost(enFm, BASELINE_TEST_LINE));
+      const r = validatePost(filepath, []);
+      expect(r.errors.some((e: string) => e.includes('CJK Unified Ideograph'))).toBe(false);
+      expect(r.warnings.some((w: string) => w.includes('grandfathered'))).toBe(true);
+    } finally {
+      CJK_GRANDFATHERED_LINES.delete(BASELINE_TEST_FILE);
+    }
+  });
+
+  it('still fails a NEW (non-baseline) CJK line in an otherwise-grandfathered file', () => {
+    // The baseline exempts specific line *text*, not the whole file — a
+    // different offending line in the same file must still fail.
+    CJK_GRANDFATHERED_LINES.set(BASELINE_TEST_FILE, new Set([BASELINE_TEST_LINE]));
+    try {
+      const filepath = tmpPath(BASELINE_TEST_FILE);
+      fs.writeFileSync(filepath, makeEnPost(enFm, '這是全新的違規句子，不在 baseline 裡。'));
+      const r = validatePost(filepath, []);
+      expect(r.errors.some((e: string) => e.includes('CJK Unified Ideograph'))).toBe(true);
+    } finally {
+      CJK_GRANDFATHERED_LINES.delete(BASELINE_TEST_FILE);
+    }
+  });
+
+  it('does not exempt frontmatter (only the body is scanned, not the guard bypass)', () => {
+    // Frontmatter itself is out of scope for this rule (source/attribution
+    // fields legitimately carry original-language names) — confirm a CJK
+    // name in frontmatter alone does not trigger the body guard.
+    const filepath = tmpPath('en-sp-6-x.mdx');
+    const fm = [...enFm, 'source: "凡人小北 @frxiaobei"'];
+    fs.writeFileSync(filepath, makeEnPost(fm, `Body content with kaomoji ${KAOMOJI}.`));
+    const r = validatePost(filepath, []);
+    expect(r.errors.some((e: string) => e.includes('CJK Unified Ideograph'))).toBe(false);
+  });
+});
+
 describe('validatePost — cross-file rules', () => {
   it('flags duplicate ticketId across non-paired files', () => {
     const filepath = tmpPath('sp-1-a.mdx');
@@ -253,6 +430,8 @@ describe('validatePost — cross-file rules', () => {
       { filename: 'sp-1-x.mdx', ticketId: 'SP-1' },
       { filename: 'en-sp-1-x.mdx', ticketId: 'SP-2' },
     ]);
-    expect(r.errors.some((e: string) => e.includes('Translation pair ticketId mismatch'))).toBe(true);
+    expect(r.errors.some((e: string) => e.includes('Translation pair ticketId mismatch'))).toBe(
+      true
+    );
   });
 });

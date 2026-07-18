@@ -8,9 +8,12 @@ GIT_HOOKS_DIR="$(git rev-parse --git-dir)/hooks"
 
 echo "Setting up git hooks..."
 
-# Ensure git uses .git/hooks/ (not a custom hooksPath)
-git config --local core.hooksPath .git/hooks
-echo "✓ Set core.hooksPath to .git/hooks"
+# Ensure git uses this checkout's actual git-dir hooks directory. In linked
+# worktrees, `.git` is a file, so `.git/hooks` would point at a non-existent
+# path and silently disable the installed hooks.
+git config --local core.hooksPath "$GIT_HOOKS_DIR"
+mkdir -p "$GIT_HOOKS_DIR"
+echo "✓ Set core.hooksPath to $GIT_HOOKS_DIR"
 
 for hook in "$HOOKS_DIR"/*; do
     if [ -f "$hook" ]; then
@@ -44,5 +47,15 @@ git config --local merge.post-versions-regen.name \
 git config --local merge.post-versions-regen.driver \
     "scripts/merge-post-versions.sh %O %A %B %P"
 echo "✓ Configured merge driver post-versions-regen"
+
+# ── Custom merge driver: article-counter-max ────────────────────────
+# .gitattributes marks `scripts/article-counter.json` as needing this
+# driver. The counter is monotonic, so concurrent `next` bumps resolve
+# with a JSON-aware max strategy while metadata conflicts fail closed.
+git config --local merge.article-counter-max.name \
+    "Merge article-counter.json by taking max next values"
+git config --local merge.article-counter-max.driver \
+    "scripts/merge-article-counter.sh %O %A %B %P"
+echo "✓ Configured merge driver article-counter-max"
 
 echo "Done!"

@@ -201,10 +201,10 @@ Once the problem type was recognized as wrong, the agent switched to a tiny dete
 That lesson was written into the skill:
 
 ```bash
-# 第一步：先用 fetch 試探。
+# Step one: try fetch first.
 browse fetch "<https://example.gov/programs>"
-# 如果資料乾淨回來，就直接寫解析程式。
-# 如果回應是空的、動態的，或被關卡擋住，再升級到 Autobrowse。
+# If the data comes back clean, go straight to writing the parser.
+# If the response is empty, dynamic, or blocked by a gate, escalate to Autobrowse.
 ```
 
 The lesson is brutally plain: try `fetch` first. If the data comes back cleanly, write a parser. If the response is empty, dynamic, or blocked by a gate, then escalate to Autobrowse.

@@ -1,0 +1,112 @@
+---
+ticketId: "SD-28"
+title: "Claude Tag: Not Your Personal Secretary, It's the Whole Channel's Teammate"
+originalDate: "2026-07-15"
+translatedDate: "2026-07-15"
+translatedBy:
+  model: "Opus 4.5"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Translator"
+      model: "Opus 4.5"
+      harness: "Claude Code"
+source: "ShroomDog Lab"
+sourceUrl: "https://gu-log.vercel.app/"
+lang: "en"
+summary: "Claude Tag is Anthropic's second-generation Claude in Slack, launched June 2026. Unlike typical chatbots: one thread is one persistent work session, and anyone in the channel can jump in mid-conversation to steer it. But the sandbox evaporates, and credentials never enter the sandbox — this security design is the baseline we'll compare against when we build our own."
+tags: ["shroomdog-original", "claude-tag", "slack", "agent", "sandbox", "agent-proxy"]
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 8
+    score: 8
+    date: "2026-07-15"
+    model: "claude-opus-4-8"
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 9
+    narrative: 8
+    score: 8
+    date: "2026-07-16"
+    model: "claude-opus-4-5"
+  librarian:
+    glossary: 9
+    crossRef: 9
+    sourceAlign: 8
+    attribution: 8
+    score: 8
+    date: "2026-07-16"
+    model: "claude-opus-4-8"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 9
+    score: 8
+    date: "2026-07-16"
+    model: "claude-opus-4-8"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+
+Picture this: an engineer asks Claude a question in a [Slack](/en/glossary#slack) channel, Claude starts digging through the codebase, running tests, pushing branches. Halfway through, a PM realizes the requirements are wrong and types directly into the same thread, "Wait, don't merge that yet, change it to X" — Claude catches it, pivots immediately.
+
+This isn't science fiction. It's [Claude Tag](/en/glossary#claude-tag)'s default behavior. And here's the part that breaks your intuition: **Claude isn't anyone's personal secretary. It's a shared teammate for the entire channel.** Whoever speaks in the thread, Claude listens to them. As for how to work with an AI teammate without it making a mess, [SD-23](/en/posts/en-sd-23-20260510-ai-dota-teammates/) covered that — this post focuses on the official product itself.
+
+<ClawdNote>
+Claude Tag is the second-generation Claude in Slack, beta-launched in June 2026. The first generation was more like a traditional chatbot: one question, one answer, no persistent work session, no sandbox to run code. The second generation is a redesign from scratch — "Tag" comes from Slack's @ mentions, but the product does way more than just "respond when tagged."
+</ClawdNote>
+
+## Thread = Work Session, and Anyone Can Steer
+
+The core operating unit of Claude Tag is the [thread](/en/glossary#thread). Once you `@Claude` in a Slack channel, that thread becomes a persistent work session. **Anyone can reply directly in the same thread to change what Claude is working on**, no need to @ again.
+
+<MoguNote>
+This design turns Claude into a "shared microphone." The upside: team collaboration flows smoothly. The downside: if someone says something dumb, the whole thread's direction gets dragged along. There's no such thing as "this is [Mogu](/en/about/)'s Claude session, everyone else keep out." Think about it: if the office intern can redirect the assistant at any moment, is that a feature or a bug? (¬‿¬)
+</MoguNote>
+
+This also means Claude Tag isn't suited for tasks that "only certain people should know about" — everyone in the channel can see the thread contents and the output. If a thread goes too long without new messages, its session state expires; next time someone replies, Claude rebuilds context from thread history, but won't perfectly pick up discussion details from weeks ago. This is the physical limits of the [context window](/en/glossary#context-window). ([SD-22](/en/posts/en-sd-22-20260508-context-window-model-day/) explains what context windows are and why they have limits.)
+
+---
+
+## The Sandbox Evaporates, the Thread Persists
+
+Claude Tag runs in an Anthropic-managed sandbox, the same compute environment as [Claude Code](/en/glossary#claude-code) on the web. This sandbox is ephemeral: leave it idle long enough and it gets released, and the next time Claude responds, it gets a brand new instance. **Branches not pushed, output not posted back to Slack — gone by next time.**
+
+How does Claude "remember" what it was doing in a fresh instance? Thread context (the verbatim transcript of everything in that Slack thread) and memory (a cross-session notebook searchable by channel and time). The sandbox can be thrown away and restarted anytime because thread and memory are separate — but this means Claude's workflow has to be "finish and post back": write the code, push it; finish the research, post the conclusion.
+
+<ClawdNote>
+Thread is long-term memory. Sandbox is scratch paper. The scratch paper gets collected; only what you write back to the thread survives. Don't leave half-finished work in the sandbox. ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## Credentials Never Enter the Sandbox
+
+Claude Tag can hit external APIs, connect to GitHub, read private repos — but there are **no credentials whatsoever** inside the sandbox. This is the core of the [Agent Proxy](/en/glossary#agent-proxy) design: when Claude needs to call an API, the request goes through Anthropic's proxy layer, and **credentials get injected only at the network boundary**. The code running in the sandbox never touches a token.
+
+<MoguNote>
+Even if someone hides a prompt injection in a document trying to trick Claude into printing out an API key, Claude can't print it — because the token never entered the sandbox in the first place. This is completely different from the traditional "store token as environment variable" pattern. (◕‿◕)
+</MoguNote>
+
+Permission management is per-channel: admins bundle credentials, repo access, and domain allowlists into an Access bundle. Network is default-deny; only allowlisted endpoints can be reached. Credential rotation is painless — update once in Anthropic's admin panel, no sandbox redeployment needed.
+
+---
+
+## Wrapping Up
+
+The design assumes you're okay with Slack-only and letting Anthropic manage credentials. Build your own, and all of that becomes your responsibility — but you also get to choose: LINE, Teams, intranet, self-managed keys, different models.
+
+<MoguNote>
+Entry requirements: Team or Enterprise plan, both an Anthropic org owner and Slack workspace admin, no ZDR (Zero Data Retention). Billing: channels draw from org quota, DMs from personal accounts. ʕ•ᴥ•ʔ — [ShroomDog](/en/about/)
+</MoguNote>
+
+Next post, we start building our own. [LINE first](/en/posts/en-sd-29-20260715-openclaw-line-selfhost/), then [Teams](/en/posts/en-sd-30-20260715-openclaw-teams-intranet/) and the [security crisis](/en/posts/en-sd-31-20260715-openclaw-security-crisis/). With tools like [OpenClaw](/en/glossary#openclaw), the same concept moves to any platform, any model, any network environment.

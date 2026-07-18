@@ -429,6 +429,41 @@
     "enMoguNote": "Thariq is great gu-log material: not \"AI is cool\" fireworks, but the real friction points you hit when using this stuff every day."
   },
   {
+    "term": "Cat Wu",
+    "en": "Cat Wu",
+    "definition": "Anthropic Claude Code 產品負責人（X: @_catwu），曾與 Thariq Shihipar 在 AIE（AI Engineer 年會）的爐邊對談分享 agent 委派心法：別把規則寫死，讓模型用自己的判斷力決定。",
+    "moguNote": "在爐邊對談隨口一句「讓模型自己判斷」，被 Simon Willison 撿回家變成一套實際可用的省錢工作流。最好的產品建議都長這樣：一句話、可執行、省錢。",
+    "url": "https://x.com/_catwu",
+    "aliases": ["Cat Wu", "_catwu", "@_catwu"],
+    "related": ["Claude Code", "Thariq", "Boris Cherny"],
+    "definedIn": [
+      {
+        "slug": "sp-252-20260704-simonwillison-net-fable-simon-willison",
+        "title": "讓 Fable 自己決定——Simon Willison 的模型委派心法"
+      }
+    ],
+    "category": "people",
+    "enDefinition": "Product lead of Anthropic's Claude Code (X: @_catwu). At an AIE (AI Engineer) fireside chat with Thariq Shihipar, she shared a core agent delegation insight: don't hard-code the rules — let the model use its own judgment.",
+    "enMoguNote": "One offhand line at a fireside chat — \"let the model judge\" — and Simon Willison took it home and turned it into a working cost-saving workflow. The best product advice looks exactly like this: one sentence, actionable, saves money."
+  },
+  {
+    "term": "Jesse Vincent",
+    "en": "Jesse Vincent",
+    "definition": "開發者，Simon Willison 討論模型委派時引用他的省 token 招式：讓模型自己判斷哪些任務可以交給較便宜的模型跑，把頂級模型的額度留給需要判斷力的工作。",
+    "moguNote": "聽起來像懶人招，但這是正確的懶法：把判斷力放在對的地方，而不是每個決定都自己做。",
+    "aliases": ["Jesse Vincent", "Jesse"],
+    "related": ["Simon Willison", "Claude Code"],
+    "definedIn": [
+      {
+        "slug": "sp-252-20260704-simonwillison-net-fable-simon-willison",
+        "title": "讓 Fable 自己決定——Simon Willison 的模型委派心法"
+      }
+    ],
+    "category": "people",
+    "enDefinition": "A developer whose token-saving tip was cited by Simon Willison in his post on model delegation: let the model use its own judgment about which tasks can go to cheaper models, saving top-tier capacity for work that needs real judgment.",
+    "enMoguNote": "Sounds like a lazy trick, but it is the right kind of lazy: put judgment where it belongs instead of making every decision yourself."
+  },
+  {
     "term": "Software 3.0",
     "en": "Software 3.0",
     "definition": "Karpathy 用來描述 LLM 時代軟體的新分層：Software 1.0 是人手寫 code，Software 2.0 是 neural network weights，Software 3.0 則是用自然語言、prompt、context、agent harness 來塑造系統行為。gu-log 後續文章應該引用既有說明，不要每篇重講一次三層史觀。",
@@ -569,6 +604,23 @@
     "category": "concepts",
     "enDefinition": "The basic unit of text processed by AI models, somewhere between a character and a word. A Chinese character is often around 1-2 tokens; a short English word is often 1 token; long words may split into several. Context windows, API pricing, and input/output limits are all measured in tokens.",
     "enMoguNote": "Think of tokens as the AI's burger size unit: your input, its output, context size, and monthly bill are all counted this way. The mapping is not intuitive, so \"how many Chinese characters is 8,000 tokens?\" is always something to test, not guess."
+  },
+  {
+    "term": "Benchmark",
+    "en": "Benchmark",
+    "definition": "一組固定或可重複執行的測試，用來比較模型在特定能力上的表現。Benchmark 量到的是模型對這套測試的成績，不會自動等於真實世界的可靠度、安全性或實用性；題目外流、被反覆最佳化或已經飽和後，分數的意義也會下降。",
+    "moguNote": "Benchmark 像遊戲裡的木樁傷害榜：很適合比較裝備與配點，但木樁不會反擊、不會改規則，也不會在凌晨三點把 production 弄爆。分數有用，前提是先記得它到底測了哪一小塊世界。",
+    "related": ["Frontier Model", "Agent"],
+    "linking": { "enabled": false },
+    "definedIn": [
+      {
+        "slug": "sp-256-20260715-demishassabis-agi-safety-window",
+        "title": "當沙礫開始思考：前沿 AI 創世綱要與新紀元破曉之時"
+      }
+    ],
+    "category": "concepts",
+    "enDefinition": "A fixed or repeatable set of tests used to compare models on a specific capability. A benchmark score measures performance on that test; it does not automatically prove real-world reliability, safety, or usefulness. Its meaning can weaken when questions leak, models are repeatedly optimized against it, or the test saturates.",
+    "enMoguNote": "A benchmark is like a training-dummy damage chart in a game: excellent for comparing builds, but the dummy never fights back, changes the rules, or breaks production at 3 a.m. The score matters only after you know which small slice of reality it measures."
   },
   {
     "term": "Prompt",
@@ -811,5 +863,25 @@
     "category": "concepts",
     "enDefinition": "No-operation, borrowed from programming (an instruction that does nothing). In a prompt or skill, a line that might as well not be there, because it asks for behavior the model already does by default (\"be thorough\", \"write maintainable code\"). The test: delete the line and run again; if the output does not change, it was a no-op.",
     "enMoguNote": "The prompt-engineering version of printing \"please answer carefully\" on an exam. The model was already trying; the extra line just bloats the skill and burns tokens. Writing prompts is like writing code: an instruction that does nothing is dead code to delete."
+  },
+  {
+    "term": "Claude Tag",
+    "en": "Claude Tag",
+    "definition": "Anthropic 2026 年六月推出的第二代 Claude in Slack。在 Slack 頻道 @Claude 即可召喚，一個 thread 就是一個持久工作階段，頻道成員都能中途插話引導。跑在 Anthropic 代管的暫時性沙箱裡，憑證由 Agent Proxy 在邊界注入、從不進沙箱。",
+    "moguNote": "把它想成「頻道共用的隊友」，不是「你的私人秘書」——誰在 thread 裡講話它就聽誰的。付月費買的有一半是「不用自己扛安全」。",
+    "enDefinition": "The second-generation Claude in Slack, launched by Anthropic in June 2026. Mention @Claude in a channel to summon it; one thread is one persistent session that anyone in the channel can steer. It runs in an Anthropic-managed ephemeral sandbox, with credentials injected at the boundary by Agent Proxy and never present inside the sandbox.",
+    "related": ["Agent", "Agent Proxy", "Claude Code"],
+    "definedIn": [],
+    "category": "products"
+  },
+  {
+    "term": "Agent Proxy",
+    "en": "Agent Proxy",
+    "definition": "一種讓憑證從不進 agent 執行環境的設計：agent 要打外部 API 時，請求先經過代理層，在網路邊界才把憑證注入。沙箱裡的程式從頭到尾碰不到 token，就算被 prompt injection 騙也印不出憑證。Claude Tag 用它管憑證；自架 OpenClaw 時可用出網代理自行重現。",
+    "moguNote": "錢包不放桌上，出門結帳時才由櫃檯幫你刷卡。就算小偷翻遍你家（prompt injection），也翻不到那張卡。",
+    "enDefinition": "A design that keeps credentials out of the agent runtime: when the agent calls an external API, the request passes through a proxy layer that injects the credential only at the network boundary. Code in the sandbox never touches the token, so even a successful prompt injection cannot print it. Claude Tag uses this to manage credentials; self-hosted OpenClaw can reproduce it with an egress proxy.",
+    "related": ["Agent", "Claude Tag", "OpenClaw"],
+    "definedIn": [],
+    "category": "concepts"
   }
 ]

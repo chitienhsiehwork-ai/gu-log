@@ -26,7 +26,14 @@ func NewCodexGPT55Low() *CodexProvider {
 
 // NewCodexGPT55Medium returns a CodexProvider wired to GPT-5.5 medium.
 func NewCodexGPT55Medium() *CodexProvider {
-	return &CodexProvider{ModelName: "gpt-5.5", ReasoningEffort: "medium"}
+	return &CodexProvider{ModelName: configuredCodexModel("gpt-5.5"), ReasoningEffort: "medium"}
+}
+
+func configuredCodexModel(fallback string) string {
+	if model := strings.TrimSpace(os.Getenv("GP_CODEX_MODEL")); model != "" {
+		return model
+	}
+	return fallback
 }
 
 // NewCodexGPT55 returns a CodexProvider wired to GPT-5.5.
@@ -43,14 +50,7 @@ func (c *CodexProvider) Name() string { return "codex-" + c.modelName() }
 
 // Model implements Provider.
 func (c *CodexProvider) Model() ModelID {
-	switch c.modelName() {
-	case "gpt-5.5":
-		return ModelGPT55
-	case "gpt-5.3-codex":
-		return ModelGPT53Codex
-	default:
-		return ModelGPT54
-	}
+	return ModelID(c.modelName())
 }
 
 // ActualModel returns the explicit Codex model passed to the CLI. Codex does

@@ -152,7 +152,7 @@ Yann LeCun Geoffrey Hinton Yoshua Bengio
 Alexandr Wang Yang Mira Mira Murati
 Davide Paglieri Logan Cross Mahmoud Jake Cooper Pascal
 Trump Newsom Jer Crane Pawel Pawel Huryn
-Harrison Chase Simon Willison Nat Friedman Patrick Collison
+Harrison Chase Simon Willison Nat Friedman Patrick Collison Shihipar
 Garry Tan Brian Chesky
 Riley Goodside Ethan Mollick Andy Weir Ryland Grace Project Hail Mary
 Alex Kotliarskyi Victor Zhu Zach Brock Karri Saarinen daniel_mac8 daniel
@@ -166,6 +166,9 @@ Kahneman Deaton Angus Killingsworth
 # Feinberg (Gemini lead), Alfred Lin (Sequoia), Michael (Truell) + Aman (Sanger)
 # = Cursor founders' first names as cited in the source
 Phil Chen Vlad Feinberg Alfred Lin Michael Aman
+# Ryo Lu — Cursor Head of Design, cited author of SP-30 + the CP
+# when-the-dream-becomes-the-job post (2026-07-15)
+Ryo Lu
 
 # Places
 Albuquerque Hong Kong San Francisco SF Silicon Valley
@@ -580,6 +583,16 @@ Modeling Scratch Industry Job
 # natural zh-tw translation (writer-prompt rule #2: people stay English).
 Kun Chen
 
+# Added 2026-07-13 for SP-255 (Nadella tweet). Proper nouns named in the
+# source (writer-prompt rule #2: people / companies stay English):
+#   Kenneth Arrow = Nobel economist, original information-paradox author.
+#   Karp = Alex Karp, Palantir CEO ("Alex" is already allowlisted above).
+#   Palantir = the company (same category as the labs above).
+# "Reverse Information Paradox" = the coined term the whole post is about;
+# translating away the original name loses searchability (xG-style rationale).
+Kenneth Arrow Karp Palantir
+Reverse Information Paradox
+
 # Added 2026-07-01 for the Core-dump Lv 三部曲 (levelup-*-core-dump-*). All
 # bona-fide proper nouns named in the OpenAI source, none with a zh-tw
 # translation (same category as the product / library names already
@@ -615,14 +628,105 @@ cybernetics kybernetes
 # title of the cited article, given with a zh-tw gloss right after (direct-quote
 # attribution, GU-LOG_WRITER_PROMPT §術語處理 rule 3).
 thedankoe
+
+# Added 2026-07-03 for SP (Geoffrey Litt understand-agent-code thread).
+# All people (writer-prompt rule #2): Geoffrey Litt = source author (@geoffreylitt,
+# Notion engineer); Seymour Papert = education pioneer (Mathland / Logo);
+# Alan Kay = computing pioneer (Dynabook vision cited in the thread);
+# Andy Matuschak = "Books don't work" essayist; Margaret Storey = researcher
+# credited (with Simon Willison) for popularizing "Cognitive Debt".
+Geoffrey Litt
+Seymour Papert
+Alan Kay
+Andy Matuschak
+Margaret Storey
 How fix your entire life in day
+
+# Added 2026-07-09 for SP-253 (TypeScript 7.0 Go port announcement). All
+# bona-fide proper nouns named in the Microsoft source, none with a zh-tw
+# translation (writer-prompt rule #2: people / products / companies stay
+# English; same categories as the company / tool / person names above):
+#   Sentry / Canva / Vanta / Bluesky / PowerBI = companies whose migration
+#     numbers the announcement cites. Parcel = the bundler whose C++ file
+#     watcher was ported to Go. Turbopack / Biome / Volar / esbuild / swc /
+#     jest / ESLint / typescript-eslint = the JS toolchain products named in
+#     the ecosystem-impact section (tool proper nouns, sibling of Vite/Webpack
+#     status above).
+#   Devon Govett = Parcel's creator (person).
+#   ECMAScript / Unicode / JSDoc = standards / spec proper nouns (sibling of
+#     the allowlisted WebAssembly / OpenAPI).
+#   goroutine = canonical Go language keyword (same status as the struct /
+#     lifetime Rust tokens above). Workers / Worker = Web Workers, the
+#     canonical browser API name. Visual = Visual Studio (Studio already
+#     allowlisted above). Closure = Google Closure Compiler annotation style.
+#   Services = part of the "Microsoft News Services" team proper noun (same
+#     pattern as Modeling / Scratch title words above).
+Sentry Canva Vanta Bluesky PowerBI
+Parcel Turbopack Biome Volar esbuild swc jest
+ESLint eslint typescript-eslint
+Devon Govett
+ECMAScript Unicode JSDoc
+goroutine
+Workers Worker
+Visual Closure
+Services
+#   Webpack / Babel = the JS-era toolchain products the ClawdNote contrasts
+#     with the Rust/Go wave (tool proper nouns, sibling of Vite / React above).
+Webpack Babel
+#   surrogate pair = Unicode spec term glossed inline right after its zh-tw
+#     translation 代理對 (same status as the allowlisted ataraxia gloss).
+surrogate pair
+
+# Added 2026-07-15 for the Claude Tag + OpenClaw self-host series (LINE / Teams /
+# security). All bona-fide proper nouns — companies, products, or canonical
+# named features in the sources, none with a zh-tw translation (writer-prompt
+# rule #2: people / products / companies / named features stay English):
+#   Mattermost / Rocket.Chat = self-hostable team-chat products (OpenClaw channels).
+#   ClawHub = OpenClaw's skill marketplace (proper product name).
+#   Censys / Bitsight / PromptArmor = security research firms cited for the 2026
+#     exposed-instance scan counts + the prompt-injection write-up.
+#   ngrok / cloudflared / Caddy = tunnelling / reverse-proxy products.
+#   worktree = canonical git term (sibling of the allowlisted monorepo / goroutine).
+#   pod = Kubernetes pod (sibling of the allowlisted K8s / Kubernetes / Docker).
+#   Exchange / Graph / Bot Framework = Microsoft product / API / SDK proper nouns
+#     (Microsoft Exchange server, Microsoft Graph API, Azure Bot Framework).
+#   Agent Proxy / Access bundle = Anthropic Claude Tag feature names, referenced
+#     by name across all four posts (Agent already allowlisted via Agent Swarm).
+#   Flex = LINE Flex Message component name.
+Mattermost Rocket.Chat ClawHub
+Censys Bitsight PromptArmor
+ngrok cloudflared Caddy
+worktree pod
+Exchange Graph Bot Framework
+Agent Proxy Access bundle
+Flex
+#   localhost / cross-origin = canonical networking terms whose zh-tw renderings
+#     lose precision (sibling of the allowlisted TCP / TLS / HTTP / DNS / OAuth).
+#   Let's Encrypt = the free CA product named in the reverse-proxy section.
+localhost cross-origin
+Let's Encrypt
+#   OneDrive / Outlook = Microsoft product proper nouns (Graph API scopes named
+#     in the Teams post). DMZ = canonical network-security acronym (sibling of
+#     the allowlisted VPN-class terms); glossed 非軍事區 inline on first use.
+OneDrive Outlook DMZ
+#   LINE Developers / Messaging API = LINE's developer-console + product-API
+#     proper nouns (same category as the Microsoft product names above).
+Developers Messaging
 `;
 
 const HARDCODED = new Set();
-for (const tok of ALLOWLIST_RAW.split(/\s+/)) {
-  const t = tok.trim();
-  if (!t || t.startsWith('#')) continue;
-  HARDCODED.add(t);
+for (const line of ALLOWLIST_RAW.split('\n')) {
+  const trimmedLine = line.trim();
+  // Skip full-line comments before tokenizing — a line-level check is
+  // required because splitting the whole blob on whitespace first would
+  // scatter each comment line's prose words into the token stream, with
+  // only the leading '#' itself filtered out (the original bug: comment
+  // text silently became "accepted English").
+  if (!trimmedLine || trimmedLine.startsWith('#')) continue;
+  for (const tok of trimmedLine.split(/\s+/)) {
+    if (!tok) continue;
+    HARDCODED.add(tok);
+  }
 }
 
 // ── Glossary terms ─────────────────────────────────────────────────
@@ -822,6 +926,18 @@ function ensureRemoteBaselineRef(baselineRef) {
   });
 }
 
+function baselineRefExists(baselineRef) {
+  try {
+    execFileSync('git', ['rev-parse', '--verify', '--quiet', baselineRef], {
+      cwd: REPO_ROOT,
+      stdio: ['ignore', 'ignore', 'ignore'],
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function getBaselineViolations(filePath, baselineRef) {
   if (!baselineRef) return new Set();
 
@@ -837,7 +953,20 @@ function getBaselineViolations(filePath, baselineRef) {
       const { violations } = checkText(raw, filePath);
       return new Set(violations.map(violationKey));
     } catch {
-      // New file or unavailable baseline: all violations are new.
+      // Either the file is new at baselineRef (correct: all its violations
+      // are new) or baselineRef itself couldn't be resolved (e.g. no network
+      // to fetch origin, or the ref genuinely doesn't exist) — in the latter
+      // case grandfathered violations can't be suppressed and every historical
+      // violation in the file will look "new". Warn so that flood doesn't get
+      // mistaken for a real regression.
+      if (!baselineRefExists(baselineRef)) {
+        console.error(
+          `[check-jingjing] Warning: baseline ref "${baselineRef}" could not be resolved ` +
+            `(no network to fetch, or the ref doesn't exist) — historical/grandfathered ` +
+            `violations in ${path.relative(REPO_ROOT, filePath)} cannot be suppressed and ` +
+            `may appear as "new". Run 'git fetch origin' and retry before assuming a regression.`
+        );
+      }
       return new Set();
     }
   }

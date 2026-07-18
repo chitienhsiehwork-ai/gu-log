@@ -9,8 +9,8 @@ func TestQuoted(t *testing.T) {
 	if got := quoted("plain"); got != `"plain"` {
 		t.Fatalf("quoted(plain) = %q, want \"plain\"", got)
 	}
-	if got := quoted(`"already"`); got != `"already"` {
-		t.Fatalf("already-quoted should be returned untouched, got %q", got)
+	if got := quoted(`"already"`); got != `"\"already\""` {
+		t.Fatalf("literal surrounding quotes should be escaped as content, got %q", got)
 	}
 	if got := quoted(""); got != `""` {
 		t.Fatalf("quoted(empty) = %q, want \"\"", got)
@@ -85,7 +85,7 @@ func TestRenderPipelineBlock_RootKey(t *testing.T) {
 
 func TestPipelineURL_Constant(t *testing.T) {
 	// Pin the canonical pipelineUrl that gets written to frontmatter.
-	want := "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+	want := "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
 	if PipelineURL != want {
 		t.Fatalf("PipelineURL drift: got %q, want %q", PipelineURL, want)
 	}

@@ -108,6 +108,14 @@ describe('tribunal publish bar', () => {
     expect(meetsPublishBar(scores)).toBe(true);
   });
 
+  it('treats un-scored posts as unevaluated, not below bar (grandfather)', () => {
+    // spec: publish-bar-visibility — Un-scored posts SHALL be grandfathered
+    expect(isBelowPublishBar(undefined)).toBe(false);
+    expect(isBelowPublishBar({} as NonNullable<Scores>)).toBe(false);
+    // 沒分數也不算 meets bar——它是 unevaluated，兩邊都不成立
+    expect(meetsPublishBar(undefined)).toBe(false);
+  });
+
   it('fails partial tribunal scores instead of publishing from Vibe alone', () => {
     const scores = {
       tribunalVersion: 9,

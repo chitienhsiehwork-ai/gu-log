@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"go.yaml.in/yaml/v3"
+
 	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/frontmatter"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/ralph"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/runner"
@@ -103,8 +105,10 @@ func (s *State) Ralph(ctx context.Context) error {
 
 	s.runPostFixers(ctx, activePath)
 
-	// Run the tribunal. tribunal.sh auto-selects its own runtime provider
-	// (Codex GPT-5.5 normally; Claude Opus when codex is absent in CCC).
+	// Run the tribunal. tribunal.sh resolves the runtime provider per judge:
+	// VibeScorer runs on Claude Opus 4.5 while Librarian/FactChecker/FreshEyes
+	// stay on Codex GPT-5.5 (mac/VPS). When codex is absent (CCC sandbox) all
+	// four judges fall back to Claude.
 	s.Log.Info("  Running 4-stage tribunal (via tribunal.sh)...")
 	passed, err := ralph.Run(ctx, ralph.Options{
 		RalphScript: filepath.Join(s.Cfg.ScriptsDir, "tribunal.sh"),
@@ -253,7 +257,57 @@ func normalizeRalphFrontmatter(path string, stamp PipelineStamp) error {
 	f.SetBlock("  pipeline", renderPipelineBlock("  pipeline", entries))
 	f.SetNestedScalar("translatedBy", "pipelineUrl", quoted(finalPipelineURL))
 
+	// The `source:` value is LLM-authored free text (from --source-label
+	// or the writer's own choice, e.g. "Simon Willison's Weblog") and its
+	// quoting is whatever the writer LLM happened to produce — unquoted,
+	// single-quoted, or double-quoted-but-unescaped are all possible and
+	// some of those are invalid YAML (gu-log #546). Deterministically
+	// re-serialize it here, the last frontmatter normalizer before the
+	// file lands in posts dir, so the on-disk value is always valid YAML
+	// regardless of what the LLM wrote.
+	if raw, ok := f.GetScalar("source"); ok {
+		value, err := decodeYAMLScalar(raw)
+		if err != nil {
+			// Writer output can itself be invalid YAML (the original #546
+			// failure). Only use delimiter stripping as a recovery path after
+			// the real parser rejects the scalar; valid escapes must be decoded
+			// semantically before canonical re-serialization.
+			value = unquoteInvalidScalarBestEffort(raw)
+		}
+		f.SetScalar("source", quoted(value))
+	}
+
 	return os.WriteFile(path, f.Bytes(), 0o644)
+}
+
+// decodeYAMLScalar parses one raw YAML scalar and returns its semantic value.
+// A Node keeps numbers/bools/null as their original scalar text while still
+// decoding YAML quote and escape syntax for strings.
+func decodeYAMLScalar(raw string) (string, error) {
+	var doc yaml.Node
+	if err := yaml.Unmarshal([]byte("value: "+raw+"\n"), &doc); err != nil {
+		return "", err
+	}
+	if len(doc.Content) != 1 || len(doc.Content[0].Content) != 2 {
+		return "", fmt.Errorf("source is not a single YAML scalar")
+	}
+	value := doc.Content[0].Content[1]
+	if value.Kind != yaml.ScalarNode {
+		return "", fmt.Errorf("source is YAML kind %d, want scalar", value.Kind)
+	}
+	return value.Value, nil
+}
+
+// unquoteInvalidScalarBestEffort strips one matching quote delimiter from
+// invalid writer output. Valid YAML never reaches this fallback; it exists to
+// recover common malformed forms such as 'Simon Willison's Weblog'.
+func unquoteInvalidScalarBestEffort(raw string) string {
+	if len(raw) >= 2 {
+		if (raw[0] == '"' && raw[len(raw)-1] == '"') || (raw[0] == '\'' && raw[len(raw)-1] == '\'') {
+			return raw[1 : len(raw)-1]
+		}
+	}
+	return raw
 }
 
 // extractTitle scans a file's frontmatter for the title: line.

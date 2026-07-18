@@ -14,6 +14,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
+import yaml from 'yaml';
 import { normalizeUrl, extractTweetId, computeSimilarity, FLAG_THRESHOLD } from './dedup-gate.mjs';
 import { loadPostMap, findMissingPairs, reminderText } from './check-translation-pairs.mjs';
 import { MODEL_MAP } from './detect-model.mjs';
@@ -53,66 +54,74 @@ const CLAWD_NOTE_REDUNDANT_PREFIX = [
 ];
 const LONG_CLAWD_NOTE_CHARS = 420;
 const MAX_CLAWD_NOTE_SUMMARY_CHARS = 120;
+// CJK Unified Ideograph guard for en-*.mdx bodies (Rule 19). `\p{Unified_Ideograph}`
+// is the CJK Unified Ideographs block only — kaomoji-adjacent scripts like
+// katakana (ツ) or Greek (ω) are outside it and never trip this rule.
+// Known limitation: this only scans MDX source text, so it cannot catch
+// hardcoded user-visible strings baked into .astro components.
+const CJK_UNIFIED_IDEOGRAPH_PATTERN = /\p{Unified_Ideograph}/gu;
+// MDX requires {/* */} comments; HTML <!-- --> breaks the build.
+const CJK_ESCAPE_MARKERS = ['{/* cjk-ok */}', '<!-- cjk-ok -->'];
+const containsCjkEscape = (line) => CJK_ESCAPE_MARKERS.some((m) => line.includes(m));
+// Grandfather baseline: en-* CJK Unified Ideograph lines that already existed
+// when Rule 19 shipped (SP-251 uiux fix task, 2026-07-06), so the guard
+// shipped CI-green without a mass content-editing PR. All 14 original entries
+// have since been resolved — 11 legitimate citations/kaomoji got a `cjk-ok`
+// escape (fix/clawdnote-summaries-cjk-escapes) and the 3-line en-sp-193
+// untranslated-code-comment bug got retranslated
+// (fix/en-sp-193-untranslated-comments) — so this baseline is empty. Keep the
+// Map (and this comment) as the burn-down mechanism for the next time a
+// mass-adoption PR needs to ship CI-green before every line is fixed: add an
+// entry, downgrade it to a warning, and delete the entry once resolved.
+//
+// Keyed by exact trimmed line text (not line number) so unrelated edits
+// elsewhere in the file — which shift line numbers — don't silently drop a
+// line out of the baseline or let a false match through. Only editing the
+// flagged line itself invalidates its baseline entry, which is the correct
+// trigger to revisit it.
+const CJK_GRANDFATHERED_LINES = new Map([]);
 
 // ─── Helpers ───────────────────────────────────────────────────────
+
+// coerceYamlValue recursively normalizes a real yaml.parse() result back
+// into the flat-string / string-array shape every rule below already
+// expects (all scalars are strings, `tags` and similar are string
+// arrays). This exists because gu-log #546 replaced the hand-rolled
+// regex frontmatter scanner below with a real YAML parser (defense in
+// depth: LLM-authored frontmatter can contain unescaped quotes/colons
+// the old regex silently accepted) — but yaml.parse() returns native
+// JS Date/number/boolean for unquoted scalars, and ~19 rules in this
+// file do string operations (`.test()`, `.endsWith()`, `.length`,
+// template interpolation) against those values. Coercing here keeps
+// "how frontmatter is READ" changed without changing "what TYPE comes
+// out", so an accidentally-unquoted date doesn't silently become a JS
+// Date and break DATE_PATTERN.test().
+function coerceYamlValue(value) {
+  if (value === null || value === undefined) return value;
+  if (Array.isArray(value)) return value.map(coerceYamlValue);
+  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  if (typeof value === 'object') {
+    const out = {};
+    for (const [k, v] of Object.entries(value)) out[k] = coerceYamlValue(v);
+    return out;
+  }
+  if (typeof value === 'string') return value;
+  return String(value);
+}
+
 function parseFrontmatter(content) {
   const match = content.match(/^---\n([\s\S]*?)\n---/);
   if (!match) return null;
 
-  const fm = {};
-  const raw = match[1];
-
-  // Simple YAML parser for flat fields
-  for (const line of raw.split('\n')) {
-    const kv = line.match(/^(\w[\w.]*?):\s*(.+)/);
-    if (kv) {
-      let val = kv[2].trim();
-      // Strip quotes
-      if (
-        (val.startsWith('"') && val.endsWith('"')) ||
-        (val.startsWith("'") && val.endsWith("'"))
-      ) {
-        val = val.slice(1, -1);
-      }
-      fm[kv[1]] = val;
-    }
+  let parsed;
+  try {
+    parsed = yaml.parse(match[1]);
+  } catch (e) {
+    throw new Error(`Invalid YAML in frontmatter: ${e.message}`);
   }
+  if (!parsed || typeof parsed !== 'object') return {};
 
-  // Parse nested objects (e.g., translatedBy.model, translatedBy.harness)
-  const nestedMatch = raw.match(/^(\w+):\s*\n((?:\s+\w+:.*\n?)+)/gm);
-  if (nestedMatch) {
-    for (const block of nestedMatch) {
-      const lines = block.split('\n');
-      const parentKey = lines[0].match(/^(\w+):/)?.[1];
-      if (parentKey) {
-        fm[parentKey] = {};
-        for (let i = 1; i < lines.length; i++) {
-          const childMatch = lines[i].match(/^\s+(\w+):\s*(.+)/);
-          if (childMatch) {
-            let val = childMatch[2].trim();
-            if (
-              (val.startsWith('"') && val.endsWith('"')) ||
-              (val.startsWith("'") && val.endsWith("'"))
-            ) {
-              val = val.slice(1, -1);
-            }
-            fm[parentKey][childMatch[1]] = val;
-          }
-        }
-      }
-    }
-  }
-
-  // Parse tags array
-  const tagsMatch = raw.match(/tags:\s*\[(.*?)\]/s);
-  if (tagsMatch) {
-    fm.tags = tagsMatch[1]
-      .split(',')
-      .map((t) => t.trim().replace(/["']/g, ''))
-      .filter(Boolean);
-  }
-
-  return fm;
+  return coerceYamlValue(parsed);
 }
 
 function getBaseFilename(filename) {
@@ -201,7 +210,12 @@ function extractClawdNotes(content) {
 function validatePost(filepath, allPosts, options = {}) {
   const filename = path.basename(filepath);
   const content = fs.readFileSync(filepath, 'utf-8');
-  const fm = parseFrontmatter(content);
+  let fm;
+  try {
+    fm = parseFrontmatter(content);
+  } catch (e) {
+    return { filename, errors: [e.message], warnings: [] };
+  }
   const fmText = getFrontmatterText(content);
   const body = getContentBody(content);
   const errors = [];
@@ -385,31 +399,44 @@ function validatePost(filepath, allPosts, options = {}) {
   const FRESH_DIMS_V9 = ['readability', 'firstImpression', 'payoffDensity', 'lengthFit', 'clarity'];
   const vibeDims = tribunalVersion >= 9 ? VIBE_DIMS_V9 : VIBE_DIMS_V8;
   const freshDims = tribunalVersion >= 9 ? FRESH_DIMS_V9 : FRESH_DIMS_V8;
+  // VALIDATE_PARTIAL_SCORES=1: mid-tribunal mode for cheap validation in
+  // scripts/tribunal.sh — writer rewrites happen BEFORE later stages have
+  // scored, so requiring all four blocks here is a guaranteed failure.
+  // Relaxes ONLY block *presence*; any block that exists is still fully
+  // structure-checked. Deploy / pre-commit / CI never set this, so the
+  // final gate stays strict.
+  const partialScores = process.env.VALIDATE_PARTIAL_SCORES === '1';
+  const requireOrSkipMissing = (scoreErrors) =>
+    partialScores ? scoreErrors.filter((e) => !e.startsWith('Missing scores')) : scoreErrors;
   if (tribunalVersion >= 8) {
     errors.push(
-      ...validateScoreBlock(fmText, 'librarian', [
-        'glossary',
-        'crossRef',
-        'sourceAlign',
-        'attribution',
-      ]),
-      ...validateScoreBlock(fmText, 'factCheck', [
-        'accuracy',
-        'fidelity',
-        'consistency',
-        'sourceBoundary',
-        'commentarySeparation',
-      ]),
-      ...validateScoreBlock(fmText, 'freshEyes', freshDims),
-      ...validateScoreBlock(fmText, 'vibe', vibeDims)
+      ...requireOrSkipMissing([
+        ...validateScoreBlock(fmText, 'librarian', [
+          'glossary',
+          'crossRef',
+          'sourceAlign',
+          'attribution',
+        ]),
+        ...validateScoreBlock(fmText, 'factCheck', [
+          'accuracy',
+          'fidelity',
+          'consistency',
+          'sourceBoundary',
+          'commentarySeparation',
+        ]),
+        ...validateScoreBlock(fmText, 'freshEyes', freshDims),
+        ...validateScoreBlock(fmText, 'vibe', vibeDims),
+      ])
     );
   } else if (fm.ticketId?.startsWith('SD-')) {
-    if (!/^scores:\s*$/m.test(fmText)) {
+    if (!partialScores && !/^scores:\s*$/m.test(fmText)) {
       errors.push('Missing scores block — every SD post needs freshEyes + vibe scores');
     }
     errors.push(
-      ...validateScoreBlock(fmText, 'freshEyes', ['readability', 'firstImpression']),
-      ...validateScoreBlock(fmText, 'vibe', vibeDims)
+      ...requireOrSkipMissing([
+        ...validateScoreBlock(fmText, 'freshEyes', ['readability', 'firstImpression']),
+        ...validateScoreBlock(fmText, 'vibe', vibeDims),
+      ])
     );
   }
 
@@ -442,6 +469,49 @@ function validatePost(filepath, allPosts, options = {}) {
     );
   }
 
+  // ── Rule 19: en-*.mdx body must not contain CJK Unified Ideographs ──
+  // Catches untranslated zh-tw leftovers in en posts. Legitimate cases (a
+  // quoted Chinese name, a kaomoji with a real ideograph like 益) opt out with
+  // a `<!-- cjk-ok -->` comment on the same line. A deliberately bilingual
+  // *code example* opts out block-wide by putting the marker on the opening
+  // ``` fence line instead — an inline comment on a code line would render
+  // as literal garbage text in the published snippet. Frontmatter is exempt
+  // (source/attribution fields legitimately carry original-language names).
+  if (filename.startsWith('en-')) {
+    const bodyStartOffset = content.length - body.length;
+    const bodyStartLine = content.slice(0, bodyStartOffset).split('\n').length;
+    let inEscapedFence = false;
+    body.split('\n').forEach((line, idx) => {
+      if (/^\s*```/.test(line)) {
+        if (inEscapedFence) {
+          inEscapedFence = false; // closing fence of an escaped block
+        } else if (containsCjkEscape(line)) {
+          inEscapedFence = true; // opening fence marked as escaped
+        }
+        return;
+      }
+      if (inEscapedFence || containsCjkEscape(line)) return;
+      const matches = line.match(CJK_UNIFIED_IDEOGRAPH_PATTERN);
+      if (matches) {
+        const lineNo = bodyStartLine + idx;
+        const chars = [...new Set(matches)].join('');
+        if (CJK_GRANDFATHERED_LINES.get(filename)?.has(line.trim())) {
+          warnings.push(
+            `CJK Unified Ideograph "${chars}" at line ${lineNo} is grandfathered (pre-existing) — ` +
+              'resolve it (escape or retranslate) and remove its entry from ' +
+              'CJK_GRANDFATHERED_LINES in scripts/validate-posts.mjs'
+          );
+        } else {
+          errors.push(
+            `CJK Unified Ideograph "${chars}" found in en-* body at line ${lineNo} ` +
+              `(intentional? add "{/* cjk-ok */}" on that line, or on the opening ` +
+              '``` fence line to escape a whole code block, to allow it)'
+          );
+        }
+      }
+    });
+  }
+
   return { filename, errors, warnings };
 }
 
@@ -465,7 +535,14 @@ function loadActiveZhTwArticles() {
       continue;
     }
 
-    const fm = parseFrontmatter(content);
+    let fm;
+    try {
+      fm = parseFrontmatter(content);
+    } catch {
+      // Invalid YAML is reported by validatePost's own gate; skip it here
+      // rather than crashing the whole duplicate scan for every file.
+      continue;
+    }
     if (!fm || !fm.ticketId) continue;
     // Skip deprecated articles
     if (fm.status === 'deprecated') continue;
@@ -711,7 +788,15 @@ function main() {
   const allFiles = fs.readdirSync(POSTS_DIR).filter((f) => f.endsWith('.mdx'));
   const allPosts = allFiles.map((f) => {
     const content = fs.readFileSync(path.join(POSTS_DIR, f), 'utf-8');
-    const fm = parseFrontmatter(content);
+    let fm;
+    try {
+      fm = parseFrontmatter(content);
+    } catch {
+      // Invalid YAML is reported below when this same file goes through
+      // validatePost's own gate; don't let one bad file crash the
+      // cross-file preload for every other post.
+      fm = null;
+    }
     return { filename: f, ticketId: fm?.ticketId || '' };
   });
 
@@ -804,4 +889,4 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   main();
 }
 
-export { parseFrontmatter, getBaseFilename, getContentBody, validatePost };
+export { parseFrontmatter, getBaseFilename, getContentBody, validatePost, CJK_GRANDFATHERED_LINES };

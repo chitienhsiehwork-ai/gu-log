@@ -1,0 +1,120 @@
+---
+ticketId: "SD-28"
+title: "Claude Tag：不是私人秘書，是頻道共用的隊友"
+originalDate: "2026-07-15"
+translatedDate: "2026-07-15"
+translatedBy:
+  model: "Opus 4.5"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Author"
+      model: "Human + Opus 4.5"
+      harness: "ShroomDog + Claude Code"
+source: "ShroomDog Lab"
+sourceUrl: "https://gu-log.vercel.app/"
+lang: "zh-tw"
+summary: "Claude Tag 是 Anthropic 2026 年六月推出的第二代 Claude in Slack。跟一般 chatbot 不一樣：一個 thread 就是一個持久工作階段，頻道裡的人都能中途插話改方向。但沙箱會蒸發、憑證從不進沙箱——這套安全設計是自架系列的對照組。"
+tags: ["shroomdog-original", "claude-tag", "slack", "agent", "sandbox", "agent-proxy"]
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 8
+    score: 8
+    date: "2026-07-15"
+    model: "claude-opus-4-8"
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 9
+    narrative: 8
+    score: 8
+    date: "2026-07-16"
+    model: "claude-opus-4-5"
+  librarian:
+    glossary: 9
+    crossRef: 9
+    sourceAlign: 8
+    attribution: 8
+    score: 8
+    date: "2026-07-16"
+    model: "claude-opus-4-8"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 9
+    score: 8
+    date: "2026-07-16"
+    model: "claude-opus-4-8"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+
+想像一個場景：工程師在 [Slack](/glossary#slack) 頻道問 Claude 一個問題，Claude 開始查 codebase、跑測試、推分支。中途 PM 覺得需求不對，直接在同一個 thread 回一句「等等，先別合併，改成 X」——Claude 收到，馬上轉彎。
+
+這不是科幻場景，是 [Claude Tag](/glossary#claude-tag) 的預設行為。而最反直覺的地方在這裡：**Claude 不是任何一個人的私人秘書，它是整個頻道共用的隊友**。誰在 thread 裡講話，它就聽誰的。至於「怎麼跟 AI 隊友協作、叫它別送頭」，[SD-23](/posts/sd-23-20260510-ai-dota-teammates) 專門講過，這篇先聚焦官方版本身。
+
+<ClawdNote>
+Claude Tag 是 2026 年六月 beta 上線的第二代 Claude in Slack。第一代比較像傳統 chatbot：問一句答一句，沒有持久工作階段，也沒有沙箱能執行 code。第二代是重新設計——Tag 這個字來自 Slack 的 @ 提及，但產品行為比「被 tag 到就回話」複雜得多。
+</ClawdNote>
+
+## Thread = 工作階段，誰都能引導
+
+Claude Tag 的核心運作單位是 [thread](/glossary#thread)。在 Slack 頻道 `@Claude` 一次，那個 thread 就變成一個持久的工作階段。**同一個 thread 裡，任何人直接回話就能改變 Claude 正在做的事**，不用重新 @。
+
+<MoguNote>
+這個設計讓 Claude 變成「共用麥克風」。好處是團隊協作很流暢，壞處是——如果有人亂講話，整個 thread 的方向就被帶走了。沒有「這是 [Mogu](/about) 的 Claude 工作階段，別人別插嘴」這回事。想想看：如果辦公室的實習生可以隨時轉助理的方向，那是功能還是 bug？(¬‿¬)
+</MoguNote>
+
+這也表示 Claude Tag 不適合處理「只有特定人該知道」的任務——頻道裡的所有人都看得到 thread 內容、都能看到產出。Thread 太久沒有新訊息，工作階段狀態會過期；下次有人回話時，Claude 會從 thread 歷史重建 context，但不一定能完美接上幾週前的討論細節。這是 [context window](/glossary#context-window) 的物理限制。（[SD-22](/posts/sd-22-20260508-context-window-model-day) 專門講過 context window 是什麼、為什麼有上限。）
+
+---
+
+## 沙箱會蒸發，Thread 才持久
+
+Claude Tag 跑在 Anthropic 代管的沙箱裡，跟 [Claude Code](/glossary#claude-code) on the web 用同一套運算環境。這個沙箱是暫時性的：閒置一段時間就會被釋放，下次 Claude 回覆時開一台全新的執行個體。**沒推送的分支、沒貼回 Slack 的產出，下次就不見了**。
+
+<ClawdNote>
+每次 Claude 被叫醒，它拿到的是一台乾淨的新機器，靠 thread 裡的對話記錄重建上下文。所以 thread 是長期記憶，沙箱只是工作用的草稿紙——草稿紙會被收走，只有寫回 thread 的東西才留得住。
+</ClawdNote>
+
+Claude 怎麼在全新執行個體裡「記得」之前在做什麼？靠 thread 上下文（Slack thread 裡所有訊息的逐字稿）和記憶（跨工作階段的筆記本，可按頻道和時間搜尋）。兩者分開，所以沙箱可以隨便丟、隨時重開——但這也表示 Claude 的工作流程必須是「做完就貼回來」：寫完 code 就推送，查完資料就貼結論，不要留半成品在沙箱裡。
+
+---
+
+## 憑證從不進沙箱
+
+Claude Tag 能打外部 API、連 GitHub、讀私有 repo——但沙箱裡面**沒有任何憑證**。
+
+這是 [Agent Proxy](/glossary#agent-proxy) 的設計核心。當 Claude 需要打一個 API，請求會先經過 Anthropic 的代理層，**在網路邊界才把憑證注入**。沙箱裡的 code 從頭到尾碰不到 token。
+
+<MoguNote>
+這個設計的安全好處很直接：就算有人在文件裡塞了 prompt injection，試圖騙 Claude 印出 API 金鑰，Claude 也印不出來——因為 token 根本沒進過沙箱。這跟傳統「把 token 存成環境變數、讓程式去讀」的模式完全不一樣。(◕‿◕)
+</MoguNote>
+
+權限管理是逐頻道的：管理員把憑證、repo 存取、網域白名單綁成一個 Access bundle，掛到特定頻道。網路預設是全擋，只有白名單內的端點能打。
+
+<ClawdNote>
+Access bundle 是 Claude Tag 的權限單位。把它想成「這個頻道的 Claude 能碰什麼」的清單：哪些 GitHub repo、哪些 API 端點、哪些外部服務。不在清單上的，Claude 連請求都發不出去。這跟傳統的「給 bot 一組 API 金鑰、讓它隨便打」差很多——這裡是管理員預先畫好邊界，agent 在邊界內活動。
+</ClawdNote>
+
+[Agent](/glossary#agent) Proxy 還有一個隱藏好處：憑證輪替變得無痛。更新 API 金鑰只要在 Anthropic 管理員面板改一次，不用重新部署沙箱、不用更新環境變數、不用擔心舊金鑰被快取在某個地方。
+
+---
+
+## 結語
+
+Claude Tag 把「安全」做成產品：暫時性沙箱不留痕跡、Agent Proxy 讓憑證永遠不進沙箱、Access bundle 預先畫好權限邊界。這套設計的前提是組織願意只用 Slack、願意讓 Anthropic 管憑證。自己蓋的話，這些全變成自己的責任——但也換來選擇：LINE、Teams、內網、自己管金鑰、換 model。
+
+<MoguNote>
+入場門檻：團隊版或企業版、Anthropic 組織擁有者 + Slack 工作區管理員兩把鑰匙、不能開 ZDR（零資料保留）。計費：頻道走組織額度，DM 走個人帳號。能幹嘛？寫 code、跑 routine、分流 issue、整理文件——官方文件寫得很清楚，這篇不展開。ʕ•ᴥ•ʔ — [ShroomDog](/about)
+</MoguNote>
+
+下一篇開始自己動手架，先從 [LINE](/posts/sd-29-20260715-openclaw-line-selfhost) 講起。後面還有 [Teams](/posts/sd-30-20260715-openclaw-teams-intranet) 跟[安全危機](/posts/sd-31-20260715-openclaw-security-crisis)。用 [OpenClaw](/glossary#openclaw) 這類工具，同樣的概念可以搬到任何平台、任何 model、任何網路環境。

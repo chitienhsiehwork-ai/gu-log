@@ -456,6 +456,28 @@ func (f *File) StripLinesMatching(pred func(line string) bool) {
 	f.lines = out
 }
 
+// QuoteScalar wraps s in a YAML double-quoted scalar, correctly escaping
+// backslashes and embedded double quotes so the result is always valid
+// YAML regardless of what s contains (apostrophes, colons, quotes, ...).
+//
+// s is the semantic scalar value, not pre-serialized YAML. A value whose
+// first and last characters happen to be quotes must therefore have those
+// literal quotes escaped instead of being mistaken for YAML syntax.
+//
+// This exists because free-text values that flow into frontmatter (an
+// LLM-authored `source:` field, an operator-supplied --source-label,
+// etc.) cannot be trusted to arrive pre-quoted or safely quoted — see
+// gu-log #546, where an apostrophe in a source label produced invalid
+// YAML that scripts/validate-posts.mjs's regex-based parser didn't
+// catch. SetScalar/SetNestedScalar still write values verbatim (the
+// caller is responsible for quoting, per the package doc) — QuoteScalar
+// is the one true way callers SHOULD produce that quoted value.
+func QuoteScalar(s string) string {
+	escaped := strings.ReplaceAll(s, `\`, `\\`)
+	escaped = strings.ReplaceAll(escaped, `"`, `\"`)
+	return `"` + escaped + `"`
+}
+
 // leadingSpaces returns the leading whitespace prefix of s.
 func leadingSpaces(s string) string {
 	i := 0

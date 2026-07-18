@@ -74,8 +74,8 @@ if ! grep -q 'Ignore YAML' "$HELPERS" || ! grep -q 'frontmatter runtime fields' 
 fi
 pass "Codex agent specs are separated from Claude Code frontmatter"
 
-if ! grep -q -- '--model gpt-5.5' "$HELPERS"; then
-  fail "Codex tribunal helper is not pinned to GPT-5.5"
+if ! grep -Fq -- '--model "${GP_CODEX_MODEL:-gpt-5.5}"' "$HELPERS"; then
+  fail "Codex tribunal helper does not preserve GPT-5.5 as the default model"
 fi
 if ! grep -q 'MIN_CODEX_VERSION="0.128.0"' "$TRIBUNAL"; then
   fail "Tribunal does not reject known-broken old Codex CLI versions"
@@ -83,20 +83,20 @@ fi
 if ! grep -Fq 'export PATH="$HOME/.local/bin:$HOME/bin:$PATH"' "$WRAPPER"; then
   fail "Tribunal systemd wrapper does not prefer the current ~/.local/bin Codex before stale ~/bin"
 fi
-# model_id is provider-resolved now: codex pins GPT-5.5 (the maintained
-# runtime), claude is the CCC sandbox fallback. Guard both halves so a refactor
-# can't silently unpin the codex path or drop the resolver.
+# model_id is provider-resolved now: codex defaults to GPT-5.5 while allowing
+# an explicit run-scoped override; claude is the CCC sandbox fallback. Guard
+# both halves so a refactor cannot drop the default or provenance resolver.
 if ! grep -q 'model_id="$(tribunal_llm_model_id' "$TRIBUNAL"; then
   fail "Tribunal model_id is not resolved through the provider-aware tribunal_llm_model_id"
 fi
-if ! grep -q "printf 'gpt-5.5" "$HELPERS"; then
-  fail "Codex provider path no longer pins GPT-5.5 in tribunal_llm_model_id"
+if ! grep -Fq '"${GP_CODEX_MODEL:-gpt-5.5}"' "$HELPERS"; then
+  fail "Codex provider path no longer records the selected run-scoped model"
 fi
 unpinned_agents=$(grep -L '^model = "gpt-5.5"' "$CODEX_AGENTS_DIR"/*.toml || true)
 if [ -n "$unpinned_agents" ]; then
   fail "One or more Codex tribunal agent specs are not pinned to GPT-5.5: $unpinned_agents"
 fi
-pass "Tribunal model pinning: codex stays GPT-5.5, claude is the CCC fallback"
+pass "Tribunal model selection: GPT-5.5 default + explicit run-scoped override, claude fallback unchanged"
 
 # The internal progress ledger runner_label must be provider-aware too, sharing
 # the same resolver as the frontmatter model_id. A refactor must not regress it
@@ -115,6 +115,40 @@ if grep -Eq 'codex-gpt-5\.5-medium:(factCheck|librarian|freshEyes|vibe)' "$TRIBU
   fail "STAGES still hardcodes a static codex-gpt-5.5-medium runner_label column"
 fi
 pass "Progress ledger runner_label is provider-aware (codex/claude), not a static codex string"
+
+# Per-judge provider resolver (tribunal-per-judge-provider): VibeScorer prefers
+# Claude Opus 4.5 while the three objective judges stay Codex/GPT-5.5. Guard the
+# resolver's existence, its vibe special-case, and that model_id / runner_label /
+# exec_raw / watchdog all route through it.
+if ! grep -q 'tribunal_judge_provider()' "$HELPERS"; then
+  fail "tribunal_judge_provider agent-aware resolver is missing"
+fi
+if ! grep -qF 'vibe-opus-scorer" ] && tribunal_claude_cmd' "$HELPERS"; then
+  fail "tribunal_judge_provider does not special-case vibe-opus-scorer to Claude"
+fi
+if [ "$(grep -cF 'tribunal_judge_provider "$agent_name"' "$HELPERS")" -lt 4 ]; then
+  fail "model_id/runner_label/exec_raw/watchdog do not all route through tribunal_judge_provider"
+fi
+pass "per-judge provider resolver present and wired (vibe=Claude, others=Codex)"
+
+# Behavioral check — only when BOTH codex and claude binaries are present (mac/
+# VPS). vibe=Claude is guaranteed only in that case; a box missing claude
+# degrades to the global provider by design, so skip rather than fail there.
+if command -v codex >/dev/null 2>&1 && command -v claude >/dev/null 2>&1; then
+  (
+    # shellcheck disable=SC1090
+    source "$HELPERS"
+    got_vibe="$(tribunal_judge_provider vibe-opus-scorer)"
+    [ "$got_vibe" = "claude" ] || { echo "x tribunal_judge_provider vibe-opus-scorer = '$got_vibe', want claude" >&2; exit 1; }
+    got_fact="$(tribunal_judge_provider fact-checker)"
+    [ "$got_fact" = "codex" ] || { echo "x tribunal_judge_provider fact-checker = '$got_fact', want codex" >&2; exit 1; }
+    got_forced="$(TRIBUNAL_FORCE_PROVIDER=codex tribunal_judge_provider vibe-opus-scorer)"
+    [ "$got_forced" = "codex" ] || { echo "x TRIBUNAL_FORCE_PROVIDER=codex vibe = '$got_forced', want codex" >&2; exit 1; }
+  ) || fail "per-judge provider behavioral check failed"
+  pass "per-judge provider behavior: vibe=claude, fact-checker=codex, force-override wins"
+else
+  pass "per-judge provider behavioral check skipped (codex+claude not both on PATH)"
+fi
 
 if ! grep -q 'temporary directory' "$CODEX_WRITER" || ! grep -q 'surgical editor' "$CODEX_WRITER"; then
   fail "Codex tribunal writer prompt lacks GPT-5.5 temp-dir/surgical-edit guardrails"

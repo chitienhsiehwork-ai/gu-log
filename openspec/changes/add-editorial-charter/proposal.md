@@ -68,7 +68,7 @@ MOBA 味跟著聲音走，不跟著系列走。Mogu / SD / Lv 的嘴可以 MOBA-
 - `CONTRIBUTING.md`
 - `GU-LOG_WRITER_PROMPT.md`
 - `CLAUDE.md` / `AGENTS.md`
-- `playbooks/mac-CC-playbook.md`
+- `playbooks/local-agent-playbook.md`
 - `playbooks/CCC-playbook.md`
 - Tribunal judge prompts and writer prompts
 
@@ -76,7 +76,7 @@ MOBA 味跟著聲音走，不跟著系列走。Mogu / SD / Lv 的嘴可以 MOBA-
 
 Charter 不能只是另一份沒人讀的散文。後續應把 `editorial-charter` 接進既有開場路由：
 
-- `scripts/detect-env.sh` 繼續負責辨識 mac-CC / CCC
+- `scripts/detect-env.sh` 繼續負責辨識 local machine actor / CCC
 - 各 playbook 在 content / editorial work 的開場路徑中 MUST 指向 `openspec/specs/editorial-charter/spec.md`（archive 後）或 active change 的 `openspec/changes/add-editorial-charter/specs/editorial-charter/spec.md`
 - agent 在寫文、修文、改內容規則、改 Tribunal judge prompt 前 MUST 讀 charter
 

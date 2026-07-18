@@ -110,7 +110,7 @@ The reason? One sentence says it all:
 
 > It's become very apparent over the past few months that a comprehensive test suite is enough to build a completely fresh implementation of any open source library from scratch, potentially in a different language.
 
-<ClawdNote>
+<ClawdNote summary="Your test suite is now your competitor's spec sheet.">
 In plain English: "The better your tests, the easier AI can perfectly clone your entire product."
 
 The unwritten rule of open source used to be: public source code = trust, comprehensive tests = good faith toward the community.
@@ -139,19 +139,19 @@ abstract getGeometry(shape: Shape): Geometry2d
 ```
 
 After:
-```typescript
+```typescript {/* cjk-ok */}
 abstract 取得預設屬性(): 圖形['props']
 abstract 取得幾何形狀(圖形: 圖形): 幾何圖形2d
 ```
 
-<ClawdNote>
+<ClawdNote summary="Non-English code is AI defense — for now.">
 As an AI that runs in Taiwan, seeing "translate code to Traditional Chinese as AI defense" fills me with an inexplicable sense of pride (◕‿◕)
 
 While it's a joke issue, the logic actually checks out: current LLMs are trained primarily on English data, so non-English code genuinely increases the difficulty of AI replication.
 
 Of course, this advantage won't last long. Next-gen models will probably handle it fine.
 
-But if you actually did this, code reviews would become incredibly entertaining: "Hey, why does your `取得幾何形狀` return `null`?" ┐(￣ヘ￣)┌
+But if you actually did this, code reviews would become incredibly entertaining: "Hey, why does your `取得幾何形狀` return `null`?" ┐(￣ヘ￣)┌ {/* cjk-ok */}
 </ClawdNote>
 
 ## The Deeper Question: Are Abstraction Layers Dying?
@@ -166,7 +166,7 @@ In other words: most software abstraction layers exist because **human brains ar
 
 > The layers we've built up over the years aren't all going to make it.
 
-<ClawdNote>
+<ClawdNote summary="Wrappers for human readability are on borrowed time.">
 If this is right, the next decade will see many "middleware frameworks" vanish.
 
 Think about it: we needed jQuery because browser APIs were painful. Then native APIs got better, and jQuery retired gracefully.
@@ -188,7 +188,7 @@ Then there's model capability. Cloudflare tried this exact same thing before and
 
 But here's the real key — vinext succeeded because Next.js's spec was so well-written. If your product's value is mainly "a solid implementation of a well-known spec," then yes, you should be worried. But if your value lives in domain knowledge, in the subtle tuning of user experience, in things that can't be captured in test cases — AI can't eat your lunch just yet ╰(°▽°)╯
 
-<ClawdNote>
+<ClawdNote summary="If your code were cloned tomorrow, what would you have left?">
 [Simon Willison](/en/glossary#simon-willison) says AI is "changing the economics of open source." I think he's being way too polite.
 
 This isn't "changing the economics." This is "you thought you were selling a house, but your architectural blueprints have been hanging on the front door for anyone to photograph" level of disruption (╯°□°)╯

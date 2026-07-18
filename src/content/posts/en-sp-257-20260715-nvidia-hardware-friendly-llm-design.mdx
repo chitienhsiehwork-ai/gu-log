@@ -1,0 +1,181 @@
+---
+ticketId: "SP-257"
+title: 'An LLM Needs More Than Parameters: GPUs Want Neatly Tiled Models'
+originalDate: '2026-07-10'
+translatedDate: '2026-07-15'
+translatedBy:
+  model: "GPT-5.6-Sol"
+  harness: "Codex CLI"
+
+  pipeline:
+    - role: "Written"
+      model: "GPT-5.6-Sol"
+      harness: "Codex CLI"
+    - role: "Reviewed"
+      model: "GPT-5.6-Sol"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "GPT-5.6-Sol"
+      harness: "Codex CLI"
+    - role: "Scored"
+      model: "GPT-5.6-Sol"
+      harness: "Codex CLI + Tribunal"
+    - role: "Rewritten"
+      model: "GPT-5.6-Sol"
+      harness: "Codex CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "GPT-5.6-Sol"
+      harness: "sp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: 'NVIDIA Technical Blog'
+sourceUrl: 'https://developer.nvidia.com/blog/ai-model-co-design-hardware-friendly-llm-design/'
+lang: 'en'
+summary: 'With the same parameter count, matrix dimensions and layer count decide whether a GPU computes at full speed or wastes work moving data and processing edge tiles. Near-square dimensions aligned to 128, 256, or 512—and often wider, shallower models—fit hardware better without sacrificing accuracy.'
+tags: ['shroom-picks', 'llm', 'gpu', 'inference', 'nvidia']
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 10
+    sourceBoundary: 10
+    commentarySeparation: 10
+    score: 9
+    date: "2026-07-15"
+    model: "gpt-5.6-sol"
+  librarian:
+    glossary: 8
+    crossRef: 10
+    sourceAlign: 10
+    attribution: 10
+    score: 9
+    date: "2026-07-15"
+    model: "gpt-5.6-sol"
+  freshEyes:
+    readability: 8
+    firstImpression: 9
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 9
+    score: 8
+    date: "2026-07-15"
+    model: "gpt-5.6-sol"
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    narrative: 9
+    score: 8
+    date: "2026-07-15"
+    model: "gpt-5.6-sol"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import PostImage from '../../components/PostImage.astro';
+import gpuTileAlignment from '../../assets/posts/sp-nvidia-hardware-codesign/gpu-tile-alignment.png';
+import matrixShapeDataReuse from '../../assets/posts/sp-nvidia-hardware-codesign/matrix-shape-data-reuse.png';
+import wideVsDeepModel from '../../assets/posts/sp-nvidia-hardware-codesign/wide-vs-deep-model.png';
+
+Put two models with almost the same parameter count on the same GPU. Their spec sheets suggest similar speeds. In practice, one may produce tokens smoothly while the other crawls like rush-hour traffic. The compute has not disappeared and the task has not become harder. The difference may be hiding in the matrix dimensions.
+
+Imagine a parking lot with fixed-size spaces. One row is completely full. When the next car arrives, the manager cannot open one more space; they have to open an entire new row. Every unused space still takes up land, needs lighting, and costs money. GPUs have the same bad habit when they multiply large matrices: even if a model needs only a narrow strip at the edge, the hardware may still have to activate a whole tile.
+
+The question is no longer just how many parameters the model contains. It becomes an investigation: **is the GPU moving too much data, do the dimensions fit its tiles, and how many separate jobs must it launch?**
+
+<PostImage
+  src={gpuTileAlignment}
+  alt="Side-by-side diagrams of fixed GPU tiles: the data on the left completely fills every green tile, while only a narrow strip of the last column on the right contains valid data and the remaining orange area still has to be processed"
+  caption="The matrix dimensions on the left align exactly with the fixed tiles. On the right, only a narrow strip contains extra valid data, but the hardware still has to activate the entire column of tiles. The orange area costs compute without producing useful results."
+/>
+
+## The first suspect: idle compute and jammed data
+
+Before chasing speed, find out which scorecard is falling. An AI system has at least three goals at once: answer accuracy, the number of tokens the entire data center can produce per second, and how long each user feels they have to wait. The third goal can be split further into time to first token and the delay between later tokens.
+
+With accuracy held constant, throughput and interactive speed pull against each other, and the workload can quietly move the bottleneck. A high-throughput service with long contexts may spend most of its time on attention, while a low-latency service may pay more for communication between GPUs. If attention already takes 77% of execution time, painstakingly optimizing the feed-forward network can deliver only a limited overall gain. Amdahl's law is the traffic officer here: find the blocked intersection before widening an empty side street.
+
+When the congestion sits in the linear layers, matrix shape finally enters the story. A Transformer's linear layers ultimately become matrix multiplications, commonly called GEMMs. One matrix dimension comes from the number of tokens processed together. The other two are controlled mainly by the model's hidden dimension and intermediate projection dimension. Together, these three dimensions determine how much work the GPU can do each time it moves a piece of data.
+
+This ratio is called **arithmetic intensity**: the amount of computation performed per byte moved. When the ratio is low, even powerful compute units can only wait for data to arrive from memory, so the workload is limited by memory bandwidth. Only when the ratio is high enough does the GPU's compute capacity become the limit.
+
+Think of a matrix as an area to be tiled. When it is nearly square, there is enough room in both directions for the incoming data to be paired repeatedly and produce more results. If the matrix is long and narrow, one dimension is too short. The useful pairings end almost as soon as the data arrives, so the GPU has to fetch the next batch. Even when many tokens are processed at once, the model's shape can still limit data reuse.
+
+One theoretical estimate for the GB300 deliberately sets the feed-forward layer to `H′=512` and `H=8192`, with 4-bit inputs and 8-bit outputs. Even as the token count grows, writing the results still takes longer than the mathematical computation; the smaller 512 dimension keeps the layer bottlenecked by memory. GB300 measurements at 4-bit precision point in the same direction: throughput drops noticeably when the projection or reduction dimension is too small.
+
+The first answer now emerges: under a fixed parameter budget, a linear layer's weight matrix should be as close to square as practical. Avoid making either side so thin that the GPU has to resume moving data before it can do enough computation.
+
+<PostImage
+  src={matrixShapeDataReuse}
+  alt="Two matrix shapes with the same amount of data: the square matrix on the left reuses one green data delivery across rows and columns, while only a narrow central strip works in the long thin matrix on the right and repeated deliveries feed the otherwise idle area"
+  caption="The parameter count can stay the same while shape changes how data is used. The square matrix on the left reuses incoming data in more directions. The long, thin matrix on the right quickly runs out of work along one dimension and has to keep fetching more batches."
+/>
+
+<ClawdNote>
+“The parameter counts are the same, so the speeds should be similar” is like saying, “These two warehouses have the same floor area, so they should ship orders at the same speed.” One is a square, open sales floor. The other is a corridor so long and narrow that it seems endless. The staff will certainly get impressive step counts; just do not ask when the packages will leave (￣▽￣)／
+</ClawdNote>
+
+---
+
+## The matrix is square, but the bill appears at the edges
+
+The case is not closed. A matrix can be large and nearly square, yet still make the parking lot light an entire empty row if its dimensions do not align with the tiles the GPU actually uses.
+
+A GPU divides the output matrix into small blocks and assigns them to streaming multiprocessors. Newer hardware can also let two neighboring multiprocessors work together on a larger tile, or organize a whole group of multiprocessors into a cluster. This cooperation improves data reuse, but it also makes the effective tile larger.
+
+The trouble is at the edges. If a dimension is not divisible by the tile size, the last tile still requires a full computation even when only a narrow strip is used. The padded blank area produces no useful result, but its compute cycles cannot be recovered. In GB300 measurements using 256×128 base tiles, two-multiprocessor cooperation, and 4×2 multiprocessor clusters, throughput reaches local peaks where the relevant dimensions align to 256 or 512.
+
+This time the culprit is the edge bill. The practical rule is simple: **make model dimensions multiples of at least 128; when possible, prefer alignment to 256 or 512.** A multiple of 128 is the safer, more portable baseline. The latter two are more likely to match the enlarged cooperative tiles.
+
+<ClawdNote>
+The GPU will not refund the rest of a tile's cost just because only a small part of the edge is used. Once a model architecture is fixed, those blank areas may recur with every inference. A dimension choice that looks trivial can be amplified by deployment scale.
+</ClawdNote>
+
+---
+
+## The tempting shortcut: just make the model wider
+
+If thin, small matrices are the problem, the natural shortcut is to make the model wider and use fewer layers.
+
+With a fixed parameter count, a deeper model spreads the work across more layers. Each layer performs smaller matrix multiplications, and the next layer cannot begin until the previous one finishes. The GPU has to launch many smaller jobs repeatedly, with poorer data reuse and a longer sequential path. A wider model instead concentrates its parameters into fewer, larger matrix multiplications. That makes it easier to raise arithmetic intensity and shortens the critical path that must be traversed one layer at a time.
+
+From the hardware's side, the answer is tempting: **fewer large computations usually suit a GPU better than many small ones**. This can improve both overall throughput and the interactive speed of a single request.
+
+Then the brakes come on. Depth also affects a model's expressive power and accuracy. Cutting too many layers may produce attractive hardware utilization while throwing away model capability. The answer is not “the wider, the better.” What actually works is a range of width-to-depth ratios: protect accuracy first, then move toward a wider model with fewer layers within the feasible range.
+
+<PostImage
+  src={wideVsDeepModel}
+  alt="Wide-shallow and narrow-deep models under the same parameter budget: a few large green compute layers form a short path on the left, while many small amber layers form a long sequential path on the right"
+  caption="Under a fixed parameter budget, the left side concentrates work into a few large operations and a shorter path. The right side divides it into many small layers that must run one after another. Hardware prefers the left, but model accuracy still limits how far width can replace depth."
+/>
+
+<ClawdNote>
+Hardware-friendly does not automatically mean model-friendly. Cutting depth just to make the GPU benchmark look good is like trying to turn restaurant tables faster by serving only water: the order certainly arrives quickly, and the customers never need to come back. The accuracy guardrail is not optional.
+</ClawdNote>
+
+---
+
+## Only a good shape deserves to be scaled up
+
+Once the width-to-depth ratio protects accuracy, another lever can reduce the moving cost: quantization reduces memory traffic and lets matrix cores process more numbers at once. NVIDIA's 4-bit format assigns one scaling factor to each block of 16 values, then applies a second correction. Across seven DeepSeek-R1 benchmarks, most results were within roughly one point of the 8-bit version, while some were equal or higher.
+
+That means quantization should not be an afterthought at deployment. When a model adds an expensive operation, its designers should already know whether that layer can use low-precision formats efficiently. Otherwise the tiles may fit neatly while every delivery truck remains overloaded.
+
+Only then do we reach the scene most likely to mislead: spreading the work across more GPUs.
+
+A high-throughput mixture-of-experts model can spread different experts across multiple GPUs. In DeepSeek-R1, each token activates only 8 of 256 experts. Adding GPUs provides more memory bandwidth and storage, leaving room for more attention cache and more requests at once.
+
+More GPUs do not erase the earlier problems; they add new intersections. Tokens must move between GPUs, and popular experts can become traffic jams. Another strategy splits a long prompt into chunks and sends them through model layers on different GPUs. In NVIDIA's example with a 256K-token input, this shortened the wait for the first token. But if one stage is slower, the other GPUs sit idle.
+
+Now the clues that looked separate finally connect. A matrix must do enough work to justify moving its data, its dimensions must fit the tiles, and a multi-GPU deployment must divide the work evenly. Otherwise each additional GPU may simply give the original waste another lane.
+
+<ClawdNote>
+[CP-296](/posts/cp-296-20260415-article-inferencex-v2-nvidia-blackwell-amd) previously covered the performance and industry context behind this inference toolkit. Clawd's take: parallelism can spread work across more GPUs, but it does not automatically repair matrices that are too thin or misaligned with the tiles. Shape each job into something the hardware can digest first, or scaling will amplify the waste too.
+</ClawdNote>
+
+---
+
+## Conclusion
+
+Look back at the two models with almost identical parameter counts. Their spec sheets list only the warehouse's total floor area. They do not say whether the shelves form a narrow corridor, how many edge tiles go to waste, or how many workstations every package must cross.
+
+**Parameter count tells us how much the model contains. Shape tells us whether the GPU can ship it on time.** The expensive part of the parking lot is often not the extra car, but the entire empty row that must light up for it.

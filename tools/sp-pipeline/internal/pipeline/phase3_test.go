@@ -49,6 +49,21 @@ func TestSanitizeSlug(t *testing.T) {
 	}
 }
 
+func TestJudgeStampLabelsUsesRunScopedCodexModelWithoutDispatcher(t *testing.T) {
+	binDir := t.TempDir()
+	codexPath := filepath.Join(binDir, "codex")
+	if err := os.WriteFile(codexPath, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	t.Setenv("GP_CODEX_MODEL", "gpt-5.6-sol")
+
+	model, harness := NewState().JudgeStampLabels()
+	if model != "GPT-5.6-Sol" || harness != "Codex CLI" {
+		t.Fatalf("JudgeStampLabels() = (%q, %q), want (GPT-5.6-Sol, Codex CLI)", model, harness)
+	}
+}
+
 // TestCredits_RoundTrip verifies the 4.6 credits stamp on a synthetic
 // frontmatter shape matching the bash pipeline's intermediate state.
 func TestCredits_RoundTrip(t *testing.T) {
@@ -106,7 +121,7 @@ body
 		`- role: "Reviewed"`,
 		`- role: "Refined"`,
 		`- role: "Orchestrated"`,
-		`  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace`,
+		`  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"`,
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("credits output missing %q", want)
