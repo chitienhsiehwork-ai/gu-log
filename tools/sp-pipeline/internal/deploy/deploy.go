@@ -74,6 +74,9 @@ type Options struct {
 	TitleSlug  string
 	// Title is used in the commit message.
 	Title string
+	// TicketID identifies an already-allocated post on recovery deploys.
+	// Fresh Run callers leave it empty because the counter allocates it.
+	TicketID string
 
 	// SkipBuild disables `npm run build` (test convenience).
 	SkipBuild bool
@@ -90,6 +93,98 @@ type Result struct {
 	PromptTicketID string
 	Filename       string
 	ENFilename     string
+}
+
+// RunExisting publishes changes to an already-allocated post without bumping
+// the counter or renaming files. Recovery via `run --from-step ... --file`
+// still owns the full publish contract: validate, build, stage, commit, push.
+func RunExisting(ctx context.Context, opts Options) (*Result, error) {
+	if opts.Cfg == nil {
+		return nil, fmt.Errorf("deploy existing: Cfg required")
+	}
+	if opts.Log == nil {
+		return nil, fmt.Errorf("deploy existing: Log required")
+	}
+	if opts.ActiveFilename == "" {
+		return nil, fmt.Errorf("deploy existing: ActiveFilename required")
+	}
+
+	postsDir := opts.Cfg.PostsDir
+	activePath := filepath.Join(postsDir, opts.ActiveFilename)
+	if info, err := os.Stat(activePath); err != nil {
+		return nil, fmt.Errorf("deploy existing: stat %s: %w", activePath, err)
+	} else if !info.Mode().IsRegular() {
+		return nil, fmt.Errorf("deploy existing: %s is not a regular file", activePath)
+	}
+
+	enFilename := opts.ActiveENFilename
+	if enFilename == "" {
+		enFilename = "en-" + opts.ActiveFilename
+	}
+	if _, err := os.Stat(filepath.Join(postsDir, enFilename)); err != nil {
+		if !os.IsNotExist(err) {
+			return nil, fmt.Errorf("deploy existing: stat %s: %w", enFilename, err)
+		}
+		enFilename = ""
+	}
+
+	if err := checkPendingArtifacts(opts.Cfg.RepoRoot); err != nil {
+		return nil, err
+	}
+	if !opts.SkipValidate {
+		if err := runValidate(ctx, opts.Cfg.RepoRoot, opts.Cfg.ValidatePosts); err != nil {
+			return nil, fmt.Errorf("deploy: validate-posts rejected existing file %s: %w", opts.ActiveFilename, err)
+		}
+	}
+	if !opts.SkipBuild {
+		if err := runNpmBuild(ctx, opts.Cfg.RepoRoot); err != nil {
+			return nil, fmt.Errorf("deploy: npm run build failed: %w", err)
+		}
+	}
+
+	addPaths := []string{"src/content/posts/" + opts.ActiveFilename}
+	if enFilename != "" {
+		addPaths = append(addPaths, "src/content/posts/"+enFilename)
+	}
+	if err := gitAdd(ctx, opts.Cfg.RepoRoot, addPaths...); err != nil {
+		return nil, fmt.Errorf("deploy: git add existing files: %w", err)
+	}
+	hasChanges, err := gitHasStagedChanges(ctx, opts.Cfg.RepoRoot, addPaths...)
+	if err != nil {
+		return nil, fmt.Errorf("deploy: inspect staged existing files: %w", err)
+	}
+	if hasChanges {
+		identity := opts.TicketID
+		if identity == "" {
+			identity = opts.ActiveFilename
+		}
+		title := opts.Title
+		if title == "" {
+			title = opts.ActiveFilename
+		}
+		if err := gitCommit(ctx, opts.Cfg.RepoRoot, fmt.Sprintf("Update %s: %s", identity, title)); err != nil {
+			return nil, fmt.Errorf("deploy: git commit existing files: %w", err)
+		}
+	} else {
+		opts.Log.Info("  Existing-file deploy has no content changes to commit")
+	}
+
+	if dirty, err := gitStatusForPaths(ctx, opts.Cfg.RepoRoot, addPaths...); err != nil {
+		return nil, fmt.Errorf("deploy: verify existing files clean: %w", err)
+	} else if dirty != "" {
+		return nil, fmt.Errorf("deploy: existing-file publish left owned paths dirty: %s", dirty)
+	}
+	if !opts.SkipPush {
+		if err := gitPush(ctx, opts.Cfg.RepoRoot); err != nil {
+			return nil, fmt.Errorf("deploy: git push: %w", err)
+		}
+	}
+
+	return &Result{
+		PromptTicketID: opts.TicketID,
+		Filename:       opts.ActiveFilename,
+		ENFilename:     enFilename,
+	}, nil
 }
 
 // Run executes the deploy flow. See package doc for step order.
@@ -158,22 +253,8 @@ func Run(ctx context.Context, opts Options) (*Result, error) {
 	if err := observability.RenameTribunalProgressEntry(opts.Cfg.RepoRoot, opts.ActiveFilename, finalFilename); err != nil {
 		return nil, fmt.Errorf("deploy: rename tribunal progress entry: %w", err)
 	}
-	violations, err := observability.CheckPendingArtifacts(opts.Cfg.RepoRoot, observability.GuardrailOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("deploy: pending artifact guardrail: %w", err)
-	}
-	if len(violations) > 0 {
-		labels := make([]string, 0, len(violations))
-		for _, violation := range violations {
-			label := violation.Kind
-			if violation.Detail != "" {
-				label += " (" + violation.Detail + ")"
-			} else {
-				label += " (" + violation.Path + ")"
-			}
-			labels = append(labels, label)
-		}
-		return nil, fmt.Errorf("deploy: pending artifact guardrail blocked handoff: %s", strings.Join(labels, ", "))
+	if err := checkPendingArtifacts(opts.Cfg.RepoRoot); err != nil {
+		return nil, err
 	}
 
 	// 4. Validate (unless skipped).
@@ -225,6 +306,27 @@ func Run(ctx context.Context, opts Options) (*Result, error) {
 		Filename:       finalFilename,
 		ENFilename:     finalEN,
 	}, nil
+}
+
+func checkPendingArtifacts(repoRoot string) error {
+	violations, err := observability.CheckPendingArtifacts(repoRoot, observability.GuardrailOptions{})
+	if err != nil {
+		return fmt.Errorf("deploy: pending artifact guardrail: %w", err)
+	}
+	if len(violations) == 0 {
+		return nil
+	}
+	labels := make([]string, 0, len(violations))
+	for _, violation := range violations {
+		label := violation.Kind
+		if violation.Detail != "" {
+			label += " (" + violation.Detail + ")"
+		} else {
+			label += " (" + violation.Path + ")"
+		}
+		labels = append(labels, label)
+	}
+	return fmt.Errorf("deploy: pending artifact guardrail blocked handoff: %s", strings.Join(labels, ", "))
 }
 
 // replacePendingTicketID opens a file, replaces the ticketId value in its

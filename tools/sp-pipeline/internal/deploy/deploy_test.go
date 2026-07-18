@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/config"
@@ -13,33 +14,38 @@ import (
 	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/logx"
 )
 
+func runGitForDeployTest(t *testing.T, dir string, args ...string) string {
+	t.Helper()
+	cmd := exec.Command("git", append([]string{"-c", "core.hooksPath=/dev/null"}, args...)...)
+	cmd.Dir = dir
+	cmd.Env = append(os.Environ(),
+		"GIT_AUTHOR_NAME=Test", "GIT_AUTHOR_EMAIL=test@example.com",
+		"GIT_COMMITTER_NAME=Test", "GIT_COMMITTER_EMAIL=test@example.com",
+	)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("git %v: %v\n%s", args, err, out)
+	}
+	return strings.TrimSpace(string(out))
+}
+
 // initGitRepo makes dir a minimal git repo with one commit, so gitAdd/
 // gitCommit in Run() have something to work against. Mirrors
 // internal/pipeline/phase3_test.go's initRepo helper (unexported there,
 // duplicated here since it's package-private).
 func initGitRepo(t *testing.T, dir string) {
 	t.Helper()
-	run := func(args ...string) {
-		cmd := exec.Command("git", append([]string{"-c", "core.hooksPath=/dev/null"}, args...)...)
-		cmd.Dir = dir
-		cmd.Env = append(os.Environ(),
-			"GIT_AUTHOR_NAME=Test", "GIT_AUTHOR_EMAIL=test@example.com",
-			"GIT_COMMITTER_NAME=Test", "GIT_COMMITTER_EMAIL=test@example.com",
-		)
-		if out, err := cmd.CombinedOutput(); err != nil {
-			t.Fatalf("git %v: %v\n%s", args, err, out)
-		}
-	}
-	run("init", "-q", "-b", "main")
-	run("config", "user.email", "test@example.com")
-	run("config", "user.name", "Test")
-	run("config", "commit.gpgSign", "false")
+	runGitForDeployTest(t, dir, "init", "-q", "-b", "main")
+	runGitForDeployTest(t, dir, "config", "user.email", "test@example.com")
+	runGitForDeployTest(t, dir, "config", "user.name", "Test")
+	runGitForDeployTest(t, dir, "config", "commit.gpgSign", "false")
+	runGitForDeployTest(t, dir, "config", "core.hooksPath", "/dev/null")
 	seed := filepath.Join(dir, ".seed")
 	if err := os.WriteFile(seed, []byte("seed"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	run("add", ".seed")
-	run("commit", "-q", "-m", "seed", "--no-verify", "--no-gpg-sign")
+	runGitForDeployTest(t, dir, "add", ".seed")
+	runGitForDeployTest(t, dir, "commit", "-q", "-m", "seed")
 }
 
 // newTestOptions builds a minimal Options with a real (temp) counter file
@@ -196,6 +202,103 @@ func TestRun_AllSlotsProvided_NoMalformedFilename(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(postsDir, res.Filename)); err != nil {
 		t.Errorf("final filename not on disk: %v", err)
+	}
+}
+
+func TestRunExisting_ValidatesBuildsCommitsWithoutCounterMutation(t *testing.T) {
+	opts, counterFile, postsDir := newTestOptions(t, nil)
+	repoRoot := opts.Cfg.RepoRoot
+	existing := "sp-251-20260717-fakeauthor-faketitle.mdx"
+	if err := os.Rename(filepath.Join(postsDir, opts.ActiveFilename), filepath.Join(postsDir, existing)); err != nil {
+		t.Fatal(err)
+	}
+	opts.ActiveFilename = existing
+	opts.TicketID = "SP-251"
+	opts.SkipValidate = false
+	opts.SkipBuild = false
+	opts.Cfg.ValidatePosts = filepath.Join(repoRoot, "scripts", "validate-posts.mjs")
+
+	// Recovery begins from a clean repository. The English sidecar is the
+	// content created by the preceding translate step and must be published.
+	runGitForDeployTest(t, repoRoot, "add", "-A")
+	runGitForDeployTest(t, repoRoot, "commit", "-q", "-m", "existing baseline")
+	counterBefore, err := os.ReadFile(counterFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	enFilename := "en-" + existing
+	if err := os.WriteFile(filepath.Join(postsDir, enFilename), []byte("---\ntitle: \"Fake\"\n---\ntranslated\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	binDir := t.TempDir()
+	callsFile := filepath.Join(t.TempDir(), "calls.log")
+	fakeNode := "#!/bin/sh\nprintf 'validate:%s\\n' \"$1\" >> \"$DEPLOY_TEST_CALLS\"\n"
+	fakeNPM := "#!/bin/sh\nprintf 'build:%s\\n' \"$*\" >> \"$DEPLOY_TEST_CALLS\"\n"
+	if err := os.WriteFile(filepath.Join(binDir, "node"), []byte(fakeNode), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(binDir, "npm"), []byte(fakeNPM), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("DEPLOY_TEST_CALLS", callsFile)
+	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	res, err := RunExisting(context.Background(), opts)
+	if err != nil {
+		t.Fatalf("RunExisting: %v", err)
+	}
+	if res.Filename != existing || res.ENFilename != enFilename || res.PromptTicketID != "SP-251" {
+		t.Fatalf("result = %+v", res)
+	}
+	calls, err := os.ReadFile(callsFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantCalls := "validate:" + opts.Cfg.ValidatePosts + "\nbuild:run build"
+	if got := strings.TrimSpace(string(calls)); got != wantCalls {
+		t.Fatalf("command order = %q, want %q", got, wantCalls)
+	}
+	if got := runGitForDeployTest(t, repoRoot, "log", "-1", "--format=%s"); got != "Update SP-251: Fake" {
+		t.Fatalf("commit subject = %q", got)
+	}
+	if got := runGitForDeployTest(t, repoRoot, "status", "--porcelain"); got != "" {
+		t.Fatalf("successful existing deploy left repo dirty:\n%s", got)
+	}
+	counterAfter, err := os.ReadFile(counterFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(counterAfter) != string(counterBefore) {
+		t.Fatal("existing deploy mutated the article counter")
+	}
+}
+
+func TestRunExisting_NoContentChangesIsExplicitSuccess(t *testing.T) {
+	opts, _, postsDir := newTestOptions(t, nil)
+	repoRoot := opts.Cfg.RepoRoot
+	existing := "sp-251-20260717-fakeauthor-faketitle.mdx"
+	if err := os.Rename(filepath.Join(postsDir, opts.ActiveFilename), filepath.Join(postsDir, existing)); err != nil {
+		t.Fatal(err)
+	}
+	opts.ActiveFilename = existing
+	opts.TicketID = "SP-251"
+	runGitForDeployTest(t, repoRoot, "add", "-A")
+	runGitForDeployTest(t, repoRoot, "commit", "-q", "-m", "existing baseline")
+	headBefore := runGitForDeployTest(t, repoRoot, "rev-parse", "HEAD")
+
+	res, err := RunExisting(context.Background(), opts)
+	if err != nil {
+		t.Fatalf("RunExisting no-op: %v", err)
+	}
+	if res.Filename != existing || res.PromptTicketID != "SP-251" {
+		t.Fatalf("result = %+v", res)
+	}
+	if headAfter := runGitForDeployTest(t, repoRoot, "rev-parse", "HEAD"); headAfter != headBefore {
+		t.Fatalf("no-op deploy created a commit: before=%s after=%s", headBefore, headAfter)
+	}
+	if got := runGitForDeployTest(t, repoRoot, "status", "--porcelain"); got != "" {
+		t.Fatalf("no-op existing deploy left repo dirty:\n%s", got)
 	}
 }
 

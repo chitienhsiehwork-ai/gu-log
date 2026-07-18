@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/frontmatter"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/llm"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/prompts"
 )
@@ -40,9 +41,8 @@ func (s *State) Translate(ctx context.Context) error {
 		if s.ExistingFile == "" {
 			return fmt.Errorf("translate: --from-step translate requires --file <tribunal-passed zh-tw post>")
 		}
-		s.ActiveFilename = s.ExistingFile
-		if s.ActiveENFilename == "" {
-			s.ActiveENFilename = "en-" + s.ActiveFilename
+		if err := s.prepareExistingPost(); err != nil {
+			return fmt.Errorf("translate: %w", err)
 		}
 		// Resuming exactly at translate is an explicit recovery assertion:
 		// the supplied zh-tw file has already cleared the tribunal.
@@ -99,5 +99,42 @@ func (s *State) Translate(ctx context.Context) error {
 	}
 
 	s.Log.OK("Step 4.8: %s written by %s", s.ActiveENFilename, llm.DisplayName(res.ActualModel))
+	return nil
+}
+
+// prepareExistingPost hydrates the filenames and reader-facing identity used
+// by translate/deploy recovery. It never rewrites the post.
+func (s *State) prepareExistingPost() error {
+	if s.ExistingFile == "" {
+		return fmt.Errorf("existing file is empty")
+	}
+	if s.ActiveFilename == "" {
+		s.ActiveFilename = s.ExistingFile
+	}
+	if s.ActiveENFilename == "" {
+		s.ActiveENFilename = "en-" + s.ActiveFilename
+	}
+
+	path := filepath.Join(s.Cfg.PostsDir, s.ActiveFilename)
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("read existing post %s: %w", path, err)
+	}
+	f, err := frontmatter.Parse(data)
+	if err != nil {
+		return fmt.Errorf("parse existing post %s: %w", path, err)
+	}
+	if raw, ok := f.GetScalar("ticketId"); ok {
+		if value, err := decodeYAMLScalar(raw); err == nil && value != "" {
+			s.PromptTicketID = value
+		}
+	}
+	if s.Title == "" {
+		if raw, ok := f.GetScalar("title"); ok {
+			if value, err := decodeYAMLScalar(raw); err == nil && value != "" {
+				s.Title = value
+			}
+		}
+	}
 	return nil
 }

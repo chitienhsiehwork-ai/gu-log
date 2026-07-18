@@ -107,7 +107,7 @@ process.exit(0);
 	seed := filepath.Join(tmp, ".seed")
 	_ = os.WriteFile(seed, []byte("seed"), 0o644)
 	runGit("add", ".seed")
-	runGit("commit", "-q", "-m", "seed", "--no-verify", "--no-gpg-sign")
+	runGit("commit", "-q", "-m", "seed")
 
 	cfg := &config.Config{
 		RepoRoot:      tmp,
@@ -183,6 +183,17 @@ translated body
 	s.SkipValidate = true
 
 	return s, tmp
+}
+
+func runGitForTest(t *testing.T, repo string, args ...string) string {
+	t.Helper()
+	cmd := execCommand("git", args...)
+	cmd.Dir = repo
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("git %v: %v\n%s", args, err, out)
+	}
+	return strings.TrimSpace(string(out))
 }
 
 func TestRun_HappyPath(t *testing.T) {
@@ -347,7 +358,8 @@ body
 	if err := Run(context.Background(), s); err != nil {
 		t.Fatalf("Run --from-step ralph: %v", err)
 	}
-	// Ralph should have passed and deploy is a no-op on --file resume.
+	// Ralph should have passed and recovery deploy should publish without a
+	// fresh counter allocation or filename rewrite.
 	if !s.RalphPassed {
 		t.Errorf("Ralph should have passed on stub")
 	}
@@ -361,5 +373,90 @@ body
 	// this is the CCC-fallback stamping path under test.
 	if !strings.Contains(string(data), `"Claude Code CLI"`) {
 		t.Errorf("ralph normaliser did not run on resume: %s", data)
+	}
+}
+
+func TestRun_FromStepTranslatePublishesExistingSidecarAndLeavesRepoClean(t *testing.T) {
+	s, tmp := makeRunHarness(t)
+	s.FromStepInt = StepTranslate
+	s.WorkDir = filepath.Join(t.TempDir(), "translate-resume-work")
+
+	existing := "sp-123-20260411-fake-resume.mdx"
+	existingBody := `---
+title: "Resume Fake"
+ticketId: "SP-123"
+originalDate: "2026-04-11"
+translatedDate: "2026-04-11"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code CLI"
+source: "@fakeauthor on X"
+sourceUrl: "https://x.com/fakeauthor/status/1"
+lang: "zh-tw"
+summary: "resume"
+tags: ["shroom-picks"]
+---
+body
+`
+	if err := os.WriteFile(filepath.Join(s.Cfg.PostsDir, existing), []byte(existingBody), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	// Make the synthetic repo genuinely clean before recovery starts, so a
+	// successful Run must own and commit every change it creates.
+	runGitForTest(t, tmp, "add", "-A")
+	runGitForTest(t, tmp, "commit", "-q", "-m", "resume baseline")
+	counterBefore, err := os.ReadFile(s.Cfg.CounterFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	s.ExistingFile = existing
+	s.ActiveFilename = ""
+	s.ActiveENFilename = ""
+	s.RalphPassed = false
+	translateFake := llm.NewFakeClaude().WithResponses(llm.FakeResponse{
+		Output: `---
+title: "Resume Fake"
+ticketId: "SP-123"
+lang: "en"
+---
+translated
+`,
+		WriteFile: "translated-en.mdx",
+	})
+	translateDisp, err := llm.NewDispatcher(logx.New(), translateFake)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.Dispatcher = translateDisp
+	s.WriterDispatcher = translateDisp
+	_, _ = SetupWorkDir(s)
+
+	if err := Run(context.Background(), s); err != nil {
+		t.Fatalf("Run --from-step translate: %v", err)
+	}
+
+	wantEN := "en-" + existing
+	if s.Filename != existing || s.ENFilename != wantEN {
+		t.Fatalf("published filenames = (%q, %q), want (%q, %q)", s.Filename, s.ENFilename, existing, wantEN)
+	}
+	if s.PromptTicketID != "SP-123" {
+		t.Fatalf("PromptTicketID = %q, want SP-123 from existing frontmatter", s.PromptTicketID)
+	}
+	if _, err := os.Stat(filepath.Join(s.Cfg.PostsDir, wantEN)); err != nil {
+		t.Fatalf("translated sidecar missing: %v", err)
+	}
+	if got := runGitForTest(t, tmp, "status", "--porcelain"); got != "" {
+		t.Fatalf("successful recovery left repo dirty:\n%s", got)
+	}
+	if got := runGitForTest(t, tmp, "log", "-1", "--format=%s"); got != "Update SP-123: Resume Fake" {
+		t.Fatalf("recovery commit subject = %q, want explicit existing-post update", got)
+	}
+	counterAfter, err := os.ReadFile(s.Cfg.CounterFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(counterAfter, counterBefore) {
+		t.Fatal("existing-file recovery must not bump the article counter")
 	}
 }
