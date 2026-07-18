@@ -9,8 +9,8 @@ func TestQuoted(t *testing.T) {
 	if got := quoted("plain"); got != `"plain"` {
 		t.Fatalf("quoted(plain) = %q, want \"plain\"", got)
 	}
-	if got := quoted(`"already"`); got != `"already"` {
-		t.Fatalf("already-quoted should be returned untouched, got %q", got)
+	if got := quoted(`"already"`); got != `"\"already\""` {
+		t.Fatalf("literal surrounding quotes should be escaped as content, got %q", got)
 	}
 	if got := quoted(""); got != `""` {
 		t.Fatalf("quoted(empty) = %q, want \"\"", got)

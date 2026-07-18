@@ -11,8 +11,8 @@ manifest generator 缺席或失敗時擋 build、部署打包必含 prebuild 需
 
 ### Requirement: Reader revision generator failure blocks the build
 
-建置管線（prebuild）在執行 Reader revision manifest generator
-（`scripts/build-reader-revision-manifest.mjs`）時 SHALL fail-closed：
+建置管線（prebuild）SHALL 在執行 Reader revision manifest generator
+（`scripts/build-reader-revision-manifest.mjs`）時 fail-closed：
 generator 檔案缺席或以非零 exit code 結束時，整個 build SHALL 失敗，
 不得靜默沿用 committed 的 `src/data/post-reader-revisions.json`。
 
@@ -69,8 +69,8 @@ PR CI SHALL 以 blocking job/step 執行
 
 ### Requirement: Full-history post versions manifest stays safe on shallow builds
 
-`src/data/post-versions.json` 由完整 git history 導出。在 shallow clone
-（Vercel production / preview、CCC sandbox）上，建置管線 SHALL 繼續使用
+`src/data/post-versions.json` 由完整 git history 導出；建置管線 SHALL 在 shallow clone
+（Vercel production / preview、CCC sandbox）上繼續使用
 committed 的檔案、SHALL NOT 以不完整 history 重生覆寫它；本 change 對
 prebuild 的任何修改 SHALL NOT 弱化這個行為。
 
