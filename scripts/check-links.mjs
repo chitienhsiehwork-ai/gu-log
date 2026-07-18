@@ -12,11 +12,14 @@
  *   0 = all good
  *   1 = external broken only (warning)
  *   2 = internal broken (should block commit)
+ *   3 = fatal: unknown uncaught exception / unhandled rejection during the
+ *       scan (fail closed — see isKnownUndiciSocketRace below)
  */
 
 import { readdir, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
-import { existsSync } from 'node:fs';
+import { existsSync, realpathSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const POSTS_DIR = join(ROOT, 'src', 'content', 'posts');
@@ -25,14 +28,37 @@ const DIST_DIR = join(ROOT, 'dist');
 // undici can emit a socket-level 'error' event asynchronously, after fetch()'s
 // own promise has already settled inside checkExternalLink's try/catch — that
 // event bypasses per-request error handling entirely and crashes the whole
-// process, discarding every result from the ~900-link scan that ran before it.
-// Log and keep going instead of losing a full night's run to one flaky host.
-process.on('uncaughtException', (err) => {
-  console.error(`⚠️  Uncaught error during link check (continuing): ${err.message}`);
-});
-process.on('unhandledRejection', (err) => {
-  console.error(`⚠️  Unhandled rejection during link check (continuing): ${err?.message ?? err}`);
-});
+// process, discarding every result from the ~900-link scan that ran before it
+// (observed live: SocketError "other side closed", code UND_ERR_SOCKET).
+//
+// Only THAT exact, known, harmless race is tolerated. Any other uncaught
+// exception or unhandled rejection is a real bug and must fail the process
+// loudly (exit 3) rather than let the scan silently continue and write a
+// baseline/report that looks complete when it isn't — swallowing arbitrary
+// programmer errors here would be worse than the crash this was added to fix.
+export function isKnownUndiciSocketRace(err) {
+  return (
+    !!err && typeof err === 'object' && err.name === 'SocketError' && err.code === 'UND_ERR_SOCKET'
+  );
+}
+
+function handleFatalAsyncError(kind, err) {
+  if (isKnownUndiciSocketRace(err)) {
+    console.error(
+      `⚠️  ${kind} during link check (continuing — known undici stray socket race): ${err.message}`
+    );
+    return;
+  }
+  console.error(
+    `❌ FATAL: unknown ${kind.toLowerCase()} during link check — failing closed, not continuing.`
+  );
+  console.error(err?.stack || err);
+  process.exitCode = 3;
+  process.exit(3);
+}
+
+process.on('uncaughtException', (err) => handleFatalAsyncError('Uncaught exception', err));
+process.on('unhandledRejection', (err) => handleFatalAsyncError('Unhandled rejection', err));
 
 // Rate limiting: max 5 requests/second
 const RATE_LIMIT = 5;
@@ -528,7 +554,25 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error('Fatal error:', err);
-  process.exit(2);
-});
+// Guard so this module can be imported (e.g. to test isKnownUndiciSocketRace
+// or the process-level handlers registered above) without triggering a full
+// scan — main() only runs when this file is executed directly. Compares
+// resolved filesystem paths rather than raw import.meta.url / argv[1]
+// strings: a naive `import.meta.url === \`file://${process.argv[1]}\`` check
+// silently fails (and skips main() entirely — a silent no-op, not a crash)
+// when the path contains spaces or non-ASCII characters, since import.meta.url
+// percent-encodes those and argv[1] doesn't.
+const isDirectlyExecuted = (() => {
+  try {
+    return fileURLToPath(import.meta.url) === realpathSync(process.argv[1]);
+  } catch {
+    return false;
+  }
+})();
+
+if (isDirectlyExecuted) {
+  main().catch((err) => {
+    console.error('Fatal error:', err);
+    process.exit(2);
+  });
+}
