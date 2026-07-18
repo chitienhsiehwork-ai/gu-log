@@ -8,7 +8,7 @@ import { test, expect } from './fixtures';
  */
 
 test.describe('Post Page', () => {
-  const testPostUrl = '/posts/claude-is-a-space-to-think';
+  const testPostUrl = '/posts/sp-24-20260204-claude-is-a-space-to-think';
 
   test('GIVEN a valid post URL WHEN page loads THEN title should be visible', async ({ page }) => {
     await page.goto(testPostUrl);
