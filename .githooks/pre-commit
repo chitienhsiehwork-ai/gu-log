@@ -72,7 +72,10 @@ fi
 # `git add tmp/foo` still force-adds an ignored path without a warning, so
 # this catches it explicitly at commit time instead of relying on .gitignore
 # alone.
-STAGED_TMP=$(git diff --cached --name-only --diff-filter=ACM -- 'tmp/*' 2>/dev/null || true)
+if ! STAGED_TMP=$(git diff --cached -M --name-only --diff-filter=ACMR -- 'tmp/*' 2>/dev/null); then
+    echo "❌ Unable to inspect staged tmp/ paths; blocking commit."
+    exit 1
+fi
 if [ -n "$STAGED_TMP" ]; then
     echo ""
     echo "❌ STAGED FILE(S) UNDER tmp/ — this directory is gitignored scratch space:"
