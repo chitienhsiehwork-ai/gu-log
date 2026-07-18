@@ -356,8 +356,9 @@ function runFloorCheck(file: string): { code: number; stderr: string } {
   try {
     execFileSync('node', [FLOOR_CHECK, file], { encoding: 'utf-8' });
     return { code: 0, stderr: '' };
-  } catch (e: any) {
-    return { code: e.status ?? 1, stderr: String(e.stderr ?? '') };
+  } catch (e: unknown) {
+    const err = e as { status?: number; stderr?: unknown };
+    return { code: err.status ?? 1, stderr: String(err.stderr ?? '') };
   }
 }
 
