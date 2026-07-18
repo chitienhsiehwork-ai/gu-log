@@ -31,8 +31,16 @@ const test = testBase.extend<{ autoTestFixture: string }>({
         }
       });
 
-      // Coverage API is chromium only
-      const isChromium = test.info().project.use.browserName === 'chromium';
+      // Coverage API is chromium only. Project configs here set browserName
+      // via devices['Desktop Chrome'] etc., which only carries
+      // defaultBrowserType — browserName itself is left undefined, so check
+      // both instead of silently never starting coverage collection.
+      const projectUse = test.info().project.use as {
+        browserName?: string;
+        defaultBrowserType?: string;
+      };
+      const isChromium =
+        projectUse.browserName === 'chromium' || projectUse.defaultBrowserType === 'chromium';
 
       let coverageStarted = false;
       if (isChromium) {

@@ -10,7 +10,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 BASELINE_FILE="$PROJECT_DIR/quality/coverage-baseline.json"
 HISTORY_FILE="$PROJECT_DIR/quality/coverage-history.json"
-REPORT_FILE="$PROJECT_DIR/quality/coverage/report.json"
+COVERAGE_MAP_FILE="$PROJECT_DIR/quality/coverage/coverage/coverage.json"
+SUMMARY_FILE="$PROJECT_DIR/quality/coverage/summary.json"
 
 if [ ! -f "$BASELINE_FILE" ]; then
   echo "❌ No baseline found at $BASELINE_FILE"
@@ -18,22 +19,24 @@ if [ ! -f "$BASELINE_FILE" ]; then
   exit 1
 fi
 
-if [ ! -f "$REPORT_FILE" ]; then
-  echo "❌ No coverage report found at $REPORT_FILE"
+if [ ! -f "$COVERAGE_MAP_FILE" ]; then
+  echo "❌ No coverage map found at $COVERAGE_MAP_FILE"
   echo "   Run: npx playwright test <stable-tests> first."
   exit 1
 fi
 
-# Extract current coverage from monocart report JSON
-# The summary is in the coverage.summary object
-CURRENT_STATEMENTS=$(jq -r '.coverage.summary.statements // .summary.statements // empty' "$REPORT_FILE" 2>/dev/null || echo "")
-CURRENT_BRANCHES=$(jq -r '.coverage.summary.branches // .summary.branches // empty' "$REPORT_FILE" 2>/dev/null || echo "")
-CURRENT_FUNCTIONS=$(jq -r '.coverage.summary.functions // .summary.functions // empty' "$REPORT_FILE" 2>/dev/null || echo "")
-CURRENT_LINES=$(jq -r '.coverage.summary.lines // .summary.lines // empty' "$REPORT_FILE" 2>/dev/null || echo "")
+# monocart's report.json only carries test pass/fail counts, not a coverage
+# percentage summary — aggregate the raw per-file Istanbul map ourselves.
+node "$SCRIPT_DIR/coverage-summarize.mjs"
 
-# If we can't extract from report.json, try reading from the console output
+CURRENT_STATEMENTS=$(jq -r '.statements // empty' "$SUMMARY_FILE" 2>/dev/null || echo "")
+CURRENT_BRANCHES=$(jq -r '.branches // empty' "$SUMMARY_FILE" 2>/dev/null || echo "")
+CURRENT_FUNCTIONS=$(jq -r '.functions // empty' "$SUMMARY_FILE" 2>/dev/null || echo "")
+CURRENT_LINES=$(jq -r '.lines // empty' "$SUMMARY_FILE" 2>/dev/null || echo "")
+
+# If aggregation still produced nothing, try reading from CLI-provided values
 if [ -z "$CURRENT_STATEMENTS" ] || [ "$CURRENT_STATEMENTS" = "null" ]; then
-  echo "⚠️  Could not parse coverage from report.json. Using manual values if provided."
+  echo "⚠️  Could not parse coverage from summary.json. Using manual values if provided."
   echo "   Usage: $0 [statements] [branches] [functions] [lines]"
   if [ $# -ge 4 ]; then
     CURRENT_STATEMENTS="$1"
