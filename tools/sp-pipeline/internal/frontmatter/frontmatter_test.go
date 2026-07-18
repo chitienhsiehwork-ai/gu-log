@@ -468,3 +468,40 @@ func findRealPost(t *testing.T) string {
 	}
 	return ""
 }
+
+// TestQuoteScalar covers gu-log #546: LLM-authored or operator-supplied
+// free text (an apostrophe in a source label, embedded quotes, colons)
+// must always come out as valid, correctly-escaped YAML.
+func TestQuoteScalar(t *testing.T) {
+	cases := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{"plain", "Simon Willison", `"Simon Willison"`},
+		{"apostrophe", "Simon Willison's Weblog", `"Simon Willison's Weblog"`},
+		{"embedded double quote", `He said "hi"`, `"He said \"hi\""`},
+		{"backslash", `C:\path\to\file`, `"C:\\path\\to\\file"`},
+		{"colon", "Note: this is a title", `"Note: this is a title"`},
+		{"empty string", "", `""`},
+		{"literal surrounding double quotes", `"Already Quoted"`, `"\"Already Quoted\""`},
+		{"backslash and quote together", `say \"hi\"`, `"say \\\"hi\\\""`},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := QuoteScalar(tc.input); got != tc.want {
+				t.Errorf("QuoteScalar(%q) = %q, want %q", tc.input, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestQuoteScalar_PreservesLiteralSurroundingQuotes(t *testing.T) {
+	// QuoteScalar accepts a semantic value. Surrounding quotes are content,
+	// not a signal that the caller already serialized YAML.
+	got := QuoteScalar(`"SP-171"`)
+	want := `"\"SP-171\""`
+	if got != want {
+		t.Errorf("QuoteScalar(%q) = %q, want %q", `"SP-171"`, got, want)
+	}
+}

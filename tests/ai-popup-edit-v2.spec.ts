@@ -9,7 +9,7 @@ import { test, expect } from './fixtures';
  * 5. Request body uses selectedText + instruction (not old 'text')
  */
 
-const TEST_POST = '/posts/claude-is-a-space-to-think';
+const TEST_POST = '/posts/sp-24-20260204-claude-is-a-space-to-think';
 
 /** Helper: set up logged-in state and navigate to post */
 async function setupLoggedIn(page: import('@playwright/test').Page) {

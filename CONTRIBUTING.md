@@ -462,7 +462,7 @@ tools/sp-pipeline/gp-pipeline run <tweet_url>
 bash scripts/sp-pipeline.sh <tweet_url>
 ```
 
-自動流程：抓原文 → 評估 → dedup → 翻譯 → review → refine → credits → Ralph 評分 → commit。
+自動流程：抓原文 → 評估 → dedup → 寫 zh-tw 稿 → review → refine → credits → Ralph 評分 → **translate（只在過分數時觸發，產出 en sidecar）** → commit。
 
 單一 step 也可以直接 call：`tools/sp-pipeline/gp-pipeline fetch <url>` / `eval` / `write` / `review` / `refine` / `ralph` / `deploy`。每個 subcommand 都支援 `--json` 輸出。完整 exit code + flag 對照見 `tools/sp-pipeline/SKILL.md`。
 

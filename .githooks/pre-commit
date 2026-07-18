@@ -388,7 +388,12 @@ if [ -n "$STAGED_MDX" ] && [ "$IS_MERGE_COMMIT" != "1" ]; then
         # pronoun check above — historical articles have grandfathered 晶晶體
         # but new commits and edits to zh-tw bodies must be clean.
         echo "🈳 晶晶體 check: scanning staged zh-tw posts for decorative English..."
-        if ! node "$REPO_ROOT/scripts/check-jingjing.mjs" $ZH_FILES; then
+        # --baseline-ref=origin/main mirrors the PR-gate behavior in ci.yml
+        # (which auto-derives this from GITHUB_BASE_REF): only violations NOT
+        # already present on origin/main are reported, so grandfathered 晶晶體
+        # in an untouched part of a file doesn't block an unrelated edit to
+        # that same file.
+        if ! node "$REPO_ROOT/scripts/check-jingjing.mjs" --baseline-ref=origin/main $ZH_FILES; then
             echo ""
             echo "❌ 晶晶體 check FAILED."
             echo "   Translate to natural zh-tw OR add to src/data/glossary.json"
