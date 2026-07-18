@@ -126,6 +126,25 @@ describe('pre-push: PENDING ticketId guard (Step 0) — real committed diff', ()
     expect(r.stdout + r.stderr).toMatch(/sp-pending\.mdx/);
   });
 
+  it('reads local_sha blobs even when a dirty worktree hides the committed PENDING value', () => {
+    const repo = makeFakeRepo();
+    const baseSha = commitAll(repo, 'base');
+    writePost(repo, 'sp-pending.mdx', 'SP-PENDING');
+    const headSha = commitAll(repo, 'commit pending post');
+
+    // This uncommitted edit is exactly the old fail-open: the hook used the
+    // commit diff for filenames but plain grep for content, so it saw SP-42 in
+    // the worktree and missed SP-PENDING in headSha.
+    writePost(repo, 'sp-pending.mdx', 'SP-42');
+
+    const stdin = `refs/heads/main ${headSha} refs/heads/main ${baseSha}\n`;
+    const r = runPrePush(repo, stdin);
+
+    expect(r.status).toBe(1);
+    expect(r.stdout + r.stderr).toMatch(/PENDING ticketId in commits/);
+    expect(r.stdout + r.stderr).toMatch(/sp-pending\.mdx/);
+  });
+
   it('allows the exact same committed PENDING work when pushed to a feature branch', () => {
     const repo = makeFakeRepo();
     const baseSha = commitAll(repo, 'base');
@@ -139,24 +158,25 @@ describe('pre-push: PENDING ticketId guard (Step 0) — real committed diff', ()
     expect(r.status).toBe(0);
   }, 15_000);
 
-  it('still blocks on a brand-new remote main ref (remote_sha all-zeros)', () => {
-    // Regression test: DIFF_BASE for a brand-new remote branch used to be
-    // computed as `git merge-base "$local_sha" HEAD`, but HEAD is normally
-    // the same commit as local_sha in this scenario, so the merge-base
-    // collapsed to local_sha itself and produced an empty diff — silently
-    // no-opping the guard for this push shape. Fixed to diff against the
-    // actual origin/<branch> tip instead.
+  it('blocks the first main push to a truly empty bare remote', () => {
+    // remote_sha is all-zeros and origin/main genuinely does not exist. The
+    // safe baseline is therefore the empty tree: every post in local_sha is
+    // about to become remote content and must be inspected.
     const repo = makeFakeRepo();
-    commitAll(repo, 'base');
 
     const originDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-hook-origin-'));
     execSync(`git init -q --bare "${originDir}"`);
     execSync(`git remote add origin "${originDir}"`, { cwd: repo });
-    execSync('git push -q origin HEAD:refs/heads/main', { cwd: repo });
 
     writePost(repo, 'sp-pending.mdx', 'SP-PENDING');
     const headSha = commitAll(repo, 'add pending post');
-    execSync('git fetch -q origin', { cwd: repo });
+
+    const originMain = spawnSync(
+      'git',
+      ['show-ref', '--verify', '--quiet', 'refs/remotes/origin/main'],
+      { cwd: repo }
+    );
+    expect(originMain.status).toBe(1);
 
     const stdin = `refs/heads/main ${headSha} refs/heads/main ${'0'.repeat(40)}\n`;
     const r = runPrePush(repo, stdin);
