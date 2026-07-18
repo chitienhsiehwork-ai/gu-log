@@ -126,6 +126,21 @@ describe('pre-push: PENDING ticketId guard (Step 0) — real committed diff', ()
     expect(r.stdout + r.stderr).toMatch(/sp-pending\.mdx/);
   });
 
+  it('rejects an existing post modified from a real ticketId to PENDING', () => {
+    const repo = makeFakeRepo();
+    writePost(repo, 'sp-existing.mdx', 'SP-42');
+    const baseSha = commitAll(repo, 'base real post');
+    writePost(repo, 'sp-existing.mdx', 'SP-PENDING');
+    const headSha = commitAll(repo, 'restore pending ticket');
+
+    const stdin = `refs/heads/main ${headSha} refs/heads/main ${baseSha}\n`;
+    const r = runPrePush(repo, stdin);
+
+    expect(r.status).toBe(1);
+    expect(r.stdout + r.stderr).toMatch(/PENDING ticketId in commits/);
+    expect(r.stdout + r.stderr).toMatch(/sp-existing\.mdx/);
+  });
+
   it('reads local_sha blobs even when a dirty worktree hides the committed PENDING value', () => {
     const repo = makeFakeRepo();
     const baseSha = commitAll(repo, 'base');
@@ -143,6 +158,32 @@ describe('pre-push: PENDING ticketId guard (Step 0) — real committed diff', ()
     expect(r.status).toBe(1);
     expect(r.stdout + r.stderr).toMatch(/PENDING ticketId in commits/);
     expect(r.stdout + r.stderr).toMatch(/sp-pending\.mdx/);
+  });
+
+  it('rejects a renamed post whose committed ticketId changes to PENDING', () => {
+    const repo = makeFakeRepo();
+    const original = path.join(repo, 'src', 'content', 'posts', 'sp-real.mdx');
+    const renamed = path.join(repo, 'src', 'content', 'posts', 'sp-renamed.mdx');
+    const stableBody = Array.from({ length: 20 }, (_, i) => `stable line ${i}`).join('\n');
+    fs.writeFileSync(original, `---\nticketId: SP-42\n---\n${stableBody}\n`);
+    const baseSha = commitAll(repo, 'base real post');
+
+    fs.renameSync(original, renamed);
+    fs.writeFileSync(renamed, `---\nticketId: SP-PENDING\n---\n${stableBody}\n`);
+    const headSha = commitAll(repo, 'rename post and restore pending ticket');
+
+    const nameStatus = execSync(
+      `git diff -M --name-status ${baseSha}..${headSha} -- src/content/posts`,
+      { cwd: repo, encoding: 'utf-8' }
+    );
+    expect(nameStatus).toMatch(/^R\d+\s/);
+
+    const stdin = `refs/heads/main ${headSha} refs/heads/main ${baseSha}\n`;
+    const r = runPrePush(repo, stdin);
+
+    expect(r.status).toBe(1);
+    expect(r.stdout + r.stderr).toMatch(/PENDING ticketId in commits/);
+    expect(r.stdout + r.stderr).toMatch(/sp-renamed\.mdx/);
   });
 
   it('allows the exact same committed PENDING work when pushed to a feature branch', () => {

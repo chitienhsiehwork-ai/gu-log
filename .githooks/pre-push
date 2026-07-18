@@ -26,7 +26,7 @@ while read -r _local_ref local_sha remote_ref remote_sha; do
           exit 1
         fi
       else
-        if ! CANDIDATE_FILES=$(git diff --name-only --diff-filter=AM "${remote_sha}..${local_sha}" -- 'src/content/posts/*.mdx' 2>/dev/null); then
+        if ! CANDIDATE_FILES=$(git diff -M --name-only --diff-filter=AMR "${remote_sha}..${local_sha}" -- 'src/content/posts/*.mdx' 2>/dev/null); then
           echo "❌ Cannot diff committed posts at ${remote_sha}..${local_sha}; blocking push to $remote_ref."
           exit 1
         fi
