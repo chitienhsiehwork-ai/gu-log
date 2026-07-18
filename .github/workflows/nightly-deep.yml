@@ -183,10 +183,15 @@ jobs:
       - name: Install Playwright Chromium (with system deps)
         run: pnpm exec playwright install chromium --with-deps
       - name: Run stable Playwright tests with coverage
+        # Checked assignment, not an inline $(...) — see the same-shaped
+        # comment on ci.yml's e2e-core step for why this matters: bash -e
+        # ignores the exit code of a command substitution used as bare
+        # arguments, so a --list failure would silently expand to nothing
+        # and Playwright would run every spec instead of failing the step.
         run: |
-          pnpm exec playwright test \
-            --project="Desktop Chrome" \
-            $(node scripts/check-spec-ownership.mjs --list nightly)
+          set -euo pipefail
+          SPECS=$(node scripts/check-spec-ownership.mjs --list nightly)
+          pnpm exec playwright test --project="Desktop Chrome" $SPECS
       - name: Upload coverage report (HTML + JSON)
         if: always()
         uses: actions/upload-artifact@v7

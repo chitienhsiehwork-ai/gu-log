@@ -18,6 +18,12 @@
  *                                                           must never silently expand to nothing,
  *                                                           which would make `playwright test` run
  *                                                           every spec in the project).
+ *
+ * Scope boundary: this only enforces CI-facing workflows (.github/workflows/).
+ * package.json dev-convenience scripts (e.g. `test:toc`) that hand-list a
+ * spec path for local iteration are intentionally NOT covered — they're a
+ * local shortcut, not CI truth, and bringing them under this gate would be
+ * managing something that was never the source of drift in the first place.
  */
 
 import fs from 'fs';
@@ -34,12 +40,14 @@ const NIGHTLY_WORKFLOW_PATH = path.join(ROOT, '.github/workflows/nightly-deep.ym
 
 const VALID_CLASSES = new Set(['blocking', 'nightly', 'quarantined']);
 // Matches an unconditional skip: test.skip(true, ...), bare test.skip(),
-// or a named test.skip('...') call, or test.describe.skip(...).
+// a named test.skip('...') call, test.describe.skip(...), or the fixme
+// equivalents (test.fixme(...) / test.describe.fixme(...) also make
+// Playwright not execute the test, same as skip).
 // Recommended pattern for a legitimate data-dependent skip: the expression
 // form test.skip(someRuntimeCondition, 'reason') — see publish-bar-visibility
 // and ticket-badge-colors for the two shapes that must NOT match this regex.
 const UNCONDITIONAL_SKIP_RE =
-  /(^|\n)\s*test\.skip\(\s*(true\b|['"`]|\))|(^|\n)\s*test\.describe\.skip\(/;
+  /(^|\n)\s*test\.(skip|fixme)\(\s*(true\b|['"`]|\))|(^|\n)\s*test\.describe\.(skip|fixme)\(/;
 
 // ─── Load registry ──────────────────────────────────────────────────
 if (!fs.existsSync(REGISTRY_PATH)) {
@@ -69,6 +77,18 @@ if (listIdx !== -1) {
         `$(node scripts/check-spec-ownership.mjs --list ${cls}) would otherwise expand to no arguments ` +
         `and \`playwright test\` would run every spec in the project instead of none. Fix the registry.`
     );
+    process.exit(1);
+  }
+  // Same parsed registry, same disk check the full validation mode does
+  // below (§1 Completeness) — not a second implementation of it. Without
+  // this, a spec renamed on disk without a registry update would be caught
+  // as STALE by the separate `spec-ownership` validation job, while this
+  // job's `--list` output still named the missing path; Playwright would
+  // silently treat it as a filter with zero matches and the run would go
+  // green having run one fewer spec than the registry claims.
+  const missing = list.filter((spec) => !fs.existsSync(path.join(ROOT, spec)));
+  if (missing.length > 0) {
+    console.error(`FATAL: --list ${cls} includes non-existent spec(s): ${missing.join(', ')}.`);
     process.exit(1);
   }
   console.log(list.join('\n'));
@@ -173,7 +193,9 @@ for (const file of workflowFiles) {
     fail(
       `LITERAL SPEC PATH IN WORKFLOW: ${rel} references ${literalRefs.join(', ')} directly instead of ` +
         `consuming \`node scripts/check-spec-ownership.mjs --list <class>\`. This is exactly the drift ` +
-        `this gate exists to prevent — wire it through --list.`
+        `this gate exists to prevent — wire it through --list. (Comments count too — this scan doesn't ` +
+        `parse YAML comments out, so a "# e.g. tests/foo.spec.ts" example in a comment will also trip ` +
+        `this; reword the comment rather than adding an exception.)`
     );
   }
 }

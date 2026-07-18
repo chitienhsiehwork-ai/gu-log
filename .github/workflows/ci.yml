@@ -255,11 +255,18 @@ jobs:
       - name: Install Chromium
         run: pnpm exec playwright install chromium --with-deps
       - name: Run core interaction specs (blocking)
+        # Checked assignment, not an inline $(...) — bash -e does not check
+        # the exit code of a command substitution used as bare arguments, so
+        # a --list failure (bad registry, zero matches, script crash) would
+        # silently expand to nothing and Playwright would run every spec in
+        # the project instead of failing the step. `SPECS=$(...)` assigns
+        # the exit code to the assignment itself, which -e does check.
+        # $SPECS is intentionally unquoted below (word-splits into multiple
+        # file args); the registry only ever produces tests/*.spec.ts paths.
         run: |
-          pnpm exec playwright test \
-            --project="Desktop Chrome" \
-            --retries=0 \
-            $(node scripts/check-spec-ownership.mjs --list blocking)
+          set -euo pipefail
+          SPECS=$(node scripts/check-spec-ownership.mjs --list blocking)
+          pnpm exec playwright test --project="Desktop Chrome" --retries=0 $SPECS
 
   # ─── Tier 2: jobs that consume dist/ ──────────────────────────────────────
   internal-links:

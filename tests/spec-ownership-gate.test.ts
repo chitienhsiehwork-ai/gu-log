@@ -38,4 +38,25 @@ describe('spec ownership gate', () => {
     expect(needsBlock).toMatch(/- spec-ownership/);
     expect(needsBlock).toMatch(/- e2e-core/);
   });
+
+  it('workflows consume --list via a checked assignment, not an inline $(...) that swallows exit codes', () => {
+    // bash -e does not check the exit code of a command substitution used
+    // as bare arguments — `cmd $(failing-command)` keeps running with an
+    // empty expansion, which here would mean Playwright silently runs
+    // every spec in the project instead of failing the step. A checked
+    // assignment (`SPECS=$(...)`) is fine because -e DOES check assignment
+    // exit codes. This isn't re-testing validator policy (the two tests
+    // above already do that) — it's shell/YAML integration behavior the
+    // script itself cannot see.
+    for (const wf of ['.github/workflows/ci.yml', '.github/workflows/nightly-deep.yml']) {
+      const text = fs.readFileSync(path.join(ROOT, wf), 'utf8');
+      expect(text, `${wf} must not inline $(node scripts/check-spec-ownership.mjs into the playwright args`).not.toMatch(
+        /playwright test[^\n]*(\\\n[^\n]*)*\$\(node scripts\/check-spec-ownership\.mjs/
+      );
+      expect(text, `${wf} must assign --list output to a variable under set -e so a failure aborts the step`).toMatch(
+        /=\$\(node scripts\/check-spec-ownership\.mjs --list /
+      );
+      expect(text, `${wf}'s --list step must run under set -euo pipefail`).toMatch(/set -euo pipefail/);
+    }
+  });
 });
