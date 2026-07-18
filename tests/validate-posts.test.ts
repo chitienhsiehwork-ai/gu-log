@@ -66,6 +66,51 @@ describe('parseFrontmatter', () => {
   it('returns null on missing frontmatter', () => {
     expect(parseFrontmatter('no frontmatter here')).toBeNull();
   });
+
+  // gu-log #546: LLM-authored frontmatter can contain apostrophes, embedded
+  // quotes, and colons in free-text fields like `source:`. The old
+  // regex-based scanner silently accepted invalid YAML that never survived
+  // to the real Astro/YAML parser at build time. Since validate-posts.mjs
+  // now parses with a real YAML library, these hostile-but-VALID values
+  // must still parse, and genuinely invalid YAML must throw.
+  // validFm already sets `source`/`originalDate` — override in place
+  // rather than appending, since real YAML (unlike the old regex scanner)
+  // correctly rejects duplicate keys.
+  const withOverride = (key: string, line: string) => [
+    ...validFm.filter((l) => !l.startsWith(`${key}:`)),
+    line,
+  ];
+
+  it('parses a source label with an apostrophe when properly double-quoted', () => {
+    const fm = parseFrontmatter(makePost(withOverride('source', 'source: "Simon Willison\'s Weblog"')));
+    expect(fm.source).toBe("Simon Willison's Weblog");
+  });
+
+  it('parses a source label with an embedded colon', () => {
+    const fm = parseFrontmatter(makePost(withOverride('source', 'source: "Note: a title with a colon"')));
+    expect(fm.source).toBe('Note: a title with a colon');
+  });
+
+  it('parses a source label with an embedded double quote (escaped)', () => {
+    const fm = parseFrontmatter(makePost(withOverride('source', 'source: "He said \\"hi\\""')));
+    expect(fm.source).toBe('He said "hi"');
+  });
+
+  it('throws on genuinely invalid YAML (unterminated single-quoted scalar)', () => {
+    // A single-quoted YAML scalar cannot contain a bare apostrophe — this
+    // is exactly the SP-252 failure mode from gu-log #546.
+    const bad = makePost(withOverride('source', "source: 'Simon Willison's Weblog'"));
+    expect(() => parseFrontmatter(bad)).toThrow(/Invalid YAML/);
+  });
+
+  it('coerces an unquoted date scalar back to a plain string, not a JS Date', () => {
+    // yaml.parse() natively turns unquoted YYYY-MM-DD into a JS Date;
+    // downstream rules do string ops (DATE_PATTERN.test, etc.) against
+    // originalDate/translatedDate, so it must come back as a string.
+    const fm = parseFrontmatter(makePost(withOverride('originalDate', 'originalDate: 2026-07-17')));
+    expect(typeof fm.originalDate).toBe('string');
+    expect(fm.originalDate).toBe('2026-07-17');
+  });
 });
 
 describe('getBaseFilename', () => {
@@ -96,6 +141,39 @@ describe('validatePost — pass case', () => {
     );
     const r = validatePost(filepath, [{ filename: 'sp-1-20260401-x.mdx', ticketId: 'SP-1' }]);
     expect(r.errors).toEqual([]);
+  });
+
+  it('passes a post whose source label has an apostrophe (properly quoted)', () => {
+    const filepath = tmpPath('sp-2-20260401-x.mdx');
+    fs.writeFileSync(
+      filepath,
+      makePost([
+        ...validFm.filter((l) => !l.startsWith('source:')),
+        'source: "Simon Willison\'s Weblog"',
+        'translatedBy:',
+        '  model: Opus 4.6',
+        '  harness: Claude Code',
+      ])
+    );
+    const r = validatePost(filepath, [{ filename: 'sp-2-20260401-x.mdx', ticketId: 'SP-1' }]);
+    expect(r.errors).toEqual([]);
+  });
+});
+
+describe('validatePost — invalid YAML (gu-log #546)', () => {
+  it('reports invalid YAML as a validation error instead of crashing', () => {
+    const filepath = tmpPath('sp-3-20260401-x.mdx');
+    fs.writeFileSync(
+      filepath,
+      makePost([
+        ...validFm.filter((l) => !l.startsWith('source:')),
+        // Unterminated single-quoted scalar — the exact SP-252 shape.
+        "source: 'Simon Willison's Weblog'",
+      ])
+    );
+    const r = validatePost(filepath, []);
+    expect(r.errors.length).toBeGreaterThan(0);
+    expect(r.errors.some((e: string) => /Invalid YAML/.test(e))).toBe(true);
   });
 });
 
