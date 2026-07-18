@@ -4,6 +4,7 @@
 # ALL checks are BLOCKING. Quality over speed.
 #
 # Pipeline:
+#   -0.5) tmp/ untracked guard — block staged files under gitignored tmp/
 #   0) Quick ticketId duplicate check (~100ms, shell)
 #   0.1) Score gate for staged zh-tw posts
 #   0.15) Pronoun clarity check for staged zh-tw posts
@@ -64,6 +65,28 @@ else
     echo "⚠️  gitleaks not installed, skipping secret scan"
     echo ""
 fi
+
+# ─── Step -0.5: tmp/ untracked guard ──────────────────────────────
+# tmp/ is gitignored for pipeline scratch output (see #585 P1-6 — 7 SP-94
+# pipeline intermediates got tracked before the ignore rule existed).
+# `git add tmp/foo` still force-adds an ignored path without a warning, so
+# this catches it explicitly at commit time instead of relying on .gitignore
+# alone.
+if ! STAGED_TMP=$(git diff --cached -M --name-only --diff-filter=ACMR -- 'tmp/*' 2>/dev/null); then
+    echo "❌ Unable to inspect staged tmp/ paths; blocking commit."
+    exit 1
+fi
+if [ -n "$STAGED_TMP" ]; then
+    echo ""
+    echo "❌ STAGED FILE(S) UNDER tmp/ — this directory is gitignored scratch space:"
+    echo "$STAGED_TMP" | sed 's/^/   /'
+    echo ""
+    echo "   Unstage with: git rm --cached <file>"
+    echo "   (tmp/ is for pipeline intermediates, not tracked history — see #585 P1-6)"
+    exit 1
+fi
+echo "✓ No staged files under tmp/"
+echo ""
 
 # ─── Step 0: Quick ticketId duplicate check (shell, ~100ms) ───────
 echo "⚡ Quick ticketId duplicate check..."

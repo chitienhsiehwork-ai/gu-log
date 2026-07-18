@@ -33,7 +33,7 @@ function makeFakeRepo(): string {
   // Seed a minimal posts dir so grep -h doesn't blow up on the duplicate-
   // ticket check.
   fs.mkdirSync(path.join(tmp, 'src', 'content', 'posts'), { recursive: true });
-  fs.writeFileSync(path.join(tmp, '.gitignore'), 'node_modules/\n');
+  fs.writeFileSync(path.join(tmp, '.gitignore'), 'node_modules/\ntmp/\n');
   return tmp;
 }
 
@@ -46,6 +46,30 @@ function makeFastHookEnv(): NodeJS.ProcessEnv {
   }
   return { ...process.env, PATH: `${bin}${path.delimiter}${process.env.PATH ?? ''}` };
 }
+
+describe('pre-commit: tmp/ untracked guard (Step -0.5)', () => {
+  it('blocks a tracked-file rename into ignored tmp/', () => {
+    const repo = makeFakeRepo();
+    fs.writeFileSync(path.join(repo, 'tracked.txt'), 'tracked content\n');
+    execSync('git add tracked.txt .gitignore && git commit -q -m base', { cwd: repo });
+
+    fs.mkdirSync(path.join(repo, 'tmp'));
+    execSync('git mv tracked.txt tmp/renamed.txt', { cwd: repo });
+    expect(
+      execSync('git diff --cached -M --name-status', { cwd: repo, encoding: 'utf-8' })
+    ).toMatch(/^R\d+\s+tracked\.txt\s+tmp\/renamed\.txt/m);
+
+    const r = spawnSync('bash', [path.join(REPO_ROOT, '.githooks', 'pre-commit')], {
+      cwd: repo,
+      env: makeFastHookEnv(),
+      encoding: 'utf-8',
+    });
+
+    expect(r.status).toBe(1);
+    expect(r.stdout + r.stderr).toMatch(/STAGED FILE\(S\) UNDER tmp\//);
+    expect(r.stdout + r.stderr).toMatch(/tmp\/renamed\.txt/);
+  });
+});
 
 describe('pre-commit: ticketId duplicate gate (Step 0)', () => {
   it('blocks when 3+ posts share a non-PENDING ticketId', () => {
