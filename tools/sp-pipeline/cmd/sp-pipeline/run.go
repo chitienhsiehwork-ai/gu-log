@@ -89,6 +89,8 @@ Steps, in order:
 
 --from-step resumes partway through a previous run. --file is required
 when --from-step skips the fetch stage and no tweet URL is given.
+--from-step translate treats --file as an already tribunal-passed zh-tw
+article, matching the standalone translate recovery command.
 
 --dry-run stops before the deploy stage (matches bash --dry-run).
 
@@ -123,7 +125,7 @@ canned responses for regression tests.`,
 	cmd.Flags().BoolVar(&force, "force", false, "skip the eval gate (still runs everything else)")
 	cmd.Flags().BoolVar(&opusOnly, "opus", false, "deprecated compatibility flag; role routing is automatic")
 	cmd.Flags().IntVar(&ralphBar, "bar", 8, "ralph quality bar (advisory — tribunal has its own internal bar)")
-	cmd.Flags().StringVar(&existingFile, "file", "", "resume from an existing file in src/content/posts/")
+	cmd.Flags().StringVar(&existingFile, "file", "", "resume from an existing file in src/content/posts/ (already tribunal-passed at translate)")
 	cmd.Flags().StringVar(&prefix, "prefix", "SP", "ticket prefix (SP / CP / SD / Lv)")
 	cmd.Flags().BoolVar(&skipBuild, "skip-build", false, "skip npm run build in the deploy step (testing only)")
 	cmd.Flags().BoolVar(&skipPush, "skip-push", false, "skip git push in the deploy step (testing only)")
@@ -164,6 +166,9 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 	}
 	if opts.TweetURL == "" && opts.ExistingFile == "" && fromStepInt < pipeline.StepWrite {
 		return fmt.Errorf("run: tweet URL is required when not resuming via --file + --from-step")
+	}
+	if fromStepInt == pipeline.StepTranslate && opts.ExistingFile == "" {
+		return fmt.Errorf("run: --from-step translate requires --file <tribunal-passed zh-tw post>")
 	}
 
 	writerDisp, err := buildDispatcherForRole(state, dispatcherWriter, opts.OpusOnly)

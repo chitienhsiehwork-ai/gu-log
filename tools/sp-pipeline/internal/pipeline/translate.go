@@ -22,9 +22,12 @@ import (
 // SOP: translation only happens AFTER the zh-tw article has passed the
 // tribunal, never on an unstable draft.
 //
-// When s.RalphPassed is false, Translate is a no-op (logged, not an
-// error) — Deploy keeps its existing best-effort semantics of shipping
-// zh-tw only when the tribunal didn't pass.
+// When s.RalphPassed is false, Translate is normally a no-op (logged, not
+// an error) — Deploy keeps its existing best-effort semantics of shipping
+// zh-tw only when the tribunal didn't pass. The recovery path
+// `run --from-step translate --file ...` is the exception: --file asserts
+// that the existing zh-tw post already passed the tribunal, matching the
+// standalone translate command.
 func (s *State) Translate(ctx context.Context) error {
 	if s.shouldSkipBelow(StepTranslate) {
 		s.Log.Info("Step 4.8: translate — SKIPPED (--from-step)")
@@ -32,6 +35,19 @@ func (s *State) Translate(ctx context.Context) error {
 	}
 
 	s.Log.Info("Step 4.8: translate")
+
+	if s.FromStepInt == StepTranslate {
+		if s.ExistingFile == "" {
+			return fmt.Errorf("translate: --from-step translate requires --file <tribunal-passed zh-tw post>")
+		}
+		s.ActiveFilename = s.ExistingFile
+		if s.ActiveENFilename == "" {
+			s.ActiveENFilename = "en-" + s.ActiveFilename
+		}
+		// Resuming exactly at translate is an explicit recovery assertion:
+		// the supplied zh-tw file has already cleared the tribunal.
+		s.RalphPassed = true
+	}
 
 	if !s.RalphPassed {
 		s.Log.Warn("  Tribunal did not pass — skipping en translation, deploying zh-tw only")

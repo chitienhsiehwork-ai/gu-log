@@ -84,6 +84,71 @@ func TestTranslate_SkippedByFromStep(t *testing.T) {
 	}
 }
 
+func TestTranslate_FromStepTranslateResumesExistingPassedFile(t *testing.T) {
+	s, fake, postsDir := newTranslateTestState(t)
+	s.FromStepInt = StepTranslate
+	s.ExistingFile = s.ActiveFilename
+	s.ActiveFilename = ""
+	s.ActiveENFilename = ""
+	s.RalphPassed = false
+
+	enBody := `---
+title: "Fake Title"
+ticketId: "SP-252"
+lang: "en"
+source: "Simon Willison's Weblog"
+sourceUrl: "https://example.com/post"
+---
+en body
+`
+	fake.WithResponses(llm.FakeResponse{
+		Output:    enBody,
+		WriteFile: "translated-en.mdx",
+	})
+
+	if err := s.Translate(context.Background()); err != nil {
+		t.Fatalf("Translate: %v", err)
+	}
+	if !s.RalphPassed {
+		t.Fatal("RalphPassed should be true when --from-step translate asserts an already-passed file")
+	}
+	if s.ActiveFilename != s.ExistingFile {
+		t.Errorf("ActiveFilename = %q, want %q", s.ActiveFilename, s.ExistingFile)
+	}
+	if s.ActiveENFilename != "en-sp-252-20260717-fake-title.mdx" {
+		t.Errorf("ActiveENFilename = %q, want en-sp-252-20260717-fake-title.mdx", s.ActiveENFilename)
+	}
+	if len(fake.Called) != 1 {
+		t.Fatalf("expected exactly 1 dispatcher call, got %d", len(fake.Called))
+	}
+	data, err := os.ReadFile(filepath.Join(postsDir, s.ActiveENFilename))
+	if err != nil {
+		t.Fatalf("en sidecar not written: %v", err)
+	}
+	if !strings.Contains(string(data), `lang: "en"`) {
+		t.Errorf("en sidecar missing lang: \"en\":\n%s", data)
+	}
+}
+
+func TestTranslate_FromStepTranslateRequiresExistingFile(t *testing.T) {
+	s, fake, _ := newTranslateTestState(t)
+	s.FromStepInt = StepTranslate
+	s.ExistingFile = ""
+	s.ActiveFilename = ""
+	s.RalphPassed = false
+
+	err := s.Translate(context.Background())
+	if err == nil {
+		t.Fatal("Translate should reject --from-step translate without --file")
+	}
+	if !strings.Contains(err.Error(), "--file") {
+		t.Fatalf("Translate error = %q, want --file guidance", err)
+	}
+	if len(fake.Called) != 0 {
+		t.Errorf("dispatcher should not have been called, got %d calls", len(fake.Called))
+	}
+}
+
 func TestTranslate_ProducesENSidecar(t *testing.T) {
 	s, fake, postsDir := newTranslateTestState(t)
 	s.RalphPassed = true
