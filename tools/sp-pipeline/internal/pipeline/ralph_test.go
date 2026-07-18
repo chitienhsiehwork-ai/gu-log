@@ -154,6 +154,69 @@ func TestNormalizeRalphFrontmatter_NoFrontmatter_Silent(t *testing.T) {
 	}
 }
 
+// TestNormalizeRalphFrontmatter_ReQuotesSourceForSafeYAML covers gu-log
+// #546: the write step's LLM output can leave `source:` with unsafe
+// quoting (missing entirely, single-quoted with an embedded apostrophe,
+// or double-quoted but unescaped). ralph's normalizer is the last
+// frontmatter surgeon before the file lands in posts dir, so it must
+// deterministically re-serialize `source:` into valid, safely-escaped
+// YAML no matter what the writer produced.
+func TestNormalizeRalphFrontmatter_ReQuotesSourceForSafeYAML(t *testing.T) {
+	cases := []struct {
+		name       string
+		sourceLine string
+		wantLine   string
+	}{
+		{
+			name:       "unquoted with apostrophe",
+			sourceLine: `source: Simon Willison's Weblog`,
+			wantLine:   `source: "Simon Willison's Weblog"`,
+		},
+		{
+			name:       "single-quoted with embedded apostrophe (unsafe as YAML)",
+			sourceLine: `source: 'Simon Willison's Weblog'`,
+			wantLine:   `source: "Simon Willison's Weblog"`,
+		},
+		{
+			name:       "already safely double-quoted",
+			sourceLine: `source: "@fakeauthor on X"`,
+			wantLine:   `source: "@fakeauthor on X"`,
+		},
+		{
+			name:       "valid double-quoted YAML escapes keep their semantic value",
+			sourceLine: `source: "He said \"hi\" at C:\\tmp"`,
+			wantLine:   `source: "He said \"hi\" at C:\\tmp"`,
+		},
+		{
+			name:       "valid single-quoted YAML decodes doubled apostrophes",
+			sourceLine: `source: 'Simon Willison''s Weblog'`,
+			wantLine:   `source: "Simon Willison's Weblog"`,
+		},
+		{
+			name:       "literal surrounding quotes remain part of the value",
+			sourceLine: `source: '"quoted label"'`,
+			wantLine:   `source: "\"quoted label\""`,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			raw := "---\ntitle: \"T\"\n" + tc.sourceLine + "\nsourceUrl: \"https://example.com\"\n---\nbody\n"
+			f := filepath.Join(t.TempDir(), "post.mdx")
+			if err := os.WriteFile(f, []byte(raw), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			if err := normalizeRalphFrontmatter(f, PipelineStamp{}); err != nil {
+				t.Fatalf("normalize: %v", err)
+			}
+			out, _ := os.ReadFile(f)
+			got := string(out)
+			if !strings.Contains(got, tc.wantLine) {
+				t.Errorf("post-normalize frontmatter missing %q, got:\n%s", tc.wantLine, got)
+			}
+		})
+	}
+}
+
 func TestFinalPipelineURL_Constant(t *testing.T) {
 	want := "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
 	if finalPipelineURL != want {

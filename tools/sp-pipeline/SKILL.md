@@ -1,3 +1,4 @@
+<!-- md-zh-tw: ignore -->
 # gp-pipeline SKILL
 
 Agent-facing usage guide. If you are a future agent session picking up work on gu-log, read this before running any `gp-pipeline` subcommand.
@@ -28,11 +29,11 @@ Expected: first call takes ~3 seconds (cold compile), subsequent calls are insta
 
 | User intent | Run | Why |
 |-------------|-----|-----|
-| **"Run the whole pipeline on a tweet URL"** | `gp-pipeline run <url>` | The canonical end-to-end entry point — fetch → eval → dedup → write → review → refine → credits → ralph → deploy |
+| **"Run the whole pipeline on a tweet URL"** | `gp-pipeline run <url>` | The canonical end-to-end entry point — fetch → eval → dedup → write → review → refine → credits → ralph → translate → deploy |
 | **"Any progress?" / "What step is stuck?"** | `gp-pipeline status <work-dir>` | Reads `pipeline-status.json`, work-dir artifacts, tribunal progress, and git diff to answer the observability questions in one command |
 | **"User wants a specific narrative angle"** | `gp-pipeline run --angle "focus on X while introducing the others" <url>` | Pipes the directive into the write + refine prompts; opening must establish the angle, closing must call back to it |
 | **"Source is a docs / blog page, not a tweet"** | `gp-pipeline run --source-label "OpenClaw Docs" <url>` | Overrides the `source:` frontmatter line; without it, generic URLs render hostname (`docs.openclaw.ai`) which is usually fine but not pretty |
-| "Resume a stuck run from a specific step" | `gp-pipeline run --from-step <name> --file <existing.mdx>` | Honors bash's `--from-step` contract: setup / fetch / eval / dedup / write / review / refine / ralph / deploy |
+| "Resume a stuck run from a specific step" | `gp-pipeline run --from-step <name> --file <existing.mdx>` | Honors bash's `--from-step` contract: setup / fetch / eval / dedup / write / review / refine / ralph / translate / deploy |
 | "Run everything except deploy" | `gp-pipeline run --dry-run <url>` | Stops before the deploy step |
 | "Is my environment set up correctly?" | `gp-pipeline doctor` | Walks PATH + repo-relative files, exits 0 if all required deps present |
 | "Can the LLM providers respond non-interactively?" | `gp-pipeline doctor --probe-llm` | Sends a 1-token canary to each provider, reports ok/error/missing |
@@ -42,6 +43,7 @@ Expected: first call takes ~3 seconds (cold compile), subsequent calls are insta
 | "Is this source already covered?" | `gp-pipeline dedup --url <x> --title <t>` | Wraps `scripts/dedup-gate.mjs` |
 | "Run just one LLM-heavy step" | `gp-pipeline {eval,write,review,refine} --source ...` | Each step is independently callable; `--fake-provider` pins canned responses for tests |
 | "Run the 4-stage tribunal on an existing post" | `gp-pipeline ralph --file <sp-NNN-*.mdx>` | Wraps `scripts/tribunal.sh` + runs the frontmatter normaliser |
+| "Produce the en sidecar for an existing tribunal-passed zh-tw post that's missing it" | `gp-pipeline translate --file <sp-NNN-*.mdx>` | Standalone Step 4.8 recovery path — inside `run` this fires automatically after `ralph`, but only when the tribunal passed |
 | "Patch pipeline credits into a final.mdx for debugging" | `gp-pipeline credits --file <final.mdx>` | Step 4.6 standalone |
 | "Deploy a recovered article" | `gp-pipeline deploy --active-file ... --title ...` | Step 5 standalone — counter bump + rename + commit + push |
 
@@ -148,6 +150,7 @@ Distinct per failure mode so agents can branch on `$?` without parsing stderr:
 - `dedup` (read-only, invokes the Node gate)
 - `eval`, `write`, `review`, `refine` (each writes only under `--work-dir`)
 - `ralph --file <sp-NNN-*.mdx>` (mutates a SINGLE posts/ file with a deterministic frontmatter normaliser; safe because the file is already committed)
+- `translate --file <sp-NNN-*.mdx>` (writes a single new en- sidecar file; does not commit or push)
 - `credits --file <final.mdx>` (debugging single-file mutation)
 - `run --dry-run <url>` (skips the deploy step)
 

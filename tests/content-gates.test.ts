@@ -142,6 +142,66 @@ describe('check-jingjing.checkFile', () => {
   });
 });
 
+describe('check-jingjing ALLOWLIST_RAW parsing (line-aware comments)', () => {
+  // Regression for the bug where ALLOWLIST_RAW was tokenized by whitespace
+  // across the whole blob, so only the leading '#' token of a comment line
+  // was filtered — every other word in that comment's prose silently became
+  // an "accepted English" term.
+  it('rejects prose words that only ever appear inside a full-line comment', () => {
+    // These words appear only in ALLOWLIST_RAW comment lines (annotations
+    // explaining why a real term below them was added), never as an actual
+    // allowlisted token on their own line.
+    expect(jj.isAllowed('Behavioral-economics')).toBe(false);
+    expect(jj.isAllowed('happiness')).toBe(false);
+    expect(jj.isAllowed('researchers')).toBe(false);
+    expect(jj.isAllowed('cited')).toBe(false);
+    expect(jj.isAllowed('handle')).toBe(false);
+  });
+
+  it('rejects prose from inline "rule #2"-style comment lines', () => {
+    // Comment lines that themselves contain a '#' mid-line (e.g. "writer-prompt
+    // rule #2: ...") must still be treated as a single comment line, not
+    // parsed for tokens after the embedded '#'.
+    expect(jj.isAllowed('writer-prompt')).toBe(false);
+    expect(jj.isAllowed('embedded')).toBe(false);
+  });
+
+  it('still allows real allowlist tokens declared on non-comment lines', () => {
+    expect(jj.isAllowed('Superintelligence')).toBe(true);
+    expect(jj.isAllowed('Artificial')).toBe(true);
+    expect(jj.isAllowed('xG')).toBe(true);
+    expect(jj.isAllowed('commit')).toBe(true);
+    expect(jj.isAllowed('ClawdNote')).toBe(true);
+  });
+
+  it('a zh-tw post using only comment-leaked words is flagged', () => {
+    const filepath = tmpPath('jj-comment-leak.mdx');
+    fs.writeFileSync(
+      filepath,
+      `---\nlang: zh-tw\n---\n這篇找了幾位 researchers 討論 happiness 的 cited 研究。\n`
+    );
+    const r = jj.checkFile(filepath);
+    expect(r.violations.map((v: { word: string }) => v.word)).toEqual(
+      expect.arrayContaining(['researchers', 'happiness', 'cited'])
+    );
+  });
+
+  it('warns (not silently floods) when --baseline-ref cannot be resolved', () => {
+    const CLI = path.join(__dirname, '..', 'scripts', 'check-jingjing.mjs');
+    const filepath = tmpPath('jj-unresolvable-baseline.mdx');
+    fs.writeFileSync(filepath, `---\nlang: zh-tw\n---\n這個 approach 真的很 solid。\n`);
+    let stderr = '';
+    try {
+      execFileSync('node', [CLI, '--baseline-ref=does-not-exist/nowhere', filepath], {
+        encoding: 'utf-8',
+      });
+    } catch (e) {
+      stderr = String((e as { stderr?: string }).stderr ?? '');
+    }
+    expect(stderr).toMatch(/baseline ref .* could not be resolved/);
+  });
+});
+
 // ════════════════════════════════════════════════════════════════════════════
 // check-pronoun-clarity
 // ════════════════════════════════════════════════════════════════════════════
@@ -356,8 +416,9 @@ function runFloorCheck(file: string): { code: number; stderr: string } {
   try {
     execFileSync('node', [FLOOR_CHECK, file], { encoding: 'utf-8' });
     return { code: 0, stderr: '' };
-  } catch (e: any) {
-    return { code: e.status ?? 1, stderr: String(e.stderr ?? '') };
+  } catch (e: unknown) {
+    const err = e as { status?: number; stderr?: unknown };
+    return { code: err.status ?? 1, stderr: String(err.stderr ?? '') };
   }
 }
 

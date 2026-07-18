@@ -81,6 +81,9 @@ subcommand is for recovering a partially-deployed article.`,
 	cmd.Flags().BoolVar(&skipBuild, "skip-build", false, "skip npm run build")
 	cmd.Flags().BoolVar(&skipValidate, "skip-validate", false, "skip node scripts/validate-posts.mjs")
 	_ = cmd.MarkFlagRequired("active-file")
+	_ = cmd.MarkFlagRequired("date-stamp")
+	_ = cmd.MarkFlagRequired("author-slug")
+	_ = cmd.MarkFlagRequired("title-slug")
 	return cmd
 }
 
