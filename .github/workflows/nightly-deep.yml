@@ -19,7 +19,7 @@ jobs:
   # straight to main (branch protection) or open a PR for it (this repo's
   # Actions permissions block Actions-created PRs — a repo-owner setting,
   # see the "Stage ... baseline refresh" steps below for the full story).
-  # They instead force-push to a fixed staging branch, which means the
+  # They instead push to a fixed staging branch, which means the
   # committed baseline on main only moves when a human (or the next agent
   # session) turns that staging branch into a merged PR. This job makes
   # that dependency itself the visible, actionable signal instead of
@@ -30,23 +30,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
       - name: Check committed baseline age
-        run: |
-          MAX_AGE_DAYS=3
-          today=$(date -u +%s)
-          fail=0
-          for f in quality/coverage-baseline.json quality/broken-links-baseline.json; do
-            date_str=$(jq -r '.date' "$f")
-            baseline_ts=$(date -u -d "$date_str" +%s)
-            age_days=$(( (today - baseline_ts) / 86400 ))
-            if [ "$age_days" -gt "$MAX_AGE_DAYS" ]; then
-              echo "::error file=$f::Baseline is $age_days days old (date: $date_str, max: $MAX_AGE_DAYS). A staging branch is likely waiting to be merged — check nightly/coverage-baseline-staging and nightly/links-baseline-staging."
-              fail=1
-            else
-              echo "✅ $f is $age_days day(s) old (within ${MAX_AGE_DAYS}-day budget)."
-            fi
-          done
-          exit $fail
+        run: node scripts/check-nightly-baseline-freshness.mjs
 
   # ─── Build first (shared dependency for visual-test / lighthouse / budget / links) ──
   build:
