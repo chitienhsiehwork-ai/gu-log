@@ -244,23 +244,19 @@ jobs:
         # false), which is a repo-owner security setting no workflow-level
         # `permissions:` block can override — confirmed by hitting
         # "GitHub Actions is not permitted to create or approve pull requests"
-        # on a live dispatch run. So this force-pushes the fresh file to a
-        # fixed staging branch instead. That push itself isn't blocked (it's
-        # not main). A human or the next agent session turns it into a real
-        # PR with one command once the staleness check (below) goes red:
+        # on a live dispatch run. So this pushes the fresh file to a fixed
+        # staging branch instead — but never force-pushes it (see
+        # scripts/nightly-baseline-stage.sh): if that branch already has
+        # unmerged progress sitting on it, this leaves it alone rather than
+        # clobbering it. A human or the next agent session turns it into a
+        # real PR with one command once the staleness check (below) goes red:
         #   gh pr create --base main --head nightly/coverage-baseline-staging && gh pr merge --auto --squash
         if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
         run: |
-          if git diff --quiet -- quality/coverage-baseline.json quality/coverage-history.json; then
-            echo "No coverage baseline/history change, skipping staging push."
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout -B nightly/coverage-baseline-staging
-          git add quality/coverage-baseline.json quality/coverage-history.json
-          git commit -m "chore(quality): update coverage ratchet baseline + history"
-          git push --force origin nightly/coverage-baseline-staging
+          bash scripts/nightly-baseline-stage.sh \
+            nightly/coverage-baseline-staging \
+            "chore(quality): update coverage ratchet baseline + history" \
+            quality/coverage-baseline.json quality/coverage-history.json
 
   # ─── Full Link Check (internal + external with baseline ratchet) ──
   link-check:
@@ -281,25 +277,27 @@ jobs:
         # Runs even when the check step above exits 1/2 (new breakage found) —
         # the baseline must still move forward so tomorrow's run only flags
         # genuinely NEW breakage instead of re-flagging tonight's known ones.
-        # Force-pushes to a fixed staging branch instead of opening a PR —
-        # see the coverage-ratchet job's "Stage coverage baseline..." step for
-        # why (main's branch protection blocks direct pushes, and this repo's
+        # Also runs (harmlessly) on the scan's own exit 3 (fatal/unknown
+        # error, fail-closed) — check-links.mjs only writes
+        # broken-links-baseline.json once, at the very end after a full
+        # successful scan, so a fatal exit means that write never happened
+        # and this step's git diff --quiet correctly no-ops instead of
+        # staging a baseline built from an incomplete scan.
+        # Pushes to a fixed staging branch instead of opening a PR — see the
+        # coverage-ratchet job's "Stage coverage baseline..." step for why
+        # (main's branch protection blocks direct pushes, and this repo's
         # Actions permissions block Actions-created PRs; that's a repo-owner
-        # setting, not something this workflow can fix). Same one-command
+        # setting, not something this workflow can fix). Never force-pushes
+        # (see scripts/nightly-baseline-stage.sh): if the branch already has
+        # unmerged progress on it, this leaves it alone. Same one-command
         # follow-up once the staleness check goes red:
         #   gh pr create --base main --head nightly/links-baseline-staging && gh pr merge --auto --squash
         if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
         run: |
-          if git diff --quiet -- quality/broken-links-baseline.json; then
-            echo "No broken-links baseline change, skipping staging push."
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout -B nightly/links-baseline-staging
-          git add quality/broken-links-baseline.json
-          git commit -m "chore(quality): refresh broken-links baseline"
-          git push --force origin nightly/links-baseline-staging
+          bash scripts/nightly-baseline-stage.sh \
+            nightly/links-baseline-staging \
+            "chore(quality): refresh broken-links baseline" \
+            quality/broken-links-baseline.json
 
   # ─── Notify on failure (aggregate, single Telegram ping) ──────────
   notify-failure:
