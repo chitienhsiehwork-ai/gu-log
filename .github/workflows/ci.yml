@@ -165,6 +165,29 @@ jobs:
       - name: Security gate (block new high/critical)
         run: pnpm run security:gate
 
+  # Blocking secret scan — same tool/config as the local pre-commit hook
+  # (scripts/hooks/pre-commit step -1), but hooks only fire on machines that
+  # have gitleaks installed; this is the backstop that can't be skipped.
+  # Uses .gitleaks.toml at repo root (auto-detected by the action). No
+  # GITLEAKS_LICENSE needed — this is a personal-account repo, not an org.
+  gitleaks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Job only has contents: read (see top-of-file minimal-permissions
+          # note) — no pull-requests: write, so PR-comment mode would just
+          # 403 silently. Detection still fails the job either way; disable
+          # the comment feature explicitly instead of relying on that.
+          GITLEAKS_ENABLE_COMMENTS: false
+
   unit-tests:
     runs-on: ubuntu-latest
     # vitest run is fast (~5s locally) but tribunal-v2/pipeline.test.ts spawns
@@ -313,6 +336,7 @@ jobs:
       - validate-content
       - pending-ticket-guard
       - security-gate
+      - gitleaks
       - unit-tests
       - build
       - internal-links
