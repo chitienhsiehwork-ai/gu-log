@@ -224,7 +224,7 @@ func TestRun_PreExistingStagedChangesFailBeforeMutationAndPreserveIndex(t *testi
 }
 
 func TestRun_ValidatorSystemicFailureStopsBeforeBuildCommitAndPush(t *testing.T) {
-	opts, _, _ := newTestOptions(t, func(o *Options) {
+	opts, counterFile, postsDir := newTestOptions(t, func(o *Options) {
 		o.SkipValidate = false
 		o.SkipBuild = false
 		o.SkipPush = false
@@ -232,6 +232,12 @@ func TestRun_ValidatorSystemicFailureStopsBeforeBuildCommitAndPush(t *testing.T)
 	repoRoot := opts.Cfg.RepoRoot
 	opts.Cfg.ValidatePosts = filepath.Join(repoRoot, "scripts", "validate-posts.mjs")
 	headBefore := runGitForDeployTest(t, repoRoot, "rev-parse", "HEAD")
+	counterBefore, err := os.ReadFile(counterFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pendingPath := filepath.Join(postsDir, opts.ActiveFilename)
+	finalPath := filepath.Join(postsDir, "sp-252-20260717-fakeauthor-faketitle.mdx")
 
 	binDir := t.TempDir()
 	callsFile := filepath.Join(t.TempDir(), "calls.log")
@@ -275,6 +281,19 @@ exec "$DEPLOY_TEST_REAL_GIT" "$@"
 	}
 	if staged := runGitForDeployTest(t, repoRoot, "diff", "--cached", "--name-only"); staged != "" {
 		t.Fatalf("validator failure left pipeline output staged: %q", staged)
+	}
+	counterAfter, err := os.ReadFile(counterFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(counterAfter) != string(counterBefore) {
+		t.Fatal("validator failure mutated the article counter before publish")
+	}
+	if _, err := os.Stat(pendingPath); err != nil {
+		t.Fatalf("validator failure moved the pending post: %v", err)
+	}
+	if _, err := os.Stat(finalPath); !os.IsNotExist(err) {
+		t.Fatalf("validator failure created final post before allocation gate: err=%v", err)
 	}
 }
 

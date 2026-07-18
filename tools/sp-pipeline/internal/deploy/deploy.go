@@ -213,7 +213,17 @@ func Run(ctx context.Context, opts Options) (*Result, error) {
 
 	postsDir := opts.Cfg.PostsDir
 
-	// 1. Bump the counter → allocated integer + ticket id.
+	// 1. Validate the still-PENDING inputs before allocating a durable ticket.
+	// validate-posts deliberately accepts PENDING on feature branches. Any
+	// non-zero exit must leave the counter and filenames untouched so recovery
+	// cannot publish a ticket whose counter bump was never committed.
+	if !opts.SkipValidate {
+		if err := runValidate(ctx, opts.Cfg.RepoRoot, opts.Cfg.ValidatePosts); err != nil {
+			return nil, fmt.Errorf("deploy: validate-posts rejected pending publish for %s: %w", opts.ActiveFilename, err)
+		}
+	}
+
+	// 2. Bump the counter → allocated integer + ticket id.
 	allocated, err := opts.Counter.Bump(opts.Prefix)
 	if err != nil {
 		return nil, fmt.Errorf("deploy: counter bump: %w", err)
@@ -221,7 +231,7 @@ func Run(ctx context.Context, opts Options) (*Result, error) {
 	ticketID := fmt.Sprintf("%s-%d", opts.Prefix, allocated)
 	opts.Log.Info("  Counter locked+bumped at commit time: %s (next will be %d)", ticketID, allocated+1)
 
-	// 2. Build the final filenames and rename pending files.
+	// 3. Build the final filenames and rename pending files.
 	prefixLower := strings.ToLower(opts.Prefix)
 	finalFilename := fmt.Sprintf("%s-%d-%s-%s-%s.mdx", prefixLower, allocated, opts.DateStamp, opts.AuthorSlug, opts.TitleSlug)
 	finalEN := "en-" + finalFilename
@@ -247,7 +257,7 @@ func Run(ctx context.Context, opts Options) (*Result, error) {
 		return nil, err
 	}
 
-	// 3. Replace any PENDING ticketId references in the final files.
+	// 4. Replace any PENDING ticketId references in the final files.
 	if err := replacePendingTicketID(filepath.Join(postsDir, finalFilename), ticketID); err != nil {
 		return nil, err
 	}
@@ -261,16 +271,6 @@ func Run(ctx context.Context, opts Options) (*Result, error) {
 	}
 	if err := checkPendingArtifacts(opts.Cfg.RepoRoot); err != nil {
 		return nil, err
-	}
-
-	// 4. Validate (unless skipped).
-	if !opts.SkipValidate {
-		if err := runValidate(ctx, opts.Cfg.RepoRoot, opts.Cfg.ValidatePosts); err != nil {
-			// Validation is a publish gate, not a best-effort diagnostic. Keep
-			// the allocated/renamed files in place for explicit recovery, but do
-			// not build, stage, commit, or push after any non-zero validator exit.
-			return nil, fmt.Errorf("deploy: validate-posts rejected fresh publish for %s: %w", finalFilename, err)
-		}
 	}
 
 	// 5. Build (unless skipped).
