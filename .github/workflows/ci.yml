@@ -5,6 +5,7 @@ on:
     branches: ['main']
   pull_request:
     branches: ['main']
+    types: [opened, synchronize, reopened, ready_for_review]
 
 # Cancel superseded runs for the same PR/branch so pushes don't queue.
 concurrency:
@@ -62,6 +63,54 @@ jobs:
         run: git fetch --no-tags origin main
       - name: 近似唯讀牆（spec delta 是否被夾帶進實作 commit）
         run: bash scripts/check-spec-impl-separation.sh origin/main
+
+  # ─── blocking: OpenSpec archive-before-merge lifecycle gate ───────────────
+  # Always present so ci-passed can positive-match it. Push and draft PR runs
+  # take an explicit step-level no-op; a ready PR validates only the event's
+  # exact committed base/head trees.
+  openspec-archive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Archive gate not applicable to push or draft PR
+        if: github.event_name == 'push' || github.event.pull_request.draft == true
+        run: echo "OpenSpec archive validation is deferred for push and draft PR runs."
+
+      - name: Checkout exact PR head
+        if: github.event_name == 'pull_request' && github.event.pull_request.draft == false
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        if: github.event_name == 'pull_request' && github.event.pull_request.draft == false
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      - name: Fetch and verify exact event commits
+        if: github.event_name == 'pull_request' && github.event.pull_request.draft == false
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          actual_head="$(git rev-parse HEAD)"
+          if [ "$actual_head" != "$HEAD_SHA" ]; then
+            echo "::error::Checkout HEAD $actual_head does not match event head $HEAD_SHA."
+            exit 1
+          fi
+          git fetch --no-tags origin "$BASE_SHA"
+          git cat-file -e "$BASE_SHA^{commit}"
+          git cat-file -e "$HEAD_SHA^{commit}"
+
+      - name: Validate OpenSpec archive lifecycle
+        if: github.event_name == 'pull_request' && github.event.pull_request.draft == false
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node scripts/check-openspec-archive.mjs --base "$BASE_SHA" --head "$HEAD_SHA"
 
   lint:
     runs-on: ubuntu-latest
@@ -349,6 +398,7 @@ jobs:
       - bundle-budget
       - spec-ownership
       - e2e-core
+      - openspec-archive
     steps:
       - name: Verify every required job succeeded
         env:
