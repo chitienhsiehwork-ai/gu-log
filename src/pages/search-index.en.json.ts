@@ -12,6 +12,7 @@ export async function GET(_context: APIContext) {
     lang: post.data.lang,
     date: post.data.originalDate,
     source: post.data.source,
+    sourceUrl: post.data.sourceUrl,
   }));
 
   return new Response(JSON.stringify(searchIndex), {
