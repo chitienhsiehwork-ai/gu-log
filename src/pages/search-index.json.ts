@@ -24,6 +24,7 @@ export async function GET(_context: APIContext) {
     lang: post.data.lang,
     date: post.data.originalDate,
     source: post.data.source,
+    sourceUrl: post.data.sourceUrl,
     body: extractPlainText(post.body ?? ''),
   }));
 
