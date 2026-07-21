@@ -8,12 +8,15 @@
  * Output format: { "mp-231-20260331-pawelhuryn-vibe-engineering-vibe-coding": 3, ... }
  * Key = post id (filename without .mdx), Value = commit count.
  *
- * Merge-aware: if the active worktree's gitdir contains `MERGE_HEAD` (i.e.
- * we're in the middle of finalising a merge, typically from the
- * post-versions-regen custom merge driver), the git log range is extended to
- * `HEAD MERGE_HEAD` so the regenerated manifest includes commits from BOTH
- * sides of the merge. Plain `git log` during a merge only walks HEAD's ancestry,
- * which would silently drop counts for posts touched only on the incoming branch.
+ * Merge-aware in two ways:
+ * - while a merge is in progress, walk `HEAD MERGE_HEAD` so incoming history is
+ *   available to the custom merge driver;
+ * - after a merge, inspect each parent diff (`git log -m`) for rename edges so
+ *   a path canonicalised by the merge keeps its second-parent history.
+ *
+ * Merge commits provide lineage only. They are not counted as article touches,
+ * matching the historical manifest semantics and avoiding version bumps from
+ * ordinary PR merge commits.
  */
 import { execFileSync, execSync } from 'node:child_process';
 import { writeFileSync, mkdirSync, existsSync, readFileSync, readdirSync } from 'node:fs';
@@ -95,30 +98,18 @@ function getGitPath(name) {
 }
 
 function buildCurrentPostVersions(revs) {
-  const history = execFileSync(
-    'git',
-    [
-      '-c',
-      'diff.renameLimit=0',
-      'log',
-      ...revs,
-      '--format=%x1e%H',
-      '--name-status',
-      '-M',
-      '--',
-      'src/content/posts/',
-    ],
-    {
-      encoding: 'utf-8',
-      maxBuffer: 50 * 1024 * 1024,
-      cwd: repoRoot,
-    }
-  );
+  const history = getPostHistory(revs);
+  const mergeHistory = getPostHistory(revs, { mergeDiffs: true });
   const commits = parseHistory(history);
-  const staged = includeStaged ? getStagedPostChanges() : null;
+  const mergeCommits = parseHistory(mergeHistory);
+  const mergeInProgress = revs.includes('MERGE_HEAD');
+  const staged = includeStaged ? getStagedPostChanges(revs) : null;
   const lineage = new PathLineage();
 
   for (const commit of commits) {
+    for (const [before, after] of commit.renames) lineage.union(before, after);
+  }
+  for (const commit of mergeCommits) {
     for (const [before, after] of commit.renames) lineage.union(before, after);
   }
   if (staged) {
@@ -127,7 +118,13 @@ function buildCurrentPostVersions(revs) {
 
   const countsByLineage = new Map();
   for (const commit of commits) incrementTouchedLineages(countsByLineage, lineage, commit.paths);
-  if (staged) incrementTouchedLineages(countsByLineage, lineage, staged.paths);
+  // A regular staged commit is a future article touch. During a merge, however,
+  // the index describes the merge resolution: the eventual merge commit only
+  // contributes rename lineage, so counting the same index here would make the
+  // pre-commit manifest one version newer than the post-commit manifest.
+  if (staged && !mergeInProgress) {
+    incrementTouchedLineages(countsByLineage, lineage, staged.paths);
+  }
 
   const versions = {};
   for (const postPath of getCurrentPostPaths()) {
@@ -135,6 +132,18 @@ function buildCurrentPostVersions(revs) {
     if (count > 0) versions[postIdFromPath(postPath)] = count;
   }
   return versions;
+}
+
+function getPostHistory(revs, { mergeDiffs = false } = {}) {
+  const args = ['-c', 'diff.renameLimit=0', 'log', ...revs, '--format=%x1e%H', '--name-status'];
+  if (mergeDiffs) args.push('--merges', '-m');
+  args.push('-M', '--', 'src/content/posts/');
+
+  return execFileSync('git', args, {
+    encoding: 'utf-8',
+    maxBuffer: 50 * 1024 * 1024,
+    cwd: repoRoot,
+  });
 }
 
 function parseHistory(output) {
@@ -148,25 +157,40 @@ function parseHistory(output) {
   return commits;
 }
 
-function getStagedPostChanges() {
-  const staged = execFileSync(
-    'git',
-    [
-      '-c',
-      'diff.renameLimit=0',
-      'diff',
-      '--cached',
-      '--name-status',
-      '-M',
-      '--',
-      'src/content/posts/',
-    ],
-    {
-      encoding: 'utf-8',
-      cwd: repoRoot,
-    }
-  );
-  return parseNameStatusLines(staged.split('\n').filter(Boolean));
+function getStagedPostChanges(revs) {
+  // In an ordinary commit HEAD is the only useful comparison. During a merge,
+  // compare the index with both parents: a resolution that renames an incoming
+  // path can look like a plain add relative to HEAD but like a rename relative
+  // to MERGE_HEAD. Both views are needed to preserve lineage before the merge
+  // commit exists.
+  const bases = revs.includes('MERGE_HEAD') ? ['HEAD', 'MERGE_HEAD'] : ['HEAD'];
+  const combined = { paths: new Set(), renames: [] };
+
+  for (const base of bases) {
+    const staged = execFileSync(
+      'git',
+      [
+        '-c',
+        'diff.renameLimit=0',
+        'diff',
+        '--cached',
+        base,
+        '--name-status',
+        '-M',
+        '--',
+        'src/content/posts/',
+      ],
+      {
+        encoding: 'utf-8',
+        cwd: repoRoot,
+      }
+    );
+    const changes = parseNameStatusLines(staged.split('\n').filter(Boolean));
+    for (const path of changes.paths) combined.paths.add(path);
+    combined.renames.push(...changes.renames);
+  }
+
+  return combined;
 }
 
 function parseNameStatusLines(lines) {

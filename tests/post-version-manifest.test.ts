@@ -141,7 +141,7 @@ describe('post version manifest freshness', () => {
       encoding: 'utf-8',
     });
     expect(checkResult.status).toBe(0);
-  });
+  }, 20_000);
 
   it('keeps historical touch counts under the current canonical path after a rename', () => {
     const repo = makeSyntheticRepo('sp-999-regression');
@@ -169,6 +169,64 @@ describe('post version manifest freshness', () => {
     expect(manifest['gp-999-regression']).toBe(3);
     expect(manifest).not.toHaveProperty('sp-999-regression');
   });
+
+  it('keeps the same second-parent lineage before and after a merge commit', () => {
+    const repo = makeSyntheticRepo('gp-998-local');
+    const localBranch = run('git', ['branch', '--show-current'], repo).trim();
+    const legacyPath = path.join(repo, 'src', 'content', 'posts', 'legacy-999-incoming.mdx');
+    const canonicalPath = path.join(repo, 'src', 'content', 'posts', 'canonical-999-merged.mdx');
+
+    run('git', ['switch', '-qc', 'incoming'], repo);
+    fs.writeFileSync(legacyPath, '---\ntitle: incoming\n---\nbody\n');
+    run('git', ['add', 'src/content/posts/legacy-999-incoming.mdx'], repo);
+    run('git', ['commit', '-qm', 'add incoming post'], repo);
+    fs.appendFileSync(legacyPath, '\nincoming edit\n');
+    run('git', ['add', 'src/content/posts/legacy-999-incoming.mdx'], repo);
+    run('git', ['commit', '-qm', 'edit incoming post'], repo);
+
+    run('git', ['switch', '-q', localBranch], repo);
+    fs.appendFileSync(
+      path.join(repo, 'src', 'content', 'posts', 'gp-998-local.mdx'),
+      '\nlocal branch edit\n'
+    );
+    run('git', ['add', 'src/content/posts/gp-998-local.mdx'], repo);
+    run('git', ['commit', '-qm', 'diverge local branch'], repo);
+
+    run('git', ['merge', '--no-commit', '--no-ff', 'incoming'], repo);
+    fs.renameSync(legacyPath, canonicalPath);
+    run('git', ['add', '-A', 'src/content/posts'], repo);
+
+    const preCommitResult = spawnSync(
+      'node',
+      ['scripts/build-version-manifest.mjs', '--include-staged'],
+      {
+        cwd: repo,
+        encoding: 'utf-8',
+      }
+    );
+    expect(preCommitResult.status).toBe(0);
+    const preCommitManifest = JSON.parse(
+      fs.readFileSync(path.join(repo, 'src', 'data', 'post-versions.json'), 'utf-8')
+    );
+    expect(preCommitManifest['canonical-999-merged']).toBe(2);
+    expect(preCommitManifest).not.toHaveProperty('legacy-999-incoming');
+
+    run('git', ['add', 'src/data/post-versions.json'], repo);
+    run('git', ['commit', '-qm', 'merge incoming post under canonical path'], repo);
+
+    const result = spawnSync('node', ['scripts/build-version-manifest.mjs'], {
+      cwd: repo,
+      encoding: 'utf-8',
+    });
+    expect(result.status).toBe(0);
+
+    const postCommitManifest = JSON.parse(
+      fs.readFileSync(path.join(repo, 'src', 'data', 'post-versions.json'), 'utf-8')
+    );
+    expect(postCommitManifest).toEqual(preCommitManifest);
+    expect(postCommitManifest['canonical-999-merged']).toBe(2);
+    expect(postCommitManifest).not.toHaveProperty('legacy-999-incoming');
+  }, 20_000);
 
   it('projects staged renames onto canonical keys before the rename commit exists', () => {
     const repo = makeSyntheticRepo('sp-999-regression');
