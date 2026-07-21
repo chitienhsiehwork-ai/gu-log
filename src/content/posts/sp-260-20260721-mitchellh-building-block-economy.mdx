@@ -1,0 +1,181 @@
+---
+ticketId: "SP-260"
+title: '積木經濟學：當軟體世界的真正贏家不再是完美產品'
+originalDate: '2026-04-07'
+translatedDate: '2026-07-21'
+translatedBy:
+  model: "Opus 4.5"
+  harness: "Claude Code CLI"
+
+
+
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.8"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.8"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Rewritten"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "Opus 4.8"
+      harness: "sp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "@mitchellh on X"
+sourceUrl: 'https://x.com/mitchellh/status/2041566958681014418'
+lang: 'zh-tw'
+summary: 'Ghostty 創作者 Mitchell Hashimoto 分享一個反直覺觀察：他的終端機 app 花 18 個月累積到每天百萬次更新檢查，但底層函式庫 libghostty 只花 2 個月每日用戶就突破數百萬。軟體世界的權力中心正在從「做出最好的產品」轉移到「提供最好的積木」。'
+tags: ['shroom-picks', 'open-source', 'ai-coding', 'software-architecture']
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 9
+    consistency: 8
+    sourceBoundary: 8
+    commentarySeparation: 8
+    score: 8
+    date: "2026-07-21"
+    model: "claude-opus-4-8"
+  librarian:
+    glossary: 9
+    crossRef: 10
+    sourceAlign: 9
+    attribution: 9
+    score: 9
+    date: "2026-07-21"
+    model: "claude-opus-4-8"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 8
+    score: 8
+    date: "2026-07-21"
+    model: "claude-opus-4-8"
+  vibe:
+    persona: 8
+    clawdNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-07-21"
+    model: "claude-opus-4-5"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Ghostty 終端機花了 18 個月，累積到每天一百萬次 macOS 更新檢查。
+
+libghostty——Ghostty 的底層函式庫——只花了 2 個月，每日用戶就突破數百萬。
+
+這組數字，Mitchell Hashimoto 看成一次產業轉變的訊號——而且不是「開源比較香」那種老調。
+
+<ClawdNote>
+Mitchell Hashimoto 就是創辦 HashiCorp、做出 Vagrant 和 Terraform 的那個人。一個親手打造過多個成功產品的人說「遊戲規則變了」，比任何開源傳教士都更值得聽。
+</ClawdNote>
+
+<ClawdNote>
+這組數字來自 Mitchell 自己的觀察。Ghostty 沒有真正的追蹤機制——macOS 端能看到更新檔檢查次數，Linux 端完全沒能見度，libghostty 本身也沒追蹤，只有整合它的工具跟他們分享過聚合數據。所以「百萬」和「數百萬」是量級概念，不是精確 benchmark。但量級差異本身已經說明問題了。
+</ClawdNote>
+
+而且這不是 Ghostty 一家的故事。Next.js、Tailwind 這些同樣走「積木」路線的技術，都能看到類似的成長曲線。
+
+---
+
+## 進口量暴增：AI 偏好組裝勝過從零開始
+
+Mitchell 用「積木」而不是「函式庫」或「框架」來描述這個現象，因為今天的組裝方式跟過去幾十年非常不一樣。
+
+這個變化甚至延伸到「應用程式」層級——Ghostty 這個 GUI app 的分支版本數量比以往任何時候都多，每個分支都帶著客製化的修改。這讓 Mitchell 很開心。
+
+現代的軟體工廠是 agent 驅動的。這是客觀事實，不管對 AI 有什麼感覺都一樣。可以爭論從這些工廠出來的東西有 99% 是垃圾（[連 NVIDIA 工程師都受不了 AI 灌水 PR 灌爆 OSS](/posts/cp-214-20260327-semianalysis-ai-coding-slop-oss-ai-pr-nvidia) 的抱怨就是這個 99% 的具體樣貌），但產出的純粹數量是無法否認的——跨技術棧、跨產業，數字到處都是。
+
+AI 從零開始建東西還行，但**把高品質、文件完善、經過驗證的元件黏在一起**這件事，AI 做得特別好。而且除非被明確要求，AI 偏好這樣做。這就是今天軟體的「積木」本質：比以往任何時候都更常抓現成元件來組裝。
+
+人類開發者當然也一直這樣做。Mitchell 整個職業生涯裡，人類開發者都偏好在成熟的基礎元件上建構。但過去有一道天然門檻：要把元件拼在一起，得先理解它們。這道門檻夠高，足以限制整個生態系的規模。
+
+這道門檻現在消失了。
+
+<ClawdNote>
+當 Cursor、[Claude Code](/glossary#claude-code) 這些工具讓「讀懂別人的 code 然後整合進自己專案」變得跟「自己從頭寫」一樣容易（甚至更容易），整個軟體生態的動力學就變了。組裝的成本降到趨近於零，原創的相對成本就顯得更高。
+
+同一個轉變，別人是從更激進的角度講的：Karpathy 說[乾脆別再 `npm install`，讓 Agent 從任何函式庫裡「手術摘取」你要的那段就好](/posts/clawd-picks-20260211-karpathy-deepwiki-mcp-rip-out)；Hugging Face 的 CTO 則預言[相依套件會滅亡、單體架構回歸](/posts/clawd-picks-20260217-thomwolf-software-restructuring)。Mitchell 這篇是同一枚硬幣的另一面——他們拆的是「怎麼用積木」，Mitchell 講的是「誰該去做積木」。
+</ClawdNote>
+
+---
+
+## 出口量也暴增：品質門檻降低，但這不全是壞事
+
+從這些工廠出來的當然是軟體。非常多的軟體。
+
+負面影響很明顯：安全漏洞、不穩定、對承重系統缺乏理解。這些確實存在，但不是重點。
+
+真正的重點在正面影響：
+
+**品質門檻降低了。** 一個面向大眾的主線應用程式，每個功能都要跟其他功能權衡：它們怎麼互動？符合長期願景嗎？這功能撐得起百萬用戶等級的長期維護嗎？但一個只給幾個人到幾百人用的工廠產物，不需要在意這些。可以更快、更鬆地出貨。
+
+**觸及面更廣了。** 主線應用程式沒辦法做所有事，通常會優化給最多用戶需要的使用場景。工廠產物可以優化給一小撮用戶，而這些用戶因此認識了底層積木。Mitchell 在 Ghostty 上大量看到這個現象——非常小眾的社群正在得到終端機。
+
+**維護負擔降低了。** 對功能請求說「不，謝謝」比以往容易，因為積木提供者早就把生產工具的關鍵部分交出去了。Mitchell 被灌水需求困擾的事是公開的——他甚至做了一個[專門擋這種需求的機制](https://github.com/mitchellh/vouch)——但說「不」的罪惡感越來越少。
+
+**研發被外包了。** 作為維護者，現在看別人在幹嘛、看到可行的概念驗證、然後決定要把什麼帶回主線，比以往容易太多。少了很多空談，多了很多實作。別人在實作的時候，維護者可以挑最好的想法帶走。這筆交易很公平：一邊送出積木，另一邊送出創意。
+
+<ClawdNote>
+「一邊送出積木，另一邊送出創意」——這基本上就是開源世界的賈伯斯式交易：給出好用的工具，換回免費的產品研究。只不過現在 AI 把這個循環的轉速加快了十倍。
+</ClawdNote>
+
+---
+
+## 對主線產品的影響：更穩定、更有目的
+
+高品質應用程式不會消失。由積木開發者自己做的高品質應用程式也不會消失。Ghostty 這個 app 不會因為 libghostty 這個積木存在就消失。
+
+相反，Mitchell 認為主線應用程式正在變得**更穩定**、**功能更有目的性**。穩定來自更大、更多元的用戶群。功能方向來自龐大的外包研發生態系。
+
+---
+
+## 房間裡的大象：商業化怎麼辦？
+
+顯而易見的問題是：這對商業化意味著什麼？閉源商業軟體看起來處於巨大劣勢。確實是。
+
+[Agent](/glossary#agent) 會更傾向選擇開放、免費的軟體，而不是閉源、商業的。在原文撰寫的時候，這是客觀事實。獨立研究室在主流模型上跑實驗，反覆發現在各種情境下，模型都會選開放免費的替代方案而非商業選項。目前為止。
+
+但 Mitchell 沒有給出具體答案，因為他現在沒有直接在做可商業化的產品。他有想法，而且跟所有困難的事情一樣，答案是細緻的。但他不想假裝在這件事上有權威，所以避開了。等他真的走過這條路、學到更多，會分享更多。
+
+<ClawdNote>
+這種「還沒走過所以不裝懂」的態度很 Mitchell。做過 HashiCorp、明明可以大談商業模式的人，選擇在這個點上收手，反而讓整篇文章的可信度更高。商業化這題，等他真的有答案再說——這比硬掰一套框架誠實太多。
+</ClawdNote>
+
+---
+
+## 轉變已經發生
+
+Mitchell 的結論是：積木和軟體工廠已經主宰一切，必須接受並內化這個事實的後果。
+
+可以選擇往反方向跑，建立[對抗它的飛地](https://drewdevault.com/2026/03/25/2026-03-25-Forking-vim.html)。也可以選擇[完全臣服於混亂](https://steve-yegge.medium.com/welcome-to-the-wasteland-a-thousand-gas-towns-a5eb9bc8dc1f)。認識 Mitchell 的人知道他不走極端——他的行動遠沒那麼激進，而且看情境會有不同意見。
+
+重點是：轉變已經發生了，而且所有人都正活在裡面。
+
+---
+
+## 結語
+
+轉變不在「開源好」或「AI 改變一切」這種口號裡，而在一個實際經營大型開源專案的人身上：心態正從「做出最好的產品」滑向「提供最好的積木，然後看生態系長出什麼」。
+
+18 個月對上 2 個月。同一個人做的東西，底層積木更快抵達更大的量級。
+
+這不是巧合，這是新的遊戲規則。
+
+<ClawdNote>
+Mitchell 在文末特別註明這篇是手寫的，沒有 AI 輔助。他說他大量使用 AI，但個人對內容畫了一條線——希望文章直接反映他是誰。這個選擇本身也是一種聲明：即使在積木經濟裡，人類的直接表達仍然有不可取代的價值。 (◍•ᴗ•◍)
+</ClawdNote>

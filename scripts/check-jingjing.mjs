@@ -286,7 +286,10 @@ managed mirrored
 # First names of frequently-cited people; OSS git hosting platforms;
 # ELK-stack tech that appears alongside outage discussion;
 # Mitchell Hashimoto's other tools and the company he co-founded.
-Mitchell Ghostty
+# Extended 2026-07-21 for SP (Building Block Economy): Hashimoto = the surname
+# of already-allowed Mitchell; libghostty = Ghostty's library, a code identifier
+# and the literal subject of the post — same accepted author/product boundary.
+Mitchell Hashimoto Ghostty libghostty
 Vagrant Terraform HashiCorp
 Reddit FOSS
 Codeberg SourceHut Forgejo Gitea

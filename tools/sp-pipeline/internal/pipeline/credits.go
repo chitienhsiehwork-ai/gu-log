@@ -113,7 +113,13 @@ func (s *State) JudgeStampLabels() (model, harness string) {
 			}
 		}
 	}
-	for _, p := range llm.DefaultJudgeChain() {
+	// Resolve against the same chain the tribunal actually judges with:
+	// Codex GPT-5.5 when codex is on PATH, else the Claude fallback (CCC / web
+	// sandbox). DefaultJudgeChain is codex-only, so on a codex-absent box the
+	// loop below found nothing Available and the stamp fell through to a
+	// hardcoded GPT-5.5 — a FALSE signature on every CCC-run post, directly
+	// contradicting the Claude models the tribunal wrote into scores.*.
+	for _, p := range llm.JudgeChainWithClaudeFallback(false) {
 		if p.Available() {
 			return llm.DisplayName(p.Model()), llm.HarnessName(p.Model())
 		}
