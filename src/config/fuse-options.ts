@@ -12,6 +12,7 @@ export type SearchEntry = {
   lang: string;
   date: string;
   source: string;
+  sourceUrl: string;
 };
 
 export const fuseOptions: IFuseOptions<SearchEntry> = {
@@ -20,6 +21,7 @@ export const fuseOptions: IFuseOptions<SearchEntry> = {
   minMatchCharLength: 2,
   ignoreLocation: true, // Don't penalize matches that appear late in the string
   keys: [
+    { name: 'sourceUrl', weight: 4 },
     { name: 'ticketId', weight: 3 },
     { name: 'title', weight: 2 },
     { name: 'tags', weight: 1.5 },

@@ -81,6 +81,10 @@ subcommand is for recovering a partially-deployed article.`,
 	cmd.Flags().BoolVar(&skipBuild, "skip-build", false, "skip pnpm run build")
 	cmd.Flags().BoolVar(&skipValidate, "skip-validate", false, "skip node scripts/validate-posts.mjs")
 	_ = cmd.MarkFlagRequired("active-file")
+	// date-stamp / author-slug / title-slug are validated inside deploy.Run
+	// (validateFilenameSlots, gu-log #546) rather than as cobra-required
+	// flags, so the retired-prefix taxonomy gate in runDeployCmd fires first
+	// and returns its actionable "use GP/MP" hint before any slot check.
 	return cmd
 }
 

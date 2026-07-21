@@ -286,7 +286,10 @@ managed mirrored
 # First names of frequently-cited people; OSS git hosting platforms;
 # ELK-stack tech that appears alongside outage discussion;
 # Mitchell Hashimoto's other tools and the company he co-founded.
-Mitchell Ghostty
+# Extended 2026-07-21 for SP (Building Block Economy): Hashimoto = the surname
+# of already-allowed Mitchell; libghostty = Ghostty's library, a code identifier
+# and the literal subject of the post — same accepted author/product boundary.
+Mitchell Hashimoto Ghostty libghostty
 Vagrant Terraform HashiCorp
 Reddit FOSS
 Codeberg SourceHut Forgejo Gitea
@@ -715,10 +718,18 @@ Developers Messaging
 `;
 
 const HARDCODED = new Set();
-for (const tok of ALLOWLIST_RAW.split(/\s+/)) {
-  const t = tok.trim();
-  if (!t || t.startsWith('#')) continue;
-  HARDCODED.add(t);
+for (const line of ALLOWLIST_RAW.split('\n')) {
+  const trimmedLine = line.trim();
+  // Skip full-line comments before tokenizing — a line-level check is
+  // required because splitting the whole blob on whitespace first would
+  // scatter each comment line's prose words into the token stream, with
+  // only the leading '#' itself filtered out (the original bug: comment
+  // text silently became "accepted English").
+  if (!trimmedLine || trimmedLine.startsWith('#')) continue;
+  for (const tok of trimmedLine.split(/\s+/)) {
+    if (!tok) continue;
+    HARDCODED.add(tok);
+  }
 }
 
 // ── Glossary terms ─────────────────────────────────────────────────
@@ -967,6 +978,18 @@ function baselineFromRaw(raw, filePath) {
   return { keys, wordCounts };
 }
 
+function baselineRefExists(baselineRef) {
+  try {
+    execFileSync('git', ['rev-parse', '--verify', '--quiet', baselineRef], {
+      cwd: REPO_ROOT,
+      stdio: ['ignore', 'ignore', 'ignore'],
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function getBaselineViolations(filePath, baselineRef) {
   if (!baselineRef) return null;
 
@@ -986,6 +1009,20 @@ function getBaselineViolations(filePath, baselineRef) {
         // Try the next candidate / fetch round.
       }
     }
+  }
+  // Either the file is new at baselineRef (correct: all its violations are
+  // new) or baselineRef itself couldn't be resolved (e.g. no network to fetch
+  // origin, or the ref genuinely doesn't exist) — in the latter case
+  // grandfathered violations can't be suppressed and every historical
+  // violation in the file will look "new". Warn so that flood doesn't get
+  // mistaken for a real regression.
+  if (!baselineRefExists(baselineRef)) {
+    console.error(
+      `[check-jingjing] Warning: baseline ref "${baselineRef}" could not be resolved ` +
+        `(no network to fetch, or the ref doesn't exist) — historical/grandfathered ` +
+        `violations in ${path.relative(REPO_ROOT, filePath)} cannot be suppressed and ` +
+        `may appear as "new". Run 'git fetch origin' and retry before assuming a regression.`
+    );
   }
   // New file or unavailable baseline: all violations are new.
   return null;

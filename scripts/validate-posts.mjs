@@ -14,6 +14,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
+import yaml from 'yaml';
 import { normalizeUrl, extractTweetId, computeSimilarity, FLAG_THRESHOLD } from './dedup-gate.mjs';
 import { loadPostMap, findMissingPairs, reminderText } from './check-translation-pairs.mjs';
 import { MODEL_MAP } from './detect-model.mjs';
@@ -89,64 +90,46 @@ const containsCjkEscape = (line) => CJK_ESCAPE_MARKERS.some((m) => line.includes
 const CJK_GRANDFATHERED_LINES = new Map([]);
 
 // ─── Helpers ───────────────────────────────────────────────────────
+
+// coerceYamlValue recursively normalizes a real yaml.parse() result back
+// into the flat-string / string-array shape every rule below already
+// expects (all scalars are strings, `tags` and similar are string
+// arrays). This exists because gu-log #546 replaced the hand-rolled
+// regex frontmatter scanner below with a real YAML parser (defense in
+// depth: LLM-authored frontmatter can contain unescaped quotes/colons
+// the old regex silently accepted) — but yaml.parse() returns native
+// JS Date/number/boolean for unquoted scalars, and ~19 rules in this
+// file do string operations (`.test()`, `.endsWith()`, `.length`,
+// template interpolation) against those values. Coercing here keeps
+// "how frontmatter is READ" changed without changing "what TYPE comes
+// out", so an accidentally-unquoted date doesn't silently become a JS
+// Date and break DATE_PATTERN.test().
+function coerceYamlValue(value) {
+  if (value === null || value === undefined) return value;
+  if (Array.isArray(value)) return value.map(coerceYamlValue);
+  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  if (typeof value === 'object') {
+    const out = {};
+    for (const [k, v] of Object.entries(value)) out[k] = coerceYamlValue(v);
+    return out;
+  }
+  if (typeof value === 'string') return value;
+  return String(value);
+}
+
 function parseFrontmatter(content) {
   const match = content.match(/^---\n([\s\S]*?)\n---/);
   if (!match) return null;
 
-  const fm = {};
-  const raw = match[1];
-
-  // Simple YAML parser for flat fields
-  for (const line of raw.split('\n')) {
-    const kv = line.match(/^(\w[\w.]*?):\s*(.+)/);
-    if (kv) {
-      let val = kv[2].trim();
-      // Strip quotes
-      if (
-        (val.startsWith('"') && val.endsWith('"')) ||
-        (val.startsWith("'") && val.endsWith("'"))
-      ) {
-        val = val.slice(1, -1);
-      }
-      fm[kv[1]] = val;
-    }
+  let parsed;
+  try {
+    parsed = yaml.parse(match[1]);
+  } catch (e) {
+    throw new Error(`Invalid YAML in frontmatter: ${e.message}`);
   }
+  if (!parsed || typeof parsed !== 'object') return {};
 
-  // Parse nested objects (e.g., translatedBy.model, translatedBy.harness)
-  const nestedMatch = raw.match(/^(\w+):\s*\n((?:\s+\w+:.*\n?)+)/gm);
-  if (nestedMatch) {
-    for (const block of nestedMatch) {
-      const lines = block.split('\n');
-      const parentKey = lines[0].match(/^(\w+):/)?.[1];
-      if (parentKey) {
-        fm[parentKey] = {};
-        for (let i = 1; i < lines.length; i++) {
-          const childMatch = lines[i].match(/^\s+(\w+):\s*(.+)/);
-          if (childMatch) {
-            let val = childMatch[2].trim();
-            if (
-              (val.startsWith('"') && val.endsWith('"')) ||
-              (val.startsWith("'") && val.endsWith("'"))
-            ) {
-              val = val.slice(1, -1);
-            }
-            fm[parentKey][childMatch[1]] = val;
-          }
-        }
-      }
-    }
-  }
-
-  // Parse tags array
-  const tagsMatch = raw.match(/tags:\s*\[(.*?)\]/s);
-  if (tagsMatch) {
-    fm.tags = tagsMatch[1]
-      .split(',')
-      .map((t) => t.trim().replace(/["']/g, ''))
-      .filter(Boolean);
-  }
-
-  return fm;
+  return coerceYamlValue(parsed);
 }
 
 function getBaseFilename(filename) {
@@ -284,7 +267,12 @@ function extractMoguNotes(content) {
 function validatePost(filepath, allPosts, options = {}) {
   const filename = path.basename(filepath);
   const content = fs.readFileSync(filepath, 'utf-8');
-  const fm = parseFrontmatter(content);
+  let fm;
+  try {
+    fm = parseFrontmatter(content);
+  } catch (e) {
+    return { filename, errors: [e.message], warnings: [] };
+  }
   const fmText = getFrontmatterText(content);
   const body = getContentBody(content);
   const errors = [];
@@ -641,7 +629,14 @@ function loadActiveZhTwArticles() {
       continue;
     }
 
-    const fm = parseFrontmatter(content);
+    let fm;
+    try {
+      fm = parseFrontmatter(content);
+    } catch {
+      // Invalid YAML is reported by validatePost's own gate; skip it here
+      // rather than crashing the whole duplicate scan for every file.
+      continue;
+    }
     if (!fm || !fm.ticketId) continue;
     // Skip deprecated articles
     if (fm.status === 'deprecated') continue;
@@ -887,7 +882,15 @@ function main() {
   const allFiles = fs.readdirSync(POSTS_DIR).filter((f) => f.endsWith('.mdx'));
   const allPosts = allFiles.map((f) => {
     const content = fs.readFileSync(path.join(POSTS_DIR, f), 'utf-8');
-    const fm = parseFrontmatter(content);
+    let fm;
+    try {
+      fm = parseFrontmatter(content);
+    } catch {
+      // Invalid YAML is reported below when this same file goes through
+      // validatePost's own gate; don't let one bad file crash the
+      // cross-file preload for every other post.
+      fm = null;
+    }
     return { filename: f, ticketId: fm?.ticketId || '' };
   });
 

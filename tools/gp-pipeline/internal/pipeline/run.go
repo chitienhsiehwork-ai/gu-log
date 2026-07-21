@@ -74,6 +74,7 @@ func Run(ctx context.Context, s *State) error {
 		{"refine", s.Refine},
 		{"credits", s.Credits},
 		{"ralph", s.Ralph},
+		{"translate", s.Translate},
 		{"deploy", s.Deploy},
 	}
 	lastCompleted := ""
@@ -131,7 +132,7 @@ func PrintSummary(w io.Writer, s *State) {
 	fmt.Fprintf(w, "Title       : %s\n", nonEmpty(s.Title, "N/A"))
 	fmt.Fprintf(w, "Filename    : %s\n", nonEmpty(s.Filename, nonEmpty(s.ActiveFilename, "N/A (dry-run)")))
 	fmt.Fprintf(w, "Work dir    : %s\n", s.WorkDir)
-	for _, name := range []string{"fetch", "dedup-url", "eval", "dedup", "write", "review", "refine", "credits", "ralph", "deploy"} {
+	for _, name := range []string{"fetch", "dedup-url", "eval", "dedup", "write", "review", "refine", "credits", "ralph", "translate", "deploy"} {
 		fmt.Fprintf(w, "%-7s time: %ds\n", name, s.Timings[name])
 	}
 }

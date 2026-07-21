@@ -12,7 +12,7 @@ import { test, expect } from './fixtures';
  * - Input has helpful placeholder text
  */
 
-const TEST_POST = '/posts/claude-is-a-space-to-think';
+const TEST_POST = '/posts/gp-24-20260204-claude-is-a-space-to-think';
 
 function isMobileProject() {
   return !!test.info().project.use.isMobile;

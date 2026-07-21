@@ -308,6 +308,16 @@ func TestRoot_HelpDoesNotError(t *testing.T) {
 	}
 }
 
+func TestRunRun_FromStepTranslateRequiresFile(t *testing.T) {
+	err := runRun(context.Background(), &rootState{}, runOpts{FromStep: "translate"})
+	if err == nil {
+		t.Fatal("run --from-step translate should reject a missing --file")
+	}
+	if !strings.Contains(err.Error(), "--file") {
+		t.Fatalf("runRun error = %q, want --file guidance", err)
+	}
+}
+
 func keys(m map[string]bool) []string {
 	out := make([]string, 0, len(m))
 	for k := range m {

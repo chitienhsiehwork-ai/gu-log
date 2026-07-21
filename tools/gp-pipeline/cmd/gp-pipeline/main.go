@@ -67,10 +67,12 @@ one step at a time without inheriting the whole pipeline's side effects:
   status     inspect an active/recent run from work-dir + repo artifacts
   eval       decide whether a source is GP-worthy
   dedup      check whether the source is already covered
-  write      draft the zh-tw MDX article
+  write      draft the zh-tw MDX only (en is a separate, later step)
   review     run the 12-point review checklist
   refine     apply the review back into the draft
   ralph      run the 4-judge tribunal
+  translate  produce the en sidecar, but only after ralph passed
+             (zh-tw-first: never translates an unstable draft)
   deploy     validate, build, commit, push
   run        run the whole pipeline end-to-end
   doctor     check that every external dependency is reachable
@@ -132,6 +134,7 @@ for the migration history and current operational notes.`,
 	root.AddCommand(newRefineCmd(state))
 	root.AddCommand(newCreditsCmd(state))
 	root.AddCommand(newRalphCmd(state))
+	root.AddCommand(newTranslateCmd(state))
 	root.AddCommand(newDeployCmd(state))
 	root.AddCommand(newRunCmd(state))
 

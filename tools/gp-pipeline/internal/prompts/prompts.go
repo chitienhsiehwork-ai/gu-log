@@ -92,3 +92,11 @@ type RefineData struct {
 	TicketID string
 	Angle    string
 }
+
+// TranslateData is the template data for translate.tmpl.
+type TranslateData struct {
+	TicketID string // e.g. "GP-252"
+	// Source is the full contents of the tribunal-passed zh-tw MDX file
+	// (frontmatter + body) to be translated into the en sidecar.
+	Source string
+}

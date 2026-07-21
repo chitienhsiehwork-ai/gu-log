@@ -17,7 +17,7 @@ import { test, expect } from './fixtures';
 // Use a long post with many sections
 const LONG_POST_URL = '/posts/gp-47-20260211-obsidian-cli-ai-era';
 // Fallback to a known long post if the above doesn't exist
-const FALLBACK_POST_URL = '/posts/claude-is-a-space-to-think';
+const FALLBACK_POST_URL = '/posts/gp-24-20260204-claude-is-a-space-to-think';
 
 // Maximum acceptable offset (in px) between target heading and viewport top
 // With scroll-padding-top of 80px, heading should appear ~80px from top

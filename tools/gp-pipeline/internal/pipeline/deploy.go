@@ -12,9 +12,8 @@ import (
 //
 // Honors s.DryRun (entirely skips deploy), s.FromStepInt (skipped when the
 // caller starts later than StepDeploy, which never happens but is kept for
-// symmetry with other State methods), and s.ExistingFile (which makes the
-// counter bump a no-op — if the user is resuming an existing file, no new
-// ticket is allocated).
+// symmetry with other State methods). Existing-file recovery skips allocation
+// and rename, but still validates, builds, commits, and pushes owned changes.
 func (s *State) Deploy(ctx context.Context) error {
 	if s.DryRun {
 		s.Log.Warn("--dry-run enabled; skipping deploy step")
@@ -28,9 +27,32 @@ func (s *State) Deploy(ctx context.Context) error {
 	s.Log.Info("Step 5: deploy")
 
 	if s.ExistingFile != "" {
-		s.Log.Info("  Skipping counter bump (--file resume)")
-		// No ticket allocation — just leave the active filename as-is.
-		// The bash pipeline also does nothing in this branch; we match it.
+		if err := s.prepareExistingPost(); err != nil {
+			return err
+		}
+		s.Log.Info("  Publishing existing file without counter bump or rename")
+		res, err := deploy.RunExisting(ctx, deploy.Options{
+			Cfg:              s.Cfg,
+			Log:              s.Log,
+			ActiveFilename:   s.ActiveFilename,
+			ActiveENFilename: s.ActiveENFilename,
+			Title:            s.Title,
+			TicketID:         s.PromptTicketID,
+			SkipBuild:        s.SkipBuild,
+			SkipPush:         s.SkipPush,
+			SkipValidate:     s.SkipValidate,
+		})
+		if err != nil {
+			return deployStepError(err)
+		}
+		s.Filename = res.Filename
+		s.ENFilename = res.ENFilename
+		s.ActiveFilename = res.Filename
+		s.ActiveENFilename = res.ENFilename
+		if res.PromptTicketID != "" {
+			s.PromptTicketID = res.PromptTicketID
+		}
+		s.Log.OK("Step 5: published existing %s", s.PromptTicketID)
 		return nil
 	}
 
@@ -50,21 +72,7 @@ func (s *State) Deploy(ctx context.Context) error {
 		SkipValidate:     s.SkipValidate,
 	})
 	if err != nil {
-		// Map deploy errors to the documented exit codes. The deploy
-		// package already wraps subprocess errors with descriptive
-		// prefixes ("pnpm run build failed", "git push:", etc.) so we
-		// match against those substrings to pick the right code.
-		code := 1
-		msg := err.Error()
-		switch {
-		case contains(msg, "validate-posts rejected"):
-			code = 16
-		case contains(msg, "pnpm run build"):
-			code = 17
-		case contains(msg, "git push"):
-			code = 18
-		}
-		return NewStepError(code, err)
+		return deployStepError(err)
 	}
 
 	s.TicketNumber = res.TicketNumber
@@ -75,6 +83,22 @@ func (s *State) Deploy(ctx context.Context) error {
 	s.ActiveENFilename = res.ENFilename
 	s.Log.OK("Step 5: deployed %s", res.PromptTicketID)
 	return nil
+}
+
+func deployStepError(err error) error {
+	// Map deploy errors to the documented exit codes. The deploy package
+	// wraps subprocess errors with stable prefixes.
+	code := 1
+	msg := err.Error()
+	switch {
+	case contains(msg, "validate-posts rejected"):
+		code = 16
+	case contains(msg, "pnpm run build"):
+		code = 17
+	case contains(msg, "git push"):
+		code = 18
+	}
+	return NewStepError(code, err)
 }
 
 func contains(s, sub string) bool {

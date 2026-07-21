@@ -44,6 +44,30 @@ func TestWritingChainUsesSingleResolvedWriter(t *testing.T) {
 	}
 }
 
+// TestJudgeChainWithClaudeFallbackResolvesOneJudge guards the stamp-resolution
+// path used by JudgeStampLabels. The chain must resolve to exactly one runnable
+// judge — Codex GPT-5.5 when codex is on PATH, else the Claude fallback (CCC /
+// web sandbox). It must NEVER come back empty or leave an unavailable codex as
+// the only entry on a codex-absent box, which is what let the pipeline stamp a
+// hardcoded GPT-5.5 signature on Claude-run posts.
+func TestJudgeChainWithClaudeFallbackResolvesOneJudge(t *testing.T) {
+	chain := JudgeChainWithClaudeFallback(false)
+	if len(chain) != 1 {
+		t.Fatalf("JudgeChainWithClaudeFallback(false) length = %d, want exactly 1 resolved judge", len(chain))
+	}
+	switch chain[0].Name() {
+	case "codex-gpt-5.5", "claude-opus":
+	default:
+		t.Fatalf("resolved judge = %q, want codex-gpt-5.5 or claude-opus", chain[0].Name())
+	}
+	// On a box with neither binary the chain keeps codex so the failure stays the
+	// familiar "binary not found"; when either IS present the sole entry must be
+	// the available one so the stamp never mislabels the judge.
+	if anyAvailable(chain) && !chain[0].Available() {
+		t.Fatalf("resolved judge %q is not Available despite an available provider existing", chain[0].Name())
+	}
+}
+
 func TestProbeChainKeepsCodexPrimary(t *testing.T) {
 	chain := ProbeChain()
 	if len(chain) == 0 {

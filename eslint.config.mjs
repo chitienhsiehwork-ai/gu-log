@@ -35,7 +35,7 @@ export default [
 
   // Node.js scripts — declare Node globals to suppress no-undef false positives
   {
-    files: ['scripts/*.mjs'],
+    files: ['scripts/**/*.mjs'],
     languageOptions: {
       globals: {
         console: 'readonly',

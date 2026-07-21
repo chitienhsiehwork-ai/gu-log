@@ -34,6 +34,7 @@ export async function getSearchIndex(): Promise<{
       lang: data.lang || 'zh-tw',
       date: data.originalDate || '',
       source: data.source || '',
+      sourceUrl: data.sourceUrl || '',
     };
 
     if (entry.lang === 'zh-tw') {

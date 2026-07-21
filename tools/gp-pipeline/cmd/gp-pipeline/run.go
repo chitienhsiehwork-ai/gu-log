@@ -46,6 +46,7 @@ var stepNameToInt = map[string]int{
 	"3": pipeline.StepReview, "review": pipeline.StepReview,
 	"4": pipeline.StepRefine, "refine": pipeline.StepRefine,
 	"4.7": pipeline.StepRalph, "ralph": pipeline.StepRalph,
+	"4.8": pipeline.StepTranslate, "translate": pipeline.StepTranslate,
 	"5": pipeline.StepDeploy, "deploy": pipeline.StepDeploy,
 }
 
@@ -80,10 +81,14 @@ Steps, in order:
   4     refine     apply review feedback → final.mdx
   4.6   credits    stamp pipeline credits into the frontmatter
   4.7   ralph      run the 4-stage tribunal
+  4.8   translate  produce the en sidecar (only when the tribunal passed;
+                   skipped otherwise — zh-tw deploys alone)
   5     deploy     allocate ticket ID, rename, validate, build, commit, push
 
 --from-step resumes partway through a previous run. --file is required
 when --from-step skips the fetch stage and no tweet URL is given.
+--from-step translate treats --file as an already tribunal-passed zh-tw
+article, matching the standalone translate recovery command.
 
 --dry-run stops before the deploy stage (matches bash --dry-run).
 
@@ -117,11 +122,11 @@ canned responses for regression tests.`,
 			})
 		},
 	}
-	cmd.Flags().StringVar(&fromStep, "from-step", "", "resume from step: setup/fetch/eval/dedup/write/review/refine/ralph/deploy")
+	cmd.Flags().StringVar(&fromStep, "from-step", "", "resume from step: setup/fetch/eval/dedup/write/review/refine/ralph/translate/deploy")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "stop before the deploy step")
 	cmd.Flags().BoolVar(&force, "force", false, "skip the eval gate (still runs everything else)")
 	cmd.Flags().IntVar(&ralphBar, "bar", 8, "ralph quality bar (advisory — tribunal has its own internal bar)")
-	cmd.Flags().StringVar(&existingFile, "file", "", "resume from an existing file in src/content/posts/")
+	cmd.Flags().StringVar(&existingFile, "file", "", "resume from an existing file in src/content/posts/ (already tribunal-passed at translate)")
 	cmd.Flags().StringVar(&prefix, "prefix", "GP", "ticket prefix (GP / MP / SD / Lv)")
 	cmd.Flags().BoolVar(&skipBuild, "skip-build", false, "skip pnpm run build in the deploy step (testing only)")
 	cmd.Flags().BoolVar(&skipPush, "skip-push", false, "skip git push in the deploy step (testing only)")
@@ -150,17 +155,20 @@ type runOpts struct {
 
 func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 	start := time.Now()
-	if err := counter.ValidatePrefix(opts.Prefix); err != nil {
-		return err
-	}
 
 	fromStepInt := 0
 	if opts.FromStep != "" {
 		v, ok := stepNameToInt[strings.ToLower(opts.FromStep)]
 		if !ok {
-			return fmt.Errorf("run: unknown step %q; valid: setup / fetch / eval / dedup / write / review / refine / ralph / deploy", opts.FromStep)
+			return fmt.Errorf("run: unknown step %q; valid: setup / fetch / eval / dedup / write / review / refine / ralph / translate / deploy", opts.FromStep)
 		}
 		fromStepInt = v
+	}
+	if fromStepInt == pipeline.StepTranslate && opts.ExistingFile == "" {
+		return fmt.Errorf("run: --from-step translate requires --file <tribunal-passed zh-tw post>")
+	}
+	if err := counter.ValidatePrefix(opts.Prefix); err != nil {
+		return err
 	}
 	if opts.TweetURL == "" && opts.ExistingFile == "" && fromStepInt < pipeline.StepWrite {
 		return fmt.Errorf("run: tweet URL is required when not resuming via --file + --from-step")

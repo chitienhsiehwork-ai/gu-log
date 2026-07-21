@@ -86,3 +86,12 @@ describe('Search Relevance — ticket ID', () => {
     expect(tickets[0]).toBe('GP-90');
   });
 });
+
+describe('Search Relevance — source URL', () => {
+  it('should trace a pasted source URL back to the gu-log post', () => {
+    const sourceUrl = 'https://x.com/vtrivedy10/status/2037203679997018362';
+    const tickets = searchTickets(fuseZh, sourceUrl);
+
+    expect(tickets[0]).toBe('GP-133');
+  });
+});

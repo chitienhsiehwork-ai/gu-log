@@ -12,7 +12,7 @@ import { test, expect } from './fixtures';
  * - Clicking outside during result state (should NOT close)
  */
 
-const TEST_POST = '/posts/claude-is-a-space-to-think';
+const TEST_POST = '/posts/gp-24-20260204-claude-is-a-space-to-think';
 
 function isDesktopChromium() {
   const projectUse = test.info().project.use;
@@ -338,7 +338,7 @@ test.describe('AI Popup - Login Redirect', () => {
 
     await expect(page.locator('body')).toContainText('Mock GitHub Auth');
     await page.goBack();
-    await page.waitForURL('**/posts/claude-is-a-space-to-think');
+    await page.waitForURL('**/posts/gp-24-20260204-claude-is-a-space-to-think');
 
     const savedUrl = await page.evaluate(() => localStorage.getItem('gu-log-return-url'));
     expect(savedUrl).toContain(TEST_POST);

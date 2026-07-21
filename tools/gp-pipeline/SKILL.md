@@ -46,7 +46,7 @@ tools/gp-pipeline/gp-pipeline run '<url>' --prefix GP --skip-dedup
 tools/gp-pipeline/gp-pipeline run --file gp-259-example.mdx --from-step review --prefix GP
 ```
 
-`run` 依序執行 fetch → eval → dedup → write → review → refine → credits → ralph → deploy。內容任務的完成定義仍以 repo playbook 為準，不因單一 subcommand 成功而縮水。
+`run` 依序執行 fetch → eval → dedup → write → review → refine → credits → ralph → translate → deploy。`translate` 只在 tribunal 通過後才產生 en sidecar（zh-tw-first：不翻不穩定的稿）。內容任務的完成定義仍以 repo playbook 為準，不因單一 subcommand 成功而縮水。
 
 ## 可組合 subcommands
 
@@ -59,6 +59,7 @@ tools/gp-pipeline/gp-pipeline run --file gp-259-example.mdx --from-step review -
 | 起草 | `gp-pipeline write --source <file> --prefix GP --ticket-id GP-PENDING` |
 | 審稿／精修 | `gp-pipeline review --draft <file>`、`gp-pipeline refine --draft <file> --review <file>` |
 | 跑 tribunal | `gp-pipeline ralph --file <gp-NNN-*.mdx>` |
+| 補 en sidecar | `gp-pipeline translate --file <gp-NNN-*.mdx>`（tribunal 通過後才跑；只寫新 en 檔，不 commit／push） |
 | 看下一個號碼 | `gp-pipeline counter next --prefix GP` |
 | 原子配置號碼 | `gp-pipeline counter bump --prefix GP` |
 | 恢復 deploy | `gp-pipeline deploy --active-file <gp-pending-*.mdx> --prefix GP ...` |
@@ -71,6 +72,7 @@ tools/gp-pipeline/gp-pipeline run --file gp-259-example.mdx --from-step review -
 - `fetch`、`eval`、`dedup`、`write`、`review`、`refine`、`credits`、`status` 與 `counter next` 不配置正式 ticket。
 - `counter bump` 會原子修改 `scripts/article-counter.json`；通常只應由 deploy 呼叫。
 - `ralph` 會修改指定文章的 frontmatter／內容。
+- `translate` 只寫一個新的 en- sidecar 檔，不 commit、不 push。
 - `deploy` 會配置 ticket、rename pending 檔、validate、build、commit、push。
 - `--dry-run` 停在 deploy 前；不得用它假裝完成發布。
 - `--skip-validate`、`--skip-build`、`--skip-push` 只供受控測試或恢復情境，不能繞過 repo 品質門檻。

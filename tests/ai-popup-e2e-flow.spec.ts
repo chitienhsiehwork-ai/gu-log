@@ -9,7 +9,7 @@ import { test, expect } from './fixtures';
  * Run with: npx playwright test tests/ai-popup-e2e-flow.spec.ts
  */
 
-const TEST_POST = '/posts/claude-is-a-space-to-think';
+const TEST_POST = '/posts/gp-24-20260204-claude-is-a-space-to-think';
 
 /** Select text in .post-content and trigger popup via touchend */
 async function selectAndShowPopup(page: import('@playwright/test').Page) {
