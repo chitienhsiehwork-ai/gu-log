@@ -115,15 +115,9 @@ describe('check-jingjing.maskContent', () => {
 
 describe('check-jingjing.filterBaselineViolations', () => {
   const v = (word: string, context: string) => ({ word, context, line: 1 });
-  const baselineOf = (...violations: Array<{ word: string; context: string }>) => {
-    const keys = new Set(violations.map((entry) => jjModule.violationKey(entry)));
-    const wordCounts = new Map<string, number>();
-    for (const entry of violations) {
-      const word = entry.word.toLowerCase();
-      wordCounts.set(word, (wordCounts.get(word) || 0) + 1);
-    }
-    return { keys, wordCounts };
-  };
+  const baselineOf = (...violations: Array<{ word: string; context: string }>) => ({
+    violations,
+  });
 
   it('passes everything through without a baseline', () => {
     const current = [v('approach', '這個 approach 很好')];
@@ -135,25 +129,79 @@ describe('check-jingjing.filterBaselineViolations', () => {
     expect(jjModule.filterBaselineViolations([shared], baselineOf(shared))).toEqual([]);
   });
 
-  it('grandfathers a context-drifted word while its count does not increase', () => {
-    const baseline = baselineOf(v('foundation', '轉為 foundation 舊句子'));
-    const drifted = [v('foundation', '改寫過的句子提到 foundation')];
-    expect(jjModule.filterBaselineViolations(drifted, baseline)).toEqual([]);
+  it('flags a word moved from a deleted baseline sentence into a new sentence', () => {
+    const baseline = baselineOf(v('foundation', '舊句 A 把專案轉為 foundation。'));
+    const moved = [v('foundation', '全新句 B 說 foundation 是另一種選擇。')];
+    expect(jjModule.filterBaselineViolations(moved, baseline)).toEqual(moved);
   });
 
-  it('flags the excess occurrence when a word count increases', () => {
-    const baseline = baselineOf(v('foundation', '轉為 foundation 舊句子'));
-    const current = [
-      v('foundation', '改寫過的句子提到 foundation'),
-      v('foundation', '第二個新增的 foundation'),
+  it('keeps an occurrence grandfathered when only another sentence on the line changes', () => {
+    const baselineRaw = '---\nlang: zh-tw\n---\n第一句保留 foundation。第二句原本是這樣。';
+    const currentRaw = '---\nlang: zh-tw\n---\n第一句保留 foundation。第二句已經完全改寫。';
+    const baseline = baselineOf(...jjModule.checkText(baselineRaw, 'gp-1-test.mdx').violations);
+    const current = jjModule.checkText(currentRaw, 'gp-1-test.mdx').violations;
+    expect(jjModule.filterBaselineViolations(current, baseline)).toEqual([]);
+  });
+
+  it('grandfathers taxonomy-only context and post-path canonicalization', () => {
+    const retiredSeries = 'S' + 'P';
+    const retiredComponent = 'Cla' + 'wdNote';
+    const baseline = baselineOf(
+      v(
+        'foundation',
+        `到 [${retiredSeries}-42](/posts/${retiredSeries.toLowerCase()}-42-old-taxonomy) 看 ${retiredComponent} 的 foundation。`
+      )
+    );
+    const canonical = [
+      v('foundation', '到 [GP-42](/posts/gp-42-old-taxonomy) 看 MoguNote 的 foundation。'),
     ];
-    expect(jjModule.filterBaselineViolations(current, baseline)).toHaveLength(1);
+    expect(jjModule.filterBaselineViolations(canonical, baseline)).toEqual([]);
+  });
+
+  it('flags a new occurrence after consuming its exact baseline occurrence', () => {
+    const shared = v('foundation', '舊句保留 foundation。');
+    const added = v('foundation', '新句新增 foundation。');
+    const current = [shared, added];
+    expect(jjModule.filterBaselineViolations(current, baselineOf(shared))).toEqual([added]);
   });
 
   it('always flags a word absent from the baseline', () => {
     const baseline = baselineOf(v('foundation', '轉為 foundation 舊句子'));
     const current = [v('solid', '很 solid 的新句子')];
     expect(jjModule.filterBaselineViolations(current, baseline)).toEqual(current);
+  });
+});
+
+describe('check-jingjing.filterTaxonomyExactResiduals', () => {
+  const file = path.join(process.cwd(), 'src/content/posts/gp-taxonomy-exception-test.mdx');
+  const retiredPersona = 'Cla' + 'wd';
+  const policy = (expectedCount: number) => ({
+    exactExceptions: [
+      {
+        path: 'src/content/posts/gp-taxonomy-exception-test.mdx',
+        rule: 'persona',
+        token: retiredPersona,
+        expectedCount,
+        reason: 'test fixture',
+      },
+    ],
+  });
+
+  it('suppresses the same occurrence when an exact taxonomy exception is satisfied', () => {
+    const raw = `事實上這個舊名字是 ${retiredPersona}。`;
+    const violations = [{ word: retiredPersona, line: 1, context: raw }];
+    expect(jjModule.filterTaxonomyExactResiduals(file, raw, violations, policy(1))).toEqual([]);
+  });
+
+  it('fails closed when the taxonomy exception count is stale', () => {
+    const raw = `第一個 ${retiredPersona}，第二個 ${retiredPersona}。`;
+    const violations = [
+      { word: retiredPersona, line: 1, context: raw },
+      { word: retiredPersona, line: 1, context: raw },
+    ];
+    expect(jjModule.filterTaxonomyExactResiduals(file, raw, violations, policy(1))).toEqual(
+      violations
+    );
   });
 });
 

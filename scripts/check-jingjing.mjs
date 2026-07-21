@@ -37,6 +37,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { isCanonicalSeriesTaxonomyOnlyChange, scanLegacyText } from './check-brand-taxonomy.mjs';
 
 const __isCli =
   import.meta.url === pathToFileURL(process.argv[1] ?? '').href ||
@@ -45,6 +46,7 @@ const __isCli =
 const REPO_ROOT = process.cwd();
 const POSTS_DIR = path.join(REPO_ROOT, 'src/content/posts');
 const GLOSSARY_PATH = path.join(REPO_ROOT, 'src/data/glossary.json');
+const TAXONOMY_POLICY_PATH = path.join(REPO_ROOT, 'quality/brand-taxonomy-residual-allowlist.json');
 
 // ── Hardcoded allowlist ────────────────────────────────────────────
 //
@@ -885,16 +887,42 @@ function checkText(raw, filePath = '') {
     for (const m of matches) {
       const word = m[0];
       if (!isAllowed(word)) {
+        const comparisonContext = occurrenceComparisonContext(lines[i], m.index ?? 0, word.length);
         violations.push({
           line: i + 1,
           word,
-          context: lines[i].trim().slice(0, 140),
+          context: comparisonContext.slice(0, 140),
+          comparisonContext,
         });
       }
     }
   }
 
   return { violations };
+}
+
+// Scope baseline identity to the sentence containing this occurrence. This is
+// wide enough to detect a decorative English word moved into different prose,
+// but it does not make an unrelated sentence edit on the same MDX source line
+// invalidate every historical occurrence in that paragraph.
+function occurrenceComparisonContext(line, index, length) {
+  const boundaries = new Set(['。', '！', '？', '!', '?', '；', ';']);
+  let start = 0;
+  for (let cursor = Math.min(index - 1, line.length - 1); cursor >= 0; cursor -= 1) {
+    if (boundaries.has(line[cursor])) {
+      start = cursor + 1;
+      break;
+    }
+  }
+
+  let end = line.length;
+  for (let cursor = Math.max(index + length, 0); cursor < line.length; cursor += 1) {
+    if (boundaries.has(line[cursor])) {
+      end = cursor + 1;
+      break;
+    }
+  }
+  return line.slice(start, end).replace(/\s+/g, ' ').trim();
 }
 
 function checkFile(filePath) {
@@ -908,7 +936,11 @@ function checkFile(filePath) {
 }
 
 function violationKey(v) {
-  return `${v.word.toLowerCase()}\0${v.context.replace(/\s+/g, ' ').trim()}`;
+  return `${v.word.toLowerCase()}\0${violationContext(v)}`;
+}
+
+function violationContext(v) {
+  return (v.comparisonContext ?? v.context).replace(/\s+/g, ' ').trim();
 }
 
 function readBaselineFile(repoRelative, baselineRef) {
@@ -969,13 +1001,7 @@ function getBaselineRenameMap(baselineRef) {
 
 function baselineFromRaw(raw, filePath) {
   const { violations } = checkText(raw, filePath);
-  const keys = new Set(violations.map(violationKey));
-  const wordCounts = new Map();
-  for (const v of violations) {
-    const word = v.word.toLowerCase();
-    wordCounts.set(word, (wordCounts.get(word) || 0) + 1);
-  }
-  return { keys, wordCounts };
+  return { violations };
 }
 
 function baselineRefExists(baselineRef) {
@@ -1031,36 +1057,76 @@ function getBaselineViolations(filePath, baselineRef) {
 function filterBaselineViolations(violations, baseline) {
   if (!baseline) return violations;
 
-  // Pass 1: exact context matches are grandfathered and consume their
-  // word's baseline budget.
-  const remainingCounts = new Map(baseline.wordCounts);
-  const drifted = [];
-  for (const v of violations) {
-    if (baseline.keys.has(violationKey(v))) {
-      const word = v.word.toLowerCase();
-      remainingCounts.set(word, (remainingCounts.get(word) || 0) - 1);
-    } else {
-      drifted.push(v);
+  // Each current occurrence must match one concrete baseline occurrence.
+  // Exact context remains grandfathered. Context drift is accepted only when
+  // the brand-taxonomy SSOT can prove the old line canonicalizes exactly to
+  // the current line (including post paths); a same-count word moved to an
+  // unrelated sentence is therefore always new.
+  const remainingBaseline = [...baseline.violations];
+  return violations.filter((violation) => {
+    let matchIndex = remainingBaseline.findIndex(
+      (candidate) => violationKey(candidate) === violationKey(violation)
+    );
+    if (matchIndex < 0) {
+      matchIndex = remainingBaseline.findIndex(
+        (candidate) =>
+          candidate.word.toLowerCase() === violation.word.toLowerCase() &&
+          isCanonicalSeriesTaxonomyOnlyChange(
+            violationContext(candidate),
+            violationContext(violation)
+          )
+      );
+    }
+    if (matchIndex < 0) return true;
+    remainingBaseline.splice(matchIndex, 1);
+    return false;
+  });
+}
+
+// The taxonomy residual policy is the SSOT for exact factual uses of retired
+// names. When that stricter scanner proves the path/rule/token count matches an
+// exact exception, Jingjing must not independently reject the same occurrence
+// merely because surrounding prose changed. Match by token + line and consume
+// each approved finding once; stale counts remain violations and are also
+// rejected by taxonomy:check.
+function filterTaxonomyExactResiduals(filePath, raw, violations, policy = null) {
+  if (violations.length === 0) return violations;
+  const repoRelative = path.relative(REPO_ROOT, path.resolve(filePath)).split(path.sep).join('/');
+  const activePolicy = policy ?? JSON.parse(fs.readFileSync(TAXONOMY_POLICY_PATH, 'utf8'));
+  const findings = scanLegacyText(repoRelative, raw);
+  const budgets = new Map();
+
+  for (const exception of activePolicy.exactExceptions ?? []) {
+    if (exception?.path !== repoRelative) continue;
+    const matches = findings.filter(
+      (finding) => finding.rule === exception.rule && finding.token === exception.token
+    );
+    if (matches.length !== exception.expectedCount) continue;
+    for (const finding of matches) {
+      const key = `${finding.token.toLowerCase()}\0${finding.line}`;
+      budgets.set(key, (budgets.get(key) ?? 0) + 1);
     }
   }
 
-  // Pass 2: a violation whose surrounding context drifted (e.g. the sentence
-  // was reworded around a pre-existing proper noun) stays grandfathered while
-  // the word's total baseline count is not exceeded. A genuinely new
-  // decorative word — or one more occurrence of an old one — always flags.
-  return drifted.filter((v) => {
-    const word = v.word.toLowerCase();
-    const left = remainingCounts.get(word) || 0;
-    if (left > 0) {
-      remainingCounts.set(word, left - 1);
-      return false;
-    }
-    return true;
+  return violations.filter((violation) => {
+    const key = `${violation.word.toLowerCase()}\0${violation.line}`;
+    const left = budgets.get(key) ?? 0;
+    if (left === 0) return true;
+    budgets.set(key, left - 1);
+    return false;
   });
 }
 
 // ── Exports for tests ──────────────────────────────────────────────
-export { isAllowed, maskContent, checkText, checkFile, filterBaselineViolations, violationKey };
+export {
+  isAllowed,
+  maskContent,
+  checkText,
+  checkFile,
+  filterBaselineViolations,
+  filterTaxonomyExactResiduals,
+  violationKey,
+};
 
 // ── Main ───────────────────────────────────────────────────────────
 
@@ -1101,7 +1167,12 @@ if (!__isCli) {
     }
     if (skipped) continue;
     const baseline = getBaselineViolations(filePath, baselineRef);
-    const newViolations = filterBaselineViolations(violations, baseline);
+    const raw = fs.readFileSync(filePath, 'utf8');
+    const newViolations = filterTaxonomyExactResiduals(
+      filePath,
+      raw,
+      filterBaselineViolations(violations, baseline)
+    );
     if (newViolations.length === 0) continue;
 
     filesWithViolations.push({ filePath, violations: newViolations });
