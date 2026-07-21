@@ -268,12 +268,11 @@ jobs:
         # Runs even when the check step above exits 1/2 (new breakage found) —
         # the baseline must still move forward so tomorrow's run only flags
         # genuinely NEW breakage instead of re-flagging tonight's known ones.
-        # Also runs (harmlessly) on the scan's own exit 3 (fatal/unknown
-        # error, fail-closed) — check-links.mjs only writes
-        # broken-links-baseline.json once, at the very end after a full
-        # successful scan, so a fatal exit means that write never happened
-        # and this step's git diff --quiet correctly no-ops instead of
-        # staging a baseline built from an incomplete scan.
+        # Also runs (harmlessly) on the scan's own exit 3 (fatal error or
+        # unhealthy failure-dominated external scan, fail-closed) — check-links.mjs
+        # only writes broken-links-baseline.json once, after scan health is
+        # accepted, so exit 3 leaves the previous trustworthy baseline intact
+        # and this step's git diff --quiet correctly no-ops.
         # Pushes to a fixed staging branch instead of opening a PR — see the
         # coverage-ratchet job's "Stage coverage baseline..." step for why
         # (main's branch protection blocks direct pushes, and this repo's

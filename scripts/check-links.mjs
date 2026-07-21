@@ -13,7 +13,8 @@
  *   1 = external broken only (warning)
  *   2 = internal broken (should block commit)
  *   3 = fatal: unknown uncaught exception / unhandled rejection during the
- *       scan (fail closed — see isKnownUndiciSocketRace below)
+ *       scan, or an unhealthy external scan dominated by failed checks
+ *       (fail closed — see isKnownUndiciSocketRace below)
  */
 
 import { readdir, readFile } from 'node:fs/promises';
@@ -65,6 +66,8 @@ const RATE_LIMIT = 5;
 const RATE_WINDOW = 1000; // ms
 const REQUEST_TIMEOUT = 10_000; // 10s
 const MAX_RETRIES = 1;
+const EXTERNAL_FAILURE_REJECTION_RATIO = 0.5;
+const MIN_EXTERNAL_FAILURES_FOR_OUTAGE = 5;
 
 // Domains that are bot-hostile → needsManualCheck
 const MANUAL_CHECK_DOMAINS = [
@@ -305,6 +308,50 @@ async function checkExternalLink(url, retries = MAX_RETRIES) {
   }
 }
 
+// A normal link scan can contain a handful of real HTTP failures and transient
+// network errors. A failure-dominated scan, however, describes the scanner,
+// proxy, or network more reliably than it describes the links. Count both
+// transport failures and unsuccessful HTTP responses: a proxy that returns
+// 403/429/503 for every request still completed at the transport layer but must
+// not replace the last trustworthy baseline.
+export function evaluateExternalScanHealth({ internalOnly, attempted, ok, broken, timedOut }) {
+  if (internalOnly) {
+    return {
+      healthy: true,
+      skipped: true,
+      responseFailures: 0,
+      transportFailures: 0,
+      totalFailures: 0,
+      failureRatio: 0,
+      transportFailureRatio: 0,
+    };
+  }
+
+  const responseFailures = broken.filter((link) => Number.isInteger(link.statusCode)).length;
+  const transportFailures = timedOut + (broken.length - responseFailures);
+  const totalFailures = responseFailures + transportFailures;
+  const observed = ok + broken.length + timedOut;
+  const failureRatio = attempted === 0 ? 0 : totalFailures / attempted;
+  const transportFailureRatio = attempted === 0 ? 0 : transportFailures / attempted;
+  const complete = observed === attempted;
+  const failureDominated =
+    totalFailures >= MIN_EXTERNAL_FAILURES_FOR_OUTAGE &&
+    failureRatio >= EXTERNAL_FAILURE_REJECTION_RATIO;
+
+  return {
+    healthy: complete && !failureDominated,
+    skipped: false,
+    complete,
+    observed,
+    responseFailures,
+    transportFailures,
+    totalFailures,
+    failureRatio,
+    transportFailureRatio,
+    failureDominated,
+  };
+}
+
 // ── Main ─────────────────────────────────────────────────────────
 
 async function main() {
@@ -402,6 +449,14 @@ async function main() {
     console.log(); // newline after progress
   }
 
+  const externalScanHealth = evaluateExternalScanHealth({
+    internalOnly,
+    attempted: autoCheck.length,
+    ok: externalOk.length,
+    broken: externalBroken,
+    timedOut: externalTimeout.length,
+  });
+
   // Report
   console.log(`\n${'═'.repeat(50)}`);
   console.log('📊 Results:');
@@ -412,6 +467,20 @@ async function main() {
     console.log(
       `  External: ✅ ${externalOk.length} OK, ❌ ${externalBroken.length} broken, ⏰ ${externalTimeout.length} timeout, 🔒 ${manualCheck.length} manual`
     );
+  }
+
+  if (!externalScanHealth.healthy) {
+    const ratio = (externalScanHealth.failureRatio * 100).toFixed(1);
+    console.error(
+      `\n❌ FATAL: External scan is unhealthy — ${externalScanHealth.totalFailures}/${autoCheck.length} (${ratio}%) checks failed (${externalScanHealth.responseFailures} HTTP error responses, ${externalScanHealth.transportFailures} transport failures).`
+    );
+    if (!externalScanHealth.complete) {
+      console.error(
+        `   Scan result is incomplete: observed ${externalScanHealth.observed}/${autoCheck.length} attempted checks.`
+      );
+    }
+    console.error('   Existing broken-links baseline was not updated.');
+    process.exit(3);
   }
 
   if (internalBroken.length > 0) {
