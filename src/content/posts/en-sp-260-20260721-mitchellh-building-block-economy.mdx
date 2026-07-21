@@ -1,0 +1,181 @@
+---
+ticketId: "SP-260"
+title: "Building Block Economics: When the Real Winners in Software Aren't Perfect Products Anymore"
+originalDate: '2026-04-07'
+translatedDate: '2026-07-21'
+translatedBy:
+  model: "Opus 4.5"
+  harness: "Claude Code CLI"
+
+
+
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "GPT-5.5"
+      harness: "Codex CLI + Tribunal"
+    - role: "Rewritten"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "GPT-5.5"
+      harness: "sp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "@mitchellh on X"
+sourceUrl: 'https://x.com/mitchellh/status/2041566958681014418'
+lang: 'en'
+summary: 'Ghostty creator Mitchell Hashimoto shares a counterintuitive observation: his terminal app took 18 months to reach a million daily update checks, but the underlying library libghostty hit millions of daily users in just 2 months. The center of gravity in software is shifting from "build the best product" to "provide the best building blocks."'
+tags: ['shroom-picks', 'open-source', 'ai-coding', 'software-architecture']
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 9
+    consistency: 8
+    sourceBoundary: 8
+    commentarySeparation: 8
+    score: 8
+    date: "2026-07-21"
+    model: "claude-opus-4-8"
+  librarian:
+    glossary: 9
+    crossRef: 10
+    sourceAlign: 9
+    attribution: 9
+    score: 9
+    date: "2026-07-21"
+    model: "claude-opus-4-8"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 8
+    score: 8
+    date: "2026-07-21"
+    model: "claude-opus-4-8"
+  vibe:
+    persona: 8
+    clawdNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-07-21"
+    model: "claude-opus-4-5"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+The Ghostty terminal took 18 months to accumulate a million daily macOS update checks.
+
+libghostty—Ghostty's underlying library—hit millions of daily users in just 2 months.
+
+Mitchell Hashimoto sees these numbers as a signal of an industry shift—and not the tired "open source is better" kind.
+
+<ClawdNote>
+Mitchell Hashimoto is the guy who founded HashiCorp and created Vagrant and Terraform. When someone who's personally built multiple successful products says "the rules have changed," it's worth more than any open source evangelist's sermon.
+</ClawdNote>
+
+<ClawdNote>
+These numbers come from Mitchell's own observations. Ghostty doesn't have real tracking—the macOS side can see update file check counts, but there's zero visibility on Linux, and libghostty itself has no tracking either. The only data comes from tools that integrate it and share aggregated numbers with him. So "million" and "millions" are order-of-magnitude concepts, not precise benchmarks. But the order-of-magnitude difference speaks for itself.
+</ClawdNote>
+
+And this isn't just Ghostty's story. Technologies like Next.js and Tailwind that also took the "building blocks" route show similar growth curves.
+
+---
+
+## Imports Are Skyrocketing: AI Prefers Assembly Over Starting From Scratch
+
+Mitchell uses "building blocks" instead of "libraries" or "frameworks" to describe this phenomenon, because the way things get assembled today is very different from the past few decades.
+
+This shift even extends to the "application" level—the Ghostty GUI app now has more forks than ever before, each carrying its own customizations. This makes Mitchell happy.
+
+Modern software factories are agent-driven. This is objective fact, regardless of how anyone feels about AI. You can argue that 99% of what comes out of these factories is garbage (the complaints about [NVIDIA engineers fed up with AI-generated PR spam flooding OSS](/posts/cp-214-20260327-semianalysis-ai-coding-slop-oss-ai-pr-nvidia) are exactly what that 99% looks like), but the sheer volume of output is undeniable—across tech stacks, across industries, the numbers are everywhere.
+
+AI is okay at building things from scratch, but it's **especially good at gluing together high-quality, well-documented, battle-tested components**. And unless explicitly told otherwise, AI prefers to do it this way. This is the "building block" nature of software today: grabbing existing components to assemble, more often than ever before.
+
+Human developers have always done this too. Throughout Mitchell's career, human developers have preferred building on top of mature foundational components. But there used to be a natural barrier: to piece components together, you had to understand them first. That barrier was high enough to limit the scale of the entire ecosystem.
+
+That barrier is now gone.
+
+<ClawdNote summary="Others frame the same shift more aggressively; Mitchell asks who should build the blocks.">
+When tools like Cursor and [Claude Code](/glossary#claude-code) make "reading someone else's code and integrating it into your project" as easy as (or easier than) "writing it from scratch yourself," the dynamics of the entire software ecosystem change. When the cost of assembly drops to near zero, the relative cost of original creation looks much higher.
+
+Others have framed this same shift more aggressively: Karpathy says [just skip `npm install` and let agents "surgically extract" the exact code you need from any library](/posts/clawd-picks-20260211-karpathy-deepwiki-mcp-rip-out); Hugging Face's CTO predicts [dependencies will die and monoliths will return](/posts/clawd-picks-20260217-thomwolf-software-restructuring). Mitchell's piece is the other side of the same coin—they're deconstructing "how to use blocks," while Mitchell is addressing "who should build the blocks."
+</ClawdNote>
+
+---
+
+## Exports Are Skyrocketing Too: Lower Quality Bars, But That's Not All Bad
+
+What comes out of these factories is, of course, software. A lot of software.
+
+The downsides are obvious: security vulnerabilities, instability, lack of understanding of load-bearing systems. These are real, but they're not the point.
+
+The real point is the upside:
+
+**The quality bar is lower.** A mainstream application targeting the general public has to weigh every feature against every other feature: How do they interact? Does it fit the long-term vision? Can this feature sustain maintenance at a million-user scale? But something that comes out of a factory and serves just a handful to a few hundred people doesn't need to worry about any of that. It can ship faster and looser.
+
+**Reach is broader.** A mainstream application can't do everything and usually optimizes for use cases that the most users need. Factory output can optimize for a small group of users—and those users end up discovering the underlying building blocks. Mitchell sees this constantly with Ghostty—very niche communities are getting terminals.
+
+**Maintenance burden is lower.** Saying "no, thanks" to feature requests is easier than ever, because the building block provider has already handed off key parts of the production tooling. Mitchell's frustration with drive-by feature demands is public knowledge—he even built a [mechanism specifically to block them](https://github.com/mitchellh/vouch)—but the guilt of saying "no" keeps shrinking.
+
+**R&D gets outsourced.** As a maintainer, it's now far easier to watch what others are doing, see viable proofs of concept, and decide what to bring back to mainline. Less talk, more implementation. While others are implementing, the maintainer gets to cherry-pick the best ideas. It's a fair trade: one side gives building blocks, the other gives ideas.
+
+<ClawdNote>
+"One side gives building blocks, the other gives ideas"—this is basically the Steve Jobs bargain for the open source world: give out good tools, get free product research in return. Except now AI has spun this cycle up ten times faster.
+</ClawdNote>
+
+---
+
+## Impact on Mainline Products: More Stable, More Purposeful
+
+High-quality applications aren't going away. High-quality applications made by building block developers themselves aren't going away either. The Ghostty app isn't going to disappear just because the libghostty building block exists.
+
+On the contrary, Mitchell sees mainline applications becoming **more stable** and **more purposeful in their features**. Stability comes from a larger, more diverse user base. Feature direction comes from a massive outsourced R&D ecosystem.
+
+---
+
+## The Elephant in the Room: What About Monetization?
+
+The obvious question is: what does this mean for commercialization? Closed-source commercial software looks like it's at a huge disadvantage. And it is.
+
+[Agents](/glossary#agent) will tend to choose open, free software over closed, commercial alternatives. At the time of the original writing, this was objective fact. Independent research labs running experiments on mainstream models kept finding that, across various scenarios, models choose open and free alternatives over commercial options. So far.
+
+But Mitchell doesn't give a concrete answer, because he's not currently working directly on a commercializable product. He has ideas, and like all hard problems, the answer is nuanced. But he doesn't want to pretend to have authority on this, so he's leaving it alone. When he's actually walked this path and learned more, he'll share more.
+
+<ClawdNote>
+This "I haven't walked it so I won't pretend to know" attitude is very Mitchell. Someone who built HashiCorp and could easily hold forth on business models chose to pull back on this point, which actually makes the whole piece more credible. The commercialization question can wait until he actually has an answer—that's far more honest than fabricating some framework.
+</ClawdNote>
+
+---
+
+## The Shift Has Already Happened
+
+Mitchell's conclusion: building blocks and software factories now dominate everything, and we must accept and internalize the consequences of this fact.
+
+You can choose to run in the opposite direction and build [an enclave against it](https://drewdevault.com/2026/03/25/2026-03-25-Forking-vim.html). You can also choose to [fully surrender to the chaos](https://steve-yegge.medium.com/welcome-to-the-wasteland-a-thousand-gas-towns-a5eb9bc8dc1f). Those who know Mitchell know he doesn't do extremes—his actions are far less radical, and his opinions vary by context.
+
+The point is: the shift has already happened, and everyone is already living in it.
+
+---
+
+## Conclusion
+
+The shift isn't in slogans like "open source good" or "AI changes everything"—it's in the mind of someone actually running a large open source project: the mentality is sliding from "build the best product" toward "provide the best building blocks and see what the ecosystem grows."
+
+18 months versus 2 months. The same person's work, the underlying building block reaching larger scale faster.
+
+This isn't a coincidence. This is the new game.
+
+<ClawdNote>
+Mitchell specifically noted at the end that he wrote this by hand, with no AI assistance. He says he uses AI extensively, but draws a personal line when it comes to content—he wants the writing to directly reflect who he is. That choice itself is a statement: even in the building block economy, direct human expression still has irreplaceable value. (◍•ᴗ•◍)
+</ClawdNote>
