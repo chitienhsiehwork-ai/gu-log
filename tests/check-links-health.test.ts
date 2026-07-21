@@ -1,11 +1,29 @@
 import { describe, expect, it } from 'vitest';
-import { evaluateExternalScanHealth } from '../scripts/check-links.mjs';
+import { evaluateExternalScanHealth, isReservedExampleUrl } from '../scripts/check-links.mjs';
 
 const responseFailures = (...statusCodes: number[]) =>
   statusCodes.map((statusCode) => ({ statusCode }));
 
 const transportFailures = (count: number) =>
   Array.from({ length: count }, () => ({ error: 'fetch failed' }));
+
+describe('broken-link reserved example URL detection', () => {
+  it.each(['https://example.com/x', 'https://docs.example.com/x', '//example.com/x'])(
+    'recognizes the RFC-reserved example.com host: %s',
+    (url) => {
+      expect(isReservedExampleUrl(url)).toBe(true);
+    }
+  );
+
+  it.each([
+    'https://notexample.com/x',
+    'https://example.com.evil.test/x',
+    'https://evil.test/?next=https://example.com/x',
+    '/posts/example.com',
+  ])('does not skip a real URL that merely contains example.com: %s', (url) => {
+    expect(isReservedExampleUrl(url)).toBe(false);
+  });
+});
 
 describe('broken-link external scan health', () => {
   it('GIVEN a scan dominated by transport failures WHEN health is evaluated THEN it is rejected', () => {

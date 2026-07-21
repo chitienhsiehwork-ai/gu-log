@@ -1089,6 +1089,13 @@ function filterBaselineViolations(violations, baseline) {
 // merely because surrounding prose changed. Match by token + line and consume
 // each approved finding once; stale counts remain violations and are also
 // rejected by taxonomy:check.
+/**
+ * @param {string} filePath
+ * @param {string} raw
+ * @param {Array<{word: string, line: number, context: string, comparisonContext?: string}>} violations
+ * @param {{exactExceptions: Array<{path: string, rule: string, token: string, expectedCount: number, reason: string}>} | null} [policy=null]
+ * @returns {Array<{word: string, line: number, context: string, comparisonContext?: string}>}
+ */
 function filterTaxonomyExactResiduals(filePath, raw, violations, policy = null) {
   if (violations.length === 0) return violations;
   const repoRelative = path.relative(REPO_ROOT, path.resolve(filePath)).split(path.sep).join('/');

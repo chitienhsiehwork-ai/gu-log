@@ -112,8 +112,16 @@ const SKIP_PATTERNS = [
   /^data:/,
   /^\{\{/, // template expressions
   /^\$\{/, // template literals
-  /example\.com/, // RFC 2606 reserved placeholder domain — never a real link
 ];
+
+export function isReservedExampleUrl(value) {
+  try {
+    const hostname = new URL(value, 'https://gu-log.invalid').hostname.toLowerCase();
+    return hostname === 'example.com' || hostname.endsWith('.example.com');
+  } catch {
+    return false;
+  }
+}
 
 // ── Link Extraction ──────────────────────────────────────────────
 
@@ -124,7 +132,7 @@ function extractLinks(content, filePath) {
   function add(url, type, context) {
     // Clean up URL
     url = url.trim().replace(/[)>]+$/, '');
-    if (!url || SKIP_PATTERNS.some((p) => p.test(url))) return;
+    if (!url || SKIP_PATTERNS.some((p) => p.test(url)) || isReservedExampleUrl(url)) return;
     const key = `${url}|${filePath}`;
     if (seen.has(key)) return;
     seen.add(key);
