@@ -221,6 +221,8 @@ func TestCounterNext_Integration(t *testing.T) {
 func TestRetiredTaxonomyFailsAtCLIIngress(t *testing.T) {
 	root := makeFakeRepo(t)
 	t.Setenv("GU_LOG_DIR", root)
+	retiredGP := "S" + "P"
+	retiredMP := "C" + "P"
 
 	tests := []struct {
 		name string
@@ -232,6 +234,10 @@ func TestRetiredTaxonomyFailsAtCLIIngress(t *testing.T) {
 		{name: "dedup rejects retired MP predecessor", args: []string{"dedup", "--series", "CP"}, want: `use "MP"`},
 		{name: "deploy rejects retired GP predecessor", args: []string{"deploy", "--active-file", "gp-pending-test.mdx", "--prefix", "SP", "--dry-run"}, want: `use "GP"`},
 		{name: "write rejects retired pending ticket", args: []string{"write", "--source", filepath.Join(root, "source.md"), "--ticket-id", "SP-PENDING"}, want: "GP-PENDING"},
+		{name: "translate rejects retired GP filename", args: []string{"translate", "--file", strings.ToLower(retiredGP) + "-7-example.mdx"}, want: `use "GP"`},
+		{name: "translate rejects retired MP filename", args: []string{"translate", "--file", strings.ToLower(retiredMP) + "-9-example.mdx"}, want: `use "MP"`},
+		{name: "translate rejects retired GP ticket", args: []string{"translate", "--file", "gp-7-example.mdx", "--ticket-id", retiredGP + "-7"}, want: `use "GP-7"`},
+		{name: "translate rejects retired MP ticket", args: []string{"translate", "--file", "mp-9-example.mdx", "--ticket-id", retiredMP + "-9"}, want: `use "MP-9"`},
 	}
 
 	if err := os.WriteFile(filepath.Join(root, "source.md"), []byte("source"), 0o644); err != nil {
@@ -247,6 +253,70 @@ func TestRetiredTaxonomyFailsAtCLIIngress(t *testing.T) {
 				t.Fatalf("error = %v, want actionable hint %q", err, tt.want)
 			}
 		})
+	}
+}
+
+func TestDeployDryRunValidatesFilenameSlots(t *testing.T) {
+	root := makeFakeRepo(t)
+	t.Setenv("GU_LOG_DIR", root)
+
+	tests := []struct {
+		name string
+		args []string
+		want string
+	}{
+		{
+			name: "all missing",
+			args: []string{"deploy", "--active-file", "gp-pending-example.mdx", "--dry-run"},
+			want: "--date-stamp",
+		},
+		{
+			name: "date missing",
+			args: []string{"deploy", "--active-file", "gp-pending-example.mdx", "--author-slug", "author", "--title-slug", "title", "--dry-run"},
+			want: "--date-stamp",
+		},
+		{
+			name: "author missing",
+			args: []string{"deploy", "--active-file", "gp-pending-example.mdx", "--date-stamp", "20260722", "--title-slug", "title", "--dry-run"},
+			want: "--author-slug",
+		},
+		{
+			name: "title missing",
+			args: []string{"deploy", "--active-file", "gp-pending-example.mdx", "--date-stamp", "20260722", "--author-slug", "author", "--dry-run"},
+			want: "--title-slug",
+		},
+		{
+			name: "active-file traversal",
+			args: []string{"deploy", "--active-file", "gp-pending-../../escape.mdx", "--date-stamp", "20260722", "--author-slug", "author", "--title-slug", "title", "--dry-run"},
+			want: "must be a basename",
+		},
+		{
+			name: "active-en-file traversal",
+			args: []string{"deploy", "--active-file", "gp-pending-example.mdx", "--active-en-file", "en-gp-pending-../escape.mdx", "--date-stamp", "20260722", "--author-slug", "author", "--title-slug", "title", "--dry-run"},
+			want: "must be a basename",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resetGlobals()
+			cmd := buildRoot()
+			cmd.SetArgs(tt.args)
+			err := cmd.ExecuteContext(context.Background())
+			if err == nil || !strings.Contains(err.Error(), tt.want) {
+				t.Fatalf("error = %v, want missing-slot diagnostic %q", err, tt.want)
+			}
+		})
+	}
+
+	resetGlobals()
+	cmd := buildRoot()
+	cmd.SetArgs([]string{
+		"deploy", "--active-file", "gp-pending-example.mdx",
+		"--date-stamp", "20260722", "--author-slug", "author", "--title-slug", "title",
+		"--dry-run",
+	})
+	if err := cmd.ExecuteContext(context.Background()); err != nil {
+		t.Fatalf("complete dry-run slots should succeed: %v", err)
 	}
 }
 

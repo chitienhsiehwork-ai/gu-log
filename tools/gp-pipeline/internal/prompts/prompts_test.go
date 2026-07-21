@@ -156,6 +156,21 @@ func TestRender_Refine_WithAngle(t *testing.T) {
 	}
 }
 
+func TestRender_TranslateNamesDistinctMDXComponents(t *testing.T) {
+	out, err := Render("translate", TranslateData{TicketID: "GP-7", Source: "body"})
+	if err != nil {
+		t.Fatalf("Render: %v", err)
+	}
+	for _, component := range []string{"MoguNote", "ShroomDogNote"} {
+		if !strings.Contains(out, component) {
+			t.Errorf("translate prompt missing component %q", component)
+		}
+	}
+	if strings.Contains(out, "MoguNote, "+"MoguNote") {
+		t.Fatal("translate prompt repeats MoguNote instead of naming the supported components")
+	}
+}
+
 func TestRender_MissingKey_Errors(t *testing.T) {
 	// Use a data shape that does NOT satisfy EvalData — text/template with
 	// missingkey=error must fail fast.

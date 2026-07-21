@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/counter"
+	deploypkg "github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/deploy"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/pipeline"
 )
 
@@ -82,7 +83,7 @@ subcommand is for recovering a partially-deployed article.`,
 	cmd.Flags().BoolVar(&skipValidate, "skip-validate", false, "skip node scripts/validate-posts.mjs")
 	_ = cmd.MarkFlagRequired("active-file")
 	// date-stamp / author-slug / title-slug are validated inside deploy.Run
-	// (validateFilenameSlots, gu-log #546) rather than as cobra-required
+	// (deploy.ValidateFilenameSlots, gu-log #546) rather than as cobra-required
 	// flags, so the retired-prefix taxonomy gate in runDeployCmd fires first
 	// and returns its actionable "use GP/MP" hint before any slot check.
 	return cmd
@@ -106,6 +107,16 @@ func runDeployCmd(ctx context.Context, state *rootState, opts deployCmdOpts) err
 	report := deployReport{Step: "deploy", DryRun: opts.DryRun}
 	if err := counter.ValidatePrefix(opts.Prefix); err != nil {
 		return err
+	}
+	if err := deploypkg.ValidatePostBasenames(opts.ActiveFilename, opts.ActiveENFilename); err != nil {
+		return newExitError(1, err)
+	}
+	if err := deploypkg.ValidateFilenameSlots(deploypkg.Options{
+		DateStamp:  opts.DateStamp,
+		AuthorSlug: opts.AuthorSlug,
+		TitleSlug:  opts.TitleSlug,
+	}); err != nil {
+		return newExitError(1, err)
 	}
 
 	if opts.DryRun {

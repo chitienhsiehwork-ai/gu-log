@@ -23,8 +23,9 @@ const finalPipelineURL = "https://github.com/chitienhsiehwork-ai/gu-log/tree/mai
 //
 //  1. Computes the ActiveFilename (gp-pending-YYYYMMDD-<author>-<slug>.mdx
 //     for new articles; the caller-provided filename when resuming).
-//  2. Copies final.mdx into src/content/posts/ at that filename if it's
-//     not already there.
+//  2. Copies final.mdx into src/content/posts/ at that filename whenever the
+//     artifact exists. This makes a newly reviewed/refined final authoritative
+//     even when --file points at an older posts/ copy.
 //  3. Runs `bash scripts/tribunal.sh <filename>` via the ralph
 //     package. Tribunal failures are logged-and-continued (bash behavior).
 //  4. For each of {zh-tw, en} files in the posts dir, runs the
@@ -41,21 +42,32 @@ func (s *State) Ralph(ctx context.Context) error {
 
 	s.Log.Info("Step 4.7: ralph tribunal")
 
-	// Decide which file the tribunal should operate on. The bash
-	// pipeline uses _TITLE_SOURCE = posts/$FILENAME when --file is set,
-	// otherwise $WORK_DIR/final.mdx.
-	var titleSource string
-	if s.ExistingFile != "" {
+	// final.mdx is authoritative whenever a preceding refine/recovery step
+	// produced it. Standalone ralph and late recovery are still allowed to use
+	// the existing posts/ file when no final artifact is present.
+	finalPath := filepath.Join(s.WorkDir, "final.mdx")
+	titleSource := finalPath
+	useFinalArtifact := true
+	if info, err := os.Stat(finalPath); err == nil {
+		if !info.Mode().IsRegular() || info.Size() == 0 {
+			return fmt.Errorf("ralph: final artifact %s is not a non-empty regular file", finalPath)
+		}
+	} else if os.IsNotExist(err) {
+		if s.ExistingFile == "" {
+			return fmt.Errorf("ralph: final artifact %s missing", finalPath)
+		}
 		titleSource = filepath.Join(s.Cfg.PostsDir, s.ExistingFile)
+		useFinalArtifact = false
 	} else {
-		titleSource = filepath.Join(s.WorkDir, "final.mdx")
+		return fmt.Errorf("ralph: stat final artifact %s: %w", finalPath, err)
 	}
 	if _, err := os.Stat(titleSource); err != nil {
 		return fmt.Errorf("ralph: title source %s missing: %w", titleSource, err)
 	}
 
-	// Extract the title from frontmatter for the filename slug.
-	if s.Title == "" {
+	// Extract the title from frontmatter for the filename slug. A refined final
+	// artifact overrides the title hydrated from the older posts/ copy.
+	if useFinalArtifact || s.Title == "" {
 		if title, err := extractTitle(titleSource); err == nil && title != "" {
 			s.Title = title
 		}
@@ -84,17 +96,26 @@ func (s *State) Ralph(ctx context.Context) error {
 		s.ActiveENFilename = "en-" + s.ActiveFilename
 	}
 
-	// Place the file in posts dir if not already there.
+	// A real final artifact always replaces the posts/ copy. In particular,
+	// `run --file ... --from-step review|refine` must send the refined body to
+	// tribunal, translation, and deploy instead of silently retaining the old
+	// article. Without a final artifact, an existing posts/ file remains the
+	// recovery source and is left in place.
 	postsDir := s.Cfg.PostsDir
 	activePath := filepath.Join(postsDir, s.ActiveFilename)
-	if _, err := os.Stat(activePath); err != nil {
-		if s.ExistingFile != "" {
-			return fmt.Errorf("ralph: existing file %s missing in posts dir", s.ActiveFilename)
-		}
-		finalPath := filepath.Join(s.WorkDir, "final.mdx")
+	if useFinalArtifact {
 		data, err := os.ReadFile(finalPath)
 		if err != nil {
 			return fmt.Errorf("ralph: read final.mdx: %w", err)
+		}
+		if s.ExistingFile != "" {
+			existingData, err := os.ReadFile(activePath)
+			if err != nil {
+				return fmt.Errorf("ralph: read existing post %s: %w", s.ActiveFilename, err)
+			}
+			if err := validateRalphOverwriteIdentity(s.ActiveFilename, existingData, data); err != nil {
+				return err
+			}
 		}
 		if err := os.MkdirAll(postsDir, 0o755); err != nil {
 			return fmt.Errorf("ralph: mkdir posts: %w", err)
@@ -102,6 +123,8 @@ func (s *State) Ralph(ctx context.Context) error {
 		if err := os.WriteFile(activePath, data, 0o644); err != nil {
 			return fmt.Errorf("ralph: copy final.mdx into posts: %w", err)
 		}
+	} else if _, err := os.Stat(activePath); err != nil {
+		return fmt.Errorf("ralph: existing file %s missing in posts dir", s.ActiveFilename)
 	}
 
 	s.runPostFixers(ctx, activePath)
@@ -158,6 +181,74 @@ func (s *State) Ralph(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+type ralphPostIdentity struct {
+	ticketID string
+	lang     string
+}
+
+// validateRalphOverwriteIdentity rejects a refined artifact that would change
+// the durable identity of an allocated existing post. Both inputs are parsed
+// before os.WriteFile is reached, so a rejection leaves the posts/ copy byte-
+// for-byte unchanged.
+func validateRalphOverwriteIdentity(filename string, existingData, finalData []byte) error {
+	prefix, err := ValidateTranslationFilenames(filename, "")
+	if err != nil {
+		return fmt.Errorf("ralph: existing filename identity: %w", err)
+	}
+	existing, err := parseRalphPostIdentity("existing post "+filename, existingData)
+	if err != nil {
+		return err
+	}
+	if err := validateTranslationTicketIdentity(filename, existing.ticketID, prefix); err != nil {
+		return fmt.Errorf("ralph: existing post identity: %w", err)
+	}
+	if existing.lang != "zh-tw" {
+		return fmt.Errorf("ralph: existing post %q has lang %q, want %q for a zh-tw filename", filename, existing.lang, "zh-tw")
+	}
+
+	final, err := parseRalphPostIdentity("final.mdx", finalData)
+	if err != nil {
+		return err
+	}
+	if err := validateTranslationTicketIdentity(filename, final.ticketID, prefix); err != nil {
+		return fmt.Errorf("ralph: final.mdx identity: %w", err)
+	}
+	if final.ticketID != existing.ticketID {
+		return fmt.Errorf("ralph: final.mdx ticketId %q does not match existing post ticketId %q", final.ticketID, existing.ticketID)
+	}
+	if final.lang != existing.lang {
+		return fmt.Errorf("ralph: final.mdx lang %q does not match existing post lang %q", final.lang, existing.lang)
+	}
+	return nil
+}
+
+func parseRalphPostIdentity(label string, data []byte) (ralphPostIdentity, error) {
+	f, err := frontmatter.Parse(data)
+	if err != nil {
+		return ralphPostIdentity{}, fmt.Errorf("ralph: parse %s: %w", label, err)
+	}
+	readRequired := func(key string) (string, error) {
+		raw, ok := f.GetScalar(key)
+		if !ok {
+			return "", fmt.Errorf("ralph: %s has no %s", label, key)
+		}
+		value, err := decodeYAMLScalar(raw)
+		if err != nil || value == "" {
+			return "", fmt.Errorf("ralph: %s has invalid %s %q", label, key, raw)
+		}
+		return value, nil
+	}
+	ticketID, err := readRequired("ticketId")
+	if err != nil {
+		return ralphPostIdentity{}, err
+	}
+	lang, err := readRequired("lang")
+	if err != nil {
+		return ralphPostIdentity{}, err
+	}
+	return ralphPostIdentity{ticketID: ticketID, lang: lang}, nil
 }
 
 func (s *State) runPostFixers(ctx context.Context, postPath string) {

@@ -57,6 +57,15 @@ func SetupWorkDir(s *State) (cleanup func(), err error) {
 // PrintSummary so the `run` subcommand can emit it in both human and
 // --json shapes.
 func Run(ctx context.Context, s *State) error {
+	// Hydrate and validate an existing post before any recovery prompt runs.
+	// Otherwise review/refine would still see the fresh-run placeholder (for
+	// example GP-PENDING) and could rewrite an allocated article's identity.
+	if s.ExistingFile != "" {
+		if err := s.prepareExistingPost(); err != nil {
+			return fmt.Errorf("run: prepare existing post: %w", err)
+		}
+	}
+
 	type step struct {
 		name string
 		fn   func(context.Context) error

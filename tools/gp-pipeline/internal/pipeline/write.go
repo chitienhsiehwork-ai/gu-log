@@ -102,15 +102,12 @@ func (s *State) Write(ctx context.Context) error {
 	return nil
 }
 
-// resumeDraft is called when Step 2 is skipped via --from-step. It copies
-// the existing post file (or the already-present draft-v1.mdx) into the
-// work dir so later steps have something to operate on.
+// resumeDraft is called when Step 2 is skipped via --from-step. An explicit
+// --file is authoritative and always replaces draft-v1.mdx, including a stale
+// artifact left in a reused work dir, before Review or Refine sees it.
 func (s *State) resumeDraft(draftPath string) error {
-	if _, err := os.Stat(draftPath); err == nil {
-		return nil // already there
-	}
 	if s.ExistingFile == "" {
-		return nil // nothing to copy; later steps will fail if they need draft
+		return nil // an already-present draft remains the recovery source without --file
 	}
 	src := filepath.Join(s.Cfg.PostsDir, s.ExistingFile)
 	data, err := os.ReadFile(src)

@@ -238,6 +238,70 @@ func TestRun_MalformedDateStamp(t *testing.T) {
 	}
 }
 
+func TestRun_NonCanonicalSlugFailsBeforeCounterBump(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		override func(*Options)
+	}{
+		{name: "author traversal", override: func(o *Options) { o.AuthorSlug = "../escape" }},
+		{name: "title path separator", override: func(o *Options) { o.TitleSlug = "nested/title" }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			opts, counterFile, postsDir := newTestOptions(t, tc.override)
+			before := readCounterNext(t, counterFile)
+			entriesBefore, err := os.ReadDir(postsDir)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := Run(context.Background(), opts); err == nil || !strings.Contains(err.Error(), "canonical lowercase ASCII slug") {
+				t.Fatalf("Run error = %v, want canonical slug rejection", err)
+			}
+			if after := readCounterNext(t, counterFile); after != before {
+				t.Fatalf("counter mutated on slug rejection: before=%d after=%d", before, after)
+			}
+			entriesAfter, err := os.ReadDir(postsDir)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(entriesAfter) != len(entriesBefore) {
+				t.Fatalf("posts dir mutated on slug rejection: before=%d after=%d", len(entriesBefore), len(entriesAfter))
+			}
+		})
+	}
+}
+
+func TestRun_PathLikeActiveFilenameFailsBeforeCounterBump(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		override func(*Options)
+	}{
+		{name: "active traversal", override: func(o *Options) { o.ActiveFilename = "gp-pending-../../escape.mdx" }},
+		{name: "English traversal", override: func(o *Options) { o.ActiveENFilename = "en-gp-pending-../escape.mdx" }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			opts, counterFile, postsDir := newTestOptions(t, tc.override)
+			before := readCounterNext(t, counterFile)
+			entriesBefore, err := os.ReadDir(postsDir)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := Run(context.Background(), opts); err == nil || !strings.Contains(err.Error(), "must be a basename") {
+				t.Fatalf("Run error = %v, want basename rejection", err)
+			}
+			if after := readCounterNext(t, counterFile); after != before {
+				t.Fatalf("counter mutated on basename rejection: before=%d after=%d", before, after)
+			}
+			entriesAfter, err := os.ReadDir(postsDir)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(entriesAfter) != len(entriesBefore) {
+				t.Fatalf("posts dir mutated on basename rejection: before=%d after=%d", len(entriesBefore), len(entriesAfter))
+			}
+		})
+	}
+}
+
 func TestRun_PreExistingStagedChangesFailBeforeMutationAndPreserveIndex(t *testing.T) {
 	opts, counterFile, postsDir := newTestOptions(t, nil)
 	repoRoot := opts.Cfg.RepoRoot
@@ -529,12 +593,45 @@ func TestValidateFilenameSlots(t *testing.T) {
 		{"missing title-slug", Options{DateStamp: "20260717", AuthorSlug: "a"}, true},
 		{"malformed date-stamp (dashes)", Options{DateStamp: "2026-07-17", AuthorSlug: "a", TitleSlug: "t"}, true},
 		{"malformed date-stamp (too short)", Options{DateStamp: "202607", AuthorSlug: "a", TitleSlug: "t"}, true},
+		{"author slash", Options{DateStamp: "20260717", AuthorSlug: "/", TitleSlug: "t"}, true},
+		{"author dot", Options{DateStamp: "20260717", AuthorSlug: ".", TitleSlug: "t"}, true},
+		{"author dot-dot", Options{DateStamp: "20260717", AuthorSlug: "..", TitleSlug: "t"}, true},
+		{"author traversal", Options{DateStamp: "20260717", AuthorSlug: "../escape", TitleSlug: "t"}, true},
+		{"title slash", Options{DateStamp: "20260717", AuthorSlug: "a", TitleSlug: "nested/title"}, true},
+		{"title backslash", Options{DateStamp: "20260717", AuthorSlug: "a", TitleSlug: `nested\title`}, true},
+		{"uppercase", Options{DateStamp: "20260717", AuthorSlug: "Author", TitleSlug: "t"}, true},
+		{"underscore", Options{DateStamp: "20260717", AuthorSlug: "a", TitleSlug: "not_canonical"}, true},
+		{"repeated dash", Options{DateStamp: "20260717", AuthorSlug: "a", TitleSlug: "double--dash"}, true},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := validateFilenameSlots(tc.opts)
+			err := ValidateFilenameSlots(tc.opts)
 			if (err != nil) != tc.wantErr {
-				t.Errorf("validateFilenameSlots(%+v) error = %v, wantErr %v", tc.opts, err, tc.wantErr)
+				t.Errorf("ValidateFilenameSlots(%+v) error = %v, wantErr %v", tc.opts, err, tc.wantErr)
+			}
+		})
+	}
+}
+
+func TestValidatePostBasenames(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		active   string
+		activeEN string
+		wantErr  bool
+	}{
+		{name: "zh only", active: "gp-pending-example.mdx"},
+		{name: "paired", active: "gp-pending-example.mdx", activeEN: "en-gp-pending-example.mdx"},
+		{name: "slash", active: "gp-pending/nested.mdx", wantErr: true},
+		{name: "dot-dot", active: "..", wantErr: true},
+		{name: "traversal", active: "gp-pending-../../escape.mdx", wantErr: true},
+		{name: "backslash", active: `gp-pending-..\escape.mdx`, wantErr: true},
+		{name: "English traversal", active: "gp-pending-example.mdx", activeEN: "en-gp-pending-../escape.mdx", wantErr: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			err := ValidatePostBasenames(tc.active, tc.activeEN)
+			if (err != nil) != tc.wantErr {
+				t.Fatalf("ValidatePostBasenames(%q, %q) error = %v, wantErr %v", tc.active, tc.activeEN, err, tc.wantErr)
 			}
 		})
 	}

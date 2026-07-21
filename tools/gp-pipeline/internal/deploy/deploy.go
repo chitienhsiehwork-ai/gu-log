@@ -19,13 +19,14 @@ import (
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/logx"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/observability"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/runner"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/slug"
 )
 
 // dateStampRe matches the YYYYMMDD filename date-stamp format used by both
 // ralph.go's pending-filename builder and the final deploy filename.
 var dateStampRe = regexp.MustCompile(`^\d{8}$`)
 
-// validateFilenameSlots fails loud, before any counter bump / rename /
+// ValidateFilenameSlots fails loud, before any counter bump / rename /
 // commit / push, when the caller has not supplied everything needed to
 // build a well-formed final filename. Without this, an operator invoking
 // the standalone `deploy` subcommand without --date-stamp/--author-slug/
@@ -35,7 +36,7 @@ var dateStampRe = regexp.MustCompile(`^\d{8}$`)
 // (<prefix>-pending-YYYYMMDD-<author>-<title>.mdx) has no delimiter
 // between the author and title slugs, so a guessed split could produce a
 // well-formed but semantically wrong filename instead of failing loud.
-func validateFilenameSlots(opts Options) error {
+func ValidateFilenameSlots(opts Options) error {
 	var missing []string
 	if opts.DateStamp == "" {
 		missing = append(missing, "--date-stamp")
@@ -44,14 +45,38 @@ func validateFilenameSlots(opts Options) error {
 	}
 	if opts.AuthorSlug == "" {
 		missing = append(missing, "--author-slug")
+	} else if !slug.IsCanonical(opts.AuthorSlug) {
+		return fmt.Errorf("deploy: --author-slug must be a canonical lowercase ASCII slug (letters/digits joined by single hyphens), got %q", opts.AuthorSlug)
 	}
 	if opts.TitleSlug == "" {
 		missing = append(missing, "--title-slug")
+	} else if !slug.IsCanonical(opts.TitleSlug) {
+		return fmt.Errorf("deploy: --title-slug must be a canonical lowercase ASCII slug (letters/digits joined by single hyphens), got %q", opts.TitleSlug)
 	}
 	if len(missing) > 0 {
 		return fmt.Errorf("deploy: missing required flag(s) %s — refusing to build a filename with empty slots (see gu-log #546)", strings.Join(missing, ", "))
 	}
 	return nil
+}
+
+// ValidatePostBasenames confines caller-provided post names to the posts/
+// directory before any stat, rename, git, or counter operation. It is
+// intentionally a basename/path-containment gate, not a full post naming
+// preflight; the existing taxonomy and pending-shape checks remain separate.
+func ValidatePostBasenames(activeFilename, activeENFilename string) error {
+	validate := func(flag, filename string) error {
+		if filename == "" {
+			return nil
+		}
+		if filepath.Base(filename) != filename || strings.ContainsAny(filename, `/\`) || strings.Contains(filename, "..") {
+			return fmt.Errorf("deploy: %s must be a basename inside src/content/posts/, got %q", flag, filename)
+		}
+		return nil
+	}
+	if err := validate("--active-file", activeFilename); err != nil {
+		return err
+	}
+	return validate("--active-en-file", activeENFilename)
 }
 
 // Options controls a deploy invocation. Use Strict=false to skip the git
@@ -106,6 +131,9 @@ func RunExisting(ctx context.Context, opts Options) (*Result, error) {
 	}
 	if opts.ActiveFilename == "" {
 		return nil, fmt.Errorf("deploy existing: ActiveFilename required")
+	}
+	if err := ValidatePostBasenames(opts.ActiveFilename, opts.ActiveENFilename); err != nil {
+		return nil, err
 	}
 	if err := rejectPreExistingStagedChanges(ctx, opts.Cfg.RepoRoot); err != nil {
 		return nil, err
@@ -203,7 +231,10 @@ func Run(ctx context.Context, opts Options) (*Result, error) {
 	if opts.ActiveFilename == "" {
 		return nil, fmt.Errorf("deploy: ActiveFilename required")
 	}
-	if err := validateFilenameSlots(opts); err != nil {
+	if err := ValidatePostBasenames(opts.ActiveFilename, opts.ActiveENFilename); err != nil {
+		return nil, err
+	}
+	if err := ValidateFilenameSlots(opts); err != nil {
 		return nil, err
 	}
 

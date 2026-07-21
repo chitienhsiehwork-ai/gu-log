@@ -15,6 +15,26 @@ import (
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/logx"
 )
 
+type draftInspectingProvider struct {
+	llm.Provider
+	wantBody  []byte
+	inspected bool
+}
+
+func (p *draftInspectingProvider) Run(ctx context.Context, prompt string, opts llm.RunOptions) (string, error) {
+	if !p.inspected {
+		data, err := os.ReadFile(filepath.Join(opts.WorkDir, "draft-v1.mdx"))
+		if err != nil {
+			return "", err
+		}
+		if !bytes.Contains(data, p.wantBody) {
+			return "", errors.New("provider-visible draft-v1.mdx did not contain the existing post body")
+		}
+		p.inspected = true
+	}
+	return p.Provider.Run(ctx, prompt, opts)
+}
+
 // makeRunHarness returns a fully wired State + workDir for an end-to-end
 // run test. It writes a fake fetch-x-article.sh that emits a plausible
 // capture, a fake tribunal.sh that exits 0, a fake
@@ -369,6 +389,118 @@ body
 	// this is the CCC-fallback stamping path under test.
 	if !strings.Contains(string(data), `"Claude Code CLI"`) {
 		t.Errorf("ralph normaliser did not run on resume: %s", data)
+	}
+}
+
+func TestRun_FromStepReviewOrRefinePublishesFinalArtifact(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		fromStep int
+	}{
+		{name: "review", fromStep: StepReview},
+		{name: "refine", fromStep: StepRefine},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			s, tmp := makeRunHarness(t)
+			s.FromStepInt = tc.fromStep
+			existing := "gp-123-20260411-fake-resume.mdx"
+			existingBody := `---
+title: "Resume Fake"
+ticketId: "GP-123"
+originalDate: "2026-04-11"
+translatedDate: "2026-04-11"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code CLI"
+source: "@fakeauthor on X"
+sourceUrl: "https://x.com/fakeauthor/status/1"
+lang: "zh-tw"
+summary: "resume"
+tags: ["ai"]
+---
+STALE POSTS BODY
+`
+			postPath := filepath.Join(s.Cfg.PostsDir, existing)
+			if err := os.WriteFile(postPath, []byte(existingBody), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			runGitForTest(t, tmp, "add", "src/content/posts/"+existing)
+			runGitForTest(t, tmp, "commit", "-q", "-m", "resume baseline")
+
+			s.ExistingFile = existing
+			s.AuthorHandle = "fakeauthor"
+			_, _ = SetupWorkDir(s)
+			if err := os.WriteFile(filepath.Join(s.WorkDir, "draft-v1.mdx"), []byte("STALE WORKDIR DRAFT\n"), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			if tc.fromStep == StepRefine {
+				if err := os.WriteFile(filepath.Join(s.WorkDir, "review.md"), []byte("- Replace the stale body.\n"), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+
+			refined := strings.Replace(existingBody, "STALE POSTS BODY", "FINAL AUTHORITATIVE BODY", 1)
+			translated := `---
+title: "Resume Fake"
+ticketId: "GP-123"
+lang: "en"
+---
+TRANSLATED FINAL BODY
+`
+			responses := make([]llm.FakeResponse, 0, 3)
+			if tc.fromStep == StepReview {
+				responses = append(responses, llm.FakeResponse{Output: "- Replace the stale body.\n", WriteFile: "review.md"})
+			}
+			responses = append(responses,
+				llm.FakeResponse{Output: refined, WriteFile: "final.mdx"},
+				llm.FakeResponse{Output: translated, WriteFile: "translated-en.mdx"},
+			)
+			fake := llm.NewFakeClaude().WithResponses(responses...)
+			inspector := &draftInspectingProvider{Provider: fake, wantBody: []byte("STALE POSTS BODY")}
+			disp, err := llm.NewDispatcher(logx.New(), inspector)
+			if err != nil {
+				t.Fatal(err)
+			}
+			s.Dispatcher = disp
+			s.WriterDispatcher = disp
+			s.JudgeDispatcher = disp
+
+			if err := Run(context.Background(), s); err != nil {
+				t.Fatalf("Run --from-step %s: %v", tc.name, err)
+			}
+			if !inspector.inspected {
+				t.Fatal("provider was not shown the seeded draft-v1.mdx")
+			}
+			for i, call := range fake.Called {
+				if !strings.Contains(call.Prompt, "GP-123") {
+					t.Errorf("LLM call %d did not receive the existing ticket identity", i)
+				}
+				if strings.Contains(call.Prompt, "GP-PENDING") {
+					t.Errorf("LLM call %d received the fresh-run pending ticket during existing-file recovery", i)
+				}
+			}
+
+			published, err := os.ReadFile(postPath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !strings.Contains(string(published), "FINAL AUTHORITATIVE BODY") || strings.Contains(string(published), "STALE POSTS BODY") {
+				t.Fatalf("published post did not use final.mdx:\n%s", published)
+			}
+			if _, err := os.Stat(filepath.Join(s.Cfg.PostsDir, "en-"+existing)); err != nil {
+				t.Fatalf("translated sidecar missing: %v", err)
+			}
+			translateSawFinal := false
+			for _, call := range fake.Called {
+				if strings.Contains(call.Prompt, "FINAL AUTHORITATIVE BODY") {
+					translateSawFinal = true
+					break
+				}
+			}
+			if !translateSawFinal {
+				t.Fatal("translate step did not receive the refined final.mdx body")
+			}
+		})
 	}
 }
 

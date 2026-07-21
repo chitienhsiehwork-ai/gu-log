@@ -58,9 +58,9 @@ check it against).`,
 		},
 	}
 	cmd.Flags().StringVar(&file, "file", "", "zh-tw filename already in src/content/posts/ (required)")
-	cmd.Flags().StringVar(&enFilename, "en-file", "", "output en filename (defaults to en-<file>)")
+	cmd.Flags().StringVar(&enFilename, "en-file", "", "output en filename (must equal en-<file>; defaults automatically)")
 	cmd.Flags().StringVar(&workDir, "work-dir", "", "scratch work directory for the LLM call (defaults to a temp dir)")
-	cmd.Flags().StringVar(&ticketID, "ticket-id", "PENDING", "ticketId to interpolate into the prompt")
+	cmd.Flags().StringVar(&ticketID, "ticket-id", "", "optional ticketId assertion (defaults to the source frontmatter)")
 	cmd.Flags().BoolVar(&opusOnly, "opus", false, "deprecated compatibility flag; writer routing is automatic")
 	_ = cmd.MarkFlagRequired("file")
 	return cmd
@@ -76,13 +76,22 @@ type translateCmdOpts struct {
 
 func runTranslate(ctx context.Context, state *rootState, opts translateCmdOpts) error {
 	start := time.Now()
+	_, err := pipeline.ValidateTranslationFilenames(opts.File, opts.ENFilename)
+	if err != nil {
+		return newExitError(14, err)
+	}
+	if opts.TicketID != "" {
+		if err := pipeline.ValidateTranslationTicketIdentity(opts.File, opts.TicketID); err != nil {
+			return newExitError(14, fmt.Errorf("translate --ticket-id: %w", err))
+		}
+	}
 
 	workDir := opts.WorkDir
 	if workDir == "" {
 		stamp := time.Now().Unix()
-		workDir = filepath.Join(os.TempDir(), fmt.Sprintf("sp-translate-%d", stamp))
+		workDir = filepath.Join(os.TempDir(), fmt.Sprintf("gp-translate-%d", stamp))
 	}
-	workDir, err := filepath.Abs(workDir)
+	workDir, err = filepath.Abs(workDir)
 	if err != nil {
 		return err
 	}
@@ -101,12 +110,10 @@ func runTranslate(ctx context.Context, state *rootState, opts translateCmdOpts) 
 	s.Dispatcher = disp
 	s.WriterDispatcher = disp
 	s.WorkDir = workDir
-	s.PromptTicketID = opts.TicketID
-	s.ActiveFilename = opts.File
+	s.FromStepInt = pipeline.StepTranslate
+	s.ExistingFile = opts.File
 	s.ActiveENFilename = opts.ENFilename
-	// The standalone subcommand's whole purpose is to translate an
-	// already-tribunal-passed article, so it always proceeds.
-	s.RalphPassed = true
+	s.TranslateTicketIDOverride = opts.TicketID
 
 	stepCtx, cancel := context.WithTimeout(ctx, 30*time.Minute)
 	defer cancel()

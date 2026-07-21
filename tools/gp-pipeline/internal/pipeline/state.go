@@ -58,6 +58,10 @@ type State struct {
 	// ExistingFile is set when resuming via --file <basename>. Empty for
 	// fresh runs.
 	ExistingFile string
+	// TranslateTicketIDOverride is the standalone translate command's optional
+	// --ticket-id assertion. The existing post's frontmatter remains the SSOT;
+	// a non-empty override must match it exactly.
+	TranslateTicketIDOverride string
 	// KeepWorkDir disables the cleanup handler for --keep-work-dir runs.
 	KeepWorkDir bool
 	// SkipBuild disables `pnpm run build` in Deploy. Used by tests that

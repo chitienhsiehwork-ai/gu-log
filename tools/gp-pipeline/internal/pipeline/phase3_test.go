@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"bytes"
 	"context"
 	"os"
 	"path/filepath"
@@ -228,6 +229,123 @@ body
 		if !strings.Contains(got, want) {
 			t.Errorf("ralph frontmatter missing %q\n---\n%s", want, got)
 		}
+	}
+}
+
+func TestRalph_ExistingFileFallbackWithoutFinalArtifact(t *testing.T) {
+	tmp := t.TempDir()
+	scriptsDir := filepath.Join(tmp, "scripts")
+	postsDir := filepath.Join(tmp, "posts")
+	workDir := filepath.Join(tmp, "work")
+	for _, dir := range []string{scriptsDir, postsDir, workDir} {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(scriptsDir, "tribunal.sh"), []byte("#!/usr/bin/env bash\nexit 0\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"add-kaomoji.mjs", "apply-glossary-links.mjs", "inject-related-posts.mjs"} {
+		if err := os.WriteFile(filepath.Join(scriptsDir, name), []byte(""), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	existing := "gp-123-20260411-fake-resume.mdx"
+	existingBody := `---
+title: "Existing Fallback"
+ticketId: "GP-123"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code CLI"
+---
+EXISTING FALLBACK BODY
+`
+	if err := os.WriteFile(filepath.Join(postsDir, existing), []byte(existingBody), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	s := NewState()
+	s.Log = logx.New()
+	s.Cfg = &config.Config{RepoRoot: tmp, ScriptsDir: scriptsDir, PostsDir: postsDir}
+	s.WorkDir = workDir
+	s.ExistingFile = existing
+	disp, err := llm.NewDispatcher(s.Log, llm.NewFakeCodex())
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.Dispatcher = disp
+
+	if err := s.Ralph(context.Background()); err != nil {
+		t.Fatalf("Ralph existing fallback: %v", err)
+	}
+	data, err := os.ReadFile(filepath.Join(postsDir, existing))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), "EXISTING FALLBACK BODY") {
+		t.Fatalf("Ralph did not preserve existing fallback body:\n%s", data)
+	}
+	if _, err := os.Stat(filepath.Join(workDir, "final.mdx")); !os.IsNotExist(err) {
+		t.Fatalf("standalone fallback unexpectedly created final.mdx: %v", err)
+	}
+}
+
+func TestRalph_ExistingFinalIdentityMismatchPreservesOriginal(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		ticketID  string
+		lang      string
+		wantError string
+	}{
+		{name: "ticket mismatch", ticketID: "GP-PENDING", lang: "zh-tw", wantError: "ticketId"},
+		{name: "lang mismatch", ticketID: "GP-123", lang: "en", wantError: "lang"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			tmp := t.TempDir()
+			postsDir := filepath.Join(tmp, "posts")
+			workDir := filepath.Join(tmp, "work")
+			for _, dir := range []string{postsDir, workDir} {
+				if err := os.MkdirAll(dir, 0o755); err != nil {
+					t.Fatal(err)
+				}
+			}
+
+			const existing = "gp-123-20260411-fake-resume.mdx"
+			existingBody := []byte(`---
+title: "Existing Identity"
+ticketId: "GP-123"
+lang: "zh-tw"
+---
+ORIGINAL POSTS BODY
+`)
+			postPath := filepath.Join(postsDir, existing)
+			if err := os.WriteFile(postPath, existingBody, 0o644); err != nil {
+				t.Fatal(err)
+			}
+			finalBody := []byte("---\ntitle: \"Refined Identity\"\nticketId: \"" + tc.ticketID + "\"\nlang: \"" + tc.lang + "\"\n---\nMUTATING FINAL BODY\n")
+			if err := os.WriteFile(filepath.Join(workDir, "final.mdx"), finalBody, 0o644); err != nil {
+				t.Fatal(err)
+			}
+
+			s := NewState()
+			s.Log = logx.New()
+			s.Cfg = &config.Config{RepoRoot: tmp, PostsDir: postsDir}
+			s.WorkDir = workDir
+			s.ExistingFile = existing
+
+			err := s.Ralph(context.Background())
+			if err == nil || !strings.Contains(err.Error(), tc.wantError) {
+				t.Fatalf("Ralph error = %v, want %q identity rejection", err, tc.wantError)
+			}
+			got, readErr := os.ReadFile(postPath)
+			if readErr != nil {
+				t.Fatal(readErr)
+			}
+			if !bytes.Equal(got, existingBody) {
+				t.Fatalf("Ralph modified the existing post before identity rejection:\n%s", got)
+			}
+		})
 	}
 }
 
