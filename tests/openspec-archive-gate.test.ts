@@ -14,6 +14,8 @@ const TEST_CASES = {
   scenarioLedger: 'maps every delta-spec scenario to named executable or rollout evidence',
   noChange: 'passes when valid base/head trees introduce no OpenSpec change',
   activeRemains: 'returns exit 1 when a newly introduced active change remains at HEAD',
+  activeAndArchived:
+    'GIVEN a base-active change WHEN HEAD keeps it and adds a matching complete archive THEN returns exit 1',
   bareDeletion: 'keeps the obligation after create then bare deletion',
   completeArchive: 'passes create then canonical archive with a new stable-spec blob',
   directArchive: 'validates a direct archive even without a reachable active snapshot',
@@ -95,7 +97,7 @@ const SCENARIO_TIERS = {
   },
   'Active change 仍留在 HEAD': {
     tier: 'tier-1-cli',
-    tests: [TEST_CASES.activeRemains],
+    tests: [TEST_CASES.activeRemains, TEST_CASES.activeAndArchived],
   },
   'HEAD 有且僅有一個新 canonical archive': {
     tier: 'tier-1-cli',
@@ -380,6 +382,21 @@ describe('OpenSpec archive gate CLI — exact committed-tree lifecycle', () => {
 
     expect(result.status).toBe(0);
     expect(result.stderr).not.toContain('legacy');
+  });
+
+  it(TEST_CASES.activeAndArchived, () => {
+    const { repo } = initRepo();
+    writeActive(repo, 'legacy', 'legacy-capability');
+    syncStable(repo, 'legacy-capability', 'stable v1\n');
+    const base = commit(repo, 'base contains legacy active change and stable spec');
+    writeDirectArchive(repo, 'legacy', 'legacy-capability');
+    syncStable(repo, 'legacy-capability', 'stable v2\n');
+    const head = commit(repo, 'keep active change while adding matching archive');
+
+    const result = runGate(repo, base, head);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('change "legacy" remains active at HEAD');
   });
 
   it(TEST_CASES.grandfatheredAndNew, () => {

@@ -403,6 +403,9 @@ function run(baseInput, headInput) {
       continue;
     }
     parsedEntries.set(entry.path, parsed);
+    if (headActive.has(parsed.changeName)) {
+      addFinding(findings, `change "${parsed.changeName}" remains active at HEAD.`);
+    }
   }
 
   for (const name of introducedNames) {
