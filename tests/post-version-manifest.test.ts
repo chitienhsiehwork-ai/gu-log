@@ -199,10 +199,15 @@ describe('post version manifest freshness', () => {
     const result = runManifest(repo, []);
 
     expect(result.status).toBe(0);
-    expect(fs.statSync(manifestPath).ino).not.toBe(originalInode);
-    expect(JSON.parse(fs.readFileSync(manifestPath, 'utf-8'))).toEqual({
-      'gp-999-regression': 1,
-    });
+    const manifestFd = fs.openSync(manifestPath, 'r');
+    try {
+      expect(fs.fstatSync(manifestFd).ino).not.toBe(originalInode);
+      expect(JSON.parse(fs.readFileSync(manifestFd, 'utf-8'))).toEqual({
+        'gp-999-regression': 1,
+      });
+    } finally {
+      fs.closeSync(manifestFd);
+    }
     expect(
       fs
         .readdirSync(path.dirname(manifestPath))
