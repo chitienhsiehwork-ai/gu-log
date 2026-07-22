@@ -7,10 +7,13 @@
   --color-surface: #44475a;
   --color-surface-hover: #525672;
   --color-text: #cecdda;
-  --color-text-muted: #8a96c0;
+  --color-text-muted: #9ea9d2; /* 6.14:1 on #282a36 — margin above the 5.5:1 floor (#616) */
   --color-accent: #ff79c6;
   --color-border: #44475a;
   --color-divider: rgba(255, 255, 255, 0.1);
+
+  /* MoguNote body text — dark theme inherits --color-text (5.83:1 on --color-surface, already ≥5.5:1) */
+  --color-mogu-note-text: var(--color-text);
 
   /* Badge & brand colors (dark) — Dracula palette */
   --color-badge-sd: #69d2a0;
@@ -88,6 +91,9 @@
 
   /* Mogu murmur variant accent — indigo readable on cream background */
   --color-mogu-murmur: #555aa0; /* indigo — 5.41:1 on #fdf6e3 */
+
+  /* MoguNote body text — dedicated token, default --color-text is only 4.59:1 on --color-surface (#616) */
+  --color-mogu-note-text: #425458; /* 6.49:1 on #eee8d5 */
 }
 
 * {
@@ -293,7 +299,7 @@ blockquote.mogu-note {
   padding: 0.75rem 1rem;
   border-radius: 0 8px 8px 0;
   font-style: normal;
-  color: var(--color-text);
+  color: var(--color-mogu-note-text);
   margin: var(--spacing-md) 0;
 }
 

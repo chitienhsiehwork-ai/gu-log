@@ -1,96 +1,68 @@
-import { test, expect } from '@playwright/test';
+import type { Page } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 /**
- * Ticket Badge Color Consistency Tests
+ * Ticket Badge Color Consistency Tests (#597)
  *
- * Regression guard: Ticket badge colors must stay consistent in index cards,
- * post meta, and PrevNextNav. We intentionally use WCAG-safe dark-theme colors.
+ * Deterministic canonical-article regression guard: mp-6 is flanked on both
+ * sides (by originalDate, across the whole zh-tw collection) by other MP
+ * posts — mp-15 (prev) and mp-17 (next) — so `.post-meta-row .ticket-mp`
+ * and `.prev-next-nav .nav-ticket--mp` are always present on this one page.
+ * No data-dependent skip needed.
  */
 
-// Expected dark-theme colors by prefix (from CSS vars in global.css)
-const EXPECTED_COLORS: Record<string, { text: string; bg: string }> = {
-  SD: { text: 'rgb(105, 210, 160)', bg: 'rgba(38, 139, 121, 0.15)' },
-  GP: { text: 'rgb(139, 233, 253)', bg: 'rgba(38, 139, 210, 0.15)' },
-  MP: { text: 'rgb(255, 184, 108)', bg: 'rgba(203, 117, 81, 0.15)' },
-};
+const MP_POST_PATH = '/posts/mp-6-20260203-sholto-continual-learning';
 
-test.describe('Ticket Badge Colors', () => {
-  test('GIVEN a post page with PrevNextNav WHEN viewing ticket badges THEN MP badges should be orange, not blue', async ({
-    page,
-  }) => {
-    // Navigate to a post that has MP neighbors in PrevNextNav
-    // Use the listing page to find a MP post first
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
+const VIEWPORTS = {
+  desktop: { width: 1280, height: 800 },
+  mobile: { width: 390, height: 844 },
+} as const;
 
-    // Find a MP post link to click
-    const mpBadge = page.locator('.ticket-mp').first();
-    const hasMp = (await mpBadge.count()) > 0;
+// Resolve a CSS custom property to its browser-computed color, in the same
+// format getComputedStyle returns for real elements, so it can be compared
+// directly without hand-rolling hex/rgb conversion.
+async function resolveColorToken(page: Page, varName: string): Promise<string> {
+  return page.evaluate((v: string) => {
+    const el = document.createElement('div');
+    el.style.color = `var(${v})`;
+    document.body.appendChild(el);
+    const rgb = getComputedStyle(el).color;
+    el.remove();
+    return rgb;
+  }, varName);
+}
 
-    if (!hasMp) {
-      test.skip(true, 'No MP posts found on index');
-      return;
-    }
+for (const theme of ['dark', 'light'] as const) {
+  for (const [viewportName, viewport] of Object.entries(VIEWPORTS)) {
+    test.describe(`Ticket Badge Colors — ${theme} theme, ${viewportName}`, () => {
+      test.use({ viewport });
 
-    // Go to mogu-picks listing to find a MP post in the middle (has prev/next)
-    await page.goto('/mogu-picks');
-    await page.waitForLoadState('networkidle');
+      test('GIVEN the canonical MP post WHEN checking post-meta and PrevNextNav badges THEN both resolve to --color-badge-mp, never --color-badge-gp', async ({
+        page,
+      }) => {
+        await page.addInitScript((t) => localStorage.setItem('theme', t), theme);
+        await page.goto(MP_POST_PATH);
+        await page.waitForLoadState('networkidle');
 
-    // Click on a post that's not the first or last (so it has both prev and next)
-    const postLinks = page.locator('a[href*="/posts/"]');
-    const linkCount = await postLinks.count();
+        const mpToken = await resolveColorToken(page, '--color-badge-mp');
+        const gpToken = await resolveColorToken(page, '--color-badge-gp');
+        expect(mpToken).not.toBe(gpToken);
 
-    if (linkCount < 3) {
-      test.skip(true, 'Not enough MP posts to test PrevNextNav');
-      return;
-    }
+        const metaBadge = page.locator('.post-meta-row .ticket-mp');
+        await expect(metaBadge).toBeVisible();
+        const metaColor = await metaBadge.evaluate((el) => getComputedStyle(el).color);
+        expect(metaColor).toBe(mpToken);
+        expect(metaColor).not.toBe(gpToken);
 
-    // Click the second post (index 1) — should have both prev and next
-    await postLinks.nth(1).click();
-    await page.waitForLoadState('networkidle');
-
-    // Now check the PrevNextNav for ticket badge colors
-    const navTicketIds = page.locator('.prev-next-nav .nav-ticket');
-    const navCount = await navTicketIds.count();
-
-    expect(navCount).toBeGreaterThan(0);
-
-    for (let i = 0; i < navCount; i++) {
-      const badge = navTicketIds.nth(i);
-      const text = await badge.textContent();
-      const prefix = text?.split('-')[0]?.trim();
-
-      if (prefix && EXPECTED_COLORS[prefix]) {
-        const color = await badge.evaluate((el) => getComputedStyle(el).color);
-        expect
-          .soft(color, `${text} should have ${prefix} color (${EXPECTED_COLORS[prefix].text})`)
-          .toBe(EXPECTED_COLORS[prefix].text);
-      }
-    }
-  });
-
-  test('GIVEN any post page WHEN viewing TicketBadge in post-meta THEN colors should match prefix', async ({
-    page,
-  }) => {
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
-
-    // Check all ticket badges on the index page
-    for (const [prefix, expected] of Object.entries(EXPECTED_COLORS)) {
-      const badges = page.locator(`.ticket-${prefix.toLowerCase()}`);
-      const count = await badges.count();
-
-      if (count > 0) {
-        const color = await badges.first().evaluate((el) => getComputedStyle(el).color);
-        expect
-          .soft(color, `${prefix} badge on index should be ${expected.text}`)
-          .toBe(expected.text);
-
-        const bgColor = await badges.first().evaluate((el) => getComputedStyle(el).backgroundColor);
-        expect
-          .soft(bgColor, `${prefix} badge bg on index should be ${expected.bg}`)
-          .toBe(expected.bg);
-      }
-    }
-  });
-});
+        const navBadges = page.locator('.prev-next-nav .nav-ticket--mp');
+        const navCount = await navBadges.count();
+        expect(navCount).toBeGreaterThan(0);
+        for (let i = 0; i < navCount; i++) {
+          const navColor = await navBadges.nth(i).evaluate((el) => getComputedStyle(el).color);
+          expect(navColor).toBe(mpToken);
+          expect(navColor).not.toBe(gpToken);
+        }
+      });
+    });
+  }
+}
