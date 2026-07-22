@@ -253,6 +253,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-pnpm
+      - name: Install ShellCheck for hook regression
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends shellcheck
       - name: Vitest unit tests
         run: pnpm exec vitest run --reporter=default
 
