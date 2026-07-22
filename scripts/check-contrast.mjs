@@ -75,32 +75,37 @@ const MANIFEST = [
     context: 'light mogu-orange on surface',
     file: 'src/components/MoguNote.astro',
   },
-  // Named pairs (#616) — these need a deliberate margin above the default
-  // WCAG AA floor, not just a bare pass. See NAMED_PAIR_MINIMUMS below.
+  // Named pairs need a deliberate margin above the default WCAG AA floor.
+  // Resolve the actual theme tokens from global.css so this gate cannot pass
+  // against a stale copy of the production colors.
   {
-    fg: '#9ea9d2',
-    bg: '#282a36',
+    fgVar: '--color-text-muted',
+    bgVar: '--color-bg',
+    theme: 'dark',
     context: 'dark --color-text-muted on --color-bg',
     file: 'src/styles/global.css',
     name: 'dark-text-muted-on-bg',
   },
   {
-    fg: '#425458',
-    bg: '#eee8d5',
+    fgVar: '--color-mogu-note-text',
+    bgVar: '--color-surface',
+    theme: 'light',
     context: 'light MoguNote body text on --color-surface',
     file: 'src/styles/global.css',
     name: 'light-mogu-note-on-surface',
   },
   {
-    fg: '#ffb3e0',
-    bg: '#44475a',
+    fgVar: '--color-source-link',
+    bgVar: '--color-surface',
+    theme: 'dark',
     context: 'dark active TOC link on --color-surface',
     file: 'src/components/TableOfContents.astro',
     name: 'dark-active-toc-on-surface',
   },
   {
-    fg: '#195d8c',
-    bg: '#eee8d5',
+    fgVar: '--color-source-link',
+    bgVar: '--color-surface',
+    theme: 'light',
     context: 'light active TOC link on --color-surface',
     file: 'src/components/TableOfContents.astro',
     name: 'light-active-toc-on-surface',
@@ -149,6 +154,33 @@ const THRESHOLD = AA_NORMAL; // we check normal text by default
 
 const args = process.argv.slice(2);
 const repoRoot = resolve(import.meta.dirname, '..');
+const globalCssPath = resolve(repoRoot, 'src/styles/global.css');
+
+function themeVariables(theme) {
+  const css = readFileSync(globalCssPath, 'utf-8');
+  const readBlock = (selector) => {
+    const match = css.match(new RegExp(`${selector}\\s*\\{([\\s\\S]*?)\\n\\}`));
+    if (!match) throw new Error(`missing CSS variable block: ${selector}`);
+    return Object.fromEntries(
+      [...match[1].matchAll(/(--[A-Za-z0-9-]+):\s*([^;]+);/g)].map((entry) => [
+        entry[1],
+        entry[2].trim(),
+      ])
+    );
+  };
+  const variables = readBlock(':root');
+  if (theme === 'light') Object.assign(variables, readBlock("\\[data-theme='light'\\]"));
+  return variables;
+}
+
+function resolveThemeColor(variable, theme, seen = new Set()) {
+  if (seen.has(variable)) throw new Error(`circular CSS variable reference: ${variable}`);
+  seen.add(variable);
+  const value = themeVariables(theme)[variable];
+  if (!value) throw new Error(`missing ${theme} CSS variable: ${variable}`);
+  const reference = value.match(/^var\((--[A-Za-z0-9-]+)\)$/)?.[1];
+  return reference ? resolveThemeColor(reference, theme, seen) : value;
+}
 
 let files;
 if (args.length > 0) {
@@ -177,8 +209,15 @@ for (const file of files) {
 
 // Add manifest pairs
 for (const entry of MANIFEST) {
+  const resolved = entry.fgVar
+    ? {
+        ...entry,
+        fg: resolveThemeColor(entry.fgVar, entry.theme),
+        bg: resolveThemeColor(entry.bgVar, entry.theme),
+      }
+    : entry;
   allPairs.push({
-    ...entry,
+    ...resolved,
     file: resolve(repoRoot, entry.file),
     line: null,
   });

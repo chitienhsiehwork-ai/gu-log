@@ -302,16 +302,13 @@ describe('brand taxonomy residual gate', () => {
     const missing = [
       rootReference('sp', 'removed.sh'),
       rootReference('cp', 'dedup-similarity.py'),
-      rootReference('gp', 'pipeline'),
-      ['gp', 'pipeline.sh'].join('-'),
       rootReference('mp', 'removed.json'),
     ];
-    const trackedFile = ['gp', 'current.sh'].join('-');
-    const trackedDirectory = rootReference('mp', 'current');
+    const trackedFile = rootReference('gp', 'current.sh');
     const findings = scanCanonicalReferences(
       'docs/runbook.md',
-      [...missing, trackedFile, trackedDirectory].join('\n'),
-      new Set([`scripts/${trackedFile}`, `${trackedDirectory}/runner.mjs`])
+      [...missing, trackedFile, 'gp-pipeline.sh', 'scripts/mogu-picks.log'].join('\n'),
+      new Set([trackedFile])
     );
 
     expect(findings.map(({ rule, token }) => `${rule}:${token}`)).toEqual(

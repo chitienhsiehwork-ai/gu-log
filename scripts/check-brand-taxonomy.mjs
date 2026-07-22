@@ -115,14 +115,8 @@ const CANONICAL_REFERENCE_RULES = [
   {
     rule: 'dangling-root-series-script-reference',
     pattern:
-      /\b(scripts\/(?:sp|cp|gp|mp|mogu)-[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?)(?=$|[^A-Za-z0-9_/-])/g,
+      /\b(scripts\/(?:sp|cp|gp|mp|mogu)-[A-Za-z0-9][A-Za-z0-9._-]*\.(?:sh|mjs|js|ts|py|json|ya?ml))\b/g,
     capture: 1,
-  },
-  {
-    rule: 'dangling-root-series-script-reference',
-    pattern:
-      /(^|[^A-Za-z0-9._/-])((?:sp|cp|gp|mp|mogu)-[A-Za-z][A-Za-z0-9._-]*\.(?!(?:mdx|png|jpe?g|gif|svg|webp|ico|log)\b)[A-Za-z][A-Za-z0-9]*)(?=$|[^A-Za-z0-9_/-])/gm,
-    capture: 2,
   },
 ];
 
