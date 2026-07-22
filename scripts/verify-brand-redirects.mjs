@@ -12,9 +12,12 @@
  *   node scripts/verify-brand-redirects.mjs --base-url https://<deployment> [--concurrency 8] [--timeout 10000]
  *
  * Protected Vercel Previews are supported through Vercel's standard
- * VERCEL_AUTOMATION_BYPASS_SECRET environment variable. The secret is sent
- * only as a request header and is never logged.
+ * VERCEL_AUTOMATION_BYPASS_SECRET environment variable, or a Netscape cookie
+ * jar at VERCEL_AUTOMATION_BYPASS_COOKIE_FILE. Credentials are sent only with
+ * the request and are never logged.
  */
+
+import { existsSync, readFileSync } from 'node:fs';
 
 import { config as redirectConfig } from '../vercel.mjs';
 
@@ -25,6 +28,27 @@ import { config as redirectConfig } from '../vercel.mjs';
 const SOURCE_PAGE_PATTERN = ':page(\\d+)';
 const DESTINATION_PAGE_PATTERN = ':page';
 const AUDIT_PAGE_NUMBER = 2;
+
+function protectionBypassHeaders() {
+  const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+  if (bypassSecret) return { 'x-vercel-protection-bypass': bypassSecret };
+
+  const cookieFile = process.env.VERCEL_AUTOMATION_BYPASS_COOKIE_FILE;
+  if (!cookieFile) return undefined;
+  if (!existsSync(cookieFile)) throw new Error(`bypass cookie file does not exist: ${cookieFile}`);
+
+  const cookies = readFileSync(cookieFile, 'utf8')
+    .split('\n')
+    .filter((line) => line && (!line.startsWith('#') || line.startsWith('#HttpOnly_')))
+    .map((line) => line.split('\t'))
+    .filter((fields) => fields.length >= 7)
+    .map((fields) => `${fields[5]}=${fields[6]}`);
+  if (cookies.length === 0)
+    throw new Error(`bypass cookie file contains no cookies: ${cookieFile}`);
+  return { cookie: cookies.join('; ') };
+}
+
+const BYPASS_HEADERS = protectionBypassHeaders();
 
 function materializeSource(routeString) {
   return routeString.includes(SOURCE_PAGE_PATTERN)
@@ -70,11 +94,12 @@ async function checkRedirect(baseUrl, redirect, timeoutMs) {
   const oldUrl = new URL(source, baseUrl).toString();
   const expectedLocation = new URL(destination, baseUrl).toString();
 
-  const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
-  const headers = bypassSecret ? { 'x-vercel-protection-bypass': bypassSecret } : undefined;
-
   try {
-    const raw = await fetchWithTimeout(oldUrl, { redirect: 'manual', headers }, timeoutMs);
+    const raw = await fetchWithTimeout(
+      oldUrl,
+      { redirect: 'manual', headers: BYPASS_HEADERS },
+      timeoutMs
+    );
     if (raw.status !== 308) {
       return { ok: false, source, reason: `raw status ${raw.status} != 308` };
     }
@@ -88,7 +113,11 @@ async function checkRedirect(baseUrl, redirect, timeoutMs) {
       };
     }
 
-    const followed = await fetchWithTimeout(oldUrl, { redirect: 'follow', headers }, timeoutMs);
+    const followed = await fetchWithTimeout(
+      oldUrl,
+      { redirect: 'follow', headers: BYPASS_HEADERS },
+      timeoutMs
+    );
     if (followed.status !== 200) {
       return { ok: false, source, reason: `followed status ${followed.status} != 200` };
     }
