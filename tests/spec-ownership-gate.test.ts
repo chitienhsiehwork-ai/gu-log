@@ -51,6 +51,14 @@ jobs:
           pnpm exec playwright test $SPECS
       - name: Bypassing second run
         run: pnpm exec playwright test
+  future-job:
+    steps:
+      - run: |
+          set -euo pipefail
+          CASES=$(node scripts/check-spec-ownership.mjs --list nightly)
+          pnpm exec playwright test \${CASES}
+        env:
+          NOTE: playwright test text outside the run block
 `;
 
     expect(
@@ -58,5 +66,25 @@ jobs:
         e2e: 'blocking',
       })
     ).toEqual([expect.stringMatching(/Bypassing second run.*checked --list blocking assignment/)]);
+  });
+
+  it('requires every Playwright command in a run block to consume the checked list', () => {
+    const partlyBypassingFixture = `
+jobs:
+  e2e:
+    steps:
+      - name: One command bypasses ownership
+        run: |
+          set -euo pipefail
+          SPECS=$(node scripts/check-spec-ownership.mjs --list blocking)
+          pnpm exec playwright test $SPECS
+          pnpm exec playwright test
+`;
+
+    expect(
+      validateWorkflowRunBlocks('.github/workflows/ci.yml', partlyBypassingFixture, {
+        e2e: 'blocking',
+      })
+    ).toEqual([expect.stringMatching(/One command bypasses ownership.*every Playwright test/)]);
   });
 });
