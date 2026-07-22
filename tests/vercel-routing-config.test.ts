@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import * as fs from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import * as os from 'node:os';
 import * as path from 'node:path';
 import {
   buildRedirectConfig,
@@ -8,7 +10,10 @@ import {
   ROUTE_BUDGET,
   RedirectConfigError,
 } from '../vercel.mjs';
-import { buildLegacySurfaces, isLegacyUrlPath } from '../scripts/verify-canonical-public-output.mjs';
+import {
+  buildLegacySurfaces,
+  isLegacyUrlPath,
+} from '../scripts/verify-canonical-public-output.mjs';
 
 const REPO_ROOT = path.resolve(__dirname, '..');
 const MANIFEST_PATH = path.join(REPO_ROOT, 'quality/brand-taxonomy-post-migration.json');
@@ -37,6 +42,22 @@ describe('vercel.mjs redirect config — full manifest coverage', () => {
   it('produces exactly one redirect per manifest entry plus the 8 listing rules', () => {
     expect(manifest.entries.length).toBe(manifest.counts.files);
     expect(config.redirects.length).toBe(manifest.entries.length + LISTING_REDIRECT_COUNT);
+  });
+
+  it('loads after Vercel relocates the compiled config module under .vercel', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-vercel-config-'));
+    const relocatedConfig = path.join(tempDir, 'vercel-temp.mjs');
+    try {
+      fs.copyFileSync(path.join(REPO_ROOT, 'vercel.mjs'), relocatedConfig);
+      expect(() =>
+        execFileSync(process.execPath, [relocatedConfig], {
+          cwd: REPO_ROOT,
+          encoding: 'utf8',
+        })
+      ).not.toThrow();
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
   });
 
   it('maps every manifest entry to its exact canonical source/destination with permanent:true', () => {
@@ -209,7 +230,9 @@ describe('verify-canonical-public-output — pass/fail boundary', () => {
   it('does not flag any manifest entry new article path as legacy', () => {
     for (const entry of manifest.entries) {
       const newPath = articlePath(entry.lang, entry.newSlug);
-      expect(isLegacyUrlPath(newPath, legacy), `did not expect ${newPath} to be legacy`).toBe(false);
+      expect(isLegacyUrlPath(newPath, legacy), `did not expect ${newPath} to be legacy`).toBe(
+        false
+      );
     }
   });
 
@@ -239,7 +262,9 @@ describe('verify-canonical-public-output — pass/fail boundary', () => {
       '/api/posts/sp-1-example.json',
       '/artifacts/sp-1-example/',
     ]) {
-      expect(isLegacyUrlPath(safePath, legacy), `did not expect ${safePath} to be legacy`).toBe(false);
+      expect(isLegacyUrlPath(safePath, legacy), `did not expect ${safePath} to be legacy`).toBe(
+        false
+      );
     }
   });
 });

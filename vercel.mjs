@@ -11,9 +11,13 @@
 // redirects schema and fails closed on anything that looks wrong.
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { cwd } from 'node:process';
 
-const ROOT = path.dirname(fileURLToPath(import.meta.url));
+// Vercel compiles this file to `.vercel/vercel-temp.mjs` before importing it,
+// so `import.meta.url` no longer points at the repository root. Config loading
+// runs with the project root as cwd; resolve the manifest from that stable
+// deployment contract instead of the temporary compiled module location.
+const ROOT = cwd();
 const MANIFEST_PATH = path.join(ROOT, 'quality/brand-taxonomy-post-migration.json');
 
 // Vercel's vercel.json redirects/rewrites/headers share one "Routes created
