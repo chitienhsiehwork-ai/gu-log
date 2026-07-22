@@ -1,5 +1,10 @@
 import { test, expect } from './fixtures';
 
+// Scope boundary: local Astro never loads vercel.mjs (Vercel only evaluates
+// it at its own edge), so every retired route here MUST stay a direct 404.
+// The public 308 redirect contract lives in tests/vercel-routing-config.test.ts
+// (config) and the deploy smoke test (real edge) — don't add 308s here.
+
 const canonicalListings = ['/gu-log-picks', '/mogu-picks', '/en/gu-log-picks', '/en/mogu-picks'];
 
 const retiredListings = [
