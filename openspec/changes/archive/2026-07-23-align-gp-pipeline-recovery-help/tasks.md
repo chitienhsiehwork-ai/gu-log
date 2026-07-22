@@ -12,6 +12,6 @@
 ## 3. Verification
 
 - [x] 3.1 新增小型 help／skill 契約測試，鎖住恢復路由、必填 flags 與關卡順序
-- [ ] 3.2 跑 gp-pipeline Go tests、OpenSpec ownership 與 repo pre-commit gate
-- [ ] 3.3 完成獨立 correctness／safety review 與 simplify review
-- [ ] 3.4 Sync delta spec、archive change，確認 change validation 通過
+- [x] 3.2 跑 gp-pipeline Go tests、OpenSpec ownership 與 repo pre-commit gate
+- [x] 3.3 完成獨立 correctness／safety review 與 simplify review
+- [x] 3.4 Sync delta spec、archive change，確認 change validation 通過
