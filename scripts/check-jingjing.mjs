@@ -1017,7 +1017,7 @@ function baselineRefExists(baselineRef) {
 }
 
 function getBaselineViolations(filePath, baselineRef) {
-  if (!baselineRef) return null;
+  if (!baselineRef) return { baseline: null, refUnavailable: false };
 
   const repoRelative = path.relative(REPO_ROOT, path.resolve(filePath));
   const candidates = [repoRelative];
@@ -1030,7 +1030,10 @@ function getBaselineViolations(filePath, baselineRef) {
     for (const candidate of candidates) {
       try {
         if (fetchFirst) ensureRemoteBaselineRef(baselineRef);
-        return baselineFromRaw(readBaselineFile(candidate, baselineRef), filePath);
+        return {
+          baseline: baselineFromRaw(readBaselineFile(candidate, baselineRef), filePath),
+          refUnavailable: false,
+        };
       } catch {
         // Try the next candidate / fetch round.
       }
@@ -1042,7 +1045,8 @@ function getBaselineViolations(filePath, baselineRef) {
   // grandfathered violations can't be suppressed and every historical
   // violation in the file will look "new". Warn so that flood doesn't get
   // mistaken for a real regression.
-  if (!baselineRefExists(baselineRef)) {
+  const refUnavailable = !baselineRefExists(baselineRef);
+  if (refUnavailable) {
     console.error(
       `[check-jingjing] Warning: baseline ref "${baselineRef}" could not be resolved ` +
         `(no network to fetch, or the ref doesn't exist) — historical/grandfathered ` +
@@ -1050,8 +1054,9 @@ function getBaselineViolations(filePath, baselineRef) {
         `may appear as "new". Run 'git fetch origin' and retry before assuming a regression.`
     );
   }
-  // New file or unavailable baseline: all violations are new.
-  return null;
+  // A new file has no grandfathered violations. An unavailable ref falls back
+  // to reporting every violation, which the CLI must describe explicitly.
+  return { baseline: null, refUnavailable };
 }
 
 function filterBaselineViolations(violations, baseline) {
@@ -1165,6 +1170,7 @@ if (!__isCli) {
 
   let totalViolations = 0;
   const filesWithViolations = [];
+  let baselineRefUnavailable = false;
 
   for (const filePath of files) {
     const { violations, error, skipped } = checkFile(filePath);
@@ -1173,7 +1179,8 @@ if (!__isCli) {
       process.exit(2);
     }
     if (skipped) continue;
-    const baseline = getBaselineViolations(filePath, baselineRef);
+    const { baseline, refUnavailable } = getBaselineViolations(filePath, baselineRef);
+    baselineRefUnavailable ||= refUnavailable;
     const raw = fs.readFileSync(filePath, 'utf8');
     const newViolations = filterTaxonomyExactResiduals(
       filePath,
@@ -1188,7 +1195,13 @@ if (!__isCli) {
 
   if (totalViolations === 0) {
     console.log(
-      `✓ check-jingjing: ${files.length} file(s) clean${baselineRef ? ` vs ${baselineRef}` : ''}`
+      `✓ check-jingjing: ${files.length} file(s) clean${
+        baselineRefUnavailable
+          ? ` (baseline ref ${baselineRef} unavailable; checked without grandfathering)`
+          : baselineRef
+            ? ` vs ${baselineRef}`
+            : ''
+      }`
     );
     process.exit(0);
   }
@@ -1218,9 +1231,11 @@ if (!__isCli) {
       `  1. Translate to natural zh-tw (preferred — see GU-LOG_WRITER_PROMPT.md §術語處理).\n` +
       `  2. If genuinely a canonical/reusable term, apply GU-LOG_WRITER_PROMPT.md's glossary creation standard, discuss the boundary with ShroomDog, then add to src/data/glossary.json with definition + moguNote.\n` +
       `  3. If proper noun (product/people/lab) misclassified, discuss with ShroomDog before adding to ALLOWLIST_RAW in scripts/check-jingjing.mjs.\n` +
-      (baselineRef
-        ? `\nNote: --baseline-ref=${baselineRef} was used, so only new violations are reported; historical grandfathered violations are ignored.\n`
-        : '')
+      (baselineRefUnavailable
+        ? `\nNote: --baseline-ref=${baselineRef} was unavailable for at least one file, so all detected violations are reported, including historical/grandfathered violations.\n`
+        : baselineRef
+          ? `\nNote: --baseline-ref=${baselineRef} was used, so only new violations are reported; historical grandfathered violations are ignored.\n`
+          : '')
   );
   process.exit(1);
 } // end CLI guard
