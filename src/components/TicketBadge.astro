@@ -48,7 +48,7 @@ const label = labels[prefix] || '';
 
   .ticket-badge {
     display: inline-block;
-    font-size: 0.65rem;
+    font-size: 0.75rem;
     font-weight: 600;
     padding: 0.1rem 0.4rem;
     border-radius: 3px;
@@ -56,11 +56,6 @@ const label = labels[prefix] || '';
     letter-spacing: 0.03em;
     vertical-align: middle;
     cursor: default;
-    transition: opacity 0.2s ease;
-  }
-
-  .ticket-badge:hover {
-    opacity: 0.8;
   }
 
   .ticket-label {
@@ -70,9 +65,9 @@ const label = labels[prefix] || '';
 
   /* SD: ShroomDog Original - muted green/teal */
   .ticket-sd {
-    background-color: rgba(38, 139, 121, 0.15);
+    background-color: var(--color-badge-sd-bg);
     color: var(--color-badge-sd);
-    border: 1px solid transparent;
+    border: 1px solid var(--color-badge-sd-border, var(--color-badge-border));
   }
 
   .ticket-label-sd {
@@ -81,9 +76,9 @@ const label = labels[prefix] || '';
 
   /* GP: Gu-log Picks - muted blue */
   .ticket-gp {
-    background-color: rgba(38, 139, 210, 0.15);
+    background-color: var(--color-badge-gp-bg);
     color: var(--color-badge-gp);
-    border: 1px solid transparent;
+    border: 1px solid var(--color-badge-gp-border, var(--color-badge-border));
   }
 
   .ticket-label-gp {
@@ -92,9 +87,9 @@ const label = labels[prefix] || '';
 
   /* MP: Mogu Picks - muted orange */
   .ticket-mp {
-    background-color: rgba(203, 117, 81, 0.15);
+    background-color: var(--color-badge-mp-bg);
     color: var(--color-badge-mp);
-    border: 1px solid transparent;
+    border: 1px solid var(--color-badge-mp-border, var(--color-badge-border));
   }
 
   .ticket-label-mp {
@@ -103,30 +98,12 @@ const label = labels[prefix] || '';
 
   /* Lv: Level-Up - muted purple */
   .ticket-lv {
-    background-color: rgba(136, 97, 203, 0.15);
+    background-color: var(--color-badge-lv-bg);
     color: var(--color-badge-lv);
-    border: 1px solid transparent;
+    border: 1px solid var(--color-badge-lv-border, var(--color-badge-border));
   }
 
   .ticket-label-lv {
     color: var(--color-badge-lv);
-  }
-
-  /* Light mode: badges need visible borders on cream bg */
-  :global([data-theme='light']) .ticket-sd {
-    background-color: rgba(29, 106, 92, 0.12);
-    border-color: rgba(29, 106, 92, 0.35);
-  }
-  :global([data-theme='light']) .ticket-gp {
-    background-color: rgba(25, 93, 140, 0.12);
-    border-color: rgba(25, 93, 140, 0.35);
-  }
-  :global([data-theme='light']) .ticket-mp {
-    background-color: rgba(133, 77, 53, 0.12);
-    border-color: rgba(133, 77, 53, 0.35);
-  }
-  :global([data-theme='light']) .ticket-lv {
-    background-color: rgba(107, 76, 160, 0.12);
-    border-color: rgba(107, 76, 160, 0.35);
   }
 </style>

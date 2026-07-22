@@ -70,10 +70,28 @@ const MANIFEST = [
   },
   // MoguNote light theme (orange on surface)
   {
-    fg: '#955330',
-    bg: '#eee8d5',
-    context: 'light mogu-orange on surface',
+    fgVar: '--color-mogu-orange',
+    bgVar: '--color-surface',
+    theme: 'light',
+    context: 'light --color-mogu-orange on --color-surface',
     file: 'src/components/MoguNote.astro',
+    name: 'light-mogu-prefix-on-surface',
+  },
+  {
+    fgVar: '--color-on-accent',
+    bgVar: '--color-accent',
+    theme: 'dark',
+    context: 'dark share label on --color-accent',
+    file: 'src/components/ShareButton.astro',
+    name: 'dark-on-accent',
+  },
+  {
+    fgVar: '--color-on-accent',
+    bgVar: '--color-accent',
+    theme: 'light',
+    context: 'light share label on --color-accent',
+    file: 'src/components/ShareButton.astro',
+    name: 'light-on-accent',
   },
   // Named pairs need a deliberate margin above the default WCAG AA floor.
   // Resolve the actual theme tokens from global.css so this gate cannot pass
@@ -119,6 +137,7 @@ const NAMED_PAIR_MINIMUMS = {
   'light-mogu-note-on-surface': 5.5,
   'dark-active-toc-on-surface': 5.5,
   'light-active-toc-on-surface': 5.5,
+  'light-mogu-prefix-on-surface': 5.5,
 };
 
 // ── Auto-scan: extract "color: #xxx; /* ... on #yyy */" patterns ────

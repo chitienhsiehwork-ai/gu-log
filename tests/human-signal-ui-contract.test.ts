@@ -34,4 +34,24 @@ describe('human signal UI wiring', () => {
     expect(share).toContain('data-post-version={postVersion}');
     expect(share).toContain('recordShareIntent');
   });
+
+  it('rebrand controls keep accessible focus, touch targets, and theme-owned colors', () => {
+    const globalCss = read('src/styles/global.css');
+    const share = read('src/components/ShareButton.astro');
+    const toggle = read('src/components/Toggle.astro');
+    const toc = read('src/components/TableOfContents.astro');
+    const search = read('src/components/SearchBar.astro');
+    const badge = read('src/components/TicketBadge.astro');
+    const moguNote = read('src/components/MoguNote.astro');
+
+    expect(globalCss).toContain('--color-on-accent:');
+    expect(share).toContain('color: var(--color-on-accent)');
+    expect(share).toContain('min-height: 44px');
+    expect(toggle).toContain('.toggle-header:focus-visible');
+    expect(toggle).toContain('min-height: 44px');
+    expect(toc).toContain('.toc-toggle-header:focus-visible');
+    expect(search).toMatch(/\.search-modal-input\s*\{[\s\S]*?min-height: 44px/);
+    expect(badge).not.toMatch(/rgba\(/);
+    expect(moguNote).toContain('background: var(--color-mogu-murmur-bg)');
+  });
 });
