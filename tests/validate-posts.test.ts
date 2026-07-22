@@ -82,12 +82,16 @@ describe('parseFrontmatter', () => {
   ];
 
   it('parses a source label with an apostrophe when properly double-quoted', () => {
-    const fm = parseFrontmatter(makePost(withOverride('source', 'source: "Simon Willison\'s Weblog"')));
+    const fm = parseFrontmatter(
+      makePost(withOverride('source', 'source: "Simon Willison\'s Weblog"'))
+    );
     expect(fm.source).toBe("Simon Willison's Weblog");
   });
 
   it('parses a source label with an embedded colon', () => {
-    const fm = parseFrontmatter(makePost(withOverride('source', 'source: "Note: a title with a colon"')));
+    const fm = parseFrontmatter(
+      makePost(withOverride('source', 'source: "Note: a title with a colon"'))
+    );
     expect(fm.source).toBe('Note: a title with a colon');
   });
 

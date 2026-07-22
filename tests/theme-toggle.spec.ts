@@ -2,7 +2,7 @@ import { test, expect } from './fixtures';
 
 /**
  * Theme Toggle Tests
- * 
+ *
  * Tests dark/light theme switching via ThemeToggle button.
  * Covers: toggle click, persistence, default state, icon visibility.
  */
@@ -36,7 +36,9 @@ test.describe('Theme Toggle', () => {
     await page.reload();
 
     // Verify starting in light
-    const initialTheme = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
+    const initialTheme = await page.evaluate(() =>
+      document.documentElement.getAttribute('data-theme')
+    );
     expect(initialTheme).toBe('light');
 
     const toggle = page.locator('#theme-toggle');
@@ -46,7 +48,9 @@ test.describe('Theme Toggle', () => {
     expect(theme).toBe('dark');
   });
 
-  test('GIVEN saved theme in localStorage WHEN page loads THEN restores that theme', async ({ page }) => {
+  test('GIVEN saved theme in localStorage WHEN page loads THEN restores that theme', async ({
+    page,
+  }) => {
     await page.goto('/');
     await page.evaluate(() => localStorage.setItem('theme', 'light'));
     await page.reload();

@@ -2,15 +2,15 @@ import { test, expect } from './fixtures';
 
 /**
  * BDD Tests for TOC Scroll Accuracy
- * 
+ *
  * Reproduces: clicking a TOC link on mobile scrolls to a position
  * 1-2 screens off from the target heading.
- * 
+ *
  * Root cause hypothesis: scroll position is calculated before
  * images/lazy content finish loading, causing getBoundingClientRect()
  * to return incorrect values. On mobile, this is amplified by
  * dynamic viewport height (address bar shrink/grow on iOS Safari).
- * 
+ *
  * Run with: npx playwright test tests/toc-scroll-accuracy.spec.ts
  */
 
@@ -25,11 +25,12 @@ const FALLBACK_POST_URL = '/posts/gp-24-20260204-claude-is-a-space-to-think';
 const MAX_ACCEPTABLE_OFFSET = 230; // 80px padding + 150px tolerance
 
 test.describe('TOC Scroll Accuracy', () => {
-
   test.describe('Mobile — iPhone viewport', () => {
     test.use({ viewport: { width: 390, height: 844 } }); // iPhone 13
 
-    test('GIVEN a long post WHEN clicking the LAST TOC item THEN the target heading should be visible near viewport top', async ({ page }) => {
+    test('GIVEN a long post WHEN clicking the LAST TOC item THEN the target heading should be visible near viewport top', async ({
+      page,
+    }) => {
       // Try long post, fallback if not found
       const response = await page.goto(LONG_POST_URL);
       if (!response || response.status() === 404) {
@@ -66,22 +67,24 @@ test.describe('TOC Scroll Accuracy', () => {
       // The heading's top should be within acceptable range of viewport top
       // (positive = below top, negative = above/scrolled past)
       const headingTop = headingBox!.y;
-      
+
       expect(
         headingTop,
         `Heading #${targetId} is at y=${headingTop}px — expected within 0-${MAX_ACCEPTABLE_OFFSET}px of viewport top. ` +
-        `If y is much larger (e.g., 500+), the scroll didn't go far enough. ` +
-        `If y is very negative, it scrolled too far.`
+          `If y is much larger (e.g., 500+), the scroll didn't go far enough. ` +
+          `If y is very negative, it scrolled too far.`
       ).toBeGreaterThanOrEqual(-50); // allow 50px overshoot
-      
+
       expect(
         headingTop,
         `Heading #${targetId} is at y=${headingTop}px — more than ${MAX_ACCEPTABLE_OFFSET}px from top. ` +
-        `Scroll destination is off by ~${Math.round(headingTop - 80)}px.`
+          `Scroll destination is off by ~${Math.round(headingTop - 80)}px.`
       ).toBeLessThanOrEqual(MAX_ACCEPTABLE_OFFSET);
     });
 
-    test('GIVEN a long post WHEN clicking a MIDDLE TOC item THEN the target heading should be visible near viewport top', async ({ page }) => {
+    test('GIVEN a long post WHEN clicking a MIDDLE TOC item THEN the target heading should be visible near viewport top', async ({
+      page,
+    }) => {
       const response = await page.goto(LONG_POST_URL);
       if (!response || response.status() === 404) {
         await page.goto(FALLBACK_POST_URL);
@@ -118,7 +121,9 @@ test.describe('TOC Scroll Accuracy', () => {
       ).toBeLessThanOrEqual(MAX_ACCEPTABLE_OFFSET);
     });
 
-    test('GIVEN a post WHEN clicking FIRST TOC item from bottom of page THEN the target heading should be visible near viewport top', async ({ page }) => {
+    test('GIVEN a post WHEN clicking FIRST TOC item from bottom of page THEN the target heading should be visible near viewport top', async ({
+      page,
+    }) => {
       const response = await page.goto(LONG_POST_URL);
       if (!response || response.status() === 404) {
         await page.goto(FALLBACK_POST_URL);
@@ -158,7 +163,9 @@ test.describe('TOC Scroll Accuracy', () => {
       ).toBeLessThanOrEqual(MAX_ACCEPTABLE_OFFSET);
     });
 
-    test('GIVEN a post with images WHEN clicking a TOC item below images THEN scroll should account for loaded image heights', async ({ page }) => {
+    test('GIVEN a post with images WHEN clicking a TOC item below images THEN scroll should account for loaded image heights', async ({
+      page,
+    }) => {
       const response = await page.goto(LONG_POST_URL);
       if (!response || response.status() === 404) {
         await page.goto(FALLBACK_POST_URL);
@@ -193,7 +200,9 @@ test.describe('TOC Scroll Accuracy', () => {
 
       // Log drift for debugging
       if (heightDrift > 50) {
-        console.log(`⚠️  Page height changed by ${heightDrift}px during scroll (lazy content loaded)`);
+        console.log(
+          `⚠️  Page height changed by ${heightDrift}px during scroll (lazy content loaded)`
+        );
       }
 
       expect(

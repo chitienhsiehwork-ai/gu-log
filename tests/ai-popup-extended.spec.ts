@@ -2,7 +2,7 @@ import { test, expect } from './fixtures';
 
 /**
  * AI Popup Extended Tests
- * 
+ *
  * Additional branch coverage for AI Popup:
  * - Confirm edit flow
  * - Error handling for edit/confirm
@@ -227,7 +227,9 @@ test.describe('AI Popup - Result State Interactions', () => {
     await expect(popup).not.toBeVisible();
   });
 
-  test('GIVEN result state WHEN clicking outside THEN popup stays (only button state closes on outside click)', async ({ page }) => {
+  test('GIVEN result state WHEN clicking outside THEN popup stays (only button state closes on outside click)', async ({
+    page,
+  }) => {
     await page.route('**/ai/ask', async (route) => {
       await route.fulfill({
         status: 200,
@@ -250,20 +252,23 @@ test.describe('AI Popup - Result State Interactions', () => {
     const x = headerBox.x + Math.min(20, headerBox.width / 2);
     const y = headerBox.y + Math.min(20, headerBox.height / 2);
 
-    await page.evaluate(({ x, y }) => {
-      const target = document.elementFromPoint(x, y) || document.body;
-      target.dispatchEvent(
-        new PointerEvent('pointerdown', {
-          bubbles: true,
-          clientX: x,
-          clientY: y,
-          pointerType: 'touch',
-        })
-      );
-    }, { x, y });
+    await page.evaluate(
+      ({ x, y }) => {
+        const target = document.elementFromPoint(x, y) || document.body;
+        target.dispatchEvent(
+          new PointerEvent('pointerdown', {
+            bubbles: true,
+            clientX: x,
+            clientY: y,
+            pointerType: 'touch',
+          })
+        );
+      },
+      { x, y }
+    );
 
     await page.waitForTimeout(100);
-    
+
     // Popup should still be visible
     await expect(popup.locator('.ai-popup-result')).toBeVisible();
   });
@@ -297,7 +302,9 @@ test.describe('AI Popup - Short Selection Ignored', () => {
     if (!isDesktopChromium()) test.skip();
   });
 
-  test('GIVEN post content WHEN selecting only 1 character THEN popup does NOT appear', async ({ page }) => {
+  test('GIVEN post content WHEN selecting only 1 character THEN popup does NOT appear', async ({
+    page,
+  }) => {
     await page.goto(TEST_POST);
 
     const content = page.locator('.post-content p').first();
@@ -324,7 +331,7 @@ test.describe('AI Popup - Login Redirect', () => {
 
     // We need to intercept the navigation that Login button triggers
     // The login button navigates to apiUrl/auth/github, but we can check localStorage
-    await page.route('**/auth/github', route => {
+    await page.route('**/auth/github', (route) => {
       // Don't actually navigate, just fulfill
       route.fulfill({ status: 200, body: 'Mock GitHub Auth' });
     });

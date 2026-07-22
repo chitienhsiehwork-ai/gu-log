@@ -61,7 +61,10 @@ async function selectTextInContent(page: import('@playwright/test').Page) {
   await page.waitForTimeout(50);
 }
 
-async function selectTextForCurrentProject(page: import('@playwright/test').Page, dragDistance = 100) {
+async function selectTextForCurrentProject(
+  page: import('@playwright/test').Page,
+  dragDistance = 100
+) {
   if (isMobileProject()) {
     await selectTextInContent(page);
     return;
@@ -210,17 +213,20 @@ test.describe('AI Popup - Desktop', () => {
     const x = headerBox.x + Math.min(20, headerBox.width / 2);
     const y = headerBox.y + Math.min(20, headerBox.height / 2);
 
-    await page.evaluate(({ x, y }) => {
-      const target = document.elementFromPoint(x, y) || document.body;
-      target.dispatchEvent(
-        new PointerEvent('pointerdown', {
-          bubbles: true,
-          clientX: x,
-          clientY: y,
-          pointerType: 'touch',
-        })
-      );
-    }, { x, y });
+    await page.evaluate(
+      ({ x, y }) => {
+        const target = document.elementFromPoint(x, y) || document.body;
+        target.dispatchEvent(
+          new PointerEvent('pointerdown', {
+            bubbles: true,
+            clientX: x,
+            clientY: y,
+            pointerType: 'touch',
+          })
+        );
+      },
+      { x, y }
+    );
 
     await page.waitForTimeout(50);
 
@@ -277,10 +283,7 @@ test.describe('AI Popup - File Path Wiring', () => {
     await page.goto(TEST_POST);
 
     const root = page.locator('#ai-popup-root');
-    await expect(root).toHaveAttribute(
-      'data-file-path',
-      /src\/content\/posts\/.*\.mdx$/
-    );
+    await expect(root).toHaveAttribute('data-file-path', /src\/content\/posts\/.*\.mdx$/);
   });
 });
 
@@ -337,7 +340,7 @@ test.describe('Auth Callback', () => {
     await page.evaluate(() => localStorage.removeItem('gu-log-jwt'));
 
     await page.goto('/auth/callback?token=fake-jwt-token-12345');
-    
+
     // Wait for localStorage to be populated
     await page.waitForFunction(() => !!localStorage.getItem('gu-log-jwt'));
     const jwt = await page.evaluate(() => localStorage.getItem('gu-log-jwt'));
@@ -351,7 +354,7 @@ test.describe('Auth Callback', () => {
     await page.evaluate(() => localStorage.removeItem('gu-log-jwt'));
 
     await page.goto('/auth/callback#token=hash-jwt-token-67890');
-    
+
     // Wait for localStorage to be populated
     await page.waitForFunction(() => !!localStorage.getItem('gu-log-jwt'));
     const jwt = await page.evaluate(() => localStorage.getItem('gu-log-jwt'));
@@ -406,11 +409,11 @@ test.describe('AI Popup - API Interactions', () => {
   test('GIVEN logged in WHEN clicking Ask AI THEN shows input then result', async ({ page }) => {
     // Mock API
     await page.route('**/ai/ask', async (route) => {
-      await new Promise(r => setTimeout(r, 500)); // slight delay to show loading
+      await new Promise((r) => setTimeout(r, 500)); // slight delay to show loading
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ response: 'This is a mock AI answer.' })
+        body: JSON.stringify({ response: 'This is a mock AI answer.' }),
       });
     });
 
@@ -437,7 +440,7 @@ test.describe('AI Popup - API Interactions', () => {
       await route.fulfill({
         status: 500,
         contentType: 'application/json',
-        body: JSON.stringify({ detail: 'Mock Server Error' })
+        body: JSON.stringify({ detail: 'Mock Server Error' }),
       });
     });
 
@@ -457,16 +460,18 @@ test.describe('AI Popup - API Interactions', () => {
     await expect(popup.locator('.ai-popup-error-text')).toContainText('Mock Server Error');
   });
 
-  test('GIVEN logged in WHEN clicking Edit THEN shows instruction input then diff and confirm buttons', async ({ page }) => {
+  test('GIVEN logged in WHEN clicking Edit THEN shows instruction input then diff and confirm buttons', async ({
+    page,
+  }) => {
     // Mock API
     await page.route('**/ai/edit', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           diff: '- old text\n+ new text',
-          editId: 'mock-edit-id-123'
-        })
+          editId: 'mock-edit-id-123',
+        }),
       });
     });
 
@@ -485,7 +490,7 @@ test.describe('AI Popup - API Interactions', () => {
     await expect(popup.locator('.ai-popup-diff')).toBeVisible();
     await expect(popup.locator('.ai-popup-diff-remove')).toContainText('- old text');
     await expect(popup.locator('.ai-popup-diff-add')).toContainText('+ new text');
-    
+
     // Should show confirm/cancel buttons
     await expect(popup.locator('[data-action="confirm"]')).toBeVisible();
     await expect(popup.locator('.ai-popup-btn--cancel')).toBeVisible();
