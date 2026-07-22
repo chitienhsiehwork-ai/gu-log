@@ -44,22 +44,14 @@ func newDeployCmd(state *rootState) *cobra.Command {
 		Use:   "deploy",
 		Short: "Allocate and publish a fresh PENDING article",
 		Long: `deploy is the standalone allocation path for a fresh PENDING article.
-Before any counter or file mutation, it:
+Before any counter or file mutation, it validates CLI inputs (including the
+required --date-stamp, --author-slug, and --title-slug filename slots),
+canonical taxonomy and matching pending filenames, PENDING ticketId
+frontmatter, the absence of pre-existing staged index changes, and
+node scripts/validate-posts.mjs.
 
-  1. Validates CLI inputs, including required --date-stamp, --author-slug,
-     and --title-slug filename slots
-  2. Enforces canonical taxonomy and matching pending filenames
-  3. Validates PENDING ticketId frontmatter in the input files
-  4. Refuses pre-existing staged index changes
-  5. Runs node scripts/validate-posts.mjs
-
-After those gates pass, it:
-
-  6. Bumps the GP/MP/SD/Lv counter under flock
-  7. Renames pending files and replaces PENDING ticketId references
-  8. Runs pnpm run build
-  9. Stages the MDX files + scripts/article-counter.json
- 10. Commits with "Add <TICKET>: <TITLE>" and pushes to the default remote
+Only after those gates pass does it allocate the counter, rename pending
+files, replace PENDING references, build, stage, commit, and push.
 
 Use "gp-pipeline run --from-step deploy --file <existing>.mdx" to publish
 an already-allocated article without changing its ticket or filename.

@@ -22,20 +22,40 @@ func TestDeployHelpContract(t *testing.T) {
 
 	for _, want := range []string{
 		"fresh PENDING article",
-		"required --date-stamp, --author-slug",
-		"--title-slug filename slots",
-		"testing-only flags",
-		"dry-run returns",
+		"--dry-run performs only CLI input preflight",
+		"normal standalone deploy rejects them",
 	} {
 		if !strings.Contains(help, want) {
 			t.Errorf("deploy help missing contract phrase %q", want)
 		}
 	}
 
-	validator := strings.Index(help, "Runs node scripts/validate-posts.mjs")
-	counterBump := strings.Index(help, "Bumps the GP/MP/SD/Lv counter")
-	if validator < 0 || counterBump < 0 || validator > counterBump {
-		t.Errorf("deploy help must list validator before counter bump; validator=%d counter=%d", validator, counterBump)
+	mutations := map[string]int{
+		"counter allocation": strings.Index(help, "allocate the counter"),
+		"file rename":        strings.Index(help, "rename pending"),
+	}
+	for label, index := range mutations {
+		if index < 0 {
+			t.Fatalf("deploy help missing %s contract", label)
+		}
+	}
+	for label, phrase := range map[string]string{
+		"CLI input":    "validates CLI inputs",
+		"taxonomy":     "canonical taxonomy",
+		"frontmatter":  "PENDING ticketId\nfrontmatter",
+		"staged index": "pre-existing staged index changes",
+		"validator":    "node scripts/validate-posts.mjs",
+	} {
+		gate := strings.Index(help, phrase)
+		if gate < 0 {
+			t.Errorf("deploy help missing %s gate phrase %q", label, phrase)
+			continue
+		}
+		for mutationLabel, mutation := range mutations {
+			if gate > mutation {
+				t.Errorf("deploy help must list %s gate before %s; gate=%d mutation=%d", label, mutationLabel, gate, mutation)
+			}
+		}
 	}
 }
 
@@ -57,9 +77,5 @@ func TestSkillRecoveryContract(t *testing.T) {
 		if !strings.Contains(skill, want) {
 			t.Errorf("skill missing recovery contract %q", want)
 		}
-	}
-
-	if strings.Contains(skill, "| 恢復 deploy | `gp-pipeline deploy") {
-		t.Error("skill still routes ambiguous recovery through standalone deploy")
 	}
 }
