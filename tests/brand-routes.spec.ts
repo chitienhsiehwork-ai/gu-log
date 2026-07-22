@@ -95,7 +95,12 @@ test.describe('Mogu / GP / MP breaking route contract', () => {
   for (const theme of ['dark', 'light'] as const) {
     test(`GIVEN the ${theme} header WHEN navigating by keyboard THEN every control has a visible focus ring`, async ({
       page,
+      browserName,
     }) => {
+      test.skip(
+        browserName === 'webkit',
+        'iPhone Safari has no Tab navigation contract; desktop keyboard focus is covered by Chromium'
+      );
       await page.addInitScript((selectedTheme) => {
         localStorage.setItem('theme', selectedTheme);
       }, theme);
