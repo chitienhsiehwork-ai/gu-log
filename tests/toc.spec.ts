@@ -171,21 +171,23 @@ test.describe('Table of Contents', () => {
 
         const activeLink = page.locator('.toc-desktop .toc-link.active').first();
         await expect(activeLink).toBeVisible();
-        const colors = await activeLink.evaluate((element) => {
+        const expected = await activeLink.evaluate(() => {
           const probe = document.createElement('span');
           probe.style.color = 'var(--color-source-link)';
           document.body.appendChild(probe);
           const expected = getComputedStyle(probe).color;
           probe.remove();
-          return { actual: getComputedStyle(element).color, expected };
+          return expected;
         });
-        expect(colors.actual).toBe(colors.expected);
+        await expect
+          .poll(() => activeLink.evaluate((element) => getComputedStyle(element).color))
+          .toBe(expected);
 
         const hoverLink = page.locator('.toc-desktop .toc-link:not(.active)').first();
         await hoverLink.hover();
         await expect
           .poll(() => hoverLink.evaluate((element) => getComputedStyle(element).color))
-          .toBe(colors.expected);
+          .toBe(expected);
       });
     }
   });
