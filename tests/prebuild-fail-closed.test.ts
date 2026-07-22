@@ -18,8 +18,15 @@ function readPrebuildCommand(): string {
   return prebuild as string;
 }
 
-function prebuildScriptRefs(prebuild: string): string[] {
-  const refs = prebuild.match(/scripts\/[\w./-]+\.mjs/g) ?? [];
+function readPostbuildCommand(): string {
+  const pkg = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'package.json'), 'utf-8'));
+  const postbuild: unknown = pkg.scripts?.postbuild;
+  expect(typeof postbuild).toBe('string');
+  return postbuild as string;
+}
+
+function lifecycleScriptRefs(command: string): string[] {
+  const refs = command.match(/scripts\/[\w./-]+\.mjs/g) ?? [];
   expect(refs.length).toBeGreaterThan(0);
   return [...new Set(refs)];
 }
@@ -73,10 +80,9 @@ function vercelignoreRules(): { negated: boolean; pattern: string }[] {
     .map((line) => {
       const negated = line.startsWith('!');
       const pattern = negated ? line.slice(1) : line;
-      expect(
-        pattern,
-        `glob patterns not supported by this test matcher: ${line}`
-      ).toMatch(/^[^*?[\]]+\/?$|^[^*?[\]]+\/\*$/);
+      expect(pattern, `glob patterns not supported by this test matcher: ${line}`).toMatch(
+        /^[^*?[\]]+\/?$|^[^*?[\]]+\/\*$/
+      );
       return { negated, pattern };
     });
 }
@@ -143,11 +149,19 @@ describe('prebuild fails closed on reader revision generator', () => {
   });
 });
 
-describe('deploy packaging includes every prebuild generator', () => {
-  it('keeps every scripts/*.mjs referenced by prebuild out of .vercelignore exclusion', () => {
-    const refs = prebuildScriptRefs(readPrebuildCommand());
+describe('deploy packaging includes every build-lifecycle dependency', () => {
+  it('keeps the programmatic Vercel config in the deployment bundle', () => {
+    expect(fs.existsSync(path.join(REPO_ROOT, 'vercel.mjs'))).toBe(true);
+    expect(isExcludedByVercelignore('vercel.mjs')).toBe(false);
+  });
 
-    for (const scriptRef of refs) {
+  it('keeps every scripts/*.mjs referenced by prebuild/postbuild out of .vercelignore exclusion', () => {
+    const refs = [
+      ...lifecycleScriptRefs(readPrebuildCommand()),
+      ...lifecycleScriptRefs(readPostbuildCommand()),
+    ];
+
+    for (const scriptRef of new Set(refs)) {
       expect(fs.existsSync(path.join(REPO_ROOT, scriptRef)), `${scriptRef} should exist`).toBe(
         true
       );
@@ -157,12 +171,21 @@ describe('deploy packaging includes every prebuild generator', () => {
     }
   });
 
+  it('includes the migration manifest needed while Vercel compiles vercel.mjs', () => {
+    const manifestRef = 'quality/brand-taxonomy-post-migration.json';
+    expect(fs.existsSync(path.join(REPO_ROOT, manifestRef))).toBe(true);
+    expect(isExcludedByVercelignore(manifestRef), `${manifestRef} excluded by .vercelignore`).toBe(
+      false
+    );
+  });
+
   it('still excludes non-negated files under the same directory (matcher is not a no-op)', () => {
     // Regression guard for the real bug this suite caught: a bare `scripts/`
     // exclude (instead of `scripts/*`) silently defeats every negation below
     // it. Assert the matcher still excludes an unrelated file under
-    // `scripts/` so a "return false always" regression would fail here.
+    // `scripts/` and `quality/` so a "return false always" regression would fail here.
     expect(isExcludedByVercelignore('scripts/some-other-script.mjs')).toBe(true);
+    expect(isExcludedByVercelignore('quality/some-other-artifact.json')).toBe(true);
   });
 });
 

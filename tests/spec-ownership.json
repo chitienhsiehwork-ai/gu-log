@@ -39,7 +39,7 @@
     "tests/brand-routes.spec.ts": {
       "class": "blocking",
       "owner": "ShroomDog",
-      "reason": "Mogu/GP/MP canonical-vs-retired route contract (rebrand): canonical listings serve 200, retired listings/slugs are direct 404s. Registered during the origin/main integration merge. NOTE: the exact-permanent legacy public-redirect policy is a separate follow-up OpenSpec change that will revise these assertions from 404 to permanent redirects."
+      "reason": "Mogu/GP/MP canonical-vs-retired route contract (rebrand): canonical listings serve 200, retired listings/slugs stay direct local 404s (local Astro never evaluates vercel.mjs). The public exact-permanent redirect contract for manifest-backed article/listing URLs is proven at the edge by the deploy smoke test and by tests/vercel-routing-config.test.ts against the config itself, not here."
     },
     "tests/content-integrity.spec.ts": {
       "class": "nightly",

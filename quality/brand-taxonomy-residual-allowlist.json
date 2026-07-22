@@ -403,8 +403,8 @@
       "path": ".github/workflows/deploy-smoke-test.yml",
       "rule": "legacy-route",
       "token": "clawd-picks",
-      "expectedCount": 2,
-      "reason": "Breaking-route smoke regression: the retired listing URLs must return 404 without redirects."
+      "expectedCount": 7,
+      "reason": "Redirect + retired-scope smoke regression: the retired listing base/pagination URLs must 308 to the canonical listing, and unrelated legacy machine paths must stay 404."
     },
     {
       "path": ".github/workflows/deploy-smoke-test.yml",
@@ -417,22 +417,15 @@
       "path": ".github/workflows/deploy-smoke-test.yml",
       "rule": "legacy-route",
       "token": "shroomdog-picks",
-      "expectedCount": 2,
-      "reason": "Breaking-route smoke regression: the retired listing URLs must return 404 without redirects."
-    },
-    {
-      "path": ".github/workflows/deploy-smoke-test.yml",
-      "rule": "post-slug",
-      "token": "cp-291-20260414-anthropic-",
-      "expectedCount": 2,
-      "reason": "Breaking-route smoke regression: a retired CP post URL and its English pair must return 404."
+      "expectedCount": 6,
+      "reason": "Redirect smoke regression: the retired listing base/pagination URLs must 308 to the canonical listing."
     },
     {
       "path": ".github/workflows/deploy-smoke-test.yml",
       "rule": "post-slug",
       "token": "sp-7-20260130-clawdbot-architecture-deep-dive",
-      "expectedCount": 2,
-      "reason": "Breaking-route smoke regression: a retired SP post URL and its English pair must return 404."
+      "expectedCount": 3,
+      "reason": "Public-route smoke regression: the old article URL redirects permanently, while its legacy API alias stays 404."
     },
     {
       "path": "tests/brand-routes.spec.ts",
@@ -963,8 +956,8 @@
       "path": "tests/vercel-routing-config.test.ts",
       "rule": "legacy-route",
       "token": "clawd-picks",
-      "expectedCount": 1,
-      "reason": "Vercel routing regression matches the retired route only to prove it cannot be redirected or aliased."
+      "expectedCount": 10,
+      "reason": "Routing config test asserts the exact listing redirect rules and negative scope for this retired route; matches only prove the config, never a rendered page."
     },
     {
       "path": "tests/list-content-gate-posts.test.ts",
@@ -1033,22 +1026,22 @@
       "path": "openspec/specs/brand-taxonomy/spec.md",
       "rule": "legacy-route",
       "token": "clawd-picks",
-      "expectedCount": 2,
-      "reason": "Stable specification names the retired route only as a formal negative contract."
+      "expectedCount": 3,
+      "reason": "Stable specification names the retired route only to define the exact public redirect and negative compatibility boundary."
     },
     {
       "path": "openspec/specs/brand-taxonomy/spec.md",
       "rule": "legacy-route",
       "token": "shroom-picks",
-      "expectedCount": 1,
-      "reason": "Stable specification names the retired route only as a formal negative contract."
+      "expectedCount": 2,
+      "reason": "Stable specification names the retired route only to define the exact public redirect and negative compatibility boundary."
     },
     {
       "path": "openspec/specs/brand-taxonomy/spec.md",
       "rule": "legacy-route",
       "token": "shroomdog-picks",
-      "expectedCount": 2,
-      "reason": "Stable specification names the retired route only as a formal negative contract."
+      "expectedCount": 3,
+      "reason": "Stable specification names the retired route only to define the exact public redirect and negative compatibility boundary."
     },
     {
       "path": "openspec/specs/brand-taxonomy/spec.md",
@@ -1175,6 +1168,97 @@
       "token": "clawdNote",
       "expectedCount": 4,
       "reason": "Stable specification names the retired schema key only as a formal negative contract."
+    },
+    {
+      "path": ".github/workflows/deploy-smoke-test.yml",
+      "rule": "post-slug",
+      "token": "sp-194-html-loop",
+      "expectedCount": 1,
+      "reason": "Smoke regression: a legacy artifact path must stay a direct 404 (no public redirect compatibility for artifacts)."
+    },
+    {
+      "path": ".github/workflows/deploy-smoke-test.yml",
+      "rule": "post-slug",
+      "token": "sp-9999-nonexistent-legacy-slug",
+      "expectedCount": 2,
+      "reason": "Smoke regression: a slug never present in the migration manifest must stay a direct 404 (no redirect guessed from a legacy prefix)."
+    },
+    {
+      "path": "docs/rebrand-cutover-runbook.md",
+      "rule": "legacy-prefix-value",
+      "token": "CP",
+      "expectedCount": 1,
+      "reason": "Accepted-breaking-impact summary names the retired series whose manifest-backed article URLs now redirect."
+    },
+    {
+      "path": "docs/rebrand-cutover-runbook.md",
+      "rule": "legacy-prefix-value",
+      "token": "SP",
+      "expectedCount": 1,
+      "reason": "Accepted-breaking-impact summary names the retired series whose manifest-backed article URLs now redirect."
+    },
+    {
+      "path": "docs/rebrand-cutover-runbook.md",
+      "rule": "legacy-route",
+      "token": "clawd-picks",
+      "expectedCount": 1,
+      "reason": "Accepted-breaking-impact summary names the retired listing route that now redirects to the canonical listing."
+    },
+    {
+      "path": "docs/rebrand-cutover-runbook.md",
+      "rule": "legacy-route",
+      "token": "shroom-picks",
+      "expectedCount": 2,
+      "reason": "Runbook documents that the never-published listing namespace stays unmapped/404, not redirected."
+    },
+    {
+      "path": "docs/rebrand-cutover-runbook.md",
+      "rule": "legacy-route",
+      "token": "shroomdog-picks",
+      "expectedCount": 1,
+      "reason": "Accepted-breaking-impact summary names the retired listing route that now redirects to the canonical listing."
+    },
+    {
+      "path": "tests/vercel-routing-config.test.ts",
+      "rule": "legacy-route",
+      "token": "shroom-picks",
+      "expectedCount": 4,
+      "reason": "Routing config test proves the never-published listing namespace stays unmapped (negative scope), never redirected."
+    },
+    {
+      "path": "tests/vercel-routing-config.test.ts",
+      "rule": "legacy-route",
+      "token": "shroomdog-picks",
+      "expectedCount": 11,
+      "reason": "Routing config test asserts the exact listing redirect rules and negative scope for this retired route; matches only prove the config, never a rendered page."
+    },
+    {
+      "path": "tests/vercel-routing-config.test.ts",
+      "rule": "post-slug",
+      "token": "sp-1-example",
+      "expectedCount": 4,
+      "reason": "Routing config test uses a synthetic unmapped slug to prove unknown legacy article URLs stay unmapped (negative scope)."
+    },
+    {
+      "path": "vercel.mjs",
+      "rule": "legacy-route",
+      "token": "clawd-picks",
+      "expectedCount": 1,
+      "reason": "Redirect config source route for the retired listing namespace; the only place old->new listing routes are defined."
+    },
+    {
+      "path": "vercel.mjs",
+      "rule": "legacy-route",
+      "token": "shroom-picks",
+      "expectedCount": 1,
+      "reason": "Doc comment naming the never-published listing namespace that intentionally has no redirect rule."
+    },
+    {
+      "path": "vercel.mjs",
+      "rule": "legacy-route",
+      "token": "shroomdog-picks",
+      "expectedCount": 1,
+      "reason": "Redirect config source route for the retired listing namespace; the only place old->new listing routes are defined."
     }
   ]
 }

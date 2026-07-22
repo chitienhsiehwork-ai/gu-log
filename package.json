@@ -9,6 +9,8 @@
     "dev": "astro dev",
     "prebuild": "node scripts/build-version-manifest.mjs && node scripts/build-reader-revision-manifest.mjs",
     "build": "astro build",
+    "postbuild": "node scripts/verify-canonical-public-output.mjs",
+    "verify:canonical-public-output": "node scripts/verify-canonical-public-output.mjs",
     "preview": "astro preview",
     "astro": "astro",
     "test": "pnpm exec playwright test",
@@ -51,7 +53,8 @@
     "api:test": "cd sqaa-api && pnpm test",
     "glossary:check": "node scripts/check-glossary-links.mjs --all",
     "glossary:check:changed": "node scripts/check-glossary-links.mjs --changed-terms=origin/main --changed-posts=origin/main",
-    "glossary:fix": "node scripts/apply-glossary-links.mjs --all"
+    "glossary:fix": "node scripts/apply-glossary-links.mjs --all",
+    "redirects:verify": "node scripts/verify-brand-redirects.mjs"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.9",

@@ -1,31 +1,6 @@
 <!-- md-zh-tw: ignore -->
 
-# brand-taxonomy Specification
-
-## Purpose
-
-Define the one canonical Mogu / GP / MP vocabulary across public UI, stored data, routes, feeds, pipelines, and operator-facing contracts, including the rules for an atomic breaking migration from retired taxonomy.
-
-## Requirements
-
-### Requirement: Public and machine taxonomy SHALL share one canonical vocabulary
-
-gu-log SHALL use the same canonical names in reader-facing UI and machine-facing storage. The commentary persona SHALL be `Mogu`; its note component SHALL be `MoguNote`; its Vibe score dimension SHALL be `moguNote`. Translation series SHALL be `GP` (`Gu-log Picks`) and `MP` (`Mogu Picks`). Original and tutorial series SHALL remain `SD` and `Lv`.
-
-The application SHALL NOT store SP/CP and translate them to GP/MP only at render time. Frontmatter, filenames, routes, counters, filters, APIs, search, feeds, pipelines, tests and generated data SHALL use the canonical values directly.
-
-#### Scenario: GP article renders without an alias translation
-
-- **GIVEN** a Gu-log Picks article has ticket `GP-258`
-- **WHEN** the article is indexed, rendered, searched or returned by the feed API
-- **THEN** every layer SHALL use `GP-258`
-- **AND** no layer SHALL first store `SP-258` and replace its prefix for display
-
-#### Scenario: MP article uses the same identity across layers
-
-- **GIVEN** a Mogu Picks article has ticket `MP-314` and an `mp-314-*` slug
-- **WHEN** pipeline output is validated and published
-- **THEN** counter, frontmatter, filename, route, badge, search and feed SHALL agree on the MP identity
+## MODIFIED Requirements
 
 ### Requirement: Canonical series routes and CLI paths SHALL match the taxonomy
 
@@ -92,41 +67,3 @@ The only permitted legacy compatibility surface SHALL be the declarative reader-
 - **WHEN** a redirect source contains a retired public slug or listing token
 - **THEN** its file, pattern, reason and expected count SHALL be centralized in the exact residual allowlist
 - **AND** stale, broadened or newly introduced exceptions SHALL fail the taxonomy gate
-
-### Requirement: Migration SHALL preserve numeric article identity and pair integrity
-
-Existing SP and CP article numbers SHALL map one-to-one to the same numeric GP and MP identities. Translation pairs SHALL retain matching ticket IDs and base slugs. Counter next values SHALL move to the new namespace without decrementing or reallocating a published number.
-
-#### Scenario: Existing SP pair migrates to GP
-
-- **GIVEN** zh-tw and en posts both carry `SP-165`
-- **WHEN** the migration runs
-- **THEN** both SHALL carry `GP-165`
-- **AND** both filenames SHALL use the `gp-165-` canonical base
-- **AND** no other post SHALL acquire `GP-165`
-
-#### Scenario: Counter namespace migrates
-
-- **GIVEN** the SP and CP counters have current next values
-- **WHEN** the counter file migrates
-- **THEN** the identical values SHALL be stored under GP and MP
-- **AND** SP and CP keys SHALL no longer be accepted
-
-### Requirement: Factual names and deployment coordinates SHALL not be corrupted by branding migration
-
-The migration SHALL preserve accurate references to third-party products and entities, including `Claude`, `Claude Code`, `Anthropic` and `OpenClaw`, and SHALL preserve verbatim source quotations and archived decision evidence. External hostnames, SSH aliases, Unix users and filesystem paths that still contain retired naming MAY remain only when they are actual deployment coordinates rather than persona branding.
-
-Immutable history trees such as `sources/**` and archived OpenSpec decision records MAY be named as scanner-scope exclusions. Active code, docs, posts and authoring inputs SHALL NOT use broad directory exclusions: every allowed residual there SHALL be centralized as exact path + exact token/pattern + reason + expected count. The scanner SHALL target semantically explicit ticket, slug, route, tag, label, component, schema-key and command patterns rather than bare `SP` / `CP` substrings.
-
-#### Scenario: Article discusses Claude Code
-
-- **WHEN** a post factually names Claude Code or Anthropic
-- **THEN** the migration SHALL leave that product/entity name unchanged
-- **AND** the residual checker SHALL NOT confuse `Claude` with the retired persona name
-
-#### Scenario: Operator still uses a legacy SSH coordinate
-
-- **WHEN** an operator must still connect through an actual legacy SSH alias or host-specific Unix path
-- **THEN** the coordinate MAY remain in local machine context or external runtime config
-- **AND** tracked repo docs / scripts SHALL prefer neutral host/path variables
-- **AND** any unavoidable active-tree coordinate SHALL have an exact allowlist entry and reason
