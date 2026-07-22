@@ -19,6 +19,6 @@
 ## 4. Validation 與交付
 
 - [x] 4.1 跑 OpenSpec validate、路由／品牌測試、taxonomy 檢查、內容驗證、型別檢查、建置與相關品牌重構檢查（本機可行範圍；詳見 worker report）
-- [ ] 4.2 部署堆疊 PR 的 Vercel 預覽，保存代表性原始 308、精確 `Location`、跟隨後 200、無迴圈證據與有界完整清單稽核摘要
-- [ ] 4.3 完成正確性與精簡性獨立 review、修完阻擋 findings，歸檔／同步 OpenSpec change 後重跑檢查
-- [ ] 4.4 本機／Preview gates 全綠後把配套 PR 合入 `rebrand/mogu-gu-log-taxonomy`，再由 #586 對最新 `main` 重跑完整 required CI；不在此 change 單獨改正式環境網域
+- [x] 4.2 部署堆疊 PR 的 Vercel 預覽：`dpl_BpWwMrtNe2nbQzgfG3hJqCSZZqLo` remote build／canonical-output gate 通過；完整 1,077／1,077 轉址與 10／10 未映射負例通過
+- [x] 4.3 正確性、精簡性與 Opus 最終 review 均 `APPROVE`、無阻擋 finding；stable spec 已同步並確認 change 可歸檔，實際 archive 是 tasks 全完成後的交付動作
+- [x] 4.4 確認本機／Preview gates 全綠、配套 PR 已具備合入 `rebrand/mogu-gu-log-taxonomy` 的條件；實際 merge 在 archive commit push 後執行，再由 #586 對最新 `main` 重跑完整 required CI；不在此 change 單獨改正式環境網域
