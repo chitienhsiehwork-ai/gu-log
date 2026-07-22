@@ -50,7 +50,9 @@ describe('human signal UI wiring', () => {
     expect(toggle).toContain('.toggle-header:focus-visible');
     expect(toggle).toContain('min-height: 44px');
     expect(toc).toContain('.toc-toggle-header:focus-visible');
+    expect(toc).toContain('.toc-link:focus-visible');
     expect(search).toMatch(/\.search-modal-input\s*\{[\s\S]*?min-height: 44px/);
+    expect(search).not.toMatch(/rgba\(/);
     expect(badge).not.toMatch(/rgba\(/);
     expect(moguNote).toContain('background: var(--color-mogu-murmur-bg)');
   });

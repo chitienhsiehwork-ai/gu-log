@@ -128,6 +128,22 @@ const MANIFEST = [
     file: 'src/components/TableOfContents.astro',
     name: 'light-active-toc-on-surface',
   },
+  {
+    fgVar: '--color-accent',
+    bgVar: '--color-surface',
+    theme: 'dark',
+    context: 'dark TOC focus ring on --color-surface',
+    file: 'src/components/TableOfContents.astro',
+    name: 'dark-toc-focus-on-surface',
+  },
+  {
+    fgVar: '--color-accent',
+    bgVar: '--color-surface',
+    theme: 'light',
+    context: 'light TOC focus ring on --color-surface',
+    file: 'src/components/TableOfContents.astro',
+    name: 'light-toc-focus-on-surface',
+  },
 ];
 
 // ── Named pairs get a stricter per-pair minimum than the default AA floor ──
@@ -138,6 +154,8 @@ const NAMED_PAIR_MINIMUMS = {
   'dark-active-toc-on-surface': 5.5,
   'light-active-toc-on-surface': 5.5,
   'light-mogu-prefix-on-surface': 5.5,
+  'dark-toc-focus-on-surface': 3,
+  'light-toc-focus-on-surface': 3,
 };
 
 // ── Auto-scan: extract "color: #xxx; /* ... on #yyy */" patterns ────
