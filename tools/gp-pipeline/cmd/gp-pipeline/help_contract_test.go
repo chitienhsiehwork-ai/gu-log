@@ -29,6 +29,18 @@ func TestDeployHelpContract(t *testing.T) {
 			t.Errorf("deploy help missing contract phrase %q", want)
 		}
 	}
+	for _, flag := range []string{"--date-stamp", "--author-slug", "--title-slug"} {
+		foundRequiredFlag := false
+		for _, line := range strings.Split(help, "\n") {
+			if strings.Contains(line, flag) && strings.Contains(line, "required for fresh PENDING deploy") {
+				foundRequiredFlag = true
+				break
+			}
+		}
+		if !foundRequiredFlag {
+			t.Errorf("deploy help must mark %s as required for fresh PENDING deploy", flag)
+		}
+	}
 
 	mutations := map[string]int{
 		"counter allocation": strings.Index(help, "allocate the counter"),
@@ -42,7 +54,7 @@ func TestDeployHelpContract(t *testing.T) {
 	for label, phrase := range map[string]string{
 		"CLI input":    "validates CLI inputs",
 		"taxonomy":     "canonical taxonomy",
-		"frontmatter":  "PENDING ticketId\nfrontmatter",
+		"frontmatter":  "PENDING ticketId",
 		"staged index": "pre-existing staged index changes",
 		"validator":    "node scripts/validate-posts.mjs",
 	} {
@@ -76,6 +88,12 @@ func TestSkillRecoveryContract(t *testing.T) {
 	} {
 		if !strings.Contains(skill, want) {
 			t.Errorf("skill missing recovery contract %q", want)
+		}
+	}
+
+	for _, line := range strings.Split(skill, "\n") {
+		if strings.HasPrefix(line, "|") && strings.Contains(line, "恢復") && strings.Contains(line, "`gp-pipeline deploy") {
+			t.Errorf("recovery table row must not route through standalone deploy: %s", line)
 		}
 	}
 }
