@@ -68,14 +68,95 @@ const MANIFEST = [
     context: 'light score-fail',
     file: 'src/components/AiJudgeScore.astro',
   },
-  // ClawdNote light theme (orange on surface)
+  // MoguNote light theme (orange on surface)
   {
-    fg: '#955330',
-    bg: '#eee8d5',
-    context: 'light clawd-orange on surface',
-    file: 'src/components/ClawdNote.astro',
+    fgVar: '--color-mogu-orange',
+    bgVar: '--color-surface',
+    theme: 'light',
+    context: 'light --color-mogu-orange on --color-surface',
+    file: 'src/components/MoguNote.astro',
+    name: 'light-mogu-prefix-on-surface',
+  },
+  {
+    fgVar: '--color-on-accent',
+    bgVar: '--color-accent',
+    theme: 'dark',
+    context: 'dark share label on --color-accent',
+    file: 'src/components/ShareButton.astro',
+    name: 'dark-on-accent',
+  },
+  {
+    fgVar: '--color-on-accent',
+    bgVar: '--color-accent',
+    theme: 'light',
+    context: 'light share label on --color-accent',
+    file: 'src/components/ShareButton.astro',
+    name: 'light-on-accent',
+  },
+  // Named pairs need a deliberate margin above the default WCAG AA floor.
+  // Resolve the actual theme tokens from global.css so this gate cannot pass
+  // against a stale copy of the production colors.
+  {
+    fgVar: '--color-text-muted',
+    bgVar: '--color-bg',
+    theme: 'dark',
+    context: 'dark --color-text-muted on --color-bg',
+    file: 'src/styles/global.css',
+    name: 'dark-text-muted-on-bg',
+  },
+  {
+    fgVar: '--color-mogu-note-text',
+    bgVar: '--color-surface',
+    theme: 'light',
+    context: 'light MoguNote body text on --color-surface',
+    file: 'src/styles/global.css',
+    name: 'light-mogu-note-on-surface',
+  },
+  {
+    fgVar: '--color-source-link',
+    bgVar: '--color-surface',
+    theme: 'dark',
+    context: 'dark active TOC link on --color-surface',
+    file: 'src/components/TableOfContents.astro',
+    name: 'dark-active-toc-on-surface',
+  },
+  {
+    fgVar: '--color-source-link',
+    bgVar: '--color-surface',
+    theme: 'light',
+    context: 'light active TOC link on --color-surface',
+    file: 'src/components/TableOfContents.astro',
+    name: 'light-active-toc-on-surface',
+  },
+  {
+    fgVar: '--color-accent',
+    bgVar: '--color-surface',
+    theme: 'dark',
+    context: 'dark TOC focus ring on --color-surface',
+    file: 'src/components/TableOfContents.astro',
+    name: 'dark-toc-focus-on-surface',
+  },
+  {
+    fgVar: '--color-accent',
+    bgVar: '--color-surface',
+    theme: 'light',
+    context: 'light TOC focus ring on --color-surface',
+    file: 'src/components/TableOfContents.astro',
+    name: 'light-toc-focus-on-surface',
   },
 ];
+
+// ── Named pairs get a stricter per-pair minimum than the default AA floor ──
+// (#616): both of these are deliberate margins, not bare passes.
+const NAMED_PAIR_MINIMUMS = {
+  'dark-text-muted-on-bg': 5.5,
+  'light-mogu-note-on-surface': 5.5,
+  'dark-active-toc-on-surface': 5.5,
+  'light-active-toc-on-surface': 5.5,
+  'light-mogu-prefix-on-surface': 5.5,
+  'dark-toc-focus-on-surface': 3,
+  'light-toc-focus-on-surface': 3,
+};
 
 // ── Auto-scan: extract "color: #xxx; /* ... on #yyy */" patterns ────
 
@@ -110,6 +191,33 @@ const THRESHOLD = AA_NORMAL; // we check normal text by default
 
 const args = process.argv.slice(2);
 const repoRoot = resolve(import.meta.dirname, '..');
+const globalCssPath = resolve(repoRoot, 'src/styles/global.css');
+
+function themeVariables(theme) {
+  const css = readFileSync(globalCssPath, 'utf-8');
+  const readBlock = (selector) => {
+    const match = css.match(new RegExp(`${selector}\\s*\\{([\\s\\S]*?)\\n\\}`));
+    if (!match) throw new Error(`missing CSS variable block: ${selector}`);
+    return Object.fromEntries(
+      [...match[1].matchAll(/(--[A-Za-z0-9-]+):\s*([^;]+);/g)].map((entry) => [
+        entry[1],
+        entry[2].trim(),
+      ])
+    );
+  };
+  const variables = readBlock(':root');
+  if (theme === 'light') Object.assign(variables, readBlock("\\[data-theme='light'\\]"));
+  return variables;
+}
+
+function resolveThemeColor(variable, theme, seen = new Set()) {
+  if (seen.has(variable)) throw new Error(`circular CSS variable reference: ${variable}`);
+  seen.add(variable);
+  const value = themeVariables(theme)[variable];
+  if (!value) throw new Error(`missing ${theme} CSS variable: ${variable}`);
+  const reference = value.match(/^var\((--[A-Za-z0-9-]+)\)$/)?.[1];
+  return reference ? resolveThemeColor(reference, theme, seen) : value;
+}
 
 let files;
 if (args.length > 0) {
@@ -138,8 +246,15 @@ for (const file of files) {
 
 // Add manifest pairs
 for (const entry of MANIFEST) {
+  const resolved = entry.fgVar
+    ? {
+        ...entry,
+        fg: resolveThemeColor(entry.fgVar, entry.theme),
+        bg: resolveThemeColor(entry.bgVar, entry.theme),
+      }
+    : entry;
   allPairs.push({
-    ...entry,
+    ...resolved,
     file: resolve(repoRoot, entry.file),
     line: null,
   });
@@ -151,15 +266,16 @@ let checked = 0;
 
 for (const pair of allPairs) {
   checked++;
+  const minimum = (pair.name && NAMED_PAIR_MINIMUMS[pair.name]) || THRESHOLD;
   const ratio = contrastRatio(pair.fg, pair.bg);
-  const pass = ratio >= THRESHOLD;
+  const pass = ratio >= minimum;
   const relFile = relative(repoRoot, pair.file);
   const loc = pair.line ? `${relFile}:${pair.line}` : relFile;
 
   if (!pass) {
     failures++;
     console.error(
-      `❌ FAIL  ${pair.fg} on ${pair.bg} → ${ratio.toFixed(2)}:1 (need ≥${THRESHOLD}:1)  ${loc}`
+      `❌ FAIL  ${pair.fg} on ${pair.bg} → ${ratio.toFixed(2)}:1 (need ≥${minimum}:1)  ${loc}`
     );
     if (pair.context) {
       console.error(`         ${pair.context}`);

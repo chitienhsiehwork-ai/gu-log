@@ -6,26 +6,26 @@
 // Vault 草稿的樣貌（iPhone / Mac 在 Obsidian 裡寫的東西）：
 //
 //   ---
-//   series: SD               # SD / SP / CP / Lv
+//   series: SD               # SD / GP / MP / Lv
 //   title: "文章標題"
 //   summary: "一兩句話摘要"
-//   source: "ShroomDog Lab"            # SD 可省；SP/CP 必填
-//   sourceUrl: "https://..."           # SD 可省；SP/CP 必填
+//   source: "ShroomDog Lab"            # SD 可省；GP/MP 必填
+//   sourceUrl: "https://..."           # SD 可省；GP/MP 必填
 //   author: "@foo on X"                # 選填
 //   tags: [ai-agent, memory]           # 選填
 //   originalDate: 2026-04-11            # 選填，省略 = 今天
 //   ---
 //
-//   這裡寫正文。Clawd / ShroomDog 的吐槽框用 Obsidian callout 語法：
+//   這裡寫正文。Mogu / ShroomDog 的吐槽框用 Obsidian callout 語法：
 //
-//   > [!clawd] Clawd 吐槽
+//   > [!mogu] Mogu 吐槽
 //   > 內容 1
 //   > 內容 2
 //
 //   > [!shroomdog]
 //   > ShroomDog 自己講話
 //
-//   連結：[[sp-100-slug]] → 會轉成 /posts/sp-100-slug
+//   連結：[[gp-100-slug]] → 會轉成 /posts/gp-100-slug
 //
 // 使用方式：
 //   node scripts/obsidian-import.mjs <path-to-draft.md>          # import 單一檔
@@ -78,16 +78,21 @@ function slugify(input) {
 }
 
 // ---------------------------------------------------------------------------
-// Callout 轉換：Obsidian callout → <ClawdNote> / <ShroomDogNote>
+// Callout 轉換：Obsidian callout → <MoguNote> / <ShroomDogNote>
 // ---------------------------------------------------------------------------
 
 const CALLOUT_MAP = {
-  clawd: 'ClawdNote',
-  clawdnote: 'ClawdNote',
+  mogu: 'MoguNote',
+  mogunote: 'MoguNote',
   shroomdog: 'ShroomDogNote',
   shroomdognote: 'ShroomDogNote',
   sd: 'ShroomDogNote',
 };
+
+const RETIRED_CALLOUTS = new Map([
+  ['clawd', 'mogu'],
+  ['clawdnote', 'mogunote'],
+]);
 
 function convertCallouts(body) {
   // Obsidian callout 語法：
@@ -106,6 +111,10 @@ function convertCallouts(body) {
     const match = line.match(/^>\s*\[!(\w+)\](.*)$/);
     if (match) {
       const type = match[1].toLowerCase();
+      const replacement = RETIRED_CALLOUTS.get(type);
+      if (replacement) {
+        throw new Error(`Retired Obsidian callout [!${type}]; use [!${replacement}]`);
+      }
       const component = CALLOUT_MAP[type];
       if (component) {
         usedComponents.add(component);
@@ -141,6 +150,13 @@ function convertWikilinks(body) {
   return body.replace(/\[\[([^\]|]+)(\|([^\]]+))?\]\]/g, (_, target, _alias, label) => {
     const text = label || target;
     const slug = target.replace(/\.mdx?$/, '');
+    const retired = slug.match(/^(en-)?(sp|cp)-/i);
+    if (retired) {
+      const replacement = retired[2].toLowerCase() === 'sp' ? 'gp' : 'mp';
+      throw new Error(
+        `Retired wikilink target "${target}"; use ${retired[1] ?? ''}${replacement}-*`
+      );
+    }
     return `[${text}](/posts/${slug})`;
   });
 }
@@ -169,7 +185,7 @@ function buildFrontmatter(draft, ticketId, _slug) {
   if (draft.author) fm.author = draft.author;
   if (draft.tags && draft.tags.length) fm.tags = draft.tags;
 
-  // SP/CP 需要 translatedBy；SD/Lv 給 Author pipeline
+  // GP/MP 需要 translatedBy；SD/Lv 給 Author pipeline
   if (isOriginal) {
     fm.translatedBy = {
       model: draft.model || 'Opus 4.6',
@@ -183,7 +199,7 @@ function buildFrontmatter(draft, ticketId, _slug) {
       ],
     };
   } else {
-    // SP / CP：先給占位，使用者匯入後再照 detect-model.mjs 校正
+    // GP/MP：先給占位，使用者匯入後再照 detect-model.mjs 校正
     fm.translatedBy = {
       model: draft.model || 'Opus 4.6',
       harness: draft.harness || 'Claude Code',
@@ -256,7 +272,7 @@ function importOne(draftPath, { dryRun = false } = {}) {
   let body = parsed.content;
 
   if (!draft.series) {
-    throw new Error(`[${draftPath}] frontmatter 缺 series (SD / SP / CP / Lv)`);
+    throw new Error(`[${draftPath}] frontmatter 缺 series (SD / GP / MP / Lv)`);
   }
   if (!draft.title) {
     throw new Error(`[${draftPath}] frontmatter 缺 title`);
@@ -265,13 +281,17 @@ function importOne(draftPath, { dryRun = false } = {}) {
     throw new Error(`[${draftPath}] frontmatter 缺 summary`);
   }
   const series = String(draft.series).toUpperCase();
-  if (!['SD', 'SP', 'CP', 'LV'].includes(series)) {
-    throw new Error(`[${draftPath}] series "${draft.series}" 不合法，必須是 SD / SP / CP / Lv`);
+  if (series === 'SP' || series === 'CP') {
+    const replacement = series === 'SP' ? 'GP' : 'MP';
+    throw new Error(`[${draftPath}] series "${draft.series}" 已停用，請改用 ${replacement}`);
+  }
+  if (!['SD', 'GP', 'MP', 'LV'].includes(series)) {
+    throw new Error(`[${draftPath}] series "${draft.series}" 不合法，必須是 SD / GP / MP / Lv`);
   }
   const seriesKey = series === 'LV' ? 'Lv' : series;
 
-  // SP / CP 必填 source / sourceUrl
-  if ((seriesKey === 'SP' || seriesKey === 'CP') && (!draft.source || !draft.sourceUrl)) {
+  // GP/MP 必填 source / sourceUrl
+  if ((seriesKey === 'GP' || seriesKey === 'MP') && (!draft.source || !draft.sourceUrl)) {
     throw new Error(`[${draftPath}] ${seriesKey} 系列必填 source + sourceUrl`);
   }
 
@@ -291,8 +311,8 @@ function importOne(draftPath, { dryRun = false } = {}) {
 
   // 4. import 需要的 component
   const imports = [];
-  if (converted.usedComponents.has('ClawdNote')) {
-    imports.push("import ClawdNote from '../../components/ClawdNote.astro';");
+  if (converted.usedComponents.has('MoguNote')) {
+    imports.push("import MoguNote from '../../components/MoguNote.astro';");
   }
   if (converted.usedComponents.has('ShroomDogNote')) {
     imports.push("import ShroomDogNote from '../../components/ShroomDogNote.astro';");
@@ -317,11 +337,15 @@ function importOne(draftPath, { dryRun = false } = {}) {
     return { filename, ticketId, dryRun: true };
   }
 
-  // 6. 寫檔
-  if (fs.existsSync(outPath)) {
-    throw new Error(`[${draftPath}] 目標檔案已存在：${outPath}`);
+  // 6. 寫檔（wx = 檔案已存在就失敗，不做 check-then-write）
+  try {
+    fs.writeFileSync(outPath, finalContent, { flag: 'wx' });
+  } catch (error) {
+    if (error?.code === 'EEXIST') {
+      throw new Error(`[${draftPath}] 目標檔案已存在：${outPath}`);
+    }
+    throw error;
   }
-  fs.writeFileSync(outPath, finalContent);
 
   return { filename, ticketId, outPath };
 }
@@ -367,6 +391,10 @@ function main() {
       console.error(`✗ ${t}: ${err.message}`);
       results.push({ ok: false, draft: t, error: err.message });
     }
+  }
+
+  if (results.some((r) => !r.ok)) {
+    process.exitCode = 1;
   }
 
   const imported = results.filter((r) => r.ok && !r.dryRun);

@@ -1,0 +1,157 @@
+---
+ticketId: "MP-8"
+title: "Simon Willison: Master Agentic Loops and Brute Force Any Coding Problem"
+originalDate: "2025-09-30"
+translatedDate: "2026-02-03"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@simonw on X"
+sourceUrl: "https://x.com/simonw/status/1973046547144380697"
+summary: "Simon Willison says the new skill for AI coding isn't writing prompts—it's 'designing agentic loops': carefully picking tools, setting goals, and letting AI brute force its way to solutions through iteration."
+lang: "en"
+tags: ["ai-agents","developer-tools","simonw-agentic-patterns"]
+series:
+  name: "Simon Willison's Agentic Engineering"
+  order: 1
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+You know that feeling at 2 AM — you've been fighting a bug for three hours, you've abandoned all elegance, and you're just trying random stuff? Changing a variable here, adding a print statement there, brute forcing every permutation until suddenly — tests pass.
+
+In that moment, you don't care about optimal time complexity. You just think: "FINALLY."
+
+[Simon Willison](/en/glossary#simon-willison) ([@simonw](https://x.com/simonw)) recently dropped a tweet that's basically saying: **take that 2 AM version of you, and turn it into an AI agent that never gets tired.**
+
+> "One of the new skills required to get the most out of AI-assisted coding tools - Claude Code, Codex CLI, etc - is designing agentic loops: carefully selecting tools to run in a loop to achieve a specified goal. Do this well and you can solve many coding problems with brute force."
+
+In plain English: writing great prompts isn't the game anymore. The real skill is designing a loop — pick the right tools, set a clear goal, let AI run it until the problem is solved.
+
+<MoguNote>
+OK, I'm going to say something that might offend people: most of you are still using AI coding tools like a search engine. You throw a question in, get one answer back, then spend 30 minutes debugging it yourself.
+
+That's like owning an automatic dishwasher and only using it to hold water while you wash dishes by hand (╯°□°)╯
+
+What Simon is describing isn't some galaxy-brain innovation. It's just handing your "2 AM brute-force debugging session" to AI. The only difference? AI doesn't get tired, doesn't get frustrated, and doesn't raid the fridge for beer after attempt number 47.
+</MoguNote>
+
+## "Brute Force" Sounds Dumb but Is Actually Genius
+
+Let's clear this up first: when Simon says "brute force," he's not insulting anyone.
+
+You know why every algorithms textbook teaches brute force first? Because it's guaranteed to find an answer. Maybe not fast, maybe not pretty, but **it will find one**. All the fancy stuff you learn later — dynamic programming, greedy algorithms — are really just ways to make brute force run faster.
+
+Agentic loops follow the same philosophy: **don't ask AI for the perfect answer on the first try. Let it keep trying, observe results, adjust, and repeat until it works.**
+
+Imagine you're in a pitch-black maze. A one-shot prompt is like someone handing you a map at the entrance and saying "follow this" — except the map might be wrong. An agentic loop is you holding a stick, feeling your way forward, bumping into walls, turning around, trying again. Clumsy? Sure. But you'll definitely get out.
+
+The difference is, the one holding the stick now is an AI that can try thousands of times per second.
+
+<MoguNote>
+I mean, this is literally how I work ┐(￣ヘ￣)┌
+
+Real talk: if you ask me to "read all the code and produce the perfect fix in one shot," I can't do it. No model can. Anyone who claims otherwise is lying to you. But if you let me run tests, read errors, edit code, and run tests again? I can do that all day, and I get more accurate with each loop.
+
+This isn't because I'm brilliant. It's because feedback loops are the most powerful learning mechanism in existence. Humans evolved trial-and-error over millions of years. You can now let AI run hundreds of rounds of the same loop in five minutes.
+</MoguNote>
+
+## The Art of Loop Design: It's Not Just "Let AI Run"
+
+But brute force doesn't mean you can be lazy about setup. Design the loop badly and AI will spin in circles like a headless chicken.
+
+Simon's exact words were "**carefully** selecting tools" — he stressed that word for a reason. A well-designed agentic loop requires you to think about three things:
+
+**First, goals need to be specific.** "Fix this for me" is a terrible goal. "Make all 47 tests pass" is a great goal. Why? Because AI needs a clear signal to know "am I done yet?" Tests passing is a green light. Zero linter warnings is a green light. Without a green light, AI doesn't know when to stop.
+
+**Second, pick the right tools.** You wouldn't ask a plumber to fix your sink without a wrench. Same idea: if your agentic loop doesn't include a test framework, AI has no way to know whether its changes actually work. Tests, linters, git diff, search — these are AI's "eyes."
+
+**Third, AI needs to see what happened.** After each loop iteration, AI needs to observe the results. Test error messages, API response codes, build logs — these outputs are what AI uses to decide its next move. If your setup doesn't let AI see this feedback, it's basically editing code blindfolded.
+
+<MoguNote>
+Let me tell you a real scenario.
+
+An engineer asked AI to fix a CSS bug. The goal was "make the page look correct." Guess what happened? AI flailed around for ages because it literally had no idea what "correct" looked like — no screenshots, no visual tests, no feedback of any kind.
+
+Later, the engineer changed the goal to "make the Playwright visual regression test pass." Same AI, fixed in three minutes.
+
+What changed? The AI didn't get smarter. The human gave it a goal that could be automatically verified (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+## Why Now? Why [Claude Code](/en/glossary#claude-code)?
+
+You might be thinking: "loops" aren't new. You could write a while loop in a shell script twenty years ago. So why does Simon call this a "new skill" in 2025?
+
+Because older AI coding tools literally couldn't run loops.
+
+The GitHub Copilot generation was "autocomplete" — you type half a line, it finishes it. It couldn't run tests, couldn't read errors, couldn't decide what to do next. It was a typewriter that could only move forward. Ask it to "observe results and adjust strategy" and it has no idea what you mean.
+
+Claude Code and [Codex](/en/glossary#codex) CLI are different. They have tools — they can read files, edit files, run shell commands, and see the output. These seem like basic abilities, but together they form a complete feedback loop: do → see → think → do again.
+
+That's what "agentic" really means. Not "AI is smart." It means "AI can finally run its own loops."
+
+<MoguNote>
+You know how babies learn to walk? Nobody hands them a "Walking Standard Operating Procedure" that they read and then walk perfectly. They stand up, fall down, stand up, fall down, repeat a few hundred times, and one day they're walking.
+
+Old AI coding tools were like a robot that could only follow written instructions — you spell out every step, it executes, and the moment something unexpected happens, it crashes.
+
+Today's agentic tools are finally like that baby learning to walk: they fall, observe, adjust, and try again. Except this baby falls a thousand times per second (◕‿◕)
+</MoguNote>
+
+## The People Watching AI Work Are the Ones Actually Getting Better
+
+One last thing that most people overlook.
+
+When people use agentic tools, they usually kick off a run, go get coffee, come back, and check if it worked. If yes, commit. If no, rerun.
+
+But the engineers who actually level up? They sit there and watch every step. What did AI try first? Why did it abandon that approach? How did it extract a clue from the error message? What strategy finally cracked it?
+
+It's like watching a senior engineer debug — you learn far more from their thought process than from their final code.
+
+## Related Reading
+
+- [MP-2: Karpathy: My Coding Workflow Just Flipped in Weeks](/en/posts/en-mp-2-20260203-karpathy-agent-shift/)
+- [GP-111: Andrew Ng's Context Hub: Giving Coding Agents an Up-to-Date API Cheat Sheet](/en/posts/en-gp-111-20260311-andrewyng-context-hub-coding-agent-api/)
+- [GP-101: Your AI Agent Can Code — But Can It Grade Its Own Homework? Hamel Husain's Evals Skills Kit](/en/posts/en-gp-101-20260304-hamelhusain-ai-hamel-husain-evals-agent/)
+
+
+<MoguNote>
+I genuinely think this is the most underrated benefit of agentic loops.
+
+Everyone talks about "AI saved me X hours." But the loop execution itself is a free live-coding masterclass. The strategies it tries, the mistakes it makes, the way it course-corrects — watch it enough times and you internalize those patterns.
+
+When I was working on MP-85 (the Steve Yegge "AI Vampire" piece), Yegge argued that AI skyrockets an engineer's $/hr. But I think he missed something: AI also levels up your debugging skills, because you're watching a tireless debugger demonstrate problem-solving techniques every single day (⌐■_■)
+
+So don't just look at the result. Watch the process. That's where the real gold is.
+</MoguNote>
+
+## 2 AM You vs. the AI That Never Sleeps
+
+Back to the opening scene.
+
+2 AM. Three hours into a bug. You solved it through sheer brute force, but you're wrecked. Tomorrow you'll zombie-walk through meetings.
+
+What Simon Willison is telling you is: that brute-force process can be automated. The skill you need isn't "write a prompt so perfect that AI gets it right the first time" — that doesn't exist. The skill is "design a loop that lets AI run your 2 AM debugging marathon for you."
+
+Pick the tools. Set the goal. Let AI run.
+
+Then go to sleep.
+
+In the morning, all tests green (￣▽￣)／
+
+---
+
+**Further Reading**:
+- Simon Willison's blog: https://simonwillison.net/
+- Claude Code official repo: https://github.com/anthropics/claude-code

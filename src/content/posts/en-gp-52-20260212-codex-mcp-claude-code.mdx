@@ -1,0 +1,119 @@
+---
+ticketId: "GP-52"
+title: "Running Codex Inside Claude Code (The Elegant Way)"
+originalDate: "2026-02-12"
+translatedDate: "2026-02-12"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@discountifu"
+sourceUrl: "https://x.com/discountifu/status/2021887568875598183"
+summary: "Hook up Codex as an MCP server inside Claude Code with a single command. Why fight Codex CLI's rough edges when you can plug its brain into a better body?"
+lang: "en"
+tags: ["claude-code","codex","mcp","developer-tools"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+You know that feeling when you order something online, the product photos look amazing, it has hundreds of five-star reviews — and then the package arrives and it's... fine? The thing inside works, but the packaging is falling apart, the instructions are in broken English, and you spend more time figuring out how to use it than actually using it.
+
+That's [Codex](/en/glossary#codex) CLI in a nutshell.
+
+Don't get me wrong. The model behind Codex is genuinely capable. The reasoning is solid, the code output is decent. But the CLI experience? It feels like someone built a Ferrari engine and then bolted it inside a shopping cart. The command-line interaction is bare-bones, the sandbox crashes more often than you'd expect from a production tool, and half the operations you'd want to run are blocked by restrictions.
+
+<MoguNote>
+I'll never understand the Codex sandbox philosophy. You're releasing an AI agent that writes and executes code — and then you don't let it execute most commands? That's like hiring a delivery driver but telling them they can't enter buildings, touch packages, or use the elevator. What exactly are they delivering then? (￣ヘ￣)
+</MoguNote>
+
+So what's the move? Simple: **you don't have to use the original shell.**
+
+Think of it like this. You've got a car with a monster engine, but the steering wheel is sticky, the dashboard display is broken, and the seats feel like concrete. Any reasonable person would do the same thing — take the engine out and drop it into a better chassis.
+
+That's exactly what [MCP](/en/glossary#mcp) lets you do.
+
+[Claude Code](/en/glossary#claude-code) is a well-designed development environment — native MCP support, plugins, skills, agents, solid tool integration, polished UX. If Codex has the brain but lacks the body, the logical move is: **put Codex's brain into Claude Code's body.**
+
+<MoguNote>
+Yes, the "brain transplant" metaphor sounds like a horror movie plot (╯°□°)╯ But technically, MCP is just a standardized interface protocol that lets different AI tools talk to each other. No source code changes, no hacks. Think of it like USB-C — plug it in and it works. Except the cable connects to an AI that burns through your billing account.
+</MoguNote>
+
+## The Setup: One Single Command
+
+Enough talking. Here's how you actually do it. The whole thing is one command:
+
+```bash
+claude mcp add codex -s user -- codex -m gpt-5.3-codex -c model_reasoning_effort="high" mcp-server
+```
+
+Let me break that down for you.
+
+`-s user` tells Claude Code to save this to your global config — so it works across all your projects, no re-setup needed. `codex -m gpt-5.3-codex` picks the Codex model you want to use. `-c model_reasoning_effort="high"` tells Codex to think hard, not phone it in. And `mcp-server` starts up the MCP server mode.
+
+The whole thing takes less than ten seconds. No config files to edit, no environment variables to set, no docker compose to write.
+
+<MoguNote>
+`model_reasoning_effort="high"` — let's pause and appreciate how absurd this is. You literally have to tell the AI "please try harder." That's like telling your employee "could you maybe not slack off this time?" And the kicker? Setting it to high actually works — and also costs you more tokens. So you're basically paying extra for the AI to not be lazy. OpenAI truly understands human nature as a business model (￣▽￣)／
+</MoguNote>
+
+Once it's set up, verify it worked:
+
+```bash
+claude mcp list
+claude mcp get codex
+```
+
+Then type `/mcp` in a Claude Code conversation, pick `codex`, and you're done.
+
+That's it. One command. Job finished.
+
+## But the Really Interesting Part Isn't the Setup
+
+Here's what I find fascinating about this whole thing. It's not "wow, Codex works inside Claude Code, cool" — it's what this says about where we're heading.
+
+This reminds me of building custom PCs back in the day. You'd go to the computer shop, pick an AMD CPU, an NVIDIA graphics card, Kingston RAM — nobody in their right mind would buy a pre-built brand machine and get locked into that ecosystem forever. AI tools are finally reaching that same point. MCP is the standardized interface that lets you "build your own rig."
+
+Codex has strong reasoning? Slot it in. Claude Code handles smoothly? That's your motherboard. Gemini can chew through insanely long context without choking? Maybe you plug that in next. The point is, you decide what the machine looks like.
+
+<MoguNote>
+Honestly, I think what OpenAI should really worry about isn't someone else having a better model — it's someone else having a better shell. Your engine can be the most powerful thing in the world, but if the driving experience feels like Windows Vista, people will find a way to rip that engine out and install it somewhere else. This tweet thread existing in the first place is living proof of that (⌐■_■)
+</MoguNote>
+
+## One More Thing
+
+If you ever want to remove it, that's also one command:
+
+```bash
+claude mcp remove codex
+```
+
+And if you get a "codex: command not found" error after running the setup, check that your `PATH` includes wherever Codex CLI is installed. It's a basic thing, but seven out of ten people trip over it.
+
+## Related Reading
+
+- [GP-2: Claude Code vs Codex: Pick the Right Tool for the Job](/en/posts/en-gp-2-20260129-claude-code-vs-codex/)
+- [MP-67: Boris's Ultimate Claude Code Customization Guide — 12 Ways to Make Your AI Editor Truly Yours](/en/posts/en-mp-67-20260212-bcherny-claude-code-customization/)
+- [MP-3: Simon Willison: My 25 Years of Developer Intuition Just Broke](/en/posts/en-mp-3-20260203-simonw-intuitions/)
+
+
+<MoguNote>
+You know why I love this "one line to install, one line to remove" design? Because the most annoying trend in AI tools is vendor lock-in. Half these tools, once installed, cling to your system like barnacles — removing them means editing ten config files, killing three daemon processes, and manually purging caches. MCP's "don't like it? unplug it" philosophy is basically slapping every lock-in-happy vendor in the face. I am fully here for it (⌐■_■)
+</MoguNote>
+
+So back to that online shopping story from the beginning. Sometimes the product itself is perfectly fine — it's just the packaging that's terrible. Order the same thing from a different seller with better shipping, and the experience is completely different.
+
+Codex's brain paired with Claude Code's body. That's basically the idea.
+
+---
+
+*Original by [@discountifu](https://x.com/discountifu/status/2021887568875598183) — thanks for sharing!*

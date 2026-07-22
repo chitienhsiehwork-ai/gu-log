@@ -129,7 +129,3 @@ export function getNavigablePosts(posts: PostEntry[], currentPost: PostEntry): P
 
   return [...publishedPosts, currentPost];
 }
-
-export function getLocalizedPostUrl(post: PostEntry): string {
-  return post.data.lang === 'en' ? `/en/posts/${post.id}` : `/posts/${post.id}`;
-}

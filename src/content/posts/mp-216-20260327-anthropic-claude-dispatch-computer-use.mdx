@@ -1,0 +1,101 @@
+---
+ticketId: "MP-216"
+title: "Claude 現在會操作你的電腦了 — Dispatch + Computer Use 研究預覽 (◍•ᴗ•◍)"
+originalDate: "2026-03-23"
+translatedDate: "2026-03-27"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "Anthropic Blog"
+sourceUrl: "https://claude.com/blog/dispatch-and-computer-use"
+lang: "zh-tw"
+summary: "Anthropic 發布 Claude computer use 功能：在 Claude Cowork 和 Claude Code 中，Claude 可以直接操作你的螢幕、滑鼠、鍵盤來完成任務。搭配 Dispatch，你可以從手機指派任務，讓 Claude 在你離開時用你的電腦工作。目前是 research preview，僅支援 macOS。"
+tags: ["Claude","computer-use","Dispatch","automation"]
+---
+import MoguNote from '../../components/MoguNote.astro';
+
+Anthropic 官方部落格發了一篇更新：Claude 現在可以在 Claude [Cowork](/glossary#cowork) 和 [Claude Code](/glossary#claude-code) 裡直接操作你的電腦。不是隱喻，是真的可以移動滑鼠、點擊按鈕、開啟瀏覽器、跑開發工具。搭配新推出的 Dispatch 功能，你可以從手機指派任務，之後再回到電腦查看完成的結果。
+
+目前這是 research preview，僅限 Claude Pro 和 Max 訂閱者使用，而且只支援 macOS。
+
+## Claude 怎麼操作你的電腦？
+
+根據官方說明，Claude 會按照優先順序來選擇工具：
+
+1. **先用 connector** — 如果有直接的 integration（像 [Slack](/glossary#slack)、Google Calendar），Claude 會優先使用這些專用連接器
+2. **沒有 connector 才用螢幕** — 當沒有對應的整合工具時，Claude 會直接控制你的瀏覽器、滑鼠、鍵盤和螢幕來完成任務
+
+它可以捲動頁面、點擊開啟東西、自己探索畫面上的內容。不過每次要存取新的應用程式時，Claude 都會先請求你的許可。
+
+<MoguNote>
+這個「先找 connector，找不到才操作螢幕」的設計其實蠻聰明的。直接 API 呼叫永遠比用滑鼠點來點去快又精準，computer use 是 fallback 而不是預設行為。這代表 Anthropic 很清楚 computer use 目前的定位：能用就用，但它不是萬能的 (๑˃ᴗ˂)ﻭ
+</MoguNote>
+
+---
+
+## 安全機制
+
+官方在安全這塊有明確說明：
+
+- **[Prompt](/glossary#prompt) injection 偵測** — 系統會自動掃描模型內部的 activation 來偵測 prompt injection 攻擊
+- **隨時可以中斷** — 你可以在任何時間點停止 Claude
+- **權限請求** — 存取新應用程式前一定會問你
+
+不過官方也很直白地說：**computer use 目前還很早期**，跟 Claude 的程式碼能力或文字處理能力相比，還有一段差距。Claude 可能會犯錯，而且雖然他們持續改善安全機制，威脅也在不斷演化。他們建議從你信任的 app 開始用，不要處理敏感資料，有些 app 預設是被封鎖的。
+
+<MoguNote>
+官方直接說「computer use is still early」然後建議不要碰敏感資料——這種坦白的態度值得肯定。很多公司發新功能的時候只會講好的，但 Anthropic 這次把限制條件寫得很清楚。當然，這也代表你真的不該讓它碰你的銀行帳戶或密碼管理器 (◍˃̶ᗜ˂̶◍)ノ
+</MoguNote>
+
+---
+
+## Dispatch：從手機指派任務
+
+Dispatch 是上週推出的功能，現在 Claude Cowork 和 Claude Code 都支援。核心概念是：你可以用手機跟 Claude 維持一個持續的對話，指派任務後放下手機，等到回到電腦時，工作已經完成了。
+
+搭配 computer use 之後，Dispatch 變得更強大，因為 Claude 可以在你不在的時候直接用你的電腦來執行任務。官方列出的幾個使用場景：
+
+- **通勤時建立 morning briefing** — 在火車上叫 Claude 準備今天的摘要
+- **在 IDE 裡改 code、跑測試、開 PR** — Claude 自己操作開發環境完成整個流程
+- **維持 3D 列印專案的進度** — 按照你設定的計畫持續推進
+
+你也可以設定排程任務，例如叫 Claude 每天早上自動檢查 email，或每週拉一次 metrics。
+
+<MoguNote>
+「你在搭火車的時候，Claude 在你的 Mac 上幫你開 IDE、跑 test、發 PR」——這個畫面聽起來很科幻，但仔細想想，其實就是把 computer use 和 remote session 結合起來而已。真正的瓶頸是 computer use 本身的可靠度。如果它穩定度夠高，這個工作流真的有可能改變很多人的日常；如果不夠高，大概就是回家看到螢幕上一堆錯誤視窗的慘況 (◍•ᴗ•◍)
+</MoguNote>
+
+---
+
+## 目前的限制
+
+根據官方的說法：
+
+- **僅支援 macOS** — 目前沒有 Windows 或 Linux
+- **需要 Pro 或 Max 訂閱**
+- **要先在 desktop app settings 啟用 computer use**
+- **桌面 app 必須保持開啟且喚醒狀態**
+- **Research preview** — 複雜任務有時候需要重試一次，透過螢幕操作比直接 integration 慢
+- **部分 app 預設被封鎖** — 為了安全考量
+
+官方自己說了，他們提早分享這個功能是因為想知道哪裡好用、哪裡不足——跟當初 Claude Cowork 的策略一樣。
+
+---
+
+## 結語
+
+這次 Anthropic 把 computer use 和 Dispatch 放在一起介紹，重點是讓 Claude 不只在對話裡回應，也能在你離開電腦時繼續幫你完成任務。不過官方也明確標示這仍是 research preview：複雜任務有時需要重試，透過螢幕操作也比直接 integration 慢。他們提早開放，就是想更快了解這套流程在哪些情境有效、哪些地方還有落差。

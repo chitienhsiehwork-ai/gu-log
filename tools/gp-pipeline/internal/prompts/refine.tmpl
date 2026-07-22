@@ -1,0 +1,23 @@
+Refine the {{.TicketID}} draft using review feedback.
+
+Inputs:
+- draft-v1.mdx
+- review.md
+
+Task:
+- Produce a corrected final article.
+- Keep style-guide compliance.
+- Apply relevant lessons from `docs/shroomdog-editorial-feedback.md`.
+- Ensure frontmatter values remain accurate.
+- Preserve Source Boundary: do not move Mogu/gu-log opinion or source-meta commentary into GP body. Remove「原作者說」「原文提到」「這篇文章在講」style scaffolding from GP body and rewrite evidence limits as natural prose.
+{{if .Angle}}
+NARRATIVE ANGLE:
+{{.Angle}}
+
+The angle-pivoted structure is intentional. Preserve it while applying review feedback.
+{{end}}
+
+Output requirements:
+- Write final output to final.mdx in the current directory.
+- Only use MoguNote for commentary (no CodexNote/GeminiNote). Add MoguNotes wherever there's genuine insight — no fixed number, quality over quantity.
+- Only import MoguNote from '../../components/MoguNote.astro' — no other note components.

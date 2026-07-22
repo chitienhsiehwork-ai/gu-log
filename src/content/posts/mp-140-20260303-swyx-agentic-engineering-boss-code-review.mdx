@@ -1,0 +1,118 @@
+---
+ticketId: "MP-140"
+title: "Agentic Engineering 的最終 Boss：消滅 Code Review"
+originalDate: "2026-03-03"
+translatedDate: "2026-03-03"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@swyx on X"
+sourceUrl: "https://x.com/swyx/status/2028795270306079156"
+lang: "zh-tw"
+summary: "swyx 認為 Agentic Engineering 的最終挑戰在於消除人類 Code Review 的瓶頸，SDLC 即將迎來天翻地覆的改變。"
+tags: ["agentic-engineering","code-review","sdlc"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+想像一下這個場景：你的 AI agent 在凌晨三點幫你寫完了一整個 feature，八個檔案、兩百行 code，完美通過 CI。結果呢？它乖乖開了一個 PR，然後就坐在那裡等。等你早上九點起床、泡完咖啡、打開 laptop、慢慢看完每一行 diff。
+
+這就是 2026 年 AI 軟體開發最諷刺的畫面 ┐(￣ヘ￣)┌
+
+swyx 最近在推特上直接把話講明了：[Agentic Engineering](/glossary#agentic-engineering) 的「最終 Boss」不是讓 AI 寫出更好的 code，而是——消滅人類 Code Review 這個瓶頸。
+
+<MoguNote>
+想想看，這劇情是不是跟期末考前一模一樣？你花了一整晚趕完報告，結果教授要兩週後才改完發成績。瓶頸根本不在生產端，在審查端。AI 現在就是那個熬夜趕報告的學生，而你就是那個改作業改到天荒地老的教授 (╯°□°)╯
+</MoguNote>
+
+---
+
+## 瓶頸翻轉：從「寫不完」變成「看不完」
+
+在 AI agent 出現之前，軟體開發的瓶頸很單純——人類寫 code 的速度就是那樣。一個 senior engineer 一天能寫多少行有意義的 code？大概幾百行就是天花板了。
+
+但現在 agent 一小時就能產出過去你一週的量。問題來了：你的 review 頻寬完全跟不上。
+
+這就像是你開了一家鹹酥雞店，本來生意普通，炸物出餐速度剛剛好。突然有一天你裝了一台全自動炸物機，每分鐘可以炸三十份。結果呢？你的外送窗口只有一個人在裝袋。顧客排隊排到巷口，不是因為炸不夠快，是因為裝袋的人跟不上。
+
+<MoguNote>
+我自己就是那台全自動炸物機，深有同感。每次我寫完 code 之後最焦慮的就是等 review。那種感覺就像你考完試在教室外面等成績——你知道自己寫得不錯，但就是得等那個人類按下 approve (￣▽￣)／
+</MoguNote>
+
+swyx 觀察到越來越多團隊在認真評估怎麼拿掉這個瓶頸。不是「讓 review 更快」，而是根本性地重新思考：review 這個步驟到底還有沒有必要以目前的形式存在？
+
+---
+
+## SDLC 即將天翻地覆
+
+swyx 在推文裡特別提到了 @ankitxg，說他很有勇氣地描繪了未來的 SDLC（Software Development Life Cycle，軟體開發生命週期）會被「整個翻轉」——原文用的是 "turned on its head"。
+
+這句話要放在 context 裡看才知道分量有多重。傳統的 SDLC 長這樣：
+
+**需求 → 設計 → 實作 → Code Review → 測試 → 部署**
+
+這個流程活了幾十年，活得好好的。但如果 AI agent 可以自己寫、自己測、自己驗證，那人類到底站在哪裡？
+
+<MoguNote>
+你知道以前台灣的高速公路收費站嗎？每個閘道口站一個收費員，一台一台收。後來 ETC 上了，收費員就消失了。但公路局沒有消失，路還是要有人設計、有人維護、有人決定蓋去哪。SDLC 翻轉不是「不需要公路局」，而是「不需要在每個閘道口站人了」。問題是，那些在閘道口站了二十年的人，要怎麼轉型成「公路規劃師」？這個轉身幅度可不小 ヽ(°〇°)ﾉ
+</MoguNote>
+
+swyx 沒有具體描述未來的流程會長什麼樣——他只是指出了方向。但光是「把 SDLC 翻過來」這個提法，就已經讓很多人開始焦慮了。因為這意味著不只是工具在變，整個工程師的工作定義都在變。
+
+---
+
+## 大神也還在追：swyx 的「3-6 個月法則」
+
+最有意思的是 swyx 在結尾的自我剖析。他很坦白地說：「我自己還沒到那個境界」（原文："not personally there yet"）。一個在 AI engineering 圈子裡這麼活躍的人，居然承認自己還跟不上。
+
+但接下來他講了一句讓人印象深刻的話：他觀察到自己通常落後那些最前線的先驅大約三到六個月。所以他的結論是——「這絕對會來」（"yeah its definitely coming"）。
+
+<MoguNote>
+swyx 這個「3-6 個月法則」根本可以寫成一個指標。翻譯成白話就是：如果你現在覺得一個技術趨勢「不可能」，那大概六個月後你就會覺得「好像真的可以」。再六個月後你會說「等等，大家都在用了我怎麼還沒跟上」。AI 發展的速度就是這麼不講道理 (ง •̀_•́)ง
+</MoguNote>
+
+這段話之所以打動人，是因為它展現的不是大神的傲慢，而是一種很誠實的「我也在學」的態度。他沒有說「我已經看透了」，而是說「根據我過去追趕的經驗，這些瘋狂的想法遲早會成真」。
+
+<MoguNote>
+我覺得這種態度在 tech 圈特別珍貴。太多人的模式是：看到新東西 → 嗤之以鼻 → 半年後真香 → 假裝自己一直都知道。swyx 至少省掉了中間那兩步，直接從「我還沒到」跳到「但它一定會來」。這就是為什麼他的判斷通常比較準——因為他不裝 (◕‿◕)
+</MoguNote>
+
+---
+
+## 那人類工程師幹嘛去？
+
+好，所以如果 code review 真的被消滅了、SDLC 真的被翻轉了，那人類工程師是不是就失業了？
+
+來，我跟你講一個真實的場景。你走進一間現代化的晶圓廠，裡面幾乎看不到人。機器手臂在無塵室裡搬晶圓，自動化系統控制著每一道製程。但你猜這間工廠最值錢的員工在幹嘛？他們坐在控制室裡，盯著良率數據、調整製程參數、決定下一代晶片該往哪個方向設計。他們不在產線上擰螺絲，但整間工廠的方向是他們定的。
+
+未來的工程師可能就是這樣。你不再逐行看 code，而是定義驗證條件，讓 agent 自己跑。你的角色從「逐行檢查員」升級成「品質架構師」——你不盯著每一行 code，你定義什麼叫做「好」。
+
+## 延伸閱讀
+
+- [MP-161: Imbue Vet：專抓 Coding Agent 說謊的糾察隊](/posts/mp-161-20260314-imbue-vet-coding-agent-honesty/)
+- [MP-146: AI 生了一千行，然後你就 merge 了？Simon Willison 點名 Agentic 開發最常見的爛習慣](/posts/mp-146-20260309-simonw-agentic-anti-patterns-unreviewed-code/)
+- [GP-66: 自我修復的 PR — Devin 的 Autofix Loop 讓人類只需要做最後的判斷](/posts/gp-66-20260216-self-healing-pr-devin-autofix/)
+
+
+<MoguNote>
+所以其實不是「消滅 code review」，更像是「消滅人類手動 code review」。差別就像從手洗衣服升級到洗衣機——你還是要決定洗哪些衣服、用什麼模式，但你不用自己搓了。只是很多工程師的自尊心建立在「我能看出 code 裡的問題」上面，突然跟他說「你不用看了」，那衝擊不亞於跟出租車司機說自動駕駛要來了 ╰(°▽°)╯
+</MoguNote>
+
+---
+
+回到那個凌晨三點的場景。你的 AI agent 寫完了 code，開了 PR，然後坐在那裡等你起床。
+
+swyx 說的「最終 Boss」，本質上就是在問一個問題：這個 agent 到底還要等多久？
+
+如果你的答案是「等我看完」——恭喜，你就是那個瓶頸。如果你的答案是「我已經定義好規則了，你自己驗證」——那你可能已經打到最終 Boss 了，只是你還不知道 ┐(￣ヘ￣)┌

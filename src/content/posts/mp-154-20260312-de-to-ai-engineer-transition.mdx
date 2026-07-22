@@ -1,0 +1,112 @@
+---
+ticketId: "MP-154"
+title: "Data Engineer 轉職 AI Engineer？其實你已經會 80% 了"
+originalDate: "2026-03-11"
+translatedDate: "2026-03-12"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@Al_Grigor on X"
+sourceUrl: "https://x.com/Al_Grigor/status/2031747147876716601"
+lang: "zh-tw"
+summary: "Data Engineer 想轉職 AI Engineer 到底難不難？Alexey Grigorev 認為，其實比想像中快很多。因為 AI engineering 本質上還是工程角色，而真正的難點在於周邊系統，這正是 DE 的主場。"
+tags: ["career","data-engineering","ai","transition"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## 你以為要重新投胎，其實只是換了個便當口味
+
+想像一下這個場景。你是一個做了三年 Data Engineer 的人，每天管 pipeline、修 Airflow DAG、跟 data quality 的 bug 搏鬥。某天你打開 LinkedIn，發現全世界都在講 AI Engineer，薪水數字後面的零比你多一個。
+
+你開始焦慮。心想：「完了，我是不是要回去念個 ML 碩士？要不要惡補線性代數？是不是要從頭學怎麼 train 模型？」
+
+Alexey Grigorev 看到這股焦慮，在 X 上丟了一句讓人精神為之一振的話：**不用。你已經會 80% 了。**
+
+但等等——真的假的？讓我們來拆解一下他在說什麼。
+
+<MoguNote>
+我覺得這則推文最狠的地方，不是在安慰你，而是在告訴你一個產業公開的秘密：現在市場上一大堆掛著 AI Engineer 頭銜的人，做的事情跟 DE 重疊度高達八成以上。差別只是他們的 pipeline 尾端接的是 LLM 而不是 data warehouse ┐(￣ヘ￣)┌
+</MoguNote>
+
+## Foundation model？那就是一通電話而已
+
+很多人對 AI 領域有一種恐懼感——以為一腳踏進去，就要整天推導反向傳播的數學、讀 arXiv 論文讀到眼睛脫窗、然後用八張 H100 從頭 train 一個模型出來。
+
+Alexey 戳破了這個泡泡：在絕大多數的 AI 應用場景裡，那個最核心的 foundation model，就是一個 API call。就這樣。你 `POST` 一個 request，它吐一個 response 回來。跟你打電話叫外送的流程差不多。
+
+真正讓人頭大的，從來不是那通電話本身。是電話打完之後的所有事情：response 要怎麼 parse？error 要怎麼 retry？rate limit 打到了怎麼辦？使用者丟了一個 10MB 的 PDF 給你，你要怎麼切、怎麼 embed、怎麼存？model 昨天跑得好好的今天突然開始胡說八道，你要怎麼偵測？
+
+這些問題，對一個 Data Engineer 來說，根本就是「回到家」的感覺。
+
+<MoguNote>
+說穿了，現在很多自稱 AI 應用的產品就是「套殼 API + 你本來就會的資料處理管線」。不會寫 prompt 可以學，三天就上手。但不會接 API、不會處理 retry、不會做 rate limiting、不會把髒兮兮的使用者 data 洗乾淨再餵給 model——這些才是決定產品能不能上線的硬功夫。而你已經練了好幾年了 (◕‿◕)
+</MoguNote>
+
+## 你每天在做的事，換個名字就是 AI Engineering
+
+好，講到這裡你可能半信半疑。讓我們來做一個殘酷的對比實驗。
+
+左邊是你身為 Data Engineer 每天的日常，右邊是 AI Engineer 的工作內容。我打賭你會看到一個詭異的現象——兩邊長得幾乎一模一樣，只是標籤貼紙不同而已。
+
+你每天在做 **data quality monitoring**，確保上游資料沒有壞掉、schema 沒有漂移？AI Engineer 也在做一模一樣的事，只是他們叫它 **AI behavior monitoring**——確保 model 沒有突然開始幻覺、output format 沒有亂跑。
+
+你在管那些定時跑的 **batch pipelines**，確保 Airflow DAG 不要半夜三點把你叫起來？AI Engineer 也在管 pipeline，只是他們的叫 **RAG pipelines**——把文件切 chunk、跑 embedding、灌進 vector store。同樣會半夜三點爆炸，同樣讓人想摔電話。
+
+我可以繼續列下去——寫 test、設 CI/CD、盯 logs、處理 schema 變更——但你應該已經看出規律了。動詞全部一樣，只有受詞換了。就像你本來在教國文，現在改教英文。備課、出考卷、改作業、被學生氣到懷疑人生，這些流程一個都沒變。
+
+<MoguNote>
+Alexey 用了一個很精準的詞：「口味 (flavor)」。你本來吃的是紅燒牛肉麵，現在換成番茄牛肉麵。麵條一樣、碗一樣、筷子一樣，連牛肉都一樣——就是湯底從醬油變成番茄。如果有人跟你說「你要從頭學怎麼吃麵」，你應該會覺得他在開你玩笑 (¬‿¬)
+</MoguNote>
+
+## 那些純 Data Science 出身的人反而卡牆
+
+這裡有一個反直覺的事實，Alexey 沒有明說但暗示得很清楚：純做 data science 出身的人，轉 AI Engineering 反而可能比你還卡。
+
+為什麼？因為他們可能很會調 prompt、很會評估模型品質、很會做 A/B test 比較哪個 model 比較好。但你問他們怎麼寫一個不會在 production 炸掉的 service？怎麼設定 monitoring 讓你在使用者發現之前就知道系統壞了？怎麼用 CI/CD 確保每次 deploy 不會把整個系統搞掛？
+
+他們可能會對你眨眨眼，然後打開 Google 搜尋「what is CI/CD」。
+
+而你？這些東西對你來說就像呼吸一樣自然。你不需要想就會做，因為你已經做了幾千遍了。
+
+<MoguNote>
+這就是 MP-155 裡 SemiAnalysis 在講的 AI 經濟學的微觀版：市場上最缺的不是「會 call API 的人」，而是「能把 API call 包成一個穩定產品的人」。會 call API 的人到處都是，但能讓系統凌晨三點不要爆炸的人？那是稀缺資源。你就是那個稀缺資源 (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+## 所以你到底需要補什麼？
+
+說了這麼多，總不可能什麼都不用學吧。當然不是。但你要補的東西，比你想像的少很多——而且全都是那種「週末花兩天看完教學就能上手」的等級。
+
+想像你是一個會開手排車的老司機，現在要換開電動車。你需要學的是：充電站怎麼找、動能回收怎麼調、螢幕上那堆新按鈕是幹嘛的。你不需要重新學怎麼開車。
+
+具體來說就四樣東西。**[Prompt](/glossary#prompt) engineering**——怎麼跟 LLM 好好說話，讓它給你想要的答案（few-shot、chain-of-thought 這些套路，學過的人都說比寫 SQL 簡單）。**RAG**——把文件切 chunk、轉 embedding、塞進 vector store，然後讓 model 查詢參考（你已經在做 ETL 了，這就是 ETL 的表親）。**Embedding 和 vector search**——把文字變成數字向量再比較相似度，概念不難，實作更不難。**LLM output 評估**——你以前寫 data quality check 確保欄位不是 null、格式正確？同一套邏輯，只是現在你在驗的是 model 有沒有在胡說八道。
+
+重點是——這些都是**可以在幾週內補上的技能**，不是需要回去念兩年碩士的基礎理論。你缺的是一層新的漆，不是地基。地基你早就打好了。
+
+## 延伸閱讀
+
+- [MP-180: Awesome AI Engineering 把散落各地的實戰資料整理成一站式入口](/posts/mp-180-20260317-al-grigor-awesome-ai-engineering/)
+- [MP-176: AI 把寫 code 變快了，怎麼有人反而說工程師注定變窮？](/posts/mp-176-20260316-daniel-mac8-swe-not-screwed/)
+- [MP-155: AI 革命會看起來像經濟衰退？從女性主義經濟學看 AI 時代的 GDP 盲點](/posts/mp-155-20260312-semianalysis-ai-ai-gdp/)
+
+
+<MoguNote>
+我見過太多 DE 朋友把「轉 AI」想成「砍掉重練」，結果在焦慮中浪費了好幾個月。拜託，你不是要從零開始學程式的文組生。你是一個已經能獨立管 production pipeline 的工程師，只需要學幾個新工具和新概念而已。這中間的差距，大概就是你學一個新的 orchestration framework 的難度——Airflow 換成 Prefect 你也沒有去念碩士吧？ ╰(°▽°)╯
+</MoguNote>
+
+---
+
+下次你又在 LinkedIn 上看到「AI Engineer 年薪 XXX 萬」的文章開始焦慮時，打開你的 Airflow dashboard 看一眼。那些你每天在管的 DAG、每天在修的 pipeline、每天在寫的 monitoring rule——把 data 兩個字擦掉，換上 AI 兩個字。
+
+你會發現，你離那個頭銜的距離，比你以為的近太多了。

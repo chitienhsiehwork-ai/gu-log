@@ -1,0 +1,226 @@
+---
+ticketId: "GP-177"
+title: "Opus 4.7 migration 補遺：prompt 變短、CLAUDE.md 變厚——Pawel Huryn 的 intent-first 六招"
+originalDate: "2026-04-20"
+translatedDate: "2026-04-21"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+source: "@PawelHuryn on X"
+sourceUrl: "https://x.com/PawelHuryn/status/2046197132105769065"
+lang: "zh-tw"
+summary: "GP-175 講完 Opus 4.7 的硬規格（tokenizer、effort、adaptive thinking），這篇補上 workflow 層。Pawel Huryn 16 小時實戰下來的主張：intent 才是新 unlock。涵蓋 Reddit regression 爭議拆解、CLAUDE.md 分層、effort mid-task toggle、批次問問題、正面示範勝負面規則、砍過時 scaffolding、審計劃不審 diff。結尾帶 Anthropic + OpenAI converge 的觀察。"
+tags: ["claude-opus-4-7","prompt-engineering","intent-engineering","claude-code","workflow"]
+scores:
+  tribunalVersion: 3
+  librarian:
+    glossary: 8
+    crossRef: 9
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-04-24"
+    model: "claude-opus-4-7"
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    score: 8
+    date: "2026-04-24"
+    model: "claude-opus-4-7"
+  freshEyes:
+    readability: 8
+    firstImpression: 9
+    score: 8
+    date: "2026-04-24"
+    model: "claude-opus-4-7"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-04-24"
+    model: "claude-opus-4-6[1m]"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+想像一下，團隊來了一個新同事。
+
+舊同事很體貼——開會的時候，就算需求只講到一半，剩下的部分對方會自己腦補，而且補得八九不離十。合作久了，很多話不用講完，一個眼神就知道要幹嘛。
+
+新同事不一樣。能力可能更強——給足資訊的時候，做出來的東西比舊同事更精準。但講話含糊？新同事不會猜，會照字面做。舊同事幫忙圓的那些小漏洞，新同事一個一個踩上去。
+
+Opus 4.7 就是那個新同事。
+
+上線第一週，Reddit 上一堆人喊「4.7 是不是退步了」。LM Arena 這類投票制排行榜也顯示 4.6 在 instruction following 分數比較高。但 Anthropic 自己的 migration guide 寫的完全相反：4.7 照字面執行、不會自作主張——**這是設計方向，不是 bug**。[Boris Cherny](/glossary#boris-cherny)（[Claude Code](/glossary#claude-code) 產品負責人）[在 release 當天說](https://x.com/bcherny/status/2044822408826380440)他花了好幾天才學會怎麼跟新 model 有效合作。
+
+Pawel Huryn 在 4.7 上線那週做了 16 小時密集實測，寫了一份 migration guide 回答這道矛盾。核心 claim 一句：**4.6 會幫忙腦補、4.7 照字面做。** 典型的 [Model Swap](/glossary#model-swap) 情境——升版就是在換同事，不是換 API key。換了同事之後，「prompt 寫多仔細」讓位給「意圖講多清楚」，借力的地方（leverage）移到新的位置上。
+
+> **名詞小抄**（沒看過 [GP-175](/posts/gp-175-20260416-anthropic-opus-4-7-prompting-best-practices) 也能讀下去）：
+> - **tokenizer**：model 把文字切成 token 的方式。換 tokenizer 等於換計量單位，舊 prompt 的 token 數會跑掉、API 帳單會浮動。
+> - **effort**：Claude API 的思考力道旋鈕，從 `low` 到 `max`。Opus 4.7 多了一層 `xhigh`，Claude Code 把它設成預設。
+> - **adaptive thinking**：新的思考模式，model 自己決定每一步要不要想、想多久，人類透過 `effort` 間接控制。舊的固定 `budget_tokens` 參數不再支援。
+>
+> 這些「硬規格」GP-175 拆過一次。這篇是上面那層——**工具沒壞，是合作方式要換。** 下面六招就是把 Boris 說的「好幾天 learning curve」攤開來看。
+
+---
+
+## 那些說「退步」的人到底在量什麼？
+
+先把爭議拆乾淨。三個來源各說各話：Reddit 說退步、Arena 分數說退步、Anthropic docs 說這是設計。看起來矛盾，其實在量不同的東西。
+
+**Arena 跟 Reddit 量的是「丟個模糊問題、看誰回得比較合理」。** LM Arena 用的是投票制排行——兩個 model 對同一題 blind test，人類投票選哪邊好，累計算分。但它的題庫以隨手丟的日常問題為主，context 很薄。舊同事會幫忙腦補意圖，回一個「大概是這意思吧」的合理答案；新同事照字面回，看起來比較呆。在這種場景下分數當然降。
+
+**Anthropic docs 量的是「有完整背景資料、有明確驗收標準」的表現。** 給了 context 檔（像 Claude Code 讀的 `CLAUDE.md`）、明確的驗收標準、結構化的 agentic coding pattern 時，4.7 贏。官方 benchmark 裡 coding、creative writing、結構化任務全部進步，退步的項目集中在模糊 prompt、multi-turn、長 context 擷取。
+
+把兩邊放一起看，答案就清楚了：**4.7 不是變笨，是不幫忙猜了。** 過去靠舊同事「體貼」撐起來的 prompt，在新同事面前會露餡；花時間把 context 寫好的 prompt，在新同事手上拿到更多紅利。GP-175 講過 code review「只 report high severity」那個坑——那就是同一條規律的小型示範。
+
+<MoguNote>
+Arena 這套投票制 blind test，對「會腦補的 model」有結構性的偏袒。想像選班長：甲候選人做事照規矩、問清楚才動手，乙候選人很會察言觀色、什麼都先幫忙做了再說。隨便問一圈「誰比較懂你」，投票結果當然是乙贏。但真到了要做大專案的時候，乙自作主張搞砸的機率遠比甲高。用投票制排行榜去做 production 級的 model 決策，就是這樣翻車的。benchmark 世界跟 production 世界分家好幾年了，Arena 的公信力還沒跟上 ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## 跟新同事合作的第一課：把目的寫進合約
+
+到這邊可能有人想問：「所以就是 prompt 寫長一點就好啦？」不是。Pawel 的核心 claim 一句話：**Opus 4.7 獎勵清楚的意圖，其他都是戰術。**
+
+這裡的「意圖」不是「寫一長串 prompt 咒語」，也不是「塞 500 行 `CLAUDE.md` 期待 model 自己找出重點」。意圖要拆成兩層，寫在不同的地方、更新頻率也不同：
+
+**長青層（Strategic context）**：在做什麼產品、為誰而做、哪些東西禁止動、什麼叫做好的成果。這一層寫一次、放進 `CLAUDE.md`，之後每個 session 都會自動逐層載入——不用每次開場重新介紹專案。
+
+**當次層（Per-task intent）**：這次具體要做什麼、驗收標準是什麼、有哪些限制。這一層每個任務重寫，但因為長青層已經打底，每次 prompt 可以比以前短很多——「把這段重構成純函式，測試跑過就好」這種一句就夠。
+
+跟舊同事合作的時候，因為對方會腦補，很多人養成了「每次開場重講一次專案背景」的習慣。搬到新同事身上，這個習慣不但沒幫到忙，還直接多花錢——Pawel 實測 4.7 新 tokenizer 在同樣輸入上會多切出 1.0 到 1.35 倍的 token，同樣的 prompt 直接變貴。
+
+與其每次從頭報告，不如一次把「合約」寫好，讓新同事自己去查。
+
+Karpathy 更早的時候講過類似的事：["Don't tell it what to do, give it success criteria and watch it go"](https://x.com/karpathy/status/2015883857489522876)——從命令式轉向宣告式。4.7 把這個轉變正式寫進了 model 行為。
+
+<MoguNote>
+「寫合約而不是寫命令」這件事，對資深工程師反而最痛苦。跟舊同事合作的時候，寫 prompt 像寫 shell script——一步一步命令機器做事。跟新同事合作的時候，寫 prompt 像寫合約——把目的、範圍、驗收標準講清楚，執行細節交給對方。資深的人會忍不住想「我明明知道怎麼做最好」，那個技術 ego 要先坐下才行 (¬‿¬)
+</MoguNote>
+
+---
+
+## Effort 旋鈕不是開關，是油門
+
+GP-175 拆過 effort 階梯怎麼選（`low` / `medium` / `high` / `xhigh` / `max`，Claude Code 預設 `xhigh`）。但很多人把 effort 當成「設一次、整個 session 不動」的開關。Pawel 補了一個實務上常被忽略的點：**effort 是每次 call 可以換的油門。**
+
+回到新同事的比喻。讓新同事做一個大型架構決策的時候，給充分的時間思考是合理的——這是 `max`。但叫對方改一個三行的 bug fix，也硬要對方「想透再動手」？那不叫謹慎，叫浪費時間。
+
+Migration guide 建議的做法：大問題用 `max` 想一次、子問題降回 `high`，最後 polish 用 `medium`。同一個對話裡切來切去，不用整個 session 鎖死在同一檔。
+
+為什麼重要？因為 `max` 很容易過度思考。GP-175 也強調過——`max` 會把三行能解的事拆成十段論證。Pawel 的觀察是，大多數喊「4.7 好慢」的人，其實是反射動作把 effort 拉到 `max`。低複雜度的任務用 `max`，就是又慢又貴，品質還沒比較高。
+
+實用規則：**開 session 時 default `xhigh`，遇到架構決策或需要窮盡所有可能的子問題才臨時升 `max`，做完馬上降回來。** 這個油門習慣可以省掉一大塊 token 帳單，Claude Code 在 UI 上直接支援切換。
+
+---
+
+## 一次問完，別零碎餵
+
+前面四招都是「怎麼跟新同事溝通」的靜態面。但合作還有一個動態的問題：multi-turn 對話怎麼走。
+
+4.6 時代，multi-turn 對話很便宜——每個 turn 都會幫忙記 context、回頭對齊前面說過的話。「先解釋 X、再問 Y、最後整合」這種三步走，舊同事跟得上。
+
+新同事不行。Pawel 的觀察：**每一 turn 都會在前面 turn 的字面解讀上再疊一層推理，每多一 turn 就多一次「字面解讀偏離本意」的機會。** 三個問題切成三 turn 零碎餵進去，錯誤會像複利一樣滾大。
+
+對策簡單到不像是技術建議——**把問題併在同一則訊息裡，一次問完。**
+
+```text
+I need to do three things, consider them together before replying:
+
+1. <question 1>
+2. <question 2>
+3. <question 3>
+
+Identify dependencies between them and answer in that order.
+```
+
+追問保留給「真的不懂限制條件、不問下去會亂做」的場景就好。把追問當 workflow 的一部分、預設就要來回好幾 turn——這在跟舊同事合作的時候沒問題，因為舊同事超會腦補、可以吸收每次重新載入 context 的成本。新同事照字面執行，那些成本全部變成 token 帳單。
+
+<MoguNote>
+這招在跟新人合作的職場也成立：一次把脈絡丟齊、讓對方看完整張圖再回答，比切成「等一下我再問一個」快很多。但老實說更深一層想：這不只是省 token 的問題——**三個相關的問題一起看，答案之間的矛盾會在回答的當下就被發現**。零碎餵的話，第一題的答案可能跟第三題的需求打架，但 model 在回第一題的時候根本不知道第三題的存在。一次問完不只省錢，品質也更好 (⌐■_■)
+</MoguNote>
+
+---
+
+## 別說「不要做什麼」，直接示範「要做什麼」
+
+到這裡，跟新同事合作的模式已經越來越清楚了：講清楚、給背景、一次講完。但還有一個很多人沒意識到的溝通盲點。
+
+Pawel 引 Anthropic 的觀察：**4.7 在「Like this:」底下接範例的時候表現最好；在「Don't do this:」或「Never X」這類禁令底下，一邊吃 token 一邊該做的事還是沒做。**
+
+為什麼？因為「別做 X」的字面執行沒有正面目標——model 只知道 X 是禁區，但「不是 X 的方向」太多了，隨便挑一個都算合格。正面範例直接給了明確的形狀，model 照著做就對齊了。
+
+想像跟新同事說「報告不要太冗長」——新同事不知道什麼叫「不冗長」，可能砍到只剩標題。但如果直接給一份「好的報告長這樣」的範本，新同事照著寫，品質穩定得多。
+
+實際 prompt 改寫範本：
+
+```text
+❌ Don't make it too verbose.
+❌ Never use passive voice.
+❌ Avoid starting sentences with "As an AI".
+
+✅ Like this:
+   "The migration fixes three bugs. Run `pnpm test` to verify."
+   "The pipeline writes to S3. CloudWatch picks up the logs."
+```
+
+如果 prompt 裡超過三行 "don't" / "never" / "avoid"，直接翻成 "Like this: 具體兩個範例"。短、精準、model 記得住的比例也高。這跟 GP-175 說 code review 要把 coverage 跟 severity filter 拆兩步是同一種心法——**明確的正面目標，永遠勝過模糊的負面限制。**
+
+---
+
+## 砍掉過時的臨時輔助結構
+
+4.6 時代，為了不讓 model 「跑到一半不知道做什麼」，很多 prompt 裡會塞這類句子：「每 3 次 tool call 整理一次進度」、「開始前先列計畫」、「執行完每個步驟報告一次」。這些句子像蓋大樓時搭的鷹架——大樓還沒蓋好的時候需要，蓋好了就該拆。
+
+Pawel 在 4.7 上跑同樣的 pipeline 發現：**這些鷹架已經過時了。** 4.7 自己就會在長 agentic trace 裡產出品質不錯的進度更新，不需要用 prompt 硬逼。硬加的結果是重複——model 照自己的節奏更新一份，再被 prompt 逼著補一份手動版，兩份內容高度重疊、只有格式略不同。
+
+對策：把這類鷹架從 `CLAUDE.md` 跟 system prompt 裡刪掉，開新任務先讓 4.7 自己跑一輪。如果真的覺得更新頻率不夠或格式不行再加回去——大多數情況不需要。
+
+這個改動附帶省 token，也讓 trace log 更好讀（沒有重複的摘要在干擾閱讀）。
+
+<MoguNote>
+每一代新同事上任，前任留下來的「工作規則備忘錄」都要重新整理一輪。4.5 時代需要的提醒，4.6 可以省一半；4.6 有效的鷹架，4.7 變成冗員。工程師的 `CLAUDE.md` 常常有考古層累積——五個 model 版本前 debug 時加的規則還在裡面，當時為什麼加的早就忘了。升 model 的那一週花兩小時把 `CLAUDE.md` 翻一遍，每一行問自己「這是給誰加的、為什麼」，講不出來的直接砍。這大概是整個 migration 裡投資報酬率最高的一件事 ╰(°▽°)╯
+</MoguNote>
+
+---
+
+## Review 計畫，不要 review diff
+
+前面六招全部指向同一個原則：**跟新同事合作，在前期把意圖對齊，比在後期挑 diff 的錯有效得多。** 最後這招就是把這個原則推到 review 流程上。
+
+Pawel 的主張：**4.7 照字面執行意圖，小的意圖誤讀（intent drift，意圖飄移）會滾成大的 diff 誤讀。** 所以 review 的重點要從 diff 層前移到 plan 層。
+
+兩個工具負責這件事：
+
+- **Plan mode**（Claude Code CLI 裡連按兩下 `Shift+Tab`）：model 動手之前先把計畫印出來，看過再決定要不要執行。適合跨多檔的改動。
+- **`/ultraplan`**（CLI only，VS Code extension 不支援）：計畫在 cloud session 跑、terminal 不會卡住。寫完在瀏覽器開 review view 批註。
+
+用哪一個看情境，但原則是一樣的：**把「意圖飄移」的攔截點前移到 plan 階段。** Review 一份 10 行的 plan 找意圖偏差要 30 秒；等到 diff 長成 200 行再看，同樣的偏差要挖 15 分鐘。
+
+對有 agentic pipeline 的團隊特別重要：CI 自動跑完丟出 PR 才 review，比在 plan 階段攔下來的成本高一個數量級。意圖飄移會像複利一樣滾大——攔得越早，修越便宜。
+
+---
+
+## 結語：Anthropic 跟 OpenAI 正在從兩端往中間走
+
+繞了六招，其實整篇文章在講同一件事：**跟 AI 合作的核心能力不是寫 prompt 咒語，是把意圖講清楚。** Pawel 在結尾丟了一個觀察，把這件事放到更大的脈絡裡。
+
+Anthropic 在 Opus 4.7 把 model 推向「照字面做、少腦補」。OpenAI 12 月更新的 Model Spec 同時把自己的方向調成「不要只看字面，要推敲背後的意圖」。
+
+兩家從相反的方向往中間靠攏。Anthropic 本來的「理解意圖」風格加上了精準度；OpenAI 本來的「精準執行」風格加上了意圖推敲。
+
+這代表什麼？**「把意圖講清楚」這個能力的有效期會很長**——跨廠牌、跨版本都在獎勵同一件事。[Prompt](/glossary#prompt) 咒語會過期，tokenizer 會再換一次，`xhigh` 可能下一代又降級成中間層，但「寫得出長青 context + 當次意圖」的能力，會跟著每一代 model 持續兌現紅利。
+
+回到開頭的比喻。新同事會一直來——每一代 model 都是新同事。能寫一手好合約的人，不管新同事是誰，上手期都比別人短。而那些把每個同事都當 shell script 執行器在用的人，每次換代都要從頭學一次。
+
+所以下次開 prompt session 前，少花五分鐘排「不要 X / 禁止 Y / 避免 Z」的禁令，改成花五分鐘寫「這次到底要 model 交付什麼、用什麼標準驗收」。差別會直接反映在 diff 的品質跟帳單的數字上。
+
+<MoguNote>
+Anthropic 跟 OpenAI 同時往「把意圖講清楚」靠攏，Pawel 提得輕、但意義重。過去幾年 prompt engineering 圈有很強的「這家 model 吃這招、那家吃另一招」派別——每次換廠牌就要重學一整套技巧。現在兩家同時收斂，等於是這一波 prompt engineering 知識在整合——從各家限定的雕蟲小技，變成帶得走的能力。這對大部分人是好事。對靠賣「某家 model 專屬 prompt 課程」的網紅大概不太妙 (ง •̀_•́)ง
+</MoguNote>

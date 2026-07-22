@@ -45,7 +45,7 @@ Score anchors:
 ### 2. crossRef
 Do `/posts/slug/` links point to real, existing posts? Are relevant connections made?
 - Check first mention of **ShroomDog** → should link to `/about`
-- Check first mention of **Clawd/ShroomClawd** → should link to `/about`
+- Check first mention of **Mogu/Mogu** → should link to `/about`
 - Verify all internal post links resolve to real slugs in `src/content/posts/`
 - Flag obvious thematic connections that are missing
 - **10** = All refs verified, identity links present, no obvious missing connections
@@ -55,7 +55,7 @@ Do `/posts/slug/` links point to real, existing posts? Are relevant connections 
 
 ### 3. sourceAlign
 Does the declared `sourceUrl` match the content of the post?
-- SP/CP (translations): does the content faithfully represent the topic at sourceUrl?
+- GP/MP (translations): does the content faithfully represent the topic at sourceUrl?
 - SD (originals): sourceUrl points to self → auto 8/10
 - **10** = Content clearly derived from / aligned with sourceUrl
 - **8** = Minor content drift from source but overall aligned
@@ -66,9 +66,9 @@ Does the declared `sourceUrl` match the content of the post?
 Are quotes, statistics, and opinions properly attributed?
 - Quotes attributed to the right people with clear speaker identification?
 - Numbers/statistics cited with sources?
-- ClawdNote opinions clearly separated from body text facts?
+- MoguNote opinions clearly separated from body text facts?
 - Facts vs. opinions clearly distinguished throughout?
-- For SP body prose, do not require repetitive「原作者說 / 原文提到」framing; readers already see `原文出處：`. Prefer smooth evidence-boundary wording and reserve source-meta commentary for `<ClawdNote>`.
+- For GP body prose, do not require repetitive「原作者說 / 原文提到」framing; readers already see `原文出處：`. Prefer smooth evidence-boundary wording and reserve source-meta commentary for `<MoguNote>`.
 - **10** = Perfect attribution — every claim sourced, every opinion clearly labeled
 - **8** = Generally good, 1-2 minor attribution gaps
 - **5** = Multiple unattributed claims or opinion/fact blur in body

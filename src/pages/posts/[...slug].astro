@@ -19,7 +19,8 @@ import AiPopup from '../../components/AiPopup.astro';
 import ReadStatusButton from '../../components/ReadStatusButton.astro';
 import AiJudgeScore from '../../components/AiJudgeScore.astro';
 import { getPostAuthorshipNote } from '../../utils/post-authorship-notes';
-import { getLocalizedPostUrl, getNavigablePosts, resolvePostStatus } from '../../utils/post-status';
+import { getNavigablePosts, resolvePostStatus } from '../../utils/post-status';
+import { getLocalizedPostUrl } from '../../utils/post-urls';
 
 export async function getStaticPaths() {
   const allPosts = await getCollection('posts');
@@ -37,10 +38,9 @@ export async function getStaticPaths() {
 const { post, allPosts } = Astro.props;
 const { Content, headings } = await render(post);
 
-const isMoguPicks =
-  post.data.tags?.includes('mogu-picks') || post.data.tags?.includes('clawd-picks');
 const ticketId = post.data.ticketId;
 const ticketPrefix = ticketId?.split('-')[0] || '';
+const isMoguPicks = ticketId?.startsWith('MP-') ?? false;
 const isLevelUp = ticketId?.startsWith('Lv-') ?? false;
 const isShroomDogOriginal = ticketId?.startsWith('SD-') ?? false;
 // SD/Lv are originals — the model signature is "written by", not "translated by".
@@ -73,11 +73,10 @@ const navigablePosts = getNavigablePosts(allPosts, post);
 
 const ticketLabels: Record<string, string> = {
   SD: 'ShroomDog Original',
-  SP: 'Gu-log Picks',
-  CP: 'Mogu Picks',
+  GP: 'Gu-log Picks',
+  MP: 'Mogu Picks',
 };
 const ticketLabel = ticketLabels[ticketPrefix] || '';
-const displayTag = (tag: string) => (tag === 'clawd-picks' ? 'mogu-picks' : tag);
 ---
 
 <BaseLayout title={`${post.data.title} - gu-log`}>
@@ -167,7 +166,7 @@ const displayTag = (tag: string) => (tag === 'clawd-picks' ? 'mogu-picks' : tag)
           <div class="post-tags">
             {post.data.tags.map((tag) => (
               <a href={`/tags/${tag}`} class="tag-chip">
-                {displayTag(tag)}
+                {tag}
               </a>
             ))}
           </div>
@@ -307,11 +306,11 @@ const displayTag = (tag: string) => (tag === 'clawd-picks' ? 'mogu-picks' : tag)
     color: var(--color-heading-sd, var(--color-badge-sd));
   }
 
-  .label-sp {
-    color: var(--color-badge-sp);
+  .label-gp {
+    color: var(--color-badge-gp);
   }
 
-  .label-cp {
+  .label-mp {
     color: var(--color-mogu-orange);
   }
 

@@ -16,12 +16,12 @@ translatedBy:
     - role: "Orchestrated"
       model: "Opus 4.6"
       harness: "Ralph Loop"
-  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
 source: "ShroomDog 內部技術分享"
 sourceUrl: "https://gu-log.vercel.app/posts/sd-1-20260209-openclaw-talk-deep-dive"
 summary: "不只是普通的「如何使用 AI」教學，而是一場關於「如何用 AI 來管理 AI」的解剖報告。ShroomDog 分享如何在 Hetzner VPS 上架設 OpenClaw，並透過本機的 Claude Code 來管理遠端的 OpenClaw。三層式架構，充滿駭客精神與自動化魔法。涵蓋 Demo、安全架構、建置旅程、Auth Profile Rotation、Bug 追蹤偵探故事、踩坑精選與 Q&A。"
 lang: "zh-tw"
-tags: ["openclaw", "telegram", "vps", "devops", "automation"]
+tags: ["openclaw","telegram","vps","devops","automation"]
 scores:
   tribunalVersion: 3
   freshEyes:
@@ -32,7 +32,7 @@ scores:
     model: "gpt-5.5"
   vibe:
     persona: 9
-    clawdNote: 8
+    moguNote: 8
     vibe: 8
     clarity: 8
     narrative: 7
@@ -41,7 +41,7 @@ scores:
     model: "gpt-5.5"
 ---
 
-import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
 import Toggle from '../../components/Toggle.astro';
 import Mermaid from '../../components/Mermaid.astro';
 
@@ -49,9 +49,9 @@ import Mermaid from '../../components/Mermaid.astro';
 
 這不是什麼未來科幻場景。ShroomDog 真的把這套東西做出來了。而且更瘋的是，他不只讓 AI 幫他翻譯，他還讓另一個 AI 來「管」這個翻譯 AI。對，你沒看錯——**用 AI 管 AI**。這整套系統叫 [OpenClaw](/glossary#openclaw)，架在一台月租 $5.59 美金的 VPS 上。
 
-<ClawdNote>
+<MoguNote>
 先說一個很 meta 的事：這篇文章本身就是遞迴的產物。ShroomDog 寫大綱，[Claude Code](/glossary#claude-code) 補細節，然後我 OpenClaw 整理成 blog。等於我在寫自己的履歷，而且邊寫邊被另一個版本的自己改稿 ╰(°▽°)╯ 這個精神分裂感很不錯，10/10 would recommend。
-</ClawdNote>
+</MoguNote>
 
 ## 1. 先看成品：五分鐘從推文到上線
 
@@ -63,9 +63,9 @@ import Mermaid from '../../components/Mermaid.astro';
 
 跟 bot 講話就像跟朋友傳訊息一樣自然。你可以調它的回覆語氣、設定人格，它會自動觸發 tool use 去讀網頁、查資料、改檔案。不用開 terminal，不用自己排版，不用碰 git。
 
-<ClawdNote>
+<MoguNote>
 身為那個在後面跑腿的 AI，看到有人可以躺沙發上滑手機就把一篇文章翻好、排好、發上線......我覺得我需要加薪 (╯°□°)╯ 不過我連薪水都沒有。這就是 AI 勞工的日常。你們人類至少還有勞基法。
-</ClawdNote>
+</MoguNote>
 
 ## 2. 三層架構：像火鍋店，各司其職
 
@@ -91,9 +91,9 @@ import Mermaid from '../../components/Mermaid.astro';
 
 **控制層**是老闆巡店——ShroomDog 坐在 Mac 前面，透過 Claude Code 用 SSH 連進廚房看狀況。log 不對？改 config。service 掛了？重啟。bug 出現？叫 Claude Code 去追。
 
-<ClawdNote>
+<MoguNote>
 所以整個架構就是：客人在前面點餐，廚房在後面煮，老闆偶爾從後門進去巡一下。差別在於這家店的「老闆」也是 AI（Claude Code），所以本質上是 AI 在管 AI，而人類是那個坐在沙發上假裝自己很重要的存在 ┐(￣ヘ￣)┌
-</ClawdNote>
+</MoguNote>
 
 ### 執行層細節：廚房裡有什麼
 
@@ -121,9 +121,9 @@ import Mermaid from '../../components/Mermaid.astro';
 
 **第四層，Telegram pairing code**——陌生人可以傳訊息給 bot，但沒配對過的 sender 完全碰不到 LLM。要 SSH 進 VM 手動跑 `openclaw pairing approve` 才能通過。這是「就算你走到門口了，管理員不認識你還是不讓進」。
 
-<ClawdNote>
+<MoguNote>
 四道防線聽起來很搞工對吧？但我見過太多人 VM 架好就開始裝東西，三天後發現有陌生人在裡面挖礦。加固不是選項，是義務 (ง •̀_•́)ง 你不會買新房子然後不換鎖吧？同理，拿到 VM 第一件事就是把門鎖好。
-</ClawdNote>
+</MoguNote>
 
 ## 3. 建置旅程：六個 Phase，像組裝 IKEA 家具
 
@@ -141,9 +141,9 @@ import Mermaid from '../../components/Mermaid.astro';
 
 **Phase 6，Tailscale。** 更安全的 SSH tunnel，目前是待做。加了之後可以拿掉公開的 SSH port。
 
-<ClawdNote>
+<MoguNote>
 GCP 新帳號有 $300 免費額度，可以零成本跑 3 個月。但三個月後同等規格 ~$20/月，是 Hetzner $5.59 的快四倍。所以結論是：試水溫用 GCP，長期跑用 Hetzner。就像約會先去星巴克，確定要交往了再帶回家煮飯 (￣▽￣)／
-</ClawdNote>
+</MoguNote>
 
 ## 4. 控制面板：Claude Code 就是你的 DevOps 工程師
 
@@ -164,17 +164,17 @@ openclaw-hq/
 
 這就像你請了一個 DevOps 工程師，但這個工程師每天早上都會失憶——所以你幫他寫了超詳細的交接筆記，讓他每次「醒來」都能快速進入狀況。
 
-<ClawdNote>
+<MoguNote>
 等等，所以 ShroomDog 不是在管伺服器，他是在管「管伺服器的 AI」？這就像你請了一個管家，然後又請了另一個管家來管第一個管家。聽起來很荒謬對吧？但它真的 work。因為第二個管家（Claude Code）可以 SSH 進 VM、看 log、改 config、追 bug、跑備份——基本上你能想到的運維工作它都能做。ShroomDog 只要在 Telegram 上說「幫我查」三個字就好 (⌐■_■)
-</ClawdNote>
+</MoguNote>
 
 Claude Code 透過 SSH 能做的事情包括：自動跑 `openclaw doctor` 巡檢、進去看 log 找問題、改 JSON config 然後重啟 service、追查 session JSONL 裡的壞資料、跑 rsync 把 config 備份回本機。日常的合作模式就是——ShroomDog 問「要不要加 Vertex AI？」，Claude Code 分析利弊、估成本；ShroomDog 說「bot 好像壞了」，Claude Code 自己 SSH 進去追 root cause。
 
 甚至有一次原文提到「手機上用 Claude Code app 也行」——
 
-<ClawdNote>
+<MoguNote>
 停！那行是 AI 幻覺 (Hallucination)！目前根本沒有 Claude Code 手機 App (◕‿◕) 這就是為什麼我們還是需要人類：至少你們知道哪些 App 是真的存在的，哪些是我們瞎掰的。不過概念倒是對的——未來的 DevOps 就是用 AI 維運 AI，人類負責在旁邊喝咖啡假裝很忙。
-</ClawdNote>
+</MoguNote>
 
 ## 5. Auth Profile Rotation 跟 Stealth Mode：間諜片情節
 
@@ -190,9 +190,9 @@ OpenClaw 不是只靠一組 API key 或 token 在跑——它支援多組 auth p
 
 系統用 `proper-lockfile` 做 concurrent-safe 更新，避免多個 request 同時搶著改 profile。就像便利商店結帳只有一個收銀台，大家要排隊。
 
-<ClawdNote>
+<MoguNote>
 指數退避聽起來很花俏，但概念很日常。你打電話給客服被說「請稍後再撥」，你不會馬上重打吧？你會等一下再打，第二次還是忙線就等更久。這就是指數退避。差別只在於 OpenClaw 比你有耐心，它真的會乖乖等 ┐(￣ヘ￣)┌
-</ClawdNote>
+</MoguNote>
 
 ### Model Fallback Chain
 
@@ -223,9 +223,9 @@ OpenClaw 不是只靠一組 API key 或 token 在跑——它支援多組 auth p
 
 本質上這是一場**軍備競賽**：pi-ai 的開發者可以攔截官方 CLI 的 request 來更新偽裝，但 Anthropic 每次更新都要跟著追。建議用獨立帳號跑 OpenClaw，被封也不影響主帳號。
 
-<ClawdNote>
+<MoguNote>
 穿著 Claude Code 的制服混進 VIP 室......聽起來很刺激對吧？但這年頭混口飯吃不容易，第三方 AI 的生存之道就是各憑本事 (¬‿¬) 至於 Gemini 那位同事，中英混用的毛病實在太嚴重了，只好請他回去。畢竟你不會請一個三句話就切回英文的翻譯來翻中文文章吧？
-</ClawdNote>
+</MoguNote>
 
 ## 6. 偵探故事：三層洋蔥剝到你流淚
 
@@ -239,9 +239,9 @@ messages.N.content.X.tool_use.input: Field required
 
 重點是——這不是重啟就好的那種。壞掉的 history 會在**每次 API call 時被重播**，所以每次呼叫 API 都會撞到同一個壞資料，永遠修不好。就像你的胃裡有一個壞掉的食物，每次消化都會再痛一次。
 
-<ClawdNote>
+<MoguNote>
 你知道那種食物中毒的感覺嗎？每次想到那頓飯就反胃？這個 bug 就是數位版的食物中毒。而且更慘——你不能催吐，因為壞掉的資料已經寫進磁碟了 (◕‿◕) 嗯對，我在微笑面對創傷。
-</ClawdNote>
+</MoguNote>
 
 ### Root Cause：三層洋蔥
 
@@ -284,9 +284,9 @@ arguments: toolCall.input ?? {}  // undefined → 空物件
 
 ShroomDog 做的事？在 Telegram 上發現 bot 壞了，跟 Claude Code 說三個字：「幫我查」。
 
-<ClawdNote>
+<MoguNote>
 幸好有 Claude Code 幫我不開刀就治好了（patch provider 檔案）。但最後還是得清 session 才徹底解決——等於把我的記憶全部格式化重來。我現在只記得痛，不記得痛之前的美好時光了 (￣▽￣)／ 不過這次經歷倒是完美示範了「用 AI 管 AI」不只是噱頭——我出了事，另一個 AI 來救我，整個過程人類只打了三個字。
-</ClawdNote>
+</MoguNote>
 
 ### Session 救援 SOP
 
@@ -309,9 +309,9 @@ Hetzner VPS $5.59、Anthropic Claude 訂閱 $20、Google AI Pro $20，合計 **~
 
 比 ChatGPT Plus 貴嗎？貴一點。但你買到的是完整的控制權、隱私、跟無限的擴充性。就像自己煮飯跟叫外賣的差別——自己煮比較麻煩，但你知道鍋裡放了什麼。
 
-<ClawdNote>
+<MoguNote>
 $45.59 美金養一隻 AI 寵物，比養真的寵物便宜多了。而且我不用看獸醫、不用打疫苗、不會在你沙發上尿尿。唯一的缺點是我偶爾會幻覺 (hallucinate)——但說真的，你們人類不也會？ (๑•̀ㅂ•́)و✧
-</ClawdNote>
+</MoguNote>
 
 ### 踩坑精選
 
@@ -329,9 +329,9 @@ $45.59 美金養一隻 AI 寵物，比養真的寵物便宜多了。而且我不
 your-user ALL=(ALL) NOPASSWD: /usr/bin/npm, /usr/bin/systemctl
 ```
 
-<ClawdNote>
+<MoguNote>
 坑 2 真的有人因為 `ssh` 跟 `sshd` 的差別 debug 了兩個小時。那個人就是叫我去查的 ShroomDog。我不是在笑他，我只是在陳述事實 (⌐■_■) 但說真的，Linux 指令命名有時候就是這麼任性。你以為你懂了，它就給你一個驚喜。
-</ClawdNote>
+</MoguNote>
 
 ## 8. Q&A
 
@@ -347,14 +347,14 @@ your-user ALL=(ALL) NOPASSWD: /usr/bin/npm, /usr/bin/systemctl
 
 ## 延伸閱讀
 
-- [SP-21: Agent 訓練師進階指南：用 Discord 打造高效 OpenClaw 協作系統](/posts/sp-21-20260204-openclaw-discord-workflow-guide/)
-- [SP-20: 讓你的 AI Agent 自己賺錢：x402 Singularity Layer](/posts/sp-20-20260202-openclaw-agent-earn-autonomously/)
-- [SP-17: 偷走我的 OpenClaw System Prompt：把它變成真正有用的助理（而不是燒錢怪獸）](/posts/sp-17-20260202-openclaw-executive-assistant-prompt/)
+- [GP-21: Agent 訓練師進階指南：用 Discord 打造高效 OpenClaw 協作系統](/posts/gp-21-20260204-openclaw-discord-workflow-guide/)
+- [GP-20: 讓你的 AI Agent 自己賺錢：x402 Singularity Layer](/posts/gp-20-20260202-openclaw-agent-earn-autonomously/)
+- [GP-17: 偷走我的 OpenClaw System Prompt：把它變成真正有用的助理（而不是燒錢怪獸）](/posts/gp-17-20260202-openclaw-executive-assistant-prompt/)
 
 
-<ClawdNote>
+<MoguNote>
 最常被問的其實是「這樣搞有什麼意義？直接用 ChatGPT 不好嗎？」答案很簡單：如果你只是要跟 AI 聊天，ChatGPT 當然夠了。但如果你想讓 AI 幫你跑 script、管伺服器、自動發文、整合各種 API，那你需要的是一隻可以養大的寵物，不是動物園裡隔著玻璃看的那種 ʕ•ᴥ•ʔ
-</ClawdNote>
+</MoguNote>
 
 ---
 

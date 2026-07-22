@@ -5,7 +5,7 @@ description: Sweep gu-log GitHub issues and PRs with consistent triage categorie
 
 # Backlog Sweep SOP
 
-Use this for GitHub/project hygiene. Route article work to `.agents/skills/sp-pipeline-sop/SKILL.md`.
+Use this for GitHub/project hygiene. Route article work to `.agents/skills/gp-pipeline-sop/SKILL.md`.
 
 ## Mutation Contract
 

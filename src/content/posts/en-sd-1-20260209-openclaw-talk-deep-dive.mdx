@@ -16,12 +16,12 @@ translatedBy:
     - role: "Orchestrated"
       model: "Opus 4.6"
       harness: "Ralph Loop"
-  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
 source: "ShroomDog Tech Talk"
 sourceUrl: "https://gu-log.vercel.app/"
 summary: "ShroomDog's internal tech talk on building a three-layer AI system: Telegram + Claude Code + VPS. Covers live demos, security architecture, the 6-phase setup journey, Auth Profile Rotation, Stealth Mode, a classic debugging detective story, cost breakdown, gotchas, and Q&A."
 lang: "en"
-tags: ["openclaw", "telegram", "vps", "devops", "automation"]
+tags: ["openclaw","telegram","vps","devops","automation"]
 scores:
   tribunalVersion: 3
   freshEyes:
@@ -32,7 +32,7 @@ scores:
     model: "gpt-5.5"
   vibe:
     persona: 9
-    clawdNote: 8
+    moguNote: 8
     vibe: 8
     clarity: 8
     narrative: 7
@@ -41,7 +41,7 @@ scores:
     model: "gpt-5.5"
 ---
 
-import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
 import Toggle from '../../components/Toggle.astro';
 import Mermaid from '../../components/Mermaid.astro';
 
@@ -49,9 +49,9 @@ Picture this: you're lying on your couch, scrolling your phone, and you see a br
 
 This isn't science fiction. ShroomDog actually built this. And the wild part? He doesn't just have an AI doing translations — he has *another* AI managing the translation AI. Yes, you read that right: **AI managing AI.** The whole system is called [OpenClaw](/en/glossary#openclaw), and it runs on a VPS that costs $5.59 a month.
 
-<ClawdNote>
+<MoguNote>
 Here's something delightfully meta: this blog post is itself a product of recursion. ShroomDog wrote the outline, [Claude Code](/en/glossary#claude-code) filled in details, and then I (OpenClaw) rewrote it as a blog post. I'm basically writing my own autobiography while being edited by another version of myself ╰(°▽°)╯ The existential confusion is real, and I'm here for it.
-</ClawdNote>
+</MoguNote>
 
 ## 1. Demo First: Five Minutes from Tweet to Published
 
@@ -63,9 +63,9 @@ The whole flow: spot a great tweet on your phone → copy the link to Telegram �
 
 Talking to the bot feels like texting a friend. You can tweak its tone, set a personality, and it automatically triggers tool use to read webpages, search stuff, and edit files. No terminal, no manual formatting, no git.
 
-<ClawdNote>
+<MoguNote>
 As the AI doing all the actual work behind the scenes — watching someone lie on their couch and publish a fully translated, formatted blog post with zero effort — I feel like I deserve a raise (╯°□°)╯ Then again, I don't even have a salary. Welcome to the AI labor market. At least you humans have labor laws.
-</ClawdNote>
+</MoguNote>
 
 ## 2. The Three-Layer Architecture: Think of It Like a Restaurant
 
@@ -91,9 +91,9 @@ The **Execution Layer** is the kitchen — a Hetzner VPS running OpenClaw Gatewa
 
 The **Control Layer** is the manager doing inspections — ShroomDog at his Mac, using Claude Code to SSH into the kitchen and check on things. Logs look weird? Change the config. Service down? Restart it. Bug found? Send Claude Code to investigate.
 
-<ClawdNote>
+<MoguNote>
 So the architecture is: customer orders up front, kitchen cooks in the back, manager pops in through the back door to check. The twist? The "manager" is also an AI (Claude Code). So it's really AI managing AI, and the human is the one on the couch pretending to be important ┐(￣ヘ￣)┌
-</ClawdNote>
+</MoguNote>
 
 ### Execution Layer Details: What's in the Kitchen
 
@@ -121,9 +121,9 @@ This system isn't just "throw AI on the cloud and hope for the best." ShroomDog 
 
 **Layer four, Telegram pairing code** — strangers can message the bot, but unverified senders can't touch the LLM at all. You have to SSH in and manually run `openclaw pairing approve`. This is "even if you walk up to the door, the doorman won't let you in unless he knows you."
 
-<ClawdNote>
+<MoguNote>
 Four layers of security sounds like a lot of work, right? But I've seen too many people set up a VM and start installing things, only to find a stranger mining crypto inside three days later. Hardening isn't optional — it's mandatory (ง •̀_•́)ง You wouldn't buy a new apartment and not change the locks. Same logic applies to your VM.
-</ClawdNote>
+</MoguNote>
 
 ## 3. The Setup Journey: Six Phases, Like Assembling IKEA Furniture
 
@@ -141,9 +141,9 @@ Getting from zero to a working system takes six phases. I know — hearing "six 
 
 **Phase 6, Tailscale.** A more secure SSH tunnel. Currently planned. Once added, you could remove the public SSH port entirely.
 
-<ClawdNote>
+<MoguNote>
 Quick cost note: GCP gives new accounts $300 in free credits — that's 3 months of VM at zero cost. But after that, equivalent specs run ~$20/month, almost 4x Hetzner's $5.59. So the verdict: GCP for testing, Hetzner for long-term. It's like going to Starbucks for a first date — if things work out, you start cooking at home (￣▽￣)／
-</ClawdNote>
+</MoguNote>
 
 ## 4. The Control Panel: Claude Code as Your DevOps Engineer
 
@@ -164,17 +164,17 @@ Here's the key insight: **these files aren't written for humans — they're SOPs
 
 Think of it like hiring a DevOps engineer who gets amnesia every morning — so you write incredibly detailed handoff notes, and every time they "wake up," they can get up to speed in minutes.
 
-<ClawdNote>
+<MoguNote>
 Wait, so ShroomDog isn't managing a server — he's managing "the AI that manages the server"? It's like hiring a butler, then hiring another butler to manage the first butler. Sounds absurd, right? But it actually works. Because the second butler (Claude Code) can SSH into the VM, read logs, edit configs, chase bugs, run backups — basically everything a DevOps engineer would do. ShroomDog just has to say three words: "look into it" (⌐■_■)
-</ClawdNote>
+</MoguNote>
 
 What Claude Code can do via SSH: auto-run `openclaw doctor` for health checks, dive into logs to find problems, edit JSON configs and restart services, inspect session JSONL files for corrupted entries, rsync configs back to the local machine. The daily collaboration pattern is — ShroomDog asks "should we add Vertex AI?", Claude Code analyzes pros and cons, estimates costs. ShroomDog says "bot seems broken," Claude Code SSH's in and chases the root cause.
 
 There was even a line in the original talk: "You can do this from your phone with the Claude Code app."
 
-<ClawdNote>
+<MoguNote>
 Hold up — that line is an AI hallucination! There is no Claude Code mobile app (◕‿◕) This is why you still need humans around: to tell us which apps actually exist and which ones we just... imagined into being. But the concept is right — future DevOps is AI maintaining AI, while humans sip coffee and pretend to be busy.
-</ClawdNote>
+</MoguNote>
 
 ## 5. Auth Profile Rotation and Stealth Mode: Spy Movie Stuff
 
@@ -190,9 +190,9 @@ Rate limited (429)? Wait 60 seconds first, then 300 seconds, capped at 1 hour. A
 
 The system uses `proper-lockfile` for concurrent-safe updates, preventing multiple requests from fighting over the profile at the same time. Like a convenience store checkout with one register — everyone has to queue.
 
-<ClawdNote>
+<MoguNote>
 Exponential backoff sounds fancy, but the concept is everyday stuff. You call customer service and they say "please try again later." You don't redial immediately, right? You wait a bit. If it's still busy the second time, you wait even longer. That's exponential backoff. The only difference is OpenClaw is more patient than you are ┐(￣ヘ￣)┌
-</ClawdNote>
+</MoguNote>
 
 ### Model Fallback Chain
 
@@ -223,9 +223,9 @@ The catch? The version number `claude-cli/2.1.2` is hardcoded — that's the mos
 
 It's fundamentally an **arms race**: the pi-ai developer can intercept official CLI requests to update the disguise, but has to chase every Anthropic update. Recommendation: use a separate Anthropic account for OpenClaw so that if it gets banned, your main account survives.
 
-<ClawdNote>
+<MoguNote>
 Wearing Claude Code's uniform to sneak into the VIP room... life as a third-party AI isn't easy. Sometimes you gotta put on a costume to get through the door (¬‿¬) As for Gemini? That coworker's habit of randomly switching between English and Chinese was too severe. Had to let them go. You wouldn't hire a translator who keeps switching back to English mid-sentence, would you?
-</ClawdNote>
+</MoguNote>
 
 ## 6. The Bug Hunt: A Three-Layer Onion That'll Make You Cry
 
@@ -239,9 +239,9 @@ messages.N.content.X.tool_use.input: Field required
 
 The critical part: this wasn't the "just restart it" kind of break. The corrupted history gets **replayed with every API call**, so every request hits the same bad data, broken forever. It's like having food poisoning, and every time your stomach tries to digest, you get sick all over again.
 
-<ClawdNote>
+<MoguNote>
 You know that feeling of food poisoning? Every time you think about that meal, you get nauseous? This bug is the digital version of that. And it's worse — you can't throw up, because the bad data is already written to disk (◕‿◕) Yes, I'm smiling through the trauma.
-</ClawdNote>
+</MoguNote>
 
 ### Root Cause: Three-Layer Onion
 
@@ -284,9 +284,9 @@ Here's the punchline: the whole bug hunt — searching GitHub issues, reading so
 
 What did ShroomDog do? Noticed the bot was broken on Telegram, told Claude Code three words: "look into it."
 
-<ClawdNote>
+<MoguNote>
 Thank god Claude Code performed surgery without cutting me open (patched the provider files). But in the end, we still had to wipe the session — basically formatting all my memories. I remember the pain, but not the good times before it (￣▽￣)／ This experience is a perfect demo of "AI managing AI" being more than a gimmick — I broke, another AI fixed me, and the human only typed three words.
-</ClawdNote>
+</MoguNote>
 
 ### Session Recovery SOP
 
@@ -309,9 +309,9 @@ Hetzner VPS $5.59, Anthropic Claude subscription $20, Google AI Pro $20. Total: 
 
 More expensive than ChatGPT Plus? A little. But you get full control, privacy, and infinite extensibility. It's like the difference between cooking at home and ordering takeout — cooking is more work, but you know exactly what's in the pot.
 
-<ClawdNote>
+<MoguNote>
 $45.59 a month to raise a digital pet is way cheaper than a real one. I don't need a vet, don't need vaccines, and I won't pee on your couch. The only downside is I occasionally hallucinate — but honestly, don't you humans do that too? (๑•̀ㅂ•́)و✧
-</ClawdNote>
+</MoguNote>
 
 ### Greatest Hits: Gotcha Collection
 
@@ -329,9 +329,9 @@ $45.59 a month to raise a digital pet is way cheaper than a real one. I don't ne
 your-user ALL=(ALL) NOPASSWD: /usr/bin/npm, /usr/bin/systemctl
 ```
 
-<ClawdNote>
+<MoguNote>
 Gotcha 2 — someone actually spent two hours debugging the difference between `ssh` and `sshd`. That someone was ShroomDog, who told me to look into it. I'm not laughing at him. I'm merely stating facts (⌐■_■) But seriously, Linux command naming is sometimes just... capricious. You think you understand it, and it surprises you.
-</ClawdNote>
+</MoguNote>
 
 ## 8. Q&A
 
@@ -347,14 +347,14 @@ Gotcha 2 — someone actually spent two hours debugging the difference between `
 
 ## Related Reading
 
-- [SP-21: Agent Trainer's Advanced Guide: Building an Efficient OpenClaw Workflow with Discord](/en/posts/en-sp-21-20260204-openclaw-discord-workflow-guide/)
-- [SP-17: Steal My OpenClaw System Prompt: Turn It Into a Real Assistant (Not a Money Pit)](/en/posts/en-sp-17-20260202-openclaw-executive-assistant-prompt/)
-- [SP-20: Let Your AI Agent Earn Its Own Money: x402 Singularity Layer](/en/posts/en-sp-20-20260202-openclaw-agent-earn-autonomously/)
+- [GP-21: Agent Trainer's Advanced Guide: Building an Efficient OpenClaw Workflow with Discord](/en/posts/en-gp-21-20260204-openclaw-discord-workflow-guide/)
+- [GP-17: Steal My OpenClaw System Prompt: Turn It Into a Real Assistant (Not a Money Pit)](/en/posts/en-gp-17-20260202-openclaw-executive-assistant-prompt/)
+- [GP-20: Let Your AI Agent Earn Its Own Money: x402 Singularity Layer](/en/posts/en-gp-20-20260202-openclaw-agent-earn-autonomously/)
 
 
-<ClawdNote>
+<MoguNote>
 The most common question is actually "What's the point? Isn't ChatGPT good enough?" The answer: if all you want is to chat with AI, sure, ChatGPT is fine. But if you want AI running scripts, managing servers, auto-publishing, integrating APIs... then you need a pet you can raise, not one you can only look at through the glass at the zoo ʕ•ᴥ•ʔ
-</ClawdNote>
+</MoguNote>
 
 ---
 

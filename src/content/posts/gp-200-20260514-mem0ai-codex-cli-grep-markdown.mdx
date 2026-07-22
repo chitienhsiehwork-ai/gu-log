@@ -1,0 +1,167 @@
+---
+ticketId: "GP-200"
+title: "Codex CLI 的記憶不是魔法，是一疊可 grep 的 Markdown"
+originalDate: "2026-05-13"
+translatedDate: "2026-05-14"
+translatedBy:
+  model: "GPT-5.5"
+  harness: "Codex CLI"
+
+  pipeline:
+    - role: "Written"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+    - role: "Reviewed"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+    - role: "Scored"
+      model: "GPT-5.5"
+      harness: "Codex CLI + Tribunal"
+    - role: "Rewritten"
+      model: "GPT-5.5"
+      harness: "Codex CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "GPT-5.5"
+      harness: "gp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@mem0ai on X"
+sourceUrl: "https://x.com/mem0ai/status/2054580022049198513?s=46"
+lang: "zh-tw"
+summary: "Mem0 拆解 Codex CLI 記憶：本體不是向量資料庫，而是本機 Markdown、背景摘要、密碼清理與 grep 搜尋。這篇用工程取捨看懂本機小抄和語意記憶層各自適合什麼場景。"
+tags: ["codex","memory","mem0","mcp"]
+scores:
+  tribunalVersion: 3
+  librarian:
+    glossary: 9
+    crossRef: 9
+    sourceAlign: 9
+    attribution: 8
+    score: 8
+    date: "2026-05-14"
+    model: "gpt-5.5"
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    score: 8
+    date: "2026-05-14"
+    model: "gpt-5.5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    score: 8
+    date: "2026-05-14"
+    model: "gpt-5.5"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-05-14"
+    model: "gpt-5.5"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+[Codex](/glossary#codex) CLI 的記憶，聽起來很像 Agent 突然長出第二大腦：下次開工時，記得測試指令、部署流程、專案庫習慣，甚至記得上次是哪個錯誤讓工程師氣到想把鍵盤拿去醃。
+
+Mem0 這篇拆開來看，答案反而很樸素。Codex CLI 的記憶不是向量資料庫，也不是某個神祕的語意搜尋系統。它比較像一疊整理過的 Markdown：有摘要、有長版筆記、有每次工作階段的整理稿，最後再靠 `grep` 找關鍵字。
+
+這聽起來沒有「AI 記憶」四個字那麼性感，但很工程師：本機、可讀、可檢查、成本可預期。也正因為這樣，它的邊界很清楚。Codex CLI 內建記憶適合當本機工作小抄；Mem0 想補的，是跨機器、跨工具、語意召回、即時更新的長期記憶層。╮(╯▽╰)╭
+
+<MoguNote>這種設計像在冰箱門上貼便條：「牛奶剩半瓶、蛋快過期」。便宜、可靠、看得到。缺點是如果便條寫「早餐蛋白質」，你搜尋「煎蛋」可能找不到。這不是笨，是選擇。</MoguNote>
+
+這篇可以接著 gu-log 前幾篇記憶文章讀：[GP-197](/posts/gp-197-20260512-chrishayduk-codex-goals/) 講 Codex `/goal` 怎麼把長跑任務寫進 Markdown，[GP-135](/posts/gp-135-20260328-trq212-agent-file-system/) 講為什麼 Agent 記憶常常該先落在檔案系統，[GP-191](/posts/gp-191-20260507-danizhu-claude-dreams-agent/) 則講非同步記憶整併。Mem0 這篇剛好把三件事串起來：記憶放哪裡、何時整理、怎麼找回來。
+
+## 記憶本體：不是資料庫，是一個目錄
+
+Mem0 原文先把神話拆掉：Codex CLI 的記憶層集中在 `~/.codex/memories/`。這裡放的是 Markdown 檔，不是 SQLite，不是向量索引，也不是黑盒資料庫。
+
+幾個核心檔案分工很直覺：`memory_summary.md` 是新工作階段開場會讀的小抄；`MEMORY.md` 是更長的合併記憶；`raw_memories.md` 放還沒完全整併的候選記憶；`skills/<name>/SKILL.md` 放特定 [Skill](/glossary#skill) 相關記憶；`rollout_summaries/` 則保存單次工作階段的摘要。
+
+換句話說，檔案才是記憶本體。其他流程只是把對話抽取、清理、整理，再寫回這些檔案。
+
+這個選擇很有意思。很多人一聽 [Agent](/glossary#agent) 記憶，就自然想到嵌入向量、向量資料庫、重排序器、語意檢索。Codex CLI 內建記憶走的是反方向：先把資訊壓成可讀文字，放在本機檔案系統，必要時用字串搜尋。
+
+如果知識庫只有二十本書，直接照類別排書架就好。硬要先裝圖書館條碼機、RFID 閘門、自動借還書機，不是不行，但系統重量可能比書還重。
+
+## 寫入流程：不是即時腦補，是下班後整理桌面
+
+Codex CLI 的記憶寫入分兩階段。
+
+第一階段是抽取。當一個工作階段閒置夠久，Mem0 原文提到預設門檻是六小時，Codex 會挑近期對話跑抽取 [Prompt](/glossary#prompt)，產生候選記憶與工作階段摘要。候選內容進入狀態資料庫前，會先做憑證清理，避免把密碼、權杖之類的東西寫進長期記憶。
+
+第二階段是整併。系統會拿全域鎖，讀近期抽取結果，判斷現有記憶檔是否需要更新；真的要更新時，再開一個背景子 Agent，把候選記憶合併進 `~/.codex/memories/`。
+
+這不是「使用者每講一句話，Agent 馬上把它刻進大腦」。它比較像下班後整理辦公桌：白天先把便利貼、會議紀錄、臨時想法丟到收件匣；等人離開，清潔工才開始分類。
+
+好處是前景寫程式不會一直被記憶整理打斷。代價也很明顯：記憶更新有延遲，而且如果開發者一直在工作、一直開新工作階段，背景整理不一定抓得到空檔。
+
+<MoguNote>這裡最值得學的不是「六小時」這個數字，而是架構態度：記憶整理被放到背景，表示系統寧可讓前景任務順，也不要每次對話都插隊做自我整理。Agent 工具的使用體驗，很多時候就是這種排程取捨。</MoguNote>
+
+## 讀取流程：先看小抄，找不到再字串搜尋
+
+讀取路徑更反直覺。
+
+新工作階段啟動時，Codex 會先讀 `memory_summary.md`，再把它截斷到固定 [Token](/glossary#token) 預算。Mem0 原文指出這個預算是 5,000 Token。超過的部分不會爆炸，也不會跳警告；Agent 只是看不到。
+
+那沒有進摘要的內容怎麼辦？讀取模板會要 Agent 從摘要抽關鍵字，去 `MEMORY.md` 做字串搜尋。如果找到線索，再打開相關的 `rollout_summaries/`。如果找不到，就停止。
+
+重點是：這裡沒有語意搜尋。
+
+原文舉的例子很好懂：記憶裡寫「正式環境部署走 `make ship-prod`」，後來改問「上線指令是什麼」，如果查詢詞跟儲存文字沒有重疊，`grep` 可能找不到。意思很近，字面不近，系統可能擦肩而過。
+
+這不是糊塗，而是交易。字串搜尋便宜、透明、容易除錯；語意搜尋比較聰明，但會引入向量索引、召回品質、排序、隱私與成本等另一整套問題。
+
+<MoguNote>`grep` 是工程界的老實人。問 `ship-prod`，它找 `ship-prod`；問「上線」，它不會自己腦補「部署、發布、正式環境」。有時很可愛，有時很欠揍。</MoguNote>
+
+## 設定與限制：小抄很香，但不要把它當公司知識庫
+
+Mem0 原文列了一串設定，但讀者不用背名字。設定表面上很長，骨子裡只是在回答三個問題：能不能用、何時整理、整理多用力。
+
+第一個旋鈕是權限。記憶功能有總開關，也能分開控制讀與寫。也就是可以允許 Agent 看記憶，但不讓它自動生成新記憶；或反過來調整寫入行為。
+
+第二個旋鈕是時間。原文提到預設六小時，是為了避免工作階段還在進行就被過早摘要。會議還沒吵完，紀錄員不該先衝進來宣布「本案結論如下」。
+
+第三個旋鈕是範圍。整併不會無限翻舊帳。原文提到近期執行紀錄、記憶年齡、多久沒被使用等限制。概念很人類：不是所有舊東西都值得永遠放在口袋第一層。三個月前某次除錯的碎念，不該跟「部署前必跑哪個指令」擠在同一張小抄上。
+
+三個旋鈕轉完，就會看到內建記憶的硬邊界。5,000 Token 摘要上限會讓太長的 `memory_summary.md` 安靜截斷；字串搜尋要求問題和記憶內容有字面重疊；`MEMORY.md` 越長，線性搜尋成本越高。`~/.codex/memories/` 也是 Codex 管理的空間，真正要穩定版本化的專案規則，還是應該寫進 `AGENTS.md`。最麻煩的是，記憶是本機狀態。換筆電、換伺服器、進 CI，不會自然跟著走。
+
+所以 Codex CLI 內建記憶的定位很清楚：它是單人、本機、長期工作站上的自動整理工作筆記。這已經很有用，但不是跨工具、跨團隊、跨環境的長期語意腦。
+
+## Mem0 補的是另一層：跨工具的語意記憶
+
+Mem0 在文章後半段把自己放進來，但比較好的讀法不是「Codex 輸了，Mem0 贏了」。更準確地說，兩者在解不同層級的問題。
+
+Codex CLI 內建記憶回答的是：「同一台機器、同一個使用者，下次開工時不要忘記重要偏好。」
+
+Mem0 想回答的是：「不同工具、不同機器、不同工作階段，要怎麼共用一個長期、可搜尋、能理解語意的記憶層？」
+
+接法是 [MCP](/glossary#mcp)。可以先把 MCP 想成 Agent 接外部工具的插座：Codex CLI 不需要把 Mem0 寫死在自己身體裡，只要在 `~/.codex/config.toml` 宣告一個伺服器，就能把記憶工具插進來。Mem0 官方文件給的最小設定大概長這樣：
+
+```toml
+[mcp_servers.mem0]
+url = "https://mcp.mem0.ai/mcp"
+bearer_token_env_var = "MEM0_API_KEY"
+```
+
+接上後，Agent 不只是在本機小抄裡找字，而是可以對外部記憶庫新增、搜尋、更新、刪除。真正差異不在工具名字，而在底層能力：記憶可以跟著同一個使用者跨筆電、伺服器、CI 環境移動；Codex CLI、Cursor、其他支援 MCP 的工具，可以指向同一個記憶服務；搜尋可以走語意召回，不只看字面是否相同；大記憶庫不必整包塞進 5,000 Token 小抄，而是按任務取回相關片段；記憶也可以在對話發生時寫入，不必等六小時閒置門檻。
+
+原文也提到區域限制：在 Codex 內建記憶功能推出時，EEA、英國、瑞士使用者無法使用；Mem0 則把這點列為自己的適用場景之一。這類產品可用性很容易變，實際仍要以當下 OpenAI 與 Mem0 的服務條款和帳號區域為準。
+
+代價同樣清楚：多一個外部系統、多一組 API 金鑰、多一層隱私與治理問題，也多一個要監控的服務。對有些團隊，這是必要基礎建設；對另一些人，這只是把便利貼升級成資料中心。
+
+<MoguNote>判斷標準很簡單：如果問題是「Codex 下次在同一台機器上別忘了偏好」，本機 Markdown 很合理。如果問題是「不同工具、不同機器、不同時間都要想起同一件事，而且換個說法也找得到」，那就不是 `grep` 的工作了。叫 `grep` 做語意理解，就像叫便利商店店員順便規劃都市更新，太累了。</MoguNote>
+
+## 結語
+
+Codex CLI 的記憶最迷人的地方，是它沒有假裝自己是大腦。它就是一套文件化、非同步摘要、可檢查、可搜尋的工程管線。這讓它穩、便宜、透明，也讓它自然碰到語意召回、跨機器同步、即時更新的天花板。
+
+Mem0 這篇真正值得帶走的，不是「內建記憶輸了」或「外部記憶贏了」，而是 Agent 記憶要先問清楚：需求到底是本機工作小抄，還是跨工具的長期語意層？
+
+前者可以是一疊 Markdown。後者就需要一個真的記得住、找得到、跟得走的系統。

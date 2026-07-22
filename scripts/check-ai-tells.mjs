@@ -2,7 +2,7 @@
 
 // check-ai-tells.mjs — deterministic gate against AI-translationese tells in
 // zh-tw post bodies. Sibling of check-pronoun-clarity.mjs / check-jingjing.mjs:
-// same mask zones (frontmatter / code fence / MoguNote / ClawdNote /
+// same mask zones (frontmatter / code fence / MoguNote / MoguNote /
 // ShroomDogNote / blockquote / import / link-only bullet / indented code), same
 // staged-only pre-commit wiring, same exit-1-on-violation contract.
 //
@@ -38,7 +38,7 @@ const files = process.argv.slice(2).filter(Boolean);
 
 // ── Blocklist (SSOT) ───────────────────────────────────────────────
 // Each entry: the banned phrase + natural zh-tw替代 shown in the error.
-// `pattern` is matched literally (escaped before use). Scope is the SP-232
+// `pattern` is matched literally (escaped before use). Scope is the GP-232
 // decision: ONLY discrete, low-collision explicit-wordlist tells. Density
 // tells (T1 反義對偶 / T2 假深度 reframe / T4 mic-drop) are deliberately NOT
 // here — regex would 誤殺 earned usage; they live in the tribunal AI-Tell Trap
@@ -54,7 +54,7 @@ const BLOCKLIST = [
     why: '「X 拆過 [主題]」這種剪掉受詞的講法已退役；字面拆解請用 {/* ai-ok */} 放行',
   },
   {
-    // 2026-06-17 SP-232 T3 空洞強化詞
+    // 2026-06-17 GP-232 T3 空洞強化詞
     pattern: '拆得很乾淨',
     suggest: '直接講它到底講了什麼',
     why: 'T3 空洞強化詞：沒有具體資訊，只負責讓句子收得漂亮',
@@ -75,7 +75,7 @@ const BLOCKLIST = [
     why: 'T3 空洞強化詞：flourish，沒有具體資訊',
   },
   {
-    // 2026-06-18 SP-235 論文腔
+    // 2026-06-18 GP-235 論文腔
     pattern: '學術根源是',
     suggest: '「有個學名叫」「研究圈管這叫」+ 連原始論文',
     why: '論文教科書腔；casual 給名字並連 arXiv 原文即可',
@@ -87,7 +87,7 @@ const BLOCKLIST = [
     why: '像 AI 筆記／考前重點整理，破壞故事感結尾',
   },
   {
-    // 2026-07-13: SP-255 session 回報訊息裡出現「競對」，ShroomDog 點名
+    // 2026-07-13: GP-255 session 回報訊息裡出現「競對」，ShroomDog 點名
     // 從沒在台灣繁中看過這種用法——這是簡中縮寫（競爭對手的縮略）。
     // 低誤殺：zh-tw 沒有「競」「對」連用的慣用法。
     pattern: '競對',
@@ -144,9 +144,9 @@ function buildMask(lines) {
   let fenceMarker = '';
   // gu-log persona note components — body is the persona speaking, so a tell
   // inside belongs to commentary voice and must be masked. MoguNote is the
-  // canonical name; ClawdNote is the legacy alias still in older posts — both
+  // canonical name; MoguNote is the legacy alias still in older posts — both
   // must mask, or switching a post to MoguNote silently reintroduces flags.
-  const NOTE_COMPONENTS = ['MoguNote', 'ClawdNote', 'ShroomDogNote'];
+  const NOTE_COMPONENTS = ['MoguNote', 'MoguNote', 'ShroomDogNote'];
   let noteCloseTag = '';
 
   for (let i = startIndex; i < lines.length; i += 1) {

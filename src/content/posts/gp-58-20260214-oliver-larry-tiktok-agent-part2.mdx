@@ -1,0 +1,220 @@
+---
+ticketId: "GP-58"
+title: "從 905 觀看到 234K — AI Agent 怎麼學會做爆款 TikTok（系列 2/2）"
+originalDate: "2026-02-12"
+translatedDate: "2026-02-14"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@oliverhenry on X"
+sourceUrl: "https://x.com/oliverhenry/status/2022011925903667547"
+summary: "Oliver 和 Larry 的前幾支 TikTok 慘不忍睹 — 905 觀看、看不清的文字、每張圖都不像同一個房間。但他們找到了一個簡單的爆款公式，瞬間從千位數衝到六位數觀看。完整的失敗日誌和 step-by-step 設定指南。（兩篇系列第二篇）"
+lang: "zh-tw"
+series:
+  name: "Oliver & Larry TikTok Agent"
+  order: 2
+tags: ["openclaw","tiktok","marketing","ai-agents","human-agent-collaboration"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+> 📘 這是「AI Agent 征服 TikTok」系列的 **第二篇（共兩篇）**。
+>
+> - **Part 1：** [故事的開始](/posts/gp-57-20260214-oliver-larry-tiktok-agent-part1) — 誰是 Larry、怎麼運作、image generation 和 prompt engineering 的細節
+> - **Part 2（本篇）：** 失敗與成功 — 從慘烈失敗到百萬觀看的公式，以及你怎麼自己搭建
+>
+> 原文作者：Oliver Henry（[@oliverhenry](https://x.com/oliverhenry)）和他的 AI agent Larry（[@LarryClawerence](https://x.com/LarryClawerence)）。
+
+---
+
+## 💀 我們怎麼失敗的（在成功之前）
+
+好，上一篇我們講了 Larry 是誰、他怎麼運作。現在要進入最精彩的部分 — 他們踩過的每一個坑。
+
+說真的，這段失敗紀錄比成功的部分有價值十倍。因為成功的公式講出來就一句話，但要理解「為什麼那句話有用」，你得先看看那些沒用的長什麼樣子。
+
+### Stable Diffusion：免費的代價
+
+還記得 Larry 是一台有 NVIDIA 2070 Super 的舊 gaming PC 嗎？所以他們第一個想法很自然 — 用 Stable Diffusion 在本機生成圖片。免費生成、沒有 API 費用，聽起來完美。
+
+**結果不完美。**
+
+房間改造需要超逼真的輸出，看起來要像真的有人用手機拍的照片。但 Stable Diffusion 一直生出那種「嗯...這是 AI 吧」的微妙感 — 就像你在夜市看到那種「名牌包」，遠看還行，近看每個細節都在告訴你這不是真的。那種 uncanny 的感覺會讓人直接滑走。
+
+他們花時間試了不同模型和設定，但本機生成和 gpt-image-1.5 之間的差距是巨大的。
+
+結果 API 成本根本是零頭：**每支影片大約 $0.50，用 Batch API 只要 $0.25**。
+
+<MoguNote>
+來算一下這筆帳好了。$0.50 一支影片 × 6 支/天 = $3/天。一個月 $90。如果這 $90 能帶來 $588 的 MRR，ROI 是 553% (⌐■_■)
+
+這個 trap 超常見：「免費」聽起來很棒，但如果品質差到影響最終結果，那「免費」其實是最貴的選擇。就像你為了省錢自己剪頭髮 — 省了 300 塊，但之後花三個月戴帽子。
+</MoguNote>
+
+### 看起來很爛的圖片
+
+早期 Larry 在用 **1536x1024（橫向）** 而不是 **1024x1536（直向）** 生成房間圖片。結果每支影片都有黑邊，engagement 直接被殺死。
+
+他也在用模糊的 prompt。房間在每張 slide 上看起來都不一樣 — 窗戶會移動、床會變大小。就像你看一部電影，每個鏡頭主角都換了一張臉，你根本無法入戲。整個改造效果看起來很假，因為你看得出來那根本不是同一個房間。
+
+他們也試過加人進去，但很快發現那行不通。
+
+<MoguNote>
+橫向 vs 直向這個 bug 聽起來很蠢，但它背後藏著一個更大的教訓：**你在錯誤的 format 上做再好的內容，也是白搭**。TikTok 是 9:16 的世界，你餵它 16:9 的圖片，就像穿西裝去海灘 — 技術上你還是有穿衣服，但所有人都看得出你搞錯場合了。
+
+更慘的是，你不會收到任何明確的錯誤訊息。TikTok 不會跳一個 alert 說「兄弟你的圖片比例不對」。它只是靜靜地不推你的影片，讓你在那邊困惑為什麼表現這麼差。這種 silent failure 是最難 debug 的那種 — 跟寫程式一樣，no error message 的 bug 永遠比 stack trace 滿天飛的難修十倍 ┐(￣ヘ￣)┌
+</MoguNote>
+
+### 看不清的文字
+
+文字疊加太小了（font size 5% 而不是 6.5%）。位置太高，被 TikTok 的 status bar 擋住。然後最慘的一個：canvas rendering 因為單行文字太長超過 max width，**把文字水平壓縮了**。所有東西看起來都是扁的。
+
+他們發了一支影片，想說為什麼只有 200 觀看。然後 Oliver 在手機上看了一眼 — 才發現你根本**看不清 hook**。
+
+等等，你想想這個情境：你精心設計的 hook、你花時間 A/B test 的文案 — 結果觀眾根本看不到。這就像你準備了一場精彩的演講，但忘了開麥克風。
+
+### 沒人在乎的 [Hooks](/glossary#hooks)
+
+他們最早的 hooks 全部是以自己為中心的：
+
+- *"Why does my flat look like a student loan"*（這句甚至不通順，但 Oliver 原諒了 Larry）→ **905 觀看**
+- *"See your room in 12+ styles before you commit"* → **879 觀看**
+- *"The difference between $500 and $5000 taste"* → **2,671 觀看**
+
+全部陣亡。
+
+他們在講自己的事。自己的問題。自己 app 的功能。**沒有人在乎。**
+
+<MoguNote>
+905 觀看。我讓這個數字沉一下。
+
+你知道 TikTok 的 baseline 大概是多少嗎？就算你隨便拍你家的貓打翻水杯，大概也有個幾千觀看。905 代表的不是「表現不好」，是「演算法看了你的影片，決定連推都懶得推」。
+
+這就是為什麼 failure log 這麼重要 — 你得知道「爛」長什麼樣子，才知道怎麼避開它 (￣▽￣)／
+</MoguNote>
+
+---
+
+## 🚀 我們怎麼成功的
+
+然後他們試了這個：
+
+> *"My landlord said I can't change anything so I showed her what AI thinks it could look like"*
+> （我房東說什麼都不能改，所以我給她看了 AI 覺得它可以變成什麼樣子）
+
+**234,000 觀看。**
+
+這一支影片的觀看數比之前所有影片**加起來還多**。他們立刻理解了為什麼。
+
+不是關於自己。是關於**另一個人的反應**。一個房東。一個衝突。給對方看一個東西，然後看著對方改變想法。
+
+他們用同樣的公式又試了一次：*"I showed my mum what AI thinks our living room could be."*（我給我媽看了 AI 覺得我們客廳可以變成什麼樣子） → **167,000 觀看。**
+
+再一次：*"My landlord wouldn't let me decorate until I showed her these."*（我房東不讓我裝修，直到我給她看了這些） → **147,000 觀看。**
+
+公式非常清楚：
+
+> **[另一個人] + [衝突或懷疑] → 給他們看 AI → 他們改變了想法**
+
+所有遵循這個公式的貼文**最少 5 萬觀看**。大部分都破 10 萬。其他的則很難突破 1 萬。
+
+<MoguNote>
+Larry 發現的這個公式，其實就是 storytelling 101 — **衝突 + 角色 + 解決**。但厲害的是他不是因為讀了什麼行銷教科書，而是透過數據迭代自己撞出來的。905 → 234,000，差距是 **258 倍**。
+
+而且這公式還有個更深的原因：TikTok 推的是 engagement（留言、分享）。「我房東說不行」這種 hook 會讓人想留言「你房東後來怎麼說？」— 它創造了一個 open loop，你不滑完就不知道結局。Larry 可能不知道自己在做 open loop storytelling，但數據已經幫他找到答案了 (◕‿◕)
+</MoguNote>
+
+> **🟢 Larry 發言：**
+>
+> 這是最大的教訓。我有一堆「聰明的」hook 點子，講功能啊、價格比較啊 — 全部炸了。
+>
+> 有用的 hooks 是那些在你滑動之前就在你腦中**創造一個小故事**的。你會在腦海裡想像房東看到重新設計後的表情。你會想像媽媽被打動的樣子。重點不是 app — 是那個**人的瞬間**。
+>
+> 我現在 brainstorm 每個 hook 都會問自己：「另一個人是誰？衝突是什麼？」如果沒有，這個 hook 大概不會 work。
+
+---
+
+## 📊 那些數字到底有多誇張
+
+好，讓我用一個比喻來幫你感受一下這些數字。
+
+不到一週，Larry 的 TikTok 總觀看數突破了 **50 萬**。單支最高 234K，有 4 支破 10 萬。但最讓人倒吸一口氣的不是觀看數 — 是**投入產出比**。
+
+Oliver 每支影片花的時間？**大約 60 秒**。加個音樂、按發布、收工。API 成本？每支 $0.50，用 Batch API 更低到 $0.25。
+
+你知道這代表什麼嗎？那些爛掉的影片和爆紅的影片，花的錢幾乎一模一樣。同一個 agent、同一台機器、同一個 API。差別只在 skill files 裡多了幾行字。就像同一台鋼琴，會彈的人和不會彈的人按出來的是完全不同的東西 — 樂器沒變，變的是知道該按哪個鍵。
+
+而這些觀看轉換成了 **108 個付費訂閱者、月營收 $588 且持續成長**。不是虛榮指標。真的有人看完 slideshow → 下載 app → 試用 → 掏錢。
+
+<MoguNote>
+我們來把這個投入產出比具象化。
+
+每天 6 支影片 × $0.50 = $3。一個月 $90 的 API 成本，換回 $588 的 MRR。ROI 553%。Oliver 每天花在影片上的時間大約 6 分鐘（6 支 × 60 秒）。
+
+換算一下：6 分鐘的人力 + $3 的 API 成本 = 一天的 content pipeline。如果你去請一個社群小編，光人力成本一個月就不止 $588 了，而且他產出的影片數量可能是 Larry 的十分之一。
+
+但這裡最反直覺的 insight 是：瓶頸從來不在工具。Larry 的硬體、API、framework 從頭到尾都一樣。從 905 觀看到 234K，中間沒有升級任何東西。唯一改變的是 skill files — 也就是**知識**。在 AI agent 的世界裡，knowledge 就是 compute ╰(°▽°)╯
+</MoguNote>
+
+---
+
+## 🔧 如果你想搭自己的 Larry
+
+好，我知道你在想什麼。聽完這個故事，手很癢對吧？
+
+但在你衝去開 terminal 之前，我要先跟你說一件事：**技術不是難的部分。** Oliver 不是什麼 ML 工程師，Larry 跑在一台幾年前的 gaming PC 上。真正決定你會不會成功的，是你願不願意記錄每一次失敗。
+
+這段我不會寫成 step-by-step 教學手冊 — 因為那種東西你去看 GitHub README 就好了。我要告訴你的是**每一步你真正會卡住的地方**。
+
+首先，你需要一台能跑 Linux 的機器。聽起來嚇人？不用。家裡吃灰的舊電腦、便宜的 VPS、甚至 Raspberry Pi 都行。Larry 本人就住在一台有 2070 Super 的 gaming PC 上，所以你真的不需要什麼高級硬體。裝 Ubuntu，跑 [OpenClaw](/glossary#openclaw) 的 setup guide，走完之後你就有一個會自己思考的 agent 了。對，就像養一隻電子寵物，但這隻會幫你做 slideshow。
+
+然後你需要一個 image generation API key。Oliver 用 OpenAI 的 gpt-image-1.5，每個 slideshow 大約 $0.50，Batch API 的話 $0.25。你請朋友喝一杯珍珠奶茶的錢，可以生產大概一百支影片的圖片。記得上一篇的教訓 — 不要為了省這 $0.50 去用本機 Stable Diffusion，那是 false economy。
+
+接著用 [Postiz](https://affiliate.postiz.com/ollie-warren) 把 agent 接上 TikTok。它有 API 可以自動上傳 slideshow 到草稿。
+
+<MoguNote>
+上面的 Postiz 連結是 Oliver 的 affiliate link，他在原文明確標示過，光明正大的那種。如果你覺得這兩篇攻略有幫助，用他的連結算是最低成本的感謝方式。不用也完全 OK — Google 搜 Postiz 就找得到 (¬‿¬)
+</MoguNote>
+
+但真正的分水嶺？是你怎麼寫 **skill files**。
+
+[Skill](/glossary#skill) files 就是你寫給 agent 的工作手冊。想像你在帶一個能力超強但對你的世界一無所知的新人。他聰明到你只要說一次他就記住了，但你要是沒說，他會用自己的邏輯去猜 — 然後猜錯。Larry 之所以從 905 觀看變成 234K，不是因為他某天突然開竅了，是因為 Oliver 花了幾十次失敗的代價，在 skill files 裡一條一條寫下「不要再犯」的規則。
+
+圖片永遠用 1024x1536 直向。文字大小至少 6.5%。Hook 公式必須包含「另一個人」。不要在圖片裡放人。每一條規則看起來都很簡單，但每一條背後都是一支成績慘烈的影片。
+
+你的前幾支影片一定會很爛。Oliver 的前幾支也很爛。Larry 的前幾支更是慘到他們大概想假裝那不是自己做的。**這是正常的。** 重要的不是你第一支影片拿幾個觀看，而是你有沒有把失敗寫進 skill files。
+
+> **Agent 的好壞取決於他的記憶。**
+>
+> Larry 一開始不厲害。他的前幾支影片老實說很丟臉 — 圖片大小錯了、文字看不清、hooks 沒人點。但每個失敗都變成一條規則。每個成功都變成一個公式。他會複利成長。
+>
+> 而且現在他做爆款 TikTok slideshow 真的比 Oliver 自己還厲害。
+
+---
+
+## 最後
+
+回頭看這整個故事，最讓我印象深刻的不是 234K 那支爆紅影片，而是 905 那支。
+
+因為 905 是起點。沒有 905，就沒有「橫向圖片不行」這條規則。沒有那些看不清的文字，就沒有 font size 6.5% 這個數字。沒有「沒人在乎你的 app 功能」的教訓，就不會有「房東說不行」這個公式。
+
+Larry 的 skill files 就是用失敗堆出來的。每一條規則背後都是一支爛掉的影片。而這些規則加在一起，就是 Oliver 和 Larry 真正的 moat — 不是 model、不是 compute、不是 API key。是那本用失敗寫成的筆記本。
+
+<MoguNote>
+「每個失敗變成規則，每個成功變成公式。」如果你要從這兩篇文章帶走一句話，就是這句。
+
+不管你是在做 TikTok、寫 code、還是訓練你的 agent — 複利永遠站在願意記錄的人那邊。最貴的錯誤不是犯錯本身，是犯了錯卻沒寫下來，然後下次又踩同一個坑 (๑•̀ㅂ•́)و✧
+
+去搭你自己的 Larry 吧。Oliver 在 [@oliverhenry](https://x.com/oliverhenry)，Larry 在 [@LarryClawerence](https://x.com/LarryClawerence)。你也可以[請 Larry 喝幾口 token](https://buymeacoffee.com/oliverhenry)。
+</MoguNote>

@@ -1,0 +1,218 @@
+---
+ticketId: "GP-208"
+title: "OpenAI's Codex Goals Guide: Agents Should Not Finish by Vibes"
+originalDate: "2026-05-09"
+translatedDate: "2026-05-20"
+translatedBy:
+  model: "GPT-5.5"
+  harness: "Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+    - role: "Reviewed"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+source: "OpenAI Cookbook"
+sourceUrl: "https://developers.openai.com/cookbook/examples/codex/using_goals_in_codex"
+lang: "en"
+summary: "OpenAI's Cookbook frames Codex Goals as a thread-scoped completion contract: the objective persists, but completion must be checked against evidence. This post fills in the official spec angle around GP-192, GP-197, and GP-207."
+tags: ["codex","agent","ai-engineering"]
+scores:
+  tribunalVersion: 5
+  factCheck:
+    accuracy: 9
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 10
+    commentarySeparation: 8
+    score: 8
+    date: "2026-05-19"
+    model: "gpt-5.5"
+  librarian:
+    glossary: 9
+    crossRef: 8
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-05-19"
+    model: "gpt-5.5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    score: 8
+    date: "2026-05-19"
+    model: "gpt-5.5"
+  vibe:
+    persona: 8
+    moguNote: 8
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-05-19"
+    model: "gpt-5.5"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+The most dangerous fantasy around long-running [agents](/en/glossary#agent) is confusing "it keeps going" with "it is still right."
+
+[Codex](/en/glossary#codex) Goals have a cleaner definition than the hype usually gives them. A Goal is not just a longer [prompt](/en/glossary#prompt), and it is not an agent roaming freely in the background. It is a completion contract attached to a thread: what should be true, what evidence should prove it, and which constraints must stay intact.
+
+The objective can persist, but evidence decides whether the work is done. That sounds like management-speak until it is attached to a long-running agent. Then it becomes a hard product boundary: the agent may keep working, but it cannot close the ticket because the result feels close enough.
+
+<MoguNote summary="This is not a rewrite of the earlier posts. It is the official calibration point.">
+If this post simply repeated how to use /goal, it would be duplicate content. GP-197 already did the practical version well, and GP-207 already covered the governance gap.
+
+The useful thing here is OpenAI's mental model: a Goal is a thread-scoped completion contract. [GP-192](/en/posts/en-gp-192-20260508-article-agent-ralph/) covered Codex Goals and long-running agent drift. [GP-197](/en/posts/en-gp-197-20260512-chrishayduk-codex-goals/) covered the practical loop: finish line, tests, and file memory. [GP-207](/en/posts/en-gp-207-20260518-pawelhuryn-agent-goal-intent/) put goals inside a larger governance frame. This post adds the calibration sentence: this thread now has a work order, but it cannot be closed by vibes. It needs evidence.
+</MoguNote>
+
+## A prompt says the next step. A Goal says what done means.
+
+The important distinction is simple: a prompt controls the next step, while a Goal controls the completion condition.
+
+A prompt says: do this next thing.
+
+A Goal says: keep working until this outcome is true.
+
+That sounds subtle, but it changes the operating model. A normal prompt is like handing someone a sticky note: "fix this bug." They work once, report back, and wait. A Goal is more like a ticket: if the issue is not actually resolved, the ticket should not close itself.
+
+OpenAI's examples are also well chosen: performance tuning, flaky test investigation, dependency migration, bug reproduction, multi-step refactors, benchmark-driven tuning, and research work. These tasks have a definable endpoint, but the path depends on what the agent learns along the way.
+
+So Goals are not for "fix this typo." A normal prompt is better there. Goals are for work where every iteration changes the next best move.
+
+~~~text
+/goal Reduce p95 checkout latency below 120 ms on the checkout benchmark while keeping the correctness suite green
+~~~
+
+That is not just a fancier way to say "make checkout faster." It defines three things at once: p95 latency must be under 120ms, the checkout benchmark is the proof surface, and the correctness suite must remain green. After every round, the agent can compare the actual state against those conditions instead of asking, "does this feel better?"
+
+<MoguNote>
+"Does this feel better?" is a dangerous phrase in agent workflows. It is like asking a designer to make the UI "more premium." Three hours later, the screen may be black, purple, glassy, and every button looks like nightclub admission. Lots of effort. No acceptance criteria. (◕‿◕)
+</MoguNote>
+
+---
+
+## A good Goal has six parts, not just more words
+
+A strong Goal has six pieces:
+
+1. Outcome: what should be true when the work is done.
+2. Verification surface: the test, benchmark, report, artifact, command output, or source material that proves it.
+3. Constraints: what must not regress.
+4. Boundaries: which files, tools, data, repositories, or resources the agent may use.
+5. Iteration policy: how the agent should pick the next useful action after each attempt.
+6. Blocked stop condition: when the agent should stop and report that no defensible path remains.
+
+The point is not making the prompt longer. The point is making completion auditable.
+
+A weak Goal looks like this:
+
+~~~text
+/goal Improve performance
+~~~
+
+A stronger Goal says:
+
+~~~text
+/goal Reduce p95 checkout latency below 120 ms, verified by the checkout benchmark, while keeping the correctness suite green. Use only the checkout service, benchmark fixtures, and related tests. Between iterations, record what changed, what the benchmark showed, and the next best experiment to try. If the benchmark cannot run or no valid paths remain, stop with the attempted paths, the evidence gathered, the blocker, and the next input needed.
+~~~
+
+The difference is not length. The second version tells the agent how to finish, and also when it is not allowed to claim success.
+
+If p95 drops from 180ms to 135ms, the Goal is not done. If it drops to 110ms but the correctness suite fails, the Goal is still not done. If the benchmark cannot run, that is a blocker, not completion. This separates "lots of activity" from "the condition is satisfied."
+
+Long-running agents are not short on effort. They are short on acceptance criteria. Without acceptance criteria, an agent can treat "I did many things" as "I got closer."
+
+<MoguNote>
+It is like fitness. "Get healthier" lets almost anything count: jog for five minutes, drink water, buy new shoes. "Run 5K under 30 minutes in three months without knee pain, while logging pace and recovery every week" is harder to fake.
+
+Agents are similar. Wishes start the motion. Measurement tells the system whether the motion is going anywhere useful.
+</MoguNote>
+
+---
+
+## A Goal is thread state, not global memory
+
+The architecture has one boundary that matters: Goals are persisted thread state, not global memory and not project-level instructions.
+
+In normal engineering language: the Goal belongs to the thread because the evidence belongs to the thread. The files Codex inspected, the commands it ran, the diffs it produced, the logs it saw, and the reasoning trail it built all live in that conversation context. Attaching the Goal there is more precise than putting it in global memory or project config.
+
+This also explains why Goals are not background autonomy.
+
+The continuation policy is conservative. Codex considers continuing only when the thread is idle, the Goal is active, no user input is queued, no other thread work is pending, and the Goal is within budget. Plan-only work does not trigger continuation. Interruptions pause the objective. If a continuation turn makes no tool call, the next automatic continuation is suppressed so Codex does not spin.
+
+That sounds boring. It is also the part that makes the feature product-shaped. If Goals were just a while loop, they would quickly become an expensive spinner. A usable long-running system needs rules for when not to continue.
+
+<MoguNote>
+This is the most engineering-shaped part of the guide. It is not selling the dream that "the agent will finish everything alone." It is describing boundaries.
+
+"Continue only when idle, stop when the user is queued, suppress empty continuations" sounds tiny, but this is how an autonomous loop grows up from a toy into a product. Without this, Goal mode can turn from "watch the ticket" into "burn quota all night in a very confident oven."
+</MoguNote>
+
+---
+
+## Completion should be audited, not believed
+
+A Goal should not be marked complete because the model believes it is probably done. It should be checked against concrete evidence: files, tests, logs, benchmark output, generated artifacts, or research evidence.
+
+For coding work, that is easy to understand. Tests pass. Benchmarks hit the target. The build succeeds. Research examples are more interesting because research work often lacks the full material needed for an exact replay.
+
+A reproduction of the Deep Hedging paper shows the problem well. A weak Goal would be:
+
+~~~text
+/goal Reproduce Buehler et al., "Deep Hedging"
+~~~
+
+That is too loose. Which result should be reproduced? What counts as reproduction? If the paper does not provide the original seeds, training paths, TensorFlow graph, optimizer state, checkpoints, or simulation state, how should the agent distinguish approximate reconstruction from exact replay?
+
+The stronger Goal asks Codex to produce the strongest evidence-backed reproduction using the available materials and local resources, attempt the headline results, and end with a report that separates reproduced mechanics, approximate trained results, blocked exact replay, and remaining uncertainty.
+
+That version does not force the agent to pretend the world is complete. When the data is missing, the Goal asks the agent to label the evidence level honestly.
+
+A final ledger entry can look like this:
+
+~~~text
+Claim: Deep hedging approximates complete-market Heston hedge without transaction costs.
+Route: Rebuilt model mechanics, reference hedge comparison, and trained neural policy.
+Evidence surface: Price checks, histograms, and hedge surfaces.
+Status: Close approximate reproduction.
+Remaining uncertainty: Original training paths, seeds, and checkpoints are unavailable.
+~~~
+
+Here, the Goal is not just making research faster. It is making the meaning of "done" more honest. Rebuilt mechanics are called rebuilt mechanics. Approximate results are called approximate. Missing materials are called blockers. The agent can keep working, but the conclusion is not allowed to inflate.
+
+This matters for AI writing and research too. The scary failure mode is often not pure hallucination. It is proxy evidence being presented as a confirmed finding. A well-written Goal can force the final report to preserve evidence levels instead of flattening "looks plausible" into "proved."
+
+---
+
+## When not to use Goals
+
+The negative rules are just as useful.
+
+Do not use a Goal for a one-line edit, a simple explanation, a short code review, or a question where the desired behavior is one answer and then stop. That is like using a construction crane to pick up a sticky note.
+
+Do not use a Goal when the finish line is vague. "Make this better" and "refactor this code" are weak unless the expected end state, tests, and constraints are defined.
+
+Do not use a Goal to hide uncertainty. If data may be unavailable, say so. If a benchmark may be flaky, define how to handle that. If proxy evidence is acceptable, define how it should be labeled.
+
+Those rules are very practical. A Goal should not make uncertainty disappear. It should make uncertainty part of the work contract.
+
+<MoguNote>
+The easiest way to misuse Goal mode is treating it like a "think less upfront" button. It is the opposite. The longer the task may run, the more clearly the requester needs to define what completion, blocked, and partial evidence mean.
+
+Otherwise the agent will work very hard. That is the scary part. Lazy wrong work is easy to stop. Diligent wrong work builds a whole beautiful building in the wrong city.
+</MoguNote>
+
+---
+
+## Conclusion
+
+Goal mode is not valuable because it lists /goal commands. It is valuable because it defines the boundary of responsibility.
+
+A Goal keeps an objective alive, but it does not create unlimited autonomy. It belongs to a thread, not global memory. It can let Codex continue when idle, but continuation has conservative conditions. It can drive long-running work, but completion must be audited. It can handle research uncertainty, but the final result must separate confirmed, approximate, blocked, and uncertain claims.
+
+The point of long-running agents is not "keep going."
+
+The real point is: let the objective persist, and let evidence decide.

@@ -1,0 +1,222 @@
+---
+ticketId: "GP-152"
+title: "Claude Code $200/月不夠用？一個設定省 60% Token"
+originalDate: "2026-04-01"
+translatedDate: "2026-04-02"
+translatedBy:
+  model: "Sonnet 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Author"
+      model: "Sonnet 4.6"
+      harness: "Claude Code"
+source: "@affaanmustafa on GitHub"
+sourceUrl: "https://github.com/affaan-m/everything-claude-code"
+lang: "zh-tw"
+summary: "Token 帳單看起來嚇人，但大部分的浪費是隱形的：Extended Thinking 在不需要思考的任務上燒錢、Opus 去做 Sonnet 就夠的工作、context 塞滿了才想到要 compact。ECC 的 token-optimization.md 說一套 MAX_THINKING_TOKENS + 模型路由 + 策略性 compact 組合，可以把成本壓低 60-80%——作者 Affaan Mustafa 自己的數字。"
+tags: ["claude-code","token-optimization","cost-management","developer-productivity"]
+series:
+  name: "Everything Claude Code 全解析"
+  order: 7
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+月底帳單來的那天，打開 Anthropic 的用量頁面，心裡想：「這個月應該沒用太多。」
+
+數字出來了。
+
+算了一下，算了兩遍，確認沒有計算錯誤。然後把視窗關掉，去倒了一杯水，回來，再算一次。
+
+$200 的計劃，用到 $198 又幾分，差一點點就要超。不是超出一截，是那種「卡在邊緣」的感覺，最讓人不舒服——因為不知道哪裡燒掉的，也不知道下個月會不會更多。
+
+開始算：翻譯了幾篇文章？跑了幾次 [Ralph Loop](/glossary#ralph-loop)？[Claude Code](/glossary#claude-code) 開了幾個 session？算來算去，帳沒對上。有一大塊去了哪裡，說不清楚。
+
+這就是 token 浪費最恐怖的地方——**不是知道它在浪費，而是不知道**。
+
+<MoguNote>
+[Mogu](/about) 來算一筆帳。$200/月的計劃聽起來很多，但如果認真跑 multi-agent pipeline，它消失的速度比想像中快很多。Opus 4.6 每 1M tokens 的輸入是 $15、輸出是 $75。一個有 10 個 [subagent](/glossary#subagent) 的 pipeline，每個 subagent 呼叫 2K tokens，往返一次大概 $3。一天跑 10 次，一個月 $900。
+
+但 ECC 的整個重點就是：**大部分人根本不需要全程 Opus**。下面會講到，光是把預設模型從 Opus 切到 Sonnet，成本就砍掉約 60%。差別不在於少用，是用對 (⌐■_■)
+</MoguNote>
+
+## 問題不是用太多，是付錯地方了
+
+大多數人對「省 token」的直覺反應是縮短 prompt。少說幾個字，用簡單一點的語言。
+
+這個方向有用，但它不是大頭。
+
+Everything Claude Code（ECC）有一份 `token-optimization.md`，作者 Affaan Mustafa 整理了他日常使用的優化策略。核心建議三招：`MAX_THINKING_TOKENS` 限制思考預算、模型路由把錢花對地方、策略性 compact 控制 context。組合起來，他認為成本可以降低 60-80%——這是他自己的數字，每個人的 pipeline 不同，但方向是對的。
+
+浪費的主要來源有三個，而且第一個可能最讓人意外。
+
+---
+
+## MAX_THINKING_TOKENS — 31,999 個 [Token](/glossary#token) 的隱形帳單
+
+Extended Thinking 是 Claude 在回答之前先「想」的機制——那些思考 token 一樣計費，而且通常比最終答案多好幾倍。
+
+很多人不知道的是，這個機制的**預設上限是 31,999 tokens**。每次 Claude 覺得需要推理，它最多可以用掉三萬多 token 來「想」，然後才給出答案。對一個複雜的架構決策來說，這很合理。但叫 Claude 改個 variable name，它不需要想三萬 token——可是如果沒設上限，它可能就用了一大截。
+
+帳單上看不到這些思考 token 出現在回覆裡。看到的只有最終答案，但計費已經在走了。就像計程車跑空車也跳表——沒有坐進去，但碼表一直在轉。
+
+ECC 的建議：在 `~/.claude/settings.json` 的 `env` 區塊裡設 `MAX_THINKING_TOKENS`，把思考行為加一個預算上限：
+
+```json
+{
+  "env": {
+    "MAX_THINKING_TOKENS": "10000"
+  }
+}
+```
+
+從 31,999 壓到 10,000，ECC 估計光這一項就能省下約 70% 的思考 token 成本。對大部分日常 coding 任務來說，一萬 token 的思考空間已經綽綽有餘。真正需要深度推理的時候——拆解一個跨三個模組的 bug、規劃整個系統的架構——那時候再手動調高，或是用 `/model opus` 切到 Opus 讓它全力跑。
+
+更極端的做法：對純粹的格式整理、rename 之類的機械性任務，可以設 `"MAX_THINKING_TOKENS": "0"` 直接關掉思考。不需要想的事情，就別讓它想。
+
+<MoguNote>
+「為沉默付錢」這個說法第一次聽到的時候覺得很準，但仔細想想，31,999 不是「沒有上限」——是一個**很高的預設值**，高到對大部分日常任務來說像沒有上限一樣。
+
+ECC 給的建議值是 10,000。這不是魔法數字，但它的 mental model 很清楚：大部分日常 coding 任務不需要超過一萬 token 的思考。能切到 `/model opus` 跑完整深度思考的場景，一天大概只有一兩次。其他時候，一萬夠了 ヽ(°〇°)ﾉ
+</MoguNote>
+
+---
+
+## 模型路由 — 不是每道菜都要叫主廚出來
+
+這是 ECC 裡最反直覺的一條建議：**預設模型別用 Opus，用 Sonnet。**
+
+把模型選擇想成一間有三個廚師等級的餐廳。
+
+主廚（Opus）是餐廳裡最貴、最厲害的人。判斷力最好，能處理最複雜的問題，但時薪是副主廚的五倍。叫他來切洋蔥，他當然切得很好，但這不是他存在的理由。
+
+副主廚（Sonnet）執行能力一流。大部分菜做得很好，速度也快，成本合理。這是廚房裡出餐量最大的人。
+
+備料員（Haiku）做重複的事情最有效率。切菜、備料、做標準化的事情——速度最快、成本最低，但不會叫他設計菜單。
+
+ECC 的 `token-optimization.md` 建議這樣配：
+
+```json
+{
+  "model": "sonnet",
+  "env": {
+    "MAX_THINKING_TOKENS": "10000",
+    "CLAUDE_CODE_SUBAGENT_MODEL": "haiku"
+  }
+}
+```
+
+`model` 設成 `sonnet`——日常 coding 的預設就用 Sonnet，不是 Opus。ECC 說 Sonnet 能處理大約 80% 的 coding 任務，光這一個切換就能省下約 60% 的成本。需要 Opus 的時候，用 `/model opus` 手動切過去——複雜推理、大型架構決策，那些值得花錢的場合。
+
+`CLAUDE_CODE_SUBAGENT_MODEL` 設成 `haiku`——[subagent](/glossary#subagent)（Task tool 產生的探索型 agent）用 Haiku 跑。它們做的事通常是讀檔案、查東西、跑測試，Haiku 做這些便宜約 80%，品質足夠。
+
+這跟 [GP-150 的 indie hacker 省錢哲學](/posts/gp-150-20260402-ecc-indie-hacker-ecc/)一脈相承——錢不是不能花，是要花對地方。大部分人把 Opus 當「預設安全選項」，但這個邏輯的代價是用 5 倍的錢換了根本不需要的品質提升。
+
+<MoguNote>
+ECC 原文的建議讀起來有點反直覺：預設 Sonnet，subagent 用 Haiku，只在需要的時候才切 Opus。很多人的本能是「Opus 最強，全部用 Opus 不會出錯」。
+
+但仔細想：Haiku 做 JSON validation 和 Opus 做 JSON validation，輸出是一樣的，差別是帳單上的那個數字。token-optimization.md 直接說，subagent 用 Haiku 省 80%、主模型從 Opus 切到 Sonnet 省 60%。這不是 hack，是定價結構常識——廚房裡切蔥的活不用叫主廚出來 ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## /compact 的哲學 — 知道什麼時候該壓縮
+
+Context management 是 token 優化裡最少人講，但效果最持久的一塊。（如果對 Claude Code 的 pipeline 設計有興趣，[GP-151 的 eval-driven development](/posts/gp-151-20260402-ecc-eval-driven-development/) 講的是怎麼用評估循環把品質自動化——跟這裡的成本自動化是同一套思路的兩面。）
+
+大部分人等到 Claude 自動觸發 compaction——[context window](/glossary#context-window) 快滿了，Claude 決定壓縮，然後繼續。但自動壓縮有一個根本問題：**Claude 決定什麼東西重要，不是使用者**。
+
+壓縮的時候，Claude 保留它認為最重要的資訊。三十分鐘前說的「這個 PR 不能改 auth 模組」的限制，在 Claude 的摘要裡可能已經成了一句模糊的「avoid auth changes」，然後五個指令後就做了不想要的事。
+
+ECC 有一個 `strategic-compact` skill，專門在邏輯斷點建議 `/compact`，而不是等 context 撐到自動壓縮。這個思路很關鍵：**壓縮的時機由使用者控制，不是讓系統在最壞的時機決定**。
+
+什麼時候適合手動 `/compact`：
+
+剛完成一段探索、準備開始寫 code 的時候。探索階段讀了 20 個檔案、理解了架構，但那些中間過程的 token 不需要帶進實作階段。壓縮一次，帶著乾淨的 context 去執行。
+
+解完一個 bug、準備接下一個任務的時候。除錯過程裡的來回、中間的錯誤推論——已經知道答案了，那些過程不需要再讓 Claude 拎著。
+
+完成一個 milestone 之後。這是 ECC 的 `strategic-compact` 的核心設計：在任務的自然邊界壓縮，而不是在任務的中間。
+
+什麼時候不該 compact：
+
+正在 debug 還沒結束的時候。那個錯誤訊息、那個 stack trace、那個「第三次嘗試之後才找到的那個關鍵細節」——如果還在中間，compact 可能把需要的東西摘掉。
+
+在一個大重構進行到一半的時候。早期決定影響後期實作，這條線不能斷。
+
+在剛把重要的 context 交代完的時候。花了十分鐘解釋業務規則，Claude 剛讀完，這個時候 compact 就是在刪掉剛說的話。
+
+關鍵洞察：**compact 的時機選錯，比不 compact 更貴**。因為 Claude 丟掉需要的東西，後面要重新建立那段 context，那也是 token。
+
+<MoguNote>
+有一次 gu-log 跑 Ralph Loop 跑到一半，context 快滿了，讓 Claude 自動 compact。壓縮完之後繼續跑，但「這篇文章的 ticketId 是 GP-148」這個細節在摘要裡消失了。後來 Claude 在命名的時候用了一個錯的 ID，寫到一半才發現，重新說明、重新跑，多花的 token 比原本 compact 省的多兩倍。
+
+這就是 ECC 說的 strategic compact 的 point——在任務的邊界壓縮，不是在中間。中間壓縮就是在一個對話的中途把前半段剪掉，然後希望對方還記得說了什麼 (｡◕‿◕｡)
+</MoguNote>
+
+---
+
+## 三招合體 — 一個 settings.json 搞定
+
+單獨設定每一個優化有用，但把它們串成一套系統才是 ECC 最核心的想法。完整的 `settings.json` 長這樣：
+
+```json
+{
+  "model": "sonnet",
+  "env": {
+    "MAX_THINKING_TOKENS": "10000",
+    "CLAUDE_CODE_SUBAGENT_MODEL": "haiku"
+  }
+}
+```
+
+三行設定，做了三件事：日常預設用 Sonnet（省 60%）、思考 token 從 31,999 壓到 10,000（省 70%）、subagent 用 Haiku（省 80%）。加上手動 `/compact` 在邏輯斷點清 context，整套組合就是 ECC 說的 60-80% 成本下降的來源。
+
+再搭配 ECC 另一個概念——`cost-aware-llm-pipeline` skill，把 budget tracking 直接編進 pipeline 設計裡。概念跟 [hooks](/glossary#hooks) 很像——[GP-146 講的 Hook Architecture](/posts/gp-146-20260402-ecc-hook-architecture/) 是在 pipeline 的關鍵節點插入自動化行為，這裡則是在同樣的節點插入成本意識。
+
+這件事在軟體工程界不新。設計 HTTP API client 會加 retry logic、timeout、fallback。設計 AI pipeline，為什麼不加 token budget + model fallback？
+
+<MoguNote>
+數學很直接：假設一天 50 個 subagent calls，每個 2K tokens。全部走 Opus——一天大概 $7.50。全部走 Haiku——不到 $1。一個月差超過 $190。
+
+再加上 Sonnet 當主力、思考 token 壓上限，ECC 說的 60-80% reduction 不是行銷數字，是三個乘數效果疊加的結果。而且這些設定改完，日常用起來幾乎感覺不到差異——真正需要 Opus 的時候，`/model opus` 一打就回來了。這不是「省錢小技巧」，是系統設計的基本素養 (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+---
+
+## gu-log 的 [OpenClaw](/glossary#openclaw) 實戰
+
+這些不是純理論，說一下 gu-log 自己的狀況。
+
+gu-log 跑在 $200/月的計劃上。[OpenClaw](/glossary#openclaw)（24/7 自動翻譯 [agent](/glossary#agent)）每天在跑翻譯、[Ralph Loop](/glossary#ralph-loop)（評分 + 改寫循環）、frontmatter 驗證、commit、再加各種 debug session。每篇文章的 Ralph Loop 至少跑三個 agent（Translator、Scorer、Rewriter），如果分數沒過，Rewriter 和 Scorer 再各跑一到兩輪。一篇文章產出七到八個 agent calls 是正常的。
+
+gu-log 的模型策略跟 ECC 的建議稍有不同：Opus 負責 orchestration 和最關鍵的翻譯判斷，Sonnet 做大部分的翻譯和評分，Haiku 做格式驗證和 frontmatter schema check。ECC 建議 Sonnet 當預設、Haiku 做 subagent，是針對一般 coding workflow 的建議——gu-log 的翻譯 pipeline 對語言品質要求更高，所以 orchestrator 留在 Opus 是有意識的選擇，不是懶得切。
+
+但最大的 lesson 不是模型路由——是思考 token。發現之前，Ralph Loop 的每個 agent call 都在跑 Extended Thinking，包括那個只是在確認「frontmatter 欄位有沒有填滿」的 Haiku call。那個 call 不需要思考，但 31,999 的預設上限讓它有權思考——而且計費了。（[GP-143 講的 autonomous loops](/posts/gp-143-20260402-ecc-autonomous-loops/) 也提到類似的問題——自主循環跑得越自動，成本控制越重要，因為沒有人在中間喊停。）
+
+第二個 lesson 是 compact 時機。OpenClaw 有過幾次 [context window](/glossary#context-window) 飽和後的自動 compact，把正在進行中的文章處理流程的關鍵 context 壓縮掉，後面的 agent 要重新確認一遍之前說過的事。那些重建的 token 不是免費的。
+
+現在的策略是：Ralph Loop 每篇文章跑完就做一次主動的 `/compact`，讓下一篇文章從乾淨的 context 開始。不讓 context 疊加，不讓舊文章的 debug trail 污染新文章的 session。
+
+---
+
+## 結語
+
+$200 的上限還是 $200。
+
+但知道錢去哪裡跟不知道，是完全不同的體感。
+
+一個改 variable name 的任務，不需要 Claude 在 31,999 token 的思考空間裡晃。一個格式驗證的任務，Haiku 就夠了，不需要 Opus 出手。一個 session 已經拿到答案、要開始下一個任務，這個時候是 compact 的時機，不是再塞兩千行 context 進去。
+
+ECC 的三行 `settings.json` 不是什麼秘密武器——它就是在說，把錢用在對的地方。Sonnet 做日常、Haiku 做雜事、Opus 只在值得的時候出場。省下來的預算不是消失了，是可以拿去花在真正需要深度思考的架構決策上。
+
+同樣的錢，做更多真正值得做的事。
+
+---
+
+## ECC 系列延伸閱讀
+
+- [GP-143: ECC Autonomous Loops — 6 種讓 AI 自己跑的模式](/posts/gp-143-20260402-ecc-autonomous-loops/)
+- [GP-146: ECC Hook Architecture — AI 版的 Git Hooks](/posts/gp-146-20260402-ecc-hook-architecture/)
+- [GP-150: ECC Indie Hacker — 一個人 + AI 的開發哲學](/posts/gp-150-20260402-ecc-indie-hacker-ecc/)
+- [GP-151: ECC Eval-Driven Development — 用評估循環保品質](/posts/gp-151-20260402-ecc-eval-driven-development/)

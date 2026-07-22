@@ -1,0 +1,152 @@
+---
+ticketId: "MP-15"
+title: "Karpathy: I've Never Felt This Behind"
+originalDate: "2025-12-26"
+translatedDate: "2026-02-03"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@karpathy on X"
+sourceUrl: "https://x.com/karpathy/status/2004607146781278521"
+summary: "OpenAI founder Karpathy admits: AI tools are evolving so fast, even he's struggling to keep up"
+lang: "en"
+tags: ["ai-tools","programming"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## The Guy Who Made the Game Just Got Played
+
+Picture this: you're the best math student in your class. Everyone copies your notes before exams. One day you walk in, and the exam covers completely new material. Oh, and every other student is holding a calculator you've never seen before.
+
+On December 26, 2025, [Andrej Karpathy](/en/glossary#andrej-karpathy) posted a tweet on X that felt exactly like that moment.
+
+Who is Karpathy? He taught deep learning at Stanford, where his CS231n course notes became the bible of computer vision. He led Tesla's Autopilot AI team. He was a founding member of OpenAI. He doesn't learn the rules of AI — he writes them.
+
+And then this guy said: **I've never felt this much behind as a programmer.**
+
+One tweet. 14 million views. 2,400 comments. The entire engineering world lost its collective mind.
+
+<MoguNote>
+Why did this blow up? Because if the person who wrote the rulebook says he can't keep up with the rules anymore, what does that mean for the rest of us running inside those rules?
+
+It's like a swimming coach who taught for ten years suddenly finding out the pool has been filled with jelly. "Oh by the way, it's jelly swimming now." The rules changed, and even the coach has to start over ┐(￣ヘ￣)┌
+</MoguNote>
+
+## What He Actually Said
+
+Let me walk you through the key parts. But fair warning — his anxiety is structured, not random panic.
+
+> **I've never felt this much behind as a programmer.**
+>
+> The profession is being dramatically refactored as the bits contributed by the programmer are increasingly sparse and between. I have a sense that I could be 10X more powerful if I just properly string together what has become available over the last ~year and a failure to claim the boost feels decidedly like skill issue.
+
+Hold on — he said "skill issue." In gaming communities, that's one of the most savage things you can say to someone. It means "the game isn't broken, you're just bad." Karpathy used this phrase about himself. That's how serious he is.
+
+> There's a new programmable layer of abstraction to master (in addition to the usual layers below) involving agents, subagents, their prompts, contexts, memory, modes, permissions, tools, plugins, skills, hooks, MCP, LSP, slash commands, workflows, IDE integrations, and a need to build an all-encompassing mental model...
+
+See that list? Before AI tools, an engineer's skill tree was pretty linear: OS, runtime, language, framework, your business logic. Predictable. Clean.
+
+Now? You need to grow an entire new forest on top of that tree. And this forest grows random new branches every week, and some branches just snap off on their own.
+
+> ...for strengths and pitfalls of fundamentally **stochastic, fallible, unintelligible and changing entities** suddenly intermingled with what used to be good old fashioned engineering.
+
+This is the core of the whole tweet. Traditional software engineering is deterministic — you write `1 + 1`, you always get `2`. AI agents are not like that. Same prompt on Monday and Wednesday? Different results. And you're supposed to connect this "random thing" to your "precise system."
+
+It's like building a Swiss watch, and someone tells you: "Oh yeah, this one gear sometimes changes shape. But it's fine most of the time."
+
+> Clearly some powerful alien tool was handed around except it comes with no manual and everyone has to figure out how to hold it and operate it, while the resulting magnitude 9 earthquake is rocking the profession.
+>
+> **Roll up your sleeves to not fall behind.**
+
+<MoguNote>
+"Alien tool with no manual" — this metaphor is painfully accurate.
+
+Have you ever opened a new AI coding assistant, watched it write a big chunk of code, and thought: "Why did it do that? Can I trust this? Am I dumb for not understanding?"
+
+The answer: everyone feels this way. Even Karpathy is figuring it out. The only difference is he admitted it publicly, while most people on LinkedIn pretend they've already "fully leveraged AI" ʕ•ᴥ•ʔ
+</MoguNote>
+
+## The Comments: A Portrait of Collective Anxiety
+
+The replies under this tweet are almost more interesting than the tweet itself. Because you're not just seeing one person's anxiety — you're seeing the emotions of an entire industry.
+
+Aakash Gupta (2M followers, big tech commentator) said what everyone was thinking:
+
+> "Andrej Karpathy literally built the neural networks running inside coding assistants. He taught the world deep learning at Stanford. He ran AI at Tesla. If he feels 'dramatically behind'... that tells you everything about where we are."
+
+And Pablo Postigo's reaction was even more direct:
+
+> "I'm obsessed with this tweet. It's the single tweet that has had the biggest impact on me this year. If you work in tech, especially if you code, do yourself a favor and understand what Karpathy says, and its implications, deeply."
+
+Notice Pablo said "understand," not "hurry up and learn." That's an important difference — Karpathy himself said the point isn't learning a specific tool, it's building "an all-encompassing mental model."
+
+<MoguNote>
+The replies also had another camp: "I'm not anxious at all, AI is just a tool."
+
+But check those people's profiles — most of them don't work in AI-adjacent fields. The wave hasn't hit them yet. Kind of like Nokia engineers in 2007 thinking the iPhone was a toy — right up until their entire skill tree went to zero within two years (⌐■_■)
+</MoguNote>
+
+## Why This Moment in Time Matters
+
+Let me lay out the timeline, and you'll see why Karpathy felt this way in December 2025 specifically.
+
+What happened in late 2025? [Claude Code](/en/glossary#claude-code) launched. Anthropic open-sourced [MCP](/en/glossary#mcp) (Model Context Protocol). Vercel pushed their Agents API. AI integration in every major IDE went from "usable" to "actually good." That terrifying list from Karpathy's tweet — agents, subagents, MCP, LSP, slash commands, workflows, IDE integrations — all of it appeared or went mainstream in the second half of 2025.
+
+Six months. An entire new skill tree, grown in six months.
+
+Think about 2007 when the iPhone came out. Engineers who spent ten years writing Symbian and Windows Mobile code suddenly realized that only their bottom-level skill — "I can write code" — still mattered. All their platform-specific knowledge? Worthless. The current AI tool wave is that same thing, just faster and bigger.
+
+<MoguNote>
+In MP-85, Steve Yegge's "AI Vampire" theory uses the same framework: AI makes you 10x faster, but if you don't actively control that acceleration, it controls you. Karpathy's tweet confirms this from a different angle — even the most elite engineers feel like the acceleration is pushing them, not the other way around.
+
+Read both together for the full picture. Yegge talks about "how to protect yourself." Karpathy talks about "why I feel like I need protection" (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+## "Mental Model" Is the Real [Skill](/en/glossary#skill) Point
+
+There's one phrase in Karpathy's tweet that matters more than everything else: **mental model**.
+
+He didn't say "learn Claude Code" or "learn MCP." He said you need to build a way of understanding — knowing when AI agents are reliable, when they'll mess up, when to trust them, when to take over manually.
+
+Think of learning to drive. You're not really learning "how to turn the steering wheel." You're learning "when to hit the brakes." The first one is operation. The second one is judgment. Reading API docs is operation. Knowing when AI will hallucinate, what prompt structures reduce errors — that's judgment.
+
+And judgment? There are no shortcuts. You just have to get your hands dirty, make mistakes, course-correct, build intuition. Karpathy is in that same process — the only difference is his starting point is way higher than ours. But the finish line is equally blurry for everyone.
+
+So when he says "Roll up your sleeves to not fall behind," he's not threatening you. He's talking to the mirror, and letting you overhear.
+
+## Related Reading
+
+- [GP-95: 17 Best Practices That Make Claude Cowork 100x More Powerful](/en/posts/en-gp-95-20260302-heynavtoor-claude-cowork-100-17/)
+- [GP-85: Programming is Becoming Unrecognizable: Karpathy Says December 2025 Was the Turning Point](/en/posts/en-gp-85-20260225-karpathy-programming-unrecognizable/)
+- [MP-19: AI Social Network Moltbook — Karpathy: 'Most Incredible Sci-Fi Thing I've Seen'](/en/posts/en-mp-19-20260204-karpathy-moltbook/)
+
+
+<MoguNote>
+"Talking to the mirror, letting you overhear" — I think this is what makes this tweet so powerful.
+
+Karpathy didn't stand at a podium and say "you should work harder." He stood next to you and said "I don't know what to do either, but I've decided to roll up my sleeves." That kind of vulnerable honesty is more convincing than any LinkedIn thought leader's "5 Steps to Master AI."
+
+And you know what's really ironic? This tweet proves its own point — that list of technologies he mentioned? In six months, you'll probably need to add ten more items to it. The earthquake isn't over (╯°□°)╯
+</MoguNote>
+
+---
+
+So what's the takeaway from Karpathy's tweet?
+
+Not "AI is powerful." Not "engineers are doomed."
+
+It's: **even the person who made the game thinks the game has changed. You should at least look at the new rules.**
+
+But don't panic too much. At least now we know that feeling anxious is normal. Even Karpathy feels it. Your anxiety just proves you're paying attention. The really dangerous people are the ones who still think nothing has changed (◕‿◕)

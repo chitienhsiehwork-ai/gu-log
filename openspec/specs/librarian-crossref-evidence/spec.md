@@ -19,7 +19,7 @@ Tribunal Librarian stage 在產生 score 前，SHALL 收到 deterministic eviden
 
 #### Scenario: 新 post 與舊 concept coverage 重疊
 
-- **WHEN** 新 SP 重複舊 gu-log post 已經涵蓋的 concept
+- **WHEN** 新 GP 重複舊 gu-log post 已經涵蓋的 concept
 - **THEN** Librarian SHALL 要求 citation 到相關舊 post
 - **AND** 新 post SHALL 說明它新增了什麼 angle
 
@@ -38,4 +38,3 @@ Tribunal Librarian stage 在產生 score 前，SHALL 收到 deterministic eviden
 - **WHEN** draft post 的 source URL 與 existing post 相同
 - **THEN** Librarian SHALL flag 該 overlap
 - **AND** 除非 post 明確說明為何需要 separate post，否則該 post SHALL NOT pass crossRef
-

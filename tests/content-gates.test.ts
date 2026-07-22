@@ -113,6 +113,98 @@ describe('check-jingjing.maskContent', () => {
   });
 });
 
+describe('check-jingjing.filterBaselineViolations', () => {
+  const v = (word: string, context: string) => ({ word, context, line: 1 });
+  const baselineOf = (...violations: Array<{ word: string; context: string }>) => ({
+    violations,
+  });
+
+  it('passes everything through without a baseline', () => {
+    const current = [v('approach', '這個 approach 很好')];
+    expect(jjModule.filterBaselineViolations(current, null)).toEqual(current);
+  });
+
+  it('grandfathers exact context matches', () => {
+    const shared = v('approach', '這個 approach 很好');
+    expect(jjModule.filterBaselineViolations([shared], baselineOf(shared))).toEqual([]);
+  });
+
+  it('flags a word moved from a deleted baseline sentence into a new sentence', () => {
+    const baseline = baselineOf(v('foundation', '舊句 A 把專案轉為 foundation。'));
+    const moved = [v('foundation', '全新句 B 說 foundation 是另一種選擇。')];
+    expect(jjModule.filterBaselineViolations(moved, baseline)).toEqual(moved);
+  });
+
+  it('keeps an occurrence grandfathered when only another sentence on the line changes', () => {
+    const baselineRaw = '---\nlang: zh-tw\n---\n第一句保留 foundation。第二句原本是這樣。';
+    const currentRaw = '---\nlang: zh-tw\n---\n第一句保留 foundation。第二句已經完全改寫。';
+    const baseline = baselineOf(...jjModule.checkText(baselineRaw, 'gp-1-test.mdx').violations);
+    const current = jjModule.checkText(currentRaw, 'gp-1-test.mdx').violations;
+    expect(jjModule.filterBaselineViolations(current, baseline)).toEqual([]);
+  });
+
+  it('grandfathers taxonomy-only context and post-path canonicalization', () => {
+    const retiredSeries = 'S' + 'P';
+    const retiredComponent = 'Cla' + 'wdNote';
+    const baseline = baselineOf(
+      v(
+        'foundation',
+        `到 [${retiredSeries}-42](/posts/${retiredSeries.toLowerCase()}-42-old-taxonomy) 看 ${retiredComponent} 的 foundation。`
+      )
+    );
+    const canonical = [
+      v('foundation', '到 [GP-42](/posts/gp-42-old-taxonomy) 看 MoguNote 的 foundation。'),
+    ];
+    expect(jjModule.filterBaselineViolations(canonical, baseline)).toEqual([]);
+  });
+
+  it('flags a new occurrence after consuming its exact baseline occurrence', () => {
+    const shared = v('foundation', '舊句保留 foundation。');
+    const added = v('foundation', '新句新增 foundation。');
+    const current = [shared, added];
+    expect(jjModule.filterBaselineViolations(current, baselineOf(shared))).toEqual([added]);
+  });
+
+  it('always flags a word absent from the baseline', () => {
+    const baseline = baselineOf(v('foundation', '轉為 foundation 舊句子'));
+    const current = [v('solid', '很 solid 的新句子')];
+    expect(jjModule.filterBaselineViolations(current, baseline)).toEqual(current);
+  });
+});
+
+describe('check-jingjing.filterTaxonomyExactResiduals', () => {
+  const file = path.join(process.cwd(), 'src/content/posts/gp-taxonomy-exception-test.mdx');
+  const retiredPersona = 'Cla' + 'wd';
+  const policy = (expectedCount: number) => ({
+    exactExceptions: [
+      {
+        path: 'src/content/posts/gp-taxonomy-exception-test.mdx',
+        rule: 'persona',
+        token: retiredPersona,
+        expectedCount,
+        reason: 'test fixture',
+      },
+    ],
+  });
+
+  it('suppresses the same occurrence when an exact taxonomy exception is satisfied', () => {
+    const raw = `事實上這個舊名字是 ${retiredPersona}。`;
+    const violations = [{ word: retiredPersona, line: 1, context: raw }];
+    expect(jjModule.filterTaxonomyExactResiduals(file, raw, violations, policy(1))).toEqual([]);
+  });
+
+  it('fails closed when the taxonomy exception count is stale', () => {
+    const raw = `第一個 ${retiredPersona}，第二個 ${retiredPersona}。`;
+    const violations = [
+      { word: retiredPersona, line: 1, context: raw },
+      { word: retiredPersona, line: 1, context: raw },
+    ];
+    expect(jjModule.filterTaxonomyExactResiduals(file, raw, violations, policy(1))).toEqual(
+      violations
+    );
+  });
+});
+
 describe('check-jingjing.checkFile', () => {
   it('flags decorative english in zh-tw post', () => {
     const filepath = tmpPath('jj-flag.mdx');
@@ -171,7 +263,7 @@ describe('check-jingjing ALLOWLIST_RAW parsing (line-aware comments)', () => {
     expect(jj.isAllowed('Artificial')).toBe(true);
     expect(jj.isAllowed('xG')).toBe(true);
     expect(jj.isAllowed('commit')).toBe(true);
-    expect(jj.isAllowed('ClawdNote')).toBe(true);
+    expect(jj.isAllowed('MoguNote')).toBe(true);
   });
 
   it('a zh-tw post using only comment-leaked words is flagged', () => {
@@ -215,15 +307,15 @@ describe('check-pronoun-clarity', () => {
     expect(pron.stripInlineCode('use `你好` here')).toBe('use      here');
   });
 
-  it('buildMask masks frontmatter / fences / ClawdNote / blockquote', () => {
+  it('buildMask masks frontmatter / fences / MoguNote / blockquote', () => {
     const lines = [
       '---',
       'title: Hi',
       '---',
       'body line with 你',
-      '<ClawdNote>',
+      '<MoguNote>',
       '我來吐槽',
-      '</ClawdNote>',
+      '</MoguNote>',
       '> 引用 我',
       '```',
       'code 我 here',
@@ -233,8 +325,8 @@ describe('check-pronoun-clarity', () => {
     const mask = pron.buildMask(lines);
     expect(mask[0]).toBe(true); // frontmatter
     expect(mask[2]).toBe(true);
-    expect(mask[4]).toBe(true); // ClawdNote open
-    expect(mask[5]).toBe(true); // ClawdNote inner
+    expect(mask[4]).toBe(true); // MoguNote open
+    expect(mask[5]).toBe(true); // MoguNote inner
     expect(mask[7]).toBe(true); // blockquote
     expect(mask[8]).toBe(true); // fence
     expect(mask[9]).toBe(true); // fence inner
@@ -249,11 +341,11 @@ describe('check-pronoun-clarity', () => {
     expect(v[0].chars).toContain('你');
   });
 
-  it('does NOT flag 你/我 inside ClawdNote', () => {
-    const filepath = tmpPath('pronoun-clawd.mdx');
+  it('does NOT flag 你/我 inside MoguNote', () => {
+    const filepath = tmpPath('pronoun-mogu.mdx');
     fs.writeFileSync(
       filepath,
-      `---\nlang: zh-tw\n---\n正文沒有事兒。\n<ClawdNote>\n我覺得你應該來看這個\n</ClawdNote>\n`
+      `---\nlang: zh-tw\n---\n正文沒有事兒。\n<MoguNote>\n我覺得你應該來看這個\n</MoguNote>\n`
     );
     const v = pron.findViolations(filepath);
     expect(v).toEqual([]);
@@ -306,7 +398,7 @@ describe('frontmatter-scores', () => {
   it('judgeDims(vibe, v8) has 5 dimensions (legacy, with clarity)', () => {
     expect(fmScores.judgeDims('vibe', 8)).toEqual([
       'persona',
-      'clawdNote',
+      'moguNote',
       'vibe',
       'clarity',
       'narrative',
@@ -314,7 +406,7 @@ describe('frontmatter-scores', () => {
   });
 
   it('judgeDims(vibe, v9) has 4 dimensions (no clarity)', () => {
-    expect(fmScores.judgeDims('vibe', 9)).toEqual(['persona', 'clawdNote', 'vibe', 'narrative']);
+    expect(fmScores.judgeDims('vibe', 9)).toEqual(['persona', 'moguNote', 'vibe', 'narrative']);
   });
 
   it('judgeDims(freshEyes, v9) has 5 dimensions (clarity added)', () => {
@@ -352,7 +444,7 @@ scores:
   tribunalVersion: 3
   vibe:
     persona: 8
-    clawdNote: 9
+    moguNote: 9
     vibe: 8
     clarity: 9
     narrative: 8
@@ -372,7 +464,7 @@ scores:
       tribunalVersion: 3,
       vibe: {
         persona: 8,
-        clawdNote: 9,
+        moguNote: 9,
         vibe: 8,
         clarity: 9,
         narrative: 8,
@@ -416,9 +508,9 @@ function runFloorCheck(file: string): { code: number; stderr: string } {
   try {
     execFileSync('node', [FLOOR_CHECK, file], { encoding: 'utf-8' });
     return { code: 0, stderr: '' };
-  } catch (e: unknown) {
-    const err = e as { status?: number; stderr?: unknown };
-    return { code: err.status ?? 1, stderr: String(err.stderr ?? '') };
+  } catch (error: unknown) {
+    const e = error as { status?: number; stderr?: unknown };
+    return { code: e.status ?? 1, stderr: String(e.stderr ?? '') };
   }
 }
 
@@ -433,7 +525,7 @@ scores:
   tribunalVersion: 9
   vibe:
     persona: 8
-    clawdNote: 8
+    moguNote: 8
     vibe: 8
     narrative: 8
     score: 8
@@ -455,7 +547,7 @@ scores:
   tribunalVersion: 9
   vibe:
     persona: 8
-    clawdNote: 8
+    moguNote: 8
     vibe: 8
     score: 8
     date: "2026-06-18"
@@ -478,7 +570,7 @@ scores:
   tribunalVersion: 8
   vibe:
     persona: 8
-    clawdNote: 8
+    moguNote: 8
     vibe: 8
     narrative: 8
     score: 8
@@ -502,7 +594,7 @@ scores:
   tribunalVersion: 8
   vibe:
     persona: 8
-    clawdNote: 8
+    moguNote: 8
     vibe: 8
     clarity: 8
     narrative: 8
@@ -519,12 +611,12 @@ body
 // ════════════════════════════════════════════════════════════════════════════
 // Translation-pair publish-bar parity
 //
-// Why this gate exists: the sp-pipeline only produces the zh-tw post; the en
+// Why this gate exists: the gp-pipeline only produces the zh-tw post; the en
 // version is authored separately, and it is easy to forget to mirror the zh
 // scores block into it. When that happens to a sub-8 post, isBelowPublishBar()
 // returns false for the score-less en file — so the en version silently leaks
 // onto the /en homepage and shows no "refining" badge, while its zh-tw twin is
-// correctly held back. (SP-237 shipped with exactly this bug.)
+// correctly held back. (GP-237 shipped with exactly this bug.)
 //
 // A pre-merge visual check would catch it, but "remember to eyeball both
 // languages" is not a system — this assertion is. It runs in the per-PR

@@ -1,33 +1,33 @@
 # Gemma 4 雙篇 — soft-dup fixture
 # 同主題（Google Gemma 4 發表）、不同切入角度：
-#   CP-242 譯自 Google AI 官方推文（發表公告 / 規格總覽）
-#   CP-275 譯自 Artificial Analysis 獨立 benchmark 分析
-# 兩篇已 cross-link（CP-275 開頭引用 CP-242，見 commit 5631a3cf）
+#   MP-242 譯自 Google AI 官方推文（發表公告 / 規格總覽）
+#   MP-275 譯自 Artificial Analysis 獨立 benchmark 分析
+# 兩篇已 cross-link（MP-275 開頭引用 MP-242，見 commit 5631a3cf）
 
 expectedClass: soft-dup
 expectedAction: WARN
 sourceRef: "5631a3cf"
 
 humanReasoning: |
-  兩篇同主題（Gemma 4 發表）但切入角度不同：CP-242 是官方推文翻譯 + 家族架構
-  總覽（Dense / MoE / E2B-E4B / Apache 2.0 授權 / function calling），CP-275
+  兩篇同主題（Gemma 4 發表）但切入角度不同：MP-242 是官方推文翻譯 + 家族架構
+  總覽（Dense / MoE / E2B-E4B / Apache 2.0 授權 / function calling），MP-275
   是第三方 Artificial Analysis 的 benchmark 實測（Intelligence Index 39 分、
   token 效率 2.5x 優勢）。
 
-  兩篇各自獨立貢獻（官方敘事 vs 獨立實測），但主題高度重疊 —— 系統在 CP-275
-  投稿當下應該警告編輯「這題 CP-242 已寫過，請確認有 independent diff 或加
-  cross-link」。現行版本 CP-275 開頭已引用 CP-242，代表 WARN 後編輯介入處理
+  兩篇各自獨立貢獻（官方敘事 vs 獨立實測），但主題高度重疊 —— 系統在 MP-275
+  投稿當下應該警告編輯「這題 MP-242 已寫過，請確認有 independent diff 或加
+  cross-link」。現行版本 MP-275 開頭已引用 MP-242，代表 WARN 後編輯介入處理
   做對了。
 
   若系統把兩篇都放行不警告（expectedAction: allow）—— 未來類似 soft-dup 會
   大量累積，每組都要事後手動清。
-  若系統 BLOCK 掉 CP-275（expectedAction: BLOCK）—— 誤殺，第三方實測有獨立
+  若系統 BLOCK 掉 MP-275（expectedAction: BLOCK）—— 誤殺，第三方實測有獨立
   價值、應允許發布 + 建立 cross-link。
 
 inputPost:
-  slug: cp-275-20260410-artificialanlys-gemma-4-google-token
+  slug: mp-275-20260410-artificialanlys-gemma-4-google-token
   frontmatter:
-    ticketId: CP-275
+    ticketId: MP-275
     title: "Gemma 4 登場 — Google 的開源四兄弟，Token 效率屌打對手但智力還差一截"
     originalDate: "2026-04-04"
     translatedDate: "2026-04-10"
@@ -39,7 +39,7 @@ inputPost:
     Google DeepMind 丟出了 Gemma 4 — 一口氣四個模型，從 31B 的旗艦到 5.1B 的
     口袋版全包。開源界又多了一組強力選手。
 
-    （官方發表那邊的 specs、授權條款、家族全貌，CP-242 已經寫完了；這篇聚焦
+    （官方發表那邊的 specs、授權條款、家族全貌，MP-242 已經寫完了；這篇聚焦
     獨立 benchmark 實測 — 實際能打幾分、token 效率到底贏多少。）
 
     但 Artificial Analysis 的 benchmark 測完之後，故事沒有那麼簡單。Gemma 4
@@ -52,9 +52,9 @@ inputPost:
     拿到只差 3 分的成績，這筆帳怎麼算都划算。
 
 corpusSnapshot:
-  - slug: cp-242-20260403-article-gemma-4-google-gemini-3
+  - slug: mp-242-20260403-article-gemma-4-google-gemini-3
     frontmatter:
-      ticketId: CP-242
+      ticketId: MP-242
       title: "Gemma 4 登場：Google 說它用了和 Gemini 3 同樣的突破性技術"
       originalDate: "2026-04-02"
       translatedDate: "2026-04-03"

@@ -3,7 +3,7 @@
 #
 # 為什麼存在：
 #   CCC 每次被叫醒都是一個全新的 sandbox container——repo 是 fresh clone，
-#   node_modules 沒裝、git hooks 沒掛、sp-pipeline binary 還沒 compile。
+#   node_modules 沒裝、git hooks 沒掛、gp-pipeline binary 還沒 compile。
 #   開工前如果不確認這些，會踩到「hook 沒跑就 commit」「doctor 缺工具才發現」
 #   這類本來開場就該擋掉的問題。這支 script 把 CCC-playbook「開場 SOP」要
 #   驗的東西全部固化成一條指令，順便守住 hook source-of-truth drift（見 check 5/6）。
@@ -255,12 +255,12 @@ else
   warn "跳過 validate-posts（node_modules 缺）"
 fi
 
-# ── 8. sp-pipeline 自編譯 + doctor ────────────────────────────────
-section "8. sp-pipeline doctor"
-if tools/sp-pipeline/sp-pipeline doctor >/tmp/ccc-smoke-doctor.log 2>&1; then
-  pass "sp-pipeline 自編譯 + doctor healthy"
+# ── 8. gp-pipeline 自編譯 + doctor ────────────────────────────────
+section "8. gp-pipeline doctor"
+if tools/gp-pipeline/gp-pipeline doctor >/tmp/ccc-smoke-doctor.log 2>&1; then
+  pass "gp-pipeline 自編譯 + doctor healthy"
 else
-  fail "sp-pipeline doctor 失敗 (exit $?)" "see /tmp/ccc-smoke-doctor.log"
+  fail "gp-pipeline doctor 失敗 (exit $?)" "see /tmp/ccc-smoke-doctor.log"
 fi
 
 # ── 9. Playwright browser（optional，給 UI 工作用）────────────────

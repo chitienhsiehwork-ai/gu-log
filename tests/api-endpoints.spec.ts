@@ -14,7 +14,8 @@ test.describe('/api/feed.json', () => {
     expect(r.headers()['content-type']).toMatch(/application\/json/);
 
     const body = await r.json();
-    expect(body.version).toBe(1);
+    expect(body.schemaVersion).toBe(2);
+    expect(body.version).toBeUndefined();
     expect(typeof body.generated).toBe('string');
     expect(typeof body.count).toBe('number');
     expect(Array.isArray(body.articles)).toBe(true);
@@ -28,8 +29,11 @@ test.describe('/api/feed.json', () => {
       expect(typeof art.slug).toBe('string');
       expect(art.title).toBeTruthy();
       expect(art.lang).toMatch(/^(zh-tw|en)$/);
-      expect(art.url).toBe(`/posts/${art.slug}`);
-      expect(['SP', 'CP', 'SD', 'Lv', null]).toContain(art.prefix);
+      expect(art.url).toBe(art.lang === 'en' ? `/en/posts/${art.slug}` : `/posts/${art.slug}`);
+      expect(art.ticketId).toMatch(/^(GP|MP|SD|Lv)-(?:\d+|PENDING)$/);
+      expect(art.prefix).toBe(art.ticketId.split('-')[0]);
+      expect(art.ticketId).not.toMatch(/^(SP|CP)-/);
+      expect(art.slug).not.toMatch(/^(?:en-)?(?:sp|cp)-/);
       expect(Array.isArray(art.tags)).toBe(true);
     }
   });
@@ -53,12 +57,24 @@ test.describe('/api/feed.json', () => {
 
 test.describe('/api/posts/[slug].json', () => {
   test('returns the full article body for a known post', async ({ request }) => {
-    const r = await request.get('/api/posts/cp-291-20260414-anthropic-.json');
+    const r = await request.get('/api/posts/mp-291-20260414-anthropic-.json');
     expect(r.status()).toBe(200);
     const body = await r.json();
-    expect(body.slug).toBe('cp-291-20260414-anthropic-');
+    expect(body.schemaVersion).toBe(2);
+    expect(body.slug).toBe('mp-291-20260414-anthropic-');
+    expect(body.ticketId).toBe('MP-291');
+    expect(body.url).toBe('/posts/mp-291-20260414-anthropic-');
     expect(body.title).toBeTruthy();
     expect(typeof body.summary).toBe('string');
+  });
+
+  test('returns an English-localized URL for an English post', async ({ request }) => {
+    const r = await request.get('/api/posts/en-gp-7-20260130-clawdbot-architecture-deep-dive.json');
+    expect(r.status()).toBe(200);
+    const body = await r.json();
+    expect(body.schemaVersion).toBe(2);
+    expect(body.ticketId).toBe('GP-7');
+    expect(body.url).toBe('/en/posts/en-gp-7-20260130-clawdbot-architecture-deep-dive');
   });
 
   test('returns 404 for unknown slug', async ({ request }) => {

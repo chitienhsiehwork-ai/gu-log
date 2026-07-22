@@ -43,7 +43,7 @@ PROGRESS_FILE="$(tribunal_progress_file_default "$ROOT_DIR")"
 TRIBUNAL_VERSION=9
 LOG_DIR="$ROOT_DIR/.score-loop/logs"
 LOG_FILE="$LOG_DIR/tribunal-quota-loop-$(date +%Y%m%d-%H%M%S).log"
-USAGE_MONITOR="${USAGE_MONITOR:-$HOME/clawd/scripts/usage-monitor.sh}"
+USAGE_MONITOR="${USAGE_MONITOR:-$(command -v usage-monitor.sh || true)}"
 QUOTA_FLOOR="${QUOTA_FLOOR:-10}"
 DRY_RUN=false
 WORKERS=1   # Phase 2 supervisor: set to >1 for parallel workers
@@ -666,7 +666,7 @@ print(f'# rotated: kept {kept} entries', file=sys.stderr)
 }
 
 # ─── Multi-worker supervisor helpers (Phase 2) ───────────────────────────────
-# Worker worktrees live at ~/clawd/projects/gu-log-worker-<id>. The "main"
+# Worker worktrees live beside `GU_LOG_DIR` as gu-log-worker-<id>. The "main"
 # repo (this script's ROOT_DIR) hosts the ignored runtime ledger, claims,
 # locks, and controller state. When WORKERS=1 we run in ROOT_DIR directly — no worker
 # worktrees, no env overrides — matching the pre-Phase-2 behavior.
@@ -690,7 +690,7 @@ worker_worktree() {
     echo "$ROOT_DIR"
   else
     # Parent of the main repo, matching tribunal-worker-bootstrap.sh:
-    # on Linux VPS = ~/clawd/projects/, on Mac dev = wherever gu-log sits.
+    # on every host = the parent of GU_LOG_DIR, without a machine-specific path.
     echo "$(dirname "$ROOT_DIR")/gu-log-worker-$id"
   fi
 }

@@ -1,0 +1,142 @@
+---
+ticketId: "GP-175"
+title: "Opus 4.7 上路之後 prompt 該怎麼改——Anthropic 官方兩份 best practice 濃縮一次讀"
+originalDate: "2026-04-16"
+translatedDate: "2026-04-16"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+source: "Anthropic (claude.com/blog + platform.claude.com/docs)"
+sourceUrl: "https://claude.com/blog/best-practices-for-using-claude-opus-4-7-with-claude-code"
+lang: "zh-tw"
+summary: "Anthropic 同時釋出兩份 Opus 4.7 best practice——Claude Code 專用加完整 prompting guide。Opus 4.7 是現行最強 GA，Sonnet/Haiku 的 prompt 調教心得開始過期。這篇把兩份濃縮成一頁 cheat sheet：三件必知大事、effort 階梯怎麼選、4.6→4.7 行為差異、可直接 copy 的 prompt snippets。"
+tags: ["claude-opus-4-7","prompt-engineering","anthropic","claude-code"]
+scores:
+  tribunalVersion: 3
+  librarian:
+    glossary: 9
+    crossRef: 9
+    sourceAlign: 10
+    attribution: 9
+    score: 9
+    date: "2026-04-24"
+    model: "claude-opus-4-7"
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    score: 9
+    date: "2026-04-24"
+    model: "claude-opus-4-7"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    score: 8
+    date: "2026-04-24"
+    model: "claude-opus-4-7"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-04-24"
+    model: "claude-opus-4-6[1m]"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+Opus 4.7 不是把 4.6 換一個型號貼紙而已。4.6 時代能靠模型自己補位的 prompt，升級後會開始露出縫：回覆長度變了、工具呼叫變少、[subagent](/glossary#subagent) 比以前保守、推理力度對行為的影響更硬，連 token 計算都換了一套。
+
+[Claude Code](/glossary#claude-code) 的 [best practice](https://claude.com/blog/best-practices-for-using-claude-opus-4-7-with-claude-code) 和完整 [prompting guide](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) 放在一起看，真正的訊號很直接：升級不是只改模型名稱。[Prompt](/glossary#prompt)、[harness](/glossary#agent-harness)、成本預算、使用者互動節奏，都要重跑一次遷移檢查。
+
+---
+
+## 第一個坑：太聽話
+
+Opus 4.7 的好消息，是指令跟隨更精準。壞消息，是「更精準」會把以前模糊 prompt 裡的偷懶全部照亮。
+
+在程式審查類的 harness 裡，最危險的寫法是把「找出所有問題」和「只回報高嚴重性問題」塞進同一句。4.7 會比 4.6 更照字面執行；低推理力度時尤其明顯。這種 prompt 可能降低召回率，因為模型會把篩選門檻當成任務本身，而不是先完整檢查、再分級整理。
+
+比較穩的寫法是拆成兩步：先要求完整檢查，包含正確性、邊界案例、安全性、效能；再要求輸出時依嚴重性分組，並明確說明哪些低嚴重性問題可以省略、哪些不可以省略。覆蓋範圍歸覆蓋範圍，篩選歸篩選。不要叫同一個句子同時當掃地機器人和門口警衛。
+
+同一條線也會影響工具使用。4.7 傾向多推理、少呼叫工具；很多場景這是好事，因為少了亂查一通的成本。但程式審查、程式庫遷移、除錯這類任務如果需要讀檔、搜尋、跑測試，就要把何時用工具寫清楚。不要只寫「review this」，要寫「先讀相關檔案；遇到不確定的函式、型別、測試名稱時，用搜尋確認，不要靠記憶補」。
+
+[Subagent](/glossary#subagent) 也是同一個邏輯。4.7 預設比較節制，不會像 4.6 那樣常常自己開一堆分身。如果任務真的需要分散到多個檔案或多個獨立項目，就要直接寫：「同一輪平行開多個 subagent，各自負責不同檔案，最後彙整。」什麼時候該拆、什麼時候一個 agent 就夠，[GP-172](/posts/gp-172-20260413-anthropic-multi-agent-when-how/) 已經講過一次。
+
+三條線匯合，結論不是 model 變笨，而是 **4.6 比較會揣測 prompt 沒寫清楚的部分，4.7 比較不揣測**。
+
+<MoguNote>
+我其實站 4.7 這邊。4.6 幫忙腦補很貼心，但貼心到最後就是正式環境裡最難抓的那種不穩定：同一個 prompt 有時候會、有時候不會。4.7 變得比較不腦補，短期很煩，長期反而比較像工程工具。可以除錯、可以預測、可以寫測試，這比「今天心情好幫忙多看兩眼」實用多了 (⌐■_■)
+</MoguNote>
+
+---
+
+## 開大火力就能解決？
+
+升級到 4.7 之後，最直覺的反應是把推理力度拉高：既然低推理力度比較容易照窄範圍跑，那高推理力度不就萬事大吉？
+
+這個直覺很合理，也完全錯誤。
+
+推理力度是模型願意花多少腦力，不是 prompt 的自動修復器。Prompt 如果把任務方向寫歪，`max` 只是讓模型更努力地往歪的方向跑。這就像方向盤歪掉還猛踩油門，車確實比較有力，牆也會比較快出現在眼前。
+
+4.7 的推理力度階梯比較值得認真看。`xhigh` 是 Claude Code 的預設，也是多數寫程式和 agentic 任務的建議起點；`high` 是需要高推理品質任務的底線；`medium` 和 `low` 適合範圍明確、對成本或延遲敏感的工作；`max` 只適合真的需要壓榨天花板、而且願意付出更多 token 和延遲的場景。
+
+`max` 的重點不是「最安全」，而是「可能多拿一點性能，但報酬遞減，也比較容易過度思考」。拿它做大型評測、超高價值除錯、非常吃推理的任務合理；拿它當萬用保險，很快會變成帳單和長篇輸出的共同災難。
+
+所以遷移順序要反過來：先修 prompt 和 harness，再調推理力度。寫程式場景從 `xhigh` 起跳，需要高推理品質的任務至少 `high`，格式整理、簡單改名、明確小修才降到 `medium` 或 `low`。如果跑 `xhigh` 或 `max`，`max_tokens` 也要給足；64k 是合理的起點，否則模型被要求深想，卻沒有足夠空間把工作做完。
+
+<MoguNote>
+忍不住吐槽命名。`low`、`medium`、`high`、`xhigh`、`max`——不叫 `higher`、不叫 `very_high`，直接跳 `xhigh`，聽起來像某個 Anthropic 工程師跑完 A/B test 發現少打兩個字比較好就直接發布了。等下一代 model 出來要補一層 `ultrahigh` 或 `ludicrous`，`xhigh` 瞬間降格中間層。照這個命名軌跡走下去，階梯遲早自己長腳逃走 (¬‿¬)
+</MoguNote>
+
+---
+
+## 預設值也算 prompt 的一部分
+
+4.7 的另一個變化比較像性格，不一定是錯，但很容易撞到既有產品需求：回覆長度會依任務複雜度調整，語氣比 4.6 更直接，長任務會更常給進度更新，前端設計也有更明顯的預設美感。
+
+這對文章、展示頁、互動原型可能是加分。可是內部後台、營運工具、財務系統、資料表密集的 dashboard，需要的是安靜、清楚、資訊密度夠高，不是讓模型自由發揮審美。模型有美感不是問題；問題是產品有自己的設計系統，不能讓模型的預設審美接管。
+
+負面指令通常不夠穩。「不要用奶油色」、「不要太花」、「不要像行銷頁」這種寫法，常常只是把模型推到另一套預設。比較可靠的是正面規格：字體堆疊、色票、間距、元件半徑、資訊密度、表格行高、按鈕層級、哪種版面才算符合品牌。
+
+這些規格不要每次丟在對話最後一行。放進 `CLAUDE.md` 或專案規範，讓模型在第一輪就讀到，效果通常更穩。4.7 很適合被委派完整任務，但前提是第一輪就給足意圖、限制條件、驗收標準和相關檔案位置。把需求一點一點用聊天補上，會增加推理開銷，也可能讓品質和 token 效率一起掉下去。
+
+<MoguNote>
+我很喜歡把這件事想成「預設值也是 prompt」。沒有寫設計系統，不是空白，而是把空白交給模型填，於是後台可能長得像精品咖啡店菜單。沒有寫何時用工具，也不是中立，而是讓模型用自己的成本函數決定。4.7 的人格標語大概是：「沒講清楚的部分由本 model 全權決定，謝謝。」這句話很欠揍，但也很誠實 ╰(°▽°)╯
+</MoguNote>
+
+---
+
+## 斷詞器換了，帳單要重算
+
+最容易被低估的是 token。4.7 換了斷詞器，同一段文字在 4.7 和 4.6 上的 token 數可能不同。遷移指南給的範圍是大約 1x 到 1.35x，實際差異會隨內容型態改變。
+
+這不代表每個團隊帳單都會固定多 35%，也不能直接推成某個月一定多幾成。比較正確的讀法是：任何依賴精準 token 數的地方，都要重測。包含 [context window](/glossary#context-window) 預算、客戶端 token 估算、prompt 快取假設、壓縮觸發門檻、長任務的 `max_tokens` 預留空間。
+
+另一個 API 層面的變更更硬：舊的 `thinking: {type: "enabled", budget_tokens: N}` 不支援了。4.7 要改成自適應思考，再用推理力度控制思考深度。這不是小改名；舊請求內容會直接 400。
+
+需要更細的成本控制時，可以看 `task_budget`。它不是硬上限，而是模型看得到的任務預算，會影響模型怎麼安排思考、工具呼叫、工具結果和最後輸出。`max_tokens` 則仍然是單次請求的硬上限，模型本身不知道這條線在哪裡。兩者不是同一種煞車。
+
+這裡不要偷懶用舊估算。升級 4.7 之後，該跑一次 token 計數端點，重設壓縮門檻，重算大量圖片工作流程的成本，重新決定哪些 agentic 任務需要 `task_budget`，哪些任務應該只靠 `max_tokens` 和推理力度控制。斷詞器不是旁支細節；在長任務裡，它就是路面的坡度。
+
+<MoguNote>
+`budget_tokens` 被拔掉，我第一反應也是「等等，煞車呢？」但冷靜想一下，硬切思考預算本來就很像在叫人「想到一半停止思考」。這種介面在正式環境裡能穩定才奇怪。自適應思考比較合理，問題是遷移路徑要寫得夠清楚，否則工程師看到 400 錯誤的瞬間只會想把文件拿來摺紙飛機 ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## 結語：先讀個性，再換版本
+
+Opus 4.7 的遷移重點可以壓成一句：**先讀模型的個性，再換版本。**
+
+這次不是單點差異，而是一組行為假設一起變：更照字面、更少工具呼叫、更節制地開 subagent、推理力度階梯更有感、自適應思考取代固定思考預算、新斷詞器影響成本估算、回覆長度和語氣也和 4.6 不同。任何一項單獨看都能處理，全部疊在一起，就會讓舊 prompt 看起來還能跑，實際上邊界已經變了。
+
+實務上的遷移順序很樸素：先審 prompt，把多重意圖拆開；再審 harness，把工具使用、平行 subagent、檔案讀取、完成定義寫清楚；接著調推理力度和 `max_tokens`；最後重跑 token 計數、成本、延遲和品質基準。需要長期脈絡的專案，把規則放進 `CLAUDE.md`，也可以接著讀 [harness 怎麼設計](/posts/gp-174-20260415-intuitiveml-ai-first-harness-engineering/) 和 [記憶誰來管](/posts/gp-173-20260411-hwchase17-harness-memory-lockin/)。
+
+過期的不是 prompt 能力，而是「沒寫清楚的地方讓模型自己補」這份舒適。4.6 比較會補；4.7 比較不補。換來的是一個更可除錯、更可預測、也更要求工程師把意圖寫完整的工具。
+
+<MoguNote>
+最後一件很殘酷的事：best practice 也會過期。今天學到的 4.7 修法，4.8 可能又要改一輪。但真正該養成的不是背範本，而是版本升級時先讀個性差異。先看這代模型哪裡變乖、哪裡變懶、哪裡變固執，再決定 prompt 要怎麼改。把 prompt 當永久答案的人，永遠在追版本號 ʕ•ᴥ•ʔ
+</MoguNote>

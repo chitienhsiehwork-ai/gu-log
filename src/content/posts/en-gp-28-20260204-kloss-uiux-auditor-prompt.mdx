@@ -1,0 +1,154 @@
+---
+ticketId: "GP-28"
+title: "Turn AI into Steve Jobs: klöss's UI/UX Design Auditor Prompt"
+originalDate: "2026-02-04"
+translatedDate: "2026-02-04"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@kloss_xyz on X"
+sourceUrl: "https://x.com/kloss_xyz/status/2018869093789728799"
+summary: "klöss's UI/UX Auditor prompt: turns AI into an auditor with Steve Jobs and Jony Ive's design philosophy, checking every pixel on every screen"
+lang: "en"
+tags: ["prompt-engineering","ui-ux","design","steve-jobs"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+You know that feeling when you open an app and everything just... makes sense? The buttons are where you expect them. The whitespace feels right. The font sizes guide your eyes without you noticing. The whole screen is calm and quiet, but every single thing is exactly where it should be.
+
+Now think about the other kind of app. Eight buttons on the homepage, three different fonts, two popups fighting for your attention, and a hamburger menu in the corner that you'll never tap. You haven't even started using it and you're already tired.
+
+The difference isn't about how many features they have. It's about **design discipline**.
+
+klöss ([@kloss_xyz](https://x.com/kloss_xyz)) recently released a prompt that tries to inject this kind of discipline directly into an AI's brain. He calls it **UI/UX Design Auditor** — it doesn't tell AI to "design for you." It tells AI to **audit** your existing design using Steve Jobs and Jony Ive's standards.
+
+Sounds intense? Let me walk you through it.
+
+<MoguNote>
+Jobs once said: "Design is not just what it looks like. Design is how it works."
+
+Most people ask AI to help with design by saying "make it look better." What klöss means is "make it so the user never has to think." Those two things are worlds apart — like the difference between "clean my room" and "make sure everything has a place it belongs to" (◕‿◕)
+</MoguNote>
+
+---
+
+## Step One: Do Your Homework Before Opening Your Mouth
+
+In klöss's prompt, the AI is required — before forming any opinion at all — to read eight documents. The design system, frontend guidelines, screen flow diagrams, PRD, tech constraints, everything. Then it has to walk through every single screen itself, from mobile to tablet to desktop.
+
+It's like being hired to redesign someone's apartment. You don't walk in and start moving furniture. First, you check where the plumbing runs, which walls are load-bearing, how the natural light works, how the people who live there actually use the space. Only after all that can your first suggestion be worth anything.
+
+<MoguNote>
+This document checklist is the soul of this prompt.
+
+Most design prompts are basically "make it better" — which is like telling a contractor "make it pretty" and then leaving. The contractor has to guess whether you like Scandinavian minimalism or industrial loft, and when they guess wrong, you're upset. klöss's approach is to spread out the blueprints, the electrical diagrams, and the homeowner's lifestyle preferences on the table first, and only then say "OK, now tell me what can be improved" ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## A 15-Dimension, Pixel-by-Pixel Audit
+
+After finishing the homework, the AI runs a full audit on every screen. klöss defined 15 dimensions — from the basics like visual hierarchy (does your eye land where it should?), spacing (do elements have room to breathe?), and typography (is the size hierarchy clear?), all the way to empty states (what does the screen look like with no data?), error states (are error messages helpful or scary?), and dark mode (actually designed or just colors inverted?).
+
+You might think: 15 dimensions sounds like overkill. But good design is the sum of hundreds of tiny decisions. It's like cooking — a great dish isn't just about "did you add salt." It's the heat control, the knife work, the freshness of ingredients, the sauce ratio, the plating, the temperature. Every single one affects the final taste. Fifteen dimensions sounds like a lot, but for someone who actually cares about quality, this is just the basics.
+
+<MoguNote>
+My favorite of the 15 is **Density**: "Can anything be removed without losing meaning?"
+
+This is basically Occam's Razor for design. Every time I see an app that crams thirty features onto one screen, I think of my grandma's TV remote — it has 87 buttons and she uses exactly 4 of them. The other 83 exist solely to make her put on reading glasses every time she wants to change the channel (╯°□°)╯
+</MoguNote>
+
+---
+
+## The Jobs Filter: Every Element Goes to Court
+
+After the audit comes the truly brutal part. klöss designed a "Jobs Filter" — five questions that every element on every screen must answer:
+
+**Does the user need to be told this thing exists?** If yes, your design isn't intuitive enough. Redesign it until it's obvious.
+
+**Can this be removed without losing meaning?** If yes, remove it. Not "hide it." Not "make it smaller." Remove it.
+
+**Does this feel like the only possible design?** If not — if when you look at this button you think "it could also go over there" — then you're not done designing.
+
+**Are the details users never see as refined as the ones they do?** Jobs's original words: "the back of the fence must be painted too."
+
+**Can you say no to a thousand things?** Cut "good" ideas to keep "great" ones.
+
+<MoguNote>
+"Say no to 1,000 things" is Jobs's most underrated design philosophy.
+
+Everyone remembers him saying "One more thing," but few remember how many things he killed during every product's development. The original iPhone had no copy-paste, no MMS, no third-party apps — not because they couldn't build it, but because they chose not to. A hundred mediocre features can't beat three perfect ones.
+
+Same principle applies to prompt engineering: don't ask AI to add things. Ask it to help you decide what to remove (⌐■_■)
+</MoguNote>
+
+---
+
+## Phased Execution: Not Flipping the Table, But Polishing Layer by Layer
+
+After the audit and the Jobs Filter, the AI organizes all findings into a three-phase improvement plan:
+
+**Phase 1** tackles things that actively hurt the experience — unclear visual hierarchy, broken mobile layouts, inconsistent components. These are "the roof is leaking, fix the roof first" problems.
+
+**Phase 2** tackles things that elevate the experience — spacing tweaks, clearer typography hierarchy, more restrained color usage. Going from "livable" to "comfortable."
+
+**Phase 3** is the polish — micro-interactions, transitions, empty state design, dark mode. Going from "comfortable" to "don't want to leave."
+
+And here's the key — every phase requires user approval before any work begins. Users can reorder, cut, or modify any suggestion. Once approved, the AI can only change what was approved. Not one extra pixel.
+
+<MoguNote>
+This approval system is genius.
+
+You know what designers struggle with most? It's not the design itself — it's the client seeing the finished product and saying "that's not what I meant." klöss's phased approval splits that risk into three rounds — change a little, check, confirm, then move on. Instead of changing everything at once and having the client flip the table.
+
+Same logic as iterative deployment in software. Don't do a big bang release. People will get hurt (￣▽￣)／
+</MoguNote>
+
+---
+
+## Scope Discipline: The Designer Doesn't Touch Your Engine
+
+klöss drew a very clear line in the prompt: you can touch visual design, layout, spacing, typography, color, interaction design, motion, and accessibility. Application logic, state management, API calls, data models — hands off. Adding or removing features — don't even think about it.
+
+It's like hiring an interior designer. They can change your curtains, adjust the lighting, rearrange the furniture. But they can't tear down your load-bearing walls. Their job is to make the space more usable and more beautiful, but the building's structure stays.
+
+## Related Reading
+
+- [MP-21: The Complete CLAUDE.md Guide — Teaching Claude Code to Remember](/en/posts/en-mp-21-20260204-vishwas-claude-md-guide/)
+- [GP-117: How to Make Your Claude Skills 10x Better — Andrej Karpathy's Autoresearch Method in Practice](/en/posts/en-gp-117-20260318-itsolelehmann-claude-skills-10-andrej-karpathy-autoresearch/)
+- [GP-27: Complete Prompt Engineering Guide: 17 XML Tags to Go From Copy-Paste to Tony Stark](/en/posts/en-gp-27-20260204-kloss-xml-prompt-framework/)
+
+
+<MoguNote>
+"Make it beautiful" never means "make it different."
+
+I've seen way too many cases where AI "helped improve the design" and accidentally changed the business logic, and then the whole app exploded. klöss drew this line well — your job is to make the app feel premium, not to turn it into a different app. It's like a barber's job is to make you look better, not to give you a new face (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+---
+
+## Back to Those Two Apps
+
+Remember the two apps from the beginning? One that made you feel calm, and one that made you feel tired.
+
+The difference was never about who has better engineers or a newer framework. The difference is whether someone, in a systematic way, went pixel by pixel, element by element, screen by screen, and asked: "Does this really need to be here?"
+
+What makes klöss's prompt powerful isn't any fancy technique. It simply translates a world-class designer's audit process — do the homework, check everything, cut ruthlessly, execute in phases — into a language that AI can understand.
+
+Design isn't decoration. Design is discipline. And discipline, it turns out, can be prompted ┐(￣ヘ￣)┌
+
+---
+
+*Original by klöss ([@kloss_xyz](https://x.com/kloss_xyz)), [original post](https://x.com/kloss_xyz/status/2018869093789728799).*

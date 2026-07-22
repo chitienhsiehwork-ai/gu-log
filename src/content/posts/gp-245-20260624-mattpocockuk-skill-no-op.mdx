@@ -1,0 +1,162 @@
+---
+ticketId: "GP-245"
+title: 'Skill 裡的 No-op：那些看起來很厲害但其實沒用的指令'
+originalDate: '2026-06-24'
+translatedDate: '2026-06-24'
+translatedBy:
+  model: "Opus 4.5"
+  harness: "Claude Code CLI"
+
+
+
+
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.8"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.8"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Rewritten"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "Opus 4.8"
+      harness: "gp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: '@mattpocockuk on X'
+sourceUrl: 'https://x.com/mattpocockuk/status/2069784839474032896'
+lang: 'zh-tw'
+summary: '打開任何一個 agent skill，裡面滿滿都是「請詳細一點」「請仔細一點」這種看起來很認真的指令。問題是它們根本沒在改變模型行為。Matt Pocock 點出 no-op 的陷阱，還有怎麼一眼分辨「廢指令」跟「真的有用的指令」。'
+tags: ["agent","prompt-engineering","skill"]
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 8
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 8
+    date: "2026-07-02"
+    model: "claude-opus-4-8"
+  librarian:
+    glossary: 8
+    crossRef: 8
+    sourceAlign: 8
+    attribution: 8
+    score: 8
+    date: "2026-07-02"
+    model: "claude-opus-4-8"
+  freshEyes:
+    readability: 9
+    firstImpression: 8
+    payoffDensity: 9
+    lengthFit: 9
+    clarity: 9
+    score: 8
+    date: "2026-07-02"
+    model: "claude-opus-4-8"
+  vibe:
+    persona: 9
+    moguNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-07-02"
+    model: "claude-opus-4-5"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+
+打開任何一個 [agent](/glossary#agent) [skill](/glossary#skill) 檔案，搜尋這幾句話：
+
+- 「commit 訊息要非常詳細」
+- 「要徹底」
+- 「實作要好讀」
+
+這些句子有什麼共同點？
+
+它們是 **no-op**——看起來很像在交代事情，實際上對模型行為零影響。[Agent](/glossary#agent) 本來就會寫好的 commit 訊息、本來就會盡量徹底、本來就會盡量讓實作好讀。這些是它的預設值，不需要特地寫一行去要求它。
+
+<MoguNote>
+插個冷知識：no-op 全名是 `no-operation`，借自組合語言那個叫 `NOP` 的指令——CPU 跑到它就佔一個週期、什麼都不做，純拿來湊時間或記憶體對齊。所以判一行 prompt 是不是 no-op，本質就是問：它到底有沒有真的「動到」什麼，還是只是個佔位仔w(ﾟДﾟ)w
+</MoguNote>
+
+測試方法很簡單：把那行刪掉，跑一次，看輸出有沒有變。沒變？那行就是純粹的擺設。
+
+<MoguNote>
+這讓人想起考卷上印的「請務必認真作答」——有誰看到這句，會從「本來打算亂寫」切換成「好吧我認真」嗎？模型也一樣，它本來就在認真了。┐(￣ヘ￣)┌
+</MoguNote>
+
+## 怎麼一眼分辨「廢指令」跟「有用的指令」
+
+兩種指令長得很像，但差別其實很清楚——關鍵是問：**這件事，模型沒被告知的話會不會做？**
+
+刪了完全沒差的（no-op）：
+
+- 「程式碼要好維護、好讀」
+- 「要考慮 edge case」
+- 「回答要準確」
+
+刪了行為就變的（有用）：
+
+- 「這個 repo 一律 named export，不要 default export」
+- 「測試放 `__tests__/`，用 `vitest` 跑」
+- 「commit 開頭加任務編號，例：`[GU-123]`」
+
+看出來了嗎？no-op 要求的是模型「本來就會盡量做」的通用美德；有用的指令給的是它「猜不到」的具體事實——這個 repo 的慣例、用的工具鏈、要的格式。前者是廢話，後者才是它真正需要有人開口交代的地方。
+
+## Agent 自己生成的 skill 是重災區
+
+用 agent 產 skill 時，它會塞進大量「聽起來很專業、其實沒效果」的段落，整段整節都是擺設。這些廢指令帶來三個實際成本：
+
+1. **難以評估**：分不清哪些指令真的在影響行為，哪些只是裝飾
+2. **難以維護**：要改的時候，不知道哪行能刪、哪行刪了會壞
+3. **浪費 [token](/glossary#token)**：每次執行都白燒 token，餵模型讀一堆沒用的字
+
+## 延伸閱讀
+
+- [GP-237: 把 Agent 當蒸汽火車開：大型專案的 Coding Agent 操作心法](/posts/gp-237-20260621-simonlast-agent-coding-agent/)
+- [GP-195: Skill 賣不動，不是因為沒價值，而是因為收錢的位置錯了](/posts/gp-195-20260507-yage-skill-plugin-evolution/)
+- [GP-186: OpenClaw 自動化全景：Task Flow 是多步驟工作的編排層](/posts/gp-186-20260428-article-openclaw-task-flow/)
+
+
+<MoguNote>
+最諷刺的是，這個建議能套在它自己身上：如果一條 skill 規則，換成任何一個正常 agent 都會照做，那它就沒在工作。寫 [prompt](/glossary#prompt) 跟寫程式一樣，沒在作用的那幾行就是該清的累贅——下次手癢想多加一句，先問一次：這行刪掉，會怎樣？ (◍•ᴗ•◍)
+</MoguNote>
+
+<MoguNote>
+講完這篇，gu-log 自己手癢，真的做了一個 [`/trim` skill](https://github.com/chitienhsiehwork-ai/gu-log/blob/main/.claude/skills/trim/SKILL.md)——派一群 subagent 逐行對自家 skill 跑這篇講的 no-op test，把「換誰來都會照做」的廢話抓出來。第一次跑就在自己的一個 skill 裡挖出快 400 個 token 的純裝飾。寫一篇文順便電到自己，很 gu-log。(¬‿¬)
+</MoguNote>
+
+<ShroomDogNote>
+講個更好笑的：這個 `/trim` skill 第一版自己就犯了它要抓的錯。它把給 subagent 的整段審稿說明，直接寫死在 skill 檔裡——結果主 agent 每次一載入 skill，就把那串「本來是給別人讀的 prompt」整包吞進自己的 `context`。一把獵 no-op 的刀，刀身上自己長了一塊 no-op。
+
+修法很單純：說明搬去一個獨立檔，主 agent 只遞路徑、叫 subagent 自己讀。主 agent 腦袋裡從此只剩「目標檔在哪、說明檔在哪」兩個路徑，prompt 一個字都不進來。
+
+<a class="artifact-callout" href="/artifacts/gp-245-trim-noop/">
+  <span class="artifact-callout__icon-wrap">
+    <span class="artifact-callout__icon" aria-hidden="true">↗</span>
+    <span class="artifact-callout__tap">點開</span>
+  </span>
+  <span class="artifact-callout__body">
+    <span class="artifact-callout__label">互動小頁</span>
+    <strong>整段審稿說明塞進主 agent，還是只遞一條路徑？</strong>
+    <span class="artifact-callout__meta">一個開關看 skill 怎麼吃掉自己的 context · 無 API · 純瀏覽器內完成</span>
+    <span class="artifact-callout__cta">
+      <span>打開互動小頁</span>
+      <span aria-hidden="true">→</span>
+    </span>
+  </span>
+</a>
+
+prompt 是寫給「要執行它的那個 agent」讀的，不是寫給「轉發它的人」背的。能用一條路徑遞過去的東西，就別整包搬進 context。
+</ShroomDogNote>

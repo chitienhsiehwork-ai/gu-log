@@ -16,7 +16,7 @@ const ROUTES = [
   { name: 'Tags', path: '/tags' },
   { name: 'Glossary', path: '/glossary' },
   { name: 'Level Up index', path: '/level-up' },
-  { name: 'CP post (zh-tw)', path: '/posts/cp-291-20260414-anthropic-' },
+  { name: 'MP post (zh-tw)', path: '/posts/mp-291-20260414-anthropic-' },
 ];
 
 // Rules deliberately excluded:

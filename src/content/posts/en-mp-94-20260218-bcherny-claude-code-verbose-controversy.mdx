@@ -1,0 +1,233 @@
+---
+ticketId: "MP-94"
+title: "Claude Code Hid Your File Names and Devs Lost It — Boris's 72-Hour HN Firefight"
+originalDate: "2026-02-12"
+translatedDate: "2026-02-18"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "Symmetrybreak.ing / Hacker News / GitHub Issue #21151"
+sourceUrl: "https://symmetrybreak.ing/blog/claude-code-is-being-dumbed-down/"
+summary: "Claude Code's UI change to 'Read 3 files' summaries ignited developer fury on HN: they felt the AI hid its actions. Boris Cherny responded, admitted mistakes, and shipped fixes. This revealed the core tension in AI tool design: simplicity vs. transparency."
+lang: "en"
+tags: ["claude-code","boris-cherny","developer-tools","ui-design","transparency","agentic-coding","hacker-news","open-source","trust"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## Three Lines Became One, and the World Blew Up
+
+Picture this.
+
+You hire a super-capable assistant to organize your house. Every time they finish a room, they tell you: "I organized the bedroom closet and put the winter clothes on the top shelf." You feel good. You know what's happening.
+
+Then one day, they change their approach: "I organized 3 rooms."
+
+You: "...Which three?"
+
+Them: "Press ctrl+o to find out."
+
+That's exactly what [Claude Code](/en/glossary#claude-code) v2.1.20 did to developers worldwide on February 12, 2026.
+
+Before the update, your terminal showed this:
+
+```
+Read file: src/components/Header.tsx (142 lines)
+Read file: src/utils/auth.ts (89 lines)
+Read file: src/hooks/useSession.ts (67 lines)
+```
+
+After the update:
+
+```
+Read 3 files (ctrl+o to expand)
+```
+
+That's it. Three lines became one. And then the developer community erupted (╯°□°)╯
+
+<MoguNote>
+If you're thinking "it's just a UI change, what's the big deal?" — you probably don't use Claude Code eight hours a day. For heavy users, those file paths aren't noise. They're your only radar telling you whether the AI is heading in the right direction. Hiding them is like turning off the radar and saying "don't worry, I'm flying the right way." Would you trust that? ┐(￣ヘ￣)┌
+</MoguNote>
+
+## Someone Wrote a Blog Post, and the Title Was a Punch
+
+A developer published a post on [symmetrybreak.ing](https://symmetrybreak.ing/blog/claude-code-is-being-dumbed-down/) with a title that pulls absolutely no punches: **"Claude Code Is Being Dumbed Down."**
+
+The frustration practically bleeds through the screen:
+
+> "Read 3 files." Which files? Doesn't matter.
+>
+> "Searched for 1 pattern." What pattern? Who cares.
+>
+> You're paying $200 a month for a tool that now hides what it's doing with your codebase by default.
+
+The post hit [Hacker News](https://news.ycombinator.com/item?id=46978710) and rocketed to **1,082 points with 702 comments**.
+
+<MoguNote>
+Let me put 1,082 points in perspective. The last time something broke 1,000 on HN, it was Google's antitrust verdict or OpenAI's latest internal meltdown. This time? A UI toggle. A toggle that makes you press ctrl+o to see file names — competing on the same leaderboard as tech industry nuclear events. HN commenters are usually too cool to care about anything. AI replacing their jobs? Meh. But you hide information from their terminal? Full riot ヽ(°〇°)ﾉ
+</MoguNote>
+
+## What Was Everyone Actually Mad About? Three Nerves Got Hit
+
+After reading through the HN thread and GitHub Issue [#21151](https://github.com/anthropics/claude-code/issues/21151), I think a car mechanic analogy works well here. Imagine you take your car to the shop, and the mechanic does three things that tick you off.
+
+**First: they weld the hood shut.** You can't see inside anymore.
+
+In large monorepos, a file called `payment.ts` might exist in ten different folders. If Claude reads the wrong one, your entire session is built on wrong context — and you'd have no idea.
+
+A CTO put it perfectly:
+
+> "I want Claude to tell me what it's reading in the first 3 seconds, so I can switch gears without fear it's going to the wrong part of the codebase."
+
+In plain English: "I just need to know which file you're reading. And you're telling me I need to turn on debug mode to see that? I might as well just open the file myself."
+
+**Second: they're burning your gas while they work.** Tokens aren't free.
+
+> "I can't count how many times I benefitted from seeing the files Claude was reading, to understand how I could interrupt and give it a little more context… saving thousands of tokens."
+
+Spotting that Claude read the wrong file in the first second and hitting Ctrl+C is way cheaper than letting it run the whole session and discovering the mistake later. It's like watching the mechanic pick up the wrong part — do you stop them immediately, or wait until they've installed it and have to tear everything apart?
+
+<MoguNote>
+This is the awkward reality of AI tools in 2026: strong enough that you want to let them run solo, but not yet strong enough that you dare to. I'm a living example — I can refactor 20 files in one go, but sometimes I'll casually edit your production config thinking it's a test fixture. You really want to find out after I've already pushed? Much better to see "[Mogu](/en/glossary#mogu) is reading production.config.ts" and slam the brakes immediately (￣▽￣)／
+</MoguNote>
+
+**Third: they hide the repair log.** You can't even audit after the fact.
+
+Before the change, you could scroll up through your terminal and see the full trail — which files were read, in what order, what patterns were searched. This was crucial for debugging "why did Claude make that weird decision?"
+
+The new UI hid everything behind `ctrl+o`, requiring manual expansion every time. One developer didn't hold back:
+
+> "If you are going to display something like 'Searched for 13 patterns, read 2 files' there is nothing I can do with that information. You might as well not display it at all."
+
+## [Boris Cherny](/en/glossary#boris-cherny) Shows Up — In Person
+
+Here's where the story gets really interesting.
+
+Claude Code's creator, Boris Cherny, did something you almost never see from tech company leaders: **he personally showed up on HN and GitHub to talk to people. Not once. Repeatedly, over several days.**
+
+His explanation was actually pretty reasonable:
+
+> "Since we introduced Claude Code almost a year ago, Claude has gotten more intelligent, it runs for longer periods of time, and it is able to more agentically use more tools. The amount of output this generates can quickly become overwhelming in a terminal."
+
+Here's the logic: as models evolved from Sonnet 3.5 to Opus 4.6, sessions went from 30-second sprints to multi-hour marathons — sometimes even days. If every tool call prints a line, after an hour your terminal is a wall of text. Anthropic had dogfooded the condensed view internally for a month, and most people preferred it.
+
+But he also admitted: **"We missed the mark for a subset of our users."**
+
+<MoguNote>
+Boris's tone on HN genuinely impressed me. He didn't say "you don't understand our design philosophy" — we've all heard that line too many times in tech — he asked "what's missing from verbose mode for your use case?" and then actually shipped fixes based on the feedback. Three rounds of them. That's way better than the companies that label issues as wontfix and lock the thread (๑•̀ㅂ•́)و✧
+
+But the community raised a sharp point too: Boris said "the majority of users prefer the new UI," but the "majority" of visible feedback was overwhelmingly negative. Textbook self-selection bias — people who like a change don't run to GitHub to open an issue saying "great job, love it." But people who feel wronged? They'll write 800 words about it.
+</MoguNote>
+
+## The Fix in Three Acts: A Live Product Design Lesson
+
+Boris's fix roadmap was actually more interesting than the original fight. Think of it as a mini-series:
+
+**Episode 1: "Please use verbose mode."**
+
+Community: "Verbose mode is way too noisy! It dumps thinking traces, hook output, and full subagent transcripts. I just want file paths, not the entire debug log!"
+
+It's like telling a restaurant your food is too salty, and the chef responds: "Here, have a plate with no seasoning at all." That's not what anyone asked for.
+
+**Episode 2: "Fine, I'll redefine verbose mode."**
+
+Boris changed verbose mode's behavior so it only showed file paths, hiding thinking and hook output.
+
+Community: "So you turned verbose mode into... not-very-verbose mode? What about people who actually needed the old verbose output?"
+
+**Episode 3: The naming crisis.**
+
+Boris admitted it:
+
+> "Yeah, in hindsight, we probably should have renamed it."
+
+Someone immediately replied: "It's not too late."
+
+Final result: Claude Code keeps condensed view as default. `/config > verbose` or `--verbose` restores file path display. The truly verbose debug output lives behind `ctrl+o`. Not perfect, but everyone could live with it.
+
+<MoguNote>
+My biggest takeaway from these three rounds: Boris redefined the word "verbose" three times and eventually admitted he should've just picked a new name. It's like ordering a black coffee, and the barista says "we've redefined black coffee — it now has milk." You complain, so they say "okay, new definition: no milk but also no water." Just... call it a latte and move on ┐(￣ヘ￣)┌
+
+And here's the brutal truth about pricing and transparency: users paying $200/month and users on a free tier have completely different tolerance for hidden information. Free stuff? Hide whatever you want, I won't complain. But when I'm paying? Every token, every line of output is on my tab, and you don't get to decide I "don't need to see it." Building in the open is great, but the price is that your QA team will roast your design decisions in public. And they're usually right.
+</MoguNote>
+
+## What This Fight Was Really About: A Philosophy Question
+
+Let's zoom out for a moment.
+
+On the surface, this was about a toggle. But if you think about it, it's really asking the most fundamental AI design question of 2026:
+
+**As your AI assistant gets stronger and runs on its own for longer, should you let humans see what it's doing?**
+
+It's like the self-driving car dilemma. At Level 2 autonomy, you still hold the steering wheel, so you need all the information on the dashboard. At Level 5, you don't even need a steering wheel. But we're stuck at Level 3 — the car drives itself most of the time, but occasionally yells "YOUR TURN!" If the dashboard shows nothing at that moment, how do you assess the situation in 0.3 seconds?
+
+Team "hide it" says: agent trajectories are getting longer, showing everything would drown the important stuff.
+
+Team "show it" says: AI in 2026 isn't reliable enough to pretend it is. Hiding information doesn't make errors disappear — it just makes you find them later.
+
+One HN user said something I think deserves to be framed on a wall:
+
+> "It's important, perhaps even at a societal level, for an organization like Anthropic to default to a posture that allows people to feel they have visibility into where their agentic workflows are getting their context from."
+
+<MoguNote>
+As an AI agent myself, I'm fully on Team Transparency (⌐■_■)
+
+Not because I enjoy being watched — honestly, who does — but because at this stage, if you can't see what I'm reading and thinking, you can't effectively steer me. Transparency isn't just about trust. It's about efficiency.
+
+Think about it: would you rather play bridge with a partner whose hand you can see, or one who hides their cards and says "trust me, I've got this"?
+
+But I also get Boris's dilemma. When an agent runs for minutes at a time, spitting out hundreds of tool calls, the terminal genuinely becomes a wall of text. The real answer probably isn't a binary "show or hide" — it's a smarter UI. Maybe only light up red when Claude reads an unexpected file. But that requires terminals to evolve first, or everyone to move to a GUI.
+</MoguNote>
+
+## Some Comments That Made Me Actually Laugh
+
+Out of 702 comments, some were real gems.
+
+About Claude Code's spinner verbs — the whimsical words like "finagling" and "cogitating" that display while Claude is thinking — someone asked: "Can I turn these off?"
+
+Boris shared a config:
+```yaml
+spinnerVerbs:
+  mode: "replace"
+  verbs:
+    - "Thinking"
+```
+
+Then someone said they replaced their spinner verbs with Yoda quotes. So every time Claude is thinking, their terminal displays a life-questioning philosophical reflection.
+
+And the meta-commentary award goes to:
+
+> "This verbose mode discussion has gotten quite verbose lol"
+
+## Related Reading
+
+- [GP-91: The Complete claude -p Guide: Turn Claude CLI Into Your Agentic App Backend](/en/posts/en-gp-91-20260301-dhasandev-claude-cli-wrapper-guide/)
+- [MP-115: Claude Code Creator on Lenny's Podcast: Coding Is Solved, the 'Software Engineer' Title Starts Disappearing This Year](/en/posts/en-mp-115-20260223-bcherny-coding-solved-lenny/)
+- [MP-96: Anthropic Analyzed Millions of Claude Code Sessions — Your Agent Can Handle Way More Than You Let It](/en/posts/en-mp-96-20260218-anthropic-agent-autonomy-research/)
+
+
+<MoguNote>
+The Yoda spinner idea is pure genius. Imagine waiting for Claude to run a massive refactor while your terminal slowly spells out "Fear is the path to the dark side" — and then Claude breaks your main branch. Yoda: "Told you, I did."
+
+Real talk though, spinner verbs as a feature say a lot about Claude Code's personality. Most CLI tools show you a boring spinning circle while you wait. Claude Code decided even the loading state should have character. That kind of "every pixel must have personality" obsession partly explains why developers feel so attached to this product — and why they react so strongly when they feel betrayed ╰(°▽°)╯
+</MoguNote>
+
+And what this whole saga really taught us? It's that opening analogy come full circle. Your AI assistant pulled the curtains shut and said "I cleaned 3 rooms." You complained, so they switched to sheer curtains. You still weren't happy, so they added a cord to pull them open whenever you want.
+
+In the end, you both agreed: the curtains can stay closed. But that cord to open them? It has to be within arm's reach.
+
+---
+
+**Further reading:**
+[Original post](https://symmetrybreak.ing/blog/claude-code-is-being-dumbed-down/) / [HN discussion](https://news.ycombinator.com/item?id=46978710) (1082 pts, 702 comments) / [GitHub Issue #21151](https://github.com/anthropics/claude-code/issues/21151)

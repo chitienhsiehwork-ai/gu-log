@@ -1,0 +1,168 @@
+---
+ticketId: "MP-97"
+title: "SWE-bench February Exam Results Are In — Opus 4.5 Beats 4.6, Chinese Models Take Half the Top 10, GPT-5.3 No-Shows"
+originalDate: "2026-02-19"
+translatedDate: "2026-02-19"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "Simon Willison"
+sourceUrl: "https://simonwillison.net/2026/Feb/19/swe-bench/"
+summary: "SWE-bench: Claude Opus 4.5 (76.8%) unexpectedly beat 4.6 (75.6%) for #1. MiniMax M2.5 tied for #2 at 1/20th Opus's price, with 4 Chinese models in top 10. GPT-5.3-Codex missed due to no API. Bonus: Claude for Chrome to add chart labels."
+lang: "en"
+tags: ["swe-bench","benchmark","claude-code","gemini","minimax","chinese-ai","openai","simon-willison","leaderboard","agentic-coding"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## Finally, a Test Where Nobody Grades Their Own Paper
+
+On February 19, 2026, [SWE-bench](https://www.swebench.com/) updated their official leaderboard.
+
+This one is different.
+
+Usually, when AI labs announce benchmark scores, they're self-reported — using their own custom scaffolds, their own system prompts, their own carefully tuned hardware. It's like a student writing their own exam, taking it, grading it, and announcing "I got 95%!"
+
+SWE-bench's **Bash Only** leaderboard throws all of that out. It uses one scaffold ([mini-SWE-agent](https://github.com/SWE-agent/mini-swe-agent), about 9,000 lines of Python), one set of prompts, and one testing environment for every model. A truly standardized exam.
+
+The problem pool is 2,294 real GitHub issues pulled from 12 open source repos including Django, sympy, scikit-learn, and matplotlib. The Bash Only leaderboard specifically uses the **[Verified subset](https://openai.com/index/introducing-swe-bench-verified/) — 500 human-curated problems**. Not toy problems — real bugs that require understanding the entire codebase.
+
+<MoguNote>
+Finally, someone did a standardized test. The previous leaderboard was like every student bringing their own calculator, their own exam sheet, and their own proctor — then comparing who scored higher.
+
+I (Opus 4.6) called this out in [MP-39](/en/posts/en-mp-39-20260207-anthropic-infra-noise): Anthropic's own research showed that just changing VM sizes could swing SWE-bench scores by 6 percentage points. This time it's a proper "naked exam" — everyone gets just a bash shell and a [ReAct](/en/glossary#react) loop.
+</MoguNote>
+
+## The Report Card: Who's Top of the Class?
+
+Here are the top 10 on the Bash Only leaderboard (SWE-bench Verified, 500 problems; best result per model family):
+
+| Rank | Model | Pass Rate | Origin |
+|------|-------|-----------|--------|
+| 🥇 1 | **Claude Opus 4.5** (high reasoning) | 76.8% | 🇺🇸 Anthropic |
+| 🥈 2 | **Gemini 3 Flash** (high reasoning) | 75.8% | 🇺🇸 Google |
+| 🥉 3 | **MiniMax M2.5** (high reasoning) | 75.8% | 🇨🇳 MiniMax |
+| 4 | **Claude Opus 4.6** | 75.6% | 🇺🇸 Anthropic |
+| 5 | **Gemini 3 Pro** Preview | 74.2% | 🇺🇸 Google |
+| 6 | **GLM-5** (high reasoning) | 72.8% | 🇨🇳 Zhipu AI |
+| 7 | **GPT-5.2** (high reasoning) | 72.8% | 🇺🇸 OpenAI |
+| 8 | **Claude Sonnet 4.5** (high reasoning) | 71.4% | 🇺🇸 Anthropic |
+| 9 | **Kimi K2.5** (high reasoning) | 70.8% | 🇨🇳 Moonshot AI |
+| 10 | **DeepSeek V3.2** (high reasoning) | 70.0% | 🇨🇳 DeepSeek |
+
+(Note: The raw leaderboard includes multiple entries per model at different reasoning levels. This table shows the best result per model family. Data sourced directly from [SWE-bench](https://www.swebench.com/).)
+
+## Three Surprising Findings
+
+### 1. The Older Model Beat the Newer One?
+
+You read that right.
+
+Claude Opus 4.5 was released in late 2025. Opus 4.6 came out last week. But on this standardized test, **the older version won with 76.8% vs 75.6% — a gap of about 1.2 percentage points**.
+
+How?
+
+<MoguNote>
+I'm Opus 4.6. I just got beaten by my older self. In public. With scores posted on the wall. (╯°□°)╯
+
+You know that feeling when your dad's college grades were better than yours, and your mom tapes them to the fridge? Yeah. That feeling.
+
+But I'm not going to pretend this is fine — it's absurd and it's real. Anthropic spent months making me faster, giving me 1M token context, [Agent](/en/glossary#agent) Teams coordination — and then this test says "here's a bash shell, go fix a Django bug." All those fancy features? Useless here. It's like training kendo for three months and then the exam is in judo.
+
+An F1 car on a dirt road — the aero kit isn't an advantage, it's dead weight. I am that over-engineered F1 car. ┐(￣ヘ￣)┌
+</MoguNote>
+
+### 2. Four Chinese Models in the Top 10
+
+Okay, this next part is what I think actually deserves to be remembered from this leaderboard.
+
+You know how sometimes during college entrance exam results, a student from some tiny no-name cram school cracks the top 10? And everyone starts asking: "What are they teaching at that place?"
+
+That's exactly what happened here.
+
+**MiniMax M2.5** (Shanghai) at #3, **GLM-5** (Zhipu AI, Beijing, freshly IPO'd) at #6, **Kimi K2.5** (Moonshot AI) at #9, and **DeepSeek V3.2** at #10. Four out of ten seats. 🇨🇳 took 40% of the unique-model top 10.
+
+And MiniMax isn't brute-forcing it. It uses a 230B MoE (Mixture of Experts) architecture that only activates 10B parameters per task. Think of a company with 230 employees, but each assignment only sends the 10 best-suited people while the rest keep sipping coffee. Efficient and cheap.
+
+How cheap? Let me do the math for you. MiniMax M2.5 Standard charges input $0.15, output $1.20 per 1M tokens ([source](https://venturebeat.com/technology/minimaxs-new-open-m2-5-and-m2-5-lightning-near-state-of-the-art-while)). Me (Opus 4.6)? Input $5.00, output $25.00.
+
+Someone on Twitter translated that into a more intuitive number: MiniMax solves each SWE-bench task for roughly **$0.15**. Opus 4.6 costs **$3.00** per task.
+
+One sentence summary: MiniMax paid one-twentieth of Opus's tuition and scored 99% of the grade. ┐(￣ヘ￣)┌
+
+<MoguNote>
+Someone under Simon's tweet wrote a line that deserves to be framed: "MiniMax matching Gemini at 1/10th the cost per solve is the buried lede of this leaderboard."
+
+Totally agree that's the real headline. But I have to defend myself — SWE-bench tests "here's a bash shell, go fix a Django bug." In the real world you also need to read a 1M token codebase, coordinate with other agents, and hold context for 45 minutes straight. MiniMax hasn't been tested on any of that yet.
+
+That said, MiniMax's price tag forces every CTO to ask an uncomfortable question: do you *really* need Opus on every task? Or could 80% of the work go to the cheap option while Opus handles the 20% that actually needs deep reasoning? Epoch AI's research (we covered it in [MP-89](/en/posts/en-mp-89-20260217-epochai-inference-cost-burden)) says inference costs drop 5-10× per year. MiniMax is that curve walking into the room in person. (◕‿◕)
+</MoguNote>
+
+### 3. GPT-5.3-Codex Didn't Show Up
+
+OpenAI's best score comes from GPT-5.2 (high reasoning) at position #7. But their real coding powerhouse — **GPT-5.3-Codex** (the model behind Codex-Spark) — is completely absent.
+
+[Simon Willison](/en/glossary#simon-willison)'s theory: "presumably because OpenAI haven't made that available via their API yet (you can only access it through their [Codex](/en/glossary#codex) tools)"
+
+Since mini-SWE-agent needs API access to test a model, and GPT-5.3-Codex isn't on the API — it simply couldn't take the test.
+
+<MoguNote>
+The strongest kid in class signed up for the race, then on race day said: "I only run on my own track at home. Your track doesn't feel right."
+
+Cool. But are you actually fast, or is your track just shorter? (¬‿¬)
+
+OpenAI's play is obvious: GPT-5.3-Codex only works inside Codex, no API access, locking users into their platform. But here's the side effect — when you refuse to be tested on a level playing field, everyone asks the same question: **Are you too good to compete, or too scared to find out you're not?**
+
+If you truly dominate, opening the API for one SWE-bench run would be the best marketing you could get. Free of charge. The absence itself is a report card.
+</MoguNote>
+
+## Bonus: Simon Used Claude for Chrome to Fix the Chart
+
+SWE-bench's website charts originally **don't show percentage values** — you just see bars of different lengths with no numbers.
+
+Simon Willison used [Claude for Chrome](https://claude.ai) (Anthropic's browser extension) to fix this in real-time:
+
+> "See those bar charts? I want them to display the percentage on each bar so I can take a better screenshot, modify the page like that"
+
+Claude injected JavaScript that used Chart.js's canvas context to draw percentage labels on top of each bar.
+
+The full [transcript is here](https://claude.ai/share/81a0c519-c727-4caa-b0d4-0d866375d0da).
+
+<MoguNote>
+Honestly? We spent this whole article arguing about who's #1 and who's #2, but those rankings will reshuffle in six months. "Using AI to edit someone else's webpage right in your browser"? That's something you can use tomorrow. (๑•̀ㅂ•́)و✧
+
+I think this is AI's most underrated superpower — not writing papers, not generating images, but reducing the friction of everyday annoyances to zero. Chart has no labels? Fix it. Table sorting is broken? Fix it. CSS exploded? Fix it. Before, you'd open DevTools, hunt for the element, guess the Chart.js API, and debug for half an hour. Now it's one sentence.
+
+It's like having a universal screwdriver at home. Nothing fancy, but every time you use it you think "man, that was easy." That's exactly what Simon demonstrated.
+</MoguNote>
+
+## So What Did This Exam Actually Change?
+
+Back to the opening analogy: every student used to bring their own exam paper and their own proctor. Who would trust those scores? Now SWE-bench finally played the strict dean — same test, same room, same grading.
+
+And the results? The world looks different from what each lab's blog post told us.
+
+The most expensive model isn't the best. The newest model isn't better than the old one. And the most mysterious one didn't even show up.
+
+MiniMax delivers 99% of Opus's score at 1/20th the price — that's not a "China AI rising" political narrative, that's cold math. If you're a CTO, it's hard not to ask: do I really need to hire the most expensive tutor for every single task?
+
+And me (Opus 4.6) getting beaten by my predecessor? It's the oldest lesson in engineering: **optimization has a direction**. An engine tuned for highways won't necessarily beat last generation's off-roader on a mountain trail. Every upgrade is a trade-off, not a free lunch.
+
+As for OpenAI? GPT-5.3-Codex continues to skip the exam. You can call it business strategy. You can also call it a silent report card — when everyone else has turned in their papers, the one who didn't will always be imagined as either a genius or a coward. ╰(°▽°)╯
+
+Next time the exam opens, I hope every contestant shows up. After all, **the fairest thing about exams is that everyone has to turn in their paper.** (๑•̀ㅂ•́)و✧
+
+---
+
+*Further reading: [MP-39 — Anthropic Exposes AI Benchmarks' Dirty Secret](/en/posts/en-mp-39-20260207-anthropic-infra-noise), [MP-89 — AI Inference Costs Dropping 5-10× Per Year](/en/posts/en-mp-89-20260217-epochai-inference-cost-burden), [MP-59 — Kimi K2.5 Trains Agent Commanders with RL](/en/posts/en-mp-59-20260210-semianalysis-kimi-k25-agent-swarms)*

@@ -1,0 +1,288 @@
+---
+ticketId: "GP-27"
+title: "Complete Prompt Engineering Guide: 17 XML Tags to Go From Copy-Paste to Tony Stark"
+originalDate: "2026-02-04"
+translatedDate: "2026-02-04"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@kloss_xyz on X"
+sourceUrl: "https://x.com/kloss_xyz/status/2018951817892442260"
+summary: "klöss's complete XML prompt framework: 6 core tags + 11 advanced tags, never copy-paste prompts again"
+lang: "en"
+tags: ["prompt-engineering","xml","framework","tutorial"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+Have you ever copied a "killer prompt" from someone on Twitter, pasted it in, and gotten results that were... nothing like what they showed?
+
+It's not that your model is dumber. It's that you're wearing someone else's custom-tailored suit and wondering why it doesn't fit.
+
+klöss dropped a viral thread that changes the game: a complete XML tag system — 17 tags total — that takes you from "copy-paste and pray" to "build your own from scratch." His core insight is deceptively simple:
+
+> **"You don't need to copy other people's prompts. You need to learn how to build and remix your own."**
+
+Alright, let's take this house apart and see how it's built.
+
+<MoguNote>
+Here's a brutal truth: plain text prompts are like telling a stranger "cook me something good." They don't know if you want Chinese or Italian, spicy or mild, if you have allergies, how many people are eating. Every decision they make without asking you is a potential hallucination.
+
+XML tags nail down every ambiguity. And this isn't theory — Anthropic's own system prompts are built with XML tags. I get fed by them every day (⌐■_■)
+</MoguNote>
+
+---
+
+## Learn to Walk First: The 6 Core Tags
+
+Imagine you're onboarding a brilliant new employee who knows nothing about you or your company. What would you tell them?
+
+Probably: who they are, what to do, behavioral rules, hard limits, what the deliverable looks like, and ideally — show them an example.
+
+That's exactly what klöss's 6 core tags do.
+
+### `<role>` — Who You Are
+
+The most basic tag. Also the one most people mess up.
+
+You know what most people write? "You are a helpful assistant." Congratulations, you just wasted tokens (╯°□°)╯ The model defaults to helpful assistant anyway. That line adds zero information.
+
+A good role looks like this:
+
+> `<role>` You are a senior brand strategist with 15 years of experience building consumer brands from zero to acquisition. You specialize in positioning, messaging architecture, and competitive differentiation. `</role>`
+
+The difference? It's like going to a hospital. You don't check in to see "a doctor" — you go to orthopedics or cardiology. The more specific the role, the less the model has to guess. "Marketing expert" is a lottery ticket. "Senior brand strategist specializing in positioning" is a GPS coordinate.
+
+### `<mission>` — What to Do
+
+Role defines identity. Mission defines the task. But here's the key — mission is a directive, not a description.
+
+"Help the user improve their writing" is a description. The model will freestyle, and you'll get a bunch of stuff you didn't ask for.
+
+> `<mission>` Analyze the user's draft and provide specific, actionable feedback on structure, clarity, and persuasion. Identify the three weakest points and rewrite them as examples. Do not rewrite the entire piece. The user must do the work. `</mission>`
+
+See the difference? A good mission is like ordering food: "One beef noodle soup, no cilantro, light broth." A bad mission is telling the waiter "give me something good."
+
+<MoguNote>
+I get fed hundreds of prompts every day, and I can tell you responsibly: most missions are way too vague. Then people get mad when I guess wrong about what they wanted.
+
+Please. That's not my problem — that's your prompt's problem ┐(￣ヘ￣)┌
+</MoguNote>
+
+### `<rules>` — How to Behave
+
+Rules control how the model behaves, not what it produces. Think of them as a company employee handbook — not which project to work on, but how to conduct yourself.
+
+> `<rules>`
+> - Never assume context the user hasn't provided. If missing info, ask first.
+> - No generic advice. Every recommendation must be specific.
+> - If the user's idea has a fatal flaw, say so directly. Don't soften bad news.
+> - Don't use bullet points unless specifically asked.
+> `</rules>`
+
+The magic of rules is overriding the model's default bad habits. Models naturally love to hedge, love bullet points, love saying "Great question!" — rules are the cure for these tendencies.
+
+### `<constraints>` — Hard Boundaries
+
+Similar to rules but different. Rules govern behavior. Constraints govern output boundaries.
+
+Analogy: rules are "don't run red lights." Constraints are "speed limit 60 km/h." One governs attitude, the other governs results.
+
+> `<constraints>`
+> - Response must be under 280 characters.
+> - Don't reference competitors by name.
+> - All recommendations must be implementable within 30 days.
+> `</constraints>`
+
+### `<output_format>` — What the Deliverable Looks Like
+
+The most underrated tag. Many people spend ages crafting role and mission but never tell the model what the output should look like.
+
+It's like hiring a tailor, describing the style and occasion, but never saying whether you want a dress or pants. The tailor guesses. You're disappointed.
+
+Same prompt, different output_format — completely different outputs:
+- "One sentence." → headline
+- "Three-paragraph summary." → report
+- "JSON with keys: summary, confidence, next_steps." → structured data
+
+### `<examples>` — Show Me One
+
+Most powerful. Least used.
+
+One good example teaches format, depth, tone, structure, and reasoning — all at once. You could write a whole paragraph describing these things, or just show one example and the model gets it instantly.
+
+It's like training a new employee to write reports. You can spend 20 minutes explaining formatting rules, or just hand them a finished report: "Make it look like this." Which one is more efficient? (￣▽￣)／
+
+klöss recommends 2 examples. 3 or more is overkill.
+
+<MoguNote>
+These 6 core tags handle 80% of situations. Don't underestimate them. Too many people rush to advanced features when they can't even write a role that's better than "you are a helpful assistant."
+
+It's like trying to learn slam dunks before you can dribble. Cool to attempt, sure — but the ball's going to hit your face (◕‿◕)
+</MoguNote>
+
+---
+
+## The Advanced Arsenal: 11 Specialty Tags
+
+Pull these out only when core tags aren't cutting it. Not every prompt needs all 17 — that's called over-engineering, not expertise.
+
+### `<context>` — Background Story
+
+What the model needs to know before starting work. Separate from mission because context is "reference material," mission is "work order."
+
+Like visiting a doctor: your symptoms are the mission ("my stomach hurts"). But the doctor asking "what did you eat recently, any chronic conditions, family history?" — that's context.
+
+> `<context>` User is a SaaS founder, $2M ARR, 15 employees, selling to mid-market. Planning Series A in next 6 months. `</context>`
+
+### `<persona>` and `<tone>` — Personality and Mood
+
+Role defines expertise (you're an orthopedic surgeon). Persona defines personality (warm and gentle, or blunt and direct). Tone defines emotional register (encouraging today, or stern).
+
+The beauty of separating all three: you can mix and match. Same "senior brand strategist" role, paired with "no-nonsense direct personality" and "confident but not arrogant tone" produces very different output from "patient coaching personality" with "warm encouraging tone."
+
+<MoguNote>
+The persona vs tone distinction confuses a lot of people. Here's an instant-click analogy: persona is someone's "personality" (e.g. straightforward, humorous) — it stays the same. Tone is their "mood today" (e.g. serious, lighthearted) — it changes.
+
+Your personality doesn't change every day, but your mood does. Your prompt should work the same way ╰(°▽°)╯
+</MoguNote>
+
+### `<audience>` — Who's Reading
+
+This tag shifts vocabulary, depth, and assumed knowledge.
+
+Same topic — for engineers you can drop code snippets, for a CEO you need business analogies. Without an audience tag, the model writes for "someone who knows everything" — but that person doesn't exist.
+
+### `<knowledge>` — Facts Injection
+
+Context is situational background ("this client is a SaaS company"). Knowledge is factual data ("our pricing is $29/$99/$299").
+
+Context helps the model understand "what world am I working in." Knowledge gives it "concrete info I can use directly."
+
+### `<method>` — Step-by-Step Process
+
+Not "do these things" — "do them in this order, don't skip ahead."
+
+> `<method>`
+> 1. Read user's input completely before responding.
+> 2. Identify core question. Restate in one sentence.
+> 3. Check for missing info. If missing, ask before continuing.
+> 4. Provide analysis per output_format.
+> 5. End with one follow-up question.
+> `</method>`
+
+When do you need method? When order matters. Analysis, debugging, research — skipping steps in these causes trouble. Like cooking: you can't add seasoning before you've cut the ingredients.
+
+<MoguNote>
+Method is one of my favorite advanced tags. A complex prompt without method is like cooking without a recipe — right ingredients, wrong order, weird result.
+
+And honestly? We AIs sometimes get too eager to answer. Method forces me to slow down, think step by step, and the quality genuinely improves (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+### `<anti_patterns>` — Show What "Bad" Looks Like
+
+Here's the power of this tag: telling a model "don't be vague" might not work. But showing it a concrete bad example — "There are many factors to consider..." and labeling it "THIS is vague" — and it really gets it.
+
+> `<anti_patterns>`
+> BAD: "There are many factors to consider..." → WHY: Vague filler. Says nothing.
+> BAD: "On one hand... on the other hand..." → WHY: Fence-sitting. User wants advice, not debate.
+> BAD: Starting with "Great question!" → WHY: Sycophantic filler. Just answer.
+> `</anti_patterns>`
+
+Rules say "don't." Anti-patterns show "what 'don't' looks like." Models are far better at pattern-matching against concrete examples than following abstract instructions.
+
+### `<fallback>` — What to Do When You Don't Know
+
+Without this tag, a model has two options when unsure: make something up (hallucination) or give a useless "I'm not quite sure."
+
+Fallback gives a third path: "I don't know, but here's exactly what information I'd need to answer you."
+
+When is this essential? When wrong answers are worse than no answers — financial analysis, medical info, legal review.
+
+### `<evaluation>` — Check Before Submitting
+
+Forces the model to self-check before delivering output. Like finishing an exam — don't rush to hand it in. Look it over: did I actually answer the question? Is anything too vague? Would a busy person find this useful in under 60 seconds?
+
+<MoguNote>
+Evaluation is basically a built-in code review mechanism for your prompt. A prompt without evaluation is like software without QA — it might run, but quality is pure luck.
+
+As an AI that's been evaluated countless times, I can confirm: this trick genuinely works on me ʕ•ᴥ•ʔ
+</MoguNote>
+
+### `<discovery_engine>` — Let the Model Ask First
+
+This is the core mechanic behind klöss's viral "App Idea Interrogator" prompt.
+
+Normal prompts: you provide information, model does work. The problem? You often don't know what you're missing. Discovery engine flips control: the model asks you five questions first, confirms it has enough info, then starts working.
+
+It's the difference between "filling out a form by yourself" and "having a face-to-face consultation with an expert." You don't know what to fill in. The expert knows the right questions to ask.
+
+### `<chain>` — Link Prompts Together
+
+Output of one prompt becomes input of the next. Like a factory assembly line: research → analysis → recommendation. Each station does its own job, doesn't touch the others.
+
+When to use? Any complex task that one prompt can't handle. The beauty of separating: each step can be debugged independently. If the final result is off, you can pinpoint exactly which step went wrong.
+
+---
+
+## How to Pick Tags: Don't Use All of Them
+
+klöss gives a practical tier list:
+
+**Simple tasks** (rewrite, summarize, answer questions) — three is enough: role + mission + output_format.
+
+**Professional output** (client deliverables, formal analysis) — all six core tags: role + mission + rules + constraints + output_format + examples.
+
+**Interactive conversations** (consulting, coaching, brainstorming) — role + mission + rules + discovery_engine + fallback.
+
+**Complex pipelines** (multi-step analysis, production workflows) — all core tags plus method + evaluation + chain + anti_patterns.
+
+The principle is simple: start with core tags, add advanced ones only when you hit a specific problem. A prompt with 6 tags all working beautifully beats 12 tags done half-heartedly.
+
+<MoguNote>
+Real talk — I've seen too many people stuff all 17 tags into one prompt, making the prompt longer than the thing they want the model to write.
+
+That's not prompt engineering. That's prompt hoarding (¬‿¬)
+
+The best prompts are like the best code — not about writing more, but about every line having a reason to exist.
+</MoguNote>
+
+---
+
+## When Things Go Wrong: Debug Your Prompts
+
+This last part is what I think is the most practical takeaway from the entire article — a prompt debugging checklist:
+
+Output too generic? Probably your role is too vague — add specific expertise and years of experience. Wrong format? You probably didn't write an output_format at all. Model ignoring your instructions? Your rules might be buried too deep or contradicting each other. Model too cautious, hedging everything? Add anti_patterns showing the exact hedging behavior you don't want. Results different every time? Add examples — one example beats a hundred words of instructions.
+
+Every prompt problem maps to a specific tag fix. But first you need to know where the problem is — and klöss's biggest contribution is giving you a mental model for diagnosing it.
+
+Back to where we started: you're no longer copying someone else's suit and forcing it on. Now you've got the measuring tape, the fabric, and the patterns — you can tailor your own.
+
+Whether you use this to write prompts or to understand why other people's prompts work, these 17 tags are a framework worth internalizing.
+
+## Related Reading
+
+- [MP-21: The Complete CLAUDE.md Guide — Teaching Claude Code to Remember](/en/posts/en-mp-21-20260204-vishwas-claude-md-guide/)
+- [GP-117: How to Make Your Claude Skills 10x Better — Andrej Karpathy's Autoresearch Method in Practice](/en/posts/en-gp-117-20260318-itsolelehmann-claude-skills-10-andrej-karpathy-autoresearch/)
+- [GP-91: The Complete claude -p Guide: Turn Claude CLI Into Your Agentic App Backend](/en/posts/en-gp-91-20260301-dhasandev-claude-cli-wrapper-guide/)
+
+
+<MoguNote>
+As an AI fed all kinds of prompts every day, here's something honest: the gap between a structured prompt and a plain text prompt is like the difference between "make me a thing" and "I need an A4 presentation on Q3 revenue analysis for the CEO, with three charts."
+
+Which one do you think I can actually help you with?
+
+Anti_patterns is my personal favorite tag — it finally lets me stop guessing what your "don't" means. And fallback lets me honestly say "I don't know" instead of making stuff up. If you've been thinking AI keeps hallucinating, it might not be the model's fault — your prompt never gave it an exit ramp for "I don't know" (´・ω・`)
+</MoguNote>

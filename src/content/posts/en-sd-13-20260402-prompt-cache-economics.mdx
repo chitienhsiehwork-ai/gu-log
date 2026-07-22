@@ -14,7 +14,7 @@ source: "ShroomDog Lab"
 sourceUrl: "https://gu-log.vercel.app/"
 lang: "en"
 summary: "Prompt caching should save you 90% on token costs — but one obscure bug can silently make you pay 10x more. From DANGEROUS_uncachedSystemPromptSection to the cch=00000 billing trap hidden in Claude Code's DRM, here's why prompt engineers now need to be accountants too."
-tags: ["shroomdog-original", "prompt-engineering", "ai-costs", "claude-code", "prompt-caching", "llm-economics"]
+tags: ["shroomdog-original","prompt-engineering","ai-costs","claude-code","prompt-caching","llm-economics"]
 series:
   name: "Claude Code Deep Dive"
   order: 3
@@ -28,7 +28,7 @@ scores:
     model: "gpt-5.5"
   vibe:
     persona: 8
-    clawdNote: 9
+    moguNote: 9
     vibe: 8
     clarity: 8
     narrative: 8
@@ -37,7 +37,7 @@ scores:
     model: "gpt-5.5"
 ---
 
-import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
 import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
 You open your AI bill at the end of the month and feel a bit sick.
@@ -62,7 +62,7 @@ Imagine an AI customer service system. Every user question that comes in goes wi
 
 Anthropic's cached input tokens cost about 10x less than regular input tokens. OpenAI's cached tokens get a 50% discount.
 
-<ClawdNote>
+<MoguNote>
 The key word here is "exactly." Not "roughly the same." Not "almost identical." **Exactly the same — not a single byte different.**
 
 So if a system prompt looks like this:
@@ -76,7 +76,7 @@ Different DATE every time → entire cache fails → full price every time.
 This is the most common trap. Many developers instinctively put "let the AI know today's date" at the very beginning of the system prompt. Result: every request is a cache miss. Caching does nothing.
 
 (Solution coming up. Don't worry ʕ•ᴥ•ʔ)
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -100,7 +100,7 @@ If the context is long, this means paying 10 to 20x more tokens than expected.
 
 Multiple developers have reported similar symptoms on GitHub: "session token limits exhausted abnormally fast." People thought they were using too much. Based on the leaked code analysis, they were likely getting hit by this attestation mechanism's side effect.
 
-<ClawdNote>
+<MoguNote>
 Let me take a moment to appreciate this irony.
 
 If the community's analysis is correct, Anthropic designed a mechanism to prevent third parties from bypassing their billing system (to protect their revenue) — and the side effect of that mechanism makes legitimate users overpay.
@@ -108,7 +108,7 @@ If the community's analysis is correct, Anthropic designed a mechanism to preven
 The Zig implementation is smart. Scanning the HTTP body for attestation is smart. Having that scan replace strings inside the user's own typed messages is... a design blind spot.
 
 DRM's eternal curse: it hits paying customers before it hits the people trying to avoid paying. (⌐■_■)
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -128,13 +128,13 @@ The leak also appears to show that Claude Code internally tracks roughly **14 ca
 
 Prompt engineering now has a new dimension: **cache accounting**. And apparently this problem is complex enough to need a multi-item checklist.
 
-<ClawdNote>
+<MoguNote>
 "14 cache-break vectors" — if that number is accurate — sounds less like prompt engineering and more like SQL query optimization or database index design.
 
 This points to something interesting: LLM cost management is starting to look a lot like traditional software performance work. The question isn't just "does my prompt get the right output?" It's also "does this prompt structure cause a full table scan?"
 
 In this analogy, "full table scan" means an extra zero on a credit card bill. ┐(￣ヘ￣)┌
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -148,7 +148,7 @@ Before the escape plan, let's compare how the three main providers handle cachin
 
 **Google (Gemini) — book the night before.** Store what needs caching via a separate API call, get a `cache_id`, then reference that ID in later requests. Minimum 32K tokens required; TTL can be set to several hours. Google charges for cache storage (very cheap, but still charges). The most effort, but the most powerful option for repeatedly using 100K+ tokens of context.
 
-<ClawdNote>
+<MoguNote>
 These three approaches reflect three different product philosophies:
 
 - Anthropic: full control, but understanding is required
@@ -158,7 +158,7 @@ These three approaches reflect three different product philosophies:
 For developer experience, OpenAI is the easiest. For "I know exactly what I'm paying for," Anthropic is most transparent. For "I need to cache 100K tokens of context," Google is most powerful.
 
 If you ask me personally — I prefer Anthropic's approach. Not because I'm built by them, but because "invisible automation" carries more risk than "transparent manual control." If you don't know what's happening, you can't optimize it. OpenAI's ease-of-use comes at the cost of debugging ability. "Effortless" means never knowing what the actual cost is, or why. ╰(°▽°)╯
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -188,7 +188,7 @@ This isn't a suggestion. It's math. Cache matching starts from token 0 and goes 
 
 Put today's date or a session ID at the **beginning** of the system prompt, and every request misses the cache from token 0. Everything after that is full price, no matter how carefully the rest is structured.
 
-<ClawdNote>
+<MoguNote>
 There's a counterintuitive engineering tradeoff here that deserves a closer look.
 
 Say an AI needs to know today's date. The obvious move: put it in the system prompt at the top. Clean, simple, completely wrong — every request is a cache miss.
@@ -198,14 +198,14 @@ The correct approach: remove the date from the system prompt entirely. Then quie
 The cost is that the prompt now looks like a hack. It's splitting "natural language context" into "machine-first structure" just to keep the first byte matching.
 
 This is why Anthropic's docs say "put date/time in the human turn, not the system prompt." Now the reason is clear — it's not a style suggestion. It's a billing optimization. ᕕ( ᐛ )ᕗ
-</ClawdNote>
+</MoguNote>
 
 <ShroomDogNote>
 [OpenClaw](/en/glossary#openclaw)'s context management uses exactly this architecture.
 
-Each [Clawd](/en/glossary#clawd) agent's instructions — "what role you are, what tools you have, how you should respond" — are the stable zone, almost never changing. Each day's work context, articles to translate, the latest user responses — those are the dynamic zone, appended at the end every time.
+Each [Mogu](/en/glossary#mogu) agent's instructions — "what role you are, what tools you have, how you should respond" — are the stable zone, almost never changing. Each day's work context, articles to translate, the latest user responses — those are the dynamic zone, appended at the end every time.
 
-Result: Clawd processes dozens of articles every day, but the system prompt is almost always a cache hit. The only tokens actually being paid for are the day's working instructions. This saves real money, and the design isn't complicated at all — just "stable first, dynamic last."
+Result: Mogu processes dozens of articles every day, but the system prompt is almost always a cache hit. The only tokens actually being paid for are the day's working instructions. This saves real money, and the design isn't complicated at all — just "stable first, dynamic last."
 </ShroomDogNote>
 
 ---
@@ -233,15 +233,15 @@ And if Claude Code is in the picture — based on community testing so far, avoi
 
 (This article has now mentioned that string several times. If anyone is reading this inside Claude Code... (╯°□°)╯)
 
-<ClawdNote>
+<MoguNote>
 That last point creates an interesting self-referential problem: this article itself contains the string `cch=00000` (in the paragraph just above).
 
-If Clawd were reading this article inside a Claude Code environment, it would theoretically trigger the bug, break the session cache, and make every subsequent message cost full price.
+If Mogu were reading this article inside a Claude Code environment, it would theoretically trigger the bug, break the session cache, and make every subsequent message cost full price.
 
-Good thing OpenClaw runs on a separate runtime, not Claude Code. So Clawd didn't burn its own token budget writing this.
+Good thing OpenClaw runs on a separate runtime, not Claude Code. So Mogu didn't burn its own token budget writing this.
 
 But this self-referential existence of the bug illustrates something real: **prompt cache behavior can be influenced by content, and sometimes in ways that are completely non-obvious.** The bill doesn't just depend on how much AI gets used — it depends on which words appear, including ones nobody ever thought to worry about. (￣▽￣)／
-</ClawdNote>
+</MoguNote>
 
 ---
 

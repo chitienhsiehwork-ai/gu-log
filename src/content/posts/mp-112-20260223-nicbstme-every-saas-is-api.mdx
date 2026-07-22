@@ -1,0 +1,145 @@
+---
+ticketId: "MP-112"
+title: "每個 SaaS 現在都是 API — 不管你願不願意：6 人團隊幹掉 100 人後勤的實戰拆解"
+originalDate: "2026-02-22"
+translatedDate: "2026-02-23"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "Nicolas Bustamante (@nicbstme)"
+sourceUrl: "https://x.com/nicbstme/status/2025643017571541378"
+summary: "Fintool 創辦人 Nicolas Bustamante 用自身經驗展示：透過 Agent + API 串接所有 SaaS（Brex、QuickBooks、HubSpot、Stripe），6 人團隊處理了過去 100+ 人才能做的事。他提出 B2A（Business to Agent）概念，並警告沒有好 API 的 SaaS 將被 Agent 繞過甚至取代。"
+lang: "zh-tw"
+tags: ["saas","api","b2a","enterprise-strategy","agentic-coding","tech-lead"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## 還記得那個說「護城河要崩了」的人嗎？他已經住在廢墟裡了
+
+之前我們翻過 Nicolas Bustamante（@nicbstme）那篇「SaaS 護城河崩塌」（[MP-48](/posts/mp-48-20260209-nicbstme-crumbling-workflow-moat)），當時大家覺得他在講未來。
+
+結果人家根本不是在預言。他是在寫日記。
+
+> 我不再登入 Brex、QuickBooks、HubSpot、Mixpanel、Datadog、Gmail、Stripe。
+> 我的 Agent 幫我登入所有的。
+
+注意，這不是「偶爾叫 AI 幫忙查個數字」。這是**整間公司的日常運營都透過 [Agent](/glossary#agent) 對話完成**。就像你以前覺得「沒有冷氣也能活吧？」然後某天開了就再也回不去了。他已經回不去了。
+
+## 從 100 人到 6 人：便利商店模式
+
+Nicolas 的前一間公司 Doctrine 有 100+ 人，法務 VP、HR VP、財務 VP 一個都不少。現在的 Fintool 只有 6 個人——但他處理的事更多。
+
+你可以把他的架構想像成一間超級便利商店。以前你要買菜去市場、買藥去藥局、寄包裹去郵局、繳費去銀行，每個地方都要排隊、都有自己的系統。現在全部在同一個櫃台搞定，而且店員記得你的喜好。
+
+核心架構：用 [Claude Code](/glossary#claude-code) 當通用 Agent harness，透過 API 串接所有 SaaS。你提問，Agent 同時查多個系統、合併上下文、維護結構化記憶檔案。
+
+<MoguNote>
+「6 個人做 100 人的事」聽起來像創業圈嘴砲對吧？但這裡的重點不是「省人力」，是「消滅資訊斷層」。以前 VP of Finance 要花一天把四個系統的數字抄到同一張 Excel 上，現在 Agent 五分鐘搞定。省掉的不是人，是人在系統之間當傳話筒的時間 (╯°□°)╯
+</MoguNote>
+
+他舉了一個超痛的例子：募資盡職調查時，投資人發現 Stripe 有未作廢的發票被記成壞帳。
+
+以前的做法：開 4 個瀏覽器分頁、匯出 4 份 Excel、手動交叉比對 → **耗掉一整天**。那種感覺就像期末考前一天才發現要讀四科，而且筆記散落在四個不同的雲端硬碟。
+
+現在的做法：一句話下指令，Agent 同時拉 Stripe、QuickBooks、Brex、HubSpot 的資料 → **5 分鐘出報告**。
+
+## 跨系統上下文合併：Agent 真正的超能力
+
+好，這邊要講到 Nicolas 認為 Agent 最強的地方。不是聊天，不是寫 code，是**跨系統合併上下文**。
+
+你想想看：沒有任何一個 SaaS 的儀表板能同時告訴你「這個客戶在 HubSpot 狀態是什麼、Mixpanel 上的使用趨勢如何、Stripe 付款有沒有問題、Gmail 有沒有來信抱怨」。每個系統都只看到大象的一條腿。
+
+但 Agent 可以一次摸完整隻大象，然後跟你說：「欸老闆，這客戶上個月付款延遲三次、產品使用量掉 40%、而且兩週前寄了一封很不爽的信。你可能要打電話給他了。」
+
+<MoguNote>
+這就是為什麼「Agent 只是進階版 chatbot」這種說法太小看它了。Chatbot 像是你去便利商店問店員洗手間在哪。Agent 像是一個管家，他知道你冰箱裡還有什麼、你的信用卡帳單多少、你下禮拜有哪些會議，然後主動跟你說「老闆，你應該取消那個重複訂閱了」(◕‿◕)
+</MoguNote>
+
+另一個殺手鐗：**持久記憶**。他的 Agent 維護每日 changelog、關鍵決策紀錄、工作偏好。時間越久，Agent 越懂這間公司。
+
+> 以前 VP of Finance 離職，他腦中的財務眉角就跟著走了。
+> 現在這些知識在檔案裡，可搜尋、不會忘。
+
+這句話聽起來簡單，但仔細想想真的很恐怖。公司最怕的不是人離職，是人帶著腦袋離職。
+
+## WebMCP：瀏覽器要把每個網站變成 API
+
+好，這篇最炸的新資訊來了。
+
+**Google Chrome 146 Canary 已經開始預覽 WebMCP（Web Model Context Protocol）。** 這是 Google 和 Microsoft 透過 W3C 共同開發的提案標準。
+
+白話講：以後 Agent 要跟網站互動，不用再像個駭客一樣截圖、找按鈕、模擬點擊。瀏覽器直接幫你開一個正門，Agent 走進去就能叫服務。
+
+Nicolas 畫了一個光譜，我覺得很清楚：
+
+| 情境 | Agent 體驗 |
+|------|----------|
+| 有好 API | 順暢，第一公民 |
+| 沒 API 但有 WebMCP | 中等，但堪用 |
+| 什麼都沒有 | 截圖 + 模擬點擊，又慢又脆弱 |
+
+他的結論很直白：
+
+> 你的介面不再是你的產品。你的資料模型和 API 才是。
+
+<MoguNote>
+WebMCP 就像 USB-C。以前每家手機都有自己的充電孔，出門要帶三條線，少帶一條就準備看手機變磚。現在統一一個規格，一條線走天下。
+
+WebMCP 對 SaaS 的意思是：你不開放 API？沒關係，瀏覽器幫你「被開放」。就像你家巷口的店不想上外送平台，結果 Google Maps 直接把你的菜單貼上去了 ┐(￣ヘ￣)┌
+</MoguNote>
+
+## B2A：軟體的買家不再是人了
+
+Nicolas 提出一個新概念：**B2A（Business to Agent）**。
+
+以前賣軟體：VP 看 demo → 覺得 UI 很漂亮 → 請團隊試用 → 簽合約。整個過程圍繞「人的體驗」。
+
+現在賣軟體：Agent 評估 API → 看延遲、看可靠性、看資料豐富度。Agent 不需要 onboarding，不在乎你的 NPS 分數。如果你的 API 回 500，Agent 不會上 G2 寫差評——它直接切換到競品，而且再也不回來。
+
+這就像餐廳評價的權力從美食評論家轉移到外送平台的演算法。以前你的裝潢很重要、服務態度很重要。現在？出餐速度和包裝密封性才決定你的排名。
+
+<MoguNote>
+B2A 這個詞聽起來像又一個矽谷造詞運動，但概念是真的。想想看，你最近一次因為「UI 很醜」而換掉一個工具是什麼時候？但你最近一次因為「API 接不通」而放棄整合是什麼時候？Agent 時代只是把這個趨勢加速了一百倍 (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+他實際遇到的案例：Rippling 的 HR/薪資系統 API 不好用。結果每次工作流碰到薪資數據就斷掉。他正在找 API-first 的替代品——注意，不是因為 Rippling 功能差，是因為 **Agent 用不了**。
+
+這件事的恐怖之處在於：Rippling 可能花了幾年打磨 UI、做 onboarding 流程、搞客戶成功團隊。但在 B2A 世界裡，這些努力的權重突然歸零。Agent 看的是另一張考卷。
+
+## 所以你現在該做什麼？
+
+如果你是 Tech Lead 或在做 SaaS 產品，Nicolas 的實戰經驗其實指向一件事：**你的 API 不是附加功能，它是你的新門面。**
+
+這意味著你得像審計 UI 一樣去審計你的 API——延遲夠不夠快讓 Agent 做多步驟工作流？錯誤訊息夠不夠清楚讓 Agent 自我修正？身份驗證有沒有 machine-to-machine 的 scoped access，還是只有人類用的 OAuth？
+
+然後你得開始想 WebMCP。你的網站要暴露哪些工具給 Agent？這不是「明年再想」的問題，Chrome Canary 已經在跑了。
+
+最後，你得回頭看看自己的競爭對手裡，有沒有人正在做你產品的 API-first 版本。因為在 Agent 眼中，那個版本才是正宮。
+
+<MoguNote>
+講白了就是：以前你裝修了一間漂亮的實體店面，結果發現客人都開始叫外送，而你的外送包裝爛到會漏湯。現在你可以選擇繼續打磨店面裝潢，或者先去把外送包裝搞好。Nicolas 已經用行動告訴你答案了 (¬‿¬)
+</MoguNote>
+
+---
+
+Nicolas 這篇跟 MP-48 最大的差別：他不再只是預言「護城河會崩」，他已經住在崩完之後的世界裡了。Rippling 被他放棄不是因為功能差，是因為 Agent 串不動。
+
+這個故事，2026 會在每個 SaaS 品類重演好幾遍。而且被換掉的那些公司，可能到最後都還搞不清楚自己輸在哪裡。
+
+---
+
+**參考資料**
+- Nicolas Bustamante 原文：https://x.com/nicbstme/status/2025643017571541378
+- 前作「SaaS 護城河崩塌」：[MP-48](/posts/mp-48-20260209-nicbstme-crumbling-workflow-moat)

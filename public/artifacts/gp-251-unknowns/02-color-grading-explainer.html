@@ -1,0 +1,584 @@
+<!-- Copyright 2026 Anthropic PBC · SPDX-License-Identifier: Apache-2.0 -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teach me my unknowns — Know your unknowns</title>
+<style>
+  :root {
+    --ivory:  #FAF9F5;
+    --paper:  #FFFFFF;
+    --slate:  #141413;
+    --clay:   #D97757;
+    --clay-d: #B85C3E;
+    --oat:    #E3DACC;
+    --olive:  #788C5D;
+    --g100:   #F0EEE6;
+    --g200:   #E6E3DA;
+    --g300:   #D1CFC5;
+    --g500:   #87867F;
+    --g700:   #3D3D3A;
+    --serif: ui-serif, Georgia, "Times New Roman", Times, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ivory);
+    color: var(--slate);
+    font-family: var(--sans);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 24px 100px; }
+
+  /* ── header ─────────────────────────── */
+  header { padding: 56px 0 8px; position: relative; }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--g500);
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .eyebrow::before { content: ""; width: 24px; height: 1.5px; background: var(--clay); flex: none; }
+  .backlink {
+    position: absolute; top: 60px; right: 0;
+    font-family: var(--mono); font-size: 12px;
+    color: var(--g500); text-decoration: none;
+  }
+  .backlink:hover { color: var(--clay); }
+  h1 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(32px, 5vw, 46px);
+    line-height: 1.08;
+    letter-spacing: -0.018em;
+    margin: 0 0 10px;
+  }
+  .lede { font-size: 16.5px; color: var(--g700); max-width: 640px; margin: 0 0 28px; }
+
+  h2, h3 { font-family: var(--serif); font-weight: 500; letter-spacing: -0.012em; }
+
+  .card {
+    background: var(--paper);
+    border: 1.5px solid var(--g300);
+    border-radius: 14px;
+  }
+
+  /* prompt box */
+  .promptbox { padding: 22px 26px 24px; position: relative; margin-bottom: 44px; }
+  .promptbox .label {
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--clay); margin-bottom: 10px;
+  }
+  .promptbox blockquote {
+    margin: 0; padding: 0 0 0 18px;
+    border-left: 3px solid var(--oat);
+    font-family: var(--serif); font-style: italic;
+    font-size: 17.5px; line-height: 1.5; color: var(--slate);
+  }
+  .copybtn {
+    position: absolute; top: 18px; right: 18px;
+    font-family: var(--mono); font-size: 11.5px;
+    background: var(--g100); color: var(--g700);
+    border: 1.5px solid var(--g300); border-radius: 8px;
+    padding: 6px 12px; cursor: pointer;
+  }
+  .copybtn:hover { border-color: var(--clay); color: var(--clay-d); }
+  .copybtn.done { background: var(--olive); border-color: var(--olive); color: #fff; }
+
+  /* divider */
+  .divider {
+    display: flex; align-items: center; gap: 16px;
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--g500);
+    margin: 0 0 40px;
+  }
+  .divider::before, .divider::after { content: ""; flex: 1; height: 1.5px; background: var(--g300); }
+
+  /* ── artifact ─────────────────────────── */
+  .artifact h2 { font-size: 27px; margin: 0 0 6px; }
+  .artifact .sub { color: var(--g700); font-size: 15px; max-width: 640px; margin: 0 0 26px; }
+  .sec-eyebrow {
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--g500);
+    display: flex; align-items: center; gap: 12px; margin: 44px 0 14px;
+  }
+  .sec-eyebrow::before { content: ""; width: 24px; height: 1.5px; background: var(--clay); flex: none; }
+
+  /* mental model strip */
+  .pipeline { display: flex; gap: 0; align-items: stretch; flex-wrap: wrap; margin-bottom: 8px; }
+  .pipe-step {
+    flex: 1 1 150px; background: var(--paper); border: 1.5px solid var(--g300);
+    border-radius: 12px; padding: 12px 14px; margin: 0 10px 10px 0;
+    position: relative;
+  }
+  .pipe-step b { display: block; font-size: 14px; }
+  .pipe-step span { font-size: 12.5px; color: var(--g500); }
+  .pipe-step.hot { border-color: var(--clay); }
+  .pipe-step.hot b { color: var(--clay-d); }
+
+  /* vocab ladder */
+  .ladder { display: grid; gap: 12px; }
+  .rung { padding: 16px 20px 15px; display: grid; grid-template-columns: 158px 1fr; gap: 4px 22px; }
+  @media (max-width: 640px) { .rung { grid-template-columns: 1fr; } }
+  .rung .term { font-family: var(--serif); font-size: 17px; font-weight: 500; }
+  .rung .term small { display: block; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--g500); margin-top: 2px; }
+  .rung .def { font-size: 14.5px; color: var(--g700); }
+  .rung .say {
+    grid-column: 2; font-family: var(--mono); font-size: 12.5px; color: var(--clay-d);
+    background: var(--g100); border-radius: 8px; padding: 7px 11px; margin-top: 6px;
+  }
+  @media (max-width: 640px) { .rung .say { grid-column: 1; } }
+  .rung .say::before { content: "say → "; color: var(--g500); }
+
+  /* grading console */
+  .console { overflow: hidden; }
+  .console-head {
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
+    padding: 14px 20px; border-bottom: 1.5px solid var(--g200); background: var(--g100);
+  }
+  .console-head .fname { font-family: var(--mono); font-size: 12px; color: var(--g700); }
+  .console-head .fname i { font-style: normal; color: var(--g500); }
+  .presets { display: flex; gap: 8px; flex-wrap: wrap; }
+  .presets button {
+    font-family: var(--mono); font-size: 11.5px; padding: 6px 12px;
+    background: var(--paper); border: 1.5px solid var(--g300); border-radius: 999px;
+    color: var(--g700); cursor: pointer;
+  }
+  .presets button:hover { border-color: var(--clay); }
+  .presets button.on { background: var(--slate); border-color: var(--slate); color: var(--ivory); }
+
+  .frame-wrap { position: relative; background: var(--slate); user-select: none; }
+  .frame-stack { position: relative; aspect-ratio: 16/9; overflow: hidden; }
+  .frame-stack svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  #gradeLayer { position: absolute; inset: 0; }
+  #tempOverlay, #splitTone { position: absolute; inset: 0; pointer-events: none; }
+  #tempOverlay { mix-blend-mode: soft-light; opacity: 0; }
+  #splitTone { mix-blend-mode: soft-light; opacity: 0;
+    background: radial-gradient(circle at 72% 34%, rgba(255,166,87,.95) 0%, rgba(255,166,87,0) 42%),
+                linear-gradient(rgba(38,86,97,.85), rgba(38,86,97,.85)); }
+  .split-handle {
+    position: absolute; top: 0; bottom: 0; width: 2px; background: rgba(250,249,245,.9);
+    box-shadow: 0 0 6px rgba(0,0,0,.5); pointer-events: none;
+  }
+  .split-handle::after {
+    content: "◂ ▸"; position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    background: var(--ivory); color: var(--slate); font-size: 10px;
+    padding: 3px 7px; border-radius: 999px; white-space: nowrap;
+    font-family: var(--mono); letter-spacing: 0.05em;
+  }
+  #splitRange {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    opacity: 0; cursor: ew-resize; margin: 0; -webkit-appearance: none; appearance: none;
+  }
+  .frame-tag {
+    position: absolute; top: 10px; font-family: var(--mono); font-size: 10px;
+    letter-spacing: 0.12em; padding: 3px 8px; border-radius: 4px;
+    background: rgba(20,20,19,.55); color: rgba(250,249,245,.9); pointer-events: none;
+  }
+  .frame-tag.before { left: 10px; }
+  .frame-tag.after { right: 10px; }
+
+  .sliders {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 14px 28px;
+    padding: 18px 20px 20px; border-top: 1.5px solid var(--g200);
+  }
+  @media (max-width: 640px) { .sliders { grid-template-columns: 1fr; } }
+  .sl-row label {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--g700); margin-bottom: 4px;
+  }
+  .sl-row label output { color: var(--clay-d); text-transform: none; }
+  .sl-row input[type=range] {
+    -webkit-appearance: none; appearance: none; width: 100%; height: 22px;
+    background: transparent; cursor: pointer; margin: 0;
+  }
+  .sl-row input[type=range]::-webkit-slider-runnable-track {
+    height: 4px; border-radius: 2px; background: var(--g200);
+  }
+  .sl-row input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none; width: 16px; height: 16px; margin-top: -6px;
+    border-radius: 50%; background: var(--clay); border: 2px solid var(--paper);
+    box-shadow: 0 1px 3px rgba(20,20,19,.25);
+  }
+  .sl-row input[type=range]::-moz-range-track {
+    height: 4px; border-radius: 2px; background: var(--g200);
+  }
+  .sl-row input[type=range]::-moz-range-thumb {
+    width: 14px; height: 14px; border-radius: 50%; background: var(--clay);
+    border: 2px solid var(--paper); box-shadow: 0 1px 3px rgba(20,20,19,.25);
+  }
+  .console-foot {
+    font-size: 13px; color: var(--g500); padding: 0 20px 16px;
+  }
+  .console-foot b { color: var(--g700); font-weight: 600; }
+  .resetbtn {
+    font-family: var(--mono); font-size: 11px; background: none; border: none;
+    color: var(--g500); text-decoration: underline; cursor: pointer; padding: 0;
+  }
+  .resetbtn:hover { color: var(--clay); }
+
+  /* checklist */
+  .checklist { padding: 6px 22px 10px; }
+  .checklist ul { list-style: none; margin: 12px 0 14px; padding: 0; display: grid; gap: 10px; }
+  .checklist li { display: flex; gap: 12px; font-size: 14.5px; color: var(--g700); }
+  .checklist li::before {
+    content: "✓"; flex: none; width: 20px; height: 20px; border-radius: 50%;
+    background: var(--olive); color: #fff; font-size: 12px; line-height: 20px;
+    text-align: center; margin-top: 2px;
+  }
+  .checklist li b { color: var(--slate); font-weight: 600; }
+  .checklist li.warn::before { content: "!"; background: var(--clay); }
+
+  /* prompts card */
+  .prompts-card { border-color: var(--slate); padding: 22px 24px 20px; }
+  .prompts-card h3 { margin: 0 0 4px; font-size: 21px; }
+  .prompts-card .note { font-size: 13.5px; color: var(--g500); margin: 0 0 16px; }
+  .pgrid { display: grid; gap: 10px; }
+  .pgrid .p {
+    font-family: var(--mono); font-size: 13px; line-height: 1.6;
+    background: var(--g100); border-left: 3px solid var(--clay);
+    border-radius: 0 10px 10px 0; padding: 12px 16px; color: var(--g700);
+  }
+  .pgrid .p b { color: var(--slate); font-weight: 600; }
+
+  footer {
+    margin-top: 72px; padding-top: 24px; border-top: 1.5px solid var(--g300);
+    font-size: 13.5px; color: var(--g500);
+  }
+  footer a { color: var(--clay); text-decoration-color: var(--oat); text-underline-offset: 3px; }
+</style>
+<style id="gu-log-mirror-credit-style">.gu-log-mirror-credit{position:sticky;top:0;z-index:9999;padding:8px 14px;background:#111;color:#f7f3e8;border-bottom:1px solid rgba(255,255,255,.18);font:13px/1.45 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;text-align:center}.gu-log-mirror-credit a{color:#f4c86a;text-decoration:underline;text-underline-offset:2px}.gu-log-mirror-credit strong{font-weight:750}</style>
+</head>
+<body>
+<div class="gu-log-mirror-credit" role="note"><strong>Mirror copy for gu-log GP-251.</strong> Original by <a href="https://x.com/trq212">Thariq (@trq212)</a>: <a href="https://thariqs.github.io/html-effectiveness/unknowns/">Know your unknowns</a>. English original preserved; zh-tw version later.</div>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Know your unknowns · Pre-implementation</div>
+    <a class="backlink" href="index.html">← All examples</a>
+    <h1>Teach me my unknowns</h1>
+    <p class="lede">Before doing unfamiliar work, ask Claude to teach you the domain's vocabulary — so your next prompt uses the words a professional would.</p>
+
+    <div class="card promptbox">
+      <div class="label">The prompt</div>
+      <blockquote id="promptText">I don't know what color grading is but I need to grade the Acme launch video. Teach me color grading well enough that I understand my unknown unknowns and can prompt you with real vocabulary.</blockquote>
+      <button class="copybtn" id="copyBtn" type="button">copy prompt</button>
+    </div>
+  </header>
+
+  <div class="divider">What Claude produced</div>
+
+  <main class="artifact">
+    <h2>Color grading in one sitting</h2>
+    <p class="sub">Everything you need to grade <em>acme-launch-v3.mp4</em> — or at least to give precise notes to whoever does. Correction first, then the creative look. Play with the frame below until the sliders feel obvious.</p>
+
+    <!-- mental model -->
+    <div class="sec-eyebrow">The mental model</div>
+    <div class="pipeline">
+      <div class="pipe-step"><b>1 · Ingest</b><span>Footage arrives "flat" (log) — grey and washed out, on purpose. It preserves detail.</span></div>
+      <div class="pipe-step hot"><b>2 · Correct</b><span>Fix exposure &amp; white balance so it looks <em>real</em>. Boring, essential, first.</span></div>
+      <div class="pipe-step hot"><b>3 · Grade</b><span>Add the <em>look</em>: contrast shape, color bias, mood. This is the creative part.</span></div>
+      <div class="pipe-step"><b>4 · Match</b><span>Make every shot in the cut agree, so the video feels like one piece.</span></div>
+    </div>
+
+    <!-- vocab ladder -->
+    <div class="sec-eyebrow">The vocabulary ladder</div>
+    <div class="ladder">
+      <div class="card rung">
+        <div class="term">Exposure<small>overall brightness</small></div>
+        <div class="def">How light or dark the whole image is, measured in "stops" (each stop doubles/halves the light). Wrong exposure = detail lost in blown highlights or murky shadows.</div>
+        <div class="say">"the interview shots look a half-stop underexposed — bring them up"</div>
+      </div>
+      <div class="card rung">
+        <div class="term">White balance<small>color temperature</small></div>
+        <div class="def">Whether white things actually look white. Measured in Kelvin: low = warm/orange (tungsten), high = cool/blue (daylight). Mixed lighting is the classic gotcha.</div>
+        <div class="say">"the office footage reads too warm — cool it toward neutral, protect skin tones"</div>
+      </div>
+      <div class="card rung">
+        <div class="term">Contrast curve<small>tone response</small></div>
+        <div class="def">The S-shaped curve mapping shadows→highlights. Steeper = punchier; flatter = softer, more "filmic". You bend the curve, you don't just crank a slider.</div>
+        <div class="say">"add a gentle S-curve — richer blacks but don't crush shadow detail"</div>
+      </div>
+      <div class="card rung">
+        <div class="term">Lift / Gamma / Gain<small>3-way correction</small></div>
+        <div class="def">Independent color+brightness control over shadows (lift), midtones (gamma), and highlights (gain). This is how pros push "teal in the shadows, warm in the highlights".</div>
+        <div class="say">"push the lift slightly teal and the gain slightly warm — subtle, not music-video"</div>
+      </div>
+      <div class="card rung">
+        <div class="term">Saturation vs vibrance<small>color intensity</small></div>
+        <div class="def">Saturation boosts <em>all</em> colors equally (skin goes orange fast). Vibrance boosts only the muted colors and protects skin. Almost always reach for vibrance first.</div>
+        <div class="say">"use vibrance not saturation — the UI screenshots can pop but faces stay natural"</div>
+      </div>
+      <div class="card rung">
+        <div class="term">LUT<small>look-up table</small></div>
+        <div class="def">A saved color transform file (.cube) that applies a whole look in one step — either technical (log→Rec.709 conversion) or creative (a stylized grade). Apply after correction, then dial its intensity down.</div>
+        <div class="say">"apply the Rec.709 conversion LUT first, then a creative LUT at ~60% strength"</div>
+      </div>
+    </div>
+
+    <!-- interactive console -->
+    <div class="sec-eyebrow">Feel it — grade a frame</div>
+    <div class="card console">
+      <div class="console-head">
+        <span class="fname">acme-launch-v3.mp4 <i>· frame 01:47:12 · drag the split to compare</i></span>
+        <div class="presets">
+          <button type="button" data-preset="flat">Flat / log</button>
+          <button type="button" data-preset="corporate" class="on">Corporate clean</button>
+          <button type="button" data-preset="teal">Cinematic teal-orange</button>
+        </div>
+      </div>
+
+      <div class="frame-wrap">
+        <div class="frame-stack">
+          <!-- scene definition -->
+          <svg viewBox="0 0 640 360" preserveAspectRatio="xMidYMid slice" aria-label="Ungraded landscape frame">
+            <defs>
+              <g id="scene">
+                <rect width="640" height="360" fill="#9DB3B8"/>
+                <circle cx="462" cy="118" r="34" fill="#EFD79A"/>
+                <path d="M0 190 L120 96 L238 190 Z" fill="#77857D"/>
+                <path d="M150 190 L300 66 L470 190 Z" fill="#5F6F66"/>
+                <path d="M400 190 L520 110 L640 190 L640 200 L400 200 Z" fill="#77857D"/>
+                <rect y="190" width="640" height="80" fill="#8AA39E"/>
+                <path d="M300 214 L470 190 L462 152 L448 190 Z" fill="#71898A" opacity="0.5"/>
+                <circle cx="462" cy="216" r="22" fill="#D9C08A" opacity="0.55"/>
+                <rect y="262" width="640" height="98" fill="#55614C"/>
+                <path d="M0 262 C 140 244, 300 276, 640 254 L640 360 L0 360 Z" fill="#4A5542"/>
+                <g fill="#3E4A38">
+                  <path d="M70 262 L86 210 L102 262 Z"/><rect x="83" y="258" width="6" height="16"/>
+                  <path d="M112 268 L126 224 L140 268 Z"/><rect x="123" y="264" width="5" height="14"/>
+                  <path d="M560 258 L578 202 L596 258 Z"/><rect x="575" y="254" width="6" height="18"/>
+                </g>
+                <g fill="#2E2E2A">
+                  <circle cx="332" cy="284" r="7"/>
+                  <path d="M326 291 C 326 302, 338 302, 338 291 L337 316 L333 316 L332 300 L331 316 L327 316 Z"/>
+                </g>
+                <path d="M0 356 L640 356" stroke="#39422F" stroke-width="8"/>
+              </g>
+            </defs>
+            <use href="#scene"/>
+          </svg>
+
+          <!-- graded copy, clipped to the right of the split -->
+          <div id="gradeLayer">
+            <svg viewBox="0 0 640 360" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+              <use href="#scene"/>
+            </svg>
+            <div id="tempOverlay"></div>
+            <div id="splitTone"></div>
+          </div>
+
+          <span class="frame-tag before">UNGRADED</span>
+          <span class="frame-tag after">GRADED</span>
+          <div class="split-handle" id="splitHandle"></div>
+          <input type="range" id="splitRange" min="4" max="96" value="42" aria-label="Before/after split position">
+        </div>
+
+        <div class="sliders">
+          <div class="sl-row">
+            <label for="sExp">Exposure <output id="oExp">+0.2 EV</output></label>
+            <input type="range" id="sExp" min="-50" max="50" value="10">
+          </div>
+          <div class="sl-row">
+            <label for="sTemp">Temperature <output id="oTemp">+8 warm</output></label>
+            <input type="range" id="sTemp" min="-50" max="50" value="8">
+          </div>
+          <div class="sl-row">
+            <label for="sCon">Contrast <output id="oCon">+12</output></label>
+            <input type="range" id="sCon" min="-50" max="50" value="12">
+          </div>
+          <div class="sl-row">
+            <label for="sSat">Saturation <output id="oSat">+8</output></label>
+            <input type="range" id="sSat" min="-50" max="50" value="8">
+          </div>
+        </div>
+      </div>
+
+      <div class="console-foot">
+        <span id="presetNote"><b>Corporate clean:</b> slight lift in exposure, near-neutral temperature, modest contrast — trustworthy and bright. The default for product launch videos.</span>
+        · <button class="resetbtn" type="button" id="resetBtn">reset to ungraded</button>
+      </div>
+    </div>
+
+    <!-- checklist -->
+    <div class="sec-eyebrow">What good looks like</div>
+    <div class="card checklist">
+      <ul>
+        <li><b>Skin tones stay believable.</b> Every creative look bends around faces, never through them. If the founder looks seasick or sunburned, the grade is wrong.</li>
+        <li><b>Blacks are rich but not crushed.</b> You can still read detail in dark areas (hair, the navy hoodie at 00:42). A histogram slammed against the left edge means lost information.</li>
+        <li><b>Whites don't clip.</b> The Acme UI screens are mostly white — if they blow out to pure 100%, button borders and text vanish. Keep highlights just under the ceiling.</li>
+        <li><b>Shot-to-shot consistency.</b> Cutting from the office interview to the screen capture shouldn't feel like changing channels. Shot matching is half the job.</li>
+        <li><b>The look serves the story.</b> A launch video wants clean and confident, not moody thriller. If viewers notice the grade before the product, dial it back.</li>
+        <li class="warn"><b>Check on more than one screen.</b> Your laptop lies. Preview on a phone and, ideally, a TV before signing off — and confirm you're exporting in Rec.709 for web delivery.</li>
+      </ul>
+    </div>
+
+    <!-- prompts you couldn't have written -->
+    <div class="sec-eyebrow">The payoff</div>
+    <div class="card prompts-card">
+      <h3>Prompts you couldn't have written an hour ago</h3>
+      <p class="note">An hour ago the best you had was "make the video look nicer." Now you can say:</p>
+      <div class="pgrid">
+        <div class="p">"The interview footage was shot in <b>log</b> — apply the camera's <b>Rec.709 conversion LUT</b> first, then grade on top of that, not on the raw flat image."</div>
+        <div class="p">"Give the whole cut a restrained <b>teal-orange</b> look: push the <b>lift</b> slightly teal, <b>gain</b> slightly warm, keep <b>gamma</b> neutral so midtone skin stays natural."</div>
+        <div class="p">"Shot 14 is about <b>2/3 of a stop underexposed</b> and too warm versus shot 13 — match its <b>exposure</b> and <b>white balance</b> to shot 13, then A/B them at the cut point."</div>
+        <div class="p">"Add a soft <b>S-curve</b> for contrast and lift color intensity with <b>vibrance rather than saturation</b>, so the product UI pops without turning faces orange."</div>
+      </div>
+    </div>
+  </main>
+
+  <footer>Part of <a href="index.html">Know your unknowns</a> — companion examples to the blog post.</footer>
+</div>
+
+<script>
+(function () {
+  // ---- copy prompt ----
+  var copyBtn = document.getElementById('copyBtn');
+  var promptText = document.getElementById('promptText').textContent.trim();
+  copyBtn.addEventListener('click', function () {
+    function done() {
+      copyBtn.textContent = 'Copied';
+      copyBtn.classList.add('done');
+      setTimeout(function () {
+        copyBtn.textContent = 'copy prompt';
+        copyBtn.classList.remove('done');
+      }, 1600);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(promptText).then(done, fallback);
+    } else { fallback(); }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = promptText;
+      ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch (e) {}
+      document.body.removeChild(ta);
+      done();
+    }
+  });
+
+  // ---- grading console ----
+  var sExp = document.getElementById('sExp'),
+      sTemp = document.getElementById('sTemp'),
+      sCon = document.getElementById('sCon'),
+      sSat = document.getElementById('sSat');
+  var oExp = document.getElementById('oExp'),
+      oTemp = document.getElementById('oTemp'),
+      oCon = document.getElementById('oCon'),
+      oSat = document.getElementById('oSat');
+  var gradeLayer = document.getElementById('gradeLayer');
+  var gradeSvg = gradeLayer.querySelector('svg');
+  var tempOverlay = document.getElementById('tempOverlay');
+  var splitTone = document.getElementById('splitTone');
+  var splitRange = document.getElementById('splitRange');
+  var splitHandle = document.getElementById('splitHandle');
+  var presetNote = document.getElementById('presetNote');
+  var presetBtns = document.querySelectorAll('.presets button');
+  var splitToneOn = false;
+
+  var presets = {
+    flat: {
+      exp: 6, temp: 0, con: -38, sat: -45, split: false,
+      note: '<b>Flat / log:</b> low contrast, low saturation — this is roughly what footage looks like straight off a camera shooting log. Ugly on purpose: it keeps maximum detail for grading.'
+    },
+    corporate: {
+      exp: 10, temp: 8, con: 12, sat: 8, split: false,
+      note: '<b>Corporate clean:</b> slight lift in exposure, near-neutral temperature, modest contrast — trustworthy and bright. The default for product launch videos.'
+    },
+    teal: {
+      exp: 4, temp: -22, con: 26, sat: 14, split: true,
+      note: '<b>Cinematic teal-orange:</b> shadows pushed teal, a warm glow held around the light source, stronger contrast. The blockbuster look — use at maybe 40% of this strength for a launch video.'
+    }
+  };
+
+  function fmtSigned(v) { return (v > 0 ? '+' : '') + v; }
+
+  function update() {
+    var exp = +sExp.value, temp = +sTemp.value, con = +sCon.value, sat = +sSat.value;
+
+    // filter math: sliders are -50..50
+    var brightness = 1 + exp / 100;          // 0.5 .. 1.5
+    var contrast = 1 + con / 100;            // 0.5 .. 1.5
+    var saturate = 1 + sat / 62.5;           // 0.2 .. 1.8
+    var sepia = temp > 0 ? temp / 50 * 0.22 : 0;
+
+    gradeSvg.style.filter =
+      'brightness(' + brightness.toFixed(3) + ') ' +
+      'contrast(' + contrast.toFixed(3) + ') ' +
+      'saturate(' + saturate.toFixed(3) + ')' +
+      (sepia ? ' sepia(' + sepia.toFixed(3) + ')' : '');
+
+    // temperature wash overlay
+    if (temp === 0) {
+      tempOverlay.style.opacity = 0;
+    } else if (temp > 0) {
+      tempOverlay.style.background = '#E8955C';
+      tempOverlay.style.opacity = (temp / 50 * 0.55).toFixed(3);
+    } else {
+      tempOverlay.style.background = '#3E7286';
+      tempOverlay.style.opacity = (-temp / 50 * 0.6).toFixed(3);
+    }
+
+    splitTone.style.opacity = splitToneOn ? 0.75 : 0;
+
+    // readouts
+    oExp.textContent = (exp >= 0 ? '+' : '−') + Math.abs(exp / 50).toFixed(1) + ' EV';
+    oTemp.textContent = temp === 0 ? 'neutral' : fmtSigned(temp) + (temp > 0 ? ' warm' : ' cool');
+    oCon.textContent = fmtSigned(con);
+    oSat.textContent = fmtSigned(sat);
+  }
+
+  [sExp, sTemp, sCon, sSat].forEach(function (s) {
+    s.addEventListener('input', function () {
+      splitToneOn = false;                    // manual moves drop the split-tone extra
+      presetBtns.forEach(function (b) { b.classList.remove('on'); });
+      update();
+    });
+  });
+
+  presetBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var p = presets[btn.dataset.preset];
+      sExp.value = p.exp; sTemp.value = p.temp; sCon.value = p.con; sSat.value = p.sat;
+      splitToneOn = p.split;
+      presetBtns.forEach(function (b) { b.classList.toggle('on', b === btn); });
+      presetNote.innerHTML = p.note;
+      update();
+    });
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', function () {
+    sExp.value = 0; sTemp.value = 0; sCon.value = 0; sSat.value = 0;
+    splitToneOn = false;
+    presetBtns.forEach(function (b) { b.classList.remove('on'); });
+    presetNote.innerHTML = '<b>Ungraded:</b> all corrections zeroed — the graded side now matches the source frame exactly.';
+    update();
+  });
+
+  // before/after split
+  function updateSplit() {
+    var pct = +splitRange.value;
+    gradeLayer.style.clipPath = 'inset(0 0 0 ' + pct + '%)';
+    splitHandle.style.left = pct + '%';
+  }
+  splitRange.addEventListener('input', updateSplit);
+
+  update();
+  updateSplit();
+})();
+</script>
+</body>
+</html>

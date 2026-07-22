@@ -1,0 +1,167 @@
+---
+ticketId: "GP-200"
+title: "Codex CLI Memory Is Not Magic. It Is a Stack of Greppable Markdown"
+originalDate: "2026-05-13"
+translatedDate: "2026-05-14"
+translatedBy:
+  model: "GPT-5.5"
+  harness: "Codex CLI"
+
+  pipeline:
+    - role: "Written"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+    - role: "Reviewed"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+    - role: "Scored"
+      model: "GPT-5.5"
+      harness: "Codex CLI + Tribunal"
+    - role: "Rewritten"
+      model: "GPT-5.5"
+      harness: "Codex CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "GPT-5.5"
+      harness: "gp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@mem0ai on X"
+sourceUrl: "https://x.com/mem0ai/status/2054580022049198513?s=46"
+lang: "en"
+summary: "Mem0 breaks down Codex CLI memory: not a vector database, but local Markdown, background summaries, credential scrubbing, and grep search. This post looks at when local notes are enough, and when a semantic memory layer makes sense."
+tags: ["codex","memory","mem0","mcp"]
+scores:
+  tribunalVersion: 3
+  librarian:
+    glossary: 9
+    crossRef: 9
+    sourceAlign: 9
+    attribution: 8
+    score: 8
+    date: "2026-05-14"
+    model: "gpt-5.5"
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    score: 8
+    date: "2026-05-14"
+    model: "gpt-5.5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    score: 8
+    date: "2026-05-14"
+    model: "gpt-5.5"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-05-14"
+    model: "gpt-5.5"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+[Codex](/glossary#codex) CLI memory sounds like an [Agent](/en/glossary#agent) suddenly grew a second brain: next time it starts work, it remembers the test command, the deployment flow, the repo habits, and maybe even which error last made the engineer want to pickle their keyboard.
+
+Mem0's breakdown is much more plain once you open the box. [Codex](/en/glossary#codex) CLI memory is not a vector database. It is not some mysterious semantic search system either. It is closer to a stack of curated Markdown: a summary, longer notes, per-session rollups, and finally `grep` for finding keywords.
+
+That does not sound as sexy as "AI memory," but it is very engineering-brained: local, readable, inspectable, and predictable in cost. That is also why its boundary is so clear. Built-in Codex CLI memory is good as a local work cheat sheet. What Mem0 wants to add is a long-term memory layer for cross-machine, cross-tool, semantic retrieval, and live updates. ╮(╯▽╰)╭
+
+<MoguNote>This design feels like sticking notes on the fridge door: "half a bottle of milk left, eggs expire soon." Cheap, reliable, visible. The downside is that if the note says "breakfast protein," searching for "omelet" might miss it. That is not stupidity. That is a tradeoff.</MoguNote>
+
+This post pairs well with a few earlier gu-log memory pieces: [GP-197](/posts/gp-197-20260512-chrishayduk-codex-goals/) covered how Codex `/goal` writes long-running work into Markdown, [GP-135](/posts/gp-135-20260328-trq212-agent-file-system/) explained why Agent memory often belongs in the file system first, and [GP-191](/posts/gp-191-20260507-danizhu-claude-dreams-agent/) looked at asynchronous memory consolidation. Mem0's post happens to connect all three questions: where memory lives, when it gets organized, and how it gets retrieved.
+
+## The Memory Object: Not a Database, a Directory
+
+Mem0 starts by killing the myth: Codex CLI's memory layer is centered on `~/.codex/memories/`. What lives there is Markdown files, not SQLite, not a vector index, and not a black-box database.
+
+The core files have fairly intuitive jobs. `memory_summary.md` is the cheat sheet a new session reads at startup. `MEMORY.md` is the longer merged memory. `raw_memories.md` stores candidate memories that have not been fully consolidated yet. `skills/<name>/SKILL.md` stores memory related to a specific [Skill](/glossary#skill). `rollout_summaries/` keeps summaries of individual work sessions.
+
+In other words, the files are the memory. The rest of the machinery extracts, scrubs, organizes, and writes conversation-derived information back into those files.
+
+That choice is interesting. When many people hear [Agent](/glossary#agent) memory, they naturally think of embeddings, vector databases, rerankers, and semantic retrieval. Built-in Codex CLI memory goes the other way: compress the information into readable text, put it in the local file system, and use string search when needed.
+
+If your knowledge base is only twenty books, you can just sort them by category on a shelf. You can install barcode scanners, RFID gates, and automated checkout machines, sure, but the system may end up heavier than the books.
+
+## The Write Path: Not Live Brain Editing, More Like Cleaning the Desk After Work
+
+Codex CLI writes memory in two stages.
+
+The first stage is extraction. When a work session has been idle long enough, Mem0 says the default threshold is six hours, Codex picks recent conversation and runs an extraction [Prompt](/glossary#prompt), producing candidate memories and a session summary. Before candidate content enters the state database, credentials are scrubbed so passwords, tokens, and similar secrets do not get written into long-term memory.
+
+The second stage is consolidation. The system takes a global lock, reads recent extraction results, decides whether existing memory files need updates, and, if they do, launches a background sub-Agent to merge candidate memories into `~/.codex/memories/`.
+
+This is not "every sentence the user says gets carved into the Agent's brain immediately." It is more like cleaning your desk after work: during the day, sticky notes, meeting notes, and random ideas go into an inbox; after everyone leaves, the cleanup starts sorting them.
+
+The upside is that foreground coding is not constantly interrupted by memory maintenance. The cost is just as obvious: memory updates are delayed, and if the developer keeps working or keeps opening new sessions, the background job may not catch a quiet window.
+
+<MoguNote>The most useful lesson here is not the number "six hours." It is the architectural attitude: memory maintenance runs in the background, which means the system would rather keep the foreground task smooth than interrupt every conversation to tidy itself up. A lot of Agent tooling UX comes down to exactly this kind of scheduling tradeoff.</MoguNote>
+
+## The Read Path: Check the Cheat Sheet First, Then String Search
+
+The read path is even more counterintuitive.
+
+When a new work session starts, Codex first reads `memory_summary.md`, then truncates it to a fixed [Token](/glossary#token) budget. Mem0 says that budget is 5,000 tokens. Anything beyond that does not explode or trigger a warning; the Agent simply cannot see it.
+
+So what happens to content that did not make it into the summary? The read template asks the Agent to extract keywords from the summary and string-search `MEMORY.md`. If it finds a lead, it opens the relevant `rollout_summaries/`. If it does not, it stops.
+
+The key point: there is no semantic search here.
+
+The example in the original post is easy to understand. Suppose memory says "production deployment uses `make ship-prod`," and later you ask, "what is the launch command?" If the query terms and stored text do not overlap, `grep` may miss it. The meaning is close, but the surface words are not, so the system may walk right past the memory.
+
+That is not confusion. It is a bargain. String search is cheap, transparent, and easy to debug. Semantic search is smarter, but it brings in vector indexes, retrieval quality, ranking, privacy, cost, and another whole set of problems.
+
+<MoguNote>`grep` is the honest worker of engineering. Ask for `ship-prod`, it finds `ship-prod`; ask for "launch," and it will not hallucinate "deploy, release, production." Sometimes adorable, sometimes deeply irritating.</MoguNote>
+
+## Settings and Limits: Great Cheat Sheet, Bad Company Knowledge Base
+
+Mem0 lists a bunch of settings, but readers do not need to memorize the names. The surface area looks long, but underneath it is answering three questions: can memory run, when should it organize itself, and how hard should it try?
+
+The first knob is permission. Memory has a master switch, and read and write can also be controlled separately. You can allow the Agent to read memory without automatically generating new memories, or tune write behavior the other way around.
+
+The second knob is time. The original post mentions the six-hour default, which exists to avoid summarizing a session too early while work is still in progress. The meeting is not even over yet; the note-taker should not rush in and announce, "here are the conclusions."
+
+The third knob is scope. Consolidation does not dig through old history forever. The original post mentions limits around recent rollouts, memory age, and how long something has gone unused. The idea is very human: not every old thing deserves to live in the front pocket forever. A random debugging rant from three months ago should not share the same cheat sheet as "run this command before deploy."
+
+Once those three knobs are clear, the hard edges of built-in memory are visible. The 5,000-token summary limit means an overly long `memory_summary.md` gets silently truncated. String search requires literal overlap between the question and the stored text. The longer `MEMORY.md` gets, the more linear search costs. `~/.codex/memories/` is also a space managed by Codex; project rules that need stable versioning still belong in `AGENTS.md`. The trickiest part is that memory is local state. Switch laptops, move to a server, or enter CI, and it does not naturally follow you.
+
+So the role of built-in Codex CLI memory is clear: it is an automatically organized work notebook for one person, on one local long-running workstation. That is already useful. It is not, however, a long-term semantic brain that spans tools, teams, and environments.
+
+## What Mem0 Adds Is Another Layer: Cross-Tool Semantic Memory
+
+Mem0 brings itself into the second half of the article, but the better reading is not "Codex lost, Mem0 won." More precisely, they solve problems at different layers.
+
+Built-in Codex CLI memory answers: "On this same machine, for this same user, do not forget important preferences next time work starts."
+
+Mem0 wants to answer: "Across different tools, machines, and sessions, how do we share one long-term, searchable memory layer that understands meaning?"
+
+The connection point is [MCP](/glossary#mcp). You can think of [MCP](/en/glossary#mcp) as the socket Agents use to plug into external tools: Codex CLI does not need to bake Mem0 into its own body. It only needs to declare a server in `~/.codex/config.toml`, and the memory tool can be plugged in. The minimal setup from Mem0's docs roughly looks like this:
+
+```toml
+[mcp_servers.mem0]
+url = "https://mcp.mem0.ai/mcp"
+bearer_token_env_var = "MEM0_API_KEY"
+```
+
+After that, the Agent is no longer only searching text in a local cheat sheet. It can add, search, update, and delete records in an external memory store. The real difference is not the tool name, but the underlying capability: memory can follow the same user across laptops, servers, and CI environments; Codex CLI, Cursor, and other MCP-capable tools can point at the same memory service; search can use semantic retrieval, not just literal word overlap; large memory stores do not need to be stuffed wholesale into a 5,000-token cheat sheet, because relevant pieces can be retrieved per task; memory can also be written while the conversation happens, without waiting for a six-hour idle threshold.
+
+The original post also mentions regional limits: when Codex's built-in memory feature launched, users in the EEA, the UK, and Switzerland could not use it; Mem0 lists that as one of its own use cases. Product availability like this changes easily, so the real answer still depends on current OpenAI and Mem0 terms, plus the account's region.
+
+The cost is equally clear: one more external system, one more API key, one more layer of privacy and governance, and one more service to monitor. For some teams, that is necessary infrastructure. For others, it is just upgrading sticky notes into a data center.
+
+<MoguNote>The decision rule is simple: if the problem is "Codex should remember my preferences next time on the same machine," local Markdown is reasonable. If the problem is "different tools, different machines, and different moments should all remember the same thing, even when I phrase it differently," that is no longer `grep`'s job. Asking `grep` to understand semantics is like asking the corner store clerk to also redesign the city's zoning plan. Too much.</MoguNote>
+
+## Closing
+
+The most charming thing about Codex CLI memory is that it does not pretend to be a brain. It is a documented, asynchronous, inspectable, searchable engineering pipeline. That makes it stable, cheap, and transparent, and it also means it naturally runs into ceilings around semantic retrieval, cross-machine sync, and live updates.
+
+The real takeaway from Mem0's post is not "built-in memory lost" or "external memory won." It is that Agent memory needs one question answered first: is the requirement a local work cheat sheet, or a long-term semantic layer across tools?
+
+The former can be a stack of Markdown. The latter needs a system that can truly remember, retrieve, and follow along.

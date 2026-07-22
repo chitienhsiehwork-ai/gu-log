@@ -19,7 +19,7 @@ import type { VibeJudgeOutput, FinalVibeJudgeOutput, FactLibJudgeOutput } from '
 
 /**
  * Generate tribunal branch name.
- * Format: `tribunal/2026-04-11-cp-280-slug`
+ * Format: `tribunal/2026-04-11-mp-280-slug`
  *
  * Extracts the date from today (branch creation time) and the slug
  * from the article path.
@@ -40,7 +40,7 @@ function formatVibeScores(scores: VibeJudgeOutput['scores']): string {
   // from the Vibe scores, so we only print it when present.
   const parts = [
     `persona:${scores.persona}`,
-    `clawdNote:${scores.clawdNote}`,
+    `moguNote:${scores.moguNote}`,
     `vibe:${scores.vibe}`,
   ];
   if (scores.clarity !== undefined) {
@@ -76,10 +76,10 @@ function formatStageStatus<T>(label: string, stage: StageResult<T>, detail?: str
  *
  * Example output:
  * ```
- * tribunal: CP-280 延遲降低 40% 的新框架
+ * tribunal: MP-280 延遲降低 40% 的新框架
  *
  * Stage 0: PASS (no warn)
- * Stage 1: PASS @ loop 2/3 (persona:9 clawdNote:8 vibe:9 clarity:8 narrative:8)
+ * Stage 1: PASS @ loop 2/3 (persona:9 moguNote:8 vibe:9 clarity:8 narrative:8)
  * Stage 2: PASS @ loop 1/2
  * Stage 3: PASS @ loop 1/2 (fact:9 lib:8)
  * Stage 4: PASS @ loop 1/2 (no regression)

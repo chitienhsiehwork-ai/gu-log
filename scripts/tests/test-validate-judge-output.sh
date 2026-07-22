@@ -84,20 +84,20 @@ assert_error "codex: score 15" codex \
 
 # ─── Opus: valid ───
 assert_ok "opus: all sub-scores present" opus \
-  '{"score": 9, "reasoning": "Great vibe", "details": {"persona": 9, "clawdNote": 9, "vibe": 9}}'
+  '{"score": 9, "reasoning": "Great vibe", "details": {"persona": 9, "moguNote": 9, "vibe": 9}}'
 
 # ─── Opus: invalid ───
 assert_error "opus: missing persona" opus \
-  '{"score": 7, "reasoning": "ok", "details": {"clawdNote": 8, "vibe": 7}}' "Missing 'details.persona'"
+  '{"score": 7, "reasoning": "ok", "details": {"moguNote": 8, "vibe": 7}}' "Missing 'details.persona'"
 
-assert_error "opus: missing clawdNote" opus \
-  '{"score": 7, "reasoning": "ok", "details": {"persona": 8, "vibe": 7}}' "Missing 'details.clawdNote'"
+assert_error "opus: missing moguNote" opus \
+  '{"score": 7, "reasoning": "ok", "details": {"persona": 8, "vibe": 7}}' "Missing 'details.moguNote'"
 
 assert_error "opus: missing vibe" opus \
-  '{"score": 7, "reasoning": "ok", "details": {"persona": 8, "clawdNote": 7}}' "Missing 'details.vibe'"
+  '{"score": 7, "reasoning": "ok", "details": {"persona": 8, "moguNote": 7}}' "Missing 'details.vibe'"
 
 assert_error "opus: sub-score out of range" opus \
-  '{"score": 7, "reasoning": "ok", "details": {"persona": 11, "clawdNote": 8, "vibe": 7}}' "must be integer 0-10"
+  '{"score": 7, "reasoning": "ok", "details": {"persona": 11, "moguNote": 8, "vibe": 7}}' "must be integer 0-10"
 
 # ─── Edge cases ───
 # Empty file test (write zero bytes)

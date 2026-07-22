@@ -28,7 +28,6 @@ if git config --local --get-all core.hooksPath >/dev/null 2>&1; then
     git config --local --unset-all core.hooksPath
     echo "✓ Removed legacy clone-scoped core.hooksPath"
 fi
-
 mkdir -p "$GIT_HOOKS_DIR"
 echo "✓ Set worktree-scoped core.hooksPath to $GIT_HOOKS_DIR"
 

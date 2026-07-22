@@ -2,9 +2,15 @@ import type { APIContext } from 'astro';
 import { getCollection } from 'astro:content';
 import { getPostAuthorshipNote } from '../../utils/post-authorship-notes';
 import { getPublishedPosts } from '../../utils/post-status';
+import { getLocalizedPostUrl } from '../../utils/post-urls';
 
 /**
  * Static JSON feed for gu-log iOS app (and any other client).
+ *
+ * Schema v2 (breaking, Mogu GP/MP taxonomy):
+ *   - `schemaVersion: 2` replaces the old `version: 1` field
+ *   - `prefix` only emits canonical GP/MP/SD/Lv; retired prefixes are never emitted
+ *   - `url` is the localized route (en posts link under /en/posts/)
  *
  * Returns all article metadata sorted by date (newest first).
  * Full article content is NOT included — fetch individual posts
@@ -13,15 +19,15 @@ import { getPublishedPosts } from '../../utils/post-status';
  * Fields per article:
  *   slug, ticketId, prefix, title, summary, tags, lang,
  *   originalDate, translatedDate, source, sourceUrl, authorshipNote,
- *   translatedBy (model info), url (relative link)
+ *   translatedBy (model info), url (relative localized link)
  */
 export async function GET(_context: APIContext) {
   const posts = getPublishedPosts(await getCollection('posts'));
 
-  // Derive prefix (SP/CP/Lv/SD) from ticketId
+  // Derive prefix (GP/MP/SD/Lv) from ticketId
   const getPrefix = (ticketId?: string): string | null => {
     if (!ticketId) return null;
-    const match = ticketId.match(/^(SP|CP|Lv|SD)-/);
+    const match = ticketId.match(/^(GP|MP|Lv|SD)-/);
     return match ? match[1] : null;
   };
 
@@ -45,7 +51,7 @@ export async function GET(_context: APIContext) {
             harness: post.data.translatedBy.harness,
           }
         : null,
-      url: `/posts/${post.id}`,
+      url: getLocalizedPostUrl(post),
     }))
     // Sort by most recent date (translatedDate preferred, fallback originalDate)
     .sort((a, b) => {
@@ -56,7 +62,7 @@ export async function GET(_context: APIContext) {
 
   return new Response(
     JSON.stringify({
-      version: 1,
+      schemaVersion: 2,
       generated: new Date().toISOString(),
       count: feed.length,
       articles: feed,

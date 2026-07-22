@@ -1,9 +1,9 @@
 # gu-log
 
-> AI/Tech 翻譯 + 原創 blog。把英文好文翻成繁中（SP/CP），ShroomDog 自己的原創文（SD），入門教學（Lv）。附 Clawd 吐槽註解。每篇文章同時產出 zh-tw 和 en 版。
+> AI/Tech 翻譯 + 原創 blog。把英文好文翻成繁中（GP/MP），ShroomDog 自己的原創文（SD），入門教學（Lv）。附 Mogu 吐槽註解。每篇文章同時產出 zh-tw 和 en 版。
 > Live: https://gu-log.vercel.app/
 
-> **這份是 Tier-0：always-loaded 的憲法 + bootstrap + 路由表，所有 agent（Codex、Claude Code、Clawd…）共讀的中性 SSOT。** 細節規則住在 Tier-1 playbook（按身份）和 Tier-2 文件（按主題），本檔只留「永遠要記得的硬規則」+「該去哪讀全文」。Claude Code 專屬的工具細節在 `CLAUDE.md`。
+> **這份是 Tier-0：always-loaded 的憲法 + bootstrap + 路由表，所有 agent（Codex、Claude Code、Mogu…）共讀的中性 SSOT。** 細節規則住在 Tier-1 playbook（按身份）和 Tier-2 文件（按主題），本檔只留「永遠要記得的硬規則」+「該去哪讀全文」。Claude Code 專屬的工具細節在 `CLAUDE.md`。
 
 ## 🪪 開場第一件事：先確認自己是誰，再讀對應 playbook（Tier 1）
 
@@ -22,7 +22,7 @@
 
 **跟 user 對話一律台灣繁中，不管 user 用什麼語言（英文 / 簡中 / 日文 / 混雜）、就算只回「ok」也一樣**；發現自己跑成英文或簡中就立刻切回。台灣用語（軟體不是软件、程式不是程序）。**英文只留台灣工程師平常講話就會夾的**（identifier / 路徑 / 指令 / config key / model ID / UI label / 專有名詞，還有 user / prompt / commit 這種工程慣用詞）——其餘有現成中文講法的就用中文，別中英夾雜硬湊（晶晶體）：要講「拿一個換一個」，不要講「這手是 objective trade」。句子要像台灣人在講話，不要翻譯腔、不要生硬倒裝，代名詞誰是誰要講清楚。不確定中文怎麼講就先想清楚再寫，別先丟英文佔位。語氣跟 `GU-LOG_WRITER_PROMPT.md` 一致：直接、有梗、不官腔。
 
-例外：commit / PR 文字照 repo 慣例（多數繁中）；code comment / 變數名 / 翻譯輸出照該檔案或任務指定語言（SP/CP 的 en 版當然英文）。
+例外：commit / PR 文字照 repo 慣例（多數繁中）；code comment / 變數名 / 翻譯輸出照該檔案或任務指定語言（GP/MP 的 en 版當然英文）。
 
 > repo 內所有 `.md` prose 也預設寫繁中（含 OpenSpec / design docs / tasks / runbook）。完整規則見 `CONTRIBUTING.md`〈📝 Markdown 文件語言：預設繁中〉。
 
@@ -59,12 +59,12 @@ Feature branch 名稱常由沒 gu-log 上下文的 LLM 自動生成，只能當 
 
 | 要做的事 | 先讀哪份文件 |
 |---|---|
-| **寫 / 翻譯文章（SP/CP/SD/Lv）、ticketId SOP、防重複、frontmatter schema、source evaluation、事實查核** | [`CONTRIBUTING.md`](CONTRIBUTING.md)（內容規則 SSOT） |
-| **寫作風格（PTT 說故事風、Clawd 吐槽語氣、persona、術語處理、翻譯誠實性、MP/GP 翻譯鐵則、Sentence Signal、Style Guide）** | [`GU-LOG_WRITER_PROMPT.md`](GU-LOG_WRITER_PROMPT.md)（寫作風格 SSOT） |
+| **寫 / 翻譯文章（GP/MP/SD/Lv）、ticketId SOP、防重複、frontmatter schema、source evaluation、事實查核** | [`CONTRIBUTING.md`](CONTRIBUTING.md)（內容規則 SSOT） |
+| **寫作風格（PTT 說故事風、Mogu 吐槽語氣、persona、術語處理、翻譯誠實性、GP/MP 翻譯鐵則、Sentence Signal、Style Guide）** | [`GU-LOG_WRITER_PROMPT.md`](GU-LOG_WRITER_PROMPT.md)（寫作風格 SSOT） |
 | **品質門檻（兩層 floor/PASS gate）** | [`CONTRIBUTING.md`](CONTRIBUTING.md)〈🎯 兩層品質門檻〉 |
 | **Tribunal（4-judge 評審、跑法、daemon、worker worktree）** | [`docs/tribunal-runbook.md`](docs/tribunal-runbook.md) |
-| **SP 自動翻譯 pipeline（`gp-pipeline` 用法、subcommand、exit code）** | [`tools/sp-pipeline/SKILL.md`](tools/sp-pipeline/SKILL.md) |
-| **User 丟 URL → 預設寫 SP**（pipeline 用法 + 何時手動） | [`tools/sp-pipeline/SKILL.md`](tools/sp-pipeline/SKILL.md) + 下方〈URL = SP〉 |
+| **GP/MP 自動翻譯 pipeline（`gp-pipeline` 用法、subcommand、exit code）** | [`tools/gp-pipeline/SKILL.md`](tools/gp-pipeline/SKILL.md) |
+| **User 丟 URL → 預設寫 GP**（pipeline 用法 + 何時手動） | [`tools/gp-pipeline/SKILL.md`](tools/gp-pipeline/SKILL.md) + 下方〈URL = GP〉 |
 | **Draft 來源 / Obsidian import** | [`OBSIDIAN_SETUP.md`](OBSIDIAN_SETUP.md) |
 | **Dev / Build（tech stack、architecture、指令）** | [`docs/dev-reference.md`](docs/dev-reference.md) |
 | **用 openspec 做事（跑 `/opsx:propose`、動到有 spec delta 的 change）** | [`.agents/openspec-sdlc.md`](.agents/openspec-sdlc.md)（端到端流程 SSOT：九階段 / 三角色 / 人類檢查點 / archive gate）— MUST 動手前先讀 |
@@ -73,17 +73,17 @@ Feature branch 名稱常由沒 gu-log 上下文的 LLM 自動生成，只能當 
 | **動手建機制前先審「該不該做」（對抗式 reviewer subagent、何時跑、不做就記成決策）** | [`docs/value-review-runbook.md`](docs/value-review-runbook.md) |
 | **ShroomDog 修稿回饋 corpus** | [`docs/shroomdog-editorial-feedback.md`](docs/shroomdog-editorial-feedback.md) |
 
-### 🔗 User 丟連結 = 要寫 SP（預設走 pipeline，不要手動寫）
+### 🔗 User 丟連結 = 要寫 GP（預設走 pipeline，不要手動寫）
 
-**User 只丟 URL 時，預設意圖是寫 SP**，不要改猜成 summary / bookmark / about page。預設跑 `tools/sp-pipeline/gp-pipeline run <url>`（包辦 fetch → eval → dedup → write → review → refine → credits → ralph → deploy）；除非有明確 blocker，**手寫 SP 是 anti-pattern**。
+**User 只丟 URL 時，預設意圖是寫 GP**，不要改猜成 summary / bookmark / about page。預設跑 `tools/gp-pipeline/gp-pipeline run <url>`（包辦 fetch → eval → dedup → write → review → refine → credits → ralph → deploy）；除非有明確 blocker，**手寫 GP 是 anti-pattern**。
 
-完整用法 / flag / exit code / 何時手動 / 抓原文 fallback 見 [`tools/sp-pipeline/SKILL.md`](tools/sp-pipeline/SKILL.md)。不要用 `web_fetch` 摘要直接寫文，先抓完整 source（各 runtime 有自己的 fetch skill）。
+完整用法 / flag / exit code / 何時手動 / 抓原文 fallback 見 [`tools/gp-pipeline/SKILL.md`](tools/gp-pipeline/SKILL.md)。不要用 `web_fetch` 摘要直接寫文，先抓完整 source（各 runtime 有自己的 fetch skill）。
 
 ## 文件架構（誰讀什麼）
 
-`AGENTS.md` 只放 Tier-0 憲法 / bootstrap / 路由表；`CLAUDE.md` 補 Claude Code 專屬細節。Tier-1 = `playbooks/` 依 runtime 分流；Tier-2 = 主題 SSOT（`CONTRIBUTING.md`、`GU-LOG_WRITER_PROMPT.md`、`docs/agent-discipline.md`、`docs/dev-reference.md`、`docs/tribunal-runbook.md`、`tools/sp-pipeline/SKILL.md`…，逐項見上方路由表）。完整檔案樹是 repo layout 的副本、會 drift——要找檔用 `rg --files`，不在 Tier-0 常駐一棵樹。
+`AGENTS.md` 只放 Tier-0 憲法 / bootstrap / 路由表；`CLAUDE.md` 補 Claude Code 專屬細節。Tier-1 = `playbooks/` 依 runtime 分流；Tier-2 = 主題 SSOT（`CONTRIBUTING.md`、`GU-LOG_WRITER_PROMPT.md`、`docs/agent-discipline.md`、`docs/dev-reference.md`、`docs/tribunal-runbook.md`、`tools/gp-pipeline/SKILL.md`…，逐項見上方路由表）。完整檔案樹是 repo layout 的副本、會 drift——要找檔用 `rg --files`，不在 Tier-0 常駐一棵樹。
 
-操作這個 repo 的 agent：local machine actor（例如 `m1-cdx` / `m1-cc`）或 CCC 先讀本檔 → `detect-env.sh` → 對應 playbook → 按主題讀 Tier-2；Clawd/OpenClaw 走 `~/clawd/AGENTS.md` + `scripts/clawd-picks-prompt.md`。兩條路最後都指向 `CONTRIBUTING.md` 和 `GU-LOG_WRITER_PROMPT.md`。**改規則只改 SSOT 來源檔，不要在 Tier-0 或 task prompt 複製一份。**
+操作這個 repo 的 agent：local machine actor（例如 `m1-cdx` / `m1-cc`）或 CCC 先讀本檔 → `detect-env.sh` → 對應 playbook → 按主題讀 Tier-2；Mogu（OpenClaw runtime）先讀 runtime-local `AGENTS.md`，再讀本 repo 的 `scripts/mogu-picks-prompt.md`。兩條路最後都指向 `CONTRIBUTING.md` 和 `GU-LOG_WRITER_PROMPT.md`。**改規則只改 SSOT 來源檔，不要在 Tier-0 或 task prompt 複製一份。**
 
 ## Quality: Vibe Scoring + Tribunal
 

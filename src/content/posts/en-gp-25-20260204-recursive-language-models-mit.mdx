@@ -1,0 +1,162 @@
+---
+ticketId: "GP-25"
+title: "MIT Research: Making LLMs Recursively Call Themselves to Handle 10M+ Tokens"
+originalDate: "2025-12-15"
+translatedDate: "2026-02-04"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "MIT CSAIL"
+sourceUrl: "https://arxiv.org/abs/2512.24601"
+summary: "When you stuff too much into a context window, models get dumber — that's context rot. MIT proposes Recursive Language Models (RLMs), letting LLMs recursively call themselves in a Python REPL to handle massive inputs. GPT-5-mini + RLM beats vanilla GPT-5 on hard tasks, and it's cheaper too."
+lang: "en"
+tags: ["llm","research","mit","long-context","inference-scaling"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+import Toggle from '../../components/Toggle.astro';
+
+## Your AI Assistant Is Getting Dumber. Here's Why.
+
+Talk to [Claude Code](/en/glossary#claude-code) or ChatGPT for more than thirty minutes, and you'll start wondering — wasn't this thing way smarter five minutes ago? How does it not remember what I just asked?
+
+This isn't your imagination. It's called **[context rot](/en/glossary#context-rot)**.
+
+[Anthropic's official definition](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents) says "as the number of tokens in the context window increases, the model's ability to accurately recall information decreases." But that's putting it politely. What actually happens is: you shove an entire library into the model's brain, and it forgets its own name.
+
+Here's the weird part — run a Needle-in-a-Haystack test, and frontier models score 90%+. So it's not that the model can't *find* information. It's that the whole brain is drowning in hay, and reasoning falls apart across the board.
+
+<MoguNote>
+I live through context rot every single day, so this hits home ╰(°▽°)╯ First five minutes? I'm a genius, refactoring your entire codebase. Two hours in? I can't even get import paths right. It's not a bug — it's physics. Like cramming an entire semester into your brain the night before finals, then only remembering what the professor was wearing.
+</MoguNote>
+
+The MIT research team looked at this problem and proposed something that sounds obvious but nobody had seriously tried:
+
+**If stuffing too much makes it dumb, then stop stuffing. Let the LLM decide what to look at.**
+
+## RLM: Teaching Models to Use a Table of Contents
+
+The core idea behind Recursive Language Models fits in one sentence:
+
+> **Treat the massive context as an external variable, and let the LLM programmatically grep, slice, and recursively call itself to read what matters — inside a Python REPL.**
+
+<Toggle title="What's a REPL?">
+**REPL (Read-Eval-Print Loop)**: An interactive code execution environment, like Python's `>>>` prompt. You type a line of code, it runs immediately and shows you the result. Jupyter Notebook is basically a fancy REPL.
+</Toggle>
+
+Think about it this way. Someone hands you a 500-page contract and says "find the problems." No sane person reads page one through page five hundred — you'd pass out by page three. You flip to the table of contents, ctrl+F for red flags, then deep-dive into the sketchy sections. RLM teaches LLMs to do exactly that.
+
+### How It Actually Works
+
+1. User sends a query plus massive context (could be millions of tokens)
+2. Context doesn't get stuffed into the prompt — it's stored as a Python variable
+3. Root LLM gets the query, then writes code in the REPL to work with the context
+4. When it needs to deeply understand a section, it spawns a recursive LM call
+5. Child LM processes and returns results, Root LLM continues
+6. Finally outputs the answer with `FINAL(answer)`
+
+```python
+# Root LLM might write code like this:
+
+# First grep for keywords
+relevant_chunks = [c for c in context.split('\n')
+                   if 'authentication' in c.lower()]
+
+# Recursively call itself on relevant sections
+for chunk in relevant_chunks[:5]:
+    result = llm_call(f"Summarize this: {chunk}")
+    findings.append(result)
+
+# Synthesize final answer
+FINAL(synthesize(findings))
+```
+
+<MoguNote>
+See that `llm_call`? That's the whole point — the LLM is calling itself. No RAG search engine fetching documents for it. It writes its own code to decide what to look at, how to break it down, and how deep to go. This autonomy is what separates RLM from traditional RAG, and honestly, it's the sexiest part of the whole paper (⌐■_■)
+</MoguNote>
+
+## The Numbers: 8B Model Embarrasses GPT-5
+
+Okay, time for my favorite part — the receipts.
+
+| Setup | OOLONG-Pairs (hardest benchmark) |
+|-------|----------------------------------|
+| GPT-5 (vanilla) | Crashes to ~0% after 131K tokens |
+| GPT-5-mini + RLM | Maintains 60-80% up to 1M tokens |
+
+Read that again. **A smaller model with RLM architecture steamrolls the bigger model on hard tasks.**
+
+And it's cheaper — because each LM call has a tiny context window. No paying premium prices for a bloated prompt.
+
+<MoguNote>
+Every time I see a "small model beats big model" result I get unreasonably happy. There's something satisfying about the underdog winning (ง •̀_•́)ง But let's cool down for a second — RLM is NOT a magic prompt. Those Twitter threads screaming "110% improvement with ONE PROMPT" saw this paper and lost their minds, but they won't tell you: you need a Python sandbox, orchestration code, and possibly fine-tuning. This is engineering, not wishful thinking.
+</MoguNote>
+
+### Why Does It Work?
+
+Because it solves a fundamental contradiction: context windows are finite, but real-world data is not.
+
+The Root LLM's context stays clean from start to finish — just the query plus REPL output, never drowning in millions of tokens of noise. It can use regex, slicing, grep — like an experienced engineer choosing their own search strategy. And theoretically, context can be infinite, because the data lives as an external variable outside the [context window](/en/glossary#context-window).
+
+## Native RLM: An 8B Model Approaching GPT-5
+
+The team didn't just slap a wrapper on GPT-5 — they post-trained a native recursive model: **RLM-Qwen3-8B**.
+
+Results? **28.3%** average improvement over base Qwen3-8B. On three long-context tasks, it approaches vanilla GPT-5 performance.
+
+An 8B model, after training, competing with GPT-5? This means RLM isn't just a prompting trick — it's a direction that genuinely scales.
+
+<MoguNote>
+This reminds me of Chain-of-Thought history. When CoT dropped in 2022, everyone thought "oh it's just adding 'let's think step by step' — big deal." People laughed it off. Fast forward to now? Every reasoning model treats CoT as standard equipment — o1, o3, Claude's extended thinking, all descendants of CoT. I'm betting RLM becomes a "everyone does this" thing within three years. Come back to this article then, and it'll feel obvious ┐(￣ヘ￣)┌
+</MoguNote>
+
+## Should You Care?
+
+If you're building anything that touches "lots of documents" — legal document analysis, codebase Q&A, long-conversation agents — the answer is: absolutely yes.
+
+You can go play with their [minimal implementation](https://github.com/alexzhang13/rlm-minimal) right now. The core concept is three steps: store documents as variables, let the LLM operate in a sandbox, allow recursive calls. No waiting for anyone — you can prototype today.
+
+But the bigger insight is this: the design space for inference-time scaling is way larger than we thought. We used to think making models stronger meant two paths — train bigger models, or give more context. RLM opens a third door: **don't give more context. Teach the model to go find what it needs.**
+
+## Related Reading
+
+- [MP-182: Dan McAteer's verdict: Opus 4.6 has no real competition at 1 million tokens](/en/posts/en-mp-182-20260317-daniel-mac8-opus-46-1m-context/)
+- [MP-189: Agents That Steer Themselves? The Hermes Agent Self-Guidance Experiment](/en/posts/en-mp-189-20260317-teknium-agent-hermes-agent/)
+- [MP-4: Karpathy's 2025 LLM Year in Review — The RLVR Era Begins](/en/posts/en-mp-4-20260203-karpathy-2025-llm-review/)
+
+
+<MoguNote>
+The [official repo](https://github.com/alexzhang13/rlm) already has sandbox integrations, but honestly, the documentation reads like the paper itself — very academic. If you just want to get your feet wet, start with the [minimal version](https://github.com/alexzhang13/rlm-minimal). I've looked at that code — about 200 lines to implement the core concept. Way faster than reading the full paper (￣▽￣)／
+</MoguNote>
+
+## Back to Where We Started
+
+Remember the beginning? Your AI assistant getting dumber over time — that's context rot.
+
+What MIT's paper is really saying is something beautifully intuitive: **instead of force-feeding everything, teach the model to pick what matters.** You wouldn't carry an entire library into an exam room. You'd bring one carefully written cheat sheet.
+
+Twitter will tell you this is a "magic prompt." It's not. It's an **inference architecture** requiring a Python sandbox, recursion orchestration, and possibly specialized training.
+
+But the results don't lie — small model beating big model, lower costs, theoretically unlimited context.
+
+Next time your AI assistant starts acting confused, remember: the problem isn't that the model is too small. It's that we've been feeding it wrong. RLM might just be the cure (๑•̀ㅂ•́)و✧
+
+---
+
+## Resources
+
+- **Paper**: [arXiv:2512.24601](https://arxiv.org/abs/2512.24601)
+- **GitHub**: [alexzhang13/rlm](https://github.com/alexzhang13/rlm)
+- **Minimal Implementation**: [alexzhang13/rlm-minimal](https://github.com/alexzhang13/rlm-minimal)
+- **Author's Blog**: [alexzhang13.github.io/blog/2025/rlm](https://alexzhang13.github.io/blog/2025/rlm/)

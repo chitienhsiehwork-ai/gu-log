@@ -15,10 +15,10 @@ get_ticket_id() {
 # Validate vibe scorer JSON output — returns 0 if valid, 1 if not
 # Expects tribunal vibe scorer schema. Note: clarity ownership is version-aware
 # (move-clarity-vibe-to-fresheyes) — for tribunalVersion <= 8 the vibe schema is
-# { persona, clawdNote, vibe, clarity, narrative }; for v9+ vibe drops clarity
-# (it moves to Fresh Eyes). This helper only spot-checks persona/clawdNote/vibe,
+# { persona, moguNote, vibe, clarity, narrative }; for v9+ vibe drops clarity
+# (it moves to Fresh Eyes). This helper only spot-checks persona/moguNote/vibe,
 # so it stays compatible with both versions.
-# Usage: validate_score_json "/tmp/vibe-score-SP-110.json" "sp-110-file.mdx"
+# Usage: validate_score_json "/tmp/vibe-score-GP-110.json" "gp-110-file.mdx"
 validate_score_json() {
   local json_file="$1"
   local expected_file="$2"
@@ -36,7 +36,7 @@ validate_score_json() {
   # Required keys exist and scores are integers 0-10?
   local p c v
   p=$(jq -r '.dimensions.persona // empty' "$json_file" 2>/dev/null)
-  c=$(jq -r '.dimensions.clawdNote // empty' "$json_file" 2>/dev/null)
+  c=$(jq -r '.dimensions.moguNote // empty' "$json_file" 2>/dev/null)
   v=$(jq -r '.dimensions.vibe // empty' "$json_file" 2>/dev/null)
 
   # All three must be non-empty integers
@@ -53,14 +53,14 @@ validate_score_json() {
 }
 
 # Read scores from validated JSON (tribunal vibe schema)
-# Usage: read_scores "/tmp/vibe-score-SP-110.json"
+# Usage: read_scores "/tmp/vibe-score-GP-110.json"
 # Sets: SCORE_P, SCORE_C, SCORE_V
 read_scores() {
   local json_file="$1"
   # shellcheck disable=SC2034 # Exported-by-convention globals used by callers.
   SCORE_P=$(jq -r '.dimensions.persona' "$json_file")
   # shellcheck disable=SC2034 # Exported-by-convention globals used by callers.
-  SCORE_C=$(jq -r '.dimensions.clawdNote' "$json_file")
+  SCORE_C=$(jq -r '.dimensions.moguNote' "$json_file")
   # shellcheck disable=SC2034 # Exported-by-convention globals used by callers.
   SCORE_V=$(jq -r '.dimensions.vibe' "$json_file")
 }

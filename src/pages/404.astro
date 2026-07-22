@@ -1,0 +1,93 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  title="找不到頁面 / Page not found · gu-log"
+  description="這個 gu-log 網址不存在，請返回首頁或繼續瀏覽 Gu-log Picks 與 Mogu Picks。"
+  noindex
+>
+  <section class="not-found" aria-labelledby="not-found-title">
+    <p class="error-code" aria-hidden="true">404</p>
+    <h1 id="not-found-title">這頁走丟了 / Page not found</h1>
+    <p>
+      網址可能已更名、移動，或從未存在。你可以返回首頁，或直接繼續逛最新的 Gu-log Picks 與 Mogu
+      Picks。
+    </p>
+    <p class="english-copy" lang="en">
+      This address may have moved, changed, or never existed. Head home or keep reading below.
+    </p>
+    <nav class="recovery-links" aria-label="404 recovery links">
+      <a class="primary-link" href="/">返回首頁</a>
+      <a href="/en">English home</a>
+      <a href="/gu-log-picks">Gu-log Picks</a>
+      <a href="/mogu-picks">Mogu Picks</a>
+    </nav>
+  </section>
+</BaseLayout>
+
+<style>
+  .not-found {
+    max-width: 36rem;
+    margin: 4rem auto;
+    text-align: center;
+  }
+
+  .error-code {
+    margin-bottom: 0.25rem;
+    color: var(--color-source-link);
+    font-size: clamp(3.5rem, 16vw, 7rem);
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.06em;
+  }
+
+  .not-found h1 {
+    margin-bottom: 1rem;
+  }
+
+  .not-found > p:not(.error-code) {
+    color: var(--color-text-muted);
+  }
+
+  .english-copy {
+    font-size: 0.9rem;
+  }
+
+  .recovery-links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 1.75rem;
+  }
+
+  .recovery-links a {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    padding: 0.55rem 0.9rem;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    background: var(--color-surface);
+    color: var(--color-text);
+    text-decoration: none;
+  }
+
+  .recovery-links a:hover {
+    border-color: var(--color-source-link);
+    color: var(--color-source-link);
+  }
+
+  .recovery-links a:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  .recovery-links .primary-link {
+    border-color: var(--color-source-link);
+    color: var(--color-source-link);
+    font-weight: 600;
+  }
+</style>

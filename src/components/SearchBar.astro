@@ -9,17 +9,19 @@ const { lang } = Astro.props;
 
 const i18n = {
   'zh-tw': {
-    placeholder: '搜尋文章（可用 SD-1, SP-14...）',
+    placeholder: '搜尋文章（可用 SD-1, GP-14...）',
     noResults: '找不到結果',
     countAll: '共 {total} 篇',
     countCapped: '共 {total} 篇，顯示前 {shown} 篇',
+    loading: '正在載入搜尋索引…',
     shortcut: '⌘K',
   },
   en: {
-    placeholder: 'Search (e.g., SD-1, SP-14...)',
+    placeholder: 'Search (e.g., SD-1, GP-14...)',
     noResults: 'No results found',
     countAll: '{total} results',
     countCapped: '{total} results, showing top {shown}',
+    loading: 'Loading search index…',
     shortcut: '⌘K',
   },
 };
@@ -53,6 +55,7 @@ const t = i18n[lang];
   data-no-results={t.noResults}
   data-count-all={t.countAll}
   data-count-capped={t.countCapped}
+  data-loading={t.loading}
   data-max-results={searchConfig.maxResults}
   data-debounce-ms={searchConfig.debounceMs}
   aria-hidden="true"
@@ -106,6 +109,7 @@ const t = i18n[lang];
   const noResultsText = modal?.dataset.noResults || 'No results found';
   const countAllTpl = modal?.dataset.countAll || '{total} results';
   const countCappedTpl = modal?.dataset.countCapped || '{total} results, showing top {shown}';
+  const loadingText = modal?.dataset.loading || 'Loading search index…';
   const maxResults = parseInt(modal?.dataset.maxResults || '15', 10);
   const debounceMs = parseInt(modal?.dataset.debounceMs || '150', 10);
 
@@ -194,6 +198,15 @@ const t = i18n[lang];
     return div.innerHTML;
   }
 
+  // Canonical ticket prefixes — the only classes allowed to reach the DOM.
+  // Never interpolate ticketId text directly into a class attribute.
+  const CANONICAL_TICKET_PREFIXES = new Set(['sd', 'gp', 'mp', 'lv']);
+
+  function ticketBadgeClass(ticketId: string): string {
+    const prefix = ticketId.split('-')[0]?.toLowerCase() ?? '';
+    return CANONICAL_TICKET_PREFIXES.has(prefix) ? `search-result-ticket--${prefix}` : '';
+  }
+
   // Wrap Fuse match indices in <mark> tags for highlighting
   function highlightText(text: string, matches: readonly FuseResultMatch[], key: string): string {
     if (!text) return '';
@@ -230,8 +243,8 @@ const t = i18n[lang];
 
     let allMatches: FuseResult<SearchEntry>[];
 
-    // Special-case: ticket ID prefix search (SD, SP, CP, Lv) — exact prefix match
-    const isTicketPrefix = /^(sd|sp|cp|lv)[-\s]?\d*/i.test(trimmed);
+    // Special-case: ticket ID prefix search (SD, GP, MP, Lv) — exact prefix match
+    const isTicketPrefix = /^(sd|gp|mp|lv)[-\s]?\d*/i.test(trimmed);
     if (isTicketPrefix) {
       const lower = trimmed.toLowerCase();
       const ticketMatches = searchIndex
@@ -268,7 +281,7 @@ const t = i18n[lang];
           const fuseMatches = result.matches ?? [];
 
           const ticketBadge = post.ticketId
-            ? `<span class="search-result-ticket">${escapeHtml(post.ticketId)}</span>`
+            ? `<span class="search-result-ticket ${ticketBadgeClass(post.ticketId)}">${escapeHtml(post.ticketId)}</span>`
             : '';
 
           const titleHtml = highlightText(post.title, fuseMatches, 'title');
@@ -324,6 +337,10 @@ const t = i18n[lang];
   // Lazy-load on first keystroke, then debounce search
   input?.addEventListener('input', async (e) => {
     if (debounceTimer) clearTimeout(debounceTimer);
+    const query = (e.target as HTMLInputElement).value.trim();
+    if (query && !searchIndex && results) {
+      results.innerHTML = `<div class="search-loading" role="status">${loadingText}</div>`;
+    }
     await ensureSearchIndex();
     debounceTimer = setTimeout(() => {
       performSearch((e.target as HTMLInputElement).value);
@@ -419,7 +436,7 @@ const t = i18n[lang];
     color: var(--color-text);
   }
 
-  .search-trigger:focus {
+  .search-trigger:focus:not(:focus-visible) {
     outline: none;
   }
 
@@ -433,7 +450,7 @@ const t = i18n[lang];
   .search-modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--color-modal-overlay);
     backdrop-filter: blur(4px);
     z-index: 1000;
     display: flex;
@@ -459,7 +476,7 @@ const t = i18n[lang];
     background: var(--color-bg);
     border: 1px solid var(--color-border);
     border-radius: 12px;
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 16px 48px var(--color-modal-shadow);
     overflow: hidden;
     transform: scale(0.95) translateY(-10px);
     transition: transform 0.2s ease;
@@ -490,6 +507,7 @@ const t = i18n[lang];
     color: var(--color-text);
     font-size: 1rem;
     outline: none;
+    min-height: 44px;
   }
 
   .search-modal-input::placeholder {
@@ -534,7 +552,7 @@ const t = i18n[lang];
     padding: 0.875rem 1.25rem;
     margin: 6px 8px;
     text-decoration: none;
-    border: 1px solid var(--color-border, #e0e0e0);
+    border: 1px solid var(--color-border);
     border-radius: 8px;
     transition:
       background 0.15s ease,
@@ -567,11 +585,25 @@ const t = i18n[lang];
     display: inline-block;
     padding: 0.125rem 0.5rem;
     background: var(--color-accent);
-    color: white;
+    color: var(--color-bg);
     font-size: 0.7rem;
     font-weight: 600;
     border-radius: 4px;
     font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  }
+
+  /* Canonical taxonomy colors — only the four allowlisted prefixes get here (see ticketBadgeClass) */
+  .search-result-ticket--sd {
+    background: var(--color-badge-sd);
+  }
+  .search-result-ticket--gp {
+    background: var(--color-badge-gp);
+  }
+  .search-result-ticket--mp {
+    background: var(--color-badge-mp);
+  }
+  .search-result-ticket--lv {
+    background: var(--color-badge-lv);
   }
 
   .search-result-date {
@@ -599,7 +631,8 @@ const t = i18n[lang];
     font-size: 0.72rem;
   }
 
-  .search-no-results {
+  .search-no-results,
+  .search-loading {
     padding: 1.5rem;
     text-align: center;
     color: var(--color-text-muted);
@@ -609,7 +642,7 @@ const t = i18n[lang];
   /* Fuzzy match highlight */
   .search-highlight {
     background: var(--color-accent);
-    color: white;
+    color: var(--color-bg);
     border-radius: 2px;
     padding: 0 1px;
     font-style: normal;

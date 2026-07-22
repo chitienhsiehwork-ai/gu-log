@@ -10,12 +10,12 @@ source: "Level-Up Series / 0xkato"
 sourceUrl: "https://www.0xkato.xyz/how-llms-actually-work/"
 summary: "A large language model looks like it is chatting, but underneath it is a mechanical pipeline: text becomes token IDs, IDs become vectors, position is injected, transformer blocks apply attention and feed-forward processing, residual streams keep the stack stable, and logits become the next token."
 lang: "en"
-tags: ["level-up", "llm", "transformer", "attention", "tokenization", "tutorial"]
+tags: ["level-up","llm","transformer","attention","tokenization","tutorial"]
 ---
 
 import LevelUpProgress from '../../components/LevelUpProgress.astro';
 import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
-import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
 import AnalogyBox from '../../components/AnalogyBox.astro';
 import Mermaid from '../../components/Mermaid.astro';
 
@@ -61,9 +61,9 @@ This is why older models often failed at questions like "how many r's are in str
 
 Tokenization also affects cost. Fewer tokens means less work. More tokens means more steps through the transformer. Different model families use different tokenizers, so context length, API cost, and multilingual behavior all start here.
 
-<ClawdNote>
+<MoguNote>
 This is why "same prompt, different model" can change the bill. If the tokenizer changes, the ruler changes. The wall did not get longer. The measuring stick got weird.
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="What does tokenization mainly do?"
@@ -141,9 +141,9 @@ RoPE naturally represents relative position, which is often what attention needs
 
 But position is not a magic fix. Long contexts still have the **lost in the middle** problem. Models often use information near the beginning and end more reliably than information buried in the middle. A huge context window is like a huge fridge: everything may be inside, but finding the eggs is not guaranteed.
 
-<ClawdNote>
+<MoguNote>
 This is why some prompt advice is not pure superstition. Put important information near the beginning or the end, and models often handle it better. Some prompt tricks are just architecture symptoms wearing a trench coat.
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="What is the core intuition behind RoPE?"
@@ -187,9 +187,9 @@ GPT-style decoder-only models also use **causal masking**. When generating token
 
 This is also where **KV cache** matters. During generation, past Keys and Values can be stored so the model does not recompute the whole prompt every time it adds a token. That makes generation faster, but long contexts make the cache large.
 
-<ClawdNote>
+<MoguNote>
 KV cache is where "long context" becomes a very physical problem. More past tokens means more old K/V states to carry around. It is like a meeting transcript that keeps getting thicker. The secretary can still bring it, but every step gets heavier.
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="In Q/K/V attention, which part is the information actually copied when a match is strong?"
@@ -229,9 +229,9 @@ Instead of every query head having its own Key and Value heads, GQA lets multipl
 
 This is not just architecture trivia. It is inference engineering. If long-context generation needs to be affordable, KV-cache memory pressure must come down.
 
-<ClawdNote>
+<MoguNote>
 When a model card says GQA, read it as: "We are trying not to let KV cache eat the data center." Many architecture choices are not made for elegance. They are made because the bill has teeth.
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="What real-world problem does GQA mainly improve?"
@@ -273,9 +273,9 @@ Large models may also use **MoE**, or **Mixture of Experts**. Dense FFNs run the
 
 It is like a company with 100 experts, but each case only calls the 2 relevant people into the room.
 
-<ClawdNote>
+<MoguNote>
 MoE numbers are easy to misread. An 8x7B model does not necessarily run all 56B parameters for every token. It is more like a company with many departments. Not every email gets reviewed by the entire building. Usually.
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="What does the FFN mainly do inside a transformer layer?"
@@ -315,9 +315,9 @@ Early transformers often used post-norm. Modern GPT, LLaMA, and Mistral-style mo
 
 This is not glamorous. It is infrastructure. Without residual connections and normalization, the exciting parts would be much harder to stack deeply.
 
-<ClawdNote>
+<MoguNote>
 Real systems work the same way. The shiny parts are agents, browsers, and tools. The things that keep the system alive are retries, health checks, backpressure, and boring limits. Residual streams and norms are transformer infrastructure. Nobody claps until they break.
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="What is the core role of a residual connection?"
@@ -357,9 +357,9 @@ A smaller model drafts several tokens ahead. The larger model verifies them in p
 
 It is like an intern drafting three sentences and a senior engineer reviewing all three at once. The intern does not need to be smarter than the senior engineer. The intern just needs to save the senior engineer from starting every word from zero.
 
-<ClawdNote>
+<MoguNote>
 This is the biggest illusion. The model feels like it thinks and then answers, but the core generation is one token at a time. Modern reasoning models wrap this loop with hidden reasoning, tools, and planning harnesses, but the token loop is still underneath. Suit on the outside. Conveyor belt inside.
-</ClawdNote>
+</MoguNote>
 
 ## Closing
 
@@ -379,6 +379,6 @@ The magic feeling is still there. Now the machine room has a door.
 
 ## Further Reading
 
-- [CP-46: Karpathy trained GPT-2 for $72](/en/posts/en-clawd-picks-20260208-karpathy-nanochat-gpt2/)
-- [Prompt Caching / Paged Attention](/en/posts/en-shroom-picks-20260205-dejavucoder-prompt-caching-part3-paged-attention/)
-- [CP-186: Putting a computer inside a transformer](/posts/cp-186-20260317-christostzamos-transformer-llm/)
+- [MP-46: Karpathy trained GPT-2 for $72](/en/posts/en-mp-46-20260208-karpathy-nanochat-gpt2/)
+- [Prompt Caching / Paged Attention](/en/posts/en-gp-33-20260205-dejavucoder-prompt-caching-part3-paged-attention/)
+- [MP-186: Putting a computer inside a transformer](/posts/mp-186-20260317-christostzamos-transformer-llm/)

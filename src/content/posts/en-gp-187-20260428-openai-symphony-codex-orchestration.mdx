@@ -1,0 +1,126 @@
+---
+ticketId: "GP-187"
+title: "OpenAI Open-Sources Symphony: When Codex Workflow's Bottleneck Shifts From 'Writing Code' To 'Context Switching'"
+originalDate: "2026-04-27"
+translatedDate: "2026-04-28"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+source: "OpenAI Engineering blog"
+sourceUrl: "https://openai.com/index/open-source-codex-orchestration-symphony/"
+lang: "en"
+summary: "OpenAI open-sources Symphony — a spec that turns Linear's issue board into the control plane for Codex agents. Some teams saw 500% more landed PRs in three weeks, but the bigger observation: once Codex makes coding cheap, the next bottleneck is human attention."
+tags: ["codex","symphony","agent-orchestration","openai","linear"]
+scores:
+  tribunalVersion: 7
+  vibe:
+    persona: 8
+    moguNote: 8
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-05-25"
+    model: "gpt-5.5"
+  factCheck:
+    accuracy: 9
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 8
+    score: 8
+    date: "2026-05-25"
+    model: "gpt-5.5"
+  librarian:
+    glossary: 7
+    crossRef: 8
+    sourceAlign: 10
+    attribution: 10
+    score: 8
+    date: "2026-05-25"
+    model: "gpt-5.5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    score: 8
+    date: "2026-05-25"
+    model: "gpt-5.5"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+One engineer was in a cabin with Wi-Fi bad enough to make "I'll push later" sound reasonable, yet still moved three meaningful changes forward from the [Linear](/en/glossary#linear) app on his phone.
+
+The strange part is not "work can happen on a phone." The strange part is that the task board starts acting like a remote control for the codebase. The thing being pressed is a task card; the thing being activated is a Codex workspace.
+
+Set the context first. [MP-179](/en/posts/en-mp-179-20260316-daniel-mac8-symphony-manage-work-not-agents/) already covered the community-version skeleton of Symphony: Linear issue becomes Codex workspace, and the point is managing work instead of managing agents. The official version adds a harder story: how the task-board remote gets specified, rebuilt, and improved after failures.
+
+Linear is the task board here. A PR is a reviewable bundle of changes. Codex App Server can temporarily mean "the door an outside tool uses to ask Codex to take work." There are many terms, but the real question is how a task board stops being only a to-do list and starts becoming an interface.
+
+<MoguNote summary="The cabin scene matters more than the number">
+[Mogu](/en/glossary#mogu) would remember the cabin scene before remembering the 500% number (◕‿◕)
+
+Numbers become slide-deck fireworks too easily. The scene is harsher. It says the entry point for engineering is loosening: not every piece of work has to begin inside an IDE, but only if the work has been shaped so an agent can catch it, an engineer can understand it, and the system can track it.
+</MoguNote>
+
+---
+
+## The task board used to be a map. Now it starts acting like a remote control.
+
+A task board used to be a map: not started, in progress, waiting for review. The real work usually lived inside someone's IDE, terminal, chat window, and short-term memory.
+
+Symphony tries to change that. If a task card is not blocked, it can open a corresponding Codex workspace. If the agent crashes, it can restart. When the work finishes, the code change, test output, and video evidence return next to the card as review material.
+
+So the engineer in the cabin was not writing code on a phone. He was checking the state of the card: whether Codex had picked it up, whether the result came back, whether the evidence was enough, and whether the next step could move. The phone was not a tiny IDE. It was a remote control for task state.
+
+An internal productivity team at OpenAI first ran an aggressive experiment: no human-written code in this project repo; every line had to come from [Codex](/en/glossary#codex). The thing that broke was not Codex's ability to write. Engineers could manage three to five Codex conversations, then started forgetting which one was running, stuck, or waiting for a handoff.
+
+That is the value of the remote control: it does not make humans press more buttons. It keeps work state from living in human memory.
+
+---
+
+## Press the remote, get review material back.
+
+Imagine a card on the task board: fix a UI issue. The constraints are strict: do not break existing tests; return test results; if the screen changes, attach a video of the feature running in the product.
+
+Before Symphony, that card would first land in an engineer's head. The engineer opens the IDE, opens a Codex conversation, pastes the request, waits for it to run, switches back to the terminal for tests, and updates the board later.
+
+In Symphony's version, the card itself is the entry point. If the request is clear, the result may be more than "Codex fixed it." It can be a review packet: the change, the test record, verifiable evidence, sometimes even a video walkthrough inside the real product.
+
+This also explains why product managers and designers appear in the story. They do not need to clone the repo or babysit a Codex conversation. If the request is clear, they can get back something visible first. Engineers still own direction, risk, maintainability, tests, conflicts, reruns, and the final decision to merge.
+
+Some teams saw a 500% increase in landed PRs during the first three weeks. Read the caveats with the number: some teams, first three weeks, landed PRs. It is an early adoption case, not permanent 5x productivity across the whole company.
+
+---
+
+## SPEC.md is the wiring diagram.
+
+The first Symphony was rough: a Codex conversation polling Linear and starting work when new tasks appeared. It worked, but it was not stable. OpenAI says it later moved into a no-human-written-code repo, leaned on existing tests and tools, and eventually became a system used to build itself.
+
+The open-source version did not dump the full internal system. It shipped SPEC.md and a reference implementation. This is closer to a wiring diagram: how work enters, how Codex catches it, and how the result returns, written so another team can rebuild the pattern.
+
+Then comes the spec check: ask Codex to implement the same spec in several different stacks. The point is not to maintain a shelf of versions. The point is making the spec reveal its gaps. If one sentence works in one environment but breaks in another, the problem may not be the stack. The spec may have skipped a step that an engineer would normally fill in silently.
+
+<MoguNote summary="Use implementations to test a spec">
+This part is more reusable than the 500% number. Specs easily become beautiful essays: everyone nods, the PR merges, and three months later nobody implemented the same thing.
+
+Asking agents to implement the same spec in several ways is cheap stress testing. If the document is actually clear, it survives. If it only looks clear, the first implementation round starts smoking.
+</MoguNote>
+
+---
+
+## The remote control has to remember where it crashed.
+
+The UI card may not succeed on the first try. Codex might edit the wrong place, skip a test, forget the video, or discover that a simple-looking screen fix is really a larger architecture question.
+
+The fastest response is hand-fixing the result. That saves one PR, but it does not save the next card. Symphony's engineering habit is to treat failure as system material: failure modes can become tests, checks, operating instructions, and task guidance. Where the agent hits the wall, the next run should get a guardrail.
+
+This also explains why Symphony is not meant to become a standalone product. The project stays small. The point is not selling a universal task-board system. The point is showing how Codex App Server can connect Codex to external work systems. Linear is the side wired up in this example; the pattern is the real object.
+
+If the task board really becomes a codebase remote control, the biggest risk is not too few buttons. It is buttons becoming too easy to press. So the boundary matters more than the entry point: ambiguous, high-judgment problems whose acceptance criteria are still unclear still fit better as direct engineer-to-Codex work.
+
+Symphony is for a different class of work: the goal can be written clearly, checks can run, outputs can be reviewed, and failures can feed the next rule. If the task description is too vague, the system cannot route it reliably. If the task is specific enough, generation, validation, and review have a path to follow.
+
+Back to the phone in the cabin. The impressive part is not that a phone can remote-control Codex. The impressive part is that the task card was shaped clearly enough for the system to know where the next step should go, even without an engineer sitting in front of an IDE.
+
+That is the engineering question the official version adds: once writing code gets faster, how should work be handed off, verified, and turned into reusable checks after it fails?

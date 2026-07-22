@@ -25,7 +25,7 @@
 - 講術語（PMF/DMF）要先定義再用，他會抓。
 
 ## Open product thread (非 level-up 範圍，但記著)
-- learner 想試「gu-log 輕小說系列」：原創角色（Clawd/ShroomDog 已是 proto-character），現有 SP/SD/CP/Lv 當 backbone 或番外。
+- learner 想試「gu-log 輕小說系列」：原創角色（Mogu/ShroomDog 已是 proto-character），現有 SP/SD/CP/Lv 當 backbone 或番外。
 - 框架建議：別 commit 整個連載（=全都要），做一篇 pilot MVP 去撞無職轉生的尺。屬 critical design decision，等 user 拍板才動 repo。
 
 ## Next Suggested Levels

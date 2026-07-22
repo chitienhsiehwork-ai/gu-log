@@ -1,6 +1,8 @@
+<!-- md-zh-tw: ignore -->
+
 # Tribunal operations runbook
 
-> gu-log tribunal runtime is a quota-aware, graceful-stop daemon running on clawd-vm. It runs 4 judges (Librarian / FactChecker / FreshEyes / VibeScorer) against unscored posts and auto-rewrites failures. This doc covers the day-to-day operational moves.
+> gu-log tribunal runtime is a quota-aware, graceful-stop daemon running on the operator-configured Tribunal VM. It runs 4 judges (Librarian / FactChecker / FreshEyes / VibeScorer) against unscored posts and auto-rewrites failures. This doc covers the day-to-day operational moves.
 
 **Canonical specs (archived)**
 - `openspec/changes/archive/2026-04-23-tribunal-graceful-run-control/` — Phase 1, stop contract
@@ -8,7 +10,7 @@
 
 **Key files**
 - `scripts/tribunal-quota-loop.sh` — the daemon / supervisor. SSOT for long-running runtime.
-- `scripts/tribunal-all-claude.sh` — per-article worker (4 stages).
+- `scripts/tribunal.sh` — current per-article 4-stage runner; the supervisor dispatch code is the process-target SSOT.
 - `scripts/tribunal-run-control.sh` — shared stop / claim / flock helpers.
 - `scripts/tribunal-worker-bootstrap.sh` — manage worker worktrees.
 - `scripts/tribunal-batch-runner.sh` — bounded one-shot (cron / manual). **Not a daemon** — use `tribunal-quota-loop.sh` for daemon.
@@ -17,35 +19,115 @@
 
 ## Deploy
 
-VPS path: `~/clawd/projects/gu-log` (main worktree) + `~/clawd/projects/gu-log-worker-{a,b}` (worker worktrees).
+Host and checkout mappings are local-only. Before operating the VM, load `TRIBUNAL_HOST`、remote `GU_LOG_DIR` 與 remote `USAGE_MONITOR` from the local machine note; worker worktrees live beside `GU_LOG_DIR` as `gu-log-worker-{a,b}`.
 
 ```bash
-# On Mac: push the change
-git push origin main
+# On Mac: merge the approved PR through the protected branch flow first.
 
-# On VPS
-ssh clawd-vm
-cd ~/clawd/projects/gu-log
-git stash push -m "wip" --include-untracked        # uncommitted tribunal rewrites live here
+# One-time bootstrap（rerun whenever either remote path changes）.
+# GU_LOG_DIR and USAGE_MONITOR are absolute paths on the remote host.
+: "${TRIBUNAL_HOST:?Set TRIBUNAL_HOST}"
+: "${GU_LOG_DIR:?Set remote GU_LOG_DIR}"
+: "${USAGE_MONITOR:?Set remote USAGE_MONITOR}"
+
+case "$GU_LOG_DIR$USAGE_MONITOR" in
+  *$'\n'*|*$'\r'*|*"'"*)
+    echo "Remote paths must not contain newlines or single quotes" >&2
+    return 1 2>/dev/null || exit 1
+    ;;
+esac
+
+GU_LOG_DIR_B64=$(printf '%s' "$GU_LOG_DIR" | base64 | tr -d '\n')
+USAGE_MONITOR_B64=$(printf '%s' "$USAGE_MONITOR" | base64 | tr -d '\n')
+ssh "$TRIBUNAL_HOST" bash -s -- "$GU_LOG_DIR_B64" "$USAGE_MONITOR_B64" <<'CONFIG'
+set -euo pipefail
+GU_LOG_DIR=$(printf '%s' "$1" | base64 --decode)
+USAGE_MONITOR=$(printf '%s' "$2" | base64 --decode)
+
+git -C "$GU_LOG_DIR" rev-parse --show-toplevel >/dev/null
+test -x "$USAGE_MONITOR"
+
+config_dir="$HOME/.config/gu-log"
+config_file="$config_dir/tribunal.env"
+install -d -m 700 "$config_dir"
+tmp=$(mktemp "$config_dir/.tribunal.env.XXXXXX")
+trap 'rm -f "$tmp"' EXIT
+{
+  printf "GU_LOG_DIR='%s'\n" "$GU_LOG_DIR"
+  printf "USAGE_MONITOR='%s'\n" "$USAGE_MONITOR"
+} > "$tmp"
+chmod 600 "$tmp"
+mv "$tmp" "$config_file"
+trap - EXIT
+CONFIG
+
+# Every deploy runs inside one explicit remote block. The remote side loads
+# the same host-local config consumed by systemd and the monitor skill.
+ssh "$TRIBUNAL_HOST" bash -s <<'DEPLOY'
+set -euo pipefail
+deploy_env="$HOME/.config/gu-log/tribunal.env"
+if [ ! -r "$deploy_env" ]; then
+  echo "Missing $deploy_env; run the bootstrap block first" >&2
+  exit 78
+fi
+set -a
+# shellcheck source=/dev/null
+. "$deploy_env"
+set +a
+: "${GU_LOG_DIR:?Missing GU_LOG_DIR in $deploy_env}"
+: "${USAGE_MONITOR:?Missing USAGE_MONITOR in $deploy_env}"
+test -x "$USAGE_MONITOR"
+cd "$GU_LOG_DIR"
+
+did_stash=false
+if ! git diff --quiet || ! git diff --cached --quiet || [ -n "$(git ls-files --others --exclude-standard)" ]; then
+  git stash push -m "wip" --include-untracked      # uncommitted tribunal rewrites live here
+  did_stash=true
+fi
 git fetch origin main
 git checkout main && git merge --ff-only origin/main
-git stash pop
+if [ "$did_stash" = true ]; then
+  git stash pop
+fi
 
 # If scripts/tribunal-loop.service changed, redeploy + reload:
+install -d -m 700 "$HOME/.config/systemd/user"
 cp scripts/tribunal-loop.service ~/.config/systemd/user/tribunal-loop.service
 systemctl --user daemon-reload
 
-# If tribunal code changed AND workers are running:
-#   option A (preferred, no token waste) — drain + restart
+# If tribunal code changed AND workers are running, drain + restart. Do not
+# combine this path with the force-terminate recovery below.
 touch .score-loop/control/stop-graceful
 # wait for service inactive (minutes → up to 60min if article is mid-stage)
 until [ "$(systemctl --user is-active tribunal-loop)" != "active" ]; do sleep 10; done
 systemctl --user start tribunal-loop   # supervisor auto-syncs worker worktrees at startup
+DEPLOY
+```
 
-#   option B (if drain stalls) — kill workers, let supervisor exit
-pkill -TERM -f tribunal-all-claude.sh
-# supervisor exits on next iteration (top-of-loop stop check)
+只有 graceful drain 明確卡住時，才由 operator **另跑**以下 recovery；它不會接在正常 deploy 後自動執行：
+
+```bash
+ssh "$TRIBUNAL_HOST" bash -s <<'RECOVER'
+set -euo pipefail
+deploy_env="$HOME/.config/gu-log/tribunal.env"
+if [ ! -r "$deploy_env" ]; then
+  echo "Missing $deploy_env; run the bootstrap block first" >&2
+  exit 78
+fi
+# shellcheck source=/dev/null
+. "$deploy_env"
+: "${GU_LOG_DIR:?Missing GU_LOG_DIR in $deploy_env}"
+cd "$GU_LOG_DIR"
+
+touch .score-loop/control/stop-graceful
+# Queue a unit stop first so Restart=on-failure cannot race the recovery, then
+# signal every process in this unit's cgroup without depending on worker names.
+systemctl --user stop --no-block tribunal-loop
+systemctl --user kill --kill-whom=all --signal=KILL tribunal-loop || true
+until [ "$(systemctl --user is-active tribunal-loop)" != "active" ]; do sleep 10; done
+rm -f .score-loop/control/stop-graceful
 systemctl --user start tribunal-loop
+RECOVER
 ```
 
 ## Worker worktree gotcha
@@ -54,7 +136,7 @@ systemctl --user start tribunal-loop
 
 Symptoms:
 - Merged a bug fix to main, restarted service, workers still show old behavior.
-- `cat ~/clawd/projects/gu-log/scripts/<file>` shows new code; `cat ~/clawd/projects/gu-log-worker-a/scripts/<same-file>` shows old code.
+- From the main checkout, `cat scripts/<file>` shows new code; `cat ../gu-log-worker-a/scripts/<same-file>` shows old code.
 
 Fix:
 ```bash
@@ -95,7 +177,7 @@ ls .score-loop/claims/
 ls -t .score-loop/logs/tribunal-quota-loop-*.log | head -1 | xargs tail -f
 
 # Tail per-article log (inside a worker worktree)
-ls -t ~/clawd/projects/gu-log-worker-a/.score-loop/logs/tribunal-*.log | head -1 | xargs tail -f
+ls -t ../gu-log-worker-a/.score-loop/logs/tribunal-*.log | head -1 | xargs tail -f
 
 # Process tree
 ps -ef --forest | grep -E "tribunal|bash scripts/tribunal"
@@ -127,7 +209,7 @@ scripts/tribunal-worker-bootstrap.sh remove a
 scripts/tribunal-worker-bootstrap.sh remove-all
 ```
 
-Disk cost: ~500MB per worker (pnpm `node_modules` per worktree). On clawd-vm (75GB, historically ~45GB used) this is fine for 2–3 workers.
+Disk cost: ~500MB per worker (pnpm `node_modules` per worktree). Check the configured Tribunal VM's current capacity before increasing the worker count; machine-specific capacity belongs in local machine context.
 
 ## Final build gate + shared build lock
 
@@ -294,5 +376,5 @@ systemctl --user start tribunal-loop
 | Article marked EXHAUSTED after 5 attempts | Real content / scoring issue, or model-induced flakiness | Open the stage log, look at scorer reasons; rewrite manually or flag for human review |
 | Controller stuck in `floor_stop` even though quota looks OK | usage-monitor cache stale, or feedforward over-counting | Check `quota-controller.json` for `five_hr_pct` / `seven_day_pct`; force cache refresh: `rm /tmp/usage-monitor-cache/claude.json` |
 | `ARTICLE_COST_PCT` too high/low | Calibration EMA hasn't converged (cold start), or multi-worker noise | Check `quota-history.jsonl` for recent deltas; controller will self-correct after ~5 single-worker articles |
-| Controller in `fallback` mode | usage-monitor.sh returns error (OAuth token expired, API down) | SSH to VM, run `~/clawd/scripts/usage-monitor.sh --json` manually to diagnose |
+| Controller in `fallback` mode | usage-monitor.sh returns error (OAuth token expired, API down) | SSH to the configured VM, run `"$USAGE_MONITOR" --json` manually to diagnose |
 | Extra usage alarm (`extra_limit` mode) | Extra usage approaching monthly cap | Check `extra_used_usd` / `extra_limit_usd` in quota-controller.json; adjust limit in Anthropic console if intentional |

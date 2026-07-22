@@ -11,7 +11,7 @@
 #   bash scripts/tribunal.sh [--only-stage <factChecker|librarian|freshEyes|vibe>] [--allow-rewrite] [--no-commit] <filename.mdx>
 #   bash scripts/tribunal.sh --score-only --only-stage vibe <filename.mdx>
 #
-# Standalone mode: bash scripts/tribunal.sh sp-123-date-slug.mdx
+# Standalone mode: bash scripts/tribunal.sh gp-123-date-slug.mdx
 # Single-stage mode is judge-only by default: it scores and may update progress,
 # but it will not invoke tribunal-writer unless --allow-rewrite is explicit.
 # --score-only is fully non-mutating: no rewrite, no frontmatter, no commit.
@@ -200,7 +200,7 @@ write_stage_progress() {
 }
 
 # Hard cap on how many times tribunal.sh may run against the same
-# article before we give up. Prevents sp-94-style 11-round FactChecker burn
+# article before we give up. Prevents gp-94-style 11-round FactChecker burn
 # where quota-loop kept re-picking a FAILED article until it happened to pass.
 MAX_TOP_ATTEMPTS=5
 
@@ -688,8 +688,8 @@ import json, sys, math
 data = json.load(open(sys.argv[1]))
 version = int(sys.argv[2])
 dims = data.get('dimensions', {})
-keys = ('persona', 'clawdNote', 'vibe', 'narrative') if version >= 9 \
-    else ('persona', 'clawdNote', 'vibe', 'clarity', 'narrative')
+keys = ('persona', 'moguNote', 'vibe', 'narrative') if version >= 9 \
+    else ('persona', 'moguNote', 'vibe', 'clarity', 'narrative')
 vals = [dims.get(k, 0) for k in keys]
 composite = math.floor(sum(vals) / len(vals))
 if composite < 8:
@@ -784,7 +784,7 @@ run_stage() {
     judge_task="Score this post: $ROOT_DIR/src/content/posts/$post_file
 Write your JSON result to: SCORE_PATH_PLACEHOLDER"
     local calibration_ref
-    calibration_ref="$ROOT_DIR/.codex/agents/references/sp-187-v7-false-positive.md"
+    calibration_ref="$ROOT_DIR/.codex/agents/references/gp-187-v7-false-positive.md"
     if [ -f "$calibration_ref" ]; then
       judge_task="$(cat <<PROMPT
 $judge_task
@@ -793,7 +793,7 @@ $judge_task
 Read this if the current stage is Librarian, FreshEyes, Vibe, or Writer-adjacent reasoning:
 $calibration_ref
 
-It records the exact git commit/blob for the rejected SP-187 false-positive sample and CP-179 overlap target. Use it to calibrate responsibility boundaries; do not treat it as a request to rewrite unless the runner explicitly enables rewrite.
+It records the exact git commit/blob for the rejected GP-187 false-positive sample and MP-179 overlap target. Use it to calibrate responsibility boundaries; do not treat it as a request to rewrite unless the runner explicitly enables rewrite.
 PROMPT
 )"
     fi

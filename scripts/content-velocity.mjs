@@ -158,12 +158,12 @@ async function main() {
     SP: {
       count: typeCount.SP,
       pct: +((typeCount.SP / totalPosts) * 100).toFixed(1),
-      label: 'ShroomDog Picks',
+      label: 'Gu-log Picks',
     },
     CP: {
       count: typeCount.CP,
       pct: +((typeCount.CP / totalPosts) * 100).toFixed(1),
-      label: 'Clawd Picks',
+      label: 'Mogu Picks',
     },
     SD: {
       count: typeCount.SD,
@@ -286,8 +286,8 @@ async function main() {
   console.log(`📆 Last 30 days: ${last30} posts\n`);
 
   console.log('── Type Distribution ──────────────────────────────────');
-  console.log(`  SP (ShroomDog Picks):    ${typeCount.SP} (${typeDistribution.SP.pct}%)`);
-  console.log(`  CP (Clawd Picks):        ${typeCount.CP} (${typeDistribution.CP.pct}%)`);
+  console.log(`  SP (Gu-log Picks):    ${typeCount.SP} (${typeDistribution.SP.pct}%)`);
+  console.log(`  CP (Mogu Picks):        ${typeCount.CP} (${typeDistribution.CP.pct}%)`);
   console.log(`  SD (ShroomDog Original): ${typeCount.SD} (${typeDistribution.SD.pct}%)`);
   if (typeCount.unknown > 0) {
     console.log(

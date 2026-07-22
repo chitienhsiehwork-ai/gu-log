@@ -8,7 +8,7 @@ import { test, expect } from './fixtures';
  * Run with: npx playwright test tests/ai-popup.spec.ts
  */
 
-const TEST_POST = '/posts/sp-24-20260204-claude-is-a-space-to-think';
+const TEST_POST = '/posts/gp-24-20260204-claude-is-a-space-to-think';
 
 function isDesktopChromium() {
   const projectUse = test.info().project.use;
@@ -375,12 +375,12 @@ test.describe('Auth Callback', () => {
     await page.goto('/');
     await page.evaluate(() => {
       localStorage.removeItem('gu-log-jwt');
-      localStorage.setItem('gu-log-return-url', '/posts/sp-24-20260204-claude-is-a-space-to-think');
+      localStorage.setItem('gu-log-return-url', '/posts/gp-24-20260204-claude-is-a-space-to-think');
     });
 
     await page.goto('/auth/callback?token=redirect-test-token');
 
-    await page.waitForURL('**/posts/sp-24-20260204-claude-is-a-space-to-think', { timeout: 5000 });
+    await page.waitForURL('**/posts/gp-24-20260204-claude-is-a-space-to-think', { timeout: 5000 });
 
     const jwt = await page.evaluate(() => localStorage.getItem('gu-log-jwt'));
     expect(jwt).toBe('redirect-test-token');

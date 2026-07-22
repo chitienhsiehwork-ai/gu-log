@@ -19,10 +19,10 @@ trap 'rm -rf "$TMP"' EXIT
 fail() { echo "✗ $*" >&2; exit 1; }
 pass() { echo "✓ $*"; }
 
-post="$TMP/sp-999-test.mdx"
+post="$TMP/gp-999-test.mdx"
 cat > "$post" <<'POST'
 ---
-ticketId: SP-999
+ticketId: GP-999
 title: Test
 lang: zh-tw
 translatedDate: 2026-05-17

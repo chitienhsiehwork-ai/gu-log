@@ -8,7 +8,7 @@ function passScores(overrides: Partial<NonNullable<Scores>> = {}): Scores {
     tribunalVersion: 9,
     vibe: {
       persona: 9,
-      clawdNote: 8,
+      moguNote: 8,
       vibe: 8,
       narrative: 8,
       score: 8,
@@ -54,7 +54,7 @@ describe('tribunal publish bar', () => {
     const scores = passScores({
       vibe: {
         persona: 8,
-        clawdNote: 8,
+        moguNote: 8,
         vibe: 8,
         narrative: 8,
         score: 8,
@@ -88,7 +88,7 @@ describe('tribunal publish bar', () => {
       tribunalVersion: 8,
       vibe: {
         persona: 9,
-        clawdNote: 8,
+        moguNote: 8,
         vibe: 8,
         clarity: 8,
         narrative: 8,
@@ -121,7 +121,7 @@ describe('tribunal publish bar', () => {
       tribunalVersion: 9,
       vibe: {
         persona: 9,
-        clawdNote: 8,
+        moguNote: 8,
         vibe: 8,
         narrative: 8,
         score: 8,
@@ -131,5 +131,30 @@ describe('tribunal publish bar', () => {
 
     expect(meetsPublishBar(scores)).toBe(false);
     expect(isBelowPublishBar(scores)).toBe(true);
+  });
+});
+
+describe('tribunal version defaults (legacy read)', () => {
+  it('treats a missing tribunalVersion as v8 — Vibe still owns clarity', () => {
+    // Same numbers as a passing v9 post, but WITHOUT the version stamp:
+    // legacy ownership applies, vibe.clarity is required, so this must NOT
+    // meet the publish bar (clarity is absent).
+    const scores = passScores({ tribunalVersion: undefined });
+    delete (scores as Record<string, unknown>).tribunalVersion;
+    expect(meetsPublishBar(scores)).toBe(false);
+    expect(isBelowPublishBar(scores)).toBe(true);
+  });
+
+  it('meets the bar for an unstamped legacy post with the full v8 vibe set', () => {
+    const scores = passScores();
+    delete (scores as Record<string, unknown>).tribunalVersion;
+    const vibe = { ...(scores as NonNullable<Scores>).vibe!, clarity: 8 };
+    const legacy = { ...(scores as NonNullable<Scores>), vibe };
+    // v8 fresh eyes does not require clarity — strip it to prove the legacy
+    // 4-dim fresh-eyes set still passes.
+    const freshEyes = { ...legacy.freshEyes! };
+    delete (freshEyes as Record<string, unknown>).clarity;
+    legacy.freshEyes = freshEyes;
+    expect(meetsPublishBar(legacy)).toBe(true);
   });
 });

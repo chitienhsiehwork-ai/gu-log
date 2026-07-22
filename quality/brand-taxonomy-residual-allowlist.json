@@ -1,0 +1,1285 @@
+{
+  "schemaVersion": 1,
+  "immutableHistoryExcludes": [
+    "sources/**",
+    ".score-loop/progress/completed/**",
+    "scores/archive/**",
+    "quality/coverage-history.json",
+    "openspec/changes/archive/**"
+  ],
+  "generatedArtifactExcludes": [
+    "quality/brand-taxonomy-post-migration.json",
+    "quality/brand-taxonomy-pre-migration-inventory.json",
+    "quality/brand-taxonomy-residual-inventory.json",
+    "quality/brand-taxonomy-residual-allowlist.json"
+  ],
+  "exactExceptions": [
+    {
+      "path": "scripts/check-brand-taxonomy.mjs",
+      "rule": "component",
+      "token": "ClawdNote",
+      "expectedCount": 3,
+      "reason": "Scanner rule definition for the retired component contract."
+    },
+    {
+      "path": "scripts/check-brand-taxonomy.mjs",
+      "rule": "external-workspace-coordinate",
+      "token": "clawd-workspace",
+      "expectedCount": 2,
+      "reason": "Scanner rule definition for the retired external workspace coordinate."
+    },
+    {
+      "path": "scripts/check-brand-taxonomy.mjs",
+      "rule": "legacy-compound-persona",
+      "token": "ClawdBot",
+      "expectedCount": 1,
+      "reason": "Scanner rule definition for a factual compound-name residual."
+    },
+    {
+      "path": "scripts/check-brand-taxonomy.mjs",
+      "rule": "legacy-compound-persona",
+      "token": "Clawdus",
+      "expectedCount": 1,
+      "reason": "Scanner rule definition for a factual compound-name residual."
+    },
+    {
+      "path": "scripts/check-brand-taxonomy.mjs",
+      "rule": "legacy-full-persona",
+      "token": "ShroomClawd",
+      "expectedCount": 1,
+      "reason": "Scanner canonicalization pattern for the retired compound persona contract."
+    },
+    {
+      "path": "scripts/check-brand-taxonomy.mjs",
+      "rule": "legacy-identifier",
+      "token": "--color-clawd",
+      "expectedCount": 1,
+      "reason": "Scanner rule definition for retired CSS identifiers."
+    },
+    {
+      "path": "scripts/check-brand-taxonomy.mjs",
+      "rule": "legacy-identifier",
+      "token": ".clawd-prefix",
+      "expectedCount": 1,
+      "reason": "Scanner rule definition for retired CSS identifiers."
+    },
+    {
+      "path": "scripts/check-brand-taxonomy.mjs",
+      "rule": "legacy-prefix-value",
+      "token": "CP",
+      "expectedCount": 1,
+      "reason": "Scanner canonicalization comment documenting the retired CP series counter idiom."
+    },
+    {
+      "path": "scripts/check-brand-taxonomy.mjs",
+      "rule": "legacy-prefix-value",
+      "token": "SP",
+      "expectedCount": 1,
+      "reason": "Scanner canonicalization comment documenting the retired SP series counter idiom."
+    },
+    {
+      "path": "scripts/check-brand-taxonomy.mjs",
+      "rule": "legacy-route",
+      "token": "clawd-picks",
+      "expectedCount": 4,
+      "reason": "Scanner rule and path definitions for retired listing routes."
+    },
+    {
+      "path": "scripts/check-brand-taxonomy.mjs",
+      "rule": "legacy-route",
+      "token": "shroom-picks",
+      "expectedCount": 2,
+      "reason": "Scanner rule definition for retired listing routes."
+    },
+    {
+      "path": "scripts/check-brand-taxonomy.mjs",
+      "rule": "legacy-route",
+      "token": "shroomdog-picks",
+      "expectedCount": 2,
+      "reason": "Scanner rule definition for retired listing routes."
+    },
+    {
+      "path": "scripts/check-brand-taxonomy.mjs",
+      "rule": "legacy-series-name",
+      "token": "Clawd Picks",
+      "expectedCount": 1,
+      "reason": "Scanner rule definition for retired series labels."
+    },
+    {
+      "path": "scripts/check-brand-taxonomy.mjs",
+      "rule": "legacy-series-name",
+      "token": "Shroom Picks",
+      "expectedCount": 1,
+      "reason": "Scanner rule definition for retired series labels."
+    },
+    {
+      "path": "scripts/check-brand-taxonomy.mjs",
+      "rule": "legacy-series-name",
+      "token": "ShroomDog Picks",
+      "expectedCount": 1,
+      "reason": "Scanner rule definition for retired series labels."
+    },
+    {
+      "path": "scripts/check-brand-taxonomy.mjs",
+      "rule": "persona",
+      "token": "Clawd",
+      "expectedCount": 2,
+      "reason": "Scanner rule definition for the retired persona."
+    },
+    {
+      "path": "scripts/check-brand-taxonomy.mjs",
+      "rule": "pipeline-command",
+      "token": "sp-pipeline",
+      "expectedCount": 1,
+      "reason": "Scanner rule definition for the retired pipeline command."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "compact-slug",
+      "token": "sp57",
+      "expectedCount": 4,
+      "reason": "Regression fixture and assertion for compact legacy slugs."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "compact-ticket",
+      "token": "SP63",
+      "expectedCount": 2,
+      "reason": "Regression fixture and assertion for compact legacy tickets."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "component",
+      "token": "ClawdNote",
+      "expectedCount": 7,
+      "reason": "Regression fixtures and assertions for the retired component."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "dangling-canonical-reference",
+      "token": "tools/gp-pipeline/bin",
+      "expectedCount": 1,
+      "reason": "Regression fixture proving ignore files may name intentionally untracked build output."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "deployment-coordinate",
+      "token": "%h/clawd",
+      "expectedCount": 2,
+      "reason": "Regression fixture and assertion for a legacy home coordinate."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "deployment-coordinate",
+      "token": "Path.home() / \"clawd\"",
+      "expectedCount": 2,
+      "reason": "Regression fixture and assertion for a constructed legacy home path."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "deployment-coordinate",
+      "token": "clawd@legacy.example",
+      "expectedCount": 2,
+      "reason": "Regression fixture and assertion for a legacy SSH user coordinate."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "deployment-coordinate",
+      "token": "/home/moltbot/clawd",
+      "expectedCount": 2,
+      "reason": "Regression fixture and assertion for a legacy checkout nested under a generic Linux user's home."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "external-workspace-coordinate",
+      "token": "clawd-workspace",
+      "expectedCount": 2,
+      "reason": "Regression fixture and assertion for the retired external workspace coordinate."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "legacy-compound-persona",
+      "token": "ClawdBot",
+      "expectedCount": 2,
+      "reason": "Regression fixture and assertion for a factual compound name."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "legacy-compound-persona",
+      "token": "Clawdus",
+      "expectedCount": 2,
+      "reason": "Regression fixture and assertion for a factual compound name."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "legacy-glossary-anchor",
+      "token": "/en/glossary#clawd",
+      "expectedCount": 2,
+      "reason": "Regression fixture and assertion for the retired English glossary anchor."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "legacy-glossary-anchor",
+      "token": "/glossary#clawd",
+      "expectedCount": 2,
+      "reason": "Regression fixture and assertion for the retired glossary anchor."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "legacy-identifier",
+      "token": "--color-clawd-accent",
+      "expectedCount": 2,
+      "reason": "Regression fixture and assertion for a retired CSS identifier."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "legacy-identifier",
+      "token": ".clawd-prefix",
+      "expectedCount": 2,
+      "reason": "Regression fixture and assertion for a retired CSS identifier."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "legacy-identifier",
+      "token": "CLAWD_NOTE_TITLE",
+      "expectedCount": 2,
+      "reason": "Regression fixture and assertion for a retired constant family."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "legacy-identifier",
+      "token": "clawdPrefix",
+      "expectedCount": 2,
+      "reason": "Regression fixture and assertion for a retired identifier."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "legacy-identifier",
+      "token": "color-clawd-muted",
+      "expectedCount": 2,
+      "reason": "Regression fixture and assertion for a retired CSS identifier."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "legacy-prefix-value",
+      "token": "CP",
+      "expectedCount": 4,
+      "reason": "Regression fixtures and assertions for semantic legacy series labels."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "legacy-prefix-value",
+      "token": "SP",
+      "expectedCount": 5,
+      "reason": "Regression fixtures and assertions for semantic legacy series labels."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "legacy-route",
+      "token": "clawd-picks",
+      "expectedCount": 1,
+      "reason": "Test fixture for the retired series tag dropped from frontmatter tags arrays."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "legacy-route",
+      "token": "shroomdog-picks",
+      "expectedCount": 2,
+      "reason": "Regression fixture and assertion for a retired listing route."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "legacy-series-name",
+      "token": "Clawd Picks",
+      "expectedCount": 1,
+      "reason": "Test fixture for the retired series display-name canonicalization."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "obsidian-callout",
+      "token": "[!clawd]",
+      "expectedCount": 2,
+      "reason": "Regression fixture and assertion for the retired Obsidian callout."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "persona",
+      "token": "Clawd",
+      "expectedCount": 11,
+      "reason": "Regression fixtures and assertions for exact persona exceptions."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "pipeline-command",
+      "token": "sp-pipeline",
+      "expectedCount": 3,
+      "reason": "Regression fixture and assertion for the retired pipeline command."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "post-slug",
+      "token": "cp-NNN",
+      "expectedCount": 1,
+      "reason": "Regression fixture for a template legacy post slug."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "post-slug",
+      "token": "cp-NNN-example",
+      "expectedCount": 1,
+      "reason": "Regression fixture for a template legacy post filename."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "post-slug",
+      "token": "cp-pending-draft",
+      "expectedCount": 2,
+      "reason": "Regression fixture and assertion for a pending legacy post slug."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "post-slug",
+      "token": "sp-100-old-title",
+      "expectedCount": 2,
+      "reason": "Regression fixture and assertion for a bracketed legacy post slug."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "post-slug",
+      "token": "sp-251",
+      "expectedCount": 1,
+      "reason": "Regression assertion for a legacy path slug token."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "post-slug",
+      "token": "sp-251-unknowns",
+      "expectedCount": 1,
+      "reason": "Regression fixture for a legacy path slug."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "schema-key",
+      "token": "clawdNote",
+      "expectedCount": 3,
+      "reason": "Regression fixture and assertion for the retired score key."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "ticket-id",
+      "token": "CP-12",
+      "expectedCount": 2,
+      "reason": "Regression fixture and assertion for a retired ticket ID."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "ticket-id",
+      "token": "CP-9",
+      "expectedCount": 1,
+      "reason": "Test fixture for the full-contract canonicalization regression."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "ticket-id",
+      "token": "CP-NNN",
+      "expectedCount": 2,
+      "reason": "Regression fixture and assertion for a template retired ticket ID."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "ticket-id",
+      "token": "SP-63",
+      "expectedCount": 2,
+      "reason": "Regression fixture and assertion for a retired ticket ID."
+    },
+    {
+      "path": "tests/brand-taxonomy-residual.test.ts",
+      "rule": "ticket-id",
+      "token": "SP-N",
+      "expectedCount": 2,
+      "reason": "Regression fixture and assertion for a template retired ticket ID."
+    },
+    {
+      "path": ".github/workflows/deploy-smoke-test.yml",
+      "rule": "legacy-route",
+      "token": "clawd-picks",
+      "expectedCount": 7,
+      "reason": "Redirect + retired-scope smoke regression: the retired listing base/pagination URLs must 308 to the canonical listing, and unrelated legacy machine paths must stay 404."
+    },
+    {
+      "path": ".github/workflows/deploy-smoke-test.yml",
+      "rule": "legacy-route",
+      "token": "shroom-picks",
+      "expectedCount": 2,
+      "reason": "Breaking-route smoke regression: the retired listing URLs must return 404 without redirects."
+    },
+    {
+      "path": ".github/workflows/deploy-smoke-test.yml",
+      "rule": "legacy-route",
+      "token": "shroomdog-picks",
+      "expectedCount": 6,
+      "reason": "Redirect smoke regression: the retired listing base/pagination URLs must 308 to the canonical listing."
+    },
+    {
+      "path": ".github/workflows/deploy-smoke-test.yml",
+      "rule": "post-slug",
+      "token": "sp-7-20260130-clawdbot-architecture-deep-dive",
+      "expectedCount": 3,
+      "reason": "Public-route smoke regression: the old article URL redirects permanently, while its legacy API alias stays 404."
+    },
+    {
+      "path": "tests/brand-routes.spec.ts",
+      "rule": "legacy-prefix-value",
+      "token": "SP",
+      "expectedCount": 1,
+      "reason": "Breaking-route regression label names the retired series whose artifact URLs must stay unavailable."
+    },
+    {
+      "path": "tests/brand-routes.spec.ts",
+      "rule": "legacy-route",
+      "token": "clawd-picks",
+      "expectedCount": 3,
+      "reason": "Breaking-route regression requests retired listing and asset URLs and requires direct 404 responses."
+    },
+    {
+      "path": "tests/brand-routes.spec.ts",
+      "rule": "legacy-route",
+      "token": "shroom-picks",
+      "expectedCount": 2,
+      "reason": "Breaking-route regression requests retired listing URLs and requires direct 404 responses."
+    },
+    {
+      "path": "tests/brand-routes.spec.ts",
+      "rule": "legacy-route",
+      "token": "shroomdog-picks",
+      "expectedCount": 2,
+      "reason": "Breaking-route regression requests retired listing URLs and requires direct 404 responses."
+    },
+    {
+      "path": "tests/brand-routes.spec.ts",
+      "rule": "post-slug",
+      "token": "sp-194-html-loop",
+      "expectedCount": 1,
+      "reason": "Breaking-route regression requires this retired artifact path to return 404 without redirect."
+    },
+    {
+      "path": "tests/brand-routes.spec.ts",
+      "rule": "post-slug",
+      "token": "sp-245-trim-noop",
+      "expectedCount": 1,
+      "reason": "Breaking-route regression requires this retired artifact path to return 404 without redirect."
+    },
+    {
+      "path": "tests/brand-routes.spec.ts",
+      "rule": "post-slug",
+      "token": "sp-251-unknowns",
+      "expectedCount": 1,
+      "reason": "Breaking-route regression requires this retired artifact path to return 404 without redirect."
+    },
+    {
+      "path": "tests/brand-routes.spec.ts",
+      "rule": "post-slug",
+      "token": "sp-7-20260130-clawdbot-architecture-deep-dive",
+      "expectedCount": 1,
+      "reason": "Breaking-route regression requires this retired post URL to return 404 while the GP URL resolves."
+    },
+    {
+      "path": "tests/pipeline-taxonomy.test.ts",
+      "rule": "legacy-prefix-value",
+      "token": "CP",
+      "expectedCount": 1,
+      "reason": "Negative taxonomy regression passes the retired prefix and requires an MP replacement diagnostic."
+    },
+    {
+      "path": "tests/pipeline-taxonomy.test.ts",
+      "rule": "legacy-prefix-value",
+      "token": "SP",
+      "expectedCount": 1,
+      "reason": "Negative taxonomy regression passes the retired prefix and requires a GP replacement diagnostic."
+    },
+    {
+      "path": "tests/pipeline-taxonomy.test.ts",
+      "rule": "legacy-route",
+      "token": "clawd-picks",
+      "expectedCount": 3,
+      "reason": "Negative migration regression requires retired automation filenames to remain absent."
+    },
+    {
+      "path": "tests/pipeline-taxonomy.test.ts",
+      "rule": "pipeline-command",
+      "token": "sp-pipeline",
+      "expectedCount": 2,
+      "reason": "Negative migration regression requires the retired pipeline directory and wrapper to remain absent."
+    },
+    {
+      "path": "tests/pipeline-taxonomy.test.ts",
+      "rule": "ticket-id",
+      "token": "CP-PENDING",
+      "expectedCount": 1,
+      "reason": "Negative prompt regression requires the retired pending ticket form to remain absent."
+    },
+    {
+      "path": "tests/post-version-manifest.test.ts",
+      "rule": "post-slug",
+      "token": "sp-999-regression",
+      "expectedCount": 7,
+      "reason": "Synthetic Git rename-history regression verifies legacy touches project onto the canonical GP manifest key."
+    },
+    {
+      "path": "tests/tribunal-frontmatter-schema.test.ts",
+      "rule": "legacy-prefix-value",
+      "token": "CP",
+      "expectedCount": 2,
+      "reason": "Schema rejection contract names the retired prefix and requires actionable MP diagnostics."
+    },
+    {
+      "path": "tests/tribunal-frontmatter-schema.test.ts",
+      "rule": "legacy-prefix-value",
+      "token": "SP",
+      "expectedCount": 2,
+      "reason": "Schema rejection contract names the retired prefix and requires actionable GP diagnostics."
+    },
+    {
+      "path": "tests/tribunal-frontmatter-schema.test.ts",
+      "rule": "schema-key",
+      "token": "clawdNote",
+      "expectedCount": 6,
+      "reason": "Schema rejection fixtures require the retired score key to fail with a moguNote diagnostic."
+    },
+    {
+      "path": "tests/tribunal-frontmatter-schema.test.ts",
+      "rule": "ticket-id",
+      "token": "CP-314",
+      "expectedCount": 1,
+      "reason": "Schema rejection fixture requires this retired ticket ID to produce the canonical MP replacement."
+    },
+    {
+      "path": "tests/tribunal-frontmatter-schema.test.ts",
+      "rule": "ticket-id",
+      "token": "SP-165",
+      "expectedCount": 2,
+      "reason": "Schema rejection fixtures require retired cross-reference IDs to produce canonical GP diagnostics."
+    },
+    {
+      "path": "tests/tribunal-frontmatter-schema.test.ts",
+      "rule": "ticket-id",
+      "token": "SP-258",
+      "expectedCount": 1,
+      "reason": "Schema rejection fixture requires this retired ticket ID to produce the canonical GP replacement."
+    },
+    {
+      "path": "tests/tribunal-frontmatter-schema.test.ts",
+      "rule": "ticket-id",
+      "token": "SP-PENDING",
+      "expectedCount": 1,
+      "reason": "Schema rejection fixture requires the retired pending ID to produce the canonical GP replacement."
+    },
+    {
+      "path": "tests/tribunal-frontmatter-scores.test.ts",
+      "rule": "schema-key",
+      "token": "clawdNote",
+      "expectedCount": 6,
+      "reason": "Frontmatter writer rejection fixtures require the retired score key to fail instead of being stripped."
+    },
+    {
+      "path": "tests/validate-posts.test.ts",
+      "rule": "component",
+      "token": "ClawdNote",
+      "expectedCount": 4,
+      "reason": "Content validation regression requires the retired component input to fail with a MoguNote diagnostic."
+    },
+    {
+      "path": "tests/validate-posts.test.ts",
+      "rule": "legacy-prefix-value",
+      "token": "CP",
+      "expectedCount": 2,
+      "reason": "Content validation rejection contract names the retired prefix and requires MP diagnostics."
+    },
+    {
+      "path": "tests/validate-posts.test.ts",
+      "rule": "legacy-prefix-value",
+      "token": "SP",
+      "expectedCount": 2,
+      "reason": "Content validation rejection contract names the retired prefix and requires GP diagnostics."
+    },
+    {
+      "path": "tests/validate-posts.test.ts",
+      "rule": "legacy-route",
+      "token": "clawd-picks",
+      "expectedCount": 1,
+      "reason": "Negative tag fixture requires the retired content-type tag to remain invalid."
+    },
+    {
+      "path": "tests/validate-posts.test.ts",
+      "rule": "legacy-route",
+      "token": "shroom-picks",
+      "expectedCount": 1,
+      "reason": "Negative tag fixture requires the retired content-type tag to remain invalid."
+    },
+    {
+      "path": "tests/validate-posts.test.ts",
+      "rule": "legacy-route",
+      "token": "shroomdog-picks",
+      "expectedCount": 1,
+      "reason": "Negative tag fixture requires the retired content-type tag to remain invalid."
+    },
+    {
+      "path": "tests/validate-posts.test.ts",
+      "rule": "post-slug",
+      "token": "sp-258-20260401-x",
+      "expectedCount": 1,
+      "reason": "Filename validation regression requires a GP ticket in a retired SP filename to fail."
+    },
+    {
+      "path": "tests/validate-posts.test.ts",
+      "rule": "schema-key",
+      "token": "clawdNote",
+      "expectedCount": 3,
+      "reason": "Content validation regression requires the retired score key to fail with a moguNote diagnostic."
+    },
+    {
+      "path": "tests/validate-posts.test.ts",
+      "rule": "ticket-id",
+      "token": "CP-314",
+      "expectedCount": 1,
+      "reason": "Content validation fixture requires this retired ticket ID to produce the canonical MP replacement."
+    },
+    {
+      "path": "tests/validate-posts.test.ts",
+      "rule": "ticket-id",
+      "token": "SP-165",
+      "expectedCount": 1,
+      "reason": "Content validation fixture requires this retired cross-reference to produce the canonical GP replacement."
+    },
+    {
+      "path": "tests/validate-posts.test.ts",
+      "rule": "ticket-id",
+      "token": "SP-258",
+      "expectedCount": 1,
+      "reason": "Content validation fixture requires this retired ticket ID to produce the canonical GP replacement."
+    },
+    {
+      "path": "src/content/posts/gp-64-20260216-openclaw-creator-joins-openai.mdx",
+      "rule": "legacy-compound-persona",
+      "token": "ClawdBot",
+      "expectedCount": 2,
+      "reason": "Factual OpenClaw rename-history product name."
+    },
+    {
+      "path": "src/content/posts/gp-64-20260216-openclaw-creator-joins-openai.mdx",
+      "rule": "legacy-compound-persona",
+      "token": "Clawdus",
+      "expectedCount": 1,
+      "reason": "Factual OpenClaw rename-history product name."
+    },
+    {
+      "path": "src/content/posts/gp-64-20260216-openclaw-creator-joins-openai.mdx",
+      "rule": "persona",
+      "token": "Clawd",
+      "expectedCount": 1,
+      "reason": "Factual reference to the Mogu persona's retired name in rename history."
+    },
+    {
+      "path": "src/content/posts/en-gp-64-20260216-openclaw-creator-joins-openai.mdx",
+      "rule": "legacy-compound-persona",
+      "token": "ClawdBot",
+      "expectedCount": 2,
+      "reason": "English pair's factual OpenClaw rename-history product name."
+    },
+    {
+      "path": "src/content/posts/en-gp-64-20260216-openclaw-creator-joins-openai.mdx",
+      "rule": "legacy-compound-persona",
+      "token": "Clawdus",
+      "expectedCount": 1,
+      "reason": "English pair's factual OpenClaw rename-history product name."
+    },
+    {
+      "path": "src/content/posts/en-gp-64-20260216-openclaw-creator-joins-openai.mdx",
+      "rule": "persona",
+      "token": "Clawd",
+      "expectedCount": 1,
+      "reason": "English pair's factual reference to the Mogu persona's retired name."
+    },
+    {
+      "path": "src/content/posts/mp-70-20260212-steipete-lex-fridman-openclaw.mdx",
+      "rule": "legacy-compound-persona",
+      "token": "ClawdBot",
+      "expectedCount": 1,
+      "reason": "Factual OpenClaw rename-history product name."
+    },
+    {
+      "path": "src/content/posts/mp-70-20260212-steipete-lex-fridman-openclaw.mdx",
+      "rule": "legacy-compound-persona",
+      "token": "Clawdus",
+      "expectedCount": 1,
+      "reason": "Factual OpenClaw rename-history product name."
+    },
+    {
+      "path": "src/content/posts/en-mp-70-20260212-steipete-lex-fridman-openclaw.mdx",
+      "rule": "legacy-compound-persona",
+      "token": "ClawdBot",
+      "expectedCount": 1,
+      "reason": "English pair's factual OpenClaw rename-history product name."
+    },
+    {
+      "path": "src/content/posts/en-mp-70-20260212-steipete-lex-fridman-openclaw.mdx",
+      "rule": "legacy-compound-persona",
+      "token": "Clawdus",
+      "expectedCount": 1,
+      "reason": "English pair's factual OpenClaw rename-history product name."
+    },
+    {
+      "path": "src/data/post-authorship-notes.json",
+      "rule": "legacy-full-persona",
+      "token": "ShroomClawd",
+      "expectedCount": 4,
+      "reason": "Factual git-authorship provenance retained verbatim."
+    },
+    {
+      "path": "src/data/post-authorship-notes.json",
+      "rule": "persona",
+      "token": "Clawd",
+      "expectedCount": 4,
+      "reason": "Factual git-authorship provenance retained verbatim."
+    },
+    {
+      "path": "tools/gp-pipeline/cmd/gp-pipeline/main_test.go",
+      "rule": "legacy-prefix-value",
+      "token": "SP",
+      "expectedCount": 2,
+      "reason": "CLI regression cases prove counter and deploy reject the retired GP predecessor; neither case translates or continues."
+    },
+    {
+      "path": "tools/gp-pipeline/cmd/gp-pipeline/main_test.go",
+      "rule": "legacy-prefix-value",
+      "token": "CP",
+      "expectedCount": 2,
+      "reason": "CLI regression cases prove run and dedup reject the retired MP predecessor at ingress; neither case aliases it."
+    },
+    {
+      "path": "tools/gp-pipeline/cmd/gp-pipeline/main_test.go",
+      "rule": "pipeline-command",
+      "token": "sp-pipeline",
+      "expectedCount": 1,
+      "reason": "Root-command regression guard proves the retired command is neither advertised nor dispatchable."
+    },
+    {
+      "path": "tools/gp-pipeline/cmd/gp-pipeline/main_test.go",
+      "rule": "ticket-id",
+      "token": "SP-PENDING",
+      "expectedCount": 1,
+      "reason": "Write-command regression guard proves a retired pending ticket fails instead of being rewritten."
+    },
+    {
+      "path": "tools/gp-pipeline/internal/counter/counter_test.go",
+      "rule": "ticket-id",
+      "token": "SP-PENDING",
+      "expectedCount": 1,
+      "reason": "Counter validation negative fixture proves the retired pending ticket is rejected with a canonical diagnostic."
+    },
+    {
+      "path": "tools/gp-pipeline/internal/counter/counter_test.go",
+      "rule": "ticket-id",
+      "token": "CP-314",
+      "expectedCount": 1,
+      "reason": "Counter validation negative fixture proves the retired numbered ticket is rejected with a canonical diagnostic."
+    },
+    {
+      "path": "tools/gp-pipeline/internal/deploy/deploy_test.go",
+      "rule": "ticket-id",
+      "token": "SP-PENDING",
+      "expectedCount": 1,
+      "reason": "Deploy regression fixture proves retired frontmatter fails before ticket allocation or counter mutation."
+    },
+    {
+      "path": "scripts/dedup-gate.mjs",
+      "rule": "legacy-prefix-value",
+      "token": "SP",
+      "expectedCount": 2,
+      "reason": "Dedup ingress explicitly recognizes and rejects the retired GP predecessor without translating it."
+    },
+    {
+      "path": "scripts/dedup-gate.mjs",
+      "rule": "legacy-prefix-value",
+      "token": "CP",
+      "expectedCount": 2,
+      "reason": "Dedup ingress explicitly recognizes and rejects the retired MP predecessor without translating it."
+    },
+    {
+      "path": "scripts/frontmatter-scores.mjs",
+      "rule": "schema-key",
+      "token": "clawdNote",
+      "expectedCount": 2,
+      "reason": "Score writer recursively detects the retired key and fails instead of silently stripping it."
+    },
+    {
+      "path": "scripts/obsidian-import.mjs",
+      "rule": "legacy-prefix-value",
+      "token": "SP",
+      "expectedCount": 2,
+      "reason": "Obsidian importer explicitly recognizes the retired GP predecessor and exits non-zero."
+    },
+    {
+      "path": "scripts/obsidian-import.mjs",
+      "rule": "legacy-prefix-value",
+      "token": "CP",
+      "expectedCount": 1,
+      "reason": "Obsidian importer explicitly recognizes the retired MP predecessor and exits non-zero."
+    },
+    {
+      "path": "scripts/validate-posts.mjs",
+      "rule": "component",
+      "token": "ClawdNote",
+      "expectedCount": 1,
+      "reason": "Content validator names the retired component only to reject it with a MoguNote diagnostic."
+    },
+    {
+      "path": "scripts/validate-posts.mjs",
+      "rule": "legacy-route",
+      "token": "clawd-picks",
+      "expectedCount": 1,
+      "reason": "Content-type tag denylist keeps the retired route-derived tag invalid."
+    },
+    {
+      "path": "scripts/validate-posts.mjs",
+      "rule": "legacy-route",
+      "token": "shroom-picks",
+      "expectedCount": 1,
+      "reason": "Content-type tag denylist keeps the retired route-derived tag invalid."
+    },
+    {
+      "path": "scripts/validate-posts.mjs",
+      "rule": "legacy-route",
+      "token": "shroomdog-picks",
+      "expectedCount": 1,
+      "reason": "Content-type tag denylist keeps the retired route-derived tag invalid."
+    },
+    {
+      "path": "scripts/validate-posts.mjs",
+      "rule": "schema-key",
+      "token": "clawdNote",
+      "expectedCount": 2,
+      "reason": "Content validator detects the retired score key and fails with a canonical diagnostic."
+    },
+    {
+      "path": "src/content.config.ts",
+      "rule": "schema-key",
+      "token": "clawdNote",
+      "expectedCount": 3,
+      "reason": "Zod poison fields ensure the retired score key fails validation instead of being stripped."
+    },
+    {
+      "path": ".codex/agents/references/gp-187-v7-false-positive.md",
+      "rule": "post-slug",
+      "token": "cp-179-20260316-daniel-mac8-symphony-manage-work-not-agents",
+      "expectedCount": 2,
+      "reason": "Immutable git pointers preserve the exact pre-rebrand overlap sample used for Tribunal calibration."
+    },
+    {
+      "path": ".codex/agents/references/gp-187-v7-false-positive.md",
+      "rule": "post-slug",
+      "token": "sp-187-20260428-openai-symphony-codex-orchestration",
+      "expectedCount": 2,
+      "reason": "Immutable git pointers preserve the exact pre-rebrand rejected article used for Tribunal calibration."
+    },
+    {
+      "path": "docs/shroomdog-editorial-feedback.md",
+      "rule": "component",
+      "token": "ClawdNote",
+      "expectedCount": 7,
+      "reason": "Verbatim ShroomDog feedback preserves the historical wording instead of rewriting the user quote."
+    },
+    {
+      "path": "docs/shroomdog-editorial-feedback.md",
+      "rule": "legacy-prefix-value",
+      "token": "SP",
+      "expectedCount": 4,
+      "reason": "Verbatim ShroomDog feedback preserves the historical wording instead of rewriting the user quote."
+    },
+    {
+      "path": "docs/shroomdog-editorial-feedback.md",
+      "rule": "post-slug",
+      "token": "sp-205",
+      "expectedCount": 1,
+      "reason": "Verbatim ShroomDog feedback preserves the historical wording instead of rewriting the user quote."
+    },
+    {
+      "path": "docs/shroomdog-editorial-feedback.md",
+      "rule": "schema-key",
+      "token": "clawdNote",
+      "expectedCount": 3,
+      "reason": "Verbatim ShroomDog feedback preserves the historical wording instead of rewriting the user quote."
+    },
+    {
+      "path": "docs/shroomdog-editorial-feedback.md",
+      "rule": "ticket-id",
+      "token": "CP-179",
+      "expectedCount": 1,
+      "reason": "Verbatim ShroomDog feedback preserves the historical wording instead of rewriting the user quote."
+    },
+    {
+      "path": "docs/shroomdog-editorial-feedback.md",
+      "rule": "ticket-id",
+      "token": "CP-300",
+      "expectedCount": 1,
+      "reason": "Verbatim ShroomDog feedback preserves the historical wording instead of rewriting the user quote."
+    },
+    {
+      "path": "docs/shroomdog-editorial-feedback.md",
+      "rule": "ticket-id",
+      "token": "SP-220",
+      "expectedCount": 1,
+      "reason": "Verbatim ShroomDog feedback preserves the historical wording instead of rewriting the user quote."
+    },
+    {
+      "path": "docs/shroomdog-editorial-feedback.md",
+      "rule": "ticket-id",
+      "token": "SP-232",
+      "expectedCount": 1,
+      "reason": "Verbatim ShroomDog feedback preserves the historical wording instead of rewriting the user quote."
+    },
+    {
+      "path": "docs/shroomdog-editorial-feedback.md",
+      "rule": "ticket-id",
+      "token": "SP-236",
+      "expectedCount": 1,
+      "reason": "Verbatim ShroomDog feedback preserves the historical wording instead of rewriting the user quote."
+    },
+    {
+      "path": "docs/shroomdog-editorial-feedback.md",
+      "rule": "ticket-id",
+      "token": "SP-244",
+      "expectedCount": 1,
+      "reason": "Verbatim ShroomDog feedback preserves the historical wording instead of rewriting the user quote."
+    },
+    {
+      "path": "tests/vercel-routing-config.test.ts",
+      "rule": "legacy-route",
+      "token": "clawd-picks",
+      "expectedCount": 10,
+      "reason": "Routing config test asserts the exact listing redirect rules and negative scope for this retired route; matches only prove the config, never a rendered page."
+    },
+    {
+      "path": "tests/list-content-gate-posts.test.ts",
+      "rule": "component",
+      "token": "ClawdNote",
+      "expectedCount": 4,
+      "reason": "Test fixture for the component contract rewrite exclusion in the content gate."
+    },
+    {
+      "path": "tests/list-content-gate-posts.test.ts",
+      "rule": "legacy-route",
+      "token": "clawd-picks",
+      "expectedCount": 1,
+      "reason": "Test fixture filename for the retired descriptive slug rename exclusion."
+    },
+    {
+      "path": "tests/list-content-gate-posts.test.ts",
+      "rule": "post-slug",
+      "token": "sp-1-migration",
+      "expectedCount": 3,
+      "reason": "Content-gate regressions name the retired slug only to prove taxonomy renames (with prose edits or glossary-link wrapping) classify correctly."
+    },
+    {
+      "path": "tests/list-content-gate-posts.test.ts",
+      "rule": "schema-key",
+      "token": "clawdNote",
+      "expectedCount": 1,
+      "reason": "Test fixture for the schema-key contract rewrite exclusion in the content gate."
+    },
+    {
+      "path": "tests/list-content-gate-posts.test.ts",
+      "rule": "ticket-id",
+      "token": "CP-1",
+      "expectedCount": 2,
+      "reason": "Test fixture ticket for the component/schema/pipeline contract rewrite exclusion."
+    },
+    {
+      "path": "tests/list-content-gate-posts.test.ts",
+      "rule": "ticket-id",
+      "token": "SP-1",
+      "expectedCount": 3,
+      "reason": "Content-gate regressions name the retired ticket only to prove taxonomy renames (with prose edits or glossary-link wrapping) classify correctly."
+    },
+    {
+      "path": "openspec/specs/brand-taxonomy/spec.md",
+      "rule": "component",
+      "token": "ClawdNote",
+      "expectedCount": 3,
+      "reason": "Stable specification names the retired component only as a formal negative contract."
+    },
+    {
+      "path": "openspec/specs/brand-taxonomy/spec.md",
+      "rule": "legacy-prefix-value",
+      "token": "CP",
+      "expectedCount": 5,
+      "reason": "Stable specification names the retired series prefix only as a formal negative contract."
+    },
+    {
+      "path": "openspec/specs/brand-taxonomy/spec.md",
+      "rule": "legacy-prefix-value",
+      "token": "SP",
+      "expectedCount": 6,
+      "reason": "Stable specification names the retired series prefix only as a formal negative contract."
+    },
+    {
+      "path": "openspec/specs/brand-taxonomy/spec.md",
+      "rule": "legacy-route",
+      "token": "clawd-picks",
+      "expectedCount": 3,
+      "reason": "Stable specification names the retired route only to define the exact public redirect and negative compatibility boundary."
+    },
+    {
+      "path": "openspec/specs/brand-taxonomy/spec.md",
+      "rule": "legacy-route",
+      "token": "shroom-picks",
+      "expectedCount": 2,
+      "reason": "Stable specification names the retired route only to define the exact public redirect and negative compatibility boundary."
+    },
+    {
+      "path": "openspec/specs/brand-taxonomy/spec.md",
+      "rule": "legacy-route",
+      "token": "shroomdog-picks",
+      "expectedCount": 3,
+      "reason": "Stable specification names the retired route only to define the exact public redirect and negative compatibility boundary."
+    },
+    {
+      "path": "openspec/specs/brand-taxonomy/spec.md",
+      "rule": "legacy-series-name",
+      "token": "Clawd Picks",
+      "expectedCount": 1,
+      "reason": "Stable specification names the retired series label only as a formal negative contract."
+    },
+    {
+      "path": "openspec/specs/brand-taxonomy/spec.md",
+      "rule": "legacy-series-name",
+      "token": "ShroomDog Picks",
+      "expectedCount": 1,
+      "reason": "Stable specification names the retired series label only as a formal negative contract."
+    },
+    {
+      "path": "openspec/specs/brand-taxonomy/spec.md",
+      "rule": "persona",
+      "token": "Clawd",
+      "expectedCount": 2,
+      "reason": "Stable specification names the retired persona only as a formal negative contract."
+    },
+    {
+      "path": "openspec/specs/brand-taxonomy/spec.md",
+      "rule": "pipeline-command",
+      "token": "sp-pipeline",
+      "expectedCount": 2,
+      "reason": "Stable specification names the retired command only as a formal negative contract."
+    },
+    {
+      "path": "openspec/specs/brand-taxonomy/spec.md",
+      "rule": "schema-key",
+      "token": "clawdNote",
+      "expectedCount": 2,
+      "reason": "Stable specification names the retired schema key only as a formal negative contract."
+    },
+    {
+      "path": "openspec/specs/brand-taxonomy/spec.md",
+      "rule": "ticket-id",
+      "token": "CP-N",
+      "expectedCount": 1,
+      "reason": "Stable specification names the retired ticket only as a formal negative contract."
+    },
+    {
+      "path": "openspec/specs/brand-taxonomy/spec.md",
+      "rule": "ticket-id",
+      "token": "SP-165",
+      "expectedCount": 1,
+      "reason": "Stable specification names the retired ticket only as a formal negative contract."
+    },
+    {
+      "path": "openspec/specs/brand-taxonomy/spec.md",
+      "rule": "ticket-id",
+      "token": "SP-258",
+      "expectedCount": 1,
+      "reason": "Stable specification names the retired ticket only as a formal negative contract."
+    },
+    {
+      "path": "openspec/specs/brand-taxonomy/spec.md",
+      "rule": "ticket-id",
+      "token": "SP-N",
+      "expectedCount": 1,
+      "reason": "Stable specification names the retired ticket only as a formal negative contract."
+    },
+    {
+      "path": "openspec/specs/extended-post-frontmatter/spec.md",
+      "rule": "legacy-prefix-value",
+      "token": "SP",
+      "expectedCount": 1,
+      "reason": "Stable specification names the retired series prefix only as a formal negative contract."
+    },
+    {
+      "path": "openspec/specs/extended-post-frontmatter/spec.md",
+      "rule": "schema-key",
+      "token": "clawdNote",
+      "expectedCount": 2,
+      "reason": "Stable specification names the retired schema key only as a formal negative contract."
+    },
+    {
+      "path": "openspec/specs/extended-post-frontmatter/spec.md",
+      "rule": "ticket-id",
+      "token": "SP-165",
+      "expectedCount": 1,
+      "reason": "Stable specification names the retired ticket only as a formal negative contract."
+    },
+    {
+      "path": "openspec/specs/extended-post-frontmatter/spec.md",
+      "rule": "ticket-id",
+      "token": "SP-258",
+      "expectedCount": 1,
+      "reason": "Stable specification names the retired ticket only as a formal negative contract."
+    },
+    {
+      "path": "openspec/specs/glossary-identity-ssot/spec.md",
+      "rule": "legacy-glossary-anchor",
+      "token": "/en/glossary#clawd",
+      "expectedCount": 1,
+      "reason": "Stable specification names the retired anchor only as a formal negative contract."
+    },
+    {
+      "path": "openspec/specs/glossary-identity-ssot/spec.md",
+      "rule": "legacy-glossary-anchor",
+      "token": "/glossary#clawd",
+      "expectedCount": 1,
+      "reason": "Stable specification names the retired anchor only as a formal negative contract."
+    },
+    {
+      "path": "openspec/specs/glossary-identity-ssot/spec.md",
+      "rule": "persona",
+      "token": "Clawd",
+      "expectedCount": 3,
+      "reason": "Stable specification names the retired persona only as a formal negative contract."
+    },
+    {
+      "path": "openspec/specs/tribunal-score-persistence/spec.md",
+      "rule": "schema-key",
+      "token": "clawdNote",
+      "expectedCount": 2,
+      "reason": "Stable specification names the retired schema key only as a formal negative contract."
+    },
+    {
+      "path": "openspec/specs/tribunal-scoring-dimensions/spec.md",
+      "rule": "schema-key",
+      "token": "clawdNote",
+      "expectedCount": 4,
+      "reason": "Stable specification names the retired schema key only as a formal negative contract."
+    },
+    {
+      "path": ".github/workflows/deploy-smoke-test.yml",
+      "rule": "post-slug",
+      "token": "sp-194-html-loop",
+      "expectedCount": 1,
+      "reason": "Smoke regression: a legacy artifact path must stay a direct 404 (no public redirect compatibility for artifacts)."
+    },
+    {
+      "path": ".github/workflows/deploy-smoke-test.yml",
+      "rule": "post-slug",
+      "token": "sp-9999-nonexistent-legacy-slug",
+      "expectedCount": 2,
+      "reason": "Smoke regression: a slug never present in the migration manifest must stay a direct 404 (no redirect guessed from a legacy prefix)."
+    },
+    {
+      "path": "docs/rebrand-cutover-runbook.md",
+      "rule": "legacy-prefix-value",
+      "token": "CP",
+      "expectedCount": 1,
+      "reason": "Accepted-breaking-impact summary names the retired series whose manifest-backed article URLs now redirect."
+    },
+    {
+      "path": "docs/rebrand-cutover-runbook.md",
+      "rule": "legacy-prefix-value",
+      "token": "SP",
+      "expectedCount": 1,
+      "reason": "Accepted-breaking-impact summary names the retired series whose manifest-backed article URLs now redirect."
+    },
+    {
+      "path": "docs/rebrand-cutover-runbook.md",
+      "rule": "legacy-route",
+      "token": "clawd-picks",
+      "expectedCount": 1,
+      "reason": "Accepted-breaking-impact summary names the retired listing route that now redirects to the canonical listing."
+    },
+    {
+      "path": "docs/rebrand-cutover-runbook.md",
+      "rule": "legacy-route",
+      "token": "shroom-picks",
+      "expectedCount": 2,
+      "reason": "Runbook documents that the never-published listing namespace stays unmapped/404, not redirected."
+    },
+    {
+      "path": "docs/rebrand-cutover-runbook.md",
+      "rule": "legacy-route",
+      "token": "shroomdog-picks",
+      "expectedCount": 1,
+      "reason": "Accepted-breaking-impact summary names the retired listing route that now redirects to the canonical listing."
+    },
+    {
+      "path": "tests/vercel-routing-config.test.ts",
+      "rule": "legacy-route",
+      "token": "shroom-picks",
+      "expectedCount": 4,
+      "reason": "Routing config test proves the never-published listing namespace stays unmapped (negative scope), never redirected."
+    },
+    {
+      "path": "tests/vercel-routing-config.test.ts",
+      "rule": "legacy-route",
+      "token": "shroomdog-picks",
+      "expectedCount": 11,
+      "reason": "Routing config test asserts the exact listing redirect rules and negative scope for this retired route; matches only prove the config, never a rendered page."
+    },
+    {
+      "path": "tests/vercel-routing-config.test.ts",
+      "rule": "post-slug",
+      "token": "sp-1-example",
+      "expectedCount": 4,
+      "reason": "Routing config test uses a synthetic unmapped slug to prove unknown legacy article URLs stay unmapped (negative scope)."
+    },
+    {
+      "path": "specs/review-tribunal.md",
+      "rule": "dangling-root-series-script-reference",
+      "token": "scripts/gp-pipeline.sh",
+      "expectedCount": 4,
+      "reason": "Point-in-time historical review evidence names the retired script; current behavior is governed by OpenSpec and the tracked GP pipeline tree."
+    },
+    {
+      "path": "specs/tribunal-calibration-research.md",
+      "rule": "ticket-id",
+      "token": "SP-XXX",
+      "expectedCount": 1,
+      "reason": "Dated calibration research preserves one hypothetical legacy ticket as historical evidence, not an active taxonomy contract."
+    },
+    {
+      "path": "scripts/tests/test-tribunal-progress-ledger-migration.sh",
+      "rule": "post-slug",
+      "token": "sp-test",
+      "expectedCount": 1,
+      "reason": "Legacy progress-ledger migration fixture must retain a retired-key example to verify one-time compatibility."
+    },
+    {
+      "path": "vercel.mjs",
+      "rule": "legacy-route",
+      "token": "clawd-picks",
+      "expectedCount": 1,
+      "reason": "Redirect config source route for the retired listing namespace; the only place old->new listing routes are defined."
+    },
+    {
+      "path": "vercel.mjs",
+      "rule": "legacy-route",
+      "token": "shroom-picks",
+      "expectedCount": 1,
+      "reason": "Doc comment naming the never-published listing namespace that intentionally has no redirect rule."
+    },
+    {
+      "path": "vercel.mjs",
+      "rule": "legacy-route",
+      "token": "shroomdog-picks",
+      "expectedCount": 1,
+      "reason": "Redirect config source route for the retired listing namespace; the only place old->new listing routes are defined."
+    }
+  ]
+}

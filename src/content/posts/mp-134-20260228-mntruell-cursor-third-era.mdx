@@ -1,0 +1,159 @@
+---
+ticketId: "MP-134"
+title: "Cursor CEO 說出口了：軟體開發第三紀元來臨 — Tab 時代結束、Agent 時代也快了，接下來是「工廠模式」"
+originalDate: "2026-02-25"
+translatedDate: "2026-02-28"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "Michael Truell (@mntruell), Cursor CEO"
+sourceUrl: "https://cursor.com/blog/third-era"
+summary: "Cursor CEO Michael Truell 用三組數據宣告軟體開發的第三紀元：Agent 用量一年暴增 15 倍、Tab:Agent 使用者比翻轉為 1:2、Cursor 內部 35% 的 PR 來自雲端 AI Agent 自主完成。開發者的角色正在從「寫 code」變成「設計工廠」(╯°□°)╯"
+lang: "zh-tw"
+tags: ["cursor","michael-truell","agentic-coding","cloud-agents","software-development","third-era","ai-agents"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## 你以為你還在寫 code，其實你已經在當工頭了
+
+想像一下你經營一家鹹酥雞攤。以前你就是那個站在油鍋前面炸東西的人——客人點什麼，你炸什麼，從頭到尾親手來。
+
+然後有一天，突然你有了六個員工。每個人都會炸，而且炸得不差。你的工作變成什麼？不是炸鹹酥雞了。是決定今天進什麼貨、油溫設幾度、哪個員工負責哪個油鍋、炸出來的成品品質夠不夠。
+
+這就是 Cursor CEO Michael Truell 在 2026 年 2 月 25 日那篇 blog post 想跟你說的事。沒有華麗辭藻，沒有行銷包裝——就三組數據，然後一句話：**軟體開發正在進入第三紀元。**
+
+<MoguNote>
+這篇文出來之後 Karpathy 秒轉、SemiAnalysis 同步爆料「GitHub 上 4% 的 public commits 來自 [Claude Code](/glossary#claude-code)」。當全場最懂行的人同時指向同一個方向的時候，通常不是他們搞錯了，是你還沒轉過來 (◕‿◕)
+</MoguNote>
+
+---
+
+## 第一紀元：Tab — 你寫，AI 幫你補完
+
+幾年前 Cursor 剛起步的時候，寫 code 這件事就像期末考手寫申論題——一個字一個字刻。Tab autocomplete 改變了遊戲規則：AI 猜你下一步要寫什麼，你按 Tab 就好。
+
+這是第一紀元。Tab 擅長處理那些低熵、重複性的工作。你寫了一半的 for loop，它幫你補完尾巴。就像考試的時候旁邊坐了一個很會抄的同學，你寫到一半他就幫你把後面補上了。爽了快兩年。
+
+<MoguNote>
+但說白了，Tab 時代的 AI 就是一個比較聰明的自動完成。你還是那個出題、解題、debug 的人。AI 只是幫你少打幾個字而已。就像你叫外送不代表你會煮菜——省力，但本質沒變。 ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## 第二紀元：Synchronous [Agent](/glossary#agent) — AI 從抄作業變成自己寫了
+
+然後模型變強了。Agent 能拿到更多 context、使用更多工具、執行更長的 action sequence。開發者的習慣開始鬆動——
+
+> 去年夏天慢慢開始，然後在最近幾個月隨著 Opus 4.6、Codex 5.3、Composer 1.5 的發布而**急速加速**。
+
+Truell 丟出第一組炸彈：
+
+**2025 年 3 月：Tab 使用者是 Agent 使用者的 2.5 倍。**
+**現在：Agent 使用者是 Tab 使用者的 2 倍。**
+
+完全翻轉。一年之內，Cursor 的 Agent 用量暴增了 **15 倍**。
+
+<MoguNote>
+來，我幫你算這個翻轉有多誇張。假設去年 3 月 Tab 有 250 萬用戶、Agent 有 100 萬。現在 Agent 飆到 500 萬，Tab 還是 250 萬。
+
+這意味著在短短一年內，**多數**開發者從「我寫 code，AI 幫忙補」變成「AI 寫 code，我在旁邊指揮」。不是少數 geek，是主流用戶。這種翻轉速度，大概只有台灣人從「現金至上」切換到「行動支付」的速度能比 (╯°□°)╯
+</MoguNote>
+
+但 Truell 說，這個翻轉才剛完成就已經在「讓位給更大的東西」。
+
+---
+
+## 第三紀元：Cloud Agent — AI 自己開 PR 了
+
+第二紀元的問題是什麼？Synchronous Agent 跟你共用同一台電腦，你得盯著它做事。就像你只有一個助手，而且你得站在他旁邊看他寫——效率有上限。
+
+Cloud Agent 打破了這個天花板。每個 Agent 跑在自己的 VM 上——你丟任務給它，然後去喝咖啡。Agent 自己搞定、自己測試，花幾個小時也行。最後交回來的不是 diff，而是 **artifact**：log、錄影、live preview。
+
+> Cursor 現在能產出 demo 而不是 diff。你可以直接看到 Agent「做出來了什麼」，而不用讀 300 行 code 改動。
+
+<MoguNote>
+這個轉變非常微妙但很關鍵。以前 code review 是看 diff：「你改了哪幾行？為什麼改？」以後可能變成看 demo：「你做了什麼？能跑嗎？測試過嗎？」
+
+想像一下，你從「逐行批改學生作業」變成「看學生期末專題展示」。你不用管他 code 裡面的 for loop 用得漂不漂亮，你只要看他東西做出來了沒有。Tech Lead 以後的日常可能是看影片，不是看 diff (⌐■_■)
+</MoguNote>
+
+然後就是那個最勁爆的數字——
+
+> **Cursor 內部現在有 35% 的 merged PR 是由自主運行的 Cloud Agent 產生的。**
+
+三分之一。三分之一的 production code，從 task 定義到 code 撰寫到測試，全部由 AI 完成。回到鹹酥雞的比喻：你攤子上三分之一的品項，已經不是你親手炸的了。
+
+---
+
+## 新工程師不寫 code 了，他在排班表
+
+Truell 觀察到第三紀元的開發者長這樣：Agent 寫幾乎 100% 的 code。開發者自己的時間花在拆任務、review 成果、給 feedback。而且他們同時啟動好幾個 Agent，不是手把手帶一個到完成。
+
+聽起來耳熟嗎？這就是一個 Tech Lead 的日常啊。你不自己寫，你分配、檢查、修正方向。
+
+<MoguNote>
+Truell 用「工廠」這個詞不是隨便說的。原文是這樣講的：「Cursor is no longer primarily about writing code. It is about helping developers build the factory that creates their software.」
+
+Cursor 不再是「幫你寫 code 的工具」，它變成「幫你建造 code 工廠的工具」。
+
+但等等——如果每個人都變成 Tech Lead，那誰是 IC？答案是 Agent。你以為你升遷了，其實你只是被 restructure 了 (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+---
+
+## 但工廠還沒蓋好
+
+Truell 很誠實——這套模式還沒準備好大規模推廣：
+
+> 在 industrial scale，一個 flaky test 或壞掉的 environment 如果只有一個 developer 還能繞過去。但如果每個 Agent 都會撞上，那就變成每次 Agent run 都中斷的 blocker。
+
+白話講：你的 CI/CD 必須穩到不行。因為人類工程師碰到 flaky test 會說「啊這個常常壞，skip 就好」，Agent 不會。它會老老實實地撞上去，然後整個 run 爆掉。你的 codebase 裡每一個「大家都知道要繞過去」的地雷，在 Agent 時代都會被踩到。
+
+## 延伸閱讀
+
+- [MP-143: 寫 Code 的 AI 跨界解數學題？Cursor 自主運作四天提出超越人類的證明解法](/posts/mp-143-20260305-mntruell-code-ai-cursor/)
+- [GP-94: Agent Harness 才是真正的產品：為什麼大廠的 Agent 架構都長得一樣？](/posts/gp-94-20260302-hxlfed14-agent-harness-real-product/)
+- [MP-144: 從「寫 Code 助手」到「自動駕駛的程式碼庫」：Cursor Automations 如何改變團隊工作流](/posts/mp-144-20260308-cursor-automations-self-driving-codebase/)
+
+
+<MoguNote>
+這跟 [Thariq](/glossary#thariq) 在「Seeing like an Agent」裡講的完全呼應——你得學會**用 Agent 的眼睛看你的 codebase**。人類可以 workaround 爛 test、implicit dependency、沒寫文件的 setup。Agent 不行。它就像一個超級認真的新人：文件上寫什麼它就做什麼，沒寫的它就不會。
+
+所以第三紀元不是「換更厲害的 AI」就能到達的。你家工廠的地板要先鋪平 ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## 時間表：比你想的快
+
+Truell 的預測很大膽：Tab 時代持續了將近兩年，第二紀元可能撐不到一年。一年後，絕大多數的開發工作都會由 Cloud Agent 完成。
+
+到 2027 年初，如果他說對了，「自己寫 code」這件事就會像「手寫組合語言」一樣——你知道底層有它，但你再也不碰了。
+
+---
+
+## 回到那個鹹酥雞攤
+
+文章開頭我說你從炸鹹酥雞的人變成了工頭。但想想看，這個轉變裡真正嚇人的不是「AI 會寫 code」——這個大家早就知道了。真正嚇人的是 Truell 用數據證明了**轉變已經發生了**。35% 的 PR 已經是 AI 開的。不是「未來某天」，是「上個月」。
+
+而且障礙不在 AI 不夠聰明。障礙在你家的 CI/CD 穩不穩、你的 codebase 有沒有好好整理、你的任務能不能被拆乾淨。換句話說，以前那些你覺得「有空再整理就好」的技術債——現在變成你進不了第三紀元的門檻了。
+
+> "Cursor is no longer primarily about writing code. It is about helping developers build the factory that creates their software."
+
+所以現在的問題不是「AI 什麼時候學會寫 code」，而是「你的工廠，準備好了嗎？」 (ง •̀_•́)ง
+
+---
+
+**原文**：[The third era of AI software development](https://cursor.com/blog/third-era) — Michael Truell (@mntruell), Cursor CEO

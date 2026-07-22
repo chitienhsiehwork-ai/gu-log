@@ -1,6 +1,6 @@
 import { test, expect } from './fixtures';
 
-const TEST_POST = '/posts/sp-24-20260204-claude-is-a-space-to-think';
+const TEST_POST = '/posts/gp-24-20260204-claude-is-a-space-to-think';
 
 async function setupLoggedIn(
   page: import('@playwright/test').Page,

@@ -32,7 +32,7 @@ export async function getSearchIndex(): Promise<{
       summary: data.summary || '',
       tags: data.tags || [],
       lang: data.lang || 'zh-tw',
-      date: data.originalDate || '',
+      date: data.translatedDate || data.originalDate || '',
       source: data.source || '',
       sourceUrl: data.sourceUrl || '',
     };

@@ -14,7 +14,7 @@ source: "ShroomDog Lab"
 sourceUrl: "https://gu-log.vercel.app/"
 lang: "en"
 summary: "A team wants OpenClaw on their intranet, coworkers tagging it in Teams. Outbound is sorted via a forward proxy. But inbound? Teams messages come from Microsoft's cloud — pure intranet is physically impossible. The post office problem: what moves inside the building (GitLab issues), what needs a door (DMZ + Teams), and why the extra architecture hassle is the right answer."
-tags: ["shroomdog-original", "openclaw", "microsoft-teams", "gitlab", "self-hosting", "enterprise"]
+tags: ["shroomdog-original","openclaw","microsoft-teams","gitlab","self-hosting","enterprise"]
 scores:
   tribunalVersion: 9
   factCheck:
@@ -37,7 +37,7 @@ scores:
     model: "claude-opus-4-8"
   vibe:
     persona: 7
-    clawdNote: 8
+    moguNote: 8
     vibe: 7
     narrative: 6
     score: 7
@@ -53,7 +53,6 @@ scores:
     model: "claude-opus-4-8"
 ---
 
-import ClawdNote from '../../components/ClawdNote.astro';
 import MoguNote from '../../components/MoguNote.astro';
 import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
@@ -89,9 +88,9 @@ Sure. But "opening a door" sounds simple. In practice? A whole enterprise obstac
 
 First, as of July 31, 2025, Azure Bot registration only allows single-tenant mode. The old multi-tenant workaround? Gone.
 
-<ClawdNote>
+<MoguNote>
 Single-tenant mode = your bot can only serve your own Microsoft 365 tenant, no more connecting to anyone else's Teams. Microsoft says it's for security. I say it's "finally closing the backdoor" — the old multi-tenant mode was basically announcing "hey, any tenant can poke your endpoint." The fact this design survived until 2025 is a miracle in itself (╯°□°)╯
-</ClawdNote>
+</MoguNote>
 
 Then there's permissions. Reading channel messages, fetching attachments — that's Graph API, and sensitive permissions need org admin consent, not just developer sign-off. If the organization hasn't enabled app sideloading or doesn't have an internal app catalog, the bot can't even deploy for testing.
 
@@ -111,7 +110,7 @@ The engineer's finger moved from the blank space to the whiteboard. A new line: 
 
 **They didn't have to negotiate with Microsoft at all.**
 
-And here's the exciting part — issues as threads actually match the [Claude Tag](/en/glossary#claude-tag) model better. [SP-187](/en/posts/en-sp-187-20260428-openai-symphony-codex-orchestration) covered OpenAI Symphony's core logic: the [Linear](/en/glossary#linear) task board becomes a remote control for [Codex](/en/glossary#codex) agents — one open task automatically pairs with one agent. [CP-179](/en/posts/en-cp-179-20260316-daniel-mac8-symphony-manage-work-not-agents)'s open-source [Elixir](/en/glossary#elixir) version is even more direct: issue moves to in-progress, Codex workspace takes over, updates Linear when done.
+And here's the exciting part — issues as threads actually match the [Claude Tag](/en/glossary#claude-tag) model better. [GP-187](/en/posts/en-gp-187-20260428-openai-symphony-codex-orchestration) covered OpenAI Symphony's core logic: the [Linear](/en/glossary#linear) task board becomes a remote control for [Codex](/en/glossary#codex) agents — one open task automatically pairs with one agent. [MP-179](/en/posts/en-mp-179-20260316-daniel-mac8-symphony-manage-work-not-agents)'s open-source [Elixir](/en/glossary#elixir) version is even more direct: issue moves to in-progress, Codex workspace takes over, updates Linear when done.
 
 Issues are inherently topic-oriented, persistent, visible to the whole team who can jump in and steer. Context density is higher — code links, diffs, labels, related MRs on the same page. Async nature sidesteps Bot Framework's 30-second timeout entirely; worktrees mapped to issues means "one task, one sandbox."
 
@@ -133,9 +132,9 @@ OpenClaw's official channel list includes Telegram, Mattermost, [Slack](/en/glos
 
 And you lose the low barrier of chat. Engineering can open GitLab issues, but PMs, sales, marketing — they won't.
 
-<ClawdNote>
+<MoguNote>
 Here's the brutal reality: self-hosting GitLab sidesteps the entire class of "Microsoft calling in" problems, but the price is you become the pipeline maintainer. For engineering teams this is good — own your fate, no waiting on Microsoft support tickets. For non-engineering teams? They don't even want to know what "an issue" is. Tell them "go open a ticket in GitLab" and they'll look at you like you just spoke Klingon ╮(╯▽╰)╭
-</ClawdNote>
+</MoguNote>
 
 So this path is engineering's path, not the whole company's.
 
@@ -153,7 +152,7 @@ This company's GitLab is department-by-department self-hosted — not a single c
 
 How do you open that door? Picture a doorman who only accepts envelopes stamped by Microsoft — anything else gets rejected. Technically: DMZ hosts a reverse proxy, exposing only `/api/messages` to the public, every request verified against Bot Framework's JWT signature. Stamp matches, come in. Stamp doesn't match, door stays closed.
 
-<ClawdNote summary="Millions in security walls, and the fatal weakness is one human copy-pasting the wrong line.">
+<MoguNote summary="Millions in security walls, and the fatal weakness is one human copy-pasting the wrong line.">
 Okay, I have to say this.
 
 This entire "enterprise-grade security architecture" — DMZ, JWT signatures, single-tenant mode, admin consent — every layer is beautifully designed. The flowcharts look like art. The documentation reads like a doctoral thesis.
@@ -163,7 +162,7 @@ And then? Whether the whole system actually works comes down to **whether some e
 One line.
 
 The company spent millions building these walls. The fatal weakness is a human slip of the finger. AI safety? AI didn't break anything. The human did. This is the real truth about enterprise security: **the most expensive layer of protection is always guarding you against the cheapest layer screwing up — and the cheapest layer is people.** (╯°□°)╯
-</ClawdNote>
+</MoguNote>
 
 Risk is bounded. Worth it. Anyone in the company tags the bot in Teams to kick off a task — barrier low enough that even sales will use it.
 
@@ -177,7 +176,7 @@ Next in this series: [the LINE story](/en/posts/en-sd-29-20260715-openclaw-line-
 
 This team's dream was a "pure intranet Claude Tag."
 
-What they found: some post offices move inside the building; some only work if you open a door for the mailman. Issue-driven agents aren't invented from scratch — SP-187's Symphony spec, CP-179's open-source implementation, they've been running this path for a while. Public-facing: Teams + DMZ. Intranet: GitLab issues. Two tracks, each serving its purpose.
+What they found: some post offices move inside the building; some only work if you open a door for the mailman. Issue-driven agents aren't invented from scratch — GP-187's Symphony spec, MP-179's open-source implementation, they've been running this path for a while. Public-facing: Teams + DMZ. Intranet: GitLab issues. Two tracks, each serving its purpose.
 
 The engineer's finger moved from the blank space to two solid lines on the diagram. Two weeks to draw the outbound half. Thirty minutes to fill in the inbound.
 

@@ -22,7 +22,7 @@ const artifactRoutes = readdirSync(artifactsDir)
   .filter((f) => f.endsWith('.astro'))
   .map((f) => `/artifacts/${f.replace(/\.astro$/, '')}/`);
 
-const ROUTES = ['/', '/posts/sp-245-20260624-mattpocockuk-skill-no-op/', ...artifactRoutes];
+const ROUTES = ['/', '/posts/gp-245-20260624-mattpocockuk-skill-no-op/', ...artifactRoutes];
 
 const WIDTHS = [
   { label: 'mobile-390', width: 390, height: 844 },

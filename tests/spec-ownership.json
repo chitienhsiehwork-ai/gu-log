@@ -31,10 +31,15 @@
       "owner": "ShroomDog",
       "reason": "Login CTA logged-in/out states; 3 tests, ~6.5s. Was failing on the same stale slug (fixed same PR), verified green across 4 consecutive --retries=0 runs 2026-07-18."
     },
-    "tests/clawd-note.spec.ts": {
+    "tests/mogu-note.spec.ts": {
       "class": "blocking",
       "owner": "ShroomDog",
-      "reason": "MoguNote rendering; 3 tests, ~3s. Was failing on the same stale slug (fixed same PR), verified green across 4 consecutive --retries=0 runs 2026-07-18."
+      "reason": "MoguNote rendering (renamed from clawd-note.spec.ts by the Mogu/GP/MP rebrand); 3 tests, ~3s. Was failing on the same stale slug (fixed same PR), verified green across 4 consecutive --retries=0 runs 2026-07-18."
+    },
+    "tests/brand-routes.spec.ts": {
+      "class": "blocking",
+      "owner": "ShroomDog",
+      "reason": "Mogu/GP/MP canonical-vs-retired route contract (rebrand): canonical listings serve 200, retired listings/slugs stay direct local 404s (local Astro never evaluates vercel.mjs). The public exact-permanent redirect contract for manifest-backed article/listing URLs is proven at the edge by the deploy smoke test and by tests/vercel-routing-config.test.ts against the config itself, not here."
     },
     "tests/content-integrity.spec.ts": {
       "class": "nightly",
@@ -214,11 +219,9 @@
       "issue": "https://github.com/chitienhsiehwork-ai/gu-log/issues/596"
     },
     "tests/ticket-badge-colors.spec.ts": {
-      "class": "quarantined",
+      "class": "nightly",
       "owner": "ShroomDog",
-      "reason": "2 failing: CP ticket badges render blue instead of orange in two contexts (PrevNextNav, post-meta) — real bug found 2026-07-18. Also has 2 legitimate data-dependent skips (no CP posts in a given fixture) that are fine as-is.",
-      "expiry": "2026-08-08",
-      "issue": "https://github.com/chitienhsiehwork-ai/gu-log/issues/597"
+      "reason": "Rewritten (#597) around a fixed canonical MP post (mp-6) flanked by MP neighbors on both sides, so post-meta and PrevNextNav badges are always present — no data-dependent skip. Asserts computed color resolves to --color-badge-mp (never --color-badge-gp) across dark/light x desktop/mobile, 4 deterministic cases."
     },
     "tests/toc-levelup.spec.ts": {
       "class": "quarantined",

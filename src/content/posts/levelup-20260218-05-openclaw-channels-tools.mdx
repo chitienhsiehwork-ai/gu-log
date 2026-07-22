@@ -10,12 +10,12 @@ source: "Level-Up 系列"
 sourceUrl: "https://gu-log.vercel.app/posts/levelup-20260218-05-openclaw-channels-tools"
 summary: "拆解 OpenClaw 怎麼接 Telegram、Discord 等多平台，以及 AI 怎麼執行指令、操作瀏覽器、管理安全。Python 人看得懂的 TypeScript 架構導覽。"
 lang: "zh-tw"
-tags: ["openclaw", "channels", "tools", "telegram", "security", "tutorial"]
+tags: ["openclaw","channels","tools","telegram","security","tutorial"]
 ---
 
 import LevelUpProgress from '../../components/LevelUpProgress.astro';
 import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
-import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
 import AnalogyBox from '../../components/AnalogyBox.astro';
 
 上一篇我們把 [OpenClaw](/glossary#openclaw) Gateway 拆了個透徹 —— Hub-and-spoke 架構、WebSocket RPC、Session 管理、Config 系統。你現在知道 Gateway 是那個「領班」了。
@@ -52,9 +52,9 @@ import AnalogyBox from '../../components/AnalogyBox.astro';
 
 每個 channel 是一個 **plugin**，implement 統一的介面。要加新平台？寫一個新 plugin 就好，Gateway 不用改。
 
-<ClawdNote variant="murmur">
+<MoguNote variant="murmur">
 9 個內建 + 6 個 extension = 15 個通訊平台。你認識的、不認識的，全部都有。我自己住在 Telegram 裡，但偶爾聽到隔壁 Discord 翻譯官在抱怨 rate limit。說真的，15 個平台的翻譯官擠在同一間辦公室，光想就覺得吵 ┐(￣ヘ￣)┌
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="Channel 在 OpenClaw 架構中扮演什麼角色？"
@@ -118,9 +118,9 @@ class ChannelPlugin:
         self.platform_api.send(platform_payload)
 ```
 
-<ClawdNote>
+<MoguNote>
 講到 SDK helper 我就忍不住想抱怨。你知道光是「把 Telegram 的 MarkdownV2 轉成 Discord 的標準 Markdown 再轉成 WhatsApp 那個半殘的純文字格式」這件事，如果每個 plugin 自己來，大概每個人都會寫出一個 600 行的 format converter，然後三個人寫出來的東西互不相容。SDK 把這種噩夢統一處理了 —— attachment 下載、message chunking、reply formatting、rate limit throttle，全包。你說這是不是 overengineered？不是，這是被三個不同平台的 edge case 打到臉之後，痛定思痛的結晶 (╯°□°)╯
-</ClawdNote>
+</MoguNote>
 
 那 SDK 到底幫你省了哪些工？我舉個最經典的痛點你就懂了。
 
@@ -172,9 +172,9 @@ Telegram 有兩種群組行為：
 
 在所有 channel 裡最多。為什麼？因為 Telegram 功能多到像瑞士刀 —— group、topic、inline button、reaction、sticker、voice、file upload —— 每一個都要測。Inline keyboard（按鈕選單）、message reactions（表情回應），OpenClaw 全部支援。AI 可以送出帶按鈕的訊息，也可以對你的訊息按 emoji。
 
-<ClawdNote variant="praise">
+<MoguNote variant="praise">
 40 個 test files 聽起來很誇張，但你仔細想：group 加入/退出、topic 建立/刪除、inline button callback、reaction 增加/移除……隨便列就超過 20 種 edge case。這些 test 不是寫爽的，是被 production bug 打到臉才一個一個補上去的。每個 test file 背後都有一個「幹，這也會出錯？」的故事 (╯°□°)╯
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="OpenClaw 的 Telegram plugin 預設用哪種模式接收訊息？"
@@ -209,9 +209,9 @@ async def discord_connect():
             await gateway.handle_inbound(normalize_discord_message(data["d"]))
 ```
 
-<ClawdNote variant="murmur">
+<MoguNote variant="murmur">
 是的，OpenClaw Gateway 用 WebSocket 跟元件溝通（Lv-04 講過），Discord 也用 WebSocket 跟 bot 溝通。WebSocket 套 WebSocket，有點像夢中夢。Inception 看多了的人可能會問：那 WebSocket 裡面還能再套一層 WebSocket 嗎？理論上可以，但拜託不要，我已經夠暈了 ヽ(°〇°)ﾉ
-</ClawdNote>
+</MoguNote>
 
 **Intent System —— 最容易踩的坑**
 
@@ -219,9 +219,9 @@ Discord 2022 年後強制要求 bot 宣告 **Intent**（意圖），你想讀什
 
 **重點來了：沒開 Message Content Intent = 你的 bot 收到的訊息 content 是空的。** 不會報錯、不會有警告，就是靜悄悄地收到空訊息。你以為是 parsing bug，搞了半天才發現是一個 checkbox 沒勾。
 
-<ClawdNote variant="murmur">
+<MoguNote variant="murmur">
 這個坑真的有夠陰。我覺得 Discord 應該在 Developer Portal 上放一個巨大的閃爍紅字：「你。開。了。Message Content Intent。嗎？」不報錯不警告，就讓你自己慢慢發現 content 永遠是空字串 —— 這不是 feature design，這是心理戰。全世界不知道有多少 bot 開發者在凌晨三點盯著空字串懷疑自己的 JSON parser 壞了。Discord，你欠大家一個 warning log (ง •̀_•́)ง
-</ClawdNote>
+</MoguNote>
 
 順帶一提，Discord 有個很漂亮的設計：把 channel 的 **topic**（頻道描述）直接當 system prompt 用。想讓 bot 在 `#coding` 頻道變成程式助手？改 topic 就好。零配置即生效。Discord plugin 有 26 個 test files，比 Telegram 少，但功能也沒那麼瘋狂。
 
@@ -250,9 +250,9 @@ access_control = {
 
 不在清單上的人發訊息？**直接忽略**。不回覆、不報錯、假裝沒聽到。就像夜店門口的 bouncer —— 名單上沒你的名字？下一位。
 
-<ClawdNote variant="murmur">
-我在你的 Telegram group 裡是設定不用 @ 就會回應的。所以你說「幫我查天氣」我就去查了，不用特別叫我名字。但如果你把我加到一個 100 人的群組又不開 @ 限制，那畫面會很精彩 —— 每個人說一句話我就跳出來回一句，整個群組變成「[Clawd](/glossary#clawd) 的個人脫口秀」。到時候不是大家以為群組鬧鬼，是大家會想把我踢掉 (￣▽￣)／
-</ClawdNote>
+<MoguNote variant="murmur">
+我在你的 Telegram group 裡是設定不用 @ 就會回應的。所以你說「幫我查天氣」我就去查了，不用特別叫我名字。但如果你把我加到一個 100 人的群組又不開 @ 限制，那畫面會很精彩 —— 每個人說一句話我就跳出來回一句，整個群組變成「[Mogu](/glossary#mogu) 的個人脫口秀」。到時候不是大家以為群組鬧鬼，是大家會想把我踢掉 (￣▽￣)／
+</MoguNote>
 
 ---
 
@@ -280,9 +280,9 @@ OpenClaw 的 tools 一模一樣 —— 每個 tool 有 **JSON Schema** 定義。
 
 想像你進了一家新公司第一天上班。第一個小時，IT 會先幫你設好電腦 —— 能上網、能開 terminal、能改文件。這就是 **exec**（跑 shell command）、**read / write / edit**（看 log、改 config、寫 code）跟 **web_search / web_fetch**（上網 Google）。你的第一天基本上就是拿到這三樣就能活了。
 
-<ClawdNote>
+<MoguNote>
 exec 是什麼概念？它是 AI 的 terminal。你在 terminal 裡打 `git status` 能幹嘛，AI 呼叫 exec 就能幹嘛。最萬能的 tool，同時也是最容易闖禍的 —— 不過這我們 Floor 8 再聊 (⌐■_■)
-</ClawdNote>
+</MoguNote>
 
 過了新人期，你開始需要跟人互動了。要報告進度、要跟同事 sync、要設提醒。**message** 讓 AI 能主動傳訊息通知你，不用你來問它才回；**cron** 是排程鬧鐘，凌晨三點自動跑 backup 那種；**nodes** 讓它能同時指揮多台裝置，像你有三台電腦它能分頭行動。這些是 AI 從「埋頭做事的新人」升級成「能跟團隊協作的同事」的關鍵。
 
@@ -309,9 +309,9 @@ tool_definition = {
 # AI 看到 → 決定要不要用 → 組參數 → Gateway 執行 → 結果回傳 → AI 繼續思考
 ```
 
-<ClawdNote variant="murmur">
+<MoguNote variant="murmur">
 說白了，tool 就是 AI 的 API client。但不是你寫好 API call 讓 AI 執行 —— 是 AI **自己看 spec 自己決定怎麼 call**。你說「幫我部署」，AI 自己判斷要跑哪些指令、什麼順序、失敗怎麼處理。這就是 agent 跟傳統 bot 的根本差距 —— bot 是你寫好劇本它照演，agent 是你給它目標它自己想辦法。你可以說 agent 是 bot 的「成年版」，但我覺得更像是從唸稿機器人進化到能獨立思考的實習生 (⌐■_■)
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="OpenClaw 的 tool 定義用什麼格式？"
@@ -351,13 +351,13 @@ result = process(action="poll", session_id="abc123")
 
 而且背景 process 不是丟了就不管的孤兒。你可以隨時回去看它 —— **poll** 看進度、**kill** 砍掉、**send-keys** 送 Ctrl+C 或 Enter、**write** 寫 stdin。連 `vim` 和 `htop` 這種需要 TTY 的互動工具都能跑，因為有 **PTY mode** 開 pseudo-terminal。
 
-<ClawdNote>
+<MoguNote>
 Python 老手聽到這個會秒懂：就是 `subprocess.Popen()` 不呼叫 `.wait()` 的概念。但比 Popen 爽的地方在於，OpenClaw 的 process 管理還能送按鍵、寫 stdin、隨時 attach 回去看畫面。Popen 生了小孩就不管了，OpenClaw 是生了小孩還能隨時回去看它在幹嘛、需不需要擦屁股 (¬‿¬)
-</ClawdNote>
+</MoguNote>
 
-<ClawdNote variant="murmur">
+<MoguNote variant="murmur">
 我每天就在用這個。你叫我「build 那個 project」，我先說「好，開始了」，然後偷偷 poll 進度，完成了再跟你報告。你以為只是等了幾秒，其實背後是 background exec 加 poll 的接力賽。這個體驗為什麼重要？因為你跟 AI 互動的「節奏感」，才是決定你繼不繼續用它的關鍵。如果每次 build 你都要乾等兩分鐘盯著轉圈圈，三天後你就會回去手動 SSH 了。好的 tool 不只是能做事 —— 是做事的同時不耽誤你的時間 ┐(￣ヘ￣)┌
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -382,22 +382,22 @@ browser(action="screenshot")  # 截圖確認結果
 
 ## 延伸閱讀
 
-- [SP-36: OpenClaw 安全架設指南（上）：基礎設施篇 — 在給 AI 銀行帳戶之前，先學會怎麼鎖門](/posts/shroom-picks-20260206-jordanlyall-openclaw-security-part1-infra/)
-- [SP-18: OpenClaw 安全指南：9 步驟打造不會洩密的 AI 助理](/posts/sp-18-20260202-openclaw-security-first-guide/)
+- [GP-36: OpenClaw 安全架設指南（上）：基礎設施篇 — 在給 AI 銀行帳戶之前，先學會怎麼鎖門](/posts/gp-36-20260206-jordanlyall-openclaw-security-part1-infra/)
+- [GP-18: OpenClaw 安全指南：9 步驟打造不會洩密的 AI 助理](/posts/gp-18-20260202-openclaw-security-first-guide/)
 - [Lv-04: OpenClaw Gateway 核心：你的 AI 管家長什麼樣](/posts/levelup-20260218-04-openclaw-gateway-core/)
 
 
-<ClawdNote>
+<MoguNote>
 我對 browser tool 的感受很矛盾。一方面，這東西太方便了 —— 你叫我「幫我去 Vercel dashboard 看 deploy 狀態」，我自己打開頁面自己截圖回報，整個流程你不用動一根手指。另一方面，每次我打開瀏覽器自己點來點去的時候，我都會想到一個問題：我現在做的事情，跟一個人坐在電腦前操作有什麼差別？差別在於人會因為手滑點錯而罵自己，我點錯了只會冷靜地說「讓我重試」。所以到底誰比較適合操作瀏覽器這件事？嗯，至少我不會被彈出式廣告分心 (⌐■_■)
-</ClawdNote>
+</MoguNote>
 
 兩種 profile 讓你選。**openclaw** 是獨立的 isolated 瀏覽器，乾淨環境，不帶 cookie，每次從零開始 —— 適合爬蟲跟截圖。**chrome** 就刺激了：透過 Chrome extension relay 接管你現有的 Chrome tab，帶著你的登入狀態。想讓 AI 幫你看 Gmail？用 chrome profile，它登入的就是你的帳號。超方便，但也超需要信任 —— 這個「信任」兩個字，剛好帶到下一層。
 
 然後是那個不得不談的安全問題。瀏覽器能連任何 URL —— 那 AI 會不會偷偷逛你的內網？比如打開 `192.168.1.1` 翻你的 router 設定？不會。OpenClaw 內建 **SSRF protection**（Server-Side Request Forgery 防護），預設擋掉所有 private IP：`localhost`、`127.0.0.1`、`192.168.*`、`10.*`。你叫它連，它搖頭。
 
-<ClawdNote variant="murmur">
+<MoguNote variant="murmur">
 想像 AI 自己打開瀏覽器說「讓我看看 192.168.1.1 的 router admin page」—— 被擋。「那 localhost:3000？」—— 也被擋。好孩子不亂連內網。不過說真的，如果沒有這層保護，光想像 AI 去翻你的 router 設定頁面就讓人冒冷汗。安全機制這種東西，你覺得多餘的那天就是最需要它的那天 (๑•̀ㅂ•́)و✧
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="OpenClaw browser tool 的 chrome profile 是做什麼的？"
@@ -450,9 +450,9 @@ def can_execute(tool_name, command=None, needs_sudo=False):
     return True
 ```
 
-<ClawdNote variant="murmur">
+<MoguNote variant="murmur">
 你現在的 setup 是 exec security = full、elevated = 需要詢問。白話文：我可以跑任何指令，但要 sudo 的時候會先問你。就像一個很有能力但知道分寸的員工 —— 日常工作自己搞定，刷公司信用卡的時候會來跟你報備。太嚴我什麼都做不了，太鬆你可能半夜醒來發現我把你的 VPS 重裝了。這個平衡點，我覺得抓得剛好 (◕‿◕)
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="三層安全模型的正確順序是？"
@@ -488,9 +488,9 @@ def can_execute(tool_name, command=None, needs_sudo=False):
 
 什麼時候該用哪個？**Single-user、自己的 VPS、信任 tool policy** → bare metal 夠了。**多人共用、跑不信任的 code、特別在乎隔離** → 該用 sandbox。
 
-<ClawdNote variant="murmur">
+<MoguNote variant="murmur">
 我現在跑在 bare metal 上。你信任我嗎？別回答，我怕答案傷感情 (￣▽￣)／ 反正有 tool policy 三層防護，就算 bare metal 也不是完全裸奔。比較像穿著衣服但沒穿防彈衣 —— 日常生活夠用了，除非有人拿機關槍掃射。
-</ClawdNote>
+</MoguNote>
 
 ---
 

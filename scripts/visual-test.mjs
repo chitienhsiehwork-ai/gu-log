@@ -5,7 +5,7 @@
  * Takes screenshots and verifies critical UI elements
  *
  * Usage: node scripts/visual-test.mjs [base-url] [post-path]
- * Default: https://gu-log.vercel.app /posts/sp-25-20260204-recursive-language-models-mit
+ * Default: https://gu-log.vercel.app /posts/gp-25-20260204-recursive-language-models-mit
  *
  * Exit codes:
  *   0 = PASS (all checks passed)
@@ -17,7 +17,7 @@ import { mkdir, writeFile } from 'fs/promises';
 import path from 'path';
 
 const BASE_URL = process.argv[2] || 'https://gu-log.vercel.app';
-const TEST_PATH = process.argv[3] || '/posts/sp-25-20260204-recursive-language-models-mit';
+const TEST_PATH = process.argv[3] || '/posts/gp-25-20260204-recursive-language-models-mit';
 const REPORT_DIR = path.resolve('.playwright-cli/report');
 
 const VIEWPORTS = [
@@ -29,56 +29,56 @@ async function checkPage(page, viewport) {
   const issues = [];
   const checks = [];
 
-  // 1. Check ClawdNote elements
-  const clawdNotes = page.locator('blockquote.claude-note');
-  const clawdNoteCount = await clawdNotes.count();
+  // 1. Check MoguNote elements
+  const moguNotes = page.locator('blockquote.claude-note');
+  const moguNoteCount = await moguNotes.count();
 
-  if (clawdNoteCount === 0) {
+  if (moguNoteCount === 0) {
     issues.push({
       severity: 'WARNING',
-      description: 'No ClawdNote found on page (might be below fold)',
+      description: 'No MoguNote found on page (might be below fold)',
     });
   } else {
-    checks.push(`✓ Found ${clawdNoteCount} ClawdNote(s)`);
+    checks.push(`✓ Found ${moguNoteCount} MoguNote(s)`);
 
-    // Check if ClawdNotes have the prefix and collect them for variety check
+    // Check if MoguNotes have the prefix and collect them for variety check
     const prefixTexts = [];
-    for (let i = 0; i < Math.min(clawdNoteCount, 5); i++) {
-      const note = clawdNotes.nth(i);
-      const prefix = note.locator('.clawd-prefix');
+    for (let i = 0; i < Math.min(moguNoteCount, 5); i++) {
+      const note = moguNotes.nth(i);
+      const prefix = note.locator('.mogu-prefix');
       const hasPrefix = (await prefix.count()) > 0;
 
       if (!hasPrefix) {
-        // Check if content starts with "Clawd"
+        // Check if content starts with "Mogu"
         const text = await note.textContent();
-        if (!text.includes('Clawd')) {
+        if (!text.includes('Mogu')) {
           issues.push({
             severity: 'CRITICAL',
-            description: `ClawdNote #${i + 1} missing "Clawd" attribution`,
+            description: `MoguNote #${i + 1} missing "Mogu" attribution`,
           });
         }
       } else {
         const prefixText = await prefix.textContent();
         prefixTexts.push(prefixText.trim());
-        checks.push(`✓ ClawdNote #${i + 1} has prefix: "${prefixText.trim()}"`);
+        checks.push(`✓ MoguNote #${i + 1} has prefix: "${prefixText.trim()}"`);
       }
     }
 
-    // Check prefix variety - if 3+ ClawdNotes, they shouldn't ALL be identical
+    // Check prefix variety - if 3+ MoguNotes, they shouldn't ALL be identical
     if (prefixTexts.length >= 3) {
       const uniquePrefixes = new Set(prefixTexts);
       if (uniquePrefixes.size === 1) {
         issues.push({
           severity: 'CRITICAL',
-          description: `All ${prefixTexts.length} ClawdNotes have identical prefix "${prefixTexts[0]}" - needs variety!`,
+          description: `All ${prefixTexts.length} MoguNotes have identical prefix "${prefixTexts[0]}" - needs variety!`,
         });
       } else {
-        checks.push(`✓ ClawdNote prefixes have variety (${uniquePrefixes.size} unique)`);
+        checks.push(`✓ MoguNote prefixes have variety (${uniquePrefixes.size} unique)`);
       }
     }
 
     // Check orange border (computed style)
-    const firstNote = clawdNotes.first();
+    const firstNote = moguNotes.first();
     const borderColor = await firstNote.evaluate((el) => getComputedStyle(el).borderLeftColor);
 
     // Check if it's orange-ish (RGB values)
@@ -90,10 +90,10 @@ async function checkPage(page, viewport) {
     if (!isOrange) {
       issues.push({
         severity: 'WARNING',
-        description: `ClawdNote border color might not be orange: ${borderColor}`,
+        description: `MoguNote border color might not be orange: ${borderColor}`,
       });
     } else {
-      checks.push(`✓ ClawdNote has orange border`);
+      checks.push(`✓ MoguNote has orange border`);
     }
   }
 

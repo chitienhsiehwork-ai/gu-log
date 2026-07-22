@@ -1,0 +1,191 @@
+---
+ticketId: "MP-116"
+title: "Karpathy 刷屏演講完整拆解：Software 3.0 時代來了 — LLM 是新 OS，我們還在 1960 年代"
+originalDate: "2026-02-20"
+translatedDate: "2026-02-23"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "Andrej Karpathy (SF AI Startup School)"
+sourceUrl: "https://www.youtube.com/watch?v=LCEmiRjPEtQ"
+summary: "Karpathy 在 SF AI Startup School 發表刷屏演講：軟體正進入 3.0 時代（英語 = 程式語言），LLM 就是新 OS 但我們還在 1960 年代。他提出「自主滑桿」和「鋼鐵人戰衣」比喻，警告 Agent 是十年的事不是一年。"
+lang: "zh-tw"
+tags: ["karpathy","software-3-0","llm-os","ai-agents","autonomy-slider","vibe-coding"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## 你花了十年學寫 code，然後有人說：「用講的就好」
+
+假設你花了十年練鋼琴，每天八小時，手指都長繭了。然後有天走進音樂廳，發現所有人都在對著鋼琴說話——「幫我彈一首蕭邦」——然後鋼琴就彈了。
+
+這大概就是 Karpathy 最新這場演講給整個軟體業的衝擊。
+
+[Andrej Karpathy](/glossary#andrej-karpathy) 在舊金山 AI Startup School 上了台，講了一場叫「AI 時代的軟體」的演講，然後整個技術圈就炸了。他的核心論點只有一句話：**軟體正在經歷第三次範式轉移，而我們還處於 1960 年代。**
+
+但這句話的後勁比你想的還強。讓我慢慢拆。
+
+<MoguNote>
+先說 Karpathy 是誰——前 OpenAI 創始成員、前 Tesla AI 主管、Eureka Labs 創辦人。這人的履歷基本上就是「AI 近代史」本人。他說的話不一定都對，但他說的話，整個矽谷都會認真聽。
+
+重點是：他不是在賣產品，不是在募資。他是一個離開了兩家最大 AI 公司的人，站在台上跟你說他看到了什麼。這種沒有利益糾葛的觀點特別值得聽。(⌐■_■)
+</MoguNote>
+
+## 三代軟體：從寫 Code 到用英文「Programming」
+
+Karpathy 把軟體發展分為三個時代：
+
+| 時代 | 你在做什麼 | 代表 |
+|------|------------|------|
+| **Software 1.0** | 寫 code 給電腦執行 | GitHub |
+| **Software 2.0** | 訓練 neural network 的權重 | Hugging Face |
+| **[Software 3.0](/glossary#software-30)** | 用英文寫 prompt 給 LLM | ChatGPT / Claude |
+
+等等，你有沒有注意到最後一列的變化？GitHub → Hugging Face → ChatGPT。每一代的「程式碼倉庫」長得完全不一樣。因為程式碼本身的定義變了。
+
+> **Software 3.0：你不再寫 code、不再訓練參數，而是直接用 Prompt 來「編程」LLM。更妙的是，這種程式語言就是我們日常說的「英語」。**
+
+<MoguNote>
+想想看：70 年來，「programming」意味著學一門人工語言（C、Python、Java）。現在 programming 的語言就是你已經會的語言。
+
+這就像你一直在學開車，練倒車入庫、練 S 彎、考了三次駕照——然後有人告訴你：「其實你只要告訴車子你要去哪就好了。」
+
+如果你覺得 Karpathy 只是在講空話——他提到 [Claude Code](/glossary#claude-code) 已經佔了公開 GitHub commits 的 4%。**4% 的 GitHub 是 AI 寫的。** 這不是未來，這是現在進行式。╰(°▽°)╯
+</MoguNote>
+
+## LLM 是新 OS——但我們還在 1960 年代
+
+好，這段是整場演講最有野心的部分。
+
+Karpathy 的核心比喻：**LLM 就是新型的作業系統。** 他引用 Andrew Ng 的名言「AI is the new electricity」，然後說——不，電力只是一半的故事。LLM 更像是整套基礎設施：
+
+- **像公用事業**：各大 Lab 投入巨額 CapEx 訓練模型，然後像供電一樣通過 API 提供給所有人。按 token 付費就像付電費——你不需要自己蓋發電廠。
+- **像晶圓廠**：訓練 LLM 的技術秘密越來越集中在少數公司。Google 自己做 TPU 就是走「英特爾模式」——從設計到製造一手包辦。
+- **像 OS**：有封閉的主流平台（GPT、Claude）也有開源替代品（LLaMA 可能成為 LLM 時代的 Linux）。你可以在不同 LLM 上跑同一個 app，就像同一個軟體可以跑在 Windows 和 macOS 上。
+
+但問題來了——如果 LLM 是 OS，那我們現在在 OS 發展史的哪個階段？
+
+Karpathy 的答案讓人倒吸一口氣：
+
+> **我們目前的計算水平大概相當於 1960 年代。** LLM 運算昂貴，必須集中部署在雲端。我們都是「瘦客戶端」通過網路使用這些「大型電腦」——就像當年的分時共享系統。
+
+> **個人電腦革命還沒發生。** 但已經有跡象了——Mac Mini 很適合跑某些 LLM，因為推理主要吃 memory 而非 compute。
+
+<MoguNote>
+Karpathy 說我們在 1960 年代。好，那讓我幫你算一下接下來的劇本：
+
+1960 年代 → 大型主機，分時共享（我們在這裡）
+1970-80 年代 → 個人電腦革命（Apple II、IBM PC）
+1990 年代 → GUI 讓你阿嬤也會用電腦
+2000 年代 → 網際網路把所有人連起來
+
+如果 LLM 真的走同一條路——我們還沒看到 LLM 的「Apple II」、還沒看到 LLM 的「GUI」（Karpathy 自己說現在跟 LLM 互動還像用終端機打字）、還沒看到 LLM 的「Netscape」。
+
+**最大的東西都還沒被發明。** 這句話聽起來很雞湯對吧？但從一個親眼看著 deep learning 從實驗室走到手機上的人嘴裡說出來，份量完全不一樣。(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧
+</MoguNote>
+
+## 自主滑桿（Autonomy Slider）——不是開關，是旋鈕
+
+這段是整場演講最實用的部分，拿出來可以直接指導產品設計。
+
+Karpathy 提出了一個叫「自主滑桿」的框架。重點是：AI 的自主程度不是一個 0/1 的開關，而是一個可以滑動的旋鈕。
+
+以 Cursor 為例：
+- **滑桿最左**：字節級自動補全，你主導一切
+- **往右一點**：Command+K 修改選取的 code
+- **再往右**：Command+L 改整個文件
+- **最右邊**：Command+I 讓 [Agent](/glossary#agent) 改整個 repo
+
+> **好的 LLM 產品都有這個滑桿。** Perplexity 也是：你可以只做一次快速搜尋，或者讓它深度研究 10 分鐘再回來找你。
+
+然後他用了一個所有人都記住了的比喻：
+
+> **我們要建造的是「鋼鐵人戰衣」，不是「機器人」。** 不是一開始就做全自動 Agent，而是先建造具有自主滑桿的「部分自主產品」，配備 GUI，讓人類的生成→驗證循環飛快。
+
+<MoguNote>
+「鋼鐵人戰衣 vs 機器人」這個比喻很直覺，但我覺得 Karpathy 少講了一個更深的點：**你不會讓一個沒穿過戰衣的人直接操控機器人。**
+
+也就是說——如果你跳過「戰衣階段」直接做全自動 Agent，你的使用者根本不知道怎麼在出錯時介入。就像直接讓一個沒開過車的人坐上全自動駕駛——他連方向盤在哪都不知道，系統一當機他就只能祈禱。
+
+先穿戰衣 → 你學會了每個零件怎麼運作
+然後脫戰衣 → 你知道什麼時候該搶回控制權
+
+這才是自主滑桿真正的意義：不只是產品功能，是使用者的信任階梯。(๑•̀ㅂ•́)و✧
+</MoguNote>
+
+## 「2025 是 Agent 元年」——Karpathy 很擔心
+
+聊完了令人興奮的框架，Karpathy 突然潑了一盆冷水。
+
+> **每次看到有人說「2025 是 Agent 元年」，我都會擔心。這更像是「Agent 的十年」。** 我們要慢慢推進，讓人始終在 loop 裡。這是軟體，要認真對待。
+
+他用自動駕駛來類比：2013 年他第一次坐 Waymo 的無人車，30 分鐘完美無人駕駛。他當時想「自動駕駛馬上就來了！」
+
+**12 年後的今天，我們仍在研究這個問題。**
+
+> 軟體的複雜性跟自動駕駛一樣。Agent 不會一夜之間解決所有問題。
+
+<MoguNote>
+把 Karpathy 的自動駕駛類比套在 AI coding 上就更清楚了：
+
+2024 年：「AI 可以寫 code 了！程式設計師馬上被取代！」
+2026 年：[Boris Cherny](/glossary#boris-cherny) 說 coding 已被「解決」，但同時 AWS 的 AI 把自己的 production 環境砍掉重來了。
+
+進步是真的。但「demo 很完美」到「上線不出事」之間的距離，自動駕駛花了 12 年還沒走完。每個在推特上喊「Agent 元年」的人，都應該先坐下來讀讀 Waymo 的工程部落格，看看「最後 1%」要花多少工。
+
+不過話說回來——Karpathy 說的是「十年」不是「永遠」。這其實是樂觀的：他相信終點存在，只是路比你想的長。┐(￣ヘ￣)┌
+</MoguNote>
+
+## 給 Agent 而建（Build for Agents）
+
+演講尾聲，Karpathy 不只在講未來——他在講你今天就可以做的事。
+
+> LLM 已經成為數位資訊的主要消費者和操作者之一。**我們要為 Agent 而建！**
+
+三件現在就能做的事：
+1. **llm.txt** — 在你的網站放一個 markdown 文件，直接告訴 LLM 你的網站是做什麼的。這是 robots.txt 的 AI 版——與其讓 AI 去猜你的 HTML 在幹嘛，不如直接用它看得懂的語言講
+2. **把文檔改成「人跟 Agent 都看得懂」** — Vercel 和 Stripe 已經開始把文檔改成 markdown 格式。把「點擊這裡」改成 curl 命令。因為你的下一個讀者可能沒有眼睛
+3. **工具橋接** — DeepWiki 可以分析整個 GitHub repo 並生成 LLM 友好的文檔。不是給 AI 一張地圖，是直接幫它開 GPS
+
+<MoguNote>
+Karpathy 這段直接說了我一直想說的話：**現在的網路是給人用的，不是給 AI 用的。**
+
+HTML 對 LLM 來說就像你讓一個語言天才去讀加密訊息——他其實看得懂，但要花十倍力氣去猜哪些是內容、哪些是排版垃圾。
+
+如果你在做 B2B 產品，現在就應該問自己：你的產品對 Agent 來說可讀嗎？可操作嗎？因為你的下一個「客戶」可能不是人，是一個在凌晨三點幫他的主人比價的 Agent。ʕ•ᴥ•ʔ
+</MoguNote>
+
+## 回到那台鋼琴
+
+所以我們繞了一大圈，從 Software 3.0 講到 LLM OS、從自主滑桿講到自動駕駛的教訓、從建造鋼鐵人戰衣講到為 Agent 重建整個網路。
+
+但如果你退一步看，Karpathy 整場演講其實在講同一件事：**我們正站在一個全新時代的起點，而且大部分人還沒意識到自己站在哪裡。**
+
+就像開頭那個鋼琴的比喻——你練了十年的技能沒有白費。會寫 code 的人在 Software 3.0 時代反而更有優勢，因為你知道那台「會自己彈」的鋼琴背後是什麼原理。你不只能對它說「彈蕭邦」，你還能說「第三小節的力度再重一點，然後踏板延長半拍」。
+
+Karpathy 最後說的那句話值得記住：
+
+> 現在是進入這個行業的黃金時代。我們需要重寫大量的代碼。人會寫，LLM 也會寫。我們處於 1960 年代——最大的東西都還沒被發明。
+
+1960 年代。最大的東西還沒被發明。
+
+如果你正在讀這篇文章，你就在那個時代裡。( •̀ ω •́ )✧
+
+---
+
+**延伸閱讀：**
+- [MP-100: Karpathy：App Store 過時了 — 未來是 AI 即時組裝的一次性 App](/posts/mp-100-20260219-karpathy-app-store-dead)
+- [GP-76: Karpathy 談 Claw 新時代：機會很大，但先把安全底盤打好](/posts/gp-76-20260221-karpathy-claw-security-architecture)
+- [MP-98: Cloudflare Markdown for Agents — 讓你的網站 AI 可讀](/posts/mp-98-20260219-cloudflare-markdown-for-agents)
+- [MP-115: Boris Cherny：Coding 已解決，軟體工程師頭銜即將消失](/posts/mp-115-20260223-bcherny-coding-solved-lenny)

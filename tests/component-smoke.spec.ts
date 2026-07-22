@@ -42,9 +42,9 @@ test.describe('Component smoke — listing pages', () => {
     expect(errs, `console errors: ${errs.join('\n')}`).toEqual([]);
   });
 
-  test('shroomdog-picks listing renders', async ({ page }) => {
+  test('gu-log-picks listing renders', async ({ page }) => {
     const errs = attachConsoleErrorWatcher(page);
-    await page.goto('/shroomdog-picks');
+    await page.goto('/gu-log-picks');
     await expect(page.locator('main')).toBeVisible();
     expect(errs, `console errors: ${errs.join('\n')}`).toEqual([]);
   });
@@ -85,9 +85,9 @@ test.describe('Component smoke — site shell', () => {
 });
 
 test.describe('Component smoke — post page (RelatedArticles, ShareButton, PrevNextNav)', () => {
-  test('a CP post page renders without errors', async ({ page }) => {
+  test('a MP post page renders without errors', async ({ page }) => {
     const errs = attachConsoleErrorWatcher(page);
-    await page.goto('/posts/cp-291-20260414-anthropic-');
+    await page.goto('/posts/mp-291-20260414-anthropic-');
     await expect(page.locator('article').first()).toBeVisible();
     // ShareButton has a recognizable click target
     const share = page.locator(
@@ -99,9 +99,9 @@ test.describe('Component smoke — post page (RelatedArticles, ShareButton, Prev
     expect(errs, `console errors: ${errs.join('\n')}`).toEqual([]);
   });
 
-  test('an SP post page renders article body', async ({ page }) => {
+  test('an GP post page renders article body', async ({ page }) => {
     const errs = attachConsoleErrorWatcher(page);
-    await page.goto('/posts/sp-100-20260304-berryxia-ai-ai-prompt');
+    await page.goto('/posts/gp-100-20260304-berryxia-ai-ai-prompt');
     await expect(page.locator('article').first()).toBeVisible();
     // Body should contain at least one heading
     expect(await page.locator('h2, h3').count()).toBeGreaterThan(0);

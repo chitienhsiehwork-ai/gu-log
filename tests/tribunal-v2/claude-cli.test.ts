@@ -49,14 +49,14 @@ describe('extractJson — v1 → v2 migration safety', () => {
   });
 
   it('parses the real v2 VibeJudgeOutput shape emitted by agents', () => {
-    // Real output captured from smoke test against cp-290
+    // Real output captured from smoke test against mp-290
     const raw = `PASS — composite 8
 \`\`\`json
 {
   "pass": true,
   "scores": {
     "persona": 8,
-    "clawdNote": 8,
+    "moguNote": 8,
     "vibe": 8,
     "clarity": 9,
     "narrative": 9

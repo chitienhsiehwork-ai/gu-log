@@ -6,7 +6,7 @@ import { test, expect } from './fixtures';
  * LoginCta appears at the bottom of posts to encourage login for AI features.
  */
 
-const TEST_POST = '/posts/sp-24-20260204-claude-is-a-space-to-think';
+const TEST_POST = '/posts/gp-24-20260204-claude-is-a-space-to-think';
 
 test.describe('LoginCta Component', () => {
   test('GIVEN user is not logged in WHEN page loads THEN shows call-to-action with login button', async ({ page }) => {

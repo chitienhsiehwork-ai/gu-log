@@ -23,6 +23,17 @@ const progress = JSON.parse(fs.readFileSync(PROGRESS_FILE, 'utf8'));
 const scored = progress.posts;
 
 // Parse all zh-tw posts
+// Strip markup tags to a fixpoint so nested fragments (e.g. `<scr<x>ipt`)
+// cannot survive a single-pass replace; output is only used for counting.
+function stripMarkupTags(text) {
+  let previous;
+  do {
+    previous = text;
+    text = text.replace(/<[^>]*>/g, '');
+  } while (text !== previous);
+  return text;
+}
+
 const files = fs.readdirSync(POSTS_DIR).filter((f) => f.endsWith('.mdx') && !f.startsWith('en-'));
 
 const posts = files.map((file) => {
@@ -48,8 +59,7 @@ const posts = files.map((file) => {
   // Word count (rough)
   const bodyStart = content.indexOf('---', content.indexOf('---') + 3) + 3;
   const body = content.slice(bodyStart);
-  const wordCount = body
-    .replace(/<[^>]+>/g, '')
+  const wordCount = stripMarkupTags(body)
     .replace(/import.*\n/g, '')
     .trim()
     .split(/\s+/).length;
@@ -73,9 +83,9 @@ const posts = files.map((file) => {
 // 4. Age > 60 days AND score < 7/7/7 AND no internal links
 const retireCandidates = posts.filter((p) => {
   if (!p.score) return false;
-  const { persona, clawdNote, vibe } = p.score;
-  if (persona === 0 && clawdNote === 0 && vibe === 0) return true;
-  if (persona < 7 && clawdNote < 7 && vibe < 7) return true;
+  const { persona, moguNote, vibe } = p.score;
+  if (persona === 0 && moguNote === 0 && vibe === 0) return true;
+  if (persona < 7 && moguNote < 7 && vibe < 7) return true;
   if (p.wordCount < 100) return true;
   return false;
 });
@@ -93,7 +103,7 @@ if (RETIRE_ONLY) {
   retireCandidates.forEach((p) => {
     const s = p.score;
     console.log(
-      `  ${p.ticketId.padEnd(8)} ${s.persona}/${s.clawdNote}/${s.vibe}  ${p.title.slice(0, 60)}`
+      `  ${p.ticketId.padEnd(8)} ${s.persona}/${s.moguNote}/${s.vibe}  ${p.title.slice(0, 60)}`
     );
   });
   process.exit(0);
@@ -106,18 +116,18 @@ console.log(`Scored: ${posts.length - unscored.length}`);
 console.log(`Unscored: ${unscored.length}`);
 
 const scored9 = posts.filter(
-  (p) => p.score && p.score.persona >= 9 && p.score.clawdNote >= 9 && p.score.vibe >= 9
+  (p) => p.score && p.score.persona >= 9 && p.score.moguNote >= 9 && p.score.vibe >= 9
 );
 const scored8 = posts.filter(
   (p) =>
     p.score &&
     p.score.persona >= 8 &&
-    p.score.clawdNote >= 8 &&
+    p.score.moguNote >= 8 &&
     p.score.vibe >= 8 &&
-    !(p.score.persona >= 9 && p.score.clawdNote >= 9 && p.score.vibe >= 9)
+    !(p.score.persona >= 9 && p.score.moguNote >= 9 && p.score.vibe >= 9)
 );
 const below8 = posts.filter(
-  (p) => p.score && (p.score.persona < 8 || p.score.clawdNote < 8 || p.score.vibe < 8)
+  (p) => p.score && (p.score.persona < 8 || p.score.moguNote < 8 || p.score.vibe < 8)
 );
 
 console.log(`\nScore distribution:`);
@@ -129,7 +139,7 @@ console.log(`\nRetire candidates: ${retireCandidates.length}`);
 retireCandidates.forEach((p) => {
   const s = p.score;
   console.log(
-    `  ${p.ticketId.padEnd(8)} ${s.persona}/${s.clawdNote}/${s.vibe}  ${p.title.slice(0, 60)}`
+    `  ${p.ticketId.padEnd(8)} ${s.persona}/${s.moguNote}/${s.vibe}  ${p.title.slice(0, 60)}`
   );
 });
 

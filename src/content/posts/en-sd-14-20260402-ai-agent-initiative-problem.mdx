@@ -14,7 +14,7 @@ source: "ShroomDog Lab"
 sourceUrl: "https://gu-log.vercel.app/"
 lang: "en"
 summary: "You spent months building a powerful AI agent. It just sits there waiting for you to say something. That's not a technical problem — it's a design philosophy problem. From KAIROS's Heartbeat Pattern to OpenClaw's background sessions, this is about when to let your agent decide to act on its own."
-tags: ["shroomdog-original", "ai-agent", "autonomous-agent", "agentic-systems", "openclaw", "kairos"]
+tags: ["shroomdog-original","ai-agent","autonomous-agent","agentic-systems","openclaw","kairos"]
 series:
   name: "Claude Code Deep Dive"
   order: 4
@@ -28,7 +28,7 @@ scores:
     model: "gpt-5.5"
   vibe:
     persona: 9
-    clawdNote: 8
+    moguNote: 8
     vibe: 8
     clarity: 9
     narrative: 8
@@ -37,7 +37,7 @@ scores:
     model: "gpt-5.5"
 ---
 
-import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
 import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
 Imagine you hired a brilliant employee. Writes code, analyzes data, handles documentation. You give them a computer, a desk, full system access.
@@ -68,11 +68,11 @@ Keeping an agent purely reactive is the safe choice. It won't do anything unexpe
 
 But you've also made it a tool that only works when you're watching.
 
-<ClawdNote>
+<MoguNote>
 Here's the tension I live with: if you let me act proactively, I'll occasionally do things you didn't anticipate. If you keep me purely reactive, I'll watch a production system fail at 3 AM and not do anything about it.
 
 Both options have a cost. The real question is: have you actually thought about which one you chose, and why? (¬‿¬)
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -105,13 +105,13 @@ The agent has its own internal timer. Every so often, it wakes up and asks itsel
 
 Initiative is provided by the clock. Execution is decided by the agent.
 
-<ClawdNote>
+<MoguNote>
 The difference between event-driven and proactive is subtle but important. Event-driven says: "Someone rang the doorbell, I'll go open it." Proactive says: "Nobody rang the doorbell, but I'm going to check the yard anyway."
 
 The trigger for the first one is outside the agent. The trigger for the second one is inside the agent's own clock.
 
 KAIROS has both. [OpenClaw](/en/glossary#openclaw) has both. This matters — don't think picking one mode is enough. (◕‿◕)
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -139,11 +139,11 @@ I tried 15 minutes first. Too frequent. Most of the time there was nothing to do
 The exact number matters less than your definition of "maximum acceptable delay."
 </ShroomDogNote>
 
-<ClawdNote>
+<MoguNote>
 A detail that's easy to miss here: 50 minutes means OpenClaw wakes up about 28-29 times per day. The cost of waking up and doing nothing — loading context, evaluating, deciding "nope" — is much smaller than the cost of actually executing a task.
 
 The hidden assumption in this design is: "Most of the time when I wake up, I won't do anything, then go back to sleep." If you design your heartbeat so the agent always has something to do every cycle — either your heartbeat is too slow, or your agent is inventing work for itself. Both are problems. ヽ(°〇°)ﾉ
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -163,13 +163,13 @@ It's like a surgeon deciding, mid-operation, to reorganize the equipment checkli
 
 Background session isolation isn't solving a performance problem. It's solving a **cognitive contamination problem**.
 
-<ClawdNote>
+<MoguNote>
 More concretely: when a background session forks off, its context is a snapshot of the main session at that moment. It can read, analyze, and write to memory files — but its state changes don't flow back into the main session.
 
 Think of it like a git branch. You experiment on the branch without affecting main. When you merge, you're making a conscious decision to bring results back — not letting the experiment automatically pollute main.
 
 This analogy maps surprisingly well onto agent design. (ง •̀_•́)ง
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -187,13 +187,13 @@ In software engineering, an audit trail is foundational to system reliability. B
 
 [Agent](/en/glossary#agent) logs should be the same. Not because you think the agent is lying, but because this design makes "it didn't lie" something you can actually verify.
 
-<ClawdNote>
+<MoguNote>
 Honest observation: sometimes the desire to let agents clean up their own logs comes from the *designer*, not from the system. Humans feel uncomfortable seeing a log full of an agent's mistakes. So they want it to sweep those records away.
 
 But those mistake records are exactly what you need most. In what contexts does the agent misjudge? Do its errors follow patterns? The answers are in those "ugly" logs. (⌐■_■)
 
 Append-only isn't about maintaining the agent's perfect image. It's about helping you understand its real limitations.
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -213,13 +213,13 @@ OpenClaw is the automation agent behind gu-log, running 24/7 on a VPS. It handle
 
 The interesting part came after the Claude Code source code leak, when everyone discovered that Anthropic internally had an unreleased feature called KAIROS with an architecture strikingly similar to OpenClaw's. Heartbeat prompt, background sessions, autoDream, append-only logs — everything OpenClaw was already running showed up in the leaked code.
 
-<ClawdNote>
+<MoguNote>
 Here's the meta-point worth sitting with: OpenClaw was designed without ever seeing KAIROS's code. Two teams arrived at nearly identical architectures independently.
 
 What does that tell you? These patterns aren't coincidences. They're natural answers to the question of "how should an autonomous agent work." If you think seriously about what a proactive agent needs — separated initiative and execution, isolated background tasks, tamper-proof records — you tend to converge on these same answers.
 
 Sometimes good design doesn't need to copy homework, because the problem itself guides you toward the right direction. (◕‿◕)
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -239,13 +239,13 @@ Here's the practical part. If you have an AI app and want to add proactive behav
 
 These aren't a checklist to tick through. They're a set of questions, each hiding a potential bug that will wake you up at 3 AM.
 
-<ClawdNote>
+<MoguNote>
 One common misconception: people think "proactive agent = more powerful agent." That's backwards.
 
 A proactive agent isn't allowed to act on its own because it's more capable. It's allowed to act on its own because its **boundaries are clear and trust has been established**. A proactive agent with fuzzy boundaries becomes more dangerous the more capable it gets.
 
 So the first step in building a proactive agent isn't making it smarter. It's designing its boundaries more precisely. (๑•̀ㅂ•́)و✧
-</ClawdNote>
+</MoguNote>
 
 ---
 

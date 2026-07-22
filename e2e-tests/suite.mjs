@@ -873,7 +873,7 @@ async function testBriefsPage(page, browser) {
 
   const title = await page.title();
   check(
-    title.includes('Brief') || title.includes('情報') || title.includes('Clawd'),
+    title.includes('Brief') || title.includes('情報') || title.includes('Mogu'),
     'briefs-title',
     `Title: "${title}"`,
   );

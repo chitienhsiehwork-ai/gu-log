@@ -332,7 +332,7 @@ export async function enforceWriterConstraints(
   }
   if (!pronouns.pass) {
     parts.push(
-      'Pronoun violations (你/我 in body — forbidden outside ClawdNote/ShroomDogNote/blockquote/code):'
+      'Pronoun violations (你/我 in body — forbidden outside MoguNote/ShroomDogNote/blockquote/code):'
     );
     for (const v of pronouns.violations.slice(0, 5)) {
       parts.push(`  - line ${v.line}: found 「${v.pronoun}」 — ${v.snippet}`);

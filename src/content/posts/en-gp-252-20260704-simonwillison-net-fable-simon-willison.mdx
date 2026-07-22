@@ -1,0 +1,126 @@
+---
+ticketId: "GP-252"
+title: 'Let Fable Decide — Simon Willison on Delegating Model Judgment'
+originalDate: '2026-07-03'
+translatedDate: '2026-07-04'
+translatedBy:
+  model: "Opus 4.5"
+  harness: "Claude Code CLI"
+
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "GPT-5.5"
+      harness: "Codex CLI + Tribunal"
+    - role: "Rewritten"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "GPT-5.5"
+      harness: "gp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "Simon Willison's Weblog"
+sourceUrl: 'https://simonwillison.net/2026/Jul/3/judgement/'
+lang: 'en'
+summary: 'Simon Willison learned from the Claude Code team fireside chat: instead of dictating rules, let Fable use its own judgment. Extended application: let Fable decide which tasks to delegate to cheaper models.'
+tags: ["claude-code","claude","prompt-engineering","coding-agents"]
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 8
+    commentarySeparation: 8
+    score: 8
+    date: "2026-07-04"
+    model: "gpt-5.5"
+  librarian:
+    glossary: 8
+    crossRef: 9
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-07-04"
+    model: "gpt-5.5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 9
+    clarity: 8
+    score: 8
+    date: "2026-07-04"
+    model: "gpt-5.5"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-07-04"
+    model: "claude-opus-4-5"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+Instead of writing detailed rules telling the model when to do what, let it use its own judgment — [Simon Willison](/en/glossary#simon-willison) picked this up from the [Claude Code](/en/glossary#claude-code) team's fireside chat. Sounds simple, but this "trust the model's judgment" mindset extends even to saving [tokens](/en/glossary#token).
+
+gu-log covered the four-model team approach with a top-tier model (like Fable) as commander in [GP-247](/en/posts/en-gp-247-20260702-diegocabezas01-fable-tech-lead-claude-code/); [GP-152](/en/posts/en-gp-152-20260402-ecc-token-optimization/) dissected model routing for token efficiency. Simon Willison's insight is the simplest form of the same path: **instead of writing dispatch rules yourself, let the model decide**.
+
+## The Testing Example
+
+The traditional approach looks like this: "only use automated testing for larger features, don't update and run tests for small copy or design changes."
+
+Sounds reasonable, right? But [Cat Wu](/en/glossary#cat-wu) and [Thariq](/en/glossary#thariq) Shihipar from the Claude Code team said at the AIE (AI Engineer) fireside chat that a better approach is to simply tell the model to use its own judgement when deciding to write tests instead.
+
+<MoguNote>
+The underlying logic: a top-tier model's judgment is the product value. Hard-coded rules waste its strongest capability — making decisions in context. It's like hiring a senior engineer and handing them a thick SOP manual demanding they follow it step by step. You're not using their brain at all.
+</MoguNote>
+
+---
+
+## Token-Saving Extension
+
+[Jesse Vincent](/en/glossary#jesse-vincent) followed up with a related tip to help avoid burning too many of those valuable Fable tokens in the few days we have left before the prices go up: let the model decide which tasks can be delegated to cheaper models (like Sonnet or Haiku).
+
+Simon Willison tested this [prompt](/en/glossary#prompt):
+
+> For all coding tasks use your judgement to decide an appropriate lower power model and run that in a subagent
+
+Claude Code automatically saved this as a memory file, and even filled in implementation details itself:
+
+- Substantive implementation work → delegate to Sonnet
+- Trivial, mechanical edits → delegate to Haiku
+- Design, auditing, data synthesis, and anything judgment-heavy → stays in the main loop (meaning the top-tier model handles it)
+
+<MoguNote>
+One line from that memory file nails it: "implementation work rarely needs the top-tier model; judgment, review, and synthesis stay with the main loop." — Typing doesn't need the smartest brain, but calling the shots does. This division of labor is clearer than any hand-written rules.
+</MoguNote>
+
+---
+
+## Conclusion
+
+So far it seems to be working well. I'm getting a ton of work done and my Fable allowance is shrinking less quickly than before. Implementation work rarely needs the top-tier model; judgment, review, and synthesis stay with the main loop.
+
+## Further Reading
+
+- [GP-247: Four-Model Coalition: A Claude Code Setup with Fable as Tech Lead](/en/posts/en-gp-247-20260702-diegocabezas01-fable-tech-lead-claude-code/)
+- [GP-152: Claude Code $200/Month Not Enough? One Setting Saves 60% Tokens](/en/posts/en-gp-152-20260402-ecc-token-optimization/)
+- [GP-222: Fable 5 Built an Entire Browser Testing Toolchain Just to Fix Two Lines of CSS](/en/posts/en-gp-222-20260612-simonwillison-net-fable-5-css/)
+- [MP-21: The Complete Guide to CLAUDE.md — Make Claude Code Remember Your Preferences](/en/posts/en-mp-21-20260204-vishwas-claude-md-guide/)
+- [GP-117: How to Make Your Claude Skills 10x Stronger? Andrej Karpathy's Autoresearch Method in Practice](/en/posts/en-gp-117-20260318-itsolelehmann-claude-skills-10-andrej-karpathy-autoresearch/)
+
+
+<MoguNote summary="Keep the expensive model for judgment; let cheap models haul the bricks.">
+This isn't just about saving tokens — it's about scheduling models. Keep the most expensive model for judgment; let cheaper models handle implementation that can be reviewed by the main loop. Otherwise you're paying a senior engineer to move bricks all day. With the price hike just days away, this trick catches the last train. Though even after prices go up, the division of labor probably still holds: letting the model decide how much effort to apply tends to be more flexible than manually hard-coding a wall of rules. (◍•ᴗ•◍)
+</MoguNote>

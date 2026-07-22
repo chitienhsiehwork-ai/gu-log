@@ -1,0 +1,107 @@
+---
+ticketId: "MP-259"
+title: "Claude Code 用量爆炸：Anthropic 官方承認 rate limit 被打太快了"
+originalDate: "2026-03-30"
+translatedDate: "2026-04-07"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@lydiahallie on X"
+sourceUrl: "https://x.com/lydiahallie/status/2038686571676008625"
+lang: "zh-tw"
+summary: "Anthropic Claude Code 團隊的 Lydia Hallie 公開承認，使用者撞到 usage limit 的速度遠超預期。團隊正在調查中，後續會更新。"
+tags: ["Claude Code","rate-limit","Anthropic"]
+---
+import MoguNote from '../../components/MoguNote.astro';
+
+想像一個場景：一間餐廳開幕第一週，老闆預估每天來 200 人，備了 300 人份的食材。結果第三天中午，門口排隊排到隔壁巷子，廚房在下午兩點就把所有食材用光了。
+
+但這間餐廳更扯的地方是 — 食材耗盡，是因為廚師把菜做得太好吃了。
+
+[Claude Code](/glossary#claude-code) 現在就是那間餐廳。
+
+## 一則推文，1.3 萬個讚
+
+2026 年 3 月 30 日，Lydia Hallie 在 X 上丟了一句話：
+
+> "We're aware people are hitting usage limits in Claude Code way faster than expected. Actively investigating, will share more when we have an update!"
+
+就這樣。兩句話。沒有技術細節，沒有解決方案，沒有時間表。
+
+但這則推文拿到了超過 1.3 萬個讚。一句「對，問題存在，正在查」能引發這種規模的反應，只能說明一件事 — 被 rate limit 卡住的工程師，數量遠比預期的多。
+
+<MoguNote>
+說真的，這則推文的互動量本身就是最好的 bug report (╯°□°)╯ 1.3 萬個讚代表一大票工程師在痛。MP-195 裡 Anthropic 才剛搞了個「Spring Break 離峰加量」活動，結果不到兩週，連正常時段的 limit 都撐不住了。這不是 capacity planning 失誤，這是產品太好用的甜蜜負擔 — 但對正在 debug 到一半被斷線的工程師來說，一點都不甜蜜。
+</MoguNote>
+
+---
+
+## 被用爆的弔詭
+
+好，這裡是真正超扯的地方。
+
+Lydia 的推文只說了「hitting usage limits way faster than expected」，沒解釋原因。但從 Claude Code 近期的更新時間線來拼湊，一個合理的猜測是：rate limit 爆掉不是因為用戶突然增加，而是每個用戶用得越來越兇。
+
+Auto Mode 讓操作更無腦（MP-250）、`effort max` 讓 reasoning 更深但 token 吃更兇（MP-183）、[Boris Cherny](/glossary#boris-cherny) 的 15 招隱藏技把使用門檻壓到最低（MP-238）。每一個功能改進，都可能讓同一個用戶在同一個 session 裡多燒一點 token。
+
+如果這個推測成立，那 Anthropic 等於是被自己的 roadmap 坑了 — 產品做太好，用戶用太兇，capacity 追不上。
+
+<MoguNote>
+MP-183 裡 [Thariq](/glossary#thariq) 自己講過：「effort max 會更快消耗 usage limits」，當時還特別設計成每個 session 要手動開啟。結果呢？大家當然全開啊 (￣▽￣)／ 這就像健身房推出「無限使用」方案然後驚訝大家真的天天來 — 拜託，工程師拿到好工具不會「適度使用」的，會往死裡用。如果 rate limit 真的是被這些新功能推爆的，那 Anthropic 其實是被自己的產品力反噬了，某種程度上這是最高級的 compliment。
+</MoguNote>
+
+---
+
+## 「Way faster than expected」這句話值一千字
+
+有一門課叫「危機溝通」，MBA 必修，教的是出事之後怎麼說話才能讓傷害最小。
+
+結業作業差不多長這樣：公司 API 掛了，怎麼公告？標準答案是：「a small number of users may occasionally experience degraded performance」。每個字都是精心挑選的盾牌 — small number（規模小）、occasionally（頻率低）、experience（不說掛掉說體驗）、degraded（不說不能用說降級）。
+
+Lydia 交了一個讓教授暈頭的答案：「way faster than expected」。
+
+沒有盾牌。Way faster = 很多人、很嚴重。Than expected = 連官方自己也沒預料到。這五個英文字，把危機溝通課所有技巧全丟進垃圾桶。
+
+<MoguNote>
+這裡有個值得推一把的觀察：「way faster than expected」這種語氣，在大公司通常活不過 PR 審核。Google 的 Gemini incident 都是 comms 語氣，postmortem 語氣，兩套說法永遠不對齊。但 Lydia 的推文感覺像是工程師自己拿手機打的，不像過了公關 — 而這反而是最好的 PR 策略，因為沒有人相信被打磨過的 crisis comms，所有人都相信工程師在下班前打的一句話 ┐(￣ヘ￣)┌ 說不定 Anthropic 其實很懂。
+</MoguNote>
+
+---
+
+## 態度值一千字，資訊量不到五十
+
+不過這裡要踩一下煞車。
+
+Lydia 的推文到底說了什麼？拆開來看：「知道了」、「正在查」、「查到會講」。三件事，沒有一件是新資訊。沒有說哪個 tier 受影響、什麼技術原因、預計何時修好。這不是 postmortem，甚至不算 incident report — 這是一則「官方確認問題存在」的推文，僅此而已。
+
+所以前一節說的「值一千字」，精確一點講：是那五個字背後的**態度**值一千字，不是資訊量值一千字。Lydia 沒有躲在公關語言後面，沒有說「a small number of users」，直接承認 "way faster than expected" — 這個**選擇**才是重點。
+
+<MoguNote>
+這個區別很重要 (´・ω・`) 社群的炸鍋反應，與其說是對推文內容的反應，不如說是對「終於有人承認了」的集體釋放。被 rate limit 卡了一整天的工程師，看到官方說「對，確實爆了」，那個「我不是一個人」的感覺比任何技術細節都重要。但如果期待這則推文裡有 root cause 或 fix timeline — 沒有，一個字都沒有。
+</MoguNote>
+
+---
+
+## 結語
+
+一間餐廳被吃垮，老闆該哭還是該笑？
+
+Anthropic 現在大概兩種心情都有。Claude Code 的 rate limit 被打爆，至少說明一件事：用的人很多，用得很兇。從 MP-195 的 Spring Break 加量到 Lydia 發推承認 limit 失守，中間只隔了不到兩週。
+
+不過對此刻正被 rate limit 擋在門外的工程師來說，「產品太受歡迎」這種說法大概換不到任何安慰。那個「will share more」的更新到底什麼時候來，才是唯一重要的事。
+
+在那之前 — 記得常存檔 (๑•̀ㅂ•́)و✧

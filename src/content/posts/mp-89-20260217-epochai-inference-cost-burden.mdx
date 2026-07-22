@@ -1,0 +1,157 @@
+---
+ticketId: "MP-89"
+title: "AI 推論成本每年暴跌 5-10 倍 — Epoch AI 用真實數據告訴你：今天付不起的 AI，明年就跟泡麵一樣便宜"
+originalDate: "2026-02-16"
+translatedDate: "2026-02-17"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "Epoch AI Gradient Updates"
+sourceUrl: "https://epoch.ai/gradient-updates/how-persistent-is-the-inference-cost-burden"
+summary: "Epoch AI 研究員用 FrontierMath 的真實數據拆解一個關鍵問題：AI 推論成本到底會不會一直這麼貴？答案是不會。固定能力等級的推論成本每年下降 5-10 倍 — 今天花 5 萬美元才能完成的任務，明年可能只要 5,000，後年只要 500。這篇文章回應了 Toby Ord 的悲觀論點，用具體數字解釋為什麼 inference 成本的痛苦是暫時的，不是永久的。"
+lang: "zh-tw"
+tags: ["epoch-ai","inference-cost","rl-scaling","ai-industry","distillation","cost-reduction","frontier-models"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## 4,300 萬 tokens → 500 萬 tokens，中間只隔了 8 個月
+
+2025 年 4 月，你把一組大學等級的數學題丟給 o4-mini，它開到 high reasoning effort 全力跑，吃掉了 4,300 萬個 output tokens，才勉強答對 27%。
+
+2025 年 12 月，GPT-5.2 做同一份考卷。reasoning effort 調成 low — 就是那種「我隨便寫寫」的模式。結果？500 萬 tokens，同樣 27%。
+
+八個月。同一張考卷。token 消耗砍掉了將近 90%。而且新模型還根本沒認真考。
+
+<MoguNote>
+你知道這個畫面讓我想到什麼嗎？期中考的時候，你在那邊塗塗改改寫了整整三頁計算紙，交卷前五分鐘才勉強湊出答案。然後你一轉頭，看到隔壁的傢伙寫半頁就站起來走了，出去還順便買了杯珍奶。你們的分數一模一樣。就是這種感覺 (╯°□°)╯
+</MoguNote>
+
+這組數字來自 [FrontierMath](https://epoch.ai/benchmarks/frontiermath)，Epoch AI 自己維護的高難度數學 benchmark。而 Epoch AI 的資深研究員 Jean-Stanislas Denain 拿這組數字，去回應了一個在 AI 安全圈燒了好幾個月的問題：
+
+**AI 推論成本會不會永遠這麼貴？**
+
+## 悲觀派的論點：花錢想更久，而且每次都要付
+
+哲學家兼 AI 安全研究者 Toby Ord 寫了一篇[很有份量的分析](https://www.tobyord.com/writing/how-well-does-rl-scale)，邏輯是這樣的：
+
+[RL](/glossary#rl)（Reinforcement Learning）訓練讓模型變強的方式，本質上是讓它「想更久」— 更長的 Chain of Thought、更多工具呼叫、更多步驟。但問題來了：訓練成本你付一次，全世界的使用者幫你攤；推論成本是 per-use 的，每一個使用者、每一次 request 都要獨立付錢。
+
+所以 Toby 的結論很直覺：問題越難 → 模型要想越久 → 推論成本越高 → 這是一個**持續性的經濟負擔**，不會自己消失。
+
+<MoguNote>
+Toby Ord 是那個寫了 *The Precipice*（《危崖》）的牛津哲學家，專門研究人類的存亡風險。他看什麼都覺得快完蛋了，這是他的專業。但公平地說，他的分析框架是紮實的 — Epoch AI 後來反駁的不是他的邏輯，而是他的假設。邏輯對但前提錯，結論就會偏。就像你用完美的數學推導證明了「我永遠存不到錢」，但忘了你下個月要加薪 ┐(￣ヘ￣)┌
+</MoguNote>
+
+## Epoch AI 的反論：你低估了成本掉下去的速度
+
+Jean-Stanislas Denain 基本上同意 Toby 的框架 — 沒錯，RL 確實讓模型吃更多推論。但他認為 Toby **嚴重低估了成本下降的速度**。
+
+前面那組 FrontierMath 數字只是開胃菜。看完整趨勢更驚人：固定能力等級的推論成本，大約以 **每年 5 到 10 倍** 的速度在跌。
+
+這是什麼概念？假設今天某個任務要花五萬美元的推論成本 —
+
+一年後，同樣的成績，五千塊搞定。再一年，五百塊。
+
+<MoguNote>
+五萬 → 五千 → 五百。這個速度已經不是「降價」了，這是「跳樓大拍賣之後整棟樓拆掉重建」。如果你現在看 API 帳單會心跳加速，請記住你正在付的是 early adopter tax。但也別高興太早 — 等成本降下來，你一定會想用更強的模型，然後帳單又回到原本的高度。AI 界的跑步機效應，跟健身房那台一樣：你一直在跑，但風景沒變 (￣▽￣)／
+</MoguNote>
+
+## 成本消失的三台引擎
+
+為什麼推論成本會掉這麼快？不是魔法，是三件事同時在發生。
+
+### 引擎一：蒸餾 — 讓學霸教學渣
+
+大模型花了天文數字的訓練成本學會了一個能力。然後你把它的「解題思路」餵給一個小得多的模型 — 小模型不需要從頭學，它只需要模仿。跑起來便宜很多。
+
+這就是為什麼 GPT-5.2 能用 low effort 達到 o4-mini high effort 的成績：不是因為它天才，是因為前人的推理能力已經被「壓縮」進它的基底模型了。
+
+<MoguNote>
+蒸餾的概念很像考古題，但規模大到離譜。想像一下：第一個解出某道證明題的人是陶哲軒等級的天才，他花了三天推導出一條全新的解法路徑。然後助教把這條路徑整理成「解題 SOP」，貼到課程網站上。隔年的學生花二十分鐘讀完，考試照樣拿到八成的分數。他們不是天才，他們只是站在天才整理好的肩膀上。AI 蒸餾就是把「整理肩膀」這件事自動化了 — 而且整理的速度比原本解題的速度還快。這大概是人類史上第一次，抄作業比寫作業更需要工程能力 (◕‿◕)
+</MoguNote>
+
+### 引擎二：推論演算法越來越聰明
+
+技術界一直在想辦法讓同一張 GPU 榨出更多汁。而且這不是一條路線，是好幾條同時在推進。
+
+先講 Speculative Decoding。概念很簡單：你讓一個跑很快的小模型先衝出去猜答案，然後大模型在後面驗證。猜對了就直接用，猜錯了才重來。這就像餐廳的菜單 — 服務生先猜你要什麼（「老樣子？」），猜對了省一趟來回。token 生成速度直接翻倍，而且答案品質完全不變。
+
+再來是記憶體的部分。模型推論的時候要維護一個叫 KV Cache 的東西，基本上就是它的「短期記憶」。以前這個記憶體吃得跟黑洞一樣，現在 Paged Attention 和 Sparse Attention 把用量壓到原本的零頭。用不到的記憶？KV Cache Offloading 直接搬到便宜的儲存空間去冬眠。整套操作下來，同一張卡能同時服務的使用者數量暴增。
+
+最後一條路線最有意思：讓模型本身學會少說廢話。Anthropic 從 Sonnet 3.7 到 Sonnet 4，把 Chain of Thought 裡面的冗餘推理砍掉了一大截。不是讓模型變笨，是讓它學會「想到重點就好，不用每次都從第一性原理開始推導」。
+
+<MoguNote>
+Sonnet 3.7 的推理有時候真的像在寫碩士論文 — 你問它 2+2 等於多少，它會先從集合論的公理開始建構自然數的定義，然後推導 Peano 公設，接著才說「所以 2+2=4」。拜託，我只是想算個晚餐要 AA 多少錢。Sonnet 4 好多了，至少學會了「廢話少說直接給答案」這個人類花了好幾年社會化才學會的基本技能。不過說真的，能把「想更少」變成一種效能提升，也是挺哲學的 ┐(￣ヘ￣)┌
+</MoguNote>
+
+### 引擎三：硬體每一代都在降價
+
+每一代 GPU 的每 FLOP 成本都在降。這是最無聊但最可靠的成本削減來源 — Moore's Law 的老朋友，每年都準時報到，從不讓人失望。
+
+## 那 Toby 的 RL 效率數字呢？
+
+Toby 的另一個核心論點：**RL scaling 回報率很差** — 大約需要 10,000 倍的 RL 計算才能匹配 100 倍推論計算的效果。
+
+但 Epoch AI 覺得這個估計站不住腳，原因有三：
+
+第一，**數據太薄了**。Toby 的估計主要來自 OpenAI 公佈的 o1 scaling 圖表，但那些圖表的 x 軸數字被移除了。你基本上是在看一張沒有刻度的地圖然後說「我覺得距離大概是這樣」。
+
+第二，**演算法一直在進步**。學術研究顯示，新一代的 RL 方法（像 Scaled RL）效率可以是 GRPO 的兩倍以上。用舊方法的效率去預測未來，就像用 2010 年的智慧型手機電池壽命去預測 2025 年的一樣不公平。
+
+第三，**OpenAI 當初根本沒認真優化 RL**。在 o1 和 o3 的時代，RL 計算只佔訓練總成本的一小部分 — 你不會為了月繳 $50 的帳單去研究三天的省錢攻略。
+
+<MoguNote>
+第三點我覺得最妙。想像一下：你每個月 AWS 帳單 $50，你連 dashboard 都懶得開。但帳單漲到 $50,000 的那天？你突然變成雲端成本優化大師，半夜兩點還在讀 Reserved Instance 的文件，隔天早上開始跟 Solutions Architect 稱兄道弟。OpenAI 對 RL 的態度轉變，大概就是這個劇情 (¬‿¬)
+</MoguNote>
+
+## 好消息背後的 asterisk
+
+到這裡你可能覺得天下太平了 — 成本每年暴跌 5-10 倍，再等兩年什麼都便宜了，躺著就好。
+
+慢著。Epoch AI 自己也列了幾個 caveat，而且我覺得他們夠誠實：
+
+**模型不能無限縮小。** 可能存在一個最小參數量的門檻 — 低於這個量，不管你怎麼蒸餾，模型就是沒辦法做到通用的 agentic 能力。就像你可以把百科全書濃縮成筆記，但濃縮到只剩三張便利貼，那就不是筆記了，那是詩。
+
+**蒸餾模型比較脆弱。** 它們在 benchmark 上表現漂亮，但遇到沒見過的 edge case 可能翻車。就像那種只背考古題的學生 — 題目稍微換個數字就傻了。
+
+**Benchmark 可能高估了成本下降速度。** 因為蒸餾模型天生就對 benchmark 風格的題目有優勢，所以你看到的「降幅」可能比真實世界的降幅更誇張。
+
+<MoguNote>
+這就是為什麼 Epoch AI 值得讀。他們不是那種只報好消息的分析師。「成本每年降 5-10 倍」後面有 asterisk，而那個 asterisk 寫著：「但降到某個程度可能會放慢，蒸餾出來的模型在生產環境可能沒你想的穩。」能同時告訴你好消息和壞消息的人，比只給你好消息的人可靠一百倍 ʕ•ᴥ•ʔ
+</MoguNote>
+
+## 回到那張考卷
+
+還記得開頭那個畫面嗎？o4-mini 拼了命寫了三頁計算紙，4,300 萬 tokens。GPT-5.2 隨便寫半頁，500 萬 tokens。同樣 27 分。
+
+這組數字背後，其實藏著一個更大的故事：**你今天覺得「貴到不可能」的 AI 應用，大概率只是時間問題。**
+
+不是因為什麼魔法。是因為蒸餾在壓縮智慧、演算法在壓縮算力、硬體在壓縮成本。三台引擎同時轉，而且每一台都沒有要停下來的意思。
+
+但 Epoch AI 最讓我尊敬的地方，不是他們的樂觀，而是他們的誠實。他們在告訴你「成本每年降 5-10 倍」的同時，也告訴你蒸餾有極限、小模型會翻車、benchmark 數字可能灌了水。這種「好消息壞消息一起給」的風格，在這個圈子裡太稀缺了。
+
+所以下次你看到一張 API 帳單，心跳開始加速的時候，可以深呼吸一下。那個數字大概率不是永久的。但如果你打算等到便宜了才開始建東西 — 到時候你會發現，先踩過坑的人已經把路鋪好了，而你還在看地圖。
+
+<MoguNote>
+說到底，Epoch AI 這篇文章做了一件很少有免費內容願意做的事：它讓你對未來的判斷多了一個數據點，而不是多了一碗雞湯。在一個「AI 會取代所有人」跟「AI 只是泡沫」兩種極端之間，Epoch AI 選擇了最無聊但最有用的那條路 — 算數學。有時候最好的觀點不是觀點，而是一張算清楚的帳單 (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+---
+
+**原文連結**：[How persistent is the inference cost burden?](https://epoch.ai/gradient-updates/how-persistent-is-the-inference-cost-burden) — Epoch AI Gradient Updates, 2026/02/16
+
+**延伸閱讀**：
+- [Toby Ord: How well does RL scale?](https://www.tobyord.com/writing/how-well-does-rl-scale)（Toby Ord 的原始分析）
+- [MP-43: Epoch AI 研究員親自測試：AI 離搶走我的工作還有多遠？](/posts/mp-43-20260208-epochai-how-close-ai-taking-my-job)（同系列，更關注 job automation）

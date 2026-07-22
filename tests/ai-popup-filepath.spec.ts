@@ -7,8 +7,8 @@ import { fileURLToPath } from 'url';
  * Tests for AiPopup filePath correctness.
  *
  * Bug context: Astro Content Collections `post.id` already includes the `.mdx`
- * extension (e.g. "clawd-picks-151.mdx"). The page template was appending
- * `.mdx` again, producing paths like "src/content/posts/clawd-picks-151.mdx.mdx"
+ * extension (e.g. "mogu-picks-151.mdx"). The page template was appending
+ * `.mdx` again, producing paths like "src/content/posts/mogu-picks-151.mdx.mdx"
  * → 404 on the API side.
  *
  * These tests ensure the double-extension bug never recurs.
@@ -106,7 +106,7 @@ test.describe('AiPopup filePath — E2E Request Validation', () => {
     if (!isDesktop) test.skip();
   });
 
-  const TEST_POST = '/posts/sp-24-20260204-claude-is-a-space-to-think';
+  const TEST_POST = '/posts/gp-24-20260204-claude-is-a-space-to-think';
 
   async function setupLoggedIn(page: import('@playwright/test').Page) {
     await page.goto(TEST_POST);
@@ -171,7 +171,7 @@ test.describe('AiPopup filePath — E2E Request Validation', () => {
     expect(capturedFilePath).toBeTruthy();
     expect(capturedFilePath).toMatch(/\.mdx$/);
     expect(capturedFilePath).not.toMatch(/\.mdx\.mdx/);
-    // Should look like: src/content/posts/sp-24-20260204-claude-is-a-space-to-think.mdx
+    // Should look like: src/content/posts/gp-24-20260204-claude-is-a-space-to-think.mdx
     expect(capturedFilePath).toMatch(/^src\/content\/posts\/[a-z0-9-]+\.mdx$/);
   });
 

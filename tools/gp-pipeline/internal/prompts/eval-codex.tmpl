@@ -1,0 +1,24 @@
+Evaluate whether this tweet/thread is worth translating into a gu-log article.
+
+IMPORTANT: The source below may be a multi-tweet thread (separated by ---).
+Evaluate the ENTIRE content holistically, not just the first tweet.
+A thread with multiple substantial tweets IS enough content for an article.
+
+Checklist:
+1. Is the TOTAL content substantial enough for a gu-log article (not just a one-liner/hot take)?
+2. Is it relevant to gu-log audience topics (AI, tech, developer, indie hacker)?
+3. Does it have enough depth to expand into a full article?
+
+Important non-blockers:
+- Do NOT mark SKIP just because the source is already a Chinese / Simplified Chinese analysis article.
+  gu-log's value is Traditional Chinese, story structure, MoguNote, ShroomDog/Mogu framing, and reader context — not only language translation.
+- Do NOT mark SKIP just because the source is second-hand synthesis. If attribution is clear and the source is useful, gu-log can rewrite, contextualize, and cite it.
+- Do NOT mark SKIP just because numbers or claims need verification. Verification is the pipeline/agent's job. Mark SKIP only after the facts look unreliable, uncheckable, incomplete, irrelevant, or unable to support the 8/8/8 publish bar.
+
+Source content ({{.LineCount}} lines):
+{{.Source}}
+
+Output requirements:
+- Write JSON only (no markdown) to {{.OutputFilename}} in current directory.
+- Exact schema:
+  {"verdict":"GO"|"SKIP","reason":"...","suggested_title":"..."}

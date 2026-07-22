@@ -17,7 +17,7 @@ So in Level 3 we split checks:
 ### Common MDX patterns to normalize later
 
 1. Custom shorthand wrapper syntax, e.g.:
-   - `<$><ClawdNote> ... </$>`
+   - `<$><MoguNote> ... </$>`
    - `<$><Toggle ...> ... </$>`
 2. Raw JSON / object-like content at top-level (not fenced code block)
 3. Raw script-like snippets (e.g. function calls) in article body

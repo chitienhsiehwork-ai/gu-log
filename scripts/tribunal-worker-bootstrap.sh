@@ -2,7 +2,7 @@
 # tribunal-worker-bootstrap.sh — create / inspect / remove a tribunal worker worktree
 #
 # Worker worktrees live alongside the main repo at:
-#   ~/clawd/projects/gu-log-worker-<id>
+#   $(dirname "$GU_LOG_DIR")/gu-log-worker-<id>
 # where <id> is a short tag like "a" or "b". Each worker runs its own pnpm
 # install + build so rewrites + build artifacts don't collide across
 # parallel workers (OpenSpec: tribunal-safe-parallelism).
@@ -28,7 +28,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MAIN_REPO="$(cd "$SCRIPT_DIR/.." && pwd)"
-WORKER_PARENT="$(dirname "$MAIN_REPO")"   # usually ~/clawd/projects
+WORKER_PARENT="$(dirname "$MAIN_REPO")"   # parent of the active GU_LOG_DIR
 SYNC_REF="${TRIBUNAL_WORKER_SYNC_REF:-origin/main}"
 
 usage() {

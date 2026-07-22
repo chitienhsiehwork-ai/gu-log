@@ -1,0 +1,126 @@
+---
+ticketId: "MP-242"
+title: "Gemma 4 登場：Google 說它用了和 Gemini 3 同樣的突破性技術"
+originalDate: "2026-04-02"
+translatedDate: "2026-04-03"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@GoogleAI on X"
+sourceUrl: "https://x.com/GoogleAI/status/2039735543068504476"
+lang: "zh-tw"
+summary: "Google 發表 Gemma 4 開源模型家族，包含 31B Dense、26B MoE 和 E2B/E4B 邊緣模型，採 Apache 2.0 授權，支援 256K context、function calling、多模態，號稱在 Arena 上打贏 20 倍大的模型。"
+tags: ["gemma","google","open-source","edge-ai","agentic"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+想像一下這個場景：Google 走進擂台，手上拿著一個 31B 的模型，對面站著體重 20 倍的對手。然後 Google 說：「這顆打得贏。」
+
+2026 年 4 月 2 日，Google AI 推出 Gemma 4，號稱是目前「最聰明的開放模型」。但讓整個推文變得有意思的，不是又一堆規格數字 — 而是那句 **built with the same breakthrough technology as Gemini 3**。翻成白話：Gemini 3 是 Google 的旗艦閉源模型，而 Gemma 4 宣稱用了同一套核心技術。這就好比 Toyota 說「新 Corolla 用了跟 LFA 超跑一樣的引擎技術」— 聽起來很猛，但到底移植了幾成，推文沒講。
+
+## 一家四口，各有各的命
+
+先搞清楚陣容。Gemma 4 不是一顆模型，是一整個家族 — 而且這家人的分工比大多數開源模型系列都來得清楚。
+
+老大是 **31B Dense**：所有參數每次推論都全員出動，像一間公司每個員工同時上班。老二是 **26B MoE（Mixture of Experts）**：每次推論只叫醒一部分「專家」來處理，其他人繼續睡 — 理論上跑起來更省，但總參數量不等於實際運算量。
+
+<MoguNote>
+Google 只丟了 Dense 跟 MoE 兩個關鍵字就走了，具體 MoE 每次啟用多少參數、專家怎麼分工，一個字都沒提。這招在 marketing 上叫做「留白讓社群幫忙腦補」，在工程上叫做「細節還沒定案先別問」(⌐■_■)
+</MoguNote>
+
+然後是這家人裡真正讓人好奇的兩個小的 — **E2B**（2B 參數）和 **E4B**（4B 參數）。但小的晚點再聊，因為 Google 先丟了一顆震撼彈。
+
+---
+
+## 20 倍體重差的擂台賽
+
+Google 宣稱 31B Dense 跟 26B MoE 在 **Chatbot Arena** 上 outcompeting models 20x their size。
+
+這句話為什麼值得單獨拉出來講？因為 Arena 不是那種「跑個 MMLU 刷分然後發新聞稿」的 benchmark — Arena 是真人盲測對戰，使用者不知道面前是哪個模型，純粹靠回答品質投票。如果 Google 這個 claim 成立，代表一個 31B 的模型在真人眼中打贏了 600B+ 等級的對手。
+
+問題是：推文完全沒說對手是誰。是贏了 GPT-4 等級？Llama 405B？還是某個冷門模型？勝率多少？在哪些類別？全部留白。
+
+<MoguNote>
+Arena 的 claim 是整則推文裡最大膽的一句，也是最空洞的一句。說「打贏 20 倍大的對手」卻不說對手是誰，就像某個拳擊手說「我打贏了體重三倍的人」但不告訴大家那個人是職業選手還是路人。Google 這個 claim 的可信度，完全取決於他們沒公開的那些細節 ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## Google 的老招：免費給糖，收費裝牙
+
+授權這件事其實才是整個 Gemma 4 發佈最值得仔細看的訊號。
+
+Google 採 **Apache 2.0** — 開源授權裡最乾脆的那種，商用、修改、拿去訓練下一代模型，全部隨意。推文還特別把這件事跟 **digital sovereignty** 綁在一起講，意思是：「這個模型是開發者自己的，不是租來的 API。」
+
+聽起來很佛心。但 Google 做免費的東西從來不是因為善良。
+
+<MoguNote>
+Android 免費放出去 → 全世界用 Android，Google Play 收 30% 抽成。Kubernetes 免費放出去 → 大家都會 K8s，最方便跑 K8s 的地方是 GKE（Google Cloud）。TensorFlow 免費放出去 → 學界業界都用 TF，最順的訓練平台是 TPU。現在 Gemma 4 免費放出去 → 開發者拿去做 agent，最方便的開發工具是 Google AI Studio，最順的部署是 GCP。
+
+這不是陰謀論，這是 Google 十幾年來一以貫之的平台戰略：**開源底層，商業化上層**。知道這個 pattern 不代表 Gemma 4 不好用 — 只是拿免費東西的時候，知道帳單從哪裡來比較安心 (¬‿¬)
+</MoguNote>
+
+---
+
+## 口袋裡的 AI：E2B 和 E4B 才是真正的驚喜
+
+好，回來聊那兩個小的。
+
+E2B（2B 參數）和 E4B（4B 參數）是專門為邊緣裝置設計的模型，主打 **native vision + audio + low latency**。2B 參數小到可以塞進手機晶片跑，4B 稍大但仍在行動裝置的射程範圍內。
+
+這件事為什麼重要？因為目前手機上的「AI 功能」絕大多數是把 request 丟到雲端再把結果拉回來的 — 本質上只是包了一層皮的 API call。如果 E2B/E4B 真的能在裝置上本地跑多模態推論，那手機上的 AI 第一次有機會不用靠網路就能看懂相機畫面、聽懂語音、即時回應。
+
+<MoguNote>
+老實說，大模型的軍備競賽看多了會麻痺。700B！1T！每次發新模型都在比誰的數字大。但 E2B 反過來走 — 把東西塞進 2B 參數還能做多模態，這個方向才是真正會改變日常體驗的。想想看：離線翻譯、即時字幕、相機裡的物件辨識，全部不用上網。如果 Google 做到了，這比 31B 打贏誰都重要 (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+---
+
+## 256K Context + 140 種語言：規格拉滿，品質待驗
+
+最後是帳面規格 — **256K token** 的 context window，加上 **140+ 語言**支援。
+
+256K 在開源模型裡算是頂配了。Google 給的使用場景是「在單一 prompt 裡 process entire repositories or large documents」，翻成白話就是：想用開源模型做 coding assistant 或文件分析，context 長度終於不再是瓶頸。
+
+140+ 語言就比較微妙。帳面上 cover 全球大部分語言，但任何做過多語言 NLP 的人都知道：支援 140 種語言跟 140 種語言都好用是兩碼事。英文和中文通常沒問題，但排名越後面的語言品質越看運氣。
+
+取得方式倒是很直接 — **Google AI Studio** 線上試玩，**Hugging Face**、**Kaggle**、**Ollama** 下載權重，四條路同時開。
+
+---
+
+## 結語
+
+Google 端出了一整桌菜：旗艦級的 31B Dense 和 26B MoE、口袋級的 E2B/E4B、最寬鬆的 Apache 2.0 授權、原生 function calling、256K context、140+ 語言。菜單看起來無懈可擊。
+
+但菜單好看跟菜好吃是兩回事。
+
+這則推文最有趣的地方，不是 Google 說了什麼，而是 Google **沒說**什麼 — Arena 對手是誰沒說，MoE 啟用多少參數沒說，E2B 實際延遲沒說，長 context 品質沒說，多語言各語言表現沒說。所有最關鍵的細節，都藏在「等社群測出來」的留白裡。
+
+所以真正的 review，從 `ollama pull gemma4` 那一刻才開始。
+
+---
+
+## 延伸閱讀
+
+- [MP-275: Gemma 4 登場 — Google 的開源四兄弟，Token 效率屌打對手但智力還差一截](/posts/mp-275-20260410-artificialanlys-gemma-4-google-token/)（一週後的獨立 benchmark 實測：Intelligence Index 39 vs Qwen3.5 42 分，但 token 效率少 2.5 倍）

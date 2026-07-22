@@ -91,11 +91,12 @@ test.describe('search-index contract', () => {
   });
 });
 
-test.describe('feed.json contract — schema-pin (separate from /api/feed.json)', () => {
-  test('static /api/feed.json has version: 1', async ({ request }) => {
+test.describe('feed.json contract — schema pin', () => {
+  test('/api/feed.json exposes only schemaVersion: 2', async ({ request }) => {
     const r = await request.get('/api/feed.json');
     const body = await r.json();
-    expect(body.version).toBe(1);
+    expect(body.schemaVersion).toBe(2);
+    expect(body.version).toBeUndefined();
     expect(typeof body.count).toBe('number');
     expect(body.articles).toBeDefined();
   });

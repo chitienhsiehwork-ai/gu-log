@@ -74,11 +74,17 @@ const { title, open = false } = Astro.props;
     cursor: pointer;
     text-align: left;
     outline: none;
+    min-height: 44px;
     -webkit-tap-highlight-color: transparent;
     transition: color 0.15s ease;
   }
   .toggle-header:hover {
     color: var(--color-accent);
+  }
+
+  .toggle-header:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: -2px;
   }
 
   .toggle-icon {
@@ -135,7 +141,7 @@ const { title, open = false } = Astro.props;
   @media (pointer: coarse) {
     .toggle-header {
       padding: 0.6rem 0.65rem;
-      min-height: 40px;
+      min-height: 44px;
     }
   }
 </style>

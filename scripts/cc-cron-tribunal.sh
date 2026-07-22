@@ -4,15 +4,31 @@
 # Follows existing CC cron pattern (cc-cron-cp-writer.sh).
 # Runs tribunal-batch-runner.sh which processes unscored articles newest→oldest.
 #
-# Install: Add to crontab on VM
-#   0 */2 * * * /home/clawd/clawd/projects/gu-log/scripts/cc-cron-tribunal.sh
+# Install: add to crontab on the Tribunal VM. The wrapper loads GU_LOG_DIR and
+# USAGE_MONITOR from the host-local tribunal.env provisioned by the runbook:
+#   0 */2 * * * /path/to/gu-log/scripts/cc-cron-tribunal.sh
 
 set -euo pipefail
 export TZ=Asia/Taipei
 export CLAUDE_CODE_OAUTH_TOKEN
 CLAUDE_CODE_OAUTH_TOKEN=$(head -1 "$HOME/.cc-cron-token")
 
-GU_LOG_DIR="$HOME/clawd/projects/gu-log"
+TRIBUNAL_ENV_FILE="${TRIBUNAL_ENV_FILE:-$HOME/.config/gu-log/tribunal.env}"
+if [ ! -r "$TRIBUNAL_ENV_FILE" ]; then
+  echo "Missing deployment config: $TRIBUNAL_ENV_FILE" >&2
+  exit 78
+fi
+set -a
+# shellcheck source=/dev/null
+. "$TRIBUNAL_ENV_FILE"
+set +a
+: "${GU_LOG_DIR:?Missing GU_LOG_DIR in $TRIBUNAL_ENV_FILE}"
+: "${USAGE_MONITOR:?Missing USAGE_MONITOR in $TRIBUNAL_ENV_FILE}"
+if [ ! -x "$USAGE_MONITOR" ]; then
+  echo "USAGE_MONITOR is not executable: $USAGE_MONITOR" >&2
+  exit 78
+fi
+
 LOG="/tmp/tribunal-cron-$(date +%Y%m%d-%H%M).log"
 
 cd "$GU_LOG_DIR"

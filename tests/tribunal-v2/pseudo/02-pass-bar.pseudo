@@ -10,7 +10,7 @@
 //
 // 1. Stage 1 Vibe (absolute):
 //      composite >= 8 AND 至少一維 >= 9 AND 沒有任何維 < 8
-//    全部 integer，5 維 (persona, clawdNote, vibe, clarity, narrative)
+//    全部 integer，5 維 (persona, moguNote, vibe, clarity, narrative)
 //
 // 2. Stage 4 Final Vibe (relative):
 //      每個維度不能比 Stage 1 PASS 時的分數低超過 1 分
@@ -45,7 +45,7 @@ describe('calculateStage1Pass (5-dim integer scoring)', () => {
 
   // Happy path
   it('passes when composite >=8 AND one dim >=9 AND all dims >=8', () => {
-    // scores: { persona: 9, clawdNote: 8, vibe: 8, clarity: 8, narrative: 8 }
+    // scores: { persona: 9, moguNote: 8, vibe: 8, clarity: 8, narrative: 8 }
     // composite: floor((9+8+8+8+8)/5) = 8
     // expect pass=true
   });
@@ -150,9 +150,9 @@ describe('isStage4Degraded (relative check)', () => {
   it('reports all degraded dims, not just the first', () => {
     // stage1: [9, 9, 9, 8, 8]
     // stage4: [7, 7, 9, 8, 8]
-    // expect degradedDims=['persona', 'clawdNote']
+    // expect degradedDims=['persona', 'moguNote']
     //
-    // Teaching note: Banner 要顯示 "Final Vibe: persona 9→7 clawdNote 9→7"
+    // Teaching note: Banner 要顯示 "Final Vibe: persona 9→7 moguNote 9→7"
     //                所以 output 要有足夠資訊，不只是 boolean。
   });
 

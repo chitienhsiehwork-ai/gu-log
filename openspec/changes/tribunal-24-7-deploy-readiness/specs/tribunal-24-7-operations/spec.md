@@ -1,3 +1,5 @@
+<!-- md-zh-tw: ignore -->
+
 ## ADDED Requirements
 
 ### Requirement: The deployed long-running runtime SHALL enable rewrites
@@ -16,7 +18,7 @@ The deployed runtime SHALL be configured to restart automatically after a host r
 
 #### Scenario: Daemon returns after reboot
 
-- **WHEN** the clawd-vm host reboots
+- **WHEN** the Tribunal VM host reboots
 - **THEN** the tribunal daemon SHALL start again without manual intervention
 - **AND** the deploy documentation SHALL state the required `systemctl --user enable` + `loginctl enable-linger` steps
 
@@ -27,7 +29,7 @@ Abnormal runtime states SHALL be delivered to a channel the operator actually re
 #### Scenario: Stall or EXHAUSTED or fallback alerts the operator
 
 - **WHEN** the daemon stalls, hits an EXHAUSTED spike, or enters `fallback`/`floor_stop`
-- **THEN** an alert SHALL be sent via a host-appropriate channel (e.g. Telegram / clawd notifier)
+- **THEN** an alert SHALL be sent via a host-appropriate channel (e.g. Telegram / host notifier)
 - **AND** where no channel is configured it SHALL at least record an observable log line, never silently no-op
 
 ### Requirement: The monitoring tool SHALL report the live controller state

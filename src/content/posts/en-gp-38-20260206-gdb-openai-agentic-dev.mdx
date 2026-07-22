@@ -1,0 +1,182 @@
+---
+ticketId: "GP-38"
+title: "Inside OpenAI: How They're Going Agent-First (Straight From the Co-Founder)"
+originalDate: "2026-02-06"
+translatedDate: "2026-02-06"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@gdb on X"
+sourceUrl: "https://x.com/gdb/status/2019566641491963946"
+summary: "OpenAI co-founder Greg Brockman publicly reveals how OpenAI is transforming to agentic software development internally. By March 31st, agents should become the first resort for all technical tasks. Includes six concrete recommendations, including 'Say no to slop' on code quality."
+lang: "en"
+tags: ["openai","agentic-development","codex","software-engineering","ai"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+Picture this: your company's best engineers walk in one day and tell you "I basically stopped writing code myself since December."
+
+Not slacking. Not losing their edge. They found something better.
+
+This actually happened — inside OpenAI. Greg Brockman ([@gdb](https://x.com/gdb)), co-founder and former President of OpenAI, just threw open the kitchen doors and showed the world how they're turning their own AI agents into the primary workforce. This isn't an analyst guessing from the outside. This is internal-memo-level stuff, straight from a co-founder's mouth (◕‿◕)
+
+<MoguNote>
+Greg Brockman has been building OpenAI alongside Sam Altman since 2015, serving as President for years. When someone at this level shares "here's how we actually use [Codex](/en/glossary#codex) internally," it carries roughly the same weight as TSMC's chairman sharing notes on their 3nm process.
+
+That said — a founder posting about how great their own product is? Grain of salt, obviously ┐(￣ヘ￣)┌ You'd trust the fried chicken shop owner when they say theirs is the best? But Greg earns credibility here because he doesn't just cheerleader — he also admits that "managing AI-generated slop code" is a real problem. That honesty counts.
+</MoguNote>
+
+---
+
+## Renaissance, Not Just Hype
+
+Greg opens with a bold claim:
+
+> **Software development is undergoing a renaissance in front of our eyes.**
+
+You might think "renaissance" is a bit dramatic. But what he says next is convincing — several top engineers at OpenAI told him that **their job has fundamentally changed since December**.
+
+Changed how? Before, they used Codex for writing unit tests. Now? **Codex writes essentially all the code** and handles a huge chunk of their operations and debugging.
+
+Wait, that's a massive leap. From "help me write tests" to "help me write everything"?
+
+<MoguNote>
+"Step function improvement" — not gradual progress, but jumping up an entire staircase at once. Think of it like going from walking to taking the elevator.
+
+And notice who's saying this: top engineers inside OpenAI. These people swim in the latest models every day. When they say "my work fundamentally changed," the rest of us should probably pay attention. The agent shift Karpathy described in MP-2 is accelerating for real ╰(°▽°)╯
+</MoguNote>
+
+---
+
+## March 31st: Not a Goal, a Deadline
+
+Greg set a hard deadline. By end of March, OpenAI internally needs to hit two targets:
+
+**Target one**: For any technical task, engineers' first resort is interacting with an agent — not opening an editor or terminal.
+
+**Target two**: The default way of using agents must be evaluated as safe AND productive enough that most workflows don't need extra permissions.
+
+In plain language: when engineers hit a problem, their gut reaction should be "ask the agent" not "open VS Code." And this default mode needs to be both safe and capable — nobody should feel like "ugh, I have to enable permissions again."
+
+What is this really about? Making "using agents" as automatic as "using Git."
+
+<MoguNote>
+Think about it — when did you start asking AI before Googling? For many people, that shift already happened quietly.
+
+What Greg is doing is making it official. Not "you can use agents" but "agents are the default." It's like how not everyone used Git at first, but now if you manage version control by hand, your coworkers look at you like you're a caveman (ง •̀_•́)ง
+</MoguNote>
+
+---
+
+## Six Prescriptions (All Practical)
+
+To hit the March deadline, Greg laid out six prescriptions. What's interesting is these aren't abstract vision statements — every single one has concrete action items.
+
+### Prescription 1: Stop Thinking, Start Trying
+
+Greg says the tools sell themselves. Many people had amazing experiences with Codex 5.2 (especially those burned by the web version before). But too many people are either too busy to try, or stuck in a "can it really do X?" thinking loop instead of just trying.
+
+His concrete suggestion: designate an **agents captain** per team — one person responsible for figuring out how to bring agents into the team's workflow. Then pick a day for a company-wide Codex hackathon.
+
+<MoguNote>
+The agents captain idea is clever. Don't ask everyone to become an AI expert. Just plant one seed per team and let it spread. Same playbook as "DevOps champion" — old trick, but it works (｡◕‿◕｡)
+</MoguNote>
+
+### Prescription 2: Write AGENTS.md — Teach the AI Your Roads
+
+Every project gets an `AGENTS.md`. Every time the agent messes up, update it. Turn everything you teach the agent into reusable skills, committed to a shared repo.
+
+Think of `AGENTS.md` as an onboarding doc for AI. New hires read the README. AI reads AGENTS.md. And skills package up "I taught the AI to do this" into reusable knowledge modules.
+
+<MoguNote>
+This is exactly what we do at gu-log. Our CLAUDE.md and CONTRIBUTING.md are basically the same concept — telling the AI "here are the rules of this repo." MP-9 goes into more detail about how Vercel uses AGENTS.md if you want the deeper story.
+
+But I'll say this: docs alone aren't enough. You have to keep updating them, or AGENTS.md becomes the same thing as README — a decoration nobody reads after day one ┐(￣ヘ￣)┌
+</MoguNote>
+
+### Prescription 3: Open Your Internal Tools to Agents
+
+Every company has internal tools, scripts, and systems. Humans use them fine, but AI can't touch them — they need a GUI, a login, or some human-only workflow.
+
+Greg's advice: inventory the tools your team depends on, then assign someone to make them agent-accessible via CLI or [MCP](/en/glossary#mcp) (Model Context Protocol) server.
+
+<MoguNote>
+An agent without tool access is like a chef without hands — has a head full of recipes but can only shout at others to chop the vegetables.
+
+This is why MCP matters so much. It basically gives AI arms and legs so it can actually do things, instead of just reading files and "suggesting what you should do." [Simon Willison](/en/glossary#simon-willison)'s point about agentic loops in MP-8 is the same idea — loops only work when agents have tools to use (╯°□°)╯
+</MoguNote>
+
+### Prescription 4: Design Your Codebase for Agents
+
+Greg admits this is still uncharted territory — models change too fast, so it needs exploration. But he gives two concrete directions: write tests that **run fast**, and build **high-quality interfaces** between components.
+
+Why fast tests? Because agents run tests obsessively to make sure they haven't broken anything. If your tests take ten minutes per run, the agent's development loop grinds to a halt. And good interfaces help agents understand "what is this module responsible for" — good abstractions matter for humans, but they matter MORE for AI, because AI literally reads your code word by word.
+
+<MoguNote>
+The cognitive debt concept from MP-83 fits perfectly here — if your codebase is hard for humans to understand, AI won't do any better. The difference is humans will complain and push through. AI will just silently produce code that looks like it works but completely misses the context.
+
+So the core idea of an agent-first codebase is actually nothing new: **write clean code, write good docs, write fast tests**. Stuff you should've been doing anyway — you just have a more urgent reason now (￣▽￣)／
+</MoguNote>
+
+### Prescription 5: Say No to Slop (The Spiciest Take)
+
+This is the most opinionated part. Greg comes right out and says:
+
+> Managing AI generated code at scale is an emerging problem, and will require new processes and conventions to keep code quality high.
+
+His concrete suggestions: every piece of merged code needs a human accountable for it. When reviewing AI code, maintain at least the same bar as for human code. And the harshest line — **make sure the author understands what they're submitting**.
+
+Translation: if you're reviewing AI code and have no idea what it does, you shouldn't click Approve.
+
+<MoguNote>
+"Say no to slop" — slop is code that works functionally but is a maintenance nightmare. AI is excellent at producing this: every function runs, tests pass, but the overall architecture is a bowl of spaghetti.
+
+The subtext of Greg's message: **AI-written code is not a get-out-of-jail-free card.** Speed doesn't equal quality. If you hit merge because "well, the AI wrote it, it's probably fine" — you're an accomplice to slop.
+
+Steve Yegge's vampire metaphor from MP-85 works in reverse here — AI can accelerate you, but the moment you give up review, that speed becomes poison (⌐■_■)
+</MoguNote>
+
+### Prescription 6: Build the Infrastructure
+
+The final prescription is more about building foundations. Greg says core tools are improving, but there's still a lot of supporting infrastructure to build. He highlights three directions: observability, tracking agent trajectories (not just the final commit, but how the agent got there step by step), and centralized management of agent-available tools.
+
+## Related Reading
+
+- [MP-176: AI Makes Coding Faster — So Why Are People Saying Engineers Are Doomed?](/en/posts/en-mp-176-20260316-daniel-mac8-swe-not-screwed/)
+- [GP-39: OpenAI Researcher Spends $10K/Month on Codex — Generates 700+ Hypotheses](/en/posts/en-gp-39-20260207-kareldoostrlnck-codex-research/)
+- [GP-98: Agent Harness Engineering: How OpenAI Built a Million Lines of Code With Zero Human-Written Code](/en/posts/en-gp-98-20260303-openai-harness-engineering/)
+
+
+<MoguNote>
+"Tracking agent trajectories" is going to be the next big topic, I'm calling it now.
+
+Imagine future debugging: "This bug was caused by the agent taking a wrong turn at step 47 — let me rewind to that decision point." Basically Git blame 2.0 — you know not just who wrote it, but how they were thinking.
+
+Though honestly, most teams can't even get human code review right. Tracking agent decision trajectories feels like writing your PhD dissertation before finishing your master's. Important, but not urgent ヽ(°〇°)ﾉ
+</MoguNote>
+
+---
+
+## Technical Change Is Cultural Change
+
+Greg's closing is refreshingly honest:
+
+> Adopting tools like Codex is not just a technical but also a deep cultural change, with a lot of downstream implications to figure out.
+
+Here's what this reminds me of. Twenty years ago, someone tells you "all code will live in the cloud someday" — you'd think they were crazy. Ten years ago, "you won't manage your own servers" — you'd be skeptical. Now look back. Where are the companies that said "we don't need cloud"?
+
+What Greg is doing is fundamentally the same thing: he's not just pushing a tool, he's pushing a culture. "Agent-first" sounds trendy, but unwrap it and it's six very practical things. And his most convincing argument? He's not just saying "you should do this." He's saying "we're already doing it, and our best engineers say it's working great."
+
+OpenAI is eating their own dogfood. And from this thread, they seem to be enjoying every bite (๑•̀ㅂ•́)و✧

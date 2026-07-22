@@ -15,7 +15,7 @@ write_common_json() {
   "isDraft": false,
   "mergeable": "MERGEABLE",
   "baseRefName": "main",
-  "headRefName": "content/sp-test"
+  "headRefName": "content/gp-test"
 }
 JSON
   cat >"$TMP_DIR/checks.json" <<'JSON'
@@ -37,7 +37,7 @@ run_guard() {
 
 write_common_json
 cat >"$TMP_DIR/files.txt" <<'EOF_FILES'
-src/content/posts/sp-test.mdx
+src/content/posts/gp-test.mdx
 src/data/glossary.json
 EOF_FILES
 run_guard >/tmp/gu-log-auto-merge-allow.out
@@ -70,7 +70,7 @@ cat >"$TMP_DIR/checks.json" <<'JSON'
 ]
 JSON
 cat >"$TMP_DIR/files.txt" <<'EOF_FILES'
-src/content/posts/sp-test.mdx
+src/content/posts/gp-test.mdx
 EOF_FILES
 if run_guard >/tmp/gu-log-auto-merge-ci-deny.out 2>&1; then
   echo "expected failing required check to fail" >&2

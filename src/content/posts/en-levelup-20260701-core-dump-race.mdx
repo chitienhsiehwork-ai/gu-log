@@ -10,12 +10,12 @@ source: "Level-Up Series"
 sourceUrl: "https://gu-log.vercel.app/en/posts/en-levelup-20260701-core-dump-race"
 lang: "en"
 summary: "The autopsy trilogy finale. The remaining 'return-to-null' murders all died during C++ exception unwinding — a teleport, not a normal return. The killer: an 18-year-old race in GNU libunwind, with a murder window one instruction wide (~100 picoseconds). Plus Fermi estimation to check the math."
-tags: ["systems", "debugging", "cpp", "tutorial"]
+tags: ["systems","debugging","cpp","tutorial"]
 scores:
   tribunalVersion: 9
   vibe:
     persona: 8
-    clawdNote: 8
+    moguNote: 8
     vibe: 8
     narrative: 9
     score: 8
@@ -51,7 +51,7 @@ scores:
 
 import LevelUpProgress from '../../components/LevelUpProgress.astro';
 import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
-import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
 import AnalogyBox from '../../components/AnalogyBox.astro';
 
 Post A taught the investigator to read corpses — `%rip`, `stack`, hitting-a-wall death. Post B cracked the first case: a poisoned well (bad host) was capped, and the `misaligned-%rsp` population vanished.
@@ -132,9 +132,9 @@ The unwinding process is complex:
 
 **Operationally, this is more like `longjmp` or `setcontext`, not a normal `call`/`ret`.**
 
-<ClawdNote>
+<MoguNote>
 The word "unwinding" literally means "unraveling" — imagine untangling a ball of yarn, layer by layer. In C++, this mechanism is handled by a runtime library (`libgcc` or `libunwind`); the compiler generates `DWARF unwind metadata` telling the runtime how to unwind each function layer. Honestly, this whole system is ten times more complex than Go's `panic`/`recover`, but also ten times more flexible. The price C++ pays: "if anything in this chain breaks, the corpse won't be pretty."
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="How does C++ exception unwinding differ from a normal return?"
@@ -177,9 +177,9 @@ The weapon was hidden in Deli B's sandwiches.
 
 </AnalogyBox>
 
-<ClawdNote>
+<MoguNote>
 The name `libunwind` is straightforward: `lib` for library, `unwind` for... unwinding. It's a commonly-used `stack` unwinding tool in the GNU/Linux ecosystem; lots of programs (including debuggers, profilers) use it. This "two implementations, linker picks one" situation is super common in C/C++ land — and a breeding ground for bugs. You think you're using A, you're actually using B. This kind of `ambient dependency` trap — once you step on it, you never forget.
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="Which library's exception unwinding implementation did Rockset's binary actually use?"
@@ -224,9 +224,9 @@ The engineers read `libunwind`'s source code and found that it synthesizes a `uc
 
 This design looks perfectly reasonable — but it hides a fatal timing flaw.
 
-<ClawdNote>
+<MoguNote>
 Breaking down `ucontext_t`: `u` is for `user` (user space), `context` means execution context (program state), `_t` is C's type suffix. This struct is defined in the POSIX standard, used to save "the complete register state at some execution point." Think of it as a "save file" — with this card, you can resume from that state. But because it's so generic and so low-level, almost every mechanism that needs to "jump around" (coroutines, fibers, exceptions) wants to borrow it — and all of them can misuse it.
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="What mechanism does libunwind use for teleportation?"
@@ -284,9 +284,9 @@ If someone barges in at this exact moment, they can stomp right on that card.
 
 </AnalogyBox>
 
-<ClawdNote summary="The authors weren't dumb; the trigger conditions were just absurd.">
+<MoguNote summary="The authors weren't dumb; the trigger conditions were just absurd.">
 This is why this bug is so hard to catch. Logically, `setcontext` is written perfectly reasonably: update `%rsp` first, then read the remaining values, then jump. But it doesn't account for: **the instant `%rsp` updates, the `red zone`'s protected range also moves**, and the old card is no longer protected. This is a subtle ABI / signal-delivery interaction. The people who wrote this code weren't dumb — they were just living in a world where "no one sends a signal to you every few milliseconds." The bug hid for 18 years not because the original authors were stupid, but because the trigger conditions were absurd.
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="Why does the teleport-coordinates card become vulnerable after %rsp updates?"
@@ -347,9 +347,9 @@ Because `_Ux86_64_setcontext` needs to restore even `%rdi`, so it can't read the
 
 So the crime scene looks exactly like "a function executed `ret`, jumped to `NULL`." The investigator initially thought the return note was tampered with; actually it was the teleport-coordinates card that got overwritten.
 
-<ClawdNote summary="The evidence points to a killer who doesn't exist.">
+<MoguNote summary="The evidence points to a killer who doesn't exist.">
 This is why this bug was so well-disguised. The crime scene evidence looks like "some function returned to NULL," but the reality is "the unwinder's synthesized teleport coordinates got overwritten by a signal." The two look almost identical in a `core dump` — because `_Ux86_64_setcontext` ends with `retq` to jump, leaving traces that look like a normal `ret`. This is the most annoying kind of bug in systems programming: **the crime scene evidence points to a killer who doesn't exist.** Without reading `libunwind` source code, without building clean population data to separate bad hardware — you'd never think to look this deep.
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="What's the true mechanism behind return-to-null?"
@@ -400,9 +400,9 @@ Rockset uses `exceptions` for ingest backpressure — when overloaded, throwing 
 
 This is exactly what an epidemiologist does when computing incidence rates or R0 (basic reproduction number) — no need to nail down three decimal places. If the order of magnitude checks out, you know the hypothesis is right.
 
-<ClawdNote summary="Fermi estimation: if the order of magnitude matches, the hypothesis holds.">
+<MoguNote summary="Fermi estimation: if the order of magnitude matches, the hypothesis holds.">
 Fermi estimation is named after physicist Enrico Fermi, famous for rapidly estimating orders of magnitude with minimal data. Classic example: "How many piano tuners in Chicago?" — no research needed, just estimate from population, households, piano ownership rate, tuning frequency, and you get the right order of magnitude. In debugging, Fermi estimation beats precise simulation — if the order of magnitude matches, you know the direction is right; if it's off, the hypothesis is wrong. No need to wait for complete data. In this case: 10^-8 times 10^4 = 10^-4 per second ~ once every few hours, matches "a dozen per day across the fleet." Hypothesis confirmed.
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="How did the engineers confirm that a 100-picosecond race window could explain a dozen daily crashes?"
@@ -456,9 +456,9 @@ They also wrote a standalone reproducer and sent the patch upstream to GNU `libu
 
 **Swap out the diseased organ, send the cure upstream.**
 
-<ClawdNote summary="The right open-source posture: fix your system, then send the cure upstream.">
+<MoguNote summary="The right open-source posture: fix your system, then send the cure upstream.">
 This is the right posture in open source: find a bug, fix your own system, then send the reproducer and patch upstream. Once GNU `libunwind`'s maintainers merge this fix, everyone using this library benefits. That's also why OpenAI published this debugging story — not just to show off, but to give knowledge back to the community. Honestly, many companies would sit on a bug like this, treating "our infra is more stable than yours" as competitive advantage — no public disclosure, no upstream patch. OpenAI did the right thing here.
-</ClawdNote>
+</MoguNote>
 
 ---
 

@@ -37,12 +37,12 @@ This creates confusion when comparing dimension scores. The proposed change is t
 
 | Score | Description | Signal |
 |-------|-------------|--------|
-| 10 | Translation perfectly faithful. All hedges preserved (might/could/seems → 可能/或許/似乎). Every caveat, limitation, disclaimer included. No added claims. ClawdNote clearly separated. |  |
+| 10 | Translation perfectly faithful. All hedges preserved (might/could/seems → 可能/或許/似乎). Every caveat, limitation, disclaimer included. No added claims. MoguNote clearly separated. |  |
 | 9 | Near-perfect faithfulness. One very minor paraphrase but meaning preserved. Hedges maintained. |  |
 | 8 | Faithful with slight nuance loss expected from good translation. Hedges mostly preserved. Limitations section present even if abbreviated. | Normal good translation |
 | 7 | Generally faithful but 1–2 hedges converted from uncertain to certain ("might" → "is/will"), OR one minor caveat omitted. |  |
 | 5–6 | Multiple instances of uncertainty erasure. OR major caveats/limitations stripped. OR conclusions extended beyond what source supports. | Key failure mode |
-| 3–4 | Significant departure from source interpretation. ClawdNote opinions bleed into body without attribution. Or source's argument substantially changed. |  |
+| 3–4 | Significant departure from source interpretation. MoguNote opinions bleed into body without attribution. Or source's argument substantially changed. |  |
 | 1–2 | Fundamental misrepresentation of source material. Inverts source's conclusions or stance. |  |
 | 0 | Completely fabricated or inverted from source. |  |
 
@@ -50,11 +50,11 @@ This creates confusion when comparing dimension scores. The proposed change is t
 
 | Score | Description | Signal |
 |-------|-------------|--------|
-| 10 | Argument flows perfectly. Every conclusion supported by evidence presented. ClawdNote opinions clearly marked as speculation/opinion. Zero internal contradictions. |  |
+| 10 | Argument flows perfectly. Every conclusion supported by evidence presented. MoguNote opinions clearly marked as speculation/opinion. Zero internal contradictions. |  |
 | 9 | Excellent logic. Minor gap in one reasoning step but overall coherent and well-structured. |  |
-| 8 | Good logical flow. ClawdNotes mostly mark opinion vs. fact clearly. Occasional leap is minor. |  |
+| 8 | Good logical flow. MoguNotes mostly mark opinion vs. fact clearly. Occasional leap is minor. |  |
 | 7 | Generally consistent. Has 1 logical leap or mild contradiction that careful readers would notice. |  |
-| 5–6 | Noticeable logical gaps. ClawdNotes blur fact/speculation without marking. OR conclusion doesn't fully follow from evidence presented. |  |
+| 5–6 | Noticeable logical gaps. MoguNotes blur fact/speculation without marking. OR conclusion doesn't fully follow from evidence presented. |  |
 | 3–4 | Multiple logical inconsistencies. Argument structure breaks down in 1+ sections. |  |
 | 1–2 | Argument is fundamentally incoherent. Reader cannot follow the logical chain. |  |
 | 0 | No logical structure. |  |
@@ -63,7 +63,7 @@ This creates confusion when comparing dimension scores. The proposed change is t
 
 ### Recommended Calibration Articles
 
-#### Anchor 1: Score 9 — SP-14 (`ai-assistance-coding-skills.mdx`)
+#### Anchor 1: Score 9 — GP-14 (`ai-assistance-coding-skills.mdx`)
 
 **Why this is the high anchor:**
 
@@ -83,13 +83,13 @@ This creates confusion when comparing dimension scores. The proposed change is t
 
 ---
 
-#### Anchor 2: Score 8 — CP-153 (`cp-153-20260312-nvidia-nemotron3-super-120b-mamba-moe.mdx`)
+#### Anchor 2: Score 8 — MP-153 (`mp-153-20260312-nvidia-nemotron3-super-120b-mamba-moe.mdx`)
 
 **Why this is the medium-high anchor:**
 
 - **Source**: @ArtificialAnlys tweet — less authoritative than research paper, but specific
 - **Technical claims**: 120B total params, 12.7B active params, 36 Intelligence Index score, 484 tok/s, 100K→1M context window
-- **Strengths**: Analogy-heavy writing doesn't fabricate numbers. Cross-reference to CP-147 for context. Technical architecture explanation (Mamba + Transformer MoE) is correct.
+- **Strengths**: Analogy-heavy writing doesn't fabricate numbers. Cross-reference to MP-147 for context. Technical architecture explanation (Mamba + Transformer MoE) is correct.
 - **Limitations as a calibration article**: Tweet source makes some claims harder to trace to primary (e.g., "DeepInfra and LightningAI immediately launched support"). The article states Nemotron uses "up to 100萬 token" context window — verifiable claim but from tweet, not NVIDIA primary source.
 - **No uncertainty erasure**: Does not upgrade "the tweet says" to absolute fact.
 
@@ -114,15 +114,15 @@ Failure pattern:
 - Translation says "在所有任務上領先 40%" (uncertainty erasure + stat fabrication)
 - Source hedges "we believe" → translation drops hedge
 - 40% figure appears nowhere in source
-- ClawdNote presents this as verified fact, not ClawdNote opinion
+- MoguNote presents this as verified fact, not MoguNote opinion
 ```
 
-**Closest real example from vibe calibration lore**: SP-110 ("Codex 10 Best Practices") was noted for being a poor-quality article overall. While its vibe score was 2/2/3, its factual accuracy pattern likely included:
+**Closest real example from vibe calibration lore**: GP-110 ("Codex 10 Best Practices") was noted for being a poor-quality article overall. While its vibe score was 2/2/3, its factual accuracy pattern likely included:
 - Presenting general best-practices as definitive facts
-- ClawdNotes from CodexNote/GeminiNote mixed with body text (attribution failure)
+- MoguNotes from CodexNote/GeminiNote mixed with body text (attribution failure)
 - Logical inconsistency from pipeline diff exposure
 
-**Recommendation**: Use SP-14 (9) and CP-153 (8) as calibration anchors for now. Build the 5–6 anchor from the next article that genuinely fails fact-check — add it to this doc when encountered.
+**Recommendation**: Use GP-14 (9) and MP-153 (8) as calibration anchors for now. Build the 5–6 anchor from the next article that genuinely fails fact-check — add it to this doc when encountered.
 
 ---
 
@@ -145,9 +145,9 @@ Current: total score ≥ 8 (sum of 0–4 + 0–3 + 0–3 = PASS at 8/10).
 
 ### EN Posts Surveyed
 
-1. `en-ai-assistance-coding-skills.mdx` (SP-14) — ralph: 8/8/8, gemini: 10
-2. `en-claude-code-vs-codex.mdx` (SP-2) — ralph: 8/8/8, gemini: 8
-3. `en-claude-is-a-space-to-think.mdx` (SP-24) — ralph: 8/8/8, gemini: 9
+1. `en-ai-assistance-coding-skills.mdx` (GP-14) — ralph: 8/8/8, gemini: 10
+2. `en-claude-code-vs-codex.mdx` (GP-2) — ralph: 8/8/8, gemini: 8
+3. `en-claude-is-a-space-to-think.mdx` (GP-24) — ralph: 8/8/8, gemini: 9
 
 All three score **8/8/8** on the standard vibe rubric. This suggests either:
 - EN posts consistently hit the bar, OR
@@ -158,15 +158,15 @@ All three score **8/8/8** on the standard vibe rubric. This suggests either:
 **What's working well in EN posts:**
 - LHY analogies translate naturally into English ("It's like when you go to a convenience store...")
 - Kaomoji usage fits EN tone (same ones from guidelines)
-- ClawdNote persona holds in English — "I" is clear speaker
+- MoguNote persona holds in English — "I" is clear speaker
 - Simple English execution is generally strong (no heavy jargon)
 
 **EN-specific quality variance not captured by current rubric:**
 
 1. **Cultural compensation** (zh-tw rubric assumes reader knows PTT, BORO, 鹹酥雞 culture)
    - EN posts must work harder to land the same analogies for non-TW readers
-   - Example: SP-24 uses "temple" analogy — works for TW/Asian readers, may alienate Western EN readers
-   - The RPG analogy in SP-2 is strong because it's internationally resonant
+   - Example: GP-24 uses "temple" analogy — works for TW/Asian readers, may alienate Western EN readers
+   - The RPG analogy in GP-2 is strong because it's internationally resonant
 
 2. **Pronoun rule exemption creates different quality signals**
    - zh-tw clarity score penalizes 你/我 in body text
@@ -176,8 +176,8 @@ All three score **8/8/8** on the standard vibe rubric. This suggests either:
 3. **Humor style adaptation**
    - zh-tw: PTT directness, 台灣梗, local food references
    - EN: Same dry wit but culturally neutral references
-   - "Unskippable YouTube ad" (SP-24) > "temple popup" for global EN readers
-   - "Honda Civic of coding tools" (SP-2) — great cultural bridge
+   - "Unskippable YouTube ad" (GP-24) > "temple popup" for global EN readers
+   - "Honda Civic of coding tools" (GP-2) — great cultural bridge
 
 4. **Persona calibration difference**
    - zh-tw LHY persona: professor-on-stage feel, highly oral
@@ -204,9 +204,9 @@ zh-tw clarity focuses on 你/我 prohibition. EN clarity should focus on:
 | Score | EN Clarity Description |
 |-------|------------------------|
 | 10 | Every "you/I" has a clear referent. Reader always knows who is speaking, who is acting, who the sentence is about. |
-| 8 | Rare ambiguity. "You" consistently addresses reader; "I" is always Clawd in ClawdNote. |
-| 6 | Occasional "we" ambiguity (is it Clawd + reader? Author + Anthropic?). |
-| 4 | Multiple instances where reader can't tell if "I" is Clawd, original author, or ShroomDog. |
+| 8 | Rare ambiguity. "You" consistently addresses reader; "I" is always Mogu in MoguNote. |
+| 6 | Occasional "we" ambiguity (is it Mogu + reader? Author + Anthropic?). |
+| 4 | Multiple instances where reader can't tell if "I" is Mogu, original author, or ShroomDog. |
 
 #### New EN-only dimension to consider: Cultural Accessibility
 
@@ -228,7 +228,7 @@ Current vibe bar: all dimensions ≥ 8.
 
 For EN, recommend:
 - Persona ≥ 8 (same bar)
-- ClawdNote ≥ 8 (same bar — humor quality doesn't change by language)
+- MoguNote ≥ 8 (same bar — humor quality doesn't change by language)
 - Vibe ≥ 8 (same bar)
 - Clarity ≥ 8 (EN definition — focus on referent clarity, not pronoun prohibition)
 - Cultural Accessibility ≥ 7 (if added as new dimension — slightly lower bar since full global accessibility is harder to achieve)
@@ -241,9 +241,9 @@ For EN, recommend:
 
 | Article | File | technicalAccuracy | sourceFidelity | logicalConsistency | Total | Role |
 |---------|------|-------------------|----------------|--------------------|-------|------|
-| SP-14 | `ai-assistance-coding-skills.mdx` | 9 | 9 | 9 | 27 | **High anchor (9/10)** |
-| CP-153 | `cp-153-20260312-nvidia-nemotron3-super-120b-mamba-moe.mdx` | 8 | 8 | 9 | 25 | **Medium anchor (8/10)** |
-| SP-81 | `sp-81-20260222-citrini-2028-global-intelligence-crisis.mdx` | 7 | 8 | 8 | 23 | **Edge case (fiction framing)** |
+| GP-14 | `ai-assistance-coding-skills.mdx` | 9 | 9 | 9 | 27 | **High anchor (9/10)** |
+| MP-153 | `mp-153-20260312-nvidia-nemotron3-super-120b-mamba-moe.mdx` | 8 | 8 | 9 | 25 | **Medium anchor (8/10)** |
+| GP-81 | `gp-81-20260222-citrini-2028-global-intelligence-crisis.mdx` | 7 | 8 | 8 | 23 | **Edge case (fiction framing)** |
 | Hypothetical | — | 4 | 4 | 5 | 13 | **Low anchor pattern (5–6)** |
 
 ### EN Scoring Adjustments
@@ -251,7 +251,7 @@ For EN, recommend:
 | Dimension | zh-tw Rule | EN Adjustment |
 |-----------|-----------|---------------|
 | Persona | LHY oral markers, PTT vibe | LHY warmth + universal analogies, oral but not culturally specific |
-| ClawdNote | Same | Same — humor bar doesn't change by language |
+| MoguNote | Same | Same — humor bar doesn't change by language |
 | Vibe | Same | Same |
 | Clarity | 你/我 prohibition in body | Referent clarity (who is "I"/"you"?) — pronoun use allowed but must be clear |
 | Cultural Accessibility | N/A (zh-tw assumes TW reader) | **New dimension (recommended)** — global reader accessibility |

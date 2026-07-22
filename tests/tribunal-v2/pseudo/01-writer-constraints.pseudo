@@ -64,10 +64,10 @@ describe('Writer diff check: URLs are immutable', () => {
   });
 
   it('detects mutated URL (subtle — same domain, different path)', () => {
-    // const before = '...[post](https://gu-log.vercel.app/posts/sp-1)...';
-    // const after  = '...[post](https://gu-log.vercel.app/posts/sp-one)...';
-    // expect(diffUrls(before, after).removed).toContain('...sp-1');
-    // expect(diffUrls(before, after).added).toContain('...sp-one');
+    // const before = '...[post](https://gu-log.vercel.app/posts/gp-1)...';
+    // const after  = '...[post](https://gu-log.vercel.app/posts/gp-one)...';
+    // expect(diffUrls(before, after).removed).toContain('...gp-1');
+    // expect(diffUrls(before, after).added).toContain('...gp-one');
     //
     // Teaching note: 這是最容易被忽略的 edge case — LLM 會「規範化」slug
     //                看起來很合理，但會讓整篇文章的 internal link 大規模壞掉。
@@ -195,49 +195,49 @@ describe('Writer diff check: Frontmatter is immutable except allowlisted keys', 
 
 
 // ============================================================================
-// Test Group D: ClawdNote 內容不能被 non-Stage1 writer 碰 (最危險的 case)
+// Test Group D: MoguNote 內容不能被 non-Stage1 writer 碰 (最危險的 case)
 // ============================================================================
 //
-// WHAT: Stage 2 / 3 / 4 writer 不能修改 <ClawdNote>...</ClawdNote> 內的文字
+// WHAT: Stage 2 / 3 / 4 writer 不能修改 <MoguNote>...</MoguNote> 內的文字
 //
-// WHY:  ClawdNote 是 creative scope — 裡面的誇飾比喻、玩笑是 brand voice。
-//       Stage 3 FactCorrector 尤其危險：它會覺得 ClawdNote 裡的某個技術
+// WHY:  MoguNote 是 creative scope — 裡面的誇飾比喻、玩笑是 brand voice。
+//       Stage 3 FactCorrector 尤其危險：它會覺得 MoguNote 裡的某個技術
 //       比喻「不夠準確」想去修，但那是 creative license 的一部分。
-//       我們明確決定 ClawdNote 完全免 fact-check（見 mental model Section 5）。
+//       我們明確決定 MoguNote 完全免 fact-check（見 mental model Section 5）。
 //
 //       這是 "Contract by component" 哲學的 enforcement。
 //
 // PROS: - 高 signal — 一旦被動到就是 bug
-//       - 解析 ClawdNote 範圍很 deterministic (MDX component tag)
-// CONS: - 需要 robust 的 MDX parser 找到 <ClawdNote> 範圍（nested components
+//       - 解析 MoguNote 範圍很 deterministic (MDX component tag)
+// CONS: - 需要 robust 的 MDX parser 找到 <MoguNote> 範圍（nested components
 //         可能會讓 regex 炸掉 — 可能需要真正的 MDX AST）
-//       - Stage 1 是允許改 ClawdNote 的（rewrite 全篇），所以 rule 只在
+//       - Stage 1 是允許改 MoguNote 的（rewrite 全篇），所以 rule 只在
 //         Stage 2+ 生效
 //
-// ALTERNATIVE: 把 ClawdNote 暫時 "遮起來"（替換成 placeholder）跑 writer，
-//              跑完再 swap 回來。**更穩** — 根本不讓 writer 看到 ClawdNote
+// ALTERNATIVE: 把 MoguNote 暫時 "遮起來"（替換成 placeholder）跑 writer，
+//              跑完再 swap 回來。**更穩** — 根本不讓 writer 看到 MoguNote
 //              內容。但這會讓 writer 看不到上下文，可能傷害 style
 //              coherence。Trade-off。
 
-describe('Writer diff check: ClawdNote body is immutable (Stage 2+)', () => {
+describe('Writer diff check: MoguNote body is immutable (Stage 2+)', () => {
 
-  it('extracts ClawdNote blocks with their inner text', () => {
-    // Input: '...<ClawdNote>梗 1</ClawdNote>...<ClawdNote>梗 2</ClawdNote>...'
+  it('extracts MoguNote blocks with their inner text', () => {
+    // Input: '...<MoguNote>梗 1</MoguNote>...<MoguNote>梗 2</MoguNote>...'
     // Expect: ['梗 1', '梗 2']
   });
 
-  it('handles nested components inside ClawdNote', () => {
-    // <ClawdNote>用 <Toggle>...</Toggle> 收起來</ClawdNote>
+  it('handles nested components inside MoguNote', () => {
+    // <MoguNote>用 <Toggle>...</Toggle> 收起來</MoguNote>
     // 要能 parse nested MDX tags — regex 可能不夠，考慮 mdast
   });
 
-  it('fails if any ClawdNote text content changed between before/after', () => {
+  it('fails if any MoguNote text content changed between before/after', () => {
     // Teaching note: 不是 set diff，是 position-aware diff。
     //                [梗1, 梗2] → [梗2, 梗1] 也要 fail。
   });
 
-  it('PASSES if only ClawdNote attributes changed (e.g. variant)', () => {
-    // 待 decision: attribute 算不算 "ClawdNote body"？
+  it('PASSES if only MoguNote attributes changed (e.g. variant)', () => {
+    // 待 decision: attribute 算不算 "MoguNote body"？
     // 個人建議: attributes 允許改（variant, author），但 children 不准。
   });
 });
@@ -259,7 +259,7 @@ describe('validateWriterOutput API shape', () => {
     //   stage: 'stage4FinalVibe',
     //   before: mdxA,
     //   after: mdxB,
-    //   rules: ['urls', 'headings', 'frontmatter', 'clawdNote'],
+    //   rules: ['urls', 'headings', 'frontmatter', 'moguNote'],
     // });
     // expect(result.valid).toBe(true);
     // expect(result.violations).toEqual([]);

@@ -43,7 +43,7 @@ test.describe('Header mobile layout', () => {
             }),
         );
 
-      // Must have at least 6 visible nav items (home, about, clawd-picks, briefs, lang, search, theme)
+      // Must have at least 6 visible nav items (home, about, mogu-picks, briefs, lang, search, theme)
       expect(
         iconPositions.length,
         `Expected ≥6 visible nav items at ${width}px, got ${iconPositions.length}`,

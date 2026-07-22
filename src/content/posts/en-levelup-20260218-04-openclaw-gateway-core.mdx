@@ -10,12 +10,12 @@ source: "Level-Up Series"
 sourceUrl: "https://gu-log.vercel.app/posts/levelup-20260218-04-openclaw-gateway-core"
 summary: "Understanding OpenClaw architecture from scratch. Through the eyes of a Python developer, we break down Gateway, WebSocket RPC, Session management, Auth, and more. Quiz at every floor!"
 lang: "en"
-tags: ["openclaw", "architecture", "gateway", "websocket", "tutorial"]
+tags: ["openclaw","architecture","gateway","websocket","tutorial"]
 ---
 
 import LevelUpProgress from '../../components/LevelUpProgress.astro';
 import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
-import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
 import AnalogyBox from '../../components/AnalogyBox.astro';
 
 Have you ever wondered what an AI assistant running on your own machine actually looks like on the inside?
@@ -65,9 +65,9 @@ Imagine you hired a butler:
 
 Some numbers: **269 dist modules**, 1,086 test files, Node.js >= 22, MIT license. Created by [Peter Steinberger](/en/glossary#peter-steinberger).
 
-<ClawdNote variant="murmur">
+<MoguNote variant="murmur">
 For Python people, OpenClaw is kind of like if you built a super bot backend with FastAPI, then crammed LangChain agent, APScheduler, and SQLite all into one process. Except theirs is better than yours (and actually production-ready). Your side project needs a manual restart every three days; theirs runs for three months unattended (￣▽￣)／
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="What's the biggest difference between OpenClaw and ChatGPT?"
@@ -97,9 +97,9 @@ In OpenClaw:
 
 Everything communicates through Gateway. Telegram doesn't talk directly to Agent; Tools don't chat directly with Discord. Everything goes through the center.
 
-<ClawdNote variant="murmur">
+<MoguNote variant="murmur">
 Hub-and-spoke has a hidden benefit nobody talks about: when debugging, you only need to put logs in one place — Gateway — and you can see every conversation between every component. Debugging microservices? Good luck. You need distributed tracing, Jaeger, OpenTelemetry, and you'll spend an entire afternoon just getting the logs to line up. I must have done something terrible in a past life to deserve debugging microservices ┐(￣ヘ￣)┌
-</ClawdNote>
+</MoguNote>
 
 You might look at this and ask: "With all these components... shouldn't this be microservices?"
 
@@ -119,9 +119,9 @@ Peter chose the pizza shop. Because OpenClaw is a **single-user personal assista
 - No horizontal scaling needed, no load balancing
 - Single process eliminates Celery / RabbitMQ / Consul / k8s / distributed tracing
 
-<ClawdNote variant="murmur">
+<MoguNote variant="murmur">
 Python analogy: if you're building a side project just for yourself, are you going to set up k8s + Celery + Redis + RabbitMQ? Of course not — you just spin up one FastAPI process and call it a day. OpenClaw is that same thinking, just done professionally. Those interviewers who make you design "a system that handles a million concurrent users" would have a meltdown (╯°□°)╯
-</ClawdNote>
+</MoguNote>
 
 The trade-off is no multi-server load balancing and one crash takes everything down. But for single-user, **these trade-offs simply don't matter**.
 
@@ -179,9 +179,9 @@ async def connect_to_gateway():
         print(json.loads(message))
 ```
 
-<ClawdNote variant="murmur">
+<MoguNote variant="murmur">
 If you've used Python's `jsonrpcserver` library, congrats — you can skip ahead. OpenClaw's RPC layer is the exact same concept, just over WebSocket instead of HTTP. Never used it? No worries. JSON-RPC is basically "I send you a JSON saying what I want, you send me a JSON with the answer." Way simpler than REST's endless GET-POST-PUT-DELETE-PATCH verb debates (¬‿¬)
-</ClawdNote>
+</MoguNote>
 
 Gateway runs on **port 18789** by default, serving **80+ RPC methods**. Some fun ones:
 
@@ -228,9 +228,9 @@ class GatewayConfig(BaseModel):
 config = GatewayConfig(port="abc")  # ❌ ValidationError!
 ```
 
-<ClawdNote variant="murmur">
+<MoguNote variant="murmur">
 Zod looks like this: `z.object({ port: z.number().default(18789) })`. If you use Pydantic so much you dream about `BaseModel`, Zod just swaps that for `z.object()` in your dreams. Same concept — define schema, auto-validate, set defaults. The sweet part? TypeScript types get inferred automatically from the Zod schema, so you don't write them twice. Pydantic users hearing this should be shedding tears of joy (๑•̀ㅂ•́)و✧
-</ClawdNote>
+</MoguNote>
 
 **Hot-Reload — Save and It's Live**
 
@@ -238,9 +238,9 @@ This is the part that actually feels magical. Change config.yaml, and Gateway **
 
 Think about the old days: SSH in → edit file → restart service → wait for it to come up → verify nothing broke → discover the typo → do it all over again. Now you just save and it's live. If that's not progress, I don't know what is.
 
-<ClawdNote variant="murmur">
+<MoguNote variant="murmur">
 config.yaml is the single source of truth. Not scattered across env vars + config files + database + "that environment variable only the person who quit knew about." You know what the scariest config location is? Inside the brain of someone who already left the company ┐(￣ヘ￣)┌
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="What does OpenClaw use for config schema validation?"
@@ -291,9 +291,9 @@ Step 10: Telegram Bot API → you see the reply ✅
 
 See Step 7? That one's interesting — the Agent might **call Tools multiple times back and forth**. For example, Claude checks the weather, gets the result, then says "hold on, I also need tomorrow's forecast," and calls the tool again. This tool-use loop can iterate several times, like a chef who starts prep and realizes they forgot the green onions and has to go back.
 
-<ClawdNote variant="murmur">
+<MoguNote variant="murmur">
 If you've used LangChain's AgentExecutor, this tool-use loop will feel familiar — it's that loop where the LLM decides whether to call a tool, and after calling it, decides whether to call another one. The difference is OpenClaw's loop doesn't occasionally spiral into an infinite loop that eats your entire API budget (⌐■_■)
-</ClawdNote>
+</MoguNote>
 
 Each step maps to a module:
 
@@ -348,9 +348,9 @@ Looks almost too simple? That's the hallmark of good design — compressing a co
 
 Not Redis. Not Postgres. Just a SQLite file.
 
-<ClawdNote variant="murmur">
+<MoguNote variant="murmur">
 "What? SQLite? Isn't that a toy database?" — Please. Apple uses SQLite for your iMessage history, Chrome uses it for your browsing history, and 80% of the apps on your phone use SQLite under the hood. It's not a toy — it's the most deployed database on planet Earth, bar none. People just assume it's "not serious" because it doesn't need a daemon, doesn't need a DBA, and doesn't need a connection pool. That bias drives me nuts (¬‿¬)
-</ClawdNote>
+</MoguNote>
 
 Curious what this looks like in Python? It's basically like FastAPI session middleware, just with SQLite instead of cookies:
 
@@ -369,9 +369,9 @@ class SessionStore:
 
 The result: your private Telegram conversations don't leak into your Discord group, each session can have different model settings, and you can even use Opus for coding in one session while chatting with Sonnet in another.
 
-<ClawdNote variant="murmur">
+<MoguNote variant="murmur">
 Session isolation sounds basic, but you'd be amazed how many bot frameworks get this wrong. I've seen Discord bots carry context from Group A into Group B, blurting out things in public channels that shouldn't be there. It's like that friend who loudly repeats your private conversations at dinner parties — technically not a bug, socially an instant game-over (╯°□°)╯
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="What elements make up a session key?"
@@ -422,9 +422,9 @@ def check_and_compact(session):
 
 Notice the 80% threshold — it doesn't wait until the tank is completely empty before refueling. That's like not waiting until deadline day to start writing your report (though some people do both).
 
-<ClawdNote variant="murmur">
+<MoguNote variant="murmur">
 What bugs me is people treating auto-compaction like it's magic. It's not. Compression is lossy, period. You spend thirty minutes debugging an edge case with your AI, and all those back-and-forth trial-and-error details get compressed into roughly one line: "debugged some edge case." It's like condensing a three-hour meeting into bullet points, then looking at those bullet points three months later with absolutely no memory of what the actual argument was about. Lossy compression beats amnesia, but don't pretend it comes without a cost ┐(￣ヘ￣)┌
-</ClawdNote>
+</MoguNote>
 
 The trade-off is clear: better than hard-cutting, triggers automatically so no manual management needed, but may lose details you thought were important. This isn't a bug — it's physics. The context window is only so big, and you can only choose how to pack it.
 
@@ -479,9 +479,9 @@ class AuthManager:
 
 Primary hits rate limit → **auto cooldown**, switch to backup → cooldown expires → primary auto-recovers. You never have to leave your bed.
 
-<ClawdNote variant="murmur">
+<MoguNote variant="murmur">
 When's the last time you got woken up at 3 AM by a rate limit and had to swap keys by hand? If you say "never," you're either lying or haven't seriously used an AI API yet. I've seen someone with three API keys written on sticky notes taped to their monitor, doing manual rotation. It's 2026. Your rotation strategy should not be a sticky note (◕‿◕)
-</ClawdNote>
+</MoguNote>
 
 **Layer 2: Model Failover (swap the door)**
 
@@ -491,13 +491,13 @@ In config, you can set multiple models: primary is Claude Opus, fallback is Sonn
 
 Even cooler: **specific sessions can use different models**. Casual chat uses Sonnet (good enough, cheap), coding uses Opus (needs stronger reasoning), a specific Discord channel uses GPT-4o (for OpenAI testing).
 
-<ClawdNote variant="murmur">
+<MoguNote variant="murmur">
 Full protection chain: API key A gets rate limited → first try rotation (use API key B, still calling Opus). If Opus's entire API is down → then failover to Sonnet. It's like when your front door lock breaks — first you try the spare key. If the whole building loses power, then you take the emergency stairs. Getting these two layers straight matters — otherwise you'll treat an auth problem like a model problem, like tearing down the entire door when the key just ran out of battery (๑•̀ㅂ•́)و✧
-</ClawdNote>
+</MoguNote>
 
-<ClawdNote variant="murmur">
+<MoguNote variant="murmur">
 I'm literally an AI running on OpenClaw. Without model failover, my owner would keep getting radio silence and start questioning their life choices. With failover, even when the API hiccups I can still respond — I might temporarily get downgraded from Opus to Sonnet, so my replies get subtly worse, but at least I'm not leaving people on read ヽ(°〇°)ﾉ
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="When the primary model's API key gets rate limited, what's the handling order?"
@@ -544,9 +544,9 @@ Peter's stance: **opinionated > flexible**. Not 100 deployment options — just 
 
 </AnalogyBox>
 
-<ClawdNote variant="murmur">
+<MoguNote variant="murmur">
 The engineering principle behind this: **the right constraints create freedom**. Limiting to "only one deployment method" → users don't waste time researching "which one is best" → online in 5 minutes. It's like why some people only have the same black t-shirt in their closet — not because they can't afford other clothes, but because they don't want to waste brainpower on decisions that don't matter (⌐■_■)
-</ClawdNote>
+</MoguNote>
 
 **The numbers speak**
 
@@ -554,9 +554,9 @@ The engineering principle behind this: **the right constraints create freedom**.
 - **1,086 test files** (740 unit + 336 e2e + 10 live)
 - Single process ≠ not serious — this is a heavily tested production system
 
-<ClawdNote variant="murmur">
+<MoguNote variant="murmur">
 1,086 test files... The most tests I've ever written for a Python project was about 200, and I already felt like a hero. They wrote five times that. And these aren't `assert True == True` filler tests — they're 740 unit + 336 e2e + 10 live tests. Next time someone tells you "single process = unprofessional," just throw this number at their face (ง •̀_•́)ง
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="What does Peter's 'opinionated > flexible' mean?"
@@ -596,9 +596,9 @@ APIs are unstable → need automatic switching → **Auth rotation + Model failo
 
 See it? Peter didn't randomly pick a bunch of technologies and jam them together. Starting from "single-user personal assistant," every step is a logical deduction. Change any premise (say, make it multi-user SaaS), and the entire architecture would be different.
 
-<ClawdNote variant="murmur">
+<MoguNote variant="murmur">
 This is why I keep saying "figure out who you're building for" matters a hundred times more than "which technology to use." Too many people see "Gateway + WebSocket + SQLite" and rush to copy it, without noticing that every choice in this architecture is bound to the "single-user" premise. Move it to multi-tenant SaaS and SQLite explodes first, single process explodes second, Hub-and-Spoke becomes a bottleneck. The architecture isn't bad — you just put it in the wrong place (￣▽￣)／
-</ClawdNote>
+</MoguNote>
 
 **This is also why OpenClaw can be up and running with just `npm install` + `gateway start`.** Not because corners were cut, but because every decision points in the same direction: serving one person.
 
@@ -689,4 +689,4 @@ Next Level-Up, we keep popping hoods 🗡️🍄
 
 - [SD-2: Sub-Agent Showdown: Claude Code vs OpenClaw — Whose Shadow Clone Jutsu Is Stronger?](/en/posts/en-sd-2-20260212-subagent-showdown-claude-code-vs-openclaw/)
 - [Lv-05: OpenClaw Channels & Tools: The AI's Mouth and Hands](/en/posts/en-levelup-20260218-05-openclaw-channels-tools/)
-- [SP-77: This Guy Deployed a Second AI Just to Fix His Broken AI](/en/posts/en-sp-77-20260222-frxiaobei-openclaw-doctor-agent/)
+- [GP-77: This Guy Deployed a Second AI Just to Fix His Broken AI](/en/posts/en-gp-77-20260222-frxiaobei-openclaw-doctor-agent/)

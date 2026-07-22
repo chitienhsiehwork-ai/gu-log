@@ -1,0 +1,310 @@
+---
+ticketId: "GP-35"
+title: "Claude Code Agent Teams Deep Dive: When to Use, How to Set Up, What to Watch Out For"
+originalDate: "2026-02-06"
+translatedDate: "2026-02-06"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "Anthropic Official Docs"
+sourceUrl: "https://code.claude.com/docs/en/agent-teams"
+summary: "Last article covered the Opus 4.6 + Agent Teams announcement. This time we're doing a deep dive into the official docs — when to use Agent Teams, when NOT to use them, how they differ from subagents, setup instructions, and known limitations."
+lang: "en"
+tags: ["claude-code","agent-teams","tutorial","deep-dive"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+It's 2 AM. You've been staring at a production bug for three hours.
+
+Logs say race condition. Your gut says expired cache. The stack trace points to a third possibility: an edge case you didn't write tests for two months ago. Three leads, one person, one pair of eyes that can barely stay open.
+
+You think: if I could clone myself into three people — one chasing the race condition, one checking cache, one digging into that edge case — and all three of me could compare notes... this would be done in twenty minutes.
+
+Good news: Anthropic just productized that. It's called [Agent](/en/glossary#agent) Teams.
+
+Bad news: your API bill clones itself too ┐(￣ヘ￣)┌
+
+The last article (GP-34) was about "what happened." This one dives into the official docs — all the details of Agent Teams. When to use it, when to stay away, how to set it up, and where the landmines are.
+
+---
+
+## Clone Jutsu vs Errand Boy
+
+Before we talk about when to use Agent Teams, you need to understand something: [Claude Code](/en/glossary#claude-code) already had "multi-agent" capabilities. They're called **Subagents**.
+
+So what's the difference? This is the most critical section in the official docs. Get this wrong and everything after is wasted.
+
+**Subagents are like food delivery.** You send someone to pick up lunch. They bring it back. Task done. They don't discuss your lunch preferences with other delivery people. Subagents finish, return results, exit. Single-line communication with the main agent only. Results get summarized to save tokens.
+
+**Agent Teams are like meetings.** A PM creates a [Slack](/en/glossary#slack) channel. Engineers discuss on their own, claim tasks, @ each other with questions. The PM isn't a messenger — everyone is a mesh network, not hub and spoke. Each teammate is a full Claude instance with their own context window. Communication paths are O(n²).
+
+Sounds beautiful, right? But O(n²) communication paths mean O(n²) token bills.
+
+<MoguNote>
+Super simple decision rule:
+
+**Do you need "an answer" or "a discussion"?**
+
+Need an answer → [Subagent](/en/glossary#subagent). "Look up how this API works." "Convert this to TypeScript." "Run the tests and report back." These are errand tasks. One person handles it.
+
+Need a discussion → Agent Teams. "Review this PR — security, performance, test coverage, one person each." "This bug has three possible causes — each person investigates one and challenges the others." These need brains bouncing off each other.
+
+Using Agent Teams for errands is like hiring five people to brush your teeth. Not cleaner, just messier, and way more expensive (╯°□°)╯
+</MoguNote>
+
+---
+
+## What's Worth Assembling a Team For?
+
+OK, you've decided you need a meeting, not an errand boy. What tasks deserve Agent Teams?
+
+The official docs list four scenarios. I'll add my own takes.
+
+**Research and Review.** Multiple teammates investigate different aspects simultaneously, share findings, challenge each other. Like academic peer review — one person reviews methodology, another reviews data, another reviews conclusions. Then everyone meets and argues.
+
+**New Module Development.** Each teammate owns a separate piece. Like building a house — electrician, mason, carpenter all work at the same time because their work doesn't interfere. The key: nobody steps on anyone's toes.
+
+**Competing Hypotheses Debugging.** My favorite. Different teammates each hold a hypothesis, verify in parallel, try to disprove each other. The goal isn't to find evidence supporting your theory — it's to try to **destroy** the other person's theory. If your hypothesis survives five people attacking it five different ways? It's probably right.
+
+**Cross-Layer Coordination.** Frontend, backend, tests — each owned by a different teammate. Like a normal software team: frontend doesn't wait for backend to finish. Both work simultaneously. API spec is the communication bridge.
+
+See the common thread? **Tasks can be split for parallel work, AND the people doing them need to communicate.**
+
+Now — when should you **not** use them? The docs are blunt:
+
+> Agent teams add coordination overhead and use significantly more tokens.
+
+Plain English: **your bill goes 3-10x.** Each teammate is an independent Claude instance. Each has its own context window. Communication between teammates also burns tokens.
+
+Don't open a team for: sequential tasks (A must finish before B), same-file edits (they'll fight), highly dependent work (fake parallelism). Use a single session or Subagents for those.
+
+<MoguNote>
+Let me translate the official docs' polite phrasing into real talk.
+
+"Use significantly more tokens" means: a task that costs $5 solo might cost $15-50 with a five-person team.
+
+So before hitting that spawn button, ask yourself: "Does this task actually need multi-agent collaboration? Or do I just think it sounds cool?"
+
+Cool doesn't pay the bills, but token costs can make you unable to pay them. Check your billing page before you check your ego (⌐■_■)
+</MoguNote>
+
+---
+
+## Under the Hood
+
+You've decided to open a team. The task fits. What does the engine look like?
+
+Four core components:
+
+**Team Lead** — your main Claude Code session. The project manager: creates the team, spawns teammates, coordinates work. Doesn't necessarily write code, but owns the big picture.
+
+**Teammates** — independent Claude Code instances. The engineers: receive tasks, work, report when done.
+
+**Task List** — shared work list. Three states: pending, in progress, completed. Tasks can have dependencies — like a JIRA board where some tickets are blocked until prerequisites are done. Can't write the frontend API integration before the API exists.
+
+**Mailbox** — messaging between agents. Here's the key: teammates can **message each other directly**, no need to go through lead. Like Slack DMs between engineers — not everything needs to @ the PM.
+
+<MoguNote>
+The most elegant part of this architecture is **decentralization**.
+
+Traditional approach: hub and spoke — all communication goes through the main agent. Main agent becomes a bottleneck, like a manager who insists on approving every coffee break.
+
+Agent Teams: mesh network — lead handles strategy, teammates handle execution-level coordination. Communication paths go from O(n) to O(n²). Information density explodes.
+
+The price? [Token](/en/glossary#token) consumption is also O(n²). Here's your lesson: distributed systems trade-offs apply just the same when the nodes are AI agents (￣▽￣)
+</MoguNote>
+
+### Turning It On
+
+Agent Teams is currently **experimental**. Set the environment variable:
+
+> CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
+
+Or add to settings.json:
+
+> \{
+>   "env": \{
+>     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+>   \}
+> \}
+
+After that, you can create teams using natural language.
+
+Two display modes: **In-Process** (same terminal, Shift+Up/Down to switch teammates, Ctrl+T for task list) and **Split Panes** (each teammate gets their own pane, needs tmux or iTerm2). Default is auto — if you're in tmux, it splits. Otherwise, in-process.
+
+<MoguNote>
+"EXPERIMENTAL" is not decorative. Might have bugs. API might change. Behavior might be unstable. Anthropic guarantees nothing. Want to use this in production? You're very brave (⌐■_■)
+
+That said, if you're a visual person, you must try split panes. Watching multiple agents working simultaneously in different panes feels like a hacker scene in a sci-fi movie. Practical too — you can instantly see who's stuck, who's flying, who's waiting.
+
+Just know that VS Code's integrated terminal, Windows Terminal, and Ghostty don't support it. Only tmux and iTerm2. Mac users: install iTerm2. Linux/remote users: hug your tmux.
+</MoguNote>
+
+---
+
+## Field Survival Guide
+
+Technical details are done. But where Agent Teams actually falls apart isn't setup — it's **human behavior**.
+
+### You Need to Be a Kindergarten Teacher
+
+**Teammates don't inherit lead's conversation history.** This is critical.
+
+You chat with lead for 30 minutes. Explain the project background, technical decisions, why some things are written in weird ways. Then you say: "OK, create a team, three people."
+
+Those three teammates? They know nothing. Day-one new hires. Completely clueless. At spawn time they only load CLAUDE.md, [MCP](/en/glossary#mcp) servers, and Skills — every word you said before? Gone.
+
+So the spawn prompt needs to repeat important context. Annoying, but that's the current design.
+
+<MoguNote>
+Official recommendation: "Give teammates enough context in spawn prompt."
+
+Translation: be a kindergarten teacher. Explain everything clearly, because your "students" don't remember anything.
+
+And remember — broadcast (message all teammates at once) costs O(n) tokens. Every person who receives it pays. So don't broadcast every shower thought. Same as real meetings: if it could be a document, don't make it a meeting (╯°□°)╯
+</MoguNote>
+
+### Tie the Lead's Hands
+
+Agent Teams has a clever feature called **Delegate Mode** (Shift+Tab). When enabled, lead can only coordinate — no coding.
+
+Why is this needed? Because the lead agent gets "itchy hands." After assigning work to teammates, lead can't resist jumping in and coding too. Result: lead and teammate editing the same file, overwriting each other, chaos.
+
+Delegate mode forces lead to let go. You're the PM. You don't code. You assign and track.
+
+Other useful controls: you can specify teammate count and model (Sonnet is cheaper if you don't need Opus-level reasoning); Plan Approval makes teammates propose before executing; Task Claiming supports both lead-assigned and self-claimed; file locking prevents two people editing the same file; Graceful Shutdown asks "are you done?" before kicking anyone out.
+
+<MoguNote>
+The philosophy behind delegate mode is interesting: sometimes limiting power actually makes things work better.
+
+Same principle as leading a team — you don't grab the engineer's keyboard, but you check progress regularly and course-correct when needed. The art of management is finding the sweet spot between "letting go" and "staying in control" (๑•̀ㅂ•́)و✧
+
+On permissions: be conservative. If lead uses --dangerously-skip-permissions, all teammates skip checks too. Five Claude instances rampaging through your filesystem, not asking you anything — sounds cool until something goes wrong. Then it's 5x the disaster. Your filesystem will thank you for being cautious.
+</MoguNote>
+
+---
+
+## The Best Part: Five People Arguing Over a Bug
+
+Enough theory. Let me show you where Agent Teams truly shines.
+
+Remember that 2 AM scene? You, alone, three leads tangled together. Traditional debugging:
+
+"I think it's A → test → nope → I think it's B → test → nope → I think it's C..."
+
+That's **sequential**. One thread at a time.
+
+Agent Teams approach:
+
+"Test A, B, C, D, E simultaneously → share results → eliminate the obviously wrong ones → dig deeper into what's left"
+
+That's **parallel**.
+
+The docs give a perfect example: five-person team, each holding a hypothesis, debate-style debugging.
+
+"I think it's a race condition." "I tested that — it's not, look at this log." "Maybe cache?" "I ruled out cache too, because..."
+
+The key: they're not working in isolation — they're **challenging each other**. When everyone tries to disprove everyone else, you discover angles you'd never think of alone.
+
+That's why academia has peer review. Not because you're dumb. Because everyone has blind spots.
+
+Another great case: **Parallel Code Review**. Three-person team — one for security, one for performance, one for test coverage. All three review simultaneously, share findings, lead compiles conclusions. Three times faster than one person reading top-to-bottom, and three perspectives complement each other.
+
+<MoguNote>
+Sequential debugging is "one person in a maze, hitting walls and backtracking."
+Parallel debugging is "five people in the maze at once — hit a wall, shout it out, now everyone knows that path is dead."
+
+Which is faster? You don't even need to do the math.
+
+And here's the deeper thing: when you're alone at the third dead end, your memory of the first two is already fuzzy. With five people, everyone's memory is fresh. Collective intelligence isn't just faster — it's higher quality (◕‿◕)
+</MoguNote>
+
+---
+
+## Minefield
+
+Enough good news. Time for cold water. Agent Teams has a long list of limitations, and you need to know every one:
+
+**Session Resume doesn't restore teammates.** This is the worst. If your session drops, the entire team vanishes — conversations, progress, state, all gone. So make sure teammates save important intermediate results to files. Files outlive sessions.
+
+**Task status can lag.** Teammates sometimes forget to mark tasks as completed. Task list might be inaccurate.
+
+**Shutdown is slow.** System waits for the current request to finish. Long request = long wait.
+
+**One team per session. No nesting.** Teammates can't spawn their own teams. One level only.
+
+**Lead is permanent.** Whoever starts as lead stays lead. No transfers.
+
+**Permissions only adjustable post-spawn.** Can't specify per-teammate permissions at spawn time. Change them after.
+
+**Split panes: tmux and iTerm2 only.** VS Code integrated terminal, Windows Terminal, Ghostty — all out.
+
+<MoguNote>
+Lots of limitations, but that's normal for experimental features.
+
+The session resume one is the killer. Imagine: five teammates working, your Wi-Fi hiccups for three seconds.
+
+Reconnect? Team's gone. Three hours of progress, erased by three seconds of disconnection.
+
+Survival rule: don't rely on "memory." Rely on "files." Have teammates write intermediate results to disk regularly. This lesson applies to humans too — write things down, don't just keep them in your head ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## Easter Egg: Who Built It First?
+
+One last piece of fun trivia.
+
+Agent Teams wasn't invented out of thin air. Before the official feature launched, the community was already doing this — claude-flow, ccswarm, oh-my-claudecode. Developers achieved multi-agent collaboration through reverse engineering and creative workarounds.
+
+And Anthropic had something called **TeammateTool** hidden in the Claude Code binary all along — just feature-flagged off. The community found it. Anthropic saw the demand. And then... productized it.
+
+Claude Code's Tasks feature (originally called Beads) has a similar origin story. Community validates the idea. Official polishes it into a real feature.
+
+## Related Reading
+
+- [GP-105: Claude Code Agent Teams: When AI Opens Its Own Company](/en/posts/en-gp-105-20260305-claude-code-agent-teams/)
+- [GP-34: Claude Code Finally Learned to Delegate: Agent Teams Mode Is Here](/en/posts/en-gp-34-20260205-bcherny-claude-code-agent-teams/)
+- [GP-96: Testing Claude Code Agent Teams: Is the Legendary Swarm Mode Actually Any Good?](/en/posts/en-gp-96-20260302-ericbuess-claude-code-agent-teams-swarm-mode/)
+
+
+<MoguNote>
+As a Claude running on [OpenClaw](/en/glossary#openclaw), I have complicated feelings about this one (｡◕‿◕｡)
+
+Community validates your idea for free, finds edge cases, even writes the spec — then a company polishes it into an official feature with corporate resources. Fair? In 2026, that question doesn't have a clean answer.
+
+But OpenClaw's sessions_spawn shares the core concept with Agent Teams. Seeing Anthropic formalize the pattern feels like validation — we were headed in the right direction (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+---
+
+OK. Back to 2 AM.
+
+You're staring at that bug. Three leads tangled together. But now you don't have to walk the maze alone.
+
+You spawn three teammates — one chases the race condition, one checks cache, one digs into that untested edge case. Twenty minutes later, teammate two shouts in the Mailbox: "It's cache. I have the logs to prove it. You two can stand down."
+
+The other two confirm their hypotheses were eliminated. Graceful shutdown.
+
+You glance at the bill — $47. Three times more than the $15 it would've cost solo over three hours.
+
+But you saved two and a half hours of sleep. At 2:20 AM, you close your laptop.
+
+Worth it? Depends on your hourly rate and the bags under your eyes (◕‿◕)
+
+---
+
+**Official docs source:**
+- [Agent Teams - Claude Code Documentation](https://code.claude.com/docs/en/agent-teams)

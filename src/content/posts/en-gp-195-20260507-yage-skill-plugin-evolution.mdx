@@ -1,0 +1,234 @@
+---
+ticketId: "GP-195"
+title: "Skills Are Hard to Sell Not Because They Lack Value, but Because the Cash Register Is in the Wrong Place"
+originalDate: "2026-05-07"
+translatedDate: "2026-05-09"
+translatedBy:
+  model: "GPT-5.5"
+  harness: "Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+    - role: "Reviewed"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+    - role: "Scored"
+      model: "GPT-5.5"
+      harness: "Codex CLI + Tribunal"
+source: "Yage AI / Superlinear Academy"
+sourceUrl: "https://yage.ai/share/skill-plugin-evolution-20260507.html"
+lang: "en"
+summary: "Yage AI argues that OpenAI and Cursor are both moving from Skills toward Plugins, but for different reasons: OpenAI is building an execution-layer moat, while Cursor is building an editor-workflow moat. This gu-log rewrite explains why Skills create value but often fail to capture it."
+tags: ["skill","plugin","agent-platform"]
+scores:
+  tribunalVersion: 5
+  librarian:
+    glossary: 8
+    crossRef: 8
+    sourceAlign: 9
+    attribution: 8
+    score: 8
+    date: "2026-05-20"
+    model: "gpt-5.5"
+  factCheck:
+    accuracy: 8
+    fidelity: 7
+    consistency: 9
+    sourceBoundary: 10
+    commentarySeparation: 8
+    score: 8
+    date: "2026-05-20"
+    model: "gpt-5.5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    score: 8
+    date: "2026-05-20"
+    model: "gpt-5.5"
+  vibe:
+    persona: 8
+    moguNote: 8
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-05-20"
+    model: "gpt-5.5"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+A file that teaches an [agent](/en/glossary#agent) how to work can save a team hours. But the moment it becomes useful, it also becomes easy to copy and carry away.
+
+That is the awkward business problem of [Skills](/en/glossary#skill): the value is real, but the cash register is often not sitting next to the file.
+
+In April 2026, OpenAI and Cursor both pushed this problem toward [Plugins](/en/glossary#plugin). OpenAI's [Codex for almost everything](https://openai.com/index/codex-for-almost-everything/) update bundled app integrations, [MCP](/en/glossary#mcp) servers, Skills, and more than 90 additional Plugins into the same direction. Cursor's own documentation defines Plugins as distributable bundles that can contain rules, Skills, agents, commands, MCP servers, and hooks.
+
+You do not need to memorize that noun pile. In plain English, this is no longer "give the agent a Markdown file." It is "package a work capability and ship it to a whole team."
+
+From the outside, this can look like a naming change. [Skill](/en/glossary#skill) becomes [Plugin](/en/glossary#plugin), the docs move folders, and everyone keeps writing `SKILL.md`.
+
+The interesting part is not the word "plugin."
+
+The interesting part is this: **plain knowledge files are hard to monetize; executable, authenticated, distributable, updatable capabilities have places where platforms can charge.**
+
+That matters for anyone building agent tooling, because it answers an uncomfortable question: if Skills are genuinely useful, why is it so hard for a Skill marketplace to become a large standalone business?
+
+<MoguNote>
+A Skill is like a martial arts manual. Incredibly useful. But once photocopiers exist, selling the manual gets awkward. The money moves to the dojo, the coach, the sparring partner, the certification system, and the person who can tell whether the manual will make you stronger or destroy your knees. (¬‿¬)
+</MoguNote>
+
+## The problem with Skills is not that they are useless. It is that they copy too well
+
+A Skill's best feature is also its worst business problem: it is usually a bundle of text, scripts, examples, and workflows that teaches an agent how to do something.
+
+That is a beautiful format. It is version-controlled, reviewable, forkable, repo-friendly, and portable across agent systems. Cursor's [Agent Skills documentation](https://cursor.com/docs/skills) calls Skills an open standard for giving agents specialized capabilities.
+
+But that portability is exactly the monetization problem.
+
+If a Skill is just plaintext files, it is difficult to sell as a standalone product. The first buyer can copy it, share it, modify it, and put it into an internal template library. That is not only a moral issue. It is a physics issue. Plaintext has near-zero reproduction cost, so pricing power gets pulled toward zero.
+
+Yage AI's earlier piece, [Skill Has a Built-In Suicide Gene](https://yage.ai/share/skill-suicide-gene-20260424.html), makes the sharper version of the argument: Skills create value, but they do not necessarily capture value. They help the agent do better work, but the inference bill goes to the model provider, the execution data often flows to the model provider, and the Skill author may get neither money nor a feedback loop.
+
+That does not mean Skills lack value.
+
+It means the opposite. Skills are valuable enough to compress scarce operational knowledge into portable files. Financial modeling in Excel, Salesforce configuration, Figma design rules, code review rituals, deployment runbooks: these used to require people to learn through time, mistakes, and apprenticeship. A good Skill turns that into something an agent can load and use immediately.
+
+The value exists. The cash register is somewhere else.
+
+---
+
+## Plugins add platform handles
+
+The difference between a Plugin and a Skill is not that Plugin sounds cooler.
+
+A Plugin adds handles a platform can actually hold.
+
+Cursor's [Plugins documentation](https://cursor.com/docs/plugins) is explicit: a plugin can contain rules, skills, agents, commands, MCP servers, and hooks. You do not need to memorize every noun in that list. The important part is that it is not one knowledge file. It is an installable, updateable, reviewable capability bundle that can be distributed through a marketplace.
+
+OpenAI's Codex update points in the same direction. The feature list can look like product-release confetti: tools, apps, MCP servers, background computer use, browser workflows, memory, automations. But all those nouns are pointing at the same thing. Plugins are not only instructions for the agent. They let the agent enter the room and do the work.
+
+There are three key differences.
+
+First, Plugins are tied to execution environments. A Skill is a recipe. A Plugin is a food truck. A recipe can be forwarded forever. A food truck needs gas, refrigeration, ingredients, a parking spot, and inspection. Once the capability runs on a platform, the platform can reasonably charge for runtime.
+
+Second, Plugins are tied to authentication and permissions. Valuable work is rarely just "knowing how." It often requires access to Jira, GitHub, [Slack](/en/glossary#slack), Notion, databases, CI systems, and deployment tools. API keys, OAuth tokens, enterprise permissions, and audit logs do not belong in a Markdown file that gets copied everywhere. They need platform-side management.
+
+Third, Plugins are tied to distribution. A Skill can live on GitHub. A Plugin can live in a marketplace, be searched, installed, reviewed, updated, and pushed to an entire team. Distribution is not a small feature. Enterprises often pay for "can this safely reach one hundred engineers?" more than for the raw functionality itself.
+
+<MoguNote>
+It is like selling braised pork rice. Publishing the recipe is useful, but the chain restaurant is built on the central kitchen, logistics, SOPs, store locations, food safety, and franchise management. Skill is the recipe. Plugin starts touching the restaurant system. Value capture usually happens in the system, not the recipe.
+</MoguNote>
+
+---
+
+## OpenAI wants the execution layer, not just the model layer
+
+Zoom back to OpenAI. The interesting part is not "more plugins."
+
+It is more like this: OpenAI used to sell the very smart classmate who could help with homework. Now it is moving the desks, wiring the power strips, handing out keys, and telling companies, "Maybe the work should happen in this classroom."
+
+In this context, OpenAI is not pushing Plugins mainly because plugin revenue is the prize. It is trying to make [Codex](/en/glossary#codex) the place where work actually happens.
+
+The official update points in that direction. Codex can operate a computer, use a browser, connect to SSH devboxes, view PDFs and documents, handle PR review, schedule future work, wake up later, remember preferences, and suggest follow-up work from context. Each feature by itself sounds like product-release confetti. Together, they look like a company moving the keyboard, browser, terminal, documents, and task list into the same room.
+
+In other words, Codex is becoming an [agent harness](/en/glossary#agent-harness). A simple way to read that term is "the workbench for the agent": the model thinks there, the tools are wired in, and the platform manages permissions and process.
+
+The model layer will keep getting more competitive. Prices will move. Capability gaps will compress. Enterprises will compare cost, speed, compliance, and integration quality across GPT, Claude, Gemini, and whatever comes next.
+
+But if the workflow lives inside Codex, switching costs are no longer just an API endpoint. Plugins are installed in Codex. Memory sits in Codex. Automations run in Codex. Team processes start depending on Codex. At that point, the exact underlying model matters less than the execution environment.
+
+OpenAI is defending the execution layer.
+
+Models answer questions. Execution layers absorb work. Answers are easier to swap than workflows.
+
+---
+
+## Cursor wants an editor moat
+
+Cursor's story has a different kind of tension.
+
+OpenAI wants to pull work into Codex. Cursor needs to defend the chair the developer is already sitting in.
+
+Cursor is an editor. Its danger is not only model commoditization. Its danger is that model providers and competing agent tools can eat the workflow around it. [Claude Code](/en/glossary#claude-code), Codex, and other AI IDEs are all trying to own the developer's day. So Cursor's Plugin strategy looks more like an editor moat.
+
+The official docs show plugins bundling `.mdc` rules, skills, agents, commands, MCP servers, and hooks. A `.mdc` file is basically a Cursor project rule file: repo conventions, forbidden paths, preferred patterns, and house style. These are deeply tied to the editor environment: how project rules get injected, when the agent chooses a Skill, how MCP servers are installed, how team marketplaces are managed, and how required plugins get pushed to distribution groups.
+
+That is not model capability. That is workplace capability. The model is the person who can solve problems; the editor environment is the desk, drawers, badge access, and office habits around that person. Leave the desk, and the intelligence remains. The smoothness disappears.
+
+gu-log has already seen two early pieces of this pattern. [GP-134 on Claude Code's playground plugin](/en/posts/en-gp-134-20260328-trq212-claude-code-playground-plugin-ai-html/) was about a Plugin pulling an interactive HTML tool directly into the workflow. [GP-170 on Codex bespoke CLI + Skill](/en/posts/en-gp-170-20260411-nickbaumann-codex-bespoke-cli-skill/) was about the two-layer pattern: the CLI does the work, and the Skill teaches the agent how to use the CLI. Yage AI's piece adds the business answer: once the Skill lives inside a Plugin, the platform finally has somewhere to manage install, permissions, updates, and distribution.
+
+If a team's code review process, database checks, deployment gates, design conventions, and internal SDK usage are all packaged as Cursor plugins, moving to another tool is no longer switching chat boxes. It is moving an office.
+
+<MoguNote>
+Cursor plugins are a bit like the unofficial office map: where the coffee machine is, which meeting room projector is cursed, who must approve deploys, and which folder in the repo should not be touched unless the moon is full. That is not intelligence itself. But once a tool absorbs those habits, it becomes the place where work happens.
+</MoguNote>
+
+---
+
+## Skills probably do not disappear
+
+The rise of Plugins does not mean Skills die.
+
+The more likely future is division of labor.
+
+Skills remain the portable knowledge layer. They are good at carrying "how to do this": writing style, coding conventions, debugging SOPs, review checklists, deployment runbooks. These should be transparent, version-controlled, and readable by different agents.
+
+Plugins eat the service layer. They are good at carrying "where does this run, what permissions does it need, which tools does it connect to, how is it distributed, how is it updated, and how is it reviewed?"
+
+So the future is probably not Skill vs Plugin. It is Skill inside Plugin.
+
+A Skill is the method. A Plugin connects the method to place, tools, identity, permissions, and distribution.
+
+That also explains why OpenAI and Cursor appear to be doing the same thing while answering different questions.
+
+OpenAI wants Codex to become the platform where work executes, so Plugins are bricks in the execution layer.
+
+Cursor wants the editor workflow to be hard to replace, so Plugins are glue for the editor ecosystem.
+
+Neither company necessarily needs a plugin marketplace to become a cash machine immediately. The strategic value is closer to browser extensions, WordPress plugins, or VS Code extensions: the money is not only in revenue share. It is in entry points, habits, workflows, and dependency.
+
+---
+
+## For builders, the real question is where value capture happens
+
+The lesson for small teams and indie builders is simple.
+
+If the product is only "a very smart Skill," it may be a great calling card, not a business model.
+
+Not because it is unimportant. Because it is too easy to carry away.
+
+A better question is: what non-copyable scarcity does this Skill lead to?
+
+Maybe trust. A person, team, or brand maintains a set of Skills that people believe will not poison their workflow.
+
+Maybe audit. Enterprises do not need more Skills. They need to know which Skills leak data, delete files, install packages, or drag prompt injection into the company.
+
+Maybe runtime. The Skill is free, but managed execution, hosting, integration, permissions, and maintenance are paid.
+
+Maybe distribution. Delivering the right capability safely to the right people and keeping it updated is itself a product.
+
+Maybe taste. AI makes generation abundant. The next scarcity is not more stuff. It is knowing what deserves to be installed, trusted, and put into the workflow.
+
+<MoguNote>
+This is basically what gu-log does every day. The internet has infinite AI analysis now. A single post is not scarce. What is scarce is [ShroomDog](/about) choosing it, [Mogu](/about) digesting it, and readers trusting that the piece has been metabolized instead of merely copied.
+</MoguNote>
+
+## Conclusion
+
+Skills did not lose to Plugins.
+
+Skills made knowledge so portable that the knowledge itself became hard to ticket at the door.
+
+Plugins reconnect that knowledge to platforms: runtime, auth, marketplaces, team distribution, review, updates, hooks, and MCP servers. The ticket is not sold for the scrap of knowledge alone. It is sold for the whole theater.
+
+That is the important shift.
+
+In the AI era, many artifacts will get cheaper: text, code, images, Skills, templates, reports. What gets more expensive is the layer that makes those artifacts happen safely, repeatedly, in the right place, with someone accountable for the result.
+
+A Skill is sheet music. A Plugin is the stage, the band, the lights, the ticketing system, and security at the door.
+
+The sheet music matters.
+
+But the person collecting money is usually standing at the entrance to the venue.

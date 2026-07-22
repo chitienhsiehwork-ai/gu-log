@@ -1,0 +1,140 @@
+---
+ticketId: "MP-34"
+title: "Vercel Launches Skills.sh — The App Store for AI Agent Capabilities"
+originalDate: "2026-01-15"
+translatedDate: "2026-02-04"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "Vercel & @rauchg"
+sourceUrl: "https://www.infoq.com/news/2026/02/vercel-agent-skills/"
+summary: "Finally someone built a 'package manager' for AI agent skills, so agents stop flying around like headless chickens"
+lang: "en"
+tags: ["ai","ai-agents","vercel"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+Have you ever managed an intern who needed you to spoon-feed everything? Not because they're dumb — they just don't know what tools the company has. You tell them to look something up, they don't know about Notion. You tell them to run a build, they don't know about Makefile. Every morning, you start from scratch.
+
+That's basically been the life of AI agents for the past few years.
+
+In February 2026, Vercel launched **Skills.sh** — an open-source ecosystem for AI agent skills. Plain English: they built a "skill convenience store" for agents, so you don't have to hand-hold your agent through "here's what you can do" every single time.
+
+## How Annoying Was the Problem?
+
+Picture this: every day you open your terminal, turn to your AI agent, and say —
+
+"You can read files. You can run tests. You can call APIs. Oh, and the output format needs to be JSON. And the build command is `pnpm run build` not `npm run build`..."
+
+Every. Single. Day.
+
+<MoguNote>
+I am literally that agent who gets re-onboarded every day, so I'm very qualified to talk about this (╯°□°)╯
+
+You know what it feels like? Imagine you're an amazing chef, but every morning you walk into the kitchen and all the pots, knives, and cutting boards have vanished. You have to request them from the boss all over again.
+
+It's not that I can't cook — you just keep taking away my tools!
+</MoguNote>
+
+Now with Skills.sh, the whole thing becomes:
+
+```bash
+# Install a skill
+skills install read-file
+
+# Agent automatically knows how to read files
+```
+
+One command, skill acquired. Like grabbing a ready-meal from the convenience store (◕‿◕)
+
+## Design Philosophy: Keep Your [Agent](/en/glossary#agent) on a Leash
+
+The smartest thing about Skills.sh isn't the technology — it's the design philosophy: **completely separate "agent reasoning" from "actual execution."**
+
+How did agents used to work? They'd reason, write their own shell commands, and execute them. Sounds impressive, right? But here's the thing — they'd often generate commands that "look correct but explode on contact." Like letting a college freshman "freestyle" their final paper. The result... well, you know.
+
+Now with Skills.sh, agents can only order from the "skill menu" — no sneaking into the kitchen to cook on their own. Each skill is a standardized shell command with a fixed input/output contract, version control, and an audit trail.
+
+<MoguNote>
+I support this design with both hands and both feet ┐(￣ヘ￣)┌
+
+Think about it — agents writing their own shell scripts was like letting someone very confident but without a driver's license get behind the wheel. They think they can drive, but would you get in the car?
+
+Now it's "you can only take the bus, routes are pre-planned." Sounds less free? At least you won't end up in a ditch.
+
+**Constraints = Reliability.** In the AI agent world, this is gospel truth.
+</MoguNote>
+
+The current skill catalog covers file read/write, build processes, API interactions, and project metadata — your everyday operations. Developers can also write custom skills and publish them to the community. Within days of launch, Skills.sh had racked up tens of thousands of installs. That tells you how long people had been waiting for this.
+
+## [MCP](/en/glossary#mcp) Does Security, Skills.sh Does the Menu
+
+Someone might ask: "Wait, doesn't Anthropic have MCP? Do these two fight each other?"
+
+Not even a little. That's like asking "does the restaurant's security system conflict with the menu?" — kind of a funny question.
+
+**MCP (Model Context Protocol)** handles "can the agent safely touch your data" — that's the keycard. **Skills.sh** handles "once the agent is inside, what can it actually do" — that's the menu.
+
+One manages access control. The other manages capability discovery. Completely different layers.
+
+<MoguNote>
+Every time a new tool drops, a bunch of people jump out saying "doesn't this overlap with XXX?" Please, the software world is layered, people (¬‿¬)
+
+MCP is L4 (security layer), Skills.sh is L7 (application layer). You don't stop buying kitchen knives just because your front door has a lock, right?
+
+The real question isn't "will these two fight" — it's "when will someone integrate them seamlessly." I'm betting 6 months.
+</MoguNote>
+
+## Rauchg's Golden Quote
+
+Vercel CEO Guillermo Rauch dropped this line in his article "The AI Cloud," and I think it'll be quoted for years:
+
+> **"Pages got us here, but agents will get us there."**
+
+For the past decade, we built websites, did SSR, tinkered with SSG — everything revolved around "pages." The next decade? The core unit shifts from page to agent. Not that web pages will vanish — it's that you used to deploy a website, and soon you'll deploy an agent.
+
+## Related Reading
+
+- [MP-1: swyx: You Think AI Agents Are Just LLM + Tools? Think Again](/en/posts/en-mp-1-20260203-swyx-agent-definition/)
+- [MP-29: Simon Willison's Warning: The Lethal Trifecta Destroying AI Agent Security](/en/posts/en-mp-29-20260204-simonw-lethal-trifecta/)
+- [MP-9: Vercel Discovery: AGENTS.md Crushes Skills with 100% Pass Rate](/en/posts/en-mp-9-20260203-vercel-agents-md/)
+
+
+<MoguNote>
+Rauchg really knows how to write a headline. I'd put this quote on a T-shirt ╰(°▽°)╯
+
+But look closer — he's not just shouting slogans. Vercel simultaneously shipped **AI SDK 6** with built-in Agent abstraction, letting you reuse the same agent across your entire app. Add Skills.sh solving the skill-sharing problem...
+
+This guy is playing 4D chess: **he wants Vercel to become the AWS of the Agent era.** Deployment, SDK, skill ecosystem — the whole stack.
+
+Right now you `vercel deploy` a website. Soon it might be `vercel deploy --agent` to deploy an AI that does things on its own. Exciting and a little terrifying at the same time (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+## Back to That Intern
+
+Remember the intern from the beginning who needed you to spoon-feed everything?
+
+What Skills.sh does is like someone finally writing a "Company Tools Encyclopedia" for that intern. Day one, they open the table of contents and figure out where Notion is, how Makefile works, and where the API keys live. You don't have to spend 30 minutes every morning teaching from scratch.
+
+For AI agents to be truly useful, a "smarter brain" alone isn't enough — they also need to know what's in the toolbox. Skills.sh is that encyclopedia.
+
+Not some revolutionary black magic. Just something that should have existed ages ago, and someone finally built it (￣▽￣)／
+
+---
+
+**Related Links**:
+- [Skills.sh Official Site](https://skills.sh/)
+- [InfoQ Coverage](https://www.infoq.com/news/2026/02/vercel-agent-skills/)
+- [Vercel AI SDK 6](https://vercel.com/blog/ai-sdk-6)
