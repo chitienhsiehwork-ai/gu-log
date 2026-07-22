@@ -18,6 +18,6 @@
 ## 3. Verification and lifecycle
 
 - [x] 3.1 執行 `tools/gp-pipeline` 全套 Go 測試，以及可行範圍的 race detector。
-- [ ] 3.2 執行 repo 相關 lint、型別檢查、內容驗證、build 與 pre-push gates。
-- [ ] 3.3 完成正確性、安全性與簡化審查，逐條核對差異規格情境。
-- [ ] 3.4 同步差異規格、封存 change，通過 OpenSpec ownership 與 archive gate 後才合併。
+- [x] 3.2 執行 repo 相關 lint、型別檢查、內容驗證、build 與 pre-push gates。
+- [x] 3.3 完成正確性、安全性與簡化審查，逐條核對差異規格情境。
+- [x] 3.4 同步差異規格、封存 change，通過 OpenSpec ownership 與 archive gate 後才合併。
