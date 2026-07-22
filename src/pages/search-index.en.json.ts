@@ -10,7 +10,7 @@ export async function GET(_context: APIContext) {
     summary: post.data.summary,
     tags: post.data.tags || [],
     lang: post.data.lang,
-    date: post.data.originalDate,
+    date: post.data.translatedDate || post.data.originalDate,
     source: post.data.source,
     sourceUrl: post.data.sourceUrl,
   }));

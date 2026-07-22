@@ -13,6 +13,7 @@ const i18n = {
     noResults: '找不到結果',
     countAll: '共 {total} 篇',
     countCapped: '共 {total} 篇，顯示前 {shown} 篇',
+    loading: '正在載入搜尋索引…',
     shortcut: '⌘K',
   },
   en: {
@@ -20,6 +21,7 @@ const i18n = {
     noResults: 'No results found',
     countAll: '{total} results',
     countCapped: '{total} results, showing top {shown}',
+    loading: 'Loading search index…',
     shortcut: '⌘K',
   },
 };
@@ -53,6 +55,7 @@ const t = i18n[lang];
   data-no-results={t.noResults}
   data-count-all={t.countAll}
   data-count-capped={t.countCapped}
+  data-loading={t.loading}
   data-max-results={searchConfig.maxResults}
   data-debounce-ms={searchConfig.debounceMs}
   aria-hidden="true"
@@ -106,6 +109,7 @@ const t = i18n[lang];
   const noResultsText = modal?.dataset.noResults || 'No results found';
   const countAllTpl = modal?.dataset.countAll || '{total} results';
   const countCappedTpl = modal?.dataset.countCapped || '{total} results, showing top {shown}';
+  const loadingText = modal?.dataset.loading || 'Loading search index…';
   const maxResults = parseInt(modal?.dataset.maxResults || '15', 10);
   const debounceMs = parseInt(modal?.dataset.debounceMs || '150', 10);
 
@@ -194,6 +198,15 @@ const t = i18n[lang];
     return div.innerHTML;
   }
 
+  // Canonical ticket prefixes — the only classes allowed to reach the DOM.
+  // Never interpolate ticketId text directly into a class attribute.
+  const CANONICAL_TICKET_PREFIXES = new Set(['sd', 'gp', 'mp', 'lv']);
+
+  function ticketBadgeClass(ticketId: string): string {
+    const prefix = ticketId.split('-')[0]?.toLowerCase() ?? '';
+    return CANONICAL_TICKET_PREFIXES.has(prefix) ? `search-result-ticket--${prefix}` : '';
+  }
+
   // Wrap Fuse match indices in <mark> tags for highlighting
   function highlightText(text: string, matches: readonly FuseResultMatch[], key: string): string {
     if (!text) return '';
@@ -268,7 +281,7 @@ const t = i18n[lang];
           const fuseMatches = result.matches ?? [];
 
           const ticketBadge = post.ticketId
-            ? `<span class="search-result-ticket">${escapeHtml(post.ticketId)}</span>`
+            ? `<span class="search-result-ticket ${ticketBadgeClass(post.ticketId)}">${escapeHtml(post.ticketId)}</span>`
             : '';
 
           const titleHtml = highlightText(post.title, fuseMatches, 'title');
@@ -324,6 +337,10 @@ const t = i18n[lang];
   // Lazy-load on first keystroke, then debounce search
   input?.addEventListener('input', async (e) => {
     if (debounceTimer) clearTimeout(debounceTimer);
+    const query = (e.target as HTMLInputElement).value.trim();
+    if (query && !searchIndex && results) {
+      results.innerHTML = `<div class="search-loading" role="status">${loadingText}</div>`;
+    }
     await ensureSearchIndex();
     debounceTimer = setTimeout(() => {
       performSearch((e.target as HTMLInputElement).value);
@@ -419,7 +436,7 @@ const t = i18n[lang];
     color: var(--color-text);
   }
 
-  .search-trigger:focus {
+  .search-trigger:focus:not(:focus-visible) {
     outline: none;
   }
 
@@ -574,6 +591,20 @@ const t = i18n[lang];
     font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
   }
 
+  /* Canonical taxonomy colors — only the four allowlisted prefixes get here (see ticketBadgeClass) */
+  .search-result-ticket--sd {
+    background: var(--color-badge-sd);
+  }
+  .search-result-ticket--gp {
+    background: var(--color-badge-gp);
+  }
+  .search-result-ticket--mp {
+    background: var(--color-badge-mp);
+  }
+  .search-result-ticket--lv {
+    background: var(--color-badge-lv);
+  }
+
   .search-result-date {
     color: var(--color-text-muted);
     font-size: 0.7rem;
@@ -599,7 +630,8 @@ const t = i18n[lang];
     font-size: 0.72rem;
   }
 
-  .search-no-results {
+  .search-no-results,
+  .search-loading {
     padding: 1.5rem;
     text-align: center;
     color: var(--color-text-muted);

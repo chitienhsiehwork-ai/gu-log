@@ -72,10 +72,49 @@ const MANIFEST = [
   {
     fg: '#955330',
     bg: '#eee8d5',
-    context: 'light clawd-orange on surface',
+    context: 'light mogu-orange on surface',
     file: 'src/components/MoguNote.astro',
   },
+  // Named pairs (#616) — these need a deliberate margin above the default
+  // WCAG AA floor, not just a bare pass. See NAMED_PAIR_MINIMUMS below.
+  {
+    fg: '#9ea9d2',
+    bg: '#282a36',
+    context: 'dark --color-text-muted on --color-bg',
+    file: 'src/styles/global.css',
+    name: 'dark-text-muted-on-bg',
+  },
+  {
+    fg: '#425458',
+    bg: '#eee8d5',
+    context: 'light MoguNote body text on --color-surface',
+    file: 'src/styles/global.css',
+    name: 'light-mogu-note-on-surface',
+  },
+  {
+    fg: '#ffb3e0',
+    bg: '#44475a',
+    context: 'dark active TOC link on --color-surface',
+    file: 'src/components/TableOfContents.astro',
+    name: 'dark-active-toc-on-surface',
+  },
+  {
+    fg: '#195d8c',
+    bg: '#eee8d5',
+    context: 'light active TOC link on --color-surface',
+    file: 'src/components/TableOfContents.astro',
+    name: 'light-active-toc-on-surface',
+  },
 ];
+
+// ── Named pairs get a stricter per-pair minimum than the default AA floor ──
+// (#616): both of these are deliberate margins, not bare passes.
+const NAMED_PAIR_MINIMUMS = {
+  'dark-text-muted-on-bg': 5.5,
+  'light-mogu-note-on-surface': 5.5,
+  'dark-active-toc-on-surface': 5.5,
+  'light-active-toc-on-surface': 5.5,
+};
 
 // ── Auto-scan: extract "color: #xxx; /* ... on #yyy */" patterns ────
 
@@ -151,15 +190,16 @@ let checked = 0;
 
 for (const pair of allPairs) {
   checked++;
+  const minimum = (pair.name && NAMED_PAIR_MINIMUMS[pair.name]) || THRESHOLD;
   const ratio = contrastRatio(pair.fg, pair.bg);
-  const pass = ratio >= THRESHOLD;
+  const pass = ratio >= minimum;
   const relFile = relative(repoRoot, pair.file);
   const loc = pair.line ? `${relFile}:${pair.line}` : relFile;
 
   if (!pass) {
     failures++;
     console.error(
-      `❌ FAIL  ${pair.fg} on ${pair.bg} → ${ratio.toFixed(2)}:1 (need ≥${THRESHOLD}:1)  ${loc}`
+      `❌ FAIL  ${pair.fg} on ${pair.bg} → ${ratio.toFixed(2)}:1 (need ≥${minimum}:1)  ${loc}`
     );
     if (pair.context) {
       console.error(`         ${pair.context}`);

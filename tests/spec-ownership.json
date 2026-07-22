@@ -219,11 +219,9 @@
       "issue": "https://github.com/chitienhsiehwork-ai/gu-log/issues/596"
     },
     "tests/ticket-badge-colors.spec.ts": {
-      "class": "quarantined",
+      "class": "nightly",
       "owner": "ShroomDog",
-      "reason": "2 failing: MP ticket badges render blue instead of orange in two contexts (PrevNextNav, post-meta) — real bug found 2026-07-18. Also has 2 legitimate data-dependent skips (no MP posts in a given fixture) that are fine as-is.",
-      "expiry": "2026-08-08",
-      "issue": "https://github.com/chitienhsiehwork-ai/gu-log/issues/597"
+      "reason": "Rewritten (#597) around a fixed canonical MP post (mp-6) flanked by MP neighbors on both sides, so post-meta and PrevNextNav badges are always present — no data-dependent skip. Asserts computed color resolves to --color-badge-mp (never --color-badge-gp) across dark/light x desktop/mobile, 4 deterministic cases."
     },
     "tests/toc-levelup.spec.ts": {
       "class": "quarantined",

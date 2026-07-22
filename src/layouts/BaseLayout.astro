@@ -10,9 +10,10 @@ interface Props {
   description?: string;
   lang?: 'zh-tw' | 'en';
   image?: string;
+  noindex?: boolean;
 }
 
-const { title, description, lang = 'zh-tw', image } = Astro.props;
+const { title, description, lang = 'zh-tw', image, noindex = false } = Astro.props;
 
 const currentPath = Astro.url.pathname;
 const canonicalURL = new URL(currentPath, Astro.site).href;
@@ -33,6 +34,7 @@ const i18n = {
     navGlossary: '詞彙表',
     glossaryLink: '/glossary',
     navMoguPicks: 'Mogu Picks',
+    moguPicksLink: '/mogu-picks',
     navReadingTracker: '閱讀紀錄',
     menuLabel: '選單',
     footerBy: '香菇大狗狗',
@@ -53,6 +55,7 @@ const i18n = {
     navGlossary: 'Glossary',
     glossaryLink: '/en/glossary',
     navMoguPicks: 'Mogu Picks',
+    moguPicksLink: '/en/mogu-picks',
     navReadingTracker: 'Reading Tracker',
     menuLabel: 'Menu',
     footerBy: 'ShroomDog',
@@ -71,6 +74,7 @@ const finalDescription = description || t.defaultDescription;
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={finalDescription} />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
     <meta name="apple-mobile-web-app-title" content="ShroomDog" />
 
     <!-- Open Graph / Facebook -->
@@ -155,6 +159,7 @@ const finalDescription = description || t.defaultDescription;
         text-decoration: none;
         white-space: nowrap;
         flex-shrink: 0;
+        min-height: 44px;
       }
 
       .site-title-text {
@@ -198,6 +203,17 @@ const finalDescription = description || t.defaultDescription;
         color: var(--color-accent);
       }
 
+      .site-title:focus-visible,
+      .hamburger-btn:focus-visible,
+      .hamburger-item:focus-visible,
+      :global(.nav-icons .icon-btn:focus-visible),
+      :global(.nav-icons .search-trigger:focus-visible),
+      :global(.nav-icons .theme-toggle:focus-visible) {
+        outline: 2px solid var(--color-accent);
+        outline-offset: 2px;
+        border-radius: 8px;
+      }
+
       /* All SVGs in nav: uniform 18px */
       :global(.nav-svg-icon),
       :global(.nav-icons .search-trigger svg),
@@ -230,7 +246,7 @@ const finalDescription = description || t.defaultDescription;
         color: var(--color-accent);
       }
 
-      .hamburger-btn:focus {
+      .hamburger-btn:focus:not(:focus-visible) {
         outline: none;
       }
 
@@ -441,7 +457,7 @@ const finalDescription = description || t.defaultDescription;
               </svg>
               {t.navAbout}
             </a>
-            <a href={`${t.homeLink}#mogu-picks`} class="hamburger-item">
+            <a href={t.moguPicksLink} class="hamburger-item">
               <svg viewBox="0 0 24 24">
                 <path d="M12 8V4H8"></path>
                 <rect x="4" y="8" width="16" height="12" rx="2"></rect>
