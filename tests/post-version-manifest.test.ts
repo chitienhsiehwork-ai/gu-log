@@ -194,7 +194,13 @@ describe('post version manifest freshness', () => {
   it('atomically replaces the manifest after a successful full-history build', () => {
     const repo = makeSyntheticRepo('gp-999-regression', SENTINEL_MANIFEST);
     const manifestPath = path.join(repo, MANIFEST_PATH);
-    const originalInode = fs.statSync(manifestPath).ino;
+    const originalManifestFd = fs.openSync(manifestPath, 'r');
+    let originalInode: number;
+    try {
+      originalInode = fs.fstatSync(originalManifestFd).ino;
+    } finally {
+      fs.closeSync(originalManifestFd);
+    }
 
     const result = runManifest(repo, []);
 
