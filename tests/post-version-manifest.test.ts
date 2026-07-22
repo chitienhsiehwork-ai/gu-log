@@ -5,6 +5,12 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 
 const REPO_ROOT = path.resolve(__dirname, '..');
+const MANIFEST_PATH = path.join('src', 'data', 'post-versions.json');
+const SENTINEL_MANIFEST = '{\n  "sentinel-post": 42\n}\n';
+const MANIFEST_MODES = [
+  { label: 'generation mode', args: [] },
+  { label: '--check', args: ['--check'] },
+] as const;
 
 function run(command: string, args: string[], cwd: string): string {
   return execFileSync(command, args, { cwd, encoding: 'utf-8' });
@@ -52,7 +58,7 @@ function repoWithFullGitHistory(cwd: string): string {
   }
 }
 
-function makeSyntheticRepo(postId = 'gp-999-regression'): string {
+function makeSyntheticRepo(postId = 'gp-999-regression', manifest = '{}\n'): string {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-version-manifest-'));
   fs.mkdirSync(path.join(tmp, 'scripts'), { recursive: true });
   fs.mkdirSync(path.join(tmp, 'src', 'content', 'posts'), { recursive: true });
@@ -71,11 +77,53 @@ function makeSyntheticRepo(postId = 'gp-999-regression'): string {
     path.join(tmp, 'src', 'content', 'posts', `${postId}.mdx`),
     '---\ntitle: test\n---\nbody\n'
   );
-  fs.writeFileSync(path.join(tmp, 'src', 'data', 'post-versions.json'), '{}\n');
+  fs.writeFileSync(path.join(tmp, MANIFEST_PATH), manifest);
   run('git', ['add', '.'], tmp);
   run('git', ['commit', '-qm', 'seed post'], tmp);
 
   return tmp;
+}
+
+function makeShallowClone(): string {
+  const origin = makeSyntheticRepo('gp-999-regression', SENTINEL_MANIFEST);
+  const clone = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-version-shallow-'));
+  run('git', ['clone', '-q', '--depth', '1', `file://${origin}`, clone], origin);
+  expect(run('git', ['rev-parse', '--is-shallow-repository'], clone).trim()).toBe('true');
+  return clone;
+}
+
+function makeGitShim(mode: 'history-failure' | 'invalid-shallow-output' | 'probe-failure'): string {
+  const binDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-version-git-shim-'));
+  const realGit = run('sh', ['-c', 'command -v git'], REPO_ROOT).trim();
+  const behavior = {
+    'history-failure': 'for arg in "$@"; do if [ "$arg" = "log" ]; then exit 71; fi; done',
+    'invalid-shallow-output':
+      'if [ "$1" = "rev-parse" ] && [ "$2" = "--is-shallow-repository" ]; then echo unknown; exit 0; fi',
+    'probe-failure':
+      'if [ "$1" = "rev-parse" ] && [ "$2" = "--is-shallow-repository" ]; then exit 72; fi',
+  }[mode];
+
+  const shimPath = path.join(binDir, 'git');
+  fs.writeFileSync(shimPath, `#!/bin/sh\n${behavior}\nexec "${realGit}" "$@"\n`);
+  fs.chmodSync(shimPath, 0o755);
+  return binDir;
+}
+
+function runManifest(repo: string, args: readonly string[], env: NodeJS.ProcessEnv = process.env) {
+  return spawnSync(process.execPath, ['scripts/build-version-manifest.mjs', ...args], {
+    cwd: repo,
+    encoding: 'utf-8',
+    env,
+  });
+}
+
+function expectSentinelUnchanged(repo: string): void {
+  expect(fs.readFileSync(path.join(repo, MANIFEST_PATH), 'utf-8')).toBe(SENTINEL_MANIFEST);
+}
+
+function expectOperationalFailure(result: ReturnType<typeof runManifest>): void {
+  expect(result.status).not.toBe(0);
+  expect(result.stderr + result.stdout).not.toContain('post-versions.json is stale');
 }
 
 describe('post version manifest freshness', () => {
@@ -142,6 +190,33 @@ describe('post version manifest freshness', () => {
     });
     expect(checkResult.status).toBe(0);
   }, 20_000);
+
+  it('atomically replaces the manifest after a successful full-history build', () => {
+    const repo = makeSyntheticRepo('gp-999-regression', SENTINEL_MANIFEST);
+    const manifestPath = path.join(repo, MANIFEST_PATH);
+    const originalManifestPath = path.join(repo, 'original-post-versions.json');
+    fs.linkSync(manifestPath, originalManifestPath);
+
+    const result = runManifest(repo, []);
+
+    expect(result.status).toBe(0);
+    const originalManifestFd = fs.openSync(originalManifestPath, 'r');
+    const manifestFd = fs.openSync(manifestPath, 'r');
+    try {
+      expect(fs.fstatSync(manifestFd).ino).not.toBe(fs.fstatSync(originalManifestFd).ino);
+      expect(JSON.parse(fs.readFileSync(manifestFd, 'utf-8'))).toEqual({
+        'gp-999-regression': 1,
+      });
+    } finally {
+      fs.closeSync(originalManifestFd);
+      fs.closeSync(manifestFd);
+    }
+    expect(
+      fs
+        .readdirSync(path.dirname(manifestPath))
+        .filter((file) => file.startsWith('.post-versions.json.') && file.endsWith('.tmp'))
+    ).toEqual([]);
+  });
 
   it('keeps historical touch counts under the current canonical path after a rename', () => {
     const repo = makeSyntheticRepo('sp-999-regression');
@@ -286,6 +361,79 @@ describe('post version manifest freshness', () => {
     expect(manifest['gp-1000-incoming']).toBe(1);
     expect(manifest['gp-1001-local']).toBe(1);
   });
+});
+
+describe('post version manifest operational failures', () => {
+  for (const { label, args } of MANIFEST_MODES) {
+    it(`keeps the committed manifest on a real shallow clone in ${label}`, () => {
+      const repo = makeShallowClone();
+
+      const result = runManifest(repo, args);
+
+      expect(result.status).toBe(0);
+      expect(result.stdout).toContain('Shallow clone detected');
+      expectSentinelUnchanged(repo);
+    });
+
+    it(`fails without git metadata and preserves manifest bytes in ${label}`, () => {
+      const repo = makeSyntheticRepo('gp-999-regression', SENTINEL_MANIFEST);
+      fs.rmSync(path.join(repo, '.git'), { recursive: true, force: true });
+
+      const result = runManifest(repo, args);
+
+      expectOperationalFailure(result);
+      expectSentinelUnchanged(repo);
+    });
+
+    it(`fails when git is unavailable and preserves manifest bytes in ${label}`, () => {
+      const repo = makeSyntheticRepo('gp-999-regression', SENTINEL_MANIFEST);
+      const emptyPath = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-version-no-git-'));
+
+      const result = runManifest(repo, args, { ...process.env, PATH: emptyPath });
+
+      expectOperationalFailure(result);
+      expectSentinelUnchanged(repo);
+    });
+
+    it(`fails when a history command fails and preserves manifest bytes in ${label}`, () => {
+      const repo = makeSyntheticRepo('gp-999-regression', SENTINEL_MANIFEST);
+      const shimDir = makeGitShim('history-failure');
+
+      const result = runManifest(repo, args, {
+        ...process.env,
+        PATH: `${shimDir}${path.delimiter}${process.env.PATH ?? ''}`,
+      });
+
+      expectOperationalFailure(result);
+      expectSentinelUnchanged(repo);
+    });
+
+    it(`fails when the shallow probe command fails and preserves manifest bytes in ${label}`, () => {
+      const repo = makeSyntheticRepo('gp-999-regression', SENTINEL_MANIFEST);
+      const shimDir = makeGitShim('probe-failure');
+
+      const result = runManifest(repo, args, {
+        ...process.env,
+        PATH: `${shimDir}${path.delimiter}${process.env.PATH ?? ''}`,
+      });
+
+      expectOperationalFailure(result);
+      expectSentinelUnchanged(repo);
+    });
+
+    it(`rejects invalid shallow probe output and preserves manifest bytes in ${label}`, () => {
+      const repo = makeSyntheticRepo('gp-999-regression', SENTINEL_MANIFEST);
+      const shimDir = makeGitShim('invalid-shallow-output');
+
+      const result = runManifest(repo, args, {
+        ...process.env,
+        PATH: `${shimDir}${path.delimiter}${process.env.PATH ?? ''}`,
+      });
+
+      expectOperationalFailure(result);
+      expectSentinelUnchanged(repo);
+    });
+  }
 });
 
 describe('reader-facing revision manifest', () => {

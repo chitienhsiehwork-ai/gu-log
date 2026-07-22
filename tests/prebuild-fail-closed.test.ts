@@ -244,45 +244,65 @@ describe('reader revision manifest --check', () => {
   });
 });
 
-describe('post versions manifest stays safe on shallow builds', () => {
-  it('skips regeneration on a shallow clone and leaves the committed manifest untouched', () => {
-    // Committed manifest holds a sentinel value a regeneration would never
-    // produce — if the script rewrites it, the assertion below catches it.
+describe('prebuild handles post versions manifest failures and shallow clones', () => {
+  it('propagates an operational failure and does not run the later generator', () => {
     const sentinel = '{\n  "sentinel-post": 42\n}\n';
-
-    const origin = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-shallow-origin-'));
-    fs.mkdirSync(path.join(origin, 'scripts'), { recursive: true });
-    fs.mkdirSync(path.join(origin, 'src', 'content', 'posts'), { recursive: true });
-    fs.mkdirSync(path.join(origin, 'src', 'data'), { recursive: true });
-    fs.copyFileSync(
-      path.join(REPO_ROOT, 'scripts', 'build-version-manifest.mjs'),
-      path.join(origin, 'scripts', 'build-version-manifest.mjs')
-    );
+    const tmp = makeSyntheticPrebuildDir({
+      copyScripts: [
+        'scripts/build-version-manifest.mjs',
+        'scripts/build-reader-revision-manifest.mjs',
+      ],
+    });
+    fs.writeFileSync(path.join(tmp, 'src', 'data', 'post-versions.json'), sentinel);
     fs.writeFileSync(
-      path.join(origin, 'src', 'content', 'posts', 'gp-999-regression.mdx'),
-      '---\ntitle: test\n---\nbody\n'
+      path.join(tmp, 'scripts', 'build-reader-revision-manifest.mjs'),
+      "import { writeFileSync } from 'node:fs';\nwriteFileSync('later-generator-ran', 'yes');\n"
     );
+
+    const result = spawnSync('sh', ['-c', readPrebuildCommand()], {
+      cwd: tmp,
+      encoding: 'utf-8',
+    });
+
+    expect(result.status).not.toBe(0);
+    expect(fs.readFileSync(path.join(tmp, 'src', 'data', 'post-versions.json'), 'utf-8')).toBe(
+      sentinel
+    );
+    expect(fs.existsSync(path.join(tmp, 'later-generator-ran'))).toBe(false);
+  });
+
+  it('continues to the later generator after confirming a shallow clone', () => {
+    const sentinel = '{\n  "sentinel-post": 42\n}\n';
+    const origin = makeSyntheticPrebuildDir({
+      copyScripts: [
+        'scripts/build-version-manifest.mjs',
+        'scripts/build-reader-revision-manifest.mjs',
+      ],
+    });
     fs.writeFileSync(path.join(origin, 'src', 'data', 'post-versions.json'), sentinel);
+    fs.writeFileSync(
+      path.join(origin, 'scripts', 'build-reader-revision-manifest.mjs'),
+      "import { writeFileSync } from 'node:fs';\nwriteFileSync('later-generator-ran', 'yes');\n"
+    );
     run('git', ['init', '-q'], origin);
     run('git', ['config', 'user.email', 'test@example.com'], origin);
     run('git', ['config', 'user.name', 'Test'], origin);
-    run('git', ['add', '.'], origin);
-    run('git', ['commit', '-qm', 'seed'], origin);
+    run('git', ['add', 'scripts', 'src'], origin);
+    run('git', ['commit', '-qm', 'seed shallow prebuild'], origin);
 
-    // Real shallow clone, same shape as Vercel / CCC checkouts.
-    const clone = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-shallow-clone-'));
+    const clone = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-prebuild-shallow-'));
     run('git', ['clone', '-q', '--depth', '1', `file://${origin}`, clone], origin);
     expect(run('git', ['rev-parse', '--is-shallow-repository'], clone).trim()).toBe('true');
 
-    const result = spawnSync('node', ['scripts/build-version-manifest.mjs'], {
+    const result = spawnSync('sh', ['-c', readPrebuildCommand()], {
       cwd: clone,
       encoding: 'utf-8',
     });
 
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain('Shallow clone detected');
     expect(fs.readFileSync(path.join(clone, 'src', 'data', 'post-versions.json'), 'utf-8')).toBe(
       sentinel
     );
+    expect(fs.readFileSync(path.join(clone, 'later-generator-ran'), 'utf-8')).toBe('yes');
   });
 });

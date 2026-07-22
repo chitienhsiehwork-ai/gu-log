@@ -18,8 +18,17 @@
  * matching the historical manifest semantics and avoiding version bumps from
  * ordinary PR merge commits.
  */
-import { execFileSync, execSync } from 'node:child_process';
-import { writeFileSync, mkdirSync, existsSync, readFileSync, readdirSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
+import {
+  writeFileSync,
+  mkdirSync,
+  existsSync,
+  readFileSync,
+  readdirSync,
+  renameSync,
+  unlinkSync,
+} from 'node:fs';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -30,22 +39,15 @@ const postsDir = join(repoRoot, 'src', 'content', 'posts');
 const checkOnly = process.argv.includes('--check');
 const includeStaged = process.argv.includes('--include-staged');
 
-// Skip regeneration if the clone is shallow — git log would miss history
-// and we'd overwrite the committed manifest with incomplete counts.
-// This covers Vercel (shallow by default) and Claude Code sandboxes (CCC
-// worktree is also shallow). Full clones (local dev, CI with fetch-depth:0)
-// proceed as normal.
-try {
-  const isShallow = execSync('git rev-parse --is-shallow-repository', {
+function isShallowRepository() {
+  const result = execFileSync('git', ['rev-parse', '--is-shallow-repository'], {
     encoding: 'utf-8',
-    cwd: dirname(fileURLToPath(import.meta.url)) + '/..',
+    cwd: repoRoot,
   }).trim();
-  if (isShallow === 'true') {
-    console.log('⏭️  Shallow clone detected — using committed post-versions.json');
-    process.exit(0);
-  }
-} catch {
-  // If git rev-parse fails, fall through to existing logic
+
+  if (result === 'true') return true;
+  if (result === 'false') return false;
+  throw new Error(`Invalid shallow repository probe result: ${JSON.stringify(result)}`);
 }
 
 function buildManifest() {
@@ -55,13 +57,7 @@ function buildManifest() {
   // is a file and MERGE_HEAD lives under the worktree-specific gitdir.
   const mergeHeadPath = getGitPath('MERGE_HEAD');
   const revs = mergeHeadPath && existsSync(mergeHeadPath) ? ['HEAD', 'MERGE_HEAD'] : ['HEAD'];
-  let versions = {};
-
-  try {
-    versions = buildCurrentPostVersions(revs);
-  } catch (err) {
-    console.error('⚠️  git log failed — writing empty manifest:', err.message);
-  }
+  const versions = buildCurrentPostVersions(revs);
 
   const next = JSON.stringify(versions, null, 2) + '\n';
   const count = Object.keys(versions).length;
@@ -81,20 +77,34 @@ function buildManifest() {
   }
 
   mkdirSync(dirname(outPath), { recursive: true });
-  writeFileSync(outPath, next);
+  replaceManifest(next);
   console.log(`✅ post-versions.json: ${count} posts tracked${hintText}`);
 }
 
-function getGitPath(name) {
+function replaceManifest(next) {
+  const tempPath = join(dirname(outPath), `.post-versions.json.${process.pid}.${randomUUID()}.tmp`);
+
   try {
-    const path = execFileSync('git', ['rev-parse', '--git-path', name], {
-      cwd: repoRoot,
-      encoding: 'utf-8',
-    }).trim();
-    return isAbsolute(path) ? path : resolve(repoRoot, path);
-  } catch {
-    return null;
+    writeFileSync(tempPath, next);
+    renameSync(tempPath, outPath);
+  } catch (error) {
+    try {
+      unlinkSync(tempPath);
+    } catch (cleanupError) {
+      if (cleanupError?.code !== 'ENOENT') {
+        console.error('⚠️  Failed to remove temporary post version manifest:', cleanupError);
+      }
+    }
+    throw error;
   }
+}
+
+function getGitPath(name) {
+  const path = execFileSync('git', ['rev-parse', '--git-path', name], {
+    cwd: repoRoot,
+    encoding: 'utf-8',
+  }).trim();
+  return isAbsolute(path) ? path : resolve(repoRoot, path);
 }
 
 function buildCurrentPostVersions(revs) {
@@ -274,4 +284,14 @@ function isPendingPost(postId) {
   return /^[ \t]*ticketId:[ \t]*["']?[A-Za-z]+-PENDING["']?[ \t]*$/m.test(content);
 }
 
-buildManifest();
+try {
+  if (isShallowRepository()) {
+    console.log('⏭️  Shallow clone detected — using committed post-versions.json');
+  } else {
+    buildManifest();
+  }
+} catch (error) {
+  const message = error instanceof Error ? error.message : String(error);
+  console.error(`❌ Failed to build post-versions.json: ${message}`);
+  process.exitCode = 1;
+}
