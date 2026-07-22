@@ -28,7 +28,7 @@ const ALLOWED_IMMUTABLE_EXCLUDES = new Set([
 const TEXT_RULES = [
   { rule: 'component', pattern: /\bClawdNote\b/g },
   { rule: 'schema-key', pattern: /\bclawdNote\b/g },
-  { rule: 'ticket-id', pattern: /\b(?:SP|CP)-(?:\d+|PENDING|N+)\b/g },
+  { rule: 'ticket-id', pattern: /\b(?:SP|CP)-(?:\d+|PENDING|N+|X+)\b/g },
   {
     rule: 'compact-ticket',
     pattern: /(^|[^A-Za-z0-9])((?:SP|CP)\d+)(?=$|[^A-Za-z0-9])/gm,
@@ -42,7 +42,7 @@ const TEXT_RULES = [
   {
     rule: 'post-slug',
     pattern:
-      /(^|[^A-Za-z0-9])((?:sp|cp)-(?:\d+|pending|N+)(?:-[A-Za-z0-9][A-Za-z0-9-]*)?)(?=$|[^A-Za-z0-9])/gm,
+      /(^|[^A-Za-z0-9])((?:sp|cp)-(?:(?:\d+|pending|N+)(?:-[A-Za-z0-9][A-Za-z0-9-]*)?|[A-Za-z][A-Za-z0-9-]*(?=\.mdx)))(?=$|[^A-Za-z0-9])/gm,
     capture: 2,
   },
   { rule: 'obsidian-callout', pattern: /\[!clawd\]/gi },
@@ -80,9 +80,9 @@ const PATH_RULES = [
   },
   {
     rule: 'path-post-slug',
-    pattern: /(^|\/)((?:sp|cp)-(?:\d+|pending|N+)[^/]*)(?=\/|$)/g,
+    pattern: /(^|\/)((?:sp|cp)-(?:(?:\d+|pending|N+)[^/]*|[A-Za-z][A-Za-z0-9-]*\.mdx))(?=\/|$)/g,
     capture: 2,
-    tokenPattern: /^(?:sp|cp)-(?:\d+|pending|N+)/,
+    tokenPattern: /^(?:sp|cp)-(?:(?:\d+|pending|N+)|[A-Za-z][A-Za-z0-9-]*(?=\.mdx))/,
   },
   {
     rule: 'path-compact-slug',
@@ -97,7 +97,7 @@ const PATH_RULES = [
   {
     rule: 'path-series-artifact',
     pattern:
-      /(^|\/)((?:sp|cp)-(?!(?:\d+|pending|N+)(?:[.-]|$))(?!(?:pipeline)(?=\/|$))[^/]+)(?=\/|$)/g,
+      /(^|\/)((?:sp|cp)-(?!(?:\d+|pending|N+)(?:[.-]|$))(?!(?:[A-Za-z][A-Za-z0-9-]*\.mdx)(?:\/|$))(?!(?:pipeline)(?=\/|$))[^/]+)(?=\/|$)/g,
     capture: 2,
   },
   {
@@ -113,8 +113,16 @@ const CANONICAL_REFERENCE_RULES = [
     pattern: /\btools\/gp-pipeline(?:\/[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*)*/g,
   },
   {
-    rule: 'dangling-canonical-reference',
-    pattern: /\bscripts\/mogu-picks-(?:prompt|config|loop|queue)(?:\.[A-Za-z0-9_-]+)*/g,
+    rule: 'dangling-root-series-script-reference',
+    pattern:
+      /\b(scripts\/(?:sp|cp|gp|mp|mogu)-[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?)(?=$|[^A-Za-z0-9_/-])/g,
+    capture: 1,
+  },
+  {
+    rule: 'dangling-root-series-script-reference',
+    pattern:
+      /(^|[^A-Za-z0-9._/-])((?:sp|cp|gp|mp|mogu)-[A-Za-z][A-Za-z0-9._-]*\.(?!(?:mdx|png|jpe?g|gif|svg|webp|ico|log)\b)[A-Za-z][A-Za-z0-9]*)(?=$|[^A-Za-z0-9_/-])/gm,
+    capture: 2,
   },
 ];
 
@@ -282,12 +290,12 @@ export function canonicalizeSeriesTaxonomyText(text) {
     // become "ShroomMogu"
     .replace(/\bShroomClawd\b/g, 'Mogu')
     .replace(/\bClawd\b(?!\.rip\b)/g, 'Mogu')
-    .replace(/\bSP-(?=\d+|PENDING\b|N+\b)/g, 'GP-')
-    .replace(/\bCP-(?=\d+|PENDING\b|N+\b)/g, 'MP-')
+    .replace(/\bSP-(?=\d+|PENDING\b|(?:N+|X+)\b)/g, 'GP-')
+    .replace(/\bCP-(?=\d+|PENDING\b|(?:N+|X+)\b)/g, 'MP-')
     .replace(/\bSP(?=\d+\b)/g, 'GP')
     .replace(/\bCP(?=\d+\b)/g, 'MP')
-    .replace(/\bsp-(?=\d+|pending\b|N+\b)/g, 'gp-')
-    .replace(/\bcp-(?=\d+|pending\b|N+\b)/g, 'mp-')
+    .replace(/\bsp-(?=(?:\d+|pending\b|N+\b)|[A-Za-z][A-Za-z0-9-]*\.mdx\b)/g, 'gp-')
+    .replace(/\bcp-(?=(?:\d+|pending\b|N+\b)|[A-Za-z][A-Za-z0-9-]*\.mdx\b)/g, 'mp-')
     .replace(/\bsp(?=\d+\b)/g, 'gp')
     .replace(/\bcp(?=\d+\b)/g, 'mp')
     // migration codemod's YAML frontmatter rewrite of the `tags:` array
@@ -342,14 +350,20 @@ export function isCanonicalSeriesTaxonomyOnlyChange(before, after) {
 }
 
 function canonicalTargetIsTracked(target, trackedFiles) {
-  if (trackedFiles.has(target)) return true;
-  const directoryPrefix = `${target}/`;
-  return [...trackedFiles].some((file) => file.startsWith(directoryPrefix));
+  const candidates =
+    target.startsWith('scripts/') || target.startsWith('tools/')
+      ? [target]
+      : [target, `scripts/${target}`, `tools/${target}`];
+  return candidates.some((candidate) => {
+    if (trackedFiles.has(candidate)) return true;
+    const directoryPrefix = `${candidate}/`;
+    return [...trackedFiles].some((file) => file.startsWith(directoryPrefix));
+  });
 }
 
 export function scanCanonicalReferences(file, text, trackedPaths) {
-  // Ignore files intentionally describe paths that must stay untracked.
-  if (path.posix.basename(file) === '.gitignore') return [];
+  // Ignore manifests intentionally describe paths that must stay untracked.
+  if (path.posix.basename(file).endsWith('ignore')) return [];
   const trackedFiles = trackedPaths instanceof Set ? trackedPaths : new Set(trackedPaths ?? []);
   return scanWithRules(file, text, CANONICAL_REFERENCE_RULES, 'reference').filter(
     ({ token }) => !canonicalTargetIsTracked(token, trackedFiles)

@@ -1,5 +1,7 @@
 # Review: Tribunal System — Full Build Verification
 
+> **Status:** Historical snapshot。這份 review 只驗證 2026-04-08 當時的 commits；其中 script 路徑、行號與 runtime 描述不得作為現行 contract。
+
 **Reviewer**: Reviewer (Opus)
 **Date**: 2026-04-08
 **Verdict**: **PASS (with minor findings)**

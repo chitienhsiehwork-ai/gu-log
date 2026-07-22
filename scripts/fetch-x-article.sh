@@ -17,9 +17,9 @@
 # Usage:
 #   bash scripts/fetch-x-article.sh <tweet_url> [--json]
 #
-# Without --json: emits a human/LLM-readable text block compatible with
-# gp-pipeline.sh's validate_tweet_source_capture (handle, date, Source URL,
-# === MAIN TWEET === marker).
+# Without --json: emits the canonical GP pipeline source-capture contract
+# validated by tools/gp-pipeline/internal/source/validate.go (handle, date,
+# Source URL, === MAIN TWEET === marker).
 #
 # With --json: emits the fetched JSON payload. Guest GraphQL results are
 # normalized to the same fxtwitter-like shape for downstream tooling.
@@ -468,8 +468,8 @@ if [ "$THREAD_ENABLED" = "1" ] && ! focal_is_article; then
   fi
 fi
 
-# Render to text. Output contract is aligned with gp-pipeline.sh's
-# validate_tweet_source_capture so that function still passes:
+# Render to text. Keep this aligned with the canonical source validator at
+# tools/gp-pipeline/internal/source/validate.go:
 #   - Has @handle
 #   - Has YYYY-MM-DD date
 #   - Has "Source URL:" line

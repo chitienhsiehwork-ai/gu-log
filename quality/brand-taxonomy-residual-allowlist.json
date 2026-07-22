@@ -1240,6 +1240,83 @@
       "reason": "Routing config test uses a synthetic unmapped slug to prove unknown legacy article URLs stay unmapped (negative scope)."
     },
     {
+      "path": "specs/review-tribunal.md",
+      "rule": "dangling-root-series-script-reference",
+      "token": "scripts/gp-pipeline.sh",
+      "expectedCount": 4,
+      "reason": "Point-in-time historical review evidence names the retired script; current behavior is governed by OpenSpec and the tracked GP pipeline tree."
+    },
+    {
+      "path": "specs/tribunal-calibration-research.md",
+      "rule": "ticket-id",
+      "token": "SP-XXX",
+      "expectedCount": 1,
+      "reason": "Dated calibration research preserves one hypothetical legacy ticket as historical evidence, not an active taxonomy contract."
+    },
+    {
+      "path": "scripts/mogu-picks-loop.sh",
+      "rule": "dangling-root-series-script-reference",
+      "token": "scripts/mogu-picks.log",
+      "expectedCount": 1,
+      "reason": "Runtime log output is intentionally generated and untracked; this is not an executable or config reference."
+    },
+    {
+      "path": "tests/pipeline-taxonomy.test.ts",
+      "rule": "dangling-root-series-script-reference",
+      "token": "gp-pipeline.sh",
+      "expectedCount": 1,
+      "reason": "Negative contract test proves the retired root wrapper remains absent."
+    },
+    {
+      "path": "tests/pipeline-taxonomy.test.ts",
+      "rule": "dangling-root-series-script-reference",
+      "token": "sp-pipeline.sh",
+      "expectedCount": 1,
+      "reason": "Negative contract test proves the retired SP wrapper remains absent."
+    },
+    {
+      "path": "tests/pipeline-taxonomy.test.ts",
+      "rule": "dangling-root-series-script-reference",
+      "token": "cp-candidates-queue.yaml",
+      "expectedCount": 1,
+      "reason": "Negative contract test proves the retired CP queue remains absent."
+    },
+    {
+      "path": "tests/pipeline-taxonomy.test.ts",
+      "rule": "dangling-root-series-script-reference",
+      "token": "cp-dedup-guard.sh",
+      "expectedCount": 1,
+      "reason": "Negative contract test proves the retired CP guard remains absent."
+    },
+    {
+      "path": "tests/pipeline-taxonomy.test.ts",
+      "rule": "dangling-root-series-script-reference",
+      "token": "cp-dedup-queue.sh",
+      "expectedCount": 1,
+      "reason": "Negative contract test proves the retired CP queue helper remains absent."
+    },
+    {
+      "path": "tests/pipeline-taxonomy.test.ts",
+      "rule": "dangling-root-series-script-reference",
+      "token": "cp-dedup-similarity.py",
+      "expectedCount": 1,
+      "reason": "Negative contract test proves the retired Python similarity helper remains absent."
+    },
+    {
+      "path": "tests/tribunal-v2/git-adapter.test.ts",
+      "rule": "dangling-root-series-script-reference",
+      "token": "cp-xyz.json",
+      "expectedCount": 1,
+      "reason": "Synthetic untracked progress-file decoy verifies the git adapter cannot commit unrelated legacy state."
+    },
+    {
+      "path": "scripts/tests/test-tribunal-progress-ledger-migration.sh",
+      "rule": "post-slug",
+      "token": "sp-test",
+      "expectedCount": 1,
+      "reason": "Legacy progress-ledger migration fixture must retain a retired-key example to verify one-time compatibility."
+    },
+    {
       "path": "vercel.mjs",
       "rule": "legacy-route",
       "token": "clawd-picks",

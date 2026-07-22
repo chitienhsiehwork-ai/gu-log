@@ -61,8 +61,10 @@ describe('brand taxonomy residual gate', () => {
   it('accepts only one-way semantic series canonicalization', () => {
     const oldUpper = ['S', 'P'].join('');
     const oldLower = ['s', 'p'].join('');
+    const oldCompanion = ['C', 'P'].join('');
     const before = [
       `ticketId: "${oldUpper}-63"`,
+      `template: "${oldUpper}-XXX" / "${oldCompanion}-XX"`,
       `一般 ${oldUpper} 放上來`,
       `final ${oldUpper} takeaway`,
       `run /tmp/worktree-${oldLower}-151`,
@@ -70,6 +72,7 @@ describe('brand taxonomy residual gate', () => {
     ].join('\n');
     const after = [
       'ticketId: "GP-63"',
+      'template: "GP-XXX" / "MP-XX"',
       '一般 GP 放上來',
       'final GP takeaway',
       'run /tmp/worktree-gp-151',
@@ -206,11 +209,19 @@ describe('brand taxonomy residual gate', () => {
   });
 
   it('finds template tickets, broad post slugs and semantic SP/CP series labels', () => {
+    const xTicket = [['S', 'P'].join(''), 'XXX'].join('-');
+    const xCompanionTicket = [['C', 'P'].join(''), 'XXX'].join('-');
+    const placeholderSlug = [['s', 'p'].join(''), 'xxx'].join('-');
+    const symbolicPlaceholderSlug = [['s', 'p'].join(''), 'template'].join('-');
     const findings = scanLegacyText(
       'docs/taxonomy.md',
       [
         'Template tickets are SP-N and CP-NNN.',
+        `Alternate template tickets are ${xTicket} and ${xCompanionTicket}.`,
         'Wiki link: [[sp-100-old-title]] and markdown target (cp-pending-draft).',
+        `Retired placeholder filename: ${placeholderSlug}.mdx.`,
+        `Another symbolic placeholder filename: ${symbolicPlaceholderSlug}.mdx.`,
+        `Unrelated Markdown filename: ${['s', 'p'].join('')}-auth.md.`,
         'The SP series and CP writer share one queue.',
         'The SP/CP taxonomy contract is retired.',
       ].join('\n')
@@ -220,8 +231,12 @@ describe('brand taxonomy residual gate', () => {
       expect.arrayContaining([
         'ticket-id:SP-N',
         'ticket-id:CP-NNN',
+        `ticket-id:${xTicket}`,
+        `ticket-id:${xCompanionTicket}`,
         'post-slug:sp-100-old-title',
         'post-slug:cp-pending-draft',
+        `post-slug:${placeholderSlug}`,
+        `post-slug:${symbolicPlaceholderSlug}`,
         'legacy-prefix-value:SP',
         'legacy-prefix-value:CP',
       ])
@@ -242,6 +257,11 @@ describe('brand taxonomy residual gate', () => {
   });
 
   it('scans legacy filenames without reading binary content', () => {
+    const placeholderPath = ['docs/templates/', ['s', 'p'].join(''), '-xxx.mdx'].join('');
+    const symbolicPlaceholderPath = ['docs/templates/', ['s', 'p'].join(''), '-template.mdx'].join(
+      ''
+    );
+    const legacySeriesArtifact = [['s', 'p'].join(''), 'source-fetch.sh'].join('-');
     expect(scanLegacyPath('src/assets/posts/foo-sp57-card.png')).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ rule: 'path-compact-slug', token: 'sp57' }),
@@ -253,10 +273,49 @@ describe('brand taxonomy residual gate', () => {
     expect(scanLegacyPath('docs/templates/cp-NNN-example.md')).toEqual(
       expect.arrayContaining([expect.objectContaining({ rule: 'path-post-slug', token: 'cp-NNN' })])
     );
-    expect(scanLegacyPath('scripts/sp-source-fetch.sh')).toEqual(
+    expect(scanLegacyPath(`scripts/${legacySeriesArtifact}`)).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ rule: 'path-series-artifact', token: 'sp-source-fetch.sh' }),
+        expect.objectContaining({ rule: 'path-series-artifact', token: legacySeriesArtifact }),
       ])
+    );
+    expect(scanLegacyPath(placeholderPath)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rule: 'path-post-slug',
+          token: path.basename(placeholderPath, '.mdx'),
+        }),
+      ])
+    );
+    expect(scanLegacyPath(symbolicPlaceholderPath)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rule: 'path-post-slug',
+          token: path.basename(symbolicPlaceholderPath, '.mdx'),
+        }),
+      ])
+    );
+  });
+
+  it('flags deleted root series script references but accepts tracked replacements', () => {
+    const rootReference = (prefix: string, name: string) =>
+      ['scripts/', `${prefix}-`, name].join('');
+    const missing = [
+      rootReference('sp', 'removed.sh'),
+      rootReference('cp', 'dedup-similarity.py'),
+      rootReference('gp', 'pipeline'),
+      ['gp', 'pipeline.sh'].join('-'),
+      rootReference('mp', 'removed.json'),
+    ];
+    const trackedFile = ['gp', 'current.sh'].join('-');
+    const trackedDirectory = rootReference('mp', 'current');
+    const findings = scanCanonicalReferences(
+      'docs/runbook.md',
+      [...missing, trackedFile, trackedDirectory].join('\n'),
+      new Set([`scripts/${trackedFile}`, `${trackedDirectory}/runner.mjs`])
+    );
+
+    expect(findings.map(({ rule, token }) => `${rule}:${token}`)).toEqual(
+      missing.map((token) => `dangling-root-series-script-reference:${token}`)
     );
   });
 
@@ -278,7 +337,7 @@ describe('brand taxonomy residual gate', () => {
     expect(scanCanonicalReferences('docs/runbook.md', text, trackedPaths)).toEqual([
       expect.objectContaining({
         path: 'docs/runbook.md',
-        rule: 'dangling-canonical-reference',
+        rule: 'dangling-root-series-script-reference',
         token: 'scripts/mogu-picks-queue.yaml',
       }),
     ]);

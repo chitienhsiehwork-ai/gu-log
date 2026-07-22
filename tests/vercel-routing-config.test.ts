@@ -72,6 +72,30 @@ describe('vercel.mjs redirect config — full manifest coverage', () => {
     }
   });
 
+  it('derives every legacy article source from the lowercase evidence filename stem', () => {
+    for (const entry of manifest.entries) {
+      expect(entry.oldSlug).toBe(path.basename(entry.oldFilename, '.mdx').toLowerCase());
+    }
+  });
+
+  it('uses lowercase Astro routes when legacy evidence filenames preserve mixed case', () => {
+    const mixedCaseEntries = manifest.entries.filter((entry: { oldFilename: string }) =>
+      /[A-Z]/.test(path.basename(entry.oldFilename, '.mdx'))
+    );
+    expect(mixedCaseEntries.length).toBeGreaterThan(0);
+
+    const sources = new Set(config.redirects.map((redirect) => redirect.source));
+    for (const entry of mixedCaseEntries) {
+      const evidenceStem = path.basename(entry.oldFilename, '.mdx');
+      const lowercaseRoute = articlePath(entry.lang, evidenceStem.toLowerCase());
+      const mixedCaseRoute = articlePath(entry.lang, evidenceStem);
+      expect(sources.has(lowercaseRoute), `missing lowercase route ${lowercaseRoute}`).toBe(true);
+      expect(sources.has(mixedCaseRoute), `unexpected mixed-case route ${mixedCaseRoute}`).toBe(
+        false
+      );
+    }
+  });
+
   it('every canonical destination article file exists in the repo', () => {
     for (const entry of manifest.entries) {
       const filePath = path.join(REPO_ROOT, 'src/content/posts', entry.newFilename);
@@ -179,6 +203,18 @@ describe('buildRedirectConfig — fail-closed validation', () => {
     expect(() => buildRedirectConfig(bad)).toThrow(/lowercase content filename stem/);
   });
 
+  it('rejects a mixed-case legacy slug while preserving its evidence filename', () => {
+    const bad = cloneManifest();
+    bad.entries[0].oldFilename = 'Legacy-Mixed-Case.mdx';
+    bad.entries[0].oldSlug = 'Legacy-Mixed-Case';
+    expect(() => buildRedirectConfig(bad)).toThrow(/lowercase evidence filename stem/);
+
+    const good = cloneManifest();
+    good.entries[0].oldFilename = 'Legacy-Mixed-Case.mdx';
+    good.entries[0].oldSlug = 'legacy-mixed-case';
+    expect(() => buildRedirectConfig(good)).not.toThrow();
+  });
+
   it('rejects a self-loop entry', () => {
     const bad = cloneManifest();
     bad.entries[0].newSlug = bad.entries[0].oldSlug;
@@ -192,6 +228,7 @@ describe('buildRedirectConfig — fail-closed validation', () => {
       ...bad.entries[1],
       lang: bad.entries[0].lang,
       oldSlug: bad.entries[0].oldSlug,
+      oldFilename: `${bad.entries[0].oldSlug}.mdx`,
     };
     expect(() => buildRedirectConfig(bad)).toThrow(/duplicate redirect source/);
   });
@@ -202,6 +239,7 @@ describe('buildRedirectConfig — fail-closed validation', () => {
       ...bad.entries[1],
       lang: bad.entries[0].lang,
       oldSlug: `${bad.entries[1].oldSlug}-x`,
+      oldFilename: `${bad.entries[1].oldSlug}-x.mdx`,
       newSlug: bad.entries[0].newSlug,
       newFilename: `${bad.entries[0].newSlug}.mdx`,
     };
@@ -217,6 +255,7 @@ describe('buildRedirectConfig — fail-closed validation', () => {
       ...template,
       lang: 'zh-tw',
       oldSlug: `budget-filler-${i}`,
+      oldFilename: `budget-filler-${i}.mdx`,
       newSlug: `budget-filler-new-${i}`,
       newFilename: `budget-filler-new-${i}.mdx`,
     }));

@@ -87,17 +87,17 @@ function assertSafeSlug(label, value) {
   }
 }
 
-function assertCanonicalSlugMatchesFilename(label, entry) {
-  if (typeof entry.newFilename !== 'string' || !entry.newFilename.endsWith('.mdx')) {
-    throw new RedirectConfigError(`${label}.newFilename must be an .mdx filename`);
+function assertSlugMatchesFilename(label, filenameLabel, filename, slugLabel, slug, filenameRole) {
+  if (typeof filename !== 'string' || !filename.endsWith('.mdx')) {
+    throw new RedirectConfigError(`${label}.${filenameLabel} must be an .mdx filename`);
   }
-  if (path.basename(entry.newFilename) !== entry.newFilename) {
-    throw new RedirectConfigError(`${label}.newFilename must not contain a path`);
+  if (path.basename(filename) !== filename) {
+    throw new RedirectConfigError(`${label}.${filenameLabel} must not contain a path`);
   }
-  const expectedSlug = entry.newFilename.slice(0, -'.mdx'.length).toLowerCase();
-  if (entry.newSlug !== expectedSlug) {
+  const expectedSlug = filename.slice(0, -'.mdx'.length).toLowerCase();
+  if (slug !== expectedSlug) {
     throw new RedirectConfigError(
-      `${label}.newSlug must match lowercase content filename stem ${JSON.stringify(expectedSlug)}`
+      `${label}.${slugLabel} must match lowercase ${filenameRole} filename stem ${JSON.stringify(expectedSlug)}`
     );
   }
 }
@@ -137,7 +137,22 @@ export function buildRedirectConfig(manifest) {
     }
     assertSafeSlug(`${label}.oldSlug`, entry.oldSlug);
     assertSafeSlug(`${label}.newSlug`, entry.newSlug);
-    assertCanonicalSlugMatchesFilename(label, entry);
+    assertSlugMatchesFilename(
+      label,
+      'oldFilename',
+      entry.oldFilename,
+      'oldSlug',
+      entry.oldSlug,
+      'evidence'
+    );
+    assertSlugMatchesFilename(
+      label,
+      'newFilename',
+      entry.newFilename,
+      'newSlug',
+      entry.newSlug,
+      'content'
+    );
     registry.add(articlePath(entry.lang, entry.oldSlug), articlePath(entry.lang, entry.newSlug));
   });
 
