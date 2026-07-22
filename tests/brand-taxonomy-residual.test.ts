@@ -206,11 +206,16 @@ describe('brand taxonomy residual gate', () => {
   });
 
   it('finds template tickets, broad post slugs and semantic SP/CP series labels', () => {
+    const placeholderSlug = [['s', 'p'].join(''), 'xxx'].join('-');
+    const symbolicPlaceholderSlug = [['s', 'p'].join(''), 'template'].join('-');
     const findings = scanLegacyText(
       'docs/taxonomy.md',
       [
         'Template tickets are SP-N and CP-NNN.',
         'Wiki link: [[sp-100-old-title]] and markdown target (cp-pending-draft).',
+        `Retired placeholder filename: ${placeholderSlug}.mdx.`,
+        `Another symbolic placeholder filename: ${symbolicPlaceholderSlug}.mdx.`,
+        `Unrelated Markdown filename: ${['s', 'p'].join('')}-auth.md.`,
         'The SP series and CP writer share one queue.',
         'The SP/CP taxonomy contract is retired.',
       ].join('\n')
@@ -222,6 +227,8 @@ describe('brand taxonomy residual gate', () => {
         'ticket-id:CP-NNN',
         'post-slug:sp-100-old-title',
         'post-slug:cp-pending-draft',
+        `post-slug:${placeholderSlug}`,
+        `post-slug:${symbolicPlaceholderSlug}`,
         'legacy-prefix-value:SP',
         'legacy-prefix-value:CP',
       ])
@@ -242,6 +249,11 @@ describe('brand taxonomy residual gate', () => {
   });
 
   it('scans legacy filenames without reading binary content', () => {
+    const placeholderPath = ['docs/templates/', ['s', 'p'].join(''), '-xxx.mdx'].join('');
+    const symbolicPlaceholderPath = ['docs/templates/', ['s', 'p'].join(''), '-template.mdx'].join(
+      ''
+    );
+    const legacySeriesArtifact = [['s', 'p'].join(''), 'source-fetch.sh'].join('-');
     expect(scanLegacyPath('src/assets/posts/foo-sp57-card.png')).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ rule: 'path-compact-slug', token: 'sp57' }),
@@ -253,10 +265,42 @@ describe('brand taxonomy residual gate', () => {
     expect(scanLegacyPath('docs/templates/cp-NNN-example.md')).toEqual(
       expect.arrayContaining([expect.objectContaining({ rule: 'path-post-slug', token: 'cp-NNN' })])
     );
-    expect(scanLegacyPath('scripts/sp-source-fetch.sh')).toEqual(
+    expect(scanLegacyPath(`scripts/${legacySeriesArtifact}`)).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ rule: 'path-series-artifact', token: 'sp-source-fetch.sh' }),
+        expect.objectContaining({ rule: 'path-series-artifact', token: legacySeriesArtifact }),
       ])
+    );
+    expect(scanLegacyPath(placeholderPath)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rule: 'path-post-slug',
+          token: path.basename(placeholderPath, '.mdx'),
+        }),
+      ])
+    );
+    expect(scanLegacyPath(symbolicPlaceholderPath)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rule: 'path-post-slug',
+          token: path.basename(symbolicPlaceholderPath, '.mdx'),
+        }),
+      ])
+    );
+  });
+
+  it('flags deleted root series script references but accepts tracked replacements', () => {
+    const rootScript = (prefix: string, name: string) =>
+      ['scripts/', `${prefix}-`, `${name}.sh`].join('');
+    const missing = ['sp', 'cp', 'gp', 'mp'].map((prefix) => rootScript(prefix, 'removed'));
+    const tracked = rootScript('gp', 'current');
+    const findings = scanCanonicalReferences(
+      'docs/runbook.md',
+      [...missing, tracked].join('\n'),
+      new Set([tracked])
+    );
+
+    expect(findings.map(({ rule, token }) => `${rule}:${token}`)).toEqual(
+      missing.map((token) => `dangling-root-series-script-reference:${token}`)
     );
   });
 

@@ -42,7 +42,7 @@ const TEXT_RULES = [
   {
     rule: 'post-slug',
     pattern:
-      /(^|[^A-Za-z0-9])((?:sp|cp)-(?:\d+|pending|N+)(?:-[A-Za-z0-9][A-Za-z0-9-]*)?)(?=$|[^A-Za-z0-9])/gm,
+      /(^|[^A-Za-z0-9])((?:sp|cp)-(?:(?:\d+|pending|N+)(?:-[A-Za-z0-9][A-Za-z0-9-]*)?|[A-Za-z][A-Za-z0-9-]*(?=\.mdx)))(?=$|[^A-Za-z0-9])/gm,
     capture: 2,
   },
   { rule: 'obsidian-callout', pattern: /\[!clawd\]/gi },
@@ -80,9 +80,9 @@ const PATH_RULES = [
   },
   {
     rule: 'path-post-slug',
-    pattern: /(^|\/)((?:sp|cp)-(?:\d+|pending|N+)[^/]*)(?=\/|$)/g,
+    pattern: /(^|\/)((?:sp|cp)-(?:(?:\d+|pending|N+)[^/]*|[A-Za-z][A-Za-z0-9-]*\.mdx))(?=\/|$)/g,
     capture: 2,
-    tokenPattern: /^(?:sp|cp)-(?:\d+|pending|N+)/,
+    tokenPattern: /^(?:sp|cp)-(?:(?:\d+|pending|N+)|[A-Za-z][A-Za-z0-9-]*(?=\.mdx))/,
   },
   {
     rule: 'path-compact-slug',
@@ -97,7 +97,7 @@ const PATH_RULES = [
   {
     rule: 'path-series-artifact',
     pattern:
-      /(^|\/)((?:sp|cp)-(?!(?:\d+|pending|N+)(?:[.-]|$))(?!(?:pipeline)(?=\/|$))[^/]+)(?=\/|$)/g,
+      /(^|\/)((?:sp|cp)-(?!(?:\d+|pending|N+)(?:[.-]|$))(?!(?:[A-Za-z][A-Za-z0-9-]*\.mdx)(?:\/|$))(?!(?:pipeline)(?=\/|$))[^/]+)(?=\/|$)/g,
     capture: 2,
   },
   {
@@ -114,7 +114,12 @@ const CANONICAL_REFERENCE_RULES = [
   },
   {
     rule: 'dangling-canonical-reference',
-    pattern: /\bscripts\/mogu-picks-(?:prompt|config|loop|queue)(?:\.[A-Za-z0-9_-]+)*/g,
+    pattern: /\bscripts\/mogu-[A-Za-z0-9][A-Za-z0-9._-]*\.(?:sh|mjs|js|ts|json|ya?ml|md)\b/g,
+  },
+  {
+    rule: 'dangling-root-series-script-reference',
+    pattern:
+      /\bscripts\/(?:sp|cp|gp|mp)-[A-Za-z0-9][A-Za-z0-9._-]*\.(?:sh|mjs|js|ts|json|ya?ml|md)\b/g,
   },
 ];
 
@@ -282,12 +287,12 @@ export function canonicalizeSeriesTaxonomyText(text) {
     // become "ShroomMogu"
     .replace(/\bShroomClawd\b/g, 'Mogu')
     .replace(/\bClawd\b(?!\.rip\b)/g, 'Mogu')
-    .replace(/\bSP-(?=\d+|PENDING\b|N+\b)/g, 'GP-')
-    .replace(/\bCP-(?=\d+|PENDING\b|N+\b)/g, 'MP-')
+    .replace(/\bSP-(?=\d+|PENDING\b|[NX]+\b)/g, 'GP-')
+    .replace(/\bCP-(?=\d+|PENDING\b|[NX]+\b)/g, 'MP-')
     .replace(/\bSP(?=\d+\b)/g, 'GP')
     .replace(/\bCP(?=\d+\b)/g, 'MP')
-    .replace(/\bsp-(?=\d+|pending\b|N+\b)/g, 'gp-')
-    .replace(/\bcp-(?=\d+|pending\b|N+\b)/g, 'mp-')
+    .replace(/\bsp-(?=(?:\d+|pending\b|N+\b)|[A-Za-z][A-Za-z0-9-]*\.mdx\b)/g, 'gp-')
+    .replace(/\bcp-(?=(?:\d+|pending\b|N+\b)|[A-Za-z][A-Za-z0-9-]*\.mdx\b)/g, 'mp-')
     .replace(/\bsp(?=\d+\b)/g, 'gp')
     .replace(/\bcp(?=\d+\b)/g, 'mp')
     // migration codemod's YAML frontmatter rewrite of the `tags:` array

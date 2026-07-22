@@ -17,9 +17,9 @@ trap 'rm -rf "$TMP"' EXIT
 make_repo() {
   local repo="$1"
   mkdir -p "$repo/src/content/posts"
-  cat > "$repo/src/content/posts/sp-test.mdx" <<'POST'
+  cat > "$repo/src/content/posts/gp-test.mdx" <<'POST'
 ---
-ticketId: "SP-TEST"
+ticketId: "GP-TEST"
 title: "Test"
 originalDate: "2026-06-15"
 translatedDate: "2026-06-15"
@@ -59,7 +59,7 @@ run_writer() {
     GP_WRITER_BROKER_DIR="$broker" \
     GP_WRITER_BROKER_TIMEOUT="${GP_WRITER_BROKER_TIMEOUT:-5}" \
     GP_WRITER_BROKER_POLL_INTERVAL=0.1 \
-    TRIBUNAL_WRITER_POST_FILE="sp-test.mdx" \
+    TRIBUNAL_WRITER_POST_FILE="gp-test.mdx" \
     TRIBUNAL_WRITER_STAGE="vibe" \
     TRIBUNAL_WRITER_ATTEMPT=2 \
     tribunal_writer_exec "$work_dir" "tribunal-writer" "rewrite prompt"
@@ -77,7 +77,7 @@ export REPO_ROOT="$repo"
   id="$(jq -r '.id' "$request")"
   post_path="$(jq -r '.post_path' "$request")"
   [ "$(jq -r '.agent_name' "$request")" = "tribunal-writer" ] || exit 2
-  [ "$(jq -r '.post_file' "$request")" = "sp-test.mdx" ] || exit 3
+  [ "$(jq -r '.post_file' "$request")" = "gp-test.mdx" ] || exit 3
   [ "$(jq -r '.stage' "$request")" = "vibe" ] || exit 4
   [ "$(jq -r '.attempt' "$request")" = "2" ] || exit 5
   printf '\nFake rewrite complete.\n' >> "$post_path"
@@ -87,7 +87,7 @@ fulfiller_pid=$!
 
 run_writer subagent "$broker" "$work" >/dev/null
 wait "$fulfiller_pid"
-grep -q 'Fake rewrite complete' "$repo/src/content/posts/sp-test.mdx" || fail "subagent success did not alter target file"
+grep -q 'Fake rewrite complete' "$repo/src/content/posts/gp-test.mdx" || fail "subagent success did not alter target file"
 if find "$broker" -name '*.request.json' -o -name '*.done' -o -name '*.failed' -o -name '*.claimed' | grep -q .; then
   fail "subagent success did not clean request/marker files"
 fi

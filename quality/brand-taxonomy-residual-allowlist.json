@@ -1240,6 +1240,20 @@
       "reason": "Routing config test uses a synthetic unmapped slug to prove unknown legacy article URLs stay unmapped (negative scope)."
     },
     {
+      "path": "specs/review-tribunal.md",
+      "rule": "dangling-root-series-script-reference",
+      "token": "scripts/gp-pipeline.sh",
+      "expectedCount": 4,
+      "reason": "Point-in-time historical review evidence names the retired script; current behavior is governed by OpenSpec and the tracked GP pipeline tree."
+    },
+    {
+      "path": "scripts/tests/test-tribunal-progress-ledger-migration.sh",
+      "rule": "post-slug",
+      "token": "sp-test",
+      "expectedCount": 1,
+      "reason": "Legacy progress-ledger migration fixture must retain a retired-key example to verify one-time compatibility."
+    },
+    {
       "path": "vercel.mjs",
       "rule": "legacy-route",
       "token": "clawd-picks",
