@@ -150,6 +150,11 @@ describe('prebuild fails closed on reader revision generator', () => {
 });
 
 describe('deploy packaging includes every build-lifecycle dependency', () => {
+  it('keeps the programmatic Vercel config in the deployment bundle', () => {
+    expect(fs.existsSync(path.join(REPO_ROOT, 'vercel.mjs'))).toBe(true);
+    expect(isExcludedByVercelignore('vercel.mjs')).toBe(false);
+  });
+
   it('keeps every scripts/*.mjs referenced by prebuild/postbuild out of .vercelignore exclusion', () => {
     const refs = [
       ...lifecycleScriptRefs(readPrebuildCommand()),

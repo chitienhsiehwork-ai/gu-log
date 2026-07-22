@@ -10,6 +10,10 @@
  *
  * Usage:
  *   node scripts/verify-brand-redirects.mjs --base-url https://<deployment> [--concurrency 8] [--timeout 10000]
+ *
+ * Protected Vercel Previews are supported through Vercel's standard
+ * VERCEL_AUTOMATION_BYPASS_SECRET environment variable. The secret is sent
+ * only as a request header and is never logged.
  */
 
 import { config as redirectConfig } from '../vercel.mjs';
@@ -38,6 +42,7 @@ function parseArgs(argv) {
   const args = { concurrency: 8, timeoutMs: 10000, baseUrl: undefined };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
+    if (arg === '--') continue;
     if (arg === '--base-url') args.baseUrl = argv[++i];
     else if (arg === '--concurrency') args.concurrency = Number(argv[++i]);
     else if (arg === '--timeout') args.timeoutMs = Number(argv[++i]);
@@ -65,8 +70,11 @@ async function checkRedirect(baseUrl, redirect, timeoutMs) {
   const oldUrl = new URL(source, baseUrl).toString();
   const expectedLocation = new URL(destination, baseUrl).toString();
 
+  const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+  const headers = bypassSecret ? { 'x-vercel-protection-bypass': bypassSecret } : undefined;
+
   try {
-    const raw = await fetchWithTimeout(oldUrl, { redirect: 'manual' }, timeoutMs);
+    const raw = await fetchWithTimeout(oldUrl, { redirect: 'manual', headers }, timeoutMs);
     if (raw.status !== 308) {
       return { ok: false, source, reason: `raw status ${raw.status} != 308` };
     }
@@ -80,7 +88,7 @@ async function checkRedirect(baseUrl, redirect, timeoutMs) {
       };
     }
 
-    const followed = await fetchWithTimeout(oldUrl, { redirect: 'follow' }, timeoutMs);
+    const followed = await fetchWithTimeout(oldUrl, { redirect: 'follow', headers }, timeoutMs);
     if (followed.status !== 200) {
       return { ok: false, source, reason: `followed status ${followed.status} != 200` };
     }

@@ -76,6 +76,7 @@ describe('vercel.mjs redirect config — full manifest coverage', () => {
     for (const entry of manifest.entries) {
       const filePath = path.join(REPO_ROOT, 'src/content/posts', entry.newFilename);
       expect(fs.existsSync(filePath), `missing canonical file for ${entry.newFilename}`).toBe(true);
+      expect(entry.newSlug).toBe(path.basename(entry.newFilename, '.mdx').toLowerCase());
     }
   });
 
@@ -172,9 +173,16 @@ describe('buildRedirectConfig — fail-closed validation', () => {
     expect(() => buildRedirectConfig(unsafeSlug)).toThrow(RedirectConfigError);
   });
 
+  it("rejects a canonical slug that does not match Astro's lowercase filename route", () => {
+    const bad = cloneManifest();
+    bad.entries[0].newSlug = bad.entries[0].newSlug.toUpperCase();
+    expect(() => buildRedirectConfig(bad)).toThrow(/lowercase content filename stem/);
+  });
+
   it('rejects a self-loop entry', () => {
     const bad = cloneManifest();
     bad.entries[0].newSlug = bad.entries[0].oldSlug;
+    bad.entries[0].newFilename = `${bad.entries[0].newSlug}.mdx`;
     expect(() => buildRedirectConfig(bad)).toThrow(/self-loop/);
   });
 
@@ -184,7 +192,6 @@ describe('buildRedirectConfig — fail-closed validation', () => {
       ...bad.entries[1],
       lang: bad.entries[0].lang,
       oldSlug: bad.entries[0].oldSlug,
-      newSlug: `${bad.entries[1].newSlug}-x`,
     };
     expect(() => buildRedirectConfig(bad)).toThrow(/duplicate redirect source/);
   });
@@ -196,6 +203,7 @@ describe('buildRedirectConfig — fail-closed validation', () => {
       lang: bad.entries[0].lang,
       oldSlug: `${bad.entries[1].oldSlug}-x`,
       newSlug: bad.entries[0].newSlug,
+      newFilename: `${bad.entries[0].newSlug}.mdx`,
     };
     expect(() => buildRedirectConfig(bad)).toThrow(/duplicate redirect destination/);
   });
@@ -210,6 +218,7 @@ describe('buildRedirectConfig — fail-closed validation', () => {
       lang: 'zh-tw',
       oldSlug: `budget-filler-${i}`,
       newSlug: `budget-filler-new-${i}`,
+      newFilename: `budget-filler-new-${i}.mdx`,
     }));
     bad.entries = [...bad.entries, ...filler];
     bad.counts = { ...bad.counts, files: bad.entries.length };

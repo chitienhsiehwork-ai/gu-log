@@ -87,6 +87,21 @@ function assertSafeSlug(label, value) {
   }
 }
 
+function assertCanonicalSlugMatchesFilename(label, entry) {
+  if (typeof entry.newFilename !== 'string' || !entry.newFilename.endsWith('.mdx')) {
+    throw new RedirectConfigError(`${label}.newFilename must be an .mdx filename`);
+  }
+  if (path.basename(entry.newFilename) !== entry.newFilename) {
+    throw new RedirectConfigError(`${label}.newFilename must not contain a path`);
+  }
+  const expectedSlug = entry.newFilename.slice(0, -'.mdx'.length).toLowerCase();
+  if (entry.newSlug !== expectedSlug) {
+    throw new RedirectConfigError(
+      `${label}.newSlug must match lowercase content filename stem ${JSON.stringify(expectedSlug)}`
+    );
+  }
+}
+
 /**
  * Builds the Vercel redirects array from a parsed migration manifest.
  * Pure function (no filesystem access) so tests can exercise fail-closed
@@ -122,6 +137,7 @@ export function buildRedirectConfig(manifest) {
     }
     assertSafeSlug(`${label}.oldSlug`, entry.oldSlug);
     assertSafeSlug(`${label}.newSlug`, entry.newSlug);
+    assertCanonicalSlugMatchesFilename(label, entry);
     registry.add(articlePath(entry.lang, entry.oldSlug), articlePath(entry.lang, entry.newSlug));
   });
 
