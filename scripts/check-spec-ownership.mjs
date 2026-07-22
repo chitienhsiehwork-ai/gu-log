@@ -29,16 +29,14 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { VALID_CLASSES, validateWorkflowRunBlocks } from './spec-ownership-workflow.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
 const TESTS_DIR = path.join(ROOT, 'tests');
 const REGISTRY_PATH = path.join(TESTS_DIR, 'spec-ownership.json');
 const WORKFLOWS_DIR = path.join(ROOT, '.github/workflows');
-const CI_WORKFLOW_PATH = path.join(ROOT, '.github/workflows/ci.yml');
-const NIGHTLY_WORKFLOW_PATH = path.join(ROOT, '.github/workflows/nightly-deep.yml');
 
-const VALID_CLASSES = new Set(['blocking', 'nightly', 'quarantined']);
 // Matches an unconditional skip: test.skip(true, ...), bare test.skip(),
 // a named test.skip('...') call, test.describe.skip(...), or the fixme
 // equivalents (test.fixme(...) / test.describe.fixme(...) also make
@@ -184,6 +182,10 @@ const workflowFiles = fs
   .readdirSync(WORKFLOWS_DIR, { withFileTypes: true })
   .filter((e) => e.isFile() && (e.name.endsWith('.yml') || e.name.endsWith('.yaml')))
   .map((e) => e.name);
+const expectedWorkflowClasses = new Map([
+  ['.github/workflows/ci.yml', { 'e2e-core': 'blocking' }],
+  ['.github/workflows/nightly-deep.yml', { 'coverage-ratchet': 'nightly' }],
+]);
 
 for (const file of workflowFiles) {
   const rel = `.github/workflows/${file}`;
@@ -198,23 +200,13 @@ for (const file of workflowFiles) {
         `this; reword the comment rather than adding an exception.)`
     );
   }
-}
-
-const ciText = fs.readFileSync(CI_WORKFLOW_PATH, 'utf8');
-const nightlyText = fs.readFileSync(NIGHTLY_WORKFLOW_PATH, 'utf8');
-if (!/check-spec-ownership\.mjs --list blocking\b/.test(ciText)) {
-  fail(
-    'MISSING --list CONSUMPTION: .github/workflows/ci.yml does not call ' +
-      '`node scripts/check-spec-ownership.mjs --list blocking` — the e2e-core job must consume the ' +
-      'registry, not a hand-copied list.'
-  );
-}
-if (!/check-spec-ownership\.mjs --list nightly\b/.test(nightlyText)) {
-  fail(
-    'MISSING --list CONSUMPTION: .github/workflows/nightly-deep.yml does not call ' +
-      '`node scripts/check-spec-ownership.mjs --list nightly` — the coverage-ratchet job must consume ' +
-      'the registry, not a hand-copied list.'
-  );
+  for (const wiringError of validateWorkflowRunBlocks(
+    rel,
+    text,
+    expectedWorkflowClasses.get(rel) ?? {}
+  )) {
+    fail(wiringError);
+  }
 }
 
 // ─── Report ──────────────────────────────────────────────────────────
