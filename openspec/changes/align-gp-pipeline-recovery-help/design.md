@@ -30,7 +30,7 @@ Skill 把第二條誤導到第一條；Cobra help 又把全新文章路徑的異
 
 ### 獨立 deploy 的 help 聚焦全新 PENDING
 
-Long help 先列出所有異動前關卡，再列出 counter bump 之後的副作用。三個檔名欄位 flags 在說明中明示全新 PENDING 必填。`--dry-run` 說明它只做 CLI 輸入預檢、不跑 validator 或任何異動；`--skip-build`／`--skip-validate` 明示僅供測試，而且獨立指令會拒絕。
+Long help 先列出所有異動前關卡，再列出 counter bump 之後的副作用。三個檔名欄位 flags 在說明中明示全新 PENDING 必填。`--dry-run` 說明它只做 CLI 輸入預檢、不跑 validator 或任何異動；`--skip-build`／`--skip-validate` 明示僅供測試，正常 standalone deploy 不支援，dry-run 則不會執行這些階段。
 
 ### Contract test 只鎖安全關鍵字串
 
