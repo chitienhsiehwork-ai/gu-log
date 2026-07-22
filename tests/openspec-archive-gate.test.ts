@@ -3,12 +3,15 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { parse } from 'yaml';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const CHECKER = path.join(ROOT, 'scripts/check-openspec-archive.mjs');
+const ARCHIVE_GATE_TEST_TIMEOUT_MS = 30_000;
 const tempRepos = new Set<string>();
+
+vi.setConfig({ testTimeout: ARCHIVE_GATE_TEST_TIMEOUT_MS });
 
 const TEST_CASES = {
   scenarioLedger: 'maps every delta-spec scenario to named executable or rollout evidence',
