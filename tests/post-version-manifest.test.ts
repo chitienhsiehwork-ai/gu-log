@@ -194,24 +194,21 @@ describe('post version manifest freshness', () => {
   it('atomically replaces the manifest after a successful full-history build', () => {
     const repo = makeSyntheticRepo('gp-999-regression', SENTINEL_MANIFEST);
     const manifestPath = path.join(repo, MANIFEST_PATH);
-    const originalManifestFd = fs.openSync(manifestPath, 'r');
-    let originalInode: number;
-    try {
-      originalInode = fs.fstatSync(originalManifestFd).ino;
-    } finally {
-      fs.closeSync(originalManifestFd);
-    }
+    const originalManifestPath = path.join(repo, 'original-post-versions.json');
+    fs.linkSync(manifestPath, originalManifestPath);
 
     const result = runManifest(repo, []);
 
     expect(result.status).toBe(0);
+    const originalManifestFd = fs.openSync(originalManifestPath, 'r');
     const manifestFd = fs.openSync(manifestPath, 'r');
     try {
-      expect(fs.fstatSync(manifestFd).ino).not.toBe(originalInode);
+      expect(fs.fstatSync(manifestFd).ino).not.toBe(fs.fstatSync(originalManifestFd).ino);
       expect(JSON.parse(fs.readFileSync(manifestFd, 'utf-8'))).toEqual({
         'gp-999-regression': 1,
       });
     } finally {
+      fs.closeSync(originalManifestFd);
       fs.closeSync(manifestFd);
     }
     expect(
