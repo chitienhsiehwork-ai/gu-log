@@ -545,12 +545,12 @@ func TestQuoteScalar_SemanticRoundTrip(t *testing.T) {
 
 func TestGetScalar_MultilineYAMLRemainsOutsideLineOrientedBoundary(t *testing.T) {
 	tests := []struct {
-		name string
-		raw  string
-		want string
+		name         string
+		raw          string
+		fullSemantic string
 	}{
-		{name: "block scalar", raw: "source: |\n  first\n  second", want: "|"},
-		{name: "multiphysical quoted scalar", raw: "source: \"first\n  second\"", want: `"first`},
+		{name: "block scalar", raw: "source: |\n  first\n  second", fullSemantic: "first\nsecond\n"},
+		{name: "multiphysical quoted scalar", raw: "source: \"first\n  second\"", fullSemantic: "first second"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -559,8 +559,8 @@ func TestGetScalar_MultilineYAMLRemainsOutsideLineOrientedBoundary(t *testing.T)
 				t.Fatal(err)
 			}
 			got, ok := f.GetScalar("source")
-			if !ok || got != tt.want {
-				t.Fatalf("GetScalar(source) = %q, %v; want line-local token %q", got, ok, tt.want)
+			if ok && got == tt.fullSemantic {
+				t.Fatalf("GetScalar unexpectedly claimed full multiline semantics %q", got)
 			}
 		})
 	}

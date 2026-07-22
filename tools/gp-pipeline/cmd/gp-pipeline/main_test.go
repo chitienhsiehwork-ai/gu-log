@@ -14,7 +14,6 @@ import (
 
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/llm"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/logx"
-	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/pipeline"
 )
 
 func captureProcessStdout(t *testing.T, fn func() error) ([]byte, error) {
@@ -434,7 +433,7 @@ ticketId: GP-10
 
 	cmd := buildRoot()
 	cmd.SetArgs([]string{
-		"--json", "--fake-provider", fakePath,
+		"--json", "--fake-provider", fakePath, "--work-dir", filepath.Join(root, "translate-work"),
 		"run", "--from-step", "translate", "--file", filename, "--dry-run",
 	})
 	out, err := captureProcessStdout(t, func() error {
@@ -489,14 +488,49 @@ func TestSelectRunReportENFilename(t *testing.T) {
 	}
 }
 
-func TestSelectRunReportENFilename_DryRunDoesNotReportPrefilledName(t *testing.T) {
-	s := pipeline.NewState()
-	s.DryRun = true
-	s.RalphPassed = false
-	s.ActiveENFilename = "en-gp-pending-prefilled.mdx"
+func TestRunCommand_DryRunOmitsPrefilledMissingEnglishFile(t *testing.T) {
+	resetGlobals()
+	root := makeFakeRepo(t)
+	postsDir := filepath.Join(root, "src", "content", "posts")
+	if err := os.MkdirAll(postsDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	filename := "gp-10-20260723-ralph-failed.mdx"
+	mustWrite(t, filepath.Join(postsDir, filename), `---
+title: "Ralph failed"
+ticketId: GP-10
+lang: zh-tw
+---
+中文內容。
+`)
+	// Ralph pre-fills ActiveENFilename before invoking the tribunal. A failed
+	// tribunal keeps RalphPassed false, so Translate must skip without writing
+	// that planned sidecar; the successful dry-run report must omit it.
+	mustWrite(t, filepath.Join(root, "scripts", "tribunal.sh"), "exit 1\n")
+	fakePath := filepath.Join(root, "fake-provider.json")
+	mustWrite(t, fakePath, `{"responses":[]}`)
+	t.Setenv("GU_LOG_DIR", root)
 
-	if got := selectRunReportENFilename(t.TempDir(), s.ENFilename, s.ActiveENFilename); got != "" {
-		t.Fatalf("Ralph-failed dry-run reported nonexistent English artifact %q", got)
+	cmd := buildRoot()
+	cmd.SetArgs([]string{
+		"--json", "--fake-provider", fakePath, "--work-dir", filepath.Join(root, "ralph-work"),
+		"run", "--from-step", "ralph", "--file", filename, "--dry-run",
+	})
+	out, err := captureProcessStdout(t, func() error {
+		return cmd.ExecuteContext(context.Background())
+	})
+	if err != nil {
+		t.Fatalf("run command: %v", err)
+	}
+	var report map[string]json.RawMessage
+	if err := json.Unmarshal(out, &report); err != nil {
+		t.Fatalf("decode stdout JSON %q: %v", out, err)
+	}
+	if _, ok := report["enFilename"]; ok {
+		t.Fatalf("Ralph-failed dry-run reported nonexistent English artifact: %s", out)
+	}
+	if _, err := os.Lstat(filepath.Join(postsDir, "en-"+filename)); !os.IsNotExist(err) {
+		t.Fatalf("English sidecar unexpectedly exists: %v", err)
 	}
 }
 
