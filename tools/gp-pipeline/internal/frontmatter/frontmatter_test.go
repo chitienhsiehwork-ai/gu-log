@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"go.yaml.in/yaml/v3"
 )
 
 func TestParse_RoundTripByteStable(t *testing.T) {
@@ -503,5 +505,63 @@ func TestQuoteScalar_PreservesLiteralSurroundingQuotes(t *testing.T) {
 	want := `"\"GP-171\""`
 	if got != want {
 		t.Errorf("QuoteScalar(%q) = %q, want %q", `"GP-171"`, got, want)
+	}
+}
+
+func TestQuoteScalar_SemanticRoundTrip(t *testing.T) {
+	tests := []struct {
+		name  string
+		value string
+	}{
+		{name: "escaped quote and backslash", value: "say \\\"hi\\\" at C:\\\\tmp"},
+		{name: "Unicode", value: "蘑菇 🍄"},
+		{name: "colon and hash", value: "label: a # b"},
+		{name: "newline", value: "first\nsecond"},
+		{name: "tab", value: "first\tsecond"},
+		{name: "carriage return", value: "first\rsecond"},
+		{name: "C0 control", value: "before\x01after"},
+		{name: "empty", value: ""},
+		{name: "leading and trailing spaces", value: "  padded  "},
+		{name: "literal surrounding quotes", value: `"quoted"`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			encoded := QuoteScalar(tt.value)
+			if strings.ContainsAny(encoded, "\n\r") {
+				t.Fatalf("QuoteScalar emitted more than one physical line: %q", encoded)
+			}
+			var doc struct {
+				Value string `yaml:"value"`
+			}
+			if err := yaml.Unmarshal([]byte("value: "+encoded+"\n"), &doc); err != nil {
+				t.Fatalf("decode scalar %q: %v", encoded, err)
+			}
+			if doc.Value != tt.value {
+				t.Fatalf("round trip = %q, want %q (encoded %q)", doc.Value, tt.value, encoded)
+			}
+		})
+	}
+}
+
+func TestGetScalar_MultilineYAMLRemainsOutsideLineOrientedBoundary(t *testing.T) {
+	tests := []struct {
+		name string
+		raw  string
+		want string
+	}{
+		{name: "block scalar", raw: "source: |\n  first\n  second", want: "|"},
+		{name: "multiphysical quoted scalar", raw: "source: \"first\n  second\"", want: `"first`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f, err := Parse([]byte("---\n" + tt.raw + "\n---\nbody\n"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			got, ok := f.GetScalar("source")
+			if !ok || got != tt.want {
+				t.Fatalf("GetScalar(source) = %q, %v; want line-local token %q", got, ok, tt.want)
+			}
+		})
 	}
 }

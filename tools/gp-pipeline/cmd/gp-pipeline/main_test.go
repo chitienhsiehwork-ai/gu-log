@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,7 +14,32 @@ import (
 
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/llm"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/logx"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/pipeline"
 )
+
+func captureProcessStdout(t *testing.T, fn func() error) ([]byte, error) {
+	t.Helper()
+	original := os.Stdout
+	read, write, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Stdout = write
+	defer func() { os.Stdout = original }()
+
+	runErr := fn()
+	if err := write.Close(); err != nil {
+		t.Fatal(err)
+	}
+	out, err := io.ReadAll(read)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := read.Close(); err != nil {
+		t.Fatal(err)
+	}
+	return out, runErr
+}
 
 // makeFakeRepo creates a directory tree that satisfies config.Resolve()'s
 // CLAUDE.md sentinel and includes a writable scripts/article-counter.json.
@@ -385,6 +411,92 @@ func TestRunRun_FromStepTranslateRequiresFile(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "--file") {
 		t.Fatalf("runRun error = %q, want --file guidance", err)
+	}
+}
+
+func TestRunCommand_FromStepTranslateReportsWrittenEnglishFile(t *testing.T) {
+	resetGlobals()
+	root := makeFakeRepo(t)
+	postsDir := filepath.Join(root, "src", "content", "posts")
+	if err := os.MkdirAll(postsDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	filename := "gp-10-20260723-recovery-roundtrip.mdx"
+	mustWrite(t, filepath.Join(postsDir, filename), `---
+title: "Recovery roundtrip"
+ticketId: GP-10
+---
+中文內容。
+`)
+	fakePath := filepath.Join(root, "fake-provider.json")
+	mustWrite(t, fakePath, `{"responses":[{"output":"---\ntitle: \"Recovery roundtrip\"\nticketId: GP-10\n---\nEnglish body.\n"}]}`)
+	t.Setenv("GU_LOG_DIR", root)
+
+	cmd := buildRoot()
+	cmd.SetArgs([]string{
+		"--json", "--fake-provider", fakePath,
+		"run", "--from-step", "translate", "--file", filename, "--dry-run",
+	})
+	out, err := captureProcessStdout(t, func() error {
+		return cmd.ExecuteContext(context.Background())
+	})
+	if err != nil {
+		t.Fatalf("run command: %v", err)
+	}
+	var report runReport
+	if err := json.Unmarshal(out, &report); err != nil {
+		t.Fatalf("decode stdout JSON %q: %v", out, err)
+	}
+	want := "en-" + filename
+	if report.ENFilename != want {
+		t.Fatalf("enFilename = %q, want written file %q", report.ENFilename, want)
+	}
+	info, err := os.Lstat(filepath.Join(postsDir, report.ENFilename))
+	if err != nil {
+		t.Fatalf("reported English file: %v", err)
+	}
+	if !info.Mode().IsRegular() {
+		t.Fatalf("reported English path mode = %s, want regular file", info.Mode())
+	}
+}
+
+func TestSelectRunReportENFilename(t *testing.T) {
+	postsDir := t.TempDir()
+	mustWrite(t, filepath.Join(postsDir, "en-active.mdx"), "active")
+	mustWrite(t, filepath.Join(postsDir, "en-final.mdx"), "final")
+	if err := os.Mkdir(filepath.Join(postsDir, "en-directory.mdx"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	tests := []struct {
+		name   string
+		final  string
+		active string
+		want   string
+	}{
+		{name: "final regular file wins", final: "en-final.mdx", active: "en-active.mdx", want: "en-final.mdx"},
+		{name: "existing active fallback", final: "en-missing.mdx", active: "en-active.mdx", want: "en-active.mdx"},
+		{name: "prefilled names without files omitted", final: "en-missing.mdx", active: "en-also-missing.mdx", want: ""},
+		{name: "directory is not an artifact", active: "en-directory.mdx", want: ""},
+		{name: "candidate must be a basename", active: "../en-active.mdx", want: ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := selectRunReportENFilename(postsDir, tt.final, tt.active); got != tt.want {
+				t.Fatalf("selectRunReportENFilename() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSelectRunReportENFilename_DryRunDoesNotReportPrefilledName(t *testing.T) {
+	s := pipeline.NewState()
+	s.DryRun = true
+	s.RalphPassed = false
+	s.ActiveENFilename = "en-gp-pending-prefilled.mdx"
+
+	if got := selectRunReportENFilename(t.TempDir(), s.ENFilename, s.ActiveENFilename); got != "" {
+		t.Fatalf("Ralph-failed dry-run reported nonexistent English artifact %q", got)
 	}
 }
 

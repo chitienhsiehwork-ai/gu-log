@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/frontmatter"
 )
 
 const ralphFixtureMDX = `---
@@ -214,6 +216,83 @@ func TestNormalizeRalphFrontmatter_ReQuotesSourceForSafeYAML(t *testing.T) {
 				t.Errorf("post-normalize frontmatter missing %q, got:\n%s", tc.wantLine, got)
 			}
 		})
+	}
+}
+
+func TestNormalizeRalphFrontmatter_SourceSemanticRoundTrip(t *testing.T) {
+	tests := []struct {
+		name       string
+		sourceLine string
+		want       string
+	}{
+		{name: "escaped quote and backslash", sourceLine: `source: "He said \"hi\" at C:\\tmp"`, want: `He said "hi" at C:\tmp`},
+		{name: "Unicode colon and hash", sourceLine: `source: "蘑菇: a # b"`, want: "蘑菇: a # b"},
+		{name: "escaped newline tab carriage and control", sourceLine: `source: "line1\nline2\tcell\rend\x01"`, want: "line1\nline2\tcell\rend\x01"},
+		{name: "single quoted apostrophe", sourceLine: `source: 'Simon Willison''s Weblog'`, want: "Simon Willison's Weblog"},
+		{name: "literal surrounding quotes", sourceLine: `source: '"quoted label"'`, want: `"quoted label"`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "post.mdx")
+			raw := "---\ntitle: \"T\"\n" + tt.sourceLine + "\n---\nbody\n"
+			if err := os.WriteFile(path, []byte(raw), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			for pass := 1; pass <= 2; pass++ {
+				if err := normalizeRalphFrontmatter(path, PipelineStamp{}); err != nil {
+					t.Fatalf("normalize pass %d: %v", pass, err)
+				}
+				data, err := os.ReadFile(path)
+				if err != nil {
+					t.Fatal(err)
+				}
+				f, err := frontmatter.Parse(data)
+				if err != nil {
+					t.Fatal(err)
+				}
+				scalar, ok := f.GetScalar("source")
+				if !ok {
+					t.Fatal("normalized source missing")
+				}
+				got, err := decodeYAMLScalar(scalar)
+				if err != nil {
+					t.Fatalf("decode pass %d scalar %q: %v", pass, scalar, err)
+				}
+				if got != tt.want {
+					t.Fatalf("pass %d semantic value = %q, want %q", pass, got, tt.want)
+				}
+			}
+		})
+	}
+}
+
+func TestNormalizeRalphFrontmatter_InvalidWriterFallbackRetained(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "post.mdx")
+	raw := "---\ntitle: \"T\"\nsource: 'Simon Willison's Weblog'\n---\nbody\n"
+	if err := os.WriteFile(path, []byte(raw), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := normalizeRalphFrontmatter(path, PipelineStamp{}); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f, err := frontmatter.Parse(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rawSource, ok := f.GetScalar("source")
+	if !ok {
+		t.Fatal("source missing")
+	}
+	got, err := decodeYAMLScalar(rawSource)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "Simon Willison's Weblog" {
+		t.Fatalf("fallback semantic value = %q", got)
 	}
 }
 
