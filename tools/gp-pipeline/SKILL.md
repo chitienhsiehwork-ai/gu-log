@@ -42,7 +42,7 @@ tools/gp-pipeline/gp-pipeline run '<url>' --prefix GP --force
 # 已人工確認是 dedup false positive 才可使用
 tools/gp-pipeline/gp-pipeline run '<url>' --prefix GP --skip-dedup
 
-# 從既有文章恢復
+# 從既有文章的 review 階段恢復
 tools/gp-pipeline/gp-pipeline run --file gp-259-example.mdx --from-step review --prefix GP
 ```
 
@@ -62,20 +62,26 @@ tools/gp-pipeline/gp-pipeline run --file gp-259-example.mdx --from-step review -
 | 補 en sidecar | `gp-pipeline translate --file <gp-NNN-*.mdx>`（tribunal 通過後才跑；只寫新 en 檔，不 commit／push） |
 | 看下一個號碼 | `gp-pipeline counter next --prefix GP` |
 | 原子配置號碼 | `gp-pipeline counter bump --prefix GP` |
-| 恢復 deploy | `gp-pipeline deploy --active-file <gp-pending-*.mdx> --prefix GP ...` |
+| 已配置正式 ticket、缺 en sidecar：補翻譯並發布 | `gp-pipeline run --from-step translate --file <existing>.mdx` |
+| 已配置正式 ticket、雙語檔只差發布 | `gp-pipeline run --from-step deploy --file <existing>.mdx` |
+| 全新 PENDING article 配號並發布 | `gp-pipeline deploy --active-file <gp-pending-*.mdx> --prefix GP --date-stamp <YYYYMMDD> --author-slug <author> --title-slug <title>` |
 | 查看 run 狀態 | `gp-pipeline status` |
 
 若在 shell 外直接呼叫，以上表格中的 `gp-pipeline` 代表完整路徑 `tools/gp-pipeline/gp-pipeline`。
 
-## Side effects 與批准邊界
+既有正式文章一律走 `run --file`，保留原有 ticket 與檔名；standalone `deploy` 只處理尚未配號的全新 PENDING article。
+
+## Side effects 與政策 SSOT
 
 - `fetch`、`eval`、`dedup`、`write`、`review`、`refine`、`credits`、`status` 與 `counter next` 不配置正式 ticket。
 - `counter bump` 會原子修改 `scripts/article-counter.json`；通常只應由 deploy 呼叫。
 - `ralph` 會修改指定文章的 frontmatter／內容。
 - `translate` 只寫一個新的 en- sidecar 檔，不 commit、不 push。
-- `deploy` 會配置 ticket、rename pending 檔、validate、build、commit、push。
-- `--dry-run` 停在 deploy 前；不得用它假裝完成發布。
-- `--skip-validate`、`--skip-build`、`--skip-push` 只供受控測試或恢復情境，不能繞過 repo 品質門檻。
+- standalone `deploy` 會為全新 PENDING article 配置 ticket、rename pending 檔、validate、build、commit、push；`--date-stamp`、`--author-slug`、`--title-slug` 都是必填輸入。
+- standalone `deploy --dry-run` 只做 CLI 輸入預檢，不跑 validator，也不做 counter、檔案、build 或 git 異動；不得用它假裝完成發布。
+- `run --dry-run` 會停在 deploy 前。`--skip-validate`、`--skip-build`、`--skip-push` 是 testing-only flags；standalone deploy 正常執行不支援前兩者，standalone dry-run 也不會執行它們所對應的階段。
+
+批准、自主權與品質門檻以 repo 的 `AGENTS.md` 為 Tier-0 SSOT。先用 `./scripts/detect-env.sh --runtime <codex|claude-code>` 確認身份，再遵守它選出的 runtime playbook；本 skill 不另行定義批准規則。
 
 ## Exit code
 

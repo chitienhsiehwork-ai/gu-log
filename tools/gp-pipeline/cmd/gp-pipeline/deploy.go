@@ -42,20 +42,25 @@ func newDeployCmd(state *rootState) *cobra.Command {
 	)
 	cmd := &cobra.Command{
 		Use:   "deploy",
-		Short: "Allocate a ticket ID, rename pending files, validate, build, commit, push",
-		Long: `deploy is Step 5 of the pipeline. It:
+		Short: "Allocate and publish a fresh PENDING article",
+		Long: `deploy is the standalone allocation path for a fresh PENDING article.
+Before any counter or file mutation, it validates CLI inputs (including the
+required --date-stamp, --author-slug, and --title-slug filename slots),
+canonical taxonomy and matching pending filenames, PENDING ticketId
+frontmatter, the absence of pre-existing staged index changes, and
+node scripts/validate-posts.mjs.
 
-  1. Bumps the GP/MP/SD/Lv counter under flock
-  2. Renames the pending file in src/content/posts/ to the final name
-  3. Replaces any PENDING ticketId references in the frontmatter
-  4. Runs node scripts/validate-posts.mjs (unless --skip-validate)
-  5. Runs pnpm run build (unless --skip-build)
-  6. Stages the two MDX files + scripts/article-counter.json
-  7. Commits with "Add <TICKET>: <TITLE>"
-  8. Pushes to the default remote (unless --dry-run)
+Only after those gates pass does it allocate the counter, rename pending
+files, replace PENDING references, build, stage, commit, and push.
 
-Most callers invoke this through "gp-pipeline run"; the standalone
-subcommand is for recovering a partially-deployed article.`,
+Use "gp-pipeline run --from-step deploy --file <existing>.mdx" to publish
+an already-allocated article without changing its ticket or filename.
+
+--dry-run performs only CLI input preflight: it does not inspect article
+frontmatter or the staged index, run the validator, or perform counter, file,
+build, commit, or push operations. --skip-build and --skip-validate are
+testing-only flags: normal standalone deploy rejects them; dry-run returns
+before either stage is reached.`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return runDeployCmd(cmd.Context(), state, deployCmdOpts{
 				ActiveFilename:   activeFilename,
@@ -74,13 +79,13 @@ subcommand is for recovering a partially-deployed article.`,
 	cmd.Flags().StringVar(&activeFilename, "active-file", "", "current pending filename in src/content/posts/ (required)")
 	cmd.Flags().StringVar(&activeENFilename, "active-en-file", "", "current en- companion pending filename")
 	cmd.Flags().StringVar(&title, "title", "", "article title for the commit message")
-	cmd.Flags().StringVar(&dateStamp, "date-stamp", "", "YYYYMMDD for the final filename")
-	cmd.Flags().StringVar(&authorSlug, "author-slug", "", "sanitised author handle for the final filename")
-	cmd.Flags().StringVar(&titleSlug, "title-slug", "", "sanitised title for the final filename")
+	cmd.Flags().StringVar(&dateStamp, "date-stamp", "", "YYYYMMDD for the final filename (required for fresh PENDING deploy)")
+	cmd.Flags().StringVar(&authorSlug, "author-slug", "", "sanitised author handle for the final filename (required for fresh PENDING deploy)")
+	cmd.Flags().StringVar(&titleSlug, "title-slug", "", "sanitised title for the final filename (required for fresh PENDING deploy)")
 	cmd.Flags().StringVar(&prefix, "prefix", "GP", "ticket prefix (GP / MP / SD / Lv)")
-	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "skip validate, build, and push (for testing)")
-	cmd.Flags().BoolVar(&skipBuild, "skip-build", false, "skip pnpm run build")
-	cmd.Flags().BoolVar(&skipValidate, "skip-validate", false, "skip node scripts/validate-posts.mjs")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "validate CLI inputs only; run no validator or mutations")
+	cmd.Flags().BoolVar(&skipBuild, "skip-build", false, "testing only; rejected by normal standalone deploy")
+	cmd.Flags().BoolVar(&skipValidate, "skip-validate", false, "testing only; rejected by normal standalone deploy")
 	_ = cmd.MarkFlagRequired("active-file")
 	// date-stamp / author-slug / title-slug are validated inside deploy.Run
 	// (deploy.ValidateFilenameSlots, gu-log #546) rather than as cobra-required
