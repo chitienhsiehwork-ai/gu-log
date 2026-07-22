@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -224,7 +225,7 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 		Step:                "run",
 		TicketID:            s.PromptTicketID,
 		Filename:            s.Filename,
-		ENFilename:          s.ENFilename,
+		ENFilename:          selectRunReportENFilename(s.Cfg.PostsDir, s.ENFilename, s.ActiveENFilename),
 		WorkDir:             s.WorkDir,
 		CodexPrimaryVerdict: s.CodexPrimaryVerdict,
 		CodexVerdict:        s.CodexVerdict,
@@ -248,6 +249,23 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 	report.OK = true
 	emitRunReport(state, report, s)
 	return nil
+}
+
+// selectRunReportENFilename reports only an English artifact that exists as
+// a regular file in PostsDir. The deployed name is authoritative when both
+// deployed and active names exist; recovery runs that stop before deploy fall
+// back to the sidecar written by Translate.
+func selectRunReportENFilename(postsDir, finalName, activeName string) string {
+	for _, candidate := range []string{finalName, activeName} {
+		if candidate == "" || filepath.Base(candidate) != candidate || strings.ContainsAny(candidate, `/\`) {
+			continue
+		}
+		info, err := os.Lstat(filepath.Join(postsDir, candidate))
+		if err == nil && info.Mode().IsRegular() {
+			return candidate
+		}
+	}
+	return ""
 }
 
 func emitRunReport(state *rootState, r runReport, s *pipeline.State) {

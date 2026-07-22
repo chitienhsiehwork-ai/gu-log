@@ -25,6 +25,8 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+
+	"go.yaml.in/yaml/v3"
 )
 
 // ErrNoFrontmatter is returned when Parse cannot find a --- delimited block.
@@ -456,9 +458,9 @@ func (f *File) StripLinesMatching(pred func(line string) bool) {
 	f.lines = out
 }
 
-// QuoteScalar wraps s in a YAML double-quoted scalar, correctly escaping
-// backslashes and embedded double quotes so the result is always valid
-// YAML regardless of what s contains (apostrophes, colons, quotes, ...).
+// QuoteScalar serializes s as a YAML double-quoted scalar. yaml.v3 owns the
+// complete escaping rules, including physical line breaks, tabs, carriage
+// returns, and control characters.
 //
 // s is the semantic scalar value, not pre-serialized YAML. A value whose
 // first and last characters happen to be quotes must therefore have those
@@ -473,9 +475,20 @@ func (f *File) StripLinesMatching(pred func(line string) bool) {
 // caller is responsible for quoting, per the package doc) — QuoteScalar
 // is the one true way callers SHOULD produce that quoted value.
 func QuoteScalar(s string) string {
-	escaped := strings.ReplaceAll(s, `\`, `\\`)
-	escaped = strings.ReplaceAll(escaped, `"`, `\"`)
-	return `"` + escaped + `"`
+	node := yaml.Node{
+		Kind:  yaml.ScalarNode,
+		Tag:   "!!str",
+		Value: s,
+		Style: yaml.DoubleQuotedStyle,
+	}
+	encoded, err := yaml.Marshal(&node)
+	if err != nil {
+		// A scalar string has no unsupported Go types or recursive values. If
+		// yaml.v3 ever violates that invariant, stop before a caller can write
+		// a partial hand-escaped value to frontmatter.
+		panic(fmt.Sprintf("frontmatter: quote YAML scalar: %v", err))
+	}
+	return strings.TrimSuffix(string(encoded), "\n")
 }
 
 // leadingSpaces returns the leading whitespace prefix of s.

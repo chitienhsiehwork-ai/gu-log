@@ -29,11 +29,9 @@ const WJ = '⁠';
 // "(...)" text — each one here can turn a real parenthetical into a (harmless
 // but pointless) nowrap span. Eyes / mouths / cheeks / brows + halfwidth
 // katakana (U+FF65–FF9F, e.g. ﾟ ﾉ ･ ｡) + a few Cyrillic/symbol eyes.
-/* eslint-disable no-misleading-character-class -- combining marks (̀ ́ ̶) ride on base glyphs intentionally */
 // NOTE: do NOT add the backtick ` here — inline-code parentheticals like
 // （`Cmd+D`）are prose, not kaomoji. (´・ω・`) is still detected via ´ / ・ / ω.
 const KAOMOJI_CHARS = /[°□▽△￣ᴥᴗᵕ◍◔◕๑˃˂ᗜಠ∀ω·•‿╥﹏☆⁰¬⌐■ヘヮД´・⊂⊃⊙≧≦ㅂ₃ง･-ﾟ]/u;
-/* eslint-enable no-misleading-character-class */
 
 // Decoration / arm glyphs that flank the bracket group (leading or trailing),
 // e.g. ╰(°▽°)╯, ヽ(°〇°)ﾉ, ٩(◕‿◕｡)۶, (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧. Halfwidth katakana is
