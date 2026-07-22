@@ -6,11 +6,13 @@
 在檔案落地 `src/content/posts/` 前（`ralph` frontmatter normalization 這一關）先以 YAML
 解析器解碼成語意字串，再由完整 YAML 純量編碼器確定性地重新序列化。
 
-對任何合法字串純量（包含跳脫引號、反斜線、Unicode、冒號、井字號、換行、定位與
-控制字元），解析、序列化、再次解析後的語意值 SHALL 與原值完全相同，且 SHALL NOT
-重複跳脫。若完整編碼器無法序列化語意字串，pipeline SHALL fail closed，不得退回只處理
-部分字元的手刻引號函式。`scripts/validate-posts.mjs` SHALL 繼續使用真 YAML 解析器，讓
-任何欄位的無效 YAML 在 validate 階段被擋下。
+對現有行導向 `source:` 路徑可讀取的合法單一實體行字串純量（包含跳脫引號、反斜線、
+Unicode、冒號、井字號，以及以 escape 表示的換行、定位與控制字元），解析、序列化、
+再次解析後的語意值 SHALL 與原值完全相同，且 SHALL NOT 重複跳脫。block scalar 與跨
+實體行 quoted scalar 不在此 requirement 的支援語法內。若完整編碼器無法序列化語意
+字串，pipeline SHALL fail closed，不得退回只處理部分字元的手刻引號函式。
+`scripts/validate-posts.mjs` SHALL 繼續使用真 YAML 解析器，讓任何欄位的無效 YAML 在
+validate 階段被擋下。
 
 #### Scenario: 帶撇號的 source label 最終落地合法 YAML
 
@@ -49,6 +51,13 @@
 - **THEN** 輸出 SHALL 是單一合法 YAML 字串純量
 - **AND** YAML 解析器讀回的值 SHALL 與原語意值完全相同
 
+#### Scenario: 多行 YAML 語法維持在行導向 getter 邊界外
+
+- **GIVEN** `source` 使用 block scalar 或跨實體行 quoted scalar 語法
+- **WHEN** 行導向 frontmatter getter 讀取欄位
+- **THEN** 此 change SHALL NOT 宣稱能正規化該語法
+- **AND** 完整 frontmatter validator 仍 SHALL 依真 YAML parser 判斷整份文件是否合法
+
 #### Scenario: 無效 writer 純量維持受限補救
 
 - **GIVEN** writer 產生解析器無法接受的 `source` 純量
@@ -59,8 +68,9 @@
 ### Requirement: 補救成功 JSON SHALL 回報實際寫出的英文產物
 
 `gp-pipeline run --json` 成功時，若 pipeline 已產生英文對應檔，`enFilename` SHALL 回報
-實際產物的 basename。正式發佈檔名已知時 SHALL 優先回報正式名稱；尚未產生正式名稱但
-翻譯步驟已寫出暫用檔案時 SHALL 回報暫用 basename。只有未產生英文產物時才可省略欄位。
+`PostsDir` 內實際存在之 regular file 的 basename。正式發佈檔案存在時 SHALL 優先回報
+正式名稱；尚未產生正式檔案但翻譯步驟已寫出暫用檔案時 SHALL 回報暫用 basename。只有
+未產生英文產物時才可省略欄位。
 
 #### Scenario: 既有正式文章缺英文檔時執行翻譯補救
 
@@ -68,6 +78,13 @@
 - **WHEN** `run --from-step translate --file <existing>.mdx --json` 成功寫出英文檔
 - **THEN** 報告的 `enFilename` SHALL 等於實際寫出的檔案 basename
 - **AND** SHALL NOT 因 `State.ENFilename` 尚空而省略欄位
+
+#### Scenario: 預填暫用名稱但未寫檔時不得回報
+
+- **GIVEN** `RalphPassed=false`，且 `ActiveENFilename` 已預填但對應檔案不存在
+- **WHEN** `run --dry-run --json` 成功結束
+- **THEN** 報告 SHALL 省略 `enFilename`
+- **AND** SHALL NOT 把預定名稱冒充為實際產物
 
 #### Scenario: 正式發佈檔名優先於暫用名稱
 
