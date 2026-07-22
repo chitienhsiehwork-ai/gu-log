@@ -36,10 +36,10 @@ ${filler}
 `;
     fs.writeFileSync(tempFile, content, 'utf-8');
 
-    const result = execSync(
-      `node scripts/validate-posts.mjs "${tempFile}"`,
-      { cwd: projectRoot, encoding: 'utf-8' }
-    );
+    const result = execSync(`node scripts/validate-posts.mjs "${tempFile}"`, {
+      cwd: projectRoot,
+      encoding: 'utf-8',
+    });
     expect(result).toContain('PASSED');
   });
 
@@ -60,10 +60,10 @@ ${filler}
 `;
     fs.writeFileSync(tempFile, content, 'utf-8');
 
-    const result = execSync(
-      `node scripts/validate-posts.mjs "${tempFile}"`,
-      { cwd: projectRoot, encoding: 'utf-8' }
-    );
+    const result = execSync(`node scripts/validate-posts.mjs "${tempFile}"`, {
+      cwd: projectRoot,
+      encoding: 'utf-8',
+    });
     expect(result).toContain('PASSED');
   });
 
@@ -85,10 +85,10 @@ ${filler}
     fs.writeFileSync(tempFile, content, 'utf-8');
 
     try {
-      execSync(
-        `node scripts/validate-posts.mjs "${tempFile}"`,
-        { cwd: projectRoot, encoding: 'utf-8' }
-      );
+      execSync(`node scripts/validate-posts.mjs "${tempFile}"`, {
+        cwd: projectRoot,
+        encoding: 'utf-8',
+      });
       // Should not reach here
       expect(true).toBe(false);
     } catch (e: unknown) {

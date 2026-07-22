@@ -88,7 +88,9 @@ async function setupAndSelectText(page: import('@playwright/test').Page) {
 }
 
 test.describe('AI Popup - Chat Box', () => {
-  test('GIVEN logged in WHEN clicking Ask AI THEN shows input box with submit button (not direct API call)', async ({ page }) => {
+  test('GIVEN logged in WHEN clicking Ask AI THEN shows input box with submit button (not direct API call)', async ({
+    page,
+  }) => {
     // Do NOT mock the API - if it calls API directly, the test should still pass
     // because we're checking UI state, not API calls
     await page.route('**/ai/ask', async (route) => {
@@ -118,7 +120,9 @@ test.describe('AI Popup - Chat Box', () => {
     await expect(popup.locator('.ai-popup-result')).not.toBeVisible();
   });
 
-  test('GIVEN input box visible WHEN user types question and submits THEN API is called with question field', async ({ page }) => {
+  test('GIVEN input box visible WHEN user types question and submits THEN API is called with question field', async ({
+    page,
+  }) => {
     let capturedBody: Record<string, unknown> | null = null;
     await page.route('**/ai/ask', async (route) => {
       const request = route.request();
@@ -152,7 +156,9 @@ test.describe('AI Popup - Chat Box', () => {
     expect(capturedBody!.text).toBeTruthy(); // selected text should be present
   });
 
-  test('GIVEN input box visible WHEN submit with empty input THEN API is called without question (backwards compatible)', async ({ page }) => {
+  test('GIVEN input box visible WHEN submit with empty input THEN API is called without question (backwards compatible)', async ({
+    page,
+  }) => {
     let capturedBody: Record<string, unknown> | null = null;
     await page.route('**/ai/ask', async (route) => {
       const request = route.request();
@@ -184,12 +190,16 @@ test.describe('AI Popup - Chat Box', () => {
     expect(capturedBody!.text).toBeTruthy();
   });
 
-  test('GIVEN API returns 500 with detail WHEN Ask AI submits THEN popup shows the specific error detail', async ({ page }) => {
+  test('GIVEN API returns 500 with detail WHEN Ask AI submits THEN popup shows the specific error detail', async ({
+    page,
+  }) => {
     await page.route('**/ai/ask', async (route) => {
       await route.fulfill({
         status: 502,
         contentType: 'application/json',
-        body: JSON.stringify({ detail: 'Claude service error: Claude subprocess timed out after 60s' }),
+        body: JSON.stringify({
+          detail: 'Claude service error: Claude subprocess timed out after 60s',
+        }),
       });
     });
 
@@ -223,7 +233,9 @@ test.describe('AI Popup - Chat Box', () => {
     expect(placeholder!.length).toBeGreaterThan(5);
   });
 
-  test('GIVEN input box visible WHEN clicking cancel THEN returns to button state or closes', async ({ page }) => {
+  test('GIVEN input box visible WHEN clicking cancel THEN returns to button state or closes', async ({
+    page,
+  }) => {
     const popup = await setupAndSelectText(page);
 
     // Click Ask AI
@@ -240,7 +252,9 @@ test.describe('AI Popup - Chat Box', () => {
     await expect(input).not.toBeVisible();
   });
 
-  test('GIVEN Ask AI returns markdown WHEN result renders THEN formatting is displayed instead of raw markdown', async ({ page }) => {
+  test('GIVEN Ask AI returns markdown WHEN result renders THEN formatting is displayed instead of raw markdown', async ({
+    page,
+  }) => {
     await page.route('**/ai/ask', async (route) => {
       await route.fulfill({
         status: 200,
@@ -265,7 +279,9 @@ test.describe('AI Popup - Chat Box', () => {
 });
 
 test.describe('AI Popup - Error Detail Display', () => {
-  test('GIVEN network error WHEN Ask AI submits THEN shows connection error message', async ({ page }) => {
+  test('GIVEN network error WHEN Ask AI submits THEN shows connection error message', async ({
+    page,
+  }) => {
     // Abort the request to simulate network failure
     await page.route('**/ai/ask', async (route) => {
       await route.abort('connectionrefused');

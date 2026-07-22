@@ -242,17 +242,27 @@ describe('loadAllowlist', () => {
 
 describe('entryMatchesVulnerability', () => {
   it('matches by id', () => {
-    expect(entryMatchesVulnerability({ id: '99' }, { id: '99', ids: ['99'], name: 'x' })).toBe(true);
-    expect(entryMatchesVulnerability({ id: '99' }, { id: '11', ids: ['11'], name: 'x' })).toBe(false);
+    expect(entryMatchesVulnerability({ id: '99' }, { id: '99', ids: ['99'], name: 'x' })).toBe(
+      true
+    );
+    expect(entryMatchesVulnerability({ id: '99' }, { id: '11', ids: ['11'], name: 'x' })).toBe(
+      false
+    );
   });
 
   it('matches id from ids[]', () => {
-    expect(entryMatchesVulnerability({ id: '88' }, { id: null, ids: ['88'], name: 'x' })).toBe(true);
+    expect(entryMatchesVulnerability({ id: '88' }, { id: null, ids: ['88'], name: 'x' })).toBe(
+      true
+    );
   });
 
   it('matches by name', () => {
-    expect(entryMatchesVulnerability({ name: 'foo' }, { id: '1', ids: [], name: 'foo' })).toBe(true);
-    expect(entryMatchesVulnerability({ name: 'foo' }, { id: '1', ids: [], name: 'bar' })).toBe(false);
+    expect(entryMatchesVulnerability({ name: 'foo' }, { id: '1', ids: [], name: 'foo' })).toBe(
+      true
+    );
+    expect(entryMatchesVulnerability({ name: 'foo' }, { id: '1', ids: [], name: 'bar' })).toBe(
+      false
+    );
   });
 
   it('id and name combined: both must match', () => {

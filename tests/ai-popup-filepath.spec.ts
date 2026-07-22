@@ -52,13 +52,11 @@ test.describe('AiPopup filePath — Static Analysis', () => {
     }
 
     if (violations.length > 0) {
-      const report = violations
-        .map((v) => `  ${v.file}:${v.line} → ${v.text}`)
-        .join('\n');
+      const report = violations.map((v) => `  ${v.file}:${v.line} → ${v.text}`).join('\n');
       expect(
         violations,
         `Double .mdx extension detected in AiPopup filePath prop!\n` +
-          `post.id already includes ".mdx" — do not append it again.\n${report}`,
+          `post.id already includes ".mdx" — do not append it again.\n${report}`
       ).toHaveLength(0);
     }
   });
@@ -87,9 +85,7 @@ test.describe('AiPopup filePath — Static Analysis', () => {
     }
 
     if (violations.length > 0) {
-      const report = violations
-        .map((v) => `  ${v.file}:${v.line} → ${v.text}`)
-        .join('\n');
+      const report = violations.map((v) => `  ${v.file}:${v.line} → ${v.text}`).join('\n');
       expect(violations, `Literal .mdx.mdx found in filePath:\n${report}`).toHaveLength(0);
     }
   });
@@ -112,9 +108,7 @@ test.describe('AiPopup filePath — E2E Request Validation', () => {
     await page.goto(TEST_POST);
     await page.evaluate(() => {
       const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-      const payload = btoa(
-        JSON.stringify({ email: 'test@example.com', exp: 9999999999 }),
-      );
+      const payload = btoa(JSON.stringify({ email: 'test@example.com', exp: 9999999999 }));
       const token = header + '.' + payload + '.fake-signature';
       localStorage.setItem('gu-log-jwt', token);
     });

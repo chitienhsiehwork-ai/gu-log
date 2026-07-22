@@ -2,7 +2,7 @@ import { test, expect } from './fixtures';
 
 /**
  * LoginIndicator Tests
- * 
+ *
  * Tests the header login indicator (LoginIndicator.astro).
  * Covers: logged out link, logged in user display, logout, JWT parsing.
  */
@@ -39,7 +39,9 @@ test.describe('LoginIndicator', () => {
     await expect(indicator.locator('.login-logout-btn')).toBeVisible();
   });
 
-  test('GIVEN logged in user WHEN clicking logout THEN clears JWT and shows login link', async ({ page }) => {
+  test('GIVEN logged in user WHEN clicking logout THEN clears JWT and shows login link', async ({
+    page,
+  }) => {
     await page.goto('/');
     await page.evaluate(() => {
       const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
@@ -70,7 +72,7 @@ test.describe('LoginIndicator', () => {
 
     const userSpan = page.locator('#login-indicator .login-user');
     await expect(userSpan).toBeVisible();
-    
+
     // The displayed text should be truncated (component truncates to 14 chars + …)
     const displayText = await userSpan.textContent();
     // Content includes the emoji prefix "👤 "

@@ -4,7 +4,9 @@ test.describe('ShroomDogNote auto-fold', () => {
   const testPostUrl = '/posts/gp-205-20260517-addyosmani-dont-outsource-learning/';
   const sd26PostUrl = '/posts/sd-26-20260616-loop-engineering-at-gu-log/';
 
-  test('GIVEN a long ShroomDogNote WHEN page loads THEN it is collapsed behind a toggle', async ({ page }) => {
+  test('GIVEN a long ShroomDogNote WHEN page loads THEN it is collapsed behind a toggle', async ({
+    page,
+  }) => {
     await page.goto(testPostUrl);
 
     const note = page.locator('.shroomdog-note').first();
@@ -18,7 +20,9 @@ test.describe('ShroomDogNote auto-fold', () => {
     await expect(toggle).toHaveAttribute('aria-expanded', 'false');
   });
 
-  test('GIVEN a collapsed ShroomDogNote WHEN reader clicks toggle THEN it expands and can collapse again', async ({ page }) => {
+  test('GIVEN a collapsed ShroomDogNote WHEN reader clicks toggle THEN it expands and can collapse again', async ({
+    page,
+  }) => {
     await page.goto(testPostUrl);
 
     const note = page.locator('.shroomdog-note').first();
@@ -49,7 +53,9 @@ test.describe('ShroomDogNote auto-fold', () => {
 
           const threshold = Number(
             (note as HTMLElement).dataset.collapseThreshold ||
-              getComputedStyle(content).getPropertyValue('--shroomdog-note-collapsed-height').replace('px', '') ||
+              getComputedStyle(content)
+                .getPropertyValue('--shroomdog-note-collapsed-height')
+                .replace('px', '') ||
               260
           );
           const hiddenHeight = content.scrollHeight - threshold;

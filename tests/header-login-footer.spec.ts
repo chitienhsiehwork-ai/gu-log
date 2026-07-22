@@ -40,7 +40,9 @@ test.describe('Login placement', () => {
       await firstArticle.click();
       await page.waitForLoadState('networkidle');
     }
-    const githubBtn = page.locator('[data-login-cta] a, .login-cta a').filter({ hasText: /Login|GitHub/i });
+    const githubBtn = page
+      .locator('[data-login-cta] a, .login-cta a')
+      .filter({ hasText: /Login|GitHub/i });
     await expect(githubBtn.first()).toBeVisible();
   });
 });

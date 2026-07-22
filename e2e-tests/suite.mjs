@@ -89,8 +89,10 @@ async function saveA11ySnapshot(page, name, browser) {
         if (depth > 6) return null; // limit depth
         const role = el.getAttribute('role') || el.tagName.toLowerCase();
         const ariaLabel = el.getAttribute('aria-label') || '';
-        const text = el.childNodes.length === 1 && el.childNodes[0].nodeType === 3
-          ? el.childNodes[0].textContent.trim().substring(0, 100) : '';
+        const text =
+          el.childNodes.length === 1 && el.childNodes[0].nodeType === 3
+            ? el.childNodes[0].textContent.trim().substring(0, 100)
+            : '';
         const node = { role, name: ariaLabel || text || '' };
         const children = [];
         for (const child of el.children) {
@@ -104,7 +106,7 @@ async function saveA11ySnapshot(page, name, browser) {
       const _landmarks = {};
       const landmarkEls = document.querySelectorAll('nav, main, footer, header, aside, [role]');
       const tree = [];
-      landmarkEls.forEach(el => {
+      landmarkEls.forEach((el) => {
         tree.push({
           role: el.getAttribute('role') || el.tagName.toLowerCase(),
           name: el.getAttribute('aria-label') || '',
@@ -113,12 +115,15 @@ async function saveA11ySnapshot(page, name, browser) {
       });
       // Heading structure
       const headings = [];
-      document.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(h => {
-        headings.push({ level: parseInt(h.tagName[1]), text: h.textContent.trim().substring(0, 80) });
+      document.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach((h) => {
+        headings.push({
+          level: parseInt(h.tagName[1]),
+          text: h.textContent.trim().substring(0, 80),
+        });
       });
       // Button inventory
       const buttons = [];
-      document.querySelectorAll('button').forEach(b => {
+      document.querySelectorAll('button').forEach((b) => {
         buttons.push({
           label: b.getAttribute('aria-label') || b.textContent.trim().substring(0, 50),
           hasAriaLabel: !!b.getAttribute('aria-label'),
@@ -126,7 +131,7 @@ async function saveA11ySnapshot(page, name, browser) {
       });
       // Link inventory
       const links = [];
-      document.querySelectorAll('a[href]').forEach(a => {
+      document.querySelectorAll('a[href]').forEach((a) => {
         links.push({
           text: a.textContent.trim().substring(0, 60),
           href: a.getAttribute('href'),
@@ -135,7 +140,7 @@ async function saveA11ySnapshot(page, name, browser) {
       });
       // Image audit
       const images = [];
-      document.querySelectorAll('img').forEach(img => {
+      document.querySelectorAll('img').forEach((img) => {
         images.push({
           alt: img.getAttribute('alt'),
           hasAlt: img.getAttribute('alt') !== null,
@@ -146,10 +151,7 @@ async function saveA11ySnapshot(page, name, browser) {
     });
 
     const fname = `${browser}-${name}.json`;
-    fs.writeFileSync(
-      path.join(SNAPSHOTS_DIR, fname),
-      JSON.stringify(snapshot, null, 2),
-    );
+    fs.writeFileSync(path.join(SNAPSHOTS_DIR, fname), JSON.stringify(snapshot, null, 2));
     return { snapshot, fname };
   } catch (e) {
     warn(`a11y-snapshot-${name}`, e.message);
@@ -184,7 +186,7 @@ async function testHomepageLoad(page, browser) {
   check(
     title.includes('ShroomDog') || title.includes('香菇'),
     'homepage-title',
-    `Title: "${title}" (${loadTime}ms)`,
+    `Title: "${title}" (${loadTime}ms)`
   );
 
   check(loadTime < 15000, 'homepage-load-time', `${loadTime}ms < 15s`);
@@ -246,11 +248,7 @@ async function testBlogPostCards(page, browser) {
   check(postLinks.length >= 5, 'blog-post-cards-count', `Found ${postLinks.length} post links`);
 
   if (postLinks.length > 0) {
-    check(
-      postLinks[0].text.length > 5,
-      'blog-post-card-title',
-      `First: "${postLinks[0].text}"`,
-    );
+    check(postLinks[0].text.length > 5, 'blog-post-card-title', `First: "${postLinks[0].text}"`);
   }
 
   await screenshot(page, 'blog-cards', browser);
@@ -261,7 +259,7 @@ async function testThemeToggle(page, browser) {
 
   // Get initial theme
   const initialTheme = await page.evaluate(() =>
-    document.documentElement.getAttribute('data-theme'),
+    document.documentElement.getAttribute('data-theme')
   );
   console.log(`    Initial theme: ${initialTheme || '(not set / system default)'}`);
 
@@ -306,15 +304,13 @@ async function testThemeToggle(page, browser) {
   // Click 1: toggle theme (light → dark or whatever direction)
   await page.click(toggleSel);
   await page.waitForTimeout(500);
-  const afterFirst = await page.evaluate(() =>
-    document.documentElement.getAttribute('data-theme'),
-  );
+  const afterFirst = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
   await screenshot(page, 'theme-after-first-toggle', browser);
 
   check(
     afterFirst !== initialTheme,
     'theme-toggle-first',
-    `${initialTheme || 'null'} → ${afterFirst}`,
+    `${initialTheme || 'null'} → ${afterFirst}`
   );
 
   // Check localStorage persistence
@@ -335,21 +331,21 @@ async function testThemeToggle(page, browser) {
   await page.click(toggleSel);
   await page.waitForTimeout(500);
   const afterSecond = await page.evaluate(() =>
-    document.documentElement.getAttribute('data-theme'),
+    document.documentElement.getAttribute('data-theme')
   );
   await screenshot(page, 'theme-after-second-toggle', browser);
 
   check(
     afterSecond !== afterFirst,
     'theme-toggle-second',
-    `${afterFirst} → ${afterSecond} (roundtrip)`,
+    `${afterFirst} → ${afterSecond} (roundtrip)`
   );
 
   // Verify it returned to the original (or at least changed)
   check(
     afterSecond === initialTheme || afterSecond !== afterFirst,
     'theme-roundtrip',
-    `Bidirectional toggle works: ${initialTheme} → ${afterFirst} → ${afterSecond}`,
+    `Bidirectional toggle works: ${initialTheme} → ${afterFirst} → ${afterSecond}`
   );
 }
 
@@ -393,7 +389,9 @@ async function testSearchModal(page, browser) {
 
   // Check modal is not visible before click
   const modalBefore = await page.evaluate(() => {
-    const dialogs = document.querySelectorAll('dialog, [role="dialog"], .search-modal, [class*="search"][class*="modal"], .pagefind-ui');
+    const dialogs = document.querySelectorAll(
+      'dialog, [role="dialog"], .search-modal, [class*="search"][class*="modal"], .pagefind-ui'
+    );
     for (const d of dialogs) {
       const style = window.getComputedStyle(d);
       if (style.display !== 'none' && style.visibility !== 'hidden') return true;
@@ -409,7 +407,9 @@ async function testSearchModal(page, browser) {
 
   // Check if something search-related appeared
   const modalAfter = await page.evaluate(() => {
-    const dialogs = document.querySelectorAll('dialog[open], [role="dialog"], .search-modal, [class*="search"][class*="modal"], .pagefind-ui, input[type="search"]:focus, input[placeholder*="搜尋"], input[placeholder*="search" i]');
+    const dialogs = document.querySelectorAll(
+      'dialog[open], [role="dialog"], .search-modal, [class*="search"][class*="modal"], .pagefind-ui, input[type="search"]:focus, input[placeholder*="搜尋"], input[placeholder*="search" i]'
+    );
     return dialogs.length > 0;
   });
   check(modalAfter, 'search-modal-visible-after', 'Search UI appeared after click');
@@ -433,9 +433,7 @@ async function testBlogPostNavigation(page, browser) {
     return;
   }
 
-  const postUrl = firstPostHref.startsWith('http')
-    ? firstPostHref
-    : `${BASE_URL}${firstPostHref}`;
+  const postUrl = firstPostHref.startsWith('http') ? firstPostHref : `${BASE_URL}${firstPostHref}`;
 
   const start = Date.now();
   await page.goto(postUrl, { waitUntil: 'networkidle' });
@@ -481,10 +479,7 @@ async function testPostPageA11y(page, browser) {
 
   // Article landmark
   const hasArticleLandmark = await page.evaluate(() => {
-    return (
-      !!document.querySelector('article') ||
-      !!document.querySelector('[role="article"]')
-    );
+    return !!document.querySelector('article') || !!document.querySelector('[role="article"]');
   });
   check(hasArticleLandmark, 'post-article-landmark', 'Article landmark present');
 
@@ -499,7 +494,10 @@ async function testPostPageA11y(page, browser) {
       linkCount: snapshot.links.length,
       imageCount: snapshot.images.length,
     });
-    pass('a11y-post-snapshot-saved', `${snapshot.headings.length} headings, ${snapshot.buttons.length} buttons`);
+    pass(
+      'a11y-post-snapshot-saved',
+      `${snapshot.headings.length} headings, ${snapshot.buttons.length} buttons`
+    );
   }
 }
 
@@ -513,14 +511,14 @@ async function testAboutPage(page, browser) {
   check(
     title.includes('關於') || title.includes('About') || title.includes('香菇'),
     'about-title',
-    `Title: "${title}"`,
+    `Title: "${title}"`
   );
 
   const bodyText = await page.evaluate(() => document.body.innerText);
   check(
     bodyText.includes('ShroomDog') || bodyText.includes('香菇'),
     'about-content',
-    'Page contains ShroomDog/香菇 text',
+    'Page contains ShroomDog/香菇 text'
   );
 }
 
@@ -535,16 +533,12 @@ async function testEnglishLocalization(page, browser) {
   check(
     lang === 'en' || lang === 'en-US' || lang.startsWith('en'),
     'en-lang-attribute',
-    `lang="${lang}"`,
+    `lang="${lang}"`
   );
 
   // Check title is English
   const title = await page.title();
-  check(
-    title.includes('ShroomDog'),
-    'en-title',
-    `EN title: "${title}"`,
-  );
+  check(title.includes('ShroomDog'), 'en-title', `EN title: "${title}"`);
 
   // Check EN posts exist
   const enPosts = await page.evaluate(() => {
@@ -580,7 +574,8 @@ async function _testBackToTop(page, browser) {
         return {
           found: true,
           sel,
-          hidden: style.display === 'none' || style.opacity === '0' || style.visibility === 'hidden',
+          hidden:
+            style.display === 'none' || style.opacity === '0' || style.visibility === 'hidden',
         };
       }
     }
@@ -617,7 +612,8 @@ async function _testBackToTop(page, browser) {
       const el = document.querySelector(sel);
       if (el) {
         const style = window.getComputedStyle(el);
-        const visible = style.display !== 'none' && style.opacity !== '0' && style.visibility !== 'hidden';
+        const visible =
+          style.display !== 'none' && style.opacity !== '0' && style.visibility !== 'hidden';
         return { found: true, sel, visible };
       }
     }
@@ -625,7 +621,11 @@ async function _testBackToTop(page, browser) {
   });
 
   if (btnVisibleAfterScroll.found) {
-    check(btnVisibleAfterScroll.visible, 'back-to-top-visible-after-scroll', 'Button visible after scrolling');
+    check(
+      btnVisibleAfterScroll.visible,
+      'back-to-top-visible-after-scroll',
+      'Button visible after scrolling'
+    );
 
     // Click it
     await page.click(btnVisibleAfterScroll.sel);
@@ -675,14 +675,14 @@ async function testRSSFeed(page, _browser) {
   check(
     contentType.includes('xml') || contentType.includes('rss'),
     'rss-content-type',
-    contentType,
+    contentType
   );
 
   const body = await page.evaluate(() => document.body.innerText || document.body.textContent);
   check(
     body.includes('ShroomDog') || body.includes('香菇'),
     'rss-content',
-    'RSS contains ShroomDog content',
+    'RSS contains ShroomDog content'
   );
 }
 
@@ -748,7 +748,8 @@ async function testHomepageA11y(page, browser) {
     return {
       nav: !!document.querySelector('nav') || !!document.querySelector('[role="navigation"]'),
       main: !!document.querySelector('main') || !!document.querySelector('[role="main"]'),
-      footer: !!document.querySelector('footer') || !!document.querySelector('[role="contentinfo"]'),
+      footer:
+        !!document.querySelector('footer') || !!document.querySelector('[role="contentinfo"]'),
     };
   });
   check(landmarks.nav, 'a11y-nav-landmark', 'Navigation landmark present');
@@ -763,9 +764,7 @@ async function testHomepageA11y(page, browser) {
     let unlabeled = [];
     buttons.forEach((btn, i) => {
       const label =
-        btn.getAttribute('aria-label') ||
-        btn.getAttribute('title') ||
-        btn.textContent.trim();
+        btn.getAttribute('aria-label') || btn.getAttribute('title') || btn.textContent.trim();
       if (label && label.length > 0) {
         labeled++;
       } else {
@@ -777,7 +776,7 @@ async function testHomepageA11y(page, browser) {
   check(
     buttonAudit.labeled === buttonAudit.total,
     'a11y-button-labels',
-    `${buttonAudit.labeled}/${buttonAudit.total} buttons labeled${buttonAudit.unlabeled.length ? ' (unlabeled: ' + buttonAudit.unlabeled.join(', ') + ')' : ''}`,
+    `${buttonAudit.labeled}/${buttonAudit.total} buttons labeled${buttonAudit.unlabeled.length ? ' (unlabeled: ' + buttonAudit.unlabeled.join(', ') + ')' : ''}`
   );
 
   // Image alt text audit
@@ -801,7 +800,7 @@ async function testHomepageA11y(page, browser) {
     check(
       imgAudit.withAlt === imgAudit.total,
       'a11y-img-alt',
-      `${imgAudit.withAlt}/${imgAudit.total} images have alt text${imgAudit.missingAlt.length ? ' (missing: ' + imgAudit.missingAlt.slice(0, 3).join(', ') + ')' : ''}`,
+      `${imgAudit.withAlt}/${imgAudit.total} images have alt text${imgAudit.missingAlt.length ? ' (missing: ' + imgAudit.missingAlt.slice(0, 3).join(', ') + ')' : ''}`
     );
   } else {
     pass('a11y-img-alt', 'No images on page (decorative only?)');
@@ -824,7 +823,10 @@ async function testHomepageA11y(page, browser) {
       imageCount: snapshot.images.length,
       roles,
     });
-    pass('a11y-snapshot-saved', `${snapshot.landmarks.length} landmarks, ${snapshot.headings.length} headings, ${snapshot.buttons.length} buttons, ${snapshot.links.length} links`);
+    pass(
+      'a11y-snapshot-saved',
+      `${snapshot.landmarks.length} landmarks, ${snapshot.headings.length} headings, ${snapshot.buttons.length} buttons, ${snapshot.links.length} links`
+    );
   }
 }
 
@@ -857,7 +859,7 @@ async function testConsoleErrors(page, _browser) {
     'console-errors',
     realErrors.length === 0
       ? 'No console errors'
-      : `${realErrors.length} errors: ${realErrors.slice(0, 3).join(' | ')}`,
+      : `${realErrors.length} errors: ${realErrors.slice(0, 3).join(' | ')}`
   );
 }
 
@@ -875,7 +877,7 @@ async function testBriefsPage(page, browser) {
   check(
     title.includes('Brief') || title.includes('情報') || title.includes('Mogu'),
     'briefs-title',
-    `Title: "${title}"`,
+    `Title: "${title}"`
   );
 
   // Check briefs content exists
@@ -922,7 +924,7 @@ async function testMobileViewportOverflow(page, _browser) {
   check(
     !overflow.hasOverflow,
     'mobile-no-horizontal-overflow',
-    `Doc width: ${overflow.docWidth}px, viewport: ${overflow.viewportWidth}px${overflow.overflowingCount ? `, ${overflow.overflowingCount} elements overflow` : ''}`,
+    `Doc width: ${overflow.docWidth}px, viewport: ${overflow.viewportWidth}px${overflow.overflowingCount ? `, ${overflow.overflowingCount} elements overflow` : ''}`
   );
 
   // Also check on post page
@@ -943,7 +945,7 @@ async function testMobileViewportOverflow(page, _browser) {
     check(
       !postOverflow.hasOverflow,
       'mobile-post-no-overflow',
-      `Post page: doc ${postOverflow.docWidth}px vs viewport ${postOverflow.viewportWidth}px`,
+      `Post page: doc ${postOverflow.docWidth}px vs viewport ${postOverflow.viewportWidth}px`
     );
   }
 }
@@ -1061,11 +1063,7 @@ ${
 }
 
 #### ⚠️ Warnings (${warnCount})
-${
-  warnCount > 0
-    ? warnings.map((w) => `- **${w.name}**: ${w.detail}`).join('\n')
-    : '_None_'
-}
+${warnCount > 0 ? warnings.map((w) => `- **${w.name}**: ${w.detail}`).join('\n') : '_None_'}
 
 ---
 
@@ -1090,7 +1088,14 @@ ${a11yFindings
 - Buttons: ${f.buttonCount || 'N/A'}
 - Links: ${f.linkCount || 'N/A'}
 - Images: ${f.imageCount || 'N/A'}
-${f.roles ? '- Landmark Roles: ' + Object.entries(f.roles).map(([r, c]) => `${r}(${c})`).join(', ') : ''}`,
+${
+  f.roles
+    ? '- Landmark Roles: ' +
+      Object.entries(f.roles)
+        .map(([r, c]) => `${r}(${c})`)
+        .join(', ')
+    : ''
+}`
   )
   .join('\n\n')}
 
@@ -1188,7 +1193,7 @@ async function main() {
   console.log(`  ✅ Passed: ${passCount}`);
   console.log(`  ❌ Failed: ${failCount}`);
   console.log(`  ⚠️  Warnings: ${warnCount}`);
-  console.log(`  Pass rate: ${(passCount / (passCount + failCount) * 100).toFixed(1)}%`);
+  console.log(`  Pass rate: ${((passCount / (passCount + failCount)) * 100).toFixed(1)}%`);
   console.log(`  Total time: ${totalTime}s`);
   console.log(`${'═'.repeat(60)}`);
 
