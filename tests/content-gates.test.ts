@@ -278,19 +278,41 @@ describe('check-jingjing ALLOWLIST_RAW parsing (line-aware comments)', () => {
     );
   });
 
-  it('warns (not silently floods) when --baseline-ref cannot be resolved', () => {
+  it('reports full-scan fallback when --baseline-ref cannot be resolved', () => {
     const CLI = path.join(__dirname, '..', 'scripts', 'check-jingjing.mjs');
     const filepath = tmpPath('jj-unresolvable-baseline.mdx');
     fs.writeFileSync(filepath, `---\nlang: zh-tw\n---\n這個 approach 真的很 solid。\n`);
     let stderr = '';
+    let status: number | null = null;
     try {
       execFileSync('node', [CLI, '--baseline-ref=does-not-exist/nowhere', filepath], {
         encoding: 'utf-8',
       });
     } catch (e) {
+      const error = e as { status?: number | null; stderr?: string };
+      status = error.status ?? null;
+      stderr = String(error.stderr ?? '');
+    }
+    expect(status).toBe(1);
+    expect(stderr).toMatch(/baseline ref .* could not be resolved/);
+    expect(stderr).toMatch(/all detected violations are reported, including historical/);
+    expect(stderr).not.toMatch(/only new violations are reported/);
+    expect(stderr).not.toMatch(/historical grandfathered violations are ignored/);
+  });
+
+  it('does not call a new file a baseline-ref fallback', () => {
+    const CLI = path.join(__dirname, '..', 'scripts', 'check-jingjing.mjs');
+    const filepath = tmpPath('jj-new-at-baseline.mdx');
+    fs.writeFileSync(filepath, `---\nlang: zh-tw\n---\n這個 approach 真的很 solid。\n`);
+    let stderr = '';
+    try {
+      execFileSync('node', [CLI, '--baseline-ref=HEAD', filepath], { encoding: 'utf-8' });
+    } catch (e) {
       stderr = String((e as { stderr?: string }).stderr ?? '');
     }
-    expect(stderr).toMatch(/baseline ref .* could not be resolved/);
+    expect(stderr).not.toMatch(/baseline ref .* could not be resolved/);
+    expect(stderr).not.toMatch(/all detected violations are reported, including historical/);
+    expect(stderr).toMatch(/only new violations are reported/);
   });
 });
 
