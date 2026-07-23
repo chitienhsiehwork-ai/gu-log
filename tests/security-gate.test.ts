@@ -22,16 +22,20 @@ const sg = sgModule as any;
 
 const {
   parseArgs,
+  selectAuditSchema,
+  validateAuditReport,
   parseLegacyRoot,
   parseNodeModulesRoot,
   classifyScope,
   normalizeFromAdvisories,
   normalizeFromV2,
   normalizeFindings,
+  mergeProductionScope,
   loadAllowlist,
   entryMatchesVulnerability,
   summarizeScopes,
   formatVulnerability,
+  evaluateFindings,
   MAX_ALLOWLIST_DAYS,
   MS_PER_DAY,
 } = sg;
@@ -41,6 +45,8 @@ describe('parseArgs', () => {
     const o = parseArgs([]);
     expect(o.allowlistPath).toMatch(/security-allowlist\.json$/);
     expect(o.auditFile).toBeNull();
+    expect(o.prodAuditFile).toBeNull();
+    expect(o.validateOnly).toBe(false);
   });
 
   it('overrides allowlist path (absolute)', () => {
@@ -49,8 +55,76 @@ describe('parseArgs', () => {
   });
 
   it('takes audit-file', () => {
-    const o = parseArgs(['--audit-file', '/x/audit.json']);
+    const o = parseArgs([
+      '--audit-file',
+      '/x/audit.json',
+      '--prod-audit-file',
+      '/x/prod-audit.json',
+      '--validate-only',
+    ]);
     expect(o.auditFile).toBe('/x/audit.json');
+    expect(o.prodAuditFile).toBe('/x/prod-audit.json');
+    expect(o.validateOnly).toBe(true);
+  });
+
+  it('preserves stdin marker for validation', () => {
+    expect(parseArgs(['--audit-file', '-']).auditFile).toBe('-');
+  });
+});
+
+describe('validateAuditReport', () => {
+  const metadata = {
+    vulnerabilities: { info: 0, low: 0, moderate: 0, high: 0, critical: 0 },
+  };
+
+  it('accepts clean legacy and v2 schemas', () => {
+    expect(validateAuditReport({ advisories: {}, metadata })).toBeTruthy();
+    expect(validateAuditReport({ vulnerabilities: {}, metadata })).toBeTruthy();
+  });
+
+  it('uses v2 when a hybrid report has empty legacy advisories', () => {
+    const report = {
+      advisories: {},
+      vulnerabilities: {
+        foo: { severity: 'high', via: [{ source: 1 }], nodes: ['node_modules/foo'] },
+      },
+      metadata: {
+        vulnerabilities: { info: 0, low: 0, moderate: 0, high: 1, critical: 0 },
+      },
+    };
+    expect(selectAuditSchema(report)).toBe('v2');
+    expect(validateAuditReport(report)).toBe(report);
+  });
+
+  it('rejects audit transport errors', () => {
+    expect(() => validateAuditReport({ error: { code: 'ERR_PNPM_AUDIT_BAD_RESPONSE' } })).toThrow(
+      /audit error/
+    );
+  });
+
+  it('rejects missing schema or metadata', () => {
+    expect(() => validateAuditReport({ metadata })).toThrow(/advisories\/vulnerabilities/);
+    expect(() => validateAuditReport({ advisories: {} })).toThrow(/metadata\.vulnerabilities/);
+  });
+
+  it('rejects metadata that claims high findings without matching entries', () => {
+    expect(() =>
+      validateAuditReport({
+        advisories: {},
+        metadata: {
+          vulnerabilities: { info: 0, low: 0, moderate: 0, high: 1, critical: 0 },
+        },
+      })
+    ).toThrow(/no matching findings/);
+  });
+
+  it('rejects high findings when metadata claims the report is clean', () => {
+    expect(() =>
+      validateAuditReport({
+        advisories: { '1': { id: 1, severity: 'high' } },
+        metadata,
+      })
+    ).toThrow(/metadata reports none/);
   });
 });
 
@@ -188,6 +262,55 @@ describe('normalizeFindings — dispatcher', () => {
   });
 });
 
+describe('mergeProductionScope', () => {
+  it('treats an advisory present in the production report as runtime or mixed', () => {
+    const full = [
+      { id: '42', ids: ['42'], name: 'leaf', scope: 'dev' },
+      { id: '99', ids: ['99'], name: 'dev-only', scope: 'dev' },
+    ];
+    const production = [{ id: '42', ids: ['42'], name: 'leaf', scope: 'unknown' }];
+
+    expect(
+      mergeProductionScope(full, production).map((finding: { scope: string }) => finding.scope)
+    ).toEqual(['mixed', 'dev']);
+  });
+
+  it('keeps production-only findings and marks them runtime', () => {
+    const output = mergeProductionScope(
+      [],
+      [{ id: '7', ids: ['7'], name: 'runtime-leaf', scope: 'unknown' }]
+    );
+    expect(output).toEqual([{ id: '7', ids: ['7'], name: 'runtime-leaf', scope: 'runtime' }]);
+  });
+
+  it('does not merge different advisory IDs for the same package', () => {
+    const full = [{ id: '1', ids: ['1'], name: 'foo', scope: 'dev' }];
+    const production = [{ id: '2', ids: ['2'], name: 'foo', scope: 'unknown' }];
+    const merged = mergeProductionScope(full, production);
+
+    expect(merged).toEqual([
+      { id: '1', ids: ['1'], name: 'foo', scope: 'dev' },
+      { id: '2', ids: ['2'], name: 'foo', scope: 'runtime' },
+    ]);
+
+    const allowlist = [
+      {
+        id: '1',
+        name: 'foo',
+        expiresAt: '2026-08-01',
+        expiresMs: Date.parse('2026-08-01T00:00:00Z'),
+        reason: 'dev-only finding',
+        _index: 1,
+      },
+    ];
+    const evaluated = evaluateFindings(merged, allowlist, Date.parse('2026-07-23T00:00:00Z'));
+    expect(
+      evaluated.allowed.map((item: { vulnerability: { id: string } }) => item.vulnerability.id)
+    ).toEqual(['1']);
+    expect(evaluated.blockedNew.map((finding: { id: string }) => finding.id)).toEqual(['2']);
+  });
+});
+
 describe('loadAllowlist', () => {
   it('loads array form', () => {
     const f = tmpPath('allowlist-array.json');
@@ -237,6 +360,57 @@ describe('loadAllowlist', () => {
     const f = tmpPath('allowlist-bad4.json');
     fs.writeFileSync(f, JSON.stringify([{ reason: 'r', expiresAt: '2099-01-01' }]));
     expect(() => loadAllowlist(f)).toThrow(/at least id or name/);
+  });
+});
+
+describe('evaluateFindings', () => {
+  const now = Date.parse('2026-07-23T00:00:00Z');
+  const finding = {
+    id: '42',
+    ids: ['42'],
+    name: 'dev-tool',
+    scope: 'dev',
+    severity: 'high',
+    roots: ['dev-tool'],
+  };
+
+  it('blocks dev high findings that are not allowlisted', () => {
+    const result = evaluateFindings([finding], [], now);
+    expect(result.blockedNew).toEqual([finding]);
+    expect(result.allowed).toEqual([]);
+  });
+
+  it('accepts a dev finding with a valid allowlist entry within 45 days', () => {
+    const entry = {
+      id: '42',
+      name: null,
+      expiresAt: '2026-09-05',
+      expiresMs: Date.parse('2026-09-05T00:00:00Z'),
+      reason: 'upstream transitive dependency',
+      _index: 1,
+    };
+    const result = evaluateFindings([finding], [entry], now);
+    expect(result.allowed).toHaveLength(1);
+    expect(result.blockedNew).toEqual([]);
+  });
+
+  it('rejects expired and overlong dev allowlist entries', () => {
+    const expired = {
+      id: '42',
+      expiresAt: '2026-07-22',
+      expiresMs: Date.parse('2026-07-22T00:00:00Z'),
+      reason: 'expired',
+      _index: 1,
+    };
+    expect(evaluateFindings([finding], [expired], now).blockedExpired).toHaveLength(1);
+
+    const overlong = {
+      ...expired,
+      expiresAt: '2026-09-07',
+      expiresMs: Date.parse('2026-09-07T00:00:00Z'),
+      reason: 'too long',
+    };
+    expect(evaluateFindings([finding], [overlong], now).blockedPolicy).toHaveLength(1);
   });
 });
 
