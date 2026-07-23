@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures';
+import { selectPostTextAndShowPopup } from './helpers/ai-popup';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
@@ -99,7 +100,7 @@ test.describe('AiPopup filePath — E2E Request Validation', () => {
   test.beforeEach(async () => {
     // Desktop only — text selection doesn't work reliably on mobile viewports
     const isDesktop = test.info().project.name === 'Desktop Chrome';
-    if (!isDesktop) test.skip();
+    test.skip(!isDesktop, 'E2E file-path coverage runs only in the Desktop Chrome project');
   });
 
   const TEST_POST = '/posts/gp-24-20260204-claude-is-a-space-to-think';
@@ -113,22 +114,6 @@ test.describe('AiPopup filePath — E2E Request Validation', () => {
       localStorage.setItem('gu-log-jwt', token);
     });
     await page.reload();
-  }
-
-  async function selectAndShowPopup(page: import('@playwright/test').Page) {
-    const content = page.locator('.post-content p').first();
-    await expect(content).toBeVisible();
-    const box = await content.boundingBox();
-    if (!box) throw new Error('No bounding box');
-
-    await page.mouse.move(box.x + 10, box.y + box.height / 2);
-    await page.mouse.down();
-    await page.mouse.move(box.x + 200, box.y + box.height / 2);
-    await page.mouse.up();
-
-    const popup = page.locator('#ai-popup');
-    await expect(popup).toBeVisible({ timeout: 3000 });
-    return popup;
   }
 
   test('GIVEN a post page WHEN Edit with AI sends request THEN filePath must NOT contain .mdx.mdx', async ({
@@ -150,7 +135,7 @@ test.describe('AiPopup filePath — E2E Request Validation', () => {
       });
     });
 
-    const popup = await selectAndShowPopup(page);
+    const popup = await selectPostTextAndShowPopup(page);
     await popup.locator('[data-action="edit"]').click();
 
     const input = popup.locator('.ai-popup-edit-input');

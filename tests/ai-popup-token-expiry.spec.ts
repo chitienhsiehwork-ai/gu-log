@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures';
+import { selectPostTextAndShowPopup as selectAndShowPopup } from './helpers/ai-popup';
 
 const TEST_POST = '/posts/gp-24-20260204-claude-is-a-space-to-think';
 
@@ -19,26 +20,10 @@ async function setupLoggedIn(
   await page.reload();
 }
 
-async function selectAndShowPopup(page: import('@playwright/test').Page) {
-  const content = page.locator('.post-content p').first();
-  await expect(content).toBeVisible();
-  const box = await content.boundingBox();
-  if (!box) throw new Error('No bounding box');
-
-  await page.mouse.move(box.x + 10, box.y + box.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(box.x + 200, box.y + box.height / 2);
-  await page.mouse.up();
-
-  const popup = page.locator('#ai-popup');
-  await expect(popup).toBeVisible({ timeout: 3000 });
-  return popup;
-}
-
 test.describe('AI Popup - Token Expiry', () => {
   test.beforeEach(async () => {
     const isDesktop = test.info().project.name === 'Desktop Chrome';
-    if (!isDesktop) test.skip();
+    test.skip(!isDesktop, 'Desktop token-expiry coverage runs only in the Desktop Chrome project');
   });
 
   test('GIVEN expired JWT WHEN text selected THEN shows Login button (not Ask/Edit)', async ({

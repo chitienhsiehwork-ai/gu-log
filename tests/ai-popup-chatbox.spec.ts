@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures';
+import { selectPostTextAndShowPopup } from './helpers/ai-popup';
 
 /**
  * AI Popup Chat Box Tests (TDD)
@@ -14,50 +15,6 @@ import { test, expect } from './fixtures';
 
 const TEST_POST = '/posts/gp-24-20260204-claude-is-a-space-to-think';
 
-function isMobileProject() {
-  return !!test.info().project.use.isMobile;
-}
-
-async function selectTextProgrammatically(page: import('@playwright/test').Page) {
-  const applySelection = async () => {
-    await page.evaluate(() => {
-      const p = document.querySelector('.post-content p');
-      if (!p || !p.firstChild) throw new Error('No post-content paragraph found');
-      const range = document.createRange();
-      const textNode = p.firstChild;
-      range.setStart(textNode, 0);
-      range.setEnd(textNode, Math.min(textNode.textContent?.length || 20, 20));
-      const sel = window.getSelection();
-      sel?.removeAllRanges();
-      sel?.addRange(range);
-    });
-  };
-
-  await applySelection();
-
-  const content = page.locator('.post-content p').first();
-  const box = await content.boundingBox();
-  if (box) {
-    await page.mouse.click(box.x + 10, box.y + box.height / 2, { button: 'left' });
-    await applySelection();
-  }
-
-  await page.evaluate(() => {
-    const p = document.querySelector('.post-content p');
-    if (!p || !p.firstChild) throw new Error('No post-content paragraph found');
-    const range = document.createRange();
-    const textNode = p.firstChild;
-    range.setStart(textNode, 0);
-    range.setEnd(textNode, Math.min(textNode.textContent?.length || 20, 20));
-    const sel = window.getSelection();
-    sel?.removeAllRanges();
-    sel?.addRange(range);
-    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
-    document.dispatchEvent(new Event('touchend', { bubbles: true }));
-  });
-  await page.waitForTimeout(100);
-}
-
 /** Helper: set up logged-in state, select text, get popup */
 async function setupAndSelectText(page: import('@playwright/test').Page) {
   await page.goto(TEST_POST);
@@ -68,23 +25,7 @@ async function setupAndSelectText(page: import('@playwright/test').Page) {
   });
   await page.reload();
 
-  const content = page.locator('.post-content p').first();
-  await expect(content).toBeVisible();
-  if (isMobileProject()) {
-    await selectTextProgrammatically(page);
-  } else {
-    const box = await content.boundingBox();
-    if (!box) throw new Error('No bounding box');
-
-    await page.mouse.move(box.x + 10, box.y + box.height / 2);
-    await page.mouse.down();
-    await page.mouse.move(box.x + 150, box.y + box.height / 2);
-    await page.mouse.up();
-  }
-
-  const popup = page.locator('#ai-popup');
-  await expect(popup).toBeVisible({ timeout: 3000 });
-  return popup;
+  return selectPostTextAndShowPopup(page);
 }
 
 test.describe('AI Popup - Chat Box', () => {

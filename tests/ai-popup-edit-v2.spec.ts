@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures';
+import { selectPostTextAndShowPopup as selectAndShowPopup } from './helpers/ai-popup';
 
 /**
  * RED tests for Edit v2 flow:
@@ -23,27 +24,10 @@ async function setupLoggedIn(page: import('@playwright/test').Page) {
   await page.reload();
 }
 
-/** Helper: select text and open popup */
-async function selectAndShowPopup(page: import('@playwright/test').Page) {
-  const content = page.locator('.post-content p').first();
-  await expect(content).toBeVisible();
-  const box = await content.boundingBox();
-  if (!box) throw new Error('No bounding box');
-
-  await page.mouse.move(box.x + 10, box.y + box.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(box.x + 200, box.y + box.height / 2);
-  await page.mouse.up();
-
-  const popup = page.locator('#ai-popup');
-  await expect(popup).toBeVisible({ timeout: 3000 });
-  return popup;
-}
-
 test.describe('Edit v2 — Instruction Input', () => {
   test.beforeEach(async () => {
     const isDesktop = test.info().project.name === 'Desktop Chrome';
-    if (!isDesktop) test.skip();
+    test.skip(!isDesktop, 'Desktop edit coverage runs only in the Desktop Chrome project');
   });
 
   test('GIVEN logged in WHEN clicking Edit THEN shows instruction input (not immediate loading)', async ({
@@ -137,7 +121,7 @@ test.describe('Edit v2 — Instruction Input', () => {
 test.describe('Edit v2 — Confirm / Retry / Cancel', () => {
   test.beforeEach(async () => {
     const isDesktop = test.info().project.name === 'Desktop Chrome';
-    if (!isDesktop) test.skip();
+    test.skip(!isDesktop, 'Desktop edit coverage runs only in the Desktop Chrome project');
   });
 
   /** Helper: get to the diff result state */
@@ -221,10 +205,10 @@ test.describe('Edit v2 — Confirm / Retry / Cancel', () => {
 test.describe('Edit v2 — Keyboard shortcuts', () => {
   test.beforeEach(async () => {
     const isDesktop = test.info().project.name === 'Desktop Chrome';
-    if (!isDesktop) test.skip();
+    test.skip(!isDesktop, 'Desktop keyboard coverage runs only in the Desktop Chrome project');
   });
 
-  test('GIVEN edit instruction input WHEN pressing Enter THEN submits', async ({ page }) => {
+  test('GIVEN edit instruction input WHEN pressing Ctrl+Enter THEN submits', async ({ page }) => {
     await setupLoggedIn(page);
 
     let editCalled = false;
@@ -243,7 +227,7 @@ test.describe('Edit v2 — Keyboard shortcuts', () => {
     const input = popup.locator('.ai-popup-edit-input');
     await expect(input).toBeVisible();
     await input.fill('修 typo');
-    await input.press('Enter');
+    await input.press('Control+Enter');
 
     await expect(popup.locator('.ai-popup-diff')).toBeVisible({ timeout: 10000 });
     expect(editCalled).toBe(true);
