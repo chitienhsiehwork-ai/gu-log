@@ -9,7 +9,7 @@
 
 - [ ] 2.1 新增有版本的候選清單 model、產物相對路徑／SHA-256 與同目錄原子寫入器
 - [ ] 2.2 新增只接受單一 YouTube 影片的 `gp-pipeline candidate <youtube-url>`，只編排來源擷取、完整性與影片 ID 防重複檢查
-- [ ] 2.3 驗證候選預審工作目錄解析符號連結後位於 repo 外，拒絕過期 URL／影片 ID／來源雜湊的靜默復用
+- [ ] 2.3 驗證候選預審工作目錄解析符號連結後位於 repo 外；安全外部目錄尚未建立時不得 fallback 寫 manifest，並拒絕過期 URL／影片 ID／來源雜湊的靜默復用
 - [ ] 2.4 以程式邊界與陷阱測試保證候選預審不引用／呼叫 LLM、Eval、Write、Review、Refine、Credits、Ralph、Translate、Deploy、git、計數器或文章異動
 
 ## 3. 診斷與操作者契約
@@ -21,7 +21,7 @@
 
 - [ ] 4.1 新增假的 `yt-dlp` 測試資料，覆蓋人工＋自動、多語言、無字幕、過短、超限、缺 metadata、直播、無效 URL 與找不到執行檔
 - [ ] 4.2 新增清單原子性、結束碼、穩定失敗、雜湊、過期產物、跨 URL 形式的影片 ID 防重複 PASS／BLOCK 與逾時／中斷測試
-- [ ] 4.3 新增端到端異動測試，比對候選預審前後所有 tracked contents 與 untracked set，且假的 LLM／git／發布執行檔被呼叫即失敗
+- [ ] 4.3 新增端到端異動測試，比對候選預審前後 HEAD／refs、Git index、所有 tracked 與既有 untracked 檔案的 path／content hash／mode、untracked set，且假的 LLM／git／發布執行檔被呼叫即失敗
 - [ ] 4.4 跑 gp-pipeline 全套 Go tests、CLI help 契約、OpenSpec validation 與 repo pre-commit／pre-push 關卡
 
 ## 5. 審查與封存
