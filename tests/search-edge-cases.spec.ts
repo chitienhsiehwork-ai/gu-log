@@ -7,7 +7,7 @@ import { test, expect } from './fixtures';
  * keyboard navigation, Cmd+K shortcut, Escape close, special chars.
  */
 
-const BASE = 'http://localhost:4321';
+const BASE = '/';
 
 test.describe('Search - Keyboard Navigation', () => {
   test('GIVEN Cmd+K shortcut WHEN pressed THEN opens search modal', async ({ page }) => {
