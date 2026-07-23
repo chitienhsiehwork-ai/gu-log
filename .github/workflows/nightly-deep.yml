@@ -252,6 +252,7 @@ jobs:
   # ─── Full Link Check (internal + external with baseline ratchet) ──
   link-check:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: build
     permissions:
       contents: write
@@ -282,7 +283,7 @@ jobs:
         # unmerged progress on it, this leaves it alone. Same one-command
         # follow-up once the staleness check goes red:
         #   gh pr create --base main --head nightly/links-baseline-staging && gh pr merge --auto --squash
-        if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+        if: ${{ always() && !cancelled() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
         run: |
           bash scripts/nightly-baseline-stage.sh \
             nightly/links-baseline-staging \
