@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if [ "${BASH_VERSINFO[0]}" -lt 4 ]; then
+  echo "SKIP: Tribunal publisher requires Bash 4+ (mapfile)."
+  exit 0
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
-PUBLISHER="$ROOT_DIR/scripts/tribunal-publisher.sh"
 
 fail() { echo "x $*" >&2; exit 1; }
 pass() { echo "ok $*"; }

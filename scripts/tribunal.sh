@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
-# tribunal.sh — Tribunal v8 sequential tribunal (Codex/GPT-5.5 runner)
+# tribunal.sh — Sequential Tribunal runner
 #
 # Stages (in order):
-#   1. Fact Check (GPT-5.5) — source/commentary gate + fact bar, max 2 loops
-#   2. Librarian  (GPT-5.5) — composite ≥ 8,             max 2 loops
-#   3. Fresh Eyes (GPT-5.5) — composite ≥ 8,             max 2 loops
-#   4. Vibe Scorer (GPT-5.5) — one dim ≥ 9 AND rest ≥ 8, max 3 loops
+#   1. Fact Check  — source/commentary + fact gates, max 2 loops
+#   2. Librarian   — corpus/glossary/source gate,     max 2 loops
+#   3. Fresh Eyes  — first-reader gate,               max 2 loops
+#   4. Vibe Scorer — taste/rhythm gate,               max 3 loops
+#
+# Provider/model routing is resolved at runtime and recorded per stage. This
+# header is an overview, not selector configuration.
 #
 # Usage:
 #   bash scripts/tribunal.sh [--only-stage <factChecker|librarian|freshEyes|vibe>] [--allow-rewrite] [--no-commit] <filename.mdx>
@@ -528,7 +531,7 @@ $ROOT_DIR/src/content/posts/en-$post_file
 $evidence
 
 ## Task
-1. Use absolute paths under the Repo root above; this Codex process runs from a temp directory, not the repo root.
+1. Use absolute paths under the Repo root above; the isolated writer runner starts from a temp directory, not the repo root.
 2. Fix only content-actionable problems in $ROOT_DIR/src/content/posts/$post_file.
 3. Also update $ROOT_DIR/src/content/posts/en-$post_file if it exists and the same issue applies.
 4. Inspect your diff before finishing. Do not run tribunal, judge agents, or any quota-burning model calls from inside this repair.
@@ -544,8 +547,8 @@ PROMPT
   writer_out="$(mktemp)"
   writer_quota_status_file="$(mktemp)"
   writer_rc=0
-  # Spawn from tmp work-dir so Codex does not inherit unrelated repo-local
-  # instructions. Writer's job is to edit src/content/posts/*.mdx.
+  # Spawn from a temporary work-dir so the selected writer does not inherit
+  # unrelated repo-local instructions. Its job is to edit posts only.
   local writer_work_dir
   writer_work_dir="$(tribunal_llm_work_dir)"
   TRIBUNAL_QUOTA_STATUS_FILE="$writer_quota_status_file" \
@@ -1002,7 +1005,7 @@ $score_json
 $ssot_content
 
 ## Task
-1. Use absolute paths under the Repo root above; this Codex process runs from a temp directory, not the repo root.
+1. Use absolute paths under the Repo root above; the isolated writer runner starts from a temp directory, not the repo root.
 2. Read $ROOT_DIR/src/content/posts/$post_file and $ROOT_DIR/GU-LOG_WRITER_PROMPT.md.
 3. Read the judge feedback JSON above — identify every dimension that scored below 8.
 4. Rewrite the post to fix those specific failures. Write it back in-place.
@@ -1025,8 +1028,8 @@ PROMPT
     writer_quota_status_file="$(mktemp)"
     writer_rc=0
 
-    # Writer reads the full post + judge feedback + scoring SSOT through Codex.
-    # Spawn from tmp work-dir to keep prompt context isolated.
+    # Writer reads the full post + judge feedback + scoring SSOT through the
+    # selected provider. Spawn from a temporary work-dir to isolate context.
     local rewrite_work_dir
     rewrite_work_dir="$(tribunal_llm_work_dir)"
     TRIBUNAL_QUOTA_STATUS_FILE="$writer_quota_status_file" \
@@ -1145,9 +1148,8 @@ done
 #
 # NOTE: TRIBUNAL_PROVIDER is the *global primary* — used only for this preflight
 # (availability + codex version) and the CCC-fallback log below. It is NOT the
-# per-stage truth: providers are resolved per judge via tribunal_judge_provider
-# (VibeScorer prefers Claude Opus 4.5, the other three stay Codex/GPT-5.5), and
-# each stage's real provider/model is recorded via actual_provider_file.
+# per-stage truth: providers are resolved per judge via tribunal_judge_provider,
+# and each stage's real provider/model is recorded via actual_provider_file.
 TRIBUNAL_PROVIDER="$(tribunal_llm_provider || true)"
 if [ -z "$TRIBUNAL_PROVIDER" ]; then
   echo "ERROR: No tribunal LLM provider on PATH: install codex (preferred) or claude" >&2

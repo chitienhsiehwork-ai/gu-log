@@ -118,7 +118,7 @@ pipeline: 'gp-96-pipeline' # Optional
 pipelineUrl: 'https://github.com/...' # Optional
 lang: 'zh-tw'
 summary: '2-3 句摘要（≤300 characters）'
-tags: ['gu-log-picks', 'tag2', 'tag3']
+tags: ['ai-agents', 'developer-tools'] # 僅為範例；只放與文章相關的主題 tag，系列由 ticketId 決定
 ---
 ```
 

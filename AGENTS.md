@@ -7,7 +7,7 @@
 
 ## 🪪 開場第一件事：先確認自己是誰，再讀對應 playbook（Tier 1）
 
-**任何 coding-agent instance 進到這個 repo，第一件事必須明確帶自己的 runtime 跑 identity detection**（Codex：`./scripts/detect-env.sh --runtime codex`；Claude Code：`./scripts/detect-env.sh --runtime claude-code`），再讀對應的 playbook。不要依賴 tool subprocess 繼承 ambient runtime env：
+**Codex／Claude Code 的 SessionStart hook 應先注入 `env: agent_id=...` compact context 與 playbook pointer。若開場沒有這段 context、hook 顯示 unavailable，或 project hook 被停用／尚未信任，才明確帶自己的 runtime 手動跑 identity detection**（Codex：`./scripts/detect-env.sh --runtime codex`；Claude Code：`./scripts/detect-env.sh --runtime claude-code`），再讀對應的 playbook。不要依賴 tool subprocess 繼承 ambient runtime env：
 
 | Instance | 跑在哪 | Playbook |
 |---|---|---|
