@@ -29,6 +29,8 @@ function parseArgs(argv) {
   const options = {
     allowlistPath: DEFAULT_ALLOWLIST_PATH,
     auditFile: null,
+    prodAuditFile: null,
+    validateOnly: false,
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -39,13 +41,22 @@ function parseArgs(argv) {
       continue;
     }
     if (arg === '--audit-file' && argv[i + 1]) {
-      options.auditFile = toAbsolutePath(argv[i + 1]);
+      options.auditFile = argv[i + 1] === '-' ? '-' : toAbsolutePath(argv[i + 1]);
       i += 1;
+      continue;
+    }
+    if (arg === '--prod-audit-file' && argv[i + 1]) {
+      options.prodAuditFile = toAbsolutePath(argv[i + 1]);
+      i += 1;
+      continue;
+    }
+    if (arg === '--validate-only') {
+      options.validateOnly = true;
       continue;
     }
     if (arg === '--help' || arg === '-h') {
       console.log(
-        `Usage: node scripts/security-gate.mjs [options]\n\nOptions:\n  --allowlist <path>  Allowlist path (default: quality/security-allowlist.json)\n  --audit-file <path> Read audit JSON from file (default: run "pnpm audit --json")\n  -h, --help          Show help\n`
+        `Usage: node scripts/security-gate.mjs [options]\n\nOptions:\n  --allowlist <path>       Allowlist path (default: quality/security-allowlist.json)\n  --audit-file <path>      Read full audit JSON from file; use - for stdin\n  --prod-audit-file <path> Read production audit JSON from file\n  --validate-only          Validate --audit-file schema, then exit\n  -h, --help               Show help\n`
       );
       process.exit(0);
     }
@@ -57,20 +68,88 @@ function parseArgs(argv) {
 }
 
 function loadJson(path) {
+  if (path === '-') {
+    return JSON.parse(readFileSync(0, 'utf-8'));
+  }
   return JSON.parse(readFileSync(path, 'utf-8'));
 }
 
-function readAuditReport(auditFile) {
+function selectAuditSchema(report) {
+  const hasLegacy = Object.hasOwn(report, 'advisories');
+  const hasV2 = Object.hasOwn(report, 'vulnerabilities');
+  if (hasLegacy && Object.keys(report.advisories || {}).length > 0) return 'legacy';
+  if (hasV2) return 'v2';
+  return 'legacy';
+}
+
+function validateAuditReport(report, label = 'Audit report') {
+  if (!report || typeof report !== 'object' || Array.isArray(report)) {
+    throw new Error(`${label} must be a JSON object`);
+  }
+  if (report.error) {
+    const message = report.error.message || report.error.code || JSON.stringify(report.error);
+    throw new Error(`${label} contains an audit error: ${message}`);
+  }
+
+  const hasLegacy = Object.hasOwn(report, 'advisories');
+  const hasV2 = Object.hasOwn(report, 'vulnerabilities');
+  if (!hasLegacy && !hasV2) {
+    throw new Error(`${label} is missing advisories/vulnerabilities`);
+  }
+  if (
+    hasLegacy &&
+    (!report.advisories ||
+      typeof report.advisories !== 'object' ||
+      Array.isArray(report.advisories))
+  ) {
+    throw new Error(`${label}.advisories must be an object`);
+  }
+  if (
+    hasV2 &&
+    (!report.vulnerabilities ||
+      typeof report.vulnerabilities !== 'object' ||
+      Array.isArray(report.vulnerabilities))
+  ) {
+    throw new Error(`${label}.vulnerabilities must be an object`);
+  }
+
+  const counts = report.metadata?.vulnerabilities;
+  if (!counts || typeof counts !== 'object' || Array.isArray(counts)) {
+    throw new Error(`${label} is missing metadata.vulnerabilities`);
+  }
+  for (const severity of ['info', 'low', 'moderate', 'high', 'critical']) {
+    if (!Number.isInteger(counts[severity]) || counts[severity] < 0) {
+      throw new Error(`${label} has invalid metadata.vulnerabilities.${severity}`);
+    }
+  }
+
+  const schema = selectAuditSchema(report);
+  const entries = Object.values(schema === 'legacy' ? report.advisories : report.vulnerabilities);
+  const parsedHighCritical = entries.filter((entry) =>
+    ['high', 'critical'].includes((entry?.severity || '').toLowerCase())
+  ).length;
+  if (counts.high + counts.critical > 0 && parsedHighCritical === 0) {
+    throw new Error(`${label} reports high/critical counts but no matching findings`);
+  }
+  if (counts.high + counts.critical === 0 && parsedHighCritical > 0) {
+    throw new Error(`${label} contains high/critical findings but metadata reports none`);
+  }
+
+  return report;
+}
+
+function readAuditReport(auditFile, { productionOnly = false } = {}) {
+  const label = productionOnly ? 'Production audit report' : 'Full audit report';
   if (auditFile) {
-    if (!existsSync(auditFile)) {
+    if (auditFile !== '-' && !existsSync(auditFile)) {
       throw new Error(`Audit file not found: ${auditFile}`);
     }
-    return loadJson(auditFile);
+    return validateAuditReport(loadJson(auditFile), label);
   }
 
   const auditCommand = existsSync(join(ROOT, 'package-lock.json'))
-    ? 'npm audit --json'
-    : 'pnpm audit --json';
+    ? `npm audit${productionOnly ? ' --omit=dev' : ''} --json`
+    : `pnpm audit${productionOnly ? ' --prod' : ''} --json`;
 
   let raw = '';
   try {
@@ -88,7 +167,7 @@ function readAuditReport(auditFile) {
     throw new Error(`${auditCommand} returned empty output`);
   }
 
-  return JSON.parse(raw);
+  return validateAuditReport(JSON.parse(raw), label);
 }
 
 function parseLegacyRoot(path) {
@@ -195,10 +274,38 @@ function normalizeFromV2(report, deps, devDeps) {
 }
 
 function normalizeFindings(report, deps, devDeps) {
-  if (report?.advisories && Object.keys(report.advisories).length > 0) {
+  if (selectAuditSchema(report) === 'legacy') {
     return normalizeFromAdvisories(report, deps, devDeps);
   }
   return normalizeFromV2(report, deps, devDeps);
+}
+
+function findingsMatch(left, right) {
+  const leftIds = new Set([left.id, ...(left.ids || [])].filter(Boolean));
+  const rightIds = new Set([right.id, ...(right.ids || [])].filter(Boolean));
+  if (leftIds.size > 0 && rightIds.size > 0) {
+    return [...leftIds].some((id) => rightIds.has(id));
+  }
+  return left.name !== 'unknown-module' && left.name === right.name;
+}
+
+function mergeProductionScope(fullFindings, productionFindings) {
+  const merged = fullFindings.map((finding) => {
+    if (!productionFindings.some((production) => findingsMatch(finding, production))) {
+      return { ...finding };
+    }
+    return {
+      ...finding,
+      scope: finding.scope === 'dev' || finding.scope === 'mixed' ? 'mixed' : 'runtime',
+    };
+  });
+
+  for (const production of productionFindings) {
+    if (!merged.some((finding) => findingsMatch(finding, production))) {
+      merged.push({ ...production, scope: 'runtime' });
+    }
+  }
+  return merged;
 }
 
 function loadAllowlist(path) {
@@ -274,34 +381,14 @@ function formatVulnerability(vuln) {
   return `- [${vuln.severity.toUpperCase()}][${vuln.scope}] ${vuln.name} (${idPart}) roots: ${rootsPart}`;
 }
 
-function main() {
-  const options = parseArgs(process.argv.slice(2));
-  const pkg = loadJson(join(ROOT, 'package.json'));
-  const runtimeDeps = new Set(Object.keys(pkg.dependencies || {}));
-  const devDeps = new Set(Object.keys(pkg.devDependencies || {}));
-
-  const report = readAuditReport(options.auditFile);
-  const allowlist = loadAllowlist(options.allowlistPath);
-  const findings = normalizeFindings(report, runtimeDeps, devDeps);
-
-  const now = Date.now();
-
+function evaluateFindings(findings, allowlist, now = Date.now()) {
   const allowed = [];
   const blockedNew = [];
   const blockedExpired = [];
   const blockedPolicy = [];
   const usedAllowlistIndexes = new Set();
 
-  const warnedDevOnly = [];
-
   for (const vulnerability of findings) {
-    // Dev-only HIGH/CRITICAL → warn but never block CI
-    // These are in build/lint toolchains only, never in the production bundle
-    if (vulnerability.scope === 'dev') {
-      warnedDevOnly.push(vulnerability);
-      continue;
-    }
-
     const matches = allowlist.filter((entry) => entryMatchesVulnerability(entry, vulnerability));
 
     if (matches.length === 0) {
@@ -328,6 +415,44 @@ function main() {
     usedAllowlistIndexes.add(valid._index);
     allowed.push({ vulnerability, entry: valid, daysLeft });
   }
+
+  const staleExpiredEntries = allowlist.filter(
+    (entry) => entry.expiresMs < now && !usedAllowlistIndexes.has(entry._index)
+  );
+
+  return {
+    allowed,
+    blockedNew,
+    blockedExpired,
+    blockedPolicy,
+    staleExpiredEntries,
+  };
+}
+
+function main() {
+  const options = parseArgs(process.argv.slice(2));
+  const pkg = loadJson(join(ROOT, 'package.json'));
+  const runtimeDeps = new Set(Object.keys(pkg.dependencies || {}));
+  const devDeps = new Set(Object.keys(pkg.devDependencies || {}));
+
+  const report = readAuditReport(options.auditFile);
+
+  if (options.validateOnly) {
+    console.log('Audit report schema valid.');
+    return;
+  }
+
+  if (Boolean(options.auditFile) !== Boolean(options.prodAuditFile)) {
+    throw new Error('--audit-file and --prod-audit-file must be provided together');
+  }
+
+  const prodReport = readAuditReport(options.prodAuditFile, { productionOnly: true });
+  const allowlist = loadAllowlist(options.allowlistPath);
+  const fullFindings = normalizeFindings(report, runtimeDeps, devDeps);
+  const productionFindings = normalizeFindings(prodReport, runtimeDeps, devDeps);
+  const findings = mergeProductionScope(fullFindings, productionFindings);
+  const { allowed, blockedNew, blockedExpired, blockedPolicy, staleExpiredEntries } =
+    evaluateFindings(findings, allowlist);
 
   const scopeSummary = summarizeScopes(findings);
 
@@ -376,23 +501,12 @@ function main() {
     }
   }
 
-  if (warnedDevOnly.length > 0) {
-    console.log(`\n⚠️  Dev-only high/critical (warn only, not blocking CI)`);
-    for (const vuln of warnedDevOnly) {
-      console.log(formatVulnerability(vuln));
-    }
-  }
-
   if (blockedNew.length > 0) {
     console.log('\n❌ New high/critical findings (not allowlisted)');
     for (const vuln of blockedNew) {
       console.log(formatVulnerability(vuln));
     }
   }
-
-  const staleExpiredEntries = allowlist.filter(
-    (entry) => entry.expiresMs < now && !usedAllowlistIndexes.has(entry._index)
-  );
 
   if (staleExpiredEntries.length > 0) {
     console.log('\n⚠️  Expired allowlist entries to clean up (currently not matched):');
@@ -415,16 +529,22 @@ function main() {
 
 export {
   parseArgs,
+  selectAuditSchema,
+  validateAuditReport,
+  readAuditReport,
   parseLegacyRoot,
   parseNodeModulesRoot,
   classifyScope,
   normalizeFromAdvisories,
   normalizeFromV2,
   normalizeFindings,
+  findingsMatch,
+  mergeProductionScope,
   loadAllowlist,
   entryMatchesVulnerability,
   summarizeScopes,
   formatVulnerability,
+  evaluateFindings,
   MAX_ALLOWLIST_DAYS,
   MS_PER_DAY,
 };

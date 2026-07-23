@@ -23,6 +23,12 @@ if [ -z "${AUDIT_JSON}" ]; then
   exit 2
 fi
 
+# Reject registry/transport error payloads and unknown schemas before recording history.
+if ! printf '%s' "${AUDIT_JSON}" | node "${PROJECT_DIR}/scripts/security-gate.mjs" --validate-only --audit-file -; then
+  echo "ERROR: pnpm audit returned an invalid report"
+  exit 2
+fi
+
 # Extract severity counts using node (available in any Node project)
 COUNTS=$(echo "${AUDIT_JSON}" | node -e "
 const data = JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf8'));
