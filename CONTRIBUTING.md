@@ -145,11 +145,11 @@ title: "文章標題"
 originalDate: "YYYY-MM-DD"  # 原文發佈日（SD 系列 = 撰寫日）
 translatedDate: "YYYY-MM-DD"  # 翻譯/發佈日
 translatedBy:
-  model: "Opus 4.6"  # 用 detect-model.mjs 偵測
+  model: "<detect-model output>"  # 必須換成 detect-model.mjs 的實際輸出
   harness: "OpenClaw"
   pipeline:
     - role: "Translator"  # 或 "Author"（SD 系列）
-      model: "Opus 4.6"
+      model: "<detect-model output>"
       harness: "Mogu"
 source: "@username on X"  # 或 "ShroomDog Lab"（SD 系列）
 sourceUrl: "https://..."
@@ -247,11 +247,10 @@ CI 綠、要合的那一刻才 `node scripts/allocate-ticket.mjs GP`（swap + re
 **不要猜 model 名稱！** 用 runtime 偵測：
 
 ```bash
-node scripts/detect-model.mjs anthropic/claude-opus-4-6
-# Output: Opus 4.6
+node scripts/detect-model.mjs "$ACTUAL_MODEL_ID"
 ```
 
-**Validator 會 block** 不完整的 model 名稱（如 "Opus 4" 缺版本號）。
+把 runtime 實際使用的完整 model ID 放進 `ACTUAL_MODEL_ID`；輸出才是 frontmatter 應記錄的 display name。**Validator 會 block** 不完整的 model 名稱（如 "Opus 4" 缺版本號）。
 
 ### 常見錯誤
 - ❌ 看到 tweet 就開寫，沒先搜尋 → 造成重複文章
@@ -359,7 +358,7 @@ SSOT = `GU-LOG_WRITER_PROMPT.md` 的「術語處理」；此處只是 derived vi
 
 gu-log 使用 tribunal 進行品質管理——一個 multi-agent scoring + rewrite 系統（`tribunal-batch-runner.sh` 批次掃描、`tribunal-all-claude.sh` 單篇執行）。
 
-> ⚠️ 評審維度 / pass bar / 各 judge 的 model 都是 **derived view**，會 drift——權威端：`docs/tribunal-runbook.md`（跑法 + daemon）、`scripts/vibe-scoring-standard.md`（評分標準）、`.claude/agents/*.md` 的 `model:` frontmatter（每個 judge 實際 model）。現行是 **v9 四維 Vibe（Persona / MoguNote / Vibe / Narrative）+ Fact / Librarian / Fresh Eyes 多 judge**；完整 pass bar 見 `AGENTS.md`〈Quality〉摘要或 tribunal-runbook 全文。
+> ⚠️ 評審維度 / pass bar / model routing 都是 **derived view**，會 drift——權威端：`docs/tribunal-runbook.md`（跑法 + daemon）、`scripts/vibe-scoring-standard.md`（評分標準）、tribunal runtime config（Codex model）與 `.claude/agents/*.md` 的 `model:` frontmatter（Claude role selector）。現行是 **v9 四維 Vibe（Persona / MoguNote / Vibe / Narrative）+ Fact / Librarian / Fresh Eyes 多 judge**；完整 pass bar 見 `AGENTS.md`〈Quality〉摘要或 tribunal-runbook 全文。
 
 1. **Scorer + 多 judge** 讀文章 + 評分標準 → 給分。
 2. 沒過 → **Rewriter agent** 改寫 → 再跑 → 最多 3 次。
@@ -374,13 +373,9 @@ bash scripts/vibe-scorer.sh <file>
 bash scripts/tribunal-batch-runner.sh
 ```
 
-### GPT 5.4 Fact-Check（四層驗證）
+### Fact Checker（來源與翻譯驗證）
 
-GP/MP 翻譯文章額外跑 GPT 5.4 fact-check：
-1. **翻譯扭曲** — 翻譯有沒有改變原意？
-2. **數字捏造** — 有沒有自己發明數據？
-3. **原文 claim 驗證** — 原作者的說法本身正確嗎？
-4. **錯誤 → MoguNote 素材** — 發現的錯誤變成 MoguNote 吐槽素材
+GP/MP 翻譯文章要跟完整 Tribunal 一起跑 Fact Checker，確認事實、翻譯忠實度，以及 source body 與 Mogu/gu-log commentary 的邊界。Fact Checker contract 以 `.claude/agents/fact-checker.md` 為準；model routing 依上節列出的 provider-specific 來源，本節不複製會 drift 的值。
 
 ## BDD Testing
 
@@ -448,7 +443,7 @@ Pipeline agents：如果無法取得完整 source，output `INCOMPLETE_SOURCE: <
 1. Outline → 人類核准
 2. 寫 **zh-tw 版** + MoguNote + ShroomDogNote
 3. 丟 **vibe-opus-scorer** 評分 → 沒過就改寫（pass bar: composite ≥ 8 AND 至少一維 ≥ 9 AND 無維 < 8）
-4. GPT 5.4 fact-check（如適用）
+4. 跑 Tribunal Fact Checker（如適用）
 5. 過分數後才翻 **en 版**
 6. 更新 counter → validate → build → push
 
@@ -487,7 +482,3 @@ src/content/posts/
 首頁 (`src/pages/index.astro`) 會自動用 `getCollection()` 抓取 `lang: "zh-tw"` 的文章，依日期排序。
 
 英文首頁 (`src/pages/en/index.astro`) 抓取 `lang: "en"` 的文章。
-
----
-
-*Last updated: 2026-03-23*

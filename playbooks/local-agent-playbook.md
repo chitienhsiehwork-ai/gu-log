@@ -180,7 +180,12 @@ scripts/writer-broker-wait.sh --dir <broker_dir> --pid <pipeline_pid> [--timeout
 3. **先檢查 Claude auth，不花正文 token**：
 
    ```bash
-   claude -p --model claude-opus-4-6 --tools "" --no-session-persistence "reply OK only"
+   source scripts/tribunal-helpers.sh
+   if writer_model="$(tribunal_claude_agent_model tribunal-writer)"; then
+     claude -p --model "$writer_model" --tools "" --no-session-persistence "reply OK only"
+   else
+     printf 'Cannot resolve tribunal-writer model; refusing writer probe.\n' >&2
+   fi
    ```
 
    如果回 `Not logged in` 或 auth error，立即停止寫作路徑，回報需要登入，不要 fallback 到 Codex 寫正文。
@@ -188,8 +193,13 @@ scripts/writer-broker-wait.sh --dir <broker_dir> --pid <pipeline_pid> [--timeout
 4. **首稿只要求 MDX**：
 
    ```bash
-   claude -p --model claude-opus-4-6 --permission-mode acceptEdits \
-     --tools "" --no-session-persistence "$(cat /tmp/gu-log-opus-brief.md)"
+   source scripts/tribunal-helpers.sh
+   if writer_model="$(tribunal_claude_agent_model tribunal-writer)"; then
+     claude -p --model "$writer_model" --permission-mode acceptEdits \
+       --tools "" --no-session-persistence "$(cat /tmp/gu-log-opus-brief.md)"
+   else
+     printf 'Cannot resolve tribunal-writer model; refusing writer run.\n' >&2
+   fi
    ```
 
    預設讓 Opus 輸出到 stdout，由 Codex 審核後再寫入 `src/content/posts/*`。不要讓 Opus 直接拿 repo edit 權限，除非任務明確是透過 broker 改已存在檔案。
