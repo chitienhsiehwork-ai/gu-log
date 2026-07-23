@@ -23,6 +23,7 @@ const SD_FIRST_POST = '/posts/sd-11-20260402-ai-agent-memory-architecture';
 
 // Post WITHOUT series
 const NO_SERIES_POST = '/posts/gp-24-20260204-claude-is-a-space-to-think';
+const RELATED_RANKING_FIXTURE = '/artifacts/related-articles-ranking-fixture/';
 
 // EN version
 const ECC_MID_POST_EN = '/en/posts/en-gp-144-20260402-ecc-instinct-system';
@@ -207,23 +208,18 @@ test.describe('Related Articles — Non-series Posts', () => {
     await expect(relatedSection).toBeVisible();
   });
 
-  test('R2. Related articles are based on tag overlap (not random)', async ({ page }) => {
-    // claude-is-a-space-to-think has tags: ["claude-code", "business-model", "trust"]
-    // Related should share at least one of these tags
-    await page.goto(NO_SERIES_POST);
+  test('R2. Related articles rank by tag overlap before recency', async ({ page }) => {
+    await page.addInitScript(() => window.localStorage.clear());
+    await page.goto(RELATED_RANKING_FIXTURE);
 
     const relatedSection = page.locator('[data-related-articles]');
     await expect(relatedSection).toBeVisible();
 
-    // All related items should have links to real posts
-    const relatedLinks = relatedSection.locator('[data-related-item] a.related-link');
-    const count = await relatedLinks.count();
-    expect(count).toBeGreaterThan(0);
-
-    // Verify they are actual hrefs (not empty)
-    const href = await relatedLinks.first().getAttribute('href');
-    expect(href).toBeTruthy();
-    expect(href).toContain('/posts/');
+    const relatedItems = relatedSection.locator('[data-related-item]');
+    await expect(relatedItems).toHaveCount(3);
+    expect(
+      await relatedItems.evaluateAll((items) => items.map((item) => item.dataset.slug))
+    ).toEqual(['fixture-overlap-3-oldest', 'fixture-overlap-2-middle', 'fixture-overlap-1-newest']);
   });
 
   test('R3. Related articles shows max 3 items', async ({ page }) => {
