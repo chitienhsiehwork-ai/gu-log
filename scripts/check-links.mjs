@@ -17,7 +17,7 @@
  *       (fail closed — see isKnownUndiciSocketRace below)
  */
 
-import { readdir, readFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { existsSync, realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -320,6 +320,61 @@ async function checkExternalLink(url, retries = MAX_RETRIES) {
   }
 }
 
+// Coalesce exact-URL duplicates before touching the network, then fan each
+// result back out to every source occurrence. This keeps per-file reporting
+// intact while preventing popular sources from being fetched once per post.
+// Checks intentionally remain sequential: the current RateLimiter is designed
+// for one caller, and making it concurrency-safe is a separate scheduling job.
+export async function scanExternalLinks(
+  links,
+  checker = checkExternalLink,
+  onProgress = /** @type {((checked: number, total: number) => void) | null} */ (null)
+) {
+  const uniqueUrls = [...new Set(links.map((link) => link.url))];
+  const resultByUrl = new Map();
+
+  for (const [index, url] of uniqueUrls.entries()) {
+    const result = await checker(url);
+    if (!['ok', 'broken', 'timeout'].includes(result?.status)) {
+      throw new Error(`External link checker returned an invalid result for ${url}`);
+    }
+    resultByUrl.set(url, result);
+    onProgress?.(index + 1, uniqueUrls.length);
+  }
+
+  const externalOk = [];
+  const externalBroken = [];
+  const externalTimeout = [];
+
+  // Iterate the original occurrence list so baseline/report ordering remains
+  // deterministic and every source file still gets its own diagnostic.
+  for (const link of links) {
+    const result = resultByUrl.get(link.url);
+    if (result.status === 'ok') {
+      externalOk.push(link);
+    } else if (result.status === 'timeout') {
+      externalTimeout.push({ ...link, error: result.error });
+    } else {
+      externalBroken.push({ ...link, statusCode: result.code, error: result.error });
+    }
+  }
+
+  const uniqueResults = [...resultByUrl.values()];
+  return {
+    externalOk,
+    externalBroken,
+    externalTimeout,
+    health: {
+      attempted: uniqueResults.length,
+      ok: uniqueResults.filter((result) => result.status === 'ok').length,
+      broken: uniqueResults
+        .filter((result) => result.status === 'broken')
+        .map((result) => ({ statusCode: result.code, error: result.error })),
+      timedOut: uniqueResults.filter((result) => result.status === 'timeout').length,
+    },
+  };
+}
+
 // A normal link scan can contain a handful of real HTTP failures and transient
 // network errors. A failure-dominated scan, however, describes the scanner,
 // proxy, or network more reliably than it describes the links. Count both
@@ -411,9 +466,12 @@ async function main() {
   const external = allLinks.filter((l) => !isInternalLink(l.url));
   const manualCheck = external.filter((l) => isManualCheckDomain(l.url));
   const autoCheck = external.filter((l) => !isManualCheckDomain(l.url));
+  const uniqueAutoCheckCount = new Set(autoCheck.map((link) => link.url)).size;
 
   console.log(`  📁 Internal: ${internal.length}`);
-  console.log(`  🌐 External (auto-check): ${autoCheck.length}`);
+  console.log(
+    `  🌐 External (auto-check): ${autoCheck.length} references / ${uniqueAutoCheckCount} unique URLs`
+  );
   console.log(`  🔒 External (manual-check): ${manualCheck.length}`);
   console.log();
 
@@ -434,39 +492,32 @@ async function main() {
   console.log(`  ✅ ${internalOk.length} OK, ❌ ${internalBroken.length} broken\n`);
 
   // Validate external links (auto-check only)
-  const externalOk = [];
-  const externalBroken = [];
-  const externalTimeout = [];
+  let externalOk = [];
+  let externalBroken = [];
+  let externalTimeout = [];
+  let externalHealth = {
+    attempted: uniqueAutoCheckCount,
+    ok: 0,
+    broken: [],
+    timedOut: 0,
+  };
 
   if (internalOnly) {
     console.log('Skipping external link checks (--internal-only mode).');
   } else {
     console.log('Checking external links (this may take a while)...');
-    let checked = 0;
-    for (const link of autoCheck) {
-      checked++;
-      if (checked % 10 === 0 || checked === autoCheck.length) {
-        process.stdout.write(`\r  Progress: ${checked}/${autoCheck.length}`);
+    const scan = await scanExternalLinks(autoCheck, checkExternalLink, (checked, total) => {
+      if (checked % 10 === 0 || checked === total) {
+        process.stdout.write(`\r  Progress: ${checked}/${total} unique URLs`);
       }
-
-      const result = await checkExternalLink(link.url);
-      if (result.status === 'ok') {
-        externalOk.push(link);
-      } else if (result.status === 'timeout') {
-        externalTimeout.push({ ...link, error: result.error });
-      } else {
-        externalBroken.push({ ...link, statusCode: result.code, error: result.error });
-      }
-    }
+    });
+    ({ externalOk, externalBroken, externalTimeout, health: externalHealth } = scan);
     console.log(); // newline after progress
   }
 
   const externalScanHealth = evaluateExternalScanHealth({
     internalOnly,
-    attempted: autoCheck.length,
-    ok: externalOk.length,
-    broken: externalBroken,
-    timedOut: externalTimeout.length,
+    ...externalHealth,
   });
 
   // Report
@@ -484,11 +535,11 @@ async function main() {
   if (!externalScanHealth.healthy) {
     const ratio = (externalScanHealth.failureRatio * 100).toFixed(1);
     console.error(
-      `\n❌ FATAL: External scan is unhealthy — ${externalScanHealth.totalFailures}/${autoCheck.length} (${ratio}%) checks failed (${externalScanHealth.responseFailures} HTTP error responses, ${externalScanHealth.transportFailures} transport failures).`
+      `\n❌ FATAL: External scan is unhealthy — ${externalScanHealth.totalFailures}/${externalHealth.attempted} (${ratio}%) unique URL checks failed (${externalScanHealth.responseFailures} HTTP error responses, ${externalScanHealth.transportFailures} transport failures).`
     );
     if (!externalScanHealth.complete) {
       console.error(
-        `   Scan result is incomplete: observed ${externalScanHealth.observed}/${autoCheck.length} attempted checks.`
+        `   Scan result is incomplete: observed ${externalScanHealth.observed}/${externalHealth.attempted} attempted unique URL checks.`
       );
     }
     console.error('   Existing broken-links baseline was not updated.');
@@ -540,8 +591,6 @@ async function main() {
 
   // Build result JSON
   const today = new Date().toISOString().split('T')[0];
-  const { mkdir, writeFile } = await import('node:fs/promises');
-
   // When --internal-only, preserve existing external data from baseline
   let preservedExternal = null;
   if (internalOnly && existsSync(outputPath)) {
@@ -586,7 +635,13 @@ async function main() {
 
   // Write result
   await mkdir(join(ROOT, 'quality'), { recursive: true });
-  await writeFile(outputPath, JSON.stringify(result, null, 2) + '\n');
+  const temporaryOutputPath = `${outputPath}.${process.pid}.tmp`;
+  try {
+    await writeFile(temporaryOutputPath, JSON.stringify(result, null, 2) + '\n');
+    await rename(temporaryOutputPath, outputPath);
+  } finally {
+    await rm(temporaryOutputPath, { force: true });
+  }
   console.log(`\n💾 Results saved to quality/broken-links-baseline.json`);
 
   // Exit code — CI mode uses baseline ratchet: new breakages fail, known baseline tolerated
@@ -653,7 +708,8 @@ const isDirectlyExecuted = (() => {
 
 if (isDirectlyExecuted) {
   main().catch((err) => {
-    console.error('Fatal error:', err);
-    process.exit(2);
+    console.error('❌ FATAL: unknown error during link check — failing closed.');
+    console.error(err?.stack || err);
+    process.exit(3);
   });
 }
