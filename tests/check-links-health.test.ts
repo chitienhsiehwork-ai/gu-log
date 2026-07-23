@@ -201,7 +201,9 @@ describe('broken-link external scan scheduling', () => {
       links,
       async (url: string) => {
         calls.push(url);
-        return results.get(url);
+        const result = results.get(url);
+        if (!result) throw new Error(`Missing fake result for ${url}`);
+        return result;
       },
       (checked: number, total: number) => progress.push([checked, total])
     );
@@ -240,8 +242,9 @@ describe('broken-link external scan scheduling', () => {
   it('rejects an invalid checker result instead of treating it as a broken link', async () => {
     const links = [{ url: 'https://one.test/post', file: 'first.mdx', context: 'first' }];
 
-    await expect(scanExternalLinks(links, async () => ({ status: 'unknown' }))).rejects.toThrow(
-      'External link checker returned an invalid result'
-    );
+    await expect(
+      // @ts-expect-error Deliberately violate the checker contract to test the runtime guard.
+      scanExternalLinks(links, async () => ({ status: 'unknown' }))
+    ).rejects.toThrow('External link checker returned an invalid result');
   });
 });

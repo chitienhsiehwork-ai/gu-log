@@ -325,7 +325,11 @@ async function checkExternalLink(url, retries = MAX_RETRIES) {
 // intact while preventing popular sources from being fetched once per post.
 // Checks intentionally remain sequential: the current RateLimiter is designed
 // for one caller, and making it concurrency-safe is a separate scheduling job.
-export async function scanExternalLinks(links, checker = checkExternalLink, onProgress = null) {
+export async function scanExternalLinks(
+  links,
+  checker = checkExternalLink,
+  onProgress = /** @type {((checked: number, total: number) => void) | null} */ (null)
+) {
   const uniqueUrls = [...new Set(links.map((link) => link.url))];
   const resultByUrl = new Map();
 
