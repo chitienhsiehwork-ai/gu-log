@@ -2,7 +2,6 @@ package source
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"html"
 	"net"
@@ -11,7 +10,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"sort"
 	"strings"
 	"time"
 
@@ -21,9 +19,9 @@ import (
 // FetchResult describes what a successful source capture looks like.
 //
 // Path is the file the capture was written to (always absolute). Handle and
-// Date are best-effort parses of the capture header; an empty Date is
-// acceptable (the caller can fall back to "today") but an empty Handle for
-// an X URL is suspicious and the caller should log a warning.
+// Date are best-effort observations from the source. Empty values remain
+// unknown; callers must not replace missing source metadata with guessed
+// values. An empty Handle for an X URL is suspicious and should be logged.
 type FetchResult struct {
 	Path       string
 	Handle     string
@@ -49,21 +47,18 @@ type FetchOptions struct {
 
 // xURLRe matches https://x.com/... and twitter.com/... URLs.
 var xURLRe = regexp.MustCompile(`^https?://(?:www\.)?(?:x|twitter)\.com/`)
-var youtubeURLRe = regexp.MustCompile(`^https?://(?:www\.)?(?:youtube\.com|youtu\.be)/`)
 
 // Fetch routes a URL to the best available fetcher. X / Twitter URLs go
-// through FetchX (fxtwitter quality); everything else goes through
-// FetchGeneric (curl + minimal HTML cleanup). This is the entry point
-// callers should use by default — FetchX and FetchGeneric remain exported
-// for tests and for callers that want to force a specific path.
+// through FetchX (fxtwitter quality). Allowlisted YouTube hosts always go
+// through FetchYouTube and fail closed; they never fall back to generic HTML,
+// because the resulting page is only a JavaScript shell. Everything else goes
+// through FetchGeneric (curl + minimal HTML cleanup).
 func Fetch(ctx context.Context, url string, opts FetchOptions) (*FetchResult, error) {
 	if xURLRe.MatchString(url) {
 		return FetchX(ctx, url, opts)
 	}
-	if youtubeURLRe.MatchString(url) {
-		if _, err := runner.LookPath("yt-dlp"); err == nil {
-			return FetchYouTube(ctx, url, opts)
-		}
+	if IsYouTubeHostURL(url) {
+		return FetchYouTube(ctx, url, opts)
 	}
 	return FetchGeneric(ctx, url, opts)
 }
@@ -188,163 +183,6 @@ func FetchGeneric(ctx context.Context, urlStr string, opts FetchOptions) (*Fetch
 		Bytes:      len(payload),
 		IsX:        false,
 	}, nil
-}
-
-type youtubeMetadata struct {
-	Title      string `json:"title"`
-	Channel    string `json:"channel"`
-	Uploader   string `json:"uploader"`
-	UploadDate string `json:"upload_date"`
-	Duration   int    `json:"duration"`
-}
-
-// FetchYouTube captures a YouTube video's metadata and English transcript via
-// yt-dlp. YouTube pages rendered through curl are mostly JS shell; for GP
-// writing we need the transcript, not the page chrome.
-func FetchYouTube(ctx context.Context, urlStr string, opts FetchOptions) (*FetchResult, error) {
-	if err := validateSafeHTTPURL(urlStr); err != nil {
-		return nil, fmt.Errorf("fetchyoutube: %w", err)
-	}
-	if opts.WorkDir == "" {
-		return nil, fmt.Errorf("fetchyoutube: WorkDir is required")
-	}
-
-	metaRes, err := runner.Run(ctx, "yt-dlp", "-J", "--skip-download", urlStr)
-	if err != nil {
-		return nil, fmt.Errorf("fetchyoutube: metadata: %w", err)
-	}
-	var meta youtubeMetadata
-	if err := json.Unmarshal(metaRes.Stdout, &meta); err != nil {
-		return nil, fmt.Errorf("fetchyoutube: parse metadata: %w", err)
-	}
-
-	subBase := filepath.Join(opts.WorkDir, "youtube-sub")
-	_, err = runner.Run(ctx, "yt-dlp",
-		"--skip-download",
-		"--write-auto-subs",
-		"--write-subs",
-		"--sub-langs", "en.*,en",
-		"--sub-format", "vtt",
-		"-o", subBase+".%(ext)s",
-		urlStr,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("fetchyoutube: subtitles: %w", err)
-	}
-
-	subFiles, err := filepath.Glob(subBase + "*.vtt")
-	if err != nil {
-		return nil, fmt.Errorf("fetchyoutube: glob subtitles: %w", err)
-	}
-	if len(subFiles) == 0 {
-		return nil, &ValidationError{Reason: "fetchyoutube: no English subtitles/transcript found"}
-	}
-	sort.Strings(subFiles)
-	subData, err := os.ReadFile(subFiles[0])
-	if err != nil {
-		return nil, fmt.Errorf("fetchyoutube: read subtitle: %w", err)
-	}
-	transcript := cleanupVTT(subData)
-	if len(strings.Fields(transcript)) < 200 {
-		return nil, &ValidationError{Reason: "fetchyoutube: transcript too short"}
-	}
-
-	channel := firstNonEmpty(meta.Channel, meta.Uploader, hostname(urlStr))
-	date := formatYouTubeDate(meta.UploadDate)
-	if date == "" {
-		date = time.Now().Format("2006-01-02")
-	}
-	title := firstNonEmpty(meta.Title, "Untitled YouTube video")
-
-	header := fmt.Sprintf("@%s — %s\nSource URL: %s\nFetched via: yt-dlp transcript\n\n", sanitizeHandle(channel), date, urlStr)
-	body := fmt.Sprintf("Title: %s\nChannel: %s\nDuration: %s\n\nTranscript:\n\n%s\n", title, channel, formatDuration(meta.Duration), transcript)
-	payload := []byte(header + body)
-
-	if verr := ValidateArticleCapture(payload); verr != nil {
-		return nil, verr
-	}
-
-	outPath := filepath.Join(opts.WorkDir, "source-tweet.md")
-	if err := os.WriteFile(outPath, payload, 0o644); err != nil {
-		return nil, fmt.Errorf("fetchyoutube: writing capture to %s: %w", outPath, err)
-	}
-
-	return &FetchResult{
-		Path:       outPath,
-		Handle:     "@" + sanitizeHandle(channel),
-		Date:       date,
-		FetchedVia: "yt-dlp transcript",
-		Bytes:      len(payload),
-		IsX:        false,
-	}, nil
-}
-
-var vttTimestampRe = regexp.MustCompile(`^\d\d:\d\d:\d\d\.\d\d\d\s+-->\s+\d\d:\d\d:\d\d\.\d\d\d`)
-var vttTagRe = regexp.MustCompile(`<[^>]+>`)
-
-func cleanupVTT(in []byte) string {
-	lines := strings.Split(string(in), "\n")
-	out := make([]string, 0, len(lines))
-	seenLast := ""
-	for _, line := range lines {
-		line = strings.TrimSpace(strings.TrimRight(line, "\r"))
-		if line == "" ||
-			line == "WEBVTT" ||
-			strings.HasPrefix(line, "Kind:") ||
-			strings.HasPrefix(line, "Language:") ||
-			strings.HasPrefix(line, "NOTE") ||
-			vttTimestampRe.MatchString(line) {
-			continue
-		}
-		line = vttTagRe.ReplaceAllString(line, "")
-		line = html.UnescapeString(line)
-		line = strings.Join(strings.Fields(line), " ")
-		if line == "" || line == seenLast {
-			continue
-		}
-		out = append(out, line)
-		seenLast = line
-	}
-	return strings.Join(out, "\n")
-}
-
-func formatYouTubeDate(s string) string {
-	if len(s) != 8 {
-		return ""
-	}
-	return s[:4] + "-" + s[4:6] + "-" + s[6:8]
-}
-
-func formatDuration(seconds int) string {
-	if seconds <= 0 {
-		return "unknown"
-	}
-	h := seconds / 3600
-	m := (seconds % 3600) / 60
-	s := seconds % 60
-	if h > 0 {
-		return fmt.Sprintf("%d:%02d:%02d", h, m, s)
-	}
-	return fmt.Sprintf("%d:%02d", m, s)
-}
-
-func sanitizeHandle(s string) string {
-	s = strings.TrimSpace(strings.ToLower(s))
-	s = regexp.MustCompile(`[^a-z0-9]+`).ReplaceAllString(s, "-")
-	s = strings.Trim(s, "-")
-	if s == "" {
-		return "youtube"
-	}
-	return s
-}
-
-func firstNonEmpty(vals ...string) string {
-	for _, v := range vals {
-		if strings.TrimSpace(v) != "" {
-			return strings.TrimSpace(v)
-		}
-	}
-	return ""
 }
 
 // validateSafeHTTPURL rejects non-http(s) schemes, malformed URLs, and

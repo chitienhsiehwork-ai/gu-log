@@ -39,9 +39,11 @@ func newFetchCmd(state *rootState) *cobra.Command {
 		Long: `fetch downloads a source URL into the pipeline work directory.
 
 For X / Twitter URLs it shells out to scripts/fetch-x-article.sh (fxtwitter
-with vxtwitter fallback), then runs the tweet-specific validator. For any
-other http(s) URL it falls back to curl + a minimal HTML cleanup pass and
-runs the looser article validator.
+with vxtwitter fallback), then runs the tweet-specific validator. Allowlisted
+single-video YouTube URLs require yt-dlp and fail closed when metadata or
+captions cannot support a complete source capture; they never fall back to a
+generic JavaScript shell. Other http(s) URLs use curl + a minimal HTML cleanup
+pass and the looser article validator.
 
 On validation failure it exits with code 11 so callers can distinguish
 "fetch returned but the content looks contaminated" from "fetch itself

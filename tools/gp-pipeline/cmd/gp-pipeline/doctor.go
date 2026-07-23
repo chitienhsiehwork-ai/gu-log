@@ -16,15 +16,16 @@ import (
 
 // doctorReport is the full JSON shape emitted with --json.
 type doctorReport struct {
-	GoVersion  string            `json:"goVersion"`
-	GoOS       string            `json:"goOS"`
-	GoArch     string            `json:"goArch"`
-	RepoRoot   string            `json:"repoRoot"`
-	Binaries   []binaryCheck     `json:"binaries"`
-	Files      []fileCheck       `json:"files"`
-	LLMProbes  []llm.ProbeResult `json:"llmProbes,omitempty"`
-	OK         bool              `json:"ok"`
-	FailReason string            `json:"failReason,omitempty"`
+	GoVersion    string            `json:"goVersion"`
+	GoOS         string            `json:"goOS"`
+	GoArch       string            `json:"goArch"`
+	RepoRoot     string            `json:"repoRoot"`
+	Binaries     []binaryCheck     `json:"binaries"`
+	Capabilities []capabilityCheck `json:"capabilities"`
+	Files        []fileCheck       `json:"files"`
+	LLMProbes    []llm.ProbeResult `json:"llmProbes,omitempty"`
+	OK           bool              `json:"ok"`
+	FailReason   string            `json:"failReason,omitempty"`
 }
 
 type binaryCheck struct {
@@ -41,6 +42,13 @@ type fileCheck struct {
 	Required bool   `json:"required"`
 }
 
+type capabilityCheck struct {
+	Name       string `json:"name"`
+	Available  bool   `json:"available"`
+	Dependency string `json:"dependency"`
+	Detail     string `json:"detail"`
+}
+
 // requiredBinaries and optionalBinaries are the executable contract for the
 // canonical Go pipeline, split by whether a missing entry is fatal.
 //
@@ -50,7 +58,7 @@ type fileCheck struct {
 // missing codex must never flip overall health to failed — see ProbeChain.
 var (
 	requiredBinaries = []string{"git", "bash", "node", "python3", "curl", "pnpm"}
-	optionalBinaries = []string{"codex", "jq", "make"}
+	optionalBinaries = []string{"codex", "jq", "make", "yt-dlp"}
 )
 
 func newDoctorCmd(state *rootState) *cobra.Command {
@@ -66,6 +74,8 @@ It checks:
   - The Go version (must be >= 1.24 for this binary to build and run).
   - Every external binary the pipeline shells out to (codex, node, python3,
     git, bash, curl, jq, make, pnpm).
+  - The optional YouTube candidate capability (requires yt-dlp). Missing
+    yt-dlp is reported but does not make unrelated pipeline health fail.
   - Every repo-relative file the pipeline depends on (fetch-x-article.sh,
     validate-posts.mjs, article-counter.json, GU-LOG_WRITER_PROMPT.md).
   - Optionally (--probe-llm), sends a 1-token canary prompt through each
@@ -117,6 +127,18 @@ func runDoctor(ctx context.Context, state *rootState, probeLLM bool) error {
 			Path:     path,
 			Required: false,
 		})
+		if name == "yt-dlp" {
+			detail := "YouTube candidate preflight is available"
+			if err != nil {
+				detail = "YouTube candidate preflight is unavailable; install yt-dlp"
+			}
+			report.Capabilities = append(report.Capabilities, capabilityCheck{
+				Name:       "youtube-candidate",
+				Available:  err == nil,
+				Dependency: "yt-dlp",
+				Detail:     detail,
+			})
+		}
 	}
 
 	fileChecks := []fileCheck{
@@ -181,6 +203,16 @@ func printDoctorHuman(state *rootState, r doctorReport) {
 			tag = "  REQUIRED"
 		}
 		fmt.Printf("  %s %-10s %s  %s\n", mark, b.Name, tag, path)
+	}
+	fmt.Printf("\n")
+
+	fmt.Printf("capabilities:\n")
+	for _, capability := range r.Capabilities {
+		mark := "-"
+		if capability.Available {
+			mark = "+"
+		}
+		fmt.Printf("  %s %-20s %s\n", mark, capability.Name, capability.Detail)
 	}
 	fmt.Printf("\n")
 

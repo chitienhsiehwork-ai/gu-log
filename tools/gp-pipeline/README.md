@@ -35,6 +35,9 @@ tools/gp-pipeline/gp-pipeline run '<url>' --prefix MP
 # Rehearsal：停在 deploy 前
 tools/gp-pipeline/gp-pipeline run '<url>' --prefix GP --dry-run
 
+# 僅預審一支 YouTube 影片；不進入寫作或發布
+tools/gp-pipeline/gp-pipeline candidate '<youtube-url>'
+
 # 環境檢查
 tools/gp-pipeline/gp-pipeline doctor
 
@@ -52,6 +55,7 @@ cmd/gp-pipeline/            Cobra CLI and ingress validation
 internal/config/            repo paths and dependency discovery
 internal/counter/           canonical prefix/ticket validation + flock
 internal/source/            source fetch and completeness validation
+internal/candidate/         YouTube-only review manifest + safe workdir boundary
 internal/dedup/             dedup gate adapter
 internal/llm/               provider dispatch and attribution
 internal/prompts/           embedded prompt templates
@@ -70,6 +74,14 @@ internal/runner/            external command boundary
 - `scripts/article-counter.json` 的 key 必須恰為 `GP`、`MP`、`SD`、`Lv`。
 - deploy 使用 `pnpm run build`，且不會假設英文 companion 一定存在。
 - provider 實際 model／harness 由執行結果寫入 credits，不靠呼叫端猜測。
+- `candidate` 只接受單一 YouTube 影片，只在 repo 外工作目錄產生
+  `candidate-manifest.json`、原始 VTT、保留時間戳的逐字稿與來源 evidence。
+- `candidate` 不會呼叫 LLM、建立 MDX、配置 ticket、修改 Git／counter，或執行
+  Eval、Write、Review、Refine、Credits、Ralph、Translate、Deploy。
+- `writeEligible: true` 只表示來源完整性與 video-ID dedup 允許人工考慮；
+  核准後仍須另跑 canonical `gp-pipeline run <youtube-url>`。
+- YouTube 擷取需要 `yt-dlp`。`candidate` 與正式 `run` 缺少它時都會封閉失敗，
+  不會退回 generic HTML；`doctor` 會把這項能力列為 optional，不影響非 YouTube 流程。
 
 ## Development
 

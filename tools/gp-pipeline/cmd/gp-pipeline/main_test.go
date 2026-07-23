@@ -112,7 +112,7 @@ func TestBuildRoot_HasAllSubcommands(t *testing.T) {
 	resetGlobals()
 	root := buildRoot()
 	want := []string{
-		"doctor", "fetch", "status", "counter", "dedup", "eval",
+		"doctor", "fetch", "candidate", "status", "counter", "dedup", "eval",
 		"write", "review", "refine", "credits", "ralph",
 		"deploy", "run",
 	}
@@ -278,6 +278,23 @@ func TestRetiredTaxonomyFailsAtCLIIngress(t *testing.T) {
 				t.Fatalf("error = %v, want actionable hint %q", err, tt.want)
 			}
 		})
+	}
+}
+
+func TestCanonicalRunYouTubeMissingYTDLPFailsBeforeProviderSetup(t *testing.T) {
+	root := makeFakeRepo(t)
+	t.Setenv("GU_LOG_DIR", root)
+	t.Setenv("PATH", t.TempDir())
+	resetGlobals()
+	cmd := buildRoot()
+	cmd.SetArgs([]string{"run", "https://youtube.com/watch?v=dQw4w9WgXcQ", "--dry-run"})
+	err := cmd.ExecuteContext(context.Background())
+	var exitErr *ExitError
+	if !errors.As(err, &exitErr) {
+		t.Fatalf("error = %v, want ExitError", err)
+	}
+	if exitErr.Code != 10 || !strings.Contains(err.Error(), "dependency_missing") {
+		t.Fatalf("error = %v code=%d, want dependency_missing/10", err, exitErr.Code)
 	}
 }
 

@@ -13,6 +13,7 @@ const dedup = dedupModule as any;
 const {
   normalizeUrl,
   extractTweetId,
+  extractYouTubeVideoId,
   applyCompounds,
   extractEnKeywords,
   extractCnBigrams,
@@ -92,6 +93,32 @@ describe('extractTweetId', () => {
   it('returns null for empty input', () => {
     expect(extractTweetId('')).toBeNull();
     expect(extractTweetId(null)).toBeNull();
+  });
+});
+
+describe('extractYouTubeVideoId', () => {
+  it.each([
+    ['https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'dQw4w9WgXcQ'],
+    ['https://youtube.com/shorts/dQw4w9WgXcQ', 'dQw4w9WgXcQ'],
+    ['https://youtu.be/dQw4w9WgXcQ?t=10', 'dQw4w9WgXcQ'],
+  ])('extracts %s', (url, expected) => {
+    expect(extractYouTubeVideoId(url)).toBe(expected);
+  });
+
+  it('rejects playlist-only and lookalike hosts', () => {
+    expect(extractYouTubeVideoId('https://youtube.com/playlist?list=PL123')).toBeNull();
+    expect(extractYouTubeVideoId('https://youtube.com.evil/watch?v=dQw4w9WgXcQ')).toBeNull();
+  });
+
+  it('normalizes every supported form to one identity URL', () => {
+    const forms = [
+      'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      'https://youtube.com/shorts/dQw4w9WgXcQ',
+      'https://youtu.be/dQw4w9WgXcQ?t=10',
+    ];
+    expect(new Set(forms.map(normalizeUrl))).toEqual(
+      new Set(['https://youtube.com/watch?v=dQw4w9WgXcQ'])
+    );
   });
 });
 
@@ -207,7 +234,19 @@ describe('layer1Match (URL gate)', () => {
       sourceUrl: 'https://x.com/simonw/status/12345',
       normalizedUrl: normalizeUrl('https://x.com/simonw/status/12345'),
       tweetId: '12345',
+      youtubeVideoId: null,
       keywordText: 'Tweet pick',
+    },
+    {
+      file: 'gp-2-youtube.mdx',
+      ticketId: 'GP-2',
+      title: 'YouTube pick',
+      tags: [],
+      sourceUrl: 'https://youtu.be/dQw4w9WgXcQ',
+      normalizedUrl: normalizeUrl('https://youtu.be/dQw4w9WgXcQ'),
+      tweetId: null,
+      youtubeVideoId: 'dQw4w9WgXcQ',
+      keywordText: 'YouTube pick',
     },
   ];
 
@@ -221,6 +260,12 @@ describe('layer1Match (URL gate)', () => {
     const r = layer1Match('https://twitter.com/simonw/status/12345', articles);
     expect(r?.article.ticketId).toBe('MP-1');
     expect(r?.reason).toBe('tweet ID match');
+  });
+
+  it('matches YouTube video ID across watch / shorts / youtu.be forms', () => {
+    const r = layer1Match('https://youtube.com/shorts/dQw4w9WgXcQ', articles);
+    expect(r?.article.ticketId).toBe('GP-2');
+    expect(r?.reason).toBe('YouTube video ID match');
   });
 
   it('returns null on no match', () => {
@@ -293,6 +338,15 @@ describe('layer3QueueCheck (intra-queue pairwise)', () => {
     expect(blocked.length).toBe(1);
   });
 
+  it('flags duplicate YouTube IDs across URL forms', () => {
+    const blocked = layer3QueueCheck([
+      { url: 'https://youtube.com/watch?v=dQw4w9WgXcQ', title: 'a', tags: [] },
+      { url: 'https://youtu.be/dQw4w9WgXcQ', title: 'b', tags: [] },
+    ]);
+    expect(blocked.length).toBe(1);
+    expect(blocked[0].reason).toBe('URL match');
+  });
+
   it('flags topic-similar pairs', () => {
     const blocked = layer3QueueCheck([
       {
@@ -357,5 +411,21 @@ describe('parseArgs', () => {
 
   it('--dry-run sets dryRun true', () => {
     expect(parseArgs(['--dry-run']).dryRun).toBe(true);
+  });
+
+  it('--identity-only stops the CLI contract at deterministic identity matching', () => {
+    expect(parseArgs(['--identity-only']).identityOnly).toBe(true);
+  });
+
+  it('preserves --url after --series for identity-only candidate checks', () => {
+    const args = parseArgs([
+      '--series',
+      'GP',
+      '--url',
+      'https://youtu.be/dQw4w9WgXcQ',
+      '--identity-only',
+    ]);
+    expect(args.url).toBe('https://youtu.be/dQw4w9WgXcQ');
+    expect(args.identityOnly).toBe(true);
   });
 });

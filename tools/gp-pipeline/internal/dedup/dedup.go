@@ -40,10 +40,11 @@ type Result struct {
 // Series, which defaults to "GP" to match the bash pipeline's default
 // when the prefix is not explicitly set.
 type Options struct {
-	ScriptPath string // absolute path to scripts/dedup-gate.mjs
-	URL        string // source URL being checked
-	Title      string // proposed title
-	Series     string // ticket prefix (GP / MP / SD / Lv)
+	ScriptPath   string // absolute path to scripts/dedup-gate.mjs
+	URL          string // source URL being checked
+	Title        string // proposed title
+	Series       string // ticket prefix (GP / MP / SD / Lv)
+	IdentityOnly bool   // stop after deterministic URL / source identity matching
 }
 
 // Check runs the dedup gate with the given options and parses the verdict.
@@ -73,6 +74,9 @@ func Check(ctx context.Context, opts Options) (*Result, error) {
 	}
 	if opts.Title != "" {
 		args = append(args, "--title", opts.Title)
+	}
+	if opts.IdentityOnly {
+		args = append(args, "--identity-only")
 	}
 
 	res, runErr := runner.Run(ctx, "node", args...)

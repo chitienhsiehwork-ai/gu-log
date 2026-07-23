@@ -30,6 +30,18 @@ Mogu Picks：
 tools/gp-pipeline/gp-pipeline run '<url>' --prefix MP
 ```
 
+只預審一支 YouTube 影片、讓人先看來源完整性與重複證據：
+
+```bash
+tools/gp-pipeline/gp-pipeline candidate '<youtube-url>'
+```
+
+`candidate` 需要 `yt-dlp`，只在解析後位於 repo 外的工作目錄寫入
+`candidate-manifest.json`、原始 VTT、保留時間戳的逐字稿，以及來源完整時的
+source capture。它不呼叫 LLM、不建立 MDX、不配置 ticket、不修改 counter／Git，
+也不執行 Eval、Write、Review、Refine、Credits、Ralph、Translate 或 Deploy。
+`writeEligible: true` 仍不是核准；人工確認後要另跑標準 `run <youtube-url>`。
+
 常用控制：
 
 ```bash
@@ -53,6 +65,7 @@ tools/gp-pipeline/gp-pipeline run --file gp-259-example.mdx --from-step review -
 | 目的 | 指令 |
 |---|---|
 | 檢查依賴 | `gp-pipeline doctor` |
+| 僅預審單一 YouTube 影片 | `gp-pipeline candidate <youtube-url>` |
 | 抓完整來源 | `gp-pipeline fetch <url>` |
 | 評估來源 | `gp-pipeline eval --source <file>` |
 | 檢查重複 | `gp-pipeline dedup --url <url> --title <title> --series GP` |
@@ -74,6 +87,12 @@ tools/gp-pipeline/gp-pipeline run --file gp-259-example.mdx --from-step review -
 ## Side effects 與政策 SSOT
 
 - `fetch`、`eval`、`dedup`、`write`、`review`、`refine`、`credits`、`status` 與 `counter next` 不配置正式 ticket。
+- `candidate` 只寫 repo 外的預審工作目錄；無字幕、過短／超限、live／upcoming
+  等可審閱結果回 0，但 `writeEligible` 會是 false。video-ID dedup BLOCK 回 13，
+  `yt-dlp`／擷取技術失敗回 10，輸入／workdir 錯誤回 1，逾時回 124。
+- `candidate --work-dir` 若是 repo root、repo 子目錄，或 symlink 解析後落在 repo
+  內，會在擷取前拒絕，且不會改寫 fallback 位置來硬留 manifest。
+- YouTube 的 canonical `run` 同樣要求 `yt-dlp`；缺少時不得 fallback 到 generic HTML。
 - `counter bump` 會原子修改 `scripts/article-counter.json`；通常只應由 deploy 呼叫。
 - `ralph` 會修改指定文章的 frontmatter／內容。
 - `translate` 只寫一個新的 en- sidecar 檔，不 commit、不 push。
