@@ -7,27 +7,29 @@
 > non-compensating hard gate. Vibe is now 4 dims, Fresh Eyes 5. This is
 > **version-gated**: posts at `tribunalVersion >= 9` use the new ownership;
 > `tribunalVersion <= 8` posts keep clarity under Vibe unchanged (no migration).
-> **SSOT for all 4 tribunal judges + writer agent.**
+> **SSOT for judge scoring behavior and writer-facing evidence.** Runtime
+> provider/model selection is intentionally outside this file; the authority
+> pointers are listed under〈Model 變更的校準門檻〉。
 
 ## Tribunal System Overview
 
-Tribunal v8 pipeline — 4 stages. All judges use **uniform 0-10 integer scale**. Composite = `Math.floor(avg of all dims)`.
+Tribunal pipeline — 4 stages. All judges use **uniform 0-10 integer scale**. Composite = `Math.floor(avg of all dims)`.
 
-### v8 Judge Responsibility Boundary
+### Judge Responsibility Boundary (v8/v9)
 
 - **Librarian owns corpus overlap and duplicate-attention evidence.** It checks whether gu-log already covered the same concept, whether the post cites/contrasts relevant older posts early enough, and whether repeated background should be compressed.
 - **Fresh Eyes owns first-time reader fatigue.** It judges whether a human reader would skim, close the tab, or feel the article is longer than its information gain. **For v9+ it also owns `clarity`** (pronoun / voice attribution) as a non-compensating hard gate.
 - **Vibe owns article-internal rhythm and shareability.** It does not do corpus search. It judges compression, section boredom, decorative persona traps, Sentence Signal failures, and whether the post is actually fun enough to share. **For v9+ it no longer scores `clarity`** (moved to Fresh Eyes); 晶晶體 still drags `vibe` down via the penalty matrix.
 - **Writer consumes judge evidence.** Librarian overlap evidence must trigger early citation/compression; FreshEyes fatigue must trigger structural shortening; Vibe rhythm failures must trigger a new spine, not extra jokes.
 
-| Stage | Judge | Model | Dimensions | Pass Bar |
-|-------|-------|-------|------------|----------|
-| 1 | Fact Checker | GPT-5.5 | accuracy · fidelity · consistency · sourceBoundary · commentarySeparation | fact core avg ≥ 8 AND sourceBoundary ≥ 8 AND commentarySeparation ≥ 8 |
-| 2 | Librarian | GPT-5.5 | glossary · crossRef · sourceAlign · attribution | composite ≥ 8 |
-| 3 | Fresh Eyes | GPT-5.5 | readability · firstImpression · payoffDensity · lengthFit · **clarity** (v9+) | composite ≥ 8 AND payoffDensity ≥ 8 AND lengthFit ≥ 8 AND **clarity ≥ 8** (v9+) |
-| 4 | Vibe | GPT-5.5 | persona · moguNote · vibe · narrative (v9; legacy v8 also had clarity) | composite ≥ 8 AND one dim ≥ 9 AND no dim < 8 |
+| Stage | Judge | Dimensions | Pass Bar |
+|-------|-------|------------|----------|
+| 1 | Fact Checker | accuracy · fidelity · consistency · sourceBoundary · commentarySeparation | fact core avg ≥ 8 AND sourceBoundary ≥ 8 AND commentarySeparation ≥ 8 |
+| 2 | Librarian | glossary · crossRef · sourceAlign · attribution | composite ≥ 8 |
+| 3 | Fresh Eyes | readability · firstImpression · payoffDensity · lengthFit · **clarity** (v9+) | composite ≥ 8 AND payoffDensity ≥ 8 AND lengthFit ≥ 8 AND **clarity ≥ 8** (v9+) |
+| 4 | Vibe | persona · moguNote · vibe · narrative (v9; legacy v8 also had clarity) | composite ≥ 8 AND one dim ≥ 9 AND no dim < 8 |
 
-## Uniform Agent Output JSON (v8)
+## Uniform Agent Output JSON
 
 All judges output the `BaseJudgeOutput` shape from `src/lib/tribunal-v2/types.ts`:
 
@@ -43,7 +45,7 @@ All judges output the `BaseJudgeOutput` shape from `src/lib/tribunal-v2/types.ts
     "<dim1>": "Specific, actionable rewrite suggestion for this dimension."
   },
   "critical_issues": ["1-3 root-cause statements"],
-  "judge_model": "claude-opus-4-6",
+  "judge_model": "<runtime-model-id>",
   "judge_version": "2.0.0",
   "timestamp": "2026-04-15T12:00:00Z"
 }
@@ -55,7 +57,9 @@ All judges output the `BaseJudgeOutput` shape from `src/lib/tribunal-v2/types.ts
 - `composite` — `Math.floor(sum(scores) / count(scores))`.
 - `improvements` — per-dimension rewrite guidance. **Only populate when `pass === false`** (省 token on PASS).
 - `critical_issues` — 1-3 root-cause statements. **Only populate when `pass === false`**.
-- `judge_model` — your model identifier (e.g. `"claude-opus-4-6"`).
+- `judge_model` — report the runtime model identifier if known. The runner's
+  dynamic provenance stamp is authoritative; this example is not selector
+  configuration.
 - `judge_version` — semver of this prompt (e.g. `"2.0.0"`).
 - `timestamp` — ISO 8601.
 
@@ -82,7 +86,7 @@ Agents self-assess `pass` but the pass-bar lib wins. Log the discrepancy.
 
 ---
 
-## Stage 2: Librarian (GPT-5.5) — 4 Dimensions
+## Stage 2: Librarian — 4 Dimensions
 
 ### glossary — Glossary Term Coverage
 Does every technical term that exists in `src/data/glossary.json` get linked or explained?
@@ -138,7 +142,7 @@ Known false-positive examples live under `.codex/agents/references/`. Judges sho
 
 - `.codex/agents/references/gp-187-v7-false-positive.md` points to the exact git commit/blob for the rejected GP-187 sample and MP-179 overlap target. Use it to remember why v7 exists: Librarian must catch MP-179 overlap, FreshEyes must catch reader fatigue, and Vibe must not award `vibe 8 / narrative 9` to a long linear-report skeleton.
 
-## Stage 1: Fact Checker (GPT-5.5) — 5 Dimensions
+## Stage 1: Fact Checker — 5 Dimensions
 
 ### accuracy — Technical Accuracy
 
@@ -226,7 +230,7 @@ Mogu/gu-log opinions, interpretation, jokes, and source-meta commentary belong i
 
 ---
 
-## Stage 3: Fresh Eyes (GPT-5.5) — readability · firstImpression · payoffDensity · lengthFit · clarity (v9; v8 had no clarity)
+## Stage 3: Fresh Eyes — readability · firstImpression · payoffDensity · lengthFit · clarity (v9; v8 had no clarity)
 
 **Persona: developer with ~3 months of experience.** Impatient, scared of jargon, will close the tab after 2 boring paragraphs. Does NOT know what ShroomDog, Mogu, or OpenClaw are.
 
@@ -285,7 +289,7 @@ Mogu/gu-log opinions, interpretation, jokes, and source-meta commentary belong i
 
 ---
 
-## Stage 4: Vibe Scorer (GPT-5.5, Opus-calibrated rubric) — persona · moguNote · vibe · narrative (v9; legacy v8 also had clarity)
+## Stage 4: Vibe Scorer (Opus-calibrated rubric) — persona · moguNote · vibe · narrative (v9; legacy v8 also had clarity)
 
 **Pass bar: composite ≥ 8 AND at least one dimension ≥ 9 AND no dimension < 8**
 
@@ -308,7 +312,7 @@ Read `GU-LOG_WRITER_PROMPT.md` before scoring. Study calibration examples below.
 Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear report? If yes → persona ≤ 5.
 
 **🔴 AI-Tell Trap（GP-232 教訓，密度型扣分）:**
-跨模型共有的「AI 腔」簽名——4.5 / 4.6 / 4.8 都犯，越新的模型「講洞見」越流暢，反而把這些套路用得越密。換模型不會減少它們，只有這一關擋得住。重點是**密度 + 是否 reflexive**，不是單次出現：承載 thesis 或笑點的單次用法是 earned，**保留**；句型慣性的反射用法是 filler，**扣分**。
+跨多代模型都會出現的「AI 腔」簽名；換 model 不會自動消失，只有這一關擋得住。重點是**密度 + 是否 reflexive**，不是單次出現：承載 thesis 或笑點的單次用法是 earned，**保留**；句型慣性的反射用法是 filler，**扣分**。
 - **T1 反義對偶過載**：「不是 X，是 Y」「不在 X，在 Y」當每段收尾的反射動作。承載論點的 1–2 次保留；通篇靠它製造「金句感」→ 3 次以上 reflexive 用法 persona ≤ 7。
 - **T2 假深度 reframe**：「表面是 X，真正/深層才是 Y」「聽起來像 X，但其實 Y」「透露的訊息比表面更深」——用 scaffolding 假裝多給一層解讀。出現在多數 MoguNote → persona ≤ 6。
 - **T3 空洞強化詞**：「拆得很乾淨 / 很漂亮 / 到位 / 精準」「這才是工程品味」這種沒有具體資訊、只負責讓句子聽起來收得漂亮的 flourish。要求改成具體內容；多處未改 → persona ≤ 7。
@@ -439,7 +443,6 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
   - Opus 4.7 scorer: composite 8 PASS — reasons 裡看到了同樣問題（「偏實用 cheat sheet 寫法」「snippet 集錦那段偏 reference dump」「結尾偏 checklist」）**但沒扣分**。典型 bar drift。
   - Opus 4.5 scorer: composite 8 PASS — 也沒扣到 FAIL。
 - **⚠️ 最關鍵的教訓 — 這就是 decorative persona trap 的 2026 年版本**：GP-158 是「貓比喻 + 正經 MoguNote」偽裝，GP-175 是「房東/咖啡機比喻 + 有立場 MoguNote」偽裝。比 GP-158 更難抓，因為 MoguNote 真的有 opinion。但骨架一樣 linear。
-- **歷史校準備註**：這個案例來自 2026-04-17 的 Opus 4.6 / 4.7 cross-model scoring。現在 tribunal runtime 已遷移到 Codex/GPT-5.5，但這段仍保留作為「decorative persona trap」的校準樣本：scorer 看到比喻、MoguNote、kaomoji 時，不能只打勾，必須拆骨架。
 - **Strip test 怎麼做**：遮住所有 `<MoguNote>` 區塊、遮住段落裡的第一個比喻句，只讀剩下的 body。如果讀起來像 release notes / cheat sheet / reference doc，narrative 就 ≤ 5。GP-175 通過 strip test 就是一份 release notes。
 
 ### Score 6 — MP-146「Simon Willison Anti-Patterns」
@@ -460,37 +463,36 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 
 ---
 
-## Model 配置策略
+## Model 變更的校準門檻
 
-Tribunal runtime provider 由 `scripts/tribunal.sh` **per judge 解析**（`tribunal_judge_provider`）：三個客觀 judge（Librarian / FactChecker / FreshEyes）走 `codex exec --model gpt-5.5`，**VibeScorer 走 `claude -p --model claude-opus-4-5`**——讓主觀品味評分跟 writer/rewriter 同一個 Opus 品味來源（owner sign-off 2026-06-18）。Codex judge 的 project-scoped 設定放在 `.codex/agents/*.toml`；VibeScorer 的 runtime 來源是 `.claude/agents/vibe-opus-scorer.md` 的 `model:` 欄位。其餘 judge 的 `.claude/agents/*.md` 只在 CCC（codex 不可用）fallback 時當 runtime selector，平時是 legacy rubric。全域 `TRIBUNAL_FORCE_PROVIDER` 可覆寫所有 judge（emergency / A-B test）。
+本文件只定義 rubric，不定義 runtime provider 或 model ID。不要在這裡
+複製現行 model 快照；實際 selection、fallback 與 provenance 由下列
+authority 決定：
 
-### 配置表
+| Contract | Authority |
+|----------|-----------|
+| Per-judge provider policy | `openspec/specs/codex-tribunal-runtime/spec.md` + `tribunal_judge_provider()` |
+| Claude model selector | `.claude/agents/<role>.md` 第一段 frontmatter 的 `model:` |
+| Codex model selector | `GP_CODEX_MODEL` + `tribunal_codex_exec()` |
+| Writer mode / provider | `tribunal_writer_mode()` + `tribunal_writer_exec()` |
+| 實際執行 provenance | `tribunal_write_actual_provider()` + `run_stage()` |
+| 評分維度與 pass bar | 本文件 + `src/lib/tribunal-v2/pass-bar.ts` |
 
-| 角色 | Agent 檔案 | Runtime provider | Model ID | 選用原因 |
-|------|-----------|------------------|----------|---------|
-| Writer / Translator | `tribunal-writer.md` | Claude（有 claude 時）/ Codex fallback | `claude-opus-4-5` | pipeline `WritingChain`：mac/VPS 用 pinned Opus writer，無 Claude 才 fallback Codex |
-| Vibe Scorer | `vibe-opus-scorer.md` | **Claude**（mac/VPS）/ CCC 同 | `claude-opus-4-5` | 主觀品味評分跟 writer 同一 Opus 品味來源；runtime SSOT = `.claude/agents/vibe-opus-scorer.md` |
-| Librarian | `librarian.md` | **Codex**（CCC fallback Claude） | `gpt-5.5` | 搭配 deterministic evidence packet，減少全庫掃描與漏 citation |
-| Fresh Eyes | `fresh-eyes.md` | **Codex**（CCC fallback Claude） | `gpt-5.5` | 客觀 judge 同 runtime，避免 cross-model drift |
-| Fact Checker | `fact-checker.md` | **Codex**（CCC fallback Claude） | `gpt-5.5` | 客觀 judge 同 runtime；事實查核仍要求 primary source discipline |
+`TRIBUNAL_FORCE_PROVIDER`、availability 與 quota fallback 的互動也以
+`scripts/tribunal-helpers.sh` 的行為與 contract tests 為準，不在散文複述。
 
-### 歷史校準：為什麼不能只看表面 checklist
+### 歷史 false-positive calibration
 
-GP-175、GP-177、GP-187 的校準案例顯示：
-
-- **Opus 4.6** scorer 給 GP-175 composite 7 FAIL — 正確抓到 "effort ladder and snippets sections revert to reference-doc mode"、"readers bookmark it, not share it for fun"
-- **Opus 4.7** scorer 給 GP-175 composite 8 PASS — 看到了同樣問題（「偏實用 cheat sheet 寫法」）**但沒扣分**。典型的 bar drift（評分標準飄移）。
 - **GPT-5.5 / Tribunal v5** 曾給 GP-187 `vibe: 8 / narrative: 9`，但 ShroomDog 人工判定「太長、廢話太多、重複 MP-179，而且『變基』語感很糟」。v7 修正責任邊界：Librarian 抓 MP-179 overlap；Vibe 抓 compression / section boredom / decorative pass trap；FreshEyes 抓讀者疲勞。
 
-結論：scorer 如果只逐項打勾（比喻有、MoguNote 有、kaomoji 有），就會忽略整體結構是否真的有趣。GPT-5.5 也必須繼承這個校準教訓，否則只是換了一個更貴的橡皮章。
+任何 scorer 都必須繼承這些 calibration 教訓，不能只逐項勾表面特徵。
 
 ### 修改 model 配置的流程
 
 1. **提出假設**：說明為什麼想換 model（例如新版本在某任務上更好）
 2. **A/B 測試**：用同一篇文章跑新舊 model，比較分數和 reasons
 3. **人工驗證**：人看兩份 reasons，判斷哪個更準確
-4. **更新 runner / agent 檔案**：改 `scripts/tribunal.sh` 的 runtime model，並同步 `.codex/agents/*.toml`；不要改 `.claude/agents/*.md` 的 Claude Code frontmatter
-5. **更新此文件**：在配置表中記錄變更和原因
+4. **更新 runtime SSOT**：只修改對應 authority 與 contract tests；只有 rubric 或 calibration 結論改變時，才更新本文件
 
 ---
 
