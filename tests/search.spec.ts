@@ -1,10 +1,9 @@
 import { test, expect } from './fixtures';
-
-const BASE = 'http://localhost:4321';
+import { enSearchRankingFixture, zhSearchRankingFixture } from './data/search-ranking-fixture';
 
 test.describe('Search Bar', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto(BASE);
+    await page.goto('/');
     // Open search modal
     await page.click('[data-search-trigger]');
     await page.waitForSelector('[data-search-modal][aria-hidden="false"]');
@@ -122,6 +121,40 @@ test.describe('Search Bar', () => {
   });
 });
 
+test.describe('Search Bar golden ranking smoke', () => {
+  for (const locale of [
+    {
+      name: 'zh-tw',
+      pagePath: '/',
+      indexPath: 'search-index.zh-tw.json',
+      query: '蘭花',
+      fixture: zhSearchRankingFixture,
+    },
+    {
+      name: 'en',
+      pagePath: '/en/',
+      indexPath: 'search-index.en.json',
+      query: 'orchid',
+      fixture: enSearchRankingFixture,
+    },
+  ] as const) {
+    test(`GIVEN ${locale.name} title, tag, and summary matches WHEN searching THEN renders the golden order`, async ({
+      page,
+    }) => {
+      await page.route(`**/${locale.indexPath}`, (route) =>
+        route.fulfill({ status: 200, contentType: 'application/json', json: locale.fixture })
+      );
+      await page.goto(locale.pagePath);
+      await page.click('[data-search-trigger]');
+
+      await page.locator('[data-search-input]').fill(locale.query);
+      const tickets = page.locator('.search-result-ticket');
+      await expect(tickets).toHaveCount(3);
+      await expect(tickets).toHaveText(['GP-901', 'GP-902', 'GP-903']);
+    });
+  }
+});
+
 // Resolve a CSS custom property to its browser-computed color, in the same
 // format getComputedStyle returns for real elements, so it can be compared
 // directly without hand-rolling hex/rgb conversion.
@@ -145,7 +178,7 @@ for (const theme of ['dark', 'light'] as const) {
       page,
     }) => {
       await page.addInitScript((t) => localStorage.setItem('theme', t), theme);
-      await page.goto(BASE);
+      await page.goto('/');
       await page.click('[data-search-trigger]');
       await page.waitForSelector('[data-search-modal][aria-hidden="false"]');
 

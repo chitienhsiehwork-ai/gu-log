@@ -3,6 +3,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:4321';
 const useRemoteBaseURL = Boolean(process.env.PLAYWRIGHT_BASE_URL);
+const vercelBypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
 
 // CCC sandboxes pre-install a pinned Chromium under PLAYWRIGHT_BROWSERS_PATH whose
 // build number can lag what playwright-core wants, and the on-demand download is
@@ -63,6 +64,12 @@ export default defineConfig({
   use: {
     baseURL,
     trace: 'on-first-retry',
+    extraHTTPHeaders: vercelBypassSecret
+      ? {
+          'x-vercel-protection-bypass': vercelBypassSecret,
+          'x-vercel-set-bypass-cookie': 'true',
+        }
+      : undefined,
   },
   projects: [
     {
