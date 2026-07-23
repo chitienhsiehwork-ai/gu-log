@@ -1,11 +1,9 @@
 import { test, expect } from './fixtures';
 import { enSearchRankingFixture, zhSearchRankingFixture } from './data/search-ranking-fixture';
 
-const BASE = 'http://localhost:4321';
-
 test.describe('Search Bar', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto(BASE);
+    await page.goto('/');
     // Open search modal
     await page.click('[data-search-trigger]');
     await page.waitForSelector('[data-search-modal][aria-hidden="false"]');
@@ -146,7 +144,7 @@ test.describe('Search Bar golden ranking smoke', () => {
       await page.route(`**/${locale.indexPath}`, (route) =>
         route.fulfill({ status: 200, contentType: 'application/json', json: locale.fixture })
       );
-      await page.goto(`${BASE}${locale.pagePath}`);
+      await page.goto(locale.pagePath);
       await page.click('[data-search-trigger]');
 
       await page.locator('[data-search-input]').fill(locale.query);
@@ -180,7 +178,7 @@ for (const theme of ['dark', 'light'] as const) {
       page,
     }) => {
       await page.addInitScript((t) => localStorage.setItem('theme', t), theme);
-      await page.goto(BASE);
+      await page.goto('/');
       await page.click('[data-search-trigger]');
       await page.waitForSelector('[data-search-modal][aria-hidden="false"]');
 
