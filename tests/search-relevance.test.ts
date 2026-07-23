@@ -11,6 +11,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import Fuse from 'fuse.js';
 import { fuseOptions, type SearchEntry } from '../src/config/fuse-options';
 import { getSearchIndex } from './helpers/search-index-loader';
+import { searchRankingGoldenCases } from './data/search-ranking-fixture';
 
 let fuseZh: Fuse<SearchEntry>;
 let fuseEn: Fuse<SearchEntry>;
@@ -94,4 +95,15 @@ describe('Search Relevance — source URL', () => {
 
     expect(tickets[0]).toBe('GP-133');
   });
+});
+
+describe('Search Relevance — stable golden ranking', () => {
+  for (const golden of searchRankingGoldenCases) {
+    it(`keeps ${golden.name}`, () => {
+      const fuse = new Fuse<SearchEntry>([...golden.entries], fuseOptions);
+      const tickets = searchTickets(fuse, golden.query, golden.tickets.length);
+
+      expect(tickets).toEqual([...golden.tickets]);
+    });
+  }
 });

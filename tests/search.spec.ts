@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures';
+import { enSearchRankingFixture, zhSearchRankingFixture } from './data/search-ranking-fixture';
 
 const BASE = 'http://localhost:4321';
 
@@ -120,6 +121,40 @@ test.describe('Search Bar', () => {
     );
     expect(titleSize).toBeGreaterThan(sourceSize);
   });
+});
+
+test.describe('Search Bar golden ranking smoke', () => {
+  for (const locale of [
+    {
+      name: 'zh-tw',
+      pagePath: '/',
+      indexPath: 'search-index.zh-tw.json',
+      query: '蘭花',
+      fixture: zhSearchRankingFixture,
+    },
+    {
+      name: 'en',
+      pagePath: '/en/',
+      indexPath: 'search-index.en.json',
+      query: 'orchid',
+      fixture: enSearchRankingFixture,
+    },
+  ] as const) {
+    test(`GIVEN ${locale.name} title, tag, and summary matches WHEN searching THEN renders the golden order`, async ({
+      page,
+    }) => {
+      await page.route(`**/${locale.indexPath}`, (route) =>
+        route.fulfill({ status: 200, contentType: 'application/json', json: locale.fixture })
+      );
+      await page.goto(`${BASE}${locale.pagePath}`);
+      await page.click('[data-search-trigger]');
+
+      await page.locator('[data-search-input]').fill(locale.query);
+      const tickets = page.locator('.search-result-ticket');
+      await expect(tickets).toHaveCount(3);
+      await expect(tickets).toHaveText(['GP-901', 'GP-902', 'GP-903']);
+    });
+  }
 });
 
 // Resolve a CSS custom property to its browser-computed color, in the same
