@@ -15,6 +15,9 @@ const i18n = {
     countCapped: '共 {total} 篇，顯示前 {shown} 篇',
     loading: '正在載入搜尋索引…',
     shortcut: '⌘K',
+    triggerLabel: '開啟搜尋',
+    dialogLabel: '搜尋文章',
+    resultsLabel: '搜尋結果',
   },
   en: {
     placeholder: 'Search (e.g., SD-1, GP-14...)',
@@ -23,6 +26,9 @@ const i18n = {
     countCapped: '{total} results, showing top {shown}',
     loading: 'Loading search index…',
     shortcut: '⌘K',
+    triggerLabel: 'Open search',
+    dialogLabel: 'Search articles',
+    resultsLabel: 'Search results',
   },
 };
 
@@ -30,7 +36,7 @@ const t = i18n[lang];
 ---
 
 <!-- Search trigger stays in header -->
-<button class="search-trigger" aria-label="Toggle search" title={t.shortcut} data-search-trigger>
+<button class="search-trigger" aria-label={t.triggerLabel} title={t.shortcut} data-search-trigger>
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width="16"
@@ -60,7 +66,13 @@ const t = i18n[lang];
   data-debounce-ms={searchConfig.debounceMs}
   aria-hidden="true"
 >
-  <div class="search-modal" role="dialog" aria-modal="true" aria-label="Search" data-search-dialog>
+  <div
+    class="search-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-label={t.dialogLabel}
+    data-search-dialog
+  >
     <div class="search-modal-header">
       <svg
         class="search-modal-icon"
@@ -81,13 +93,14 @@ const t = i18n[lang];
         type="text"
         class="search-modal-input"
         placeholder={t.placeholder}
+        aria-label={t.dialogLabel}
         autocomplete="off"
         spellcheck="false"
         data-search-input
       />
       <kbd class="search-shortcut">ESC</kbd>
     </div>
-    <div class="search-results" role="listbox" aria-label="Search results" data-search-results>
+    <div class="search-results" role="listbox" aria-label={t.resultsLabel} data-search-results>
       <!-- JS populated -->
     </div>
   </div>

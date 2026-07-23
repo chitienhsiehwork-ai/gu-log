@@ -129,6 +129,70 @@ test.describe('Mogu / GP / MP breaking route contract', () => {
     });
   }
 
+  test('GIVEN a localized header WHEN controls are announced THEN labels match the page language', async ({
+    page,
+  }) => {
+    for (const [path, labels] of [
+      [
+        '/',
+        {
+          search: '開啟搜尋',
+          dialog: '搜尋文章',
+          results: '搜尋結果',
+          language: '切換至英文',
+          theme: '切換為淺色主題',
+        },
+      ],
+      [
+        '/en/',
+        {
+          search: 'Open search',
+          dialog: 'Search articles',
+          results: 'Search results',
+          language: 'Switch to Chinese',
+          theme: 'Switch to light theme',
+        },
+      ],
+    ] as const) {
+      await page.goto(path);
+      await expect(page.locator('[data-search-trigger]')).toHaveAttribute(
+        'aria-label',
+        labels.search
+      );
+      await expect(page.locator('[data-search-dialog]')).toHaveAttribute(
+        'aria-label',
+        labels.dialog
+      );
+      await expect(page.locator('[data-search-results]')).toHaveAttribute(
+        'aria-label',
+        labels.results
+      );
+      await expect(page.locator('.nav-icons .icon-btn')).toHaveAttribute(
+        'aria-label',
+        labels.language
+      );
+      await expect(page.locator('#theme-toggle')).toHaveAttribute('aria-label', labels.theme);
+    }
+  });
+
+  test('GIVEN keyboard focus on the theme toggle WHEN activated THEN focus stays and the action label updates', async ({
+    page,
+    browserName,
+  }) => {
+    test.skip(
+      browserName === 'webkit',
+      'iPhone Safari has no Tab navigation contract; desktop keyboard focus is covered by Chromium'
+    );
+    await page.goto('/');
+    const toggle = page.locator('#theme-toggle');
+    await toggle.focus();
+    await page.keyboard.press('Space');
+
+    await expect(toggle).toBeFocused();
+    await expect(toggle).toHaveAttribute('aria-label', '切換為深色主題');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  });
+
   test('GIVEN the hamburger menu WHEN opened THEN the Mogu Picks link points directly at the canonical route per locale', async ({
     page,
   }) => {

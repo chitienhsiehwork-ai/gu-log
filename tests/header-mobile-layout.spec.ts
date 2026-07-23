@@ -1,53 +1,80 @@
 import { test, expect } from './fixtures';
 
 test.describe('Header mobile layout', () => {
-  test('no horizontal overflow on mobile', async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 }); // iPhone 14
-    await page.goto('/');
-    // Wait for page load
-    await page.waitForLoadState('networkidle');
+  test('no horizontal overflow on narrow mobile widths', async ({ page }) => {
+    for (const route of ['/', '/en/']) {
+      for (const width of [320, 360, 375, 390]) {
+        await page.setViewportSize({ width, height: 844 });
+        await page.goto(route);
+        await page.waitForLoadState('networkidle');
 
-    const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
-    const clientWidth = await page.evaluate(() => document.documentElement.clientWidth);
-    expect(scrollWidth).toBeLessThanOrEqual(clientWidth);
+        const layout = await page.evaluate(() => {
+          const header = document.querySelector('.site-header');
+          const brand = document.querySelector('.site-title')?.getBoundingClientRect();
+          const nav = document.querySelector('.site-nav')?.getBoundingClientRect();
+          if (!header || !brand || !nav) throw new Error('Missing header layout element');
+
+          return {
+            pageScrollWidth: document.documentElement.scrollWidth,
+            pageClientWidth: document.documentElement.clientWidth,
+            headerScrollWidth: header.scrollWidth,
+            headerClientWidth: header.clientWidth,
+            brandToNavGap: nav.left - brand.right,
+          };
+        });
+
+        expect(
+          layout.pageScrollWidth,
+          `Page overflow on ${route} at ${width}px`
+        ).toBeLessThanOrEqual(layout.pageClientWidth);
+        expect(
+          layout.headerScrollWidth,
+          `Header overflow on ${route} at ${width}px`
+        ).toBeLessThanOrEqual(layout.headerClientWidth);
+        expect(
+          layout.brandToNavGap,
+          `Brand and nav focus halos collide on ${route} at ${width}px`
+        ).toBeGreaterThanOrEqual(4);
+      }
+    }
   });
 
   test('REGRESSION: nav icons must stay in a single row on mobile, pixel-aligned', async ({
     page,
   }) => {
     // Test at multiple narrow widths including iPhone SE (320)
-    for (const width of [320, 375, 390]) {
+    for (const width of [320, 360, 375, 390]) {
       await page.setViewportSize({ width, height: 844 });
       await page.goto('/');
       await page.waitForLoadState('networkidle');
 
       // Get ALL interactive elements inside .nav-icons (links, buttons — everything)
-      const iconPositions = await page
-        .locator('.nav-icons > a, .nav-icons > button, .nav-icons > *')
-        .evaluateAll((els) =>
-          els
-            .filter((el) => {
-              const style = window.getComputedStyle(el);
-              return style.display !== 'none' && style.visibility !== 'hidden';
-            })
-            .map((el) => {
-              const rect = el.getBoundingClientRect();
-              return {
-                tag: el.tagName,
-                class: el.className,
-                top: rect.top,
-                centerY: rect.top + rect.height / 2,
-                height: rect.height,
-                width: rect.width,
-              };
-            })
-        );
+      const iconPositions = await page.locator('.nav-icons > *').evaluateAll((els) =>
+        els
+          .filter((el) => {
+            const style = window.getComputedStyle(el);
+            return style.display !== 'none' && style.visibility !== 'hidden';
+          })
+          .map((el) => {
+            const rect = el.getBoundingClientRect();
+            return {
+              tag: el.tagName,
+              class: el.className,
+              top: rect.top,
+              centerY: rect.top + rect.height / 2,
+              height: rect.height,
+              width: rect.width,
+            };
+          })
+      );
 
-      // Must have at least 6 visible nav items (home, about, mogu-picks, briefs, lang, search, theme)
+      // The compact header exposes four essentials; the remaining routes live in the hamburger menu.
+      const requiredControls = ['search-trigger', 'icon-btn', 'theme-toggle', 'hamburger-btn'];
       expect(
-        iconPositions.length,
-        `Expected ≥6 visible nav items at ${width}px, got ${iconPositions.length}`
-      ).toBeGreaterThanOrEqual(6);
+        iconPositions.map((item) => item.class),
+        `Missing a required nav control at ${width}px`
+      ).toEqual(expect.arrayContaining(requiredControls));
+      expect(iconPositions.length).toBeGreaterThanOrEqual(requiredControls.length);
 
       // All icons must be on the same row: centerY within 2px tolerance (pixel-perfect)
       const firstCenterY = iconPositions[0].centerY;
