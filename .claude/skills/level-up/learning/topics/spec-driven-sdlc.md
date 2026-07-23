@@ -1,6 +1,6 @@
 # Spec-Driven SDLC loop (openspec + multi-agent delegation, gu-log)
 
-> 記耐久結論，不記「在第幾關 / 選了哪個字母」這種 session-local 過程（見 AGENTS.md〈📐 寫 prompt / 規則〉）。
+> 記耐久結論，不記「在第幾關 / 選了哪個字母」這種 session-local 過程（見 `docs/agent-discipline.md`〈寫 prompt / 規則〉）。
 
 ## Current Level
 - Status: mastered（full clear；五個概念 + 四個自己推導的 refinement，全程 learner 主導推導）

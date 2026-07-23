@@ -11,6 +11,10 @@
 - **Fonts**: Inter + Noto Sans TC (Google Fonts)
 - **Theme**: Dracula dark（default）+ Solarized light（CSS SSOT：`src/styles/global.css`；雙主題對照見 `uiux-auditor` skill）
 
+## UI QA
+
+任何讀者看得到的 `CSS`、元件、色彩、間距、字體排印或版面變更，合併前都要用當前執行環境可用的 `uiux-auditor` 做雙主題、相關畫面尺寸與 WCAG 對比審查。實際工具與執行方式依執行環境操作手冊或 skill；本檔不複製指令。
+
 ## Architecture
 
 ```

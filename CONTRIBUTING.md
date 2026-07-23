@@ -359,7 +359,7 @@ SSOT = `GU-LOG_WRITER_PROMPT.md` 的「術語處理」；此處只是 derived vi
 
 gu-log 使用 tribunal 進行品質管理——一個 multi-agent scoring + rewrite 系統（`tribunal-batch-runner.sh` 批次掃描、`tribunal-all-claude.sh` 單篇執行）。
 
-> ⚠️ 評審維度 / pass bar / 各 judge 的 model 都是 **derived view**，會 drift——權威端：`docs/tribunal-runbook.md`（跑法 + daemon）、`scripts/vibe-scoring-standard.md`（評分標準）、`.claude/agents/*.md` 的 `model:` frontmatter（每個 judge 實際 model）。現行是 **v9 四維 Vibe（Persona / MoguNote / Vibe / Narrative）+ Fact / Librarian / Fresh Eyes 多 judge**；完整 pass bar 見 `AGENTS.md`〈Quality〉摘要或 tribunal-runbook 全文。
+> ⚠️ 評審維度 / pass bar / 各 judge 的 model 都是 **derived view**，會 drift——權威端：`docs/tribunal-runbook.md`（跑法 + daemon）、`scripts/vibe-scoring-standard.md`（評分標準）、`.claude/agents/*.md` 的 `model:` frontmatter（每個 judge 實際 model）。現行是 **v9 四維 Vibe（Persona / MoguNote / Vibe / Narrative）+ Fact / Librarian / Fresh Eyes 多 judge**；完整 pass bar 見 tribunal-runbook 全文。
 
 1. **Scorer + 多 judge** 讀文章 + 評分標準 → 給分。
 2. 沒過 → **Rewriter agent** 改寫 → 再跑 → 最多 3 次。

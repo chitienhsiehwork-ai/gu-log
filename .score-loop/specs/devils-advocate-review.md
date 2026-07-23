@@ -671,7 +671,7 @@ grep -rn "LUXURY_TOKEN:" . $EXCLUDES 2>/dev/null
 
 ### Styling 方向
 
-- 使用 Solarized CSS variables（CLAUDE.md 規定）
+- 使用 `docs/dev-reference.md` 指向的 CSS 變數
 - Border/accent color: `--solarized-yellow` 或 `--solarized-orange`
 - **不要用紅色** — 那看起來像 error，但這不是 error
 - 字體繼承 global (Inter + Noto Sans TC)
@@ -702,7 +702,7 @@ stage4FinalVibeScores: z.object({...}).optional(),  // 給 Stage 4 degraded bann
    這是 banner 測試文章。
    ```
 2. `pnpm run dev` → navigate to `/posts/__banner-mock` → visual check
-3. 用 playwright-cli 截圖 → spawn uiux-auditor agent 審（CLAUDE.md 規定）
+3. 用 `playwright-cli` 截圖 → 依 `docs/dev-reference.md` 的 UI QA 跑 `uiux-auditor` agent
 4. 滿意後，刪 mock post 或加進 `.gitignore`
 
 ---

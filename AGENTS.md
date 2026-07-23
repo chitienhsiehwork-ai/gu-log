@@ -2,19 +2,19 @@
 
 > AI / Tech 繁中翻譯與原創 blog；production：<https://gu-log.vercel.app/>。
 
-這是所有 agent 共讀的 Tier-0：只放每次都會影響行為的邊界與路由。具體做法、版本、門檻、工具與事故紀錄放在程式碼、`OpenSpec` 或下列操作手冊；不要在這裡複製衍生事實。
+這是所有 agent 共讀的 Tier-0：只放每次都會影響行為的邊界與路由；詳細規則按下方指標讀權威來源。
 
 ## 啟動與使用者意圖
 
 - 先明確帶執行環境跑 `./scripts/detect-env.sh --runtime <codex|claude-code> --identity`，再讀 [`playbooks/local-agent-playbook.md`](playbooks/local-agent-playbook.md) 或 [`playbooks/CCC-playbook.md`](playbooks/CCC-playbook.md)。不要從環境變數猜身份。
 - 分支名稱只是不具語意的識別碼；任務意圖以使用者對話為準，不得從分支名稱推測。
-- 使用者可能使用語音輸入。整理明顯轉錄錯字與口頭贅詞，可延續上下文明確暗示的想法，但不得補造需求；有重要歧義時，先用「我理解成……」向使用者確認。
-- `issue this: <想法>` 代表只處理 issue：先查最新程式碼與開啟、已關閉的 issue 和 PR，再把整理後的標題、範圍、驗收條件與 `Autonomy: safe-autonomous | needs-human` 給使用者確認。完全重複就補充主要 issue；相關但不同才另開並互相連結。建立或更新 issue 後停止，不得接著實作。
-- `safe-autonomous` 只用於可回退、可測試，且不含產品方向、編輯品味、權限或對外承諾決策的工作；其餘標 `needs-human`。
+- 使用者可能使用語音輸入。整理明顯轉錄錯字與口頭贅詞，可延續上下文明確暗示的想法，但不得補造需求；推定修正會改變意思時，先用「我理解成……」向使用者確認。
+- `issue this: <想法>` 代表只處理 issue：依現有 issue 範本整理、查最新程式碼與既有 issue / PR、去重或互連，並沿用[既有分類](.agents/skills/backlog-sweep/SKILL.md)。分類只是風險註記，不授予實作、推送或合併權限。建立或更新 issue 後停止。
 
 ## 語言
 
 - 跟使用者對話一律用自然的台灣繁中；識別字、路徑、指令、設定鍵、model ID、`UI` 原文標籤與必要專有名詞保留原文。
+- 有自然中文說法時，不用裝飾性英文或翻譯腔。
 - 儲存庫內 `.md` 散文預設繁中；完整語言與術語規則見 [`CONTRIBUTING.md`](CONTRIBUTING.md)。
 
 ## 共通硬邊界
@@ -22,6 +22,7 @@
 - 不得用 `--no-verify`、`--no-gpg-sign` 或其他方式繞過 repo gates；hook 壞了就修 hook。只有 user 當次明確授權才可例外。
 - 預設用功能分支 + PR；commit、範圍、審查、CI、合併與失敗處理全部以當前執行環境的操作手冊為準。
 - 開 PR 後由 agent 自己追 CI。內容發布任務若使用者沒有限縮範圍，完成定義是合併、生產環境部署、冒煙測試與可點的生產環境連結。
+- 讀者看得到的視覺變更在合併前必須完成 [`docs/dev-reference.md`](docs/dev-reference.md) 的 UI QA。
 - 使用者明確指定 `issue-only`、`read-only`、`no push`、`no merge` 或其他窄範圍時，以該範圍為準，不得被一般自治或發布流程蓋過。
 
 ## 任務路由
