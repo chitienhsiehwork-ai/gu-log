@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"html"
+	"io"
+	"io/fs"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -39,6 +41,7 @@ const (
 	YouTubeFailureUpcoming          = "upcoming"
 	YouTubeFailureTimeout           = "timeout"
 	YouTubeFailureInterrupted       = "interrupted"
+	YouTubeFailureWorkDirChanged    = "workdir_changed"
 )
 
 var youtubeVideoIDPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{11}$`)
@@ -98,6 +101,22 @@ func IsYouTubeHostURL(raw string) bool {
 	default:
 		return false
 	}
+}
+
+// IsYouTubeOwnedHostURL recognizes the broader YouTube-owned host family.
+// Routing uses this classifier so unsupported YouTube surfaces fail through
+// ParseYouTubeURL instead of falling through to generic HTTP capture.
+func IsYouTubeOwnedHostURL(raw string) bool {
+	parsed, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+		return false
+	}
+	host := strings.ToLower(parsed.Hostname())
+	return host == "youtu.be" ||
+		host == "youtube.com" ||
+		strings.HasSuffix(host, ".youtube.com") ||
+		host == "youtube-nocookie.com" ||
+		strings.HasSuffix(host, ".youtube-nocookie.com")
 }
 
 func RequireYTDLP() error {
@@ -253,6 +272,102 @@ type captionSelection struct {
 	Kind     string
 }
 
+type youtubeWork struct {
+	path     string
+	root     *os.Root
+	identity os.FileInfo
+	verify   func() error
+	owned    bool
+}
+
+func openYouTubeWork(opts FetchOptions) (*youtubeWork, error) {
+	if opts.WorkDir == "" {
+		return nil, fmt.Errorf("YouTube WorkDir is required")
+	}
+	root := opts.WorkRoot
+	owned := false
+	if root == nil {
+		if err := os.MkdirAll(opts.WorkDir, 0o755); err != nil {
+			return nil, fmt.Errorf("create workdir: %w", err)
+		}
+		var err error
+		root, err = os.OpenRoot(opts.WorkDir)
+		if err != nil {
+			return nil, fmt.Errorf("open workdir: %w", err)
+		}
+		owned = true
+	}
+	info, err := root.Stat(".")
+	if err != nil {
+		if owned {
+			_ = root.Close()
+		}
+		return nil, fmt.Errorf("stat workdir: %w", err)
+	}
+	return &youtubeWork{
+		path:     opts.WorkDir,
+		root:     root,
+		identity: info,
+		verify:   opts.VerifyWorkDir,
+		owned:    owned,
+	}, nil
+}
+
+func (work *youtubeWork) close() {
+	if work != nil && work.owned {
+		_ = work.root.Close()
+	}
+}
+
+func (work *youtubeWork) absolute(name string) string {
+	return filepath.Join(work.path, name)
+}
+
+func (work *youtubeWork) verifyFailure() *YouTubeFailure {
+	if work == nil || work.root == nil {
+		return technicalFailure(YouTubeFailureWorkDirChanged, "workdir handle is unavailable", false)
+	}
+	if work.verify != nil {
+		if err := work.verify(); err != nil {
+			return technicalFailure(YouTubeFailureWorkDirChanged, err.Error(), false)
+		}
+	}
+	pathInfo, err := os.Lstat(work.path)
+	if err != nil || pathInfo.Mode()&os.ModeSymlink != 0 || !pathInfo.IsDir() {
+		return technicalFailure(YouTubeFailureWorkDirChanged, "workdir path changed identity", false)
+	}
+	rootInfo, err := work.root.Stat(".")
+	if err != nil || !os.SameFile(work.identity, pathInfo) || !os.SameFile(work.identity, rootInfo) {
+		return technicalFailure(YouTubeFailureWorkDirChanged, "workdir path changed identity", false)
+	}
+	return nil
+}
+
+func readRootFile(root *os.Root, name string) ([]byte, error) {
+	file, err := root.Open(name)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	return io.ReadAll(file)
+}
+
+func writeRootFile(root *os.Root, name string, payload []byte, mode fs.FileMode) error {
+	file, err := root.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, mode)
+	if err != nil {
+		return err
+	}
+	if _, err := file.Write(payload); err != nil {
+		_ = file.Close()
+		return err
+	}
+	if err := file.Sync(); err != nil {
+		_ = file.Close()
+		return err
+	}
+	return file.Close()
+}
+
 func CaptureYouTube(ctx context.Context, rawURL string, opts FetchOptions, limits CandidateLimits) *YouTubeCapture {
 	parsed, parseErr := ParseYouTubeURL(rawURL)
 	if parseErr != nil {
@@ -280,11 +395,17 @@ func CaptureYouTube(ctx context.Context, rawURL string, opts FetchOptions, limit
 		result.Failure = technicalFailure("workdir_unavailable", "YouTube WorkDir is required", false)
 		return result
 	}
-	if err := os.MkdirAll(opts.WorkDir, 0o755); err != nil {
-		result.Failure = technicalFailure("workdir_unavailable", fmt.Sprintf("create workdir: %v", err), false)
+	work, err := openYouTubeWork(opts)
+	if err != nil {
+		result.Failure = technicalFailure("workdir_unavailable", err.Error(), false)
 		return result
 	}
-	removeYouTubeArtifacts(opts.WorkDir)
+	defer work.close()
+	if failure := work.verifyFailure(); failure != nil {
+		result.Failure = failure
+		return result
+	}
+	removeYouTubeArtifacts(work)
 
 	if err := RequireYTDLP(); err != nil {
 		result.Failure = technicalFailure(
@@ -295,6 +416,10 @@ func CaptureYouTube(ctx context.Context, rawURL string, opts FetchOptions, limit
 		return result
 	}
 
+	if failure := work.verifyFailure(); failure != nil {
+		result.Failure = failure
+		return result
+	}
 	metaRes, err := runner.Run(ctx, "yt-dlp",
 		"-J",
 		"--skip-download",
@@ -303,6 +428,10 @@ func CaptureYouTube(ctx context.Context, rawURL string, opts FetchOptions, limit
 	)
 	if err != nil {
 		result.Failure = contextOrTechnicalFailure(ctx, YouTubeFailureMetadataFailed, "yt-dlp metadata: "+err.Error())
+		return result
+	}
+	if failure := work.verifyFailure(); failure != nil {
+		result.Failure = failure
 		return result
 	}
 	var rawMeta youtubeMetadataJSON
@@ -359,14 +488,14 @@ func CaptureYouTube(ctx context.Context, rawURL string, opts FetchOptions, limit
 		return result
 	}
 
-	rawPath, downloadFailure := downloadCaption(ctx, parsed.CanonicalURL, opts.WorkDir, *selection)
+	rawPath, downloadFailure := downloadCaption(ctx, parsed.CanonicalURL, work, *selection)
 	if downloadFailure != nil {
 		result.Availability = YouTubeAvailabilityMetadataOnly
 		result.Failure = downloadFailure
 		result.Warnings = append(result.Warnings, downloadFailure.Message)
 		return result
 	}
-	info, err := os.Stat(rawPath)
+	info, err := work.root.Stat("youtube-caption.vtt")
 	if err != nil {
 		result.Availability = YouTubeAvailabilityMetadataOnly
 		result.Failure = technicalFailure(YouTubeFailureCaptionFailed, "stat downloaded caption: "+err.Error(), true)
@@ -375,7 +504,7 @@ func CaptureYouTube(ctx context.Context, rawURL string, opts FetchOptions, limit
 	rawBytes := info.Size()
 	result.Limits.RawVTTBytes = &rawBytes
 	if limits.MaxRawVTTBytes > 0 && rawBytes > limits.MaxRawVTTBytes {
-		_ = os.Remove(rawPath)
+		_ = work.root.Remove("youtube-caption.vtt")
 		result.Availability = YouTubeAvailabilityMetadataOnly
 		result.Limits.TriggeredLimitKeys = append(result.Limits.TriggeredLimitKeys, "maxRawVttBytes")
 		result.Failure = &YouTubeFailure{
@@ -387,7 +516,7 @@ func CaptureYouTube(ctx context.Context, rawURL string, opts FetchOptions, limit
 		return result
 	}
 
-	rawVTT, err := os.ReadFile(rawPath)
+	rawVTT, err := readRootFile(work.root, "youtube-caption.vtt")
 	if err != nil {
 		result.Availability = YouTubeAvailabilityMetadataOnly
 		result.Failure = technicalFailure(YouTubeFailureCaptionFailed, "read downloaded caption: "+err.Error(), true)
@@ -399,8 +528,8 @@ func CaptureYouTube(ctx context.Context, rawURL string, opts FetchOptions, limit
 	result.Limits.TranscriptWords = &words
 	result.Limits.EstimatedTokens = &estimatedTokens
 
-	transcriptPath := filepath.Join(opts.WorkDir, "youtube-transcript.txt")
-	if err := os.WriteFile(transcriptPath, []byte(transcript+"\n"), 0o644); err != nil {
+	transcriptPath := work.absolute("youtube-transcript.txt")
+	if err := writeRootFile(work.root, "youtube-transcript.txt", []byte(transcript+"\n"), 0o644); err != nil {
 		result.Availability = YouTubeAvailabilityMetadataOnly
 		result.Failure = technicalFailure(YouTubeFailureCaptionFailed, "write timestamped transcript: "+err.Error(), true)
 		return result
@@ -439,7 +568,7 @@ func CaptureYouTube(ctx context.Context, rawURL string, opts FetchOptions, limit
 		return result
 	}
 
-	sourcePath, err := writeYouTubeSourceCapture(opts.WorkDir, result, transcript)
+	sourcePath, err := writeYouTubeSourceCapture(work, result, transcript)
 	if err != nil {
 		result.Availability = YouTubeAvailabilityMetadataOnly
 		result.Failure = technicalFailure(YouTubeFailureCaptionFailed, "write source capture: "+err.Error(), true)
@@ -448,6 +577,11 @@ func CaptureYouTube(ctx context.Context, rawURL string, opts FetchOptions, limit
 	result.SourcePath = sourcePath
 	result.Availability = YouTubeAvailabilityComplete
 	result.WriteEligible = true
+	if failure := work.verifyFailure(); failure != nil {
+		result.Availability = YouTubeAvailabilityMetadataOnly
+		result.WriteEligible = false
+		result.Failure = failure
+	}
 	return result
 }
 
@@ -596,8 +730,8 @@ func chooseCaptionLanguage(tracks map[string][]youtubeCaptionFormat) string {
 	return remaining[0]
 }
 
-func downloadCaption(ctx context.Context, canonicalURL, workDir string, selection captionSelection) (string, *YouTubeFailure) {
-	outputBase := filepath.Join(workDir, "youtube-caption-download")
+func downloadCaption(ctx context.Context, canonicalURL string, work *youtubeWork, selection captionSelection) (string, *YouTubeFailure) {
+	outputBase := work.absolute("youtube-caption-download")
 	args := []string{
 		"--skip-download",
 		"--no-playlist",
@@ -611,24 +745,71 @@ func downloadCaption(ctx context.Context, canonicalURL, workDir string, selectio
 		args = append(args, "--write-auto-subs")
 	}
 	args = append(args, canonicalURL)
+	if failure := work.verifyFailure(); failure != nil {
+		return "", failure
+	}
 	if _, err := runner.Run(ctx, "yt-dlp", args...); err != nil {
 		return "", contextOrTechnicalFailure(ctx, YouTubeFailureCaptionFailed, "yt-dlp subtitles: "+err.Error())
 	}
-	matches, err := filepath.Glob(outputBase + "*.vtt")
+	if failure := work.verifyFailure(); failure != nil {
+		return "", failure
+	}
+	entries, err := fs.ReadDir(work.root.FS(), ".")
 	if err != nil {
 		return "", technicalFailure(YouTubeFailureCaptionFailed, "find downloaded caption: "+err.Error(), true)
+	}
+	var matches []string
+	for _, entry := range entries {
+		name := entry.Name()
+		if !strings.HasPrefix(name, "youtube-caption-download") || !strings.HasSuffix(name, ".vtt") {
+			continue
+		}
+		info, statErr := work.root.Lstat(name)
+		if statErr != nil {
+			return "", technicalFailure(YouTubeFailureCaptionFailed, "lstat downloaded caption: "+statErr.Error(), true)
+		}
+		if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
+			return "", technicalFailure(YouTubeFailureCaptionFailed, "downloaded caption is not a regular file", false)
+		}
+		matches = append(matches, name)
 	}
 	sort.Strings(matches)
 	if len(matches) == 0 {
 		return "", technicalFailure(YouTubeFailureCaptionFailed, "yt-dlp produced no VTT file", true)
 	}
-	rawPath := filepath.Join(workDir, "youtube-caption.vtt")
-	_ = os.Remove(rawPath)
-	if err := os.Rename(matches[0], rawPath); err != nil {
+	rawPath := work.absolute("youtube-caption.vtt")
+	_ = work.root.Remove("youtube-caption.vtt")
+	expectedInfo, err := work.root.Lstat(matches[0])
+	if err != nil || expectedInfo.Mode()&os.ModeSymlink != 0 || !expectedInfo.Mode().IsRegular() {
+		return "", technicalFailure(YouTubeFailureCaptionFailed, "downloaded caption changed identity", false)
+	}
+	input, err := work.root.Open(matches[0])
+	if err != nil {
+		return "", technicalFailure(YouTubeFailureCaptionFailed, "open downloaded caption: "+err.Error(), true)
+	}
+	inputInfo, err := input.Stat()
+	if err != nil || !inputInfo.Mode().IsRegular() || !os.SameFile(expectedInfo, inputInfo) {
+		_ = input.Close()
+		return "", technicalFailure(YouTubeFailureCaptionFailed, "downloaded caption changed identity", false)
+	}
+	output, err := work.root.OpenFile("youtube-caption.vtt", os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+	if err != nil {
+		_ = input.Close()
+		return "", technicalFailure(YouTubeFailureCaptionFailed, "create normalized caption: "+err.Error(), true)
+	}
+	_, copyErr := io.Copy(output, input)
+	inputCloseErr := input.Close()
+	syncErr := output.Sync()
+	outputCloseErr := output.Close()
+	if copyErr != nil || inputCloseErr != nil || syncErr != nil || outputCloseErr != nil {
+		_ = work.root.Remove("youtube-caption.vtt")
+		return "", technicalFailure(YouTubeFailureCaptionFailed, "normalize downloaded caption failed", true)
+	}
+	if err := work.root.Remove(matches[0]); err != nil {
 		return "", technicalFailure(YouTubeFailureCaptionFailed, "normalize downloaded caption: "+err.Error(), true)
 	}
 	for _, extra := range matches[1:] {
-		_ = os.Remove(extra)
+		_ = work.root.Remove(extra)
 	}
 	return rawPath, nil
 }
@@ -763,7 +944,7 @@ func estimateTokens(text string) int {
 	return byRunes
 }
 
-func writeYouTubeSourceCapture(workDir string, capture *YouTubeCapture, transcript string) (string, error) {
+func writeYouTubeSourceCapture(work *youtubeWork, capture *YouTubeCapture, transcript string) (string, error) {
 	var lines []string
 	lines = append(lines,
 		"Source URL: "+capture.URL.CanonicalURL,
@@ -792,8 +973,8 @@ func writeYouTubeSourceCapture(workDir string, capture *YouTubeCapture, transcri
 	if err := ValidateArticleCapture(payload); err != nil {
 		return "", err
 	}
-	path := filepath.Join(workDir, "source-tweet.md")
-	if err := os.WriteFile(path, payload, 0o644); err != nil {
+	path := work.absolute("source-tweet.md")
+	if err := writeRootFile(work.root, "source-tweet.md", payload, 0o644); err != nil {
 		return "", err
 	}
 	return path, nil
@@ -825,16 +1006,18 @@ func contextOrTechnicalFailure(ctx context.Context, fallbackCode, message string
 	}
 }
 
-func removeYouTubeArtifacts(workDir string) {
+func removeYouTubeArtifacts(work *youtubeWork) {
 	for _, name := range []string{
 		"youtube-caption.vtt",
 		"youtube-transcript.txt",
 		"source-tweet.md",
 	} {
-		_ = os.Remove(filepath.Join(workDir, name))
+		_ = work.root.Remove(name)
 	}
-	matches, _ := filepath.Glob(filepath.Join(workDir, "youtube-caption-download*"))
-	for _, match := range matches {
-		_ = os.Remove(match)
+	entries, _ := fs.ReadDir(work.root.FS(), ".")
+	for _, entry := range entries {
+		if strings.HasPrefix(entry.Name(), "youtube-caption-download") {
+			_ = work.root.Remove(entry.Name())
+		}
 	}
 }

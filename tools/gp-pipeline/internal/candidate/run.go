@@ -32,14 +32,15 @@ func Run(ctx context.Context, opts Options) (*Outcome, error) {
 	if opts.RepoRoot == "" {
 		return nil, fmt.Errorf("candidate: repo root is required")
 	}
-	workDir, err := PrepareWorkDir(opts.RepoRoot, opts.WorkDir)
+	work, err := PrepareWorkDir(opts.RepoRoot, opts.WorkDir)
 	if err != nil {
 		return nil, err
 	}
+	defer work.Close()
 	if opts.Limits == (source.CandidateLimits{}) {
 		opts.Limits = source.DefaultCandidateLimits()
 	}
-	outcome := &Outcome{WorkDir: workDir, ExitCode: 1}
+	outcome := &Outcome{WorkDir: work.Path, ExitCode: 1}
 	manifest := baseManifest(opts.URL, opts.Limits)
 	outcome.Manifest = manifest
 
@@ -50,7 +51,7 @@ func Run(ctx context.Context, opts Options) (*Outcome, error) {
 			Message:   parseErr.Error(),
 			Retryable: false,
 		}
-		path, writeErr := WriteManifestAtomic(workDir, manifest)
+		path, writeErr := WriteManifestAtomic(work, manifest)
 		outcome.ManifestPath = path
 		return outcome, writeErr
 	}
@@ -61,25 +62,16 @@ func Run(ctx context.Context, opts Options) (*Outcome, error) {
 		Message:   "candidate acquisition has not completed",
 		Retryable: true,
 	}
-	if _, err := WriteManifestAtomic(workDir, manifest); err != nil {
+	if _, err := WriteManifestAtomic(work, manifest); err != nil {
 		return outcome, err
 	}
 
-	capture := source.CaptureYouTube(ctx, opts.URL, source.FetchOptions{WorkDir: workDir}, opts.Limits)
-	if err := populateCaptureManifest(manifest, capture, workDir); err != nil {
-		manifest.Failure = &FailureManifest{
-			Code:      "artifact_failed",
-			Message:   err.Error(),
-			Retryable: true,
-		}
-		manifest.WriteEligible = false
-		path, writeErr := WriteManifestAtomic(workDir, manifest)
-		outcome.ManifestPath = path
-		if writeErr != nil {
-			return outcome, writeErr
-		}
-		return outcome, err
-	}
+	capture := source.CaptureYouTube(ctx, opts.URL, source.FetchOptions{
+		WorkDir:       work.Path,
+		WorkRoot:      work.Root,
+		VerifyWorkDir: work.Verify,
+	}, opts.Limits)
+	populateCaptureManifest(manifest, capture)
 
 	var dedupErr error
 	if opts.DedupScript == "" {
@@ -109,6 +101,22 @@ func Run(ctx context.Context, opts Options) (*Outcome, error) {
 			Retryable: true,
 		}
 		manifest.WriteEligible = false
+	}
+
+	if err := populateArtifacts(manifest, capture, work); err != nil {
+		manifest.Failure = &FailureManifest{
+			Code:      "artifact_failed",
+			Message:   err.Error(),
+			Retryable: true,
+		}
+		manifest.WriteEligible = false
+		outcome.ExitCode = 10
+		path, writeErr := WriteManifestAtomic(work, manifest)
+		outcome.ManifestPath = path
+		if writeErr != nil {
+			return outcome, writeErr
+		}
+		return outcome, nil
 	}
 	switch {
 	case errors.Is(ctx.Err(), context.DeadlineExceeded):
@@ -141,7 +149,7 @@ func Run(ctx context.Context, opts Options) (*Outcome, error) {
 		outcome.ExitCode = 0
 	}
 
-	path, err := WriteManifestAtomic(workDir, manifest)
+	path, err := WriteManifestAtomic(work, manifest)
 	outcome.ManifestPath = path
 	if err != nil {
 		return outcome, err
@@ -160,7 +168,6 @@ func baseManifest(rawURL string, limits source.CandidateLimits) *Manifest {
 		Availability:     source.YouTubeAvailabilityUnavailable,
 		WriteEligible:    false,
 		ApprovalRequired: true,
-		Approved:         false,
 		Caption:          nil,
 		Limits: source.LimitEvidence{
 			Limits:             limits,
@@ -173,7 +180,7 @@ func baseManifest(rawURL string, limits source.CandidateLimits) *Manifest {
 	}
 }
 
-func populateCaptureManifest(manifest *Manifest, capture *source.YouTubeCapture, workDir string) error {
+func populateCaptureManifest(manifest *Manifest, capture *source.YouTubeCapture) {
 	if capture.URL.CanonicalURL != "" {
 		manifest.CanonicalURL = stringPointer(capture.URL.CanonicalURL)
 		manifest.VideoID = stringPointer(capture.URL.VideoID)
@@ -201,17 +208,20 @@ func populateCaptureManifest(manifest *Manifest, capture *source.YouTubeCapture,
 			Coverage:        capture.Caption.Coverage,
 		}
 	}
+}
+
+func populateArtifacts(manifest *Manifest, capture *source.YouTubeCapture, work *WorkDir) error {
 	var err error
-	manifest.Artifacts.Source, err = artifactFor(workDir, capture.SourcePath)
+	manifest.Artifacts.Source, err = artifactFor(work, capture.SourcePath)
 	if err != nil {
 		return err
 	}
 	if capture.Caption != nil {
-		manifest.Artifacts.RawVTT, err = artifactFor(workDir, capture.Caption.RawVTTPath)
+		manifest.Artifacts.RawVTT, err = artifactFor(work, capture.Caption.RawVTTPath)
 		if err != nil {
 			return err
 		}
-		manifest.Artifacts.Transcript, err = artifactFor(workDir, capture.Caption.TranscriptPath)
+		manifest.Artifacts.Transcript, err = artifactFor(work, capture.Caption.TranscriptPath)
 		if err != nil {
 			return err
 		}

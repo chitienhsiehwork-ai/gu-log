@@ -39,6 +39,11 @@ type FetchOptions struct {
 	// WorkDir is the directory the source-tweet.md will be written into.
 	// Must exist before Fetch is called.
 	WorkDir string
+	// WorkRoot binds YouTube candidate I/O to an already-open directory.
+	// Canonical runs may leave it nil and CaptureYouTube opens WorkDir itself.
+	WorkRoot *os.Root
+	// VerifyWorkDir detects path replacement before and after external tools.
+	VerifyWorkDir func() error
 	// FetchXArticleScript is the absolute path to scripts/fetch-x-article.sh.
 	FetchXArticleScript string
 	// FetchArticleScript is the absolute path to scripts/fetch-article.py.
@@ -57,7 +62,7 @@ func Fetch(ctx context.Context, url string, opts FetchOptions) (*FetchResult, er
 	if xURLRe.MatchString(url) {
 		return FetchX(ctx, url, opts)
 	}
-	if IsYouTubeHostURL(url) {
+	if IsYouTubeOwnedHostURL(url) {
 		return FetchYouTube(ctx, url, opts)
 	}
 	return FetchGeneric(ctx, url, opts)

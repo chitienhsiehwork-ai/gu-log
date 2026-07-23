@@ -175,7 +175,7 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 	if opts.TweetURL == "" && opts.ExistingFile == "" && fromStepInt < pipeline.StepWrite {
 		return fmt.Errorf("run: tweet URL is required when not resuming via --file + --from-step")
 	}
-	if opts.TweetURL != "" && fromStepInt <= pipeline.StepFetch && source.IsYouTubeHostURL(opts.TweetURL) {
+	if opts.TweetURL != "" && fromStepInt <= pipeline.StepFetch && source.IsYouTubeOwnedHostURL(opts.TweetURL) {
 		if _, err := source.ParseYouTubeURL(opts.TweetURL); err != nil {
 			return fmt.Errorf("run: %w", err)
 		}

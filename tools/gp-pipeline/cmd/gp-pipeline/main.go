@@ -110,7 +110,7 @@ for the migration history and current operational notes.`,
 	root.PersistentFlags().DurationVar(&flagTimeout, "timeout", 50*time.Minute,
 		"wall-clock timeout for the entire invocation (e.g. 50m, 1h30m)")
 	root.PersistentFlags().StringVar(&flagWorkDir, "work-dir", "",
-		"override the work directory (defaults to a subcommand-specific $TMPDIR directory; candidate requires the resolved path to live outside the repo)")
+		"override the work directory (candidate treats it as an external parent and creates a private leaf)")
 	root.PersistentFlags().StringVar(&flagFakeProvider, "fake-provider", "",
 		"(test only) path to a JSON file with canned LLM responses; replaces the real provider chain")
 	_ = root.PersistentFlags().MarkHidden("fake-provider")

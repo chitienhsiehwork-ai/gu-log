@@ -48,6 +48,87 @@ func TestParseYouTubeURLRejectsNonSingleVideoShapes(t *testing.T) {
 	}
 }
 
+func TestYouTubeOwnedHostClassifierIsBroaderThanStrictAllowlist(t *testing.T) {
+	for _, raw := range []string{
+		"https://m.youtube.com/watch?v=dQw4w9WgXcQ",
+		"https://music.youtube.com/watch?v=dQw4w9WgXcQ",
+		"https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ",
+	} {
+		if !IsYouTubeOwnedHostURL(raw) {
+			t.Errorf("owned YouTube host was not classified: %s", raw)
+		}
+		if IsYouTubeHostURL(raw) {
+			t.Errorf("unsupported host must not enter the strict allowlist: %s", raw)
+		}
+	}
+	if IsYouTubeOwnedHostURL("https://youtube.com.evil/watch?v=dQw4w9WgXcQ") {
+		t.Fatal("suffix-confusion host was classified as YouTube-owned")
+	}
+}
+
+func TestFetchUnsupportedYouTubeOwnedHostsNeverInvokeCurlOrYTDLP(t *testing.T) {
+	workDir := t.TempDir()
+	binDir := t.TempDir()
+	trapLog := filepath.Join(workDir, "trap.log")
+	for _, name := range []string{"curl", "yt-dlp"} {
+		writeExecutable(t, filepath.Join(binDir, name), `#!/bin/sh
+printf '%s\n' "$0 $*" >> "$SOURCE_TRAP_LOG"
+exit 99
+`)
+	}
+	t.Setenv("SOURCE_TRAP_LOG", trapLog)
+	t.Setenv("PATH", binDir)
+
+	for _, raw := range []string{
+		"https://m.youtube.com/watch?v=dQw4w9WgXcQ",
+		"https://music.youtube.com/watch?v=dQw4w9WgXcQ",
+		"https://youtube-nocookie.com/embed/dQw4w9WgXcQ",
+	} {
+		if _, err := Fetch(context.Background(), raw, FetchOptions{WorkDir: workDir}); err == nil ||
+			!strings.Contains(err.Error(), "invalid YouTube URL") {
+			t.Fatalf("Fetch(%s) error = %v", raw, err)
+		}
+	}
+	if raw, err := os.ReadFile(trapLog); err == nil {
+		t.Fatalf("unsupported owned host invoked an external fetcher:\n%s", raw)
+	} else if !os.IsNotExist(err) {
+		t.Fatal(err)
+	}
+}
+
+func TestFetchSuffixConfusionHostUsesGenericRoute(t *testing.T) {
+	workDir := t.TempDir()
+	binDir := t.TempDir()
+	curlLog := filepath.Join(workDir, "curl.log")
+	ytLog := filepath.Join(workDir, "yt.log")
+	writeExecutable(t, filepath.Join(binDir, "curl"), `#!/bin/sh
+printf '%s\n' "$*" > "$SUFFIX_CURL_LOG"
+exit 7
+`)
+	writeExecutable(t, filepath.Join(binDir, "yt-dlp"), `#!/bin/sh
+printf '%s\n' "$*" > "$SUFFIX_YT_LOG"
+exit 99
+`)
+	t.Setenv("SUFFIX_CURL_LOG", curlLog)
+	t.Setenv("SUFFIX_YT_LOG", ytLog)
+	t.Setenv("PATH", binDir)
+
+	_, err := Fetch(
+		context.Background(),
+		"https://youtube.com.evil/watch?v=dQw4w9WgXcQ",
+		FetchOptions{WorkDir: workDir},
+	)
+	if err == nil || !strings.Contains(err.Error(), "fetchgeneric") {
+		t.Fatalf("suffix-confusion host error = %v, want generic fetch error", err)
+	}
+	if _, err := os.Stat(curlLog); err != nil {
+		t.Fatalf("generic curl route was not invoked: %v", err)
+	}
+	if _, err := os.Stat(ytLog); !os.IsNotExist(err) {
+		t.Fatal("suffix-confusion host was sent to yt-dlp")
+	}
+}
+
 func TestCaptureYouTubePrefersManualCaptionAndPreservesTimestamps(t *testing.T) {
 	workDir := t.TempDir()
 	logPath := installFakeYTDLP(t, workDir)

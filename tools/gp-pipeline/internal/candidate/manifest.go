@@ -28,7 +28,6 @@ type Manifest struct {
 	Availability     string                 `json:"availability"`
 	WriteEligible    bool                   `json:"writeEligible"`
 	ApprovalRequired bool                   `json:"approvalRequired"`
-	Approved         bool                   `json:"approved"`
 	Caption          *CaptionManifest       `json:"caption"`
 	Limits           source.LimitEvidence   `json:"limits"`
 	Warnings         []string               `json:"warnings"`
@@ -69,9 +68,12 @@ type FailureManifest struct {
 	Retryable bool   `json:"retryable"`
 }
 
-func WriteManifestAtomic(workDir string, manifest *Manifest) (string, error) {
+func WriteManifestAtomic(work *WorkDir, manifest *Manifest) (string, error) {
 	if manifest == nil {
 		return "", fmt.Errorf("candidate manifest is nil")
+	}
+	if err := work.Verify(); err != nil {
+		return "", err
 	}
 	payload, err := json.MarshalIndent(manifest, "", "  ")
 	if err != nil {
@@ -79,21 +81,21 @@ func WriteManifestAtomic(workDir string, manifest *Manifest) (string, error) {
 	}
 	payload = append(payload, '\n')
 
-	tmp, err := os.CreateTemp(workDir, ".candidate-manifest-*.tmp")
+	suffix, err := randomHex(12)
+	if err != nil {
+		return "", fmt.Errorf("generate candidate manifest temp name: %w", err)
+	}
+	tmpName := ".candidate-manifest-" + suffix + ".tmp"
+	tmp, err := work.Root.OpenFile(tmpName, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
 	if err != nil {
 		return "", fmt.Errorf("create candidate manifest temp file: %w", err)
 	}
-	tmpPath := tmp.Name()
 	cleanup := true
 	defer func() {
 		if cleanup {
-			_ = os.Remove(tmpPath)
+			_ = work.Root.Remove(tmpName)
 		}
 	}()
-	if err := tmp.Chmod(0o644); err != nil {
-		_ = tmp.Close()
-		return "", fmt.Errorf("chmod candidate manifest temp file: %w", err)
-	}
 	if _, err := tmp.Write(payload); err != nil {
 		_ = tmp.Close()
 		return "", fmt.Errorf("write candidate manifest temp file: %w", err)
@@ -106,22 +108,30 @@ func WriteManifestAtomic(workDir string, manifest *Manifest) (string, error) {
 		return "", fmt.Errorf("close candidate manifest temp file: %w", err)
 	}
 
-	finalPath := filepath.Join(workDir, ManifestFilename)
-	if err := os.Rename(tmpPath, finalPath); err != nil {
+	if err := work.Verify(); err != nil {
+		return "", err
+	}
+	if err := renameWithinRoot(work.Root, tmpName, ManifestFilename); err != nil {
 		return "", fmt.Errorf("replace candidate manifest: %w", err)
 	}
 	cleanup = false
-	if err := syncDirectory(workDir); err != nil {
+	if err := syncDirectory(work); err != nil {
 		return "", err
 	}
-	return finalPath, nil
+	if err := work.Verify(); err != nil {
+		return "", err
+	}
+	return filepath.Join(work.Path, ManifestFilename), nil
 }
 
-func artifactFor(workDir, absolutePath string) (*Artifact, error) {
+func artifactFor(work *WorkDir, absolutePath string) (*Artifact, error) {
 	if absolutePath == "" {
 		return nil, nil
 	}
-	relative, err := filepath.Rel(workDir, absolutePath)
+	if err := work.Verify(); err != nil {
+		return nil, err
+	}
+	relative, err := filepath.Rel(work.Path, absolutePath)
 	if err != nil {
 		return nil, fmt.Errorf("relativize artifact %s: %w", absolutePath, err)
 	}
@@ -129,15 +139,40 @@ func artifactFor(workDir, absolutePath string) (*Artifact, error) {
 		strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
 		return nil, fmt.Errorf("artifact %s escapes candidate workdir", absolutePath)
 	}
-	file, err := os.Open(absolutePath)
+	relative = filepath.Clean(relative)
+	info, err := work.Root.Lstat(relative)
+	if err != nil {
+		return nil, fmt.Errorf("lstat artifact %s: %w", absolutePath, err)
+	}
+	if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
+		return nil, fmt.Errorf("artifact %s is not a regular file", absolutePath)
+	}
+	file, err := work.Root.Open(relative)
 	if err != nil {
 		return nil, fmt.Errorf("open artifact %s: %w", absolutePath, err)
 	}
 	defer file.Close()
+	openedInfo, err := file.Stat()
+	if err != nil {
+		return nil, fmt.Errorf("fstat artifact %s: %w", absolutePath, err)
+	}
+	if !openedInfo.Mode().IsRegular() || !os.SameFile(info, openedInfo) {
+		return nil, fmt.Errorf("artifact %s changed identity before hashing", absolutePath)
+	}
 	hash := sha256.New()
 	bytes, err := io.Copy(hash, file)
 	if err != nil {
 		return nil, fmt.Errorf("hash artifact %s: %w", absolutePath, err)
+	}
+	finalInfo, err := file.Stat()
+	if err != nil {
+		return nil, fmt.Errorf("fstat artifact %s after hashing: %w", absolutePath, err)
+	}
+	if !os.SameFile(openedInfo, finalInfo) || finalInfo.Size() != bytes {
+		return nil, fmt.Errorf("artifact %s changed while hashing", absolutePath)
+	}
+	if err := work.Verify(); err != nil {
+		return nil, err
 	}
 	return &Artifact{
 		Path:   filepath.ToSlash(relative),
@@ -146,8 +181,8 @@ func artifactFor(workDir, absolutePath string) (*Artifact, error) {
 	}, nil
 }
 
-func syncDirectory(path string) error {
-	dir, err := os.Open(path)
+func syncDirectory(work *WorkDir) error {
+	dir, err := work.Root.Open(".")
 	if err != nil {
 		return fmt.Errorf("open candidate workdir for fsync: %w", err)
 	}

@@ -90,8 +90,9 @@ tools/gp-pipeline/gp-pipeline run --file gp-259-example.mdx --from-step review -
 - `candidate` 只寫 repo 外的預審工作目錄；無字幕、過短／超限、live／upcoming
   等可審閱結果回 0，但 `writeEligible` 會是 false。video-ID dedup BLOCK 回 13，
   `yt-dlp`／擷取技術失敗回 10，輸入／workdir 錯誤回 1，逾時回 124。
-- `candidate --work-dir` 若是 repo root、repo 子目錄，或 symlink 解析後落在 repo
-  內，會在擷取前拒絕，且不會改寫 fallback 位置來硬留 manifest。
+- `candidate --work-dir` 是既存的外部 parent；每次執行都會在底下建立新的
+  `0700` private leaf。若 parent 是 repo root、repo 子目錄，或 symlink 解析後
+  落在 repo 內，會在擷取前拒絕，且不會改寫 fallback 位置來硬留 manifest。
 - YouTube 的 canonical `run` 同樣要求 `yt-dlp`；缺少時不得 fallback 到 generic HTML。
 - `counter bump` 會原子修改 `scripts/article-counter.json`；通常只應由 deploy 呼叫。
 - `ralph` 會修改指定文章的 frontmatter／內容。

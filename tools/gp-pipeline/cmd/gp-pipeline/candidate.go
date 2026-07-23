@@ -30,9 +30,10 @@ func newCandidateCmd(state *rootState) *cobra.Command {
 		Short: "Preflight one YouTube source for human review",
 		Long: `candidate preflights exactly one allowlisted YouTube video.
 
-It requires yt-dlp and writes only review evidence to a work directory outside
-the repository: candidate-manifest.json, raw VTT, a timestamped transcript, and
-a source capture when the transcript is complete. The manifest is the sole
+It requires yt-dlp and writes only review evidence to a fresh private 0700
+work directory outside the repository: candidate-manifest.json, raw VTT, a
+timestamped transcript, and a source capture when the transcript is complete.
+The manifest is the sole
 machine-readable entrypoint and records nullable metadata, provenance, limits,
 hashes, deterministic video-ID dedup, and writeEligible.
 
@@ -43,10 +44,11 @@ separate canonical run:
 
   gp-pipeline run <youtube-url> --prefix GP
 
-Use --work-dir only with a writable path outside this repo. Missing captions,
-short/oversized transcripts, and live/upcoming videos still return a reviewable
-manifest; inspect writeEligible and failure instead of treating exit 0 as
-publication approval.`,
+Use --work-dir only with an existing writable parent outside this repo;
+candidate always creates a new private leaf below it. Missing captions,
+short/oversized transcripts, and live/upcoming videos still return a
+reviewable manifest; inspect writeEligible and failure instead of treating
+exit 0 as publication approval.`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runCandidate(cmd.Context(), state, args[0])
@@ -71,19 +73,24 @@ func runCandidate(ctx context.Context, state *rootState, rawURL string) error {
 		Limits:      source.DefaultCandidateLimits(),
 	})
 	if err != nil {
+		exitCode := 1
 		report := candidateReport{
 			OK:       false,
 			Step:     "candidate",
-			ExitCode: 1,
+			ExitCode: exitCode,
 			Error:    err.Error(),
 		}
 		if outcome != nil {
+			if outcome.ExitCode != 0 {
+				exitCode = outcome.ExitCode
+				report.ExitCode = exitCode
+			}
 			report.WorkDir = outcome.WorkDir
 			report.ManifestPath = outcome.ManifestPath
 			report.Manifest = outcome.Manifest
 		}
 		emitCandidateReport(state, report)
-		return newExitError(1, err)
+		return newExitError(exitCode, err)
 	}
 
 	report := candidateReport{

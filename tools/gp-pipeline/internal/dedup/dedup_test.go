@@ -2,6 +2,9 @@ package dedup
 
 import (
 	"context"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -72,5 +75,76 @@ func TestCheckArgValidation(t *testing.T) {
 	}
 	if _, err := Check(ctx, Options{ScriptPath: "/x"}); err == nil {
 		t.Fatal("expected error when URL and Title are both empty")
+	}
+}
+
+func TestCheckLoadsSourceURLFrontmatterAndBlocksYouTubeAliases(t *testing.T) {
+	if _, err := exec.LookPath("node"); err != nil {
+		t.Skip("node unavailable")
+	}
+	repoRoot, err := filepath.Abs(filepath.Join("..", "..", "..", ".."))
+	if err != nil {
+		t.Fatal(err)
+	}
+	scriptRaw, err := os.ReadFile(filepath.Join(repoRoot, "scripts", "dedup-gate.mjs"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fixtureRoot := t.TempDir()
+	scriptPath := filepath.Join(fixtureRoot, "scripts", "dedup-gate.mjs")
+	if err := os.MkdirAll(filepath.Dir(scriptPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(scriptPath, scriptRaw, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	scriptPath, err = filepath.EvalSymlinks(scriptPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(filepath.Join(repoRoot, "node_modules"), filepath.Join(fixtureRoot, "node_modules")); err != nil {
+		t.Fatal(err)
+	}
+	postsDir := filepath.Join(fixtureRoot, "src", "content", "posts")
+	if err := os.MkdirAll(postsDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	post := `---
+ticketId: GP-42
+title: Existing video
+sourceUrl: https://www.youtube.com/watch?v=dQw4w9WgXcQ
+tags:
+  - youtube
+---
+
+Existing body.
+`
+	if err := os.WriteFile(filepath.Join(postsDir, "gp-42-existing.mdx"), []byte(post), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, rawURL := range []string{
+		"https://youtube.com/shorts/dQw4w9WgXcQ",
+		"https://youtu.be/dQw4w9WgXcQ",
+	} {
+		result, err := Check(context.Background(), Options{
+			ScriptPath:   scriptPath,
+			URL:          rawURL,
+			Series:       "GP",
+			IdentityOnly: true,
+		})
+		if err != nil {
+			t.Fatalf("Check(%s): %v", rawURL, err)
+		}
+		if result.Verdict != VerdictBlock {
+			t.Fatalf("Check(%s) verdict = %s, want BLOCK\n%s", rawURL, result.Verdict, result.Raw)
+		}
+		if len(result.Matches) == 0 ||
+			(!strings.Contains(result.Matches[0], "GP-42") &&
+				!strings.Contains(result.Matches[0], "gp-42-existing.mdx")) ||
+			!strings.Contains(strings.ToLower(result.Matches[0]), "youtube video id match") {
+			t.Fatalf("Check(%s) did not preserve the YouTube identity match: %#v", rawURL, result.Matches)
+		}
 	}
 }

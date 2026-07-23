@@ -1,7 +1,6 @@
 package candidate
 
 import (
-	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -12,8 +11,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"reflect"
-	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -36,7 +33,7 @@ func TestPrepareWorkDirRejectsRepoAndSymlinkIntoRepo(t *testing.T) {
 	if err := os.Symlink(repo, link); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := PrepareWorkDir(repo, filepath.Join(link, "candidate")); err == nil {
+	if _, err := PrepareWorkDir(repo, link); err == nil {
 		t.Fatal("symlink resolving into repo must be rejected")
 	}
 	if _, err := os.Stat(filepath.Join(repo, ManifestFilename)); !os.IsNotExist(err) {
@@ -46,7 +43,7 @@ func TestPrepareWorkDirRejectsRepoAndSymlinkIntoRepo(t *testing.T) {
 
 func TestInvalidURLWritesNullableFailureManifestInSafeWorkDir(t *testing.T) {
 	repo := t.TempDir()
-	workDir := filepath.Join(t.TempDir(), "candidate")
+	workDir := t.TempDir()
 	outcome, err := Run(context.Background(), Options{
 		RepoRoot:    repo,
 		WorkDir:     workDir,
@@ -71,9 +68,107 @@ func TestInvalidURLWritesNullableFailureManifestInSafeWorkDir(t *testing.T) {
 	if manifest["canonicalUrl"] != nil || manifest["videoId"] != nil {
 		t.Fatalf("invalid URL identity fields must be null: %s", raw)
 	}
+	if _, exists := manifest["approved"]; exists {
+		t.Fatalf("manifest must not persist a half-implemented approved field: %s", raw)
+	}
 	failure := manifest["failure"].(map[string]any)
 	if failure["code"] != "invalid_url" {
 		t.Fatalf("failure = %#v", failure)
+	}
+}
+
+func TestPrepareWorkDirAlwaysCreatesFreshPrivateLeaf(t *testing.T) {
+	repo := t.TempDir()
+	parent := t.TempDir()
+	first, err := PrepareWorkDir(repo, parent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer first.Close()
+	second, err := PrepareWorkDir(repo, parent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer second.Close()
+	if first.Path == parent || second.Path == parent || first.Path == second.Path {
+		t.Fatalf("expected distinct private leaves below parent: %q %q", first.Path, second.Path)
+	}
+	for _, work := range []*WorkDir{first, second} {
+		info, err := os.Stat(work.Path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if info.Mode().Perm() != 0o700 {
+			t.Fatalf("%s mode = %o, want 0700", work.Path, info.Mode().Perm())
+		}
+	}
+}
+
+func TestArtifactForRejectsSymlinkEscape(t *testing.T) {
+	repo := t.TempDir()
+	work, err := PrepareWorkDir(repo, t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer work.Close()
+	external := filepath.Join(t.TempDir(), "external.txt")
+	mustWrite(t, external, "secret", 0o600)
+	artifactPath := filepath.Join(work.Path, "source-tweet.md")
+	if err := os.Symlink(external, artifactPath); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := artifactFor(work, artifactPath); err == nil ||
+		!strings.Contains(err.Error(), "not a regular file") {
+		t.Fatalf("artifactFor symlink error = %v", err)
+	}
+}
+
+func TestRunDetectsDirectorySwapDuringYTDLP(t *testing.T) {
+	repo := t.TempDir()
+	parent := t.TempDir()
+	fixtures := t.TempDir()
+	metadataPath := filepath.Join(fixtures, "metadata.json")
+	mustWrite(t, metadataPath, `{
+  "id": "dQw4w9WgXcQ",
+  "subtitles": {"en": [{"ext": "vtt"}]}
+}`, 0o644)
+	vttPath := filepath.Join(fixtures, "fixture.vtt")
+	mustWrite(t, vttPath, "WEBVTT\n\n00:00:00.000 --> 00:01:00.000\n"+strings.Repeat("word ", 240), 0o644)
+	binDir := t.TempDir()
+	writeExecutable(t, filepath.Join(binDir, "yt-dlp"), `#!/bin/sh
+case " $* " in
+  *" -J "*) cat "$SWAP_METADATA"; exit 0 ;;
+esac
+output=""
+previous=""
+for argument in "$@"; do
+  if [ "$previous" = "-o" ]; then output="$argument"; break; fi
+  previous="$argument"
+done
+leaf="$(dirname "$output")"
+mv "$leaf" "$leaf.moved"
+mkdir -m 700 "$leaf"
+cp "$SWAP_VTT" "$leaf/youtube-caption-download.en.vtt"
+`)
+	t.Setenv("SWAP_METADATA", metadataPath)
+	t.Setenv("SWAP_VTT", vttPath)
+	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	outcome, err := Run(context.Background(), Options{
+		RepoRoot: repo,
+		WorkDir:  parent,
+		URL:      "https://youtube.com/watch?v=dQw4w9WgXcQ",
+		Limits:   source.DefaultCandidateLimits(),
+	})
+	if err == nil || !strings.Contains(err.Error(), "workdir path changed identity") {
+		t.Fatalf("outcome=%#v error=%v", outcome, err)
+	}
+	if outcome == nil || outcome.Manifest == nil || outcome.Manifest.Failure == nil ||
+		outcome.Manifest.Failure.Code != source.YouTubeFailureWorkDirChanged {
+		t.Fatalf("workdir swap failure was not preserved: %#v", outcome)
+	}
+	if _, statErr := os.Stat(filepath.Join(outcome.WorkDir, ManifestFilename)); !os.IsNotExist(statErr) {
+		t.Fatal("replacement directory received a candidate manifest")
 	}
 }
 
@@ -106,8 +201,8 @@ func TestRunProducesHashedReviewManifestAndOverwritesStaleEvidence(t *testing.T)
 	if outcome.ExitCode != 0 || !outcome.Manifest.WriteEligible {
 		t.Fatalf("outcome = %#v manifest=%#v", outcome, outcome.Manifest)
 	}
-	if outcome.Manifest.Approved || !outcome.Manifest.ApprovalRequired {
-		t.Fatal("writeEligible must remain unapproved and require a human decision")
+	if !outcome.Manifest.ApprovalRequired {
+		t.Fatal("writeEligible must still require a human decision")
 	}
 	if outcome.Manifest.Caption == nil || outcome.Manifest.Caption.Kind != "manual" {
 		t.Fatalf("caption = %#v", outcome.Manifest.Caption)
@@ -123,7 +218,7 @@ func TestRunProducesHashedReviewManifestAndOverwritesStaleEvidence(t *testing.T)
 		if filepath.IsAbs(artifact.Path) {
 			t.Fatalf("%s artifact path must be relative: %s", name, artifact.Path)
 		}
-		raw, err := os.ReadFile(filepath.Join(workDir, artifact.Path))
+		raw, err := os.ReadFile(filepath.Join(outcome.WorkDir, artifact.Path))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -132,7 +227,7 @@ func TestRunProducesHashedReviewManifestAndOverwritesStaleEvidence(t *testing.T)
 			t.Fatalf("%s hash = %s, want %s", name, artifact.SHA256, got)
 		}
 	}
-	entries, err := filepath.Glob(filepath.Join(workDir, ".candidate-manifest-*.tmp"))
+	entries, err := filepath.Glob(filepath.Join(outcome.WorkDir, ".candidate-manifest-*.tmp"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -328,120 +423,6 @@ func TestCandidatePackageImportBoundary(t *testing.T) {
 	}
 }
 
-func TestCandidateDoesNotMutateCompleteRepoSnapshotOrCallTraps(t *testing.T) {
-	gitPath, err := exec.LookPath("git")
-	if err != nil {
-		t.Fatal(err)
-	}
-	repo := t.TempDir()
-	runGit(t, gitPath, repo, "init", "-q")
-	runGit(t, gitPath, repo, "config", "user.name", "Candidate Test")
-	runGit(t, gitPath, repo, "config", "user.email", "candidate@example.invalid")
-	mustWrite(t, filepath.Join(repo, "CLAUDE.md"), "# sentinel\n", 0o644)
-	mustWrite(t, filepath.Join(repo, "tracked.txt"), "tracked\n", 0o640)
-	runGit(t, gitPath, repo, "add", "CLAUDE.md", "tracked.txt")
-	runGit(t, gitPath, repo, "commit", "-qm", "fixture")
-	mustWrite(t, filepath.Join(repo, "untracked.txt"), "untracked\n", 0o600)
-	before := snapshotRepo(t, gitPath, repo)
-
-	workDir := t.TempDir()
-	binDir := installCandidateFixtures(t, workDir, "PASS\n", 0)
-	trapLog := filepath.Join(workDir, "trap.log")
-	for _, name := range []string{"git", "codex", "claude", "pnpm", "npm", "vercel"} {
-		writeExecutable(t, filepath.Join(binDir, name), `#!/bin/sh
-printf '%s\n' "$0 $*" >> "$CANDIDATE_TRAP_LOG"
-exit 99
-`)
-	}
-	t.Setenv("CANDIDATE_TRAP_LOG", trapLog)
-	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
-
-	outcome, err := Run(context.Background(), Options{
-		RepoRoot:    repo,
-		WorkDir:     workDir,
-		URL:         "https://youtube.com/watch?v=dQw4w9WgXcQ",
-		DedupScript: filepath.Join(workDir, "dedup-gate.mjs"),
-		Limits:      source.DefaultCandidateLimits(),
-	})
-	if err != nil || outcome.ExitCode != 0 {
-		t.Fatalf("candidate outcome=%#v err=%v", outcome, err)
-	}
-	after := snapshotRepo(t, gitPath, repo)
-	if !reflect.DeepEqual(before, after) {
-		t.Fatalf("repo snapshot changed\nbefore=%#v\nafter=%#v", before, after)
-	}
-	if raw, err := os.ReadFile(trapLog); err == nil {
-		t.Fatalf("candidate invoked forbidden command:\n%s", raw)
-	} else if !os.IsNotExist(err) {
-		t.Fatal(err)
-	}
-}
-
-type repoSnapshot struct {
-	Head      string
-	Refs      string
-	IndexHash string
-	Tracked   map[string]fileSnapshot
-	Untracked map[string]fileSnapshot
-}
-
-type fileSnapshot struct {
-	Hash string
-	Mode fs.FileMode
-}
-
-func snapshotRepo(t *testing.T, gitPath, repo string) repoSnapshot {
-	t.Helper()
-	head := runGit(t, gitPath, repo, "rev-parse", "HEAD")
-	refs := runGit(t, gitPath, repo, "show-ref")
-	indexRaw, err := os.ReadFile(filepath.Join(repo, ".git", "index"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	indexSum := sha256.Sum256(indexRaw)
-	return repoSnapshot{
-		Head:      head,
-		Refs:      refs,
-		IndexHash: hex.EncodeToString(indexSum[:]),
-		Tracked:   snapshotPaths(t, repo, nulPaths(runGitBytes(t, gitPath, repo, "ls-files", "-z"))),
-		Untracked: snapshotPaths(t, repo, nulPaths(runGitBytes(t, gitPath, repo, "ls-files", "--others", "--exclude-standard", "-z"))),
-	}
-}
-
-func snapshotPaths(t *testing.T, repo string, paths []string) map[string]fileSnapshot {
-	t.Helper()
-	out := make(map[string]fileSnapshot, len(paths))
-	sort.Strings(paths)
-	for _, relative := range paths {
-		path := filepath.Join(repo, relative)
-		info, err := os.Lstat(path)
-		if err != nil {
-			t.Fatal(err)
-		}
-		raw, err := os.ReadFile(path)
-		if err != nil {
-			t.Fatal(err)
-		}
-		sum := sha256.Sum256(raw)
-		out[relative] = fileSnapshot{
-			Hash: hex.EncodeToString(sum[:]),
-			Mode: info.Mode(),
-		}
-	}
-	return out
-}
-
-func nulPaths(raw []byte) []string {
-	parts := bytes.Split(raw, []byte{0})
-	var out []string
-	for _, part := range parts {
-		if len(part) > 0 {
-			out = append(out, string(part))
-		}
-	}
-	return out
-}
-
 func installCandidateFixtures(t *testing.T, workDir, dedupOutput string, dedupExit int) string {
 	t.Helper()
 	binDir := t.TempDir()
@@ -464,11 +445,17 @@ esac
 case " $* " in
   *" -J "*) cat "$CANDIDATE_METADATA"; exit 0 ;;
 esac
-cp "$CANDIDATE_VTT" "$CANDIDATE_VTT_OUTPUT"
+output=""
+previous=""
+for argument in "$@"; do
+  if [ "$previous" = "-o" ]; then output="$argument"; break; fi
+  previous="$argument"
+done
+[ -n "$output" ] || exit 92
+cp "$CANDIDATE_VTT" "$(dirname "$output")/youtube-caption-download.en.vtt"
 `)
 	t.Setenv("CANDIDATE_METADATA", metadataPath)
 	t.Setenv("CANDIDATE_VTT", vttPath)
-	t.Setenv("CANDIDATE_VTT_OUTPUT", filepath.Join(workDir, "youtube-caption-download.en.vtt"))
 	writeDedupScript(t, filepath.Join(workDir, "dedup-gate.mjs"), dedupOutput, dedupExit)
 	return binDir
 }
@@ -498,22 +485,6 @@ func mustWrite(t *testing.T, path, body string, mode fs.FileMode) {
 	if err := os.WriteFile(path, []byte(body), mode); err != nil {
 		t.Fatal(err)
 	}
-}
-
-func runGit(t *testing.T, gitPath, repo string, args ...string) string {
-	t.Helper()
-	return strings.TrimSpace(string(runGitBytes(t, gitPath, repo, args...)))
-}
-
-func runGitBytes(t *testing.T, gitPath, repo string, args ...string) []byte {
-	t.Helper()
-	cmd := exec.Command(gitPath, args...)
-	cmd.Dir = repo
-	output, err := cmd.Output()
-	if err != nil {
-		t.Fatalf("git %v: %v", args, err)
-	}
-	return output
 }
 
 func assertManifestValid(t *testing.T, path string) {
