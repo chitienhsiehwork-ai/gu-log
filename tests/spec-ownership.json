@@ -107,60 +107,44 @@
       "reason": "Detailed scroll-accuracy variant of TOC beyond the blocking core; verified green 2026-07-18."
     },
     "tests/ai-popup.spec.ts": {
-      "class": "quarantined",
+      "class": "blocking",
       "owner": "ShroomDog",
-      "reason": "3 real failures in 'AI Popup - API Interactions' (Ask AI / Edit flows): #ai-popup never becomes visible after the mouse-drag text-selection helper. Likely interaction-timing flake in selectTextForCurrentProject(), not yet root-caused. Was also hitting a stale TEST_POST slug (fixed same PR) before this was found.",
-      "expiry": "2026-08-15",
-      "issue": "https://github.com/chitienhsiehwork-ai/gu-log/issues/602"
+      "reason": "Core login, selection trigger, dismissal, auth callback, and API interaction contract. Uses one real text-rect mouse drag plus deterministic state setup; verified across the applicable Chromium and WebKit projects 2026-07-23."
     },
     "tests/ai-popup-chatbox.spec.ts": {
-      "class": "quarantined",
+      "class": "nightly",
       "owner": "ShroomDog",
-      "reason": "Shares the same mouse-drag text-selection helper and #ai-popup trigger path as tests/ai-popup.spec.ts (quarantined for reproducible failures there); not independently re-run this PR — grouped pending the same root-cause fix.",
-      "expiry": "2026-08-15",
-      "issue": "https://github.com/chitienhsiehwork-ai/gu-log/issues/602"
+      "reason": "Detailed chat input, markdown rendering, and error-message variants beyond the blocking core; independently verified across Chromium and WebKit projects 2026-07-23."
     },
     "tests/ai-popup-e2e-flow.spec.ts": {
-      "class": "quarantined",
+      "class": "nightly",
       "owner": "ShroomDog",
-      "reason": "Shares the same #ai-popup trigger path as tests/ai-popup.spec.ts; not independently re-run this PR.",
-      "expiry": "2026-08-15",
-      "issue": "https://github.com/chitienhsiehwork-ai/gu-log/issues/602"
+      "reason": "Full mocked desktop and mobile Ask/Edit journeys duplicate some blocking coverage at greater depth; independently verified on its intended Chromium projects 2026-07-23."
     },
     "tests/ai-popup-edit-v2.spec.ts": {
-      "class": "quarantined",
+      "class": "nightly",
       "owner": "ShroomDog",
-      "reason": "Shares the same #ai-popup trigger path as tests/ai-popup.spec.ts; not independently re-run this PR.",
-      "expiry": "2026-08-15",
-      "issue": "https://github.com/chitienhsiehwork-ai/gu-log/issues/602"
+      "reason": "Detailed desktop edit request, validation, confirm/retry/cancel, and Ctrl+Enter contracts beyond the blocking core; independently verified 2026-07-23."
     },
     "tests/ai-popup-extended.spec.ts": {
-      "class": "quarantined",
+      "class": "nightly",
       "owner": "ShroomDog",
-      "reason": "Shares the same #ai-popup trigger path as tests/ai-popup.spec.ts; also contains one named unconditional test.skip('GIVEN edit result WHEN clicking Cancel...') at line 139 needing its own follow-up.",
-      "expiry": "2026-08-15",
-      "issue": "https://github.com/chitienhsiehwork-ai/gu-log/issues/602"
+      "reason": "Extended confirm, error, result-state, login redirect, and mobile edit branches beyond the blocking core; unconditional skip removed and applicable projects independently verified 2026-07-23."
     },
     "tests/ai-popup-filepath.spec.ts": {
-      "class": "quarantined",
+      "class": "nightly",
       "owner": "ShroomDog",
-      "reason": "Shares the same #ai-popup trigger path as tests/ai-popup.spec.ts; not independently re-run this PR.",
-      "expiry": "2026-08-15",
-      "issue": "https://github.com/chitienhsiehwork-ai/gu-log/issues/602"
+      "reason": "Static and desktop E2E guard against duplicated .mdx extensions in edit requests; independently verified 2026-07-23."
     },
     "tests/ai-popup-iphone.spec.ts": {
-      "class": "quarantined",
+      "class": "nightly",
       "owner": "ShroomDog",
-      "reason": "Shares the same #ai-popup trigger path as tests/ai-popup.spec.ts (mobile variant); not independently re-run this PR.",
-      "expiry": "2026-08-15",
-      "issue": "https://github.com/chitienhsiehwork-ai/gu-log/issues/602"
+      "reason": "Mobile Chrome layout, virtual-keyboard, touch-target, safe-area, and selected-context checks; independently verified 2026-07-23 after waiting for the bottom-sheet animation contract."
     },
     "tests/ai-popup-token-expiry.spec.ts": {
-      "class": "quarantined",
+      "class": "nightly",
       "owner": "ShroomDog",
-      "reason": "Shares the same #ai-popup trigger path as tests/ai-popup.spec.ts; not independently re-run this PR.",
-      "expiry": "2026-08-15",
-      "issue": "https://github.com/chitienhsiehwork-ai/gu-log/issues/602"
+      "reason": "Detailed desktop token-expiry, re-login, retry, and auto-dismiss behavior beyond the blocking core; independently verified 2026-07-23."
     },
     "tests/theme-toggle.spec.ts": {
       "class": "quarantined",
