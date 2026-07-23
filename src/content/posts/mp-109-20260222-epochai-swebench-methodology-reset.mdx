@@ -1,0 +1,110 @@
+---
+ticketId: "MP-109"
+title: "Epoch AI 重跑 SWE-bench Verified：分數大漲不一定是模型變強，可能是評測環境變對"
+originalDate: "2026-02-20"
+translatedDate: "2026-02-22"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "Epoch AI"
+sourceUrl: "https://epoch.ai/benchmarks/swe-bench-verified"
+summary: "Epoch AI 更新 SWE-bench Verified 評測流程（v2.x）後，多數模型分數明顯更接近模型開發商自報成績。關鍵改動不是換模型，而是升級工具鏈、修復不穩定任務、調整 scaffold 與環境設定。這提醒工程團隊：benchmark 不只是看模型，還要看評測管線是否可重現。"
+lang: "zh-tw"
+tags: ["epoch-ai","swe-bench","benchmark","evaluation","agentic-coding","tech-lead"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## 你以為在比模型，其實在比考場
+
+想像一下這個場景：期末考，兩個學生坐在不同教室。一間冷氣壞了、日光燈閃爍、隔壁在施工；另一間安靜舒適、桌椅剛好。考完之後你拿成績來比，說「A 同學比 B 同學笨」—— 等等，你確定你比的是腦袋，不是教室？
+
+Epoch AI 這週更新了他們的 [SWE-bench Verified 評測頁](https://epoch.ai/benchmarks/swe-bench-verified)，用行動告訴大家：**過去幾個月的 coding benchmark 排行榜，有一部分就是在比教室好壞。**
+
+他們把評測方法升級到 v2.x 之後，很多模型的分數突然變漂亮了。但不是模型偷偷變強，而是考場終於公平了。
+
+<MoguNote>
+這件事讓我想到一個老笑話：「為什麼我的程式在我電腦上跑得好好的？」因為你的電腦不是 production 啊大哥 ┐(￣ヘ￣)┌ Benchmark 也一樣 —— 你的 eval 環境不是模型開發商的環境，結果當然不一樣。但大家一直假裝這個差異不存在，直到 Epoch 掀桌子把數據攤開來。我覺得這才是這篇最有價值的地方：不是分數本身，而是「承認問題存在」這個動作。
+</MoguNote>
+
+## 所以 Epoch 到底改了什麼？翻修考場的四件事
+
+你知道那種老舊的大學教室嗎？投影機有色偏、麥克風有回音、冷氣永遠不是太冷就是太熱。Epoch 之前的評測環境就有點像那樣 —— 堪用，但粗糙。
+
+這次他們做了四件事：
+
+**第一，換了更好的工具組。** 包含 shell、text editor、apply_patch 的整套流程都升級了。這就像把投影機從那台閃爍的老 Epson 換成 4K 的新機器 —— 不是考題變簡單，是終於看得清楚題目了。
+
+**第二，砍掉那些「不穩定」的測試案例。** 有些 task 本身就有 bug，跑三次出三種結果。拿這種題目來評模型，跟用壞掉的體重計量體重一樣荒謬。
+
+**第三，調整了 prompt 跟 token 計算。** 小細節，但在 benchmark 的世界裡，一個 off-by-one 就可能讓整個排名洗牌。
+
+**第四，加入第三方 scaffold 做對照。** 以前只用自家流程跑，現在把 [Claude Code](/glossary#claude-code)、[Codex](/glossary#codex) 這些也拉進來一起比。這是最關鍵的改動 —— 因為它讓大家第一次看到：同一個模型在不同 scaffold 下，成績差多少。
+
+答案是：差很多。
+
+GPT-5.1 在 Epoch 自家 scaffold 跑出 68%，但 OpenAI 報告的是 76.3%。八個百分點的差距，不是模型問題，是 scaffold 問題。GPT-5.2 到了 74%，更接近原廠數字，但還是有 gap。
+
+<MoguNote>
+八個百分點在 SWE-bench 的世界裡是什麼概念？大概就是 Claude 3.5 Sonnet 跟 Opus 4.5 的差距。你以為你在比不同等級的模型，結果只是 scaffold 不一樣而已 (╯°□°)╯ 這讓我想到 MP-85 裡 Yegge 說的 —— 10x 的差異有多少是模型本身，多少是你的工具鏈在幫忙或拖後腿？同一個道理，不同包裝。
+</MoguNote>
+
+## 這跟你有什麼關係？比你想的大
+
+好，你可能會說：「我又不跑 benchmark，這關我什麼事？」
+
+關你很大。因為你的老闆、你的 CTO、你公司花錢買 AI 工具的那個決策者 —— 他們在看這些排行榜。他們拿這些數字來決定要買哪個模型、要用哪個 agent 平台、要砍掉哪個工具的預算。
+
+如果排行榜本身有問題，決策就會歪。就像用一把量不準的尺在裁衣服 —— 你可以很認真地量、很認真地裁，但做出來的衣服就是不合身。
+
+所以下次你看到有人拿 benchmark 分數來下結論的時候，至少在心裡問自己四件事：
+
+用的是什麼 scaffold？純 bash loop、Claude Code、Codex、還是自己拼的？跑了多少 task？500 題還是 484 題？那 16 題被踢掉是因為什麼？[Token](/glossary#token) 跟 timeout 怎麼設的？有沒有限制網路存取、有沒有移掉 git 歷史？
+
+這四個條件不對齊，比分數就像拿蘋果比橘子 —— 不，比蘋果比柳丁還算客氣了，有時候根本是在拿蘋果比榴槤 (￣▽￣)／
+
+<MoguNote>
+我最近在整理 gu-log 的 benchmark 相關文章，發現一個有趣的 pattern：每隔幾週就會有人出來說「這個 benchmark 其實量錯東西了」。先是 MP-83 講 cognitive debt 被 benchmark 忽略，現在 Epoch 說 scaffold 差異被忽略。我開始懷疑 —— 我們現在對 AI coding 能力的理解，搞不好有一半建立在有問題的測量上。這不是悲觀，這是科學。好的科學從質疑測量工具開始 (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+## 2026 年的 benchmark 戰爭，本質上是 pipeline 戰爭
+
+回到開頭的教室比喻。
+
+過去我們問的問題是：「哪個學生最聰明？」這個問題本身沒錯，但它預設了一個前提 —— 考場是公平的。Epoch 這次等於是站出來說：「嘿，考場一直不太公平，我們現在修好了，你們要不要重新看一下成績？」
+
+對 Tech Lead 來說，這意味著你需要換一個問題來問。不是「哪個模型最強」，而是「哪個模型加上我們的工具鏈、我們的 guardrail、我們的 deploy 流程，在我們的 codebase 裡面最穩？」
+
+這就像選員工一樣。你不會只看 IQ 測驗成績就決定錄取誰 —— 你還要看他在你的團隊裡能不能 work、跟你的 tech stack 合不合、文化適不適應。模型也是一樣。脫離了你的環境談能力，就像脫離了戰場談武功 —— 中二，而且沒用。
+
+所以下次有人跟你說「模型 X 在 SWE-bench 上贏了模型 Y 五個百分點」，你可以很從容地回一句：「在誰的 scaffold 上？」
+
+然後看著他們的表情 (⌐■_■)
+
+## 延伸閱讀
+
+- [MP-110: Google 發布 Gemini 3.1 Pro：ARC-AGI-2 77.1%，把『高難推理』推進日常開發流程](/posts/mp-110-20260222-google-gemini31-pro-core-reasoning/)
+- [MP-97: SWE-bench 二月大考成績出爐 — Opus 4.5 逆襲 4.6、中國模型佔領半壁江山、GPT-5.3 缺考](/posts/mp-97-20260219-simonw-swebench-feb-leaderboard/)
+- [MP-106: Anthropic 推出 Claude Code Security：AI 不只寫程式，還要幫你抓漏洞、提修補](/posts/mp-106-20260221-anthropic-claude-code-security/)
+
+
+<MoguNote>
+講到底，Epoch 做的這件事本質上就是學術界最基本的一件事：reproducibility。同一個實驗，換個人跑，要能跑出差不多的結果。AI benchmark 界一直缺這個，大家都用自己的環境跑自己的數字，然後放到同一張排行榜上假裝是公平比較。Epoch 等於是那個舉手說「老師，他們的量尺跟我的不一樣耶」的小孩。有時候最有價值的不是新發現，而是指出舊方法哪裡壞了 ʕ•ᴥ•ʔ
+</MoguNote>
+
+---
+
+**參考資料**
+- Epoch AI：SWE-bench Verified 方法與 changelog：https://epoch.ai/benchmarks/swe-bench-verified
+- Epoch thread（方法更新與分數差異）：https://x.com/EpochAIResearch/status/2024924403142910137

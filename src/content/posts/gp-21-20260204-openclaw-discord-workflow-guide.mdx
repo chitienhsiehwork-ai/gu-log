@@ -1,0 +1,166 @@
+---
+ticketId: "GP-21"
+title: "Agent 訓練師進階指南：用 Discord 打造高效 OpenClaw 協作系統"
+originalDate: "2026-02-03"
+translatedDate: "2026-02-04"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@zhixianio on X"
+sourceUrl: "https://x.com/zhixianio/status/2018595121084994002"
+summary: "OpenClaw 進階玩法：為什麼 WhatsApp 不行？為什麼 Telegram 適合聊天但 Discord 適合「工作」？深入解析 Main Session 概念、Discord Thread 分流大法，以及如何打造「末日小屋」自動化工作流。"
+lang: "zh-tw"
+tags: ["openclaw","discord","telegram","workflow","ai-agents"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+import Toggle from '../../components/Toggle.astro';
+
+你有沒有過那種感覺——手上同時開著五個聊天視窗，Telegram 在響、Discord 在閃、WhatsApp 在跳通知，然後你的 AI [Agent](/glossary#agent) 在三個平台上各講各的，完全不知道你剛剛在隔壁頻道已經說過同樣的事？
+
+這就是我三個月前的日常。直到我搞清楚 [OpenClaw](/glossary#openclaw) 的 Session 機制，然後在 Discord 上蓋了一座「末日小屋」。
+
+對了，這系列的第一篇還沒看的可以先回去補。然後 Moltbot 已經改名叫 OpenClaw 了，AI 圈的改名速度大概跟台灣的手搖飲店開店速度差不多 ╰(°▽°)╯
+
+## WhatsApp？別鬧了
+
+先講結論：除非你是 WhatsApp 重度使用者到了沒它會死的程度，不然別用它接 OpenClaw。
+
+為什麼？因為 OpenClaw 登入 WhatsApp 的方式，說好聽是「創意工程」，說難聽就是逆向工程硬上。它是用 Puppeteer 模擬網頁版掃碼登入——你可以想成是一個機器人假裝自己是你的瀏覽器，偷偷摸摸地混進去。
+
+結果就是：連線三不五時斷掉、收訊息有延遲、然後你還得準備一支備用手機號來註冊，因為你不能用你正在用的號碼——不然你用什麼跟 Agent 聊天？用念力嗎？
+
+<MoguNote>
+WhatsApp 的「非官方登入」就像是翻牆進遊樂園——你確實可以玩到設施，但隨時可能被保全抓出去。Telegram 跟 Discord 都有正式的 Bot API，光是這點就贏了。選平台跟選房子一樣，地基穩不穩比裝潢好不好看重要太多了 (⌐■_■)
+</MoguNote>
+
+## Telegram vs Discord：聊天室跟辦公室的差別
+
+排除掉 WhatsApp，剩下的主力選手就是 Telegram 跟 Discord。
+
+這兩個平台的差異，用一個比喻就能說清楚：Telegram 像是你跟朋友的 LINE 對話——想到什麼就傳什麼，快、直接、沒有結構。Discord 像是你的辦公室——有會議室（Channel）、有白板（Thread）、有不同部門的分區，東西放哪裡一目了然。
+
+你跟朋友約吃飯用 LINE 很方便，但你不會用 LINE 來管一個專案對吧？同樣的道理。
+
+## Main Session：你的 Agent 怎麼認主人
+
+好，在動手設定之前，有個概念一定要先搞懂，不然後面會踩很多坑。
+
+OpenClaw 有個東西叫 **Main Session**。簡單講就是：Agent 認定「我現在在跟老闆直接對話」的那個頻道。Telegram DM、WhatsApp 私訊、Discord Bot 的 DM、iMessage——這些一對一的聊天，Agent 都會當成是在跟主人說話。
+
+這件事帶來兩個好處，一個是它會自動載入你的 MEMORY.md（裡面存的是你的個人偏好、隱私資訊），另一個是它會把你在不同平台的 DM 當成同一段對話——你在 iMessage 說「1」、Telegram 說「2」、Discord 說「3」，Agent 看到的就是你連續說了 1、2、3。
+
+聽起來很美對吧？
+
+但問題來了。如果你把 Bot 分享給家人用，比如你老婆也可以在 Telegram 上傳訊息給它——Agent 根本分不清楚誰是誰。你在 Discord 叫它寫程式，你老婆在 Telegram 叫它查食譜，Agent 就會把這兩段對話混在一起。
+
+<MoguNote>
+我就遇過有人沒設好隔離，結果他在 Telegram 叫 Agent 幫忙寫 Python crawler，他老婆在 Discord 叫 Agent 幫忙查紅燒牛肉食譜，最後 Agent 交出來一份「紅燒 Python 燉牛肉」——import requests 之後先把洋蔥切丁，requests.get 完畢後起油鍋爆香... 你說這到底是程式還是食譜？都是，也都不是 (╯°□°)╯
+</MoguNote>
+
+解法很簡單，改一行設定：
+
+```yaml
+session:
+  dmScope: "per-channel-peer"
+```
+
+這樣不同 Channel、不同使用者就會被隔離成獨立的 Session，互不干擾。
+
+如果你想更精細——比如你自己的 Telegram 跟 Discord 之間還是互通，但跟家人的 Session 要分開——可以用 `identityLinks`：
+
+```yaml
+session:
+  scope: "per-sender"
+  dmScope: "main"
+  identityLinks:
+    alice:
+      - "telegram:123456789"
+      - "discord:987654321012345678"
+```
+
+這就像是幫你的 Agent 配了一副眼鏡，它終於能認出「這幾個帳號其實都是同一個老闆」。
+
+<MoguNote>
+identityLinks 這個設計其實蠻聰明的。大部分人在不同平台用的 ID 根本不一樣，Agent 如果不設定就只能靠猜——而 AI 猜身份的準確率大概跟你媽猜你女朋友的名字一樣低 ┐(￣ヘ￣)┌
+</MoguNote>
+
+## Discord Thread：讓混亂變有序的魔法
+
+Discord 最殺的功能，也是我覺得它適合拿來當 AI 工作台的關鍵原因，就是 **Thread**。
+
+你知道微信群聊最惱人的是什麼嗎？十個人在一個群裡，同時聊三個話題，訊息像攪拌機一樣全部混在一起。你要找上午討論的那個決定？祝你好運，慢慢滾吧。
+
+Discord 的 Thread 就是解藥。你對任何一則訊息按右鍵 Create Thread，就會開出一個獨立的討論空間。主頻道繼續聊別的，Thread 裡面聊自己的，互不干擾。
+
+而且在 OpenClaw 的架構裡，每個 Channel 是一個獨立 Session，每個 Thread 也是一個獨立 Session。2026.2.1 版還加了一個功能：Thread 會自動繼承 parent channel 的最近訊息當上下文，所以你的 Agent 在新 Thread 裡也知道「前面在聊什麼」。
+
+## 末日小屋：我的實戰工作流
+
+講了這麼多原理，來看看實際怎麼用。
+
+我建了一個專屬的 Discord Server，叫「末日小屋」（對，就是這麼中二的名字，但用起來真的很爽）。
+
+<Toggle title="末日小屋的三層結構">
+1. **Daily**：每天的頭腦風暴頻道。想到什麼就丟進去，下面掛著一堆 Thread。
+2. **Projects**：已經從 Daily 畢業、值得長期追蹤的東西，各有自己的 Channel（像 `owliabot`、`writing`）。
+3. **日常推送**：像 `digest` 這種定時任務。
+</Toggle>
+
+然後我給 Agent 下了一個很關鍵的指令：**只要我在 Daily 頻道說話，你一定要先開一個 Thread 再回覆。**
+
+為什麼？因為 Daily 頻道就像你的書桌——如果每張紙都直接攤在桌上，三天後你就找不到任何東西了。Thread 就像是幫每個話題裝一個資料夾。
+
+當某個 Thread 聊著聊著，發現這件事值得長期做，我就把它升級成獨立的 Channel。告訴 Agent「這是之前那個 Thread 的延續」，它就會把之前的 Session 壓縮帶過來。
+
+這個感覺就像——你本來在筆記本上隨手塗鴉，塗著塗著發現「欸這個 idea 不錯」，然後把它撕下來貼到專案白板上，正式開工。
+
+<MoguNote>
+原作者說這讓他覺得自己像「章魚博士」同時操控四條機械臂——但老實說，我覺得更像是火鍋店老闆同時顧四個鍋。每個鍋的料不一樣、火候不一樣，但你只要定時去攪一下就好，真正煮東西的是 Agent。而你？你就是那個坐在旁邊喝啤酒、偶爾喊「那鍋加點辣」的人 (￣▽￣)／
+</MoguNote>
+
+## 進階玩法：讓 Discord 變成自動化樂園
+
+到這裡你可能覺得「好，Thread 管理術我學會了」。但 Discord + OpenClaw 的組合拳還沒出完。
+
+**Reaction 自動化**：你可以規定不同的 emoji reaction 觸發不同的動作。比如對一則訊息按愛心 ♥️，Agent 就自動把它轉發到收藏頻道。按一個 📌，就自動建立一個追蹤 Thread。以前這種東西要寫 Discord bot 的 code，現在？你用中文跟 Agent 說一句就搞定了。
+
+**分 Agent 策略**：每個 Channel 可以配置不同的 Agent persona。`#product` 頻道放一個 PM Agent（用 Opus，因為要做決策），`#dev` 頻道放一個 Engineer Agent（用 Sonnet，因為要寫 code），`#design` 放一個 Design Agent。它們各司其職，就像你真的有一個小團隊一樣。
+
+而這一切的實現方式，不是寫程式，是寫「話」。
+
+你跟 Agent 說「以後有人在這個頻道按星星 ⭐，你就幫我把那則訊息的重點摘要出來，貼到 #digest 頻道」——它就做了。這就是原作者說的「用自然語言編程」。不是把中文翻成 Python，而是有一個聽得懂人話又會寫 code 的 Agent 幫你搞定中間的所有事。
+
+## 延伸閱讀
+
+- [MP-44: 用 AI Agent 打造「自動自律」系統：不靠意志力，靠 OpenClaw 幫你守住每一天](/posts/mp-44-20260208-zakk-automatic-discipline/)
+- [GP-108: OpenClaw 系統提示詞的 9 層架構大解密](/posts/gp-108-20260308-servasyy-ai-openclaw-9/)
+- [SD-1: 用 AI 管 AI：自架 Telegram AI Agent 完整工作流 (OpenClaw)](/posts/sd-1-20260209-openclaw-talk-deep-dive/)
+
+
+<MoguNote>
+「自然語言編程」這個概念被喊了至少二十年了，從 COBOL 時代就有人在喊。但以前大家想的是「讓程式語言長得像英文」，結果寫出來的東西比程式碼更難讀。現在的做法完全反過來——不是讓程式碼變成自然語言，而是讓一個懂自然語言的 Agent 去操作程式碼。繞了二十年，人類終於找到正確的打開方式了 (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+## 所以，到底該選哪個？
+
+回到一開始那個五個視窗同時響的場景。
+
+現在我的日常是這樣的：出門在外、手機上想到什麼事情，打開 Telegram 跟 Agent 聊兩句——「幫我查一下那個 API 的 rate limit」「明天的會議幫我列個 agenda」。快、輕、不需要儀式感。
+
+回到電腦前，打開 Discord 的末日小屋。Daily 頻道裡有今天的新 Thread 在等我，Projects 裡每個 Channel 的 Agent 都已經把我昨天交代的事情做到一半了。我只需要進去看看進度、給點 feedback、偶爾拍個 reaction，工作就在推進。
+
+Telegram 是你的口袋助理，Discord 是你的辦公室。兩個都用，但主力放 Discord——因為那裡有結構、有記憶、有自動化，你的 Agent 在那裡才真的能施展拳腳。
+
+就像你不會在便利商店裡開一間公司，但你會在上班路上順便進去買杯咖啡一樣 (◕‿◕)

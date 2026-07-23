@@ -31,9 +31,9 @@
 - learner 是高端玩家，可用更進階的 Vainglory 機制。
 
 ## Ground-truthed tribunal facts (2026-06-18, 取代先前憑記憶的 drift 版)
-- FLOOR（commit gate, `scripts/score-floor-check.mjs`）：`scores.vibe` 需 5 維齊（persona/clawdNote/vibe/clarity/narrative）+ composite≥3，composite=floor(sum/5)。PENDING 草稿、純 housekeeping、純連結維護、en 版、deprecated/retired、無分數舊文 → 豁免。
+- FLOOR（commit gate, `scripts/score-floor-check.mjs`）：`scores.vibe` 需 5 維齊（persona/moguNote/vibe/clarity/narrative）+ composite≥3，composite=floor(sum/5)。PENDING 草稿、純 housekeeping、純連結維護、en 版、deprecated/retired、無分數舊文 → 豁免。
 - PASS / 首頁（`src/utils/post-status.ts` getIndexPosts + `tribunal-scores.ts` PUBLISH_BAR=8）：首頁只擋「有分數且 overall composite<8」的；overall=floor(各評審 composite 平均)。無分數舊文 grandfathered，照留首頁。
-- Vibe 維（5）：persona / clawdNote / vibe / clarity / narrative；bar = composite≥8 且 ≥1 維≥9 且無維<8。clarity 定義 = 代名詞/聲音歸屬（誰在講話）。
+- Vibe 維（5）：persona / moguNote / vibe / clarity / narrative；bar = composite≥8 且 ≥1 維≥9 且無維<8。clarity 定義 = 代名詞/聲音歸屬（誰在講話）。
 - Fresh Eyes 維（4）：readability / firstImpression / payoffDensity / lengthFit；bar = composite≥8 且 payoffDensity≥8 且 lengthFit≥8（非補償）。
 
 ## Next Suggested Levels

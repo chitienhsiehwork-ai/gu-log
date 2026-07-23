@@ -8,7 +8,7 @@
 import { test, expect } from './fixtures';
 
 const THEMES = ['dark', 'light'] as const;
-const ROUTES = ['/', '/mogu-picks/', '/posts/cp-291-20260414-anthropic-'];
+const ROUTES = ['/', '/mogu-picks/', '/posts/mp-291-20260414-anthropic-'];
 
 for (const theme of THEMES) {
   test.describe(`theme=${theme}`, () => {

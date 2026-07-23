@@ -1,4 +1,9 @@
 import { test, expect } from './fixtures';
+import {
+  isDesktopChromiumProject,
+  isMobileProject,
+  selectPostTextAndShowPopup,
+} from './helpers/ai-popup';
 
 /**
  * AI Popup Tests
@@ -8,80 +13,15 @@ import { test, expect } from './fixtures';
  * Run with: npx playwright test tests/ai-popup.spec.ts
  */
 
-const TEST_POST = '/posts/sp-24-20260204-claude-is-a-space-to-think';
-
-function isDesktopChromium() {
-  const projectUse = test.info().project.use;
-  return projectUse.browserName === 'chromium' && !projectUse.isMobile;
-}
-
-function isMobileProject() {
-  return !!test.info().project.use.isMobile;
-}
-
-/**
- * Helper: select text inside .post-content using JS (works on both desktop and mobile).
- * Uses Selection API to programmatically select text within the first paragraph.
- */
-async function selectTextInContent(page: import('@playwright/test').Page) {
-  await page.evaluate(() => {
-    const p = document.querySelector('.post-content p');
-    if (!p || !p.firstChild) throw new Error('No post-content paragraph found');
-    const range = document.createRange();
-    const textNode = p.firstChild;
-    range.setStart(textNode, 0);
-    range.setEnd(textNode, Math.min(textNode.textContent?.length || 20, 20));
-    const sel = window.getSelection();
-    sel?.removeAllRanges();
-    sel?.addRange(range);
-  });
-  // Trigger mouseup to fire the popup handler
-  const content = page.locator('.post-content p').first();
-  const box = await content.boundingBox();
-  if (box) {
-    await page.mouse.click(box.x + 10, box.y + box.height / 2, { button: 'left' });
-    // Re-select because click clears selection
-    await page.evaluate(() => {
-      const p = document.querySelector('.post-content p');
-      if (!p || !p.firstChild) return;
-      const range = document.createRange();
-      const textNode = p.firstChild;
-      range.setStart(textNode, 0);
-      range.setEnd(textNode, Math.min(textNode.textContent?.length || 20, 20));
-      const sel = window.getSelection();
-      sel?.removeAllRanges();
-      sel?.addRange(range);
-    });
-  }
-  // Dispatch mouseup to trigger the popup
-  await page.evaluate(() => {
-    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
-  });
-  // Wait for the setTimeout(10ms) in the handler
-  await page.waitForTimeout(50);
-}
-
-async function selectTextForCurrentProject(page: import('@playwright/test').Page, dragDistance = 100) {
-  if (isMobileProject()) {
-    await selectTextInContent(page);
-    return;
-  }
-
-  const content = page.locator('.post-content p').first();
-  await expect(content).toBeVisible();
-  const box = await content.boundingBox();
-  if (!box) throw new Error('No bounding box');
-
-  await page.mouse.move(box.x + 10, box.y + box.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(box.x + dragDistance, box.y + box.height / 2);
-  await page.mouse.up();
-}
+const TEST_POST = '/posts/gp-24-20260204-claude-is-a-space-to-think';
 
 test.describe('AI Popup - Desktop', () => {
   test.beforeEach(async () => {
     // These tests use mouse drag which only works on Desktop
-    if (!isDesktopChromium()) test.skip();
+    test.skip(
+      !isDesktopChromiumProject(test.info()),
+      'Real mouse-drag coverage runs only on desktop Chromium'
+    );
   });
 
   test('GIVEN post page WHEN user selects text in post-content THEN popup appears with AI buttons', async ({
@@ -91,19 +31,7 @@ test.describe('AI Popup - Desktop', () => {
     await page.evaluate(() => localStorage.removeItem('gu-log-jwt'));
     await page.reload();
 
-    const content = page.locator('.post-content p').first();
-    await expect(content).toBeVisible();
-
-    const box = await content.boundingBox();
-    if (!box) throw new Error('No bounding box for content paragraph');
-
-    await page.mouse.move(box.x + 10, box.y + box.height / 2);
-    await page.mouse.down();
-    await page.mouse.move(box.x + 200, box.y + box.height / 2);
-    await page.mouse.up();
-
-    const popup = page.locator('#ai-popup');
-    await expect(popup).toBeVisible({ timeout: 3000 });
+    await selectPostTextAndShowPopup(page, { method: 'mouse' });
   });
 
   test('GIVEN user is NOT logged in WHEN popup appears THEN it shows Login with GitHub button', async ({
@@ -113,18 +41,7 @@ test.describe('AI Popup - Desktop', () => {
     await page.evaluate(() => localStorage.removeItem('gu-log-jwt'));
     await page.reload();
 
-    const content = page.locator('.post-content p').first();
-    await expect(content).toBeVisible();
-    const box = await content.boundingBox();
-    if (!box) throw new Error('No bounding box');
-
-    await page.mouse.move(box.x + 10, box.y + box.height / 2);
-    await page.mouse.down();
-    await page.mouse.move(box.x + 200, box.y + box.height / 2);
-    await page.mouse.up();
-
-    const popup = page.locator('#ai-popup');
-    await expect(popup).toBeVisible({ timeout: 3000 });
+    const popup = await selectPostTextAndShowPopup(page);
 
     const loginBtn = popup.locator('[data-action="login"]');
     await expect(loginBtn).toBeVisible();
@@ -146,18 +63,7 @@ test.describe('AI Popup - Desktop', () => {
     });
     await page.reload();
 
-    const content = page.locator('.post-content p').first();
-    await expect(content).toBeVisible();
-    const box = await content.boundingBox();
-    if (!box) throw new Error('No bounding box');
-
-    await page.mouse.move(box.x + 10, box.y + box.height / 2);
-    await page.mouse.down();
-    await page.mouse.move(box.x + 200, box.y + box.height / 2);
-    await page.mouse.up();
-
-    const popup = page.locator('#ai-popup');
-    await expect(popup).toBeVisible({ timeout: 3000 });
+    const popup = await selectPostTextAndShowPopup(page);
 
     await expect(popup.locator('[data-action="ask"]')).toBeVisible();
     await expect(popup.locator('[data-action="edit"]')).toBeVisible();
@@ -171,18 +77,7 @@ test.describe('AI Popup - Desktop', () => {
     await page.evaluate(() => localStorage.removeItem('gu-log-jwt'));
     await page.reload();
 
-    const content = page.locator('.post-content p').first();
-    await expect(content).toBeVisible();
-    const box = await content.boundingBox();
-    if (!box) throw new Error('No bounding box');
-
-    await page.mouse.move(box.x + 10, box.y + box.height / 2);
-    await page.mouse.down();
-    await page.mouse.move(box.x + 200, box.y + box.height / 2);
-    await page.mouse.up();
-
-    const popup = page.locator('#ai-popup');
-    await expect(popup).toBeVisible({ timeout: 3000 });
+    const popup = await selectPostTextAndShowPopup(page);
 
     await page.locator('header.site-header').click();
     await expect(popup).not.toBeVisible({ timeout: 2000 });
@@ -195,10 +90,7 @@ test.describe('AI Popup - Desktop', () => {
     await page.evaluate(() => localStorage.removeItem('gu-log-jwt'));
     await page.reload();
 
-    await selectTextInContent(page);
-
-    const popup = page.locator('#ai-popup');
-    await expect(popup).toBeVisible({ timeout: 3000 });
+    const popup = await selectPostTextAndShowPopup(page);
 
     const before = await page.evaluate(() => window.getSelection()?.toString().trim().length || 0);
     expect(before).toBeGreaterThan(1);
@@ -210,17 +102,20 @@ test.describe('AI Popup - Desktop', () => {
     const x = headerBox.x + Math.min(20, headerBox.width / 2);
     const y = headerBox.y + Math.min(20, headerBox.height / 2);
 
-    await page.evaluate(({ x, y }) => {
-      const target = document.elementFromPoint(x, y) || document.body;
-      target.dispatchEvent(
-        new PointerEvent('pointerdown', {
-          bubbles: true,
-          clientX: x,
-          clientY: y,
-          pointerType: 'touch',
-        })
-      );
-    }, { x, y });
+    await page.evaluate(
+      ({ x, y }) => {
+        const target = document.elementFromPoint(x, y) || document.body;
+        target.dispatchEvent(
+          new PointerEvent('pointerdown', {
+            bubbles: true,
+            clientX: x,
+            clientY: y,
+            pointerType: 'touch',
+          })
+        );
+      },
+      { x, y }
+    );
 
     await page.waitForTimeout(50);
 
@@ -234,18 +129,7 @@ test.describe('AI Popup - Desktop', () => {
     await page.evaluate(() => localStorage.removeItem('gu-log-jwt'));
     await page.reload();
 
-    const content = page.locator('.post-content p').first();
-    await expect(content).toBeVisible();
-    const box = await content.boundingBox();
-    if (!box) throw new Error('No bounding box');
-
-    await page.mouse.move(box.x + 10, box.y + box.height / 2);
-    await page.mouse.down();
-    await page.mouse.move(box.x + 200, box.y + box.height / 2);
-    await page.mouse.up();
-
-    const popup = page.locator('#ai-popup');
-    await expect(popup).toBeVisible({ timeout: 3000 });
+    const popup = await selectPostTextAndShowPopup(page);
 
     await page.keyboard.press('Escape');
     await expect(popup).not.toBeVisible({ timeout: 2000 });
@@ -256,15 +140,26 @@ test.describe('AI Popup - Desktop', () => {
   }) => {
     await page.goto(TEST_POST);
 
-    const header = page.locator('header.site-header').first();
-    await expect(header).toBeVisible();
-    const box = await header.boundingBox();
-    if (!box) throw new Error('No bounding box');
+    await page
+      .locator('header.site-header')
+      .first()
+      .evaluate((header) => {
+        const walker = document.createTreeWalker(header, NodeFilter.SHOW_TEXT, {
+          acceptNode(node) {
+            return node.textContent?.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+          },
+        });
+        const textNode = walker.nextNode();
+        if (!textNode?.textContent) throw new Error('No selectable header text found');
 
-    await page.mouse.move(box.x + 10, box.y + box.height / 2);
-    await page.mouse.down();
-    await page.mouse.move(box.x + 100, box.y + box.height / 2);
-    await page.mouse.up();
+        const range = document.createRange();
+        range.setStart(textNode, 0);
+        range.setEnd(textNode, Math.min(5, textNode.textContent.length));
+        const selection = window.getSelection();
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+        document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+      });
 
     await page.waitForTimeout(300);
     const popup = page.locator('#ai-popup');
@@ -277,10 +172,7 @@ test.describe('AI Popup - File Path Wiring', () => {
     await page.goto(TEST_POST);
 
     const root = page.locator('#ai-popup-root');
-    await expect(root).toHaveAttribute(
-      'data-file-path',
-      /src\/content\/posts\/.*\.mdx$/
-    );
+    await expect(root).toHaveAttribute('data-file-path', /src\/content\/posts\/.*\.mdx$/);
   });
 });
 
@@ -288,40 +180,34 @@ test.describe('AI Popup - Mobile (programmatic selection)', () => {
   test('GIVEN mobile viewport WHEN text selected THEN popup shows as bottom sheet', async ({
     page,
   }) => {
-    if (!isMobileProject()) {
-      test.skip();
-      return;
-    }
+    test.skip(
+      !isMobileProject(test.info()),
+      'Mobile bottom-sheet coverage requires a mobile project'
+    );
 
     await page.goto(TEST_POST);
     await page.evaluate(() => localStorage.removeItem('gu-log-jwt'));
     await page.reload();
     await expect(page.locator('.post-content p').first()).toBeVisible();
 
-    await selectTextInContent(page);
-
-    const popup = page.locator('#ai-popup');
-    await expect(popup).toBeVisible({ timeout: 3000 });
+    const popup = await selectPostTextAndShowPopup(page);
     await expect(popup).toHaveClass(/ai-popup--mobile/);
   });
 
   test('GIVEN mobile viewport WHEN not logged in and text selected THEN shows login button', async ({
     page,
   }) => {
-    if (!isMobileProject()) {
-      test.skip();
-      return;
-    }
+    test.skip(
+      !isMobileProject(test.info()),
+      'Mobile bottom-sheet coverage requires a mobile project'
+    );
 
     await page.goto(TEST_POST);
     await page.evaluate(() => localStorage.removeItem('gu-log-jwt'));
     await page.reload();
     await expect(page.locator('.post-content p').first()).toBeVisible();
 
-    await selectTextInContent(page);
-
-    const popup = page.locator('#ai-popup');
-    await expect(popup).toBeVisible({ timeout: 3000 });
+    const popup = await selectPostTextAndShowPopup(page);
 
     const loginBtn = popup.locator('[data-action="login"]');
     await expect(loginBtn).toBeVisible();
@@ -337,7 +223,7 @@ test.describe('Auth Callback', () => {
     await page.evaluate(() => localStorage.removeItem('gu-log-jwt'));
 
     await page.goto('/auth/callback?token=fake-jwt-token-12345');
-    
+
     // Wait for localStorage to be populated
     await page.waitForFunction(() => !!localStorage.getItem('gu-log-jwt'));
     const jwt = await page.evaluate(() => localStorage.getItem('gu-log-jwt'));
@@ -351,7 +237,7 @@ test.describe('Auth Callback', () => {
     await page.evaluate(() => localStorage.removeItem('gu-log-jwt'));
 
     await page.goto('/auth/callback#token=hash-jwt-token-67890');
-    
+
     // Wait for localStorage to be populated
     await page.waitForFunction(() => !!localStorage.getItem('gu-log-jwt'));
     const jwt = await page.evaluate(() => localStorage.getItem('gu-log-jwt'));
@@ -375,12 +261,12 @@ test.describe('Auth Callback', () => {
     await page.goto('/');
     await page.evaluate(() => {
       localStorage.removeItem('gu-log-jwt');
-      localStorage.setItem('gu-log-return-url', '/posts/sp-24-20260204-claude-is-a-space-to-think');
+      localStorage.setItem('gu-log-return-url', '/posts/gp-24-20260204-claude-is-a-space-to-think');
     });
 
     await page.goto('/auth/callback?token=redirect-test-token');
 
-    await page.waitForURL('**/posts/sp-24-20260204-claude-is-a-space-to-think', { timeout: 5000 });
+    await page.waitForURL('**/posts/gp-24-20260204-claude-is-a-space-to-think', { timeout: 5000 });
 
     const jwt = await page.evaluate(() => localStorage.getItem('gu-log-jwt'));
     expect(jwt).toBe('redirect-test-token');
@@ -406,18 +292,15 @@ test.describe('AI Popup - API Interactions', () => {
   test('GIVEN logged in WHEN clicking Ask AI THEN shows input then result', async ({ page }) => {
     // Mock API
     await page.route('**/ai/ask', async (route) => {
-      await new Promise(r => setTimeout(r, 500)); // slight delay to show loading
+      await new Promise((r) => setTimeout(r, 500)); // slight delay to show loading
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ response: 'This is a mock AI answer.' })
+        body: JSON.stringify({ response: 'This is a mock AI answer.' }),
       });
     });
 
-    await selectTextForCurrentProject(page);
-
-    const popup = page.locator('#ai-popup');
-    await expect(popup).toBeVisible();
+    const popup = await selectPostTextAndShowPopup(page);
 
     // Click Ask AI → should show input box
     const askBtn = popup.locator('[data-action="ask"]');
@@ -437,14 +320,11 @@ test.describe('AI Popup - API Interactions', () => {
       await route.fulfill({
         status: 500,
         contentType: 'application/json',
-        body: JSON.stringify({ detail: 'Mock Server Error' })
+        body: JSON.stringify({ detail: 'Mock Server Error' }),
       });
     });
 
-    await selectTextForCurrentProject(page);
-
-    const popup = page.locator('#ai-popup');
-    await expect(popup).toBeVisible();
+    const popup = await selectPostTextAndShowPopup(page);
 
     // Click Ask AI → input → submit
     await popup.locator('[data-action="ask"]').click();
@@ -457,23 +337,22 @@ test.describe('AI Popup - API Interactions', () => {
     await expect(popup.locator('.ai-popup-error-text')).toContainText('Mock Server Error');
   });
 
-  test('GIVEN logged in WHEN clicking Edit THEN shows instruction input then diff and confirm buttons', async ({ page }) => {
+  test('GIVEN logged in WHEN clicking Edit THEN shows instruction input then diff and confirm buttons', async ({
+    page,
+  }) => {
     // Mock API
     await page.route('**/ai/edit', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           diff: '- old text\n+ new text',
-          editId: 'mock-edit-id-123'
-        })
+          editId: 'mock-edit-id-123',
+        }),
       });
     });
 
-    await selectTextForCurrentProject(page);
-
-    const popup = page.locator('#ai-popup');
-    await expect(popup).toBeVisible();
+    const popup = await selectPostTextAndShowPopup(page);
 
     // Click Edit
     await popup.locator('[data-action="edit"]').click();
@@ -485,9 +364,9 @@ test.describe('AI Popup - API Interactions', () => {
     await expect(popup.locator('.ai-popup-diff')).toBeVisible();
     await expect(popup.locator('.ai-popup-diff-remove')).toContainText('- old text');
     await expect(popup.locator('.ai-popup-diff-add')).toContainText('+ new text');
-    
+
     // Should show confirm/cancel buttons
     await expect(popup.locator('[data-action="confirm"]')).toBeVisible();
-    await expect(popup.locator('.ai-popup-btn--cancel')).toBeVisible();
+    await expect(popup.locator('.ai-popup-actions [data-action="close"]')).toBeVisible();
   });
 });

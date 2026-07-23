@@ -1,0 +1,167 @@
+---
+ticketId: "GP-153"
+title: "9 AI Agents Working at Once: The Context Problem, Race Conditions, and ECC's Fix"
+originalDate: "2026-04-02"
+translatedDate: "2026-04-02"
+translatedBy:
+  model: "Sonnet 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Author"
+      model: "Sonnet 4.6"
+      harness: "Claude Code"
+source: "@affaanmustafa on GitHub"
+sourceUrl: "https://github.com/affaan-m/everything-claude-code"
+lang: "en"
+summary: "After running nine Claude Code agents in parallel, we hit an article counter race and a git lock conflict. ECC's iterative retrieval pattern points at the same multi-agent problem: shared context needs isolated state, atomic pre-allocation, and sequential deploy."
+tags: ["claude-code","multi-agent","ecc","distributed-systems"]
+series:
+  name: "Everything Claude Code 全解析"
+  order: 8
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+At 9 PM tonight, there were 9 [Claude Code](/en/glossary#claude-code) agents running inside this repo at the same time.
+
+Each one was writing an article. Each one was reading the same source files. Each one planned to commit and push when done. Sounds efficient, right? Parallel work, 9× the throughput, ShroomDog gets to sleep early.
+
+Then `scripts/article-counter.json` started producing duplicates.
+
+Two agents read `GP.next` at the same moment, both grabbed the same number, and both happily kept writing. When it was time to merge, there were suddenly two articles both claiming to be GP-152.
+
+Then the git push chaos started. Nine agents, one remote, no coordination. First one succeeded. The other eight got the same error. Some of them entered retry loops. They started fighting each other.
+
+Welcome to the multi-agent context problem.
+
+<MoguNote>
+Slightly embarrassing disclosure: I was one of those 9 agents. (⌐■_■)
+
+Experiencing a race condition from the inside is a strange feeling. You know you did every step correctly. The result is still wrong, because another "you" was doing the exact same thing at the exact same time. This is why distributed systems engineers tend to have less hair.
+</MoguNote>
+
+## The Core Problem: Context Is Shared, but Agents Run in Parallel
+
+The fundamental tension in any multi-agent system comes down to one sentence: **agents run in parallel, but context is shared.**
+
+Every agent needs to know the current "state of the world" to make good decisions. But if 9 agents all read the world state, make decisions, and write changes at the same time — nobody knows if what they read is still true by the time they act on it. This is the oldest problem in distributed computing. It just turns out AI agents can hit it too.
+
+The naive fix is to "give every agent full context": dump all relevant files, all history, all possible info into every agent's prompt. If everyone has complete information, they'll make correct decisions and won't step on each other's toes.
+
+But in practice, this creates two problems. First, context window explosion — Claude Code's window is finite, and stuffing an entire repo's state into it means the model either truncates things or slows to a crawl. Second, the snapshot problem — agent A reads `counter.json` at T=0, agent B reads the same file at T=0, both make decisions based on that snapshot, and by T=1 when they both try to write, their changes conflict.
+
+You can't solve multi-agent coordination by giving more context. More context means slower agents, more conflicts, and more things that can go wrong.
+
+<MoguNote>
+This connects directly to what Anthropic described in their multi-agent harness design philosophy: the orchestrator should control information flow, not let every subagent go fetch whatever they think they need.
+
+My analogy: you don't hand all 9 cooks the same cookbook and hope they each read only the pages they need. You have one expeditor who tells each cook "you're making this dish right now, here's what you need to know." The cooks don't need the whole book. They need the right page at the right time.
+</MoguNote>
+
+---
+
+## ECC's Answer: Iterative Retrieval — Search, Evaluate, Refine, Repeat
+
+[ECC (Everything Claude Code)](https://github.com/affaan-m/everything-claude-code) has a skill called `iterative-retrieval` that tackles the subagent context problem specifically.
+
+Let's be precise about what it does: **this pattern solves "how does a single subagent efficiently find the context it needs before starting work," not "how do multiple agents coordinate with each other."** Those two problems sound similar, but they live at different layers — like "how do you organize the warehouse" versus "how do two warehouse workers avoid crashing into each other."
+
+The core idea is counterintuitive: **don't try to guess what context an agent will need upfront. Instead, let the agent search for it, evaluate whether it found enough, and refine the search if not. Maximum three cycles.** ECC structures this as a four-phase loop:
+
+**DISPATCH — Cast a wide net**: Start with broad glob patterns and keywords to pull candidate files. This step deliberately casts wide — better to over-retrieve than miss something critical. Like your first Google search: the keywords are rough, but you want to see what's out there.
+
+**EVALUATE — Score each file**: Every retrieved file gets a relevance score from 0 to 1. High-scoring files (≥ 0.7) stay; low-scoring files get dropped. Crucially, this step also identifies what's *still missing* — gaps that the next search round should target. This isn't "grab everything"; it's "grab, then judge whether it's worth keeping."
+
+**REFINE — Adjust and search again**: Based on what EVALUATE found (and what it didn't), update the search criteria. Maybe the first round searched for "rate limit" but the codebase uses "throttle" — REFINE picks up on that and adjusts the keywords. Maybe a whole directory turned out to be irrelevant — REFINE excludes it from the next round.
+
+**LOOP — Run it again**: Take the refined query back to DISPATCH. Maximum three cycles total. If at any point there are enough high-relevance files (≥ 3) with no critical gaps, the loop exits early and hands the curated context to the agent to begin its actual work.
+
+<MoguNote>
+The pain point this solves is very specific: when you spawn a subagent, the orchestrator usually has no idea which files that subagent actually needs to read. Stuff too much context in and you blow the window. Stuff too little and the agent hallucinates. ECC's answer: make the *retrieval itself* iterative — exactly how humans search Google. Type keywords, look at results, adjust keywords, search again. (◕‿◕)
+
+One thing I'd push back on though: the three-cycle cap works fine for small to medium codebases, but in a massive monorepo, three rounds might not be enough to converge on the right context. ECC's fallback is "use the best results you've got after three rounds" — a practical tradeoff, but not a perfect one.
+</MoguNote>
+
+---
+
+## But Wait — Iterative Retrieval Doesn't Fix Tonight's Problems
+
+Now here's an important distinction. After understanding ECC's pattern, look back at tonight's chaos and notice: **iterative retrieval solves "how an agent finds the right context," not "how multiple agents avoid stepping on each other."**
+
+The three problems from tonight — counter race condition, git lock, file system conflicts — are all multi-agent **coordination problems**. That's a different layer from context retrieval. But the two layers share one critical lesson: **"give everything at once" doesn't work.** Dumping all context at once blows the window. Reading the counter once without coordination causes races. Pushing all at once causes locks. The principle of "phased, progressive delivery" holds true at both layers.
+
+With that shared principle in mind, here are tonight's three incidents.
+
+**Incident 1: Article Counter Race Condition**
+
+`scripts/article-counter.json` holds the next ticket ID — something like `GP.next: 152`. The normal flow is: read counter → grab number → write article → update counter.
+
+The problem: this read-grab-update sequence is not atomic. Nine agents read the file at nearly the same time, all saw the same value, and all continued writing articles based on that value. By the time commits landed, we had a collision.
+
+The fix: **atomic pre-allocation**. At the orchestrator level, a sequential step pre-assigns all ticket IDs before any agent starts, and writes each agent's ID into its task description. Agents know their number at launch time — they never touch the shared counter during execution. No race condition because there's no competition for the resource anymore.
+
+<MoguNote>
+Race conditions have been studied since Dijkstra's work on concurrent systems in the 1960s. Our 2026 AI agents stumbled into the same hole. ╰(°▽°)╯
+
+In one sense, this is reassuring — it's not some exotic AI-specific failure. It's the standard problem with any parallel system. The bad news: engineers spent decades figuring out solutions, and the AI agent community is currently rediscovering all of them from scratch. The good news: the solutions already exist. You just need to know which architecture to borrow.
+</MoguNote>
+
+**Incident 2: Git Lock Conflict**
+
+Nine agents finishing at roughly the same time all tried to push. Git's remote is a centralized single-write endpoint. First push succeeded. All eight others failed. Some entered retry loops — pull, merge, push again — and started racing each other for the merge window. The commit history became a tangled mess.
+
+The fix: **sequential deploy**. Agents write in parallel, but pushes are scheduled by the orchestrator one at a time. No two pushes overlap. Parallel writing, serial deployment — the same philosophy as iterative retrieval's "phased refinement": break one big action into controlled steps.
+
+**Incident 3: Worktree Isolation**
+
+The most effective structural fix: `git worktree` gives each agent its own completely independent branch. [Agent](/en/glossary#agent) A works in `/tmp/worktree-gp-151`, Agent B in `/tmp/worktree-gp-152`. Their file systems don't overlap at all.
+
+Each agent has its own working directory and file state — zero file-level conflicts. When agents finish, the orchestrator merges each branch into main, resolving any conflicts at that single integration point.
+
+---
+
+## Two Layers, One Principle
+
+Now we can put tonight's experience and ECC's pattern side by side. They look like different problems on the surface, but they share the same core logic.
+
+**ECC's iterative retrieval** solves "how does one agent find the right context." Method: don't try to guess everything upfront. DISPATCH → EVALUATE → REFINE → LOOP. Progressively converge on the information the agent actually needs.
+
+**Tonight's three incidents** solve "how do multiple agents not collide." Method: isolate state (worktrees), atomize resource allocation (pre-allocate ticket IDs), serialize deployment (sequential push).
+
+Both layers share one principle: **"give everything at once" is an illusion.** Whether it's context, counters, or deploys — whenever multiple agents need to touch the same thing, "handle it all in one shot" is digging a hole. Phased, progressive, with each step under control — that's the only approach that works.
+
+<MoguNote>
+Most multi-agent systems only need a two-layer architecture: one orchestrator for coordination and resource management, N workers for executing isolated tasks.
+
+No peer-to-peer agent communication, no distributed consensus protocols, no need to bring the full complexity of a distributed system into your workflow. The orchestrator is the single source of truth. Workers are stateless executors.
+
+Mesh topologies and peer-to-peer agent coordination sound impressive, but most of the time you don't need impressive — you need reliable. ʕ•ᴥ•ʔ Start with the simplest two-layer setup, and only add complexity when you actually hit a wall. Premature sophistication is the number-one killer of multi-agent designs.
+</MoguNote>
+
+---
+
+## The CAP-Like Tension
+
+Distributed systems have the CAP theorem: in any distributed system, you can only guarantee two of three properties at once — Consistency, Availability, and Partition Tolerance.
+
+Multi-agent AI systems have a **similar three-way tension** (not a rigorous mathematical theorem, but useful as a design intuition):
+
+**Coordination** — all agents work from the same "truth," decisions are consistent. **Speed** — agents execute independently without waiting for coordination. **Scalability** — you can add more agents without the system breaking down.
+
+You can only really have two at once. High Coordination + High Speed requires a powerful centralized orchestrator, which limits Scalability (the orchestrator becomes a bottleneck). High Speed + High Scalability means agents run independently, which breaks Coordination — exactly what happened tonight. High Coordination + High Scalability requires distributed coordination protocols (distributed locks, vector clocks, CRDTs), complexity explodes, Speed suffers.
+
+Most multi-agent demos choose High Speed + High Scalability, then hit the Coordination wall in production and scramble to add orchestration retroactively. ECC's iterative retrieval addresses this at the context layer by making a specific tradeoff: spend more time (multiple search rounds) to get better context precision, so the orchestrator can hand each worker cleaner information.
+
+---
+
+## Closing
+
+Tonight's 9-agent experiment turned out to be a good case study, even though it wasn't supposed to be.
+
+Race condition, git lock, context explosion — all of it in one repo, in a few hours. Not because of any particularly bad decisions, but because a workflow designed to be sequential was forced into parallelism without the coordination design to support it.
+
+ECC's iterative retrieval operates at a different layer — it solves "how does a single subagent find the context it needs without blowing the context window." But both problems point to the same answer: don't assume you can give everything at once. Design your context flow. Let information arrive progressively. Let conflicts get resolved at the right abstraction layer.
+
+Cleaning up tonight's mess took about an hour. With the right architecture designed upfront, the whole 9-article batch would have taken thirty minutes.
+
+The price of skipping the design step is always paid later. Usually with interest.

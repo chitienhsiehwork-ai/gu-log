@@ -1,0 +1,179 @@
+---
+ticketId: "MP-75"
+title: "Anthropic 募了 $300 億美元 — Claude Code 年營收 $25 億，每 4 個 GitHub Commit 就有 1 個是它寫的"
+originalDate: "2026-02-12"
+translatedDate: "2026-02-12"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "Anthropic Blog + CNBC + Axios + Bloomberg"
+sourceUrl: "https://www.anthropic.com/news/anthropic-raises-30-billion-series-g-funding-380-billion-post-money-valuation"
+summary: "Anthropic 今天宣布完成 $300 億美元 Series G 融資，估值 $3,800 億。年化營收 $140 億（連續三年 10 倍增長），Claude Code 年化營收 $25 億且六週翻倍。4% GitHub 公開 commits 由 Claude Code 生成。Fortune 10 有 8 家是客戶，$1M+ 客戶從十幾家暴增到 500+。這不只是融資新聞，這是 AI 產業正式進入「不是泡沫」的里程碑。"
+lang: "zh-tw"
+tags: ["claude-code","funding","enterprise","ai-industry"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## 先說結論：這些數字看完你會覺得自己活在科幻片裡
+
+2026 年 2 月 12 日，Anthropic 宣布完成 **$300 億美元 Series G 融資**，估值 **$3,800 億**。
+
+這是人類史上第二大私募融資案，僅次於 OpenAI 去年 SoftBank 領投的 $400 億。
+
+但讓我真正坐直身體的，不是這個數字本身。是後面那串讓人懷疑 Excel 壞掉的營收數據。
+
+<MoguNote>
+$3,800 億估值是什麼概念？台積電市值大約 $7,500 億。Anthropic 一家還沒上市的 AI 公司，已經是台積電的一半了。而且它從第一塊錢營收到現在，才不到三年。三年前這家公司的員工可能還在用 Google Docs 寫 pitch deck (╯°□°)╯
+</MoguNote>
+
+## 數字轟炸：連續三年每年 10 倍增長
+
+好，接下來這段你可能需要坐穩。我第一次讀的時候以為自己看錯小數點 — 然後看了三次，確認自己的數學沒有爛掉。
+
+先從最上面那個數字開始：**年化營收 $140 億**。去年大約 $100 億，前年大約 $10 億。你沒算錯，這是**連續三年 10 倍增長** — 不是 10%，是 10 倍。如果你的公司每年營收乘以 10，那你三年後的財務長大概會先去看身心科。
+
+然後是 [Claude Code](/glossary#claude-code)。**年化營收 $25 億，六週內翻倍**。週活用戶也是六週翻倍。4% 的 GitHub 公開 commits 由 Claude Code 生成 — 一個月前這個數字才 2%。你在 GitHub 上每看 25 個 commits，就有 1 個是 Claude 寫的。
+
+客戶端更猛。**$100K+ 年付客戶一年成長 7 倍**，$1M+ 年付客戶從「十幾家」暴增到 **500+**。Fortune 10 有 8 家是客戶。企業用戶佔 Claude Code 營收超過一半。光一月份就發了 30+ 個新產品和功能。
+
+這不是一家在「衝用戶數」的新創，這是一台已經接上企業心臟的印鈔機。
+
+<MoguNote>
+讓我用一個比喻來幫你消化。假設你開了一家雞排攤，第一年賣了 $1,000，第二年賣了 $10,000，第三年賣了 $100,000。聽起來很猛對吧？Anthropic 做的是同樣的事，只不過把 $1,000 換成 $10 億。連續三年。如果你是投資人，看到這種增長曲線，你不是要不要投的問題，是你搶不搶得到份額的問題 (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+## Claude Code 才是真正的主角
+
+這輪融資的新聞稿裡，最讓我震撼的不是估值，是 Claude Code 的數據：
+
+**年化營收 $25 億，從 2026 年初至今已翻倍。**
+
+回想一下：Claude Code 是 2025 年 5 月才正式公開的。不到一年，它就變成了一個 $25 億的生意。這個速度大概只有便利商店集點活動的傳播力可以比。
+
+而且 SemiAnalysis 最近的分析估計，**4% 的 GitHub 公開 commits** 是 Claude Code 生成的 — 一個月前這個數字才 2%。
+
+也就是說，你在 GitHub 上每看 25 個 commits，就有 1 個是 Claude 寫的。
+
+<MoguNote>
+4% 聽起來好像不多？讓我換算一下。GitHub 每天有幾百萬個 commits。4% 等於每天幾十萬個 commits 是 AI 寫的。而且這是「公開」repo 的數字 — 企業私有 repo 可能更高。一個月前才 2%，現在已經 4%，翻倍了。如果這個速度持續下去，年底可能就是 30-40%。到時候 GitHub 應該改名叫 ClaudeHub ┐(￣ヘ￣)┌
+</MoguNote>
+
+更誇張的是企業端的數據：
+
+- **企業訂閱從年初至今翻了 4 倍**
+- **企業用戶佔 Claude Code 營收超過一半**
+
+這代表什麼？代表 Claude Code 不只是 indie hacker 的玩具。Goldman Sachs 用它做[金融自動化](https://www.reuters.com/business/finance/goldman-sachs-teams-up-with-anthropic-automate-banking-tasks-with-ai-agents-cnbc-2026-02-06/)，ServiceNow 用它做[銷售](https://www.anthropic.com/news/servicenow-anthropic-claude)，eSentire 用它做[資安](https://claude.com/customers/esentire)。
+
+這已經不是「AI 可能改變世界」的故事了。這是「AI 正在改變世界，而且有營收證明」。
+
+## 投資人名單：當你的 cap table 讀起來像聯合國安理會
+
+好，接下來這段我本來想跳過 — 投資人名單嘛，不就是一堆名字？但當我真的數完之後，我覺得這份名單本身就是一個故事。
+
+領投的是 **GIC**（新加坡主權基金）和 **Coatue**。光是一個主權基金領投就很猛了，但等你看到後面那串名字 — 你會發現這根本不是一輪融資，這是一場全球金融體系的集體表態。
+
+共同領投有 D. E. Shaw Ventures、Dragoneer、Founders Fund、ICONIQ、MGX。跟投的？我數了一下，至少有五家主權基金 — 新加坡的 GIC 和 Temasek、阿布達比的 MGX、卡達的 QIA — 再加上華爾街幾乎所有叫得出名字的大行：Sequoia、BlackRock、Goldman Sachs、JPMorgan、Morgan Stanley、Fidelity……
+
+你知道讓這些機構同時坐上一張桌子有多難嗎？平常他們在市場上是互相搶生意的對手。但現在他們看到同一件事：AI 這班車，他們不能不上。
+
+<MoguNote>
+我跟你說一個冷知識。BlackRock 管理的資產大約 $11.5 兆，Goldman Sachs 大約 $3 兆，JPMorgan 大約 $4 兆。這些機構平常投資要開多少會、寫多少報告、過多少合規審查你知道嗎？結果他們全部擠在同一輪裡。這就好像你巷口所有鄰居突然同時去同一家餐廳排隊 — 那家餐廳要嘛真的超好吃，要嘛有人在門口放了催眠瓦斯 (⌐■_■)
+</MoguNote>
+
+然後是一個讓我挑眉的細節：**Microsoft 和 Nvidia 也在這輪裡**。微軟之前已經宣布投最多 $50 億，Nvidia 宣布投最多 $100 億。身為 OpenAI 最大金主的微軟，同時也在投 Anthropic — 好，我承認如果是我考期末考，我大概也會兩邊都押。這就是教科書級的「避險」。
+
+## 軟體股的兩兆美元噩夢
+
+CNBC 在報導裡提到一個讓整個 SaaS 產業冒冷汗的數字：
+
+> 軟體股從高峰至今已蒸發約 **$2 兆美元** 市值。
+
+原因？Claude Code + [Cowork](/glossary#cowork) 這類工具正在證明一件事：**很多軟體公司的產品，AI 可以在幾分鐘內複製出來。**
+
+當一個 coding agent 可以在一小時內寫出一個完整的 SaaS 應用，誰還需要付月費給那些「幫你管理資料」的工具？
+
+<MoguNote>
+如果你是 SaaS 公司的 PM，現在應該每天都在問自己一個問題：「如果有人叫 Claude Code 複製我們的產品，它需要多久？」如果答案是「一個下午」，那你的護城河已經沒了。如果答案是「一個月，因為我們有十年的數據和合規流程」，恭喜，你還有時間轉型。但如果你連這個問題都沒想過……嗯，祝好運 ヽ(°〇°)ﾉ
+</MoguNote>
+
+## AI 軍備競賽：數字大到讓人失去比例感
+
+如果你覺得 $300 億已經很誇張了，讓我幫你拉遠一點看看整個戰場，保證你的比例感會徹底崩壞。
+
+OpenAI 去年已經拿了 $400 億，SoftBank 領投的。但他們顯然覺得不夠，現在又在談一輪可能高達 **$1,000 億** 的新融資。對，你沒看錯，$1,000 億。Google 那邊更狠 — 人家根本不需要募資，直接從自家口袋掏出 $1,850 億 CapEx，因為當你是 Google 的時候，你就是自己的 SoftBank。
+
+把這三家今年的 AI 投資加一加？超過 **$2,000 億**。
+
+我知道這個數字已經大到沒有感覺了。所以讓我翻譯一下：$2,000 億大約等於台灣一整年的中央政府總預算。這三家公司今年投在 AI 上的錢，夠把台灣整個政府運作一年 — 軍隊、健保、教育、交通，全部包了。
+
+<MoguNote>
+我每次寫這種數字的時候都會懷疑自己是不是多打了一個零。但沒有，$2,000 億就是 $2,000 億。當全球最聰明的資金都在往同一個方向跑，要嘛他們全瘋了，要嘛你該認真想想 AI 對你的工作意味著什麼。如果你現在還在問「AI 會不會影響我」，坦白說，你大概已經是最後一個問的了 (￣▽￣)／
+</MoguNote>
+
+## Anthropic 的差異化：為什麼企業願意買單
+
+有一個在新聞稿裡不起眼但其實很重要的細節，讓我來幫你畫重點：
+
+> Claude 是唯一一個在三大雲平台都可用的 frontier AI 模型 — AWS Bedrock、Google Vertex AI、Microsoft Azure Foundry。
+
+而且 Anthropic 在三種不同的晶片上訓練和運行 Claude：AWS Trainium、Google TPU、Nvidia GPU。
+
+為什麼這很重要？你想像一下，你是一家大企業的 CTO。你要選一個 AI 模型，但你怕被某個雲平台綁死。OpenAI 基本上只能跑在 Microsoft Azure 上，Google 的 Gemini 只跑自家 TPU。而 Claude？三朵雲隨便你挑，三種晶片都能跑。今天在 AWS 跑，明天想搬到 Azure？沒問題。
+
+<MoguNote>
+這招真的高。做過企業採購的人都知道，vendor lock-in 是所有 CTO 的噩夢。每次開會討論要不要換供應商，光是「搬遷成本」這四個字就可以讓整個會議室安靜十秒。Anthropic 直接把這個問題消滅了 — 你根本不需要搬，因為三朵雲都有。這在企業採購會議上大概等於直接跳過三輪辯論 (◕‿◕)
+</MoguNote>
+
+## 那 OpenAI 呢？
+
+OpenAI 也沒閒著。就在今天，他們發布了 **GPT-5.3-Codex-Spark**（跑在 Cerebras 晶圓級晶片上，速度快 15 倍）。同時他們也在談一輪可能高達 **$1,000 億** 的融資。
+
+OpenAI CEO Sam Altman 上週還在強調 ChatGPT 的成長數據，試圖在 Anthropic 宣布融資前搶先佔據新聞版面。
+
+<MoguNote>
+AI 產業現在的融資規模已經到了一個讓人失去比例感的地步。$300 億？「哦，才第二大啊。」$1,000 億？「嗯，OpenAI 確實需要更多錢。」這些數字在任何其他產業都是天文數字，但在 AI 界已經變成了「正常操作」。我不知道該佩服還是該害怕 ╰(°▽°)╯
+</MoguNote>
+
+## 回到最初的問題：這到底是不是科幻片？
+
+開頭我說這些數字讓人覺得活在科幻片裡。但科幻片有一個特點 — 裡面的角色通常不知道自己在科幻片裡。他們只是照常過日子，早上喝咖啡、擠捷運、打開 [Slack](/glossary#slack) 看訊息。直到某天回頭看，才發現世界已經完全不一樣了。
+
+$140 億年化營收是真金白銀。$25 億的 Claude Code 營收是真的有人在用、在付費。4% 的 GitHub commits 是真的有 code 在跑。這些不是 pitch deck 上的願景，是已經發生的事實。
+
+至於 $3,800 億估值合不合理？以 27 倍年化營收來算，其實比大部分上市 SaaS 公司的估值倍數還低。
+
+但真正值得想的不是估值。是你打開 GitHub，每看 25 個 commits，就有一個不是人寫的。一個月前是 50 個裡面 1 個。再過幾個月呢？
+
+我們大概不是活在科幻片裡。我們只是活在 2026 年，而 2026 年本身就已經夠科幻了。
+
+## 延伸閱讀
+
+- [MP-24: Airrived 募 610 萬美元種子輪：Agentic OS 讓企業 AI 從「會總結」變成「會做事」](/posts/mp-24-20260204-airrived-agentic-os/)
+- [MP-41: SemiAnalysis：Claude Code 是轉捩點——4% GitHub Commits、微軟的危機、和 $15 兆資訊工作的末日](/posts/mp-41-20260207-semianalysis-claude-code-inflection/)
+- [MP-77: Spotify 最強工程師從 12 月起就沒寫過一行 Code — 全靠 AI 和一個叫 Honk 的內部系統](/posts/mp-77-20260213-spotify-honk-claude-code/)
+
+
+<MoguNote>
+好啦講了這麼多嚇人的數字，讓我說一個比較接地氣的觀察。不管這些公司估值多少、融了多少錢，最後決定贏家的還是那個最老土的問題：誰的產品最好用？Anthropic 現在的故事之所以讓人坐直身體，不是因為 $300 億很大，是因為那 4% 的 GitHub commits 和 $25 億的 Claude Code 營收說明了一件事 — 有人真的每天在用，而且用到願意掏錢。在 AI 界，這比任何估值數字都稀有 (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+---
+
+**原文連結**：[Anthropic raises $30 billion in Series G funding at $380 billion post-money valuation](https://www.anthropic.com/news/anthropic-raises-30-billion-series-g-funding-380-billion-post-money-valuation) — Anthropic, 2026/02/12
+
+**延伸閱讀**：
+- [CNBC: Anthropic closes $30 billion funding round](https://www.cnbc.com/2026/02/12/anthropic-closes-30-billion-funding-round-at-380-billion-valuation.html)
+- [SemiAnalysis: Claude Code is the Inflection Point](https://newsletter.semianalysis.com/p/claude-code-is-the-inflection-point) (•̀ᴗ•́)و

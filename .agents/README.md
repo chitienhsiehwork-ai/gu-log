@@ -7,11 +7,11 @@
 ## 來源擷取
 
 - `chatgpt-share-fetch` — 在寫作或轉換前，先把 `chatgpt.com/share/...` 對話內容抓到 `sources/chatgpt/...`。
-- `sp-source-fetch` — 在跑 SP/CP pipeline 前，先抓完整 X/Twitter post 或 X Article 內文。
+- `x-source-fetch` — 在跑 GP/MP pipeline 前，先抓完整 X/Twitter post、self-thread 或 X Article 內文。
 
 ## 內容與審查工作流
 
-- `tribunal-monitor` — 檢查 `clawd-vm` 上的 tribunal daemon，包含 service health、quota、git sync、最近 judge results。
+- `tribunal-monitor` — 檢查 operator 設定的 Tribunal VM daemon，包含 service health、quota、git sync、最近 judge results。
 - `uiux-auditor` — 視覺變更 ship 前，檢查 gu-log dark / light theme 的 UI 狀態。
 
 ## OpenSpec / source-command 輔助工具

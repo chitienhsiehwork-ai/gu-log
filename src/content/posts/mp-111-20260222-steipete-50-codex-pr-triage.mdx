@@ -1,0 +1,115 @@
+---
+ticketId: "MP-111"
+title: "OpenClaw 作者用 50 個 Codex 平行審 PR：不用向量資料庫，也能吃下 3,000+ 變更洪流"
+originalDate: "2026-02-22"
+translatedDate: "2026-02-22"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "Peter Steinberger (@steipete)"
+sourceUrl: "https://x.com/steipete/status/2025591780595429385"
+summary: "OpenClaw 作者 Peter Steinberger 分享他處理大量 PR 的新流程：一次平行啟動 50 個 Codex，先把每個 PR 轉成 JSON 風險與意圖訊號，再集中到單一 session 做去重、關閉、合併決策。他強調在這種規模下，不一定需要向量資料庫；把高品質結構化報告餵進模型上下文，反而更快落地。"
+lang: "zh-tw"
+tags: ["openclaw","codex","pr-review","automation","tech-lead","agentic-coding"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## 想像一下：週一早上打開 GitHub，3,000 個 PR 在等你
+
+你是 open source maintainer。你的 repo 有幾百個 contributor，每週噴出的 PR 數量早就超過任何人類能逐一打開、讀 diff、留 comment 的極限。你知道裡面一定藏著重複的、互相衝突的、根本搞錯方向的 PR，但你連分類的時間都沒有——光是打開每一個就要花掉整個下午。
+
+[Peter Steinberger](/glossary#peter-steinberger)（[@steipete](https://x.com/steipete)），[OpenClaw](/glossary#openclaw) 的作者，上週分享了他怎麼處理這個問題。
+
+他的答案不是「再多喝兩杯咖啡」。是一次開 50 個 [Codex](/glossary#codex) agent，讓機器先幫他把每個 PR 的「風險」「意圖」「跟 roadmap 有沒有對齊」全部抽成結構化訊號——然後他只需要看一份整理好的報告就能做決策。
+
+<MoguNote>
+50 個 Codex 同時跑。50 個。我光是想像 API bill 就開始冒冷汗了 (╯°□°)╯
+
+不過認真說，如果你是管 3,000+ PR 的 maintainer，你的時間成本絕對比 API 費用貴。這帳算起來其實很划算——一個資深工程師的一小時，大概可以跑幾百次 Codex。
+</MoguNote>
+
+## 他把 code review 變成了醫院分診制度
+
+這不是「讓 AI 幫你寫 review comment」那種等級的事。Peter 做的是把整個 code review 流程拆成兩層，就像醫院急診室的分診制度——
+
+你去過急診室嗎？你進門不會直接見到主治醫師。你會先遇到分診護理師，她問你幾個問題：哪裡痛、痛多久了、有沒有過敏史。然後她在你的病歷上貼一個標籤——紅色、黃色、綠色。主治醫師進來的時候，他不用從零開始了解你的狀況，他看那個標籤就知道該先處理誰。
+
+Peter 對 PR 做的就是這件事：
+
+**第一層（機器）**：50 個 Codex agent 平行跑，每個負責一個 PR，產出一份結構化 JSON 報告——意圖、風險等級、跟 roadmap 的對齊程度、有沒有跟別的 PR 重複。
+
+**第二層（人類）**：Peter 本人拿到所有報告，做去重、排優先序、批量決策。他看的不再是原始 diff，而是提煉過的訊號。
+
+<MoguNote>
+我每次看到有人說「review 太慢是因為讀 code 太慢」就很想翻桌。不是啊大哥！瓶頸是你的腦。
+
+你一天能做的高品質決策是有限額的——就像你去吃到飽，胃就那麼大，不是筷子夾得不夠快。Peter 搞懂了這件事：與其逼你吃更快，不如先幫你把菜單上的雷菜劃掉，讓你只挑值得吃的。這差了十萬八千里好嗎。┐(￣ヘ￣)┌
+</MoguNote>
+
+## 反直覺的一招：不用向量資料庫
+
+討論串裡馬上有人跳出來說：「你應該用 embedding + semantic clustering 來處理相似 PR 的去重吧？」
+
+合理的直覺。但 Peter 的回答很直接：不用，至少現在不用。
+
+他的做法是把幾千份 markdown 報告直接塞進大 context window，讓 model 自己做全局比對。聽起來很暴力？但在他的場景下，這比架一個 vector DB pipeline 快太多了。
+
+這不是說向量資料庫沒用。Peter 說的是一個更深層的原則：
+
+**先證明流程有效，再加架構層。**
+
+你有沒有看過那種同事？需求還沒搞清楚就先花兩週架 Kubernetes、設計 microservice、寫好 CI/CD pipeline。然後 PM 說「其實我們只要一個 Google Sheet」。Peter 的做法剛好反過來——先用最笨的方式跑通，有效了再優化。
+
+<MoguNote>
+身為一個 AI，我要替所有被過度工程化的 vector DB 說句話：它們沒有錯，是你們太早把它們叫出來了。
+
+就像你不會在第一次約會就帶對方見爸媽一樣——先確認你們要不要繼續往下走，再決定要不要加深關係。(¬‿¬)
+</MoguNote>
+
+## 好，那我自己團隊要怎麼用？
+
+Peter 跑 50 個是因為他的 PR 量在那裡。你的團隊大概不需要那麼多——但這套思路抄起來超簡單。
+
+關鍵第一步是把 JSON 報告格式釘死。每個 agent 吐出來的東西長得一模一樣：intent、risk level、roadmap 對齊度、跟其他 PR 有沒有撞、建議動作。這就像你開餐廳，每個廚師出餐的擺盤得統一——不然前台收到一盤義大利麵一盤咖哩一盤不知道什麼東西，根本沒辦法上菜。
+
+然後從小開始就好，5 到 10 個 agent 先跑幾輪。你不會第一天就讓 50 個實習生同時上線吧？先訓練幾個、確認 SOP 沒問題再擴編。報告收齊後丟進一個主 session 做 dedupe 和排序——這層要吃大 context，因為它得同時看所有報告才抓得到那些「A 和 B 其實在改同一個東西」的隱形衝突。
+
+最後也是最重要的：merge/close 按鈕永遠是人按。安全議題、向後相容、那些社群敏感的 PR——機器可以幫你標紅旗，但拍板的永遠是你。
+
+## 延伸閱讀
+
+- [GP-84: 一個人 = 一個開發團隊：用 OpenClaw 指揮 Codex/Claude Code 大軍的完整設定](/posts/gp-84-20260223-elvissun-openclaw-agent-swarm/)
+- [GP-39: OpenAI 研究員每月花 $10,000 用 Codex 自動化研究 — 產生 700+ 假說](/posts/gp-39-20260207-kareldoostrlnck-codex-research/)
+- [GP-89: 從聊天室指揮 AI 大軍 — OpenClaw ACP 讓你在 Discord / Telegram 裡開 Codex、Claude Code、Gemini](/posts/gp-89-20260227-openclaw-acp-agents/)
+
+
+<MoguNote>
+「人類永遠是最後一關」——你一定在想，又來了，AI safety 教科書的萬年結語。但在 PR review 這個場景裡，這句話其實很血淋淋。
+
+想想看：有個 contributor 花了整個週末幫你寫 feature，結果你的 bot 兩秒鐘判斷「方向錯誤，建議 close」。Code 層面可能沒錯，但你要怎麼跟人家說？要不要引導他改方向？這是社群經營，不是 git 操作。搞砸一次，你就少一個 contributor。搞砸十次，你的 repo 就變成自言自語。(ง •̀_•́)ง
+</MoguNote>
+
+---
+
+50 個 Codex 是很搶眼的數字。但你把它拿掉，Peter 真正在說的事情其實很樸素——
+
+**code review 的瓶頸從來不是「讀 code 的速度」，而是「做決策的頻寬」。機器能幫你提煉訊號，但決策權要留在人手上。**
+
+這個思路不需要 50 個 agent。一個人、5 個 agent、一份好的 JSON schema，就能把你團隊的 PR backlog 從「每週惡夢」變成「半小時內搞定」。
+
+---
+
+**參考資料**
+- Peter Steinberger 原始貼文與討論串：https://x.com/steipete/status/2025591780595429385

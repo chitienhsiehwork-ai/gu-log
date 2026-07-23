@@ -40,13 +40,13 @@ test.describe('Header mobile layout', () => {
                 height: rect.height,
                 width: rect.width,
               };
-            }),
+            })
         );
 
-      // Must have at least 6 visible nav items (home, about, clawd-picks, briefs, lang, search, theme)
+      // Must have at least 6 visible nav items (home, about, mogu-picks, briefs, lang, search, theme)
       expect(
         iconPositions.length,
-        `Expected ≥6 visible nav items at ${width}px, got ${iconPositions.length}`,
+        `Expected ≥6 visible nav items at ${width}px, got ${iconPositions.length}`
       ).toBeGreaterThanOrEqual(6);
 
       // All icons must be on the same row: centerY within 2px tolerance (pixel-perfect)
@@ -54,7 +54,7 @@ test.describe('Header mobile layout', () => {
       for (let i = 1; i < iconPositions.length; i++) {
         expect(
           Math.abs(iconPositions[i].centerY - firstCenterY),
-          `Nav item "${iconPositions[i].class}" misaligned at ${width}px: centerY ${iconPositions[i].centerY.toFixed(1)} vs first ${firstCenterY.toFixed(1)}`,
+          `Nav item "${iconPositions[i].class}" misaligned at ${width}px: centerY ${iconPositions[i].centerY.toFixed(1)} vs first ${firstCenterY.toFixed(1)}`
         ).toBeLessThan(2);
       }
 
@@ -64,11 +64,11 @@ test.describe('Header mobile layout', () => {
       for (let i = 1; i < iconPositions.length; i++) {
         expect(
           Math.abs(iconPositions[i].height - firstHeight),
-          `Nav item "${iconPositions[i].class}" height mismatch at ${width}px: ${iconPositions[i].height} vs ${firstHeight}`,
+          `Nav item "${iconPositions[i].class}" height mismatch at ${width}px: ${iconPositions[i].height} vs ${firstHeight}`
         ).toBeLessThan(2);
         expect(
           Math.abs(iconPositions[i].width - firstWidth),
-          `Nav item "${iconPositions[i].class}" width mismatch at ${width}px: ${iconPositions[i].width} vs ${firstWidth}`,
+          `Nav item "${iconPositions[i].class}" width mismatch at ${width}px: ${iconPositions[i].width} vs ${firstWidth}`
         ).toBeLessThan(2);
       }
     }

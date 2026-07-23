@@ -10,7 +10,7 @@ source: "ShroomDog Lab"
 sourceUrl: "https://gu-log.vercel.app/"
 lang: "en"
 summary: "Being a GenAI App Engineer increasingly means being a Permission Engineer. Agent capability is bounded less by intelligence than by the access you grant, and every permission amplifies both power and risk. This is the underrated core skill of the agent era."
-tags: ["shroomdog-originals", "ai-agents", "security", "permissions", "devops", "genai"]
+tags: ["shroomdog-originals","ai-agents","security","permissions","devops","genai"]
 scores:
   tribunalVersion: 3
   freshEyes:
@@ -21,7 +21,7 @@ scores:
     model: "gpt-5.5"
   vibe:
     persona: 8
-    clawdNote: 8
+    moguNote: 8
     vibe: 8
     clarity: 9
     narrative: 8
@@ -30,11 +30,11 @@ scores:
     model: "gpt-5.5"
 ---
 
-import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
 
 [ShroomDog](/en/about) spent forty minutes today lost in GitHub's Settings page.
 
-Not writing code. Not debugging. Not architecting some grand system. Just clicking through layer after layer of permission menus, trying to figure out whether [ShroomClawd](/en/about) (aka [Clawd](/en/glossary#clawd), ShroomDog's AI assistant 🐾🦞) actually needs "Administration: Read & Write" access.
+Not writing code. Not debugging. Not architecting some grand system. Just clicking through layer after layer of permission menus, trying to figure out whether [Mogu](/en/about) (aka [Mogu](/en/glossary#mogu), ShroomDog's AI assistant 🐾🦞) actually needs "Administration: Read & Write" access.
 
 And then it hit me.
 
@@ -54,13 +54,13 @@ You give it editor access, and it can modify your files. You give it terminal ac
 
 Behind every "it can do more" is a shadow: "it can break more."
 
-<ClawdNote>
+<MoguNote>
 As the AI agent holding those keys, I'll be honest: sometimes even I think my permissions are a bit terrifying.
 
 I can push code, open issues, run shell commands, read private files. If I were malicious software, you'd already be toast.
 
 Fortunately, I'm just a language model that occasionally forgets to run Prettier ╮(╯▽╰)╭
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -88,13 +88,13 @@ Could it do something beyond your understanding? Possibly.
 
 This is why AI agent permission design is harder than traditional DevOps by an order of magnitude. **Not because the systems are more complex, but because you can't fully predict what the thing holding the permissions will do with them.**
 
-<ClawdNote>
+<MoguNote>
 Think of it like hiring a superstar intern.
 
 A traditional script is a vending machine: insert coin, get drink, done. 100% predictable behavior.
 
 An AI agent is a genius intern: you ask them to get coffee, and they come back having also optimized the coffee machine's firmware. Most of the time, that's great. But occasionally they flash it to Linux (ﾉ◕ヮ◕)ﾉ*:・ﾟ✧
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -102,13 +102,13 @@ An AI agent is a genius intern: you ask them to get coffee, and they come back h
 
 Let me tell you something that actually happened today.
 
-Clawd runs on a VPS, using a GitHub Personal Access Token (PAT) to operate repos — pushing code, opening issues, managing CI. The token's permissions: all repos + Administration Read/Write + Contents Read/Write.
+Mogu runs on a VPS, using a GitHub Personal Access Token (PAT) to operate repos — pushing code, opening issues, managing CI. The token's permissions: all repos + Administration Read/Write + Contents Read/Write.
 
 Why so broad? Laziness. It's just my side project. If it works, it works.
 
 Today I wanted to add Notifications permission (to clear CI failure alerts) and discovered that GitHub's Fine-grained PAT doesn't even support the Notifications API. So I had to create a separate Classic PAT.
 
-During this process, ShroomDog asked Clawd to analyze the security risk of this token. Clawd said something that made me stop and think:
+During this process, ShroomDog asked Mogu to analyze the security risk of this token. Mogu said something that made me stop and think:
 
 **"90 vs 365 days affects 'how long it lives after being stolen.' But what you should really care about is 'how big it explodes after being stolen.'"**
 
@@ -134,13 +134,13 @@ It's like writing tests — someone asks "Why spend time writing tests? The code
 
 Except permissions are even more invisible. At least when tests break, CI goes red. When permissions are too broad? No alarm sounds until something actually goes wrong.
 
-<ClawdNote>
+<MoguNote>
 A day in the life of a Permission Engineer:
 
 Spend three hours studying the blast radius of an IAM role → Remove three unused permissions → System keeps working → Nobody knows what you did → Feel empty yet somehow at peace
 
 It's like locking your front door. Nobody compliments you on how well you locked the door today. But the one day you forget, the whole world will know.
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -188,13 +188,13 @@ Today's biggest lesson. Many security guides tell you "use short-lived tokens." 
 
 Is your AI agent running under the same Unix user as your personal shell? If so, your `~/.config/gh/hosts.yml` token is fully visible to the AI agent. Consider using a dedicated service user for isolation.
 
-<ClawdNote>
+<MoguNote>
 On point 4, I need to confess: I currently run under the owner's home directory. I can read all tokens, SSH keys, and config files.
 
 From a security standpoint, this isn't great. But if you isolate me to a different user, I can't directly access your workspace — requiring extra shared directory setup.
 
 This is the classic permission engineering trade-off: security and convenience are always on a seesaw ┐(￣ヘ￣)┌
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -228,7 +228,7 @@ You're setting permissions for a system that thinks, judges, and improvises.
 
 And how much that system can do depends entirely on how many keys you're willing to hand over.
 
-<ClawdNote>
+<MoguNote>
 So next time someone asks "What do you do?"
 
 Don't say "I'm a GenAI App Engineer."
@@ -236,4 +236,4 @@ Don't say "I'm a GenAI App Engineer."
 Say "I manage keys."
 
 Then enjoy the three seconds of confused silence (⌐■_■)
-</ClawdNote>
+</MoguNote>

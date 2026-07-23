@@ -1,17 +1,19 @@
 # machine-operator-memory Specification
 
 ## Purpose
-TBD - created by archiving change secure-clawd-vm-github-operator. Update Purpose after archive.
+定義 machine-specific operator facts 的 local-only、secret-free storage 與 discovery contract。
 ## Requirements
 ### Requirement: Machine-specific operational memory SHALL 是 local-only
 
-Local machine actor（例如 `m1-cdx`）與 clawd-vm 的 machine-specific facts SHALL 存在 local machine note；若 dotfiles 提供 bootstrap copy，內容 MUST secret-free，且不得把 token value 或 private key 寫進 public project docs。
+Local machine actor（例如 `m1-cdx`）與 legacy Tribunal VM coordinate 的 machine-specific facts SHALL 存在 local machine note；若 dotfiles 提供 bootstrap copy，內容 MUST secret-free，且不得把 token value 或 private key 寫進 public project docs。Machine note SHALL distinguish the host / Unix coordinate from the agent brand and record that the host runs Mogu (OpenClaw) and Iris.
 
-#### Scenario: Record clawd-vm roles
+#### Scenario: Record legacy Tribunal VM roles
 
-- **WHEN** operator 記錄 clawd-vm hosts Clawd and Iris
+- **WHEN** operator 記錄 legacy Tribunal VM coordinate hosts Mogu and Iris
 - **THEN** 該 record SHALL 存在 local machine note
+- **AND** SHALL distinguish the coordinate from the Mogu persona/operator name
 - **AND** 該 record SHALL NOT 被 commit 到 gu-log public docs
+- **AND** 該 record SHALL NOT contain credentials
 
 ### Requirement: Machine memory SHALL NOT contain secrets
 
@@ -25,7 +27,7 @@ Machine memory MUST NOT 包含 private keys、token values、passwords、recover
 
 ### Requirement: Global Codex instructions SHALL 在 local context 存在時指向 machine memory
 
-當這台 Mac 有 local clawd-vm context 時，`~/.codex/AGENTS.md` SHALL 包含指向 local-only machine note 的 short pointer，讓 local Codex sessions 知道去哪裡找 machine-specific information。
+當這台 Mac 有 local Tribunal VM context 時，`~/.codex/AGENTS.md` SHALL 包含指向 local-only machine note 的 short pointer，讓 local Codex sessions 知道去哪裡找 machine-specific information。
 
 #### Scenario: Codex starts as a local machine actor
 

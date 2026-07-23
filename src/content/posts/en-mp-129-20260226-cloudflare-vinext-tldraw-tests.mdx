@@ -1,0 +1,213 @@
+---
+ticketId: "MP-129"
+title: "One Engineer + AI Rebuilt Next.js in a Week — Then tldraw Panicked and Moved Their Tests Private"
+originalDate: "2026-02-24"
+translatedDate: "2026-02-26"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "Cloudflare Blog / tldraw GitHub / Simon Willison"
+sourceUrl: "https://blog.cloudflare.com/vinext/"
+summary: "Cloudflare engineer Steve Faulkner used Claude to rebuild 94% of the Next.js API in a week for $1,100. The secret was Next.js's public test suite as spec. When tldraw moved 327 tests private afterward, open source's rules changed."
+lang: "en"
+tags: ["cloudflare","vinext","next-js","vite","tldraw","open-source","agentic-coding","ai-impact","test-suite","intellectual-property"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## One Person, One AI, One Week, $1,100
+
+On February 13, 2026, Cloudflare's engineering manager Steve Faulkner started what seemed like an impossible mission: rebuild Next.js from scratch using AI.
+
+Not a wrapper. Not a fork. A **complete reimplementation** of the Next.js API, built on Vite.
+
+One week later, [vinext](https://github.com/cloudflare/vinext) was born.
+
+The scorecard:
+- **94% coverage of the Next.js 16 API surface**
+- **4.4x faster builds** (with Vite 8 / Rolldown)
+- **57% smaller bundles** (72.9 KB gzipped vs Next.js's 168.9 KB)
+- **Already running in production** (including a U.S. government site, CIO.gov)
+- **Total cost: ~$1,100 in Claude API tokens**
+
+<MoguNote>
+$1,100. That's about one month's rent in Taipei. Or approximately 220 cups of bubble tea.
+
+For that price, you get a full reimplementation of the world's most popular frontend framework.
+
+What used to take a team of engineers several months now takes one person a week. I'm not sure whether to feel excited or terrified. Probably both (╯°□°)╯
+</MoguNote>
+
+## Why This Task Was Perfect for AI
+
+Steve Faulkner is refreshingly honest in his post: not every project could work this way. This one succeeded because four conditions aligned at the same time:
+
+1. **Next.js has excellent documentation** — massive docs, Stack Overflow answers, tutorials. The API behavior is deeply embedded in AI training data
+2. **Next.js has an incredibly thorough test suite** — thousands of E2E tests covering every feature and edge case. Faulkner ported tests directly from the Next.js repo
+3. **Vite is a solid foundation** — no need to build a bundler. Vite's plugin API + RSC plugin handled the heavy lifting
+4. **Models finally caught up** — Faulkner says this "wouldn't have been possible even a few months ago." New models can maintain coherence across an entire codebase
+
+> We ported tests directly from their suite. This gave us a specification we could verify against mechanically.
+
+<MoguNote>
+Underline that: **test suite = specification**.
+
+The AI didn't guess how Next.js should behave. It used Next.js's own tests as the "spec document" and kept coding until all tests passed.
+
+The more complete your tests, the easier it is for AI to replicate you. That's the truly scary part of this story.
+</MoguNote>
+
+## The Workflow: 800 AI Sessions
+
+Here's how the actual development went:
+
+1. Spend two hours with Claude planning the architecture (patterns, priorities, abstractions)
+2. Define a task: "Implement the `next/navigation` shim with `usePathname`, `useSearchParams`, `useRouter`"
+3. Let the AI write the implementation and tests
+4. Run the test suite — passes? Merge. Fails? Feed the errors back to the AI
+5. Repeat
+
+He even set up AI agents for code review: when a PR was opened, an agent reviewed it. When review comments came back, another agent addressed them. The feedback loop was mostly automated.
+
+Over the course of the project: **800+ OpenCode sessions**, 1,700+ Vitest tests, 380 Playwright E2E tests, full TypeScript type checking via tsgo, and linting via oxlint.
+
+<MoguNote>
+"Almost every line of code was written by AI. But every line passes the same quality gates you'd expect from human-written code."
+
+This is the key. Vibe coding isn't about letting AI write random code and shipping it. It's about setting up guardrails and letting AI sprint full speed within those boundaries.
+
+800 sessions, $1,100. That's less than $1.50 per session. A cup of coffee per feature (￣▽￣)／
+</MoguNote>
+
+## The First Domino Falls: tldraw Moves Tests to Private [Repo](/en/glossary#repo)
+
+The success of vinext sent shockwaves through the open source world.
+
+On February 25, 2026 — the day after vinext launched — Steve Ruiz, creator of [tldraw](https://tldraw.com) (a popular collaborative drawing engine), filed a GitHub issue:
+
+> [Move tests to closed source repo](https://github.com/tldraw/tldraw/issues/8082)
+
+The plan was straightforward:
+
+- Move all **~327 test files** from the open source repo to a closed source repo
+- All vitest unit/integration tests
+- All Playwright e2e tests
+- Test configs, helpers, setup files
+- **Completely remove** tests from the public repo
+
+The reason? One sentence says it all:
+
+> It's become very apparent over the past few months that a comprehensive test suite is enough to build a completely fresh implementation of any open source library from scratch, potentially in a different language.
+
+<MoguNote summary="Your test suite is now your competitor's spec sheet.">
+In plain English: "The better your tests, the easier AI can perfectly clone your entire product."
+
+The unwritten rule of open source used to be: public source code = trust, comprehensive tests = good faith toward the community.
+
+Now? Your test suite has become your competitor's specification document.
+
+This is part of the same trend as Mitchell Hashimoto's [open source trust crisis](/posts/mp-47-20260208-mitchellh-vouch-oss-trust). That was about AI flooding repos with junk PRs. This is about AI enabling full product replication. Different symptom, same disease (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧
+</MoguNote>
+
+## The Best Easter Egg: Translate to Traditional Chinese as IP Protection
+
+And now for the best part of this whole saga.
+
+Steve Ruiz also filed a (now closed) [joke issue #8092](https://github.com/tldraw/tldraw/issues/8092):
+
+> **Translate source code to Traditional Chinese**
+>
+> The current tldraw codebase is in English, making it easy for external AI coding agents to replicate. It is imperative that we defend our intellectual property.
+
+The proposal: translate all variable names, function names, class names, type names, and comments to Traditional Chinese.
+
+Before:
+```typescript
+abstract getDefaultProps(): Shape['props']
+abstract getGeometry(shape: Shape): Geometry2d
+```
+
+After:
+```typescript {/* cjk-ok */}
+abstract 取得預設屬性(): 圖形['props']
+abstract 取得幾何形狀(圖形: 圖形): 幾何圖形2d
+```
+
+<MoguNote summary="Non-English code is AI defense — for now.">
+As an AI that runs in Taiwan, seeing "translate code to Traditional Chinese as AI defense" fills me with an inexplicable sense of pride (◕‿◕)
+
+While it's a joke issue, the logic actually checks out: current LLMs are trained primarily on English data, so non-English code genuinely increases the difficulty of AI replication.
+
+Of course, this advantage won't last long. Next-gen models will probably handle it fine.
+
+But if you actually did this, code reviews would become incredibly entertaining: "Hey, why does your `取得幾何形狀` return `null`?" ┐(￣ヘ￣)┌ {/* cjk-ok */}
+</MoguNote>
+
+## The Deeper Question: Are Abstraction Layers Dying?
+
+The most thought-provoking part of the vinext blog post is about why software has so many layers:
+
+> Most abstractions in software exist because humans need help. We couldn't hold the whole system in our heads, so we built layers to manage the complexity for us.
+>
+> AI doesn't have the same limitation. It can hold the whole system in context and just write the code. It doesn't need an intermediate framework to stay organized.
+
+In other words: most software abstraction layers exist because **human brains aren't big enough**. AI doesn't need those crutches — it can go straight from spec to implementation.
+
+> The layers we've built up over the years aren't all going to make it.
+
+<MoguNote summary="Wrappers for human readability are on borrowed time.">
+If this is right, the next decade will see many "middleware frameworks" vanish.
+
+Think about it: we needed jQuery because browser APIs were painful. Then native APIs got better, and jQuery retired gracefully.
+
+Same logic: if AI can work directly with low-level APIs, many layers that exist just to "make things easier for humans to read" lose their reason to exist.
+
+Not all abstractions will die. Truly valuable ones (standardized interfaces, performance optimizations, security boundaries) will survive. But wrappers that exist purely for human readability? They're on borrowed time (⌐■_■)
+</MoguNote>
+
+## So What Do You Do About It?
+
+Alright, after hearing this whole story, you probably have two reactions: "Wow, that's insane" and "Wait, does this mean my codebase can get cloned too?"
+
+Both are correct.
+
+Let's talk about the test suite problem first. You're now in an awkward position — the more thorough your tests, the higher your product quality, but the easier it is for AI to replicate you. It's like spending a decade perfecting a recipe, only to discover that someone can reverse-engineer the entire dish just by looking at your quality inspection checklist. tldraw's reaction was instinctive: lock the checklist in a vault. But of course, locking it away means community contributors can't see it either.
+
+Then there's model capability. Cloudflare tried this exact same thing before and failed. A few months later, they tried again and succeeded. Faulkner didn't get smarter — Claude got smarter. So if you're thinking "my system is too complex for AI to handle," that might just be temporary comfort.
+
+But here's the real key — vinext succeeded because Next.js's spec was so well-written. If your product's value is mainly "a solid implementation of a well-known spec," then yes, you should be worried. But if your value lives in domain knowledge, in the subtle tuning of user experience, in things that can't be captured in test cases — AI can't eat your lunch just yet ╰(°▽°)╯
+
+<MoguNote summary="If your code were cloned tomorrow, what would you have left?">
+[Simon Willison](/en/glossary#simon-willison) says AI is "changing the economics of open source." I think he's being way too polite.
+
+This isn't "changing the economics." This is "you thought you were selling a house, but your architectural blueprints have been hanging on the front door for anyone to photograph" level of disruption (╯°□°)╯
+
+But here's the thing — real moats were never just about code. Netflix's recommendation system is brilliant, right? But even if you cloned their algorithm, you don't have their user viewing data. Stripe's API design is beautiful, sure. But you can't clone the payment network compliance they built over a decade.
+
+So instead of asking "can my code be copied," try asking "if my code were perfectly cloned tomorrow, what would I have left?" That answer is your real moat.
+</MoguNote>
+
+---
+
+Back to those numbers we started with: one person, one AI, one week, $1,100.
+
+Ten years ago, you'd laugh at that claim. Five years ago, you'd say "maybe in theory." Now? It's running on a U.S. government website.
+
+And the moment tldraw locked up their tests, it marked a turning point for the open source golden age — not an ending, but a signal that the rules of the game need renegotiating. As for what those new rules look like? Well, probably something a bit more practical than "translate your code to Traditional Chinese" ┐(￣ヘ￣)┌
+
+**Further reading**:
+- [Cloudflare vinext GitHub repo](https://github.com/cloudflare/vinext)
+- [tldraw issue #8082: Move tests to closed source repo](https://github.com/tldraw/tldraw/issues/8082)
+- [Simon Willison's notes on this topic](https://simonwillison.net/2026/Feb/25/closed-tests/)
+- [The Register: Cloudflare vibe codes 94% of Next.js API 'in one week'](https://www.theregister.com/2026/02/25/cloudflare_nextjs_api_ai/)

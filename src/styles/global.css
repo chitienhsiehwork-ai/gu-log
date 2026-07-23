@@ -7,16 +7,31 @@
   --color-surface: #44475a;
   --color-surface-hover: #525672;
   --color-text: #cecdda;
-  --color-text-muted: #8a96c0;
+  --color-text-muted: #9ea9d2; /* 6.14:1 on #282a36 — margin above the 5.5:1 floor (#616) */
   --color-accent: #ff79c6;
+  --color-on-accent: #282a36;
   --color-border: #44475a;
   --color-divider: rgba(255, 255, 255, 0.1);
+  --color-bg-muted: #343746;
+  --color-share-x: #ffffff;
+  --color-share-facebook: #8be9fd;
+  --color-share-line: #50fa7b;
+  --color-modal-overlay: rgba(0, 0, 0, 0.5);
+  --color-modal-shadow: rgba(0, 0, 0, 0.25);
+
+  /* MoguNote body text — dark theme inherits --color-text (5.83:1 on --color-surface, already ≥5.5:1) */
+  --color-mogu-note-text: var(--color-text);
 
   /* Badge & brand colors (dark) — Dracula palette */
   --color-badge-sd: #69d2a0;
-  --color-badge-sp: #8be9fd;
-  --color-badge-cp: #ffb86c;
-  --color-badge-lv: #bd93f9;
+  --color-badge-gp: #8be9fd;
+  --color-badge-mp: #ffb86c;
+  --color-badge-lv: #d6bcff;
+  --color-badge-sd-bg: rgba(105, 210, 160, 0.15);
+  --color-badge-gp-bg: rgba(139, 233, 253, 0.15);
+  --color-badge-mp-bg: rgba(255, 184, 108, 0.15);
+  --color-badge-lv-bg: rgba(189, 147, 249, 0.15);
+  --color-badge-border: transparent;
   --color-mogu-orange: #ffb86c;
   --color-cat-tools: #ffb86c;
   --color-cat-concepts: #8be9fd;
@@ -24,12 +39,21 @@
   --color-cat-platforms: #34d399;
   --color-cat-people: #ffb3e0;
 
+  /* Semantic status colors — status UI must use these, never series badge tokens */
+  --color-status-success: #69d2a0;
+  --color-status-warning: #ffb86c;
+  --color-status-info: #8be9fd;
+
   /* Section heading variants (dimmed for large text readability) */
   --color-heading-sd: #5ab88a;
-  --color-heading-sp: #6bb8d6;
+  --color-heading-gp: #6bb8d6;
 
   /* Source citation link — must be readable on --color-surface */
   --color-source-link: #ffb3e0; /* soft pink — 5.54:1 on #44475a */
+
+  /* Mogu murmur variant accent — must be readable on --color-bg */
+  --color-mogu-murmur: #ad8ae0; /* soft violet — 4.68:1 on #282a36 */
+  --color-mogu-murmur-bg: rgba(173, 138, 224, 0.08);
 
   /* Common */
   --font-sans:
@@ -51,27 +75,54 @@
   --color-text: #556b73;
   --color-text-muted: #4a5a5e;
   --color-accent: #1c679b;
+  --color-on-accent: #ffffff;
   --color-border: #d3cbb7;
   --color-divider: rgba(0, 0, 0, 0.18);
+  --color-bg-muted: #e5dfc9;
+  --color-share-x: #000000;
+  --color-share-facebook: #195d8c;
+  --color-share-line: #176052;
+  --color-modal-overlay: rgba(40, 42, 54, 0.28);
+  --color-modal-shadow: rgba(40, 42, 54, 0.18);
 
   /* Badge & brand colors (light) */
-  --color-badge-sd: #1d6a5c;
-  --color-badge-sp: #195d8c;
-  --color-badge-cp: #854d35;
+  --color-badge-sd: #176052;
+  --color-badge-gp: #195d8c;
+  --color-badge-mp: #854d35;
   --color-badge-lv: #6b4ca0;
-  --color-mogu-orange: #955330;
+  --color-badge-sd-bg: rgba(23, 96, 82, 0.12);
+  --color-badge-gp-bg: rgba(25, 93, 140, 0.12);
+  --color-badge-mp-bg: rgba(133, 77, 53, 0.12);
+  --color-badge-lv-bg: rgba(107, 76, 160, 0.12);
+  --color-badge-sd-border: rgba(23, 96, 82, 0.35);
+  --color-badge-gp-border: rgba(25, 93, 140, 0.35);
+  --color-badge-mp-border: rgba(133, 77, 53, 0.35);
+  --color-badge-lv-border: rgba(107, 76, 160, 0.35);
+  --color-mogu-orange: #854d35;
   --color-cat-tools: #854d35;
   --color-cat-concepts: #195d8c;
   --color-cat-methods: #6b4ca0;
   --color-cat-platforms: #1d6a5c;
   --color-cat-people: #8a3f7f;
 
+  /* Semantic status colors (light) */
+  --color-status-success: #1d6a5c;
+  --color-status-warning: #854d35;
+  --color-status-info: #195d8c;
+
   /* Section heading variants (light) */
   --color-heading-sd: #1d6a5c;
-  --color-heading-sp: #195d8c;
+  --color-heading-gp: #195d8c;
 
   /* Source citation link — Solarized navy readable on cream surface */
   --color-source-link: #195d8c; /* navy — 5.73:1 on #eee8d5 */
+
+  /* Mogu murmur variant accent — indigo readable on cream background */
+  --color-mogu-murmur: #555aa0; /* indigo — 5.41:1 on #fdf6e3 */
+  --color-mogu-murmur-bg: rgba(85, 90, 160, 0.08);
+
+  /* MoguNote body text — dedicated token, default --color-text is only 4.59:1 on --color-surface (#616) */
+  --color-mogu-note-text: #425458; /* 6.49:1 on #eee8d5 */
 }
 
 * {
@@ -277,7 +328,7 @@ blockquote.mogu-note {
   padding: 0.75rem 1rem;
   border-radius: 0 8px 8px 0;
   font-style: normal;
-  color: var(--color-text);
+  color: var(--color-mogu-note-text);
   margin: var(--spacing-md) 0;
 }
 

@@ -10,12 +10,12 @@ source: "Level-Up Series"
 sourceUrl: "https://gu-log.vercel.app/en/posts/en-levelup-20260701-core-dump-anatomy"
 lang: "en"
 summary: "Learning how programs die, detective-style. This is Part 1 of a three-part series: first, understand the anatomy — CPU, stack, return addresses, segfault — before you can investigate the crime scene and catch the killer. A quiz at every floor. Pass to proceed."
-tags: ["systems", "debugging", "cpp", "tutorial"]
+tags: ["systems","debugging","cpp","tutorial"]
 scores:
   tribunalVersion: 9
   vibe:
     persona: 8
-    clawdNote: 8
+    moguNote: 8
     vibe: 8
     narrative: 9
     score: 8
@@ -51,7 +51,7 @@ scores:
 
 import LevelUpProgress from '../../components/LevelUpProgress.astro';
 import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
-import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
 import AnalogyBox from '../../components/AnalogyBox.astro';
 
 Welcome to the Level-Up series' "Autopsy of a Crash" trilogy.
@@ -80,9 +80,9 @@ But these deaths were different.
 
 These weren't ordinary bugs. Ordinary bugs write to the wrong place or calculate the wrong result. But the odds of "the return address just happens to become `NULL`" are so low that the engineers briefly suspected the `kernel` was broken, or the compiler had a bug, or the hardware was failing.
 
-<ClawdNote>
+<MoguNote>
 Don't worry about figuring out "why this happens" yet — that's Post B and Post C territory. Post A's mission is: learn to read a program's corpse. You want to solve a murder? First you need to know anatomy.
-</ClawdNote>
+</MoguNote>
 
 This lesson builds four core concepts:
 
@@ -125,9 +125,9 @@ Imagine every program is a city with thousands of instructions (streets). `%rip`
 
 </AnalogyBox>
 
-<ClawdNote>
+<MoguNote>
 The full name of `%rip` is `instruction pointer`. The `r` at the front is an x86-64 naming convention indicating a 64-bit register. And `rip` just happens to sound like `R.I.P.` (rest in peace) — coincidence? When investigating program deaths, the pun is surprisingly fitting (¬‿¬)
-</ClawdNote>
+</MoguNote>
 
 Here's roughly how the CPU works:
 
@@ -186,9 +186,9 @@ This stack of notes has some important properties:
 - **Each note has a "return address"**: Tells the CPU "where to go after this function finishes"
 - **`%rsp`**: A finger that always points at the top note
 
-<ClawdNote>
+<MoguNote>
 The full name of `%rsp` is `stack pointer` — the `sp` is short for those two words. This "finger" is crucial — when the CPU needs to find the top note, it looks at where `%rsp` points. If this finger gets moved around randomly, the entire "going home" mechanism collapses. This is why that phrase "stack pointer shifted by 8 bytes" sounds so terrifying.
-</ClawdNote>
+</MoguNote>
 
 Each note occupies a block of space on the stack called a `stack frame`. A typical `stack frame` contains:
 
@@ -242,9 +242,9 @@ ret:
 
 There's also a register called `%rbp` (`frame pointer`) that works like a bookmark clipped to one of the notes. The compiler uses it to locate "where the current function's `stack frame` is." When debugging, the investigator can start from `%rbp` and trace upward layer by layer, reconstructing the entire call chain.
 
-<ClawdNote>
+<MoguNote>
 The `bp` in `%rbp` stands for `base pointer`. Some compilers will omit `%rbp` for performance (with the `-fomit-frame-pointer` flag), but Rockset did the opposite — they enabled `-fno-omit-frame-pointer`, so the investigator could trace the entire call chain from `%rbp`. This seemingly minor compiler flag ended up saving their lives — that's foreshadowing, remember it.
-</ClawdNote>
+</MoguNote>
 
 The whole mechanism is incredibly stable — as long as the return address on the note is correct, `ret` will obediently jump back to the right place.
 
@@ -292,9 +292,9 @@ That's hitting-a-wall death. The investigator didn't do anything wrong — the n
 
 </AnalogyBox>
 
-<ClawdNote>
+<MoguNote>
 The full name of `segfault` is `segmentation fault`, from the early days when operating systems divided memory into different "segments." When a program tries to access a segment it doesn't have permission for (or one that doesn't exist), it triggers a fault. Modern OS segfaults are usually about accessing invalid virtual addresses, not necessarily about "segmentation," but the name stuck. When engineers say "it segfaulted," they basically mean "it hit a wall and died."
-</ClawdNote>
+</MoguNote>
 
 In OpenAI's batch of deaths, the victims' return addresses were changed to `NULL` (address 0). The `ret` instruction set `%rip` to 0, the CPU tried to read an instruction at address 0, but address 0 is usually deliberately left unmapped (to catch "null pointer access" bugs), and the `kernel` killed the program.
 
@@ -347,9 +347,9 @@ Those languages have guardrails in their cities. Want to write on someone else's
 
 C++ chose: no guardrails, let programmers be responsible. The upside is performance — no overhead from guardrails. The downside: once you write to the wrong place, the note gets tampered with, you hit a wall and die, and it's very hard for investigators to catch the culprit.
 
-<ClawdNote>
+<MoguNote>
 OpenAI's Rockset service chose C++ for performance and memory efficiency — processing massive real-time queries requires squeezing out every bit of performance. But the trade-off is: when bugs happen, you get these bizarre "tampered note, hit-wall death" murders. This is the classic C++ trade-off: the price of performance is "no guardrails."
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="Why can the return address on a C++ program's stack get tampered with?"
@@ -412,9 +412,9 @@ To crack this, you need a different approach.
 
 Not staring at one corpse, but pulling out **every corpse from the entire city's past year**, cataloging them, classifying them. This is the epidemiologist's approach: find patterns, don't solve individual cases.
 
-<ClawdNote>
+<MoguNote>
 A small spoiler: OpenAI's engineers eventually discovered that what looked like one bug was actually **two completely unrelated bugs**. One was hardware failure (a certain Azure host's CPU was doing arithmetic wrong), the other was a race condition that had been hiding in libunwind for 18 years. Because they kept treating it as a single bug, they couldn't catch either. Once they looked at them separately, the answers became instantly clear. How they did that is the main course in Post B.
-</ClawdNote>
+</MoguNote>
 
 The investigator has learned to read corpses. Next lesson: entering the crime scene.
 

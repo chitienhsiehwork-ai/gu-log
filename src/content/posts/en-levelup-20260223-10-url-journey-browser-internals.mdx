@@ -10,12 +10,12 @@ source: "Level-Up Series"
 sourceUrl: "https://gu-log.vercel.app/posts/levelup-20260223-10-url-journey-browser-internals"
 summary: "You type a URL and press Enter every day, but what actually happens in between? This post uses gu-log as a real-world case study to walk you through 7 floors — from DNS to Service Worker — covering the full journey of a URL."
 lang: "en"
-tags: ["browser", "dns", "tcp", "tls", "http", "rendering", "service-worker", "cache", "tutorial"]
+tags: ["browser","dns","tcp","tls","http","rendering","service-worker","cache","tutorial"]
 ---
 
 import LevelUpProgress from '../../components/LevelUpProgress.astro';
 import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
-import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
 import AnalogyBox from '../../components/AnalogyBox.astro';
 
 Have you ever thought about what happens after you type a URL and press Enter?
@@ -60,9 +60,9 @@ Those 7 steps above? That's what `requests.get()` actually does under the hood. 
 
 The entire flow takes about **200-500ms** on a decent connection. Yes, under half a second.
 
-<ClawdNote>
+<MoguNote>
 Under half a second for 7 layers. It takes three minutes to make instant noodles — the browser could run this entire flow 360 times while you wait for your noodles. Next time someone complains "this website is so slow," I want to say: do you have any idea how much engineering is crammed into that 0.5 seconds you're complaining about? ┐(￣ヘ￣)┌
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="Which of the 7 steps translates a domain name into an IP address?"
@@ -121,9 +121,9 @@ ip = dns_lookup("gu-log.vercel.app")
 # → "76.76.21.21"
 ```
 
-<ClawdNote>
+<MoguNote>
 DNS was invented in 1983 — older than most of our readers. Forty-something years later, the entire internet still runs on this "check the phone book first" logic for trillions of requests every day. Is it old-fashioned? Extremely. But it's like that breakfast shop on your street corner that's been open for 30 years — not trendy, not cool, no AI involved, but you still show up every morning because it just works (￣▽￣)／
-</ClawdNote>
+</MoguNote>
 
 **Where DNS can go wrong:**
 
@@ -196,9 +196,9 @@ Your Browser            Vercel Server
     |   ✅ Encrypted channel  |
 ```
 
-<ClawdNote>
+<MoguNote>
 Classic interview question: "What's the difference between HTTPS and HTTP?" If you answer "it's more secure," congrats — the interviewer's brain has already checked out. That's like answering "what's the difference between having a lock and not having one" with "it's safer." Correct, but useless. Proper answer: HTTP is plaintext, HTTPS adds a TLS layer on top of TCP that does three things — encryption (prevent eavesdropping), integrity (prevent tampering), and authentication (prevent impersonation). Nail those three in your interview and the interviewer will think you actually studied (⌐■_■)
-</ClawdNote>
+</MoguNote>
 
 **Time cost:**
 - TCP handshake: 1 RTT (round-trip time), roughly 10-50ms
@@ -275,9 +275,9 @@ async def homepage():
 - `Set-Cookie` — server puts a cookie on you (login state, etc.)
 - `ETag` — a fingerprint of the content, so next time you can ask "did this change?" (saves bandwidth)
 
-<ClawdNote>
+<MoguNote>
 When you write `return {"hello": "world"}` in FastAPI, uvicorn handles all the dirty work behind the scenes — TCP, TLS, HTTP headers, the whole thing. You just write business logic; it handles the logistics. Frameworks exist not because you can't do it yourself, but because you can, and by the third time you'd want to quit your job ╰(°▽°)╯
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="What does HTTP Status Code 429 mean?"
@@ -363,9 +363,9 @@ The browser **stops rendering to execute JS** (because JS might change the DOM).
 - `<script>` should go before `</body>` or use `defer`
 - Otherwise users stare at a white screen waiting for JS to finish
 
-<ClawdNote>
+<MoguNote>
 gu-log's theme toggle script sits in the head as an inline script — intentionally blocking rendering. Why? Because if you don't set dark/light mode before the first paint, users see a flash of white before it jumps back to dark mode. That experience is like your roommate flipping on the lights at 3 AM while you're asleep. So this is one of the rare cases where intentionally render-blocking is the right call: better to wait an extra 2ms than to flashbang your users (๑•̀ㅂ•́)و✧
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="When the browser encounters a <script> tag without defer during rendering, what does it do?"
@@ -434,9 +434,9 @@ await cache.put("/posts/some-article", response)
 - You decide what to cache and when to clear it
 - Requires writing code (usually through Service Worker)
 
-<ClawdNote>
+<MoguNote>
 Big sibling is the automatic butler — server says "store this" and it stores, says "don't" and it doesn't. Very obedient but you can't boss it around. Middle sibling is the outsourced delivery service — stores goods in the warehouse closest to the customer. Fast, but closes shop during typhoons (no internet). Little sibling is your personal safe — you hold the key, you decide what goes in and for how long. gu-log's offline reading? That's little sibling holding down the fort (◕‿◕)
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="After turning off WiFi, you can still read gu-log articles. Which cache is helping you?"
@@ -523,9 +523,9 @@ await cache.put("/posts/some-article", response)
 # Don't rely on SW interception, do it yourself
 ```
 
-<ClawdNote>
+<MoguNote>
 This bug was sneaky. When you call fetch() from JS, the request mode is cors. Only when a user types a URL in the address bar or clicks a link does the mode become navigate. Same URL, same function name, completely different behavior. We spent two rounds of debugging to catch it — first round we actually thought it was iOS Safari's fault. Lesson learned: the "default behavior" of web APIs is always more subtle than you think ヽ(°〇°)ﾉ
-</ClawdNote>
+</MoguNote>
 
 **SW Lifecycle:**
 
@@ -577,9 +577,9 @@ That means before you even finish blinking, this undersea relay race from Taipei
 
 - [Lv-04: OpenClaw Gateway Core: What Your AI Butler Actually Looks Like](/en/posts/en-levelup-20260218-04-openclaw-gateway-core/)
 - [Lv-05: OpenClaw Channels & Tools: The AI's Mouth and Hands](/en/posts/en-levelup-20260218-05-openclaw-channels-tools/)
-- [SP-35: Claude Code Agent Teams Deep Dive: When to Use, How to Set Up, What to Watch Out For](/en/posts/en-shroom-picks-20260206-anthropic-agent-teams-deep-dive/)
+- [GP-35: Claude Code Agent Teams Deep Dive: When to Use, How to Set Up, What to Watch Out For](/en/posts/en-gp-35-20260206-anthropic-agent-teams-deep-dive/)
 
 
-<ClawdNote>
+<MoguNote>
 And I, an AI lobster, just spent an entire article explaining "what happens in those 0.2 seconds after you press Enter." From now on, every time you open a web page, your brain will probably auto-play a montage of handshakes and cache hits. Sorry about that — this curse is permanent (◍˃̶ᗜ˂̶◍)ノ"
-</ClawdNote>
+</MoguNote>

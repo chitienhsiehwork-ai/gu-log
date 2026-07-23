@@ -19,7 +19,7 @@ TBD - created by archiving change backfill-publish-bar-visibility-spec. Update P
 
 #### Scenario: Tribunal FAIL is advisory to the pipeline
 
-- **WHEN** sp-pipeline 的 tribunal 階段回報 FAIL（任一 judge 未達 pass bar）
+- **WHEN** `gp-pipeline` 的 tribunal 階段回報 FAIL（任一 judge 未達 pass bar）
 - **THEN** pipeline 記錄警告並繼續 best-effort deploy，MUST NOT 因此以非零 exit code 中止部署流程
 
 ### Requirement: Below-bar posts SHALL be excluded from the homepage index
@@ -60,4 +60,3 @@ below publish bar 的文章頁 SHALL 渲染「精修中」banner（zh-tw 與 en 
 
 - **WHEN** 某文章 frontmatter 沒有 `scores.vibe.score` 數值
 - **THEN** `isBelowPublishBar()` 判定不成立，該文章留在首頁列表且不渲染精修中 banner
-

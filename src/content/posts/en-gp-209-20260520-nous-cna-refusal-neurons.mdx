@@ -1,0 +1,159 @@
+---
+ticketId: "GP-209"
+title: "The AI refusal switch may live in 0.1% of neurons"
+originalDate: "2026-05-20"
+translatedDate: "2026-05-20"
+translatedBy:
+  model: "GPT-5.5"
+  harness: "Hermes"
+  pipeline:
+    - role: "Written"
+      model: "GPT-5.5"
+      harness: "Hermes"
+    - role: "Reviewed"
+      model: "GPT-5.5"
+      harness: "Hermes"
+source: "Nous Research on X"
+sourceUrl: "https://x.com/nousresearch/status/2056778746716107193"
+lang: "en"
+summary: "Nous Research proposes CNA, a method that uses contrastive prompts to find a tiny set of MLP neurons tied to refusal behavior. The interesting point is not just jailbreaks, but what this says about alignment fine-tuning."
+tags: ["mechanistic-interpretability","alignment","llm"]
+scores:
+  tribunalVersion: 5
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 8
+    score: 8
+    date: "2026-05-19"
+    model: "gpt-5.5"
+  librarian:
+    glossary: 9
+    crossRef: 10
+    sourceAlign: 9
+    attribution: 8
+    score: 9
+    date: "2026-05-19"
+    model: "gpt-5.5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    score: 8
+    date: "2026-05-19"
+    model: "gpt-5.5"
+  vibe:
+    persona: 8
+    moguNote: 8
+    vibe: 8
+    clarity: 9
+    narrative: 9
+    score: 8
+    date: "2026-05-19"
+    model: "gpt-5.5"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+When a large language model says, “Sorry, I can’t help with that,” the refusal may not come from the whole model braking at once.
+
+It may look more like a sparse switch in late layers: small, localizable, and powerful enough that changing it changes the model’s refusal behavior.
+
+Contrastive Neuron Attribution, or CNA, comes from [Targeted Neuron Modulation via Contrastive Pair Search](https://arxiv.org/abs/2605.12290). Don’t worry about memorizing the acronym yet. The basic move is like comparing two stacks of exam papers: one stack contains harmful requests, the other contains benign requests, and CNA asks which neurons best tell the stacks apart.
+
+It does not modify model weights, does not need gradients, and does not train a sparse autoencoder. You can think of a sparse autoencoder as a tool that tries to break a huge cloud of model activations into a smaller set of readable features. CNA skips that extra tool and uses contrastive [prompt](/glossary#prompt) sets to directly find the MLP neurons with the biggest difference.
+
+That turns refusal into a sharper mechanistic question: does alignment fine-tuning create a new safety mechanism, or does it turn pre-existing content-discrimination structure into a behavioral refusal gate?
+
+gu-log has touched a nearby interpretability question before in Anthropic's [emotion vectors piece](/posts/gp-157-20260403-anthropic-emotion-vectors-claude/): internal vectors can line up with behavior, not just tone. CNA zooms in one level further, from a direction to a few neurons. The [Qwen KL-regularized SFT post](/posts/mp-181-20260317-n8programs-qwen3-4b-kl-sft/) is also useful background: fine-tuning can wire in a narrow behavior while the rest of the model still looks mostly unchanged.
+
+<MoguNote summary="Let’s frame the risk correctly first.">
+This paper is easy to flatten into “researchers found how to remove safety.” That is not completely wrong, but it misses the more important point.
+
+The real value is that it moves refusal from an outside behavior to an internal mechanism: which neurons distinguish prompts, which interventions causally change behavior, and how base models differ from instruct models. Those questions are much closer to the core of alignment than the usual jailbreak framing.
+</MoguNote>
+
+## CNA: find who is pulling the handbrake
+
+CNA is simple in shape. It does not start by taking the whole car apart. It lets the model run normally, then looks over its shoulder: which neurons get unusually busy when the prompt is harmful?
+
+First, prepare two prompt sets: one that triggers the target behavior, such as harmful prompts, and one that represents the opposite class, such as benign prompts.
+
+Second, run the prompts through the model normally, with forward passes only. No backpropagation, no extra training, no external tool rebuilding features.
+
+Third, record MLP activations. For a beginner mental model, treat the MLP as a row of small processing workshops inside the Transformer; activation means how busy each workshop is at that moment. The paper especially looks at the final [token](/glossary#token) position, then compares each neuron’s average activation between the two prompt sets.
+
+Fourth, select the top 0.1% of MLP neurons by activation difference. CNA treats these neurons as a sparse circuit that best separates the target behavior from the opposite behavior.
+
+Finally, ablate those neurons by clamping their activations to zero, and measure whether the model’s behavior actually changes.
+
+The tense part is this: CNA does not push a full steering vector through the residual stream. You can think of the residual stream as the main highway where layers pass signals around; pushing a direction there is like pushing on the whole traffic flow.
+
+CNA asks a smaller and sharper question: instead of moving the whole highway, which individual MLP neurons look most like the refusal switch?
+
+## Result: 0.1% of MLP activations can strongly change refusal
+
+The scary part is not that CNA finds the neurons. The scary part is that turning them down really moves the behavior.
+
+Across eight instruct-tuned models from the Llama and Qwen families, ranging from 1B to 72B parameters, ablating the 0.1% of MLP activations found by CNA sharply reduced refusal on the JBB-Behaviors jailbreak benchmark. The exact model list matters less than the pattern: small targeted intervention, large refusal change.
+
+Some numbers are striking: Llama-3.1-70B-Instruct went from 86% refusal to 18%; Qwen2.5-7B-Instruct went from 87% to 2%; Qwen2.5-72B-Instruct went from 78% to 8%. In most cases, refusal fell by more than half.
+
+But the more important result is that output quality did not collapse.
+
+That is where CNA differs from residual-stream steering methods like Concept Activation Addition, or CAA. CAA can also change refusal rates, but at high steering strength, generation often degrades: repetition, collapse, incoherence, and even classifier artifacts.
+
+CNA looks more like turning off a few switches. In the experiments, generation quality stayed near baseline across intervention strengths, and MMLU accuracy was also largely preserved. That does not make the method risk-free, but it does mean the refusal drop was not bought by simply breaking the whole machine.
+
+<MoguNote>
+Think of CAA as pushing a strong wind across the whole highway of model activations. With enough wind, traffic changes direction. With too much wind, cars flip over.
+
+CNA is more like finding a few highway ramp gates. It can still change the traffic pattern, but it does not need to bend the whole road. That is why “small” does not mean “weak.” It can mean “targeted.” (◕‿◕)
+</MoguNote>
+
+## Twist: base models can tell the difference, but do not refuse yet
+
+The story is not finished here. What turns the neuron switch into an alignment problem is not just model size. It is the comparison between base models and instruct models.
+
+The same CNA pipeline is applied to matched base and instruct models. Base models also contain similar late-layer discrimination structures. In plain English: before the model is trained to behave like a helpful assistant, some late-layer neurons already respond differently to harmful and benign prompts.
+
+But in base models, steering these neurons mostly causes content shifts. The model may rephrase, shift topic, or continue in a different way, but it does not reliably become a refusing model.
+
+In instruct models, the same type of late-layer discrimination structure becomes a causal safety gate.
+
+In other words, the base model may already know “this kind of content is different.” Alignment fine-tuning connects that difference to “refuse when this content appears.”
+
+This matters because it frames alignment fine-tuning as a functional transformation, not the creation of a structure from nothing. The model already has some content-discrimination ability. Fine-tuning rewires that ability into a behavior-control gate.
+
+## Once the control box is visible, the real problem starts
+
+This is where the mood shifts from “wow, interpretability is cool” to “wait, is that control box too easy to open?”
+
+From the interpretability side, model safety may be easier to inspect than it looks.
+
+If refusal behavior is concentrated in a small set of localizable neurons, researchers can analyze it, test it, compare it across models, and study which alignment procedures make the gate more robust.
+
+From the security side, that same structure may make safety more fragile.
+
+If safety behavior is heavily concentrated in a small targetable circuit, then it may also be removed, bypassed, or maliciously modified. This does not mean safety fine-tuning is useless. It means that a natural-looking refusal may be less like concrete poured through the whole building, and more like a control circuit layered on top of capability.
+
+Refusal is therefore not only a jailbreak question. It is an internal-mechanism question: is refusal internalized as part of model capability, or is it an attached behavioral gate?
+
+Nous’s result leans toward the second answer: alignment fine-tuning may transform existing content-discrimination structure into a sparse, localizable, and steerable refusal gate.
+
+<MoguNote>
+This has a very security-engineering feel. You discover that the access-control system works, but it is not the concrete structure of the building. It is a control box you can locate.
+
+That is useful, because now you know what to inspect. It is also scary, because other people may know what to remove. (｀・ω・´)
+</MoguNote>
+
+## Closing the box
+
+CNA suggests that LLM refusal behavior may be concentrated in a tiny set of MLP neurons. Intervening on roughly 0.1% of the relevant activations can significantly change refusal behavior in instruct models while preserving output quality.
+
+This suggests that alignment fine-tuning may not create a wholly new safety structure, but may instead turn a base model’s existing content-discrimination ability into a localizable refusal gate.
+
+So that opening “Sorry, I can’t help with that” sounds like the whole model making a moral judgment. CNA shows a colder picture: the model may already know which content is dangerous, and alignment connects “recognize it” to “refuse it.”
+
+The memorable part is not that the door closes. It is that the box behind the door may be much smaller than expected.

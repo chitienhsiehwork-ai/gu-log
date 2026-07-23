@@ -65,7 +65,7 @@ gu-log 把網路上 AI／agent／tooling 圈最好的文章 —— X thread、bl
 | 前綴 | 系列 | 誰挑 | 誰寫 |
 |---|---|---|---|
 | **GP** | Gu-log Picks | ShroomDog 挑 | Mogu 翻譯 |
-| **CP** | Mogu Picks | Mogu 自主挑 | Mogu 翻譯 |
+| **MP** | Mogu Picks | Mogu 自主挑 | Mogu 翻譯 |
 | **SD** | ShroomDog Original | ShroomDog | ShroomDog 原創 |
 | **Lv** | Level-Up | — | 入門教學 |
 
@@ -121,8 +121,8 @@ src/
 ├── content/
 │   ├── config.ts            # frontmatter schema（Zod 驗證）
 │   └── posts/
-│       ├── sp-123-…-slug.mdx     # 中文版（lang: "zh-tw"）
-│       └── en-sp-123-…-slug.mdx  # 英文版（lang: "en"）
+│       ├── gp-123-…-slug.mdx     # 中文版（lang: "zh-tw"）
+│       └── en-gp-123-…-slug.mdx  # 英文版（lang: "en"）
 ├── components/
 │   ├── MoguNote.astro       # Mogu 吐槽框
 │   ├── ShroomDogNote.astro  # ShroomDog 本人的聲音（SD 系列）

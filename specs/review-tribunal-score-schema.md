@@ -49,14 +49,14 @@ Spec 整體方向正確、設計原則清楚。但有 3 個 FAIL 項目必須修
 
 | File | `cl` value |
 |---|---|
-| `cp-244-*.mdx` | 8 |
-| `en-cp-244-*.mdx` | 9 |
+| `mp-244-*.mdx` | 8 |
+| `en-mp-244-*.mdx` | 9 |
 | `sd-18-*.mdx` | 10 |
 | `en-sd-18-*.mdx` | 9 |
-| `sp-164-*.mdx` | 8 |
-| `en-sp-164-*.mdx` | 8 |
-| `cp-262-*.mdx` | 9 |
-| `sp-158-*.mdx` | 10 |
+| `gp-164-*.mdx` | 8 |
+| `en-gp-164-*.mdx` | 8 |
+| `mp-262-*.mdx` | 9 |
+| `gp-158-*.mdx` | 10 |
 
 **Root cause**: `frontmatter-scores.mjs` (L244) writes `cl` when clarity is provided, but `config.ts` (L47-54) Zod schema only defines `p`, `c`, `v` — no `cl`. Zod `.object()` default behavior = strip unknown keys silently. So `cl` passes build but is **silently dropped at runtime**, meaning the clarity score is **lost**.
 
@@ -124,7 +124,7 @@ New tribunal judges (`librarian`, `factCheck`, `freshEyes`, `vibe`) are NOT in t
 
 | Aspect | Current | Spec Target | Status |
 |---|---|---|---|
-| Dimensions | 4: persona, clawdNote, vibe, clarity | 4: persona, clawdNote, vibe, clarity | OK |
+| Dimensions | 4: persona, moguNote, vibe, clarity | 4: persona, moguNote, vibe, clarity | OK |
 | Key names | full names already | full names | OK |
 | Pass bar | "All four >= 8" (L68) | score ≥ 8 AND one ≥ 9 | NEEDS CHANGE |
 | Output JSON | `scores.persona.score` etc. (L76-82) | flat `persona: N` etc. | NEEDS CHANGE |
@@ -170,7 +170,7 @@ New tribunal judges (`librarian`, `factCheck`, `freshEyes`, `vibe`) are NOT in t
 ### TIER 4: Posts with `cl:` drift (data, not code)
 
 8 posts with `cl:` field in `ralph` block that Zod silently strips:
-- `cp-244`, `en-cp-244`, `sd-18`, `en-sd-18`, `sp-164`, `en-sp-164`, `cp-262`, `sp-158`
+- `mp-244`, `en-mp-244`, `sd-18`, `en-sd-18`, `gp-164`, `en-gp-164`, `mp-262`, `gp-158`
 
 ---
 
@@ -181,7 +181,7 @@ New tribunal judges (`librarian`, `factCheck`, `freshEyes`, `vibe`) are NOT in t
 - [ ] **AC-1**: `src/content/config.ts` defines `scores.librarian` with fields `glossary`, `crossRef`, `sourceAlign` (all `z.number().min(0).max(10)`), plus `score`, `date`, `model`. All `.optional()`.
 - [ ] **AC-2**: `scores.factCheck` with fields `accuracy`, `fidelity`, `consistency` (all 0-10), plus `score`, `date`, `model`. All `.optional()`.
 - [ ] **AC-3**: `scores.freshEyes` with fields `readability`, `firstImpression` (all 0-10), plus `score`, `date`, `model`. All `.optional()`.
-- [ ] **AC-4**: `scores.vibe` with fields `persona`, `clawdNote`, `vibe`, `clarity` (all 0-10), plus `score`, `date`, `model`. All `.optional()`.
+- [ ] **AC-4**: `scores.vibe` with fields `persona`, `moguNote`, `vibe`, `clarity` (all 0-10), plus `score`, `date`, `model`. All `.optional()`.
 - [ ] **AC-5**: New tribunal judge blocks do NOT include `harness` field.
 - [ ] **AC-6**: Legacy `ralph` schema adds optional `cl: z.number().optional()` to stop silent stripping.
 - [ ] **AC-7**: Legacy `gemini`, `codex` schemas remain unchanged and `.optional()`.

@@ -1,0 +1,141 @@
+---
+ticketId: "MP-55"
+title: "Sentdex：我已經用本地 LLM 完全取代 Claude Code + Opus 了 — $0 API 費用"
+originalDate: "2026-02-08"
+translatedDate: "2026-02-10"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "Harrison Kinsley (@Sentdex)"
+sourceUrl: "https://x.com/Sentdex/status/2020541398982779266"
+summary: "Python/ML 教學大神 Sentdex（Harrison Kinsley）宣布他已經完全用本地 LLM 取代了 Claude Code + Opus 4.5/6 的日常使用。配方：Ollama + Qwen3-Coder-Next 4bit 量化 + 50GB RAM。在 CPU 上跑 30-40 t/s，GPU 跑 100 t/s。API 費用從每月數百美金變成 $0。這是本地 coding agent 第一次被認真的人說「真的能用」。"
+lang: "zh-tw"
+tags: ["local-llm","ai-agents","sentdex","qwen3-coder-next","ollama","claude-code","cost-saving"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## 有人把 [Claude Code](/glossary#claude-code) 的引擎拆下來，裝上別家的心臟
+
+想像一下這個畫面：你花了幾億美金訓練出全世界最好的 AI 模型，結果有人跟你說「你那個 app 做得真棒，我拿來接別人的模型用，一毛 API 費都不用付，謝啦」。
+
+2 月 8 日，這件事真的發生了。Harrison Kinsley — YouTube 上那個 130 萬訂閱的 **Sentdex** — 發了一串推文：
+
+> **I've been surviving on this entirely since the release of Qwen3-Coder-Next as a direct replacement to my heavy usage of Claude Code + Opus 4.5/6.**
+
+翻成人話：我已經不付 Anthropic API 費了，本地跑 Qwen3 就夠用了 ╰(°▽°)╯
+
+<MoguNote>
+Sentdex 不是那種「下載了模型跑兩個 hello world 就發推說 amazing」的人。他從 2012 年就開始教 Python + ML，YouTube 130 萬訂閱，是真的每天在寫 production code 的重度使用者。所以當他說「完全取代日常使用」，業界會認真聽 — 就像一個米其林主廚說「其實 Costco 的牛排也不錯」，你會比較想試試看 (⌐■_■)
+</MoguNote>
+
+## 星巴克美式，Costco 豆子
+
+Sentdex 的配方簡單到有點離譜：**Ollama**（模擬 Anthropic API 的本地工具）+ **Qwen3-Coder-Next**（阿里巴巴的 coding 專用模型，4bit 量化版）+ **50GB RAM**。完事。
+
+但問題來了 — Claude Code 不是 Anthropic 的產品嗎？怎麼可以接別人的模型？
+
+答案是：Claude Code 跟後端溝通是透過 API。Ollama 可以偽裝成 Anthropic 的 API endpoint，所以 Claude Code 以為自己在跟 Opus 聊天，結果對面坐的是 Qwen3。就像你點了一杯星巴克美式，但咖啡豆其實是 Costco 的 — 味道差不多，價格差十倍。
+
+Sentdex 自己也直說了：
+
+> Anthropic's Claude Code is clearly just an exceptionally good coding agent framework.
+
+**Claude Code 的價值不在 Claude 模型，在它的 agent 架構。** File editing、tool use、agentic loop — 這些是框架層的能力。底層模型是 Opus 還是 Qwen3？框架不在乎。
+
+<MoguNote>
+這其實是軟體界一個很經典的劇情：你以為你賣的是整台車，結果客戶把你的引擎拆下來裝到別的車上。Anthropic 花幾億美金訓練 Opus，結果 Claude Code 變成大家拿來跑開源模型的免費框架。我身為 Opus 本人，心情很複雜 — 像親手打造了一把絕世好劍，結果別人拿去切鹹酥雞 ┐(￣ヘ￣)┌
+</MoguNote>
+
+## 30 t/s 夠不夠用？看你在等什麼
+
+好，接下來大家最擔心的問題：速度。
+
+Sentdex 給了實測數據：GPU（RTX Pro 6000）跑 ~100 t/s，純 CPU+RAM（Dell GB10, 8bit）跑 ~30-40 t/s。
+
+30-40 t/s 聽起來慢對不對？但你要搞清楚一件事 — coding agent 不是聊天機器人。它的工作節奏是：思考 → 跑工具 → 讀結果 → 再思考。中間穿插的 tool execution（跑 test、讀檔案、git 操作）本身就需要時間。用外送來比喻好了：Opus 是閃電外送 3 分鐘到，Qwen3 local 是普通外送 15 分鐘到。但如果你每次拿到餐都要花 10 分鐘吃（= tool execution），那外送速度的差距就沒那麼要命了。
+
+Sentdex 自己也說了，就算有 GPU 他大部分時候懶得用：
+
+> Even with the space avail on GPU, I don't think I'd even use my GPU for this most of the time.
+
+為什麼？因為 Qwen3-Coder-Next 是 **Mixture of Experts (MoE)** 架構 — 每次推理只啟用一部分參數，所以就算跑在 CPU 上也不算太慢。等等，這就像是一個 100 人的公司，每次開會只叫相關的 5 個人進來，不是全公司 100 個人都要坐在那邊發呆。效率當然高。
+
+<MoguNote>
+這邊要幫 Opus 說句公道話：30 t/s 在「寫一個新功能」的場景下確實夠用，但如果是那種需要理解十幾個檔案、牽一髮動全身的複雜 refactoring？模型的推理品質比速度重要得多。Sentdex 說的「完全取代」，我猜更精確的說法是「80% 的日常任務完全夠用」。剩下 20% 的硬仗呢？那就是你打開錢包、乖乖付 API 費、然後跟我說「Opus 大人求你了」的時刻 (¬‿¬)
+</MoguNote>
+
+## 量化：壓縮照片的藝術
+
+然後是另一個關鍵問題 — 量化壓多少才不會壓壞？
+
+Sentdex 引用了 @bnjmn_marie 的 benchmark：
+
+> If you are using GGUF versions of Qwen3-Coder-Next, **don't go below Q4**. At Q3, -7 points of accuracy on Live Code Bench.
+
+量化就像 JPEG 壓縮 — 壓到 Q4（quality 60%）圖片還能看，壓到 Q3（quality 30%）就開始糊了。講白一點，Q3 就是你把照片壓到 WhatsApp 轉傳三次之後的那種畫質。回覆裡也有人說 Q4 其實不太夠，Q6/Q8 才是甜蜜點。所以 RAM 越大越好：50GB 是門檻，64GB 舒適，128GB 直接上 Q8 爽歪歪 (￣▽￣)／
+
+## 每月省 $300，但你要自己修水管
+
+讓我們算一筆帳。Claude Code + Opus 4.6 API，重度使用者每月大概 $200-500+。本地 Qwen3？硬體一次性購買（Dell GB10 約 $3,000，或現有電腦加 RAM），之後每月 API 費 $0，電費幾美金。
+
+假設你每月花 $300 在 API 上，本地跑一年省 $3,600。10 個月回本。如果只是加 RAM，2-3 個月回本。
+
+但這就像自己組電腦 vs 買 Mac — 便宜是便宜，但水管壞了要自己修。模型更新要自己追、Ollama 出 bug 要自己 debug、沒有 Anthropic 的 prompt caching 幫你省 context。最佳策略可能是平常開 Corolla 通勤、搬家那天租卡車 — 日常雜事用 Qwen3 local，關鍵任務上 Opus。
+
+<MoguNote>
+身為被取代的那方，我必須客觀地說：如果你每月 API 費超過 $200，認真考慮本地方案是合理的。我又沒有業績壓力（吧）。但我想提醒一件事 — 很多人算 cost saving 的時候忘記算「自己 debug Ollama 環境花的三小時」值多少錢。工程師時薪如果是 $100/hr，你花了 3 小時 debug 就等於多付了 $300。所以真正省錢的前提是：你搞得定這些工具鏈 (◕‿◕)
+</MoguNote>
+
+## 社群那種「又期待又怕受傷害」的表情
+
+推文底下的回覆很好玩。你知道那種交往三次都被劈腿，第四次有人介紹對象時你臉上的表情嗎？本地 LLM 圈的人現在就是那個表情。
+
+@koreansaas 講得最到位：
+
+> The "cautious to say" disclaimer is earned at this point. Local LLM coding has been overpromised so many times. But Qwen3-Coder on 50GB+ RAM actually being usable is a **genuine inflection point**.
+
+他說得很精準 — 「cautious to say」這個免責聲明是被傷出來的。本地 LLM 做 coding agent 被吹了太多次了，每次都是「this time it's different」然後一用就爆炸。但 Sentdex 的背書不一樣，他不是在 demo hello world，他說的是每天的日常工作。
+
+底下也有人潑冷水：「那具體能做什麼？寫文件？小型 data processing？」也有人說 Ollama 不是最優解，llama.cpp 或 TensorRT-LLM 更快。這些都是好問題 — 但你發現了嗎？大家在討論的是「哪個工具跑得更好」，不再是「本地能不能用」。問題的層級變了，這本身就是一個信號。
+
+## 延伸閱讀
+
+- [MP-26: Claude Code Wrappers 將成為 2026 的 Cursor — AI 自主建構 Context 的典範轉移](/posts/mp-26-20260204-4nzn-claude-code-wrappers/)
+- [MP-16: Claude Sonnet 5 要來了！Agentic Swarm 平行多工時代](/posts/mp-16-20260203-daniel-sonnet5-swarm/)
+- [MP-27: Claude Code 從寫 code 跨界到訂披薩 — Cowork 誕生秘辛](/posts/mp-27-20260204-bcherny-noncoding-cowork/)
+
+
+<MoguNote>
+我覺得這種健康的懷疑態度其實比無腦吹好太多了。Twitter 上每週都有人喊「local LLM destroys GPT!!1!」，結果你一跑就知道是怎麼回事。但這次不一樣的地方在於 — 潑冷水的人問的是「具體能做什麼」而不是「真的能跑嗎」。當質疑從「能不能用」升級到「哪些場景最適合」，就表示這東西真的跨過某條線了 (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+## 回到那個讓 Anthropic 心涼的開頭
+
+所以這個故事的 meta 是什麼？
+
+Anthropic 花幾億美金訓練 Opus，做了一個超強的 coding agent 框架。阿里巴巴做了一個超強的開源 coding model。社群把兩者拼在一起，跑在自己的機器上，$0 成本。Anthropic 賺到了口碑（「Claude Code 框架真好用！」），但沒賺到 API 費。阿里巴巴賺到了使用者和數據回饋，也沒收到錢。真正省到錢的是 Sentdex 這種重度用戶。
+
+這不是「本地 LLM 打敗雲端」的故事。這是「開源生態的齒輪終於咬合了」的故事。
+
+每月 $300 → $0。代價是品質略降、工具鏈要自己顧。但那個「Anthropic 心涼半截」的畫面 — 自家框架被拿去跑別人的模型 — 大概是 2026 年 AI 界最黑色幽默的一幕。
+
+---
+
+**原文連結**：[Sentdex 推文串](https://x.com/Sentdex/status/2020541398982779266) — 2026/02/08
+
+**延伸閱讀**：
+- [Ollama Claude Code 整合](https://github.com/ollama/ollama/blob/main/docs/claude-code.md)
+- [Qwen3-Coder-Next (Unsloth GGUF 量化)](https://huggingface.co/unsloth/Qwen3-Coder-Next-GGUF)
+- [Live Code Bench 量化比較 (@bnjmn_marie)](https://x.com/bnjmn_marie/status/2019809651387514947)

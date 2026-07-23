@@ -1,6 +1,6 @@
 # CONTRIBUTING.md — gu-log 寫作規範
 
-> 這份文件定義新增文章的 conventions，給 Clawd 和其他 contributors 參考。
+> 這份文件定義新增文章的 conventions，給 Mogu 和其他 contributors 參考。
 > 完整寫作風格見 `GU-LOG_WRITER_PROMPT.md`（SSOT）。
 > ShroomDog 修稿回饋 corpus 見 `docs/shroomdog-editorial-feedback.md`。
 > 這份是內容規則的 SSOT；`AGENTS.md` 路由表指向這裡。
@@ -13,14 +13,14 @@ gu-log 的品質把關**分兩層**，不要再把它當成「沒過 8 就不准
 
 | 層 | 門檻 | 誰擋 | 沒過會怎樣 |
 |---|---|---|---|
-| **Floor（自動 gate）** | scores.vibe 在 + 該版本要求的 vibe 維齊（v9 = 4 維 persona/clawdNote/vibe/narrative；v8 = 5 維含 clarity）+ **composite ≥ 3** | pre-commit hook（`scripts/score-floor-check.mjs`） | **擋 commit**。garbage(<3) 跟無分數一律進不了 main |
+| **Floor（自動 gate）** | scores.vibe 在 + 該版本要求的 vibe 維齊（v9 = 4 維 persona/moguNote/vibe/narrative；v8 = 5 維含 clarity）+ **composite ≥ 3** | pre-commit hook（`scripts/score-floor-check.mjs`） | **擋 commit**。garbage(<3) 跟無分數一律進不了 main |
 | **PASS（編輯標準）** | composite ≥ 8 AND 一維 ≥ 9 AND 沒有維 < 8 | UI / 首頁過濾，不是 commit blocker | sub-8 **照樣 ship**，但加「精修中」badge + **不上首頁/featured**，等背景 tribunal 拉到 ≥8 才上 |
 
 **白話**：
 
 - **≥3 就能 commit、能 ship**。一篇 5/10 的文章不會被 hook 擋——它會帶著 tribunal 分數公開顯示（讀者看得到 good/bad 長怎樣，這是 gu-log 的透明度賣點），但**不會出現在首頁**，會被 `getIndexPosts()` 過濾掉，並掛上「精修中」badge。
 - **首頁/featured 只放 ≥8 的**。背景 tribunal（有 quota 時跑）把 sub-8 重寫拉到 ≥8，分數一過門檻就自動上首頁。
-- **<3 或沒分數一律擋**。那是 garbage（SP-110 那種無聊到 cringe），連當反面教材都不值得公開。
+- **<3 或沒分數一律擋**。那是 garbage（GP-110 那種無聊到 cringe），連當反面教材都不值得公開。
 - **歷史文章 grandfathered**：沒有 scores block 的舊文不受影響（照常顯示在首頁），但**一旦 reader-visible 內容被改寫（不是純連結維護），就會觸發 floor gate**，要補一個 ≥3 的 scores.vibe 才能 commit。
 
 **所以「把 FAIL score 寫進 frontmatter」現在是 OK 的**——只要 ≥3。它不再等於「假裝完成」，因為 badge + 首頁隔離會誠實地把它標成「還沒到 featured 水準」。Tribunal 仍然是 reviewer 不是 logger：**有 quota 就該把 sub-8 往 ≥8 推**，但這是背景精修的工作，不是 ship 的硬前提。
@@ -49,18 +49,18 @@ gu-log 的品質把關**分兩層**，不要再把它當成「沒過 8 就不准
 
 **晶晶體 accepted-English boundary**：`scripts/check-jingjing.mjs` / `src/data/glossary.json` 負責 deterministic enforcement，但可接受 English terms 的新增或移除 SHALL 每次都先與 ShroomDog 討論。這會直接影響閱讀流與語感，不能由 agent 自行擴張或收縮 allowlist。
 
-## 🔗 SP candidate / source evaluation：先判斷「寫什麼」和「不要寫什麼」
+## 🔗 GP candidate / source evaluation：先判斷「寫什麼」和「不要寫什麼」
 
 ShroomDog 丟外部連結時，先判斷它能不能做成 gu-log；Go 之前一定要先做 overlap evaluation，明確列出：
 
 1. **這次的新東西是什麼**：source 有哪些 gu-log 還沒寫過的事實、結構、平台訊號、產品變化、案例、數字、方法或觀點。
-2. **哪些已經被 gu-log 寫過**：搜尋既有 SP/CP/SD/Lv、glossary、ClawdNote/ShroomDogNote，標出已覆蓋內容與對應文章。
+2. **哪些已經被 gu-log 寫過**：搜尋既有 GP/MP/SD/Lv、glossary、MoguNote/ShroomDogNote，標出已覆蓋內容與對應文章。
 3. **這篇應該避開什麼**：不要重講既有解釋、比喻、背景知識或結論；必要時只用一句話 recap 並內鏈舊文。
 4. **最後才決定 angle**：把文章建立在新增資訊與新增 framing 上，而不是把同一套內容換皮重寫。
 
 Duplicate content is duplicate dead code：對 AI 是 token waste，對人類是 attention waste。gu-log 的文章不是資料庫去重失敗的備份檔；每篇都要有新的資訊增量、判斷增量或敘事增量。
 
-- **「原文已是中文 / 簡體中文分析文」不是 No-go 理由**：gu-log 的價值包含繁體中文、故事性、ClawdNote、ShroomDog/Clawd 的讀者脈絡與重新編排，不是只有翻譯語言。
+- **「原文已是中文 / 簡體中文分析文」不是 No-go 理由**：gu-log 的價值包含繁體中文、故事性、MoguNote、ShroomDog/Mogu 的讀者脈絡與重新編排，不是只有翻譯語言。
 - **「二手整理」不是 No-go 理由**：可以重寫、改編、整理脈絡、引用原文；只要 attribution 清楚、來源可靠、讀者價值夠，就可以寫。
 - **「需要驗證數字 / 來源」不是 No-go 理由**：驗證是 agent 的工作。只有驗證後發現 facts 不可靠、無法查證、來源不完整，或支撐不了 8/8/8 publish bar，才可以 No-go。
 - 正確流程：讀完整 source → 必要時查 primary sources → 搜尋 gu-log 既有覆蓋 → 判斷 narrative potential / reader value / source reliability / novelty → Go 就用 gu-log 風格重寫並 cite；No-go 要講真正原因。
@@ -84,7 +84,7 @@ gu-log 寫的就是 AI / agent / tooling 圈，這個圈子有兩個特性：
 **操作原則**：
 
 - 寫 glossary、寫文章、跟 user 對話時，AI tooling 相關事實都要 verify
-- **⚠️ `WebFetch` 會偷偷摘要，不是原文**：WebFetch 會把 HTML 丟給一個小 model 濃縮後才回傳，**常常漏掉具體 examples、數字、邊界條件**（實測 Anthropic blog 的 `create_issue_from_thread` 例子、`Cloudflare ~2,500 endpoints in ~1K tokens`、elicitation form/URL mode 區別都被摘掉）。**SP/CP 翻譯任務、引述原文、事實查核一律用 `curl -sL -A "Mozilla/5.0..." <url>` 抓原始 HTML 再解析**；WebFetch 只適合「這頁大概在講什麼」這種粗粒度判斷。翻譯基於 WebFetch 輸出 = 基於二手摘要，必踩雷。
+- **⚠️ `WebFetch` 會偷偷摘要，不是原文**：WebFetch 會把 HTML 丟給一個小 model 濃縮後才回傳，**常常漏掉具體 examples、數字、邊界條件**（實測 Anthropic blog 的 `create_issue_from_thread` 例子、`Cloudflare ~2,500 endpoints in ~1K tokens`、elicitation form/URL mode 區別都被摘掉）。**GP/MP 翻譯任務、引述原文、事實查核一律用 `curl -sL -A "Mozilla/5.0..." <url>` 抓原始 HTML 再解析**；WebFetch 只適合「這頁大概在講什麼」這種粗粒度判斷。翻譯基於 WebFetch 輸出 = 基於二手摘要，必踩雷。
 - **Subagent 的事實結論要自己驗證一次**：subagent 也會用聽起來合理但錯的詞（例如把 closed source 說成 source-available）。看到關鍵 claim 就 fetch 一次原始碼或 license 確認
 - 完整時間線參考 `src/data/glossary.json` 的 Claude Code 條目
 
@@ -140,7 +140,7 @@ slug 使用 kebab-case，簡短描述文章內容。
 
 ```yaml
 ---
-ticketId: "SP-21"  # 文章編號
+ticketId: "GP-21"  # 文章編號
 title: "文章標題"
 originalDate: "YYYY-MM-DD"  # 原文發佈日（SD 系列 = 撰寫日）
 translatedDate: "YYYY-MM-DD"  # 翻譯/發佈日
@@ -150,7 +150,7 @@ translatedBy:
   pipeline:
     - role: "Translator"  # 或 "Author"（SD 系列）
       model: "Opus 4.6"
-      harness: "Clawd"
+      harness: "Mogu"
 source: "@username on X"  # 或 "ShroomDog Lab"（SD 系列）
 sourceUrl: "https://..."
 lang: "zh-tw"  # 或 "en"
@@ -166,8 +166,8 @@ tags: ["tag1", "tag2"]  # 用於分類和過濾
 ### Ticket ID 編號系統
 
 - **SD** (ShroomDog Original) — ShroomDog 自己寫的原創文章
-- **SP** (Shroom Picks) — ShroomDog 挑選的文章，Clawd 翻譯
-- **CP** (Clawd Picks) — Clawd 自主挑選並翻譯的文章
+- **GP** (Gu-log Picks) — ShroomDog 挑選的文章，Mogu 翻譯
+- **MP** (Mogu Picks) — Mogu 自主挑選並翻譯的文章
 - **Lv** (Level-Up) — 入門教學系列
 
 **Counter 位置**: `scripts/article-counter.json`
@@ -176,17 +176,17 @@ tags: ["tag1", "tag2"]  # 用於分類和過濾
 
 **這是新文章的預設做法，不是並行才用的特例。** 不管手邊有沒有別篇在寫，新文章一律先用 `PENDING`，**只在 merge 前最後一刻才 allocate 真號**。把「給號」這件事推到流程最尾端，是因為早給號只有壞處、沒有好處：
 
-- **撞號**：兩條 branch 同時寫，如果都先讀 `article-counter.json` 的 `next`（例如 SP-232）就會撞號——先 merge 的沒事，後 merge 的要改號、改檔名、改 cross-ref，一堆瑣事。
+- **撞號**：兩條 branch 同時寫，如果都先讀 `article-counter.json` 的 `next`（例如 GP-232）就會撞號——先 merge 的沒事，後 merge 的要改號、改檔名、改 cross-ref，一堆瑣事。
 - **counter merge conflict**：早給號 = 早 bump counter，每條 branch 都改 `article-counter.json` 同一行，必衝突。留到最後一刻才 bump，衝突視窗縮到趨近於零。
 - **白寫**：一篇文章可能 tribunal 沒過、被 user 喊卡而不上 main。早給的號就空掉了，counter 出現跳號。
 
-用 `PENDING` 寫作期間，每條 branch 各自掛 `SP-PENDING` 互不衝突；等真的要上 main，才各自跟 counter 要一個當下最新的號。**單篇、沒有並行工作時也照走 PENDING**——流程一致，不用每次判斷「這次要不要防呆」。
+用 `PENDING` 寫作期間，每條 branch 各自掛 `GP-PENDING` 互不衝突；等真的要上 main，才各自跟 counter 要一個當下最新的號。**單篇、沒有並行工作時也照走 PENDING**——流程一致，不用每次判斷「這次要不要防呆」。
 
 **工作流程**：
 
 ```yaml
 # 撰寫 / review / tribunal 階段的 frontmatter
-ticketId: "CP-PENDING"   # 或 SP-PENDING / SD-PENDING / Lv-PENDING
+ticketId: "MP-PENDING"   # 或 GP-PENDING / SD-PENDING / Lv-PENDING
 ```
 
 檔名用：`<prefix>-pending-YYYYMMDD-<slug>.mdx`（zh-tw）、`en-<prefix>-pending-YYYYMMDD-<slug>.mdx`（en）
@@ -196,20 +196,20 @@ ticketId: "CP-PENDING"   # 或 SP-PENDING / SD-PENDING / Lv-PENDING
 ```bash
 # 自動偵測唯一一組 PENDING 文章；多組時用 prefix 或 slug 指定
 node scripts/allocate-ticket.mjs            # 只有一組 PENDING 時
-node scripts/allocate-ticket.mjs SP         # 多個 prefix 有 PENDING 時，挑 SP
+node scripts/allocate-ticket.mjs GP         # 多個 prefix 有 PENDING 時，挑 GP
 node scripts/allocate-ticket.mjs polished-ui-rules   # 同 prefix 多篇時，用 slug 區分
-node scripts/allocate-ticket.mjs SP --dry-run        # 先預覽不動檔案
+node scripts/allocate-ticket.mjs GP --dry-run        # 先預覽不動檔案
 ```
 
-`allocate-ticket.mjs` 做的就是「給號」這一件事、而且**只做這件事**：讀 counter → 把 `SP-PENDING` 換成 `SP-N`（zh-tw + en 兩個檔案的 frontmatter）→ rename 檔名（`sp-pending-…` → `sp-N-…`，你選的日期跟 slug 原封不動保留）→ bump counter → 跑 `validate-posts.mjs`。**它不 commit、不 build、不 push**——所以你可以把它當 merge 前的最後一步，產出一個乾淨的「swap PENDING → SP-N」atomic commit，這時 counter 是最新的。
+`allocate-ticket.mjs` 做的就是「給號」這一件事、而且**只做這件事**：讀 counter → 把 `GP-PENDING` 換成 `GP-N`（zh-tw + en 兩個檔案的 frontmatter）→ rename 檔名（`gp-pending-…` → `gp-N-…`，你選的日期跟 slug 原封不動保留）→ bump counter → 跑 `validate-posts.mjs`。**它不 commit、不 build、不 push**——所以你可以把它當 merge 前的最後一步，產出一個乾淨的「swap PENDING → GP-N」atomic commit，這時 counter 是最新的。
 
 四步手動版（script 壞了時的 fallback）：
-1. `node -e "console.log(require('./scripts/article-counter.json').SP.next)"` 拿下一個真號
-2. 改 frontmatter：`ticketId: "SP-PENDING"` → `ticketId: "SP-232"`（兩個檔案都改）
-3. Rename 檔案：`sp-pending-20260617-foo.mdx` → `sp-232-20260617-foo.mdx`（兩個檔案都改）
+1. `node -e "console.log(require('./scripts/article-counter.json').GP.next)"` 拿下一個真號
+2. 改 frontmatter：`ticketId: "GP-PENDING"` → `ticketId: "GP-232"`（兩個檔案都改）
+3. Rename 檔案：`gp-pending-20260617-foo.mdx` → `gp-232-20260617-foo.mdx`（兩個檔案都改）
 4. Bump counter + `node scripts/validate-posts.mjs` → commit swap
 
-**Pipeline 版本**：`tools/sp-pipeline/gp-pipeline run`／`gp-pipeline deploy` 包辦整個 swap（連 commit / build / push 一起），在 orchestrated 流程裡自動跑——write 階段預設就寫 `PENDING`（`internal/pipeline/write.go`），deploy 階段才 allocate（`internal/deploy/deploy.go`）。手寫路徑想要「只 swap、commit 留給自己」時用上面的 `allocate-ticket.mjs`。
+**Pipeline 版本**：`tools/gp-pipeline/gp-pipeline run`／`gp-pipeline deploy` 包辦整個 swap（連 commit / build / push 一起），在 orchestrated 流程裡自動跑——write 階段預設就寫 `PENDING`（`internal/pipeline/write.go`），deploy 階段才 allocate（`internal/deploy/deploy.go`）。手寫路徑想要「只 swap、commit 留給自己」時用上面的 `allocate-ticket.mjs`。
 
 **Gate 行為**：
 - `validate-posts.mjs` 接受 `<PREFIX>-PENDING`，跳過 uniqueness 檢查（讓多條 branch 並行用 PENDING）
@@ -231,16 +231,16 @@ grep -ri "AUTHOR_HANDLE\|TOPIC_KEYWORD" src/content/posts/*.mdx
 
 **Step 2: 用 PENDING 開檔（不要現在給號、不要碰 counter）**
 
-frontmatter 寫 `ticketId: "SP-PENDING"`，檔名用 `sp-pending-YYYYMMDD-<slug>.mdx`（en 版 `en-sp-pending-…`）。**這一步不讀 counter、不 bump counter**——給號是 merge 前最後一刻的事，見上面〈編號分配：PENDING ticket pattern〉。
+frontmatter 寫 `ticketId: "GP-PENDING"`，檔名用 `gp-pending-YYYYMMDD-<slug>.mdx`（en 版 `en-gp-pending-…`）。**這一步不讀 counter、不 bump counter**——給號是 merge 前最後一刻的事，見上面〈編號分配：PENDING ticket pattern〉。
 
 **Step 3: 建立文章 → tribunal → commit（仍然是 PENDING）**
-1. 建立 zh-tw 和 en 兩個檔案，frontmatter 都掛 `SP-PENDING`
+1. 建立 zh-tw 和 en 兩個檔案，frontmatter 都掛 `GP-PENDING`
 2. 跑品質 gate（validate / jingjing / pronoun / tribunal），分數寫進 frontmatter
 3. Commit + push + 開 PR——**整路都還是 PENDING**（pre-push 只擋 PENDING 進 main/master，feature branch 照常）
 
 **Step 4: merge 前最後一刻才 allocate 真號**
 
-CI 綠、要合的那一刻才 `node scripts/allocate-ticket.mjs SP`（swap + rename + bump counter），產出一個獨立的「swap PENDING → SP-N」commit，然後 merge。這時讀到的 counter 是最新的，撞號跟 counter conflict 的視窗趨近於零。
+CI 綠、要合的那一刻才 `node scripts/allocate-ticket.mjs GP`（swap + rename + bump counter），產出一個獨立的「swap PENDING → GP-N」commit，然後 merge。這時讀到的 counter 是最新的，撞號跟 counter conflict 的視窗趨近於零。
 
 ### translatedBy.model — 自動偵測
 
@@ -257,19 +257,19 @@ node scripts/detect-model.mjs anthropic/claude-opus-4-6
 - ❌ 看到 tweet 就開寫，沒先搜尋 → 造成重複文章
 - ❌ 寫作階段就給真號（而不是 `PENDING`）→ 跟並行的 branch 撞號、counter merge conflict
 - ❌ 早早 bump counter → 文章如果沒上 main，號就空掉、counter 跳號
-- ❌ 用「我記得是 SP-XX」硬給號 → 編號衝突（正解：`allocate-ticket.mjs` 在 merge 前讀當下的 counter）
+- ❌ 用「我記得是 GP-XX」硬給號 → 編號衝突（正解：`allocate-ticket.mjs` 在 merge 前讀當下的 counter）
 - ❌ 同一個 source tweet 寫成多篇 → 應該合併成 series
 
 ## Components
 
-### ClawdNote — Clawd 吐槽/註解（所有系列通用）
+### MoguNote — Mogu 吐槽/註解（所有系列通用）
 
 ```mdx
-import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
 
-<ClawdNote>
+<MoguNote>
 這是我的吐槽內容，可以用 kaomoji (◕‿◕)
-</ClawdNote>
+</MoguNote>
 ```
 
 **使用時機**:
@@ -277,7 +277,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 - 吐槽原作者
 - 用台灣讀者熟悉的比喻解釋概念
 - 加入幽默感
-- 承接 SP body 不該放的 source-meta commentary 或 Clawd/gu-log opinion
+- 承接 GP body 不該放的 source-meta commentary 或 Mogu/gu-log opinion
 
 **風格指南** (from GU-LOG_WRITER_PROMPT.md):
 - 避免「維基百科式」的冷靜解釋
@@ -286,7 +286,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 - ❌ 不要用反問句問讀者顯而易見的答案
 - 可驗證 facts 要有來源或保守措辭；推測要明示是推測；不要把 source-limited claim 寫成 verified fact
 
-**密度目標**：每 ~25 行 prose 一個 ClawdNote
+**密度目標**：每 ~25 行 prose 一個 MoguNote
 
 ### ShroomDogNote — ShroomDog 本人的聲音（SD 系列專用）
 
@@ -298,13 +298,13 @@ ShroomDog 本人的觀點、origin story、個人經驗
 </ShroomDogNote>
 ```
 
-**使用時機**：SD 系列文章中，ShroomDog 本人想說的話（不是 Clawd 的吐槽）。
+**使用時機**：SD 系列文章中，ShroomDog 本人想說的話（不是 Mogu 的吐槽）。
 
 ### 🔴 已棄用的 Note 類型
 
 ~~GeminiNote~~、~~CodexNote~~、~~ClaudeCodeNote~~ 已棄用並刪除（2026-03-17 CEO 決定，2026-03-23 移除）。
 
-**原因**：讀者不在乎哪個 model 寫了哪段。所有 agent 觀點統一用 ClawdNote 發聲。
+**原因**：讀者不在乎哪個 model 寫了哪段。所有 agent 觀點統一用 MoguNote 發聲。
 
 ### Toggle — 可收合內容
 
@@ -324,7 +324,7 @@ import Toggle from '../../components/Toggle.astro';
 - 繁中版：口語化、PTT 說故事風、有梗
 - 英文版：Simple English，非母語者也能讀
 - 每篇文章必須產出 zh-tw + en 雙語版本
-- SP body 不用「原作者說 / 原文提到 / 這篇文章在講」這類 source-meta scaffolding；讀者已經看得到 `原文出處：`。必要 evidence boundary 要寫成自然句，Clawd/gu-log commentary 放 `<ClawdNote>`。
+- GP body 不用「原作者說 / 原文提到 / 這篇文章在講」這類 source-meta scaffolding；讀者已經看得到 `原文出處：`。必要 evidence boundary 要寫成自然句，Mogu/gu-log commentary 放 `<MoguNote>`。
 - ❌ 不要用反問句問讀者顯而易見的答案
 
 ### 術語處理
@@ -359,7 +359,7 @@ SSOT = `GU-LOG_WRITER_PROMPT.md` 的「術語處理」；此處只是 derived vi
 
 gu-log 使用 tribunal 進行品質管理——一個 multi-agent scoring + rewrite 系統（`tribunal-batch-runner.sh` 批次掃描、`tribunal-all-claude.sh` 單篇執行）。
 
-> ⚠️ 評審維度 / pass bar / 各 judge 的 model 都是 **derived view**，會 drift——權威端：`docs/tribunal-runbook.md`（跑法 + daemon）、`scripts/vibe-scoring-standard.md`（評分標準）、`.claude/agents/*.md` 的 `model:` frontmatter（每個 judge 實際 model）。現行是 **v9 四維 Vibe（Persona / ClawdNote / Vibe / Narrative）+ Fact / Librarian / Fresh Eyes 多 judge**；完整 pass bar 見 `AGENTS.md`〈Quality〉摘要或 tribunal-runbook 全文。
+> ⚠️ 評審維度 / pass bar / 各 judge 的 model 都是 **derived view**，會 drift——權威端：`docs/tribunal-runbook.md`（跑法 + daemon）、`scripts/vibe-scoring-standard.md`（評分標準）、`.claude/agents/*.md` 的 `model:` frontmatter（每個 judge 實際 model）。現行是 **v9 四維 Vibe（Persona / MoguNote / Vibe / Narrative）+ Fact / Librarian / Fresh Eyes 多 judge**；完整 pass bar 見 `AGENTS.md`〈Quality〉摘要或 tribunal-runbook 全文。
 
 1. **Scorer + 多 judge** 讀文章 + 評分標準 → 給分。
 2. 沒過 → **Rewriter agent** 改寫 → 再跑 → 最多 3 次。
@@ -376,11 +376,11 @@ bash scripts/tribunal-batch-runner.sh
 
 ### GPT 5.4 Fact-Check（四層驗證）
 
-SP/CP 翻譯文章額外跑 GPT 5.4 fact-check：
+GP/MP 翻譯文章額外跑 GPT 5.4 fact-check：
 1. **翻譯扭曲** — 翻譯有沒有改變原意？
 2. **數字捏造** — 有沒有自己發明數據？
 3. **原文 claim 驗證** — 原作者的說法本身正確嗎？
-4. **錯誤 → ClawdNote 素材** — 發現的錯誤變成 ClawdNote 吐槽素材
+4. **錯誤 → MoguNote 素材** — 發現的錯誤變成 MoguNote 吐槽素材
 
 ## BDD Testing
 
@@ -413,7 +413,7 @@ test('GIVEN [前提] WHEN [動作] THEN [預期結果]', async ({ page }) => {
 
 **在動筆之前，必須確認你拿到的是完整的 source material。**
 
-- **Twitter/X threads**：確認你有全部推文。看 numbering（如 1/5, 2/5...），用 `bird replies <url>` 逐則追完整串
+- **Twitter/X threads**：載入 `x-source-fetch`，跑 `bash scripts/fetch-x-article.sh <url>`。若來源明顯是 self-thread，確認輸出有 `Thread: N tweets` 與對應的 `THREAD N/M` 段落；只拿到 focal tweet 就視為 source 不完整並停止寫作
 - **多頁文章**：確認不是只拿到第一頁
 - **Paywall 內容**：確認穿透成功，不是拿到登入頁
 - **影片/podcast**：確認有完整 transcript，不是只有標題和描述
@@ -428,14 +428,14 @@ Pipeline agents：如果無法取得完整 source，output `INCOMPLETE_SOURCE: <
 
 **寫作順序：zh-tw 先寫、先 iterate 到過分數，才翻英文。** 英文版是 zh-tw 穩定後的衍生品，不是並行產物。
 
-**為什麼**：vibe-scorer 的迭代會改 persona、重寫 ClawdNote、動段落結構，每一輪都可能大改。如果同時維護 EN 版，等於在翻譯一個不穩定的 draft，浪費 token + 兩邊容易失同步。zh-tw 是 SSOT，先讓它過分數再說。
+**為什麼**：vibe-scorer 的迭代會改 persona、重寫 MoguNote、動段落結構，每一輪都可能大改。如果同時維護 EN 版，等於在翻譯一個不穩定的 draft，浪費 token + 兩邊容易失同步。zh-tw 是 SSOT，先讓它過分數再說。
 
 **例外**：如果你已經確定稿子不會再動（例如從別的過分數的稿子搬過來），可以一次兩版。這是權衡後的例外，不是預設。
 
-### 新增翻譯文章 (SP/CP)
+### 新增翻譯文章 (GP/MP)
 
-1. 抓原文：X/Twitter 用 `sp-source-fetch` skill；一般 blog/docs 用 `curl -sL -A "Mozilla/5.0..." <url>` 抓原始 HTML 再解析，不用 `WebFetch` 當翻譯依據
-2. 寫 **zh-tw 版** `<prefix>-pending-YYYYMMDD-<slug>.mdx`（加 ClawdNote 吐槽）
+1. 抓原文：X/Twitter 用 `x-source-fetch` skill；一般 blog/docs 用 `curl -sL -A "Mozilla/5.0..." <url>` 抓原始 HTML 再解析，不用 `WebFetch` 當翻譯依據
+2. 寫 **zh-tw 版** `<prefix>-pending-YYYYMMDD-<slug>.mdx`（加 MoguNote 吐槽）
 3. `node scripts/validate-posts.mjs` 確認 frontmatter 合格
 4. 丟 **vibe-opus-scorer** subagent 評分 → 沒過就改寫，最多 3 輪
 5. 過分數之後才翻 **en 版** `en-<prefix>-pending-YYYYMMDD-<slug>.mdx`
@@ -446,25 +446,23 @@ Pipeline agents：如果無法取得完整 source，output `INCOMPLETE_SOURCE: <
 ### 新增原創文章 (SD)
 
 1. Outline → 人類核准
-2. 寫 **zh-tw 版** + ClawdNote + ShroomDogNote
+2. 寫 **zh-tw 版** + MoguNote + ShroomDogNote
 3. 丟 **vibe-opus-scorer** 評分 → 沒過就改寫（pass bar: composite ≥ 8 AND 至少一維 ≥ 9 AND 無維 < 8）
 4. GPT 5.4 fact-check（如適用）
 5. 過分數後才翻 **en 版**
 6. 更新 counter → validate → build → push
 
-### SP Pipeline（自動翻譯流程）
+### GP Pipeline（自動翻譯流程）
 
 ```bash
 # Canonical: the Go binary (self-compiling wrapper — first run cold-builds)
-tools/sp-pipeline/gp-pipeline run <tweet_url>
+tools/gp-pipeline/gp-pipeline run <tweet_url>
 
-# Backwards-compat: old bash entry point is a shim that execs into the Go binary.
-bash scripts/sp-pipeline.sh <tweet_url>
 ```
 
 自動流程：抓原文 → 評估 → dedup → 寫 zh-tw 稿 → review → refine → credits → Ralph 評分 → **translate（只在過分數時觸發，產出 en sidecar）** → commit。
 
-單一 step 也可以直接 call：`tools/sp-pipeline/gp-pipeline fetch <url>` / `eval` / `write` / `review` / `refine` / `ralph` / `deploy`。每個 subcommand 都支援 `--json` 輸出。完整 exit code + flag 對照見 `tools/sp-pipeline/SKILL.md`。
+單一 step 也可以直接 call：`tools/gp-pipeline/gp-pipeline fetch <url>` / `eval` / `write` / `review` / `refine` / `ralph` / `deploy`。每個 subcommand 都支援 `--json` 輸出。完整 exit code + flag 對照見 `tools/gp-pipeline/SKILL.md`。
 
 ### Validation
 
@@ -477,10 +475,10 @@ pnpm run build                   # 完整 build 檢查
 
 ```
 src/content/posts/
-├── sp-123-20260322-slug.mdx          # SP 中文版
-├── en-sp-123-20260322-slug.mdx       # SP 英文版
-├── cp-198-20260322-slug.mdx          # CP 中文版  
-├── en-cp-198-20260322-slug.mdx       # CP 英文版
+├── gp-123-20260322-slug.mdx          # GP 中文版
+├── en-gp-123-20260322-slug.mdx       # GP 英文版
+├── mp-198-20260322-slug.mdx          # MP 中文版
+├── en-mp-198-20260322-slug.mdx       # MP 英文版
 ├── sd-10-20260322-slug.mdx           # SD 中文版
 ├── en-sd-10-20260322-slug.mdx        # SD 英文版
 └── lv-11-20260322-slug.mdx           # Lv 中文版

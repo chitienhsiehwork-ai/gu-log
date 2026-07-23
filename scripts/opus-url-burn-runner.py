@@ -15,6 +15,7 @@ import json
 import os
 import random
 import re
+import shutil
 import signal
 import subprocess
 import sys
@@ -32,16 +33,16 @@ STOP = False
 
 TASKS: list[tuple[str, str]] = [
     (
-        "sp_draft",
+        "gp_draft",
         """
 You start from exactly one URL:
 {url}
 
-Task: write a gu-log SP/CP-style article candidate from this URL only.
+Task: write a gu-log GP/MP-style article candidate from this URL only.
 Requirements:
 - Fetch/investigate the URL and any directly necessary public context.
-- Produce a zh-tw article draft in gu-log voice: vivid 台灣中文, sharp ClawdNote-style stance, no corporate mush.
-- Include title, subtitle, hook, sections, and 5-7 ClawdNote blocks.
+- Produce a zh-tw article draft in gu-log voice: vivid 台灣中文, sharp MoguNote-style stance, no corporate mush.
+- Include title, subtitle, hook, sections, and 5-7 MoguNote blocks.
 - Preserve uncertainty: observed / inferred / speculative.
 - End with 5 factual claims that must be manually verified before publication.
 Do not ask for clarification. If the URL cannot be fetched, explain exactly what failed and still produce a useful fallback plan.
@@ -60,7 +61,7 @@ Produce:
 - 10 things a mediocre AI article would get wrong
 - 8 concrete improvements for a gu-log-quality version
 - likely factual traps and source-check checklist
-- what Clawd would say that is not obvious from the source
+- what Mogu would say that is not obvious from the source
 Mark observed / inferred / speculative.
 """,
     ),
@@ -162,15 +163,15 @@ def extract_candidates(limit: int, include_all: bool = False) -> list[dict[str, 
         if not url or not re.match(r"https?://", url):
             continue
         slug = path.name
-        if not include_all and not (slug.startswith(("sp-", "cp-")) or ticket.startswith(("SP-", "CP-"))):
+        if not include_all and not (slug.startswith(("gp-", "mp-")) or ticket.startswith(("GP-", "MP-"))):
             continue
         hay = " ".join([slug, ticket, fm.get("title", ""), url])
         score = 0
-        if slug.startswith("sp-181"):
+        if slug.startswith("gp-181"):
             score += 10000
         if KEYWORDS.search(hay):
             score += 500
-        num_m = re.search(r"(?:sp|cp)-(\d+)", slug)
+        num_m = re.search(r"(?:gp|mp)-(\d+)", slug)
         if num_m:
             score += int(num_m.group(1))
         body_len = len(text.split("---", 2)[-1])
@@ -277,10 +278,10 @@ def run_one(model: str, label: str, prompt: str, trial_dir: Path, task: str, can
 
 
 def usage_sample() -> dict[str, Any]:
-    script = Path.home() / "clawd/scripts/usage-monitor.sh"
-    if not script.exists():
+    script = os.environ.get("USAGE_MONITOR") or shutil.which("usage-monitor.sh")
+    if not script:
         return {"error": "usage-monitor missing"}
-    p = subprocess.run(["bash", str(script), "--json"], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=30)
+    p = subprocess.run(["bash", script, "--json"], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=30)
     try:
         return {"exit_code": p.returncode, "data": json.loads(p.stdout)}
     except Exception:

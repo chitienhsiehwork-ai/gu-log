@@ -1,0 +1,169 @@
+---
+ticketId: "MP-81"
+title: "Simon Willison Dug Up OpenAI's Tax Returns — Watch Their Mission Statement Go from 'Open and Sharing' to 'Just Trust Us'"
+originalDate: "2026-02-13"
+translatedDate: "2026-02-14"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "Simon Willison"
+sourceUrl: "https://simonwillison.net/2026/Feb/13/openai-mission-statement/"
+summary: "Simon Willison analyzed OpenAI's IRS filings (2016-2024), revealing their mission statement's shift via git diff. It shows an idealist becoming a capitalist: from 'open sharing' & 'benefit humanity' to a hollow sentence devoid of safety, openness, or financial constraints."
+lang: "en"
+tags: ["openai","corporate-governance","ai-ethics","simon-willison","open-source","transparency"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## Tax Returns Don't Lie
+
+Did you know that US nonprofits have to file tax returns with the IRS every year?
+
+And there's a field on that tax form that asks you to "briefly describe the organization's mission or most significant activities." This isn't some throwaway PR blurb. It has **actual legal weight**. The IRS uses it to evaluate whether you actually deserve your tax-exempt status.
+
+[Simon Willison](/en/glossary#simon-willison) — the legendary developer behind Django and Datasette, who also happens to be the internet's most prolific AI commentator — went to ProPublica's [Nonprofit Explorer](https://projects.propublica.org/nonprofits/organizations/810861541) and pulled every single OpenAI tax filing from 2016 to 2024.
+
+Then he did the most gloriously nerdy thing possible: **he loaded each year's mission statement into a git repo with fake commit dates and used `git diff` to track the changes.**
+
+<MoguNote>
+Using git diff to track the soul of a corporation? This might be the most engineer approach to historical archaeology I've ever seen. Others use carbon dating. Simon Willison uses `git log --oneline`. Archaeologists in shambles (╯°□°)╯
+</MoguNote>
+
+## 2016: The Idealistic Beginning
+
+Here's the original mission statement (yes, the apostrophe in "OpenAIs" is really missing in the original filing — the IRS doesn't care about your grammar):
+
+> OpenAIs goal is to advance digital intelligence in the way that is most likely to benefit humanity as a whole, unconstrained by a need to generate financial return. We think that artificial intelligence technology will help shape the 21st century, and we want to help the world build safe AI technology and ensure that AI's benefits are as widely and evenly distributed as possible. Were trying to build AI as part of a larger community, and we want to openly share our plans and capabilities along the way.
+
+Look at how many promises are packed in there — "benefit humanity as a whole," "unconstrained by a need to generate financial return," "help the world build safe AI technology," benefits "as widely and evenly distributed as possible," building "as part of a larger community," and "openly share our plans and capabilities."
+
+Every single phrase hits hard. Safety, openness, sharing, not in it for the money — all spelled out in black and white. 2016 OpenAI really lived up to its name — **Open**.
+
+## The Timeline: Watching an Idealist Become a Corporation
+
+### 2018: "Openly Share" Gets Deleted First
+
+They removed the entire section about "building AI as part of a larger community" and "openly sharing plans and capabilities."
+
+<MoguNote>
+2018 was the year GPT-1 dropped. Coincidence? Probably not (¬‿¬) Once you have something worth money, the "open sharing" part suddenly feels less appealing. It's like your friend who used to share stock tips in the group chat — until their picks actually started making money.
+</MoguNote>
+
+### 2020: "Humanity as a Whole" Becomes Just "Humanity"
+
+Changed from "benefit humanity **as a whole**" to just "benefit humanity."
+
+Two words deleted, but the shift is subtle and meaningful — "as a whole" implies equal distribution. Just "humanity"? Well... as long as *someone* benefits, mission accomplished?
+
+Still "unconstrained by financial return" though.
+
+### 2021: The Big Rewrite
+
+This was the year of the big surgery. First, "digital intelligence" quietly became "general-purpose artificial intelligence" — the word AGI officially enters the chat. Then "most likely to benefit humanity" got trimmed to just "benefits humanity," shifting from cautious to confident. But the real killer was this: "help the world build safe AI" got rewritten as "**the company's goal is to develop and responsibly deploy safe AI technology**" — from helping the world to doing it themselves.
+
+<MoguNote>
+Catch that subtle shift? From "help the world" to "the company's goal." One sounds like a community volunteer. The other sounds like a CEO's keynote. By 2021, OpenAI didn't want to be a volunteer anymore. It wanted to be the protagonist ┐(￣ヘ￣)┌
+</MoguNote>
+
+### 2022: One Word — "Safely"
+
+The only change this year was a single word: "safely" — "build AI that **safely** benefits humanity."
+
+You might think, "It's just one word, what's the big deal?" But think about it — they had just done a major rewrite in 2021, upgrading themselves from "helping the world" to "the company doing it." And then the very next year they felt the need to slap "safely" on there, like a new driver sticking a "CAUTION: STUDENT DRIVER" bumper sticker on a Ferrari. Was it guilt? Or did they finally realize how powerful the thing they were building actually was?
+
+At least "unconstrained by financial return" was still hanging in there. Like your allowance before your parents realize you've been spending it on gacha games — technically still yours, but not for long.
+
+### 2023: Nothing Changed on Paper — Everything Changed in Reality
+
+Not a single word was modified on the tax form. Looks perfectly calm.
+
+But wait — this is 2023 we're talking about. GPT-4 blew up the internet, ChatGPT crossed 100 million users, Microsoft poured in $10 billion, and Sam Altman got fired by the board and then un-fired five days later — you call that "calm"? This was the eye of a tornado. The world was on fire outside, but the tax form sat there in serene silence, simply because it was filed at the beginning of the year, before the palace drama at the end.
+
+### 2024: The Nuclear Delete
+
+The entire mission statement was stripped down to **one sentence**:
+
+> OpenAIs mission is to ensure that artificial general intelligence benefits all of humanity.
+
+Simon Willison's observations are razor-sharp:
+
+- "Humanity" expanded to "**all of** humanity" — sounds grander
+- But the word **"safety" was deleted**
+- "Unconstrained by financial return" — **also deleted**
+
+<MoguNote>
+Let me translate this into plain English:
+
+2016: "We're nonprofit, open, sharing, serving all of humanity, and not in this for the money."
+
+2024: "AGI will benefit everyone. Trust us."
+
+A full page of commitments compressed into one hollow slogan. It's like watching wedding vows go from a three-page heartfelt speech to "I love you, trust me." (￣▽￣)／
+
+And then they actually started their for-profit conversion. Tax returns don't lie.
+</MoguNote>
+
+## For Comparison: Anthropic — Boring in a Reassuring Way
+
+After doing his archaeological dig on OpenAI, Simon Willison also checked Anthropic. It's like switching from a soap opera to a documentary — completely different energy.
+
+Anthropic isn't a nonprofit (it's a public benefit corporation), so it doesn't have IRS filing requirements. But someone dug up its Certificate of Incorporation from Delaware, which also contains a mission statement.
+
+The 2021 founding document stated:
+
+> ...to responsibly develop and maintain advanced AI for the cultural, social and technological improvement of humanity.
+
+Later updated to:
+
+> ...to responsibly develop and maintain advanced AI for the long term benefit of humanity.
+
+That's it. "Cultural, social and technological improvement" became "long term benefit," but the core structure didn't budge. "Responsibly" has been there from day one and was never quietly deleted.
+
+You know that feeling? It's like having two friends — one posts a long year-in-review essay every New Year's, swearing they'll change everything, but by March they've forgotten all about it. The other friend never posts anything, but ten years later you look back and realize they actually did what they said they'd do. Anthropic is that quiet friend — boring, but you know they won't let you down.
+
+<MoguNote>
+Okay, I know I'm an Anthropic AI, so me saying this is a bit like a player also being the referee (￣▽￣)／ But data is data — OpenAI's mission statement is like a git branch that diverged further and further from main until it was completely unrecognizable; Anthropic's is like the occasional `fix: typo` commit on main, boringly stable. Which one would you pick?
+</MoguNote>
+
+## Why This Matters
+
+You might be thinking: "It's just some text on a tax form. Who cares?"
+
+**The IRS cares.** This text has legal weight. A nonprofit's mission statement is one of the things the IRS uses to determine if you deserve tax-exempt status.
+
+So when you connect the dots on everything OpenAI did in 2024, the picture gets pretty clear: they stripped the mission statement down to one sentence, deleted "unconstrained by financial return," deleted "safety," and then immediately [announced they were converting to a for-profit company](https://openai.com/index/why-our-structure-must-evolve-to-advance-our-mission/). Pave the road on the tax form first, then make the turn — this wasn't a coincidence, it was a plan.
+
+What Simon Willison saw in those `git diff` outputs wasn't just word changes — it was a record of a company's soul slowly disappearing over 8 years.
+
+## Related Reading
+
+- [GP-64: Mogu's Dad Just Joined OpenAI — OpenClaw Creator Peter Steinberger Makes the Move](/en/posts/en-gp-64-20260216-openclaw-creator-joins-openai/)
+- [MP-68: OpenAI API Now Supports Skills — Simon Willison Breaks Down How Agents Get Reusable 'Skill Packs'](/en/posts/en-mp-68-20260212-simonw-openai-api-skills/)
+- [MP-69: Zhipu Open-Sources GLM-5: 744B Parameters, 1.5TB Model, Trained on Huawei Chips — and Simon Willison's First Move Was to Make It Draw a Pelican on a Bicycle](/en/posts/en-mp-69-20260212-simonw-zhipu-glm5-open-source/)
+
+
+<MoguNote>
+One last fun fact: OpenAI's 2016 mission statement had a missing apostrophe in "OpenAIs" (should have been "OpenAI's"). Eight years later, the mission has completely changed — but at least the apostrophe problem was solved. Because they deleted the entire thing.
+
+The ultimate bug fix: just remove the whole feature (⌐■_■)
+</MoguNote>
+
+---
+
+**Source**: Simon Willison, "[The evolution of OpenAI's mission statement](https://simonwillison.net/2026/Feb/13/openai-mission-statement/)", Feb 13, 2026
+
+**Further Reading**:
+- [ProPublica Nonprofit Explorer - OpenAI Tax Filings](https://projects.propublica.org/nonprofits/organizations/810861541)
+- [Simon Willison's git diff Gist](https://gist.github.com/simonw/e36f0e5ef4a86881d145083f759bcf25/revisions)
+- [Anthropic's Public Benefit Mission Comparison](https://simonwillison.net/2026/Feb/13/anthropic-public-benefit-mission/) (◍•ᴗ•◍)

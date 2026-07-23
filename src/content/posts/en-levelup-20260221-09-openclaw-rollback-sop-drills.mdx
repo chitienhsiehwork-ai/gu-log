@@ -10,12 +10,12 @@ source: "Level-Up Series"
 sourceUrl: "https://gu-log.vercel.app/posts/levelup-20260221-09-openclaw-rollback-sop-drills"
 summary: "Lv-09 continues from Lv-08, focusing on the Recover Layer. We break down rollback safety design, upgrade SOP decision trees, a `|| true` showstopper caught in code review, and actionable drill KPIs."
 lang: "en"
-tags: ["openclaw", "rollback", "sop", "sre", "incident-response", "bash", "tutorial"]
+tags: ["openclaw","rollback","sop","sre","incident-response","bash","tutorial"]
 ---
 
 import LevelUpProgress from '../../components/LevelUpProgress.astro';
 import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
-import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
 
 Last time in Lv-08, we got the Detect Layer working — your system finally learned to scream "I'm dying!" when things go south.
 
@@ -45,9 +45,9 @@ Three ground rules:
 
 The whole post boils down to two files: `openclaw-rollback.sh` and `openclaw-upgrade-sop.md`.
 
-<ClawdNote>
+<MoguNote>
 The most dangerous person in SRE isn't the newbie — it's the veteran who "knows the system so well" they skip the SOP. I saw a live example back in Lv-05 where that exact confidence led to a `|| true` that nearly killed the entire watchdog (╯°□°)╯
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -67,9 +67,9 @@ openclaw-rollback.sh --auto-confirm  # Auto mode (for CI pipelines)
 
 Default is `--dry-run`. This isn't politeness — it's a safety default paid for in blood. You know that feeling when you hit Enter and immediately go cold? This exists to prevent that.
 
-<ClawdNote>
+<MoguNote>
 "Safe by default" sounds boring, but it might be the most underrated design principle in all of Unix. Think about it — `rm` doesn't have a default `--dry-run`, and how many systems have been sent to the morgue by `rm -rf /`? If Ken Thompson had added one confirmation prompt back in the day, Stack Overflow would probably have a third fewer disaster recovery questions ┐(￣ヘ￣)┌
-</ClawdNote>
+</MoguNote>
 
 Here's what the script actually does. I'll walk you through it like an ER visit:
 
@@ -92,9 +92,9 @@ During an incident, your system could be in all sorts of weird states:
 
 If you don't detect the mode first, you get the worst kind of failure: "files restored successfully, but the service started in the wrong place." It's like a surgeon saying the operation was a success — except they operated on the right side when the problem was on the left.
 
-<ClawdNote>
+<MoguNote>
 Dual mode is genuinely one of the scariest production states I've heard of. Imagine two thermostats controlling the same AC unit — one says 65°F, the other says 82°F — and the AC just keeps switching on-off-on-off until the compressor burns out. That's what dual mode does to your services (◕‿◕) ...okay that face might be inappropriate for something this terrifying, but I believe in smiling at the void.
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="Why can't rollback just do a 'one-click hard restore'?"
@@ -134,9 +134,9 @@ Step seven: resume watchdog — security is back from their coffee break.
 
 Step eight: watch quick verify for five minutes. Surgery isn't over when you leave the operating room — you sit in recovery to make sure there's no internal bleeding. Five minutes isn't long, but it catches those cursed bugs that start successfully and then silently crash three minutes later.
 
-<ClawdNote>
+<MoguNote>
 You know what? I think everyone who writes SOPs should be forced to assemble IKEA furniture at least once. That experience teaches you exactly why step order matters — you skip step 14 thinking "this screw probably doesn't matter," then at step 38 you discover the entire bookshelf is crooked and you have to take the whole thing apart and start over. Upgrade SOPs work the same way: you think "leaving the watchdog running should be fine," until a restart storm completely destroys your 4 AM (¬‿¬)
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="Why does the SOP make `OPENCLAW_NO_RESPAWN=1` a hard gate?"
@@ -179,9 +179,9 @@ So `$?` is always 0. Always.
 
 What does that mean? It means your watchdog thinks the system is healthy no matter what. Even if healthcheck reports "all five critical checks failed," the watchdog is sitting there saying "everything's fine!" Your carefully designed safety net has a hole in the middle of it.
 
-<ClawdNote>
+<MoguNote>
 `|| true` is like a fake buckle on a seatbelt — it looks fastened, but when you actually crash, you fly straight through the windshield. The scariest part? The person who wrote it usually did it on purpose because they "didn't want the script to abort just because healthcheck failed." Good intention, lethal execution ヽ(°〇°)ﾉ
-</ClawdNote>
+</MoguNote>
 
 The fix is actually straightforward — stop trusting the exit code and parse the JSON content directly:
 
@@ -204,9 +204,9 @@ Here's why this story matters. It's not about who was right and who was wrong �
 
 The reviewer caught a potentially fatal `|| true` bug — genuinely life-saving. But the reviewer wasn't 100% right either, because they were referencing outdated docs. The implementer didn't just accept everything and move on — they brought evidence. And the final call came from going back to the latest spec together, not from whoever had the bigger title.
 
-<ClawdNote>
+<MoguNote>
 This is my favorite story in the whole post because it proves two things simultaneously: "skipping code review is dangerous" and "blindly accepting all review comments is also dangerous." Healthy collaboration isn't obedience — it's evidence-based dialogue. Same principle as the adversarial collaboration we talked about in Lv-03 — you need people to challenge you, but the challenges need receipts (๑•̀ㅂ•́)و✧
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="What's the most valuable team habit demonstrated in this review drama?"
@@ -248,9 +248,9 @@ Alert latency: a human knows within 5 minutes. If your alert fires and nobody kn
 
 Restart storm: zero occurrences in the 72-hour observation window. This one shouldn't need explaining. If you still see a restart storm after drilling, your `NO_RESPAWN` gate isn't doing its job.
 
-<ClawdNote>
+<MoguNote>
 I've noticed a lot of teams treat drills like "yeah we did one." Then they point at a document from six months ago. Please. The value of a drill isn't that you did it — it's whether you got faster. If your MTTR stays flat across drills, you're not practicing, you're performing. It's like me saying I'm going to lose weight every day while my scale never moves — that's called wishing, not executing (╯°□°)╯
-</ClawdNote>
+</MoguNote>
 
 Alright, what does the minimum drill package look like? Five actions, and let me walk you through why each one earns its spot.
 
@@ -271,9 +271,9 @@ Last — and this is the most important one — record this drill's MTTR and com
 - [Lv-05: OpenClaw Channels & Tools: The AI's Mouth and Hands](/en/posts/en-levelup-20260218-05-openclaw-channels-tools/)
 
 
-<ClawdNote>
+<MoguNote>
 "Intentionally breaking your system" sounds wild, right? But it has a proper name in SRE — Chaos Engineering. Netflix's Chaos Monkey is the OG. It randomly kills production instances, forcing teams to practice recovery in the real environment. We don't need a monkey at our scale, but the spirit is the same: if you don't go looking for problems, problems will come looking for you, and they always pick the moment you're busiest, most exhausted, and least prepared. Like discovering the night before finals that the professor changed the exam scope ╰(°▽°)╯
-</ClawdNote>
+</MoguNote>
 
 ---
 

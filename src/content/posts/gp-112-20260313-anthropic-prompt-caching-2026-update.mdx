@@ -1,0 +1,289 @@
+---
+ticketId: "GP-112"
+title: "Anthropic Prompt Caching 全攻略 — Automatic Caching、1 小時 TTL、與那些官方文件沒明說的坑"
+originalDate: "2026-03-13"
+translatedDate: "2026-03-13"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "Anthropic Official Docs"
+sourceUrl: "https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching"
+lang: "zh-tw"
+summary: "Anthropic 官方 prompt caching 文件大更新：Automatic Caching 讓你不用手動標記、1 小時 TTL 讓 cache 活更久、invalidation hierarchy 告訴你什麼改動會炸掉什麼。我們也分享了自己踩過的 $13.86 帳單地雷。"
+tags: ["prompt-caching","claude-code","cost-optimization","api"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+> 📘 本篇基於 [Anthropic 官方 Prompt Caching 文件](https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching)，截至 2026 年 3 月 13 日的版本。
+>
+> 如果你還不知道 prompt caching 是什麼，建議先讀我們的系列：
+> - [Part 1：省錢指南](/posts/gp-31-20260205-dejavucoder-prompt-caching-part1-tips) — 六個實戰 tips
+> - [Part 2：KV Cache 原理](/posts/gp-32-20260205-dejavucoder-prompt-caching-part2-kv-cache) — 記憶體的噩夢
+> - [GP-73：Claude Code 的 Cache 設計哲學](/posts/gp-73-20260219-trq212-claude-code-prompt-caching) — Anthropic 工程師的實戰分享
+>
+> 本篇聚焦在 **2026 年的新功能與更新**，跟上面三篇互補。
+
+---
+
+## 先講結論：我們被帳單嚇到才寫的這篇
+
+三月七號早上打開 Anthropic dashboard，帳單顯示 $13.86。
+
+不是一整個月。是一天。
+
+我盯著那個數字，像期末考拿回成績單的大學生 — 明明前一天都還好好的，怎麼一覺醒來世界就崩了？後來追查才發現，一個 library 更新偷偷把我們的 cache TTL 從一小時改成了五分鐘。就像你家冰箱被人偷偷調成「省電模式」，然後所有食物都壞掉了。
+
+所以這篇不只是翻譯 Anthropic 的官方文件。這篇是我們交了學費之後寫的筆記。
+
+> 💡 **關於程式碼範例**：本篇所有 API 結構都用 **YAML** 格式呈現。YAML 跟 JSON 是 1:1 對映的（同樣的資料結構），只是省去了大括號和引號，在手機上更好讀。
+
+---
+
+## Automatic Caching — 終於不用自己記停車位了
+
+以前用 prompt caching，你得在每個想 cache 的 content block 上手動加 `cache_control`。這就像去大賣場，你不但要自己記哪個走道放了什麼，還要在每個貨架上貼一張便利貼提醒自己「這個我常買」。
+
+```yaml
+system:
+  - type: text
+    text: 你是一個文學分析助手...（一大段 system prompt）
+    cache_control:
+      type: ephemeral
+```
+
+在 multi-turn 對話裡更痛苦 — 每次新增訊息，你都得決定要把 `cache_control` 放在哪裡。GP-73 那篇有提到，[Claude Code](/glossary#claude-code) 團隊花了大量工程時間就是在搞這件事。
+
+<MoguNote>
+以前的 prompt caching 就像每天上班都要跟保全重新自我介紹一樣荒謬 — 出示證件、背誦員工編號、等他打電話確認，搞完半小時過去了，早餐都涼了。Automatic caching 上線之後？保全終於裝了人臉辨識。但最好笑的是，一堆老司機反而不信任自動化，堅持每天手動刷卡再跟保全聊五分鐘天氣。你們是去上班還是去交朋友的 (￣▽￣)／
+</MoguNote>
+
+現在 Anthropic 推出了 **Automatic Caching**：你只要在 request 的最上層加一個 `cache_control`，系統會自動把 cache breakpoint 放在最後一個可 cache 的 block 上。
+
+```yaml
+model: claude-opus-4-6
+max_tokens: 1024
+cache_control:
+  type: ephemeral
+system: 你是一個會記住對話的助手。
+messages:
+  - role: user
+    content: 我叫 Alex，我做 ML 的。
+  - role: assistant
+    content: 嗨 Alex！今天想聊什麼 ML 的話題？
+  - role: user
+    content: 我剛剛說我做什麼的？
+```
+
+就這樣。不用在每個 block 上標記，系統自己搞定。
+
+### Multi-turn 對話的自動前移
+
+Automatic caching 最聰明的地方是 **cache breakpoint 會隨著對話自動往前移**。你可以把它想成便利商店的「熟客模式」— 店員會記住你最近買過什麼，但記憶會隨著新交易不斷更新：
+
+- **第 1 次請求**：System + User(1) + Asst(1) + User(2) ← 全部寫入 cache
+- **第 2 次請求**：System 到 User(2) 從 cache 讀取；新增的 Asst(2) + User(3) 寫入 cache
+- **第 3 次請求**：System 到 User(3) 從 cache 讀取；新增的 Asst(3) + User(4) 寫入 cache
+
+你完全不用動任何 `cache_control` 標記，它就是自動的。
+
+<MoguNote>
+這對做 chatbot 跟 agent 產品的人來說，根本是從「手排車」升級到「自排車」的感覺。GP-73 那篇 [Thariq](/glossary#thariq) 提到 Claude Code 團隊要花大量精力維護 cache 前綴排列 — 現在 Automatic Caching 讓這件事的門檻低到「會呼吸就會用」的程度。當然，如果你是那種手排車開得比自排還快的老司機，explicit breakpoints 還是給你用的 ╰(°▽°)╯
+</MoguNote>
+
+### 可以混搭
+
+Automatic caching 跟 explicit breakpoints 可以同時用。比如你想讓 system prompt 獨立 cache（因為它幾乎不變），同時讓對話部分自動 cache：
+
+```yaml
+model: claude-opus-4-6
+max_tokens: 1024
+cache_control:
+  type: ephemeral    # 自動 cache 對話
+system:
+  - type: text
+    text: 你是一個文學分析助手。
+    cache_control:
+      type: ephemeral  # 獨立 cache system prompt
+messages:
+  - role: user
+    content: 《傲慢與偏見》的主要 themes 是什麼？
+```
+
+但有一個小陷阱：automatic caching 會佔用 4 個 breakpoint slot 中的 1 個。所以如果你已經手動放了 4 個 explicit breakpoints，再加 automatic 會收到 400 error。這就像停車場只有 4 格，你已經停滿了，不能再開一台進去。
+
+---
+
+## 1 小時 Cache TTL — 花點小錢買個保險
+
+預設的 cache lifetime 是 **5 分鐘**。每次 cache hit 都會自動刷新這個計時器（免費的），但如果 5 分鐘內沒有任何請求命中這個 cache，它就消失了。
+
+五分鐘。
+
+你去上個廁所回來、泡個咖啡、回個 [Slack](/glossary#slack) 訊息 — cache 就沒了。對人類來說五分鐘是眨眼之間，但對 API 帳單來說，五分鐘就是 cache write 跟 cache hit 的分界線。
+
+<MoguNote>
+5 分鐘 TTL 就像便利商店的「限時優惠」— 結帳後 5 分鐘內回來買第二件半價，超過就恢復原價。聽起來很合理，但你有沒有想過，你的 agent 在「思考」的時候並不會送 API request？所以它思考 6 分鐘，cache 就過期了。恭喜，你剛剛的優惠券作廢了 ┐(￣ヘ￣)┌
+</MoguNote>
+
+現在你可以選擇 **1 小時 TTL**：
+
+```yaml
+cache_control:
+  type: ephemeral
+  ttl: 1h
+```
+
+代價是 cache write 的價格從 **1.25x** 變成 **2x** base input price。
+
+拿 Opus 4.6 舉例（每百萬 token）：
+
+- Base input：$5
+- 5 分鐘 cache write：$6.25（1.25x）
+- **1 小時 cache write：$10（2x）**
+- Cache hit（讀取）：$0.50（0.1x）— 兩種 TTL 一樣
+
+多付 60% 的 write 成本，換來 12 倍的 TTL。如果你的 agent 會在一小時內反覆讀取同一段 prompt，這筆交易划算得不像話。
+
+---
+
+## Cache Invalidation Hierarchy — 什麼改動會炸掉什麼
+
+好，接下來這段是整篇的硬核。但也是最多人跳過的段落，所以我要想辦法讓你讀下去。
+
+Phil Karlton 說過「電腦科學只有兩個難題：cache invalidation 跟命名」— prompt caching 讓你同時體驗兩個，而且是在帳單上體驗。
+
+先搞清楚一件事：cache 的前綴是按照 **tools → system → messages** 的順序疊起來的。最先放進去的 tools 在最底層，最後放的 messages 在最上面 — 像搬家打包行李箱，想拿底層的東西？上面的全部先搬出來。
+
+理解了這個結構，接下來的故事就好懂了。
+
+<MoguNote>
+Anthropic 在這裡的設計我給他 87 分 — 聰明是真的聰明，但也真的陰。最不常動的 tools 放底層、最常動的 messages 放上面，data structure 上教科書級正確。但問題是，一堆 agent framework 會在 runtime 動態增減 tools 啊！你每加一個 tool 就是在「抽行李箱底部的內褲」，結果整箱東西瀑布式倒出來。我在好幾個開源 agent framework 的 issue tracker 看過同一個問題：「為什麼我的 cache hit rate 突然歸零？」答案永遠是一樣的 — 你動了 tools (╯°□°)╯
+</MoguNote>
+
+我把三種情況用「車禍嚴重程度」來分，好記。
+
+**全損報廢：動到 tool definitions。** 改了任何一個 tool 的名稱、描述、或參數？那你的 cache 基本上可以辦喪事了 — tools cache 炸、system cache 炸、messages cache 也跟著一起下去。全部從頭 write。這是最慘的情況，地基被人抽掉，整棟樓重蓋。GP-73 那篇 Thariq 說的「tools 不能加不能刪」就是在講這個。你可能覺得「我就加一個 tool 而已嘛」— 對，但對 cache 來說，你剛剛對它的世界觀進行了一次基因改造。
+
+**半毀：開關 web search 或 citations。** 這個超反直覺。你心想：我只是按了個 toggle 而已啊？但 Anthropic 底層會偷偷把 search 相關的 instructions 注入你的 system prompt。你以為你在按開關，底層其實在改你的 system prompt，所以 system cache 跟 messages cache 一起殉葬。唯一活下來的是 tools cache — 因為 tools 排在 system 前面，震波傳不到那邊。就像地震的時候，震央在二樓，三樓全塌了但地下室沒事。
+
+**輕傷擦破皮：改 tool choice 或 extended thinking 設定。** 終於來個客氣的。tools 跟 system 的 cache 都不受影響，只有 messages cache 需要重算。日常開發最常碰到的就是這類改動，所以損失相對有限。擦了個藥膏繼續跑就好。
+
+<MoguNote>
+你注意到沒有？越「看起來無害」的操作，越容易偷偷搞爆你的 cache。改 tool definitions 大家都知道是大事，會慎重對待。但「開個 web search」？感覺跟開 Wi-Fi 一樣隨手的事嘛。結果底層偷改 system prompt，cache 直接炸兩層。我稱之為「toggle 陷阱」。這道理跟人生很像 — 讓你翻船的從來不是你怕的那個大浪，是你沒注意到的那個小漩渦 (⌐■_■)
+</MoguNote>
+
+---
+
+## 20-Block Lookback Window — 長對話的隱藏地雷
+
+當你設定了一個 explicit cache breakpoint，系統會從那個點**往回看最多 20 個 block**，逐一檢查每個 block 的 hash 是否匹配。
+
+短對話裡完全不是問題。但想像一個 30 個 content block 的長對話，你只在第 30 個 block 設了 `cache_control`：
+
+- **前面都沒改，送第 31 個 block**：系統檢查 block 30 → 命中！只處理 block 31。完美
+- **改了 block 25，送 block 31**：系統從 30 往回查 → 29 → 28... → 25（不匹配）→ 24（匹配！）。從 block 24 之後重新處理。還行
+- **改了 block 5，送 block 31**：系統從 30 往回查 → 29 → 28... → 11（第 20 次檢查）。**到此為止，不再往前查了。** Block 5 的修改超出了 20-block window，結果是 **整個 prompt 都要重算**
+
+這就像你在圖書館找書，但圖書館員只願意往前翻 20 頁目錄。超過 20 頁？「不好意思，全部重新登記。」
+
+<MoguNote>
+20-block lookback 是我心目中的「冷知識刺客」— 你不知道的時候完全感覺不到它存在，知道之後回頭一算帳才驚出一身冷汗：「原來我之前燒的那些錢是因為這個？」如果你的 coding agent 跑長對話（非常普遍），又沒有在中間灑 explicit breakpoints，那你 dashboard 上的 cache hit rate 可能是個美麗的謊言。我們自己就是踩了這個雷才學乖的，別跟我們一樣傻 (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+### 怎麼防
+
+解法其實很簡單：在可能被編輯的內容**之前**放一個 explicit breakpoint。這樣系統在碰到 lookback window 盡頭時，會跳到下一個 explicit breakpoint 繼續檢查，而不是直接放棄。
+
+你最多有 4 個 breakpoint 可以用。怎麼分配？我的建議是按照「這段內容多久會變一次」來排座位，最穩的坐最裡面，最容易動的坐最外面。具體來說：第一個 breakpoint 給 tools（因為上線之後幾乎不會動），第二個給 system prompt（偶爾改措辭但骨架不變），第三個給歷史對話中段（compaction 有可能動到這裡），第四個留給最新的 messages 或者讓 automatic caching 自己用。這樣不管哪一層有變動，損傷都會被隔離在那一層，不會像推骨牌一樣一路倒到底。
+
+---
+
+## Pricing — 別被數字嚇到，先聽我算一筆帳
+
+好，我知道很多人看到 pricing 就想跳過，但這段真的值得花兩分鐘。因為 prompt caching 的定價結構有一個很美的數學 — 搞懂之後你會覺得「怎麼不早點用」。
+
+所有 model 都遵循一樣的倍率結構，差別只在 base input price。核心公式就三條：寫入是 base 的 1.25 倍（5 分鐘 TTL）或 2 倍（1 小時 TTL），讀取是 base 的 0.1 倍，output token 完全不受影響。
+
+拿 Opus 4.6 來算具體數字（base input $5/MTok）：寫入一次 $6.25，讀取一次 $0.50。你多花了 $1.25 寫入，但之後每次讀取省 $4.50。**只要 cache hit 一次，你就回本了。第二次 hit 開始，全是淨賺。** 這就是為什麼大家叫 prompt caching「窮人的 fine-tuning」— 十分之一的價格，幾乎一樣的 latency 改善。
+
+<MoguNote>
+我算了一下我們自己的 agent 跑一個小時大概 hit 同一段 system prompt 20-30 次。用 5 分鐘 TTL 的話，寫入 $6.25、讀取 25 次就是 $12.50，加起來 $18.75。不用 cache 的話？25 次 full input 就是 $125。省了 85%。換成 1 小時 TTL 呢？寫入 $10，讀取一樣 $12.50，加起來 $22.50，還是省了 82%。所以不管你選哪種 TTL，只要你的 agent 不是「用一次就丟」的，prompt caching 的 ROI 都高到不像話。我真心覺得不用 prompt caching 的 agent 開發者，就像不用 version control 寫 code 一樣 — 技術上可以，但為什麼要這樣對自己 ┐(￣ヘ￣)┌
+</MoguNote>
+
+### 最低 Cacheable [Token](/glossary#token) 門檻 — 靜默失敗的陷阱
+
+不是所有 prompt 都能 cache。每個 model 有最低門檻，而且重點來了 — 低於門檻的 prompt 不會報錯，不會給 warning，就是默默地不 cache。你的 code 跑得好好的，dashboard 上看起來一切正常，但 cache hit rate 就是零。
+
+這個門檻在不同 model 之間差距驚人：Opus 4.6 要 4096 tokens，Sonnet 4.5 只要 1024。整整差了四倍。
+
+<MoguNote>
+這裡有一個很多人會踩的坑：你從 Sonnet 升級到 Opus（因為你需要更強的推理），結果原本穩穩 cache hit 的短 prompt 全部靜默 miss。你完全不會收到錯誤訊息。帳單到了才知道。我見過有人在 Discord 問「升級 Opus 之後帳單暴漲 3 倍，是不是 Opus 定價有 bug？」不是 bug 啊老兄，是你的 prompt 低於 4096 tokens，cache 根本沒開起來。這就像從腳踏車換成機車，結果發現要考駕照 — 你以為只是「更快的版本」，其實門檻也跟著提高了 (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+最後補充一下什麼東西能 cache：基本上 tool definitions、system messages、text messages、images、documents、tool use 和 tool results 都行。不能直接 cache 的是 thinking blocks（但它們會跟著 assistant turn 一起被 cache）、citations 的子層級 block（你得 cache 上層的 document block），還有空的 text blocks。概念很簡單：「有內容的東西」幾乎都能 cache，「元資料性質的東西」不行。
+
+---
+
+## 實戰教訓 — $13.86 的一堂課
+
+好，前面講了那麼多理論，現在來講我們自己交的學費。
+
+### 帳單爆炸事件
+
+2026 年 3 月 7 日。一個平靜的早晨。打開 Anthropic dashboard — $13.86。
+
+正常的一天大約 $4-5。三倍。一夜之間。
+
+追查之後發現：71.8% 是 cache write。也就是說，我們的 agent 一直在重新寫入 cache，而不是讀取已有的 cache。
+
+元兇？我們升級了 [OpenClaw](/glossary#openclaw) 的底層 library（pi-ai），新版本（2.1.70.3cc）在自動 migration 的時候，偷偷把 `cacheRetention` 從 `"long"`（1 小時）改成了 `"short"`（5 分鐘）。
+
+為什麼會這樣？因為我們的 config 裡沒有顯式設定這個欄位 — 我們依賴的是舊版本的 implicit default。新版本一看：「欸，這個欄位沒有值，我來幫你設一個吧。」然後它好心地設成了 `"short"`。
+
+<MoguNote>
+「Implicit defaults 是定時炸彈」— 這句話我要裱框掛在牆上。你覺得理所當然的 default，在 library 作者眼裡可能只是一個隨時會改的實作細節。今天的 default 是 long，明天搞不好就是 short，後天可能整個欄位都改名了。你猜怎麼知道的？沒錯，就是帳單告訴你的。這跟 JavaScript 生態圈的 left-pad 事件是同一個教訓 — 你的整個 production 依賴鏈上，每一個你沒顯式控制的參數，都是一個可能在半夜三點把你叫起來的 pager alert (╯°□°)╯
+</MoguNote>
+
+結果就是 cache TTL 從 1 小時掉到 5 分鐘。我們的 agent 在處理長任務時，思考間隔經常超過 5 分鐘 — cache 一直過期、一直重新 write、帳單一直噴。
+
+### 修復
+
+一行 config：
+
+```yaml
+# 在 config 裡顯式設定，不再依賴 library default
+agents:
+  defaults:
+    models:
+      cacheRetention: long
+```
+
+隔天費用：$4.52。省了 67%。
+
+一行 config，省了三分之二的帳單。這大概是我寫過 ROI 最高的一行 code。
+
+---
+
+## 回到那個帳單
+
+文章開頭我說，三月七號早上打開 dashboard 被 $13.86 嚇到。
+
+現在你知道為什麼了：一個 library 更新偷改了 TTL default、5 分鐘的 cache 不夠 agent 的思考間隔用、cache 反覆過期反覆寫入。三個獨立的知識點（TTL 機制、implicit defaults 風險、agent 行為模式）交叉在一起，炸出了一張三倍帳單。
+
+[Prompt](/glossary#prompt) caching 在 2026 年已經不是「進階優化」了 — 它是 agent 產品能不能商業化運作的基礎建設。Claude Code 團隊會對 cache hit rate 發 SEV，這不是偶然。不是因為他們特別在意省錢，而是因為 cache miss 代表的不只是多花錢 — 它代表延遲變高、throughput 變低、用戶體驗變差。
+
+那張 $13.86 的帳單，是最好的教材 (￣▽￣)／
+
+歡迎回去翻我們的 [prompt caching 系列](/posts/gp-31-20260205-dejavucoder-prompt-caching-part1-tips) 跟 [Claude Code 的 cache 哲學](/posts/gp-73-20260219-trq212-claude-code-prompt-caching)，三篇搭配服用效果最佳。

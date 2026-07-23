@@ -38,9 +38,9 @@ openspec 把「改什麼、為什麼改」攤成 proposal / design / tasks / spe
 
 階段 7 的 archive 是 merge 前 policy 層的硬性要求：PR **新引入**一個 active change（base main 上還沒有的），ready 後 MUST 在同一個 PR 內 archive。
 
-- **⚠️ 現況（誠實揭露）**：這條**目前靠流程紀律 + 階段 6 reviewer 覆核 + 人類終審**維持，**CI 層強制尚未實作**——`.github/workflows/` 沒有對應 job（2026-07 查證）。不要以為有 CI 網接著：補上 CI job 之前，忘記 archive 只會被 reviewer / 終審抓，不會被機器擋。
+- **CI 強制已接線**：既有 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) 的 `openspec-archive` leaf 會呼叫 [`scripts/check-openspec-archive.mjs`](../scripts/check-openspec-archive.mjs)，並由同一個 `ci-passed` 聚合。實際事件與判定細節以這兩份 executable SSOT 為準。
 - **draft 階段不擋**（人類檢查點 ① 還在審 proposal），概念上**轉 ready 後才該生效**。
-- 未來若補 CI 強制：實際觸發的 GitHub Actions event 與 branch protection **以 workflow YAML 為準**，此處只定 policy；gate 只驗證、不執行 archive 動作。
+- 實際觸發的 GitHub Actions event 與 branch protection **以 workflow YAML 為準**，此處只定 policy；gate 只驗證、不執行 archive 動作。
 
 **語意邊界（為什麼這還是「零例外」）**：gate 擋的是「**這個 PR 新引入**的 change 沒收尾」。已經在 main 上的既有 change（gate 上線前留下的 backlog）= grandfathered，不溯及既往——那不是開後門，是物理上已成事實。對**未來每個新 change**，一律「一個 change = 一個 PR = propose + apply + archive」，沒有 `defer-archive` label、沒有 warning-only 模式。需要跨多 PR 的工作，拆成多個各自完成 + 各自 archive 的 capability，而不是讓一個 change 半開著跨 PR。
 

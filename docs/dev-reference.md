@@ -18,10 +18,10 @@ src/
 ├── content/
 │   ├── config.ts              # Content collection schema
 │   └── posts/
-│       ├── sp-123-date-slug.mdx   # 中文版 (lang: "zh-tw")
-│       └── en-sp-123-date-slug.mdx # 英文版 (lang: "en")
+│       ├── gp-123-date-slug.mdx   # 中文版 (lang: "zh-tw")
+│       └── en-gp-123-date-slug.mdx # 英文版 (lang: "en")
 ├── components/
-│   ├── ClawdNote.astro        # Clawd 吐槽框（所有系列通用）
+│   ├── MoguNote.astro        # Mogu 吐槽框（所有系列通用）
 │   ├── ShroomDogNote.astro    # ShroomDog 本人聲音（SD 系列）
 │   ├── Toggle.astro           # 可收合內容
 │   ├── TableOfContents.astro  # 目錄

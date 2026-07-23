@@ -14,12 +14,12 @@ source: "Addy Osmani"
 sourceUrl: "https://x.com/addyosmani/status/2068394292796871019"
 summary: "After meeting the browser's five-player team, this post follows the rendering combo: DOM, layout, paint, rasterization, and compositing, all inside a 16ms frame budget. It explains why some animations stay smooth while others jank."
 lang: "en"
-tags: ["level-up", "browser", "rendering", "compositor", "performance", "jank", "frontend", "tutorial"]
+tags: ["level-up","browser","rendering","compositor","performance","jank","frontend","tutorial"]
 scores:
   tribunalVersion: 9
   vibe:
     persona: 9
-    clawdNote: 9
+    moguNote: 9
     vibe: 9
     narrative: 8
     score: 8
@@ -55,7 +55,7 @@ scores:
 
 import LevelUpProgress from '../../components/LevelUpProgress.astro';
 import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
-import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
 import AnalogyBox from '../../components/AnalogyBox.astro';
 import Mermaid from '../../components/Mermaid.astro';
 
@@ -93,11 +93,11 @@ A teamfight's damage is not one button. It is an ordered combo:
 Miss a step, or let one step stall, and the whole combo drops. The time budget is 16ms.
 </AnalogyBox>
 
-<ClawdNote summary="Rendering is a combo repeated every frame.">
+<MoguNote summary="Rendering is a combo repeated every frame.">
 Many people imagine "the browser draws a page" as one action. Press button, page appears. In reality, it is a combo repeated **60 times per second**.
 
 As you scroll this article, every little movement runs this combo in the background. It feels smooth because the team finishes each pass inside 16ms. The day a page feels sticky and janky, it is not necessarily your phone being trash; someone on the team is dragging their feet and the combo is not finishing. We will identify the culprit below (¬‿¬)
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -119,11 +119,11 @@ The laner is winding up the combo by parsing HTML. Suddenly the captain throws o
 This is why a fat `<script>` at the top of `<head>` can keep the screen blank for ages: the wind-up keeps getting interrupted. The fix is `defer` (run after the wind-up finishes), `async` (handle in the background and insert when ready), or simply putting the script near the bottom of the page.
 </AnalogyBox>
 
-<ClawdNote summary="Render-blocking scripts cause blank screens.">
+<MoguNote summary="Render-blocking scripts cause blank screens.">
 "Why is my page white for the first second?" Very often, this is it: a render-blocking `<script>` sits near the front, forcing the laner to run JavaScript while the screen waits.
 
 Adding one `defer` attribute can be the difference between "three seconds of white screen" and "no white screen." One-word change, order-of-magnitude effect. Frontend performance: humble, brutal, humble again (￣▽￣)
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -141,11 +141,11 @@ Layout is **expensive**. The crucial part is that it can pull more work in behin
 
 Important: at this point, **not a single pixel has been drawn to the screen yet**. The laner has only prepared the list of what should be drawn. The actual pen hits the paper on the next floor.
 
-<ClawdNote summary="The main thread carries the expensive half.">
+<MoguNote summary="The main thread carries the expensive half.">
 Notice who has been working this whole time: the laner alone, meaning the main thread. Parsing, style, layout, paint list, all of it.
 
 That is why frontend performance advice keeps saying: **do not keep the main thread busy**. It is the most overloaded teammate. If you dump a pile of heavy JavaScript on it, it cannot make time for the rendering combo, and the page janks. Moving work away from the main thread, toward a sidekick or the GPU, is the core idea. Remember this person; the next floor shows who can help ʕ•ᴥ•ʔ
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="After the 'paint' step finishes, are pixels already drawn on the screen?"
@@ -183,11 +183,11 @@ But the finishing move belongs to the sidekick, the compositor thread. The sidek
 That is why **scrolling can feel smooth while the page's background JavaScript is actually dead**. Scrolling is often the compositor thread moving layers. It may not need the main thread at all. The main hand is in a fire, and the sidekick still makes the screen look clean.
 </AnalogyBox>
 
-<ClawdNote summary="Smooth scrolling can hide a stuck main thread.">
+<MoguNote summary="Smooth scrolling can hide a stuck main thread.">
 The first time people learn "the main thread can be frozen while scrolling stays smooth," they usually pause: wait, if the page is moving, doesn't that mean the browser is alive?
 
 Not necessarily. Smooth scrolling is the compositor thread's work. It is **a different person** from the main thread that runs your JavaScript. So you may scroll happily, then tap a button and wonder why nothing happens. The click event needs the main thread, and it is still trapped inside your `for` loop. Smooth screen ≠ live web page. Two life bars (⌐■_■)
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -212,7 +212,7 @@ So the frontend rule of gold: **if an animation can be done with `transform`, do
 
 Another classic self-inflicted wound is **forced synchronous layout**, also called `layout thrash`: JavaScript changes an element's style, then immediately reads its dimensions, such as `offsetHeight`, on the next line. To give the correct answer, the browser is **forced to recompute layout right now**. Put that pattern in a loop, alternating "write style, read size, write style, read size," and you make the main thread reflow N times. The combo keeps canceling itself and starting over. The whole fight janks itself to death.
 
-<ClawdNote summary="Ask whether the main thread wakes up.">
+<MoguNote summary="Ask whether the main thread wakes up.">
 Remember this table and you beat half of frontend performance:
 
 - Want smooth animation → change `transform` / `opacity` (sidekick work; smooth even if the main hand is busy)
@@ -220,7 +220,7 @@ Remember this table and you beat half of frontend performance:
 - Truly do not do this → in a loop, "change style, read size, change style, read size" (forced synchronous layout; main hand explodes on the spot)
 
 None of this is superstition. It all follows from one question: "Did we wake the main thread?" Once you understand that boundary, these best practices stop being things to memorize. You can derive them yourself ╰(°▽°)╯
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="You want an element to slide into view smoothly, even while the main thread is busy. Which property should you animate?"
@@ -259,8 +259,8 @@ Black box, opened.
 - [The Browser Is Actually a Five-Player Team (Part 1): Why One Crashed Tab Does Not Take Down the Whole Browser](/en/posts/en-levelup-20260621-16-browser-moba-multiprocess/) (meet the team first, then watch the fight)
 - [Lv-10: A URL's Journey — What the Browser Actually Does Between Pressing Enter and Seeing the Page](/en/posts/en-levelup-20260223-10-url-journey-browser-internals/) (that post covers the skeleton of rendering; this one adds why it janks)
 
-<ClawdNote summary="Jank turns you into a performance detective.">
+<MoguNote summary="Jank turns you into a performance detective.">
 Part 1 said you can never return to the innocent idea that "the browser is one program." Part 2 is worse: every time you see a page jank, your brain will start hunting the culprit. Is the main thread tied up by fat JavaScript? Did someone animate `height` instead of `transform`?
 
 Congratulations. You have upgraded into the kind of person who sees dropped frames and wants to debug the crime scene. There is no going back, really (◍˃̶ᗜ˂̶◍)ノ
-</ClawdNote>
+</MoguNote>

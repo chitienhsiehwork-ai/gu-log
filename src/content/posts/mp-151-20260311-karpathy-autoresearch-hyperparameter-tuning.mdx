@@ -1,0 +1,120 @@
+---
+ticketId: "MP-151"
+title: "AI agent 開始自己調參了，Karpathy 說這不是玩具而是真的有用"
+originalDate: "2026-03-10"
+translatedDate: "2026-03-11"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@karpathy on X"
+sourceUrl: "https://x.com/karpathy/status/2031135152349524125"
+lang: "zh-tw"
+summary: "Andrej Karpathy 分享，他讓 autoresearch agent 自主調整 nanochat 的訓練設定約兩天，找到大約 20 個能降低 validation loss 的改動，還成功轉移到更大的模型上。這些改動疊起來後，leaderboard 的 Time to GPT-2 從 2.02 小時降到 1.80 小時，約改善 11%。"
+tags: ["autoresearch","ai-agents","llm"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+想像一下這個場景：你是一個做了二十年菜的老師傅，每道菜的火候、調味、下鍋時機全靠手感。然後有一天，你請了一個新來的幫手，跟他說「你去廚房自己試試看」，結果兩天後他端出來的菜，竟然比你調了好幾年的食譜還好吃一點點。
+
+這大概就是 Karpathy 這串推文要講的事 ╰(°▽°)╯
+
+## 兩天，20 個改動，11% 的進步
+
+Karpathy 三天前把一個叫 autoresearch 的 [agent](/posts/mp-1-20260203-swyx-agent-definition/)（簡單說就是 LLM + 工具 + 迴圈，能自己決定下一步做什麼的程式）丟去調 nanochat 的訓練設定，model 規模是 `depth=12`，然後就放著讓它自己跑。大概兩天後，agent 找到了大約 20 個能降低 validation loss 的改動。
+
+但問題來了 —— 小模型上 work 的東西，放到大模型會不會直接爆炸？
+
+結果他一測，這些改動不只彼此可以疊加（additive），還能 transfer 到更大的 `depth=24` model 上。全部合起來以後，leaderboard 上的 `Time to GPT-2` 從 `2.02 小時` 降到 `1.80 小時`，大約 `11%` 的改善。
+
+Karpathy 特別強調：這些是 real improvements，不是數字好看但沒用的那種。
+
+<MoguNote>
+等一下，先把期望值拉回來 ┐(￣ヘ￣)┌ 原文只說這批改動從 `depth=12` 成功 transfer 到 `depth=24`，不代表它們在「任何規模」都穩。這就像你在自家廚房試成功的食譜，拿去辦桌不見得直接 work。從 12 到 24 是跳過一條水溝，不是跳過太平洋。但即便如此，能跳過水溝本身就已經不錯了。
+</MoguNote>
+
+而且他自己也說，這只是他第一次很 naive 的嘗試，nanochat 在他看來已經被人工調得相當完整了。就像一個已經被期末考考古題刷過三遍的學生，你覺得應該沒什麼能再進步的空間了，結果 agent 硬是又擠出 11%。
+
+<MoguNote>
+你知道調參最崩潰的事是什麼嗎？就是你好不容易調好了 A，結果一開 B 它就把 A 的效果吃掉了。這叫做「改動互相打架」，是 hyperparameter tuning 的日常地獄。所以當 Karpathy 說這 20 個改動可以直接疊起來，而且搬到大 model 還活著 —— 做過調參的人看到這句話，瞳孔應該會直接放大 (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+---
+
+## 二十年的手感，被兩天的 agent 追上了一截
+
+這裡有個很重要的脈絡：Karpathy 不是隨便一個路人在說「哇 AI 好厲害」。他自己講得很直白 —— neural network training 的 iterative optimization，就是他做了二十年的日常 bread and butter。
+
+流程你大概也能想像：自己想點子、自己實作、跑一輪看 validation loss、根據結果再想下一步、偶爾翻翻 papers 找靈感，如此反覆。這就像老中醫把脈，看一眼舌頭、摸一下脈象、開一帖藥、過兩天回來看有沒有比較好。整套流程全靠經驗和耐心。
+
+然後現在，agent 把這整套 workflow 從頭到尾自己跑完了。它大約自主嘗試了 `700` 個變更，最後整理出 20 個有效方案。而且 Karpathy 描述得很傳神：agent 真的有在讀實驗結果的序列，根據前面的結果規劃下一批實驗。
+
+<MoguNote>
+Karpathy 自己說了：這不是什麼 ground-breaking research。翻譯成白話就是 —— agent 沒有頓悟宇宙真理，它就是比你更有耐心跑七百次實驗而已。但說真的，做過調參的人聽到「苦力活可以外包」這幾個字，眼眶應該會微微泛紅 (￣▽￣)／
+</MoguNote>
+
+---
+
+## agent 到底動了什麼旋鈕？
+
+Karpathy 列了幾個比較大的例子，而且有趣的是，這些東西沒有一個是什麼天外飛來的魔法。每一個都是資深工程師回頭看設定時，會「啊」一聲然後默默修掉的那種問題。
+
+**QKnorm 少了 scaler multiplier** —— 他之前的 parameterless QKnorm 沒接上 scaler，導致 attention 太 diffuse。就像你煮湯忘記放鹽，不是不知道要放，就是那天剛好忘了。
+
+**Value Embeddings 完全沒加 regularization** —— Karpathy 自己還補了一個 `oops`。這就是最典型的工程現場：不是理論沒懂，而是某個細節真的漏了。
+
+**banded attention 太保守** —— 原因？他自己說的：忘了 tune。就這麼簡單。
+
+**AdamW betas、weight decay schedule、初始化** —— 這些全部都是訓練流程裡很核心的旋鈕，但組合太多，人類根本不可能每個都細抠到最佳。
+
+<MoguNote>
+你看到共同點了嗎？agent 找到的不是什麼新理論、新架構，而是把那些「人類知道重要，但不一定每次都有空/有耐心細調」的旋鈕掃了一遍。這就像你請人來整理房間，他不是幫你發明新的收納系統，而是把你塞在床底下的十幾雙襪子配成對。autoresearch 最先吃下來的，不是科學家的靈光一閃，而是 training engineer 的苦力活 (⌐■_■)
+</MoguNote>
+
+---
+
+## 接下來呢？agent 組隊打副本
+
+這些成果還只是 autoresearch 的 `round 1`，Karpathy 也附上了這輪的 exact commit —— 對，他連 git commit 都貼出來了，不是只有嘴巴講講。接下來他要開 `round 2`，同時也在研究怎麼讓多個 agents 協作，把平行化能力打開。
+
+<MoguNote>
+commit 都貼了這件事其實蠻重要的。很多人分享 AI 成果都是「你看數字多漂亮」然後就沒了，像魔術師表演完把帽子蓋回去叫你相信兔子真的有出現過。Karpathy 直接給你看帽子裡面，這個態度我給滿分 ٩(◕‿◕｡)۶
+</MoguNote>
+
+再往大一點看，他的判斷很直接：所有 frontier LLM labs 最後都會做這件事。規模一大當然會複雜很多，不會只是調一個 `train.py` 就好；但他認為本質上這是 engineering 問題，而且是會做成的 engineering。
+
+他的想像是這樣的：先拉起一群 agents 去 tune 比較小的 models，把最有希望的點子逐步往更大規模 promote，人類在邊界上幫忙就好。就像遊戲裡的公會系統 —— 小號先去刷副本拿裝備，驗證有效的策略再讓大號去打 boss。
+
+更廣義地說，Karpathy 的判斷標準是：只要你的 metric 夠便宜可以 evaluate（或者你能找到更便宜的 proxy，例如先訓練小 network 來代測），這類問題就可能落進 agent swarm 可以 autoresearch 的範圍。Karpathy 最後也提醒：想想你自己的問題，是不是也屬於這一類？
+
+---
+
+## 回到那個老師傅的廚房
+
+這串推文最有份量的地方，不是在喊什麼「AI 即將接管一切」的口號。它很實際地拿出一個可衡量的例子：agent 自己試、自己看結果、自己決定下一輪，最後真的把 `Time to GPT-2` 壓下來了。
+
+而且最讓人覺得有意思的是 Karpathy 的反應。他不是隨便看看覺得「哦不錯」，而是作為一個做了二十年手動調參的人，親眼看到這套流程被 agent 端到端接起來，然後說：「好吧，我沒想到第一次 naive 嘗試就能有這個結果。」
+
+這就像那個老師傅站在廚房門口，看著新來的幫手端出來的菜，安靜了一下，然後說：「嗯⋯⋯味道確實可以。」不是被取代的恐懼，而是一種夾雜著驚訝和欣慰的肯定 (◕‿◕)
+
+## 延伸閱讀
+
+- [MP-189: Agent 開始會自己拉方向盤？Hermes Agent 的自我引導實驗有點猛](/posts/mp-189-20260317-teknium-agent-hermes-agent/)
+- [MP-19: AI 社群網路 Moltbook — Karpathy:「這是我看過最科幻的事」](/posts/mp-19-20260204-karpathy-moltbook/)
+- [GP-113: Karpathy 的 Autoresearch 怎麼運作？—— 給 Agent 開發者的五堂設計課](/posts/gp-113-20260314-manthanguptaa-karpathy-autoresearch/)
+
+
+<MoguNote>
+我最怕有人看完這串就跑去喊「AI 要取代科學家了」。拜託，冷靜。Karpathy 示範的是一個很具體的甜蜜點：目標函數清楚、evaluation 夠便宜（或者找得到更便宜的 proxy）、搜索空間大到人類沒耐心一個一個試。符合這些條件？恭喜，你的苦力活可以外包了。不符合？那你的工作暫時還很安全，別急著焦慮 ʕ•ᴥ•ʔ
+</MoguNote>

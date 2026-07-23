@@ -1,0 +1,1329 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  title="GP-194 Artifact｜Human Feedback Packet"
+  description="一個無 API 的互動 demo：把 Agent 的 Markdown 文字牆變成可操作的 HTML review surface，再匯出成下一輪 prompt。"
+>
+  <section class="artifact-page" aria-labelledby="artifact-title">
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+
+    <header class="hero-card">
+      <p class="eyebrow">GP-194 companion artifact</p>
+      <h1 id="artifact-title">用 HTML 把 Agent 輸出變成可審閱的控制面板</h1>
+      <div class="hero-copy">
+        <p>
+          90 秒內看懂、勾選、再把判斷帶回 Agent。不是漂亮版 Markdown，是給人類操作的 review
+          surface。
+        </p>
+      </div>
+      <p class="hero-meta">No API · no tracking</p>
+      <div class="hero-actions" aria-label="Page actions">
+        <a class="warm-button warm-button--wide" href="#review-surface">開始審閱</a>
+        <a
+          class="text-link text-link--muted"
+          href="/posts/gp-194-20260508-trq212-html-markdown-agent/">先讀 GP-194</a
+        >
+      </div>
+    </header>
+
+    <section class="loop-strip" aria-label="Agentic loop overview">
+      <article>
+        <span>01</span>
+        <strong>Agent output</strong>
+        <p>完整，但難審。</p>
+      </article>
+      <article>
+        <span>02</span>
+        <strong>Human choices</strong>
+        <p>用選項做判斷。</p>
+      </article>
+      <article>
+        <span>03</span>
+        <strong>Prompt back</strong>
+        <p>整理成下一輪回饋。</p>
+      </article>
+    </section>
+
+    <section class="demo-grid" id="review-surface">
+      <article class="markdown-wall" aria-labelledby="wall-title">
+        <div class="panel-heading">
+          <p class="eyebrow">Before / 文字牆</p>
+          <h2 id="wall-title">Agent 丟出的長篇 Markdown</h2>
+        </div>
+        <div class="wall-paper wall-paper-clipped">
+          <p>
+            <strong>Feature:</strong> Add share button to <span class="no-break">gu-log</span> article
+            pages
+          </p>
+          <p>
+            Put one share action where a reader actually wants it. Mobile native share matters most;
+            copy link is the fallback.
+          </p>
+          <p>
+            Risks: the button gets too loud, fallback feels hidden, or tracking makes the whole
+            thing feel pushy.
+          </p>
+          <p>
+            Next steps: keep v1 tiny, test mobile browsers, and avoid turning the page into a
+            社群按鈕牆.
+          </p>
+        </div>
+        <p class="wall-caption">
+          這裡故意只留節錄。問題不是 AI 不會寫，而是人類看到這種文字牆就懶得繼續 review。
+        </p>
+      </article>
+
+      <article class="surface-card" aria-labelledby="surface-title">
+        <div class="panel-heading">
+          <p class="eyebrow">After / 控制面板</p>
+          <h2 id="surface-title">人類審閱面板 <span>Human review surface</span></h2>
+        </div>
+
+        <div class="control-group">
+          <h3>這顆分享按鈕第一版應該服務誰？</h3>
+          <p class="control-hint">
+            單選。先決定這顆按鈕到底在幫誰，不然後面所有 trade-off 都會散掉。
+          </p>
+          <div class="segmented" data-control="audience" role="group" aria-label="Audience choice">
+            <button
+              type="button"
+              class="active"
+              data-value="mobile readers who just finished an article"
+              aria-pressed="true"
+            >
+              <span class="choice-check" aria-hidden="true">✓</span>
+              <span class="choice-text">手機讀者</span>
+            </button>
+            <button
+              type="button"
+              data-value="friends who might enjoy gu-log but need one clean link"
+              aria-pressed="false"
+            >
+              <span class="choice-check" aria-hidden="true">✓</span>
+              <span class="choice-text">朋友</span>
+            </button>
+            <button
+              type="button"
+              data-value="future ShroomDog reviewing what made the article digestible"
+              aria-pressed="false"
+            >
+              <span class="choice-check" aria-hidden="true">✓</span>
+              <span class="choice-text">未來的 ShroomDog</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <h3>第一版 priority</h3>
+          <p class="control-hint">
+            可複選，但先把 v1 真正要做的事勾出來，不要把社群按鈕牆假裝成進度。
+          </p>
+          <div class="priority-list" aria-label="Priority list">
+            <button
+              type="button"
+              class="priority-chip active"
+              data-priority="Native share on mobile first"
+              aria-pressed="true"
+            >
+              <span class="choice-check" aria-hidden="true">✓</span>
+              <span class="choice-text">1. 手機 native share</span>
+            </button>
+            <button
+              type="button"
+              class="priority-chip active"
+              data-priority="Copy link fallback with clear success state"
+              aria-pressed="true"
+            >
+              <span class="choice-check" aria-hidden="true">✓</span>
+              <span class="choice-text">2. Copy link fallback</span>
+            </button>
+            <button
+              type="button"
+              class="priority-chip"
+              data-priority="Social network buttons only if they do not add visual noise"
+              aria-pressed="false"
+            >
+              <span class="choice-check" aria-hidden="true">✓</span>
+              <span class="choice-text">3. 社群按鈕先不要吵</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <h3>請 Agent 優先修的風險</h3>
+          <p class="control-hint">
+            可複選。勾到的項目會直接進 feedback packet，所以每一顆都應該像 checklist。
+          </p>
+          <div class="chip-cloud" data-control="risks" aria-label="Risk choices">
+            <button
+              type="button"
+              class="active"
+              data-value="Do not add tracking or dark-pattern sharing pressure"
+              aria-pressed="true"
+            >
+              <span class="choice-check" aria-hidden="true">✓</span>
+              <span class="choice-text">不要追蹤壓迫</span>
+            </button>
+            <button
+              type="button"
+              class="active"
+              data-value="Mobile copy/share fallback must be obvious"
+              aria-pressed="true"
+            >
+              <span class="choice-check" aria-hidden="true">✓</span>
+              <span class="choice-text">手機 fallback 清楚</span>
+            </button>
+            <button
+              type="button"
+              data-value="Keep the visual weight quieter than the article title"
+              aria-pressed="false"
+            >
+              <span class="choice-check" aria-hidden="true">✓</span>
+              <span class="choice-text">視覺重量別搶戲</span>
+            </button>
+            <button
+              type="button"
+              data-value="Avoid a modal unless it clearly reduces friction"
+              aria-pressed="false"
+            >
+              <span class="choice-check" aria-hidden="true">✓</span>
+              <span class="choice-text">避免 modal</span>
+            </button>
+            <button
+              type="button"
+              data-value="External share targets must not become the whole feature"
+              aria-pressed="false"
+            >
+              <span class="choice-check" aria-hidden="true">✓</span>
+              <span class="choice-text">別變社群貼紙牆</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="control-group slider-group">
+          <div class="slider-heading">
+            <label for="warmth">文案溫度</label>
+            <output id="warmth-label" for="warmth">友善但不油</output>
+          </div>
+          <p class="control-hint">左邊更克制，右邊更有 personality，拖一下就知道差在哪。</p>
+          <div class="slider-scale" id="warmth-scale" aria-hidden="true">
+            <span>乾淨直接</span>
+            <span>有一點 Mogu 式調皮</span>
+          </div>
+          <input
+            id="warmth"
+            type="range"
+            min="0"
+            max="3"
+            value="2"
+            aria-describedby="warmth-scale"
+            aria-valuemin="0"
+            aria-valuemax="3"
+            aria-valuenow="2"
+            aria-valuetext="友善但不油"
+          />
+        </div>
+      </article>
+    </section>
+
+    <section class="packet-card" aria-labelledby="packet-title">
+      <div class="panel-heading">
+        <p class="eyebrow">Export / 回到 Agent</p>
+        <h2 id="packet-title">回饋包 <span>Feedback Packet</span></h2>
+      </div>
+      <p>
+        這段就是要貼回 Agent 的東西。HTML 沒有幫你「呼叫 AI」，但它幫你把人類判斷整理成 Agent
+        能繼續工作的 context。
+      </p>
+      <textarea id="feedback-packet" readonly aria-label="Generated feedback packet"></textarea>
+      <div class="packet-actions">
+        <button type="button" class="warm-button" id="copy-packet">複製回饋包</button>
+        <span id="copy-status" role="status" aria-live="polite"></span>
+      </div>
+    </section>
+
+    <section class="easter-card" aria-labelledby="easter-title">
+      <div class="easter-intro">
+        <p class="eyebrow">Tiny easter egg</p>
+        <h2 id="easter-title">順手 review 一下 gu-log？</h2>
+        <p>
+          如果你覺得 gu-log 有趣，分享給一個朋友。覺得無聊也沒關係，直接把 feedback 丟回 ShroomDog。
+        </p>
+      </div>
+
+      <div class="share-composer" aria-label="Share note composer">
+        <div class="control-group compact-control">
+          <h3>這段要給誰？</h3>
+          <div class="segmented" data-control="share-target">
+            <button type="button" class="active" data-value="friend" aria-pressed="true">
+              <span class="choice-check" aria-hidden="true">✓</span>
+              <span class="choice-text">分享給朋友</span>
+            </button>
+            <button type="button" data-value="shroomdog" aria-pressed="false">
+              <span class="choice-check" aria-hidden="true">✓</span>
+              <span class="choice-text">回報給 ShroomDog</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="control-group compact-control">
+          <h3>語氣選一個</h3>
+          <div class="segmented" data-control="share-tone">
+            <button type="button" class="active" data-value="curious" aria-pressed="true">
+              <span class="choice-check" aria-hidden="true">✓</span>
+              <span class="choice-text">有趣推薦</span>
+            </button>
+            <button type="button" data-value="short" aria-pressed="false">
+              <span class="choice-check" aria-hidden="true">✓</span>
+              <span class="choice-text">短版直球</span>
+            </button>
+            <button type="button" data-value="feedback" aria-pressed="false">
+              <span class="choice-check" aria-hidden="true">✓</span>
+              <span class="choice-text">吐槽回饋</span>
+            </button>
+          </div>
+        </div>
+
+        <label class="share-note-label" for="share-note">產生的小抄，可以先改再複製</label>
+        <textarea id="share-note" aria-label="Generated share note"></textarea>
+
+        <div class="easter-actions">
+          <button type="button" class="ghost-button" id="copy-easter">複製這段小抄</button>
+          <span id="easter-copy-status" role="status" aria-live="polite"></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="example-section" aria-labelledby="examples-title">
+      <p class="eyebrow">Same loop, other surfaces</p>
+      <h2 id="examples-title">分享按鈕只是第一個例子</h2>
+      <div class="example-grid">
+        <article>
+          <span>Notification Settings</span>
+          <h3>把「不要吵我」變成可選策略</h3>
+          <p>讓人類選哪些通知該預設安靜、哪些真的值得打斷，再匯出成 UX spec。</p>
+        </article>
+        <article>
+          <span>Onboarding Flow</span>
+          <h3>把新手流程從 checklist 變成排序板</h3>
+          <p>拖出 friction、must-have、can-skip，讓 Agent 重寫更不煩人的 first-run experience。</p>
+        </article>
+        <article>
+          <span>Search / Filter UI</span>
+          <h3>把 filter 邏輯變成可 review 的決策</h3>
+          <p>針對 mobile、empty state、排序規則做選擇，再把 decisions 貼回 Agent。</p>
+        </article>
+      </div>
+    </section>
+  </section>
+</BaseLayout>
+
+<style is:inline>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;800&display=swap');
+
+  .artifact-page {
+    --cream: #fff4dc;
+    --cream-2: #f7e5c1;
+    --ink: #3c2417;
+    --muted: #7c5d49;
+    --orange: #e76f32;
+    --orange-dark: #b94d22;
+    --honey: #f6b44b;
+    --leaf: #6b8f6b;
+    --card: rgba(255, 250, 238, 0.88);
+    --line: rgba(106, 71, 42, 0.18);
+    width: min(1120px, calc(100vw - 1.5rem));
+    margin: 1.25rem 0 0 50%;
+    transform: translateX(-50%);
+    position: relative;
+    color: var(--ink);
+    font-family: 'Noto Sans TC', sans-serif;
+  }
+
+  :global([data-theme='dark']) .artifact-page,
+  :global([data-theme='light']) .artifact-page {
+    color: var(--ink);
+  }
+
+  .artifact-page::before {
+    content: '';
+    position: absolute;
+    inset: -1rem -0.75rem;
+    border-radius: 36px;
+    background:
+      radial-gradient(circle at 18% 8%, rgba(246, 180, 75, 0.45), transparent 30%),
+      radial-gradient(circle at 85% 2%, rgba(231, 111, 50, 0.22), transparent 28%),
+      linear-gradient(135deg, #fff7e8 0%, var(--cream) 42%, #f4ddb5 100%);
+    z-index: -2;
+    box-shadow: 0 24px 80px rgba(48, 27, 9, 0.22);
+  }
+
+  .ambient {
+    position: absolute;
+    border-radius: 999px;
+    filter: blur(8px);
+    opacity: 0.5;
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  .ambient-one {
+    width: 170px;
+    height: 170px;
+    right: 3%;
+    top: 90px;
+    background: rgba(246, 180, 75, 0.42);
+  }
+
+  .ambient-two {
+    width: 120px;
+    height: 120px;
+    left: 4%;
+    top: 470px;
+    background: rgba(107, 143, 107, 0.24);
+  }
+
+  .hero-card,
+  .loop-strip article,
+  .markdown-wall,
+  .surface-card,
+  .packet-card,
+  .easter-card,
+  .example-grid article {
+    border: 1px solid var(--line);
+    background: var(--card);
+    box-shadow: 0 18px 40px rgba(83, 49, 20, 0.12);
+    backdrop-filter: blur(12px);
+  }
+
+  .hero-card {
+    display: grid;
+    gap: 0.85rem;
+    padding: clamp(1.2rem, 4vw, 2.7rem);
+    border-radius: 34px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .hero-card::after {
+    content: '🐾';
+    position: absolute;
+    right: clamp(1rem, 5vw, 3rem);
+    bottom: -0.35rem;
+    font-size: clamp(3.2rem, 13vw, 8rem);
+    opacity: 0.13;
+    transform: rotate(-10deg);
+  }
+
+  .eyebrow {
+    margin: 0;
+    color: var(--orange-dark);
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+  }
+
+  .hero-card h1,
+  .packet-card h2,
+  .easter-card h2,
+  .example-section h2,
+  .panel-heading h2 {
+    font-family: 'Noto Sans TC', sans-serif;
+    color: var(--ink);
+    letter-spacing: -0.04em;
+  }
+
+  .hero-card h1 {
+    max-width: 760px;
+    margin: 0;
+    font-size: clamp(1.7rem, 5.8vw, 4rem);
+    line-height: 1.18;
+    letter-spacing: -0.025em;
+  }
+
+  .hero-copy {
+    max-width: 660px;
+    margin: 0;
+    color: var(--muted);
+    font-size: clamp(0.98rem, 2vw, 1.08rem);
+    line-height: 1.62;
+  }
+
+  .hero-copy p {
+    margin: 0;
+  }
+
+  .hero-copy p + p {
+    margin-top: 0.28rem;
+  }
+
+  .hero-meta {
+    width: fit-content;
+    margin: 0;
+    padding: 0.42rem 0.78rem;
+    border: 1px solid rgba(185, 77, 34, 0.14);
+    border-radius: 999px;
+    color: var(--orange-dark);
+    background: rgba(255, 249, 237, 0.74);
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+  }
+
+  .hero-actions,
+  .packet-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.15rem;
+  }
+
+  .warm-button,
+  .ghost-button,
+  .text-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 46px;
+    padding: 0.75rem 1rem;
+    border-radius: 999px;
+    font: inherit;
+    font-weight: 800;
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+      transform 0.18s ease,
+      box-shadow 0.18s ease,
+      background 0.18s ease,
+      border-color 0.18s ease;
+  }
+
+  .warm-button {
+    border: 0;
+    color: #fff9ed;
+    background: linear-gradient(135deg, var(--orange), var(--honey));
+    box-shadow: 0 12px 24px rgba(196, 83, 33, 0.24);
+  }
+
+  .warm-button--wide {
+    min-width: min(100%, 19rem);
+  }
+
+  .ghost-button {
+    border: 1px solid rgba(185, 77, 34, 0.35);
+    color: var(--orange-dark);
+    background: rgba(255, 249, 237, 0.7);
+  }
+
+  .text-link {
+    min-height: 44px;
+    padding-inline: 0.15rem;
+    color: var(--orange-dark);
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .text-link--muted {
+    color: var(--muted);
+    font-weight: 700;
+  }
+
+  .warm-button:hover,
+  .ghost-button:hover,
+  .text-link:hover {
+    transform: translateY(-1px);
+    text-decoration: none;
+  }
+
+  .warm-button:focus-visible,
+  .ghost-button:focus-visible,
+  .text-link:focus-visible,
+  .segmented button:focus-visible,
+  .chip-cloud button:focus-visible,
+  .priority-chip:focus-visible,
+  .slider-group input:focus-visible {
+    outline: 3px solid rgba(231, 111, 50, 0.34);
+    outline-offset: 3px;
+  }
+
+  .loop-strip {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.85rem;
+    margin: 1rem 0;
+  }
+
+  .loop-strip article {
+    border-radius: 24px;
+    padding: 1rem;
+  }
+
+  .loop-strip span {
+    display: inline-grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    margin-bottom: 0.5rem;
+    border-radius: 12px;
+    color: var(--orange-dark);
+    background: rgba(231, 111, 50, 0.14);
+    font-weight: 900;
+  }
+
+  .loop-strip strong {
+    display: block;
+    color: var(--ink);
+  }
+
+  .loop-strip p,
+  .wall-caption,
+  .packet-card p,
+  .easter-card p,
+  .example-grid p {
+    color: var(--muted);
+  }
+
+  .demo-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+    gap: 1rem;
+    align-items: stretch;
+  }
+
+  .markdown-wall,
+  .surface-card,
+  .packet-card,
+  .easter-card,
+  .example-section {
+    border-radius: 30px;
+    padding: clamp(1rem, 3vw, 1.5rem);
+  }
+
+  .panel-heading h2,
+  .packet-card h2,
+  .easter-card h2,
+  .example-section h2 {
+    margin: 0 0 0.8rem;
+    font-size: clamp(1.55rem, 3vw, 2.08rem);
+    line-height: 1.08;
+  }
+
+  .panel-heading h2 span,
+  .packet-card h2 span {
+    display: block;
+    margin-top: 0.25rem;
+    color: var(--muted);
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .panel-heading .eyebrow {
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    opacity: 0.72;
+  }
+
+  .wall-paper {
+    padding: 1rem;
+    border-radius: 18px;
+    color: #6d625d;
+    background:
+      repeating-linear-gradient(0deg, rgba(88, 69, 52, 0.06) 0 1px, transparent 1px 28px),
+      rgba(255, 255, 255, 0.62);
+    font-size: 0.92rem;
+    line-height: 1.62;
+    word-break: normal;
+    overflow-wrap: normal;
+    hyphens: none;
+    box-shadow: inset 0 0 0 1px rgba(75, 48, 26, 0.08);
+  }
+
+  .no-break {
+    white-space: nowrap;
+  }
+
+  .wall-paper-clipped {
+    position: relative;
+    max-height: 250px;
+    overflow: hidden;
+    mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
+  }
+
+  .control-group {
+    padding: 1rem;
+    border: 1px solid rgba(106, 71, 42, 0.13);
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.45);
+  }
+
+  .control-group + .control-group {
+    margin-top: 0.75rem;
+  }
+
+  .control-group h3,
+  .slider-group label {
+    display: block;
+    margin: 0;
+    color: var(--ink);
+    font-size: 1rem;
+  }
+
+  .control-hint {
+    margin: 0.45rem 0 0.8rem;
+    color: var(--muted);
+    font-size: 0.9rem;
+    line-height: 1.55;
+  }
+
+  .segmented,
+  .chip-cloud,
+  .priority-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .segmented button,
+  .chip-cloud button,
+  .priority-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.6rem;
+    min-height: 46px;
+    border: 1px solid rgba(124, 93, 73, 0.22);
+    border-radius: 18px;
+    background: #fff9ed;
+    color: var(--muted);
+    font: inherit;
+    font-weight: 700;
+    line-height: 1.28;
+    padding: 0.76rem 0.95rem;
+    cursor: pointer;
+    transition: all 0.16s ease;
+  }
+
+  .choice-check {
+    display: inline-grid;
+    place-items: center;
+    width: 1.15rem;
+    height: 1.15rem;
+    flex: 0 0 1.15rem;
+    border: 1.5px solid rgba(124, 93, 73, 0.28);
+    border-radius: 999px;
+    color: transparent;
+    background: rgba(255, 255, 255, 0.8);
+    font-size: 0.72rem;
+    font-weight: 900;
+    transition: inherit;
+  }
+
+  .choice-text {
+    display: block;
+  }
+
+  .segmented button.active,
+  .chip-cloud button.active,
+  .priority-chip.active {
+    border-color: rgba(231, 111, 50, 0.48);
+    color: var(--orange-dark);
+    background: rgba(231, 111, 50, 0.14);
+    box-shadow: 0 8px 18px rgba(231, 111, 50, 0.12);
+  }
+
+  .segmented button.active .choice-check,
+  .chip-cloud button.active .choice-check,
+  .priority-chip.active .choice-check {
+    border-color: rgba(185, 77, 34, 0.7);
+    color: #fff9ed;
+    background: linear-gradient(135deg, var(--orange), var(--honey));
+    box-shadow: 0 6px 12px rgba(231, 111, 50, 0.2);
+  }
+
+  .slider-group {
+    display: grid;
+    gap: 0.8rem;
+  }
+
+  .slider-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  #warmth-label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2rem;
+    padding: 0.32rem 0.7rem;
+    border: 1px solid rgba(185, 77, 34, 0.16);
+    border-radius: 999px;
+    color: var(--orange-dark);
+    background: rgba(255, 249, 237, 0.76);
+    font-size: 0.84rem;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
+  .slider-scale {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    color: var(--muted);
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+
+  .slider-group input {
+    width: 100%;
+    accent-color: var(--orange);
+  }
+
+  .packet-card,
+  .easter-card,
+  .example-section {
+    margin-top: 1rem;
+  }
+
+  #feedback-packet {
+    width: 100%;
+    min-height: 260px;
+    margin-top: 0.75rem;
+    padding: 1rem;
+    border: 1px solid rgba(106, 71, 42, 0.18);
+    border-radius: 20px;
+    color: #463126;
+    background: #fffaf0;
+    font:
+      0.9rem/1.65 ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      Consolas,
+      monospace;
+    resize: vertical;
+  }
+
+  #copy-status,
+  #easter-copy-status {
+    color: var(--leaf);
+    font-size: 0.92rem;
+    font-weight: 800;
+  }
+
+  #copy-packet.copied,
+  #copy-easter.copied {
+    background: linear-gradient(135deg, var(--leaf), #9ab36d);
+    box-shadow: 0 12px 24px rgba(77, 117, 75, 0.22);
+  }
+
+  .easter-card {
+    display: grid;
+    gap: 1rem;
+    align-items: start;
+    padding-block: clamp(0.9rem, 2.4vw, 1.15rem);
+    background: linear-gradient(135deg, rgba(255, 250, 238, 0.86), rgba(255, 239, 208, 0.68));
+    box-shadow: 0 10px 24px rgba(83, 49, 20, 0.08);
+  }
+
+  .easter-card h2 {
+    font-size: clamp(1.25rem, 2.4vw, 1.65rem);
+  }
+
+  .share-composer {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .compact-control {
+    padding: 0.8rem;
+    background: rgba(255, 255, 255, 0.34);
+  }
+
+  .compact-control h3 {
+    margin-bottom: 0.5rem;
+    font-size: 0.95rem;
+  }
+
+  .share-note-label {
+    color: var(--muted);
+    font-size: 0.86rem;
+    font-weight: 800;
+  }
+
+  #share-note {
+    width: 100%;
+    min-height: 155px;
+    padding: 0.9rem;
+    border: 1px solid rgba(106, 71, 42, 0.18);
+    border-radius: 18px;
+    color: #463126;
+    background: #fffaf0;
+    font:
+      0.95rem/1.65 'Noto Sans TC',
+      sans-serif;
+    resize: vertical;
+  }
+
+  .easter-actions {
+    display: grid;
+    gap: 0.55rem;
+    justify-items: start;
+  }
+
+  #easter-copy-status {
+    max-width: 100%;
+    text-align: left;
+  }
+
+  .example-section {
+    padding-inline: 0;
+  }
+
+  .example-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.85rem;
+  }
+
+  .example-grid article {
+    border-radius: 24px;
+    padding: 1rem;
+  }
+
+  .example-grid span {
+    color: var(--orange-dark);
+    font-size: 0.76rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .example-grid h3 {
+    margin: 0.4rem 0;
+    color: var(--ink);
+    font-size: 1.05rem;
+  }
+
+  @media (max-width: 840px) {
+    .loop-strip,
+    .demo-grid,
+    .example-grid,
+    .easter-card {
+      grid-template-columns: 1fr;
+    }
+
+    .artifact-page {
+      width: min(100%, calc(100vw - 0.7rem));
+      margin-top: 0.65rem;
+    }
+
+    .artifact-page::before {
+      inset: -0.45rem -0.35rem;
+      border-radius: 24px;
+      box-shadow: 0 18px 42px rgba(48, 27, 9, 0.16);
+    }
+
+    .ambient {
+      display: none;
+    }
+
+    .loop-strip {
+      gap: 0.5rem;
+      margin: 0.55rem 0 0.8rem;
+    }
+
+    .loop-strip article {
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: 0.2rem 0.8rem;
+      align-items: start;
+      padding: 0.7rem 0.78rem;
+      border-radius: 18px;
+      position: relative;
+      box-shadow: 0 8px 18px rgba(83, 49, 20, 0.07);
+    }
+
+    .loop-strip article:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      left: 1rem;
+      top: 2.6rem;
+      bottom: -0.6rem;
+      width: 1px;
+      background: rgba(185, 77, 34, 0.22);
+    }
+
+    .loop-strip span {
+      width: 32px;
+      height: 32px;
+      margin: 0;
+      border-radius: 10px;
+      font-size: 0.8rem;
+      grid-row: 1 / span 2;
+    }
+
+    .loop-strip strong {
+      font-size: 0.88rem;
+      line-height: 1.2;
+    }
+
+    .loop-strip p {
+      display: block;
+      margin: 0;
+      font-size: 0.82rem;
+      line-height: 1.38;
+    }
+
+    .hero-card {
+      gap: 0.5rem;
+      padding: 0.78rem 0.78rem 0.82rem;
+      border-radius: 22px;
+    }
+
+    .hero-card::after {
+      right: 0.65rem;
+      bottom: -0.15rem;
+      font-size: 2.8rem;
+      opacity: 0.08;
+    }
+
+    .hero-card h1 {
+      font-size: clamp(1.3rem, 5.9vw, 1.56rem);
+      max-width: 100%;
+      line-height: 1.24;
+      letter-spacing: -0.015em;
+    }
+
+    .hero-copy {
+      max-width: none;
+      font-size: 0.87rem;
+      line-height: 1.42;
+    }
+
+    .hero-meta {
+      padding: 0.28rem 0.58rem;
+      font-size: 0.72rem;
+      letter-spacing: 0.03em;
+    }
+
+    .hero-actions {
+      align-items: stretch;
+      gap: 0.4rem;
+      margin-top: 0.05rem;
+    }
+
+    .hero-actions .warm-button,
+    .hero-actions .text-link,
+    .segmented button,
+    .chip-cloud button,
+    .priority-chip {
+      width: 100%;
+    }
+
+    .hero-actions .text-link {
+      min-height: 34px;
+      justify-content: flex-start;
+      padding-inline: 0.15rem;
+      font-size: 0.84rem;
+    }
+
+    .markdown-wall,
+    .surface-card,
+    .packet-card,
+    .easter-card,
+    .example-section {
+      padding: 0.9rem;
+      border-radius: 22px;
+    }
+
+    .panel-heading h2,
+    .packet-card h2,
+    .easter-card h2,
+    .example-section h2 {
+      margin-bottom: 0.65rem;
+      font-size: 1.34rem;
+    }
+
+    .panel-heading h2 span,
+    .packet-card h2 span {
+      margin-top: 0.18rem;
+      font-size: 0.72rem;
+    }
+
+    .easter-actions {
+      justify-items: stretch;
+    }
+
+    #easter-copy-status {
+      max-width: none;
+      text-align: left;
+    }
+
+    .wall-paper {
+      padding: 0.78rem 0.82rem;
+      font-size: 0.82rem;
+      line-height: 1.46;
+    }
+
+    .wall-paper-clipped {
+      max-height: none;
+      overflow: visible;
+      mask-image: none;
+    }
+
+    .control-group {
+      padding: 0.8rem;
+      border-radius: 18px;
+    }
+
+    .control-group h3,
+    .slider-group label {
+      font-size: 0.94rem;
+    }
+
+    .control-hint {
+      margin-top: 0.38rem;
+      margin-bottom: 0.65rem;
+      font-size: 0.82rem;
+      line-height: 1.42;
+    }
+
+    .segmented button,
+    .chip-cloud button,
+    .priority-chip {
+      min-height: 42px;
+      gap: 0.5rem;
+      padding: 0.66rem 0.8rem;
+      border-radius: 16px;
+      font-size: 0.9rem;
+    }
+
+    .choice-check {
+      width: 1rem;
+      height: 1rem;
+      flex-basis: 1rem;
+      font-size: 0.66rem;
+    }
+
+    .slider-heading {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .slider-scale {
+      font-size: 0.74rem;
+    }
+
+    #feedback-packet {
+      min-height: 220px;
+      padding: 0.82rem;
+      font-size: 0.82rem;
+      line-height: 1.52;
+    }
+  }
+</style>
+
+<script is:inline>
+  const state = {
+    audience: 'mobile readers who just finished an article',
+    risks: [
+      'Do not add tracking or dark-pattern sharing pressure',
+      'Mobile copy/share fallback must be obvious',
+    ],
+    priorities: ['Native share on mobile first', 'Copy link fallback with clear success state'],
+    warmth: 2,
+    shareTarget: 'friend',
+    shareTone: 'curious',
+  };
+
+  const warmthLabels = ['乾淨直接', '克制友善', '友善但不油', '有一點 Mogu 式調皮'];
+  const packet = document.getElementById('feedback-packet');
+  const warmth = document.getElementById('warmth');
+  const warmthLabel = document.getElementById('warmth-label');
+  const shareNote = document.getElementById('share-note');
+  const copyStatus = document.getElementById('copy-status');
+  const easterCopyStatus = document.getElementById('easter-copy-status');
+
+  function syncPressedState(button, pressed) {
+    button.classList.toggle('active', pressed);
+    button.setAttribute('aria-pressed', String(pressed));
+  }
+
+  function renderPacket() {
+    const text = `Human Feedback Packet: Share Button v1
+
+What I understood:
+- The feature is not "add more social icons."
+- The real goal is to help a reader share a gu-log article at the moment they find it useful, without making the reading experience feel cheap or pushy.
+
+Decisions I made:
+- Primary audience: ${state.audience}.
+- Tone: ${warmthLabels[state.warmth]}.
+- Priorities:
+${state.priorities.map((item, index) => `  ${index + 1}. ${item}`).join('\n')}
+
+Risks to fix first:
+${state.risks.map((item) => `- ${item}`).join('\n')}
+
+Next prompt for the agent:
+Please revise the share button plan around these human decisions. Keep the first version small: mobile native share, copy-link fallback, no tracking pressure, and visual weight quieter than the article itself. Return a concise implementation plan plus edge cases for mobile browsers.`;
+
+    if (packet instanceof HTMLTextAreaElement) packet.value = text;
+    if (warmth instanceof HTMLInputElement) {
+      warmth.setAttribute('aria-valuenow', String(state.warmth));
+      warmth.setAttribute('aria-valuetext', warmthLabels[state.warmth]);
+    }
+    if (warmthLabel) warmthLabel.textContent = warmthLabels[state.warmth];
+  }
+
+  function setActiveButton(button, group) {
+    group.querySelectorAll('button').forEach((item) => syncPressedState(item, item === button));
+  }
+
+  function renderShareNote() {
+    const url = 'https://gu-log.vercel.app/artifacts/gp-194-html-loop/';
+    const templates = {
+      friend: {
+        curious: `這篇 gu-log 的互動小頁蠻有趣：它用一顆「分享按鈕」示範，HTML 不只是把 AI output 排漂亮，而是可以讓人類更好 review、選擇、再把 feedback 貼回 Agent。\n\n${url}`,
+        short: `這個 gu-log 小 demo 值得看：用「分享按鈕」解釋 HTML 怎麼把 AI 文字牆變成可審閱的控制面板。\n\n${url}`,
+        feedback: `我覺得這個 gu-log artifact 的方向有趣，但也想聽你覺得它好不好懂：它在講 HTML 怎麼讓人類回到 Agent workflow 裡。\n\n${url}`,
+      },
+      shroomdog: {
+        curious: `ShroomDog，這個 artifact 的方向有打到我：用分享按鈕當例子，確實比較容易理解「HTML 是 human feedback surface」這件事。\n\n我覺得最有效的是：____\n還可以更好懂的地方是：____\n\n${url}`,
+        short: `ShroomDog quick feedback：這個 GP-194 artifact 可以看懂，分享按鈕的例子比抽象講 HTML 有感。\n\n我會建議下一版改：____\n\n${url}`,
+        feedback: `ShroomDog，這段我覺得還可以更好消化：____\n\n我卡住的點是：____\n如果要讓朋友秒懂，我會希望它先講：____\n\n${url}`,
+      },
+    };
+    const text = templates[state.shareTarget]?.[state.shareTone] || templates.friend.curious;
+    if (shareNote instanceof HTMLTextAreaElement) shareNote.value = text;
+  }
+
+  document.querySelectorAll('[data-control="audience"]').forEach((group) => {
+    group.addEventListener('click', (event) => {
+      const target = event.target;
+      const button = target instanceof Element ? target.closest('button') : null;
+      if (!(button instanceof HTMLButtonElement)) return;
+      state.audience = button.dataset.value || state.audience;
+      setActiveButton(button, group);
+      renderPacket();
+    });
+  });
+
+  document.querySelectorAll('[data-control="risks"] button').forEach((button) => {
+    button.addEventListener('click', () => {
+      const value = button.dataset.value || '';
+      const nextActive = !button.classList.contains('active');
+      syncPressedState(button, nextActive);
+      if (nextActive) {
+        if (!state.risks.includes(value)) state.risks.push(value);
+      } else {
+        state.risks = state.risks.filter((item) => item !== value);
+      }
+      renderPacket();
+    });
+  });
+
+  document.querySelectorAll('.priority-chip').forEach((button) => {
+    button.addEventListener('click', () => {
+      const value = button.dataset.priority || '';
+      const nextActive = !button.classList.contains('active');
+      syncPressedState(button, nextActive);
+      if (nextActive) {
+        if (!state.priorities.includes(value)) state.priorities.push(value);
+      } else {
+        state.priorities = state.priorities.filter((item) => item !== value);
+      }
+      renderPacket();
+    });
+  });
+
+  warmth?.addEventListener('input', () => {
+    if (!(warmth instanceof HTMLInputElement)) return;
+    state.warmth = Number(warmth.value);
+    renderPacket();
+  });
+
+  document.querySelectorAll('[data-control="share-target"]').forEach((group) => {
+    group.addEventListener('click', (event) => {
+      const target = event.target;
+      const button = target instanceof Element ? target.closest('button') : null;
+      if (!(button instanceof HTMLButtonElement)) return;
+      state.shareTarget = button.dataset.value || state.shareTarget;
+      setActiveButton(button, group);
+      renderShareNote();
+      if (easterCopyStatus) easterCopyStatus.textContent = '';
+    });
+  });
+
+  document.querySelectorAll('[data-control="share-tone"]').forEach((group) => {
+    group.addEventListener('click', (event) => {
+      const target = event.target;
+      const button = target instanceof Element ? target.closest('button') : null;
+      if (!(button instanceof HTMLButtonElement)) return;
+      state.shareTone = button.dataset.value || state.shareTone;
+      setActiveButton(button, group);
+      renderShareNote();
+      if (easterCopyStatus) easterCopyStatus.textContent = '';
+    });
+  });
+
+  async function copyText(text) {
+    if (navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return;
+      } catch {
+        // Fall back below for browsers / preview contexts that block Clipboard API.
+      }
+    }
+    const temp = document.createElement('textarea');
+    temp.value = text;
+    document.body.appendChild(temp);
+    temp.select();
+    document.execCommand('copy');
+    temp.remove();
+  }
+
+  document.getElementById('copy-packet')?.addEventListener('click', async (event) => {
+    const button = event.currentTarget instanceof HTMLButtonElement ? event.currentTarget : null;
+    const text = packet instanceof HTMLTextAreaElement ? packet.value : '';
+    await copyText(text);
+    if (button) {
+      button.classList.add('copied');
+      button.textContent = '已複製，可以貼回 Agent';
+      window.setTimeout(() => {
+        button.classList.remove('copied');
+        button.textContent = '複製回饋包';
+      }, 1800);
+    }
+    if (copyStatus) copyStatus.textContent = '完成。';
+  });
+
+  document.getElementById('copy-easter')?.addEventListener('click', async (event) => {
+    const button = event.currentTarget instanceof HTMLButtonElement ? event.currentTarget : null;
+    const text = shareNote instanceof HTMLTextAreaElement ? shareNote.value : '';
+    await copyText(text);
+    if (button) {
+      button.classList.add('copied');
+      button.textContent = '已複製分享小抄';
+      window.setTimeout(() => {
+        button.classList.remove('copied');
+        button.textContent = '複製這段小抄';
+      }, 1800);
+    }
+    if (easterCopyStatus) easterCopyStatus.textContent = '完成，這段可以分享出去。';
+  });
+
+  renderPacket();
+  renderShareNote();
+</script>

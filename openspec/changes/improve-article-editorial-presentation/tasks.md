@@ -10,9 +10,9 @@
 
 - [ ] 2.1 在 `src/styles/global.css` 和/或 scoped post styles 新增 post-specific prose tokens/selectors。
 - [ ] 2.2 調整 `.post-header h1` scale、line-height、margin（sans-first，不引入 serif heading token——見 design.md D2 拍板）。
-- [ ] 2.3 調整 `.post-content h2`、`h3`、paragraph、list、blockquote、ClawdNote / MoguNote，以及 code / prompt-example spacing。
+- [ ] 2.3 調整 `.post-content h2`、`h3`、paragraph、list、blockquote、MoguNote / MoguNote，以及 code / prompt-example spacing。
 - [ ] 2.4 驗證 implementation 量測的是 `.post-content h2` 和 `.post-content p`，不是 unscoped TOC/source selectors。
-- [ ] 2.5 MoguNote / ClawdNote 降音量時同步收緊 line-height，實際行高值以實測定案（user 實測回饋：小字配 1.8 行距太鬆散）。
+- [ ] 2.5 MoguNote / MoguNote 降音量時同步收緊 line-height，實際行高值以實測定案（user 實測回饋：小字配 1.8 行距太鬆散）。
 
 ## 3. First-screen 與 metadata hierarchy
 

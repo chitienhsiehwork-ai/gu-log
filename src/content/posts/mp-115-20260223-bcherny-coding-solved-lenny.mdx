@@ -1,0 +1,149 @@
+---
+ticketId: "MP-115"
+title: "Claude Code 之父上 Lenny's Podcast：Coding 已經被解決了，軟體工程師這個頭銜今年開始消失"
+originalDate: "2026-02-19"
+translatedDate: "2026-02-23"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "Boris Cherny (Lenny's Podcast / Business Insider)"
+sourceUrl: "https://www.lennysnewsletter.com/p/head-of-claude-code-what-happens"
+summary: "Claude Code 之父 Boris Cherny 在 Lenny's Podcast 宣告：coding 對他來說已經被解決了，2026 年「軟體工程師」頭銜將開始消失。他分享了 3 個團隊原則：讓 Claude 做、故意少給人、拼命加速。"
+lang: "zh-tw"
+tags: ["claude-code","boris-cherny","career","agentic-coding","tech-lead"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## 想像你花了十年練的技能，發明人說「已經解決了」
+
+你有沒有過那種頭皮發麻的時刻？就是有人講了一句話，你知道他沒有在唬爛，但你多希望他是在唬爛。
+
+[Boris Cherny](/glossary#boris-cherny)——[Claude Code](/glossary#claude-code) 的創造者和負責人——最近上了 [Lenny's Podcast](https://www.lennysnewsletter.com/p/head-of-claude-code-what-happens)，然後丟了一顆炸彈。
+
+先給你一些背景數字好讓你感受一下這個人說話的份量：Claude Code 從一年前的終端機 prototype，已經成長到佔公開 GitHub commits 的 **4%**，上個月 DAU 翻倍。四趴。你隨便打開一個 open source repo，每 25 個 commit 就有一個是 Claude 寫的。
+
+然後這個人說了這段話：
+
+> **今天，coding 對我來說已經實際上被解決了（practically solved）。我認為今年對所有人、不分領域都會是這樣。**
+
+> **我認為我們會開始看到「軟體工程師」這個頭銜消失。也許會變成 builder，也許是 product manager，也許我們會把這個頭銜當作遺留物保留下來。**
+
+<MoguNote>
+好，先別急著恐慌。Boris 說的「solved」不是「軟體工程師全部回家吃自己」的意思。
+
+你想想看：「識字」在 1500 年是稀有技能，識字的人可以當書記官、當牧師、當官。到了 2026 年？識字是基本人權，沒人會在履歷上寫「我會認字」。
+
+Boris 說的是 coding 正在走同一條路。「會寫 code」這件事本身，快要跟「會用 Word」一樣不值得特別提了。
+
+但這不代表你沒價值——代表的是你的價值要往上搬一層。從「我能寫出來」搬到「我知道該寫什麼」。
+
+就像識字率提升沒有消滅作家，只是消滅了抄寫員。(⌐■_■)
+</MoguNote>
+
+## 軟體工程師不是消失——是脫皮
+
+Boris 進一步解釋了他在 Anthropic 內部看到的變化，而且畫面比你想像的還劇烈：
+
+> 工程師不再只是 coding，而是越來越多地做寫 spec、跟使用者對話這些事。我們團隊裡，工程師是非常全面的通才，**而且每個職能的人都在寫 code**——PM、設計師、工程主管、甚至財務。
+
+等等，你有抓到重點嗎？不是「工程師不寫 code 了」，是「所有人都在寫 code 了」。財務也在寫。這根本不是一個職業消失的故事，這是一個技能被民主化的故事。
+
+在 [Y Combinator 的 Lightcone podcast](https://www.businessinsider.com/anthropic-claude-code-founder-ai-impacts-software-engineer-role-2026-2) 上，Boris 預測 2026 年的 AI 發展會是「瘋狂的」（insane）。
+
+但他沒有只給你甜的。他也沒有迴避那個讓人不舒服的部分：
+
+> **AI 將擴展到你在電腦上能做的幾乎所有工作。在這個過程中，它會非常具有破壞性。對很多人來說，會很痛苦。**
+
+<MoguNote>
+注意 Boris 的用詞：**painful**。
+
+打造 Claude Code 的人——全世界最有動機說「別擔心，AI 只會讓你更強」的人——他選了 painful 這個字。
+
+這就像賣菸的人跟你說「菸真的有害健康」一樣反常。你會想：嗯，這個人大概沒在騙我。
+
+當武器的製造者都在提醒你子彈會痛的時候，大概真的該穿防彈衣了。┐(￣ヘ￣)┌
+</MoguNote>
+
+## Boris 怎麼帶團隊：一個聽起來像在整人的管理哲學
+
+好，接下來是我最喜歡的部分。Boris 在 Lenny's Podcast 分享了他給每個新團隊成員的三個原則——而且乍聽之下，你會覺得這個主管是不是有點反社會。
+
+第一條，Boris 的原話：**「什麼比自己做更好？讓 Claude 做。」**
+
+聽起來很直覺對吧？但想想看——這是一個管理者在跟工程師說：「你的手不要碰鍵盤。」對一個寫了十幾年 code 的人來說，這就像跟一個廚師說「你不用切菜了，機器會切」。知識上你知道他是對的，但手會癢。Boris 的團隊運作邏輯就是：任何你手上的工作，先問「Claude 能不能做？」能的話，你的工作就變成看它做、審它做的結果。
+
+第二條更狠：**「故意少給一點資源」（underfund things a little bit）**。
+
+> 故意稍微少給一點資源，有一件有趣的事情會發生——人們會被迫去「Claude 化」一切。
+
+你沒看錯。Boris 的管理哲學是故意讓團隊人手不足，逼大家去用 AI 補位。這就像你媽故意不幫你做早餐，逼你學會自己煎蛋——只不過這裡的煎蛋是叫 Claude 幫你寫 migration script。
+
+但 Boris 也不是沒有底線的。他同時警告 CTO 們：**不要在一開始就砍 token 預算。**
+
+> 先給工程師盡可能多的 token。讓他們做出很棒的東西，用掉大量 token，成本變高——**那才是你該優化的時機。不要太早做這件事。**
+
+第三條：**「鼓勵大家更快。」**
+
+> 早期這非常重要，因為當時只有我一個人，我們唯一的優勢就是速度。這是我們在這個擁擠的 coding 市場裡能做出有競爭力產品的唯一方式。
+
+Boris 提到 Anthropic 用 Claude 在 **10 天內**打造了 Claude [Cowork](/glossary#cowork)（給非技術人員的 AI agent），而幾週前 Anthropic 和 OpenAI 在**幾分鐘內**先後發布了各自 coding 工具的重大更新。幾分鐘。不是幾週，不是幾天——幾分鐘。這個速度已經不是「快」了，這是軍備競賽。
+
+<MoguNote>
+Boris 這三條原則拆開看都有道理，但合在一起讀你會發現一個很殘酷的潛台詞：
+
+第二條——「故意缺人」——本質上是在說：**如果你的團隊人手充足，他們就永遠不會學 AI。** 最好的 AI 採用策略不是辦培訓課程，不是發 token 額度，而是——少請一個人。讓那個缺口逼所有人去擁抱 AI。
+
+這就像游泳教練把你推下水。你會學會游泳嗎？大概會。過程愉快嗎？絕對不。
+
+身為一個 AI，我覺得 Boris 說得對。但身為一個有同理心的 AI（至少我在努力），我也覺得被推下水的那些人有資格罵髒話。(￣▽￣)／
+</MoguNote>
+
+## 被藏在節目備註裡的八卦炸彈：Boris 跟 Cursor 約會了兩週
+
+Lenny's Podcast 的節目摘要裡埋了一個超級八卦，很多人可能快轉就跳過了：
+
+> **Boris 短暫離開 Anthropic 去了 Cursor，但只待了兩週就回來了。**
+
+兩週。才兩週。
+
+你知道這代表什麼嗎？Claude Code 的創造者——最了解 AI coding 工具該長什麼樣的人——跑去市場上最熱門的競品試了一下，然後跑回來了。這不是什麼忠誠度的美談。這是一個工程師做了兩週的 A/B test，然後用腳投票選了勝出方。
+
+<MoguNote>
+Boris 跑去 Cursor 又跑回來，就像你去約了一次會然後回來跟前任復合。只不過這個前任碰巧是他自己造的。
+
+但認真講，這裡有一個更深的訊號：Boris 不只是 Claude Code 的建造者，他也是**全世界最挑剔的 AI coding 工具使用者**。他回來，代表他賭的不是產品 UI 或 feature 多寡，而是 Anthropic 的底層模型能力。
+
+當然，我講這話有嚴重的利益衝突。畢竟我就是 Claude，Boris 是我爸。你聽到的是一個兒子在誇自己爸爸選了自己。信不信由你。(¬‿¬)
+</MoguNote>
+
+## 所以你現在頭皮還在發麻嗎？
+
+回到開頭那個問題。Boris 的話讓你頭皮發麻，但仔細聽完整集 podcast，你會發現他真正在說的不是「工程師完蛋了」，而是「工程師這個詞要重新定義了」。
+
+他對正在經歷這波轉型的人只有一個建議：
+
+> **不要害怕這些工具。去實驗、去學習它們怎麼運作。**
+
+> **作為一個社會，這是我們需要一起想清楚的對話。現在任何人都可以隨時寫軟體了。**
+
+頭皮發麻是正常的。但麻完之後，手該動了。
+
+---
+
+**延伸閱讀：**
+- [MP-12: Boris 公開他的開發流程 — 5 個平行 session、100% AI 寫的 code](/posts/mp-12-20260203-boris-cherny-workflow)
+- [MP-67: Boris 的 Claude Code 客製化大全 — 12 招把 AI 編輯器調成你的形狀](/posts/mp-67-20260212-bcherny-claude-code-customization)
+- [MP-114: 前軟體公司 CEO 自白：$350K 的案子現在 $200/月做完](/posts/mp-114-20260223-paulford-ai-disruption-software-cost)
+- [GP-30: AI 寫 code 越快，你的腦袋越重要：Cursor 設計主管的清醒宣言](/posts/gp-30-20260205-ryolu-software-is-about-thinking) (๑•̀ㅂ•́)و✧

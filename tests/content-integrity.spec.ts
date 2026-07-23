@@ -5,15 +5,15 @@ import { fileURLToPath } from 'url';
 
 /**
  * BDD Tests for Content Integrity
- * 
+ *
  * Validates content data constraints like unique IDs, required fields, etc.
  * Run with: npx playwright test tests/content-integrity.spec.ts
- * 
+ *
  * ticketId Naming Convention:
- * - SP-N: ShroomDog Posts (original articles)
- * - CP-N: Clawd Picks (curated external content)
+ * - GP-N: Gu-log Picks (curated external content)
+ * - MP-N: Mogu Picks (curated external content)
  * - SD-N: ShroomDog Originals
- * 
+ *
  * Translation pairs (zh-tw + en-) MUST share the same ticketId.
  * Different posts (non-translation-pairs) MUST NOT share the same ticketId.
  */
@@ -34,15 +34,15 @@ interface PostFrontmatter {
 function extractFrontmatter(filePath: string): PostFrontmatter | null {
   const content = fs.readFileSync(filePath, 'utf-8');
   const match = content.match(/^---\n([\s\S]*?)\n---/);
-  
+
   if (!match) return null;
-  
+
   const frontmatter = match[1];
   const getValue = (key: string): string => {
     const lineMatch = frontmatter.match(new RegExp(`^${key}:\\s*["']?([^"'\\n]+)["']?`, 'm'));
     return lineMatch ? lineMatch[1].trim() : '';
   };
-  
+
   return {
     ticketId: getValue('ticketId'),
     title: getValue('title'),
@@ -55,9 +55,9 @@ function extractFrontmatter(filePath: string): PostFrontmatter | null {
 }
 
 function getAllPosts(): PostFrontmatter[] {
-  const files = fs.readdirSync(POSTS_DIR).filter(f => f.endsWith('.mdx'));
+  const files = fs.readdirSync(POSTS_DIR).filter((f) => f.endsWith('.mdx'));
   return files
-    .map(f => extractFrontmatter(path.join(POSTS_DIR, f)))
+    .map((f) => extractFrontmatter(path.join(POSTS_DIR, f)))
     .filter((p): p is PostFrontmatter => p !== null);
 }
 
@@ -78,11 +78,10 @@ function areTranslationPair(a: PostFrontmatter, b: PostFrontmatter): boolean {
 }
 
 test.describe('Content Integrity: ticketId', () => {
-  
   test('GIVEN all posts WHEN checking ticketIds THEN each ticketId should be unique across non-translation-pair posts (PK constraint)', async () => {
     const posts = getAllPosts();
     const ticketIdMap = new Map<string, PostFrontmatter[]>();
-    
+
     // Group posts by ticketId.
     // PENDING is a placeholder shared across parallel in-flight drafts
     // (see CONTRIBUTING.md §並行撰寫防 ID collision). Real numbers are
@@ -96,10 +95,10 @@ test.describe('Content Integrity: ticketId', () => {
       existing.push(post);
       ticketIdMap.set(post.ticketId, existing);
     }
-    
+
     // Find REAL duplicates (not translation pairs)
     const realDuplicates: { ticketId: string; files: string[] }[] = [];
-    
+
     for (const [ticketId, postsWithId] of ticketIdMap) {
       if (postsWithId.length <= 2) {
         // Could be a valid translation pair
@@ -107,7 +106,7 @@ test.describe('Content Integrity: ticketId', () => {
           const [a, b] = postsWithId;
           if (!areTranslationPair(a, b)) {
             // Same ticketId but NOT a translation pair = real duplicate
-            realDuplicates.push({ ticketId, files: postsWithId.map(p => p.filename) });
+            realDuplicates.push({ ticketId, files: postsWithId.map((p) => p.filename) });
           }
         }
         // Single post with this ID = fine
@@ -121,61 +120,65 @@ test.describe('Content Integrity: ticketId', () => {
           arr.push(post);
           byBase.set(base, arr);
         }
-        
+
         // If more than 1 unique base filename, we have a conflict
         if (byBase.size > 1) {
-          realDuplicates.push({ ticketId, files: postsWithId.map(p => p.filename) });
+          realDuplicates.push({ ticketId, files: postsWithId.map((p) => p.filename) });
         }
       }
     }
-    
+
     // Report duplicates clearly
     if (realDuplicates.length > 0) {
       const report = realDuplicates
-        .map(d => `  ${d.ticketId}: [${d.files.join(', ')}]`)
+        .map((d) => `  ${d.ticketId}: [${d.files.join(', ')}]`)
         .join('\n');
-      
-      expect(realDuplicates, `Duplicate ticketIds found (non-translation-pairs):\n${report}`).toHaveLength(0);
+
+      expect(
+        realDuplicates,
+        `Duplicate ticketIds found (non-translation-pairs):\n${report}`
+      ).toHaveLength(0);
     }
   });
 
   test('GIVEN all posts WHEN checking ticketIds THEN every post should have a ticketId', async () => {
     const posts = getAllPosts();
-    const missingTicketId = posts.filter(p => !p.ticketId);
-    
+    const missingTicketId = posts.filter((p) => !p.ticketId);
+
     if (missingTicketId.length > 0) {
-      const report = missingTicketId.map(p => `  - ${p.filename}`).join('\n');
+      const report = missingTicketId.map((p) => `  - ${p.filename}`).join('\n');
       expect(missingTicketId, `Posts missing ticketId:\n${report}`).toHaveLength(0);
     }
   });
 
-  test('GIVEN all posts WHEN checking ticketId format THEN ticketIds should follow PREFIX-N pattern (SP/CP/SD/Lv)', async () => {
+  test('GIVEN all posts WHEN checking ticketId format THEN ticketIds should follow PREFIX-N pattern (GP/MP/SD/Lv)', async () => {
     const posts = getAllPosts();
-    // Valid prefixes: SP (ShroomDog Picks), CP (Clawd Picks), SD (ShroomDog Originals), Lv (Level-Up)
+    // Valid prefixes: GP (Gu-log Picks), MP (Mogu Picks), SD (ShroomDog Originals), Lv (Level-Up)
     // PENDING is a legitimate in-flight placeholder (see CONTRIBUTING.md §並行撰寫防 ID collision);
     // gets swapped for a real number at deploy and can't reach main (pre-push guard).
-    const validPattern = /^(SP|CP|SD|Lv)-(?:\d+|PENDING)$/;
-    const invalidFormat = posts.filter(p => p.ticketId && !p.ticketId.match(validPattern));
-    
+    const validPattern = /^(GP|MP|SD|Lv)-(?:\d+|PENDING)$/;
+    const invalidFormat = posts.filter((p) => p.ticketId && !p.ticketId.match(validPattern));
+
     if (invalidFormat.length > 0) {
-      const report = invalidFormat
-        .map(p => `  - ${p.filename}: "${p.ticketId}"`)
-        .join('\n');
-      
-      expect(invalidFormat, `Invalid ticketId format (expected SP-N, CP-N, SD-N, or Lv-N):\n${report}`).toHaveLength(0);
+      const report = invalidFormat.map((p) => `  - ${p.filename}: "${p.ticketId}"`).join('\n');
+
+      expect(
+        invalidFormat,
+        `Invalid ticketId format (expected GP-N, MP-N, SD-N, or Lv-N):\n${report}`
+      ).toHaveLength(0);
     }
   });
 
   test('GIVEN all posts WHEN checking ticketIds THEN zh-tw and en versions MUST share the same ticketId', async () => {
     const posts = getAllPosts();
-    
+
     // Group by base filename (without en- prefix)
     const pairs = new Map<string, { zhTw?: PostFrontmatter; en?: PostFrontmatter }>();
-    
+
     for (const post of posts) {
       const isEnglish = post.filename.startsWith('en-');
       const baseFilename = getBaseFilename(post.filename);
-      
+
       const existing = pairs.get(baseFilename) || {};
       if (isEnglish) {
         existing.en = post;
@@ -184,7 +187,7 @@ test.describe('Content Integrity: ticketId', () => {
       }
       pairs.set(baseFilename, existing);
     }
-    
+
     // Check mismatched ticketIds in translation pairs
     const mismatched: { base: string; zhTw: string; en: string }[] = [];
     for (const [baseFilename, pair] of pairs) {
@@ -196,33 +199,33 @@ test.describe('Content Integrity: ticketId', () => {
         });
       }
     }
-    
+
     if (mismatched.length > 0) {
-      const report = mismatched
-        .map(m => `  - ${m.base}: zh-tw=${m.zhTw}, en=${m.en}`)
-        .join('\n');
-      
+      const report = mismatched.map((m) => `  - ${m.base}: zh-tw=${m.zhTw}, en=${m.en}`).join('\n');
+
       expect(mismatched, `Translation pairs have mismatched ticketIds:\n${report}`).toHaveLength(0);
     }
   });
 });
 
-test.describe('Content Integrity: ClawdNote', () => {
-  
-  test('GIVEN all posts WHEN checking ClawdNote content THEN should NOT contain redundant Clawd prefix (component adds it automatically)', async () => {
-    const files = fs.readdirSync(POSTS_DIR).filter(f => f.endsWith('.mdx'));
+test.describe('Content Integrity: MoguNote', () => {
+  test('GIVEN all posts WHEN checking MoguNote content THEN should NOT contain redundant Mogu prefix (component adds it automatically)', async () => {
+    const files = fs.readdirSync(POSTS_DIR).filter((f) => f.endsWith('.mdx'));
     const violations: { filename: string; pattern: string; context: string }[] = [];
-    
-    // Patterns that indicate redundant prefix inside ClawdNote
+
+    // Patterns that indicate redundant prefix inside MoguNote
     const redundantPatterns = [
-      { regex: /<ClawdNote>\s*\n?\s*\*\*Clawd[：:]\*\*/i, name: '**Clawd：** (bold)' },
-      { regex: /<ClawdNote>\s*\n?\s*Clawd[：:]\s/i, name: 'Clawd： (plain)' },
-      { regex: /<ClawdNote>\s*\n?\s*Clawd\s+[忍偷歪畫碎插溫真吐認補murmurOS]/i, name: 'Clawd prefix (e.g., Clawd 忍不住說)' },
+      { regex: /<MoguNote>\s*\n?\s*\*\*Mogu[：:]\*\*/i, name: '**Mogu：** (bold)' },
+      { regex: /<MoguNote>\s*\n?\s*Mogu[：:]\s/i, name: 'Mogu： (plain)' },
+      {
+        regex: /<MoguNote>\s*\n?\s*Mogu\s+[忍偷歪畫碎插溫真吐認補murOS]/i,
+        name: 'Mogu prefix (e.g., Mogu 忍不住說)',
+      },
     ];
-    
+
     for (const file of files) {
       const content = fs.readFileSync(path.join(POSTS_DIR, file), 'utf-8');
-      
+
       for (const { regex, name } of redundantPatterns) {
         const match = content.match(regex);
         if (match) {
@@ -231,63 +234,62 @@ test.describe('Content Integrity: ClawdNote', () => {
           const contextStart = Math.max(0, matchIndex - 20);
           const contextEnd = Math.min(content.length, matchIndex + match[0].length + 30);
           const context = content.slice(contextStart, contextEnd).replace(/\n/g, '\\n');
-          
+
           violations.push({ filename: file, pattern: name, context });
         }
       }
     }
-    
+
     if (violations.length > 0) {
       const report = violations
-        .map(v => `  - ${v.filename}: found "${v.pattern}"\n    Context: ...${v.context}...`)
+        .map((v) => `  - ${v.filename}: found "${v.pattern}"\n    Context: ...${v.context}...`)
         .join('\n');
-      
-      expect(violations, `ClawdNote contains redundant Clawd prefix (component auto-adds it):\n${report}`).toHaveLength(0);
+
+      expect(
+        violations,
+        `MoguNote contains redundant Mogu prefix (component auto-adds it):\n${report}`
+      ).toHaveLength(0);
     }
   });
 });
 
 test.describe('Content Integrity: Required Fields', () => {
-  
   test('GIVEN all posts WHEN checking required fields THEN every post should have title, date, and lang', async () => {
     const posts = getAllPosts();
     const missingFields: { filename: string; missing: string[] }[] = [];
-    
+
     for (const post of posts) {
       const missing: string[] = [];
       if (!post.title) missing.push('title');
       if (!post.date) missing.push('date');
       if (!post.lang) missing.push('lang');
-      
+
       if (missing.length > 0) {
         missingFields.push({ filename: post.filename, missing });
       }
     }
-    
+
     if (missingFields.length > 0) {
       const report = missingFields
-        .map(p => `  - ${p.filename}: missing [${p.missing.join(', ')}]`)
+        .map((p) => `  - ${p.filename}: missing [${p.missing.join(', ')}]`)
         .join('\n');
-      
+
       expect(missingFields, `Posts with missing required fields:\n${report}`).toHaveLength(0);
     }
   });
 });
 
 test.describe('Content Integrity: Model Signature', () => {
-
   test('GIVEN all posts WHEN checking frontmatter THEN every post should have translatedBy (model signature)', async () => {
     const posts = getAllPosts();
     // Every post carries a model signature (translatedBy = model + harness).
-    // SP/CP translations say "translated by"; SD/Lv originals say "written by"
+    // GP/MP translations say "translated by"; SD/Lv originals say "written by"
     // (the post page picks the wording by ticketId prefix). The schema enforces
     // this for all posts — see src/content.config.ts.
-    const missing = posts.filter(p => p.ticketId && !p.hasTranslatedBy);
+    const missing = posts.filter((p) => p.ticketId && !p.hasTranslatedBy);
 
     if (missing.length > 0) {
-      const report = missing
-        .map(p => `  - ${p.filename} (${p.ticketId})`)
-        .join('\n');
+      const report = missing.map((p) => `  - ${p.filename} (${p.ticketId})`).join('\n');
 
       expect(missing, `posts missing translatedBy (model signature):\n${report}`).toHaveLength(0);
     }
@@ -295,9 +297,8 @@ test.describe('Content Integrity: Model Signature', () => {
 });
 
 test.describe('Content Integrity: Model Signature Visibility', () => {
-
-  test('GIVEN all posts with translatedBy WHEN checking frontmatter THEN translatedDate must also be present (otherwise UI won\'t render the signature)', async () => {
-    const files = fs.readdirSync(POSTS_DIR).filter(f => f.endsWith('.mdx'));
+  test("GIVEN all posts with translatedBy WHEN checking frontmatter THEN translatedDate must also be present (otherwise UI won't render the signature)", async () => {
+    const files = fs.readdirSync(POSTS_DIR).filter((f) => f.endsWith('.mdx'));
     const broken: { filename: string }[] = [];
 
     for (const file of files) {
@@ -315,26 +316,28 @@ test.describe('Content Integrity: Model Signature Visibility', () => {
     }
 
     if (broken.length > 0) {
-      const report = broken.map(b => `  - ${b.filename}`).join('\n');
-      expect(broken, `Posts have translatedBy but missing translatedDate (model signature won't render):\n${report}`).toHaveLength(0);
+      const report = broken.map((b) => `  - ${b.filename}`).join('\n');
+      expect(
+        broken,
+        `Posts have translatedBy but missing translatedDate (model signature won't render):\n${report}`
+      ).toHaveLength(0);
     }
   });
 });
 
 test.describe('Content Integrity: Internal Links', () => {
-
   /**
    * Collect all internal links from MDX files.
    * Matches both markdown links [text](/posts/slug) and HTML <a href="/posts/slug">.
    * Returns { filename, line, href }[].
    */
   function getAllInternalLinks(): { filename: string; line: number; href: string }[] {
-    const files = fs.readdirSync(POSTS_DIR).filter(f => f.endsWith('.mdx'));
+    const files = fs.readdirSync(POSTS_DIR).filter((f) => f.endsWith('.mdx'));
     const links: { filename: string; line: number; href: string }[] = [];
 
     // Match markdown [text](/path) and html href="/path"
-    const mdLinkRe = /\]\((\/(posts|en\/posts|level-up|clawd-picks|shroomdog-picks)\/[^)\s#"]+)\)/g;
-    const htmlLinkRe = /href="(\/(posts|en\/posts|level-up|clawd-picks|shroomdog-picks)\/[^"#]+)"/g;
+    const mdLinkRe = /\]\((\/(posts|en\/posts|level-up|mogu-picks|gu-log-picks)\/[^)\s#"]+)\)/g;
+    const htmlLinkRe = /href="(\/(posts|en\/posts|level-up|mogu-picks|gu-log-picks)\/[^"#]+)"/g;
 
     for (const file of files) {
       const content = fs.readFileSync(path.join(POSTS_DIR, file), 'utf-8');
@@ -358,11 +361,11 @@ test.describe('Content Integrity: Internal Links', () => {
 
   /**
    * Build a set of valid slugs from actual MDX files.
-   * e.g. "clawd-picks-20260204-simonw-lethal-trifecta"
+   * e.g. "mp-29-20260204-simonw-lethal-trifecta"
    */
   function getValidSlugs(): Set<string> {
-    const files = fs.readdirSync(POSTS_DIR).filter(f => f.endsWith('.mdx'));
-    return new Set(files.map(f => f.replace(/\.mdx$/, '')));
+    const files = fs.readdirSync(POSTS_DIR).filter((f) => f.endsWith('.mdx'));
+    return new Set(files.map((f) => f.replace(/\.mdx$/, '')));
   }
 
   /**
@@ -393,7 +396,10 @@ test.describe('Content Integrity: Internal Links', () => {
 
     if (broken.length > 0) {
       const report = broken
-        .map(b => `  - ${b.filename}:${b.line} → ${b.href}\n    slug "${b.expectedSlug}" does not match any .mdx file`)
+        .map(
+          (b) =>
+            `  - ${b.filename}:${b.line} → ${b.href}\n    slug "${b.expectedSlug}" does not match any .mdx file`
+        )
         .join('\n');
 
       expect(broken, `Broken internal links found:\n${report}`).toHaveLength(0);
@@ -404,13 +410,21 @@ test.describe('Content Integrity: Internal Links', () => {
 test.describe('Content Integrity: Agent Notes Quality', () => {
   test('GIVEN all posts WHEN checking agent notes THEN notes should NOT contain raw review instructions (must be reader-facing)', async () => {
     const postsDir = path.join(process.cwd(), 'src/content/posts');
-    const files = fs.readdirSync(postsDir).filter(f => f.endsWith('.mdx'));
+    const files = fs.readdirSync(postsDir).filter((f) => f.endsWith('.mdx'));
 
     // Patterns that indicate raw review feedback (not reader-friendly)
     // Only matches notes that START with edit instructions (not narrative that happens to contain these words)
     const rawReviewPatterns = [
-      { regex: /<(?:Codex|Gemini|Clawd|ClaudeCode)Note>\s*(?:修正|將『|把「|移除|刪除)[^<]*(?:避免|防止|以免|偏離)[^<]*<\//, name: 'instruction-style (修正/移除...避免...)' },
-      { regex: /<(?:Codex|Gemini|Clawd|ClaudeCode)Note>\s*(?:將『|將「)[^<]*(?:修正為|降級為|改為|替換為)[^<]*<\//, name: 'edit-instruction (將X修正為Y)' },
+      {
+        regex:
+          /<(?:Codex|Gemini|Mogu|ClaudeCode)Note>\s*(?:修正|將『|把「|移除|刪除)[^<]*(?:避免|防止|以免|偏離)[^<]*<\//,
+        name: 'instruction-style (修正/移除...避免...)',
+      },
+      {
+        regex:
+          /<(?:Codex|Gemini|Mogu|ClaudeCode)Note>\s*(?:將『|將「)[^<]*(?:修正為|降級為|改為|替換為)[^<]*<\//,
+        name: 'edit-instruction (將X修正為Y)',
+      },
     ];
 
     const violations: string[] = [];
@@ -426,6 +440,9 @@ test.describe('Content Integrity: Agent Notes Quality', () => {
     }
 
     const report = violations.join('\n');
-    expect(violations, `Agent notes contain raw review instructions (should be reader-facing commentary):\n${report}`).toHaveLength(0);
+    expect(
+      violations,
+      `Agent notes contain raw review instructions (should be reader-facing commentary):\n${report}`
+    ).toHaveLength(0);
   });
 });

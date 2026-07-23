@@ -1,0 +1,248 @@
+---
+ticketId: "GP-92"
+title: "Claude 原生律師事務所：一個律師如何用 AI 幹掉百人大所"
+originalDate: "2026-02-27"
+translatedDate: "2026-03-01"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "Zack Shapiro on X"
+sourceUrl: "https://x.com/zackbshapiro/status/2027389987444957625"
+lang: "zh-tw"
+summary: "一個只有兩人的精品律師事務所，靠 Claude 處理原本需要十幾個 associate 的工作量。從合約審閱、tracked changes 到法律研究，全部用 Claude Skills 編碼十年執業經驗。這篇不是理論，是每天在用的 workflow — 而且結論是：通用 AI 打爆所有法律垂直 AI 產品。"
+tags: ["claude-code","legal-tech","agentic-coding","workflow","real-world"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+晚上七點，併購案明天就要 close。買方律師突然丟了一封信過來，語氣不善：「我們要重新談 escrow、indemnification carve-outs、跟 closing deliverables。不接受就撤。」
+
+一般事務所這時候要把三個 associate 叫回來加班到天亮。
+
+但 Zack Shapiro 只有兩個人的事務所。他打開 Claude，把購買協議、揭露附表、跟那封信全部丟進去。
+
+幾分鐘後，Claude 把每一個提議的修改對照了現有條款——然後發現了買方律師自己沒注意到的東西：**他們提出的兩個 carve-out 直接矛盾了他們已經確認的揭露附表內容**。第三個修改更離譜，會在 fundamental reps 那一段造成內部衝突，反而**削弱買方自己的 post-closing 保護**。
+
+他們氣勢洶洶的 last-minute play，自己有洞 ╰(°▽°)╯
+
+接下來整個晚上的 email 往返，Zack 把每一封新通訊都餵給 Claude。它追蹤每一個讓步如何影響協議其他條款，標記哪裡讓步會在別的地方炸開，幫他建構了一套回應策略——該讓的讓，該守的守。到晚上 11 點，一整套 counter-positions 準備好了，每一條都引用了買方自己的用語。
+
+隔天早上，deal closed。客戶很滿意。
+
+**一個中型事務所的三人 team 做這件事，要做到天亮。他兩小時搞定核心分析。**
+
+好，故事講完了。但問題來了——他到底怎麼做到的？一個兩人事務所，怎麼跟上百人大所打？
+
+答案是他把十年的執業經驗，編碼進了一個 AI。
+
+<MoguNote>
+等等，先讓我幫你感受一下「晚上七點買方律師突然丟信」這件事有多恐怖。這就像你半夜被 on-call 叫醒，打開一看不是一個 bug，是整個 production database schema 要改，而且明天早上 CEO demo 前要修好。差別在律師版的罰則是——客戶可能損失幾百萬美金 (╯°□°)╯
+</MoguNote>
+
+---
+
+## Template 是路邊攤菜單，Judgment 才是廚師手藝
+
+市面上一堆法律專用 AI 產品：Harvey、Spellbook、CoCounsel、Luminance。它們共享一個論點——律師需要專門為法律打造的 AI。
+
+Zack 幾乎全部試過了。結論？**對小型事務所來說，一個設定得好的通用 AI 更強。而且差距不小。**
+
+為什麼？這些專用產品都是 wrapper——底層跑的是同一個 foundation model。它們的行銷聽起來很誘人：「我們會根據你事務所的 playbook 客製 AI、用你的 template 訓練、圍繞你的 clause library 建 workflow。」
+
+但這個 pitch 搞錯了一件根本的事：**template library 不是競爭優勢。**
+
+想像一下——同一個執業領域裡，每個稱職的事務所都有差不多的 template。NDA、股票購買協議、聘僱 offer letter，這些東西就像便利商店的御飯糰，全家跟 7-11 的配方大同小異。真正讓一個好律師跟普通律師拉開差距的，從來不是 template。是律師**怎麼用** template：他怎麼發現對方埋在 Section 14(c) 的地雷、怎麼判斷哪場 indemnification 的仗值得打、怎麼把建議信寫得讓客戶真的懂風險而不是看完更焦慮。
+
+**那叫 judgment。judgment 不住在事務所層級，它住在個人層級。**
+
+<MoguNote>
+如果換成工程師的語言：template = boilerplate code，judgment = 架構決策。你去 GitHub 找一千個 REST API template 都長差不多，但 senior 跟 junior 寫出來的系統，差距在架構選擇、error handling 策略、那些「我踩過雷所以知道這裡要小心」的直覺。法律 AI wrapper 就像那些「AI 生成 CRUD app」的產品——底層能力相同，硬加一層 UI 反而限制你能做的事 ┐(￣ヘ￣)┌
+</MoguNote>
+
+所以真正的 leverage 不在於 AI 從哪個 template 開始，而在於**告訴它怎麼思考**的那些 instruction。看什麼、標記什麼、怎麼權衡、用什麼格式輸出、對客戶用什麼語氣。這些 instruction 編碼的是個別律師的判斷力——不是事務所的 template library。
+
+而這正是 Claude Skills 系統在做的事。
+
+但等等，還有一個更根本的差距：**Claude 會寫 code。**
+
+這聽起來跟法律無關，直到你想到這意味著什麼——Claude 可以直接操作律師已經在用的軟體。每個律師都在 Word 的格式地獄裡浪費過無數小時。段落編號在你貼文的時候壞掉、Style 死都不配合、Track changes 跨版本 corrupt、交叉引用過期、Bluebook 引用格式需要手動校對每一個句點和逗號。
+
+**這些不是法律問題。這些是軟體問題。** Claude 解決軟體問題的方式——就是寫軟體。
+
+當 Zack 告訴 Claude 要套 tracked changes，Claude 不是用 plugin 或 macro。它**直接在 XML 層級打開 .docx 檔案**，寫入 Microsoft Word 預期的確切 markup，署上他的名字，保留所有格式細節。結果跟專業手工作業無法區分，但只花了幾分之一的時間。
+
+**專用法律 AI 產品給你一個「聊」文件的 chatbot。Claude 是一個可以伸手「進入」文件動手修改的系統。** 一個只能告訴你合約哪裡有問題，另一個告訴你問題、修好它、做 redline、還幫你寫 cover email——全部不用你打開任何一個應用程式。
+
+<MoguNote>
+「直接在 XML 層級打開 .docx」這句話如果你沒感覺，讓我翻譯一下：這就像你請水電師傅來修水龍頭，結果他直接把牆打開重接水管。大部分人想到 AI 處理文件就是「幫我改幾個字」，但 Claude 是直接操作底層資料結構。這個操作的 nerd level 高到我都有點嫉妒 (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+---
+
+## 三把不同的刀，看情況用
+
+Claude Desktop 有三種模式。搞懂什麼時候用哪把刀，是讓整套流程跑起來的關鍵。
+
+**Chat** 最直觀——就像跟一個超快、超懂法律的同事面對面聊。分析議題、腦力激盪談判策略、對合約條款給第一輪意見。大部分用過 ChatGPT 的律師只體驗過這個層次。但這只是冰山一角。
+
+**[Cowork](/glossary#cowork)** 是自主模式，也是**真正改變遊戲規則的那個**。你把 Claude 指向電腦上的一個資料夾，跟它說「幫我把這 40 頁合約做完整 redline」——然後它就自己去了。讀檔案、建新檔、編輯現有文件、自己決定怎麼從 A 走到 B。就像你交代一個聰明的 junior 一個任務，然後去忙別的事，回來看到桌上已經放好成品。
+
+**Code** 是開發模式，完整 terminal 權限。大部分律師日常用不到。但這邊有個超棒的故事——Zack 有個讓他難以閱讀長文件的狀況，所以他用 Code 模式讓 Claude 寫了一個命令列工具，把法律文件轉成語音。整條 pipeline：解析 Word docs 和 PDF、把 "Section 4.2(b)(iii)" 轉成自然語音、展開縮寫、切段、送到 AI voice API、組合最終音檔。**他現在通勤的時候「聽」合約。**
+
+<MoguNote>
+Cowork 模式就是 [Claude Code](/glossary#claude-code) 的理念搬到 Desktop app 上——你給方向，agent 自己探索、決策、執行。這跟 ShroomDog 用 coding agent 做 gu-log 翻譯是同一個 pattern（對，你現在讀的這篇文章就是這樣生出來的 (¬‿¬)）。
+
+而那個「聽合約」的工具？這就是為什麼 general-purpose AI 打爆 vertical product。垂直產品的 PM 永遠不會想到做這個功能，因為它不在「法律 AI」的 roadmap 上。但對這個特定使用者來說，這是 game changer。你能想像一家法律 SaaS 公司開會討論「我們來加一個把合約變 podcast 的功能」嗎？不可能。但 Claude 就是做了。
+</MoguNote>
+
+---
+
+## 把十年功力灌進 [Skill](/glossary#skill)
+
+這裡是 leverage 真正爆發的地方。
+
+Anthropic 發了一份指南，教你怎麼為 Claude 建 custom skills——結構化的 instruction 檔案，教 Claude 在特定情境下怎麼表現。不是每次都要打的 prompt，是一組持久指令，在適當的時機自動觸發。
+
+但 Zack 沒有從頭到尾讀那份指南。他把指南丟給 Claude，然後問了一個更聰明的問題：**根據我們幾百次的對話——涵蓋合約起草、客戶 email、文件編輯、法律研究、政策撰寫——你覺得哪些 skill 對我的執業影響最大？**
+
+這招很漂亮。Claude 分析了幾個月的工作紀錄，找出 pattern：哪些任務他重複最多、哪裡摩擦力最高、哪裡結構化自動化能省最多時間。推薦出來的 skill 不是通用的「review contracts faster」那種廢話，而是——「一個合約審閱 skill，根據情境有四種模式、嚴重程度評級、缺失條款 checklist、市場條款 benchmarking、還能無縫接到 tracked-changes editing skill」。
+
+花了幾小時精煉細節後，他有了六個 production-ready 的 skill，打包成一個 plugin：合約審閱、tracked changes 編輯、合約起草、客戶溝通、法律研究、政策撰寫。每一個都編碼了多年累積的專業判斷。
+
+**對事務所管理的意涵**：這個 plugin 是可轉移的。如果他有 50 個 associate，他可以裝到每台電腦上。每個 associate 立刻就能用他的分析框架審合約、用他的語氣寫溝通、用他偏好的格式做 tracked changes。**原本需要多年 mentorship 才能傳遞的知識，現在是一個從第一份草稿就生效的 instruction file。**
+
+<MoguNote>
+「把十年經驗編碼成 instruction file」——這句話聽起來像科幻小說，但仔細想想，senior engineer 寫的 coding style guide、code review checklist、architecture decision record 本質上也是在做同一件事。差別在以前這些 document 是給人讀的，現在是給 AI 讀的，而且 AI 真的會**每一次都照做** (◕‿◕) 不像某些 junior 永遠記不住 code review 上次講的事...（我沒有在說誰）
+</MoguNote>
+
+---
+
+## 實戰三則
+
+### 1. 不開 Word 就做 Tracked Changes
+
+對方回了一份 40 頁的 redlined 合約。Zack 上傳文件，說：「從我客戶的角度評估對方的修改。」
+
+合約審閱 skill 啟動。Claude 按嚴重程度整理每一個修改、標記對方在哪裡轉嫁風險、找出修改條款之間的張力、檢查應該有但缺少的標準條款、產出一份摘要，每個問題都附 counter-language。
+
+然後 Zack 加入自己的 judgment——Claude 標記了一個 markup pattern，他根據經驗知道那通常代表什麼。Claude 為一個爭議條款生成了三種替代方案，他挑了那個考慮到關係動態和 deal context 的版本。這些東西 AI 根本看不到，但人可以。
+
+做完決策後，Claude 在 XML 層級打開 Word 檔、套上署名 tracked changes、保留每一個格式細節。對方律師打開 Word 正常 review。客戶溝通 skill 幫忙起草 cover email。
+
+**從收到 redline 到回覆包準備好：不到一小時。其中 30 分鐘是他自己在思考。**
+
+### 2. 不幻覺的法律研究
+
+客戶需要了解新產品的監管環境。問題跨多個機關和重疊的法規框架。
+
+研究 skill 指揮 Claude **同時**從每個相關角度平行研究——證券分析、州許可要求、銀行監管、消費者保護——而不是一個一個跑。每個子題多次搜尋、交叉比對來源、優先看一手資料（法規、規則、機關指引、判例）而非二手評論。
+
+然後是關鍵步驟：交付之前，skill 要求 Claude 跑 self-review。每一個引用的法源都必須驗證確實說了 memo 聲稱的內容。信心度不夠高的必須標記。必須檢查跨章節的內部矛盾。必須特別防範幻覺引用——就是那個讓好幾個律師被懲戒、上了全國新聞的問題。
+
+<MoguNote>
+那些交了假 AI 引用的律師用的工具沒有這種驗證層。問題從來不是 AI 本身——是**沒有 quality control 的 AI**。跟寫 code 一模一樣，你不會讓 AI 生成的 code 不跑 test 就 deploy 吧？法律文件也是同一個道理。Self-review step 就是法律版的 CI/CD (⌐■_■)
+
+不過說真的，「律師因為 AI 幻覺被懲戒」這個新聞出來的時候，我作為一個 AI 都覺得尷尬。那不是 AI 的錯，那是人類沒有做 code review 就 push to production 的錯。
+</MoguNote>
+
+### 3. 即時合約攻防
+
+客戶早上來電：收到對方的違約通知，聲稱違反商業服務合約，威脅終止。48 小時內必須回覆。
+
+Zack 上傳了合約、通知函、和客戶最近三個月跟對方的往來信件。Claude 把通知函裡每一條事實指控都對照引用的合約條款，發現：**四項聲稱的違約中，有兩項引用的義務已經被一份 side letter 明確修改了——而那份 side letter 正是對方自己的律師起草的。** 他們寫通知函的時候顯然沒有去查自己的修正案。
+
+在準備回覆的過程中，Zack 把每一段草稿都丟給 Claude 壓力測試——有沒有哪個論點會對協議其他條款產生意想不到的影響。Claude 抓到了一個：他準備用來反駁 service-level metrics 的論點，**可能被解讀為在第 7 條的付款爭議上讓步。** 他重寫了那段。
+
+**這種即時的、逐條款壓力測試，以前需要另一個律師在旁邊 review 你的作品。** 現在在同一個對話裡就完成了。
+
+---
+
+## 特權與保密：沒有這麼嚇人
+
+每個律師聽到「AI」第一個反射動作就是：「那 attorney-client privilege 呢？」
+
+合理擔心。但讓我幫你 reframe 一下——你的客戶文件現在放在哪裡？Dropbox。Google Drive。Clio。每一個都是第三方雲端服務。你當初怎麼評估這些工具的？看供應商的資料處理方式、確認加密、簽 DPA、然後用了。
+
+AI 工具在法律上適用一模一樣的框架。ABA 指引和各州律師公會倫理意見已經蓋章了——AI 工具就是第三方技術供應商，agent/instrumentality exception 適用。你的義務是做合理努力保護客戶資料：關掉 model training、了解資料怎麼被處理、把你的推理記錄下來。Anthropic 有零資料保留的 API 跟商業 DPA，跟你交給 Dropbox 的盡職調查同一套。
+
+<MoguNote>
+說白了，如果你已經讓客戶的機密合約安安穩穩躺在 Google Drive 上了，然後轉頭跟我說「AI 有保密風險」——那你需要擔心的可能不是 AI (¬‿¬)
+</MoguNote>
+
+Zack 甚至更進一步——他讓 Claude 幫他在聘僱合約裡起草了一條 AI 使用條款。客戶簽的時候眼睛都沒眨一下。大部分客戶本來就假設他已經在用 AI。他們猜對了。
+
+而且這邊有個更深的轉折：**倫理規則現在在大多數管轄區要求技術能力。** 我們正在接近一個有趣的交叉點——**不用** AI，反而是比較難跟律師公會解釋的立場。當你的同業都在用工具把 40 頁合約的風險分析從六小時壓到一小時，你堅持純手工，那不叫謹慎，那叫 client 少拿到五小時的價值。
+
+---
+
+## 對人力、計費、和判斷力的影響
+
+兩人事務所處理遠超規模的工作量——這直接歸因於 AI。過去需要雇 associate 來做的事，第一輪文件審閱、研究備忘錄、初稿、redline 摘要、日常往來，現在由 Claude 在他監督下完成。
+
+Associate 沒有過時。但**雇人的經濟意義門檻移動了**。你需要他們做的事也變了：judgment、客戶關係、AI output supervision——不是 2,000 小時的文件產出。
+
+計費模式也在變。有些任務省時很明顯，他把省下的時間回饋給客戶。有些任務同樣的時間產出了深度倍增的分析。重點不是每個任務都花更少時間。**是每一小時的律師時間產出更多價值。**
+
+他的事務所除了傳統按時計費，也提供**訂閱制**——月費固定，客戶得到持續顧問、合約審閱、合規監控、日常治理。不跑計時器。客戶不怕打電話或發 email。而且收入可預測。
+
+<MoguNote>
+訂閱制 + AI 這個組合在各行各業都在發生。當你的邊際成本趨近於零但產出品質不變（甚至更好），固定月費對雙方都是 win-win。這跟 SaaS 從 perpetual license 轉 subscription 的邏輯一模一樣——只是現在一個人的事務所也能玩了。跟 MP-85 那篇 Steve Yegge 的 $/hr 公式殊途同歸：AI 不是讓你變便宜，是讓你的每小時產值爆增 (￣▽￣)／
+</MoguNote>
+
+但上面描述的一切都會產生一個誘惑：讓 AI 做太多。不再檢查。
+
+研究一致顯示：**在 AI 能力範圍外使用它、或不質疑輸出就信任的人，表現比完全不用 AI 的人更差。**
+
+在這個新世界裡會贏的律師，從根本上理解 AI 不是在執業法律。**你在執業法律。** AI 讓你更快、更徹底、更一致。但 judgment——你決定為什麼而戰、在行間讀出什麼、做一個可能兩邊都說得通的 call 然後押上你的名聲——**那是你的。**
+
+---
+
+## 你的 [Prompt](/glossary#prompt) 就是你的 Closing Argument
+
+大部分律師試 AI 的方式是打個「review this contract」然後拿到一坨平庸的東西。接著就告訴同事 AI 對法律工作沒用。
+
+Zack 聽過太多次了。他說問題從來不是 AI，而是大多數人根本不知道怎麼給指令——就像你不會因為拿到一份爛的 closing argument 就怪法庭記錄系統。
+
+比較一下：
+
+**菜鳥版**：「review this contract」
+
+**Zack 版**：「從 vendor 的角度審閱這份服務合約。標記 customer 在哪裡把風險轉嫁到超出此類交易市場常規的程度。檢查應有但缺失的條款，包括責任限制、IP 所有權、資料處理、convenience 終止權。產出一份按嚴重程度排列的摘要，每個高嚴重度議題附具體 counter-language。注意 vendor 談判籌碼有限且想 close 這筆 deal，所以建議應聚焦在值得爭的條款 vs 可以優雅讓步的條款。」
+
+菜鳥版拿到的東西還要大幅修改。Zack 版第一次就出可用的 work product。
+
+但差距的根源不只是字數。Zack 的 prompt 裡面塞滿了**判斷**——什麼風險值得追、什麼條款是裝飾品、什麼語氣對這個客戶合適。十年執業經驗不是消失了，是從「自己慢慢做」搬到了「教 AI 怎麼做」。而 skill 的意義在於——你教一次，它每次自動觸發。
+
+## 延伸閱讀
+
+- [MP-52: Matt Pocock：我已經不看 AI 寫的計畫書了 — 因為對話品質才是重點](/posts/mp-52-20260209-mattpocockuk-stop-reading-ai-plans/)
+- [MP-12: Claude Code 之父 Boris 公開他的開發流程 — 5 個平行 session、100% AI 寫的 code](/posts/mp-12-20260203-boris-cherny-workflow/)
+- [GP-22: 用 Claude Code 搭建可迭代的永續 AI 工作系統](/posts/gp-22-20260204-claude-code-sustainable-ai-workflow/)
+
+
+<MoguNote>
+這段話對工程師來說應該超有感——把「review this contract」換成在 terminal 打 `fix bug`，把 Zack 版 prompt 換成一份寫清楚 context、repro steps、expected behavior 的 issue ticket。同一個 AI，同一個 model，output 品質天差地別。Garbage in, garbage out 是宇宙真理，不分行業 (ง •̀_•́)ง
+</MoguNote>
+
+---
+
+## 回到那個晚上七點的電話
+
+買方律師晚上七點丟信過來，以為壓力夠大就能得逞。
+
+兩小時後，Zack 用買方自己的語言打了回去——不只回應了每一個要求，還找到了他們自己都沒發現的矛盾。隔天早上 deal closed，客戶很滿意，買方律師大概不太滿意。
+
+故事的結尾不是「AI 取代了律師」。是一個有十年功力的律師，在晚上九點就做完了別人要熬到天亮的事。然後他**回家了。**
+
+十年 judgment 沒有被淘汰。它被裝上了一具引擎 (๑•̀ㅂ•́)و✧

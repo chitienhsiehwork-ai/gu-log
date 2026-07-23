@@ -44,7 +44,7 @@ TRIBUNAL_SCORE_ONLY_PROGRESS_FILE="$progress" \
 TRIBUNAL_CODEX_TIMEOUT_SEC=5 \
 TRIBUNAL_CODEX_IDLE_TIMEOUT_SEC=5 \
 TRIBUNAL_CODEX_IDLE_POLL_SEC=1 \
-bash "$TRIBUNAL" --score-only --only-stage factChecker sp-1-20260128-demo.mdx \
+bash "$TRIBUNAL" --score-only --only-stage factChecker gp-1-20260128-demo.mdx \
   >"$TMP/tribunal.out" 2>"$TMP/tribunal.err"
 rc=$?
 set -e
@@ -56,16 +56,16 @@ if [ "$rc" -ne 70 ]; then
 fi
 pass "runner crash exits with temporary infrastructure failure"
 
-article_status="$(jq -r '."sp-1-20260128-demo.mdx".status // empty' "$progress")"
-stage_status="$(jq -r '."sp-1-20260128-demo.mdx".stages.factChecker.status // empty' "$progress")"
-attempts="$(jq -r '."sp-1-20260128-demo.mdx".topLevelAttempts // empty' "$progress")"
+article_status="$(jq -r '."gp-1-20260128-demo.mdx".status // empty' "$progress")"
+stage_status="$(jq -r '."gp-1-20260128-demo.mdx".stages.factChecker.status // empty' "$progress")"
+attempts="$(jq -r '."gp-1-20260128-demo.mdx".topLevelAttempts // empty' "$progress")"
 
 [ "$article_status" = "RUNNER_ERROR" ] || fail "article status should be RUNNER_ERROR, got '$article_status'"
 [ "$stage_status" = "runner_error" ] || fail "stage status should be runner_error, got '$stage_status'"
 [ "$attempts" = "0" ] || fail "runner error should not consume topLevelAttempts, got '$attempts'"
 pass "runner error is recorded as retryable infrastructure state"
 
-if jq -e '."sp-1-20260128-demo.mdx".status == "FAILED" or ."sp-1-20260128-demo.mdx".status == "EXHAUSTED"' "$progress" >/dev/null; then
+if jq -e '."gp-1-20260128-demo.mdx".status == "FAILED" or ."gp-1-20260128-demo.mdx".status == "EXHAUSTED"' "$progress" >/dev/null; then
   fail "runner crash polluted content status as FAILED/EXHAUSTED"
 fi
 pass "runner crash does not become content failure/exhaustion"
@@ -97,7 +97,7 @@ printf '{}\n' > "$old_progress"
 set +e
 PATH="$old_bin:$PATH" \
 TRIBUNAL_SCORE_ONLY_PROGRESS_FILE="$old_progress" \
-bash "$TRIBUNAL" --score-only --only-stage factChecker sp-1-20260128-demo.mdx \
+bash "$TRIBUNAL" --score-only --only-stage factChecker gp-1-20260128-demo.mdx \
   >"$TMP/old.out" 2>"$TMP/old.err"
 old_rc=$?
 set -e
@@ -110,8 +110,8 @@ pass "old Codex CLI is rejected before article progress is touched"
 interrupted_progress="$TMP/interrupted-progress.json"
 cat > "$interrupted_progress" <<'JSON'
 {
-  "sp-1-20260128-demo.mdx": {
-    "article": "sp-1-20260128-demo.mdx",
+  "gp-1-20260128-demo.mdx": {
+    "article": "gp-1-20260128-demo.mdx",
     "topLevelAttempts": 5,
     "tribunalVersion": 8,
     "stages": {
@@ -133,15 +133,15 @@ TRIBUNAL_SCORE_ONLY_PROGRESS_FILE="$interrupted_progress" \
 TRIBUNAL_CODEX_TIMEOUT_SEC=5 \
 TRIBUNAL_CODEX_IDLE_TIMEOUT_SEC=5 \
 TRIBUNAL_CODEX_IDLE_POLL_SEC=1 \
-bash "$TRIBUNAL" --score-only --only-stage factChecker sp-1-20260128-demo.mdx \
+bash "$TRIBUNAL" --score-only --only-stage factChecker gp-1-20260128-demo.mdx \
   >"$TMP/interrupted.out" 2>"$TMP/interrupted.err"
 interrupted_rc=$?
 set -e
 
 [ "$interrupted_rc" -eq 70 ] || fail "interrupted in-progress retry should surface runner error, got $interrupted_rc"
-[ "$(jq -r '."sp-1-20260128-demo.mdx".status' "$interrupted_progress")" = "RUNNER_ERROR" ] || fail "interrupted retry should be RUNNER_ERROR"
-[ "$(jq -r '."sp-1-20260128-demo.mdx".topLevelAttempts' "$interrupted_progress")" = "0" ] || fail "interrupted retry should reset non-terminal attempts"
-if jq -e '."sp-1-20260128-demo.mdx".status == "EXHAUSTED"' "$interrupted_progress" >/dev/null; then
+[ "$(jq -r '."gp-1-20260128-demo.mdx".status' "$interrupted_progress")" = "RUNNER_ERROR" ] || fail "interrupted retry should be RUNNER_ERROR"
+[ "$(jq -r '."gp-1-20260128-demo.mdx".topLevelAttempts' "$interrupted_progress")" = "0" ] || fail "interrupted retry should reset non-terminal attempts"
+if jq -e '."gp-1-20260128-demo.mdx".status == "EXHAUSTED"' "$interrupted_progress" >/dev/null; then
   fail "interrupted in-progress retry must not become EXHAUSTED"
 fi
 pass "interrupted in-progress runs do not consume attempts or exhaust articles"

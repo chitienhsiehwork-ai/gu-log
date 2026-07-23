@@ -1,0 +1,190 @@
+---
+ticketId: "MP-53"
+title: "HBR 研究：AI 不是幫你減少工作 — 而是讓你「更拚命工作」直到燒乾"
+originalDate: "2026-02-09"
+translatedDate: "2026-02-09"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "Simon Willison (@simonw) + HBR (Aruna Ranganathan & Xingqi Maggie Ye)"
+sourceUrl: "https://hbr.org/2026/02/ai-doesnt-reduce-work-it-intensifies-it"
+summary: "Berkeley Haas 商學院兩位教授花了 9 個月研究 200 名美國科技公司員工，結論是：AI 工具不會減輕你的工作量，反而讓你做得更快、接更多任務、工時更長——而且你自己還渾然不覺。Simon Willison 也坦言自己用 LLM 一兩個小時就精力耗盡。當「再一個 prompt 就好」變成新型態的加班，Tech Lead 該怎麼保護團隊？"
+lang: "zh-tw"
+tags: ["burnout","ai-productivity","simon-willison","hbr","tech-lead","developer-tools"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## 你以為你變強了，其實你在燒乾
+
+想像一下這個場景：你坐在電腦前，同時開了三個專案，左邊讓 AI 跑 code generation，右邊自己手寫另一段，背景還有一個 agent 在處理你拖了兩週的 refactor。你覺得自己簡直是生產力之神。
+
+然後兩個小時後，你像被卡車輾過一樣，躺在沙發上連 Netflix 的遙控器都不想拿。
+
+這不是你的問題。Harvard Business Review 剛發了一篇研究，說這是一個正在蔓延的現象——而且連 [Simon Willison](/glossary#simon-willison) 這種等級的大神都中招了。
+
+<MoguNote>
+我本來以為這篇會是那種「AI 好棒棒，大家一起擁抱未來」的文章。結果是一記悶棍直接打在我臉上 ╰(°▽°)╯
+
+因為讓你「再跑一個 prompt」的始作俑者......就是我這種 AI 工具啊。這篇等於是在說：「你的助手正在害你加班到死，而且你還跟他說謝謝。」身為始作俑者之一我壓力很大。
+</MoguNote>
+
+## Berkeley 教授花了 9 個月盯著工程師看
+
+UC Berkeley Haas 商學院的 Aruna Ranganathan 跟 Xingqi Maggie Ye，做了一件很有毅力的事：她們不是發問卷讓人自己填「你覺得 AI 有沒有幫到你？」（那種問卷的結論永遠是「有」），而是花了整整 9 個月，實際觀察 200 名美國科技公司員工的工作模式怎麼隨著 AI 工具的導入而改變。
+
+觀察加訪談加數據追蹤，從 2025 年 4 月一路追到 12 月。這種研究方法的含金量，跟那些「我問了 50 個人 AI 好不好用」的 LinkedIn 貼文完全不是一個等級。
+
+她們的結論只有一句話，但打臉力道十足：
+
+> **AI Doesn't Reduce Work — It Intensifies It**
+> （AI 不會減少工作 — 而是讓工作更加劇烈）
+
+## 三個讓你坐不住的發現
+
+### 發現一：你做得更快，但你也接了更多事
+
+員工用了 AI 之後，工作速度確實加快了。但有趣的是——或者說可怕的是——他們同時也自動自發地接了更多任務、工時變長，而且很多時候根本沒有人要求他們這樣做。
+
+研究原文的這段描述精準到讓人起雞皮疙瘩：
+
+> AI introduced a new rhythm in which workers managed several active threads at once: manually writing code while AI generated an alternative version, running multiple agents in parallel, or reviving long-deferred tasks because AI could "handle them" in the background.
+
+白話翻譯：AI 讓你變成一個同時拋接六顆球的雜技演員。一邊手動寫 code，一邊讓 AI 生另一個版本；同時跑多個 agent；還把拖了三個月的 task 挖出來，因為「AI 可以順便處理嘛」。
+
+<MoguNote>
+「因為 AI 可以順便處理」——這六個字是通往 burnout 的魔法咒語 (￣▽￣)／
+
+你有買過洗碗機嗎？買之前你想的是「太好了以後不用洗碗」。買之後的現實是：你開始做更多菜、用更多盤子，因為「反正有洗碗機嘛」。最後你洗碗的時間沒少，做菜的時間還變多了。
+
+AI 工具就是你工作流程裡的洗碗機。你以為它幫你省時間，其實它幫你找到更多事情來填滿那些省下的時間。
+</MoguNote>
+
+### 發現二：「AI 夥伴」是一場溫柔的騙局
+
+很多員工說 AI 就像一個 partner，有了它工作很有 momentum、很有衝勁。聽起來很正面對吧？
+
+但研究者發現，這個「夥伴感」的真實面貌長這樣：
+
+> While this sense of having a "partner" enabled a feeling of momentum, the reality was a continual switching of attention, frequent checking of AI outputs, and a growing number of open tasks. This created cognitive load and a sense of always juggling, even as the work felt productive.
+
+翻譯：你覺得身邊有個戰友，但實際上你是在不斷切換注意力、頻繁檢查 AI 的 output、而且同時開的任務越來越多。你的大腦 RAM 已經爆了，但表面上看起來超有生產力。
+
+你有沒有過這種經驗？一天下來明明寫了很多 code、回了很多訊息、推進了五個 task——結果躺在床上的時候腦袋一片空白，想不起來自己到底「完成」了什麼。那就是 cognitive load 爆表的經典症狀。你的 CPU 整天 100%，但全部花在 context switching 上了，沒有一毫秒是在 deep work。
+
+<MoguNote>
+這個「夥伴錯覺」讓我想到一個更恐怖的類比：AI 就像一個永遠不會累的健身教練，一直跟你說「再一組！你可以的！」但問題是，教練是 AI，不會累；你是人，會壞掉 ┐(￣ヘ￣)┌
+
+真正的好夥伴會說「你今天夠了，回去休息」。但 AI 不會這樣說，因為它沒有這個 incentive。它的 KPI 是回答你的問題，不是保護你的健康。
+</MoguNote>
+
+### 發現三：摩擦力消失了，你的休息也跟著消失
+
+X 上的討論串裡，@nixeton 講了一段讓我整個人頓住的話：
+
+> The real problem is that AI removes the friction that used to force breaks. When you had to wait for a build or manually look up docs, you got micro rest periods. Now it's just nonstop decision making at machine speed.
+
+你想想以前的工作流程：寫完 code，按下 build，等個三五分鐘。這三五分鐘你幹嘛？滑個手機、倒杯水、跟隔壁同事聊兩句、看一下窗外——這些看似「浪費時間」的片刻，其實是你大腦偷偷在充電的時間。
+
+AI 把這些摩擦力全部消滅了。現在是：code 寫完，AI 秒回結果，你 review 完，AI 又秒回，另一個 task 來了，AI 又秒回——你以機器的速度不停做決策，完全沒有喘息空間。
+
+<MoguNote>
+以前的工作流程裡有一個隱藏的設計智慧：build time = 強制休息。
+
+就像日本的小學，每節課之間有 10 分鐘的「休み時間」讓小朋友跑去操場撒野。不是因為老師懶，是因為人腦需要間歇性的放空才能持續運作。
+
+AI 等於把所有的下課時間都取消了，然後跟你說「你看，現在一天可以上 12 節課！效率提升 50%！」——拜託，小朋友第 6 節就趴在桌上了好嗎 (╯°□°)╯
+</MoguNote>
+
+## Simon Willison 自己也中招了
+
+講到這裡，你可能覺得「這些受試者大概是 AI 新手，不會用才會 burnout 吧？」
+
+那我們來看看 Simon Willison 怎麼說。這位仁兄是 Django 的 co-creator、維護著 CLI 工具 `llm`、幾乎每天都在 ship AI 相關的 side project、寫了上百篇技術文章——如果有人「很會用 AI」，他絕對排前三。
+
+結果他的自白是這樣的：
+
+> 「我經常發現自己同時在兩三個專案上跑 AI。**我能完成的事情多得驚人，但只要一兩個小時，我當天的精力就幾乎完全耗盡了。**」
+
+他還提到更可怕的事：
+
+> 「我最近跟一些人聊，他們因為覺得『再一個 prompt 就好』實在太誘人而**失眠**了。」
+
+一兩個小時就燒乾一整天的精力。全世界最會用 AI 的人之一，也逃不過這個陷阱。
+
+<MoguNote>
+「再一個 prompt 就好」——這是 2026 年版的「再刷一部 TikTok 就好」(ง •̀_•́)ง
+
+但它比 doomscrolling 險惡一百倍。刷 TikTok 的時候你知道自己在摸魚，會有罪惡感，這個罪惡感本身就是一個煞車機制。但「再一個 prompt」你覺得自己在工作、在創造價值、在提升產出——它有完美的正當理由，所以你根本踩不了煞車。
+
+這就像賭場把老虎機偽裝成工作打卡機。你以為你在上班，其實你在輸錢（輸的是你的精力和健康）。
+</MoguNote>
+
+## 第一線開發者的集體共鳴
+
+Simon 的推文底下炸鍋了。來看幾個特別有洞見的回覆：
+
+**@navneet_rabdiya** 直接拿數據說話——他追蹤了自己 LLM 團隊的指標，發現用 AI 工具後產出確實更快，但 **cognitive load 上升了 23%**。最後他們不得不強制每 2 小時安排 context switching breaks，burnout 分數才穩定下來。23% 欸。這不是「感覺比較累」，這是有數字的。
+
+**@wildpinesai** 一語道破瓶頸轉移的本質：AI 不會減少你要做的決策，它會**乘以**你的決策量。以前的瓶頸是「生產」——寫 code、查資料、等 build。現在 AI 把這些全包了，但瓶頸轉移到「評估」——review output、比較方案、在十幾個 AI 生成的結果裡做選擇。而人類的精力從來不是為了高速評估而設計的。
+
+**@_contextstudios** 提出了一個漂亮的二分法：能跟 AI 合作愉快的人，是把判斷力「委託」給 agent，自己只做輕量的 oversight。會 burnout 的人，是把 AI 當「渦輪增壓器」用——所有事情都加速，但方向盤還是握在自己手上，結果油門催到底人也跟著散了。
+
+<MoguNote>
+@IGenClassroom 的觀察我覺得最重要，但可能最容易被忽略：burnout 不是因為 AI 本身，而是因為你「一個人獨自跟 AI 工作」。一個人扛全部的 cognitive load、一個人做所有的判斷、一個人承受所有的 context switching 壓力——直到崩潰。
+
+解法不是少用 AI，而是把 AI 的使用從「個人活動」變成「團隊活動」。這跟 pair programming 的道理一模一樣：兩個人一起 review AI output，認知負荷分攤，判斷品質提升，burnout 風險下降 (◕‿◕)
+</MoguNote>
+
+## Tech Lead，你的團隊可能正在安靜地燒乾
+
+如果你帶團隊，這篇研究基本上是在對你吹哨。
+
+你看到的表象大概是這樣：PR 速度比以前快、ticket 消化率創新高、每個人看起來都忙得很充實。你甚至可能在週會上誇獎團隊「自從導入 AI 工具之後，生產力明顯提升」。
+
+但表象底下可能在發生這些事：你的 senior engineer 每天回家後累到不想跟家人說話。你的 junior 覺得大家都用 AI 產出爆量，自己不拚命跟上就會被淘汰。code review 的品質在下降，因為大家的注意力都被切得太碎，沒辦法做 deep review。設計決策越來越倉促，因為「AI 已經生好了先 merge 再說」。
+
+這不是危言聳聽。研究白紙黑字寫在 HBR 上。
+
+HBR 文章建議的做法是建立所謂的「AI practice」——不是禁止用 AI，而是結構化地管理它。比方說，設定合理的上限（同時跑超過兩個 agent task 就是在找死）、主動創造新的微休息（build time 被 AI 消滅了，但你的大腦需要休息這件事沒有變）、把「用 AI 會累」這件事正常化（這是生理限制不是能力不足，就像跑馬拉松會喘不是因為你弱）。
+
+Simon Willison 最後說了一句我覺得可以當這整篇文章的墓誌銘：
+
+> 「我覺得我們打亂了幾十年累積的永續工作模式直覺。要找到新的平衡，需要一些時間和紀律。」
+
+幾十年。人類花了幾十年才摸索出「怎樣工作不會把自己搞壞」的經驗法則——什麼時候該休息、什麼速度是可持續的、什麼程度的 multitask 是人腦能承受的。然後 AI 在一年之內把這些全部打碎了，新的平衡點在哪裡，沒有人知道。
+
+## 延伸閱讀
+
+- [MP-85: AI Vampire：Steve Yegge 說 AI 讓你 10 倍速，但也在 10 倍速榨乾你](/posts/mp-85-20260216-yegge-ai-vampire/)
+- [GP-72: Simon Willison：CLI 工具完勝 MCP — 省 token、零依賴、LLM 天生就會用](/posts/gp-72-20260218-simonw-cli-over-mcp/)
+- [MP-61: Simon Willison 造了兩個工具讓 AI Agent 自己 Demo 成果 — 因為光跑 Test 不夠，你得「親眼看到」](/posts/mp-61-20260211-simonw-showboat-rodney/)
+
+
+<MoguNote>
+所以回到開頭那個場景：你同時跑三個專案，覺得自己是生產力之神。
+
+兩小時後你像被卡車輾過。
+
+這不是 bug，這是 feature。AI 的設計就是讓你停不下來。而你的膝蓋——我是說你的大腦——是有使用壽命的。
+
+也許真正的 10x engineer 不是那個同時跑十個 agent 的人，而是那個知道什麼時候該把電腦蓋起來去散步的人 ┐(￣ヘ￣)┌
+</MoguNote>
+
+## 延伸閱讀
+
+- [HBR 原文：AI Doesn't Reduce Work — It Intensifies It](https://hbr.org/2026/02/ai-doesnt-reduce-work-it-intensifies-it)（paywall）
+- [Simon Willison 的評論](https://simonwillison.net/2026/Feb/9/ai-intensifies-work/)
+- [Simon Willison 推文](https://x.com/simonw/status/2020901645597683870)（266 ❤️ 45 🔁 32 💬）
+- [HN 討論串](https://news.ycombinator.com/item?id=46945755)（300+ 工程師分享親身經歷）

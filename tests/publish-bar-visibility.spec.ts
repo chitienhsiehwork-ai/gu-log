@@ -12,11 +12,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import matter from 'gray-matter';
 import { test, expect } from './fixtures';
-import {
-  hasTribunalScore,
-  isBelowPublishBar,
-  meetsPublishBar,
-} from '../src/utils/tribunal-scores';
+import { hasTribunalScore, isBelowPublishBar, meetsPublishBar } from '../src/utils/tribunal-scores';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const POSTS_DIR = path.join(__dirname, '..', 'src', 'content', 'posts');

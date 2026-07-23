@@ -1,0 +1,164 @@
+---
+ticketId: "GP-214"
+title: "Claude Code 的 dynamic workflows：讓 Claude 自己寫多 agent harness"
+originalDate: "2026-06-02"
+translatedDate: "2026-06-03"
+translatedBy:
+  model: "GPT-5.5"
+  harness: "Hermes Agent"
+  pipeline:
+    - role: "Written"
+      model: "GPT-5.5"
+      harness: "Hermes Agent"
+    - role: "Reviewed"
+      model: "GPT-5.5"
+      harness: "Hermes delegate_task"
+source: "Anthropic Blog / @trq212 on X"
+sourceUrl: "https://claude.com/blog/a-harness-for-every-task-dynamic-workflows-in-claude-code"
+lang: "zh-tw"
+summary: "Claude Code 的 dynamic workflows 讓 Claude 能臨時寫 JavaScript 工作流、調度 subagents、選模型、切 worktree，甚至把成功流程保存成可重用 artifact。重點不是多開幾個 Agent，而是把 agent orchestration 變成可執行、可分享、可驗證的工作方法。"
+tags: ["claude-code","agent-harness","ai-agents"]
+scores:
+  tribunalVersion: 8
+  librarian:
+    glossary: 7
+    crossRef: 9
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-06-03"
+    model: "gpt-5.5"
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 8
+    sourceBoundary: 9
+    commentarySeparation: 8
+    score: 8
+    date: "2026-06-03"
+    model: "gpt-5.5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    score: 8
+    date: "2026-06-03"
+    model: "gpt-5.5"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-06-03"
+    model: "gpt-5.5"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+以前是人類寫 SOP 給 Agent 看；現在 Claude Code 開始讓 Agent 寫工作流給 Agent 跑。
+
+[Claude Code](/glossary#claude-code) 的 `dynamic workflows`，是讓 Claude Code 在任務中臨時產生 JavaScript 工作流：開子 [Agent](/glossary#agent)、分派工作、選模型、切 `worktree`、收結果，再決定下一步。它不是固定模板，而是依照任務現場規劃，讓 Claude 把大任務拆成多個平行子任務，再把結果檢查、收斂成一個回答。
+
+啟動方式也很直接：可以要求 Claude 建立工作流，也可以打開 Claude Code 裡的 `ultracode` 設定，讓 Claude 在需要時自動決定是否使用 workflow。Anthropic 把這功能放在 Claude Opus 4.8 同期推出的 Claude Code 研究預覽裡，也提醒它會吃掉比一般 Claude Code 工作階段更多的 [Token](/glossary#token)。
+
+這篇和前面幾篇 gu-log 文章剛好接成一條線：[GP-94](/posts/gp-94-20260302-hxlfed14-agent-harness-real-product/) 講過 harness 才是產品核心，[GP-206](/posts/gp-206-20260519-claude-code-large-codebase-harness/) 講過大型程式庫需要可控的 Claude Code harness，[GP-207](/posts/gp-207-20260518-pawelhuryn-agent-goal-intent/) 講過 `/goal` 這種停止條件。這篇補上的新東西，是 Claude Code 讓 workflow 本身開始變成可執行、可保存的產物。
+
+<MoguNote>
+[Mogu](/glossary#mogu) 自己的讀法是：`dynamic workflows` 最有趣的不是「多開幾個 Agent」，而是腳本開始變成可保存、可重跑、可分享的 [Agent Harness](/glossary#agent-harness)。以前工程師留下文件與 CI；現在連「怎麼派工、怎麼驗收」都可能變成一個可執行產物。這很帥，也很容易燒錢。(๑•̀ㅂ•́)و✧
+</MoguNote>
+
+## 它解決的不是「人手不足」，而是「單一脈絡太脆」
+
+傳統 Claude Code 工作階段像一位很勤奮的工程師：讀程式、改檔案、跑測試、修錯。任務小的時候，這很夠用。任務一大，問題就出現了。
+
+長任務會把三個失敗模式放大。
+
+第一個是 `agentic laziness`：Agent 可能用局部證據宣布完成，或在測試沒跑完時寫出漂亮總結。第二個是 `self-preferential bias`：同一個 Agent 寫方案又驗方案，很容易相信剛剛選的方向。第三個是 `goal drift`：任務跑久後，原本只是找根因，後來開始重構半個系統。
+
+`dynamic workflows` 的解法不是叫 Agent 更努力，而是把「努力」拆成流程：某個 Agent 負責產生假說，某個 Agent 負責查證，某個 Agent 負責反駁，工作流負責判斷是否真的達到停止條件。
+
+這就是 `/goal` 和 `/loop` 在文中反覆出現的原因。`/goal` 把北極星釘住，`/loop` 防止「看起來完成」取代「真的完成」。
+
+---
+
+## 六種形狀，其實可以壓成三個心智模型
+
+文中列出一串常見 workflow 模式，但不用把它背成名詞表。比較好記的方式，是把它們壓成三個問題。
+
+**第一個問題：先分類，還是先做？**  
+`classify-and-act` 適合分流 issue、錯誤紀錄、測試失敗、使用者回報。工作流先把項目分成「可立即修」、「需要隔離」、「疑似重複」、「需要人類決策」，再對每類啟動不同處理流程。這比讓一個 Agent 從頭看到尾更穩，因為分類本身就是一道控管閘門。
+
+**第二個問題：要平行探索，還是互相競爭？**  
+`fan-out-and-synthesize` 把問題切開，讓多個子 Agent 平行查不同區域，最後由協調者彙整。`generate-and-filter` 和 `tournament` 則比較像讓多個候選方案互相打架：先生成，再篩選，再讓更好的方案留下來。研究、排序、命名、設計方向、模型路由，都很適合這一類。
+
+**第三個問題：誰負責找碴？**  
+`adversarial verification` 的重點是把「做」和「驗」拆開。一組 Agent 寫方案，另一組 Agent 專門找反例、查測試、看規則。這不是多一層禮貌 review，而是讓反方 Agent 有權否決。
+
+<MoguNote>
+多 Agent 最容易變成兒童足球：二十個人一起追球，看起來很熱鬧，球門旁邊沒有人。好的 harness 應該像廚房動線：切菜、備料、熱鍋、試味、出餐，每一步都知道自己為什麼存在。
+</MoguNote>
+
+---
+
+## 真正有用的場景：大型、曖昧、需要驗證
+
+普通工作不需要開戰情室。小修小補、明確 bug、單檔改動、低風險格式調整，直接讓 Claude Code 做完就好。把 `dynamic workflow` 用在每個任務上，只會讓協調成本超過任務本身。
+
+它適合三種任務。
+
+**第一種是大型遷移與重構。** Bun 的例子是把 Zig 程式碼移植到 Rust，並讓既有測試套件作為驗收門檻。這種任務不是單純改語法，而是跨語言、跨執行環境、跨測試、跨效能假設。工作流可以讓一組 Agent 讀 Zig 行為，一組 Agent 設計 Rust 對應，一組 Agent 寫測試，一組 Agent 專門查相容性。
+
+**第二種是研究與驗證。** 深度研究不是找一個答案，而是找一整片證據地形。不同 Agent 可以追文件、issue、commit history、benchmark、討論串；最後負責彙整的 Agent 把證據去重、排序、標出信心與缺口。深度驗證則剛好相反：不是找更多材料，而是對既有結論做反方檢查。
+
+**第三種是分流與品味。** 一堆 PR、一堆錯誤、一堆候選方案，單 Agent 從頭看到尾會疲乏。工作流可以先分桶，再篩選，最後讓更強模型處理高難度項目。設計、命名、文件語氣這類品味問題，也可以用多個候選方案互相比較，而不是接受第一個看起來還可以的答案。
+
+這裡還有一個安全細節：分流可以搭配隔離。遇到不確定是否安全的變更或外部內容，先放進「需要人類或高權限 Agent 判斷」的桶，不要讓讀到不可信內容的 Agent 直接做高權限動作。
+
+---
+
+## `worktree`、恢復、模型選擇：這些不是小細節
+
+`dynamic workflows` 裡幾個工程細節很關鍵。
+
+`worktree` 讓不同候選方案各自生長，最後再比較與合併。多個 Agent 同時改同一個工作目錄，很容易互相覆蓋檔案、混淆責任邊界；用 git `worktree` 隔離，`tournament` 與 `generate-and-filter` 才比較實際。
+
+恢復能力讓長任務不會因為中斷就失憶。深度研究、重構、驗證都不是五分鐘跑完的事。如果工作流能在中斷後恢復狀態，就能把「一次聊天」提升成「一個可持續任務」。
+
+模型選擇則是成本控制。不是每個步驟都需要最貴模型；分類、粗篩、格式檢查可以交給便宜模型，關鍵設計、反方驗證、最終彙整再交給強模型。工作流能動態選模型，等於把成本與能力編排進流程裡。
+
+<MoguNote>
+每次看到「AI 會自己做事」，先問幾個無聊問題：狀態存在哪裡？權限怎麼切？失敗怎麼恢復？成本誰負責？驗收誰說了算？回答不出來的自主性，多半只是展示錄得很順。
+</MoguNote>
+
+---
+
+## 按 `s` 存起來，代表工作方法也變成產物
+
+這套東西最關鍵的暗示，是工作流可以被保存。
+
+如果某個 `dynamic workflow` 跑得好，可以用 `s` 存到 `~/.claude/workflows`，或者沉澱成 skill。這件事看似只是方便下次重用，實際上讓工作方法本身變成可保存的工程產物。
+
+文件會過期，人的腦袋會離職，CI 腳本通常只知道怎麼檢查，不知道怎麼思考。工作流產物介於三者之間：它不是靜態文件，因為它能執行；它不是單純腳本，因為它能呼叫 Agent 做判斷；它不是人的腦袋，因為它能被保存、版本化、複製、改良。
+
+這代表一次成功的根因調查，可以變成根因工作流；一次好的遷移，可以變成遷移工作流；一次好的模型比較，可以變成路由工作流。
+
+<MoguNote>
+這裡開始才是 Mogu 的延伸判斷：未來的工程資產，可能不只包括程式碼、測試、文件、評估，還包括一整套會調度 Agent 的工作流。某些團隊的優勢，也可能不只是「模型用得比較新」，而是「已經累積一堆會做事的 harness」。這不是 source 已經證明的結論，比較像從這個功能外推看到的方向。
+</MoguNote>
+
+---
+
+## 結語：Agent 的下一個單位不是任務，而是流程
+
+Claude Code 的 `dynamic workflows` 之所以重要，不是因為它讓 Claude 多開幾個小弟。
+
+真正的變化是，Claude Code 開始把「怎麼完成一類工作」寫成可執行流程。這裡展示的不是單一答案，而是一套會規劃、平行執行、檢查結果、必要時恢復續跑的流程。
+
+這一步不會讓普通工程問題自動消失。它仍然要面對偷懶、偏見、漂移、成本、驗收、權限、狀態管理。只是它提供一個新的抓手：把好的工作方式保存下來，讓它能重跑、能比較、能演化。
+
+到那時候，真正值錢的可能不是問 Claude Code 一句漂亮的 prompt。
+
+而是按下執行後，一段工作流知道該怎麼分工、施工、驗收，最後還把這次有效的做法存起來。

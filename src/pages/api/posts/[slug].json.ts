@@ -1,9 +1,14 @@
 import type { APIContext } from 'astro';
 import { getCollection, render, type CollectionEntry } from 'astro:content';
 import { getPostAuthorshipNote } from '../../../utils/post-authorship-notes';
+import { getLocalizedPostUrl } from '../../../utils/post-urls';
 
 /**
  * Individual article endpoint for gu-log iOS app.
+ *
+ * Schema v2 (breaking, Mogu GP/MP taxonomy): responses carry an explicit
+ * `schemaVersion: 2`, slugs/tickets are canonical GP/MP/SD/Lv only, and
+ * `url` is the localized post route shared with the feed.
  *
  * Returns full rendered HTML content for a single post,
  * along with its metadata. The iOS app can render this
@@ -28,8 +33,10 @@ export async function GET(_context: APIContext) {
   // so we provide the raw MDX body + headings. The app can render markdown natively.
   return new Response(
     JSON.stringify({
+      schemaVersion: 2,
       slug: post.id,
       ticketId: post.data.ticketId || null,
+      url: getLocalizedPostUrl(post),
       title: post.data.title,
       summary: post.data.summary,
       tags: post.data.tags || [],

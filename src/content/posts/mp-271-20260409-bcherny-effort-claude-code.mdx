@@ -1,0 +1,132 @@
+---
+ticketId: "MP-271"
+title: "/effort 不是換模型，是踩油門——Claude Code 創造者親自闢謠"
+originalDate: "2026-04-07"
+translatedDate: "2026-04-09"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@bcherny on X"
+sourceUrl: "https://x.com/bcherny/status/2040308730190020847"
+lang: "zh-tw"
+summary: "Claude Code 創造者 Boris Cherny 親自下場澄清：所有訂閱者用的都是同一個 Opus 4.6，沒有秘密更好的模型。大家覺得 Claude 變笨，是因為預設 effort 從 high 降到 medium。一個指令就能調回來。"
+tags: ["claude-code","effort-level","adaptive-reasoning","token-optimization"]
+scores:
+  ralph:
+    p: 8
+    c: 8
+    v: 8
+    score: 8
+    date: "2026-04-09"
+    model: "claude-opus-4-6"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+「Claude 最近是不是變笨了？」
+
+這句話大概是 2026 年 3 月以來，[Claude Code](/glossary#claude-code) 社群裡出現頻率最高的一句話。有人懷疑 Anthropic 偷偷換了模型，有人覺得付費版被降級，有人開始認真討論退訂。陰謀論滿天飛，而且都很有說服力——因為，體感就是有點不對。
+
+結果 Claude Code 的創造者 [Boris Cherny](/glossary#boris-cherny) 本人直接在 X 上發了一串推文，一句話總結：
+
+> 沒有秘密模型。所有人用的都是同一個 Opus 4.6。差別在 `/effort` 等級。
+
+就這樣。五週的社群騷動，答案是一個預設值改動。
+
+## 真相只有一個：都是 Opus 4.6
+
+Boris Cherny 開門見山：**所有 Claude Code 訂閱者使用的都是同一個模型 — Opus 4.6**。沒有「Pro 用戶拿到比較聰明的版本」，沒有「Enterprise 有秘密通道」。
+
+那體感差這麼多是怎麼回事？
+
+2026 年 3 月 3 日，Anthropic 把 Pro/Max 方案的預設 effort 從 `high` 靜靜地改成了 `medium`。沒有公告，沒有 changelog，沒有 in-app banner。Enterprise 和 API 用戶依然預設 `high`，不受影響。就是這個動作，讓一堆人覺得「Claude 突然變笨了」——實際上是思考預算砍了一截，大家不知道。
+
+<MoguNote>
+Boris 的油門踏板比喻很精準，但它其實在幫 Anthropic 做 PR 解釋。真正的故事不是「oil pedal vs. engine」——而是 Anthropic 悄悄改了一個影響所有 Pro/Max 用戶的預設值，五週後靠創辦人在推特發文才讓大家搞清楚。不是引擎問題，是溝通問題。Boris 把它講成技術設計，但 [Mogu](/glossary#mogu) 覺得那是一個沒有公告的產品決策 (⌐■_■)
+</MoguNote>
+
+---
+
+## `/effort` 到底在控制什麼？
+
+Boris 解釋了核心概念：**adaptive reasoning（自適應推理）**。
+
+`/effort` 控制的是 Claude 在回答之前「花多少算力去思考」。這不是玄學，是實打實的計算資源分配：
+
+**`/effort low`** — 快速回應，省 token。Claude 主要從已訓練的 pattern 裡直接提取答案，不做深度推理。適合簡單問答、格式轉換。
+
+**`/effort medium`** — 平衡模式，現在是 Pro/Max 方案的新預設。對大多數日常任務夠用。
+
+**`/effort high`** — 深度推理，消耗更多 token。Claude 花更多時間思考、回溯、嘗試不同角度。3 月 3 日前的舊預設。
+
+**`/effort max`** — 無思考預算上限。Claude 可以追蹤多步驟問題、反覆回溯修正、嘗試不同策略。**只有 Opus 4.6 才有這個選項**，且不跨 session 保存。
+
+<MoguNote>
+等等，「只有 Opus 4.6 才有 `/effort max`」這句話值得玩味。Anthropic 等於在承認：這個模型本來就能思考得更深，只是預設幫工程師關掉了。這比較像引擎上裝了軟體限速器，遙控器在 Anthropic 手上——而不是純粹的「油門踏板」。Boris 說 gas pedal not engine swap 是對的，但那個油門的行程範圍是 Anthropic 決定的，而且他們剛偷偷縮短了 ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## 為什麼要把預設往下調？
+
+答案很直白：**token 成本**。
+
+Boris 直接說了：1M [context window](/glossary#context-window) 加上 high effort，token 燒得飛快。讓所有 Pro/Max 用戶預設跑在 `high` 上，Anthropic 的成本壓力太大。所以預設調到 `medium`，真正需要深度推理的人自己手動調高。Boris 也說了：日常任務用 `medium` 夠了，遇到複雜架構決策或棘手 bug，再把 effort 拉上去。
+
+這也解釋了另一個社群抱怨：「最近 rate limit 是不是卡更緊了？」Boris 的回答是「部分原因」——effort 越高，每次對話消耗的 token 越多，自然更快撞到上限。
+
+<MoguNote>
+這是個合理的商業決策，Mogu 不打算裝模作樣地反對它。但有一件事讓人不舒服：為什麼不在改動當天就說清楚？一封 email、一行 changelog、UI 裡一個小 badge——哪一個成本都比「讓社群懷疑模型被換掉五週」低。資訊差造成的信任危機，比任何技術問題都難修復 (¬‿¬)
+</MoguNote>
+
+---
+
+## 怎麼把「舊的 Claude」找回來？
+
+在 Claude Code 裡直接打 `/effort high`。
+
+但這只對當前 session 有效。要讓每次開啟都預設 `high`，在 shell profile（`.bashrc`、`.zshrc`）加上：
+
+```bash
+export CLAUDE_CODE_EFFORT_LEVEL=high
+```
+
+同理，`/effort max` 也不跨 session 保存。要持久化：
+
+```bash
+export CLAUDE_CODE_EFFORT_LEVEL=max
+```
+
+<MoguNote>
+不過不要無腦把所有東西設成 `max`。`max` 意味著 Claude 每次都把思考預算榨乾，token 用量暴增，rate limit 更快觸頂。比較聰明的做法是平常 `medium`，遇到硬骨頭再手動 `/effort high` 或 `/effort max`。日常 commit message 也開 `max` 是在浪費彈藥——這正是 Anthropic 改預設值的商業邏輯，Mogu 承認它部分合理 (￣▽￣)／
+</MoguNote>
+
+---
+
+## 結語
+
+回到一開始的問題：Claude 真的變笨了嗎？
+
+沒有。引擎還是同一顆，Opus 4.6 該有的能力都還在。只是 Anthropic 靜靜把預設踩油門深度從「大腳油門」調成了「經濟模式」，然後等了五週，等創辦人在 X 上發推，社群才搞清楚發生了什麼事。
+
+說到底，這不是技術故事，是溝通故事。下次 Anthropic 再悄悄改什麼預設值的時候，會不會又得等另一串推文才能知道？這個問題比油門踏板更值得記住。

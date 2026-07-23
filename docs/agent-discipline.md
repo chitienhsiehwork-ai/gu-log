@@ -29,7 +29,7 @@
 
 **例外**（這時可以把 fix 拆成另一個 PR——但**仍然是當前 agent 自己現在開、自己現在 merge**，不是丟給下一個 session）：
 - Fix scope 大到會干擾主 PR review/diff（譬如要動 50 個檔案重構）
-- Fix 跟主任務語意完全無關（在改 SP 文章時順手發現 build infra bug）
+- Fix 跟主任務語意完全無關（在改 GP 文章時順手發現 build infra bug）
 - User 明講「先別管那個，下次再處理」
 
 ⚠️ 注意：「另開 PR」≠「甩給下一個 CCC」。另開 PR 的前提是當前 agent 把它開好、跑綠、merge 掉，friction 在這個 session 內就消失。只有 user 明確喊停才可以真正延後。**預設是全部塞同一個 PR**——auto-merge 的 repo 沒有理由為了「主題乾淨」去拆。

@@ -31,7 +31,7 @@
 - 允許為了 vibe 做合理近似（如 `40% → "將近一倍"` OK）
 - 禁止離譜偏離（如 `40% → "十倍"` NOT OK，由 Stage 3 抓）
 - Enforcement 不靠 pure programmatic diff，靠 Stage 3 FactCorrector + source URL 的語意檢查
-- ClawdNote 裡的誇飾 analogy 完全免檢（那是 creative 不是事實）
+- MoguNote 裡的誇飾 analogy 完全免檢（那是 creative 不是事實）
 
 **Philosophy**: vibe > factual precision, within reason. 讀者 engagement 比小數點精準重要。
 
@@ -46,7 +46,7 @@
 - FactCorrector 第一輪直接動手改（保留 worker-first proactive design）
 - 有 standing checklist 作為 rules（像 eslint config）
 - Fetch source URL 對照原文（這是 game changer — 不再是盲修）
-- **Scope**: 文章 body + ShroomDogNote，**排除** ClawdNote
+- **Scope**: 文章 body + ShroomDogNote，**排除** MoguNote
 - 不確定的就 flag 不改（判斷標準：magnitude/direction 對即可，不追求 decimal）
 
 **Standing Checklist (初稿)**:
@@ -55,7 +55,7 @@
 2. 技術名詞拼寫 → 查正確寫法
 3. 時間/日期/人名/公司名 → 跟 source 比對
 4. 技術宣稱 → source 有就保留，source 沒有且自己不確定就 flag
-5. ClawdNote 裡的一切 → SKIP（creative scope）
+5. MoguNote 裡的一切 → SKIP（creative scope）
 6. ShroomDogNote 的 hedge words (我想/應該/大概) → 保留，不要改成肯定句
 7. 不確定 → flag + 附上理由，不要改
 ```
@@ -139,12 +139,12 @@ composite >= 8 AND 至少一維 >= 9 AND 沒有任何維 < 8
 
 ## Level 7: Stage 0 Gate + Banner/UI
 
-**挑戰**: CP auto-reject 太武斷；worthiness 標準未定；Haiku judge 可能太弱。
+**挑戰**: MP auto-reject 太武斷；worthiness 標準未定；Haiku judge 可能太弱。
 
 **決策**: **透明實驗室模式** — AI 不確定變成 feature 而不是 bug
 
 **Gate policy**:
-- **All WARNING, no auto-reject** — 不分 CP / 非 CP，都不 auto-reject
+- **All WARNING, no auto-reject** — 不分 MP / 非 MP，都不 auto-reject
 - 所有 WARN 文章仍進入後續 pipeline
 - Judge 用 **Opus** `LUXURY_TOKEN`
 - Judge dimensions (建議): `coreInsight` / `expandability` / `audienceRelevance`
@@ -157,7 +157,7 @@ composite >= 8 AND 至少一維 >= 9 AND 沒有任何維 < 8
 
 **Banner content 方向** (詳見 Appendix C):
 ```
-Clawd 的 AI judge 對這篇沒把握
+Mogu 的 AI judge 對這篇沒把握
 Opus judge 覺得這篇可能不太適合登上 gu-log：
 {{reader_friendly_reason}}
 我們還在 tune gu-log 的 AI judge，你覺得這篇有沒有料？
@@ -200,7 +200,7 @@ Stage 2: FreshEyes (Opus judge + Opus writer, max 2 loops, LUXURY_TOKEN on judge
   ↓
 Stage 3: FactLib (Split sessions, all Opus, LUXURY_TOKEN 全部)
   ├─ FactCorrector: fetch source URL + standing checklist
-  │   Scope: body + ShroomDogNote, exclude ClawdNote
+  │   Scope: body + ShroomDogNote, exclude MoguNote
   │   第一輪直接改（有 checklist + source URL），不確定就 flag
   ├─ Librarian: 跑在 FactCorrector 修改後的版本上
   └─ Combined Judge: fact_pass + library_pass 獨立計算
@@ -226,7 +226,7 @@ Stage 5: Translation (auto triggered)
 這些不是哪一關的決策，是整個 session 中反覆出現的價值觀：
 
 1. **Vibe > factual precision, within reason** — 近似 OK，離譜不行
-2. **Contract by component** — ClawdNote / ShroomDogNote 各自 opt-in/out 於特定檢查，避免模糊情境判斷
+2. **Contract by component** — MoguNote / ShroomDogNote 各自 opt-in/out 於特定檢查，避免模糊情境判斷
 3. **Human-in-the-loop via UI, not via queue** — Pipeline 產 structured data，ShroomDog 讀 site 時做最終決策
 4. **Quality first, optimize later** — All-Opus + `LUXURY_TOKEN` tags 明確標出未來優化路徑
 5. **Honest AI collaboration** — Stage 0 WARN banner 公開顯示「AI 不確定」，反而增加 credibility，順便收 tuning data
@@ -244,7 +244,7 @@ Stage 5: Translation (auto triggered)
 - **問題**: Opus 在 Stage 1 做 invasive rewrite 時，極有可能**引入原文沒有的事實錯誤**。創意改寫為了追求 narrative 好看，會潤飾數字、簡化技術細節、甚至捏造比喻裡的技術宣稱。Stage 3 的 FactCorrector（Sonnet）要負責抓出 Opus 創造的錯誤 — 這是**用弱 model 修強 model 的 hallucination**，成功率存疑。
 - **Edge case**:
   - 原文寫「延遲降低 40%」，Opus 為了 narrative flow 改成「延遲砍半」→ FactCorrector 沒有原文對照，無法判斷「砍半」是否正確
-  - Opus 為了 ClawdNote 加梗，編造一個技術 analogy 含有微妙的技術錯誤 → Sonnet 可能認為 analogy 不算事實宣稱而跳過
+  - Opus 為了 MoguNote 加梗，編造一個技術 analogy 含有微妙的技術錯誤 → Sonnet 可能認為 analogy 不算事實宣稱而跳過
 - **建議**:
   1. Stage 1 writer 的 prompt 加入硬規則：**不准改動任何數字、百分比、技術宣稱** — 只改結構和語氣
   2. 或者在 Stage 1 PASS 後、Stage 2 之前，跑一次 **fact-diff check**：比較 Stage 1 前後版本，標記所有事實性文字的變動，讓 Stage 3 的 FactCorrector 有個 watchlist
@@ -298,7 +298,7 @@ Stage 5: Translation (auto triggered)
 ### 挑戰 5: Final Vibe（Stage 4）的存在價值
 
 - **現行設計**: Stage 4 用 Opus 再跑一次 vibe scoring，確認 Stage 2-3 沒有破壞語氣。
-- **問題**: Stage 2 FreshEyes 和 Stage 3 FactLib 的 writer constraints 已經很嚴格（不能改骨架、段落順序、ClawdNote 觀點）。如果 constraints 被正確遵守，vibe 應該不會有大幅退化。花一整個 Opus stage 來驗證「沒壞」是否值得？
+- **問題**: Stage 2 FreshEyes 和 Stage 3 FactLib 的 writer constraints 已經很嚴格（不能改骨架、段落順序、MoguNote 觀點）。如果 constraints 被正確遵守，vibe 應該不會有大幅退化。花一整個 Opus stage 來驗證「沒壞」是否值得？
 - **Edge case**:
   - 文章在 Stage 2-3 只改了幾個錯字和加了幾個連結 → Final Vibe 100% 會 pass → 浪費 Opus token
   - Final Vibe fail 了 → writer 只能「微調語氣」但問題可能出在 Stage 2-3 的修改 → 微調語氣解決不了根本問題
@@ -312,26 +312,26 @@ Stage 5: Translation (auto triggered)
 ### 挑戰 6: Pass Bar 設計 — 「至少一維 >= 9」是在測什麼？
 
 - **現行設計**: Stage 1 pass bar 是 `composite >= 8 AND 至少一維 >= 9 AND 沒有任何維 < 8`。
-- **問題**: 「至少一維 >= 9」這個條件很奇怪。它要求文章在某個維度特別出色 — 但**哪個維度出色是不可控的**。一篇 ClawdNote 很有梗但 narrative 普通的文章 (9,8,8,8,8) 和一篇 narrative 很強但 ClawdNote 普通的文章 (8,8,8,8,9) 都能過 — 但這兩種文章的「好」是完全不同的。這個條件到底在篩什麼？
+- **問題**: 「至少一維 >= 9」這個條件很奇怪。它要求文章在某個維度特別出色 — 但**哪個維度出色是不可控的**。一篇 MoguNote 很有梗但 narrative 普通的文章 (9,8,8,8,8) 和一篇 narrative 很強但 MoguNote 普通的文章 (8,8,8,8,9) 都能過 — 但這兩種文章的「好」是完全不同的。這個條件到底在篩什麼？
 - **Edge case**:
   - 文章五個維度都是 8.5（很好但沒有突出亮點）→ composite = 8.5 但沒有任何維 >= 9 → FAIL。這合理嗎？一篇均衡的好文章被卡住。
   - Writer 為了讓某一維衝到 9，刻意在那個維度用力 → 其他維度因為注意力分散而下降
 - **建議**:
   1. 考慮移除「至少一維 >= 9」條件，改用 **composite >= 8.5**（更高的平均值要求）
-  2. 或者把「至少一維 >= 9」改成「persona 或 clawdNote >= 9」— 明確指定哪些維度需要突出，因為這些是 gu-log 的品牌差異化
+  2. 或者把「至少一維 >= 9」改成「persona 或 moguNote >= 9」— 明確指定哪些維度需要突出，因為這些是 gu-log 的品牌差異化
 
 ---
 
-### 挑戰 7: Stage 0 的 CP Auto-Reject 太武斷
+### 挑戰 7: Stage 0 的 MP Auto-Reject 太武斷
 
-- **現行設計**: CP 文章（自動翻譯推文）不過 Stage 0 → 直接 REJECT。非 CP 文章 → WARNING + human review。
-- **問題**: CP 文章也是有 spectrum 的 — 有些推文本身很短但觀點非常有價值，翻譯出來雖然不長但含金量高。Auto-reject 的邏輯假設「不過 worthiness gate 的 CP 文章 = 垃圾」，但實際上可能只是「太短」或「格式不好」，不代表不值得發。
+- **現行設計**: MP 文章（自動翻譯推文）不過 Stage 0 → 直接 REJECT。非 MP 文章 → WARNING + human review。
+- **問題**: MP 文章也是有 spectrum 的 — 有些推文本身很短但觀點非常有價值，翻譯出來雖然不長但含金量高。Auto-reject 的邏輯假設「不過 worthiness gate 的 MP 文章 = 垃圾」，但實際上可能只是「太短」或「格式不好」，不代表不值得發。
 - **Edge case**:
-  - 一條推文是某位大神用一句話總結了一個重要的 architectural insight → CP 翻譯出來很短 → Stage 0 判斷「內容深度不夠」→ auto-reject → 但這其實是很有價值的內容
-  - Stage 0 judge 的 worthiness 標準還沒定義 — 如果標準偏嚴，可能 reject 掉大量本來可以救的 CP 文章
+  - 一條推文是某位大神用一句話總結了一個重要的 architectural insight → MP 翻譯出來很短 → Stage 0 判斷「內容深度不夠」→ auto-reject → 但這其實是很有價值的內容
+  - Stage 0 judge 的 worthiness 標準還沒定義 — 如果標準偏嚴，可能 reject 掉大量本來可以救的 MP 文章
 - **建議**:
-  1. CP 文章也改成 **WARNING + human review**，不要 auto-reject — 至少在 v2 初期，等累積足夠 data 後再考慮 auto-reject
-  2. 或者 CP auto-reject 但加 **appeal 機制**：human 可以手動把 REJECTED 的 CP 文章重新送入 pipeline
+  1. MP 文章也改成 **WARNING + human review**，不要 auto-reject — 至少在 v2 初期，等累積足夠 data 後再考慮 auto-reject
+  2. 或者 MP auto-reject 但加 **appeal 機制**：human 可以手動把 REJECTED 的 MP 文章重新送入 pipeline
 
 ---
 
@@ -374,7 +374,7 @@ Stage 5: Translation (auto triggered)
   - Model：**Sonnet**，不是 Haiku。Worthiness 判斷需要理解「這篇文章的核心觀點值不值得展開」，這不是 trivial 的判斷。
   - 維度建議：`coreInsight`（核心觀點有無價值）+ `expandability`（有沒有展開成長文的潛力）+ `audienceRelevance`（對 gu-log 目標讀者有無價值）
   - Pass bar 要**偏寬鬆** — 寧可讓一些不太好的文章進入 pipeline（反正後面 Stage 1 會再篩），也不要 false reject
-  - 初期建議只啟用 WARNING 模式（不管 CP 或非 CP），累積幾十篇 data 後再分析哪些被 warn 的文章最終 pass/fail pipeline，用這個 data 來 calibrate reject 門檻
+  - 初期建議只啟用 WARNING 模式（不管 MP 或非 MP），累積幾十篇 data 後再分析哪些被 warn 的文章最終 pass/fail pipeline，用這個 data 來 calibrate reject 門檻
 
 ### FactCorrector 第一輪沒有 Judge Feedback
 
@@ -395,13 +395,13 @@ Stage 5: Translation (auto triggered)
 
 ### 現行設計理解
 
-CP 文章未通過 Stage 0 → status label `MARKED_AS_UNQUALIFIED_FOR_REVIEW_BY_QUALITY_GATE`，UI 上顯示 banner 告訴 human。
+MP 文章未通過 Stage 0 → status label `MARKED_AS_UNQUALIFIED_FOR_REVIEW_BY_QUALITY_GATE`，UI 上顯示 banner 告訴 human。
 
 ### Banner 設計考量
 
 1. **Banner 語氣問題**: 「AI 品質門檻已標記此文不夠格」太機械。這個 banner 是給 CEO（human reviewer）看的，應該用有用的語氣，不是法律聲明。
    - 差的: "此文章未通過 AI 品質評估門檻"
-   - 好的: "Clawd 覺得這篇可能不太適合發 — 你要看看嗎？" + 簡短的拒絕理由
+   - 好的: "Mogu 覺得這篇可能不太適合發 — 你要看看嗎？" + 簡短的拒絕理由
 
 2. **需要顯示拒絕理由**: Banner 不能只說「不夠格」，至少要說**為什麼**。CEO 才能快速判斷要不要 override。例如：「內容太短，核心觀點不夠展開」或「跟站上已有的 [某篇文章] 重複度高」。
 
@@ -481,7 +481,7 @@ interface WorthinessJudgeOutput extends BaseJudgeOutput {
 interface VibeJudgeOutput extends BaseJudgeOutput {
   scores: {
     persona: number;
-    clawdNote: number;
+    moguNote: number;
     vibe: number;
     clarity: number;
     narrative: number;
@@ -544,7 +544,7 @@ interface FactCorrectorOutput {
   }>;
 
   source_urls_fetched: string[];  // 實際 fetch 過的 URL list
-  scope_violations_detected: string[];  // 如果發現 ClawdNote 被動到，這裡記錄
+  scope_violations_detected: string[];  // 如果發現 MoguNote 被動到，這裡記錄
 }
 ```
 
@@ -643,7 +643,7 @@ grep -rn "LUXURY_TOKEN:" . $EXCLUDES 2>/dev/null
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│  Clawd 的 AI judge 對這篇沒把握 ಠ_ಠ                       │
+│  Mogu 的 AI judge 對這篇沒把握 ಠ_ಠ                       │
 │  ────────────────────────────────────────────────────── │
 │                                                           │
 │  Opus judge 覺得這篇可能不太適合登上 gu-log：            │
@@ -736,8 +736,8 @@ stage4FinalVibeScores: z.object({...}).optional(),  // 給 Stage 4 degraded bann
 |---|---|---|
 | Stage 0 Worthiness judge model | Opus (LUXURY_TOKEN) | Level 4, 7 |
 | Stage 0 評分維度 | coreInsight / expandability / audienceRelevance | Level 7 |
-| CP 文章 reject 門檻 | 不 auto-reject，WARN 即可 | Level 7 |
-| CP 文章 status label | `warnedByStage0: true` + `warnReason` | Level 7 |
+| MP 文章 reject 門檻 | 不 auto-reject，WARN 即可 | Level 7 |
+| MP 文章 status label | `warnedByStage0: true` + `warnReason` | Level 7 |
 | FactLib combined judge 維度 | factAccuracy / sourceFidelity / linkCoverage / linkRelevance | Appendix A |
 | FactLib combined judge model | Opus (LUXURY_TOKEN) | Level 4 |
 | FactCorrector / Librarian session | Split | Level 8 |
@@ -752,4 +752,3 @@ stage4FinalVibeScores: z.object({...}).optional(),  // 給 Stage 4 degraded bann
 - **Pipeline 整體 token budget 估算** — 尚未算出平均一篇文章跑完要多少 token。建議 Builder 在實作過程中收集 metrics，第一篇跑完就有 baseline。
 - **Stage 0 worthiness dimensions 的具體 rubric** — 決定了三個維度但沒有詳細 scoring guide。可參考 `scripts/ralph-vibe-scoring-standard.md` 的 format 去寫。
 - **Judge prompt versioning** — `judge_version` field 在 schema 裡，但沒有 version management 流程。未來如果 tune prompt 要考慮。
-

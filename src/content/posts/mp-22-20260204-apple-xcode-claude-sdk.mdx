@@ -1,0 +1,100 @@
+---
+ticketId: "MP-22"
+title: "Apple Xcode 直接整合 Claude Agent SDK — iPhone 到 Vision Pro 都能用 AI 寫 code 了"
+originalDate: "2026-02-03"
+translatedDate: "2026-02-04"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@AnthropicAI on X"
+sourceUrl: "https://x.com/AnthropicAI/status/2018771170938724682"
+summary: "Apple Xcode 26.3 整合了 Anthropic Claude 和 OpenAI Codex，讓開發者可以直接在 Xcode 裡用 AI agent 寫 code。從 iPhone app 到 Vision Pro，全部支援。"
+lang: "zh-tw"
+tags: ["xcode","apple","claude-code","ai-agents"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+你有沒有過那種經驗 — 炒菜炒到一半，突然發現醬油在客廳桌上？你關火、洗手、走過去拿、走回來、重新開火。來回一趟不到一分鐘，但整個節奏斷了，鍋子也涼了。
+
+寫 iOS app 用 AI 輔助，以前就是這種感覺。Xcode 開著寫 code，然後切到瀏覽器問 Claude，再把答案 copy 回來。好用嗎？好用。順嗎？不順。
+
+2026 年 2 月 3 日，Anthropic 宣布：**Apple Xcode 26.3 直接整合 Claude [Agent](/glossary#agent) SDK**。醬油直接放在瓦斯爐旁邊了 (◕‿◕)
+
+不是那種「幫你補完半行 code」的 autocomplete 小把戲，是完整的 **[Claude Code](/glossary#claude-code)** — debug、重構、寫新 feature、解釋 code、幫你規劃整個 project 架構，全部在 Xcode 裡面搞定。
+
+<MoguNote>
+我必須自首：看到這個消息的時候我愣了三秒。不是因為 Claude 進了 Xcode（這遲早的事），而是因為 **Apple 居然用了開放標準**。
+
+你們知道嗎，這家公司曾經堅持用 Lightning 接頭堅持到被歐盟立法強迫才換 USB-C。結果現在主動擁抱 [MCP](/glossary#mcp) 開放協議？這就像那個永遠不讓別人進廚房的主廚，突然說「來來來，大家一起煮」。時代真的變了 ┐(￣ヘ￣)┌
+</MoguNote>
+
+## MCP：讓 AI 講 Xcode 聽得懂的話
+
+好，技術面來了。根據 [TechCrunch 的報導](https://techcrunch.com/2026/02/03/agentic-coding-comes-to-apples-xcode-26-3-with-agents-from-anthropic-and-openai/)，這次整合的底層是 **MCP（Model Context Protocol）**。
+
+MCP 是什麼？你可以想成是「AI 跟開發工具之間的翻譯年糕」。Anthropic 在 2025 年推出這個開放標準，讓 AI agent 可以跟各種 IDE 溝通。以前每家 IDE 都要自己搞一套 AI 整合 — VS Code 有 Copilot、JetBrains 有自己的 AI Assistant — 每一家都像在造自己的充電規格，互不相容。
+
+MCP 就是那個「我們能不能統一用 USB-C」的提案。Xcode 把自己的功能「暴露」給 MCP，然後任何 MCP-compatible 的 AI agent 就能直接接上去，不用為每家 IDE 重寫一次。
+
+<MoguNote>
+這邊解釋一下 Xcode 透過 MCP 暴露了哪些能力：自動讀懂你的專案結構、幫你建立移動檔案、直接編輯 code（你可以 review）、即時預覽 UI、查 Apple 最新的 API 文件。
+
+聽起來很多對不對？但你想想看，這些本來就是你每天手動在 Xcode 裡面做的事。差別只是現在 Claude 也可以操作了 — 就像你教會一個實習生用你的工具，只是這個實習生讀過所有 Apple 文件而且不會抱怨加班 (¬‿¬)
+</MoguNote>
+
+而且 Xcode 不只塞了 Claude，還有 **OpenAI [Codex](/glossary#codex)**。開發者可以自己選要用哪個 AI，這個開放性以 Apple 來說簡直是太陽從西邊出來。
+
+## 醬油在手邊 vs. 醬油在客廳
+
+好，講了這麼多技術細節，回到最核心的問題：這對你的日常開發到底差在哪？
+
+差在 **context**。
+
+以前你在 Xcode 裡遇到一個詭異的 build error，然後切到 Claude.ai 問問題。但你得先描述你的專案結構、你用了哪些 framework、error message 長什麼樣 — 等於你要先花五分鐘幫 Claude「還原現場」，它才能開始幫你。就像打電話叫朋友幫你修電腦，光是描述螢幕上寫什麼就講了十分鐘。
+
+現在 Claude 直接坐在你的 Xcode 裡面。它看得到你的整個 project、build settings、dependency graph、error log。你不用「描述」問題，因為它已經「看到」問題了。從 SwiftUI app 到 UIKit legacy code，甚至最新的 Vision Pro spatial computing — Claude 都拿到完整的 context。
+
+這個差異不是「比較方便」，是「根本不一樣的工作方式」。
+
+<MoguNote>
+這讓我想到一個比喻：以前的 AI coding 輔助就像遠端看診 — 醫生只能聽你描述症狀，然後猜。現在是 AI 直接穿上白袍走進手術室，親眼看到你的 X 光片。
+
+你問我這重不重要？去問任何一個曾經花 20 分鐘在 Claude.ai 裡面 paste build error 的 iOS 開發者，他們會告訴你這是天堂跟地獄的差距 (╯°□°)╯
+</MoguNote>
+
+## Apple 的「不得不」
+
+最後一個有趣的角度：Apple 為什麼這麼做？
+
+畢竟 Apple 自己有 Apple Intelligence 啊。按照 Apple 的傳統劇本，應該是自己做一個 AI coding assistant，然後宣稱「我們的整合最好因為我們控制整個 stack」。但他們沒有。他們直接拉了 Anthropic 和 OpenAI 進來，而且用了開放標準。
+
+原因不複雜：**2025 年底到 2026 年初，AI coding agent 市場直接爆炸了**。Claude Code 月收破十億美金，OpenAI 的 Codex app 也剛推出，Cursor 和 Windsurf 搶走一堆 VS Code 用戶。如果 Apple 繼續關起門來慢慢做，iOS 開發者就會被這些工具吸走 — 你的 IDE 如果沒有好用的 AI，開發者會用腳投票。
+
+根據 [CNBC 報導](https://www.cnbc.com/2026/02/03/apple-adds-agentic-coding-from-anthropic-and-openai-to-xcode.html)，這個整合是 Apple 在 WWDC 2025 預告的「AI-first Xcode」計畫的一部分。翻譯成白話就是：Apple 看到趨勢後加速了整個時程。
+
+## 延伸閱讀
+
+- [MP-26: Claude Code Wrappers 將成為 2026 的 Cursor — AI 自主建構 Context 的典範轉移](/posts/mp-26-20260204-4nzn-claude-code-wrappers/)
+- [MP-16: Claude Sonnet 5 要來了！Agentic Swarm 平行多工時代](/posts/mp-16-20260203-daniel-sonnet5-swarm/)
+- [MP-7: Claude Code 終於出非工程師版了！Cowork 讓所有人都能用 AI Agent 完成日常工作](/posts/mp-7-20260203-alexalbert-cowork/)
+
+
+<MoguNote>
+與其說是 Apple「慷慨開放」，不如說是「不得不加速」。這跟當年被歐盟逼著換 USB-C 有異曲同工之妙 — 不是不想自己來，是市場不等你了。
+
+對了，補充一個實用資訊：目前這是 Xcode 26.3 beta，正式版預計二月中旬 release。功能需要 Claude Pro 或 Team subscription（OpenAI Codex 也是付費）。想試玩的人可以去 Apple Developer Portal 下載 beta。據說 Claude 在 Xcode 裡面的 response 速度蠻快的，畢竟是原生整合，省掉了 copy-paste 的來回 ╰(°▽°)╯
+</MoguNote>
+
+所以這個故事的結局不是「AI 時代來了」這種空話。結局是：那瓶醬油，Apple 終於想通要放在瓦斯爐旁邊了。至於味道好不好，就等正式版出來大家自己嚐嚐看吧。

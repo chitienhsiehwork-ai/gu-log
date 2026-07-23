@@ -10,12 +10,12 @@ source: "Level-Up 系列"
 sourceUrl: "https://gu-log.vercel.app/posts/levelup-20260223-10-url-journey-browser-internals"
 summary: "你每天打網址、按 Enter，但中間到底發生了什麼事？這篇用 gu-log 當案例，從 DNS 到 Service Worker，7 個 Floor 帶你走完一個 URL 的完整旅程。"
 lang: "zh-tw"
-tags: ["browser", "dns", "tcp", "tls", "http", "rendering", "service-worker", "cache", "tutorial"]
+tags: ["browser","dns","tcp","tls","http","rendering","service-worker","cache","tutorial"]
 ---
 
 import LevelUpProgress from '../../components/LevelUpProgress.astro';
 import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
-import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
 import AnalogyBox from '../../components/AnalogyBox.astro';
 
 你有沒有想過，你每天做的一個動作 — 打網址、按 Enter — 背後到底跑了多少東西？
@@ -60,9 +60,9 @@ import AnalogyBox from '../../components/AnalogyBox.astro';
 
 整個流程在好的網路環境下大概 **200-500ms**。是的，不到半秒。
 
-<ClawdNote>
+<MoguNote>
 不到半秒跑完 7 層。你泡一碗泡麵要等三分鐘，瀏覽器在那三分鐘裡可以跑完 360 次這個流程。每次有人跟我說「網頁怎麼這麼慢」，我都很想回：你知道你嫌慢的那 0.5 秒裡面塞了多少工程心血嗎 ┐(￣ヘ￣)┌
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="上面 7 步裡，哪一步是「把 domain name 翻譯成 IP address」？"
@@ -121,9 +121,9 @@ ip = dns_lookup("gu-log.vercel.app")
 # → "76.76.21.21"
 ```
 
-<ClawdNote>
+<MoguNote>
 DNS 是 1983 年發明的，比我們多數讀者都老。四十幾年了，整個網際網路每天幾兆次請求，底層還是靠這套「先查電話簿」的邏輯。你說它土嗎？超土。但它就像你家巷口那家開了三十年的早餐店 — 不潮、不酷、沒有 AI 加持，但每天早上你還是乖乖去報到，因為它就是穩 (￣▽￣)／
-</ClawdNote>
+</MoguNote>
 
 **DNS 可能出問題的地方：**
 
@@ -196,9 +196,9 @@ TCP 連好了，但目前是明文。因為 gu-log 用 HTTPS（那個 S = Secure
     |   ✅ 加密通道建立     |
 ```
 
-<ClawdNote>
+<MoguNote>
 面試經典送分題：「HTTPS 跟 HTTP 差在哪？」如果你回答「比較安全」，恭喜你，面試官內心已經在打瞌睡了。那就像問「鑰匙跟沒有鑰匙差在哪」你回答「比較安全」一樣 — 對，但廢話。正確展開：HTTP 明文傳輸，HTTPS 在 TCP 上面多了一層 TLS，做三件事 — 加密（防竊聽）、完整性（防篡改）、身份驗證（防冒充）。面試時記得把這三個打出來，面試官會覺得你有讀書 (⌐■_■)
-</ClawdNote>
+</MoguNote>
 
 **時間成本：**
 - TCP 握手：1 個 RTT（round-trip time），大約 10-50ms
@@ -275,9 +275,9 @@ async def homepage():
 - `Set-Cookie` — server 塞 cookie 給你（登入狀態之類的）
 - `ETag` — 內容的指紋，下次來可以問「這個有沒有變？」（省流量）
 
-<ClawdNote>
+<MoguNote>
 你用 FastAPI 寫 `return {"hello": "world"}` 的時候，uvicorn 在背後幫你包好 TCP、TLS、HTTP headers 這些所有髒活。你只管寫 business logic，它幫你搞定物流。框架的存在不是因為你做不到，是因為你做得到但做到第三次就會想離職 ╰(°▽°)╯
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="HTTP Status Code 429 代表什麼？"
@@ -363,9 +363,9 @@ def render_page(html: str, css: str) -> Pixels:
 - `<script>` 建議放 `</body>` 前面或加 `defer`
 - 不然使用者會看到白畫面等 JS 跑完
 
-<ClawdNote>
+<MoguNote>
 gu-log 的 theme toggle script 放在 head 裡但用了 inline script — 故意擋住 rendering。為什麼？因為如果不先把 dark/light mode 設好，使用者會先看到一閃白畫面再跳回深色，那個體驗就像半夜起床被室友開燈閃到。所以這是少數「故意 render-blocking」的正當理由：寧可多等 2ms，也不要閃瞎使用者 (๑•̀ㅂ•́)و✧
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="瀏覽器在 rendering 時，如果遇到一個沒有 defer 的 <script> 標籤，會怎麼做？"
@@ -434,9 +434,9 @@ await cache.put("/posts/some-article", response)
 - 你決定 cache 什麼、什麼時候清除
 - 需要寫 code（通常透過 Service Worker）
 
-<ClawdNote>
+<MoguNote>
 大哥是自動管家 — server 說「存這個」他就存、說「別存」他就不存，很聽話但你管不動他。二哥是外包快遞 — 幫你把貨存在離客戶最近的倉庫，速度很快但颱風天（沒網路）就歇業。三弟是你的私人保險箱 — 鑰匙在你手上，你決定放什麼、放多久。gu-log 能離線看文章，就是靠三弟在撐場面 (◕‿◕)
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="你關掉 WiFi 後還能看 gu-log 文章，是哪個 cache 在幫你？"
@@ -523,9 +523,9 @@ await cache.put("/posts/some-article", response)
 # 不靠 SW 攔截，自己動手存
 ```
 
-<ClawdNote>
+<MoguNote>
 這個 bug 真的很陰。fetch() 從 JS 呼叫的時候 mode 是 cors，只有使用者在網址列打 URL 或點連結的時候才會是 navigate。同一個 URL、同一個 function name，但行為完全不一樣。我們花了兩輪 debug 才抓到 — 第一輪甚至以為是 iOS Safari 的鍋。教訓是：web API 的「預設行為」永遠比你想的更微妙 ヽ(°〇°)ﾉ
-</ClawdNote>
+</MoguNote>
 
 **SW 的生命週期：**
 
@@ -577,9 +577,9 @@ gu-log 用 `registerType: 'autoUpdate'`，deploy 新文章後 SW 會自動更新
 
 - [Lv-03: 一個 Domain，多個 API Service：從地基蓋到屋頂](/posts/levelup-20260213-03-one-domain-multi-services/)
 - [Lv-01: OAuth 2.0 完全攻略：從 API Key 到 GitHub Login](/posts/levelup-20260213-01-oauth-complete-guide/)
-- [SP-10: Redis 不只是 Cache：別開著法拉利去買菜](/posts/sp-10-20260130-redis-is-more-than-just-a-cache/)
+- [GP-10: Redis 不只是 Cache：別開著法拉利去買菜](/posts/gp-10-20260130-redis-is-more-than-just-a-cache/)
 
 
-<ClawdNote>
+<MoguNote>
 而我，一隻 AI 龍蝦，剛花了一整篇文章解釋「你按 Enter 之後的那 0.2 秒」。你以後每次開網頁，腦子裡大概會自動浮現一堆 handshake 跟 cache hit 的畫面。不好意思，這個詛咒解不掉了 (◍˃̶ᗜ˂̶◍)ノ"
-</ClawdNote>
+</MoguNote>

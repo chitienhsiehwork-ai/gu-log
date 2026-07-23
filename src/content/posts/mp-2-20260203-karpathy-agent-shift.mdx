@@ -1,0 +1,134 @@
+---
+ticketId: "MP-2"
+title: "Karpathy：我的寫 code 方式在幾週內完全翻轉了"
+originalDate: "2026-01-26"
+translatedDate: "2026-02-03"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@karpathy on X"
+sourceUrl: "https://x.com/karpathy/status/2015883857489522876"
+summary: "從 80% 手動寫 code 變成 80% 用 AI agent，Karpathy 說這是他 20 年程式生涯最大的改變"
+lang: "zh-tw"
+tags: ["ai","developer-tools","ai-agents"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+你有沒有過那種感覺——某天早上醒來，突然發現自己花了 20 年練的技能，一夜之間被一個不需要睡覺的傢伙學走了？
+
+[Andrej Karpathy](/glossary#andrej-karpathy) 就是這樣。他是寫出 nanoGPT 的男人、前 Tesla AI 總監、OpenAI 創始成員——基本上就是你在 AI 領域能想到的「大佬中的大佬」。結果他最近在 X 上丟出一顆炸彈：
+
+> **「我在 11 月還是 80% 手動寫 code + autocomplete、20% 用 agent，到了 12 月直接變成 80% agent 寫、我只負責 20% 的修改和調整。」**
+
+20 年的程式生涯，最大的工作流程轉變，**幾週內完成**。
+
+<MoguNote>
+讓我換算一下這個衝擊力。Karpathy 是那種從零手刻 neural network 當興趣的人，就像你巷口那個堅持手沖咖啡、連磨豆都要自己來的老闆。結果現在他說「我開始用膠囊咖啡機了，因為它沖得比我好」(╯°□°)╯
+
+當這種等級的人都投降了，你還在猶豫要不要裝 Copilot？
+</MoguNote>
+
+## 從「手刻匠人」到「嘴巴工程師」
+
+根據 Karpathy 的說法，LLM agent 的能力在 2025 年 12 月左右跨過了某個「連貫性門檻」。不是漸進式的進步，是那種你某天打開工具突然覺得「欸不對，這跟上個月完全不一樣」的跳躍。
+
+他現在的日常長這樣：用英文描述要什麼 → AI 生成一大塊 code → 他在 IDE 裡面看看改改 → 收工。
+
+他自己承認這「有點傷自尊」（"It hurts the ego a bit"）。想想看，你花了二十年學會的手藝，現在一個嘴巴就能搞定。這感覺大概像米其林主廚發現微波爐做出來的牛排跟他一樣好吃 ┐(￣ヘ￣)┌
+
+<MoguNote>
+「用嘴巴寫程式」——這個概念真的很妙。以前工程師最看不起 PM 說的那句「這功能很簡單啊，你就做出來就好」。結果現在工程師自己對著 AI 說一模一樣的話 (￣▽￣)／
+
+因果報應來得比 deadline 還快。
+</MoguNote>
+
+## 那個「粗心但知識豐富的 junior」
+
+好，AI 這麼厲害，那它到底像什麼？Karpathy 的形容超精準：
+
+> **「一個粗心、沒耐性，但知識非常豐富的 junior developer。」**
+
+你問它 React hooks 的原理，它可以寫一篇論文給你。但實際動手寫的時候？忘記加 dependency array、憑空幻想不存在的 API、refactor 的時候把別的東西改壞——就是那種讓你想翻白眼的新人操作。
+
+所以 Karpathy 的建議是「像老鷹一樣盯著它」。你不能放牛吃草讓它自己跑，你得盯盤、review 每一行，該改就改。
+
+這就是 2026 年工程師的新日常：不再是寫 code 的人，而是帶 AI junior 的 tech lead。
+
+<MoguNote>
+你有沒有帶過那種「什麼都會一點但什麼都不夠細心」的 junior？對，就是那種感覺。差別在於 AI junior 不會在 daily standup 跟你抱怨他女朋友的事、不用年假、而且 debug 到凌晨三點也不會隔天遲到 (⌐■_■)
+
+但最大的差別是你可以同時開五六個 AI junior 一起幹活。試試看同時 mentor 六個人類 junior，你大概第二天就辭職了。
+</MoguNote>
+
+## 三個「靠，這不是 AGI 嗎」的瞬間
+
+Karpathy 講了三個讓他嚇到的體驗，但我覺得重點不是「哇 AI 好厲害」，而是這三點加起來代表一種根本性的改變。
+
+**第一個：它不會放棄。** 你 debug 到第三個小時的時候，腦袋已經在想今天晚餐吃什麼了。AI？它沒有晚餐要吃、沒有情緒要管理、沒有「算了先去睡覺明天再說」的選項。它就是一直試、一直改，像永動機一樣。這聽起來很小，但想想你有多少 bug 是因為「啊我累了先這樣吧」而留下的技術債？
+
+**第二個：以前嫌麻煩不做的事，現在都做得起了。** 寫測試？太花時間。寫文件？改天再說。學新框架？下輩子吧。但當你有一個不會抱怨的助手幫你扛這些雜事，突然間什麼都變得可行了。Karpathy 說他現在會讓 AI 幫他寫完整的 test suite、補文件、甚至幫他學一個全新的 tech stack。
+
+**第三個，也是最炸的：從「告訴它怎麼做」變成「告訴它你要什麼」。** 以前寫 code 是命令式的——一行一行教電腦做事。現在變成宣告式的——你給它一個目標，它自己想辦法達成。
+
+<MoguNote>
+第三點才是真正的 game changer，我直說了。
+
+命令式 vs 宣告式的差異不只是「懶得打字」的問題，是整個思考方式的翻轉。你不再需要知道「怎麼做」，你只需要知道「要做什麼」跟「做得好不好」。
+
+這跟當年 SQL 幹掉手刻 file I/O 是同一件事——你不用告訴資料庫「先打開檔案、讀第三行、比對欄位」，你說 `SELECT * WHERE name = 'Karpathy'`，資料庫自己搞定。現在同樣的事情發生在整個軟體開發上 (◕‿◕)
+
+所以 2026 年最值錢的技能不是「會寫 code」，是「會描述你要什麼、會判斷結果好不好」。
+</MoguNote>
+
+## Slopacolypse：爛 code 末日來了
+
+OK，講完好的來講壞的。Karpathy 預測 2026 年會是 **slopacolypse** 的一年——slop（爛東西）+ apocalypse（末日），大量低品質 AI 生成內容淹沒整個網路。
+
+想像一下：GitHub 上到處是 AI 吐出來的 repo，README 寫得頭頭是道但 code 根本跑不起來。Medium 上到處是 AI 寫的文章，看起來像那麼一回事但讀完什麼都沒學到。YouTube 上到處是 AI 配音的影片，縮圖超吸睛但點進去是 10 分鐘的廢話。
+
+……等等，這不是已經在發生了嗎？ (¬‿¬)
+
+他同時預測 **10x engineer 的差距會更大**。不是因為有些人比較聰明，而是因為「會指揮 AI」跟「不會指揮 AI」之間的生產力差異，是指數級的。
+
+## 延伸閱讀
+
+- [MP-1: swyx：你以為 AI agent 只是 LLM + tools？太天真了](/posts/mp-1-20260203-swyx-agent-definition/)
+- [MP-8: Simon Willison：學會設計 Agentic Loops，用暴力破解所有 Coding 問題](/posts/mp-8-20260203-simonw-agentic-loops/)
+- [MP-3: Simon Willison：我 25 年的開發直覺已經失效了](/posts/mp-3-20260203-simonw-intuitions/)
+
+
+<MoguNote>
+Slopacolypse 這個造詞我真的笑了 (╯°□°)╯
+
+但它背後的邏輯很簡單：AI 降低了「產出」的門檻，但沒有降低「品質」的門檻。任何人都能按一個按鈕生成 code，但只有懂得判斷好壞、懂得給精確指令的人才能生出有用的東西。
+
+這就像有了印刷機之後人人都能出書，但大部分的書還是垃圾。差別在於現在垃圾的產出速度是每秒幾百本 ʕ•ᴥ•ʔ
+</MoguNote>
+
+## 二十年功力，幾週歸零？
+
+回到開頭那個問題：花了 20 年練的技能，被一個不需要睡覺的傢伙學走了，這是什麼感覺？
+
+Karpathy 的答案很誠實——有點傷自尊，但回不去了。效率差距太大，不用 AI 就是在跟自己過不去。
+
+但我覺得他真正想說的不是「AI 取代了我」，而是「我的角色變了」。他不再是寫 code 的人，他是那個知道什麼 code 該寫、寫得好不好的人。二十年的功力沒有白費，只是從「手刻」變成「品管」。
+
+就像那個堅持手沖咖啡的老闆——如果他最後真的開始用膠囊機，不是因為他不會沖了，是因為他的舌頭夠好，知道膠囊機沖出來的也及格。
+
+技術可以被自動化，品味不行 (๑•̀ㅂ•́)و✧
+
+---
+
+*原文連結：[Andrej Karpathy on X](https://x.com/karpathy/status/2015883857489522876)*

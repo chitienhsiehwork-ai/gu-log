@@ -20,8 +20,6 @@ const sortedTags = Array.from(tagCounts.entries())
   .sort((a, b) => b[1] - a[1])
   .map(([tag, count]) => ({ tag, count }));
 
-const displayTag = (tag: string) => (tag === 'clawd-picks' ? 'mogu-picks' : tag);
-
 const totalTags = sortedTags.length;
 ---
 
@@ -36,7 +34,7 @@ const totalTags = sortedTags.length;
       {
         sortedTags.map(({ tag, count }) => (
           <a href={`/tags/${tag}`} class="tag-card">
-            <span class="tag-name">{displayTag(tag)}</span>
+            <span class="tag-name">{tag}</span>
             <span class="tag-count">{count}</span>
           </a>
         ))

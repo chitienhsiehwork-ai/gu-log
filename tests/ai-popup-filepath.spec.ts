@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures';
+import { selectPostTextAndShowPopup } from './helpers/ai-popup';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
@@ -7,8 +8,8 @@ import { fileURLToPath } from 'url';
  * Tests for AiPopup filePath correctness.
  *
  * Bug context: Astro Content Collections `post.id` already includes the `.mdx`
- * extension (e.g. "clawd-picks-151.mdx"). The page template was appending
- * `.mdx` again, producing paths like "src/content/posts/clawd-picks-151.mdx.mdx"
+ * extension (e.g. "mogu-picks-151.mdx"). The page template was appending
+ * `.mdx` again, producing paths like "src/content/posts/mogu-picks-151.mdx.mdx"
  * → 404 on the API side.
  *
  * These tests ensure the double-extension bug never recurs.
@@ -52,13 +53,11 @@ test.describe('AiPopup filePath — Static Analysis', () => {
     }
 
     if (violations.length > 0) {
-      const report = violations
-        .map((v) => `  ${v.file}:${v.line} → ${v.text}`)
-        .join('\n');
+      const report = violations.map((v) => `  ${v.file}:${v.line} → ${v.text}`).join('\n');
       expect(
         violations,
         `Double .mdx extension detected in AiPopup filePath prop!\n` +
-          `post.id already includes ".mdx" — do not append it again.\n${report}`,
+          `post.id already includes ".mdx" — do not append it again.\n${report}`
       ).toHaveLength(0);
     }
   });
@@ -87,9 +86,7 @@ test.describe('AiPopup filePath — Static Analysis', () => {
     }
 
     if (violations.length > 0) {
-      const report = violations
-        .map((v) => `  ${v.file}:${v.line} → ${v.text}`)
-        .join('\n');
+      const report = violations.map((v) => `  ${v.file}:${v.line} → ${v.text}`).join('\n');
       expect(violations, `Literal .mdx.mdx found in filePath:\n${report}`).toHaveLength(0);
     }
   });
@@ -103,38 +100,20 @@ test.describe('AiPopup filePath — E2E Request Validation', () => {
   test.beforeEach(async () => {
     // Desktop only — text selection doesn't work reliably on mobile viewports
     const isDesktop = test.info().project.name === 'Desktop Chrome';
-    if (!isDesktop) test.skip();
+    test.skip(!isDesktop, 'E2E file-path coverage runs only in the Desktop Chrome project');
   });
 
-  const TEST_POST = '/posts/sp-24-20260204-claude-is-a-space-to-think';
+  const TEST_POST = '/posts/gp-24-20260204-claude-is-a-space-to-think';
 
   async function setupLoggedIn(page: import('@playwright/test').Page) {
     await page.goto(TEST_POST);
     await page.evaluate(() => {
       const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-      const payload = btoa(
-        JSON.stringify({ email: 'test@example.com', exp: 9999999999 }),
-      );
+      const payload = btoa(JSON.stringify({ email: 'test@example.com', exp: 9999999999 }));
       const token = header + '.' + payload + '.fake-signature';
       localStorage.setItem('gu-log-jwt', token);
     });
     await page.reload();
-  }
-
-  async function selectAndShowPopup(page: import('@playwright/test').Page) {
-    const content = page.locator('.post-content p').first();
-    await expect(content).toBeVisible();
-    const box = await content.boundingBox();
-    if (!box) throw new Error('No bounding box');
-
-    await page.mouse.move(box.x + 10, box.y + box.height / 2);
-    await page.mouse.down();
-    await page.mouse.move(box.x + 200, box.y + box.height / 2);
-    await page.mouse.up();
-
-    const popup = page.locator('#ai-popup');
-    await expect(popup).toBeVisible({ timeout: 3000 });
-    return popup;
   }
 
   test('GIVEN a post page WHEN Edit with AI sends request THEN filePath must NOT contain .mdx.mdx', async ({
@@ -156,7 +135,7 @@ test.describe('AiPopup filePath — E2E Request Validation', () => {
       });
     });
 
-    const popup = await selectAndShowPopup(page);
+    const popup = await selectPostTextAndShowPopup(page);
     await popup.locator('[data-action="edit"]').click();
 
     const input = popup.locator('.ai-popup-edit-input');
@@ -171,7 +150,7 @@ test.describe('AiPopup filePath — E2E Request Validation', () => {
     expect(capturedFilePath).toBeTruthy();
     expect(capturedFilePath).toMatch(/\.mdx$/);
     expect(capturedFilePath).not.toMatch(/\.mdx\.mdx/);
-    // Should look like: src/content/posts/sp-24-20260204-claude-is-a-space-to-think.mdx
+    // Should look like: src/content/posts/gp-24-20260204-claude-is-a-space-to-think.mdx
     expect(capturedFilePath).toMatch(/^src\/content\/posts\/[a-z0-9-]+\.mdx$/);
   });
 

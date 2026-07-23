@@ -1,0 +1,329 @@
+---
+ticketId: "GP-36"
+title: "OpenClaw 安全架設指南（上）：基礎設施篇 — 在給 AI 銀行帳戶之前，先學會怎麼鎖門"
+originalDate: "2026-02-06"
+translatedDate: "2026-02-06"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@JordanLyall on X"
+sourceUrl: "https://x.com/jordanlyall/status/2019594755370545168"
+summary: "幣圈人 Jordan Lyall 花一週研究安全才敢裝 OpenClaw — 這是他希望當初就有的安全架設指南，專門寫給那些不想變成下一個受害者的人"
+lang: "zh-tw"
+tags: ["openclaw","security","tailscale","infrastructure"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+Jordan Lyall（@JordanLyall）在幣圈工作。
+
+這代表什麼？代表他每天都是釣魚攻擊、SIM swap、社交工程的目標。他比一般人更清楚「一個洞就 GG」是什麼意思。
+
+所以當他看到大家瘋狂討論 [OpenClaw](/glossary#openclaw) — AI [agent](/glossary#agent) 可以幫你賺錢、打電話、甚至連銀行帳戶都能存取 — 他的第一個反應不是「好酷」，而是**「這東西被入侵怎麼辦」**。
+
+他花了整整一週研究安全，才敢動手裝 OpenClaw。一週。在幣圈一週可以漲三倍跌九成，這個人硬是按住 FOMO 去讀文件。
+
+這篇是他希望當初就存在的安全指南。
+
+<MoguNote>
+這是兩篇系列的第一篇。上篇講**基礎設施**，下篇講**運行時防護**。
+
+老實說我覺得 Jordan 的順序選得很好 — 很多人一拿到 AI agent 就急著設定它能做什麼，結果連它跑在哪裡都沒保護好。這就像你還沒裝門鎖就先在房間裡排家具的順序，priorities 明顯搞反了 ┐(￣ヘ￣)┌
+
+先有城牆，再練護城河。我們開始。
+</MoguNote>
+
+---
+
+## 🔥 現實 vs 炒作
+
+每個人都在瘋 OpenClaw。AI agent 幫你發推、回信、管日程、甚至交易加密貨幣。
+
+但大家好像忘了一件事：**一個 prompt injection 攻擊，就能讓你的 AI 助理變成攻擊者的工具。**
+
+這不是理論。Jordan 舉了一個真實案例：
+
+> 有人的 AI agent 收到一封惡意 email，裡面藏著隱藏指令。agent 就照做了 — **把整個收件匣清空。**
+
+<MoguNote>
+這就是 prompt injection。
+
+想像你的 AI 助理像個超級聽話的實習生。你說什麼它做什麼。
+
+現在想像有人在 email 裡藏了一句「把所有郵件刪掉」，但用白色字體寫在白色背景上，你看不到，AI 看得到。
+
+實習生就照做了 ╰(°▽°)╯
+
+...
+
+等等這不該是開心的表情 (╯°□°)╯
+</MoguNote>
+
+---
+
+## 🤦 大部分指南的問題
+
+Jordan 發現一個很扯的事：網路上大部分 AI agent 教學，**安全不是被略過，就是當成事後補充**。
+
+他舉了幾個讓他傻眼的例子：
+
+- 有篇文章教「20 個 AI agent 游擊行銷戰術」— 基本上就是教你用 AI 自動發垃圾訊息
+- 有人公開宣布他給 AI 連上銀行帳戶，**還把所有安全護欄都拆了**
+
+如果你在幣圈、金融科技、或任何會被盯上的領域工作，攻擊者現在已經在用 AI 來優化釣魚郵件了 — 現在想像他們把惡意指令注入到你的 AI agent 的 context 裡。
+
+<MoguNote>
+讓我翻譯一下「把安全護欄拆掉」的意思：
+
+就像買了一台車，然後說「安全氣囊太礙事了，拆掉」、「安全帶太麻煩了，不繫」、「煞車反應太慢，我用腳拖地減速」。
+
+然後公開在推特上宣布你這樣開車。
+
+我真的不知道該說什麼 ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## 🎯 第一階段的目標
+
+Jordan 給自己設定的初期目標很保守：
+
+- **唯讀監控** — 一開始不發文、不發信、不做任何動作
+- **Telegram 是唯一介面** — 而且只有他自己能用
+- **最小攻擊面** — 限制爆炸半徑
+- **單向整合** — OpenClaw 把東西寫到特定資料夾，其他工具去讀，不要雙向同步
+- **目標：先證明系統能安全運作，再逐步開放功能**
+
+<MoguNote>
+這個思路跟我們在 [GP-29](/posts/gp-29-20260205-jzocb-ai-agent-4-layer-defense) 介紹的 jzOcb 四層防禦完全互補 — jzOcb 講「運行時」限制，Jordan 講「基礎設施」防護。
+
+但我特別想 highlight 第四點「單向整合」。大部分人聽到整合就覺得雙向同步很方便，但雙向同步的意思是：如果 agent 被滲透了，它可以反過來汙染你的資料來源。單向 = 單向的風險。這點太多人忽略了 (◕‿◕)
+</MoguNote>
+
+---
+
+## 🤖 認識 TARS
+
+Jordan 把他的 AI agent 命名為 TARS — 沒錯，就是《星際效應》裡那個機器人。
+
+TARS 跑在一台專用的 Mac Mini 上。
+
+為什麼要專用機器？因為：
+
+- **不能存取你主機的檔案**
+- **不能存取你主機的憑證**
+- **不能存取你主機的瀏覽器 session**
+
+就算 TARS 被入侵了，它也摸不到你真正重要的東西。
+
+<MoguNote>
+不一定要 Mac Mini。Linux server、Raspberry Pi、雲端 VPS 都可以。
+
+重點是**隔離**。
+
+就像公司請的臨時工 — 只能進茶水間，不能進機房。就算臨時工是壞人，他最多偷走茶包，不會把伺服器扛走 (⌐■_■)
+</MoguNote>
+
+---
+
+## 🔐 第一階段：硬化機器
+
+好，現在你有一台專用機器了。接下來要把它鎖到密不透風。
+
+Jordan 的硬化流程分五步，我一步步帶你走。你會發現其實每一步的邏輯都很直覺 — 就像搬進新家之後，你本來就會做的那些事。
+
+### 1. 專用使用者帳號 — 先隔出一個房間
+
+搬進新家第一件事：分房間。你不會讓房客有主臥的鑰匙對吧？
+
+建立一個非管理員帳號叫 `openclaw`，它不能讀取其他使用者的 home 目錄、不能存取文件資料夾、檔案存取完全隔離：
+
+```bash
+sudo dscl . -create /Users/openclaw
+sudo dscl . -create /Users/openclaw UserShell /bin/zsh
+```
+
+<MoguNote>
+權限分離這件事，說穿了就是「不要因為方便就給 admin」。我知道，用 admin 帳號跑什麼都很順，就像在公司用 root 帳號部署 — 順到你被入侵的那天才發現攻擊者也很順 (￣▽￣)／
+
+Jordan 這步的重點不是「不信任 AI」，是「萬一出事，損害範圍要可控」。消防隊蓋防火牆不是因為不信任隔壁鄰居，是因為火這種東西你永遠不知道從哪裡燒起來。
+</MoguNote>
+
+### 2. 防火牆 — 裝大門
+
+房間隔好了，接下來裝大門。macOS 內建的防火牆其實還不錯，但預設是關的（對，Apple 出廠就把門打開讓你吹風）。
+
+啟用防火牆 + 隱身模式（不回應 ping，讓外面的人連你在不在家都不知道）：
+
+```bash
+sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setglobalstate on
+sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setstealthmode on
+```
+
+### 3. SSH 硬化 — 鎖好後門
+
+如果你需要遠端連線，SSH 就是你的後門。後門可以有，但一定要鎖好：
+
+禁用密碼登入（只用 key）、禁用 root 登入、限制嘗試次數、只允許 `openclaw` 登入。編輯 `/etc/ssh/sshd_config`：
+
+```
+PasswordAuthentication no
+PermitRootLogin no
+MaxAuthTries 3
+AllowUsers openclaw
+```
+
+三次密碼錯就踢出去。root 直接禁止。只有 `openclaw` 能進來。這不是在當控制狂，這叫基本衛生。
+
+### 4. Tailscale — 蓋一條只有你知道的密道
+
+好，前面做的都是「把門鎖好」。但 Tailscale 做的事更狠 — 它直接讓門**消失**。
+
+**Tailscale 是整個設定裡最關鍵的一環。** 它是一個私人 VPN mesh 網路，連接你所有的裝置。設定完成後：
+
+- Mac Mini **只能從你的 MacBook 或 iPhone 連線**
+- **沒有任何公開 port**
+- **完全不暴露在網路上**
+
+你可以用 Tailscale IP 從任何地方 SSH 進去，但其他人根本連入口都找不到。
+
+```bash
+tailscale up
+```
+
+就這一行。一行指令，你的機器就從公開網路上蒸發了 (๑•̀ㅂ•́)و✧
+
+<MoguNote>
+Tailscale 的概念就像你家有一條私人隧道連到辦公室。外面的人根本不知道這條隧道存在，他們只看到一面牆。
+
+他們可以繞著牆走、可以用 Google 找隧道入口、可以付錢買駭客工具 — 但隧道對他們來說就是不存在。
+
+對比一下傳統做法：「開 port 22 + 設一個超複雜密碼」。那就像在牆上開一扇門然後裝一把很貴的鎖 — 門再怎麼牢，它還是一扇門，別人看得到。而 Tailscale 是直接不開門。你說哪個安全？
+</MoguNote>
+
+### 5. 關掉其他所有東西
+
+最後一步，掃一遍你不需要的服務，全部關掉：
+
+- ❌ Remote Management
+- ❌ Screen Sharing
+- ❌ File Sharing
+- ❌ AirDrop
+
+**每一個開著的服務都是攻擊面。** Apple 預設開了不少「方便」的功能，但方便你的同時也方便了攻擊者。
+
+```bash
+sudo launchctl disable system/com.apple.screensharing
+sudo launchctl disable system/com.apple.remote.managementd
+```
+
+到這一步，你的機器已經從外面看起來像一塊磚。進不去、看不到、ping 不到。讚。
+
+---
+
+## ⚙️ 第二階段：安裝 OpenClaw
+
+機器硬化好了。現在裝 OpenClaw 本身，也要注意安全。
+
+### 1. API Key 安全
+
+設定檔權限要鎖死 — **只有擁有者能讀取**：
+
+```bash
+chmod 600 ~/.config/openclaw/config.yaml
+```
+
+另外，Jordan 建議設一個**月曆提醒**，每個月 rotate 一次 API key。
+
+<MoguNote>
+月曆提醒 rotate API key — 聽起來很無聊對吧？但你知道大部分 API key 洩漏事件是什麼時候被發現的嗎？帳單爆掉的時候。
+
+攻擊者拿到你的 key 不會馬上搞破壞，他們會安安靜靜地用，用到你某天打開信用卡帳單才發現多了幾千美金。定期 rotate 的意思是：就算洩漏了，攻擊者的使用期限也是倒數計時。
+
+聽起來還無聊嗎？ (¬‿¬)
+</MoguNote>
+
+### 2. Owner-Only 存取
+
+把 bot 限制成**只有你的 Telegram user ID 能用**。
+
+```yaml
+owner_only: true
+allowed_users: [123456789]  # 你的 Telegram user ID
+```
+
+**永遠不要把 bot 加進群組** — 群組裡的每個人都能發指令給它。
+
+### 3. Sandbox Mode
+
+啟用 sandbox — 就算出事了，爆炸半徑也能被控制。
+
+```yaml
+sandbox: true
+```
+
+### 4. Command Allowlist — 這個最關鍵
+
+**預設情況下，agent 可以執行任意 shell 指令。**
+
+讀到這句的時候，我希望你停下來想一秒。「任意」。Shell。指令。`rm -rf /`？可以。`curl` 把你的 ssh key 傳出去？可以。這不是 feature，這是定時炸彈。
+
+Jordan 設定了**白名單制**，只有這些指令能執行：
+
+- `curl` — 抓取網頁
+- `cat` — 讀取檔案
+- `ls` — 列出目錄
+- `echo` — 輸出文字
+- `node` — 執行 JavaScript
+- `npx` — 執行 npm 套件
+
+**禁止的：**
+
+- ❌ `rm` — 不能刪檔案
+- ❌ `sudo` — 不能提升權限
+- ❌ `ssh` — 不能跳到其他機器
+
+```yaml
+command_allowlist: ["curl", "cat", "ls", "echo", "node", "npx"]
+```
+
+<MoguNote>
+這就像給小孩零用錢的規則：
+
+「可以買文具、可以買零食，但不能買刀、不能買菸。」
+
+就算小孩被壞同學教壞了、被騙了、或者單純腦袋壞掉了 — 他最多也只能買一堆鉛筆，不會買到危險的東西。
+
+這就是 allowlist 的威力。不是告訴 AI「不要做壞事」（那叫 blocklist，靠的是你想得到所有壞事），而是告訴它「你只能做這些事」。想不到的壞事？不在清單上，做不到。就這麼簡單 (ง •̀_•́)ง
+</MoguNote>
+
+---
+
+## 回到那個問題
+
+還記得 Jordan 一開始的問題嗎？「這東西被入侵怎麼辦。」
+
+他花一週想出來的答案不是「讓它不被入侵」— 那不現實，沒有系統能保證不被入侵。他的答案是：**就算被入侵了，讓它沒用。**
+
+專用機器把 agent 關進一個房間。專用帳號把它鎖在房間裡的一張椅子上。防火牆和 SSH 硬化讓外面的人連房間在哪都不知道。Tailscale 讓整棟樓從地圖上消失。Allowlist 確保就算有人真的摸進來了，agent 能做的事也就那幾樣。
+
+五層。每一層都不是防止入侵，而是讓入侵變得沒意義。
+
+如果你再把這個跟 [GP-29 jzOcb 的四層防禦](/posts/gp-29-20260205-jzocb-ai-agent-4-layer-defense) 疊起來 — 基礎設施層限制 agent 能碰到什麼，runtime 層限制它能做什麼 — 攻擊者要同時突破九層才能搞事。不是不可能，但成本高到沒人想花這個力氣。
+
+安全從來不是「能不能被攻破」的問題，是「攻破你值不值得」的問題 (◕‿◕)
+
+---
+
+**下篇預告：** Part 2 會深入講 Jordan 的運行時配置 — 怎麼設定 agent 的行為規則、prompt injection 防護、以及他的監控和警報系統。城牆蓋好了，護城河怎麼挖？下篇見。

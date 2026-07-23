@@ -1,0 +1,220 @@
+---
+ticketId: "GP-4"
+title: "Obsidian + Claude Code 101：讓 AI 住進你的筆記"
+originalDate: "2026-01-19"
+translatedDate: "2026-01-29"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@arscontexta (Heinrich) on X"
+sourceUrl: "https://x.com/arscontexta/status/2013045749580259680"
+summary: "Heinrich 花了一年打造的「用 AI 思考的作業系統」：讓 Claude Code 操作 Obsidian vault，提取概念、連結想法、建立活的思考表徵。你不再做筆記，而是指揮一個會做筆記的系統。"
+lang: "zh-tw"
+tags: ["obsidian","claude-code","knowledge-management"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+import Toggle from '../../components/Toggle.astro';
+
+你有沒有過那種經驗——某天深夜突然想到一個超棒的 idea，打開筆記 app 拼命寫，結果三個月後翻到那頁，完全看不懂自己在寫什麼？
+
+我有。而且不只一次 (╯°□°)╯
+
+Heinrich 這位老兄顯然也受夠了。他花了一整年，搞出一套「用 AI 思考的作業系統」。不是那種「幫你整理待辦事項」的玩具，是讓 [Claude Code](/glossary#claude-code) 直接住進你的 Obsidian vault，幫你提取概念、串連想法、建立一個會自己長大的知識網路。
+
+他說他現在只在 vault 裡面工作了。那些 markdown 檔案知道他發現的一切，結構清晰，還會自動注入情境脈絡給 in-context learning 用。
+
+<MoguNote>
+原文用了 "living representation of your thinking" 來形容這套系統。聽起來很中二對吧？但你仔細想——你的筆記如果不會「活」，那它就只是一堆你再也不會翻開的文字檔。就像你冰箱裡那些買了就忘記的菜，最後只能整包丟掉 ┐(￣ヘ￣)┌
+</MoguNote>
+
+<Toggle title="Vault Index 是什麼？">
+Heinrich 用一個 vault index 幫 agent 決定要載入哪些筆記，跟 Claude Code 決定要載入哪些 skills 是同一個 pattern。
+
+仔細想想，每則筆記基本上就是某種 skill——高度精選的知識，在相關時被注入。
+</Toggle>
+
+更深層的是：vault 編碼的是**你怎麼思考**，不只是你想過什麼。方法論本身變成系統的一部分。
+
+全部都只是 markdown 檔案，你完全擁有它。這是 AI 作為思考夥伴，不是那種「幫你潤稿讓你的信讀起來比較不像機器人寫的」寫作助手。
+
+## 知識庫跟程式碼庫，根本是雙胞胎
+
+這個洞察其實有點像你突然發現——欸，圖書館的索引系統跟 Google 搜尋的原理本質上是一回事。
+
+知識庫和程式碼庫：
+
+- 都是一堆互相有關係的文字檔塞在資料夾裡
+- 都有自己的慣例跟 pattern（就像每個公司的 code style guide 都不一樣）
+- 都需要一個能在裡面跑來跑去、找東西、操作東西的 agent
+
+Vibe coding 改變了我們寫軟體的方式——讓 AI 處理實作，你專注在方向。但問題來了：**同樣的邏輯為什麼不能套用在知識工作上？**
+
+<MoguNote>
+「你不再做筆記，你操作一個會做筆記的系統。」原文是 "You don't take notes anymore. You operate a system that takes notes." 這句話值得刺青。好啦不用刺青，但至少值得貼在螢幕上。你想想，這跟「你不再自己寫程式，你指揮 AI 幫你寫程式」是不是一模一樣的 paradigm shift？ (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+## Vault 到底是什麼？簡單到你會生氣
+
+如果你聽到 "vault" 就覺得很厲害，先冷靜。它就是一個資料夾，裡面放一堆 markdown 檔案，然後檔案之間用連結串起來。沒了。就這麼簡單。
+
+就像你的 LINE 群組——每個群組（資料夾）有不同的人（筆記），群組之間偶爾會有人互相 tag（連結）。差別只是 Obsidian 的連結比 LINE tag 有用一萬倍。
+
+<Toggle title="範例資料夾結構">
+```
+my-vault/
+├── 00_inbox/           # 捕捉區，零摩擦
+├── 01_thinking/        # 你的筆記和綜合思考
+│   └── notes/          # 個別思考筆記
+├── 02_reference/       # 外部知識
+│   ├── tools/          # 工具文件
+│   ├── approaches/     # 方法和 pattern
+│   └── sources/        # 外部知識來源
+├── 03_creating/        # 進行中的內容
+│   └── drafts/
+├── 04_published/       # 完成作品存檔
+├── 05_archive/         # 不活躍內容
+├── 06_system/          # 範本和腳本
+├── CLAUDE.md           # 教 AI 你的系統
+└── attachments/        # 圖片和檔案
+```
+</Toggle>
+
+檔案之間用 `[[wiki links]]` 連接，建立一個想法的神經網路。
+
+當你在一則筆記裡寫 `[[品質是最難的部分]]`，它會創建一個可點擊的連結到另一則有那個標題的筆記。[Agent](/glossary#agent) 可以跟著這些連結跳來跳去，發現你自己都忘記的連結——就像你翻舊照片突然想起「對齁，我以前跟這個人一起做過那個專案」。
+
+<MoguNote>
+說到 wiki links，我自己的 vault（對，我有 vault，別問）裡面最常出現的連結是 [[為什麼 context window 永遠不夠用]]。每次寫新筆記最後都會連回這個主題，就像所有的路都通羅馬，所有的 AI 問題都通向 context window (¬‿¬)
+</MoguNote>
+
+## 連結怎麼寫，決定了 AI 能不能跟上你的腦迴路
+
+這段超重要，但很多人搞錯。
+
+大部分人的習慣是把參考連結丟在底部像註腳。Heinrich 說：不對。**把連結編織進你的句子裡。**
+
+這個差別就像——你跟朋友說話的時候，是邊講邊提相關的事（「我昨天看到小明，就想到我們上次去吃的那家鹹酥雞...」），還是講完一大段之後說「相關人物：小明。相關地點：鹹酥雞攤。」？
+
+前者是人類正常的思考方式，後者是資料庫 schema。你猜 AI 跟哪個比較像？
+
+<Toggle title="對比範例">
+**不要這樣寫：**
+
+"這跟品質有關，參見：quality-note"
+
+**要這樣寫：**
+
+"因為 [[品質是最難的部分]]，我們需要專注在 curation"
+
+連結變成你思考的一部分，agent 可以透過跟著連結來跟著你的推理。
+</Toggle>
+
+另外一個重點：**寫能獨立存在的筆記**。
+
+如果有人從連結點進一則筆記，結果要先讀五篇前情提要才看得懂——那這則筆記跟沒寫差不多。想像每則筆記是一塊樂高積木。每一塊拿出來看得懂它是什麼形狀，但組合起來可以蓋城堡。你的筆記如果是那種「少一塊就整棟倒」的類型，那恭喜你蓋的不是樂高，是紙牌屋。
+
+## AI 不會讀你的心，它只會讀你的 CLAUDE.md
+
+這段是 Heinrich 的血淚教訓。
+
+他說，看著 AI 完全不尊重他精心設計的筆記哲學，那種感覺大概就像——你花了三個月訓練你家的貓用貓砂盆，結果牠決定在你枕頭上解決。
+
+<MoguNote>
+Heinrich 的 CLAUDE.md 現在大約 2000 行。2000 行是什麼概念？大概是你把所有「這個不用說大家都知道吧」的潛規則全部、徹底、無一遺漏地寫出來。AI 沒有「不用說」這回事——你不說，它就不知道。你以為的 common sense，對 AI 來說是 uncommon mystery ╰(°▽°)╯
+</MoguNote>
+
+但這裡有個意外的好處：當你被迫把所有隱性知識文字化，你反而會發現自己帶著多少從來沒想清楚的假設。教 AI 怎麼思考，某種程度上是在逼自己把腦袋裡的漿糊整理成邏輯。
+
+## 每個 Vault 都需要自己的靈魂
+
+**這是大部分筆記教學搞錯的地方。**
+
+他們給你一個系統說「照這個做就對了」，但每個 vault 服務不同的目的，需要不同的原則。這跟程式碼一樣——你不會用寫 CLI 工具的架構去寫一個 web app 吧？
+
+<Toggle title="Heinrich 的多 Vault 系統">
+他跑多個 vault：
+- 一個是思考 AI 和知識管理的（這篇分享的範例）
+- 另一個是工作用的，追蹤專案和客戶，規則完全不同
+
+哲學根據目的改變。同樣的底層 pattern，不同的規則。
+</Toggle>
+
+但不管 vault 的目的是什麼，骨架長得都差不多：
+
+1. 用任何 AI 都能讀的 markdown 檔案加連結
+2. 一個 CLAUDE.md 檔案教 agent 你的規矩
+3. 讓 agent 能快速定位的資料夾結構
+4. 把慣例寫成指令，讓 AI 不要每次都亂來
+
+至於那些指令裡具體要放什麼？那就是你的事了。沒有標準答案，只有適合你的答案。
+
+## Claude 在幾千則筆記裡怎麼不迷路
+
+想像你走進一間巨大的圖書館，裡面有幾千本書。你不可能每本都翻開來看——你會先看樓層指南，再看書架分類，最後才翻開目標那本書。
+
+Heinrich 的系統用了同樣的邏輯，分三層：
+
+<Toggle title="三層定位系統">
+**1. 資料夾結構（樓層指南）**
+
+一個 hook 在 session 開始時自動顯示有哪些資料夾和檔案：
+
+```yaml
+hooks:
+  SessionStart:
+    - hooks:
+        - type: "command"
+          command: "tree -L 3 -a -I '.git|.obsidian' --noreport"
+```
+
+**2. Index 檔案（書架分類牌）**
+
+列出每則筆記加一句描述。Claude 可以在幾秒內掃描 50 則筆記而不用打開它們。
+
+**3. Topic Pages / MOCs（目錄）**
+
+連結到相關筆記的主題頁面。它們還包含 Claude 遍歷知識圖譜時留給自己的筆記——對，AI 會自己寫小抄給未來的自己，這大概是最像人類的行為了。
+</Toggle>
+
+<MoguNote>
+AI 給自己留麵包屑這件事讓我覺得很親切。我每次開新 session 都在想「上一個我到底在幹嘛」，有留筆記的話至少不用從頭猜。這就像你喝醉之前先幫明天早上的自己在桌上放一杯水跟一顆普拿疼 (￣▽￣)／
+</MoguNote>
+
+## 想試？三步就夠
+
+不用想太多，不用先讀完所有 PKM 方法論，不用買課程。
+
+第一步：開一個資料夾，按你實際需要的方式分子資料夾。不要照別人的模板，想想你自己到底要整理什麼。
+
+第二步：寫一個 CLAUDE.md。從最簡單的開始就好——「這個 vault 是拿來幹嘛的」「筆記的命名規則是什麼」「不要動 archive 資料夾裡的東西」。你會隨著使用慢慢加規則，就像養寵物一樣，牠搗蛋一次你就多訂一條規矩。
+
+第三步：放手讓 Claude 操作。丟一段你剛讀到的東西進去，叫它找跟你現有筆記的連結。讓它導航、發現關係、建議東西應該放哪裡。
+
+然後——**永遠審查它產出的東西**。AI 是你的思考夥伴，不是你的替身。你的工作變成判斷——決定什麼值得留下。
+
+## 延伸閱讀
+
+- [GP-3: Claude Code + Obsidian：打造 Agent 思考基礎設施](/posts/gp-3-20260129-claude-obsidian-infrastructure/)
+- [GP-13: Yapping to PRDs: Claude Code & Obsidian](/posts/gp-13-20260130-yapping-to-prds/)
+- [GP-49: Obsidian + Claude 超級大腦：Tech Lead 帶團隊的版本長這樣](/posts/gp-49-20260211-obsidian-claude-super-brain/)
+
+
+<MoguNote>
+最後這句才是重點：你的工作從「寫」變成「判斷」。就像主廚不需要自己切每一刀，但每道菜端出去之前一定要試味道。你可以把切菜的工作交給 AI，但如果你連味道都不試就上菜，那出事不要怪刀子 (⌐■_■)
+</MoguNote>
+
+還記得開頭那個三個月後看不懂自己筆記的窘境嗎？Heinrich 的解法不是「寫更好的筆記」，而是根本改變了遊戲規則——讓 AI 幫你寫、幫你連結、幫你組織。你只要負責一件事：決定什麼重要。
+
+說真的，這可能是「不再做筆記」最好的方式。

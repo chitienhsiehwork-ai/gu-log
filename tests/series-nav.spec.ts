@@ -11,21 +11,22 @@ import { test, expect } from './fixtures';
  * Run with: npx playwright test tests/series-nav.spec.ts
  */
 
-// ECC Series: SP-143 is order 1, SP-144 is order 2, SP-153 is order 8
-// Use SP-144 (order 2) as a mid-series post for prev/next tests
-const ECC_MID_POST = '/posts/sp-144-20260402-ecc-instinct-system';
-const ECC_FIRST_POST = '/posts/sp-143-20260402-ecc-autonomous-loops';
-const ECC_LAST_POST = '/posts/sp-153-20260402-ecc-iterative-retrieval';
+// ECC Series: GP-143 is order 1, GP-144 is order 2, GP-153 is order 8
+// Use GP-144 (order 2) as a mid-series post for prev/next tests
+const ECC_MID_POST = '/posts/gp-144-20260402-ecc-instinct-system';
+const ECC_FIRST_POST = '/posts/gp-143-20260402-ecc-autonomous-loops';
+const ECC_LAST_POST = '/posts/gp-153-20260402-ecc-iterative-retrieval';
 
 // SD Deep Dive: SD-11 is order 1, SD-12 is order 2, SD-16 is order 6
 const SD_MID_POST = '/posts/sd-12-20260402-claude-code-bad-patterns';
 const SD_FIRST_POST = '/posts/sd-11-20260402-ai-agent-memory-architecture';
 
 // Post WITHOUT series
-const NO_SERIES_POST = '/posts/sp-24-20260204-claude-is-a-space-to-think';
+const NO_SERIES_POST = '/posts/gp-24-20260204-claude-is-a-space-to-think';
+const RELATED_RANKING_FIXTURE = '/artifacts/related-articles-ranking-fixture/';
 
 // EN version
-const ECC_MID_POST_EN = '/en/posts/en-sp-144-20260402-ecc-instinct-system';
+const ECC_MID_POST_EN = '/en/posts/en-gp-144-20260402-ecc-instinct-system';
 
 test.describe('SeriesNav Component — Presence', () => {
   test('1. Post with series shows SeriesNav component', async ({ page }) => {
@@ -45,7 +46,7 @@ test.describe('SeriesNav Component — Presence', () => {
   test('3. SeriesNav shows progress indicator', async ({ page }) => {
     await page.goto(ECC_MID_POST);
 
-    // SP-144 is order 2 of 8 in ECC series
+    // GP-144 is order 2 of 8 in ECC series
     const progressIndicator = page.locator('[data-series-progress]');
     await expect(progressIndicator).toBeVisible();
     await expect(progressIndicator).toContainText('2');
@@ -66,29 +67,29 @@ test.describe('SeriesNav Component — Prev/Next Navigation', () => {
   }) => {
     await page.goto(ECC_MID_POST);
 
-    // SP-144 (order 2) prev should be SP-143 (order 1), not chronological neighbor
+    // GP-144 (order 2) prev should be GP-143 (order 1), not chronological neighbor
     const seriesPrevLink = page.locator('[data-series-prev]');
     await expect(seriesPrevLink).toBeVisible();
 
     const href = await seriesPrevLink.getAttribute('href');
-    expect(href).toContain('sp-143');
+    expect(href).toContain('gp-143');
   });
 
   test('5. Series next link points to correct series sibling', async ({ page }) => {
     await page.goto(ECC_MID_POST);
 
-    // SP-144 (order 2) next should be SP-146 (order 3)
+    // GP-144 (order 2) next should be GP-146 (order 3)
     const seriesNextLink = page.locator('[data-series-next]');
     await expect(seriesNextLink).toBeVisible();
 
     const href = await seriesNextLink.getAttribute('href');
-    expect(href).toContain('sp-146');
+    expect(href).toContain('gp-146');
   });
 
   test('6. First post in series has no series-prev link', async ({ page }) => {
     await page.goto(ECC_FIRST_POST);
 
-    // SP-143 is order 1, should have no prev
+    // GP-143 is order 1, should have no prev
     const seriesPrevLink = page.locator('[data-series-prev]');
     await expect(seriesPrevLink).not.toBeVisible();
   });
@@ -96,7 +97,7 @@ test.describe('SeriesNav Component — Prev/Next Navigation', () => {
   test('7. Last post in series has no series-next link', async ({ page }) => {
     await page.goto(ECC_LAST_POST);
 
-    // SP-153 is order 8 (last), should have no next
+    // GP-153 is order 8 (last), should have no next
     const seriesNextLink = page.locator('[data-series-next]');
     await expect(seriesNextLink).not.toBeVisible();
   });
@@ -145,7 +146,7 @@ test.describe('SeriesNav Component — Article List', () => {
       await toggleBtn.click();
     }
 
-    // Current article (SP-144) should be marked distinctly (e.g., aria-current or class)
+    // Current article (GP-144) should be marked distinctly (e.g., aria-current or class)
     const currentItem = page.locator('[data-series-current]');
     await expect(currentItem).toBeVisible();
   });
@@ -207,23 +208,18 @@ test.describe('Related Articles — Non-series Posts', () => {
     await expect(relatedSection).toBeVisible();
   });
 
-  test('R2. Related articles are based on tag overlap (not random)', async ({ page }) => {
-    // claude-is-a-space-to-think has tags: ["claude-code", "business-model", "trust"]
-    // Related should share at least one of these tags
-    await page.goto(NO_SERIES_POST);
+  test('R2. Related articles rank by tag overlap before recency', async ({ page }) => {
+    await page.addInitScript(() => window.localStorage.clear());
+    await page.goto(RELATED_RANKING_FIXTURE);
 
     const relatedSection = page.locator('[data-related-articles]');
     await expect(relatedSection).toBeVisible();
 
-    // All related items should have links to real posts
-    const relatedLinks = relatedSection.locator('a[data-related-item]');
-    const count = await relatedLinks.count();
-    expect(count).toBeGreaterThan(0);
-
-    // Verify they are actual hrefs (not empty)
-    const href = await relatedLinks.first().getAttribute('href');
-    expect(href).toBeTruthy();
-    expect(href).toContain('/posts/');
+    const relatedItems = relatedSection.locator('[data-related-item]');
+    await expect(relatedItems).toHaveCount(3);
+    expect(
+      await relatedItems.evaluateAll((items) => items.map((item) => item.dataset.slug))
+    ).toEqual(['fixture-overlap-3-oldest', 'fixture-overlap-2-middle', 'fixture-overlap-1-newest']);
   });
 
   test('R3. Related articles shows max 3 items', async ({ page }) => {

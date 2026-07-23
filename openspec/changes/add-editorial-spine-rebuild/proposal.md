@@ -2,7 +2,7 @@
 
 Tribunal 現在很會把稿子拉到 publish-safe：抓 pronoun clarity、補 glossary links、修 source drift、糾正 identity linking、壓掉 AI 味。這些都重要，但它主要在做 **error correction**，不是 **narrative transformation**。
 
-最近觀察幾篇 tribunal log（例如 SP-91、SP-95、SP-81）可以看到同一個 pattern：
+最近觀察幾篇 tribunal log（例如 GP-91、GP-95、GP-81）可以看到同一個 pattern：
 
 - 開頭有 hook，結尾也有 callback
 - 中段仍然被 judge 判成 linear feature documentation / listicle skeleton

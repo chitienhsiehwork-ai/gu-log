@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Report deployment failure
         if: github.event.deployment_status.state == 'failure'
@@ -52,7 +52,7 @@ jobs:
         run: |
           FAILED=0
           TOTAL=0
-          
+
           # Get all non-English post slugs, sorted by date (newest first), take top 10
           for f in $(ls src/content/posts/*.mdx | grep -v 'en-' | sort -r | head -10); do
             slug=$(basename "$f" .mdx)
@@ -67,49 +67,138 @@ jobs:
               echo "✅ $slug → 200"
             fi
           done
-          
+
           echo ""
           echo "=== Results: $((TOTAL - FAILED))/$TOTAL passed ==="
-          
+
           if [ "$FAILED" -gt 0 ]; then
             echo "::error::🚨 $FAILED of $TOTAL articles returned non-200 status!"
             exit 1
           fi
 
-      - name: Smoke test — check Clawd Picks listing page
+      - name: Smoke test — check canonical picks listing pages
         if: github.event.deployment_status.state == 'success'
         run: |
-          STATUS=$(curl -L -s -o /dev/null -w "%{http_code}" "https://gu-log.vercel.app/clawd-picks")
-          if [ "$STATUS" != "200" ]; then
-            echo "::error::🚨 Clawd Picks page returned HTTP $STATUS"
-            exit 1
-          fi
-          echo "✅ Clawd Picks listing: 200"
+          FAILED=0
+          for route in gu-log-picks mogu-picks en/gu-log-picks en/mogu-picks; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://gu-log.vercel.app/$route")
+            if [ "$STATUS" != "200" ]; then
+              echo "::error::🚨 /$route returned HTTP $STATUS"
+              FAILED=$((FAILED + 1))
+            else
+              echo "✅ /$route: 200"
+            fi
+          done
+          [ "$FAILED" -eq 0 ]
 
-      - name: Smoke test — check article count matches repo
+      - name: Smoke test — public URL permanent redirects (raw 308, exact Location, followed 200, no loop)
         if: github.event.deployment_status.state == 'success'
         run: |
-          # Count non-English posts in repo
-          REPO_COUNT=$(ls src/content/posts/*.mdx | grep -v 'en-' | wc -l)
-          
-          # Fetch the homepage and count post links (rough check)
-          BODY=$(curl -L -s "https://gu-log.vercel.app/clawd-picks")
-          # Count <a> links to /posts/ on the listing page
-          LIVE_COUNT=$(echo "$BODY" | grep -o 'href="/posts/' | wc -l)
-          
-          echo "Repo posts: $REPO_COUNT"
-          echo "Live Clawd Picks links: $LIVE_COUNT"
-          
-          # Allow some slack (SP posts won't be on CP page), but CP count should match
-          CP_REPO=$(ls src/content/posts/clawd-picks-*.mdx | grep -v 'en-' | wc -l)
-          echo "Repo CP posts: $CP_REPO"
-          
-          DIFF=$((CP_REPO - LIVE_COUNT))
-          if [ "$DIFF" -gt 2 ] || [ "$DIFF" -lt -2 ]; then
-            echo "::warning::⚠️ CP count mismatch: repo=$CP_REPO vs live=$LIVE_COUNT (diff=$DIFF)"
-          else
-            echo "✅ CP count matches (repo=$CP_REPO, live=$LIVE_COUNT)"
-          fi
+          BASE="https://gu-log.vercel.app"
+          FAILED=0
+
+          check_redirect() {
+            local old_path="$1" new_path="$2"
+            local raw_status raw_location followed_status noloop_status
+
+            raw_status=$(curl -s -o /dev/null -w "%{http_code}" "$BASE$old_path")
+            raw_location=$(curl -s -D - -o /dev/null "$BASE$old_path" \
+              | tr -d '\r' | grep -i '^location:' | sed 's/^[Ll]ocation: //')
+            followed_status=$(curl -s -L -o /dev/null -w "%{http_code}" "$BASE$old_path")
+            noloop_status=$(curl -s -L --max-redirs 1 -o /dev/null -w "%{http_code}" "$BASE$old_path")
+
+            if [ "$raw_status" != "308" ]; then
+              echo "::error::🚨 $old_path raw status $raw_status != 308"
+              FAILED=$((FAILED + 1))
+              return
+            fi
+            if [ "$raw_location" != "$new_path" ] && [ "$raw_location" != "$BASE$new_path" ]; then
+              echo "::error::🚨 $old_path Location '$raw_location' != $new_path"
+              FAILED=$((FAILED + 1))
+              return
+            fi
+            if [ "$followed_status" != "200" ]; then
+              echo "::error::🚨 $old_path followed to $new_path returned $followed_status"
+              FAILED=$((FAILED + 1))
+              return
+            fi
+            if [ "$noloop_status" != "200" ]; then
+              echo "::error::🚨 $old_path redirect chain exceeds 1 hop (possible loop)"
+              FAILED=$((FAILED + 1))
+              return
+            fi
+            echo "✅ $old_path -> $new_path: 308, exact Location, followed 200, no loop"
+          }
+
+          # Representative zh-tw/en x GP/MP article pairs from
+          # quality/brand-taxonomy-post-migration.json.
+          check_redirect "/posts/sp-7-20260130-clawdbot-architecture-deep-dive" "/posts/gp-7-20260130-clawdbot-architecture-deep-dive"
+          check_redirect "/en/posts/en-sp-7-20260130-clawdbot-architecture-deep-dive" "/en/posts/en-gp-7-20260130-clawdbot-architecture-deep-dive"
+          check_redirect "/posts/clawd-picks-20260201-benln-cold-email-guide" "/posts/mp-33-20260201-benln-cold-email-guide"
+          check_redirect "/en/posts/en-clawd-picks-20260201-benln-cold-email-guide" "/en/posts/en-mp-33-20260201-benln-cold-email-guide"
+
+          # Both listing families x both languages, base + numeric pagination.
+          check_redirect "/shroomdog-picks" "/gu-log-picks"
+          check_redirect "/shroomdog-picks/2" "/gu-log-picks/2"
+          check_redirect "/en/shroomdog-picks" "/en/gu-log-picks"
+          check_redirect "/en/shroomdog-picks/2" "/en/gu-log-picks/2"
+          check_redirect "/clawd-picks" "/mogu-picks"
+          check_redirect "/clawd-picks/2" "/mogu-picks/2"
+          check_redirect "/en/clawd-picks" "/en/mogu-picks"
+          check_redirect "/en/clawd-picks/2" "/en/mogu-picks/2"
+
+          [ "$FAILED" -eq 0 ]
+
+      - name: Smoke test — legacy machine/artifact/API/never-published paths stay retired
+        if: github.event.deployment_status.state == 'success'
+        run: |
+          FAILED=0
+          for route in \
+            shroom-picks en/shroom-picks \
+            posts/sp-9999-nonexistent-legacy-slug \
+            en/posts/en-sp-9999-nonexistent-legacy-slug \
+            api/posts/sp-7-20260130-clawdbot-architecture-deep-dive.json \
+            artifacts/sp-194-html-loop/ \
+            shroomdog-picks/not-a-page \
+            clawd-picks/abc \
+            shroomdog-picks/1/deep/path; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://gu-log.vercel.app/$route")
+            LOCATION=$(curl -s -D - -o /dev/null "https://gu-log.vercel.app/$route" \
+              | tr -d '\r' | grep -i '^location:' || true)
+            if [ "$STATUS" != "404" ]; then
+              echo "::error::🚨 Retired /$route unexpectedly returned HTTP $STATUS"
+              FAILED=$((FAILED + 1))
+            elif [ -n "$LOCATION" ]; then
+              echo "::error::🚨 Retired /$route returned 404 but with a Location header: $LOCATION"
+              FAILED=$((FAILED + 1))
+            else
+              echo "✅ Retired /$route: 404, no Location"
+            fi
+          done
+          [ "$FAILED" -eq 0 ]
+
+      - name: Smoke test — check picks listings contain canonical posts
+        if: github.event.deployment_status.state == 'success'
+        run: |
+          FAILED=0
+          for series in gp mp; do
+            case "$series" in
+              gp) route="gu-log-picks" ;;
+              mp) route="mogu-picks" ;;
+            esac
+
+            REPO_COUNT=$(find src/content/posts -maxdepth 1 -type f -name "${series}-*.mdx" | wc -l | tr -d ' ')
+            BODY=$(curl -s "https://gu-log.vercel.app/$route")
+            LIVE_COUNT=$(printf '%s' "$BODY" | grep -o 'href="/posts/' | wc -l | tr -d ' ' || true)
+
+            if [ "$REPO_COUNT" -eq 0 ] || [ "$LIVE_COUNT" -eq 0 ]; then
+              echo "::error::🚨 $series listing is empty: repo=$REPO_COUNT live=$LIVE_COUNT"
+              FAILED=$((FAILED + 1))
+            else
+              echo "✅ $series listing has canonical posts: repo=$REPO_COUNT live-first-page=$LIVE_COUNT"
+            fi
+          done
+          [ "$FAILED" -eq 0 ]
 
       - name: Notify Telegram — smoke test failed
         if: failure() && github.event.deployment_status.state == 'success'

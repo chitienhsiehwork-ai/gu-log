@@ -18,7 +18,12 @@ import type {
 } from './types';
 import { MAX_LOOPS } from './types';
 import { enforceWriterConstraints } from './writer-constraints';
-import { checkFinalVibePassBar, checkFreshEyesPassBar } from './pass-bar';
+import {
+  checkFactLibPassBar,
+  checkFinalVibePassBar,
+  checkFreshEyesPassBar,
+  checkVibePassBar,
+} from './pass-bar';
 
 // ---------------------------------------------------------------------------
 // Pipeline State Types
@@ -37,8 +42,8 @@ export interface StageResult<T> {
 }
 
 export interface PipelineState {
-  articlePath: string; // e.g. "src/content/posts/cp-280-slug.mdx"
-  articleBranch: string; // e.g. "tribunal/2026-04-11-cp-280-slug"
+  articlePath: string; // e.g. "src/content/posts/mp-280-slug.mdx"
+  articleBranch: string; // e.g. "tribunal/2026-04-11-mp-280-slug"
   status: 'running' | 'passed' | 'failed' | 'needs_review';
   currentStage: number; // 0-4 (Stage 5 translation is separate)
   crossRunAttempt: number; // 1-3, NEEDS_REVIEW at 3
@@ -140,7 +145,7 @@ interface FrontmatterScoreEntry {
 
 const FRONTMATTER_DIM_MAP: Record<string, { fmKey: FrontmatterJudgeKey; dims: readonly string[] }> =
   {
-    stage1: { fmKey: 'vibe', dims: ['persona', 'clawdNote', 'vibe', 'clarity', 'narrative'] },
+    stage1: { fmKey: 'vibe', dims: ['persona', 'moguNote', 'vibe', 'clarity', 'narrative'] },
     stage2: {
       fmKey: 'freshEyes',
       dims: ['readability', 'firstImpression', 'payoffDensity', 'lengthFit'],
@@ -166,8 +171,8 @@ function vibeFmEntry(version: number): { fmKey: FrontmatterJudgeKey; dims: reado
     fmKey: 'vibe',
     dims:
       version >= NEW_RULES_MIN_VERSION
-        ? ['persona', 'clawdNote', 'vibe', 'narrative']
-        : ['persona', 'clawdNote', 'vibe', 'clarity', 'narrative'],
+        ? ['persona', 'moguNote', 'vibe', 'narrative']
+        : ['persona', 'moguNote', 'vibe', 'clarity', 'narrative'],
   };
 }
 
@@ -247,6 +252,23 @@ function verifyFreshEyesPassBar(output: FreshEyesJudgeOutput, version: number): 
   return { pass: result.pass, composite: result.composite, reasons };
 }
 
+function verifyVibePassBar(output: VibeJudgeOutput, version: number): VerifiedPassBar {
+  const result = checkVibePassBar(output.scores, version);
+  const reasons: string[] = [];
+
+  if (result.composite < 8) {
+    reasons.push(`Vibe composite ${result.composite} is below 8`);
+  }
+  if (!result.hasHighlight) {
+    reasons.push('Vibe has no highlight dimension at or above 9');
+  }
+  if (result.failedDimensions.length > 0) {
+    reasons.push(`Vibe dimensions below 8: ${result.failedDimensions.join(', ')}`);
+  }
+
+  return { pass: result.pass, composite: result.composite, reasons };
+}
+
 /**
  * Read the post's tribunalVersion from frontmatter (scores.tribunalVersion).
  * Defaults to 8 (legacy) when absent — pre-clarity-move behavior.
@@ -290,9 +312,10 @@ async function persistScoreToFrontmatter(
   config: PipelineConfig,
   articlePath: string,
   fmKey: FrontmatterJudgeKey,
-  scoreEntry: FrontmatterScoreEntry
+  scoreEntry: FrontmatterScoreEntry,
+  tribunalVersion: number
 ): Promise<void> {
-  const update = { scores: { [fmKey]: scoreEntry } };
+  const update = { scores: { tribunalVersion, [fmKey]: scoreEntry } };
   await config.io.updateFrontmatter(articlePath, update);
 
   // Sync to en-* counterpart (same convention as shell pipeline's write_score_to_frontmatter)
@@ -302,8 +325,12 @@ async function persistScoreToFrontmatter(
   try {
     await config.io.readArticle(enPath);
     await config.io.updateFrontmatter(enPath, update);
-  } catch {
-    // en-* counterpart doesn't exist — skip
+  } catch (error) {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
+      // en-* counterpart doesn't exist — skip
+      return;
+    }
+    throw error;
   }
 }
 
@@ -402,12 +429,21 @@ async function runStage0(state: PipelineState, config: PipelineConfig): Promise<
   const output = await config.runners.stage0Judge.run({ articleContent });
   await assertJudgeDidNotMutate(config, state.articlePath, articleContent, 'stage0');
 
+  // Stage 0 is WARN-only, but the warning decision itself is deterministic:
+  // composite < 7 or any owned dimension < 5. Never trust model booleans.
+  const worthinessValues = Object.values(output.scores);
+  output.composite = Math.floor(
+    worthinessValues.reduce((sum, value) => sum + value, 0) / worthinessValues.length
+  );
+  output.warned = output.composite < 7 || worthinessValues.some((value) => value < 5);
+  output.pass = !output.warned;
+
   stage.loops = 1; // Stage 0 is a single evaluation, no loops
   stage.output = output;
   stage.history.push(output);
 
   // Stage 0 WARN mode: always passes, but may set frontmatter warning
-  if (!output.pass) {
+  if (output.warned) {
     await config.io.updateFrontmatter(state.articlePath, {
       warnedByStage0: true,
       warnReason: output.reader_friendly_reason,
@@ -443,7 +479,11 @@ async function runJudgeWriterLoop<
   config: PipelineConfig,
   judge: (content: string) => Promise<TJudge>,
   writer: (content: string, feedback: string) => Promise<{ content: string }>,
-  fmPersist?: { fmKey: FrontmatterJudgeKey; dims: readonly string[] },
+  fmPersist?: {
+    fmKey: FrontmatterJudgeKey;
+    dims: readonly string[];
+    tribunalVersion: number;
+  },
   verifyPassBar?: (output: TJudge) => VerifiedPassBar
 ): Promise<boolean> {
   if (stage.status === 'passed' || stage.status === 'skipped') return true;
@@ -480,7 +520,13 @@ async function runJudgeWriterLoop<
           fmPersist.dims,
           judgeOutput.judge_model ?? `stage${stageNum}`
         );
-        await persistScoreToFrontmatter(config, state.articlePath, fmPersist.fmKey, entry);
+        await persistScoreToFrontmatter(
+          config,
+          state.articlePath,
+          fmPersist.fmKey,
+          entry,
+          fmPersist.tribunalVersion
+        );
       }
 
       await config.git.commit(
@@ -542,7 +588,11 @@ async function runJudgeWriterLoop<
  * Stage 3: FactLib — Worker-first pattern.
  * FactCorrector → Librarian → Combined Judge. Loop back to workers on fail.
  */
-async function runStage3(state: PipelineState, config: PipelineConfig): Promise<boolean> {
+async function runStage3(
+  state: PipelineState,
+  config: PipelineConfig,
+  tribunalVersion: number
+): Promise<boolean> {
   const stage = state.stages.stage3;
   if (stage.status === 'passed' || stage.status === 'skipped') return true;
 
@@ -625,6 +675,12 @@ async function runStage3(state: PipelineState, config: PipelineConfig): Promise<
     });
     await assertJudgeDidNotMutate(config, state.articlePath, articleAfterWorkers, 'stage3');
 
+    const verified = checkFactLibPassBar(judgeOutput.scores);
+    judgeOutput.pass = verified.pass;
+    judgeOutput.fact_pass = verified.fact_pass;
+    judgeOutput.library_pass = verified.library_pass;
+    judgeOutput.dupCheck_pass = verified.dupCheck_pass;
+
     stage.output = judgeOutput;
     stage.history.push(judgeOutput);
 
@@ -640,11 +696,17 @@ async function runStage3(state: PipelineState, config: PipelineConfig): Promise<
         model,
         STAGE3_FACT_RENAME
       );
-      await persistScoreToFrontmatter(config, state.articlePath, factKey, factEntry);
+      await persistScoreToFrontmatter(
+        config,
+        state.articlePath,
+        factKey,
+        factEntry,
+        tribunalVersion
+      );
 
       const { dims: libDims, fmKey: libKey } = FRONTMATTER_DIM_MAP.stage3lib;
       const libEntry = buildFrontmatterScore(judgeOutput.scores, libDims, model, STAGE3_LIB_RENAME);
-      await persistScoreToFrontmatter(config, state.articlePath, libKey, libEntry);
+      await persistScoreToFrontmatter(config, state.articlePath, libKey, libEntry, tribunalVersion);
 
       await config.git.commit(`tribunal(stage3): FactLib — PASS @ loop ${loop}/${stage.maxLoops}`, [
         state.articlePath,
@@ -784,7 +846,7 @@ async function runStage4(
         dims,
         judgeOutput.judge_model ?? 'stage4'
       );
-      await persistScoreToFrontmatter(config, state.articlePath, fmKey, entry);
+      await persistScoreToFrontmatter(config, state.articlePath, fmKey, entry, version);
 
       await config.git.commit(
         `tribunal(stage4): Final Vibe — PASS @ loop ${loop}/${stage.maxLoops}`,
@@ -837,10 +899,19 @@ async function runStage4(
 
   const finalOutput = stage.output;
   if (finalOutput?.is_degraded) {
+    const { dims } = vibeFmEntry(version);
+    const degradedSnapshot = Object.fromEntries(
+      dims.flatMap((dim) => {
+        const value = (finalOutput.scores as Record<string, number>)[dim];
+        return value == null ? [] : [[dim, value]];
+      })
+    );
     await config.io.updateFrontmatter(state.articlePath, {
-      stage4Degraded: true,
-      stage4DegradedDimensions: finalOutput.degraded_dimensions,
-      stage4Scores: finalOutput.scores,
+      stage4Scores: {
+        ...degradedSnapshot,
+        degradedDimensions: finalOutput.degraded_dimensions,
+        isDegraded: true,
+      },
     });
   }
 
@@ -910,7 +981,8 @@ export async function runPipeline(
     config,
     (content) => config.runners.stage1Judge.run({ articleContent: content }),
     (content, feedback) => config.runners.stage1Writer.run({ articleContent: content, feedback }),
-    vibeFmEntry(version)
+    { ...vibeFmEntry(version), tribunalVersion: version },
+    (output) => verifyVibePassBar(output, version)
   );
 
   if (!stage1Passed) {
@@ -929,7 +1001,7 @@ export async function runPipeline(
     config,
     (content) => config.runners.stage2Judge.run({ articleContent: content }),
     (content, feedback) => config.runners.stage2Writer.run({ articleContent: content, feedback }),
-    freshEyesFmEntry(version),
+    { ...freshEyesFmEntry(version), tribunalVersion: version },
     (output) => verifyFreshEyesPassBar(output, version)
   );
 
@@ -941,7 +1013,7 @@ export async function runPipeline(
   }
 
   // --- Stage 3: FactLib (worker-first) ---
-  const stage3Passed = await runStage3(state, config);
+  const stage3Passed = await runStage3(state, config, version);
 
   if (!stage3Passed) {
     // Propagate stage-level status: 'needs_review' (dupCheck-only FAIL) vs

@@ -20,13 +20,15 @@ const LV_POSTS = [
 ];
 
 // A regular (non-Lv) post known to have both h2 and h3 headings
-const REGULAR_POST_WITH_H3 = '/posts/clawdbot-architecture-deep-dive';
+const REGULAR_POST_WITH_H3 = '/posts/gp-7-20260130-clawdbot-architecture-deep-dive';
 
 test.describe('Lv-series TOC: only Floor headings', () => {
   for (const postUrl of LV_POSTS) {
     const slug = postUrl.split('/').pop()!;
 
-    test(`GIVEN Lv post "${slug}" WHEN rendered THEN TOC should contain NO h3 links`, async ({ page }) => {
+    test(`GIVEN Lv post "${slug}" WHEN rendered THEN TOC should contain NO h3 links`, async ({
+      page,
+    }) => {
       await page.goto(postUrl);
 
       // TOC exists in DOM (may be hidden on desktop due to position:fixed sidebar)
@@ -42,7 +44,9 @@ test.describe('Lv-series TOC: only Floor headings', () => {
       expect(h3Count, `Lv post "${slug}" should have 0 h3 links in TOC, found ${h3Count}`).toBe(0);
     });
 
-    test(`GIVEN Lv post "${slug}" WHEN rendered THEN all TOC links should be h2 level`, async ({ page }) => {
+    test(`GIVEN Lv post "${slug}" WHEN rendered THEN all TOC links should be h2 level`, async ({
+      page,
+    }) => {
       await page.goto(postUrl);
 
       // Check mobile TOC (always in flow, reliable for assertions)
@@ -61,7 +65,9 @@ test.describe('Lv-series TOC: only Floor headings', () => {
 });
 
 test.describe('Regular post TOC: still shows h2 + h3', () => {
-  test(`GIVEN a non-Lv post with h3 headings WHEN rendered THEN TOC should contain h3 links`, async ({ page }) => {
+  test(`GIVEN a non-Lv post with h3 headings WHEN rendered THEN TOC should contain h3 links`, async ({
+    page,
+  }) => {
     await page.goto(REGULAR_POST_WITH_H3);
 
     // Check that h3 links exist in mobile TOC (in-flow, reliable)

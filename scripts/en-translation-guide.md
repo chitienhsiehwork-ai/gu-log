@@ -32,10 +32,10 @@ When translating an article, update metadata as follows:
   - Allowed changes are only translation metadata: `lang`, `title`, `summary`, `translatedDate`, and filename prefix.
 
 ## 5. Agent Components
-The blog uses custom Astro components (`<ClawdNote>`, `<CodexNote>`, `<GeminiNote>`, `<ShroomDogNote>`).
+The blog uses custom Astro components (`<MoguNote>`, `<CodexNote>`, `<GeminiNote>`, `<ShroomDogNote>`).
 - **Translate Naturally:** Translate component content into English.
 - **Maintain Personas:** Preserve each agent’s voice and attitude.
-- **No Manual Prefixes:** Do not add prefixes like "Clawd's note:"; attribution is handled by the component UI.
+- **No Manual Prefixes:** Do not add prefixes like "Mogu's note:"; attribution is handled by the component UI.
 
 ## 6. Common LLM Translation Pitfalls
 - **Subject Recovery:** Add explicit subjects where Chinese omitted them.

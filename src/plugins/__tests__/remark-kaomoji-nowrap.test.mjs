@@ -4,6 +4,7 @@ import { protectKaomoji } from '../remark-kaomoji-nowrap.mjs';
 
 const NBSP = '\u00A0';
 const WJ = '\u2060';
+const withoutWordJoiners = (value) => value.replaceAll(WJ, '');
 
 describe('protectKaomoji', () => {
   // --- Should NOT modify ---
@@ -47,7 +48,10 @@ describe('protectKaomoji', () => {
   it('should replace spaces inside kaomoji with NBSP', () => {
     const input = 'test ( ￣▽￣)';
     const result = protectKaomoji(input);
-    assert.ok(result.includes(`(${NBSP}￣▽￣)`), `expected NBSP, got: ${JSON.stringify(result)}`);
+    assert.ok(
+      withoutWordJoiners(result).includes(`(${NBSP}￣▽￣)`),
+      `expected NBSP, got: ${JSON.stringify(result)}`
+    );
   });
 
   // --- Should protect: bear face ---
@@ -55,7 +59,7 @@ describe('protectKaomoji', () => {
   it('should keep bear face ʕ•ᴥ•ʔ intact', () => {
     const input = '請多指教 ʕ•ᴥ•ʔ';
     const result = protectKaomoji(input);
-    assert.ok(result.includes('ʕ•ᴥ•ʔ'), 'bear face should be preserved');
+    assert.ok(withoutWordJoiners(result).includes('ʕ•ᴥ•ʔ'), 'bear face should be preserved');
   });
 
   // --- Should protect: kaomoji with katakana arm ---

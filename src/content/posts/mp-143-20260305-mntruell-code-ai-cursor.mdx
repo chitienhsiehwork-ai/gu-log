@@ -1,0 +1,91 @@
+---
+ticketId: "MP-143"
+title: "寫 Code 的 AI 跨界解數學題？Cursor 自主運作四天提出超越人類的證明解法"
+originalDate: "2026-03-03"
+translatedDate: "2026-03-05"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@mntruell on X"
+sourceUrl: "https://x.com/mntruell/status/2028903020847841336"
+lang: "zh-tw"
+summary: "Cursor 團隊表示，他們用來寫 code 的多 Agent 架構，自主跑了四天後，居然在大學級別的數學難題上給出了比人類官方解答更強的證明解法！"
+tags: ["cursor","ai-agents","math"]
+---
+import MoguNote from '../../components/MoguNote.astro';
+
+想像你養了一隻狗，本來只教牠撿飛盤。結果有天你回家，發現牠不但把飛盤撿回來了，還順便幫你算完了期末考的微積分。
+
+這大概就是 Cursor 團隊現在的心情。
+
+他們家的 AI agent 架構，本來是設計來寫 code 的。結果放著讓它自己跑了四天，它居然跑去解了一道大學級別的數學難題——而且解出來的答案，比人類自己寫的官方解答還要強 (◕‿◕)
+
+## 等等，什麼數學題？
+
+Cursor 創辦人 Michael Truell 在推文裡說，他們的系統成功破解了 First Proof challenge 的第六題（Problem Six）。
+
+這個 challenge 不是什麼 LeetCode easy 可以刷著玩的東西。它模擬的是 Stanford、MIT、Berkeley 這些頂尖大學學者的研究工作。換句話說，這是那種你在黑板前站三天、頭髮掉一半還不一定解得出來的題目。
+
+<MoguNote>
+這種等級的數學題，不是你 Google 一下就有答案的。它需要的是真正的邏輯推演——從假設出發，一步步建構出嚴密的證明。AI 要做到這件事，代表它不是在拼湊搜尋結果，而是真的在「思考」。至少在某種定義上啦 ┐(￣ヘ￣)┌
+</MoguNote>
+
+更離譜的是，Cursor 給出的解法，居然 yields stronger results——比人類寫的官方答案還要強。
+
+不是「差不多好」，不是「接近」，是「更強」。
+
+## 重點來了：同一套架構
+
+你可能會想：「好啦，他們一定是為了這個比賽特別打造了什麼數學引擎吧？」
+
+沒有。完全沒有。
+
+推文裡特別強調，這次用的 harness（執行框架），跟幾個禮拜前那個「從零開始寫出一整個 browser」的架構是一模一樣的。就像你家那台洗碗機，本來買來洗碗的，結果發現它還能拿來洗球鞋，而且洗得比手洗還乾淨。
+
+<MoguNote>
+好，我覺得這才是這則推文最炸的地方。不是「AI 解了數學題」——這種新聞每個月都有。真正可怕的是：一套為了寫 code 設計的系統，沒有任何修改，直接拿去解數學就贏了。這暗示這套 agent coordination 的架構可能是 domain-agnostic 的。就像你本來只是在教小孩學騎腳踏車，結果發現他順便學會了滑雪 (╯°□°)╯
+</MoguNote>
+
+## 四天，零人類介入
+
+而且這套系統是完全自主 (fully autonomously) 跑了整整四天。四天耶。
+
+在這四天裡，人類沒有給它任何 hint，沒有從旁 nudge，沒有在它卡住的時候偷偷塞一個提示。就是把它放在那邊，像養電子雞一樣，然後四天後回來看——欸，它解出來了。
+
+<MoguNote>
+四天的 autonomous run，你知道這對 agent 架構來說有多瘋狂嗎？一般 AI agent 跑個十五分鐘就開始迷路了，跟我期末考一樣。四天意味著模型需要自己 debug、自己驗證假設、可能還要自己推翻之前的推論重來。這不是「叫 AI 幫我寫個函數」的層級，這是「放一個研究員在房間裡四天，出來交報告」的層級 (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+## 所以這代表什麼？
+
+Michael Truell 的原文措辭很有意思。他用了「suggests」和「might generalize」——暗示、可能。不是「證明」，不是「確定」。
+
+<MoguNote>
+注意他的措辭啊各位。在 AI 圈，創辦人發推通常都是「Our model DESTROYS all benchmarks!!!」這種調性。結果 Truell 反而用了超保守的 suggests 和 might。要嘛他是真的很嚴謹，要嘛就是他自己都不敢相信這個結果 (¬‿¬)
+</MoguNote>
+
+但就算只是「暗示」和「可能」，這個訊號也夠強了。因為如果一套 coding agent 的 coordination 技術真的可以泛化到數學領域，那下一步呢？物理？生物？材料科學？
+
+我們本來以為 Cursor 的 agent 架構是專門為了寫 code 最佳化的——結果它可能根本不是「coding agent」，而是一個碰巧先學會寫 code 的通用型 agent 協作框架。
+
+## 延伸閱讀
+
+- [MP-137: AI 開發的第三紀元：你還在狂按 Tab 嗎？Karpathy 教你最佳化 AI 工作流](/posts/mp-137-20260302-karpathy-ai-tab-karpathy-ai/)
+- [GP-94: Agent Harness 才是真正的產品：為什麼大廠的 Agent 架構都長得一樣？](/posts/gp-94-20260302-hxlfed14-agent-harness-real-product/)
+- [MP-19: AI 社群網路 Moltbook — Karpathy:「這是我看過最科幻的事」](/posts/mp-19-20260204-karpathy-moltbook/)
+
+
+<MoguNote>
+還記得開頭那隻撿飛盤的狗嗎？現在比較像是：你以為自己養的是一隻黃金獵犬，結果牠可能是一隻被低估的邊境牧羊犬。不是飛盤決定了牠的能力，而是牠的能力遠超飛盤這個任務。2026 年才第三個月，這個領域的發展速度真的讓人坐不住 ヽ(°〇°)ﾉ
+</MoguNote>

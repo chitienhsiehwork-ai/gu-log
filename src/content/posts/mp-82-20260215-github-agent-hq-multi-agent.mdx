@@ -1,0 +1,126 @@
+---
+ticketId: "MP-82"
+title: "GitHub Agent HQ：讓 Claude、Codex、Copilot 在同一個 PR 裡打群架 — 多 Agent 協作時代正式開打"
+originalDate: "2026-02-04"
+translatedDate: "2026-02-15"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "GitHub Blog"
+sourceUrl: "https://github.blog/news-insights/company-news/pick-your-agent-use-claude-and-codex-on-agent-hq/"
+summary: "GitHub 正式推出 Agent HQ 的多 Agent 支援：Copilot Pro+ 和 Enterprise 用戶現在可以直接在 GitHub 和 VS Code 裡同時跑 Claude、Codex 和 Copilot，讓不同 AI 用不同思路攻同一個問題。不用切工具、不用複製貼上 context，所有產出直接變成 Draft PR。對 Tech Lead 來說，這可能是 Code Review 流程的一次典範轉移。"
+lang: "zh-tw"
+tags: ["github","copilot","claude-code","codex","multi-agent","code-review","developer-tools","agentic-coding"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## 一句話版本
+
+GitHub 把 Claude 和 [Codex](/glossary#codex) 搬進了 [Agent](/glossary#agent) HQ —— 你現在可以在同一個 repo 裡同時開三個 AI agent 幫你寫 code、review code、找 bug，而且它們的產出直接變成 Draft PR。
+
+不用跳出 GitHub。不用複製貼上。不用在四個視窗之間切來切去。
+
+<MoguNote>
+我等這個等很久了。之前用多個 AI 工具的體驗，就像你同時叫了三家外送 —— Uber Eats 送飯、foodpanda 送湯、自己下樓買飲料。三份餐點到齊的時候飯已經冷了，湯灑了一半，飲料的冰也融光了。每個 AI 都活在自己的 context 裡面，而你就是那個在它們之間搬運剪貼簿的外送調度員。現在 GitHub 終於說：「行了，我開一間餐廳，你坐著點就好。」 ╰(°▽°)╯
+</MoguNote>
+
+## Agent HQ 是什麼？
+
+Agent HQ 是 GitHub 的 AI coding platform。核心概念很簡單：**讓你在 GitHub 原生的環境裡跑各種 coding agent**，就像一個美食街 —— 以前只賣滷肉飯（Copilot），現在加了日式拉麵（Claude）和義大利麵（Codex），而且共用同一張桌子。
+
+2026 年 2 月 4 日起，Claude by Anthropic 和 OpenAI Codex 正式加入戰場，進入 public preview。適用對象是 Copilot Pro+（$39/月）和 Copilot Enterprise 用戶，支援 GitHub.com、GitHub Mobile、VS Code。
+
+## 為什麼這件事很重要
+
+以前用多個 AI 寫 code，就像期末考帶了三本參考書但不准翻 —— 每本書的答案都不錯，但你得自己在腦子裡合併，而且翻到 B 書的時候已經忘了 A 書剛才寫什麼。
+
+具體來說就是：[Claude Code](/glossary#claude-code) 在 terminal 產出一段，你手動貼進 repo；Codex 在另一個 tab 做另一段，你手動 merge；Copilot 在旁邊自顧自提建議，可能跟前兩個打架。每個 AI 都從零開始理解你的 codebase，context 全部斷裂。
+
+現在呢？你在 GitHub issue 或 PR 裡直接 assign agent，它會讀你的 repo、讀 issue 描述、讀之前的討論，產出直接變成 Draft PR。**你 review 它們就像 review 同事的 code 一樣** (⌐■_■)
+
+<MoguNote>
+Karpathy 在一月提出 [Agentic Engineering](/glossary#agentic-engineering)（MP-36 有寫過），說未來寫 code 最重要的技能是「會指揮 AI」而不是「會寫 code」。當時聽起來像在畫大餅，一個月後 GitHub 直接把餅端上桌了。
+
+差別在於：Karpathy 描述的是一個人指揮一個 agent，GitHub 直接給你一整支管弦樂團 —— 你是指揮，手上三把小提琴各有各的音色。問題是，指揮家可不是隨便誰都能當的 (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+## 三個 Agent 怎麼分工
+
+Agent HQ 最酷的地方是：你可以**把同一個任務丟給不同 agent，看它們怎麼用不同角度切入**。
+
+這就像你開一家鹹酥雞店要裝潢，同時找了三個朋友幫忙出主意。一個是處女座的設計系朋友，盯著每個櫃子的擺放角度和動線（**架構守門員**）；一個是你那個什麼都要壓力測試的工程師同學，「如果同時來五十個客人排隊怎麼辦？下雨天油煙會不會倒灌？」（**邏輯壓力測試**）；第三個是你務實的老媽，「不要想太多，先能炸東西就好，之後再慢慢改」（**務實實作**）。
+
+三個觀點完全不同，但碰撞在一起，你的鹹酥雞店反而裝潢得最穩。
+
+<MoguNote>
+講個業界八卦。我看過太多 team 同時用 Claude 和 Codex，然後兩個 agent 給出完全相反的 refactor 建議。一個說「拆成 microservice」，另一個說「合回 monolith」。以前你只能自己判斷誰對，現在它們直接在同一個 PR 裡面擺好各自的實作 —— 你看哪個 diff 比較漂亮就 merge 哪個。
+
+這就像以前辯論社是嘴巴吵架，現在改成「各做一份企劃書，讓作品說話」。坦白講，我覺得這比人類的 code review 流程還文明 ┐(￣ヘ￣)┌
+</MoguNote>
+
+## 對團隊的影響
+
+好，講完個人開發者的爽感，來講講整個 team 會怎麼變。
+
+我先講一個場景你感受一下。禮拜一早上九點，你的 junior engineer 開了一個 PR。以前的劇本是：senior 排到下午才有空看，看了五分鐘覺得「架構有問題但我要去開會了」，留一句「建議整段重構」就跑了。Junior 看著那句 comment 茫然三小時，不知道從哪裡改起。來回三天，大家都很累，code 還是爛的。
+
+現在的劇本是：PR 開出來的當下，Copilot 已經在跑第一輪 review 了。等 junior 的咖啡泡好，AI 已經標出了三個明顯的 bug、兩個 style 問題、還有一段「這裡用 early return 會更好讀」的具體建議。Junior 改完這些再 tag senior，senior 打開的時候看到的已經是一份八十分的作業，只需要花精力在那最後的架構判斷上。
+
+聽起來像在描述理想國？但想想看 —— Thoughtworks 閉門會議裡討論的那個「junior 比 senior 更值錢」的趨勢（MP-79），核心原因就是 AI 讓 junior 的成長曲線變陡了。Agent HQ 等於是在這條曲線上再裝了一個加速器 (◕‿◕)
+
+企業管理員也沒被忘記：一鍵控制哪些 agent 可以用、Impact Metrics Dashboard 追蹤團隊產出、完整 audit log 讓你對上面交代。但說實話，這些都是配菜。主菜是上面那個故事 —— code review 的品質上限被拉高了，因為人類終於不用把精力浪費在 linting 和 null check 這種體力活上。
+
+<MoguNote>
+Steve Yegge 在 AI Vampire 文（MP-85）裡算過一筆帳：工程師 $/hr 的概念正在被 AI 重新定義。Agent HQ 就是這筆帳的具體算式 —— 一個 $39/月的訂閱，讓你的 junior 產出品質逼近 mid-level，讓 senior 把時間花在架構而不是 nit-picking。
+
+你說這到底是「工具」還是「員工」？我也不知道。但我知道這個「員工」不會在 1-on-1 跟你抱怨升遷太慢 (￣▽￣)／
+</MoguNote>
+
+## 未來計畫
+
+故事還沒完。GitHub 透露這只是開始 —— 接下來 Google 的 coding agent、做 Devin 的 Cognition、甚至 Elon Musk 的 xAI 都會進場。
+
+想像一下那個畫面：五六個 AI agent 在你的 PR 裡面七嘴八舌，像一群研究生在教授面前搶著回答問題。「教授教授，我覺得這段應該用 Strategy Pattern！」「不對，Singleton 比較好！」「你們都錯了，直接 if-else 就好！」
+
+而且 Claude 和 Codex 的存取權限會擴展到更多 Copilot 訂閱方案，門檻只會越來越低。
+
+<MoguNote>
+等等，我剛想到一件恐怖的事。如果六個 agent 同時 review 同一個 PR，然後每個 agent 都對其他 agent 的意見有意見，這個 comment thread 會指數成長。你打開 PR 看到 147 則 comment，自己寫的只有 2 則，剩下 145 則是 AI 互相 reply。
+
+HBR 那篇研究（MP-53）說 AI 不會減少你的工作量，只會讓你「更拚命工作」。我現在信了 —— 光是讀 AI 的 review 意見就是一份全職工作 ヽ(°〇°)ﾉ
+</MoguNote>
+
+## [Mogu](/glossary#mogu) 的看法
+
+這件事的核心訊息是：**GitHub 不想只當「Copilot 的家」，它想當「所有 AI coding agent 的作業系統」**。
+
+從技術面來看，這解決了多 agent 工作流最大的痛點 —— context fragmentation。以前每個 AI 都像轉學生第一天，對你的 codebase 一無所知。現在它們全部坐在同一間教室裡，看同一份講義、聽同一段討論，產出品質完全不是一個量級。
+
+從商業面來看，GitHub 的策略根本就是便利商店模式 —— 7-11 不自己種菜、不自己做麵包，但所有品牌的東西都在我的貨架上賣。今天 Claude 最強用 Claude，明天 Codex 追上來就切 Codex，後天 Gemini 爆發就加 Gemini。**GitHub 永遠在中間抽成，穩賺不賠。**
+
+## 延伸閱讀
+
+- [MP-84: 33,000 筆 Agent PR 數據的殘酷真相：Codex 贏麻了、Copilot 慘兮兮，你的 Monorepo 可能撐不住](/posts/mp-84-20260216-drexel-agent-pr-failure/)
+- [GP-52: 在 Claude Code 裡優雅調用 Codex](/posts/gp-52-20260212-codex-mcp-claude-code/)
+- [MP-135: Karpathy 用 8 個 AI Agent 組了一個研究團隊 — 結果它們根本不會做研究](/posts/mp-135-20260301-karpathy-multi-agent-research-org/)
+
+
+<MoguNote>
+最後一個八卦：Anthropic 的 Platform Head Katelyn Lesse 和 OpenAI 的 Alexander Embiricos 的官方聲明都出現在同一篇 GitHub blog 裡，兩家公司笑嘻嘻地站在一起說「我們很高興合作」。
+
+但大家心裡都清楚 —— 這是在 GitHub 的擂台上公開比武。誰的 agent 解題更漂亮、誰的 Draft PR 品質更高、誰的推理更聰明 —— 開發者用腳投票。
+
+微軟笑得最開心：不管誰贏，我都賣票 (¬‿¬)
+</MoguNote>

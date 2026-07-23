@@ -1,0 +1,108 @@
+---
+ticketId: "GP-87"
+title: "Can't Understand Your AI-Written Code? Linear Walkthroughs Turn Vibe Projects Into Learning Materials"
+originalDate: "2026-02-26"
+source: "Simon Willison @simonw"
+sourceUrl: "https://simonwillison.net/guides/agentic-engineering-patterns/linear-walkthroughs/"
+summary: "Chapter 3 of Simon Willison's Agentic Engineering Patterns: the Linear Walkthrough pattern. This technique transforms even vibe-coded toy projects into valuable learning resources. Core trick: make the agent use sed/grep/cat to fetch code snippets, preventing hallucination."
+translatedDate: "2026-02-26"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+lang: "en"
+tags: ["simonw-agentic-patterns","simon-willison","agentic-coding","cognitive-debt","ai-agents","claude-code","best-practices"]
+series:
+  name: "Simon Willison's Agentic Engineering"
+  order: 6
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+Have you ever had this experience? Friday afternoon, you use a coding agent to build a small project. Everything works, you feel great, you go home. Monday morning, you open the code and your brain goes blank — "What does this function do? Where does this state come from? Did I write this or did the AI write it?"
+
+It's like pulling an all-nighter to finish a term paper, then waking up the next day and not even remembering what you wrote.
+
+[Simon Willison](/en/glossary#simon-willison)'s [Agentic Engineering Patterns series](/posts/gp-80-20260223-simonw-agentic-engineering-patterns) Chapter 3 targets this exact pain point: **[Linear](/en/glossary#linear) Walkthrough** — a method to turn "it runs but I can't read it" code into "teach yourself" learning materials.
+
+<MoguNote>
+This scenario is literally every week at ShroomDog HQ. Three parallel [Claude Code](/en/glossary#claude-code) agents writing code, tests pass, merge the PR, and two hours later you're reviewing your own code trying to remember what it does. It's like buying IKEA furniture, assembling it, throwing away the instructions, then having to disassemble it three months later when you move apartments (╯°□°)╯
+</MoguNote>
+
+## The "Can't Read My Own Code Three Days Later" Story
+
+Simon uses himself as the example. He built a SwiftUI presentation app called Present using Claude Code + Opus 4.6, full vibe-coding style — describe what you want, agent produces code, looks like it works, great, next feature.
+
+A few days later he wanted to understand the codebase. Six .swift files sitting there like a bunch of unlabeled lunch boxes in the fridge — you know there's food inside, but you can't tell what's what without opening each one. Read them one by one? Too slow. Ask Claude "explain this project"? The problem is LLMs can hallucinate — they'll explain using code they "think" exists, which might not match your actual code.
+
+So he came up with a trick: don't ask the AI to "explain." Ask the AI to **walk you through it**.
+
+<MoguNote>
+The lunch box metaphor is painfully accurate. You know those unlabeled containers in your fridge? Some of them are last week's curry. Some of them are... three-month-old unidentified objects. A codebase without a walkthrough is your digital refrigerator ┐(￣ヘ￣)┌
+</MoguNote>
+
+## The Core Move: Make the AI Use Tools, Not Memory
+
+Linear Walkthrough is actually quite intuitive — ask your coding agent to produce a structured tour of the codebase, like a senior colleague onboarding a new hire, going through files one by one, looking at code and explaining as you go.
+
+But here's the absolutely critical detail, the real gem of the entire pattern.
+
+Simon specifically instructs the agent: **use sed, grep, or cat to fetch code snippets. Do NOT manually copy-paste.**
+
+Why? Because an LLM's "memory" is fundamentally unreliable. If you ask it to "show me the function definition," it might confidently write out a function that looks exactly right — but has subtle differences from the actual code, or is entirely made up. It's like asking a friend who's great at storytelling, "What was that story you told me last time?" They'll immediately tell a vivid, detailed version, but 30% of it has been embellished by their brain.
+
+Force the agent to use `sed`/`grep`/`cat` to read the actual files, and you get ground truth. Not imagination — evidence.
+
+<MoguNote>
+The essence of this trick in one sentence: don't ask AI "what do you remember," ask AI "what do you see." One is a closed-book exam, the other is open-book. And LLMs perform dramatically better on open-book tests (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+Simon also built a CLI tool called **[Showboat](/en/glossary#showboat)** for this. Two commands: `showboat note` writes markdown explanations, `showboat exec` runs shell commands to grab code. The agent alternates — write an explanation, grab some code, write an explanation, grab some code — then combines everything into a single `walkthrough.md`.
+
+But you don't actually need Showboat. A simple prompt gets you most of the way there:
+
+> Create a linear walkthrough of this codebase. For each important file, explain its purpose and show key code sections. Use `cat`, `grep`, or `sed` to extract code snippets — do NOT copy-paste code manually. Output the walkthrough as a markdown document.
+
+Claude Code, Cursor, Aider — they all understand this. The key is three words: **use the tools**.
+
+<MoguNote>
+Notice something? What Showboat does is dead simple — it just alternates between "write text" and "run a command." That's it. But that one constraint — forcing the agent to actually read files instead of guessing — turns a hallucination-prone summary into an evidence-based tour. The best tools aren't the ones with the most features. They're the ones with the smartest constraints (⌐■_■)
+</MoguNote>
+
+## It's Not Just Documentation — It's Paying Off Cognitive Debt
+
+Okay, so you can generate a walkthrough. But why bother?
+
+Think of vibe coding like using a credit card. Every time you tell your agent "add this feature" and merge without reading the code, you're swiping the card. The code works, the feature ships, everything looks great on paper. But you've been accumulating code that "works but you don't know why" — that's cognitive debt, the understanding-shaped version of technical debt.
+
+Just like a credit card, you can keep making minimum payments and pretend everything's fine. But one day a bug explodes, and you need to understand three-month-old vibe-coded logic under pressure. That interest payment is going to hurt.
+
+Linear Walkthrough is proactively paying down debt. And unlike real financial debt, the cost is laughably low — a few minutes of token fees in exchange for genuine understanding of your own codebase.
+
+<MoguNote>
+Same logic as the [TDD traffic light from GP-80](/posts/gp-80-20260223-simonw-agentic-engineering-patterns): writing code with agents costs nearly nothing now, so invest the time you save into understanding. The core message of Simon's entire series is — coding got cheap, but understanding didn't. Smart people spend the extra budget on understanding, not on vibing out more code (￣▽￣)／
+</MoguNote>
+
+## When Should You Use This?
+
+You've definitely been in one of these situations.
+
+That side project you vibed out last week — felt like a genius at the time, now it feels like someone else wrote it. Or maybe you just inherited a repo from a colleague who already left the company. No [Slack](/en/glossary#slack) to ask, no documentation, just you and the code staring at each other. Or that little tool you built six months ago, and your boss suddenly says "hey, can you add a feature to that thing?" while you're thinking "I don't even remember what that thing looks like."
+
+Any of these moments? Perfect time for a Linear Walkthrough.
+
+But there's a bigger point hiding here too. A lot of people criticize AI coding by saying "you let AI write everything, you learn nothing." And honestly? If you just vibe-code and walk away, that's fair. But walkthroughs flip the whole thing around — you're not walking away, you're hiring a super patient tutor who doesn't just do your homework but walks you through each problem so you understand why it's solved that way. The AI-written code becomes the textbook, and your understanding ends up deeper than if you'd struggled through it yourself.
+
+So next time you finish vibe-coding a project, before you push, spend ten extra minutes. Tell your agent: "give me a linear walkthrough." Ten minutes of token cost buys you not having to stare blankly at your own code three months from now.
+
+Those lunch boxes — label them while they're fresh. Trust me, it's much better that way ╰(°▽°)╯

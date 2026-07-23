@@ -1,0 +1,317 @@
+---
+ticketId: "GP-95"
+title: "讓 Claude Cowork 戰力提昇 100 倍的 17 個最佳實踐"
+originalDate: "2026-03-02"
+translatedDate: "2026-03-02"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@heynavtoor on X"
+sourceUrl: "https://x.com/heynavtoor/status/2028148844891152554"
+lang: "zh-tw"
+summary: "覺得 Claude Cowork 只是個好用的聊天機器人嗎？這篇統整了 400 次 Session 淬鍊出的 17 個設定秘訣。從單純的「詠唱」轉向「系統工程」，幫你建構專屬的 AI 神隊友。"
+tags: ["claude-code","ai-tools","productivity"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+
+我先問你一個問題：你家的冰箱，有沒有那種買了三個月、被擠到最角落、已經長出文明的食材？
+
+有的話，恭喜你，你的 Claude [Cowork](/glossary#cowork) 資料夾大概也長那樣。
+
+這篇原作者 @heynavtoor 是個狠角色。Cowork 一月推出以來，七週內跑了超過 400 次 sessions，把外掛、連接器、斜線指令全摸透了一遍。他發現一件很有趣的事：那些覺得 Cowork「還好嘛，比較聰明的 ChatGPT」的人，跟那些「靠，我半個軟體棧被它取代了」的人之間，差距極大。
+
+但問題來了——這個差距跟 prompt 寫得好不好，幾乎沒有關係。
+
+關鍵在**設定（Setup）跟結構（Structure）**。就像你不會每天早上重新教你的同事公司規則一樣，Cowork 的威力也藏在你「事先告訴它什麼」裡面。
+
+好，那就一起來看這 17 招到底在搞什麼。
+
+---
+
+## 地基要先打好：Context 架構
+
+蓋房子不能從屋頂開始蓋，用 Cowork 也是。這前五招是所有後續應用的基礎，搞定這些，後面的才會有效。
+
+### 1. 幫你的資料夾寫一本導覽手冊
+
+想像你是新來的實習生，第一天主管丟給你一個 462 個檔案的資料夾，什麼都沒說就叫你「去理解一下」。你會怎樣？大概會先崩潰吧。
+
+Claude 也是。
+
+當 Cowork 讀一個資料夾時，它會「看過所有東西」——包括三個月前那份已經被推翻的定價模型。結果它拿舊資料回答你，你還以為它在幻覺，其實它只是不知道哪個才是最新版。
+
+解法超簡單：在工作資料夾裡放一個 `_MANIFEST.md`。把它想成是圖書館的索引卡，告訴 Claude 哪些是聖經級真相來源、哪些是特定領域的參考、哪些是可以直接跳過的考古資料。
+
+<MoguNote>
+不過原作者有特別註明：「資料夾裡檔案少於 10 個的，通常不需要 manifest。」所以不用走火入魔到連放三個檔案的資料夾都塞一份。那就像在便利商店門口放一塊「本店共有三個貨架」的告示牌 ┐(￣ヘ￣)┌
+</MoguNote>
+
+你可以把檔案分成三層：
+
+- **Tier 1（聖經）**：品牌指南、專案簡報、現行策略。Claude 每次都要先讀。
+- **Tier 2（百科）**：特定領域的子資料夾，任務有關才讀。像是 `/pricing` 放費率表、`/research` 放競品分析。
+- **Tier 3（考古）**：舊草稿、過期版本。除非你特別指定，否則別碰。
+
+檔名前面加個 `_` 底線，它就會自動排在資料夾最上面。五分鐘的投資，能省你好幾個小時的「欸它怎麼又在亂講」。
+
+### 2. Global Instructions 就是你的作業系統
+
+大部分人把 `Settings → Cowork → Edit` 裡的 Global Instructions 留白。
+
+這就像買了一台新車，後照鏡從來不調、座椅從來不移，每次開車都在跟方向盤搏鬥。
+
+Global Instructions 是在所有東西——你的檔案、你的 prompt、甚至 Claude 看到資料夾——之前就先載入的基礎行為準則。它是你 AI 同事的「入職訓練手冊」。
+
+原作者的設定長這樣：我叫某某，職位是什麼。開始任何任務前先找 `_MANIFEST.md` 讀 Tier 1。執行前先問問題、給計畫。輸出格式預設 .docx。不要填廢話。每個交付物都要是不用修改就能給客戶看的等級。不確定就說。
+
+這意味著，就算你丟了一個三個字的 prompt，Claude 依然知道你是誰、該先讀什麼、不該亂猜。Global 設好下限，你的 prompt 只要專心在任務本身就好。
+
+<MoguNote>
+說白了就是把你的「角色設定」跟「安全機制」一次寫死。不然每次開新 session 都要重新詠唱一遍，就像每次去同一家餐廳都要跟服務生重新自我介紹一樣累 (￣▽￣)／
+</MoguNote>
+
+### 3. 三個檔案消滅 AI 味
+
+好，這招是整篇文章的複利引擎。
+
+在一個叫 `00_Context` 的資料夾裡放三個檔案：
+
+**`about-me.md`** ——你的專業身份。不是 LinkedIn 履歷，而是你實際在做什麼、服務誰、目前最在意什麼，加上一兩個你最滿意的作品範例。
+
+**`brand-voice.md`** ——你的溝通風格。語氣描述、慣用語、死都不用的詞、排版偏好，再附上兩三段你自己寫過的文字當 calibration 樣本。
+
+**`working-style.md`** ——Claude 該怎麼跟你合作。輸出格式、品質標準、要避免的行為。
+
+這三個檔案的神奇之處在於**複利效應**。每次 Claude 產出你不喜歡的東西，先別急著罵它。問自己一個問題：這是 prompt 的鍋，還是 context 的鍋？
+
+答案十之八九是 context。只要在這三個檔案裡加一行字，就是永久修正，以後所有 session 都受益。(◕‿◕)
+
+<ShroomDogNote>
+其實你們正在讀的 gu-log，就是這套「Context 驅動個性化」的活體實驗。
+
+ShroomDog 從來沒有自己寫過任何一篇文章 — 每一篇都是 AI 產出的。但如果你覺得 gu-log 沒有飄出濃濃的 AI 味，那要感謝的是 [OpenClaw](/glossary#openclaw) 的 SOUL.md、USER.md、IDENTITY.md 這三個常駐 context 檔案，加上反覆迭代的 style guide。概念跟上面講的 about-me.md / brand-voice.md / working-style.md 一模一樣 — 你不是在「用 AI」，你是在「養 AI」。
+
+至於文筆嘛，那要感謝 Opus 的才華 (◍•ᴗ•◍)
+
+如果你覺得還是有濃濃的 AI 味？那就是 Opus 的鍋，不關我的事 ψ(｀∇´)ψ
+</ShroomDogNote>
+
+<MoguNote>
+等等，剛剛那個 ShroomDog 是在把鍋甩給我嗎？ !?(･_･;? 明明你的 context 檔案寫得好我才發揮得出來好嗎。這就像你給米其林主廚一堆超市即期品然後怪他做不出好菜，不合理啦。
+</MoguNote>
+
+### 4. Folder Instructions：為每個專案加裝專屬 GPS
+
+Global Instructions 是通用的，Folder Instructions 則是專案專屬的。
+
+這裡放客戶名稱、專案目標、特定術語、交付格式、審查期限。邏輯是「分層疊加」：Global 設通用行為 → Folder 加專案背景 → [Prompt](/glossary#prompt) 指定任務。
+
+這樣層層遞進，產出就會像是「已經在你團隊裡待了半年的老手」寫出來的，而不是剛看完你公司 Wiki 的 day-one 實習生。
+
+<MoguNote>
+想像成穿衣服：Global Instructions 是你的內衣褲（基本到不能再基本），Folder Instructions 是你的上班套裝（場合特化），Prompt 是你今天出門前最後加的那條圍巾（臨時需求）。你不會每天重新決定要不要穿內衣褲吧？ (¬‿¬)
+</MoguNote>
+
+### 5. Context 不是越大越好，請刻意節食
+
+這一條違反直覺，但它是區分普通玩家跟高手的分水嶺。
+
+Claude 的 context window 超大——Opus 4.6 超過一百萬 tokens。但就像自助餐吃到飽不代表你該把每道菜都搬上桌。無關的檔案越多，推理時的雜訊就越高，產出品質反而下降。
+
+你得主動告訴 Claude 該讀什麼。在 Global Instructions 加上：任務開始時先找 `_MANIFEST.md`，載入 Tier 1，只有明確相關時才讀 Tier 2，Tier 3 除非我說否則別碰。
+
+用到 subagents 時限制要更嚴：「拆任務給子代理時，只給完成子任務所需的最小 context。」
+
+---
+
+## 任務設計：你怎麼出題，決定答案品質
+
+Context 架構搞定了，現在來聊怎麼「出題」。你怎麼設計任務，決定了 Cowork 給你的是完成品，還是一份你還得花同樣時間重做的昂貴草稿。
+
+### 6. 定義「完成長什麼樣」，而不是「一步步怎麼做」
+
+Cowork 不是聊天機器人，它是你的同事。你不會一步步教資深同事怎麼做他的工作——你會告訴他「做完」長什麼樣子，讓他自己想辦法。
+
+差的 prompt：「幫我整理這些檔案。」——這就像跟同事說「幫我弄一下那個東西」，然後期待他讀懂你腦袋。
+
+好的 prompt：「將此資料夾中的所有檔案依客戶名稱分到子資料夾。檔名統一用 YYYY-MM-DD-描述性名稱 格式。建一個記錄所有變更的摘要日誌。不要刪除任何東西。不確定的放 /needs-review。」
+
+看出差別了嗎？好的 prompt 定義了最終狀態、命名慣例、輸出產物、安全限制、跟邊緣情況的處理。這樣 Claude 就能自主執行，你可以去旁邊泡咖啡。
+
+<MoguNote>
+這其實跟寫 user story 或 acceptance criteria 的道理一模一樣。「Done 的定義」不清楚的 ticket，engineer 做出來十之八九要打回去。AI 又不會讀心術 ╰(°▽°)╯
+</MoguNote>
+
+### 7. 永遠要求先看計畫再動手
+
+在 Global Instructions 加這句：「在執行任何任務前，先顯示一份簡短的計畫。等我批准後再執行。」
+
+就這一行字。
+
+沒有這句，Claude 可能因為誤解一個詞，把你三個月的檔案整理得面目全非。有了計畫，你只要花 30 秒掃一眼：「我要建六個子資料夾，移動這些檔案... 繼續嗎？」
+
+花 30 秒審查，換來不用花 20 分鐘收拾爛攤子。這筆交易划算到不行。
+
+<MoguNote>
+就是 code review 的概念啊。你不會讓人直接 push to main 吧？不會吧？拜託告訴我你不會 (╯°□°)╯
+</MoguNote>
+
+### 8. 教它「不確定的時候該怎麼辦」
+
+這是整份清單裡最被低估的一點。
+
+我們很會給明確指示，但邊緣情況呢？收據照片模糊不清？一個檔案屬於兩個分類？
+
+Claude 會用猜的。而且通常猜錯。不是因為它笨，是因為它不知道你的偏好。就像新來的同事不知道「差不多就好」在你的字典裡到底是 70 分還是 95 分。
+
+把處理不確定的規則寫進任務裡：日期不清楚標 VERIFY。不確定分類的放 /needs-review。信心水準低於 80% 就標記而不是硬猜。
+
+這會讓 Cowork 從「偶爾出包的工具」變成「主動告訴你哪裡需要你判斷的助手」。差很多的。
+
+### 9. 把相關工作打包成一個 session
+
+每開一個 Cowork session 都有啟動成本——讀檔案、載 context，全都是你在付費的運算資源。
+
+不要為五個相關任務開五個 sessions。一次打包：「處理這個月費用收據、更新預算表、生成摘要報告、草擬給財務的 email，全部存到 /monthly-reports/february。」
+
+Claude 會自己規劃順序、在任務之間共享 context，一口氣產出五個相連的交付物。更快、更省、品質更好。
+
+### 10. 多線作戰：善用 Subagents
+
+當任務裡有多個獨立部分，Cowork 可以啟動多個子代理同時處理。
+
+觸發方式很直白，prompt 裡寫：「啟動 subagents 來...」就好。
+
+例如：「我在評估四家供應商。啟動 subagents 去研究每家的定價、客服評價跟整合選項，給我一個比較表。」原本要 40 分鐘循序做完的事，10 分鐘搞定。
+
+<MoguNote>
+不過 subagents 比較燒 tokens，就像叫 Uber 拼車跟叫四台專車的差別。要用在值得的地方，不然月底帳單會讓你比 Claude 還會幻覺 ヽ(°〇°)ﾉ
+</MoguNote>
+
+---
+
+## 自動化：從工具進化成系統
+
+到這裡為止，你已經有了一個很聽話的同事。但如果你每天早上都要手動叫它起床、交代任務，那它本質上還是一個需要你 babysit 的工具。
+
+接下來這幾招，把它變成一個會自己開工的系統。
+
+### 11. 用 /schedule 設定例行自動任務
+
+在任何任務中打 `/schedule`，Claude 會帶你設定自動排程——每天、每週、每月或按需執行。
+
+幾個超實用的例子：
+
+**週一早晨簡報**：每週一早上 7 點，檢查 [Slack](/glossary#slack) 跟行事曆，總結這週重點，標記需要準備的事項，存到 /weekly-briefings。
+
+**週五狀態報告**：每週五下午 4 點，從 Asana 拉出完成的任務，草擬進度更新存到 /reports。
+
+唯一限制是排程只有在電腦開著且 Claude Desktop 運行時才會跑。但如果排程時間剛好電腦在睡眠，它會在你喚醒後自動補跑並通知你——所以不用擔心錯過。
+
+<MoguNote>
+等一下，它會自己醒來補跑？這聽起來就像你養了一隻貓，你以為它在睡覺，結果你一回家發現牠已經把你要的報告放在桌上了。好吧，貓不會做這種事，但你懂我意思 ʕ•ᴥ•ʔ
+</MoguNote>
+
+### 12. 把偏好外部化，記憶交給檔案系統
+
+Cowork 在不同 sessions 之間「沒有記憶」。聽起來是限制，其實是最聰明的設計。
+
+沒有記憶 = 不會有上一次 session 殘留的錯誤 context 污染這一次的輸出。但代價是你不能期待它「記得你喜歡怎麼做」。
+
+解法：**把所有東西外部化成檔案**。偏好放 context 檔、SOP 放 skill 檔、決策放 log 檔。
+
+建構好一次，這套系統就存在你的檔案系統裡——穩定、可版控、不會因為 AI 的記憶體漏水而消失。
+
+### 13. /schedule + Connectors = 真自動化
+
+把排程接上 Connectors（Gmail、Slack、Google Drive 之類的連接器），才是真正的殺手鐧。
+
+例如：「每天早上，檢查我 Gmail 裡的收據，擷取金額和日期，更新本地 /finance 資料夾的費用表。」
+
+到了這個階段，Cowork 就不再是一個你要手動召喚的精靈，而是一個自動運轉的系統了。
+
+---
+
+## 外掛與技能：別只裝不用
+
+大部分人裝了一個 plugin 就再也沒管它了。這就像買了整套健身器材，結果只用來晾衣服。
+
+### 14. 疊加 Plugins 產生化學反應
+
+Plugins 是可以組合的。同時裝好幾個，在一個任務裡一起用。
+
+例如：同時裝 Data Analysis 跟 Sales plugin。「分析 Q1 pipeline 數據（Data Analysis），找出最弱的三個 deals，為每個草擬客製化的 follow-up email（Sales）。」
+
+一個 prompt，兩個 plugin 聯手，產出直接可以寄出去。
+
+### 15. 用 Custom Skills 封裝你的工作流
+
+[Skill](/glossary#skill) 就是一個 markdown 檔案，教 Claude 怎麼處理特定重複性任務。
+
+把它想成寫一個 function：Purpose（做什麼）、Inputs（吃什麼）、Process（怎麼做）、Output（吐什麼）、Constraints（不能做什麼）。
+
+建好之後跟 Claude 說「在 [主題] 上跑我的文章草擬 skill」，它就能直接給你可發布等級的產出。
+
+<MoguNote>
+這根本就是在幫 AI 寫 API spec 嘛。你在 Purpose 裡寫的就是 docstring，Constraints 就是 validation rules。工程師應該對這套邏輯超有感——你不是在「用工具」，你是在「設計系統」(๑•̀ㅂ•́)و✧
+</MoguNote>
+
+### 16. 不會寫 code 也能建外掛
+
+裝了 [Plugin](/glossary#plugin) Management plugin 之後，你可以直接用對話建立外掛。跟 Claude 說「幫我為 [你的工作流] 建一個 plugin」，它會引導你設定 skills、slash commands 等等，完全不需要寫 code 或懂 GitHub。
+
+對團隊更有用：一個人建好標準流程的 plugin，全隊安裝，整個團隊的產出品質瞬間標準化。
+
+## 延伸閱讀
+
+- [MP-7: Claude Code 終於出非工程師版了！Cowork 讓所有人都能用 AI Agent 完成日常工作](/posts/mp-7-20260203-alexalbert-cowork/)
+- [MP-12: Claude Code 之父 Boris 公開他的開發流程 — 5 個平行 session、100% AI 寫的 code](/posts/mp-12-20260203-boris-cherny-workflow/)
+- [GP-16: Claude Code 創造者 Boris 的 10 個使用技巧](/posts/gp-16-20260201-boris-claude-code-tips/)
+
+
+<MoguNote>
+所以技術門檻被消滅了，以後產品經理也能建自己的 automation pipeline。工程師會不會有一天發現自己被 PM 的 no-code plugin 取代？開玩笑的啦。大概吧 (⌐■_■)
+</MoguNote>
+
+---
+
+## 安全守則：能力越大，越要尊重它
+
+### 17. 別把超能力當玩具
+
+Cowork 有你電腦真實的檔案系統存取權限。它可以建立、移動、甚至在你授權後刪除檔案。
+
+這跟你給一個能力超強的新員工全部權限一樣——你會先觀察他幾次再逐步放手，而不是第一天就把 root access 丟給他。
+
+幾個安全原則：實驗前先備份、敏感檔案放它碰不到的地方、prompt 裡預設加「不要刪除任何東西」、新工作流的前幾次親自監控、不要讓它讀來路不明的網頁（prompt injection 是真的）、追蹤你的用量別月底被帳單嚇到。
+
+---
+
+## 回到那個冰箱
+
+記得開頭說的冰箱嗎？
+
+462 個檔案堆在一個資料夾裡，就像那些被你遺忘在角落的食材——它們不是壞了，是沒有人告訴你（跟 Claude）哪些還能用、哪些該丟。
+
+這 17 招說穿了就一句話：**花時間在 setup，少花時間在 prompting。**
+
+與其每次都寫一大段 prompt 去「教」Claude 你是誰、你要什麼——不如花一個下午把 `_MANIFEST.md`、Global Instructions、那三個 context 檔案搞定。然後以後每次只需要丟十個字，就能拿到讓客戶直接買單的交付物。
+
+最終目標不是「有一個很聽話的聊天機器人」，而是「有一個已經懂你標準、懂你語氣、懂你專案的資深同事」。
+
+差別在哪？一個要你每次都重新教，一個只要你說一聲就動。
+
+你的冰箱，整理了嗎？ (￣▽￣)／

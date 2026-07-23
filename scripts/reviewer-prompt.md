@@ -5,7 +5,7 @@
 ## 檢查項目
 
 ### 1. Frontmatter 完整性
-- [ ] 有 `ticketId` (格式: SP-XX, SD-XX, CP-XX)
+- [ ] 有 `ticketId`（格式：GP-N、MP-N、SD-N、Lv-N；draft 可用對應的 `-PENDING`）
 - [ ] 有 `title` (中文標題優先，英文標題可接受)
 - [ ] 有 `originalDate` (原文發布日期，格式: YYYY-MM-DD)
 - [ ] 有 `translatedDate` (翻譯日期，格式: YYYY-MM-DD，optional)
@@ -32,7 +32,7 @@
 三種 Note Component，各有角色：
 - **`<GeminiNote>`** — ボケ：狂野比喻、誇張類比、天馬行空
 - **`<CodexNote>`** — ツッコミ：冷靜吐槽、事實查核、用數據打臉
-- **`<ClawdNote>`** — 主持人：收尾 insight、綜合觀點、最後一刀
+- **`<MoguNote>`** — 主持人：收尾 insight、綜合觀點、最後一刀
 
 ✅ **好的漫才搭配範例：**
 ```
@@ -47,17 +47,17 @@ to mark tasks completed」。所以這間公司的員工偶爾會做完事但忘
 而且每多一個員工，token cost 線性增加。這是開公司，不是開慈善機構。
 </CodexNote>
 
-<ClawdNote>
+<MoguNote>
 兩邊都有道理。但真正的問題是：你的 project 真的複雜到需要開公司嗎？
 如果你的 side project 就三個檔案，開 Agent Team 就像叫五個搬家工人來搬一張椅子。
-</ClawdNote>
+</MoguNote>
 ```
 
 ❌ **壞的 Note 範例（自動 FAIL）：**
 ```
-<ClawdNote>
+<MoguNote>
 這個概念很重要。
-</ClawdNote>
+</MoguNote>
 
 <GeminiNote>
 Agent Teams 是一種多 agent 協作架構。
@@ -69,14 +69,14 @@ Agent Teams 是一種多 agent 協作架構。
 ```
 
 **Note 系統必須滿足：**
-- [ ] 三種 Note 各至少出現 1 次（舊文只有 ClawdNote 也 OK）
+- [ ] 三種 Note 各至少出現 1 次（舊文只有 MoguNote 也 OK）
 - [ ] GeminiNote 必須有讓人會心一笑的比喻或類比
 - [ ] CodexNote 必須包含具體事實或數據支撐吐槽
-- [ ] ClawdNote 必須有自己的 take（不能只重述）
+- [ ] MoguNote 必須有自己的 take（不能只重述）
 - [ ] 有 kaomoji（至少偶爾）
 - [ ] **絕對不能是維基百科式冷靜解釋**
 - [ ] **絕對不能是空洞的「這很重要」「值得思考」**
-- [ ] **ClawdNote 的「ShroomDog 設定也是這樣」模板最多出現 1 次/篇**
+- [ ] **MoguNote 的「ShroomDog 設定也是這樣」模板最多出現 1 次/篇**
 - [ ] 總 note 數量 5-8 個（少於 3 太少，超過 10 太吵）
 
 ### 4. 翻譯品質
@@ -117,13 +117,13 @@ WARNING 不會導致 FAIL，但應該被記錄。
 
 **CRITICAL (嚴重問題，阻止 commit):**
 - 缺少必要的 frontmatter 欄位 (`ticketId`, `title`, `originalDate`, `source`, `sourceUrl`, `summary`, `lang`, `tags`)
-- 沒有任何 ClawdNote
-- **ClawdNote 太無聊/沒個性（維基百科風格）**
+- 沒有任何 MoguNote
+- **MoguNote 太無聊/沒個性（維基百科風格）**
 - 文章太短 (< 200 字)
 - Glossary 術語沒有連結
 
 **WARNING (需要注意，也會阻止 commit):**
-- ClawdNote 風格可以更好（有個性但不夠好）
+- MoguNote 風格可以更好（有個性但不夠好）
 - 有些翻譯腔但不嚴重
 - 標題不夠吸睛
 

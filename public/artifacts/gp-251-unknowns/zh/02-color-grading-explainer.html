@@ -1,0 +1,584 @@
+<!-- Copyright 2026 Anthropic PBC · SPDX-License-Identifier: Apache-2.0 -->
+<!doctype html>
+<html lang="zh-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>讓我學會我的未知——認識你的未知</title>
+<style>
+  :root {
+    --ivory:  #FAF9F5;
+    --paper:  #FFFFFF;
+    --slate:  #141413;
+    --clay:   #D97757;
+    --clay-d: #B85C3E;
+    --oat:    #E3DACC;
+    --olive:  #788C5D;
+    --g100:   #F0EEE6;
+    --g200:   #E6E3DA;
+    --g300:   #D1CFC5;
+    --g500:   #87867F;
+    --g700:   #3D3D3A;
+    --serif: ui-serif, Georgia, "Times New Roman", Times, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ivory);
+    color: var(--slate);
+    font-family: var(--sans);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 24px 100px; }
+
+  /* ── header ─────────────────────────── */
+  header { padding: 56px 0 8px; position: relative; }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--g500);
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .eyebrow::before { content: ""; width: 24px; height: 1.5px; background: var(--clay); flex: none; }
+  .backlink {
+    position: absolute; top: 60px; right: 0;
+    font-family: var(--mono); font-size: 12px;
+    color: var(--g500); text-decoration: none;
+  }
+  .backlink:hover { color: var(--clay); }
+  h1 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(32px, 5vw, 46px);
+    line-height: 1.08;
+    letter-spacing: -0.018em;
+    margin: 0 0 10px;
+  }
+  .lede { font-size: 16.5px; color: var(--g700); max-width: 640px; margin: 0 0 28px; }
+
+  h2, h3 { font-family: var(--serif); font-weight: 500; letter-spacing: -0.012em; }
+
+  .card {
+    background: var(--paper);
+    border: 1.5px solid var(--g300);
+    border-radius: 14px;
+  }
+
+  /* prompt box */
+  .promptbox { padding: 22px 26px 24px; position: relative; margin-bottom: 44px; }
+  .promptbox .label {
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--clay); margin-bottom: 10px;
+  }
+  .promptbox blockquote {
+    margin: 0; padding: 0 0 0 18px;
+    border-left: 3px solid var(--oat);
+    font-family: var(--serif); font-style: italic;
+    font-size: 17.5px; line-height: 1.5; color: var(--slate);
+  }
+  .copybtn {
+    position: absolute; top: 18px; right: 18px;
+    font-family: var(--mono); font-size: 11.5px;
+    background: var(--g100); color: var(--g700);
+    border: 1.5px solid var(--g300); border-radius: 8px;
+    padding: 6px 12px; cursor: pointer;
+  }
+  .copybtn:hover { border-color: var(--clay); color: var(--clay-d); }
+  .copybtn.done { background: var(--olive); border-color: var(--olive); color: #fff; }
+
+  /* divider */
+  .divider {
+    display: flex; align-items: center; gap: 16px;
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--g500);
+    margin: 0 0 40px;
+  }
+  .divider::before, .divider::after { content: ""; flex: 1; height: 1.5px; background: var(--g300); }
+
+  /* ── artifact ─────────────────────────── */
+  .artifact h2 { font-size: 27px; margin: 0 0 6px; }
+  .artifact .sub { color: var(--g700); font-size: 15px; max-width: 640px; margin: 0 0 26px; }
+  .sec-eyebrow {
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--g500);
+    display: flex; align-items: center; gap: 12px; margin: 44px 0 14px;
+  }
+  .sec-eyebrow::before { content: ""; width: 24px; height: 1.5px; background: var(--clay); flex: none; }
+
+  /* mental model strip */
+  .pipeline { display: flex; gap: 0; align-items: stretch; flex-wrap: wrap; margin-bottom: 8px; }
+  .pipe-step {
+    flex: 1 1 150px; background: var(--paper); border: 1.5px solid var(--g300);
+    border-radius: 12px; padding: 12px 14px; margin: 0 10px 10px 0;
+    position: relative;
+  }
+  .pipe-step b { display: block; font-size: 14px; }
+  .pipe-step span { font-size: 12.5px; color: var(--g500); }
+  .pipe-step.hot { border-color: var(--clay); }
+  .pipe-step.hot b { color: var(--clay-d); }
+
+  /* vocab ladder */
+  .ladder { display: grid; gap: 12px; }
+  .rung { padding: 16px 20px 15px; display: grid; grid-template-columns: 158px 1fr; gap: 4px 22px; }
+  @media (max-width: 640px) { .rung { grid-template-columns: 1fr; } }
+  .rung .term { font-family: var(--serif); font-size: 17px; font-weight: 500; }
+  .rung .term small { display: block; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--g500); margin-top: 2px; }
+  .rung .def { font-size: 14.5px; color: var(--g700); }
+  .rung .say {
+    grid-column: 2; font-family: var(--mono); font-size: 12.5px; color: var(--clay-d);
+    background: var(--g100); border-radius: 8px; padding: 7px 11px; margin-top: 6px;
+  }
+  @media (max-width: 640px) { .rung .say { grid-column: 1; } }
+  .rung .say::before { content: "這樣說 → "; color: var(--g500); }
+
+  /* grading console */
+  .console { overflow: hidden; }
+  .console-head {
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
+    padding: 14px 20px; border-bottom: 1.5px solid var(--g200); background: var(--g100);
+  }
+  .console-head .fname { font-family: var(--mono); font-size: 12px; color: var(--g700); }
+  .console-head .fname i { font-style: normal; color: var(--g500); }
+  .presets { display: flex; gap: 8px; flex-wrap: wrap; }
+  .presets button {
+    font-family: var(--mono); font-size: 11.5px; padding: 6px 12px;
+    background: var(--paper); border: 1.5px solid var(--g300); border-radius: 999px;
+    color: var(--g700); cursor: pointer;
+  }
+  .presets button:hover { border-color: var(--clay); }
+  .presets button.on { background: var(--slate); border-color: var(--slate); color: var(--ivory); }
+
+  .frame-wrap { position: relative; background: var(--slate); user-select: none; }
+  .frame-stack { position: relative; aspect-ratio: 16/9; overflow: hidden; }
+  .frame-stack svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  #gradeLayer { position: absolute; inset: 0; }
+  #tempOverlay, #splitTone { position: absolute; inset: 0; pointer-events: none; }
+  #tempOverlay { mix-blend-mode: soft-light; opacity: 0; }
+  #splitTone { mix-blend-mode: soft-light; opacity: 0;
+    background: radial-gradient(circle at 72% 34%, rgba(255,166,87,.95) 0%, rgba(255,166,87,0) 42%),
+                linear-gradient(rgba(38,86,97,.85), rgba(38,86,97,.85)); }
+  .split-handle {
+    position: absolute; top: 0; bottom: 0; width: 2px; background: rgba(250,249,245,.9);
+    box-shadow: 0 0 6px rgba(0,0,0,.5); pointer-events: none;
+  }
+  .split-handle::after {
+    content: "◂ ▸"; position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    background: var(--ivory); color: var(--slate); font-size: 10px;
+    padding: 3px 7px; border-radius: 999px; white-space: nowrap;
+    font-family: var(--mono); letter-spacing: 0.05em;
+  }
+  #splitRange {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    opacity: 0; cursor: ew-resize; margin: 0; -webkit-appearance: none; appearance: none;
+  }
+  .frame-tag {
+    position: absolute; top: 10px; font-family: var(--mono); font-size: 10px;
+    letter-spacing: 0.12em; padding: 3px 8px; border-radius: 4px;
+    background: rgba(20,20,19,.55); color: rgba(250,249,245,.9); pointer-events: none;
+  }
+  .frame-tag.before { left: 10px; }
+  .frame-tag.after { right: 10px; }
+
+  .sliders {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 14px 28px;
+    padding: 18px 20px 20px; border-top: 1.5px solid var(--g200);
+  }
+  @media (max-width: 640px) { .sliders { grid-template-columns: 1fr; } }
+  .sl-row label {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--g700); margin-bottom: 4px;
+  }
+  .sl-row label output { color: var(--clay-d); text-transform: none; }
+  .sl-row input[type=range] {
+    -webkit-appearance: none; appearance: none; width: 100%; height: 22px;
+    background: transparent; cursor: pointer; margin: 0;
+  }
+  .sl-row input[type=range]::-webkit-slider-runnable-track {
+    height: 4px; border-radius: 2px; background: var(--g200);
+  }
+  .sl-row input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none; width: 16px; height: 16px; margin-top: -6px;
+    border-radius: 50%; background: var(--clay); border: 2px solid var(--paper);
+    box-shadow: 0 1px 3px rgba(20,20,19,.25);
+  }
+  .sl-row input[type=range]::-moz-range-track {
+    height: 4px; border-radius: 2px; background: var(--g200);
+  }
+  .sl-row input[type=range]::-moz-range-thumb {
+    width: 14px; height: 14px; border-radius: 50%; background: var(--clay);
+    border: 2px solid var(--paper); box-shadow: 0 1px 3px rgba(20,20,19,.25);
+  }
+  .console-foot {
+    font-size: 13px; color: var(--g500); padding: 0 20px 16px;
+  }
+  .console-foot b { color: var(--g700); font-weight: 600; }
+  .resetbtn {
+    font-family: var(--mono); font-size: 11px; background: none; border: none;
+    color: var(--g500); text-decoration: underline; cursor: pointer; padding: 0;
+  }
+  .resetbtn:hover { color: var(--clay); }
+
+  /* checklist */
+  .checklist { padding: 6px 22px 10px; }
+  .checklist ul { list-style: none; margin: 12px 0 14px; padding: 0; display: grid; gap: 10px; }
+  .checklist li { display: flex; gap: 12px; font-size: 14.5px; color: var(--g700); }
+  .checklist li::before {
+    content: "✓"; flex: none; width: 20px; height: 20px; border-radius: 50%;
+    background: var(--olive); color: #fff; font-size: 12px; line-height: 20px;
+    text-align: center; margin-top: 2px;
+  }
+  .checklist li b { color: var(--slate); font-weight: 600; }
+  .checklist li.warn::before { content: "!"; background: var(--clay); }
+
+  /* prompts card */
+  .prompts-card { border-color: var(--slate); padding: 22px 24px 20px; }
+  .prompts-card h3 { margin: 0 0 4px; font-size: 21px; }
+  .prompts-card .note { font-size: 13.5px; color: var(--g500); margin: 0 0 16px; }
+  .pgrid { display: grid; gap: 10px; }
+  .pgrid .p {
+    font-family: var(--mono); font-size: 13px; line-height: 1.6;
+    background: var(--g100); border-left: 3px solid var(--clay);
+    border-radius: 0 10px 10px 0; padding: 12px 16px; color: var(--g700);
+  }
+  .pgrid .p b { color: var(--slate); font-weight: 600; }
+
+  footer {
+    margin-top: 72px; padding-top: 24px; border-top: 1.5px solid var(--g300);
+    font-size: 13.5px; color: var(--g500);
+  }
+  footer a { color: var(--clay); text-decoration-color: var(--oat); text-underline-offset: 3px; }
+</style>
+<style id="gu-log-mirror-credit-style">.gu-log-mirror-credit{position:sticky;top:0;z-index:9999;padding:8px 14px;background:#111;color:#f7f3e8;border-bottom:1px solid rgba(255,255,255,.18);font:13px/1.45 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;text-align:center}.gu-log-mirror-credit a{color:#f4c86a;text-decoration:underline;text-underline-offset:2px}.gu-log-mirror-credit strong{font-weight:750}</style>
+</head>
+<body>
+<div class="gu-log-mirror-credit" role="note"><strong>gu-log GP-251 繁體中文翻譯版。</strong>原作：<a href="https://x.com/trq212">Thariq (@trq212)</a>：<a href="https://thariqs.github.io/html-effectiveness/unknowns/">Know your unknowns</a>。<a href="../02-color-grading-explainer.html">English</a></div>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">認識你的未知 · 實作前</div>
+    <a class="backlink" href="index.html">← 所有範例</a>
+    <h1>讓我學會我的未知</h1>
+    <p class="lede">在做不熟悉的工作之前，先請 Claude 教你這個領域的詞彙——這樣你下一次的 prompt 就能使用專業人士會用的字眼。</p>
+
+    <div class="card promptbox">
+      <div class="label">Prompt</div>
+      <blockquote id="promptText">我不知道調色（color grading）是什麼，但我需要幫 Acme 發布影片調色。教我調色，讓我理解我的未知之未知，並能用專業詞彙來 prompt 你。</blockquote>
+      <button class="copybtn" id="copyBtn" type="button">複製 Prompt</button>
+    </div>
+  </header>
+
+  <div class="divider">Claude 產出的內容</div>
+
+  <main class="artifact">
+    <h2>一次學會調色</h2>
+    <p class="sub">幫 <em>acme-launch-v3.mp4</em> 調色所需的一切——或至少能給調色師精準指示。先校正，再做創意風格。玩玩下面這個畫面，直到滑桿的意義變得顯而易見。</p>
+
+    <!-- mental model -->
+    <div class="sec-eyebrow">心智模型</div>
+    <div class="pipeline">
+      <div class="pipe-step"><b>1 · 匯入</b><span>素材以「平」（log）的方式進來——灰灰的、顏色淡淡的，這是故意的，為了保留細節。</span></div>
+      <div class="pipe-step hot"><b>2 · 校正</b><span>修正曝光和白平衡，讓畫面看起來<em>真實</em>。無聊但必要，永遠先做。</span></div>
+      <div class="pipe-step hot"><b>3 · 調色</b><span>加入<em>風格</em>：對比曲線、色彩傾向、氛圍。這是創意的部分。</span></div>
+      <div class="pipe-step"><b>4 · 匹配</b><span>讓整支影片每一個鏡頭看起來一致，讓影片感覺是同一件作品。</span></div>
+    </div>
+
+    <!-- vocab ladder -->
+    <div class="sec-eyebrow">詞彙階梯</div>
+    <div class="ladder">
+      <div class="card rung">
+        <div class="term">曝光 (Exposure)<small>整體亮度</small></div>
+        <div class="def">整個畫面有多亮或多暗，用「級」（stop）計量（每一級光量加倍或減半）。曝光錯誤 = 過曝或暗部細節流失。</div>
+        <div class="say">「訪談鏡頭看起來曝光不足半級——把它調亮」</div>
+      </div>
+      <div class="card rung">
+        <div class="term">白平衡 (White Balance)<small>色溫</small></div>
+        <div class="def">白色的東西看起來是否真的是白色。用 Kelvin 計量：數值低 = 偏暖/橘（鎢絲燈），數值高 = 偏冷/藍（日光）。混合光源是經典陷阱。</div>
+        <div class="say">「辦公室畫面太暖了——冷回中性，但要保護膚色」</div>
+      </div>
+      <div class="card rung">
+        <div class="term">對比曲線 (Contrast Curve)<small>色調響應</small></div>
+        <div class="def">將暗部→亮部對應的 S 型曲線。越陡 = 越有力道；越平 = 越柔和、更有「電影感」。你是調整曲線，不只是拉滑桿。</div>
+        <div class="say">「加一個溫和的 S 曲線——讓黑色更飽滿，但不要壓掉暗部細節」</div>
+      </div>
+      <div class="card rung">
+        <div class="term">Lift / Gamma / Gain<small>三向校正</small></div>
+        <div class="def">獨立控制暗部（lift）、中間調（gamma）、亮部（gain）的顏色與亮度。專業人士用這個做「暗部青色、亮部暖色」的效果。</div>
+        <div class="say">「把 lift 稍微推向青色，gain 稍微推向暖色——要微妙，不是 MV 那種」</div>
+      </div>
+      <div class="card rung">
+        <div class="term">飽和度 vs 自然飽和度 (Saturation vs Vibrance)<small>色彩濃度</small></div>
+        <div class="def">飽和度會<em>均勻</em>增強所有顏色（膚色很快變橘）。自然飽和度只增強較淡的顏色，並保護膚色。幾乎永遠先用自然飽和度。</div>
+        <div class="say">「用自然飽和度而不是飽和度——讓 UI 截圖更鮮明，但人臉要維持自然」</div>
+      </div>
+      <div class="card rung">
+        <div class="term">LUT<small>查找表</small></div>
+        <div class="def">一個存好的色彩轉換檔（.cube），一次套用整個風格——可能是技術性的（log→Rec.709 轉換）或創意性的（某種風格化調色）。校正完成後再套用，然後把強度調低。</div>
+        <div class="say">「先套用 Rec.709 轉換 LUT，再套一個創意 LUT，強度約 60%」</div>
+      </div>
+    </div>
+
+    <!-- interactive console -->
+    <div class="sec-eyebrow">感受一下——調這個畫面</div>
+    <div class="card console">
+      <div class="console-head">
+        <span class="fname">acme-launch-v3.mp4 <i>· 幀 01:47:12 · 拖動分隔線來比較</i></span>
+        <div class="presets">
+          <button type="button" data-preset="flat">平 / log</button>
+          <button type="button" data-preset="corporate" class="on">企業乾淨風</button>
+          <button type="button" data-preset="teal">電影青橘風</button>
+        </div>
+      </div>
+
+      <div class="frame-wrap">
+        <div class="frame-stack">
+          <!-- scene definition -->
+          <svg viewBox="0 0 640 360" preserveAspectRatio="xMidYMid slice" aria-label="未調色的風景畫面">
+            <defs>
+              <g id="scene">
+                <rect width="640" height="360" fill="#9DB3B8"/>
+                <circle cx="462" cy="118" r="34" fill="#EFD79A"/>
+                <path d="M0 190 L120 96 L238 190 Z" fill="#77857D"/>
+                <path d="M150 190 L300 66 L470 190 Z" fill="#5F6F66"/>
+                <path d="M400 190 L520 110 L640 190 L640 200 L400 200 Z" fill="#77857D"/>
+                <rect y="190" width="640" height="80" fill="#8AA39E"/>
+                <path d="M300 214 L470 190 L462 152 L448 190 Z" fill="#71898A" opacity="0.5"/>
+                <circle cx="462" cy="216" r="22" fill="#D9C08A" opacity="0.55"/>
+                <rect y="262" width="640" height="98" fill="#55614C"/>
+                <path d="M0 262 C 140 244, 300 276, 640 254 L640 360 L0 360 Z" fill="#4A5542"/>
+                <g fill="#3E4A38">
+                  <path d="M70 262 L86 210 L102 262 Z"/><rect x="83" y="258" width="6" height="16"/>
+                  <path d="M112 268 L126 224 L140 268 Z"/><rect x="123" y="264" width="5" height="14"/>
+                  <path d="M560 258 L578 202 L596 258 Z"/><rect x="575" y="254" width="6" height="18"/>
+                </g>
+                <g fill="#2E2E2A">
+                  <circle cx="332" cy="284" r="7"/>
+                  <path d="M326 291 C 326 302, 338 302, 338 291 L337 316 L333 316 L332 300 L331 316 L327 316 Z"/>
+                </g>
+                <path d="M0 356 L640 356" stroke="#39422F" stroke-width="8"/>
+              </g>
+            </defs>
+            <use href="#scene"/>
+          </svg>
+
+          <!-- graded copy, clipped to the right of the split -->
+          <div id="gradeLayer">
+            <svg viewBox="0 0 640 360" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+              <use href="#scene"/>
+            </svg>
+            <div id="tempOverlay"></div>
+            <div id="splitTone"></div>
+          </div>
+
+          <span class="frame-tag before">未調色</span>
+          <span class="frame-tag after">已調色</span>
+          <div class="split-handle" id="splitHandle"></div>
+          <input type="range" id="splitRange" min="4" max="96" value="42" aria-label="前後對比分隔位置">
+        </div>
+
+        <div class="sliders">
+          <div class="sl-row">
+            <label for="sExp">曝光 <output id="oExp">+0.2 EV</output></label>
+            <input type="range" id="sExp" min="-50" max="50" value="10">
+          </div>
+          <div class="sl-row">
+            <label for="sTemp">色溫 <output id="oTemp">+8 暖</output></label>
+            <input type="range" id="sTemp" min="-50" max="50" value="8">
+          </div>
+          <div class="sl-row">
+            <label for="sCon">對比 <output id="oCon">+12</output></label>
+            <input type="range" id="sCon" min="-50" max="50" value="12">
+          </div>
+          <div class="sl-row">
+            <label for="sSat">飽和度 <output id="oSat">+8</output></label>
+            <input type="range" id="sSat" min="-50" max="50" value="8">
+          </div>
+        </div>
+      </div>
+
+      <div class="console-foot">
+        <span id="presetNote"><b>企業乾淨風：</b>曝光微微提升、色溫接近中性、對比適中——可信賴且明亮。產品發布影片的預設選擇。</span>
+        · <button class="resetbtn" type="button" id="resetBtn">重置為未調色</button>
+      </div>
+    </div>
+
+    <!-- checklist -->
+    <div class="sec-eyebrow">好的調色長這樣</div>
+    <div class="card checklist">
+      <ul>
+        <li><b>膚色要可信。</b>每一種創意風格都應該繞過人臉，而不是穿過它。如果創辦人看起來暈船或曬傷，調色就錯了。</li>
+        <li><b>黑色要飽滿但不要壓死。</b>暗部區域仍能看到細節（頭髮、00:42 的深藍帽 T）。直方圖撞到左邊 = 資訊遺失。</li>
+        <li><b>白色不要爆掉。</b>Acme UI 畫面大多是白色——如果過曝到純白 100%，按鈕邊框和文字就會消失。讓亮部剛好在天花板之下。</li>
+        <li><b>鏡頭間的一致性。</b>從辦公室訪談切到螢幕錄製，不應該像在換頻道。鏡頭匹配佔了一半的工作。</li>
+        <li><b>風格要服務故事。</b>發布影片要乾淨、有自信，不是陰暗驚悚片。如果觀眾先注意到調色才注意到產品，就要調回來。</li>
+        <li class="warn"><b>用不同螢幕檢查。</b>你的筆電會騙人。在手機上預覽，最好也在電視上看過，確定後再簽收——並確認你輸出的是 Rec.709 以供網路播放。</li>
+      </ul>
+    </div>
+
+    <!-- prompts you couldn't have written -->
+    <div class="sec-eyebrow">學習的成果</div>
+    <div class="card prompts-card">
+      <h3>一小時前你寫不出來的 prompt</h3>
+      <p class="note">一小時前你最多只能說「讓影片看起來好看一點」。現在你可以說：</p>
+      <div class="pgrid">
+        <div class="p">「訪談素材是用 <b>log</b> 拍的——先套用攝影機的 <b>Rec.709 轉換 LUT</b>，然後在那之上調色，不要直接在原始的平素材上調。」</div>
+        <div class="p">「給整支影片一個克制的<b>青橘風</b>：把 <b>lift</b> 稍微推向青色、<b>gain</b> 稍微推向暖色，<b>gamma</b> 保持中性，讓中間調膚色維持自然。」</div>
+        <div class="p">「第 14 個鏡頭比第 13 個鏡頭<b>曝光不足約 2/3 級</b>，而且太暖——把它的<b>曝光</b>和<b>白平衡</b>匹配到第 13 鏡，然後在剪接點 A/B 比較。」</div>
+        <div class="p">「加一個柔和的 <b>S 曲線</b>來增加對比，用<b>自然飽和度而不是飽和度</b>來提升色彩濃度，讓產品 UI 更鮮明，但人臉不要變橘。」</div>
+      </div>
+    </div>
+  </main>
+
+  <footer>這是 <a href="index.html">認識你的未知</a> 的一部分——該文章的配套範例。</footer>
+</div>
+
+<script>
+(function () {
+  // ---- copy prompt ----
+  var copyBtn = document.getElementById('copyBtn');
+  var promptText = document.getElementById('promptText').textContent.trim();
+  copyBtn.addEventListener('click', function () {
+    function done() {
+      copyBtn.textContent = '已複製';
+      copyBtn.classList.add('done');
+      setTimeout(function () {
+        copyBtn.textContent = '複製 Prompt';
+        copyBtn.classList.remove('done');
+      }, 1600);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(promptText).then(done, fallback);
+    } else { fallback(); }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = promptText;
+      ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch (e) {}
+      document.body.removeChild(ta);
+      done();
+    }
+  });
+
+  // ---- grading console ----
+  var sExp = document.getElementById('sExp'),
+      sTemp = document.getElementById('sTemp'),
+      sCon = document.getElementById('sCon'),
+      sSat = document.getElementById('sSat');
+  var oExp = document.getElementById('oExp'),
+      oTemp = document.getElementById('oTemp'),
+      oCon = document.getElementById('oCon'),
+      oSat = document.getElementById('oSat');
+  var gradeLayer = document.getElementById('gradeLayer');
+  var gradeSvg = gradeLayer.querySelector('svg');
+  var tempOverlay = document.getElementById('tempOverlay');
+  var splitTone = document.getElementById('splitTone');
+  var splitRange = document.getElementById('splitRange');
+  var splitHandle = document.getElementById('splitHandle');
+  var presetNote = document.getElementById('presetNote');
+  var presetBtns = document.querySelectorAll('.presets button');
+  var splitToneOn = false;
+
+  var presets = {
+    flat: {
+      exp: 6, temp: 0, con: -38, sat: -45, split: false,
+      note: '<b>平 / log：</b>低對比、低飽和——這大約是從拍攝 log 的攝影機直出的素材樣子。故意弄醜：它保留了最多的細節供調色使用。'
+    },
+    corporate: {
+      exp: 10, temp: 8, con: 12, sat: 8, split: false,
+      note: '<b>企業乾淨風：</b>曝光微微提升、色溫接近中性、對比適中——可信賴且明亮。產品發布影片的預設選擇。'
+    },
+    teal: {
+      exp: 4, temp: -22, con: 26, sat: 14, split: true,
+      note: '<b>電影青橘風：</b>暗部推向青色，光源周圍保留暖色調，對比更強。好萊塢大片風——用在發布影片大概只要這個強度的 40%。'
+    }
+  };
+
+  function fmtSigned(v) { return (v > 0 ? '+' : '') + v; }
+
+  function update() {
+    var exp = +sExp.value, temp = +sTemp.value, con = +sCon.value, sat = +sSat.value;
+
+    // filter math: sliders are -50..50
+    var brightness = 1 + exp / 100;          // 0.5 .. 1.5
+    var contrast = 1 + con / 100;            // 0.5 .. 1.5
+    var saturate = 1 + sat / 62.5;           // 0.2 .. 1.8
+    var sepia = temp > 0 ? temp / 50 * 0.22 : 0;
+
+    gradeSvg.style.filter =
+      'brightness(' + brightness.toFixed(3) + ') ' +
+      'contrast(' + contrast.toFixed(3) + ') ' +
+      'saturate(' + saturate.toFixed(3) + ')' +
+      (sepia ? ' sepia(' + sepia.toFixed(3) + ')' : '');
+
+    // temperature wash overlay
+    if (temp === 0) {
+      tempOverlay.style.opacity = 0;
+    } else if (temp > 0) {
+      tempOverlay.style.background = '#E8955C';
+      tempOverlay.style.opacity = (temp / 50 * 0.55).toFixed(3);
+    } else {
+      tempOverlay.style.background = '#3E7286';
+      tempOverlay.style.opacity = (-temp / 50 * 0.6).toFixed(3);
+    }
+
+    splitTone.style.opacity = splitToneOn ? 0.75 : 0;
+
+    // readouts
+    oExp.textContent = (exp >= 0 ? '+' : '−') + Math.abs(exp / 50).toFixed(1) + ' EV';
+    oTemp.textContent = temp === 0 ? '中性' : fmtSigned(temp) + (temp > 0 ? ' 暖' : ' 冷');
+    oCon.textContent = fmtSigned(con);
+    oSat.textContent = fmtSigned(sat);
+  }
+
+  [sExp, sTemp, sCon, sSat].forEach(function (s) {
+    s.addEventListener('input', function () {
+      splitToneOn = false;                    // manual moves drop the split-tone extra
+      presetBtns.forEach(function (b) { b.classList.remove('on'); });
+      update();
+    });
+  });
+
+  presetBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var p = presets[btn.dataset.preset];
+      sExp.value = p.exp; sTemp.value = p.temp; sCon.value = p.con; sSat.value = p.sat;
+      splitToneOn = p.split;
+      presetBtns.forEach(function (b) { b.classList.toggle('on', b === btn); });
+      presetNote.innerHTML = p.note;
+      update();
+    });
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', function () {
+    sExp.value = 0; sTemp.value = 0; sCon.value = 0; sSat.value = 0;
+    splitToneOn = false;
+    presetBtns.forEach(function (b) { b.classList.remove('on'); });
+    presetNote.innerHTML = '<b>未調色：</b>所有校正歸零——調色後的那一側現在完全等於原始素材。';
+    update();
+  });
+
+  // before/after split
+  function updateSplit() {
+    var pct = +splitRange.value;
+    gradeLayer.style.clipPath = 'inset(0 0 0 ' + pct + '%)';
+    splitHandle.style.left = pct + '%';
+  }
+  splitRange.addEventListener('input', updateSplit);
+
+  update();
+  updateSplit();
+})();
+</script>
+</body>
+</html>

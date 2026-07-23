@@ -16,7 +16,7 @@ describe('checkVibePassBar (Stage 1)', () => {
   it('passes when composite >=8 AND one dim >=9 AND all dims >=8', () => {
     const result = checkVibePassBar({
       persona: 9,
-      clawdNote: 8,
+      moguNote: 8,
       vibe: 8,
       clarity: 8,
       narrative: 8,
@@ -31,7 +31,7 @@ describe('checkVibePassBar (Stage 1)', () => {
   it('fails when no dim reaches 9 (no highlight)', () => {
     const result = checkVibePassBar({
       persona: 8,
-      clawdNote: 8,
+      moguNote: 8,
       vibe: 8,
       clarity: 8,
       narrative: 8,
@@ -46,7 +46,7 @@ describe('checkVibePassBar (Stage 1)', () => {
   it('fails when one dim is 7 even if others are 10', () => {
     const result = checkVibePassBar({
       persona: 10,
-      clawdNote: 10,
+      moguNote: 10,
       vibe: 10,
       clarity: 10,
       narrative: 7,
@@ -61,7 +61,7 @@ describe('checkVibePassBar (Stage 1)', () => {
   it('fails when composite <8', () => {
     const result = checkVibePassBar({
       persona: 9,
-      clawdNote: 8,
+      moguNote: 8,
       vibe: 8,
       clarity: 7,
       narrative: 7,
@@ -75,7 +75,7 @@ describe('checkVibePassBar (Stage 1)', () => {
     // sum=42, avg=8.4 → floor=8
     const r1 = checkVibePassBar({
       persona: 9,
-      clawdNote: 9,
+      moguNote: 9,
       vibe: 8,
       clarity: 8,
       narrative: 8,
@@ -86,7 +86,7 @@ describe('checkVibePassBar (Stage 1)', () => {
     // sum=43, avg=8.6 → floor=8 (not 9)
     const r2 = checkVibePassBar({
       persona: 9,
-      clawdNote: 9,
+      moguNote: 9,
       vibe: 9,
       clarity: 8,
       narrative: 8,
@@ -99,7 +99,7 @@ describe('checkVibePassBar (Stage 1)', () => {
     expect(() =>
       checkVibePassBar({
         persona: 9,
-        clawdNote: 8,
+        moguNote: 8,
         vibe: 8,
         clarity: 8,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -110,7 +110,7 @@ describe('checkVibePassBar (Stage 1)', () => {
   it('passes with all 10s (perfect score)', () => {
     const result = checkVibePassBar({
       persona: 10,
-      clawdNote: 10,
+      moguNote: 10,
       vibe: 10,
       clarity: 10,
       narrative: 10,
@@ -122,12 +122,12 @@ describe('checkVibePassBar (Stage 1)', () => {
   it('reports multiple failed dimensions', () => {
     const result = checkVibePassBar({
       persona: 9,
-      clawdNote: 7,
+      moguNote: 7,
       vibe: 6,
       clarity: 8,
       narrative: 8,
     });
-    expect(result.failedDimensions).toEqual(['clawdNote', 'vibe']);
+    expect(result.failedDimensions).toEqual(['moguNote', 'vibe']);
   });
 });
 
@@ -136,11 +136,11 @@ describe('checkVibePassBar (Stage 1)', () => {
 // ============================================================================
 
 describe('checkFinalVibePassBar (Stage 4)', () => {
-  const stage1 = { persona: 9, clawdNote: 8, vibe: 8, clarity: 8, narrative: 8 };
+  const stage1 = { persona: 9, moguNote: 8, vibe: 8, clarity: 8, narrative: 8 };
 
   it('passes when all dims equal Stage 1 scores', () => {
     const result = checkFinalVibePassBar(
-      { persona: 9, clawdNote: 8, vibe: 8, clarity: 8, narrative: 8 },
+      { persona: 9, moguNote: 8, vibe: 8, clarity: 8, narrative: 8 },
       stage1
     );
     expect(result.pass).toBe(true);
@@ -149,7 +149,7 @@ describe('checkFinalVibePassBar (Stage 4)', () => {
 
   it('passes when dims improved', () => {
     const result = checkFinalVibePassBar(
-      { persona: 10, clawdNote: 9, vibe: 8, clarity: 8, narrative: 8 },
+      { persona: 10, moguNote: 9, vibe: 8, clarity: 8, narrative: 8 },
       stage1
     );
     expect(result.pass).toBe(true);
@@ -157,9 +157,9 @@ describe('checkFinalVibePassBar (Stage 4)', () => {
   });
 
   it('passes when dims dropped by exactly 1 (boundary)', () => {
-    const s1 = { persona: 9, clawdNote: 9, vibe: 9, clarity: 9, narrative: 9 };
+    const s1 = { persona: 9, moguNote: 9, vibe: 9, clarity: 9, narrative: 9 };
     const result = checkFinalVibePassBar(
-      { persona: 8, clawdNote: 8, vibe: 8, clarity: 8, narrative: 8 },
+      { persona: 8, moguNote: 8, vibe: 8, clarity: 8, narrative: 8 },
       s1
     );
     // -1 each, but > 1 is the threshold, so exactly 1 = pass
@@ -169,7 +169,7 @@ describe('checkFinalVibePassBar (Stage 4)', () => {
 
   it('fails when any dim dropped by 2', () => {
     const result = checkFinalVibePassBar(
-      { persona: 7, clawdNote: 8, vibe: 8, clarity: 8, narrative: 8 },
+      { persona: 7, moguNote: 8, vibe: 8, clarity: 8, narrative: 8 },
       stage1
     );
     expect(result.pass).toBe(false);
@@ -177,20 +177,20 @@ describe('checkFinalVibePassBar (Stage 4)', () => {
   });
 
   it('reports all degraded dims, not just the first', () => {
-    const s1 = { persona: 9, clawdNote: 9, vibe: 9, clarity: 8, narrative: 8 };
+    const s1 = { persona: 9, moguNote: 9, vibe: 9, clarity: 8, narrative: 8 };
     const result = checkFinalVibePassBar(
-      { persona: 7, clawdNote: 7, vibe: 9, clarity: 8, narrative: 8 },
+      { persona: 7, moguNote: 7, vibe: 9, clarity: 8, narrative: 8 },
       s1
     );
     expect(result.pass).toBe(false);
     expect(result.degradedDimensions).toHaveLength(2);
     expect(result.degradedDimensions[0].dim).toBe('persona');
-    expect(result.degradedDimensions[1].dim).toBe('clawdNote');
+    expect(result.degradedDimensions[1].dim).toBe('moguNote');
   });
 
   it('handles asymmetric: some improved, some degraded', () => {
     const result = checkFinalVibePassBar(
-      { persona: 10, clawdNote: 8, vibe: 6, clarity: 8, narrative: 8 },
+      { persona: 10, moguNote: 8, vibe: 6, clarity: 8, narrative: 8 },
       stage1
     );
     // persona improved +1, vibe degraded -2 → still fail
@@ -444,13 +444,13 @@ describe('checkFactLibPassBar (Stage 3)', () => {
 
 describe('vibeDims / freshEyesDims resolvers', () => {
   it('v9+ Vibe owns 4 dims (no clarity)', () => {
-    expect(vibeDims(9)).toEqual(['persona', 'clawdNote', 'vibe', 'narrative']);
-    expect(vibeDims(10)).toEqual(['persona', 'clawdNote', 'vibe', 'narrative']);
+    expect(vibeDims(9)).toEqual(['persona', 'moguNote', 'vibe', 'narrative']);
+    expect(vibeDims(10)).toEqual(['persona', 'moguNote', 'vibe', 'narrative']);
   });
 
   it('v8 and below Vibe owns 5 dims (legacy, with clarity)', () => {
-    expect(vibeDims(8)).toEqual(['persona', 'clawdNote', 'vibe', 'clarity', 'narrative']);
-    expect(vibeDims(3)).toEqual(['persona', 'clawdNote', 'vibe', 'clarity', 'narrative']);
+    expect(vibeDims(8)).toEqual(['persona', 'moguNote', 'vibe', 'clarity', 'narrative']);
+    expect(vibeDims(3)).toEqual(['persona', 'moguNote', 'vibe', 'clarity', 'narrative']);
   });
 
   it('v9+ Fresh Eyes owns 5 dims (clarity added)', () => {
@@ -475,7 +475,7 @@ describe('vibeDims / freshEyesDims resolvers', () => {
 
 describe('checkVibePassBar — v9 (4-dim, no clarity)', () => {
   it('composite = floor(sum of 4 dims / 4)', () => {
-    const result = checkVibePassBar({ persona: 9, clawdNote: 8, vibe: 8, narrative: 8 }, 9);
+    const result = checkVibePassBar({ persona: 9, moguNote: 8, vibe: 8, narrative: 8 }, 9);
     // floor((9+8+8+8)/4) = floor(8.25) = 8
     expect(result.composite).toBe(8);
     expect(result.pass).toBe(true);
@@ -486,12 +486,12 @@ describe('checkVibePassBar — v9 (4-dim, no clarity)', () => {
   it('does NOT require clarity at v9', () => {
     // No clarity key present — must not throw.
     expect(() =>
-      checkVibePassBar({ persona: 9, clawdNote: 8, vibe: 8, narrative: 8 }, 9)
+      checkVibePassBar({ persona: 9, moguNote: 8, vibe: 8, narrative: 8 }, 9)
     ).not.toThrow();
   });
 
   it('fails when any of the 4 dims < 8', () => {
-    const result = checkVibePassBar({ persona: 10, clawdNote: 10, vibe: 10, narrative: 7 }, 9);
+    const result = checkVibePassBar({ persona: 10, moguNote: 10, vibe: 10, narrative: 7 }, 9);
     expect(result.pass).toBe(false);
     expect(result.failedDimensions).toEqual(['narrative']);
   });
@@ -499,14 +499,14 @@ describe('checkVibePassBar — v9 (4-dim, no clarity)', () => {
   it('throws when a required v9 dim is missing', () => {
     expect(() =>
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      checkVibePassBar({ persona: 9, clawdNote: 8, vibe: 8 } as any, 9)
+      checkVibePassBar({ persona: 9, moguNote: 8, vibe: 8 } as any, 9)
     ).toThrow('Missing required dimension: narrative');
   });
 
   it('ignores clarity even if present in scores at v9', () => {
     const result = checkVibePassBar(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      { persona: 9, clawdNote: 8, vibe: 8, narrative: 8, clarity: 2 } as any,
+      { persona: 9, moguNote: 8, vibe: 8, narrative: 8, clarity: 2 } as any,
       9
     );
     // clarity=2 would drop composite/fail under legacy, but v9 ignores it.
@@ -520,7 +520,7 @@ describe('checkVibePassBar — v8 regression (5-dim, with clarity)', () => {
   it('defaults to legacy 5-dim math when no version passed', () => {
     const result = checkVibePassBar({
       persona: 9,
-      clawdNote: 8,
+      moguNote: 8,
       vibe: 8,
       clarity: 8,
       narrative: 8,
@@ -533,15 +533,15 @@ describe('checkVibePassBar — v8 regression (5-dim, with clarity)', () => {
   it('still requires clarity at v8', () => {
     expect(() =>
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      checkVibePassBar({ persona: 9, clawdNote: 8, vibe: 8, narrative: 8 } as any, 8)
+      checkVibePassBar({ persona: 9, moguNote: 8, vibe: 8, narrative: 8 } as any, 8)
     ).toThrow('Missing required dimension: clarity');
   });
 });
 
 describe('checkFinalVibePassBar — v9 (4-dim, no clarity)', () => {
   it('does not consider clarity for regression at v9', () => {
-    const stage1 = { persona: 9, clawdNote: 9, vibe: 9, narrative: 9, clarity: 9 };
-    const current = { persona: 9, clawdNote: 9, vibe: 9, narrative: 9, clarity: 2 };
+    const stage1 = { persona: 9, moguNote: 9, vibe: 9, narrative: 9, clarity: 9 };
+    const current = { persona: 9, moguNote: 9, vibe: 9, narrative: 9, clarity: 2 };
     // clarity dropped 7 points but is no longer a Vibe dim at v9 → no degradation
     const result = checkFinalVibePassBar(current, stage1, 9);
     expect(result.pass).toBe(true);
@@ -549,8 +549,8 @@ describe('checkFinalVibePassBar — v9 (4-dim, no clarity)', () => {
   });
 
   it('still flags a > 1 drop on an owned v9 dim', () => {
-    const stage1 = { persona: 9, clawdNote: 9, vibe: 9, narrative: 9 };
-    const current = { persona: 7, clawdNote: 9, vibe: 9, narrative: 9 };
+    const stage1 = { persona: 9, moguNote: 9, vibe: 9, narrative: 9 };
+    const current = { persona: 7, moguNote: 9, vibe: 9, narrative: 9 };
     const result = checkFinalVibePassBar(current, stage1, 9);
     expect(result.pass).toBe(false);
     expect(result.degradedDimensions).toEqual([{ dim: 'persona', stage1: 9, current: 7, drop: 2 }]);

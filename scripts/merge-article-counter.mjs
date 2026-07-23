@@ -2,6 +2,9 @@
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
+const CANONICAL_PREFIXES = ['GP', 'MP', 'SD', 'Lv'];
+const LEGACY_PREFIX_HINTS = { SP: 'GP', CP: 'MP' };
+
 function fail(message) {
   throw new Error(message);
 }
@@ -21,6 +24,21 @@ function parseCounterJson(text, label) {
 function validateCounterSchema(value, label) {
   if (!isPlainObject(value)) {
     fail(`${label}: expected top-level object`);
+  }
+
+  const keys = Object.keys(value);
+  for (const prefix of keys) {
+    if (LEGACY_PREFIX_HINTS[prefix]) {
+      fail(`${label}: retired prefix ${prefix}; use ${LEGACY_PREFIX_HINTS[prefix]}`);
+    }
+    if (!CANONICAL_PREFIXES.includes(prefix)) {
+      fail(`${label}: unsupported prefix ${prefix}; expected GP, MP, SD, Lv`);
+    }
+  }
+  for (const prefix of CANONICAL_PREFIXES) {
+    if (!Object.hasOwn(value, prefix)) {
+      fail(`${label}: missing required prefix ${prefix}`);
+    }
   }
 
   for (const [prefix, entry] of Object.entries(value)) {
@@ -54,10 +72,6 @@ function sameValue(left, right) {
   return stableStringify(left) === stableStringify(right);
 }
 
-function cloneJson(value) {
-  return value === undefined ? undefined : JSON.parse(JSON.stringify(value));
-}
-
 function mergeScalarField({ baseValue, oursValue, theirsValue, path }) {
   const oursChanged = !sameValue(oursValue, baseValue);
   const theirsChanged = !sameValue(theirsValue, baseValue);
@@ -76,20 +90,11 @@ export function mergeArticleCounter(base, ours, theirs) {
   validateCounterSchema(theirs, 'theirs');
 
   const merged = {};
-  const prefixes = new Set([...Object.keys(base), ...Object.keys(ours), ...Object.keys(theirs)]);
 
-  for (const prefix of [...prefixes].sort()) {
+  for (const prefix of CANONICAL_PREFIXES) {
     const baseEntry = base[prefix];
     const oursEntry = ours[prefix];
     const theirsEntry = theirs[prefix];
-
-    if (baseEntry && (!oursEntry || !theirsEntry)) {
-      fail(`${prefix}: prefix deletion requires manual resolution`);
-    }
-    if (!oursEntry || !theirsEntry) {
-      merged[prefix] = cloneJson(oursEntry ?? theirsEntry);
-      continue;
-    }
 
     const entry = {};
     const fields = new Set([

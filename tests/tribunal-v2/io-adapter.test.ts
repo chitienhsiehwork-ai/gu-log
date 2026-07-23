@@ -135,7 +135,10 @@ describe('updateFrontmatter — deep-merge contract (one level)', () => {
     });
 
     const fm = await readFrontmatter(path);
-    const verdict = (fm.dedup as Record<string, unknown>).tribunalVerdict as Record<string, unknown>;
+    const verdict = (fm.dedup as Record<string, unknown>).tribunalVerdict as Record<
+      string,
+      unknown
+    >;
     // class replaced.
     expect(verdict.class).toBe('hard-dup');
     // matchedSlugs replaced (no concat with ['old-a', 'old-b']).

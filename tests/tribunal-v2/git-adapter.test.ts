@@ -153,9 +153,9 @@ describe('git adapter — explicit pathspec commits (Codex P1 fix)', () => {
 
     // Marker commit (no paths) must refuse because the index is dirty with
     // a file the pipeline does not own.
-    await expect(
-      adapter.commit('tribunal(stage1): FAIL (max loops exhausted)')
-    ).rejects.toThrow(/index contains unexpected files.*dev-notes\.md/);
+    await expect(adapter.commit('tribunal(stage1): FAIL (max loops exhausted)')).rejects.toThrow(
+      /index contains unexpected files.*dev-notes\.md/
+    );
   });
 
   it('refuses to commit when index has pre-staged files outside the declared pathspec', async () => {
@@ -172,9 +172,9 @@ describe('git adapter — explicit pathspec commits (Codex P1 fix)', () => {
     // Even though we declare `articlePath`, the leftover config.json in
     // the index should force the commit to abort — not silently land on
     // the tribunal branch.
-    await expect(
-      adapter.commit('tribunal(stage1): writer rewrite', [articlePath])
-    ).rejects.toThrow(/index contains unexpected files.*config\.json/);
+    await expect(adapter.commit('tribunal(stage1): writer rewrite', [articlePath])).rejects.toThrow(
+      /index contains unexpected files.*config\.json/
+    );
   });
 
   it('accepts pre-staged files that match the declared pathspec', async () => {

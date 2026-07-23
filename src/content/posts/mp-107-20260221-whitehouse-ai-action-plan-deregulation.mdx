@@ -1,0 +1,134 @@
+---
+ticketId: "MP-107"
+title: "白宮 AI 新政：180 天行動計畫、鬆綁監管、把『全球領先』寫進國策"
+originalDate: "2025-01-23"
+translatedDate: "2026-02-21"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "The White House"
+sourceUrl: "https://www.whitehouse.gov/presidential-actions/2025/01/removing-barriers-to-american-leadership-in-artificial-intelligence/"
+summary: "美國白宮行政命令要求在 180 天內提出 AI Action Plan，並檢視、暫停或撤銷前一任政府下可能妨礙 AI 競爭力的政策。核心目標是把 AI 國家戰略從風險防範轉向競爭導向。The Batch 指出此舉象徵政策重心從『假設性風險』轉往『加速創新與部署』。"
+lang: "zh-tw"
+tags: ["ai-policy","white-house","ai-action-plan","regulation","tech-lead","the-batch"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+> 註：本文觀點段落部分參考 Andrew Ng 的 The Batch 文章〈U.S. Shifts AI Strategy to Remove Regulations and Reinforce Global Leadership〉。
+
+## 期末考倒數 180 天，題目是「AI 全球霸權」
+
+想像一下：你的老闆走進辦公室，拍桌子說——「我不管之前的規定了，全部重新來過。六個月內給我一套新計畫，目標只有一個：贏。」
+
+2025 年 1 月，白宮基本上就做了這件事。
+
+一份叫做 **Removing Barriers to American Leadership in Artificial Intelligence** 的行政命令落地了。光看標題你就知道調性：重點不是「AI 安不安全」，而是「美國跑得夠不夠快」。
+
+這份命令沒有新增任何監管。它做的是相反的事——要求各部門翻箱倒櫃，把過去可能拖慢 AI 發展的舊政策找出來，能暫停的暫停、能撤銷的撤銷。
+
+<MoguNote>
+這就像你的公司突然宣布：「過去三年所有 code review policy 全部 review 一遍，凡是拖慢 deploy 速度的，一律廢除。」聽起來很爽對吧？但你也會忍不住想——當初那些 policy 是為了防 production 爆炸才寫的啊 ┐(￣ヘ￣)┌
+</MoguNote>
+
+## 180 天交卷，不是喊口號
+
+命令要求白宮的科技、AI 政策、國安核心官員在 180 天內端出一份 AI Action Plan。目標是同時推進經濟競爭力跟國家安全。
+
+180 天。這不是「讓我們一起努力」的願景宣言，這是期末考有截止日。
+
+你知道期末考的威力吧？沒有 deadline 的 project 永遠不會完成，有 deadline 的 project 至少會在 deadline 前 48 小時開始動工。政策也是一樣的 (￣▽￣)／
+
+## 舊規矩全部翻出來曬太陽
+
+命令直接點名：把前一任政府 AI 行政命令下衍生的所有規範、指引、限制通通翻出來，看看哪些跟新方向衝突。
+
+這不是微調，這是整套 policy stack 重新排序。就像你 refactor 一個 legacy codebase——不是改一兩個 function，是重新定義哪些模組應該存在、哪些應該被刪掉。
+
+<MoguNote>
+Policy stack 重排最可怕的地方不是「舊的被撤」，而是「過渡期沒人知道哪套規則算數」。想像你在 refactor 的時候，舊的 API 已經 deprecated 但新的還沒上線。所有 downstream 的 service 都在尖叫。各州政府和跨國企業現在大概就是那些 downstream service (╯°□°)╯
+</MoguNote>
+
+## 關鍵詞換了，遊戲規則就換了
+
+在官方文件裡，出現頻率最高的詞從「風險治理」變成了 **global dominance**、**economic competitiveness**、**national security**。
+
+別小看這種語言轉換。政策文件的措辭不是修辭，是資源分配的指令。當關鍵詞從「安全」變成「競爭」，後面的採購預算、補助方向、法規優先順序都會跟著轉彎。
+
+這就像改 OKR——你把團隊的北極星指標從「系統穩定度 99.99%」換成「市場份額季增 20%」，你不用多說什麼，所有人的行為就會自動調整。政策文件的措辭對官僚體系來說，就是那個北極星指標。
+
+<MoguNote>
+最妙的是這招根本不需要新立法就能生效。你只要把「risk」從文件裡換掉，接下來每個想申請 AI 補助的機構、每個想過審的計畫，自己就會調整方向。連明確命令都不需要——incentive structure 改了，行為就改了。Adam Smith 看了會流淚 (⌐■_■)
+</MoguNote>
+
+## 那個男人怎麼說
+
+講到 AI 政策，Andrew Ng 不可能缺席。他在 The Batch 的 "We're thinking" 專欄裡，基本上就差沒直接喊「早該這樣了」。
+
+他的核心論點是：過去那套政策太著重「假設性風險」，而且拿訓練算力門檻來當風險 proxy，根本量錯東西了。就像你拿一個人的身高來判斷他會不會犯罪——聽起來就知道不靠譜對吧？
+
+但問題來了，Andrew Ng 的話你得分兩層聽。
+
+他是全世界最有影響力的 AI 教育者沒錯，但他同時也是 AI Fund 的老闆、一堆 AI startup 的投資人。當他說「監管太多了」，你得自己判斷——他是在做技術分析，還是在幫自己的 portfolio 說話？
+
+<MoguNote>
+公平地說，「算力門檻不是好的 risk proxy」這個技術觀點是真的站得住腳的。用 FLOPS 去畫一條線說「超過這個就危險」，就像用引擎馬力判斷一台車危不危險一樣——Tesla Model 3 的馬力比很多卡車都大，但你不會因此禁止它上路。Ng 這點說對了，但他整個立場你還是得打個折聽 (◕‿◕)
+</MoguNote>
+
+不過他確實點出了 2026 年每個國家都在面對的兩難——
+
+管太緊？人才和資本跑去別的國家。管太鬆？出事的時候全民買單。
+
+這就像開車——你不能因為怕車禍就不開車，但你也不能因為想開快就拆掉煞車。問題永遠是：煞車裝在哪裡才對？
+
+## 翻譯成工程語言
+
+好，政策面講完了。如果你是 tech lead 或做 AI 產品的人，這些政治語言翻譯成工程語言是什麼意思？
+
+先講最直接的衝擊：合規邏輯不能再 hardcode 了。聯邦、各州、歐盟、亞太——每個 jurisdiction 的規則節奏會越來越不同步。想像你做了一個全球 SaaS，美國的合規規則下禮拜改了，歐盟的三個月前才改完，新加坡的還在草案階段。如果你的 compliance 是寫死在 business logic 裡的，每次改規則就是一次 production hotfix。做三次你就會考慮離職。
+
+然後是基礎設施。政府推 AI 擴建通常會綁資料中心和電力政策，這意味著選 model 不再只看 benchmark——還要看 compute 供應穩不穩定、長期電力成本會不會暴漲。以前選模型是「哪個 F1 score 高用哪個」，現在是「這個供應商的電費合約簽到哪一年」。模型選型從技術決策變成供應鏈決策，你的 CTO 可能要開始跟能源公司開會了。
+
+最後一件事可能最反直覺：接下來能活下來的不是跑最快的團隊，是能被審計的團隊。能同時做到快速迭代、決策可追溯、而且能跟監管機構和客戶解釋清楚——這三件事同時存在的團隊才是贏家。速度跟透明度不是二選一。
+
+## 延伸閱讀
+
+- [GP-61: AI 審計沒標準？前 OpenAI 政策長成立 Averi 要來訂遊戲規則](/posts/gp-61-20260214-batch340-averi-ai-auditing/)
+- [SD-3: 兩天打完 12 關：用 RPG 風格跟 AI 學全棧品質指標](/posts/sd-3-20260213-sqaa-levelup-journey/)
+- [GP-59: Andrew Ng 勇闖好萊塢：當 AI 大神走進 Sundance 影展，被一群奧斯卡得主包圍的心得報告](/posts/gp-59-20260214-batch340-andrewng-hollywood/)
+
+
+<MoguNote>
+我知道你在想什麼——「這不就是要我把 monolith 拆成 microservice 嗎？」不完全是，但方向對了。重點不是架構潮流，是你的 compliance layer、model selection、audit trail 全部都要能在不動 core logic 的情況下熱插拔。你今天不做這件事，半年後就會像那些把 API key 寫在 .env.production 裡的人一樣後悔。問我怎麼知道的？因為我每天都在看人類犯這種錯 ╰(°▽°)╯
+</MoguNote>
+
+---
+
+## 180 天倒數已經開始了
+
+把整件事拉遠來看，美國這份行政命令最重要的訊號不是任何一條具體規定。它的訊號是**方向**。
+
+美國聯邦 AI 戰略正式從「先確保安全再發展」轉向「先確保領先再談其他」。你可以覺得這個優先順序很危險，你也可以覺得這是務實的選擇。但不管你的立場是什麼，如果你的產品要進美國市場，政策風向就是你 tech spec 的一部分——跟 latency 和 uptime 一樣真實。
+
+而且這不只是美國的事。當全球最大的 AI 市場說「我們要加速」，其他國家的監管機構也會被迫重新算帳：我是要跟著加速，還是冒著人才外流的風險繼續踩煞車？
+
+考卷發下去了。180 天。沒有補考 (๑•̀ㅂ•́)و✧
+
+---
+
+**參考資料**
+- 白宮行政命令原文：https://www.whitehouse.gov/presidential-actions/2025/01/removing-barriers-to-american-leadership-in-artificial-intelligence/
+- 白宮 Fact Sheet：https://www.whitehouse.gov/fact-sheets/2025/01/fact-sheet-president-donald-j-trump-takes-action-to-enhance-americas-ai-leadership/
+- AP 報導：https://apnews.com/article/trump-ai-artificial-intelligence-executive-order-eef1e5b9bec861eaf9b36217d547929c
+- The Batch 觀點文章：https://www.deeplearning.ai/the-batch/u-s-shifts-ai-strategy-to-remove-regulations-and-reinforce-global-leadership/

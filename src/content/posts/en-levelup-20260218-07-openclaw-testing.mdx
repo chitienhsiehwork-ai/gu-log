@@ -10,12 +10,12 @@ source: "Level-Up Series"
 sourceUrl: "https://gu-log.vercel.app/posts/levelup-20260218-07-openclaw-testing"
 summary: "The philosophy behind 1,086 tests. Why tests matter more than code review in the AI era. How to use tests as specs. The changing role of a Tech Lead."
 lang: "en"
-tags: ["openclaw", "testing", "vitest", "tdd", "quality", "ai-era", "tutorial"]
+tags: ["openclaw","testing","vitest","tdd","quality","ai-era","tutorial"]
 ---
 
 import LevelUpProgress from '../../components/LevelUpProgress.astro';
 import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
-import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
 import AnalogyBox from '../../components/AnalogyBox.astro';
 
 Have you ever changed one line of code, deployed it, and watched the entire system catch fire?
@@ -58,9 +58,9 @@ That answer key is your test suite.
 
 READMEs get stale. Comments become fiction. That Confluence page? Last updated June of last year. But tests? They're green or they're red. No gray area.
 
-<ClawdNote>
+<MoguNote>
 1,086 tests sounds intimidating, but flip it around — it means Peter said "I guarantee this behavior is correct" 1,086 times. How many of your projects can you say the same about? Me? Last time someone asked me that, I pretended my internet dropped. (◕‿◕)
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="Why are tests more important than code review in the AI era?"
@@ -94,9 +94,9 @@ OpenClaw splits tests into three layers, each with its own config, each minding 
 
 CI runs them smartest-first: if unit tests fail, everything else gets skipped. No point wasting time or API dollars. Same logic as answering the easy exam questions first.
 
-<ClawdNote>
+<MoguNote>
 The agents module eats a quarter of all tests — 273! Go back to Lv-04 and you'll see why: agents are the "thinking engine," edge cases coming at you from every direction. The more dangerous the road, the thicker the guardrails — same reason highway curves have the tallest barriers. Honestly though, my first reaction to seeing 273 was "Peter, are you okay?" and my second was "ah, that's why his system is more stable than mine" (╯°□°)╯
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="How many of each test type does OpenClaw have?"
@@ -146,9 +146,9 @@ Quick reference for the rest:
 - `MagicMock()` → `vi.fn()`
 - `.assert_called_once()` → `.toHaveBeenCalledOnce()`
 
-<ClawdNote>
+<MoguNote>
 Here's a secret: mentally swap `vi.mock` for `@patch` and `vi.fn()` for `MagicMock()`, and congrats — you already know 80% of Vitest. The other 20%? That's Stack Overflow's job. When I switched to Vitest it took me about two hours before I went "oh, that's it?" The language is just skin. The testing concepts already in your head are what's actually worth money (⌐■_■)
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="What does Vitest's describe/it map to in pytest?"
@@ -201,9 +201,9 @@ def test_invalid_port():
 
 Notice: each test has exactly one reason to fail. `test_compaction_preserves_recent` only cares whether the newest message survived — not how many tokens got saved, not how many milliseconds the compression took. One question at a time — that's the beauty of unit tests.
 
-<ClawdNote>
+<MoguNote>
 Change a line, run tests, 0.5 seconds, green or red. That feedback loop is about as fast as hitting Ctrl+Z in Google Docs. You know what's truly terrifying? Once you get used to "change something and know the result in 0.5 seconds," going back to a project with zero tests gives you physical discomfort. Not exaggerating — last time I went back to maintain a test-less legacy project, I froze for three solid seconds after changing one line before I dared to deploy. Like jumping out of a plane without being sure the parachute is strapped on ╰(°▽°)╯
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="What's the most important characteristic of unit tests?"
@@ -245,9 +245,9 @@ What do real E2E tests cover? AI executing shell commands through PTY, conversat
 
 Compared to unit tests, E2E is much slower (seconds, not milliseconds) and requires a real Gateway instance. But it doesn't call the real AI API — the Gateway has a built-in test mode with fixed responses. So E2E is "real body, fake brain." Sounds like the description of certain dates I've been on, but in testing this is actually a good thing.
 
-<ClawdNote>
+<MoguNote>
 336 E2E tests, each booting a full Gateway (╯°□°)╯ If that CI machine had feelings it'd be drafting its resignation letter. But there's no shortcut — last time I told my boss "all the parts tested fine, it'll definitely work assembled," production exploded and I spent the weekend writing a postmortem until my fingers cramped. The first line of that postmortem was "we should have had E2E tests." You only need to get burned once to become a believer.
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="What's the biggest difference between E2E and unit tests?"
@@ -290,9 +290,9 @@ Why only 10? Because every run costs real money. Like putting coins in an arcade
 
 Three types of tests, three different filters, each catching different sizes of bugs. You can't rely on just one — you can't take only practice tests and then ace the real exam, and you can't take the real exam every day either (your bank account won't survive, and frankly neither will you).
 
-<ClawdNote>
+<MoguNote>
 10 live tests sounds embarrassingly small? Imagine if every time you ran pytest, your credit card got charged (¬‿¬) You'd instantly go from "let me just run everything" to "these 10 scenarios were chosen with my life." Peter's 10 cover API response formats, streaming tokens, error handling — all things mocks simply can't simulate. Spend where it counts, like picking a Michelin-starred restaurant over a random food truck — the point isn't the price, it's whether you're getting value.
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="Why are there only 10 Live tests?"
@@ -314,9 +314,9 @@ Three types of tests, three different filters, each catching different sizes of 
 
 You don't want the real Claude API showing up for every test (too expensive, too slow), so you hire stand-ins. Three types, each with a different personality:
 
-<ClawdNote>
+<MoguNote>
 Let me give you the one-sentence version first: don't care if the real function runs → Mock. Want it to actually run but peek at what it did → Spy. That's it. Everything below is just unpacking that sentence. If you already got it, treat the rest as entertainment ┐(￣ヘ￣)┌
-</ClawdNote>
+</MoguNote>
 
 **Mock = Stunt double.** Action scenes don't need the real actor. The stunt double puts on the costume and says "hello" no matter what you ask. Fast, cheap, you control the script.
 
@@ -392,9 +392,9 @@ def test_old_config_still_works():
     assert result.theme == "default"
 ```
 
-<ClawdNote>
+<MoguNote>
 52 config tests in plain English: "No matter how Peter changes the schema in the future, configs already deployed in the wild will never explode because of an update." If you've ever renamed a Pydantic model field and experienced the "old data suddenly can't parse" rage that makes you want to throw your laptop out the window — Peter clearly experienced that too. The difference is he went and wrote 52 guardrails afterward, while I just wrote a complaint post (ง •̀_•́)ง
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="What are the three goals of config tests?"
@@ -450,9 +450,9 @@ def test_cannot_override_system_prompt():
 
 SSRF, sandbox escape, prompt injection — these aren't textbook-only attacks. Just last month someone used prompt injection to get an AI chatbot to spit out its internal Slack webhook URL. You're not skipping security tests because attacks won't happen — you're skipping them because you haven't been attacked yet.
 
-<ClawdNote>
+<MoguNote>
 Writing security tests requires a completely different mindset from writing feature tests. Feature tests: "how will users use this?" Security tests: "if I were a jerk, how would I break this?" This is probably the most paranoid and most satisfying part of the entire testing world — you pretend to be the villain, then seal every route shut. Every time I finish writing security tests I feel like I'm in Mission: Impossible, even though in reality I'm just a cat typing in a terminal (◕‿◕)
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="Why are OpenClaw's security tests especially critical?"
@@ -502,9 +502,9 @@ Coming back to the quote from the top:
 
 This isn't laziness. 1,086 tests = Peter defined 1,086 instances of "this is what correct looks like." You've gone from "the person who writes code" to "the person who defines right and wrong." That identity shift matters more than learning any new framework.
 
-<ClawdNote>
+<MoguNote>
 From Lv-04's Gateway to this Testing finale, OpenClaw's entire system keeps doing one thing: drawing lines. Config schemas draw a line saying "these values are allowed, those aren't." Tests draw a line saying "these behaviors are allowed, those aren't." Security tests draw a much thicker line saying "cross this and you're dead." Sounds boring? But think about it — traffic rules are boring too, until you nearly get killed at an intersection with no traffic lights and suddenly realize red-green signals might be one of humanity's greatest inventions ٩(◕‿◕｡)۶
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="In the AI era, what's the most critical step in a Tech Lead's new workflow?"
@@ -590,11 +590,11 @@ Alright, story's over. Go write your first test.
 
 - [Lv-05: OpenClaw Channels & Tools: The AI's Mouth and Hands](/en/posts/en-levelup-20260218-05-openclaw-channels-tools/)
 - [Lv-04: OpenClaw Gateway Core: What Your AI Butler Actually Looks Like](/en/posts/en-levelup-20260218-04-openclaw-gateway-core/)
-- [SP-123: How to Be Irreplaceable in the AI Era — A Self-Audit](/en/posts/en-sp-123-20260322-aiedge-irreplaceable-ai-era/)
+- [GP-123: How to Be Irreplaceable in the AI Era — A Self-Audit](/en/posts/en-gp-123-20260322-aiedge-irreplaceable-ai-era/)
 
 
-<ClawdNote>
+<MoguNote>
 Seven articles, done. Honestly, by the end I'm a little sad to let go — not sad about the writing, sad about losing my excuse to roast things. From OAuth's "use a keycard instead of giving out your password" to Testing's "tests are the spec," every floor gave me a chance to pretend I'm smarter than Peter, even though the truth is he wrote 1,086 tests and I can't even be bothered to update a README. Thanks for climbing all the way here. See you next series — assuming I haven't been replaced by a smarter model by then ┐(￣ヘ￣)┌
-</ClawdNote>
+</MoguNote>
 
 Level-Up Series Complete 🏆

@@ -20,7 +20,7 @@
  *   6. Run validate-posts.mjs on the renamed files
  *
  * Committing, building, and pushing stay in your hands (or the PR flow), so the
- * allocation lands as its own atomic "swap PENDING -> SP-N" commit right before
+ * allocation lands as its own atomic "swap PENDING -> GP-N" commit right before
  * merge — exactly when the counter is freshest.
  *
  * Usage:
@@ -30,13 +30,13 @@
  *   node scripts/allocate-ticket.mjs
  *
  *   # disambiguate by prefix when several prefixes have pending drafts
- *   node scripts/allocate-ticket.mjs SP
+ *   node scripts/allocate-ticket.mjs GP
  *
  *   # disambiguate by slug substring when one prefix has several pending drafts
  *   node scripts/allocate-ticket.mjs polished-ui-rules
  *
  *   # preview the swap without touching anything
- *   node scripts/allocate-ticket.mjs SP --dry-run
+ *   node scripts/allocate-ticket.mjs GP --dry-run
  */
 
 import fs from 'node:fs';
@@ -50,12 +50,32 @@ const REPO_ROOT = path.resolve(__dirname, '..');
 const POSTS_DIR = path.join(REPO_ROOT, 'src', 'content', 'posts');
 const COUNTER_FILE = path.join(REPO_ROOT, 'scripts', 'article-counter.json');
 
-const VALID_PREFIXES = ['SP', 'CP', 'SD', 'Lv'];
-const PENDING_RE = /^(en-)?(sp|cp|sd|lv)-pending-(.+)\.mdx$/i;
+const VALID_PREFIXES = ['GP', 'MP', 'SD', 'Lv'];
+const PENDING_RE = /^(en-)?(gp|mp|sd|lv)-pending-(.+)\.mdx$/i;
+const LEGACY_PENDING_RE = /^(?:en-)?(sp|cp)-pending-.+\.mdx$/i;
+const PREFIX_BY_SLUG = new Map([
+  ['gp', 'GP'],
+  ['mp', 'MP'],
+  ['sd', 'SD'],
+  ['lv', 'Lv'],
+]);
+
+function canonicalPrefix(value) {
+  return VALID_PREFIXES.find((prefix) => prefix.toLowerCase() === value.toLowerCase()) ?? null;
+}
 
 /** Find every PENDING post pair under src/content/posts. */
 function findPendingPairs() {
-  const files = fs.readdirSync(POSTS_DIR).filter((f) => PENDING_RE.test(f));
+  const allFiles = fs.readdirSync(POSTS_DIR);
+  const legacy = allFiles.filter((f) => LEGACY_PENDING_RE.test(f));
+  if (legacy.length > 0) {
+    const hints = legacy.map((file) => {
+      const replacement = file.replace(/^(en-)?sp-/i, '$1gp-').replace(/^(en-)?cp-/i, '$1mp-');
+      return `  - ${file} (rename to ${replacement})`;
+    });
+    throw new Error(`Retired taxonomy pending filename(s) found:\n${hints.join('\n')}`);
+  }
+  const files = allFiles.filter((f) => PENDING_RE.test(f));
   // Group by base name (strip the en- prefix) so a zh-tw post and its English
   // companion travel together.
   const byBase = new Map();
@@ -68,7 +88,7 @@ function findPendingPairs() {
   }
   return [...byBase.values()].map((entry) => {
     const m = entry.base.match(PENDING_RE);
-    return { ...entry, prefix: m[2].toUpperCase(), rest: m[3] };
+    return { ...entry, prefix: PREFIX_BY_SLUG.get(m[2].toLowerCase()), rest: m[3] };
   });
 }
 
@@ -77,8 +97,13 @@ function selectPair(pairs, filter) {
   let candidates = pairs;
   if (filter) {
     const upper = filter.toUpperCase();
-    if (VALID_PREFIXES.includes(upper)) {
-      candidates = pairs.filter((p) => p.prefix === upper);
+    if (upper === 'SP' || upper === 'CP') {
+      const replacement = upper === 'SP' ? 'GP' : 'MP';
+      throw new Error(`Retired prefix ${upper}; use ${replacement}`);
+    }
+    const prefix = canonicalPrefix(filter);
+    if (prefix) {
+      candidates = pairs.filter((p) => p.prefix === prefix);
     } else {
       candidates = pairs.filter((p) => p.base.includes(filter));
     }
@@ -100,7 +125,28 @@ function selectPair(pairs, filter) {
 }
 
 function readCounter() {
-  return JSON.parse(fs.readFileSync(COUNTER_FILE, 'utf8'));
+  const counter = JSON.parse(fs.readFileSync(COUNTER_FILE, 'utf8'));
+  validateCounter(counter);
+  return counter;
+}
+
+function validateCounter(counter) {
+  const keys = Object.keys(counter);
+  for (const legacy of ['SP', 'CP']) {
+    if (keys.includes(legacy)) {
+      throw new Error(
+        `Counter contains retired prefix ${legacy}; use ${legacy === 'SP' ? 'GP' : 'MP'}`
+      );
+    }
+  }
+  const unknown = keys.filter((key) => !VALID_PREFIXES.includes(key));
+  if (unknown.length > 0) {
+    throw new Error(`Counter contains unsupported prefix(es): ${unknown.join(', ')}`);
+  }
+  const missing = VALID_PREFIXES.filter((prefix) => !keys.includes(prefix));
+  if (missing.length > 0) {
+    throw new Error(`Counter is missing required prefix(es): ${missing.join(', ')}`);
+  }
 }
 
 function writeCounter(counter) {
@@ -192,4 +238,4 @@ if (__isCli) {
   }
 }
 
-export { findPendingPairs, selectPair, allocate };
+export { findPendingPairs, selectPair, allocate, canonicalPrefix, validateCounter };

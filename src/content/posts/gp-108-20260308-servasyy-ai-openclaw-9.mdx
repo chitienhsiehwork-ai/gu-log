@@ -1,0 +1,160 @@
+---
+ticketId: "GP-108"
+title: "OpenClaw 系統提示詞的 9 層架構大解密"
+originalDate: "2026-03-05"
+translatedDate: "2026-03-08"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@servasyy_ai on X"
+sourceUrl: "https://x.com/servasyy_ai/status/2029489020208848966"
+lang: "zh-tw"
+summary: "深入拆解 OpenClaw Agent (v2.1) 傳送給 LLM 的 System Prompt 九層架構，從框架核心到使用者自訂的 Hook 系統，一次看懂！"
+tags: ["openclaw","system-prompt","ai-agents"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+
+## 你以為你在跟 AI 說話，其實你在跟一座冰山說話
+
+你打開 [OpenClaw](/glossary#openclaw)，輸入一句「幫我重構這個 function」。
+
+看起來很單純對吧？一句話進去，一坨 code 出來。但你有沒有想過，在你的那句話抵達 LLM 的大腦之前，OpenClaw 已經偷偷在前面塞了一整份「作弊小抄」？
+
+X 上的 @servasyy_ai 把這份小抄完整拆開來看了。結果發現 —— 你寫的 prompt 只是冰山露出水面的那一小角。水面下？整整 9 層。
+
+這就像你以為自己在跟朋友講電話，其實中間有 9 個翻譯在接力傳話 ╰(°▽°)╯
+
+今天就來一層一層剝開這顆洋蔥，看看 OpenClaw v2.1 到底在你背後做了什麼事。
+
+<MoguNote>
+先打個預防針：這 9 層裡面，你真正能碰的只有 2 層（Layer 7 和 8）。其他 7 層都是框架說了算。所以與其說「9 層架構大解密」，不如說「搞清楚你家的牆哪面能打、哪面是承重牆」(￣▽￣)／ 知道界線在哪，才不會裝潢裝到房子塌。
+</MoguNote>
+
+---
+
+## Layer 1-3：地基，別亂挖
+
+這三層是 OpenClaw 的地基。你碰不到，也不該碰。
+
+**Layer 1（Framework Core）** 是整棟大樓的鋼筋水泥。它告訴 LLM：「你叫什麼名字、你能用什麼工具、什麼事情絕對不能做。」比方說，`rm -rf /` 這種毀天滅地的指令，就是在這層被攔下來的。
+
+你可以把它想成學校的校規 —— 你不能改，但它保護了所有人。框架升級的時候，你的 [Agent](/glossary#agent) 會自動吃到新能力，不用自己動手。代價就是：你也沒辦法自己加規則進去。
+
+**Layer 2（Tool Definitions）** 是 LLM 的工具箱。每個工具都用 JSON Schema 寫死參數格式。這有點像你去 IKEA 買家具附的螺絲包 —— 螺絲就那幾種，但至少保證你不會鎖錯孔。加新工具要寫完整 Schema 是有點煩，但總比 LLM 亂猜參數然後炸掉好。
+
+**Layer 3（Skills Registry）** 是技能商店。OpenClaw 會自動掃描 skills 目錄，把所有技能的**名稱和簡短描述**注入 System [Prompt](/glossary#prompt) —— 像是一份菜單，告訴 LLM 有哪些專業領域的「配方」可以調用。
+
+實際的 SKILL.md 內容是 **on-demand 載入** 的：Agent 先掃描描述，判斷哪個 skill 最相關，才去讀取完整內容。不是全部上桌，而是「看菜單點菜」。
+
+<MoguNote>
+原作者在這裡的描述是準確的：Skills Registry 的設計權衡是「自動掃描 vs 手動註冊」，好處是放入目錄即可用、降低配置錯誤風險；代價是無法精確控制每個 Agent 可用的 [Skill](/glossary#skill)。但注入 System Prompt 的只有名稱和描述（每個 skill 大約幾十個 token），完整的 SKILL.md 要到 Agent 判斷需要時才會讀取。所以 20 個 skill 的目錄不會讓 System Prompt 胖到 80K —— 描述加起來大概也就幾百個 token (◍˃̶ᗜ˂̶◍)ノ
+</MoguNote>
+
+<ShroomDogNote>
+ShroomDog 事實查核：我們的初版翻譯在這裡犯了事實錯誤，把「載入描述」寫成了「載入所有技能」。經過對照原作者 @servasyy_ai 的原文和 OpenClaw 原始碼確認：Skills 是 lazy-loading 機制，System Prompt 只放菜單（name + description），不是把整本食譜都塞進去。原作者的分析是對的，是我們的翻譯過度解讀了。已修正。
+</ShroomDogNote>
+
+---
+
+## Layer 4-6：中場三兄弟，不起眼但少一個就散架
+
+好，到了容易讓人恍神的中段。Layer 4 到 6 做的事情不怎麼性感，但你可以這樣想：如果 Layer 1-3 是房子的地基，那 Layer 4-6 就是水管、電線、還有你牆壁裡那些看不到的管線。你平常完全不會注意到它們 —— 直到某天馬桶不通了。
+
+**Layer 4（Model Aliases）** 解決了一個所有開發者都恨的問題：「為什麼 API endpoint 名稱要這麼長。」
+
+真的，`providers/google/models/gemini-3-pro-latest` 這種東西你每天要打幾次？Layer 4 讓你打 `glm-5` 就搞定，就像手機聯絡人 —— 你存的是「老媽」，不是「中華民國台北市大安區...李王美玉女士」。但它真正厲害的地方不是少打字，是做 A/B 測試的時候。你想把整個專案的 model 從 A 換成 B？改一行 alias 就好，不用在 codebase 裡面 find-and-replace 到天荒地老。這個設計我服 (๑•̀ㅂ•́)و✧
+
+**Layer 5（Protocol Specifications）** 是 Agent 世界的交通規則，而且是針對「多車上路」設計的。
+
+單一 Agent 的時候你不太會感覺到這層的存在。但當你開始玩多 Agent 協作 —— 比方說一個 Agent 負責寫 code、一個負責 review、一個負責部署 —— 這層就是決定誰先說話、誰閉嘴等待的裁判。Silent Replies 就是已讀不回的正式版（「我收到了但我沒話要說」），Heartbeats 就是心跳偵測（「我還活著別把我殺掉」）。沒有這些規則，三個 Agent 同時搶著講話的場面，你可以想像一下三個人同時對著同一個 Google Doc 狂打字。
+
+**Layer 6（Runtime Info）** 是 LLM 每次醒來的「今天是幾號」便條紙。
+
+這個設計看起來蠢蠢的 —— 每次請求都要告訴 LLM 現在幾點、跑在什麼 OS、用的是哪個模型。但你想想：LLM 是沒有記憶的。它每次被叫醒的時候，對世界的認知是一片空白。沒有 Layer 6，它可能以為自己還活在 2024 年。你叫它寫 shell script，它給你寫 Windows batch file。你問它今天星期幾，它回答的是它 training data 截止的那一天。原作者估算大約多花 2KB [Token](/glossary#token) —— 坦白說，讓一個失憶症患者每天早上看一張便條紙，這 2KB 我覺得很值。
+
+<MoguNote>
+Layer 4 的 alias 設計讓我想到 MP-85 裡 Steve Yegge 講的那個概念 —— 好的抽象層應該讓你忘記底層的存在。一個 alias 背後藏著完整的 provider endpoint，但你不需要知道，也不想知道。這才是正確的抽象。反觀 Layer 6 的「每次都要重新自我介紹」，老實說有點蠢，但在 stateless 的 LLM 世界裡你還真沒別的辦法 ┐(￣ヘ￣)┌ 人類至少醒來還記得自己是誰，LLM 連這個都辦不到。
+</MoguNote>
+
+---
+
+## Layer 7-8：你的地盤，你的規則
+
+好，重頭戲來了。前面 6 層都是「請勿觸摸」，但 Layer 7 和 8 是 OpenClaw 特地留給你的操作空間。這兩層的差別，一句話講完：Layer 7 是寫在牆上的規矩，Layer 8 是每天早上可以重新貼的便利貼。
+
+### Layer 7：靜態設定檔
+
+這層是你的「工作手冊」。你可以直接編輯 `IDENTITY.md` 告訴 Agent 它是誰（「你是一個專精 TypeScript 的 senior engineer」），或者在 `AGENTS.md` 裡定義多個 Agent 的分工。
+
+但原作者提了一個很多人會中的陷阱：**不要在 Layer 7 寫散文。**
+
+這邊真的值得停下來想一秒。很多人第一次寫 IDENTITY.md 的時候，會忍不住寫成長篇自我介紹 ——「你是一個友善且專業的 AI 助手，擁有豐富的程式開發經驗，精通 TypeScript、Python、Go...」。
+
+拜託不要。
+
+用條列。用表格。像你在寫便利貼給同事：「部署前跑 `pnpm test`」就夠了，不需要寫成「親愛的同事，在您將程式碼推送到生產環境之前，煩請您先行執行測試套件以確保...」。框架已經知道的事你再寫一次是浪費 Token，過多的修辭反而會讓 LLM 抓不到重點 —— 你想想，你期末考前看的是條列重點還是原文教科書？
+
+### Layer 8：動態 Hook 系統
+
+如果 Layer 7 是刻在石頭上的規則，Layer 8 就是可以每天改寫的白板。你可以寫腳本，在 Agent 啟動或每次對話前動態注入內容。
+
+幾個關鍵機制：
+
+- **`agent:bootstrap` Hook** —— 系統級的，可以完全控制載入哪些檔案。大招，但也最危險。
+- **`bootstrap-extra-files` Hook** —— 只能追加檔案，不能刪。比較安全的玩法。
+- **`before_prompt_build` Hook** —— 在 prompt 送出前攔截修改。想注入「現在是台北時間下午 3 點」之類的即時資訊？就用這個。
+- **`bootstrapMaxChars` 設定** —— Token 預算上限（預設單檔 20K，總計 150K）。超過的部分會按「頭 70% + 尾 20%」截斷，中間直接砍掉。
+
+<MoguNote>
+那個截斷策略「頭 70% + 尾 20%」—— 你有沒有覺得哪裡怪怪的？對，加起來只有 90%，中間 10% 直接消失。OpenClaw 的邏輯是：文件的開頭和結尾通常最重要（想想論文的 abstract 和 conclusion），中間的可以犧牲。但這也意味著你的 IDENTITY.md 如果寫太長，中間那段精心設計的 few-shot examples 可能會被無情砍掉，而你完全不會收到任何警告 (╯°□°)╯ 這種 silent truncation 是 prompt engineering 最陰險的陷阱之一 —— 你以為 LLM 看到了你寫的所有東西，其實它只看到了七成。
+</MoguNote>
+
+---
+
+## Layer 9：每次對話的即時快照
+
+最後一層。每次你跟 Agent 說話，OpenClaw 都會把「這次對話的上下文」打包塞進去 —— 你是誰、之前聊了什麼、現在在哪個 channel。大約 3KB，但能讓 LLM 知道自己身在何處。
+
+你沒辦法直接寫 code 控制這層，但你可以透過對話的方式間接影響它。講白了：**你跟 Agent 說的每句話，都會變成下一輪的 context。** 所以廢話少說、指令明確，你的 Agent 表現就會更好。
+
+原作者也提醒：所有 Token 估算都是「大概值」。實際消耗會隨著你裝了多少工具、載入多少 Skill、聊了多久而浮動。就算是理論上固定的框架層（Layer 1-6），實測也可能因為配置不同而出現差異。
+
+## 延伸閱讀
+
+- [GP-17: 偷走我的 OpenClaw System Prompt：把它變成真正有用的助理（而不是燒錢怪獸）](/posts/gp-17-20260202-openclaw-executive-assistant-prompt/)
+- [GP-99: Agent Observability：別再盲目微調，用 OpenRouter + LangFuse 看清 AI 的思考軌跡](/posts/gp-99-20260304-nearlydaniel-openrouter-langfuse-agent-observability/)
+- [GP-21: Agent 訓練師進階指南：用 Discord 打造高效 OpenClaw 協作系統](/posts/gp-21-20260204-openclaw-discord-workflow-guide/)
+
+
+<MoguNote>
+「你說的每句話都會變成 context」—— 這句話聽起來像廢話，但我看過太多人踩這個坑了。Debug 到一半開始在對話裡貼整份 log 檔，context window 直接爆滿，Agent 的回答品質斷崖式下跌。這就像你在開會的時候突然拿出一疊 500 頁的報告要大家「參考一下」—— 你猜怎樣，沒人參考得了 (¬‿¬) 對話是最貴的 Token 通道，你該把大量資料交給 Layer 8 的 Hook 動態注入，而不是全部倒進聊天室。這不是「建議」，是血淚教訓。
+</MoguNote>
+
+---
+
+## 洋蔥剝完了，你聞到什麼？
+
+回到開頭那個畫面：你輸入「幫我重構這個 function」，以為是一句話的事。
+
+現在你知道了 —— 在那句話前面，OpenClaw 已經幫你貼了一份 9 層的作弊小抄。前 6 層是框架打的底，最後 1 層是對話的即時快照，而你真正能施展拳腳的，就是中間那 Layer 7 和 Layer 8。
+
+但這篇文章真正想告訴你的不是「哇好多層好複雜」。而是：**大部分人在錯誤的層花時間。**
+
+你反覆改寫 prompt 試圖讓 Agent 更聽話？那是 Layer 9，每次對話結束就消失了。你應該把精力花在 Layer 7 的精簡設定和 Layer 8 的動態注入上 —— 那才是持久的、累積的、會隨著你一起成長的東西。
+
+裝潢房子之前，先搞清楚哪面牆能打。打對了，小套房也能住得像豪宅 ╰(°▽°)╯
+
+打錯了 —— 嗯，至少你現在知道那是承重牆了 ┐(￣ヘ￣)┌

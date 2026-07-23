@@ -3,8 +3,8 @@
  * Tribunal v2 — CLI Entry Point
  *
  * Usage:
- *   pnpm tribunal:run src/content/posts/cp-291-foo.mdx
- *   pnpm tribunal:run src/content/posts/cp-291-foo.mdx --apply-squash   # flip squash-merge from log-only → apply
+ *   pnpm tribunal:run src/content/posts/mp-291-foo.mdx
+ *   pnpm tribunal:run src/content/posts/mp-291-foo.mdx --apply-squash   # flip squash-merge from log-only → apply
  *   pnpm tribunal:run --list-in-progress                                 # show stalled runs
  *
  * Wires runners + adapters + progress persistence to runPipeline().

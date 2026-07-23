@@ -4,7 +4,7 @@
 // Lint zh-tw posts for 晶晶體 (decorative English mixing).
 //
 // Policy (see GU-LOG_WRITER_PROMPT.md §術語處理): zh-tw posts must use natural
-// LHY-style Chinese. The ONLY English allowed in body/ClawdNote is:
+// LHY-style Chinese. The ONLY English allowed in body/MoguNote is:
 //   1. Terms in src/data/glossary.json
 //   2. Proper nouns: products, companies, labs, people, places, benchmarks,
 //      model variants (hardcoded ALLOWLIST below)
@@ -37,6 +37,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { isCanonicalSeriesTaxonomyOnlyChange, scanLegacyText } from './check-brand-taxonomy.mjs';
 
 const __isCli =
   import.meta.url === pathToFileURL(process.argv[1] ?? '').href ||
@@ -45,12 +46,13 @@ const __isCli =
 const REPO_ROOT = process.cwd();
 const POSTS_DIR = path.join(REPO_ROOT, 'src/content/posts');
 const GLOSSARY_PATH = path.join(REPO_ROOT, 'src/data/glossary.json');
+const TAXONOMY_POLICY_PATH = path.join(REPO_ROOT, 'quality/brand-taxonomy-residual-allowlist.json');
 
 // ── Hardcoded allowlist ────────────────────────────────────────────
 //
 // These are English words/phrases that are universally OK in zh-tw posts
 // without needing a glossary entry. Keep this list tight — when in doubt,
-// add the term to glossary.json so it gets a definition + clawdNote.
+// add the term to glossary.json so it gets a definition + moguNote.
 // Add/remove entries only after discussing the boundary with ShroomDog.
 
 const ALLOWLIST_RAW = `
@@ -58,7 +60,7 @@ const ALLOWLIST_RAW = `
 API SDK CLI PM CEO CFO CTO COO ML LLM UI UX UI/UX SaaS REST RAG MCP Embedding
 HTTP HTTPS URL URI HTML JS TS CSS DNS UDP TCP TLS SSL OAuth JWT UUID XML JSON YAML SQL OS IDE
 AI AGI ASI ML/AI GA RC RL DL NN CNN RNN LSTM GAN VAE
-SP CP SD Lv FAQ Q1 Q2 Q3 Q4 H1 H2
+GP MP SD Lv FAQ Q1 Q2 Q3 Q4 H1 H2
 PR CI CD DevOps PR/CI Q&A FAQ TODO DONE WIP
 EOL EOS DRM
 GraphQL Webhook
@@ -71,7 +73,7 @@ xG
 N/A TBD TBA
 
 # gu-log MDX components
-ClawdNote ShroomDogNote PostImage Toggle TableOfContents ReadingProgress
+MoguNote ShroomDogNote PostImage Toggle TableOfContents ReadingProgress
 PrevNextNav
 
 # AI labs / companies / orgs
@@ -160,13 +162,13 @@ Jarrod Watts Matt Pocock
 Lisa MindOS_Lisa
 Dimillian Thomas Ricouard
 Kyle Jeong
-# Behavioral-economics / happiness researchers cited in SP-243
+# Behavioral-economics / happiness researchers cited in GP-243
 Kahneman Deaton Angus Killingsworth
 # Phil Chen career-advice post (2026-07-03): the author, his ex-colleague Vlad
 # Feinberg (Gemini lead), Alfred Lin (Sequoia), Michael (Truell) + Aman (Sanger)
 # = Cursor founders' first names as cited in the source
 Phil Chen Vlad Feinberg Alfred Lin Michael Aman
-# Ryo Lu — Cursor Head of Design, cited author of SP-30 + the CP
+# Ryo Lu — Cursor Head of Design, cited author of GP-30 + the MP
 # when-the-dream-becomes-the-job post (2026-07-15)
 Ryo Lu
 
@@ -186,7 +188,7 @@ SSH SCP SFTP FTP IMAP SMTP POP3
 Git GitHub Actions GitLab CI CircleCI Travis Jenkins
 WebAssembly Wasm itms-services
 
-# Apple ecosystem / iOS app distribution (added 2026-06-26 for CP AssppWeb post)
+# Apple ecosystem / iOS app distribution (added 2026-06-26 for MP AssppWeb post)
 App Store TestFlight IPA
 AssppWeb Asspp ipatool
 # Time / units / measure
@@ -196,7 +198,7 @@ ms us ns
 Hz MHz GHz THz
 RPM CPM BPM
 
-# Greek/foreign term italicized + glossed inline in body (SP-243 伊比鳩魯 ataraxia)
+# Greek/foreign term italicized + glossed inline in body (GP-243 伊比鳩魯 ataraxia)
 ataraxia
 # Misc commonly-fine
 Inc Inc. Ltd LLC Corp Corp.
@@ -252,9 +254,9 @@ synthetic
 Hard Pro
 
 # gu-log persona names (not in glossary because they're meta-characters)
-Clawd ShroomDog OpenClaw
+Mogu ShroomDog OpenClaw
 
-# Product / feature / handle proper nouns (Codex ecosystem; SP-210)
+# Product / feature / handle proper nouns (Codex ecosystem; GP-210)
 Storybook Remotion Studio Chronicle jxnlco
 # "center of gravity" — quoted source phrase (jxnlco's own wording)
 center gravity
@@ -276,17 +278,20 @@ meta.ai claude.ai openai.com anthropic.com docs.openclaw.ai
 
 # OpenClaw automation primitive names (canonical product feature names —
 # the OpenClaw docs themselves capitalize them as proper nouns; same
-# status as "Claude Code" or "Pinecone"). Added 2026-04-28 for SP-186.
+# status as "Claude Code" or "Pinecone"). Added 2026-04-28 for GP-186.
 Task Flow Heartbeat Hooks Hook Plugin
 Standing Order Orders Gateway
 ACP Cron Webhook
 managed mirrored
 
-# Added 2026-04-29 for SP-188 (Mitchell Hashimoto / Ghostty leaving GitHub).
+# Added 2026-04-29 for GP-188 (Mitchell Hashimoto / Ghostty leaving GitHub).
 # First names of frequently-cited people; OSS git hosting platforms;
 # ELK-stack tech that appears alongside outage discussion;
 # Mitchell Hashimoto's other tools and the company he co-founded.
-Mitchell Ghostty
+# Extended 2026-07-21 for SP (Building Block Economy): Hashimoto = the surname
+# of already-allowed Mitchell; libghostty = Ghostty's library, a code identifier
+# and the literal subject of the post — same accepted author/product boundary.
+Mitchell Hashimoto Ghostty libghostty
 Vagrant Terraform HashiCorp
 Reddit FOSS
 Codeberg SourceHut Forgejo Gitea
@@ -296,36 +301,36 @@ dotfiles
 # Universal git verbs/nouns with no clean single-word zh-tw equivalent —
 # all gu-log readers know these from daily git use, same status as PR/merge/branch.
 commit
-# OSS signing protocol Mitchell uses for Ghostty releases (covered in CP-159);
-# X handle of SP-169's source author.
+# OSS signing protocol Mitchell uses for Ghostty releases (covered in MP-159);
+# X handle of GP-169's source author.
 Vouch dani
-# Added 2026-06-22 for SP-239 (Ghostty startup tradeoffs). D-Bus = the Linux
+# Added 2026-06-22 for GP-239 (Ghostty startup tradeoffs). D-Bus = the Linux
 # desktop message bus, a genuine proper noun Mitchell names in the source
 # ("registration (dbus)"); reusable across future Linux/terminal articles.
 D-Bus
-# Added 2026-06-12 for SP-221 (Zed DeltaDB). Zed = editor/company, DeltaDB =
+# Added 2026-06-12 for GP-221 (Zed DeltaDB). Zed = editor/company, DeltaDB =
 # the product, Nathan Sobo = founder; "delta" is DeltaDB's namesake atomic
 # unit (the article's core abstraction, analogous to commit) — keeping the
 # English preserves the tie to the product name.
 Zed DeltaDB Nathan Sobo delta
-# Added 2026-06-13 for SP-224 (self-repairing agent harness). Opik = the
+# Added 2026-06-13 for GP-224 (self-repairing agent harness). Opik = the
 # open-source observability/repair platform (comet-ml/opik), Ollie = its
 # built-in coding agent, CrewAI = a multi-agent framework cited alongside
 # LangGraph. All product/feature proper nouns.
 Opik Ollie CrewAI
 
-# Added 2026-05-07 for SP-191 (Claude Dreams / context rot).
+# Added 2026-05-07 for GP-191 (Claude Dreams / context rot).
 # Dreams is Anthropic's Managed Agents memory-consolidation feature; danizhu is
 # the source handle. "Agents" covers pluralized glossary term false positives.
 Dreams dream
 Managed Agents Agents
 danizhu
 context rot
-# Added 2026-06-13 for CP-308 (Fable 5 / Mythos 5 export control).
+# Added 2026-06-13 for MP-308 (Fable 5 / Mythos 5 export control).
 # X handle of the cited add-on commentary author (the timeline + ITAR parallel).
 gothburz
 
-# Added 2026-06-12 for SP-222 (Simon Willison / Fable relentlessly proactive).
+# Added 2026-06-12 for GP-222 (Simon Willison / Fable relentlessly proactive).
 # Fable = Claude model name (sibling of allowlisted Opus/Sonnet/Haiku).
 # Browsers / engines / automation siblings of allowlisted Firefox/Chrome.
 # Datasette/PyObjC/SwiftUI/AgentsView = products & libraries; osascript/grep =
@@ -343,7 +348,7 @@ injection
 Johann Rehberger Normalization Deviance
 relentlessly
 
-# Added 2026-06-17 for SP-232 (mvanhorn "WTF Is a Loop?" loop-engineering lineage).
+# Added 2026-06-17 for GP-232 (mvanhorn "WTF Is a Loop?" loop-engineering lineage).
 # Company names (Uber budget cap, Gartner hype-cycle stat), person names cited in
 # the discourse (Steve Yegge, Matthew Berman, DanKornas), and product/feature
 # proper nouns (Gas Town = Yegge's orchestration system, roborev = Kornas's
@@ -354,14 +359,14 @@ Gas Town roborev
 # author. Both are proper nouns anchoring the loop lineage section.
 AutoGPT Huntley
 
-# Added 2026-05-12 for SP-197 (Garry Tan AI agent complexity ratchet).
+# Added 2026-05-12 for GP-197 (Garry Tan AI agent complexity ratchet).
 # Proper nouns, source examples, research author names, and literal prior article titles.
 Conductor Dave Bitcoin Jared Podcast
 Eval-Driven Development
 Capers Jones Mockus Nagappan Dinh-Trong Vista Level
 Fat Thin Resolvers Controversy Naked Stupider Manifesto
 
-# Added 2026-05-11 for SP-196 (Garry Tan meta-meta-prompting / GBrain).
+# Added 2026-05-11 for GP-196 (Garry Tan meta-meta-prompting / GBrain).
 # Proper nouns, product/framework names, benchmark names, source book titles,
 # and source-quoted workflow names. These should remain English for fidelity.
 ChatGPT
@@ -378,7 +383,7 @@ Hermes Agent Hermes
 Pi Tailscale Render Railway
 LLM Wiki LongMemEval MemPalace
 
-# Added 2026-04-30 for SP-189 (OpenAI GPT-5.5 prompting guide).
+# Added 2026-04-30 for GP-189 (OpenAI GPT-5.5 prompting guide).
 # Canonical AI / prompt-engineering terms named explicitly in OpenAI's docs
 # (these are the article's literal subject — translating them would lose
 # fidelity to the source material that names them in English).
@@ -520,16 +525,16 @@ format formats
 opening
 SOP
 
-# Added 2026-06-17 for SP (kvnkld "10 rules to ship polished UI").
+# Added 2026-06-17 for GP (kvnkld "10 rules to ship polished UI").
 # kvnkld = X handle of the source author. Figma = the design tool the post
 # centers on (product proper noun, sibling of allowlisted Datasette/Zed).
 kvnkld Figma
 
-# Added 2026-06-17 for CP (rahulgs "english -> code interpreters" thread).
+# Added 2026-06-17 for MP (rahulgs "english -> code interpreters" thread).
 # rahulgs = X handle of the source author (proper noun, same pattern as kvnkld).
 rahulgs
 
-# Added 2026-06-18 for SP (samueljmcd "verifier is the product").
+# Added 2026-06-18 for GP (samueljmcd "verifier is the product").
 # ReAct and Reflexion are now glossary terms (src/data/glossary.json), so they
 # are auto-allowed via the glossary loader below — no hardcode needed. Posts
 # link them to /glossary#react and /glossary#reflexion, which carry the arXiv
@@ -542,7 +547,7 @@ rahulgs
 Jarred Sumner
 struct lifetime
 
-# Added 2026-06-22 for SP-240 (championswimmer process-vs-outcome / AI breaking
+# Added 2026-06-22 for GP-240 (championswimmer process-vs-outcome / AI breaking
 # the peace). Shia LaBeouf = the actor behind the "Just do it" meme the source
 # cites (person, proper noun). Tropicana = the juice brand the lemonade-stand
 # analogy scales up into (company/product, proper noun). Both are one-off
@@ -551,7 +556,7 @@ struct lifetime
 Shia LaBeouf
 Tropicana
 
-# Added 2026-06-22 for SP-242 (Sakana Fugu orchestration "AI sovereignty" vs
+# Added 2026-06-22 for GP-242 (Sakana Fugu orchestration "AI sovereignty" vs
 # Elie Bakouch's teardown). All proper nouns named in the two sources:
 # Sakana = the Japanese AI lab (company). Fugu / Ultra = the product and its
 # variant (Fugu Ultra). Elie Bakouch = the researcher behind the critique
@@ -562,7 +567,7 @@ Sakana Fugu Ultra
 Elie Bakouch
 AutoResearch TerminalBench Bench
 
-# Added 2026-06-22 for CP-310 (Alisa Liu's NLP-PhD industry job-search notes).
+# Added 2026-06-22 for MP-310 (Alisa Liu's NLP-PhD industry job-search notes).
 # All bona-fide proper nouns named in the single source, none with a natural
 # zh-tw translation (writer-prompt rule #2: people / libraries / products /
 # course + article titles stay English):
@@ -578,12 +583,12 @@ PyTorch numpy transformer tokenizer tokenization
 LeetCode Neetcode Blind
 Modeling Scratch Industry Job
 
-# Added 2026-07-01 for CP-312 (Kun Chen's firstmate/secondmate/crewmate agent
+# Added 2026-07-01 for MP-312 (Kun Chen's firstmate/secondmate/crewmate agent
 # org chart + per-task model routing). Kun Chen = the author (person), no
 # natural zh-tw translation (writer-prompt rule #2: people stay English).
 Kun Chen
 
-# Added 2026-07-13 for SP-255 (Nadella tweet). Proper nouns named in the
+# Added 2026-07-13 for GP-255 (Nadella tweet). Proper nouns named in the
 # source (writer-prompt rule #2: people / companies stay English):
 #   Kenneth Arrow = Nobel economist, original information-paradox author.
 #   Karp = Alex Karp, Palantir CEO ("Alex" is already allowlisted above).
@@ -600,7 +605,7 @@ Reverse Information Paradox
 #   Rockset = OpenAI's C++ data service (acquired 2024) — the product the whole
 #     series debugs. libunwind = the GNU stack-unwinding library that carried
 #     the 18-year-old race (the "18 歲的鬼"). Level-Up = the gu-log tutorial
-#     series brand, same house-term status as ClawdNote / ShroomDogNote above.
+#     series brand, same house-term status as MoguNote / ShroomDogNote above.
 #   folly = Facebook/Meta's open-source C++ library (its fatal signal handler
 #     logs the stack trace) — product/library proper noun like libunwind.
 #   John Snow / Broad Street = the physician + London street of the 1854 cholera
@@ -611,7 +616,7 @@ folly
 John Snow Broad Street
 Unix
 #   Enrico Fermi = the physicist behind "Fermi estimation" (order-of-magnitude
-#     back-of-envelope estimate), named in Post C's ClawdNote — person, proper noun.
+#     back-of-envelope estimate), named in Post C's MoguNote — person, proper noun.
 Enrico Fermi
 
 # Added 2026-06-20 for SD (Dan Koe spec-driven-life riff). Dan Koe = the source
@@ -629,7 +634,7 @@ cybernetics kybernetes
 # attribution, GU-LOG_WRITER_PROMPT §術語處理 rule 3).
 thedankoe
 
-# Added 2026-07-03 for SP (Geoffrey Litt understand-agent-code thread).
+# Added 2026-07-03 for GP (Geoffrey Litt understand-agent-code thread).
 # All people (writer-prompt rule #2): Geoffrey Litt = source author (@geoffreylitt,
 # Notion engineer); Seymour Papert = education pioneer (Mathland / Logo);
 # Alan Kay = computing pioneer (Dynabook vision cited in the thread);
@@ -642,7 +647,7 @@ Andy Matuschak
 Margaret Storey
 How fix your entire life in day
 
-# Added 2026-07-09 for SP-253 (TypeScript 7.0 Go port announcement). All
+# Added 2026-07-09 for GP-253 (TypeScript 7.0 Go port announcement). All
 # bona-fide proper nouns named in the Microsoft source, none with a zh-tw
 # translation (writer-prompt rule #2: people / products / companies stay
 # English; same categories as the company / tool / person names above):
@@ -670,7 +675,7 @@ goroutine
 Workers Worker
 Visual Closure
 Services
-#   Webpack / Babel = the JS-era toolchain products the ClawdNote contrasts
+#   Webpack / Babel = the JS-era toolchain products the MoguNote contrasts
 #     with the Rust/Go wave (tool proper nouns, sibling of Vite / React above).
 Webpack Babel
 #   surrogate pair = Unicode spec term glossed inline right after its zh-tw
@@ -792,7 +797,7 @@ function isAllowed(word) {
 function maskContent(text) {
   // Returns text with masked regions replaced by spaces (preserving line numbers)
   // Mask: frontmatter, code blocks, blockquotes, inline code, direct English quotes inside 「」 or ""
-  // Keep: body prose, ClawdNote inner prose, ShroomDogNote inner prose
+  // Keep: body prose, MoguNote inner prose, ShroomDogNote inner prose
 
   // 1. Mask frontmatter (--- ... ---)
   const fmMatch = text.match(/^---\n[\s\S]*?\n---\n/);
@@ -825,12 +830,12 @@ function maskContent(text) {
 
   // 5. Mask import lines and HTML/MDX tags themselves (but NOT their inner text)
   text = text.replace(/^import .*$/gm, (m) => ' '.repeat(m.length));
-  // Mask HTML/MDX opening/closing tags (e.g. <ClawdNote>, </ClawdNote>) but leave inner content
+  // Mask HTML/MDX opening/closing tags (e.g. <MoguNote>, </MoguNote>) but leave inner content
   text = text.replace(/<\/?[A-Za-z][^>]*>/g, (m) => ' '.repeat(m.length));
 
   // 5b. Mask cross-link list items (the auto-generated 延伸閱讀 / Related list).
   // A bullet whose entire content is a single markdown link quotes ANOTHER
-  // post's title in the anchor text (e.g. CP-85「AI Vampire…」). English there
+  // post's title in the anchor text (e.g. MP-85「AI Vampire…」). English there
   // belongs to that post — and is governed by that post's own jingjing run —
   // not to this post's prose, so mask the whole line. Inline links inside
   // flowing prose are left alone by this rule and still get scanned (step 6).
@@ -882,16 +887,42 @@ function checkText(raw, filePath = '') {
     for (const m of matches) {
       const word = m[0];
       if (!isAllowed(word)) {
+        const comparisonContext = occurrenceComparisonContext(lines[i], m.index ?? 0, word.length);
         violations.push({
           line: i + 1,
           word,
-          context: lines[i].trim().slice(0, 140),
+          context: comparisonContext.slice(0, 140),
+          comparisonContext,
         });
       }
     }
   }
 
   return { violations };
+}
+
+// Scope baseline identity to the sentence containing this occurrence. This is
+// wide enough to detect a decorative English word moved into different prose,
+// but it does not make an unrelated sentence edit on the same MDX source line
+// invalidate every historical occurrence in that paragraph.
+function occurrenceComparisonContext(line, index, length) {
+  const boundaries = new Set(['。', '！', '？', '!', '?', '；', ';']);
+  let start = 0;
+  for (let cursor = Math.min(index - 1, line.length - 1); cursor >= 0; cursor -= 1) {
+    if (boundaries.has(line[cursor])) {
+      start = cursor + 1;
+      break;
+    }
+  }
+
+  let end = line.length;
+  for (let cursor = Math.max(index + length, 0); cursor < line.length; cursor += 1) {
+    if (boundaries.has(line[cursor])) {
+      end = cursor + 1;
+      break;
+    }
+  }
+  return line.slice(start, end).replace(/\s+/g, ' ').trim();
 }
 
 function checkFile(filePath) {
@@ -905,7 +936,11 @@ function checkFile(filePath) {
 }
 
 function violationKey(v) {
-  return `${v.word.toLowerCase()}\0${v.context.replace(/\s+/g, ' ').trim()}`;
+  return `${v.word.toLowerCase()}\0${violationContext(v)}`;
+}
+
+function violationContext(v) {
+  return (v.comparisonContext ?? v.context).replace(/\s+/g, ' ').trim();
 }
 
 function readBaselineFile(repoRelative, baselineRef) {
@@ -926,6 +961,49 @@ function ensureRemoteBaselineRef(baselineRef) {
   });
 }
 
+let baselineRenameMap = null;
+
+function getBaselineRenameMap(baselineRef) {
+  if (baselineRenameMap) return baselineRenameMap;
+  baselineRenameMap = new Map();
+  try {
+    const output = execFileSync(
+      'git',
+      [
+        '-c',
+        'diff.renameLimit=0',
+        'diff',
+        '-M',
+        '--name-status',
+        '-z',
+        '--diff-filter=R',
+        '--end-of-options',
+        baselineRef,
+        '--',
+        'src/content/posts/*.mdx',
+      ],
+      { cwd: REPO_ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }
+    );
+    const fields = output.split('\0');
+    for (let index = 0; index + 2 < fields.length; index += 3) {
+      const status = fields[index];
+      const oldPath = fields[index + 1];
+      const newPath = fields[index + 2];
+      if (status?.startsWith('R') && oldPath && newPath) {
+        baselineRenameMap.set(newPath, oldPath);
+      }
+    }
+  } catch {
+    // No rename information available; fall back to same-path lookup only.
+  }
+  return baselineRenameMap;
+}
+
+function baselineFromRaw(raw, filePath) {
+  const { violations } = checkText(raw, filePath);
+  return { violations };
+}
+
 function baselineRefExists(baselineRef) {
   try {
     execFileSync('git', ['rev-parse', '--verify', '--quiet', baselineRef], {
@@ -939,41 +1017,128 @@ function baselineRefExists(baselineRef) {
 }
 
 function getBaselineViolations(filePath, baselineRef) {
-  if (!baselineRef) return new Set();
+  if (!baselineRef) return { baseline: null, refUnavailable: false };
 
   const repoRelative = path.relative(REPO_ROOT, path.resolve(filePath));
-  try {
-    const raw = readBaselineFile(repoRelative, baselineRef);
-    const { violations } = checkText(raw, filePath);
-    return new Set(violations.map(violationKey));
-  } catch {
-    try {
-      ensureRemoteBaselineRef(baselineRef);
-      const raw = readBaselineFile(repoRelative, baselineRef);
-      const { violations } = checkText(raw, filePath);
-      return new Set(violations.map(violationKey));
-    } catch {
-      // Either the file is new at baselineRef (correct: all its violations
-      // are new) or baselineRef itself couldn't be resolved (e.g. no network
-      // to fetch origin, or the ref genuinely doesn't exist) — in the latter
-      // case grandfathered violations can't be suppressed and every historical
-      // violation in the file will look "new". Warn so that flood doesn't get
-      // mistaken for a real regression.
-      if (!baselineRefExists(baselineRef)) {
-        console.error(
-          `[check-jingjing] Warning: baseline ref "${baselineRef}" could not be resolved ` +
-            `(no network to fetch, or the ref doesn't exist) — historical/grandfathered ` +
-            `violations in ${path.relative(REPO_ROOT, filePath)} cannot be suppressed and ` +
-            `may appear as "new". Run 'git fetch origin' and retry before assuming a regression.`
-        );
+  const candidates = [repoRelative];
+  // Renamed files keep their grandfathered baseline: resolve the pre-rename
+  // path so a pure rename does not resurface pre-existing violations.
+  const renamedFrom = getBaselineRenameMap(baselineRef).get(repoRelative);
+  if (renamedFrom) candidates.push(renamedFrom);
+
+  for (const fetchFirst of [false, true]) {
+    for (const candidate of candidates) {
+      try {
+        if (fetchFirst) ensureRemoteBaselineRef(baselineRef);
+        return {
+          baseline: baselineFromRaw(readBaselineFile(candidate, baselineRef), filePath),
+          refUnavailable: false,
+        };
+      } catch {
+        // Try the next candidate / fetch round.
       }
-      return new Set();
     }
   }
+  // Either the file is new at baselineRef (correct: all its violations are
+  // new) or baselineRef itself couldn't be resolved (e.g. no network to fetch
+  // origin, or the ref genuinely doesn't exist) — in the latter case
+  // grandfathered violations can't be suppressed and every historical
+  // violation in the file will look "new". Warn so that flood doesn't get
+  // mistaken for a real regression.
+  const refUnavailable = !baselineRefExists(baselineRef);
+  if (refUnavailable) {
+    console.error(
+      `[check-jingjing] Warning: baseline ref "${baselineRef}" could not be resolved ` +
+        `(no network to fetch, or the ref doesn't exist) — historical/grandfathered ` +
+        `violations in ${path.relative(REPO_ROOT, filePath)} cannot be suppressed and ` +
+        `may appear as "new". Run 'git fetch origin' and retry before assuming a regression.`
+    );
+  }
+  // A new file has no grandfathered violations. An unavailable ref falls back
+  // to reporting every violation, which the CLI must describe explicitly.
+  return { baseline: null, refUnavailable };
+}
+
+function filterBaselineViolations(violations, baseline) {
+  if (!baseline) return violations;
+
+  // Each current occurrence must match one concrete baseline occurrence.
+  // Exact context remains grandfathered. Context drift is accepted only when
+  // the brand-taxonomy SSOT can prove the old line canonicalizes exactly to
+  // the current line (including post paths); a same-count word moved to an
+  // unrelated sentence is therefore always new.
+  const remainingBaseline = [...baseline.violations];
+  return violations.filter((violation) => {
+    let matchIndex = remainingBaseline.findIndex(
+      (candidate) => violationKey(candidate) === violationKey(violation)
+    );
+    if (matchIndex < 0) {
+      matchIndex = remainingBaseline.findIndex(
+        (candidate) =>
+          candidate.word.toLowerCase() === violation.word.toLowerCase() &&
+          isCanonicalSeriesTaxonomyOnlyChange(
+            violationContext(candidate),
+            violationContext(violation)
+          )
+      );
+    }
+    if (matchIndex < 0) return true;
+    remainingBaseline.splice(matchIndex, 1);
+    return false;
+  });
+}
+
+// The taxonomy residual policy is the SSOT for exact factual uses of retired
+// names. When that stricter scanner proves the path/rule/token count matches an
+// exact exception, Jingjing must not independently reject the same occurrence
+// merely because surrounding prose changed. Match by token + line and consume
+// each approved finding once; stale counts remain violations and are also
+// rejected by taxonomy:check.
+/**
+ * @param {string} filePath
+ * @param {string} raw
+ * @param {Array<{word: string, line: number, context: string, comparisonContext?: string}>} violations
+ * @param {{exactExceptions: Array<{path: string, rule: string, token: string, expectedCount: number, reason: string}>} | null} [policy=null]
+ * @returns {Array<{word: string, line: number, context: string, comparisonContext?: string}>}
+ */
+function filterTaxonomyExactResiduals(filePath, raw, violations, policy = null) {
+  if (violations.length === 0) return violations;
+  const repoRelative = path.relative(REPO_ROOT, path.resolve(filePath)).split(path.sep).join('/');
+  const activePolicy = policy ?? JSON.parse(fs.readFileSync(TAXONOMY_POLICY_PATH, 'utf8'));
+  const findings = scanLegacyText(repoRelative, raw);
+  const budgets = new Map();
+
+  for (const exception of activePolicy.exactExceptions ?? []) {
+    if (exception?.path !== repoRelative) continue;
+    const matches = findings.filter(
+      (finding) => finding.rule === exception.rule && finding.token === exception.token
+    );
+    if (matches.length !== exception.expectedCount) continue;
+    for (const finding of matches) {
+      const key = `${finding.token.toLowerCase()}\0${finding.line}`;
+      budgets.set(key, (budgets.get(key) ?? 0) + 1);
+    }
+  }
+
+  return violations.filter((violation) => {
+    const key = `${violation.word.toLowerCase()}\0${violation.line}`;
+    const left = budgets.get(key) ?? 0;
+    if (left === 0) return true;
+    budgets.set(key, left - 1);
+    return false;
+  });
 }
 
 // ── Exports for tests ──────────────────────────────────────────────
-export { isAllowed, maskContent, checkText, checkFile };
+export {
+  isAllowed,
+  maskContent,
+  checkText,
+  checkFile,
+  filterBaselineViolations,
+  filterTaxonomyExactResiduals,
+  violationKey,
+};
 
 // ── Main ───────────────────────────────────────────────────────────
 
@@ -1005,6 +1170,7 @@ if (!__isCli) {
 
   let totalViolations = 0;
   const filesWithViolations = [];
+  let baselineRefUnavailable = false;
 
   for (const filePath of files) {
     const { violations, error, skipped } = checkFile(filePath);
@@ -1013,10 +1179,14 @@ if (!__isCli) {
       process.exit(2);
     }
     if (skipped) continue;
-    const baselineViolations = getBaselineViolations(filePath, baselineRef);
-    const newViolations = baselineViolations.size
-      ? violations.filter((v) => !baselineViolations.has(violationKey(v)))
-      : violations;
+    const { baseline, refUnavailable } = getBaselineViolations(filePath, baselineRef);
+    baselineRefUnavailable ||= refUnavailable;
+    const raw = fs.readFileSync(filePath, 'utf8');
+    const newViolations = filterTaxonomyExactResiduals(
+      filePath,
+      raw,
+      filterBaselineViolations(violations, baseline)
+    );
     if (newViolations.length === 0) continue;
 
     filesWithViolations.push({ filePath, violations: newViolations });
@@ -1025,7 +1195,13 @@ if (!__isCli) {
 
   if (totalViolations === 0) {
     console.log(
-      `✓ check-jingjing: ${files.length} file(s) clean${baselineRef ? ` vs ${baselineRef}` : ''}`
+      `✓ check-jingjing: ${files.length} file(s) clean${
+        baselineRefUnavailable
+          ? ` (baseline ref ${baselineRef} unavailable; checked without grandfathering)`
+          : baselineRef
+            ? ` vs ${baselineRef}`
+            : ''
+      }`
     );
     process.exit(0);
   }
@@ -1053,11 +1229,13 @@ if (!__isCli) {
   console.error(
     `Fix options:\n` +
       `  1. Translate to natural zh-tw (preferred — see GU-LOG_WRITER_PROMPT.md §術語處理).\n` +
-      `  2. If genuinely a canonical/reusable term, apply GU-LOG_WRITER_PROMPT.md's glossary creation standard, discuss the boundary with ShroomDog, then add to src/data/glossary.json with definition + clawdNote.\n` +
+      `  2. If genuinely a canonical/reusable term, apply GU-LOG_WRITER_PROMPT.md's glossary creation standard, discuss the boundary with ShroomDog, then add to src/data/glossary.json with definition + moguNote.\n` +
       `  3. If proper noun (product/people/lab) misclassified, discuss with ShroomDog before adding to ALLOWLIST_RAW in scripts/check-jingjing.mjs.\n` +
-      (baselineRef
-        ? `\nNote: --baseline-ref=${baselineRef} was used, so only new violations are reported; historical grandfathered violations are ignored.\n`
-        : '')
+      (baselineRefUnavailable
+        ? `\nNote: --baseline-ref=${baselineRef} was unavailable for at least one file, so all detected violations are reported, including historical/grandfathered violations.\n`
+        : baselineRef
+          ? `\nNote: --baseline-ref=${baselineRef} was used, so only new violations are reported; historical grandfathered violations are ignored.\n`
+          : '')
   );
   process.exit(1);
 } // end CLI guard

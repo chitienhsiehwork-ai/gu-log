@@ -103,7 +103,7 @@ Setup: read scripts/vibe-scoring-standard.md and GU-LOG_WRITER_PROMPT.md before 
 Stage 1 reference scores for relative comparison:
 ${JSON.stringify(input.stage1Scores, null, 2)}
 
-Score the CURRENT version of the post on the same Vibe dimensions as Stage 1 (per scripts/vibe-scoring-standard.md — tribunalVersion 9+ is 4 dims: persona/clawdNote/vibe/narrative, since clarity moved to Fresh Eyes; legacy v8 was 5). The orchestrator will apply the relative pass bar (no dim drops > 1 from Stage 1) — you just score independently.
+Score the CURRENT version of the post on the same Vibe dimensions as Stage 1 (per scripts/vibe-scoring-standard.md — tribunalVersion 9+ is 4 dims: persona/moguNote/vibe/narrative, since clarity moved to Fresh Eyes; legacy v8 was 5). The orchestrator will apply the relative pass bar (no dim drops > 1 from Stage 1) — you just score independently.
 
 Output shape is FinalVibeJudgeOutput: include scores, composite, pass (boolean), stage_1_scores (copy the reference above), degraded_dimensions (names of dims that dropped > 1 from Stage 1), is_degraded (any dropped > 1?).
 
@@ -169,7 +169,7 @@ export const stage3FactCorrectorRunner: StageRunner<
 
 Source URL for verification: ${input.sourceUrl}
 
-Scope: body + ShroomDogNote ONLY — do NOT modify ClawdNote content (creative scope).
+Scope: body + ShroomDogNote ONLY — do NOT modify MoguNote content (creative scope).
 
 Per your agent instructions, use the standing checklist, fetch the source URL if helpful, and make in-place factual corrections using your Write tool.
 

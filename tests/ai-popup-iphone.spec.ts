@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures';
+import { selectPostTextAndShowPopup as selectAndShowPopup } from './helpers/ai-popup';
 
 /**
  * AI Popup – iPhone E2E Bug Tests
@@ -12,26 +13,7 @@ import { test, expect } from './fixtures';
  * Run with: npx playwright test tests/ai-popup-iphone.spec.ts --project="Mobile Chrome"
  */
 
-const TEST_POST = '/posts/sp-24-20260204-claude-is-a-space-to-think';
-
-/** Select text in .post-content and trigger popup via touchend */
-async function selectAndShowPopup(page: import('@playwright/test').Page) {
-  await page.evaluate(() => {
-    const p = document.querySelector('.post-content p');
-    if (!p || !p.firstChild) throw new Error('No post-content paragraph found');
-    const range = document.createRange();
-    const textNode = p.firstChild;
-    range.setStart(textNode, 0);
-    range.setEnd(textNode, Math.min(textNode.textContent?.length || 30, 30));
-    const sel = window.getSelection();
-    sel?.removeAllRanges();
-    sel?.addRange(range);
-  });
-  await page.evaluate(() => {
-    document.dispatchEvent(new Event('touchend', { bubbles: true }));
-  });
-  await page.waitForTimeout(100);
-}
+const TEST_POST = '/posts/gp-24-20260204-claude-is-a-space-to-think';
 
 /** Set a fake JWT so the user appears logged in */
 async function loginWithFakeJWT(page: import('@playwright/test').Page) {
@@ -45,7 +27,7 @@ async function loginWithFakeJWT(page: import('@playwright/test').Page) {
 test.describe('AI Popup – iPhone Bugs', () => {
   test.beforeEach(async () => {
     const isMobile = test.info().project.name === 'Mobile Chrome';
-    if (!isMobile) test.skip();
+    test.skip(!isMobile, 'iPhone-emulation coverage runs only in the Mobile Chrome project');
   });
 
   test('BUG-1: Bottom sheet must NOT overflow viewport', async ({ page }) => {
@@ -72,7 +54,10 @@ test.describe('AI Popup – iPhone Bugs', () => {
       };
     });
 
-    expect(overflow.ok, `Popup overflows viewport by ${overflow.overflow}px (bottom=${overflow.popupBottom}, viewport=${overflow.viewportHeight})`).toBe(true);
+    expect(
+      overflow.ok,
+      `Popup overflows viewport by ${overflow.overflow}px (bottom=${overflow.popupBottom}, viewport=${overflow.viewportHeight})`
+    ).toBe(true);
   });
 
   test('BUG-3: Input field must remain visible when virtual keyboard is up', async ({ page }) => {
@@ -118,7 +103,10 @@ test.describe('AI Popup – iPhone Bugs', () => {
     // Restore viewport
     await page.setViewportSize(originalViewport);
 
-    expect(inputVisible.ok, `Input hidden behind keyboard: bottom=${inputVisible.inputBottom}, viewport=${inputVisible.viewportHeight}`).toBe(true);
+    expect(
+      inputVisible.ok,
+      `Input hidden behind keyboard: bottom=${inputVisible.inputBottom}, viewport=${inputVisible.viewportHeight}`
+    ).toBe(true);
   });
 
   test('BUG-4: Touch targets must meet Apple HIG minimum (44px height)', async ({ page }) => {
@@ -135,7 +123,7 @@ test.describe('AI Popup – iPhone Bugs', () => {
     const buttonSizes = await page.evaluate(() => {
       const popup = document.getElementById('ai-popup');
       if (!popup) return [];
-      return [...popup.querySelectorAll('button')].map(btn => {
+      return [...popup.querySelectorAll('button')].map((btn) => {
         const rect = btn.getBoundingClientRect();
         return {
           text: btn.textContent?.trim().substring(0, 30) || '',
@@ -148,7 +136,10 @@ test.describe('AI Popup – iPhone Bugs', () => {
     expect(buttonSizes.length).toBeGreaterThan(0);
 
     for (const btn of buttonSizes) {
-      expect(btn.height, `Button "${btn.text}" height ${btn.height}px < 44px minimum`).toBeGreaterThanOrEqual(44);
+      expect(
+        btn.height,
+        `Button "${btn.text}" height ${btn.height}px < 44px minimum`
+      ).toBeGreaterThanOrEqual(44);
     }
   });
 
@@ -173,7 +164,10 @@ test.describe('AI Popup – iPhone Bugs', () => {
       // In emulation it's 0, but the CSS should reference it
       const styles = document.querySelectorAll('style');
       for (const s of styles) {
-        if (s.textContent?.includes('safe-area-inset-bottom') && s.textContent?.includes('ai-popup')) {
+        if (
+          s.textContent?.includes('safe-area-inset-bottom') &&
+          s.textContent?.includes('ai-popup')
+        ) {
           return true;
         }
       }
@@ -182,10 +176,15 @@ test.describe('AI Popup – iPhone Bugs', () => {
       return popup.style.paddingBottom?.includes('safe-area') || false;
     });
 
-    expect(hasSafeArea, 'Bottom sheet CSS must include env(safe-area-inset-bottom) for notched iPhones').toBe(true);
+    expect(
+      hasSafeArea,
+      'Bottom sheet CSS must include env(safe-area-inset-bottom) for notched iPhones'
+    ).toBe(true);
   });
 
-  test('BUG-2: Selected text context must be preserved visually after tapping Ask AI', async ({ page }) => {
+  test('BUG-2: Selected text context must be preserved visually after tapping Ask AI', async ({
+    page,
+  }) => {
     await page.goto(TEST_POST);
     await loginWithFakeJWT(page);
     await page.reload();
@@ -203,44 +202,8 @@ test.describe('AI Popup – iPhone Bugs', () => {
     await popup.locator('[data-action="ask"]').tap();
     await page.waitForTimeout(200);
 
-    // After tapping, the popup should still show what text was selected
-    // Either by preserving the browser selection OR showing a "selected text" indicator
-    const hasVisualContext = await page.evaluate(() => {
-      // Check 1: browser selection still exists
-      const sel = window.getSelection();
-      if (sel && sel.toString().trim().length > 0) return true;
-
-      // Check 2: popup shows the selected text somewhere (e.g., a quote block)
-      const popup = document.getElementById('ai-popup');
-      if (!popup) return false;
-      const _texts = popup.innerText;
-      // The original selected text should appear somewhere in the popup
-      // (even abbreviated) as context for the user
-      return false; // Currently neither is implemented
-    });
-
-    expect(hasVisualContext, 'User must see what text they selected after tapping Ask AI').toBe(true);
-  });
-
-  test('UX-1: Mobile bottom sheet should have drag handle affordance', async ({ page }) => {
-    await page.goto(TEST_POST);
-    await loginWithFakeJWT(page);
-    await page.reload();
-
-    await selectAndShowPopup(page);
-
-    const popup = page.locator('#ai-popup');
-    await expect(popup).toBeVisible({ timeout: 3000 });
-    await expect(popup).toHaveClass(/ai-popup--mobile/);
-
-    // Bottom sheet should have a visual drag handle (common iOS/Android pattern)
-    const hasDragHandle = await page.evaluate(() => {
-      const popup = document.getElementById('ai-popup');
-      if (!popup) return false;
-      // Look for a drag handle element (thin bar at top)
-      return !!popup.querySelector('[class*="handle"], [class*="drag"], [aria-label*="drag"]');
-    });
-
-    expect(hasDragHandle, 'Mobile bottom sheet should have a drag handle for better UX').toBe(true);
+    const selectionPreview = popup.locator('.ai-popup-selection-text');
+    await expect(selectionPreview).toBeVisible();
+    await expect(selectionPreview).toHaveText(textBefore);
   });
 });

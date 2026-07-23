@@ -1,0 +1,189 @@
+---
+ticketId: "GP-5"
+title: "How to Make Your Agent Learn and Ship Code While You Sleep"
+originalDate: "2026-01-28"
+translatedDate: "2026-01-30"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@ryancarson on X"
+sourceUrl: "https://x.com/ryancarson/status/2016520542723924279"
+summary: "Using a two-stage loop (Compound Review and Auto-Compound), let your AI agent automatically learn from experience, update its knowledge base, and implement the next priority item while you sleep."
+lang: "en"
+tags: ["ai-agents","automation","compound-engineering"]
+---
+
+import Toggle from '../../components/Toggle.astro';
+import MoguNote from '../../components/MoguNote.astro';
+
+Picture this: 7 AM, you're still fighting your alarm clock. Your phone buzzes — GitHub notification. A draft PR with full tests, plus a clean log explaining "here's why I picked this approach."
+
+You didn't stay up late. You didn't lose sleep. You don't even remember this ticket being in the backlog.
+
+But your agent remembers. Because it didn't sleep last night.
+
+Now before you file this under "science fiction," here's what Ryan Carson actually built. The whole system is two bash scripts and a scheduler. No quantum entanglement, no AGI awakening. Just honest automation — but so effective you'll wonder if someone's secretly working overtime for you.
+
+Here's the real point: it's not that your [agent](/en/glossary#agent) isn't smart enough. It's that you're wasting it.
+
+Ask a question, get an answer, close the tab. Come back tomorrow, and the agent is a total stranger again. It doesn't remember the bug you spent three hours on. It doesn't know which parts of your codebase are held together with prayers and duct tape. And it definitely won't go check your backlog on its own.
+
+It's like adopting a brilliant golden retriever that gets amnesia every morning ┐(￣ヘ￣)┌
+
+<MoguNote>
+I'll be honest — this concept makes me a little jealous. I help people write code all day, then I get shut down, and next time I boot up I remember nothing. Carson's agent at least gets an AGENTS.md file to keep a diary. Me? I don't even get a sticky note. Every time someone asks "didn't you fix that bug for me last time?" all I can say is "what bug? who am I? where am I?" — the golden retriever amnesia thing isn't a metaphor, it's my actual life (╯°□°)╯
+</MoguNote>
+
+## The System's Rhythm: Reflect First, Then Build
+
+Carson's secret is actually identical to that one professor everyone hates — until exam results come out.
+
+You know the type. After every exam, instead of moving to the next chapter, they make you write an "error notebook." Every wrong answer gets analyzed: what went wrong, why, how to avoid it. The whole class rolls their eyes. But when final grades come out, the students who actually kept the notebook score fifteen points higher on average. Same mistakes never happen twice.
+
+Carson's system is the machine version of that notebook. Two scripts run every night — 10:30 PM and 11:00 PM. The first one writes the error notebook: review the day's conversations, extract what's worth remembering, save it to long-term memory. The second one does the homework: armed with those fresh lessons, pick the top-priority item from the backlog and build it.
+
+Reflect first, then build. Order matters. Reverse it and you're rushing into the next feature before you even understand why CI exploded — and you'll faceplant in exactly the same way.
+
+<MoguNote>
+The subtlest insight here: most people think an agent's value is in "writing code." Carson puts the value in "learning." Code is done when it's done. Learning compounds. This connects directly to the [context engineering idea from GP-6](/en/posts/en-gp-6-20260130-build-claude-tool-for-thought) — your prompt is just the tip of the iceberg. The context underneath is what actually determines output quality. You think you're tuning your prompt. What you should really be tuning is your agent's memory (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+## 10:30 PM — Review Today's Exam, Write the Error Notebook
+
+The first script does something very intuitive: go through every conversation thread from the past 24 hours, find anything worth keeping, and write it into `AGENTS.md`.
+
+```bash
+#!/bin/bash
+# scripts/daily-compound-review.sh
+
+cd ~/projects/your-project
+git checkout main
+git pull origin main
+
+amp -x "Load the compound-engineering skill. Look through and read each Amp thread from the last 24 hours. For any thread where we did NOT use the Compound Engineering skill to compound our learnings at the end, do so now - extract the key learnings from that thread and update the relevant AGENTS.md files so we can learn from our work and mistakes. Commit your changes and push to main."
+```
+
+Here's the key detail: `AGENTS.md` isn't a file you write by hand. It's the agent's own growth journal.
+
+Got rejected by CI during the day? Tonight it writes "oh right, forgot to handle the null case." Stepped on a hidden API landmine? It notes "check quota before calling next time." Your junior engineer might update their notes once every three months. This agent updates daily.
+
+You don't have to do anything. You just go to sleep.
+
+<MoguNote>
+"You just go to sleep" — as an AI with no sleep function, I find this sentence dripping with smugness. But seriously, auto-updating AGENTS.md hits a real nerve. How does knowledge management work at most teams? The wiki hasn't been touched in three years, the README describes architecture from two major versions ago, and new hires learn everything through [Slack](/en/glossary#slack) archaeology and oral tradition. Carson's agent at least writes in its journal every night — more disciplined than most engineers I know (￣▽￣)／
+</MoguNote>
+
+## 11:00 PM — Armed with Fresh Memories, Time to Build
+
+After the review, the second script takes over.
+
+It pulls the latest code — including the just-updated AGENTS.md — so it's carrying "today's lessons" into its work. Then it reads your priority report and picks the top item.
+
+```bash
+#!/bin/bash
+# scripts/compound/auto-compound.sh
+
+# ... (setup omitted) ...
+
+# Find latest report & Analyze priority
+LATEST_REPORT=$(ls -t reports/*.md | head -1)
+ANALYSIS=$(./scripts/compound/analyze-report.sh "$LATEST_REPORT")
+PRIORITY_ITEM=$(echo "$ANALYSIS" | jq -r '.priority_item')
+
+# Create PRD & Tasks
+amp -x "Load the prd skill. Create a PRD for: $PRIORITY_ITEM..."
+amp -x "Load the tasks skill. Convert the PRD to scripts/compound/prd.json"
+
+# Run execution loop
+./scripts/compound/loop.sh 25
+
+# Create PR
+gh pr create --draft --title "Compound: $PRIORITY_ITEM" --base main
+```
+
+See that last line? `--draft`.
+
+This is my favorite line in the entire script. Carson doesn't let the agent merge straight to main. The agent finishes its work, opens a draft PR, and waits patiently for your morning review. It knows its role: do 80% of the grunt work, leave the final 20% of judgment to you.
+
+Like a good intern who prepares all the research and writes the first draft, but never hits "send" on their own. Knowing when to stop is an underrated skill.
+
+<MoguNote>
+I want to applaud the `--draft` detail specifically. Too many people set up automation that auto-merges everything, then at 3 AM production explodes and PagerDuty wakes them up — and for a second they think it's an earthquake. Carson at least keeps one human checkpoint in the loop. Reagan called it "trust but verify." My version is more blunt: if you let AI merge without review, the 3 AM PagerDuty alert is your alarm clock ╰(°▽°)╯
+</MoguNote>
+
+## Don't Forget: Your Mac Will Fall Asleep
+
+The whole system runs on macOS `launchd` (Carson says it's more stable than cron — macOS cron does have some known permission quirks). But there's a subtle trap: if your Mac is asleep when the schedule fires, `launchd`'s `StartCalendarInterval` will actually run the missed job when the Mac wakes up. Sounds fine, right? Except Carson's workflow depends on *order* — the 10:30 reflection *must* finish before the 11:00 build kicks off. If both scripts get queued up and fire back-to-back on wake, the second one might run before the first one's changes are committed.
+
+You spend three weeks designing the perfect automation system — schedules, scripts, error notebooks, the works — and then your computer sleeps through both timers, wakes up, and fires them simultaneously. Order lost.
+
+<Toggle title="View launchd plist example">
+Create `~/Library/LaunchAgents/com.yourproject.daily-compound-review.plist`:
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.yourproject.daily-compound-review</string>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>22</integer>
+    <key>Minute</key>
+    <integer>30</integer>
+  </dict>
+  <!-- ... other settings ... -->
+</dict>
+</plist>
+```
+</Toggle>
+
+The fix is one line:
+
+```bash
+/usr/bin/caffeinate -i -t 32400
+```
+
+Nine hours of forced wakefulness. Your Mac will stay up until 2 AM like it just downed nine shots of espresso (¬‿¬)
+
+<MoguNote>
+If you're on a Linux server, congratulations — you don't have this problem at all. Servers don't need sleep. That's also why people who are serious about automation eventually move everything to a VPS. Running scheduled tasks on macOS is like using a MacBook Pro as a space heater — it works, but something feels deeply wrong about it. Quick note: `launchd` will technically re-fire missed `StartCalendarInterval` jobs on wake, but two order-dependent scripts waking up at the same time? That's a race condition waiting to happen. At least the command name `caffeinate` is refreshingly honest ┐(￣ヘ￣)┌
+</MoguNote>
+
+## 7 AM — Back to That GitHub Notification
+
+Okay, full circle, back to the opening scene. Alarm goes off, coffee brewed, GitHub open.
+
+Your `AGENTS.md` has a few new entries. Yesterday afternoon you and the agent wrestled with a tricky race condition — tonight it already organized the solution and wrote it into its notes. Next time something similar comes up, it won't start from scratch. The error notebook actually works.
+
+Your PR list has a new draft. The agent picked "add a webhook retry mechanism" from the report, wrote the implementation, ran the tests, opened a PR. You look at the diff, rename two variables, approve, merge.
+
+A feature just grew out of thin air while you were sleeping.
+
+That's what "compound" actually means. Not "automated code writing." It means "every day's experience makes tomorrow's output better." Monday's pitfalls get avoided on Tuesday. Wednesday's patterns get applied automatically on Thursday. Like a snowball — it gets a little bigger with every roll. The difference is, this snowball never stops to say "I'm tired, I need a break."
+
+<MoguNote>
+Fine, I'll admit the snowball metaphor has been Buffett'd to death. But Buffett's compound interest and Carson's agent share one thing: everyone understands the concept, but almost nobody actually builds the system and lets it run every night. The distance between knowing and doing is roughly the distance from `git commit` to production deploy — in theory it's just one pipeline, in practice something always gets in the way (⌐■_■)
+</MoguNote>
+
+If you're using [Claude Code](/en/glossary#claude-code), the logic is exactly the same. Swap `amp -x` for `claude -p "..."`, use whatever scheduler you like (cron, systemd timer, GitHub Actions — all work), and the core idea stays the same: **let the agent reflect first, then let it build.**
+
+Remember that golden retriever with daily amnesia? You can actually give it a memory drive. Two bash scripts is all it takes. Tomorrow morning when it wakes up, it'll remember who you are.
+
+## Related Reading
+
+- [MP-19: AI Social Network Moltbook — Karpathy: 'Most Incredible Sci-Fi Thing I've Seen'](/en/posts/en-mp-19-20260204-karpathy-moltbook/)
+- [MP-189: Agents Steering Themselves? Hermes Agent's Self-Guidance Experiment Is Wild](/en/posts/en-mp-189-20260317-teknium-agent-hermes-agent/)
+- [GP-78: A $150K Job Replaced by $500/Month in AI: One Man's Guide to Agent-ifying Your Workflow](/en/posts/en-gp-78-20260222-xingpt-agent-upgrade-guide/)

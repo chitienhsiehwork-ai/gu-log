@@ -45,7 +45,7 @@ sys.exit(0 if composite >= 8 else 1)
 
 ### Rationale
 
-Real data: `cp-pending-*` passed with accuracy=7, fidelity=8, consistency=9 → floor(24/3) = 8 → PASS. A fact checker that lets accuracy=7 through is not doing its job. The reviewer report flagged this as High severity.
+Real data: `mp-pending-*` passed with accuracy=7, fidelity=8, consistency=9 → floor(24/3) = 8 → PASS. A fact checker that lets accuracy=7 through is not doing its job. The reviewer report flagged this as High severity.
 
 ### Acceptance Criteria
 
@@ -299,7 +299,7 @@ fi
 ```json
 {
   "judge": "vibe",
-  "dimensions": { "persona": 6, "clawdNote": 5, ... },
+  "dimensions": { "persona": 6, "moguNote": 5, ... },
   "score": 6,
   "verdict": "FAIL",
   "reasons": { "persona": "One-sentence assessment.", ... }
@@ -310,25 +310,25 @@ fi
 ```json
 {
   "judge": "vibe",
-  "dimensions": { "persona": 6, "clawdNote": 5, "vibe": 7, "clarity": 8, "narrative": 4 },
+  "dimensions": { "persona": 6, "moguNote": 5, "vibe": 7, "clarity": 8, "narrative": 4 },
   "score": 6,
   "verdict": "FAIL",
   "reasons": {
     "persona": "LHY feel present in analogies but skeleton is a linear report — Decorative Persona Trap.",
-    "clawdNote": "All 6 notes are explain-only. Zero opinion stance detected.",
+    "moguNote": "All 6 notes are explain-only. Zero opinion stance detected.",
     "vibe": "Readable but not shareable. Bullet-dump ending kills momentum.",
     "clarity": "Body text avoids 你/我. Speaker attribution clean.",
     "narrative": "Strip analogies and kaomoji: remaining skeleton is intro → expand → expand → conclude. Linear."
   },
   "improvements": {
     "persona": "Open with the twist about agent traces being 'AI diary entries' (paragraph 7) instead of the context-setting intro. Move current intro to paragraph 2.",
-    "clawdNote": "Notes at lines 45, 78, 112 are explain-only. Convert to opinion-first: 'I think the author underestimates X because...' or 'This is wrong — here's why...'",
+    "moguNote": "Notes at lines 45, 78, 112 are explain-only. Convert to opinion-first: 'I think the author underestimates X because...' or 'This is wrong — here's why...'",
     "vibe": "Replace bullet-dump ending (lines 180-195) with a callback to the opening hook. One memorable line > five summary bullets.",
     "narrative": "Current structure: linear (intro→A→B→C→conclusion). Restructure: hook with the trace visualization surprise (section 3) → flashback to why traces matter → build to the 'aha' moment → callback ending."
   },
   "critical_issues": [
     "Decorative Persona Trap — surface features present (analogies, kaomoji, callbacks) but skeleton is a linear report. This caps persona ≤ 5 and narrative ≤ 5. Root cause: must restructure, not decorate.",
-    "All ClawdNotes are explain-only — no opinion, no stance, no challenge to the source. This caps clawdNote ≤ 6."
+    "All MoguNotes are explain-only — no opinion, no stance, no challenge to the source. This caps moguNote ≤ 6."
   ]
 }
 ```
@@ -405,7 +405,7 @@ Keep suggestions simple — you're a 3-month dev, suggest fixes a 3-month dev wo
 ```markdown
 Vibe improvements should reference the specific scoring traps and rubric:
 - persona: Reference Decorative Persona Trap if applicable. Suggest specific structural changes, not surface edits.
-- clawdNote: Tag which notes are explain-only vs opinion. Suggest specific opinion conversions.
+- moguNote: Tag which notes are explain-only vs opinion. Suggest specific opinion conversions.
 - vibe: Identify the specific vibe killer (bullet-dump ending? template structure? motivational closing?)
 - clarity: Cite specific 你/我 instances in body text with line numbers.
 - narrative: Describe the current skeleton structure (e.g., "intro→A→B→C→conclusion = linear"). Suggest an alternative arc (e.g., "hook with C → flashback to A → build through B → callback ending").
@@ -957,11 +957,11 @@ main() {
 send_telegram_alert() {
   local severity="$1"
   local heartbeat_file="$2"
-  # Builder must discover the existing Telegram bot token + chat ID
-  # from /home/clawd/clawd/ on the VM
+  # Builder must use the operator-configured Telegram env file on the VM.
+  # Its actual path comes from local machine context, not this tracked spec.
   # Expected: TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in env or config file
-  local config_file="$HOME/clawd/config/telegram.env"
-  if [ ! -f "$config_file" ]; then
+  local config_file="${TELEGRAM_ENV_FILE:-}"
+  if [ -z "$config_file" ] || [ ! -f "$config_file" ]; then
     return  # No telegram config, skip alerting
   fi
   source "$config_file"
@@ -979,8 +979,8 @@ $(jq -r '.checks | to_entries[] | select(.value.status != "ok") | "- \(.key): \(
 #### Cron setup
 
 ```
-# On VM: crontab -e
-*/15 * * * * bash ~/gu-log/scripts/tribunal-heartbeat.sh
+# On VM: crontab -e（GU_LOG_DIR is injected by deployment config）
+*/15 * * * * bash "$GU_LOG_DIR/scripts/tribunal-heartbeat.sh"
 ```
 
 ### 6b. Full Monitor (3x/day cron)
@@ -992,9 +992,9 @@ This script is invoked by cron and calls CC for a full analysis session.
 ```bash
 #!/bin/bash
 # tribunal-monitor-cron.sh — 3x/day full monitor using CC session
-# Cron: 55 3 * * * bash ~/gu-log/scripts/tribunal-monitor-cron.sh   # 11:55 TST
-#       0 10 * * * bash ~/gu-log/scripts/tribunal-monitor-cron.sh    # 18:00 TST
-#       0 15 * * * bash ~/gu-log/scripts/tribunal-monitor-cron.sh    # 23:00 TST
+# Cron: 55 3 * * * bash "$GU_LOG_DIR/scripts/tribunal-monitor-cron.sh"   # 11:55 TST
+#       0 10 * * * bash "$GU_LOG_DIR/scripts/tribunal-monitor-cron.sh"    # 18:00 TST
+#       0 15 * * * bash "$GU_LOG_DIR/scripts/tribunal-monitor-cron.sh"    # 23:00 TST
 # (Cron times are UTC; TST = UTC+8)
 set -uo pipefail
 export TZ=Asia/Taipei
@@ -1018,7 +1018,7 @@ fi)
 $(cat "$HEARTBEAT_FILE" 2>/dev/null || echo "No heartbeat file found")
 
 ## Tasks
-1. Check quota: run \$HOME/clawd/scripts/usage-monitor.sh --json
+1. Check quota: run \$USAGE_MONITOR --json
 2. Read scores/tribunal-progress.json — summarize: total PASS, FAILED, NEEDS_REVIEW, pending
 3. For FAILED articles: what stage failed? How many retries?
 4. Check service: systemctl --user status tribunal-loop.service
@@ -1035,11 +1035,11 @@ claude -p --dangerously-skip-permissions "$PROMPT" \
 
 ```
 # 11:55 TST = 03:55 UTC
-55 3 * * * bash ~/gu-log/scripts/tribunal-monitor-cron.sh
+55 3 * * * bash "$GU_LOG_DIR/scripts/tribunal-monitor-cron.sh"
 # 18:00 TST = 10:00 UTC
-0 10 * * * bash ~/gu-log/scripts/tribunal-monitor-cron.sh
+0 10 * * * bash "$GU_LOG_DIR/scripts/tribunal-monitor-cron.sh"
 # 23:00 TST = 15:00 UTC
-0 15 * * * bash ~/gu-log/scripts/tribunal-monitor-cron.sh
+0 15 * * * bash "$GU_LOG_DIR/scripts/tribunal-monitor-cron.sh"
 ```
 
 ### Acceptance Criteria (6a — Heartbeat)
@@ -1199,7 +1199,7 @@ jq '.critical_issues' /tmp/test-vibe-output.json # should exist, array
 # 4e. Validate existing pipeline unchanged:
 # validate_judge_score_json still passes (new fields are additive)
 source scripts/score-helpers.sh
-echo '{"judge":"vibe","dimensions":{"persona":6,"clawdNote":5,"vibe":7,"clarity":8,"narrative":4},"score":6,"verdict":"FAIL","reasons":{},"improvements":{},"critical_issues":[]}' > /tmp/test-schema.json
+echo '{"judge":"vibe","dimensions":{"persona":6,"moguNote":5,"vibe":7,"clarity":8,"narrative":4},"score":6,"verdict":"FAIL","reasons":{},"improvements":{},"critical_issues":[]}' > /tmp/test-schema.json
 validate_judge_score_json "vibe-opus-scorer" /tmp/test-schema.json; echo "exit: $?"  # expect 0
 ```
 
@@ -1239,8 +1239,8 @@ bash scripts/tribunal-quota-loop.sh --dry-run
 ## Notes
 
 - **Progress file dual schema**: The current `tribunal-progress.json` has two schemas — old entries use ticketId as key with `{iterations: N}`, new entries use filename as key with `{article, stages, status}`. Changes 2-3 only affect the new schema. Old entries are irrelevant to the tribunal pipeline.
-- **VM deployment**: Changes 1-5 are pushed to git, VM picks up via `git pull`. Change 6 requires cron setup on the VM (`ssh clawd-vm`).
-- **Builder should discover Telegram infrastructure**: Check `/home/clawd/clawd/` for existing bot token, chat ID, and any existing alerting scripts. Do NOT create a new bot if one exists.
+- **VM deployment**: Changes 1-5 are pushed to git, VM picks up via `git pull`. Change 6 requires cron setup through `ssh "$TRIBUNAL_HOST"`; the actual host mapping remains local-only.
+- **Builder should discover Telegram infrastructure**: Read the operator-configured notifier env / directory from local machine context. Do NOT scan a hard-coded home path or create a new bot if one exists.
 - **Quiet hours interaction**: Changes 5 (headroom) and existing quiet hours are orthogonal. Quiet hours block processing during weekday 20-02 TST. Headroom decides whether to process when NOT in quiet hours. Both checks remain in place.
 
 ---
@@ -1320,7 +1320,7 @@ The Librarian agent already has the **Write tool**. Its prompt just needs to say
 
 **Token savings:** Eliminates 1 Opus writer session per Librarian fail. Librarian reruns are Sonnet (cheap).
 
-**Risk:** Librarian might over-edit when it has write access. **Mitigation:** Explicit constraint in prompt: "ONLY add/fix links and glossary references. Do NOT change prose, facts, narrative structure, or ClawdNote content."
+**Risk:** Librarian might over-edit when it has write access. **Mitigation:** Explicit constraint in prompt: "ONLY add/fix links and glossary references. Do NOT change prose, facts, narrative structure, or MoguNote content."
 
 **Implementation:**
 1. Update `.claude/agents/librarian.md` — add "fix on FAIL" instructions with constraints
@@ -1531,10 +1531,10 @@ This is the structural mechanism that makes the stage flip safe and eliminates t
 
 | Writer for | CAN change | CANNOT change |
 |-----------|------------|---------------|
-| **Vibe** | Everything — skeleton, narrative, persona, ClawdNote content, section order, opening/ending | Frontmatter fields |
-| **FreshEyes** | Wording for readability, jargon explanations, paragraph breaks, transitions | Narrative skeleton, section order, ClawdNote opinion content, opening hook, ending punch |
-| **FactChecker** | Factual claims, numbers, hedge words, source attribution, technical terminology | Narrative, readability, prose style, links, ClawdNote non-factual opinions |
-| **Librarian** (self-fix) | Glossary links, internal post links, identity links (/about), link text | Prose content, facts, narrative, ClawdNote content, anything that's not a link |
+| **Vibe** | Everything — skeleton, narrative, persona, MoguNote content, section order, opening/ending | Frontmatter fields |
+| **FreshEyes** | Wording for readability, jargon explanations, paragraph breaks, transitions | Narrative skeleton, section order, MoguNote opinion content, opening hook, ending punch |
+| **FactChecker** | Factual claims, numbers, hedge words, source attribution, technical terminology | Narrative, readability, prose style, links, MoguNote non-factual opinions |
+| **Librarian** (self-fix) | Glossary links, internal post links, identity links (/about), link text | Prose content, facts, narrative, MoguNote content, anything that's not a link |
 
 ### Implementation in Writer Prompt
 
@@ -1554,7 +1554,7 @@ You MUST NOT change:
 - Narrative structure or section ordering
 - Prose style, readability, or paragraph structure
 - Glossary links or internal cross-references
-- ClawdNote opinions (unless they contain factual errors)
+- MoguNote opinions (unless they contain factual errors)
 - Opening hook or ending punch line
 
 If a factual fix requires changing more than one sentence, flag it in your summary but do not rewrite the surrounding paragraph."

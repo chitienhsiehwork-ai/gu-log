@@ -21,7 +21,7 @@ A `structural-fail` draft is one whose underlying article shape remains weak eve
 #### Scenario: listicle skeleton is triaged as structural fail
 
 - **WHEN** a draft has a hook and callback
-- **AND** removing analogies, ClawdNotes, and stylistic garnish reveals a sequential “tips / features / sections” report skeleton
+- **AND** removing analogies, MoguNotes, and stylistic garnish reveals a sequential “tips / features / sections” report skeleton
 - **THEN** the editorial judge SHALL classify it as `structural-fail`
 - **AND** SHALL explain that the weakness is in article shape rather than sentence polish
 
@@ -122,7 +122,7 @@ A metaphor that is merely funny, vivid, or quotable but does not organize the ar
 
 For article-shape evaluation, the editorial judge SHALL apply strip-test reasoning:
 
-- temporarily ignore ClawdNotes, kaomoji, analogies, and decorative stylistic language
+- temporarily ignore MoguNotes, kaomoji, analogies, and decorative stylistic language
 - inspect the remaining section sequence and claim flow
 - decide whether the remaining skeleton still has tension, escalation, and article-level movement
 

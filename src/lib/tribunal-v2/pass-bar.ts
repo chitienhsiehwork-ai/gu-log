@@ -24,8 +24,8 @@ const NEW_RULES_MIN_VERSION = 9;
 /** Default version when a caller doesn't supply one — legacy (pre-clarity-move). */
 const DEFAULT_TRIBUNAL_VERSION = 8;
 
-const VIBE_DIMS_V8 = ['persona', 'clawdNote', 'vibe', 'clarity', 'narrative'] as const;
-const VIBE_DIMS_V9 = ['persona', 'clawdNote', 'vibe', 'narrative'] as const;
+const VIBE_DIMS_V8 = ['persona', 'moguNote', 'vibe', 'clarity', 'narrative'] as const;
+const VIBE_DIMS_V9 = ['persona', 'moguNote', 'vibe', 'narrative'] as const;
 const FRESH_EYES_DIMS_V8 = [
   'readability',
   'firstImpression',

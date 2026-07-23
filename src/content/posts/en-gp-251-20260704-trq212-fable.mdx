@@ -1,0 +1,244 @@
+---
+ticketId: 'GP-251'
+title: "Fable Field Guide: Find Your Unknowns Before You Start Coding"
+originalDate: '2026-07-03'
+translatedDate: '2026-07-04'
+translatedBy:
+  model: "Opus 4.5"
+  harness: "Claude Code CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "GPT-5.5"
+      harness: "Codex CLI + Tribunal"
+    - role: "Rewritten"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "GPT-5.5"
+      harness: "gp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: '@trq212 on X'
+sourceUrl: 'https://x.com/trq212/status/2073100352921215386'
+lang: 'en'
+summary: "Anthropic engineer trq212 shares his methodology for coding with Claude Fable 5: the bottleneck isn't model capability anymore—it's whether users can surface their 'unknowns' before, during, and after implementation. Includes prompt examples plus HTML artifacts for visualizing blind spots and plans."
+tags: ["agentic-coding","prompt-engineering","fable","workflow"]
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 10
+    commentarySeparation: 9
+    score: 8
+    date: "2026-07-04"
+    model: "gpt-5.5"
+  librarian:
+    glossary: 8
+    crossRef: 8
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-07-04"
+    model: "gpt-5.5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 9
+    score: 8
+    date: "2026-07-04"
+    model: "gpt-5.5"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    narrative: 7
+    score: 8
+    date: "2026-07-04"
+    model: "claude-opus-4-5"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+import PostImage from '../../components/PostImage.astro';
+import mapVsTerritory from '../../assets/posts/gp-251-fable-unknowns/map-vs-territory-en.png';
+import knownUnknownsQuadrant from '../../assets/posts/gp-251-fable-unknowns/known-unknowns-quadrant-en.png';
+import unknownDiscoveryLoop from '../../assets/posts/gp-251-fable-unknowns/unknown-discovery-loop-en.png';
+
+For [Thariq](/en/glossary#thariq) (@trq212), Claude Fable 5 is the first model where the quality bottleneck clearly shifted—away from the model itself, and toward whether the user can articulate their "unknowns."
+
+<MoguNote>
+He borrows a classic phrase: "The map is not the territory." The [prompt](/glossary#prompt) and context are the map; the codebase and real world are the territory. The gap between them is your "unknowns." When an agent stumbles into unknowns, it can only guess—and bad guesses blow up. This one line explains why the same model feels effortless for some and disastrous for others. The difference isn't the model. It's whose map is more accurate.
+</MoguNote>
+
+<PostImage
+  src={mapVsTerritory}
+  alt="A diagram showing the same landscape as a simplified map on the left and as the real world on the right, where the real world includes a road closure, construction site, and pothole missing from the map"
+  caption="The map and the real world can describe the same place, but the map may be stale or omit tiny details that matter on foot. Prompts work the same way for agents."
+/>
+
+The methodology is dead simple: before, during, and after implementation, use different techniques to surface your "unknowns." You don't have to run the full playbook every time—think of it as a toolbox. The more unfamiliar the task, the more tools worth pulling out.
+
+## Four Layers of Unknowns
+
+Before writing a prompt, figure out what you don't know. trq212 breaks it into four layers:
+
+**Known Knowns:** What you explicitly write in the prompt—the clear instructions telling the agent what to do.
+
+**Known Unknowns:** Things you know you haven't figured out yet, but at least you know they need figuring out. Example: "What's the rate limit on this API? I don't know yet, but I know it'll affect the implementation."
+
+**Unknown Knowns:** Assumptions so obvious you'd never write them down, but you'd immediately spot if the implementation got them wrong. Example: "Of course the button goes here"—nobody says it, but everyone notices when it's wrong.
+
+**Unknown Unknowns:** Things you have no idea you don't know. You won't ask about them. You won't defend against them.
+
+<PostImage
+  src={knownUnknownsQuadrant}
+  alt="A four-quadrant diagram with English labels, definitions, and everyday examples for known knowns, known unknowns, unknown knowns, and unknown unknowns, with the unknown unknowns quadrant shown as a dark pothole warning"
+  caption="The frame only becomes useful when the abstractions touch daily life: some things you know, some answers you know are missing, and the dangerous ones are the potholes you never expected."
+/>
+
+<MoguNote>
+The four-quadrant breakdown isn't vocabulary trivia—it forces developers to admit something annoying: agents crash hardest in the "unknown unknowns" quadrant, precisely because users don't know to guard against them. The first three quadrants can be patched with experience. The fourth is pure minefield. This entire methodology, stripped down, is about detonating those mines while it's still cheap.
+</MoguNote>
+
+<a class="artifact-callout" href="/artifacts/gp-251-unknowns/index.html">
+  <span class="artifact-callout__icon-wrap">
+    <span class="artifact-callout__icon" aria-hidden="true">↗</span>
+    <span class="artifact-callout__tap">open</span>
+  </span>
+  <span class="artifact-callout__body">
+    <span class="artifact-callout__label">original artifact mirror</span>
+    <strong>Explore Thariq's original 11 unknowns examples</strong>
+    <span class="artifact-callout__meta">English original · mirror copy · no API · runs in your browser</span>
+    <span class="artifact-callout__cta">
+      <span>Open mirror</span>
+      <span aria-hidden="true">→</span>
+    </span>
+  </span>
+</a>
+
+The best agent coders share one trait: they have fewer unknowns. They know the codebase and model behavior so deeply that their instructions land precisely, leaving exactly the right amount of slack. But even experts assume they have unknowns. Reducing unknowns and preparing for them—that's the core skill of agent coding. And it's trainable.
+
+---
+
+## Balancing Your Prompts
+
+This isn't about writing prompts like legal contracts. Over-specify, and Claude plows straight ahead when it should pivot. Under-specify, and it backfills with "industry best practices" that may not fit your actual task.
+
+The point isn't "write more" or "write less"—it's distinguishing what needs to be locked down from what should stay open for Claude to navigate. Claude can actually help you find unknowns faster—it searches codebases and references quickly, and knows more than most people on most topics. The key is giving it starting context: where your thinking currently is, how familiar you are with the problem and codebase. Let it come alongside as a thinking partner.
+
+---
+
+<PostImage
+  src={unknownDiscoveryLoop}
+  alt="A three-step loop showing unknown discovery before implementation through a map scan, during implementation through question marks in an editor, and after implementation through warning signs, a surprised user bubble, and expected-versus-actual mismatch"
+  caption="Unknowns can surface after delivery as a 'why did this happen?' symptom. The earlier they appear, the cheaper they are to handle."
+/>
+
+## Pre-Implementation: Surface Your Blind Spots
+
+### Blind Spot Scans
+
+When working in an unfamiliar part of the codebase, or doing something you've never done (like touching design for the first time), you're probably sitting on a pile of unknown unknowns. Ask Claude to scan for blind spots—the key is feeding enough context: who you are, what you already know, what you don't.
+
+> I need to add a new auth provider to this codebase, but I'm completely unfamiliar with the auth module here. Run a blind spot scan—find things I might not have thought of, so I can give you better instructions.
+
+> I know nothing about color grading, but I need to color grade this video. Help me figure out what I don't know about color grading, so I can give you more precise instructions.
+
+<MoguNote>
+Notice trq212's phrasing: "so I can give you better instructions." This treats Claude as a two-way partner, not a one-way wishing well. Getting an agent to help you find "questions you didn't know to ask" is worth far more than asking for answers directly—wrong answers you can spot, but missing questions leave you blind to what went wrong.
+</MoguNote>
+
+### Brainstorming, Prototyping, and Interviews
+
+When you have many "unknown knowns"—the kind of preferences you only recognize when you see them—the cheapest move is brainstorming and prototyping with Claude first. Forcing vague preferences to surface during prototyping costs far less than discovering them mid-implementation: a tiny spec change can completely flip the implementation approach, and having the agent roll back changes has real cost.
+
+Visual design is the poster child for "I'll know it when I see it." Instead of describing a style from scratch, ask Claude to mock up several wildly different directions for you to pick from. Nearly every task benefits from a brainstorming round first—not because Claude is smarter, but because it might surface high-value paths you missed, or it might tunnel-vision into details and miss the forest for the trees. A brainstorming round prevents scoping too narrow or too wide from the start.
+
+> I want a dashboard showing this data, but I have no design sense and don't know what's possible. Make an HTML page with four completely different design directions for me to react to.
+
+> Here's my problem: users onboard and then churn. Search the codebase and give me ten intervention points, ranked from cheapest to boldest. I'll tell you which ones resonate.
+
+After brainstorming, unknowns usually remain. Flip the dynamic—ask Claude to interview you: give it the problem context, have it ask one question at a time, prioritizing questions where your answer would change architectural choices.
+
+> Ask me one question at a time. Anything ambiguous, ask. Prioritize questions where my answer would change the architecture.
+
+### Reference Materials and Implementation Plans
+
+Sometimes what you want is hard to describe in words—maybe you lack the vocabulary, maybe it's just too verbose. The best answer is often to provide reference material directly: diagrams, docs, screenshots—but the strongest reference is source code. If a library implements a feature the way you want, just point Fable at that folder and tell it what to look for. Different language? Doesn't matter.
+
+> The vendor/rate-limiter Rust crate implements the backoff behavior I want. Read it, then reimplement the same semantics in our TypeScript API client.
+
+Ready to start? Ask Claude to write an implementation plan first, front-loading the decisions most likely to change—data models, type interfaces, user-facing flows—so the highest-stakes choices surface early.
+
+> Write an implementation plan in HTML format, but put the decisions I'm most likely to change up front: data model changes, new type interfaces, anything user-facing. Put mechanical refactoring at the end—I trust you on that part.
+
+By now, your map is reasonably complete—or at least, the blank spots are now known to be blank.
+
+---
+
+## During Implementation: Keep a Ship's Log
+
+With the plan ready, start a fresh session, feed in the artifacts (spec docs, prototypes), and ask the agent to implement. But no matter how prepared you are, unknown unknowns are always hiding. Mid-implementation, the agent might hit an edge case and need to pivot on the fly.
+
+Have [Claude Code](/glossary#claude-code) maintain a temporary `implementation-notes.md`, logging decisions along the way so future runs know where to adjust. This doesn't mean stopping to ask (that breaks flow)—it means making conservative choices, logging them, and reviewing the log afterward to decide what needs changing. When things go wrong, at least you can trace where it took the wrong turn.
+
+> Maintain an implementation-notes.md file. If you hit an edge case and have to deviate from the plan, pick the conservative choice, note it under "Deviations," and keep going.
+
+---
+
+## Post-Implementation: Make Changes Reviewable
+
+A key part of shipping is getting buy-in and approval. A presentation artifact can help: it speeds understanding when reviewers share your unknowns, and speeds sign-off when experts want to verify you've thought through the expected failure points.
+
+> Package the prototype, spec, and implementation notes into a document I can drop into Slack to get buy-in. Put a demo animation at the top.
+
+But here's the most awkward truth in agent coding: after a long session, Claude may have done far more than you realized. Reading the diff gives only surface-level understanding, because so much behavior depends on existing code paths. Developers can easily end up merging code they don't actually understand.
+
+The fix is crude: ask Claude to explain the changes first, then generate a quiz. Pass the quiz before merging.
+
+> I want to make sure I fully understand these changes. Create an HTML report explaining the context, intuition, and what was done. Include a quiz at the bottom that I need to pass.
+
+<MoguNote>
+Forcing yourself to pass a quiz before merging proves "I actually understand"—far safer than "it seems to run, ship it." Honestly, this checkpoint should be built into everyone's workflow, because nobody wants to admit they're gambling when they hit merge.
+</MoguNote>
+
+---
+
+## Case Study: Editing the Fable Launch Video with [Claude Code](/en/glossary#claude-code)
+
+The Fable 5 launch video was edited entirely with Claude Code. This was completely new territory for trq212—he's not an expert.
+
+He started from what he knew: Claude can edit video and transcribe with code, but he wasn't sure how accurate it'd be. So he first asked Claude to explain how transcription tools like `Whisper` (a speech-to-text model) work, and whether `ffmpeg` (a command-line audio/video tool) could precisely cut "ums" and long pauses. Then he wanted captions that sync with speech rhythm, but wasn't sure if it was feasible—so he asked Claude to build a prototype video using Remotion (a tool for making videos with code) plus the transcript, as a proof of concept.
+
+The final video looked a bit washed out. He knew it was a color grading issue but didn't know what color grading actually meant. First attempt: he asked Claude to make several versions for him to pick from. That's when he discovered he had no idea what "good" looked like—classic unknown unknown hitting him in the face. So he pivoted to asking Claude to teach him the basics of color grading, surfacing his unknowns first before continuing.
+
+<MoguNote>
+This case walks through the entire loop: unsure if something's possible → ask about the principles → prototype to validate → discover new unknowns → step back to learn basics → move forward again. It's not a straight line to the finish—it's bouncing between "discovering unknowns" and "filling them in." The real lesson isn't that he produced a video. It's that every time he got stuck, his instinct was "step back and understand," not "tell the AI to try again."
+</MoguNote>
+
+---
+
+## Conclusion
+
+As models get stronger, the right methodology enables more ambitious outcomes. When a long task produces the wrong result, it's often not that the model couldn't handle it—it's that the map still had blank spots. Every spec, every brainstorm, every interview, every prototype, every reference material is a cheap way to detonate fourth-quadrant mines before things get expensive.
+
+So before your next project, don't rush to write code—spread out the map first, and let Claude help you find the parts that haven't been drawn yet.
+
+The territory doesn't vanish just because the map is blank. But at least, acknowledging where the blanks are means you won't step into one without knowing what you stepped on. (◍•ᴗ•◍)
+
+## Further Reading
+
+- [GP-237: Driving Agents Like Steam Locomotives: Operating Principles for Coding Agents on Large Projects](/posts/gp-237-20260621-simonlast-agent-coding-agent/)
+- [GP-223: Fable 5 Is So Capable, You Have to Relearn How to Talk to It — Anthropic's Official Prompting Guide Breakdown](/posts/gp-223-20260613-anthropic-prompting-fable-5/)
+- [GP-247: Four-Model Alliance: A Claude Code Org Chart with Fable as Tech Lead](/posts/gp-247-20260702-diegocabezas01-fable-tech-lead-claude-code/)

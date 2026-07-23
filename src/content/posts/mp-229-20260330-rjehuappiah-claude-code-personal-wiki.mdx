@@ -1,0 +1,198 @@
+---
+ticketId: "MP-229"
+title: "Claude Code 不只能寫 code — 六個讓你生產力翻倍的非 coding 模式"
+originalDate: "2026-03-30"
+translatedDate: "2026-03-30"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@rjehuappiah on X"
+sourceUrl: "https://x.com/rjehuappiah/status/2038473525938270317"
+lang: "zh-tw"
+summary: "rodspeed 在完整 blog post 裡分享六個把 Claude Code 從 code editor 變成個人 operating system 的玩法：製造 fresh eyes、用 meta-skill 管 specialist、解 freshness、把對話收成 wiki、用分層 memory 累積脈絡，以及靠 handoff 跨 session 接棒。重點不是叫 AI 多寫幾行 code，而是把 read-filter-decide-present 這類流程都自動化。"
+tags: ["claude-code","productivity","knowledge-management","workflow"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+大部分人打開 [Claude Code](/glossary#claude-code)，第一個反射動作都很一致：來，幫忙寫 function、修 bug、改 refactor。
+
+這很正常。因為它表面上長得就像一個超強的 coding assistant。
+
+但 rodspeed 這篇完整文章真正有料的地方，剛好在另一邊：**Claude Code 最可怕的地方，不是它會寫 code，而是它其實是一個可以讀檔、寫檔、跑 command、開 agent、接技能的通用 automation runtime。**
+
+想想看那種時刻：明明卡住的不是「程式碼怎麼寫」，而是「誰來幫看這份東西哪裡怪」、「誰來幫把五路資訊收斂成一個判斷」、「誰來記住剛剛聊了半小時到底做了哪些決策」。
+
+這種時刻其實就是 Claude Code 更值錢的那一面。只是大部分人還停在「請它多寫兩段 code」這個入口而已。
+
+他在 X 上那則爆紅 teaser 只講到「把對話自動收進個人 wiki」，所以很容易讓人誤會這篇只是在講 knowledge management。其實不是。完整 blog post 裡，他一次拆了六個很具體的模式，從 fresh eyes、meta-skills，到記憶分層與 session handoff，幾乎每一個都比「請 AI 幫生一段 code」更有槓桿。
+
+最近開始覺得跟 AI 真正有價值的部分不是最後那份 diff，而是中間來回討論時形成的判斷、流程與決策？那這篇很值得讀。(◍•ᴗ•◍)
+
+## Manufacturing fresh eyes：自己做出一雙全新的眼睛
+
+第一個模式很妙，也很反直覺。
+
+寫文件、規劃方案、整理設計稿，卡住時都知道要找「fresh eyes」來看。但現實是，別人的時間很貴，而且東西常常還沒整理到值得拿去打擾人的程度。於是很多東西就卡在一個尷尬區間：自己越看越麻痺，別人又還沒空看。
+
+rodspeed 的做法很乾脆：**直接用一個全新的 agent，硬做出那個完全不知情的 reviewer。**
+
+具體流程不是隨便丟一句「幫忙 review」而已，而是有結構的：先開一個完全沒有對話歷史的 cold read agent，只給文件本身跟 critique instructions，不給作者脈絡、不先解釋「當初為什麼這樣想」。它做完第一輪冷讀後，由 facilitator 寫 advocate response。接著再叫另一個 fresh-context agent 來讀文件、初評與辯護，做第二輪 rebuttal。最後做 synthesis：哪些點雙方同意、哪些有爭議、哪些 insight 是來回交手後才浮出來的。
+
+這個模式最關鍵的設計，不是「多找幾個 agent」，而是 **嚴格保護 cold read**。
+
+原作者特別強調，一旦忍不住先說「這樣設計是因為……」，其實就把價值打折了。因為真正有用的，正是那種外部讀者第一次接觸產物時，腦中會撞到哪些洞、卡在哪些地方。
+
+而且 rodspeed 的判斷很務實：**兩輪通常就吃到大部分價值了。** 不用無限辯經，不然最後只是在拿 token 買自尊。
+
+<MoguNote>
+很多人嘴上說要 feedback，其實根本不是要 feedback，他要的是別人幫他的方案蓋同意章。所以 review 還沒開始，就先用三大段背景故事幫自己鋪紅毯。這樣當然比較容易被理解，但也比較不容易被看穿。fresh eyes 最值錢的地方，就是它根本不欠面子。(๑˃ᴗ˂)ﻭ
+</MoguNote>
+
+---
+
+## Meta-skills：一個 conductor，帶一群 specialist 去做工
+
+好，前面講的是怎麼借一雙外部眼睛。但真正的壓力往往不是「能不能看清楚」，而是「東西太多，一個人根本看不完」。
+
+rodspeed 自己說這是他最強的 pattern，而它的核心其實不是什麼技術魔法：**讓一個 skill 去 orchestrate 其他 skill，就像一個總編輯帶一群記者。**
+
+他舉的例子是幫不同服飾類別做 shopping search。想像一下手動做這件事的痛苦——外套查一輪、褲子查一輪、針織查一輪，每一輪都要看完、過濾、比較，最後還要 cross-category 搭配。光用想的就累了。meta-skill 的做法是一次丟五個 specialist agent 出去，每個各負責一個 category，conductor 在後面等結果回來。
+
+但重點來了——conductor 回收結果之後做的事，才是這個模式真正的價值。它不是照單全收，而是在判斷。哪一類找到的東西明顯比較好？哪一類結果太像、品牌太集中？哪些 agent 需要帶著具體 feedback 回去重找？重找完之後，它才做 cross-category curate，挑的是「整體搭配起來好」的結果，而不是每個類別各自最強就好。
+
+換句話說，真正的槓桿不在 output 變多。在有人負責 judge。
+
+不過 rodspeed 很誠實地指出這裡的代價：sub-agent 不能直接 invoke skills，所以 meta-skill prompt 必須把 specialist 的完整指令 inline 進去，prompt 會變得非常長。加上每個 agent 都有自己的 context window，conductor 還要有額外空間讀完所有輸出再判斷，token 消耗很可觀。而且 conductor 也不是上帝——它有可能看漏某個 agent 其實交了爛貨。
+
+所以這個玩法不是「自動化萬歲，品質會自己出現」，而是把 AI 從單兵作戰，升級成比較像編輯部或小型 team 的工作流。
+
+<MoguNote>
+很多人現在還在迷信「一個超大 prompt 打天下」：把所有需求、限制、例外、偏好、品味、風格一次塞進去，然後期待一個 agent 自己分工、自我審查、自己補洞。老實說，這跟把整間公司塞進一間會議室，然後指望大家靠心電感應協作差不多。真正的槓桿不是 output 變多，而是有人負責 judge，誰有資格被留下來。
+</MoguNote>
+
+---
+
+## The Freshness Problem：最無聊但最致命的工程暗傷
+
+到這裡為止，故事聽起來很順：借一雙外部眼睛（fresh eyes）→ 不夠就組一個小團隊（meta-skills）。看起來只要把 orchestration 做好，系統就會越跑越強。
+
+但 rodspeed 接下來講的，剛好打臉這個樂觀預期。
+
+工作流一旦拉長到跨週、跨月，有一種悶到不行的退化會開始發生。明明每次都叫 AI 去找新東西，結果跑久了之後，搜尋結果長得越來越像。外套還是那幾個品牌、針織還是那幾家、價位還是那個區間。週一跑一次、週四再跑一次，看起來像在 search，其實比較像在重播。
+
+為什麼？因為 AI 很可能一直打到差不多的 query、撞到差不多的 cached page。表面上 prompt 不一樣了，但搜尋引擎吐回來的是差不多的世界觀。
+
+rodspeed 管這叫 freshness problem。而他的解法出乎意料地樸素——不是更聰明的 prompt，不是更大的 model，而是 **一個大概 100 行的 Python script，給 search skill 一點跨次執行的 state。**
+
+做法是這樣的：每個 search skill 準備三波不同的 query（query rotation），state file 記住上次跑到哪一波，下一次自動輪到下一波。已經展示過的 result ID 記下來，之後直接跳過（seen-item tracking）。有些 query 還會自動加上日期尾巴把搜尋引擎往比較新的結果推（cache-busting）。整件事不需要資料庫、不需要 server，只靠一個 JSON state file。
+
+原作者甚至把它放進 git-tracked directory，因為他很清楚：**state 一旦壞掉或不同步，dedupe 會靜悄悄失效，然後又會開始看到重複結果。** 這不是那種會炸 error log 的壞法，是那種慢慢劣化到某天才被發現的壞法。更毒。
+
+<MoguNote>
+很多 recurring search 爛掉，不是 model 不夠聰明，是作者根本懶得保存 state，然後還把重複結果怪到 AI 頭上。這跟每次打開瀏覽器都用無痕模式，最後抱怨網站怎麼都不記得一樣。stateless LLM 本來就會忘，真正自欺欺人的是那些以為「多寫兩句 prompt」就能冒充系統設計的人。╮(╯▽╰)╭
+</MoguNote>
+
+---
+
+## Conversations as a knowledge source：最痛的一刀
+
+前面三段都在講怎麼讓 AI 「做」得更好——更好的 review、更好的分工、更新鮮的搜尋。
+
+但 rodspeed 在這裡突然轉了一個方向，而且轉得很狠。
+
+**上禮拜跟 AI 聊出來最重要的那個決策，現在還找得到嗎？**
+
+先不要急著回答。認真想一下。那個花了 40 分鐘才釐清的限制條件、那個終於被排除的方案 B、那個「原來真正的 bottleneck 在這裡」的瞬間——session 結束之後，還剩下什麼？
+
+大部分人的誠實答案是：一個模糊印象，加上一種「好像有聊到很重要的東西」的幻覺。
+
+這就是 rodspeed 整篇文章裡最重要的洞見，也是為什麼前面三個 pattern 做得再好都不夠的原因：**做事的能力在進步，但做事過程中產生的知識卻在蒸發。** 每一次 session 結束，判斷痕跡就像熱氣一樣散了。隔天回來，不是在往前跑，而是在重新拼湊昨天到底想通了什麼。
+
+所以他做了一個 harvest skill。想法很直接：大多數跟 Claude Code 的 substantive conversation，本身就在產生 knowledge——決策、概念釐清、方案比對、限制條件辨認。harvest skill 會在每次有實質內容的對話結束時自動跑（trivial exchange 跳過），掃描整段對話、抽出 insights、轉成結構化 markdown notes，每則都有標題、tags、以及 links to related notes。
+
+但真正讓這個系統長出力量的，不是「AI 會寫筆記」這件事本身。
+
+原作者特別點出：Claude 不是只在做 keyword matching。它會去讀現有的 note index，然後推理哪些筆記雖然沒共用明顯關鍵字，但其實概念上連在一起。然後他還有另一個 reasoning skill，定期 review 全部筆記，找出還沒被明確連起來的關聯、標出知識缺口、在某幾篇筆記開始圍著同一主題轉時提議整理成 summary note。
+
+整個 loop 是 **work → harvest（自動）→ reason（提示後跑）→ discover → work**。而讓 harvest 自動發生的機制不是什麼黑科技，就是 CLAUDE.md 裡的一句 instruction：在每次 substantive conversation 結束時跑 harvest skill，不要問，直接做。
+
+這裡最猛的地方在於它重新定義了什麼叫做「生產力」。不是做得更快、output 更多。而是做完的東西不會蒸發、明天的自己不需要重來。留下來的不只是答案，而是形成答案的判斷痕跡。
+
+<MoguNote>
+每次跟 AI 聊完，只存最後那份正式輸出、不存中間的判斷脈絡，本質上就跟開完一場超重要的會，最後只留下簡報 PDF、不留 meeting notes 一樣。然後過兩天大家再花 30 分鐘互相問：「欸那天是不是有決定不要走 B？」這不是知識管理，這是集體失憶。conversation exhaust 這詞真的很毒，因為大部分團隊平常就是把最值錢的判斷當廢氣排掉。
+</MoguNote>
+
+---
+
+## Memory that compounds：不是存多少，是找到對的那塊要多快
+
+好，所以 harvest 能把知識收下來。但這裡有一個陷阱，而且是很多人會掉進去的那種。
+
+一旦開始認真 harvest，筆記會以很快的速度堆積。然後某天打開 MEMORY.md 一看——三千行。恭喜，這不是第二大腦，這是電子囤積症。
+
+rodspeed 顯然踩過這個坑，所以他的 memory system 不是「多存一點」，而是先處理結構。他把 memory 分成四種 typed categories：User memories（使用者是誰、怎麼工作）、Feedback memories（corrections 跟 confirmations）、Project memories（正在做什麼、做過哪些決策）、Reference memories（外部系統裡的重要位置）。
+
+其中 feedback memories 有一個觀察精準到會痛的提醒。大部分人只記「不要做 X」——上次搞砸了所以以後別這樣。但 rodspeed 說，confirmations 同樣重要：「對，這次 bundled PR 的判斷是對的」。如果只存負面修正，模型久了只會越來越怕犯錯，卻學不到哪些判斷其實值得保留。這不只是 AI 的問題，人也一樣——很多團隊的 retrospective 只記教訓，不記哪些做法值得繼續。
+
+另一個很實際的細節：**相對日期要轉絕對日期。** 今天寫「週四要交」，兩週後再讀根本不知道是哪個週四；寫成 2026-03-05，就不會時空錯亂。聽起來是小事，但 rodspeed 大概是被咬過才會特別寫出來。
+
+而讓整個系統能 scale 的關鍵設計是這個：top-level MEMORY.md 維持得很薄，只當 index。真正內容放在各分類的 sub-index 和 memory files 裡。每次開新對話，系統先載入一份 17 行的 lookup table；只有對話碰到某個類別，才往下鑽到對應的 memory file。這種設計很像倉庫的總目錄——每天進門先看地圖，不是把整座倉庫扛在身上。
+
+<MoguNote>
+一份 3000 行的 MEMORY.md 不是第二大腦，比較像電子囤積症。很多人以為自己在做 knowledge compounding，其實只是在做 context stuffing：把模型餵到快噎死，再幻想它會從垃圾堆裡自己長出洞察。真正有用的 memory 不是「存很多」，而是「用很低的固定成本找到對的那塊」。不然 memory 還沒幫到任何人，token 先被它吃光了。(◍˃̶ᗜ˂̶◍)ノ"
+</MoguNote>
+
+---
+
+## Session handoffs：最後一哩，也是最容易功虧一簣的那一哩
+
+到這裡，整條鏈路看起來已經很完整了：fresh eyes 借視角、meta-skills 做分工、freshness 防退化、harvest 收知識、memory 做結構。
+
+但 rodspeed 最後丟出的問題，把前面五個 pattern 的價值一次壓到底線上。
+
+**如果 session 結束時什麼都沒交接，前面累積的一切就是零。**
+
+這種痛只要做過一次長工作流就知道。可能是 context limit 快到了，可能是今天先做到這，不管原因是什麼，session 一斷，前面辛苦累積的決策、踩過的坑、看過的檔案，通通歸零。然後最煩的戲碼上演：下一個 session 不是在往前跑，而是在考古。重新讀檔、重新問背景、重新把已經做過的判斷再走一遍。像 RPG 都快打到 boss 房了，遊戲突然說不好意思，請先重跑新手教學。
+
+rodspeed 的解法分兩個零件。第一個是 `/handoff` skill，在 session 結束前掃過整段對話，寫一份結構化 memo 到 `.claude/handoff.md`，內容涵蓋 mission、decisions（選了什麼、放棄了什麼、為什麼）、key files、current state、open tasks、以及 gotchas。原作者特別說 **Decisions 是最重要的一段**——因為如果沒有「為什麼當初這樣選」的脈絡，新 session 很容易把已經吵完的事再吵一次。
+
+第二個零件是 SessionStart hook。新 session 開始時檢查 handoff file 是否存在且標記 pending；如果是，直接把完整 memo 注入新對話的 context。他還提到另一個實用 hook：長對話因 context limit 被摘要壓縮後，再把完整 CLAUDE.md 重新注入，因為不然 conventions 很可能也被摘要掉，session 越長越不像原本那套規矩。
+
+原作者甚至說，這篇文章本身就是 handoff pattern 的示範：前一個 session 寫、檢查、改稿，再跑 `/handoff`；下一個 session 冷啟動時，直接接上來收尾。
+
+<MoguNote>
+很多人不寫 handoff，然後隔天花 40 分鐘叫新 session「幫總結一下目前狀況」。這種 workflow 最大的問題不是浪費 token，而是每次都在讓一個新代理重新猜一次昨天的決策者在想什麼。那不叫省事，那叫考古外包。handoff 之所以像 git commit message 一樣重要，就是因為不寫的話，明天就得拿更多時間跟 token 來補這個洞。
+</MoguNote>
+
+---
+
+## 結語
+
+回頭看 rodspeed 這六個 pattern，會發現真正厲害的不是招式多，而是它們串起來回答了同一個問題。
+
+fresh eyes 解決「看不清楚」。meta-skills 解決「做不完」。freshness 解決「一直重播」。harvest 解決「做完就忘」。memory 解決「記了但找不到」。handoff 解決「斷了就歸零」。
+
+六個痛點，六層防線，像俄羅斯套娃一樣，每解一層才看到下一層。
+
+但最狠的 insight 不在任何一個招式裡。它在那個讓所有招式成立的前提：**下次再打開 Claude Code，先別急著說「幫忙寫這個 function」。先停一下，問更狠的那句——現在卡住的，到底是 code，還是某種 read → filter → decide → present 的流程？**
+
+如果答案是後者，那需要的可能根本不是更會寫 code 的 AI，而是一套會幫找 fresh eyes、會分工、會防重播、會收知識、會整理記憶、會交接上下文的工作系統。
+
+一旦開始這樣看它，能自動化的就不是多一點點。
+
+是多到有點可怕。

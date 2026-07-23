@@ -1,0 +1,1052 @@
+<!-- Copyright 2026 Anthropic PBC · SPDX-License-Identifier: Apache-2.0 -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Four design directions — Know your unknowns</title>
+<style>
+  :root {
+    --ivory:  #FAF9F5;
+    --paper:  #FFFFFF;
+    --slate:  #141413;
+    --clay:   #D97757;
+    --clay-d: #B85C3E;
+    --oat:    #E3DACC;
+    --olive:  #788C5D;
+    --g100:   #F0EEE6;
+    --g200:   #E6E3DA;
+    --g300:   #D1CFC5;
+    --g500:   #87867F;
+    --g700:   #3D3D3A;
+    --serif: ui-serif, Georgia, "Times New Roman", Times, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--ivory);
+    color: var(--slate);
+    font-family: var(--sans);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 24px 110px; }
+  @media (max-width: 480px) { .wrap { padding: 0 16px 90px; } }
+
+  /* ── header ─────────────────────────────── */
+  header.page {
+    padding: 56px 0 8px;
+    position: relative;
+  }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--g500);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+  .eyebrow::before {
+    content: "";
+    width: 24px; height: 1.5px;
+    background: var(--clay);
+    flex-shrink: 0;
+  }
+  .backlink {
+    position: absolute;
+    top: 60px; right: 0;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--g500);
+    text-decoration: none;
+  }
+  .backlink:hover { color: var(--clay); }
+  @media (max-width: 640px) {
+    .backlink { position: static; display: inline-block; margin-bottom: 14px; }
+  }
+  h1 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(32px, 5vw, 48px);
+    line-height: 1.08;
+    letter-spacing: -0.018em;
+    margin: 0 0 12px;
+  }
+  .lede {
+    font-size: 16px;
+    color: var(--g700);
+    max-width: 640px;
+    margin: 0 0 34px;
+  }
+
+  /* ── prompt box ─────────────────────────── */
+  .prompt-card {
+    background: var(--paper);
+    border: 1.5px solid var(--g300);
+    border-radius: 14px;
+    padding: 22px 26px 20px;
+    position: relative;
+  }
+  .prompt-card .label {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--clay);
+    margin-bottom: 12px;
+  }
+  .prompt-card blockquote {
+    margin: 0;
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 17.5px;
+    line-height: 1.55;
+    color: var(--slate);
+    max-width: 62ch;
+  }
+  .copy-btn {
+    position: absolute;
+    top: 18px; right: 18px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    padding: 6px 12px;
+    border: 1.5px solid var(--g300);
+    border-radius: 999px;
+    background: var(--ivory);
+    color: var(--g700);
+    cursor: pointer;
+    transition: border-color 120ms, color 120ms;
+  }
+  .copy-btn:hover { border-color: var(--clay); color: var(--clay); }
+  .copy-btn.copied { border-color: var(--olive); color: var(--olive); }
+  @media (max-width: 520px) {
+    .copy-btn { position: static; margin-top: 14px; display: inline-block; }
+  }
+
+  /* ── divider ────────────────────────────── */
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 52px 0 40px;
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--g500);
+    white-space: nowrap;
+  }
+  .divider::before, .divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--g300);
+  }
+
+  /* ── artifact intro ─────────────────────── */
+  .art-intro {
+    font-size: 15px;
+    color: var(--g700);
+    max-width: 660px;
+    margin: 0 0 14px;
+  }
+  .art-intro strong { color: var(--slate); }
+  .same-data {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--g500);
+    background: var(--g100);
+    border: 1px solid var(--g200);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin: 0 0 46px;
+    line-height: 1.7;
+  }
+  .same-data b { color: var(--g700); font-weight: 600; }
+
+  /* ── direction block chrome ─────────────── */
+  .direction { margin: 0 0 64px; }
+  .dir-head {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+  .dir-head .num {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    color: var(--clay);
+    font-weight: 600;
+  }
+  .dir-head h2 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 24px;
+    letter-spacing: -0.012em;
+    margin: 0;
+  }
+  .dir-says {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 15px;
+    color: var(--g700);
+    margin: 0 0 16px;
+  }
+  .dir-says::before { content: "This direction says: "; font-style: normal; font-family: var(--mono); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--g500); margin-right: 6px; }
+
+  .frame {
+    background: var(--paper);
+    border: 1.5px solid var(--g300);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .frame-bar {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 14px;
+    border-bottom: 1.5px solid var(--g200);
+    background: var(--g100);
+  }
+  .frame-bar .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--g300); }
+  .frame-bar .url {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--g500);
+    margin-left: 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .frame-body { overflow-x: auto; }
+
+  /* reaction chips under each frame */
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .chip {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1.5px solid var(--g300);
+    background: var(--paper);
+    cursor: pointer;
+    color: var(--g700);
+    transition: border-color 120ms, background 120ms, color 120ms;
+    text-align: left;
+  }
+  .chip .k { font-weight: 600; letter-spacing: 0.05em; }
+  .chip.steal .k { color: var(--olive); }
+  .chip.skip .k { color: var(--clay-d); }
+  .chip:hover { border-color: var(--g500); }
+  .chip.steal.on { border-color: var(--olive); background: #F1F3EC; }
+  .chip.skip.on  { border-color: var(--clay); background: #FBEFE9; }
+  .chip.on .k::after { content: " ✓"; }
+  .chip-hint {
+    font-size: 12px;
+    color: var(--g500);
+    margin-top: 8px;
+  }
+
+  /* ══════════════ DIRECTION 1 — ops console ══════════════ */
+  .d1 {
+    background: #1B1B19;
+    color: #D8D6CE;
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 18px 20px 20px;
+    min-width: 620px;
+  }
+  .d1 .topline {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 14px;
+    gap: 12px;
+  }
+  .d1 .prod { color: #F5F4EF; font-weight: 600; letter-spacing: 0.06em; }
+  .d1 .prod span { color: var(--clay); }
+  .d1 .env { font-size: 10px; color: #6E6D66; letter-spacing: 0.1em; }
+  .d1 .metrics {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: #33322F;
+    border: 1px solid #33322F;
+    margin-bottom: 16px;
+  }
+  .d1 .metric { background: #232320; padding: 10px 12px; }
+  .d1 .metric .mk { font-size: 9.5px; letter-spacing: 0.12em; color: #6E6D66; text-transform: uppercase; }
+  .d1 .metric .mv { font-size: 19px; color: #F5F4EF; line-height: 1.3; }
+  .d1 .metric .mv em { font-style: normal; font-size: 10px; color: var(--olive); }
+  .d1 .metric .mv em.bad { color: var(--clay); }
+  .d1 table { border-collapse: collapse; width: 100%; }
+  .d1 th {
+    text-align: left;
+    font-size: 9.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #6E6D66;
+    font-weight: 500;
+    padding: 6px 10px;
+    border-bottom: 1px solid #33322F;
+  }
+  .d1 td {
+    padding: 7px 10px;
+    border-bottom: 1px solid #262624;
+    white-space: nowrap;
+  }
+  .d1 tr:hover td { background: #232320; }
+  .d1 .id { color: #6E6D66; }
+  .d1 .t { color: #F5F4EF; }
+  .d1 .rv { color: #A8A69E; }
+  .d1 .sdot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 7px; vertical-align: 1px; }
+  .d1 .s-rev  .sdot { background: var(--oat); }
+  .d1 .s-chg  .sdot { background: var(--clay); }
+  .d1 .s-wait .sdot { background: #6E6D66; }
+  .d1 .s-ok   .sdot { background: var(--olive); }
+  .d1 .s-chg { color: var(--clay); }
+  .d1 .s-ok { color: var(--olive); }
+  .d1 .num-r { text-align: right; }
+  .d1 .age-hot { color: var(--clay); }
+
+  /* ══════════════ DIRECTION 2 — editorial ══════════════ */
+  .d2 {
+    background: var(--ivory);
+    padding: 40px 44px 44px;
+    font-family: var(--sans);
+    min-width: 300px;
+  }
+  @media (max-width: 560px) { .d2 { padding: 28px 20px 32px; } }
+  .d2 .masth {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    border-bottom: 1.5px solid var(--g300);
+    padding-bottom: 26px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .d2 .bignum {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(72px, 14vw, 118px);
+    line-height: 0.85;
+    letter-spacing: -0.03em;
+    color: var(--slate);
+  }
+  .d2 .bignum-wrap { display: flex; align-items: baseline; gap: 18px; }
+  .d2 .bignum-cap {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 19px;
+    color: var(--g700);
+    max-width: 12ch;
+    line-height: 1.3;
+  }
+  .d2 .weekly {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 15px;
+    color: var(--g500);
+    text-align: right;
+  }
+  .d2 .weekly b { color: var(--olive); font-weight: 600; font-style: normal; font-size: 22px; font-family: var(--serif); }
+  .d2 .row {
+    display: flex;
+    align-items: baseline;
+    gap: 18px;
+    padding: 20px 0;
+    border-bottom: 1px solid var(--g200);
+  }
+  .d2 .row:last-child { border-bottom: none; }
+  .d2 .av {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    align-self: center;
+  }
+  .d2 .av.a1 { background: var(--oat); color: var(--g700); }
+  .d2 .av.a2 { background: var(--olive); color: var(--ivory); }
+  .d2 .av.a3 { background: var(--clay); color: var(--ivory); }
+  .d2 .av.a4 { background: var(--slate); color: var(--ivory); }
+  .d2 .info { flex: 1; min-width: 0; }
+  .d2 .vt {
+    font-family: var(--serif);
+    font-size: 21px;
+    font-weight: 500;
+    letter-spacing: -0.008em;
+    line-height: 1.25;
+  }
+  .d2 .meta {
+    font-size: 12px;
+    color: var(--g500);
+    letter-spacing: 0.02em;
+    margin-top: 3px;
+  }
+  .d2 .phrase {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 15px;
+    color: var(--g700);
+    text-align: right;
+    white-space: nowrap;
+    align-self: center;
+  }
+  .d2 .phrase.hot { color: var(--clay-d); }
+  .d2 .phrase.ok { color: var(--olive); }
+  @media (max-width: 560px) {
+    .d2 .row { flex-wrap: wrap; }
+    .d2 .phrase { text-align: left; width: 100%; padding-left: 52px; }
+  }
+
+  /* ══════════════ DIRECTION 3 — kanban/timeline ══════════════ */
+  .d3 {
+    background: var(--paper);
+    padding: 22px;
+    min-width: 640px;
+  }
+  .d3 .head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 16px;
+  }
+  .d3 .head .hl { font-weight: 600; font-size: 14px; letter-spacing: -0.01em; }
+  .d3 .head .hr { font-size: 12px; color: var(--g500); }
+  .d3 .head .hr b { color: var(--olive); font-weight: 600; }
+  .d3 .cols {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 22px;
+  }
+  .d3 .col { background: var(--g100); border-radius: 10px; padding: 10px; }
+  .d3 .col-h {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--g500);
+    padding: 2px 4px 8px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .d3 .col-h .cnt { color: var(--g700); }
+  .d3 .col.chg .col-h { color: var(--clay-d); }
+  .d3 .col.ok  .col-h { color: var(--olive); }
+  .d3 .kcard {
+    background: var(--paper);
+    border: 1px solid var(--g200);
+    border-radius: 8px;
+    padding: 10px 11px;
+    margin-bottom: 8px;
+    font-size: 12.5px;
+  }
+  .d3 .kcard:last-child { margin-bottom: 0; }
+  .d3 .kcard .kt { font-weight: 600; line-height: 1.35; }
+  .d3 .kcard .km {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 7px;
+    font-size: 11px;
+    color: var(--g500);
+  }
+  .d3 .mini-av {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 8.5px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .d3 .mini-av.a1 { background: var(--oat); color: var(--g700); }
+  .d3 .mini-av.a2 { background: var(--olive); color: var(--ivory); }
+  .d3 .mini-av.a3 { background: var(--clay); color: var(--ivory); }
+  .d3 .mini-av.a4 { background: var(--slate); color: var(--ivory); }
+  .d3 .kcard .cmt { margin-left: auto; font-family: var(--mono); }
+  .d3 .kcard.stale { border-left: 3px solid var(--clay); }
+  .d3 .tl-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--g500);
+    margin-bottom: 8px;
+  }
+  .d3 .tl {
+    position: relative;
+    height: 58px;
+    border-top: 1.5px solid var(--g300);
+  }
+  .d3 .tick {
+    position: absolute;
+    top: -4px;
+    width: 1.5px; height: 8px;
+    background: var(--g300);
+  }
+  .d3 .tick-lab {
+    position: absolute;
+    top: 8px;
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--g500);
+    transform: translateX(-50%);
+  }
+  .d3 .tdot {
+    position: absolute;
+    top: 24px;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+  .d3 .tdot .d { width: 11px; height: 11px; border-radius: 50%; border: 2px solid var(--paper); box-shadow: 0 0 0 1px var(--g300); }
+  .d3 .tdot .d.rev { background: var(--oat); }
+  .d3 .tdot .d.chg { background: var(--clay); }
+  .d3 .tdot .d.ok  { background: var(--olive); }
+  .d3 .tdot .d.wait{ background: var(--g300); }
+  .d3 .tdot .tn { font-family: var(--mono); font-size: 8.5px; color: var(--g500); white-space: nowrap; }
+
+  /* ══════════════ DIRECTION 4 — brutalist terminal ══════════════ */
+  .d4 {
+    background: var(--slate);
+    color: var(--ivory);
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.7;
+    padding: 22px 24px 26px;
+    min-width: 620px;
+  }
+  .d4 .hdr { color: var(--g500); }
+  .d4 .hdr b { color: var(--ivory); font-weight: 600; }
+  .d4 .rule { color: #4A4945; user-select: none; overflow: hidden; white-space: nowrap; }
+  .d4 .kv { display: flex; gap: 28px; flex-wrap: wrap; margin: 10px 0 14px; }
+  .d4 .kv span { color: var(--g500); }
+  .d4 .kv b { color: var(--oat); font-weight: 600; }
+  .d4 .kv b.ok { color: #A3B58A; }
+  .d4 .kv b.hot { color: var(--clay); }
+  .d4 table { border-collapse: collapse; width: 100%; }
+  .d4 th {
+    text-align: left;
+    color: var(--g500);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 10.5px;
+    padding: 4px 12px 4px 0;
+    border-bottom: 1px dashed #4A4945;
+  }
+  .d4 td { padding: 6px 12px 6px 0; border-bottom: 1px dashed #33322F; white-space: nowrap; vertical-align: top; }
+  .d4 .st { font-weight: 600; }
+  .d4 .st.rev  { color: var(--oat); }
+  .d4 .st.chg  { color: var(--clay); }
+  .d4 .st.wait { color: var(--g500); }
+  .d4 .st.ok   { color: #A3B58A; }
+  .d4 .idx { color: var(--g500); }
+  .d4 .cmd { margin-top: 16px; color: var(--g500); }
+  .d4 .cmd b { color: var(--ivory); font-weight: 500; }
+  .d4 .cursor {
+    display: inline-block;
+    width: 8px; height: 15px;
+    background: var(--clay);
+    vertical-align: -2px;
+    animation: blink 1.1s steps(1) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* ── how to react card ──────────────────── */
+  .react-card {
+    background: var(--paper);
+    border: 1.5px solid var(--g300);
+    border-radius: 14px;
+    padding: 26px 28px 26px;
+    margin-top: 8px;
+  }
+  @media (max-width: 480px) { .react-card { padding: 20px 16px; } }
+  .react-card .label {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--clay);
+    margin-bottom: 10px;
+  }
+  .react-card h3 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 23px;
+    letter-spacing: -0.012em;
+    margin: 0 0 8px;
+  }
+  .react-card p { font-size: 14.5px; color: var(--g700); max-width: 640px; margin: 0 0 18px; }
+  .pick-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+  .pick {
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1.5px solid var(--g300);
+    background: var(--ivory);
+    color: var(--g700);
+    cursor: pointer;
+    transition: border-color 120ms, background 120ms, color 120ms;
+  }
+  .pick:hover { border-color: var(--g500); }
+  .pick.on { border-color: var(--slate); background: var(--slate); color: var(--ivory); }
+  .reply-wrap { position: relative; }
+  .reply {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.75;
+    background: var(--g100);
+    border: 1px solid var(--g200);
+    border-radius: 10px;
+    padding: 16px 18px;
+    color: var(--g700);
+    white-space: pre-wrap;
+    word-break: break-word;
+    min-height: 96px;
+    margin: 0;
+  }
+  .copy-reply {
+    position: absolute;
+    top: 10px; right: 10px;
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 5px 11px;
+    border: 1.5px solid var(--g300);
+    border-radius: 999px;
+    background: var(--paper);
+    color: var(--g700);
+    cursor: pointer;
+    transition: border-color 120ms, color 120ms;
+  }
+  .copy-reply:hover { border-color: var(--clay); color: var(--clay); }
+  .copy-reply.copied { border-color: var(--olive); color: var(--olive); }
+  .react-foot {
+    font-size: 12.5px;
+    color: var(--g500);
+    margin-top: 14px;
+  }
+
+  /* ── footer ─────────────────────────────── */
+  footer {
+    margin-top: 90px;
+    border-top: 1.5px solid var(--g300);
+    padding-top: 28px;
+    font-size: 13px;
+    color: var(--g500);
+  }
+  footer a { color: var(--clay); text-decoration-color: var(--oat); text-underline-offset: 3px; }
+  footer a:hover { text-decoration-color: var(--clay); }
+</style>
+<style id="gu-log-mirror-credit-style">.gu-log-mirror-credit{position:sticky;top:0;z-index:9999;padding:8px 14px;background:#111;color:#f7f3e8;border-bottom:1px solid rgba(255,255,255,.18);font:13px/1.45 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;text-align:center}.gu-log-mirror-credit a{color:#f4c86a;text-decoration:underline;text-underline-offset:2px}.gu-log-mirror-credit strong{font-weight:750}</style>
+</head>
+<body>
+<div class="gu-log-mirror-credit" role="note"><strong>Mirror copy for gu-log GP-251.</strong> Original by <a href="https://x.com/trq212">Thariq (@trq212)</a>: <a href="https://thariqs.github.io/html-effectiveness/unknowns/">Know your unknowns</a>. English original preserved; zh-tw version later.</div>
+<div class="wrap">
+
+  <header class="page">
+    <a class="backlink" href="index.html">&larr; All examples</a>
+    <div class="eyebrow">Know your unknowns &middot; Pre-implementation</div>
+    <h1>Four design directions</h1>
+    <p class="lede">
+      When you can't describe the design you want, don't describe one &mdash; ask for four incompatible ones
+      rendered live, and let your gut do the specifying. Reacting is easier than imagining.
+    </p>
+    <div class="prompt-card">
+      <div class="label">The prompt</div>
+      <blockquote id="prompt-text">&ldquo;I want a review-queue dashboard for Acme but I have no visual taste and don't know what's possible. Make me one HTML page with 4 wildly different design directions so I can react to them.&rdquo;</blockquote>
+      <button class="copy-btn" id="copy-prompt" type="button">Copy prompt</button>
+    </div>
+  </header>
+
+  <div class="divider">What Claude produced</div>
+
+  <p class="art-intro">
+    Same data, four philosophies. Every frame below renders the <strong>identical review queue</strong> &mdash;
+    five videos awaiting review in Acme &mdash; so the only variable is the design. Under each frame,
+    tap the chips for anything you'd <strong>steal</strong> or <strong>skip</strong>; your picks assemble a
+    reply at the bottom of the page.
+  </p>
+  <div class="same-data">
+    <b>The shared dataset:</b> 5 pending reviews &middot; 4 reviewers (MK, DR, LT, JB) &middot; statuses:
+    in&nbsp;review / needs&nbsp;changes / waiting&nbsp;on&nbsp;reviewer / approved&nbsp;w/&nbsp;notes &middot;
+    23 open comments &middot; 14 reviews cleared this week &middot; avg turnaround 6.2h
+  </div>
+
+  <!-- ═══════════════ DIRECTION 1 ═══════════════ -->
+  <div class="direction">
+    <div class="dir-head"><span class="num">DIRECTION 1 / 4</span><h2>Dense ops console</h2></div>
+    <p class="dir-says">&ldquo;Your review queue is an operational system. Show everything, waste nothing, let the anomalies pop.&rdquo;</p>
+    <div class="frame">
+      <div class="frame-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">acme.app/ops/review-queue</span></div>
+      <div class="frame-body">
+        <div class="d1">
+          <div class="topline">
+            <span class="prod">ACME<span>/</span>REVIEW-OPS</span>
+            <span class="env">TEAM: LAUNCH-CONTENT &middot; UPDATED 14:32</span>
+          </div>
+          <div class="metrics">
+            <div class="metric"><div class="mk">Pending</div><div class="mv">5 <em class="bad">+2 today</em></div></div>
+            <div class="metric"><div class="mk">Avg turnaround</div><div class="mv">6.2h <em>&minus;0.8h</em></div></div>
+            <div class="metric"><div class="mk">Cleared / 7d</div><div class="mv">14 <em>on pace</em></div></div>
+            <div class="metric"><div class="mk">Oldest waiting</div><div class="mv">2d 4h <em class="bad">SLA 48h</em></div></div>
+          </div>
+          <table>
+            <thead>
+              <tr><th>ID</th><th>Video</th><th class="num-r">Len</th><th>Reviewer</th><th class="num-r">Cmts</th><th>Status</th><th class="num-r">Age</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="id">VR-2214</td><td class="t">Q3 launch teaser &mdash; v4</td><td class="num-r">0:47</td><td class="rv">MK &middot; Kowalski</td><td class="num-r">12</td><td class="s-chg"><span class="sdot"></span>NEEDS CHANGES</td><td class="num-r">2h</td></tr>
+              <tr><td class="id">VR-2213</td><td class="t">Onboarding walkthrough &mdash; final</td><td class="num-r">3:12</td><td class="rv">DR &middot; Raman</td><td class="num-r">3</td><td class="s-rev"><span class="sdot"></span>IN REVIEW</td><td class="num-r">5h</td></tr>
+              <tr><td class="id">VR-2209</td><td class="t">Customer story: Halvorsen Co.</td><td class="num-r">2:05</td><td class="rv">LT &middot; Torres</td><td class="num-r">0</td><td class="s-wait"><span class="sdot"></span>WAITING</td><td class="num-r age-hot">1d 6h</td></tr>
+              <tr><td class="id">VR-2206</td><td class="t">Homepage hero loop &mdash; v9</td><td class="num-r">0:15</td><td class="rv">MK &middot; Kowalski</td><td class="num-r">7</td><td class="s-ok"><span class="sdot"></span>APPROVED*</td><td class="num-r">1d 8h</td></tr>
+              <tr><td class="id">VR-2201</td><td class="t">Podcast clip &mdash; ep. 32</td><td class="num-r">1:28</td><td class="rv">JB &middot; Beck</td><td class="num-r">1</td><td class="s-rev"><span class="sdot"></span>IN REVIEW</td><td class="num-r age-hot">2d 4h</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="chips" data-dir="1">
+      <button class="chip steal" type="button" data-label="the 4-stat metric strip (D1)"><span class="k">steal</span> &middot; the 4-stat metric strip</button>
+      <button class="chip steal" type="button" data-label="status dots + inline comment counts (D1)"><span class="k">steal</span> &middot; status dots + comment counts</button>
+      <button class="chip skip" type="button" data-label="the full dark chrome (D1)"><span class="k">skip</span> &middot; full dark chrome</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════ DIRECTION 2 ═══════════════ -->
+  <div class="direction">
+    <div class="dir-head"><span class="num">DIRECTION 2 / 4</span><h2>Airy editorial cards</h2></div>
+    <p class="dir-says">&ldquo;Reviewing creative work should feel calm. One number that matters, then the queue as a reading list.&rdquo;</p>
+    <div class="frame">
+      <div class="frame-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">acme.app/studio/queue</span></div>
+      <div class="frame-body">
+        <div class="d2">
+          <div class="masth">
+            <div class="bignum-wrap">
+              <div class="bignum">5</div>
+              <div class="bignum-cap">videos waiting on a decision</div>
+            </div>
+            <div class="weekly"><b>14</b> cleared this week &mdash;<br>your fastest week since May.</div>
+          </div>
+          <div class="row">
+            <span class="av a1">MK</span>
+            <div class="info">
+              <div class="vt">Q3 launch teaser &mdash; v4</div>
+              <div class="meta">0:47 &middot; Maya Kowalski &middot; 12 comments &middot; uploaded 2h ago</div>
+            </div>
+            <div class="phrase hot">needs changes</div>
+          </div>
+          <div class="row">
+            <span class="av a2">DR</span>
+            <div class="info">
+              <div class="vt">Onboarding walkthrough &mdash; final</div>
+              <div class="meta">3:12 &middot; Dev Raman &middot; 3 comments &middot; uploaded 5h ago</div>
+            </div>
+            <div class="phrase">being reviewed now</div>
+          </div>
+          <div class="row">
+            <span class="av a3">LT</span>
+            <div class="info">
+              <div class="vt">Customer story: Halvorsen Co.</div>
+              <div class="meta">2:05 &middot; Lena Torres &middot; no comments yet &middot; uploaded yesterday</div>
+            </div>
+            <div class="phrase">waiting on Lena</div>
+          </div>
+          <div class="row">
+            <span class="av a1">MK</span>
+            <div class="info">
+              <div class="vt">Homepage hero loop &mdash; v9</div>
+              <div class="meta">0:15 &middot; Maya Kowalski &middot; 7 comments &middot; uploaded yesterday</div>
+            </div>
+            <div class="phrase ok">approved, with notes</div>
+          </div>
+          <div class="row">
+            <span class="av a4">JB</span>
+            <div class="info">
+              <div class="vt">Podcast clip &mdash; ep. 32</div>
+              <div class="meta">1:28 &middot; Jonah Beck &middot; 1 comment &middot; uploaded two days ago</div>
+            </div>
+            <div class="phrase">being reviewed now</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="chips" data-dir="2">
+      <button class="chip steal" type="button" data-label="the big serif numeral headline (D2)"><span class="k">steal</span> &middot; the big serif numeral</button>
+      <button class="chip steal" type="button" data-label="human status phrases like &quot;waiting on Lena&quot; (D2)"><span class="k">steal</span> &middot; human status phrases</button>
+      <button class="chip skip" type="button" data-label="the low density &mdash; won't survive 30 items (D2)"><span class="k">skip</span> &middot; low density (dies at 30 items)</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════ DIRECTION 3 ═══════════════ -->
+  <div class="direction">
+    <div class="dir-head"><span class="num">DIRECTION 3 / 4</span><h2>Kanban / timeline hybrid</h2></div>
+    <p class="dir-says">&ldquo;A review is a thing that moves. Show where each video sits in the pipeline, and how long it's been sitting.&rdquo;</p>
+    <div class="frame">
+      <div class="frame-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">acme.app/board/review-queue</span></div>
+      <div class="frame-body">
+        <div class="d3">
+          <div class="head">
+            <span class="hl">Review pipeline &mdash; Launch content</span>
+            <span class="hr"><b>14</b> cleared this week &middot; avg 6.2h to decision</span>
+          </div>
+          <div class="cols">
+            <div class="col wait">
+              <div class="col-h"><span>Waiting / in review</span><span class="cnt">3</span></div>
+              <div class="kcard">
+                <div class="kt">Onboarding walkthrough &mdash; final</div>
+                <div class="km"><span class="mini-av a2">DR</span> 3:12 &middot; 5h in <span class="cmt">3&#9998;</span></div>
+              </div>
+              <div class="kcard stale">
+                <div class="kt">Customer story: Halvorsen Co.</div>
+                <div class="km"><span class="mini-av a3">LT</span> 2:05 &middot; 1d 6h in <span class="cmt">0&#9998;</span></div>
+              </div>
+              <div class="kcard stale">
+                <div class="kt">Podcast clip &mdash; ep. 32</div>
+                <div class="km"><span class="mini-av a4">JB</span> 1:28 &middot; 2d 4h in <span class="cmt">1&#9998;</span></div>
+              </div>
+            </div>
+            <div class="col chg">
+              <div class="col-h"><span>Needs changes</span><span class="cnt">1</span></div>
+              <div class="kcard">
+                <div class="kt">Q3 launch teaser &mdash; v4</div>
+                <div class="km"><span class="mini-av a1">MK</span> 0:47 &middot; 2h in <span class="cmt">12&#9998;</span></div>
+              </div>
+            </div>
+            <div class="col ok">
+              <div class="col-h"><span>Approved w/ notes</span><span class="cnt">1</span></div>
+              <div class="kcard">
+                <div class="kt">Homepage hero loop &mdash; v9</div>
+                <div class="km"><span class="mini-av a1">MK</span> 0:15 &middot; 1d 8h in <span class="cmt">7&#9998;</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="tl-label">Time in queue &mdash; red-flagged past 24h</div>
+          <div class="tl">
+            <span class="tick" style="left:0%"></span><span class="tick-lab" style="left:0%">now</span>
+            <span class="tick" style="left:25%"></span><span class="tick-lab" style="left:25%">12h</span>
+            <span class="tick" style="left:50%"></span><span class="tick-lab" style="left:50%">24h</span>
+            <span class="tick" style="left:75%"></span><span class="tick-lab" style="left:75%">36h</span>
+            <span class="tick" style="left:99%"></span><span class="tick-lab" style="left:98%">48h+</span>
+            <span class="tdot" style="left:4%"><span class="d chg"></span><span class="tn">teaser v4</span></span>
+            <span class="tdot" style="left:11%"><span class="d rev"></span><span class="tn">onboarding</span></span>
+            <span class="tdot" style="left:62%"><span class="d wait"></span><span class="tn">Halvorsen</span></span>
+            <span class="tdot" style="left:67%"><span class="d ok"></span><span class="tn">hero v9</span></span>
+            <span class="tdot" style="left:96%"><span class="d rev"></span><span class="tn">ep. 32</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="chips" data-dir="3">
+      <button class="chip steal" type="button" data-label="the age-in-queue timeline strip (D3)"><span class="k">steal</span> &middot; the age timeline strip</button>
+      <button class="chip steal" type="button" data-label="red left-edge on stale cards (D3)"><span class="k">steal</span> &middot; red edge on stale cards</button>
+      <button class="chip skip" type="button" data-label="three columns &mdash; wasteful with only 5 items (D3)"><span class="k">skip</span> &middot; columns feel empty at n=5</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════ DIRECTION 4 ═══════════════ -->
+  <div class="direction">
+    <div class="dir-head"><span class="num">DIRECTION 4 / 4</span><h2>Brutalist mono terminal</h2></div>
+    <p class="dir-says">&ldquo;No decoration, no chrome. A queue is a list; read it top to bottom and get out.&rdquo;</p>
+    <div class="frame">
+      <div class="frame-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">acme.app/q &mdash; keyboard-first</span></div>
+      <div class="frame-body">
+        <div class="d4">
+          <div class="hdr"><b>acme</b> :: review-queue :: launch-content</div>
+          <div class="rule">════════════════════════════════════════════════════════════════════</div>
+          <div class="kv">
+            <span>PENDING=<b>5</b></span>
+            <span>CLEARED_7D=<b class="ok">14</b></span>
+            <span>AVG_TURNAROUND=<b>6.2h</b></span>
+            <span>OLDEST=<b class="hot">2d4h&nbsp;!SLA</b></span>
+          </div>
+          <table>
+            <thead>
+              <tr><th>#</th><th>title</th><th>len</th><th>rev</th><th>cmt</th><th>status</th><th>age</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="idx">1</td><td>q3-launch-teaser.v4</td><td>0:47</td><td>MK</td><td>12</td><td class="st chg">[NEEDS-CHANGES]</td><td>2h</td></tr>
+              <tr><td class="idx">2</td><td>onboarding-walkthrough.final</td><td>3:12</td><td>DR</td><td>3</td><td class="st rev">[IN-REVIEW]</td><td>5h</td></tr>
+              <tr><td class="idx">3</td><td>customer-story.halvorsen</td><td>2:05</td><td>LT</td><td>0</td><td class="st wait">[WAITING]</td><td>1d6h</td></tr>
+              <tr><td class="idx">4</td><td>homepage-hero-loop.v9</td><td>0:15</td><td>MK</td><td>7</td><td class="st ok">[APPROVED+NOTES]</td><td>1d8h</td></tr>
+              <tr><td class="idx">5</td><td>podcast-clip.ep32</td><td>1:28</td><td>JB</td><td>1</td><td class="st rev">[IN-REVIEW]</td><td>2d4h</td></tr>
+            </tbody>
+          </table>
+          <div class="cmd">&gt; <b>open 3</b> &mdash; j/k move &middot; o open &middot; a approve &middot; c comment <span class="cursor"></span></div>
+        </div>
+      </div>
+    </div>
+    <div class="chips" data-dir="4">
+      <button class="chip steal" type="button" data-label="keyboard-first shortcuts on every row (D4)"><span class="k">steal</span> &middot; keyboard shortcuts everywhere</button>
+      <button class="chip skip" type="button" data-label="the all-caps bracket statuses (D4)"><span class="k">skip</span> &middot; [ALL-CAPS-BRACKETS]</button>
+      <button class="chip skip" type="button" data-label="the terminal cosplay &mdash; novelty wears off (D4)"><span class="k">skip</span> &middot; the novelty wears off</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════ HOW TO REACT ═══════════════ -->
+  <div class="react-card">
+    <div class="label">How to react</div>
+    <h3>Reply with a direction and your steals</h3>
+    <p>
+      You don't have to write a design brief &mdash; that's the whole point. Pick the direction whose
+      <em>attitude</em> is right, then name the two or three details worth carrying over from the others.
+      Tap a direction and the chips above; the reply writes itself.
+    </p>
+    <div class="pick-row" id="pick-row">
+      <button class="pick" type="button" data-dir="1" data-name="Direction 1 (ops console)">D1 &middot; ops console</button>
+      <button class="pick on" type="button" data-dir="2" data-name="Direction 2 (editorial cards)">D2 &middot; editorial</button>
+      <button class="pick" type="button" data-dir="3" data-name="Direction 3 (kanban/timeline)">D3 &middot; kanban/timeline</button>
+      <button class="pick" type="button" data-dir="4" data-name="Direction 4 (terminal)">D4 &middot; terminal</button>
+    </div>
+    <div class="reply-wrap">
+      <pre class="reply" id="reply"></pre>
+      <button class="copy-reply" id="copy-reply" type="button">Copy reply</button>
+    </div>
+    <p class="react-foot">
+      Paste that back into the chat as-is. Claude will fold the steals into the winning direction and
+      come back with one refined design &mdash; which is a far shorter conversation than trying to
+      describe taste you didn't know you had.
+    </p>
+  </div>
+
+  <footer>
+    Part of <a href="index.html">Know your unknowns</a> &mdash; companion examples to the blog post.
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  // ---- copy helper -------------------------------------------------------
+  function copyText(text, btn, idleLabel) {
+    function done() {
+      btn.classList.add('copied');
+      var prev = btn.textContent;
+      btn.textContent = 'Copied';
+      setTimeout(function () {
+        btn.classList.remove('copied');
+        btn.textContent = idleLabel || prev;
+      }, 1600);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, function () { fallback(); });
+    } else {
+      fallback();
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); done(); } catch (e) {}
+      document.body.removeChild(ta);
+    }
+  }
+
+  // ---- copy prompt -------------------------------------------------------
+  var promptBtn = document.getElementById('copy-prompt');
+  var promptText = document.getElementById('prompt-text').textContent
+    .trim().replace(/^[“"]/, '').replace(/[”"]$/, '');
+  promptBtn.addEventListener('click', function () {
+    copyText(promptText, promptBtn, 'Copy prompt');
+  });
+
+  // ---- reaction builder --------------------------------------------------
+  var picks = Array.prototype.slice.call(document.querySelectorAll('.pick'));
+  var chips = Array.prototype.slice.call(document.querySelectorAll('.chip'));
+  var replyEl = document.getElementById('reply');
+
+  function decode(s) {
+    // chip labels contain entities via data attributes already decoded by the parser
+    return s;
+  }
+
+  function currentDirection() {
+    var on = picks.filter(function (p) { return p.classList.contains('on'); })[0];
+    return on ? on.getAttribute('data-name') : null;
+  }
+
+  function buildReply() {
+    var dir = currentDirection();
+    var steals = [], skips = [];
+    chips.forEach(function (c) {
+      if (!c.classList.contains('on')) return;
+      var label = decode(c.getAttribute('data-label'));
+      if (c.classList.contains('steal')) steals.push(label);
+      else skips.push(label);
+    });
+    var lines = [];
+    lines.push('Go with ' + (dir || '[pick a direction]') + '.');
+    if (steals.length) lines.push('Steal: ' + steals.join('; ') + '.');
+    if (skips.length) lines.push('Skip: ' + skips.join('; ') + '.');
+    if (!steals.length && !skips.length) {
+      lines.push('(Tap the steal/skip chips under each frame to fill this in.)');
+    }
+    lines.push('Then build the real page at src/pages/ReviewQueue.tsx against the /api/reviews?team=launch-content endpoint.');
+    replyEl.textContent = lines.join('\n');
+  }
+
+  picks.forEach(function (p) {
+    p.addEventListener('click', function () {
+      picks.forEach(function (q) { q.classList.remove('on'); });
+      p.classList.add('on');
+      buildReply();
+    });
+  });
+  chips.forEach(function (c) {
+    c.addEventListener('click', function () {
+      c.classList.toggle('on');
+      buildReply();
+    });
+  });
+
+  // sensible starting selection so the reply never opens empty
+  var preselect = [
+    'the big serif numeral headline (D2)',
+    'the 4-stat metric strip (D1)',
+    'the age-in-queue timeline strip (D3)'
+  ];
+  chips.forEach(function (c) {
+    if (preselect.indexOf(c.getAttribute('data-label')) !== -1) c.classList.add('on');
+  });
+  buildReply();
+
+  // ---- copy reply --------------------------------------------------------
+  var replyBtn = document.getElementById('copy-reply');
+  replyBtn.addEventListener('click', function () {
+    copyText(replyEl.textContent, replyBtn, 'Copy reply');
+  });
+})();
+</script>
+</body>
+</html>

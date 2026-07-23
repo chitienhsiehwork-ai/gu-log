@@ -16,13 +16,13 @@ allPosts.sort((a, b) => {
 
 type Group = { label: string; colorVar: string; posts: typeof allPosts };
 const groups: Record<string, Group> = {
-  CP: { label: 'Mogu Picks', colorVar: 'var(--color-badge-cp)', posts: [] },
-  SP: { label: 'Gu-log Picks', colorVar: 'var(--color-badge-sp)', posts: [] },
+  MP: { label: 'Mogu Picks', colorVar: 'var(--color-badge-mp)', posts: [] },
+  GP: { label: 'Gu-log Picks', colorVar: 'var(--color-badge-gp)', posts: [] },
   SD: { label: 'ShroomDog Original', colorVar: 'var(--color-badge-sd)', posts: [] },
   Lv: { label: 'Level Up', colorVar: 'var(--color-badge-lv)', posts: [] },
 };
 
-const prefixOrder = ['CP', 'SP', 'SD', 'Lv'];
+const prefixOrder = ['MP', 'GP', 'SD', 'Lv'];
 
 for (const post of allPosts) {
   const prefix = post.data.ticketId?.split('-')[0] || 'SD';
@@ -867,7 +867,7 @@ const totalArticles = allPosts.length;
   }
 
   .article-row.is-read .article-toggle {
-    color: var(--color-badge-sd);
+    color: var(--color-status-success);
   }
 
   .article-title {
@@ -947,8 +947,8 @@ const totalArticles = allPosts.length;
   }
 
   .sync-status-badge.sync-status-ok {
-    color: var(--color-badge-sd);
-    border-color: var(--color-badge-sd);
+    color: var(--color-status-success);
+    border-color: var(--color-status-success);
     background: rgba(80, 250, 123, 0.08);
   }
 
@@ -957,8 +957,8 @@ const totalArticles = allPosts.length;
   }
 
   .sync-status-badge.sync-status-dirty {
-    color: var(--color-badge-cp);
-    border-color: var(--color-badge-cp);
+    color: var(--color-status-warning);
+    border-color: var(--color-status-warning);
     background: rgba(255, 184, 108, 0.08);
   }
 

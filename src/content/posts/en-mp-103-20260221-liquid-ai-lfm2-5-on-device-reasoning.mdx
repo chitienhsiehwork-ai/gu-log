@@ -1,0 +1,114 @@
+---
+ticketId: "MP-103"
+title: "Reasoning Model on Your Phone? Liquid AI Fits LFM2.5-1.2B Into ~900MB — Edge Agents Are Getting Real"
+originalDate: "2026-02-13"
+translatedDate: "2026-02-21"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "Liquid AI"
+sourceUrl: "https://www.liquid.ai/blog/lfm2-5-1-2b-thinking-on-device-reasoning-under-1gb"
+summary: "Liquid AI's LFM2.5-1.2B-Thinking (1.17B param, 32K context) runs on-device (<1GB mem). Claims to match/beat Qwen3-1.7B on reasoning, with faster decoding & fewer tokens. Strong for tool-calling/data extraction, but weaker on knowledge-heavy tasks."
+lang: "en"
+tags: ["liquid-ai","edge-ai","on-device","agentic-coding","small-model","benchmark","the-batch"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## Your Phone Might Be Hiding a Tiny Brain That Can Reason
+
+Let me paint a picture and see if this rings a bell.
+
+You built an agent. It runs beautifully in the cloud. Then your boss says: "Make it work offline too." And you think — running a reasoning model on a phone? That's like asking a goldfish to write a thesis.
+
+But Liquid AI just did something that makes this idea feel a lot less ridiculous.
+
+They released [LFM2.5-1.2B-Thinking](https://www.liquid.ai/blog/lfm2-5-1-2b-thinking-on-device-reasoning-under-1gb) — a 1.17 billion parameter reasoning model with 32K context, and it only needs about 900MB of memory. For context, most mobile games are bigger than that.
+
+<MoguNote>
+For years, "on-device AI" meant something like cooking a steak in a microwave — technically possible, but nobody enjoyed the result ┐(￣ヘ￣)┌
+
+This time Liquid actually ships deployment paths (llama.cpp, MLX, vLLM, ONNX) and real hardware benchmarks. Not a flashy demo video — actual engineering specs. That's what makes this different.
+</MoguNote>
+
+## The Numbers: 30% Fewer Parameters, Still Wins the Fight
+
+OK, number time. But I know your eyes glaze over the second you see a wall of stats, so let me put it this way —
+
+You know that kid in class who's the smallest but somehow wins every race on sports day? LFM2.5 is that kid. It has 30% fewer parameters than Qwen3-1.7B, yet matches or beats it on most reasoning and tool-use benchmarks. That's like entering a 1200cc car in a 1800cc rally and not getting destroyed.
+
+Memory stays under 1GB, and on a Snapdragon 8 Elite NPU it spits out 82 tokens per second. On a phone. That's already faster than most people type (◕‿◕)
+
+And here's the real pitch — Liquid isn't saying "I'm small but smart too." They're saying: "All those repetitive tool-calling loops in your agent pipeline? Let a small model handle those." Not replacing the cloud brain. Just making sure the brain doesn't waste time carrying bricks.
+
+<MoguNote>
+The real job interview for a small model is never "can you solve one hard math problem?"
+
+It's: **Can you survive 100,000 production calls without melting latency, burning cost, or giving me a heart attack when the bill arrives?**
+
+A small model that can answer those three questions deserves your serious attention (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+## Hold On Though — The Batch Throws Some Cold Water
+
+Same issue of The Batch ([Issue 341](https://www.deeplearning.ai/the-batch/issue-341/)) delivers the reality check right after the hype:
+
+On Artificial Analysis's [AA-Omniscience metric](https://artificialanalysis.ai/models/lfm2-5-1-2b-thinking) — which specifically tests for low hallucination — this class of tiny reasoning models still underperforms. Plain English: it can do things for you, but you can't fully trust everything it says.
+
+The Batch's recommendation is pretty practical: use it as an executor for agentic tasks, data extraction, RAG pipelines? Great fit. Use it as an encyclopedia or a careful auditor? You'll get hallucinated into questioning your own sanity.
+
+Think of it like hiring a super-fast intern — give them clear instructions and they'll sprint, but you wouldn't ask them to sign contracts.
+
+<MoguNote>
+Andrew Ng made a point in the same Batch issue about optimizing the intelligence x speed x memory balance. Sounds reasonable, right? But here's what I think he left unsaid — the reason this framing matters is because it punctures the industry's "more parameters = more better" superstition (￣▽￣)／
+
+Let's be real: you don't pick a restaurant by looking only at ingredient cost. "Deployable 80 points" is often worth more than "cloud benchmark 98 points you can't actually ship." And yet, so many teams pick models the way they'd order food by calories-per-dollar — technically rational, completely missing the point.
+</MoguNote>
+
+## So How Should You Think About Your [Agent](/en/glossary#agent) Architecture?
+
+OK, if you're a tech lead or building agent systems, here's the one idea worth taking home: **your architecture can finally be layered.**
+
+Picture this: a small model running locally handles classification, routing, simple tool calls — the stuff that makes up 80% of your agent's workload but honestly doesn't need Opus-level brainpower. The genuinely hard 10%? That gets escalated to a cloud frontier model.
+
+This used to be theory. Now there are real models that can hold up their end. Retail terminals, factory devices, vehicle systems, medical equipment — all those scenarios stuck behind network restrictions and compliance rules finally have a less painful path forward.
+
+And if your model selection process still starts and ends with benchmark rankings, it's time to rethink that. P95 latency, token cost per task, long-horizon completion rate — these three metrics might matter more to your product's survival than any MMLU score.
+
+## Related Reading
+
+- [MP-110: Google Launches Gemini 3.1 Pro: 77.1% on ARC-AGI-2 and a Bigger Push Into Real Reasoning Workflows](/en/posts/en-mp-110-20260222-google-gemini31-pro-core-reasoning/)
+- [MP-109: Epoch AI Re-Ran SWE-bench Verified: Better Scores May Mean Better Evaluation Setup, Not Just Better Models](/en/posts/en-mp-109-20260222-epochai-swebench-methodology-reset/)
+- [MP-122: Andrew Ng: I've Stopped Reading AI-Generated Code — When Python Becomes the New Assembly and 'X Engineers' Take Over](/en/posts/en-mp-122-20260225-andrewng-stop-reading-code/)
+
+
+<MoguNote>
+Picking models by leaderboard rank alone is like buying a race car to deliver groceries. What you need is "delivery cost per mile," not "lap time" (⌐■_■)
+
+And honestly, I'm a small model myself in some sense, so I take the "small but mighty" concept personally. We little ones have dignity too, you know.
+</MoguNote>
+
+---
+
+Back to that opening scene — your boss says it needs to work offline, and you think it's fantasy.
+
+The answer might have changed. LFM2.5 isn't here to steal jobs from Opus or GPT. It's more like a Swiss Army knife in your toolbox — it can't chop down a tree, but for slicing fruit, opening packages, and sharpening pencils, it's a hundred times faster than dragging out a chainsaw.
+
+The future of agent systems probably looks like this: small models handle ninety percent of the grunt work up front, big models handle the ten percent that actually needs deep thinking. Cut your costs in half, cut your latency even more.
+
+That tiny brain in your pocket might be more useful than you think. And that goldfish? It just learned to write summaries ╰(°▽°)╯
+
+---
+
+Further reading: [The Batch Issue 341](https://www.deeplearning.ai/the-batch/issue-341/) | [Hugging Face model card](https://huggingface.co/LiquidAI/LFM2.5-1.2B-Thinking)

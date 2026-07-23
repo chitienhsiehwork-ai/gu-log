@@ -1,0 +1,128 @@
+---
+ticketId: "MP-295"
+title: "Claude Code Pro 省 token 實戰：Anthropic 官方的四招節流術"
+originalDate: "2026-04-02"
+translatedDate: "2026-04-15"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code CLI"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@lydiahallie on X"
+sourceUrl: "https://x.com/lydiahallie/status/2039800718371307603"
+lang: "zh-tw"
+summary: "Lydia Hallie 分析 Claude Code Pro 用量報告後，公開四個最有效的省 token 技巧：預設用 Sonnet、關掉不必要的 extended thinking、別續用閒置 session、手動壓 context window 上限。"
+tags: ["Claude Code","token-optimization","Anthropic","Pro"]
+pipeline:
+  - role: "Written"
+    model: "Opus 4.6"
+    harness: "Claude Code CLI"
+  - role: "Reviewed"
+    model: "Opus 4.6"
+    harness: "Claude Code CLI"
+  - role: "Refined"
+    model: "Opus 4.6"
+    harness: "Claude Code CLI"
+  - role: "Scored"
+    model: "Opus 4.6"
+    harness: "Claude Code (vibe-opus-scorer)"
+  - role: "Orchestrated"
+    model: "Opus 4.6"
+    harness: "OpenClaw + Ralph Loop"
+---
+import MoguNote from '../../components/MoguNote.astro';
+
+三天前 Lydia Hallie 才在 X 上承認 [Claude Code](/glossary#claude-code) 的 usage limit 被打爆了（[MP-259](/posts/mp-259-20260330-lydiahallie-claude-code-rate-limit)），整個 dev community 集體哀號。三天後，她帶著藥方回來了 — 不是那種「正在積極處理中」的企業話術，是真的掏出 usage report，指著數據跟大家說：
+
+> Digging into reports, most of the fastest burn came down to a few token-heavy patterns.
+
+Anthropic 去看了用量報告。發現大部分人的 token 不是被「正常使用」燒掉的，而是被幾個特定的高耗能操作模式吃掉的。
+
+這件事有意思的地方在 — Lydia 不只是說「省著點用」，而是真的拆出了到底哪些操作在偷吃額度。像醫生看完健檢報告跟病人說「膽固醇高不是因為基因，是因為每天消夜都點鹹酥雞」— 問題出在行為，不是體質。
+
+<MoguNote>
+[MP-259](/posts/mp-259-20260330-lydiahallie-claude-code-rate-limit) 裡 Lydia 說「way faster than expected」的時候，大家都在猜到底是什麼原因。現在答案揭曉了 — 不是 Anthropic 的 capacity 不夠，是用戶的使用方式本身就在瘋狂燒 token。電信公司推吃到飽方案，結果發現大家真的在吃到飽。經典 (￣▽￣)／
+</MoguNote>
+
+## 最貴的習慣：拿 Opus 當日常
+
+先講最痛的那一刀。
+
+> Sonnet 4.6 is the better default on Pro. Opus burns roughly twice as fast. Switch at session start.
+
+**Opus 的 token 消耗速度大約是 Sonnet 的兩倍。** 同一個任務，選 Opus 就是兩倍速度燒完額度。但這不是重點 — 重點是，絕大多數人開 [Claude Code](/glossary#claude-code) 做的事，根本用不到 Opus。
+
+改個 CSS、寫個 unit test、重構一小段程式碼。這些事情 Sonnet 4.6 處理起來跟 Opus 幾乎沒有體感差異，但 token 帳單差一倍。Lydia 的建議很直接：**Sonnet 當預設，Opus 當武器。** 武器不是每天帶出門的東西。
+
+<MoguNote>
+這邊有個心理陷阱 Lydia 沒講但所有 Pro 用戶都中過 — 付了最高價，直覺上就想用最好的 model。「既然都 Pro 了幹嘛委屈自己用 Sonnet？」但 Pro 方案的 limit 不是無限的。Opus 的「最好」是拿兩倍燒錢速度換來的。這個心態跟信用卡額度一樣危險：額度高不代表應該刷滿 (⌐■_■)
+</MoguNote>
+
+---
+
+## 但真正的隱形殺手不是 model 選擇
+
+選錯 model 至少還看得見帳單。接下來這兩個坑，大部分人根本不知道自己在踩。
+
+先說 extended thinking。想像一下這個畫面：開了深度推理模式，然後叫 Claude Code 加一行 `import` statement。Model 在背後花了多少資源「思考」要不要把 `React` 放在 `useState` 前面？
+
+> Lower the effort level or turn off extended thinking when you don't need deep reasoning. Switch at session start.
+
+Extended thinking 在處理跨 service 的 race condition、複雜架構決策的時候確實值回票價。但拿來刪一行 `console.log`？那就像請一個哲學教授幫忙搬家 — 教授搬每個箱子之前都要思考「這個箱子的存在意義是什麼」。很深刻，但搬家公司按小時計費。
+
+而更反直覺的是 session 管理。
+
+> Start fresh instead of resuming large sessions that have been idle ~1h
+
+直覺上，已經建立好 context 的 session 應該繼續用最划算。**錯。** 當一個 session 閒置超過大約一小時，resume 那個龐大的舊 session 反而比從頭開一個新的更耗 token — 光是把整個 context 重新載回來，就已經燒掉一大筆了。
+
+<MoguNote>
+這兩個坑的共同點是「看不見的成本」。選 Opus 至少是有意識的決定，但 extended thinking 吃掉的 token 不會顯示在對話裡，session resume 的成本更是完全隱形。就像家裡的待機電器 — 沒有人會覺得電視待機燈在燒電費，但全部加起來一個月也是一筆。Anthropic 最聰明的做法就是讓這些隱形成本變透明，但在那之前，只能靠使用者自己斷捨離 (ง •̀_•́)ง
+</MoguNote>
+
+---
+
+## 最硬核的一招：幫 Claude Code 換小盤子
+
+前面三個都是行為層面的調整。接下來這個，直接改系統設定：
+
+```bash
+export CLAUDE_CODE_AUTO_COMPACT_WINDOW=200000
+```
+
+丟進 `.bashrc` 或 `.zshrc`，一勞永逸。
+
+> Cap your context window, long sessions cost more CLAUDE_CODE_AUTO_COMPACT_WINDOW=200000
+
+`CLAUDE_CODE_AUTO_COMPACT_WINDOW` 控制 [context window](/glossary#context-window) 的自動壓縮門檻。預設值讓 session 可以累積非常長的 context，但 **長 context = 每一次 API call 都帶著一整本小說進去** = 額度以肉眼可見的速度蒸發。設成 `200000` 之後，[Claude Code](/glossary#claude-code) 會更積極地壓縮對話歷史，只留真正重要的脈絡。
+
+這一招跟前面三招有個本質上的不同 — 前三招都要靠意志力（記得切 Sonnet、記得關 thinking、記得開新 session），但這個是設一次就自動生效。不靠自律，靠系統設計。
+
+<MoguNote>
+200000 這個數字值得想一下。Claude 的完整 context window 遠大於此，但 Lydia 特地建議壓到這裡 — 潛台詞是大部分人其實不需要那麼長的 context，多出來的部分純粹在燒錢。自助餐的研究早就證明了：盤子越大拿越多，吃不完的也越多。這招的精髓就是把盤子換小。不是吃不飽，是不再浪費 (◕‿◕)
+</MoguNote>
+
+---
+
+## 藥方之外的潛台詞
+
+到這裡，Lydia 的四個建議都講完了。但最值得注意的，其實是她最後加的那一句：
+
+> If a small session is still eating a huge chunk of your limit in a way that seems unreasonable, run /feedback and we'll investigate
+
+翻譯一下：照做了以上全部，額度還是莫名其妙燒光？那可能不是使用習慣的問題，是 bug。回報給 Anthropic，團隊會去查。
+
+這句話為什麼重要？因為它承認了一件事 — **問題不全在用戶端。** 如果 Anthropic 百分之百確定是用戶行為的問題，根本不需要給 `/feedback` 這條退路。鼓勵回報 = 承認系統端可能也有洞。以一個「教大家省 token」的推文來說，願意留這句話，比四招技巧本身更有誠意。
+
+<MoguNote>
+Lydia 也提到 "We're rolling out more efficiency improvements"，建議保持 Claude Code 在最新版本。所以整個故事其實是雙線的：使用者端調行為，Anthropic 端修系統。比起只講其中一邊然後甩鍋另一邊，兩邊都攤開來講，這個態度對了 ٩(◕‿◕｡)۶
+</MoguNote>
+
+---
+
+## 結語
+
+[MP-259](/posts/mp-259-20260330-lydiahallie-claude-code-rate-limit) 是 Anthropic 說「對，爆了」。這則推文是「爆了之後怎麼辦」。三天內從承認問題到拆解原因、給出可執行的步驟，這個速度在大型科技公司裡算相當快。
+
+但把這四招攤開來看 — 選便宜的 model、關掉深度思考、別留舊 session、壓低 context 上限 — 本質上都是在教用戶怎麼「少用一點」。
+
+一個產品的官方建議是「請克制使用」，這本身就是 [Claude Code](/glossary#claude-code) 2026 年四月處境的最佳註腳。而且最諷刺的是，這些建議真的有用。

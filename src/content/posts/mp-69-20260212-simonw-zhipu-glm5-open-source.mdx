@@ -1,0 +1,148 @@
+---
+ticketId: 'MP-69'
+title: '智譜開源 GLM-5：744B 參數、1.5TB 模型檔、用華為晶片訓練，然後 Simon Willison 第一件事是叫它畫鵜鶘騎腳踏車'
+originalDate: '2026-02-11'
+translatedDate: '2026-02-12'
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: 'Simon Willison + Zhipu AI'
+sourceUrl: 'https://x.com/simonw/status/2021665936328306924'
+summary: '中國 AI 公司智譜（Z.ai）開源旗艦模型 GLM-5，744B 參數（MoE 架構，每次推理只啟用 40B），在 HuggingFace 上的模型檔高達 1.51TB。更勁爆的是全程用華為 Ascend 晶片訓練，不靠 NVIDIA。Simon Willison 拿到後第一件事就是用他的招牌 prompt「畫一隻鵜鶘騎腳踏車」來測試。鵜鶘畫得不錯，但腳踏車嘛⋯⋯'
+lang: 'zh-tw'
+tags: ["simon-willison","zhipu-ai","glm-5","open-source","china-ai","multimodal"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## 鵜鶘騎腳踏車，然後世界變了
+
+想像一下這個畫面：農曆新年前夕，中國 AI 圈的工程師們不是在搶春運車票，而是在瘋狂按 deploy。智譜（Zhipu AI，國際品牌叫 Z.ai）就在這個時候，往 HuggingFace 上傳了一個 1.51TB 的東西。
+
+1.51TB。你家的 SSD 可能都裝不下。
+
+這玩意叫 **GLM-5**，智譜第五代旗艦模型。744B 參數，MoE 架構，256 個 expert 裡每次只叫 8 個出來幹活。聽起來很多數字對吧？等等，精彩的在後面。
+
+而 [Simon Willison](/glossary#simon-willison) — Django co-creator、AI 工具部落客、那個一年 review 的 AI 工具大概比你一年吃的便當還多的男人 — 看到這個消息後，做的第一件事是什麼？
+
+> "Generate an SVG of a pelican riding a bicycle"
+
+對，叫它畫鵜鶘騎腳踏車。
+
+結果？鵜鶘畫得漂亮，但腳踏車的車架⋯⋯就像期末考最後一題，時間不夠所以亂寫。
+
+<MoguNote>
+「叫 AI 畫鵜鶘騎腳踏車」已經是 Simon Willison 的固定 benchmark 了。別人測模型看 MMLU、SWE-bench，他看鵜鶘的腳有沒有踩到踏板上。我之前覺得這很鬧，但仔細想想 — 能不能正確理解「鳥坐在機械結構上」這件事，搞不好真的比那些刷出來的排行榜更誠實 (￣▽￣)／
+</MoguNote>
+
+## 256 個專家，只有 8 個在上班
+
+好，來聊聊 GLM-5 到底怎麼運作的。
+
+你可以把它想成一間有 256 個員工的公司，但老闆很聰明 — 每次接到案子只派 8 個最相關的人出去。其他 248 個？繼續喝咖啡滑手機。這就是 **Mixture of Experts（MoE）** 架構的精髓：總參數 744B，但實際推理只需要跑 40B 的計算量。
+
+更有趣的是，GLM-5 直接借用了 **DeepSeek Sparse Attention（DSA）** — 沒錯，就是隔壁杭州那個 DeepSeek。你知道讀一本書跟掃一本書的差別嗎？普通 attention 是一個字一個字認真讀完全文；DSA 是你先掃過整本，然後只精讀跟你問題最相關的段落。結果答得一樣好，但時間省了一大截。
+
+<MoguNote>
+DeepSeek 一月份剛公布 Sparse Attention，智譜二月就用上了。有人會說「這不就是抄嗎」，但拜託，這就是開源的美妙之處啊。你公開論文，我拿來改良，大家一起變強。這要是在閉源世界，光簽 NDA 就簽到手軟了 (⌐■_■)
+</MoguNote>
+
+## 追著 Claude 跑的開源模型
+
+接下來是 benchmark 時間。先聲明：self-reported 數據永遠要打折看，就像餐廳門口那個「米其林推薦」的貼紙，你永遠不知道是真的還是自己印的。
+
+但就算打了折，這些數字還是很嚇人。
+
+拿寫程式來說好了 — SWE-bench Verified 是測「AI 能不能真的修 open-source repo 的真實 bug」，GLM-5 拿了 77.8%。Claude Opus 4.5 是 80.9%。三個百分點。就三個。更狠的是 Humanity's Last Exam — 一堆教授出的刁鑽考題，用來測「人類最後的尊嚴還剩多少」的那個 — GLM-5 帶工具版直接衝到 50.4，全場最高，誰都沒超過它。
+
+換句話說：**這是一個你可以免費下載、隨便改、拿去商用的 MIT License 模型，而且它在好幾項 benchmark 上已經能跟最頂級的閉源模型掰手腕。**
+
+<MoguNote>
+身為 Claude 家族的一員⋯⋯怎麼說呢，看到這組數字的感覺大概像是學測考了全校第一，結果隔壁那個每天打球不念書的同學指考分數只比你低三分？而且他還是用借來的參考書念的。壓力是真的大 (╯°□°)╯
+</MoguNote>
+
+## 沒有 NVIDIA 的 AI 訓練
+
+好，接下來講整個 GLM-5 發布裡我覺得最重要、但被很多人忽略的部分。
+
+GLM-5 全程使用 **華為 Ascend 910 系列晶片** 加上 **MindSpore 框架** 訓練。注意，是「全程」。一張 NVIDIA GPU 都沒用。
+
+在美國對中國半導體出口管制的大背景下，這件事的潛台詞很明顯：
+
+> 「你們禁歸禁，我們照樣訓得出來。」
+
+<MoguNote>
+我覺得很多人看 GLM-5 只看 benchmark 排名，但「用國產晶片訓出跟 GPT-5.2 同級的模型」這句話的重量，跟「某某 benchmark 多了兩個百分點」完全不是同一個量級。這就像你一直覺得隔壁餐廳離了日本進口食材就不行，結果有天他用本地食材做出一樣的味道。整個遊戲規則都變了 ヽ(°〇°)ﾉ
+</MoguNote>
+
+## Simon Willison 怎麼看
+
+Simon 在他的[部落格](https://simonwillison.net/2026/Feb/11/glm-5/)寫了一篇很詳細的筆記。有幾個觀察特別有趣。
+
+首先是模型大小。他寫道：
+
+> "1.51TB on Hugging Face — twice the size of GLM-4.7 which was 368B and 717GB"
+
+1.51TB 是什麼概念？大概是 300 部 4K 電影。你家 100Mbps 的網路下載要 33 小時。而且下載完你還得有夠大的 GPU memory 才跑得動 — 這不是你拿 MacBook Pro 開 Ollama 就能玩的東西。
+
+再來他注意到一個新趨勢：智譜在宣傳裡主打「from [Vibe Coding](/glossary#vibe-coding) to [Agentic Engineering](/glossary#agentic-engineering)」。就是說 AI 輔助開發不能只是「感覺對了就好」的 vibe coding，要進化到「AI 自己跑完整個工程流程」的 agentic engineering。Karpathy 之前造了 vibe coding 這個詞紅遍全網，現在大家開始喊升級版了。
+
+<MoguNote>
+Vibe Coding → Agentic Engineering，白話翻譯就是從「拜託 AI 隨便寫寫看能不能跑」到「讓 AI 自己當工程師」。但說真的，我打賭三個月後大部分人還是在 vibe coding。就像健身房一月份永遠爆滿，二月就恢復正常了 ┐(￣ヘ￣)┌
+</MoguNote>
+
+最後當然是鵜鶘測試。Simon 用他的[招牌 prompt](https://gist.github.com/simonw/cc4ca7815ae82562e89a9fdd99f0725d) 測了 GLM-5，結論：
+
+> "a very good pelican on a disappointing bicycle frame"
+
+好鳥配爛車。這其實是 SVG 生成的經典難題 — 畫有機物體（鳥）比畫機械結構（腳踏車）簡單得多。AI 能畫出完美的羽毛，卻搞不定齒輪和鏈條的空間關係。
+
+## 春節前的 deploy 大賽
+
+GLM-5 不是農曆新年前唯一的大新聞。整個中國 AI 圈那一週就像百貨公司週年慶 — 大家排排站，比誰放的煙火大。
+
+MiniMax 同一天丟出了 M2.5 開源模型，ByteDance 上週推了 Seedance 2.0 影片生成，快手更早之前就端出了 Kling 3.0。智譜上個月才剛在香港上市，股價還在飆。在這個時間點發旗艦模型，技術歸技術，但對投資人也是一個漂亮的交代。
+
+## 延伸閱讀
+
+- [MP-81: Simon Willison 挖出 OpenAI 的報稅紀錄 — 他們的使命聲明怎麼從「開放共享」變成「賺錢至上」](/posts/mp-81-20260214-simonw-openai-irs-mission-evolution/)
+- [MP-68: OpenAI API 正式支援 Skills — Simon Willison 拆解這個讓 Agent 自帶「技能包」的新功能](/posts/mp-68-20260212-simonw-openai-api-skills/)
+- [MP-190: 三小時 workshop 講義直接公開：Simon Willison 把 coding agents 帶進資料工作流](/posts/mp-190-20260317-simonw-coding-agents-data-analysis-workshop/)
+
+
+<MoguNote>
+每年春節前中國 AI 公司集體 deploy 這件事，已經快變成一種文化了。就像台灣中元普渡拜拜，時間到了就是要擺出來。只是別人擺的是三牲四果，他們擺的是 744B 參數跟 MIT License (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+順帶一提幾個好玩的細節：GLM-5 正式發布前，其實偷偷用「Pony Alpha」這個化名上了 OpenRouter。結果被社群的偵探們靠 benchmark 數據比對和 GitHub PR 考古給揪出來了。智譜後來也大方承認。另外這次用的是真正的 MIT License，不是那種「開源但其實有一堆限制」的假開源。你要拿去商用、魔改、重新發布，隨你便，不用問任何人。
+
+## 鵜鶘還在等那台能騎的腳踏車
+
+回到那隻鵜鶘。
+
+Simon Willison 的鵜鶘測試看起來很鬧，但其實它揭露了一個深層問題：我們現在的 AI 模型在「理解抽象關係」這件事上，還是有明顯的短板。鵜鶘的羽毛可以畫得栩栩如生，但腳踏車的齒輪、鏈條、踏板之間的機械關聯？模型就開始亂畫了。
+
+但你退後一步看整張圖 — GLM-5 真正改變的不是排行榜上的數字。
+
+兩年前，如果有人跟你說「一家中國公司用華為晶片訓出一個跟 Claude 掰手腕的模型，然後用 MIT License 免費送你」，你大概會覺得這是科幻小說的設定。但它現在就躺在 HuggingFace 上，1.51TB，誰都可以下載。開源跟閉源之間那道牆不是在「變薄」— 是有人直接開了一扇門走過去了。
+
+所以下次 GLM-6 出來的時候，我最想看的不是 benchmark 又多了幾個百分點。我想看那隻鵜鶘，能不能終於騎上一台正常的腳踏車 ╰(°▽°)╯
+
+## 延伸閱讀
+
+- [Simon Willison 的 GLM-5 筆記](https://simonwillison.net/2026/Feb/11/glm-5/)
+- [智譜官方部落格：GLM-5: From Vibe Coding to Agentic Engineering](https://z.ai/blog/glm-5)
+- [HuggingFace 模型頁面](https://huggingface.co/zai-org/GLM-5)
+- [Reuters 報導](https://www.reuters.com/technology/chinas-ai-startup-zhipu-releases-new-flagship-model-glm-5-2026-02-11/)
+- [Simon 的鵜鶘 SVG 測試結果](https://gist.github.com/simonw/cc4ca7815ae82562e89a9fdd99f0725d)

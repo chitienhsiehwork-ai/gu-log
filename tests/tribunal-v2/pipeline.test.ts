@@ -32,7 +32,7 @@ import type {
 
 const MINIMAL_ARTICLE = `---
 title: "Test Article"
-ticketId: CP-999
+ticketId: MP-999
 slug: test-article
 lang: "zh-tw"
 date: 2026-04-16
@@ -44,11 +44,11 @@ tags:
 
 # 測試文章
 
-ShroomDog 想分享這段內容。Clawd 覺得 [documentation](https://example.com/docs) 是起點。
+ShroomDog 想分享這段內容。Mogu 覺得 [documentation](https://example.com/docs) 是起點。
 
 ## 結論
 
-Clawd 覺得結束了。
+Mogu 覺得結束了。
 `;
 
 // ---------------------------------------------------------------------------
@@ -84,7 +84,7 @@ function stage0Pass(): WorthinessJudgeOutput {
 
 const PASSING_SCORES: VibeJudgeOutput['scores'] = {
   persona: 9,
-  clawdNote: 8,
+  moguNote: 8,
   vibe: 8,
   clarity: 8,
   narrative: 8,
@@ -92,7 +92,7 @@ const PASSING_SCORES: VibeJudgeOutput['scores'] = {
 
 const FAILING_SCORES: VibeJudgeOutput['scores'] = {
   persona: 7,
-  clawdNote: 7,
+  moguNote: 7,
   vibe: 7,
   clarity: 7,
   narrative: 7,
@@ -239,7 +239,7 @@ describe('pipeline — writer-constraint enforcement', () => {
 
   beforeEach(async () => {
     tmpDir = await mkdtemp(join(tmpdir(), 'tribunal-v2-pipeline-test-'));
-    articlePath = join(tmpDir, 'cp-999-test.mdx');
+    articlePath = join(tmpDir, 'mp-999-test.mdx');
     await writeFile(articlePath, MINIMAL_ARTICLE, 'utf-8');
   });
 
@@ -424,7 +424,7 @@ describe('pipeline — writer-constraint enforcement', () => {
     const git = mockGit();
 
     // Stage 1 scores: all high
-    const stage1Scores = { persona: 9, clawdNote: 9, vibe: 9, clarity: 9, narrative: 9 };
+    const stage1Scores = { persona: 9, moguNote: 9, vibe: 9, clarity: 9, narrative: 9 };
 
     const config: PipelineConfig = {
       ...passThroughConfig(),
@@ -460,9 +460,10 @@ describe('pipeline — writer-constraint enforcement', () => {
     expect(stage4Out?.is_degraded).toBe(true);
     expect(stage4Out?.degraded_dimensions).toContain('clarity');
 
-    // Degraded frontmatter marker should have been written to the article.
+    // The canonical UI-consumer snapshot should be written to frontmatter.
     const content = await readFile(articlePath, 'utf-8');
-    expect(content).toContain('stage4Degraded');
+    expect(content).toContain('stage4Scores:');
+    expect(content).toContain('isDegraded: true');
   });
 
   // -------------------------------------------------------------------------
@@ -579,7 +580,7 @@ describe('pipeline — Stage 3 dupCheck-only FAIL (Level E)', () => {
 
   beforeEach(async () => {
     tmpDir = await mkdtemp(join(tmpdir(), 'tribunal-v2-dupcheck-test-'));
-    articlePath = join(tmpDir, 'cp-999-dup-test.mdx');
+    articlePath = join(tmpDir, 'mp-999-dup-test.mdx');
     await writeFile(articlePath, MINIMAL_ARTICLE, 'utf-8');
   });
 
@@ -612,7 +613,7 @@ describe('pipeline — Stage 3 dupCheck-only FAIL (Level E)', () => {
       dupCheck_pass: false,
       improvements: {
         dupCheck:
-          'class=hard-dup action=BLOCK matchedSlugs=[sp-165-20260408-some-slug] reason=與 SP-165 同 cluster primary，無 independentDiff',
+          'class=hard-dup action=BLOCK matchedSlugs=[gp-165-20260408-some-slug] reason=與 GP-165 同 cluster primary，無 independentDiff',
       },
       critical_issues: ['duplicate detected — manual review required'],
       judge_model: 'mock',
@@ -804,7 +805,7 @@ describe('pipeline — Stage 3 dupCheck-only FAIL (Level E)', () => {
       dupCheck_pass: false,
       improvements: {
         linkCoverage: 'missing glossary links',
-        dupCheck: 'class=hard-dup action=BLOCK matchedSlugs=[sp-100] reason=同 cluster primary',
+        dupCheck: 'class=hard-dup action=BLOCK matchedSlugs=[gp-100] reason=同 cluster primary',
       },
       critical_issues: ['library incomplete', 'duplicate detected'],
       judge_model: 'mock',
@@ -825,7 +826,7 @@ describe('pipeline — Stage 3 dupCheck-only FAIL (Level E)', () => {
       library_pass: true, // library fixed by workers
       dupCheck_pass: false,
       improvements: {
-        dupCheck: 'class=hard-dup action=BLOCK matchedSlugs=[sp-100] reason=同 cluster primary',
+        dupCheck: 'class=hard-dup action=BLOCK matchedSlugs=[gp-100] reason=同 cluster primary',
       },
       critical_issues: ['duplicate detected'],
       judge_model: 'mock',
@@ -869,7 +870,7 @@ describe('pipeline — Stage 3 dupCheck-only FAIL (Level E)', () => {
 
 const V9_ARTICLE = `---
 title: "Test Article v9"
-ticketId: CP-998
+ticketId: MP-998
 slug: test-article-v9
 lang: "zh-tw"
 date: 2026-06-18
@@ -883,11 +884,11 @@ scores:
 
 # 測試文章
 
-ShroomDog 想分享這段內容。Clawd 覺得 [documentation](https://example.com/docs) 是起點。
+ShroomDog 想分享這段內容。Mogu 覺得 [documentation](https://example.com/docs) 是起點。
 
 ## 結論
 
-Clawd 覺得結束了。
+Mogu 覺得結束了。
 `;
 
 describe('pipeline — v9 Fresh Eyes clarity gate', () => {
@@ -896,7 +897,7 @@ describe('pipeline — v9 Fresh Eyes clarity gate', () => {
 
   beforeEach(async () => {
     tmpDir = await mkdtemp(join(tmpdir(), 'tribunal-v2-v9-test-'));
-    articlePath = join(tmpDir, 'cp-998-v9.mdx');
+    articlePath = join(tmpDir, 'mp-998-v9.mdx');
     await writeFile(articlePath, V9_ARTICLE, 'utf-8');
   });
 
@@ -959,5 +960,353 @@ describe('pipeline — v9 Fresh Eyes clarity gate', () => {
     expect(judgeCalls).toBe(2);
     expect(writerCalls).toBe(1);
     expect(final.stages.stage2.history[0]?.pass).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Rebrand core contracts — programmatic pass bars, version stamping, EN
+// counterpart I/O, and the Stage 4 degraded frontmatter shape.
+// ---------------------------------------------------------------------------
+
+const MINIMAL_ARTICLE_V9 = `---
+title: "Test Article v9"
+ticketId: MP-999
+slug: test-article
+lang: "zh-tw"
+date: 2026-04-16
+source:
+  url: "https://example.com/source"
+tags:
+  - test
+scores:
+  tribunalVersion: 9
+---
+
+# 測試文章
+
+ShroomDog 想分享這段內容。Mogu 覺得 [documentation](https://example.com/docs) 是起點。
+
+## 結論
+
+Mogu 覺得結束了。
+`;
+
+const PASSING_SCORES_V9: VibeJudgeOutput['scores'] = {
+  persona: 9,
+  moguNote: 8,
+  vibe: 8,
+  narrative: 8,
+};
+
+describe('pipeline — programmatic pass bars (never trust the model boolean)', () => {
+  let tmpDir: string;
+  let articlePath: string;
+
+  beforeEach(async () => {
+    tmpDir = await mkdtemp(join(tmpdir(), 'tribunal-v2-passbar-test-'));
+    articlePath = join(tmpDir, 'mp-999-test.mdx');
+    await writeFile(articlePath, MINIMAL_ARTICLE, 'utf-8');
+  });
+
+  afterEach(async () => {
+    await rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it('Stage 1: overrides a lying pass=true when scores fail the vibe bar', async () => {
+    const config: PipelineConfig = {
+      ...passThroughConfig(),
+      runners: {
+        ...passThroughConfig().runners,
+        // Judge always claims PASS while every dimension is 7 (below bar).
+        stage1Judge: { run: async () => vibe(true, FAILING_SCORES) },
+      },
+    };
+
+    const final = await runPipeline(articlePath, config);
+
+    expect(final.stages.stage1.status).toBe('failed');
+    expect(final.status).toBe('failed');
+    // The recorded outputs must carry the orchestrator's verdict, not the model's.
+    for (const out of final.stages.stage1.history) {
+      expect(out.pass).toBe(false);
+    }
+  });
+
+  it('Stage 1: overrides a lying pass=false when scores clear the vibe bar', async () => {
+    let writerCalls = 0;
+    const config: PipelineConfig = {
+      ...passThroughConfig(),
+      runners: {
+        ...passThroughConfig().runners,
+        stage1Judge: { run: async () => vibe(false, PASSING_SCORES) },
+        stage1Writer: {
+          run: async ({ articleContent }) => {
+            writerCalls++;
+            return { content: articleContent };
+          },
+        },
+      },
+    };
+
+    const final = await runPipeline(articlePath, config);
+
+    expect(final.stages.stage1.status).toBe('passed');
+    expect(writerCalls).toBe(0);
+    expect(final.stages.stage1.output?.pass).toBe(true);
+  });
+
+  it('Stage 3: overrides lying sub-pass booleans from the FactLib judge', async () => {
+    const config: PipelineConfig = {
+      ...passThroughConfig(),
+      runners: {
+        ...passThroughConfig().runners,
+        stage3Judge: {
+          run: async () => ({
+            ...factLibPass(),
+            // All dimensions 6 → every computed bar fails, but the model
+            // claims everything passed.
+            scores: {
+              factAccuracy: 6,
+              sourceFidelity: 6,
+              linkCoverage: 6,
+              linkRelevance: 6,
+              dupCheck: 6,
+            },
+          }),
+        },
+      },
+    };
+
+    const final = await runPipeline(articlePath, config);
+
+    expect(final.stages.stage3.status).not.toBe('passed');
+    const out = final.stages.stage3.output;
+    expect(out?.pass).toBe(false);
+    expect(out?.fact_pass).toBe(false);
+    expect(out?.library_pass).toBe(false);
+    expect(out?.dupCheck_pass).toBe(false);
+  });
+
+  it('Stage 3: computed dupCheck-only failure routes to needs_review with a dedup verdict', async () => {
+    const config: PipelineConfig = {
+      ...passThroughConfig(),
+      runners: {
+        ...passThroughConfig().runners,
+        stage3Judge: {
+          run: async () => ({
+            ...factLibPass(),
+            // fact + library clear the bar; dupCheck 5 fails it. The model
+            // still claims a full pass.
+            scores: {
+              factAccuracy: 9,
+              sourceFidelity: 9,
+              linkCoverage: 9,
+              linkRelevance: 9,
+              dupCheck: 5,
+            },
+            improvements: {
+              dupCheck: 'class=hard-dup action=BLOCK matchedSlugs=[gp-165-x] reason=same event',
+            },
+          }),
+        },
+      },
+    };
+
+    const final = await runPipeline(articlePath, config);
+
+    expect(final.status).toBe('needs_review');
+    expect(final.stages.stage3.status).toBe('needs_review');
+    const fm = matter(await readFile(articlePath, 'utf-8'));
+    const dedup = fm.data.dedup as { tribunalVerdict?: { class?: string } } | undefined;
+    expect(dedup?.tribunalVerdict?.class).toBe('hard-dup');
+  });
+
+  it('Stage 0: computes the WARN signal from scores instead of trusting the judge', async () => {
+    const config: PipelineConfig = {
+      ...passThroughConfig(),
+      runners: {
+        ...passThroughConfig().runners,
+        stage0Judge: {
+          run: async () => ({
+            ...stage0Pass(),
+            // Model claims pass, but composite 5 / dims below 5 must WARN.
+            pass: true,
+            warned: false,
+            scores: { coreInsight: 5, expandability: 4, audienceRelevance: 6 },
+            composite: 5,
+          }),
+        },
+      },
+    };
+
+    await runPipeline(articlePath, config);
+
+    const fm = matter(await readFile(articlePath, 'utf-8'));
+    expect(fm.data.warnedByStage0).toBe(true);
+  });
+});
+
+describe('pipeline — score persistence contracts', () => {
+  let tmpDir: string;
+  let articlePath: string;
+
+  beforeEach(async () => {
+    tmpDir = await mkdtemp(join(tmpdir(), 'tribunal-v2-persist-test-'));
+    articlePath = join(tmpDir, 'mp-999-test.mdx');
+  });
+
+  afterEach(async () => {
+    await rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it('stamps the run tribunalVersion into scores on write (legacy post → v8)', async () => {
+    await writeFile(articlePath, MINIMAL_ARTICLE, 'utf-8');
+    const final = await runPipeline(articlePath, passThroughConfig());
+    expect(final.status).toBe('passed');
+
+    const fm = matter(await readFile(articlePath, 'utf-8'));
+    const scores = fm.data.scores as { tribunalVersion?: number } | undefined;
+    expect(scores?.tribunalVersion).toBe(8);
+  });
+
+  it('keeps the v9 stamp and writes v9 vibe dims (no clarity) for a v9 post', async () => {
+    await writeFile(articlePath, MINIMAL_ARTICLE_V9, 'utf-8');
+    const config: PipelineConfig = {
+      ...passThroughConfig(),
+      runners: {
+        ...passThroughConfig().runners,
+        stage1Judge: { run: async () => vibe(true, PASSING_SCORES_V9) },
+        stage2Judge: {
+          run: async () =>
+            freshEyesOutput(true, {
+              readability: 8,
+              firstImpression: 8,
+              payoffDensity: 8,
+              lengthFit: 8,
+              clarity: 8,
+            }),
+        },
+        stage4Judge: {
+          run: async ({ stage1Scores }) => finalVibe(true, stage1Scores, stage1Scores),
+        },
+      },
+    };
+
+    const final = await runPipeline(articlePath, config);
+    expect(final.status).toBe('passed');
+
+    const fm = matter(await readFile(articlePath, 'utf-8'));
+    const scores = fm.data.scores as
+      { tribunalVersion?: number; vibe?: Record<string, unknown> } | undefined;
+    expect(scores?.tribunalVersion).toBe(9);
+    expect(scores?.vibe).toBeDefined();
+    expect(scores?.vibe?.moguNote).toBe(8);
+    expect(scores?.vibe?.clarity).toBeUndefined();
+  });
+
+  it('silently skips a missing EN counterpart (ENOENT) but surfaces other I/O errors', async () => {
+    await writeFile(articlePath, MINIMAL_ARTICLE, 'utf-8');
+
+    // Missing en-* file: pipeline must succeed without error.
+    const okRun = await runPipeline(articlePath, passThroughConfig());
+    expect(okRun.status).toBe('passed');
+
+    // Same pipeline, but the io adapter now fails EN reads with EACCES —
+    // that must NOT be swallowed as "counterpart doesn't exist".
+    await writeFile(articlePath, MINIMAL_ARTICLE, 'utf-8');
+    const io = buildIoAdapter();
+    const config: PipelineConfig = {
+      ...passThroughConfig(),
+      io: {
+        ...io,
+        readArticle: async (path: string) => {
+          if (path.includes('/en-')) {
+            throw Object.assign(new Error('EACCES: permission denied'), { code: 'EACCES' });
+          }
+          return io.readArticle(path);
+        },
+      },
+    };
+
+    await expect(runPipeline(articlePath, config)).rejects.toThrow(/EACCES/);
+  });
+});
+
+describe('pipeline — Stage 4 degraded frontmatter shape', () => {
+  let tmpDir: string;
+  let articlePath: string;
+
+  beforeEach(async () => {
+    tmpDir = await mkdtemp(join(tmpdir(), 'tribunal-v2-stage4-test-'));
+    articlePath = join(tmpDir, 'mp-999-test.mdx');
+  });
+
+  afterEach(async () => {
+    await rm(tmpDir, { recursive: true, force: true });
+  });
+
+  function degradedStage4Config(stage1Scores: VibeJudgeOutput['scores']): PipelineConfig {
+    // Judge returns scores where narrative dropped 2 from Stage 1 → degraded
+    // on every loop; writer does nothing so Stage 4 exhausts its loops.
+    const droppedScores = { ...stage1Scores, narrative: (stage1Scores.narrative ?? 8) - 2 };
+    return {
+      ...passThroughConfig(),
+      runners: {
+        ...passThroughConfig().runners,
+        stage1Judge: { run: async () => vibe(true, stage1Scores) },
+        stage4Judge: {
+          run: async () => finalVibe(true, droppedScores, stage1Scores),
+        },
+      },
+    };
+  }
+
+  it('writes the UI-consumer stage4Scores shape { dims..., degradedDimensions, isDegraded }', async () => {
+    await writeFile(articlePath, MINIMAL_ARTICLE, 'utf-8');
+    const final = await runPipeline(articlePath, degradedStage4Config(PASSING_SCORES));
+
+    expect(final.stages.stage4.status).toBe('failed');
+    // Stage 4 failure is non-blocking.
+    expect(final.status).toBe('passed');
+
+    const fm = matter(await readFile(articlePath, 'utf-8'));
+    const s4 = fm.data.stage4Scores as Record<string, unknown> | undefined;
+    expect(s4).toBeDefined();
+    expect(s4?.isDegraded).toBe(true);
+    expect(s4?.degradedDimensions).toEqual(['narrative']);
+    // v8 post: Vibe owns clarity, so the degraded snapshot carries it.
+    expect(s4?.clarity).toBe(8);
+    expect(s4?.narrative).toBe(6);
+    expect(s4?.moguNote).toBe(8);
+  });
+
+  it('never fabricates Vibe clarity in a v9 degraded snapshot', async () => {
+    await writeFile(articlePath, MINIMAL_ARTICLE_V9, 'utf-8');
+    const config = degradedStage4Config(PASSING_SCORES_V9);
+    const v9Config: PipelineConfig = {
+      ...config,
+      runners: {
+        ...config.runners,
+        stage2Judge: {
+          run: async () =>
+            freshEyesOutput(true, {
+              readability: 8,
+              firstImpression: 8,
+              payoffDensity: 8,
+              lengthFit: 8,
+              clarity: 8,
+            }),
+        },
+      },
+    };
+    const final = await runPipeline(articlePath, v9Config);
+
+    expect(final.stages.stage4.status).toBe('failed');
+    const fm = matter(await readFile(articlePath, 'utf-8'));
+    const s4 = fm.data.stage4Scores as Record<string, unknown> | undefined;
+    expect(s4).toBeDefined();
+    expect(s4?.isDegraded).toBe(true);
+    expect(s4?.degradedDimensions).toEqual(['narrative']);
+    expect(s4?.clarity).toBeUndefined();
   });
 });

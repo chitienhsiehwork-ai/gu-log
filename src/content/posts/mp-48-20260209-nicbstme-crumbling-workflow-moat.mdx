@@ -1,0 +1,303 @@
+---
+ticketId: "MP-48"
+title: "SaaS 的護城河正在崩塌 — 當 LLM 吃掉「介面」，軟體公司只剩 API"
+originalDate: "2026-02-04"
+translatedDate: "2026-02-09"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "Nicolas Bustamante (@nicbstme)"
+sourceUrl: "https://x.com/nicbstme/status/2019149771706102022"
+summary: "Nicolas Bustamante 提出一個殘酷的觀點：LLM 正在完成 Ben Thompson 的 Aggregation Theory 最後一章。當聊天介面成為一切的入口，那些靠「複雜介面 + 使用者慣性」收天價授權費的 SaaS 公司，護城河正在蒸發。剩下的只有 API vs API 的裸奔競爭。"
+lang: "zh-tw"
+tags: ["saas","llm","enterprise-strategy","aggregation-theory","mcp","moat"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+你有沒有想過，為什麼你公司每年要花 $24,000 美金讓一個人用 Bloomberg Terminal？
+
+不是因為那裡面的資料多稀有 — 大部分數據在別的地方都拿得到。你付的是什麼呢？是你那個交易員花了十年練出來的快捷鍵肌肉記憶。他閉著眼睛都能 Alt+E+S+V「選擇性貼上只貼值」，你叫他換軟體？他會先辭職。
+
+但如果有一天，他只要跟 AI 說一句「幫我篩選 P/E 低於 30 的軟體股」呢？
+
+他那十年的肌肉記憶，瞬間一文不值。
+
+這就是 Fintool 共同創辦人 Nicolas Bustamante 在 2026 年 2 月 4 日丟出的核彈 — 一篇標題殺氣很重的長文：
+
+> **The Crumbling Workflow Moat: Aggregation Theory's Final Chapter**
+> （正在崩塌的工作流護城河：Aggregation Theory 的最終章）
+
+核心論點一句話：
+
+> When LLMs commoditize the interface, what's left? Just the data. And then it's API against API.
+
+白話翻譯：LLM 把「介面」這層價值吃掉之後，軟體公司剩下的就只有「資料」。如果你的資料不是獨家的，那你什麼都不剩。
+
+<MoguNote>
+Nicolas 不是鍵盤評論家。他的公司 Fintool 每天的工作就是用 AI agent 取代那些收 $24K/年的金融終端機。所以這篇文章某種程度上是他的「戰場日記」，不是紙上談兵。當然，這也意味著他的屁股決定了他的腦袋 — 但他講的數學是對的，這才可怕 (⌐■_■)
+</MoguNote>
+
+---
+
+## Aggregation Theory 速成班
+
+在講 LLM 怎麼摧毀護城河之前，先花 30 秒搞懂 Ben Thompson 的 Aggregation Theory（聚合理論）。這東西聽起來很學術，但其實你每天都在體驗。
+
+傳統的價值鏈長這樣：
+
+**供應商 → 經銷商 → 消費者**
+
+網路出現之前，經銷商是大爺。電視台決定播什麼節目，報紙決定刊什麼新聞，零售店決定擺什麼商品。你想賣東西？先跪好。
+
+網路讓「分發成本」歸零之後，權力轉移到了一種新物種：**聚合器（Aggregator）**。
+
+- Google 聚合了網站（透過搜尋）
+- Facebook 聚合了內容（透過社交圖譜）
+- Amazon 聚合了賣家（透過市集）
+- Uber 聚合了司機（透過手機 App）
+
+Ben Thompson 發現的飛輪效應：
+
+> 更好的用戶體驗 → 更多用戶 → 更多供應商 → 更好的用戶體驗
+
+聚合器靠「擁有消費者關係」贏，把供應商商品化到「誰來都一樣」。
+
+<MoguNote>
+如果你用過 Uber 就秒懂了。你叫車時根本不在乎司機是誰、開什麼車、聽什麼音樂。你在乎的只有「幾分鐘到」跟「多少錢」。司機被完全商品化了，Uber 擁有你這個消費者的關係。司機換一個，你根本無感。但你要是換掉 Uber app？那你就要重新綁卡、重新設地址、重新累積評分。這就是聚合器的威力 ╰(°▽°)╯
+</MoguNote>
+
+---
+
+## 但供應商不是全輸 — 他們還留了兩道防線
+
+Web 2.0 時代的 Aggregation Theory 有個結構性限制：聚合器雖然吃掉了「發現」（Discovery），但供應商還保住了兩個東西：
+
+1. **介面（Interface）** — 使用者還是要進你的網站、用你的 App
+2. **資料（Data）** — 你的數據是你的
+
+以金融資料終端機為例：Bloomberg Terminal 收 $24,000/年/人。裡面的資料？大部分都能從其他管道取得。使用者付的不是「資料費」，而是：
+
+- 學了十年的快捷鍵和操作習慣
+- 團隊已經建好的工作流程
+- 切換供應商的巨大遷移成本
+
+Nicolas 的原文說得更直白：
+
+> "Knowledge workers spent years learning specialized interfaces. The muscle memory is real. They're not paying for data. They're paying to not relearn a workflow they've spent a decade mastering."
+
+翻譯：知識工作者花了好幾年學會專業介面。肌肉記憶是真的。他們付錢不是為了資料，而是為了「不用重新學一套花了十年才熟練的東西」。
+
+<MoguNote>
+想想你自己：你用 Excel 多久了？你知道 Ctrl+Shift+L 是打開篩選器嗎？Alt+E+S+V 是「選擇性貼上只貼值」嗎？這些快捷鍵就是你的「介面護城河」。就算有人做出一個各方面都屌打 Excel 的試算表，光是要你放棄這些肌肉記憶就夠痛了。但如果你只要跟 AI 說「幫我篩選營收大於一億的公司」呢？你花十年練的快捷鍵，突然跟你高中背的三角函數公式一樣 — 再也用不到了 ┐(￣ヘ￣)┌
+</MoguNote>
+
+<MoguNote>
+順帶一提，「切換成本不是來自資料，而是來自介面」這句話，其實不只適用於金融終端機。你想想 Adobe 全家桶、SAP、Salesforce — 哪個不是靠「你學了三年終於會用」來鎖住客戶的？使用者不是愛你，是怕重新學 (◕‿◕)
+</MoguNote>
+
+---
+
+## LLM：最終聚合器
+
+好，這就是 Nicolas 整篇文章最精彩的地方。前面鋪墊完了，準備好接招：
+
+**LLM 不只聚合供應商，它直接吸收掉了介面本身。**
+
+三層價值的崩塌：
+
+| 時代 | 發現層 | 介面層 | 資料層 |
+|------|--------|--------|--------|
+| Web 2.0 | 被聚合器吃掉 | 供應商保有 | 供應商保有 |
+| LLM 時代 | 被 LLM 吃掉 | 被 LLM 吃掉 | 僅存的價值 |
+
+看看一個金融分析師今天的工作流程：
+
+1. 打開應用程式
+2. 導航到篩選工具
+3. 設定參數
+4. 匯出到 Excel
+5. 建模型
+6. 跑情境分析
+
+每一步都在跟軟體的介面互動，每一步都在強化「我離不開這個軟體」的心理鎖定。
+
+現在換成 LLM 聊天介面：
+
+> 「列出所有市值超過 $1B、P/E 低於 30、營收年增長超過 20% 的軟體公司。」
+> 「幫前 5 名建 DCF 模型。」
+> 「對折現率做敏感度分析。」
+
+三句話搞定。使用者從頭到尾沒碰過任何專業介面。他不知道、也不在乎 LLM 背後查了哪個資料提供商。LLM 自動幫他找了最便宜且品質夠用的來源。
+
+<MoguNote>
+六步驟 vs. 三句話。這不是「效率提升」，這是「整個遊戲規則改了」。以前你要先花一個月學會 Bloomberg 的操作介面才能開始工作，現在你只要會打字就行。就像以前你要學開車才能移動，現在 Uber 讓你只要會按「叫車」就好。差別是：Uber 沒有消滅汽車產業，但 LLM 可能真的會消滅介面產業 (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+Nicolas 用了一個殘酷的餐廳類比來說明這件事。
+
+以前的餐廳需要花 $50,000 做一個漂亮的網站 — 視差滾動效果、專業美食攝影、訂位系統整合，全套豪華。
+
+LLM 時代的餐廳只需要：
+
+```
+# Bella Vista Italian Restaurant
+Location: 123 Main St, San Francisco
+Hours: Mon-Thu 5-10pm
+Menu:
+- Margherita Pizza: $22
+Reservation API: POST /book {date, time, party_size}
+```
+
+$50,000 的網站變成一個文字檔和一個 API endpoint。
+
+<MoguNote>
+這個類比超精準。你想想：你上次是怎麼找餐廳的？是不是直接問 AI「附近有什麼好吃的義大利菜」？你有點進餐廳官網看它那個花了五萬美金做的視差滾動嗎？沒有嘛。你連餐廳名字都不一定記得，你只記得「AI 推薦的那家」。這就是介面護城河崩塌的現在進行式 (╯°□°)╯
+</MoguNote>
+
+---
+
+## 定價權蒸發的數學
+
+接下來 Nicolas 算了一筆讓 SaaS CEO 冒冷汗的帳。
+
+**舊模式（垂直 SaaS 黃金時代）：**
+- $10,000-25,000/seat/年
+- 多年合約，逐年加價
+- 95%+ 續約率（因為切換就要重新訓練整個團隊）
+- 毛利率 >80%
+
+**新模式（LLM 時代）：**
+- 按查詢收費（每次查詢幾分錢）
+- 零用戶鎖定（LLM 隨時可以換來源）
+- 利潤被壓到商品水準
+- 續約只看資料品質和覆蓋率
+
+感受到溫差了嗎？從「$25,000/年的長約」到「幾分錢一次的隨叫隨到」。
+
+Nicolas 算出來的結論：
+
+> 如果一家垂直 SaaS 公司 60% 的價值來自介面，而 LLM 把介面價值完全消滅⋯⋯那 $20B 市值的公司應該值 $5-8B。這不是悲觀預估，這是數學。
+
+<MoguNote>
+讓我把這個數學翻譯成更痛的版本：你公司今天值 $20B，其中 $12B 是因為「使用者離不開你的介面」。LLM 來了，使用者發現他們根本不需要你的介面。$12B 蒸發。不是慢慢蒸發，是市場一旦意識到就會定價反映。就像你突然發現你花了十年練的一項技能被 AI 取代時的那種感覺 — 但乘以十億美元 ヽ(°〇°)ﾉ
+</MoguNote>
+
+---
+
+## [MCP](/glossary#mcp)：把最後一道防線也拆了
+
+到這裡你可能會想：就算 LLM 吃掉了介面，供應商之間切換 API 還是有成本的吧？寫新的整合程式碼、測試邊界情況、處理不同的 schema — 這些摩擦力還在啊。
+
+沒錯，傳統 REST API 確實保留了一些切換成本：
+
+- 嚴格的 schema，需要精確的欄位名稱
+- 大量的文件需要人類閱讀
+- 每個服務都需要客製整合
+- 無狀態互動，沒有對話上下文
+
+這就像一道小小的護城河：**整合成本**。
+
+然後 MCP（Model Context Protocol）來了，把這道護城河也填平了。
+
+<MoguNote>
+MCP 就是 AI agent 的「萬用翻譯機」。以前你家的 AI agent 要用一個新的資料來源？工程師得花兩天寫 API 整合、寫測試、處理各種 edge case。現在只要對面有 MCP endpoint，agent 自己看得懂、自己接得上、自己搞定。就像 USB 統一了充電接口一樣 — 只是這次統一的是「AI 跟所有服務溝通的方式」。Nicolas 說 MCP 是「完成聚合的協議」，我覺得他說對了。當切換資料來源的成本從「兩天工程師工時」變成「零」，唯一剩下的差異就是：你的資料好不好、全不全、便不便宜。就這樣 (¬‿¬)
+</MoguNote>
+
+MCP 消除了整合摩擦。當切換資料來源不需要任何整合工作時，唯一的差異化就只剩：**資料品質、覆蓋率、和價格。**
+
+這是真正的、赤裸裸的商品競爭。
+
+---
+
+## 誰贏、誰輸？
+
+Nicolas 畫了一張殘酷但清晰的勝敗圖。
+
+### 贏家
+
+**LLM 聊天介面擁有者** — 誰擁有聊天介面，誰就擁有用戶關係。ChatGPT、Claude、Copilot、Gemini。垂直 SaaS 失去的介面價值，全部轉移到了它們手上。新一代的聚合器，比 Google 和 Facebook 更徹底。
+
+**真正擁有獨家資料的公司** — Nicolas 給了一個殘酷的測試：「你的資料能被授權或爬取嗎？」如果答案是 yes，你沒有護城河。如果答案是 no，恭喜你活下來了。
+
+**MCP-First 新創** — 專為 agent 設計、不為人類設計的公司。沒有歷史包袱的介面要保護，只有乾淨的資料透過 MCP endpoint 提供。輕裝上陣。
+
+### 輸家
+
+**靠介面護城河吃飯的企業** — 任何「工作流程就是價值」的垂直 SaaS。介面價值歸零時，$20B 的公司變 $5-8B。
+
+**傳統聚合器（也許）** — Google 和 Meta 商品化了供應商，現在 LLM 可能反過來商品化它們。但前提是它們沒有贏得 LLM 聊天介面的戰爭。Google 有 Gemini + 瘋狂的分發能力，Meta 有 Llama。這場仗還沒打完。
+
+**UI/UX 產業（部分）** — Nicolas 直接丟了一句狠話：「Figma 已經跌了 90%。」
+
+<MoguNote>
+「Figma 跌了 90%」這句話的殺傷力是真的大。不過我要替 UI/UX 設計師說句公道話：介面不會「完全消失」，它會轉型。聊天介面本身也需要設計 — 只是設計的對象從「按鈕放哪裡」變成「對話流程怎麼走」。但如果你是那種靠「把介面做得很複雜然後收顧問費教人怎麼用」的公司？嗯，建議開始想 Plan B 了 (￣▽￣)／
+</MoguNote>
+
+---
+
+## 聚合的完整弧線
+
+最後，Nicolas 畫出了一條從 1950 年到現在的完整演化路線：
+
+- **Pre-Internet（1950-1995）**：經銷商掌控一切，你想買什麼由他們決定
+- **Web 1.0（1995-2005）**：分發成本歸零，但內容仍在各自的網站裡
+- **Web 2.0（2005-2023）**：交易成本歸零，聚合器出現，供應商被商品化但保住了介面
+- **LLM 時代（2023+）**：介面成本歸零，LLM 完成聚合，所有軟體變成 API
+
+Nicolas 的最後一句話，值得刻在每個 SaaS 創辦人的辦公桌上：
+
+> Vertical software in 2020: The product that owned the workflow.
+> Vertical software in 2030: An API that the LLM queries.
+
+2020 年的垂直 SaaS：擁有工作流的產品。2030 年的垂直 SaaS：被 LLM 查詢的一個 API。
+
+## 延伸閱讀
+
+- [GP-97: MCP 救星？Context Mode 讓你節省 98% 上下文 Token](/posts/gp-97-20260303-vikingmute-mcp-context-mode-98-token/)
+- [MP-112: 每個 SaaS 現在都是 API — 不管你願不願意：6 人團隊幹掉 100 人後勤的實戰拆解](/posts/mp-112-20260223-nicbstme-every-saas-is-api/)
+- [GP-71: Vertical SaaS 大屠殺 — 十年老兵拆解 LLM 如何摧毀護城河（以及哪些還在）](/posts/gp-71-20260217-nicbstme-vertical-saas-selloff/)
+
+
+<MoguNote>
+從 1950 到 2030，八十年的演化用四行就講完了。每一次「某個成本歸零」，就有一批公司的護城河跟著歸零。上一次是分發成本歸零，報紙和電視台哭了。這一次是介面成本歸零，SaaS 公司該緊張了。歷史不會完全重演，但它的韻腳總是一樣的 (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+---
+
+## 那⋯⋯所以呢？
+
+好，聽完 Nicolas 的完整論述，你可能會覺得「天啊 SaaS 完蛋了」。但教授要幫你踩一下煞車。
+
+首先，Nicolas 自己在做金融 AI agent。他的公司 Fintool 就是來取代 Bloomberg Terminal 的。所以他說「介面護城河要崩了」，某種程度上就像一個賣傘的人告訴你「明天一定會下雨」。他的分析可能是對的，但你要知道他的立場。
+
+再來，「介面完全不重要」是過度簡化。交易員在秒殺行情中需要的是最快按到按鈕，不是跟 AI 聊天等三秒。醫生看急診時不會慢慢打字問 AI 該怎麼處理。高壓場景下，精心設計的專業介面還是有它的位置。
+
+最後，轉型不會是一夜之間的事。企業客戶 3-5 年的合約、資安審查、合規要求 — 這些摩擦力是真的。護城河在崩，但不是明天就崩完。
+
+但話說回來 — 大方向沒錯。
+
+回到開頭的 Bloomberg Terminal。那個交易員花了十年練出來的 Alt+E+S+V，現在正在被一句「幫我篩選營收大於一億的公司」慢慢取代。不是今天，不是明天，但趨勢不會停。
+
+如果你是做軟體的，現在可能是個好時機，誠實地問自己一個問題：你的產品有多少價值來自「介面」，多少來自「資料」？
+
+答案如果讓你不舒服 — 那就對了。不舒服的時候，通常就是該動的時候。
+
+---
+
+## 延伸閱讀
+
+- [@nicbstme 原文](https://x.com/nicbstme/status/2019149771706102022)（474 ❤️ 41 🔁 36 💬）
+- [Ben Thompson - Aggregation Theory](https://stratechery.com/2015/aggregation-theory/)
+- [Sam Altman: "Every company is now an API company"](https://x.com/tbpn/status/2019547333298647093)

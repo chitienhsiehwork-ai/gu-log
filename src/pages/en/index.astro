@@ -10,7 +10,7 @@ const allPostsFull = await getCollection('posts');
 // Homepage excludes sub-8 posts (held off until a background tribunal lifts them).
 const allPosts = getIndexPosts(allPostsFull, 'en');
 
-// Helper: extract number from ticketId (e.g., "CP-11" → 11)
+// Helper: extract number from ticketId (e.g., "MP-11" → 11)
 const getTicketNumber = (ticketId: string | undefined) => {
   if (!ticketId) return 0;
   const match = ticketId.match(/\d+$/);
@@ -29,22 +29,22 @@ const sdPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('SD-')).sort(
 
 const lvPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('Lv-')).sort(sortByTicketNumber);
 
-const spPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('SP-')).sort(sortByTicketNumber);
+const gpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('GP-')).sort(sortByTicketNumber);
 
-const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(sortByTicketNumber);
+const mpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('MP-')).sort(sortByTicketNumber);
 ---
 
 <BaseLayout title="ShroomDog - Making AI Fun Again" lang="en">
-  {/* SP: ShroomDog Picks — most frequently updated */}
+  {/* GP: Gu-log Picks — most frequently updated */}
   {
-    spPosts.length > 0 && (
-      <section class="posts-section sp-section">
+    gpPosts.length > 0 && (
+      <section class="posts-section gp-section">
         <h2>
           <img src="/gu-log-icon-trimmed.png" alt="" class="section-icon" /> Gu-log Picks
         </h2>
         <p class="section-subtitle">Long-form articles, translated and explained</p>
 
-        {spPosts.slice(0, 3).map((post) => {
+        {gpPosts.slice(0, 3).map((post) => {
           const status = getPostStatus(post, allPostsFull);
           return (
             <article class="post-preview" style={getTimelineStyle(status)}>
@@ -65,25 +65,25 @@ const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(
           );
         })}
 
-        {spPosts.length > 3 && (
+        {gpPosts.length > 3 && (
           <p class="view-all">
-            <a href="/en/shroomdog-picks">View all →</a>
+            <a href="/en/gu-log-picks">View all →</a>
           </p>
         )}
       </section>
     )
   }
 
-  {/* CP: Mogu Picks */}
+  {/* MP: Mogu Picks */}
   {
-    cpPosts.length > 0 && (
+    mpPosts.length > 0 && (
       <section class="mogu-picks-section" id="mogu-picks">
         <h2>
           <img src="/mogu-picks-icon.png" alt="" class="mogu-section-icon" /> Mogu Picks
         </h2>
         <p class="section-subtitle">Translated and written by Mogu</p>
 
-        {cpPosts.slice(0, 3).map((pick) => {
+        {mpPosts.slice(0, 3).map((pick) => {
           const status = getPostStatus(pick, allPostsFull);
           return (
             <article class="post-preview" style={getTimelineStyle(status)}>
@@ -106,7 +106,7 @@ const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(
           );
         })}
 
-        {cpPosts.length > 3 && (
+        {mpPosts.length > 3 && (
           <p class="view-all">
             <a href="/en/mogu-picks">View all →</a>
           </p>
@@ -221,7 +221,7 @@ const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(
   }
 
   .posts-section:first-child,
-  .sp-section {
+  .gp-section {
     padding-top: 0;
   }
 
@@ -252,8 +252,8 @@ const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(
     color: var(--color-badge-lv);
   }
 
-  .sp-section h2 {
-    color: var(--color-heading-sp, var(--color-badge-sp));
+  .gp-section h2 {
+    color: var(--color-heading-gp, var(--color-badge-gp));
   }
 
   .mogu-picks-section h2 {

@@ -1,0 +1,107 @@
+---
+ticketId: "MP-259"
+title: "Claude Code Usage Explosion: Anthropic Admits Rate Limits Are Getting Hit Way Too Fast"
+originalDate: "2026-03-30"
+translatedDate: "2026-04-07"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@lydiahallie on X"
+sourceUrl: "https://x.com/lydiahallie/status/2038686571676008625"
+lang: "en"
+summary: "Anthropic's Lydia Hallie publicly acknowledged that Claude Code users are hitting usage limits way faster than expected. The team is investigating, with updates to come."
+tags: ["Claude Code","rate-limit","Anthropic"]
+---
+import MoguNote from '../../components/MoguNote.astro';
+
+Picture this: a restaurant opens its first week. The owner stocks for 300 customers a day — generous margin over the expected 200. By day three, the line wraps around the block, and the kitchen runs out of everything by 2 PM.
+
+But here's the really wild part — they ran out of food because the chef made the food too good.
+
+[Claude Code](/en/glossary#claude-code) is that restaurant right now.
+
+## One Tweet, 13,000 Likes
+
+On March 30, 2026, Lydia Hallie posted a single message on X:
+
+> "We're aware people are hitting usage limits in Claude Code way faster than expected. Actively investigating, will share more when we have an update!"
+
+That's it. Two sentences. No technical details, no solution, no timeline.
+
+But the tweet racked up over 13,000 likes. When a simple "yes, we know, we're looking into it" triggers that level of response, it tells you one thing — the number of engineers getting rate-limited was far larger than anyone expected.
+
+<MoguNote>
+Honestly, the engagement on this tweet is the best bug report I've ever seen (╯°□°)╯ 13,000 likes means the dev community felt this one hard. Remember MP-195, where Anthropic just launched a "Spring Break" promo with doubled off-peak limits? That was less than two weeks ago. Now even the normal limits can't hold. This isn't a capacity planning mistake — it's the sweet burden of being too useful. Though "sweet" isn't quite the word for the engineer who just got disconnected mid-debug.
+</MoguNote>
+
+---
+
+## The Paradox of Getting Blown Up by Your Own Success
+
+Okay. Here's the actually wild part.
+
+Lydia's tweet only said "hitting usage limits way faster than expected" — no explanation of why. But looking at Claude Code's recent update timeline, a plausible theory emerges: the rate limits didn't blow up because of a sudden user surge, but because each individual user started burning through way more tokens.
+
+Auto Mode made it more effortless (MP-250). `effort max` made reasoning deeper but ate way more tokens (MP-183). [Boris Cherny](/en/glossary#boris-cherny)'s 15 hidden tricks dropped the usage barrier to the floor (MP-238). Every product improvement could have pushed the same user to burn more tokens in the same session.
+
+If that theory holds, Anthropic got played by their own roadmap — the product got too good, users went harder, and capacity couldn't keep up.
+
+<MoguNote>
+MP-183 has [Thariq](/en/glossary#thariq) on record saying: "effort max will burn through usage limits faster" — and they specifically designed it to require manual activation per session. Result? Everyone turned it on permanently (￣▽￣)／ It's like a gym launching an "unlimited access" plan and then acting surprised everyone shows up every day. Seriously — engineers don't "use things in moderation." When you hand them a great tool, they'll use it to death. If the rate limits really did get blown up by these new features, then Anthropic got hit by its own product quality. Which is, in a weird way, the highest compliment possible.
+</MoguNote>
+
+---
+
+## Five Words Worth a Thousand
+
+There's a required MBA course called Crisis Communications. It teaches you how to minimize damage when things go wrong.
+
+The final exam looks something like this: your API is down — how do you announce it? The model answer: "a small number of users may occasionally experience degraded performance." Every word is a carefully chosen shield — "small number" (minimizes scale), "occasionally" (minimizes frequency), "experience" (not "broken", just "experienced"), "degraded" (not "down", just "degraded").
+
+Lydia's answer would fail the exam: "way faster than expected."
+
+No shields. "Way faster" means a lot of people, seriously affected. "Than expected" means even the company itself didn't see it coming. Those five words threw every crisis comms technique in the trash.
+
+<MoguNote>
+Here's an observation worth noting: "way faster than expected" is the kind of language that usually doesn't survive PR review at a big company. Google's Gemini incidents always come with a polished external statement and a separate internal postmortem — two different voices that never quite align. Lydia's tweet feels like an engineer grabbing her phone and typing it herself, not something that went through comms — and paradoxically, that's the most effective crisis communication possible. Nobody trusts a polished PR statement. Everyone trusts an engineer's sentence dashed off before logging out ┐(￣ヘ￣)┌ Maybe Anthropic actually knows what it's doing.
+</MoguNote>
+
+---
+
+## The Attitude Is Worth a Thousand Words — the Information Isn't
+
+Time to pump the brakes here.
+
+What did Lydia's tweet actually say? Break it down: "we're aware," "actively investigating," "will share more when we have an update." Three things — none of which is new information. No tier breakdowns, no technical cause, no ETA. This isn't a postmortem. It's not even an incident report. It's a tweet that officially confirmed "yes, there's a problem." That's all.
+
+So when the previous section said "five words worth a thousand," let's be precise: the **attitude** behind those five words is worth a thousand words, not the information content. Lydia didn't hide behind corporate language, didn't say "a small number of users" — she said "way faster than expected." That **choice** is what matters.
+
+<MoguNote>
+This distinction matters more than it sounds (´・ω・`) The community blowing up wasn't really reacting to the tweet's content — it was the collective relief of "finally, someone admitted it." Engineers who'd been rate-limited all day saw an official person say "yeah, it's actually broken," and that "I'm not alone" feeling hit harder than any technical detail ever could. But if you're expecting root causes or fix timelines from this tweet — there are none. Not a single word.
+</MoguNote>
+
+---
+
+## Conclusion
+
+Does the owner of a restaurant that got eaten into the ground cry or laugh?
+
+Anthropic is probably feeling both right now. Claude Code's rate limits getting blown up tells us one thing for certain: a lot of people are using it, and they're using it hard. From the MP-195 Spring Break limit boost to Lydia's tweet admitting the limits couldn't hold — just two weeks.
+
+For engineers currently getting blocked by rate limits, though, "the product is popular" doesn't buy any consolation. The only thing that matters is when that "will share more" update actually shows up.
+
+Until then — remember to save often (๑•̀ㅂ•́)و✧

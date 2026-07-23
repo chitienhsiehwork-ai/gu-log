@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures';
+import { selectPostTextAndShowPopup as selectAndShowPopup } from './helpers/ai-popup';
 
 /**
  * AI Popup – Full E2E Flow Tests
@@ -9,29 +10,7 @@ import { test, expect } from './fixtures';
  * Run with: npx playwright test tests/ai-popup-e2e-flow.spec.ts
  */
 
-const TEST_POST = '/posts/sp-24-20260204-claude-is-a-space-to-think';
-
-/** Select text in .post-content and trigger popup via touchend */
-async function selectAndShowPopup(page: import('@playwright/test').Page) {
-  // Hide Astro dev toolbar via CSS to prevent it from blocking bottom sheet buttons
-  await page.addStyleTag({ content: 'astro-dev-toolbar { display: none !important; }' });
-
-  await page.evaluate(() => {
-    const p = document.querySelector('.post-content p');
-    if (!p || !p.firstChild) throw new Error('No post-content paragraph found');
-    const range = document.createRange();
-    const textNode = p.firstChild;
-    range.setStart(textNode, 0);
-    range.setEnd(textNode, Math.min(textNode.textContent?.length || 30, 30));
-    const sel = window.getSelection();
-    sel?.removeAllRanges();
-    sel?.addRange(range);
-  });
-  await page.evaluate(() => {
-    document.dispatchEvent(new Event('touchend', { bubbles: true }));
-  });
-  await page.waitForTimeout(100);
-}
+const TEST_POST = '/posts/gp-24-20260204-claude-is-a-space-to-think';
 
 /** Set a fake JWT so the user appears logged in */
 async function loginWithFakeJWT(page: import('@playwright/test').Page) {
@@ -45,7 +24,7 @@ async function loginWithFakeJWT(page: import('@playwright/test').Page) {
 test.describe('AI Popup – E2E Flow (Desktop Chrome)', () => {
   test.beforeEach(async () => {
     const isDesktop = test.info().project.name === 'Desktop Chrome';
-    if (!isDesktop) test.skip();
+    test.skip(!isDesktop, 'Desktop flow runs only in the Desktop Chrome project');
   });
 
   test('Happy path: Ask AI flow', async ({ page }) => {
@@ -77,7 +56,7 @@ test.describe('AI Popup – E2E Flow (Desktop Chrome)', () => {
     const input = popup.locator('.ai-popup-question-input');
     await expect(input).toBeVisible();
 
-    const context = popup.locator('.ai-popup-selected-context');
+    const context = popup.locator('.ai-popup-selection');
     await expect(context).toBeVisible();
 
     // Type question and submit
@@ -147,9 +126,9 @@ test.describe('AI Popup – E2E Flow (Desktop Chrome)', () => {
     await expect(diff).toContainText('old line');
     await expect(diff).toContainText('new improved line');
 
-    const acceptBtn = popup.locator('[data-action="accept"]');
+    const acceptBtn = popup.locator('[data-action="confirm"]');
     const retryBtn = popup.locator('[data-action="retry"]');
-    const rejectBtn = popup.locator('.ai-popup-actions [data-action="reject"]');
+    const rejectBtn = popup.locator('.ai-popup-actions [data-action="close"]');
     await expect(acceptBtn).toBeVisible();
     await expect(retryBtn).toBeVisible();
     await expect(rejectBtn).toBeVisible();
@@ -320,7 +299,7 @@ test.describe('AI Popup – E2E Flow (Desktop Chrome)', () => {
 test.describe('AI Popup – E2E Flow (Mobile Chrome)', () => {
   test.beforeEach(async () => {
     const isMobile = test.info().project.name === 'Mobile Chrome';
-    if (!isMobile) test.skip();
+    test.skip(!isMobile, 'Mobile flow runs only in the Mobile Chrome project');
   });
 
   test('Happy path: Ask AI flow (mobile)', async ({ page }) => {
@@ -352,7 +331,7 @@ test.describe('AI Popup – E2E Flow (Mobile Chrome)', () => {
     const input = popup.locator('.ai-popup-question-input');
     await expect(input).toBeVisible();
 
-    const context = popup.locator('.ai-popup-selected-context');
+    const context = popup.locator('.ai-popup-selection');
     await expect(context).toBeVisible();
 
     // Type question and submit
@@ -421,9 +400,9 @@ test.describe('AI Popup – E2E Flow (Mobile Chrome)', () => {
     await expect(diff).toContainText('old line');
     await expect(diff).toContainText('new improved line');
 
-    const acceptBtn = popup.locator('[data-action="accept"]');
+    const acceptBtn = popup.locator('[data-action="confirm"]');
     const retryBtn = popup.locator('[data-action="retry"]');
-    const rejectBtn = popup.locator('.ai-popup-actions [data-action="reject"]');
+    const rejectBtn = popup.locator('.ai-popup-actions [data-action="close"]');
     await expect(acceptBtn).toBeVisible();
     await expect(retryBtn).toBeVisible();
     await expect(rejectBtn).toBeVisible();

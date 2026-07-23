@@ -35,7 +35,7 @@ Post page 的首屏 SHALL 讓 title 與 article lead 成為主要 reading path�
 
 #### Scenario: Reader lands on a source-based post
 
-- **GIVEN** reader 開啟一篇 SP 或 CP post
+- **GIVEN** reader 開啟一篇 GP 或 MP post
 - **WHEN** first viewport render
 - **THEN** title SHALL 是 dominant element
 - **AND** essential metadata SHALL 容易掃讀

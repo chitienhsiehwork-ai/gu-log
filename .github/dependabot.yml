@@ -52,6 +52,9 @@ updates:
       misc-minor-patch:
         patterns:
           - "*"
+        exclude-patterns:
+          # Search ranking is user-visible and needs golden tests + its own rollback surface.
+          - "fuse.js"
         update-types:
           - "minor"
           - "patch"
@@ -68,10 +71,15 @@ updates:
     open-pull-requests-limit: 5
 
     groups:
-      actions-all:
+      # Keep routine updates moving even when a major needs compatibility work.
+      actions-minor-patch:
         patterns:
           - "*"
         update-types:
           - "minor"
           - "patch"
+      actions-major:
+        patterns:
+          - "*"
+        update-types:
           - "major"

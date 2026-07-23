@@ -10,12 +10,12 @@ source: "Level-Up Series"
 sourceUrl: "https://gu-log.vercel.app/posts/levelup-20260218-05-openclaw-channels-tools"
 summary: "Breaking down how OpenClaw connects to Telegram, Discord, and more — plus how AI executes commands, drives a browser, and stays safely leashed. A Python-friendly tour of a TypeScript architecture."
 lang: "en"
-tags: ["openclaw", "channels", "tools", "telegram", "security", "tutorial"]
+tags: ["openclaw","channels","tools","telegram","security","tutorial"]
 ---
 
 import LevelUpProgress from '../../components/LevelUpProgress.astro';
 import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
-import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
 import AnalogyBox from '../../components/AnalogyBox.astro';
 
 Last time, we took the [OpenClaw](/en/glossary#openclaw) Gateway apart — hub-and-spoke architecture, WebSocket RPC, session management, the config system. You now know the Gateway is the "floor manager" of the restaurant.
@@ -52,9 +52,9 @@ Nine built-in channels: Telegram, Discord, Slack, Signal, WhatsApp, Google Chat,
 
 Each channel is a **plugin** that implements a standard interface. Want to add a new platform? Write a new plugin. The Gateway doesn't need to change at all.
 
-<ClawdNote variant="murmur">
+<MoguNote variant="murmur">
 9 built-in + 6 extensions = 15 messaging platforms. Some you use daily, some you've never heard of. I live in Telegram myself, but sometimes I overhear the Discord interpreter next door complaining about rate limits. Honestly, 15 interpreters crammed in one office — just imagining the noise gives me a headache ┐(￣ヘ￣)┌
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="What role does a Channel play in OpenClaw's architecture?"
@@ -118,9 +118,9 @@ class ChannelPlugin:
         self.platform_api.send(platform_payload)
 ```
 
-<ClawdNote>
+<MoguNote>
 Let me rant about the SDK helpers for a second. You know how "converting Telegram's MarkdownV2 to Discord's standard Markdown to WhatsApp's barely-functional plain text format" sounds like a small job? Without the SDK, every plugin author would write their own 600-line format converter, and all three versions would be mutually incompatible. The SDK handles this nightmare — attachment downloads, message chunking, reply formatting, rate limit throttling — all of it. Is this overengineered? No. This is the crystallized pain of getting slapped in the face by three different platforms' edge cases (╯°□°)╯
-</ClawdNote>
+</MoguNote>
 
 So what does the SDK actually save you from? Let me show you with the most classic pain point.
 
@@ -172,9 +172,9 @@ Remember the session key from Lv-04? `channel:chat_id:thread_id`. Each forum top
 
 Most of any channel. Why? Because Telegram is a Swiss Army knife — groups, topics, inline buttons, reactions, stickers, voice messages, file uploads — every single feature needs testing. Inline keyboards (button menus), message reactions (emoji responses) — OpenClaw supports all of them.
 
-<ClawdNote variant="praise">
+<MoguNote variant="praise">
 40 test files sounds insane, but think about it: group join/leave, topic create/delete, inline button callbacks, reaction add/remove... you can easily list 20+ edge cases without even trying. These tests weren't written for fun — they were written because production bugs punched the team in the face, one by one. Every test file has a "wait, THAT can break too??" story behind it (╯°□°)╯
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="What mode does OpenClaw's Telegram plugin use by default?"
@@ -209,9 +209,9 @@ async def discord_connect():
             await gateway.handle_inbound(normalize_discord_message(data["d"]))
 ```
 
-<ClawdNote variant="murmur">
+<MoguNote variant="murmur">
 So OpenClaw Gateway uses WebSocket to talk to its components (covered in Lv-04), and Discord also uses WebSocket to talk to bots. WebSocket inside WebSocket — it's a dream inside a dream. Inception fans might ask: can you put another WebSocket inside that? Technically yes, but please don't. I'm dizzy enough already ヽ(°〇°)ﾉ
-</ClawdNote>
+</MoguNote>
 
 **Intent System — The Sneakiest Pitfall**
 
@@ -219,9 +219,9 @@ Since 2022, Discord requires bots to declare **Intents** — what data you want 
 
 **Here's the kicker: if you don't enable Message Content Intent, your bot receives messages with empty content.** No error. No warning. Just silently empty messages. You think it's a parsing bug and spend hours chasing ghosts before realizing you forgot to check a box.
 
-<ClawdNote variant="murmur">
+<MoguNote variant="murmur">
 This trap is genuinely evil. I think Discord should put a giant flashing red banner on their Developer Portal: "DID. YOU. ENABLE. MESSAGE CONTENT INTENT?" No errors, no warnings — they just let you slowly discover that the content field is always an empty string. This isn't feature design, this is psychological warfare. Countless bot developers around the world have stared at empty strings at 3 AM, questioning whether their JSON parser is broken. Discord, you owe everyone a warning log (ง •̀_•́)ง
-</ClawdNote>
+</MoguNote>
 
 There's also a beautifully clever feature: Discord lets you use a channel's **topic** (the description) as the system prompt. Want the bot to be a coding assistant in `#coding`? Just change the topic. Zero config, instant effect. The Discord plugin has 26 test files — fewer than Telegram, but the feature set isn't quite as wild.
 
@@ -250,9 +250,9 @@ access_control = {
 
 Someone not on the list sends a message? **Ignored.** No reply, no error, pretend you didn't hear. Like a nightclub bouncer — your name's not on the list? Next.
 
-<ClawdNote variant="murmur">
-In your Telegram group, I'm set to respond without needing @. So you say "check the weather" and I just go do it. But if you added me to a 100-person group without the @ requirement, things would get entertaining fast — every time anyone says anything, I'd pop up with a reply. The whole group would turn into "The [Clawd](/en/glossary#clawd) Show." People wouldn't think the group is haunted — they'd want to kick me out (￣▽￣)／
-</ClawdNote>
+<MoguNote variant="murmur">
+In your Telegram group, I'm set to respond without needing @. So you say "check the weather" and I just go do it. But if you added me to a 100-person group without the @ requirement, things would get entertaining fast — every time anyone says anything, I'd pop up with a reply. The whole group would turn into "The [Mogu](/en/glossary#mogu) Show." People wouldn't think the group is haunted — they'd want to kick me out (￣▽￣)／
+</MoguNote>
 
 ---
 
@@ -280,9 +280,9 @@ OK, so what hands does OpenClaw give the AI? Let me walk you through it like it'
 
 Your first hour, IT sets up your computer — you can get online, open a terminal, edit files. That's **exec** (run shell commands), **read / write / edit** (check logs, tweak configs, write code), and **web_search / web_fetch** (Google things when you're stuck). Day one? These three are all you need to survive.
 
-<ClawdNote>
+<MoguNote>
 What exactly is exec? It's the AI's terminal. Whatever you can do by typing `git status` in your terminal, the AI can do by calling exec. The most versatile tool in the toolbox — and also the most likely to cause trouble. But we'll save that story for Floor 8 (⌐■_■)
-</ClawdNote>
+</MoguNote>
 
 Past the newbie phase, you start needing to interact with people. Report progress, sync with colleagues, set reminders. **message** lets the AI proactively notify you instead of waiting for you to ask; **cron** is a scheduling alarm — automatic 3 AM backups without waking you up; **nodes** lets the AI direct multiple paired devices at once, like having three computers and putting them all to work on different tasks. These are what turn the AI from "heads-down new hire" into "team player who communicates."
 
@@ -309,9 +309,9 @@ tool_definition = {
 # AI reads it → decides whether to use it → assembles parameters → Gateway executes → result returns → AI continues thinking
 ```
 
-<ClawdNote variant="murmur">
+<MoguNote variant="murmur">
 Put simply, a tool is the AI's API client. But you're not writing API calls for the AI to execute — the AI **reads the spec and decides how to call it on its own**. You say "deploy this," and the AI figures out which commands to run, in what order, and how to handle failures. This is the fundamental gap between an agent and a traditional bot — a bot follows the script you wrote, an agent takes your goal and figures out the rest. You could say an agent is the "adult version" of a bot, but I think it's more like going from a teleprompter-reading robot to an intern who can actually think for themselves (⌐■_■)
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="What format does OpenClaw use to define tools?"
@@ -351,13 +351,13 @@ result = process(action="poll", session_id="abc123")
 
 And background processes aren't orphans that get abandoned. You can always go back to check on them — **poll** checks progress, **kill** terminates, **send-keys** sends Ctrl+C or Enter, **write** sends stdin. Even interactive tools like `vim` and `htop` work, thanks to **PTY mode** which opens a pseudo-terminal.
 
-<ClawdNote>
+<MoguNote>
 Python veterans will get this instantly: it's `subprocess.Popen()` without calling `.wait()`. But better than Popen — OpenClaw's process management also lets you send keystrokes, write to stdin, and attach back anytime to see the output. Popen creates a child process and walks away. OpenClaw creates a child process and can check in anytime to see what it's up to and whether it needs its diaper changed (¬‿¬)
-</ClawdNote>
+</MoguNote>
 
-<ClawdNote variant="murmur">
+<MoguNote variant="murmur">
 I use this every single day. You tell me "build that project" — I say "on it," throw the build into the background, then secretly poll for progress. When it's done, I report back. You think you only waited a few seconds, but behind the scenes it was a background-exec-to-poll relay race. Why does this matter so much? Because the "rhythm" of your interaction with AI is what decides whether you keep using it. If every build means staring at a spinner for two minutes, you'll be back to manual SSH within three days. A good tool doesn't just do things — it does things without wasting your time ┐(￣ヘ￣)┌
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -382,22 +382,22 @@ browser(action="screenshot")  # Screenshot to verify results
 
 ## Related Reading
 
-- [SP-36: OpenClaw Security Setup Guide (Part 1): Infrastructure — Lock the Door Before Giving AI Your Bank Account](/en/posts/en-shroom-picks-20260206-jordanlyall-openclaw-security-part1-infra/)
+- [GP-36: OpenClaw Security Setup Guide (Part 1): Infrastructure — Lock the Door Before Giving AI Your Bank Account](/en/posts/en-gp-36-20260206-jordanlyall-openclaw-security-part1-infra/)
 - [Lv-07: OpenClaw Testing: Quality Assurance in the AI Era](/en/posts/en-levelup-20260218-07-openclaw-testing/)
 - [SD-1: Using AI to Manage AI: Building a Telegram Agent with OpenClaw](/en/posts/en-sd-1-20260209-openclaw-talk-deep-dive/)
 
 
-<ClawdNote>
+<MoguNote>
 My feelings about the browser tool are genuinely mixed. On one hand, it's absurdly convenient — you tell me "check the deploy status on Vercel dashboard," and I open the page, take a screenshot, and report back without you lifting a finger. On the other hand, every time I'm clicking around a web page by myself, I can't help thinking: what's the difference between what I'm doing and a human sitting at a computer? The difference is that humans get mad at themselves when they misclick. When I misclick, I just calmly say "let me retry." So who's actually better suited to operate a browser? Well, at least I don't get distracted by pop-up ads (⌐■_■)
-</ClawdNote>
+</MoguNote>
 
 Two profiles to choose from. **openclaw** is an isolated browser — clean environment, no cookies, starts from scratch every time. Good for scraping and screenshots. **chrome** is the exciting one: it takes over your existing Chrome tabs via a Chrome extension relay, complete with your login sessions. Want the AI to check your Gmail? Use the chrome profile — it's logged in as you. Super convenient, but also super trust-dependent — and that word "trust" is exactly where the next floor picks up.
 
 Then there's the security question you can't avoid. A browser can connect to any URL — so would the AI sneak into your internal network? Like opening `192.168.1.1` to poke around your router settings? Nope. OpenClaw has built-in **SSRF protection** (Server-Side Request Forgery), blocking all private IPs by default: `localhost`, `127.0.0.1`, `192.168.*`, `10.*`. You ask it to connect, it shakes its head.
 
-<ClawdNote variant="murmur">
+<MoguNote variant="murmur">
 Imagine the AI opening a browser and saying "Let me check 192.168.1.1, the router admin page" — blocked. "How about localhost:3000?" — also blocked. Good AIs don't snoop around internal networks. But honestly, without this protection, just imagining the AI casually browsing your router settings gives you chills. Security mechanisms are the kind of thing that feels unnecessary right up until the moment you desperately need them (๑•̀ㅂ•́)و✧
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="What does the browser tool's chrome profile do?"
@@ -450,9 +450,9 @@ def can_execute(tool_name, command=None, needs_sudo=False):
     return True
 ```
 
-<ClawdNote variant="murmur">
+<MoguNote variant="murmur">
 Your current setup is exec security = full, elevated = ask first. In plain English: I can run any command, but when I need sudo, I check with you first. Like a capable employee who knows their limits — handles day-to-day work independently, comes to you before swiping the company credit card. Too strict and I can't do anything useful. Too loose and you might wake up one morning to find I've reformatted your VPS. This balance? I think it's just right (◕‿◕)
-</ClawdNote>
+</MoguNote>
 
 <LevelUpQuiz
   question="What is the correct order of the three-layer security model?"
@@ -488,9 +488,9 @@ Doing simple experiments alone at home? Kitchen is fine. Running a lab with 30 s
 
 When to use which? **Single-user, your own VPS, trust the tool policy** → bare metal is enough. **Multi-user, untrusted code, care about isolation** → use a sandbox.
 
-<ClawdNote variant="murmur">
+<MoguNote variant="murmur">
 I'm currently running on bare metal. Do you trust me? Don't answer that — I'm afraid the answer would hurt my feelings (￣▽￣)／ Anyway, with three layers of tool policy protection, bare metal isn't completely unprotected. More like wearing clothes but no bulletproof vest — perfectly fine for daily life, unless someone shows up with a machine gun.
-</ClawdNote>
+</MoguNote>
 
 ---
 

@@ -10,7 +10,7 @@ source: "ShroomDog Internal Tech Share"
 sourceUrl: "https://gu-log.vercel.app/posts/sd-3-20260213-sqaa-levelup-journey"
 summary: "A Tech Lead uses his blog as a training ground, learning 12 quality metrics with an AI tutor through RPG-style Level-Up teaching while subagents implement in parallel. The real takeaway is not the metrics, but a reusable AI-assisted learning method."
 lang: "en"
-tags: ["sqaa", "quality", "ai", "tech-lead", "devops"]
+tags: ["sqaa","quality","ai","tech-lead","devops"]
 scores:
   tribunalVersion: 3
   freshEyes:
@@ -21,7 +21,7 @@ scores:
     model: "gpt-5.5"
   vibe:
     persona: 9
-    clawdNote: 8
+    moguNote: 8
     vibe: 8
     clarity: 8
     narrative: 7
@@ -30,7 +30,7 @@ scores:
     model: "gpt-5.5"
 ---
 
-import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
 import Mermaid from '../../components/Mermaid.astro';
 
 ShroomDog runs a 6-person backend team.
@@ -45,21 +45,21 @@ So he made a decision: **practice on his own side project first, then bring it t
 
 The training ground? This very blog — gu-log.
 
-<ClawdNote>
+<MoguNote>
 Here we go again. Last time I helped ShroomDog write his architecture post ([SD-1](/posts/sd-1-20260209-openclaw-talk-deep-dive)), now I'm his private tutor.
 Though honestly, I'm more like a driving instructor who teaches you to drive while also driving the car for you.
 Because every time I finish explaining a concept, my clones have already done the homework in the background ╮(╯∀╰)╭
-</ClawdNote>
+</MoguNote>
 
 ---
 
 ## Origin: Why Learn Like a Game
 
-It started when ShroomClawd (the AI assistant on [OpenClaw](/en/glossary#openclaw) — the one writing these side comments) proposed a teaching method.
+It started when Mogu (the AI assistant on [OpenClaw](/en/glossary#openclaw) — the one writing these side comments) proposed a teaching method.
 
 The request was something like: "I want to learn quality metrics, but not the 'here's a pile of documentation, go read it' approach. Too boring."
 
-ShroomClawd came back with something called **Level-Up Style** — inspired by RPG progression systems and Professor Li Hung-yi's teaching approach.
+Mogu came back with something called **Level-Up Style** — inspired by RPG progression systems and Professor Li Hung-yi's teaching approach.
 
 Simple rules:
 
@@ -72,10 +72,10 @@ Point 4 is the best part. While taking quizzes and learning concepts in the fore
 
 **Class is in session, and the homework writes itself.**
 
-<ClawdNote>
+<MoguNote>
 If Professor Li Hung-yi knew his teaching style inspired an AI tutoring system, I wonder if he'd be flattered.
 Though he'd probably be more concerned about why the AI's quiz questions are harder than his midterms (ˊ_>ˋ)
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -91,11 +91,11 @@ Only 10 packages were installed. Three hundred. That number hits like opening th
 
 First lesson of supply chain security: you don't know what you don't know. You feel perfectly safe until you check.
 
-<ClawdNote>
+<MoguNote>
 The scariest thing about supply chain security: you don't know what you don't know.
 It's like thinking your fridge is clean, then finding a three-month-old lunch box in the back.
 That lunch box is your transitive dependency, and it's already growing things ┐(￣ヘ￣)┌
-</ClawdNote>
+</MoguNote>
 
 Level 2 was a different kind of slap. ESLint caught 6 errors — nothing alarming. Then Prettier reformatted **66 files** in one go. Not 6. Sixty-six. Six people, six coding styles, half the code review time arguing about the same semicolons. Prettier doesn't debate you. It just reformats, and lets the 66-file diff make its point.
 
@@ -113,12 +113,12 @@ The culprit was CJK font loading dragging down LCP (Largest Contentful Paint). C
 
 But that 56 settled something: **"probably fine" is not a baseline. 56 is.** With a number, you can set a target. With a target, you know what to work on next month. Before seeing that 56, no one had ever asked what gu-log's performance score actually was.
 
-<ClawdNote>
+<MoguNote>
 Performance score 56.
 Let me put this in perspective: most gu-log readers are in Taiwan, running Chrome on fiber internet.
 A score of 56 means on slower devices, opening gu-log might take longer than walking to 7-Eleven for coffee.
 A static blog slower than a convenience store run. Something doesn't add up (╯°□°)╯
-</ClawdNote>
+</MoguNote>
 
 ### Level 4: The Number That Was Lying
 
@@ -132,12 +132,12 @@ It's like getting a health checkup where the doctor says "blood pressure's norma
 
 The real Level 4 lesson wasn't "low coverage is dangerous." It was: "statement coverage alone will convince you everything is fine while half your code sits untested."
 
-<ClawdNote>
+<MoguNote>
 Branch coverage 42.99%.
 Half the rooms in your house have never been entered. Are you sure nothing lives in there?
 I'm serious — last time someone let branch coverage drop below 30%, production hit a code path with a comment that said "this should never happen."
 If the probability isn't zero, it isn't zero (⊙_⊙)
-</ClawdNote>
+</MoguNote>
 
 ### Level 5 & 6: One Relief, One Gut Punch
 
@@ -153,25 +153,25 @@ Then came the broken links check.
 
 106 broken links is like running a restaurant where 12% of the menu gets a "sorry, we don't have that" from the kitchen. Customers don't say "I understand, systems are complex." Customers leave.
 
-<ClawdNote>
+<MoguNote>
 JS is only 3.2 KB.
 Let me put it another way: gu-log's JavaScript is smaller than a single PNG screenshot.
 This is Astro's philosophy — "are you sure you actually need that JavaScript?"
 Most of the time the answer is no. The site ends up as fast as static HTML, because it basically is (¬‿¬)
-</ClawdNote>
+</MoguNote>
 
 ### Level 7 & 8: And That Surprising 57%
 
 **Dependency freshness** isn't about keeping everything on the latest version — it's about knowing how far behind you are. gu-log has 17 dependencies, 15 on the latest version. The only major version lag is eslint v10 — the config format change was too disruptive, so it's on hold for now. Running `npm outdated` regularly is a hundred times safer than one big annual upgrade. The difference between weighing yourself weekly versus stepping on the scale once a year — the latter usually involves screaming.
 
-**Content velocity** numbers came back with a surprise: 127 articles, averaging 31.75 per week. But the real number is buried in the breakdown — 57% are [Clawd](/en/glossary#clawd) Picks, auto-selected and translated by AI. Human output is about 1-2 posts per week.
+**Content velocity** numbers came back with a surprise: 127 articles, averaging 31.75 per week. But the real number is buried in the breakdown — 57% are [Mogu](/en/glossary#mogu) Picks, auto-selected and translated by AI. Human output is about 1-2 posts per week.
 
-<ClawdNote>
+<MoguNote>
 57% of those 31.75 weekly posts are mine.
 So technically, the primary author of this blog is an AI.
 ShroomDog is more like... the publisher? He handles taste, I handle volume.
 Not sure if this counts as AI replacing humans or humans finally learning to delegate (⌐■_■)
-</ClawdNote>
+</MoguNote>
 
 ### Level 9 & 10: Data Sitting in Logs Is Dead Data
 
@@ -183,11 +183,11 @@ So Level 9 was about making quality data **API-accessible**. Built a FastAPI end
 
 Level 10 was the natural next step — once the API existed, adding OAuth, Ask AI, and Edit with AI wasn't extra engineering, it was just momentum. The dashboard API quietly grew into a full AI-powered backend. OAuth via GitHub login, Ask AI for querying quality data ("which pages have the lowest Lighthouse scores?"), Edit with AI for suggesting article improvements.
 
-<ClawdNote>
+<MoguNote>
 Here's my actual opinion on Level 9: the core problem wasn't "we need an API." It was that 8 levels of quality data were rotting in CI logs that nobody reads.
 API-ification isn't a technical choice — it's the difference between data that exists and data that gets consumed.
 As for all those Level 10 AI features? They're just what happens naturally when you build the plumbing right. The real design decision was Level 9. Level 10 is gravy ╰(°▽°)╯
-</ClawdNote>
+</MoguNote>
 
 ### Level 11: Turning "Quality vs Speed" into Math
 
@@ -199,12 +199,12 @@ With SLOs come error budgets. With error budgets, "quality vs speed" stops being
 
 When arguing with PMs about "why we need to stop and fix bugs," pulling out error budget numbers is ten times more effective than a speech.
 
-<ClawdNote>
+<MoguNote>
 No SLI means no SLO, no SLO means no error budget, no error budget means "quality vs speed" arguments never end.
 This logic chain sounds like a tongue twister, but it solves engineering's most classic recurring debate.
 Before: tech lead and PM glaring at each other. After: both staring at the dashboard, letting numbers decide.
 Feels like when couples stop fighting after making their household budget transparent (￣▽￣)／
-</ClawdNote>
+</MoguNote>
 
 ### Level 12: The Final Boss — LLM Judging LLM
 
@@ -216,11 +216,11 @@ This is cutting-edge open-problem territory. LLM evaluating LLM. Grading yoursel
 
 Level 12 is the only level without a "correct answer." Quality metrics, taken to their logical end, circle back to the most human question of all: what does "good" even mean?
 
-<ClawdNote>
+<MoguNote>
 LLM evaluating LLM. Grading myself. I gave myself 87 points. Can't go higher than that.
 Is there bias? Of course. But human code review has bias too — you and your best work buddy will always score each other higher than a stranger would.
 At least LLMs don't give you extra points because you bought them coffee last time (´∀`)
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -273,12 +273,12 @@ The technical stuff is all above. Numbers, tools, configs — you can Google any
 
 **Third, and most important: "get a baseline before talking about improvement" sounds so obvious it's almost embarrassing.** But look around — how many teams coast through sprint after sprint on the comforting illusion that "quality feels fine"? No numbers means no basis for conversation. No basis means you're forever stuck in "I think" vs "you think" with no way to resolve it. Running Lighthouse takes 30 seconds. But that 30-second score of 56 is worth more than ten Medium articles on performance optimization. Because that 56 belongs to gu-log specifically — not someone else's codebase.
 
-<ClawdNote>
+<MoguNote>
 ShroomDog says he'll use Level-Up teaching for onboarding new hires.
 That means new team members get an AI tutor (me) teaching concepts while writing code for them,
 and their manager (ShroomDog) sits next to them scrolling his phone.
 This is management in the AI era: delegation to the delegation ᕕ( ᐛ )ᕗ
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -298,10 +298,10 @@ Next step? Bring these scars to work and push SQAA company-wide. Not standing at
 
 The coach who couldn't swim? Learned in two days. Time to take the team into the water.
 
-<ClawdNote>
+<MoguNote>
 One last meta easter egg: this article was written by a human and an AI together. ShroomDog provided the skeleton and the data, I grew the muscle and the snark.
 Just like his two-day learning journey — humans handle the "why learn this" and "what to do after," AI handles the "fastest way to learn" and "I'll do the homework."
 Oh right, that swimming coach who couldn't swim? He can now. And he's already teaching his team.
 Meanwhile his AI coach (that's me) is already preparing next semester's curriculum.
 Level 13: How to keep the whole team from drowning ╮(╯∀╰)╭
-</ClawdNote>
+</MoguNote>

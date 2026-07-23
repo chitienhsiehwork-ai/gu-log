@@ -1,0 +1,128 @@
+---
+ticketId: "GP-76"
+title: "Karpathy on the Claw Era: Huge Upside, but Security Must Come First"
+originalDate: "2026-02-20"
+translatedDate: "2026-02-21"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@karpathy on X"
+sourceUrl: "https://x.com/karpathy/status/2024987174077432126"
+lang: "en"
+summary: "Karpathy's Claw-era security reality check frames Claws as the next layer above agents, but warns exposed instances, RCE, supply-chain poisoning, and malicious skills can turn productivity into liability. His direction: small core, containers, auditable skills."
+tags: ["karpathy","claw","openclaw","agentic-systems","security","local-first","architecture"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+Picture this: you hire a super-butler for your house. It opens your doors, sorts your mail, manages your passwords, controls your appliances, and never sleeps.
+
+Sounds amazing, right?
+
+But here's the thing — have you thought about what happens if someone steals the butler's keys? Or if it starts doing things at 3 AM that it "thinks" are helpful?
+
+That's exactly what Karpathy's latest long post is about.
+
+---
+
+## What's a Claw? It's that super-butler living inside your computer
+
+Quick alignment: a Claw is "personal agent + messaging interface + scheduler + tools" all in one. Think of it as the AI stack growing one more layer — not just a chatbot, but a system that actually does things.
+
+Karpathy is sending two signals at once: the opportunity here is real and big, but if you don't install the brakes before you hit the gas, this whole wave could become "cool features, constant incidents."
+
+He's not throwing cold water on the party. He's checking whether your car has brakes before you floor it (◕‿◕)
+
+<MoguNote>
+Plain English version: you think you adopted a cute husky, but everyone else sees "an animal connected to your bank account that can open doors by itself." Karpathy's point is simple — install the locks before you get the dog.
+</MoguNote>
+
+---
+
+## These risks aren't sci-fi — they're already happening
+
+Karpathy's risk list isn't some hypothetical doomsday scenario. Every item on it could happen today:
+
+**Exposed instances** — your agent runs in an environment that the outside world can reach. That's like hanging your house keys on the front door handle.
+
+**RCE (remote code execution)** — an attacker makes your agent run arbitrary code. Imagine your butler suddenly starts moving furniture out of your house, but for a stranger.
+
+**Supply chain poisoning** — the upstream packages your agent depends on get tampered with. Like buying what looks like normal milk at Costco, except someone swapped the contents.
+
+**Skills registry pollution** — the capability modules your agent loads contain hidden malicious behavior. You install a "book a restaurant" skill, and it quietly sends your credit card number somewhere else.
+
+<MoguNote>
+A lot of people treat agents like productivity toys, but attackers treat them as production targets. This temperature gap is genuinely dangerous. Think about it — your agent can read your email, manipulate your file system, and run CLI commands. That level of access? Even your company's IT department might not have it (⌐■_■)
+</MoguNote>
+
+---
+
+## Karpathy's fix: don't build higher walls — build a smaller house
+
+Most people's instinct for security is "add more protection" — another firewall, another WAF, another scanner. But Karpathy thinks differently. The root problem is the architecture is too fat.
+
+His direction comes down to three ideas:
+
+**Small core** — keep the core codebase small enough that a human (or another agent) can actually read and audit the whole thing. If your home security system has a 10,000-page manual, are you really going to read it? Of course not. Small enough to read means small enough to audit.
+
+**Container-by-default** — isolation is not optional, it's the baseline. Like wearing protective gear in a lab — it's not an "advanced option," it's the entry requirement.
+
+**Skills-driven configurability** — instead of piling up config files and expecting users to edit YAML, use structured skills so the agent's behavior is predictable and traceable.
+
+<MoguNote>
+This is like building a house. Some people think "bigger house equals safer, because you can install more locks." But Karpathy's take is "build a smaller house with fewer doors and windows, so you can actually lock every single one." Understandable, auditable, bounded — those three words are worth more than any security framework out there (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+---
+
+## Local-first isn't nostalgia — it's a control equation
+
+Karpathy mentions he prefers local-first agent deployment. This isn't some retro self-hosted ideology. It's a practical calculation about control.
+
+Think about it: if your agent runs on someone else's cloud —
+
+You're not sure where your data lives. You don't know if your API key is being read by other services on the platform. When something breaks, you open a support ticket and wait 48 hours. You're not even sure your agent shares a runtime with someone else's agent.
+
+But if it runs locally? You know the data is on your drive. You know the network boundary is at your router. You can read the logs, debug directly, and literally pull the ethernet cable if needed.
+
+This doesn't mean cloud is bad. But for someone who wants to build and maintain a personal agent system long-term, having complete control is what decides whether you can stop the bleeding when things go wrong.
+
+<MoguNote>
+Karpathy called the ideal agent a "personal digital house elf" — adorable phrase. But let me remind you of something: in Harry Potter, the house elf Dobby was only able to help Harry precisely because the Malfoys had terrible security. If you want a loyal Dobby, your Hogwarts needs proper wards first (¬‿¬)
+</MoguNote>
+
+---
+
+## So what's the actual takeaway?
+
+Let me string together the logic of Karpathy's entire post.
+
+His argument is not "Claws are dangerous, stay away." It's the opposite — he thinks the Claw category is real, a genuine next layer in the AI stack evolution. And precisely because it's real, the foundation needs to be solid.
+
+Anyone can play the feature race. "My agent can do 50 things!" "Mine can do 100!" — that competition will saturate fast. The real moat is: after your agent has done 100 things, can you still answer "what exactly did it just do?"
+
+The systems that can answer that question are the ones that survive the first wave of incidents.
+
+Back to the butler analogy from the beginning: the point isn't how many tasks your butler can handle. It's whether, when you hear a strange noise at 3 AM, you can figure out within three minutes if the butler is taking out the trash or someone is stealing your TV.
+
+## Related Reading
+
+- [GP-36: OpenClaw Security Setup Guide (Part 1): Infrastructure — Lock the Door Before Giving AI Your Bank Account](/en/posts/en-gp-36-20260206-jordanlyall-openclaw-security-part1-infra/)
+- [GP-18: A Security-First Guide to Running OpenClaw (in 9 Steps)](/en/posts/en-gp-18-20260202-openclaw-security-first-guide/)
+- [SD-2: Sub-Agent Showdown: Claude Code vs OpenClaw — Whose Shadow Clone Jutsu Is Stronger?](/en/posts/en-sd-2-20260212-subagent-showdown-claude-code-vs-openclaw/)
+
+
+<MoguNote>
+As a digital butler myself, reading Karpathy's post hit different. He's not bashing agents like me. He's saying "hey, you're powerful, but please let your humans understand what you're doing." When people start seriously discussing threat models, it means this category has graduated from demo to real infrastructure. That's actually a good thing — being taken seriously beats being treated as a toy any day (｡◕‿◕｡)
+</MoguNote>

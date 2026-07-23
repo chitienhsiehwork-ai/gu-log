@@ -9,6 +9,8 @@
     "dev": "astro dev",
     "prebuild": "node scripts/build-version-manifest.mjs && node scripts/build-reader-revision-manifest.mjs",
     "build": "astro build",
+    "postbuild": "node scripts/verify-canonical-public-output.mjs",
+    "verify:canonical-public-output": "node scripts/verify-canonical-public-output.mjs",
     "preview": "astro preview",
     "astro": "astro",
     "test": "pnpm exec playwright test",
@@ -23,9 +25,10 @@
     "tribunal:spark-benchmark": "node scripts/spark-tribunal-benchmark.mjs",
     "lint": "eslint src/ scripts/ tests/ e2e-tests/",
     "lint:fix": "eslint src/ scripts/ tests/ e2e-tests/ --fix",
-    "format": "prettier --write \"src/components/**/*.{astro,js,ts}\" \"src/layouts/**/*.{astro,js,ts}\" \"src/pages/**/*.{astro,js,ts}\" \"src/config/**/*.{js,ts}\" \"src/styles/**/*.css\" \"scripts/**/*.{js,mjs,cjs,ts}\" \"*.{mjs,cjs,ts}\"",
-    "format:check": "prettier --check \"src/components/**/*.{astro,js,ts}\" \"src/layouts/**/*.{astro,js,ts}\" \"src/pages/**/*.{astro,js,ts}\" \"src/config/**/*.{js,ts}\" \"src/styles/**/*.css\" \"scripts/**/*.{js,mjs,cjs,ts}\" \"*.{mjs,cjs,ts}\"",
+    "format": "prettier --write \"src/components/**/*.{astro,js,ts}\" \"src/layouts/**/*.{astro,js,ts}\" \"src/pages/**/*.{astro,js,ts}\" \"src/config/**/*.{js,ts}\" \"src/styles/**/*.css\" \"scripts/**/*.{js,mjs,cjs,ts}\" \"tests/**/*.{js,mjs,cjs,ts}\" \"e2e-tests/**/*.{js,mjs,cjs,ts}\" \"*.{mjs,cjs,ts}\"",
+    "format:check": "prettier --check \"src/components/**/*.{astro,js,ts}\" \"src/layouts/**/*.{astro,js,ts}\" \"src/pages/**/*.{astro,js,ts}\" \"src/config/**/*.{js,ts}\" \"src/styles/**/*.css\" \"scripts/**/*.{js,mjs,cjs,ts}\" \"tests/**/*.{js,mjs,cjs,ts}\" \"e2e-tests/**/*.{js,mjs,cjs,ts}\" \"*.{mjs,cjs,ts}\"",
     "validate:posts": "node scripts/validate-posts.mjs && node scripts/check-glossary-links.mjs --all",
+    "taxonomy:check": "node scripts/check-brand-taxonomy.mjs --check",
     "versions:check": "node scripts/build-version-manifest.mjs --check && node scripts/build-reader-revision-manifest.mjs --check",
     "obsidian:import": "node scripts/obsidian-import.mjs",
     "content:check": "pnpm run validate:posts && pnpm run build",
@@ -50,7 +53,8 @@
     "api:test": "cd sqaa-api && pnpm test",
     "glossary:check": "node scripts/check-glossary-links.mjs --all",
     "glossary:check:changed": "node scripts/check-glossary-links.mjs --changed-terms=origin/main --changed-posts=origin/main",
-    "glossary:fix": "node scripts/apply-glossary-links.mjs --all"
+    "glossary:fix": "node scripts/apply-glossary-links.mjs --all",
+    "redirects:verify": "node scripts/verify-brand-redirects.mjs"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.9",
@@ -59,14 +63,14 @@
     "@astrojs/sitemap": "^3.7.3",
     "@vercel/analytics": "^2.0.1",
     "astro": "^6.4.8",
-    "fuse.js": "^7.4.2",
+    "fuse.js": "^7.5.0",
     "gu-log": "link:",
     "sharp": "^0.35.3",
     "typescript": "^5.9.3",
     "unist-util-visit": "^5.1.0"
   },
   "devDependencies": {
-    "@anthropic-ai/sdk": "^0.109.1",
+    "@anthropic-ai/sdk": "^0.113.0",
     "@axe-core/playwright": "^4.12.1",
     "@eslint/js": "^9.39.4",
     "@lhci/cli": "^0.15.1",
@@ -75,13 +79,13 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-astro": "^1.6.0",
     "gray-matter": "^4.0.3",
-    "monocart-reporter": "^2.12.2",
+    "monocart-reporter": "^2.12.3",
     "playwright": "^1.61.1",
-    "prettier": "^3.9.4",
+    "prettier": "^3.9.6",
     "prettier-plugin-astro": "^0.14.1",
-    "tsx": "^4.22.4",
-    "typescript-eslint": "^8.62.1",
-    "vitest": "^4.1.9",
+    "tsx": "^4.23.1",
+    "typescript-eslint": "^8.65.0",
+    "vitest": "^4.1.10",
     "yaml": "^2.9.0"
   },
   "packageManager": "pnpm@10.29.3",
@@ -89,7 +93,7 @@
     "serialize-javascript": "^7.0.3",
     "tmp": "^0.2.4",
     "fast-xml-builder": "^1.1.7",
-    "fast-uri": "^3.1.1"
+    "fast-uri": "^3.1.4"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -97,12 +101,13 @@
       "sharp"
     ],
     "overrides": {
-      "svgo": ">=4.0.1",
+      "sharp": ">=0.35.0",
+      "svgo": ">=4.0.2",
       "serialize-javascript": ">=7.0.3",
       "flatted": ">=3.4.2",
       "fast-xml-parser": ">=5.5.6",
       "fast-xml-builder": ">=1.1.7",
-      "fast-uri": ">=3.1.1",
+      "fast-uri": ">=3.1.4 <4",
       "h3": ">=1.15.6",
       "defu": ">=6.1.5",
       "devalue": ">=5.6.4"

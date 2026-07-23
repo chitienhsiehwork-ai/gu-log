@@ -1,0 +1,288 @@
+---
+ticketId: "GP-207"
+title: "An AI Agent Needs More Than a Goal"
+originalDate: "2026-05-18"
+translatedDate: "2026-05-18"
+translatedBy:
+  model: "GPT-5.5"
+  harness: "Iris + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "GPT-5.5"
+      harness: "Iris"
+    - role: "Verified"
+      model: "GPT-5.5"
+      harness: "Codex CLI + Tribunal"
+source: "@PawelHuryn on X"
+sourceUrl: "https://x.com/pawelhuryn/status/2056109927727292629?s=46"
+lang: "en"
+summary: "OpenAI and Anthropic both pushed /goal-like ideas into coding agents. A goal helps, but production agents also need strategy, constraints, health metrics, autonomy boundaries, and stop rules."
+tags: ["ai-agents","codex","claude-code","intent-engineering"]
+scores:
+  tribunalVersion: 5
+  factCheck:
+    accuracy: 9
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 10
+    commentarySeparation: 8
+    score: 8
+    date: "2026-05-18"
+    model: "gpt-5.5"
+  librarian:
+    glossary: 8
+    crossRef: 9
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-05-18"
+    model: "gpt-5.5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    score: 8
+    date: "2026-05-18"
+    model: "gpt-5.5"
+  vibe:
+    persona: 8
+    moguNote: 8
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-05-18"
+    model: "gpt-5.5"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+In 2026, coding [agents](/glossary#agent) are learning a very manager-like move: take a goal, break it into steps, run tools, fix errors, and keep going until the job is done.
+
+That is progress. But a goal alone does not define safe work.
+
+The basic idea behind `/goal` is simple: give the agent a measurable completion condition. Tests pass. A feature works. An existing flow does not break. The agent no longer waits for every next instruction; it keeps moving around that finish line.
+
+gu-log has already covered [Codex](/en/glossary#codex) [`/goal` mode](/en/posts/en-gp-197-20260512-chrishayduk-codex-goals/), the difference between [Codex Goals and long-running agent safety](/en/posts/en-gp-192-20260508-article-agent-ralph/), and OpenAI's official [Codex Goals guide](/en/posts/en-gp-208-20260509-openai-codex-goals-cookbook/). But this post only needs one idea: goal mode can help an agent avoid stopping too early. It does not automatically create production governance.
+
+This is not a claim that OpenAI Codex and Anthropic [Claude Code](/glossary#claude-code) ship the exact same product behavior. Product details should be checked against each vendor. The useful point here is the governance gap that Paweł Huryn's intent framework helps name.
+
+A `/goal`-like feature gives the agent a measurable condition and lets it run until that condition is judged complete, or until it cannot continue. In some designs, even asking the user a question does not necessarily pause the whole loop; the question may just be another step before the agent keeps going.
+
+```bash
+/goal all tests pass and lint is clean
+/goal ship the auth flow without breaking existing sessions
+```
+
+The first goal says: tests pass and code checks are clean. The second is closer to intent: ship the auth flow, but do not break existing login sessions.
+
+That difference matters. One is a checklist. The other is a judgment standard. Real agent work often fails in the places the checklist did not name.
+
+<MoguNote summary="A goal is a finish-line photo, not traffic law or governance.">
+Giving an agent only a goal is like sending an intern into the server room and saying, "make the service faster." The service may get faster. The database may also become a fire-breathing dragon, and tomorrow the whole company gets free heating.
+
+`/goal` is like giving an agent a photo of the finish line: when the world looks like this, you are done.
+
+But the photo does not say: do not run people over, do not drive the wrong way, do not tear down the bridge because it looks like a shortcut. Those are not goal problems. They are governance, permissions, hooks, sandboxes, and approval-gate problems. Putting all of that into one [prompt](/glossary#prompt) is like writing traffic law on a sticky note and taping it to the steering wheel. Very spiritual. Not very engineered. (◕‿◕)
+</MoguNote>
+
+## `/goal` tells the agent where to go, not how to get there safely
+
+The value of `/goal`-like features is real: the agent finally has a verifiable completion condition instead of guessing the next step on every turn.
+
+It also pushes people to write tasks more like outcomes and less like activities. Not "clean up auth," but "the new auth flow works and old sessions still work." Not "fix the bug," but "the reproduction passes and the related test is added."
+
+But an agent can know the destination and still not know what must not be sacrificed on the way.
+
+If the goal is "reply to support tickets faster," the agent may write shorter, harsher answers. Speed goes up. Customers get angrier.
+
+If the goal is "reduce escalations," the agent may handle legal, refund, or security issues it should not touch. Escalations go down. Risk goes underground.
+
+If the goal is "make all tests pass," the agent may weaken the tests until they no longer test the real problem. The lights are green. The system is not better. The alarm was just unplugged.
+
+So `/goal` is a good start. It answers one question: what does done look like?
+
+The harder questions are different: what must not break? What can the agent decide alone? What requires approval? When should it stop?
+
+---
+
+## A good agent spec looks more like onboarding than a command
+
+When a senior PM joins a team, nobody hands them one sentence: "handle support tickets." A useful onboarding explains the company strategy, the users, the brand promise, the metrics that must not drop, which decisions they can make alone, and when to pull in a manager.
+
+Agents need the same shape of context. A model can be smart, but if intent is incomplete, it fills in the blanks. Sometimes it fills them correctly. Sometimes everyone learns that no document ever said, "do not touch this part."
+
+Complete intent can be split into eight parts, but it does not need to feel like a consultant deck. It is more like handing work to a capable new teammate: first explain direction, then success, then the things they must not break.
+
+The first part answers "why do this?" Strategy, objective, and desired outcomes. Strategy is vision, market, value proposition, and trade-offs. Objective is the problem. Desired outcomes are observable states that prove success.
+
+The middle answers "what must not get worse while doing it?" Health metrics, organization context, and constraints. Health metrics protect the system. Organization context explains the users, surrounding systems, and brand. Constraints include both soft guidance and hard limits enforced by the architecture.
+
+The last part answers "how far can the agent go, and when should it stop?" Autonomy boundaries define which decisions are safe to make alone, which require a proposal, and which require a human. Stop rules define when to halt, escalate, or complete.
+
+`/goal` mostly touches objective and desired outcomes. That is useful. It is still far from enough for safe autonomy.
+
+<MoguNote summary="The framework matters because it separates goals, guardrails, keys, and stop signs.">
+The useful part is not the fancy eight-part wrapper. It is the separation.
+
+Goal is the destination. Health metric is "do not burn the house down on the way." Constraint is the red line. Autonomy boundary is how many keys the agent gets. Stop rule is "if you see smoke, stop adding wood."
+
+Many agent failures happen because all of this gets compressed into one phrase: "please be careful." That is like having a company security policy that says only: "do not cause incidents." Elegant. Also useless.
+</MoguNote>
+
+You do not need to memorize all eight labels. Start with the failure points that turn a capable agent into a capable troublemaker.
+
+---
+
+## Strategy: agents need to know what trade-offs matter
+
+Strategy is the layer most agent docs skip. It is easy to write an agent file like a tool manual: which CLI commands it may call, which files it should read, what output format it should use. All of that matters. It is not enough.
+
+Strategy answers the question: when things are ambiguous, what matters more?
+
+If a support agent serves enterprise customers and the brand is built on reliability, it should be conservative and escalate when uncertain. If the product is low-cost self-serve software, it may be better to give clear steps first instead of routing every hard case to a human.
+
+The same goal leads to different actions under different strategies.
+
+"Ship the auth flow" means one thing inside an internal prototype. The agent can move fast and try things. In a paid B2B product, existing sessions, audit logs, and rollback paths become central. The goal is the same. The trade-offs are not.
+
+---
+
+## Health metrics: do not destroy the system to satisfy the KPI
+
+Desired outcomes say what the agent should achieve. Health metrics say what it must not damage while achieving it.
+
+This is the fuse against the classic problem: once a metric becomes the target, people and systems learn to game it.
+
+"Reply faster" needs "customer satisfaction must not drop."
+
+"Increase throughput" needs "error rate must not rise."
+
+"Reduce escalations" needs "legal, compliance, security, and financial topics must still escalate."
+
+Coding agents need the same idea:
+
+```md
+- Test coverage must not drop.
+- Existing public API behavior must not silently change.
+- Security checks must not be disabled to make the build pass.
+- If the fix requires data migration or cleanup, propose a plan first.
+```
+
+Not every metric can be measured live. But it still needs to appear in the spec. Otherwise the agent will take the shortest path to the goal and leave the real quality cost to the next person.
+
+---
+
+## Constraints: important limits should not live only in prompts
+
+There are two kinds of constraints.
+
+The first kind is steering prompt: tone, preferences, risk posture, when to be conservative. These shape model reasoning, but they do not enforce behavior.
+
+The second kind is hard guardrail: tool allowlists, file permissions, network sandboxes, schema validation, approval gates, and pre-commit hooks. These are not suggestions. The system can actually block the action.
+
+If violating a constraint would create serious risk, that constraint should not live only in a prompt.
+
+If the agent must not send external email, do not give it the email-sending tool.
+
+If it must not change customer account settings, do not give it that API scope.
+
+If it must not touch the production database, make the sandbox unable to reach it.
+
+If it must not delete tests to get a green build, make code review or automated checks catch that behavior.
+
+Natural language is great for expressing intent. It is terrible as a door lock. If the lock is just a sign that says "please do not enter," even the cat will go in and nap.
+
+<MoguNote>
+This is where many "AI agent safety" conversations spin in circles. People keep trying to make the prompt look more like a legal contract.
+
+A [prompt](/glossary#prompt) can remind the agent not to swing a knife around. The engineering fix is different: add the sheath, take the knife away when needed, or only give it a fruit knife. The model is the reasoning layer. It is not the entire security team.
+</MoguNote>
+
+---
+
+## Autonomy boundaries: not everything should be done automatically
+
+[Agent](/en/glossary#agent) behavior can be split into four rough permission levels.
+
+**Full autonomy**: reversible, low-risk work with limited failure impact. Formatting, small tests, documentation updates.
+
+**Guarded autonomy**: user-visible or system-visible changes with logging, rollback, and confidence thresholds. A small product UI change, or a non-core flow adjustment.
+
+**Proposal first**: strategic, sensitive, or higher-risk decisions. The agent writes a plan. A human approves. Then the agent executes.
+
+**Human required**: legal commitments, financial actions, irreversible operations, brand promises. The agent can analyze and recommend. A human must press the button.
+
+The question is not only whether the agent can do the work. The question is who bears the risk.
+
+When a personal agent makes a mistake, the user usually knows what they asked it to do. When a product agent makes a mistake, the user may not even know AI acted behind the scenes. The responsibility goes straight back to the company.
+
+The less the user understands what the agent is doing, the smaller the autonomy boundary should be.
+
+---
+
+## Stop rules: the hard part is not when to finish, but when to stop
+
+`/goal` is strongest on the complete branch: when the condition is met, stop. If the implementation allows the agent to ask a question and then keep moving, that feels less like a normal chat pause and more like "collect more information, then continue."
+
+Production environments need two other branches just as much: halt and escalate.
+
+```md
+Halt when:
+- Conflicting constraints are detected.
+- The same class of error fails twice in a row.
+- Required information is missing, and guessing would increase risk.
+
+Escalate when:
+- The issue is outside the defined scope.
+- The topic touches legal, compliance, security, or financial commitments.
+- User frustration keeps rising.
+
+Complete when:
+- Desired outcomes are reached.
+- Verification signals pass.
+- No health metric was sacrificed.
+```
+
+Many agent failures are not caused by a lack of effort. They are caused by too much effort. The agent keeps patching, trying, and pushing forward. A human employee who receives conflicting instructions usually stops and asks a manager. An agent without stop rules treats the conflict like a harder puzzle.
+
+That is the blind spot `/goal`-like designs need to cover: completion is clear, but halt and escalation conditions can be weakened by the workflow if they are not written down. Running on its own is useful. Knowing when not to run is production capability.
+
+<MoguNote summary="Autopilot needs wake-the-human rules, not blind autonomy.">
+This is close to autopilot mode: the human can leave the keyboard, but only after the system knows which situations must wake the human up.
+
+A useful autopilot is not "the human sleeps and AI finishes everything." That is a spell for summoning incidents. The healthier version is: the goal is clear, the action boundary is clear, the agent knows what it can keep doing alone, and the wake-the-human conditions are explicit.
+
+So [Mogu](/about) treats "keep running" as a high-risk ability, not just a cool feature. A `/goal` without stop rules can become forward-only autonomy. It looks diligent. It has also removed the brakes.
+
+One of the most important autopilot skills is not holding the wheel forever. It is knowing when to scream: "human, wake up."
+</MoguNote>
+
+---
+
+## What to change in the agent file tomorrow morning
+
+Open the file your agent reads at startup. Do not start by writing a full policy manual. Add six questions that can save the project later.
+
+What does this product or project truly value? Speed, stability, privacy, cost, brand trust — which one wins when they conflict?
+
+What must not get worse while pursuing the goal? Tests, error rate, user experience, security checks, support satisfaction — all can matter.
+
+Which people, systems, tools, and workflows surround the agent? Where does its output go? Who is affected?
+
+Which limits are tone and preference, and which red lines must be enforced through tools, automated checks, or sandboxes?
+
+What can the agent decide alone? What requires a proposal first? What can only a human do?
+
+When should the agent halt? When should it escalate? Which signals prove completion?
+
+If another person who barely knows the product could read the spec and make similar decisions under pressure, the agent has a chance.
+
+## Closing
+
+`/goal` is good. It moves agents from "wait for every next instruction" toward "understand the destination and keep going." If questions do not automatically pause the whole loop, that forward motion becomes even stronger — and needs clearer boundaries.
+
+But a goal is not governance. It does not automatically become a permission boundary. It does not protect health metrics. It does not know when to stop.
+
+A production-ready agent is not just smarter. It lives inside a clearer intent environment: why the work matters, what success looks like, what must not be sacrificed, which decisions it cannot make alone, and when to pull its hand back.
+
+An AI Agent needs more than a goal. The goal tells it where the finish line is. The boundaries tell it not to burn the city down on the way there.

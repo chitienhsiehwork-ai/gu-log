@@ -27,20 +27,20 @@ worker="$TMP/worker"
 setup_repo "$main"
 setup_repo "$worker"
 
-cat > "$main/src/content/posts/cp-999-test.mdx" <<'POST'
+cat > "$main/src/content/posts/mp-999-test.mdx" <<'POST'
 ---
 title: Original
-ticketId: CP-999
+ticketId: MP-999
 lang: zh-tw
 translatedDate: 2026-04-28
 ---
 
 Original body.
 POST
-cat > "$main/src/content/posts/en-cp-999-test.mdx" <<'POST'
+cat > "$main/src/content/posts/en-mp-999-test.mdx" <<'POST'
 ---
 title: Original EN
-ticketId: CP-999
+ticketId: MP-999
 lang: en
 translatedDate: 2026-04-28
 ---
@@ -54,10 +54,10 @@ cp -a "$main/src" "$worker/"
 cp -a "$main/scores" "$worker/"
 git -C "$worker" add . && git -C "$worker" commit -q -m initial
 
-cat > "$worker/src/content/posts/cp-999-test.mdx" <<'POST'
+cat > "$worker/src/content/posts/mp-999-test.mdx" <<'POST'
 ---
 title: Original
- ticketId: CP-999
+ ticketId: MP-999
 lang: zh-tw
 translatedDate: 2026-04-28
 scores:
@@ -68,10 +68,10 @@ scores:
 
 Rewritten body with Tribunal changes.
 POST
-cat > "$worker/src/content/posts/en-cp-999-test.mdx" <<'POST'
+cat > "$worker/src/content/posts/en-mp-999-test.mdx" <<'POST'
 ---
 title: Original EN
-ticketId: CP-999
+ticketId: MP-999
 lang: en
 translatedDate: 2026-04-28
 scores:
@@ -83,25 +83,25 @@ scores:
 Rewritten EN body with Tribunal changes.
 POST
 
-bash "$HELPER" "$worker" "$main" "cp-999-test.mdx"
+bash "$HELPER" "$worker" "$main" "mp-999-test.mdx"
 
-grep -q 'Rewritten body with Tribunal changes' "$main/src/content/posts/cp-999-test.mdx" \
+grep -q 'Rewritten body with Tribunal changes' "$main/src/content/posts/mp-999-test.mdx" \
   || fail "zh post rewrite was not copied from worker to main"
-grep -q 'Rewritten EN body with Tribunal changes' "$main/src/content/posts/en-cp-999-test.mdx" \
+grep -q 'Rewritten EN body with Tribunal changes' "$main/src/content/posts/en-mp-999-test.mdx" \
   || fail "en post rewrite was not copied from worker to main"
-grep -q 'tribunalVersion: 8' "$main/src/content/posts/cp-999-test.mdx" \
+grep -q 'tribunalVersion: 8' "$main/src/content/posts/mp-999-test.mdx" \
   || fail "score frontmatter was not copied to main"
 
-git -C "$main" add src/content/posts/cp-999-test.mdx src/content/posts/en-cp-999-test.mdx
+git -C "$main" add src/content/posts/mp-999-test.mdx src/content/posts/en-mp-999-test.mdx
 if git -C "$main" diff --cached --quiet -- src/content/posts; then
   fail "main repo has no staged post diff after publishing worker rewrite"
 fi
 
 pass "worker Tribunal rewrites are published into main repo and stageable"
 
-same_main_hash_before="$(git -C "$main" hash-object src/content/posts/cp-999-test.mdx)"
-bash "$HELPER" "$main" "$main" "cp-999-test.mdx"
-same_main_hash_after="$(git -C "$main" hash-object src/content/posts/cp-999-test.mdx)"
+same_main_hash_before="$(git -C "$main" hash-object src/content/posts/mp-999-test.mdx)"
+bash "$HELPER" "$main" "$main" "mp-999-test.mdx"
+same_main_hash_after="$(git -C "$main" hash-object src/content/posts/mp-999-test.mdx)"
 [ "$same_main_hash_before" = "$same_main_hash_after" ] || fail "same-repo publish should be a no-op"
 pass "same-repo publish is safe no-op"
 

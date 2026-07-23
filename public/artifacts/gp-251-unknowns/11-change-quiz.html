@@ -1,0 +1,545 @@
+<!-- Copyright 2026 Anthropic PBC · SPDX-License-Identifier: Apache-2.0 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz me before I merge — Know your unknowns</title>
+<style>
+  :root{
+    --ivory:#FAF9F5; --paper:#FFFFFF; --slate:#141413; --clay:#D97757; --clay-d:#B85C3E;
+    --oat:#E3DACC; --olive:#788C5D; --g100:#F0EEE6; --g200:#E6E3DA; --g300:#D1CFC5;
+    --g500:#87867F; --g700:#3D3D3A;
+    --serif: ui-serif, Georgia, "Times New Roman", Times, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--ivory); color:var(--slate); font-family:var(--sans);
+    line-height:1.55; font-size:15px; padding:40px 20px 64px;
+  }
+  .page{max-width:980px;margin:0 auto}
+  h1,h2,h3{font-family:var(--serif);font-weight:500;letter-spacing:-0.015em;color:var(--slate)}
+
+  /* ---- page header ---- */
+  .topline{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+  .eyebrow{
+    font-family:var(--mono);font-size:12px;text-transform:uppercase;letter-spacing:0.12em;
+    color:var(--g500);display:flex;align-items:center;gap:10px;
+  }
+  .eyebrow::before{content:"";display:inline-block;width:24px;height:2px;background:var(--clay);flex:none}
+  .backlink{font-family:var(--mono);font-size:12px;color:var(--g500);text-decoration:none;white-space:nowrap}
+  .backlink:hover{color:var(--clay-d)}
+  h1.pagetitle{font-size:34px;line-height:1.15;margin-bottom:10px}
+  .lede{color:var(--g700);font-size:16px;max-width:64ch;margin-bottom:26px}
+
+  /* ---- prompt box ---- */
+  .promptcard{
+    background:var(--paper);border:1.5px solid var(--g300);border-radius:14px;
+    padding:22px 26px;margin-bottom:36px;position:relative;
+  }
+  .promptcard .label{
+    font-family:var(--mono);font-size:12px;text-transform:uppercase;letter-spacing:0.12em;
+    color:var(--clay);margin-bottom:12px;
+  }
+  .promptcard blockquote{
+    font-family:var(--serif);font-style:italic;font-size:17.5px;line-height:1.55;
+    color:var(--slate);border:none;
+  }
+  .copybtn{
+    position:absolute;top:18px;right:18px;font-family:var(--mono);font-size:11.5px;
+    padding:6px 12px;border:1.5px solid var(--g300);border-radius:8px;background:var(--g100);
+    color:var(--g700);cursor:pointer;transition:all .15s;
+  }
+  .copybtn:hover{border-color:var(--clay);color:var(--clay-d)}
+  .copybtn.copied{background:var(--olive);border-color:var(--olive);color:#fff}
+
+  /* ---- divider ---- */
+  .divider{display:flex;align-items:center;gap:16px;margin:0 0 34px;
+    font-family:var(--mono);font-size:12px;letter-spacing:0.12em;color:var(--g500);text-transform:uppercase;white-space:nowrap}
+  .divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--g300)}
+
+  /* =================== ARTIFACT =================== */
+  .artifact{background:var(--paper);border:1.5px solid var(--g300);border-radius:14px;overflow:hidden}
+  .art-head{padding:28px 34px 24px;border-bottom:1.5px solid var(--g200)}
+  .art-eyebrow{font-family:var(--mono);font-size:11.5px;text-transform:uppercase;letter-spacing:0.12em;color:var(--g500);margin-bottom:8px;display:flex;align-items:center;gap:10px}
+  .art-eyebrow::before{content:"";display:inline-block;width:24px;height:2px;background:var(--clay);flex:none}
+  .art-head h2{font-size:26px;margin-bottom:6px}
+  .art-head .sub{color:var(--g700);font-size:14.5px;max-width:66ch}
+  .branchline{font-family:var(--mono);font-size:12.5px;color:var(--g700);background:var(--g100);
+    border:1.5px solid var(--g300);border-radius:8px;padding:6px 10px;display:inline-block;margin-top:14px;overflow-x:auto;max-width:100%}
+  .branchline .arr{color:var(--g500);margin:0 6px}
+
+  .art-body{padding:30px 34px 38px}
+  @media (max-width:560px){
+    .art-head{padding:22px 18px 18px}
+    .art-body{padding:22px 18px 30px}
+    h1.pagetitle{font-size:27px}
+  }
+
+  /* stat chips */
+  .stats{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:34px}
+  .statchip{flex:1;min-width:130px;background:var(--g100);border:1.5px solid var(--g300);border-radius:12px;padding:14px 18px}
+  .statchip .num{font-family:var(--serif);font-size:28px;font-weight:500;letter-spacing:-0.02em;line-height:1.1}
+  .statchip .num.add{color:var(--olive)}
+  .statchip .num.del{color:var(--clay-d)}
+  .statchip .cap{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--g500);margin-top:4px}
+
+  .art-section{margin-bottom:38px}
+  .art-section h3{font-size:20px;margin-bottom:6px}
+  .art-section .secnote{color:var(--g500);font-size:13.5px;margin-bottom:16px}
+  .art-section p{color:var(--g700);margin-bottom:12px;max-width:70ch}
+  .art-section p strong{color:var(--slate)}
+
+  /* mental model diagram */
+  .flow-pair{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+  @media (max-width:680px){.flow-pair{grid-template-columns:1fr}}
+  .flowcard{border:1.5px solid var(--g300);border-radius:12px;padding:16px 16px 18px;background:var(--ivory)}
+  .flowcard.after{border-color:var(--clay)}
+  .flowcard .fc-label{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px}
+  .flowcard.before .fc-label{color:var(--g500)}
+  .flowcard.after .fc-label{color:var(--clay-d)}
+  .fnode{border:1.5px solid var(--g300);background:var(--paper);border-radius:8px;padding:7px 12px;
+    font-family:var(--mono);font-size:12px;color:var(--g700);text-align:center}
+  .fnode.new{border-color:var(--clay);background:#FBF1EC;color:var(--clay-d)}
+  .fnode.oatf{background:var(--oat)}
+  .farrow{display:flex;justify-content:center;align-items:center;height:22px;color:var(--g500);font-size:13px;line-height:1}
+  .farrow.lab{gap:8px;font-family:var(--mono);font-size:10.5px}
+  .fsplit{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .fsplit .farrow{height:20px}
+
+  /* behavior blocks */
+  .beh{border:1.5px solid var(--g300);border-radius:12px;margin-bottom:14px;overflow:hidden}
+  .beh-head{display:flex;align-items:baseline;gap:12px;padding:14px 18px;background:var(--g100)}
+  .beh-num{font-family:var(--mono);font-size:12px;color:var(--clay-d);font-weight:600;flex:none}
+  .beh-head h4{font-family:var(--serif);font-weight:500;font-size:16.5px;letter-spacing:-0.01em}
+  .beh-body{padding:14px 18px 16px}
+  .beh-row{display:grid;grid-template-columns:58px 1fr;gap:10px;margin-bottom:9px;font-size:14px}
+  .beh-row:last-child{margin-bottom:0}
+  .beh-row .k{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:0.1em;color:var(--g500);padding-top:3px}
+  .beh-row .v{color:var(--g700)}
+  .fchip{display:inline-block;font-family:var(--mono);font-size:11.5px;background:var(--g100);
+    border:1px solid var(--g300);border-radius:6px;padding:1.5px 7px;color:var(--g700);white-space:nowrap;margin:1px 2px 1px 0}
+
+  /* leans-on callout */
+  .leans{border:1.5px solid var(--g300);border-left:4px solid var(--olive);border-radius:12px;
+    background:var(--ivory);padding:16px 20px}
+  .leans .lab{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--olive);margin-bottom:6px}
+  .leans p{margin-bottom:0;font-size:14px}
+
+  /* ---- quiz ---- */
+  .quiz-rule{display:flex;align-items:center;gap:16px;margin:44px 0 8px;
+    font-family:var(--mono);font-size:11.5px;letter-spacing:0.12em;color:var(--g500);text-transform:uppercase}
+  .quiz-rule::before,.quiz-rule::after{content:"";flex:1;height:1px;background:var(--g300)}
+  .quiz-intro{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+  .quiz-intro h3{font-size:22px}
+  .quiz-intro .qsub{color:var(--g500);font-size:13.5px}
+  .scorebox{font-family:var(--mono);font-size:12.5px;color:var(--g700);background:var(--g100);
+    border:1.5px solid var(--g300);border-radius:10px;padding:8px 14px;white-space:nowrap}
+  .scorebox b{color:var(--slate)}
+
+  .q{border:1.5px solid var(--g300);border-radius:12px;padding:18px 20px;margin-bottom:16px;background:var(--paper)}
+  .q.answered-right{border-color:var(--olive)}
+  .q.answered-wrong{border-color:var(--clay)}
+  .q .qnum{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--g500);margin-bottom:6px}
+  .q .qtext{font-family:var(--serif);font-size:17px;line-height:1.45;margin-bottom:14px;letter-spacing:-0.01em}
+  .q .qtext code{font-family:var(--mono);font-size:14px;background:var(--g100);border:1px solid var(--g300);border-radius:5px;padding:1px 5px}
+  .opt{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;
+    border:1.5px solid var(--g300);border-radius:9px;background:var(--ivory);padding:10px 14px;
+    margin-bottom:8px;cursor:pointer;font:inherit;font-size:14px;color:var(--g700);transition:border-color .12s, background .12s}
+  .opt:hover{border-color:var(--g500)}
+  .opt .key{font-family:var(--mono);font-size:11.5px;color:var(--g500);flex:none;padding-top:2px}
+  .opt.sel-right{border-color:var(--olive);background:#F1F4EB;color:var(--slate)}
+  .opt.sel-right .key{color:var(--olive)}
+  .opt.sel-wrong{border-color:var(--clay);background:#FBF1EC;color:var(--slate)}
+  .opt.sel-wrong .key{color:var(--clay-d)}
+  .opt.reveal-right{border-color:var(--olive)}
+  .opt:disabled{cursor:default;opacity:1}
+  .opt.dim{opacity:.55}
+  .fb{border-radius:9px;padding:12px 15px;font-size:13.5px;margin-top:4px;display:none}
+  .fb.show{display:block}
+  .fb.good{background:#F1F4EB;border:1.5px solid var(--olive);color:var(--g700)}
+  .fb.good .fbtag{color:var(--olive)}
+  .fb.bad{background:#FBF1EC;border:1.5px solid var(--clay);color:var(--g700)}
+  .fb.bad .fbtag{color:var(--clay-d)}
+  .fbtag{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:0.1em;font-weight:600;margin-bottom:5px}
+  .fb .excerpt{margin-top:8px;border-left:3px solid var(--g300);padding:6px 12px;background:var(--paper);
+    border-radius:0 7px 7px 0;font-size:13px;color:var(--g700);font-style:italic;font-family:var(--serif)}
+  .fb .exlab{font-family:var(--mono);font-style:normal;font-size:10.5px;text-transform:uppercase;letter-spacing:0.09em;color:var(--g500);display:block;margin-bottom:3px}
+
+  /* result cards */
+  .result{display:none;margin-top:26px}
+  .result.show{display:block}
+  .cleared{border:1.5px solid var(--olive);border-radius:14px;background:#F1F4EB;padding:24px 26px}
+  .cleared .clr-head{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+  .clr-badge{width:34px;height:34px;border-radius:50%;background:var(--olive);color:#fff;display:flex;
+    align-items:center;justify-content:center;font-size:17px;flex:none}
+  .cleared h3{font-size:21px}
+  .cleared .clr-sub{color:var(--g700);font-size:14px;margin-bottom:16px}
+  .mergelist{list-style:none}
+  .mergelist li{display:flex;gap:10px;align-items:baseline;font-family:var(--mono);font-size:12.5px;
+    color:var(--g700);padding:7px 0;border-bottom:1px dashed var(--g300)}
+  .mergelist li:last-child{border-bottom:none}
+  .mergelist .tick{color:var(--olive);font-weight:700;flex:none}
+  .mergelist .pend{color:var(--g500);flex:none}
+  .reread{border:1.5px solid var(--clay);border-radius:14px;background:#FBF1EC;padding:22px 26px}
+  .reread h3{font-size:19px;margin-bottom:4px}
+  .reread p{color:var(--g700);font-size:14px;margin-bottom:12px}
+  .reread ul{list-style:none}
+  .reread li{margin-bottom:7px}
+  .reread a{color:var(--clay-d);font-size:14px;text-decoration:none;border-bottom:1px solid var(--clay)}
+  .reread a:hover{color:var(--slate)}
+  .retry{margin-top:14px;font-family:var(--mono);font-size:12px;padding:8px 16px;border:1.5px solid var(--g300);
+    border-radius:8px;background:var(--paper);color:var(--g700);cursor:pointer}
+  .retry:hover{border-color:var(--clay);color:var(--clay-d)}
+
+  footer{margin-top:44px;text-align:center;font-size:13px;color:var(--g500)}
+  footer a{color:var(--clay-d);text-decoration:none}
+  footer a:hover{text-decoration:underline}
+</style>
+<style id="gu-log-mirror-credit-style">.gu-log-mirror-credit{position:sticky;top:0;z-index:9999;padding:8px 14px;background:#111;color:#f7f3e8;border-bottom:1px solid rgba(255,255,255,.18);font:13px/1.45 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;text-align:center}.gu-log-mirror-credit a{color:#f4c86a;text-decoration:underline;text-underline-offset:2px}.gu-log-mirror-credit strong{font-weight:750}</style>
+</head>
+<body>
+<div class="gu-log-mirror-credit" role="note"><strong>Mirror copy for gu-log GP-251.</strong> Original by <a href="https://x.com/trq212">Thariq (@trq212)</a>: <a href="https://thariqs.github.io/html-effectiveness/unknowns/">Know your unknowns</a>. English original preserved; zh-tw version later.</div>
+<div class="page">
+
+  <!-- ============ PAGE HEADER ============ -->
+  <div class="topline">
+    <div class="eyebrow">Know your unknowns &middot; Post-implementation</div>
+    <a class="backlink" href="index.html">&larr; All examples</a>
+  </div>
+  <h1 class="pagetitle">Quiz me before I merge</h1>
+  <p class="lede">Asking for a report <em>with a quiz you must pass</em> turns "I skimmed the diff" into verified understanding — the artifact won't let you feel done until you actually are.</p>
+
+  <div class="promptcard">
+    <div class="label">The Prompt</div>
+    <button class="copybtn" id="copyBtn">Copy prompt</button>
+    <blockquote id="promptText">I want to make sure I understand everything that happened in this change before I merge. Give me an HTML report on the export-feature diff — context, intuition, what was done — with a quiz at the bottom that I must pass.</blockquote>
+  </div>
+
+  <div class="divider">What Claude Produced</div>
+
+  <!-- ============ ARTIFACT ============ -->
+  <div class="artifact">
+    <div class="art-head">
+      <div class="art-eyebrow">Acme &middot; Merge readiness report</div>
+      <h2>Clip export: what changed and why</h2>
+      <p class="sub">A 14-file diff that adds server-side clip export to review threads. Read the three sections below, then pass the quiz. If you can't, you're not ready to merge — and that's the point.</p>
+      <div class="branchline">feature/clip-export<span class="arr">&rarr;</span>main &middot; 14 files &middot; 9 commits</div>
+    </div>
+
+    <div class="art-body">
+
+      <!-- stats -->
+      <div class="stats">
+        <div class="statchip"><div class="num">14</div><div class="cap">files changed</div></div>
+        <div class="statchip"><div class="num add">+612</div><div class="cap">lines added</div></div>
+        <div class="statchip"><div class="num del">&minus;148</div><div class="cap">lines removed</div></div>
+      </div>
+
+      <!-- mental model -->
+      <div class="art-section" id="sec-model">
+        <h3>The mental model</h3>
+        <p class="secnote">One diagram is worth 14 files: where an export request goes now vs. before.</p>
+        <p>Before this change, "export a clip" meant the browser stitched frames client-side with <code>MediaRecorder</code> and uploaded the result — slow, tab-locked, and broken on Safari. Now the client only <strong>requests</strong> an export; a new worker renders it server-side from the original media and the client polls a job until a signed download URL appears.</p>
+        <div class="flow-pair">
+          <div class="flowcard before">
+            <div class="fc-label">Before &middot; client-side render</div>
+            <div class="fnode">ReviewPlayer.tsx</div>
+            <div class="farrow">&darr;</div>
+            <div class="fnode">MediaRecorder capture (in-tab)</div>
+            <div class="farrow lab"><span>&darr;</span><span>~40&ndash;90s, tab locked</span></div>
+            <div class="fnode">PUT /uploads (whole file)</div>
+            <div class="farrow">&darr;</div>
+            <div class="fnode oatf">S3 exports/ bucket</div>
+          </div>
+          <div class="flowcard after">
+            <div class="fc-label">After &middot; server-side job</div>
+            <div class="fnode">ReviewPlayer.tsx</div>
+            <div class="farrow lab"><span>&darr;</span><span>POST /api/exports (returns job id)</span></div>
+            <div class="fnode new">export-worker (new, ffmpeg)</div>
+            <div class="fsplit">
+              <div><div class="farrow">&darr;</div><div class="fnode oatf">S3 exports/ bucket</div></div>
+              <div><div class="farrow">&darr;</div><div class="fnode new">jobs table (new)</div></div>
+            </div>
+            <div class="farrow lab"><span>&darr;</span><span>client polls every 2s</span></div>
+            <div class="fnode">GET /api/exports/:id &rarr; signed URL</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- non-obvious behaviors -->
+      <div class="art-section" id="sec-behaviors">
+        <h3>Three non-obvious behaviors this introduces</h3>
+        <p class="secnote">The parts a diff skim won't tell you. Each one is deliberate — here's the reasoning.</p>
+
+        <div class="beh" id="beh-1">
+          <div class="beh-head"><span class="beh-num">01</span><h4>Exports render from the original upload, not the proxy the reviewer watched</h4></div>
+          <div class="beh-body">
+            <div class="beh-row"><span class="k">What</span><span class="v">The worker pulls <code class="fchip">media/originals/</code>, never the 720p review proxy. An exported clip can therefore look <em>sharper</em> than what the reviewer saw when they drew their annotations.</span></div>
+            <div class="beh-row"><span class="k">Why</span><span class="v">Editors export clips to hand off to clients; shipping the compressed proxy would embarrass them. Annotation coordinates are stored normalized (0&ndash;1), so they re-project onto the full-res frame correctly.</span></div>
+            <div class="beh-row"><span class="k">Where</span><span class="v"><span class="fchip">worker/export/render.ts:41</span> <span class="fchip">worker/export/burn_in.ts:88</span></span></div>
+          </div>
+        </div>
+
+        <div class="beh" id="beh-2">
+          <div class="beh-head"><span class="beh-num">02</span><h4>Export jobs survive a worker crash — via a visibility timeout, not retries</h4></div>
+          <div class="beh-body">
+            <div class="beh-row"><span class="k">What</span><span class="v">A job row is claimed by setting <code class="fchip">locked_until = now() + 10min</code>. If the worker dies mid-render, no retry fires; the lock simply expires and the next idle worker picks the job up from scratch.</span></div>
+            <div class="beh-row"><span class="k">Why</span><span class="v">ffmpeg renders aren't idempotent mid-flight, and a retry queue would need dead-letter handling we don't want yet. Lock expiry gives at-least-once semantics with one column. Consequence: a crashed job looks "processing" for up to 10 minutes before recovering.</span></div>
+            <div class="beh-row"><span class="k">Where</span><span class="v"><span class="fchip">db/migrations/0142_export_jobs.sql</span> <span class="fchip">worker/export/claim.ts:19</span></span></div>
+          </div>
+        </div>
+
+        <div class="beh" id="beh-3">
+          <div class="beh-head"><span class="beh-num">03</span><h4>Download URLs expire after 24 hours — the export itself lives 7 days</h4></div>
+          <div class="beh-body">
+            <div class="beh-row"><span class="k">What</span><span class="v">The signed S3 URL returned by <code class="fchip">GET /api/exports/:id</code> is valid for 24h, but the underlying object isn't deleted until a 7-day lifecycle rule fires. Re-hitting the endpoint mints a fresh URL with no re-render.</span></div>
+            <div class="beh-row"><span class="k">Why</span><span class="v">Short URLs limit link-forwarding outside the workspace (exports can contain unreleased footage); the longer object TTL means a stale Slack link costs one API call to revive, not a 90-second re-render.</span></div>
+            <div class="beh-row"><span class="k">Where</span><span class="v"><span class="fchip">api/exports/get.ts:57</span> <span class="fchip">infra/s3_lifecycle.tf:23</span></span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- leans on -->
+      <div class="art-section" id="sec-leans">
+        <div class="leans">
+          <div class="lab">Existing behavior this leans on</div>
+          <p><strong>Workspace-scoped signed-URL auth.</strong> <span class="fchip">GET /api/exports/:id</span> does no permission check of its own — it reuses the <span class="fchip">requireWorkspaceMember</span> middleware that already guards every media route. If that middleware's session handling ever changes (there's an open ticket, BL-2214, about guest reviewer sessions), export downloads change with it. Nothing in this diff would flag that.</p>
+        </div>
+      </div>
+
+      <!-- ============ QUIZ ============ -->
+      <div class="quiz-rule">Part 2 &middot; Prove it</div>
+      <div class="quiz-intro">
+        <div>
+          <h3>Six questions before you merge</h3>
+          <div class="qsub">Not trivia — each one is a decision you'd have to make correctly during an incident or a review.</div>
+        </div>
+        <div class="scorebox">Score: <b id="scoreNow">0</b> / <b>6</b> &middot; <span id="answeredNow">0</span> answered</div>
+      </div>
+
+      <div id="quiz"></div>
+
+      <!-- results -->
+      <div class="result" id="resPass">
+        <div class="cleared">
+          <div class="clr-head"><div class="clr-badge">&#10003;</div><h3>Cleared to merge</h3></div>
+          <p class="clr-sub">6/6 — you can explain this change to whoever gets paged for it. Standard checklist below.</p>
+          <ul class="mergelist">
+            <li><span class="tick">&#10003;</span>Understanding verified (this quiz, 6/6)</li>
+            <li><span class="tick">&#10003;</span>CI green on feature/clip-export &middot; 412 tests</li>
+            <li><span class="tick">&#10003;</span>Migration 0142 reviewed &mdash; additive, no backfill</li>
+            <li><span class="pend">&#9675;</span>Squash-merge with the summary above as the commit body</li>
+            <li><span class="pend">&#9675;</span>Watch export-worker dashboards for 30 min post-deploy</li>
+            <li><span class="pend">&#9675;</span>Note BL-2214 dependency in the merge comment</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="result" id="resFail">
+        <div class="reread">
+          <h3 id="failTitle">Not yet — re-read these sections</h3>
+          <p>You missed the questions below. The gaps map straight back to the report:</p>
+          <ul id="failLinks"></ul>
+          <button class="retry" id="retryBtn">Reset quiz &amp; try again</button>
+        </div>
+      </div>
+
+    </div><!-- /art-body -->
+  </div><!-- /artifact -->
+
+  <footer>Part of <a href="index.html">Know your unknowns</a> &mdash; companion examples to the blog post.</footer>
+</div>
+
+<script>
+(function(){
+  // ---- copy prompt ----
+  var copyBtn = document.getElementById('copyBtn');
+  copyBtn.addEventListener('click', function(){
+    var t = document.getElementById('promptText').textContent;
+    function done(){ copyBtn.textContent='Copied'; copyBtn.classList.add('copied');
+      setTimeout(function(){copyBtn.textContent='Copy prompt';copyBtn.classList.remove('copied');},1600); }
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(t).then(done, function(){ fallback(); });
+    } else { fallback(); }
+    function fallback(){
+      var ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta);
+      ta.select(); try{document.execCommand('copy');}catch(e){} document.body.removeChild(ta); done();
+    }
+  });
+
+  // ---- quiz data ----
+  var QS = [
+    {
+      q:'A reviewer says their exported clip "looks different from what I annotated." Assuming no bug, why?',
+      opts:[
+        'The export re-encodes at a lower bitrate to keep files small',
+        'The export renders from the full-res original, while they reviewed the 720p proxy',
+        'Annotations are dropped when the source is above 1080p',
+        'Safari renders exports differently from Chrome'
+      ],
+      correct:1,
+      reinforce:'Right — exports pull media/originals/, so the clip can be sharper than the proxy the reviewer watched. Expected, not a bug.',
+      excerptFrom:'Behavior 01', anchor:'beh-1', anchorLabel:'Behavior 01 — exports render from the original',
+      excerpt:'The worker pulls media/originals/, never the 720p review proxy. An exported clip can therefore look sharper than what the reviewer saw when they drew their annotations.'
+    },
+    {
+      q:'An export-worker pod is OOM-killed halfway through a render. What happens to that job?',
+      opts:[
+        'It moves to a dead-letter queue for manual replay',
+        'It is retried immediately on another worker',
+        'It shows "processing" until its 10-minute lock expires, then another worker restarts it from scratch',
+        'It fails permanently and the user must click Export again'
+      ],
+      correct:2,
+      reinforce:'Exactly — no retry queue exists. Recovery is lock expiry: up to 10 minutes of apparent "processing", then a fresh render.',
+      excerptFrom:'Behavior 02', anchor:'beh-2', anchorLabel:'Behavior 02 — crash recovery via lock expiry',
+      excerpt:'If the worker dies mid-render, no retry fires; the lock simply expires and the next idle worker picks the job up from scratch… a crashed job looks "processing" for up to 10 minutes before recovering.'
+    },
+    {
+      q:'A client pastes an export link into Slack; a teammate clicks it 3 days later and gets an S3 "expired" error. Cheapest fix?',
+      opts:[
+        'Re-run the export — the file was deleted after 24 hours',
+        'Hit GET /api/exports/:id again — the object still exists for 7 days, so it just mints a fresh signed URL',
+        'Bump the lifecycle rule in s3_lifecycle.tf to 30 days',
+        'Ask an admin to make the exports/ bucket public-read'
+      ],
+      correct:1,
+      reinforce:'Yes — only the URL expired (24h). The object lives 7 days, so a fresh GET returns a new link with zero re-render cost.',
+      excerptFrom:'Behavior 03', anchor:'beh-3', anchorLabel:'Behavior 03 — URL TTL vs object TTL',
+      excerpt:'The signed S3 URL is valid for 24h, but the underlying object isn’t deleted until a 7-day lifecycle rule fires. Re-hitting the endpoint mints a fresh URL with no re-render.'
+    },
+    {
+      q:'Ticket BL-2214 changes how guest reviewer sessions are validated. Why does this diff make that ticket riskier?',
+      opts:[
+        'Guests can now trigger unlimited exports and exhaust the worker pool',
+        'Export downloads have no auth check of their own — they inherit whatever requireWorkspaceMember does, so a session change silently changes who can download',
+        'The jobs table stores guest session tokens in plaintext',
+        'It doesn’t — exports are unrelated to session handling'
+      ],
+      correct:1,
+      reinforce:'Correct — GET /api/exports/:id borrows requireWorkspaceMember wholesale. Change the middleware, change export access, with nothing in this diff to flag it.',
+      excerptFrom:'Existing behavior this leans on', anchor:'sec-leans', anchorLabel:'Callout — leans on workspace auth middleware',
+      excerpt:'GET /api/exports/:id does no permission check of its own — it reuses the requireWorkspaceMember middleware… If that middleware’s session handling ever changes (BL-2214), export downloads change with it.'
+    },
+    {
+      q:'After deploy, a user reports "export stuck at processing for 15 minutes." Given the design, what does 15 minutes tell you?',
+      opts:[
+        'Nothing — long renders are normal for big clips',
+        'The client’s 2-second polling loop probably disconnected',
+        'Something is wrong beyond a single crash: one crash self-heals within the 10-minute lock window, so 15+ minutes means repeated failures or a stuck worker',
+        'The S3 lifecycle rule deleted the file mid-render'
+      ],
+      correct:2,
+      reinforce:'Right — the 10-minute lock is the self-heal budget. Anything past it means the job is failing repeatedly or a worker is wedged: page-worthy, not wait-worthy.',
+      excerptFrom:'Behavior 02', anchor:'beh-2', anchorLabel:'Behavior 02 — the 10-minute recovery window',
+      excerpt:'Lock expiry gives at-least-once semantics with one column. Consequence: a crashed job looks "processing" for up to 10 minutes before recovering.'
+    },
+    {
+      q:'Why do annotations still land in the right place even though the export renders at a different resolution than the review player?',
+      opts:[
+        'The worker scales the export down to match the proxy resolution first',
+        'Annotation coordinates are stored normalized (0–1) and re-projected onto whatever frame size is rendered',
+        'The client re-sends annotation pixels at export time',
+        'burn_in.ts snaps annotations to a fixed 1080p grid'
+      ],
+      correct:1,
+      reinforce:'Yes — normalized coordinates are what make "render from the original" safe. Pixel-space storage would have broken every annotation in this diff.',
+      excerptFrom:'Behavior 01', anchor:'beh-1', anchorLabel:'Behavior 01 — normalized annotation coordinates',
+      excerpt:'Annotation coordinates are stored normalized (0–1), so they re-project onto the full-res frame correctly.'
+    }
+  ];
+
+  var KEYS=['A','B','C','D'];
+  var answers=new Array(QS.length).fill(null); // true/false/null
+  var quizEl=document.getElementById('quiz');
+
+  function build(){
+    quizEl.innerHTML='';
+    answers=new Array(QS.length).fill(null);
+    QS.forEach(function(item,qi){
+      var qd=document.createElement('div'); qd.className='q'; qd.id='q'+qi;
+      var h='<div class="qnum">Question '+(qi+1)+' of '+QS.length+'</div>'
+        +'<div class="qtext">'+item.q+'</div>';
+      item.opts.forEach(function(o,oi){
+        h+='<button class="opt" data-q="'+qi+'" data-o="'+oi+'"><span class="key">'+KEYS[oi]+'</span><span>'+o+'</span></button>';
+      });
+      h+='<div class="fb" id="fb'+qi+'"></div>';
+      qd.innerHTML=h;
+      quizEl.appendChild(qd);
+    });
+    updateScore();
+    document.getElementById('resPass').classList.remove('show');
+    document.getElementById('resFail').classList.remove('show');
+  }
+
+  quizEl.addEventListener('click', function(e){
+    var btn=e.target.closest('.opt'); if(!btn||btn.disabled) return;
+    var qi=+btn.dataset.q, oi=+btn.dataset.o, item=QS[qi];
+    if(answers[qi]!==null) return;
+    var right=(oi===item.correct);
+    answers[qi]=right;
+    var qd=document.getElementById('q'+qi);
+    qd.classList.add(right?'answered-right':'answered-wrong');
+    qd.querySelectorAll('.opt').forEach(function(b){
+      b.disabled=true;
+      var boi=+b.dataset.o;
+      if(boi===oi) b.classList.add(right?'sel-right':'sel-wrong');
+      else if(boi===item.correct && !right) b.classList.add('reveal-right');
+      else b.classList.add('dim');
+    });
+    var fb=document.getElementById('fb'+qi);
+    if(right){
+      fb.className='fb good show';
+      fb.innerHTML='<div class="fbtag">&#10003; Correct</div>'+item.reinforce;
+    } else {
+      fb.className='fb bad show';
+      fb.innerHTML='<div class="fbtag">Not quite &mdash; the correct answer is '+KEYS[item.correct]+'</div>'
+        +'From the report:'
+        +'<div class="excerpt"><span class="exlab">'+item.excerptFrom+'</span>'+item.excerpt+'</div>';
+    }
+    updateScore();
+    if(answers.every(function(a){return a!==null;})) finish();
+  });
+
+  function updateScore(){
+    var score=answers.filter(function(a){return a===true;}).length;
+    var done=answers.filter(function(a){return a!==null;}).length;
+    document.getElementById('scoreNow').textContent=score;
+    document.getElementById('answeredNow').textContent=done;
+  }
+
+  function finish(){
+    var score=answers.filter(function(a){return a===true;}).length;
+    if(score===QS.length){
+      document.getElementById('resPass').classList.add('show');
+      document.getElementById('resPass').scrollIntoView({behavior:'smooth',block:'nearest'});
+    } else {
+      var missed=[]; answers.forEach(function(a,i){ if(a!==true) missed.push(i); });
+      document.getElementById('failTitle').textContent='Not yet: '+score+'/'+QS.length+' — re-read these sections';
+      var seen={}, ul=document.getElementById('failLinks'); ul.innerHTML='';
+      missed.forEach(function(i){
+        var it=QS[i];
+        if(seen[it.anchor]) return; seen[it.anchor]=true;
+        var li=document.createElement('li');
+        li.innerHTML='<a href="#'+it.anchor+'">'+it.anchorLabel+'</a>';
+        ul.appendChild(li);
+      });
+      document.getElementById('resFail').classList.add('show');
+      document.getElementById('resFail').scrollIntoView({behavior:'smooth',block:'nearest'});
+    }
+  }
+
+  document.getElementById('retryBtn').addEventListener('click', function(){
+    build();
+    document.getElementById('quiz').scrollIntoView({behavior:'smooth',block:'start'});
+  });
+
+  build();
+})();
+</script>
+</body>
+</html>

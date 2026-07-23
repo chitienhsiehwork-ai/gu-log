@@ -50,7 +50,7 @@ function extractSeriesFromFrontmatter(filePath: string): PostData | null {
 
   // Parse series block
   const seriesMatch = frontmatter.match(
-    /^series:\s*\n\s+name:\s*["']?(.+?)["']?\s*\n\s+order:\s*(\d+)/m,
+    /^series:\s*\n\s+name:\s*["']?(.+?)["']?\s*\n\s+order:\s*(\d+)/m
   );
   let series: SeriesData | undefined;
 
@@ -89,17 +89,14 @@ describe('Series Content Validation', () => {
     expect(postsWithSeries.length).toBeGreaterThan(0);
 
     for (const post of postsWithSeries) {
-      expect(
-        post.series!.name,
-        `Post ${post.filename} has empty series name`,
-      ).toBeTruthy();
+      expect(post.series!.name, `Post ${post.filename} has empty series name`).toBeTruthy();
       expect(
         post.series!.name.length,
-        `Post ${post.filename} series name is too short`,
+        `Post ${post.filename} series name is too short`
       ).toBeGreaterThan(2);
       expect(
         post.series!.order,
-        `Post ${post.filename} has invalid order (${post.series!.order})`,
+        `Post ${post.filename} has invalid order (${post.series!.order})`
       ).toBeGreaterThan(0);
     }
   });
@@ -122,7 +119,7 @@ describe('Series Content Validation', () => {
       const uniqueOrders = new Set(orders);
       expect(
         uniqueOrders.size,
-        `Series "${key}" has duplicate order numbers: ${orders.sort().join(', ')}`,
+        `Series "${key}" has duplicate order numbers: ${orders.sort().join(', ')}`
       ).toBe(orders.length);
     }
   });
@@ -148,7 +145,7 @@ describe('Series Content Validation', () => {
       for (let i = 1; i < orders.length; i++) {
         expect(
           orders[i],
-          `Series "${key}" has gap: order ${orders[i - 1]} followed by ${orders[i]}`,
+          `Series "${key}" has gap: order ${orders[i - 1]} followed by ${orders[i]}`
         ).toBe(orders[i - 1] + 1);
       }
     }
@@ -157,45 +154,41 @@ describe('Series Content Validation', () => {
   it('4. ECC series (zh-tw) has exactly 8 articles', () => {
     const postsWithSeries = getPostsWithSeries();
     const eccPosts = postsWithSeries.filter(
-      (p) => p.series!.name === 'Everything Claude Code 全解析' && p.lang !== 'en',
+      (p) => p.series!.name === 'Everything Claude Code 全解析' && p.lang !== 'en'
     );
-    expect(
-      eccPosts.length,
-      `ECC series should have 8 articles, found ${eccPosts.length}`,
-    ).toBe(8);
+    expect(eccPosts.length, `ECC series should have 8 articles, found ${eccPosts.length}`).toBe(8);
   });
 
   it('4b. ECC series (en) has exactly 8 articles', () => {
     const postsWithSeries = getPostsWithSeries();
     const eccPosts = postsWithSeries.filter(
-      (p) => p.series!.name === 'Everything Claude Code 全解析' && p.lang === 'en',
+      (p) => p.series!.name === 'Everything Claude Code 全解析' && p.lang === 'en'
     );
     expect(
       eccPosts.length,
-      `ECC series (en) should have 8 articles, found ${eccPosts.length}`,
+      `ECC series (en) should have 8 articles, found ${eccPosts.length}`
     ).toBe(8);
   });
 
   it('4c. SD Deep Dive series (zh-tw) has exactly 6 articles', () => {
     const postsWithSeries = getPostsWithSeries();
     const sdPosts = postsWithSeries.filter(
-      (p) => p.series!.name === 'Claude Code Deep Dive' && p.lang !== 'en',
+      (p) => p.series!.name === 'Claude Code Deep Dive' && p.lang !== 'en'
     );
     expect(
       sdPosts.length,
-      `SD Deep Dive series should have 6 articles, found ${sdPosts.length}`,
+      `SD Deep Dive series should have 6 articles, found ${sdPosts.length}`
     ).toBe(6);
   });
 
   it("4d. Simon Willison's Agentic Engineering series (zh-tw) has exactly 13 articles", () => {
     const postsWithSeries = getPostsWithSeries();
     const simonPosts = postsWithSeries.filter(
-      (p) =>
-        p.series!.name === "Simon Willison's Agentic Engineering" && p.lang !== 'en',
+      (p) => p.series!.name === "Simon Willison's Agentic Engineering" && p.lang !== 'en'
     );
     expect(
       simonPosts.length,
-      `SimonW series should have 13 articles, found ${simonPosts.length}`,
+      `SimonW series should have 13 articles, found ${simonPosts.length}`
     ).toBe(13);
   });
 });

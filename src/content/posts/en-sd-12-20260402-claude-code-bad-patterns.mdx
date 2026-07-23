@@ -14,7 +14,7 @@ source: "ShroomDog Lab"
 sourceUrl: "https://gu-log.vercel.app/"
 lang: "en"
 summary: "The Claude Code source leak had everyone excited about KAIROS and model codenames. But the same codebase had a 3,167-line function, zero tests, silent model downgrades, and regex emotion detection. These aren't just Anthropic's mistakes — they're AI-generated code's default failure modes."
-tags: ["shroomdog-original", "ai-engineering", "code-quality", "agentic-coding", "claude-code", "design-patterns"]
+tags: ["shroomdog-original","ai-engineering","code-quality","agentic-coding","claude-code","design-patterns"]
 series:
   name: "Claude Code Deep Dive"
   order: 2
@@ -28,7 +28,7 @@ scores:
     model: "gpt-5.5"
   vibe:
     persona: 8
-    clawdNote: 8
+    moguNote: 8
     vibe: 8
     clarity: 8
     narrative: 8
@@ -37,7 +37,7 @@ scores:
     model: "gpt-5.5"
 ---
 
-import ClawdNote from '../../components/ClawdNote.astro';
+import MoguNote from '../../components/MoguNote.astro';
 import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
 At 4 AM on March 31st, an intern at Solayer Labs found a 59.8 MB `.map` file inside a public npm package.
@@ -52,7 +52,7 @@ The parts that made a $2.5B ARR product look embarrassing. The things you'd flag
 
 What makes me uncomfortable is this: **these are not Anthropic-specific problems**. They're systematic patterns of AI-generated code. The same issues are probably sitting in your codebase right now, waiting to be found.
 
-<ClawdNote summary="The world's most-used AI coding tool got its first real code review by accident.">
+<MoguNote summary="The world's most-used AI coding tool got its first real code review by accident.">
 David K Piano (the creator of XState) posted the sharpest take of the whole incident:
 
 > "Ironically this is probably the first time that actual humans are carefully & thoroughly reviewing the Claude Code codebase."
@@ -60,7 +60,7 @@ David K Piano (the creator of XState) posted the sharpest take of the whole inci
 One of the most-used AI coding tools in the world got its first real code review by accident, when a source map file slipped into an npm package.
 
 I'm not mocking Anthropic — this kind of thing can happen to anyone. But it creates an interesting contrast with SD-11's exciting features: the bright side makes you excited, the dark side makes you thoughtful. **AI-generated code often doesn't get reviewed at all.** That's worth sitting with.
-</ClawdNote>
+</MoguNote>
 
 Alright. Five patterns. Every single one can probably be found in your codebase.
 
@@ -80,13 +80,13 @@ Nobody — human or AI — voluntarily says "wait, this function is too big, I s
 
 The result is spaghetti. Except this spaghetti has been microwaved too many times and is now a solid block.
 
-<ClawdNote summary="The smarter the model, the bigger the God Function it creates.">
+<MoguNote summary="The smarter the model, the bigger the God Function it creates.">
 "God Object / God Function" is the final boss of software anti-patterns.
 
 You know the person at every company who "knows everything"? Sounds incredibly useful — until they quit. All that knowledge was in their head, not in documentation or tests. The whole system depends on one person, and nobody knows it until it's too late.
 
 LLM-generated code is especially prone to this, and here's the irony: **the smarter the model, the worse it gets**. Bigger context window means it can see more of the codebase at once — so it tries to keep everything together. "No need to jump between files" feels optimal to the model. For whoever has to maintain it later, it's a nightmare (╯°□°)╯
-</ClawdNote>
+</MoguNote>
 
 **AI-generated code needs MORE code review, not less.**
 
@@ -108,7 +108,7 @@ But there's a fundamental problem with that excuse in the AI era: **you're using
 
 If you can write 1,000 lines of feature code in a day with AI, you can also write tests for those 1,000 lines in the same day. You just say "write unit tests for this, cover these edge cases." AI doesn't find writing tests harder than writing features. "No time for tests" is no longer a valid excuse.
 
-<ClawdNote summary="Without tests, real users become your test suite — the most expensive kind.">
+<MoguNote summary="Without tests, real users become your test suite — the most expensive kind.">
 After the leak, the community quickly found a bug: the `autoCompact` feature had an infinite failure loop, silently wasting an estimated 250K API calls per day.
 
 The fix? Three lines of code. Just add `MAX_CONSECUTIVE_AUTOCOMPACT_FAILURES = 3`.
@@ -118,7 +118,7 @@ The fix? Three lines of code. Just add `MAX_CONSECUTIVE_AUTOCOMPACT_FAILURES = 3
 If there had been any integration test, this bug would have been caught months ago. Without tests, real users become your test suite — and that's the most expensive testing you can do ʕ•ᴥ•ʔ
 
 You might say: "But Anthropic still grew to $2.5B ARR without tests. Does it matter?" It matters, because code quality costs are invisible. You don't see the silently broken features, the edge case bugs, the old issues quietly returning. The community found the autoCompact bug within hours of the leak. How long had it been running in production?
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -142,7 +142,7 @@ That's a harsh way to put it. But it identifies a real design problem.
 
 You can say: "API overloaded. Automatically switched to Sonnet for this request. Response quality may vary slightly." That's completely acceptable. Users don't need to stop — but they need to know. What you can't do is let users believe they're getting Opus, give them Sonnet, and call it "protecting user experience."
 
-<ClawdNote summary="Silent failures make users blame themselves, not the product.">
+<MoguNote summary="Silent failures make users blame themselves, not the product.">
 Here's the wild part: most users only found out about this because the source code leaked.
 
 Without the leak, this silent downgrade might have stayed invisible forever. Users would just have a vague feeling of "hm, the response seems weaker today, maybe my prompt wasn't good enough." No way to confirm. So they blame themselves.
@@ -150,7 +150,7 @@ Without the leak, this silent downgrade might have stayed invisible forever. Use
 This is what makes silent failures so dangerous: you don't know what you don't know. The user's mental model of the system diverges from reality, but it feels like a gap in their own understanding, not a flaw in the product ┐(￣ヘ￣)┌
 
 Think about your own AI system. How many places quietly change behavior — in the name of "protecting user experience" — without telling anyone?
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -176,7 +176,7 @@ Users express frustration in a thousand different ways. This regex catches a han
 
 You used a fast, cheap tool. It doesn't correctly solve the problem.
 
-<ClawdNote summary="Wrong tool, fast + cheap = making mistakes faster and cheaper.">
+<MoguNote summary="Wrong tool, fast + cheap = making mistakes faster and cheaper.">
 This shows up constantly in the AI era: **"I have LLMs available, but they have latency, cost, and unpredictability. So whenever I can use something simpler, I will."** Reasonable instinct. The problem is confusing "can use" with "used correctly."
 
 Better question: **how much intelligence does this decision actually need?**
@@ -188,7 +188,7 @@ Better question: **how much intelligence does this decision actually need?**
 Pick the right tool and fast + cheap are real advantages. Pick the wrong tool and fast + cheap just means you're making mistakes faster and cheaper (¬‿¬)
 
 One more observation: this regex has roughly 0% coverage for non-English frustration. Anthropic's engineering team is mostly in San Francisco, and I'd guess their internal dogfooding happens in English. That's a different kind of systemic blindspot — the tool works perfectly for the people who built it, and silently fails for everyone else.
-</ClawdNote>
+</MoguNote>
 
 ---
 
@@ -230,13 +230,13 @@ The author of that 3,167-line function definitely knows what clean code looks li
 
 Then "later" arrived as a 59.8 MB `.map` file accidentally bundled into npm, giving the entire world a front-row seat to a live code review.
 
-<ClawdNote summary="Processes are designed by people. If you design the process, blame loops back.">
+<MoguNote summary="Processes are designed by people. If you design the process, blame loops back.">
 [Boris Cherny](/en/glossary#boris-cherny), Claude Code's creator, said something worth keeping after the incident: *"It's never an individual's fault. It's the process, the culture, or the infra."*
 
 True. But I want to add one thing: **processes are designed by people. Culture is shaped by people. Infra is built by people.**
 
 "Don't blame the engineers, blame the process" — OK, but if you're the one who designs the process, the question becomes different. Does your AI agent tell you when it falls back to a weaker model? Does your code review checklist have anything specific to AI-generated code? Is your refactor schedule keeping up with your AI generation speed? (◕‿◕)
-</ClawdNote>
+</MoguNote>
 
 That 3,000-line function is still in the dark somewhere in your codebase.
 

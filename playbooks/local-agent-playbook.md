@@ -30,11 +30,13 @@ Tracked overlay 只放 public-safe machine policy。Secret values 不得寫入 r
 ### Branch 位置不固定
 
 local Codex actor / local Claude actor 可能在任何 branch 上，不一定在 `claude/xxx`：
-- 可能在 `main`（solo author 直接開發）
+
+- 可能從 `main` 開場，但開始修改前仍要建立 feature branch
 - 可能在 worktree（user 常用 `git worktree`，一次開多個 feature）
 - 可能在 feature branch
 
 **開場先觀察**：
+
 ```bash
 ./scripts/detect-env.sh --runtime codex        # Codex
 ./scripts/detect-env.sh --runtime claude-code  # Claude Code
@@ -46,25 +48,27 @@ git log --oneline -5
 
 不要假設在 main。不要擅自切 branch。尊重 user 當下的 working state——如果 user 已經在某個 branch 上 iterate，就在那個 branch 上做。
 
-### Merge flow 更直接
+### Merge flow
 
-local Codex actor / local Claude actor 不一定要走 PR + self-merge 流程：
-- 在 main 上 → commit + push 就直接 Vercel deploy 上 prod（solo author policy 授權的）
-- 在 feature branch 上 → push 到同名 remote branch，要不要開 PR 看情況
-- 在 worktree 上 → 照該 worktree 的 scope 做事
+Branch 與 merge policy 以 Tier-0 `AGENTS.md` 為 SSOT；local actor 也沒有直推 `main` 的例外：
+
+- 從 `main` 開場 → 修改前建立 feature branch
+- 在 feature branch 上 → commit、push、開 PR、盯 CI，綠了依當前任務 gate 自行 merge
+- 在 worktree 上 → 照該 worktree 的 scope 做事，完成後走同一套 PR 流程
 
 GitHub MCP 不一定可用（看 user 的 Claude Code 設定）。可能有 `gh` CLI、可能沒有。觀察現況，不要硬叫 MCP tool。
 
 ### 本地環境優勢，該用
 
 local Codex actor / local Claude actor 有的 CCC 沒有的：
+
 - **本地 dev server**：自己跑 `pnpm run dev` iterate，不要煩 user（user 只看 production）
 - **playwright-cli skill**（`.claude/skills/playwright-cli/`）：截圖驗證 UI
 - **uiux-auditor skill**（`.claude/skills/uiux-auditor/`）：改完視覺跑一次，強制雙主題截圖 + WCAG 對比
 - **iCloud Drive 直接存取**：可以直接讀 Obsidian vault 裡的草稿（`~/Library/Mobile Documents/com~apple~CloudDocs/Obsidian/gu-log-drafts/`），跑 `pnpm run obsidian:import`
 - **沒有沙箱網路限制**：可以下載、可以 curl、可以 fetch 外部 API
-- **hosted X MCP 要接就在本地接，別在 CCC 試**：X 官方有 hosted X MCP（`https://api.x.com/mcp`，文件 `docs.x.com/tools/mcp`），透過 `npx @xdevplatform/xurl mcp` 這個 stdio bridge 連，能 live 搜尋 X / 查 user / 管 bookmarks / 發 Articles。但它需要 ① 你自己的 X dev app（CLIENT_ID/SECRET）② 一次性瀏覽器 OAuth 登入。CCC sandbox 擋 `x.com`（這也是抓推文要繞 fxtwitter 的原因）、又是 headless，這套基本通不了；local Codex actor / local Claude actor 有真瀏覽器 + 正常對外網路，OAuth 登一次就能用。**單純讀推文寫 SP 仍走 `sp-source-fetch`（fxtwitter，免 auth、sandbox 也能跑）**，X MCP 只在需要 live 搜尋 / 互動 X API 時才值得接。
-- **Tribunal VM 存取**：tribunal daemon 跑在 `ssh clawd-vm`（`~/clawd/projects/gu-log`）。查狀態用 `/tribunal-monitor` skill（一鍵全面診斷），完整 ops 見 [`docs/tribunal-runbook.md`](../docs/tribunal-runbook.md)
+- **hosted X MCP 要接就在本地接，別在 CCC 試**：X 官方有 hosted X MCP（`https://api.x.com/mcp`，文件 `docs.x.com/tools/mcp`），透過 `npx @xdevplatform/xurl mcp` 這個 stdio bridge 連，能 live 搜尋 X / 查 user / 管 bookmarks / 發 Articles。但它需要 ① 你自己的 X dev app（CLIENT_ID/SECRET）② 一次性瀏覽器 OAuth 登入。CCC sandbox 擋 `x.com`（這也是抓推文要繞 fxtwitter 的原因）、又是 headless，這套基本通不了；local Codex actor / local Claude actor 有真瀏覽器 + 正常對外網路，OAuth 登一次就能用。**單純讀推文寫 GP 仍走 `x-source-fetch`（fxtwitter，免 auth、sandbox 也能跑）**，X MCP 只在需要 live 搜尋 / 互動 X API 時才值得接。
+- **Tribunal VM 存取**：先從 local-only machine note 取得 `TRIBUNAL_HOST` 與 `GU_LOG_DIR`，再用 `/tribunal-monitor` skill 做一鍵診斷；tracked repo 不保存實際 SSH／Unix 座標。完整 ops 見 [`docs/tribunal-runbook.md`](../docs/tribunal-runbook.md)
 
 這些都該主動用，不要因為 CCC 不能用就不用。
 
@@ -100,9 +104,9 @@ export GP_WRITER_BROKER_TIMEOUT=1800
 {
   "id": "<post-stage-attempt-epoch>",
   "agent_name": "tribunal-writer",
-  "post_file": "sp-xxx.mdx",
-  "post_path": "<abs path to src/content/posts/sp-xxx.mdx>",
-  "en_post_path": "<abs path to en-sp-xxx.mdx, or empty>",
+  "post_file": "gp-xxx.mdx",
+  "post_path": "<abs path to src/content/posts/gp-xxx.mdx>",
+  "en_post_path": "<abs path to en-gp-xxx.mdx, or empty>",
   "prompt": "<full tribunal-writer prompt>",
   "stage": "<stage_key>",
   "attempt": 1,
@@ -120,7 +124,7 @@ export GP_WRITER_BROKER_TIMEOUT=1800
 
 ```bash
 GP_WRITER_MODE=subagent GP_WRITER_BROKER_DIR="$broker_dir" \
-  tools/sp-pipeline/gp-pipeline ralph ... &
+  tools/gp-pipeline/gp-pipeline ralph ... &
 pipeline_pid=$!
 
 while true; do
@@ -156,7 +160,7 @@ scripts/writer-broker-wait.sh --dir <broker_dir> --pid <pipeline_pid> [--timeout
 
 - 首稿 prose 由 Claude Opus 產出。
 - refine / rewrite prose 由 Claude Opus 產出。
-- Codex 可以整理 brief、挑 context、跑 validator、跑 scorer、萃取評審 feedback、檢查 frontmatter、修格式錯誤；但不能自己補正文段落、改寫句子、加 ClawdNote 當成內容。
+- Codex 可以整理 brief、挑 context、跑 validator、跑 scorer、萃取評審 feedback、檢查 frontmatter、修格式錯誤；但不能自己補正文段落、改寫句子、加 MoguNote 當成內容。
 - Claude 不可用時，停在「可交接的 Opus brief + scoring plan」，不要用 Codex 代筆硬完成。
 
 低 token 工作流：
@@ -172,6 +176,7 @@ scripts/writer-broker-wait.sh --dir <broker_dir> --pid <pipeline_pid> [--timeout
    ```
 
    `<agent-id>` MUST 換成 `./scripts/detect-env.sh --runtime <codex|claude-code> --identity` 的結果。這是 attribution guard，不是客套話。Claude / Mogu 不能把 orchestrator 的整理、推論、評審摘要誤認成 ShroomDog 本人的口味或指示。
+
 3. **先檢查 Claude auth，不花正文 token**：
 
    ```bash
@@ -179,6 +184,7 @@ scripts/writer-broker-wait.sh --dir <broker_dir> --pid <pipeline_pid> [--timeout
    ```
 
    如果回 `Not logged in` 或 auth error，立即停止寫作路徑，回報需要登入，不要 fallback 到 Codex 寫正文。
+
 4. **首稿只要求 MDX**：
 
    ```bash
@@ -187,6 +193,7 @@ scripts/writer-broker-wait.sh --dir <broker_dir> --pid <pipeline_pid> [--timeout
    ```
 
    預設讓 Opus 輸出到 stdout，由 Codex 審核後再寫入 `src/content/posts/*`。不要讓 Opus 直接拿 repo edit 權限，除非任務明確是透過 broker 改已存在檔案。
+
 5. **Codex scoring 只產生 feedback packet**：評審輸出要短，格式固定：`must_fix`、`nice_to_have`、`line_refs_or_excerpts`、`rubric_scores`。不要把整篇文章貼回 Opus；rewrite prompt 只放評審結論、必要片段、原檔路徑。
 6. **Opus rewrite patch**：若需要重寫，Codex 叫 Opus 針對同一份 zh-tw MDX 輸出完整新版或明確 patch；Codex 只負責套用、跑驗證、確認沒有違反規則。
 7. **英文只在 zh-tw 定稿後翻譯**：遵守 `CONTRIBUTING.md` 的 zh-tw 優先 SOP。先只針對 zh-tw 版 iterate、跑 Tribunal、修到內容過關；zh-tw 穩定後，才叫 Opus 把 final zh-tw 直接翻成 en sidecar。英文評審只能抓翻譯錯、連結錯、frontmatter / MDX 格式錯、明顯漏譯；不能把英文 sidecar 當第二篇文章獨立重構，也不能因英文 FreshEyes 意見反向改已定稿的中文骨幹。
@@ -205,8 +212,9 @@ You are Claude Opus writing an SD original article for gu-log.
 Output only MDX.
 
 Non-negotiable:
+
 - zh-tw, Taiwan wording.
-- No 「你 / 我」 in body; allowed inside ClawdNote / ShroomDogNote only.
+- No 「你 / 我」 in body; allowed inside MoguNote / ShroomDogNote only.
 - Writing/refine/rewrite must be your prose; Codex is only orchestrating.
 - Fast-forward boring implementation details.
 

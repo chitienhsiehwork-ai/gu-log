@@ -29,10 +29,10 @@ describe('human signals', () => {
     const { recordReadFinish, getHumanSignalEvents } = await import('../src/lib/human-signals');
     const event = recordReadFinish(
       {
-        postId: 'sp-123-20260601-interesting-post.mdx',
-        ticketId: 'SP-123',
+        postId: 'gp-123-20260601-interesting-post.mdx',
+        ticketId: 'GP-123',
         lang: 'zh-tw',
-        pathname: '/posts/sp-123-20260601-interesting-post/',
+        pathname: '/posts/gp-123-20260601-interesting-post/',
         postVersion: '4',
       },
       { method: 'active_scroll_end', activeReadMs: 45_000, maxScrollPercent: 100 }
@@ -40,10 +40,10 @@ describe('human signals', () => {
     expect(event).toMatchObject({
       eventSchemaVersion: 1,
       kind: 'read_finish',
-      postId: 'sp-123-20260601-interesting-post.mdx',
-      ticketId: 'SP-123',
+      postId: 'gp-123-20260601-interesting-post.mdx',
+      ticketId: 'GP-123',
       lang: 'zh-tw',
-      pathname: '/posts/sp-123-20260601-interesting-post/',
+      pathname: '/posts/gp-123-20260601-interesting-post/',
       postVersion: 4,
       method: 'active_scroll_end',
       activeReadMs: 45_000,
@@ -61,9 +61,9 @@ describe('human signals', () => {
   it('records manual mark-read separately from high-confidence active finish', async () => {
     const { recordManualMarkRead } = await import('../src/lib/human-signals');
     const event = recordManualMarkRead({
-      postId: 'sp-1.mdx',
+      postId: 'gp-1.mdx',
       lang: 'zh-tw',
-      pathname: '/posts/sp-1/',
+      pathname: '/posts/gp-1/',
       postVersion: 2,
     });
     expect(event).toMatchObject({
@@ -79,10 +79,10 @@ describe('human signals', () => {
     const { recordShareIntent, getHumanSignalEvents } = await import('../src/lib/human-signals');
     const event = recordShareIntent(
       {
-        postId: 'en-sp-123-20260601-interesting-post.mdx',
-        ticketId: 'SP-123',
+        postId: 'en-gp-123-20260601-interesting-post.mdx',
+        ticketId: 'GP-123',
         lang: 'en',
-        pathname: '/en/posts/sp-123-20260601-interesting-post/',
+        pathname: '/en/posts/gp-123-20260601-interesting-post/',
         postVersion: '7',
       },
       { target: 'copy_link', result: 'completed' }
@@ -105,10 +105,10 @@ describe('human signals', () => {
       await import('../src/lib/human-signals');
     const event = recordFeedbackComment(
       {
-        postId: 'sp-commented.mdx',
-        ticketId: 'SP-COMMENT',
+        postId: 'gp-900-commented.mdx',
+        ticketId: 'GP-900',
         lang: 'zh-tw',
-        pathname: '/posts/sp-commented/',
+        pathname: '/posts/gp-900-commented/',
         postVersion: '9',
       },
       {
@@ -120,9 +120,9 @@ describe('human signals', () => {
     );
     expect(event).toMatchObject({
       kind: 'feedback_comment',
-      postId: 'sp-commented.mdx',
-      ticketId: 'SP-COMMENT',
-      pathname: '/posts/sp-commented/',
+      postId: 'gp-900-commented.mdx',
+      ticketId: 'GP-900',
+      pathname: '/posts/gp-900-commented/',
       postVersion: 9,
       source: 'giscus',
       commentId: 'discussion-comment-123',
@@ -138,18 +138,18 @@ describe('human signals', () => {
       await import('../src/lib/human-signals');
     const event = recordReadAbandonCandidate(
       {
-        postId: 'sp-456-20260602-boring-post.mdx',
-        ticketId: 'SP-456',
+        postId: 'gp-456-20260602-boring-post.mdx',
+        ticketId: 'GP-456',
         lang: 'zh-tw',
-        pathname: '/posts/sp-456-20260602-boring-post/',
+        pathname: '/posts/gp-456-20260602-boring-post/',
         postVersion: 3,
       },
       { activeReadMs: 39_000, maxScrollPercent: 38, finishability: 'abandoned_suspected_boring' }
     );
     expect(event).toMatchObject({
       kind: 'read_abandon_candidate',
-      postId: 'sp-456-20260602-boring-post.mdx',
-      ticketId: 'SP-456',
+      postId: 'gp-456-20260602-boring-post.mdx',
+      ticketId: 'GP-456',
       postVersion: 3,
       activeReadMs: 39_000,
       maxScrollPercent: 38,
@@ -167,10 +167,10 @@ describe('human signals', () => {
     const { recordReadAbandonCandidate, getHumanSignalEvents } =
       await import('../src/lib/human-signals');
     const snapshot = {
-      postId: 'sp-789-20260603-repeated-pagehide.mdx',
-      ticketId: 'SP-789',
+      postId: 'gp-789-20260603-repeated-pagehide.mdx',
+      ticketId: 'GP-789',
       lang: 'zh-tw' as const,
-      pathname: '/posts/sp-789-20260603-repeated-pagehide/',
+      pathname: '/posts/gp-789-20260603-repeated-pagehide/',
       postVersion: 5,
     };
     const first = recordReadAbandonCandidate(snapshot, {
@@ -200,9 +200,9 @@ describe('human signals', () => {
     const { recordReadAbandonCandidate, getHumanSignalEvents } =
       await import('../src/lib/human-signals');
     const baseSnapshot = {
-      postId: 'sp-789-20260603-repeated-pagehide.mdx',
+      postId: 'gp-789-20260603-repeated-pagehide.mdx',
       lang: 'zh-tw' as const,
-      pathname: '/posts/sp-789-20260603-repeated-pagehide/',
+      pathname: '/posts/gp-789-20260603-repeated-pagehide/',
     };
     const v1 = recordReadAbandonCandidate(
       { ...baseSnapshot, postVersion: 5 },
@@ -224,16 +224,16 @@ describe('human signals', () => {
       recordShareIntent,
     } = await import('../src/lib/human-signals');
     const first = recordManualMarkRead({
-      postId: 'sp-pending-1.mdx',
+      postId: 'gp-pending-1.mdx',
       lang: 'zh-tw',
-      pathname: '/posts/sp-pending-1/',
+      pathname: '/posts/gp-pending-1/',
       postVersion: 1,
     });
     const second = recordShareIntent(
       {
-        postId: 'sp-pending-2.mdx',
+        postId: 'gp-pending-2.mdx',
         lang: 'en',
-        pathname: '/en/posts/sp-pending-2/',
+        pathname: '/en/posts/gp-pending-2/',
         postVersion: 1,
       },
       { target: 'copy_link', result: 'attempted' }
@@ -258,10 +258,10 @@ describe('human signals', () => {
     } = await import('../src/lib/human-signals');
     const event = recordReadFinish(
       {
-        postId: 'sp-status.mdx',
-        ticketId: 'SP-STATUS',
+        postId: 'gp-901-status.mdx',
+        ticketId: 'GP-901',
         lang: 'zh-tw',
-        pathname: '/posts/sp-status/',
+        pathname: '/posts/gp-901-status/',
         postVersion: 2,
       },
       { method: 'active_scroll_end', activeReadMs: 10_000, maxScrollPercent: 100 }
@@ -303,7 +303,7 @@ describe('human signals', () => {
     const { promoteHumanSignalTrustTier, recordReadFinish } =
       await import('../src/lib/human-signals');
     const original = recordReadFinish(
-      { postId: 'sp-99.mdx', lang: 'zh-tw', pathname: '/posts/sp-99/', postVersion: 2 },
+      { postId: 'gp-99.mdx', lang: 'zh-tw', pathname: '/posts/gp-99/', postVersion: 2 },
       { method: 'active_scroll_end' }
     );
     const promoted = promoteHumanSignalTrustTier(original, 'owner_trusted', 'gu-owner');
@@ -326,7 +326,7 @@ describe('human signals', () => {
     } = await import('../src/lib/human-signals');
     const ownerFinish = promoteHumanSignalTrustTier(
       recordReadFinish(
-        { postId: 'sp-123.mdx', lang: 'zh-tw', pathname: '/posts/sp-123/', postVersion: 4 },
+        { postId: 'gp-123.mdx', lang: 'zh-tw', pathname: '/posts/gp-123/', postVersion: 4 },
         { method: 'active_scroll_end', activeReadMs: 61_000, maxScrollPercent: 100 }
       ),
       'owner_trusted',
@@ -334,33 +334,33 @@ describe('human signals', () => {
     );
     const guestShare = {
       ...recordShareIntent(
-        { postId: 'sp-123.mdx', lang: 'zh-tw', pathname: '/posts/sp-123/', postVersion: 4 },
+        { postId: 'gp-123.mdx', lang: 'zh-tw', pathname: '/posts/gp-123/', postVersion: 4 },
         { target: 'copy_link', result: 'completed' }
       ),
       readerTrustTier: 'guest_reference' as const,
     };
     const otherVersion = promoteHumanSignalTrustTier(
       recordReadFinish(
-        { postId: 'sp-123.mdx', lang: 'zh-tw', pathname: '/posts/sp-123/', postVersion: 3 },
+        { postId: 'gp-123.mdx', lang: 'zh-tw', pathname: '/posts/gp-123/', postVersion: 3 },
         { method: 'active_scroll_end' }
       ),
       'owner_trusted'
     );
     const samePathDifferentPost = promoteHumanSignalTrustTier(
       recordReadFinish(
-        { postId: 'sp-else.mdx', lang: 'zh-tw', pathname: '/posts/sp-123/', postVersion: 4 },
+        { postId: 'gp-else.mdx', lang: 'zh-tw', pathname: '/posts/gp-123/', postVersion: 4 },
         { method: 'active_scroll_end' }
       ),
       'owner_trusted'
     );
     const packet = buildHumanSignalTribunalPacket(
-      { postId: 'sp-123.mdx', pathname: '/posts/sp-123/', postVersion: 4 },
+      { postId: 'gp-123.mdx', pathname: '/posts/gp-123/', postVersion: 4 },
       [ownerFinish, guestShare, otherVersion, samePathDifferentPost]
     );
     expect(packet).toMatchObject({
       packetSchemaVersion: 1,
-      postId: 'sp-123.mdx',
-      pathname: '/posts/sp-123/',
+      postId: 'gp-123.mdx',
+      pathname: '/posts/gp-123/',
       postVersion: 4,
       automationAuthoritativeSignalCount: 1,
       recommendedAutomation: 'none',
@@ -396,22 +396,22 @@ describe('reading tracker migration to event-aware store', () => {
       'gu-log-read-articles',
       JSON.stringify({
         version: 1,
-        slugs: ['sp-1', 'sp-2'],
+        slugs: ['gp-1', 'gp-2'],
         lastUpdated: '2026-06-01T00:00:00.000Z',
       })
     );
     const tracker = await import('../src/lib/reading-tracker');
-    expect(tracker.getReadSlugs().sort()).toEqual(['sp-1', 'sp-2']);
+    expect(tracker.getReadSlugs().sort()).toEqual(['gp-1', 'gp-2']);
     expect(tracker.getStats()).toMatchObject({ total: 2, version: 2 });
     expect(tracker.getReadRecords()).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          slug: 'sp-1',
+          slug: 'gp-1',
           method: 'legacy_import',
           confidence: 'legacy_or_manual',
         }),
         expect.objectContaining({
-          slug: 'sp-2',
+          slug: 'gp-2',
           method: 'legacy_import',
           confidence: 'legacy_or_manual',
         }),

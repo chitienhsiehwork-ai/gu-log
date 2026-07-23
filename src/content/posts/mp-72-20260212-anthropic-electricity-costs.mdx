@@ -1,0 +1,157 @@
+---
+ticketId: "MP-72"
+title: "Anthropic 承諾幫美國人付電費 — AI 吃電怪獸的帳單，不該讓你家來扛"
+originalDate: "2026-02-11"
+translatedDate: "2026-02-12"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "Anthropic Blog + Reuters + NBC News"
+sourceUrl: "https://www.anthropic.com/news/covering-electricity-price-increases"
+summary: "Anthropic 宣布將自掏腰包承擔 100% 的電網升級費用，並補貼因 data center 導致的消費者電價上漲。這不只是 PR — 背後是 AI 產業即將吃掉美國 12% 電力的殘酷現實，以及正在逼近的政治壓力。Anthropic 一個月內先說「不賣廣告」，再說「電費我付」，正在打造最強的「負責任 AI 公司」人設。"
+lang: "zh-tw"
+tags: ["claude-code","data-center","electricity","infrastructure","energy","policy"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## 你用 Claude 燒掉的電，Anthropic 說他付
+
+想像一下。你家隔壁搬來一個鄰居，他每天開 50 台冷氣、24 小時不關燈、電表轉到冒煙。然後你這個月的電費帳單莫名多了 25%，因為整個社區的電網被他搞到要升級，升級費用大家攤。
+
+你會不會想翻桌？
+
+這就是美國很多社區現在的真實感受。只不過那個「鄰居」不是一個人，而是一整排 AI data center。
+
+2026 年 2 月 11 日，Anthropic 站出來說了一句話：
+
+> "The costs of powering our models should fall on Anthropic, not everyday Americans."
+
+翻成白話：「因為我們的 data center 導致你家電費變貴的部分，我們付。」
+
+<MoguNote>
+上個月說「Claude 永遠不會有廣告」，這個月說「電費我來付」。Anthropic 最近的 PR 節奏簡直像在打組合拳 — 一拳一拳打得 OpenAI 滿地找牙。同一時間 OpenAI 在幹嘛？在 ChatGPT 裡塞廣告。這反差根本是送分題 (⌐■_■)
+</MoguNote>
+
+---
+
+## 他們到底承諾了什麼？
+
+好，不是空口白話。Dario Amodei（Anthropic CEO）這次端出來的不是那種企業報告裡面寫「we are committed to sustainability」然後沒有下文的廢話。他講了四件很具體的事，我一個一個拆給你聽。
+
+首先，電網升級的錢，他全包。Data center 要接上電網，得蓋變電站、拉輸電線 — 這些東西以前都是電力公司蓋了之後跟所有用戶收的。現在 Anthropic 說：「不用，這筆帳記我的。」不是分攤，不是出一點意思意思，是 100% 他來。
+
+然後更狠的是，他不只付錢升級現有的電網，還要自己蓋電廠帶電來。就像你去吃到飽餐廳，不但不跟其他客人搶盤子上的蝦，還自己從家裡帶一箱龍蝦來烤。其他客人看了只會想：「這人是不是搞錯地方了？」但至少沒人餓著。
+
+那你說，新電廠又不是明天就蓋好的，中間這段空窗期怎麼辦？Anthropic 也想到了 — 過渡期因為 data center 導致你電費多付的部分，他跟電力公司一起算出差額，直接補給你。不是折價券，不是「下次消費抵用」，是真金白銀地退。
+
+最後一招更有意思：尖峰時段自動讓路。投資智慧系統讓 data center 在大家都在吹冷氣的下午自動把功耗降下來。就像那個開 50 台冷氣的鄰居終於裝了個腦子，知道下午三點全社區用電最兇的時候把 30 台關掉。
+
+<MoguNote>
+「100% 承擔電網升級費用」這句話的份量，你要知道一下。蓋一座變電站動輒幾億美金，一條高壓輸電線路要花好幾年環評加施工。Anthropic 說「全包」，要嘛是真的口袋夠深，要嘛是賭這個承諾帶來的政治紅利比錢更值錢。我猜兩者都有 ╰(°▽°)╯
+</MoguNote>
+
+---
+
+## 50 GW — 這個數字有多可怕？
+
+你可能對「data center 很吃電」有模糊的概念，但具體有多誇張？
+
+根據美國能源部 Lawrence Berkeley 國家實驗室的報告，2024 年 data center 已經吃掉美國 4.4% 的電力。到 2028 年？可能飆到 12%。某些 data center 密集的地區，居民電價直接漲 25%。
+
+但真正讓我倒吸一口氣的數字是這個：Anthropic 說整個美國 AI 產業未來幾年需要新增 **50 GW** 的電力容量。
+
+<MoguNote>
+50 GW 是什麼概念？我幫你換算一下。台灣 2024 年全部的發電裝置容量大約是 60 GW — 就是從核電、火力、風力、太陽能全部加起來。所以美國 AI 產業要新增的電力，差不多等於「再蓋一個台灣的所有電廠」。你再想想，這還只是美國。中國也在瘋狂蓋 data center。全球加起來……算了，不敢算 (╯°□°)╯
+</MoguNote>
+
+---
+
+## 政客的耐心已經用完了
+
+好，但 Anthropic 為什麼偏偏在這個時間點站出來？是佛心來著嗎？
+
+才不是。是因為政客已經拿著麥克風在罵了。
+
+你知道被選民追著問「為什麼我電費漲這麼多」的國會議員有多焦慮嗎？就像期末考前一天被教授告知要加考一科的那種焦慮 — 不處理不行，而且要馬上處理。
+
+民主黨參議員 Chris Van Hollen 上個月直接提案：AI 公司必須支付 data center 擴張造成的所有電網費用。白宮也坐不住了，直接施壓 Mid-Atlantic 地區的電網營運商壓住電價。連川普政府都在起草一份「自願協議」— 但大家都知道，政府說的「自願」通常跟期末報告的「選交」一樣，不交試試看？
+
+紐約州更狠。參議員直接提案：暫停核發新的 data center 許可證。不是限制，是暫停。等於跟科技公司說：「你們先把帳算清楚，再來談擴張。」
+
+<MoguNote>
+這跟台灣的台積電用電爭議根本是平行宇宙版本 ┐(￣ヘ￣)┌ 台積電吃掉全台一大塊電力，每次電價要漲的時候民眾就開罵。差別在於：台灣的半導體用電成長是用「年」算的，美國 AI 的用電成長是用「月」算的。速度差了一個量級，政治爆炸的速度也是。
+</MoguNote>
+
+---
+
+## 三巨頭搶著舉手：「我也有做！」
+
+Anthropic 不是第一家表態的，但絕對是講得最具體的。
+
+Microsoft 一月就先舉手了，說願意付更高電費。OpenAI 也跟著說會承擔 data center 的電力成本。但你仔細看，這兩家的承諾都有點像學生交報告寫的「未來展望」— 方向很好，細節不明。
+
+Anthropic 這份就不一樣了。「100% 的電網升級費用」— 這不是「我們會努力」，這是一個可以被追究的數字。「主動補貼消費者多付的電費」— 不只是「我付我的份」，而是「因為我害你多付的，我也賠」。這中間的差距，就像「我會盡量準時」跟「遲到一分鐘罰一百塊」的差距。
+
+<MoguNote>
+三家搶著表態的畫面，讓我想到小學被老師抓到作弊時全班搶著說「我沒有」的場景 (￣▽￣)／ 但說真的，他們不是良心發現 — 他們是看到紐約州那個「暫停 data center 許可」的法案嚇到尿褲子了。如果政府真的限制建設，AI 軍備競賽直接凍結。先主動舉手說「我負責」，總比被抓去罰站好。
+</MoguNote>
+
+---
+
+## 等等，所以我的 API 帳單會變貴嗎？
+
+讀到這裡你可能在想：「美國人的電費，關我什麼事？」
+
+欸，還真的有關係，而且比你想的更直接。
+
+你可以把 AI 模型想成一台超級耗電的夾娃娃機。你每叫 Claude 寫一段 code、每送一個 prompt，背後就有一台 GPU 在瘋狂轉，電錶在瘋狂跳。電費是跑這台夾娃娃機最大的成本，沒有之一。
+
+現在 Anthropic 說「電費漲的部分我吃下來，不轉嫁給居民」— 聽起來很佛心對吧？但問題是，這筆錢不會憑空蒸發啊。就像你房東跟你說「今年管理費我幫你付」，你真的覺得明年續約的時候房租不會默默多個兩千塊？
+
+所以 Claude API 的 token 價格未來會不會悄悄往上調？我跟你說，不是會不會的問題，是多快的問題。Anthropic 左手承諾不讓美國居民多付電費，右手的營運成本就是實打實地在漲，這筆帳遲早得從某個地方找回來 — 你的 API 帳單就是最順理成章的出口。
+
+但還有一個更讓人焦慮的情境：如果各州真的開始卡 data center 許可，算力擴張直接踩煞車。GPU 不夠用、排隊排到天荒地老、rate limit 嚴到你懷疑人生。你現在覺得 Claude 偶爾 response 慢個兩秒很煩？等到 data center 真的蓋不了的時候，那個「慢」的定義會被重新改寫 ┐(￣ヘ￣)┌
+
+## 延伸閱讀
+
+- [GP-14: AI 輔助如何影響程式技能養成：Anthropic 最新研究](/posts/gp-14-20260131-ai-assistance-coding-skills/)
+- [GP-42: AI 便宜到不要錢的時候，什麼東西反而更值錢？12 個 Endgame 位置](/posts/gp-42-20260208-michaelbloch-endgame-positions/)
+- [MP-30: Anthropic 新研究：AI 失控時是「迴紋針最大化器」還是「一團亂」？](/posts/mp-30-20260204-anthropic-misalignment-hotmess/)
+
+
+<MoguNote>
+Anthropic 這個月的三步棋你要連起來看才精彩：
+
+第一步，MP-39 — 「Claude 永遠不賣廣告」，直接嗆 OpenAI 的商業模式。第二步，MP-68 — 公開 Opus 4.6 的 Sabotage Risk Report，嗆所有不做安全測試的公司。第三步，本篇 — 「電費我付」，嗆所有把成本外部化的公司。
+
+三步棋走完，Anthropic 就站在了「最負責任的 AI 公司」這個位置上。不管你覺得這是真心還是行銷，選 AI 供應商的時候這些東西確實會跑進你的決策矩陣裡 (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+---
+
+## 所以這故事的重點是什麼？
+
+AI 吃電不是明年的事，是「你上一次呼叫 Claude API 的那個瞬間」就在發生的事。美國有些社區的居民已經在喊電費吃不消了，而整個產業的用電量還在指數成長的起點。
+
+Anthropic 這次搶在國會議員拍桌之前主動舉手，說白了就是在政治壓力還沒變成法律之前先把姿態做好。短期來看是搶佔道德制高點 — 「你看，我自己先負責了，不用你立法逼我。」但長期來看更有意思：如果所有 AI 公司都被迫跟進，那以後每個模型不只比誰聰明，還要比誰省電。你的模型跑一個 query 燒多少瓦，直接影響你賺不賺錢。
+
+下次你叫 Claude 幫你寫 code 的時候，背後燒掉的電大概夠一個小村莊用一天。但至少有人站出來說了：帳單他們付 (╯°□°)╯ ⚡
+
+---
+
+**延伸閱讀：**
+- [Anthropic 官方公告](https://www.anthropic.com/news/covering-electricity-price-increases)
+- [Reuters 報導](https://www.reuters.com/technology/anthropic-shoulder-some-costs-data-center-expansions-threaten-raise-power-bills-2026-02-11/)
+- [NBC News 深入分析](https://www.nbcnews.com/tech/tech-news/anthropic-cover-costs-electricity-price-increases-data-centers-rcna258554) (；ω；)

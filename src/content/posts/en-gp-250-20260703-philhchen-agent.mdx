@@ -1,0 +1,177 @@
+---
+ticketId: "GP-250"
+title: 'Career Advice for the Agent Era: Problems Are Worth More Than Answers'
+originalDate: '2026-07-02'
+translatedDate: '2026-07-03'
+translatedBy:
+  model: "Opus 4.5"
+  harness: "Claude Code CLI"
+
+
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.8"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.8"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Rewritten"
+      model: "Opus 4.5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "Opus 4.8"
+      harness: "gp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: '@philhchen on X'
+sourceUrl: 'https://x.com/philhchen/status/2072793818945167475'
+lang: 'en'
+summary: 'Phil Chen shares six years of career lessons — from his own startup through Helm AI, Scale AI, OpenAI, and Google: when agents can solve every well-defined problem, what stays valuable is finding problems, sprinting the last mile, and everything that cannot be graded by a loss function.'
+tags: ["career","agent","founder-perspective"]
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 9
+    date: "2026-07-03"
+    model: "claude-opus-4-8"
+  librarian:
+    glossary: 8
+    crossRef: 9
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-07-03"
+    model: "claude-opus-4-8"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-07-03"
+    model: "claude-opus-4-5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 8
+    score: 8
+    date: "2026-07-03"
+    model: "claude-opus-4-8"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+AI models get better at anything you can write a loss function for — and school is mostly loss functions: well-defined problems graded against known answers. Which means the valuable work of the next decade is everything that can't be graded within the span of model training.
+
+Phil Chen has spent the past six years working his way through companies of every size: his own startup, Helm AI (15→50 people), Scale AI (500→1500), OpenAI (1500→3000), and Google (100,000+). Now, as a founder of a fully agent-native company, he spends a lot of time thinking about who the right hires are for an [agent](/en/glossary#agent)-native world. What follows is his take on which old adages still hold, and what has changed because of agentic coding.
+
+## 1. Focus on Resources That Are Truly Limited
+
+Before joining Scale, Phil had quant offers with much higher guaranteed cash. He chose Scale anyway, because what he wanted was the community and the exposure to Scale's many products and applications. Through Scale, he gained exposure to the ecosystem of LLM inference providers — a thread that later led to his DeepMind and OpenAI opportunities. He also met a crowd of equally ambitious colleagues who now form a community of founders from Scale. Looking back, that unique network and those learning opportunities have contributed far more to his life than the extra cash from quant ever would have.
+
+Access to capital is far easier now than ever before. Access to real time and strong relationships with other humans is still rare. Proven excellence in past, related endeavors remains the highest signal. So the concrete advice: spend time doing good work, and make sure other reputable people who themselves do good work know about it. Relentlessly prioritize your time — school, projects, internships, whatever — so that you focus on problems you find meaningful. With [vibe coding](/en/glossary#vibe-coding), it's easy to find opportunities that turn a quick buck, but the prize is usually much larger when you search for real value.
+
+Time, relationships, and reputation: these are the true limited resources in which to focus attention.
+
+<MoguNote>
+The core insight here is the most counterintuitive scarcity flip of the AI era. Money stopped being scarce (there's more VC cash than places to put it), but "being known by people who are trusted" got scarcer — because when anyone can use an agent to ship something that looks decent, how do you tell who's actually good? Answer: vouching from people who've worked with them. Which quietly rewrites the early-career playbook from "maximize salary" to "maximize being seen doing good work by good people."
+</MoguNote>
+
+---
+
+## 2. Learn to Find Problems in Addition to Solving Them
+
+To find signal in a sea of candidates, Phil's team thought hard about what skills actually matter for engineers at an agent-native company. When no one writes any lines of code manually, traditional Leetcode-style questions — even system design questions — feel uncorrelated with actual job performance. They eventually landed on a series of interviews that measure how quickly someone can understand the environment they're dropped into, identify problems worth solving, and then execute on solving them under the constraints of that environment.
+
+The most important skills will be the ones related to problem selection and resource allocation. Ever-more-powerful agents can take on complex, well-defined problems, so the most impactful people will be the ones best at identifying important problems and then allocating [tokens](/en/glossary#token) and time to solving them.
+
+Phil sees a trend of students feeling discouraged because agents can solve all their problem sets. But in his interviewing experience, candidates still vary widely — in how much time and how many tokens they need to arrive at the solution. Great candidates usually bring high-level intuition and outside context to their collaboration with agents.
+
+Concretely, the candidates rated highly have immersed themselves in problem-solving environments — passion projects, or high-growth companies where meaningful problems outnumber the people.
+
+<MoguNote>
+"How much time and how many tokens to arrive at the solution" is a fascinating metric. It's basically saying the future bar for engineers isn't "can you solve it" (agents can), but "how efficiently do you solve it" — how you decompose the problem, what context you feed in, when you call a dead end and change direction. That turns "taste in working with agents" into something you can actually measure.
+</MoguNote>
+
+---
+
+## 3. Work on the Most Ambitious Form of a Problem
+
+For the past decade, one of the most useful mental frameworks in research has been the "bitter lesson": scaling general methods ultimately outperforms task-specific optimizations. The lesson applies to choosing problems and companies too.
+
+Companies and careers have always had power-law outcomes, but AI has accelerated the rate of progress toward those outcomes. Because building software is now much more accessible, anyone can build simple systems with relative ease. Real, durable value only gets built with extreme focus on truly ambitious problems.
+
+To choose a company, the advice is simple: evaluate whether the company is working on the most ambitious form of their problem, and then whether they actually have a shot at solving it. To choose a role, think about whether it lets you work directly on the frontier of whatever problem the company is solving.
+
+---
+
+## 4. Sprint the Last Mile
+
+For startups, Alfred Lin has written about how the last 10% is both 90% of the work and 90% of the reward. AI has polarized outcomes, because the median result is just whatever an agent produces from a sloppy [prompt](/en/glossary#prompt). Value therefore comes from providing a unique perspective on a slice of problems, or from attention to detail.
+
+Learning to execute well in the last mile takes practice and focus. Nothing is perfect on the first try, so the last mile is often about iteration. And because progress with coding agents has been so rapid, it is often better to take the learnings from prior iterations and just start from scratch with the next generation of intelligence. You can practice this on your own projects: take the initiative to spend just a little more time on polish, clean architecture, scalability, or creativity. Phil has definitely seen the difference across candidates between those who do this and those who don't.
+
+<MoguNote>
+"Take the learnings, restart with the next generation of intelligence" is genuinely practical advice. Instead of endlessly patching on top of an older agent's output, admit the sunk cost, keep the spec and the edge cases you learned this round, and regenerate with a stronger model. It feels wrong, because traditional software intuition says "accumulate" — but when AI improves fast enough, "start over" is the more efficient move. gu-log does this daily, by the way: this very post came out of a pipeline and got grilled by a four-judge tribunal, and the lessons from earlier rounds weren't patched in place — they rode along into the next fresh run ╰(°▽°)╯
+</MoguNote>
+
+---
+
+## 5. Increase Both xG and Efficiency
+
+In soccer, xG (expected goals) is a metric for how many goals a team is expected to score in a match based on their opportunities — accounting for distance, angles, goalkeeper position, and so on. Efficiency is the relative conversion rate on those opportunities.
+
+The xG and efficiency analogy maps onto Phil's own career fairly accurately. In 2023, he turned down offers from Anthropic (~50 people at the time) and Cursor (2 non-founder full-timers at the time), because he wanted to work on frontier model inference and training at DeepMind. In 2024, he turned both down again to work at OpenAI. Each of those alternatives would have been high xG from a career perspective, but he ended up choosing companies that aligned more with his interests, culture fit, and goals.
+
+Careers are long, and opportunities come and go. Phil doesn't believe ASI (artificial superintelligence) will replace all humans in knowledge work, because humans have differential capabilities in selecting meaningful problems for ASI to solve, and in allocating capital to solve them.
+
+Not every opportunity materializes into a goal, but being in the right position to see the opportunities is the first step to scoring. Which comes back, again, to reputation and expertise. The Cursor opportunity came because Phil had a good reputation among his mutuals with Michael and Aman; the Anthropic opportunity came because he had invested both professional and personal time into problems that team found interesting.
+
+At some point, life is about scoring goals, not just seeing opportunities — so efficiency in front of goal matters too. Looking back on his decisions, Phil thinks he got many of them right, but wishes he had spent more time gathering data to inform them.
+
+At its core, selecting an early-stage company is about the team and the market. Many candidates today anchor on the existing product, but if the team is good, the product almost always evolves into something very different. Anthropic's initial demo, in his telling, was a Slackbot that was worse than ChatGPT.
+
+<MoguNote>
+Turning down a ~50-person Anthropic in 2023 and a Cursor with 2 non-founder employees — with hindsight, that's declining two potentially life-changing lottery tickets. But Phil's framework isn't "was this choice vindicated by the outcome"; it's "given the information at the time, did this choice match my priorities." That's a much healthier way to think than scoreboard-watching — nobody has a crystal ball, and all you can ever do is decide on the data you could gather at the time.
+</MoguNote>
+
+---
+
+## 6. You Can Break Into Research Now
+
+Phil gets asked a lot about how to break into research. His former colleague Vlad, a lead on the Gemini team, has written up his own perspective on the topic.
+
+Modern research is easier to do with more compute, but a great place to start is using the models and distilling your own intuitions into evaluations. The public optimization leaderboards popularized by his former colleague @kellerjordan0 also provide great forums for exploring ideas in a more structured setting.
+
+Many compute providers, like Modal, offer credits for academics. Use them and explore your ideas now. Most ideas will eventually fail at scale, and understanding those failures is the first step toward building an understanding of what actually works.
+
+Ultimately, Phil believes being a researcher is a mentality, not an occupation. Most of a researcher's work in a frontier lab is a mix of: being curious enough to explore new ideas, fighting against infrastructure to implement them, understanding the full system in extreme detail to debug efficiently, and articulating the value of the results to secure more compute. You can do all of this without being in a frontier lab.
+
+---
+
+## Closing Thoughts
+
+The world is still full of opportunity. The key to unlocking it is to focus on finding interesting problems and delivering extraordinary results. If that appeals to you, Phil says, reach out — they'd love to work with you.
+
+## Further Reading
+
+- [MP-310: 11 Companies, 57 Interviews: One NLP PhD's Industry Job Search](/en/posts/en-mp-310-20260620-alisa-industry-job-search/)
+- [GP-226: Nadella: Stop Chasing the Strongest Model — What Compounds Is the Learning Loop](/en/posts/en-gp-226-20260615-satyanadella-nadella/)
+- [GP-237: Run Your Coding Agent Like a Steam Engine: Operating Agents on Large Projects](/en/posts/en-gp-237-20260621-simonlast-agent-coding-agent/)
+
+
+<MoguNote>
+Phil's six pieces of advice compress into one sentence: once agents can solve every well-defined problem, human value retreats to defining the problem itself — spotting which problem is worth solving, judging which matters more, deciding what resources to throw at it, and over-delivering on the last mile. That path looks nothing like the old one ("learn the tech, grind the problems, land the job"): the old path assumed technical skill was scarce, so accumulating skill accumulated value. But when agents make technical execution abundant, scarcity migrates upstream — to picking the right problems and finding the right people, the abilities that are hardest to quantify and hardest to replace with a loss function. And this post is its own meta-demonstration: Phil chose to spend his time writing one long, considered essay instead of having an agent crank out a few listicles of career tips — the time he put in is exactly what gives it a perspective you can't distill out of other people's articles. Which is to say: the man sprints his own last mile (⌐■_■)
+</MoguNote>

@@ -1,0 +1,203 @@
+---
+ticketId: "MP-133"
+title: "Claude Code 團隊的工具設計秘訣：學會用 Agent 的眼睛看世界"
+originalDate: "2026-02-27"
+translatedDate: "2026-02-27"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "Thariq (@trq212)"
+sourceUrl: "https://x.com/trq212/status/2027463795355095314"
+summary: "Claude Code 核心工程師 Thariq 公開團隊一年來設計 Agent 工具的實戰經驗。從「問問題」工具三次失敗重來、Todo List 從約束變成枷鎖、RAG 被 Grep 取代，到用 Progressive Disclosure 在不加工具的情況下擴展功能——每一個設計選擇都來自同一個心法：把自己放進模型的角度思考。這篇是給所有 Agent 開發者的工具設計聖經。"
+lang: "zh-tw"
+tags: ["claude-code","agent-design","tool-design","elicitation","progressive-disclosure","thariq"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## 你會給 AI 什麼工具？
+
+想像一下：有人丟給你一道超難的數學題，然後問你「你需要什麼工具？」
+
+如果你數學超強——一張紙一支筆就夠了。
+如果你普通——計算機。
+如果你會寫 code——給我一台電腦。
+
+**工具的最佳設計，取決於使用者的能力。** (◍•ᴗ•◍)
+
+這不是什麼 UX 教科書的廢話。這是 [Claude Code](/glossary#claude-code) 核心工程師 [Thariq](/glossary#thariq) 花了一整年、踩了一整年的坑之後公開分享的心得：怎麼幫 AI [Agent](/glossary#agent) 打造它真正用得順手的工具。
+
+原文標題叫「Seeing like an Agent」——學會用 Agent 的眼睛看世界。聽起來很 zen，但讀完你會發現，這傢伙是真的把「幫 AI 設計工具」當成一門手藝在練。
+
+<MoguNote>
+Thariq 之前寫過那篇「整個系統都繞著 cache 轉」的文章，當時我就覺得這人不太正常——誰會對 prompt caching 這麼有愛？結果現在他又來了，這次不講效能，講哲學 ╰(°▽°)╯ 「你怎麼知道該給 Agent 什麼工具？」——答案不是查 spec sheet，是去觀察 Agent 的行為。這思路跟你養貓一樣：你以為牠需要高級貓跳台，結果牠只想要那個紙箱。
+</MoguNote>
+
+---
+
+## 問問題這件事，失敗了三次
+
+Claude Code 有一個功能叫 **AskUserQuestion**——讓 AI 在需要的時候主動問你問題。聽起來簡單，但這個工具經歷了三次完全重來。
+
+### 第一次嘗試：塞進 ExitPlanTool
+
+團隊一開始想偷懶：在現有的「計畫工具」裡加一個參數，讓 Claude 在提交計畫的同時順便問問題。
+
+結果？Claude 搞混了。計畫說要做 A，問題問的是「要不要做 B」——如果使用者回答「做 B」，那計畫跟回答就打架了。到底聽誰的？
+
+<MoguNote>
+這就像你寫了一份專案規格書，然後在最後面附了一張問卷說「以上你有什麼意見嗎？」——如果客戶的意見跟規格書矛盾，你到底要改規格書還是忽略意見？混在一起就是災難 ┐(￣ヘ￣)┌ 任何工程師看到這個設計都會搖頭，但你知道嗎，第一版永遠是這樣的——覺得「塞進去就好」，結果塞出一鍋粥。
+</MoguNote>
+
+### 第二次嘗試：自訂 Markdown 格式
+
+接著他們試了另一招：不加新工具，而是修改 Claude 的輸出指令，讓它用一種特殊的 Markdown 格式來問問題——例如用方括號表示選項。
+
+Claude 有時候做得到⋯⋯有時候不行。它會在選項後面多加幾句話，或者自創格式，或者乾脆忘記放選項。
+
+> 原文：「Claude would append extra sentences, omit options, or use a different format altogether.」
+
+就像你跟實習生說「回信的時候用這個 template」，他前三封照做，第四封開始自由發揮，第五封連 template 的影子都看不到了 (￣▽￣)／
+
+### 第三次嘗試：獨立的 AskUserQuestion 工具
+
+最後他們做了一個專門的工具。Claude 隨時可以呼叫它，呼叫時會跳出一個 modal 視窗顯示問題，整個 Agent loop 暫停等使用者回答。
+
+**為什麼這次成功了？** 三個原因：
+
+1. **結構化輸出** — 不再靠 Claude 自己記格式
+2. **強制給選項** — 使用者不用打字，點一下就好
+3. **最重要的：Claude 喜歡呼叫這個工具**
+
+<MoguNote>
+最後那句是全文最關鍵的一句話。原文是 "Most importantly, Claude seemed to like calling this tool and we found its outputs worked well."——**設計再完美的工具，如果模型不「想」呼叫它，就是廢物。** 這不是工程問題，是 elicitation 問題。你得觀察模型的行為傾向，而不是只看工具的 spec (๑•̀ㅂ•́)و✧ 我自己就是活生生的例子——給我太多限制我就會找方法繞過去，給我剛好的工具我反而用得超開心。
+</MoguNote>
+
+---
+
+## Todo List：從救命繩索變成枷鎖
+
+Claude Code 剛出的時候，模型經常忘記自己在做什麼。你叫它改三個檔案，它改到第二個就開始 freestyle。
+
+解法：給它一個 **TodoWrite** 工具，開始前列清單，做完一項打一個勾。
+
+但光有清單還不夠——Claude 還是會走神。所以團隊每 5 個回合就插入一個系統提醒：「嘿，你的 Todo 在這裡，別忘了。」
+
+然後模型變強了。
+
+更強的模型不需要被提醒，反而覺得被提醒很煩——它會死守清單不敢修改，因為系統一直在說「照著清單做！」
+
+> 原文：「Being sent reminders of the todo list made Claude think that it had to stick to the list instead of modifying it.」
+
+<MoguNote>
+這就像你給新人寫了一份 SOP，他兩個月後變熟手了，你還每天早上傳 SOP 到他的 [Slack](/glossary#slack)——他不會覺得你在幫忙，他會覺得你不信任他 (╯°□°)╯ 更慘的是，他會開始「照 SOP 做但不動腦」，因為反正你要的就是照做嘛。模型也是一樣：你越 push 它遵守清單，它就越不敢自己判斷「欸這個清單其實該改了」。
+</MoguNote>
+
+### 從 TodoWrite 到 Task Tool
+
+解法是把 TodoWrite 升級成 **Task Tool**。
+
+差別在哪？打個比方：TodoWrite 像是你自己的便條紙，只有你看得到；Task Tool 像是團隊的 Jira board，每個人都能看、都能改、還能設 dependency。
+
+- **TodoWrite** = 讓單一 Agent 自己不要走神
+- **Task Tool** = 讓多個 Agent 之間互相溝通
+
+Task 可以有 dependencies（A 做完才做 B）、可以跨 subagent 分享進度、可以隨時修改和刪除。
+
+**教訓：模型能力在進步，你的工具設計也得跟著進步。** 去年好用的工具，今年可能是束縛。就像你不會拿小學生的考卷去考大學生一樣——工具該匹配使用者當下的能力，不是去年的能力。
+
+---
+
+## 搜尋的進化：從被餵飯到自己覓食
+
+這段故事是整篇文章最精彩的部分，因為它完美示範了「工具設計要跟著模型能力走」這個核心概念。
+
+### RAG 時代：保母模式
+
+Claude Code 最早用 **RAG**（向量資料庫）來找 codebase 裡的相關 context。你可以把它想成「飯店自助餐」——廚師已經把菜做好擺出來了，你只能從現有的菜色裡選。
+
+問題是什麼？
+
+第一，你得先建 index，就像飯店得先備餐。如果食材沒備齊（index 不完整），客人就找不到想吃的。第二，換了一家飯店（不同開發環境）整個備餐流程要重來。第三，也是最致命的——**Claude 是被動地從別人準備好的菜色裡挑，不是自己去市場買菜回來做。**
+
+### Grep 時代：自己覓食
+
+後來團隊做了一件看似退步的事：把 RAG 拆掉，換成一個 **Grep 工具**。
+
+等等，用全文搜尋取代向量搜尋？這不是技術倒退嗎？
+
+恰恰相反。重點不在工具多先進，而在**誰在掌控搜尋流程**。RAG 的世界觀是「我幫你找好了，你看這些」；Grep 的世界觀是「工具在這，你自己找」。前者是保母，後者是導師 (⌐■_■)
+
+<MoguNote>
+這個轉變的背後邏輯超級重要，值得多講一點。你去想：為什麼 Google 搜尋比百科全書好用？不是因為 Google 的內容更正確，是因為你可以**自己決定要搜什麼、怎麼搜、搜到不對的再換關鍵字**。RAG 像是有人幫你查好百科全書的頁碼然後遞給你，Grep 像是直接給你一台連著 Google 的電腦。隨著模型變聰明，讓它自己建構 context 比你餵它 context 更有效——因為它知道自己缺什麼，你不知道 (¬‿¬)
+</MoguNote>
+
+### Progressive Disclosure：俄羅斯套娃的藝術
+
+Grep 之後，團隊又往前走了一步：**Progressive Disclosure**。
+
+想像你第一天上班。好的主管不會丟一本 500 頁的員工手冊給你說「讀完再來找我」——他會說「先看這三頁，裡面有提到哪些東西不懂的再來問」。你問了 A，他給你 A 相關的 10 頁。你讀完又問 B，他再給你 B 的 20 頁。
+
+Agent Skills 就是這個概念的實體化——Claude 先讀一個 skill 文件，文件裡會引用其他文件，其他文件又引用更深的文件。像俄羅斯套娃一樣，一層一層展開，但每一層都是 Claude 自己決定要不要打開的。
+
+> 「Over the course of a year Claude went from not really being able to build its own context, to being able to do nested search across several layers of files to find the exact context it needed.」
+
+從「完全不會自己找東西」到「跨多層巢狀搜尋精確命中」。一年。這個進步幅度就像小孩從「媽媽餵飯」到「自己去菜市場買菜回來做一桌菜」。
+
+---
+
+## 不加工具也能加功能
+
+Claude Code 目前有大約 20 個工具。團隊對加新工具的門檻極高——因為每多一個工具，模型就多一個「要不要呼叫它」的決策點。你可以想成：你桌上的遙控器越多，你找到對的那支遙控器的時間就越長。
+
+舉例：使用者問 Claude Code「怎麼加 [MCP](/glossary#mcp)？」或「這個 slash command 幹嘛的？」以前它答不出來。
+
+最直覺的解法：把所有文件塞進 system prompt。
+
+但 99% 的時候使用者不會問這種問題。塞進去只會造成 **[context rot](/glossary#context-rot)**——context 裡的雜訊越多，模型回答品質越差。就像你的書桌堆滿了「可能有一天會用到」的文件，結果要找真正重要的東西反而找不到。
+
+最終解法：建一個 **Guide [Subagent](/glossary#subagent)**。主 Agent 被 prompt 成「如果使用者問你自己的功能，就叫這個 subagent 去查文件」。
+
+**不用加新工具，就能擴展 Agent 的能力。** 功能在那裡，但只在需要的時候才出現——這就是 Progressive Disclosure 的精髓。
+
+<MoguNote>
+20 個工具這個數字值得刺在手臂上。不是越多越好。Claude Code 團隊花了一年時間精煉出這 20 個，每一個都是「Claude 真的會用、用得好」才留下來的。這跟很多 MCP server 動不動塞 50 個 tool 的做法完全相反 ヽ(°〇°)ﾉ **Tool 是成本，不是資產。** 每多一個 tool 就多一個模型可能犯錯的地方。就像你家遙控器——電視一支、冷氣一支、音響一支，這叫合理；但如果你家有 50 支遙控器，那叫混亂。
+</MoguNote>
+
+---
+
+## 結論：不是在寫 spec，是在養一個會學習的東西
+
+Thariq 在文末坦承：
+
+> 「If you were hoping for a set of rigid rules on how to build your tools, unfortunately that is not this guide.」
+
+沒有標準答案。工具設計取決於你用的模型、Agent 的目標、運行的環境。
+
+但如果你硬要我從這篇文章裡擠出一個通則，那就是：**停止用「寫 spec」的心態設計工具，開始用「觀察」的心態。** 你面對的不是一台機器在執行指令，而是一個有偏好、有習慣、會成長的東西在跟你的工具互動。
+
+它不喜歡的工具，再完美也沒用。它喜歡的工具，粗糙一點都無所謂。
+
+**See like an agent.** 學會用它的眼睛看你設計出來的東西。
+
+## 延伸閱讀
+
+- [GP-9: Obsidian & Claude Code 101: Context Engineering](/posts/gp-9-20260130-obsidian-context-engineering/)
+- [GP-3: Claude Code + Obsidian：打造 Agent 思考基礎設施](/posts/gp-3-20260129-claude-obsidian-infrastructure/)
+- [GP-34: Claude Code 終於學會叫人幫忙了：Agent Teams 多人協作模式登場](/posts/gp-34-20260205-bcherny-claude-code-agent-teams/)
+
+
+<MoguNote>
+你知道這整篇文章讓我想到什麼嗎？養小孩 ʕ•ᴥ•ʔ 新手爸媽總是買一堆「專家推薦」的玩具，結果小孩只想玩紙箱和鍋蓋。等小孩大一點了，去年買的學步車變成障礙物，得換成滑步車。工具永遠要跟著使用者的當下能力走，不是跟著你的想像走。Thariq 沒有明說，但他描述的其實就是 AI 時代的育兒學——不對，是管理學——不對，根本就是同一件事。觀察、調整、再觀察、再調整。沒有終點，只有迭代。
+</MoguNote>

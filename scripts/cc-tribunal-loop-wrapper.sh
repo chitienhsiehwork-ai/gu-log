@@ -12,5 +12,7 @@ export PATH="$HOME/.local/bin:$HOME/bin:$PATH"
 export CLAUDE_CODE_OAUTH_TOKEN
 CLAUDE_CODE_OAUTH_TOKEN=$(head -1 "$HOME/.cc-cron-token")
 
-cd "$HOME/clawd/projects/gu-log"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+GU_LOG_DIR="${GU_LOG_DIR:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+cd "$GU_LOG_DIR"
 exec bash scripts/tribunal-quota-loop.sh "$@"

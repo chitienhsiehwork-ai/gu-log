@@ -1,7 +1,7 @@
 # github-ai-automerge-guard Specification
 
 ## Purpose
-TBD - created by archiving change secure-clawd-vm-github-operator. Update Purpose after archive.
+定義 gu-log AI operator 的 auto-merge 安全邊界、path allowlist 與可稽核要求。
 ## Requirements
 ### Requirement: gu-log auto-merge SHALL 要求 CI green 與 branch protection
 
@@ -53,4 +53,3 @@ Auto-merge guard SHALL inspect changed paths，並且 SHALL 只 merge 檔案都�
 
 - **WHEN** guard 拒絕 merge PR
 - **THEN** guard SHALL 記錄 blocking reason
-

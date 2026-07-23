@@ -13,10 +13,11 @@
  *   1 = external broken only (warning)
  *   2 = internal broken (should block commit)
  *   3 = fatal: unknown uncaught exception / unhandled rejection during the
- *       scan (fail closed — see isKnownUndiciSocketRace below)
+ *       scan, or an unhealthy external scan dominated by failed checks
+ *       (fail closed — see isKnownUndiciSocketRace below)
  */
 
-import { readdir, readFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { existsSync, realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -65,6 +66,8 @@ const RATE_LIMIT = 5;
 const RATE_WINDOW = 1000; // ms
 const REQUEST_TIMEOUT = 10_000; // 10s
 const MAX_RETRIES = 1;
+const EXTERNAL_FAILURE_REJECTION_RATIO = 0.5;
+const MIN_EXTERNAL_FAILURES_FOR_OUTAGE = 5;
 
 // Domains that are bot-hostile → needsManualCheck
 const MANUAL_CHECK_DOMAINS = [
@@ -98,6 +101,10 @@ const MANUAL_CHECK_DOMAINS = [
   'ai.google.dev',
   'datasette.io',
   'adplist.org',
+  // Canonical pages remain browser-reachable but CI GET/HEAD requests are
+  // consistently rejected by domain-level anti-bot controls (403/429).
+  'deeplearning.ai',
+  'news.ycombinator.com',
 ];
 
 // Skip these URL patterns entirely (not real links)
@@ -109,8 +116,16 @@ const SKIP_PATTERNS = [
   /^data:/,
   /^\{\{/, // template expressions
   /^\$\{/, // template literals
-  /example\.com/, // RFC 2606 reserved placeholder domain — never a real link
 ];
+
+export function isReservedExampleUrl(value) {
+  try {
+    const hostname = new URL(value, 'https://gu-log.invalid').hostname.toLowerCase();
+    return hostname === 'example.com' || hostname.endsWith('.example.com');
+  } catch {
+    return false;
+  }
+}
 
 // ── Link Extraction ──────────────────────────────────────────────
 
@@ -121,7 +136,7 @@ function extractLinks(content, filePath) {
   function add(url, type, context) {
     // Clean up URL
     url = url.trim().replace(/[)>]+$/, '');
-    if (!url || SKIP_PATTERNS.some((p) => p.test(url))) return;
+    if (!url || SKIP_PATTERNS.some((p) => p.test(url)) || isReservedExampleUrl(url)) return;
     const key = `${url}|${filePath}`;
     if (seen.has(key)) return;
     seen.add(key);
@@ -177,7 +192,7 @@ function isInternalLink(url) {
   return false;
 }
 
-function isManualCheckDomain(url) {
+export function isManualCheckDomain(url) {
   try {
     const hostname = new URL(url).hostname;
     return MANUAL_CHECK_DOMAINS.some((d) => hostname === d || hostname.endsWith('.' + d));
@@ -305,6 +320,105 @@ async function checkExternalLink(url, retries = MAX_RETRIES) {
   }
 }
 
+// Coalesce exact-URL duplicates before touching the network, then fan each
+// result back out to every source occurrence. This keeps per-file reporting
+// intact while preventing popular sources from being fetched once per post.
+// Checks intentionally remain sequential: the current RateLimiter is designed
+// for one caller, and making it concurrency-safe is a separate scheduling job.
+export async function scanExternalLinks(
+  links,
+  checker = checkExternalLink,
+  onProgress = /** @type {((checked: number, total: number) => void) | null} */ (null)
+) {
+  const uniqueUrls = [...new Set(links.map((link) => link.url))];
+  const resultByUrl = new Map();
+
+  for (const [index, url] of uniqueUrls.entries()) {
+    const result = await checker(url);
+    if (!['ok', 'broken', 'timeout'].includes(result?.status)) {
+      throw new Error(`External link checker returned an invalid result for ${url}`);
+    }
+    resultByUrl.set(url, result);
+    onProgress?.(index + 1, uniqueUrls.length);
+  }
+
+  const externalOk = [];
+  const externalBroken = [];
+  const externalTimeout = [];
+
+  // Iterate the original occurrence list so baseline/report ordering remains
+  // deterministic and every source file still gets its own diagnostic.
+  for (const link of links) {
+    const result = resultByUrl.get(link.url);
+    if (result.status === 'ok') {
+      externalOk.push(link);
+    } else if (result.status === 'timeout') {
+      externalTimeout.push({ ...link, error: result.error });
+    } else {
+      externalBroken.push({ ...link, statusCode: result.code, error: result.error });
+    }
+  }
+
+  const uniqueResults = [...resultByUrl.values()];
+  return {
+    externalOk,
+    externalBroken,
+    externalTimeout,
+    health: {
+      attempted: uniqueResults.length,
+      ok: uniqueResults.filter((result) => result.status === 'ok').length,
+      broken: uniqueResults
+        .filter((result) => result.status === 'broken')
+        .map((result) => ({ statusCode: result.code, error: result.error })),
+      timedOut: uniqueResults.filter((result) => result.status === 'timeout').length,
+    },
+  };
+}
+
+// A normal link scan can contain a handful of real HTTP failures and transient
+// network errors. A failure-dominated scan, however, describes the scanner,
+// proxy, or network more reliably than it describes the links. Count both
+// transport failures and unsuccessful HTTP responses: a proxy that returns
+// 403/429/503 for every request still completed at the transport layer but must
+// not replace the last trustworthy baseline.
+export function evaluateExternalScanHealth({ internalOnly, attempted, ok, broken, timedOut }) {
+  if (internalOnly) {
+    return {
+      healthy: true,
+      skipped: true,
+      responseFailures: 0,
+      transportFailures: 0,
+      totalFailures: 0,
+      failureRatio: 0,
+      transportFailureRatio: 0,
+    };
+  }
+
+  const responseFailures = broken.filter((link) => Number.isInteger(link.statusCode)).length;
+  const transportFailures = timedOut + (broken.length - responseFailures);
+  const totalFailures = responseFailures + transportFailures;
+  const observed = ok + broken.length + timedOut;
+  const failureRatio = attempted === 0 ? 0 : totalFailures / attempted;
+  const transportFailureRatio = attempted === 0 ? 0 : transportFailures / attempted;
+  const complete = observed === attempted;
+  const failureDominated =
+    totalFailures >= MIN_EXTERNAL_FAILURES_FOR_OUTAGE &&
+    failureRatio >= EXTERNAL_FAILURE_REJECTION_RATIO;
+
+  return {
+    healthy: complete && !failureDominated,
+    skipped: false,
+    complete,
+    observed,
+    responseFailures,
+    transportFailures,
+    totalFailures,
+    failureRatio,
+    transportFailureRatio,
+    failureDominated,
+  };
+}
+
 // ── Main ─────────────────────────────────────────────────────────
 
 async function main() {
@@ -352,9 +466,12 @@ async function main() {
   const external = allLinks.filter((l) => !isInternalLink(l.url));
   const manualCheck = external.filter((l) => isManualCheckDomain(l.url));
   const autoCheck = external.filter((l) => !isManualCheckDomain(l.url));
+  const uniqueAutoCheckCount = new Set(autoCheck.map((link) => link.url)).size;
 
   console.log(`  📁 Internal: ${internal.length}`);
-  console.log(`  🌐 External (auto-check): ${autoCheck.length}`);
+  console.log(
+    `  🌐 External (auto-check): ${autoCheck.length} references / ${uniqueAutoCheckCount} unique URLs`
+  );
   console.log(`  🔒 External (manual-check): ${manualCheck.length}`);
   console.log();
 
@@ -375,32 +492,33 @@ async function main() {
   console.log(`  ✅ ${internalOk.length} OK, ❌ ${internalBroken.length} broken\n`);
 
   // Validate external links (auto-check only)
-  const externalOk = [];
-  const externalBroken = [];
-  const externalTimeout = [];
+  let externalOk = [];
+  let externalBroken = [];
+  let externalTimeout = [];
+  let externalHealth = {
+    attempted: uniqueAutoCheckCount,
+    ok: 0,
+    broken: [],
+    timedOut: 0,
+  };
 
   if (internalOnly) {
     console.log('Skipping external link checks (--internal-only mode).');
   } else {
     console.log('Checking external links (this may take a while)...');
-    let checked = 0;
-    for (const link of autoCheck) {
-      checked++;
-      if (checked % 10 === 0 || checked === autoCheck.length) {
-        process.stdout.write(`\r  Progress: ${checked}/${autoCheck.length}`);
+    const scan = await scanExternalLinks(autoCheck, checkExternalLink, (checked, total) => {
+      if (checked % 10 === 0 || checked === total) {
+        process.stdout.write(`\r  Progress: ${checked}/${total} unique URLs`);
       }
-
-      const result = await checkExternalLink(link.url);
-      if (result.status === 'ok') {
-        externalOk.push(link);
-      } else if (result.status === 'timeout') {
-        externalTimeout.push({ ...link, error: result.error });
-      } else {
-        externalBroken.push({ ...link, statusCode: result.code, error: result.error });
-      }
-    }
+    });
+    ({ externalOk, externalBroken, externalTimeout, health: externalHealth } = scan);
     console.log(); // newline after progress
   }
+
+  const externalScanHealth = evaluateExternalScanHealth({
+    internalOnly,
+    ...externalHealth,
+  });
 
   // Report
   console.log(`\n${'═'.repeat(50)}`);
@@ -412,6 +530,20 @@ async function main() {
     console.log(
       `  External: ✅ ${externalOk.length} OK, ❌ ${externalBroken.length} broken, ⏰ ${externalTimeout.length} timeout, 🔒 ${manualCheck.length} manual`
     );
+  }
+
+  if (!externalScanHealth.healthy) {
+    const ratio = (externalScanHealth.failureRatio * 100).toFixed(1);
+    console.error(
+      `\n❌ FATAL: External scan is unhealthy — ${externalScanHealth.totalFailures}/${externalHealth.attempted} (${ratio}%) unique URL checks failed (${externalScanHealth.responseFailures} HTTP error responses, ${externalScanHealth.transportFailures} transport failures).`
+    );
+    if (!externalScanHealth.complete) {
+      console.error(
+        `   Scan result is incomplete: observed ${externalScanHealth.observed}/${externalHealth.attempted} attempted unique URL checks.`
+      );
+    }
+    console.error('   Existing broken-links baseline was not updated.');
+    process.exit(3);
   }
 
   if (internalBroken.length > 0) {
@@ -459,8 +591,6 @@ async function main() {
 
   // Build result JSON
   const today = new Date().toISOString().split('T')[0];
-  const { mkdir, writeFile } = await import('node:fs/promises');
-
   // When --internal-only, preserve existing external data from baseline
   let preservedExternal = null;
   if (internalOnly && existsSync(outputPath)) {
@@ -505,7 +635,13 @@ async function main() {
 
   // Write result
   await mkdir(join(ROOT, 'quality'), { recursive: true });
-  await writeFile(outputPath, JSON.stringify(result, null, 2) + '\n');
+  const temporaryOutputPath = `${outputPath}.${process.pid}.tmp`;
+  try {
+    await writeFile(temporaryOutputPath, JSON.stringify(result, null, 2) + '\n');
+    await rename(temporaryOutputPath, outputPath);
+  } finally {
+    await rm(temporaryOutputPath, { force: true });
+  }
   console.log(`\n💾 Results saved to quality/broken-links-baseline.json`);
 
   // Exit code — CI mode uses baseline ratchet: new breakages fail, known baseline tolerated
@@ -572,7 +708,8 @@ const isDirectlyExecuted = (() => {
 
 if (isDirectlyExecuted) {
   main().catch((err) => {
-    console.error('Fatal error:', err);
-    process.exit(2);
+    console.error('❌ FATAL: unknown error during link check — failing closed.');
+    console.error(err?.stack || err);
+    process.exit(3);
   });
 }

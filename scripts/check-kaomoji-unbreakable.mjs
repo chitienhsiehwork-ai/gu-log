@@ -71,9 +71,9 @@ const NEGATIVES = [
   'Step (1) is important',
   '（99.5% → 89.5%）',
   '（收益）',
-  '(see SP-194)',
+  '(see GP-194)',
   '（`Cmd+D`）往右切',
-  '（例如 `SP.next: 152`）',
+  '（例如 `GP.next: 152`）',
   '（`agent/agent.py`）當病人',
 ];
 

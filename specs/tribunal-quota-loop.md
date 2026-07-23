@@ -1,3 +1,5 @@
+<!-- md-zh-tw: ignore -->
+
 ## Tribunal Quota-Aware Continuous Loop
 **Priority**: P1
 **Requested by**: CEO
@@ -14,7 +16,7 @@ Problems:
 
 ### Quota Infrastructure (Verified on VM)
 
-**SSOT**: `/home/clawd/clawd/scripts/usage-monitor.sh --json`
+**SSOT**: the off-repo `usage-monitor.sh --json` executable selected by `USAGE_MONITOR` or discovered on `PATH`; its host path belongs in local machine context.
 
 Returns JSON array with Claude entry:
 ```json
@@ -89,7 +91,7 @@ Key fields:
 ```bash
 QUOTA_FLOOR=3
 RESUME_THRESHOLD=10
-USAGE_MONITOR="$HOME/clawd/scripts/usage-monitor.sh"
+USAGE_MONITOR="${USAGE_MONITOR:-$(command -v usage-monitor.sh || true)}"
 
 get_effective_remaining() {
   local json
@@ -191,8 +193,9 @@ After=network-online.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/clawd/clawd/projects/gu-log
-ExecStart=/bin/bash scripts/tribunal-quota-loop.sh
+# Host-local file defines GU_LOG_DIR and executable USAGE_MONITOR.
+EnvironmentFile=%h/.config/gu-log/tribunal.env
+ExecStart=/bin/bash -c ': "$${GU_LOG_DIR:?Missing GU_LOG_DIR in tribunal.env}"; : "$${USAGE_MONITOR:?Missing USAGE_MONITOR in tribunal.env}"; test -x "$$USAGE_MONITOR" || exit 78; cd "$$GU_LOG_DIR" && exec bash scripts/tribunal-quota-loop.sh'
 Restart=on-failure
 RestartSec=60
 Environment=TZ=Asia/Taipei
@@ -246,7 +249,7 @@ Note: `CLAUDE_CODE_OAUTH_TOKEN` needs to be sourced from `~/.cc-cron-token` at r
 
 ### Dependencies
 
-- `usage-monitor.sh` on VM must remain functional (it's the quota SSOT)
+- The `USAGE_MONITOR` executable on the VM must remain functional (it's the quota SSOT); its machine-specific path is injected at deploy time or discovered on `PATH`
 - `~/.cc-cron-token` must exist and be valid (same as current cron)
 - `tribunal-all-claude.sh` must remain idempotent (crash resume works)
 
