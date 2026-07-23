@@ -7,9 +7,11 @@
  * buildRedirectConfig's output), then checks that no legacy article/listing
  * URL leaks into `pnpm run build`'s actual output: dist/sitemap*.xml,
  * dist/rss.xml, dist/search-index*.json, and URL-bearing attributes
- * (href/src/content) in rendered HTML. Only URL-bearing fields/attributes are
- * scanned -- prose that merely mentions a retired name is not a finding.
- * Fails closed if dist/ or any required artifact is missing.
+ * (href/src/content) in rendered HTML. It also pins the public structural
+ * contract for the sitemap index, RSS feed, and all three search indexes.
+ * Only URL-bearing fields/attributes are scanned for legacy paths -- prose
+ * that merely mentions a retired name is not a finding. Fails closed if
+ * dist/, any required artifact, or a required artifact field is missing.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -85,6 +87,123 @@ const LOC_RE = /<loc>([^<]+)<\/loc>/g;
 const LINK_RE = /<link>([^<]+)<\/link>/g;
 const GUID_RE = /<guid[^>]*>([^<]+)<\/guid>/g;
 const ATTR_RE = /\b(?:href|src|content)="([^"]*)"/g;
+const REQUIRED_SEARCH_INDEXES = [
+  'search-index.json',
+  'search-index.zh-tw.json',
+  'search-index.en.json',
+];
+
+function isNonEmptyString(value) {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+/** Validate the stable public shape of generated artifacts without needing a
+ * server. Inputs stay text-based so unit tests can exercise malformed JSON as
+ * well as structurally invalid data. */
+export function validateArtifactContracts({ sitemaps, rss, searchIndexes }) {
+  const errors = [];
+  const sitemapIndex = sitemaps.find(({ name }) => name === 'sitemap-index.xml');
+
+  if (!sitemapIndex) {
+    errors.push('missing sitemap-index.xml');
+  } else {
+    if (!/<sitemapindex\b/i.test(sitemapIndex.content)) {
+      errors.push('sitemap-index.xml must contain a <sitemapindex> root');
+    }
+    if (
+      !/<sitemap\b/i.test(sitemapIndex.content) ||
+      !/<loc>[^<]+<\/loc>/i.test(sitemapIndex.content)
+    ) {
+      errors.push('sitemap-index.xml must list at least one <sitemap> with a non-empty <loc>');
+    }
+  }
+
+  if (!/<rss\b[^>]*\bversion=["']2\.0["'][^>]*>/i.test(rss.content)) {
+    errors.push('rss.xml must contain an RSS 2.0 root');
+  }
+  const channel = rss.content.match(/<channel\b[^>]*>([\s\S]*?)<\/channel>/i)?.[1];
+  if (!channel) {
+    errors.push('rss.xml must contain a <channel>');
+  } else {
+    const channelMetadata = channel.replace(/<item\b[^>]*>[\s\S]*?<\/item>/gi, '');
+    for (const tag of ['title', 'link', 'description']) {
+      if (!new RegExp(`<${tag}>[^<]+<\\/${tag}>`, 'i').test(channelMetadata)) {
+        errors.push(`rss.xml channel must contain a non-empty <${tag}>`);
+      }
+    }
+
+    const firstItem = channel.match(/<item\b[^>]*>([\s\S]*?)<\/item>/i)?.[1];
+    if (!firstItem) {
+      errors.push('rss.xml must contain at least one <item>');
+    } else {
+      for (const tag of ['title', 'link', 'pubDate']) {
+        if (!new RegExp(`<${tag}>[^<]+<\\/${tag}>`, 'i').test(firstItem)) {
+          errors.push(`rss.xml first item must contain a non-empty <${tag}>`);
+        }
+      }
+    }
+  }
+
+  const indexesByName = new Map(searchIndexes.map((index) => [index.name, index.content]));
+  const parsedIndexes = new Map();
+  for (const name of REQUIRED_SEARCH_INDEXES) {
+    const content = indexesByName.get(name);
+    if (content === undefined) {
+      errors.push(`missing ${name}`);
+      continue;
+    }
+    try {
+      const items = JSON.parse(content);
+      if (!Array.isArray(items) || items.length === 0) {
+        errors.push(`${name} must be a non-empty JSON array`);
+        continue;
+      }
+      parsedIndexes.set(name, items);
+    } catch {
+      errors.push(`${name} must contain valid JSON`);
+    }
+  }
+
+  for (const [name, items] of parsedIndexes) {
+    for (const [index, item] of items.entries()) {
+      const label = `${name}[${index}]`;
+      if (!item || typeof item !== 'object' || Array.isArray(item)) {
+        errors.push(`${label} must be an object`);
+        continue;
+      }
+      if (!isNonEmptyString(item.slug)) errors.push(`${label}.slug must be a non-empty string`);
+      if (!isNonEmptyString(item.title)) errors.push(`${label}.title must be a non-empty string`);
+      if (
+        !Object.hasOwn(item, 'ticketId') ||
+        (item.ticketId !== null && !isNonEmptyString(item.ticketId))
+      ) {
+        errors.push(`${label}.ticketId must be a string or null`);
+      }
+      if (!['zh-tw', 'en'].includes(item.lang)) {
+        errors.push(`${label}.lang must be zh-tw or en`);
+      }
+    }
+  }
+
+  for (const lang of ['zh-tw', 'en']) {
+    const name = `search-index.${lang}.json`;
+    const items = parsedIndexes.get(name);
+    if (items?.some((item) => item?.lang !== lang)) {
+      errors.push(`${name} must contain only lang=${lang} entries`);
+    }
+  }
+
+  const combined = parsedIndexes.get('search-index.json');
+  if (combined) {
+    const langs = new Set(combined.map((item) => item?.lang));
+    for (const lang of ['zh-tw', 'en']) {
+      if (!langs.has(lang))
+        errors.push(`search-index.json must contain at least one lang=${lang} entry`);
+    }
+  }
+
+  return errors;
+}
 
 function scanXmlLike(content, patterns) {
   const urls = [];
@@ -143,6 +262,24 @@ function main() {
     return;
   }
 
+  const artifactContractErrors = validateArtifactContracts({
+    sitemaps: sitemapFiles.map((file) => ({
+      name: path.basename(file),
+      content: fs.readFileSync(file, 'utf8'),
+    })),
+    rss: { name: 'rss.xml', content: fs.readFileSync(rssPath, 'utf8') },
+    searchIndexes: searchIndexFiles.map((file) => ({
+      name: path.basename(file),
+      content: fs.readFileSync(file, 'utf8'),
+    })),
+  });
+  if (artifactContractErrors.length > 0) {
+    console.error('FAIL: generated public artifact contract violations:');
+    for (const error of artifactContractErrors) console.error(`  ${error}`);
+    process.exitCode = 1;
+    return;
+  }
+
   const manifest = loadManifest();
   const legacy = buildLegacySurfaces(manifest);
   const violations = [];
@@ -192,7 +329,7 @@ function main() {
   }
 
   console.log(
-    `OK: canonical-only build output -- ${sitemapFiles.length} sitemap file(s), rss.xml, ${searchIndexFiles.length} search-index file(s), ${htmlFiles.length} HTML file(s) checked, 0 legacy public URLs found.`
+    `OK: public artifact contracts + canonical URLs -- ${sitemapFiles.length} sitemap file(s), rss.xml, ${searchIndexFiles.length} search-index file(s), ${htmlFiles.length} HTML file(s) checked, 0 legacy public URLs found.`
   );
 }
 
