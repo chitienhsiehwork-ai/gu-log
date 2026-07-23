@@ -9,7 +9,7 @@
 - 先明確帶執行環境跑 `./scripts/detect-env.sh --runtime <codex|claude-code> --identity`，再讀 [`playbooks/local-agent-playbook.md`](playbooks/local-agent-playbook.md) 或 [`playbooks/CCC-playbook.md`](playbooks/CCC-playbook.md)。不要從環境變數猜身份。
 - 分支名稱只是不具語意的識別碼；任務意圖以使用者對話為準，不得從分支名稱推測。
 - 使用者可能使用語音輸入。整理明顯轉錄錯字與口頭贅詞，可延續上下文明確暗示的想法，但不得補造需求；推定修正會改變意思時，先用「我理解成……」向使用者確認。
-- `issue this: <想法>` 代表只處理 issue：依現有 issue 範本整理、查最新程式碼與既有 issue / PR、去重或互連，並沿用[既有分類](.agents/skills/backlog-sweep/SKILL.md)。分類只是風險註記，不授予實作、推送或合併權限。建立或更新 issue 後停止。
+- `issue this: <想法>` 代表只處理 issue：依現有 issue 範本整理、查最新程式碼與既有 issue / PR、去重或互連，並沿用[既有分類](.agents/skills/backlog-sweep/SKILL.md)。分類只是風險註記，不授予實作、推送或合併權限。建立或更新 issue 後停止；完成回覆先用 1–2 句重述核心意圖，再附 issue 連結，讓使用者自行決定是否細讀。
 
 ## 語言
 
