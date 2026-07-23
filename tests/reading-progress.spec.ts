@@ -29,20 +29,21 @@ test.describe('Reading Progress Bar', () => {
 
     // Scroll to roughly middle of page
     await page.evaluate(() => {
+      document.documentElement.style.scrollBehavior = 'auto';
       const scrollHeight = document.documentElement.scrollHeight;
       const viewportHeight = window.innerHeight;
       window.scrollTo(0, (scrollHeight - viewportHeight) / 2);
     });
 
-    // Wait for RAF update
-    await page.waitForTimeout(200);
-
     const progressBar = page.locator('#reading-progress');
-    const width = await progressBar.evaluate((el) => parseFloat(el.style.width) || 0);
 
     // Should be roughly in the middle (30-70% range)
-    expect(width).toBeGreaterThan(20);
-    expect(width).toBeLessThan(80);
+    await expect
+      .poll(async () => {
+        const width = await progressBar.evaluate((el) => parseFloat(el.style.width) || 0);
+        return width > 20 && width < 80;
+      })
+      .toBe(true);
   });
 
   test('GIVEN a post page WHEN scrolled to bottom THEN progress should be 100%', async ({
@@ -51,14 +52,18 @@ test.describe('Reading Progress Bar', () => {
     await page.goto(TEST_POST);
     await page.waitForLoadState('networkidle');
 
-    // Scroll to bottom
-    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-    await page.waitForTimeout(200);
-
     const progressBar = page.locator('#reading-progress');
-    const width = await progressBar.evaluate((el) => parseFloat(el.style.width) || 0);
 
-    expect(width).toBe(100);
+    // The site uses smooth scrolling, but this test verifies the final progress
+    // value rather than the browser-specific animation duration.
+    await page.evaluate(() => {
+      document.documentElement.style.scrollBehavior = 'auto';
+      window.scrollTo(0, document.documentElement.scrollHeight);
+    });
+
+    await expect
+      .poll(() => progressBar.evaluate((el) => parseFloat(el.style.width) || 0))
+      .toBe(100);
   });
 
   test('GIVEN progress bar WHEN viewed THEN should be fixed at top of viewport', async ({
