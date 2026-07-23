@@ -176,19 +176,10 @@
       "expiry": "2026-08-15",
       "issue": "https://github.com/chitienhsiehwork-ai/gu-log/issues/603"
     },
-    "tests/login-indicator.spec.ts": {
-      "class": "quarantined",
-      "owner": "ShroomDog",
-      "reason": "100% failing (4/4): #login-indicator never shows the logged-in user email/logout state after a mock JWT is placed in localStorage. Looks like a real client-side JWT-parsing/render regression in LoginIndicator, discovered by this audit — needs its own investigation, out of this PR's contract.",
-      "expiry": "2026-08-08",
-      "issue": "https://github.com/chitienhsiehwork-ai/gu-log/issues/593"
-    },
     "tests/levelup-quiz.spec.ts": {
-      "class": "quarantined",
+      "class": "nightly",
       "owner": "ShroomDog",
-      "reason": "Severely broken: multiple tests hit the full 30s timeout on every retry (quiz interaction never completes). Run aborted after ~4 minutes to protect discovery budget — needs dedicated investigation before it can be nightly or blocking.",
-      "expiry": "2026-08-15",
-      "issue": "https://github.com/chitienhsiehwork-ai/gu-log/issues/605"
+      "reason": "Uses a deterministic Astro fixture route instead of mutating an excluded content fixture while browser projects run in parallel."
     },
     "tests/header-mobile-layout.spec.ts": {
       "class": "quarantined",
@@ -198,18 +189,14 @@
       "issue": "https://github.com/chitienhsiehwork-ai/gu-log/issues/600"
     },
     "tests/reading-progress.spec.ts": {
-      "class": "quarantined",
+      "class": "nightly",
       "owner": "ShroomDog",
-      "reason": "1 failing: progress bar does not reach 100% when scrolled to the bottom of a post — real bug found 2026-07-18, not yet fixed.",
-      "expiry": "2026-08-08",
-      "issue": "https://github.com/chitienhsiehwork-ai/gu-log/issues/594"
+      "reason": "Bottom-scroll coverage disables smooth scrolling and polls the terminal value instead of sampling an in-progress browser animation."
     },
     "tests/search-edge-cases.spec.ts": {
-      "class": "quarantined",
+      "class": "nightly",
       "owner": "ShroomDog",
-      "reason": "1 failing: empty search input still shows results — real bug found 2026-07-18, not yet fixed.",
-      "expiry": "2026-08-08",
-      "issue": "https://github.com/chitienhsiehwork-ai/gu-log/issues/595"
+      "reason": "Empty-query assertions count rendered result elements, and the spec now honors Playwright's baseURL so the same coverage runs against local or production targets."
     },
     "tests/series-nav.spec.ts": {
       "class": "quarantined",
@@ -224,18 +211,9 @@
       "reason": "Rewritten (#597) around a fixed canonical MP post (mp-6) flanked by MP neighbors on both sides, so post-meta and PrevNextNav badges are always present — no data-dependent skip. Asserts computed color resolves to --color-badge-mp (never --color-badge-gp) across dark/light x desktop/mobile, 4 deterministic cases."
     },
     "tests/toc-levelup.spec.ts": {
-      "class": "quarantined",
+      "class": "nightly",
       "owner": "ShroomDog",
-      "reason": "1 failing: regular (non-Lv) post TOC drops h3 headings — real bug found 2026-07-18, not yet fixed.",
-      "expiry": "2026-08-08",
-      "issue": "https://github.com/chitienhsiehwork-ai/gu-log/issues/598"
-    },
-    "tests/validate-lv-ticket.spec.ts": {
-      "class": "quarantined",
-      "owner": "ShroomDog",
-      "reason": "2 failing: Lv-1 and Lv-99 ticketId formats don't validate as expected — real validator bug found 2026-07-18, not yet fixed.",
-      "expiry": "2026-08-08",
-      "issue": "https://github.com/chitienhsiehwork-ai/gu-log/issues/599"
+      "reason": "Lv posts keep h3 out of the TOC while regular posts retain h2 + h3. Re-verified against production across all three browser projects on 2026-07-23: 27/27 passed, 0 skipped or flaky (#598)."
     },
     "tests/tribunal-score-panel.spec.ts": {
       "class": "nightly",
