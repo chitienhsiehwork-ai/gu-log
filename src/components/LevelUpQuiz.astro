@@ -33,7 +33,12 @@ const { question, options, answer, explanation } = Astro.props;
 const quizId = `quiz-${Math.random().toString(36).slice(2, 9)}`;
 ---
 
-<div class="levelup-quiz" data-quiz-id={quizId} data-answer={answer}>
+<div
+  class="levelup-quiz"
+  data-quiz-id={quizId}
+  data-answer={answer}
+  data-markdown-adapter="level-up-quiz"
+>
   <div class="quiz-header">
     <span class="quiz-icon">❓</span>
     <span class="quiz-label">小測驗</span>

@@ -4,6 +4,7 @@ import type { PostStatus } from '../utils/post-status';
 interface Props {
   type: Exclude<PostStatus, 'published'>;
   replacementHref?: string;
+  replacementUrl?: string;
   replacementTitle?: string;
   replacementTicketId?: string;
   lang?: 'zh-tw' | 'en';
@@ -12,6 +13,7 @@ interface Props {
 const {
   type,
   replacementHref,
+  replacementUrl,
   replacementTitle,
   replacementTicketId,
   lang = 'zh-tw',
@@ -46,7 +48,15 @@ const linkLabel = replacementTicketId
   : replacementTitle || ('fallback' in t ? t.fallback : '');
 ---
 
-<div class={`post-status-banner post-status-banner--${type}`} role="note" aria-live="polite">
+<div
+  class={`post-status-banner post-status-banner--${type}`}
+  role="note"
+  aria-live="polite"
+  data-post-status-banner
+  data-status={type}
+  data-replacement-ticket-id={replacementTicketId ?? ''}
+  data-replacement-url={replacementUrl ?? ''}
+>
   <p>
     <span>{t.message}</span>
     {

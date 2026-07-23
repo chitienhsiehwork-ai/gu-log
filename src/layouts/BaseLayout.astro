@@ -11,9 +11,10 @@ interface Props {
   lang?: 'zh-tw' | 'en';
   image?: string;
   noindex?: boolean;
+  markdownUrl?: string;
 }
 
-const { title, description, lang = 'zh-tw', image, noindex = false } = Astro.props;
+const { title, description, lang = 'zh-tw', image, noindex = false, markdownUrl } = Astro.props;
 
 const currentPath = Astro.url.pathname;
 const canonicalURL = new URL(currentPath, Astro.site).href;
@@ -93,6 +94,16 @@ const finalDescription = description || t.defaultDescription;
 
     <!-- Canonical URL -->
     <link rel="canonical" href={canonicalURL} />
+    {
+      markdownUrl && (
+        <link
+          rel="alternate"
+          type="text/markdown"
+          href={markdownUrl}
+          data-post-markdown-alternate
+        />
+      )
+    }
 
     <!-- RSS Feed -->
     <link rel="alternate" type="application/rss+xml" title="香菇大狗狗 RSS Feed" href="/rss.xml" />
