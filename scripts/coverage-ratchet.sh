@@ -3,7 +3,7 @@
 # Compares current coverage against baseline and enforces non-regression.
 # - If coverage drops more than 5% below baseline → FAIL
 # - If coverage improves → update baseline (ratchet up)
-# - Records one coverage-history.json entry per UTC day
+# - Records the first coverage-history.json snapshot for each UTC day
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -97,8 +97,8 @@ check_metric "Lines" "$BASELINE_LINES" "$CURRENT_LINES"
 
 echo ""
 
-# Record history; same-day reruns replace the earlier measurement instead of
-# creating a duplicate entry and an unnecessary staging branch.
+# Record one daily snapshot. Same-day reruns still evaluate the ratchet above,
+# but leave the first measurement and its original bytes untouched.
 TODAY=$(date -u +%Y-%m-%d)
 HISTORY_ENTRY=$(jq -n \
   --arg date "$TODAY" \
