@@ -116,4 +116,12 @@ describe('coverage history recording', () => {
     expect(() => record(filePath, entry('2026-07-23', 55))).toThrow();
     expect(readFileSync(filePath, 'utf8')).toBe(original);
   });
+
+  it('fails closed when an existing history entry has no date', () => {
+    const original = `${JSON.stringify([{ statements: 54 }], null, 2)}\n`;
+    const filePath = makeHistoryFile(original);
+
+    expect(() => record(filePath, entry('2026-07-23', 55))).toThrow();
+    expect(readFileSync(filePath, 'utf8')).toBe(original);
+  });
 });
