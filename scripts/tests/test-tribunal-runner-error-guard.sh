@@ -70,6 +70,66 @@ if jq -e '."gp-1-20260128-demo.mdx".status == "FAILED" or ."gp-1-20260128-demo.m
 fi
 pass "runner crash does not become content failure/exhaustion"
 
+# A judge can produce valid score JSON and still fail the provenance contract.
+# That infrastructure error must win over the valid content payload.
+provenance_bin="$TMP/provenance-bin"
+mkdir -p "$provenance_bin"
+cat > "$provenance_bin/codex" <<'PROVENANCE_CODEX'
+#!/usr/bin/env bash
+if [ "${1:-}" = "exec" ] && [ "${2:-}" = "--help" ]; then
+  echo "fake codex exec help"
+  exit 0
+fi
+if [ "${1:-}" = "--version" ]; then
+  echo "codex-cli 0.128.0"
+  exit 0
+fi
+if [ "${1:-}" = "exec" ]; then
+  prompt="${!#}"
+  score_path="$(printf '%s\n' "$prompt" | sed -n 's/^Write your JSON result to: //p' | tail -1)"
+  [ -n "$score_path" ] || exit 2
+  cat > "$score_path" <<'JSON'
+{
+  "judge": "factCheck",
+  "dimensions": {
+    "accuracy": 8,
+    "fidelity": 8,
+    "consistency": 8,
+    "sourceBoundary": 8,
+    "commentarySeparation": 8
+  },
+  "score": 8,
+  "verdict": "PASS"
+}
+JSON
+  rm -f "$TRIBUNAL_ACTUAL_PROVIDER_FILE"
+  mkdir "$TRIBUNAL_ACTUAL_PROVIDER_FILE"
+  exit 0
+fi
+exit 1
+PROVENANCE_CODEX
+chmod +x "$provenance_bin/codex"
+
+provenance_progress="$TMP/provenance-progress.json"
+printf '{}\n' > "$provenance_progress"
+set +e
+PATH="$provenance_bin:$PATH" \
+TRIBUNAL_SCORE_ONLY_PROGRESS_FILE="$provenance_progress" \
+TRIBUNAL_CODEX_TIMEOUT_SEC=5 \
+TRIBUNAL_CODEX_IDLE_TIMEOUT_SEC=5 \
+TRIBUNAL_CODEX_IDLE_POLL_SEC=1 \
+bash "$TRIBUNAL" --score-only --only-stage factChecker gp-1-20260128-demo.mdx \
+  >"$TMP/provenance.out" 2>"$TMP/provenance.err"
+provenance_rc=$?
+set -e
+
+[ "$provenance_rc" -eq 70 ] || fail "provenance failure with valid score should exit 70, got $provenance_rc"
+[ "$(jq -r '."gp-1-20260128-demo.mdx".status' "$provenance_progress")" = "RUNNER_ERROR" ] || \
+  fail "provenance failure should record RUNNER_ERROR"
+[ "$(jq -r '."gp-1-20260128-demo.mdx".stages.factChecker.status' "$provenance_progress")" = "runner_error" ] || \
+  fail "provenance failure should record stage runner_error"
+pass "valid score cannot mask provenance runner failure"
+
 if ! grep -q 'runner_error propagated' "$ROOT_DIR/scripts/tribunal-quota-loop.sh"; then
   fail "quota loop does not drain on tribunal runner_error"
 fi
