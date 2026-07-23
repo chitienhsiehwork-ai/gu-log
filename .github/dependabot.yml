@@ -71,10 +71,15 @@ updates:
     open-pull-requests-limit: 5
 
     groups:
-      actions-all:
+      # Keep routine updates moving even when a major needs compatibility work.
+      actions-minor-patch:
         patterns:
           - "*"
         update-types:
           - "minor"
           - "patch"
+      actions-major:
+        patterns:
+          - "*"
+        update-types:
           - "major"
