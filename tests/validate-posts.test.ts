@@ -216,13 +216,16 @@ describe('validatePost — required-field rules', () => {
     expect(r.errors.some((e: string) => e.includes('Invalid ticketId format'))).toBe(true);
   });
 
-  it('accepts GP/MP/SD/Lv ticketId', () => {
+  it('accepts canonical GP/MP/SD/Lv ticketId forms', () => {
     for (const [tid, filename] of [
       ['GP-1', 'gp-1-20260401-x.mdx'],
       ['MP-1', 'mp-1-20260401-x.mdx'],
       ['SD-1', 'sd-1-20260401-x.mdx'],
       ['Lv-1', 'levelup-20260401-x.mdx'],
+      ['Lv-99', 'levelup-20260401-x.mdx'],
+      ['Lv-01', 'levelup-20260401-x.mdx'],
       ['GP-PENDING', 'gp-pending-20260401-x.mdx'],
+      ['Lv-PENDING', 'levelup-pending-20260401-x.mdx'],
     ] as const) {
       const r = runWithFm(
         validFm.map((l) => (l.startsWith('ticketId:') ? `ticketId: ${tid}` : l)),
@@ -230,6 +233,14 @@ describe('validatePost — required-field rules', () => {
       );
       expect(r.errors.some((e: string) => e.includes('Invalid ticketId format'))).toBe(false);
     }
+  });
+
+  it('rejects the wrong-case LV prefix', () => {
+    const r = runWithFm(
+      validFm.map((l) => (l.startsWith('ticketId:') ? 'ticketId: LV-1' : l)),
+      'levelup-20260401-x.mdx'
+    );
+    expect(r.errors.some((e: string) => e.includes('Invalid ticketId format'))).toBe(true);
   });
 
   it('rejects retired SP/CP ticketIds with an actionable canonical replacement', () => {
