@@ -30,6 +30,16 @@ export const ROUTE_BUDGET = 2048;
 
 const SUPPORTED_LANGS = new Set(['zh-tw', 'en']);
 const SAFE_SLUG = /^[A-Za-z0-9][A-Za-z0-9-]*$/;
+export const MARKDOWN_HEADERS = Object.freeze([
+  {
+    source: '/posts/:slug.md',
+    headers: [{ key: 'Content-Type', value: 'text/markdown; charset=utf-8' }],
+  },
+  {
+    source: '/en/posts/:slug.md',
+    headers: [{ key: 'Content-Type', value: 'text/markdown; charset=utf-8' }],
+  },
+]);
 
 // The only two retired public listing namespaces that ever actually existed.
 // Deep/arbitrary listing paths, the never-published `/shroom-picks`, and any
@@ -48,6 +58,34 @@ export class RedirectConfigError extends Error {
     super(message);
     this.name = 'RedirectConfigError';
   }
+}
+
+/**
+ * @param {{
+ *   headers?: readonly unknown[],
+ *   redirects?: readonly unknown[],
+ *   rewrites?: readonly unknown[]
+ * }} routeConfig
+ */
+export function countPlatformRoutes({ headers = [], redirects = [], rewrites = [] }) {
+  return headers.length + redirects.length + rewrites.length;
+}
+
+/**
+ * @param {{
+ *   headers?: readonly unknown[],
+ *   redirects?: readonly unknown[],
+ *   rewrites?: readonly unknown[]
+ * }} routeConfig
+ */
+export function assertRouteBudget(routeConfig) {
+  const routeCount = countPlatformRoutes(routeConfig);
+  if (routeCount >= ROUTE_BUDGET) {
+    throw new RedirectConfigError(
+      `platform route count ${routeCount} is at/over the documented Vercel route budget ${ROUTE_BUDGET}`
+    );
+  }
+  return routeCount;
 }
 
 function articlePath(lang, slug) {
@@ -163,11 +201,7 @@ export function buildRedirectConfig(manifest) {
     }
   }
 
-  if (registry.redirects.length >= ROUTE_BUDGET) {
-    throw new RedirectConfigError(
-      `redirect route count ${registry.redirects.length} is at/over the documented Vercel route budget ${ROUTE_BUDGET}`
-    );
-  }
+  assertRouteBudget({ redirects: registry.redirects });
 
   return { redirects: registry.redirects };
 }
@@ -176,8 +210,12 @@ function loadManifest(manifestPath = MANIFEST_PATH) {
   return JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 }
 
+const redirectConfig = buildRedirectConfig(loadManifest());
+const platformRoutes = { ...redirectConfig, headers: MARKDOWN_HEADERS };
+assertRouteBudget(platformRoutes);
+
 export const config = {
-  ...buildRedirectConfig(loadManifest()),
+  ...platformRoutes,
   git: {
     deploymentEnabled: {
       // GitHub CI fully validates workflow-only Dependabot updates; skipping
