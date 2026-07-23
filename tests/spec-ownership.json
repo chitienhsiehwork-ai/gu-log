@@ -192,11 +192,9 @@
       "reason": "Empty-query assertions count rendered result elements, and the spec now honors Playwright's baseURL so the same coverage runs against local or production targets."
     },
     "tests/series-nav.spec.ts": {
-      "class": "quarantined",
+      "class": "nightly",
       "owner": "ShroomDog",
-      "reason": "1 failing: related-articles ordering doesn't reflect tag overlap as expected — real bug found 2026-07-18, not yet fixed.",
-      "expiry": "2026-08-08",
-      "issue": "https://github.com/chitienhsiehwork-ai/gu-log/issues/596"
+      "reason": "RelatedArticles ranking uses a deterministic fixture whose newest candidate has the least overlap, proving tag overlap outranks recency; the full series navigation sweep is green across all browser projects."
     },
     "tests/ticket-badge-colors.spec.ts": {
       "class": "nightly",

@@ -1,0 +1,72 @@
+---
+import RelatedArticles from '../../components/RelatedArticles.astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+const fixturePosts = [
+  {
+    id: 'fixture-overlap-1-newest',
+    data: {
+      title: 'One shared tag, newest date',
+      ticketId: 'GP-9001',
+      tags: ['alpha'],
+      originalDate: '2026-03-03',
+      lang: 'zh-tw',
+    },
+  },
+  {
+    id: 'fixture-overlap-3-oldest',
+    data: {
+      title: 'Three shared tags, oldest date',
+      ticketId: 'GP-9003',
+      tags: ['alpha', 'beta', 'gamma'],
+      originalDate: '2026-01-01',
+      lang: 'zh-tw',
+    },
+  },
+  {
+    id: 'fixture-overlap-2-middle',
+    data: {
+      title: 'Two shared tags, middle date',
+      ticketId: 'GP-9002',
+      tags: ['alpha', 'beta'],
+      originalDate: '2026-02-02',
+      lang: 'zh-tw',
+    },
+  },
+  {
+    id: 'fixture-series-excluded',
+    data: {
+      title: 'Series post with three shared tags',
+      ticketId: 'GP-9005',
+      tags: ['alpha', 'beta', 'gamma'],
+      originalDate: '2026-12-31',
+      lang: 'zh-tw',
+      series: { name: 'Fixture series', order: 1 },
+    },
+  },
+];
+---
+
+<BaseLayout
+  title="Related Articles Ranking Fixture"
+  description="Deterministic fixture for RelatedArticles tag-overlap ranking"
+  noindex={true}
+>
+  <div class="fixture-main">
+    <h1>Related Articles Ranking Fixture</h1>
+    <RelatedArticles
+      currentSlug="fixture-current"
+      currentTags={['alpha', 'beta', 'gamma']}
+      allPosts={fixturePosts}
+      lang="zh-tw"
+    />
+  </div>
+</BaseLayout>
+
+<style>
+  .fixture-main {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+  }
+</style>
