@@ -2,11 +2,111 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/logx"
 )
+
+func TestCandidateHelpContract(t *testing.T) {
+	resetGlobals()
+	cmd := buildRoot()
+	var out bytes.Buffer
+	cmd.SetOut(&out)
+	cmd.SetErr(&out)
+	cmd.SetArgs([]string{"candidate", "--help"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("candidate --help: %v", err)
+	}
+	help := out.String()
+	for _, phrase := range []string{
+		"yt-dlp",
+		"candidate-manifest.json",
+		"review-only",
+		"never calls an LLM",
+		"writeEligible is not approval",
+		"gp-pipeline run <youtube-url>",
+		"outside this repo",
+	} {
+		if !strings.Contains(help, phrase) {
+			t.Errorf("candidate help missing contract phrase %q", phrase)
+		}
+	}
+}
+
+func TestDoctorJSONReportsMissingYTDLPAsOptionalCapability(t *testing.T) {
+	root := makeFakeRepo(t)
+	mustWrite(t, filepath.Join(root, "scripts", "fetch-x-article.sh"), "#!/bin/sh\n")
+	mustWrite(t, filepath.Join(root, "scripts", "validate-posts.mjs"), "// fixture\n")
+	binDir := t.TempDir()
+	for _, name := range requiredBinaries {
+		if err := os.WriteFile(filepath.Join(binDir, name), []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	t.Setenv("PATH", binDir)
+	t.Setenv("GU_LOG_DIR", root)
+
+	resetGlobals()
+	cmd := buildRoot()
+	cmd.SetArgs([]string{"--json", "doctor"})
+	raw, err := captureProcessStdout(t, func() error {
+		return cmd.Execute()
+	})
+	if err != nil {
+		t.Fatalf("doctor --json: %v\n%s", err, raw)
+	}
+	var report doctorReport
+	if err := json.Unmarshal(raw, &report); err != nil {
+		t.Fatalf("parse doctor JSON: %v\n%s", err, raw)
+	}
+	if !report.OK {
+		t.Fatalf("missing optional yt-dlp must not fail doctor: %#v", report)
+	}
+	var found bool
+	for _, capability := range report.Capabilities {
+		if capability.Name == "youtube-candidate" {
+			found = true
+			if capability.Available || capability.Dependency != "yt-dlp" {
+				t.Fatalf("capability = %#v", capability)
+			}
+		}
+	}
+	if !found {
+		t.Fatal("doctor JSON omitted youtube-candidate capability")
+	}
+}
+
+func TestDoctorHumanReportsYouTubeCapability(t *testing.T) {
+	state := &rootState{log: logx.New()}
+	report := doctorReport{
+		GoVersion: "go-test",
+		GoOS:      "test",
+		GoArch:    "test",
+		RepoRoot:  "/repo",
+		OK:        true,
+		Capabilities: []capabilityCheck{{
+			Name:       "youtube-candidate",
+			Available:  false,
+			Dependency: "yt-dlp",
+			Detail:     "YouTube candidate preflight is unavailable; install yt-dlp",
+		}},
+	}
+	raw, err := captureProcessStdout(t, func() error {
+		printDoctorHuman(state, report)
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	human := string(raw)
+	if !strings.Contains(human, "youtube-candidate") || !strings.Contains(human, "install yt-dlp") {
+		t.Fatalf("human doctor omitted YouTube capability:\n%s", human)
+	}
+}
 
 func TestDeployHelpContract(t *testing.T) {
 	resetGlobals()

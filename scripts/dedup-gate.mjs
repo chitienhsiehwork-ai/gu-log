@@ -5,7 +5,7 @@
  * Single entry point for all article dedup checks.
  *
  * 3 layers:
- *   Layer 1: URL match (normalized + tweet ID extraction + alias map)
+ *   Layer 1: URL match (normalized + tweet/YouTube ID extraction + alias map)
  *   Layer 2: Topic similarity (compound tokens, cross-series Jaccard)
  *   Layer 3: Intra-queue pairwise comparison (--queue flag)
  *
@@ -103,6 +103,11 @@ function normalizeUrl(raw) {
     return url.toLowerCase().replace(/\/+$/, '');
   }
 
+  const youtubeVideoId = extractYouTubeVideoId(url);
+  if (youtubeVideoId) {
+    return `https://youtube.com/watch?v=${youtubeVideoId}`;
+  }
+
   // Strip www / m subdomain
   let host = parsed.hostname.toLowerCase().replace(/^(www|m)\./, '');
 
@@ -148,6 +153,35 @@ function extractTweetId(url) {
   if (!url) return null;
   const match = url.match(/(?:x\.com|twitter\.com)\/[^/]+\/status\/(\d+)/i);
   return match ? match[1] : null;
+}
+
+/** Extract one YouTube video ID across watch / shorts / youtu.be URL forms. */
+function extractYouTubeVideoId(raw) {
+  if (!raw) return null;
+  let parsed;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    return null;
+  }
+  if (!['http:', 'https:'].includes(parsed.protocol) || parsed.username || parsed.password) {
+    return null;
+  }
+  const host = parsed.hostname.toLowerCase().replace(/^www\./, '');
+  let videoId = null;
+  if (host === 'youtu.be') {
+    const parts = parsed.pathname.split('/').filter(Boolean);
+    if (parts.length === 1) videoId = parts[0];
+  } else if (host === 'youtube.com') {
+    if (parsed.pathname.replace(/\/+$/, '') === '/watch') {
+      const values = parsed.searchParams.getAll('v');
+      if (values.length === 1) videoId = values[0];
+    } else {
+      const match = parsed.pathname.match(/^\/shorts\/([^/]+)\/?$/);
+      if (match) videoId = match[1];
+    }
+  }
+  return videoId && /^[A-Za-z0-9_-]{11}$/.test(videoId) ? videoId : null;
 }
 
 // ─── Keyword / similarity utilities ──────────────────────────────────────────
@@ -267,6 +301,7 @@ function loadPublishedArticles() {
     const sourceUrl = data.sourceUrl ?? '';
     const normalizedUrl = normalizeUrl(sourceUrl);
     const tweetId = extractTweetId(sourceUrl);
+    const youtubeVideoId = extractYouTubeVideoId(sourceUrl);
 
     articles.push({
       file,
@@ -276,6 +311,7 @@ function loadPublishedArticles() {
       sourceUrl,
       normalizedUrl,
       tweetId,
+      youtubeVideoId,
       keywordText: `${data.title ?? ''} ${data.summary ?? ''} ${Array.isArray(data.tags) ? data.tags.join(' ') : ''}`,
     });
   }
@@ -290,11 +326,21 @@ function layer1Match(candidateUrl, articles) {
 
   const normCandidate = normalizeUrl(candidateUrl);
   const candidateTweetId = extractTweetId(candidateUrl);
+  const candidateYouTubeVideoId = extractYouTubeVideoId(candidateUrl);
 
   for (const art of articles) {
     // Tweet ID match (x.com vs twitter.com, mobile vs desktop)
     if (candidateTweetId && art.tweetId && candidateTweetId === art.tweetId) {
       return { article: art, reason: 'tweet ID match' };
+    }
+
+    // YouTube identity match (watch vs shorts vs youtu.be).
+    if (
+      candidateYouTubeVideoId &&
+      art.youtubeVideoId &&
+      candidateYouTubeVideoId === art.youtubeVideoId
+    ) {
+      return { article: art, reason: 'YouTube video ID match' };
     }
 
     // Normalized URL exact match
@@ -357,8 +403,14 @@ function layer3QueueCheck(items) {
       const normB = normalizeUrl(b.url);
       const tweetA = extractTweetId(a.url);
       const tweetB = extractTweetId(b.url);
+      const youtubeA = extractYouTubeVideoId(a.url);
+      const youtubeB = extractYouTubeVideoId(b.url);
 
-      if ((tweetA && tweetB && tweetA === tweetB) || (normA && normB && normA === normB)) {
+      if (
+        (tweetA && tweetB && tweetA === tweetB) ||
+        (youtubeA && youtubeB && youtubeA === youtubeB) ||
+        (normA && normB && normA === normB)
+      ) {
         blocked.push({ indexA: i, indexB: j, reason: 'URL match', score: 1.0 });
         continue;
       }
@@ -392,6 +444,7 @@ function parseArgs(argv) {
     series: '',
     queue: [],
     dryRun: false,
+    identityOnly: false,
   };
 
   for (let i = 0; i < argv.length; i++) {
@@ -400,6 +453,8 @@ function parseArgs(argv) {
 
     if (flag === '--dry-run') {
       args.dryRun = true;
+    } else if (flag === '--identity-only') {
+      args.identityOnly = true;
     } else if (flag === '--url' && next) {
       args.url = next;
       i++;
@@ -495,6 +550,11 @@ function main() {
     process.exit(0);
   }
 
+  if (args.identityOnly) {
+    process.stdout.write('PASS\n');
+    process.exit(0);
+  }
+
   // Layer 2: Topic similarity (cross-series — all zh-tw articles)
   const topicResult = layer2Match(args.title, args.tags, articles);
   if (topicResult.verdict === 'BLOCK') {
@@ -530,6 +590,7 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
 export {
   normalizeUrl,
   extractTweetId,
+  extractYouTubeVideoId,
   applyCompounds,
   extractEnKeywords,
   extractCnBigrams,

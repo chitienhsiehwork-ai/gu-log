@@ -64,6 +64,7 @@ It is split into composable subcommands so an agent (or a human) can run
 one step at a time without inheriting the whole pipeline's side effects:
 
   fetch      capture a tweet / article into a work directory
+  candidate  preflight one YouTube video without entering the writing pipeline
   status     inspect an active/recent run from work-dir + repo artifacts
   eval       decide whether a source is GP-worthy
   dedup      check whether the source is already covered
@@ -109,7 +110,7 @@ for the migration history and current operational notes.`,
 	root.PersistentFlags().DurationVar(&flagTimeout, "timeout", 50*time.Minute,
 		"wall-clock timeout for the entire invocation (e.g. 50m, 1h30m)")
 	root.PersistentFlags().StringVar(&flagWorkDir, "work-dir", "",
-		"override the work directory (default: $TMPDIR/gp-pending-<epoch>-pipeline; lives outside the repo; Codex is invoked with --skip-git-repo-check)")
+		"override the work directory (candidate treats it as an external parent and creates a private leaf)")
 	root.PersistentFlags().StringVar(&flagFakeProvider, "fake-provider", "",
 		"(test only) path to a JSON file with canned LLM responses; replaces the real provider chain")
 	_ = root.PersistentFlags().MarkHidden("fake-provider")
@@ -125,6 +126,7 @@ for the migration history and current operational notes.`,
 	// access to the resolved config, logger, and flags.
 	root.AddCommand(newDoctorCmd(state))
 	root.AddCommand(newFetchCmd(state))
+	root.AddCommand(newCandidateCmd(state))
 	root.AddCommand(newStatusCmd(state))
 	root.AddCommand(newCounterCmd(state))
 	root.AddCommand(newDedupCmd(state))

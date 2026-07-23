@@ -14,6 +14,7 @@ import (
 
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/counter"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/pipeline"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/source"
 )
 
 // runReport is the JSON shape emitted by `gp-pipeline run --json`.
@@ -173,6 +174,14 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 	}
 	if opts.TweetURL == "" && opts.ExistingFile == "" && fromStepInt < pipeline.StepWrite {
 		return fmt.Errorf("run: tweet URL is required when not resuming via --file + --from-step")
+	}
+	if opts.TweetURL != "" && fromStepInt <= pipeline.StepFetch && source.IsYouTubeOwnedHostURL(opts.TweetURL) {
+		if _, err := source.ParseYouTubeURL(opts.TweetURL); err != nil {
+			return fmt.Errorf("run: %w", err)
+		}
+		if err := source.RequireYTDLP(); err != nil {
+			return newExitError(10, fmt.Errorf("run: %w", err))
+		}
 	}
 
 	writerDisp, err := buildDispatcherForRole(state, dispatcherWriter)
