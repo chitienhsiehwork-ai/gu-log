@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { evaluateExternalScanHealth, isReservedExampleUrl } from '../scripts/check-links.mjs';
+import {
+  evaluateExternalScanHealth,
+  isManualCheckDomain,
+  isReservedExampleUrl,
+} from '../scripts/check-links.mjs';
 
 const responseFailures = (...statusCodes: number[]) =>
   statusCodes.map((statusCode) => ({ statusCode }));
@@ -22,6 +26,24 @@ describe('broken-link reserved example URL detection', () => {
     '/posts/example.com',
   ])('does not skip a real URL that merely contains example.com: %s', (url) => {
     expect(isReservedExampleUrl(url)).toBe(false);
+  });
+});
+
+describe('broken-link manual-check domain detection', () => {
+  it.each([
+    'https://www.deeplearning.ai/the-batch/issue-341/',
+    'https://deeplearning.ai/courses/agent-skills-with-anthropic',
+    'https://news.ycombinator.com/item?id=46945755',
+  ])('routes a domain with stable CI anti-bot responses to manual review: %s', (url) => {
+    expect(isManualCheckDomain(url)).toBe(true);
+  });
+
+  it.each([
+    'https://ycombinator.com/',
+    'https://news.ycombinator.com.evil.test/item?id=1',
+    'https://example.com/?next=https://www.deeplearning.ai/the-batch/',
+  ])('does not broaden a manual-review exception through substring matching: %s', (url) => {
+    expect(isManualCheckDomain(url)).toBe(false);
   });
 });
 

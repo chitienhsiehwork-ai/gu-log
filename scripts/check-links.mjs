@@ -101,6 +101,10 @@ const MANUAL_CHECK_DOMAINS = [
   'ai.google.dev',
   'datasette.io',
   'adplist.org',
+  // Canonical pages remain browser-reachable but CI GET/HEAD requests are
+  // consistently rejected by domain-level anti-bot controls (403/429).
+  'deeplearning.ai',
+  'news.ycombinator.com',
 ];
 
 // Skip these URL patterns entirely (not real links)
@@ -188,7 +192,7 @@ function isInternalLink(url) {
   return false;
 }
 
-function isManualCheckDomain(url) {
+export function isManualCheckDomain(url) {
   try {
     const hostname = new URL(url).hostname;
     return MANUAL_CHECK_DOMAINS.some((d) => hostname === d || hostname.endsWith('.' + d));
