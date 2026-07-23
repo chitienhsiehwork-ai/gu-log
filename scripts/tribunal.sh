@@ -722,21 +722,23 @@ run_stage() {
 
   local post_path="$ROOT_DIR/src/content/posts/$post_file"
 
-  # Tribunal v8 executes every stage through the active provider: Codex/GPT-5.5
-  # on the VPS/mac, or the judge's declared Claude build in the CCC fallback.
+  # Tribunal executes every stage through the provider resolved for that judge.
   # Agent specs are prompt contracts; the runtime model id (stamped into
-  # progress + frontmatter) comes from this runner so a Claude-scored post is
-  # recorded honestly rather than mislabelled GPT-5.5.
+  # progress + frontmatter) comes from the provider-specific selector.
   local model_id
-  model_id="$(tribunal_llm_model_id "$agent_name")"
+  if ! model_id="$(tribunal_llm_model_id "$agent_name")"; then
+    tlog "ERROR: could not resolve runtime model for '$agent_name'."
+    return 70
+  fi
 
   # Provider-aware runner label for the progress ledger / stage logs /
   # runner-error records. Derived from the same provider resolution as model_id
-  # (not a static codex-gpt-5.5-medium string) so the internal ledger matches
-  # the reader-visible frontmatter: codex stays codex-gpt-5.5-medium, the CCC
-  # Claude fallback records the judge's Claude build instead of lying GPT-5.5.
+  # so the internal ledger matches the reader-visible frontmatter.
   local runner_label
-  runner_label="$(tribunal_runner_label "$agent_name")"
+  if ! runner_label="$(tribunal_runner_label "$agent_name")"; then
+    tlog "ERROR: could not resolve runner label for '$agent_name'."
+    return 70
+  fi
 
   # ── Crash resume: skip already-passed stages ──
   local existing_status
@@ -872,6 +874,17 @@ PROMPT
       mark_article_quota_suspended "$post_file" "$stage_key" "$runner_label" "$attempt" "$quota_reason"
       rm -f "$judge_out" "$actual_provider_file" "$quota_status_file" "$score_tmp"
       return 75
+    fi
+
+    if [ "$judge_rc" -eq 70 ]; then
+      tlog "  RUNNER ERROR: Agent '$agent_name' could not preserve runtime provenance."
+      if [ -s "$judge_out" ]; then
+        head -5 "$judge_out" | while IFS= read -r line; do tlog "    $line"; done
+      fi
+      mark_article_runner_error "$post_file" "$stage_key" "$runner_label" "$attempt" "runner_or_provenance_error"
+      rm -f "$judge_out" "$quota_status_file" "$score_tmp"
+      rm -rf "$actual_provider_file"
+      return 70
     fi
 
     if [ "$judge_rc" -ne 0 ]; then

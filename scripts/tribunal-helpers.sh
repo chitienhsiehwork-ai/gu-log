@@ -401,8 +401,8 @@ tribunal_llm_provider() {
 
 # Agent-aware provider preference for a tribunal judge. Defaults to the global
 # tribunal_llm_provider for every judge EXCEPT vibe-opus-scorer, which prefers
-# Claude so the subjective taste score runs on the owner-pinned Opus build
-# (.claude/agents/vibe-opus-scorer.md model: claude-opus-4-5). The three
+# Claude so the subjective taste score runs on the owner-pinned build declared
+# by `.claude/agents/vibe-opus-scorer.md`. The three
 # objective judges (librarian / fact-checker / fresh-eyes) keep the global
 # default: Codex on mac/VPS, Claude in the CCC codex-absent fallback.
 #
@@ -447,9 +447,47 @@ tribunal_writer_mode() {
   fi
 }
 
-# Parse the `model:` field from a .claude/agents/<name>.md spec so each judge
-# runs on its declared Claude build (vibe/fact-checker on opus, etc.). Falls
-# back to the legacy Opus scorer/writer calibration model when the field is absent.
+# Parse one model selector strictly from the first YAML frontmatter block.
+# Body text is rubric prose and must never become runtime configuration.
+tribunal_claude_frontmatter_model() {
+  local f="$1"
+  [ -f "$f" ] || return 1
+  awk '
+    BEGIN { single_quote = sprintf("%c", 39) }
+    NR == 1 {
+      if ($0 !~ /^---[[:space:]]*$/) exit 1
+      in_frontmatter = 1
+      next
+    }
+    in_frontmatter && /^---[[:space:]]*$/ {
+      in_frontmatter = 0
+      if (model == "") exit 1
+      print model
+      found = 1
+      exit 0
+    }
+    in_frontmatter && /^model:[[:space:]]*/ {
+      if (model != "") exit 1
+      value = $0
+      sub(/^model:[[:space:]]*/, "", value)
+      sub(/[[:space:]]+$/, "", value)
+      first = substr(value, 1, 1)
+      last = substr(value, length(value), 1)
+      if ((first == "\"" && last == "\"") ||
+          (first == single_quote && last == single_quote)) {
+        value = substr(value, 2, length(value) - 2)
+      }
+      if (value !~ /^(opus|sonnet|haiku|fable)$/ &&
+          value !~ /^claude-[A-Za-z0-9._-]+(\[[A-Za-z0-9]+\])?$/) exit 1
+      model = value
+    }
+    END { if (!found) exit 1 }
+  ' "$f"
+}
+
+# Resolve a Claude role selector. Known agent specs must contain valid
+# frontmatter. Legacy or unknown names may reuse the Tribunal writer selector,
+# but no hardcoded Claude model is kept in this shell runtime.
 tribunal_claude_agent_model() {
   local agent_name="$1"
   if [ -z "${REPO_ROOT:-}" ]; then
@@ -458,27 +496,33 @@ tribunal_claude_agent_model() {
   local f="$REPO_ROOT/.claude/agents/$agent_name.md"
   local m=""
   if [ -f "$f" ]; then
-    m="$(awk -F'model:[[:space:]]*' '/^model:/ {print $2; exit}' "$f" | tr -d '"'"'"'[:space:]')"
-  fi
-  if [ -n "$m" ]; then
+    if ! m="$(tribunal_claude_frontmatter_model "$f")"; then
+      printf 'Missing or invalid frontmatter model in %s\n' "$f" >&2
+      return 1
+    fi
     printf '%s\n' "$m"
-  else
-    printf 'claude-opus-4-6\n'
+    return 0
   fi
+  if [ "$agent_name" != "tribunal-writer" ]; then
+    tribunal_claude_agent_model tribunal-writer
+    return
+  fi
+  printf 'Missing Claude agent spec: %s\n' "$f" >&2
+  return 1
 }
 
 # Resolve the floating `opus` alias to its concrete build for RECORDING only.
 # Selection stays on the alias (tribunal_claude_agent_model returns it verbatim
 # so `claude -p --model opus` still floats to Anthropic's latest Opus); this
 # resolver is applied at the recording boundary so frontmatter scores.*.model
-# and the progress ledger stamp the concrete version (e.g. claude-opus-4-8)
-# instead of the opaque literal "opus".
+# and the progress ledger stamp the concrete version instead of an opaque
+# alias.
 #
 # The bash judge path can't cheaply read Claude Code's runtime JSON metadata
 # (the judge writes its score to a file; stdout is only grep'd for quota
 # errors), so we resolve via the single SSOT constant OPUS_ALIAS_CURRENT in
-# scripts/detect-model.mjs. Non-alias ids (claude-opus-4-5, gpt-5.5, …) pass
-# through untouched. Falls back to the input unchanged if node is unavailable.
+# scripts/detect-model.mjs. Non-alias ids pass through untouched. Falls back to
+# the input unchanged if node is unavailable.
 tribunal_resolve_recorded_model() {
   local selector="$1"
   if [ -z "${REPO_ROOT:-}" ]; then
@@ -496,23 +540,25 @@ tribunal_resolve_recorded_model() {
 }
 
 # Programmatic model id stamped into frontmatter scores + progress for the
-# active provider, so a Claude-scored post is recorded honestly instead of
-# being mislabelled GPT-5.5. Optional agent_name yields the judge's declared
-# Claude build; without it, a coarse provider label is returned. When a judge
+# active provider, so a Claude-scored post is not recorded as a Codex run.
+# Optional agent_name yields the judge's declared Claude build; without it, a
+# coarse provider label is returned. When a judge
 # declares the floating `opus` alias, the recorded id is resolved to its
 # concrete build (selection still uses the alias — see tribunal_claude_exec).
 tribunal_llm_model_id() {
   local agent_name="${1:-}"
-  case "$(tribunal_judge_provider "$agent_name" 2>/dev/null)" in
+  local claude_model="" provider=""
+  provider="$(tribunal_judge_provider "$agent_name" 2>/dev/null)" || return 1
+  case "$provider" in
     claude)
-      if [ -n "$agent_name" ]; then
-        tribunal_resolve_recorded_model "$(tribunal_claude_agent_model "$agent_name")"
-      else
-        printf 'claude-opus-4-6\n'
-      fi
+      claude_model="$(tribunal_claude_agent_model "${agent_name:-tribunal-writer}")" || return 1
+      tribunal_resolve_recorded_model "$claude_model"
+      ;;
+    codex)
+      printf '%s\n' "${GP_CODEX_MODEL:-gpt-5.5}"
       ;;
     *)
-      printf '%s\n' "${GP_CODEX_MODEL:-gpt-5.5}"
+      return 1
       ;;
   esac
 }
@@ -521,23 +567,26 @@ tribunal_llm_model_id() {
 # (.score-loop/state/tribunal-progress.json), the stage log lines, and the
 # runner-error records. Shares the exact same provider resolution as the
 # frontmatter model_id (tribunal_llm_provider + tribunal_llm_model_id) so a
-# Claude-scored run is recorded as Claude internally instead of being
-# mislabelled as the codex GPT-5.5 runner — no second provider-detection path.
+# Claude-scored run is recorded as Claude internally — no second
+# provider-detection path.
 #
-# - codex  → codex-gpt-5.5-medium  (byte-for-byte unchanged so VPS/mac
-#            calibration history stays continuous)
+# - codex  → codex-<resolved-model>-medium
 # - claude → the judge's declared Claude build, symmetric to the frontmatter
-#            model_id (e.g. claude-opus-4-6[1m])
+#            model_id
 tribunal_runner_label() {
   local agent_name="${1:-}"
-  local model
-  model="$(tribunal_llm_model_id "$agent_name")"
-  case "$(tribunal_judge_provider "$agent_name" 2>/dev/null)" in
+  local model provider
+  model="$(tribunal_llm_model_id "$agent_name")" || return 1
+  provider="$(tribunal_judge_provider "$agent_name" 2>/dev/null)" || return 1
+  case "$provider" in
     claude)
       printf '%s\n' "$model"
       ;;
-    *)
+    codex)
       printf 'codex-%s-medium\n' "$model"
+      ;;
+    *)
+      return 1
       ;;
   esac
 }
@@ -548,8 +597,8 @@ tribunal_write_actual_provider() {
   local out_file="${TRIBUNAL_ACTUAL_PROVIDER_FILE:-}"
   [ -n "$out_file" ] || return 0
   local model runner
-  model="$(TRIBUNAL_FORCE_PROVIDER="$provider" tribunal_llm_model_id "$agent_name")"
-  runner="$(TRIBUNAL_FORCE_PROVIDER="$provider" tribunal_runner_label "$agent_name")"
+  model="$(TRIBUNAL_FORCE_PROVIDER="$provider" tribunal_llm_model_id "$agent_name")" || return 1
+  runner="$(TRIBUNAL_FORCE_PROVIDER="$provider" tribunal_runner_label "$agent_name")" || return 1
   {
     printf 'provider=%s\n' "$provider"
     printf 'model_id=%s\n' "$model"
@@ -570,10 +619,13 @@ tribunal_claude_exec() {
     REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
   fi
   local agent_file="$REPO_ROOT/.claude/agents/$agent_name.md"
-  local agent_spec=""
-  if [ -f "$agent_file" ]; then
-    agent_spec="$(cat "$agent_file")"
+  local agent_spec="" model=""
+  if [ ! -s "$agent_file" ]; then
+    printf 'Missing Claude agent spec: %s\n' "$agent_file" >&2
+    return 1
   fi
+  model="$(tribunal_claude_agent_model "$agent_name")" || return 1
+  agent_spec="$(cat "$agent_file")" || return 1
   local prompt
   prompt="$(cat <<PROMPT
 You are running inside the gu-log tribunal automation as a non-interactive judge.
@@ -592,8 +644,7 @@ $REPO_ROOT
 $user_prompt
 PROMPT
 )"
-  local model timeout_sec claude_cmd
-  model="$(tribunal_claude_agent_model "$agent_name")"
+  local timeout_sec claude_cmd
   timeout_sec="${TRIBUNAL_CODEX_TIMEOUT_SEC:-3600}"
   claude_cmd="$(tribunal_claude_cmd)" || return 127
   # Permission handling differs by uid:
@@ -636,7 +687,9 @@ tribunal_llm_exec_raw() {
   local work_dir="$1"
   local agent_name="$2"
   local user_prompt="$3"
-  case "$(tribunal_judge_provider "$agent_name" 2>/dev/null)" in
+  local provider=""
+  provider="$(tribunal_judge_provider "$agent_name" 2>/dev/null)" || provider=""
+  case "$provider" in
     claude)
       tribunal_claude_exec "$work_dir" "$agent_name" "$user_prompt"
       ;;
@@ -1071,7 +1124,10 @@ tribunal_codex_exec_watchdog() {
   wait "$pid" || rc=$?
   if [ "$rc" -eq 0 ]; then
     provider="${force_provider:-$(tribunal_judge_provider "$agent_name" 2>/dev/null || true)}"
-    tribunal_write_actual_provider "$provider" "$agent_name"
+    if ! tribunal_write_actual_provider "$provider" "$agent_name"; then
+      printf '[tribunal-watchdog] failed to record provider/model provenance\n' >> "$output_file"
+      return 70
+    fi
     return 0
   fi
   provider="${force_provider:-$(tribunal_judge_provider "$agent_name" 2>/dev/null || true)}"

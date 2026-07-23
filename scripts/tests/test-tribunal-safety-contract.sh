@@ -106,20 +106,20 @@ if ! grep -q 'tribunal_runner_label()' "$HELPERS"; then
   fail "tribunal_runner_label provider-aware helper is missing"
 fi
 if ! grep -q 'codex-%s-medium' "$HELPERS"; then
-  fail "tribunal_runner_label codex path no longer reproduces codex-gpt-5.5-medium"
+  fail "tribunal_runner_label codex path no longer includes the resolved model"
 fi
 if ! grep -q 'runner_label="$(tribunal_runner_label' "$TRIBUNAL"; then
   fail "Tribunal progress runner_label is not resolved through tribunal_runner_label"
 fi
-if grep -Eq 'codex-gpt-5\.5-medium:(factCheck|librarian|freshEyes|vibe)' "$TRIBUNAL"; then
-  fail "STAGES still hardcodes a static codex-gpt-5.5-medium runner_label column"
+if grep -Eq 'codex-[^:[:space:]]+-medium:(factCheck|librarian|freshEyes|vibe)' "$TRIBUNAL"; then
+  fail "STAGES still hardcodes a static Codex runner_label column"
 fi
 pass "Progress ledger runner_label is provider-aware (codex/claude), not a static codex string"
 
-# Per-judge provider resolver (tribunal-per-judge-provider): VibeScorer prefers
-# Claude Opus 4.5 while the three objective judges stay Codex/GPT-5.5. Guard the
-# resolver's existence, its vibe special-case, and that model_id / runner_label /
-# exec_raw / watchdog all route through it.
+# Per-judge provider resolver: VibeScorer prefers Claude while the three
+# objective judges stay Codex. Guard the resolver's existence, its vibe
+# special-case, and that model_id / runner_label / exec_raw / watchdog all
+# route through it.
 if ! grep -q 'tribunal_judge_provider()' "$HELPERS"; then
   fail "tribunal_judge_provider agent-aware resolver is missing"
 fi
@@ -130,6 +130,81 @@ if [ "$(grep -cF 'tribunal_judge_provider "$agent_name"' "$HELPERS")" -lt 4 ]; t
   fail "model_id/runner_label/exec_raw/watchdog do not all route through tribunal_judge_provider"
 fi
 pass "per-judge provider resolver present and wired (vibe=Claude, others=Codex)"
+
+# Missing/legacy agent specs must fall back to the declared Tribunal writer
+# model, not a second hardcoded copy that can drift from agent frontmatter.
+(
+  fixture_root="$(mktemp -d "${TMPDIR:-/tmp}/gu-tribunal-model-ssot.XXXXXX")"
+  trap 'rm -rf "$fixture_root"' EXIT
+  mkdir -p "$fixture_root/.claude/agents"
+  printf '%s\n' '---' 'name: tribunal-writer' 'model: claude-opus-future-fixture' '---' \
+    > "$fixture_root/.claude/agents/tribunal-writer.md"
+  # shellcheck disable=SC1090
+  source "$HELPERS"
+  # shellcheck disable=SC2034 # sourced helpers intentionally read this override
+  REPO_ROOT="$fixture_root"
+  got_fallback="$(tribunal_claude_agent_model missing-legacy-agent)"
+  [ "$got_fallback" = "claude-opus-future-fixture" ] || {
+    echo "x missing agent fallback = '$got_fallback', want tribunal-writer frontmatter model" >&2
+    exit 1
+  }
+) || fail "Claude fallback model drifted from tribunal-writer agent SSOT"
+pass "Claude fallback model is derived from tribunal-writer agent frontmatter"
+
+# Model selection must read only the first YAML frontmatter block and fail
+# before invoking Claude when that block has no usable model declaration.
+(
+  fixture_root="$(mktemp -d "${TMPDIR:-/tmp}/gu-tribunal-model-fail-closed.XXXXXX")"
+  trap 'rm -rf "$fixture_root"' EXIT
+  mkdir -p "$fixture_root/.claude/agents" "$fixture_root/bin"
+  # shellcheck disable=SC1090
+  source "$HELPERS"
+  # shellcheck disable=SC2034 # sourced helpers intentionally read this override
+  REPO_ROOT="$fixture_root"
+
+  printf '%s\n' '---' 'name: tribunal-writer' '---' 'no model here' \
+    > "$fixture_root/.claude/agents/tribunal-writer.md"
+  if tribunal_claude_agent_model tribunal-writer >/dev/null 2>&1; then
+    echo "x writer without a frontmatter model resolved successfully" >&2
+    exit 1
+  fi
+
+  printf '%s\n' '---' 'name: tribunal-writer' '---' 'model: body-only-fixture' \
+    > "$fixture_root/.claude/agents/tribunal-writer.md"
+  if tribunal_claude_agent_model tribunal-writer >/dev/null 2>&1; then
+    echo "x body-only model declaration was accepted as frontmatter" >&2
+    exit 1
+  fi
+
+  for invalid_model in null '"opus' '[opus]' '#comment'; do
+    printf '%s\n' '---' 'name: tribunal-writer' "model: $invalid_model" '---' \
+      > "$fixture_root/.claude/agents/tribunal-writer.md"
+    if tribunal_claude_agent_model tribunal-writer >/dev/null 2>&1; then
+      echo "x invalid model selector '$invalid_model' was accepted" >&2
+      exit 1
+    fi
+  done
+
+  marker="$fixture_root/claude-called"
+  cat > "$fixture_root/bin/claude" <<'FAKE_CLAUDE'
+#!/usr/bin/env bash
+: > "$FAKE_CLAUDE_CALLED"
+exit 0
+FAKE_CLAUDE
+  chmod +x "$fixture_root/bin/claude"
+  printf '%s\n' '---' 'name: tribunal-writer' 'model: null' '---' \
+    > "$fixture_root/.claude/agents/tribunal-writer.md"
+  if PATH="$fixture_root/bin:$PATH" FAKE_CLAUDE_CALLED="$marker" \
+    tribunal_claude_exec "$fixture_root" tribunal-writer 'test prompt' >/dev/null 2>&1; then
+    echo "x Claude exec succeeded without a frontmatter model" >&2
+    exit 1
+  fi
+  if [ -e "$marker" ]; then
+    echo "x fake Claude was invoked before model validation failed" >&2
+    exit 1
+  fi
+) || fail "Claude model parsing/execution is not fail closed"
+pass "Claude model parser is frontmatter-only and exec fails before invocation"
 
 # Behavioral check — only when BOTH codex and claude binaries are present (mac/
 # VPS). vibe=Claude is guaranteed only in that case; a box missing claude
