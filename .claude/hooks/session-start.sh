@@ -6,15 +6,29 @@
 # 忘了就踩「hook 沒跑就 commit」這類本該擋掉的問題。這支 hook 在 session 一
 # 開始就把環境補好，未來 CCC 一醒來就能直接開工。
 #
-# 只在 Claude Code on the web（CCC）跑——mac-CC 自己管 local env，不要插手。
+# 所有 Claude Code session 都先注入 compact identity context；只有 CCC 才做
+# provisioning。SessionStart stdout 會進 Claude context，所以失敗時必須給可執行的
+# fallback，不能只把錯誤丟到 debug log。
 set -uo pipefail
 
-# 非 remote（= mac-CC / local）直接跳過，零干擾。
-if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ]; then
+project_dir="${CLAUDE_PROJECT_DIR:-.}"
+if ! cd "$project_dir"; then
+  printf '\nWARNING: gu-log SessionStart 無法進入 CLAUDE_PROJECT_DIR=%s。\n' "$project_dir"
+  printf 'Fallback: 先讀 AGENTS.md，再跑 ./scripts/detect-env.sh --runtime claude-code --context。\n'
   exit 0
 fi
 
-cd "${CLAUDE_PROJECT_DIR:-.}" || exit 0
+context_status=0
+bash scripts/detect-env.sh --runtime claude-code --context || context_status=$?
+if [ "$context_status" -ne 0 ]; then
+  printf '\nWARNING: gu-log SessionStart context unavailable (exit %s)。\n' "$context_status"
+  printf 'Fallback: 先讀 AGENTS.md，再跑 ./scripts/detect-env.sh --runtime claude-code --context。\n'
+fi
+
+# 非 remote（= mac-CC / local）只需要 context，不插手本機環境。
+if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ]; then
+  exit 0
+fi
 
 # --fix 會補 deps（node_modules 缺才裝）+ 掛 git hooks + 背景非同步下載
 # Playwright chromium（CCC sandbox 不預裝，~100MB，不擋開場），全程 idempotent。
