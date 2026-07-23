@@ -22,9 +22,9 @@
 - [x] 4.1 新增假的 `yt-dlp` 測試資料，覆蓋人工＋自動、多語言、無字幕、過短、超限、缺 metadata、直播、無效 URL 與找不到執行檔
 - [x] 4.2 新增清單原子性、結束碼、穩定失敗、雜湊、過期產物、跨 URL 形式的影片 ID 防重複 PASS／BLOCK 與逾時／中斷測試
 - [x] 4.3 新增端到端異動測試，比對候選預審前後 HEAD／refs、Git index、所有 tracked 與既有 untracked 檔案的 path／content hash／mode、untracked set，且假的 LLM／git／發布執行檔被呼叫即失敗
-- [ ] 4.4 跑 gp-pipeline 全套 Go tests、CLI help 契約、OpenSpec validation 與 repo pre-commit／pre-push 關卡
+- [x] 4.4 跑 gp-pipeline 全套 Go tests、CLI help 契約、OpenSpec validation 與 repo pre-commit／pre-push 關卡
 
 ## 5. 審查與封存
 
-- [ ] 5.1 完成獨立正確性／安全性審查與簡化審查，修完所有阻擋問題
+- [x] 5.1 完成獨立正確性／安全性審查與簡化審查，修完所有阻擋問題
 - [ ] 5.2 同步 `youtube-candidate-preflight` delta spec、封存 change，確認 OpenSpec ownership／archive 關卡通過
