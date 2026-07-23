@@ -27,4 +27,4 @@
 ## 5. 審查與封存
 
 - [x] 5.1 完成獨立正確性／安全性審查與簡化審查，修完所有阻擋問題
-- [ ] 5.2 同步 `youtube-candidate-preflight` delta spec、封存 change，確認 OpenSpec ownership／archive 關卡通過
+- [x] 5.2 同步 `youtube-candidate-preflight` delta spec、封存 change，確認 OpenSpec ownership／archive 關卡通過
