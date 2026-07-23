@@ -2,7 +2,7 @@
 
 > AI / Tech 繁中翻譯與原創 blog；production：<https://gu-log.vercel.app/>。
 
-這是所有 agent 共讀的 Tier-0：只放每次都會影響行為的邊界與路由；詳細規則按下方指標讀權威來源。
+這個檔案只放每次都會影響行為的邊界與路由；詳細規則依下方指標讀 SSOT。
 
 ## 啟動與使用者意圖
 
@@ -39,7 +39,7 @@
 - 編輯回饋語料庫：[`docs/shroomdog-editorial-feedback.md`](docs/shroomdog-editorial-feedback.md)
 - Obsidian 草稿匯入：[`OBSIDIAN_SETUP.md`](OBSIDIAN_SETUP.md)
 
-## 維護這份 Tier-0
+## 維護這份檔案
 
 - 新增或修改敘述前，先用 `git log` / `git blame` 查它何時、為何出現，再比對最新程式碼、設定、`OpenSpec` 與權威文件。
 - 程式碼、設定、`OpenSpec` 是權威端；本檔與操作手冊只提供路由與政策。會變的數字、model ID、工具名稱、環境快照與操作步驟只放權威端，本檔只留指標。
