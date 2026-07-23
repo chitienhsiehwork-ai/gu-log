@@ -1,5 +1,7 @@
 # Review: Tribunal Score Schema Spec
 
+> **狀態：** 歷史快照。這份 review 記錄 2026-04-07 當時的設計審查；其中檔案路徑、行號與驗收條件不得作為現行契約。現行 Tribunal 契約以 [`docs/tribunal-runbook.md`](../docs/tribunal-runbook.md)、[`scripts/vibe-scoring-standard.md`](../scripts/vibe-scoring-standard.md) 與實際程式碼為準。
+
 **Reviewer**: Reviewer (Opus)
 **Date**: 2026-04-07
 **Spec under review**: `specs/tribunal-score-schema.md`

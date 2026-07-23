@@ -19,6 +19,7 @@
 
 - **PR scope 可以大、可以雜**。做任務時順手修相關的東西，不用 split PR。
 - **Commit 內部維持 atomic**（一個 commit 做一件事）——revert 時才好下刀。這是放手做事的保險。
+- Commit 的作者名稱必須可辨識實際執行的 model；不要使用會抹去來源的通用 agent 名稱。各執行環境都用當前 model 的身分設定。
 - 不要把「改 import script + 升 astro + 改 CSS + 加新頁」塞同一個 commit——revert 一個會連累其他四個。
 - **Resumed session 的簽章雷**：session resume 後 git 的 signing key / committer email 可能是空檔，commit 會變 Unverified、反覆絆 stop hook。照 hook 訊息修（`git config user.email noreply@anthropic.com` + `git commit --amend --no-edit --reset-author`）再 push；不要跟 hook 打架、也不要為了省事跳過。
 
