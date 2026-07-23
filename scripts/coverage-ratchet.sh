@@ -3,7 +3,7 @@
 # Compares current coverage against baseline and enforces non-regression.
 # - If coverage drops more than 5% below baseline → FAIL
 # - If coverage improves → update baseline (ratchet up)
-# - Always appends to coverage-history.json
+# - Records one coverage-history.json entry per UTC day
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -97,8 +97,9 @@ check_metric "Lines" "$BASELINE_LINES" "$CURRENT_LINES"
 
 echo ""
 
-# Append to history
-TODAY=$(date +%Y-%m-%d)
+# Record history; same-day reruns replace the earlier measurement instead of
+# creating a duplicate entry and an unnecessary staging branch.
+TODAY=$(date -u +%Y-%m-%d)
 HISTORY_ENTRY=$(jq -n \
   --arg date "$TODAY" \
   --argjson statements "$CURRENT_STATEMENTS" \
@@ -107,13 +108,7 @@ HISTORY_ENTRY=$(jq -n \
   --argjson lines "$CURRENT_LINES" \
   '{date: $date, statements: $statements, branches: $branches, functions: $functions, lines: $lines}')
 
-if [ -f "$HISTORY_FILE" ]; then
-  jq --argjson entry "$HISTORY_ENTRY" '. + [$entry]' "$HISTORY_FILE" > "${HISTORY_FILE}.tmp"
-  mv "${HISTORY_FILE}.tmp" "$HISTORY_FILE"
-else
-  echo "[$HISTORY_ENTRY]" > "$HISTORY_FILE"
-fi
-echo "📝 Appended to coverage history."
+node "$SCRIPT_DIR/record-coverage-history.mjs" "$HISTORY_FILE" "$HISTORY_ENTRY"
 
 # Ratchet: if improved, update baseline
 if [ "$IMPROVED" -eq 1 ] && [ "$FAIL" -eq 0 ]; then
