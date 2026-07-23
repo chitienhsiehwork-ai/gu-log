@@ -1,8 +1,10 @@
 # Spec: Tribunal Score Schema
 
+> 這是 2026-04-07 的歷史快照；其中檔案路徑、行號與驗收條件不得作為現行契約。現行 Tribunal 契約以 [`docs/tribunal-runbook.md`](../docs/tribunal-runbook.md)、[`scripts/vibe-scoring-standard.md`](../scripts/vibe-scoring-standard.md) 與實際程式碼為準。
+
 **Author**: Planner (Opus)
 **Date**: 2026-04-07
-**Status**: FINAL — pending CEO approval
+**Status**: 歷史快照（原狀態：最終版，待 CEO 核准）
 **Requested by**: CEO
 **Parent spec**: `specs/tribunal-all-claude-migration.md` Section G
 **Review**: `specs/review-tribunal-score-schema.md`
