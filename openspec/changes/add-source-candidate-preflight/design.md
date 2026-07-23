@@ -37,7 +37,7 @@ Manifest 使用 versioned JSON schema，至少記錄 raw input URL、nullable ca
 
 `writeEligible` 只代表 source completeness 與 dedup gates 都允許進一步人工考慮，不代表已獲批准。任何 promotion 都是另一次明確的 `gp-pipeline run <url>`，不從 candidate artifact自動 resume。
 
-CLI exit contract 與 manifest 分工如下：完整跑完預審（包含沒有字幕、字幕過短／超限等可審閱結果）回 0，呼叫端以 `writeEligible` 判斷；video-ID dedup BLOCK 回既有 13；dependency／acquisition 技術失敗回 10；輸入／workdir contract 錯誤回 1；逾時沿用 124。除 workdir 無法建立外，非 0 結果也必須留下 failure manifest。
+CLI exit contract 與 manifest 分工如下：完整跑完預審（包含沒有字幕、字幕過短／超限等可審閱結果）回 0，呼叫端以 `writeEligible` 判斷；video-ID dedup BLOCK 回既有 13；dependency／acquisition 技術失敗回 10；輸入／workdir contract 錯誤回 1；逾時沿用 124。除尚未建立可確認位於 repo 外且可寫的安全 workdir 外，非 0 結果也必須留下 failure manifest，且不得改寫其他 fallback 位置。
 
 ### YouTube 使用 allowlist parser 與 structured partial result
 
