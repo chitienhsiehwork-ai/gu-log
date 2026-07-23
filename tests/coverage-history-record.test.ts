@@ -1,6 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { resolve } from 'node:path';
 
-import { upsertCoverageHistory } from '../scripts/record-coverage-history.mjs';
+const SCRIPT = resolve(import.meta.dirname, '../scripts/record-coverage-history.sh');
+const temporaryDirectories: string[] = [];
 
 const entry = (date: string, statements: number) => ({
   date,
@@ -10,37 +15,81 @@ const entry = (date: string, statements: number) => ({
   lines: statements,
 });
 
-describe('coverage history recording', () => {
-  it('replaces an existing entry from the same day', () => {
-    const history = [entry('2026-07-22', 54), entry('2026-07-23', 55)];
+function makeHistoryFile(historyText: string): string {
+  const directory = mkdtempSync(resolve(tmpdir(), 'coverage-history-'));
+  temporaryDirectories.push(directory);
+  const filePath = resolve(directory, 'history.json');
+  writeFileSync(filePath, historyText);
+  return filePath;
+}
 
-    expect(upsertCoverageHistory(history, entry('2026-07-23', 56))).toEqual([
+function record(filePath: string, value: ReturnType<typeof entry>): void {
+  execFileSync('bash', [SCRIPT, filePath, JSON.stringify(value)]);
+}
+
+afterEach(() => {
+  for (const directory of temporaryDirectories.splice(0)) {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+describe('coverage history recording', () => {
+  it('is byte-stable when a same-day measurement is unchanged', () => {
+    const original = `[
+  {
+    "date": "2026-02-12",
+    "statements": 74.63,
+    "branches": 42.99,
+    "functions": 37.50,
+    "lines": 86.62
+  },
+  {
+    "date": "2026-07-23",
+    "statements": 55,
+    "branches": 30,
+    "functions": 35,
+    "lines": 55
+  }
+]
+`;
+    const filePath = makeHistoryFile(original);
+
+    record(filePath, entry('2026-07-23', 55));
+
+    expect(readFileSync(filePath, 'utf8')).toBe(original);
+  });
+
+  it('replaces all existing entries from the same day', () => {
+    const filePath = makeHistoryFile(
+      `${JSON.stringify(
+        [entry('2026-07-22', 54), entry('2026-07-23', 55), entry('2026-07-23', 56)],
+        null,
+        2
+      )}\n`
+    );
+
+    record(filePath, entry('2026-07-23', 57));
+
+    expect(JSON.parse(readFileSync(filePath, 'utf8'))).toEqual([
       entry('2026-07-22', 54),
-      entry('2026-07-23', 56),
+      entry('2026-07-23', 57),
     ]);
   });
 
-  it('repairs duplicate same-day entries left by earlier runs', () => {
-    const history = [entry('2026-07-22', 54), entry('2026-07-23', 55), entry('2026-07-23', 56)];
-
-    const result = upsertCoverageHistory(history, entry('2026-07-23', 57));
-
-    expect(result).toEqual([entry('2026-07-22', 54), entry('2026-07-23', 57)]);
-    expect(result.filter(({ date }) => date === '2026-07-23')).toHaveLength(1);
-  });
-
   it('appends a measurement from a new day', () => {
-    const history = [entry('2026-07-22', 54)];
+    const filePath = makeHistoryFile(`${JSON.stringify([entry('2026-07-22', 54)], null, 2)}\n`);
 
-    expect(upsertCoverageHistory(history, entry('2026-07-23', 55))).toEqual([
+    record(filePath, entry('2026-07-23', 55));
+
+    expect(JSON.parse(readFileSync(filePath, 'utf8'))).toEqual([
       entry('2026-07-22', 54),
       entry('2026-07-23', 55),
     ]);
   });
 
   it('fails closed when the history is not an array', () => {
-    expect(() => upsertCoverageHistory({}, entry('2026-07-23', 55))).toThrow(
-      'coverage history must be an array'
-    );
+    const filePath = makeHistoryFile('{}\n');
+
+    expect(() => record(filePath, entry('2026-07-23', 55))).toThrow();
   });
 });

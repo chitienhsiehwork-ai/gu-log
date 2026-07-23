@@ -108,7 +108,7 @@ HISTORY_ENTRY=$(jq -n \
   --argjson lines "$CURRENT_LINES" \
   '{date: $date, statements: $statements, branches: $branches, functions: $functions, lines: $lines}')
 
-node "$SCRIPT_DIR/record-coverage-history.mjs" "$HISTORY_FILE" "$HISTORY_ENTRY"
+bash "$SCRIPT_DIR/record-coverage-history.sh" "$HISTORY_FILE" "$HISTORY_ENTRY"
 
 # Ratchet: if improved, update baseline
 if [ "$IMPROVED" -eq 1 ] && [ "$FAIL" -eq 0 ]; then
