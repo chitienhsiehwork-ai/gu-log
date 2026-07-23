@@ -15,6 +15,7 @@ import TicketBadge from '../../../components/TicketBadge.astro';
 import Giscus from '../../../components/Giscus.astro';
 import ShareButton from '../../../components/ShareButton.astro';
 import AiPopup from '../../../components/AiPopup.astro';
+import LoginCta from '../../../components/LoginCta.astro';
 import ReadStatusButton from '../../../components/ReadStatusButton.astro';
 import AiJudgeScore from '../../../components/AiJudgeScore.astro';
 import { getPostAuthorshipNote } from '../../../utils/post-authorship-notes';
@@ -229,6 +230,8 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
       postVersion={Number(postVersion)}
       pathname={Astro.url.pathname}
     />
+
+    <LoginCta lang="en" />
 
     {
       post.data.series ? (
