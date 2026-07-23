@@ -34,7 +34,7 @@ afterEach(() => {
 });
 
 describe('coverage history recording', () => {
-  it('is byte-stable when a same-day measurement is unchanged', () => {
+  it('preserves the first same-day measurement byte-for-byte even when a rerun jitters', () => {
     const original = `[
   {
     "date": "2026-02-12",
@@ -54,12 +54,12 @@ describe('coverage history recording', () => {
 `;
     const filePath = makeHistoryFile(original);
 
-    record(filePath, entry('2026-07-23', 55));
+    record(filePath, entry('2026-07-23', 57));
 
     expect(readFileSync(filePath, 'utf8')).toBe(original);
   });
 
-  it('replaces all existing entries from the same day', () => {
+  it('collapses duplicate dates to their first measurement and becomes byte-stable', () => {
     const filePath = makeHistoryFile(
       `${JSON.stringify(
         [entry('2026-07-22', 54), entry('2026-07-23', 55), entry('2026-07-23', 56)],
@@ -72,7 +72,29 @@ describe('coverage history recording', () => {
 
     expect(JSON.parse(readFileSync(filePath, 'utf8'))).toEqual([
       entry('2026-07-22', 54),
-      entry('2026-07-23', 57),
+      entry('2026-07-23', 55),
+    ]);
+
+    const cleaned = readFileSync(filePath, 'utf8');
+    record(filePath, entry('2026-07-23', 58));
+    expect(readFileSync(filePath, 'utf8')).toBe(cleaned);
+  });
+
+  it('cleans duplicates from an earlier date before appending a new daily snapshot', () => {
+    const filePath = makeHistoryFile(
+      `${JSON.stringify(
+        [entry('2026-07-18', 40), entry('2026-07-18', 41), entry('2026-07-22', 54)],
+        null,
+        2
+      )}\n`
+    );
+
+    record(filePath, entry('2026-07-23', 55));
+
+    expect(JSON.parse(readFileSync(filePath, 'utf8'))).toEqual([
+      entry('2026-07-18', 40),
+      entry('2026-07-22', 54),
+      entry('2026-07-23', 55),
     ]);
   });
 
@@ -88,8 +110,10 @@ describe('coverage history recording', () => {
   });
 
   it('fails closed when the history is not an array', () => {
-    const filePath = makeHistoryFile('{}\n');
+    const original = '{}\n';
+    const filePath = makeHistoryFile(original);
 
     expect(() => record(filePath, entry('2026-07-23', 55))).toThrow();
+    expect(readFileSync(filePath, 'utf8')).toBe(original);
   });
 });
