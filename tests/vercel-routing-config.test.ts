@@ -38,6 +38,21 @@ const EXPECTED_LISTING_REDIRECTS: Array<[string, string]> = [
   ['/en/clawd-picks/:page(\\d+)', '/en/mogu-picks/:page'],
 ];
 
+describe('vercel.mjs Git deployment policy', () => {
+  it('disables previews only for GitHub Actions Dependabot branches', () => {
+    expect(config.git?.deploymentEnabled).toEqual({
+      'dependabot/github_actions/**': false,
+    });
+  });
+
+  it('leaves main, feature, and npm Dependabot branches on Vercel defaults', () => {
+    const policy = config.git?.deploymentEnabled ?? {};
+    for (const branch of ['main', 'feature/example', 'dependabot/npm_and_yarn/example']) {
+      expect(Object.hasOwn(policy, branch), `${branch} must stay unspecified`).toBe(false);
+    }
+  });
+});
+
 describe('vercel.mjs redirect config — full manifest coverage', () => {
   it('produces exactly one redirect per manifest entry plus the 8 listing rules', () => {
     expect(manifest.entries.length).toBe(manifest.counts.files);

@@ -176,4 +176,13 @@ function loadManifest(manifestPath = MANIFEST_PATH) {
   return JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 }
 
-export const config = buildRedirectConfig(loadManifest());
+export const config = {
+  ...buildRedirectConfig(loadManifest()),
+  git: {
+    deploymentEnabled: {
+      // GitHub CI fully validates workflow-only Dependabot updates; skipping
+      // their site previews preserves the single Hobby build slot for code PRs.
+      'dependabot/github_actions/**': false,
+    },
+  },
+};
