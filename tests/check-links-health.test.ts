@@ -199,7 +199,7 @@ describe('broken-link external scan health', () => {
 });
 
 describe('broken-link external scan scheduling', () => {
-  it('checks each exact URL once, then fans results out in source order', async () => {
+  it('checks each exact URL once per pass, then fans results out in source order', async () => {
     const links = [
       { url: 'https://one.test/post', file: 'first.mdx', context: 'first' },
       { url: 'https://two.test/post', file: 'second.mdx', context: 'second' },
@@ -229,6 +229,7 @@ describe('broken-link external scan scheduling', () => {
       'https://one.test/post',
       'https://two.test/post',
       'https://three.test/post',
+      'https://three.test/post',
     ]);
     expect(progress).toEqual([
       [1, 3],
@@ -244,6 +245,64 @@ describe('broken-link external scan scheduling', () => {
       ok: 1,
       broken: [{ statusCode: 404, error: undefined }],
       timedOut: 1,
+    });
+  });
+
+  it('confirms final timeouts and 429s once after the primary pass', async () => {
+    const links = [
+      { url: 'https://timeout.test/post', file: 'first.mdx', context: 'first' },
+      { url: 'https://limited.test/post', file: 'second.mdx', context: 'second' },
+      { url: 'https://missing.test/post', file: 'third.mdx', context: 'third' },
+      { url: 'https://timeout.test/post', file: 'fourth.mdx', context: 'fourth' },
+    ];
+    const calls: string[] = [];
+    const results = new Map([
+      [
+        'https://timeout.test/post',
+        [
+          { status: 'timeout', error: 'Request timed out' },
+          { status: 'ok', code: 200 },
+        ],
+      ],
+      [
+        'https://limited.test/post',
+        [
+          { status: 'broken', code: 429 },
+          { status: 'broken', code: 404 },
+        ],
+      ],
+      ['https://missing.test/post', [{ status: 'broken', code: 404 }]],
+    ]);
+
+    const scan = await scanExternalLinks(links, async (url: string) => {
+      calls.push(url);
+      const result = results.get(url)?.shift();
+      if (!result) throw new Error(`Missing fake result for ${url}`);
+      return result;
+    });
+
+    expect(calls).toEqual([
+      'https://timeout.test/post',
+      'https://limited.test/post',
+      'https://missing.test/post',
+      'https://timeout.test/post',
+      'https://limited.test/post',
+    ]);
+    expect(scan.externalOk).toEqual([links[0], links[3]]);
+    expect(scan.externalBroken).toEqual([
+      { ...links[1], statusCode: 404, error: undefined },
+      { ...links[2], statusCode: 404, error: undefined },
+    ]);
+    expect(scan.externalTimeout).toEqual([]);
+    expect(scan.externalManual).toEqual([]);
+    expect(scan.health).toEqual({
+      attempted: 3,
+      ok: 1,
+      broken: [
+        { statusCode: 404, error: undefined },
+        { statusCode: 404, error: undefined },
+      ],
+      timedOut: 0,
     });
   });
 

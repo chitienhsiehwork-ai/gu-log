@@ -69,6 +69,7 @@ const MAX_RETRIES = 1;
 const EXTERNAL_FAILURE_REJECTION_RATIO = 0.5;
 const MIN_EXTERNAL_FAILURES_FOR_OUTAGE = 5;
 const INDETERMINATE_HTTP_STATUSES = new Set([403, 429]);
+const CONFIRMATION_HTTP_STATUSES = new Set([429]);
 
 // Domains that are bot-hostile → needsManualCheck
 const MANUAL_CHECK_DOMAINS = [
@@ -334,13 +335,33 @@ export async function scanExternalLinks(
   const uniqueUrls = [...new Set(links.map((link) => link.url))];
   const resultByUrl = new Map();
 
-  for (const [index, url] of uniqueUrls.entries()) {
-    const result = await checker(url);
+  function validateResult(url, result) {
     if (!['ok', 'broken', 'timeout'].includes(result?.status)) {
       throw new Error(`External link checker returned an invalid result for ${url}`);
     }
-    resultByUrl.set(url, result);
+    return result;
+  }
+
+  for (const [index, url] of uniqueUrls.entries()) {
+    resultByUrl.set(url, validateResult(url, await checker(url)));
     onProgress?.(index + 1, uniqueUrls.length);
+  }
+
+  // A timeout or rate limit after the immediate retry still does not describe
+  // the canonical URL reliably. Once the full pass is complete, recheck only
+  // those unique URLs once. This bounded deferred confirmation absorbs brief
+  // network jitter without guessing from historical baseline counts; a second
+  // indeterminate result remains visible and is persisted honestly.
+  const confirmationUrls = [...resultByUrl]
+    .filter(
+      ([, result]) =>
+        result.status === 'timeout' ||
+        (result.status === 'broken' && CONFIRMATION_HTTP_STATUSES.has(result.code))
+    )
+    .map(([url]) => url);
+
+  for (const url of confirmationUrls) {
+    resultByUrl.set(url, validateResult(url, await checker(url)));
   }
 
   const externalOk = [];
