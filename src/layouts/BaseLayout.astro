@@ -166,6 +166,16 @@ const finalDescription = description || t.defaultDescription;
         white-space: nowrap;
       }
 
+      @media (max-width: 389px) {
+        .site-title-text {
+          display: none;
+        }
+
+        .header-avatar {
+          margin-right: 0;
+        }
+      }
+
       .site-nav {
         display: flex;
         align-items: center;
@@ -414,7 +424,7 @@ const finalDescription = description || t.defaultDescription;
     <ReadingProgress />
     <div class="container">
       <header class="site-header">
-        <a href={t.homeLink} class="site-title"
+        <a href={t.homeLink} class="site-title" aria-label={t.siteTitle}
           ><img src="/gu-log-icon-trimmed.png" alt="" class="header-avatar" /><span
             class="site-title-text">{t.siteTitle}</span
           ></a
@@ -423,7 +433,7 @@ const finalDescription = description || t.defaultDescription;
           <span class="nav-icons">
             <SearchBar lang={lang} />
             <LanguageToggle currentLang={lang} currentPath={currentPath} />
-            <ThemeToggle />
+            <ThemeToggle lang={lang} />
             <button
               class="hamburger-btn"
               id="hamburger-btn"

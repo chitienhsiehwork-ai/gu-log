@@ -3,9 +3,26 @@
  * Theme Toggle - Switch between dark and solarized light
  * Using minimal SVG icons instead of emoji
  */
+
+interface Props {
+  lang: 'zh-tw' | 'en';
+}
+
+const { lang } = Astro.props;
+const labels =
+  lang === 'zh-tw'
+    ? { toLight: '切換為淺色主題', toDark: '切換為深色主題' }
+    : { toLight: 'Switch to light theme', toDark: 'Switch to dark theme' };
 ---
 
-<button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+<button
+  class="theme-toggle"
+  id="theme-toggle"
+  aria-label={labels.toLight}
+  title={labels.toLight}
+  data-label-light={labels.toLight}
+  data-label-dark={labels.toDark}
+>
   <svg
     class="icon-sun"
     xmlns="http://www.w3.org/2000/svg"
@@ -56,6 +73,11 @@
   function setTheme(theme: 'dark' | 'light') {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
+    const nextLabel = theme === 'dark' ? toggle?.dataset.labelLight : toggle?.dataset.labelDark;
+    if (nextLabel) {
+      toggle?.setAttribute('aria-label', nextLabel);
+      toggle?.setAttribute('title', nextLabel);
+    }
   }
 
   setTheme(getPreferredTheme());
@@ -63,8 +85,6 @@
   toggle?.addEventListener('click', () => {
     const current = document.documentElement.getAttribute('data-theme');
     setTheme(current === 'dark' ? 'light' : 'dark');
-    // Remove focus to prevent stuck state
-    (toggle as HTMLButtonElement).blur();
   });
 </script>
 
