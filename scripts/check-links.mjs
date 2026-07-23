@@ -68,6 +68,7 @@ const REQUEST_TIMEOUT = 10_000; // 10s
 const MAX_RETRIES = 1;
 const EXTERNAL_FAILURE_REJECTION_RATIO = 0.5;
 const MIN_EXTERNAL_FAILURES_FOR_OUTAGE = 5;
+const INDETERMINATE_HTTP_STATUSES = new Set([403, 429]);
 
 // Domains that are bot-hostile → needsManualCheck
 const MANUAL_CHECK_DOMAINS = [
@@ -345,6 +346,7 @@ export async function scanExternalLinks(
   const externalOk = [];
   const externalBroken = [];
   const externalTimeout = [];
+  const externalManual = [];
 
   // Iterate the original occurrence list so baseline/report ordering remains
   // deterministic and every source file still gets its own diagnostic.
@@ -354,6 +356,12 @@ export async function scanExternalLinks(
       externalOk.push(link);
     } else if (result.status === 'timeout') {
       externalTimeout.push({ ...link, error: result.error });
+    } else if (INDETERMINATE_HTTP_STATUSES.has(result.code)) {
+      // A bot rejection or rate limit does not prove the canonical URL is
+      // broken. Keep it visible for manual review while leaving the unique
+      // rejection in health.broken so proxy-wide 403/429 failures still fail
+      // closed instead of replacing a trustworthy baseline.
+      externalManual.push({ ...link, statusCode: result.code });
     } else {
       externalBroken.push({ ...link, statusCode: result.code, error: result.error });
     }
@@ -364,6 +372,7 @@ export async function scanExternalLinks(
     externalOk,
     externalBroken,
     externalTimeout,
+    externalManual,
     health: {
       attempted: uniqueResults.length,
       ok: uniqueResults.filter((result) => result.status === 'ok').length,
@@ -464,7 +473,7 @@ async function main() {
   // Classify
   const internal = allLinks.filter((l) => isInternalLink(l.url));
   const external = allLinks.filter((l) => !isInternalLink(l.url));
-  const manualCheck = external.filter((l) => isManualCheckDomain(l.url));
+  const domainManualCheck = external.filter((l) => isManualCheckDomain(l.url));
   const autoCheck = external.filter((l) => !isManualCheckDomain(l.url));
   const uniqueAutoCheckCount = new Set(autoCheck.map((link) => link.url)).size;
 
@@ -472,7 +481,7 @@ async function main() {
   console.log(
     `  🌐 External (auto-check): ${autoCheck.length} references / ${uniqueAutoCheckCount} unique URLs`
   );
-  console.log(`  🔒 External (manual-check): ${manualCheck.length}`);
+  console.log(`  🔒 External (domain manual-check): ${domainManualCheck.length}`);
   console.log();
 
   // Validate internal links
@@ -495,6 +504,7 @@ async function main() {
   let externalOk = [];
   let externalBroken = [];
   let externalTimeout = [];
+  let externalManual = [];
   let externalHealth = {
     attempted: uniqueAutoCheckCount,
     ok: 0,
@@ -511,9 +521,17 @@ async function main() {
         process.stdout.write(`\r  Progress: ${checked}/${total} unique URLs`);
       }
     });
-    ({ externalOk, externalBroken, externalTimeout, health: externalHealth } = scan);
+    ({
+      externalOk,
+      externalBroken,
+      externalTimeout,
+      externalManual,
+      health: externalHealth,
+    } = scan);
     console.log(); // newline after progress
   }
+
+  const manualCheck = [...domainManualCheck, ...externalManual];
 
   const externalScanHealth = evaluateExternalScanHealth({
     internalOnly,
@@ -573,7 +591,9 @@ async function main() {
   }
 
   if (manualCheck.length > 0) {
-    console.log(`\n🔒 Needs Manual Check (${manualCheck.length} links from bot-hostile domains):`);
+    console.log(
+      `\n🔒 Needs Manual Check (${manualCheck.length} links from bot-hostile domains or indeterminate HTTP responses):`
+    );
     // Group by domain
     const byDomain = {};
     for (const l of manualCheck) {
@@ -628,6 +648,7 @@ async function main() {
               url: l.url,
               file: l.file,
               context: l.context,
+              statusCode: l.statusCode,
             })),
           },
         }),

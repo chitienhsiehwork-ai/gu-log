@@ -101,6 +101,23 @@ describe('broken-link external scan health', () => {
     });
   });
 
+  it('GIVEN a mostly healthy scan with a few 403/429 responses WHEN health is evaluated THEN it is accepted', () => {
+    const result = evaluateExternalScanHealth({
+      internalOnly: false,
+      attempted: 10,
+      ok: 8,
+      broken: responseFailures(403, 429),
+      timedOut: 0,
+    });
+
+    expect(result).toMatchObject({
+      healthy: true,
+      responseFailures: 2,
+      totalFailures: 2,
+      failureRatio: 0.2,
+    });
+  });
+
   it('GIVEN HTTP response failures exactly reach the ratio boundary WHEN health is evaluated THEN it is rejected', () => {
     const result = evaluateExternalScanHealth({
       internalOnly: false,
@@ -221,10 +238,57 @@ describe('broken-link external scan scheduling', () => {
     expect(scan.externalOk).toEqual([links[0], links[2]]);
     expect(scan.externalBroken).toEqual([{ ...links[1], statusCode: 404, error: undefined }]);
     expect(scan.externalTimeout).toEqual([{ ...links[3], error: 'Request timed out' }]);
+    expect(scan.externalManual).toEqual([]);
     expect(scan.health).toEqual({
       attempted: 3,
       ok: 1,
       broken: [{ statusCode: 404, error: undefined }],
+      timedOut: 1,
+    });
+  });
+
+  it('routes 403/429 occurrences to manual review without weakening unique scan health', async () => {
+    const links = [
+      { url: 'https://denied.test/post', file: 'first.mdx', context: 'first' },
+      { url: 'https://throttled.test/post', file: 'second.mdx', context: 'second' },
+      { url: 'https://denied.test/post', file: 'third.mdx', context: 'third' },
+      { url: 'https://missing.test/post', file: 'fourth.mdx', context: 'fourth' },
+      { url: 'https://transport.test/post', file: 'fifth.mdx', context: 'fifth' },
+      { url: 'https://timeout.test/post', file: 'sixth.mdx', context: 'sixth' },
+    ];
+    const results = new Map([
+      ['https://denied.test/post', { status: 'broken', code: 403 }],
+      ['https://throttled.test/post', { status: 'broken', code: 429 }],
+      ['https://missing.test/post', { status: 'broken', code: 404 }],
+      ['https://transport.test/post', { status: 'broken', error: 'fetch failed' }],
+      ['https://timeout.test/post', { status: 'timeout', error: 'Request timed out' }],
+    ]);
+
+    const scan = await scanExternalLinks(links, async (url: string) => {
+      const result = results.get(url);
+      if (!result) throw new Error(`Missing fake result for ${url}`);
+      return result;
+    });
+
+    expect(scan.externalManual).toEqual([
+      { ...links[0], statusCode: 403 },
+      { ...links[1], statusCode: 429 },
+      { ...links[2], statusCode: 403 },
+    ]);
+    expect(scan.externalBroken).toEqual([
+      { ...links[3], statusCode: 404, error: undefined },
+      { ...links[4], statusCode: undefined, error: 'fetch failed' },
+    ]);
+    expect(scan.externalTimeout).toEqual([{ ...links[5], error: 'Request timed out' }]);
+    expect(scan.health).toEqual({
+      attempted: 5,
+      ok: 0,
+      broken: [
+        { statusCode: 403, error: undefined },
+        { statusCode: 429, error: undefined },
+        { statusCode: 404, error: undefined },
+        { statusCode: undefined, error: 'fetch failed' },
+      ],
       timedOut: 1,
     });
   });
