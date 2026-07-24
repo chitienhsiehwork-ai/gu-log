@@ -179,4 +179,63 @@ test.describe('AnalogyBox Component', () => {
     await expect(box.locator('.analogy-badge')).toContainText('類比');
     await expect(box.locator('.analogy-content')).toContainText('測試一台新車');
   });
+
+  test('GIVEN both themes WHEN rendered THEN badge text and border pass contrast', async ({
+    page,
+  }) => {
+    await openFixture(page);
+
+    for (const theme of ['light', 'dark']) {
+      await page.evaluate((activeTheme) => {
+        document.documentElement.dataset.theme = activeTheme;
+      }, theme);
+      await page.waitForTimeout(500);
+
+      const result = await page.evaluate(() => {
+        const parseRgb = (value: string) => {
+          const channels = value.match(/[\d.]+/g)!.map(Number);
+          const scale = value.startsWith('color(') ? 255 : 1;
+          return [channels[0] * scale, channels[1] * scale, channels[2] * scale, channels[3] ?? 1];
+        };
+        const composite = (foreground: number[], background: number[]) =>
+          foreground
+            .slice(0, 3)
+            .map(
+              (channel, index) => channel * foreground[3] + background[index] * (1 - foreground[3])
+            );
+        const luminance = (rgb: number[]) => {
+          const [r, g, b] = rgb.map((channel) => {
+            const normalized = channel / 255;
+            return normalized <= 0.04045
+              ? normalized / 12.92
+              : ((normalized + 0.055) / 1.055) ** 2.4;
+          });
+          return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        };
+        const contrast = (foreground: number[], background: number[]) => {
+          const fg = luminance(foreground);
+          const bg = luminance(background);
+          return (Math.max(fg, bg) + 0.05) / (Math.min(fg, bg) + 0.05);
+        };
+
+        const box = document.querySelector<HTMLElement>('.analogy-box')!;
+        const badge = box.querySelector<HTMLElement>('.analogy-badge')!;
+        const boxStyle = getComputedStyle(box);
+        const badgeStyle = getComputedStyle(badge);
+        const pageBackground = parseRgb(getComputedStyle(document.body).backgroundColor);
+        const boxBackground = composite(parseRgb(boxStyle.backgroundColor), pageBackground);
+        const badgeBackground = composite(parseRgb(badgeStyle.backgroundColor), boxBackground);
+
+        return {
+          badgeContrast: contrast(parseRgb(badgeStyle.color), badgeBackground),
+          borderContrast: contrast(parseRgb(boxStyle.borderColor), pageBackground),
+          overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        };
+      });
+
+      expect(result.badgeContrast, theme).toBeGreaterThanOrEqual(4.5);
+      expect(result.borderContrast, theme).toBeGreaterThanOrEqual(3);
+      expect(result.overflow, theme).toBe(0);
+    }
+  });
 });
