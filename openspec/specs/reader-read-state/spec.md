@@ -1,8 +1,11 @@
 # reader-read-state Specification
 
 ## Purpose
-TBD - created by archiving change add-version-aware-reader-state. Update Purpose after archive.
+
+定義版本感知的閱讀狀態、過期閱讀標記、統計口徑與 legacy 資料遷移契約，避免文章更新後仍把舊版閱讀紀錄誤判為目前版本已讀。
+
 ## Requirements
+
 ### Requirement: Read records include article revision
 
 Reader Tracker SHALL persist read records with the article identity and the revision that was current when the read was recorded.
@@ -62,4 +65,3 @@ Reader Tracker SHALL merge local and remote records per article while preserving
 - **WHEN** the records are synced
 - **THEN** the merged record SHALL preserve the latest read timestamp
 - **AND** it SHALL preserve the read revision associated with that latest read
-
