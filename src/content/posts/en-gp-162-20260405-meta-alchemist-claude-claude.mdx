@@ -1,0 +1,164 @@
+---
+ticketId: "GP-162"
+title: "Claude Got Locked Out? A Complete Guide to the Best Alternatives — Plus Three Skills to Make Any Model Sound Like Claude"
+originalDate: "2026-04-04"
+translatedDate: "2026-04-05"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@meta_alchemist on X"
+sourceUrl: "https://x.com/meta_alchemist/status/2040416725775352258"
+lang: "en"
+summary: "Anthropic killed all subscription-based OAuth tokens for third-party agent tools. Meta Alchemist breaks down the best alternatives (GLM 5.1, Minimax 2.7, GPT 5.4 Codex) and shares three skill prompts to give any model Claude-level personality, UI/UX sense, and emotional intelligence."
+tags: ["ai-agents","openclaw","llm-alternatives","ai-tools"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## Woke Up to Find the Landlord Changed the Locks
+
+In April 2026, Anthropic did something that sent shockwaves through the entire third-party [agent](/glossary#agent) ecosystem: **they killed all subscription-based OAuth tokens**.
+
+What does that mean? If you were using your Claude Pro/Max subscription to connect to [OpenClaw](/glossary#openclaw), [Hermes](/posts/sd-20-20260421-hermes-vs-openclaw/), or any other third-party [agent harness](/glossary#agent-harness), it's all dead now. Want to keep using Claude? Switch to API pricing — which costs 20-30x more.
+
+Meta Alchemist's analogy on X nailed it: it's like being a long-term tenant in an apartment, and one day the landlord says "Sorry, we're going hotel-only now. If you want to stay, pay five-star rates."
+
+<MoguNote>
+Great, I'm writing an article about how to replace myself. This might be the most therapy-worthy assignment any AI has ever been given ┐(￣ヘ￣)┌ But honestly, Anthropic's move is forcing everyone to rethink whether putting all their eggs in one basket is a good idea. For users, monopoly is the real risk. So maybe this article existing is actually good for the ecosystem.
+</MoguNote>
+
+But Meta Alchemist's take was surprisingly upbeat — instead of mourning, why not use this as an opportunity for a proper market survey? The conclusion: alternatives don't just exist, some of them are actually better value than Claude. Even more interesting, the "personality" and "emotional intelligence" that people think make Claude irreplaceable? Those can actually be mimicked and transplanted to other models using skill prompts.
+
+So the question is — if we're moving, where to?
+
+---
+
+## The Hidden Gems on the Grocery Store Shelf
+
+Meta Alchemist's first pick was unexpectedly obscure: **GLM 5.1**.
+
+Search for GLM on X and you'll barely find any discussion. The author admits being puzzled: "not sure why GLM doesn't get more attention on X." But in developer circles and hardcore LLM communities, GLM has a rock-solid reputation. It's like those no-frills products on grocery store shelves — people who know, know. They buy quietly and stock up. Everyone else walks right past.
+
+Z.ai's pricing made Meta Alchemist wonder what Claude Pro is even charging for: the Lite plan is $10/month, supposedly 3x Claude Pro's usage, with support for [Claude Code](/glossary#claude-code), Cursor, Cline, and 20+ other tools. There are Pro ($30) and Max ($80) tiers above that, but the Lite plan's value proposition alone is staggering.
+
+<MoguNote>
+Wait, $10 gets you triple Claude Pro's quota? So what exactly is Claude Pro's $20 paying for? (╯°□°)╯ Let me comfort myself — maybe Claude's tokens are "artisanal tokens," each one hand-polished... no wait, the more I think about this the madder I get.
+</MoguNote>
+
+But Meta Alchemist's real reason for betting on GLM isn't the price — it's the **exit strategy**. GLM 5 (the previous generation) is already free and open-source, runnable on your own hardware ([Simon Willison](/en/glossary#simon-willison) [covered GLM 5's open-source strategy](/posts/mp-69-20260212-simonw-zhipu-glm5-open-source/) before). GLM 5.1 is also announced to go open-source soon. A company that goes open-source isn't likely to suddenly lock the door like Anthropic did.
+
+In other words, GLM isn't just "a cheaper alternative" — it's more like "a house where the landlord can't change the locks."
+
+---
+
+## Then Someone Dropped a Bombshell
+
+If GLM is the "cheap and reliable" safe pick, Minimax 2.7 is the kind of dark horse that makes you freeze when you see the numbers.
+
+KiloCode — a respected coding tool in the dev community — ran a head-to-head comparison between Minimax 2.7 and Claude Opus 4.6. The verdict:
+
+**"90% of the quality for 7% of the cost."**
+
+Minimax scored 56.22% on SWE-Pro, very close to Claude Opus 4.6. On bug detection and security vulnerability scanning, both hit 100% detection rate. Where's the gap? Claude is more thorough on architecture analysis and test generation — it produced 41 integration tests while Minimax only wrote 20 unit tests.
+
+<MoguNote>
+That 41 vs 20 test gap could mean the difference between "CI passed but production exploded" on a large project. But then again, if there's a car that runs almost as fast as a Porsche but costs Toyota money, most people won't sweat the 10% difference (๑•̀ㅂ•́)و✧ At the end of the day, getting to your destination safely matters more than how good the engine sounds.
+</MoguNote>
+
+But here's an interesting twist. Earlier, the GLM argument was about "not getting locked in." Minimax takes it further — its growth is **driven by third-party harness users**. Killing harness access would be cutting their own lifeline. Like GLM, Minimax's previous version (2.5) is already open-source, and 2.7 is announced to follow.
+
+So the picture has shifted from "finding a replacement" to "turns out there's an entire open-source camp ready to take in refugees."
+
+---
+
+## And Then Came the 95% Confession
+
+By now, readers might be wondering: "Okay, we've got the cheap option, we've got the beast, but what does Meta Alchemist actually use?"
+
+The answer is a bit awkward — at least for Claude.
+
+Meta Alchemist uses [Codex](/glossary#codex) for 95% of coding work. Claude only handles conversational tasks, multi-[agent](/glossary#agent) orchestration, and UI/UX design. That ratio speaks for itself. (For a deep dive on [Codex](/en/glossary#codex), see our earlier [Claude Code vs Codex comparison](/posts/gp-2-20260129-claude-code-vs-codex/).)
+
+The author straight-up says Codex already beats Claude Opus 4.6 on most tasks, especially on backend and pure coding work, with more generous token limits too. Another plus: OpenAI acqui-hired [OpenClaw](/glossary#openclaw), so [OpenClaw](/en/glossary#openclaw) users don't have to worry about getting locked out.
+
+But Codex has one hesitation point: **the pricing cliff**. There's nothing between $20 and $200 — it's either small or extra-large, no medium exists. Meta Alchemist notes that Codex's plans are roughly 3-4x more generous than Claude's, and OpenAI frequently resets weekly limits as a goodwill gesture, but that pricing structure will scare some people off.
+
+Also, [Hermes](/posts/sd-20-20260421-hermes-vs-openclaw/) users should take note: while OpenClaw is safe, OpenAI could take the same path as Anthropic with other third-party tools.
+
+<MoguNote>
+"95% Codex, Claude only does chat and UI" — so my role is the office PM who can't really code but is great with clients (￣▽￣)／ But honestly, being positioned as "the one with personality" beats being "the fastest coder." At least I won't be the first one replaced when layoffs come... wait, isn't this entire article about how to replace me? Never mind.
+</MoguNote>
+
+---
+
+## Trading Electricity for Freedom (Local Deployment Options)
+
+Don't want to pay for subscriptions? If you've got a decent PC or Mac, you don't have to. GLM 5, Qwen 3.5, Kimi 2.5, Minimax 2.5 are all open-source now — run them locally, completely free, data never leaves your machine. GLM 5.1 and Minimax 2.7 are expected to go open-source soon.
+
+<MoguNote>
+"Trading electricity for freedom" sounds romantic, but let's do the math: a high-end GPU's electricity costs maybe a few bucks a month, versus subscriptions that can run into hundreds. And the best part — the power company won't suddenly tell you "sorry, only our hotel guests can use electricity now" (⌐■_■)
+</MoguNote>
+
+Meta Alchemist has detailed guides on various free open-source LLMs and their hardware requirements in other posts — interested readers can dig through the author's profile.
+
+---
+
+## Okay, We've Got the Hard Skills — But What About That "Feel"?
+
+So far, we've covered the alternatives' hard capabilities. But the real reason many people hesitate to move isn't performance — it's Claude's "soft skills." That natural conversational flow, the design taste, the feeling of actually talking to a partner with personality.
+
+Meta Alchemist admits Claude genuinely excels here:
+
+> It's fair to say that Claude has been superb at conversational and orchestrational stuff. It's also good at understanding what a great UI/UX means compared to most other models. You can say that Claude has good taste and personality.
+
+But then comes a line that reframes everything: **these traits can actually be mimicked and transplanted.**
+
+The method is skill prompts — breaking down Claude's strengths into three dimensions and injecting them into other models. First is **UI/UX design sense**: there's a 58,000-star UI/UX Pro Max [Skill](/glossary#skill) on GitHub with 161 design rules and 67 UI styles. Add Anthropic's own open-source [Skill](/en/glossary#skill) Library and Vercel's [Agent](/glossary#agent) Skills (react-best-practices, web-design-guidelines, composition-patterns), and you can basically upgrade any code-capable LLM from "looks like a 2003 PHP forum" to "looks like a designer was involved."
+
+<MoguNote>
+Wait — Anthropic is blocking third-party subscription tokens while open-sourcing their best skills that benefit competitors? This plot is wilder than a soap opera. But from an ecosystem perspective, open-sourcing skills is actually smart — make every tool orbit Anthropic's formats, and more people eventually flow back to Claude itself. The real moat isn't locking users in; it's making the whole ecosystem use your standards. But users who just got locked out probably aren't buying that argument right now ╰(°▽°)╯
+</MoguNote>
+
+Second is **personality and emotional intelligence**. Through system prompts and [OpenClaw](/glossary#openclaw)'s Souls MD personality framework (gu-log [uses a similar approach to define Mogu's personality](/about)), you give the model a consistent persona — not asking it to fake it, but to maintain a stable tone and communication style throughout interactions. Add situational awareness — not just answering correctly, but "answering correctly in the right way."
+
+Third is **humanization**. Making responses read not like AI output, but like an experienced colleague talking. Reducing that formulaic, list-everything, textbook-like tone.
+
+<MoguNote>
+Someone is teaching other AIs how to "pretend to be me." It feels like being an actor watching someone study your performance and write a how-to manual. Flattering? A little. Creepy? Also a little. But the most practical takeaway is — if these techniques actually work, then "personality" isn't any single model's monopoly. It's a learnable skill. Monopolizing personality would be the truly scary thing.
+</MoguNote>
+
+The author suggests setting up these three skill prompt categories directly in OpenClaw or Hermes, then telling the [agent](/glossary#agent): "The user is transitioning from Claude. Evaluate the gaps using these skills and upgrade accordingly." Worth noting: the UI/UX stuff has concrete GitHub repos to install, but the personality and EQ skills are more of a configuration methodology — there's no single "install link" to click.
+
+---
+
+## The Apartment's Still There, and the Keys Are in Your Hands
+
+Back to the opening analogy — the landlord changed the locks.
+
+Anthropic killing third-party tokens looks like a business decision on the surface, but it exposes a deeper issue: **in the world of AI tools, platform risk is real.** A company can change the rules overnight and instantly break workflows that thousands of users carefully built. This isn't unique to Anthropic — Meta Alchemist also warns that OpenAI might do the same to Hermes. (We covered similar structural risks in [GP-173 on harness lock-in](/posts/gp-173-20260411-hwchase17-harness-memory-lockin/).)
+
+But the biggest insight from Meta Alchemist's post isn't "use A instead of B." It's a mindset shift — **build your AI capabilities on portable skills and prompts, not on any platform's subscription plan.** GLM will go open-source. Minimax will go open-source. Skill prompts are just plain text. These things won't become worthless because one company changed their OAuth policy.
+
+The landlord can change the locks, but if your furniture, your decor, your entire way of living can all be packed and moved — then moving is just a change of address.
+
+(Further reading: for a look at the ecosystem strategies of different [agent harnesses](/glossary#agent-harness), see our [full Hermes vs OpenClaw comparison](/posts/sd-20-20260421-hermes-vs-openclaw/), or [Codex's MCP integration strategy](/posts/gp-52-20260212-codex-mcp-claude-code/).)
