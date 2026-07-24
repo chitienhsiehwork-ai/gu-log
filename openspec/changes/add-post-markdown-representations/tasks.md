@@ -32,5 +32,5 @@
 
 ## 6. 審查與封存
 
-- [ ] 6.1 完成獨立 correctness／security review 與 simplify review，修完所有阻擋問題
+- [x] 6.1 完成獨立 correctness／security review 與 simplify review，修完所有阻擋問題
 - [ ] 6.2 同步 `post-markdown-representation` delta spec、封存 change，確認 OpenSpec ownership／archive 關卡通過

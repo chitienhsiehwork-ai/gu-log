@@ -5,6 +5,11 @@ import { createProcessor } from '@mdx-js/mdx';
 import { fromHtml } from 'hast-util-from-html';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 
+import { POST_JSON_V2_KEYS } from './post-json-v2-contract.mjs';
+import { assertRenderedAdapterDomContract } from './post-markdown-dom-contract.mjs';
+
+export { POST_JSON_V2_KEYS } from './post-json-v2-contract.mjs';
+
 export const COMPONENT_ADAPTERS = Object.freeze({
   MoguNote: 'mogu-note',
   ShroomDogNote: 'shroomdog-note',
@@ -16,6 +21,74 @@ export const COMPONENT_ADAPTERS = Object.freeze({
   PostImage: 'post-image',
   DiffBlock: 'diff-block',
   CodexLearningMap: 'codex-learning-map',
+});
+
+const COMPONENT_PROP_CONTRACTS = Object.freeze({
+  MoguNote: {
+    props: { prefix: 'string', summary: 'string', variant: 'string' },
+    required: [],
+    children: 'required',
+  },
+  ShroomDogNote: {
+    props: {
+      prefix: 'string',
+      collapseThreshold: 'number',
+      minExpandableOverflow: 'number',
+      autoFold: 'boolean',
+    },
+    required: [],
+    children: 'required',
+  },
+  Toggle: {
+    props: { title: 'string', open: 'boolean' },
+    required: ['title'],
+    children: 'required',
+  },
+  LevelUpProgress: {
+    props: { current: 'number', total: 'number', title: 'string' },
+    required: ['current', 'total'],
+    children: 'forbidden',
+  },
+  LevelUpQuiz: {
+    props: {
+      question: 'string',
+      options: 'quiz-options',
+      answer: 'string',
+      explanation: 'string',
+    },
+    required: ['question', 'options', 'answer', 'explanation'],
+    children: 'forbidden',
+  },
+  AnalogyBox: {
+    props: { title: 'string' },
+    required: [],
+    children: 'required',
+  },
+  Mermaid: {
+    props: { chart: 'string', caption: 'string' },
+    required: ['chart'],
+    children: 'forbidden',
+  },
+  PostImage: {
+    props: { src: 'image-import', alt: 'string', caption: 'string', width: 'number' },
+    required: ['src', 'alt'],
+    children: 'forbidden',
+  },
+  DiffBlock: {
+    props: {
+      before: 'string',
+      after: 'string',
+      beforeLabel: 'string',
+      afterLabel: 'string',
+    },
+    required: ['before', 'after'],
+    children: 'forbidden',
+  },
+  CodexLearningMap: {
+    props: { lang: 'string' },
+    required: [],
+    children: 'forbidden',
+  },
 });
 
 function fail(sourceName, message) {
@@ -43,6 +116,63 @@ function isStaticExpression(node) {
     );
   }
   return false;
+}
+
+function staticExpressionKind(node) {
+  if (!node) return 'dynamic';
+  if (node.type === 'Literal') return typeof node.value;
+  if (node.type === 'TemplateLiteral' && node.expressions.length === 0) return 'string';
+  if (node.type === 'ArrayExpression') return 'array';
+  if (node.type === 'ObjectExpression') return 'object';
+  if (node.type === 'Identifier') return 'identifier';
+  return 'dynamic';
+}
+
+function attributeKind(attribute) {
+  if (attribute.value === null) return 'boolean';
+  if (typeof attribute.value === 'string') return 'string';
+  return staticExpressionKind(expressionNode(attribute));
+}
+
+function meaningfulComponentChildren(node) {
+  return (node.children ?? []).filter(
+    (child) =>
+      !(
+        (child.type === 'text' && child.value.trim().length === 0) ||
+        ((child.type === 'mdxFlowExpression' || child.type === 'mdxTextExpression') &&
+          /^\/\*[\s\S]*\*\/$/.test(child.value.trim()))
+      )
+  );
+}
+
+function validateQuizOptions(attribute, sourceName) {
+  const expression = expressionNode(attribute);
+  if (expression?.type !== 'ArrayExpression' || expression.elements.length === 0) {
+    fail(sourceName, '<LevelUpQuiz> attribute options must be a non-empty static array');
+  }
+  for (const option of expression.elements) {
+    if (option?.type !== 'ObjectExpression') {
+      fail(sourceName, '<LevelUpQuiz> options must contain only static objects');
+    }
+    const properties = new Map();
+    for (const property of option.properties) {
+      const key = property.key?.name ?? property.key?.value;
+      if (
+        property.type !== 'Property' ||
+        property.kind !== 'init' ||
+        property.computed ||
+        !['label', 'text'].includes(key) ||
+        properties.has(key) ||
+        staticExpressionKind(property.value) !== 'string'
+      ) {
+        fail(sourceName, '<LevelUpQuiz> options must contain exact string label/text fields');
+      }
+      properties.set(key, property.value);
+    }
+    if (!properties.has('label') || !properties.has('text')) {
+      fail(sourceName, '<LevelUpQuiz> options must contain exact string label/text fields');
+    }
+  }
 }
 
 function attributeMap(node, sourceName) {
@@ -73,17 +203,52 @@ function validateComponent(node, sourceName, importsByName) {
   }
 
   const attributes = attributeMap(node, sourceName);
-  for (const attribute of attributes.values()) {
-    if (typeof attribute.value === 'string' || attribute.value === null) continue;
+  const contract = COMPONENT_PROP_CONTRACTS[node.name];
+  for (const required of contract.required) {
+    if (!attributes.has(required)) {
+      fail(sourceName, `<${node.name}> is missing required attribute ${required}`);
+    }
+  }
+  for (const [name, attribute] of attributes) {
+    const expectedKind = contract.props[name];
+    if (!expectedKind) {
+      fail(sourceName, `unknown semantic attribute ${name} on <${node.name}>`);
+    }
     const expression = expressionNode(attribute);
     const staticImageIdentifier =
       node.name === 'PostImage' &&
-      attribute.name === 'src' &&
+      name === 'src' &&
       expression?.type === 'Identifier' &&
       /\.(?:avif|gif|jpe?g|png|svg|webp)$/i.test(importsByName.get(expression.name) ?? '');
-    if (!staticImageIdentifier && !isStaticExpression(expression)) {
-      fail(sourceName, `unsupported expression for <${node.name}> attribute ${attribute.name}`);
+    if (expectedKind === 'image-import') {
+      if (!staticImageIdentifier) {
+        fail(sourceName, `unsupported expression for <${node.name}> attribute ${name}`);
+      }
+      continue;
     }
+    if (
+      typeof attribute.value !== 'string' &&
+      attribute.value !== null &&
+      !isStaticExpression(expression)
+    ) {
+      fail(sourceName, `unsupported expression for <${node.name}> attribute ${name}`);
+    }
+    if (expectedKind === 'quiz-options') {
+      validateQuizOptions(attribute, sourceName);
+    } else if (attributeKind(attribute) !== expectedKind) {
+      fail(
+        sourceName,
+        `<${node.name}> attribute ${name} must be ${expectedKind}, got ${attributeKind(attribute)}`
+      );
+    }
+  }
+
+  const children = meaningfulComponentChildren(node);
+  if (contract.children === 'required' && children.length === 0) {
+    fail(sourceName, `<${node.name}> requires projected child content`);
+  }
+  if (contract.children === 'forbidden' && children.length > 0) {
+    fail(sourceName, `<${node.name}> does not accept child content`);
   }
 }
 
@@ -198,7 +363,6 @@ function stripFrontmatter(source) {
  */
 export function inventoryMdx(source, { sourceName = '<mdx>' } = {}) {
   const tree = createProcessor({ format: 'mdx' }).parse(stripFrontmatter(source));
-  const imports = [];
   const importsByName = new Map();
 
   walk(tree, (node) => {
@@ -209,7 +373,6 @@ export function inventoryMdx(source, { sourceName = '<mdx>' } = {}) {
       }
       const specifiers = statement.specifiers.map((specifier) => specifier.local.name);
       for (const name of specifiers) importsByName.set(name, statement.source.value);
-      imports.push({ source: statement.source.value, names: specifiers });
     }
   });
 
@@ -282,7 +445,6 @@ export function inventoryMdx(source, { sourceName = '<mdx>' } = {}) {
   });
 
   return {
-    imports,
     components: [...components].sort(),
     componentCounts: Object.fromEntries([...componentCounts].sort()),
     nativeElements: [...nativeElements].sort(),
@@ -332,6 +494,14 @@ function escapeInline(value) {
 function absoluteUrl(value, baseUrl, label, context, allowedProtocols = ['http:', 'https:']) {
   if (typeof value !== 'string' || value.length === 0) {
     fail(context.sourceName, `${label} must be a non-empty URL`);
+  }
+  if (
+    [...value].some((character) => {
+      const codePoint = character.codePointAt(0);
+      return codePoint <= 0x1f || (codePoint >= 0x7f && codePoint <= 0x9f);
+    })
+  ) {
+    fail(context.sourceName, `${label} contains a control character`);
   }
   let resolved;
   try {
@@ -837,6 +1007,7 @@ function projectNode(node, context) {
   if (adapter !== undefined) {
     const project = RENDERED_ADAPTERS[adapter];
     if (!project) fail(context.sourceName, `unknown rendered adapter marker ${adapter}`);
+    assertRenderedAdapterDomContract(node, { sourceName: context.sourceName });
     return project(node, context);
   }
   if (hasClass(node, 'artifact-callout')) return projectArtifactCallout(node, context);
@@ -937,27 +1108,6 @@ function projectNode(node, context) {
   }
 }
 
-export const POST_JSON_V2_KEYS = Object.freeze(
-  [
-    'authorshipNote',
-    'body',
-    'headings',
-    'lang',
-    'originalDate',
-    'schemaVersion',
-    'slug',
-    'source',
-    'sourceUrl',
-    'summary',
-    'tags',
-    'ticketId',
-    'title',
-    'translatedBy',
-    'translatedDate',
-    'url',
-  ].sort()
-);
-
 function frontmatterData(rawMdx, sourceName) {
   const match = rawMdx.match(/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/);
   if (!match) fail(sourceName, 'raw MDX frontmatter is missing');
@@ -980,7 +1130,6 @@ export function assertPostJsonV2(postJson, rawMdx, { sourceName = '<post>' } = {
     );
   }
   if (postJson.schemaVersion !== 2) fail(sourceName, 'post JSON schemaVersion must remain 2');
-  if (Object.hasOwn(postJson, 'status')) fail(sourceName, 'post JSON v2 must not expose status');
   if (
     typeof postJson.body !== 'string' ||
     postJson.body.trim() !== stripFrontmatter(rawMdx).trim()
@@ -1073,14 +1222,7 @@ function validateProjectionCounts(postContent, inventory, context) {
   }
 }
 
-export function projectRenderedArticle({
-  html,
-  rawMdx,
-  slug,
-  lang,
-  canonicalUrl,
-  sourceName = slug,
-}) {
+function projectRenderedArticle({ html, rawMdx, slug, lang, canonicalUrl, sourceName = slug }) {
   const tree = fromHtml(html);
   const context = { sourceName, canonicalUrl };
   const articles = findElements(

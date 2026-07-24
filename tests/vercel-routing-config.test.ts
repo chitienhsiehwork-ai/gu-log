@@ -9,7 +9,6 @@ import {
   countPlatformRoutes,
   config,
   LISTING_REDIRECT_COUNT,
-  MARKDOWN_HEADERS,
   ROUTE_BUDGET,
   RedirectConfigError,
 } from '../vercel.mjs';
@@ -153,7 +152,6 @@ describe('vercel.mjs redirect config — full manifest coverage', () => {
   });
 
   it('sets Markdown Content-Type with two bounded path patterns', () => {
-    expect(config.headers).toEqual(MARKDOWN_HEADERS);
     expect(config.headers).toEqual([
       {
         source: '/posts/:slug.md',

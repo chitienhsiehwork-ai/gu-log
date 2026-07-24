@@ -97,7 +97,7 @@ test('inventory accepts the registered component set and static prop expressions
 import MoguNote from '../../components/MoguNote.astro';
 import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
 
-<MoguNote mood="thinking">先看清楚。</MoguNote>
+<MoguNote prefix="Mogu thinking:">先看清楚。</MoguNote>
 <LevelUpQuiz
   question="答案？"
   options={[{ label: "A", text: "靜態值" }]}
@@ -127,10 +127,44 @@ test('inventory fails closed for dynamic expressions', () => {
   assert.throws(
     () =>
       inventoryMdx(
-        "import MoguNote from './MoguNote.astro';\n\n<MoguNote mood={getMood()}>Nope</MoguNote>",
+        "import MoguNote from './MoguNote.astro';\n\n<MoguNote prefix={getPrefix()}>Nope</MoguNote>",
         { sourceName: 'dynamic.mdx' }
       ),
-    /unsupported expression for <MoguNote> attribute mood/
+    /unsupported expression for <MoguNote> attribute prefix/
+  );
+});
+
+test('inventory enforces each adapter prop and child contract', () => {
+  assert.throws(
+    () =>
+      inventoryMdx(
+        'import Toggle from \'./Toggle.astro\';\n\n<Toggle title="T" unregisteredSemanticProp="LOST">body</Toggle>',
+        { sourceName: 'unknown-prop.mdx' }
+      ),
+    /unknown semantic attribute unregisteredSemanticProp on <Toggle>/
+  );
+  assert.throws(
+    () =>
+      inventoryMdx("import Toggle from './Toggle.astro';\n\n<Toggle>body</Toggle>", {
+        sourceName: 'missing-prop.mdx',
+      }),
+    /<Toggle> is missing required attribute title/
+  );
+  assert.throws(
+    () =>
+      inventoryMdx(
+        "import LevelUpProgress from './LevelUpProgress.astro';\n\n<LevelUpProgress current={1} total={2}>lost body</LevelUpProgress>",
+        { sourceName: 'unknown-child.mdx' }
+      ),
+    /<LevelUpProgress> does not accept child content/
+  );
+  assert.throws(
+    () =>
+      inventoryMdx(
+        'import LevelUpQuiz from \'./LevelUpQuiz.astro\';\n\n<LevelUpQuiz question="Q" options={[{ label: "A", lost: "B" }]} answer="A" explanation="E" />',
+        { sourceName: 'bad-options.mdx' }
+      ),
+    /options must contain exact string label\/text fields/
   );
 });
 
@@ -211,10 +245,15 @@ Run \`claude --resume <session-id>\`.
 `);
   const html = pageHtml(`
     <p>Run <code>claude --resume &lt;session-id&gt;</code>. (⌐■_■)\u2060 A\u00a0B</p>
-    <blockquote data-markdown-adapter="mogu-note">
-      <strong class="mogu-prefix">Mogu says:</strong>
-      <div class="mogu-note-content"><p>Kaomoji stays visible. (◕‿◕)</p></div>
-      <button>hidden interaction</button>
+    <blockquote class="mogu-note" data-mogu-note data-markdown-adapter="mogu-note" data-has-summary="false">
+      <strong class="mogu-prefix">
+        <a href="/glossary#mogu" class="mogu-prefix-link" aria-label="Mogu glossary">
+          <img src="/mogu-picks-icon.png" alt="" class="mogu-prefix-icon" width="20" height="20">
+          <span>Mogu</span>
+        </a>
+        <span> says:</span>
+      </strong>
+      <div class="mogu-note-content" id="mogu-note-content-fixture"><p>Kaomoji stays visible. (◕‿◕)</p></div>
     </blockquote>
   `);
   const result = serializeMarkdownArtifact({
@@ -297,53 +336,88 @@ import fixtureImage from '../../assets/posts/fixture.png';
 </a>
 `);
   const html = pageHtml(`
-    <blockquote data-markdown-adapter="mogu-note">
-      <strong class="mogu-prefix">Mogu:</strong>
-      <div class="mogu-note-content"><p>Mogu body</p></div>
-      <div class="mogu-note-summary">duplicate summary</div>
+    <blockquote class="mogu-note" data-mogu-note data-markdown-adapter="mogu-note" data-has-summary="true">
+      <strong class="mogu-prefix">
+        <a href="/glossary#mogu" class="mogu-prefix-link" aria-label="Mogu glossary">
+          <img src="/mogu-picks-icon.png" alt="" class="mogu-prefix-icon" width="20" height="20">
+          <span>Mogu</span>
+        </a>
+        <span>:</span>
+      </strong>
+      <div class="mogu-note-summary" hidden><span class="mogu-note-summary-label">Short</span><p>duplicate summary</p></div>
+      <div class="mogu-note-content" id="mogu-note-content-all"><p>Mogu body</p></div>
+      <button class="mogu-note-toggle" type="button" aria-expanded="false" aria-controls="mogu-note-content-all" hidden>
+        <span class="mogu-note-toggle-icon" aria-hidden="true">v</span>
+        <span class="mogu-note-toggle-label">Expand</span>
+      </button>
     </blockquote>
-    <blockquote data-markdown-adapter="shroomdog-note">
-      <strong class="shroomdog-prefix">ShroomDog:</strong>
-      <div class="shroomdog-note-content"><p>Dog body</p></div>
+    <blockquote class="shroomdog-note" data-shroomdog-note data-markdown-adapter="shroomdog-note"
+      data-auto-fold="false" data-collapse-threshold="260" data-min-expandable-overflow="72">
+      <strong class="shroomdog-prefix">
+        <img src="/shroomdog-icon-128.png" alt="ShroomDog" class="shroomdog-prefix-icon" width="22" height="22">
+        ShroomDog:
+      </strong>
+      <div class="shroomdog-note-content" id="shroomdog-note-content-all"><p>Dog body</p></div>
     </blockquote>
-    <div data-markdown-adapter="toggle">
-      <span class="toggle-title">Details</span>
-      <div class="toggle-content"><p>Toggle body</p></div>
+    <div class="toggle-container" data-open="false" data-markdown-adapter="toggle">
+      <button class="toggle-header" aria-expanded="false">
+        <span class="toggle-icon"></span><span class="toggle-title">Details</span>
+      </button>
+      <div class="toggle-wrapper"><div class="toggle-inner"><div class="toggle-content"><p>Toggle body</p></div></div></div>
     </div>
-    <div data-markdown-adapter="level-up-progress">
-      <span class="progress-level">Level 2 / 4</span>
-      <span class="progress-title">Course</span>
-      <span class="progress-percentage">50%</span>
+    <div class="levelup-progress" data-markdown-adapter="level-up-progress">
+      <div class="progress-header"><span class="progress-level">Level 2 / 4</span><span class="progress-title">Course</span></div>
+      <div class="progress-bar-track" role="progressbar" aria-valuenow="2" aria-valuemin="0" aria-valuemax="4">
+        <div class="progress-bar-fill" style="width: 50%"></div>
+      </div>
+      <div class="progress-percentage">50%</div>
     </div>
-    <div data-markdown-adapter="level-up-quiz" data-answer="A">
+    <div class="levelup-quiz" data-quiz-id="quiz-all" data-markdown-adapter="level-up-quiz" data-answer="A">
+      <div class="quiz-header"><span class="quiz-icon">?</span><span class="quiz-label">Quiz</span></div>
       <p class="quiz-question">Question?</p>
-      <button class="quiz-option"><span class="option-label">A</span><span class="option-text">Option</span></button>
-      <div class="result-correct"><p class="result-explanation">Because.</p></div>
-      <div class="result-wrong"><p class="result-explanation">duplicate explanation</p></div>
+      <div class="quiz-options"><button class="quiz-option" data-label="A" type="button"><span class="option-label">A</span><span class="option-text">Option</span></button></div>
+      <div class="quiz-result" aria-live="polite">
+        <div class="result-correct" hidden><span class="result-icon">yes</span><strong>Correct</strong><p class="result-explanation">Because.</p></div>
+        <div class="result-wrong" hidden><span class="result-icon">no</span><strong>Wrong</strong><p class="result-answer">Answer: <strong>A</strong></p><p class="result-explanation">duplicate explanation</p></div>
+      </div>
     </div>
-    <aside data-markdown-adapter="analogy-box">
-      <span class="analogy-title">Analogy</span>
+    <aside class="analogy-box" role="note" data-markdown-adapter="analogy-box">
+      <div class="analogy-header"><span class="analogy-title">Analogy</span><span class="analogy-badge">Badge</span></div>
       <div class="analogy-content"><p>Analogy body</p></div>
     </aside>
-    <div data-markdown-adapter="mermaid">
-      <div data-mermaid>graph TD\nA--&gt;B</div>
+    <div class="mermaid-wrapper" data-markdown-adapter="mermaid">
+      <div class="mermaid-scroll"><div class="mermaid-source" style="display:none;" data-mermaid>graph TD\nA--&gt;B</div><div class="mermaid-render"></div></div>
       <p class="mermaid-caption">Diagram</p>
-      <button>hidden expand</button>
+      <button class="mermaid-expand-btn" aria-label="Expand" title="Zoom"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"></path></svg></button>
     </div>
     <div class="mermaid-overlay"><button class="mermaid-close-btn">hidden close</button></div>
-    <figure data-markdown-adapter="post-image">
-      <button data-post-image-open><img src="/_astro/fixture.hash.png" alt="Fixture image"></button>
-      <figcaption>Caption</figcaption>
-      <div data-post-image-dialog><img src="/duplicate.png" alt="Fixture image"></div>
+    <figure class="post-image" data-post-image data-markdown-adapter="post-image">
+      <button type="button" class="post-image-open" aria-label="Enlarge" aria-haspopup="dialog" aria-controls="post-image-all-dialog" data-post-image-open>
+        <img src="/_astro/fixture.hash.png" alt="Fixture image" loading="lazy" decoding="async" width="1200" height="520" aria-describedby="post-image-all-caption">
+        <span class="post-image-zoom-hint" aria-hidden="true">Zoom</span>
+      </button>
+      <figcaption id="post-image-all-caption">Caption</figcaption>
+      <div id="post-image-all-dialog" class="post-image-dialog" role="dialog" aria-modal="true" aria-label="Enlarge" aria-describedby="post-image-all-caption" hidden data-post-image-dialog>
+        <div class="post-image-dialog-surface" data-post-image-surface>
+          <button type="button" class="post-image-close" aria-label="Close" data-post-image-close>Close</button>
+          <div class="post-image-dialog-scroll" data-post-image-scroll><img class="post-image-dialog-img" alt="Fixture image" data-full-src="/duplicate.png" draggable="false" decoding="async" aria-describedby="post-image-all-caption" data-post-image-expanded-img></div>
+          <p class="post-image-dialog-caption">Caption</p>
+        </div>
+      </div>
     </figure>
-    <div data-markdown-adapter="diff-block">
-      <div class="diff-before"><span class="diff-label">Before</span><div class="diff-body">old</div></div>
-      <div class="diff-after"><span class="diff-label">After</span><div class="diff-body">new</div></div>
+    <div class="diff-block" data-markdown-adapter="diff-block">
+      <div class="diff-panel diff-before"><div class="diff-header diff-header--before"><span class="diff-icon">x</span><span class="diff-label">Before</span></div><div class="diff-body">old</div></div>
+      <div class="diff-panel diff-after"><div class="diff-header diff-header--after"><span class="diff-icon">yes</span><span class="diff-label">After</span></div><div class="diff-body">new</div></div>
     </div>
-    <section data-markdown-adapter="codex-learning-map" aria-label="Learning map">
-      <div class="model-card bad"><span>Wrong</span><strong>Lecture</strong></div>
-      <div class="model-card good"><span>Useful</span><strong>Action</strong></div>
-      <ol class="steps"><li><div class="step-label">Step 1</div><p>Try it</p><span>Output</span></li></ol>
+    <section class="codex-learning-map" data-markdown-adapter="codex-learning-map" aria-label="Learning map">
+      <div class="model-shift"><div class="model-card bad"><span>Wrong</span><strong>Lecture</strong></div><div class="arrow" aria-hidden="true">to</div><div class="model-card good"><span>Useful</span><strong>Action</strong></div></div>
+      <ol class="steps">
+        <li><div class="step-label">Step 1</div><p>Try it</p><span>Output</span></li>
+        <li><div class="step-label">Step 2</div><p>Try it</p><span>Output</span></li>
+        <li><div class="step-label">Step 3</div><p>Try it</p><span>Output</span></li>
+        <li><div class="step-label">Step 4</div><p>Try it</p><span>Output</span></li>
+        <li><div class="step-label">Step 5</div><p>Try it</p><span>Output</span></li>
+      </ol>
     </section>
     <a class="artifact-callout" href="/artifacts/demo/">
       <span class="artifact-callout__label">demo</span>
@@ -480,6 +554,46 @@ test('rendered links fail closed on unsafe URL protocols', () => {
         sourceName: 'unsafe-url',
       }),
     /unsupported protocol/
+  );
+});
+
+test('source, rendered, and replacement URLs reject control characters before parsing', () => {
+  const raw = rawPost('\nA body.\n');
+  assert.throws(
+    () =>
+      serializeMarkdownArtifact({
+        rawMdx: raw,
+        postJson: postJson(raw, { sourceUrl: 'https://example.com/a\nb' }),
+        html: pageHtml('<p>A body.</p>'),
+        sourceName: 'source-control-url',
+      }),
+    /source URL contains a control character/
+  );
+  assert.throws(
+    () =>
+      serializeMarkdownArtifact({
+        rawMdx: raw,
+        postJson: postJson(raw),
+        html: pageHtml('<p><a href="https://example.com/a&#x9;b">unsafe</a></p>'),
+        sourceName: 'rendered-control-url',
+      }),
+    /rendered link href contains a control character/
+  );
+  assert.throws(
+    () =>
+      serializeMarkdownArtifact({
+        rawMdx: raw,
+        postJson: postJson(raw),
+        html: pageHtml('<p>A body.</p>', {
+          status: 'deprecated',
+          replacementTicketId: 'GP-1000',
+          replacementUrl: 'https://gu-log.vercel.app/posts/a\nb',
+          banner:
+            '<div data-post-status-banner data-status="deprecated" data-replacement-ticket-id="GP-1000" data-replacement-url="https://gu-log.vercel.app/posts/a&#xA;b">Deprecated</div>',
+        }),
+        sourceName: 'replacement-control-url',
+      }),
+    /article replacement URL contains a control character/
   );
 });
 

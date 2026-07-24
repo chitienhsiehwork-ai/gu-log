@@ -1,14 +1,39 @@
 #!/usr/bin/env node
 
-import { parse as parseYaml } from 'yaml';
+import { POST_JSON_V2_KEYS } from './lib/post-json-v2-contract.mjs';
 
-import { POST_JSON_V2_KEYS } from './lib/post-markdown-exporter.mjs';
+const SMOKE_EXPECTATIONS = Object.freeze({
+  'zh-tw': {
+    title: '為什麼 90% 的技術文章你看不完？因為寫的人根本不在乎你',
+    source: 'example.com',
+    sourceUrl: 'https://example.com/original-article',
+    markdownSentinels: [
+      '2017 年，Google 發了一篇論文叫 “Attention is All You Need”。',
+      '## 認知負荷：你的腦袋不是 GPU',
+      '[Andrej Karpathy](https://gu-log.vercel.app/glossary#andrej-karpathy)',
+    ],
+    rawBodySentinels: ['<MoguNote>', '<Toggle title="為什麼比喻這麼有效？認知科學的解釋">'],
+  },
+  en: {
+    title: "Why You Can't Finish 90% of Tech Articles (It's Not You, It's Them)",
+    source: 'example.com',
+    sourceUrl: 'https://example.com/original-article',
+    markdownSentinels: [
+      'In 2017, Google dropped a paper called “Attention is All You Need.”',
+      '## Cognitive Load: Your Brain Is Not a GPU',
+      '[Andrej Karpathy](https://gu-log.vercel.app/en/glossary#andrej-karpathy)',
+    ],
+    rawBodySentinels: [
+      '<MoguNote>',
+      '<Toggle title="Why analogies work so well — the cognitive science explanation">',
+    ],
+  },
+});
 
 function parseArgs(argv) {
   const args = {
     baseUrl: '',
     siteOrigin: 'https://gu-log.vercel.app',
-    allowMissingCharset: false,
     zhSlug: 'gp-1-20260128-demo',
     enSlug: 'en-gp-1-20260128-demo',
   };
@@ -16,7 +41,6 @@ function parseArgs(argv) {
     const value = argv[index + 1];
     if (argv[index] === '--base-url') args.baseUrl = value;
     if (argv[index] === '--site-origin') args.siteOrigin = value;
-    if (argv[index] === '--allow-missing-charset') args.allowMissingCharset = true;
     if (argv[index] === '--zh-slug') args.zhSlug = value;
     if (argv[index] === '--en-slug') args.enSlug = value;
   }
@@ -60,9 +84,15 @@ export function markdownAlternateUrls(html) {
 export function parseMarkdownFrontmatter(markdown) {
   const match = markdown.match(/^---\n([\s\S]*?)\n---\n/);
   if (!match) throw new Error('Markdown frontmatter is missing');
-  const data = parseYaml(match[1]);
-  if (!data || typeof data !== 'object' || Array.isArray(data)) {
-    throw new Error('Markdown frontmatter is not a YAML mapping');
+  const data = {};
+  for (const line of match[1].split('\n')) {
+    const separator = line.indexOf(':');
+    if (separator <= 0) throw new Error(`Markdown frontmatter has an invalid line: ${line}`);
+    const key = line.slice(0, separator);
+    const rawValue = line.slice(separator + 1).trim();
+    if (rawValue === 'null') data[key] = null;
+    else if (/^\d+$/.test(rawValue)) data[key] = Number(rawValue);
+    else data[key] = rawValue.replace(/^(['"])(.*)\1$/, '$2');
   }
   return data;
 }
@@ -77,7 +107,8 @@ async function fetchChecked(url, options, expectedType) {
   return response;
 }
 
-async function verifyPost({ baseUrl, siteOrigin, allowMissingCharset, slug, lang }) {
+async function verifyPost({ baseUrl, siteOrigin, slug, lang }) {
+  const expected = SMOKE_EXPECTATIONS[lang];
   const canonicalPath = lang === 'en' ? `/en/posts/${slug}` : `/posts/${slug}`;
   const requestUrl = `${baseUrl}${canonicalPath}`;
   const canonicalUrl = `${siteOrigin}${canonicalPath}`;
@@ -95,9 +126,7 @@ async function verifyPost({ baseUrl, siteOrigin, allowMissingCharset, slug, lang
   const markdownResponse = await fetchChecked(
     markdownUrl,
     {},
-    allowMissingCharset
-      ? /^text\/markdown(?:\s*;\s*charset=utf-8\b)?/i
-      : /^text\/markdown\s*;\s*charset=utf-8\b/i
+    /^text\/markdown\s*;\s*charset=utf-8\b/i
   );
   const markdown = await markdownResponse.text();
   const metadata = parseMarkdownFrontmatter(markdown);
@@ -105,7 +134,13 @@ async function verifyPost({ baseUrl, siteOrigin, allowMissingCharset, slug, lang
   assert(metadata.slug === slug, `${markdownUrl}: slug mismatch`);
   assert(metadata.lang === lang, `${markdownUrl}: lang mismatch`);
   assert(metadata.canonicalUrl === canonicalUrl, `${markdownUrl}: canonicalUrl mismatch`);
+  assert(metadata.title === expected.title, `${markdownUrl}: title fidelity mismatch`);
+  assert(metadata.source === expected.source, `${markdownUrl}: source fidelity mismatch`);
+  assert(metadata.sourceUrl === expected.sourceUrl, `${markdownUrl}: sourceUrl fidelity mismatch`);
   assert((markdown.match(/^# /gm) ?? []).length === 1, `${markdownUrl}: expected one H1`);
+  for (const sentinel of expected.markdownSentinels) {
+    assert(markdown.includes(sentinel), `${markdownUrl}: missing body sentinel ${sentinel}`);
+  }
   assert(!/[\u2060\u00a0]/u.test(markdown), `${markdownUrl}: rendered Unicode controls leaked`);
   assert(!/^\s*import\s/m.test(markdown), `${markdownUrl}: MDX import leaked`);
   assert(!/<script\b/i.test(markdown), `${markdownUrl}: script leaked`);
@@ -117,7 +152,15 @@ async function verifyPost({ baseUrl, siteOrigin, allowMissingCharset, slug, lang
     `${jsonUrl}: JSON v2 top-level keys changed`
   );
   assert(json.schemaVersion === 2 && json.slug === slug, `${jsonUrl}: JSON v2 identity mismatch`);
-  assert(typeof json.body === 'string' && json.body.length > 0, `${jsonUrl}: raw MDX body missing`);
+  assert(
+    json.title === expected.title &&
+      json.source === expected.source &&
+      json.sourceUrl === expected.sourceUrl,
+    `${jsonUrl}: JSON v2 metadata fidelity mismatch`
+  );
+  for (const sentinel of expected.rawBodySentinels) {
+    assert(json.body?.includes(sentinel), `${jsonUrl}: missing raw body sentinel ${sentinel}`);
+  }
 
   const phaseOneAcceptResponse = await fetchChecked(
     requestUrl,
@@ -132,13 +175,12 @@ async function verifyPost({ baseUrl, siteOrigin, allowMissingCharset, slug, lang
   return { requestUrl, canonicalUrl, markdownUrl, jsonUrl };
 }
 
-export async function verifyDeployment(args) {
+async function verifyDeployment(args) {
   const results = [];
   results.push(
     await verifyPost({
       baseUrl: args.baseUrl,
       siteOrigin: args.siteOrigin,
-      allowMissingCharset: args.allowMissingCharset,
       slug: args.zhSlug,
       lang: 'zh-tw',
     })
@@ -147,7 +189,6 @@ export async function verifyDeployment(args) {
     await verifyPost({
       baseUrl: args.baseUrl,
       siteOrigin: args.siteOrigin,
-      allowMissingCharset: args.allowMissingCharset,
       slug: args.enSlug,
       lang: 'en',
     })

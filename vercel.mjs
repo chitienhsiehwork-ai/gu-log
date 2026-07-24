@@ -30,7 +30,7 @@ export const ROUTE_BUDGET = 2048;
 
 const SUPPORTED_LANGS = new Set(['zh-tw', 'en']);
 const SAFE_SLUG = /^[A-Za-z0-9][A-Za-z0-9-]*$/;
-export const MARKDOWN_HEADERS = Object.freeze([
+const MARKDOWN_HEADERS = Object.freeze([
   {
     source: '/posts/:slug.md',
     headers: [{ key: 'Content-Type', value: 'text/markdown; charset=utf-8' }],
