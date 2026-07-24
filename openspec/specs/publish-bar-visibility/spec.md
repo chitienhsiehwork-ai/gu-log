@@ -1,8 +1,11 @@
 # publish-bar-visibility Specification
 
 ## Purpose
-TBD - created by archiving change backfill-publish-bar-visibility-spec. Update Purpose after archive.
+
+定義低於 publish bar 文章的公開 URL、首頁排除、refining banner 與未評分 grandfather policy，讓可存取性和推薦資格保持分離。
+
 ## Requirements
+
 ### Requirement: Sub-8 posts SHALL still publish at their own URL
 
 有真 tribunal 分數但未達 PASS bar 的文章（below publish bar）SHALL 照常 build、有自己的文章頁 URL。分數未達 PASS bar 本身 MUST NOT 成為 commit、build 或 deploy 的阻擋條件（floor gate `composite >= 3` 是另一條既有規則，不在本 capability 範圍）。

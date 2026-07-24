@@ -1,8 +1,11 @@
 # editorial-charter Specification
 
 ## Purpose
-TBD - created by archiving change add-editorial-charter. Update Purpose after archive.
+
+定義 gu-log 的 editorial north star、系列身份、翻譯忠實邊界、Lv 模式與 startup routing，讓所有內容角色共享同一套可測試的寫作憲章。
+
 ## Requirements
+
 ### Requirement: gu-log editorial charter MUST define the north star
 
 gu-log 的編輯北極星 SHALL 是「作者優先、陌生讀者為底線」。

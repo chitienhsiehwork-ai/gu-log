@@ -1,8 +1,11 @@
 # zoomable-post-images Specification
 
 ## Purpose
-TBD - created by archiving change add-zoomable-post-images. Update Purpose after archive.
+
+定義文章說明圖片的 inline rendering、可存取 zoom view、iPhone pinch zoom 與 performance 邊界，並限制裝飾圖不成為預設內容目標。
+
 ## Requirements
+
 ### Requirement: Posts can include zoomable explanatory images
 
 The site SHALL provide a supported way for MDX posts to include explanatory images that render inline and can be opened into a larger view.
@@ -79,4 +82,3 @@ The authoring guidance SHALL frame zoomable images as reader-helpful explanatory
 - **WHEN** it considers adding a zoomable image
 - **THEN** it SHALL add the image only when it helps explain structure, flow, evidence, UI, or a visual concept
 - **AND** it SHALL preserve source / attribution context when the image is not original
-

@@ -1,8 +1,11 @@
 # spec-driven-review-loop Specification
 
 ## Purpose
-TBD - created by archiving change harden-openspec-sdlc-review-loop. Update Purpose after archive.
+
+定義 OpenSpec 的三層指揮鏈、executable-first bounded review、spec delta 唯讀牆、explore-first escalation 與 exact-tree archive gate，讓變更能以正確性和簡潔度共同收斂。
+
 ## Requirements
+
 ### Requirement: 指揮鏈 SHALL 分三層角色
 
 SDLC SHALL 明訂三層角色，每一層只做自己那層的事：
