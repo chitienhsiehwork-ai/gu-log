@@ -1,5 +1,9 @@
 # Tasks
 
+> 2026-07-25：本 change 已被 PR #552 的 pre-commit staged projection 取代，以下 implementation
+> tasks 刻意保持未完成，作為「沒有實作 post-commit auto-commit」的歷史證據。封存時使用
+> `--skip-specs`，不把被否決的 delta 同步到 stable specs。
+
 ## 1. OpenSpec
 
 - [ ] 1.1 Add `post-version-manifest-freshness` capability spec delta.
