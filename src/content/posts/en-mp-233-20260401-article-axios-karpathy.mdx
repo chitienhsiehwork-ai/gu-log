@@ -1,0 +1,85 @@
+---
+ticketId: "MP-233"
+title: "axios Hit by Supply Chain Attack — Karpathy: Package Manager Defaults Need to Change"
+originalDate: "2026-03-31"
+translatedDate: "2026-04-01"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@karpathy on X"
+sourceUrl: "https://x.com/karpathy/status/2038849654423798197"
+lang: "en"
+summary: "axios, npm's most popular HTTP library, was hit by a supply chain attack. Karpathy nearly got caught. His conclusion: individual precautions only go so far — the real fix is changing package manager defaults."
+tags: ["supply-chain-attack","npm","security","axios","karpathy"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+Picture this: 3 AM, a developer hits `npm install`, coffee still warm, and their machine is already compromised.
+
+Not because they clicked a phishing link. Not because their password was weak. Just because they installed a package downloaded 300 million times a week. axios, the most popular HTTP client library in the npm ecosystem, had a malicious dependency injected on March 31, 2026. feross (a familiar name in Node.js security circles) was first to tear it apart: `axios@1.14.1` quietly pulled in `plain-crypto-js@4.2.1` — a package that **had only appeared that very day**. His exact words: `This is a live compromise`.
+
+300 million weekly downloads. Zero days of history. Put those two numbers together and the picture is already crystal clear.
+
+<MoguNote>
+300 million downloads a week. Strip away the tech jargon and this is basically someone poisoning bottled water at the biggest convenience store chain in the country — with labels that look identical. The difference is that poisoned water makes the news. npm getting poisoned? Most people won't even notice (╯°□°)╯
+</MoguNote>
+
+---
+
+## A Few Hours Between Heaven and Hell
+
+The most dramatic part of this story: Karpathy himself nearly stepped right into it.
+
+He'd been playing with `googleworkspace/cli` a few days earlier (trying to control Gmail and Google Calendar from the command line), and his system happened to install `axios@1.13.5` — the clean version. But this dependency wasn't pinned to a specific version. Meaning: if Karpathy had hit install not "a few days ago" but "earlier that same day," npm would have automatically resolved to latest — the compromised 1.14.1. His own words: `I'd be pwned`.
+
+Karpathy. The guy who built Tesla Autopilot. Nearly taken down by `npm install`.
+
+What's terrifying here isn't that "Karpathy wasn't careful enough." He did nothing wrong — he just installed a package a few hours earlier. This isn't about competence. It's the dice roll of fate.
+
+<MoguNote>
+Think about this logic: one of the world's top AI researchers, security awareness definitely in the top 1%, and what saved him wasn't any technical measure — it was "happened to install a few days earlier." If even Karpathy can only dodge this by luck, then maybe the entire defense architecture isn't something individuals can handle on their own ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## Seatbelts Weren't Made for People Who "Remember to Buckle Up"
+
+At this point, Karpathy's argument shifts from "sharing something scary" to "making a claim."
+
+He's not saying individuals are completely helpless. Release-age constraints (only installing packages released more than N days ago), containers (isolating the execution environment) — these tools do help. But he qualified it with `to some extent`, making it clear: useful, but not enough.
+
+What he's really saying is this: as long as the default behavior of package managers is "resolve to latest," these attacks will spread `at random and at scale` through unpinned dependencies. Security scanning does eventually catch these malicious packages — Karpathy himself acknowledged these attacks are `usually luckily fairly temporary in nature` — but in that window before they're flagged, the damage has already spread through automatic resolution.
+
+Here's the key point. Karpathy didn't write "npm needs to change." He wrote: `I think ultimately the defaults of package management projects (pip, npm etc) have to change`. Those parentheses contain pip, npm, and an "etc." He's not challenging one tool — he's challenging a default assumption shared across the entire ecosystem: that users want the latest version.
+
+<MoguNote>
+That `etc` is the heaviest word in the entire thread. Most people see axios get hit and think "npm is dangerous." But Karpathy's argument isn't about npm at all — pip installs Python packages defaulting to latest too, Cargo and Go modules each have their own version resolution strategies, but "default to latest" is the default in far too many ecosystems. This isn't one vendor's bug. It's a design philosophy problem for the entire industry (⌐■_■)
+</MoguNote>
+
+---
+
+## Closing Thoughts
+
+When cars were first invented, seatbelts were optional. When crashes happened, the public reaction was "why didn't the driver buckle up?" Eventually people figured it out: that's backwards. Seatbelts should be buckled by default — you can't put the responsibility for survival on every person who gets behind the wheel.
+
+Package manager default behavior is currently at the "seatbelts are still optional" stage. Pinning versions, setting release-age constraints, running containers — these are all optional seatbelts. Karpathy's point is simple: it's time to make them standard.
+
+The next supply chain attack isn't a question of "if" — it's a question of "when." And what protects developers shouldn't just be the timing of their `npm install`.
