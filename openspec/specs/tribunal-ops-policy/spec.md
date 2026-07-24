@@ -1,8 +1,11 @@
 # tribunal-ops-policy Specification
 
 ## Purpose
-TBD - created by archiving change add-tribunal-ops-policy. Update Purpose after archive.
+
+定義 Tribunal 的 pause、rollback review 與 bounded restart 操作政策，讓結構性失敗進入人工複核，並把文章品質置於表面分數合規之前。
+
 ## Requirements
+
 ### Requirement: Tribunal MUST have a human-invokable pause policy
 
 Gu-log tribunal automation SHALL be governed by an operational policy that allows a human operator to pause the running tribunal process whenever the operator judges that rewrite behavior is drifting away from article-quality goals.
@@ -177,4 +180,3 @@ Human quality signals SHALL be valid operational evidence, including:
 - **THEN** the policy SHALL prefer pause/review over blind autonomous requeue
 - **AND** any requeue SHALL be bounded
 - **AND** human-signal requeue SHALL NOT bypass drift pause, rollback-review, or bounded restart requirements
-

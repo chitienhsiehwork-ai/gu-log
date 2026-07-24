@@ -1,8 +1,11 @@
 # tribunal-run-control Specification
 
 ## Purpose
-TBD - created by archiving change tribunal-graceful-run-control. Update Purpose after archive.
+
+定義 Tribunal 長時間執行的 quota-aware loop、article-boundary graceful stop、signal／file control、可中斷等待與 lifecycle observability。
+
 ## Requirements
+
 ### Requirement: Tribunal long-running runtime SHALL use a quota-aware loop
 
 Tribunal 的常駐執行模式 SHALL 以 quota-aware loop 作為正式 runtime，持續掃描未完成文章、依 quota 狀態決定是否 dispatch 新 article。one-shot batch runner MAY 保留作為 cron / manual bounded execution，但 SHALL NOT 被視為 long-running daemon 的唯一入口。
@@ -75,6 +78,7 @@ Graceful stop 的最小 drain 單位 SHALL 是 current article，而不是 curre
 ### Requirement: Graceful stop SHALL support both signal and file-based control
 
 Tribunal runtime SHALL 同時接受：
+
 - process signal（至少 `SIGTERM`、`SIGINT`）
 - file-based stop flag
 
@@ -119,6 +123,7 @@ Tribunal runtime SHALL 同時接受：
 ### Requirement: Runtime SHALL emit explicit lifecycle states
 
 Tribunal runtime SHALL 在 log 或 state artifact 中明確區分至少以下 lifecycle states：
+
 - `running`
 - `draining`
 - `idle_wait`
@@ -138,4 +143,3 @@ Tribunal runtime SHALL 在 log 或 state artifact 中明確區分至少以下 li
 - **WHEN** controller 正在連續調速中
 - **THEN** state SHALL 顯示 `pacing` 而非舊的 `running`
 - **AND** quota-controller.json SHALL 包含 cooldown_sec 和 binding_constraint
-
