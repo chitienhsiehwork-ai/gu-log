@@ -13,6 +13,9 @@ pass() { echo "ok $*"; }
 
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
+export TRIBUNAL_SHARED_LOCK_DIR="$TMP/shared-locks"
+export TRIBUNAL_ARTICLE_LOCK_DIR="$TMP/article-locks"
+mkdir -p "$TRIBUNAL_SHARED_LOCK_DIR"
 
 fake_bin="$TMP/bin"
 mkdir -p "$fake_bin"
@@ -49,6 +52,8 @@ bash "$TRIBUNAL" --score-only --only-stage factChecker gp-1-20260128-demo.mdx \
 rc=$?
 set -e
 
+[ -e "$TRIBUNAL_ARTICLE_LOCK_DIR/tribunal-gp-1-20260128-demo.mdx.lock" ] ||
+  fail "tribunal did not honor the isolated article lock directory"
 if [ "$rc" -ne 70 ]; then
   sed -n '1,120p' "$TMP/tribunal.out" >&2 || true
   sed -n '1,120p' "$TMP/tribunal.err" >&2 || true
@@ -69,6 +74,50 @@ if jq -e '."gp-1-20260128-demo.mdx".status == "FAILED" or ."gp-1-20260128-demo.m
   fail "runner crash polluted content status as FAILED/EXHAUSTED"
 fi
 pass "runner crash does not become content failure/exhaustion"
+
+# The stage runner intentionally normalizes a watchdog kill to infrastructure
+# rc=70. The supervisor must recover the original stall signal from that
+# worker's isolated output and classify it as rc=124 before alerting/draining.
+stall_bin="$TMP/stall-bin"
+mkdir -p "$stall_bin"
+cat > "$stall_bin/codex" <<'STALL_CODEX'
+#!/usr/bin/env bash
+if [ "${1:-}" = "exec" ] && [ "${2:-}" = "--help" ]; then
+  exit 0
+fi
+if [ "${1:-}" = "--version" ]; then
+  echo "codex-cli 0.128.0"
+  exit 0
+fi
+if [ "${1:-}" = "exec" ]; then
+  exec sleep 30
+fi
+STALL_CODEX
+chmod +x "$stall_bin/codex"
+stall_progress="$TMP/stall-progress.json"
+stall_log="$TMP/stall-worker.log"
+printf '{}\n' > "$stall_progress"
+set +e
+PATH="$stall_bin:$PATH" \
+TRIBUNAL_SCORE_ONLY_PROGRESS_FILE="$stall_progress" \
+TRIBUNAL_CODEX_TIMEOUT_SEC=20 \
+TRIBUNAL_CODEX_IDLE_TIMEOUT_SEC=1 \
+TRIBUNAL_CODEX_IDLE_POLL_SEC=1 \
+bash "$TRIBUNAL" --score-only --only-stage factChecker gp-1-20260128-demo.mdx \
+  >"$stall_log" 2>&1
+stall_rc=$?
+set -e
+[ "$stall_rc" -eq 70 ] || fail "watchdog-normalized tribunal result should be rc=70, got $stall_rc"
+if ! grep -q '\[tribunal-watchdog\] idle .* no output/score-file progress' "$stall_log"; then
+  sed -n '1,160p' "$stall_log" >&2 || true
+  fail "actual watchdog marker missing from worker output"
+fi
+# shellcheck source=scripts/tribunal-helpers.sh
+source "$ROOT_DIR/scripts/tribunal-helpers.sh"
+classified_rc="$(tribunal_classify_worker_result "$stall_rc" "$stall_log")"
+[ "$classified_rc" = "124" ] ||
+  fail "supervisor should classify watchdog-marked rc=70 as rc=124, got $classified_rc"
+pass "actual watchdog stall propagates through supervisor classification as rc=124"
 
 # A judge can produce valid score JSON and still fail the provenance contract.
 # That infrastructure error must win over the valid content payload.

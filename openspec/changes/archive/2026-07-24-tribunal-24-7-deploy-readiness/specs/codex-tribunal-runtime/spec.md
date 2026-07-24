@@ -1,8 +1,11 @@
-# codex-tribunal-runtime Specification
+## REMOVED Requirements
 
-## Purpose
-TBD - created by archiving change migrate-tribunal-to-codex. Update Purpose after archive.
-## Requirements
+### Requirement: Tribunal SHALL 依 judge 決定 runtime provider（VibeScorer=Claude Opus 4.5、其餘=Codex GPT-5.5）
+
+**Reason**: Requirement 名稱與情境寫死 model 快照，且無法表達部署嚴格模式與 CCC 相容 fallback 的不同契約。以下改用「每個角色各自讀取設定」的 requirement。
+
+## ADDED Requirements
+
 ### Requirement: Tribunal SHALL 依 judge 決定 runtime provider 與角色設定中的 model
 
 Canonical tribunal runner SHALL 逐一依 judge 解析 runtime provider 與 model：
@@ -49,33 +52,3 @@ Canonical tribunal runner SHALL 逐一依 judge 解析 runtime provider 與 mode
 - **WHEN** 部署嚴格模式未設定且 operator 明示設定 `TRIBUNAL_FORCE_PROVIDER`
 - **THEN** judge 階段 MAY 依覆寫使用同一 provider
 - **AND** 實際 provider/model SHALL 寫入來源紀錄
-
-### Requirement: `scripts/tribunal.sh` SHALL 是 canonical tribunal entrypoint
-
-Canonical single-post tribunal entrypoint SHALL 是 `scripts/tribunal.sh`。Legacy entrypoints 例如 `scripts/tribunal-all-claude.sh` MAY 作為 wrapper 保留，但 SHALL delegate 到 canonical runner。
-
-#### Scenario: Legacy wrapper invocation
-
-- **WHEN** 既有 automation 呼叫 `scripts/tribunal-all-claude.sh <post>`
-- **THEN** wrapper SHALL delegate 到 `scripts/tribunal.sh <post>`
-- **AND** 該 run SHALL 使用與 canonical command 相同的 Codex/GPT-5.5 runtime
-
-### Requirement: Tribunal score transfer SHALL 使用 explicit score files
-
-每個 tribunal judge SHALL 將 JSON score 寫入 runner 提供的 explicit score file path。runner SHALL 在寫入 frontmatter score metadata 前驗證 JSON schema。
-
-#### Scenario: Judge returns malformed JSON
-
-- **WHEN** judge 未能寫出 valid score JSON
-- **THEN** 該 stage SHALL validation fail
-- **AND** runner SHALL NOT 把 partial 或 untrusted score metadata 寫入 post
-
-### Requirement: VibeScorer compatibility wrapper SHALL 保留 legacy output
-
-`scripts/vibe-scorer.sh` SHALL delegate 到 canonical tribunal vibe stage，同時保留 older callers 預期的 legacy JSON output path contract。
-
-#### Scenario: Legacy vibe scorer caller 傳入 output path
-
-- **WHEN** 舊 script 呼叫 `scripts/vibe-scorer.sh <post> <output-path>`
-- **THEN** wrapper SHALL 執行 `scripts/tribunal.sh --only-stage vibe <post>`
-- **AND** wrapper SHALL 將 resulting vibe score JSON 寫到 `<output-path>`

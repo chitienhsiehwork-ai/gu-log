@@ -9,6 +9,8 @@ TRIBUNAL="$ROOT_DIR/scripts/tribunal.sh"
 VIBE="$ROOT_DIR/scripts/vibe-scorer.sh"
 HELPERS="$ROOT_DIR/scripts/tribunal-helpers.sh"
 WRAPPER="$ROOT_DIR/scripts/cc-tribunal-loop-wrapper.sh"
+LOOP="$ROOT_DIR/scripts/tribunal-quota-loop.sh"
+SERVICE="$ROOT_DIR/scripts/tribunal-loop.service"
 CODEX_AGENTS_DIR="$ROOT_DIR/.codex/agents"
 CODEX_WRITER="$CODEX_AGENTS_DIR/tribunal-writer.toml"
 
@@ -74,8 +76,8 @@ if ! grep -q 'Ignore YAML' "$HELPERS" || ! grep -q 'frontmatter runtime fields' 
 fi
 pass "Codex agent specs are separated from Claude Code frontmatter"
 
-if ! grep -Fq -- '--model "${GP_CODEX_MODEL:-gpt-5.5}"' "$HELPERS"; then
-  fail "Codex tribunal helper does not preserve GPT-5.5 as the default model"
+if ! grep -Fq -- '--model "$model"' "$HELPERS"; then
+  fail "Codex tribunal helper does not use its resolved role model"
 fi
 if ! grep -q 'MIN_CODEX_VERSION="0.128.0"' "$TRIBUNAL"; then
   fail "Tribunal does not reject known-broken old Codex CLI versions"
@@ -83,20 +85,20 @@ fi
 if ! grep -Fq 'export PATH="$HOME/.local/bin:$HOME/bin:$PATH"' "$WRAPPER"; then
   fail "Tribunal systemd wrapper does not prefer the current ~/.local/bin Codex before stale ~/bin"
 fi
-# model_id is provider-resolved now: codex defaults to GPT-5.5 while allowing
-# an explicit run-scoped override; claude is the CCC sandbox fallback. Guard
-# both halves so a refactor cannot drop the default or provenance resolver.
+# model_id is provider-resolved. Codex reads each role TOML unless an explicit
+# run-scoped override is present; Claude remains the CCC sandbox fallback.
 if ! grep -q 'model_id="$(tribunal_llm_model_id' "$TRIBUNAL"; then
   fail "Tribunal model_id is not resolved through the provider-aware tribunal_llm_model_id"
 fi
-if ! grep -Fq '"${GP_CODEX_MODEL:-gpt-5.5}"' "$HELPERS"; then
-  fail "Codex provider path no longer records the selected run-scoped model"
+if ! grep -q 'tribunal_codex_agent_model()' "$HELPERS" ||
+   ! grep -q 'tribunal_codex_toml_model()' "$HELPERS"; then
+  fail "Codex provider path lacks strict per-role TOML model resolution"
 fi
-unpinned_agents=$(grep -L '^model = "gpt-5.5"' "$CODEX_AGENTS_DIR"/*.toml || true)
-if [ -n "$unpinned_agents" ]; then
-  fail "One or more Codex tribunal agent specs are not pinned to GPT-5.5: $unpinned_agents"
+missing_models=$(grep -L '^model = "[A-Za-z0-9][A-Za-z0-9._:-]*"$' "$CODEX_AGENTS_DIR"/*.toml || true)
+if [ -n "$missing_models" ]; then
+  fail "One or more Codex tribunal agent specs lack a top-level model: $missing_models"
 fi
-pass "Tribunal model selection: GPT-5.5 default + explicit run-scoped override, claude fallback unchanged"
+pass "Tribunal model selection: per-role TOML + explicit run-scoped override"
 
 # The internal progress ledger runner_label must be provider-aware too, sharing
 # the same resolver as the frontmatter model_id. A refactor must not regress it
@@ -123,13 +125,55 @@ pass "Progress ledger runner_label is provider-aware (codex/claude), not a stati
 if ! grep -q 'tribunal_judge_provider()' "$HELPERS"; then
   fail "tribunal_judge_provider agent-aware resolver is missing"
 fi
-if ! grep -qF 'vibe-opus-scorer" ] && tribunal_claude_cmd' "$HELPERS"; then
-  fail "tribunal_judge_provider does not special-case vibe-opus-scorer to Claude"
+if ! grep -q 'vibe-opus-scorer)' "$HELPERS"; then
+  fail "tribunal_judge_provider does not route strict vibe-opus-scorer to Claude"
 fi
-if [ "$(grep -cF 'tribunal_judge_provider "$agent_name"' "$HELPERS")" -lt 4 ]; then
+if [ "$(grep -cF 'tribunal_judge_provider "$agent_name"' "$HELPERS")" -lt 3 ]; then
   fail "model_id/runner_label/exec_raw/watchdog do not all route through tribunal_judge_provider"
 fi
 pass "per-judge provider resolver present and wired (vibe=Claude, others=Codex)"
+
+(
+  fixture_root="$(mktemp -d "${TMPDIR:-/tmp}/gu-tribunal-codex-model.XXXXXX")"
+  trap 'rm -rf "$fixture_root"' EXIT
+  mkdir -p "$fixture_root/.codex/agents" "$fixture_root/bin"
+  printf 'model = "gpt-role-a"\n' > "$fixture_root/.codex/agents/fact-checker.toml"
+  # shellcheck disable=SC1090
+  source "$HELPERS"
+  REPO_ROOT="$fixture_root"
+  got="$(tribunal_codex_agent_model fact-checker)"
+  [ "$got" = "gpt-role-a" ] || {
+    echo "x role model = '$got', want gpt-role-a" >&2
+    exit 1
+  }
+  got="$(GP_CODEX_MODEL=gpt-override tribunal_codex_agent_model fact-checker)"
+  [ "$got" = "gpt-override" ] || {
+    echo "x override model = '$got', want gpt-override" >&2
+    exit 1
+  }
+  printf 'model = ["not", "scalar"]\n' > "$fixture_root/.codex/agents/fact-checker.toml"
+  if tribunal_codex_agent_model fact-checker >/dev/null 2>&1; then
+    echo "x invalid TOML model resolved successfully" >&2
+    exit 1
+  fi
+  marker="$fixture_root/codex-called"
+  cat > "$fixture_root/bin/codex" <<'FAKE_CODEX'
+#!/usr/bin/env bash
+: > "$FAKE_CODEX_CALLED"
+exit 0
+FAKE_CODEX
+  chmod +x "$fixture_root/bin/codex"
+  if PATH="$fixture_root/bin:$PATH" FAKE_CODEX_CALLED="$marker" \
+    tribunal_codex_exec "$fixture_root" fact-checker 'test prompt' >/dev/null 2>&1; then
+    echo "x Codex exec succeeded with an invalid role model" >&2
+    exit 1
+  fi
+  if [ -e "$marker" ]; then
+    echo "x fake Codex was invoked before role-model validation failed" >&2
+    exit 1
+  fi
+) || fail "Codex TOML model selection is not strict/per-role"
+pass "Codex TOML parser selects per-role model, honors explicit override, and fails closed"
 
 # Missing/legacy agent specs must fall back to the declared Tribunal writer
 # model, not a second hardcoded copy that can drift from agent frontmatter.
@@ -206,24 +250,131 @@ FAKE_CLAUDE
 ) || fail "Claude model parsing/execution is not fail closed"
 pass "Claude model parser is frontmatter-only and exec fails before invocation"
 
-# Behavioral check — only when BOTH codex and claude binaries are present (mac/
-# VPS). vibe=Claude is guaranteed only in that case; a box missing claude
-# degrades to the global provider by design, so skip rather than fail there.
-if command -v codex >/dev/null 2>&1 && command -v claude >/dev/null 2>&1; then
-  (
-    # shellcheck disable=SC1090
-    source "$HELPERS"
-    got_vibe="$(tribunal_judge_provider vibe-opus-scorer)"
-    [ "$got_vibe" = "claude" ] || { echo "x tribunal_judge_provider vibe-opus-scorer = '$got_vibe', want claude" >&2; exit 1; }
-    got_fact="$(tribunal_judge_provider fact-checker)"
-    [ "$got_fact" = "codex" ] || { echo "x tribunal_judge_provider fact-checker = '$got_fact', want codex" >&2; exit 1; }
-    got_forced="$(TRIBUNAL_FORCE_PROVIDER=codex tribunal_judge_provider vibe-opus-scorer)"
-    [ "$got_forced" = "codex" ] || { echo "x TRIBUNAL_FORCE_PROVIDER=codex vibe = '$got_forced', want codex" >&2; exit 1; }
-  ) || fail "per-judge provider behavioral check failed"
-  pass "per-judge provider behavior: vibe=claude, fact-checker=codex, force-override wins"
-else
-  pass "per-judge provider behavioral check skipped (codex+claude not both on PATH)"
+(
+  fixture_root="$(mktemp -d "${TMPDIR:-/tmp}/gu-tribunal-provider-contract.XXXXXX")"
+  trap 'rm -rf "$fixture_root"' EXIT
+  mkdir -p "$fixture_root/.codex/agents" "$fixture_root/.claude/agents" "$fixture_root/bin"
+  for role in fact-checker librarian fresh-eyes; do
+    printf 'model = "gpt-%s-fixture"\n' "$role" > "$fixture_root/.codex/agents/$role.toml"
+  done
+  printf '%s\n' '---' 'model: claude-vibe-fixture' '---' \
+    > "$fixture_root/.claude/agents/vibe-opus-scorer.md"
+  printf '#!/usr/bin/env bash\nexit 0\n' > "$fixture_root/bin/codex"
+  printf '#!/usr/bin/env bash\nexit 0\n' > "$fixture_root/bin/claude"
+  chmod +x "$fixture_root/bin/codex" "$fixture_root/bin/claude"
+  ln -s "$(command -v python3)" "$fixture_root/bin/python3"
+  # shellcheck disable=SC1090
+  source "$HELPERS"
+  REPO_ROOT="$fixture_root"
+  PATH="$fixture_root/bin:/usr/bin:/bin"
+
+  got_vibe="$(TRIBUNAL_STRICT_ROLE_PROVIDERS=1 tribunal_judge_provider vibe-opus-scorer)"
+  [ "$got_vibe" = "claude" ] || { echo "x strict vibe = '$got_vibe', want claude" >&2; exit 1; }
+  got_fact="$(TRIBUNAL_STRICT_ROLE_PROVIDERS=1 tribunal_judge_provider fact-checker)"
+  [ "$got_fact" = "codex" ] || { echo "x strict fact = '$got_fact', want codex" >&2; exit 1; }
+  got_model="$(TRIBUNAL_STRICT_ROLE_PROVIDERS=1 tribunal_llm_model_id fact-checker)"
+  [ "$got_model" = "gpt-fact-checker-fixture" ] || {
+    echo "x strict fact model = '$got_model'" >&2
+    exit 1
+  }
+  if TRIBUNAL_STRICT_ROLE_PROVIDERS=1 TRIBUNAL_FORCE_PROVIDER=codex \
+    tribunal_judge_provider fact-checker >/dev/null 2>&1; then
+    echo "x strict mode accepted TRIBUNAL_FORCE_PROVIDER" >&2
+    exit 1
+  fi
+
+  got_forced="$(TRIBUNAL_FORCE_PROVIDER=codex tribunal_judge_provider vibe-opus-scorer)"
+  [ "$got_forced" = "codex" ] || { echo "x compat force override = '$got_forced'" >&2; exit 1; }
+  rm "$fixture_root/bin/codex"
+  got_fallback="$(tribunal_judge_provider fact-checker)"
+  [ "$got_fallback" = "claude" ] || { echo "x compat fallback = '$got_fallback', want claude" >&2; exit 1; }
+  if TRIBUNAL_STRICT_ROLE_PROVIDERS=1 tribunal_judge_provider fact-checker >/dev/null 2>&1; then
+    echo "x strict objective judge silently fell back without codex" >&2
+    exit 1
+  fi
+) || fail "strict role provider / compatibility fallback behavioral check failed"
+pass "strict routing is role-bound; compatibility fallback and explicit override remain available only when strict is unset"
+
+if ! grep -q '^Environment=TRIBUNAL_STRICT_ROLE_PROVIDERS=1$' "$SERVICE" ||
+   ! grep -q '^Environment=GP_WRITER_MODE=cli$' "$SERVICE"; then
+  fail "systemd unit does not select strict role providers + CLI writer"
 fi
+if ! grep -q 'deployed_runtime_preflight' "$LOOP" ||
+   ! grep -q 'tribunal_writer_preflight' "$HELPERS"; then
+  fail "deployed writer preflight is not wired before quota-loop dispatch"
+fi
+(
+  fixture_root="$(mktemp -d "${TMPDIR:-/tmp}/gu-tribunal-writer-preflight.XXXXXX")"
+  trap 'rm -rf "$fixture_root"' EXIT
+  mkdir -p "$fixture_root/.claude/agents" "$fixture_root/bin"
+  printf '%s\n' '---' 'model: claude-writer-fixture' '---' \
+    > "$fixture_root/.claude/agents/tribunal-writer.md"
+  cat > "$fixture_root/bin/claude" <<'FAKE_CLAUDE'
+#!/usr/bin/env bash
+printf '%s\n' "$*" > "$FAKE_CLAUDE_ARGS"
+cat >/dev/null
+printf 'OK\n'
+FAKE_CLAUDE
+  chmod +x "$fixture_root/bin/claude"
+  # shellcheck disable=SC1090
+  source "$HELPERS"
+  REPO_ROOT="$fixture_root"
+  args="$fixture_root/args"
+  if GP_WRITER_MODE=none tribunal_writer_preflight >/dev/null 2>&1; then
+    echo "x writer preflight accepted none mode" >&2
+    exit 1
+  fi
+  if GP_WRITER_MODE=subagent tribunal_writer_preflight >/dev/null 2>&1; then
+    echo "x writer preflight accepted unconsumed subagent mode" >&2
+    exit 1
+  fi
+  PATH="$fixture_root/bin:$PATH" FAKE_CLAUDE_ARGS="$args" GP_WRITER_MODE=cli \
+    TRIBUNAL_WRITER_PREFLIGHT_TIMEOUT_SEC=2 tribunal_writer_preflight >/dev/null
+  grep -q -- '--no-session-persistence' "$args" || {
+    echo "x writer preflight is not non-persistent" >&2
+    exit 1
+  }
+  grep -q -- '--tools ' "$args" || {
+    echo "x writer preflight no-tools contract is missing" >&2
+    exit 1
+  }
+  if grep -q -- '--add-dir' "$args"; then
+    echo "x writer preflight unexpectedly grants repo access" >&2
+    exit 1
+  fi
+) || fail "bounded non-interactive writer preflight behavioral check failed"
+pass "deployed systemd runtime selects strict routing and bounded CLI writer preflight"
+
+(
+  fixture_root="$(mktemp -d "${TMPDIR:-/tmp}/gu-tribunal-notifier.XXXXXX")"
+  trap 'rm -rf "$fixture_root"' EXIT
+  capture="$fixture_root/capture"
+  marker="$fixture_root/must-not-exist"
+  cat > "$fixture_root/notifier" <<'NOTIFIER'
+#!/usr/bin/env bash
+printf '%s\n' "$#" "$1" > "$TRIBUNAL_NOTIFIER_CAPTURE"
+NOTIFIER
+  chmod +x "$fixture_root/notifier"
+  # shellcheck disable=SC1090
+  source "$HELPERS"
+  message="spaces 'quotes' \$(touch $marker); semicolon"
+  TRIBUNAL_NOTIFIER_CAPTURE="$capture" \
+    TRIBUNAL_NOTIFIER="$fixture_root/notifier" \
+    tribunal_quota_alarm "$message" 2>/dev/null
+  [ "$(sed -n '1p' "$capture")" = "1" ] || {
+    echo "x notifier did not receive exactly one argument" >&2
+    exit 1
+  }
+  [ "$(sed -n '2p' "$capture")" = "$message" ] || {
+    echo "x notifier message changed" >&2
+    exit 1
+  }
+  [ ! -e "$marker" ] || {
+    echo "x notifier message was evaluated as shell code" >&2
+    exit 1
+  }
+) || fail "TRIBUNAL_NOTIFIER argv safety check failed"
+pass "notifier receives one unchanged argv without shell evaluation"
 
 if ! grep -q 'temporary directory' "$CODEX_WRITER" || ! grep -q 'surgical editor' "$CODEX_WRITER"; then
   fail "Codex tribunal writer prompt lacks GPT-5.5 temp-dir/surgical-edit guardrails"
