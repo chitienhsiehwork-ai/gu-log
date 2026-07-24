@@ -47,6 +47,12 @@ jobs:
           fi
           echo "✅ Homepage: 200"
 
+      - name: Smoke test — zh/en Markdown representations and JSON v2
+        if: github.event.deployment_status.state == 'success'
+        run: |
+          node scripts/verify-post-markdown-deployment.mjs \
+            --base-url https://gu-log.vercel.app
+
       - name: Smoke test — check latest articles are live
         if: github.event.deployment_status.state == 'success'
         run: |
