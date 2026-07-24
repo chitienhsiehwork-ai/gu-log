@@ -334,6 +334,14 @@ FAKE_CLAUDE
     echo "x writer preflight is not non-persistent" >&2
     exit 1
   }
+  grep -q -- '--tools ' "$args" || {
+    echo "x writer preflight no-tools contract is missing" >&2
+    exit 1
+  }
+  if grep -q -- '--add-dir' "$args"; then
+    echo "x writer preflight unexpectedly grants repo access" >&2
+    exit 1
+  fi
 ) || fail "bounded non-interactive writer preflight behavioral check failed"
 pass "deployed systemd runtime selects strict routing and bounded CLI writer preflight"
 

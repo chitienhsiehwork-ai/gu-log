@@ -106,6 +106,65 @@ STATE
 ) || fail "doctor cached/live writer preflight behavior is incorrect"
 pass "doctor reuses current PID state; only explicit live probe invokes Claude"
 
+# Judge and writer share tribunal_claude_exec. From an isolated workdir, both
+# must grant exactly REPO_ROOT through --add-dir before the variadic
+# --allowed-tools flag; prompts stay on stdin. Invalid roots fail before Claude.
+(
+  access_root="$TMP/claude-repo-access"
+  mkdir -p "$access_root/.claude/agents" "$access_root/work" "$access_root/bin"
+  printf '%s\n' '---' 'model: claude-fact-fixture' '---' \
+    > "$access_root/.claude/agents/fact-checker.md"
+  printf '%s\n' '---' 'model: claude-writer-fixture' '---' \
+    > "$access_root/.claude/agents/tribunal-writer.md"
+  cat > "$access_root/bin/id" <<'FAKE_ID'
+#!/usr/bin/env bash
+if [ "${1:-}" = "-u" ]; then
+  printf '0\n'
+else
+  /usr/bin/id "$@"
+fi
+FAKE_ID
+  cat > "$access_root/bin/claude" <<'FAKE_CLAUDE'
+#!/usr/bin/env bash
+printf '%s\n' "$@" > "$FAKE_CLAUDE_CAPTURE"
+cat > "${FAKE_CLAUDE_CAPTURE}.stdin"
+FAKE_CLAUDE
+  chmod +x "$access_root/bin/id" "$access_root/bin/claude"
+
+  PATH="$access_root/bin:$PATH" REPO_ROOT="$access_root" \
+  FAKE_CLAUDE_CAPTURE="$access_root/judge.args" \
+  TRIBUNAL_CODEX_TIMEOUT_SEC=2 \
+    tribunal_claude_exec "$access_root/work" fact-checker "judge access fixture"
+  PATH="$access_root/bin:$PATH" REPO_ROOT="$access_root" \
+  FAKE_CLAUDE_CAPTURE="$access_root/writer.args" \
+  GP_WRITER_MODE=cli TRIBUNAL_CODEX_TIMEOUT_SEC=2 \
+    tribunal_writer_exec "$access_root/work" tribunal-writer "writer access fixture"
+
+  for capture in "$access_root/judge.args" "$access_root/writer.args"; do
+    [ "$(grep -cx -- '--add-dir' "$capture")" = "1" ]
+    awk -v repo="$access_root" '
+      previous == "--add-dir" && $0 == repo { found = 1 }
+      { previous = $0 }
+      END { exit(found ? 0 : 1) }
+    ' "$capture"
+    [ "$(tail -2 "$capture" | head -1)" = "--allowed-tools" ]
+    grep -q '^## User task$' "${capture}.stdin"
+  done
+  grep -q 'judge access fixture' "$access_root/judge.args.stdin"
+  grep -q 'writer access fixture' "$access_root/writer.args.stdin"
+
+  rm -f "$access_root/judge.args"
+  if PATH="$access_root/bin:$PATH" REPO_ROOT="$access_root/missing" \
+    FAKE_CLAUDE_CAPTURE="$access_root/judge.args" \
+    tribunal_claude_exec "$access_root/work" fact-checker "must not run" \
+      >"$access_root/missing.out" 2>&1; then
+    exit 1
+  fi
+  [ ! -e "$access_root/judge.args" ]
+  grep -q 'REPO_ROOT is not a directory' "$access_root/missing.out"
+) || fail "Claude judge/writer repo grant is missing, broad, misordered, or fail-open"
+pass "Claude judge and writer receive exact --add-dir repo access; invalid root fails closed"
+
 # Watchdog cancellation uses a dedicated POSIX session. A descendant that
 # ignores TERM must still die when the saved session receives KILL.
 (

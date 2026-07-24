@@ -818,13 +818,17 @@ tribunal_write_actual_provider() {
 # rubric (its YAML frontmatter is the persona/pass-bar contract) and runs
 # `claude -p` non-interactively. Under root (CCC) claude rejects
 # bypassPermissions, so we use acceptEdits, which still auto-approves the
-# judge's score-file write; non-root uses the broader bypassPermissions.
+# judge's score-file write; non-root uses permission-mode auto.
 tribunal_claude_exec() {
   local work_dir="$1"
   local agent_name="$2"
   local user_prompt="$3"
   if [ -z "${REPO_ROOT:-}" ]; then
     REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  fi
+  if [ ! -d "$REPO_ROOT" ]; then
+    printf 'Claude tribunal REPO_ROOT is not a directory: %s\n' "$REPO_ROOT" >&2
+    return 1
   fi
   local agent_file="$REPO_ROOT/.claude/agents/$agent_name.md"
   local agent_spec="" model=""
@@ -855,6 +859,11 @@ PROMPT
   local timeout_sec claude_cmd
   timeout_sec="${TRIBUNAL_CODEX_TIMEOUT_SEC:-3600}"
   claude_cmd="$(tribunal_claude_cmd)" || return 127
+  # The CLI starts in an isolated temp directory, so both judge and writer must
+  # explicitly receive the repo as one narrow additional directory. Keep
+  # --add-dir before the variadic --allowed-tools flag, and keep the prompt on
+  # stdin so no option can swallow it.
+  #
   # Permission handling differs by uid:
   #  - non-root (mac/VPS): auto mode runs free without prompting. NOTE: we used
   #    to use bypassPermissions here, but on current CC `claude -p
@@ -877,9 +886,9 @@ PROMPT
   #    given) so the allowlist token is the last arg with nothing to consume.
   local -a perm_args
   if [ "$(id -u)" = "0" ]; then
-    perm_args=(--permission-mode acceptEdits --allowed-tools "Read,Grep,Glob,Bash,Write,Edit,MultiEdit")
+    perm_args=(--add-dir "$REPO_ROOT" --permission-mode acceptEdits --allowed-tools "Read,Grep,Glob,Bash,Write,Edit,MultiEdit")
   else
-    perm_args=(--permission-mode auto)
+    perm_args=(--add-dir "$REPO_ROOT" --permission-mode auto)
   fi
   (
     cd "$work_dir" || exit
