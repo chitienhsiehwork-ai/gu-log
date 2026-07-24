@@ -34,4 +34,4 @@
 ## 7. Verify
 
 - [x] 7.1 Shell tests green; `node scripts/validate-posts.mjs` unaffected; `openspec validate tribunal-24-7-deploy-readiness --strict` passes.
-- [ ] 7.2 Dry-run on the operator-configured Tribunal VM: confirm a failing article is rewritten via Claude CLI, Vibe uses its configured Claude model, objective judges use their configured Codex models, strict preflight passes, and the monitor shows live controller state.
+- [x] 7.2 Dry-run on the operator-configured Tribunal VM: strict preflight passed; a failing article was rewritten through the production Claude CLI writer path; Vibe selected its configured Claude model; Fact Checker, Librarian, and Fresh Eyes each selected their configured Codex model; and the live controller entered its documented `fallback` state because the off-repo usage monitor returned `parse_error`.

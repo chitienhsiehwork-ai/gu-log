@@ -3,40 +3,52 @@
 ## Purpose
 TBD - created by archiving change migrate-tribunal-to-codex. Update Purpose after archive.
 ## Requirements
-### Requirement: Tribunal SHALL 依 judge 決定 runtime provider（VibeScorer=Claude Opus 4.5、其餘=Codex GPT-5.5）
+### Requirement: Tribunal SHALL 依 judge 決定 runtime provider 與角色設定中的 model
 
-Canonical tribunal runner SHALL 以 per-judge 方式解析 runtime provider：
+Canonical tribunal runner SHALL 逐一依 judge 解析 runtime provider 與 model：
 
-- **Librarian、FactChecker、FreshEyes** SHALL 透過 `codex exec` 使用 model `gpt-5.5` 執行；其 Codex project agent 設定 SHALL 放在 `.codex/agents/*.toml`。
-- **VibeScorer** SHALL 在 codex 可用的環境（mac / VPS）透過 `claude -p` 使用 `.claude/agents/vibe-opus-scorer.md` 宣告的 model（`claude-opus-4-5`）執行。該檔的 `model:` 欄位 SHALL 作為 VibeScorer runtime 的權威來源。
-- 其餘三個 judge 的 `.claude/agents/*.md` metadata MAY 作為 calibration context 保留，且 SHALL NOT 被當成 mac/VPS 上的 Codex runtime model selection（僅在 codex 不可用的 CCC fallback 生效）。
+- **Librarian、FactChecker、FreshEyes** 在部署嚴格模式 SHALL 透過 Codex 執行，model SHALL 來自對應 `.codex/agents/<role>.toml`。
+- **VibeScorer** 在部署嚴格模式 SHALL 透過 Claude 執行，model SHALL 來自 `.claude/agents/vibe-opus-scorer.md` 第一段 frontmatter。
+- Provider/model 解析 SHALL 集中在能辨識 agent 身份的 helper，不得在 router 寫死 model 版本。
+- `TRIBUNAL_STRICT_ROLE_PROVIDERS=1` SHALL 是部署嚴格模式的唯一開關。未設定時 MAY 保留 Codex 不可用時的 CCC 相容 fallback，但進度與分數來源 SHALL 記錄實際 provider/model。
+- `TRIBUNAL_FORCE_PROVIDER` 與 `GP_CODEX_MODEL` MAY 作為明示的單次執行覆寫；覆寫 SHALL 記錄實際來源。`TRIBUNAL_FORCE_PROVIDER` 與部署嚴格模式 SHALL NOT 同時啟用。
 
-Provider 解析 SHALL 集中在一個 agent-aware helper；沒有帶 judge 身份的既有呼叫路徑 SHALL 維持原本的全域 `codex if present else claude` 行為不變。全域 `TRIBUNAL_FORCE_PROVIDER` override SHALL 對所有 judge（含 VibeScorer）生效，優先序高於 per-judge 偏好。
+#### Scenario: 在部署嚴格模式跑完整 Tribunal
 
-#### Scenario: Full tribunal run on mac/VPS
+- **WHEN** operator 設定 `TRIBUNAL_STRICT_ROLE_PROVIDERS=1` 執行 canonical tribunal runner
+- **THEN** Librarian / FactChecker / FreshEyes SHALL 透過 Codex 與各自 TOML 宣告的 model 執行
+- **AND** VibeScorer SHALL 透過 Claude 與其 frontmatter 宣告的 model 執行
+- **AND** frontmatter 與進度紀錄 SHALL 誠實記錄各階段的實際 provider/model
 
-- **WHEN** operator 在 codex 可用的環境對單篇 post 執行 canonical tribunal runner
-- **THEN** Librarian / FactChecker / FreshEyes stage SHALL 透過 Codex/GPT-5.5 執行
-- **AND** VibeScorer stage SHALL 透過 Claude Opus 4.5 執行
-- **AND** frontmatter score metadata SHALL 各自誠實記錄 runtime model（三個客觀 judge 記 `codex-gpt-5.5-medium`、VibeScorer 記 `claude-opus-4-5`）
+#### Scenario: CCC sandbox 相容 fallback
 
-#### Scenario: CCC sandbox fallback（codex 不在 PATH）
+- **WHEN** 部署嚴格模式未設定且 Codex 執行檔不在 PATH
+- **THEN** judge 階段 MAY fallback 到 Claude 並讀各自 `.claude/agents/*.md` 的 model
+- **AND** runner SHALL 在來源紀錄寫下實際 Claude provider/model
 
-- **WHEN** operator 在沒有 codex binary 的環境執行 canonical tribunal runner
-- **THEN** 四個 judge stage SHALL 全部 fallback 到 Claude，讀各自 `.claude/agents/*.md` 的 `model:`
-- **AND** runner SHALL NOT 因某個 judge 偏好 codex 而硬失敗
+#### Scenario: 部署嚴格模式缺少必要 provider
 
-#### Scenario: 全域 force-provider override
+- **WHEN** 部署嚴格模式啟用但 Vibe 缺少 Claude，或任一客觀 judge 缺少 Codex
+- **THEN** runner SHALL 明確回報該角色失敗
+- **AND** SHALL NOT 靜默改用另一個 provider
 
-- **WHEN** operator 設定 `TRIBUNAL_FORCE_PROVIDER=codex` 執行 tribunal
-- **THEN** 包含 VibeScorer 在內的所有 judge stage SHALL 透過 Codex/GPT-5.5 執行
-- **AND** per-judge 的 VibeScorer=Claude 偏好 SHALL 被覆寫
+#### Scenario: Codex 角色設定無效
 
-#### Scenario: Single-stage vibe run
+- **WHEN** 未設定 `GP_CODEX_MODEL` 覆寫，且客觀 judge 的 TOML 缺少或包含無效 model
+- **THEN** Codex invocation SHALL 在執行前明確失敗
+- **AND** SHALL NOT 使用隱性預設 model
 
-- **WHEN** operator 在 codex 可用環境執行 `scripts/tribunal.sh --only-stage vibe <post>`
-- **THEN** 只有 VibeScorer stage SHALL 執行
-- **AND** 該 stage SHALL 透過 Claude Opus 4.5 執行
+#### Scenario: 部署嚴格模式拒絕全域 provider 覆寫
+
+- **WHEN** operator 同時設定 `TRIBUNAL_STRICT_ROLE_PROVIDERS=1` 與 `TRIBUNAL_FORCE_PROVIDER`
+- **THEN** 部署前置檢查 SHALL 在文章派送前失敗
+- **AND** SHALL 告知 operator 必須關閉部署嚴格模式才能執行覆寫實驗
+
+#### Scenario: 相容模式明示全域 provider 覆寫
+
+- **WHEN** 部署嚴格模式未設定且 operator 明示設定 `TRIBUNAL_FORCE_PROVIDER`
+- **THEN** judge 階段 MAY 依覆寫使用同一 provider
+- **AND** 實際 provider/model SHALL 寫入來源紀錄
 
 ### Requirement: `scripts/tribunal.sh` SHALL 是 canonical tribunal entrypoint
 
@@ -67,4 +79,3 @@ Canonical single-post tribunal entrypoint SHALL 是 `scripts/tribunal.sh`。Lega
 - **WHEN** 舊 script 呼叫 `scripts/vibe-scorer.sh <post> <output-path>`
 - **THEN** wrapper SHALL 執行 `scripts/tribunal.sh --only-stage vibe <post>`
 - **AND** wrapper SHALL 將 resulting vibe score JSON 寫到 `<output-path>`
-
