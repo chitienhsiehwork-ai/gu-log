@@ -19,4 +19,4 @@
 - [x] 3.1 跑 OpenSpec strict validation、指定目錄測試、Astro 檢查與建置。
 - [x] 3.2 以淺色／深色桌面版驗證首屏與捲動後狀態，並複驗淺色／深色手機版。
 - [x] 3.3 跑 fresh-eyes `uiux-auditor`，收斂所有必修項目。
-- [ ] 3.4 建立 draft PR 與 Vercel preview，交付 user 檢查。
+- [x] 3.4 建立 draft PR 與 Vercel preview，交付 user 檢查。
