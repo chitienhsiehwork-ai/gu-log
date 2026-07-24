@@ -33,9 +33,12 @@ test.describe('Table of Contents', () => {
 
       const container = page.locator('.toc-mobile .toc-toggle-container');
       const toggle = page.locator('.toc-mobile .toc-toggle-header');
+      const content = page.locator('.toc-mobile .toc-content');
 
       // Verify initial state is collapsed
       await expect(container).toHaveAttribute('data-open', 'false');
+      await expect(content).toHaveCSS('border-left-width', '0px');
+      await expect(toggle).toHaveCSS('border-left-width', '0px');
 
       // Click to expand
       await toggle.click();
@@ -43,6 +46,9 @@ test.describe('Table of Contents', () => {
       // Verify expanded state
       await expect(container).toHaveAttribute('data-open', 'true');
       await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+      await expect(content).toHaveCSS('border-left-width', '1px');
+      await expect(content).toHaveCSS('border-left-color', /rgb/);
+      await expect(toggle).toHaveCSS('border-left-width', '0px');
     });
 
     test('GIVEN TOC is expanded WHEN user clicks toggle THEN TOC should collapse', async ({

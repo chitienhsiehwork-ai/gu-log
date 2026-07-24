@@ -77,7 +77,7 @@ Source citation 位置評估過的選項：
 
 **拍板（user 同意）**：desktop 走細線導航——hairline rail＋active 亮橘標記、去掉卡片底色；mobile 照上述 spec（可發現、不佔首屏）。
 
-**Preview 修正：mobile 不沿用 desktop rail。** iPhone preview 上，來源 side-tab、mobile TOC rail 和底部導航 side-tab 疊在同一條閱讀軸上，形成不必要的彩色直線節奏。Mobile TOC 改用單純 disclosure row；展開內容靠 indentation 與 active text weight 表意，不畫 rail 或 active pseudo-element。Desktop rail 仍保留，因為它在寬螢幕是獨立的 navigation chrome，不會和正文前後的 cards 串成同一種圖樣。
+**Preview 修正：mobile 不沿用 desktop accent rail。** iPhone preview 上，來源 side-tab、mobile TOC rail 和底部導航 side-tab 疊在同一條閱讀軸上，形成不必要的彩色直線節奏。Mobile TOC 不畫穿過 disclosure header 的 rail，也不畫 active pseudo-element。User 第二輪 preview 覺得展開內容完全無線時缺少 grouping；因此展開後只在 entries 旁顯示 `1px` 中性 `--color-toc-rail` rule，與文字保留 `12px` gap，收合時完全隱藏。這條線是內容編組，不是 ticket-colored side-tab：不使用 accent 色、不穿過標題、不搭配卡片底色或圓角。Desktop rail 仍保留，因為它在寬螢幕是獨立的 navigation chrome，不會和正文前後的 cards 串成同一種圖樣。
 
 ### D5: Technical metadata 改成 disclosed section
 

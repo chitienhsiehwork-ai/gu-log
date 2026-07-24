@@ -47,3 +47,10 @@
 - [x] 6.3 將 related、series 與 chronological onward navigation 從彩色側邊卡片收斂成中性 editorial list/divider。
 - [x] 6.4 新增 regression assertions，防止 mobile article chrome 回復成 repeated rounded surface cards + colored side borders。
 - [x] 6.5 重跑 OpenSpec strict validation、targeted tests、dark/light mobile screenshots 與 fresh-eyes `uiux-auditor`（PASS 9/10，零 blocker）。
+
+## 7. Mobile TOC grouping-rule iteration
+
+- [x] 7.1 依 user 第二輪 iPhone preview 回饋，更新 spec/design：允許展開 entries 使用中性 grouping rule，但禁止 collapsed stub、accent rail 與 active side-tab。
+- [x] 7.2 在 `TableOfContents.astro` 實作只於 mobile expanded state 顯示的 `1px` neutral rule；線不得穿過 disclosure header。
+- [x] 7.3 新增 regression assertions，驗證 collapsed/open border state、neutral token、透明背景與無圓角。
+- [x] 7.4 重跑 OpenSpec strict validation、targeted tests、dark/light mobile screenshots 與 fresh-eyes designer audit（PASS 10/10，零 finding）。

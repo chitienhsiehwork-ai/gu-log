@@ -77,7 +77,9 @@ Table of contents SHALL 對 long articles 維持 available，但 desktop 與 mob
 - **WHEN** reader 開啟 post
 - **THEN** 若 headings 存在，TOC SHALL 可被 discover
 - **AND** TOC SHALL NOT 在 article lead 前消耗不成比例的 first-screen height
-- **AND** mobile TOC SHALL NOT 使用 decorative vertical rail 或 active-link side-tab
+- **AND** collapsed mobile TOC SHALL NOT 顯示 decorative vertical rail
+- **AND** expanded mobile TOC MAY 在 entries 旁使用 1px 中性 grouping rule，但該線 SHALL NOT 穿過 disclosure header
+- **AND** mobile TOC SHALL NOT 使用 accent-colored rail 或 active-link side-tab
 
 ---
 

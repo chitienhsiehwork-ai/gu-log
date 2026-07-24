@@ -224,6 +224,38 @@ test.describe('Component smoke — post page (RelatedArticles, ShareButton, Prev
       await activeMobileTocLink.evaluate((element) => getComputedStyle(element, '::before').content)
     ).toBe('none');
 
+    const mobileToc = page.locator('.toc-mobile .toc-toggle-container');
+    const mobileTocHeader = page.locator('.toc-mobile .toc-toggle-header');
+    const mobileTocContent = page.locator('.toc-mobile .toc-content');
+    await expect(mobileTocContent).toHaveCSS('border-left-width', '0px');
+    await mobileTocHeader.click();
+    await expect(mobileTocContent).toHaveCSS('border-left-width', '1px');
+    const mobileTocStyles = await mobileTocContent.evaluate((element) => {
+      const style = getComputedStyle(element);
+      const rootStyle = getComputedStyle(document.documentElement);
+      const probe = document.createElement('span');
+      probe.style.color = 'var(--color-toc-rail)';
+      document.body.append(probe);
+      const resolvedTocRail = getComputedStyle(probe).color;
+      probe.remove();
+      return {
+        backgroundColor: style.backgroundColor,
+        borderLeftColor: style.borderLeftColor,
+        borderRadius: style.borderRadius,
+        tocRail: rootStyle.getPropertyValue('--color-toc-rail').trim(),
+        resolvedTocRail,
+        accent: rootStyle.getPropertyValue('--color-mogu-orange').trim(),
+      };
+    });
+    expect(mobileTocStyles.backgroundColor).toBe('rgba(0, 0, 0, 0)');
+    expect(mobileTocStyles.borderRadius).toBe('0px');
+    expect(mobileTocStyles.borderLeftColor).toBe(mobileTocStyles.resolvedTocRail);
+    expect(mobileTocStyles.borderLeftColor).not.toBe(mobileTocStyles.accent);
+    expect(mobileTocStyles.tocRail).toBeTruthy();
+    await mobileTocHeader.click();
+    await expect(mobileToc).toHaveAttribute('data-open', 'false');
+    await expect(mobileTocContent).toHaveCSS('border-left-width', '0px');
+
     await page.goto('/posts/gp-144-20260402-ecc-instinct-system');
     const seriesNavLink = page.locator('.series-nav-link').first();
     const seriesNavStyles = await seriesNavLink.evaluate((element) => {
