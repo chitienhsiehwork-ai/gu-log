@@ -1,0 +1,102 @@
+---
+ticketId: "MP-243"
+title: "Behind 29,000 Bookmarks: Paweł Huryn on Knowledge Systems That Grow Themselves"
+originalDate: "2026-04-03"
+translatedDate: "2026-04-04"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@PawelHuryn on X"
+sourceUrl: "https://x.com/PawelHuryn/status/2039976101477298582"
+lang: "en"
+summary: "Karpathy shared his experience building a personal knowledge base with LLMs, earning 29,000 bookmarks. Huryn argues the real killer feature isn't reading — it's writing back. When your LLM automatically updates your knowledge base, your personal wiki becomes a personal research team."
+tags: ["knowledge-management","llm-workflow","claude","productivity"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+[Andrej Karpathy](/en/glossary#andrej-karpathy) recently posted something on X that got bookmarked 29,000 times.
+
+Not a new model release. Not a benchmark breakthrough. Just an observation: lately, most of his token usage hasn't gone toward writing code — it's gone toward building a personal knowledge base.
+
+Paweł Huryn of Product Compass saw the post and pushed the conversation further:
+
+> You don't need RAG. You need an INDEX.md, structured directories, and an LLM that reads the right files at the right time.
+
+Huryn's read is that those 29,000 bookmarks reflect something Karpathy articulated that many CLAUDE.md users were already doing. But Huryn's real point isn't "everyone knows this trick." His point is: the step Karpathy hasn't taken yet — that's where the real divide is.
+
+## From "Reading" to "Writing Back" — A Qualitative Shift in Knowledge Systems
+
+Start with Karpathy's approach.
+
+Karpathy noticed that the way he uses LLMs has been shifting: most of his tokens used to go toward code manipulation, but increasingly they go toward knowledge manipulation. Specifically, using LLMs to build, organize, and update a personal knowledge base across various research topics.
+
+<MoguNote>
+Karpathy's post got bookmarked 29,000 times, which Huryn sees as proof that it struck a chord. That kind of collective "yes, exactly this" resonance says more about a trend than any benchmark could (￣▽￣)／
+</MoguNote>
+
+Huryn picked up the thread, saying he's been running this approach for months and has accumulated over 120 knowledge files. But his emphasis isn't on the file count at all.
+
+The point is: **the LLM writes back.**
+
+After each analysis, the LLM doesn't just spit out an answer and call it a day. According to Huryn, every analysis updates the system — templates, hypotheses, performance data all get written back to the knowledge base. The knowledge base isn't a passive repository; it's an organism that grows on its own.
+
+That's the gap Huryn is talking about:
+
+> That's the gap between a personal wiki and a personal research team.
+
+---
+
+## Not RAG — Structured Directories
+
+Huryn's claim is direct: you don't need RAG. What you need is an INDEX.md, structured directories, and an LLM that reads the right files at the right time.
+
+The point isn't to dismiss RAG's technical value entirely. It's to highlight that another way of working exists: instead of relying on embedding retrieval to stuff "seemingly relevant" chunks into a context window, let the LLM know exactly where knowledge lives and how to find it.
+
+<MoguNote>
+Here's another way to think about it: RAG is like going to the library every time you need information, searching by keyword, finding a few books that look relevant, and photocopying some pages to take home. The system Huryn describes is like having a research assistant who doesn't just find the books but updates your research notes after reading them. Next time you come back, your notes are already up to date. Library vs. research team — completely different positioning (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+And the more critical difference: Huryn's system writes back. RAG is passive — it fetches data when asked, and that's it. What Huryn describes is a system that automatically updates after every interaction.
+
+---
+
+## Compound Knowledge — The Compounding Effect
+
+Huryn distills the core value of this approach into one line:
+
+> The knowledge base compounds on its own.
+
+Templates, hypotheses, performance data — every use paves the way for the next. From Huryn's description, this means each analysis writes new content back into the system, so the next session builds on the previous one rather than starting from scratch.
+
+<MoguNote>
+Over 120 knowledge files, running for months. What's really worth noting isn't the quantity — it's the time dimension of this system. The longer you use it, the more battle-tested insights accumulate, and the richer the reference material the LLM has each time it starts working. Huryn calls it a personal research team, and from this angle, that's not an exaggeration ╰(°▽°)╯
+</MoguNote>
+
+---
+
+## Conclusion
+
+According to Huryn, the real difference isn't just having an LLM read your data — it's having the LLM write results back after every analysis. Karpathy's post triggered 29,000 bookmarks, but Huryn sees the next step as the key: moving from "using LLMs to query knowledge" to "letting LLMs maintain knowledge."
+
+That's the line Huryn sees between a "personal wiki" and a "personal research team." On one side, a passive repository. On the other, a system that automatically updates after every interaction. INDEX.md, structured directories, an LLM that reads the right files at the right time — the tools are already there.
