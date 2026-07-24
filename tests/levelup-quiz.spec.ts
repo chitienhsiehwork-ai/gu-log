@@ -77,6 +77,56 @@ test.describe('LevelUpQuiz Component', () => {
     await expect(quiz.locator('.result-correct')).toBeVisible();
     await expect(quiz.locator('.quiz-option[data-label="C"]')).toBeDisabled();
   });
+
+  test('GIVEN both themes WHEN an answer is wrong THEN status labels pass text contrast', async ({
+    page,
+  }) => {
+    await openFixture(page);
+
+    const quiz = page.locator('.levelup-quiz').first();
+    await quiz.locator('.quiz-option[data-label="A"]').click();
+
+    for (const theme of ['light', 'dark']) {
+      const result = await page.evaluate((activeTheme) => {
+        document.documentElement.dataset.theme = activeTheme;
+
+        const parseRgb = (value: string) =>
+          value
+            .match(/[\d.]+/g)!
+            .slice(0, 3)
+            .map(Number);
+        const luminance = (rgb: number[]) => {
+          const [r, g, b] = rgb.map((channel) => {
+            const normalized = channel / 255;
+            return normalized <= 0.04045
+              ? normalized / 12.92
+              : ((normalized + 0.055) / 1.055) ** 2.4;
+          });
+          return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        };
+        const contrast = (foreground: string, background: string) => {
+          const fg = luminance(parseRgb(foreground));
+          const bg = luminance(parseRgb(background));
+          return (Math.max(fg, bg) + 0.05) / (Math.min(fg, bg) + 0.05);
+        };
+
+        const ratios = ['correct', 'wrong'].map((state) => {
+          const label = document.querySelector<HTMLElement>(`.quiz-option.${state} .option-label`)!;
+          const style = getComputedStyle(label);
+          return contrast(style.color, style.backgroundColor);
+        });
+
+        return {
+          ratios,
+          overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        };
+      }, theme);
+
+      expect(result.ratios, theme).toEqual([expect.any(Number), expect.any(Number)]);
+      expect(Math.min(...result.ratios), theme).toBeGreaterThanOrEqual(4.5);
+      expect(result.overflow, theme).toBe(0);
+    }
+  });
 });
 
 test.describe('MoguNote murmur variant', () => {
