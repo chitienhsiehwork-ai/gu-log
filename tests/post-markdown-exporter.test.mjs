@@ -294,6 +294,19 @@ Run \`claude --resume <session-id>\`.
   assert.equal(normalizeRenderedText('A\u2060 B\u00a0C'), 'A B C');
 });
 
+test('escapes literal backslashes together with Markdown inline punctuation', () => {
+  const raw = rawPost('\nEscaping fixture.\n');
+  const html = pageHtml(String.raw`<p>Path C:\tmp and *literal*.</p>`);
+  const result = serializeMarkdownArtifact({
+    rawMdx: raw,
+    postJson: postJson(raw),
+    html,
+    sourceName: 'backslash-escaping',
+  });
+
+  assert.ok(result.markdown.includes(String.raw`Path C:\\tmp and \*literal\*.`));
+});
+
 test('projects every registered adapter and the exact artifact callout without hidden duplicates', () => {
   const raw = rawPost(`
 import MoguNote from '../../components/MoguNote.astro';

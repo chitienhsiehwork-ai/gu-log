@@ -486,8 +486,7 @@ function visibleText(node) {
 
 function escapeInline(value) {
   return normalizeRenderedText(value)
-    .replaceAll('\\', '\\\\')
-    .replace(/([`*_[\]])/g, '\\$1')
+    .replace(/([\\`*_[\]])/g, '\\$1')
     .replaceAll('<', '&lt;');
 }
 
