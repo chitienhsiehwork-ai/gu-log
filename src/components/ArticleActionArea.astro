@@ -1,0 +1,158 @@
+---
+import LoginCta from './LoginCta.astro';
+import ReadStatusButton from './ReadStatusButton.astro';
+import ShareButton from './ShareButton.astro';
+
+interface Props {
+  title: string;
+  slug: string;
+  lang?: 'zh-tw' | 'en';
+  postId: string;
+  ticketId?: string;
+  postVersion: number;
+  readerRevision?: string | null;
+  pathname: string;
+}
+
+const {
+  title,
+  slug,
+  lang = 'zh-tw',
+  postId,
+  ticketId,
+  postVersion,
+  readerRevision,
+  pathname,
+} = Astro.props;
+
+const heading = lang === 'en' ? 'Share this article' : '分享這篇文章';
+---
+
+<section class="article-action-area" aria-label={heading}>
+  <div class="action-heading">
+    <span class="action-heading-icon" aria-hidden="true">
+      <svg
+        viewBox="0 0 24 24"
+        width="18"
+        height="18"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.7"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M12 3v12"></path>
+        <path d="m7 10 5 5 5-5"></path>
+        <path d="M5 19h14"></path>
+      </svg>
+    </span>
+    <h2>{heading}</h2>
+  </div>
+
+  <div class="action-controls">
+    <ReadStatusButton
+      slug={slug}
+      lang={lang}
+      postId={postId}
+      ticketId={ticketId}
+      postVersion={postVersion}
+      readerRevision={readerRevision}
+      pathname={pathname}
+    />
+    <ShareButton
+      title={title}
+      lang={lang}
+      postId={postId}
+      ticketId={ticketId}
+      postVersion={postVersion}
+      pathname={pathname}
+    />
+  </div>
+
+  <LoginCta lang={lang} />
+</section>
+
+<style>
+  .article-action-area {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--color-divider);
+  }
+
+  .action-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-bottom: 0.7rem;
+    color: var(--color-text-muted);
+  }
+
+  .action-heading-icon {
+    display: inline-flex;
+  }
+
+  .action-heading h2 {
+    margin: 0;
+    color: inherit;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .action-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.85rem;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--color-surface) 50%, transparent);
+  }
+
+  .action-controls :global(.read-status-wrap),
+  .action-controls :global(.share-section) {
+    margin: 0;
+  }
+
+  .action-controls :global(.share-section) {
+    padding: 0;
+    background: transparent;
+    text-align: right;
+  }
+
+  .action-controls :global(.share-label) {
+    margin-bottom: 0.4rem;
+  }
+
+  .article-action-area :global(.login-cta-container) {
+    max-width: none;
+    margin: 1rem 0 0;
+    padding: 0;
+  }
+
+  .article-action-area :global(.login-cta-card) {
+    padding: 1rem;
+  }
+
+  @media (max-width: 640px) {
+    .action-controls {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    .action-controls :global(.read-status-wrap) {
+      justify-content: flex-start;
+    }
+
+    .action-controls :global(.share-section) {
+      text-align: left;
+    }
+
+    .action-controls :global(.share-buttons),
+    .action-controls :global(.share-fallback) {
+      justify-content: flex-start;
+    }
+  }
+</style>

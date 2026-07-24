@@ -33,9 +33,12 @@ test.describe('Table of Contents', () => {
 
       const container = page.locator('.toc-mobile .toc-toggle-container');
       const toggle = page.locator('.toc-mobile .toc-toggle-header');
+      const content = page.locator('.toc-mobile .toc-content');
 
       // Verify initial state is collapsed
       await expect(container).toHaveAttribute('data-open', 'false');
+      await expect(content).toHaveCSS('border-left-width', '0px');
+      await expect(toggle).toHaveCSS('border-left-width', '0px');
 
       // Click to expand
       await toggle.click();
@@ -43,6 +46,9 @@ test.describe('Table of Contents', () => {
       // Verify expanded state
       await expect(container).toHaveAttribute('data-open', 'true');
       await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+      await expect(content).toHaveCSS('border-left-width', '1px');
+      await expect(content).toHaveCSS('border-left-color', /rgb/);
+      await expect(toggle).toHaveCSS('border-left-width', '0px');
     });
 
     test('GIVEN TOC is expanded WHEN user clicks toggle THEN TOC should collapse', async ({
@@ -161,7 +167,7 @@ test.describe('Table of Contents', () => {
     });
 
     for (const theme of ['dark', 'light'] as const) {
-      test(`GIVEN the ${theme} theme WHEN a TOC link is active or hovered THEN it uses the readable source-link token`, async ({
+      test(`GIVEN the ${theme} theme WHEN a TOC link is active THEN it uses the orange marker token`, async ({
         page,
       }) => {
         await page.addInitScript((selectedTheme) => {
@@ -173,7 +179,7 @@ test.describe('Table of Contents', () => {
         await expect(activeLink).toBeVisible();
         const expected = await activeLink.evaluate(() => {
           const probe = document.createElement('span');
-          probe.style.color = 'var(--color-source-link)';
+          probe.style.color = 'var(--color-mogu-orange)';
           document.body.appendChild(probe);
           const expected = getComputedStyle(probe).color;
           probe.remove();
@@ -183,11 +189,52 @@ test.describe('Table of Contents', () => {
           .poll(() => activeLink.evaluate((element) => getComputedStyle(element).color))
           .toBe(expected);
 
+        const sidebar = page.locator('.toc-sidebar');
+        const sidebarStyle = await sidebar.evaluate((element) => {
+          const style = getComputedStyle(element);
+          const parseRgb = (value: string) =>
+            (value.match(/\d+(?:\.\d+)?/g) ?? []).slice(0, 3).map(Number);
+          const luminance = ([r, g, b]: number[]) => {
+            const [red, green, blue] = [r, g, b].map((channel) => {
+              const normalized = channel / 255;
+              return normalized <= 0.04045
+                ? normalized / 12.92
+                : ((normalized + 0.055) / 1.055) ** 2.4;
+            });
+            return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+          };
+          const railLuminance = luminance(parseRgb(style.borderLeftColor));
+          const backgroundLuminance = luminance(
+            parseRgb(getComputedStyle(document.body).backgroundColor)
+          );
+
+          return {
+            backgroundColor: style.backgroundColor,
+            borderTopWidth: style.borderTopWidth,
+            borderLeftWidth: style.borderLeftWidth,
+            railContrast:
+              (Math.max(railLuminance, backgroundLuminance) + 0.05) /
+              (Math.min(railLuminance, backgroundLuminance) + 0.05),
+          };
+        });
+        expect(sidebarStyle.backgroundColor).toBe('rgba(0, 0, 0, 0)');
+        expect(sidebarStyle.borderTopWidth).toBe('0px');
+        expect(sidebarStyle.borderLeftWidth).toBe('1px');
+        expect(sidebarStyle.railContrast).toBeGreaterThanOrEqual(3);
+
         const hoverLink = page.locator('.toc-desktop .toc-link:not(.active)').first();
         await hoverLink.hover();
+        const hoverExpected = await hoverLink.evaluate(() => {
+          const probe = document.createElement('span');
+          probe.style.color = 'var(--color-source-link)';
+          document.body.appendChild(probe);
+          const expected = getComputedStyle(probe).color;
+          probe.remove();
+          return expected;
+        });
         await expect
           .poll(() => hoverLink.evaluate((element) => getComputedStyle(element).color))
-          .toBe(expected);
+          .toBe(hoverExpected);
       });
     }
   });

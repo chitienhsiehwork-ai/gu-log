@@ -13,11 +13,9 @@ import Sub8RefiningBanner from '../../components/Sub8RefiningBanner.astro';
 import { computeOverallComposite, isBelowPublishBar } from '../../utils/tribunal-scores';
 import TicketBadge from '../../components/TicketBadge.astro';
 import Giscus from '../../components/Giscus.astro';
-import ShareButton from '../../components/ShareButton.astro';
-import LoginCta from '../../components/LoginCta.astro';
 import AiPopup from '../../components/AiPopup.astro';
-import ReadStatusButton from '../../components/ReadStatusButton.astro';
-import AiJudgeScore from '../../components/AiJudgeScore.astro';
+import ArticleActionArea from '../../components/ArticleActionArea.astro';
+import ArticleTechnicalDetails from '../../components/ArticleTechnicalDetails.astro';
 import { getPostAuthorshipNote } from '../../utils/post-authorship-notes';
 import { getNavigablePosts, resolvePostStatus } from '../../utils/post-status';
 import { getLocalizedPostUrl } from '../../utils/post-urls';
@@ -114,6 +112,29 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
           )
         }
       </div>
+      {
+        showSourceCitation && (
+          <a class="source-citation" href={post.data.sourceUrl} target="_blank" rel="noopener">
+            <span class="source-citation-icon" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                width="17"
+                height="17"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1" />
+                <path d="M14 11a5 5 0 0 0-7.1-.1l-2 2A5 5 0 0 0 12 20l1.1-1.1" />
+              </svg>
+            </span>
+            <strong>{sourceCitationLabel}：</strong>
+            <span class="source-citation-link-text">{sourceCitationText}</span>
+          </a>
+        )
+      }
     </header>
 
     {
@@ -156,17 +177,6 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
       )
     }
 
-    {
-      showSourceCitation && (
-        <div class="source-citation">
-          <strong>{sourceCitationLabel}：</strong>
-          <a href={post.data.sourceUrl} target="_blank" rel="noopener">
-            {sourceCitationText}
-          </a>
-        </div>
-      )
-    }
-
     <TableOfContents lang="zh-tw" headings={headings} maxDepth={isLevelUp ? 2 : 3} />
 
     <div class="post-content">
@@ -176,7 +186,23 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
     {
       post.data.tags && post.data.tags.length > 0 && (
         <div class="post-tags-section">
-          <span class="tags-label">🏷️ Tags</span>
+          <span class="tags-label">
+            <svg
+              viewBox="0 0 24 24"
+              width="16"
+              height="16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M20 13 13 20l-9-9V4h7l9 9Z" />
+              <circle cx="8.5" cy="8.5" r="1.25" />
+            </svg>
+            Tags
+          </span>
           <div class="post-tags">
             {post.data.tags.map((tag) => (
               <a href={`/tags/${tag}`} class="tag-chip">
@@ -188,48 +214,8 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
       )
     }
 
-    {
-      ((post.data.translatedDate && post.data.translatedBy) || authorshipNote) && (
-        <div class="translation-info">
-          {post.data.translatedDate &&
-            post.data.translatedBy &&
-            (post.data.translatedBy.pipeline ? (
-              <>
-                <div>
-                  {isOriginalPost ? '撰寫於' : '翻譯於'} {post.data.translatedDate}
-                </div>
-                {post.data.translatedBy.pipeline.map((step) => (
-                  <div>
-                    {step.role} by {step.model} ({step.harness})
-                  </div>
-                ))}
-                {post.data.translatedBy.pipelineUrl && (
-                  <div>
-                    <a href={post.data.translatedBy.pipelineUrl} target="_blank" rel="noopener">
-                      View pipeline script →
-                    </a>
-                  </div>
-                )}
-              </>
-            ) : (
-              <div>
-                {isOriginalPost ? '撰寫於' : '翻譯於'} {post.data.translatedDate} by{' '}
-                {post.data.translatedBy.model} ({post.data.translatedBy.harness})
-              </div>
-            ))}
-          {authorshipNote && (
-            <div class="authorship-note">
-              <strong>作者推定：</strong>
-              <span>{authorshipNote}</span>
-            </div>
-          )}
-        </div>
-      )
-    }
-
-    {post.data.scores && <AiJudgeScore scores={post.data.scores} lang="zh-tw" />}
-
-    <ReadStatusButton
+    <ArticleActionArea
+      title={post.data.title}
       slug={post.id}
       lang="zh-tw"
       postId={legacyPostId}
@@ -239,45 +225,35 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
       pathname={Astro.url.pathname}
     />
 
-    <ShareButton
-      title={post.data.title}
-      lang="zh-tw"
-      postId={legacyPostId}
-      ticketId={post.data.ticketId}
+    <section class="post-onward-zone" aria-label="繼續閱讀">
+      {
+        post.data.series ? (
+          <SeriesNav currentSlug={post.id} allPosts={navigablePosts} lang="zh-tw" />
+        ) : (
+          <RelatedArticles
+            currentSlug={post.id}
+            currentTags={post.data.tags ?? []}
+            allPosts={navigablePosts}
+            lang="zh-tw"
+          />
+        )
+      }
+
+      <PrevNextNav currentSlug={post.id} allPosts={navigablePosts} lang="zh-tw" />
+    </section>
+
+    <ArticleTechnicalDetails
+      translatedDate={post.data.translatedDate}
+      translatedBy={post.data.translatedBy}
+      scores={post.data.scores}
+      authorshipNote={authorshipNote}
+      isOriginalPost={isOriginalPost}
       postVersion={Number(postVersion)}
-      pathname={Astro.url.pathname}
+      historyHref={`https://github.com/chitienhsiehwork-ai/gu-log/commits/main/${post.filePath}`}
+      lang="zh-tw"
     />
 
-    <LoginCta lang="zh-tw" />
-
-    {
-      post.data.series ? (
-        <SeriesNav currentSlug={post.id} allPosts={navigablePosts} lang="zh-tw" />
-      ) : (
-        <RelatedArticles
-          currentSlug={post.id}
-          currentTags={post.data.tags ?? []}
-          allPosts={navigablePosts}
-          lang="zh-tw"
-        />
-      )
-    }
-
-    <PrevNextNav currentSlug={post.id} allPosts={navigablePosts} lang="zh-tw" />
-
     <Giscus lang="zh-tw" />
-
-    <div class="post-version-info">
-      <span class="version-badge">v{postVersion}</span>
-      <a
-        href={`https://github.com/chitienhsiehwork-ai/gu-log/commits/main/${post.filePath}`}
-        target="_blank"
-        rel="noopener"
-        class="version-history-link"
-      >
-        查看編輯歷史 →
-      </a>
-    </div>
 
     <footer class="post-footer">
       <a href="/">← 返回首頁</a>
@@ -288,14 +264,6 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
 </BaseLayout>
 
 <style>
-  .post-header {
-    margin-bottom: 1.5rem;
-  }
-
-  .post-header h1 {
-    margin-bottom: 0.5rem;
-  }
-
   .post-meta-row {
     display: flex;
     justify-content: space-between;
@@ -349,7 +317,9 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
   }
 
   .tags-label {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
     font-size: 0.85rem;
     font-weight: 600;
     color: var(--color-text-muted);
@@ -380,64 +350,14 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
     border-color: var(--color-accent);
   }
 
-  .post-content {
-    margin: 1.5rem 0;
-  }
-
-  .post-content blockquote {
-    font-style: normal;
-    font-size: 1.1rem;
-  }
-
   .post-footer {
     margin-top: 2rem;
     padding-top: 1rem;
     border-top: 1px solid var(--color-border);
   }
 
-  .translation-info {
+  .post-onward-zone {
     margin-top: 2rem;
-    padding: 0.75rem 1rem;
-    background-color: var(--color-bg-secondary, rgba(0, 0, 0, 0.03));
-    border-radius: 6px;
-    font-size: 0.85rem;
-    color: var(--color-text-muted);
-  }
-
-  .translation-info .authorship-note {
-    margin-top: 0.5rem;
-  }
-
-  .authorship-note strong {
-    color: var(--color-text);
-  }
-
-  .post-version-info {
-    margin-top: 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    font-size: 0.85rem;
-  }
-
-  .version-badge {
-    display: inline-block;
-    padding: 0.15rem 0.5rem;
-    background-color: var(--color-bg-secondary, rgba(0, 0, 0, 0.05));
-    border: 1px solid var(--color-border);
-    border-radius: 4px;
-    font-family: monospace;
-    font-size: 0.8rem;
-    color: var(--color-text-muted);
-  }
-
-  .version-history-link {
-    color: var(--color-text-muted);
-    text-decoration: none;
-    transition: color 0.2s ease;
-  }
-
-  .version-history-link:hover {
-    color: var(--color-accent);
+    padding-top: 0.25rem;
   }
 </style>

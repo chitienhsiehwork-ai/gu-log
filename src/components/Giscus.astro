@@ -12,10 +12,31 @@ const giscusLang = lang === 'zh-tw' ? 'zh-TW' : 'en';
 const siteUrl = 'https://gu-log.vercel.app';
 const darkTheme = `${siteUrl}/giscus-dracula.css`;
 const lightTheme = `${siteUrl}/giscus-solarized-light.css`;
+const loadingText = lang === 'zh-tw' ? '留言載入中…' : 'Loading comments…';
+const errorText =
+  lang === 'zh-tw' ? '留言目前無法載入，請稍後再試。' : 'Comments are unavailable right now.';
 ---
 
 <section class="giscus-container">
-  <h3 class="giscus-title">{lang === 'zh-tw' ? '💬 留言' : '💬 Comments'}</h3>
+  <h3 class="giscus-title">
+    <svg
+      viewBox="0 0 24 24"
+      width="19"
+      height="19"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.7"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z"></path>
+      <path d="M8 9h8"></path>
+      <path d="M8 13h5"></path>
+    </svg>
+    <span>{lang === 'zh-tw' ? '留言' : 'Comments'}</span>
+  </h3>
+  <p class="giscus-status" role="status">{loadingText}</p>
   <script
     src="https://giscus.app/client.js"
     data-repo="chitienhsiehwork-ai/gu-log"
@@ -34,7 +55,40 @@ const lightTheme = `${siteUrl}/giscus-solarized-light.css`;
     async></script>
 </section>
 
-<script define:vars={{ darkTheme, lightTheme }}>
+<script define:vars={{ darkTheme, lightTheme, errorText }}>
+  const giscusContainer = document.querySelector('.giscus-container');
+  const giscusStatus = giscusContainer?.querySelector('.giscus-status');
+  const giscusClient = giscusContainer?.querySelector('script[src="https://giscus.app/client.js"]');
+
+  function markGiscusReady() {
+    if (giscusStatus) giscusStatus.hidden = true;
+    if (giscusStatusTimer) window.clearTimeout(giscusStatusTimer);
+    giscusFrameObserver?.disconnect();
+  }
+
+  function showGiscusError() {
+    if (!giscusStatus) return;
+    giscusStatus.hidden = false;
+    giscusStatus.textContent = errorText;
+  }
+
+  function watchGiscusFrame() {
+    const frame = giscusContainer?.querySelector('iframe.giscus-frame');
+    if (!frame) return false;
+    frame.addEventListener('load', markGiscusReady, { once: true });
+    return true;
+  }
+
+  giscusClient?.addEventListener('error', showGiscusError);
+  const giscusFrameObserver = new MutationObserver(watchGiscusFrame);
+  if (giscusContainer) {
+    giscusFrameObserver.observe(giscusContainer, { childList: true, subtree: true });
+    watchGiscusFrame();
+  }
+  const giscusStatusTimer = window.setTimeout(() => {
+    if (giscusStatus && !giscusStatus.hidden) showGiscusError();
+  }, 10000);
+
   // Sync giscus theme with site theme toggle using custom CSS URLs
   function getGiscusThemeUrl() {
     const theme = document.documentElement.getAttribute('data-theme') || 'dark';
@@ -65,6 +119,7 @@ const lightTheme = `${siteUrl}/giscus-solarized-light.css`;
   window.addEventListener('message', (event) => {
     if (event.origin !== 'https://giscus.app') return;
     if (typeof event.data !== 'object' || !event.data.giscus) return;
+    markGiscusReady();
     updateGiscusTheme();
   });
 </script>
@@ -77,8 +132,17 @@ const lightTheme = `${siteUrl}/giscus-solarized-light.css`;
   }
 
   .giscus-title {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
     font-size: 1.1rem;
     margin-bottom: 1rem;
     color: var(--color-text);
+  }
+
+  .giscus-status {
+    margin: 0 0 1rem;
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
   }
 </style>

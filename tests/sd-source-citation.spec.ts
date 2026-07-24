@@ -7,8 +7,9 @@ test.describe('SD Posts: Source Citation', () => {
     page,
   }) => {
     // Navigate to SD-1 post
-    await page.goto(BASE + '/posts/openclaw-talk-deep-dive');
+    await page.goto(BASE + '/posts/sd-1-20260209-openclaw-talk-deep-dive');
     await page.waitForLoadState('domcontentloaded');
+    await expect(page.locator('article.post')).toBeVisible();
 
     // The source citation block should not exist for SD posts
     const citation = page.locator('.source-citation');
@@ -18,26 +19,13 @@ test.describe('SD Posts: Source Citation', () => {
   test('GIVEN a GP (Gu-log Picks) post WHEN viewing THEN source citation SHOULD be shown', async ({
     page,
   }) => {
-    // Navigate to any GP post to confirm we didn't break non-SD posts
-    // Find an GP post from the sitemap
-    await page.goto(BASE);
-
-    // Click the first GP post link
-    const gpLink = page.locator('a[href*="/posts/"]').first();
-    await gpLink.click();
+    await page.goto(BASE + '/posts/gp-24-20260204-claude-is-a-space-to-think');
     await page.waitForLoadState('domcontentloaded');
 
-    // Check if this is an GP/MP post (not SD) — source citation should exist
-    const ticketBadge = page.locator('.ticket-badge, [class*="ticket"]');
-    const badgeText = await ticketBadge
-      .first()
-      .textContent()
-      .catch(() => '');
-
-    // Only check for source citation if it's GP or MP
-    if (badgeText && !badgeText.includes('SD-')) {
-      const citation = page.locator('.source-citation');
-      await expect(citation).toBeVisible();
-    }
+    const citation = page.locator('.source-citation');
+    await expect(citation).toBeVisible();
+    await expect(citation).toHaveAttribute('href', /^https?:\/\//);
+    const box = await citation.boundingBox();
+    expect(box?.height).toBeGreaterThanOrEqual(44);
   });
 });

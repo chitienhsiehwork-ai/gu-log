@@ -9,7 +9,23 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
 
 <div class="login-cta-container" style="display: none;" data-login-cta>
   <div class="login-cta-card">
-    <div class="login-cta-icon">🤖</div>
+    <div class="login-cta-icon" aria-hidden="true">
+      <svg
+        viewBox="0 0 24 24"
+        width="24"
+        height="24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.7"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"></path>
+        <path d="M4 21a8 8 0 0 1 16 0"></path>
+        <path d="M18 8h4"></path>
+        <path d="m20 6 2 2-2 2"></path>
+      </svg>
+    </div>
     <div class="login-cta-content" id="login-cta-content">
       <!-- Injected by JS -->
     </div>
@@ -191,8 +207,8 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
   }
 
   .login-cta-icon {
-    font-size: 2rem;
-    line-height: 1;
+    display: inline-flex;
+    color: var(--color-text-muted);
   }
 
   .login-cta-content {
