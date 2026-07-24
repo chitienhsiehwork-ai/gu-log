@@ -34,6 +34,16 @@ cd "$GU_LOG_DIR"
 
 echo "══════ SERVICE ══════"
 systemctl --user status tribunal-loop 2>&1 | head -15 || true
+unit_enabled=$(systemctl --user is-enabled tribunal-loop 2>/dev/null || true)
+[ -n "$unit_enabled" ] || unit_enabled="unknown"
+if command -v loginctl >/dev/null 2>&1; then
+  linger=$(loginctl show-user "$USER" -p Linger --value 2>/dev/null || true)
+else
+  linger="unknown"
+fi
+[ -n "$linger" ] || linger="unknown"
+echo "unit_enabled=$unit_enabled"
+echo "linger=$linger"
 echo
 
 echo "══════ RUNTIME STATE ══════"
@@ -49,9 +59,21 @@ fi
 echo
 
 echo "══════ QUOTA ══════"
+echo "configured_floor=${QUOTA_FLOOR:-10}%"
 jq . .score-loop/state/quota-controller.json 2>/dev/null || echo "(no quota-controller.json)"
 journalctl --user -u tribunal-loop --no-pager -n 200 --output=cat 2>/dev/null \
   | grep 'CONTROLLER:' | tail -5 || echo "(no controller log line found)"
+echo
+
+echo "══════ WRITER PREFLIGHT ══════"
+unit_environment=$(systemctl --user show tribunal-loop -p Environment --value 2>/dev/null || true)
+unit_writer_mode=$(printf '%s\n' "$unit_environment" | tr ' ' '\n' | sed -n 's/^GP_WRITER_MODE=//p' | tail -1)
+echo "writer_mode=${GP_WRITER_MODE:-${unit_writer_mode:-none}}"
+if [ -r .score-loop/state/writer-preflight.json ]; then
+  jq . .score-loop/state/writer-preflight.json
+else
+  echo "(no writer-preflight.json; deployed startup has not passed preflight)"
+fi
 echo
 
 echo "══════ UNSCORED COUNT ══════"
@@ -159,5 +181,6 @@ After running diagnostics, report to the user in zh-tw with this structure:
 
 1. **一句話總結** — 跑著/停了/卡住了
 2. **關鍵數字** — unscored 剩幾篇、quota 幾 %、落後幾個 commit
-3. **最近結果** — 最後幾篇 PASS/FAIL
-4. **需要處理的問題**（如有）— git sync、stop flag、worktree stale
+3. **部署前置狀態** — configured floor、writer mode/preflight、unit enabled、linger
+4. **最近結果** — 最後幾篇 PASS/FAIL
+5. **需要處理的問題**（如有）— git sync、stop flag、worktree stale

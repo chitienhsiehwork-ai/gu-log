@@ -94,6 +94,8 @@ fi
 install -d -m 700 "$HOME/.config/systemd/user"
 cp scripts/tribunal-loop.service ~/.config/systemd/user/tribunal-loop.service
 systemctl --user daemon-reload
+systemctl --user enable tribunal-loop
+loginctl enable-linger "$USER"
 
 # If tribunal code changed AND workers are running, drain + restart. Do not
 # combine this path with the force-terminate recovery below.
@@ -103,6 +105,24 @@ until [ "$(systemctl --user is-active tribunal-loop)" != "active" ]; do sleep 10
 systemctl --user start tribunal-loop   # supervisor auto-syncs worker worktrees at startup
 DEPLOY
 ```
+
+`enable` 讓 user unit 在 user manager 啟動時自動回來；`enable-linger`
+讓 user manager 在未登入時也會於開機後存在。兩個都要有，少一個就
+不能宣稱 reboot-persistent。部署後用 wrapper doctor 驗證 unit、linger、
+strict provider contract 與 bounded Claude writer probe：
+
+```bash
+bash scripts/cc-tribunal-loop-wrapper.sh --doctor
+```
+
+部署 checklist：
+
+- `tribunal.env` 的 `GU_LOG_DIR`、off-repo `USAGE_MONITOR` 都存在且可執行。
+- Codex 與 Claude CLI 已安裝、已驗證 non-interactive auth。
+- `systemctl --user enable tribunal-loop` 回報 enabled。
+- `loginctl enable-linger "$USER"` 後 `loginctl show-user "$USER" -p Linger --value` 回報 yes。
+- `bash scripts/cc-tribunal-loop-wrapper.sh --doctor` 全數通過。
+- 啟動後 monitor 顯示 strict role routing、`GP_WRITER_MODE=cli` 與 writer preflight passed。
 
 只有 graceful drain 明確卡住時，才由 operator **另跑**以下 recovery；它不會接在正常 deploy 後自動執行：
 
@@ -302,12 +322,12 @@ output = max(cooldown_5hr, cooldown_7day)   # conservative: whichever is tighter
 
 | Constant | Default | Description |
 |---|---|---|
-| `QUOTA_FLOOR` | 3% | Human reserve — never burn below this |
+| `QUOTA_FLOOR` | 10% | Human reserve — never burn below this |
 | `MIN_COOLDOWN` | 10s | Floor for inter-article wait |
 | `MAX_COOLDOWN` | 1800s (30min) | Ceiling / hard stop |
-| `ARTICLE_COST_PCT` | 5.0% | Cold start default (auto-calibrated via EMA) |
+| `ARTICLE_COST_PCT` | 0.5% | Cold start telemetry default (auto-calibrated via EMA) |
 | `EMA_ALPHA` | 0.3 | Calibration smoothing factor |
-| `EXTRA_USAGE_LIMIT` | 0.8 | Extra usage safety valve threshold (80%) |
+| `EXTRA_USAGE_LIMIT` | 1.0 | Extra usage safety valve threshold |
 
 **Modes** (visible in `quota-controller.json`):
 
@@ -335,7 +355,7 @@ ls -t .score-loop/logs/tribunal-quota-loop-*.log | head -1 | xargs grep 'CONTROL
 ls -t .score-loop/logs/tribunal-quota-loop-*.log | head -1 | xargs grep 'CALIBRATE:'
 ```
 
-**Self-calibration**: After each article completes (in single-worker mode), the controller computes the actual quota delta and updates `ARTICLE_COST_PCT` via exponential moving average (alpha=0.3). Cold start uses 5.0% (deliberately conservative). With sufficient history (≥5 entries), EMA converges to the true average cost.
+**Self-calibration**: After each article completes (in single-worker mode), the controller computes the actual quota delta and updates `ARTICLE_COST_PCT` via exponential moving average (alpha=0.3). Cold start uses 0.5% as telemetry only. With sufficient history (≥5 entries), EMA converges to the true average cost.
 
 **Startup rotation**: At daemon startup, entries older than 7 days are pruned from `quota-history.jsonl`.
 
@@ -349,6 +369,34 @@ ExecStart=... --workers 2 --legacy-quota
 ```
 
 Legacy mode disables: controller, quota-history.jsonl, quota-controller.json, calibration.
+
+### Deadline burst
+
+要在 quota refresh 前加速消耗餘額，不需要新增另一套 controller。依序調整：
+
+```bash
+# 例：提高 pool 上限，讓 quota floor 歸零，放寬超前額度並縮短 dispatch 間隔
+QUOTA_FLOOR=0 \
+QUOTA_BURST_ALLOWANCE=10 \
+MIN_COOLDOWN=1 \
+bash scripts/tribunal-quota-loop.sh --workers 5
+```
+
+- `--workers N` 提高同時處理上限。
+- `QUOTA_FLOOR=0` 暫時取消保留額度；這是 operator 明示的 burst 行為。
+- 調高 `QUOTA_BURST_ALLOWANCE` 允許用量超前 ideal burn line 更多。
+- 調低 `MIN_COOLDOWN` 縮短派送迴圈下限。
+- `AUTOSCALE_OOM_CAP` 仍是記憶體壓力／近期 OOM 下的硬上限；要求 5 workers
+  不代表 cgroup 一定允許 5 個同時跑。
+- controller 只讀 OpenAI/Codex quota，**看不到 Claude writer quota**。Burst
+  前要另外確認 Claude CLI 可用額度，不能把 Codex 餘額當成整條 pipeline
+  的唯一燃料表。
+
+systemd unit 對 off-repo `USAGE_MONITOR` 採 fail-closed：未設定、檔案不存在
+或不可執行時，`ExecStart` 在啟動 loop 前以 78 結束。直接手動執行
+`tribunal-quota-loop.sh` 則保留相容降級，controller 進 `fallback`
+（1 worker / 600 秒），並觸發 operator alert；這個降級不能拿來宣稱
+production daemon healthy。
 
 **Rollback procedure**:
 

@@ -318,6 +318,8 @@ tribunal_codex_exec() {
   local legacy_agent_file="$REPO_ROOT/.claude/agents/$agent_name.md"
   local codex_agent_spec=""
   local legacy_agent_spec=""
+  local model=""
+  model="$(tribunal_codex_agent_model "$agent_name")" || return 1
   if [ -f "$codex_agent_file" ]; then
     codex_agent_spec="$(cat "$codex_agent_file")"
   fi
@@ -355,7 +357,7 @@ PROMPT
     # open stdin and hang waiting for extra prompt text.
     exec </dev/null
     # shellcheck disable=SC2086 # codex_cmd may be "node <bundled codex.js>".
-    timeout "$timeout_sec" $codex_cmd exec --model "${GP_CODEX_MODEL:-gpt-5.5}" -c "model_reasoning_effort=\"$reasoning_effort\"" --sandbox danger-full-access --skip-git-repo-check -- "$prompt"
+    timeout "$timeout_sec" $codex_cmd exec --model "$model" -c "model_reasoning_effort=\"$reasoning_effort\"" --sandbox danger-full-access --skip-git-repo-check -- "$prompt"
   )
 }
 
@@ -372,11 +374,114 @@ tribunal_claude_cmd() {
   return 1
 }
 
+# Parse the top-level `model` selector from one Codex agent TOML file. Python's
+# stdlib TOML parser keeps comments and multiline developer instructions from
+# becoming runtime configuration. The value must be one non-empty selector
+# token; malformed TOML, missing model, arrays, and whitespace fail closed.
+tribunal_codex_toml_model() {
+  local f="$1"
+  [ -f "$f" ] || return 1
+  python3 - "$f" <<'PY'
+import pathlib
+import re
+import sys
+import tomllib
+
+path = pathlib.Path(sys.argv[1])
+try:
+    data = tomllib.loads(path.read_text(encoding="utf-8"))
+except (OSError, UnicodeError, tomllib.TOMLDecodeError):
+    raise SystemExit(1)
+
+model = data.get("model")
+if not isinstance(model, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:-]*", model):
+    raise SystemExit(1)
+print(model)
+PY
+}
+
+# Resolve a Codex role selector. GP_CODEX_MODEL is intentionally the only
+# run-scoped override; otherwise every role must own a valid TOML model.
+tribunal_codex_agent_model() {
+  local agent_name="$1"
+  local model=""
+  if [ -n "${GP_CODEX_MODEL:-}" ]; then
+    if ! printf '%s\n' "$GP_CODEX_MODEL" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9._:-]*$'; then
+      printf 'Invalid GP_CODEX_MODEL override: %s\n' "$GP_CODEX_MODEL" >&2
+      return 1
+    fi
+    printf '%s\n' "$GP_CODEX_MODEL"
+    return 0
+  fi
+  if [ -z "${REPO_ROOT:-}" ]; then
+    REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  fi
+  local f="$REPO_ROOT/.codex/agents/$agent_name.toml"
+  if ! model="$(tribunal_codex_toml_model "$f")"; then
+    printf 'Missing or invalid Codex model in %s\n' "$f" >&2
+    return 1
+  fi
+  printf '%s\n' "$model"
+}
+
+tribunal_strict_role_providers_enabled() {
+  case "${TRIBUNAL_STRICT_ROLE_PROVIDERS:-}" in
+    1) return 0 ;;
+    ""|0) return 1 ;;
+    *)
+      printf 'Invalid TRIBUNAL_STRICT_ROLE_PROVIDERS=%s (expected 1 or unset)\n' \
+        "$TRIBUNAL_STRICT_ROLE_PROVIDERS" >&2
+      return 2
+      ;;
+  esac
+}
+
+# Validate the complete deployed provider contract before article dispatch.
+tribunal_validate_role_provider_contract() {
+  case "${TRIBUNAL_STRICT_ROLE_PROVIDERS:-}" in
+    ""|0) return 0 ;;
+    1) ;;
+    *)
+      printf 'Invalid TRIBUNAL_STRICT_ROLE_PROVIDERS=%s (expected 1 or unset)\n' \
+        "$TRIBUNAL_STRICT_ROLE_PROVIDERS" >&2
+      return 2
+      ;;
+  esac
+  if [ -n "${TRIBUNAL_FORCE_PROVIDER:-}" ]; then
+    printf 'TRIBUNAL_STRICT_ROLE_PROVIDERS=1 conflicts with TRIBUNAL_FORCE_PROVIDER; disable strict mode for provider override experiments\n' >&2
+    return 1
+  fi
+  tribunal_codex_cmd >/dev/null 2>&1 || {
+    printf 'Strict Tribunal routing requires codex for objective judges\n' >&2
+    return 1
+  }
+  tribunal_claude_cmd >/dev/null 2>&1 || {
+    printf 'Strict Tribunal routing requires claude for vibe-opus-scorer\n' >&2
+    return 1
+  }
+  local role
+  for role in fact-checker librarian fresh-eyes; do
+    tribunal_codex_agent_model "$role" >/dev/null || return 1
+  done
+  tribunal_claude_agent_model vibe-opus-scorer >/dev/null || return 1
+}
+
 # Resolve the active tribunal LLM provider: "codex" when present (the
 # maintained judge runtime), else "claude" (CCC fallback). Returns 1 when
 # neither binary is on PATH. Codex always wins when both exist; this intentionally
 # mirrors the Go pipeline's JudgeChain, not the Opus writer chain.
 tribunal_llm_provider() {
+  if tribunal_strict_role_providers_enabled; then
+    if [ -n "${TRIBUNAL_FORCE_PROVIDER:-}" ]; then
+      printf 'TRIBUNAL_STRICT_ROLE_PROVIDERS=1 conflicts with TRIBUNAL_FORCE_PROVIDER\n' >&2
+      return 1
+    fi
+    tribunal_codex_cmd >/dev/null 2>&1 && printf 'codex\n' && return 0
+    return 1
+  else
+    local strict_rc=$?
+    [ "$strict_rc" -eq 1 ] || return "$strict_rc"
+  fi
   if [ -n "${TRIBUNAL_FORCE_PROVIDER:-}" ]; then
     case "$TRIBUNAL_FORCE_PROVIDER" in
       codex)
@@ -418,6 +523,31 @@ tribunal_llm_provider() {
 # byte-for-byte, so every existing non-judge call path is unchanged.
 tribunal_judge_provider() {
   local agent_name="${1:-}"
+  if tribunal_strict_role_providers_enabled; then
+    if [ -n "${TRIBUNAL_FORCE_PROVIDER:-}" ]; then
+      printf 'TRIBUNAL_STRICT_ROLE_PROVIDERS=1 conflicts with TRIBUNAL_FORCE_PROVIDER\n' >&2
+      return 1
+    fi
+    case "$agent_name" in
+      vibe-opus-scorer)
+        tribunal_claude_cmd >/dev/null 2>&1 && printf 'claude\n' && return 0
+        printf 'Strict Tribunal routing requires claude for %s\n' "$agent_name" >&2
+        return 1
+        ;;
+      fact-checker|librarian|fresh-eyes)
+        tribunal_codex_cmd >/dev/null 2>&1 && printf 'codex\n' && return 0
+        printf 'Strict Tribunal routing requires codex for %s\n' "$agent_name" >&2
+        return 1
+        ;;
+      *)
+        printf 'Strict Tribunal routing does not recognize judge role: %s\n' "$agent_name" >&2
+        return 1
+        ;;
+    esac
+  else
+    local strict_rc=$?
+    [ "$strict_rc" -eq 1 ] || return "$strict_rc"
+  fi
   if [ -n "${TRIBUNAL_FORCE_PROVIDER:-}" ]; then
     tribunal_llm_provider
     return
@@ -445,6 +575,49 @@ tribunal_writer_mode() {
   else
     printf 'none\n'
   fi
+}
+
+# Probe the deployed CLI writer before any article is claimed. This is
+# deliberately tiny, non-interactive, and bounded; it verifies the same role
+# model selector and Claude auth path used by real rewrites.
+tribunal_writer_preflight() {
+  local mode model claude_cmd timeout_sec output rc=0
+  mode="$(tribunal_writer_mode)"
+  case "$mode" in
+    cli) ;;
+    none|subagent)
+      printf 'Writer preflight failed: deployed runtime requires GP_WRITER_MODE=cli (got %s)\n' "$mode" >&2
+      return 1
+      ;;
+    *)
+      printf 'Writer preflight failed: unsupported GP_WRITER_MODE=%s\n' "$mode" >&2
+      return 1
+      ;;
+  esac
+  claude_cmd="$(tribunal_claude_cmd)" || {
+    printf 'Writer preflight failed: claude CLI is not on PATH\n' >&2
+    return 127
+  }
+  model="$(tribunal_claude_agent_model tribunal-writer)" || {
+    printf 'Writer preflight failed: cannot resolve tribunal-writer model\n' >&2
+    return 1
+  }
+  timeout_sec="${TRIBUNAL_WRITER_PREFLIGHT_TIMEOUT_SEC:-30}"
+  if ! printf '%s\n' "$timeout_sec" | grep -Eq '^[1-9][0-9]*$'; then
+    printf 'Writer preflight failed: TRIBUNAL_WRITER_PREFLIGHT_TIMEOUT_SEC must be a positive integer\n' >&2
+    return 2
+  fi
+  output="$(
+    printf 'Reply OK only.\n' |
+      timeout "$timeout_sec" "$claude_cmd" -p --model "$model" \
+        --tools "" --no-session-persistence 2>&1
+  )" || rc=$?
+  if [ "$rc" -ne 0 ]; then
+    printf 'Writer preflight failed: claude CLI/auth probe exited %s: %s\n' \
+      "$rc" "$(printf '%s' "$output" | tail -1)" >&2
+    return "$rc"
+  fi
+  printf 'Writer preflight OK: mode=cli model=%s\n' "$model"
 }
 
 # Parse one model selector strictly from the first YAML frontmatter block.
@@ -547,15 +720,22 @@ tribunal_resolve_recorded_model() {
 # concrete build (selection still uses the alias — see tribunal_claude_exec).
 tribunal_llm_model_id() {
   local agent_name="${1:-}"
-  local claude_model="" provider=""
+  local provider=""
   provider="$(tribunal_judge_provider "$agent_name" 2>/dev/null)" || return 1
+  tribunal_model_id_for_provider "$provider" "$agent_name"
+}
+
+tribunal_model_id_for_provider() {
+  local provider="$1"
+  local agent_name="${2:-}"
+  local claude_model=""
   case "$provider" in
     claude)
       claude_model="$(tribunal_claude_agent_model "${agent_name:-tribunal-writer}")" || return 1
       tribunal_resolve_recorded_model "$claude_model"
       ;;
     codex)
-      printf '%s\n' "${GP_CODEX_MODEL:-gpt-5.5}"
+      tribunal_codex_agent_model "$agent_name"
       ;;
     *)
       return 1
@@ -576,8 +756,15 @@ tribunal_llm_model_id() {
 tribunal_runner_label() {
   local agent_name="${1:-}"
   local model provider
-  model="$(tribunal_llm_model_id "$agent_name")" || return 1
   provider="$(tribunal_judge_provider "$agent_name" 2>/dev/null)" || return 1
+  tribunal_runner_label_for_provider "$provider" "$agent_name"
+}
+
+tribunal_runner_label_for_provider() {
+  local provider="$1"
+  local agent_name="${2:-}"
+  local model
+  model="$(tribunal_model_id_for_provider "$provider" "$agent_name")" || return 1
   case "$provider" in
     claude)
       printf '%s\n' "$model"
@@ -597,8 +784,8 @@ tribunal_write_actual_provider() {
   local out_file="${TRIBUNAL_ACTUAL_PROVIDER_FILE:-}"
   [ -n "$out_file" ] || return 0
   local model runner
-  model="$(TRIBUNAL_FORCE_PROVIDER="$provider" tribunal_llm_model_id "$agent_name")" || return 1
-  runner="$(TRIBUNAL_FORCE_PROVIDER="$provider" tribunal_runner_label "$agent_name")" || return 1
+  model="$(tribunal_model_id_for_provider "$provider" "$agent_name")" || return 1
+  runner="$(tribunal_runner_label_for_provider "$provider" "$agent_name")" || return 1
   {
     printf 'provider=%s\n' "$provider"
     printf 'model_id=%s\n' "$model"
@@ -863,11 +1050,24 @@ tribunal_writer_exec_raw_legacy_cli() {
 
 tribunal_quota_alarm() {
   local msg="$1"
-  local ts safe_msg
+  local ts notifier
   ts="$(TZ=Asia/Taipei date '+%Y-%m-%d %H:%M:%S %z')"
-  safe_msg="${msg//\"/\\\"}"
-  printf '[%s] [tribunal-quota] %s\n' "$ts" "$msg" >&2
-  osascript -e "display notification \"$safe_msg\" with title \"gp-pipeline\"" >/dev/null 2>&1 || true
+  printf '[%s] [tribunal-alert] %s\n' "$ts" "$msg" >&2
+  notifier="${TRIBUNAL_NOTIFIER:-}"
+  [ -n "$notifier" ] || return 0
+  case "$notifier" in
+    /*) ;;
+    *)
+      printf '[%s] [tribunal-alert] notifier must be an absolute executable path: %s\n' \
+        "$ts" "$notifier" >&2
+      return 1
+      ;;
+  esac
+  if [ ! -x "$notifier" ]; then
+    printf '[%s] [tribunal-alert] notifier is not executable: %s\n' "$ts" "$notifier" >&2
+    return 1
+  fi
+  "$notifier" "$msg"
 }
 
 tribunal_quota_error_file() {

@@ -62,6 +62,10 @@ EXTRA_USAGE_LIMIT="${EXTRA_USAGE_LIMIT:-1.0}"  # disabled — let 5hr/7day curve
 QUOTA_BURST_ALLOWANCE="${QUOTA_BURST_ALLOWANCE:-2.0}" # percentage points allowed ahead of ideal burn line
 QUOTA_HISTORY_FILE="$ROOT_DIR/.score-loop/state/quota-history.jsonl"
 QUOTA_CONTROLLER_STATE="$ROOT_DIR/.score-loop/state/quota-controller.json"
+WRITER_PREFLIGHT_STATE="$ROOT_DIR/.score-loop/state/writer-preflight.json"
+LAST_ALERTED_CONTROLLER_MODE=""
+EXHAUSTED_ALERT_COUNT=0
+TRIBUNAL_EXHAUSTED_ALERT_THRESHOLD="${TRIBUNAL_EXHAUSTED_ALERT_THRESHOLD:-1}"
 
 mkdir -p "$LOG_DIR" "$ROOT_DIR/.score-loop/state"
 
@@ -84,6 +88,58 @@ fi
 tlog() {
   local msg="[$(date '+%Y-%m-%d %H:%M:%S %z')] [quota-loop] $*"
   echo "$msg" | tee -a "$LOG_FILE"
+}
+
+write_writer_preflight_state() {
+  local status="$1" detail="$2"
+  local tmp
+  tmp=$(mktemp "$ROOT_DIR/.score-loop/state/.writer-preflight.XXXXXX") || return 1
+  jq -n \
+    --arg status "$status" \
+    --arg mode "$(tribunal_writer_mode)" \
+    --arg detail "$detail" \
+    --arg updatedAt "$(TZ=UTC date '+%Y-%m-%dT%H:%M:%SZ')" \
+    '{status: $status, mode: $mode, detail: $detail, updatedAt: $updatedAt}' \
+    > "$tmp" && mv "$tmp" "$WRITER_PREFLIGHT_STATE"
+}
+
+deployed_runtime_preflight() {
+  [ "${TRIBUNAL_DEPLOYED_MODE:-0}" = "1" ] || return 0
+  local detail rc=0
+  if ! tribunal_validate_role_provider_contract; then
+    detail="role provider contract failed"
+    write_writer_preflight_state "failed" "$detail" || true
+    tlog "ERROR: deployed preflight failed: $detail"
+    return 78
+  fi
+  detail="$(tribunal_writer_preflight 2>&1)" || rc=$?
+  if [ "$rc" -ne 0 ]; then
+    write_writer_preflight_state "failed" "$detail" || true
+    tlog "ERROR: deployed writer preflight failed before dispatch: $detail"
+    return 78
+  fi
+  write_writer_preflight_state "passed" "$detail" || true
+  tlog "$detail"
+}
+
+tribunal_loop_alarm() {
+  tribunal_quota_alarm "$1" || true
+}
+
+alert_controller_mode_if_needed() {
+  local mode="$1"
+  if [ "$mode" = "$LAST_ALERTED_CONTROLLER_MODE" ]; then
+    return 0
+  fi
+  LAST_ALERTED_CONTROLLER_MODE="$mode"
+  case "$mode" in
+    fallback)
+      tribunal_loop_alarm "Tribunal quota controller entered fallback mode (1 worker / 600s); inspect USAGE_MONITOR."
+      ;;
+    floor_stop)
+      tribunal_loop_alarm "Tribunal quota controller entered floor_stop at configured floor ${QUOTA_FLOOR}%."
+      ;;
+  esac
 }
 
 # ─── Graceful stop control ───────────────────────────────────────────────────
@@ -809,12 +865,23 @@ wait_any_worker() {
 
   case "$rc" in
     0)  tlog "  [worker-$finished_id] $article_slug — PASSED" ;;
+    2)  tlog "  [worker-$finished_id] $article_slug — EXHAUSTED"
+        EXHAUSTED_ALERT_COUNT=$((EXHAUSTED_ALERT_COUNT + 1))
+        if (( EXHAUSTED_ALERT_COUNT >= TRIBUNAL_EXHAUSTED_ALERT_THRESHOLD )); then
+          tribunal_loop_alarm "Tribunal EXHAUSTED spike: ${EXHAUSTED_ALERT_COUNT} article(s); latest=$article_slug."
+          EXHAUSTED_ALERT_COUNT=0
+        fi
+        ;;
+    124) tlog "  [worker-$finished_id] $article_slug — stalled (rc=124)"
+         tribunal_loop_alarm "Tribunal worker stalled: article=$article_slug rc=124."
+         ;;
     75) tlog "  [worker-$finished_id] $article_slug — skipped (lock collision)" ;;
     77) tlog "  [worker-$finished_id] $article_slug — stopped_by_request propagated."
         stop_requested=true
         stop_source="${stop_source:-propagated-from-worker}"
         ;;
     70) tlog "  [worker-$finished_id] $article_slug — runner_error propagated; draining to avoid poisoning more articles."
+        tribunal_loop_alarm "Tribunal runner stalled or failed infrastructure provenance: article=$article_slug rc=70; draining."
         stop_requested=true
         stop_source="${stop_source:-runner-error}"
         rc_write_state "draining" "runner_error article=$article_slug"
@@ -922,6 +989,12 @@ if [ "$DRY_RUN" = true ]; then
 fi
 
 # ─── Main Loop ────────────────────────────────────────────────────────────────
+if ! [[ "$TRIBUNAL_EXHAUSTED_ALERT_THRESHOLD" =~ ^[1-9][0-9]*$ ]]; then
+  tlog "ERROR: TRIBUNAL_EXHAUSTED_ALERT_THRESHOLD must be a positive integer"
+  exit 78
+fi
+deployed_runtime_preflight || exit $?
+
 tlog "=== Tribunal Quota-Aware Loop started ==="
 if [ "$LEGACY_QUOTA" = true ]; then
   tlog "  Mode: LEGACY (binary GO/STOP)"
@@ -1044,6 +1117,7 @@ while true; do
       "$CONTROLLER_BINDING" "$ARTICLE_COST_PCT" "$CONTROLLER_MODE"
     quota_controller_write_state "$CONTROLLER_MODE" "$five_pct_raw" "$seven_pct_raw" \
       "$CONTROLLER_COOLDOWN" "$CONTROLLER_WORKERS" "$CONTROLLER_BINDING" "$ARTICLE_COST_PCT"
+    alert_controller_mode_if_needed "$CONTROLLER_MODE"
 
     # Handle stop modes: hard floor / extra limit / burn-rate debt.
     if [ "$CONTROLLER_MODE" = "floor_stop" ] || [ "$CONTROLLER_MODE" = "extra_limit" ] || [ "$CONTROLLER_MODE" = "weekly_debt" ] || [ "$CONTROLLER_MODE" = "five_hour_debt" ]; then
