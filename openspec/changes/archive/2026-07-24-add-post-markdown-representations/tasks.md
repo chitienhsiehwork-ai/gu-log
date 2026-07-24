@@ -28,9 +28,9 @@
 - [x] 5.1 加入匯出器單元／整合測試，覆蓋代表性繁中／英文文章、所有自訂元件、未知元件、壞 URL 與原子失敗
 - [x] 5.2 鎖住 `/api/posts/{slug}.json` schema v2 的實際 top-level keys、原始 MDX 內文與 HTTP consumer 契約，證明匯出器沒有新增不存在的 status 欄位或改動 API
 - [x] 5.3 跑全文集建置、Astro／Vitest／lint／format、文章 validator、taxonomy scanner 與 repo hooks
-- [ ] 5.4 擴充 preview／production smoke test，驗證繁中與英文 `.md` 的 status、Content-Type、忠實度、alternate 可發現性，以及 HTML／JSON non-regression
+- [x] 5.4 擴充 preview／production smoke test，驗證繁中與英文 `.md` 的 status、Content-Type、忠實度、alternate 可發現性，以及 HTML／JSON non-regression
 
 ## 6. 審查與封存
 
 - [x] 6.1 完成獨立 correctness／security review 與 simplify review，修完所有阻擋問題
-- [ ] 6.2 同步 `post-markdown-representation` delta spec、封存 change，確認 OpenSpec ownership／archive 關卡通過
+- [x] 6.2 同步 `post-markdown-representation` delta spec、封存 change，確認 OpenSpec ownership／archive 關卡通過
