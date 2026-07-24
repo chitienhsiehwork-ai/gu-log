@@ -13,6 +13,9 @@ pass() { echo "ok $*"; }
 
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
+export TRIBUNAL_SHARED_LOCK_DIR="$TMP/shared-locks"
+export TRIBUNAL_ARTICLE_LOCK_DIR="$TMP/article-locks"
+mkdir -p "$TRIBUNAL_SHARED_LOCK_DIR"
 
 fake_bin="$TMP/bin"
 mkdir -p "$fake_bin"
@@ -49,6 +52,8 @@ bash "$TRIBUNAL" --score-only --only-stage factChecker gp-1-20260128-demo.mdx \
 rc=$?
 set -e
 
+[ -e "$TRIBUNAL_ARTICLE_LOCK_DIR/tribunal-gp-1-20260128-demo.mdx.lock" ] ||
+  fail "tribunal did not honor the isolated article lock directory"
 if [ "$rc" -ne 70 ]; then
   sed -n '1,120p' "$TMP/tribunal.out" >&2 || true
   sed -n '1,120p' "$TMP/tribunal.err" >&2 || true

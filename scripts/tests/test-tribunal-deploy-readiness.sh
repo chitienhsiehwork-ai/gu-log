@@ -13,6 +13,9 @@ pass() { echo "ok $*"; }
 
 TMP="$(mktemp -d "${TMPDIR:-/tmp}/gu-tribunal-deploy-readiness.XXXXXX")"
 trap 'rm -rf "$TMP"' EXIT
+export TRIBUNAL_SHARED_LOCK_DIR="$TMP/shared-locks"
+export TRIBUNAL_ARTICLE_LOCK_DIR="$TMP/article-locks"
+mkdir -p "$TRIBUNAL_SHARED_LOCK_DIR"
 # shellcheck source=scripts/tribunal-helpers.sh
 source "$HELPERS"
 
@@ -107,8 +110,9 @@ STATE
 pass "doctor reuses current PID state; only explicit live probe invokes Claude"
 
 # Judge and writer share tribunal_claude_exec. From an isolated workdir, both
-# must grant exactly REPO_ROOT through --add-dir before the variadic
-# --allowed-tools flag; prompts stay on stdin. Invalid roots fail before Claude.
+# must grant exactly REPO_ROOT through --add-dir and use the same noninteractive
+# narrow permission contract under root and non-root. --allowed-tools stays last,
+# prompts stay on stdin, and invalid roots fail before Claude.
 (
   access_root="$TMP/claude-repo-access"
   mkdir -p "$access_root/.claude/agents" "$access_root/work" "$access_root/bin"
@@ -116,20 +120,12 @@ pass "doctor reuses current PID state; only explicit live probe invokes Claude"
     > "$access_root/.claude/agents/fact-checker.md"
   printf '%s\n' '---' 'model: claude-writer-fixture' '---' \
     > "$access_root/.claude/agents/tribunal-writer.md"
-  cat > "$access_root/bin/id" <<'FAKE_ID'
-#!/usr/bin/env bash
-if [ "${1:-}" = "-u" ]; then
-  printf '0\n'
-else
-  /usr/bin/id "$@"
-fi
-FAKE_ID
   cat > "$access_root/bin/claude" <<'FAKE_CLAUDE'
 #!/usr/bin/env bash
 printf '%s\n' "$@" > "$FAKE_CLAUDE_CAPTURE"
 cat > "${FAKE_CLAUDE_CAPTURE}.stdin"
 FAKE_CLAUDE
-  chmod +x "$access_root/bin/id" "$access_root/bin/claude"
+  chmod +x "$access_root/bin/claude"
 
   PATH="$access_root/bin:$PATH" REPO_ROOT="$access_root" \
   FAKE_CLAUDE_CAPTURE="$access_root/judge.args" \
@@ -140,6 +136,9 @@ FAKE_CLAUDE
   GP_WRITER_MODE=cli TRIBUNAL_CODEX_TIMEOUT_SEC=2 \
     tribunal_writer_exec "$access_root/work" tribunal-writer "writer access fixture"
 
+  if sed -n '/^tribunal_claude_exec()/,/^}/p' "$HELPERS" | grep -q 'id -u'; then
+    exit 1
+  fi
   for capture in "$access_root/judge.args" "$access_root/writer.args"; do
     [ "$(grep -cx -- '--add-dir' "$capture")" = "1" ]
     awk -v repo="$access_root" '
@@ -147,7 +146,16 @@ FAKE_CLAUDE
       { previous = $0 }
       END { exit(found ? 0 : 1) }
     ' "$capture"
+    [ "$(grep -cx -- '--permission-mode' "$capture")" = "1" ]
+    awk '
+      previous == "--permission-mode" && $0 == "acceptEdits" { found = 1 }
+      { previous = $0 }
+      END { exit(found ? 0 : 1) }
+    ' "$capture"
+    ! grep -qx -- 'auto' "$capture"
+    ! grep -qx -- 'bypassPermissions' "$capture"
     [ "$(tail -2 "$capture" | head -1)" = "--allowed-tools" ]
+    [ "$(tail -1 "$capture")" = "Read,Grep,Glob,Bash,Write,Edit,MultiEdit" ]
     grep -q '^## User task$' "${capture}.stdin"
   done
   grep -q 'judge access fixture' "$access_root/judge.args.stdin"
@@ -162,8 +170,8 @@ FAKE_CLAUDE
   fi
   [ ! -e "$access_root/judge.args" ]
   grep -q 'REPO_ROOT is not a directory' "$access_root/missing.out"
-) || fail "Claude judge/writer repo grant is missing, broad, misordered, or fail-open"
-pass "Claude judge and writer receive exact --add-dir repo access; invalid root fails closed"
+) || fail "Claude judge/writer repo grant or noninteractive permission contract is unsafe"
+pass "Claude judge and writer use exact repo access and narrow noninteractive permissions"
 
 # Watchdog cancellation uses a dedicated POSIX session. A descendant that
 # ignores TERM must still die when the saved session receives KILL.
@@ -453,6 +461,8 @@ TRIBUNAL_CODEX_IDLE_POLL_SEC=1 \
 bash "$TRIBUNAL" --score-only --only-stage factChecker --allow-rewrite \
   gp-1-20260128-demo.mdx >"$TMP/writer.out" 2>&1 ||
   fail "real fail→writer→pass tribunal fixture failed"
+[ -e "$TRIBUNAL_ARTICLE_LOCK_DIR/tribunal-gp-1-20260128-demo.mdx.lock" ] ||
+  fail "tribunal did not honor the isolated article lock directory"
 [ -s "$TMP/writer-calls" ] || fail "failing article never reached fake Claude writer"
 grep -q -- '--model' "$TMP/writer-calls" ||
   fail "Claude writer call did not include its role model"

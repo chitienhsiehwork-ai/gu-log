@@ -816,9 +816,9 @@ tribunal_write_actual_provider() {
 
 # Claude equivalent of tribunal_codex_exec: inlines the .claude/agents/<name>.md
 # rubric (its YAML frontmatter is the persona/pass-bar contract) and runs
-# `claude -p` non-interactively. Under root (CCC) claude rejects
-# bypassPermissions, so we use acceptEdits, which still auto-approves the
-# judge's score-file write; non-root uses permission-mode auto.
+# `claude -p` non-interactively. Both root and non-root use acceptEdits plus an
+# explicit narrow tool allowlist: auto can return success while waiting for an
+# interactive edit approval, and bypassPermissions is unsupported under root.
 tribunal_claude_exec() {
   local work_dir="$1"
   local agent_name="$2"
@@ -864,32 +864,22 @@ PROMPT
   # --add-dir before the variadic --allowed-tools flag, and keep the prompt on
   # stdin so no option can swallow it.
   #
-  # Permission handling differs by uid:
-  #  - non-root (mac/VPS): auto mode runs free without prompting. NOTE: we used
-  #    to use bypassPermissions here, but on current CC `claude -p
-  #    --permission-mode bypassPermissions` exits 1 the moment the agent invokes
-  #    a tool (Edit/Write), so the writer never rewrote. auto mode auto-approves
-  #    the read/edit/write the writer+judge need (verified editing an
-  #    out-of-cwd post) and is the maintainer's chosen mode (no bypassPermissions).
-  #  - root (CCC sandbox): claude *rejects* bypassPermissions, so we fall back to
-  #    acceptEdits. But acceptEdits only auto-approves *edits*; the judge task
-  #    passes the post as a PATH (not inlined), so the judge must Read it — which
-  #    prompts for permission and then hangs forever against the </dev/null
-  #    stdin. We therefore pre-approve the read/search/compute/write tools a judge
-  #    actually uses via --allowed-tools, reproducing the non-root "never prompt"
-  #    behavior with an explicit, narrower allowlist (no MCP, no network). Tools
-  #    are comma-joined into a single arg so the variadic flag can't swallow the
-  #    trailing "$prompt" positional.
+  # acceptEdits alone only auto-approves edits; the judge task passes the post as
+  # a PATH (not inlined), so Read would still prompt. Pre-approve only the
+  # read/search/compute/write tools judge and writer need (no MCP, no network).
+  # This same non-interactive contract is required for root and non-root:
+  # permission-mode auto can print "Waiting for permission to edit" and return
+  # rc=0 without changing the article, while bypassPermissions is rejected in
+  # root environments.
+  #
+  # Tools are comma-joined into a single arg so the variadic flag cannot swallow
+  # a trailing prompt positional.
   #    --allowed-tools is variadic, so we must NOT leave a trailing positional
   #    after it or the flag swallows the prompt text as bogus tool rules. Feed
   #    the prompt on stdin (claude -p reads stdin when no positional prompt is
   #    given) so the allowlist token is the last arg with nothing to consume.
   local -a perm_args
-  if [ "$(id -u)" = "0" ]; then
-    perm_args=(--add-dir "$REPO_ROOT" --permission-mode acceptEdits --allowed-tools "Read,Grep,Glob,Bash,Write,Edit,MultiEdit")
-  else
-    perm_args=(--add-dir "$REPO_ROOT" --permission-mode auto)
-  fi
+  perm_args=(--add-dir "$REPO_ROOT" --permission-mode acceptEdits --allowed-tools "Read,Grep,Glob,Bash,Write,Edit,MultiEdit")
   (
     cd "$work_dir" || exit
     # See tribunal_codex_exec: do not leak the article flock into timeout/CLI.
