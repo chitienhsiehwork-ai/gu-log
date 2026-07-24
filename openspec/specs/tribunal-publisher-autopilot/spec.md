@@ -1,8 +1,11 @@
 # tribunal-publisher-autopilot Specification
 
 ## Purpose
-TBD - created by archiving change wire-tribunal-publisher-autopilot. Update Purpose after archive.
+
+定義 Tribunal publisher autopilot 如何把可發布的 PASS artifacts 安全推進至 main、恢復既有 PR state，並沿用保守 merge guard 控制自動合併。
+
 ## Requirements
+
 ### Requirement: Tribunal runtime SHALL advance publishable PASS artifacts toward main
 
 The long-running Tribunal runtime SHALL periodically attempt to materialize publishable PASS artifacts from the ignored runtime ledger into clean main-targeted publisher PRs.
@@ -67,4 +70,3 @@ Publisher autopilot SHALL NOT bypass branch protection or merge publisher PRs by
 - WHEN the auto-merge guard denies the PR because changed paths are outside the allowlist
 - THEN autopilot SHALL NOT bypass that decision
 - AND it SHALL leave the PR for explicit operator review
-
