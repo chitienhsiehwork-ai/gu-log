@@ -25,7 +25,7 @@
     "tribunal:run": "tsx scripts/tribunal-v2-run.ts",
     "tribunal:list": "tsx scripts/tribunal-v2-run.ts --list-in-progress",
     "tribunal:spark-benchmark": "node scripts/spark-tribunal-benchmark.mjs",
-    "lint": "eslint src/ scripts/ tests/",
+    "lint": "eslint middleware.ts src/ scripts/ tests/",
     "lint:fix": "eslint src/ scripts/ tests/ --fix",
     "format": "prettier --write \"src/components/**/*.{astro,js,ts}\" \"src/layouts/**/*.{astro,js,ts}\" \"src/pages/**/*.{astro,js,ts}\" \"src/config/**/*.{js,ts}\" \"src/styles/**/*.css\" \"scripts/**/*.{js,mjs,cjs,ts}\" \"tests/**/*.{js,mjs,cjs,ts}\" \"*.{mjs,cjs,ts}\"",
     "format:check": "prettier --check \"src/components/**/*.{astro,js,ts}\" \"src/layouts/**/*.{astro,js,ts}\" \"src/pages/**/*.{astro,js,ts}\" \"src/config/**/*.{js,ts}\" \"src/styles/**/*.css\" \"scripts/**/*.{js,mjs,cjs,ts}\" \"tests/**/*.{js,mjs,cjs,ts}\" \"*.{mjs,cjs,ts}\"",
@@ -65,12 +65,14 @@
     "@astrojs/sitemap": "^3.7.3",
     "@mdx-js/mdx": "^3.1.1",
     "@vercel/analytics": "^2.0.1",
+    "@vercel/functions": "3.7.5",
     "astro": "^6.4.8",
     "fuse.js": "^7.5.0",
     "hast-util-from-html": "^2.0.3",
     "sharp": "^0.35.3",
     "typescript": "^5.9.3",
-    "unist-util-visit": "^5.1.0"
+    "unist-util-visit": "^5.1.0",
+    "ws": "8.21.1"
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "^0.113.0",

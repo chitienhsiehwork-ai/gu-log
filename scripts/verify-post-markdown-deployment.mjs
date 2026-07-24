@@ -1,6 +1,12 @@
 #!/usr/bin/env node
 
+import fs from 'node:fs';
+
 import { POST_JSON_V2_KEYS } from './lib/post-json-v2-contract.mjs';
+
+const MIGRATION_MANIFEST = JSON.parse(
+  fs.readFileSync(new URL('../quality/brand-taxonomy-post-migration.json', import.meta.url), 'utf8')
+);
 
 const SMOKE_EXPECTATIONS = Object.freeze({
   'zh-tw': {
@@ -62,6 +68,22 @@ function contentType(response) {
   return response.headers.get('content-type') ?? '';
 }
 
+export function varyIncludesAccept(value) {
+  return (
+    value
+      ?.split(',')
+      .map((item) => item.trim().toLowerCase())
+      .includes('accept') ?? false
+  );
+}
+
+function assertVaryAccept(response, url) {
+  assert(
+    varyIncludesAccept(response.headers.get('vary')),
+    `${url}: Vary must include Accept, got ${JSON.stringify(response.headers.get('vary'))}`
+  );
+}
+
 function linkAttributes(tag) {
   return Object.fromEntries(
     [...tag.matchAll(/\b([A-Za-z:-]+)(?:=(["'])(.*?)\2)?/g)].map((match) => [
@@ -107,6 +129,21 @@ async function fetchChecked(url, options, expectedType) {
   return response;
 }
 
+async function verifyNegotiatedRepresentation({ requestUrl, accept, kind, expectedBody }) {
+  const headers = accept === null ? undefined : { Accept: accept };
+  const expectedType =
+    kind === 'markdown' ? /^text\/markdown\s*;\s*charset=utf-8\b/i : /^text\/html\b/i;
+  const response = await fetchChecked(requestUrl, { headers }, expectedType);
+  assertVaryAccept(response, requestUrl);
+  const body = await response.text();
+  assert(body === expectedBody, `${requestUrl}: ${kind} negotiation body mismatch for ${accept}`);
+  return {
+    accept: accept ?? '<missing>',
+    kind,
+    cache: response.headers.get('x-vercel-cache') ?? '<none>',
+  };
+}
+
 async function verifyPost({ baseUrl, siteOrigin, slug, lang }) {
   const expected = SMOKE_EXPECTATIONS[lang];
   const canonicalPath = lang === 'en' ? `/en/posts/${slug}` : `/posts/${slug}`;
@@ -117,6 +154,7 @@ async function verifyPost({ baseUrl, siteOrigin, slug, lang }) {
   const jsonUrl = `${baseUrl}/api/posts/${slug}.json`;
 
   const htmlResponse = await fetchChecked(requestUrl, {}, /^text\/html\b/i);
+  assertVaryAccept(htmlResponse, requestUrl);
   const html = await htmlResponse.text();
   assert(
     JSON.stringify(markdownAlternateUrls(html)) === JSON.stringify([alternateUrl]),
@@ -162,17 +200,90 @@ async function verifyPost({ baseUrl, siteOrigin, slug, lang }) {
     assert(json.body?.includes(sentinel), `${jsonUrl}: missing raw body sentinel ${sentinel}`);
   }
 
-  const phaseOneAcceptResponse = await fetchChecked(
-    requestUrl,
-    { headers: { Accept: 'text/markdown' } },
-    /^text\/html\b/i
-  );
+  const negotiationCases = [
+    { accept: 'text/html', kind: 'html', expectedBody: html },
+    { accept: '*/*', kind: 'html', expectedBody: html },
+    { accept: 'text/*', kind: 'html', expectedBody: html },
+    { accept: 'application/markdown', kind: 'html', expectedBody: html },
+    { accept: 'text/html;q=0.9, text/markdown;q=0.8', kind: 'html', expectedBody: html },
+    { accept: 'text/html;q=0.8, text/markdown;q=0.8', kind: 'html', expectedBody: html },
+    { accept: '*/*;q=1, text/markdown;q=0', kind: 'html', expectedBody: html },
+    { accept: 'text/markdown;q=1.001', kind: 'html', expectedBody: html },
+    { accept: 'text/markdown', kind: 'markdown', expectedBody: markdown },
+    {
+      accept: 'text/markdown, text/html;q=0.9',
+      kind: 'markdown',
+      expectedBody: markdown,
+    },
+  ];
+  const negotiation = [];
+  for (const smokeCase of negotiationCases) {
+    negotiation.push(await verifyNegotiatedRepresentation({ requestUrl, ...smokeCase }));
+  }
+
+  const alternatingCases = [
+    { accept: 'text/html', kind: 'html', expectedBody: html },
+    { accept: 'text/markdown', kind: 'markdown', expectedBody: markdown },
+    { accept: 'text/html', kind: 'html', expectedBody: html },
+    { accept: 'text/markdown', kind: 'markdown', expectedBody: markdown },
+  ];
+  for (const smokeCase of alternatingCases) {
+    negotiation.push(await verifyNegotiatedRepresentation({ requestUrl, ...smokeCase }));
+  }
+
+  for (const [accept, expectedType] of [
+    ['text/html', /^text\/html\b/i],
+    ['text/markdown', /^text\/markdown\s*;\s*charset=utf-8\b/i],
+  ]) {
+    const headResponse = await fetchChecked(
+      requestUrl,
+      { method: 'HEAD', headers: { Accept: accept } },
+      expectedType
+    );
+    assertVaryAccept(headResponse, requestUrl);
+    assert(
+      (await headResponse.arrayBuffer()).byteLength === 0,
+      `${requestUrl}: HEAD returned a body`
+    );
+  }
+
+  const slashResponse = await fetch(`${requestUrl}/`, {
+    redirect: 'manual',
+    headers: { Accept: 'text/markdown' },
+  });
+  assert(slashResponse.status === 308, `${requestUrl}/: expected existing 308`);
+  const slashLocation = slashResponse.headers.get('location');
+  assert(slashLocation, `${requestUrl}/: missing 308 Location`);
   assert(
-    (await phaseOneAcceptResponse.text()).includes('<article'),
-    `${requestUrl}: phase-one Accept request must preserve canonical HTML`
+    new URL(slashLocation, requestUrl).pathname === canonicalPath,
+    `${requestUrl}/: unexpected 308 Location ${slashLocation}`
   );
 
-  return { requestUrl, canonicalUrl, markdownUrl, jsonUrl };
+  return { requestUrl, canonicalUrl, markdownUrl, jsonUrl, negotiation };
+}
+
+async function verifyLegacyRedirect(baseUrl) {
+  const fixture = MIGRATION_MANIFEST.entries.find(
+    (entry) => entry.oldSlug !== entry.newSlug && (entry.lang === 'zh-tw' || entry.lang === 'en')
+  );
+  assert(fixture, 'migration manifest must provide a legacy redirect smoke fixture');
+  const prefix = fixture.lang === 'en' ? '/en/posts/' : '/posts/';
+  const oldUrl = `${baseUrl}${prefix}${fixture.oldSlug}`;
+  const expectedPath = `${prefix}${fixture.newSlug}`;
+  const response = await fetch(oldUrl, {
+    redirect: 'manual',
+    headers: { Accept: 'text/markdown' },
+  });
+  assert(
+    response.status === 308,
+    `${oldUrl}: legacy redirect status changed to ${response.status}`
+  );
+  const location = response.headers.get('location');
+  assert(location, `${oldUrl}: legacy redirect lost Location`);
+  assert(
+    new URL(location, oldUrl).pathname === expectedPath,
+    `${oldUrl}: legacy redirect destination changed to ${location}`
+  );
 }
 
 async function verifyDeployment(args) {
@@ -193,6 +304,7 @@ async function verifyDeployment(args) {
       lang: 'en',
     })
   );
+  await verifyLegacyRedirect(args.baseUrl);
   console.log(`Post Markdown deployment smoke passed: ${JSON.stringify(results)}`);
 }
 
