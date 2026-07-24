@@ -1,8 +1,11 @@
 # tribunal-final-build-gate Specification
 
 ## Purpose
-TBD - created by archiving change tribunal-final-build-gate. Update Purpose after archive.
+
+定義 Tribunal 將 full-site build 延後至 final gate、以 shared lock 序列化執行、區分 lock wait 與 build timeout，並把失敗送入可觀測的 bounded repair。
+
 ## Requirements
+
 ### Requirement: Tribunal SHALL defer full-site build to a final gate
 
 Tribunal SHALL NOT run full `pnpm run build` after every `tribunal-writer` rewrite. It SHALL run full-site build only after all article judge stages have passed and before the article is marked PASS.
@@ -103,4 +106,3 @@ Tribunal SHALL emit enough structured log lines for operators to distinguish bui
 - **AND** when it acquires the lock
 - **AND** how long the build ran
 - **AND** whether the build passed or failed with its exit code
-

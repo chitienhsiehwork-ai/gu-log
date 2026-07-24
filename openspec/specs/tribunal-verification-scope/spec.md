@@ -1,8 +1,11 @@
 # tribunal-verification-scope Specification
 
 ## Purpose
-TBD - created by archiving change reject-claim-free-factcheck-fastpath. Update Purpose after archive.
+
+定義 Fact Checker 對所有文章類型一律執行驗證的範圍契約，禁止以「看似沒有可查證主張」為由走 claim-free fast path。
+
 ## Requirements
+
 ### Requirement: Fact Checker verification SHALL be unconditional across post types
 
 The Fact Checker stage SHALL run for every post and SHALL score its `accuracy` dimension for every post, regardless of whether the post makes verifiable technical, numeric, or factual claims. A post's claim density (including a pure-opinion / reflection / mind-set post with no verifiable claim) SHALL NOT gate whether the Fact Checker stage runs, whether `accuracy` is scored, or whether any other Fact Checker dimension is scored.
@@ -28,4 +31,3 @@ This requirement deliberately ratifies the status quo. It exists so that a futur
 - **WHEN** a future change proposes to skip the Fact Checker, or to exempt `accuracy` from being earned, for a class of posts
 - **THEN** that change SHALL modify or remove this requirement in its spec delta
 - **AND** SHALL document why the harmless→harmful trade and the de-claiming incentive recorded in the referenced design.md no longer apply
-

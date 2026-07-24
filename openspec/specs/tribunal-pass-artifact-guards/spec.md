@@ -1,8 +1,11 @@
 # tribunal-pass-artifact-guards Specification
 
 ## Purpose
-TBD - created by archiving change tribunal-pass-artifact-guards. Update Purpose after archive.
+
+定義 Tribunal PASS commit 的文章 artifact 完整性、歷史 audit、pre-push gate 與 production daily audit，避免分數已通過但目標內容未實際發布。
+
 ## Requirements
+
 ### Requirement: Tribunal PASS commits SHALL publish target article artifacts
 
 Tribunal SHALL NOT create a final `all 4 stages PASS + final build` commit unless the staged commit includes the target article artifact from `src/content/posts`.
@@ -82,4 +85,3 @@ The production VM SHALL run a scheduled daily audit that checks post-fix Tribuna
 - **WHEN** the scheduled audit finds a progress-only Tribunal PASS commit
 - **THEN** the audit service SHALL exit nonzero
 - **AND** operators SHALL treat new Tribunal PASS metadata as suspect until the named commit is investigated
-
