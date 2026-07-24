@@ -15,10 +15,10 @@ pre-commit projection 解掉同一個問題：
 因此本 proposal 的核心假設「pre-commit 無法可靠預測，只能在 post-commit 自動建立第二個
 commit」已不成立。新增 post-commit auto-commit 反而會引入 recursion、dirty-worktree、
 commit signing 與 attribution 風險，沒有剩餘讀者或 contributor 價值。本 change 封存時
-**不會同步 spec delta**。現行 repair loop 的 executable SSOT 是
-`scripts/hooks/pre-commit` 與 `scripts/build-version-manifest.mjs --include-staged`；
-`post-version-manifest` 與 `prebuild-manifest-fail-closed` stable specs 只定義相鄰的
-reader revision 與 build／fail-closed 契約。
+把 delta 收斂為已上線的 staged projection 與 layered freshness policy，並同步到既有
+`post-version-manifest` stable capability；不會把被否決的 post-commit mechanics 寫入
+stable specs。現行 repair loop 的 executable SSOT 仍是 `scripts/hooks/pre-commit` 與
+`scripts/build-version-manifest.mjs --include-staged`。
 
 ## Why
 
