@@ -1,35 +1,31 @@
 ## Why
 
-The tribunal engine is architecturally ready for a 24/7 run (atomic claims, graceful stop, bounded retries, a burn-rate quota controller), but the **deployed configuration** is not. As shipped, the Tribunal VM daemon (a) scores every article but never rewrites it (`GP_WRITER_MODE` defaults to `none` and the systemd unit never sets it) → every failing post burns 5 attempts to EXHAUSTED for zero quality gain; (b) runs all five judge/writer roles on a hardcoded `gpt-5.5` instead of the intended Claude-for-writer/vibe split (the exact Opus build each role pins is owned by the `tribunal-model-pinning-strategy` change, not this one); (c) has no operator alerting that works on Linux (the only alarm is a macOS `osascript` no-op); (d) ships a monitor tool that parses a dead quota format; and (e) has no documented reboot-persistence. This change hardens the deployment so a real 24/7 run improves articles instead of expensively confirming they are bad.
+The tribunal engine is architecturally ready for a 24/7 run (atomic claims, graceful stop, bounded retries, a burn-rate quota controller), but the **deployed configuration** is not. The current runtime already routes Vibe to Claude when available and records Claude model provenance fail-closed, but the other judges still use a global Codex model override instead of their role config. More importantly, the Tribunal VM daemon scores every article but never rewrites it (`GP_WRITER_MODE` defaults to `none` and the systemd unit never sets an executable writer mode), so failing posts can burn attempts to EXHAUSTED for zero quality gain. Linux alerting is still a macOS `osascript` no-op, reboot persistence is undocumented, and monitoring does not expose all deployed preflight state. This change closes those remaining deployment gaps.
 
 ## What Changes
 
-- **Per-role model routing.** Replace the single global provider choice + hardcoded `--model gpt-5.5` (`tribunal-helpers.sh:358`) with per-role resolution: writer/rewriter + vibe scorer → Claude (Opus); fact-checker / librarian / fresh-eyes + the orchestrator → Codex (GPT-5.5). This change owns the **mechanism** — read each role's already-present `model` field (`.codex/agents/*.toml`, `.claude/agents/*.md`) instead of ignoring it; the **values** (which Opus / Codex build each role pins) are owned by the `tribunal-model-pinning-strategy` change and are not re-decided here.
-- **Enable rewrites in the deployed runtime.** The long-running unit/wrapper SHALL set `GP_WRITER_MODE=subagent` (the `none` default stays as a safe library default; the deployment opts in).
+- **Finish per-role model routing.** Keep the existing Vibe→Claude / objective judges→Codex split, but resolve each role's model from its repo config instead of the global `GP_CODEX_MODEL` default. Model values stay owned by the agent config files; this change only owns dispatch and fail-closed parsing.
+- **Enable rewrites in the deployed runtime.** The non-interactive long-running unit SHALL use a provisioned Claude CLI writer (`GP_WRITER_MODE=cli`). Interactive local orchestration may continue to use `subagent`; the daemon MUST NOT select broker mode unless a real broker consumer is running.
 - **Real operator alerting.** Replace the macOS-only `osascript` alarm with a channel the operator receives on the Linux deploy host (Telegram / existing host notifier) for stall / EXHAUSTED / `fallback` / `floor_stop`.
-- **Accurate monitoring.** Update the `tribunal-monitor` skill to parse the live `CONTROLLER:` log lines + `quota-controller.json` + the real 10% floor instead of the retired `Tier …% remaining` format + stale 3% floor.
+- **Accurate monitoring.** Extend the existing `CONTROLLER:` / `quota-controller.json` monitor with the configured floor, writer preflight, unit enablement, and linger state.
 - **Reboot persistence.** Document + require `systemctl --user enable` + `loginctl enable-linger` so the daemon returns after a reboot.
 - **Operator-configurable burst.** Document the knobs (`--workers`, `QUOTA_FLOOR`, `QUOTA_BURST_ALLOWANCE`, `MIN_COOLDOWN`) to drain a large quota balance before a refresh deadline, including the cgroup autoscaler cap and that the controller does not see Claude quota.
 
 ## Capabilities
 
 ### New Capabilities
-- `tribunal-model-routing`: How each tribunal role (writer, rewriter, vibe, fact-checker, librarian, fresh-eyes, orchestrator) resolves its provider and model, per-role rather than one global provider, with documented fallback when a preferred CLI is absent.
 - `tribunal-24-7-operations`: What the deployed long-running runtime must guarantee to run unattended — rewrites enabled, reboot persistence, operator-reachable alerting, accurate health readout, and operator-configurable burst spend.
 
 ### Modified Capabilities
-- (no in-place capability edits — these are new operational requirements. Existing `tribunal-run-control` / `tribunal-ops-policy` cover pause/parallelism, not model routing or deploy-time enablement.)
-
-### Coupled Changes
-- **`tribunal-model-pinning-strategy`** (active): owns the model **values** each role pins (e.g. the Opus build, codex build). This change owns only the **routing mechanism** that reads those values. The two must land coherently — if pinning-strategy changes the agent-config `model` fields, this change's resolver picks them up automatically. Do not duplicate the value decision here; reconcile any conflict in `tribunal-model-pinning-strategy`.
+- `codex-tribunal-runtime`: replace literal model snapshots with per-role config lookup; define deployed strict routing separately from the existing CCC compatibility fallback.
 
 ## Impact
 
-- **Model routing:** `scripts/tribunal-helpers.sh` (provider/model dispatch ~358-401, the "Ignore model" prompt note ~336-338), `.codex/agents/*.toml` + `.claude/agents/*.md` (`model` fields already set), `tools/gp-pipeline/internal/llm/defaults.go` (Go writer chain — already Opus).
-- **Safety contract test:** `scripts/tests/test-tribunal-safety-contract.sh` — **currently green and asserts the exact things this change removes** (the `--model gpt-5.5` hardcode at line 77, the "Ignore YAML / frontmatter runtime fields" prompt at line 72, the static `codex-gpt-5.5-medium` runner label at 109/115, and `^model = "gpt-5.5"` pinned across all `.codex/agents/*.toml` at line 95). It MUST be updated in lockstep or routing edits turn it red.
-- **Runtime enablement:** `scripts/tribunal-loop.service`, `scripts/cc-tribunal-loop-wrapper.sh`, `scripts/cc-cron-tribunal.sh` (set `GP_WRITER_MODE`).
+- **Model routing:** `scripts/tribunal-helpers.sh`, `.codex/agents/*.toml`, and `.claude/agents/*.md`. Existing Claude frontmatter parsing remains the fail-closed pattern for the new Codex TOML parser.
+- **Safety contract test:** `scripts/tests/test-tribunal-safety-contract.sh` must stop asserting the global Codex model default and instead prove per-role config lookup, strict deployed routing, and explicit compatibility fallback.
+- **Runtime enablement:** `scripts/tribunal-loop.service`, `scripts/cc-tribunal-loop-wrapper.sh`, and the host-local `tribunal.env` preflight.
 - **Alerting:** `scripts/tribunal-helpers.sh` (`tribunal_quota_alarm` ~778-785; the macOS `osascript` no-op is at line 784; existing alarm call sites at ~938/940/943/1046), `scripts/tribunal-quota-loop.sh` (**add** alarm hooks — it has none today; all current alarm calls live in `tribunal-helpers.sh`).
-- **Monitoring:** `.claude/skills/tribunal-monitor/SKILL.md`.
+- **Monitoring:** `.agents/skills/tribunal-monitor/SKILL.md`.
 - **Reboot + burst docs:** `docs/tribunal-runbook.md`.
-- **External dependency:** `usage-monitor.sh` (off-repo, injected with `USAGE_MONITOR` or discovered on `PATH`) — note as a deploy prerequisite; not in scope to vendor. Its actual host path belongs in local machine context.
+- **External dependency:** `usage-monitor.sh` (off-repo, supplied by `USAGE_MONITOR`) — systemd already refuses to start without it; direct loop invocation retains a conservative fallback. Its actual host path belongs in local machine context.
 - **Non-goals:** multi-host coordination (explicitly single-host); macOS daemon runtime (target is the Tribunal VM); vendoring `usage-monitor.sh`; changing the controller's burn-rate math.

@@ -2,13 +2,13 @@
 
 ## Context
 
-The Tribunal VM daemon is `tribunal-quota-loop.sh` (a quota-aware supervisor) dispatching `tribunal.sh` per article. Provider/model selection happens in `tribunal-helpers.sh`: `tribunal_llm_provider()` picks ONE provider for all roles (codex if present), and `tribunal_codex_exec` hardcodes `--model gpt-5.5` (helpers.sh:358) while the prompt explicitly tells the model to "Ignore model". The per-role `model` fields in `.codex/agents/*.toml` are therefore dead on the production path; only the CCC-claude fallback path honors `.claude/agents/*.md` models. `GP_WRITER_MODE` defaults to `none` (helpers.sh:416) and no deploy unit sets it. Alerting is `osascript` (Linux no-op). The quota controller writes `quota-controller.json` with modes `pacing/floor_stop/fallback`; the `tribunal-monitor` skill greps for the retired `Tier …% remaining` format and a stale 3% floor (the real default floor is 10%, `QUOTA_FLOOR:-10`). Reboot survival needs `systemctl --user enable` + `loginctl enable-linger`.
+The Tribunal VM daemon is `tribunal-quota-loop.sh` (a quota-aware supervisor) dispatching `tribunal.sh` per article. Current provider dispatch already prefers Claude for `vibe-opus-scorer` and Codex for the objective judges, and Claude model parsing is frontmatter-only. Codex execution still uses the global `${GP_CODEX_MODEL:-gpt-5.5}` instead of `.codex/agents/<role>.toml`. `GP_WRITER_MODE` still defaults to `none`, and broker-based `subagent` mode cannot work in a non-interactive daemon because no process consumes its request files. Alerting is still `osascript` (a Linux no-op). The monitor reads controller JSON/log lines but omits the deployed floor, writer preflight, unit enablement, and linger state. The systemd unit already hard-fails when `USAGE_MONITOR` is missing; only direct loop invocation uses conservative fallback.
 
 ## Goals / Non-Goals
 
 **Goals:**
 - A 24/7 Tribunal VM run that actually rewrites sub-bar posts (not score-only).
-- The intended model split: Claude (Opus) writes/judges-vibe; Codex (GPT-5.5) does the other judges + orchestration. The exact builds are owned by `tribunal-model-pinning-strategy`; this change only routes to whatever each role's config declares.
+- The intended model split: Claude writes and judges Vibe; Codex runs the three objective judges. Exact model selectors come only from each role's config.
 - Unattended operability: reboot-persistent, operator gets alerted, monitor reflects reality, burst is tunable.
 
 **Non-Goals:**
@@ -18,13 +18,13 @@ The Tribunal VM daemon is `tribunal-quota-loop.sh` (a quota-aware supervisor) di
 
 ## Decisions
 
-**D1. Per-role resolution, not a global provider.** Introduce a role→provider map: `{writer, rewriter, vibe} → claude`; `{fact-checker, librarian, fresh-eyes, orchestrator} → codex`. The **model** for each role is read from that role's existing config field (`.claude/agents/*.md` for claude roles — today `claude-opus-4-5`; `.codex/agents/*.toml` for codex roles — today `gpt-5.5`), **not hardcoded in the resolver**. The exact build values are owned by `tribunal-model-pinning-strategy`; this resolver just stops ignoring them. Each judge/writer invocation consults the map instead of `tribunal_llm_provider()` choosing once for all. *Alternative considered:* keep one provider and just swap it to claude globally — rejected: the user wants GPT doing the cheaper judges to spread quota across both balances.
+**D1. Finish per-role resolution without replacing explicit compatibility fallback.** Vibe uses Claude; the three objective judges use Codex; writer dispatch remains the separate writer-mode contract. Each provider reads the selected role's model config. `TRIBUNAL_STRICT_ROLE_PROVIDERS=1` is the single deployed-mode switch: missing required CLIs or role configs fail startup or the role loudly. With the switch unset, the existing CCC compatibility fallback may select its available provider, but provenance must record the actual provider/model. Strict mode and `TRIBUNAL_FORCE_PROVIDER` are mutually exclusive; startup fails when both are set.
 
-**D2. Remove the hardcoded codex model flag.** Replace `--model gpt-5.5` (helpers.sh:358) with a lookup of the `.codex/agents/<role>.toml` `model` field (already present, currently ignored), and drop the "Ignore model" prompt line so codex roles honor their declared model. Defaults to gpt-5.5 when unset. **`scripts/tests/test-tribunal-safety-contract.sh` must move in the same change** — it currently asserts the hardcode, the "Ignore YAML" prompt, the static `codex-gpt-5.5-medium` runner label, and pinned `.codex` models; those assertions flip from "must exist" to "must read from config" (see tasks 1.6).
+**D2. Parse Codex role config fail-closed.** Read the selected role's `model` from its TOML agent config and pass it to `codex exec`. A run-scoped `GP_CODEX_MODEL` remains an explicit override for experiments and emergency recovery; without that override, missing or invalid role config fails instead of silently choosing a model. The Claude rubric may still be included as prose, but its frontmatter runtime fields are never used by Codex.
 
-**D3. Deployment opts into rewrites; library default stays safe.** Keep `GP_WRITER_MODE` defaulting to `none` in `tribunal-helpers.sh` (safe for ad-hoc/library use) but require the deployed unit/wrapper to export `GP_WRITER_MODE=subagent`. This makes the dangerous-by-omission state impossible in production without changing safe local behavior.
+**D3. Deployment opts into an executable rewrite path; library default stays safe.** Keep the library default `none`. Interactive orchestration may use `subagent` with a live broker consumer. The non-interactive VM daemon uses `GP_WRITER_MODE=cli`, verifies Claude CLI/auth prerequisites at startup, and fails before dispatch if the writer path is unusable.
 
-**D4. Alerting via an injectable notifier.** Replace the hardcoded `osascript` call with a notifier hook (env-configured command / existing host Telegram notifier) invoked on stall / EXHAUSTED / `fallback` / `floor_stop`. On hosts without a notifier configured it degrades to a log line (never silently no-ops the way osascript does on Linux).
+**D4. Alerting via an injectable notifier.** `TRIBUNAL_NOTIFIER` is an executable path, not a shell command string. The runtime invokes it with the complete alert message as one argument on stall / EXHAUSTED / `fallback` / `floor_stop`. Without a notifier it degrades to a structured log line, never a silent Linux no-op.
 
 **D5. Monitor parses live state.** Point the `tribunal-monitor` skill at `quota-controller.json` + the `CONTROLLER:` log lines + the configured floor, not the retired strings.
 
@@ -32,16 +32,16 @@ The Tribunal VM daemon is `tribunal-quota-loop.sh` (a quota-aware supervisor) di
 
 ## Risks / Trade-offs
 
-- **Per-role routing runs two CLIs (codex + claude) in one tribunal run.** → Both must be installed + authed on the Tribunal VM; document as a prerequisite and fail loudly if a role's required CLI is absent rather than silently rerouting all roles.
+- **Per-role routing runs two CLIs (codex + claude) in one tribunal run.** → Both must be installed and authenticated on the Tribunal VM; startup preflight and role dispatch fail loudly instead of silently changing the deployed model split.
 - **Enabling rewrites increases spend per failing article.** → That is the intended value conversion; the burn controller + `QUOTA_FLOOR` still bound it.
 - **Alert spam.** → Alert only on terminal/abnormal states (stall, EXHAUSTED spike, fallback, floor_stop), not every article.
-- **`usage-monitor.sh` is off-repo.** → If absent the controller sits in `fallback` (1 worker/600s); make its presence a documented pre-flight check, not a silent degrade.
+- **`usage-monitor.sh` is off-repo.** → The deployed unit already hard-fails when it is absent; direct/manual loop execution retains the documented 1-worker/600s fallback.
 
 ## Migration Plan
 
-Config + targeted code edits; no data migration. Roll out on the Tribunal VM: set the unit env, deploy the routing change, wire the notifier, fix the monitor skill, enable + linger. Rollback = revert; the `none` default and single-provider path still work.
+Config + targeted code edits; no data migration. Roll out on the Tribunal VM: provision the two CLIs and auth, set `GP_WRITER_MODE=cli`, deploy routing and notifier changes, enable the unit, and enable linger. Rollback = revert the PR and restore `GP_WRITER_MODE=none`; do not fall back silently while claiming producer health.
 
 ## Open Questions
 
-- Which notifier exactly (existing host Telegram bot vs a generic webhook env)? Pick during implementation; the spec only requires "operator-reachable on the deploy host".
+- Use a generic executable notifier command supplied by the host environment; provider-specific secrets and destination configuration stay off-repo.
 - Whether to also add a deadline-aware burst mode (shorten the controller's window perception) or leave it as the documented `WEEKLY_WINDOW_SEC` hack — deferred; not required for the core ask.
