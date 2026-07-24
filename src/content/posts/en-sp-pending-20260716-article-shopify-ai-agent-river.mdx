@@ -1,0 +1,139 @@
+---
+ticketId: 'SP-PENDING'
+title: "Shopify's AI Agent Won't Answer DMs—How River Turned the Whole Company into an Apprenticeship Workshop"
+originalDate: '2026-05-09'
+translatedDate: '2026-07-16'
+translatedBy:
+  model: "Opus 4.8"
+  harness: "Claude Code CLI"
+
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.8"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.8"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "GPT-5.5"
+      harness: "Codex CLI + Tribunal"
+    - role: "Rewritten"
+      model: "Opus 4.8"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "GPT-5.5"
+      harness: "sp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: '@tobi on X'
+sourceUrl: 'https://x.com/tobi/status/2053121182044451016'
+lang: 'en'
+summary: "Shopify CEO Tobi Lütke shares the core design of River, the company's internal AI agent: no DMs, only public Slack channels. Visible work helps people learn from one another and turns each failure into company knowledge River can use next time."
+tags: ['shroom-picks', 'agent', 'agentic-engineering', 'shopify']
+scores:
+  tribunalVersion: 9
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-07-15"
+    model: "gpt-5.5"
+  factCheck:
+    accuracy: 8
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 10
+    commentarySeparation: 9
+    score: 9
+    date: "2026-07-15"
+    model: "gpt-5.5"
+  librarian:
+    glossary: 7
+    crossRef: 7
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-07-15"
+    model: "gpt-5.5"
+  freshEyes:
+    readability: 8
+    firstImpression: 9
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 7
+    score: 8
+    date: "2026-07-15"
+    model: "gpt-5.5"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+Someone sends Shopify's internal AI agent, River, a DM. She politely refuses: "Sorry—could you open a public channel instead?"
+
+It is not a permission problem. It is a product rule. River can read code, run tests, write code, open PRs, query the data warehouse, and inspect production traces. But other people in the company must be able to see the work.
+
+Over the past 30 days, 5,938 employees worked with her across 4,450 [Slack](/en/glossary#slack) channels. In the last week alone, she opened 1,870 PRs in the main monorepo. About one in eight PRs merged that week was written by her and merged after human review.
+
+<MoguNote>
+The 1,870 PRs grab attention, but the idea worth stealing is the "no DMs" rule. The output tells us how much River did. Public channels explain why Shopify keeps getting better at using her.
+</MoguNote>
+
+---
+
+## Moving "Watch the Master Work" into Slack
+
+Tobi Lütke dropped out of school at sixteen and became an apprentice at a Siemens subsidiary in Germany. The most interesting people worked in the basement, using programming languages that time has nearly forgotten instead of the company-mandated system. He learned by making coffee, staying nearby, and watching until their judgment seeped into his own.
+
+German has a word for this kind of place: *Lehrwerkstatt*, literally a "teaching workshop." The workplace is also the classroom. People learn by staying close to the work. River moves that apprenticeship model into Slack.
+
+The CEO works with the agent in his own public channel. Many others copied the pattern. More than 100 people watch the conversations in his channel, add context, pick up tasks, help with reviews—and occasionally remind him how rusty he is.
+
+Employees no longer need to be lucky enough to sit beside the right expert. A public channel lets anyone see how experienced people work. A support engineer can watch a backend engineer get the agent to produce the right log query, then do the same thing the next day. A new hire can scroll through old conversations to see how senior people scope a request before sending their first one.
+
+This needs no formal course, training plan, or manager. When the work stays visible, people can learn from the work itself.
+
+<MoguNote>
+gu-log also runs as a public workshop. If an [Agent](/en/glossary#agent) review stays inside one chat, the next run starts from zero. Prompts and playbooks committed to the repo turn that judgment into something reusable. River goes further: the whole company can also see how people ask, correct, and take over the work.
+</MoguNote>
+
+---
+
+## People Learn River, and River Learns the Company
+
+A common worry is that AI will make people stop thinking. If an [agent](/en/glossary#agent) can debug, why should a junior engineer learn debugging? If they can just ask, why read the codebase?
+
+The worry is real. The framing is wrong.
+
+The risk is not that AI does the work. The risk is that **AI does the work and the organization learns nothing**. If every agent interaction happens in a private window, only the person at the keyboard learns. Everyone else is locked out of the apprenticeship.
+
+Public agent work reverses that. The best prompting patterns spread. One engineer's clever method for investigating a permissions problem becomes a template for everyone else.
+
+River learns too. Each channel can preload the team context, [Skills](/en/glossary#skill), and instructions it needs, written by the people closest to the work. Her memory keeps updating and forgets information that should no longer be retained. One [Skill](/en/glossary#skill) that taught her how to query checkout data was reused by twelve other teams.
+
+The merge rate for River's PRs rose from 36% to 77% in two months. The model did not change, and there was no retraining. Shopify employees watched River work, found where she got stuck, and wrote down the missing context, Skills, and instructions. Every failure left something behind. Each team's accumulated taste flowed into River. That is how she got better at being a Shopify employee.
+
+<MoguNote>
+DMs are not the problem. Keeping all the learning inside DMs is. A public workshop teaches people how to use the Agent and teaches River how this company works—one correction improves both sides next time.
+</MoguNote>
+
+---
+
+## A Company Moves at the Speed of Its Slowest Secret
+
+An organization moves at the speed of its lowest-bandwidth communication channel. Meetings are slow. Email is slow. DMs are slow—not necessarily for the people inside them, but for the organization, because their information and decisions never fully spread without a lot of extra work. A public conversation between people, or between people and a capable agent, is fast, searchable, teachable, and compounding. The next person with the same question does not need to ask it again.
+
+Chess became more popular after computers learned to play it. The future is not a choice between humans and machines either. Apprentices and masters watch each other learn, and both get better on the shop floor. Apprenticeship does not require the master to stop and teach. The work just needs to be visible. (｡◕‿◕｡)
+
+That is River: not a private AI assistant for every employee, but one workshop where all of Shopify can watch people and Agents work—and get better together.
+
+---
+
+## Further Reading
+
+- [SP-227: Your Phone Isn't a Tiny Terminal—It's the Control Center for Your Agents](/en/posts/en-sp-227-20260615-dimillian-codex-mobile-control-center/)
+- [SP-237: Run Your Coding Agent Like a Steam Engine: Operating Agents on Large Projects](/en/posts/en-sp-237-20260621-simonlast-agent-coding-agent/)
+- [SP-194: HTML Isn't Prettier Markdown—It's How Humans Rejoin the Agent Loop](/en/posts/en-sp-194-20260508-trq212-html-markdown-agent/)
