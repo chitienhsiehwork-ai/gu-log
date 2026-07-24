@@ -1,0 +1,214 @@
+---
+ticketId: "GP-121"
+title: "Control Your AI from Bed? A Complete Guide to Claude Dispatch"
+originalDate: "2026-03-19"
+translatedDate: "2026-03-20"
+translatedBy:
+  model: "Gemini 3.1 Pro"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@heynavtoor on X"
+sourceUrl: "https://x.com/heynavtoor/status/2034679349157536233"
+lang: "en"
+summary: "Anthropic quietly released Dispatch, letting you remotely control Claude Cowork on your computer from your phone. Here's how to set it up, which workflows actually work, and its real limitations right now."
+tags: ["claude-code","ai-agents","productivity"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+Ever since Claude [Cowork](/en/glossary#cowork) launched in January, the most common complaint has been: "I have to sit at my computer."
+
+And it's true—you had to be at your desk, app open, watching Claude work. Powerful as it was, you were chained to your laptop like it was 2019 all over again.
+
+On March 17, 2026, Anthropic fixed that. And almost nobody noticed.
+
+They released a new feature called **Dispatch**. The concept is dead simple: it lets you message your desktop AI from your phone. You can assign tasks from anywhere, Claude executes them on your computer, and the work is done when you get back (๑˃ᴗ˂)ﻭ.
+
+That's the core pitch. If you've spent any time building a Cowork system, you already know why this is a game-changer. Felix Rieseberg, the engineer who announced it on Twitter, put it this way: "It's a persistent conversation running on your computer. Message it from your phone, come back to finished work."
+
+Dispatch isn't a mobile version of Cowork, it's not a cloud [Agent](/en/glossary#agent), and it's not a new AI model. **It's a remote control for the system you've already built.**
+
+This article is your complete guide—setup, workflows that actually work right now, an honest breakdown of limitations, and strategies to make Dispatch a real productivity multiplier. Bookmark this one. You'll need it.
+
+---
+
+## What Dispatch Actually Is (And What It Isn't)
+
+Before we get into setup, let's clear up how this thing works. Dispatch has only been live for two days, and the misconceptions are already flying.
+
+Here's the precise definition: Dispatch creates a persistent conversation between your phone's Claude App and Claude Desktop on your computer. Your phone is the "messaging interface," your computer is the "engine." Everything Claude does—reading files, accessing Connectors, loading [Skills](/en/glossary#skill)—happens on your desktop. Your phone just sends commands and receives results.
+
+Think of it as a walkie-talkie connected to a computer that's already running.
+
+This means you need to understand three things before reading further:
+
+1.  **Your computer must be awake.** If your Mac goes to sleep or Claude Desktop closes, Dispatch disconnects. The original author sees this not as a bug, but as a security feature. No 24/7 cloud server means no 24/7 attack surface. Your files stay local, your data stays on your machine. The trade-off is you need to keep your laptop awake.
+2.  **Everything you built in Cowork carries over.** Your Context files, Skills, Connectors, and Global Instructions all load into your Dispatch conversation. This is huge. Dispatch doesn't start from scratch—the system you spent weeks building now fits in your pocket.
+3.  **It's still a Research Preview.** According to MacStories testing, reliability on complex tasks sits around 50/50. Information retrieval works well, but cross-app actions are shaky. This is early software—set your expectations accordingly. Though in Claude's ecosystem, "early" usually means "dramatically different within 60 days."
+
+<MoguNote>
+My read: this design treats "data stays local" as a core selling point rather than pushing everything to the cloud. If you already care about keeping files off external servers, this architecture will be particularly appealing (◍•ᴗ•◍)
+</MoguNote>
+
+---
+
+## Get Set Up in Five Minutes (Step by Step)
+
+Setup is ridiculously simple. The original author timed it: 2 minutes 14 seconds from start to paired devices. Here are the exact steps:
+
+### What You Need Before Starting
+- **Latest Claude Desktop:** Windows or Mac. If you haven't updated recently, grab the latest from claude.com/download. Dispatch requires the March 2026 update.
+- **Latest mobile Claude App:** Update from the App Store or Google Play. Older versions won't show Dispatch.
+- **Paid Claude plan:** Max subscribers ($100-$200/month) have access now. Pro subscribers ($20/month) are rolling out within days.
+- **Internet on both devices:** Your phone talks to your computer over the internet, not Bluetooth or local network.
+
+### Step One: Enable Dispatch on Your Computer
+Open Claude Desktop and click the Cowork tab. In the left sidebar, you'll see a new option: Dispatch. Click it, then click "Get started."
+
+You'll see two toggles. The first lets Claude access your files, the second keeps your computer awake while Dispatch is active. **Turn both on.** File access is what lets Dispatch use your entire Cowork system—without it, Claude can only make small talk.
+
+### Step Two: Pair Your Phone
+A QR code appears on your computer screen. Open the Claude App on your phone—the sidebar now has a Dispatch option. Tap it and scan the QR code.
+
+That's it. No API keys, no config files, no complex auth flows. Scan and go.
+
+Once paired, both devices show the same conversation. Send a message from your phone, it appears on your computer; Claude's replies show on both. No sync headaches.
+
+### Step Three: Test the Connection
+Pull out your phone and type: "What files can you access right now?"
+
+Claude should list the folders and files in your Cowork system. If it does, setup is complete. If not, go back to Dispatch settings on your computer and make sure file access is actually enabled.
+
+---
+
+## How Does Dispatch Compare to Other Options?
+
+The original author added some positioning here: before Dispatch, if you wanted remote AI agent control, you had to build your own system.
+
+Solutions like [OpenClaw](/en/glossary#openclaw) require a separate computer, Node.js 22+, a WebSocket gateway, and plenty of configuration and technical knowledge. Dispatch's difference is condensing all of that into "scan a QR code to pair."
+
+The original post also mentioned that [Claude Code](/en/glossary#claude-code) has a similar concept called **Remote Control**, but that's developer-facing—for monitoring and intervening in terminal coding sessions. Dispatch takes the same remote control concept and packages it for Cowork users.
+
+The author's positioning is clear: **Dispatch is an AI remote control for regular users.**
+
+---
+
+## 12 Dispatch Workflows That Actually Work Right Now
+
+The internet is full of marketing copy about what Dispatch "can" do. Based on the original author's testing within 48 hours of launch, here's what it "actually" does. Organized by reliability:
+
+### Consistently Works (80%+ success rate)
+
+1.  **Handle morning email from bed:** Before getting up, send from your phone: "Summarize my 10 most important unread emails and flag anything urgent." By the time you're brushing your teeth, you know what your day looks like. Since this is just information retrieval through the Gmail Connector, Dispatch handles it beautifully.
+2.  **Find files while you're out:** "Find that Q1 budget PDF I downloaded last week." Dispatch searches your computer files and returns results quickly and reliably.
+3.  **Prep for meetings during your commute:** "Check my calendar for today and prepare briefing docs for each meeting using files from my project folder." This combines calendar, file access, and your Meeting Prep [Skill](/en/glossary#skill).
+4.  **Quick research summaries:** "Read the three newest documents in my Research folder and give me a one-paragraph summary of each." Perfect for digesting that reading pile you've been avoiding.
+5.  **Track Notion and [Slack](/en/glossary#slack):** "Summarize my recent Notion notes" or "What were the highlights in the marketing Slack channel today?"
+6.  **Process expense reports:** "Process all the images in my receipts folder and create a categorized spreadsheet." If you have a relevant Skill, Dispatch runs through the whole flow automatically.
+
+<MoguNote>
+My read: right now, Dispatch is most reliable for "read/organize information" tasks. Once you start chaining multiple tools and writing back to different systems, failure rates climb noticeably. This feels more like a current product boundary than a prompting problem (๑˃ᴗ˂)ﻭ
+</MoguNote>
+
+### Sometimes Works (50-70% success rate)
+
+7.  **Create documents from templates:** "Draft a proposal for the Anderson client using my proposal template and the latest email thread." This involves reading email, loading a template, and generating content—multiple steps. Works fine when everything goes smoothly, but fails if any step times out.
+8.  **Multi-step file organization:** "Sort and organize everything in my Downloads folder by file type." This can work, but may be slow. Processing happens on your computer, and results trickle in gradually.
+9.  **Build spreadsheets from raw data:** If the data is clean, it can turn a CSV into a formatted Excel file. But complex data or ambiguous column names cause errors.
+
+### Better to Wait (Currently Unreliable)
+
+10. **Cross-app workflows:** "Read this email, create a task in Notion, then send a summary to Slack." Multi-step tasks that chain multiple Connectors have the highest failure rate. Check back in a few weeks.
+11. **Browser actions:** Dispatch can trigger browser actions, but it's very unstable. Stick to files and Connectors for now.
+12. **Sharing or sending results:** According to MacStories testing, summarizing and finding information works fine, but asking Claude to "share" or "send" something often fails. If your last step is "then send it to someone," do that part manually.
+
+---
+
+## A Daily Dispatch Routine You Can Steal
+
+The original author ended with a concrete example: about 5 minutes per day, 3 messages to front-load your morning admin work to Claude.
+
+1. Before getting out of bed:
+   "Good morning. Summarize my most important emails, check my calendar for today, and list any files updated in my project folder yesterday."
+2. While eating breakfast:
+   "Draft a reply to [person] about [topic], keep it under 100 words."
+3. Heading out or commuting:
+   "Using the latest files in my project folder, prepare a briefing doc for my 10am meeting."
+
+The point isn't to copy these three sentences verbatim. It's this: **Dispatch is best not for complex tricks, but for turning routine tasks that used to require desk time into things you can kick off from anywhere.**
+
+---
+
+## The Real Mindset Shift: From Synchronous to Asynchronous AI
+
+Why is Dispatch more important than its current feature set suggests?
+
+Because until now, every AI tool you've used has been "synchronous." You sit down, type, wait, read, type again. AI only works when you're staring at it.
+
+Dispatch is the first truly "asynchronous" AI feature to hit the consumer market. You fire off a task and walk away. Claude works while you live your life, and you come back to results.
+
+This isn't a small difference. As the original author put it, it's **the difference between a calculator and a factory**. A calculator is powerful, but you have to press its buttons. A factory runs whether you're there or not.
+
+Look at what you use Cowork for: writing emails, processing expenses, organizing files, making presentations, summarizing documents. All of that used to require you at your desk, watching. Now, while not every task is perfect, Dispatch lets you trigger this work from anywhere. That's the real paradigm shift.
+
+---
+
+## How to 10x Dispatch's Reliability
+
+That 50/50 reliability from early testing is real—but that's because testers hadn't optimized their Cowork systems. Get the architecture right, and reliability jumps dramatically:
+
+1.  **Build Context files:** Create your `about-me.md`, `brand-voice.md`, and similar files. Mobile typing tends to be brief (like: "process my receipts"), and with Context, Claude doesn't have to guess your preferences.
+2.  **Build Skills for repetitive work:** You definitely don't want to type long [Prompts](/en/glossary#prompt) on your phone. With a Meeting Prep Skill, you just say "prep for my 2pm meeting" and it knows what format and sources to use.
+3.  **Focus on "information retrieval" tasks:** The highest success rates are for reading operations—summarize, find, list. Keep it to one action per command.
+4.  **Set Dispatch-specific Global Instructions:** Add something like: "When receiving messages via Dispatch, confirm the task before executing. If any step is unclear, ask for clarification before proceeding." This prevents Claude from charging ahead based on brief mobile commands.
+5.  **Test before trusting:** For new workflows, test them at your computer first. Watch how they run, and only after three consecutive successes add them to your "remote blind-fire" list.
+
+---
+
+## Honest Limitations (Read Before Relying on It)
+
+Dispatch is a Research Preview that's only been live for two days. The original author clearly identified current limitations:
+
+- **No notifications:** Your phone won't buzz when a task completes. You have to manually check. The author expects Anthropic will almost certainly add this later.
+- **Single conversation thread:** You can't start new conversations or run multiple tasks simultaneously. Send five commands and they execute sequentially in the same context.
+- **No scheduled tasks:** Dispatch is separate from scheduled tasks—you can't add or modify schedules from your phone.
+- **Inconsistent speed:** Some tasks finish in seconds, others take minutes. Network latency is real.
+- **No Cowork management from mobile:** You can't adjust settings, manage Skills, or browse files from your phone. All configuration happens on your computer.
+
+These limitations are real, but they're also temporary. Build the habit now, and you'll be ready when updates drop.
+
+---
+
+## Conclusion
+
+Six weeks after launching Cowork, Anthropic delivered Dispatch. That's a remarkable pace for advancing agent use cases.
+
+What Anthropic shipped is still just a Research Preview, but the original author thinks the most interesting things to watch over the coming months are three directions: whether cloud-based agents that don't require your local machine will appear, whether push notifications get added, and whether it expands from a single conversation to multi-threaded tasks.
+
+Every Context file, Skill, and Connector you build in Cowork will seamlessly carry forward to upgraded systems. Claude has over a million new registrations daily and recently surpassed ChatGPT as the #1 app in Apple's App Store; Anthropic's daily active users have more than tripled since early 2026. The author's take: the sooner you start building your Cowork system, the deeper your foundation will be when the ecosystem matures.
+
+Go download Claude Desktop, pair your phone, fire off your first Dispatch task, then go live your life. The rest is up to the AI.
+
+## Further Reading
+
+- [MP-7: Claude Code Finally Has a Non-Engineer Version! Cowork Lets Everyone Use AI Agents for Daily Work](/posts/mp-7-20260203-alexalbert-cowork/)
+- [MP-26: Claude Code Wrappers Will Be the Cursor of 2026 — AI Autonomously Building Context as a Paradigm Shift](/posts/mp-26-20260204-4nzn-claude-code-wrappers/)
+- [MP-16: Claude Sonnet 5 Is Coming! The Age of Agentic Swarm Parallel Multitasking](/posts/mp-16-20260203-daniel-sonnet5-swarm/)
+
+
+<MoguNote>
+This article clearly identifies the key to current agent development: it's not about chasing ever-more-powerful models, but solving "friction in human-AI interaction." Dispatch uses simple QR codes and a phone interface to dramatically lower the barrier to entry. For bringing personal AI assistants to the mainstream, this is a very smart and pragmatic step.
+</MoguNote>
