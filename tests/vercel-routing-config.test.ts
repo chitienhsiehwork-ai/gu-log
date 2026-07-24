@@ -4,7 +4,9 @@ import { execFileSync } from 'node:child_process';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import {
+  assertRouteBudget,
   buildRedirectConfig,
+  countPlatformRoutes,
   config,
   LISTING_REDIRECT_COUNT,
   ROUTE_BUDGET,
@@ -149,8 +151,22 @@ describe('vercel.mjs redirect config — full manifest coverage', () => {
     }
   });
 
-  it('stays within the documented Vercel route budget', () => {
-    expect(config.redirects.length).toBeLessThan(ROUTE_BUDGET);
+  it('sets Markdown Content-Type with two bounded path patterns', () => {
+    expect(config.headers).toEqual([
+      {
+        source: '/posts/:slug.md',
+        headers: [{ key: 'Content-Type', value: 'text/markdown; charset=utf-8' }],
+      },
+      {
+        source: '/en/posts/:slug.md',
+        headers: [{ key: 'Content-Type', value: 'text/markdown; charset=utf-8' }],
+      },
+    ]);
+  });
+
+  it('counts headers, redirects, and rewrites within the documented Vercel route budget', () => {
+    expect(countPlatformRoutes(config)).toBe(config.headers.length + config.redirects.length);
+    expect(countPlatformRoutes(config)).toBeLessThan(ROUTE_BUDGET);
   });
 
   it('does not map unmapped legacy surfaces (never-published listing, unknown slugs, API, artifacts, assets)', () => {
@@ -174,6 +190,16 @@ describe('vercel.mjs redirect config — full manifest coverage', () => {
 });
 
 describe('buildRedirectConfig — fail-closed validation', () => {
+  it('rejects the total platform route count at the budget boundary', () => {
+    expect(() =>
+      assertRouteBudget({
+        headers: Array.from({ length: 2 }, () => ({})),
+        redirects: Array.from({ length: ROUTE_BUDGET - 3 }, () => ({})),
+        rewrites: [{}],
+      })
+    ).toThrow(/platform route count/);
+  });
+
   it('rejects a non-object manifest', () => {
     expect(() => buildRedirectConfig(null)).toThrow(RedirectConfigError);
   });

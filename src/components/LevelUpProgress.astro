@@ -16,7 +16,7 @@ const { current, total, title } = Astro.props;
 const percentage = Math.round((current / total) * 100);
 ---
 
-<div class="levelup-progress">
+<div class="levelup-progress" data-markdown-adapter="level-up-progress">
   <div class="progress-header">
     <span class="progress-level">⚔️ Level {current} / {total}</span>
     {title && <span class="progress-title">{title}</span>}
