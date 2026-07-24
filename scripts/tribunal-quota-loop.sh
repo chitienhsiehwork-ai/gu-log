@@ -725,7 +725,9 @@ fi
 declare -A WORKER_PID        # worker_id → pid
 declare -A WORKER_ARTICLE    # worker_id → article slug
 declare -A WORKER_RESULT_LOG # worker_id → isolated worker output
-declare -A PID_TO_WORKER     # pid → worker_id
+declare -A WORKER_COMPLETION # worker_id → atomic completion marker
+WORKER_COMPLETION_DIR="$(mktemp -d "$LOG_DIR/worker-completions.XXXXXX")"
+trap 'rm -rf "$WORKER_COMPLETION_DIR"' EXIT
 
 worker_worktree() {
   local id="$1"
@@ -789,10 +791,12 @@ try_claim_next_article() {
 # Fork a worker in its own worktree. Echoes the pid.
 spawn_worker() {
   local id="$1" article="$2"
-  local wt worker_result_log
+  local wt worker_result_log worker_completion
   wt=$(worker_worktree "$id")
   local slug="${article%.mdx}"
   worker_result_log="$(mktemp "$LOG_DIR/tribunal-worker-${id}.XXXXXX.log")"
+  worker_completion="$WORKER_COMPLETION_DIR/$id.done"
+  rm -f "$worker_completion"
 
   # Sync worker worktree to the supervisor's active sync ref before each
   # dispatch. Per-dispatch cost is one no-op reset when nothing changed; when
@@ -804,24 +808,29 @@ spawn_worker() {
   fi
 
   (
-    cd "$wt" || exit 1
-    # Hand shared coordinates to the subprocess so flock/claims/locks all
-    # resolve to the main repo (RC_ROOT_DIR is already exported for the
-    # supervisor; make it explicit again here in case the subshell's env
-    # differs).
-    export RC_ROOT_DIR="$ROOT_DIR"
-    export PROGRESS_FILE="$(tribunal_progress_file_default "$ROOT_DIR")"
-    export TRIBUNAL_MAIN_REPO="$ROOT_DIR"
-    export TRIBUNAL_SHARED_LOCK_DIR="$ROOT_DIR/.score-loop/locks"
-    export TRIBUNAL_WORKER_ID="$id"
-    bash "$wt/scripts/tribunal.sh" "$article" \
-      > >(tee -a "$LOG_FILE" "$worker_result_log" >/dev/null) 2>&1
+    trap - EXIT
+    worker_rc=0
+    if ! cd "$wt"; then
+      worker_rc=1
+      printf 'worker worktree unavailable: %s\n' "$wt" > "$worker_result_log"
+    else
+      # Hand shared coordinates to the subprocess so flock/claims/locks all
+      # resolve to the main repo.
+      export RC_ROOT_DIR="$ROOT_DIR"
+      export PROGRESS_FILE="$(tribunal_progress_file_default "$ROOT_DIR")"
+      export TRIBUNAL_MAIN_REPO="$ROOT_DIR"
+      export TRIBUNAL_SHARED_LOCK_DIR="$ROOT_DIR/.score-loop/locks"
+      export TRIBUNAL_WORKER_ID="$id"
+      bash "$wt/scripts/tribunal.sh" "$article" > "$worker_result_log" 2>&1 || worker_rc=$?
+    fi
+    tribunal_write_worker_completion "$worker_completion" "$id" "$worker_rc"
+    exit "$worker_rc"
   ) &
   local pid=$!
   WORKER_PID[$id]=$pid
   WORKER_ARTICLE[$id]=$slug
   WORKER_RESULT_LOG[$id]=$worker_result_log
-  PID_TO_WORKER[$pid]=$id
+  WORKER_COMPLETION[$id]=$worker_completion
   tlog "  [worker-$id pid=$pid] dispatched: $article"
 }
 
@@ -829,33 +838,40 @@ spawn_worker() {
 # tracking state. Classifies the runner's watchdog-marked rc=70 as rc=124,
 # then propagates rc=77/70/124 into drain mode.
 wait_any_worker() {
-  # bash: wait -n returns when ANY child exits, sets $? to its status.
-  local raw_rc=0
-  wait -n || raw_rc=$?
-  # Identify which worker finished by scanning for dead pids.
-  local id pid finished_id=""
-  for id in "${!WORKER_PID[@]}"; do
-    pid="${WORKER_PID[$id]}"
-    if ! kill -0 "$pid" 2>/dev/null; then
-      finished_id="$id"
-      break
-    fi
-  done
-
-  if [ -z "$finished_id" ]; then
-    tlog "WARN: wait -n returned but no worker appears finished"
-    return 0
+  local claimed_marker finished_id pid article_slug worker_result_log rc
+  claimed_marker="$(tribunal_wait_for_worker_completion "$WORKER_COMPLETION_DIR")"
+  finished_id="$(sed -n 's/^worker_id=//p' "$claimed_marker" | head -1)"
+  if [ -z "$finished_id" ] || [ -z "${WORKER_PID[$finished_id]:-}" ]; then
+    tlog "ERROR: completion marker does not match an active worker: $claimed_marker"
+    stop_requested=true
+    stop_source="${stop_source:-worker-attribution-error}"
+    rc_write_state "draining" "worker_attribution_error marker=$claimed_marker"
+    rm -f "$claimed_marker"
+    return 70
   fi
 
-  local article_slug="${WORKER_ARTICLE[$finished_id]}"
-  local worker_result_log="${WORKER_RESULT_LOG[$finished_id]}"
-  local rc
-  rc="$(tribunal_classify_worker_result "$raw_rc" "$worker_result_log")"
+  pid="${WORKER_PID[$finished_id]}"
+  article_slug="${WORKER_ARTICLE[$finished_id]}"
+  worker_result_log="${WORKER_RESULT_LOG[$finished_id]}"
+  if ! tribunal_collect_worker_completion \
+    "$claimed_marker" "$finished_id" "$pid" "$worker_result_log" "$LOG_FILE"; then
+    tlog "ERROR: worker completion attribution/flush failed for worker-$finished_id pid=$pid"
+    stop_requested=true
+    stop_source="${stop_source:-worker-attribution-error}"
+    rc_write_state "draining" "worker_attribution_error worker=$finished_id pid=$pid"
+    rm -f "$worker_result_log" "$claimed_marker"
+    rc_release_claim "$article_slug"
+    unset "WORKER_PID[$finished_id]"
+    unset "WORKER_ARTICLE[$finished_id]"
+    unset "WORKER_RESULT_LOG[$finished_id]"
+    unset "WORKER_COMPLETION[$finished_id]"
+    return 70
+  fi
+  rc="$TRIBUNAL_COMPLETED_WORKER_RC"
   unset "WORKER_PID[$finished_id]"
   unset "WORKER_ARTICLE[$finished_id]"
   unset "WORKER_RESULT_LOG[$finished_id]"
-  unset "PID_TO_WORKER[$pid]"
-  rm -f "$worker_result_log"
+  unset "WORKER_COMPLETION[$finished_id]"
   rc_release_claim "$article_slug"
   tribunal_alert_worker_completion "$rc" "$article_slug" || true
 

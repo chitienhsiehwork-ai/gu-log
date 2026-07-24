@@ -103,8 +103,10 @@ bash "$TRIBUNAL" --score-only --only-stage factChecker gp-1-20260128-demo.mdx \
 stall_rc=$?
 set -e
 [ "$stall_rc" -eq 70 ] || fail "watchdog-normalized tribunal result should be rc=70, got $stall_rc"
-grep -q '\[tribunal-watchdog\] idle .* no output/score-file progress' "$stall_log" ||
+if ! grep -q '\[tribunal-watchdog\] idle .* no output/score-file progress' "$stall_log"; then
+  sed -n '1,160p' "$stall_log" >&2 || true
   fail "actual watchdog marker missing from worker output"
+fi
 # shellcheck source=scripts/tribunal-helpers.sh
 source "$ROOT_DIR/scripts/tribunal-helpers.sh"
 classified_rc="$(tribunal_classify_worker_result "$stall_rc" "$stall_log")"

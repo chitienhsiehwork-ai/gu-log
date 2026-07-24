@@ -301,6 +301,29 @@ tribunal_fetch_and_report_origin_main() {
   printf '%s|%s|%s|%s|%s\n' "$fetched" "$state" "$ahead" "$behind" "$tracked_dirty"
 }
 
+# Run one external model command in its own POSIX session when the watchdog
+# provides a pid-file. Python's setsid() is available on both deployed Linux
+# and macOS, and gives the watchdog a stable process-group id even after an
+# intermediate shell exits or descendants ignore TERM.
+tribunal_session_exec() {
+  local pid_file="${TRIBUNAL_PROCESS_GROUP_FILE:-}"
+  if [ -z "$pid_file" ]; then
+    "$@"
+    return
+  fi
+  python3 -c '
+import os
+import pathlib
+import sys
+
+pid_file = pathlib.Path(sys.argv[1])
+command = sys.argv[2:]
+os.setsid()
+pid_file.write_text(f"{os.getpid()}\n", encoding="utf-8")
+os.execvp(command[0], command)
+' "$pid_file" "$@"
+}
+
 # Run a repo-local agent spec through Codex. Codex custom agents live in
 # `.codex/agents/*.toml`, but `codex exec` has no stable `--agent` flag for this
 # non-interactive tribunal path, so we inline the project-scoped Codex agent
@@ -360,7 +383,7 @@ PROMPT
     # open stdin and hang waiting for extra prompt text.
     exec </dev/null
     # shellcheck disable=SC2086 # codex_cmd may be "node <bundled codex.js>".
-    timeout "$timeout_sec" $codex_cmd exec --model "$model" -c "model_reasoning_effort=\"$reasoning_effort\"" --sandbox danger-full-access --skip-git-repo-check -- "$prompt"
+    tribunal_session_exec timeout "$timeout_sec" $codex_cmd exec --model "$model" -c "model_reasoning_effort=\"$reasoning_effort\"" --sandbox danger-full-access --skip-git-repo-check -- "$prompt"
   )
 }
 
@@ -862,7 +885,8 @@ PROMPT
     cd "$work_dir" || exit
     # See tribunal_codex_exec: do not leak the article flock into timeout/CLI.
     exec 200>&-
-    printf '%s' "$prompt" | timeout "$timeout_sec" "$claude_cmd" -p --model "$model" "${perm_args[@]}"
+    printf '%s' "$prompt" |
+      tribunal_session_exec timeout "$timeout_sec" "$claude_cmd" -p --model "$model" "${perm_args[@]}"
   )
 }
 
@@ -1138,6 +1162,56 @@ tribunal_classify_worker_result() {
   fi
 }
 
+tribunal_write_worker_completion() {
+  local marker="$1" worker_id="$2" rc="$3"
+  local tmp="${marker}.tmp.$$"
+  {
+    printf 'worker_id=%s\n' "$worker_id"
+    printf 'rc=%s\n' "$rc"
+  } > "$tmp" && mv "$tmp" "$marker"
+}
+
+# Atomically claim one completed-worker marker. The marker is written only
+# after the worker closes its isolated log, so classification never races tee
+# or a still-buffering writer.
+tribunal_wait_for_worker_completion() {
+  local completion_dir="$1" poll_interval="${2:-0.2}"
+  local marker claimed
+  while true; do
+    for marker in "$completion_dir"/*.done; do
+      [ -f "$marker" ] || continue
+      claimed="${marker%.done}.claimed.$$"
+      if mv "$marker" "$claimed" 2>/dev/null; then
+        printf '%s\n' "$claimed"
+        return 0
+      fi
+    done
+    sleep "$poll_interval"
+  done
+}
+
+# Reap the exact child named by a claimed marker, append its fully-closed log,
+# classify its exact exit status, and remove both per-worker artifacts.
+# Results are returned in globals because command substitution would run this
+# function in a subshell that cannot wait on the caller's child.
+tribunal_collect_worker_completion() {
+  local marker="$1" expected_id="$2" expected_pid="$3"
+  local worker_log="$4" combined_log="$5"
+  local recorded_id recorded_rc wait_rc=0
+  recorded_id="$(sed -n 's/^worker_id=//p' "$marker" | head -1)"
+  recorded_rc="$(sed -n 's/^rc=//p' "$marker" | head -1)"
+  [ "$recorded_id" = "$expected_id" ] || return 1
+  case "$recorded_rc" in
+    ''|*[!0-9]*) return 1 ;;
+  esac
+  wait "$expected_pid" || wait_rc=$?
+  [ "$wait_rc" = "$recorded_rc" ] || return 1
+  cat "$worker_log" >> "$combined_log"
+  TRIBUNAL_COMPLETED_WORKER_ID="$recorded_id"
+  TRIBUNAL_COMPLETED_WORKER_RC="$(tribunal_classify_worker_result "$wait_rc" "$worker_log")"
+  rm -f "$worker_log" "$marker"
+}
+
 tribunal_quota_error_file() {
   local file="$1"
   [ -s "$file" ] || return 1
@@ -1334,18 +1408,30 @@ tribunal_writer_exec() {
   done
 }
 
-# Signal a judge subprocess and all descendants. The watchdog launches a shell
-# function whose child is `timeout`, whose child is the actual model CLI; only
-# killing the top shell leaves the quota-burning descendants alive and can
-# retain inherited article-lock file descriptors.
-tribunal_signal_process_tree() {
-  local signal="$1" pid="$2" child
-  if command -v pgrep >/dev/null 2>&1; then
-    for child in $(pgrep -P "$pid" 2>/dev/null || true); do
-      tribunal_signal_process_tree "$signal" "$child"
-    done
+# Terminate the stable session created by tribunal_session_exec. TERM is
+# intentionally followed by KILL against the same saved process-group id, so a
+# TERM-ignoring descendant cannot escape by outliving/reparenting away from the
+# top shell.
+tribunal_terminate_session() {
+  local pid_file="$1" outer_pid="$2"
+  local grace="${TRIBUNAL_WATCHDOG_KILL_GRACE_SEC:-5}" pgid=""
+  if [ -s "$pid_file" ]; then
+    pgid="$(sed -n '1p' "$pid_file")"
   fi
-  kill "-$signal" "$pid" 2>/dev/null || true
+  case "$pgid" in
+    ''|*[!0-9]*) pgid="" ;;
+  esac
+  if [ -n "$pgid" ]; then
+    kill -TERM -- "-$pgid" 2>/dev/null || true
+  else
+    kill -TERM "$outer_pid" 2>/dev/null || true
+  fi
+  sleep "$grace"
+  if [ -n "$pgid" ]; then
+    kill -KILL -- "-$pgid" 2>/dev/null || true
+  else
+    kill -KILL "$outer_pid" 2>/dev/null || true
+  fi
 }
 
 # Run Codex with both a wall-clock timeout and an idle watchdog. The wall-clock
@@ -1362,17 +1448,21 @@ tribunal_codex_exec_watchdog() {
   local progress_file="${5:-}"
   local idle_timeout="${TRIBUNAL_CODEX_IDLE_TIMEOUT_SEC:-900}"
   local poll_interval="${TRIBUNAL_CODEX_IDLE_POLL_SEC:-30}"
-  local pid rc now last_change latest_mtime out_mtime progress_mtime waits force_provider provider qrc
+  local pid rc now last_change latest_mtime out_mtime progress_mtime waits force_provider provider qrc session_pid_file
   waits=0
   force_provider="${TRIBUNAL_FORCE_PROVIDER:-}"
 
   : > "$output_file"
   while true; do
   : > "$output_file"
+  session_pid_file="$(mktemp "${TMPDIR:-/tmp}/tribunal-session.XXXXXX")"
   if [ -n "$force_provider" ]; then
-    TRIBUNAL_FORCE_PROVIDER="$force_provider" tribunal_llm_exec "$work_dir" "$agent_name" "$user_prompt" > "$output_file" 2>&1 &
+    TRIBUNAL_PROCESS_GROUP_FILE="$session_pid_file" \
+      TRIBUNAL_FORCE_PROVIDER="$force_provider" \
+      tribunal_llm_exec "$work_dir" "$agent_name" "$user_prompt" > "$output_file" 2>&1 &
   else
-    tribunal_llm_exec "$work_dir" "$agent_name" "$user_prompt" > "$output_file" 2>&1 &
+    TRIBUNAL_PROCESS_GROUP_FILE="$session_pid_file" \
+      tribunal_llm_exec "$work_dir" "$agent_name" "$user_prompt" > "$output_file" 2>&1 &
   fi
   pid=$!
   last_change="$(date +%s)"
@@ -1394,16 +1484,16 @@ tribunal_codex_exec_watchdog() {
     fi
     if [ $((now - last_change)) -ge "$idle_timeout" ]; then
       printf '[tribunal-watchdog] idle for %ss with no output/score-file progress; killing judge pid %s\n' "$idle_timeout" "$pid" >> "$output_file"
-      tribunal_signal_process_tree TERM "$pid"
-      sleep 5
-      tribunal_signal_process_tree KILL "$pid"
+      tribunal_terminate_session "$session_pid_file" "$pid"
       wait "$pid" 2>/dev/null || true
+      rm -f "$session_pid_file"
       return 124
     fi
   done
 
   rc=0
   wait "$pid" || rc=$?
+  rm -f "$session_pid_file"
   if [ "$rc" -eq 0 ]; then
     provider="${force_provider:-$(tribunal_judge_provider "$agent_name" 2>/dev/null || true)}"
     if ! tribunal_write_actual_provider "$provider" "$agent_name"; then

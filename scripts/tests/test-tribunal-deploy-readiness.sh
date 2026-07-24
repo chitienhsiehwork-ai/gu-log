@@ -13,6 +13,8 @@ pass() { echo "ok $*"; }
 
 TMP="$(mktemp -d "${TMPDIR:-/tmp}/gu-tribunal-deploy-readiness.XXXXXX")"
 trap 'rm -rf "$TMP"' EXIT
+# shellcheck source=scripts/tribunal-helpers.sh
+source "$HELPERS"
 
 # A deployed loop must fail its writer preflight before any article claim. The
 # fixture deliberately runs only far enough to hit that boundary, so it also
@@ -103,6 +105,95 @@ STATE
   [ -e "$TMP/doctor-claude-called" ]
 ) || fail "doctor cached/live writer preflight behavior is incorrect"
 pass "doctor reuses current PID state; only explicit live probe invokes Claude"
+
+# Watchdog cancellation uses a dedicated POSIX session. A descendant that
+# ignores TERM must still die when the saved session receives KILL.
+(
+  session_root="$TMP/session-kill"
+  mkdir -p "$session_root"
+  session_pid_file="$session_root/session.pid"
+  child_pid_file="$session_root/child.pid"
+  TRIBUNAL_PROCESS_GROUP_FILE="$session_pid_file" \
+  TERM_CHILD_PID_FILE="$child_pid_file" \
+    tribunal_session_exec bash -c '
+      trap "" TERM
+      sh -c '"'"'trap "" TERM; echo "$$" > "$TERM_CHILD_PID_FILE"; while :; do sleep 1; done'"'"' &
+      wait
+    ' >"$session_root/outer.log" 2>&1 &
+  outer_pid=$!
+  for _ in $(seq 1 50); do
+    [ -s "$session_pid_file" ] && [ -s "$child_pid_file" ] && break
+    sleep 0.1
+  done
+  if [ ! -s "$session_pid_file" ] || [ ! -s "$child_pid_file" ]; then
+    kill "$outer_pid" 2>/dev/null || true
+    exit 1
+  fi
+  child_pid="$(cat "$child_pid_file")"
+  TRIBUNAL_WATCHDOG_KILL_GRACE_SEC=0.2 \
+    tribunal_terminate_session "$session_pid_file" "$outer_pid"
+  wait "$outer_pid" 2>/dev/null || true
+  for _ in $(seq 1 30); do
+    kill -0 "$child_pid" 2>/dev/null || break
+    sleep 0.1
+  done
+  if kill -0 "$child_pid" 2>/dev/null; then
+    exit 1
+  fi
+) || fail "TERM-ignoring model descendant survived watchdog session cleanup"
+pass "watchdog kills a TERM-ignoring descendant from the saved process group"
+
+# Two near-simultaneous workers publish atomic completion markers only after
+# closing their distinct logs. Collection waits the exact PID named by each
+# marker, preserves the matching rc/log pair, appends both logs, and cleans up.
+(
+  completion_root="$TMP/worker-completions"
+  mkdir -p "$completion_root"
+  combined_log="$completion_root/combined.log"
+  : > "$combined_log"
+  (
+    sleep 0.1
+    printf 'marker-from-a\n' > "$completion_root/a.log"
+    tribunal_write_worker_completion "$completion_root/a.done" a 2
+    exit 2
+  ) &
+  pid_a=$!
+  (
+    sleep 0.1
+    printf 'marker-from-b\n' > "$completion_root/b.log"
+    tribunal_write_worker_completion "$completion_root/b.done" b 70
+    exit 70
+  ) &
+  pid_b=$!
+
+  results=""
+  for _ in 1 2; do
+    claimed="$(tribunal_wait_for_worker_completion "$completion_root" 0.05)"
+    completed_id="$(sed -n 's/^worker_id=//p' "$claimed" | head -1)"
+    case "$completed_id" in
+      a)
+        tribunal_collect_worker_completion \
+          "$claimed" a "$pid_a" "$completion_root/a.log" "$combined_log"
+        ;;
+      b)
+        tribunal_collect_worker_completion \
+          "$claimed" b "$pid_b" "$completion_root/b.log" "$combined_log"
+        ;;
+      *) exit 1 ;;
+    esac
+    results="${results}${TRIBUNAL_COMPLETED_WORKER_ID}:${TRIBUNAL_COMPLETED_WORKER_RC}\n"
+  done
+  printf '%b' "$results" | grep -qx 'a:2'
+  printf '%b' "$results" | grep -qx 'b:70'
+  [ "$(grep -c '^marker-from-a$' "$combined_log")" = "1" ]
+  [ "$(grep -c '^marker-from-b$' "$combined_log")" = "1" ]
+  if find "$completion_root" -type f \
+    \( -name '*.done' -o -name '*.claimed.*' -o -name 'a.log' -o -name 'b.log' \) \
+    -print -quit | grep -q .; then
+    exit 1
+  fi
+) || fail "near-simultaneous workers were misattributed or left artifacts"
+pass "worker ID, exact exit code, flushed log, and cleanup stay paired"
 
 # Strict Vibe routing must fail closed when Claude is missing even if Codex is
 # otherwise available.

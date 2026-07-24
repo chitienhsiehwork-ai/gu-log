@@ -318,13 +318,22 @@ arg. Tune thresholds in `tribunal-quota-loop.sh` (search `AUTOSCALE_*`).
 
 ## Quota Controller (closed-loop)
 
-The supervisor uses a closed-loop feedback controller instead of the old binary GO/STOP. For each Anthropic quota window (5-hour and 7-day), it computes an ideal consumption rate:
+Production 由 usage monitor 的 OpenAI session / weekly quota window 驅動
+closed-loop controller。每個 window 都以 reset 倒數推回目前應有的
+ideal burn line：
 
 ```
-rate = (remaining_pct - QUOTA_FLOOR) / time_until_refresh_sec
-cooldown = ARTICLE_COST_PCT / rate
-output = max(cooldown_5hr, cooldown_7day)   # conservative: whichever is tighter
+spendable_pct = 100 - QUOTA_FLOOR
+elapsed_sec = window_sec - reset_sec
+ideal_used_pct = spendable_pct * elapsed_sec / window_sec
+allowed_used_pct = ideal_used_pct + QUOTA_BURST_ALLOWANCE
+actual_used_pct = 100 - remaining_pct
 ```
+
+若 actual burn 超過 allowed line，controller 會算出理想線追上目前用量所需的
+debt sleep；session / weekly 取較長者。quota 已到 floor 時則直接等該
+binding window reset。`ARTICLE_COST_PCT` 只保留作 EMA telemetry，不參與
+dispatch gate 或 cooldown 計算。
 
 **Key constants** (in `tribunal-quota-loop.sh`):
 

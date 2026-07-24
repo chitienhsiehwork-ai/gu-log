@@ -368,10 +368,6 @@ NOTIFIER
 ) || fail "TRIBUNAL_NOTIFIER argv safety check failed"
 pass "notifier receives one unchanged argv without shell evaluation"
 
-bash "$SCRIPT_DIR/test-tribunal-deploy-readiness.sh" ||
-  fail "deployment-readiness behavioral contract failed"
-pass "deployed preflight, routing, writer, monitor, and alert behavior execute end-to-end"
-
 if ! grep -q 'temporary directory' "$CODEX_WRITER" || ! grep -q 'surgical editor' "$CODEX_WRITER"; then
   fail "Codex tribunal writer prompt lacks GPT-5.5 temp-dir/surgical-edit guardrails"
 fi

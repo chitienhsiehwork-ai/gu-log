@@ -879,6 +879,13 @@ PROMPT
       return 75
     fi
 
+    if [ "$judge_rc" -eq 124 ]; then
+      tlog "  [tribunal-watchdog] idle timeout: no output/score-file progress; normalizing stalled judge to runner error."
+      mark_article_runner_error "$post_file" "$stage_key" "$runner_label" "$attempt" "watchdog_idle_timeout"
+      rm -f "$judge_out" "$actual_provider_file" "$quota_status_file" "$score_tmp"
+      return 70
+    fi
+
     if [ "$judge_rc" -eq 70 ]; then
       tlog "  RUNNER ERROR: Agent '$agent_name' could not preserve runtime provenance."
       if [ -s "$judge_out" ]; then
