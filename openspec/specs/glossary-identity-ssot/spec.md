@@ -1,8 +1,11 @@
 # glossary-identity-ssot Specification
 
 ## Purpose
-TBD - created by archiving change migrate-tribunal-to-codex. Update Purpose after archive.
+
+定義人物與 Mogu identity 的 glossary SSOT、alias linking 與 people-category rendering，讓同一實體在內容、連結和 UI 中維持 canonical identity。
+
 ## Requirements
+
 ### Requirement: People glossary entries SHALL 儲存在 glossary SSOT
 
 gu-log posts 反覆提到的人物 SHALL 在 `src/data/glossary.json` 中有 `people` category、canonical term、short definition、related entries，以及 first-definition post。

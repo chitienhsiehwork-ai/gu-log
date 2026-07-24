@@ -1,8 +1,11 @@
 # tribunal-score-persistence Specification
 
 ## Purpose
-TBD - created by archiving change wire-tribunal-scores-to-frontmatter. Update Purpose after archive.
+
+定義 Tribunal judge PASS 後的 frontmatter score persistence、judge key mapping、中英文 sidecar 同步與 non-destructive merge 契約，讓不同 pipeline 產生一致的可發布分數。
+
 ## Requirements
+
 ### Requirement: Judge PASS 後分數寫入 frontmatter
 
 Tribunal pipeline 在每個 judge stage 判定 PASS 後，SHALL 立即呼叫 frontmatter 寫入函式，把該 judge 的分數寫入文章 MDX 的 `scores:` 區塊。
@@ -42,11 +45,11 @@ Tribunal pipeline 在每個 judge stage 判定 PASS 後，SHALL 立即呼叫 fro
 Pipeline SHALL 維護 stage name → frontmatter key 的對應表：
 
 | Pipeline stage name | Frontmatter key |
-|---|---|
-| `vibe-scorer` | `vibe` |
-| `fact-checker` | `factCheck` |
-| `fresh-eyes` | `freshEyes` |
-| `librarian` | `librarian` |
+| ------------------- | --------------- |
+| `vibe-scorer`       | `vibe`          |
+| `fact-checker`      | `factCheck`     |
+| `fresh-eyes`        | `freshEyes`     |
+| `librarian`         | `librarian`     |
 
 Shell pipeline（`tribunal-all-claude.sh`）和 TypeScript pipeline（`pipeline.ts`）SHALL 使用相同的 mapping。
 
