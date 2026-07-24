@@ -3,7 +3,7 @@ import { next, rewrite } from '@vercel/functions/middleware';
 import {
   isCanonicalPostPath,
   negotiatePostRepresentation,
-} from './src/lib/post-content-negotiation';
+} from './src/lib/post-content-negotiation.js';
 
 const REPRESENTATION_HEADERS = Object.freeze({ Vary: 'Accept' });
 
