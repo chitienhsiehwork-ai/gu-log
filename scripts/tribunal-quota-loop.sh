@@ -58,14 +58,12 @@ WEEKLY_WINDOW_SEC="${WEEKLY_WINDOW_SEC:-604800}" # seconds (7 days) — OpenAI w
 ARTICLE_COST_PCT="${ARTICLE_COST_PCT:-0.5}"   # % per article (cold start; EMA calibrates after ~5 articles)
 AVG_ARTICLE_TIME="${AVG_ARTICLE_TIME:-1800}"  # seconds (~30 min average per article, for worker count estimation)
 EMA_ALPHA="${EMA_ALPHA:-0.3}"          # calibration smoothing factor
-EXTRA_USAGE_LIMIT="${EXTRA_USAGE_LIMIT:-1.0}"  # disabled — let 5hr/7day curves control pacing
+EXTRA_USAGE_LIMIT="${EXTRA_USAGE_LIMIT:-1.0}"  # trip only after configured extra-usage budget is exceeded
 QUOTA_BURST_ALLOWANCE="${QUOTA_BURST_ALLOWANCE:-2.0}" # percentage points allowed ahead of ideal burn line
 QUOTA_HISTORY_FILE="$ROOT_DIR/.score-loop/state/quota-history.jsonl"
 QUOTA_CONTROLLER_STATE="$ROOT_DIR/.score-loop/state/quota-controller.json"
 WRITER_PREFLIGHT_STATE="$ROOT_DIR/.score-loop/state/writer-preflight.json"
-LAST_ALERTED_CONTROLLER_MODE=""
-EXHAUSTED_ALERT_COUNT=0
-TRIBUNAL_EXHAUSTED_ALERT_THRESHOLD="${TRIBUNAL_EXHAUSTED_ALERT_THRESHOLD:-1}"
+TRIBUNAL_EXHAUSTED_ALERT_THRESHOLD="${TRIBUNAL_EXHAUSTED_ALERT_THRESHOLD:-3}"
 
 mkdir -p "$LOG_DIR" "$ROOT_DIR/.score-loop/state"
 
@@ -99,7 +97,8 @@ write_writer_preflight_state() {
     --arg mode "$(tribunal_writer_mode)" \
     --arg detail "$detail" \
     --arg updatedAt "$(TZ=UTC date '+%Y-%m-%dT%H:%M:%SZ')" \
-    '{status: $status, mode: $mode, detail: $detail, updatedAt: $updatedAt}' \
+    --argjson pid "$$" \
+    '{status: $status, mode: $mode, detail: $detail, pid: $pid, updatedAt: $updatedAt}' \
     > "$tmp" && mv "$tmp" "$WRITER_PREFLIGHT_STATE"
 }
 
@@ -119,27 +118,7 @@ deployed_runtime_preflight() {
     return 78
   fi
   write_writer_preflight_state "passed" "$detail" || true
-  tlog "$detail"
-}
-
-tribunal_loop_alarm() {
-  tribunal_quota_alarm "$1" || true
-}
-
-alert_controller_mode_if_needed() {
-  local mode="$1"
-  if [ "$mode" = "$LAST_ALERTED_CONTROLLER_MODE" ]; then
-    return 0
-  fi
-  LAST_ALERTED_CONTROLLER_MODE="$mode"
-  case "$mode" in
-    fallback)
-      tribunal_loop_alarm "Tribunal quota controller entered fallback mode (1 worker / 600s); inspect USAGE_MONITOR."
-      ;;
-    floor_stop)
-      tribunal_loop_alarm "Tribunal quota controller entered floor_stop at configured floor ${QUOTA_FLOOR}%."
-      ;;
-  esac
+  tlog "Writer preflight passed: $detail"
 }
 
 # ─── Graceful stop control ───────────────────────────────────────────────────
@@ -153,6 +132,13 @@ source "$SCRIPT_DIR/tribunal-run-control.sh"
 RUNTIME_GIT_STATE_FILE="$(tribunal_runtime_git_state_file "$ROOT_DIR")"
 trap 'rc_on_stop_signal TERM' TERM
 trap 'rc_on_stop_signal INT' INT
+
+if ! [[ "$TRIBUNAL_EXHAUSTED_ALERT_THRESHOLD" =~ ^[0-9]+$ ]] ||
+   (( TRIBUNAL_EXHAUSTED_ALERT_THRESHOLD < 2 )); then
+  tlog "ERROR: TRIBUNAL_EXHAUSTED_ALERT_THRESHOLD must be an integer >= 2"
+  exit 78
+fi
+deployed_runtime_preflight || exit $?
 
 # ─── Auto scale-down / up ────────────────────────────────────────────────────
 # Memory-aware worker throttling. Runs only when WORKERS > 1.
@@ -738,6 +724,7 @@ fi
 # Associative arrays tracking background workers.
 declare -A WORKER_PID        # worker_id → pid
 declare -A WORKER_ARTICLE    # worker_id → article slug
+declare -A WORKER_RESULT_LOG # worker_id → isolated worker output
 declare -A PID_TO_WORKER     # pid → worker_id
 
 worker_worktree() {
@@ -802,9 +789,10 @@ try_claim_next_article() {
 # Fork a worker in its own worktree. Echoes the pid.
 spawn_worker() {
   local id="$1" article="$2"
-  local wt
+  local wt worker_result_log
   wt=$(worker_worktree "$id")
   local slug="${article%.mdx}"
+  worker_result_log="$(mktemp "$LOG_DIR/tribunal-worker-${id}.XXXXXX.log")"
 
   # Sync worker worktree to the supervisor's active sync ref before each
   # dispatch. Per-dispatch cost is one no-op reset when nothing changed; when
@@ -826,22 +814,24 @@ spawn_worker() {
     export TRIBUNAL_MAIN_REPO="$ROOT_DIR"
     export TRIBUNAL_SHARED_LOCK_DIR="$ROOT_DIR/.score-loop/locks"
     export TRIBUNAL_WORKER_ID="$id"
-    bash "$wt/scripts/tribunal.sh" "$article" >> "$LOG_FILE" 2>&1
+    bash "$wt/scripts/tribunal.sh" "$article" \
+      > >(tee -a "$LOG_FILE" "$worker_result_log" >/dev/null) 2>&1
   ) &
   local pid=$!
   WORKER_PID[$id]=$pid
   WORKER_ARTICLE[$id]=$slug
+  WORKER_RESULT_LOG[$id]=$worker_result_log
   PID_TO_WORKER[$pid]=$id
   tlog "  [worker-$id pid=$pid] dispatched: $article"
 }
 
 # Wait for ANY worker to finish. Releases its claim, logs outcome, clears
-# tracking state. Propagates rc=77 (stopped_by_request) and rc=70
-# (runner infrastructure failure) into drain mode.
+# tracking state. Classifies the runner's watchdog-marked rc=70 as rc=124,
+# then propagates rc=77/70/124 into drain mode.
 wait_any_worker() {
   # bash: wait -n returns when ANY child exits, sets $? to its status.
-  local rc=0
-  wait -n || rc=$?
+  local raw_rc=0
+  wait -n || raw_rc=$?
   # Identify which worker finished by scanning for dead pids.
   local id pid finished_id=""
   for id in "${!WORKER_PID[@]}"; do
@@ -858,22 +848,25 @@ wait_any_worker() {
   fi
 
   local article_slug="${WORKER_ARTICLE[$finished_id]}"
+  local worker_result_log="${WORKER_RESULT_LOG[$finished_id]}"
+  local rc
+  rc="$(tribunal_classify_worker_result "$raw_rc" "$worker_result_log")"
   unset "WORKER_PID[$finished_id]"
   unset "WORKER_ARTICLE[$finished_id]"
+  unset "WORKER_RESULT_LOG[$finished_id]"
   unset "PID_TO_WORKER[$pid]"
+  rm -f "$worker_result_log"
   rc_release_claim "$article_slug"
+  tribunal_alert_worker_completion "$rc" "$article_slug" || true
 
   case "$rc" in
     0)  tlog "  [worker-$finished_id] $article_slug — PASSED" ;;
     2)  tlog "  [worker-$finished_id] $article_slug — EXHAUSTED"
-        EXHAUSTED_ALERT_COUNT=$((EXHAUSTED_ALERT_COUNT + 1))
-        if (( EXHAUSTED_ALERT_COUNT >= TRIBUNAL_EXHAUSTED_ALERT_THRESHOLD )); then
-          tribunal_loop_alarm "Tribunal EXHAUSTED spike: ${EXHAUSTED_ALERT_COUNT} article(s); latest=$article_slug."
-          EXHAUSTED_ALERT_COUNT=0
-        fi
         ;;
-    124) tlog "  [worker-$finished_id] $article_slug — stalled (rc=124)"
-         tribunal_loop_alarm "Tribunal worker stalled: article=$article_slug rc=124."
+    124) tlog "  [worker-$finished_id] $article_slug — stalled (rc=124); draining."
+         stop_requested=true
+         stop_source="${stop_source:-worker-stall}"
+         rc_write_state "draining" "worker_stall article=$article_slug"
          ;;
     75) tlog "  [worker-$finished_id] $article_slug — skipped (lock collision)" ;;
     77) tlog "  [worker-$finished_id] $article_slug — stopped_by_request propagated."
@@ -881,7 +874,6 @@ wait_any_worker() {
         stop_source="${stop_source:-propagated-from-worker}"
         ;;
     70) tlog "  [worker-$finished_id] $article_slug — runner_error propagated; draining to avoid poisoning more articles."
-        tribunal_loop_alarm "Tribunal runner stalled or failed infrastructure provenance: article=$article_slug rc=70; draining."
         stop_requested=true
         stop_source="${stop_source:-runner-error}"
         rc_write_state "draining" "runner_error article=$article_slug"
@@ -989,12 +981,6 @@ if [ "$DRY_RUN" = true ]; then
 fi
 
 # ─── Main Loop ────────────────────────────────────────────────────────────────
-if ! [[ "$TRIBUNAL_EXHAUSTED_ALERT_THRESHOLD" =~ ^[1-9][0-9]*$ ]]; then
-  tlog "ERROR: TRIBUNAL_EXHAUSTED_ALERT_THRESHOLD must be a positive integer"
-  exit 78
-fi
-deployed_runtime_preflight || exit $?
-
 tlog "=== Tribunal Quota-Aware Loop started ==="
 if [ "$LEGACY_QUOTA" = true ]; then
   tlog "  Mode: LEGACY (binary GO/STOP)"
@@ -1117,7 +1103,7 @@ while true; do
       "$CONTROLLER_BINDING" "$ARTICLE_COST_PCT" "$CONTROLLER_MODE"
     quota_controller_write_state "$CONTROLLER_MODE" "$five_pct_raw" "$seven_pct_raw" \
       "$CONTROLLER_COOLDOWN" "$CONTROLLER_WORKERS" "$CONTROLLER_BINDING" "$ARTICLE_COST_PCT"
-    alert_controller_mode_if_needed "$CONTROLLER_MODE"
+    tribunal_alert_controller_mode_transition "$CONTROLLER_MODE" "$QUOTA_FLOOR" || true
 
     # Handle stop modes: hard floor / extra limit / burn-rate debt.
     if [ "$CONTROLLER_MODE" = "floor_stop" ] || [ "$CONTROLLER_MODE" = "extra_limit" ] || [ "$CONTROLLER_MODE" = "weekly_debt" ] || [ "$CONTROLLER_MODE" = "five_hour_debt" ]; then

@@ -109,10 +109,18 @@ DEPLOY
 `enable` 讓 user unit 在 user manager 啟動時自動回來；`enable-linger`
 讓 user manager 在未登入時也會於開機後存在。兩個都要有，少一個就
 不能宣稱 reboot-persistent。部署後用 wrapper doctor 驗證 unit、linger、
-strict provider contract 與 bounded Claude writer probe：
+strict provider contract，以及目前 service PID 寫下的 writer preflight
+狀態；這個日常檢查不會再花一次 Claude quota：
 
 ```bash
 bash scripts/cc-tribunal-loop-wrapper.sh --doctor
+```
+
+只有需要重新驗證 Claude CLI/auth 時才明確執行 live probe；成功輸出必須是
+exact `OK`，wrapper 才會放行：
+
+```bash
+bash scripts/cc-tribunal-loop-wrapper.sh --doctor --live-probe
 ```
 
 部署 checklist：
@@ -324,21 +332,25 @@ output = max(cooldown_5hr, cooldown_7day)   # conservative: whichever is tighter
 |---|---|---|
 | `QUOTA_FLOOR` | 10% | Human reserve — never burn below this |
 | `MIN_COOLDOWN` | 10s | Floor for inter-article wait |
-| `MAX_COOLDOWN` | 1800s (30min) | Ceiling / hard stop |
+| `MAX_COOLDOWN` | 1800s (30min) | `pacing` / `extra_limit` 的 cooldown 上限；不限制 quota reset 等待 |
 | `ARTICLE_COST_PCT` | 0.5% | Cold start telemetry default (auto-calibrated via EMA) |
 | `EMA_ALPHA` | 0.3 | Calibration smoothing factor |
-| `EXTRA_USAGE_LIMIT` | 1.0 | Extra usage safety valve threshold |
+| `EXTRA_USAGE_LIMIT` | 1.0 | Extra usage 相對於設定預算的比例門檻；`1.0` 代表超過 100% 才觸發 |
 
 **Modes** (visible in `quota-controller.json`):
 
 | Mode | Meaning |
 |---|---|
 | `pacing` | Normal closed-loop operation |
-| `floor_stop` | One or both windows at/below floor — MAX_COOLDOWN, 0 workers |
-| `extra_limit` | Extra usage >80% of budget — hard stop to prevent bill overrun |
+| `floor_stop` | One or both windows at/below floor — 等待 binding quota window reset，0 workers |
+| `extra_limit` | Extra usage 超過 `EXTRA_USAGE_LIMIT` 比例 — 用 `MAX_COOLDOWN` 暫停 dispatch |
 | `fallback` | usage-monitor.sh unavailable — conservative 600s cooldown, 1 worker |
 
 **Observability**:
+
+`tribunal-monitor` 讀取設定時以 systemd unit 的 effective `Environment=`
+為準，`tribunal.env` 只作 fallback；輸出會明列 `QUOTA_FLOOR`、
+`GP_WRITER_MODE` 與 `TRIBUNAL_STRICT_ROLE_PROVIDERS` 的有效值。
 
 ```bash
 # Current controller state

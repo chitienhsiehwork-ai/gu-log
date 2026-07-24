@@ -353,6 +353,9 @@ PROMPT
   codex_cmd="$(tribunal_codex_cmd)" || return 127
   (
     cd "$work_dir" || exit
+    # Model descendants must never retain the article-level flock if the
+    # watchdog has to detach/kill an intermediate shell.
+    exec 200>&-
     # Close stdin so non-interactive Codex runs don't inherit the caller's
     # open stdin and hang waiting for extra prompt text.
     exec </dev/null
@@ -436,6 +439,28 @@ tribunal_strict_role_providers_enabled() {
   esac
 }
 
+tribunal_strict_provider_for_role() {
+  local agent_name="${1:-fact-checker}"
+  if [ -n "${TRIBUNAL_FORCE_PROVIDER:-}" ]; then
+    printf 'TRIBUNAL_STRICT_ROLE_PROVIDERS=1 conflicts with TRIBUNAL_FORCE_PROVIDER\n' >&2
+    return 1
+  fi
+  case "$agent_name" in
+    vibe-opus-scorer)
+      tribunal_claude_cmd >/dev/null 2>&1 && printf 'claude\n' && return 0
+      printf 'Strict Tribunal routing requires claude for %s\n' "$agent_name" >&2
+      ;;
+    fact-checker|librarian|fresh-eyes)
+      tribunal_codex_cmd >/dev/null 2>&1 && printf 'codex\n' && return 0
+      printf 'Strict Tribunal routing requires codex for %s\n' "$agent_name" >&2
+      ;;
+    *)
+      printf 'Strict Tribunal routing does not recognize judge role: %s\n' "$agent_name" >&2
+      ;;
+  esac
+  return 1
+}
+
 # Validate the complete deployed provider contract before article dispatch.
 tribunal_validate_role_provider_contract() {
   case "${TRIBUNAL_STRICT_ROLE_PROVIDERS:-}" in
@@ -447,22 +472,12 @@ tribunal_validate_role_provider_contract() {
       return 2
       ;;
   esac
-  if [ -n "${TRIBUNAL_FORCE_PROVIDER:-}" ]; then
-    printf 'TRIBUNAL_STRICT_ROLE_PROVIDERS=1 conflicts with TRIBUNAL_FORCE_PROVIDER; disable strict mode for provider override experiments\n' >&2
-    return 1
-  fi
-  tribunal_codex_cmd >/dev/null 2>&1 || {
-    printf 'Strict Tribunal routing requires codex for objective judges\n' >&2
-    return 1
-  }
-  tribunal_claude_cmd >/dev/null 2>&1 || {
-    printf 'Strict Tribunal routing requires claude for vibe-opus-scorer\n' >&2
-    return 1
-  }
   local role
   for role in fact-checker librarian fresh-eyes; do
+    tribunal_strict_provider_for_role "$role" >/dev/null || return 1
     tribunal_codex_agent_model "$role" >/dev/null || return 1
   done
+  tribunal_strict_provider_for_role vibe-opus-scorer >/dev/null || return 1
   tribunal_claude_agent_model vibe-opus-scorer >/dev/null || return 1
 }
 
@@ -472,12 +487,8 @@ tribunal_validate_role_provider_contract() {
 # mirrors the Go pipeline's JudgeChain, not the Opus writer chain.
 tribunal_llm_provider() {
   if tribunal_strict_role_providers_enabled; then
-    if [ -n "${TRIBUNAL_FORCE_PROVIDER:-}" ]; then
-      printf 'TRIBUNAL_STRICT_ROLE_PROVIDERS=1 conflicts with TRIBUNAL_FORCE_PROVIDER\n' >&2
-      return 1
-    fi
-    tribunal_codex_cmd >/dev/null 2>&1 && printf 'codex\n' && return 0
-    return 1
+    tribunal_strict_provider_for_role fact-checker
+    return
   else
     local strict_rc=$?
     [ "$strict_rc" -eq 1 ] || return "$strict_rc"
@@ -524,26 +535,8 @@ tribunal_llm_provider() {
 tribunal_judge_provider() {
   local agent_name="${1:-}"
   if tribunal_strict_role_providers_enabled; then
-    if [ -n "${TRIBUNAL_FORCE_PROVIDER:-}" ]; then
-      printf 'TRIBUNAL_STRICT_ROLE_PROVIDERS=1 conflicts with TRIBUNAL_FORCE_PROVIDER\n' >&2
-      return 1
-    fi
-    case "$agent_name" in
-      vibe-opus-scorer)
-        tribunal_claude_cmd >/dev/null 2>&1 && printf 'claude\n' && return 0
-        printf 'Strict Tribunal routing requires claude for %s\n' "$agent_name" >&2
-        return 1
-        ;;
-      fact-checker|librarian|fresh-eyes)
-        tribunal_codex_cmd >/dev/null 2>&1 && printf 'codex\n' && return 0
-        printf 'Strict Tribunal routing requires codex for %s\n' "$agent_name" >&2
-        return 1
-        ;;
-      *)
-        printf 'Strict Tribunal routing does not recognize judge role: %s\n' "$agent_name" >&2
-        return 1
-        ;;
-    esac
+    tribunal_strict_provider_for_role "$agent_name"
+    return
   else
     local strict_rc=$?
     [ "$strict_rc" -eq 1 ] || return "$strict_rc"
@@ -617,7 +610,12 @@ tribunal_writer_preflight() {
       "$rc" "$(printf '%s' "$output" | tail -1)" >&2
     return "$rc"
   fi
-  printf 'Writer preflight OK: mode=cli model=%s\n' "$model"
+  output="$(printf '%s' "$output" | tr -d '\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+  if [ "$output" != "OK" ]; then
+    printf 'Writer preflight failed: expected exact OK, got: %s\n' "$output" >&2
+    return 1
+  fi
+  printf 'OK\n'
 }
 
 # Parse one model selector strictly from the first YAML frontmatter block.
@@ -862,6 +860,8 @@ PROMPT
   fi
   (
     cd "$work_dir" || exit
+    # See tribunal_codex_exec: do not leak the article flock into timeout/CLI.
+    exec 200>&-
     printf '%s' "$prompt" | timeout "$timeout_sec" "$claude_cmd" -p --model "$model" "${perm_args[@]}"
   )
 }
@@ -1070,6 +1070,74 @@ tribunal_quota_alarm() {
   "$notifier" "$msg"
 }
 
+# Read one simple KEY=value from `systemctl show -p Environment --value`.
+# Tribunal deploy knobs are whitespace-free scalars, so the unit's effective
+# environment can cleanly override values loaded from tribunal.env.
+tribunal_unit_environment_value() {
+  local environment="$1" key="$2"
+  printf '%s\n' "$environment" |
+    tr ' ' '\n' |
+    sed -n "s/^${key}=//p" |
+    tail -1
+}
+
+tribunal_effective_runtime_value() {
+  local environment="$1" key="$2" fallback="$3"
+  local unit_value
+  unit_value="$(tribunal_unit_environment_value "$environment" "$key")"
+  if [ -n "$unit_value" ]; then
+    printf '%s\n' "$unit_value"
+  else
+    printf '%s\n' "$fallback"
+  fi
+}
+
+# Alert state is intentionally process-local. A consecutive EXHAUSTED streak
+# alerts once when it first reaches the threshold; any other completion resets
+# the streak. Controller modes alert on entry, not every tick.
+tribunal_alert_worker_completion() {
+  local rc="$1" article="$2"
+  local threshold="${TRIBUNAL_EXHAUSTED_ALERT_THRESHOLD:-3}"
+  : "${TRIBUNAL_EXHAUSTED_STREAK:=0}"
+  if [ "$rc" = "2" ]; then
+    TRIBUNAL_EXHAUSTED_STREAK=$((TRIBUNAL_EXHAUSTED_STREAK + 1))
+    if [ "$TRIBUNAL_EXHAUSTED_STREAK" -eq "$threshold" ]; then
+      tribunal_quota_alarm "Tribunal EXHAUSTED spike: ${TRIBUNAL_EXHAUSTED_STREAK} consecutive articles; latest=$article."
+    fi
+    return 0
+  fi
+  TRIBUNAL_EXHAUSTED_STREAK=0
+  if [ "$rc" = "124" ]; then
+    tribunal_quota_alarm "Tribunal worker stalled: article=$article rc=124."
+  fi
+}
+
+tribunal_alert_controller_mode_transition() {
+  local mode="$1" floor="${2:-10}"
+  : "${TRIBUNAL_LAST_ALERTED_CONTROLLER_MODE:=}"
+  [ "$mode" = "$TRIBUNAL_LAST_ALERTED_CONTROLLER_MODE" ] && return 0
+  TRIBUNAL_LAST_ALERTED_CONTROLLER_MODE="$mode"
+  case "$mode" in
+    fallback)
+      tribunal_quota_alarm "Tribunal quota controller entered fallback mode (1 worker / 600s); inspect USAGE_MONITOR."
+      ;;
+    floor_stop)
+      tribunal_quota_alarm "Tribunal quota controller entered floor_stop at configured floor ${floor}%."
+      ;;
+  esac
+}
+
+tribunal_classify_worker_result() {
+  local rc="$1" worker_log="$2"
+  if [ "$rc" = "70" ] &&
+     [ -s "$worker_log" ] &&
+     grep -q '\[tribunal-watchdog\] idle .* no output/score-file progress' "$worker_log"; then
+    printf '124\n'
+  else
+    printf '%s\n' "$rc"
+  fi
+}
+
 tribunal_quota_error_file() {
   local file="$1"
   [ -s "$file" ] || return 1
@@ -1266,6 +1334,20 @@ tribunal_writer_exec() {
   done
 }
 
+# Signal a judge subprocess and all descendants. The watchdog launches a shell
+# function whose child is `timeout`, whose child is the actual model CLI; only
+# killing the top shell leaves the quota-burning descendants alive and can
+# retain inherited article-lock file descriptors.
+tribunal_signal_process_tree() {
+  local signal="$1" pid="$2" child
+  if command -v pgrep >/dev/null 2>&1; then
+    for child in $(pgrep -P "$pid" 2>/dev/null || true); do
+      tribunal_signal_process_tree "$signal" "$child"
+    done
+  fi
+  kill "-$signal" "$pid" 2>/dev/null || true
+}
+
 # Run Codex with both a wall-clock timeout and an idle watchdog. The wall-clock
 # timeout can be large for GPT-5.5 judge runs, but a process that produces no
 # output and no score-file progress for a while is treated as stalled.
@@ -1312,9 +1394,9 @@ tribunal_codex_exec_watchdog() {
     fi
     if [ $((now - last_change)) -ge "$idle_timeout" ]; then
       printf '[tribunal-watchdog] idle for %ss with no output/score-file progress; killing judge pid %s\n' "$idle_timeout" "$pid" >> "$output_file"
-      kill -TERM "$pid" 2>/dev/null || true
+      tribunal_signal_process_tree TERM "$pid"
       sleep 5
-      kill -KILL "$pid" 2>/dev/null || true
+      tribunal_signal_process_tree KILL "$pid"
       wait "$pid" 2>/dev/null || true
       return 124
     fi

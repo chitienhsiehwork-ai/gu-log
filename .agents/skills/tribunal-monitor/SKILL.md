@@ -31,6 +31,12 @@ set -a
 set +a
 : "${GU_LOG_DIR:?Missing GU_LOG_DIR in $deploy_env}"
 cd "$GU_LOG_DIR"
+# shellcheck source=scripts/tribunal-helpers.sh
+. scripts/tribunal-helpers.sh
+unit_environment=$(systemctl --user show tribunal-loop -p Environment --value 2>/dev/null || true)
+effective_quota_floor=$(tribunal_effective_runtime_value "$unit_environment" QUOTA_FLOOR "${QUOTA_FLOOR:-10}")
+effective_writer_mode=$(tribunal_effective_runtime_value "$unit_environment" GP_WRITER_MODE "${GP_WRITER_MODE:-none}")
+effective_strict_roles=$(tribunal_effective_runtime_value "$unit_environment" TRIBUNAL_STRICT_ROLE_PROVIDERS "${TRIBUNAL_STRICT_ROLE_PROVIDERS:-0}")
 
 echo "══════ SERVICE ══════"
 systemctl --user status tribunal-loop 2>&1 | head -15 || true
@@ -59,16 +65,15 @@ fi
 echo
 
 echo "══════ QUOTA ══════"
-echo "configured_floor=${QUOTA_FLOOR:-10}%"
+echo "configured_floor=${effective_quota_floor}%"
 jq . .score-loop/state/quota-controller.json 2>/dev/null || echo "(no quota-controller.json)"
 journalctl --user -u tribunal-loop --no-pager -n 200 --output=cat 2>/dev/null \
   | grep 'CONTROLLER:' | tail -5 || echo "(no controller log line found)"
 echo
 
 echo "══════ WRITER PREFLIGHT ══════"
-unit_environment=$(systemctl --user show tribunal-loop -p Environment --value 2>/dev/null || true)
-unit_writer_mode=$(printf '%s\n' "$unit_environment" | tr ' ' '\n' | sed -n 's/^GP_WRITER_MODE=//p' | tail -1)
-echo "writer_mode=${GP_WRITER_MODE:-${unit_writer_mode:-none}}"
+echo "writer_mode=${effective_writer_mode}"
+echo "strict_role_providers=${effective_strict_roles}"
 if [ -r .score-loop/state/writer-preflight.json ]; then
   jq . .score-loop/state/writer-preflight.json
 else
