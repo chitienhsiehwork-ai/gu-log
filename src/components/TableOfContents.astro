@@ -70,7 +70,7 @@ const t = labels[lang];
       </div>
 
       {/* Desktop Sidebar Version */}
-      <div class="toc-desktop">
+      <div class="toc-desktop" data-visible="false" aria-hidden="true" inert>
         <nav class="toc-sidebar">
           <h2 class="toc-title">{t.title}</h2>
           <div class="toc-content">
@@ -91,6 +91,8 @@ const t = labels[lang];
 }
 
 <script>
+  let cleanupScrollHighlight: (() => void) | undefined;
+
   function initTableOfContents() {
     const tocContainer = document.querySelector('.toc-container');
     if (!tocContainer) return;
@@ -105,7 +107,8 @@ const t = labels[lang];
     if (headings.length === 0) return;
 
     // Set up scroll highlighting
-    setupScrollHighlight(headings);
+    cleanupScrollHighlight?.();
+    cleanupScrollHighlight = setupScrollHighlight(tocContainer, headings);
 
     // Set up smooth scrolling
     setupSmoothScroll();
@@ -113,10 +116,29 @@ const t = labels[lang];
     // Note: Mobile toggle is handled by Toggle component's event delegation
   }
 
-  function setupScrollHighlight(headings: HTMLElement[]) {
-    let ticking = false;
+  function setupScrollHighlight(tocContainer: Element, headings: HTMLElement[]) {
+    const desktopToc = tocContainer.querySelector('.toc-desktop') as HTMLElement | null;
+    const postHeader = document.querySelector('.post-header') as HTMLElement | null;
+    let animationFrameId = 0;
 
-    function updateActiveHeading() {
+    function setDesktopTocVisibility(visible: boolean) {
+      if (!desktopToc) return;
+
+      desktopToc.dataset.visible = visible.toString();
+      desktopToc.setAttribute('aria-hidden', (!visible).toString());
+      desktopToc.toggleAttribute('inert', !visible);
+    }
+
+    function updateViewportState() {
+      if (desktopToc && postHeader) {
+        const desktopTocStyle = getComputedStyle(desktopToc);
+        const tocTop = Number.parseFloat(desktopTocStyle.top);
+        const headerHasPassedToc = postHeader.getBoundingClientRect().bottom <= tocTop;
+        setDesktopTocVisibility(desktopTocStyle.display !== 'none' && headerHasPassedToc);
+      } else {
+        setDesktopTocVisibility(false);
+      }
+
       const scrollPos = window.scrollY + 100;
 
       let currentHeading = headings[0];
@@ -139,18 +161,36 @@ const t = labels[lang];
         });
       }
 
-      ticking = false;
+      animationFrameId = 0;
     }
 
-    function onScroll() {
-      if (!ticking) {
-        requestAnimationFrame(updateActiveHeading);
-        ticking = true;
+    function scheduleViewportUpdate() {
+      if (animationFrameId !== 0) return;
+      animationFrameId = requestAnimationFrame(updateViewportState);
+    }
+
+    window.addEventListener('scroll', scheduleViewportUpdate, { passive: true });
+    window.addEventListener('pageshow', scheduleViewportUpdate);
+    window.addEventListener('hashchange', scheduleViewportUpdate);
+    window.addEventListener('resize', scheduleViewportUpdate);
+
+    const headerResizeObserver = new ResizeObserver(scheduleViewportUpdate);
+    if (postHeader) {
+      headerResizeObserver.observe(postHeader);
+    }
+
+    scheduleViewportUpdate();
+
+    return () => {
+      window.removeEventListener('scroll', scheduleViewportUpdate);
+      window.removeEventListener('pageshow', scheduleViewportUpdate);
+      window.removeEventListener('hashchange', scheduleViewportUpdate);
+      window.removeEventListener('resize', scheduleViewportUpdate);
+      headerResizeObserver.disconnect();
+      if (animationFrameId !== 0) {
+        cancelAnimationFrame(animationFrameId);
       }
-    }
-
-    window.addEventListener('scroll', onScroll, { passive: true });
-    updateActiveHeading();
+    };
   }
 
   function setupSmoothScroll() {
@@ -371,6 +411,22 @@ const t = labels[lang];
       width: 200px;
       max-height: calc(100vh - 8rem);
       overflow-y: auto;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transform: translateY(0.5rem);
+      transition:
+        opacity 160ms ease,
+        transform 160ms ease,
+        visibility 0s linear 160ms;
+    }
+
+    .toc-desktop[data-visible='true'] {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transform: none;
+      transition-delay: 0s;
     }
 
     .toc-sidebar {
@@ -408,6 +464,13 @@ const t = labels[lang];
     .toc-desktop {
       right: max(2rem, calc((100vw - 680px) / 2 - 260px));
       width: 240px;
+    }
+  }
+
+  @media (min-width: 1280px) and (prefers-reduced-motion: reduce) {
+    .toc-desktop {
+      transform: none;
+      transition: none;
     }
   }
 
