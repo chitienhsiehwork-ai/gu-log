@@ -21,7 +21,7 @@ export default function middleware(request: Request): Response {
   }
 
   if (negotiatePostRepresentation(request.headers.get('accept')) === 'markdown') {
-    url.pathname = `${url.pathname}.md`;
+    url.pathname = `${url.pathname.replace(/\/$/, '')}.md`;
     return rewrite(url, { headers: REPRESENTATION_HEADERS });
   }
 

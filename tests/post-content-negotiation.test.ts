@@ -40,15 +40,17 @@ describe('post content negotiation', () => {
 });
 
 describe('canonical post path scope', () => {
-  it.each(['/posts/gp-1-fixture', '/en/posts/en-gp-1-fixture', '/posts/A1-valid'])(
-    'accepts %s',
-    (pathname) => {
-      expect(isCanonicalPostPath(pathname)).toBe(true);
-    }
-  );
+  it.each([
+    '/posts/gp-1-fixture',
+    '/posts/gp-1-fixture/',
+    '/en/posts/en-gp-1-fixture',
+    '/en/posts/en-gp-1-fixture/',
+    '/posts/A1-valid',
+  ])('accepts %s', (pathname) => {
+    expect(isCanonicalPostPath(pathname)).toBe(true);
+  });
 
   it.each([
-    '/posts/gp-1-fixture/',
     '/posts/gp-1-fixture.md',
     '/api/posts/gp-1-fixture.json',
     '/posts/nested/gp-1-fixture',
@@ -80,6 +82,19 @@ describe('Vercel Routing Middleware boundary', () => {
     expect(response.headers.get('vary')).toBe('Accept');
   });
 
+  it('rewrites a trailing-slash canonical URL to the same explicit artifact', () => {
+    const response = middleware(
+      new Request('https://gu-log.vercel.app/posts/gp-1-fixture/?source=agent', {
+        headers: { Accept: 'text/markdown' },
+      })
+    );
+
+    expect(response.headers.get('x-middleware-rewrite')).toBe(
+      'https://gu-log.vercel.app/posts/gp-1-fixture.md?source=agent'
+    );
+    expect(response.headers.get('vary')).toBe('Accept');
+  });
+
   it('continues to HTML with Vary when Markdown does not win', () => {
     const response = middleware(
       new Request('https://gu-log.vercel.app/en/posts/en-gp-1-fixture', {
@@ -94,7 +109,6 @@ describe('Vercel Routing Middleware boundary', () => {
 
   it.each([
     ['POST', '/posts/gp-1-fixture'],
-    ['GET', '/posts/gp-1-fixture/'],
     ['GET', '/posts/gp-1-fixture.md'],
     ['GET', '/api/posts/gp-1-fixture.json'],
   ])('does not alter an excluded %s %s request', (method, pathname) => {

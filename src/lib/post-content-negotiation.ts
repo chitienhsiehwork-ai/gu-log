@@ -4,7 +4,7 @@ const MAX_ACCEPT_LENGTH = 8192;
 const MAX_MEDIA_RANGES = 64;
 const TOKEN = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/;
 const Q_VALUE = /^(?:0(?:\.\d{0,3})?|1(?:\.0{0,3})?)$/;
-const CANONICAL_POST_PATH = /^\/(?:en\/)?posts\/[A-Za-z0-9][A-Za-z0-9-]*$/;
+const CANONICAL_POST_PATH = /^\/(?:en\/)?posts\/[A-Za-z0-9][A-Za-z0-9-]*\/?$/;
 
 interface MediaRange {
   type: string;

@@ -77,6 +77,13 @@ export function varyIncludesAccept(value) {
   );
 }
 
+export function stripVercelToolbarScript(body) {
+  return body.replace(
+    /<script async data-explicit-opt-in="true" data-deployment-id="dpl_[A-Za-z0-9]+" src="https:\/\/vercel\.live\/_next-live\/feedback\/feedback\.js"><\/script>$/,
+    ''
+  );
+}
+
 function assertVaryAccept(response, url) {
   assert(
     varyIncludesAccept(response.headers.get('vary')),
@@ -136,7 +143,13 @@ async function verifyNegotiatedRepresentation({ requestUrl, accept, kind, expect
   const response = await fetchChecked(requestUrl, { headers }, expectedType);
   assertVaryAccept(response, requestUrl);
   const body = await response.text();
-  assert(body === expectedBody, `${requestUrl}: ${kind} negotiation body mismatch for ${accept}`);
+  const comparableBody = kind === 'html' ? stripVercelToolbarScript(body) : body;
+  const comparableExpected =
+    kind === 'html' ? stripVercelToolbarScript(expectedBody) : expectedBody;
+  assert(
+    comparableBody === comparableExpected,
+    `${requestUrl}: ${kind} negotiation body mismatch for ${accept}`
+  );
   return {
     accept: accept ?? '<missing>',
     kind,
@@ -247,16 +260,22 @@ async function verifyPost({ baseUrl, siteOrigin, slug, lang }) {
     );
   }
 
-  const slashResponse = await fetch(`${requestUrl}/`, {
-    redirect: 'manual',
-    headers: { Accept: 'text/markdown' },
-  });
-  assert(slashResponse.status === 308, `${requestUrl}/: expected existing 308`);
-  const slashLocation = slashResponse.headers.get('location');
-  assert(slashLocation, `${requestUrl}/: missing 308 Location`);
-  assert(
-    new URL(slashLocation, requestUrl).pathname === canonicalPath,
-    `${requestUrl}/: unexpected 308 Location ${slashLocation}`
+  const slashUrl = `${requestUrl}/`;
+  negotiation.push(
+    await verifyNegotiatedRepresentation({
+      requestUrl: slashUrl,
+      accept: 'text/html',
+      kind: 'html',
+      expectedBody: html,
+    })
+  );
+  negotiation.push(
+    await verifyNegotiatedRepresentation({
+      requestUrl: slashUrl,
+      accept: 'text/markdown',
+      kind: 'markdown',
+      expectedBody: markdown,
+    })
   );
 
   return { requestUrl, canonicalUrl, markdownUrl, jsonUrl, negotiation };
