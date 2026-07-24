@@ -1,4 +1,5 @@
 import { experimental_AstroContainer as AstroContainer } from 'astro/container';
+import { readFileSync } from 'node:fs';
 import { beforeAll, describe, expect, it } from 'vitest';
 import Stage0WarnBanner from '../../src/components/Stage0WarnBanner.astro';
 import Stage4DegradedBanner from '../../src/components/Stage4DegradedBanner.astro';
@@ -71,5 +72,23 @@ describe('Tribunal warning banner rendering', () => {
 
     expect(html).toContain('Some dimensions regressed after late-stage edits');
     expect(html).toContain('(detailed scores not recorded)');
+  });
+
+  it('routes both banner palettes through semantic status tokens', () => {
+    const stage0Source = readFileSync(
+      new URL('../../src/components/Stage0WarnBanner.astro', import.meta.url),
+      'utf8'
+    );
+    const stage4Source = readFileSync(
+      new URL('../../src/components/Stage4DegradedBanner.astro', import.meta.url),
+      'utf8'
+    );
+
+    expect(stage0Source).toContain('var(--color-status-warning)');
+    expect(stage0Source).not.toContain('var(--color-mogu-orange)');
+    expect(stage0Source).not.toMatch(/rgba?\(\s*255\s*,\s*184\s*,\s*108/);
+
+    expect(stage4Source).toContain('var(--color-status-info)');
+    expect(stage4Source).not.toMatch(/rgba?\(\s*108\s*,\s*191\s*,\s*255/);
   });
 });
