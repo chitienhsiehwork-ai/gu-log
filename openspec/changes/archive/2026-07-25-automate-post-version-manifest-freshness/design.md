@@ -1,5 +1,13 @@
 # Design: Post version manifest freshness automation
 
+## Disposition（2026-07-25）
+
+本 design 原先選擇 post-commit follow-up commit；PR #552 後來證明 pre-commit staged
+projection 能在同一個 authored commit 內完成 repair，且不需要 recursion guard、dirty
+worktree auto-commit policy 或額外 commit attribution。下列設計保留為被否決方案的歷史，
+不是現行 implementation。archive delta 只同步已上線的 staged projection 與 layered
+freshness policy。
+
 ## Current behavior
 
 `scripts/build-version-manifest.mjs` counts commits touching

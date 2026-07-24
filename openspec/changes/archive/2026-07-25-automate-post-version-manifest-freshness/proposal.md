@@ -1,5 +1,25 @@
 # Proposal: Automate post version manifest freshness
 
+## Disposition（2026-07-25）
+
+**Superseded without implementation.** PR #552（merge
+`52f20cf418483e3c974ae9e832160e6ae16400dd`）已在這份 change 建立後，用更小且更安全的
+pre-commit projection 解掉同一個問題：
+
+- `build-version-manifest.mjs --include-staged` 把 staged post touch 投影成 commit 後的 manifest；
+- pre-commit 在同一個 authored commit 內重生並 stage 兩份 post manifests；
+- pre-push 與 CI 保留為 blocking safety nets；
+- 後續測試已涵蓋一般 edit、rename、merge、linked worktree、shallow clone 與 Git operational
+  failure。
+
+因此本 proposal 的核心假設「pre-commit 無法可靠預測，只能在 post-commit 自動建立第二個
+commit」已不成立。新增 post-commit auto-commit 反而會引入 recursion、dirty-worktree、
+commit signing 與 attribution 風險，沒有剩餘讀者或 contributor 價值。本 change 封存時
+把 delta 收斂為已上線的 staged projection 與 layered freshness policy，並同步到既有
+`post-version-manifest` stable capability；不會把被否決的 post-commit mechanics 寫入
+stable specs。現行 repair loop 的 executable SSOT 仍是 `scripts/hooks/pre-commit` 與
+`scripts/build-version-manifest.mjs --include-staged`。
+
 ## Why
 
 `src/data/post-versions.json` is derived from full git history. For a
