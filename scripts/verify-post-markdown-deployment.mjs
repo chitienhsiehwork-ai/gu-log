@@ -137,10 +137,9 @@ async function fetchChecked(url, options, expectedType) {
 }
 
 async function verifyNegotiatedRepresentation({ requestUrl, accept, kind, expectedBody }) {
-  const headers = accept === null ? undefined : { Accept: accept };
   const expectedType =
     kind === 'markdown' ? /^text\/markdown\s*;\s*charset=utf-8\b/i : /^text\/html\b/i;
-  const response = await fetchChecked(requestUrl, { headers }, expectedType);
+  const response = await fetchChecked(requestUrl, { headers: { Accept: accept } }, expectedType);
   assertVaryAccept(response, requestUrl);
   const body = await response.text();
   const comparableBody = kind === 'html' ? stripVercelToolbarScript(body) : body;
@@ -151,7 +150,7 @@ async function verifyNegotiatedRepresentation({ requestUrl, accept, kind, expect
     `${requestUrl}: ${kind} negotiation body mismatch for ${accept}`
   );
   return {
-    accept: accept ?? '<missing>',
+    accept,
     kind,
     cache: response.headers.get('x-vercel-cache') ?? '<none>',
   };

@@ -1,4 +1,4 @@
-import { next, rewrite } from '@vercel/functions';
+import { next, rewrite } from '@vercel/functions/middleware';
 
 import {
   isCanonicalPostPath,
