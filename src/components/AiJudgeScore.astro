@@ -118,7 +118,27 @@ const labels = {
   hasScores && (
     <div class="ai-judge-panel">
       <div class="judge-header">
-        <span class="judge-title">🏛️ Tribunal Scores</span>
+        <span class="judge-title">
+          <svg
+            viewBox="0 0 24 24"
+            width="17"
+            height="17"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.7"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M3 21h18" />
+            <path d="M5 21V9" />
+            <path d="M19 21V9" />
+            <path d="M9 21V9" />
+            <path d="M15 21V9" />
+            <path d="m3 9 9-6 9 6Z" />
+          </svg>
+          Tribunal Scores
+        </span>
         <span class="tribunal-version">v{tribunalVersion}</span>
       </div>
 
@@ -437,9 +457,7 @@ const labels = {
 
       {scores?.shroomDogVibe && (
         <div class="shroomdog-vibe">
-          <span class="sd-icon" aria-hidden="true">
-            🍄
-          </span>
+          <img class="sd-icon" src="/shroomdog-icon-128.png" alt="" />
           <div class="sd-body">
             <div class="sd-top">
               <div class="sd-meta">
@@ -463,7 +481,7 @@ const labels = {
   .ai-judge-panel {
     margin-top: 2rem;
     padding: 1rem;
-    background-color: var(--color-bg-secondary, rgba(0, 0, 0, 0.03));
+    background-color: var(--color-panel-subtle);
     border-radius: 8px;
     border: 1px solid var(--color-border);
     font-size: 0.85rem;
@@ -480,8 +498,12 @@ const labels = {
   }
 
   .judge-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
     font-weight: 600;
     font-size: 0.9rem;
+    color: var(--color-surface-meta);
   }
 
   .tribunal-version {
@@ -569,63 +591,36 @@ const labels = {
 
   .model-info {
     font-size: 0.65rem;
-    color: #b8c2ea;
+    color: var(--color-technical-model);
     line-height: 1.2;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
-  :global([data-theme='light']) .model-info {
-    color: #475569;
-  }
-
   /* Score value colors */
   .score-high {
-    color: #88a17f; /* muted sage — exceptional */
+    color: var(--color-status-success);
   }
   .score-pass {
-    color: #738b6c; /* softened olive-sage — passing */
+    color: var(--color-status-success);
   }
   .score-fail {
-    color: #e09a9a; /* brighter dusty rose — failing */
-  }
-
-  :global([data-theme='light']) .score-high {
-    color: #55704d;
-  }
-  :global([data-theme='light']) .score-pass {
-    color: #65795e;
-  }
-  :global([data-theme='light']) .score-fail {
-    color: #b71c1c;
+    color: var(--color-status-danger);
   }
 
   /* Judge brand colors */
   .judge-color-librarian {
-    color: #78b4ff;
+    color: var(--color-judge-librarian);
   }
   .judge-color-factcheck {
-    color: #b8657d;
+    color: var(--color-judge-factcheck);
   }
   .judge-color-fresheyes {
-    color: #c084fc;
+    color: var(--color-judge-fresheyes);
   }
   .judge-color-vibe {
-    color: #fbbf24;
-  }
-
-  :global([data-theme='light']) .judge-color-librarian {
-    color: #1d4ed8;
-  }
-  :global([data-theme='light']) .judge-color-factcheck {
-    color: #8f3852;
-  }
-  :global([data-theme='light']) .judge-color-fresheyes {
-    color: #7e22ce;
-  }
-  :global([data-theme='light']) .judge-color-vibe {
-    color: #a16207;
+    color: var(--color-judge-vibe);
   }
 
   .dim-list {
@@ -669,16 +664,18 @@ const labels = {
     align-items: flex-start;
     gap: 0.6rem;
     border: 1px solid var(--color-border);
-    border-left: 3px solid #cb4b16; /* Solarized orange — ShroomDog accent */
+    border-left: 3px solid var(--color-status-warning);
     border-radius: 6px;
-    background-color: var(--color-bg-secondary, rgba(0, 0, 0, 0.03));
+    background-color: var(--color-panel-subtle);
     text-align: left;
   }
 
   .sd-icon {
-    font-size: 1.1rem;
-    line-height: 1.2;
     flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    object-fit: cover;
   }
 
   .sd-body {
@@ -705,11 +702,7 @@ const labels = {
     font-weight: 600;
     font-size: 0.85rem;
     line-height: 1.2;
-    color: #cb4b16;
-  }
-
-  :global([data-theme='light']) .sd-name {
-    color: #b0420f;
+    color: var(--color-status-warning);
   }
 
   .sd-sub {

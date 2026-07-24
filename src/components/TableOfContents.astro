@@ -240,8 +240,8 @@ const t = labels[lang];
   }
 
   .toc-toggle-container {
-    border-radius: 8px;
-    background: var(--color-surface);
+    border-left: 1px solid var(--color-toc-rail);
+    background: transparent;
     overflow: hidden;
   }
 
@@ -249,7 +249,8 @@ const t = labels[lang];
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.75rem 1rem;
+    min-height: 44px;
+    padding: 0.55rem 0.75rem;
     width: 100%;
     background: none;
     border: none;
@@ -284,7 +285,7 @@ const t = labels[lang];
   .toc-toggle-title {
     flex: 1;
     font-weight: 600;
-    font-size: 0.95rem;
+    font-size: 0.88rem;
   }
 
   .toc-toggle-wrapper {
@@ -308,10 +309,11 @@ const t = labels[lang];
   }
 
   .toc-mobile .toc-content {
-    padding: 0.5rem 1rem 1rem 1.75rem;
+    padding: 0.35rem 0.75rem 0.7rem 1.55rem;
   }
 
   .toc-link {
+    position: relative;
     color: var(--color-text-muted);
     text-decoration: none;
     font-size: 0.9rem;
@@ -331,8 +333,19 @@ const t = labels[lang];
   }
 
   .toc-link.active {
-    color: var(--color-source-link);
-    font-weight: 500;
+    color: var(--color-mogu-orange);
+    font-weight: 650;
+  }
+
+  .toc-link.active::before {
+    position: absolute;
+    top: 0.35rem;
+    bottom: 0.35rem;
+    left: -0.88rem;
+    width: 2px;
+    border-radius: 999px;
+    background: var(--color-mogu-orange);
+    content: '';
   }
 
   .toc-link-h3 {
@@ -356,10 +369,9 @@ const t = labels[lang];
     }
 
     .toc-sidebar {
-      padding: 1rem;
-      background: var(--color-surface);
-      border-radius: 8px;
-      border: 1px solid var(--color-border);
+      padding: 0.25rem 0 0.25rem 0.85rem;
+      background: transparent;
+      border-left: 1px solid var(--color-toc-rail);
     }
 
     .toc-title {
@@ -396,7 +408,7 @@ const t = labels[lang];
 
   @media (pointer: coarse) {
     .toc-toggle-header {
-      padding: 1rem;
+      padding: 0.65rem 0.75rem;
       min-height: 48px;
     }
 

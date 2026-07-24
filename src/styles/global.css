@@ -12,7 +12,13 @@
   --color-on-accent: #282a36;
   --color-border: #44475a;
   --color-divider: rgba(255, 255, 255, 0.1);
+  --color-toc-rail: #747b98; /* 3.41:1 on Dracula bg — non-text AA */
   --color-bg-muted: #343746;
+  --color-panel-subtle: rgba(0, 0, 0, 0.03);
+  --color-surface-meta: #cecdda;
+  --color-accent-soft-bg: rgba(255, 121, 198, 0.1);
+  --color-accent-soft-border: rgba(255, 121, 198, 0.25);
+  --color-accent-faint-bg: rgba(255, 121, 198, 0.08);
   --color-share-x: #ffffff;
   --color-share-facebook: #8be9fd;
   --color-share-line: #50fa7b;
@@ -41,8 +47,15 @@
 
   /* Semantic status colors — status UI must use these, never series badge tokens */
   --color-status-success: #69d2a0;
+  --color-status-success-soft-bg: rgba(105, 210, 160, 0.08);
+  --color-status-danger: #e09a9a;
   --color-status-warning: #ffb86c;
   --color-status-info: #8be9fd;
+  --color-technical-model: #b8c2ea;
+  --color-judge-librarian: #78b4ff;
+  --color-judge-factcheck: #e08aa5;
+  --color-judge-fresheyes: #c084fc;
+  --color-judge-vibe: #fbbf24;
 
   /* Section heading variants (dimmed for large text readability) */
   --color-heading-sd: #5ab88a;
@@ -78,7 +91,13 @@
   --color-on-accent: #ffffff;
   --color-border: #d3cbb7;
   --color-divider: rgba(0, 0, 0, 0.18);
+  --color-toc-rail: #8b8578; /* 3.40:1 on Solarized Light bg — non-text AA */
   --color-bg-muted: #e5dfc9;
+  --color-panel-subtle: rgba(0, 0, 0, 0.03);
+  --color-surface-meta: #4a5a5e;
+  --color-accent-soft-bg: rgba(28, 103, 155, 0.1);
+  --color-accent-soft-border: rgba(28, 103, 155, 0.25);
+  --color-accent-faint-bg: rgba(28, 103, 155, 0.08);
   --color-share-x: #000000;
   --color-share-facebook: #195d8c;
   --color-share-line: #176052;
@@ -107,8 +126,15 @@
 
   /* Semantic status colors (light) */
   --color-status-success: #1d6a5c;
+  --color-status-success-soft-bg: rgba(29, 106, 92, 0.08);
+  --color-status-danger: #b71c1c;
   --color-status-warning: #854d35;
   --color-status-info: #195d8c;
+  --color-technical-model: #475569;
+  --color-judge-librarian: #1d4ed8;
+  --color-judge-factcheck: #8f3852;
+  --color-judge-fresheyes: #7e22ce;
+  --color-judge-vibe: #8a5000;
 
   /* Section heading variants (light) */
   --color-heading-sd: #1d6a5c;
@@ -227,13 +253,13 @@ a:hover {
 }
 
 .post-content a,
-.source-citation a {
+.source-citation-link-text {
   text-decoration: underline;
   text-decoration-thickness: 0.08em;
   text-underline-offset: 0.15em;
 }
 
-.source-citation a {
+.source-citation-link-text {
   color: var(--color-source-link);
 }
 
@@ -386,17 +412,111 @@ blockquote.codex-note br {
 
 /* Citation / Source */
 .source-citation {
-  background: var(--color-surface);
-  border-radius: 8px;
-  padding: var(--spacing-sm);
-  margin-bottom: var(--spacing-md);
+  background: color-mix(in srgb, var(--color-surface) 46%, transparent);
+  border: 1px solid var(--color-border);
   border-left: 3px solid var(--color-accent);
+  border-radius: 8px;
+  padding: 0.55rem 0.75rem;
 }
 
-.source-citation a {
+.source-citation-link-text {
   word-break: normal;
   overflow-wrap: break-word;
   hyphens: none;
+}
+
+.post {
+  --post-prose-line-height: 1.82;
+  --post-note-line-height: 1.62;
+}
+
+.post .post-header {
+  margin-bottom: 1rem;
+}
+
+.post .post-header h1 {
+  margin-bottom: 0.75rem;
+  font-size: clamp(1.9rem, 5vw, 2.35rem);
+  line-height: 1.28;
+  letter-spacing: -0.018em;
+}
+
+.post-header .source-citation {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 44px;
+  margin: 0.9rem 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  text-decoration: none;
+}
+
+.post-header .source-citation-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  margin-top: 0.08rem;
+  color: var(--color-accent);
+}
+
+.post-header .source-citation-link-text {
+  min-width: 0;
+}
+
+.post .post-content {
+  margin: 1.75rem 0 0;
+}
+
+.post-content p {
+  margin-bottom: 1.15rem;
+  line-height: var(--post-prose-line-height);
+}
+
+.post-content h2 {
+  margin-top: 2.8rem;
+  margin-bottom: 1rem;
+  font-size: 1.58rem;
+  line-height: 1.42;
+  letter-spacing: -0.01em;
+}
+
+.post-content h3 {
+  margin-top: 2rem;
+  margin-bottom: 0.85rem;
+  font-size: 1.22rem;
+  line-height: 1.45;
+}
+
+.post-content :is(ul, ol) {
+  margin-bottom: 1.25rem;
+}
+
+.post-content li {
+  margin-bottom: 0.55rem;
+  line-height: 1.75;
+}
+
+.post-content blockquote:not(.mogu-note):not([data-mogu-note]):not([data-shroomdog-note]) {
+  margin: 1.5rem 0;
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.post-content :is([data-mogu-note], [data-shroomdog-note]) {
+  font-size: 0.95rem;
+  line-height: var(--post-note-line-height);
+}
+
+.post-content :is([data-mogu-note], [data-shroomdog-note]) :is(p, li) {
+  line-height: var(--post-note-line-height);
+}
+
+.post-content pre {
+  margin: 1.5rem 0;
+  padding: 1rem 1.05rem;
 }
 
 /* Article meta */

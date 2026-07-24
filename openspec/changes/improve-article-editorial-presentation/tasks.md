@@ -8,34 +8,34 @@
 
 ## 2. Article typography 與 prose rhythm
 
-- [ ] 2.1 在 `src/styles/global.css` 和/或 scoped post styles 新增 post-specific prose tokens/selectors。
-- [ ] 2.2 調整 `.post-header h1` scale、line-height、margin（sans-first，不引入 serif heading token——見 design.md D2 拍板）。
-- [ ] 2.3 調整 `.post-content h2`、`h3`、paragraph、list、blockquote、MoguNote / MoguNote，以及 code / prompt-example spacing。
-- [ ] 2.4 驗證 implementation 量測的是 `.post-content h2` 和 `.post-content p`，不是 unscoped TOC/source selectors。
-- [ ] 2.5 MoguNote / MoguNote 降音量時同步收緊 line-height，實際行高值以實測定案（user 實測回饋：小字配 1.8 行距太鬆散）。
+- [x] 2.1 在 `src/styles/global.css` 和/或 scoped post styles 新增 post-specific prose tokens/selectors。
+- [x] 2.2 調整 `.post-header h1` scale、line-height、margin（sans-first，不引入 serif heading token——見 design.md D2 拍板）。
+- [x] 2.3 調整 `.post-content h2`、`h3`、paragraph、list、blockquote、MoguNote / ShroomDogNote，以及 code / prompt-example spacing。
+- [x] 2.4 驗證 implementation 量測的是 `.post-content h2` 和 `.post-content p`，不是 unscoped TOC/source selectors。
+- [x] 2.5 MoguNote / ShroomDogNote 降音量時同步收緊 line-height，實際行高值以實測定案（user 實測回饋：小字配 1.8 行距太鬆散）。
 
 ## 3. First-screen 與 metadata hierarchy
 
-- [ ] 3.1 重整 `src/pages/posts/[...slug].astro` 的 header/meta/source/TOC ordering，讓首屏 article-first。
-- [ ] 3.2 保留 ticket/date/category/source attribution 可取得，但不要把它們全部 render 成同等重量的 cards；source citation 依 design.md D3 選定方案做成標題下輕量小卡（卡片質感、`inline-block` 不滿版、縮 padding、小字級）。
-- [ ] 3.3 降低 `src/components/TableOfContents.astro` 的 desktop TOC card weight（hairline rail＋active 亮橘標記、去底色）；保留 active section affordance。
-- [ ] 3.4 保持 mobile TOC 可 discover，但維持 compact。
-- [ ] 3.5 「精修中」橫幅改成一行輕量狀態列，具體樣式實作時定案（教材模擬器只驗過概念，未定樣式細節）。
+- [x] 3.1 重整 `src/pages/posts/[...slug].astro` 的 header/meta/source/TOC ordering，讓首屏 article-first。
+- [x] 3.2 保留 ticket/date/category/source attribution 可取得，但不要把它們全部 render 成同等重量的 cards；source citation 依 design.md D3 選定方案做成標題下輕量小卡（卡片質感、`inline-block` 不滿版、縮 padding、小字級）。
+- [x] 3.3 降低 `src/components/TableOfContents.astro` 的 desktop TOC card weight（hairline rail＋active 亮橘標記、去底色）；保留 active section affordance。
+- [x] 3.4 保持 mobile TOC 可 discover，但維持 compact。
+- [x] 3.5 「精修中」橫幅改成一行輕量狀態列，具體樣式實作時定案（教材模擬器只驗過概念，未定樣式細節）。
 
 ## 4. Bottom tool module consolidation
 
-- [ ] 4.1 將 translation pipeline、AI score 和 version history 收進單一「技術資訊」collapsible（原生 `<details>/<summary>`），summary 列秀總分當鉤子（例：`Tribunal 8/10 ・ 翻譯 pipeline ・ v1`）。
-- [ ] 4.2 將 read status、share 和 login CTA 重整成 coherent action area。
-- [ ] 4.3 將 related articles / series nav / prev-next 保留為 article close 之後的 onward navigation。
-- [ ] 4.4 保留 Giscus comments 作為 participation section，並在視覺上和 provenance metadata 分開。
+- [x] 4.1 將 translation pipeline、AI score 和 version history 收進單一「技術資訊」collapsible（原生 `<details>/<summary>`），summary 列秀總分當鉤子（例：`Tribunal 8/10 ・ 翻譯 pipeline ・ v1`）。
+- [x] 4.2 將 read status、share 和 login CTA 重整成 coherent action area。
+- [x] 4.3 將 related articles / series nav / prev-next 保留為 article close 之後的 onward navigation。
+- [x] 4.4 保留 Giscus comments 作為 participation section，並在視覺上和 provenance metadata 分開。
 
 ## 5. Verification
 
-- [ ] 5.1 對 touched Astro/CSS files 跑 formatting 和 build checks。
-- [ ] 5.2 擷取 dark/light desktop 1440px screenshots。
-- [ ] 5.3 擷取 dark/light mobile 390px screenshots。
-- [ ] 5.4 比較 selector metrics before/after，並在 PR notes 納入修正後的 `.post-content` numbers。
-- [ ] 5.5 確認 implementation 不包含 PR1 image work 或 artifact work。
-- [ ] 5.6 驗證細線 TOC 在 Dracula 深色主題的對比度符合 WCAG AA。
-- [ ] 5.7 拿一篇缺 optional 模組（無分數／無相關文章／無版本）的文章驗 footer 間距：不留空盤、不重複分隔線。
-- [ ] 5.8 跑 `uiux-auditor` skill（repo 規定：改視覺必跑）。
+- [x] 5.1 對 touched Astro/CSS files 跑 formatting 和 build checks。
+- [x] 5.2 擷取 dark/light desktop 1440px screenshots。
+- [x] 5.3 擷取 dark/light mobile 390px screenshots。
+- [x] 5.4 比較 selector metrics before/after，並在 PR notes 納入修正後的 `.post-content` numbers。
+- [x] 5.5 確認 implementation 不包含 PR1 image work 或 artifact work。
+- [x] 5.6 驗證細線 TOC 在 Dracula 深色主題的對比度符合 WCAG AA。
+- [x] 5.7 拿一篇缺 optional 模組（無分數／無相關文章／無版本）的文章驗 footer 間距：不留空盤、不重複分隔線。
+- [x] 5.8 跑 `uiux-auditor` skill（repo 規定：改視覺必跑；複驗 PASS 9/10，零 blocker）。

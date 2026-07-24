@@ -74,7 +74,21 @@ const baseUrl = lang === 'en' ? '/en/posts/' : '/posts/';
 
 <nav class="prev-next-nav" aria-label={lang === 'zh-tw' ? '文章導航' : 'Post navigation'}>
   <div class="prev-next-header">
-    <span class="prev-next-heading-icon">🧭</span>
+    <span class="prev-next-heading-icon" aria-hidden="true">
+      <svg
+        viewBox="0 0 24 24"
+        width="17"
+        height="17"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.7"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <circle cx="12" cy="12" r="9"></circle>
+        <path d="m16 8-2.6 5.4L8 16l2.6-5.4L16 8Z"></path>
+      </svg>
+    </span>
     <span class="prev-next-heading">{lang === 'zh-tw' ? '依時間瀏覽' : 'Browse by Date'}</span>
   </div>
   <div class="prev-next-container">
@@ -151,8 +165,8 @@ const baseUrl = lang === 'en' ? '/en/posts/' : '/posts/';
     margin-bottom: 0.75rem;
   }
   .prev-next-heading-icon {
-    font-size: 1rem;
-    line-height: 1;
+    display: inline-flex;
+    color: var(--color-text-muted);
   }
   .prev-next-heading {
     font-size: 0.8rem;
@@ -186,22 +200,27 @@ const baseUrl = lang === 'en' ? '/en/posts/' : '/posts/';
     background: var(--color-surface-hover);
     transform: translateX(2px);
   }
+  a.nav-card:hover .nav-direction,
+  a.nav-card:hover .nav-post-title,
+  a.nav-card:hover .nav-ticket {
+    color: var(--color-surface-meta);
+  }
   a.nav-card:active {
     transform: translateX(0);
   }
 
   /* Left border accent per ticket type */
   .nav-card--gp {
-    border-left-color: var(--color-badge-gp, #8be9fd);
+    border-left-color: var(--color-badge-gp);
   }
   .nav-card--mp {
-    border-left-color: var(--color-badge-mp, #ffb86c);
+    border-left-color: var(--color-badge-mp);
   }
   .nav-card--sd {
-    border-left-color: var(--color-badge-sd, #50fa7b);
+    border-left-color: var(--color-badge-sd);
   }
   .nav-card--lv {
-    border-left-color: var(--color-badge-lv, #bd93f9);
+    border-left-color: var(--color-badge-lv);
   }
 
   .nav-card--disabled {
@@ -212,7 +231,7 @@ const baseUrl = lang === 'en' ? '/en/posts/' : '/posts/';
   .nav-direction {
     font-size: 0.7rem;
     font-weight: 700;
-    color: var(--color-accent);
+    color: var(--color-source-link);
     text-transform: uppercase;
     letter-spacing: 0.06em;
   }
@@ -220,14 +239,10 @@ const baseUrl = lang === 'en' ? '/en/posts/' : '/posts/';
   .nav-post-title {
     font-size: 0.875rem;
     font-weight: 500;
-    color: var(--color-text);
+    color: var(--color-surface-meta);
     line-height: 1.45;
     transition: color 0.15s ease;
   }
-  a.nav-card:hover .nav-post-title {
-    color: var(--color-accent);
-  }
-
   .nav-placeholder {
     font-style: italic;
     opacity: 0.7;
@@ -246,25 +261,23 @@ const baseUrl = lang === 'en' ? '/en/posts/' : '/posts/';
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    opacity: 0.7;
   }
   .nav-ticket--gp {
-    color: var(--color-badge-gp, #8be9fd);
+    color: var(--color-badge-gp);
   }
   .nav-ticket--mp {
-    color: var(--color-badge-mp, #ffb86c);
+    color: var(--color-badge-mp);
   }
   .nav-ticket--sd {
-    color: var(--color-badge-sd, #50fa7b);
+    color: var(--color-badge-sd);
   }
   .nav-ticket--lv {
-    color: var(--color-badge-lv, #bd93f9);
+    color: var(--color-badge-lv);
   }
 
   .nav-post-date {
     font-size: 0.7rem;
-    color: var(--color-text-muted);
-    opacity: 0.7;
+    color: var(--color-surface-meta);
   }
 
   /* Mobile: Stack vertically */

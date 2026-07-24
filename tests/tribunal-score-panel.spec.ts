@@ -2,8 +2,28 @@ import { test, expect } from './fixtures';
 
 const POST_WITH_TRIBUNAL = '/posts/sd-23-20260510-ai-dota-teammates';
 
+async function openTechnicalDetails(page: import('@playwright/test').Page) {
+  const details = page.locator('[data-article-technical-details]');
+  await expect(details).toBeVisible();
+  if (!(await details.evaluate((element) => (element as HTMLDetailsElement).open))) {
+    await details.locator('summary').click();
+  }
+}
+
+test('article technical details stay collapsed until requested', async ({ page }) => {
+  await page.goto(POST_WITH_TRIBUNAL, { waitUntil: 'domcontentloaded' });
+
+  const details = page.locator('[data-article-technical-details]');
+  await expect(details).toBeVisible();
+  await expect(details).not.toHaveAttribute('open', '');
+  await expect(details.locator('summary')).toContainText('Tribunal');
+  await expect(details.locator('summary')).toContainText('v');
+  await expect(details.locator('.ai-judge-panel')).not.toBeVisible();
+});
+
 test('tribunal score panel renders judges in balanced visual order', async ({ page }) => {
   await page.goto(POST_WITH_TRIBUNAL, { waitUntil: 'domcontentloaded' });
+  await openTechnicalDetails(page);
 
   const judges = page.locator('.ai-judge-panel .judge-card .judge-name');
   await expect(judges).toHaveText(['Librarian', 'Fresh Eyes', 'Fact Check', 'Vibe']);
@@ -12,6 +32,7 @@ test('tribunal score panel renders judges in balanced visual order', async ({ pa
 test('tribunal score panel stays two-up on iPhone 15 width', async ({ page }) => {
   await page.setViewportSize({ width: 393, height: 852 });
   await page.goto(POST_WITH_TRIBUNAL, { waitUntil: 'domcontentloaded' });
+  await openTechnicalDetails(page);
 
   const cards = page.locator('.ai-judge-panel .judge-card');
   await expect(cards).toHaveCount(4);
@@ -54,6 +75,7 @@ test('tribunal score panel content aligns with the post info block', async ({ pa
   await page.goto('/en/posts/en-sd-23-20260510-ai-dota-teammates', {
     waitUntil: 'domcontentloaded',
   });
+  await openTechnicalDetails(page);
 
   const layout = await page.evaluate(() => {
     const infoLine = document.querySelector('.translation-info div:nth-of-type(2)');
@@ -93,6 +115,7 @@ test('tribunal fact-check accent uses wine-red instead of pass-green', async ({ 
   await page.addInitScript(() => localStorage.setItem('theme', 'dark'));
   await page.goto(POST_WITH_TRIBUNAL, { waitUntil: 'domcontentloaded' });
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
+  await openTechnicalDetails(page);
 
   const accent = page.locator('.ai-judge-panel .judge-color-factcheck').first();
   await expect(accent).toBeVisible();
@@ -115,6 +138,7 @@ test('tribunal fact-check accent uses wine-red instead of pass-green', async ({ 
 test('tribunal score panel collapses only on extra narrow screens', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 852 });
   await page.goto(POST_WITH_TRIBUNAL, { waitUntil: 'domcontentloaded' });
+  await openTechnicalDetails(page);
 
   const cardTops = await page
     .locator('.ai-judge-panel .judge-card')

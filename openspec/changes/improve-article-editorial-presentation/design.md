@@ -52,7 +52,7 @@
 - H1 presence，desktop 目標約 `~2.35rem` / mobile 約 `~1.9rem`。
 - H2 line-height 與 spacing，讓 section breaks 有呼吸感。
 - Paragraph max-width、paragraph margin、list spacing、quote spacing，以及 code / prompt example separation。
-- MoguNote / MoguNote weight，讓 commentary 支援正文，而不是變得一樣搶戲。**附帶條款（user 拍板）**：降音量（縮字級）時 line-height SHALL 跟著收緊——user 實測回饋：小字配 1.8 行距太鬆散；收緊後的實際行高值實作時實測定案。
+- MoguNote / ShroomDogNote weight，讓 commentary 支援正文，而不是變得一樣搶戲。**附帶條款（user 拍板）**：降音量（縮字級）時 line-height SHALL 跟著收緊——user 實測回饋：小字配 1.8 行距太鬆散；收緊後的實際行高值實作時實測定案。
 
 **拍板（原 Open Q1）：heading 走 sans-first，不引入 serif。** user 品牌判斷（原話）：「書法招牌掛在賽博蘑菇店面上不搭」；技術理由：CJK webfont 上萬字符的 subset 成本。`--font-serif` token 留給未來獨立實驗，不進本 change。
 
