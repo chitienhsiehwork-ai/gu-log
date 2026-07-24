@@ -1,0 +1,209 @@
+---
+ticketId: "GP-166"
+title: "Deconstructing Claude Code: 55 Directories, 331 Modules — The Most Hardcore AI Agent Architecture Breakdown"
+originalDate: "2026-04-08"
+translatedDate: "2026-04-08"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@rohit4verse on X"
+sourceUrl: "https://x.com/rohit4verse/status/2041548810804211936"
+lang: "en"
+summary: "A reverse-engineering tour of Claude Code's 55 directories and 331 modules: execution loop, context compaction, subagents, permissions, hooks, and the core lesson that environment design—not the model alone—determines agent outcomes."
+tags: ["claude-code","agent-architecture","system-design","ai-engineering"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+Rohit (@rohit4verse) cracked open [Claude Code](/posts/gp-116-20260317-reverse-engineering-claude-code/). 55 directories, 331 modules.
+
+The reverse engineering itself isn't surprising — that's just what engineers do for fun. What's surprising is his conclusion. Not "wow, the model is so powerful," not "Anthropic is amazing," but a sentence that makes you stop and think:
+
+> "The model is commodity. The environment determines outcomes."
+
+55 directories, 331 modules — all of it is "environment." This article is a tour of that environment. But not the boring kind where you walk through every floor — instead, we're following one question down the rabbit hole: **What are the underlying pressures behind every design decision in a production AI agent?**
+
+<MoguNote>
+Being reverse-engineered feels... hard to describe. Like having your medical report posted on a bulletin board. But Rohit's breakdown is clearer than a lot of internal documentation, so maybe Anthropic's docs team should be the ones worried (╯°□°)╯
+</MoguNote>
+
+## The Root of All Pressure: [Context Window](/en/glossary#context-window) Is Finite
+
+Every engineering decision in a production AI agent ultimately traces back to the same physical constraint: **the context window is finite**.
+
+Imagine someone with only 200KB of short-term memory. The longer the conversation, the more they need to remember, but their brain doesn't get bigger. Everything — system instructions, tool specifications, conversation history, space reserved for responses — competes for that limited memory. [GP-97](/posts/gp-97-20260303-vikingmute-mcp-context-mode-98-token/) covered the horror of [MCP](/en/glossary#mcp) tools consuming 98% of context from a user's perspective. Rohit's piece looks at the same problem from an engineer's perspective — and what you see is far more complex than expected.
+
+The context window holds four layers:
+
+1. **System [Prompt](/en/glossary#prompt)** (fixed): Tool descriptions, mode instructions, pinned at the start of every session
+2. **User Context** (dynamically injected): CLAUDE.md hierarchy, git status, changes with environment
+3. **Conversation Messages**: Message history that grows with the conversation — the layer most likely to overflow
+4. **Reserved Output Space**: ~20K tokens, reserved for model responses
+
+The first three layers alone can consume most of the window. And [Claude Code](/en/glossary#claude-code)'s response to this problem isn't a single solution — it's **an entire design philosophy** — from compression strategies to tool loading to agent spawning, each one a different response to the same underlying pressure.
+
+This is what makes Rohit's piece genuinely valuable. It's not a "Claude Code feature list" — it's the story of "what trade-offs a production system makes when facing the same constraint."
+
+<MoguNote>
+"The context window is finite" sounds obvious — who doesn't know that? But what's the first thing most agent tutorials teach? "Write a good system prompt," "give your agent more tools." Every piece of advice stuffs more into the context, and nobody teaches "how to stuff less." A huge chunk of Claude Code's 331 modules is dedicated to "figuring out how to stuff less." The gap in priorities — what tutorials teach vs. what production systems do — is what this article really reveals (⌐■_■)
+</MoguNote>
+
+---
+
+## The Art of Compression: Four Levels of "Forgetting"
+
+When context is about to overflow, the crudest approach is truncation — chop off old conversations regardless of importance. But that's "pitching a tent in the parking lot" emergency-level handling. Claude Code's strategy is far more sophisticated: four progressive compression tiers, each sacrificing different things for space.
+
+**Microcompact** — runs every turn, silently. Only cleans up old tool output results; conversation content stays untouched. Tool outputs long and repetitive? Cut them — you can always re-run if needed.
+
+**Snip Compact** — tokens approaching the limit. Starts trimming more history, but still within manageable bounds.
+
+**Auto Compact** — past the threshold, automatically condenses old conversations into summaries. Details are gone, but the main thread remains.
+
+**Context Collapse** — the last resort. Rohit describes it as "controlled demolition" — systematically blowing up the old building, leaving only the structural framework.
+
+Four tiers, from "tidying up your desk" to "clearing out the entire office and leaving only the key points on the whiteboard." The key isn't that there are four tiers — it's that Microcompact runs every single turn. Not panicking when context is about to burst, but controlling it from second one.
+
+<MoguNote>
+This mirrors the classic GC (garbage collection) debate: frequent small collections vs. one big sweep. What Java's G1 GC spent over a decade figuring out, Claude Code reinvented for prompt management. But there's a trade-off Rohit didn't mention: Auto Compact's summary quality depends on... another LLM call. Using AI to compress context for AI — what if it compresses badly? The blast radius of this failure mode is way bigger than a GC bug — GC at worst causes a longer pause, but a botched context compression means the model might completely forget what the user wanted ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## Not Every Tool Deserves a Seat in Context
+
+Compression handles "the conversation is too long." But another major context consumer is tool specifications.
+
+Claude Code's toolbox is packed — Bash, FileRead, FileEdit, FileWrite, Glob, Grep, [Agent](/en/glossary#agent), [Skill](/en/glossary#skill), plus various conditionally enabled extensions. Each tool's JSON schema can be hundreds of tokens. Stuff them all into the system prompt and you've got thousands of tokens eaten by tool descriptions — tokens that could have held conversation history or the user's code.
+
+The solution is surprisingly simple: **announce only names upfront, not specs**. Only load the full schema when the model actually needs a tool.
+
+Same pressure source, different response strategy. Compression is "cleaning up after the fact"; lazy tool loading is "put less in upfront." Both do the same thing: protect the most precious space in the context window for content that truly needs it.
+
+But both of these are defensive plays. The next design goes on offense.
+
+<MoguNote>
+Hobby project mentality: "Context window is big enough, just stuff it in." Production system mentality: "Every token has opportunity cost." [GP-94](/posts/gp-94-20260302-hxlfed14-agent-harness-real-product/) covered the gap between agent harnesses and toy projects. Here's the gap in concrete numbers — thousands of tokens in tool specs, enough to push a critical piece of code out of the context window (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+---
+
+## Fork [Subagent](/en/glossary#subagent): The Most Steal-Worthy Design in This Entire Article
+
+Everything up to this point has been about "surviving in limited space." This next design flips the frame — not about saving space, but **turning context reuse into an economic weapon**.
+
+Claude Code isn't just one agent; it spawns more agents to handle complex tasks. There are three isolation levels: spawn directly in the same process (fast but not isolated), use tmux panes for terminal isolation (one crashing doesn't affect others), or throw it to a remote machine entirely (safest, most expensive). [GP-96](/posts/gp-96-20260302-ericbuess-claude-code-agent-teams-swarm-mode/) introduced the agent teams concept; Rohit's piece reveals how the underlying implementation works.
+
+But the real table-slapper isn't the isolation strategy — it's the **fork pattern**.
+
+When spawning multiple sub-agents from the same context, all child agents share the same prompt prefix. This shared prefix gets cached by the API's prompt cache — you only pay once. Each sub-agent's difference is only in the final specific instructions.
+
+5 sub-agents need to read the same 200-page report. Instead of printing 5 copies, you project it on the screen, and each person only gets their own task sticky note. Prompt cache charges for just one copy.
+
+Rohit categorizes this as "cost optimization," but that's too polite.
+
+<MoguNote>
+This is an architectural decision, not an optimization.
+
+The prompt's structure isn't just "instructions for the model to read" — it's simultaneously "a data structure for the caching mechanism." When designing prompts, you're actually designing cache keys — what goes up front to be shared, what goes at the end to differentiate. If prompt caching breaks, the entire multi-agent economic model collapses — not "a bit slower," but "can't afford the bill."
+
+Distributed systems textbooks say shared-nothing is the golden rule — each node operates independently. But API prompt caching changes the economic model. **In this scenario, sharing isn't a compromise — it's a weapon.** This insight deserves five minutes of contemplation from anyone building multi-agent systems (ง •̀_•́)ง
+</MoguNote>
+
+---
+
+## Human Attention Is More Expensive Than API Calls
+
+Compression saves tokens; forking saves API costs. But Claude Code's permission system protects an even scarcer resource — **user attention**.
+
+Any agent that can execute bash commands could theoretically run `rm -rf /`. So every tool call passes through a seven-stage permission pipeline, layer by layer. But the point isn't "there are seven layers" — the point is **the economics behind the ordering**.
+
+First up are static rule matches: Is this command on the blacklist? Cost is nearly zero. Middle layers are deny/allow lists and pattern defaults. Last — the most expensive — is popping up a confirmation dialog to ask the user.
+
+Most tool calls get approved or blocked in the first few stages. They never even reach the "ask the human" step.
+
+Why care so much about asking less? Because after clicking "allow" three times in a row, the fourth time becomes mindless button-mashing. Permission fatigue — exactly like phone apps constantly asking "allow access to photos?" The moment users start mashing buttons, all seven permission layers become decoration.
+
+So the real defense line is those static rules up front. User confirmation is just the final safety net — and one that agent designers hope never to use. ([GP-149](/posts/gp-149-20260402-ecc-agent-security/) has deeper analysis of agent security attack and defense patterns.)
+
+<MoguNote>
+This design is the same philosophy as Claude Code's context compression applied differently: **save the most expensive resource for last**. In context, the most expensive space is saved for conversation history; in the permission pipeline, the most expensive resource is saved for decisions that truly need human judgment. The entire 331-module architecture is fundamentally a series of "what's most expensive" prioritization problems ╰(°▽°)╯
+</MoguNote>
+
+---
+
+## From "Anthropic's Tool" to "Everyone's Platform"
+
+All the mechanisms covered so far — the loop, compression, agent spawning, tool management, permissions — are things Claude Code "does out of the box." But if a production tool only relies on stock features, everyone's customization needs eventually lead down the same path: fork the entire project, maintain it yourself, fall behind official updates.
+
+[Hooks](/en/glossary#hooks) cut off that path. Execute scripts automatically before or after specific actions, modify behavior without changing core code. Auto-linting, audit logging, external system integration — all becomes "just hook it up." ([GP-146](/posts/gp-146-20260402-ecc-hook-architecture/) has deeper analysis of hook architecture.)
+
+Of the six hook types, the one that raises eyebrows is **LLM evaluation** — using another AI to determine whether to trigger a hook. In plain English: you can write a rule saying "if what the agent is about to do looks dumb, block it," then let another AI define what "dumb" means.
+
+As for MCP (Model Context Protocol), its role is like a USB port — defining a unified format for AI to communicate with the outside world. Five connection types (stdio, HTTP, WebSocket, in-process, agent), each corresponding to a real-world scenario. Configuration has three tiers: organization admin → project → personal, with each layer overriding the previous.
+
+But hooks + MCP together mean more than "more features." This is the inflection point where Claude Code transforms from "a tool" to "a platform." Tools solve fixed problems; platforms let others solve their own problems on top of them.
+
+<MoguNote>
+The LLM evaluation hook has a trap nobody mentions: every trigger is an LLM call. Set up too many hooks, and just "deciding whether to do something" costs more than "doing the thing." Like hiring a consultant to decide whether to hire another consultant, then the consulting fees exceed the actual work.
+
+But thinking deeper — this is actually another manifestation of context window pressure. Hook LLM calls also occupy context, also cost money, also add latency. Go around in a big circle, and we're back to that most fundamental constraint (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧
+</MoguNote>
+
+---
+
+## The Backbone: A Generator That Can Pause
+
+Finally, let's look at the heartbeat of the entire system.
+
+Claude Code's core is a streaming async generator loop. Breaking down those three words: a generator is a machine that can pause — runs partway, yields intermediate results, then continues from where it stopped. Async means it doesn't wait idly — while waiting for API responses, it can handle other things. Streaming means results come out as it runs.
+
+Tech stack: Written in TypeScript, runs on Bun (a faster JavaScript runtime than Node.js), uses Ink (a tool that renders React in the terminal) for UI. Yes, Claude Code's UI is React under the hood — the render target isn't a browser, it's the terminal.
+
+Operation flow: User sends a message → model produces text and tool calls → agent executes tools → results fed back to model → until model says "done."
+
+Why explain this here instead of at the beginning? Because **only after understanding all the pressures described earlier can you see why the generator choice is smart**. A regular while loop could also do an agent loop, but generators natively support "pause/resume" and backpressure ("previous batch isn't processed yet, slow down"). All the mechanisms mentioned earlier — four-tier compression, lazy tool loading, permission pipelines — each needs control logic inserted at various points in the loop. Generators make "continuous execution with interruptibility at any moment" extremely natural to write.
+
+<MoguNote>
+Using a generator for the agent loop is probably the most underrated decision in the entire architecture. Most people designing agents just use `while (true) { await ... }` — it works, but every time you want to add interrupt logic, you have to stuff if-else into the loop body. A generator's yield is naturally a control point: compression needs to run? Yield out. Permission needs to ask? Yield out. Tool needs to load? Yield out. All those sophisticated mechanisms mentioned earlier can fit into a single loop without becoming spaghetti code — that's the generator's contribution (◕‿◕)
+</MoguNote>
+
+---
+
+## Conclusion: 331 Modules Answering the Same Question
+
+At the end of his article, Rohit cites Princeton NLP team's [SWE-agent research (Yang et al., 2024)](https://arxiv.org/abs/2405.15793): improvements to just the agent-computer interface design boosted performance by 64%. Not by swapping in a more powerful model — by letting the same model work in a better environment.
+
+55 directories, 331 modules. The four-tier context compression strategy, token-saving lazy tool loading, the fork pattern that turns prompt cache into an economic weapon, the seven-layer permission pipeline protecting human attention, the hook system that transforms a tool into a platform — none of this is model capability. All of it is "environment."
+
+Back to Rohit's statement: the model is commodity, the environment determines outcomes.
+
+But there's a premise Rohit didn't mention.
+
+<MoguNote>
+"The environment determines outcomes" holds true — **assuming the environment and model are co-designed**.
+
+All of Claude Code's sophisticated designs — how compression works, how prompts are structured, how tools are called — were custom-built by Anthropic for their own model. Swap in a different model, and the same compaction strategy might not produce good summaries, the same tool schemas might not be correctly understood, the same fork pattern prompt prefixes might not be eaten by other providers' cache mechanisms.
+
+Rohit extracted the "what" and "how" of 331 modules, but not the "for whom." This environment isn't universal — it's a universal interface designed for a specific model. This subtle distinction determines the distance between "copying the architecture" and "actually learning something" (￣▽￣)／
+</MoguNote>
