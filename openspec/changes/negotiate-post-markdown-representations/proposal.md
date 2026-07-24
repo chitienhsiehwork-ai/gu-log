@@ -7,7 +7,7 @@ Issue #689 的第一階段已讓每篇繁中／英文文章都有固定生成的
 - 在 Vercel Routing Middleware 只攔截繁中／英文正式文章路徑，依 `Accept` 媒體範圍、明確程度與 q 權重選擇 HTML 或 Markdown。
 - Markdown 勝出時在內部改寫到既有 `.md` 產物；網址、狀態與內容 SSOT 不變。
 - HTML 與 Markdown 回應都輸出 `Vary: Accept`，並以預覽／正式環境的交錯請求 smoke 驗證 CDN 快取隔離。
-- 明確保留缺少標頭／萬用範圍／同分／偏好 HTML／Markdown `q=0` 的 HTML fallback、HEAD 語意、既有尾端斜線 308、舊網址轉址、明確 `.md` 與 JSON API。
+- 明確保留缺少標頭／萬用範圍／同分／偏好 HTML／Markdown `q=0` 的 HTML fallback 與 HEAD 語意；帶／不帶尾端斜線的 canonical URL 都協商，舊網址轉址、明確 `.md` 與 JSON API 維持不變。
 
 ## Capabilities
 

@@ -43,15 +43,16 @@ Markdown 回應 SHALL 以內部改寫讀取既有同語系 `.md` 產物，維持
 
 ### Requirement: 協商後的表示 SHALL 保持路由與快取隔離
 
-內容協商 SHALL 只作用於沒有尾端斜線、沒有副檔名且只有一個安全 slug 區段的 `/posts/{slug}` 與 `/en/posts/{slug}`。明確 `.md`、`/api/**`、資產、列表、任意深層路徑、舊網址轉址與帶尾端斜線的請求 SHALL 保持既有路由契約。
+內容協商 SHALL 只作用於沒有副檔名且只有一個安全 slug 區段的 `/posts/{slug}` 與 `/en/posts/{slug}`，並接受現行 canonical URL 的帶／不帶尾端斜線形式。明確 `.md`、`/api/**`、資產、列表、任意深層路徑與舊網址轉址 SHALL 保持既有路由契約。
 
 同一正式網址的 HTML 與 Markdown 回應 SHALL 以 `Vary: Accept` 建立 CDN 快取邊界。交錯請求兩種表示時，每次回應的 Content-Type 與正文 SHALL 對應當次請求，不得因先前快取狀態而混用。
 
-#### Scenario: 帶尾端斜線的正式文章
+#### Scenario: 帶尾端斜線的正式文章同樣協商
 
-- **WHEN** 用戶端請求既有帶尾端斜線的文章網址
-- **THEN** Vercel SHALL 保留目前的 canonical 308 與 Location
-- **AND** 中介層 SHALL NOT 直接繞過該轉址
+- **WHEN** 用戶端對既有帶尾端斜線的正式文章網址傳送會讓 Markdown 勝出的 `Accept`
+- **THEN** 回應 SHALL 回傳同篇 Markdown 產物與 `text/markdown; charset=utf-8`
+- **AND** 回應 SHALL 包含 `Vary: Accept`
+- **AND** 帶／不帶尾端斜線 SHALL 使用相同的表示選擇規則
 
 #### Scenario: API 或明確 Markdown endpoint
 
@@ -70,7 +71,7 @@ Markdown 回應 SHALL 以內部改寫讀取既有同語系 `.md` 產物，維持
 
 ### Requirement: Explicit `.md` response SHALL 有正確且有界的 Vercel 契約
 
-繁中與英文 `.md` endpoint SHALL 回傳成功狀態與 `Content-Type: text/markdown; charset=utf-8`。Vercel config SHALL 使用固定數量的路徑 pattern，不得為每篇文章展開路由；路由額度驗證 SHALL 計算標頭、轉址與改寫的總平台路由用量，並在超過平台上限前封閉失敗。同網址協商 SHALL 只在內部改寫到這些既有產物，不得改變明確 `.md`、尾端斜線、舊網址轉址或 API 路由的原有契約。
+繁中與英文 `.md` endpoint SHALL 回傳成功狀態與 `Content-Type: text/markdown; charset=utf-8`。Vercel config SHALL 使用固定數量的路徑 pattern，不得為每篇文章展開路由；路由額度驗證 SHALL 計算標頭、轉址與改寫的總平台路由用量，並在超過平台上限前封閉失敗。同網址協商 SHALL 只在內部改寫到這些既有產物，不得改變明確 `.md`、舊網址轉址或 API 路由的原有契約。
 
 #### Scenario: Client 直接請求繁中與英文 `.md`
 
