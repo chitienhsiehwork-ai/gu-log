@@ -1,6 +1,7 @@
 import { experimental_AstroContainer as AstroContainer } from 'astro/container';
 import { readFileSync } from 'node:fs';
 import { beforeAll, describe, expect, it } from 'vitest';
+import PostStatusBanner from '../../src/components/PostStatusBanner.astro';
 import Stage0WarnBanner from '../../src/components/Stage0WarnBanner.astro';
 import Stage4DegradedBanner from '../../src/components/Stage4DegradedBanner.astro';
 
@@ -90,5 +91,40 @@ describe('Tribunal warning banner rendering', () => {
 
     expect(stage4Source).toContain('var(--color-status-info)');
     expect(stage4Source).not.toMatch(/rgba?\(\s*108\s*,\s*191\s*,\s*255/);
+  });
+
+  it('renders deprecated and retired post-status copy', async () => {
+    const deprecated = await container.renderToString(PostStatusBanner, {
+      props: {
+        type: 'deprecated',
+        replacementHref: '/posts/replacement',
+        replacementTicketId: 'GP-999',
+        replacementTitle: 'Replacement',
+        lang: 'en',
+      },
+    });
+    const retired = await container.renderToString(PostStatusBanner, {
+      props: {
+        type: 'retired',
+        lang: 'zh-tw',
+      },
+    });
+
+    expect(deprecated).toContain('This article has been replaced');
+    expect(deprecated).toContain('href="/posts/replacement"');
+    expect(deprecated).toContain('GP-999：Replacement');
+    expect(retired).toContain('ShroomDog 覺得這篇品質不夠好');
+  });
+
+  it('routes post-status palettes through semantic status tokens', () => {
+    const source = readFileSync(
+      new URL('../../src/components/PostStatusBanner.astro', import.meta.url),
+      'utf8'
+    );
+
+    expect(source).toContain('var(--color-status-warning)');
+    expect(source).toContain('var(--color-status-neutral)');
+    expect(source).not.toMatch(/rgba?\(\s*255\s*,\s*184\s*,\s*108/);
+    expect(source).not.toMatch(/rgba?\(\s*148\s*,\s*163\s*,\s*184/);
   });
 });
