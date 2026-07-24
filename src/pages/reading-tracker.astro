@@ -947,30 +947,38 @@ const totalArticles = allPosts.length;
   }
 
   .sync-status-badge.sync-status-ok {
-    color: var(--color-status-success);
+    color: color-mix(in srgb, var(--color-status-success) 30%, var(--color-text));
     border-color: var(--color-status-success);
-    background: rgba(80, 250, 123, 0.08);
-  }
-
-  [data-theme='light'] .sync-status-badge.sync-status-ok {
-    background: rgba(29, 106, 92, 0.08);
+    background: color-mix(in srgb, var(--color-status-success) 8%, transparent);
   }
 
   .sync-status-badge.sync-status-dirty {
-    color: var(--color-status-warning);
+    color: color-mix(in srgb, var(--color-status-warning) 30%, var(--color-text));
     border-color: var(--color-status-warning);
-    background: rgba(255, 184, 108, 0.08);
+    background: color-mix(in srgb, var(--color-status-warning) 8%, transparent);
   }
 
   .sync-status-badge.sync-status-error {
-    color: #ff5555;
-    border-color: #ff5555;
-    background: rgba(255, 85, 85, 0.08);
+    color: color-mix(in srgb, var(--color-status-danger) 30%, var(--color-text));
+    border-color: var(--color-status-danger);
+    background: color-mix(in srgb, var(--color-status-danger) 8%, transparent);
   }
 
   .sync-status-badge.sync-status-syncing {
-    color: var(--color-text-muted);
-    border-color: var(--color-border);
+    color: var(--color-status-neutral);
+    border-color: var(--color-status-neutral);
+  }
+
+  :global([data-theme='light']) .sync-status-badge.sync-status-ok {
+    color: var(--color-status-success);
+  }
+
+  :global([data-theme='light']) .sync-status-badge.sync-status-dirty {
+    color: var(--color-status-warning);
+  }
+
+  :global([data-theme='light']) .sync-status-badge.sync-status-error {
+    color: var(--color-status-danger);
   }
 
   .sync-btn-row {
@@ -1041,7 +1049,7 @@ const totalArticles = allPosts.length;
   }
 
   .sync-disconnect-btn:hover {
-    color: #ff5555;
+    color: var(--color-status-danger);
   }
 
   /* PAT setup styles */
