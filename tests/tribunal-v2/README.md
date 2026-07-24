@@ -1,7 +1,7 @@
 # Tribunal v2 — Tests-as-Spec (TDD Planning)
 
-> Status: **Pseudo code only — not runnable**
-> Purpose: Teaching artifact for CEO (junior backend eng) + spec handoff for Builder
+> Status: **Teaching pseudo preserved; runnable contracts live beside it**
+> Purpose: Teaching artifact for CEO (junior backend eng) + durable regression coverage
 > Date: 2026-04-11
 > Author: Test Writer agent (Opus), per team-lead brief
 
@@ -9,9 +9,9 @@
 
 ## 這份文件要幹嘛
 
-Tribunal v2 的 mental model 和 decisions 都 locked 了（見 `.score-loop/specs/`），但**還沒寫任何 code**。這份 pseudo code 是 **test-first spec** — 你可以把它讀成「未來 Builder 要讓這些 invariants 成立」。
+這份目錄在 2026-04-11 建立時，Tribunal v2 還沒有 implementation；`pseudo/` 因此用 **test-first spec** 記錄當時希望 Builder 落實的 invariants。現在 implementation 與 runnable tests 都已存在，pseudo 保留作歷史教學材料，現況以 production code、OpenSpec 與 `*.test.ts` 為準。
 
-但更重要的是，它是**教學**。每個 test 檔案都有 What / Why / Pros / Cons / Alternatives，告訴你：
+但更重要的是，它是**教學**。每個 pseudo 檔案都有 What / Why / Pros / Cons / Alternatives，告訴你：
 
 - 哪些東西值得寫 test（deterministic、高價值、低維護成本）
 - 哪些東西**不值得寫 test**（LLM quality、主觀、需要 eval dataset）
@@ -44,7 +44,7 @@ Tribunal v2 的 mental model 和 decisions 都 locked 了（見 `.score-loop/spe
 | --------------------------------------- | ------------------------------------------------------------ |
 | **Vibe 好不好**                         | 主觀判斷，沒有 oracle                                        |
 | **FactCorrector 真的找到錯誤嗎**        | 需要 eval dataset（標註過的文章集）才能測                    |
-| **MoguNote 梗好不好笑**                | 人類都無法 agree，測個屁                                     |
+| **MoguNote 梗好不好笑**                 | 人類都無法 agree，測個屁                                     |
 | **Judge calibration（分數準不準）**     | 需要 human-labeled ground truth                              |
 | **實際翻譯品質**                        | 同上                                                         |
 | **LLM 真的遵守 negative constraint 嗎** | 測不到 — 只能測「我們有沒有用 programmatic diff check 兜底」 |
@@ -96,7 +96,7 @@ Tribunal v2 的 mental model 和 decisions 都 locked 了（見 `.score-loop/spe
 | 01  | `pseudo/01-writer-constraints.pseudo.ts` | Programmatic diff check — URLs/headings/frontmatter 在 writer 跑完後必須不變 | ★★☆  |
 | 02  | `pseudo/02-pass-bar.pseudo.ts`           | Pass bar 公式（Stage 1 absolute, Stage 4 relative）                          | ★☆☆  |
 | 03  | `pseudo/03-judge-schemas.pseudo.ts`      | Judge output JSON 的 shape validation（Zod / TS types）                      | ★★☆  |
-| 04  | `pseudo/04-fact-corrector.pseudo.ts`     | Standing checklist 塞進 prompt、source URL fetch、MoguNote scope 排除       | ★★★  |
+| 04  | `pseudo/04-fact-corrector.pseudo.ts`     | Standing checklist 塞進 prompt、source URL fetch、MoguNote scope 排除        | ★★★  |
 | 05  | `pseudo/05-stage-transitions.pseudo.ts`  | Stage 之間的 state machine（PASS/FAIL/retry/max loops/NEEDS_REVIEW）         | ★★★  |
 | 06  | `pseudo/06-frontmatter.pseudo.ts`        | Frontmatter schema 擴充（`warnedByStage0`, `warnReason`, `stage4Scores`）    | ★☆☆  |
 | 07  | `pseudo/07-banner-rendering.pseudo.ts`   | Banner UI 從 frontmatter 讀資料並渲染（Astro component）                     | ★★☆  |
@@ -117,9 +117,10 @@ Tribunal v2 的 mental model 和 decisions 都 locked 了（見 `.score-loop/spe
 
 ## 給 Builder 的 note（未來讀到這份檔案的人）
 
-- 這些 pseudo code 不是 runnable test — 是 **spec written in code shape**
-- 把它當 TDD 的 "red" 階段：先有這些 assertion，再寫 impl 讓它們過
-- 真正的 test 檔案會放在 `tests/tribunal-v2/*.spec.ts`（dot spec，不是 dot pseudo）
+- `pseudo/` 不是 runnable test — 是歷史 **spec written in code shape** 與教學材料
+- runnable Vitest contracts 放在 `tests/tribunal-v2/*.test.ts`
+- `04` 的 current runner contract 由 `fact-corrector-runner.test.ts` 負責；真 LLM 品質仍屬 eval，不放進 deterministic CI
+- `07` 的 component output、escaping、語系與 degraded-dimension rendering 由 `banner-rendering.test.ts` 負責；真 publish path 的 Playwright E2E 仍維持 deferred
 - `_decisions.md` 是 CEO level-up 過程中做的 MCQ 決定，impl 時要對照
 
 ---
