@@ -1,8 +1,11 @@
 # codex-exec-writing-runtime Specification
 
 ## Purpose
-TBD - created by archiving change migrate-tribunal-to-codex. Update Purpose after archive.
+
+定義 GP pipeline 的正式 Codex writer runtime 與乾淨 output capture 契約，避免 CLI noise 混入文章產物或讓 pipeline 誤判寫作結果。
+
 ## Requirements
+
 ### Requirement: GP pipeline SHALL 預設使用 Codex GPT-5.5 作為正式 writer runtime
 
 GP pipeline 在正式 writing、refine、review、probe LLM 呼叫時，SHALL 透過 Codex 與 GPT-5.5 執行，除非操作明確要求 fake/test provider。Legacy CLI 名稱 MAY 為了相容性保留，但 SHALL NOT 讓正式預設路徑離開 Codex。
@@ -34,4 +37,3 @@ GP pipeline SHALL 透過 deterministic mechanism capture 最終 Codex assistant 
 - **WHEN** 已安裝的 Codex CLI 不支援偏好的 output flag
 - **THEN** pipeline SHALL 以可行動的錯誤失敗，或使用 tested fallback extractor
 - **AND** pipeline SHALL NOT 默默把混有 CLI logs 的內容寫進 article files
-

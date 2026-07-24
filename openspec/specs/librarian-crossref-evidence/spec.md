@@ -1,8 +1,11 @@
 # librarian-crossref-evidence Specification
 
 ## Purpose
-TBD - created by archiving change migrate-tribunal-to-codex. Update Purpose after archive.
+
+定義 Librarian judging 前的 deterministic repo evidence、相似舊文 cross-reference 與同 source URL duplication contract，讓引用或差異化要求可追溯。
+
 ## Requirements
+
 ### Requirement: Librarian SHALL 在 judging 前收到 deterministic repo evidence
 
 Tribunal Librarian stage 在產生 score 前，SHALL 收到 deterministic evidence packet，內容包含 target metadata、glossary hits、internal link checks，以及 related old posts。

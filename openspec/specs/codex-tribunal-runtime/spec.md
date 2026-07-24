@@ -1,8 +1,11 @@
 # codex-tribunal-runtime Specification
 
 ## Purpose
-TBD - created by archiving change migrate-tribunal-to-codex. Update Purpose after archive.
+
+定義 Tribunal 的 judge-specific runtime／model routing、canonical entrypoint、explicit score transfer 與 legacy VibeScorer compatibility 邊界。
+
 ## Requirements
+
 ### Requirement: Tribunal SHALL 依 judge 決定 runtime provider 與角色設定中的 model
 
 Canonical tribunal runner SHALL 逐一依 judge 解析 runtime provider 與 model：
