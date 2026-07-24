@@ -12,6 +12,10 @@
 
 Tracked overlay 只放 public-safe machine policy。Secret values 不得寫入 repo，也不得寫入任何 machine note；其餘非 secret 的 local-only machine facts 依 [`machine-operator-memory` spec](../openspec/specs/machine-operator-memory/spec.md) 保存與 discover。
 
+## Editorial startup route
+
+Local actor 只要要寫文、修文、改內容規則、writer prompt、judge prompt 或 editorial workflow，MUST 先讀 [`editorial-charter` spec](../openspec/specs/editorial-charter/spec.md)，再依 `AGENTS.md` 主題路由讀 operational docs。Playbook 不複述 charter。
+
 ## 精神
 
 跟 CCC 一樣：**move fast, be independent, make good decisions, don't be a 伸手牌**。User 常開 yolo mode 離開現場，local Codex actor / local Claude actor 該自己做 research / 自己判斷 / 自己動手。**不要一有模糊就問 user**——先讀 docs、讀 code、跑 script、試驗、查 git log。問 user 是最後一步，不是第一步。
