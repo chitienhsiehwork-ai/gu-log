@@ -1171,18 +1171,58 @@ tribunal_write_worker_completion() {
   } > "$tmp" && mv "$tmp" "$marker"
 }
 
+tribunal_write_worker_tracking() {
+  local tracking_file="$1" worker_id="$2" pid="$3" worker_log="$4"
+  local tmp="${tracking_file}.tmp.$$"
+  {
+    printf 'worker_id=%s\n' "$worker_id"
+    printf 'pid=%s\n' "$pid"
+    printf 'worker_log=%s\n' "$worker_log"
+  } > "$tmp" && mv "$tmp" "$tracking_file"
+}
+
 # Atomically claim one completed-worker marker. The marker is written only
 # after the worker closes its isolated log, so classification never races tee
-# or a still-buffering writer.
+# or a still-buffering writer. While polling, tracked PIDs are also checked:
+# a dead child without a marker is reaped exactly and surfaced as deterministic
+# infrastructure failure instead of hanging forever.
 tribunal_wait_for_worker_completion() {
-  local completion_dir="$1" poll_interval="${2:-0.2}"
-  local marker claimed
+  local completion_dir="$1" combined_log="$2" poll_interval="${3:-0.2}"
+  local marker claimed tracking worker_id pid worker_log wait_rc
+  TRIBUNAL_WORKER_COMPLETION_KIND=""
+  TRIBUNAL_WORKER_COMPLETION_MARKER=""
   while true; do
     for marker in "$completion_dir"/*.done; do
       [ -f "$marker" ] || continue
       claimed="${marker%.done}.claimed.$$"
       if mv "$marker" "$claimed" 2>/dev/null; then
-        printf '%s\n' "$claimed"
+        TRIBUNAL_WORKER_COMPLETION_KIND="marker"
+        TRIBUNAL_WORKER_COMPLETION_MARKER="$claimed"
+        return 0
+      fi
+    done
+    for tracking in "$completion_dir"/*.tracking; do
+      [ -f "$tracking" ] || continue
+      worker_id="$(sed -n 's/^worker_id=//p' "$tracking" | head -1)"
+      pid="$(sed -n 's/^pid=//p' "$tracking" | head -1)"
+      worker_log="$(sed -n 's/^worker_log=//p' "$tracking" | head -1)"
+      case "$pid" in
+        ''|*[!0-9]*) continue ;;
+      esac
+      if ! kill -0 "$pid" 2>/dev/null; then
+        # The marker may have landed after this iteration's first glob.
+        [ -f "$completion_dir/$worker_id.done" ] && continue
+        wait_rc=0
+        wait "$pid" || wait_rc=$?
+        if [ -f "$worker_log" ]; then
+          cat "$worker_log" >> "$combined_log"
+        fi
+        rm -f "$worker_log" "$tracking" "$completion_dir/$worker_id.done"
+        TRIBUNAL_WORKER_COMPLETION_KIND="missing_marker"
+        TRIBUNAL_COMPLETED_WORKER_ID="$worker_id"
+        TRIBUNAL_COMPLETED_WORKER_PID="$pid"
+        TRIBUNAL_COMPLETED_WORKER_RAW_RC="$wait_rc"
+        TRIBUNAL_COMPLETED_WORKER_RC=70
         return 0
       fi
     done
@@ -1196,7 +1236,7 @@ tribunal_wait_for_worker_completion() {
 # function in a subshell that cannot wait on the caller's child.
 tribunal_collect_worker_completion() {
   local marker="$1" expected_id="$2" expected_pid="$3"
-  local worker_log="$4" combined_log="$5"
+  local worker_log="$4" combined_log="$5" tracking_file="${6:-}"
   local recorded_id recorded_rc wait_rc=0
   recorded_id="$(sed -n 's/^worker_id=//p' "$marker" | head -1)"
   recorded_rc="$(sed -n 's/^rc=//p' "$marker" | head -1)"
@@ -1208,8 +1248,10 @@ tribunal_collect_worker_completion() {
   [ "$wait_rc" = "$recorded_rc" ] || return 1
   cat "$worker_log" >> "$combined_log"
   TRIBUNAL_COMPLETED_WORKER_ID="$recorded_id"
+  TRIBUNAL_COMPLETED_WORKER_PID="$expected_pid"
+  TRIBUNAL_COMPLETED_WORKER_RAW_RC="$wait_rc"
   TRIBUNAL_COMPLETED_WORKER_RC="$(tribunal_classify_worker_result "$wait_rc" "$worker_log")"
-  rm -f "$worker_log" "$marker"
+  rm -f "$worker_log" "$marker" "$tracking_file"
 }
 
 tribunal_quota_error_file() {

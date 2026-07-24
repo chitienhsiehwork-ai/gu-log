@@ -352,6 +352,8 @@ dispatch gate 或 cooldown 計算。
 |---|---|
 | `pacing` | Normal closed-loop operation |
 | `floor_stop` | One or both windows at/below floor — 等待 binding quota window reset，0 workers |
+| `five_hour_debt` | OpenAI session burn 超前 allowed line — 等理想線追上，0 workers |
+| `weekly_debt` | OpenAI weekly burn 超前 allowed line — 等理想線追上，0 workers |
 | `extra_limit` | Extra usage 超過 `EXTRA_USAGE_LIMIT` 比例 — 用 `MAX_COOLDOWN` 暫停 dispatch |
 | `fallback` | usage-monitor.sh unavailable — conservative 600s cooldown, 1 worker |
 
@@ -379,8 +381,6 @@ ls -t .score-loop/logs/tribunal-quota-loop-*.log | head -1 | xargs grep 'CALIBRA
 **Self-calibration**: After each article completes (in single-worker mode), the controller computes the actual quota delta and updates `ARTICLE_COST_PCT` via exponential moving average (alpha=0.3). Cold start uses 0.5% as telemetry only. With sufficient history (≥5 entries), EMA converges to the true average cost.
 
 **Startup rotation**: At daemon startup, entries older than 7 days are pruned from `quota-history.jsonl`.
-
-**Feedforward compensation**: Before computing rates, the controller subtracts `active_workers * ARTICLE_COST_PCT` from the remaining % to account for the 2-minute cache delay in usage-monitor. This prevents over-commitment when multiple workers are dispatched in quick succession.
 
 **Legacy fallback**: Start with `--legacy-quota` to revert to the old binary GO/STOP behavior:
 

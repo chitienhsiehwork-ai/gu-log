@@ -168,7 +168,8 @@ pass "watchdog kills a TERM-ignoring descendant from the saved process group"
 
   results=""
   for _ in 1 2; do
-    claimed="$(tribunal_wait_for_worker_completion "$completion_root" 0.05)"
+    tribunal_wait_for_worker_completion "$completion_root" "$combined_log" 0.05
+    claimed="$TRIBUNAL_WORKER_COMPLETION_MARKER"
     completed_id="$(sed -n 's/^worker_id=//p' "$claimed" | head -1)"
     case "$completed_id" in
       a)
@@ -194,6 +195,46 @@ pass "watchdog kills a TERM-ignoring descendant from the saved process group"
   fi
 ) || fail "near-simultaneous workers were misattributed or left artifacts"
 pass "worker ID, exact exit code, flushed log, and cleanup stay paired"
+
+# A SIGKILL/OOM-style worker cannot publish its completion marker. The polling
+# helper must notice the exact tracked PID is dead, reap rc=137, flush its log,
+# classify infrastructure failure, and clean artifacts before the outer timeout.
+(
+  crash_root="$TMP/worker-crash-no-marker"
+  mkdir -p "$crash_root"
+  set +e
+  TEST_HELPERS="$HELPERS" TEST_CRASH_ROOT="$crash_root" \
+    timeout 3 bash -c '
+      set -euo pipefail
+      source "$TEST_HELPERS"
+      combined="$TEST_CRASH_ROOT/combined.log"
+      : > "$combined"
+      (
+        printf "crash-before-marker\n" > "$TEST_CRASH_ROOT/crash.log"
+        exit 137
+      ) &
+      worker_pid=$!
+      tribunal_write_worker_tracking \
+        "$TEST_CRASH_ROOT/crash.tracking" crash "$worker_pid" "$TEST_CRASH_ROOT/crash.log"
+      tribunal_wait_for_worker_completion "$TEST_CRASH_ROOT" "$combined" 0.05
+      [ "$TRIBUNAL_WORKER_COMPLETION_KIND" = "missing_marker" ]
+      [ "$TRIBUNAL_COMPLETED_WORKER_ID" = "crash" ]
+      [ "$TRIBUNAL_COMPLETED_WORKER_PID" = "$worker_pid" ]
+      [ "$TRIBUNAL_COMPLETED_WORKER_RAW_RC" = "137" ]
+      [ "$TRIBUNAL_COMPLETED_WORKER_RC" = "70" ]
+      grep -qx "crash-before-marker" "$combined"
+      if find "$TEST_CRASH_ROOT" -type f \
+        \( -name "*.tracking" -o -name "crash.log" -o -name "*.done" -o -name "*.claimed.*" \) \
+        -print -quit | grep -q .; then
+        exit 1
+      fi
+    '
+  crash_test_rc=$?
+  set -e
+  [ "$crash_test_rc" -ne 124 ] || exit 1
+  [ "$crash_test_rc" -eq 0 ]
+) || fail "dead worker without marker hung or leaked/misattributed artifacts"
+pass "exit-137 worker without marker returns prompt deterministic infrastructure failure"
 
 # Strict Vibe routing must fail closed when Claude is missing even if Codex is
 # otherwise available.

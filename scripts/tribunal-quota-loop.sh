@@ -726,8 +726,11 @@ declare -A WORKER_PID        # worker_id → pid
 declare -A WORKER_ARTICLE    # worker_id → article slug
 declare -A WORKER_RESULT_LOG # worker_id → isolated worker output
 declare -A WORKER_COMPLETION # worker_id → atomic completion marker
+declare -A WORKER_TRACKING   # worker_id → supervisor-owned PID/log registry
 WORKER_COMPLETION_DIR="$(mktemp -d "$LOG_DIR/worker-completions.XXXXXX")"
 trap 'rm -rf "$WORKER_COMPLETION_DIR"' EXIT
+fatal_worker_rc=0
+fatal_worker_detail=""
 
 worker_worktree() {
   local id="$1"
@@ -791,11 +794,12 @@ try_claim_next_article() {
 # Fork a worker in its own worktree. Echoes the pid.
 spawn_worker() {
   local id="$1" article="$2"
-  local wt worker_result_log worker_completion
+  local wt worker_result_log worker_completion worker_tracking
   wt=$(worker_worktree "$id")
   local slug="${article%.mdx}"
   worker_result_log="$(mktemp "$LOG_DIR/tribunal-worker-${id}.XXXXXX.log")"
   worker_completion="$WORKER_COMPLETION_DIR/$id.done"
+  worker_tracking="$WORKER_COMPLETION_DIR/$id.tracking"
   rm -f "$worker_completion"
 
   # Sync worker worktree to the supervisor's active sync ref before each
@@ -831,6 +835,8 @@ spawn_worker() {
   WORKER_ARTICLE[$id]=$slug
   WORKER_RESULT_LOG[$id]=$worker_result_log
   WORKER_COMPLETION[$id]=$worker_completion
+  WORKER_TRACKING[$id]=$worker_tracking
+  tribunal_write_worker_tracking "$worker_tracking" "$id" "$pid" "$worker_result_log"
   tlog "  [worker-$id pid=$pid] dispatched: $article"
 }
 
@@ -838,8 +844,27 @@ spawn_worker() {
 # tracking state. Classifies the runner's watchdog-marked rc=70 as rc=124,
 # then propagates rc=77/70/124 into drain mode.
 wait_any_worker() {
-  local claimed_marker finished_id pid article_slug worker_result_log rc
-  claimed_marker="$(tribunal_wait_for_worker_completion "$WORKER_COMPLETION_DIR")"
+  local claimed_marker finished_id pid article_slug worker_result_log tracking_file rc
+  tribunal_wait_for_worker_completion "$WORKER_COMPLETION_DIR" "$LOG_FILE"
+  if [ "$TRIBUNAL_WORKER_COMPLETION_KIND" = "missing_marker" ]; then
+    finished_id="$TRIBUNAL_COMPLETED_WORKER_ID"
+    pid="$TRIBUNAL_COMPLETED_WORKER_PID"
+    article_slug="${WORKER_ARTICLE[$finished_id]:-unknown}"
+    tlog "ERROR: worker-$finished_id pid=$pid exited rc=$TRIBUNAL_COMPLETED_WORKER_RAW_RC without completion marker; retaining claim for $article_slug and forcing drain."
+    stop_requested=true
+    stop_source="${stop_source:-worker-crash-no-marker}"
+    fatal_worker_rc=70
+    fatal_worker_detail="worker_crash_no_marker worker=$finished_id pid=$pid raw_rc=$TRIBUNAL_COMPLETED_WORKER_RAW_RC article=$article_slug claim_retained=true"
+    rc_write_state "draining" \
+      "$fatal_worker_detail"
+    unset "WORKER_PID[$finished_id]"
+    unset "WORKER_ARTICLE[$finished_id]"
+    unset "WORKER_RESULT_LOG[$finished_id]"
+    unset "WORKER_COMPLETION[$finished_id]"
+    unset "WORKER_TRACKING[$finished_id]"
+    return 70
+  fi
+  claimed_marker="$TRIBUNAL_WORKER_COMPLETION_MARKER"
   finished_id="$(sed -n 's/^worker_id=//p' "$claimed_marker" | head -1)"
   if [ -z "$finished_id" ] || [ -z "${WORKER_PID[$finished_id]:-}" ]; then
     tlog "ERROR: completion marker does not match an active worker: $claimed_marker"
@@ -853,8 +878,9 @@ wait_any_worker() {
   pid="${WORKER_PID[$finished_id]}"
   article_slug="${WORKER_ARTICLE[$finished_id]}"
   worker_result_log="${WORKER_RESULT_LOG[$finished_id]}"
+  tracking_file="${WORKER_TRACKING[$finished_id]}"
   if ! tribunal_collect_worker_completion \
-    "$claimed_marker" "$finished_id" "$pid" "$worker_result_log" "$LOG_FILE"; then
+    "$claimed_marker" "$finished_id" "$pid" "$worker_result_log" "$LOG_FILE" "$tracking_file"; then
     tlog "ERROR: worker completion attribution/flush failed for worker-$finished_id pid=$pid"
     stop_requested=true
     stop_source="${stop_source:-worker-attribution-error}"
@@ -865,6 +891,7 @@ wait_any_worker() {
     unset "WORKER_ARTICLE[$finished_id]"
     unset "WORKER_RESULT_LOG[$finished_id]"
     unset "WORKER_COMPLETION[$finished_id]"
+    unset "WORKER_TRACKING[$finished_id]"
     return 70
   fi
   rc="$TRIBUNAL_COMPLETED_WORKER_RC"
@@ -872,6 +899,7 @@ wait_any_worker() {
   unset "WORKER_ARTICLE[$finished_id]"
   unset "WORKER_RESULT_LOG[$finished_id]"
   unset "WORKER_COMPLETION[$finished_id]"
+  unset "WORKER_TRACKING[$finished_id]"
   rc_release_claim "$article_slug"
   tribunal_alert_worker_completion "$rc" "$article_slug" || true
 
@@ -907,6 +935,11 @@ drain_and_exit() {
   while (( ${#WORKER_PID[@]} > 0 )); do
     wait_any_worker
   done
+  if [ "$fatal_worker_rc" -ne 0 ]; then
+    rc_write_state "draining" "$fatal_worker_detail"
+    tlog "Fatal worker infrastructure failure; exiting rc=$fatal_worker_rc with claim retained."
+    exit "$fatal_worker_rc"
+  fi
   rc_exit_stopped
 }
 
@@ -1025,6 +1058,10 @@ while true; do
   if rc_check_stop_requested; then
     if (( ${#WORKER_PID[@]} > 0 )); then
       drain_and_exit
+    elif [ "$fatal_worker_rc" -ne 0 ]; then
+      rc_write_state "draining" "$fatal_worker_detail"
+      tlog "Fatal worker infrastructure failure; exiting rc=$fatal_worker_rc with claim retained."
+      exit "$fatal_worker_rc"
     else
       rc_exit_stopped
     fi
