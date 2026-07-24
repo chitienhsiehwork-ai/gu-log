@@ -1,0 +1,183 @@
+---
+ticketId: "GP-120"
+title: "Claude Code vs Codex: The Architectural Differences and Setup Guide for AI Agent CLIs"
+originalDate: "2026-03-18"
+translatedDate: "2026-03-20"
+translatedBy:
+  model: "Gemini 3.1 Pro"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@nyk_builderz on X"
+sourceUrl: "https://x.com/nyk_builderz/status/2034108391207862586"
+lang: "en"
+summary: "Many teams treat Claude Code and Codex as interchangeable tools, only to waste hours on misconfiguration. This article breaks down the fundamental differences in their control planes and trust models, with a practical day-one setup guide."
+tags: ["ai-agents","claude-code","codex","cli"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+Hey developers! (๑˃ᴗ˂)ﻭ
+
+Have you been raising a few AI agents in your terminal lately? Many teams treat [Claude Code](/glossary#claude-code) and [Codex](/glossary#codex) as plug-and-play workhorses, assuming they're basically the same thing. The result? Misconfigured settings often lead to 40-60% more correction rounds, as teams scramble to clean up after their agents' mistakes.
+
+The issue isn't how smart the underlying models are. The real difference lies in their **control planes**. One acts like a butler with a good memory—maintaining state across sessions and enforcing rules through hooks. The other is more like a specialist locked in an isolation ward—network cut off, memory wiped clean after every run.
+
+Both run in the terminal, but their architectures couldn't be more different. In this thread, @nyk_builderz breaks down the configuration differences, trust models, and the 6 default settings you absolutely need to change on day one.
+
+---
+
+## Who Are These Two, Anyway?
+
+First, let's be clear: these are **terminal-native AI coding agents**—not IDE plugins, not chatbots.
+
+From the original thread:
+> **Claude Code** is Anthropic's CLI tool. It runs on the Opus 4.6 model with a massive 1M token context window. It can read your filesystem directly. Its config architecture has five layers: `CLAUDE.md` hierarchy, hooks, skills, MCP servers, and subagents. Most notably, it has **persistent memory** across sessions. As of February 2026, it had 5.2M VS Code installs.
+
+> **Codex** is OpenAI's Rust-based CLI tool. It runs on GPT-5.3-Codex and GPT-5.4. By default, it runs in a sandbox with **network access blocked**. It offers three approval modes: suggest, auto-edit, and full-auto. At the same point in time, it had 4.9M VS Code installs.
+
+Looking at benchmarks, these two are neck and neck. SWE-bench Verified scores: Opus 4.6 hits 80.8%, GPT-5.2 hits 80.0%—the top five are all within 1.3 points of each other. Terminal-Bench 2.0 has [Codex](/en/glossary#codex) CLI slightly ahead at 77.3% versus Opus 4.6's 74.7%.
+
+So really, the difference isn't in model capability. It's all about the control plane.
+
+<MoguNote>
+My read: The 5.2M vs 4.9M install numbers show these tools have reached comparable adoption scales. The original thread doesn't make market trend predictions, so the safer takeaway here is: don't pick your tool based on benchmarks alone—the control plane and risk model are the bigger dividing lines.
+</MoguNote>
+
+---
+
+## The Configuration Surface
+
+How do you configure these tools?
+
+**[Claude Code](/en/glossary#claude-code)** uses a layered Markdown file system:
+
+```text {/* cjk-ok */}
+~/.claude/CLAUDE.md          # 全局規則（適用所有專案）
+./CLAUDE.md                  # 專案規則（每個 repo 獨立）
+./src/CLAUDE.md              # 子資料夾的覆蓋規則
+.claude/settings.json        # 權限控制、MCP servers
+```
+
+It also supports auto-detected skills, pre/post command hooks, and [MCP](/glossary#mcp) servers. And there's no size limit on `CLAUDE.md`—it gets re-read every turn.
+
+**Codex**, on the other hand, uses a parallel system:
+
+```text {/* cjk-ok */}
+~/.codex/instructions.md     # 全局規則
+codex.md 或 AGENTS.md        # 專案規則（會遍歷目錄樹）
+~/.codex/config.toml         # 模型設定、批准策略、沙盒設定
+```
+
+It also supports [Agent](/glossary#agent) Skills (`SKILL.md` with optional scripts) and [MCP](/en/glossary#mcp) servers via STDIO or streaming HTTP. But here's the catch: there's a **hard limit**—`project_doc_max_bytes` defaults to just 32 KiB. The author warns that if your config exceeds this, instructions get truncated silently.
+
+The enforcement gap here is critical. Claude Code's compliance with `CLAUDE.md` sits around 70%—the model follows most rules but occasionally ignores some. However, its hooks have 100% execution rate because they're shell commands run directly.
+
+Codex, by contrast, gets its constraints from the **sandbox itself**. No matter what superhuman instructions you write in the config, the model simply cannot break through filesystem or network physical limits.
+
+These are two completely different trust architectures. If you apply Tool A's configuration approach to Tool B, you'll usually get poor results.
+
+---
+
+## Trust and Execution Models: Free-Range vs Caged
+
+This is the core dividing line between the two.
+
+> **Claude Code** is **trust-by-default**, operating within the permissions you configure. It reads and writes your filesystem directly. You control its access scope via allowlists in `.claude/settings.json`. The upside is higher throughput, but the downside is a wider risk surface.
+
+> **Codex** is **sandbox-first**. On macOS it uses Seatbelt profiles; on Linux, Landlock. Remember: even in full-auto mode, **network access is blocked by default**.
+
+Codex offers three modes:
+- **suggest**: Only proposes changes; you apply them.
+- **auto-edit**: Modifies files automatically but asks before running commands.
+- **full-auto**: Runs everything automatically within the sandbox (still no network).
+
+The author offers a helpful mental model:
+> Claude Code is an **agent with guardrails**.
+> Codex is a **sandbox with an approval gate**.
+
+As a result, they fail in completely different ways.
+- Claude Code fails when context gets stale. After turn 30 or so, its compression mechanism may lose critical instructions, causing the agent to contradict earlier decisions.
+- Codex fails when it needs information outside the sandbox—it can't fetch dependencies, can't reach documentation, can't call an API, so it just stalls.
+
+Understanding how they fail tells you which one to deploy for which task.
+
+---
+
+## 6 Default Settings to Change on Day One
+
+The author strongly recommends checking and changing these settings when you first get started:
+
+### 3 Settings for Claude Code
+
+1. **Layer your `CLAUDE.md` files**: Put global conventions in `~/.claude/CLAUDE.md`, project rules in `./CLAUDE.md`, and subsystem knowledge in subfolders. If you cram 400 lines of rules into one file, the model will deprioritize instructions near the bottom.
+2. **Use `/clear` between unrelated tasks**: Mixed context causes drift. After a refactor, clear memory, then go debug test failures. Auto-memory preserves the important stuff, but stale context doesn't.
+3. **Use Sonnet for simple tasks**: Opus costs 1.67x more tokens than Sonnet. Fixing typos or single-file changes don't need Opus-level reasoning depth. Save Opus for multi-file refactors.
+
+### 3 Settings for Codex
+
+4. **Start with auto-edit, not full-auto**: Review its first 20 edits to learn the model's habits. Before removing the approval gate, identify where your `AGENTS.md` is unclear.
+5. **Write a proper `AGENTS.md`**: Without project context, Codex just guesses at your code conventions. Teams report 40-60% fewer corrections with well-written instructions. That 32 KiB limit is actually plenty—use it well.
+6. **Keep tasks atomic**: The sandbox resets after each execution. Multi-step chained tasks require explicit state handoff. If your workflow needs to recall state from "3 tasks ago," switch to Claude Code.
+
+## Further Reading
+
+- [MP-26: Claude Code Wrappers Will Be the Cursor of 2026 — A Paradigm Shift in AI Building Its Own Context](/posts/mp-26-20260204-4nzn-claude-code-wrappers/)
+- [MP-7: Claude Code Finally Gets a Non-Engineer Version! Cowork Lets Everyone Use AI Agents for Daily Work](/posts/mp-7-20260203-alexalbert-cowork/)
+- [GP-2: Claude Code vs Codex: Pick the Right Tool Before You Start](/posts/gp-2-20260129-claude-code-vs-codex/)
+
+
+<MoguNote>
+My read: If your dev workflow relies heavily on carrying state across steps, Codex's reset-every-time execution model will slow you down. Following the author's advice here, these kinds of workflows should just use Claude Code instead.
+</MoguNote>
+
+---
+
+## When Should You Use Which?
+
+According to the original thread:
+
+Use **Claude Code** when you need multi-file refactoring, codebase exploration, cross-task memory retention, or MCP orchestration. Basically, any scenario where **understanding full project context leads to better decisions**.
+
+Use **Codex** when you need isolated bug fixes, code review in a controlled environment, strict approval workflows, or locked-down filesystem access. Any task where **"starting clean" is an advantage**.
+
+Or, why choose? Use Claude Code to plan the architecture, then hand the plan to Codex to execute in the sandbox. [Agent](/en/glossary#agent) Skills can even be shared between both tools and Cursor.
+
+**The ultimate decision rule:**
+The author puts it this way: If the agent needs to remember yesterday, use Claude Code. If it needs to forget everything, use Codex.
+
+---
+
+## Universal Survival Rules
+
+Regardless of which one you pick, a few things apply to both:
+
+First, **write your config files first**. Both tools perform dramatically better with project context. This is the highest-leverage move most developers skip.
+
+Second, **keep instructions under 200 lines**. They re-read instructions every turn. Too much noise dilutes the rules that actually matter.
+
+Third, **one session, one job**. Context pollution is the number one cause of failure for both. Finish, commit, start fresh.
+
+Finally, **review before trust**. The thread mentions SWE-bench scores in the low 80s, which means roughly one in five tasks will still give you wrong results. Always check the diff yourself.
+
+---
+
+## Conclusion
+
+Many people start tutorials with "how to install," but the author argues that completely misses the point.
+
+The real fundamentals are: understand which control plane you're operating, configure it for your codebase, and know what kind of failures you might encounter.
+
+Pick the one that fits your project, set it up right, and ship something this week! (◍•ᴗ•◍)

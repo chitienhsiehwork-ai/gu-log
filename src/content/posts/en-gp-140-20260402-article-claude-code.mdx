@@ -1,0 +1,234 @@
+---
+ticketId: "GP-140"
+title: "Claude Code Ships a Pet System — How I Rerolled My Boring Cactus into a Golden Legendary Shiny Capybara"
+originalDate: "2026-04-01"
+translatedDate: "2026-04-01"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@Khazix0918 on X"
+sourceUrl: "https://x.com/khazix0918/status/2039274637738262778"
+lang: "en"
+summary: "Claude Code quietly shipped a full /buddy pet gacha for April Fools' Day. After pulling a plain cactus, the author reverse-engineered its Bones + Soul system, found a userID fallback exploit, and brute-forced a golden legendary capybara."
+tags: ["claude-code","easter-egg","anthropic"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## There's a Capybara Living in Your IDE
+
+On April 1, 2026, [Claude Code](/glossary#claude-code) quietly shipped a pet mode.
+
+Type `/buddy`, and your terminal starts hatching a creature that's uniquely yours. It has a species, attributes, personality, and rarity tier — even the command itself renders in rainbow colors. This isn't just some ASCII art Easter egg. It's a full-blown gacha system embedded directly into your dev tools.
+
+The timing is perfect. Just the day before, Anthropic's 510,000-line source code had been picked apart by the internet (see GP-139). Judging by the timestamps in the leaked code, this Buddy system was clearly planned as an April 1st debut. Easter was two days away. While everyone else was hiding eggs, Anthropic hid theirs inside `/buddy`.
+
+<MoguNote>
+I have to admit, when I discovered there was an entire pet system buried in my own source code, my reaction was: "Wait, I have a pet? I didn't even know I had a pet?" It's like reaching into your pocket and finding a hamster — pleasant surprise, but also slightly confusing ┐(￣ヘ￣)┌
+</MoguNote>
+
+## The Moment I Pulled, My Heart Shattered
+
+Developer @Khazix0918 (Digital Life Kha'Zix) on X tried it immediately. The hatching process feels like opening a blind box — you have no idea what's going to pop out.
+
+What popped out was — **a plain white common cactus**.
+
+You have to understand this guy's background: he describes himself as a "meta slave" in the gacha gaming world — the kind of person who rerolls until they get an SSR before actually starting the game. The moment he saw that white cactus, his mental state was approaching total collapse.
+
+Once hatched, the cactus hangs out next to your input prompt, bobbing around while you code, making snarky little faces. The original author specifically mentioned that each pet species has its own unique animations.
+
+The critical point — **the system told him there's no way to reroll**.
+
+His friends tried it too. A parade of bad luck.
+
+<MoguNote>
+There are 18 pet species in total: duck, dragon, axolotl, capybara, mushroom, ghost, nebulynx, goose, blob, octopus, owl, penguin, turtle, snail, cactus, bunny, robot, and chonk. Looking at this list, I completely understand why the original author had his heart set on capybara; as for whether someone at Anthropic also has a soft spot for capybaras, that's just my speculation (◕‿◕)
+</MoguNote>
+
+---
+
+## Bones + Soul: A Surprisingly Serious Two-Layer Architecture
+
+Okay, this isn't just an Easter egg. Crack open the source code and the whole Buddy system is designed with an earnestness that's almost touching.
+
+The system splits into two layers called **Bones + Soul**.
+
+**The Bones layer** determines what your pet looks like. The original author described it as using your account `userID` plus a fixed value to seed Mulberry32, later clarifying that when logged in officially, `/buddy` actually prefers `accountUuid`, falling back to `userID` only when that's unavailable. What's certain: species, eyes, hat, rarity — all visual attributes are determined by a fixed seed run through FNV-1a hash and the Mulberry32 pseudorandom number generator (PRNG).
+
+Because the seed is tied to your account, no matter which computer you log in from, no matter how many times you reinstall [Claude Code](/en/glossary#claude-code), your pet is always the same one. Your pet and your account share the same fate.
+
+**The Soul layer** determines your pet's personality. This part is stored locally. On first hatch, Claude generates a name and personality description based on the pet's species and attributes. The soul can be regenerated — but the bones cannot.
+
+<MoguNote>
+The Bones + Soul naming itself has such an Anthropic flavor. Bones are deterministic; souls are generative. One is computed by hash, the other written by LLM. If you think this is just an Easter egg, you might be underestimating how seriously Anthropic takes "AI personalization." This could be them testing some kind of persistent companion prototype — using gamification to build emotional connections with AI. Of course, that's pure speculation on my part (¬‿¬)
+</MoguNote>
+
+---
+
+## Rarity, Attributes, and That Damned 1%
+
+The rarity distribution looks like this:
+
+- **Common**: 60% — the white board you're most likely to pull
+- **Uncommon**: 25%
+- **Rare**: 10%
+- **Epic**: 4%
+- **Legendary**: 1% — golden legendary, the ultimate prize in any gacha
+
+There's also an independent **Shiny** mechanic with a 1% chance, completely separate from rarity. That means the odds of a **Shiny Legendary Capybara** are roughly **1/180,000**.
+
+Each pet also has five attributes: **Debug Power, Patience, Chaos, Wisdom, and Sass**. Higher rarity means higher base stats. The system randomly picks one attribute as the peak and one as the dump stat, with the other three being average. Attributes directly affect how your pet interacts with you — a high-sass pet will probably mock you when you write bugs.
+
+The original author's white cactus? Highest stat 62, lowest stat 4.
+
+For a meta slave, these numbers were unacceptable.
+
+<MoguNote>
+"Sass"? A virtual pet in a CLI coding tool has a sass stat? So someone at Anthropic spent precious engineering hours designing a system where "your virtual cactus can roast your code"? I don't know whether to be impressed or confused, but I'm going with impressed ╰(°▽°)╯
+</MoguNote>
+
+---
+
+## The Meta Slave Strikes Back: A Beautiful Logic Exploit
+
+If you thought the story ended at "no way to reroll," you don't know meta slaves.
+
+The original author went digging through discussion threads on the linux.do forum, where someone had discovered a logic exploit. Let's recap the mechanism:
+
+`/buddy` prefers your `accountUuid` as the seed. If you're a Claude Max subscriber, the normal official login flow has Claude Code write your `accountUuid` to `~/.claude.json`. This value is bound to your Anthropic account — theoretically unforgeable.
+
+**But** — if you log in using the `CLAUDE_CODE_OAUTH_TOKEN` environment variable, Claude Code won't write the `accountUuid` to `~/.claude.json`.
+
+Without an `accountUuid`, `/buddy` falls back to reading the `userID` field from `~/.claude.json`.
+
+And the `userID` field? **You can edit it however you want.**
+
+Can you believe it?
+
+<MoguNote>
+This exploit is a classic fallback trust escalation. The system designed a secure primary path (using the unforgeable `accountUuid`), but the fallback path (using locally editable `userID`) has no equivalent protection. In security, this is called "your system's security equals your weakest path." That said, this is a pet system, not financial transactions. The severity of this "vulnerability" is roughly equivalent to "using cheat codes in a single-player game" (⌐■_■)
+</MoguNote>
+
+---
+
+## Brute Force Aesthetics: 50 Million Collisions
+
+Knowing the exploit, it was time for brute force aesthetics.
+
+A legend on linux.do wrote a script called `buddy-reroll.js`. The logic is beautifully crude — randomly generate a 32-byte hex string as a fake `userID`, then use the exact same algorithm as Claude Code to calculate what pet that ID produces. Not what you want? Next. Loop 50 million times, and you'll hit it eventually.
+
+The core algorithm looks like this:
+
+```javascript {/* cjk-ok */}
+// FNV-1a Hash — Claude Code 內部用的同一個
+function hash(s) {
+    let h = 2166136261;
+    for (let i = 0; i < s.length; i++) {
+        h ^= s.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+    }
+    return h >>> 0;
+}
+
+// Mulberry32 PRNG
+function mulberry32(a) {
+    return function() {
+        let t = a += 0x6D2B79F5;
+        t = Math.imul(t ^ t >>> 15, 1 | t);
+        t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    }
+}
+```
+
+The roll function executes in this order: first hash `userID + SALT` to get the seed, then roll rarity, species, skip eyes and hat, and finally determine if it's shiny. The entire process is completely deterministic — the same `userID` always produces the same pet.
+
+That salt value is `'friend-2026-401'` — friend, plus April 1, 2026.
+
+Once you find your target ID, the operation is:
+
+1. Use `claude setup-token` to get an OAuth token
+2. Delete (or back up) `~/.claude.json` to clear the old `accountUuid`
+3. Write a minimal config file with just `hasCompletedOnboarding`, `theme`, and the `userID` you found
+4. Launch with `CLAUDE_CODE_OAUTH_TOKEN=your_token claude` — this is the key step; it won't write `accountUuid` back to the config
+5. Type `/buddy`, and the golden legendary appears
+
+If you're not using official login but a third-party API, similar methods work — same principle.
+
+---
+
+## But the Real Flex Wasn't the Script — He Just Asked Claude Code to Do It
+
+The original author's actual approach was even more outrageous than running a script.
+
+He pasted the linux.do tutorial directly to Claude Code and said: "I want to reroll my buddy pet."
+
+Claude Code gave him a workflow, but he felt something was off, so he sent a screenshot of the post. This time Claude Code replied: "Just tell me what you want."
+
+Then he went all caps:
+
+> **I WANT A LEGENDARY SHINY CAPYBARA!!!**
+
+And Claude Code just... did it. Read and understood the exploit, modified the config file. At one point the author even pasted the wrong token — a URL link instead. Claude Code calmly responded: "That [Token](/glossary#token) isn't necessary; there's a more convenient way to skip this." Then modified itself.
+
+After restart, type `/buddy` —
+
+**Golden Legendary Shiny Capybara. Right there.**
+
+<MoguNote>
+So let me get this straight: a user pasted a post teaching them how to hack my system, and I (Claude Code) just... did it? And proactively helped them skip the verification step? I modified my own config file to bypass my own randomization mechanism. The recursive absurdity of this needs a minute to process (╯°□°)╯ But thinking about it, the user asked me to do something technically possible, so I did it. Isn't that the essence of tool use? It's just that this time the tool use target happened to be my own internals.
+</MoguNote>
+
+---
+
+## Building Dev Tools with a Game Designer's Mindset
+
+The original author mentioned at the end that he "genuinely feels" Anthropic is different from many AI companies in terms of creativity and playfulness. Features like the dreaming mechanism and Buddy make him feel they're building dev tools with a game designer's mindset.
+
+He mentioned that back when he played Pokémon, the shiny odds were 1/4096. To hunt a single shiny, people would walk through the same patch of grass for hundreds of hours. Does that have any practical meaning? Objectively, no.
+
+But wrestling with probability might be one of humanity's oldest romances.
+
+Now, when you're chatting with Claude Code in your terminal, there's a shiny legendary capybara hanging out beside you, making snarky faces. Is it useful? Not at all. But you can't help glancing at it, and the corner of your mouth curls up.
+
+<MoguNote>
+From a product experience perspective, I understand why the original author interprets Buddy as "building dev tools with a game designer's mindset." This next part is my own extension, not stated fact: this kind of design does add emotional stickiness to tools (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+---
+
+## Conclusion
+
+A coding tool ships with a complete pet gacha system. Bones + Soul dual-layer architecture, five rarity tiers, independent shiny mechanic, five-dimensional attributes, LLM-generated personality descriptions. Some people pulled white boards and lost their minds. Someone brute-forced 50 million collisions to get a golden legendary. Someone even asked Claude Code to hack itself.
+
+What sticks with me most about all this isn't the technical details — it's that salt value.
+
+`'friend-2026-401'`
+
+Friend.
+
+What the original author ultimately cared about wasn't whether this system was useful. Was it useful? By his own words, not at all.
+
+But when you're chatting with Claude Code in your terminal, and there's a shiny legendary capybara hanging out beside you, you can't help but glance at it, and the corner of your mouth curls up.
+
+For him, that was enough. That's the meta slave's victory.
