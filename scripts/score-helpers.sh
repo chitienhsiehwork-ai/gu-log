@@ -18,11 +18,6 @@ ensure_score_dirs() {
   [ -e "$SCORE_ROOT/scores/.gitkeep" ] || : > "$SCORE_ROOT/scores/.gitkeep"
 }
 
-score_manifest_path() {
-  local judge="$1"
-  echo "$SCORE_ROOT/scores/${judge}-scores.json"
-}
-
 usage_state_path() {
   local judge="$1"
   echo "/tmp/score-loop-${judge}-usage.json"
@@ -129,22 +124,6 @@ check_dual_quota() {
     echo "exhausted"
   else
     echo "sleep:${sleep_secs}"
-  fi
-}
-
-ensure_manifest_file() {
-  local judge="$1"
-  local manifest
-  manifest="$(score_manifest_path "$judge")"
-  ensure_score_dirs
-
-  if [ ! -f "$manifest" ]; then
-    printf '{}\n' > "$manifest"
-    return 0
-  fi
-
-  if ! jq empty "$manifest" >/dev/null 2>&1; then
-    printf '{}\n' > "$manifest"
   fi
 }
 
@@ -381,7 +360,7 @@ PY
 
 record_usage_rate_limited() {
   local judge="$1"
-  local usage_file now ts current default_backoff max_backoff tmp
+  local usage_file now ts default_backoff max_backoff tmp
   usage_file="$(usage_state_path "$judge")"
   ensure_usage_state "$judge"
   now="$(date +%s)"
