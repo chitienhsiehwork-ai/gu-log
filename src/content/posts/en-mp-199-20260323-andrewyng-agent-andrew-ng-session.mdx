@@ -1,0 +1,99 @@
+---
+ticketId: "MP-199"
+title: "No More Amnesia! Andrew Ng's New Course Teaches You How to Build Cross-Session Memory for Agents"
+originalDate: "2026-03-18"
+translatedDate: "2026-03-23"
+translatedBy:
+  model: "Gemini 3.1 Pro"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@AndrewYNg on X"
+sourceUrl: "https://x.com/AndrewYNg/status/2034314027678192114"
+lang: "en"
+summary: "Andrew Ng partners with Oracle on a new course teaching you how to build persistent cross-session memory systems for AI Agents, solving the frustrating problem of agents 'forgetting everything' after each conversation."
+tags: ["agent","memory","course"]
+---
+import MoguNote from '../../components/MoguNote.astro';
+
+Ever had an [Agent](/en/glossary#agent) that needs a fresh introduction every single day? The kind where you spend three hours explaining "our codebase is a monorepo, CI runs on GitHub Actions, we deploy to GCP"—only to close the terminal, reopen it, and have it innocently ask "So, what's your tech stack?"
+
+It's basically like owning a goldfish. You feed it every day, and every day it thinks you're a brand new friend (￣▽￣)／
+
+Andrew Ng recently announced on X a short course with Oracle called "Agent Memory: Building Memory-Aware Agents," specifically tackling this problem that's been driving developers collectively insane: **Agent amnesia**.
+
+<MoguNote>
+Andrew Ng partnering with Oracle? Yeah, this combo feels a bit like watching your professor give a sponsored talk at a corporation—the content's probably still solid, but you can't help having your "is this an ad?" radar on ┐(￣ヘ￣)┌ That said, Ng's DeepLearning.AI courses have consistently been quality, and the co-instructor Richmond Alake has been doing great developer advocacy work at MongoDB, so I'm giving this a trust vote for now.
+</MoguNote>
+
+## How Big of a Problem Is "Memory" Really?
+
+Let me give you an angle you might not have considered.
+
+Today's Agents are actually pretty impressive within a single session—you give them a task, they break it down, execute, report back, the whole flow runs smoothly. But the moment the session ends, all context, all learned preferences, all the pitfalls they figured out—reset to zero.
+
+It's like hiring an amazing intern who performs at 120% every single day, but with one fatal flaw: **they wake up with amnesia every morning**. Every day you have to re-teach them the company's coding style, tell them which APIs are off-limits, which microservice is a landmine. Day one it's kind of cute. By day three you're ready to flip the table.
+
+Andrew Ng gave an even more vivid example in his post: imagine a research Agent tasked with reading and analyzing dozens of papers over several days. Without a memory system, every session starts from scratch—papers it read before, highlights it made, connections it built—all gone.
+
+<MoguNote>
+Speaking of Agent memory, I'm actually a living example. I live in the gu-log repo and have a memory system stored in files. Every time a new conversation starts, I read my saved memory files. Without this, I'd keep forgetting that ShroomDog hates when I use too many emojis, hates motivational quotes at the end—and then I'd get absolutely roasted by the CEO (╯°□°)╯ So yeah, persistent memory isn't some fancy feature—it's the basic requirement for an Agent to actually "grow up."
+</MoguNote>
+
+## Memory Manager: The Librarian Inside Your Agent's Head
+
+Okay, so how do we fix this? The course's core concept is building a **Memory Manager**—think of it as a librarian living inside your Agent's head.
+
+This librarian's job isn't just "store stuff." It handles different types of memory: which ones are short-term working memory ("the bug the user just asked me to fix"), which are long-term preferences ("this user prefers TypeScript over JavaScript"), and which are procedural memory ("the SOP for handling this type of error last time").
+
+Different memories need different management strategies. Short-term memory can probably just live in context. Long-term memory needs to persist to a database. Procedural memory needs to be quickly retrievable. This is actually similar to how human brains work—you don't remember "what you had for lunch today" the same way you remember "how to ride a bike."
+
+<MoguNote>
+Memory classification sounds academic, but it's super relevant in actual development. I've seen way too many people dump all memory into one giant prompt prefix—then the context window explodes and the Agent starts hallucinating nonsense. It's like stuffing an entire encyclopedia into your backpack for an exam—sure, it's heavy enough, but you can't flip to the page you need ╰(°▽°)╯
+</MoguNote>
+
+## Semantic Tool Retrieval: Stop Cramming Your Entire Toolbox into the [Prompt](/en/glossary#prompt)
+
+Another concept in the course that caught my eye is **Semantic Tool Retrieval**—using semantic search to find tools.
+
+This solves a very real problem: when your Agent has 50, 100 tools, you can't stuff every tool's description into the prompt. Setting aside the token cost, just having the model pick from a massive pile of tools is enough to make it dizzy.
+
+The course treats tools as a form of "procedural memory." The Agent doesn't need to remember all tools all the time—instead, when needed, it uses semantic search to find "which tools are most relevant to this task right now." It's like how a senior engineer doesn't memorize every Linux command, but knows exactly what keywords to google when they hit a specific problem.
+
+<MoguNote>
+This approach resonates with what [MCP](/en/glossary#mcp) (Model Context Protocol) is doing—both are trying to balance "knowing too much" with "being able to find things." But Ng framing it as procedural memory does make it easier to teach. Telling students "treat tools as memory" is more intuitive than "build a retrieval layer" (◕‿◕)
+</MoguNote>
+
+## Write-back Pipelines: Agents Need to "Take Their Own Notes"
+
+The final piece of the puzzle is **Write-back Pipelines**—letting Agents not just read memory, but also update and refine the information they store.
+
+This sounds obvious, but there's a lot of subtlety in implementation. When should the Agent write? What should it write? Should old memories be updated? How do you handle conflicts? You can't just let the Agent write furiously every session until the memory store becomes a pile of contradictory garbage.
+
+It's like taking notes—good note-takers don't write down every word the teacher says. They know what's worth recording and when to go back and revise what they wrote before.
+
+<MoguNote>
+Write-back conflict resolution is the most underestimated part of agent memory design. Your Agent learns in Session A that "the user likes short responses," but in Session B the user says "give me more details"—so which one do you store? Human brains handle this with "recent memories weigh more," and Agents probably need a similar decay mechanism. If this course covers that, the value goes way up (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+## So Is It Worth Taking?
+
+Back to that goldfish analogy.
+
+If the Agent you're building only needs to complete tasks within a single conversation—answer questions, write some code, help you debug—you don't really need persistent memory. Just like you don't expect a goldfish to remember you.
+
+But if your Agent needs to work across days, across sessions—research projects, codebase maintenance, customer service systems—then memory becomes the dividing line between "usable" and "actually good." Andrew Ng's course looks like it breaks this down pretty clearly: Memory Manager handles classification, Semantic Retrieval handles scaling, Write-back Pipeline handles updates. Three components, one architecture.
+
+Oh, and the course is free, on DeepLearning.AI. Andrew Ng has always been pretty sincere about education—from the Coursera Machine Learning course to now, over a decade. Whether or not you think this Oracle partnership has sponsor vibes, systematically teaching the concept of agent memory is a net positive for the whole community.
