@@ -68,7 +68,7 @@ Markdown 回應 SHALL 以內部改寫讀取既有同語系 `.md` 產物，維持
 
 ## MODIFIED Requirements
 
-### Requirement: 明確 `.md` 回應 SHALL 有正確且有界的 Vercel 契約
+### Requirement: Explicit `.md` response SHALL 有正確且有界的 Vercel 契約
 
 繁中與英文 `.md` endpoint SHALL 回傳成功狀態與 `Content-Type: text/markdown; charset=utf-8`。Vercel config SHALL 使用固定數量的路徑 pattern，不得為每篇文章展開路由；路由額度驗證 SHALL 計算標頭、轉址與改寫的總平台路由用量，並在超過平台上限前封閉失敗。同網址協商 SHALL 只在內部改寫到這些既有產物，不得改變明確 `.md`、尾端斜線、舊網址轉址或 API 路由的原有契約。
 
