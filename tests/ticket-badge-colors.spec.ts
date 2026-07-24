@@ -6,8 +6,8 @@ import { test, expect } from './fixtures';
  *
  * Deterministic canonical-article regression guard: mp-6 is flanked on both
  * sides (by originalDate, across the whole zh-tw collection) by other MP
- * posts — mp-15 (prev) and mp-17 (next) — so `.post-meta-row .ticket-mp`
- * and `.prev-next-nav .nav-ticket--mp` are always present on this one page.
+ * posts — mp-15 (prev) and mp-17 (next) — so the typed article badge and
+ * neutral `.prev-next-nav .nav-ticket` metadata are both present on this page.
  * No data-dependent skip needed.
  */
 
@@ -37,7 +37,7 @@ for (const theme of ['dark', 'light'] as const) {
     test.describe(`Ticket Badge Colors — ${theme} theme, ${viewportName}`, () => {
       test.use({ viewport });
 
-      test('GIVEN the canonical MP post WHEN checking post-meta and PrevNextNav badges THEN both resolve to --color-badge-mp, never --color-badge-gp', async ({
+      test('GIVEN the canonical MP post WHEN checking article metadata THEN the badge keeps MP color while onward navigation stays neutral', async ({
         page,
       }) => {
         await page.addInitScript((t) => localStorage.setItem('theme', t), theme);
@@ -54,12 +54,14 @@ for (const theme of ['dark', 'light'] as const) {
         expect(metaColor).toBe(mpToken);
         expect(metaColor).not.toBe(gpToken);
 
-        const navBadges = page.locator('.prev-next-nav .nav-ticket--mp');
+        const neutralToken = await resolveColorToken(page, '--color-text-muted');
+        const navBadges = page.locator('.prev-next-nav .nav-ticket');
         const navCount = await navBadges.count();
         expect(navCount).toBeGreaterThan(0);
         for (let i = 0; i < navCount; i++) {
           const navColor = await navBadges.nth(i).evaluate((el) => getComputedStyle(el).color);
-          expect(navColor).toBe(mpToken);
+          expect(navColor).toBe(neutralToken);
+          expect(navColor).not.toBe(mpToken);
           expect(navColor).not.toBe(gpToken);
         }
       });

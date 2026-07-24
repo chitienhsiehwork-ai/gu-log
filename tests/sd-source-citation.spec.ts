@@ -7,8 +7,9 @@ test.describe('SD Posts: Source Citation', () => {
     page,
   }) => {
     // Navigate to SD-1 post
-    await page.goto(BASE + '/posts/openclaw-talk-deep-dive');
+    await page.goto(BASE + '/posts/sd-1-20260209-openclaw-talk-deep-dive');
     await page.waitForLoadState('domcontentloaded');
+    await expect(page.locator('article.post')).toBeVisible();
 
     // The source citation block should not exist for SD posts
     const citation = page.locator('.source-citation');

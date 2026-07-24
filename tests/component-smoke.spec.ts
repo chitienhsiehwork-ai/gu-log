@@ -150,26 +150,29 @@ test.describe('Component smoke — post page (RelatedArticles, ShareButton, Prev
   });
 
   for (const theme of ['dark', 'light'] as const) {
-    test(`${theme} editorial navigation hover text meets WCAG AA`, async ({ page }) => {
+    test(`${theme} editorial navigation text meets WCAG AA without side-tab cards`, async ({
+      page,
+    }) => {
       await page.addInitScript((selectedTheme) => {
         localStorage.setItem('theme', selectedTheme);
       }, theme);
       await page.goto('/posts/gp-24-20260204-claude-is-a-space-to-think');
 
+      const pageBackground = page.locator('body');
       const relatedCard = page.locator('.related-card').first();
       await relatedCard.hover();
       expect(
-        await getContrastRatio(relatedCard.locator('.related-title'), relatedCard)
+        await getContrastRatio(relatedCard.locator('.related-title'), pageBackground)
       ).toBeGreaterThanOrEqual(4.5);
       expect(
-        await getContrastRatio(relatedCard.locator('.ticket-id'), relatedCard)
+        await getContrastRatio(relatedCard.locator('.ticket-id'), pageBackground)
       ).toBeGreaterThanOrEqual(4.5);
 
       const chronologicalCard = page.locator('a.nav-card').first();
       await chronologicalCard.hover();
       for (const selector of ['.nav-direction', '.nav-post-title', '.nav-ticket']) {
         expect(
-          await getContrastRatio(chronologicalCard.locator(selector), chronologicalCard)
+          await getContrastRatio(chronologicalCard.locator(selector), pageBackground)
         ).toBeGreaterThanOrEqual(4.5);
       }
 
@@ -177,10 +180,73 @@ test.describe('Component smoke — post page (RelatedArticles, ShareButton, Prev
       const seriesCard = page.locator('.series-nav-link').first();
       await seriesCard.hover();
       expect(
-        await getContrastRatio(seriesCard.locator('.series-nav-dir'), seriesCard)
+        await getContrastRatio(seriesCard.locator('.series-nav-dir'), page.locator('body'))
       ).toBeGreaterThanOrEqual(4.5);
     });
   }
+
+  test('mobile article chrome avoids repeated rounded side-tab cards', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/posts/gp-24-20260204-claude-is-a-space-to-think');
+
+    for (const locator of [
+      page.locator('.source-citation'),
+      page.locator('.related-card').first(),
+      page.locator('a.nav-card').first(),
+      page.locator('.toc-mobile .toc-toggle-container'),
+    ]) {
+      const styles = await locator.evaluate((element) => {
+        const style = getComputedStyle(element);
+        return {
+          backgroundColor: style.backgroundColor,
+          borderLeftWidth: style.borderLeftWidth,
+          borderRadius: style.borderRadius,
+        };
+      });
+      expect(styles.backgroundColor).toBe('rgba(0, 0, 0, 0)');
+      expect(styles.borderLeftWidth).toBe('0px');
+      expect(styles.borderRadius).toBe('0px');
+    }
+
+    await expect(page.locator('.source-citation')).toHaveAttribute('href', /^https?:\/\//);
+    await expect(page.locator('.source-citation')).toHaveAttribute('target', '_blank');
+    await expect(page.locator('.source-citation')).toHaveAttribute('rel', /noopener/);
+    expect((await page.locator('.source-citation').boundingBox())?.height).toBeGreaterThanOrEqual(
+      44
+    );
+    expect(
+      (await page.locator('.related-link').first().boundingBox())?.height
+    ).toBeGreaterThanOrEqual(44);
+
+    const activeMobileTocLink = page.locator('.toc-mobile .toc-link.active').first();
+    await expect(activeMobileTocLink).toBeAttached();
+    expect(
+      await activeMobileTocLink.evaluate((element) => getComputedStyle(element, '::before').content)
+    ).toBe('none');
+
+    await page.goto('/posts/gp-144-20260402-ecc-instinct-system');
+    const seriesNavLink = page.locator('.series-nav-link').first();
+    const seriesNavStyles = await seriesNavLink.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return {
+        backgroundColor: style.backgroundColor,
+        borderLeftWidth: style.borderLeftWidth,
+        borderRadius: style.borderRadius,
+      };
+    });
+    expect(seriesNavStyles).toEqual({
+      backgroundColor: 'rgba(0, 0, 0, 0)',
+      borderLeftWidth: '0px',
+      borderRadius: '0px',
+    });
+    expect(
+      (await page.locator('.series-list-toggle').boundingBox())?.height
+    ).toBeGreaterThanOrEqual(44);
+    await page.locator('.series-list-toggle').click();
+    expect(
+      (await page.locator('a.series-item-link').first().boundingBox())?.height
+    ).toBeGreaterThanOrEqual(44);
+  });
 });
 
 test.describe('Component smoke — feed/api endpoints', () => {

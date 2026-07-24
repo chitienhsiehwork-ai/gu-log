@@ -95,20 +95,11 @@ const baseUrl = lang === 'en' ? '/en/posts/' : '/posts/';
     <div class="prev-link-wrapper">
       {
         prevPost ? (
-          <a
-            href={`${baseUrl}${prevPost.id}`}
-            class={`nav-card nav-card--${(prevPost.data.ticketId?.split('-')[0] ?? '').toLowerCase()}`}
-          >
+          <a href={`${baseUrl}${prevPost.id}`} class="nav-card">
             <span class="nav-direction">{t.previous}</span>
             <span class="nav-post-title">{prevPost.data.title}</span>
             <span class="nav-post-meta">
-              {prevPost.data.ticketId && (
-                <span
-                  class={`nav-ticket nav-ticket--${prevPost.data.ticketId.split('-')[0].toLowerCase()}`}
-                >
-                  {prevPost.data.ticketId}
-                </span>
-              )}
+              {prevPost.data.ticketId && <span class="nav-ticket">{prevPost.data.ticketId}</span>}
               <span class="nav-post-date">{formatDate(prevPost.data.originalDate, lang)}</span>
             </span>
           </a>
@@ -124,20 +115,11 @@ const baseUrl = lang === 'en' ? '/en/posts/' : '/posts/';
     <div class="next-link-wrapper">
       {
         nextPost ? (
-          <a
-            href={`${baseUrl}${nextPost.id}`}
-            class={`nav-card nav-card--${(nextPost.data.ticketId?.split('-')[0] ?? '').toLowerCase()}`}
-          >
+          <a href={`${baseUrl}${nextPost.id}`} class="nav-card">
             <span class="nav-direction">{t.next}</span>
             <span class="nav-post-title">{nextPost.data.title}</span>
             <span class="nav-post-meta">
-              {nextPost.data.ticketId && (
-                <span
-                  class={`nav-ticket nav-ticket--${nextPost.data.ticketId.split('-')[0].toLowerCase()}`}
-                >
-                  {nextPost.data.ticketId}
-                </span>
-              )}
+              {nextPost.data.ticketId && <span class="nav-ticket">{nextPost.data.ticketId}</span>}
               <span class="nav-post-date">{formatDate(nextPost.data.originalDate, lang)}</span>
             </span>
           </a>
@@ -179,48 +161,23 @@ const baseUrl = lang === 'en' ? '/en/posts/' : '/posts/';
   .prev-next-container {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 0.5rem;
+    gap: 1.5rem;
+    border-top: 1px solid var(--color-divider);
   }
 
-  /* Cards — same design language as RelatedArticles */
+  /* Editorial navigation rows */
   .nav-card {
     display: flex;
     flex-direction: column;
     gap: 0.2rem;
-    padding: 0.75rem 1rem;
-    border-radius: 8px;
-    background: var(--color-surface);
-    border-left: 3px solid var(--color-border);
+    padding: 0.9rem 0;
     text-decoration: none;
-    transition: all 0.15s ease;
     cursor: pointer;
   }
 
-  a.nav-card:hover {
-    background: var(--color-surface-hover);
-    transform: translateX(2px);
-  }
-  a.nav-card:hover .nav-direction,
   a.nav-card:hover .nav-post-title,
   a.nav-card:hover .nav-ticket {
-    color: var(--color-surface-meta);
-  }
-  a.nav-card:active {
-    transform: translateX(0);
-  }
-
-  /* Left border accent per ticket type */
-  .nav-card--gp {
-    border-left-color: var(--color-badge-gp);
-  }
-  .nav-card--mp {
-    border-left-color: var(--color-badge-mp);
-  }
-  .nav-card--sd {
-    border-left-color: var(--color-badge-sd);
-  }
-  .nav-card--lv {
-    border-left-color: var(--color-badge-lv);
+    color: var(--color-source-link);
   }
 
   .nav-card--disabled {
@@ -261,18 +218,7 @@ const baseUrl = lang === 'en' ? '/en/posts/' : '/posts/';
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-  }
-  .nav-ticket--gp {
-    color: var(--color-badge-gp);
-  }
-  .nav-ticket--mp {
-    color: var(--color-badge-mp);
-  }
-  .nav-ticket--sd {
-    color: var(--color-badge-sd);
-  }
-  .nav-ticket--lv {
-    color: var(--color-badge-lv);
+    color: var(--color-text-muted);
   }
 
   .nav-post-date {
@@ -284,14 +230,17 @@ const baseUrl = lang === 'en' ? '/en/posts/' : '/posts/';
   @media (max-width: 640px) {
     .prev-next-container {
       grid-template-columns: 1fr;
-      gap: 0.5rem;
+      gap: 0;
+    }
+    .next-link-wrapper {
+      border-top: 1px solid var(--color-divider);
     }
   }
 
   /* Touch-friendly sizing */
   @media (pointer: coarse) {
     .nav-card {
-      padding: 1rem;
+      padding: 0.9rem 0;
       min-height: 64px;
     }
   }

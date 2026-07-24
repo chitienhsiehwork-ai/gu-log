@@ -17,7 +17,7 @@
 ## 3. First-screen 與 metadata hierarchy
 
 - [x] 3.1 重整 `src/pages/posts/[...slug].astro` 的 header/meta/source/TOC ordering，讓首屏 article-first。
-- [x] 3.2 保留 ticket/date/category/source attribution 可取得，但不要把它們全部 render 成同等重量的 cards；source citation 依 design.md D3 選定方案做成標題下輕量小卡（卡片質感、`inline-block` 不滿版、縮 padding、小字級）。
+- [x] 3.2 保留 ticket/date/category/source attribution 可取得，但不要把它們全部 render 成同等重量的 cards；source citation 依 design.md D3 的 preview 修正做成 inline provenance row，保留 icon、underline 與完整 touch target。
 - [x] 3.3 降低 `src/components/TableOfContents.astro` 的 desktop TOC card weight（hairline rail＋active 亮橘標記、去底色）；保留 active section affordance。
 - [x] 3.4 保持 mobile TOC 可 discover，但維持 compact。
 - [x] 3.5 「精修中」橫幅改成一行輕量狀態列，具體樣式實作時定案（教材模擬器只驗過概念，未定樣式細節）。
@@ -39,3 +39,11 @@
 - [x] 5.6 驗證細線 TOC 在 Dracula 深色主題的對比度符合 WCAG AA。
 - [x] 5.7 拿一篇缺 optional 模組（無分數／無相關文章／無版本）的文章驗 footer 間距：不留空盤、不重複分隔線。
 - [x] 5.8 跑 `uiux-auditor` skill（repo 規定：改視覺必跑；複驗 PASS 9/10，零 blocker）。
+
+## 6. Mobile preview revision
+
+- [x] 6.1 依 user 的 iPhone preview 回饋，將 source citation 從 side-tab card 改為 inline provenance row。
+- [x] 6.2 移除 mobile TOC 的 vertical rail 與 active-link side-tab；保留 compact disclosure、44px touch target 和 active state。
+- [x] 6.3 將 related、series 與 chronological onward navigation 從彩色側邊卡片收斂成中性 editorial list/divider。
+- [x] 6.4 新增 regression assertions，防止 mobile article chrome 回復成 repeated rounded surface cards + colored side borders。
+- [x] 6.5 重跑 OpenSpec strict validation、targeted tests、dark/light mobile screenshots 與 fresh-eyes `uiux-auditor`（PASS 9/10，零 blocker）。

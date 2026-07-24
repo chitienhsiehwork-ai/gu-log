@@ -49,6 +49,14 @@ Post page 的首屏 SHALL 讓 title 與 article lead 成為主要 reading path�
 - **THEN** source link SHALL 在 post page 中維持 visible 或清楚可抵達
 - **AND** source link SHALL 保留 link semantics、target 與 rel safety
 
+#### Scenario: Source attribution uses an editorial provenance row
+
+- **GIVEN** source attribution 位於 mobile article header
+- **WHEN** citation 與 TOC 一起出現在首屏
+- **THEN** citation SHALL 使用 typography、spacing、icon 與 underline 保持可辨識
+- **AND** citation SHALL 維持 inline row，而不是獨立的 filled surface container
+- **AND** citation SHALL NOT 使用 container border、rounded card radius 或 decorative left rail
+
 ---
 
 ### Requirement: TOC MUST be useful navigation with lower visual weight than the article
@@ -69,6 +77,7 @@ Table of contents SHALL 對 long articles 維持 available，但 desktop 與 mob
 - **WHEN** reader 開啟 post
 - **THEN** 若 headings 存在，TOC SHALL 可被 discover
 - **AND** TOC SHALL NOT 在 article lead 前消耗不成比例的 first-screen height
+- **AND** mobile TOC SHALL NOT 使用 decorative vertical rail 或 active-link side-tab
 
 ---
 
@@ -106,6 +115,8 @@ Version history SHALL 繼續與 technical provenance metadata grouped 在一起�
 - **AND** action controls SHALL 在視覺上和 provenance metadata 區分開
 - **AND** onward navigation SHALL 在視覺上和 comments 區分開
 - **AND** combined footer SHALL NOT 讀起來像一整面連續 dashboard wall
+- **AND** related、series 與 chronological navigation SHALL 使用中性 divider、文字層級與留白形成 editorial rows
+- **AND** onward navigation SHALL NOT 使用 filled surface containers、rounded card chrome、ticket-colored side rails 或位移 hover
 
 #### Scenario: Optional modules are absent
 
