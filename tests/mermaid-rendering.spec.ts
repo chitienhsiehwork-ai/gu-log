@@ -88,4 +88,56 @@ test.describe('Mermaid rendering', () => {
       ).toBeLessThanOrEqual(MOBILE_VIEWPORT.height - SAFE_CHROME_RESERVE);
     });
   }
+
+  test('GIVEN a rendered diagram WHEN the reader changes theme THEN the diagram and overlay use the active theme tokens', async ({
+    page,
+  }) => {
+    await page.setViewportSize(MOBILE_VIEWPORT);
+    await page.addInitScript(() => localStorage.setItem('theme', 'dark'));
+    await page.goto('/posts/levelup-20260608-12-llm-internals/');
+
+    const diagram = page.locator('.mermaid-wrapper').first();
+    const nodeOutline = diagram.locator('.rough-node path').first();
+    await expect(nodeOutline).toBeVisible({ timeout: 60_000 });
+
+    const resolveColorVariable = (name: string) =>
+      page.evaluate((variableName) => {
+        const raw = getComputedStyle(document.documentElement)
+          .getPropertyValue(variableName)
+          .trim();
+        const probe = document.createElement('span');
+        probe.style.color = raw;
+        document.body.appendChild(probe);
+        const resolved = getComputedStyle(probe).color;
+        probe.remove();
+        return resolved;
+      }, name);
+
+    const darkSurface = await resolveColorVariable('--color-surface');
+    await expect
+      .poll(() => nodeOutline.evaluate((element) => getComputedStyle(element).stroke))
+      .toBe(darkSurface);
+    await expect(diagram).toHaveCSS(
+      'background-color',
+      await resolveColorVariable('--color-bg-muted')
+    );
+
+    await page.locator('.theme-toggle').click();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+
+    const lightSurface = await resolveColorVariable('--color-surface');
+    await expect
+      .poll(() => nodeOutline.evaluate((element) => getComputedStyle(element).stroke))
+      .toBe(lightSurface);
+    expect(lightSurface).not.toBe(darkSurface);
+    await expect(diagram).toHaveCSS(
+      'background-color',
+      await resolveColorVariable('--color-bg-muted')
+    );
+
+    await diagram.locator('.mermaid-expand-btn').click();
+    const overlay = diagram.locator('xpath=following-sibling::*[1]');
+    await expect(overlay).toBeVisible();
+    await expect(overlay).toHaveCSS('background-color', await resolveColorVariable('--color-bg'));
+  });
 });

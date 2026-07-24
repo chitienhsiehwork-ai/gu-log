@@ -56,10 +56,10 @@ const { chart, caption } = Astro.props;
   .mermaid-wrapper {
     position: relative;
     margin: 1.5rem 0;
-    border: 1px solid var(--border-color, #e0d8c8);
+    border: 1px solid var(--color-border);
     border-radius: 8px;
     overflow: hidden;
-    background: var(--code-bg, #fdf6e3);
+    background: var(--color-bg-muted);
   }
 
   .mermaid-scroll {
@@ -84,24 +84,24 @@ const { chart, caption } = Astro.props;
   .mermaid-caption {
     text-align: center;
     font-size: 0.85rem;
-    color: var(--text-muted, #93a1a1);
+    color: var(--color-text-muted);
     margin: 0;
     padding: 0.5rem 1rem 0.75rem;
-    border-top: 1px solid var(--border-color, #e0d8c8);
+    border-top: 1px solid var(--color-border);
   }
 
   .mermaid-expand-btn {
     position: absolute;
     top: 8px;
     right: 8px;
-    background: var(--code-bg, #fdf6e3);
-    border: 1px solid var(--border-color, #e0d8c8);
+    background: var(--color-bg-muted);
+    border: 1px solid var(--color-border);
     border-radius: 4px;
     padding: 4px 6px;
     cursor: pointer;
     opacity: 0.6;
     transition: opacity 0.2s;
-    color: var(--text-color, #657b83);
+    color: var(--color-text);
     z-index: 1;
   }
 
@@ -114,7 +114,7 @@ const { chart, caption } = Astro.props;
     position: fixed;
     inset: 0;
     z-index: 9999;
-    background: #fdf6e3;
+    background: var(--color-bg);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -140,9 +140,9 @@ const { chart, caption } = Astro.props;
     top: 16px;
     right: 16px;
     z-index: 10000;
-    background: rgba(0, 0, 0, 0.1);
+    background: var(--color-panel-subtle);
     border: none;
-    color: #657b83;
+    color: var(--color-text);
     font-size: 1.5rem;
     width: 40px;
     height: 40px;
@@ -154,36 +154,41 @@ const { chart, caption } = Astro.props;
   }
 
   .mermaid-close-btn:hover {
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--color-divider);
   }
 
   /* Loading state */
   .mermaid-render:empty::after {
     content: '載入圖表中...';
-    color: var(--text-muted, #93a1a1);
+    color: var(--color-text-muted);
     font-size: 0.85rem;
   }
 </style>
 
 <script>
+  function readThemeColor(styles: CSSStyleDeclaration, name: string) {
+    return styles.getPropertyValue(name).trim();
+  }
+
   // Initialize all Mermaid diagrams on page load
   async function initMermaidDiagrams() {
     const mermaidUrl = 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
     const { default: mermaid } = await import(/* @vite-ignore */ mermaidUrl);
+    const themeStyles = getComputedStyle(document.documentElement);
 
     mermaid.initialize({
       startOnLoad: false,
       theme: 'base',
       look: 'handDrawn',
       themeVariables: {
-        primaryColor: '#fdf6e3',
-        primaryTextColor: '#657b83',
-        primaryBorderColor: '#93a1a1',
-        lineColor: '#93a1a1',
-        secondaryColor: '#eee8d5',
-        tertiaryColor: '#fdf6e3',
-        noteTextColor: '#657b83',
-        noteBkgColor: '#eee8d5',
+        primaryColor: readThemeColor(themeStyles, '--color-surface'),
+        primaryTextColor: readThemeColor(themeStyles, '--color-surface-meta'),
+        primaryBorderColor: readThemeColor(themeStyles, '--color-border'),
+        lineColor: readThemeColor(themeStyles, '--color-text-muted'),
+        secondaryColor: readThemeColor(themeStyles, '--color-surface-hover'),
+        tertiaryColor: readThemeColor(themeStyles, '--color-bg-muted'),
+        noteTextColor: readThemeColor(themeStyles, '--color-surface-meta'),
+        noteBkgColor: readThemeColor(themeStyles, '--color-surface'),
         fontFamily: '"Virgil", "LXGW WenKai TC", cursive, system-ui',
       },
       flowchart: { htmlLabels: true, curve: 'basis' },
@@ -234,7 +239,7 @@ const { chart, caption } = Astro.props;
         const { svg } = await mermaid.render(id, def);
         renderTarget.innerHTML = svg;
       } catch (e) {
-        renderTarget.innerHTML = `<pre style="color:#dc322f;font-size:0.8rem;">Mermaid error: ${e}</pre>`;
+        renderTarget.innerHTML = `<pre style="color:var(--color-status-danger);font-size:0.8rem;">Mermaid error: ${e}</pre>`;
         continue;
       }
 
@@ -243,23 +248,25 @@ const { chart, caption } = Astro.props;
         const overlayContent = overlay.querySelector('.mermaid-overlay-content');
         const closeBtn = overlay.querySelector('.mermaid-close-btn');
 
-        expandBtn.addEventListener('click', () => {
+        (expandBtn as HTMLElement).onclick = () => {
           if (overlayContent) {
             overlayContent.innerHTML = renderTarget.innerHTML;
           }
           (overlay as HTMLElement).style.display = 'flex';
           document.body.style.overflow = 'hidden';
-        });
+        };
 
         const closeOverlay = () => {
           (overlay as HTMLElement).style.display = 'none';
           document.body.style.overflow = '';
         };
 
-        closeBtn?.addEventListener('click', closeOverlay);
-        overlay.addEventListener('click', (e) => {
+        if (closeBtn) {
+          (closeBtn as HTMLElement).onclick = closeOverlay;
+        }
+        (overlay as HTMLElement).onclick = (e) => {
           if (e.target === overlay) closeOverlay();
-        });
+        };
       }
     }
   }
@@ -271,4 +278,10 @@ const { chart, caption } = Astro.props;
     initMermaidDiagrams();
   }
   document.addEventListener('astro:page-load', initMermaidDiagrams);
+
+  new MutationObserver((mutations) => {
+    if (mutations.some((mutation) => mutation.attributeName === 'data-theme')) {
+      initMermaidDiagrams();
+    }
+  }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 </script>
