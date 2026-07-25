@@ -101,7 +101,7 @@ const FIXTURES = {
     <div class="mermaid-wrapper" data-markdown-adapter="mermaid">
       <div class="mermaid-scroll">
         <div class="mermaid-source" style="display:none;" data-mermaid>graph TD</div>
-        <div class="mermaid-render"></div>
+        <div class="mermaid-render" data-loading-label="Loading diagram..."></div>
       </div>
       <button class="mermaid-expand-btn" aria-label="Expand" title="Zoom">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
@@ -244,7 +244,7 @@ test('mogu-note accepts the complete optional summary and toggle branch', () => 
   );
   root.children.push(
     fixture(
-      '<button class="mogu-note-toggle" type="button" aria-expanded="false" aria-controls="mogu-note-content-1" hidden><span class="mogu-note-toggle-icon" aria-hidden="true">v</span><span class="mogu-note-toggle-label">Expand</span></button>'
+      '<button class="mogu-note-toggle" type="button" aria-expanded="false" aria-controls="mogu-note-content-1" data-label-expand="Expand full note" data-label-collapse="Collapse" hidden><span class="mogu-note-toggle-icon" aria-hidden="true">v</span><span class="mogu-note-toggle-label">Expand full note</span></button>'
     )
   );
   assert.doesNotThrow(() => assertRenderedAdapterDomContract(root));

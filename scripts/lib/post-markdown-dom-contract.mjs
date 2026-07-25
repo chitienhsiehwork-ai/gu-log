@@ -185,6 +185,8 @@ const moguToggle = node('button', ['mogu-note-toggle'], {
     type: 'button',
     ariaExpanded: 'false',
     ariaControls: NON_EMPTY,
+    dataLabelExpand: NON_EMPTY,
+    dataLabelCollapse: NON_EMPTY,
     hidden: true,
   }),
   children: [
@@ -481,7 +483,11 @@ const mermaidRoot = node('div', ['mermaid-wrapper'], {
               text: 'any',
             })
           ),
-          child(node('div', ['mermaid-render'])),
+          child(
+            node('div', ['mermaid-render'], {
+              attributes: attrs({ dataLoadingLabel: NON_EMPTY }),
+            })
+          ),
         ],
       })
     ),

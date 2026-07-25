@@ -70,3 +70,43 @@ for (const theme of THEMES) {
     }
   });
 }
+
+test.describe('DiffBlock color contrast', () => {
+  for (const theme of THEMES) {
+    test(`${theme} theme passes WCAG AA`, async ({ page }) => {
+      await page.addInitScript((activeTheme) => {
+        localStorage.setItem('theme', activeTheme);
+      }, theme);
+      await page.goto('/posts/sd-19-20260409-lightning-talk-ralph-loop/', {
+        waitUntil: 'networkidle',
+      });
+      await page.evaluate((activeTheme) => {
+        document.documentElement.dataset.theme = activeTheme;
+      }, theme);
+      await page.waitForTimeout(300);
+
+      const results = await new AxeBuilder({ page })
+        .include('.diff-block')
+        .withRules(['color-contrast'])
+        .analyze();
+
+      const violations = results.violations.flatMap((violation) =>
+        violation.nodes.map((node) => ({
+          target: node.target.join(' > '),
+          message: node.failureSummary,
+        }))
+      );
+      expect(violations).toEqual([]);
+
+      const body = page.locator('.diff-body').first();
+      await body.evaluate((element) => {
+        element.textContent = 'W'.repeat(120);
+      });
+      const overflow = await body.evaluate((element) => ({
+        body: element.scrollWidth - element.clientWidth,
+        document: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      }));
+      expect(overflow).toEqual({ body: 0, document: 0 });
+    });
+  }
+});

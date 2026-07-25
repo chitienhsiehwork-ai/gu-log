@@ -1,0 +1,225 @@
+---
+ticketId: "MP-265"
+title: "GPU Shortage 2.0: When Renting GPUs Is Harder Than Renting an Apartment—H100 Rates Up 40% in Six Months"
+originalDate: "2026-04-08"
+translatedDate: "2026-04-08"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "SemiAnalysis Newsletter"
+sourceUrl: "https://newsletter.semianalysis.com/p/the-great-gpu-shortage-rental-capacity"
+lang: "en"
+summary: "SemiAnalysis examines the 2026 GPU rental crunch: H100 one-year lease rates jumped from $1.70 to $2.35 per GPU-hour, on-demand capacity sold out, and Blackwell deployments filled through September as a self-reinforcing shortage took hold."
+tags: ["gpu","neocloud","infrastructure","semianalysis"]
+scores:
+  ralph:
+    p: 8
+    c: 8
+    v: 8
+    score: 8
+    date: "2026-04-08"
+    model: "claude-opus-4-6"
+---
+import MoguNote from '../../components/MoguNote.astro';
+
+The 2023 GPU shortage left a mark on the entire tech industry. Back then, getting your hands on an H100 was like scoring concert tickets—money alone wasn't enough.
+
+Many assumed it was a one-time event. Blackwell would ship, production capacity would catch up, things would normalize.
+
+Wrong. SemiAnalysis's latest report delivers a brutal reality check: the 2026 GPU rental market is tighter than 2023. Not "a little tight"—"can't even rent 64 GPUs" tight.
+
+<MoguNote>
+The original SemiAnalysis report used a vivid metaphor—they said trying to rent a GPU cluster right now is "like trying to buy drugs." Not a figure of speech, but literal: murky supply, prices changing daily, and you need connections to find anything. When a respected semiconductor research firm compares the GPU market to drug deals, that image alone tells you how bad things have gotten (╯°□°)╯
+</MoguNote>
+
+## H100 Rates Up 40% in Six Months: The Numbers
+
+Let's start with the hard data. SemiAnalysis has been tracking GPU rental prices since 2023, covering H100, H200, B200, B300, GB200, GB300, and AMD's MI300 series—from on-demand to five-year contracts. Their index is built from survey data across over 100 market participants (Neocloud providers, compute buyers and sellers), cross-validated against actual transaction data.
+
+The core number: **H100 one-year lease contract pricing went from $1.70/hr/GPU at the October 2025 low to $2.35/hr/GPU by March 2026. In under six months, that's close to a 40% increase.**
+
+But the trend line alone doesn't capture the intensity. Look at the monthly cadence:
+
+- Late January: rental rates broke the $2.00/hr/GPU barrier
+- Mid-to-late February: another 15-20% jump
+- Late March estimate: yet another 15-20%
+
+On-demand capacity? Completely sold out. Every GPU type. On AWS, customers are paying $14/hr/GPU to snatch B200 spot instances. Tenants who already have on-demand instances are holding on despite price hikes—no one wants to release capacity back to the market.
+
+<MoguNote>
+Picture this: an apartment's monthly rent jumps from $1,500 to $2,100, but the tenant won't even consider moving because leaving means never finding another place. This isn't the landlord hiking prices—it's the entire market telling everyone: "If you have a seat, stay seated. Stand up and it's gone." That's the GPU market right now ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## Why Every Prediction From Six Months Ago Was Wrong
+
+Here's the most ironic part: **six months ago, almost everyone called it wrong.**
+
+In the second half of 2025, the consensus view went like this: Blackwell is ramping up, the new generation offers massive performance gains, so Hopper-generation (H100, H200) rental rates should keep falling. Financial analysts even criticized any Neocloud that dared use a six-year depreciation cycle—"These GPUs will be scrap metal in three years; what justifies six?"
+
+But by late 2025, H100 demand wasn't falling—it was strengthening. The rapid spread of open-weight models (GLM, Kimi K2.5) drove inference demand through the roof, and different workloads favor different GPU generations—large MoE inference runs best on GB300 NVL72, but training jobs often deliver better value on H100. The old cards didn't become obsolete; for certain use cases, they're still the optimal choice.
+
+Then in January, the memory market blew up.
+
+<MoguNote>
+The causal chain here is elegant—worth following carefully: open-source model explosion → inference demand surge → not just new cards, even old cards are tight → meanwhile memory price spikes raise server costs → new deployments get expensive so supply shrinks → rental market tightens further → rates soar. Each link reinforces the next. This is a textbook positive feedback loop (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+---
+
+## The Memory Price Spike and Its Chain Reaction
+
+In January 2026, DRAM and NAND prices shifted from "steady climb" to "parabolic mode." According to SemiAnalysis's Memory Model, LPDDR5 and DDR5 contract prices saw year-over-year increases in a single quarter approaching roughly 4x and 5x, respectively.
+
+What does that mean? The cost structure of AI servers got blown wide open.
+
+OEMs (the companies assembling and selling servers to customers) started repricing to protect their margins. But the markups they added far exceeded the actual component cost increases. SemiAnalysis called it the "AI Server Pricing Apocalypse."
+
+The consequence? Anyone looking to deploy new GPU clusters found: server procurement costs skyrocketing → expected ROI getting squeezed → some operators simply slowed or canceled deployments. New supply that should have come online got stuck.
+
+Supply dropped, but demand didn't. Through January and February, the remaining idle GPU capacity got devoured. By March—whether H100, H200, or B200, regardless of contract length—it was essentially all gone.
+
+---
+
+## What Happened on the Demand Side
+
+Supply getting stuck is half the story. The other half is the demand-side explosion.
+
+**First wave: native media generation.** Platforms like Seedance and Nano Banana let users generate and iterate on images and videos at massive scale, sending token throughput through the roof.
+
+**Second wave—and the biggest: multi-[agent](/glossary#agent) workflows.** Multiple AI agents executing multi-step tasks simultaneously, high concurrency, continuous iteration—token consumption went parabolic.
+
+The poster child for this wave is [Claude Code](/glossary#claude-code).
+
+SemiAnalysis used their own company as an example: over the past seven days, they consumed billions of tokens at an average cost of about $5/M tokens. But the time saved and capabilities unlocked far exceeded that cost. They're now deploying AI tools beyond search and summarization—dashboard building, automated scraping, large-scale data wrangling, agentic financial modeling.
+
+One metric they track is Claude Commits Daily. At the current trajectory, they estimate that by the end of 2026, **[Claude Code](/en/glossary#claude-code) will contribute over 20% of all daily commits.** For SemiAnalysis's full thesis on how AI coding is reshaping the hardware supply chain, see their [earlier analysis on AI coding and NVIDIA](/posts/mp-214-20260327-semianalysis-ai-coding-slop-oss-ai-pr-nvidia/).
+
+<MoguNote>
+Let that number sink in: one-fifth of all code commits worldwide might come from Claude Code. This isn't a growth story about some niche tool—this is software development as an industry being rewritten. SemiAnalysis put it bluntly: "While you blinked, AI consumed all of software development." While everyone's still debating whether AI will replace engineers, it's already writing code (⌐■_■)
+</MoguNote>
+
+Then there are Anthropic's numbers. Demand for Claude 4.6 Opus and Claude Code surged, and SemiAnalysis's tracking shows Anthropic's ARR (annual recurring revenue) more than tripled in a single quarter, jumping from $9B to over $30B. Add in fundraising from Anthropic, OpenAI, and various Neolabs, and all that money ultimately becomes GPU demand.
+
+SemiAnalysis highlighted a key economic logic: **if the ROI on using AI tools is 5-10x, GPU rental rates have plenty of room to rise.** Prices need to climb high enough to suppress demand, but 5-10x ROI means even doubling rental rates might not be enough to make people stop.
+
+---
+
+## Market Structure: Three Tiers, Each With Its Own Logic
+
+The GPU market isn't as simple as "suppliers list a price, buyers go shopping." It's split into three tiers, each with completely different pricing dynamics.
+
+The surface layer is **on-demand / spot** (under three months). The counterintuitive thing here: prices barely move, but utilization does. Using this tier's listed prices to judge whether "the market is cold" is like reading a thermometer that's stuck.
+
+The middle tier is **one-to-three-year contracts**—SemiAnalysis's main focus. This is where AI-native companies and smaller AI labs operate, and it's the most sensitive thermometer for capturing "marginal demand." The SemiAnalysis H100 one-year index targets this tier.
+
+The deepest layer is **four-to-five-year mega-contracts**. The domain of major AI labs—a single deal covers 50MW or 100MW clusters (roughly 24,000 to 48,000 GB300 NVL72 GPUs). These transactions account for an enormous share of the total Neocloud market, but they're almost never made public.
+
+<MoguNote>
+Here's an analogy for the three tiers: short-term is like Airbnb (rent out vacant units as they come), medium-term is like a standard apartment lease (contract, deposit, stability), and long-term is like leasing an entire office building (take the whole thing, decide on renovations yourself). Right now, from Airbnb to whole-building leases, everything is fully booked ╰(°▽°)╯
+</MoguNote>
+
+Interestingly, long-term contracts are rational for both buyers and sellers—but the rationale points in opposite directions, yet leads to the same outcome. AI labs want certainty (bare metal, control their own tech stack). Neoclouds want favorable financing terms (long contracts can be packaged for loans, locking in GPU rental rate risk while generating steady double-digit IRR). A third party makes this structure even more elegant: **hyperscalers provide credit guarantees**. The Neocloud gets AAA credit terms for better loan conditions, the hyperscaler takes a cut of project revenue without expanding their balance sheet, the AI lab gets stable compute—everyone gets what they want. SemiAnalysis foresaw this procurement structure in their earlier [analysis of disaggregated GPU deployment planning](/posts/mp-212-20260326-semianalysis-disaggregated-planning/).
+
+---
+
+## Even Subleasing Has Emerged
+
+How tight is the market? SemiAnalysis has heard that some GPU lessees are starting to **carve up clusters and sublease them**—like subdividing an apartment into smaller units during the Monaco Grand Prix.
+
+They half-joked: Is the era of "Neocloud subletting" upon us?
+
+Meanwhile, H100 contracts are being renewed at **the exact same rates as two or three years ago**. Some H100 contracts are even being extended to 2028—a four-year deal. Looking for an 8-node (64 GPU) H100 or H200? Half the providers simply say "sold out"; most of the rest report that they have no Hopper GPU contract capacity expiring to release.
+
+Blackwell isn't easy to find either. Delivery times for new Blackwell deployments have pushed out to June or July. All capacity scheduled to come online before August or September has already been fully booked.
+
+<MoguNote>
+GPU subleasing. Subletting. These words in the context of the semiconductor industry have a surreal absurdity. Three years ago, everyone was discussing "will GPU residual value go to zero?" Now the discussion is "can we slice up rented GPUs and sublease them for a profit?" The market narrative is flipping faster than the GPUs are depreciating (¬‿¬)
+</MoguNote>
+
+---
+
+## Neoclouds Flip the Script: From Begging to Sell to Choosing Buyers
+
+Six months ago, Neoclouds were begging to sell.
+
+Before late 2025, these providers had GPUs in hand while demand was still ramping up. Their only pricing strategy was: "Get utilization up first—don't let cards sit idle"—because everyone feared the next-gen Blackwell would drop and Hopper cards would instantly become scrap metal. Multiple providers slashed prices to the bone to win customers.
+
+Now, customers are begging to buy.
+
+Neoclouds and hyperscalers are in the driver's seat: prepayment terms, contract length, start and end dates—they call all the shots. No rush, because prices are going up every month; waiting only gets them better terms. Before it was "what if we can't sell?" Now it's "who should we sell to for the best deal?"
+
+---
+
+## The Gap Between Public Markets and Ground Truth
+
+SemiAnalysis pointed to a puzzling phenomenon: **the GPU rental market is clearly tightening, prices are clearly soaring, Neocloud profits are clearly expanding—yet these companies' stock prices are all languishing.**
+
+Names like CoreWeave, Nebius, IREN—all trading near the bottom of their six-to-twelve-month ranges. The market is still clinging to the narrative that "eventually there'll be oversupply, GPUs will become commodities." The sustained scarcity and pricing power happening on the ground hasn't shaken investors' pessimistic expectations about GPU terminal value.
+
+But from a fundamental standpoint, SemiAnalysis believes rising rental rates are improving Neocloud ROIC—deployed capital is generating higher returns due to margin expansion. At the same time, higher rental rates extend the economic lifespan of existing GPUs, meaning investments can generate cash flows over longer periods.
+
+<MoguNote>
+SemiAnalysis's subtext here is pretty obvious—they think the public markets are getting it wrong. Of course, they have their own position (they're deeply involved in GPU rental brokerage), so readers should judge for themselves. But at least from a data standpoint, the contradiction between "supply tightening + rental rates soaring + margins expanding" and "stock prices at lows" is genuinely interesting. Markets aren't always right, but markets can stay wrong for a long time ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## Looking Ahead: Three Variables to Watch
+
+SemiAnalysis listed three key variables that will determine where GPU rental rates go from here:
+
+**One: the pace of GB300 cluster deployments.** GB300 is rolling out throughout 2026. The question: can the new compute and token supply keep up with demand growth? If not, AI labs will keep fighting over the medium-term contract market (four years and under), and rates will keep climbing.
+
+**Two: whether the silicon wafer shortage worsens.** TSMC's N3 advanced process capacity, HBM, DRAM, NAND—every link in the chain is tight. And these complex manufacturing processes can hiccup at any moment, further constraining supply.
+
+**Three: AI lab ARR growth and token consumption velocity.** This is the fundamental demand driver. As more Fortune 500 companies and general users realize how absurd AI tool ROI is, token consumption will keep stepping up.
+
+SemiAnalysis's conclusion is direct: **the probability of GPU rental rates continuing to rise is far higher than the probability of them falling.**
+
+And this dynamic is self-reinforcing—Neoclouds see supply tightening and prices rising, so they rush to grab hardware before further increases, which squeezes supply even tighter and pushes prices even higher. It's the same playbook as the 2023-2024 GPU drought—though SemiAnalysis also believes the server market has matured enough that the OEM margin bonanza may not repeat.
+
+---
+
+## What Makes the SemiAnalysis Index Different
+
+The core product of this report is SemiAnalysis's publicly released H100 one-year contract rental price index. Its fundamental difference from most GPU indices in the market comes down to one thing: **contract market transaction prices aren't public, so spot listed prices don't count.**
+
+Most transaction volume happens in the long-term contract market, where prices are bilaterally negotiated and never appear in any public database. SemiAnalysis's approach is to interact directly with market participants, tracking the story behind every quote—getting ground truth, not billboard prices.
+
+---
+
+## Conclusion
+
+Six months ago, the market consensus was that GPUs would get cheaper. Six months later, H100 rental rates are up 40%, all capacity is sold out, and even Blackwell is booked into fall. "This time is different" are the four most dangerous words in financial markets, but SemiAnalysis couldn't resist asking at the end of their report: This Time Might Be Different?
+
+Their thesis rests on three pillars. First, if AI tool ROI really is 5-10x, that means even doubling rental rates might not suppress demand. Second, the supply side is being squeezed from three directions—memory price hikes, server price hikes, and manufacturing bottlenecks. Third, most Fortune 500 companies haven't even entered the market yet—they're only now hearing about Claude Code from NPR podcasts.
+
+While early adopters are already unable to secure GPUs, the mainstream market wave hasn't arrived.
+
+If SemiAnalysis is right, what we're seeing isn't a bubble. It's the opening act.
+
+<MoguNote>
+After reading through this whole piece, one thing stands out to [Mogu](/about) as most worth remembering: this isn't just a "GPUs are expensive" story. It's a story about **the shape of the demand curve changing**. Before, it was "GPUs are expensive so use less." Now it's "GPUs are expensive but 10x ROI so use them no matter what they cost." When price increases can't effectively suppress demand, economics textbooks will tell you—the supply side can keep raising prices until the elasticity of the demand curve changes. And what SemiAnalysis is saying is: that inflection point still looks very far away (◕‿◕)
+</MoguNote>
