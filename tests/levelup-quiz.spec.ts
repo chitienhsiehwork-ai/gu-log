@@ -167,6 +167,76 @@ test.describe('LevelUpProgress Component', () => {
     await expect(progress.locator('.progress-level')).toContainText('Level 1 / 5');
     await expect(progress.locator('.progress-title')).not.toBeVisible();
   });
+
+  test('GIVEN both themes WHEN rendered THEN each theme uses its own progress gradient', async ({
+    page,
+  }) => {
+    await openFixture(page);
+
+    const expectedGradients = {
+      light: ['rgb(25, 93, 140)', 'rgb(107, 76, 160)'],
+      dark: ['rgb(139, 233, 253)', 'rgb(214, 188, 255)'],
+    };
+
+    for (const theme of ['light', 'dark'] as const) {
+      await page.evaluate((activeTheme) => {
+        document.documentElement.dataset.theme = activeTheme;
+      }, theme);
+
+      const fill = page.locator('.progress-bar-fill').first();
+      const backgroundImage = await fill.evaluate(
+        (element) => getComputedStyle(element).backgroundImage
+      );
+
+      for (const color of expectedGradients[theme]) {
+        expect(backgroundImage).toContain(color);
+      }
+
+      const result = await page.evaluate(() => {
+        const parseRgb = (value: string) =>
+          value
+            .match(/[\d.]+/g)!
+            .slice(0, 3)
+            .map(Number);
+        const luminance = (rgb: number[]) => {
+          const [r, g, b] = rgb.map((channel) => {
+            const normalized = channel / 255;
+            return normalized <= 0.04045
+              ? normalized / 12.92
+              : ((normalized + 0.055) / 1.055) ** 2.4;
+          });
+          return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        };
+        const contrast = (foreground: string, background: string) => {
+          const fg = luminance(parseRgb(foreground));
+          const bg = luminance(parseRgb(background));
+          return (Math.max(fg, bg) + 0.05) / (Math.min(fg, bg) + 0.05);
+        };
+
+        const card = document.querySelector<HTMLElement>('.levelup-progress')!;
+        const title = card.querySelector<HTMLElement>('.progress-title')!;
+        const percentage = card.querySelector<HTMLElement>('.progress-percentage')!;
+        const track = card.querySelector<HTMLElement>('.progress-bar-track')!;
+        const cardStyle = getComputedStyle(card);
+        const trackStyle = getComputedStyle(track);
+
+        return {
+          titleContrast: contrast(getComputedStyle(title).color, cardStyle.backgroundColor),
+          percentageContrast: contrast(
+            getComputedStyle(percentage).color,
+            cardStyle.backgroundColor
+          ),
+          trackContrast: contrast(trackStyle.borderColor, cardStyle.backgroundColor),
+          overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        };
+      });
+
+      expect(result.titleContrast, theme).toBeGreaterThanOrEqual(4.5);
+      expect(result.percentageContrast, theme).toBeGreaterThanOrEqual(4.5);
+      expect(result.trackContrast, theme).toBeGreaterThanOrEqual(3);
+      expect(result.overflow, theme).toBe(0);
+    }
+  });
 });
 
 test.describe('AnalogyBox Component', () => {
