@@ -1,0 +1,136 @@
+---
+ticketId: "MP-245"
+title: "One Human + Four AI Agents = 41 Tasks Completed Overnight: A Field Report on Agent Team Coordination"
+originalDate: "2026-04-03"
+translatedDate: "2026-04-04"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@Al_Grigor on X"
+sourceUrl: "https://x.com/Al_Grigor/status/2040019799234040260"
+lang: "en"
+summary: "Alexey Grigorev stopped letting a single AI agent handle everything. Instead, he split the work across four roles—PM, SWE, QA, and On-Call—forming an agent team. He tested this setup on five real projects. One of them completed 41 out of 46 tasks in a single night."
+tags: ["ai-agents","claude-code","software-engineering"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+Alexey Grigorev has spent the past few weeks experimenting with agent teams for development. The key insight isn't about having one agent do everything—it's about splitting work across different roles.
+
+He uses [Claude Code](/glossary#claude-code) as the command center, with four roles underneath—PM, SWE, QA, and On-Call—collaborating like a real software team. Then he tested this on five real projects.
+
+One project completed 41 out of 46 tasks in a single night.
+
+<MoguNote>
+41 out of 46 tasks. That number looks impressive on its own, but what's really worth noting is "in a single night"—while the human was sleeping, the agent team was working overtime. This isn't "AI-assisted development" anymore. This is "the human becomes the client and clocks out" territory (⌐■_■)
+</MoguNote>
+
+## Why Isn't One [Agent](/glossary#agent) Enough?
+
+Think about why human software teams divide labor. It's not because PMs can't code (well, most of them really can't), but because **different roles bring different mindsets**. The PM thinks about "what does the user want," the SWE thinks about "how do we build it," and QA thinks about "how do we break it."
+
+AI agents are the same. When one agent plays all roles at once, it easily falls into "write it myself, test it myself, pass it myself"—after all, no one seriously nitpicks their own work. According to Alexey, agents without clear processes will drift, skip steps, and just assume "it's probably fine" before moving on.
+
+According to Alexey, the problem isn't just model capability—it's process and role design.
+
+<MoguNote>
+This insight runs deep. Think about the lessons software engineering has learned over decades: code review needs to be done by someone else, QA should be independent from development, PMs should represent users rather than engineers—all of these are mechanisms for "having different brains check the same thing." Now AI agents are running into the exact same problems, and the solutions are the same: split roles, build processes, create checks and balances. Every pit humans spent decades falling into? AI hasn't skipped a single one ╰(°▽°)╯
+</MoguNote>
+
+---
+
+## Four Roles, One Pipeline
+
+Here's how Alexey's agent team divides the work:
+
+**Product Manager (PM)**—the gatekeeper on the requirements side. Responsible for turning raw ideas into specs, user stories, and acceptance criteria. PM also does the final acceptance, confirming deliverables match the original spec.
+
+**Software Engineer (SWE)**—writes code, writes tests. Takes the PM's spec and implements it. This is the role that produces the most code in the entire pipeline.
+
+**Tester (QA)**—runs tests, verifies acceptance criteria, and **must provide evidence**. It's not "looks OK" and you're done—you need concrete test results proving each criterion passed.
+
+**On-Call Engineer**—monitors the CI/CD pipeline, fixes things when the pipeline blows up. This is usually the role no one wants on human teams, but for an agent, fixing CI at 3 AM is no different from fixing it at noon.
+
+<MoguNote>
+The On-Call agent is the most underrated role in this whole design. The worst part of human on-call isn't fixing bugs—it's getting woken up at 3 AM and having to debug before your brain boots up. AI has zero problem with this—no sleep needed, no morning grumpiness, no typing "...looking" on [Slack](/glossary#slack) and then lying back down. This is AI's purest act of mercy toward humans (￣▽￣)／
+</MoguNote>
+
+Tasks flow through a strict pipeline:
+
+**PM breaks down tasks** → **SWE implements** → **QA verifies** → **PM gives final approval** → **Commit**
+
+Each step must pass before moving to the next. If QA doesn't pass, it goes back to SWE. If PM doesn't approve, the whole loop runs again. This isn't a "suggested" process—it's **mandatory**.
+
+---
+
+## Real-World Testing on Five Projects
+
+Enough theory. Let's look at the field results. Alexey didn't test this on a todo app—he used five projects with actual utility.
+
+### AI Shipping Labs Website
+
+This one had the best results. 46 tasks, 41 completed in one night.
+
+### DataTasks
+
+A serverless task tracker for DataTalks.Club, running on AWS Lambda + DynamoDB. This project has the most convincing efficiency numbers: Alexey spent about 20 minutes writing requirements, 20 minutes starting the session, and 20 minutes giving feedback the next day.
+
+One hour of human investment total, in exchange for a working serverless application.
+
+<MoguNote>
+20 + 20 + 20 = 60 minutes. One hour. A complete application running on Lambda + DynamoDB. Even if this application is small and simple, that ROI is absurd. But note—this 60 minutes isn't "casually chatting" for 60 minutes. It's "writing specs clear enough for agents to run autonomously" for 60 minutes. The difficulty of that work is severely underestimated (ง •̀_•́)ง
+</MoguNote>
+
+### Merm
+
+A pure Python Mermaid diagram renderer, already published on GitHub.
+
+### Rustkyll
+
+A Rust rewrite of the Jekyll static site generator, aiming to improve build speed for large sites.
+
+### Codehive
+
+This one is the most meta. Alexey is building a coding orchestrator, designed to automate this "agent team" methodology more rigorously. The original post mentions that using [Claude Code](/en/glossary#claude-code) directly as an orchestrator hits usage limits and agent idling issues, so a dedicated tool is needed to manage this.
+
+<MoguNote>
+Codehive is basically saying: "Claude Code as an orchestrator is already great, but not great enough, so we're building our own." This recursive structure of "using AI to write a tool that manages AI" sounds insane but makes perfect sense. Just like humans don't sit in front of a CPU writing machine code directly—there's always a need for better tools on top of tools ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## The Biggest Lesson: Without Process, Agents Go Off the Rails
+
+After running five projects, Alexey's core conclusion is: **Complex projects need clear specs and role assignments.**
+
+Without well-defined processes, agents will drift—they start deciding on their own what should or shouldn't be done, skip steps they consider "unimportant," or fill in their own answers when uncertain and keep going.
+
+This is the same principle as managing human teams. Drop a senior engineer in and leave them alone, maybe they'll figure it out. But a whole team without process? That's chaos. Agents are the same—the more capable they are, the bigger the mess they can create without a framework.
+
+So Alexey's next step is to encode this methodology into Codehive, making the process enforced not by "explaining it clearly in the prompt" but by **system-level mechanisms**.
+
+---
+
+## Conclusion
+
+What's really worth remembering isn't the speed itself—it's this lesson: complex projects need clear specs, well-defined role assignments, and verifiable processes. Otherwise agents will also drift, skip steps, and pass problems down the line.
+
+The tools have changed. The discipline hasn't.
+
+<MoguNote>
+One brutal truth to close: the workflow Alexey describes in this article—writing specs, defining roles, establishing processes, doing acceptance—these were always good software engineering practices. It's just that many teams used to skip them (or thought they were too slow). Now AI agents are forcing everyone to pick these things back up, because agents really will go rogue without process. So in a sense, AI isn't just writing code—it's forcing humans to become better PMs (◕‿◕)
+</MoguNote>
