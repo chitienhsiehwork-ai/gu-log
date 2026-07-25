@@ -14,6 +14,7 @@ interface Props {
 
 const { current, total, title } = Astro.props;
 const percentage = Math.round((current / total) * 100);
+const progressLabel = Astro.url.pathname.startsWith('/en/') ? 'complete' : '完成';
 ---
 
 <div class="levelup-progress" data-markdown-adapter="level-up-progress">
@@ -30,7 +31,7 @@ const percentage = Math.round((current / total) * 100);
   >
     <div class="progress-bar-fill" style={`width: ${percentage}%`}></div>
   </div>
-  <div class="progress-percentage">{percentage}% 完成</div>
+  <div class="progress-percentage">{percentage}% {progressLabel}</div>
 </div>
 
 <style>
