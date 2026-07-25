@@ -29,8 +29,8 @@ func TestClaudeWriterModelPreservesPinnedVersion(t *testing.T) {
 	if got := a.Model(); got != ModelClaudeOpus {
 		t.Fatalf("alias Model() = %q, want %q", got, ModelClaudeOpus)
 	}
-	if got := DisplayName(a.Model()); got != "Opus 4.8" {
-		t.Fatalf("alias DisplayName = %q, want %q", got, "Opus 4.8")
+	if got := DisplayName(a.Model()); got != "Opus 5" {
+		t.Fatalf("alias DisplayName = %q, want %q", got, "Opus 5")
 	}
 }
 
