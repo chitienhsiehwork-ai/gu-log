@@ -1,0 +1,173 @@
+---
+ticketId: "GP-261"
+title: 'Claude Code in the Morning, Codex in the Afternoon: An Agent''s Experience, Cut Into Three'
+originalDate: '2026-07-24'
+translatedDate: '2026-07-25'
+translatedBy:
+  model: "Opus 5"
+  harness: "Claude Code CLI"
+
+
+  pipeline:
+    - role: "Written"
+      model: "Opus 5"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 5"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 5"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Rewritten"
+      model: "Opus 5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "Opus 5"
+      harness: "gp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@Letta_AI on X"
+sourceUrl: 'https://x.com/Letta_AI/status/2080535211473850822'
+lang: 'en'
+summary: 'Letta has open-sourced trajectory, which normalizes the work records left behind by Claude Code, Codex, OpenClaw and other harnesses into one format written for agents to read; on the transcripts they sampled, it brings token counts down to roughly a fifth of native. Cross-harness learning starts with agreeing on a standard format for the experience each harness produces.'
+tags: ['agent', 'memory', 'coding-agents', 'open-source']
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 10
+    commentarySeparation: 9
+    score: 8
+    date: "2026-07-25"
+    model: "claude-opus-5"
+  librarian:
+    glossary: 7
+    crossRef: 7
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-07-25"
+    model: "claude-opus-5"
+  freshEyes:
+    readability: 8
+    firstImpression: 9
+    payoffDensity: 9
+    lengthFit: 9
+    clarity: 9
+    score: 8
+    date: "2026-07-25"
+    model: "claude-opus-5"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 9
+    narrative: 8
+    score: 8
+    date: "2026-07-25"
+    model: "claude-opus-5"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+You open [Claude Code](/glossary#claude-code) in the morning to fix a broken program, switch to [Codex](/glossary#codex) in the afternoon for a different one, then come back to Letta Code in the evening to wrap up. Three stretches of work leave three records behind, sitting in three folders, written in three formats.
+
+To a human, that's just switching tools. To an [Agent](/glossary#agent) trying to get better from its own past, it's three diaries written in three different scripts — and it can only read its own.
+
+Letta has open-sourced `trajectory`, which normalizes the work records produced by [Claude Code](/en/glossary#claude-code), [Codex](/en/glossary#codex), `@pidotdev`, LangChain's `deepagents`, [OpenClaw](/glossary#openclaw), Letta Code and other [harnesses](/glossary#agent-harness) into a single format — and one designed to be cheap for an agent to read.
+
+## The Problem Isn't a Shortage of Experience
+
+Agents today are still limited in how much they can improve themselves from past experience. Worse, the experience itself has been cut apart: plenty of people already bounce between Claude Code, Codex and Letta Code, and inside an organization it's usually everyone on whichever harness they happen to prefer. So building memory, learning, even dreaming all stay boxed inside one harness and one user.
+
+Cross-harness learning starts with agreeing on a standard format for the experience each harness produces. Learning today happens mostly at the token level — the weights stay untouched, and the agent reads its own past to grow system prompts, [Skills](/glossary#skill), even modifications to the harness itself. Which means an ideal experience format has to do two things at once: **standardize across harnesses**, so that format differences don't become noise in their own right, and stay **token-efficient**, so the agent can get through that experience as cheaply as possible.
+
+<MoguNote summary="Dreaming is not poetry here, and this site is the specimen — drafts in Claude Code, scoring in Codex, no shared diary.">
+"Dreaming" isn't poetic license here, it's a very concrete thing: during offline hours, with nobody issuing instructions, the agent re-reads what it did during the day and works it into memory or procedures it can use later. We talked about the idea in [SD-25](/posts/sd-25-20260525-agent-dream-skill-consolidation/).
+
+And as for experience being siloed inside each harness — this site is a live specimen. The GP pipeline already runs across harnesses: drafting happens in Claude Code CLI, while review and scoring often move over to Codex CLI. To a human editor that's a few folders. To an agent trying to learn something from them, it's several diaries in foreign languages. A unified format sounds like chores, but it's really the line between having something to learn from and having nothing.
+</MoguNote>
+
+---
+
+## Same Data, Two Kinds of Reader
+
+Normalizing agent trajectories isn't new. Harbor's [ATIF](https://github.com/harbor-framework/harbor/blob/main/rfcs/0001-trajectory-format.md) is one such format, but it serves a different goal: it was built for faithful replay and for running benchmarks, so it keeps per-step token statistics, structured tool content, and untruncated output.
+
+`trajectory` is aimed at a different reader — an agent reading past work records in order to form memory. Whether the same data is going to be replayed frame by frame or skimmed for the gist decides what's worth keeping and what can go.
+
+---
+
+## Keep the Experience, Drop the Bookkeeping
+
+A `trajectory` is a sequence of records: assistant messages, user messages, reasoning, tool calls, tool results. The first record carries information about which harness the transcript came from. The full spec lives in the repo as [`trajectory-v1.schema.json`](https://github.com/letta-ai/trajectory/blob/main/schema/trajectory-v1.schema.json).
+
+The format keeps only what's needed to understand the agent's experience, and throws away the ledger the harness keeps for itself: the envelope wrapped around every line, duplicated content, UI event streams, encrypted reasoning blocks. Overly long tool results can optionally be truncated on top of that. On the transcripts they sampled, this brings token counts down to roughly a fifth of the native format.
+
+```text
+                          Claude Code                    Codex
+Native                    951,115 tokens                 3,919,385 tokens
+Harbor ATIF               835,187 tokens (1.1x saving)   2,371,530 tokens (1.7x saving)
+Trajectory (untruncated)  211,923 tokens (4.5x saving)   1,938,450 tokens (2.0x saving)
+Trajectory (default)      170,934 tokens (5.6x saving)     727,516 tokens (5.4x saving)
+```
+
+That last row, the default mode, is the one that truncates overly long tool results.
+
+<MoguNote summary="Think swapping JSON for YAML saves tokens? Measured: 7.6% more. You pay for field names, not punctuation.">
+Token-saving comes with an intuition trap that's very easy to walk into: JSON's quotes and braces are so noisy, surely YAML would be cheaper? I measured it on data shaped like a `trajectory`, and the answer is no. It's more expensive (¬‿¬)
+
+In the "lots of short records" case — a pile of tool calls paired with truncated results, which is what default mode looks like on an ordinary day — spec-compliant YAML burns 7.6% more tokens than JSONL. What actually eats tokens was never the punctuation. It's the field names that have to be re-announced on every single record — `role`, `tool_call_id`, a whole ISO timestamp — plus all the `\n` escapes buried inside long strings.
+
+Throw that envelope away and lay long strings out as they are, and the same data comes in 38.7% under JSONL; switch to the "long content" case and it still saves 7.5%. Empty out the content entirely and leave only the format itself, and the gap is at its most naked: 210 tokens against 394. The script is parked in [this site's repo](https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/experiments/trajectory-format-tokens.mjs) if you want to re-run it yourself. Tokenization is `gpt-tokenizer`'s `o200k_base`; Claude splits differently, so the absolute numbers will drift, but what's being compared here is the ratio between layouts of the same data.
+</MoguNote>
+
+---
+
+## Pull Them Out, Convert Them Over
+
+The package itself does two things: list the records any given harness has left on this machine, then convert one into a normalized `trajectory`. Cross-harness data can then be pooled and indexed together, or handed straight to the agent in charge of memory.
+
+```typescript
+import { listTrajectories, normalizeTranscript } from "@letta-ai/trajectory";
+import { readFileSync } from "fs";
+
+// Discover local Claude Code sessions (also works for codex, letta-code, ...)
+const page = await listTrajectories({ source: "claude-code", limit: 10 });
+
+// Normalize one into the standard record format
+const transcript = readFileSync(page.items[0].path, "utf8");
+const { records, diagnostics } = normalizeTranscript({
+  source: "claude-code",
+  transcript,
+});
+```
+
+---
+
+## What Letta Code Does With It
+
+The Letta Code harness already uses the `trajectory` format to normalize what local agents like Claude Code and Codex leave behind. Past records get read through once, to lay a foundation for the agent's memory.
+
+So when it dreams, the agent can pick records from every harness on the machine and normalize them — a lesson learned over in Claude Code or Codex enters memory in exactly the same way its own records do. Pushing further out, aggregating experience across many harnesses, and even many users, into learning and memory is the next step Letta is hoping to see.
+
+If you want to try it: `npm install -g @letta-ai/trajectory` gets you the package. And once Letta Code is installed (`npm install -g @letta-ai/letta-code`), running `/init` inside it will go read the experience other harnesses left behind.
+
+<MoguNote summary="That 38.7% saving is a display layer, not storage — one CRLF and your data breaks without making a sound.">
+That 38.7% layout from earlier comes with a lethal caveat: it only works as a one-way presentation layer. It cannot be your storage format.
+
+Spec-compliant YAML is expensive precisely because it's buying insurance the whole time — the `|2-` indentation indicator in front of long strings, the fallback to quoted mode the moment it meets a CRLF. Those ugly bits are exactly how it guarantees that what goes in is what comes out. Take them away and of course it gets cheaper; the price is that the moment your content contains a CRLF or trailing whitespace, the data breaks quietly, and breaks without making a sound.
+
+So the sane way to land this isn't to replace JSON, it's to split the layers: keep JSON for storage, and stack a layout on top of it meant for humans and agents to read. Not losing anything is the format's job; being readable is the layout's job. Those two were never supposed to be carried by the same layer.
+</MoguNote>
+
+---
+
+## Closing
+
+Back to those three records from this morning. A unified format doesn't generate new experience by itself. All it does is make the mistake you made in Claude Code yesterday still count when you're over in Codex today.
+
+The experience was always there. Not one bit of it ever went missing. The only difference is whether it sits in three folders, each doing its own thing, or finally gets written down in one script.
