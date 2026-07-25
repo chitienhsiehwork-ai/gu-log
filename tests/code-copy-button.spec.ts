@@ -24,6 +24,7 @@ test.describe('Code copy button theme contract', () => {
     };
 
     for (const theme of ['light', 'dark'] as const) {
+      await page.mouse.move(0, 0);
       await page.evaluate((activeTheme) => {
         document.documentElement.dataset.theme = activeTheme;
       }, theme);
@@ -35,14 +36,23 @@ test.describe('Code copy button theme contract', () => {
           background: style.backgroundColor,
           color: style.color,
           opacity: style.opacity,
+          hoverNone: matchMedia('(hover: none)').matches,
           overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
         };
       });
 
       expect(styles.background, theme).toBe(expected[theme].background);
       expect(styles.color, theme).toBe(expected[theme].color);
-      expect(styles.opacity, theme).toBe('1');
+      expect(styles.opacity, theme).toBe(styles.hoverNone ? '1' : '0');
       expect(styles.overflow, theme).toBe(0);
+
+      if (!styles.hoverNone) {
+        await buttons
+          .first()
+          .locator('..')
+          .hover({ position: { x: 10, y: 10 } });
+        await expect(buttons.first()).toHaveCSS('opacity', '1');
+      }
     }
   });
 });
