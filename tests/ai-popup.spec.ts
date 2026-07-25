@@ -245,14 +245,35 @@ test.describe('Auth Callback', () => {
   });
 
   test('GIVEN callback page with no token WHEN loaded THEN shows error', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => localStorage.setItem('theme', 'light'));
     await page.goto('/auth/callback');
     await page.waitForTimeout(200);
 
+    const callbackStatus = page.locator('.callback-status');
+    await expect(callbackStatus).toHaveAttribute('role', 'status');
+    await expect(callbackStatus).toHaveAttribute('aria-live', 'polite');
+    await expect(callbackStatus).toHaveAttribute('aria-atomic', 'true');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+    await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(253, 246, 227)');
+
     const status = page.locator('#status');
     await expect(status).toContainText('Login failed');
+    await expect(page).toHaveTitle('Login failed');
+    await expect(page.locator('.spinner')).toBeHidden();
 
     const errorMsg = page.locator('#error');
     await expect(errorMsg).toBeVisible();
+    await expect(errorMsg).toContainText('Choose an option below');
+    const retryLink = page.getByRole('link', { name: 'Try GitHub login again' });
+    await expect(retryLink).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Back to homepage' })).toBeVisible();
+    expect(
+      await retryLink.evaluate((element) => element.getBoundingClientRect().height)
+    ).toBeGreaterThanOrEqual(44);
+    await retryLink.focus();
+    await expect(retryLink).toBeFocused();
+    await expect(retryLink).toHaveCSS('outline-style', 'solid');
   });
 
   test('GIVEN return URL in localStorage WHEN callback succeeds THEN redirects to return URL', async ({
