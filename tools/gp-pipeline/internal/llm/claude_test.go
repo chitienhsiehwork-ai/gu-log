@@ -34,6 +34,29 @@ func TestClaudeWriterModelPreservesPinnedVersion(t *testing.T) {
 	}
 }
 
+// TestDisplayNameWholeNumberClaudeGeneration locks the Claude 5 naming shape:
+// 5-generation ids carry no minor version, so "claude-opus-5" must render
+// "Opus 5" (not the raw id) and still resolve to the Claude harness. The 4.x
+// major-minor ids and the dated Haiku build must keep working unchanged.
+func TestDisplayNameWholeNumberClaudeGeneration(t *testing.T) {
+	cases := map[ModelID]string{
+		"claude-opus-5":             "Opus 5",
+		"claude-sonnet-5":           "Sonnet 5",
+		"claude-opus-4-5":           "Opus 4.5",
+		"claude-haiku-4-5-20251001": "Haiku 4.5",
+		"anthropic/claude-opus-5":   "Opus 5",
+		"claude-opus-5[1m]":         "Opus 5",
+	}
+	for id, want := range cases {
+		if got := DisplayName(id); got != want {
+			t.Errorf("DisplayName(%q) = %q, want %q", id, got, want)
+		}
+		if got := HarnessName(id); got != "Claude Code CLI" {
+			t.Errorf("HarnessName(%q) = %q, want Claude Code CLI", id, got)
+		}
+	}
+}
+
 func TestPrimaryModelUsagePicksHighestOutput(t *testing.T) {
 	single := map[string]modelUsageEntry{"claude-opus-4-5": {OutputTokens: 12}}
 	if got := primaryModelUsage(single); got != "claude-opus-4-5" {
