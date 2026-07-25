@@ -106,7 +106,17 @@ if (INPUT_FILE) {
 } else {
   process.stderr.write('No --input file given. Generating suggestions inline...\n');
   const suggestScript = path.join(__dirname, 'suggest-crosslinks.mjs');
-  const output = execFileSync(process.execPath, [suggestScript], { encoding: 'utf-8' });
+  // execFileSync's default maxBuffer is 1MB, and the suggestions JSON outgrew
+  // that once the corpus passed ~1000 posts. The failure surfaced as a bare
+  // `spawnSync ENOBUFS`, which reads like a spawn problem rather than "output
+  // too big", and the step is only advisory here — so it failed quietly while
+  // looking like an infrastructure hiccup. Lifting the cap keeps the whole
+  // payload in memory (a few MB of JSON), which is the same thing the caller
+  // does with it anyway once parsed.
+  const output = execFileSync(process.execPath, [suggestScript], {
+    encoding: 'utf-8',
+    maxBuffer: Infinity,
+  });
   suggestions = JSON.parse(output);
   process.stderr.write(`Generated ${suggestions.length} suggestions inline.\n`);
 }
