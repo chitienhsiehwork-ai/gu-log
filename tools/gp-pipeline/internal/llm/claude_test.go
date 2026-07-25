@@ -4,15 +4,16 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
 // TestClaudeWriterModelPreservesPinnedVersion locks the regression that made a
-// pinned writer build get stamped with the floating alias's version: Model()
-// must keep the concrete pinned id, DisplayName must render that pin (never the
-// alias display), and Name() must still collapse to the family label for logs.
-// Assertions derive from ClaudeOpusPinned so bumping the pin does not require
-// editing this test — the pin's value lives in claude.go, not here.
+// pinned writer build get stamped from the family fallback instead of its own
+// id: Model() must keep the concrete pinned id, DisplayName must render that id
+// (not pass the raw build id through), and Name() must still collapse to the
+// family label for logs. Assertions derive from ClaudeOpusPinned so bumping the
+// pin does not require editing this test — the pin lives in claude.go, not here.
 func TestClaudeWriterModelPreservesPinnedVersion(t *testing.T) {
 	w := NewClaudeOpusWriter()
 	if got := w.Model(); got != ModelID(ClaudeOpusPinned) {
@@ -24,13 +25,21 @@ func TestClaudeWriterModelPreservesPinnedVersion(t *testing.T) {
 	}
 
 	// The floating alias carries no version, so it resolves to the family
-	// constant and DisplayName maps it to the current concrete Opus.
+	// constant and DisplayName maps it to whichever concrete Opus the alias
+	// currently points at. The invariant is that a versionless alias never
+	// reaches provenance verbatim — the concrete value itself floats, so it is
+	// asserted by shape, not by literal (its SSOT is OPUS_ALIAS_CURRENT in
+	// scripts/detect-model.mjs, mirrored by the ModelClaudeOpus case below).
 	a := NewClaudeOpus()
 	if got := a.Model(); got != ModelClaudeOpus {
 		t.Fatalf("alias Model() = %q, want %q", got, ModelClaudeOpus)
 	}
-	if got := DisplayName(a.Model()); got != "Opus 4.8" {
-		t.Fatalf("alias DisplayName = %q, want %q", got, "Opus 4.8")
+	got := DisplayName(a.Model())
+	if got == string(ModelClaudeOpus) || got == ClaudeOpusAlias {
+		t.Fatalf("alias DisplayName = %q, must resolve to a concrete build, not the alias", got)
+	}
+	if !strings.ContainsFunc(got, func(r rune) bool { return r >= '0' && r <= '9' }) {
+		t.Fatalf("alias DisplayName = %q, want a version number", got)
 	}
 }
 
@@ -89,16 +98,15 @@ printf '{"result":"ok","modelUsage":{"%s":{"outputTokens":7}}}\n' "$model"
 }
 
 // assertPinnedDisplay checks a pinned-writer provenance stamp without hardcoding
-// the pin: it must be a rendered display name (not the raw build id), and it
-// must differ from the floating alias's display — the alias leaking into a
-// pinned stamp is the provenance bug these tests guard.
+// the pin: it must be rendered from the pinned id itself, not passed through as
+// the raw build id. It deliberately does NOT assert "differs from the alias
+// display" — when the pin and the floating alias happen to sit on the same
+// generation those names coincide legitimately, so that would be a flaky
+// assertion about Anthropic's release timing rather than about our code.
 func assertPinnedDisplay(t *testing.T, label, got string) {
 	t.Helper()
 	if got == ClaudeOpusPinned {
 		t.Fatalf("%s DisplayName = %q, want a rendered name, not the raw build id", label, got)
-	}
-	if alias := DisplayName(ModelClaudeOpus); got == alias {
-		t.Fatalf("%s DisplayName = %q, must not collapse to the floating alias display", label, got)
 	}
 	if want := DisplayName(ModelID(ClaudeOpusPinned)); got != want {
 		t.Fatalf("%s DisplayName = %q, want %q", label, got, want)

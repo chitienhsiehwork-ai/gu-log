@@ -26,7 +26,7 @@
  *
  * ⚠️ BUMP THIS when a newer Opus ships and the `opus` alias moves to it.
  */
-export const OPUS_ALIAS_CURRENT = 'claude-opus-4-8';
+export const OPUS_ALIAS_CURRENT = 'claude-opus-5';
 
 /**
  * Resolve a model selector to the concrete id used for RECORDING. The literal

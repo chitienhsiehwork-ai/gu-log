@@ -73,7 +73,7 @@ func DisplayName(m ModelID) string {
 	}
 	switch m {
 	case ModelClaudeOpus:
-		return "Opus 4.8"
+		return "Opus 5"
 	case ModelClaudeSonnet:
 		return "Sonnet 4.6"
 	case ModelClaudeHaiku:
