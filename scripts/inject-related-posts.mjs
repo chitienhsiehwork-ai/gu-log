@@ -19,6 +19,7 @@
  */
 
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { execFileSync } from 'child_process';
@@ -106,8 +107,27 @@ if (INPUT_FILE) {
 } else {
   process.stderr.write('No --input file given. Generating suggestions inline...\n');
   const suggestScript = path.join(__dirname, 'suggest-crosslinks.mjs');
-  const output = execFileSync(process.execPath, [suggestScript], { encoding: 'utf-8' });
-  suggestions = JSON.parse(output);
+  // Pipe the child's stdout straight to a temp file instead of capturing it in
+  // memory. execFileSync's default maxBuffer is 1MB, and the suggestions JSON
+  // outgrew that once the corpus passed ~1000 posts — the failure surfaced as a
+  // bare `spawnSync ENOBUFS`, which reads like a spawn problem rather than
+  // "output too big". Redirecting to a file has no ceiling, so this cannot
+  // regress again as the corpus keeps growing.
+  const tmpFile = path.join(
+    fs.mkdtempSync(path.join(os.tmpdir(), 'crosslinks-')),
+    'suggestions.json'
+  );
+  try {
+    const fd = fs.openSync(tmpFile, 'w');
+    try {
+      execFileSync(process.execPath, [suggestScript], { stdio: ['ignore', fd, 'inherit'] });
+    } finally {
+      fs.closeSync(fd);
+    }
+    suggestions = JSON.parse(fs.readFileSync(tmpFile, 'utf-8'));
+  } finally {
+    fs.rmSync(path.dirname(tmpFile), { recursive: true, force: true });
+  }
   process.stderr.write(`Generated ${suggestions.length} suggestions inline.\n`);
 }
 
