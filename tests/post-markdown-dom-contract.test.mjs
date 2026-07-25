@@ -101,7 +101,7 @@ const FIXTURES = {
     <div class="mermaid-wrapper" data-markdown-adapter="mermaid">
       <div class="mermaid-scroll">
         <div class="mermaid-source" style="display:none;" data-mermaid>graph TD</div>
-        <div class="mermaid-render"></div>
+        <div class="mermaid-render" data-loading-label="Loading diagram..."></div>
       </div>
       <button class="mermaid-expand-btn" aria-label="Expand" title="Zoom">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
