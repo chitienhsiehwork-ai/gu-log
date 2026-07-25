@@ -599,3 +599,15 @@ Sprin asked whether Tribunal v7 FreshEyes covers “length should be just right,
 - 情境：MP〈夢想變成工作之後〉翻 Ryo Lu 的 "you can still prompt, review, decide, ship"。FreshEyes judge 嫌英文動詞在安靜散文裡有摩擦感，writer 全翻成中文（下指令 / 審稿 / 做決定 / 出貨）。ShroomDog 看過選項後定調：prompt / review / ship 在台灣 tech 圈口語就是講英文，留著反而自然；「出貨」則幾乎沒人講，講的是「上線」。decide 維持中文「做決定」。
 - 修法：正文改回「還是可以 prompt、review、做決定、ship，讓事情繼續動」。
 - Reusable lesson：(1) **judge 的 taste ≠ ShroomDog 的 taste**：FreshEyes 對「英文動詞摩擦感」的判斷在這裡被 owner 推翻——工程圈實際口語的英文動詞（prompt / review / ship / merge / commit 這類）不算晶晶體，硬翻反而失真。(2) **「出貨」是翻譯腔警訊**：ship 對應的台灣口語是「上線」（或直接留 ship）；「出貨」是製造業詞彙滲進軟體語境。(3) 動詞留不留英文的判準是「工程師嘴巴上怎麼講」，不是「字典能不能翻」。
+
+## 2026-07-25 — writer / vibe scorer pin 從 Opus 4.5 換到 Opus 5
+
+### Feedback: 「try use opus 5 instead of opus 4.5 for writer and vibe scorer」
+
+- ShroomDog feedback：`And try use opus 5 instead of opus 4.5 for writer and vibe scorer`（GP 任務同一句話裡交代）。
+- 情境：2026-06-18 定的 standing 規則是「voice-sensitive（writer / rewriter / vibe scorer）鎖 `claude-opus-4-5`，非-voice judge（fact-check / librarian / fresh-eyes）走浮動 `opus` alias」。這次 owner 要換代，但只換 voice-sensitive 那組——浮動那組維持不動，分類邏輯沒變，只是 pin 的目標世代往前挪。
+- 修法：
+  1. `.claude/agents/tribunal-writer.md`、`.claude/agents/vibe-opus-scorer.md` 的 `model:` 改 `claude-opus-5`，PIN 註解換新 sign-off，舊 pin（4-5 / 4-6）留成 calibration history。
+  2. `tools/gp-pipeline/internal/llm/claude.go` 的 `ClaudeOpusPinned` 同步（Go pipeline 的 writer SSOT，跟 frontmatter 必須同代）。
+  3. 換代才踩到的坑：Claude 5 世代的 build id 沒有小數 minor（`claude-opus-5`），`llm/models.go` 的 family regex 原本寫死 `major-minor` 兩段數字，match 不到就讓 `DisplayName` 吐原始 id、`HarnessName` 回 `Unknown Harness`，最後卡在 validate-posts Rule 15。regex 的 minor 段改成 optional，`scripts/detect-model.mjs` 的 `MODEL_MAP` 補 `claude-opus-5` → `Opus 5`。
+- Reusable lesson：(1) **writer 跟 vibe scorer 永遠一起換代**——pin 的用意就是 generate 跟 grade 共用同一套 taste，只動一邊等於自己拆掉校準。(2) **換 model 世代要先檢查命名格式假設**：4.x 是 `family-major-minor`、5 世代是 `family-major`，任何 parse model id 的 regex / map 都要一起看，不然錯誤會延遲到 commit 前的驗證器才炸。(3) 測試不要寫死 pin 的值——`llm` 的測試原本硬編 `"Opus 4.5"`，換代就得改測試；改成從 `ClaudeOpusPinned` 推導之後，pin 的值只住在 `claude.go` 一個地方。
