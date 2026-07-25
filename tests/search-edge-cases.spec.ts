@@ -104,6 +104,33 @@ test.describe('Search - Keyboard Navigation', () => {
 });
 
 test.describe('Search - Edge Cases', () => {
+  for (const locale of [
+    {
+      name: 'zh-tw',
+      pagePath: '/',
+      indexPath: 'search-index.zh-tw.json',
+      unavailable: '搜尋目前無法使用，請再試一次',
+    },
+    {
+      name: 'en',
+      pagePath: '/en/',
+      indexPath: 'search-index.en.json',
+      unavailable: 'Search unavailable — please try again',
+    },
+  ] as const) {
+    test(`GIVEN ${locale.name} search index fails WHEN searching THEN shows the localized recovery message`, async ({
+      page,
+    }) => {
+      await page.route(`**/${locale.indexPath}`, (route) => route.abort());
+      await page.goto(locale.pagePath);
+      await page.click('[data-search-trigger]');
+
+      await page.locator('[data-search-input]').fill('Claude');
+
+      await expect(page.locator('.search-no-results')).toHaveText(locale.unavailable);
+    });
+  }
+
   test('GIVEN empty search input WHEN no text entered THEN no results shown', async ({ page }) => {
     await page.goto(BASE);
     await page.click('[data-search-trigger]');
