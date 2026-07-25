@@ -1,17 +1,20 @@
 ---
 name: vibe-opus-scorer
 description: "Vibe Scorer — independent, harsh quality scorer for gu-log posts. Scores on 4 dimensions (Persona/MoguNote/Vibe/Narrative); clarity moved to Fresh Eyes at tribunalVersion 9. Pass bar: composite ≥ 8 AND at least one dimension ≥ 9 AND no dimension < 8. Zero context from parent conversation. Use this to evaluate post quality without bias."
-# PINNED: claude-opus-4-5 (owner sign-off 2026-06-18: ShroomDog wants the
-# writer, rewriter, AND vibe-scorer all on Opus 4.5 for one consistent taste
-# across generate + grade; supersedes the prior 4-6 pin).
-# Prior rationale, still valid: claude-opus-4-6. Maintainer has explicitly rejected Opus 4.7's
-# vibe-scoring calibration — 4.7 inflates scores and misses decorative-persona
-# traps that 4.6 catches. Do NOT bump to "opus" alias or 4.7 without owner
-# sign-off. The previous [1m] context variant requires usage credits this
-# account does not have (CCC sandbox); standard 200K context is more than
-# enough to score one post + the scoring standard.
+# PINNED: claude-opus-5 (owner sign-off 2026-07-25: ShroomDog moved writer AND
+# vibe-scorer from Opus 4.5 to Opus 5 together, keeping the one-taste-loop rule
+# — generate and grade stay on the same generation, only the generation moved).
+# History: 4-6 → 4-5 (2026-06-18, one consistent taste across generate + grade)
+# → 5 (2026-07-25). The 4.7 rejection that drove the 4.5 pin was about that
+# build's calibration (score inflation, missed decorative-persona traps), not a
+# ban on moving forward; Opus 5 is a new generation and got its own sign-off.
+# Still a PIN, not the floating `opus` alias: scoring calibration is
+# version-sensitive, so a silent Anthropic bump must not move the grader. Do NOT
+# bump without owner sign-off. Avoid the [1m] context variant — it needs usage
+# credits this account does not have (CCC sandbox); standard context is more
+# than enough to score one post + the scoring standard.
 # Matched by tools/gp-pipeline/internal/llm/claude.go ClaudeOpusPinned.
-model: claude-opus-4-5
+model: claude-opus-5
 tools:
   - Read
   - Write
