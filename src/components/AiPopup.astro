@@ -1433,16 +1433,30 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
   }
 
   .ai-popup-result--auth-error .ai-popup-error-text {
-    color: #e0af68;
+    color: var(--color-status-warning);
   }
 
   .ai-popup-result--auth-error .ai-popup-title {
-    color: #e0af68;
+    color: var(--color-status-warning);
   }
 
   .ai-popup-result--auth-error {
     border-radius: 8px;
-    background: rgba(224, 175, 104, 0.08);
+    background: color-mix(in srgb, var(--color-status-warning) 8%, transparent);
+  }
+
+  :root:not([data-theme='light']) .ai-popup-result--auth-error .ai-popup-btn--login {
+    color: var(--color-text);
+  }
+
+  :root:not([data-theme='light']) .ai-popup-result--auth-error .ai-popup-btn--primary {
+    border-color: var(--color-status-warning);
+    background: var(--color-status-warning);
+    color: var(--color-bg);
+  }
+
+  :root:not([data-theme='light']) .ai-popup-result--auth-error .ai-popup-btn--ghost {
+    color: var(--color-text);
   }
 
   /* ─── Diff Display ─── */
@@ -1572,13 +1586,12 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
     color: #dc322f;
   }
 
-  [data-theme='light'] .ai-popup-result--auth-error .ai-popup-error-text,
-  [data-theme='light'] .ai-popup-result--auth-error .ai-popup-title {
-    color: #b58900;
+  [data-theme='light'] .ai-popup-result--auth-error .ai-popup-error-text {
+    color: var(--color-status-warning);
   }
 
-  [data-theme='light'] .ai-popup-result--auth-error {
-    background: rgba(181, 137, 0, 0.08);
+  [data-theme='light'] .ai-popup-result--auth-error .ai-popup-btn--login {
+    color: var(--color-status-warning);
   }
 
   [data-theme='light'] .ai-popup-question-input:focus,
