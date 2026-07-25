@@ -81,8 +81,8 @@ test.describe('AI Popup - Token Expiry', () => {
     await popup.locator('[data-action="submit-edit"]').click();
 
     await expect(popup.locator('.ai-popup-result--auth-error')).toBeVisible({ timeout: 10000 });
-    await expect(popup.locator('[data-action="relogin"]')).toBeVisible();
-    await expect(popup.locator('[data-action="retry"]')).toBeVisible();
+    await expect(popup.locator('[data-action="relogin"]')).toHaveClass(/ai-popup-btn--primary/);
+    await expect(popup.locator('[data-action="retry"]')).toHaveClass(/ai-popup-btn--ghost/);
   });
 
   test('GIVEN error state WHEN retry clicked THEN returns to edit input with preserved instruction', async ({

@@ -712,18 +712,16 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
 
       const isAuthError = isTokenErrorMessage(msg);
       const title = isAuthError ? t.sessionExpired : t.error;
-      let actionsHtml =
-        '<button class="ai-popup-btn ai-popup-btn--primary" data-action="retry">' +
-        escapeHtml(t.retry) +
-        '</button>';
-
-      if (isAuthError) {
-        actionsHtml =
-          '<button class="ai-popup-btn ai-popup-btn--login" data-action="relogin">' +
+      const actionsHtml = isAuthError
+        ? '<button class="ai-popup-btn ai-popup-btn--primary ai-popup-btn--login" data-action="relogin">' +
           escapeHtml(t.relogin) +
           '</button>' +
-          actionsHtml;
-      }
+          '<button class="ai-popup-btn ai-popup-btn--ghost" data-action="retry">' +
+          escapeHtml(t.retry) +
+          '</button>'
+        : '<button class="ai-popup-btn ai-popup-btn--primary" data-action="retry">' +
+          escapeHtml(t.retry) +
+          '</button>';
 
       popup.innerHTML =
         '<div class="ai-popup-result ai-popup-result--error' +
@@ -1445,14 +1443,14 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
     background: color-mix(in srgb, var(--color-status-warning) 8%, transparent);
   }
 
-  :root:not([data-theme='light']) .ai-popup-result--auth-error .ai-popup-btn--login {
-    color: var(--color-text);
-  }
-
-  :root:not([data-theme='light']) .ai-popup-result--auth-error .ai-popup-btn--primary {
+  .ai-popup-result--auth-error .ai-popup-btn--primary {
     border-color: var(--color-status-warning);
     background: var(--color-status-warning);
     color: var(--color-bg);
+  }
+
+  .ai-popup-result--auth-error .ai-popup-btn--primary:hover {
+    background: color-mix(in srgb, var(--color-status-warning) 85%, var(--color-text));
   }
 
   :root:not([data-theme='light']) .ai-popup-result--auth-error .ai-popup-btn--ghost {
@@ -1590,8 +1588,14 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
     color: var(--color-status-warning);
   }
 
-  [data-theme='light'] .ai-popup-result--auth-error .ai-popup-btn--login {
-    color: var(--color-status-warning);
+  [data-theme='light'] .ai-popup-result--auth-error .ai-popup-btn--primary {
+    border-color: var(--color-status-warning);
+    background: var(--color-status-warning);
+    color: var(--color-bg);
+  }
+
+  [data-theme='light'] .ai-popup-result--auth-error .ai-popup-btn--primary:hover {
+    background: color-mix(in srgb, var(--color-status-warning) 85%, var(--color-text));
   }
 
   [data-theme='light'] .ai-popup-question-input:focus,
