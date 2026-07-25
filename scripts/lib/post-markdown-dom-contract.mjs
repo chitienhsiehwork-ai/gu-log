@@ -483,7 +483,11 @@ const mermaidRoot = node('div', ['mermaid-wrapper'], {
               text: 'any',
             })
           ),
-          child(node('div', ['mermaid-render'])),
+          child(
+            node('div', ['mermaid-render'], {
+              attributes: attrs({ dataLoadingLabel: NON_EMPTY }),
+            })
+          ),
         ],
       })
     ),

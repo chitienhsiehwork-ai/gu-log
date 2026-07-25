@@ -16,15 +16,20 @@ interface Props {
 }
 
 const { chart, caption } = Astro.props;
+const isEnglish = Astro.url.pathname.startsWith('/en/');
+const expandLabel = isEnglish ? 'Expand diagram' : '展開圖表';
+const expandTitle = isEnglish ? 'Click to enlarge' : '點擊放大';
+const closeLabel = isEnglish ? 'Close diagram' : '關閉圖表';
+const loadingLabel = isEnglish ? 'Loading diagram...' : '載入圖表中...';
 ---
 
 <div class="mermaid-wrapper" data-markdown-adapter="mermaid">
   <div class="mermaid-scroll">
     <div class="mermaid-source" style="display:none;" data-mermaid>{chart}</div>
-    <div class="mermaid-render"></div>
+    <div class="mermaid-render" data-loading-label={loadingLabel}></div>
   </div>
   {caption && <p class="mermaid-caption">{caption}</p>}
-  <button class="mermaid-expand-btn" aria-label="展開圖表" title="點擊放大">
+  <button class="mermaid-expand-btn" aria-label={expandLabel} title={expandTitle}>
     <svg
       width="18"
       height="18"
@@ -40,7 +45,7 @@ const { chart, caption } = Astro.props;
 
 <!-- Fullscreen overlay (one per diagram, activated by JS) -->
 <div class="mermaid-overlay" style="display:none;">
-  <button class="mermaid-close-btn" aria-label="關閉">✕</button>
+  <button class="mermaid-close-btn" aria-label={closeLabel}>✕</button>
   <div class="mermaid-overlay-content"></div>
 </div>
 
@@ -159,7 +164,7 @@ const { chart, caption } = Astro.props;
 
   /* Loading state */
   .mermaid-render:empty::after {
-    content: '載入圖表中...';
+    content: attr(data-loading-label);
     color: var(--color-text-muted);
     font-size: 0.85rem;
   }

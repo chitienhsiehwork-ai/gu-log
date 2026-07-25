@@ -39,6 +39,51 @@ const cases = [
 ];
 
 test.describe('Mermaid rendering', () => {
+  test('GIVEN localized post routes WHEN Mermaid controls render THEN reader-facing labels match the route language', async ({
+    page,
+  }) => {
+    for (const { path, labels } of [
+      {
+        path: '/posts/levelup-20260608-12-llm-internals/',
+        labels: {
+          expand: '展開圖表',
+          title: '點擊放大',
+          close: '關閉圖表',
+          loading: '載入圖表中...',
+        },
+      },
+      {
+        path: '/en/posts/en-levelup-20260608-12-llm-internals/',
+        labels: {
+          expand: 'Expand diagram',
+          title: 'Click to enlarge',
+          close: 'Close diagram',
+          loading: 'Loading diagram...',
+        },
+      },
+    ]) {
+      await page.goto(path);
+
+      const diagram = page.locator('.mermaid-wrapper').first();
+      await expect(diagram.locator('.mermaid-expand-btn')).toHaveAttribute(
+        'aria-label',
+        labels.expand
+      );
+      await expect(diagram.locator('.mermaid-expand-btn')).toHaveAttribute('title', labels.title);
+      await expect(diagram.locator('.mermaid-render')).toHaveAttribute(
+        'data-loading-label',
+        labels.loading
+      );
+
+      const overlay = diagram.locator('xpath=following-sibling::*[1]');
+      await expect(overlay).toHaveClass(/mermaid-overlay/);
+      await expect(overlay.locator('.mermaid-close-btn')).toHaveAttribute(
+        'aria-label',
+        labels.close
+      );
+    }
+  });
+
   for (const { path, labels } of cases) {
     test(`GIVEN the Lv-12 overview diagram WHEN rendered on mobile THEN every graph label is visible: ${path}`, async ({
       page,
