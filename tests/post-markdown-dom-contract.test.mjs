@@ -244,7 +244,7 @@ test('mogu-note accepts the complete optional summary and toggle branch', () => 
   );
   root.children.push(
     fixture(
-      '<button class="mogu-note-toggle" type="button" aria-expanded="false" aria-controls="mogu-note-content-1" hidden><span class="mogu-note-toggle-icon" aria-hidden="true">v</span><span class="mogu-note-toggle-label">Expand</span></button>'
+      '<button class="mogu-note-toggle" type="button" aria-expanded="false" aria-controls="mogu-note-content-1" data-label-expand="Expand full note" data-label-collapse="Collapse" hidden><span class="mogu-note-toggle-icon" aria-hidden="true">v</span><span class="mogu-note-toggle-label">Expand full note</span></button>'
     )
   );
   assert.doesNotThrow(() => assertRenderedAdapterDomContract(root));

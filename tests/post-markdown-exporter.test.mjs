@@ -359,9 +359,9 @@ import fixtureImage from '../../assets/posts/fixture.png';
       </strong>
       <div class="mogu-note-summary" hidden><span class="mogu-note-summary-label">Short</span><p>duplicate summary</p></div>
       <div class="mogu-note-content" id="mogu-note-content-all"><p>Mogu body</p></div>
-      <button class="mogu-note-toggle" type="button" aria-expanded="false" aria-controls="mogu-note-content-all" hidden>
+      <button class="mogu-note-toggle" type="button" aria-expanded="false" aria-controls="mogu-note-content-all" data-label-expand="Expand full note" data-label-collapse="Collapse" hidden>
         <span class="mogu-note-toggle-icon" aria-hidden="true">v</span>
-        <span class="mogu-note-toggle-label">Expand</span>
+        <span class="mogu-note-toggle-label">Expand full note</span>
       </button>
     </blockquote>
     <blockquote class="shroomdog-note" data-shroomdog-note data-markdown-adapter="shroomdog-note"

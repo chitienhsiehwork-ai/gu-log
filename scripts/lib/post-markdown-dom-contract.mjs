@@ -185,6 +185,8 @@ const moguToggle = node('button', ['mogu-note-toggle'], {
     type: 'button',
     ariaExpanded: 'false',
     ariaControls: NON_EMPTY,
+    dataLabelExpand: NON_EMPTY,
+    dataLabelCollapse: NON_EMPTY,
     hidden: true,
   }),
   children: [
