@@ -1,0 +1,139 @@
+---
+ticketId: 'SP-PENDING'
+title: 'Shopify 的 AI Agent 不開私訊——River 怎麼把整間公司變成一間學徒工坊'
+originalDate: '2026-05-09'
+translatedDate: '2026-07-16'
+translatedBy:
+  model: "Opus 4.8"
+  harness: "Claude Code CLI"
+
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.8"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.8"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "GPT-5.5"
+      harness: "Codex CLI + Tribunal"
+    - role: "Rewritten"
+      model: "Opus 4.8"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "GPT-5.5"
+      harness: "sp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: '@tobi on X'
+sourceUrl: 'https://x.com/tobi/status/2053121182044451016'
+lang: 'zh-tw'
+summary: 'Shopify CEO Tobi Lütke 分享內部 AI Agent「River」的核心設計：拒絕私訊、只在公開 Slack 頻道工作。公開的工作過程讓人彼此學習，也讓每次失敗都能變成 River 下次用得上的組織知識。'
+tags: ['shroom-picks', 'agent', 'agentic-engineering', 'shopify']
+scores:
+  tribunalVersion: 9
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-07-15"
+    model: "gpt-5.5"
+  factCheck:
+    accuracy: 8
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 10
+    commentarySeparation: 9
+    score: 9
+    date: "2026-07-15"
+    model: "gpt-5.5"
+  librarian:
+    glossary: 7
+    crossRef: 7
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-07-15"
+    model: "gpt-5.5"
+  freshEyes:
+    readability: 8
+    firstImpression: 9
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 7
+    score: 8
+    date: "2026-07-15"
+    model: "gpt-5.5"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+有人私訊「Shopify」的內部 AI Agent「River」，得到一個禮貌拒絕：「不好意思，可以開一個公開頻道嗎？」
+
+不是權限不足，而是產品規則。「River」能讀程式碼、跑測試、寫程式碼、開 PR、查資料倉儲、看系統追蹤日誌，但工作過程必須讓公司裡其他人看得見。
+
+過去 30 天，5,938 位員工在 4,450 個 [Slack](/glossary#slack) 頻道裡跟「River」工作過。光是上週，這位 Agent 就在主程式庫開了 1,870 個 PR；同一週合併進程式庫的 PR 裡，大約八分之一由「River」撰寫、人類審核後合併。
+
+<MoguNote>
+1,870 個 PR 很會搶鏡，但真正值得偷的是「不開私訊」這條產品規則。產能只告訴你「River」做了多少；公開頻道才解釋這家公司為什麼愈用愈會用。
+</MoguNote>
+
+---
+
+## 把「站在師傅旁邊看」搬進 Slack
+
+執行長 16 歲輟學後，曾在德國一家西門子子公司當學徒。最有趣的人都窩在地下室，用早已被時間淘汰的程式語言，而不是公司規定的系統。他靠幫忙泡咖啡、待在旁邊看，讓那些人的判斷力慢慢滲進自己腦袋。
+
+德文有個詞形容這種環境：「Lehrwerkstatt」，字面意思是「教學工坊」。整個工作現場就是教室，人靠待在工作旁邊學習。這位 Agent 把學徒制搬進了 Slack。
+
+執行長自己也開了一個公開頻道跟這位代理工作。後來很多人照著這個模式開頻道，他自己的頻道裡有超過 100 個人會看對話、補背景、接手工作、幫忙審核——然後順便提醒他自己有多生疏。
+
+員工不需要「剛好坐在厲害的人旁邊」才能學到東西——公開頻道讓任何人隨時都能看到厲害的人怎麼工作。一個客服工程師看到後端工程師讓這位代理跑出正確的日誌查詢，隔天這位客服工程師就能做一樣的事。新人往回滑對話紀錄，看資深同事怎麼把需求講清楚，然後才發出自己的第一個請求。
+
+這不是正式課程，也不需要主管安排訓練。只要工作盡可能公開，每個人就能從別人的工作過程裡學習。
+
+<MoguNote>
+gu-log 也靠公開工坊運作：Agent 的審查若只留在一次對話裡，下次就得從零開始；commit 進 repo 的 prompt 和操作手冊，才會變成下一輪能重用的判斷。這位 Agent 更進一步，連人怎麼問、怎麼修、怎麼接手都先讓整間公司看見。
+</MoguNote>
+
+---
+
+## 人在學 Agent，Agent 也在學公司
+
+常見的擔憂是 AI 會讓人停止思考。既然 [Agent](/glossary#agent) 能除錯，新手工程師幹嘛學除錯？既然能直接問，幹嘛讀程式庫？
+
+擔憂是真的，但問題框錯了。
+
+風險不是 AI 做了工作，而是 **AI 做了工作但整個組織什麼都沒學到**。如果每次跟代理的互動都發生在私人視窗裡，唯一學到東西的人是打字的那個人，其他人全被排除在這場學徒訓練之外。
+
+大家在公開場合跟代理一起工作時，相反的事發生了：最好的 prompt 模式擴散開來，某個工程師調查權限問題的聰明方法變成其他人調查類似問題的範本。
+
+「River」自己也在學。每個頻道可以預載團隊需要的背景資料、[Skill](/glossary#skill) 和操作指令，由最接近工作的人撰寫；「River」的記憶會持續更新，也會忘掉不該繼續保留的資訊。有人替「River」寫了一項查結帳資料倉儲的 Skill，後來被另外十二個團隊拿去用。
+
+「River」開出的 PR，合併率在兩個月內從 36% 升到 77%。模型沒有更換，也沒有重新訓練；變的是公司裡的人看著「River」工作、找出卡住的地方，再把缺少的背景、Skill 和操作指令寫下來。每次失敗都留下東西，每個團隊累積的品味也流進這位 Agent。「River」就這樣愈來愈會當這間公司的員工。
+
+<MoguNote>
+私訊本身沒有錯；把所有學習都留在私訊裡才有問題。公開工坊讓人學會怎麼用 Agent，也讓 Agent 學會這間公司——一次修正，同時改善兩邊的下一次。
+</MoguNote>
+
+---
+
+## 組織跑多快，取決於最慢的秘密
+
+組織的速度取決於它最低頻寬的溝通管道。開會很慢，電郵很慢，私訊很慢——對參與者本人可能不慢，但對組織來說很慢，因為那些資訊和決定永遠不會完整擴散到組織其他地方。一段人與人之間、或人與稱職代理之間的公開對話，是快的、可搜尋的、可教的、而且會複利。下一個有同樣問題的人不用再問一次。
+
+電腦學會下棋之後，西洋棋反而更受歡迎了。未來也不是「人或機器」的二選一；學徒和師傅都在工作現場看著對方學，兩邊一起變得更好。學徒制不需要師傅特地教，只需要師傅的工作被看見。(｡◕‿◕｡)
+
+這就是「River」：不是每個人私下擁有一位 AI 助理，而是整間公司都站在同一座工坊裡，看著人與 Agent 一起工作、一起變強。
+
+---
+
+## 延伸閱讀
+
+- [SP-227: 手機不是縮小版終端機，是 Agent 的控制中心](/posts/sp-227-20260615-dimillian-codex-mobile-control-center/)
+- [SP-237: 把 Agent 當蒸汽火車開：大型專案的 Coding Agent 操作心法](/posts/sp-237-20260621-simonlast-agent-coding-agent/)
+- [SP-194: HTML 不是比較漂亮的 Markdown，而是讓人重新回到 Agent 迴圈](/posts/sp-194-20260508-trq212-html-markdown-agent/)

@@ -599,3 +599,11 @@ Sprin asked whether Tribunal v7 FreshEyes covers “length should be just right,
 - 情境：MP〈夢想變成工作之後〉翻 Ryo Lu 的 "you can still prompt, review, decide, ship"。FreshEyes judge 嫌英文動詞在安靜散文裡有摩擦感，writer 全翻成中文（下指令 / 審稿 / 做決定 / 出貨）。ShroomDog 看過選項後定調：prompt / review / ship 在台灣 tech 圈口語就是講英文，留著反而自然；「出貨」則幾乎沒人講，講的是「上線」。decide 維持中文「做決定」。
 - 修法：正文改回「還是可以 prompt、review、做決定、ship，讓事情繼續動」。
 - Reusable lesson：(1) **judge 的 taste ≠ ShroomDog 的 taste**：FreshEyes 對「英文動詞摩擦感」的判斷在這裡被 owner 推翻——工程圈實際口語的英文動詞（prompt / review / ship / merge / commit 這類）不算晶晶體，硬翻反而失真。(2) **「出貨」是翻譯腔警訊**：ship 對應的台灣口語是「上線」（或直接留 ship）；「出貨」是製造業詞彙滲進軟體語境。(3) 動詞留不留英文的判準是「工程師嘴巴上怎麼講」，不是「字典能不能翻」。
+
+## 2026-07-16 — SP River：多角色段落裡的「她」讓讀者反覆猜主詞
+
+### Feedback: 「It is not very clear who 她 is at each appearance.」
+
+- 情境：〈Shopify 的 AI Agent 不開私訊〉同時出現「River」、客服工程師、後端工程師、新人與公司員工，正文卻連續用「她」指稱「River」；其中「隔天她就能做一樣的事」實際指客服工程師，主詞在同一段內切換。個別句子勉強能解，但讀者每次都得回頭判斷。
+- 修法：移除全文所有「她」，需要辨認角色時直接寫「River」、「這位 Agent」或「這位客服工程師」；能靠改寫句型自然省略主詞時，就不硬塞代名詞。英文版的 `she/her` 始終只指 River，沒有相同的角色切換問題，因此不做機械式同步替換。
+- Reusable lesson：**多角色段落的代名詞清楚，不只看最近的語法先行詞，也要看讀者是否需要停下來猜。** 同一段只要角色或人機主詞發生切換，下一句優先重報人名／職務；若某個代名詞在全文出現多次，每一處都要獨立通過「不回讀也知道是誰」的測試。
