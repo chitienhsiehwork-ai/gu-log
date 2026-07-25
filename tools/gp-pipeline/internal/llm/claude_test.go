@@ -4,42 +4,60 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
 // TestClaudeWriterModelPreservesPinnedVersion locks the regression that made a
-// pinned writer build get stamped from the family fallback instead of its own
-// id: Model() must keep the concrete pinned id, DisplayName must render that id
-// (not pass the raw build id through), and Name() must still collapse to the
-// family label for logs. Assertions derive from ClaudeOpusPinned so bumping the
-// pin does not require editing this test — the pin lives in claude.go, not here.
+// pinned write get stamped with the floating alias's build instead of its own:
+// Model() must keep the concrete pinned id, DisplayName must render it, and
+// Name() must still collapse to the family label for logs.
+//
+// Model() identity is the load-bearing assertion here. While the pin and the
+// alias happen to name the same build, their DisplayName strings match, so
+// comparing display names alone would no longer catch the collapse.
 func TestClaudeWriterModelPreservesPinnedVersion(t *testing.T) {
 	w := NewClaudeOpusWriter()
 	if got := w.Model(); got != ModelID(ClaudeOpusPinned) {
 		t.Fatalf("writer Model() = %q, want %q", got, ClaudeOpusPinned)
 	}
-	assertPinnedDisplay(t, "writer", DisplayName(w.Model()))
+	if got := DisplayName(w.Model()); got != "Opus 5" {
+		t.Fatalf("writer DisplayName = %q, want %q", got, "Opus 5")
+	}
 	if got := w.Name(); got != string(ModelClaudeOpus) {
 		t.Fatalf("writer Name() = %q, want %q", got, ModelClaudeOpus)
 	}
 
 	// The floating alias carries no version, so it resolves to the family
-	// constant and DisplayName maps it to whichever concrete Opus the alias
-	// currently points at. The invariant is that a versionless alias never
-	// reaches provenance verbatim — the concrete value itself floats, so it is
-	// asserted by shape, not by literal (its SSOT is OPUS_ALIAS_CURRENT in
-	// scripts/detect-model.mjs, mirrored by the ModelClaudeOpus case below).
+	// constant and DisplayName maps it to the current concrete Opus.
 	a := NewClaudeOpus()
 	if got := a.Model(); got != ModelClaudeOpus {
 		t.Fatalf("alias Model() = %q, want %q", got, ModelClaudeOpus)
 	}
-	got := DisplayName(a.Model())
-	if got == string(ModelClaudeOpus) || got == ClaudeOpusAlias {
-		t.Fatalf("alias DisplayName = %q, must resolve to a concrete build, not the alias", got)
+	if got := DisplayName(a.Model()); got != "Opus 5" {
+		t.Fatalf("alias DisplayName = %q, want %q", got, "Opus 5")
 	}
-	if !strings.ContainsFunc(got, func(r rune) bool { return r >= '0' && r <= '9' }) {
-		t.Fatalf("alias DisplayName = %q, want a version number", got)
+}
+
+// TestDisplayNameWholeNumberClaudeGeneration locks the Claude 5 naming shape:
+// 5-generation ids carry no minor version, so "claude-opus-5" must render
+// "Opus 5" (not the raw id) and still resolve to the Claude harness. The 4.x
+// major-minor ids and the dated Haiku build must keep working unchanged.
+func TestDisplayNameWholeNumberClaudeGeneration(t *testing.T) {
+	cases := map[ModelID]string{
+		"claude-opus-5":             "Opus 5",
+		"claude-sonnet-5":           "Sonnet 5",
+		"claude-opus-4-5":           "Opus 4.5",
+		"claude-haiku-4-5-20251001": "Haiku 4.5",
+		"anthropic/claude-opus-5":   "Opus 5",
+		"claude-opus-5[1m]":         "Opus 5",
+	}
+	for id, want := range cases {
+		if got := DisplayName(id); got != want {
+			t.Errorf("DisplayName(%q) = %q, want %q", id, got, want)
+		}
+		if got := HarnessName(id); got != "Claude Code CLI" {
+			t.Errorf("HarnessName(%q) = %q, want Claude Code CLI", id, got)
+		}
 	}
 }
 
@@ -94,21 +112,7 @@ printf '{"result":"ok","modelUsage":{"%s":{"outputTokens":7}}}\n' "$model"
 	if got := w.ActualModel(); got != ModelID(ClaudeOpusPinned) {
 		t.Fatalf("ActualModel after run = %q, want %q", got, ClaudeOpusPinned)
 	}
-	assertPinnedDisplay(t, "stamped", DisplayName(w.ActualModel()))
-}
-
-// assertPinnedDisplay checks a pinned-writer provenance stamp without hardcoding
-// the pin: it must be rendered from the pinned id itself, not passed through as
-// the raw build id. It deliberately does NOT assert "differs from the alias
-// display" — when the pin and the floating alias happen to sit on the same
-// generation those names coincide legitimately, so that would be a flaky
-// assertion about Anthropic's release timing rather than about our code.
-func assertPinnedDisplay(t *testing.T, label, got string) {
-	t.Helper()
-	if got == ClaudeOpusPinned {
-		t.Fatalf("%s DisplayName = %q, want a rendered name, not the raw build id", label, got)
-	}
-	if want := DisplayName(ModelID(ClaudeOpusPinned)); got != want {
-		t.Fatalf("%s DisplayName = %q, want %q", label, got, want)
+	if got := DisplayName(w.ActualModel()); got != "Opus 5" {
+		t.Fatalf("stamped DisplayName = %q, want Opus 5", got)
 	}
 }

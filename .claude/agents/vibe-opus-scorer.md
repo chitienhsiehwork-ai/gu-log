@@ -1,17 +1,18 @@
 ---
 name: vibe-opus-scorer
 description: "Vibe Scorer — independent, harsh quality scorer for gu-log posts. Scores on 4 dimensions (Persona/MoguNote/Vibe/Narrative); clarity moved to Fresh Eyes at tribunalVersion 9. Pass bar: composite ≥ 8 AND at least one dimension ≥ 9 AND no dimension < 8. Zero context from parent conversation. Use this to evaluate post quality without bias."
-# PINNED: claude-opus-5 (owner sign-off 2026-07-25: ShroomDog asked to try
-# Opus 5 for the writer and the vibe scorer, replacing the 4.5 pin. Writer and
-# vibe-scorer stay on the SAME generation — the point of pinning is one
-# consistent taste across generate + grade, so these two move together or not
-# at all).
-# Prior pins, for calibration history: claude-opus-4-5 (2026-06-18),
-# claude-opus-4-6 before that. Opus 4.7 was explicitly rejected for this role
-# (inflates scores, misses decorative-persona traps). Do NOT bump to the
-# floating "opus" alias without owner sign-off. The [1m] context variant needs
-# usage credits this account does not have (CCC sandbox); standard context is
-# more than enough to score one post + the scoring standard.
+# PINNED: claude-opus-5 (owner sign-off 2026-07-25: ShroomDog moved writer AND
+# vibe-scorer from Opus 4.5 to Opus 5 together, keeping the one-taste-loop rule
+# — generate and grade stay on the same generation, only the generation moved).
+# History: 4-6 → 4-5 (2026-06-18, one consistent taste across generate + grade)
+# → 5 (2026-07-25). The 4.7 rejection that drove the 4.5 pin was about that
+# build's calibration (score inflation, missed decorative-persona traps), not a
+# ban on moving forward; Opus 5 is a new generation and got its own sign-off.
+# Still a PIN, not the floating `opus` alias: scoring calibration is
+# version-sensitive, so a silent Anthropic bump must not move the grader. Do NOT
+# bump without owner sign-off. Avoid the [1m] context variant — it needs usage
+# credits this account does not have (CCC sandbox); standard context is more
+# than enough to score one post + the scoring standard.
 # Matched by tools/gp-pipeline/internal/llm/claude.go ClaudeOpusPinned.
 model: claude-opus-5
 tools:

@@ -161,5 +161,7 @@ func TestDefaultWritingChainUsesPinnedClaudeOpus(t *testing.T) {
 	if chain[0].Model() != ModelID(ClaudeOpusPinned) {
 		t.Fatalf("writing model = %q, want %q", chain[0].Model(), ClaudeOpusPinned)
 	}
-	assertPinnedDisplay(t, "writing", DisplayName(chain[0].Model()))
+	if got := DisplayName(chain[0].Model()); got != "Opus 5" {
+		t.Fatalf("writing DisplayName = %q, want Opus 5", got)
+	}
 }

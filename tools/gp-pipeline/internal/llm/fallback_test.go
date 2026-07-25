@@ -95,14 +95,13 @@ func TestEffectiveStampLabels(t *testing.T) {
 			t.Fatalf("GPT-5.5 stamped with harness %q, want Codex CLI", harness)
 		}
 	// When claude is on PATH the writer is the pinned build, so the stamp is the
-	// pin's display name — not the floating alias's (that was the provenance bug
-	// this guards against). Both are accepted here because the chain depends on
-	// what is installed; the pin-vs-alias distinction is locked in claude_test.go.
-	case DisplayName(ModelID(ClaudeOpusPinned)), DisplayName(ModelClaudeOpus):
+	// pinned build's display name — never the bare alias string (that was the
+	// provenance bug this guards against).
+	case "Opus 5":
 		if harness != "Claude Code CLI" {
 			t.Fatalf("%s stamped with harness %q, want Claude Code CLI", model, harness)
 		}
 	default:
-		t.Fatalf("EffectiveStamp model = %q, want GPT-5.5 or %q", model, DisplayName(ModelID(ClaudeOpusPinned)))
+		t.Fatalf("EffectiveStamp model = %q, want GPT-5.5 or Opus 5", model)
 	}
 }

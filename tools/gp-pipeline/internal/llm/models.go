@@ -39,11 +39,12 @@ const (
 	ModelClaudeHaiku  ModelID = "claude-haiku"
 )
 
-// claudeFamilyRe matches both the 4.x style build ids (claude-opus-4-5 →
-// major 4, minor 5) and the Claude 5 generation's whole-number release names
-// (claude-opus-5 → major 5, no minor), which ship without a decimal minor.
-// The minor group is optional; DisplayName renders "Opus 4.5" vs "Opus 5"
-// accordingly. Mirrors scripts/detect-model.mjs MODEL_MAP.
+// claudeFamilyRe matches concrete Claude build ids. The minor version is
+// optional because the Claude 5 generation ships whole-number release names
+// ("claude-opus-5", "claude-sonnet-5") while the 4.x line is major-minor
+// ("claude-opus-4-5"). Without the optional group a 5-generation id falls
+// through to DisplayName's default branch (raw id into provenance) and to
+// HarnessName's "Unknown Harness" — both silent breakages.
 var claudeFamilyRe = regexp.MustCompile(`claude-(opus|sonnet|haiku)-([0-9]+)(?:-([0-9]+))?`)
 
 // DisplayName returns the human-readable model name the validator expects
@@ -59,7 +60,6 @@ func DisplayName(m ModelID) string {
 	if match := claudeFamilyRe.FindStringSubmatch(normalized); match != nil {
 		family := strings.ToUpper(match[1][:1]) + match[1][1:]
 		if match[3] == "" {
-			// Whole-number release name (claude-opus-5) — no decimal minor.
 			return family + " " + match[2]
 		}
 		return family + " " + match[2] + "." + match[3]

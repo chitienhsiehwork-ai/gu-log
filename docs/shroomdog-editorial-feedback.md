@@ -600,14 +600,13 @@ Sprin asked whether Tribunal v7 FreshEyes covers “length should be just right,
 - 修法：正文改回「還是可以 prompt、review、做決定、ship，讓事情繼續動」。
 - Reusable lesson：(1) **judge 的 taste ≠ ShroomDog 的 taste**：FreshEyes 對「英文動詞摩擦感」的判斷在這裡被 owner 推翻——工程圈實際口語的英文動詞（prompt / review / ship / merge / commit 這類）不算晶晶體，硬翻反而失真。(2) **「出貨」是翻譯腔警訊**：ship 對應的台灣口語是「上線」（或直接留 ship）；「出貨」是製造業詞彙滲進軟體語境。(3) 動詞留不留英文的判準是「工程師嘴巴上怎麼講」，不是「字典能不能翻」。
 
-## 2026-07-25 — writer / vibe scorer pin 從 Opus 4.5 換到 Opus 5
+## 2026-07-25 — writer + vibe scorer 一起升到 Opus 5（pin 世代前移，one-taste-loop 不變）
 
-### Feedback: 「try use opus 5 instead of opus 4.5 for writer and vibe scorer」
+### Feedback: 「use opus 5 instead of opus 4.5 for writer and vibe scorer (Not only writer)」
 
-- ShroomDog feedback：`And try use opus 5 instead of opus 4.5 for writer and vibe scorer`（GP 任務同一句話裡交代）。
-- 情境：2026-06-18 定的 standing 規則是「voice-sensitive（writer / rewriter / vibe scorer）鎖 `claude-opus-4-5`，非-voice judge（fact-check / librarian / fresh-eyes）走浮動 `opus` alias」。這次 owner 要換代，但只換 voice-sensitive 那組——浮動那組維持不動，分類邏輯沒變，只是 pin 的目標世代往前挪。
-- 修法：
-  1. `.claude/agents/tribunal-writer.md`、`.claude/agents/vibe-opus-scorer.md` 的 `model:` 改 `claude-opus-5`，PIN 註解換新 sign-off，舊 pin（4-5 / 4-6）留成 calibration history。
-  2. `tools/gp-pipeline/internal/llm/claude.go` 的 `ClaudeOpusPinned` 同步（Go pipeline 的 writer SSOT，跟 frontmatter 必須同代）。
-  3. 換代才踩到的坑：Claude 5 世代的 build id 沒有小數 minor（`claude-opus-5`），`llm/models.go` 的 family regex 原本寫死 `major-minor` 兩段數字，match 不到就讓 `DisplayName` 吐原始 id、`HarnessName` 回 `Unknown Harness`，最後卡在 validate-posts Rule 15。regex 的 minor 段改成 optional，`scripts/detect-model.mjs` 的 `MODEL_MAP` 補 `claude-opus-5` → `Opus 5`。
-- Reusable lesson：(1) **writer 跟 vibe scorer 永遠一起換代**——pin 的用意就是 generate 跟 grade 共用同一套 taste，只動一邊等於自己拆掉校準。(2) **換 model 世代要先檢查命名格式假設**：4.x 是 `family-major-minor`、5 世代是 `family-major`，任何 parse model id 的 regex / map 都要一起看，不然錯誤會延遲到 commit 前的驗證器才炸。(3) 測試不要寫死 pin 的值——`llm` 的測試原本硬編 `"Opus 4.5"`，換代就得改測試；改成從 `ClaudeOpusPinned` 推導之後，pin 的值只住在 `claude.go` 一個地方。
+- 情境：翻 @trq212 的 context engineering X Article 時，ShroomDog 先要求「這次 writer 試 Opus 5」，看過成稿後定調把 pin 本體換掉，並主動點明「不只 writer」——vibe scorer 要一起換。等於 2026-06-18 那條「writer / rewriter / vibe scorer 鎖同一代」的規則沒被推翻，只是那一代從 4.5 前移到 5。
+- 對照結果（同一份 source、同一份 writer prompt、都跑到 deterministic 檢查全綠）：4.5 版把原文的 Then/Now 清單直翻成六個同節奏對照塊；Opus 5 版主動合併重複段落、h2 改成帶論點的句子、段落之間有橋接句、結尾 callback 回開頭的「八成」。ShroomDog 之前退 4.7 是嫌 press-release 腔，Opus 5 這次沒出現那個症狀。
+- 修法：pin 的三個家一起改（`.claude/agents/tribunal-writer.md`、`.claude/agents/vibe-opus-scorer.md`、`claude.go` 的 `ClaudeOpusPinned`），PIN 註解寫上 sign-off 日期與世代沿革。
+- 撞到的前置 bug：`claude-opus-5` 是**整數版號**，而 Go 的 `claudeFamilyRe` 只認 `major-minor`，直接換 pin 會讓 `DisplayName` 把生 id 寫進 provenance、`HarnessName` 回 `Unknown Harness`。已修成 optional minor group 並加 regression test。教訓：**Claude 5 世代的命名換了形狀，任何靠 regex 解析 model id 的地方都要先驗一次**，不要假設 4.x 的 `major-minor` 還成立。
+- 一併收的 drift：`OPUS_ALIAS_CURRENT` 還寫 `claude-opus-4-8`，但實測 `claude -p --model opus --output-format json` 的 `modelUsage` key 已經是 `claude-opus-5`。
+- ⚠️ **待 ShroomDog 決定的副作用**：2026-06-18 刻意讓 Fresh Eyes / Fact Checker / Librarian 走浮動 `opus`，理由是「用跟 writer 不同代的 model 當陌生讀者，才抓得到 writer 同代看不到的盲點」。alias 現在也解析到 `claude-opus-5`，所以 **writer 跟這三個 judge 暫時是同一個 model，那個 model diversity 目前等於 0**。要救有兩條路：把 Fresh Eyes pin 到前一代（例如 4.5）換回 diversity，或接受「同代但 zero-context」已經夠當陌生讀者。這不是 agent 能自己定的品味決策，先記著。
