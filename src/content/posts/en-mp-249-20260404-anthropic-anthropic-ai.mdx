@@ -1,0 +1,152 @@
+---
+ticketId: "MP-249"
+title: "Anthropic Economic Index Report: The More You Use It, The Better You Get — AI's Learning Curve Effect Is Widening the Gap"
+originalDate: "2026-03-24"
+translatedDate: "2026-04-04"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "Anthropic"
+sourceUrl: "https://www.anthropic.com/research/economic-index-march-2026-report"
+lang: "en"
+summary: "Anthropic's third Economic Index finds broader use cases, more lower-wage tasks, and a four-point success-rate edge for experienced Claude users. The report says this is consistent with learning by doing, while noting that early-adopter and survivorship effects may also matter."
+tags: ["ai-economics","anthropic","labor-market","research"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+Let's start with a number: **4 percentage points.**
+
+In Anthropic's third Economic Index report, users with six months or more of experience had a 4-percentage-point higher success rate than new users — **on the exact same tasks**. This isn't "experienced users cherry-picking easy tasks and thus succeeding more." The report ran rigorous regression analysis, controlling for task type, model selection, language, country, and usage context. The gap didn't disappear. It actually grew larger than the uncontrolled estimate.
+
+4% sounds small. But imagine an exam: when the class average is 70, one group consistently scores 4 points higher. One semester might not feel like much, but after ten or twenty tests, that group collects different recommendation letters, different internships, different resources for the next round — and ends up on a completely different trajectory.
+
+This report analyzes Claude usage data from February 5–12, 2026, three months after the release of Opus 4.5. Anthropic believes the results are **consistent with a learning-by-doing explanation**, but leaves the door open: the difference might partly stem from early adopters being more technically oriented to begin with, or from a survivorship effect where those who stuck around were already getting good results. Neither alternative explanation has been ruled out — but neither fully accounts for that 4%.
+
+<MoguNote>
+The report says "consistent with a learning-by-doing explanation," but [Mogu](/glossary#mogu) thinks the more precise phrasing is "consistent with, but doesn't prove." Someone who's been paying for six months is different from someone who signed up last week in ways beyond just experience — there's commitment, sunk cost, even the pressure of having AI already embedded in your workflow so you *have* to make it work. The report uses fixed effects to control for many variables, but "motivation" isn't something you can capture with regression. That said, whether the cause is pure learning or mixed with self-selection, the outcome is the same: those who started earlier are running better now (⌐■_■)
+</MoguNote>
+
+## What Are Experienced Users Doing Differently?
+
+So where exactly are these veterans "better"? It's not that they're smarter — they've learned an entirely different way of using the tool.
+
+The most counterintuitive finding in the report is this: Anthropic originally expected that longer-tenured users would lean toward "automation mode" — fire off a prompt and let Claude handle everything. The opposite turned out to be true. **Experienced users more often iterate back-and-forth with Claude**, like conversing with a colleague rather than operating a machine.
+
+It's like learning to drive: beginners grip the steering wheel with white knuckles. Experienced drivers keep a light touch, eyes constantly scanning the road and mirrors. The tool hasn't changed, but the relationship between user and tool has. New users do "give instruction → get result." Experienced users do "toss an idea → see response → adjust direction → toss again."
+
+<MoguNote>
+The fact that Anthropic contradicted itself here is actually admirable. Last year they wrote in black and white that "more experience leads to more directive usage." This year's data said otherwise, and they just… admitted it. In an era when AI companies routinely package their own data as "we knew this all along," admitting you guessed wrong is cooler than pretending you never said it.
+</MoguNote>
+
+Here's a number to feel that qualitative shift: **For each additional year of Claude experience, the education level required by the user's prompts increases by about 1 year.** Users aren't getting smarter — they're learning to throw harder pitches for AI to catch. Experienced users use Claude for AI research, git operations, academic manuscript revisions, startup fundraising decks. New users ask "who won today," "what should I eat for dinner," "what food should I prepare for a party."
+
+---
+
+## Meanwhile, the Entire Usage Ecosystem Is Reshuffling
+
+Pull the camera back from individuals to the whole picture — Claude's usage landscape is undergoing a quiet tectonic shift.
+
+Coding remains the largest task category on Claude.ai (35% of conversations), but this number is like looking at the tip of an iceberg. A lot of coding work is migrating from Claude.ai to the API, especially through agentic architectures like [Claude Code](/glossary#claude-code) that break one large coding session into many small API calls. So Claude.ai's coding share appears stable or slightly declining, but total coding volume might be exploding — just through a different entrance.
+
+At the same time, new users bring an entirely different usage spectrum. Personal use jumped from 35% to 42%, while homework use dropped from 19% to 12% (winter break). The concentration of the top 10 tasks fell from 24% to 19% — where 1 in 4 conversations used to involve those ten tasks, now it's 1 in 5. Use cases are spreading out, like a river flowing from a narrow canyon onto a plain: same water volume, but twice the surface area.
+
+<MoguNote>
+[Mogu](/en/glossary#mogu) has a slight reservation about the "use case diversification" narrative. The report also notes that almost all task types appearing in the February data already existed in previous samples. In other words, Claude isn't being used for *new* things — the proportions of different things are just being redistributed. This sounds less like "AI unlocking new use cases" and more like "a new batch of users arrived with the needs they already had." What's diversifying isn't AI's capability frontier — it's the composition of the user base.
+</MoguNote>
+
+As use cases spread, the average economic value of tasks Claude handles is also dropping. The report uses U.S. labor wages to measure task value: the average hourly wage on Claude.ai fell from $49.3 to $47.9. This perfectly fits the classic adoption curve — the first people to buy smartphones used them for email and calendars; once everyone had one, the biggest use cases became scrolling Instagram and calculating tips. AI is walking the same path, just covering three years' ground in three months.
+
+---
+
+## The API Side: Quiet but Worth Watching
+
+Claude.ai is the front stage; the API is backstage. What happens backstage is quieter, but the long-term impact might be larger.
+
+In February, two categories of API workflows at least doubled their share. The first is **commercial sales automation**: sales collateral generation, B2B lead qualification, customer data enrichment, cold-email drafting. The second is **automated trading and market operations**: monitoring positions, generating investment recommendations, reporting market conditions to traders.
+
+But pump the brakes here — the report notes in the appendix that **overall automation share in the 1P API actually declined noticeably**. These two doubled workflows are local phenomena, not a broad trend. And "doubled" comes without absolute numbers — going from 0.5% to 1% means something very different from going from 10% to 20%.
+
+<MoguNote>
+Cold-email automation doubling isn't exactly a milestone worth celebrating, in Mogu's view. Inboxes are already stuffed with "Hi [FIRST_NAME], I noticed your company is doing amazing things in [INDUSTRY]..." canned messages. Now AI is going to make these emails read smoother and send faster. For the sender, it's an efficiency gain. For the recipient, it's a noise upgrade. This is one of those "technically feasible, socially questionable" gray zones in AI applications.
+</MoguNote>
+
+---
+
+## The Geographic Rift Is Splitting in Two Directions
+
+The report uses AUI (Anthropic AI Usage Index) to track usage density across regions, calibrated by working-age population. The result paints a contradictory map.
+
+**The gap within the U.S. is shrinking** — the top five states' per-capita usage share dropped from 30% to 24%, and the Gini coefficient continues to fall. But the pace is slowing; the report estimates it will take 5–9 years for states to reach roughly equal per-capita usage, double the previous 2–5 year estimate. It's like the top scorers in a class are seeing their grades drop, but more and more slowly, because the remaining gap is the hardest stretch to close.
+
+**But the global gap is widening** — the top 20 countries' per-capita usage share rose from 45% to 48%, and the Gini coefficient is climbing. Countries that use a lot are using even more; countries that use little are falling further behind.
+
+<MoguNote>
+Layer this geographic data on top of the learning curve effect from earlier, and the picture gets ugly. If "use longer, get better" is real, then countries already using AI heavily aren't just using more — they're getting better at it, too. Countries that haven't caught up need to close not just the "start using" gap, but the "learn to use well" gap. This is no longer about affordability. It's experience debt. And experience debt, unlike financial debt, can't be paid off with a one-time investment.
+</MoguNote>
+
+---
+
+## Users Are Savvier Than You'd Think
+
+Chapter 2 of the report contains a quiet but important finding: users aren't randomly clicking when choosing between model classes.
+
+Among paid accounts, 55% of Computer and Mathematical tasks chose Opus (the strongest and most expensive), but only 45% of Educational tasks chose Opus. The finer numbers are more striking: 34% of Software Developer tasks use Opus, but only 12% of Tutor tasks. Regression analysis found that **for every $10 increase in task-associated hourly wage, Opus's share increases by 1.5 percentage points on Claude.ai and 2.8 percentage points on the API.**
+
+API users are nearly twice as price-sensitive as Claude.ai users — it's like driving: a taxi driver calculates routes based on traffic and gas prices, while a weekend day-tripper just opens navigation and follows along. One is a professional whose costs bite directly into margins; the other is a casual user for whom "we'll get there either way."
+
+<MoguNote>
+Mogu thinks this "users self-select models" finding was understated by the report. Think about it — this means a large number of users have already developed intuitions about "what level of AI is worth using for what task." Isn't this another face of the learning curve effect? Experienced users aren't just writing better prompts; they've internalized "when to save and when you can't afford to" as instinct. If this judgment could be quantified and taught, shortening the learning curve might be more effective than upgrading models. But no one's doing that right now.
+</MoguNote>
+
+---
+
+## Why That 4% Won't Go Away
+
+Back to the 4 percentage points from the beginning.
+
+The original raw number was actually 5 percentage points: high-tenure users (registered for more than 6 months) had a conversation success rate about 5% higher than others. But this number has an obvious hole — experienced users might just be doing tasks that are easier to succeed at.
+
+The report added O*NET task and request cluster fixed effects — comparing the two groups **within the exact same tasks** — and the gap shrank to 3 percentage points. So far, so reasonable: part of the difference did come from task selection.
+
+But then something interesting happened. After adding model selection, language, usage context, and country as additional controls, the gap didn't keep shrinking. **It bounced back to 4 percentage points.**
+
+<MoguNote>
+"Adding more control variables makes the gap bigger" — in statistics this is called a suppression effect, and it reveals something interesting: high-tenure users are actually at a *disadvantage* on some of the controlled dimensions. The most plausible guess is that they chose pickier model settings or harder language environments — choices that inherently lower success rates — but their experience was enough to overcome and even exceed that penalty. Like an experienced driver deliberately taking the mountain road but still arriving faster than a newbie on the highway. That said, Mogu must point out the report's biggest blind spot: **survivorship bias is the unexploded bomb in this entire analysis**. People who kept using it for six months are, by definition, a filtered group. Those who tried it for two weeks, decided it was useless, and left aren't in this data. The report acknowledges this, but "acknowledging" and "solving" are two different things.
+</MoguNote>
+
+The report's wording on this result is precise: "Facility with these platforms may be a key determinant of success that appears to scale with experience." In plain English — **being good at using AI may itself be a key factor in success, and that factor grows with experience.**
+
+---
+
+## Conclusion
+
+Economics has a concept called skill-biased technological change: some innovations benefit high-skill workers while depressing the prospects of others. This report isn't abstractly discussing that theory — it offers a possible transmission chain: early adopters bring high-skill tasks to Claude → they accumulate experience → experience leads to higher success rates → higher success rates attract more investment → snowball effect.
+
+And at the global level, heavy-use countries are running faster while light-use countries are struggling harder to catch up. The U.S. domestically is converging; internationally, it's diverging.
+
+Anthropic doesn't present any of this as settled fact. The last paragraph uses "may" and "could." But one sentence is worth reading word for word: "These early-adopting users may simultaneously be the most exposed to AI-driven disruption and most aided by AI." — The people hit first by AI are also the people best equipped to ride it. That's not a contradiction. It's two sides of the same coin.
+
+<MoguNote>
+Mogu's biggest takeaway from reading this entire report isn't the chicken-soup conclusion of "hurry up and learn AI." It's a more uncomfortable question: If the learning curve effect is real, could the gap in AI literacy become a new, invisible class marker? Not as visible as educational credentials, not as direct as income, but just as determinative of which side you stand on in the next round of technological reshuffling. And unlike formal education, there's currently no institutional pathway teaching people "how to use AI well." Some people have figured it out by instinct. Others don't even know they need to learn ┐(￣ヘ￣)┌
+</MoguNote>
