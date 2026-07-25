@@ -9,11 +9,47 @@ import { test, expect } from './fixtures';
  */
 
 const TEST_URL = '/artifacts/levelup-components-fixture';
+const ENGLISH_TEST_URL = '/en/posts/en-levelup-20260608-12-llm-internals/';
 
 async function openFixture(page: Page) {
   const response = await page.goto(TEST_URL, { waitUntil: 'networkidle' });
   expect(response?.status()).toBe(200);
 }
+
+test.describe('LevelUp component localization', () => {
+  test('GIVEN an English tutorial WHEN learning components render and a quiz is answered THEN all shared UI copy is English', async ({
+    page,
+  }) => {
+    const response = await page.goto(ENGLISH_TEST_URL, { waitUntil: 'networkidle' });
+    expect(response?.status()).toBe(200);
+
+    const progress = page.locator('.levelup-progress').first();
+    await expect(progress.locator('.progress-percentage')).toContainText(/% complete$/);
+    await expect(progress.locator('.progress-percentage')).not.toContainText('完成');
+
+    const analogy = page.locator('.analogy-box').first();
+    await expect(analogy.locator('.analogy-badge')).toHaveText('Analogy');
+
+    const quiz = page.locator('.levelup-quiz').first();
+    await expect(quiz.locator('.quiz-label')).toHaveText('Quiz');
+
+    const answer = await quiz.getAttribute('data-answer');
+    expect(answer).toBeTruthy();
+    const wrongLabel = await quiz.locator('.quiz-option').evaluateAll((options, correctAnswer) => {
+      const option = options.find(
+        (candidate) => (candidate as HTMLElement).dataset.label !== correctAnswer
+      ) as HTMLElement | undefined;
+      return option?.dataset.label;
+    }, answer);
+    expect(wrongLabel).toBeTruthy();
+
+    await quiz.locator(`.quiz-option[data-label="${wrongLabel}"]`).click();
+    await expect(quiz.locator('.result-wrong')).toBeVisible();
+    await expect(quiz.locator('.result-wrong > strong')).toHaveText('Not quite!');
+    await expect(quiz.locator('.result-answer')).toContainText('Correct answer:');
+    await expect(quiz.locator('.result-wrong')).not.toContainText('不對喔');
+  });
+});
 
 test.describe('LevelUpQuiz Component', () => {
   test('GIVEN a quiz WHEN page loads THEN quiz is visible with all options', async ({ page }) => {

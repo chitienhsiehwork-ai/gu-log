@@ -28,6 +28,20 @@ interface Props {
 }
 
 const { question, options, answer, explanation } = Astro.props;
+const isEnglish = Astro.url.pathname.startsWith('/en/');
+const labels = isEnglish
+  ? {
+      quiz: 'Quiz',
+      correct: 'Correct!',
+      wrong: 'Not quite!',
+      correctAnswer: 'Correct answer:',
+    }
+  : {
+      quiz: '小測驗',
+      correct: '正確！',
+      wrong: '不對喔！',
+      correctAnswer: '正確答案是',
+    };
 
 // Generate a unique ID for this quiz instance
 const quizId = `quiz-${Math.random().toString(36).slice(2, 9)}`;
@@ -41,7 +55,7 @@ const quizId = `quiz-${Math.random().toString(36).slice(2, 9)}`;
 >
   <div class="quiz-header">
     <span class="quiz-icon">❓</span>
-    <span class="quiz-label">小測驗</span>
+    <span class="quiz-label">{labels.quiz}</span>
   </div>
   <p class="quiz-question">{question}</p>
   <div class="quiz-options">
@@ -57,13 +71,13 @@ const quizId = `quiz-${Math.random().toString(36).slice(2, 9)}`;
   <div class="quiz-result" aria-live="polite">
     <div class="result-correct" hidden>
       <span class="result-icon">✅</span>
-      <strong>正確！</strong>
+      <strong>{labels.correct}</strong>
       <p class="result-explanation">{explanation}</p>
     </div>
     <div class="result-wrong" hidden>
       <span class="result-icon">❌</span>
-      <strong>不對喔！</strong>
-      <p class="result-answer">正確答案是 <strong>{answer}</strong></p>
+      <strong>{labels.wrong}</strong>
+      <p class="result-answer">{labels.correctAnswer} <strong>{answer}</strong></p>
       <p class="result-explanation">{explanation}</p>
     </div>
   </div>
