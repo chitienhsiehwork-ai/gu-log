@@ -8,17 +8,17 @@ import (
 )
 
 // TestClaudeWriterModelPreservesPinnedVersion locks the regression that made a
-// pinned claude-opus-4-5 write get stamped "Opus 4.8": Model() must keep the
-// concrete version, DisplayName must render it as 4.5, and Name() must still
-// collapse to the family label for logs.
+// pinned writer build get stamped with the floating alias's version: Model()
+// must keep the concrete pinned id, DisplayName must render that pin (never the
+// alias display), and Name() must still collapse to the family label for logs.
+// Assertions derive from ClaudeOpusPinned so bumping the pin does not require
+// editing this test — the pin's value lives in claude.go, not here.
 func TestClaudeWriterModelPreservesPinnedVersion(t *testing.T) {
 	w := NewClaudeOpusWriter()
 	if got := w.Model(); got != ModelID(ClaudeOpusPinned) {
 		t.Fatalf("writer Model() = %q, want %q", got, ClaudeOpusPinned)
 	}
-	if got := DisplayName(w.Model()); got != "Opus 4.5" {
-		t.Fatalf("writer DisplayName = %q, want %q", got, "Opus 4.5")
-	}
+	assertPinnedDisplay(t, "writer", DisplayName(w.Model()))
 	if got := w.Name(); got != string(ModelClaudeOpus) {
 		t.Fatalf("writer Name() = %q, want %q", got, ModelClaudeOpus)
 	}
@@ -85,7 +85,22 @@ printf '{"result":"ok","modelUsage":{"%s":{"outputTokens":7}}}\n' "$model"
 	if got := w.ActualModel(); got != ModelID(ClaudeOpusPinned) {
 		t.Fatalf("ActualModel after run = %q, want %q", got, ClaudeOpusPinned)
 	}
-	if got := DisplayName(w.ActualModel()); got != "Opus 4.5" {
-		t.Fatalf("stamped DisplayName = %q, want Opus 4.5", got)
+	assertPinnedDisplay(t, "stamped", DisplayName(w.ActualModel()))
+}
+
+// assertPinnedDisplay checks a pinned-writer provenance stamp without hardcoding
+// the pin: it must be a rendered display name (not the raw build id), and it
+// must differ from the floating alias's display — the alias leaking into a
+// pinned stamp is the provenance bug these tests guard.
+func assertPinnedDisplay(t *testing.T, label, got string) {
+	t.Helper()
+	if got == ClaudeOpusPinned {
+		t.Fatalf("%s DisplayName = %q, want a rendered name, not the raw build id", label, got)
+	}
+	if alias := DisplayName(ModelClaudeOpus); got == alias {
+		t.Fatalf("%s DisplayName = %q, must not collapse to the floating alias display", label, got)
+	}
+	if want := DisplayName(ModelID(ClaudeOpusPinned)); got != want {
+		t.Fatalf("%s DisplayName = %q, want %q", label, got, want)
 	}
 }

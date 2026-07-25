@@ -41,7 +41,7 @@ type ClaudeProvider struct {
 // .claude/agents/tribunal-writer.md and .claude/agents/vibe-opus-scorer.md.
 const (
 	ClaudeOpusAlias  = "opus"
-	ClaudeOpusPinned = "claude-opus-4-5"
+	ClaudeOpusPinned = "claude-opus-5"
 )
 
 // NewClaudeOpus returns a ClaudeProvider wired to the floating Opus alias. Use
