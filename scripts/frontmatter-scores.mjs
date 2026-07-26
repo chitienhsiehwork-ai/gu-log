@@ -37,13 +37,9 @@ import fs from 'fs';
 import process from 'node:process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { resolveRecordedModelId } from './detect-model.mjs';
+import { CURRENT_TRIBUNAL_VERSION, LEGACY_TRIBUNAL_VERSION } from './tribunal-version.mjs';
 
 const VALID_JUDGES = ['librarian', 'factCheck', 'freshEyes', 'vibe'];
-// v9 (move-clarity-vibe-to-fresheyes): clarity moved from vibe → freshEyes.
-const CURRENT_TRIBUNAL_VERSION = 9;
-// Unstamped posts predate the v9 ownership move. Reading them as the current
-// version would silently hide their legacy Vibe clarity score.
-const LEGACY_TRIBUNAL_VERSION = 8;
 
 const __isCli =
   import.meta.url === pathToFileURL(process.argv[1] ?? '').href ||

@@ -23,9 +23,23 @@ cd "$ROOT_DIR"
 
 source "$SCRIPT_DIR/tribunal-helpers.sh"
 
+if ! TRIBUNAL_VERSION="$(node "$SCRIPT_DIR/tribunal-version.mjs" current 2>/dev/null)"; then
+  echo "ERROR: invalid Tribunal version: could not read scripts/tribunal-version.mjs" >&2
+  exit 78
+fi
+case "$TRIBUNAL_VERSION" in
+  ''|*[!0-9]*)
+    echo "ERROR: invalid Tribunal version: ${TRIBUNAL_VERSION:-<empty>}" >&2
+    exit 78
+    ;;
+esac
+if [ "$TRIBUNAL_VERSION" -lt 1 ]; then
+  echo "ERROR: invalid Tribunal version: $TRIBUNAL_VERSION" >&2
+  exit 78
+fi
+
 POSTS_DIR="$ROOT_DIR/src/content/posts"
 PROGRESS_FILE="$(tribunal_progress_file_default "$ROOT_DIR")"
-TRIBUNAL_VERSION=8
 LOG_DIR="$ROOT_DIR/.score-loop/logs"
 LOG_FILE="$LOG_DIR/tribunal-batch-$(date +%Y%m%d-%H%M%S).log"
 RUNTIME_GIT_STATE_FILE="$(tribunal_runtime_git_state_file "$ROOT_DIR")"
@@ -227,8 +241,8 @@ get_unscored_articles() {
       continue
     fi
 
-    # Check if already PASS in current tribunal version. Older PASS entries
-    # should be reprocessed by the v8 judge-boundary gate.
+    # Check if already PASS in the current Tribunal version. Older PASS entries
+    # must be reprocessed across the version boundary.
     local status
     status=$(jq -r --arg a "$article" --argjson v "$TRIBUNAL_VERSION" \
       'if ((.[$a].tribunalVersion // 0) >= $v) then (.[$a].status // "pending") else "pending" end' \

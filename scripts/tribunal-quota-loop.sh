@@ -36,11 +36,23 @@ cd "$ROOT_DIR"
 # shellcheck source=scripts/tribunal-helpers.sh
 source "$SCRIPT_DIR/tribunal-helpers.sh"
 
+if ! TRIBUNAL_VERSION="$(node "$SCRIPT_DIR/tribunal-version.mjs" current 2>/dev/null)"; then
+  echo "ERROR: invalid Tribunal version: could not read scripts/tribunal-version.mjs" >&2
+  exit 78
+fi
+case "$TRIBUNAL_VERSION" in
+  ''|*[!0-9]*)
+    echo "ERROR: invalid Tribunal version: ${TRIBUNAL_VERSION:-<empty>}" >&2
+    exit 78
+    ;;
+esac
+if [ "$TRIBUNAL_VERSION" -lt 1 ]; then
+  echo "ERROR: invalid Tribunal version: $TRIBUNAL_VERSION" >&2
+  exit 78
+fi
+
 POSTS_DIR="$ROOT_DIR/src/content/posts"
 PROGRESS_FILE="$(tribunal_progress_file_default "$ROOT_DIR")"
-# v9 (move-clarity-vibe-to-fresheyes): keep in lockstep with tribunal.sh and
-# frontmatter-scores.mjs CURRENT_TRIBUNAL_VERSION.
-TRIBUNAL_VERSION=9
 LOG_DIR="$ROOT_DIR/.score-loop/logs"
 LOG_FILE="$LOG_DIR/tribunal-quota-loop-$(date +%Y%m%d-%H%M%S).log"
 USAGE_MONITOR="${USAGE_MONITOR:-$(command -v usage-monitor.sh || true)}"
@@ -414,9 +426,9 @@ def parse_reset_to_sec(s):
 
 try:
     data = json.loads(sys.argv[1])
-    # Tribunal v8 runs on OpenAI/Codex GPT-5.5. usage-monitor exposes the
-    # short OpenAI bucket as session_remaining_pct/session_reset_min and the
-    # long bucket as weekly_remaining_pct/weekly_reset_hr.
+    # Tribunal judge runs consume OpenAI/Codex quota. usage-monitor exposes
+    # the short bucket as session_remaining_pct/session_reset_min and the long
+    # bucket as weekly_remaining_pct/weekly_reset_hr.
     for p in data:
         if p.get('provider') == 'openai' and p.get('status') == 'ok':
             required = ['session_remaining_pct', 'session_reset_min', 'weekly_remaining_pct', 'weekly_reset_hr']
@@ -987,8 +999,8 @@ get_unscored_articles() {
       continue
     fi
     # Skip already passed or permanently exhausted only for the current
-    # tribunal version. Older PASS entries are intentionally reprocessed by
-    # the v8 judge-boundary gate, preserving newest-first order.
+    # Tribunal version. Older PASS entries are intentionally reprocessed
+    # across the version boundary, preserving newest-first order.
     status=$(jq -r --arg a "$article" --argjson v "$TRIBUNAL_VERSION" \
       'if ((.[$a].tribunalVersion // 0) >= $v) then (.[$a].status // "pending") else "pending" end' \
       "$PROGRESS_FILE" 2>/dev/null || echo "pending")
