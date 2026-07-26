@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# security-audit.sh — Run pnpm audit, record results, alert on high/critical
+# security-audit.sh — Record the shared bulk advisory audit and alert on high/critical
 # Part of SQAA Level 1
 # Exit codes:
 #   0 = no high/critical vulnerabilities
@@ -14,35 +14,22 @@ HISTORY_FILE="${QUALITY_DIR}/security-audit-history.json"
 
 mkdir -p "${QUALITY_DIR}"
 
-# Run pnpm audit in JSON mode (exit code 0 = clean, non-zero = vulnerabilities found)
-# pnpm audit returns non-zero when vulns exist, so we capture and continue
-AUDIT_JSON=$(cd "${PROJECT_DIR}" && pnpm audit --json 2>/dev/null) || true
-
-if [ -z "${AUDIT_JSON}" ]; then
-  echo "ERROR: pnpm audit returned empty output"
+# Use the same fail-closed bulk advisory producer as the blocking security gate.
+if ! COUNTS=$(cd "${PROJECT_DIR}" && node scripts/security-gate.mjs --summary-json); then
+  echo "ERROR: shared security audit producer failed"
   exit 2
 fi
 
-# Reject registry/transport error payloads and unknown schemas before recording history.
-if ! printf '%s' "${AUDIT_JSON}" | node "${PROJECT_DIR}/scripts/security-gate.mjs" --validate-only --audit-file -; then
-  echo "ERROR: pnpm audit returned an invalid report"
-  exit 2
-fi
-
-# Extract severity counts using node (available in any Node project)
-COUNTS=$(echo "${AUDIT_JSON}" | node -e "
+# Refuse malformed output before recording history.
+if ! printf '%s' "${COUNTS}" | node -e "
 const data = JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf8'));
-const v = data.metadata?.vulnerabilities || {};
-const info = v.info || 0;
-const low = v.low || 0;
-const moderate = v.moderate || 0;
-const high = v.high || 0;
-const critical = v.critical || 0;
-const total = (typeof v.total === 'number' && v.total > 0)
-  ? v.total
-  : (info + low + moderate + high + critical);
-console.log(JSON.stringify({ info, low, moderate, high, critical, total }));
-")
+for (const severity of ['info', 'low', 'moderate', 'high', 'critical', 'total']) {
+  if (!Number.isInteger(data[severity]) || data[severity] < 0) process.exit(1);
+}
+"; then
+  echo "ERROR: shared security audit producer returned invalid counts"
+  exit 2
+fi
 
 HIGH=$(echo "${COUNTS}" | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); console.log(d.high)")
 CRITICAL=$(echo "${COUNTS}" | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); console.log(d.critical)")

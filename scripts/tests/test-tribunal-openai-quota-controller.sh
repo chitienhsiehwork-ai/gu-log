@@ -3,6 +3,11 @@
 
 set -euo pipefail
 
+if [ "${BASH_VERSINFO[0]}" -lt 4 ]; then
+  echo "SKIP: Tribunal quota loop requires Bash 4+ (associative arrays/mapfile)."
+  exit 0
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 TRIBUNAL_LOOP="$ROOT_DIR/scripts/tribunal-quota-loop.sh"

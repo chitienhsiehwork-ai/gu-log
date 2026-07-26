@@ -1,8 +1,11 @@
 # glossary-link-coverage Specification
 
 ## Purpose
-TBD - created by archiving change add-glossary-link-coverage. Update Purpose after archive.
+
+定義文章 glossary link coverage 的語言路由、安全掃描區域、linking config、checker／fixer 分工與 blocking rollout，確保術語連結完整且不破壞 MDX。
+
 ## Requirements
+
 ### Requirement: Posts MUST link enabled glossary terms at least once
 
 For each enabled glossary term that appears in a post body, the post SHALL contain at least one Markdown link from a safe occurrence of that term to the corresponding glossary anchor.
@@ -140,4 +143,3 @@ The implementation SHALL include all three rollout phases:
 - **WHEN** any enabled glossary term appears in any post body without article-level coverage
 - **THEN** `pnpm run glossary:check` SHALL fail in CI
 - **AND** SHALL provide actionable output for backfill or ignore
-

@@ -16,7 +16,7 @@ interface Props {
 const { title, open = false } = Astro.props;
 ---
 
-<div class="toggle-container" data-open={open}>
+<div class="toggle-container" data-open={open} data-markdown-adapter="toggle">
   <button class="toggle-header" aria-expanded={open}>
     <span class="toggle-icon"></span>
     <span class="toggle-title">{title}</span>

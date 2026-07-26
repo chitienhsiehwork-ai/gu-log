@@ -174,7 +174,7 @@ Vercel 自動 deploy，幾分鐘後 `gu-log.vercel.app` 上線。
 | 體驗 | Obsidian iOS | gu-log.vercel.app |
 |---|---|---|
 | 字型 | 系統預設 | Inter + Noto Sans TC |
-| 主題 | Obsidian 內建 | Solarized dark / light 切換 |
+| 主題 | Obsidian 內建 | Solarized light / Dracula dark 切換 |
 | TOC | 手動靠 headings | 左側 auto-generated TOC + reading progress |
 | MoguNote | 純 blockquote（callout 渲染） | 有框、有配色、有 persona |
 | 系列導覽 | 無 | Prev / Next + 系列章節 |

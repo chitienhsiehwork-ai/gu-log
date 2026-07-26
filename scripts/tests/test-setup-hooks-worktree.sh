@@ -22,11 +22,11 @@ git -C "$MAIN_REPO" worktree add -q -b linked "$LINKED_WORKTREE"
 
 (cd "$MAIN_REPO" && bash scripts/setup-hooks.sh >/dev/null)
 MAIN_HOOKS=$(git -C "$MAIN_REPO" config --worktree --get core.hooksPath)
-EXPECTED_MAIN=$(git -C "$MAIN_REPO" rev-parse --git-dir)/hooks
+EXPECTED_MAIN=$(git -C "$MAIN_REPO" rev-parse --absolute-git-dir)/hooks
 
 (cd "$LINKED_WORKTREE" && bash scripts/setup-hooks.sh >/dev/null)
 LINKED_HOOKS=$(git -C "$LINKED_WORKTREE" config --worktree --get core.hooksPath)
-EXPECTED_LINKED=$(git -C "$LINKED_WORKTREE" rev-parse --git-dir)/hooks
+EXPECTED_LINKED=$(git -C "$LINKED_WORKTREE" rev-parse --absolute-git-dir)/hooks
 MAIN_AFTER_LINKED=$(git -C "$MAIN_REPO" config --worktree --get core.hooksPath)
 
 if [ "$MAIN_HOOKS" != "$EXPECTED_MAIN" ]; then

@@ -14,6 +14,7 @@ const i18n = {
     countAll: '共 {total} 篇',
     countCapped: '共 {total} 篇，顯示前 {shown} 篇',
     loading: '正在載入搜尋索引…',
+    unavailable: '搜尋目前無法使用，請再試一次',
     shortcut: '⌘K',
     triggerLabel: '開啟搜尋',
     dialogLabel: '搜尋文章',
@@ -25,6 +26,7 @@ const i18n = {
     countAll: '{total} results',
     countCapped: '{total} results, showing top {shown}',
     loading: 'Loading search index…',
+    unavailable: 'Search unavailable — please try again',
     shortcut: '⌘K',
     triggerLabel: 'Open search',
     dialogLabel: 'Search articles',
@@ -62,6 +64,7 @@ const t = i18n[lang];
   data-count-all={t.countAll}
   data-count-capped={t.countCapped}
   data-loading={t.loading}
+  data-unavailable={t.unavailable}
   data-max-results={searchConfig.maxResults}
   data-debounce-ms={searchConfig.debounceMs}
   aria-hidden="true"
@@ -123,6 +126,7 @@ const t = i18n[lang];
   const countAllTpl = modal?.dataset.countAll || '{total} results';
   const countCappedTpl = modal?.dataset.countCapped || '{total} results, showing top {shown}';
   const loadingText = modal?.dataset.loading || 'Loading search index…';
+  const unavailableText = modal?.dataset.unavailable || 'Search unavailable — please try again';
   const maxResults = parseInt(modal?.dataset.maxResults || '15', 10);
   const debounceMs = parseInt(modal?.dataset.debounceMs || '150', 10);
 
@@ -148,7 +152,7 @@ const t = i18n[lang];
       console.error('Failed to load search index:', e);
       loadPromise = null; // reset so next keystroke retries
       if (results) {
-        results.innerHTML = `<div class="search-no-results">Search unavailable — please try again</div>`;
+        results.innerHTML = `<div class="search-no-results">${escapeHtml(unavailableText)}</div>`;
       }
     }
   }

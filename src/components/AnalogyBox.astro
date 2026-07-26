@@ -12,13 +12,15 @@ interface Props {
   title?: string;
 }
 
-const { title = '💡 類比時間' } = Astro.props;
+const isEnglish = Astro.url.pathname.startsWith('/en/');
+const { title = isEnglish ? '💡 Analogy time' : '💡 類比時間' } = Astro.props;
+const badgeLabel = isEnglish ? 'Analogy' : '類比';
 ---
 
-<aside class="analogy-box" role="note">
+<aside class="analogy-box" role="note" data-markdown-adapter="analogy-box">
   <div class="analogy-header">
     <span class="analogy-title">{title}</span>
-    <span class="analogy-badge">類比</span>
+    <span class="analogy-badge">{badgeLabel}</span>
   </div>
   <div class="analogy-content">
     <slot />
@@ -27,11 +29,11 @@ const { title = '💡 類比時間' } = Astro.props;
 
 <style>
   .analogy-box {
-    border: 2px solid #d4a843;
+    border: 2px solid var(--color-analogy-accent);
     border-radius: 12px;
     padding: 1.25rem;
     margin: 1.5rem 0;
-    background: rgba(212, 168, 67, 0.06);
+    background: color-mix(in srgb, var(--color-analogy-accent) 6%, transparent);
     position: relative;
   }
 
@@ -58,8 +60,8 @@ const { title = '💡 類比時間' } = Astro.props;
     letter-spacing: 0.05em;
     padding: 0.15rem 0.5rem;
     border-radius: 9999px;
-    background: rgba(212, 168, 67, 0.15);
-    color: #d4a843;
+    background: color-mix(in srgb, var(--color-analogy-accent) 15%, transparent);
+    color: var(--color-analogy-accent);
     font-weight: 600;
   }
 
@@ -70,16 +72,5 @@ const { title = '💡 類比時間' } = Astro.props;
 
   .analogy-content :global(p:last-child) {
     margin-bottom: 0;
-  }
-
-  /* Light theme */
-  [data-theme='light'] .analogy-box {
-    border-color: #b58900;
-    background: rgba(181, 137, 0, 0.06);
-  }
-
-  [data-theme='light'] .analogy-badge {
-    background: rgba(181, 137, 0, 0.12);
-    color: #8a6800;
   }
 </style>

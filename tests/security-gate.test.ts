@@ -10,6 +10,7 @@ import { describe, it, expect } from 'vitest';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { gzipSync } from 'node:zlib';
 import * as sgModule from '../scripts/security-gate.mjs';
 
 // Per-suite tmpdir; CodeQL js/path-injection-clean (mkdtempSync is a safe origin).
@@ -38,6 +39,10 @@ const {
   evaluateFindings,
   MAX_ALLOWLIST_DAYS,
   MS_PER_DAY,
+  decodeAuditBody,
+  collectAuditRequest,
+  fetchBulkAudit,
+  normalizeBulkAuditFindings,
 } = sg;
 
 describe('parseArgs', () => {
@@ -47,6 +52,7 @@ describe('parseArgs', () => {
     expect(o.auditFile).toBeNull();
     expect(o.prodAuditFile).toBeNull();
     expect(o.validateOnly).toBe(false);
+    expect(o.summaryJson).toBe(false);
   });
 
   it('overrides allowlist path (absolute)', () => {
@@ -69,6 +75,10 @@ describe('parseArgs', () => {
 
   it('preserves stdin marker for validation', () => {
     expect(parseArgs(['--audit-file', '-']).auditFile).toBe('-');
+  });
+
+  it('enables live summary JSON mode', () => {
+    expect(parseArgs(['--summary-json']).summaryJson).toBe(true);
   });
 });
 
@@ -125,6 +135,75 @@ describe('validateAuditReport', () => {
         metadata,
       })
     ).toThrow(/metadata reports none/);
+  });
+});
+
+describe('bulk audit transport', () => {
+  const clean = {
+    metadata: {
+      vulnerabilities: { info: 0, low: 0, moderate: 0, high: 0, critical: 0 },
+    },
+    advisories: {},
+  };
+
+  it('decodes both plain JSON and gzip bytes without relying on Content-Encoding', () => {
+    const plain = Buffer.from(JSON.stringify(clean));
+    expect(decodeAuditBody(plain, 'plain response')).toEqual(clean);
+    expect(decodeAuditBody(gzipSync(plain), 'gzip response')).toEqual(clean);
+  });
+
+  it('fails closed when the decoded payload is not JSON', () => {
+    expect(() => decodeAuditBody(gzipSync(Buffer.from('not json')), 'broken response')).toThrow(
+      /broken response.*valid JSON/
+    );
+  });
+
+  it('decodes a gzip bulk endpoint response before validating its shape', async () => {
+    const body = gzipSync(Buffer.from(JSON.stringify({ pkg: [] })));
+    const fakeFetch = async () => new Response(body, { status: 200 });
+    await expect(fetchBulkAudit({ pkg: ['1.0.0'] }, 'bulk response', fakeFetch)).resolves.toEqual({
+      pkg: [],
+    });
+  });
+
+  it('collects and deduplicates installed package versions from pnpm list output', () => {
+    const request = collectAuditRequest([
+      {
+        dependencies: {
+          astro: {
+            version: '6.4.8',
+            dependencies: { yaml: { version: '2.9.0' } },
+          },
+        },
+        devDependencies: {
+          tool: {
+            version: '1.0.0',
+            dependencies: { yaml: { version: '2.9.0' } },
+          },
+        },
+      },
+    ]);
+    expect(request).toEqual({
+      astro: ['6.4.8'],
+      tool: ['1.0.0'],
+      yaml: ['2.9.0'],
+    });
+  });
+
+  it('classifies advisories present in the prod response as runtime and full-only as dev', () => {
+    const full = {
+      runtimeLeaf: [{ id: 1, severity: 'critical', title: 'runtime', url: 'https://a' }],
+      devLeaf: [{ id: 2, severity: 'high', title: 'dev', url: 'https://b' }],
+      lowLeaf: [{ id: 3, severity: 'low', title: 'low', url: 'https://c' }],
+    };
+    const prod = {
+      runtimeLeaf: [{ id: 1, severity: 'critical', title: 'runtime', url: 'https://a' }],
+    };
+
+    expect(normalizeBulkAuditFindings(full, prod)).toMatchObject([
+      { id: '2', name: 'devLeaf', severity: 'high', scope: 'dev' },
+      { id: '1', name: 'runtimeLeaf', severity: 'critical', scope: 'runtime' },
+    ]);
   });
 });
 

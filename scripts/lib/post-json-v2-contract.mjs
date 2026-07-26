@@ -1,0 +1,20 @@
+export const POST_JSON_V2_KEYS = Object.freeze(
+  [
+    'authorshipNote',
+    'body',
+    'headings',
+    'lang',
+    'originalDate',
+    'schemaVersion',
+    'slug',
+    'source',
+    'sourceUrl',
+    'summary',
+    'tags',
+    'ticketId',
+    'title',
+    'translatedBy',
+    'translatedDate',
+    'url',
+  ].sort()
+);

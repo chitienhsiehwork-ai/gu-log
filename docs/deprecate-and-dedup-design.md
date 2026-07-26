@@ -6,6 +6,7 @@
 
 現行權威來源：
 
-- Dedup contract 與 runtime 路由：[`specs/article-dedup-strategy.md`](../specs/article-dedup-strategy.md)
+- Dedup formal policy：[`dedup-policy`](../openspec/specs/dedup-policy/spec.md) 與 [`dedup-taxonomy`](../openspec/specs/dedup-taxonomy/spec.md)
+- Dedup runtime entrypoint：[`scripts/dedup-gate.mjs`](../scripts/dedup-gate.mjs)
 - Post status schema：[`src/content.config.ts`](../src/content.config.ts)
 - Published／deprecated／retired 行為：[`src/utils/post-status.ts`](../src/utils/post-status.ts)

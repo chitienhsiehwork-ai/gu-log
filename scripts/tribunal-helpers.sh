@@ -301,6 +301,29 @@ tribunal_fetch_and_report_origin_main() {
   printf '%s|%s|%s|%s|%s\n' "$fetched" "$state" "$ahead" "$behind" "$tracked_dirty"
 }
 
+# Run one external model command in its own POSIX session when the watchdog
+# provides a pid-file. Python's setsid() is available on both deployed Linux
+# and macOS, and gives the watchdog a stable process-group id even after an
+# intermediate shell exits or descendants ignore TERM.
+tribunal_session_exec() {
+  local pid_file="${TRIBUNAL_PROCESS_GROUP_FILE:-}"
+  if [ -z "$pid_file" ]; then
+    "$@"
+    return
+  fi
+  python3 -c '
+import os
+import pathlib
+import sys
+
+pid_file = pathlib.Path(sys.argv[1])
+command = sys.argv[2:]
+os.setsid()
+pid_file.write_text(f"{os.getpid()}\n", encoding="utf-8")
+os.execvp(command[0], command)
+' "$pid_file" "$@"
+}
+
 # Run a repo-local agent spec through Codex. Codex custom agents live in
 # `.codex/agents/*.toml`, but `codex exec` has no stable `--agent` flag for this
 # non-interactive tribunal path, so we inline the project-scoped Codex agent
@@ -318,6 +341,8 @@ tribunal_codex_exec() {
   local legacy_agent_file="$REPO_ROOT/.claude/agents/$agent_name.md"
   local codex_agent_spec=""
   local legacy_agent_spec=""
+  local model=""
+  model="$(tribunal_codex_agent_model "$agent_name")" || return 1
   if [ -f "$codex_agent_file" ]; then
     codex_agent_spec="$(cat "$codex_agent_file")"
   fi
@@ -351,11 +376,14 @@ PROMPT
   codex_cmd="$(tribunal_codex_cmd)" || return 127
   (
     cd "$work_dir" || exit
+    # Model descendants must never retain the article-level flock if the
+    # watchdog has to detach/kill an intermediate shell.
+    exec 200>&-
     # Close stdin so non-interactive Codex runs don't inherit the caller's
     # open stdin and hang waiting for extra prompt text.
     exec </dev/null
     # shellcheck disable=SC2086 # codex_cmd may be "node <bundled codex.js>".
-    timeout "$timeout_sec" $codex_cmd exec --model "${GP_CODEX_MODEL:-gpt-5.5}" -c "model_reasoning_effort=\"$reasoning_effort\"" --sandbox danger-full-access --skip-git-repo-check -- "$prompt"
+    tribunal_session_exec timeout "$timeout_sec" $codex_cmd exec --model "$model" -c "model_reasoning_effort=\"$reasoning_effort\"" --sandbox danger-full-access --skip-git-repo-check -- "$prompt"
   )
 }
 
@@ -372,11 +400,122 @@ tribunal_claude_cmd() {
   return 1
 }
 
+# Parse the top-level `model` selector from one Codex agent TOML file. Python's
+# stdlib TOML parser keeps comments and multiline developer instructions from
+# becoming runtime configuration. The value must be one non-empty selector
+# token; malformed TOML, missing model, arrays, and whitespace fail closed.
+tribunal_codex_toml_model() {
+  local f="$1"
+  [ -f "$f" ] || return 1
+  python3 - "$f" <<'PY'
+import pathlib
+import re
+import sys
+import tomllib
+
+path = pathlib.Path(sys.argv[1])
+try:
+    data = tomllib.loads(path.read_text(encoding="utf-8"))
+except (OSError, UnicodeError, tomllib.TOMLDecodeError):
+    raise SystemExit(1)
+
+model = data.get("model")
+if not isinstance(model, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:-]*", model):
+    raise SystemExit(1)
+print(model)
+PY
+}
+
+# Resolve a Codex role selector. GP_CODEX_MODEL is intentionally the only
+# run-scoped override; otherwise every role must own a valid TOML model.
+tribunal_codex_agent_model() {
+  local agent_name="$1"
+  local model=""
+  if [ -n "${GP_CODEX_MODEL:-}" ]; then
+    if ! printf '%s\n' "$GP_CODEX_MODEL" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9._:-]*$'; then
+      printf 'Invalid GP_CODEX_MODEL override: %s\n' "$GP_CODEX_MODEL" >&2
+      return 1
+    fi
+    printf '%s\n' "$GP_CODEX_MODEL"
+    return 0
+  fi
+  if [ -z "${REPO_ROOT:-}" ]; then
+    REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  fi
+  local f="$REPO_ROOT/.codex/agents/$agent_name.toml"
+  if ! model="$(tribunal_codex_toml_model "$f")"; then
+    printf 'Missing or invalid Codex model in %s\n' "$f" >&2
+    return 1
+  fi
+  printf '%s\n' "$model"
+}
+
+tribunal_strict_role_providers_enabled() {
+  case "${TRIBUNAL_STRICT_ROLE_PROVIDERS:-}" in
+    1) return 0 ;;
+    ""|0) return 1 ;;
+    *)
+      printf 'Invalid TRIBUNAL_STRICT_ROLE_PROVIDERS=%s (expected 1 or unset)\n' \
+        "$TRIBUNAL_STRICT_ROLE_PROVIDERS" >&2
+      return 2
+      ;;
+  esac
+}
+
+tribunal_strict_provider_for_role() {
+  local agent_name="${1:-fact-checker}"
+  if [ -n "${TRIBUNAL_FORCE_PROVIDER:-}" ]; then
+    printf 'TRIBUNAL_STRICT_ROLE_PROVIDERS=1 conflicts with TRIBUNAL_FORCE_PROVIDER\n' >&2
+    return 1
+  fi
+  case "$agent_name" in
+    vibe-opus-scorer)
+      tribunal_claude_cmd >/dev/null 2>&1 && printf 'claude\n' && return 0
+      printf 'Strict Tribunal routing requires claude for %s\n' "$agent_name" >&2
+      ;;
+    fact-checker|librarian|fresh-eyes)
+      tribunal_codex_cmd >/dev/null 2>&1 && printf 'codex\n' && return 0
+      printf 'Strict Tribunal routing requires codex for %s\n' "$agent_name" >&2
+      ;;
+    *)
+      printf 'Strict Tribunal routing does not recognize judge role: %s\n' "$agent_name" >&2
+      ;;
+  esac
+  return 1
+}
+
+# Validate the complete deployed provider contract before article dispatch.
+tribunal_validate_role_provider_contract() {
+  case "${TRIBUNAL_STRICT_ROLE_PROVIDERS:-}" in
+    ""|0) return 0 ;;
+    1) ;;
+    *)
+      printf 'Invalid TRIBUNAL_STRICT_ROLE_PROVIDERS=%s (expected 1 or unset)\n' \
+        "$TRIBUNAL_STRICT_ROLE_PROVIDERS" >&2
+      return 2
+      ;;
+  esac
+  local role
+  for role in fact-checker librarian fresh-eyes; do
+    tribunal_strict_provider_for_role "$role" >/dev/null || return 1
+    tribunal_codex_agent_model "$role" >/dev/null || return 1
+  done
+  tribunal_strict_provider_for_role vibe-opus-scorer >/dev/null || return 1
+  tribunal_claude_agent_model vibe-opus-scorer >/dev/null || return 1
+}
+
 # Resolve the active tribunal LLM provider: "codex" when present (the
 # maintained judge runtime), else "claude" (CCC fallback). Returns 1 when
 # neither binary is on PATH. Codex always wins when both exist; this intentionally
 # mirrors the Go pipeline's JudgeChain, not the Opus writer chain.
 tribunal_llm_provider() {
+  if tribunal_strict_role_providers_enabled; then
+    tribunal_strict_provider_for_role fact-checker
+    return
+  else
+    local strict_rc=$?
+    [ "$strict_rc" -eq 1 ] || return "$strict_rc"
+  fi
   if [ -n "${TRIBUNAL_FORCE_PROVIDER:-}" ]; then
     case "$TRIBUNAL_FORCE_PROVIDER" in
       codex)
@@ -401,8 +540,8 @@ tribunal_llm_provider() {
 
 # Agent-aware provider preference for a tribunal judge. Defaults to the global
 # tribunal_llm_provider for every judge EXCEPT vibe-opus-scorer, which prefers
-# Claude so the subjective taste score runs on the owner-pinned Opus build
-# (.claude/agents/vibe-opus-scorer.md model: claude-opus-4-5). The three
+# Claude so the subjective taste score runs on the owner-pinned build declared
+# by `.claude/agents/vibe-opus-scorer.md`. The three
 # objective judges (librarian / fact-checker / fresh-eyes) keep the global
 # default: Codex on mac/VPS, Claude in the CCC codex-absent fallback.
 #
@@ -418,6 +557,13 @@ tribunal_llm_provider() {
 # byte-for-byte, so every existing non-judge call path is unchanged.
 tribunal_judge_provider() {
   local agent_name="${1:-}"
+  if tribunal_strict_role_providers_enabled; then
+    tribunal_strict_provider_for_role "$agent_name"
+    return
+  else
+    local strict_rc=$?
+    [ "$strict_rc" -eq 1 ] || return "$strict_rc"
+  fi
   if [ -n "${TRIBUNAL_FORCE_PROVIDER:-}" ]; then
     tribunal_llm_provider
     return
@@ -447,9 +593,95 @@ tribunal_writer_mode() {
   fi
 }
 
-# Parse the `model:` field from a .claude/agents/<name>.md spec so each judge
-# runs on its declared Claude build (vibe/fact-checker on opus, etc.). Falls
-# back to the legacy Opus scorer/writer calibration model when the field is absent.
+# Probe the deployed CLI writer before any article is claimed. This is
+# deliberately tiny, non-interactive, and bounded; it verifies the same role
+# model selector and Claude auth path used by real rewrites.
+tribunal_writer_preflight() {
+  local mode model claude_cmd timeout_sec output rc=0
+  mode="$(tribunal_writer_mode)"
+  case "$mode" in
+    cli) ;;
+    none|subagent)
+      printf 'Writer preflight failed: deployed runtime requires GP_WRITER_MODE=cli (got %s)\n' "$mode" >&2
+      return 1
+      ;;
+    *)
+      printf 'Writer preflight failed: unsupported GP_WRITER_MODE=%s\n' "$mode" >&2
+      return 1
+      ;;
+  esac
+  claude_cmd="$(tribunal_claude_cmd)" || {
+    printf 'Writer preflight failed: claude CLI is not on PATH\n' >&2
+    return 127
+  }
+  model="$(tribunal_claude_agent_model tribunal-writer)" || {
+    printf 'Writer preflight failed: cannot resolve tribunal-writer model\n' >&2
+    return 1
+  }
+  timeout_sec="${TRIBUNAL_WRITER_PREFLIGHT_TIMEOUT_SEC:-30}"
+  if ! printf '%s\n' "$timeout_sec" | grep -Eq '^[1-9][0-9]*$'; then
+    printf 'Writer preflight failed: TRIBUNAL_WRITER_PREFLIGHT_TIMEOUT_SEC must be a positive integer\n' >&2
+    return 2
+  fi
+  output="$(
+    printf 'Reply OK only.\n' |
+      timeout "$timeout_sec" "$claude_cmd" -p --model "$model" \
+        --tools "" --no-session-persistence 2>&1
+  )" || rc=$?
+  if [ "$rc" -ne 0 ]; then
+    printf 'Writer preflight failed: claude CLI/auth probe exited %s: %s\n' \
+      "$rc" "$(printf '%s' "$output" | tail -1)" >&2
+    return "$rc"
+  fi
+  output="$(printf '%s' "$output" | tr -d '\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+  if [ "$output" != "OK" ]; then
+    printf 'Writer preflight failed: expected exact OK, got: %s\n' "$output" >&2
+    return 1
+  fi
+  printf 'OK\n'
+}
+
+# Parse one model selector strictly from the first YAML frontmatter block.
+# Body text is rubric prose and must never become runtime configuration.
+tribunal_claude_frontmatter_model() {
+  local f="$1"
+  [ -f "$f" ] || return 1
+  awk '
+    BEGIN { single_quote = sprintf("%c", 39) }
+    NR == 1 {
+      if ($0 !~ /^---[[:space:]]*$/) exit 1
+      in_frontmatter = 1
+      next
+    }
+    in_frontmatter && /^---[[:space:]]*$/ {
+      in_frontmatter = 0
+      if (model == "") exit 1
+      print model
+      found = 1
+      exit 0
+    }
+    in_frontmatter && /^model:[[:space:]]*/ {
+      if (model != "") exit 1
+      value = $0
+      sub(/^model:[[:space:]]*/, "", value)
+      sub(/[[:space:]]+$/, "", value)
+      first = substr(value, 1, 1)
+      last = substr(value, length(value), 1)
+      if ((first == "\"" && last == "\"") ||
+          (first == single_quote && last == single_quote)) {
+        value = substr(value, 2, length(value) - 2)
+      }
+      if (value !~ /^(opus|sonnet|haiku|fable)$/ &&
+          value !~ /^claude-[A-Za-z0-9._-]+(\[[A-Za-z0-9]+\])?$/) exit 1
+      model = value
+    }
+    END { if (!found) exit 1 }
+  ' "$f"
+}
+
+# Resolve a Claude role selector. Known agent specs must contain valid
+# frontmatter. Legacy or unknown names may reuse the Tribunal writer selector,
+# but no hardcoded Claude model is kept in this shell runtime.
 tribunal_claude_agent_model() {
   local agent_name="$1"
   if [ -z "${REPO_ROOT:-}" ]; then
@@ -458,27 +690,33 @@ tribunal_claude_agent_model() {
   local f="$REPO_ROOT/.claude/agents/$agent_name.md"
   local m=""
   if [ -f "$f" ]; then
-    m="$(awk -F'model:[[:space:]]*' '/^model:/ {print $2; exit}' "$f" | tr -d '"'"'"'[:space:]')"
-  fi
-  if [ -n "$m" ]; then
+    if ! m="$(tribunal_claude_frontmatter_model "$f")"; then
+      printf 'Missing or invalid frontmatter model in %s\n' "$f" >&2
+      return 1
+    fi
     printf '%s\n' "$m"
-  else
-    printf 'claude-opus-4-6\n'
+    return 0
   fi
+  if [ "$agent_name" != "tribunal-writer" ]; then
+    tribunal_claude_agent_model tribunal-writer
+    return
+  fi
+  printf 'Missing Claude agent spec: %s\n' "$f" >&2
+  return 1
 }
 
 # Resolve the floating `opus` alias to its concrete build for RECORDING only.
 # Selection stays on the alias (tribunal_claude_agent_model returns it verbatim
 # so `claude -p --model opus` still floats to Anthropic's latest Opus); this
 # resolver is applied at the recording boundary so frontmatter scores.*.model
-# and the progress ledger stamp the concrete version (e.g. claude-opus-4-8)
-# instead of the opaque literal "opus".
+# and the progress ledger stamp the concrete version instead of an opaque
+# alias.
 #
 # The bash judge path can't cheaply read Claude Code's runtime JSON metadata
 # (the judge writes its score to a file; stdout is only grep'd for quota
 # errors), so we resolve via the single SSOT constant OPUS_ALIAS_CURRENT in
-# scripts/detect-model.mjs. Non-alias ids (claude-opus-4-5, gpt-5.5, …) pass
-# through untouched. Falls back to the input unchanged if node is unavailable.
+# scripts/detect-model.mjs. Non-alias ids pass through untouched. Falls back to
+# the input unchanged if node is unavailable.
 tribunal_resolve_recorded_model() {
   local selector="$1"
   if [ -z "${REPO_ROOT:-}" ]; then
@@ -496,23 +734,32 @@ tribunal_resolve_recorded_model() {
 }
 
 # Programmatic model id stamped into frontmatter scores + progress for the
-# active provider, so a Claude-scored post is recorded honestly instead of
-# being mislabelled GPT-5.5. Optional agent_name yields the judge's declared
-# Claude build; without it, a coarse provider label is returned. When a judge
+# active provider, so a Claude-scored post is not recorded as a Codex run.
+# Optional agent_name yields the judge's declared Claude build; without it, a
+# coarse provider label is returned. When a judge
 # declares the floating `opus` alias, the recorded id is resolved to its
 # concrete build (selection still uses the alias — see tribunal_claude_exec).
 tribunal_llm_model_id() {
   local agent_name="${1:-}"
-  case "$(tribunal_judge_provider "$agent_name" 2>/dev/null)" in
+  local provider=""
+  provider="$(tribunal_judge_provider "$agent_name" 2>/dev/null)" || return 1
+  tribunal_model_id_for_provider "$provider" "$agent_name"
+}
+
+tribunal_model_id_for_provider() {
+  local provider="$1"
+  local agent_name="${2:-}"
+  local claude_model=""
+  case "$provider" in
     claude)
-      if [ -n "$agent_name" ]; then
-        tribunal_resolve_recorded_model "$(tribunal_claude_agent_model "$agent_name")"
-      else
-        printf 'claude-opus-4-6\n'
-      fi
+      claude_model="$(tribunal_claude_agent_model "${agent_name:-tribunal-writer}")" || return 1
+      tribunal_resolve_recorded_model "$claude_model"
+      ;;
+    codex)
+      tribunal_codex_agent_model "$agent_name"
       ;;
     *)
-      printf '%s\n' "${GP_CODEX_MODEL:-gpt-5.5}"
+      return 1
       ;;
   esac
 }
@@ -521,23 +768,33 @@ tribunal_llm_model_id() {
 # (.score-loop/state/tribunal-progress.json), the stage log lines, and the
 # runner-error records. Shares the exact same provider resolution as the
 # frontmatter model_id (tribunal_llm_provider + tribunal_llm_model_id) so a
-# Claude-scored run is recorded as Claude internally instead of being
-# mislabelled as the codex GPT-5.5 runner — no second provider-detection path.
+# Claude-scored run is recorded as Claude internally — no second
+# provider-detection path.
 #
-# - codex  → codex-gpt-5.5-medium  (byte-for-byte unchanged so VPS/mac
-#            calibration history stays continuous)
+# - codex  → codex-<resolved-model>-medium
 # - claude → the judge's declared Claude build, symmetric to the frontmatter
-#            model_id (e.g. claude-opus-4-6[1m])
+#            model_id
 tribunal_runner_label() {
   local agent_name="${1:-}"
+  local model provider
+  provider="$(tribunal_judge_provider "$agent_name" 2>/dev/null)" || return 1
+  tribunal_runner_label_for_provider "$provider" "$agent_name"
+}
+
+tribunal_runner_label_for_provider() {
+  local provider="$1"
+  local agent_name="${2:-}"
   local model
-  model="$(tribunal_llm_model_id "$agent_name")"
-  case "$(tribunal_judge_provider "$agent_name" 2>/dev/null)" in
+  model="$(tribunal_model_id_for_provider "$provider" "$agent_name")" || return 1
+  case "$provider" in
     claude)
       printf '%s\n' "$model"
       ;;
-    *)
+    codex)
       printf 'codex-%s-medium\n' "$model"
+      ;;
+    *)
+      return 1
       ;;
   esac
 }
@@ -548,8 +805,8 @@ tribunal_write_actual_provider() {
   local out_file="${TRIBUNAL_ACTUAL_PROVIDER_FILE:-}"
   [ -n "$out_file" ] || return 0
   local model runner
-  model="$(TRIBUNAL_FORCE_PROVIDER="$provider" tribunal_llm_model_id "$agent_name")"
-  runner="$(TRIBUNAL_FORCE_PROVIDER="$provider" tribunal_runner_label "$agent_name")"
+  model="$(tribunal_model_id_for_provider "$provider" "$agent_name")" || return 1
+  runner="$(tribunal_runner_label_for_provider "$provider" "$agent_name")" || return 1
   {
     printf 'provider=%s\n' "$provider"
     printf 'model_id=%s\n' "$model"
@@ -559,9 +816,9 @@ tribunal_write_actual_provider() {
 
 # Claude equivalent of tribunal_codex_exec: inlines the .claude/agents/<name>.md
 # rubric (its YAML frontmatter is the persona/pass-bar contract) and runs
-# `claude -p` non-interactively. Under root (CCC) claude rejects
-# bypassPermissions, so we use acceptEdits, which still auto-approves the
-# judge's score-file write; non-root uses the broader bypassPermissions.
+# `claude -p` non-interactively. Both root and non-root use acceptEdits plus an
+# explicit narrow tool allowlist: auto can return success while waiting for an
+# interactive edit approval, and bypassPermissions is unsupported under root.
 tribunal_claude_exec() {
   local work_dir="$1"
   local agent_name="$2"
@@ -569,11 +826,18 @@ tribunal_claude_exec() {
   if [ -z "${REPO_ROOT:-}" ]; then
     REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
   fi
-  local agent_file="$REPO_ROOT/.claude/agents/$agent_name.md"
-  local agent_spec=""
-  if [ -f "$agent_file" ]; then
-    agent_spec="$(cat "$agent_file")"
+  if [ ! -d "$REPO_ROOT" ]; then
+    printf 'Claude tribunal REPO_ROOT is not a directory: %s\n' "$REPO_ROOT" >&2
+    return 1
   fi
+  local agent_file="$REPO_ROOT/.claude/agents/$agent_name.md"
+  local agent_spec="" model=""
+  if [ ! -s "$agent_file" ]; then
+    printf 'Missing Claude agent spec: %s\n' "$agent_file" >&2
+    return 1
+  fi
+  model="$(tribunal_claude_agent_model "$agent_name")" || return 1
+  agent_spec="$(cat "$agent_file")" || return 1
   local prompt
   prompt="$(cat <<PROMPT
 You are running inside the gu-log tribunal automation as a non-interactive judge.
@@ -592,39 +856,36 @@ $REPO_ROOT
 $user_prompt
 PROMPT
 )"
-  local model timeout_sec claude_cmd
-  model="$(tribunal_claude_agent_model "$agent_name")"
+  local timeout_sec claude_cmd
   timeout_sec="${TRIBUNAL_CODEX_TIMEOUT_SEC:-3600}"
   claude_cmd="$(tribunal_claude_cmd)" || return 127
-  # Permission handling differs by uid:
-  #  - non-root (mac/VPS): auto mode runs free without prompting. NOTE: we used
-  #    to use bypassPermissions here, but on current CC `claude -p
-  #    --permission-mode bypassPermissions` exits 1 the moment the agent invokes
-  #    a tool (Edit/Write), so the writer never rewrote. auto mode auto-approves
-  #    the read/edit/write the writer+judge need (verified editing an
-  #    out-of-cwd post) and is the maintainer's chosen mode (no bypassPermissions).
-  #  - root (CCC sandbox): claude *rejects* bypassPermissions, so we fall back to
-  #    acceptEdits. But acceptEdits only auto-approves *edits*; the judge task
-  #    passes the post as a PATH (not inlined), so the judge must Read it — which
-  #    prompts for permission and then hangs forever against the </dev/null
-  #    stdin. We therefore pre-approve the read/search/compute/write tools a judge
-  #    actually uses via --allowed-tools, reproducing the non-root "never prompt"
-  #    behavior with an explicit, narrower allowlist (no MCP, no network). Tools
-  #    are comma-joined into a single arg so the variadic flag can't swallow the
-  #    trailing "$prompt" positional.
+  # The CLI starts in an isolated temp directory, so both judge and writer must
+  # explicitly receive the repo as one narrow additional directory. Keep
+  # --add-dir before the variadic --allowed-tools flag, and keep the prompt on
+  # stdin so no option can swallow it.
+  #
+  # acceptEdits alone only auto-approves edits; the judge task passes the post as
+  # a PATH (not inlined), so Read would still prompt. Pre-approve only the
+  # read/search/compute/write tools judge and writer need (no MCP, no network).
+  # This same non-interactive contract is required for root and non-root:
+  # permission-mode auto can print "Waiting for permission to edit" and return
+  # rc=0 without changing the article, while bypassPermissions is rejected in
+  # root environments.
+  #
+  # Tools are comma-joined into a single arg so the variadic flag cannot swallow
+  # a trailing prompt positional.
   #    --allowed-tools is variadic, so we must NOT leave a trailing positional
   #    after it or the flag swallows the prompt text as bogus tool rules. Feed
   #    the prompt on stdin (claude -p reads stdin when no positional prompt is
   #    given) so the allowlist token is the last arg with nothing to consume.
   local -a perm_args
-  if [ "$(id -u)" = "0" ]; then
-    perm_args=(--permission-mode acceptEdits --allowed-tools "Read,Grep,Glob,Bash,Write,Edit,MultiEdit")
-  else
-    perm_args=(--permission-mode auto)
-  fi
+  perm_args=(--add-dir "$REPO_ROOT" --permission-mode acceptEdits --allowed-tools "Read,Grep,Glob,Bash,Write,Edit,MultiEdit")
   (
     cd "$work_dir" || exit
-    printf '%s' "$prompt" | timeout "$timeout_sec" "$claude_cmd" -p --model "$model" "${perm_args[@]}"
+    # See tribunal_codex_exec: do not leak the article flock into timeout/CLI.
+    exec 200>&-
+    printf '%s' "$prompt" |
+      tribunal_session_exec timeout "$timeout_sec" "$claude_cmd" -p --model "$model" "${perm_args[@]}"
   )
 }
 
@@ -636,7 +897,9 @@ tribunal_llm_exec_raw() {
   local work_dir="$1"
   local agent_name="$2"
   local user_prompt="$3"
-  case "$(tribunal_judge_provider "$agent_name" 2>/dev/null)" in
+  local provider=""
+  provider="$(tribunal_judge_provider "$agent_name" 2>/dev/null)" || provider=""
+  case "$provider" in
     claude)
       tribunal_claude_exec "$work_dir" "$agent_name" "$user_prompt"
       ;;
@@ -810,11 +1073,184 @@ tribunal_writer_exec_raw_legacy_cli() {
 
 tribunal_quota_alarm() {
   local msg="$1"
-  local ts safe_msg
+  local ts notifier
   ts="$(TZ=Asia/Taipei date '+%Y-%m-%d %H:%M:%S %z')"
-  safe_msg="${msg//\"/\\\"}"
-  printf '[%s] [tribunal-quota] %s\n' "$ts" "$msg" >&2
-  osascript -e "display notification \"$safe_msg\" with title \"gp-pipeline\"" >/dev/null 2>&1 || true
+  printf '[%s] [tribunal-alert] %s\n' "$ts" "$msg" >&2
+  notifier="${TRIBUNAL_NOTIFIER:-}"
+  [ -n "$notifier" ] || return 0
+  case "$notifier" in
+    /*) ;;
+    *)
+      printf '[%s] [tribunal-alert] notifier must be an absolute executable path: %s\n' \
+        "$ts" "$notifier" >&2
+      return 1
+      ;;
+  esac
+  if [ ! -x "$notifier" ]; then
+    printf '[%s] [tribunal-alert] notifier is not executable: %s\n' "$ts" "$notifier" >&2
+    return 1
+  fi
+  "$notifier" "$msg"
+}
+
+# Read one simple KEY=value from `systemctl show -p Environment --value`.
+# Tribunal deploy knobs are whitespace-free scalars, so the unit's effective
+# environment can cleanly override values loaded from tribunal.env.
+tribunal_unit_environment_value() {
+  local environment="$1" key="$2"
+  printf '%s\n' "$environment" |
+    tr ' ' '\n' |
+    sed -n "s/^${key}=//p" |
+    tail -1
+}
+
+tribunal_effective_runtime_value() {
+  local environment="$1" key="$2" fallback="$3"
+  local unit_value
+  unit_value="$(tribunal_unit_environment_value "$environment" "$key")"
+  if [ -n "$unit_value" ]; then
+    printf '%s\n' "$unit_value"
+  else
+    printf '%s\n' "$fallback"
+  fi
+}
+
+# Alert state is intentionally process-local. A consecutive EXHAUSTED streak
+# alerts once when it first reaches the threshold; any other completion resets
+# the streak. Controller modes alert on entry, not every tick.
+tribunal_alert_worker_completion() {
+  local rc="$1" article="$2"
+  local threshold="${TRIBUNAL_EXHAUSTED_ALERT_THRESHOLD:-3}"
+  : "${TRIBUNAL_EXHAUSTED_STREAK:=0}"
+  if [ "$rc" = "2" ]; then
+    TRIBUNAL_EXHAUSTED_STREAK=$((TRIBUNAL_EXHAUSTED_STREAK + 1))
+    if [ "$TRIBUNAL_EXHAUSTED_STREAK" -eq "$threshold" ]; then
+      tribunal_quota_alarm "Tribunal EXHAUSTED spike: ${TRIBUNAL_EXHAUSTED_STREAK} consecutive articles; latest=$article."
+    fi
+    return 0
+  fi
+  TRIBUNAL_EXHAUSTED_STREAK=0
+  if [ "$rc" = "124" ]; then
+    tribunal_quota_alarm "Tribunal worker stalled: article=$article rc=124."
+  fi
+}
+
+tribunal_alert_controller_mode_transition() {
+  local mode="$1" floor="${2:-10}"
+  : "${TRIBUNAL_LAST_ALERTED_CONTROLLER_MODE:=}"
+  [ "$mode" = "$TRIBUNAL_LAST_ALERTED_CONTROLLER_MODE" ] && return 0
+  TRIBUNAL_LAST_ALERTED_CONTROLLER_MODE="$mode"
+  case "$mode" in
+    fallback)
+      tribunal_quota_alarm "Tribunal quota controller entered fallback mode (1 worker / 600s); inspect USAGE_MONITOR."
+      ;;
+    floor_stop)
+      tribunal_quota_alarm "Tribunal quota controller entered floor_stop at configured floor ${floor}%."
+      ;;
+  esac
+}
+
+tribunal_classify_worker_result() {
+  local rc="$1" worker_log="$2"
+  if [ "$rc" = "70" ] &&
+     [ -s "$worker_log" ] &&
+     grep -q '\[tribunal-watchdog\] idle .* no output/score-file progress' "$worker_log"; then
+    printf '124\n'
+  else
+    printf '%s\n' "$rc"
+  fi
+}
+
+tribunal_write_worker_completion() {
+  local marker="$1" worker_id="$2" rc="$3"
+  local tmp="${marker}.tmp.$$"
+  {
+    printf 'worker_id=%s\n' "$worker_id"
+    printf 'rc=%s\n' "$rc"
+  } > "$tmp" && mv "$tmp" "$marker"
+}
+
+tribunal_write_worker_tracking() {
+  local tracking_file="$1" worker_id="$2" pid="$3" worker_log="$4"
+  local tmp="${tracking_file}.tmp.$$"
+  {
+    printf 'worker_id=%s\n' "$worker_id"
+    printf 'pid=%s\n' "$pid"
+    printf 'worker_log=%s\n' "$worker_log"
+  } > "$tmp" && mv "$tmp" "$tracking_file"
+}
+
+# Atomically claim one completed-worker marker. The marker is written only
+# after the worker closes its isolated log, so classification never races tee
+# or a still-buffering writer. While polling, tracked PIDs are also checked:
+# a dead child without a marker is reaped exactly and surfaced as deterministic
+# infrastructure failure instead of hanging forever.
+tribunal_wait_for_worker_completion() {
+  local completion_dir="$1" combined_log="$2" poll_interval="${3:-0.2}"
+  local marker claimed tracking worker_id pid worker_log wait_rc
+  TRIBUNAL_WORKER_COMPLETION_KIND=""
+  TRIBUNAL_WORKER_COMPLETION_MARKER=""
+  while true; do
+    for marker in "$completion_dir"/*.done; do
+      [ -f "$marker" ] || continue
+      claimed="${marker%.done}.claimed.$$"
+      if mv "$marker" "$claimed" 2>/dev/null; then
+        TRIBUNAL_WORKER_COMPLETION_KIND="marker"
+        TRIBUNAL_WORKER_COMPLETION_MARKER="$claimed"
+        return 0
+      fi
+    done
+    for tracking in "$completion_dir"/*.tracking; do
+      [ -f "$tracking" ] || continue
+      worker_id="$(sed -n 's/^worker_id=//p' "$tracking" | head -1)"
+      pid="$(sed -n 's/^pid=//p' "$tracking" | head -1)"
+      worker_log="$(sed -n 's/^worker_log=//p' "$tracking" | head -1)"
+      case "$pid" in
+        ''|*[!0-9]*) continue ;;
+      esac
+      if ! kill -0 "$pid" 2>/dev/null; then
+        # The marker may have landed after this iteration's first glob.
+        [ -f "$completion_dir/$worker_id.done" ] && continue
+        wait_rc=0
+        wait "$pid" || wait_rc=$?
+        if [ -f "$worker_log" ]; then
+          cat "$worker_log" >> "$combined_log"
+        fi
+        rm -f "$worker_log" "$tracking" "$completion_dir/$worker_id.done"
+        TRIBUNAL_WORKER_COMPLETION_KIND="missing_marker"
+        TRIBUNAL_COMPLETED_WORKER_ID="$worker_id"
+        TRIBUNAL_COMPLETED_WORKER_PID="$pid"
+        TRIBUNAL_COMPLETED_WORKER_RAW_RC="$wait_rc"
+        TRIBUNAL_COMPLETED_WORKER_RC=70
+        return 0
+      fi
+    done
+    sleep "$poll_interval"
+  done
+}
+
+# Reap the exact child named by a claimed marker, append its fully-closed log,
+# classify its exact exit status, and remove both per-worker artifacts.
+# Results are returned in globals because command substitution would run this
+# function in a subshell that cannot wait on the caller's child.
+tribunal_collect_worker_completion() {
+  local marker="$1" expected_id="$2" expected_pid="$3"
+  local worker_log="$4" combined_log="$5" tracking_file="${6:-}"
+  local recorded_id recorded_rc wait_rc=0
+  recorded_id="$(sed -n 's/^worker_id=//p' "$marker" | head -1)"
+  recorded_rc="$(sed -n 's/^rc=//p' "$marker" | head -1)"
+  [ "$recorded_id" = "$expected_id" ] || return 1
+  case "$recorded_rc" in
+    ''|*[!0-9]*) return 1 ;;
+  esac
+  wait "$expected_pid" || wait_rc=$?
+  [ "$wait_rc" = "$recorded_rc" ] || return 1
+  cat "$worker_log" >> "$combined_log"
+  TRIBUNAL_COMPLETED_WORKER_ID="$recorded_id"
+  TRIBUNAL_COMPLETED_WORKER_PID="$expected_pid"
+  TRIBUNAL_COMPLETED_WORKER_RAW_RC="$wait_rc"
+  TRIBUNAL_COMPLETED_WORKER_RC="$(tribunal_classify_worker_result "$wait_rc" "$worker_log")"
+  rm -f "$worker_log" "$marker" "$tracking_file"
 }
 
 tribunal_quota_error_file() {
@@ -1013,6 +1449,32 @@ tribunal_writer_exec() {
   done
 }
 
+# Terminate the stable session created by tribunal_session_exec. TERM is
+# intentionally followed by KILL against the same saved process-group id, so a
+# TERM-ignoring descendant cannot escape by outliving/reparenting away from the
+# top shell.
+tribunal_terminate_session() {
+  local pid_file="$1" outer_pid="$2"
+  local grace="${TRIBUNAL_WATCHDOG_KILL_GRACE_SEC:-5}" pgid=""
+  if [ -s "$pid_file" ]; then
+    pgid="$(sed -n '1p' "$pid_file")"
+  fi
+  case "$pgid" in
+    ''|*[!0-9]*) pgid="" ;;
+  esac
+  if [ -n "$pgid" ]; then
+    kill -TERM -- "-$pgid" 2>/dev/null || true
+  else
+    kill -TERM "$outer_pid" 2>/dev/null || true
+  fi
+  sleep "$grace"
+  if [ -n "$pgid" ]; then
+    kill -KILL -- "-$pgid" 2>/dev/null || true
+  else
+    kill -KILL "$outer_pid" 2>/dev/null || true
+  fi
+}
+
 # Run Codex with both a wall-clock timeout and an idle watchdog. The wall-clock
 # timeout can be large for GPT-5.5 judge runs, but a process that produces no
 # output and no score-file progress for a while is treated as stalled.
@@ -1027,17 +1489,21 @@ tribunal_codex_exec_watchdog() {
   local progress_file="${5:-}"
   local idle_timeout="${TRIBUNAL_CODEX_IDLE_TIMEOUT_SEC:-900}"
   local poll_interval="${TRIBUNAL_CODEX_IDLE_POLL_SEC:-30}"
-  local pid rc now last_change latest_mtime out_mtime progress_mtime waits force_provider provider qrc
+  local pid rc now last_change latest_mtime out_mtime progress_mtime waits force_provider provider qrc session_pid_file
   waits=0
   force_provider="${TRIBUNAL_FORCE_PROVIDER:-}"
 
   : > "$output_file"
   while true; do
   : > "$output_file"
+  session_pid_file="$(mktemp "${TMPDIR:-/tmp}/tribunal-session.XXXXXX")"
   if [ -n "$force_provider" ]; then
-    TRIBUNAL_FORCE_PROVIDER="$force_provider" tribunal_llm_exec "$work_dir" "$agent_name" "$user_prompt" > "$output_file" 2>&1 &
+    TRIBUNAL_PROCESS_GROUP_FILE="$session_pid_file" \
+      TRIBUNAL_FORCE_PROVIDER="$force_provider" \
+      tribunal_llm_exec "$work_dir" "$agent_name" "$user_prompt" > "$output_file" 2>&1 &
   else
-    tribunal_llm_exec "$work_dir" "$agent_name" "$user_prompt" > "$output_file" 2>&1 &
+    TRIBUNAL_PROCESS_GROUP_FILE="$session_pid_file" \
+      tribunal_llm_exec "$work_dir" "$agent_name" "$user_prompt" > "$output_file" 2>&1 &
   fi
   pid=$!
   last_change="$(date +%s)"
@@ -1059,19 +1525,22 @@ tribunal_codex_exec_watchdog() {
     fi
     if [ $((now - last_change)) -ge "$idle_timeout" ]; then
       printf '[tribunal-watchdog] idle for %ss with no output/score-file progress; killing judge pid %s\n' "$idle_timeout" "$pid" >> "$output_file"
-      kill -TERM "$pid" 2>/dev/null || true
-      sleep 5
-      kill -KILL "$pid" 2>/dev/null || true
+      tribunal_terminate_session "$session_pid_file" "$pid"
       wait "$pid" 2>/dev/null || true
+      rm -f "$session_pid_file"
       return 124
     fi
   done
 
   rc=0
   wait "$pid" || rc=$?
+  rm -f "$session_pid_file"
   if [ "$rc" -eq 0 ]; then
     provider="${force_provider:-$(tribunal_judge_provider "$agent_name" 2>/dev/null || true)}"
-    tribunal_write_actual_provider "$provider" "$agent_name"
+    if ! tribunal_write_actual_provider "$provider" "$agent_name"; then
+      printf '[tribunal-watchdog] failed to record provider/model provenance\n' >> "$output_file"
+      return 70
+    fi
     return 0
   fi
   provider="${force_provider:-$(tribunal_judge_provider "$agent_name" 2>/dev/null || true)}"

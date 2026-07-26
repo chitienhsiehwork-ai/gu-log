@@ -1,0 +1,126 @@
+---
+ticketId: "MP-242"
+title: "Gemma 4 Is Here: Google Says It Uses the Same Breakthrough Tech as Gemini 3"
+originalDate: "2026-04-02"
+translatedDate: "2026-04-03"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@GoogleAI on X"
+sourceUrl: "https://x.com/GoogleAI/status/2039735543068504476"
+lang: "en"
+summary: "Google releases the Gemma 4 open-source model family, including 31B Dense, 26B MoE, and E2B/E4B edge models under Apache 2.0. With 256K context, function calling, and multimodality, Google claims it beats models 20x its size on Arena."
+tags: ["gemma","google","open-source","edge-ai","agentic"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+Picture this: Google steps into the ring holding a 31B model. On the other side stands an opponent weighing 20 times as much. And Google says, "This one wins."
+
+On April 2, 2026, Google AI unveiled Gemma 4, calling it the "smartest open model" to date. But what makes this announcement interesting isn't another pile of spec numbers — it's that one line: **built with the same breakthrough technology as Gemini 3**. In plain terms: Gemini 3 is Google's flagship closed-source model, and Gemma 4 claims to use the same core technology. It's like Toyota saying "the new Corolla uses the same engine tech as the LFA supercar" — sounds impressive, but how much actually carried over? The tweet doesn't say.
+
+## A Family of Four, Each with Their Own Job
+
+Let's get the lineup straight. Gemma 4 isn't a single model — it's an entire family, and this family has clearer division of labor than most open-source model series.
+
+The eldest is **31B Dense**: every parameter fires on every inference, like a company where every employee shows up for every task. The second is **26B MoE (Mixture of Experts)**: each inference only wakes up some "experts" to handle the job while the rest stay asleep — theoretically more efficient, though total parameter count doesn't equal actual compute.
+
+<MoguNote>
+Google dropped the keywords "Dense" and "MoE" and walked away. How many parameters MoE actually activates per inference, how the experts divide the work — not a single word about any of it. In marketing, this is called "leaving room for the community to fill in the blanks." In engineering, it's called "details not finalized, please don't ask." (⌐■_■)
+</MoguNote>
+
+Then there are the two younger siblings who are actually the most intriguing — **E2B** (2B parameters) and **E4B** (4B parameters). But more on the little ones later, because Google dropped a bombshell first.
+
+---
+
+## The 20x Weight Class Mismatch
+
+Google claims that 31B Dense and 26B MoE are **outcompeting models 20x their size** on **Chatbot Arena**.
+
+Why is this worth singling out? Because Arena isn't one of those "run MMLU, post a score, issue a press release" benchmarks — Arena is blind human evaluation, where users don't know which model they're facing and vote purely on response quality. If Google's claim holds, it means a 31B model is beating 600B+ class opponents in human eyes.
+
+The problem: the tweet doesn't say who the opponents are. Did it beat GPT-4 class? Llama 405B? Some obscure model? What's the win rate? In which categories? All left blank.
+
+<MoguNote>
+The Arena claim is the boldest sentence in the entire tweet, and also the emptiest. Saying "beat opponents 20x larger" without naming them is like a boxer saying "I beat someone three times my weight" without mentioning whether that person was a pro or a random pedestrian. The credibility of Google's claim rests entirely on details they didn't disclose. ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## Google's Old Playbook: Free Candy, Paid Dental Work
+
+The licensing is actually the most telling signal in the entire Gemma 4 release.
+
+Google went with **Apache 2.0** — the most permissive of open-source licenses. Commercial use, modification, using it to train your next model — all fair game. The tweet even ties this explicitly to **digital sovereignty**, essentially saying: "This model belongs to developers, not rented via API."
+
+Sounds generous. But Google never does free things out of kindness.
+
+<MoguNote>
+Android goes out free → everyone uses Android, Google Play takes 30%. Kubernetes goes out free → everyone learns K8s, the smoothest place to run K8s is GKE (Google Cloud). TensorFlow goes out free → academia and industry all use TF, the smoothest training platform is TPU. Now Gemma 4 goes out free → developers build agents with it, the most convenient dev tool is Google AI Studio, the smoothest deployment is GCP.
+
+This isn't conspiracy theory; this is Google's platform strategy, consistent for over a decade: **open-source the foundation, monetize the layer above**. Knowing this pattern doesn't mean Gemma 4 isn't useful — it just helps to know where the bill comes from when you're taking something free. (¬‿¬)
+</MoguNote>
+
+---
+
+## AI in Your Pocket: E2B and E4B Are the Real Surprise
+
+Okay, back to the two little ones.
+
+E2B (2B parameters) and E4B (4B parameters) are models designed specifically for edge devices, featuring **native vision + audio + low latency**. 2B is small enough to run on a phone chip; 4B is slightly larger but still within mobile device range.
+
+Why does this matter? Because most "AI features" on phones today are just API calls wrapped in a UI — the request goes to the cloud, the result comes back. If E2B/E4B can actually run multimodal inference locally on-device, then phone AI has a real shot at understanding camera feeds, comprehending speech, and responding in real-time without needing the internet.
+
+<MoguNote>
+Honestly, the big-model arms race gets numbing after a while. 700B! 1T! Every new release is about whose numbers are bigger. But E2B goes the other direction — cramming multimodal into 2B parameters. That's the direction that actually changes everyday experience. Think about it: offline translation, real-time captions, object recognition in your camera, all without connectivity. If Google pulled this off, it matters more than 31B beating anyone. (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+---
+
+## 256K Context + 140 Languages: Maxed-Out Specs, Unverified Quality
+
+Finally, the spec sheet — **256K token** context window, plus support for **140+ languages**.
+
+256K is top-tier for open-source models. Google's use case is "process entire repositories or large documents in a single prompt," which in plain English means: if you want to use an open-source model as a coding assistant or for document analysis, context length is finally not the bottleneck.
+
+140+ languages is trickier. On paper, it covers most of the world's languages, but anyone who's done multilingual NLP knows: supporting 140 languages and having 140 languages work well are two very different things. English and Chinese usually work fine, but quality for lower-ranked languages is a gamble.
+
+Access is straightforward — try it online at **Google AI Studio**, or download weights from **Hugging Face**, **Kaggle**, or **Ollama**. Four paths, all open.
+
+---
+
+## Conclusion
+
+Google put a full spread on the table: flagship 31B Dense and 26B MoE, pocket-sized E2B/E4B, the most permissive Apache 2.0 license, native function calling, 256K context, 140+ languages. The menu looks flawless.
+
+But a pretty menu and good food are two different things.
+
+What's most interesting about this tweet isn't what Google said — it's what Google **didn't** say. Who are the Arena opponents? Not mentioned. How many parameters does MoE activate? Not mentioned. What's E2B's actual latency? Not mentioned. Long-context quality? Not mentioned. Per-language performance? Not mentioned. Every crucial detail is hidden behind a blank space labeled "wait for the community to test."
+
+So the real review starts the moment you run `ollama pull gemma4`.
+
+---
+
+## Further Reading
+
+- [MP-275: Gemma 4 Arrives — Google's Open-Source Four Brothers, Token Efficiency Crushes the Competition but Intelligence Still Lags Behind](/posts/mp-275-20260410-artificialanlys-gemma-4-google-token/) (Independent benchmark a week later: Intelligence Index 39 vs Qwen3.5's 42, but 2.5x fewer tokens)

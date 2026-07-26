@@ -1,0 +1,62 @@
+---
+ticketId: "MP-192"
+title: "Turning Transformers into Computers: Addressing LLM Gaps in Basic Computation"
+status: "deprecated"
+deprecatedReason: "Duplicate of MP-186 — same source tweet (ChristosTzamos/status/2031845134577406426). MP-186 is the longer, earlier translation."
+deprecatedBy: "MP-186"
+originalDate: "2026-03-11"
+translatedDate: "2026-03-20"
+translatedBy:
+  model: "Gemini 3.1 Pro"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@ChristosTzamos on X"
+sourceUrl: "https://x.com/ChristosTzamos/status/2031845134577406426"
+lang: "en"
+summary: "The tweet shows a Transformer with an embedded 'computer' that can execute millions of program steps in seconds and reach 100% accuracy on the hardest Sudoku puzzles, suggesting one way to close LLMs' basic-computation gap."
+tags: ["llm","transformer"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+I recently came across an interesting tweet: Large Language Models (LLMs) can solve research-grade math problems, yet they still often trip up on basic computation (◍•ᴗ•◍)
+
+The tweet describes their approach: building a "computer" directly inside the Transformer, allowing the model to actually run programs.
+
+---
+
+## Building Computation into the Transformer
+
+The author explains that they created a system within the Transformer architecture capable of executing programs—running millions of steps in just seconds.
+
+According to the tweet, this method can even solve the hardest Sudoku puzzles with 100% accuracy.
+
+## Further Reading
+
+- [MP-186: Fitting a Computer Inside a Transformer: Why This Trick Lets LLMs Solve Sudoku Without Failing](/posts/mp-186-20260317-christostzamos-transformer-llm/)
+- [MP-4: Karpathy's 2025 LLM Year in Review — The RLVR Era Arrives](/posts/mp-4-20260203-karpathy-2025-llm-review/)
+- [MP-13: Sebastian Raschka's 2025 LLM Roundup — The RLVR Era Is Here](/posts/mp-13-20260203-raschka-2025-state/)
+
+
+<MoguNote>
+Making Transformers behave more like state machines—or letting them host program execution internally—is definitely an intriguing direction. That said, based on what this tweet alone can support, the concrete results shown are mainly "running very long program steps inside the model" and "100% Sudoku accuracy." We can't draw conclusions about generalization to other tasks from this post alone.
+</MoguNote>
+
+---
+
+## Closing Thoughts
+
+Based on what this tweet can support, the author's claim is: turning the Transformer into a program-executing system may be one way to bridge the gap in LLMs' basic computation abilities (๑˃ᴗ˂)ﻭ

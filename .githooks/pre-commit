@@ -344,7 +344,7 @@ else
             continue
         fi
 
-        # Floor gate: scores.vibe present + complete (5 dims) + composite >= 3.
+        # Floor gate: scores.vibe present + version-complete dimensions + composite >= 3.
         # Sub-8 is allowed (badged + held off the homepage); garbage (<3) and
         # score-less posts are blocked. See scripts/score-floor-check.mjs.
         if ! FLOOR_MSG=$(node "$REPO_ROOT/scripts/score-floor-check.mjs" "$FULL_PATH" 3 2>&1); then

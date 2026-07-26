@@ -1,12 +1,13 @@
 # gu-log
 
-> AI / Tech 繁中翻譯與原創 blog；production：<https://gu-log.vercel.app/>。
+> AI/Tech 翻譯 + 原創 blog。這句只是產品摘要；正式編輯北極星、讀者、成功標準與系列身份以 [`editorial-charter` spec](openspec/specs/editorial-charter/spec.md) 為 SSOT。
+> Live: https://gu-log.vercel.app/
 
 這個檔案只放每次都會影響行為的邊界與路由；詳細規則依下方指標讀 SSOT。
 
 ## 啟動與使用者意圖
 
-- 先明確帶執行環境跑 `./scripts/detect-env.sh --runtime <codex|claude-code> --identity`，再讀 [`playbooks/local-agent-playbook.md`](playbooks/local-agent-playbook.md) 或 [`playbooks/CCC-playbook.md`](playbooks/CCC-playbook.md)。不要從環境變數猜身份。
+- Codex／Claude Code 的 `SessionStart` hook 應先注入 `env: agent_id=...` 的精簡身份資訊與操作手冊指標。只有這段資訊缺席、不可信，或 project hook 被停用、尚未信任、不可用時，才明確帶自己的執行環境跑 `./scripts/detect-env.sh --runtime <codex|claude-code> --identity`；接著讀 [`playbooks/local-agent-playbook.md`](playbooks/local-agent-playbook.md) 或 [`playbooks/CCC-playbook.md`](playbooks/CCC-playbook.md)。不要從環境變數猜身份。
 - 分支名稱只是不具語意的識別碼；任務意圖以使用者對話為準，不得從分支名稱推測。
 - 使用者可能使用語音輸入。整理明顯轉錄錯字與口頭贅詞，可延續上下文明確暗示的想法，但不得補造需求；推定修正會改變意思時，先用「我理解成……」向使用者確認。
 - `issue this: <想法>` 代表只處理 issue：依現有 issue 範本整理、查最新程式碼與既有 issue / PR、去重或互連，並沿用[既有分類](.agents/skills/backlog-sweep/SKILL.md)。分類只是風險註記，不授予實作、推送或合併權限。建立或更新 issue 後停止；完成回覆先用 1–2 句自然口語重述使用者想做的事，例如「你想做的是：……」或「我的理解是：……」，不要寫成「意圖」這類規格欄位；再附 issue 連結，讓使用者自行決定是否細讀。
@@ -27,6 +28,7 @@
 
 ## 任務路由
 
+- 任何內容或編輯工作：先讀 [`openspec/specs/editorial-charter/spec.md`](openspec/specs/editorial-charter/spec.md)
 - 寫作、翻譯、`ticketId`、`frontmatter`、來源評估、事實查核：[`CONTRIBUTING.md`](CONTRIBUTING.md)
 - 寫作風格、人設、術語、正文與註解邊界：[`GU-LOG_WRITER_PROMPT.md`](GU-LOG_WRITER_PROMPT.md)
 - 使用者只貼 URL、GP / MP pipeline：[`tools/gp-pipeline/SKILL.md`](tools/gp-pipeline/SKILL.md)

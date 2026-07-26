@@ -1,8 +1,11 @@
 # tribunal-scoring-dimensions Specification
 
 ## Purpose
-TBD - created by archiving change move-clarity-vibe-to-fresheyes. Update Purpose after archive.
+
+定義 Tribunal scoring dimensions 的單一 judge ownership、version-aware composite 與 pass／floor gates，並確保 dimension migration 不破壞既有文章分數語意。
+
 ## Requirements
+
 ### Requirement: Each scoring dimension SHALL be owned by exactly one judge, version-gated
 
 The tribunal scoring system SHALL assign every scoring dimension to exactly one judge. Dimension ownership SHALL be selected by the post's `tribunalVersion`: posts at `tribunalVersion >= 9` use the new ownership; posts at `tribunalVersion <= 8` use the legacy clarity ownership. The persona-note dimension SHALL be named `moguNote` at every version after the taxonomy migration.

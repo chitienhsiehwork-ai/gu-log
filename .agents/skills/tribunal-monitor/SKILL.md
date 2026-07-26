@@ -31,9 +31,25 @@ set -a
 set +a
 : "${GU_LOG_DIR:?Missing GU_LOG_DIR in $deploy_env}"
 cd "$GU_LOG_DIR"
+# shellcheck source=scripts/tribunal-helpers.sh
+. scripts/tribunal-helpers.sh
+unit_environment=$(systemctl --user show tribunal-loop -p Environment --value 2>/dev/null || true)
+effective_quota_floor=$(tribunal_effective_runtime_value "$unit_environment" QUOTA_FLOOR "${QUOTA_FLOOR:-10}")
+effective_writer_mode=$(tribunal_effective_runtime_value "$unit_environment" GP_WRITER_MODE "${GP_WRITER_MODE:-none}")
+effective_strict_roles=$(tribunal_effective_runtime_value "$unit_environment" TRIBUNAL_STRICT_ROLE_PROVIDERS "${TRIBUNAL_STRICT_ROLE_PROVIDERS:-0}")
 
 echo "══════ SERVICE ══════"
 systemctl --user status tribunal-loop 2>&1 | head -15 || true
+unit_enabled=$(systemctl --user is-enabled tribunal-loop 2>/dev/null || true)
+[ -n "$unit_enabled" ] || unit_enabled="unknown"
+if command -v loginctl >/dev/null 2>&1; then
+  linger=$(loginctl show-user "$USER" -p Linger --value 2>/dev/null || true)
+else
+  linger="unknown"
+fi
+[ -n "$linger" ] || linger="unknown"
+echo "unit_enabled=$unit_enabled"
+echo "linger=$linger"
 echo
 
 echo "══════ RUNTIME STATE ══════"
@@ -49,9 +65,20 @@ fi
 echo
 
 echo "══════ QUOTA ══════"
+echo "configured_floor=${effective_quota_floor}%"
 jq . .score-loop/state/quota-controller.json 2>/dev/null || echo "(no quota-controller.json)"
 journalctl --user -u tribunal-loop --no-pager -n 200 --output=cat 2>/dev/null \
   | grep 'CONTROLLER:' | tail -5 || echo "(no controller log line found)"
+echo
+
+echo "══════ WRITER PREFLIGHT ══════"
+echo "writer_mode=${effective_writer_mode}"
+echo "strict_role_providers=${effective_strict_roles}"
+if [ -r .score-loop/state/writer-preflight.json ]; then
+  jq . .score-loop/state/writer-preflight.json
+else
+  echo "(no writer-preflight.json; deployed startup has not passed preflight)"
+fi
 echo
 
 echo "══════ UNSCORED COUNT ══════"
@@ -159,5 +186,6 @@ After running diagnostics, report to the user in zh-tw with this structure:
 
 1. **一句話總結** — 跑著/停了/卡住了
 2. **關鍵數字** — unscored 剩幾篇、quota 幾 %、落後幾個 commit
-3. **最近結果** — 最後幾篇 PASS/FAIL
-4. **需要處理的問題**（如有）— git sync、stop flag、worktree stale
+3. **部署前置狀態** — configured floor、writer mode/preflight、unit enabled、linger
+4. **最近結果** — 最後幾篇 PASS/FAIL
+5. **需要處理的問題**（如有）— git sync、stop flag、worktree stale

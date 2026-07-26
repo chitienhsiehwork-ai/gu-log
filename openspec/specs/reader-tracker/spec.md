@@ -1,8 +1,11 @@
 # reader-tracker Specification
 
 ## Purpose
-TBD - created by archiving change add-reader-sync-oauth-ui. Update Purpose after archive.
+
+定義 Reader Tracker 的 OAuth 優先同步、legacy PAT fallback 與文章 revision 可見性契約，讓閱讀狀態能安全跨裝置同步，並清楚揭露目前紀錄對應的內容版本。
+
 ## Requirements
+
 ### Requirement: OAuth-backed Reader Tracker sync UI
 
 The Reader Tracker UI SHALL use the authenticated gu-log session to sync through the backend when a gu-log JWT is available.
@@ -44,4 +47,3 @@ The Reader Tracker UI SHALL distinguish posts read at the current version from p
 - **WHEN** the Reading Tracker renders that post
 - **THEN** the post SHALL be shown as stale read rather than current read
 - **AND** the row SHALL use the stale/greyed visual state
-

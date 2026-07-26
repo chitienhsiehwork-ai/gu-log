@@ -4,6 +4,7 @@ import type { PostStatus } from '../utils/post-status';
 interface Props {
   type: Exclude<PostStatus, 'published'>;
   replacementHref?: string;
+  replacementUrl?: string;
   replacementTitle?: string;
   replacementTicketId?: string;
   lang?: 'zh-tw' | 'en';
@@ -12,6 +13,7 @@ interface Props {
 const {
   type,
   replacementHref,
+  replacementUrl,
   replacementTitle,
   replacementTicketId,
   lang = 'zh-tw',
@@ -46,7 +48,15 @@ const linkLabel = replacementTicketId
   : replacementTitle || ('fallback' in t ? t.fallback : '');
 ---
 
-<div class={`post-status-banner post-status-banner--${type}`} role="note" aria-live="polite">
+<div
+  class={`post-status-banner post-status-banner--${type}`}
+  role="note"
+  aria-live="polite"
+  data-post-status-banner
+  data-status={type}
+  data-replacement-ticket-id={replacementTicketId ?? ''}
+  data-replacement-url={replacementUrl ?? ''}
+>
   <p>
     <span>{t.message}</span>
     {
@@ -72,15 +82,15 @@ const linkLabel = replacementTicketId
   }
 
   .post-status-banner--deprecated {
-    border: 1px solid rgba(255, 184, 108, 0.35);
-    border-left: 4px solid #ffb86c;
-    background: rgba(255, 184, 108, 0.08);
+    border: 1px solid color-mix(in srgb, var(--color-status-warning) 35%, transparent);
+    border-left: 4px solid var(--color-status-warning);
+    background: color-mix(in srgb, var(--color-status-warning) 8%, transparent);
   }
 
   .post-status-banner--retired {
-    border: 1px solid rgba(148, 163, 184, 0.35);
-    border-left: 4px solid #94a3b8;
-    background: rgba(148, 163, 184, 0.08);
+    border: 1px solid color-mix(in srgb, var(--color-status-neutral) 35%, transparent);
+    border-left: 4px solid var(--color-status-neutral);
+    background: color-mix(in srgb, var(--color-status-neutral) 8%, transparent);
   }
 
   .post-status-banner p {

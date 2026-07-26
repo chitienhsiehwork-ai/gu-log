@@ -131,6 +131,8 @@ jobs:
       - uses: ./.github/actions/setup-pnpm
       - name: Astro type check
         run: pnpm exec astro check
+      - name: Vercel middleware type check
+        run: pnpm run check:middleware
 
   contrast:
     runs-on: ubuntu-latest

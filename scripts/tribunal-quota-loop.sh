@@ -58,10 +58,12 @@ WEEKLY_WINDOW_SEC="${WEEKLY_WINDOW_SEC:-604800}" # seconds (7 days) — OpenAI w
 ARTICLE_COST_PCT="${ARTICLE_COST_PCT:-0.5}"   # % per article (cold start; EMA calibrates after ~5 articles)
 AVG_ARTICLE_TIME="${AVG_ARTICLE_TIME:-1800}"  # seconds (~30 min average per article, for worker count estimation)
 EMA_ALPHA="${EMA_ALPHA:-0.3}"          # calibration smoothing factor
-EXTRA_USAGE_LIMIT="${EXTRA_USAGE_LIMIT:-1.0}"  # disabled — let 5hr/7day curves control pacing
+EXTRA_USAGE_LIMIT="${EXTRA_USAGE_LIMIT:-1.0}"  # trip only after configured extra-usage budget is exceeded
 QUOTA_BURST_ALLOWANCE="${QUOTA_BURST_ALLOWANCE:-2.0}" # percentage points allowed ahead of ideal burn line
 QUOTA_HISTORY_FILE="$ROOT_DIR/.score-loop/state/quota-history.jsonl"
 QUOTA_CONTROLLER_STATE="$ROOT_DIR/.score-loop/state/quota-controller.json"
+WRITER_PREFLIGHT_STATE="$ROOT_DIR/.score-loop/state/writer-preflight.json"
+TRIBUNAL_EXHAUSTED_ALERT_THRESHOLD="${TRIBUNAL_EXHAUSTED_ALERT_THRESHOLD:-3}"
 
 mkdir -p "$LOG_DIR" "$ROOT_DIR/.score-loop/state"
 
@@ -86,6 +88,39 @@ tlog() {
   echo "$msg" | tee -a "$LOG_FILE"
 }
 
+write_writer_preflight_state() {
+  local status="$1" detail="$2"
+  local tmp
+  tmp=$(mktemp "$ROOT_DIR/.score-loop/state/.writer-preflight.XXXXXX") || return 1
+  jq -n \
+    --arg status "$status" \
+    --arg mode "$(tribunal_writer_mode)" \
+    --arg detail "$detail" \
+    --arg updatedAt "$(TZ=UTC date '+%Y-%m-%dT%H:%M:%SZ')" \
+    --argjson pid "$$" \
+    '{status: $status, mode: $mode, detail: $detail, pid: $pid, updatedAt: $updatedAt}' \
+    > "$tmp" && mv "$tmp" "$WRITER_PREFLIGHT_STATE"
+}
+
+deployed_runtime_preflight() {
+  [ "${TRIBUNAL_DEPLOYED_MODE:-0}" = "1" ] || return 0
+  local detail rc=0
+  if ! tribunal_validate_role_provider_contract; then
+    detail="role provider contract failed"
+    write_writer_preflight_state "failed" "$detail" || true
+    tlog "ERROR: deployed preflight failed: $detail"
+    return 78
+  fi
+  detail="$(tribunal_writer_preflight 2>&1)" || rc=$?
+  if [ "$rc" -ne 0 ]; then
+    write_writer_preflight_state "failed" "$detail" || true
+    tlog "ERROR: deployed writer preflight failed before dispatch: $detail"
+    return 78
+  fi
+  write_writer_preflight_state "passed" "$detail" || true
+  tlog "Writer preflight passed: $detail"
+}
+
 # ─── Graceful stop control ───────────────────────────────────────────────────
 # Shared helper: signal + file flag channels, slice-based waits, lifecycle
 # state output. See scripts/tribunal-run-control.sh for the contract.
@@ -97,6 +132,13 @@ source "$SCRIPT_DIR/tribunal-run-control.sh"
 RUNTIME_GIT_STATE_FILE="$(tribunal_runtime_git_state_file "$ROOT_DIR")"
 trap 'rc_on_stop_signal TERM' TERM
 trap 'rc_on_stop_signal INT' INT
+
+if ! [[ "$TRIBUNAL_EXHAUSTED_ALERT_THRESHOLD" =~ ^[0-9]+$ ]] ||
+   (( TRIBUNAL_EXHAUSTED_ALERT_THRESHOLD < 2 )); then
+  tlog "ERROR: TRIBUNAL_EXHAUSTED_ALERT_THRESHOLD must be an integer >= 2"
+  exit 78
+fi
+deployed_runtime_preflight || exit $?
 
 # ─── Auto scale-down / up ────────────────────────────────────────────────────
 # Memory-aware worker throttling. Runs only when WORKERS > 1.
@@ -682,7 +724,13 @@ fi
 # Associative arrays tracking background workers.
 declare -A WORKER_PID        # worker_id → pid
 declare -A WORKER_ARTICLE    # worker_id → article slug
-declare -A PID_TO_WORKER     # pid → worker_id
+declare -A WORKER_RESULT_LOG # worker_id → isolated worker output
+declare -A WORKER_COMPLETION # worker_id → atomic completion marker
+declare -A WORKER_TRACKING   # worker_id → supervisor-owned PID/log registry
+WORKER_COMPLETION_DIR="$(mktemp -d "$LOG_DIR/worker-completions.XXXXXX")"
+trap 'rm -rf "$WORKER_COMPLETION_DIR"' EXIT
+fatal_worker_rc=0
+fatal_worker_detail=""
 
 worker_worktree() {
   local id="$1"
@@ -746,9 +794,13 @@ try_claim_next_article() {
 # Fork a worker in its own worktree. Echoes the pid.
 spawn_worker() {
   local id="$1" article="$2"
-  local wt
+  local wt worker_result_log worker_completion worker_tracking
   wt=$(worker_worktree "$id")
   local slug="${article%.mdx}"
+  worker_result_log="$(mktemp "$LOG_DIR/tribunal-worker-${id}.XXXXXX.log")"
+  worker_completion="$WORKER_COMPLETION_DIR/$id.done"
+  worker_tracking="$WORKER_COMPLETION_DIR/$id.tracking"
+  rm -f "$worker_completion"
 
   # Sync worker worktree to the supervisor's active sync ref before each
   # dispatch. Per-dispatch cost is one no-op reset when nothing changed; when
@@ -760,55 +812,106 @@ spawn_worker() {
   fi
 
   (
-    cd "$wt" || exit 1
-    # Hand shared coordinates to the subprocess so flock/claims/locks all
-    # resolve to the main repo (RC_ROOT_DIR is already exported for the
-    # supervisor; make it explicit again here in case the subshell's env
-    # differs).
-    export RC_ROOT_DIR="$ROOT_DIR"
-    export PROGRESS_FILE="$(tribunal_progress_file_default "$ROOT_DIR")"
-    export TRIBUNAL_MAIN_REPO="$ROOT_DIR"
-    export TRIBUNAL_SHARED_LOCK_DIR="$ROOT_DIR/.score-loop/locks"
-    export TRIBUNAL_WORKER_ID="$id"
-    bash "$wt/scripts/tribunal.sh" "$article" >> "$LOG_FILE" 2>&1
+    trap - EXIT
+    worker_rc=0
+    if ! cd "$wt"; then
+      worker_rc=1
+      printf 'worker worktree unavailable: %s\n' "$wt" > "$worker_result_log"
+    else
+      # Hand shared coordinates to the subprocess so flock/claims/locks all
+      # resolve to the main repo.
+      export RC_ROOT_DIR="$ROOT_DIR"
+      export PROGRESS_FILE="$(tribunal_progress_file_default "$ROOT_DIR")"
+      export TRIBUNAL_MAIN_REPO="$ROOT_DIR"
+      export TRIBUNAL_SHARED_LOCK_DIR="$ROOT_DIR/.score-loop/locks"
+      export TRIBUNAL_WORKER_ID="$id"
+      bash "$wt/scripts/tribunal.sh" "$article" > "$worker_result_log" 2>&1 || worker_rc=$?
+    fi
+    tribunal_write_worker_completion "$worker_completion" "$id" "$worker_rc"
+    exit "$worker_rc"
   ) &
   local pid=$!
   WORKER_PID[$id]=$pid
   WORKER_ARTICLE[$id]=$slug
-  PID_TO_WORKER[$pid]=$id
+  WORKER_RESULT_LOG[$id]=$worker_result_log
+  WORKER_COMPLETION[$id]=$worker_completion
+  WORKER_TRACKING[$id]=$worker_tracking
+  tribunal_write_worker_tracking "$worker_tracking" "$id" "$pid" "$worker_result_log"
   tlog "  [worker-$id pid=$pid] dispatched: $article"
 }
 
 # Wait for ANY worker to finish. Releases its claim, logs outcome, clears
-# tracking state. Propagates rc=77 (stopped_by_request) and rc=70
-# (runner infrastructure failure) into drain mode.
+# tracking state. Classifies the runner's watchdog-marked rc=70 as rc=124,
+# then propagates rc=77/70/124 into drain mode.
 wait_any_worker() {
-  # bash: wait -n returns when ANY child exits, sets $? to its status.
-  local rc=0
-  wait -n || rc=$?
-  # Identify which worker finished by scanning for dead pids.
-  local id pid finished_id=""
-  for id in "${!WORKER_PID[@]}"; do
-    pid="${WORKER_PID[$id]}"
-    if ! kill -0 "$pid" 2>/dev/null; then
-      finished_id="$id"
-      break
-    fi
-  done
-
-  if [ -z "$finished_id" ]; then
-    tlog "WARN: wait -n returned but no worker appears finished"
-    return 0
+  local claimed_marker finished_id pid article_slug worker_result_log tracking_file rc
+  tribunal_wait_for_worker_completion "$WORKER_COMPLETION_DIR" "$LOG_FILE"
+  if [ "$TRIBUNAL_WORKER_COMPLETION_KIND" = "missing_marker" ]; then
+    finished_id="$TRIBUNAL_COMPLETED_WORKER_ID"
+    pid="$TRIBUNAL_COMPLETED_WORKER_PID"
+    article_slug="${WORKER_ARTICLE[$finished_id]:-unknown}"
+    tlog "ERROR: worker-$finished_id pid=$pid exited rc=$TRIBUNAL_COMPLETED_WORKER_RAW_RC without completion marker; retaining claim for $article_slug and forcing drain."
+    stop_requested=true
+    stop_source="${stop_source:-worker-crash-no-marker}"
+    fatal_worker_rc=70
+    fatal_worker_detail="worker_crash_no_marker worker=$finished_id pid=$pid raw_rc=$TRIBUNAL_COMPLETED_WORKER_RAW_RC article=$article_slug claim_retained=true"
+    rc_write_state "draining" \
+      "$fatal_worker_detail"
+    unset "WORKER_PID[$finished_id]"
+    unset "WORKER_ARTICLE[$finished_id]"
+    unset "WORKER_RESULT_LOG[$finished_id]"
+    unset "WORKER_COMPLETION[$finished_id]"
+    unset "WORKER_TRACKING[$finished_id]"
+    return 70
+  fi
+  claimed_marker="$TRIBUNAL_WORKER_COMPLETION_MARKER"
+  finished_id="$(sed -n 's/^worker_id=//p' "$claimed_marker" | head -1)"
+  if [ -z "$finished_id" ] || [ -z "${WORKER_PID[$finished_id]:-}" ]; then
+    tlog "ERROR: completion marker does not match an active worker: $claimed_marker"
+    stop_requested=true
+    stop_source="${stop_source:-worker-attribution-error}"
+    rc_write_state "draining" "worker_attribution_error marker=$claimed_marker"
+    rm -f "$claimed_marker"
+    return 70
   fi
 
-  local article_slug="${WORKER_ARTICLE[$finished_id]}"
+  pid="${WORKER_PID[$finished_id]}"
+  article_slug="${WORKER_ARTICLE[$finished_id]}"
+  worker_result_log="${WORKER_RESULT_LOG[$finished_id]}"
+  tracking_file="${WORKER_TRACKING[$finished_id]}"
+  if ! tribunal_collect_worker_completion \
+    "$claimed_marker" "$finished_id" "$pid" "$worker_result_log" "$LOG_FILE" "$tracking_file"; then
+    tlog "ERROR: worker completion attribution/flush failed for worker-$finished_id pid=$pid"
+    stop_requested=true
+    stop_source="${stop_source:-worker-attribution-error}"
+    rc_write_state "draining" "worker_attribution_error worker=$finished_id pid=$pid"
+    rm -f "$worker_result_log" "$claimed_marker"
+    rc_release_claim "$article_slug"
+    unset "WORKER_PID[$finished_id]"
+    unset "WORKER_ARTICLE[$finished_id]"
+    unset "WORKER_RESULT_LOG[$finished_id]"
+    unset "WORKER_COMPLETION[$finished_id]"
+    unset "WORKER_TRACKING[$finished_id]"
+    return 70
+  fi
+  rc="$TRIBUNAL_COMPLETED_WORKER_RC"
   unset "WORKER_PID[$finished_id]"
   unset "WORKER_ARTICLE[$finished_id]"
-  unset "PID_TO_WORKER[$pid]"
+  unset "WORKER_RESULT_LOG[$finished_id]"
+  unset "WORKER_COMPLETION[$finished_id]"
+  unset "WORKER_TRACKING[$finished_id]"
   rc_release_claim "$article_slug"
+  tribunal_alert_worker_completion "$rc" "$article_slug" || true
 
   case "$rc" in
     0)  tlog "  [worker-$finished_id] $article_slug — PASSED" ;;
+    2)  tlog "  [worker-$finished_id] $article_slug — EXHAUSTED"
+        ;;
+    124) tlog "  [worker-$finished_id] $article_slug — stalled (rc=124); draining."
+         stop_requested=true
+         stop_source="${stop_source:-worker-stall}"
+         rc_write_state "draining" "worker_stall article=$article_slug"
+         ;;
     75) tlog "  [worker-$finished_id] $article_slug — skipped (lock collision)" ;;
     77) tlog "  [worker-$finished_id] $article_slug — stopped_by_request propagated."
         stop_requested=true
@@ -832,6 +935,11 @@ drain_and_exit() {
   while (( ${#WORKER_PID[@]} > 0 )); do
     wait_any_worker
   done
+  if [ "$fatal_worker_rc" -ne 0 ]; then
+    rc_write_state "draining" "$fatal_worker_detail"
+    tlog "Fatal worker infrastructure failure; exiting rc=$fatal_worker_rc with claim retained."
+    exit "$fatal_worker_rc"
+  fi
   rc_exit_stopped
 }
 
@@ -950,6 +1058,10 @@ while true; do
   if rc_check_stop_requested; then
     if (( ${#WORKER_PID[@]} > 0 )); then
       drain_and_exit
+    elif [ "$fatal_worker_rc" -ne 0 ]; then
+      rc_write_state "draining" "$fatal_worker_detail"
+      tlog "Fatal worker infrastructure failure; exiting rc=$fatal_worker_rc with claim retained."
+      exit "$fatal_worker_rc"
     else
       rc_exit_stopped
     fi
@@ -1044,6 +1156,7 @@ while true; do
       "$CONTROLLER_BINDING" "$ARTICLE_COST_PCT" "$CONTROLLER_MODE"
     quota_controller_write_state "$CONTROLLER_MODE" "$five_pct_raw" "$seven_pct_raw" \
       "$CONTROLLER_COOLDOWN" "$CONTROLLER_WORKERS" "$CONTROLLER_BINDING" "$ARTICLE_COST_PCT"
+    tribunal_alert_controller_mode_transition "$CONTROLLER_MODE" "$QUOTA_FLOOR" || true
 
     # Handle stop modes: hard floor / extra limit / burn-rate debt.
     if [ "$CONTROLLER_MODE" = "floor_stop" ] || [ "$CONTROLLER_MODE" = "extra_limit" ] || [ "$CONTROLLER_MODE" = "weekly_debt" ] || [ "$CONTROLLER_MODE" = "five_hour_debt" ]; then

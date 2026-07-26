@@ -36,8 +36,35 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
   style="display:none"
 >
   <button class="read-status-btn" type="button">
-    <span class="rs-icon rs-icon-unread">☐</span>
-    <span class="rs-icon rs-icon-read">☑</span>
+    <span class="rs-icon rs-icon-unread" aria-hidden="true">
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <rect x="3" y="3" width="18" height="18" rx="3"></rect>
+      </svg>
+    </span>
+    <span class="rs-icon rs-icon-read" aria-hidden="true">
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <rect x="3" y="3" width="18" height="18" rx="3"></rect>
+        <path d="m7 12 3 3 7-7"></path>
+      </svg>
+    </span>
     <span class="rs-label rs-label-unread">{lang === 'en' ? 'Mark as read' : '標記已讀'}</span>
     <span class="rs-label rs-label-read">{lang === 'en' ? 'Read' : '已讀'}</span>
   </button>
@@ -326,12 +353,8 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
   }
 
   .read-status-btn.is-read {
-    border-color: var(--color-badge-sd);
-    color: var(--color-badge-sd);
-    background-color: rgba(80, 250, 123, 0.08);
-  }
-
-  [data-theme='light'] .read-status-btn.is-read {
-    background-color: rgba(29, 106, 92, 0.08);
+    border-color: var(--color-status-success);
+    color: var(--color-status-success);
+    background-color: var(--color-status-success-soft-bg);
   }
 </style>

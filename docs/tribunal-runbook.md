@@ -94,6 +94,8 @@ fi
 install -d -m 700 "$HOME/.config/systemd/user"
 cp scripts/tribunal-loop.service ~/.config/systemd/user/tribunal-loop.service
 systemctl --user daemon-reload
+systemctl --user enable tribunal-loop
+loginctl enable-linger "$USER"
 
 # If tribunal code changed AND workers are running, drain + restart. Do not
 # combine this path with the force-terminate recovery below.
@@ -103,6 +105,32 @@ until [ "$(systemctl --user is-active tribunal-loop)" != "active" ]; do sleep 10
 systemctl --user start tribunal-loop   # supervisor auto-syncs worker worktrees at startup
 DEPLOY
 ```
+
+`enable` 讓 user unit 在 user manager 啟動時自動回來；`enable-linger`
+讓 user manager 在未登入時也會於開機後存在。兩個都要有，少一個就
+不能宣稱 reboot-persistent。部署後用 wrapper doctor 驗證 unit、linger、
+strict provider contract，以及目前 service PID 寫下的 writer preflight
+狀態；這個日常檢查不會再花一次 Claude quota：
+
+```bash
+bash scripts/cc-tribunal-loop-wrapper.sh --doctor
+```
+
+只有需要重新驗證 Claude CLI/auth 時才明確執行 live probe；成功輸出必須是
+exact `OK`，wrapper 才會放行：
+
+```bash
+bash scripts/cc-tribunal-loop-wrapper.sh --doctor --live-probe
+```
+
+部署 checklist：
+
+- `tribunal.env` 的 `GU_LOG_DIR`、off-repo `USAGE_MONITOR` 都存在且可執行。
+- Codex 與 Claude CLI 已安裝、已驗證 non-interactive auth。
+- `systemctl --user enable tribunal-loop` 回報 enabled。
+- `loginctl enable-linger "$USER"` 後 `loginctl show-user "$USER" -p Linger --value` 回報 yes。
+- `bash scripts/cc-tribunal-loop-wrapper.sh --doctor` 全數通過。
+- 啟動後 monitor 顯示 strict role routing、`GP_WRITER_MODE=cli` 與 writer preflight passed。
 
 只有 graceful drain 明確卡住時，才由 operator **另跑**以下 recovery；它不會接在正常 deploy 後自動執行：
 
@@ -290,35 +318,50 @@ arg. Tune thresholds in `tribunal-quota-loop.sh` (search `AUTOSCALE_*`).
 
 ## Quota Controller (closed-loop)
 
-The supervisor uses a closed-loop feedback controller instead of the old binary GO/STOP. For each Anthropic quota window (5-hour and 7-day), it computes an ideal consumption rate:
+Production 由 usage monitor 的 OpenAI session / weekly quota window 驅動
+closed-loop controller。每個 window 都以 reset 倒數推回目前應有的
+ideal burn line：
 
 ```
-rate = (remaining_pct - QUOTA_FLOOR) / time_until_refresh_sec
-cooldown = ARTICLE_COST_PCT / rate
-output = max(cooldown_5hr, cooldown_7day)   # conservative: whichever is tighter
+spendable_pct = 100 - QUOTA_FLOOR
+elapsed_sec = window_sec - reset_sec
+ideal_used_pct = spendable_pct * elapsed_sec / window_sec
+allowed_used_pct = ideal_used_pct + QUOTA_BURST_ALLOWANCE
+actual_used_pct = 100 - remaining_pct
 ```
+
+若 actual burn 超過 allowed line，controller 會算出理想線追上目前用量所需的
+debt sleep；session / weekly 取較長者。quota 已到 floor 時則直接等該
+binding window reset。`ARTICLE_COST_PCT` 只保留作 EMA telemetry，不參與
+dispatch gate 或 cooldown 計算。
 
 **Key constants** (in `tribunal-quota-loop.sh`):
 
 | Constant | Default | Description |
 |---|---|---|
-| `QUOTA_FLOOR` | 3% | Human reserve — never burn below this |
+| `QUOTA_FLOOR` | 10% | Human reserve — never burn below this |
 | `MIN_COOLDOWN` | 10s | Floor for inter-article wait |
-| `MAX_COOLDOWN` | 1800s (30min) | Ceiling / hard stop |
-| `ARTICLE_COST_PCT` | 5.0% | Cold start default (auto-calibrated via EMA) |
+| `MAX_COOLDOWN` | 1800s (30min) | `pacing` / `extra_limit` 的 cooldown 上限；不限制 quota reset 等待 |
+| `ARTICLE_COST_PCT` | 0.5% | Cold start telemetry default (auto-calibrated via EMA) |
 | `EMA_ALPHA` | 0.3 | Calibration smoothing factor |
-| `EXTRA_USAGE_LIMIT` | 0.8 | Extra usage safety valve threshold (80%) |
+| `EXTRA_USAGE_LIMIT` | 1.0 | Extra usage 相對於設定預算的比例門檻；`1.0` 代表超過 100% 才觸發 |
 
 **Modes** (visible in `quota-controller.json`):
 
 | Mode | Meaning |
 |---|---|
 | `pacing` | Normal closed-loop operation |
-| `floor_stop` | One or both windows at/below floor — MAX_COOLDOWN, 0 workers |
-| `extra_limit` | Extra usage >80% of budget — hard stop to prevent bill overrun |
+| `floor_stop` | One or both windows at/below floor — 等待 binding quota window reset，0 workers |
+| `five_hour_debt` | OpenAI session burn 超前 allowed line — 等理想線追上，0 workers |
+| `weekly_debt` | OpenAI weekly burn 超前 allowed line — 等理想線追上，0 workers |
+| `extra_limit` | Extra usage 超過 `EXTRA_USAGE_LIMIT` 比例 — 用 `MAX_COOLDOWN` 暫停 dispatch |
 | `fallback` | usage-monitor.sh unavailable — conservative 600s cooldown, 1 worker |
 
 **Observability**:
+
+`tribunal-monitor` 讀取設定時以 systemd unit 的 effective `Environment=`
+為準，`tribunal.env` 只作 fallback；輸出會明列 `QUOTA_FLOOR`、
+`GP_WRITER_MODE` 與 `TRIBUNAL_STRICT_ROLE_PROVIDERS` 的有效值。
 
 ```bash
 # Current controller state
@@ -335,11 +378,9 @@ ls -t .score-loop/logs/tribunal-quota-loop-*.log | head -1 | xargs grep 'CONTROL
 ls -t .score-loop/logs/tribunal-quota-loop-*.log | head -1 | xargs grep 'CALIBRATE:'
 ```
 
-**Self-calibration**: After each article completes (in single-worker mode), the controller computes the actual quota delta and updates `ARTICLE_COST_PCT` via exponential moving average (alpha=0.3). Cold start uses 5.0% (deliberately conservative). With sufficient history (≥5 entries), EMA converges to the true average cost.
+**Self-calibration**: After each article completes (in single-worker mode), the controller computes the actual quota delta and updates `ARTICLE_COST_PCT` via exponential moving average (alpha=0.3). Cold start uses 0.5% as telemetry only. With sufficient history (≥5 entries), EMA converges to the true average cost.
 
 **Startup rotation**: At daemon startup, entries older than 7 days are pruned from `quota-history.jsonl`.
-
-**Feedforward compensation**: Before computing rates, the controller subtracts `active_workers * ARTICLE_COST_PCT` from the remaining % to account for the 2-minute cache delay in usage-monitor. This prevents over-commitment when multiple workers are dispatched in quick succession.
 
 **Legacy fallback**: Start with `--legacy-quota` to revert to the old binary GO/STOP behavior:
 
@@ -349,6 +390,34 @@ ExecStart=... --workers 2 --legacy-quota
 ```
 
 Legacy mode disables: controller, quota-history.jsonl, quota-controller.json, calibration.
+
+### Deadline burst
+
+要在 quota refresh 前加速消耗餘額，不需要新增另一套 controller。依序調整：
+
+```bash
+# 例：提高 pool 上限，讓 quota floor 歸零，放寬超前額度並縮短 dispatch 間隔
+QUOTA_FLOOR=0 \
+QUOTA_BURST_ALLOWANCE=10 \
+MIN_COOLDOWN=1 \
+bash scripts/tribunal-quota-loop.sh --workers 5
+```
+
+- `--workers N` 提高同時處理上限。
+- `QUOTA_FLOOR=0` 暫時取消保留額度；這是 operator 明示的 burst 行為。
+- 調高 `QUOTA_BURST_ALLOWANCE` 允許用量超前 ideal burn line 更多。
+- 調低 `MIN_COOLDOWN` 縮短派送迴圈下限。
+- `AUTOSCALE_OOM_CAP` 仍是記憶體壓力／近期 OOM 下的硬上限；要求 5 workers
+  不代表 cgroup 一定允許 5 個同時跑。
+- controller 只讀 OpenAI/Codex quota，**看不到 Claude writer quota**。Burst
+  前要另外確認 Claude CLI 可用額度，不能把 Codex 餘額當成整條 pipeline
+  的唯一燃料表。
+
+systemd unit 對 off-repo `USAGE_MONITOR` 採 fail-closed：未設定、檔案不存在
+或不可執行時，`ExecStart` 在啟動 loop 前以 78 結束。直接手動執行
+`tribunal-quota-loop.sh` 則保留相容降級，controller 進 `fallback`
+（1 worker / 600 秒），並觸發 operator alert；這個降級不能拿來宣稱
+production daemon healthy。
 
 **Rollback procedure**:
 

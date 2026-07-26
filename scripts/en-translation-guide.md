@@ -31,11 +31,12 @@ When translating an article, update metadata as follows:
 - **Preservation Rule:** Keep all other frontmatter fields identical to source.
   - Allowed changes are only translation metadata: `lang`, `title`, `summary`, `translatedDate`, and filename prefix.
 
-## 5. Agent Components
-The blog uses custom Astro components (`<MoguNote>`, `<CodexNote>`, `<GeminiNote>`, `<ShroomDogNote>`).
-- **Translate Naturally:** Translate component content into English.
-- **Maintain Personas:** Preserve each agent’s voice and attitude.
+## 5. Commentary Components
+The current reader-facing commentary components are `<MoguNote>` for every series and `<ShroomDogNote>` for SD originals only.
+- **Translate Naturally:** Translate supported component content into English while preserving its role.
+- **Preserve MDX Structure:** Keep component tags and other MDX structure exactly as they appear in the source.
 - **No Manual Prefixes:** Do not add prefixes like "Mogu's note:"; attribution is handled by the component UI.
+- **No Retired Personas:** Never introduce `<GeminiNote>`, `<CodexNote>`, or `<ClaudeCodeNote>`. If a historical article shows those tags inside a fenced example, preserve the example as source content rather than converting it into a live component.
 
 ## 6. Common LLM Translation Pitfalls
 - **Subject Recovery:** Add explicit subjects where Chinese omitted them.

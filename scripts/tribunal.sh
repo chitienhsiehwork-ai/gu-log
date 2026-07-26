@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
-# tribunal.sh — Tribunal v8 sequential tribunal (Codex/GPT-5.5 runner)
+# tribunal.sh — Sequential Tribunal runner
 #
 # Stages (in order):
-#   1. Fact Check (GPT-5.5) — source/commentary gate + fact bar, max 2 loops
-#   2. Librarian  (GPT-5.5) — composite ≥ 8,             max 2 loops
-#   3. Fresh Eyes (GPT-5.5) — composite ≥ 8,             max 2 loops
-#   4. Vibe Scorer (GPT-5.5) — one dim ≥ 9 AND rest ≥ 8, max 3 loops
+#   1. Fact Check  — source/commentary + fact gates, max 2 loops
+#   2. Librarian   — corpus/glossary/source gate,     max 2 loops
+#   3. Fresh Eyes  — first-reader gate,               max 2 loops
+#   4. Vibe Scorer — taste/rhythm gate,               max 3 loops
+#
+# Provider/model routing is resolved at runtime and recorded per stage. This
+# header is an overview, not selector configuration.
 #
 # Usage:
 #   bash scripts/tribunal.sh [--only-stage <factChecker|librarian|freshEyes|vibe>] [--allow-rewrite] [--no-commit] <filename.mdx>
@@ -145,7 +148,12 @@ tlog() {
 # "skipped", NOT as "passed" — otherwise stats are misleading. Chosen value:
 # 75 matches sysexits.h EX_TEMPFAIL ("temporary failure, retry later") which
 # is the closest stdlib semantic match.
-LOCK_FILE="/tmp/tribunal-${POST_FILE}.lock"
+ARTICLE_LOCK_DIR="${TRIBUNAL_ARTICLE_LOCK_DIR:-/tmp}"
+if ! mkdir -p "$ARTICLE_LOCK_DIR"; then
+  echo "[tribunal] cannot create article lock directory: $ARTICLE_LOCK_DIR (rc=70)." >&2
+  exit 70
+fi
+LOCK_FILE="$ARTICLE_LOCK_DIR/tribunal-${POST_FILE}.lock"
 exec 200>"$LOCK_FILE"
 if ! flock -n 200; then
   echo "[tribunal] skipped: another instance is already running for $POST_FILE (rc=75)." >&2
@@ -528,7 +536,7 @@ $ROOT_DIR/src/content/posts/en-$post_file
 $evidence
 
 ## Task
-1. Use absolute paths under the Repo root above; this Codex process runs from a temp directory, not the repo root.
+1. Use absolute paths under the Repo root above; the isolated writer runner starts from a temp directory, not the repo root.
 2. Fix only content-actionable problems in $ROOT_DIR/src/content/posts/$post_file.
 3. Also update $ROOT_DIR/src/content/posts/en-$post_file if it exists and the same issue applies.
 4. Inspect your diff before finishing. Do not run tribunal, judge agents, or any quota-burning model calls from inside this repair.
@@ -544,8 +552,8 @@ PROMPT
   writer_out="$(mktemp)"
   writer_quota_status_file="$(mktemp)"
   writer_rc=0
-  # Spawn from tmp work-dir so Codex does not inherit unrelated repo-local
-  # instructions. Writer's job is to edit src/content/posts/*.mdx.
+  # Spawn from a temporary work-dir so the selected writer does not inherit
+  # unrelated repo-local instructions. Its job is to edit posts only.
   local writer_work_dir
   writer_work_dir="$(tribunal_llm_work_dir)"
   TRIBUNAL_QUOTA_STATUS_FILE="$writer_quota_status_file" \
@@ -722,21 +730,23 @@ run_stage() {
 
   local post_path="$ROOT_DIR/src/content/posts/$post_file"
 
-  # Tribunal v8 executes every stage through the active provider: Codex/GPT-5.5
-  # on the VPS/mac, or the judge's declared Claude build in the CCC fallback.
+  # Tribunal executes every stage through the provider resolved for that judge.
   # Agent specs are prompt contracts; the runtime model id (stamped into
-  # progress + frontmatter) comes from this runner so a Claude-scored post is
-  # recorded honestly rather than mislabelled GPT-5.5.
+  # progress + frontmatter) comes from the provider-specific selector.
   local model_id
-  model_id="$(tribunal_llm_model_id "$agent_name")"
+  if ! model_id="$(tribunal_llm_model_id "$agent_name")"; then
+    tlog "ERROR: could not resolve runtime model for '$agent_name'."
+    return 70
+  fi
 
   # Provider-aware runner label for the progress ledger / stage logs /
   # runner-error records. Derived from the same provider resolution as model_id
-  # (not a static codex-gpt-5.5-medium string) so the internal ledger matches
-  # the reader-visible frontmatter: codex stays codex-gpt-5.5-medium, the CCC
-  # Claude fallback records the judge's Claude build instead of lying GPT-5.5.
+  # so the internal ledger matches the reader-visible frontmatter.
   local runner_label
-  runner_label="$(tribunal_runner_label "$agent_name")"
+  if ! runner_label="$(tribunal_runner_label "$agent_name")"; then
+    tlog "ERROR: could not resolve runner label for '$agent_name'."
+    return 70
+  fi
 
   # ── Crash resume: skip already-passed stages ──
   local existing_status
@@ -874,6 +884,24 @@ PROMPT
       return 75
     fi
 
+    if [ "$judge_rc" -eq 124 ]; then
+      tlog "  [tribunal-watchdog] idle timeout: no output/score-file progress; normalizing stalled judge to runner error."
+      mark_article_runner_error "$post_file" "$stage_key" "$runner_label" "$attempt" "watchdog_idle_timeout"
+      rm -f "$judge_out" "$actual_provider_file" "$quota_status_file" "$score_tmp"
+      return 70
+    fi
+
+    if [ "$judge_rc" -eq 70 ]; then
+      tlog "  RUNNER ERROR: Agent '$agent_name' could not preserve runtime provenance."
+      if [ -s "$judge_out" ]; then
+        head -5 "$judge_out" | while IFS= read -r line; do tlog "    $line"; done
+      fi
+      mark_article_runner_error "$post_file" "$stage_key" "$runner_label" "$attempt" "runner_or_provenance_error"
+      rm -f "$judge_out" "$quota_status_file" "$score_tmp"
+      rm -rf "$actual_provider_file"
+      return 70
+    fi
+
     if [ "$judge_rc" -ne 0 ]; then
       tlog "  WARN: Agent '$agent_name' exited with code $judge_rc"
       if [ -s "$judge_out" ]; then
@@ -989,7 +1017,7 @@ $score_json
 $ssot_content
 
 ## Task
-1. Use absolute paths under the Repo root above; this Codex process runs from a temp directory, not the repo root.
+1. Use absolute paths under the Repo root above; the isolated writer runner starts from a temp directory, not the repo root.
 2. Read $ROOT_DIR/src/content/posts/$post_file and $ROOT_DIR/GU-LOG_WRITER_PROMPT.md.
 3. Read the judge feedback JSON above — identify every dimension that scored below 8.
 4. Rewrite the post to fix those specific failures. Write it back in-place.
@@ -1012,8 +1040,8 @@ PROMPT
     writer_quota_status_file="$(mktemp)"
     writer_rc=0
 
-    # Writer reads the full post + judge feedback + scoring SSOT through Codex.
-    # Spawn from tmp work-dir to keep prompt context isolated.
+    # Writer reads the full post + judge feedback + scoring SSOT through the
+    # selected provider. Spawn from a temporary work-dir to isolate context.
     local rewrite_work_dir
     rewrite_work_dir="$(tribunal_llm_work_dir)"
     TRIBUNAL_QUOTA_STATUS_FILE="$writer_quota_status_file" \
@@ -1132,9 +1160,8 @@ done
 #
 # NOTE: TRIBUNAL_PROVIDER is the *global primary* — used only for this preflight
 # (availability + codex version) and the CCC-fallback log below. It is NOT the
-# per-stage truth: providers are resolved per judge via tribunal_judge_provider
-# (VibeScorer prefers Claude Opus 4.5, the other three stay Codex/GPT-5.5), and
-# each stage's real provider/model is recorded via actual_provider_file.
+# per-stage truth: providers are resolved per judge via tribunal_judge_provider,
+# and each stage's real provider/model is recorded via actual_provider_file.
 TRIBUNAL_PROVIDER="$(tribunal_llm_provider || true)"
 if [ -z "$TRIBUNAL_PROVIDER" ]; then
   echo "ERROR: No tribunal LLM provider on PATH: install codex (preferred) or claude" >&2

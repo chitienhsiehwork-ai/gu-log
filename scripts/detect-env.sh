@@ -90,10 +90,14 @@ case "$explicit_runtime" in
     ;;
 esac
 
-# CCC 判斷條件（三個都要中才算 CCC）：
+# Claude Code on the web 以官方 CLAUDE_CODE_REMOTE=true 為第一訊號。三條
+# branch/OS/cwd heuristic 保留給沒有該旗標的舊 harness：
 #   1. branch 開頭是 claude/（harness 自動建的 branch）
 #   2. 在 Linux 上（Mac 是 Darwin）
 #   3. cwd 在 /home/user/ 底下（Claude Code web 的 sandbox 路徑）
+claude_remote=false
+[[ "$explicit_runtime" == "claude-code" && "${CLAUDE_CODE_REMOTE:-}" == "true" ]] && \
+  claude_remote=true
 ccc_branch=false
 ccc_os=false
 ccc_cwd=false
@@ -101,7 +105,7 @@ ccc_cwd=false
 [[ "$uname_s" == "Linux" ]] && ccc_os=true
 [[ "$cwd" == /home/user/* ]] && ccc_cwd=true
 
-if $ccc_branch && $ccc_os && $ccc_cwd; then
+if $claude_remote || { $ccc_branch && $ccc_os && $ccc_cwd; }; then
   mode=CCC
   human_mode=CCC
   machine_id=cloud

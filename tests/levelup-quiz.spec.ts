@@ -9,11 +9,47 @@ import { test, expect } from './fixtures';
  */
 
 const TEST_URL = '/artifacts/levelup-components-fixture';
+const ENGLISH_TEST_URL = '/en/posts/en-levelup-20260608-12-llm-internals/';
 
 async function openFixture(page: Page) {
   const response = await page.goto(TEST_URL, { waitUntil: 'networkidle' });
   expect(response?.status()).toBe(200);
 }
+
+test.describe('LevelUp component localization', () => {
+  test('GIVEN an English tutorial WHEN learning components render and a quiz is answered THEN all shared UI copy is English', async ({
+    page,
+  }) => {
+    const response = await page.goto(ENGLISH_TEST_URL, { waitUntil: 'networkidle' });
+    expect(response?.status()).toBe(200);
+
+    const progress = page.locator('.levelup-progress').first();
+    await expect(progress.locator('.progress-percentage')).toContainText(/% complete$/);
+    await expect(progress.locator('.progress-percentage')).not.toContainText('完成');
+
+    const analogy = page.locator('.analogy-box').first();
+    await expect(analogy.locator('.analogy-badge')).toHaveText('Analogy');
+
+    const quiz = page.locator('.levelup-quiz').first();
+    await expect(quiz.locator('.quiz-label')).toHaveText('Quiz');
+
+    const answer = await quiz.getAttribute('data-answer');
+    expect(answer).toBeTruthy();
+    const wrongLabel = await quiz.locator('.quiz-option').evaluateAll((options, correctAnswer) => {
+      const option = options.find(
+        (candidate) => (candidate as HTMLElement).dataset.label !== correctAnswer
+      ) as HTMLElement | undefined;
+      return option?.dataset.label;
+    }, answer);
+    expect(wrongLabel).toBeTruthy();
+
+    await quiz.locator(`.quiz-option[data-label="${wrongLabel}"]`).click();
+    await expect(quiz.locator('.result-wrong')).toBeVisible();
+    await expect(quiz.locator('.result-wrong > strong')).toHaveText('Not quite!');
+    await expect(quiz.locator('.result-answer')).toContainText('Correct answer:');
+    await expect(quiz.locator('.result-wrong')).not.toContainText('不對喔');
+  });
+});
 
 test.describe('LevelUpQuiz Component', () => {
   test('GIVEN a quiz WHEN page loads THEN quiz is visible with all options', async ({ page }) => {
@@ -77,6 +113,56 @@ test.describe('LevelUpQuiz Component', () => {
     await expect(quiz.locator('.result-correct')).toBeVisible();
     await expect(quiz.locator('.quiz-option[data-label="C"]')).toBeDisabled();
   });
+
+  test('GIVEN both themes WHEN an answer is wrong THEN status labels pass text contrast', async ({
+    page,
+  }) => {
+    await openFixture(page);
+
+    const quiz = page.locator('.levelup-quiz').first();
+    await quiz.locator('.quiz-option[data-label="A"]').click();
+
+    for (const theme of ['light', 'dark']) {
+      const result = await page.evaluate((activeTheme) => {
+        document.documentElement.dataset.theme = activeTheme;
+
+        const parseRgb = (value: string) =>
+          value
+            .match(/[\d.]+/g)!
+            .slice(0, 3)
+            .map(Number);
+        const luminance = (rgb: number[]) => {
+          const [r, g, b] = rgb.map((channel) => {
+            const normalized = channel / 255;
+            return normalized <= 0.04045
+              ? normalized / 12.92
+              : ((normalized + 0.055) / 1.055) ** 2.4;
+          });
+          return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        };
+        const contrast = (foreground: string, background: string) => {
+          const fg = luminance(parseRgb(foreground));
+          const bg = luminance(parseRgb(background));
+          return (Math.max(fg, bg) + 0.05) / (Math.min(fg, bg) + 0.05);
+        };
+
+        const ratios = ['correct', 'wrong'].map((state) => {
+          const label = document.querySelector<HTMLElement>(`.quiz-option.${state} .option-label`)!;
+          const style = getComputedStyle(label);
+          return contrast(style.color, style.backgroundColor);
+        });
+
+        return {
+          ratios,
+          overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        };
+      }, theme);
+
+      expect(result.ratios, theme).toEqual([expect.any(Number), expect.any(Number)]);
+      expect(Math.min(...result.ratios), theme).toBeGreaterThanOrEqual(4.5);
+      expect(result.overflow, theme).toBe(0);
+    }
+  });
 });
 
 test.describe('MoguNote murmur variant', () => {
@@ -117,6 +203,76 @@ test.describe('LevelUpProgress Component', () => {
     await expect(progress.locator('.progress-level')).toContainText('Level 1 / 5');
     await expect(progress.locator('.progress-title')).not.toBeVisible();
   });
+
+  test('GIVEN both themes WHEN rendered THEN each theme uses its own progress gradient', async ({
+    page,
+  }) => {
+    await openFixture(page);
+
+    const expectedGradients = {
+      light: ['rgb(25, 93, 140)', 'rgb(107, 76, 160)'],
+      dark: ['rgb(139, 233, 253)', 'rgb(214, 188, 255)'],
+    };
+
+    for (const theme of ['light', 'dark'] as const) {
+      await page.evaluate((activeTheme) => {
+        document.documentElement.dataset.theme = activeTheme;
+      }, theme);
+
+      const fill = page.locator('.progress-bar-fill').first();
+      const backgroundImage = await fill.evaluate(
+        (element) => getComputedStyle(element).backgroundImage
+      );
+
+      for (const color of expectedGradients[theme]) {
+        expect(backgroundImage).toContain(color);
+      }
+
+      const result = await page.evaluate(() => {
+        const parseRgb = (value: string) =>
+          value
+            .match(/[\d.]+/g)!
+            .slice(0, 3)
+            .map(Number);
+        const luminance = (rgb: number[]) => {
+          const [r, g, b] = rgb.map((channel) => {
+            const normalized = channel / 255;
+            return normalized <= 0.04045
+              ? normalized / 12.92
+              : ((normalized + 0.055) / 1.055) ** 2.4;
+          });
+          return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        };
+        const contrast = (foreground: string, background: string) => {
+          const fg = luminance(parseRgb(foreground));
+          const bg = luminance(parseRgb(background));
+          return (Math.max(fg, bg) + 0.05) / (Math.min(fg, bg) + 0.05);
+        };
+
+        const card = document.querySelector<HTMLElement>('.levelup-progress')!;
+        const title = card.querySelector<HTMLElement>('.progress-title')!;
+        const percentage = card.querySelector<HTMLElement>('.progress-percentage')!;
+        const track = card.querySelector<HTMLElement>('.progress-bar-track')!;
+        const cardStyle = getComputedStyle(card);
+        const trackStyle = getComputedStyle(track);
+
+        return {
+          titleContrast: contrast(getComputedStyle(title).color, cardStyle.backgroundColor),
+          percentageContrast: contrast(
+            getComputedStyle(percentage).color,
+            cardStyle.backgroundColor
+          ),
+          trackContrast: contrast(trackStyle.borderColor, cardStyle.backgroundColor),
+          overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        };
+      });
+
+      expect(result.titleContrast, theme).toBeGreaterThanOrEqual(4.5);
+      expect(result.percentageContrast, theme).toBeGreaterThanOrEqual(4.5);
+      expect(result.trackContrast, theme).toBeGreaterThanOrEqual(3);
+      expect(result.overflow, theme).toBe(0);
+    }
+  });
 });
 
 test.describe('AnalogyBox Component', () => {
@@ -128,5 +284,64 @@ test.describe('AnalogyBox Component', () => {
     await expect(box.locator('.analogy-title')).toContainText('測試類比');
     await expect(box.locator('.analogy-badge')).toContainText('類比');
     await expect(box.locator('.analogy-content')).toContainText('測試一台新車');
+  });
+
+  test('GIVEN both themes WHEN rendered THEN badge text and border pass contrast', async ({
+    page,
+  }) => {
+    await openFixture(page);
+
+    for (const theme of ['light', 'dark']) {
+      await page.evaluate((activeTheme) => {
+        document.documentElement.dataset.theme = activeTheme;
+      }, theme);
+      await page.waitForTimeout(500);
+
+      const result = await page.evaluate(() => {
+        const parseRgb = (value: string) => {
+          const channels = value.match(/[\d.]+/g)!.map(Number);
+          const scale = value.startsWith('color(') ? 255 : 1;
+          return [channels[0] * scale, channels[1] * scale, channels[2] * scale, channels[3] ?? 1];
+        };
+        const composite = (foreground: number[], background: number[]) =>
+          foreground
+            .slice(0, 3)
+            .map(
+              (channel, index) => channel * foreground[3] + background[index] * (1 - foreground[3])
+            );
+        const luminance = (rgb: number[]) => {
+          const [r, g, b] = rgb.map((channel) => {
+            const normalized = channel / 255;
+            return normalized <= 0.04045
+              ? normalized / 12.92
+              : ((normalized + 0.055) / 1.055) ** 2.4;
+          });
+          return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        };
+        const contrast = (foreground: number[], background: number[]) => {
+          const fg = luminance(foreground);
+          const bg = luminance(background);
+          return (Math.max(fg, bg) + 0.05) / (Math.min(fg, bg) + 0.05);
+        };
+
+        const box = document.querySelector<HTMLElement>('.analogy-box')!;
+        const badge = box.querySelector<HTMLElement>('.analogy-badge')!;
+        const boxStyle = getComputedStyle(box);
+        const badgeStyle = getComputedStyle(badge);
+        const pageBackground = parseRgb(getComputedStyle(document.body).backgroundColor);
+        const boxBackground = composite(parseRgb(boxStyle.backgroundColor), pageBackground);
+        const badgeBackground = composite(parseRgb(badgeStyle.backgroundColor), boxBackground);
+
+        return {
+          badgeContrast: contrast(parseRgb(badgeStyle.color), badgeBackground),
+          borderContrast: contrast(parseRgb(boxStyle.borderColor), pageBackground),
+          overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        };
+      });
+
+      expect(result.badgeContrast, theme).toBeGreaterThanOrEqual(4.5);
+      expect(result.borderContrast, theme).toBeGreaterThanOrEqual(3);
+      expect(result.overflow, theme).toBe(0);
+    }
   });
 });

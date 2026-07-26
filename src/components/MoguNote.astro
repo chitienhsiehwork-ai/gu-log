@@ -101,11 +101,15 @@ const hasSummary = Boolean(summary?.trim());
 const contentId = `mogu-note-content-${contentHash}`;
 const moguGlossaryLabel = isEnglish ? 'Mogu glossary entry' : 'Mogu 詞彙說明';
 const moguGlossaryHref = isEnglish ? '/en/glossary#mogu' : '/glossary#mogu';
+const summaryLabel = isEnglish ? 'Summary' : '短版';
+const expandLabel = isEnglish ? 'Expand full note' : '展開長註解';
+const collapseLabel = isEnglish ? 'Collapse' : '收合';
 ---
 
 <blockquote
   class:list={['mogu-note', { 'mogu-note--murmur': !isNote }]}
   data-mogu-note
+  data-markdown-adapter="mogu-note"
   data-has-summary={hasSummary ? 'true' : 'false'}
 >
   <strong class="mogu-prefix">
@@ -123,7 +127,7 @@ const moguGlossaryHref = isEnglish ? '/en/glossary#mogu' : '/glossary#mogu';
   {
     hasSummary && (
       <div class="mogu-note-summary" hidden>
-        <span class="mogu-note-summary-label">短版</span>
+        <span class="mogu-note-summary-label">{summaryLabel}</span>
         <p>{summary}</p>
       </div>
     )
@@ -140,12 +144,14 @@ const moguGlossaryHref = isEnglish ? '/en/glossary#mogu' : '/glossary#mogu';
         type="button"
         aria-expanded="false"
         aria-controls={contentId}
+        data-label-expand={expandLabel}
+        data-label-collapse={collapseLabel}
         hidden
       >
         <span class="mogu-note-toggle-icon" aria-hidden="true">
           ▾
         </span>
-        <span class="mogu-note-toggle-label">展開長註解</span>
+        <span class="mogu-note-toggle-label">{expandLabel}</span>
       </button>
     )
   }
@@ -162,7 +168,10 @@ const moguGlossaryHref = isEnglish ? '/en/glossary#mogu' : '/glossary#mogu';
     note.dataset.collapsed = collapsed ? 'true' : 'false';
     if (content) content.hidden = collapsed;
     if (toggle) toggle.setAttribute('aria-expanded', (!collapsed).toString());
-    if (label) label.textContent = collapsed ? '展開長註解' : '收合';
+    if (label && toggle) {
+      const nextLabel = collapsed ? toggle.dataset.labelExpand : toggle.dataset.labelCollapse;
+      if (nextLabel) label.textContent = nextLabel;
+    }
   }
 
   function initMoguNote(note: HTMLElement) {

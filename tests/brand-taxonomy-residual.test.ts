@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { parse as parseYaml } from 'yaml';
 
 import {
   applyResidualPolicy,
@@ -41,6 +42,25 @@ const repositoryState = (trackedPaths: string[], existingPaths = trackedPaths) =
 });
 
 describe('brand taxonomy residual gate', () => {
+  it('keeps the writer frontmatter example canonical', () => {
+    const writerPrompt = fs.readFileSync(path.join(REPO_ROOT, 'GU-LOG_WRITER_PROMPT.md'), 'utf8');
+    const frontmatterExample = writerPrompt.match(/```yaml\n([\s\S]*?)\n```/)?.[1];
+    const parseTags = (frontmatter: string) => {
+      const document = frontmatter.replace(/^---\n/, '').replace(/\n---$/, '');
+      return parseYaml(document).tags;
+    };
+    const canonicalizeTagValues = (tags: string[]) => {
+      const probe = `tags: [${tags.map((tag) => JSON.stringify(tag)).join(', ')}]`;
+      return parseYaml(canonicalizeSeriesTaxonomyText(probe)).tags ?? [];
+    };
+
+    expect(frontmatterExample).toBeDefined();
+    const originalTags = parseTags(frontmatterExample!);
+    expect(Array.isArray(originalTags)).toBe(true);
+    expect(originalTags.length).toBeGreaterThan(0);
+    expect(canonicalizeTagValues(originalTags)).toEqual(originalTags);
+  });
+
   it('is wired into the required CI path and both tracked pre-push mirrors', () => {
     const packageJson = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'package.json'), 'utf8'));
     const ci = fs.readFileSync(path.join(REPO_ROOT, '.github/workflows/ci.yml'), 'utf8');

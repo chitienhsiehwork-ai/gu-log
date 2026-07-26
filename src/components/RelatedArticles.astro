@@ -68,28 +68,33 @@ const related =
   related.length > 0 && (
     <section class="related-articles" data-related-articles aria-label={t.heading}>
       <div class="related-header">
-        <span class="related-heading-icon">📚</span>
+        <span class="related-heading-icon" aria-hidden="true">
+          <svg
+            viewBox="0 0 24 24"
+            width="17"
+            height="17"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.7"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z" />
+          </svg>
+        </span>
         <h3 class="related-heading">{t.heading}</h3>
       </div>
       <ul class="related-list" id="related-list">
-        {related.map((post) => {
-          const prefix = post.data.ticketId?.split('-')[0]?.toLowerCase() ?? '';
-          return (
-            <li
-              class={`related-card related-card--${prefix}`}
-              data-related-item
-              data-slug={post.id}
-            >
-              <span class="read-dot" data-read-indicator data-slug={post.id} />
-              <a href={`${baseUrl}${post.id}`} class="related-link">
-                {post.data.ticketId && (
-                  <span class={`ticket-id ticket-id--${prefix}`}>{post.data.ticketId}</span>
-                )}
-                <span class="related-title">{post.data.title}</span>
-              </a>
-            </li>
-          );
-        })}
+        {related.map((post) => (
+          <li class="related-card" data-related-item data-slug={post.id}>
+            <span class="read-dot" data-read-indicator data-slug={post.id} />
+            <a href={`${baseUrl}${post.id}`} class="related-link">
+              {post.data.ticketId && <span class="ticket-id">{post.data.ticketId}</span>}
+              <span class="related-title">{post.data.title}</span>
+            </a>
+          </li>
+        ))}
       </ul>
     </section>
   )
@@ -155,8 +160,8 @@ const related =
     margin-bottom: 0.75rem;
   }
   .related-heading-icon {
-    font-size: 1rem;
-    line-height: 1;
+    display: inline-flex;
+    color: var(--color-text-muted);
   }
   .related-heading {
     font-size: 0.8rem;
@@ -174,52 +179,35 @@ const related =
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    border-top: 1px solid var(--color-divider);
   }
 
-  /* Individual card */
+  /* Editorial list row */
   .related-card {
     display: flex;
     align-items: flex-start;
     gap: 0.65rem;
-    padding: 0.75rem 1rem;
-    border-radius: 8px;
-    background: var(--color-surface);
-    border-left: 3px solid var(--color-border);
-    transition: all 0.15s ease;
+    padding: 0.85rem 0;
+    border-bottom: 1px solid var(--color-divider);
   }
-  .related-card:hover {
-    background: var(--color-surface-hover);
-    transform: translateX(2px);
-  }
-
-  /* Left border accent per ticket type */
-  .related-card--gp {
-    border-left-color: var(--color-badge-gp, #8be9fd);
-  }
-  .related-card--mp {
-    border-left-color: var(--color-badge-mp, #ffb86c);
-  }
-  .related-card--sd {
-    border-left-color: var(--color-badge-sd, #50fa7b);
-  }
-  .related-card--lv {
-    border-left-color: var(--color-badge-lv, #bd93f9);
+  .related-card:hover .ticket-id,
+  .related-card:hover .related-title {
+    color: var(--color-source-link);
   }
 
   /* Read dot */
   .read-dot {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
     flex-shrink: 0;
     margin-top: 0.4rem;
-    background: var(--color-accent);
-    opacity: 0.7;
+    background: var(--color-text-muted);
+    opacity: 0.65;
     transition: all 0.2s ease;
   }
   .read-dot.is-read {
-    background: var(--color-badge-sd, #50fa7b);
+    background: var(--color-status-success);
     opacity: 0.35;
   }
 
@@ -227,14 +215,13 @@ const related =
   .related-link {
     display: flex;
     flex-direction: column;
+    justify-content: center;
     gap: 0.15rem;
+    min-height: 44px;
     text-decoration: none;
     color: var(--color-text);
     flex: 1;
     min-width: 0;
-  }
-  .related-link:hover .related-title {
-    color: var(--color-accent);
   }
   .related-link:focus-visible {
     outline: 2px solid var(--color-accent);
@@ -248,26 +235,14 @@ const related =
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    opacity: 0.7;
-  }
-  .ticket-id--gp {
-    color: var(--color-badge-gp, #8be9fd);
-  }
-  .ticket-id--mp {
-    color: var(--color-badge-mp, #ffb86c);
-  }
-  .ticket-id--sd {
-    color: var(--color-badge-sd, #50fa7b);
-  }
-  .ticket-id--lv {
-    color: var(--color-badge-lv, #bd93f9);
+    color: var(--color-text-muted);
   }
 
   /* Title */
   .related-title {
     font-size: 0.875rem;
     line-height: 1.45;
-    color: var(--color-text);
+    color: var(--color-surface-meta);
     word-break: break-word;
     overflow-wrap: anywhere;
     transition: color 0.15s ease;
@@ -275,7 +250,7 @@ const related =
 
   @media (max-width: 640px) {
     .related-card {
-      padding: 0.6rem 0.75rem;
+      padding: 0.8rem 0;
     }
   }
 

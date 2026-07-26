@@ -1,8 +1,11 @@
 # human-finishability-signals Specification
 
 ## Purpose
-TBD - created by archiving change add-human-finishability-signals. Update Purpose after archive.
+
+定義可查詢的人類閱讀與分享訊號，包括文章版本、active read time、scroll depth、finishability、transport 與 reader trust tier，讓產品洞察與 Tribunal automation 能區分可靠證據和僅供參考的行為。
+
 ## Requirements
+
 ### Requirement: Reading engagement events SHALL include article identity and version
 
 Gu-log SHALL record human reading engagement as explicit events that include stable article identity and the version snapshot visible to the reader at event time.
@@ -185,4 +188,3 @@ Reader trust tiers SHALL include at least:
 - **WHEN** multiple random guests show similar finishability or share patterns
 - **THEN** the system MAY aggregate those signals for product insight
 - **AND** the aggregate SHALL remain reference-only until ShroomDog / owner approval makes it actionable
-
