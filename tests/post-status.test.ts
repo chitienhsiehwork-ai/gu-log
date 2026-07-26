@@ -111,6 +111,22 @@ describe('getPostStatus / isPostNonPublished', () => {
     expect(getPostStatus(en as any, cast([zh, en]))).toBe('retired');
     expect(isPostNonPublished(en as any, cast([zh, en]))).toBe(true);
   });
+
+  it('keeps zh status independent from a conflicting en translation', () => {
+    const cases = [
+      { ticketId: 'GP-1', zhStatus: 'published', enStatus: 'retired' },
+      { ticketId: 'GP-2', zhStatus: 'deprecated', enStatus: 'published' },
+      { ticketId: 'GP-3', zhStatus: 'retired', enStatus: 'deprecated' },
+    ] as const;
+
+    for (const { ticketId, zhStatus, enStatus } of cases) {
+      const slug = ticketId.toLowerCase();
+      const zh = p(`${slug}-zh`, ticketId, 'zh-tw', { status: zhStatus });
+      const en = p(`en-${slug}`, ticketId, 'en', { status: enStatus });
+
+      expect(getPostStatus(zh as any, cast([zh, en]))).toBe(getPostStatus(zh as any));
+    }
+  });
 });
 
 describe('getTranslationPair', () => {
