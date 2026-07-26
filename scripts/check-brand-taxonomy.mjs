@@ -297,7 +297,7 @@ export function canonicalizeSeriesTaxonomyText(text) {
     // tag added), re-serialize single-quoted values as double-quoted, flatten
     // any multi-line array onto one compact line, and blank the key entirely
     // if nothing but the retired series tag was ever there.
-    .replace(/^tags:\s*\n?\s*\[([\s\S]*?)\]/gm, (match, inner) => {
+    .replace(/^tags:\s*\n?\s*\[([\s\S]*?)\]/gm, (_match, inner) => {
       const legacySeriesTags = new Set([
         'shroom-picks',
         'shroomdog-picks',
