@@ -9,7 +9,7 @@
  *   (default)           warn-only, scans entire repo, exit 0
  *   --strict            exit 1 on missing pair (CI ship-gate)
  *   --pr-base=<ref>     restrict scope to files newly added vs <ref>
- *                       (so the 52-post zh-only backlog doesn't block
+ *                       (so the existing zh-only backlog doesn't block
  *                        PRs that don't touch those posts)
  *
  * Design note: this gate intentionally does NOT run in pre-commit.
