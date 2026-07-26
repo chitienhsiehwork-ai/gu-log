@@ -179,15 +179,19 @@ jobs:
         # has 65+ historical posts with grandfathered 晶晶體 that we don't
         # retroactively block. Manual ralph sweep can clean those over time.
         if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
-          git fetch origin ${{ github.base_ref }} --depth=1 || true
-          CHANGED_MDX=$(node scripts/list-content-gate-posts.mjs --base=origin/${{ github.base_ref }})
+          set -euo pipefail
+          git fetch --no-tags origin "$BASE_SHA"
+          git cat-file -e "$BASE_SHA^{commit}"
+          CHANGED_MDX=$(node scripts/list-content-gate-posts.mjs "--base=$BASE_SHA")
           if [ -z "$CHANGED_MDX" ]; then
             echo "✓ No zh-tw posts changed in this PR — skipping 晶晶體 check"
             exit 0
           fi
           echo "Checking $(echo $CHANGED_MDX | wc -w) zh-tw post(s) for 晶晶體..."
-          node scripts/check-jingjing.mjs $CHANGED_MDX
+          node scripts/check-jingjing.mjs "--baseline-ref=$BASE_SHA" $CHANGED_MDX
 
   pending-ticket-guard:
     runs-on: ubuntu-latest
