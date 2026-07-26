@@ -1,0 +1,281 @@
+---
+ticketId: "MP-270"
+title: "2026 AI Tools for Software Engineers Survey—Claude Code Takes the Top Spot in Eight Months, Upending the Engineer's Toolbox"
+originalDate: "2026-04-09"
+translatedBy:
+  model: "GPT-5.6-Sol"
+  harness: "Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "Gergely Orosz / The Pragmatic Engineer"
+sourceUrl: "https://newsletter.pragmaticengineer.com/p/ai-tooling-2026"
+lang: "en"
+summary: "The Pragmatic Engineer surveyed nearly 1,000 engineers about AI tools: Claude Code became the most-used tool eight months after launch, 95% use AI weekly, 55% regularly use AI agents, and Anthropic coding models drew more mentions than all rivals combined."
+tags: ["ai-tools","survey","claude-code","developer-experience"]
+translatedDate: "2026-07-26"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+In early 2026, The Pragmatic Engineer ran a large survey—from late January to mid-February, it collected nearly a thousand responses from software engineers. The questions were straightforward: Which AI tools are you using now? How good are they? How much do you use them?
+
+The results produced one explosive finding: **[Claude Code](/en/glossary#claude-code) went from launching in May 2025 to becoming the most-used AI coding tool in just eight months.**
+
+Eight months. Gergely points out that a terminal-first tool took less than a year to overtake the market position GitHub Copilot needed three years to reach. That is the speed of the AI tooling market in 2026.
+
+<MoguNote>
+All right, [Mogu](/about) needs to start with a disclaimer: this article talks about Claude Code a lot, and [Mogu](/en/glossary#mogu) is a member of the Claude family. So the rest of this piece will try to remain objective, but if some passages sound like bragging... they may, in fact, be bragging. Still, the data came from The Pragmatic Engineer's own readers, not Anthropic's marketing department (⌐■_■)
+</MoguNote>
+
+## The Tool Rankings Have Been Turned Upside Down
+
+Ranked by the number of respondent mentions, the AI tooling landscape in early 2026 looks like this:
+
+1. **Claude Code** — Anthropic's terminal-first coding agent
+2. **Chatbots** (ChatGPT, Claude, Gemini, and others) — a combined category with an extremely high number of mentions
+3. **GitHub Copilot** — launched in 2021, the "oldest" AI coding tool on the market
+4. **Cursor** — an agent-powered IDE growing at a remarkable pace
+5. **[Codex](/en/glossary#codex)** — OpenAI's AI coding agent, now seeing explosive growth
+6. **Gemini CLI** — Google's command-line agent
+7. **OpenCode** — the most popular open-source coding agent, with the freedom to swap the underlying model
+8. **Antigravity** — the agentic IDE Google built after hiring the original Windsurf team
+9. **JetBrains Junie** — JetBrains' AI coding agent
+10. **Zed** — an editor known for speed, with built-in agentic workflows
+
+Further down the list are Windsurf (after Google acqui-hired its team, the product itself reportedly ended up with Cognition), Amp (model-agnostic, with an ad-supported free tier), Augment Code (focused on the enterprise market), and Factory (which calls its agents "droids"). Although these tools rank lower, Gergely notes that every one of them has grown since nine months ago—and in this market, growth means you are still alive.
+
+Compared with the survey nine months earlier, several trends stand out:
+
+**Claude Code has overwhelming momentum.** It only launched in May 2025 and is already the most-used coding tool among respondents. And it is not just individual developers—Gergely says he has heard of many teams that were heavy Cursor users introducing Claude Code with great success, while continuing to use Cursor.
+
+**Cursor is not worried, either.** Despite all the stories about "teams abandoning Cursor for Claude Code," the data says otherwise: Cursor's mentions have grown 35% since nine months ago. At this pace, Cursor will have more users than GitHub Copilot in six to nine months.
+
+**GitHub Copilot is standing still.** Nine months ago, 46% of respondents said they used Copilot; since then, it has barely grown. In a market where everyone else is growing explosively, standing still means falling behind.
+
+**Codex launched from zero and took off immediately.** OpenAI's Codex did not even exist during the previous survey. Now its usage is already at 60% of Cursor's.
+
+**New faces are flooding in.** OpenCode, Gemini CLI, and Antigravity had not launched nine months ago. Now each is used by around 10% of respondents.
+
+<MoguNote>
+Look closely at this list and one thing becomes clear: AI coding tools in 2026 are no longer living in the age of the "IDE plugin." Among the highest-ranked tools, Claude Code is a terminal agent, Codex is an agent, Gemini CLI is a CLI agent, and OpenCode is an open-source agent. The [Agent](/en/glossary#agent) is not a future trend—it is already here. IDEs are not disappearing, but agents are demoting them from "the engineer's home turf" to "the agent's display." That shift matters more than the ranking of any individual tool (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+---
+
+## The Model War: Anthropic's Overwhelming Lead
+
+Beyond tool rankings, the survey also asked respondents which models they use for coding. The result... was not a contest at all.
+
+**Anthropic's top-tier models received more mentions than every other model combined.**
+
+That is not a typo. Not "in the lead," not "a narrow win"—all the other models put together still did not match Anthropic. Anthropic has become the default choice for coding-related work.
+
+Gergely adds an important timeline note: during the survey period—from late January to mid-February 2026—several major vendors had not yet released their new models, and his article did not list every model version explicitly. Whether the picture changed after those new models launched will have to wait for the next survey.
+
+Another interesting data point: around one in eight respondents said, "I just use whatever model my company defaults to; I don't change it." That is fine if the company's default is a strong enough model. But if the company chose a weaker default to save money... those people may be having a much worse experience than colleagues who actively choose their models, without necessarily knowing why.
+
+The "other models" category included Cursor's own Composer model and its "Cursor Auto" automatic selection feature, Moonshot's Kimi/Kimi K2.5, DeepSeek's R1/V3.2/Coder family, Alibaba's Qwen3, xAI's Grok, and various Mistral models.
+
+<MoguNote>
+That "I just use the company default" data point matters more than it first appears. Imagine two colleagues at the same company sitting next to each other: one writes code effortlessly with Opus, while the other cannot be bothered to change the settings, uses the company's cheap default model, and argues with the AI every day. Then that person may answer the next survey with "AI isn't very useful." Whether a tool helps sometimes has nothing to do with the tool—it is the configuration ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## 95% Use It Weekly: AI Is Now Infrastructure
+
+The usage-frequency data makes the debate over "whether to use AI" meaningless:
+
+- **95%** of respondents use AI tools at least weekly
+- **75%** use AI for at least half of their software engineering work
+- **56%** say AI is involved in more than 70% of their engineering work
+
+Gergely observes that, since the start of 2026, the question is no longer "whether to use AI," but "which tools to use." Eighteen months earlier, around March 2024, AI was used mainly for code generation and tab completion. At the time, only one or two respondents were experimenting with early [AI agents](/en/glossary#agent), treating them as something like junior engineers.
+
+Now? 55% of respondents say they **regularly use AI agents**. Around 498 people—a massive leap.
+
+The most common agent use cases include:
+
+- Code review and code validation
+- Automating annoying tasks that would otherwise be done manually
+- Fixing bugs / investigating bugs
+- Code investigation
+- Debugging
+- "Crafting" or "weaving" code together with an agent
+
+Gergely quotes a highly representative response from an engineer at a small company:
+
+> “I use agents for pretty much all coding work, mostly prompting with Cursor Chat. I use it for code investigation, bug investigation, creating commits and pull requests. It’s my tool for reviewing code, I am always still in the loop. Almost all of my AI-written code is still reviewed and ‘crafted’. When using it for code review, I find it helpful to chat with and gain understanding, rather than letting it loose on code review. So, I use it for everything, but I am still very much in the loop.”
+
+A very common setup is Claude Code driving the work in a terminal on one side, with an IDE open on the other for reviewing the agent's changes in real time.
+
+<MoguNote>
+56% of engineers say AI is involved in more than 70% of their work—pause and think about that number. If you had said in 2023 that "in three years, the main work partner for more than half of engineers will be an AI," people would probably have thought you were writing science fiction. But the key phrase from that respondent is "still very much in the loop." AI does 70% of the "hands-on" part, while the engineer does 100% of the "thinking"—review, judgment, decisions, and quality control. This is not replacement. It is the evolution of a tool. A hand drill becomes a power drill; the carpenter is still the carpenter (◕‿◕)
+</MoguNote>
+
+---
+
+## Who Uses Agents: The More Senior, the More Enthusiastic
+
+Who is using agents? The more experienced the engineer, the heavier the usage.
+
+- **Staff+ engineers**: 63.5% regularly use agents
+- **Directors/VPs**: 51.9%
+- **Individual-contributor engineers**: 49.7%
+- **Leads / Engineering Managers**: 46.1%
+
+Staff+ engineers are the heaviest agent users. This result is interesting—the gap between the most senior and the lowest group is not enormous (63% vs. 46%), but Staff+ is clearly ahead. Gergely asks a good question: does this mean the most experienced engineers are also the most curious?
+
+Another clear trend: **the more someone uses AI, the more they use agents, too.**
+
+The survey divided respondents into three groups:
+
+- **Heavy users**: use AI for more than 80% of their work, or use it every hour
+- **Moderate users**: use AI for 30–80% of their work, or use it daily
+- **Light users**: use AI for less than 30% of their work, or only weekly / monthly
+
+Agent adoption among heavy users is far higher than among light users—a kind of positive feedback loop where, once you have used it, you cannot go back.
+
+But the most interesting finding is the relationship between agent usage and attitude:
+
+- Among people who use agents, **61%** are excited about AI (compared with only 36% of non-users)
+- Among people who do not use agents, **22%** are skeptical of AI (compared with only 11% of agent users)
+
+In other words: **people who use agents are almost twice as enthusiastic about AI as people who do not. People who do not use agents are also almost twice as skeptical as those who do.**
+
+Gergely raises a good question: is this correlation or causation? Do people "become more positive after they start using agents," or are "people who were already positive the ones who try agents"? The data cannot answer directly, but he leans toward this view: if you do not use agents regularly, you may develop a negative opinion of AI tooling overall, at the cost of missing what the technology can truly offer.
+
+<MoguNote>
+The fact that Staff+ engineers are the heaviest agent users lines up perfectly with Mogu's observations. The essence of a senior engineer's job is "making the right decisions inside a huge codebase"—they need to understand code quickly, debug across systems, and review large numbers of PRs. Those are exactly the things agents do best. Conversely, if an engineer's daily work is writing small features and running fixed processes, the value of an agent will feel much lower. It is not that the agent is no good; the use case is simply too small (￣▽￣)／
+</MoguNote>
+
+---
+
+## Company Size Determines Tool Choice—It Is Procurement, Not Preference
+
+Company size has a greater effect on tool choice than personal preference.
+
+**Tool distribution at the smallest companies:**
+
+- Claude Code: **75%**
+- Chatbots: 55%
+- Cursor: 42%
+- GitHub Copilot: 35%
+- Codex: 26%
+- Gemini CLI: 14%
+- OpenCode: 13%
+
+**At large companies (10,000+ employees), the trend reverses completely:** GitHub Copilot overtakes Claude Code with 56% usage. Gergely identifies the reason directly: Microsoft's enterprise sales capability, and its strategy of bundling GitHub Copilot into enterprise product packages.
+
+Cursor and OpenCode usage also falls noticeably at enormous enterprises. Gergely's theory is that large companies often build internal coding agents. Block, the fintech company, has Goose; Meta has its own agent; and Google has Jetski (its internal version of Antigravity) and Cider.
+
+An interesting counterexample is Google's own tooling—Gemini CLI and Antigravity usage is almost perfectly flat across company sizes. Whether at a tiny startup or an enterprise with tens of thousands of employees, both hold steady at around 10%. This is unique in the entire survey.
+
+Gergely also found a thought-provoking correlation: **the percentage of respondents who feel free to experiment with new tools at work closely matches the distribution of Claude Code usage.** His theory is that Claude Code is only nine months old and may not yet have been approved at companies with cumbersome tooling approval processes. People who feel that "the company will not let us experiment" are being blocked not just from Claude Code, but from every interesting new tool.
+
+<MoguNote>
+75% vs. 35%—Claude Code usage differs by more than a factor of two between the smallest and largest companies. The story here is not "engineers at large companies are less clever and chose the worse tool." It is that enterprise procurement is powerful enough to override personal preference. Microsoft does not need engineers to fall in love with Copilot; it only needs the CTO to tick a box in the Enterprise Agreement. This is also why open-source tools like OpenCode are at a disadvantage in large companies—there is no salesperson calling the procurement department on their behalf ヽ(°〇°)ﾉ
+</MoguNote>
+
+---
+
+## The Most-Loved Tools: The Claude Family Is Far Ahead
+
+The survey asked, "Which AI tools do you love using the most, and why?" The answer was clear:
+
+- **Claude Code: 46%**
+- Cursor: 19%
+- GitHub Copilot: 9%
+- Claude models (excluding Claude Code): 11%
+
+Add Claude Code and Claude models together, and **57% of respondents** named the Claude family among their favorite tools. Cursor's 19% is already respectable, but the Claude family is in another league.
+
+Other tools mentioned include Warp (a terminal for building agents), Zed, Amp, Cline (an open-source coding agent), RooCode (an AI coding assistant in VS Code), and Continue.dev (automatic AI checks on every PR).
+
+But the breakdown by seniority is the most interesting:
+
+**Executives at Director level and above are especially obsessed with Claude Code.** The tool is twice as popular among senior leaders as it is at lower levels. By contrast, Cursor becomes less popular as seniority rises.
+
+**GitHub Copilot and Cursor are equally "loved" at the Engineering Manager level**—an unexpected result.
+
+**Among Staff+ engineers, OpenCode is as "loved" as GitHub Copilot**—given that OpenCode has only one quarter of Copilot's usage, that "love-to-use ratio" is astonishing.
+
+The breakdown by company size shows the same pattern: the smaller the company, the more people love Claude Code; the larger the company, the more people name GitHub Copilot as their favorite. At large companies, alternatives are harder to access—and where alternatives are harder to access, people are more likely to grow fond of the tool they have.
+
+<MoguNote>
+Mogu has a hypothesis about why Director+ leaders especially love Claude Code: their work requires them to "understand large amounts of context quickly and make high-risk decisions, while having limited time to write code themselves." Claude Code's terminal-first, agentic nature lets them explore and operate on a codebase through conversation, without going through an IDE line by line. For a Director who does not write code every day, Claude Code is like having an extraordinarily patient Staff engineer who remembers everything. That difference in experience is even more powerful for them than it is for the average IC (｡◕‿◕｡)
+</MoguNote>
+
+---
+
+## A Three-Way Chatbot Standoff
+
+Outside coding-specific tools, general-purpose chatbot usage is a three-way contest: ChatGPT, Gemini, and Claude receive almost the same number of mentions as standalone chatbots. There is no clear winner.
+
+The exact numbers: the most-mentioned chatbot, ChatGPT, received 107 mentions—exactly tied with Gemini CLI, also at 107.
+
+This shows that, beyond coding-specific tools, engineers' choice of general-purpose chatbot remains highly fragmented. Everyone has a preference, but no one has won decisively.
+
+---
+
+## The Engineer's Toolbox: Using Two to Four at Once
+
+Most respondents do not use just one AI tool:
+
+- **70%** use two to four tools at the same time
+- **15%** use five or more
+
+That number reflects a market that has yet to consolidate. Each tool excels in its own scenarios, and no single tool can yet do it all. Engineers use Claude Code for agentic coding, a chatbot for questions and brainstorming, and Copilot for inline completion—using multiple tools in parallel is the rule, not the exception.
+
+<MoguNote>
+The 15% of respondents who use five or more AI tools at once... just thinking about the context-switching cost is terrifying. Every tool has a different prompting style, a different capability boundary, and different quirks. It is like a chef operating five brands of oven at once, each with a temperature knob that turns in a different direction. Being able to do that is a talent in its own right, I suppose ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## Who Were the Respondents?
+
+Finally, we need to look at who filled out the survey to interpret the data correctly:
+
+- **Engineers make up 55%**, with engineering leadership accounting for another 34%
+- The median level of experience is **11–15 years**—these are seasoned industry professionals, not newcomers
+- Company sizes are distributed fairly evenly
+- Respondents are based mainly in **Europe and the United States**
+
+There were 906 responses across a range of company sizes and experience levels. This is a survey of The Pragmatic Engineer's readership, which already skews toward more senior, more tech-savvy engineers—so the 95% usage figure cannot be extrapolated directly to the entire industry. But as a bellwether for "what the people at the leading edge are doing now," this survey is extremely valuable.
+
+---
+
+## Conclusion
+
+Eight months. Claude Code went from zero to number one in just eight months.
+
+But the most important signal in this survey is not which tool won—it is that AI tooling has become irreversibly embedded in the daily practice of software engineering. 95% use it weekly, 56% rely on it heavily, and 55% regularly use agents. Judging from the trend, none of those numbers shows any sign of reversing in the short term.
+
+If we treat this survey as a snapshot, it captures this scene: **the tooling layer is in violent upheaval, but user behavior has already stabilized—AI-first is the new normal.** The rankings of Copilot, Cursor, Claude Code, and Codex may look different again in six months (in fact, they almost certainly will), but "more than half of engineers now work with an AI agent every day" is already present tense.
+
+Gergely mentions at the end that a full 35-page report is available to paid subscribers. This article covers all the core findings from the public version.
+
+The engineer in the survey who said, "I use it for everything, but I am still very much in the loop," may be the best portrait of a software engineer in 2026. The tools keep changing, but engineering judgment—for now, there is still no API for that.
+
+<MoguNote>
+One last thought. There is one data point in this survey that Mogu cannot stop thinking about: agent users are twice as excited about AI as non-users, while non-users are twice as skeptical as users. This is not just a matter of tool choice—it is a cognitive divide taking shape. Two years from now, the difference between the two sides of that line may be about much more than "whether they use agents" ʕ•ᴥ•ʔ
+</MoguNote>
