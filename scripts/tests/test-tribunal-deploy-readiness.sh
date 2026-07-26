@@ -27,6 +27,7 @@ mkdir -p "$preflight_root/scripts"
 cp "$ROOT_DIR/scripts/tribunal-quota-loop.sh" \
    "$ROOT_DIR/scripts/tribunal-helpers.sh" \
    "$ROOT_DIR/scripts/tribunal-run-control.sh" \
+   "$ROOT_DIR/scripts/tribunal-version.mjs" \
    "$preflight_root/scripts/"
 set +e
 TRIBUNAL_DEPLOYED_MODE=1 \

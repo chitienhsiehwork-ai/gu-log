@@ -41,15 +41,27 @@ export RC_ROOT_DIR="$ROOT_DIR"
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/tribunal-run-control.sh"
 
+if ! TRIBUNAL_VERSION="$(node "$SCRIPT_DIR/tribunal-version.mjs" current 2>/dev/null)"; then
+  echo "ERROR: invalid Tribunal version: could not read scripts/tribunal-version.mjs" >&2
+  exit 78
+fi
+case "$TRIBUNAL_VERSION" in
+  ''|*[!0-9]*)
+    echo "ERROR: invalid Tribunal version: ${TRIBUNAL_VERSION:-<empty>}" >&2
+    exit 78
+    ;;
+esac
+if [ "$TRIBUNAL_VERSION" -lt 1 ]; then
+  echo "ERROR: invalid Tribunal version: $TRIBUNAL_VERSION" >&2
+  exit 78
+fi
+
 # ─── Args ─────────────────────────────────────────────────────────────────────
 ONLY_STAGE=""
 POST_FILE=""
 ALLOW_REWRITE=""
 WRITE_FRONTMATTER=1
 SCORE_ONLY=0
-# v9 (move-clarity-vibe-to-fresheyes): clarity moved vibe → freshEyes.
-# Must stay in lockstep with frontmatter-scores.mjs CURRENT_TRIBUNAL_VERSION.
-TRIBUNAL_VERSION=9
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --only-stage)
@@ -799,7 +811,7 @@ Write your JSON result to: SCORE_PATH_PLACEHOLDER"
       judge_task="$(cat <<PROMPT
 $judge_task
 
-## Tribunal v8 calibration reference
+## Tribunal calibration reference
 Read this if the current stage is Librarian, FreshEyes, Vibe, or Writer-adjacent reasoning:
 $calibration_ref
 
@@ -1190,7 +1202,7 @@ if [ "$TRIBUNAL_PROVIDER" != "codex" ]; then
   tlog "  Provider: codex absent — using Claude fallback (CCC sandbox)"
 fi
 
-# ─── Tribunal v8 Sequential Loop ──────────────────────────────────────────────
+# ─── Sequential Tribunal Loop ─────────────────────────────────────────────────
 # Format: stage_key:agent_name:validate_name:label:max_loops:fm_judge_key
 # fm_judge_key = frontmatter scores key (used by frontmatter-scores.mjs)
 # The runner_label is no longer a static column here: run_stage resolves it
