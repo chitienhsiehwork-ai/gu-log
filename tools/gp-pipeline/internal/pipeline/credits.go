@@ -48,10 +48,11 @@ func (s *State) Credits(ctx context.Context) error {
 		return fmt.Errorf("credits: parse final.mdx: %w", err)
 	}
 
-	// Default skipped-stage metadata to each role's runtime provider. Writers
-	// use Opus-on-Mac / Codex-on-VM; reviewers and tribunal judges use full
-	// Codex GPT-5.5.
-	writerModel, writerHarness := s.StampLabels()
+	// Default skipped-stage metadata to each role's runtime provider.
+	writerModel, writerHarness, err := s.StampLabels()
+	if err != nil {
+		return fmt.Errorf("credits: resolve writer stamp: %w", err)
+	}
 	judgeModel, judgeHarness := s.JudgeStampLabels()
 	writeModel := nonEmpty(s.WriteModel, writerModel)
 	writeHarness := nonEmpty(s.WriteHarness, writerHarness)
@@ -85,11 +86,11 @@ func (s *State) Credits(ctx context.Context) error {
 // provider. It reads the resolved dispatcher (deterministic for a given run and
 // for FakeProvider tests) and falls back to probing PATH when no dispatcher is
 // wired.
-func (s *State) StampLabels() (model, harness string) {
+func (s *State) StampLabels() (model, harness string, err error) {
 	if s.Dispatcher != nil {
 		for _, p := range s.Dispatcher.Providers() {
 			if p.Available() {
-				return llm.DisplayName(p.Model()), llm.HarnessName(p.Model())
+				return llm.DisplayName(p.Model()), llm.HarnessName(p.Model()), nil
 			}
 		}
 	}
@@ -112,12 +113,9 @@ func (s *State) JudgeStampLabels() (model, harness string) {
 			}
 		}
 	}
-	// Resolve against the same chain the tribunal actually judges with:
-	// Codex GPT-5.5 when codex is on PATH, else the Claude fallback (CCC / web
-	// sandbox). DefaultJudgeChain is codex-only, so on a codex-absent box the
-	// loop below found nothing Available and the stamp fell through to a
-	// hardcoded GPT-5.5 — a FALSE signature on every CCC-run post, directly
-	// contradicting the Claude models the tribunal wrote into scores.*.
+	// Resolve against the same chain the tribunal actually judges with. When
+	// the primary judge CLI is absent, this includes the Claude fallback used
+	// in CCC instead of stamping a provider that did not run.
 	for _, p := range llm.JudgeChainWithClaudeFallback(false) {
 		if p.Available() {
 			return llm.DisplayName(p.Model()), llm.HarnessName(p.Model())

@@ -1,12 +1,13 @@
 package llm
 
-import "os"
+import (
+	"fmt"
+	"os"
+)
 
-// DefaultWritingChain returns the provider ordering used for article writing
-// and refine steps. On Macs with Claude Code installed, the pinned Opus build
-// is the writer (NewClaudeOpusWriter), so the writing voice doesn't drift when
-// Anthropic moves the floating alias. On the Mogu VM, where Claude is
-// intentionally not a dependency, the runtime falls back to Codex GPT-5.5.
+// DefaultWritingChain returns the preferred provider used for article writing
+// and refine steps. Runtime availability and explicit provider selection are
+// resolved by WritingChain.
 func DefaultWritingChain() []Provider {
 	return []Provider{
 		NewClaudeOpusWriter(),
@@ -36,19 +37,29 @@ func ProbeChain() []Provider {
 }
 
 // WritingChain returns the provider chain the pipeline actually dispatches
-// through for write/refine. If Claude is installed, the pinned Opus build is
-// the writer and a Claude runtime failure should fail loudly rather than
-// silently writing with a different voice. If Claude is absent, Codex GPT-5.5
-// keeps VM runs alive.
-func WritingChain() []Provider {
-	if os.Getenv("GP_WRITER_PROVIDER") == "codex" {
-		return []Provider{NewCodexGPT55Medium()}
+// through for write/refine. Explicit provider choices are single-provider,
+// fail-closed routes. When the provider is unset, Claude is preferred and
+// Codex keeps VM runs alive when Claude is absent.
+func WritingChain() ([]Provider, error) {
+	provider := os.Getenv("GP_WRITER_PROVIDER")
+	switch provider {
+	case "codex":
+		return []Provider{NewCodexGPT55Medium()}, nil
+	case "claude":
+		return []Provider{NewClaudeOpusWriter()}, nil
+	case "":
+		// Continue into automatic availability resolution below.
+	default:
+		return nil, fmt.Errorf(
+			`invalid GP_WRITER_PROVIDER=%q; valid values are "claude", "codex", or unset`,
+			provider,
+		)
 	}
 	claude := NewClaudeOpusWriter()
 	if claude.Available() {
-		return []Provider{claude}
+		return []Provider{claude}, nil
 	}
-	return []Provider{NewCodexGPT55Medium()}
+	return []Provider{NewCodexGPT55Medium()}, nil
 }
 
 // JudgeChain returns the provider chain for eval/review. Judges stay on the
@@ -87,8 +98,11 @@ func JudgeChainWithClaudeFallback(allowClaude bool) []Provider {
 // EffectiveStamp returns the (model, harness) display labels for the runtime
 // provider that WritingChain will resolve to. When nothing is on PATH (offline
 // / FakeProvider test runs) it keeps Codex labels as the deterministic default.
-func EffectiveStamp() (model, harness string) {
-	chain := WritingChain()
+func EffectiveStamp() (model, harness string, err error) {
+	chain, err := WritingChain()
+	if err != nil {
+		return "", "", err
+	}
 	for _, p := range chain {
 		if p.Available() {
 			m := p.Model()
@@ -97,10 +111,10 @@ func EffectiveStamp() (model, harness string) {
 					m = actual
 				}
 			}
-			return DisplayName(m), HarnessName(p.Model())
+			return DisplayName(m), HarnessName(p.Model()), nil
 		}
 	}
-	return DisplayName(ModelGPT55), HarnessName(ModelGPT55)
+	return DisplayName(ModelGPT55), HarnessName(ModelGPT55), nil
 }
 
 // anyAvailable reports whether at least one provider in chain has its binary

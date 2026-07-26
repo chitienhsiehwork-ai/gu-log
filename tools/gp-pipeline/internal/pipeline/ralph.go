@@ -154,7 +154,10 @@ func (s *State) Ralph(ctx context.Context) error {
 	// Frontmatter normaliser — for every file in {zh, en}, strip old
 	// pipeline block + pipelineUrl, then inject the canonical 6-entry
 	// block. Matches the Python heredoc at bash lines 1245-1300.
-	writerModel, writerHarness := s.StampLabels()
+	writerModel, writerHarness, err := s.StampLabels()
+	if err != nil {
+		return fmt.Errorf("ralph: resolve writer stamp: %w", err)
+	}
 	judgeModel, judgeHarness := s.JudgeStampLabels()
 	writeModel := nonEmpty(s.WriteModel, writerModel)
 	writeHarness := nonEmpty(s.WriteHarness, writerHarness)

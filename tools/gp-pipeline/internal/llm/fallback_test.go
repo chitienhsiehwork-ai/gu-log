@@ -30,7 +30,10 @@ func TestAnyAvailable(t *testing.T) {
 }
 
 func TestWritingChainUsesSingleResolvedWriter(t *testing.T) {
-	chain := WritingChain()
+	chain, err := WritingChain()
+	if err != nil {
+		t.Fatalf("WritingChain: %v", err)
+	}
 	if len(chain) == 0 {
 		t.Fatal("WritingChain returned an empty chain")
 	}
@@ -46,10 +49,9 @@ func TestWritingChainUsesSingleResolvedWriter(t *testing.T) {
 
 // TestJudgeChainWithClaudeFallbackResolvesOneJudge guards the stamp-resolution
 // path used by JudgeStampLabels. The chain must resolve to exactly one runnable
-// judge — Codex GPT-5.5 when codex is on PATH, else the Claude fallback (CCC /
-// web sandbox). It must NEVER come back empty or leave an unavailable codex as
-// the only entry on a codex-absent box, which is what let the pipeline stamp a
-// hardcoded GPT-5.5 signature on Claude-run posts.
+// judge: the configured Codex judge when available, otherwise the Claude
+// fallback used in CCC. It must never come back empty or mislabel a fallback
+// run with the unavailable primary provider.
 func TestJudgeChainWithClaudeFallbackResolvesOneJudge(t *testing.T) {
 	chain := JudgeChainWithClaudeFallback(false)
 	if len(chain) != 1 {
@@ -88,7 +90,10 @@ func TestEffectiveStampLabels(t *testing.T) {
 	// EffectiveStamp never invents an unknown label; it returns one of the two
 	// known provider identities. We can't force PATH here, so we just assert
 	// the result is internally consistent (model/harness from the same family).
-	model, harness := EffectiveStamp()
+	model, harness, err := EffectiveStamp()
+	if err != nil {
+		t.Fatalf("EffectiveStamp: %v", err)
+	}
 	switch model {
 	case "GPT-5.5":
 		if harness != "Codex CLI" {

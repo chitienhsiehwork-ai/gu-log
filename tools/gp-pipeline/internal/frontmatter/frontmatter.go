@@ -247,9 +247,9 @@ func (f *File) SetNestedScalar(parentKey, childKey, value string) {
 		}
 	}
 
-	// Walk the nested children inside the parent block, looking for
-	// childKey. Stop when we hit a line that is NOT at indent 2+ (i.e. a
-	// sibling top-level key or empty line that breaks the block).
+	// Walk the nested children inside the parent block, looking for an exact
+	// direct child at indent 2. Deeper descendants such as
+	// translatedBy.pipeline[*].model must never satisfy this lookup.
 	if parentIdx >= 0 {
 		for i := parentIdx + 1; i < len(f.lines); i++ {
 			ln := f.lines[i]
@@ -261,13 +261,12 @@ func (f *File) SetNestedScalar(parentKey, childKey, value string) {
 			if !strings.HasPrefix(ln, "  ") {
 				break
 			}
+			if leadingSpaces(ln) != "  " {
+				continue
+			}
 			trimmed := strings.TrimLeft(ln, " \t")
 			if strings.HasPrefix(trimmed, childKey+":") {
-				// Direct child. Replace the line, preserving the
-				// indent level (we compute indent from the original
-				// rather than hard-coding two spaces).
-				indent := ln[:len(ln)-len(trimmed)]
-				f.lines[i] = indent + childKey + ": " + value
+				f.lines[i] = "  " + childKey + ": " + value
 				return
 			}
 		}
@@ -289,6 +288,18 @@ func (f *File) SetNestedScalar(parentKey, childKey, value string) {
 	// Parent block missing entirely. Append both parent + child at the
 	// top level.
 	f.lines = append(f.lines, parentHeader, "  "+childKey+": "+value)
+}
+
+// GetBlock returns a block header plus all of its more-deeply-indented child
+// lines exactly as stored in the parsed frontmatter. indentedKey is rendered
+// at the indentation where it appears, for example "translatedBy" or
+// "  pipeline". The returned snippet has no trailing newline.
+func (f *File) GetBlock(indentedKey string) (string, bool) {
+	start, end, ok := f.blockRange(indentedKey)
+	if !ok {
+		return "", false
+	}
+	return strings.Join(f.lines[start:end], "\n"), true
 }
 
 // SetNestedBlock replaces (or inserts) a nested block child of parentKey.
@@ -401,39 +412,11 @@ func (f *File) SetNestedBlock(parentKey, childKey, snippet string) {
 func (f *File) SetBlock(indentedKey, yamlSnippet string) {
 	snippet := strings.Split(strings.TrimRight(yamlSnippet, "\n"), "\n")
 
-	indent := leadingSpaces(indentedKey)
-	keyHeader := indentedKey + ":"
-
-	start := -1
-	for i, line := range f.lines {
-		if strings.TrimRight(line, " \t") == keyHeader {
-			start = i
-			break
-		}
-	}
-	if start < 0 {
+	start, end, ok := f.blockRange(indentedKey)
+	if !ok {
 		// Not found — append at the end of the frontmatter.
 		f.lines = append(f.lines, snippet...)
 		return
-	}
-
-	// Consume children: any line with strictly greater indentation than
-	// the key header. An empty line counts as "still inside the block"
-	// ONLY if the next non-empty line is also more deeply indented; for
-	// simplicity we treat empty lines as continuation (bash sed does the
-	// same via multi-line patterns).
-	end := start + 1
-	for end < len(f.lines) {
-		ln := f.lines[end]
-		if ln == "" {
-			end++
-			continue
-		}
-		lineIndent := leadingSpaces(ln)
-		if len(lineIndent) <= len(indent) {
-			break
-		}
-		end++
 	}
 
 	// Splice snippet over [start, end).
@@ -442,6 +425,39 @@ func (f *File) SetBlock(indentedKey, yamlSnippet string) {
 	out = append(out, snippet...)
 	out = append(out, f.lines[end:]...)
 	f.lines = out
+}
+
+func (f *File) blockRange(indentedKey string) (start, end int, ok bool) {
+	indent := leadingSpaces(indentedKey)
+	keyHeader := indentedKey + ":"
+
+	start = -1
+	for i, line := range f.lines {
+		if strings.TrimRight(line, " \t") == keyHeader {
+			start = i
+			break
+		}
+	}
+	if start < 0 {
+		return 0, 0, false
+	}
+
+	// Consume children: any line with strictly greater indentation than
+	// the key header. Empty lines stay attached to the preceding block,
+	// matching SetBlock's historical behavior.
+	end = start + 1
+	for end < len(f.lines) {
+		ln := f.lines[end]
+		if ln == "" {
+			end++
+			continue
+		}
+		if len(leadingSpaces(ln)) <= len(indent) {
+			break
+		}
+		end++
+	}
+	return start, end, true
 }
 
 // StripLinesMatching removes every frontmatter line whose content matches
