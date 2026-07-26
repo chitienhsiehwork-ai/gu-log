@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import { chmodSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -33,6 +33,16 @@ describe('Tribunal schema version SSOT', () => {
     expect(
       execFileSync(process.execPath, [VERSION_SCRIPT, 'legacy'], { encoding: 'utf8' }).trim()
     ).toBe(String(LEGACY_TRIBUNAL_VERSION));
+  });
+
+  it('prints versions when invoked through a symlinked CLI path', () => {
+    const tempRoot = mkdtempSync(path.join(tmpdir(), 'tribunal-version-realpath-'));
+    const tempScript = path.join(tempRoot, 'tribunal-version.mjs');
+    symlinkSync(VERSION_SCRIPT, tempScript);
+
+    expect(
+      execFileSync(process.execPath, [tempScript, 'current'], { encoding: 'utf8' }).trim()
+    ).toBe(String(CURRENT_TRIBUNAL_VERSION));
   });
 
   it.each(SHELL_CALLERS)('%s reads the SSOT instead of carrying a numeric copy', (relativePath) => {

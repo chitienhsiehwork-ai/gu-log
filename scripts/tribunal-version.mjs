@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
+import { realpathSync } from 'node:fs';
 import process from 'node:process';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 
 // v9 (move-clarity-vibe-to-fresheyes): clarity moved from Vibe → Fresh Eyes.
 export const CURRENT_TRIBUNAL_VERSION = 9;
@@ -21,9 +22,17 @@ export function tribunalVersion(selector = 'current') {
   }
 }
 
-const __isCli =
-  import.meta.url === pathToFileURL(process.argv[1] ?? '').href ||
-  (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]);
+function sameRealPath(a, b) {
+  try {
+    return realpathSync(a) === realpathSync(b);
+  } catch {
+    return false;
+  }
+}
+
+const scriptPath = fileURLToPath(import.meta.url);
+const argvScriptPath = process.argv[1] ?? '';
+const __isCli = Boolean(argvScriptPath) && sameRealPath(scriptPath, argvScriptPath);
 
 if (__isCli) {
   try {
