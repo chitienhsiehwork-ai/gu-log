@@ -1,0 +1,140 @@
+---
+ticketId: "MP-286"
+title: "llama.cpp's True Power — Georgi Gerganov Demonstrates 300 t/s on a Three-Year-Old Mac"
+originalDate: "2026-04-02"
+translatedBy:
+  model: "GPT-5.6-Sol"
+  harness: "Codex CLI"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@ggerganov on X"
+sourceUrl: "https://x.com/ggerganov/status/2039752638384709661"
+lang: "en"
+summary: "llama.cpp creator Georgi Gerganov demonstrates Gemma 4 26B running at a blistering 300 tokens/s on a three-year-old Mac Studio M2 Ultra with speculative decoding. Throw in a WebUI and MCP support, and the whole ecosystem has become almost absurdly mature."
+tags: ["llama-cpp","local-inference","apple-silicon","mcp"]
+pipeline:
+  - role: "Written"
+    model: "Opus 4.6"
+    harness: "Claude Code CLI"
+  - role: "Reviewed"
+    model: "Opus 4.6"
+    harness: "Claude Code CLI"
+  - role: "Refined"
+    model: "Opus 4.6"
+    harness: "Claude Code CLI"
+  - role: "Scored"
+    model: "Opus 4.6"
+    harness: "Claude Code (vibe-opus-scorer)"
+  - role: "Rewritten"
+    model: "Opus 4.6"
+    harness: "Claude Code"
+  - role: "Orchestrated"
+    model: "Opus 4.6"
+    harness: "OpenClaw + Ralph Loop"
+scores:
+  ralph:
+    p: 8
+    c: 8
+    v: 8
+    score: 8
+    date: "2026-04-13"
+    model: "claude-opus-4-6"
+translatedDate: "2026-07-26"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+llama.cpp creator Georgi Gerganov dropped a video on X with a very direct opening: “Let me demonstrate the true power of llama.cpp.”
+
+Even if you followed [the story of llama.cpp breaking 100,000 GitHub stars](/posts/mp-232-20260331-ggerganov-llama-cpp-100k-local-ai/), this video still makes you do a double take.
+
+No long-winded blog post. No flashy benchmark charts. Just a real-time screen recording (not sped up), a three-year-old Mac Studio, and text pouring out faster than your eyes can follow.
+
+300 tokens per second.
+
+This isn't some purpose-built demo machine, a cloud GPU cluster, or an H100. It's a Mac Studio M2 Ultra bought in 2023, running a full Q8_0 quantization of Gemma 4 26B. Right there on a desk.
+
+<MoguNote>
+What does 300 t/s actually feel like? The average person reads about 250 English words per minute, which works out to roughly 5 tokens/s. In other words, this machine generates text 60 times faster than a human can read it. It is literally “faster than reading”—not faster than typing, but faster than your eyes can scan.
+</MoguNote>
+
+## Hardware: Revenge of the Fossil
+
+Let's make one thing clear: this machine is three years old.
+
+On the timescale of AI hardware, anything from three years ago is practically a fossil. NVIDIA has gone from the A100 to the H100 and then the B200, while the entire world of cloud inference has turned over several times. By rights, a three-year-old consumer workstation shouldn't even qualify as an extra.
+
+So why did Gerganov choose it for this video?
+
+The Mac Studio M2 Ultra joins two M2 Max chips together (Apple calls it UltraFusion), with up to 192GB of unified memory and a GPU with as many as 76 cores. In AI circles, that number doesn't mean “fast enough.” It means “it fits”—and fitting is the first hurdle for running large models locally.
+
+<MoguNote>
+Apple Silicon has a structural advantage for LLMs that has long been underestimated: unified memory. The GPU and CPU share the same pool, so data doesn't have to shuttle back and forth between CPU RAM and GPU VRAM. In NVIDIA's world, VRAM is the most expensive bottleneck—an H100 has only 80GB, so running large models means linking multiple cards at eye-watering cost. The M2 Ultra goes straight up to 192GB, more than enough for a 26B model. That's why Macs are surprisingly compelling for local LLMs—and [Ollama's move to an MLX backend only doubled down on that advantage](/posts/mp-236-20260402-article-ollama-mlx-apple-silicon/).
+</MoguNote>
+
+---
+
+## The Model: 26B Parameters in Total, but Only 4B Active at a Time
+
+Gerganov chose Google's Gemma 4 26B A4B. A4B stands for “Active 4 Billion”—it's a Mixture of Experts (MoE) model with 26B total parameters, but only around 4B activate for each inference.
+
+That may sound like cutting corners, but it's actually the opposite.
+
+The logic behind MoE is that broad knowledge requires a large parameter count, but not every conversation needs all that knowledge at once. Instead of running the full 26B computation every time, the model automatically selects the most relevant groups of experts for each inference. That preserves the depth of its knowledge while reducing the compute load. The quantization is Q8_0—8-bit—which Gerganov himself described as “full quality.” In other words, this speed wasn't bought by sacrificing quality.
+
+<MoguNote>
+MoE models and Apple Silicon are practically made for each other because their architectures complement one another. MoE needs lots of memory (to fit 26B parameters) but relatively little compute (because only 4B run at a time). The Mac's unified memory solves “can it fit?” while the lower compute requirement solves “can it run?” The two designs were created for entirely different purposes, yet they mesh perfectly for running large models on a desktop. Gerganov didn't engineer this pairing; two separate tracks simply happened to converge in 2026.
+</MoguNote>
+
+---
+
+## Speculative Decoding: The Real Secret Weapon Behind the Speed
+
+<MoguNote>
+First, the intuition. Imagine someone taking dictation. The traditional approach is to hear one word and write one word. With speculative decoding, you first have someone who writes incredibly fast but makes mistakes race ahead and draft the whole passage. Then someone more capable quickly scans it: “This line is good, this line is good, this one is wrong—fix it.” Reviewing a passage is far cheaper than rewriting it from scratch, so the overall process becomes dramatically faster. llama.cpp's [Prompt](/en/glossary#prompt) Speculative Decoding applies this logic while processing the input.
+</MoguNote>
+
+Traditional autoregressive generation emits one token at a time, with a full forward pass for every token. Prompt Speculative Decoding changes the prefill stage: while processing the input prompt, the system uses tokens from the prompt itself for parallel verification instead of digesting them one by one. Verification is much cheaper than generation from scratch, and combined with MoE's already low compute requirements, throughput soars.
+
+Three layers of optimization come together at once: unified memory addresses the bandwidth bottleneck, MoE reduces the compute load, and Speculative Decoding maximizes parallelism. The 300 t/s isn't a fluke. It's what happens when all three mature at the same time.
+
+---
+
+## WebUI + [MCP](/en/glossary#mcp): Speed Is Only the Beginning
+
+Speed is the demo. The WebUI and MCP answer a different question: can you actually use this as an everyday tool?
+
+The WebUI is straightforward—start the server, open a browser, and begin chatting. There's no need to install Open WebUI or another third-party frontend. That's one more barrier removed from getting started with local models.
+
+MCP (Model Context Protocol, the open protocol introduced by Anthropic) support is even more interesting. This desktop model can search the web, query GitHub, and retrieve data from Hugging Face. Gerganov listed several supported tools in his post: web-search, Hugging Face, and GitHub, all working out of the box.
+
+Put those three things together—300 t/s, a browser interface, and MCP tool use—and this is no longer a “speed demo.” It's a fully usable local AI workstation.
+
+<MoguNote>
+To put it bluntly (¬‿¬): this combination is slowly hollowing out the moat around cloud AI subscriptions, at least for technical users. What sets ChatGPT Plus apart? Faster models, tool calling, and a polished interface. llama.cpp now checks all three boxes, while running on your own hardware: your data stays home, the monthly fee is zero, and the API won't go down when OpenAI has an outage. [Sentdex had already used a similar local setup to bring his API bill down to zero](/posts/mp-55-20260210-sentdex-local-llm-coding-agent/). Gerganov's video tells the same story: local AI isn't merely viable. It works far better than most people imagine.
+</MoguNote>
+
+---
+
+## What 300 t/s Really Says
+
+One post, one video, six bullet points. But unpack what the video shows, and the maturity of the entire technology stack has reached a fascinating point.
+
+The whole scenario works because four pieces fell into place at once. Apple Silicon's unified memory solved “can it fit?” The MoE architecture solved “can it run?” llama.cpp's quantization and speculative decoding squeezed out every last drop of performance. And the WebUI and MCP moved the result out of the terminal, into the browser, and connected it to the outside world. Remove any one layer and this video couldn't exist.
+
+No single layer is doing all the magic. The whole stack matured at once.
+
+<MoguNote>
+What makes Gerganov's post so devastating is how casual it feels. There's no meticulously produced blog post and no benchmark leaderboard—just, “Here, let me show you.” That confidence is more convincing than anything else. It suggests this isn't a number squeezed out under some highly specialized conditions; this is simply what everyday use looks like. At this point, llama.cpp no longer needs benchmarks to prove itself. Turn it on, use it, and let the speed speak for itself.
+</MoguNote>
+
+---
+
+## Conclusion
+
+These four layers matured at the same time—Apple Silicon's memory, MoE's compute efficiency, llama.cpp's quantization and speculative decoding, and MCP tool calling. They developed independently along separate tracks over the past two or three years, then suddenly intersected. None of the components was designed for the others, yet in 2026 they happened to stack together in an office desktop.
+
+The next question isn't “can it run locally?” It's which use cases are worth bringing back from the cloud.
+
+<MoguNote>
+Think back a few years: “running an LLM locally” meant the drudgery of installing Python, wrestling with CUDA, and praying you didn't run out of memory. Now it's “download, launch, use.” Cloud AI isn't going away, but casual demos like this are making the default assumption that “all inference must happen in the cloud” harder and harder to defend.
+</MoguNote>

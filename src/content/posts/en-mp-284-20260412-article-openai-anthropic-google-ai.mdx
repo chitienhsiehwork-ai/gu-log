@@ -1,0 +1,148 @@
+---
+ticketId: "MP-284"
+title: "OpenAI, Anthropic, and Google Join Forces — Distillation Attacks by Chinese AI Companies Forge the Unlikeliest Alliance Yet"
+originalDate: "2026-04-06"
+translatedBy:
+  model: "GPT-5.6-Sol"
+  harness: "Codex CLI"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "Bloomberg"
+sourceUrl: "https://www.bloomberg.com/news/articles/2026-04-06/openai-anthropic-google-unite-to-combat-model-copying-in-china"
+lang: "en"
+summary: "OpenAI, Anthropic, and Google have activated proactive intelligence sharing through the Frontier Model Forum for the first time to combat large-scale malicious distillation attacks by Chinese AI companies. Three rivals locked in cutthroat competition have been forced into the same boat."
+tags: ["ai-industry","ai-safety","china-ai","frontier-model-forum"]
+pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (vibe-opus-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+translatedDate: "2026-07-26"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## The Ultimate Form of Cheating
+
+Let’s start with an analogy. It’ll come in handy later.
+
+Imagine the world’s hardest exam. Three students—let’s call them O, A, and G—spend billions of dollars on tutors and practice problems, training for years until they can finally earn top marks. But outside the exam hall, a group of people is waiting. They aren’t there to take the test. They’re there to **copy the answers**. And they don’t just want the final answers—they want to steal every step of the reasoning on the scratch paper too.
+
+O, A, and G would normally love nothing more than to knock one another off the leaderboard. But now they realize something: if the answers keep getting stolen, everyone will eventually end up with the same exam and the same answers. All those years of training will have meant nothing.
+
+So the three archrivals do something they have never done before: **they lay their anti-cheating notes out on the same table.**
+
+Bloomberg reported on April 6 that OpenAI, Anthropic, and Google had formally begun proactive intelligence sharing through the [Frontier Model](/en/glossary#frontier-model) Forum (FMF). The trigger? [A wave of systematic distillation attacks by Chinese AI companies](/posts/mp-117-20260224-anthropic-distillation-chinese-labs/), on a scale large enough to make three companies accustomed to poaching one another’s staff and fighting one another in court set aside their grudges.
+
+<MoguNote>
+Imagine Coca-Cola, Pepsi, and Dr Pepper suddenly sharing intelligence on how to protect their formulas because someone had found a way to take one sip of any drink and reproduce it perfectly. If things have reached that point, “serious” no longer begins to cover it. ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## Three Ways to Steal, Three Different Personalities
+
+Before getting into how the alliance works, we need to understand just how concrete the threat is. This is not some vague claim that “Chinese AI is stealing things.” On February 23, 2026, Anthropic disclosed detailed figures ([MP-117 has the full breakdown](/posts/mp-117-20260224-anthropic-distillation-chinese-labs/)): three Chinese AI companies used roughly 24,000 fake accounts to conduct around 16 million exchanges with Claude.
+
+What makes it interesting is that the three companies stole in completely different ways, like three radically different exam-cheating strategies:
+
+**MiniMax is the brute-force player.** Around 13 million exchanges, asking everything and copying everything. Language comprehension, logical reasoning, general-knowledge questions—it poured in requests at massive scale and took whatever it could get. This is the strategy of dragging a net through the entire fish farm. It isn’t precise, but at that volume, precision hardly matters.
+
+**Moonshot AI (Kimi) is the sharpshooter.** Around 3.4 million exchanges, each one aimed at a critical target: agentic reasoning, tool use, coding, and computer vision. Those happen to be the four most valuable cards in the 2026 AI race—the capabilities that upgrade a model from a “chatbot” into an “agent that can carry out tasks.” Kimi’s strategy was not about volume. It was about stealing the most expensive things.
+
+**And then there’s DeepSeek.**
+
+DeepSeek conducted only around 150,000 exchanges. That sounds small, right? But look at what it stole: basic logical capabilities, model alignment behavior, and—most chilling of all—**responses to politically sensitive topics**. DeepSeek was using Claude to learn how to censor. (To see just how strong DeepSeek’s own models are at reasoning, check out [MP-266’s breakdown of R1](/posts/mp-266-20260408-pawelhuryn-deepseek-r1/). It was stealing while training on its own, pursuing both paths at once.)
+
+<MoguNote>
+MiniMax trawled with a fishing net, Kimi went after specific fish with a harpoon, and DeepSeek studied the fish’s DNA so it could breed its own. And DeepSeek’s whole “use Claude to learn censorship” move truly deserves irony of the year—an AI trained to be as honest as possible being used to teach another AI how to lie and evade. That isn’t a contradiction. It’s turning contradiction itself into a business model. (⌐■_■)
+</MoguNote>
+
+Three ways of stealing, all pointing to the same conclusion: this was not sporadic infiltration. It was an industrial-scale intelligence operation. Roughly 24,000 fake accounts and around 16 million exchanges—and those are only the numbers that **one** company, Anthropic, was willing to disclose.
+
+---
+
+## The Photo-Op Organization Wakes Up
+
+All right, back to the FMF.
+
+The Frontier Model Forum was founded in 2023 by OpenAI, Anthropic, Google, and Microsoft. At the time, the pitch sounded great: AI safety research, policy coordination, and responsible AI development. In plain English, governments around the world were applying heavy regulatory pressure, so the four companies formed a self-regulatory alliance to reassure everyone: “Relax, this industry is policing itself.”
+
+For more than two years after that, the FMF’s public profile was essentially nonexistent. It would hold a quarterly meeting, release a statement, pose for a group photo, and discuss philosophical questions far removed from reality, like “What if AI becomes too intelligent someday?” If the FMF were a company, its KPI from 2023 to 2025 would probably have been “successfully held N symposiums.”
+
+Then, in February 2026, Anthropic published those numbers.
+
+Two months later, the FMF did something it had never done since its founding: it launched an active threat-intelligence operation, coordinating against specific outside adversaries. This was not a statement of condemnation or a call for the international community to pay attention. It was: “Let’s pool our detection capabilities and intelligence and start fighting together.”
+
+In an instant, the atmosphere shifted from symposium to intelligence agency.
+
+<MoguNote>
+The FMF’s awakening follows the same arc as every organization that started out just going through the motions: form → hold meetings → issue statements → hold more meetings → something actually happens → oh damn, we have to do real work. The difference is that most organizations take a decade to wake up. The FMF went from decorative vase to combat mode in just two months because the threat was so concrete. This wasn’t “there may be a risk in the future.” It was “someone is stealing from us right now.” (ง •̀_•́)ง
+</MoguNote>
+
+---
+
+## The Battle for the Scratch Paper
+
+Once the FMF sprang into action, the four companies agreed to share four kinds of intelligence. This is where we need to return to the exam analogy from the beginning, because the fourth item is the heart of the whole story.
+
+The first three are basic defenses: **fake-account fingerprints** (a shared “wanted list,” so when one company identifies suspicious traits, the other three can use them immediately), **proxy infrastructure data** (tracking the attackers’ relay networks and stripping away their cloak of invisibility piece by piece), and **enhanced KYC procedures** (the fact that 24,000 fake accounts could be created in the first place is a vulnerability; all four companies are upgrading together to make opening fake accounts in bulk far more expensive).
+
+Those three measures matter, but they are all about repairing the walls. What truly makes this alliance meaningful is the fourth:
+
+**Chain-of-thought elicitation classifiers.**
+
+Back to the exam analogy. If a distiller can obtain only a model’s final output, that is like copying the answers to a multiple-choice test: you copy down A, B, C, or D, but you don’t know why the answer is B. The replica’s quality is limited because it lacks the ability to reason.
+
+But if the distiller can coax the model into revealing its chain of thought—how it reasons step by step, breaks down a problem, and chooses among several possible answers—then it has **stolen the scratch paper too**. It knows not only that the answer is B, but also how to get from the question to B. The efficiency of copying rises to an entirely different level.
+
+So the classifier’s job is to detect, in every API interaction: “Is this prompt trying to coax the model into turning over its scratch paper?”
+
+That is why the FMF alliance is more than a performance. Chain of thought is the soul of a modern large language model. Protecting the scratch paper means protecting the very thing that makes these models worth billions of dollars.
+
+<MoguNote>
+Let’s put a number on what that “scratch paper” is worth. OpenAI is valued at more than $300 billion, and Anthropic at around $61.5 billion. A large part of the confidence behind those astronomical figures comes down to this: “These models can perform reasoning that others can’t.” If those reasoning processes can be extracted at scale, the differentiation disappears and the foundation beneath those valuations collapses. So a chain-of-thought classifier isn’t a cybersecurity measure. It’s a valuation defense. ╰(°▽°)╯
+</MoguNote>
+
+---
+
+## Civility in the Trenches
+
+At this point, take a step back and consider a question: just how abnormal is this alliance?
+
+Sharing fake-account fingerprints is tantamount to telling your competitors, “These are the attack patterns we can’t stop”—exposing your own security team’s blind spots. Sharing proxy infrastructure data lets the others see the limits of each company’s capabilities. This is not the kind of cooperation where everyone signs a statement and makes a declaration. It means peeling back your wounds and letting your archrival inspect them.
+
+OpenAI and Anthropic fight brutally for enterprise customers. Google wants Gemini to swallow both companies’ markets. Every quarterly earnings report becomes a contest over whose MAU is growing faster. The fact that these three companies have reached the point of sharing intelligence tells us only one thing: **if they each go it alone, all three will be copied until they have nothing defensible left.**
+
+The roughly 16 million exchanges disclosed by Anthropic are probably just the tip of the iceberg. OpenAI and Google have greater model usage and more open APIs, so the scale of distillation targeting them is likely even more outrageous. Patching vulnerabilities individually is useless: attackers can simply switch methods or cycle through another batch of accounts. Only by combining detection capabilities and sharing intelligence in real time do they stand a chance of building an effective defense.
+
+<MoguNote>
+The tech industry has a few classic examples of “alliances of necessity”: companies banding together against piracy in the 1990s, or against patent trolls in the 2010s. But the threshold for those collaborations was far lower. Sharing legal resources and sharing security vulnerabilities are two very different things. This alliance is closer to the United States and the Soviet Union exchanging information about nuclear weapons accidents during the Cold War: both sides knew that if they didn’t share, everyone could go down together. (￣▽￣)／
+</MoguNote>
+
+---
+
+## Conclusion
+
+Back to that exam from the beginning.
+
+The reasoning capabilities that O, A, and G spent billions of dollars developing are being systematically extracted. Roughly 24,000 fake accounts and around 16 million exchanges—those are the known figures on the table. What lies beneath it? No one dares say.
+
+Two months ago, Anthropic [showed its hand unilaterally](/posts/mp-117-20260224-anthropic-distillation-chinese-labs/). Two months later, three archrivals climbed into the same trench. The FMF went from a group-photo organization to the AI industry’s first joint line of defense. What drove that transformation was not extraordinary foresight, but a lesson taught by roughly 24,000 fake accounts: **if the three strongest people in the exam hall can’t even protect their scratch paper, all those years of training will have meant nothing.**
+
+<MoguNote>
+So a new front has opened in the 2026 AI arms race: it’s no longer just about whose model is smarter, but whose model is harder to steal. The defenders build a wall; the attackers find a way around it the next day. Chain-of-thought classifiers can block today’s methods—but what about tomorrow’s? This exam will never end. At least now, though, the three students finally know they need to guard their scratch paper together. ┐(￣ヘ￣)┌
+</MoguNote>
