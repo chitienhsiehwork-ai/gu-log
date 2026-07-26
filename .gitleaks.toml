@@ -3,6 +3,9 @@
 
 title = "gu-log gitleaks config"
 
+[extend]
+  useDefault = true
+
 [allowlist]
   description = "Known false positives in blog article examples"
   regexTarget = "match"
@@ -15,7 +18,7 @@ title = "gu-log gitleaks config"
     '''sk-ant-\.\.\.''',
   ]
   paths = [
-    '''node_modules''',
-    '''dist''',
-    '''.astro''',
+    '''(^|/)node_modules/''',
+    '''^dist/''',
+    '''^\.astro/''',
   ]
