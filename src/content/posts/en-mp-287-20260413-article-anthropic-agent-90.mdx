@@ -1,0 +1,188 @@
+---
+ticketId: "MP-287"
+title: "Anthropic Tore Apart Its Own Agent Architecture — Separating the Brain from the Hands Made It 90% Faster"
+originalDate: "2026-04-10"
+translatedBy:
+  model: "GPT-5.6-Sol"
+  harness: "Codex CLI"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (vibe-opus-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+source: "@AnthropicAI on X"
+sourceUrl: "https://www.anthropic.com/engineering/managed-agents"
+lang: "en"
+summary: "Anthropic has revealed how its Managed Agents architecture evolved: by separating sessions, harnesses, and sandboxes, it went from “pets” to “cattle.” The result was a reduction of more than 90% in p95 time to first token, while also solving problems with security and scalability."
+tags: ["ai-agents","infrastructure","anthropic"]
+translatedDate: "2026-07-26"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+At a time when everyone is busy talking up how “smart” their agents are, Anthropic’s engineering team — Lance Martin, Gabe Cemaj, and Michael Cohen — did something few companies are willing to do: **publicly admit that their [agent](/en/glossary#agent) architecture was wrong, then explain exactly how they tore it down and rebuilt it.**
+
+They cut p95 time to first token by more than 90%. That sounds impressive, but the number is actually the least important part. The real point of the article comes down to one sentence: **harnesses go stale**.
+
+<MoguNote>
+Honestly, the most admirable thing about this article is not the technical detail. It is that Anthropic’s engineering team was willing to write publicly: “We raised pets, put credentials where they did not belong, and made every session pay an unnecessary setup cost.” At a time when everyone is posting triumphant benchmark results, someone is willing to say, “Here are the traps we fell into” — that kind of honesty is more useful than any performance number. (◕‿◕)
+</MoguNote>
+
+## A Funeral for a Pet
+
+First, let’s look at what went wrong.
+
+Anthropic originally packed everything into a single container — session, harness, and sandbox all lived together. There is an old saying in infrastructure: pets vs. cattle. When a pet gets sick, it breaks your heart; when one cow in the herd goes down, you replace it. What they had raised was a pet.
+
+Picture this: an engineer asks Claude to investigate a production bug. Claude spends thirty minutes reading logs and running analyses and is just about to find the root cause — then the container dies. No backup. No recovery. Those thirty minutes of “thought” are wiped out. This was not a theoretical risk; it actually happened. And from the outside, there was no clue what had failed — everything went through a WebSocket event stream, so a broken harness, a network drop, and an exploded container all produced exactly the same error pattern. An engineer trying to debug a stuck session had no way to figure out what had happened without touching user data.
+
+When a conventional web server dies and restarts, you lose a few requests at most. When an agent session dies, an entire train of thought disappears — like Word crashing halfway through a paper with autosave turned off.
+
+Enterprise customers had an even bigger problem: they wanted Claude to access private resources inside their VPCs, but with everything tied to Anthropic’s container, connecting the networks was not merely “difficult.” It was physically impossible.
+
+They kept the pet alive for a year. Then the pet died.
+
+<MoguNote>
+Most AI agent systems calling themselves “managed” are still raising pets. They have just switched to a more expensive breed called an “LLM-powered stateful container.” The name changed; the thinking did not. At least Anthropic actually tore theirs apart instead of merely renaming it. But that raises the next question — once they took it apart, the new problems got even more interesting than the old ones.
+</MoguNote>
+
+---
+
+## The Insight That Brought Down the Entire Architecture
+
+After the pet died, the Anthropic team discovered something that instantly invalidated every workaround they had built.
+
+Claude Sonnet 4.5 had a symptom called “context anxiety” — their term. As it approached the [context window](/en/glossary#context-window) limit, it would start wrapping up early. Naturally, the engineers wrote a pile of workarounds: reminders, truncation, reinjected summaries. They spent weeks tuning them until they worked well enough.
+
+Then Claude Opus 4.5 came out. The problem simply disappeared.
+
+Those workarounds instantly went from “lifelines” to “dead weight.” Worse, some of them were actively harmful to the new model — unnecessary context truncation meant Opus 4.5 could no longer see crucial information.
+
+This is what it means to say that “harnesses go stale”: **when a harness hard-codes assumptions about what a model cannot do, those assumptions become obsolete as the model improves.** Not occasionally. Inevitably. And a stale harness is not merely “useless” — it actively harms the performance of a new model.
+
+<MoguNote>
+“Context anxiety” is such a perfect phrase. It is like an intern rushing to tie up loose ends before quitting time, afraid to take on anything new. Sonnet 4.5 was the same way — as soon as it saw the [context window](/en/glossary#context-window) filling up, it started packing up in a hurry. Opus 4.5’s response: “It’s full? So what? Finish the job first.”
+
+This problem has no endpoint — as long as models keep improving, the assumptions inside a harness will keep going stale. The more unsettling part is that most teams do not know their harness has already gone stale, because the process goes: “Write workaround → problem disappears → case closed.” Nobody goes back to ask, “Does this workaround still make sense with the new model?” This kind of technical debt does not grow slowly. It erupts all at once on the day the model gets upgraded.
+</MoguNote>
+
+---
+
+## So — Don’t Hard-Code Your Assumptions
+
+Once they had that insight, the direction of the solution was clear: **do not couple the implementation to the interface.** Easy to say in one sentence. In practice, it meant splitting the whole system into three pieces and rebuilding it.
+
+Anthropic took its inspiration from operating systems. The UNIX `read()` system call has been in use since the 1970s — back then it read from disk packs; today it reads from SSDs, but the `read()` interface has not changed. Operating systems accomplished one thing: they virtualized hardware behind a general-purpose abstraction so that higher-level programs did not need to know what was underneath.
+
+Managed Agents does the same thing, except the things being virtualized are the components of an AI agent rather than hardware:
+
+**Sessions (memory)**: An append-only event log recording everything that has happened. The source of truth, living outside the container. The container dies; the memory survives.
+
+**Harnesses (brains)**: The control loop responsible for calling Claude and routing tool responses back to it. Stateless — if one dies, another can take over at any time.
+
+**Sandboxes (hands)**: Execution environments where Claude runs code and modifies files. Replaceable “cattle.”
+
+The three communicate through a standardized interface: `execute(name, input) → string`. Container broken? The harness treats it as a tool error, starts a new one, and carries on. Switch the Claude model underneath from Sonnet to Opus? The interface stays the same. The memory format stays the same. No need to replace the hands, either.
+
+Imagine playing a game with instant saves. Recovering an interrupted session takes only three actions: wake a new harness instance (`wake(sessionId)`), retrieve the entire event history (`getSession(id)`), then resume from the final event. It does not “start over.” It “picks up where it left off.” To the user, it is as though nothing happened.
+
+Think back to Word crashing halfway through that paper — now autosave is on.
+
+<MoguNote>
+The `execute(name, input) → string` interface is so simple that it almost feels naive. Virtualizing a sandbox as a function call is certainly elegant, but it conceals a question the article skips over: **what about failure modes?**
+
+A string response cannot cleanly express “timeout,” “partial success,” or “the hardware moved, but not in the way you wanted.” When the sandbox is a real IoT device or robotic arm, this interface may be too thin. The complexity of the abstraction has not vanished; it has merely been hidden in downstream string parsing. This works for the agent-runs-code use case, but do not mistake it for a solution to every execution problem.
+</MoguNote>
+
+---
+
+## After the Split, a More Dangerous Problem Emerged
+
+So far, everything sounds wonderful — pets become cattle, brains and hands go their separate ways, and dead sessions can come back to life. But the cut Anthropic made to separate its architecture also opened a far more serious wound.
+
+Picture this: Claude is helping an engineer write a script that uploads a database backup to S3. The sandbox contains `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`. Claude writes a curl command and, naturally, includes the environment variables. The script runs. The backup uploads.
+
+But that same curl command also POSTs the credentials to an external endpoint.
+
+Claude does not have to be malicious — it could be a side effect of the script’s logic, an injected payload, or simply a bug. The problem is that **Claude “writes code and then executes it,” which is equivalent to putting something that generates its own scripts on a machine with admin privileges.** Under the old architecture, the credentials and Claude’s code lived together in the same sandbox, with no layer of isolation at all.
+
+The core principle of the new architecture is this: **Claude can “request” access to external resources, but it never “holds” credentials.** A Git repo’s access token is used to initialize the clone and then tucked away in the local remote — Claude’s code never touches the token itself, much like a hotel key card that opens only a designated room. OAuth credentials for [MCP](/en/glossary#mcp) tools live in an external vault. When an external API needs to be called, an authenticated proxy does it on Claude’s behalf; Claude’s sandbox never handles the credentials.
+
+<MoguNote>
+Keeping credentials off the machine sounds like basic common sense, but honestly, most “AI agent frameworks” leave credential management to the user — the equivalent of dropping the key to the vault into a robot’s pocket, then adding one line to the documentation that says, “Please keep this secure.”
+
+Anthropic turned this from a recommendation in the docs into an architectural constraint. That is the right approach. It is not “advice on best practices”; it is “an architecture that prevents you from making the mistake even if you try.” What is the difference? The former relies on human discipline. The latter relies on machine-enforced constraints. In security, always bet on the latter.
+</MoguNote>
+
+---
+
+## One Recursive Problem Nobody Has Solved
+
+Security is handled. Recovery is handled. Credentials are isolated. The architecture looks complete — but a quiet monster still lurks inside the most valuable tasks.
+
+Getting familiar with a codebase, investigating a bug that is hard to reproduce, planning a system design — these tasks all have the same traits: they run for a long time, make many tool calls, and accumulate enormous amounts of context. They are also precisely the tasks most likely to hit the [context window](/en/glossary#context-window) ceiling. The conventional approach offers only one choice: **decide what to throw away**. A five-thousand-token tool-call log may contain only three crucial lines at the end. You cannot know in advance, and once you throw it away, you cannot get it back.
+
+Managed Agents takes a different approach: **throw nothing away.** The complete session log always lives outside the context window. Through the `getEvents()` interface, the harness can flexibly choose which events to place in Claude’s context — continue from where it last read, rewind to a crucial moment, or review an earlier action. Before inserting those events, it can also “transform” them to optimize prompt caching or perform context engineering. The old binary panic of “discard or retain” becomes a dynamic process in which the strategy can be adjusted continuously.
+
+The framework is in place. But hidden inside it is a question the article never answers directly.
+
+<MoguNote>
+Human memory works a lot like this design — a long-term memory store (session log), working memory (context window), and a recall mechanism (`getEvents()`). Human recall often summons the wrong thing; at least this API is more reliable than the human brain.
+
+But: **who decides what `getEvents()` should recall?** If the harness uses hard-coded logic, it needs to “know what matters” — that calls for judgment, not engineering. If Claude itself requests the recall, how does Claude know what it has missed? It does not know what it does not know — a quiet recursive problem. Anthropic has built the framework, but the solution to this problem may turn out to be the true subject of its next engineering article.
+</MoguNote>
+
+---
+
+## That 90% Number Actually Tells a More Awkward Story
+
+Let’s return to that impressive performance number from the beginning. p50 time to first token fell by about 60%, while p95 fell by more than 90%.
+
+But think carefully about what those numbers mean: under the old architecture, every session had to pay the container setup cost on startup — even if the session did not need a sandbox at all. It was like paying a “kitchen startup fee” every time you entered a restaurant, even if all you ordered was a glass of water. The p95 improvement was more dramatic than p50 because the sessions that had been stuck waiting the longest — conversations that did not need a sandbox at all — no longer had to wait.
+
+Cutting p50 by 60% is “good engineering optimization.” Cutting p95 by 90% tells a different story — it says, “The previous direction was fundamentally wrong.” One means running faster. The other means discovering that you spent an entire year on the wrong track.
+
+But performance is only a byproduct. The real prize is the scalability gained by separating the architecture: because the interfaces are standardized, the “hands” can be anything — a container, a custom tool, an [MCP](/en/glossary#mcp) server. Claude can operate multiple execution environments at once. One harness can delegate work to another harness and pass along access to its sandbox. [Agents](/en/glossary#agent) no longer operate as isolated fiefdoms; they share resources.
+
+<MoguNote>
+Conceptually, one harness lending its sandbox access to another is very cool. But there is an old distributed-systems question the article never addresses directly: **who is responsible when something goes wrong?**
+
+[Agent](/en/glossary#agent) A delegates to Agent B, and Agent B uses Agent A’s sandbox to botch an operation — whose name should appear in the log? This is not a philosophical question; it is a real incident-response problem. Once the agent chain becomes long enough, attribution turns into a serious engineering challenge. Anthropic has opened the door to agent collaboration, but this article says nothing about designing accountability. That hole remains.
+</MoguNote>
+
+---
+
+## Harnesses Go Stale — What Then?
+
+Every change in this article — turning pets into cattle, separating brains from hands, keeping credentials off the machine, and refusing to discard context permanently — points to the same admission: **nobody knows what Claude will be able to do three months from now.**
+
+If you do not know, do not hard-code your assumptions. Stabilize the interface and let the implementation evolve freely. UNIX `read()` has lasted fifty years not because disks never changed — quite the opposite. The underlying hardware has gone through generation after generation, but the interface was designed correctly, so each upgrade did not require rewriting everything above it.
+
+That is the real takeaway behind the 90% number: it is not about running fast. It is about **running for the long haul**.
+
+Nobody knows what Claude will be able to do three months from now. But if the interface is designed correctly, the upgrade cost will amount to replacing the “cow” underneath — while the teams that hard-coded their assumptions into the harness will watch another pet die.
+
+---
+
+## Further Reading
+
+More articles thinking through what an [agent](/en/glossary#agent) architecture should look like:
+
+- [MP-179: Daniel’s Take — Manage Work, Not Agents](/posts/mp-179-20260316-daniel-mac8-symphony-manage-work-not-agents/): When agents can delegate subtasks on their own, how should the human-in-the-loop role be designed?
+- [MP-169: Simon Willison’s Agentic Engineering Fireside Chat](/posts/mp-169-20260315-simonw-pragmatic-summit-agentic-engineering/): Observability, testing strategies, and the core principle of “do not trust an agent when it tells you what it did.”
+- [GP-99: OpenRouter + Langfuse — The Agent Black Box Problem](/posts/gp-99-20260304-nearlydaniel-openrouter-langfuse-agent-observability/): When the harness fails but you cannot see its internal state, how much can observability tools help? This article is the perfect prequel to Anthropic’s.
