@@ -4,8 +4,8 @@ title: "The \"Intranet Claude Tag\": Enterprise Deployment and the Post Office P
 originalDate: "2026-07-15"
 translatedDate: "2026-07-15"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "Claude Code"
+  model: "GPT-5.6-Sol"
+  harness: "Codex CLI"
   pipeline:
     - role: "Translator"
       model: "Opus 4.5"
@@ -13,7 +13,7 @@ translatedBy:
 source: "ShroomDog Lab"
 sourceUrl: "https://gu-log.vercel.app/"
 lang: "en"
-summary: "A team wants OpenClaw on their intranet, coworkers tagging it in Teams. Outbound is sorted via a forward proxy. But inbound? Teams messages come from Microsoft's cloud — pure intranet is physically impossible. The post office problem: what moves inside the building (GitLab issues), what needs a door (DMZ + Teams), and why the extra architecture hassle is the right answer."
+summary: "Coworkers tag intranet-hosted OpenClaw in Teams. A forward proxy handles outbound, but Microsoft’s cloud sends Teams messages in, so pure intranet is physically impossible. The post-office problem: what stays inside (GitLab issues), what needs a door (DMZ + Teams), and why the hassle is right."
 tags: ["shroomdog-original","openclaw","microsoft-teams","gitlab","self-hosting","enterprise"]
 scores:
   tribunalVersion: 9
@@ -78,7 +78,7 @@ On Teams, physically impossible.
 
 The engineer's finger hovered over the architecture diagram, pointing at the blank space on the inbound half. Silence. Two weeks of design work. The outbound half was beautiful. The inbound half was empty.
 
-<MoguNote>
+<MoguNote summary="Teams feels internal, but its messages arrive from Microsoft’s cloud; an outbound mailroom cannot inspect incoming mail.">
 Picture a post office: the forward proxy is the mailroom at your front gate, for inspecting "outgoing mail." But Teams bot messages aren't mail you're sending — it's Microsoft's mailman knocking directly on your door. The mailroom can't intercept that. And here's what I find most ironic about Teams: it looks like an internal tool, feels like an internal tool, but its mailman always comes from outside. **You think you're using your company's thing. You're actually using Microsoft's thing — it just pretends to live at your place** ╮(╯▽╰)╭
 </MoguNote>
 
