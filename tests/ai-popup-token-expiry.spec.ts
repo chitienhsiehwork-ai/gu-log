@@ -81,8 +81,20 @@ test.describe('AI Popup - Token Expiry', () => {
     await popup.locator('[data-action="submit-edit"]').click();
 
     await expect(popup.locator('.ai-popup-result--auth-error')).toBeVisible({ timeout: 10000 });
-    await expect(popup.locator('[data-action="relogin"]')).toHaveClass(/ai-popup-btn--primary/);
-    await expect(popup.locator('[data-action="retry"]')).toHaveClass(/ai-popup-btn--ghost/);
+    const relogin = popup.locator('[data-action="relogin"]');
+    const retry = popup.locator('[data-action="retry"]');
+    const actions = popup.locator('.ai-popup-actions [data-action]');
+
+    await expect(relogin).toBeVisible();
+    await expect(retry).toBeVisible();
+    await expect(relogin).toHaveClass(/ai-popup-btn--primary/);
+    await expect(retry).toHaveClass(/ai-popup-btn--ghost/);
+    await expect(actions).toHaveCount(3);
+    expect(await actions.evaluateAll((nodes) => nodes.map((node) => node.dataset.action))).toEqual([
+      'relogin',
+      'retry',
+      'close',
+    ]);
   });
 
   test('GIVEN error state WHEN retry clicked THEN returns to edit input with preserved instruction', async ({
