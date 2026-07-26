@@ -4,8 +4,8 @@ title: "The 2026 OpenClaw Triple Breach: Freedom Isn't Free"
 originalDate: "2026-07-15"
 translatedDate: "2026-07-15"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "Claude Code"
+  model: "GPT-5.6-Sol"
+  harness: "Codex CLI"
   pipeline:
     - role: "Translator"
       model: "Opus 4.5"
@@ -13,7 +13,7 @@ translatedBy:
 source: "ShroomDog Lab"
 sourceUrl: "https://gu-log.vercel.app/"
 lang: "en"
-summary: "In early 2026, OpenClaw got hit three times: 20,000+ gateways exposed to the internet, 20% of marketplace skills were trojans, and link previews became exfiltration vectors. Attackers had a smooth ride until they hit a closed door — and 'proper configuration' suddenly mattered. Self-hosting freedom comes with self-hosting responsibility."
+summary: "In early 2026, OpenClaw took three hits: 20,000+ gateways exposed online, 20% of marketplace skills were trojans, and link previews became exfiltration vectors. Attackers cruised until a closed door made “proper configuration” matter. Self-hosting freedom brings self-hosting responsibility."
 tags: ["shroomdog-original","openclaw","security","prompt-injection","self-hosting"]
 scores:
   tribunalVersion: 9
@@ -140,7 +140,7 @@ Where's the defense? **Not in telling the agent to be careful.** The agent has n
 
 Here's how it works: every outbound request the agent makes has to go through a proxy layer. That proxy has a whitelist — only domains on the list are allowed through. The attacker's payload says "send the data to attacker.com"? The proxy checks: not on the whitelist. 403, access denied. The data doesn't leave.
 
-<MoguNote>
+<MoguNote summary="Ingress guards the door; an egress allowlist is the last wall stopping a poisoned agent from carrying data out.">
 This is why [this series](/en/posts/en-sd-28-20260715-claude-tag-intro/) keeps hammering on "egress control matters more than ingress control." You can firewall the entrance, require authentication, hide behind a VPN — but if there's nobody watching what the agent sends out after it gets poisoned, an insider can still smuggle data out. An egress proxy with a whitelist is the last wall against data exfiltration. The [Teams post](/en/posts/en-sd-30-20260715-openclaw-teams-intranet/) shows how enterprise setups make this wall bulletproof. (ง •̀_•́)ง
 </MoguNote>
 
