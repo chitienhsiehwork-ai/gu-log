@@ -7,7 +7,7 @@ import { isCanonicalSeriesTaxonomyOnlyChange } from './check-brand-taxonomy.mjs'
 
 const POSTS_DIR = 'src/content/posts';
 
-function git(args, { trim = true, ...options } = {}) {
+function git(args, { trim = true, allowedExitCodes = [], ...options } = {}) {
   try {
     const output = execFileSync('git', args, {
       encoding: 'utf8',
@@ -15,8 +15,13 @@ function git(args, { trim = true, ...options } = {}) {
       ...options,
     });
     return trim ? output.trim() : output;
-  } catch {
-    return '';
+  } catch (error) {
+    if (allowedExitCodes.includes(error.status)) return '';
+    const stderr = error.stderr?.toString().trim();
+    throw new Error(
+      `[list-content-gate-posts] git ${args[0]} failed${stderr ? `: ${stderr}` : ''}`,
+      { cause: error }
+    );
   }
 }
 
@@ -48,15 +53,10 @@ function readTicketId(file) {
 function ticketExistsAt(ref, ticket, currentFile) {
   if (!ticket || ticket.endsWith('-PENDING')) return false;
   const escaped = ticket.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const matches = git([
-    'grep',
-    '-l',
-    '-E',
-    `^ticketId:[[:space:]]*["']${escaped}["']`,
-    ref,
-    '--',
-    POSTS_DIR,
-  ]);
+  const matches = git(
+    ['grep', '-l', '-E', `^ticketId:[[:space:]]*["']${escaped}["']`, ref, '--', POSTS_DIR],
+    { allowedExitCodes: [1] }
+  );
   if (!matches) return false;
   return matches
     .split('\n')
@@ -165,6 +165,11 @@ function parseNameStatus(output) {
 }
 
 const baseRef = argValue('--base', 'origin/main');
+if (!gitOk(['rev-parse', '--verify', '--quiet', `${baseRef}^{commit}`])) {
+  console.error(`[list-content-gate-posts] Unable to resolve base ref "${baseRef}"`);
+  process.exit(2);
+}
+
 const changed = git([
   '-c',
   'diff.renameLimit=0',
