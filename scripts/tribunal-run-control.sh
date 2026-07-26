@@ -94,6 +94,23 @@ rc_interruptible_sleep() {
   return 0
 }
 
+# ─── Bounded wait budget ─────────────────────────────────────────────────────
+# Usage: rc_bounded_wait_seconds <requested_sec> <recheck_ceiling_sec>
+# Keeps the caller's full requested duration for telemetry while returning the
+# shorter duration until the next live-condition re-check.
+rc_bounded_wait_seconds() {
+  local requested="${1:-}"
+  local ceiling="${2:-}"
+  [[ "$requested" =~ ^[1-9][0-9]*$ ]] || return 64
+  [[ "$ceiling" =~ ^[1-9][0-9]*$ ]] || return 64
+
+  if (( requested < ceiling )); then
+    printf '%s\n' "$requested"
+  else
+    printf '%s\n' "$ceiling"
+  fi
+}
+
 # ─── Lifecycle state ──────────────────────────────────────────────────────────
 # State values (per spec):
 #   running | draining | idle_wait | stopped_by_request | stopped_by_quota
