@@ -1,0 +1,33 @@
+---
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="ShroomDogNote Fixture" description="Deterministic ShroomDogNote test fixture">
+  <article class="fixture-article" aria-labelledby="fixture-title">
+    <h1 id="fixture-title">ShroomDogNote Fixture</h1>
+
+    <section id="long-note" aria-label="Long note fixture">
+      <ShroomDogNote collapseThreshold={140}>
+        <p>第一段故意寫得夠長，讓這個測試不必依賴正式文章的字數、版型或未來編輯結果。</p>
+        <p>第二段繼續提供可折疊內容，確保展開按鈕背後真的藏著有意義的文字，不是幾個像素。</p>
+        <p>第三段固定元件的初始狀態：載入完成後應該收合，而且按鈕要明確告訴讀者可以展開。</p>
+        <p>第四段固定互動狀態：按一次展開，再按一次收合，文字與 aria-expanded 必須同步更新。</p>
+        <p>第五段讓內容高度明顯超過門檻，避免字型或瀏覽器的一點排版差異讓測試忽紅忽綠。</p>
+        <p>第六段是最後的保險，這個 fixture 測的是元件契約，不是任何一篇文章目前剛好有多長。</p>
+      </ShroomDogNote>
+    </section>
+
+    <section id="short-note" aria-label="Short note fixture">
+      <ShroomDogNote>這是一段不需要折疊的短 Note，控制按鈕必須維持隱藏。</ShroomDogNote>
+    </section>
+  </article>
+</BaseLayout>
+
+<style>
+  .fixture-article {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+  }
+</style>

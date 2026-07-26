@@ -1,15 +1,15 @@
 import { test, expect } from './fixtures';
 
 test.describe('ShroomDogNote auto-fold', () => {
-  const testPostUrl = '/posts/gp-205-20260517-addyosmani-dont-outsource-learning/';
+  const fixtureUrl = '/artifacts/shroomdog-note-fixture/';
   const sd26PostUrl = '/posts/sd-26-20260616-loop-engineering-at-gu-log/';
 
   test('GIVEN a long ShroomDogNote WHEN page loads THEN it is collapsed behind a toggle', async ({
     page,
   }) => {
-    await page.goto(testPostUrl);
+    await page.goto(fixtureUrl);
 
-    const note = page.locator('.shroomdog-note').first();
+    const note = page.locator('#long-note .shroomdog-note');
     await expect(note).toBeVisible();
     await expect(note).toHaveAttribute('data-collapsible', 'true');
     await expect(note).toHaveAttribute('data-collapsed', 'true');
@@ -23,9 +23,9 @@ test.describe('ShroomDogNote auto-fold', () => {
   test('GIVEN a collapsed ShroomDogNote WHEN reader clicks toggle THEN it expands and can collapse again', async ({
     page,
   }) => {
-    await page.goto(testPostUrl);
+    await page.goto(fixtureUrl);
 
-    const note = page.locator('.shroomdog-note').first();
+    const note = page.locator('#long-note .shroomdog-note');
     const toggle = note.locator('.shroomdog-note-toggle');
 
     await toggle.click();
@@ -37,6 +37,19 @@ test.describe('ShroomDogNote auto-fold', () => {
     await expect(note).toHaveAttribute('data-collapsed', 'true');
     await expect(toggle).toContainText('展開完整 Note');
     await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  test('GIVEN a short ShroomDogNote WHEN page loads THEN its inactive toggle stays visually hidden', async ({
+    page,
+  }) => {
+    await page.goto(fixtureUrl);
+
+    const note = page.locator('#short-note .shroomdog-note');
+    const toggle = note.locator('.shroomdog-note-toggle');
+
+    await expect(note).not.toHaveAttribute('data-collapsible');
+    await expect(toggle).toHaveAttribute('hidden', '');
+    await expect(toggle).toBeHidden();
   });
 
   test('GIVEN a visible ShroomDogNote toggle THEN expanding reveals meaningful hidden content', async ({
@@ -109,7 +122,7 @@ test.describe('ShroomDogNote auto-fold', () => {
   test('GIVEN both themes WHEN rendered THEN persona accents pass contrast and typography stays stable', async ({
     page,
   }) => {
-    await page.goto(testPostUrl);
+    await page.goto(fixtureUrl);
 
     for (const theme of ['light', 'dark']) {
       await page.evaluate((activeTheme) => {
@@ -118,8 +131,7 @@ test.describe('ShroomDogNote auto-fold', () => {
       await page.waitForTimeout(500);
 
       const result = await page
-        .locator('.shroomdog-note')
-        .first()
+        .locator('#long-note .shroomdog-note')
         .evaluate((note) => {
           const parseRgb = (value: string) => {
             const channels = value.match(/[\d.]+/g)!.map(Number);
