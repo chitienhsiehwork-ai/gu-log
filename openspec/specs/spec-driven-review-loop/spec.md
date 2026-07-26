@@ -82,7 +82,7 @@ SDLC SHALL 明訂三層角色，每一層只做自己那層的事：
 
 builder 的 writable scope SHALL 排除 openspec spec 檔（`openspec/**/specs/**/*.md`，同時涵蓋 main specs 與 change delta；scenario = 合約，對 builder 唯讀）。需要改一條 scenario 才能修好 = 勝利條件變了 = design decision，SHALL 撞唯讀牆並自動升 coach。**此唯讀牆在 apply（階段 5）即生效**；撞牆產生的 escalation 訊號跨階段 5→6，不是只在階段 6 審查迴圈內判定。階段 7 archive 動 main specs 的是 controller，不受此牆限制。
 
-> 唯讀牆的**強制形態**（runtime hook / 近似 CI / doc+reviewer）尚未定案，是需 coach 拍板的方向決策，見 design.md D4。本 requirement 只定「builder 對 spec 唯讀」這個 behavior，不綁強制手段。
+> **非規範性現況註記：** 唯讀牆目前以 warn-only 的近似 CI 搭配 reviewer backstop；實際執行以 [`scripts/check-spec-impl-separation.sh`](../../../scripts/check-spec-impl-separation.sh) 與 [`.github/workflows/ci.yml`](../../../.github/workflows/ci.yml) 為準。workflow 的 `openspec-wall` 未列入 `ci-passed.needs`，script 也固定 `exit 0`，所以只發警告、不阻擋 merge。
 
 #### Scenario: 改合約即升級
 

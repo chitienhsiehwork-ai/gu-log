@@ -116,6 +116,8 @@ Fixture 一旦 commit 進 git，SHALL NOT 被自動化工具修改。允許的�
 
 ### Requirement: Bootstrap 初始批次
 
+> **非規範性歷史註記：** 以下 bootstrap 門檻與表格記錄本 change archive 時的歷史狀態；其中 `待定` / `outstanding` 不代表目前 `main` 的 fixture 現況。
+
 本 change archive 前，`tribunal/fixtures/` 下 SHALL 至少存在以下 4 筆 fixture 之 3 筆（第 4 筆為 outstanding item，可在 Level D 執行階段補齊或延至 Level E 前補齊）：
 
 | 分類                 | 檔名                     | 來源                                                                   |
@@ -124,6 +126,8 @@ Fixture 一旦 commit 進 git，SHALL NOT 被自動化工具修改。允許的�
 | `hard-dup`           | `mythos-techcrunch.yaml` | GP-165 + MP-298（deprecated）                                          |
 | `intentional-series` | `ecc-series.yaml`        | GP-143 + GP-144 + GP-151（Affaan Mustafa ECC 系列，顯式宣告 `series`） |
 | `clean-diff`         | 待定                     | outstanding                                                            |
+
+> **非規範性現況註記：** 目前 `main` 已有 `tribunal/fixtures/clean-diff/simon-vs-systematicls-agentic-engineering.yaml` 與 `tribunal/fixtures/clean-diff/zh-en-translation-pair.yaml`。
 
 #### Scenario: 三筆歷史案例 fixture 成立
 
