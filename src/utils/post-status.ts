@@ -14,6 +14,11 @@ export interface ResolvedPostStatus {
   retiredAt?: string;
 }
 
+export interface PostNavigationBaseline {
+  publishedPosts: PostEntry[];
+  publishedPostIds: ReadonlySet<string>;
+}
+
 function normalizeStatus(status?: string): PostStatus {
   return status === 'deprecated' || status === 'retired' ? status : 'published';
 }
@@ -102,6 +107,29 @@ export function getPublishedPosts(posts: PostEntry[], lang?: PostLang): PostEntr
   );
 }
 
+export function createPostNavigationBaseline(
+  posts: PostEntry[],
+  lang: PostLang
+): PostNavigationBaseline {
+  const publishedPosts = getPublishedPosts(posts, lang);
+
+  return {
+    publishedPosts,
+    publishedPostIds: new Set(publishedPosts.map((post) => post.id)),
+  };
+}
+
+export function getNavigablePostsFromBaseline(
+  baseline: PostNavigationBaseline,
+  currentPost: PostEntry
+): PostEntry[] {
+  if (baseline.publishedPostIds.has(currentPost.id)) {
+    return [...baseline.publishedPosts];
+  }
+
+  return [...baseline.publishedPosts, currentPost];
+}
+
 export function getListablePosts(posts: PostEntry[], lang?: PostLang): PostEntry[] {
   return posts.filter(
     (post) =>
@@ -121,11 +149,6 @@ export function getIndexPosts(posts: PostEntry[], lang?: PostLang): PostEntry[] 
 }
 
 export function getNavigablePosts(posts: PostEntry[], currentPost: PostEntry): PostEntry[] {
-  const publishedPosts = getPublishedPosts(posts, currentPost.data.lang);
-
-  if (publishedPosts.some((post) => post.id === currentPost.id)) {
-    return publishedPosts;
-  }
-
-  return [...publishedPosts, currentPost];
+  const baseline = createPostNavigationBaseline(posts, currentPost.data.lang);
+  return getNavigablePostsFromBaseline(baseline, currentPost);
 }

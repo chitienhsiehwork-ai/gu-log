@@ -17,23 +17,29 @@ import AiPopup from '../../../components/AiPopup.astro';
 import ArticleActionArea from '../../../components/ArticleActionArea.astro';
 import ArticleTechnicalDetails from '../../../components/ArticleTechnicalDetails.astro';
 import { getPostAuthorshipNote } from '../../../utils/post-authorship-notes';
-import { getNavigablePosts, resolvePostStatus } from '../../../utils/post-status';
+import {
+  createPostNavigationBaseline,
+  getNavigablePostsFromBaseline,
+  resolvePostStatus,
+} from '../../../utils/post-status';
 import { getLocalizedPostUrl } from '../../../utils/post-urls';
 
 export async function getStaticPaths() {
   const allPosts = await getCollection('posts');
   const posts = allPosts.filter((post) => post.data.lang === 'en');
+  const navigationBaseline = createPostNavigationBaseline(allPosts, 'en');
 
   return posts.map((post) => ({
     params: { slug: post.id },
     props: {
       post,
       allPosts,
+      navigablePosts: getNavigablePostsFromBaseline(navigationBaseline, post),
     },
   }));
 }
 
-const { post, allPosts } = Astro.props;
+const { post, allPosts, navigablePosts } = Astro.props;
 const { Content, headings } = await render(post);
 
 const ticketId = post.data.ticketId;
@@ -72,7 +78,6 @@ const markdownUrl = `${canonicalPostUrl}.md`;
 const replacementUrl = postStatus.replacementPost
   ? new URL(getLocalizedPostUrl(postStatus.replacementPost), Astro.site).href
   : null;
-const navigablePosts = getNavigablePosts(allPosts, post);
 
 const ticketLabels: Record<string, string> = {
   SD: 'ShroomDog Original',
