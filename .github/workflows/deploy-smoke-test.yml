@@ -3,20 +3,27 @@ name: Post-Deploy Smoke Test
 on:
   deployment_status:
 
+permissions:
+  contents: read
+
 jobs:
   smoke-test:
     # Only run when Vercel deployment succeeds (or fails)
     if: github.event.deployment.environment == 'Production'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Report deployment failure
         if: github.event.deployment_status.state == 'failure'
+        env:
+          DEPLOYMENT_SHA: ${{ github.event.deployment.sha }}
+          DEPLOYMENT_URL: ${{ github.event.deployment_status.target_url }}
         run: |
-          echo "::error::🚨 Vercel deployment FAILED for commit ${{ github.event.deployment.sha }}"
-          echo "Deployment URL: ${{ github.event.deployment_status.target_url }}"
+          printf '::error::🚨 Vercel deployment FAILED for commit %s\n' "$DEPLOYMENT_SHA"
+          printf 'Deployment URL: %s\n' "$DEPLOYMENT_URL"
           exit 1
 
       - name: Notify Telegram — deploy failed
@@ -24,9 +31,10 @@ jobs:
         env:
           TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TG_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
+          DEPLOYMENT_URL: ${{ github.event.deployment_status.target_url }}
         run: |
           [ -z "$TG_TOKEN" ] && echo "No TG token, skip" && exit 0
-          MSG="🚨 *Vercel Deploy FAILED*%0A%0ACommit: \`${GITHUB_SHA::7}\`%0AURL: ${{ github.event.deployment_status.target_url }}%0A%0A修一下吧 ShroomDog 🐾"
+          MSG="🚨 *Vercel Deploy FAILED*%0A%0ACommit: \`${GITHUB_SHA::7}\`%0AURL: ${DEPLOYMENT_URL}%0A%0A修一下吧 ShroomDog 🐾"
           curl -s -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
             -d chat_id="${TG_CHAT}" \
             -d message_thread_id=4 \
