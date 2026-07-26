@@ -72,11 +72,6 @@ function parseFrontmatter(content) {
   return fm;
 }
 
-function _getBody(content) {
-  const match = content.match(/^---\n[\s\S]*?\n---\n([\s\S]*)/);
-  return match ? match[1] : '';
-}
-
 // ─── Similarity helpers ─────────────────────────────────────────────
 
 /**

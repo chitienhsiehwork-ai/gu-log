@@ -29,10 +29,8 @@ const KNOWN_MODEL_DISPLAY_NAMES = new Set(Object.values(MODEL_MAP).map((n) => n.
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const POSTS_DIR = path.join(__dirname, '../src/content/posts');
-const _COUNTER_FILE = path.join(__dirname, 'article-counter.json');
 
 // ─── Config ────────────────────────────────────────────────────────
-const _VALID_PREFIXES = ['GP', 'MP', 'SD', 'Lv'];
 const VALID_LANGS = ['zh-tw', 'en'];
 // PENDING is a legitimate in-flight ticket state used by the gp-pipeline
 // and by manual drafters working on parallel branches. The deploy step
