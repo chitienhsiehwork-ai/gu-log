@@ -17,6 +17,10 @@
 - `scripts/tribunal-loop.service` — systemd unit (user-scope).
 - `scripts/cc-tribunal-loop-wrapper.sh` — loads CLAUDE_CODE_OAUTH_TOKEN, exec's the loop.
 
+## 評審路由與執行來源
+
+所有評審預設都由正式的 `Tribunal` 腳本啟動，由正式入口統一確保四評審齊全、模型路由正確，並留下執行來源（`provenance`）；不要手動啟動評審或自行猜模型。需要鎖定版本的角色與模型，服從 `agent frontmatter` 或 `runtime config` 的對應 SSOT；執行紀錄寫下實際使用的 `provider`／`model`，不在散文複製版本。只有正式的 `script`／`provider` 路徑確認失效時，才依目前 `runtime playbook` 的既有 `fallback` 處理，而且不得放寬評審完整性或執行來源紀錄。
+
 ## Deploy
 
 Host and checkout mappings are local-only. Before operating the VM, load `TRIBUNAL_HOST`、remote `GU_LOG_DIR` 與 remote `USAGE_MONITOR` from the local machine note; worker worktrees live beside `GU_LOG_DIR` as `gu-log-worker-{a,b}`.
