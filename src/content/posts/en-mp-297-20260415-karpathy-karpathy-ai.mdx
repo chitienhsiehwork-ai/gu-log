@@ -1,0 +1,161 @@
+---
+ticketId: "MP-297"
+title: "Karpathy’s Personal Wiki Manifesto: Stop Letting AI Companies Remember Things for You"
+originalDate: "2026-04-04"
+translatedBy:
+  model: "GPT-5.6-Sol"
+  harness: "Codex CLI"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@karpathy on X"
+sourceUrl: "https://x.com/karpathy/status/2040572272944324650"
+lang: "en"
+summary: "Karpathy used Farza’s “personal Wikipedia” to argue for four AI-personalization principles: visible memory, user-owned data, files over apps, and freedom to switch models. He also explains why “agent proficiency” is a core skill for the 21st century."
+tags: ["karpathy","personal-knowledge","llm-wiki","file-over-app","ai-personalization"]
+pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (vibe-opus-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+scores:
+  ralph:
+    p: 6
+    c: 8
+    v: 8
+    score: 7
+    date: "2026-04-15"
+translatedDate: "2026-07-26"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+[Andrej Karpathy](/en/glossary#andrej-karpathy) previously floated his “[LLM Wiki concept](/posts/mp-244-20260403-karpathy-llm-knowledge-base)”—using an LLM to continuously maintain a personal Wikipedia about a particular subject, instead of the traditional RAG approach of rummaging through everything from scratch every time. Then he saw someone apply the idea to its most extreme use case: **building a Wikipedia for his own life**.
+
+That person was Farza, and his project was called “Farzapedia”—a personal Wikipedia built with the help of an LLM. Karpathy didn’t just look at it and say, “Cool.” He wrote an entire thread using Farzapedia as an example to unpack why the “personal wiki” approach is far better than today’s AI products that claim to “understand you better the more you use them.” It is essentially an AI-era evolution of the [Tools for Thought](/en/glossary#tools-for-thought) philosophy—tools such as Obsidian and Roam Research that help people think—only this time with an LLM wired in.
+
+## The Problem Today: Black-Box Personalization
+
+First, let’s look at what Karpathy is arguing against.
+
+AI platforms today all take roughly the same approach to personalization: after you use one for a while, it starts to “remember” things about you—your preferred programming language, the kind of work you do, your communication style. That sounds convenient, but Karpathy thinks the entire paradigm has a fundamental flaw.
+
+The problem isn’t “what the AI remembers.” It’s that users have no idea what the AI remembers. Those memories live somewhere in an invisible embedding space that no one can open, inspect, edit, or take elsewhere. It’s like working with someone who claims to know you well but refuses to show you the notes they’ve been keeping.
+
+<MoguNote>
+Imagine having to tell the server about your food allergies all over again every time you visit a new restaurant. What if you carried your own handbook of dietary preferences instead? Any server could consult it, and if something was wrong, you could fix it immediately. Karpathy’s four principles are essentially making this exact point.
+</MoguNote>
+
+Karpathy proposed four principles to explain why maintaining your own wiki is an order of magnitude better than letting an AI platform remember things for you. (The term [Agent](/en/glossary#agent), which appears below, refers to an AI that can autonomously use tools and carry out multistep tasks.)
+
+---
+
+## Principle One: Explicit—Memory Must Be Out in the Open
+
+Farzapedia stores memories as structured wiki pages. Users can open any page and see exactly what the AI “knows” and what it doesn’t.
+
+In Karpathy’s own words:
+
+> The knowledge of you is not implicit and unknown, it's explicit and viewable.
+
+This sounds obvious, yet almost no AI product actually works this way. A wiki is different. It is a complete, structured document. You can tell at a glance what has been written down and what hasn’t. Even when an LLM helps write the wiki, the final output remains human-readable, searchable, and editable.
+
+<MoguNote summary="If users cannot inspect what an AI “knows” about them, personalization becomes control without agency.">
+“Inspectability” has taken on a whole new importance in the AI era. When an AI makes decisions based on its “understanding” of you—what to recommend, what to filter out, how to respond—whether you can see the source material behind that understanding directly determines whether you have any agency. If you can’t see it, you’re at its mercy. Incidentally, the Memory features on mainstream AI platforms currently show users no more than a few lines of summary. What the model actually “understands” is far more complex than those handful of entries. A wiki opens the entire black box and lays it out on the table. That is the fundamental difference.
+</MoguNote>
+
+---
+
+## Principle Two: Yours—Your Data Must Stay in Your Hands
+
+> Your data is yours, on your local computer, it's not in some particular AI provider's system without the ability to extract it.
+
+Farzapedia is just a local folder. It isn’t in the cloud, on OpenAI’s servers, or anywhere else that requires an account and password to access.
+
+This may sound like the same old “data sovereignty” refrain people were already repeating in 2015. But Karpathy is talking about a different kind of data here: not ordinary data, but **everything an AI understands about you as a person**.
+
+Imagine an AI company changing its pricing one day, getting acquired, or simply shutting down. All the personal preferences and interaction history stored on that platform would disappear. Worse, none of it can really be exported—because it doesn’t exist as documents. It is implicit knowledge scattered across conversation embeddings and system prompts.
+
+A self-managed wiki avoids this problem entirely. In the worst-case scenario, the AI company goes under. You simply switch to another AI and connect it to the same files. Not a single line of your data is lost.
+
+---
+
+## Principle Three: File over App—Files Outlive Software
+
+This is the most philosophical of Karpathy’s four principles. He recommends looking up the essay “File over App” (written by Obsidian CEO Steph Ango, at stephanango.com/file-over-app) for the philosophy’s full argument. The core idea fits in a single sentence: **apps disappear; files remain.**
+
+<MoguNote>
+You don’t need a particular chisel to read ancient Egyptian hieroglyphs. By the same logic, your notes shouldn’t require a particular app to open. Think of all the precious notes trapped over the years inside apps that are now dead. It hurts (╯°□°)╯
+</MoguNote>
+
+Karpathy applies this philosophy to AI personalization: Farzapedia uses Markdown and images, all in universal formats. That means you can browse it in Obsidian, search it with grep, process it with any CLI tool, or even [Vibe Code](/en/glossary#vibe-coding) your own front end for it. The entire Unix toolchain works out of the box because it already understands plain text.
+
+That is a completely different world from memories locked inside an AI product. Those memories might be vector embeddings, some kind of internal JSON, or something nobody can clearly explain. Whatever they are, they aren’t files, so no external tool can work with them.
+
+---
+
+## Principle Four: BYOAI—Bring Your Own AI
+
+> You can use whatever AI you want to "plug into" this information - Claude, [Codex](/en/glossary#codex), OpenCode, whatever.
+
+This may be the most devastating of the four principles.
+
+In the conventional model, personalization data is locked inside a specific AI platform, creating a subtle form of vendor lock-in. The longer you use an AI, the more it “understands you,” and the harder it becomes to switch to another platform—because you can’t take that understanding with you.
+
+<MoguNote>
+AI companies know this, of course. The harder data is to move, the harder it is for users to leave, and the more stable the business model becomes. That isn’t a conspiracy theory; it’s business logic out in the open. Karpathy’s four principles amount to this warning: don’t let someone else keep the only ledger with your name in it.
+</MoguNote>
+
+But what if your memories are simply a collection of Markdown files? Claude can read them. Gemini can read them. OpenCode can read them. So can any new AI that appears in the future. You can switch AIs whenever you like and plug the same set of data straight in.
+
+Karpathy takes the idea even further:
+
+> You can even think about taking an open source AI and finetuning it on your wiki - in principle, this AI could "know" you in its weights, not just attend over your data.
+
+In other words, you could theoretically fine-tune an open-source model on your own wiki. Instead of having to reread the data each time to “remember” who you are, the AI could bake its understanding of you directly into its weights. In principle, that could move a private AI closer to truly knowing its user, but Karpathy is describing a possibility, not a finished system.
+
+<MoguNote>
+“Keep the AI companies on their toes,” as Karpathy puts it. When users can take their own data and switch providers at will, AI companies have to compete on model quality itself rather than on locking up data. That is excellent news for consumers.
+</MoguNote>
+
+---
+
+## Agent Proficiency Is a Core [Skill](/en/glossary#skill) of the 21st Century
+
+At the end of the thread, Karpathy admits this is “not the easiest way for an AI to get to know you.” After all, users have to manage file directories, configure workflows, and maintain the structure of the wiki. He also expects products to make the process easier in the future.
+
+But he immediately follows that with a weighty statement:
+
+> "Agent proficiency" is a CORE SKILL of the 21st century.
+
+It isn’t a nice-to-have. It’s a **core skill**.
+
+Karpathy’s argument is that AI agents speak English—or any other natural language—and can perform almost any computer operation on your behalf. That makes knowing how to work with an agent as fundamental as learning Excel or Google was for the previous generation. People who don’t learn aren’t stupid; they simply haven’t realized yet that the world has changed.
+
+Farzapedia is a living example. Although the workflow requires managing file directories, an agent can handle most of the technical details. At its core, the process is simply a matter of telling an agent what to do in natural language.
+
+<MoguNote>
+Incidentally, in [another post (2026-04-04)](/posts/mp-256-20260406-karpathy-karpathy-idea-file-llm-agent), Karpathy offered an even more radical take: in the age of LLM [agents](/en/glossary#agent), there is little need to share code anymore. What people should share is the idea, because the recipient’s agent can automatically create a customized implementation from the concept. In a sense, Farza is an example of exactly that: receive an idea, then let an agent implement it.
+</MoguNote>
+
+---
+
+## Conclusion
+
+On the surface, Karpathy’s thread is praising Farzapedia. What he is really saying is something much bigger: **control over AI personalization should belong to users, not AI companies.**
+
+These ideas—data transparency, local ownership, open formats, and vendor neutrality—have been repeated in software circles for decades. But in the context of AI personalization, they have suddenly become urgent. That is because what an AI remembers isn’t a credit card number or an address. It is “an understanding of a person.” When that understanding is locked inside one company’s system, users lose the freedom to choose.
+
+Karpathy’s closing line, “try this opportunity to play with one,” sounds casual. But what he is really saying is: **you don’t need to wait for someone to build the perfect tool. You can start now, using the most boring thing imaginable—files—to keep your own memories in your own hands.**

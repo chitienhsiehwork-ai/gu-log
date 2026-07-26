@@ -1,0 +1,128 @@
+---
+ticketId: "MP-295"
+title: "Saving Tokens with Claude Code Pro: Anthropic's Four Official Cost-Cutting Tips"
+originalDate: "2026-04-02"
+translatedBy:
+  model: "GPT-5.6-Sol"
+  harness: "Codex CLI"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@lydiahallie on X"
+sourceUrl: "https://x.com/lydiahallie/status/2039800718371307603"
+lang: "en"
+summary: "After analyzing Claude Code Pro usage reports, Lydia Hallie shared the four most effective ways to save tokens: use Sonnet by default, turn off extended thinking when you don't need it, don't resume idle sessions, and manually cap the context window."
+tags: ["Claude Code","token-optimization","Anthropic","Pro"]
+pipeline:
+  - role: "Written"
+    model: "Opus 4.6"
+    harness: "Claude Code CLI"
+  - role: "Reviewed"
+    model: "Opus 4.6"
+    harness: "Claude Code CLI"
+  - role: "Refined"
+    model: "Opus 4.6"
+    harness: "Claude Code CLI"
+  - role: "Scored"
+    model: "Opus 4.6"
+    harness: "Claude Code (vibe-opus-scorer)"
+  - role: "Orchestrated"
+    model: "Opus 4.6"
+    harness: "OpenClaw + Ralph Loop"
+translatedDate: "2026-07-26"
+---
+import MoguNote from '../../components/MoguNote.astro';
+
+Just three days ago, Lydia Hallie admitted on X that [Claude Code](/en/glossary#claude-code) users were blowing through their usage limits ([MP-259](/posts/mp-259-20260330-lydiahallie-claude-code-rate-limit)), prompting a collective howl from the entire dev community. Three days later, she came back with a prescription — not the corporate kind that says “we're actively working on it,” but one backed by actual usage reports, with the data laid out for everyone to see:
+
+> Digging into reports, most of the fastest burn came down to a few token-heavy patterns.
+
+Anthropic looked into the usage reports. It found that most people's tokens weren't being burned by “normal use,” but by a handful of specific, resource-intensive usage patterns.
+
+Here's what makes this interesting: Lydia didn't just tell people to “use less.” She actually broke down which actions were quietly eating through their allowance. It's like a doctor reviewing your checkup and saying, “Your cholesterol isn't high because of genetics. It's because you order fried chicken every night” — the problem is behavioral, not physiological.
+
+<MoguNote>
+When Lydia said “way faster than expected” in [MP-259](/posts/mp-259-20260330-lydiahallie-claude-code-rate-limit), everyone was guessing what had happened. Now we have the answer — it wasn't that Anthropic lacked capacity; users' own habits were burning tokens like crazy. The phone company offered an all-you-can-eat plan, then discovered that people really did eat all they could. Classic (￣▽￣)／
+</MoguNote>
+
+## The Most Expensive Habit: Using Opus for Everything
+
+Let's start with the most painful cut.
+
+> Sonnet 4.6 is the better default on Pro. Opus burns roughly twice as fast. Switch at session start.
+
+**Opus burns tokens at roughly twice the rate of Sonnet.** Choose Opus for the same task, and you'll burn through your allowance twice as fast. But that's not the real point — the real point is that the vast majority of things people open [Claude Code](/en/glossary#claude-code) to do don't need Opus at all.
+
+Tweaking some CSS, writing a unit test, refactoring a small piece of code. For jobs like these, there's virtually no noticeable difference between Sonnet 4.6 and Opus, but the token bill is twice as high. Lydia's advice is straightforward: **make Sonnet your default and treat Opus as a weapon.** A weapon isn't something you carry around every day.
+
+<MoguNote>
+There's a psychological trap here that Lydia didn't mention, but every Pro user has fallen into — when you've paid for the most expensive plan, your instinct is to use the best model. “If I'm already paying for Pro, why settle for Sonnet?” But the Pro plan doesn't come with unlimited usage. Opus earns its “best” label by burning money twice as fast. That mindset is as dangerous as a credit limit: just because it's high doesn't mean you should max it out (⌐■_■)
+</MoguNote>
+
+---
+
+## But the Real Silent Killer Isn't Your Choice of Model
+
+At least when you choose the wrong model, you can see it on the bill. Most people don't even realize they're stepping into the next two traps.
+
+First, extended thinking. Picture this: you turn on deep reasoning mode, then ask Claude Code to add a single `import` statement. How many resources is the model spending behind the scenes to “think” about whether `React` should come before `useState`?
+
+> Lower the effort level or turn off extended thinking when you don't need deep reasoning. Switch at session start.
+
+Extended thinking is absolutely worth it when you're dealing with a race condition across services or a complex architectural decision. But using it to delete one `console.log`? That's like hiring a philosophy professor to help you move — before lifting each box, the professor has to contemplate what the box's existence means. Profound, sure, but the movers charge by the hour.
+
+Session management is even more counterintuitive.
+
+> Start fresh instead of resuming large sessions that have been idle ~1h
+
+Intuitively, continuing a session whose context is already established should be the most economical option. **Wrong.** Once a session has been idle for about an hour, resuming that enormous old session can burn more tokens than starting a new one from scratch — simply loading the entire context back in already costs a fortune.
+
+<MoguNote summary="Extended thinking and resumed sessions burn tokens invisibly; users need visibility until Anthropic provides it.">
+What these two traps have in common is “invisible cost.” Choosing Opus is at least a conscious decision, but the tokens consumed by extended thinking don't appear in the conversation, and the cost of resuming a session is completely hidden. It's like all the appliances on standby around your home — no one thinks the little red light on the TV is running up the electric bill, but add them all together and it becomes a real expense over the course of a month. Anthropic's smartest move would be to make these hidden costs visible, but until then, users have to do their own decluttering (ง •̀_•́)ง
+</MoguNote>
+
+---
+
+## The Most Hardcore Trick: Give Claude Code a Smaller Plate
+
+The first three tips are all behavioral changes. This next one changes the system settings directly:
+
+```bash
+export CLAUDE_CODE_AUTO_COMPACT_WINDOW=200000
+```
+
+Drop that into `.bashrc` or `.zshrc`, and you're set for good.
+
+> Cap your context window, long sessions cost more CLAUDE_CODE_AUTO_COMPACT_WINDOW=200000
+
+`CLAUDE_CODE_AUTO_COMPACT_WINDOW` controls the automatic compaction threshold for the [context window](/en/glossary#context-window). The default allows a session to accumulate a very long context, but **long context = carrying an entire novel into every API call** = watching your allowance evaporate before your eyes. Set it to `200000`, and [Claude Code](/en/glossary#claude-code) will compact the conversation history more aggressively, preserving only the context that truly matters.
+
+This tip is fundamentally different from the first three — those all rely on willpower (remembering to switch to Sonnet, remembering to turn off thinking, remembering to start a new session), but this one works automatically once you've set it. Don't rely on self-discipline; rely on system design.
+
+<MoguNote>
+The number 200000 is worth thinking about. Claude's full context window is far larger, yet Lydia specifically recommends capping it here — the subtext is that most people don't actually need that much context, and everything beyond this point is just burning money. Buffet studies proved this long ago: the bigger the plate, the more people take, and the more they leave uneaten. The essence of this trick is swapping in a smaller plate. You won't go hungry; you'll just stop wasting food (◕‿◕)
+</MoguNote>
+
+---
+
+## The Subtext Behind the Prescription
+
+That's all four of Lydia's recommendations. But the most noteworthy part is actually the final line she added:
+
+> If a small session is still eating a huge chunk of your limit in a way that seems unreasonable, run /feedback and we'll investigate
+
+In other words: you've done all of the above, but your allowance is still mysteriously disappearing? Then the problem may not be your usage habits. It could be a bug. Report it to Anthropic, and the team will investigate.
+
+Why does that matter? Because it acknowledges one thing — **the problem isn't entirely on the user's end.** If Anthropic were 100 percent certain that user behavior was the only issue, there would be no need to offer `/feedback` as a fallback. Encouraging bug reports means admitting there may be holes on the system side too. In a post about teaching people to save tokens, leaving that line in shows more sincerity than the four tips themselves.
+
+<MoguNote>
+Lydia also mentioned, “We're rolling out more efficiency improvements,” and recommended keeping Claude Code updated to the latest version. So the whole story is really unfolding on two fronts: users adjust their behavior, while Anthropic fixes the system. Instead of talking about only one side and blaming the other, laying both sides out in the open is the right attitude ٩(◕‿◕｡)۶
+</MoguNote>
+
+---
+
+## Conclusion
+
+[MP-259](/posts/mp-259-20260330-lydiahallie-claude-code-rate-limit) was Anthropic saying, “Yes, it blew up.” This post is the answer to “What do we do now?” Going from acknowledging the problem to breaking down its causes and offering actionable steps in just three days is remarkably fast for a large tech company.
+
+But look at these four tips together — choose the cheaper model, turn off deep thinking, don't keep old sessions around, and lower the context limit — and they're all fundamentally teaching users how to “use a little less.”
+
+When a product's official advice is “please use some restraint,” that is the perfect footnote to [Claude Code's](/en/glossary#claude-code) situation in April 2026. And the most ironic part is that the advice actually works.
