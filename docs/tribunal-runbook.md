@@ -19,7 +19,7 @@
 
 ## 評審路由與執行來源
 
-所有評審預設都由正式的 `Tribunal` 腳本啟動，由正式入口統一確保四評審齊全、模型路由正確，並留下執行來源（`provenance`）；不要手動啟動評審或自行猜模型。需要鎖定版本的角色與模型，服從 `agent frontmatter` 或 `runtime config` 的對應 SSOT；執行紀錄寫下實際使用的 `provider`／`model`，不在散文複製版本。只有正式的 `script`／`provider` 路徑確認失效時，才依目前 `runtime playbook` 的既有 `fallback` 處理，而且不得放寬評審完整性或執行來源紀錄。
+評審預設由正式的 `Tribunal` 入口啟動；入口必須保證四評審完整、模型路由正確，並記錄執行來源（`provenance`）。任何執行路徑都不得猜 `model`：版本敏感角色讀 `agent frontmatter`，其餘讀 `runtime config`。手動路徑（包含 `playbook` 授權的 `Agent` 直跑）也必須補齊實際 `provider`／`model` 的 `provenance`，不得放寬四評審完整性。
 
 ## Deploy
 
