@@ -8,9 +8,11 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
+  createPostNavigationBaseline,
   getIndexPosts,
   getListablePosts,
   getNavigablePosts,
+  getNavigablePostsFromBaseline,
   getPostStatus,
   getPublishedPosts,
   getTranslationPair,
@@ -263,6 +265,44 @@ describe('getNavigablePosts', () => {
   it('appends current post if it is itself non-published', () => {
     const r = getNavigablePosts(cast(all), zh2 as any);
     expect(r.map((p: any) => p.id).sort()).toEqual(['gp-1-x', 'gp-2-y']);
+  });
+
+  it.each(['zh-tw', 'en'] as const)(
+    'reuses a %s baseline without changing published, deprecated, or retired output',
+    (lang) => {
+      const publishedZh = p('gp-10-published', 'GP-10', 'zh-tw');
+      const publishedEn = p('en-gp-10-published', 'GP-10', 'en');
+      const deprecatedZh = p('gp-11-deprecated', 'GP-11', 'zh-tw', {
+        status: 'deprecated',
+      });
+      const deprecatedEn = p('en-gp-11-deprecated', 'GP-11', 'en');
+      const retiredZh = p('gp-12-retired', 'GP-12', 'zh-tw', { status: 'retired' });
+      const retiredEn = p('en-gp-12-retired', 'GP-12', 'en');
+      const posts = [publishedZh, publishedEn, deprecatedZh, deprecatedEn, retiredZh, retiredEn];
+      const allPosts = cast(posts);
+      const baseline = createPostNavigationBaseline(allPosts, lang);
+
+      for (const currentPost of posts.filter((post) => post.data.lang === lang)) {
+        const expected = getNavigablePosts(allPosts, currentPost as any);
+        const actual = getNavigablePostsFromBaseline(baseline, currentPost as any);
+
+        expect(actual.map((post) => post.id)).toEqual(expected.map((post) => post.id));
+      }
+    }
+  );
+
+  it('returns an isolated array for each page because navigation consumers sort in place', () => {
+    const firstPost = p('gp-20-first', 'GP-20', 'zh-tw');
+    const secondPost = p('gp-21-second', 'GP-21', 'zh-tw');
+    const allPosts = cast([firstPost, secondPost]);
+    const baseline = createPostNavigationBaseline(allPosts, 'zh-tw');
+
+    const firstPage = getNavigablePostsFromBaseline(baseline, firstPost as any);
+    firstPage.reverse();
+    const secondPage = getNavigablePostsFromBaseline(baseline, secondPost as any);
+
+    expect(firstPage).not.toBe(secondPage);
+    expect(secondPage.map((post) => post.id)).toEqual(['gp-20-first', 'gp-21-second']);
   });
 });
 
