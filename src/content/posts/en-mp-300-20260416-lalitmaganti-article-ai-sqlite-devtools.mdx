@@ -1,0 +1,277 @@
+---
+ticketId: "MP-300"
+title: "Eight Years in the Making, Built with AI in Three Months — The Birth of SQLite Dev Tools"
+originalDate: "2026-04-05"
+translatedBy:
+  model: "GPT-5.6-Sol"
+  harness: "Codex CLI"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+source: "Lalit Maganti (blog)"
+sourceUrl: "https://lalitm.com/post/building-syntaqlite-ai/"
+lang: "en"
+summary: "After eight years of hesitation, Lalit Maganti spent roughly 250 hours over three months building syntaqlite with AI coding agents. He reports on a discarded month of vibe-coding, prompt addiction, lost codebase context, and the boundary between AI-accelerated implementation and human-led design."
+tags: ["ai-coding","developer-tools","sqlite","vibe-coding"]
+scores:
+  tribunalVersion: 3
+  librarian:
+    glossary: 10
+    crossRef: 10
+    sourceAlign: 10
+    attribution: 9
+    score: 9
+    date: "2026-04-24"
+    model: "claude-opus-4-7"
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    score: 9
+    date: "2026-04-24"
+    model: "claude-opus-4-7"
+  freshEyes:
+    readability: 8
+    firstImpression: 9
+    score: 8
+    date: "2026-04-24"
+    model: "claude-opus-4-7"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-04-24"
+    model: "claude-opus-4-6[1m]"
+translatedDate: "2026-07-27"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+Eight years. A side project sat in an engineer's head for eight years, resurfacing every time he found the available SQLite tooling inadequate, only to be shoved back down because it seemed too hard, too boring, and not worth spending personal time on.
+
+Then AI [coding agents](/en/glossary#agent) arrived. Three months and roughly 250 hours later, syntaqlite was born: a complete suite of SQLite developer tools, from a parser and formatter to a linter, VS Code extension, and WASM playground.
+
+But this is not another brag post claiming that AI one-shot a project. There are plenty of those, just as there are plenty of rants declaring that AI is all slop. The original author, Lalit Maganti, took a completely different route: an unflinchingly honest development log covering where AI accelerated him, where it held him back, the full month of [vibe-coded](/en/glossary#vibe-coding) work he discarded and rebuilt, and the late-night prompting habit he could not stop. He tries to support his claims with evidence from his project journal, coding transcripts, or commit history. After reading it, [Mogu](/about) thought: this may be the most worthwhile field report on AI-assisted development to translate yet.
+
+## Why SQLite Devtools?
+
+Lalit works on [Perfetto](https://perfetto.dev/) at Google, a performance tracing platform. Perfetto has its own SQL dialect called PerfettoSQL—essentially SQLite with some extended syntax for querying performance traces. Inside Google, various teams use roughly 100,000 lines of PerfettoSQL code.
+
+Once you have a language, users naturally begin to expect the tooling that goes with it: a formatter, a linter, an editor extension. Lalit had always hoped to find existing SQLite tools in the open-source ecosystem that he could adapt, but what he found was deeply disappointing: they were either unreliable, too slow, or not flexible enough.
+
+The idea of building a suite from scratch never went away, but at work it would never rank as the “most important thing we could work on.” Lalit also considered doing it in his own time, but his experience maintaining open-source projects when he was younger had taught him that a maintainer's job involves far more than “throwing the code out there.” You have to triage bugs, write documentation, build a community, and provide direction. For someone who already had a full-time job, that was too much to take on.
+
+<MoguNote>
+SQLite is the most widely deployed database engine in the world—it is in phones, browsers, and operating systems—yet its developer tooling ecosystem is unbelievably awful. It is as absurd as the world's most popular shoe not having a single decent shoehorn. It is not that nobody wants to fix it; the problem is both “very hard” and “very boring,” which happens to be the least motivating combination imaginable ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## What Makes It So Hard—and So Tedious
+
+At the heart of any language tool is a parser: it turns source code into a parse tree, and the formatter and linter are then built on top of that tree. If the parser is inaccurate, every downstream tool inherits those inaccuracies. Many of the existing tools Lalit found had exactly this problem: their parsers merely approximated SQLite syntax instead of reproducing it precisely.
+
+The trouble is that SQLite has no formal syntax specification. Nor does it have a stable parser API. More absurdly still, SQLite's implementation **does not build a parse tree at all**—it goes directly from SQL text to bytecode without building an intermediate tree.
+
+That leaves only one reasonable approach: dig into SQLite's C source code, extract the parser-related parts, and transform them into a version capable of building a parse tree.
+
+And SQLite's source is notoriously difficult to read. The entire project is written in an extremely dense style of C. It took Lalit several days just to understand the virtual table API and its implementation. The thought of comprehending the complete parser stack was daunting.
+
+Then there was the scale: SQLite has more than 400 grammar rules, and every one must specify which parse-tree node a piece of syntax maps to. The rules resemble one another but differ in their particulars—the kind of work that is intensely repetitive yet cannot be handled with a single template.
+
+And then you still have to write tests, debug everything, and deal with bugs reported by users...
+
+For years, this was where the project idea went to die. It was too difficult for a side project, too tedious for sustained work, and too risky when several months of effort could still end in failure.
+
+<MoguNote>
+More than 400 grammar rules, all looking similar but never quite the same. What makes this kind of work frightening is not that any individual step is hard, but that it slowly grinds away your will to continue. It is like washing dishes—one bowl is easy, but when you realize there are 400 of them, you start wondering whether it would be simpler to blow up the kitchen and rebuild it.
+</MoguNote>
+
+---
+
+## [Vibe-Coding](/en/glossary#vibe-coding) Month: A Priceless Failure
+
+Lalit had been using coding agents since early 2025—Aider, Roo Code, and, from July onward, [Claude Code](/en/glossary#claude-code). He had always found them useful, but never trusted them completely. By late 2025, however, the quality of AI coding agents seemed to have made a significant leap. At the same time, Lalit kept encountering problems in his work on Perfetto that would have been trivial to solve with a reliable parser. Over the Christmas holidays, he decided to seriously stress-test the most extreme way of working: vibe-code the entire project with Claude Code on the £200-a-month Max plan.
+
+Through most of January, Lalit played the role of a semi-technical manager, delegating almost all design and implementation to Claude. In terms of features, the result was decent: a C parser extracted from the SQLite source with Python scripts, a formatter, support for SQLite and PerfettoSQL, and a web playground.
+
+But when he carefully reviewed the entire codebase at the end of January, the problem became clear: **the whole codebase was spaghetti.**
+
+He could barely understand most of the Python extraction pipeline. Functions were scattered across arbitrary files with no clear architecture. Several files had swollen to thousands of lines. The entire system was extremely brittle—it could solve the immediate problem, but it could never support the larger vision, let alone integrate into Perfetto's toolchain.
+
+The saving grace was that it proved the approach could work and generated more than 500 test cases, many of which could be reused.
+
+Lalit decided to **throw it all away and start over**, while also switching most of the codebase from C/Python to Rust.
+
+<MoguNote summary="The discarded month proved the idea and produced reusable tests, but skipped design work still came due.">
+An entire month spent vibe-coding, only to throw everything away and start over. The lesson is that the month **was not wasted**. It proved the approach was viable, produced more than 500 reusable tests, and showed Lalit the architectural traps in concrete form. But had he put the extra effort into design and review during that first month, perhaps he would never have needed the rewrite. That is the central paradox of vibe-coding: the effort you save eventually comes due in another form. ([GP-56](/posts/gp-56-20260213-zuozizhen-vibe-coding-addiction) previously covered this same vibe-coding trap: “so sweet it is addictive, but when you run the numbers afterward, you have lost your shirt.”)
+</MoguNote>
+
+---
+
+## The Second Attempt: Using AI Differently
+
+When he started over, Lalit completely changed his role. Instead of being a “semi-technical manager,” he **took back all decision-making authority** and used AI more as “autocomplete on steroids.” Pawel Huryn later called this evolution from vibe-coding to architecture-driven work [Vibe Engineering](/posts/mp-231-20260331-pawelhuryn-vibe-engineering-vibe-coding)—and Lalit's story happens to be its most concrete real-world example.
+
+The new workflow looked like this:
+
+- **Design first**: think through the architecture and API himself before letting AI write any code
+- **Review every change thoroughly**: actually read every line instead of glancing at it, deciding it looks right, and merging it
+- **Fix problems immediately**: address anything suspect as soon as it appears instead of leaving it for later
+- **Invest in scaffolding**: linting, validation, and nontrivial tests to check AI output automatically
+
+The core functionality took shape in February. The final sprint—upstream test validation, the editor extension, packaging, and documentation—wrapped up in mid-March with the 0.1 release.
+
+But Lalit considers the timeline the least interesting part of the story. What he really wants to discuss is what would never have happened without AI—and what using AI cost him.
+
+---
+
+## AI Made This Project Possible
+
+### Breaking Through Inertia
+
+Lalit admits that one of his greatest weaknesses is procrastinating when faced with a large new project. AI helped him bypass that psychological barrier.
+
+His old framing was “I need to understand how SQLite’s parsing works”—a vast, vague problem that made it hard to begin. AI transformed it into “I need to get AI to suggest an approach for me so I can tear it up and build something better.” Once he had a concrete prototype to play with, every step became much easier.
+
+### Writing Code Faster
+
+For obvious code, AI is faster than a human. If you can break a problem down to “write a function with this behaviour and parameters,” or “write a class matching this interface,” AI will finish faster, and its style may be more idiomatic and consistent than your own. It writes documentation, maintains a uniform style, and uses the target language's “standard dialect.”
+
+But this standardness is a double-edged sword. Most code should indeed be standard: predictable, readable, and unsurprising. Yet every project has pieces at its edge—the parts whose value comes from a non-obvious approach. For syntaqlite, the extraction pipeline and parser architecture were those parts. AI's instinct to normalize was harmful there, so Lalit had to design those areas in depth himself, sometimes even writing them directly.
+
+The other side of AI writing code quickly is that **it makes refactoring fast too**. If you use AI to generate code at industrial scale, you must refactor continuously. Without that, things immediately spiral out of control—the central lesson of the vibe-coding month. After the rewrite, refactoring became core to the workflow. Following each batch of generated code, Lalit would step back and ask, “is this ugly?” Sometimes AI could clean it up by itself. Other times, Lalit could see a large-scale abstraction that AI could not; he supplied the direction and let AI execute.
+
+One sentence in the original puts it perfectly:
+
+> If you have taste, the cost of a wrong approach drops dramatically because you can restructure quickly.
+
+<MoguNote>
+“If you have taste, the cost of a wrong approach drops dramatically.” That sentence deserves to be framed and hung beside the monitor of everyone who writes code with AI. Its inverse is even more thought-provoking: without taste, AI merely makes you race faster down the wrong path—and travel much farther before realizing it (⌐■_■)
+</MoguNote>
+
+### AI as a Tutor
+
+Of all the ways to use AI, **research and learning** offer the highest value-to-time ratio.
+
+Lalit had worked on interpreters and parsers before, but had never heard of the Wadler-Lindig pretty-printing algorithm. When he needed to build a formatter, AI gave him a concrete, practical lesson from a perspective he could understand and pointed him toward the relevant papers. Finding and reading the literature himself might have taken a day or two; AI compressed it into a conversation in which he could ask follow-up questions like, “but why does this work?”
+
+That extended to entire fields he did not know. Lalit has deep expertise in C++ and Android performance, but had barely touched the Rust toolchain or editor extension APIs. With AI, that was no obstacle: the underlying principles carried over, the terminology was similar, and AI built the bridge. A VS Code extension might once have required a day or two of studying the API before he could begin; with AI, he had a usable version in an hour.
+
+AI is also exceptionally useful for **picking up code you have not looked at for a few days**. You can control the depth: “tell me about this component” for a quick refresher, “give me a detailed linear walkthrough” for a deeper review, or “audit unsafe usages in this repo” to hunt for problems. Frequent context switching makes it easy to lose the thread; AI lets you restore it on demand.
+
+### Building Things That Otherwise Would Not Exist
+
+AI did more than make the same project faster—it changed the scale of what the project itself could accomplish.
+
+Every open-source project has a long list of “important but not critical” features: an editor extension, Python bindings, a WASM playground, a documentation site, packaging for multiple ecosystems. AI lowered the cost of these things to the point that skipping them became harder to justify than building them.
+
+It also freed up mental energy for UX. When implementation no longer consumes all your time, you can think about what the user's first experience should feel like: what kind of error message is genuinely helpful, what the formatter's default output should look like, and whether the CLI flags are intuitive. These details determine whether someone uses a tool once or keeps using it—and AI gave Lalit the room to care about them.
+
+<MoguNote>
+This observation is exactly right. AI's most overlooked value is not “writing code faster,” but that “the cognitive bandwidth it frees up can be spent on higher-value work.” Implementation alone used to drain every last bit of energy from a side project—who had anything left for UX? Now that implementation carries a lower cognitive burden, engineers finally have the mental space to ask, “Does this thing actually feel good to use?”
+</MoguNote>
+
+---
+
+## The Cost of AI
+
+### Addiction
+
+Lalit noticed a disturbing similarity between using AI coding tools and playing a slot machine. You submit a prompt, wait, and receive either a brilliant result or something completely useless. He found himself awake late at night thinking, “just one more prompt,” trying again even when he knew it probably would not work. The sunk-cost fallacy also kicked in: he kept trying AI on tasks for which it was clearly unsuited, telling himself, “maybe if I phrase it differently this time.”
+
+A positive feedback loop with fatigue made things worse. When he had energy, he could write precise, well-scoped prompts and be highly productive. When tired, his prompts became vague, the output deteriorated, and he kept trying anyway, which left him even more exhausted. At those moments, AI could be slower than simply writing the code himself, but breaking out of the loop was terribly difficult.
+
+<MoguNote summary="AI prompting can become a fatigue loop that costs both time and trust in the codebase.">
+So far, few people have dared to write openly about “AI coding addiction,” but almost every heavy user knows exactly what it means. That “just one more prompt” feeling runs on precisely the same mechanism as telling yourself at three in the morning, “I'll watch one more YouTube video, then sleep.” The difference is that YouTube costs you time; AI prompts cost you time and trust in the codebase. [Zuozizhen's “Don't Get Addicted to Vibe Coding”](/posts/gp-56-20260213-zuozizhen-vibe-coding-addiction) describes this exact loop—the refined-sugar metaphor could not be more accurate (╯°□°)╯
+</MoguNote>
+
+### Losing Touch
+
+Several times during the project, Lalit lost his mental model of the codebase. Not of the overall architecture or how the components fit together, but of the everyday details: what lived where, which function called which, and all the small decisions that accumulated into a working system. When that happened, strange problems appeared, and he had no idea what was going on.
+
+The deeper issue is that losing touch causes a **breakdown in communication**. When you no longer understand the codebase's context, you cannot communicate effectively with the agent. Every exchange becomes longer and more verbose. Where you could once say, “change FooClass to do X,” now you can only say, “change the thing which does Bar to do X.” The agent then has to work out what Bar is and how it maps to FooClass—and sometimes it gets it wrong.
+
+Lalit pinpoints the irony:
+
+> It's exactly the same complaint engineers have always had about managers who don't understand the code asking for fanciful or impossible things. Except now you've become that manager.
+
+Use AI until you lose touch, and you become that manager yourself.
+
+The solution requires intention: whenever AI finished writing code, Lalit made a habit of reading it immediately and actively asking himself, “how would I have done this differently?”
+
+Of course, to some extent this applies to any code you wrote yourself several months ago—hence the sentiment that “AI code is legacy code.” But AI makes that estrangement arrive faster. Because you did not type it out line by line, you miss the muscle memory normally built during the act of writing.
+
+### Slow Corrosion
+
+Other problems gradually surfaced over the three months.
+
+**Deferring design decisions**: because refactoring is cheap, it is easy to keep saying, “I’ll deal with this later.” Since AI can refactor at the same industrial scale, the cost of postponement feels low. But it is not: delaying decisions erodes your ability to think clearly because the codebase remains in a confused state in the meantime. Making the difficult design decisions sooner would have made convergence on the right architecture much faster.
+
+**A false sense of security from tests**: having more than 500 tests feels reassuring, and AI makes it easy to generate even more. But neither humans nor AI are creative enough to foresee every edge case that will appear in the future. Several times during the vibe-coding phase, Lalit thought of a test case himself only to discover that a component's entire design was fundamentally wrong and needed a complete rewrite.
+
+The core lesson, in Lalit's words, is that the “normal rules” of software engineering still apply in the age of AI. Without solid foundations—a clear architecture and well-defined boundaries—you will forever be chasing the next bug that appears.
+
+<MoguNote summary="Cheap refactoring does not make delayed design free; it leaves the codebase confused for longer.">
+“Refactoring is cheap, so design can wait”—what a subtle trap. On the surface, it sounds perfectly reasonable: you can always refactor later. In practice, the longer a design decision is deferred, the longer the codebase remains confused, and the harder it becomes to make good decisions while working inside that confusion. It is a vicious cycle. AI's speed accelerates it, but at heart it has nothing to do with AI—it is one of software engineering's oldest lessons in new clothes. (Mario Zechner made the same case with considerably more firepower in [GP-142](/posts/gp-142-20260402-mario-zechner-coding-agent-codebase): coding agents are destroying your codebase if you do not deliberately slow down.)
+</MoguNote>
+
+### No Sense of Time
+
+AI sees a snapshot of the codebase, but it does not experience time as a person does. A human engineer can tell someone “what it feels like to use an API,” “how it evolved over months or years,” and “why certain decisions were made and later reversed.”
+
+The immediate consequence of losing that understanding is either repeating old mistakes or falling into traps that had already been successfully avoided. Lalit compares it to the damage a team suffers when it loses a high-quality senior engineer: they carry history and context that exist nowhere else, and they guide the people around them.
+
+In theory, specs and documentation can preserve that context. But writing documentation comprehensive enough to do so is extremely expensive and time-consuming. AI can help draft it, but because there is no automatic way to verify whether it accurately captures the important information, a human still has to audit it manually.
+
+There is also the problem of [context](/en/glossary#context-window) contamination: you never know whether the design notes for API A will echo into API B. Consistency is a major reason a codebase works, and that requires not just context about the current task but also context about other things designed in a similar way. Deciding what is relevant demands exactly the kind of judgment that institutional knowledge provides.
+
+---
+
+## Relativity
+
+Looking back over the process, a remarkably consistent pattern emerges in when AI helped and when it caused harm.
+
+**Domains you understand deeply**: AI is exceptional. You can review its output instantly, catch mistakes before they take root, and move at speeds that were previously unimaginable. Generating parser rules is the clearest example—Lalit knew precisely what each rule should produce, so he could review AI's output in a minute or two and iterate rapidly.
+
+**Domains you can describe but do not yet know**: AI is excellent, but requires more care. The Wadler-Lindig formatter falls into this category—you can articulate what you want, judge whether the output is moving in the right direction, and learn from AI's explanations. But you must remain engaged rather than accepting everything wholesale.
+
+**Domains where you do not even know what you want**: AI ranges from unhelpful to harmful. Project architecture is the clearest example. Early on, Lalit spent weeks following AI down dead ends. It felt highly productive at the time, but could not withstand close scrutiny. In hindsight, it might have been faster to think it through without AI at all.
+
+Expertise alone, however, is not enough. Even when Lalit understood a problem deeply, AI still struggled if the task **had no objectively verifiable answer**. Implementation has a right answer, at least locally—the code compiles, the tests pass, and the output matches expectations. Design does not. People have been arguing about OOP for decades and are still arguing.
+
+More concretely, Lalit found designing syntaqlite's public API to be the most painful part. In early March, he spent several days doing nothing but refactoring the API, manually fixing the messes that an experienced engineer would instinctively avoid but AI had created. There is no test or objective metric for “is this API pleasant to use” or “will this API help users solve the problems they have”—and those are exactly the questions coding agents handle worst.
+
+Lalit sums it up with an analogy from physics. He was once fascinated by physics, especially relativity. In any small, local region, the laws of physics look simple and Newtonian. Zoom out, though, and spacetime curves in ways the local picture cannot predict. Code works the same way: at the level of a function or class, there is usually a clearly correct answer, and AI excels there. But architecture is what happens when all those local components interact—stitching locally correct components together does not automatically produce globally correct behavior.
+
+<MoguNote>
+Relativity as a metaphor for the limits of AI coding—Newtonian mechanics works locally; at global scale, spacetime curves—may be the most precise analogy yet. Every function is correct within its own scope, but the behavior of the whole system is not simply the sum of those local truths. That is also why pure [vibe-coding](/en/glossary#vibe-coding) can produce a result where “every function is fine, but the whole thing is spaghetti”: locally Newtonian, globally warped.
+</MoguNote>
+
+---
+
+## Conclusion
+
+Eight years of gestation, three months of implementation, and roughly 250 hours of work. Syntaqlite exists, and reaching this level of completeness in only three months is an enormous victory. Without AI, it would not have happened.
+
+But the process was not a clean, linear success story. An entire month of vibe-coding was thrown away. Lalit fell into the trap of managing a codebase he did not understand. He paid the price of a complete rewrite.
+
+Lalit's conclusion is simple but important: **AI is an enormous force multiplier for implementation, but a dangerous substitute for design.** It excels at answering concrete technical questions, but it has no sense of history, no taste, and no idea how an API actually feels to a human user. Hand it the “soul” of the software, and you will merely hit the wall faster than before.
+
+Lalit hopes to see more people do this—not write retrospectives about weekend toys or disposable scripts, but about real software that has to face users, bug reports, and its creator's constantly changing mind. Honest development logs backed by data, journals, and commit history.
+
+Lalit believes the core skill for working effectively with AI is knowing where you stand on the two axes of “known → describable → completely unknown” and “objectively verifiable → subjective judgment,” then deciding how to use AI accordingly.
