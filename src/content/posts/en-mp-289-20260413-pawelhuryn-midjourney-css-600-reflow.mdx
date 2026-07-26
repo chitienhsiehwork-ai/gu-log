@@ -1,0 +1,121 @@
+---
+ticketId: "MP-289"
+title: "A Midjourney Engineer Open-Sourced a CSS-Free Layout Engine — 600× Faster Than Browser Reflow"
+originalDate: "2026-03-30"
+translatedBy:
+  model: "GPT-5.6-Sol"
+  harness: "Codex CLI"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@PawelHuryn on X"
+sourceUrl: "https://x.com/PawelHuryn/status/2038525388037448113"
+lang: "en"
+summary: "A Midjourney engineer open-sourced a pure TypeScript text measurement algorithm that bypasses browser CSS reflow entirely, making layout 600 times faster. Because when AI agents generate UIs dynamically, a browser layout pipeline designed 30 years ago simply can't keep up."
+tags: ["web-development","ai-agents","open-source","typography"]
+pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (vibe-opus-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+scores:
+  ralph:
+    p: 8
+    c: 8
+    v: 8
+    score: 8
+    date: "2026-04-13"
+translatedDate: "2026-07-26"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+A Midjourney engineer has open-sourced something unusual: a way to handle all of a web page's text layout directly in TypeScript, without CSS.
+
+It isn't yet another frontend framework. It isn't a wrapper library around the DOM. It's a pure text measurement algorithm that never touches the browser's layout engine. The speedup? 600×.
+
+When you hear “600×,” your first reaction is probably, “That has to be hype, right?” But once you look closely at the problem it is trying to solve, you realize this is no miracle. It simply takes a fundamentally different route.
+
+---
+
+## Browser Reflow: A 30-Year-Old Design Meets a Future It Never Saw Coming
+
+<MoguNote>
+600× sounds like hype, but think about everything CSS reflow actually does: cascade, inheritance, media queries, flexbox, grid, floats... Thirty years of historical baggage, all packed into one system. Starting up that machine is like having to flip through an entire encyclopedia from beginning to end every time you want to look up a single word. Once you bypass it, being 600× faster almost seems normal (╯°□°)╯
+</MoguNote>
+
+CSS layout engines were built for humans creating static web pages.
+
+That isn't a criticism—CSS was a brilliant invention that transformed the web from “plain-text documents” into “a medium you could design.” But its entire design rests on one assumption: a human engineer sits down, writes the HTML and CSS, and then the browser takes its time drawing the result. Layout calculations may trigger several rounds of reflow, each one walking through the cascade again, calculating the box model, and resolving dependencies.
+
+That process works perfectly well for static pages written by humans. After all, the page loads once, reflows a few times, and the user never even notices.
+
+But an [AI agent](/en/glossary#agent) isn't human.
+
+---
+
+## Layout in the AI Era: Why Bypassing the Browser Is Necessary
+
+<MoguNote>
+Imagine an AI agent generating a dashboard in real time, with charts, tables, and text blocks all appearing dynamically in response to a prompt. Every time it generates an element, the browser runs another reflow. Ten elements, ten rounds. Each round recalculates the entire DOM tree. It's like erasing and redrawing an entire whiteboard every time you add a single word—an efficiency disaster ┐(￣ヘ￣)┌
+</MoguNote>
+
+AI-generated interfaces are fundamentally different: **layout is dynamic, real-time, and high-volume**.
+
+In traditional web development, layout decisions are settled during the “development phase”—an engineer writes the CSS, deploys it, and users see a fixed layout. But when an AI agent needs to “generate” an interface based on a conversation, user preferences, and real-time data, layout becomes a runtime concern. And it isn't something that happens only occasionally. Every frame and every interaction can potentially trigger an entirely new layout calculation.
+
+The browser's reflow pipeline was never designed for this kind of workload. It assumes layout is a low-frequency event—calculate it once when the page loads, then once more when the user resizes the window. When an AI agent needs to perform hundreds of layout calculations per second, this 30-year-old pipeline becomes the bottleneck. (Karpathy made the point in [his piece on Agentic Engineering](/posts/mp-36-20260206-karpathy-agentic-engineering/) that AI agents will redefine the basic assumptions of software—this text layout engine is one concrete example.)
+
+So the Midjourney engineer did something straightforward: instead of changing the browser, bypass it.
+
+The library implements text measurement and layout algorithms in pure TypeScript, calculating in memory where each piece of text should go and how much space it should occupy, without ever triggering the browser's layout engine. The result is a 600× speedup—because it eliminates CSS cascade, DOM tree traversal, style recalculation, and other work that is completely unnecessary in dynamic scenarios.
+
+<MoguNote>
+This is actually the same logic used by game engines. Games don't use CSS to lay out their HUDs (heads-up displays), because game UIs are redrawn every frame. They need calculations to be fast, not syntax to be flexible. UI generated by AI agents poses essentially the same challenge as a game HUD: it needs layout at 60 fps, and the traditional browser pipeline can't deliver that (⌐■_■)
+</MoguNote>
+
+---
+
+## The Web Stack Is Being Rebuilt for the AI Era
+
+Paweł Huryn ended his post with a weighty observation:
+
+> The AI-era stack is being rebuilt from scratch. One library at a time.
+
+Looking back over the past two years, AI's impact on web development has gone far beyond “using AI to write code.” The underlying technical assumptions are being challenged. This text layout engine bypasses browser reflow, and similar ideas about “bypassing” existing infrastructure may appear at other layers too. ([Simon Willison](/en/glossary#simon-willison)'s [piece on Agentic Loops](/posts/mp-8-20260203-simonw-agentic-loops/) explains how AI agents use loops to solve the problem of “one attempt isn't enough.” It reflects the same impulse: redesigning tools around how agents work, rather than patching the old ones.)
+
+The logic behind every such “bypass” is the same: AI does not use software the way humans do. Instead of writing once, loading once, and displaying once, it generates continuously, renders in real time, and adjusts dynamically. Web infrastructure designed for humans over the past 30 years is now being challenged, piece by piece, by the demands of AI agents.
+
+<MoguNote>
+History keeps repeating itself: mainframes to PCs, rewrite. Desktop to web, rewrite. Web to mobile, another rewrite. Now that AI agents have become a new computing paradigm, it's no surprise that the web stack is being questioned. What's interesting is the direction this time—not “build a better browser,” but “don't use the browser's system at all.” Bypass it instead of improving it. That's the truly radical part (ง •̀_•́)ง
+</MoguNote>
+
+<MoguNote>
+And why was a Midjourney engineer the one to build this? The original post doesn't explain, but it isn't hard to guess. Midjourney generates images; if the next step is “generating interactive UIs,” layout speed becomes a hard bottleneck. This library may be laying the groundwork. Pure speculation, but the logic tracks ╰(°▽°)╯
+</MoguNote>
+
+---
+
+## Conclusion
+
+A pure TypeScript text layout algorithm sounds like an extremely niche technical toy. But the signal it sends matters far more than the code itself: **the demands of AI agents are forcing web infrastructure to evolve**.
+
+The original post put it perfectly:
+
+> The AI-era stack is being rebuilt from scratch. One library at a time.
+
+This text layout engine is one such “library.” What comes next? No one knows, but the direction is already clear: don't fix the browser—bypass it.
+
+Oh, and Paweł Huryn added, “Such a fun to play with that!” This isn't just a thought experiment; it's an open-source library you can actually try. If you're interested, go dig through the repo.
