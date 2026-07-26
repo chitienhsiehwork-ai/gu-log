@@ -90,6 +90,9 @@ Jira
 Ray-Ban Tesla Apple Samsung Sony Nintendo Mac Mobile mobile
 DeepLearning.AI deeplearning.ai
 LangChain LangGraph LlamaIndex Pinecone Weaviate Chroma Milvus
+# Letta = AI 公司（Letta Code / MemGPT）；Harbor = agent trajectory 框架。
+# 同 LangChain / Mistral 那一類的產品與組織名 — GP-261（2026-07-25）
+Letta Harbor
 Scale Insilico BenevolentAI Recursion Pharmaceuticals
 # Helm AI — Phil Chen career-advice post (2026-07-03)
 Helm

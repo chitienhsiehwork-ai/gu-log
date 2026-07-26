@@ -8,16 +8,20 @@ import (
 )
 
 // TestClaudeWriterModelPreservesPinnedVersion locks the regression that made a
-// pinned claude-opus-4-5 write get stamped "Opus 4.8": Model() must keep the
-// concrete version, DisplayName must render it as 4.5, and Name() must still
-// collapse to the family label for logs.
+// pinned write get stamped with the floating alias's build instead of its own:
+// Model() must keep the concrete pinned id, DisplayName must render it, and
+// Name() must still collapse to the family label for logs.
+//
+// Model() identity is the load-bearing assertion here. While the pin and the
+// alias happen to name the same build, their DisplayName strings match, so
+// comparing display names alone would no longer catch the collapse.
 func TestClaudeWriterModelPreservesPinnedVersion(t *testing.T) {
 	w := NewClaudeOpusWriter()
 	if got := w.Model(); got != ModelID(ClaudeOpusPinned) {
 		t.Fatalf("writer Model() = %q, want %q", got, ClaudeOpusPinned)
 	}
-	if got := DisplayName(w.Model()); got != "Opus 4.5" {
-		t.Fatalf("writer DisplayName = %q, want %q", got, "Opus 4.5")
+	if got := DisplayName(w.Model()); got != "Opus 5" {
+		t.Fatalf("writer DisplayName = %q, want %q", got, "Opus 5")
 	}
 	if got := w.Name(); got != string(ModelClaudeOpus) {
 		t.Fatalf("writer Name() = %q, want %q", got, ModelClaudeOpus)
@@ -29,8 +33,31 @@ func TestClaudeWriterModelPreservesPinnedVersion(t *testing.T) {
 	if got := a.Model(); got != ModelClaudeOpus {
 		t.Fatalf("alias Model() = %q, want %q", got, ModelClaudeOpus)
 	}
-	if got := DisplayName(a.Model()); got != "Opus 4.8" {
-		t.Fatalf("alias DisplayName = %q, want %q", got, "Opus 4.8")
+	if got := DisplayName(a.Model()); got != "Opus 5" {
+		t.Fatalf("alias DisplayName = %q, want %q", got, "Opus 5")
+	}
+}
+
+// TestDisplayNameWholeNumberClaudeGeneration locks the Claude 5 naming shape:
+// 5-generation ids carry no minor version, so "claude-opus-5" must render
+// "Opus 5" (not the raw id) and still resolve to the Claude harness. The 4.x
+// major-minor ids and the dated Haiku build must keep working unchanged.
+func TestDisplayNameWholeNumberClaudeGeneration(t *testing.T) {
+	cases := map[ModelID]string{
+		"claude-opus-5":             "Opus 5",
+		"claude-sonnet-5":           "Sonnet 5",
+		"claude-opus-4-5":           "Opus 4.5",
+		"claude-haiku-4-5-20251001": "Haiku 4.5",
+		"anthropic/claude-opus-5":   "Opus 5",
+		"claude-opus-5[1m]":         "Opus 5",
+	}
+	for id, want := range cases {
+		if got := DisplayName(id); got != want {
+			t.Errorf("DisplayName(%q) = %q, want %q", id, got, want)
+		}
+		if got := HarnessName(id); got != "Claude Code CLI" {
+			t.Errorf("HarnessName(%q) = %q, want Claude Code CLI", id, got)
+		}
 	}
 }
 
@@ -85,7 +112,7 @@ printf '{"result":"ok","modelUsage":{"%s":{"outputTokens":7}}}\n' "$model"
 	if got := w.ActualModel(); got != ModelID(ClaudeOpusPinned) {
 		t.Fatalf("ActualModel after run = %q, want %q", got, ClaudeOpusPinned)
 	}
-	if got := DisplayName(w.ActualModel()); got != "Opus 4.5" {
-		t.Fatalf("stamped DisplayName = %q, want Opus 4.5", got)
+	if got := DisplayName(w.ActualModel()); got != "Opus 5" {
+		t.Fatalf("stamped DisplayName = %q, want Opus 5", got)
 	}
 }

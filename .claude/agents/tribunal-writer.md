@@ -1,16 +1,20 @@
 ---
 name: tribunal-writer
 description: "Tribunal Writer — rewrite agent for the tribunal quality pipeline. Receives judge feedback and the scoring standard, then rewrites the article to address specific failures. Used across all 4 tribunal stages (Librarian, Fact Checker, Fresh Eyes, Vibe Scorer)."
-# PINNED: claude-opus-4-5 (owner sign-off 2026-06-18: ShroomDog wants the
-# writer, rewriter, AND vibe-scorer all on Opus 4.5 for one consistent taste
-# across generate + grade; supersedes the prior 4-6 pin).
-# Prior rationale, still valid: claude-opus-4-6. This is the GP / rewrite voice — maintainer has
-# explicitly rejected Opus 4.7's writing style (too press-release, loses LHY
-# persona). Do NOT bump to "opus" alias or 4.7 without owner sign-off. The
-# previous [1m] context variant requires usage credits this account does not
-# have; standard 200K context is enough to rewrite one post.
+# PINNED: claude-opus-5 (owner sign-off 2026-07-25: ShroomDog moved writer AND
+# vibe-scorer from Opus 4.5 to Opus 5 together, keeping the one-taste-loop rule
+# — generate and grade stay on the same generation, only the generation moved).
+# History: 4-6 → 4-5 (2026-06-18, one consistent taste across generate + grade)
+# → 5 (2026-07-25). The 4.7 rejection that drove the 4.5 pin was about that
+# build's writing style (too press-release, loses LHY persona), not a ban on
+# moving forward; Opus 5 is a new generation and got its own sign-off.
+# Still a PIN, not the floating `opus` alias: this is the GP / rewrite voice and
+# it is version-sensitive, so a silent Anthropic bump must not move it. Do NOT
+# bump without owner sign-off. Avoid the [1m] context variant — it needs usage
+# credits this account does not have; standard context is enough to rewrite one
+# post.
 # Matched by tools/gp-pipeline/internal/llm/claude.go ClaudeOpusPinned.
-model: claude-opus-4-5
+model: claude-opus-5
 tools:
   - Read
   - Write

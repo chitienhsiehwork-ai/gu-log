@@ -59,28 +59,35 @@ test.describe('Theme Toggle', () => {
     expect(theme).toBe('light');
   });
 
-  test('GIVEN dark theme WHEN viewing THEN moon icon should be visible', async ({ page }) => {
+  test('GIVEN dark theme WHEN viewing THEN the light-theme action uses a sun icon', async ({
+    page,
+  }) => {
     await page.goto('/');
     await page.evaluate(() => localStorage.setItem('theme', 'dark'));
     await page.reload();
 
+    const toggle = page.locator('#theme-toggle');
     const moonIcon = page.locator('#theme-toggle .icon-moon');
     const sunIcon = page.locator('#theme-toggle .icon-sun');
 
-    // In dark mode, the icon that is displayed is moon (to indicate "switch to light")
-    await expect(moonIcon).toBeVisible();
-    await expect(sunIcon).not.toBeVisible();
+    await expect(toggle).toHaveAccessibleName('切換為淺色主題');
+    await expect(sunIcon).toBeVisible();
+    await expect(moonIcon).not.toBeVisible();
   });
 
-  test('GIVEN light theme WHEN viewing THEN sun icon should be visible', async ({ page }) => {
+  test('GIVEN light theme WHEN viewing THEN the dark-theme action uses a moon icon', async ({
+    page,
+  }) => {
     await page.goto('/');
     await page.evaluate(() => localStorage.setItem('theme', 'light'));
     await page.reload();
 
+    const toggle = page.locator('#theme-toggle');
     const moonIcon = page.locator('#theme-toggle .icon-moon');
     const sunIcon = page.locator('#theme-toggle .icon-sun');
 
-    await expect(sunIcon).toBeVisible();
-    await expect(moonIcon).not.toBeVisible();
+    await expect(toggle).toHaveAccessibleName('切換為深色主題');
+    await expect(moonIcon).toBeVisible();
+    await expect(sunIcon).not.toBeVisible();
   });
 });

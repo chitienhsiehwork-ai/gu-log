@@ -39,9 +39,13 @@ type ClaudeProvider struct {
 // calibration is version-sensitive — a silent Anthropic bump can change the LHY
 // persona. Keep this in sync with the PIN comments in
 // .claude/agents/tribunal-writer.md and .claude/agents/vibe-opus-scorer.md.
+//
+// The pin currently names the same build the alias resolves to; that is a
+// coincidence of timing, not a reason to collapse the two. The pin holds this
+// build when the alias moves on.
 const (
 	ClaudeOpusAlias  = "opus"
-	ClaudeOpusPinned = "claude-opus-4-5"
+	ClaudeOpusPinned = "claude-opus-5"
 )
 
 // NewClaudeOpus returns a ClaudeProvider wired to the floating Opus alias. Use
