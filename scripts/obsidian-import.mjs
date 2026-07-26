@@ -14,6 +14,8 @@
 //   author: "@foo on X"                # 選填
 //   tags: [ai-agent, memory]           # 選填
 //   originalDate: 2026-04-11            # 選填，省略 = 今天
+//   model: ""                          # 必填；用 detect-model.mjs 取得實際名稱
+//   harness: ""                        # 必填；記錄實際執行環境
 //   ---
 //
 //   這裡寫正文。Mogu / ShroomDog 的吐槽框用 Obsidian callout 語法：
@@ -75,6 +77,17 @@ function slugify(input) {
     .trim()
     .replace(/\s+/g, '-')
     .slice(0, 60);
+}
+
+function requireProvenance(draft, draftPath) {
+  if (typeof draft.model !== 'string' || draft.model.trim() === '') {
+    throw new Error(
+      `[${draftPath}] frontmatter 缺 model；請先用 node scripts/detect-model.mjs <model-id> 取得實際名稱`
+    );
+  }
+  if (typeof draft.harness !== 'string' || draft.harness.trim() === '') {
+    throw new Error(`[${draftPath}] frontmatter 缺 harness；請填寫實際執行環境`);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -185,33 +198,18 @@ function buildFrontmatter(draft, ticketId, _slug) {
   if (draft.author) fm.author = draft.author;
   if (draft.tags && draft.tags.length) fm.tags = draft.tags;
 
-  // GP/MP 需要 translatedBy；SD/Lv 給 Author pipeline
-  if (isOriginal) {
-    fm.translatedBy = {
-      model: draft.model || 'Opus 4.6',
-      harness: draft.harness || 'Claude Code',
-      pipeline: [
-        {
-          role: 'Author',
-          model: draft.model || 'Opus 4.6',
-          harness: draft.harness || 'Claude Code',
-        },
-      ],
-    };
-  } else {
-    // GP/MP：先給占位，使用者匯入後再照 detect-model.mjs 校正
-    fm.translatedBy = {
-      model: draft.model || 'Opus 4.6',
-      harness: draft.harness || 'Claude Code',
-      pipeline: [
-        {
-          role: 'Translator',
-          model: draft.model || 'Opus 4.6',
-          harness: draft.harness || 'Claude Code',
-        },
-      ],
-    };
-  }
+  const role = isOriginal ? 'Author' : 'Translator';
+  fm.translatedBy = {
+    model: draft.model,
+    harness: draft.harness,
+    pipeline: [
+      {
+        role,
+        model: draft.model,
+        harness: draft.harness,
+      },
+    ],
+  };
 
   if (draft.series_group) {
     fm.series = draft.series_group;
@@ -294,6 +292,9 @@ function importOne(draftPath, { dryRun = false } = {}) {
   if ((seriesKey === 'GP' || seriesKey === 'MP') && (!draft.source || !draft.sourceUrl)) {
     throw new Error(`[${draftPath}] ${seriesKey} 系列必填 source + sourceUrl`);
   }
+
+  // Provenance 不可猜測或回填占位值；必須在產生任何 MDX 之前明確提供。
+  requireProvenance(draft, draftPath);
 
   // 1. 決定 ticket id。Obsidian import 也遵守 PENDING SOP：
   //    真號只在 merge / deploy 前由 scripts/allocate-ticket.mjs 配發。

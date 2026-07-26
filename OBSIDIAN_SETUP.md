@@ -13,7 +13,8 @@ gu-log 的文章草稿有三種來源：
    - Mac 上跑 `pnpm run obsidian:import <draft.md>` 匯入成 MDX：
      - Callout → `<MoguNote>` / `<ShroomDogNote>` 元件
      - Wikilink → `/posts/...` 連結
-     - 自動補 frontmatter，先用 `PENDING` ticketId；merge 前再配真號
+     - 依草稿 metadata 建立 `translatedBy`，再補齊其餘 frontmatter
+     - 先用 `PENDING` ticketId；merge 前再配真號
      - 自動跑 `validate-posts.mjs`
    - 完整設定和 workflow 見本檔下方
 2. **VS Code / Cursor / coding agent 直接編 MDX**（手動 + AI 輔助）
@@ -70,6 +71,8 @@ title: "<% tp.file.title %>"
 summary: ""
 tags: []
 originalDate: <% tp.date.now("YYYY-MM-DD") %>
+model: ""
+harness: ""
 ---
 
 # <% tp.file.title %>
@@ -92,6 +95,8 @@ sourceUrl: "https://x.com/..."
 author: "@xxx"
 tags: []
 originalDate: <% tp.date.now("YYYY-MM-DD") %>
+model: ""
+harness: ""
 ---
 
 # 標題
@@ -109,7 +114,7 @@ Settings → Templater → **Template folder location** 設成 `_templates/`。�
 ### 在 iPhone / Mac 寫草稿
 
 1. Obsidian 新建筆記，套用 Templater 模板（SD / GP / MP / Lv）
-2. 填 `title` / `summary` / `tags`
+2. 填 `title` / `summary` / `tags`；provenance 依下一節在 import 前確認
 3. 正文用 markdown 寫，**不要手動寫 `<MoguNote>` component**——用 Obsidian callout 語法：
 
    ```markdown
@@ -126,6 +131,13 @@ Settings → Templater → **Template folder location** 設成 `_templates/`。�
 4. 連結到其他文章用 wikilink：`[[gp-100-xxx]]`，import 時會自動轉成 `/posts/gp-100-xxx`
 
 ### 在 Mac 上 import
+
+import 前必須把 provenance 填完整：
+
+- `model`：先在實際寫作或翻譯環境取得完整 model ID，再跑 `node scripts/detect-model.mjs "$ACTUAL_MODEL_ID"`，把輸出原樣貼入
+- `harness`：填實際執行寫作或翻譯的環境
+
+兩欄都必須是非空字串。缺少、不是字串或只有空白時，import 會在產生 dry-run MDX 或寫檔前以 exit code 1 停止；不會猜值，也不會先塞占位 provenance。
 
 ```bash
 # 預覽（不會寫檔，也不會碰 counter）
@@ -145,9 +157,10 @@ import 會自動做：
 
 - ✅ 產生 `src/content/posts/{series}-pending-{date}-{slug}.mdx`
 - ✅ 寫入 `ticketId: "{series}-PENDING"`，不 bump `scripts/article-counter.json`
+- ✅ 把草稿明確提供的 `model` + `harness` 寫進 `translatedBy`；SD/Lv 記為 `Author`，GP/MP 記為 `Translator`
 - ✅ Obsidian callout → `<MoguNote>` / `<ShroomDogNote>` 元件
 - ✅ Wikilink → `/posts/...` 連結
-- ✅ 自動加 frontmatter 必填欄位（`translatedBy`、`lang` 等）
+- ✅ 自動加其餘 frontmatter 必填欄位（`lang` 等）
 - ✅ 跑 `scripts/validate-posts.mjs` 確認沒爛
 
 `PENDING` 是 gu-log 的標準新文章流程：草稿、tribunal、修稿期間都先維持 `GP-PENDING` / `MP-PENDING` / `SD-PENDING` / `Lv-PENDING`，檔名也維持 `*-pending-*`。真的要上 main 前，才跑 `node scripts/allocate-ticket.mjs` 把 frontmatter 和檔名換成真號，並在那一步 bump `scripts/article-counter.json`。
@@ -204,7 +217,7 @@ Vercel 自動 deploy，幾分鐘後 `gu-log.vercel.app` 上線。
 - 別。iPhone 跑不動 node script，跑不動 tribunal。維持「iPhone = 寫 / Mac = 發布」分工。硬要在 iPhone 上做 git 只會讓你恨自己。
 
 **Q: Templater 太複雜，我想手打 frontmatter？**
-- 可以。最少欄位：`series` + `title` + `summary`（SD/Lv）；GP/MP 再加 `source` + `sourceUrl`。其餘 import script 會補。
+- 可以，照下方最小範例填；GP/MP 另外需要 `source` + `sourceUrl`。
 
 ## 草稿 frontmatter 最小範例
 
@@ -216,6 +229,8 @@ series: SD
 title: "我想寫的東西"
 summary: "這篇在講什麼"
 tags: [ai-agent]
+model: ""
+harness: ""
 ---
 
 正文開始。
@@ -236,6 +251,8 @@ sourceUrl: "https://x.com/karpathy/status/xxxxx"
 author: "@karpathy"
 tags: [ai, llm]
 originalDate: 2026-04-10
+model: ""
+harness: ""
 ---
 
 翻譯內文。
