@@ -38,6 +38,7 @@ describe('detect-model.formatModelName', () => {
     expect(formatModelName('claude-sonnet-4-6')).toBe('Sonnet 4.6');
     expect(formatModelName('claude-haiku-4-5')).toBe('Haiku 4.5');
     expect(formatModelName('gemini-3-pro')).toBe('Gemini 3 Pro');
+    expect(formatModelName('gpt-5.6-sol')).toBe('GPT-5.6-Sol');
     expect(formatModelName('gpt-5.3-codex')).toBe('GPT-5.3 Codex');
   });
 
