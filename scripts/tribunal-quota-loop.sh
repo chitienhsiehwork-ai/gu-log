@@ -65,6 +65,7 @@ CONTROLLER_ONCE=""
 # ─── Closed-loop controller constants ────────────────────────────────────────
 MIN_COOLDOWN="${MIN_COOLDOWN:-10}"        # seconds — floor for inter-article wait
 MAX_COOLDOWN="${MAX_COOLDOWN:-1800}"      # seconds (30 min) — fallback/legacy ceiling; burn-rate debt can sleep longer
+CONTROLLER_RECHECK_SEC="${CONTROLLER_RECHECK_SEC:-300}" # seconds — live quota/publisher re-check ceiling during debt waits
 FIVE_HOUR_WINDOW_SEC="${FIVE_HOUR_WINDOW_SEC:-18000}" # seconds (5 hours) — OpenAI short-window quota length
 WEEKLY_WINDOW_SEC="${WEEKLY_WINDOW_SEC:-604800}" # seconds (7 days) — OpenAI weekly quota length
 ARTICLE_COST_PCT="${ARTICLE_COST_PCT:-0.5}"   # % per article (cold start; EMA calibrates after ~5 articles)
@@ -92,6 +93,10 @@ done
 
 if ! [[ "$WORKERS" =~ ^[1-9][0-9]*$ ]]; then
   echo "ERROR: --workers must be a positive integer (got: $WORKERS)" >&2
+  exit 1
+fi
+if ! [[ "$CONTROLLER_RECHECK_SEC" =~ ^[1-9][0-9]*$ ]]; then
+  echo "ERROR: CONTROLLER_RECHECK_SEC must be a positive integer (got: $CONTROLLER_RECHECK_SEC)" >&2
   exit 1
 fi
 
@@ -1177,9 +1182,15 @@ while true; do
         wait_any_worker
         continue
       fi
-      tlog "Controller mode=$CONTROLLER_MODE; sleeping ${CONTROLLER_COOLDOWN}s (interruptible)."
-      rc_write_state "stopped_by_quota" "mode=${CONTROLLER_MODE} cooldown=${CONTROLLER_COOLDOWN}s binding=${CONTROLLER_BINDING}"
-      rc_interruptible_sleep "$CONTROLLER_COOLDOWN" || true
+      if ! CONTROLLER_WAIT_SEC=$(rc_bounded_wait_seconds "$CONTROLLER_COOLDOWN" "$CONTROLLER_RECHECK_SEC"); then
+        tlog "ERROR: invalid controller wait budget: cooldown=${CONTROLLER_COOLDOWN} recheck=${CONTROLLER_RECHECK_SEC}; holding workers and retrying safely."
+        rc_write_state "fallback" "invalid cooldown=${CONTROLLER_COOLDOWN} recheck=${CONTROLLER_RECHECK_SEC}"
+        rc_interruptible_sleep "$CONTROLLER_RECHECK_SEC" || true
+        continue
+      fi
+      tlog "Controller mode=$CONTROLLER_MODE; debt=${CONTROLLER_COOLDOWN}s, re-checking live quota in ${CONTROLLER_WAIT_SEC}s (interruptible)."
+      rc_write_state "stopped_by_quota" "mode=${CONTROLLER_MODE} cooldown=${CONTROLLER_COOLDOWN}s recheck=${CONTROLLER_WAIT_SEC}s binding=${CONTROLLER_BINDING}"
+      rc_interruptible_sleep "$CONTROLLER_WAIT_SEC" || true
       continue
     fi
 
