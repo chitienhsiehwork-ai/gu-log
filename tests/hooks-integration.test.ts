@@ -42,7 +42,7 @@ function makeFastHookEnv(argvLog?: string): NodeJS.ProcessEnv {
   for (const name of ['gitleaks', 'node', 'npx']) {
     const tool = path.join(bin, name);
     const body =
-      name === 'npx' && argvLog
+      (name === 'gitleaks' || name === 'npx') && argvLog
         ? '#!/bin/sh\nprintf \'%s\\0\' "$@" >> "$HOOK_ARGV_LOG"\nexit 0\n'
         : '#!/bin/sh\nexit 0\n';
     fs.writeFileSync(tool, body);
@@ -76,6 +76,31 @@ function runPrePush(repo: string, stdin: string) {
     encoding: 'utf-8',
   });
 }
+
+describe('pre-commit: Gitleaks staged scan', () => {
+  it('uses the supported git command with the staged index', () => {
+    const repo = makeFakeRepo();
+    fs.writeFileSync(path.join(repo, 'safe.txt'), 'safe content\n');
+    execSync('git add safe.txt', { cwd: repo });
+
+    const argvLog = path.join(repo, 'hook-argv.bin');
+    const r = spawnSync('bash', [path.join(REPO_ROOT, '.githooks', 'pre-commit')], {
+      cwd: repo,
+      env: makeFastHookEnv(argvLog),
+      encoding: 'utf-8',
+    });
+
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    const argv = fs.readFileSync(argvLog, 'utf-8').split('\0').filter(Boolean);
+    expect(argv.slice(0, 3)).toEqual(['git', '--staged', '--no-banner']);
+  });
+
+  it('keeps the installed and canonical hook copies byte-identical', () => {
+    expect(fs.readFileSync(path.join(REPO_ROOT, '.githooks', 'pre-commit'))).toEqual(
+      fs.readFileSync(path.join(REPO_ROOT, 'scripts', 'hooks', 'pre-commit'))
+    );
+  });
+});
 
 describe('pre-commit: tmp/ untracked guard (Step -0.5)', () => {
   it('blocks a tracked-file rename into ignored tmp/', () => {
