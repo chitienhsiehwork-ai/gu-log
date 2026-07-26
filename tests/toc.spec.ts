@@ -262,8 +262,14 @@ test.describe('Table of Contents', () => {
       await expect(page.locator('.toc-desktop')).toHaveAttribute('data-visible', 'false');
       await mobileToggle.click();
       await expect(mobileContainer).toHaveAttribute('data-open', 'true');
-      await page.evaluate(() => window.scrollTo(0, 2000));
-      await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(1500);
+      await expect
+        .poll(async () => {
+          await page.locator('.site-footer').scrollIntoViewIfNeeded();
+          return page
+            .locator('.post-header')
+            .evaluate((header) => header.getBoundingClientRect().bottom);
+        })
+        .toBeLessThan(0);
 
       await page.setViewportSize({ width: 1400, height: 900 });
       await expect
@@ -295,13 +301,15 @@ test.describe('Table of Contents', () => {
 
     test('GIVEN the desktop TOC is hidden WHEN tabbing past the source THEN hidden links are skipped until the TOC reveals', async ({
       page,
+      browserName,
     }) => {
       await page.goto(testPostUrl);
 
       const sourceCitation = page.locator('.source-citation');
       const firstDesktopLink = page.locator('.toc-desktop .toc-link').first();
+      const nextFocusKey = browserName === 'webkit' ? 'Alt+Tab' : 'Tab';
       await sourceCitation.focus();
-      await page.keyboard.press('Tab');
+      await page.keyboard.press(nextFocusKey);
       await expect(firstDesktopLink).not.toBeFocused();
       expect(
         await page.evaluate(() => document.activeElement?.closest('.toc-desktop') !== null)
@@ -311,7 +319,7 @@ test.describe('Table of Contents', () => {
       await sourceCitation.evaluate((element) => {
         (element as HTMLElement).focus({ preventScroll: true });
       });
-      await page.keyboard.press('Tab');
+      await page.keyboard.press(nextFocusKey);
       await expect(firstDesktopLink).toBeFocused();
     });
 

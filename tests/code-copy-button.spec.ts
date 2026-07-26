@@ -28,21 +28,20 @@ test.describe('Code copy button theme contract', () => {
       await page.evaluate((activeTheme) => {
         document.documentElement.dataset.theme = activeTheme;
       }, theme);
-      await page.waitForTimeout(250);
 
-      const styles = await buttons.first().evaluate((button) => {
+      const button = buttons.first();
+      await expect(button).toHaveCSS('background-color', expected[theme].background);
+      await expect(button).toHaveCSS('color', expected[theme].color);
+
+      const styles = await button.evaluate((button) => {
         const style = getComputedStyle(button);
         return {
-          background: style.backgroundColor,
-          color: style.color,
           opacity: style.opacity,
           hoverNone: matchMedia('(hover: none)').matches,
           overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
         };
       });
 
-      expect(styles.background, theme).toBe(expected[theme].background);
-      expect(styles.color, theme).toBe(expected[theme].color);
       expect(styles.opacity, theme).toBe(styles.hoverNone ? '1' : '0');
       expect(styles.overflow, theme).toBe(0);
 
