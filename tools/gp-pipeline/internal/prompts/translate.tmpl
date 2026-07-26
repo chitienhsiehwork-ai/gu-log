@@ -20,9 +20,12 @@ Translation rules (from GU-LOG_WRITER_PROMPT.md):
 Frontmatter changes required for the en version:
 - `lang: "en"` (the zh-tw source has `lang: "zh-tw"`)
 - `title`, `summary`, and any other free-text frontmatter fields: translate to English
-- `ticketId`, `sourceUrl`, `originalDate`, `translatedDate`, `translatedBy`, `tags`,
-  `series`, and any other structural/metadata fields: keep IDENTICAL to the zh-tw
-  source (do not translate identifiers, dates, or model/harness stamps)
+- `ticketId`, `sourceUrl`, `originalDate`, `tags`, `series`, and any other
+  structural/metadata fields: keep IDENTICAL to the zh-tw source
+- Do not synthesize `translatedDate` or the direct `translatedBy.model` /
+  `translatedBy.harness`; pipeline runtime writes them after translation.
+- Keep `translatedBy.pipeline` and `translatedBy.pipelineUrl` IDENTICAL to the
+  zh-tw source.
 
 Output requirements:
 - Write the translated article to a file named translated-en.mdx in the current

@@ -142,13 +142,15 @@ type State struct {
 	Filename   string
 	ENFilename string
 
-	// Per-stage model metadata for the credits frontmatter block.
-	WriteModel    string
-	WriteHarness  string
-	ReviewModel   string
-	ReviewHarness string
-	RefineModel   string
-	RefineHarness string
+	// Per-stage model metadata for frontmatter provenance and command reports.
+	WriteModel       string
+	WriteHarness     string
+	ReviewModel      string
+	ReviewHarness    string
+	RefineModel      string
+	RefineHarness    string
+	TranslateModel   string
+	TranslateHarness string
 
 	// Verdicts / outcomes.
 	CodexPrimaryVerdict string

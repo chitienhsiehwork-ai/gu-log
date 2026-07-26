@@ -190,6 +190,47 @@ body
 	}
 }
 
+func TestSetNestedScalar_DoesNotReplaceDeeperDescendant(t *testing.T) {
+	raw := []byte(`---
+title: "Hello"
+translatedBy:
+  pipeline:
+    - role: "Written"
+      model: "Historical Writer"
+      harness: "Historical Harness"
+  pipelineUrl: "https://example.com/pipeline"
+lang: "zh-tw"
+---
+body
+`)
+	f, err := Parse(raw)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+
+	f.SetNestedScalar("translatedBy", "model", `"Current Translator"`)
+	f.SetNestedScalar("translatedBy", "harness", `"Current Harness"`)
+	out := string(f.Bytes())
+
+	for _, want := range []string{
+		`  model: "Current Translator"`,
+		`  harness: "Current Harness"`,
+		`      model: "Historical Writer"`,
+		`      harness: "Historical Harness"`,
+		`  pipelineUrl: "https://example.com/pipeline"`,
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("output missing %q:\n%s", want, out)
+		}
+	}
+	if strings.Contains(out, `      model: "Current Translator"`) {
+		t.Fatalf("direct model stamp replaced the nested pipeline entry:\n%s", out)
+	}
+	if strings.Contains(out, `      harness: "Current Harness"`) {
+		t.Fatalf("direct harness stamp replaced the nested pipeline entry:\n%s", out)
+	}
+}
+
 func TestSetBlock_Replace(t *testing.T) {
 	raw := []byte(`---
 title: "Hello"

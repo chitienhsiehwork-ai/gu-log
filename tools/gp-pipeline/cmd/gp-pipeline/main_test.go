@@ -430,7 +430,7 @@ func TestRunRun_FromStepTranslateRequiresFile(t *testing.T) {
 	}
 }
 
-func TestRunCommand_FromStepTranslateReportsWrittenEnglishFile(t *testing.T) {
+func TestRunCommand_FromStepTranslateDryRunReportsSidecarAndSkipsGitMutations(t *testing.T) {
 	resetGlobals()
 	root := makeFakeRepo(t)
 	postsDir := filepath.Join(root, "src", "content", "posts")
@@ -438,15 +438,46 @@ func TestRunCommand_FromStepTranslateReportsWrittenEnglishFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	filename := "gp-10-20260723-recovery-roundtrip.mdx"
-	mustWrite(t, filepath.Join(postsDir, filename), `---
+	sourcePath := filepath.Join(postsDir, filename)
+	mustWrite(t, sourcePath, `---
 title: "Recovery roundtrip"
 ticketId: GP-10
+translatedDate: "2026-04-11"
+translatedBy:
+  model: "Old Translator"
+  harness: "Old Harness"
+lang: "zh-tw"
 ---
 中文內容。
 `)
+	sourceBefore, err := os.ReadFile(sourcePath)
+	if err != nil {
+		t.Fatal(err)
+	}
 	fakePath := filepath.Join(root, "fake-provider.json")
-	mustWrite(t, fakePath, `{"responses":[{"output":"---\ntitle: \"Recovery roundtrip\"\nticketId: GP-10\n---\nEnglish body.\n"}]}`)
+	mustWrite(t, fakePath, `{"model":"claude-opus-5","responses":[{"output":"---\ntitle: \"Recovery roundtrip\"\nticketId: GP-10\nlang: \"en\"\n---\nEnglish body.\n"}]}`)
 	t.Setenv("GU_LOG_DIR", root)
+
+	binDir := t.TempDir()
+	gitMarker := filepath.Join(t.TempDir(), "git-called")
+	gitPath := filepath.Join(binDir, "git")
+	gitStub := `#!/bin/sh
+set -eu
+for arg in "$@"; do
+  case "$arg" in
+    add|commit|push)
+      : > "$GIT_MARKER"
+      exit 99
+      ;;
+  esac
+done
+exit 0
+`
+	if err := os.WriteFile(gitPath, []byte(gitStub), 0o755); err != nil {
+		t.Fatalf("write fake git: %v", err)
+	}
+	t.Setenv("GIT_MARKER", gitMarker)
+	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 
 	cmd := buildRoot()
 	cmd.SetArgs([]string{
@@ -467,12 +498,44 @@ ticketId: GP-10
 	if report.ENFilename != want {
 		t.Fatalf("enFilename = %q, want written file %q", report.ENFilename, want)
 	}
+	if report.TranslateModel != "Opus 5" {
+		t.Fatalf("translateModel = %q, want Opus 5", report.TranslateModel)
+	}
+	if report.TranslateHarness != "Claude Code CLI" {
+		t.Fatalf("translateHarness = %q, want Claude Code CLI", report.TranslateHarness)
+	}
+	if !report.DryRun {
+		t.Fatal("run report should preserve dryRun=true")
+	}
 	info, err := os.Lstat(filepath.Join(postsDir, report.ENFilename))
 	if err != nil {
 		t.Fatalf("reported English file: %v", err)
 	}
 	if !info.Mode().IsRegular() {
 		t.Fatalf("reported English path mode = %s, want regular file", info.Mode())
+	}
+	sidecar, err := os.ReadFile(filepath.Join(postsDir, report.ENFilename))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		`translatedBy:`,
+		`  model: "Opus 5"`,
+		`  harness: "Claude Code CLI"`,
+	} {
+		if !strings.Contains(string(sidecar), want) {
+			t.Errorf("sidecar missing %q:\n%s", want, sidecar)
+		}
+	}
+	sourceAfter, err := os.ReadFile(sourcePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(sourceAfter) != string(sourceBefore) {
+		t.Fatalf("dry-run translation mutated zh source:\nbefore:\n%s\nafter:\n%s", sourceBefore, sourceAfter)
+	}
+	if _, err := os.Stat(gitMarker); !os.IsNotExist(err) {
+		t.Fatalf("dry-run invoked git mutation (add/commit/push must remain unreachable): %v", err)
 	}
 }
 

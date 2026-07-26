@@ -29,6 +29,8 @@ type runReport struct {
 	CodexVerdict        string         `json:"codexVerdict,omitempty"`
 	DedupVerdict        string         `json:"dedupVerdict,omitempty"`
 	RalphPassed         bool           `json:"ralphPassed,omitempty"`
+	TranslateModel      string         `json:"translateModel,omitempty"`
+	TranslateHarness    string         `json:"translateHarness,omitempty"`
 	Timings             map[string]int `json:"timings,omitempty"`
 	ElapsedMs           int64          `json:"elapsedMs"`
 	ErrorCode           int            `json:"errorCode,omitempty"`
@@ -240,6 +242,8 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 		CodexVerdict:        s.CodexVerdict,
 		DedupVerdict:        s.DedupVerdict,
 		RalphPassed:         s.RalphPassed,
+		TranslateModel:      s.TranslateModel,
+		TranslateHarness:    s.TranslateHarness,
 		Timings:             s.Timings,
 		ElapsedMs:           time.Since(start).Milliseconds(),
 		DryRun:              opts.DryRun,

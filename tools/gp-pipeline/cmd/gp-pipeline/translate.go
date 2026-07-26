@@ -18,6 +18,7 @@ type translateReport struct {
 	Step       string `json:"step"`
 	ENFilename string `json:"enFilename,omitempty"`
 	Model      string `json:"model,omitempty"`
+	Harness    string `json:"harness,omitempty"`
 	ElapsedMs  int64  `json:"elapsedMs"`
 	ErrorCode  int    `json:"errorCode,omitempty"`
 	Error      string `json:"error,omitempty"`
@@ -123,6 +124,8 @@ func runTranslate(ctx context.Context, state *rootState, opts translateCmdOpts) 
 	report := translateReport{
 		Step:       "translate",
 		ENFilename: s.ActiveENFilename,
+		Model:      s.TranslateModel,
+		Harness:    s.TranslateHarness,
 		ElapsedMs:  time.Since(start).Milliseconds(),
 	}
 	if err != nil {

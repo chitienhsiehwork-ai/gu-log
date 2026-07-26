@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/counter"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/frontmatter"
@@ -18,12 +19,11 @@ import (
 // MDX pair, but no Go step ever produced the en file — it was a fully
 // manual step a human/coordinating agent did by hand.
 //
-// Translate reuses the same writer LLM chain as Write/Refine
-// (ClaudeOpusPinned) to translate a tribunal-passed zh-tw article
-// (postsDir/s.ActiveFilename) into its en sidecar
-// (postsDir/s.ActiveENFilename), matching CONTRIBUTING.md's zh-tw-first
-// SOP: translation only happens AFTER the zh-tw article has passed the
-// tribunal, never on an unstable draft.
+// Translate reuses the same writer routing as Write/Refine to translate a
+// tribunal-passed zh-tw article (postsDir/s.ActiveFilename) into its en
+// sidecar (postsDir/s.ActiveENFilename), matching CONTRIBUTING.md's
+// zh-tw-first SOP: translation only happens AFTER the zh-tw article has passed
+// the tribunal, never on an unstable draft.
 //
 // When s.RalphPassed is false, Translate is normally a no-op (logged, not
 // an error) — Deploy keeps its existing best-effort semantics of shipping
@@ -74,6 +74,19 @@ func (s *State) Translate(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("translate: read %s: %w", sourcePath, err)
 	}
+	sourceFile, err := frontmatter.Parse(source)
+	if err != nil {
+		return fmt.Errorf("translate: parse source frontmatter: %w", err)
+	}
+	if raw, ok := sourceFile.GetScalar("translatedBy"); ok && raw != "" {
+		return fmt.Errorf("translate: source translatedBy must be a mapping, got %q", raw)
+	}
+	sourceTranslatedBy, ok := sourceFile.GetBlock("translatedBy")
+	if !ok {
+		// An absent source block means absent nested history. Start from an
+		// empty canonical mapping so generated provenance cannot invent one.
+		sourceTranslatedBy = "translatedBy:"
+	}
 
 	disp := s.writerDispatcher()
 	if disp == nil {
@@ -87,12 +100,20 @@ func (s *State) Translate(ctx context.Context) error {
 		return fmt.Errorf("translate: render prompt: %w", err)
 	}
 
+	translatedPath := filepath.Join(s.WorkDir, "translated-en.mdx")
+	// A caller may intentionally reuse --work-dir while recovering a run.
+	// Remove the previous canonical output before dispatch so a provider that
+	// returns stdout without writing a file cannot inherit stale prose and
+	// receive this invocation's provenance stamp.
+	if err := os.Remove(translatedPath); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("translate: clear stale %s before invocation: %w", translatedPath, err)
+	}
+
 	res, err := disp.Run(ctx, prompt, llm.RunOptions{WorkDir: s.WorkDir})
 	if err != nil {
 		return NewStepError(14, fmt.Errorf("translate: dispatcher failed: %w", err))
 	}
 
-	translatedPath := filepath.Join(s.WorkDir, "translated-en.mdx")
 	translated, statErr := os.ReadFile(translatedPath)
 	if statErr != nil || len(translated) == 0 {
 		if len(res.Output) == 0 {
@@ -100,6 +121,26 @@ func (s *State) Translate(ctx context.Context) error {
 		}
 		translated = []byte(res.Output)
 	}
+
+	s.TranslateModel = llm.DisplayName(res.ActualModel)
+	s.TranslateHarness = llm.HarnessName(res.ActualModel)
+	s.TranslatedDate = time.Now().Format("2006-01-02")
+
+	translatedFile, err := frontmatter.Parse(translated)
+	if err != nil {
+		return fmt.Errorf("translate: parse generated English frontmatter: %w", err)
+	}
+	if raw, ok := translatedFile.GetScalar("translatedBy"); ok && raw != "" {
+		return fmt.Errorf("translate: generated translatedBy must be a mapping, got %q", raw)
+	}
+	// The model is not authoritative for provenance. Restore the canonical
+	// nested history from the zh-tw source, then stamp only this invocation's
+	// direct translator fields and date.
+	translatedFile.SetBlock("translatedBy", sourceTranslatedBy)
+	translatedFile.SetScalar("translatedDate", frontmatter.QuoteScalar(s.TranslatedDate))
+	translatedFile.SetNestedScalar("translatedBy", "model", frontmatter.QuoteScalar(s.TranslateModel))
+	translatedFile.SetNestedScalar("translatedBy", "harness", frontmatter.QuoteScalar(s.TranslateHarness))
+	translated = translatedFile.Bytes()
 
 	if s.ActiveENFilename == "" {
 		s.ActiveENFilename = "en-" + s.ActiveFilename
@@ -109,7 +150,7 @@ func (s *State) Translate(ctx context.Context) error {
 		return fmt.Errorf("translate: write %s: %w", enPath, err)
 	}
 
-	s.Log.OK("Step 4.8: %s written by %s", s.ActiveENFilename, llm.DisplayName(res.ActualModel))
+	s.Log.OK("Step 4.8: %s written by %s", s.ActiveENFilename, s.TranslateModel)
 	return nil
 }
 

@@ -51,6 +51,10 @@ tools/gp-pipeline/gp-pipeline run '<url>' --prefix GP --dry-run
 # 已確認 evaluator 的 false negative；仍會跑 dedup
 tools/gp-pipeline/gp-pipeline run '<url>' --prefix GP --force
 
+# 只補翻譯供人工檢查：寫出 en sidecar + 輸出 JSON report，但不 deploy／commit／push
+tools/gp-pipeline/gp-pipeline --json run --from-step translate \
+  --file <existing-zh-filename>.mdx --dry-run
+
 # 已人工確認是 dedup false positive 才可使用
 tools/gp-pipeline/gp-pipeline run '<url>' --prefix GP --skip-dedup
 
@@ -99,7 +103,7 @@ tools/gp-pipeline/gp-pipeline run --file gp-259-example.mdx --from-step review -
 - `translate` 只寫一個新的 en- sidecar 檔，不 commit、不 push。
 - standalone `deploy` 會為全新 PENDING article 配置 ticket、rename pending 檔、validate、build、commit、push；`--date-stamp`、`--author-slug`、`--title-slug` 都是必填輸入。
 - standalone `deploy --dry-run` 只做 CLI 輸入預檢，不跑 validator，也不做 counter、檔案、build 或 git 異動；不得用它假裝完成發布。
-- `run --dry-run` 會停在 deploy 前。`--skip-validate`、`--skip-build`、`--skip-push` 是 testing-only flags；standalone deploy 正常執行不支援前兩者，standalone dry-run 也不會執行它們所對應的階段。
+- `run --dry-run` 會跑完 translate、保留產生的 en sidecar 與 report，然後停在 deploy 前；不配置 ticket、不 validate/build，也不 commit/push。`--skip-validate`、`--skip-build`、`--skip-push` 是 testing-only flags；standalone deploy 正常執行不支援前兩者，standalone dry-run 也不會執行它們所對應的階段。
 
 批准、自主權與品質門檻以 repo 的 `AGENTS.md` 為 Tier-0 SSOT。先用 `./scripts/detect-env.sh --runtime <codex|claude-code>` 確認身份，再遵守它選出的 runtime playbook；本 skill 不另行定義批准規則。
 

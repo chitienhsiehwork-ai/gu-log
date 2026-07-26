@@ -169,6 +169,17 @@ func TestRender_TranslateNamesDistinctMDXComponents(t *testing.T) {
 	if strings.Contains(out, "MoguNote, "+"MoguNote") {
 		t.Fatal("translate prompt repeats MoguNote instead of naming the supported components")
 	}
+	for _, want := range []string{
+		"pipeline runtime writes them after translation",
+		"`translatedBy.pipeline` and `translatedBy.pipelineUrl` IDENTICAL",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("translate prompt missing provenance boundary %q", want)
+		}
+	}
+	if strings.Contains(out, "structurally valid") {
+		t.Fatal("translate prompt still delegates ambiguous provenance structure to the model")
+	}
 }
 
 func TestRender_MissingKey_Errors(t *testing.T) {

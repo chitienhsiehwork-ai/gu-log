@@ -28,8 +28,13 @@ When translating an article, update metadata as follows:
 - **Language Flag:** Change `lang: "zh-tw"` to `lang: "en"`.
 - **Title & Summary:** Translate `title` and `summary` into natural English.
 - **Translated Date:** Update `translatedDate` to the current translation date.
+- **Translation Provenance:** Set `translatedBy.model` and `translatedBy.harness` to
+  the actual translator invocation. Keep `translatedBy.pipeline` and
+  `translatedBy.pipelineUrl` identical to the source.
 - **Preservation Rule:** Keep all other frontmatter fields identical to source.
-  - Allowed changes are only translation metadata: `lang`, `title`, `summary`, `translatedDate`, and filename prefix.
+  - Allowed changes are only translation metadata: `lang`, `title`, `summary`,
+    `translatedDate`, `translatedBy.model`, `translatedBy.harness`, and filename
+    prefix.
 
 ## 5. Commentary Components
 The current reader-facing commentary components are `<MoguNote>` for every series and `<ShroomDogNote>` for SD originals only.
@@ -63,7 +68,9 @@ These are mandatory:
 - [ ] Tone and energy match the source.
 - [ ] Kaomoji are preserved exactly as in source.
 - [ ] Technical terms and product names are accurate and consistent.
-- [ ] Frontmatter changes are limited to `lang`, `title`, `summary`, `translatedDate`, and filename prefix.
+- [ ] Frontmatter changes are limited to `lang`, `title`, `summary`,
+      `translatedDate`, `translatedBy.model`, `translatedBy.harness`, and filename
+      prefix.
 - [ ] Code blocks, inline code, and URLs are unchanged.
 - [ ] Subjects/tenses/modality are corrected for natural English without changing confidence.
 - [ ] No markdown tables are used.
