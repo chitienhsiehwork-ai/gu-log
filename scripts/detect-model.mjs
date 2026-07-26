@@ -64,6 +64,7 @@ export const MODEL_MAP = {
   'gemini-2.5-flash': 'Gemini 2.5 Flash',
   'gemini-3-pro': 'Gemini 3 Pro',
   // OpenAI Codex
+  'gpt-5.6-sol': 'GPT-5.6-Sol',
   'gpt-5.5': 'GPT-5.5',
   'gpt-5.4': 'GPT-5.4',
   'gpt-5.3-codex': 'GPT-5.3 Codex',
