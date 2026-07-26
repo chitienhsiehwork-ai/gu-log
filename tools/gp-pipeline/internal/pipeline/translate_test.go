@@ -501,3 +501,110 @@ FRESH BODY FROM THIS INVOCATION
 		}
 	}
 }
+
+func TestRewriteEnglishGlossaryTargets_OnlyRewritesBodyProse(t *testing.T) {
+	input := []byte(`---
+title: "Keep /glossary#frontmatter"
+summary: "Also keep /glossary#summary"
+lang: "en"
+---
+Read [Agent](/glossary#agent) and /glossary#raw-route.
+Already English: [MCP](/en/glossary#mcp).
+Inline code: ` + "`/glossary#inline-code`" + `.
+External URLs stay exact:
+- https://example.com/glossary#external
+- https://gu-log.vercel.app/glossary#absolute-internal
+- //cdn.example.com/glossary#protocol-relative
+- docs.example.com/glossary#bare-external
+
+<Card
+  href="/glossary#component-attribute"
+  label="Keep this structural target"
+>
+
+` + "```md" + `
+[Code fence](/glossary#fenced)
+` + "```" + `
+
+~~~txt
+/glossary#tilde-fence
+~~~
+`)
+
+	got, err := rewriteEnglishGlossaryTargets(input)
+	if err != nil {
+		t.Fatalf("rewriteEnglishGlossaryTargets: %v", err)
+	}
+	want := `---
+title: "Keep /glossary#frontmatter"
+summary: "Also keep /glossary#summary"
+lang: "en"
+---
+Read [Agent](/en/glossary#agent) and /en/glossary#raw-route.
+Already English: [MCP](/en/glossary#mcp).
+Inline code: ` + "`/glossary#inline-code`" + `.
+External URLs stay exact:
+- https://example.com/glossary#external
+- https://gu-log.vercel.app/glossary#absolute-internal
+- //cdn.example.com/glossary#protocol-relative
+- docs.example.com/glossary#bare-external
+
+<Card
+  href="/glossary#component-attribute"
+  label="Keep this structural target"
+>
+
+` + "```md" + `
+[Code fence](/glossary#fenced)
+` + "```" + `
+
+~~~txt
+/glossary#tilde-fence
+~~~
+`
+	if string(got) != want {
+		t.Fatalf("rewrite mismatch:\n--- got ---\n%s\n--- want ---\n%s", got, want)
+	}
+	again, err := rewriteEnglishGlossaryTargets(got)
+	if err != nil {
+		t.Fatalf("second rewriteEnglishGlossaryTargets: %v", err)
+	}
+	if string(again) != string(got) {
+		t.Fatalf("rewrite is not idempotent:\n--- first ---\n%s\n--- second ---\n%s", got, again)
+	}
+}
+
+func TestTranslate_NormalizesEnglishGlossaryTargetsBeforeWritingSidecar(t *testing.T) {
+	s, fake, postsDir := newTranslateTestState(t)
+	s.RalphPassed = true
+	fake.ModelID = llm.ModelID("claude-opus-5")
+
+	fake.WithResponses(llm.FakeResponse{Output: `---
+title: "Fake Title"
+ticketId: "GP-252"
+lang: "en"
+sourceUrl: "https://example.com/glossary#source"
+---
+Read [Agent](/glossary#agent), not ` + "`/glossary#inline`" + `.
+`})
+
+	if err := s.Translate(context.Background()); err != nil {
+		t.Fatalf("Translate: %v", err)
+	}
+	sidecar, err := os.ReadFile(filepath.Join(postsDir, s.ActiveENFilename))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		`sourceUrl: "https://example.com/glossary#source"`,
+		`[Agent](/en/glossary#agent)`,
+		"`/glossary#inline`",
+	} {
+		if !strings.Contains(string(sidecar), want) {
+			t.Fatalf("sidecar missing %q:\n%s", want, sidecar)
+		}
+	}
+	if strings.Contains(string(sidecar), `[Agent](/glossary#agent)`) {
+		t.Fatalf("sidecar kept the zh-tw glossary target:\n%s", sidecar)
+	}
+}

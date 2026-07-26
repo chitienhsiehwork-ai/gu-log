@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -141,6 +142,10 @@ func (s *State) Translate(ctx context.Context) error {
 	translatedFile.SetNestedScalar("translatedBy", "model", frontmatter.QuoteScalar(s.TranslateModel))
 	translatedFile.SetNestedScalar("translatedBy", "harness", frontmatter.QuoteScalar(s.TranslateHarness))
 	translated = translatedFile.Bytes()
+	translated, err = rewriteEnglishGlossaryTargets(translated)
+	if err != nil {
+		return fmt.Errorf("translate: normalize English glossary targets: %w", err)
+	}
 
 	if s.ActiveENFilename == "" {
 		s.ActiveENFilename = "en-" + s.ActiveFilename
@@ -152,6 +157,182 @@ func (s *State) Translate(ctx context.Context) error {
 
 	s.Log.OK("Step 4.8: %s written by %s", s.ActiveENFilename, s.TranslateModel)
 	return nil
+}
+
+// rewriteEnglishGlossaryTargets enforces the stable glossary language-routing
+// contract after the model returns an English sidecar. The model is allowed to
+// preserve Markdown structure from the zh-tw source, but reader-facing
+// /glossary# links in English prose must point at /en/glossary#. Frontmatter,
+// fenced code, inline code, raw MDX tags, external URLs, and already-canonical
+// English targets remain byte-for-byte unchanged.
+func rewriteEnglishGlossaryTargets(content []byte) ([]byte, error) {
+	parsed, err := frontmatter.Parse(content)
+	if err != nil {
+		return nil, err
+	}
+	body := parsed.Body()
+	rewritten := rewriteGlossaryTargetsInBody(body)
+	if bytes.Equal(body, rewritten) {
+		return content, nil
+	}
+
+	bodyStart := len(content) - len(body)
+	out := make([]byte, 0, bodyStart+len(rewritten))
+	out = append(out, content[:bodyStart]...)
+	out = append(out, rewritten...)
+	return out, nil
+}
+
+func rewriteGlossaryTargetsInBody(body []byte) []byte {
+	lines := bytes.SplitAfter(body, []byte("\n"))
+	var out bytes.Buffer
+	out.Grow(len(body))
+
+	var fenceChar byte
+	var fenceWidth int
+	var tag markdownTagState
+	for _, line := range lines {
+		char, width, isFence := markdownFence(line)
+		if fenceChar != 0 {
+			out.Write(line)
+			if isFence && char == fenceChar && width >= fenceWidth {
+				fenceChar = 0
+				fenceWidth = 0
+			}
+			continue
+		}
+		if isFence {
+			fenceChar = char
+			fenceWidth = width
+			out.Write(line)
+			continue
+		}
+		out.Write(rewriteGlossaryTargetsInProseLine(line, &tag))
+	}
+	return out.Bytes()
+}
+
+func markdownFence(line []byte) (char byte, width int, ok bool) {
+	i := 0
+	for i < len(line) && i < 4 && line[i] == ' ' {
+		i++
+	}
+	if i > 3 || i >= len(line) || (line[i] != '`' && line[i] != '~') {
+		return 0, 0, false
+	}
+	char = line[i]
+	for i+width < len(line) && line[i+width] == char {
+		width++
+	}
+	return char, width, width >= 3
+}
+
+type markdownTagState struct {
+	active bool
+	quote  byte
+}
+
+func rewriteGlossaryTargetsInProseLine(line []byte, tag *markdownTagState) []byte {
+	const zhTarget = "/glossary#"
+	const enTarget = "/en/glossary#"
+
+	var out bytes.Buffer
+	out.Grow(len(line))
+	for i := 0; i < len(line); {
+		if tag.active {
+			ch := line[i]
+			out.WriteByte(ch)
+			i++
+			if tag.quote != 0 {
+				if ch == tag.quote {
+					tag.quote = 0
+				}
+				continue
+			}
+			if ch == '"' || ch == '\'' {
+				tag.quote = ch
+			} else if ch == '>' {
+				tag.active = false
+			}
+			continue
+		}
+		if bytes.HasPrefix(line[i:], []byte("https://")) || bytes.HasPrefix(line[i:], []byte("http://")) {
+			end := i
+			for end < len(line) && line[end] != ' ' && line[end] != '\t' && line[end] != '\r' && line[end] != '\n' {
+				end++
+			}
+			out.Write(line[i:end])
+			i = end
+			continue
+		}
+		if line[i] == '`' {
+			width := 1
+			for i+width < len(line) && line[i+width] == '`' {
+				width++
+			}
+			end := findClosingBacktickRun(line, i+width, width)
+			if end < 0 {
+				out.Write(line[i:])
+				break
+			}
+			out.Write(line[i:end])
+			i = end
+			continue
+		}
+		if line[i] == '<' && startsMarkdownTag(line, i) {
+			tag.active = true
+			out.WriteByte(line[i])
+			i++
+			continue
+		}
+		if bytes.HasPrefix(line[i:], []byte(zhTarget)) && isGlossaryTargetBoundary(line, i) {
+			out.WriteString(enTarget)
+			i += len(zhTarget)
+			continue
+		}
+		out.WriteByte(line[i])
+		i++
+	}
+	return out.Bytes()
+}
+
+func startsMarkdownTag(line []byte, i int) bool {
+	if i+1 >= len(line) {
+		return false
+	}
+	next := line[i+1]
+	return next == '/' || next == '!' || next == '?' ||
+		(next >= 'A' && next <= 'Z') || (next >= 'a' && next <= 'z')
+}
+
+func isGlossaryTargetBoundary(line []byte, i int) bool {
+	if i == 0 {
+		return true
+	}
+	switch line[i-1] {
+	case ' ', '\t', '\r', '\n', '(', '[', '{', '"', '\'', '=', ':', '>':
+		return true
+	default:
+		return false
+	}
+}
+
+func findClosingBacktickRun(line []byte, start, width int) int {
+	for i := start; i < len(line); {
+		if line[i] != '`' {
+			i++
+			continue
+		}
+		run := 1
+		for i+run < len(line) && line[i+run] == '`' {
+			run++
+		}
+		if run == width {
+			return i + run
+		}
+		i += run
+	}
+	return -1
 }
 
 // ValidateTranslationFilenames binds a zh-tw source filename and its optional

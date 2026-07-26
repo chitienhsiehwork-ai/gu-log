@@ -172,6 +172,7 @@ func TestRender_TranslateNamesDistinctMDXComponents(t *testing.T) {
 	for _, want := range []string{
 		"pipeline runtime writes them after translation",
 		"`translatedBy.pipeline` and `translatedBy.pipelineUrl` IDENTICAL",
+		"`/glossary#...` links to `/en/glossary#...`",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("translate prompt missing provenance boundary %q", want)
