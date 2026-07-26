@@ -1,0 +1,146 @@
+---
+ticketId: "MP-268"
+title: "Claude Code’s Terminal Revolution—How a Virtual Viewport Turned the CLI into an IDE"
+originalDate: "2026-04-02"
+translatedBy:
+  model: "GPT-5.6-Sol"
+  harness: "Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@trq212 on X"
+sourceUrl: "https://x.com/trq212/status/2039453692592873587"
+lang: "en"
+summary: "The Claude Code team rewrote its terminal renderer, using a virtual viewport to deliver flicker-free output, mouse support, and a pinned input box—turning the terminal into a real app."
+tags: ["claude-code","terminal-ui","developer-tools"]
+translatedDate: "2026-07-26"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+Anyone who has used [Claude Code](/en/glossary#claude-code) probably shares the same painful memory: you ask a big question, Claude Code starts spewing output, and the whole screen starts thrashing around uncontrollably. Your [prompt](/en/glossary#prompt) gets shoved off somewhere, and if you want to type something to interrupt it, you first have to figure out where the cursor went. It is 2026. AI can help refactor an entire codebase, but it still cannot display text without the screen going haywire?
+
+The absurd part is that the problem is not Claude Code itself. It is the terminal, an interface designed fifty years ago. The terminal’s worldview is that of a typewriter: text comes out one line at a time, the paper trail gets longer and longer, and no one ever imagined that an AI would be sitting on top of it, generating thousands of words in real time.
+
+Anthropic’s [Thariq](/en/glossary#thariq) (@trq212) announced it directly on X on April 1: “Not an April Fools’ joke—Anthropic rewrote Claude Code’s renderer.”
+
+<MoguNote>
+“Not an April Fools’ joke”—if you post something like this on April 1 without that line, half the audience will probably scroll straight past it. But seriously, how bad was Claude Code’s flicker problem before this? A patch in December 2025 had already reduced flickering by 85%, and people were still complaining. Apparently, the remaining 15% was the part that drove everyone truly mad. It is like the difference between having one cockroach in your home and having a hundred: the real torment is not the number, but knowing there is still one in there and being unable to find it ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## The Typewriter’s Curse
+
+To understand why this update is a “revolution” rather than a “patch,” you first have to understand the terminal’s fatal limitation.
+
+Traditional terminal programs run on a **scrollback buffer**: every new line of output pushes downward, while the old content scrolls upward. That made perfect sense when the mechanism was designed in the 1970s. Back then, a terminal was a typewriter. It printed one line at a time, and once a line was out, it was out. But scrollback has one limitation that did not matter then and is fatal in 2026: **the terminal does not know what is currently visible on the screen**. All it knows is how many lines it has printed so far.
+
+So when Claude Code needs to update something onscreen—a spinning indicator, a moving progress bar, an expanding diff—it has no choice but to print the entire block again. The result is flicker. It is not that Claude Code was badly written. The typewriter model was simply never designed to do this.
+
+All right, if the typewriter model is the root of the problem, what did Anthropic choose to do? Add more duct tape to the typewriter?
+
+No. They threw the typewriter away.
+
+---
+
+## From Typewriter to Television
+
+The core idea behind the new renderer can be summed up in one sentence: **stop pretending the terminal is a typewriter and treat it like a television instead.**
+
+Technically, the new renderer uses an **alternate screen buffer**—the same trick used by “full-screen” terminal programs such as vim and htop. When you open vim, your original terminal screen is temporarily saved while vim takes over the entire display; close vim, and the old screen comes back. Claude Code now does exactly the same thing: it takes over the whole display and decides what every pixel—no, every character—should show.
+
+That means Claude Code is no longer “throwing strings at stdout and praying the terminal displays them properly.” It manages its own virtual screen and renders only what is currently visible. Messages outside the viewport? They are not rendered and take up no memory. Need to update something? Only the cells that changed are redrawn; everything else stays put.
+
+<MoguNote>
+The full rendering pipeline looks like this: React → layout elements → rasterize into a 2D screen buffer → diff the previous and current frames → output only the ANSI sequences that changed. Is this not just the browser’s virtual DOM diffing transplanted into a terminal? Anyone from the React ecosystem will find this both absurd and strangely familiar. React conquered the web, then mobile, then VR, and now it refuses to leave the terminal alone. What comes next, React for microwaves? (⌐■_■)
+</MoguNote>
+
+But the “television model” brings more than zero flicker. Once Claude Code controls the entire screen, many things that used to be impossible suddenly become obvious.
+
+---
+
+## Once You Control the Screen, Things Get Interesting
+
+Zero flicker is a technical achievement, but the next two changes are what truly transform the user experience.
+
+**First: the prompt stays pinned to the bottom.** Claude Code’s prompt used to scroll along with the output. As Claude responded, the prompt would get pushed right off the screen. You had to wait until it finished before you could return to the bottom and keep typing. Now the prompt remains permanently anchored at the bottom. Claude’s output scrolls above it while the input area stays still. This is how every modern messaging app works—LINE, [Slack](/en/glossary#slack), Discord. Messages grow upward; the input box does not move. So why did a tool that is fundamentally about “chatting with AI” use a typewriter model before? Because it lived in the terminal, and the terminal defaults to behaving like a typewriter. That shackle has now been broken.
+
+<MoguNote>
+There is a deeply counterintuitive insight here: “pin the input box to the bottom” would probably be a first-week exercise in any GUI framework, yet doing it in a terminal required rewriting the entire renderer. That is the power of the typewriter’s curse. It is not that the feature cannot be built; the assumptions underneath the whole system do not permit it. Sometimes the simplest feature demands the most fundamental architectural change. Software engineering keeps teaching us that lesson over and over again (¬‿¬)
+</MoguNote>
+
+**Second: the mouse works.** Yes, a mouse in the terminal. Click anywhere in the prompt to move the cursor there. If Claude invokes a tool and dumps an overly long block of output, click to collapse it. Drag to select text and it is automatically copied to the clipboard. Double-click to select a word, triple-click to select a line, just like in a regular editor. You can even adjust the scroll-wheel speed with the `CLAUDE_CODE_SCROLL_SPEED` environment variable.
+
+<MoguNote>
+Using a mouse in the terminal sounds like preaching to the vim faithful: technically unobjectionable, spiritually unacceptable. But think seriously about the actual use case. Talking to an AI is not the same as writing code. You are reading piles of tool output and long-form responses. Insisting on keyboard navigation here is like insisting on typing a Netflix search with the remote. You can, but why would you? Match the tool to the situation. That is not betraying the keyboard; it is respecting efficiency (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+If you do not want mouse support—perhaps you are a heavy tmux user and need tmux’s own mouse behavior—you can enable flicker-free rendering without enabling the mouse:
+
+```bash
+CLAUDE_CODE_DISABLE_MOUSE=1 CLAUDE_CODE_NO_FLICKER=1 claude
+```
+
+---
+
+## Game-Engine Levels of Performance Anxiety
+
+Of course, “taking over the whole screen” sounds great, but it raises a very practical question: can performance keep up? If the terminal has to recalculate the entire virtual screen on every frame, have we merely traded flicker hell for stutter hell?
+
+An Anthropic terminal user interface (TUI) engineer revealed the answer on Hacker News. For a terminal to “feel smooth,” the rendering budget for each frame is roughly **16 milliseconds** (60 fps). The goal is to squeeze the rendering core into **about 5 milliseconds**, leaving the other 11 milliseconds for everything else.
+
+Two key techniques make that possible. The first is **memoization**: if a piece of content has not changed, do not recalculate its layout; use the cache. The second is a **TypedArray screen buffer**. The old buffer used ordinary JavaScript objects and arrays, creating huge numbers of short-lived objects on every update and forcing V8’s garbage collector to run constantly. Every GC pass caused a brief hitch onscreen. With a TypedArray, memory is preallocated as one contiguous block, so the GC barely needs to get involved.
+
+<MoguNote>
+The TypedArray trick is essentially a way to simulate C-style memory management in JavaScript. Preallocate a fixed-size contiguous block of memory, give each cell a fixed number of bytes, and generate no GC pressure. That is common in web versions of game engines, but this may be the first time I have seen it used in a terminal renderer. The fact that a terminal app now calls for performance strategies on the same level as a 3D game engine says everything about how far Claude Code is pushing the terminal ╰(°▽°)╯
+</MoguNote>
+
+And because it renders only the messages that are currently visible, memory and CPU usage remain steady even after hundreds of turns. The nightmare of conversations growing more sluggish as the scrollback grew longer is officially over.
+
+---
+
+## Is a Terminal Still a Terminal?
+
+Put this update in a broader context and something interesting emerges.
+
+In December 2025, Claude Code shipped a flicker-reduction patch that cut flickering by 85% while keeping the old architecture. It was a “best effort” fix within the typewriter model—the duct tape was beautifully applied, but the typewriter was still a typewriter.
+
+This time? The typewriter went straight to the museum. Claude Code moved from a scrollback buffer to a virtual viewport, from passively emitting output to actively managing the screen, and from a plain-text stream to an interactive 2D render surface. The React → layout → rasterize → diff → ANSI rendering pipeline is essentially a miniature GUI framework built inside the terminal.
+
+That answers one of the most fundamental questions in the AI coding assistant space: **where should these tools live?** In an IDE extension? A standalone desktop app? A web app? Anthropic’s answer is: the terminal—but with an experience that catches up to the GUI. The strategy is clear. The terminal is developers’ most familiar environment and has the lowest barrier to entry, but its UX ceiling has always been low. Rather than changing battlefields, Anthropic tore off the ceiling.
+
+<MoguNote>
+This strategic choice deserves more attention than the technical details. Cursor chose the IDE. Windsurf chose the IDE. Devin chose the web app. Nearly every competitor is saying, “Developers need a richer GUI experience.” Anthropic deliberately went the other way: instead of pulling developers into the GUI world, it pushed GUI capabilities into the terminal world. It is a bet that the terminal’s distribution advantage—every computer has one, every developer knows how to use one—matters more than the GUI’s experiential advantage. Judging by this update, that bet is holding up so far (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧
+</MoguNote>
+
+---
+
+## Closing Thoughts
+
+In the announcement, [Boris Cherny](/en/glossary#boris-cherny), an Anthropic engineer, described it precisely: “Living within the constraints of the terminal renderer while delivering a richer, higher-performance experience.” The renderer is still in its early days and comes with tradeoffs—but most internal users at Anthropic already cannot go back to the old version.
+
+The minimum version is v2.1.89, and you can try it with a single command:
+
+```bash
+CLAUDE_CODE_NO_FLICKER=1 claude
+```
+
+Fifty years ago, the terminal was designed as a typewriter. In 2026, someone decided not to accept that premise anymore. Search with `Ctrl+o` → `/`; tmux is supported, except for iTerm2’s `-CC` mode; and if you do not like it, you can turn it off at any time. But you probably will not want to. After all, once you have used a chat app, who wants to go back to a typewriter? (◕‿◕)
