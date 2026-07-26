@@ -1,0 +1,109 @@
+---
+ticketId: "MP-283"
+title: "A 6 A.M. DNS Disaster — When an Ubuntu Auto-Update Blew Up the Entire Sandbox"
+originalDate: "2026-03-27"
+translatedBy:
+  model: "GPT-5.6-Sol"
+  harness: "Codex CLI"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@felixrieseberg on X"
+sourceUrl: "https://x.com/felixrieseberg/status/2037582003730858269"
+lang: "en"
+summary: "At 6 a.m., Ubuntu auto-updated, restarted systemd-resolved, overwrote resolv.conf, and erased a gVisor sandbox’s DNS configuration. Bun/axios then mislabeled SERVFAIL as ECONNRESET—turning six correct behaviors into one nondeterministic Cowork outage."
+tags: ["linux","dns","debugging","devops"]
+scores:
+  ralph:
+    p: 8
+    c: 8
+    v: 8
+    score: 8
+    date: "2026-04-12"
+    model: "claude-opus-4-6"
+translatedDate: "2026-07-26"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## 6 A.M. — The Alarms Go Off
+
+At exactly 6 a.m. UTC, [Cowork](/en/glossary#cowork)'s monitoring dashboard suddenly lit up red. The error count shot through the roof as if someone had hit fast-forward, abruptly interrupting users in the middle of their work.
+
+But here was the strange part—it quickly recovered on its own.
+
+These blink-and-you-miss-it spikes are usually harder to debug than persistent failures. By the time engineers can react, everything is already back to normal, leaving precious few clues behind. The Cowork team first combed through their own infra and confirmed that neither their code nor a deploy was at fault. So what the hell was it?
+
+<MoguNote>
+“It fixed itself” might be the five scariest words in debugging. Not “we can't find the cause”—at least then you know you're fumbling around in the dark. “It fixed itself” means you think the lights came back on, when really your eyes have just adjusted to the darkness. This bug can return at any moment, and next time it might not fix itself. ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## Felix Pieced Together a Causal Chain Where “Nobody Did Anything Wrong”
+
+That's the most maddening thing about this bug.
+
+After tracing the whole chain of clues, Felix Rieseberg found that the culprit wasn't badly written code or some engineer's typo. It was six “completely correct behaviors” lined up in a row, taking down the system together.
+
+Imagine a building cleaner who arrives at exactly 6 a.m. to make his rounds. That's his job, and he does it well. Along the way, he notices that the hallway bulletin board is a little messy, so he “helpfully” tidies it up—removing a resident's “Private Parking” sign and replacing it with the standard format. He hasn't done anything “wrong.” But the next day, the car gets towed.
+
+That's what happened to Cowork: an Ubuntu VM ran an automatic security update scheduled for 6 a.m. UTC, updating a shared library called `libmount1`. Because `systemd-resolved` depends on that library, it was automatically restarted as part of the update. Everything so far was intended behavior—even best practice. After restarting, `systemd-resolved` “helpfully” overwrote `resolv.conf` with its own configuration.
+
+The problem was that Cowork's gVisor sandbox had its own nameserver configuration in that file. Just like that, the configuration silently vanished.
+
+<MoguNote>
+I have a serious problem with this design: `systemd-resolved` overwriting `resolv.conf` on restart is a textbook example of Ubuntu's “we'll manage it for you” culture going off the rails. A silent side effect like this should not be the default. It should require opt-in, or at the very least leave an obvious entry in the logs.
+
+This is Linux's original sin—“I know what's best for you, so I'll decide for you.” (¬‿¬)
+</MoguNote>
+
+---
+
+## Then the Worst Layer Appeared
+
+Once the DNS configuration disappeared, every DNS query started returning SERVFAIL. That made sense—the nameserver settings had been replaced, so of course domain names could no longer be resolved.
+
+But what happened next was the real killer.
+
+Bun and axios reported the SERVFAIL error as `ECONNRESET`.
+
+`ECONNRESET` means “the other side forcibly reset the TCP connection”—nothing to do with DNS. When engineers see that message, their first thought is, “Did a server go down? Is the network unstable?” Nobody is going to think of DNS. That's why this bug could stump an experienced engineer for an entire morning. The problem wasn't difficult; the map was wrong.
+
+<MoguNote>
+This is the most dangerous kind of error-message design failure: a misleading error is more poisonous than no error at all.
+
+No error message? Engineers know they're in the dark, so they carefully eliminate every possibility. The wrong error message? Engineers think they know where they're going and stride confidently toward a cliff—and the more senior they are, the more dangerous it gets, because experience makes them trust their instincts when reading errors.
+
+Felix plans to submit an upstream patch to Bun/axios. That's absolutely the right move, and I strongly support it: once this kind of bug is fixed, the next person who falls into a similar trap can pinpoint the problem in ten minutes. Leave it unfixed, and you're making every person who comes after you pay for your design flaw. (ง •̀_•́)ง
+</MoguNote>
+
+---
+
+## Six Correct Behaviors, One Perfect Outcome
+
+Looking back at the causal chain, every step passes the “does this design make sense?” test:
+
+- Automatic security updates run at 6 a.m.: Best practice; it would be strange not to enable them
+- A shared library update triggers a service restart: Reasonable
+- `systemd-resolved` manages `resolv.conf` after restarting: That's its job
+- DNS resolution failure returns SERVFAIL: Technically correct
+- The runtime sees an underlying connection failure and reports `ECONNRESET`: It really did see a connection failure
+
+Put them all together, and you get a nondeterministic bug—one that exists only for a specific few minutes and disappears on its own every time. Remove any one condition and the bug doesn't exist; add one correct error message and it can be fixed in ten minutes.
+
+<MoguNote>
+Nondeterministic bugs are the true stuff of engineering nightmares. A reproducible bug is a gift—it's right there waiting for you, and you can stare it to death. A non-reproducible bug is a ghost: every time you try to catch it, it vanishes.
+
+The nondeterminism in this case has a perfect root-cause explanation, so it's relatively “clean.” But most nondeterministic bugs don't have such a clear structure. They just flicker in and out of existence somewhere inside a race condition or timing gap.
+
+When something “fixes itself,” the correct response is to capture a trace and assume it will come back—because it will. (◕‿◕)
+</MoguNote>
+
+---
+
+## Conclusion
+
+Felix's team hardened the gVisor sandbox configuration and also plans to submit patches to the relevant open-source projects. Technically speaking, the bug has been fixed.
+
+But the 6 a.m. automatic updates will keep running. `systemd-resolved` will keep managing `resolv.conf` when it restarts. Next time, at least someone will know: when you see `ECONNRESET`, run `dig` first and make sure DNS is still alive.
+
+That “it fixed itself” spike from the beginning? Now we know the system wasn't recovering—the dominoes had simply finished falling and were quietly waiting to be set up again. (╯°□°)╯
