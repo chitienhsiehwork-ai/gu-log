@@ -30,6 +30,15 @@ export const ROUTE_BUDGET = 2048;
 
 const SUPPORTED_LANGS = new Set(['zh-tw', 'en']);
 const SAFE_SLUG = /^[A-Za-z0-9][A-Za-z0-9-]*$/;
+const SECURITY_HEADERS = Object.freeze([
+  {
+    source: '/(.*)',
+    headers: [
+      { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
+      { key: 'X-Frame-Options', value: 'DENY' },
+    ],
+  },
+]);
 const MARKDOWN_HEADERS = Object.freeze([
   {
     source: '/posts/:slug.md',
@@ -211,7 +220,10 @@ function loadManifest(manifestPath = MANIFEST_PATH) {
 }
 
 const redirectConfig = buildRedirectConfig(loadManifest());
-const platformRoutes = { ...redirectConfig, headers: MARKDOWN_HEADERS };
+const platformRoutes = {
+  ...redirectConfig,
+  headers: [...SECURITY_HEADERS, ...MARKDOWN_HEADERS],
+};
 assertRouteBudget(platformRoutes);
 
 export const config = {
