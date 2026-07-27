@@ -19,26 +19,38 @@ REPO="${GU_LOG_GITHUB_REPO:-chitienhsiehwork-ai/gu-log}"
 GH_BIN="${GH_BIN:-gh}"
 MAX_BATCH="${MAX_BATCH:-10}"
 SKIP_APPLY=0
-DRY_RUN=0
 LOCK_FILE="${TRIBUNAL_PUBLISHER_AUTOPILOT_LOCK_FILE:-$ROOT_DIR/.score-loop/locks/publisher-autopilot.lock}"
 AUDIT_LOG="${TRIBUNAL_PUBLISHER_AUTOPILOT_AUDIT_LOG:-$ROOT_DIR/.score-loop/state/tribunal-publisher-autopilot.jsonl}"
 
 usage() {
   cat <<'EOF'
 Usage:
-  bash scripts/tribunal-publisher-autopilot.sh [--max N] [--skip-apply] [--dry-run]
+  bash scripts/tribunal-publisher-autopilot.sh [--max N] [--skip-apply]
 EOF
 }
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
-    --max) MAX_BATCH="$2"; shift 2 ;;
+    --max)
+      if [ "$#" -lt 2 ] || [[ "$2" == -* ]]; then
+        echo "Invalid value for --max: ${2:-<missing>}" >&2
+        usage
+        exit 2
+      fi
+      MAX_BATCH="$2"
+      shift 2
+      ;;
     --skip-apply) SKIP_APPLY=1; shift ;;
-    --dry-run) DRY_RUN=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown arg: $1" >&2; usage; exit 2 ;;
   esac
 done
+
+if [[ ! "$MAX_BATCH" =~ ^[1-9][0-9]*$ ]]; then
+  echo "Invalid value for --max: $MAX_BATCH" >&2
+  usage
+  exit 2
+fi
 
 tlog() {
   printf '[publisher-autopilot] %s\n' "$*"
@@ -179,8 +191,6 @@ pr_mark_ready() {
   local pr_number="$1"
   if [ -n "${TRIBUNAL_PUBLISHER_AUTOPILOT_READY_HOOK:-}" ]; then
     "${TRIBUNAL_PUBLISHER_AUTOPILOT_READY_HOOK}" "$pr_number"
-  elif [ "$DRY_RUN" = "1" ]; then
-    tlog "DRY-RUN ready pr=$pr_number"
   else
     publisher_gh pr ready "$pr_number" --repo "$REPO" >/dev/null
   fi
@@ -190,8 +200,6 @@ run_merge_guard() {
   local pr_number="$1"
   if [ -n "${TRIBUNAL_PUBLISHER_AUTOPILOT_MERGE_GUARD_HOOK:-}" ]; then
     "${TRIBUNAL_PUBLISHER_AUTOPILOT_MERGE_GUARD_HOOK}" "$pr_number"
-  elif [ "$DRY_RUN" = "1" ]; then
-    tlog "DRY-RUN merge-guard pr=$pr_number"
   else
     bash "$SCRIPT_DIR/gu-log-auto-merge-guard.sh" --pr "$pr_number"
   fi
