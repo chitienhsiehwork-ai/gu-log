@@ -78,27 +78,47 @@ QUOTA_CONTROLLER_STATE="$ROOT_DIR/.score-loop/state/quota-controller.json"
 WRITER_PREFLIGHT_STATE="$ROOT_DIR/.score-loop/state/writer-preflight.json"
 TRIBUNAL_EXHAUSTED_ALERT_THRESHOLD="${TRIBUNAL_EXHAUSTED_ALERT_THRESHOLD:-3}"
 
-mkdir -p "$LOG_DIR" "$ROOT_DIR/.score-loop/state"
-
 # ─── Args ─────────────────────────────────────────────────────────────────────
 while [ $# -gt 0 ]; do
   case "$1" in
     --dry-run) DRY_RUN=true; shift ;;
-    --workers) WORKERS="$2"; shift 2 ;;
+    --workers)
+      if [ "$#" -lt 2 ] || [ -z "$2" ] || [[ "$2" == --* ]]; then
+        echo "ERROR: --workers requires a value" >&2
+        exit 1
+      fi
+      WORKERS="$2"
+      shift 2
+      ;;
     --legacy-quota) LEGACY_QUOTA=true; shift ;;
-    --controller-once) CONTROLLER_ONCE="${2:-0}"; shift 2 ;;
+    --controller-once)
+      if [ "$#" -lt 2 ] || [ -z "$2" ] || [[ "$2" == --* ]]; then
+        echo "ERROR: --controller-once requires a value" >&2
+        exit 1
+      fi
+      CONTROLLER_ONCE="$2"
+      shift 2
+      ;;
     *) echo "Unknown arg: $1" >&2; exit 1 ;;
   esac
 done
 
-if ! [[ "$WORKERS" =~ ^[1-9][0-9]*$ ]]; then
-  echo "ERROR: --workers must be a positive integer (got: $WORKERS)" >&2
+if ! [[ "$WORKERS" =~ ^([1-9]|1[0-9]|2[0-6])$ ]]; then
+  echo "ERROR: --workers must be an integer from 1 to 26 (got: $WORKERS)" >&2
+  exit 1
+fi
+if [ -n "$CONTROLLER_ONCE" ] &&
+   { ! [[ "$CONTROLLER_ONCE" =~ ^(0|[1-9]|1[0-9]|2[0-6])$ ]] ||
+     (( CONTROLLER_ONCE > WORKERS )); }; then
+  echo "ERROR: --controller-once must be an integer from 0 to --workers (got: $CONTROLLER_ONCE)" >&2
   exit 1
 fi
 if ! [[ "$CONTROLLER_RECHECK_SEC" =~ ^[1-9][0-9]*$ ]]; then
   echo "ERROR: CONTROLLER_RECHECK_SEC must be a positive integer (got: $CONTROLLER_RECHECK_SEC)" >&2
   exit 1
 fi
+
+mkdir -p "$LOG_DIR" "$ROOT_DIR/.score-loop/state"
 
 tlog() {
   local msg="[$(date '+%Y-%m-%d %H:%M:%S %z')] [quota-loop] $*"
