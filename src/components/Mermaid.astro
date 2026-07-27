@@ -244,7 +244,10 @@ const loadingLabel = isEnglish ? 'Loading diagram...' : '載入圖表中...';
         const { svg } = await mermaid.render(id, def);
         renderTarget.innerHTML = svg;
       } catch (e) {
-        renderTarget.innerHTML = `<pre style="color:var(--color-status-danger);font-size:0.8rem;">Mermaid error: ${e}</pre>`;
+        const error = document.createElement('pre');
+        error.style.cssText = 'color:var(--color-status-danger);font-size:0.8rem;';
+        error.textContent = `Mermaid error: ${String(e)}`;
+        renderTarget.replaceChildren(error);
         continue;
       }
 
