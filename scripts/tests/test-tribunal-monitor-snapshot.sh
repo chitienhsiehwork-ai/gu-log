@@ -27,10 +27,20 @@ mkdir -p \
   "$runtime_root/.score-loop/control" \
   "$runtime_root/.score-loop/logs" \
   "$runtime_root/.score-loop/state" \
+  "$runtime_root/scripts" \
   "$worker_root" \
   "$fake_home/.config/gu-log" \
+  "$fake_home/.config/systemd/user" \
   "$fake_bin"
 printf 'worker fixture\n' > "$worker_root/.sentinel"
+cp \
+  "$ROOT/scripts/tribunal-pass-audit.service" \
+  "$ROOT/scripts/tribunal-pass-audit.timer" \
+  "$runtime_root/scripts/"
+cp \
+  "$ROOT/scripts/tribunal-pass-audit.service" \
+  "$ROOT/scripts/tribunal-pass-audit.timer" \
+  "$fake_home/.config/systemd/user/"
 
 cat > "$fake_home/.config/gu-log/tribunal.env" <<EOF
 GU_LOG_DIR=$runtime_root
@@ -52,6 +62,78 @@ case "$*" in
     ;;
   "--user is-enabled tribunal-loop")
     echo "enabled"
+    ;;
+  "--user is-enabled tribunal-pass-audit.timer")
+    echo "enabled"
+    ;;
+  "--user is-active tribunal-pass-audit.timer")
+    echo "active"
+    ;;
+  "--user show tribunal-pass-audit.service -p FragmentPath --value")
+    [ "${FAIL_AUDIT_UNIT_QUERY:-0}" != "1" ] || exit 1
+    echo "${AUDIT_SERVICE_FRAGMENT_OVERRIDE:-${EXPECTED_USER_UNIT_DIR:?}/tribunal-pass-audit.service}"
+    ;;
+  "--user show tribunal-pass-audit.timer -p FragmentPath --value")
+    [ "${FAIL_AUDIT_UNIT_QUERY:-0}" != "1" ] || exit 1
+    echo "${AUDIT_TIMER_FRAGMENT_OVERRIDE:-${EXPECTED_USER_UNIT_DIR:?}/tribunal-pass-audit.timer}"
+    ;;
+  "--user show tribunal-pass-audit.service -p NeedDaemonReload --value")
+    [ "${FAIL_AUDIT_UNIT_QUERY:-0}" != "1" ] || exit 1
+    echo "${AUDIT_SERVICE_NEEDS_RELOAD_OVERRIDE:-no}"
+    ;;
+  "--user show tribunal-pass-audit.timer -p NeedDaemonReload --value")
+    [ "${FAIL_AUDIT_UNIT_QUERY:-0}" != "1" ] || exit 1
+    echo "${AUDIT_TIMER_NEEDS_RELOAD_OVERRIDE:-no}"
+    ;;
+  "--user show tribunal-pass-audit.timer -p NextElapseUSecRealtime --value")
+    echo "Mon 2026-07-27 10:30:00 CST"
+    ;;
+  "--user show tribunal-pass-audit.timer -p LastTriggerUSec --value")
+    if [ "${AUDIT_TIMER_NEVER_TRIGGERED:-0}" = "1" ]; then
+      echo
+    else
+      echo "Sun 2026-07-26 10:30:00 CST"
+    fi
+    ;;
+  "--user show tribunal-pass-audit.service -p Result --value")
+    echo "${AUDIT_SERVICE_RESULT_OVERRIDE:-success}"
+    ;;
+  "--user show tribunal-pass-audit.service -p ExecMainStatus --value")
+    if [ "${AUDIT_SERVICE_SCENARIO:-observed}" = "failed_before_completion" ]; then
+      echo "${AUDIT_SERVICE_STATUS_OVERRIDE:-203}"
+    else
+      echo "${AUDIT_SERVICE_STATUS_OVERRIDE:-0}"
+    fi
+    ;;
+  "--user show tribunal-pass-audit.service -p ActiveState --value")
+    case "${AUDIT_SERVICE_SCENARIO:-observed}" in
+      running) echo "activating" ;;
+      failed_before_completion) echo "failed" ;;
+      *) echo "inactive" ;;
+    esac
+    ;;
+  "--user show tribunal-pass-audit.service -p SubState --value")
+    case "${AUDIT_SERVICE_SCENARIO:-observed}" in
+      running) echo "start" ;;
+      failed_before_completion) echo "failed" ;;
+      *) echo "dead" ;;
+    esac
+    ;;
+  "--user show tribunal-pass-audit.service -p ExecMainStartTimestamp --value")
+    case "${AUDIT_SERVICE_SCENARIO:-observed}" in
+      never | failed_before_completion) echo ;;
+      *) echo "Sun 2026-07-26 10:30:00 CST" ;;
+    esac
+    ;;
+  "--user show tribunal-pass-audit.service -p ExecMainExitTimestamp --value")
+    case "${AUDIT_SERVICE_SCENARIO:-observed}" in
+      never | running | failed_before_completion) echo ;;
+      *) echo "${AUDIT_SERVICE_EXIT_TIMESTAMP_OVERRIDE:-Sun 2026-07-26 10:31:00 CST}" ;;
+    esac
+    ;;
+  "--user show tribunal-pass-audit.service -p DropInPaths --value" | \
+    "--user show tribunal-pass-audit.timer -p DropInPaths --value")
+    echo
     ;;
   "--user show tribunal-loop --property=MemoryPeak")
     echo "MemoryPeak=123456"
@@ -136,6 +218,17 @@ run_snapshot() {
     FAIL_SUPERVISOR_GIT="${FAIL_SUPERVISOR_GIT:-0}" \
     EXPECTED_SUPERVISOR="$runtime_root" \
     EXPECTED_WORKTREE="$worker_root" \
+    EXPECTED_USER_UNIT_DIR="$fake_home/.config/systemd/user" \
+    FAIL_AUDIT_UNIT_QUERY="${FAIL_AUDIT_UNIT_QUERY:-0}" \
+    AUDIT_SERVICE_FRAGMENT_OVERRIDE="${AUDIT_SERVICE_FRAGMENT_OVERRIDE:-}" \
+    AUDIT_TIMER_FRAGMENT_OVERRIDE="${AUDIT_TIMER_FRAGMENT_OVERRIDE:-}" \
+    AUDIT_SERVICE_NEEDS_RELOAD_OVERRIDE="${AUDIT_SERVICE_NEEDS_RELOAD_OVERRIDE:-}" \
+    AUDIT_TIMER_NEEDS_RELOAD_OVERRIDE="${AUDIT_TIMER_NEEDS_RELOAD_OVERRIDE:-}" \
+    AUDIT_TIMER_NEVER_TRIGGERED="${AUDIT_TIMER_NEVER_TRIGGERED:-0}" \
+    AUDIT_SERVICE_SCENARIO="${AUDIT_SERVICE_SCENARIO:-observed}" \
+    AUDIT_SERVICE_RESULT_OVERRIDE="${AUDIT_SERVICE_RESULT_OVERRIDE:-}" \
+    AUDIT_SERVICE_STATUS_OVERRIDE="${AUDIT_SERVICE_STATUS_OVERRIDE:-}" \
+    AUDIT_SERVICE_EXIT_TIMESTAMP_OVERRIDE="${AUDIT_SERVICE_EXIT_TIMESTAMP_OVERRIDE:-}" \
     PATH="$fake_bin:$PATH" \
     bash "$SNAPSHOT"
 }
@@ -177,7 +270,131 @@ grep -q 'gu-log-worker-a: abc1234' <<<"$output" ||
   fail "read-only worker HEAD observation missing"
 grep -q '476 unscored' <<<"$output" &&
   fail "journal output leaked into the read-only state snapshot"
+grep -q '^service_unit_file=current$' <<<"$output" ||
+  fail "matching installed PASS audit service was not reported current"
+grep -q '^timer_unit_file=current$' <<<"$output" ||
+  fail "matching installed PASS audit timer was not reported current"
+grep -q '^timer_enabled=enabled$' <<<"$output" ||
+  fail "PASS audit timer enabled state missing"
+grep -q '^timer_active=active$' <<<"$output" ||
+  fail "PASS audit timer active state missing"
+grep -q '^timer_next=Mon 2026-07-27 10:30:00 CST$' <<<"$output" ||
+  fail "PASS audit timer next trigger missing"
+grep -q '^timer_last_trigger=Sun 2026-07-26 10:30:00 CST$' <<<"$output" ||
+  fail "PASS audit timer last trigger missing"
+grep -q '^service_run_state=observed$' <<<"$output" ||
+  fail "PASS audit service run state missing"
+grep -q '^service_last_started_at=Sun 2026-07-26 10:30:00 CST$' <<<"$output" ||
+  fail "PASS audit service last start timestamp missing"
+grep -q '^service_last_finished_at=Sun 2026-07-26 10:31:00 CST$' <<<"$output" ||
+  fail "PASS audit service last completion timestamp missing"
+grep -q '^service_last_result=success$' <<<"$output" ||
+  fail "PASS audit service result missing"
+grep -q '^service_last_exit_status=0$' <<<"$output" ||
+  fail "PASS audit service exit status missing"
+grep -q '^service_drop_ins=none$' <<<"$output" ||
+  fail "PASS audit service drop-in state missing"
+grep -q '^timer_drop_ins=none$' <<<"$output" ||
+  fail "PASS audit timer drop-in state missing"
 pass "zero observation wins over an older positive count without journal fallback"
+
+printf '\n# stale fixture\n' >> "$fake_home/.config/systemd/user/tribunal-pass-audit.service"
+output="$(run_snapshot)"
+grep -q '^service_unit_file=stale$' <<<"$output" ||
+  fail "modified installed PASS audit service was not reported stale"
+cp \
+  "$runtime_root/scripts/tribunal-pass-audit.service" \
+  "$fake_home/.config/systemd/user/tribunal-pass-audit.service"
+
+rm "$fake_home/.config/systemd/user/tribunal-pass-audit.timer"
+output="$(run_snapshot)"
+grep -q '^timer_unit_file=missing$' <<<"$output" ||
+  fail "missing installed PASS audit timer was not reported missing"
+cp \
+  "$runtime_root/scripts/tribunal-pass-audit.timer" \
+  "$fake_home/.config/systemd/user/tribunal-pass-audit.timer"
+
+output="$(
+  AUDIT_SERVICE_FRAGMENT_OVERRIDE="$tmp_dir/wrong/tribunal-pass-audit.service" \
+    run_snapshot
+)"
+grep -q '^service_unit_file=wrong_fragment$' <<<"$output" ||
+  fail "wrong loaded PASS audit service fragment was not reported"
+
+output="$(AUDIT_TIMER_NEEDS_RELOAD_OVERRIDE=yes run_snapshot)"
+grep -q '^timer_unit_file=reload_needed$' <<<"$output" ||
+  fail "PASS audit timer manager reload drift was not reported"
+
+output="$(FAIL_AUDIT_UNIT_QUERY=1 run_snapshot)"
+grep -q '^service_unit_file=manager_unknown$' <<<"$output" ||
+  fail "failed PASS audit manager query did not degrade explicitly"
+grep -q '^timer_unit_file=manager_unknown$' <<<"$output" ||
+  fail "failed PASS audit timer manager query did not degrade explicitly"
+pass "PASS audit disk and manager drift degrade explicitly without runtime mutation"
+
+output="$(
+  AUDIT_TIMER_NEVER_TRIGGERED=1 \
+  AUDIT_SERVICE_SCENARIO=never \
+    run_snapshot
+)"
+grep -q '^timer_last_trigger=never$' <<<"$output" ||
+  fail "never-triggered PASS audit timer was not explicit"
+grep -q '^service_run_state=never_run$' <<<"$output" ||
+  fail "never-run PASS audit service was not explicit"
+grep -q '^service_last_finished_at=never$' <<<"$output" ||
+  fail "never-run PASS audit service invented a completion timestamp"
+grep -q '^service_last_result=unavailable$' <<<"$output" ||
+  fail "never-run PASS audit service invented a successful result"
+grep -q '^service_last_exit_status=unavailable$' <<<"$output" ||
+  fail "never-run PASS audit service invented a zero exit status"
+
+output="$(AUDIT_SERVICE_SCENARIO=running run_snapshot)"
+grep -q '^service_active_state=activating$' <<<"$output" ||
+  fail "running PASS audit service active state missing"
+grep -q '^service_run_state=running$' <<<"$output" ||
+  fail "running PASS audit service was reported never-run"
+grep -q '^service_last_started_at=Sun 2026-07-26 10:30:00 CST$' <<<"$output" ||
+  fail "running PASS audit service start timestamp missing"
+grep -q '^service_last_finished_at=pending$' <<<"$output" ||
+  fail "running PASS audit service invented a completion timestamp"
+grep -q '^service_last_result=unavailable$' <<<"$output" ||
+  fail "running PASS audit service invented a completed result"
+
+output="$(
+  AUDIT_SERVICE_SCENARIO=failed_before_completion \
+  AUDIT_SERVICE_RESULT_OVERRIDE=exit-code \
+    run_snapshot
+)"
+grep -q '^service_active_state=failed$' <<<"$output" ||
+  fail "pre-completion PASS audit failure active state missing"
+grep -q '^service_run_state=failed_before_completion$' <<<"$output" ||
+  fail "pre-completion PASS audit failure was reported never-run"
+grep -q '^service_last_result=exit-code$' <<<"$output" ||
+  fail "pre-completion PASS audit failure result was hidden"
+grep -q '^service_last_exit_status=203$' <<<"$output" ||
+  fail "pre-completion PASS audit failure exit status was hidden"
+
+output="$(AUDIT_TIMER_NEVER_TRIGGERED=1 run_snapshot)"
+grep -q '^timer_last_trigger=never$' <<<"$output" ||
+  fail "first deploy did not expose the timer's legitimate never-triggered state"
+grep -q '^service_run_state=observed$' <<<"$output" ||
+  fail "first deploy hid the completed manual PASS audit smoke"
+grep -q '^service_last_result=success$' <<<"$output" ||
+  fail "first deploy hid the manual PASS audit smoke result"
+
+output="$(
+  AUDIT_SERVICE_RESULT_OVERRIDE=exit-code \
+  AUDIT_SERVICE_STATUS_OVERRIDE=1 \
+  AUDIT_SERVICE_EXIT_TIMESTAMP_OVERRIDE='Sat 2026-07-25 10:31:00 CST' \
+    run_snapshot
+)"
+grep -q '^service_last_finished_at=Sat 2026-07-25 10:31:00 CST$' <<<"$output" ||
+  fail "PASS audit service stale completion timestamp was hidden"
+grep -q '^service_last_result=exit-code$' <<<"$output" ||
+  fail "failed PASS audit service result was hidden"
+grep -q '^service_last_exit_status=1$' <<<"$output" ||
+  fail "failed PASS audit service exit status was hidden"
+pass "PASS audit evidence distinguishes first deploy, running, never-run, observed, stale, and failed states"
 
 output="$(FAIL_SUPERVISOR_GIT=1 run_snapshot)"
 grep -q 'status=unavailable reason=git_head_unreadable' <<<"$output" ||
@@ -294,9 +511,52 @@ bad_rc=$?
 set -e
 [ "$bad_rc" -eq 78 ] ||
   fail "invalid deploy env continued with inherited GU_LOG_DIR (rc=$bad_rc)"
-grep -q 'Invalid .*tribunal.env' <<<"$bad_output" ||
+grep -Eq '(Invalid .*tribunal[.]env|Missing GU_LOG_DIR)' <<<"$bad_output" ||
   fail "invalid deploy env did not report an actionable error"
 pass "deploy env source failure exits before using inherited state"
+
+malicious_home="$tmp_dir/malicious-home"
+malicious_sentinel="$tmp_dir/deploy-env-command-ran"
+mkdir -p "$malicious_home/.config/gu-log"
+cat > "$malicious_home/.config/gu-log/tribunal.env" <<EOF
+GU_LOG_DIR="$runtime_root"
+MALICIOUS=\$(touch '$malicious_sentinel')
+lowercase_unknown=value
+; systemd comment
+opaque future syntax without equals
+EOF
+malicious_output="$(
+  HOME="$malicious_home" \
+    PATH="$fake_bin:$PATH" \
+    bash "$SNAPSHOT" 2>&1
+)"
+[ ! -e "$malicious_sentinel" ] ||
+  fail "monitor executed shell content from tribunal.env"
+grep -q '^generated_at=' <<<"$malicious_output" ||
+  fail "unknown deploy env syntax narrowed the systemd EnvironmentFile contract"
+
+known_malicious_home="$tmp_dir/known-malicious-home"
+known_malicious_sentinel="$tmp_dir/known-deploy-env-command-ran"
+mkdir -p "$known_malicious_home/.config/gu-log"
+cat > "$known_malicious_home/.config/gu-log/tribunal.env" <<EOF
+GU_LOG_DIR=\$(touch '$known_malicious_sentinel')
+EOF
+set +e
+known_malicious_output="$(
+  HOME="$known_malicious_home" \
+    PATH="$fake_bin:$PATH" \
+    bash "$SNAPSHOT" 2>&1
+)"
+known_malicious_rc=$?
+set -e
+[ "$known_malicious_rc" -eq 78 ] ||
+  fail "unsafe GU_LOG_DIR data did not fail closed (rc=$known_malicious_rc)"
+[ ! -e "$known_malicious_sentinel" ] ||
+  fail "monitor executed shell content from GU_LOG_DIR"
+grep -Eq '(Invalid .*tribunal[.]env|Missing GU_LOG_DIR|Invalid GU_LOG_DIR)' \
+  <<<"$known_malicious_output" ||
+  fail "unsafe GU_LOG_DIR data did not report an actionable error"
+pass "deploy env is parsed as data without executing shell content or narrowing unknown keys"
 
 for skill in \
   "$ROOT/.agents/skills/tribunal-monitor/SKILL.md" \
@@ -312,7 +572,7 @@ for skill in \
 done
 
 if grep -Ev \
-  '^(--user status tribunal-loop|--user show tribunal-loop -p Environment --value|--user is-enabled tribunal-loop|--user show tribunal-loop --property=MemoryPeak)$' \
+  '^(--user status tribunal-loop|--user show tribunal-loop -p Environment --value|--user is-enabled tribunal-loop|--user is-enabled tribunal-pass-audit.timer|--user is-active tribunal-pass-audit.timer|--user show tribunal-pass-audit.service -p FragmentPath --value|--user show tribunal-pass-audit.timer -p FragmentPath --value|--user show tribunal-pass-audit.service -p NeedDaemonReload --value|--user show tribunal-pass-audit.timer -p NeedDaemonReload --value|--user show tribunal-pass-audit.timer -p NextElapseUSecRealtime --value|--user show tribunal-pass-audit.timer -p LastTriggerUSec --value|--user show tribunal-pass-audit.service -p Result --value|--user show tribunal-pass-audit.service -p ExecMainStatus --value|--user show tribunal-pass-audit.service -p ActiveState --value|--user show tribunal-pass-audit.service -p SubState --value|--user show tribunal-pass-audit.service -p ExecMainStartTimestamp --value|--user show tribunal-pass-audit.service -p ExecMainExitTimestamp --value|--user show tribunal-pass-audit.service -p DropInPaths --value|--user show tribunal-pass-audit.timer -p DropInPaths --value|--user show tribunal-loop --property=MemoryPeak)$' \
   "$systemctl_calls"; then
   fail "snapshot issued an unexpected systemctl command"
 fi

@@ -90,11 +90,20 @@ if [ "$did_stash" = true ]; then
   git stash pop
 fi
 
-# If scripts/tribunal-loop.service changed, redeploy + reload:
+# Redeploy every tracked user unit so the effective runtime cannot silently
+# drift behind the checkout.
 install -d -m 700 "$HOME/.config/systemd/user"
-cp scripts/tribunal-loop.service ~/.config/systemd/user/tribunal-loop.service
+install -m 0644 scripts/tribunal-loop.service "$HOME/.config/systemd/user/tribunal-loop.service"
+install -m 0644 scripts/tribunal-pass-audit.service "$HOME/.config/systemd/user/tribunal-pass-audit.service"
+install -m 0644 scripts/tribunal-pass-audit.timer "$HOME/.config/systemd/user/tribunal-pass-audit.timer"
 systemctl --user daemon-reload
+# Restart guarantees this smoke is a fresh invocation of the just-reloaded
+# unit, then fails the deploy if it cannot refresh origin/main or finds a
+# historical progress-only PASS commit.
+systemctl --user restart tribunal-pass-audit.service
 systemctl --user enable tribunal-loop
+systemctl --user enable tribunal-pass-audit.timer
+systemctl --user restart tribunal-pass-audit.timer
 loginctl enable-linger "$USER"
 
 # If tribunal code changed AND workers are running, drain + restart. Do not
@@ -105,6 +114,11 @@ until [ "$(systemctl --user is-active tribunal-loop)" != "active" ]; do sleep 10
 systemctl --user start tribunal-loop   # supervisor auto-syncs worker worktrees at startup
 DEPLOY
 ```
+
+`tribunal-pass-audit.timer` 有 `Persistent=true`；如果 VM 錯過排程，
+deploy 時的 timer restart 可能立刻補跑一次 audit。這是預期行為，不要
+為了避免補跑而停用 timer。deploy block 會先同步執行一次 audit；timer
+負責的是後續每日稽核，不是初次驗證。
 
 `enable` 讓 user unit 在 user manager 啟動時自動回來；`enable-linger`
 讓 user manager 在未登入時也會於開機後存在。兩個都要有，少一個就
@@ -128,6 +142,22 @@ bash scripts/cc-tribunal-loop-wrapper.sh --doctor --live-probe
 - `tribunal.env` 的 `GU_LOG_DIR`、off-repo `USAGE_MONITOR` 都存在且可執行。
 - Codex 與 Claude CLI 已安裝、已驗證 non-interactive auth。
 - `systemctl --user enable tribunal-loop` 回報 enabled。
+- 下列三個 source-match 都 exit 0：
+  - `cmp -s scripts/tribunal-loop.service "$HOME/.config/systemd/user/tribunal-loop.service"`
+  - `cmp -s scripts/tribunal-pass-audit.service "$HOME/.config/systemd/user/tribunal-pass-audit.service"`
+  - `cmp -s scripts/tribunal-pass-audit.timer "$HOME/.config/systemd/user/tribunal-pass-audit.timer"`
+- `systemctl --user is-enabled tribunal-pass-audit.timer` 回報 enabled，
+  `systemctl --user is-active tribunal-pass-audit.timer` 回報 active。
+- `systemctl --user show tribunal-pass-audit.timer -p NextElapseUSecRealtime --value`
+  有下一次執行時間。
+- `systemctl --user show tribunal-pass-audit.service -p ExecMainExitTimestamp --value`
+  有手動 smoke 的完成時間；`Result` 是 success、`ExecMainStatus` 是 0。
+- `systemctl --user show tribunal-pass-audit.timer -p LastTriggerUSec --value`
+  是 daily timer 的歷史證據；第一次 deploy 若尚未到排程時間，空值是正常的。
+- `systemctl --user show tribunal-pass-audit.service tribunal-pass-audit.timer -p FragmentPath -p NeedDaemonReload`
+  指向上述安裝路徑，且兩個 unit 的 `NeedDaemonReload` 都是 no。
+- `systemctl --user show tribunal-pass-audit.service tribunal-pass-audit.timer -p DropInPaths`
+  沒有未審核的 override；若非空，先逐一確認 effective contract。
 - `loginctl enable-linger "$USER"` 後 `loginctl show-user "$USER" -p Linger --value` 回報 yes。
 - `bash scripts/cc-tribunal-loop-wrapper.sh --doctor` 全數通過。
 - 啟動後 monitor 顯示 strict role routing、`GP_WRITER_MODE=cli` 與 writer preflight passed。
