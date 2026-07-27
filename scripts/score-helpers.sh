@@ -138,22 +138,66 @@ find_post_file_for_ticket() {
 
 # Write score JSON to MDX frontmatter via node helper.
 # Also writes to the en-* counterpart if it exists.
-write_score_to_frontmatter() {
+write_score_to_frontmatter() (
   local file="$1"
   local judge="$2"
   local score_json="$3"
 
-  node "$SCORE_ROOT/scripts/frontmatter-scores.mjs" write "$file" "$judge" "$score_json"
-
   # Mirror to en-* counterpart
-  local base dir en_file
+  local base dir en_file backup_dir zh_backup en_backup
   base="$(basename "$file")"
   dir="$(dirname "$file")"
   en_file="$dir/en-$base"
-  if [ -f "$en_file" ]; then
-    node "$SCORE_ROOT/scripts/frontmatter-scores.mjs" write "$en_file" "$judge" "$score_json"
+  backup_dir="$(mktemp -d "${TMPDIR:-/tmp}/tribunal-frontmatter.XXXXXX")" || return 1
+  if ! chmod 700 "$backup_dir"; then
+    rmdir -- "$backup_dir" 2>/dev/null || true
+    return 1
   fi
-}
+  zh_backup="$backup_dir/zh"
+  en_backup="$backup_dir/en"
+  cleanup_frontmatter_backups() {
+    local cleanup_rc=0
+    rm -f -- "$zh_backup" "$en_backup" || cleanup_rc=1
+    rmdir -- "$backup_dir" || cleanup_rc=1
+    return "$cleanup_rc"
+  }
+
+  if ! cp -- "$file" "$zh_backup"; then
+    cleanup_frontmatter_backups || true
+    return 1
+  fi
+  if [ -f "$en_file" ]; then
+    if ! cp -- "$en_file" "$en_backup"; then
+      cleanup_frontmatter_backups || true
+      return 1
+    fi
+  fi
+
+  local write_rc=0
+  node "$SCORE_ROOT/scripts/frontmatter-scores.mjs" write "$file" "$judge" "$score_json" ||
+    write_rc=$?
+  if [ "$write_rc" -eq 0 ] && [ -f "$en_backup" ]; then
+    node "$SCORE_ROOT/scripts/frontmatter-scores.mjs" write "$en_file" "$judge" "$score_json" ||
+      write_rc=$?
+  fi
+
+  if [ "$write_rc" -ne 0 ]; then
+    local restore_rc=0
+    cp -- "$zh_backup" "$file" || restore_rc=1
+    if [ -f "$en_backup" ]; then
+      cp -- "$en_backup" "$en_file" || restore_rc=1
+    fi
+    if [ "$restore_rc" -ne 0 ]; then
+      echo "[write_score] ERROR: failed to restore bilingual frontmatter; recovery snapshots preserved at $backup_dir" >&2
+    else
+      cleanup_frontmatter_backups || echo "[write_score] WARN: could not remove recovery snapshots at $backup_dir" >&2
+    fi
+    return 1
+  fi
+
+  cleanup_frontmatter_backups ||
+    echo "[write_score] WARN: could not remove successful-write snapshots at $backup_dir" >&2
+)
 
 get_score() {
   local judge="$1"
