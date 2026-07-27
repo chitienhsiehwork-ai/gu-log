@@ -183,6 +183,28 @@ describe('reading-tracker', () => {
 // gist-sync
 // ════════════════════════════════════════════════════════════════════════════
 describe('gist-sync', () => {
+  async function backendScopeError(reauthorizeUrl: unknown) {
+    (globalThis as any).localStorage.setItem('gu-log-jwt', 'header.payload.sig');
+    (globalThis as any).fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 403,
+      json: async () => ({
+        detail: {
+          code: 'GITHUB_SCOPE_MISSING',
+          message: '請重新授權',
+          reauthorizeUrl,
+        },
+      }),
+    });
+    const module = await import('../src/lib/gist-sync');
+    try {
+      await module.pullFromReaderSyncApi('https://api.shroomdog.dev');
+      throw new Error('expected ReaderSyncApiError');
+    } catch (error) {
+      return { error, module };
+    }
+  }
+
   it('mergeSync preserves latest per-post read revision', async () => {
     const m = await import('../src/lib/gist-sync');
     const merged = m.mergeSync(
@@ -261,6 +283,37 @@ describe('gist-sync', () => {
     (globalThis as any).localStorage.setItem('gu-log-github-pat', 'ghp_pat_abc');
     const m = await import('../src/lib/gist-sync');
     expect(m.getGitHubToken()).toBe('ghp_pat_abc');
+  });
+
+  it.each([
+    'javascript:localStorage.setItem("reader-sync-pwned","1")',
+    'data:text/html,<script>alert(1)</script>',
+    'blob:https://gu-log.vercel.app/attacker-controlled',
+    '//evil.example/auth/github',
+    'https://evil.example/auth/github',
+    'https://api.shroomdog.dev/not-the-oauth-endpoint',
+    'https://user:secret@api.shroomdog.dev/auth/github',
+  ])('drops unsafe backend reauthorization URL: %s', async (reauthorizeUrl) => {
+    const { error, module } = await backendScopeError(reauthorizeUrl);
+    expect(error).toBeInstanceOf(module.ReaderSyncApiError);
+    expect((error as { reauthorizeUrl?: string }).reauthorizeUrl).toBeUndefined();
+  });
+
+  it.each([
+    [
+      'absolute',
+      'https://api.shroomdog.dev/auth/github?reader_sync=1',
+      'https://api.shroomdog.dev/auth/github?reader_sync=1',
+    ],
+    [
+      'same-origin relative',
+      '/auth/github?reader_sync=1',
+      'https://api.shroomdog.dev/auth/github?reader_sync=1',
+    ],
+  ])('keeps a valid %s backend reauthorization URL', async (_, reauthorizeUrl, expected) => {
+    const { error, module } = await backendScopeError(reauthorizeUrl);
+    expect(error).toBeInstanceOf(module.ReaderSyncApiError);
+    expect((error as { reauthorizeUrl?: string }).reauthorizeUrl).toBe(expected);
   });
 
   it('findOrCreateGist returns cached id on 200', async () => {

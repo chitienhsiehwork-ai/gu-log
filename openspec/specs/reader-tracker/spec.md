@@ -22,7 +22,11 @@ The Reader Tracker UI SHALL use the authenticated gu-log session to sync through
 - **GIVEN** the backend returns `GITHUB_SCOPE_MISSING` for Reader Tracker sync
 - **WHEN** the UI handles the error
 - **THEN** the UI SHALL show a GitHub reauthorization action
-- **AND** the UI SHALL use the backend-provided reauthorization URL when present
+- **AND** the UI SHALL use the backend-provided reauthorization URL only when it
+  resolves to HTTP(S), has no userinfo, matches the configured API origin, and
+  has the exact `/auth/github` pathname
+- **AND** the UI SHALL retain the configured API reauthorization fallback when
+  the backend-provided URL is absent or invalid
 
 ### Requirement: Legacy PAT fallback remains secondary
 
