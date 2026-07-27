@@ -53,6 +53,31 @@ test.describe('LoginCta Component', () => {
     await expect(cta).not.toContainText('coming soon');
   });
 
+  test('GIVEN a logged-out reader WHEN clicking Login THEN saves the exact current URL', async ({
+    page,
+  }) => {
+    await page.route('**/auth/github', async (route) => {
+      await route.fulfill({ status: 200, body: 'Mock GitHub Auth' });
+    });
+    await page.goto(`${TEST_POST}?from=cta#footer-login`);
+    await page.evaluate(() => {
+      localStorage.removeItem('gu-log-jwt');
+      localStorage.removeItem('gu-log-return-url');
+    });
+    await page.reload();
+    const loginButton = page.locator('.github-login-btn');
+    await expect(loginButton).toBeVisible();
+    const expectedReturnUrl = page.url();
+
+    await loginButton.click();
+    await expect(page.locator('body')).toContainText('Mock GitHub Auth');
+    await page.goBack();
+    await page.waitForURL(expectedReturnUrl);
+
+    const savedUrl = await page.evaluate(() => localStorage.getItem('gu-log-return-url'));
+    expect(savedUrl).toBe(expectedReturnUrl);
+  });
+
   test('GIVEN user is logged in WHEN page loads THEN shows user info and logout button', async ({
     page,
   }) => {
