@@ -72,28 +72,57 @@ jobs:
 
       - name: Smoke test — check latest articles are live
         if: github.event.deployment_status.state == 'success'
+        shell: bash
         run: |
           FAILED=0
           TOTAL=0
 
-          # Get all non-English post slugs, sorted by date (newest first), take top 10
-          for f in $(ls src/content/posts/*.mdx | grep -v 'en-' | sort -r | head -10); do
-            slug=$(basename "$f" .mdx)
+          if ! LATEST_POSTS=$(
+            for file in src/content/posts/*.mdx; do
+              filename=${file##*/}
+              case "$filename" in en-*) continue ;; esac
+              translated_date=$(awk '
+                /^---$/ { block++; if (block == 2) exit; next }
+                block == 1 && /^translatedDate:/ {
+                  sub(/^translatedDate:[[:space:]]*/, "")
+                  gsub(/^[[:space:]"\047]+|[[:space:]"\047]+$/, "")
+                  print
+                  exit
+                }
+              ' "$file")
+              if ! [[ "$translated_date" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+                echo "::error file=$file::Missing or invalid translatedDate for latest article smoke selection" >&2
+                exit 1
+              fi
+              printf '%s|%s\n' "$translated_date" "$filename"
+            done | LC_ALL=C sort -t '|' -k1,1r -k2,2 | awk -F '|' 'NR <= 10 { print $2 }'
+          ); then
+            echo "::error::🚨 Could not select the latest article routes"
+            exit 1
+          fi
+
+          while IFS= read -r filename; do
+            [ -z "$filename" ] && continue
+            slug=${filename%.mdx}
             URL="https://gu-log.vercel.app/posts/$slug"
             STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
             TOTAL=$((TOTAL + 1))
-            
+
             if [ "$STATUS" != "200" ]; then
               echo "::error::❌ $slug → HTTP $STATUS"
               FAILED=$((FAILED + 1))
             else
               echo "✅ $slug → 200"
             fi
-          done
+          done <<< "$LATEST_POSTS"
 
           echo ""
           echo "=== Results: $((TOTAL - FAILED))/$TOTAL passed ==="
 
+          if [ "$TOTAL" -eq 0 ]; then
+            echo "::error::🚨 Latest article route selection returned no routes"
+            exit 1
+          fi
           if [ "$FAILED" -gt 0 ]; then
             echo "::error::🚨 $FAILED of $TOTAL articles returned non-200 status!"
             exit 1
