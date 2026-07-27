@@ -151,8 +151,15 @@ describe('vercel.mjs redirect config — full manifest coverage', () => {
     }
   });
 
-  it('sets Markdown Content-Type with two bounded path patterns', () => {
+  it('blocks framing globally while preserving bounded Markdown Content-Type rules', () => {
     expect(config.headers).toEqual([
+      {
+        source: '/(.*)',
+        headers: [
+          { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
+          { key: 'X-Frame-Options', value: 'DENY' },
+        ],
+      },
       {
         source: '/posts/:slug.md',
         headers: [{ key: 'Content-Type', value: 'text/markdown; charset=utf-8' }],
