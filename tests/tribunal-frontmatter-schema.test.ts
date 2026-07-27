@@ -56,6 +56,49 @@ function issueMessages(result: {
   return result.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('\n');
 }
 
+describe('posts schema — rendered URLs are HTTP(S)-only', () => {
+  it.each([
+    'javascript:alert(1)',
+    'data:text/html,<h1>owned</h1>',
+    'mailto:test@example.com',
+    'ftp://example.com/run',
+  ])('rejects translatedBy.pipelineUrl scheme: %s', async (pipelineUrl) => {
+    const schema = await loadPostsSchema();
+    const r = schema.safeParse({
+      ...BASE,
+      ticketId: 'GP-1',
+      translatedBy: { ...BASE.translatedBy, pipelineUrl },
+    });
+    expect(r.success).toBe(false);
+    expect(issueMessages(r)).toContain('translatedBy.pipelineUrl');
+  });
+
+  it.each(['http://example.com/run', 'https://example.com/run'])(
+    'accepts translatedBy.pipelineUrl: %s',
+    async (pipelineUrl) => {
+      const schema = await loadPostsSchema();
+      const r = schema.safeParse({
+        ...BASE,
+        ticketId: 'GP-1',
+        translatedBy: { ...BASE.translatedBy, pipelineUrl },
+      });
+      expect(r.success, issueMessages(r)).toBe(true);
+    }
+  );
+
+  it.each([
+    'javascript:alert(1)',
+    'data:text/plain,owned',
+    'mailto:test@example.com',
+    'ftp://example.com/post',
+  ])('rejects sourceUrl scheme: %s', async (sourceUrl) => {
+    const schema = await loadPostsSchema();
+    const r = schema.safeParse({ ...BASE, ticketId: 'GP-1', sourceUrl });
+    expect(r.success).toBe(false);
+    expect(issueMessages(r)).toContain('sourceUrl');
+  });
+});
+
 describe('posts schema — ticketId taxonomy', () => {
   it.each(['GP-258', 'MP-314', 'SD-1', 'Lv-7', 'GP-PENDING', 'MP-PENDING'])(
     'accepts canonical ticketId %s',

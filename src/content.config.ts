@@ -24,6 +24,13 @@ const canonicalTicketId = z.string().superRefine((value, ctx) => {
   }
 });
 
+const httpUrl = z
+  .string()
+  .url()
+  .refine((value) => /^https?:\/\//i.test(value), {
+    message: 'URL must use http:// or https://',
+  });
+
 const scoreDimension = z.number().int().min(0).max(10);
 const retiredClawdNoteKey = z.any().refine(() => false, {
   message: 'Retired score key clawdNote; use moguNote',
@@ -125,11 +132,11 @@ const postsCollection = defineCollection({
               })
             )
             .optional(),
-          pipelineUrl: z.string().url().optional(),
+          pipelineUrl: httpUrl.optional(),
         })
         .optional(),
       source: z.string(), // e.g., "@0xdevshah on X"
-      sourceUrl: z.string().url(),
+      sourceUrl: httpUrl,
       author: z.string().optional(), // for original author
       summary: z.string(), // for index page preview
       lang: z.enum(['zh-tw', 'en']).default('zh-tw'),
