@@ -260,6 +260,10 @@ cmd_remove() {
     echo "Worker worktree not found: $path"
     return 0
   fi
+  if ! is_registered_worktree "$path"; then
+    echo "ERROR: refusing to remove unregistered directory: $path" >&2
+    return 1
+  fi
   cd "$MAIN_REPO"
   echo "Removing worktree ${path}..."
   git worktree remove --force "$path" 2>&1 || rm -rf "$path"

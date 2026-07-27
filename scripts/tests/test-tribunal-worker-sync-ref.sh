@@ -198,6 +198,7 @@ pass "re-running create repairs an interrupted initial worker install"
 prefix_path="$TMP/gu-log-worker-prefix"
 prefix2_path="$TMP/gu-log-worker-prefix2"
 git clone -q "$repo" "$prefix_path"
+printf 'keep\n' >"$prefix_path/KEEP-ME"
 git -C "$repo" worktree add "$prefix2_path" HEAD >/dev/null 2>&1
 prefix_fake_bin="$TMP/prefix-fake-bin"
 prefix_side_effect="$TMP/prefix-pnpm-called"
@@ -226,6 +227,48 @@ grep -F 'ERROR: directory exists but git does not recognize it as a worktree' \
 [ ! -e "$prefix_side_effect" ] ||
   fail "prefix collision reached dependency installation"
 pass "create requires an exact registered worktree path"
+
+prefix_remove_output="$TMP/prefix-remove.out"
+if (
+  cd "$repo"
+  bash scripts/tribunal-worker-bootstrap.sh remove prefix
+) >"$prefix_remove_output" 2>&1; then
+  fail "remove accepted a standalone repo through a worktree path prefix collision"
+fi
+grep -F 'ERROR: refusing to remove unregistered directory' \
+  "$prefix_remove_output" >/dev/null ||
+  fail "remove prefix collision did not emit the unregistered-directory diagnostic"
+[ -d "$prefix_path" ] ||
+  fail "remove prefix collision deleted the standalone repo"
+[ -e "$prefix_path/KEEP-ME" ] ||
+  fail "remove prefix collision deleted the standalone repo sentinel"
+git -C "$prefix_path" rev-parse --is-inside-work-tree >/dev/null ||
+  fail "remove prefix collision damaged the standalone repo"
+pass "remove requires an exact registered worktree path"
+
+remove_fallback_bin="$TMP/remove-fallback-bin"
+mkdir -p "$remove_fallback_bin"
+# These expressions belong to the generated fake git, not this test shell.
+# shellcheck disable=SC2016
+printf '%s\n' \
+  '#!/usr/bin/env bash' \
+  'if [ "${1:-}" = worktree ] && [ "${2:-}" = remove ]; then exit 55; fi' \
+  'exec "$REAL_GIT" "$@"' >"$remove_fallback_bin/git"
+chmod +x "$remove_fallback_bin/git"
+
+(
+  cd "$repo"
+  PATH="$remove_fallback_bin:$PATH" \
+    REAL_GIT="$real_git" \
+    bash scripts/tribunal-worker-bootstrap.sh remove prefix2
+) >"$TMP/registered-remove-fallback.out" 2>&1
+[ ! -e "$prefix2_path" ] ||
+  fail "registered remove fallback did not delete its worker worktree"
+if git -C "$repo" worktree list --porcelain |
+  grep -Fx "worktree $prefix2_path" >/dev/null; then
+  fail "registered remove fallback did not prune its worktree metadata"
+fi
+pass "registered worktree removal keeps its filesystem fallback"
 
 invalid_fake_bin="$TMP/invalid-fake-bin"
 invalid_side_effect_marker="$TMP/invalid-side-effect"
