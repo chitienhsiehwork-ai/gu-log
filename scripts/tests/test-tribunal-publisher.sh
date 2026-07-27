@@ -126,6 +126,114 @@ jq -e '. == {"schemaVersion": 1, "events": {}}' "$runtime/.score-loop/state/trib
   || fail "missing triage state should initialize with the default shape"
 pass "dry-run reports counts and initializes missing runtime ledgers"
 
+setup_batch_validation_runtime() {
+  local target="$1"
+  git clone "$origin" "$target" >/dev/null 2>&1
+  git -C "$target" checkout -b tribunal-validation-runtime origin/main >/dev/null 2>&1
+  git -C "$target" config user.email test@example.invalid
+  git -C "$target" config user.name "Runtime"
+  mkdir -p "$target/scripts" "$target/.score-loop/state"
+  cp "$ROOT_DIR/scripts/tribunal-publisher.sh" "$target/scripts/tribunal-publisher.sh"
+  cp "$ROOT_DIR/scripts/tribunal-helpers.sh" "$target/scripts/tribunal-helpers.sh"
+  chmod +x "$target/scripts/tribunal-publisher.sh"
+  cat > "$target/.score-loop/state/tribunal-progress.json" <<'JSON'
+{
+  "gp-1-test.mdx": { "status": "PASS", "tribunalVersion": 8 },
+  "gp-2-test.mdx": { "status": "PASS", "tribunalVersion": 8 }
+}
+JSON
+  printf '{"schemaVersion":1,"entries":{},"batches":{}}\n' > "$target/.score-loop/state/tribunal-publisher.json"
+  printf '{"schemaVersion":1,"events":{}}\n' > "$target/.score-loop/state/tribunal-triage-events.json"
+  printf 'Runtime validation rewrite one.\n' >> "$target/src/content/posts/gp-1-test.mdx"
+  printf 'Runtime validation rewrite one en.\n' >> "$target/src/content/posts/en-gp-1-test.mdx"
+  printf 'Runtime validation rewrite two.\n' >> "$target/src/content/posts/gp-2-test.mdx"
+  printf 'Runtime validation rewrite two en.\n' >> "$target/src/content/posts/en-gp-2-test.mdx"
+}
+
+batch_validation_runtime="$TMP/batch-validation-runtime"
+batch_validation_bin="$TMP/batch-validation-bin"
+batch_validation_log="$TMP/batch-validation.log"
+batch_validation_worktree="$TMP/batch-validation-worktree"
+validation_real_node="$(command -v node)"
+setup_batch_validation_runtime "$batch_validation_runtime"
+mkdir -p "$batch_validation_bin"
+cat > "$batch_validation_bin/node" <<'NODE'
+#!/usr/bin/env bash
+set -euo pipefail
+case "$1" in
+  */scripts/validate-posts.mjs) printf '%s\n' "$*" >> "$VALIDATE_NODE_LOG" ;;
+  *) exec "$VALIDATE_REAL_NODE" "$@" ;;
+esac
+NODE
+chmod +x "$batch_validation_bin/node"
+
+batch_validation_out="$(cd "$batch_validation_runtime" && \
+  PATH="$batch_validation_bin:$PATH" \
+  VALIDATE_NODE_LOG="$batch_validation_log" \
+  VALIDATE_REAL_NODE="$validation_real_node" \
+  TRIBUNAL_PUBLISHER_DISABLE_GH_SCAN=1 \
+  TRIBUNAL_PUBLISHER_SKIP_BUILD=1 \
+  bash scripts/tribunal-publisher.sh --apply --max 10 \
+    --branch publisher/batch-validation-fast-path \
+    --worktree "$batch_validation_worktree")"
+batch_validation_calls="$(wc -l < "$batch_validation_log" | tr -d ' ')"
+[ "$batch_validation_calls" = "1" ] \
+  || fail "valid batch should invoke validate-posts exactly once (got $batch_validation_calls: $(tr '\n' ';' < "$batch_validation_log"))"
+for expected in gp-1-test.mdx en-gp-1-test.mdx gp-2-test.mdx en-gp-2-test.mdx; do
+  grep -qw "$expected" "$batch_validation_log" \
+    || fail "batch validation argv should include $expected"
+done
+grep -q 'selected gp-1-test.mdx' <<<"$batch_validation_out" \
+  || fail "batch validation fast path should select gp-1"
+grep -q 'selected gp-2-test.mdx' <<<"$batch_validation_out" \
+  || fail "batch validation fast path should select gp-2"
+pass "valid candidates use one batched validate-posts invocation"
+
+fallback_validation_runtime="$TMP/fallback-validation-runtime"
+fallback_validation_bin="$TMP/fallback-validation-bin"
+fallback_validation_log="$TMP/fallback-validation.log"
+fallback_validation_worktree="$TMP/fallback-validation-worktree"
+setup_batch_validation_runtime "$fallback_validation_runtime"
+mkdir -p "$fallback_validation_bin"
+cat > "$fallback_validation_bin/node" <<'NODE'
+#!/usr/bin/env bash
+set -euo pipefail
+case "$1" in
+  */scripts/validate-posts.mjs) ;;
+  *) exec "$VALIDATE_REAL_NODE" "$@" ;;
+esac
+printf '%s\n' "$*" >> "$VALIDATE_NODE_LOG"
+if [ "$#" -gt 3 ]; then
+  exit 1
+fi
+case " $* " in
+  *" gp-2-test.mdx "*) exit 1 ;;
+esac
+NODE
+chmod +x "$fallback_validation_bin/node"
+
+fallback_validation_out="$(cd "$fallback_validation_runtime" && \
+  PATH="$fallback_validation_bin:$PATH" \
+  VALIDATE_NODE_LOG="$fallback_validation_log" \
+  VALIDATE_REAL_NODE="$validation_real_node" \
+  TRIBUNAL_PUBLISHER_DISABLE_GH_SCAN=1 \
+  TRIBUNAL_PUBLISHER_SKIP_BUILD=1 \
+  bash scripts/tribunal-publisher.sh --apply --max 10 \
+    --branch publisher/batch-validation-fallback \
+    --worktree "$fallback_validation_worktree")"
+[ "$(wc -l < "$fallback_validation_log" | tr -d ' ')" = "3" ] \
+  || fail "failed batch validation should retry each candidate exactly once"
+grep -q 'validation_blocked gp-2-test.mdx' <<<"$fallback_validation_out" \
+  || fail "fallback validation should isolate the invalid candidate"
+grep -q 'selected gp-1-test.mdx' <<<"$fallback_validation_out" \
+  || fail "fallback validation should keep the valid candidate"
+grep -q 'selected gp-2-test.mdx' <<<"$fallback_validation_out" \
+  && fail "fallback validation must not select the invalid candidate"
+[ "$(jq -r '[.events[] | select(.kind=="validation_blocked")] | length' \
+  "$fallback_validation_runtime/.score-loop/state/tribunal-triage-events.json")" = "1" ] \
+  || fail "fallback validation should record exactly one validation_blocked event"
+pass "failed batch validation falls back to per-candidate isolation"
+
 fetch_runtime="$TMP/fetch-runtime"
 fetch_batch_dir="$TMP/fetch-failure-batch"
 fetch_branch="publisher/fetch-must-succeed"
