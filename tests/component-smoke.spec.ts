@@ -392,6 +392,41 @@ test.describe('Component smoke — post page (RelatedArticles, ShareButton, Prev
   });
 });
 
+test.describe('Component smoke — Mermaid error handling', () => {
+  test('renders thrown Mermaid messages as text instead of markup', async ({ page }) => {
+    const payload = '<img data-mermaid-error-probe src="data:,">';
+
+    await page.route(
+      'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs',
+      async (route) => {
+        await route.fulfill({
+          contentType: 'application/javascript',
+          headers: { 'access-control-allow-origin': '*' },
+          body: `
+            const payload = ${JSON.stringify(payload)};
+            export default {
+              initialize() {},
+              async render() {
+                throw new Error(payload);
+              },
+            };
+          `,
+        });
+      }
+    );
+
+    await page.goto('/en/posts/en-levelup-20260608-12-llm-internals/', {
+      waitUntil: 'domcontentloaded',
+    });
+
+    const renderTarget = page.locator('.mermaid-render').first();
+    const error = renderTarget.locator('pre');
+    await expect(error).toBeVisible();
+    await expect(error).toContainText(payload);
+    await expect(renderTarget.locator('img')).toHaveCount(0);
+  });
+});
+
 test.describe('Component smoke — feed/api endpoints', () => {
   test('rss.xml is served and well-formed XML', async ({ request }) => {
     const r = await request.get('/rss.xml');
