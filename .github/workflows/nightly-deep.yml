@@ -236,12 +236,10 @@ jobs:
         # `permissions:` block can override — confirmed by hitting
         # "GitHub Actions is not permitted to create or approve pull requests"
         # on a live dispatch run. So this pushes the fresh file to a fixed
-        # staging branch instead — but never force-pushes it (see
-        # scripts/nightly-baseline-stage.sh): if that branch already has
-        # unmerged progress sitting on it, this leaves it alone rather than
-        # clobbering it. A human or the next agent session turns it into a
-        # real PR with one command once the staleness check (below) goes red:
-        #   gh pr create --base main --head nightly/coverage-baseline-staging && gh pr merge --auto --squash
+        # carrier branch instead — but never force-pushes it. The script's
+        # NIGHTLY_BASELINE_CARRIER handoff is the SSOT for safely materializing
+        # the declared files on current main; the carrier itself must not
+        # become a PR head because its ancestry may be stale.
         if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
         run: |
           bash scripts/nightly-baseline-stage.sh \
@@ -278,11 +276,10 @@ jobs:
         # coverage-ratchet job's "Stage coverage baseline..." step for why
         # (main's branch protection blocks direct pushes, and this repo's
         # Actions permissions block Actions-created PRs; that's a repo-owner
-        # setting, not something this workflow can fix). Never force-pushes
-        # (see scripts/nightly-baseline-stage.sh): if the branch already has
-        # unmerged progress on it, this leaves it alone. Same one-command
-        # follow-up once the staleness check goes red:
-        #   gh pr create --base main --head nightly/links-baseline-staging && gh pr merge --auto --squash
+        # setting, not something this workflow can fix). Never force-pushes.
+        # Follow scripts/nightly-baseline-stage.sh's NIGHTLY_BASELINE_CARRIER
+        # handoff: clean-materialize the declared file on current main; never
+        # open a PR directly from the carrier's potentially stale ancestry.
         if: ${{ always() && !cancelled() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
         run: |
           bash scripts/nightly-baseline-stage.sh \
