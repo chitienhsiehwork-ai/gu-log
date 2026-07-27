@@ -9,6 +9,7 @@
   const root = document.getElementById('ai-popup-root');
   if (!root) return;
 
+  const loginTarget = document.getElementById('ai-popup-login-target');
   const filePath = root.getAttribute('data-file-path') || '';
   const postTitle = root.getAttribute('data-post-title') || '';
   const apiUrl = root.getAttribute('data-api-url') || '';
@@ -883,7 +884,11 @@
     } catch (_error) {
       // Ignore storage failures (private mode / quota), login can still continue.
     }
-    window.location.href = apiUrl + '/auth/github';
+    if (!loginTarget) {
+      renderError(t.unknownError);
+      return;
+    }
+    loginTarget.click();
   }
 
   // Event delegation for popup buttons
