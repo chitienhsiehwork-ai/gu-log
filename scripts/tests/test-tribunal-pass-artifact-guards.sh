@@ -390,3 +390,36 @@ git -C "$repo4" add scores/tribunal-progress.json src/content/posts/mp-999-test.
 git -C "$repo4" commit -q -m 'tribunal(mp-999-test): all 4 stages PASS + final build'
 bash "$AUDIT" --repo "$repo4" --limit 10
 pass "audit accepts PASS commits with target post artifacts"
+
+# 13. Audit scratch output must use a unique mktemp file and clean it up.
+# A predictable shared /tmp path permits symlink truncation and lets concurrent
+# audits overwrite or delete each other's diagnostics.
+fake_bin="$TMP/fake-bin"
+mkdir -p "$fake_bin"
+cat >"$fake_bin/mktemp" <<'SH'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >"$MKTEMP_LOG"
+: >"$MKTEMP_OUTPUT"
+printf '%s\n' "$MKTEMP_OUTPUT"
+SH
+chmod +x "$fake_bin/mktemp"
+mktemp_log="$TMP/mktemp-argv"
+mktemp_output="$TMP/audit-scratch"
+if ! PATH="$fake_bin:$PATH" \
+  MKTEMP_LOG="$mktemp_log" \
+  MKTEMP_OUTPUT="$mktemp_output" \
+  bash "$AUDIT" --repo "$repo4" --limit 10 >"$TMP/audit-mktemp-out" 2>&1; then
+  cat "$TMP/audit-mktemp-out" >&2
+  fail "audit failed while exercising secure scratch-file handling"
+fi
+if [ ! -f "$mktemp_log" ]; then
+  fail "audit did not allocate scratch output with mktemp"
+fi
+if ! grep -q 'gu-log-tribunal-audit\.XXXXXX' "$mktemp_log"; then
+  cat "$mktemp_log" >&2
+  fail "audit did not request a unique gu-log scratch-file template"
+fi
+if [ -e "$mktemp_output" ]; then
+  fail "audit did not remove its unique scratch output on exit"
+fi
+pass "audit uses unique, cleaned scratch output"
