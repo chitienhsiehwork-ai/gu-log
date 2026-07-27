@@ -560,8 +560,11 @@ apply_batch() {
     fi
   fi
 
-  if [ "$KEEP_WORKTREE" != "1" ]; then
+  if [ "$KEEP_WORKTREE" = "1" ]; then
     tlog "worktree kept at $batch_dir for inspection"
+  else
+    git worktree remove "$batch_dir"
+    tlog "worktree removed: $batch_dir"
   fi
 }
 
