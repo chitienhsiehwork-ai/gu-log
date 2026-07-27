@@ -5,6 +5,11 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 
 const REPO_ROOT = path.resolve(__dirname, '..');
+const PACKAGE_PREPARE = (
+  JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'package.json'), 'utf-8')) as {
+    scripts: { prepare: string };
+  }
+).scripts.prepare;
 
 function git(cwd: string, ...args: string[]): string {
   return execFileSync('git', args, { cwd, encoding: 'utf-8' }).trim();
@@ -26,6 +31,38 @@ function copySetupFixture(repo: string): void {
     fs.copyFileSync(path.join(REPO_ROOT, 'scripts', 'hooks', hook), path.join(hooksDir, hook));
   }
 }
+
+function runPrepare(cwd: string) {
+  return spawnSync('/bin/sh', ['-c', PACKAGE_PREPARE], { cwd, encoding: 'utf-8' });
+}
+
+describe('prepare lifecycle', () => {
+  it('succeeds when the optional hook installer is absent', () => {
+    const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-prepare-missing-'));
+
+    try {
+      expect(runPrepare(repo).status).toBe(0);
+    } finally {
+      fs.rmSync(repo, { recursive: true, force: true });
+    }
+  });
+
+  it('preserves a hook installer failure status', () => {
+    const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-prepare-failure-'));
+    const scriptsDir = path.join(repo, 'scripts');
+
+    try {
+      fs.mkdirSync(scriptsDir);
+      fs.writeFileSync(path.join(scriptsDir, 'setup-hooks.sh'), '#!/bin/sh\nexit 23\n', {
+        mode: 0o755,
+      });
+
+      expect(runPrepare(repo).status).toBe(23);
+    } finally {
+      fs.rmSync(repo, { recursive: true, force: true });
+    }
+  });
+});
 
 describe('setup-hooks linked-worktree isolation', () => {
   it('keeps hooksPath per-worktree while merge drivers remain clone-scoped', () => {
