@@ -580,7 +580,7 @@ quota_history_append() {
   local extra_used="$6" extra_limit="$7" cooldown="$8" workers="$9"
   shift 9
   local binding="$1" article_cost="$2" mode="$3"
-  python3 -c "
+  if ! python3 -c "
 import json, datetime
 entry = {
     'ts': datetime.datetime.now(datetime.timezone.utc).isoformat(),
@@ -598,7 +598,10 @@ entry = {
     'mode': '$mode',
 }
 print(json.dumps(entry))
-" >> "$QUOTA_HISTORY_FILE" 2>/dev/null || true
+" >> "$QUOTA_HISTORY_FILE" 2>/dev/null; then
+    tlog "WARN: quota history append failed event=$event path=$QUOTA_HISTORY_FILE"
+    return 0
+  fi
 }
 
 # Overwrite quota-controller.json with current controller state.
