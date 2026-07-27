@@ -109,6 +109,114 @@ echo "https://example.com/pr/41"
 HOOK
 chmod +x "$TMP/create-hook.sh"
 
+cat > "$TMP/apply-hook.sh" <<'HOOK'
+#!/usr/bin/env bash
+set -euo pipefail
+echo "$1" >> "$APPLY_LOG"
+HOOK
+chmod +x "$TMP/apply-hook.sh"
+
+cat > "$TMP/gh-side-effect-hook.sh" <<'HOOK'
+#!/usr/bin/env bash
+set -euo pipefail
+echo "$*" >> "$GH_SIDE_EFFECT_LOG"
+exit 99
+HOOK
+chmod +x "$TMP/gh-side-effect-hook.sh"
+
+dry_run_state_before="$TMP/dry-run-publisher.before"
+dry_run_triage_before="$TMP/dry-run-triage.before"
+dry_run_output=""
+cp "$runtime/.score-loop/state/tribunal-publisher.json" "$dry_run_state_before"
+cp "$runtime/.score-loop/state/tribunal-triage-events.json" "$dry_run_triage_before"
+
+assert_rejected_before_mutation() {
+  local label="$1" expected_error="$2"
+  shift 2
+  local prefix="$TMP/rejected-$label"
+  local ready_log="${prefix}-ready.log"
+  local guard_log="${prefix}-guard.log"
+  local create_log="${prefix}-create.log"
+  local apply_log="${prefix}-apply.log"
+  local gh_log="${prefix}-gh.log"
+  local lock_file="${prefix}-autopilot.lock"
+  local audit_log="${prefix}-autopilot.jsonl"
+  local output rc side_effect
+
+  set +e
+  output="$(
+    cd "$runtime" && \
+      READY_LOG="$ready_log" \
+      GUARD_LOG="$guard_log" \
+      CREATE_LOG="$create_log" \
+      APPLY_LOG="$apply_log" \
+      GH_SIDE_EFFECT_LOG="$gh_log" \
+      GH_BIN="$TMP/gh-side-effect-hook.sh" \
+      TRIBUNAL_PUBLISHER_AUTOPILOT_OPEN_PRS_JSON_FILE="$TMP/open.json" \
+      TRIBUNAL_PUBLISHER_AUTOPILOT_MERGED_PRS_JSON_FILE="$TMP/merged-none.json" \
+      TRIBUNAL_PUBLISHER_AUTOPILOT_READY_HOOK="$TMP/ready-hook.sh" \
+      TRIBUNAL_PUBLISHER_AUTOPILOT_MERGE_GUARD_HOOK="$TMP/guard-hook.sh" \
+      TRIBUNAL_PUBLISHER_AUTOPILOT_CREATE_PR_HOOK="$TMP/create-hook.sh" \
+      TRIBUNAL_PUBLISHER_AUTOPILOT_APPLY_HOOK="$TMP/apply-hook.sh" \
+      TRIBUNAL_PUBLISHER_AUTOPILOT_LOCK_FILE="$lock_file" \
+      TRIBUNAL_PUBLISHER_AUTOPILOT_AUDIT_LOG="$audit_log" \
+      bash scripts/tribunal-publisher-autopilot.sh "$@" 2>&1
+  )"
+  rc=$?
+  set -e
+
+  [ "$rc" -eq 2 ] ||
+    fail "autopilot rejected-input case $label returned rc=$rc"
+  grep -Eq "$expected_error" <<<"$output" ||
+    fail "autopilot rejected-input case $label lacked an actionable error"
+  grep -Fq '[--max N] [--skip-apply]' <<<"$output" ||
+    fail "autopilot rejected-input case $label lacked supported usage"
+  if [ "$label" = "dry-run" ]; then
+    dry_run_output="$output"
+  fi
+  cmp -s "$dry_run_state_before" "$runtime/.score-loop/state/tribunal-publisher.json" ||
+    fail "autopilot rejected-input case $label mutated publisher state"
+  cmp -s "$dry_run_triage_before" "$runtime/.score-loop/state/tribunal-triage-events.json" ||
+    fail "autopilot rejected-input case $label mutated triage state"
+  for side_effect in \
+    "$ready_log" \
+    "$guard_log" \
+    "$create_log" \
+    "$apply_log" \
+    "$gh_log" \
+    "$lock_file" \
+    "$audit_log"; do
+    [ ! -e "$side_effect" ] ||
+      fail "autopilot rejected-input case $label created side effect: $side_effect"
+  done
+}
+
+assert_rejected_before_mutation \
+  "dry-run" \
+  '^Unknown arg: --dry-run$' \
+  --dry-run
+assert_rejected_before_mutation \
+  "max-dry-run" \
+  '^Invalid value for --max: --dry-run$' \
+  --max --dry-run
+assert_rejected_before_mutation \
+  "max-unknown" \
+  '^Invalid value for --max: --unknown$' \
+  --max --unknown
+assert_rejected_before_mutation \
+  "max-missing" \
+  '^Invalid value for --max: <missing>$' \
+  --max
+assert_rejected_before_mutation \
+  "max-zero" \
+  '^Invalid value for --max: 0$' \
+  --max 0
+
+if grep -Fq -- '--dry-run' <<<"$(tail -n +2 <<<"$dry_run_output")"; then
+  fail "autopilot usage must not advertise the removed --dry-run flag"
+fi
+pass "autopilot rejects misleading or malformed CLI input before every mutation boundary"
+
 (cd "$runtime" && \
   READY_LOG="$ready_log" \
   GUARD_LOG="$guard_log" \
