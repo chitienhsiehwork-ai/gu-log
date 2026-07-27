@@ -370,6 +370,52 @@ describe('bulk audit transport', () => {
     });
   });
 
+  it.each(['request', 'body'] as const)(
+    'fails closed when the bulk audit %s stalls past its timeout',
+    async (stalledPhase) => {
+      let observedSignal: AbortSignal | null = null;
+      const fakeFetch = (_url: string, init?: RequestInit) => {
+        observedSignal = init?.signal ?? null;
+        if (stalledPhase === 'request') {
+          return new Promise<Response>(() => undefined);
+        }
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          arrayBuffer: () => new Promise<ArrayBuffer>(() => undefined),
+        } as Response);
+      };
+
+      const outcome = await Promise.race([
+        fetchBulkAudit({ pkg: ['1.0.0'] }, 'bulk response', fakeFetch, 10).then(
+          () => 'resolved',
+          (error: unknown) => error
+        ),
+        new Promise<string>((resolve) => setTimeout(() => resolve('still pending'), 100)),
+      ]);
+
+      expect(outcome).toBeInstanceOf(Error);
+      expect((outcome as Error).message).toMatch(/bulk response timed out after 10ms/i);
+      expect(observedSignal).toEqual(expect.objectContaining({ aborted: true }));
+    }
+  );
+
+  it.each([0, -1, 1.5])(
+    'rejects invalid bulk audit timeout %s before fetching',
+    async (timeoutMs) => {
+      let called = false;
+      const fakeFetch = async () => {
+        called = true;
+        return new Response(JSON.stringify({ pkg: [] }), { status: 200 });
+      };
+
+      await expect(
+        fetchBulkAudit({ pkg: ['1.0.0'] }, 'bulk response', fakeFetch, timeoutMs)
+      ).rejects.toThrow(/bulk response timeout must be a positive integer/i);
+      expect(called).toBe(false);
+    }
+  );
+
   it('classifies advisories with the validated lockfile scope ceiling', () => {
     const full = {
       runtimeLeaf: [bulkAdvisory(1, 'critical')],
