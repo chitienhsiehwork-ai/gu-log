@@ -8,6 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 ASSERT="$ROOT_DIR/scripts/tribunal-assert-pass-artifacts.sh"
 AUDIT="$ROOT_DIR/scripts/tribunal-audit-pass-commits.sh"
+AUDIT_SERVICE="$ROOT_DIR/scripts/tribunal-pass-audit.service"
 
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
@@ -423,3 +424,51 @@ if [ -e "$mktemp_output" ]; then
   fail "audit did not remove its unique scratch output on exit"
 fi
 pass "audit uses unique, cleaned scratch output"
+
+# 14. The scheduled production audit must not trust a cached origin/main when
+# its refresh fails. Exercise the systemd unit's inner shell command in both
+# directions so a textual refactor cannot accidentally restore stale auditing.
+service_command="$(
+  sed -n "s|^ExecStart=/bin/bash -lc '\\(.*\\)'$|\\1|p" "$AUDIT_SERVICE"
+)"
+[ -n "$service_command" ] || fail "unable to extract daily PASS audit service command"
+service_command="${service_command//\$\$/\$}"
+
+service_fixture="$TMP/daily-audit-service"
+service_fake_bin="$service_fixture/bin"
+service_repo="$service_fixture/repo"
+service_audit_sentinel="$service_fixture/audit-argv"
+mkdir -p "$service_fake_bin" "$service_repo/scripts"
+cat >"$service_fake_bin/git" <<'SH'
+#!/usr/bin/env bash
+if [ "$#" -eq 3 ] && [ "$1" = "fetch" ] && [ "$2" = "origin" ] && [ "$3" = "main" ]; then
+  exit "${FAKE_GIT_FETCH_RC:?}"
+fi
+exit 99
+SH
+cat >"$service_repo/scripts/tribunal-audit-pass-commits.sh" <<'SH'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >"${AUDIT_SENTINEL:?}"
+SH
+chmod +x "$service_fake_bin/git" "$service_repo/scripts/tribunal-audit-pass-commits.sh"
+
+if PATH="$service_fake_bin:/usr/bin:/bin" \
+  GU_LOG_DIR="$service_repo" \
+  FAKE_GIT_FETCH_RC=42 \
+  AUDIT_SENTINEL="$service_audit_sentinel" \
+  bash -c "$service_command" >"$TMP/daily-audit-fetch-failure.out" 2>&1; then
+  fail "daily PASS audit service accepted a failed origin/main refresh"
+fi
+[ ! -e "$service_audit_sentinel" ] ||
+  fail "daily PASS audit ran after origin/main refresh failed"
+grep -Fq 'unable to refresh origin/main; refusing to audit a cached ref' "$TMP/daily-audit-fetch-failure.out" ||
+  fail "daily PASS audit did not explain its stale-ref refusal"
+
+PATH="$service_fake_bin:/usr/bin:/bin" \
+  GU_LOG_DIR="$service_repo" \
+  FAKE_GIT_FETCH_RC=0 \
+  AUDIT_SENTINEL="$service_audit_sentinel" \
+  bash -c "$service_command"
+[ "$(cat "$service_audit_sentinel")" = "--range 2b1bc361..origin/main" ] ||
+  fail "daily PASS audit did not scan the exact remote-main range after a successful refresh"
+pass "daily PASS audit fails closed when origin/main cannot be refreshed"
