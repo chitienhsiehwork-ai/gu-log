@@ -64,11 +64,31 @@ EOF
         echo "   See CONTRIBUTING.md §並行撰寫防 ID collision for the swap procedure."
         exit 1
       fi
+
+      # Audit only the commits this push can add. A new main/master ref has no
+      # remote_sha; when the repository's post-fix baseline is reachable, use
+      # it to exclude intentionally invalidated historical PASS commits.
+      echo "⚖️  Auditing Tribunal PASS commits for published article artifacts..."
+      TRIBUNAL_PASS_AUDIT_BASELINE="2b1bc3618eed78d7e0e2f13ec1207efa260eeec1"
+      if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
+        if git merge-base --is-ancestor "$TRIBUNAL_PASS_AUDIT_BASELINE" "$local_sha" \
+          2>/dev/null; then
+          AUDIT_RANGE="${TRIBUNAL_PASS_AUDIT_BASELINE}..${local_sha}"
+        else
+          AUDIT_RANGE="$local_sha"
+        fi
+      else
+        AUDIT_RANGE="${remote_sha}..${local_sha}"
+      fi
+      if ! bash scripts/tribunal-audit-pass-commits.sh --range "$AUDIT_RANGE"; then
+        echo "❌ Tribunal PASS artifact audit failed! Push aborted."
+        exit 1
+      fi
       ;;
   esac
 done
 
-# 1. Retired brand contracts are a merge blocker. Exact historical and
+# 2. Retired brand contracts are a merge blocker. Exact historical and
 #    fail-closed-test exceptions live in the scanner policy; everything else
 #    must use the canonical Mogu / GP / MP taxonomy before a branch is pushed.
 echo "🏷️  Checking retired brand taxonomy contracts..."
@@ -78,7 +98,7 @@ if ! pnpm run taxonomy:check; then
   exit 1
 fi
 
-# 2. Post version manifest freshness — Vercel production uses the committed
+# 3. Post version manifest freshness — Vercel production uses the committed
 #    manifest on shallow clones, so content-touching commits must keep it fresh.
 #    CCC/local clones are frequently shallow, and build-version-manifest.mjs
 #    deliberately skips (exit 0) on a shallow clone because it can't count
@@ -104,7 +124,7 @@ if ! node scripts/build-version-manifest.mjs --check; then
   exit 1
 fi
 
-# 3. Bundle budget check (LOCAL = warning-only; CI is the blocking authority)
+# 4. Bundle budget check (LOCAL = warning-only; CI is the blocking authority)
 #    Local dist can be stale/incremental, which inflates the aggregate JS+CSS
 #    sum and produces false blocks. The CI `bundle-budget` job runs the same
 #    check against a clean build artifact and IS allowed to fail the PR (see #396).
@@ -118,7 +138,7 @@ if ! node scripts/bundle-budget-check.mjs; then
   echo "   quality/bundle-budget.json."
 fi
 
-# 4. Coverage ratchet (only if tests can run quickly)
+# 5. Coverage ratchet (only if tests can run quickly)
 # Skip for now - tests take too long for pre-push
 # echo "🧪 Checking test coverage ratchet..."
 # bash scripts/coverage-ratchet.sh

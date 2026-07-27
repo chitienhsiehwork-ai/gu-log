@@ -69,12 +69,45 @@ function writePost(repo: string, filename: string, ticketId: string): void {
 }
 
 function runPrePush(repo: string, stdin: string) {
+  linkTribunalAuditScripts(repo);
   return spawnSync('bash', [path.join(REPO_ROOT, '.githooks', 'pre-push')], {
     cwd: repo,
     input: stdin,
     env: makeFastHookEnv(),
     encoding: 'utf-8',
   });
+}
+
+function linkTribunalAuditScripts(repo: string): void {
+  const scriptsDir = path.join(repo, 'scripts');
+  fs.mkdirSync(scriptsDir, { recursive: true });
+  for (const filename of ['tribunal-audit-pass-commits.sh', 'tribunal-assert-pass-artifacts.sh']) {
+    const destination = path.join(scriptsDir, filename);
+    if (!fs.existsSync(destination)) {
+      fs.symlinkSync(path.join(REPO_ROOT, 'scripts', filename), destination);
+    }
+  }
+}
+
+function writeTribunalPost(repo: string, filename: string): void {
+  fs.writeFileSync(
+    path.join(repo, 'src', 'content', 'posts', filename),
+    `---
+ticketId: GP-42
+scores:
+  tribunalVersion: 3
+  librarian:
+    score: 8
+  factCheck:
+    score: 8
+  freshEyes:
+    score: 8
+  vibe:
+    score: 8
+---
+body
+`
+  );
 }
 
 describe('pre-commit: Gitleaks staged scan', () => {
@@ -325,6 +358,83 @@ describe('pre-push: PENDING ticketId guard (Step 0) — real committed diff', ()
     expect(r.stdout + r.stderr).not.toMatch(/PENDING ticketId in commits/);
     expect(r.status).toBe(0);
   }, 15_000);
+});
+
+describe('pre-push: Tribunal PASS artifact audit', () => {
+  it('rejects a progress-only PASS commit in a pushed main range', () => {
+    const repo = makeFakeRepo();
+    const baseSha = commitAll(repo, 'base');
+    fs.mkdirSync(path.join(repo, 'scores'), { recursive: true });
+    fs.writeFileSync(path.join(repo, 'scores', 'tribunal-progress.json'), '{}\n');
+    const headSha = commitAll(repo, 'tribunal(sample): all 4 stages PASS + final build');
+
+    const stdin = `refs/heads/main ${headSha} refs/heads/main ${baseSha}\n`;
+    const r = runPrePush(repo, stdin);
+
+    expect(r.status).toBe(1);
+    expect(r.stdout + r.stderr).toMatch(/progress-only Tribunal PASS commit/);
+    expect(r.stdout + r.stderr).toMatch(new RegExp(headSha));
+    expect(r.stdout + r.stderr).toMatch(
+      /missing staged target post artifact.*src\/content\/posts\/sample\.mdx/
+    );
+  });
+
+  it('does not rescan a bad PASS commit before the pushed main range', () => {
+    const repo = makeFakeRepo();
+    commitAll(repo, 'base');
+    fs.mkdirSync(path.join(repo, 'scores'), { recursive: true });
+    fs.writeFileSync(path.join(repo, 'scores', 'tribunal-progress.json'), '{}\n');
+    const remoteSha = commitAll(repo, 'tribunal(old): all 4 stages PASS + final build');
+    fs.writeFileSync(path.join(repo, 'safe.txt'), 'safe\n');
+    const headSha = commitAll(repo, 'unrelated safe change');
+
+    const stdin = `refs/heads/main ${headSha} refs/heads/main ${remoteSha}\n`;
+    const r = runPrePush(repo, stdin);
+
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(r.stdout + r.stderr).toMatch(/Tribunal PASS artifact audit passed: checked 0/);
+  }, 15_000);
+
+  it('does not audit a progress-only PASS commit pushed to a feature branch', () => {
+    const repo = makeFakeRepo();
+    const baseSha = commitAll(repo, 'base');
+    fs.mkdirSync(path.join(repo, 'scores'), { recursive: true });
+    fs.writeFileSync(path.join(repo, 'scores', 'tribunal-progress.json'), '{}\n');
+    const headSha = commitAll(repo, 'tribunal(sample): all 4 stages PASS + final build');
+
+    const stdin = `refs/heads/feature-x ${headSha} refs/heads/feature-x ${baseSha}\n`;
+    const r = runPrePush(repo, stdin);
+
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(r.stdout + r.stderr).not.toMatch(/Auditing Tribunal PASS commits/);
+  }, 15_000);
+
+  it('accepts a PASS commit that publishes the target post artifact', () => {
+    const repo = makeFakeRepo();
+    const baseSha = commitAll(repo, 'base');
+    writeTribunalPost(repo, 'sample.mdx');
+    const headSha = commitAll(repo, 'tribunal(sample): all 4 stages PASS + final build');
+
+    const stdin = `refs/heads/main ${headSha} refs/heads/main ${baseSha}\n`;
+    const r = runPrePush(repo, stdin);
+
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(r.stdout + r.stderr).toMatch(/Tribunal PASS artifact audit passed: checked 1/);
+  }, 15_000);
+
+  it('audits the full reachable history when a new main has no safe baseline', () => {
+    const repo = makeFakeRepo();
+    commitAll(repo, 'base');
+    fs.mkdirSync(path.join(repo, 'scores'), { recursive: true });
+    fs.writeFileSync(path.join(repo, 'scores', 'tribunal-progress.json'), '{}\n');
+    const headSha = commitAll(repo, 'tribunal(sample): all 4 stages PASS + final build');
+
+    const stdin = `refs/heads/main ${headSha} refs/heads/main ${'0'.repeat(40)}\n`;
+    const r = runPrePush(repo, stdin);
+
+    expect(r.status).toBe(1);
+    expect(r.stdout + r.stderr).toMatch(/progress-only Tribunal PASS commit/);
+  });
 });
 
 describe('pre-commit: hook script is valid bash', () => {
