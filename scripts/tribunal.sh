@@ -302,9 +302,10 @@ MAX_TOP_ATTEMPTS=5
 
 init_article_progress() {
   local article="$1"
+  local article_progress_result="continue"
   # Entire init + attempts increment + cap check runs under a single
   # flock so two workers can't both see attempts=N and both bump to N+1.
-  (
+  {
     flock -x 9
     local tmp
     tmp="$(mktemp)"
@@ -357,16 +358,13 @@ init_article_progress() {
          --arg ts "$(TZ=Asia/Taipei date -Iseconds)" \
          '.[$a].status = "EXHAUSTED" | .[$a].finishedAt = $ts | .[$a].tribunalVersion = $tribunalVersion' \
          "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
-      echo EXHAUSTED > "$tmp.flag"
+      article_progress_result="exhausted"
     fi
-    # Signal via file to parent shell; subshell variables don't escape.
-    if [ -f "$tmp.flag" ]; then
-      mv "$tmp.flag" "$RC_PROGRESS_LOCK.exhausted-flag" 2>/dev/null || true
-    fi
-  ) 9>>"$RC_PROGRESS_LOCK"
+  } 9>>"$RC_PROGRESS_LOCK"
 
-  if [ -f "$RC_PROGRESS_LOCK.exhausted-flag" ]; then
-    rm -f "$RC_PROGRESS_LOCK.exhausted-flag"
+  # The result is invocation-local: a concurrent article must never consume
+  # another article's EXHAUSTED result after the shared progress lock releases.
+  if [ "$article_progress_result" = "exhausted" ]; then
     commit_progress "tribunal(${article%.mdx}): EXHAUSTED after $MAX_TOP_ATTEMPTS top-level attempts"
     exit 2
   fi

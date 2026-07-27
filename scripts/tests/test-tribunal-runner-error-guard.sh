@@ -350,3 +350,119 @@ if jq -e '."gp-1-20260128-demo.mdx".status == "EXHAUSTED"' "$interrupted_progres
   fail "interrupted in-progress retry must not become EXHAUSTED"
 fi
 pass "interrupted in-progress runs do not consume attempts or exhaust articles"
+
+# EXHAUSTED belongs to the article invocation that persisted it. A historical
+# process-global flag let a different article steal the signal between the
+# exhausted worker releasing the progress lock and checking the flag.
+race_progress="$TMP/exhausted-race-progress.json"
+race_waiting="$TMP/exhausted-race-waiting"
+race_release="$TMP/exhausted-race-release"
+race_bash_env="$TMP/exhausted-race-bash-env"
+cat > "$race_progress" <<'JSON'
+{
+  "gp-1-20260128-demo.mdx": {
+    "article": "gp-1-20260128-demo.mdx",
+    "status": "FAILED",
+    "topLevelAttempts": 5,
+    "tribunalVersion": 999,
+    "stages": {}
+  },
+  "gp-2-20260129-claude-code-vs-codex.mdx": {
+    "article": "gp-2-20260129-claude-code-vs-codex.mdx",
+    "status": "PENDING",
+    "topLevelAttempts": 0,
+    "tribunalVersion": 999,
+    "stages": {}
+  }
+}
+JSON
+cat > "$race_bash_env" <<'BASH_ENV'
+function [ {
+  local pause_at_signal=0
+  if builtin [ "${RACE_ROLE:-}" = "exhausted" ]; then
+    if builtin [ "${1:-}" = "-f" ] && [[ "${2:-}" == *exhausted* ]]; then
+      pause_at_signal=1
+    fi
+    if builtin [ "${1:-}" = "exhausted" ] &&
+       builtin [ "${2:-}" = "=" ] &&
+       builtin [ "${3:-}" = "exhausted" ]; then
+      pause_at_signal=1
+    fi
+  fi
+  if builtin [ "$pause_at_signal" -eq 1 ]; then
+    : > "$RACE_WAITING"
+    local waits=0
+    while ! builtin [ -e "$RACE_RELEASE" ]; do
+      sleep 0.01
+      waits=$((waits + 1))
+      if builtin [ "$waits" -ge 1000 ]; then
+        echo "timed out waiting to release exhausted signal check" >&2
+        return 1
+      fi
+    done
+  fi
+  builtin [ "$@"
+}
+BASH_ENV
+
+set +e
+PATH="$fake_bin:$PATH" \
+BASH_ENV="$race_bash_env" \
+RACE_ROLE=exhausted \
+RACE_WAITING="$race_waiting" \
+RACE_RELEASE="$race_release" \
+TRIBUNAL_SCORE_ONLY_PROGRESS_FILE="$race_progress" \
+TRIBUNAL_CODEX_TIMEOUT_SEC=5 \
+TRIBUNAL_CODEX_IDLE_TIMEOUT_SEC=5 \
+TRIBUNAL_CODEX_IDLE_POLL_SEC=1 \
+timeout 15s bash "$TRIBUNAL" --score-only --only-stage factChecker gp-1-20260128-demo.mdx \
+  >"$TMP/exhausted-race-x.out" 2>"$TMP/exhausted-race-x.err" &
+race_x_pid=$!
+set -e
+
+race_ready=0
+for ((race_waits = 0; race_waits < 500; race_waits++)); do
+  if [ -e "$race_waiting" ]; then
+    race_ready=1
+    break
+  fi
+  if ! kill -0 "$race_x_pid" 2>/dev/null; then
+    break
+  fi
+  sleep 0.01
+done
+if [ "$race_ready" -ne 1 ]; then
+  kill "$race_x_pid" 2>/dev/null || true
+  wait "$race_x_pid" 2>/dev/null || true
+  sed -n '1,160p' "$TMP/exhausted-race-x.out" >&2 || true
+  sed -n '1,160p' "$TMP/exhausted-race-x.err" >&2 || true
+  fail "exhausted article did not reach the deterministic signal-check barrier"
+fi
+
+set +e
+PATH="$fake_bin:$PATH" \
+BASH_ENV="$race_bash_env" \
+RACE_ROLE=peer \
+RACE_WAITING="$race_waiting" \
+RACE_RELEASE="$race_release" \
+TRIBUNAL_SCORE_ONLY_PROGRESS_FILE="$race_progress" \
+TRIBUNAL_CODEX_TIMEOUT_SEC=5 \
+TRIBUNAL_CODEX_IDLE_TIMEOUT_SEC=5 \
+TRIBUNAL_CODEX_IDLE_POLL_SEC=1 \
+timeout 15s bash "$TRIBUNAL" --score-only --only-stage factChecker gp-2-20260129-claude-code-vs-codex.mdx \
+  >"$TMP/exhausted-race-y.out" 2>"$TMP/exhausted-race-y.err"
+race_y_rc=$?
+: > "$race_release"
+wait "$race_x_pid"
+race_x_rc=$?
+set -e
+
+[ "$race_x_rc" -eq 2 ] ||
+  fail "exhausted article must retain its own rc=2 signal, got rc=$race_x_rc"
+[ "$race_y_rc" -eq 70 ] ||
+  fail "peer runner crash must remain rc=70 instead of stealing EXHAUSTED, got rc=$race_y_rc"
+[ "$(jq -r '."gp-1-20260128-demo.mdx".status' "$race_progress")" = "EXHAUSTED" ] ||
+  fail "exhausted article lost its terminal ledger status"
+[ "$(jq -r '."gp-2-20260129-claude-code-vs-codex.mdx".status' "$race_progress")" = "RUNNER_ERROR" ] ||
+  fail "peer article did not retain its independent runner-error status"
+pass "concurrent articles cannot steal each other's EXHAUSTED signal"
