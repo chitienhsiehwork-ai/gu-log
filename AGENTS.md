@@ -1,6 +1,6 @@
 # gu-log
 
-> AI/Tech 翻譯 + 原創 blog。把英文好文翻成繁中（GP/MP），ShroomDog 自己的原創文（SD），入門教學（Lv）。附 Mogu 吐槽註解。每篇文章同時產出 zh-tw 和 en 版。
+> AI/Tech 翻譯 + 原創 blog。這句只是產品摘要；正式編輯北極星、讀者、成功標準與系列身份以 [`editorial-charter` spec](openspec/specs/editorial-charter/spec.md) 為 SSOT。
 > Live: https://gu-log.vercel.app/
 
 > **這份是 Tier-0：always-loaded 的憲法 + bootstrap + 路由表，所有 agent（Codex、Claude Code、Mogu…）共讀的中性 SSOT。** 細節規則住在 Tier-1 playbook（按身份）和 Tier-2 文件（按主題），本檔只留「永遠要記得的硬規則」+「該去哪讀全文」。Claude Code 專屬的工具細節在 `CLAUDE.md`。
@@ -59,6 +59,7 @@ Feature branch 名稱常由沒 gu-log 上下文的 LLM 自動生成，只能當 
 
 | 要做的事 | 先讀哪份文件 |
 |---|---|
+| **任何內容 / editorial work**（寫文、修文、內容規則、writer prompt、judge prompt、editorial workflow） | [`openspec/specs/editorial-charter/spec.md`](openspec/specs/editorial-charter/spec.md)（編輯北極星與邊界 SSOT；先讀，再依下列主題續讀） |
 | **寫 / 翻譯文章（GP/MP/SD/Lv）、ticketId SOP、防重複、frontmatter schema、source evaluation、事實查核** | [`CONTRIBUTING.md`](CONTRIBUTING.md)（內容規則 SSOT） |
 | **寫作風格（PTT 說故事風、Mogu 吐槽語氣、persona、術語處理、翻譯誠實性、GP/MP 翻譯鐵則、Sentence Signal、Style Guide）** | [`GU-LOG_WRITER_PROMPT.md`](GU-LOG_WRITER_PROMPT.md)（寫作風格 SSOT） |
 | **品質門檻（兩層 floor/PASS gate）** | [`CONTRIBUTING.md`](CONTRIBUTING.md)〈🎯 兩層品質門檻〉 |
@@ -83,7 +84,7 @@ Feature branch 名稱常由沒 gu-log 上下文的 LLM 自動生成，只能當 
 
 `AGENTS.md` 只放 Tier-0 憲法 / bootstrap / 路由表；`CLAUDE.md` 補 Claude Code 專屬細節。Tier-1 = `playbooks/` 依 runtime 分流；Tier-2 = 主題 SSOT（`CONTRIBUTING.md`、`GU-LOG_WRITER_PROMPT.md`、`docs/agent-discipline.md`、`docs/dev-reference.md`、`docs/tribunal-runbook.md`、`tools/gp-pipeline/SKILL.md`…，逐項見上方路由表）。完整檔案樹是 repo layout 的副本、會 drift——要找檔用 `rg --files`，不在 Tier-0 常駐一棵樹。
 
-操作這個 repo 的 agent：local machine actor（例如 `m1-cdx` / `m1-cc`）或 CCC 先讀本檔 → `detect-env.sh` → 對應 playbook → 按主題讀 Tier-2；Mogu（OpenClaw runtime）先讀 runtime-local `AGENTS.md`，再讀本 repo 的 `scripts/mogu-picks-prompt.md`。兩條路最後都指向 `CONTRIBUTING.md` 和 `GU-LOG_WRITER_PROMPT.md`。**改規則只改 SSOT 來源檔，不要在 Tier-0 或 task prompt 複製一份。**
+操作這個 repo 的 agent：local machine actor（例如 `m1-cdx` / `m1-cc`）或 CCC 先讀本檔 → `detect-env.sh` → 對應 playbook → 按主題讀 Tier-2；內容 / editorial work 先讀 `openspec/specs/editorial-charter/spec.md`，再讀 `CONTRIBUTING.md` 和 `GU-LOG_WRITER_PROMPT.md`。Mogu（OpenClaw runtime）先讀 runtime-local `AGENTS.md`，再讀本 repo 的 `scripts/mogu-picks-prompt.md`。**改規則只改 SSOT 來源檔，不要在 Tier-0 或 task prompt 複製一份。**
 
 ## Quality: Vibe Scoring + Tribunal
 

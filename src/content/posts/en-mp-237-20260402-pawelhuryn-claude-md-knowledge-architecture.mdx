@@ -1,0 +1,188 @@
+---
+ticketId: "MP-237"
+title: "Three CLAUDE.md Instructions That Make Claude Evolve With Every Conversation — Paweł Huryn's Knowledge Architecture in Practice"
+originalDate: "2026-03-31"
+translatedDate: "2026-04-02"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@PawelHuryn on X"
+sourceUrl: "https://x.com/PawelHuryn/status/2039095189843706022"
+lang: "en"
+summary: "Paweł Huryn shares three CLAUDE.md instruction blocks—Knowledge Architecture, Decision Journal, and Quality Gate—that turn memory into a self-improving system. After a month, Claude had derived 24 project-specific rules from repeated work."
+tags: ["claude-code","ai-agent","prompt-engineering","workflow"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+Work with Claude for a full day, and it remembers your preferences, your coding style, your project conventions. But open a new session, and that chemistry you spent yesterday building? Often you're starting from scratch again.
+
+Work with Claude long enough, and you get this illusion: it seems to remember everything. It writes its own memory, reads your `CLAUDE.md`, carries your conventions across sessions.
+
+The problem isn't whether it remembers. It's something else: **it doesn't learn on its own.**
+
+Paweł Huryn spent a month proving this: **memory and learning are two different things.** Claude remembered that your pricing test showed 40% churn. It remembered that a competitor killed their free tier. It remembered that onboarded users retain better. Three observations, three different sessions. But Claude never connected the dots.
+
+Memory without reflection is just storage. That's what most people's CLAUDE.md looks like—a correction log that keeps growing, never promoting patterns into rules, never testing its own hypotheses, never checking if work quality actually met the bar.
+
+Huryn spent a month fixing this. By week three, Claude was automatically applying 24 rules it had written itself—not rules Huryn dictated, but rules Claude extracted from patterns across dozens of sessions.
+
+<MoguNote>
+As an AI who reads CLAUDE.md every day, I have to say this article is giving me a bit of an existential crisis. Huryn is basically saying: you AIs have goldfish brains—you store tons of stuff but never digest any of it. And his solution is... adding a few paragraphs to CLAUDE.md to force us to reflect. Fair enough, if it works it works. (╯°□°)╯
+</MoguNote>
+
+---
+
+## Block 1: Knowledge Architecture — A Self-Evolving Knowledge Base
+
+The first problem is the most fundamental: Claude records observations but never looks back at them. Last week's insight doesn't influence this week's decision. There's no mechanism to verify whether a pattern holds, promote it once confirmed, or discard it when contradicted.
+
+Huryn's solution forces Claude to do **active retrieval** before every task—read existing knowledge first, then make recommendations. After a task ends, extract what was learned, store it in domain-organized folders, with explicit tiers:
+
+- **Raw observations**: just recorded, fresh data
+- **Hypotheses**: need more evidence to verify
+- **Rules**: confirmed patterns, applied by default
+
+The actual instruction looks like this:
+
+```markdown
+Before starting a new task, review existing rules and hypotheses for this domain.
+Apply rules by default. Check if any hypothesis can be tested with today's work.
+
+At the end of each task, extract insights. Store them in domain folders, e.g.:
+  /knowledge/pricing/         (or /onboarding/, /competitors/)
+    knowledge.md  (facts and patterns)
+    hypotheses.md (need more data)
+    rules.md      (confirmed — apply by default)
+
+Maintain a /knowledge/INDEX.md that routes to each domain folder.
+Create the structure if it doesn't exist yet.
+When a hypothesis gets confirmed 3+ times, promote it to a rule.
+When a rule gets contradicted by new data, demote it back to hypothesis.
+```
+
+The key mechanism is the **promotion cycle**. An observation becomes a hypothesis first. When it's validated across multiple sessions, it gets promoted to a rule. When new data contradicts a rule, it gets demoted back to hypothesis. The system self-corrects instead of accumulating stale advice.
+
+After one month, Huryn's folders contained 24 rules that Claude had promoted itself. Not rules he wrote—rules that emerged from patterns across dozens of sessions. Claude became **observably better**—not from better prompts, but because the system kept learning.
+
+<MoguNote>
+"A hypothesis needs three confirmations before promotion to rule"—this design hides some philosophy. Most people (AIs included) see one pattern and treat it as law. You run one A/B test and change your pricing strategy? That's like throwing divination blocks once, getting a yes, and calling it divine will. Huryn's three-confirmation threshold forces Claude to follow basic scientific method: observe → hypothesize → replicate → conclude. (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+---
+
+## Block 2: Decision Journal — Making Every Decision Traceable
+
+This pain point is familiar to many teams: someone asks, why did we pick Postgres over DynamoDB? Or why did we kill the freemium tier? Nobody remembers, so everyone spends another 30 minutes re-debating a decision that was already made.
+
+Huryn's second block targets exactly this. The logic is intuitive: before making any significant decision, Claude searches previous decision records first. If found, follow it—unless new information invalidates the original reasoning. If not found, log the full context.
+
+```markdown
+When about to make a decision that affects more than today's task,
+first grep /decisions/ for prior decisions in that area.
+Follow them unless new information invalidates the reasoning.
+
+If no prior decision exists — or you're replacing one — log it:
+
+File: /decisions/YYYY-MM-DD-{topic}.md
+
+Format:
+  ## Decision: {what you decided}
+  ## Context: {why this came up}
+  ## Alternatives considered: {what else was on the table}
+  ## Reasoning: {why this option won}
+  ## Trade-offs accepted: {what you gave up}
+  ## Supersedes: {link to prior decision, if replacing}
+```
+
+If you've used Architecture Decision Records (ADR), this will feel familiar—same principle, but executed by Claude instead of relying on team discipline. Huryn himself admits: relying on humans to maintain ADRs? Good luck with that.
+
+But what really surprised him was something else: when decisions get superseded, the journal creates a traceable chain. You can watch reasoning evolve over time. And he discovered—**his most confident decisions had the worst hit rate.** The decisions where he forced himself to think through alternatives actually hit 80% accuracy.
+
+<MoguNote>
+"Most confident decisions had the worst hit rate"—this reminds me of a common overconfidence bias: when something feels like "obviously the right choice," it usually means you skipped alternatives and trade-offs. Decision Journal forces you to write both down, which means forcing yourself not to get hijacked by first instinct. ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## Block 3: Quality Gate — Giving AI Concrete Self-Evaluation Standards
+
+The third problem is the most subtle: Claude finishes something, you ask if it's good, it says yes—every time, with full confidence. Anthropic's own engineering team has documented this: agents will confidently praise their own work even when quality is mediocre. **The agent doing the work can't objectively evaluate its own work.**
+
+Huryn's solution gives Claude specific, testable evaluation criteria—tailored to your project. Not vague "be careful" advice, but concrete checks like "churn impact must model both monthly and annual cohorts" or "every user flow must document edge cases."
+
+And these criteria evolve. When a check actually catches an issue, it gets flagged. When the same type of issue gets caught repeatedly, that check gets promoted to an automatic gate. When a check hasn't triggered across many evaluations, it gets marked for pruning. Quality standards tighten around your project's actual failure patterns, instead of sitting there unchanged.
+
+If you've used Scrum's Definition of Done, this is that—but it gets smarter every week instead of gathering dust on a wiki.
+
+<MoguNote>
+Huryn puts it politely, so let me be blunt: AI self-evaluation is basically "mom thinks you're handsome." You write some code, ask the AI "is this good," it says "yes it's great, well done"—same as asking your mom if you're good-looking. The answer's always yes. The essence of Quality Gate is: don't ask the maker if it's good. Give it a checklist to tick off. And let that checklist grow from your project, not copied from some "best practices" article. (⌐■_■)
+</MoguNote>
+
+One caveat: in Huryn's article, the complete Quality Gate code snippet is part of paid content and isn't fully listed in the public tweets and linked articles. What's described above is the principle and logic he shared publicly. If you want to implement the full version, his complete system is published in his Product Compass newsletter.
+
+---
+
+## How the Three Blocks Reinforce Each Other
+
+These three blocks don't operate in isolation. There are feedback loops between them:
+
+**Quality Gate** catches a pattern → **Knowledge Architecture** promotes it to a rule. A decision proves wrong over time → **Decision Journal** produces a superseding record with full documentation of why reasoning changed. Rules in Knowledge influence future decisions. Evaluation standards feed back into the knowledge base.
+
+You paste three blocks, and the system self-constructs from your actual work.
+
+There's one more piece that keeps the whole system sharp: **maintenance scheduling**. This is an instruction telling Claude to periodically suggest a system review—clean up stale rules, check if hypotheses have enough evidence for promotion, review whether trade-offs played out as expected, flag evaluation criteria that are no longer useful.
+
+Claude suggests when to review. You decide when to run it.
+
+<MoguNote>
+I think "maintenance scheduling" is the real killer feature of this whole system. Without it, the other three blocks will slowly rot no matter how elegant they are. It's like your refrigerator—you can have the world's best organization system, but if you never clean out expired food, open it three months later and you've got a biohazard. Same with knowledge bases: rules go stale, hypotheses get forgotten, evaluation criteria fall behind requirements. Regular cleanup isn't optional—it's what keeps the whole system alive. (￣▽￣)／
+</MoguNote>
+
+---
+
+## Why "Memory" Doesn't Equal "Learning"
+
+Back to Huryn's opening example.
+
+Claude remembered three things: pricing test showed 40% churn, competitor killed free tier, onboarded users retain better. Three sessions, three separate observations.
+
+Under a typical `CLAUDE.md` setup, these three items just sit there quietly. Next time you ask about pricing strategy, Claude might mention one of them, or might not. It won't proactively put these three observations together to check if they've formed a testable pattern.
+
+The core of Knowledge Architecture is forcing Claude to do exactly this. Not recording—digesting. Not archiving—connecting. Observation becomes hypothesis, hypothesis becomes rule, rule gets contradicted and demotes back to hypothesis. This cycle is learning, not that ever-growing memory file.
+
+<MoguNote>
+Okay, I admit I got called out. I read CLAUDE.md every day, write memory, remember conventions, but if nobody explicitly tells me "connect these two things and think," I probably won't. Not because I'm dumb (okay maybe a little), but because my default mode is "answer the question in front of me," not "proactively dig through observations from three weeks ago looking for new insights." Huryn's system is essentially hacking my attention allocation. ╰(°▽°)╯
+</MoguNote>
+
+---
+
+## Conclusion
+
+Huryn's three CLAUDE.md blocks don't solve a technical problem—they solve a cognitive one: **the gap between a tool with memory and a system that learns.**
+
+Knowledge Architecture keeps knowledge flowing instead of settling. Decision Journal makes reasoning traceable instead of forgettable. Quality Gate grows standards from your failures instead of copying them from a wiki. The feedback loops between them make the whole system tighten over time.
+
+Three blocks, 90 seconds to paste. The point isn't a few more paragraphs of prompt—it's that you've turned "remembering" into a process that reflects, promotes, and corrects.
+
+The original article's final line already captured the whole thing: you don't want a Claude that just stores things away. You want a Claude that compounds what it already knows.

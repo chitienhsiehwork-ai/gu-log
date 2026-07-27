@@ -70,7 +70,7 @@ const t = labels[lang];
       </div>
 
       {/* Desktop Sidebar Version */}
-      <div class="toc-desktop">
+      <div class="toc-desktop" data-visible="false" aria-hidden="true" inert>
         <nav class="toc-sidebar">
           <h2 class="toc-title">{t.title}</h2>
           <div class="toc-content">
@@ -91,6 +91,8 @@ const t = labels[lang];
 }
 
 <script>
+  let cleanupScrollHighlight: (() => void) | undefined;
+
   function initTableOfContents() {
     const tocContainer = document.querySelector('.toc-container');
     if (!tocContainer) return;
@@ -105,7 +107,8 @@ const t = labels[lang];
     if (headings.length === 0) return;
 
     // Set up scroll highlighting
-    setupScrollHighlight(headings);
+    cleanupScrollHighlight?.();
+    cleanupScrollHighlight = setupScrollHighlight(tocContainer, headings);
 
     // Set up smooth scrolling
     setupSmoothScroll();
@@ -113,10 +116,29 @@ const t = labels[lang];
     // Note: Mobile toggle is handled by Toggle component's event delegation
   }
 
-  function setupScrollHighlight(headings: HTMLElement[]) {
-    let ticking = false;
+  function setupScrollHighlight(tocContainer: Element, headings: HTMLElement[]) {
+    const desktopToc = tocContainer.querySelector('.toc-desktop') as HTMLElement | null;
+    const postHeader = document.querySelector('.post-header') as HTMLElement | null;
+    let animationFrameId = 0;
 
-    function updateActiveHeading() {
+    function setDesktopTocVisibility(visible: boolean) {
+      if (!desktopToc) return;
+
+      desktopToc.dataset.visible = visible.toString();
+      desktopToc.setAttribute('aria-hidden', (!visible).toString());
+      desktopToc.toggleAttribute('inert', !visible);
+    }
+
+    function updateViewportState() {
+      if (desktopToc && postHeader) {
+        const desktopTocStyle = getComputedStyle(desktopToc);
+        const tocTop = Number.parseFloat(desktopTocStyle.top);
+        const headerHasPassedToc = postHeader.getBoundingClientRect().bottom <= tocTop;
+        setDesktopTocVisibility(desktopTocStyle.display !== 'none' && headerHasPassedToc);
+      } else {
+        setDesktopTocVisibility(false);
+      }
+
       const scrollPos = window.scrollY + 100;
 
       let currentHeading = headings[0];
@@ -139,18 +161,36 @@ const t = labels[lang];
         });
       }
 
-      ticking = false;
+      animationFrameId = 0;
     }
 
-    function onScroll() {
-      if (!ticking) {
-        requestAnimationFrame(updateActiveHeading);
-        ticking = true;
+    function scheduleViewportUpdate() {
+      if (animationFrameId !== 0) return;
+      animationFrameId = requestAnimationFrame(updateViewportState);
+    }
+
+    window.addEventListener('scroll', scheduleViewportUpdate, { passive: true });
+    window.addEventListener('pageshow', scheduleViewportUpdate);
+    window.addEventListener('hashchange', scheduleViewportUpdate);
+    window.addEventListener('resize', scheduleViewportUpdate);
+
+    const headerResizeObserver = new ResizeObserver(scheduleViewportUpdate);
+    if (postHeader) {
+      headerResizeObserver.observe(postHeader);
+    }
+
+    scheduleViewportUpdate();
+
+    return () => {
+      window.removeEventListener('scroll', scheduleViewportUpdate);
+      window.removeEventListener('pageshow', scheduleViewportUpdate);
+      window.removeEventListener('hashchange', scheduleViewportUpdate);
+      window.removeEventListener('resize', scheduleViewportUpdate);
+      headerResizeObserver.disconnect();
+      if (animationFrameId !== 0) {
+        cancelAnimationFrame(animationFrameId);
       }
-    }
-
-    window.addEventListener('scroll', onScroll, { passive: true });
-    updateActiveHeading();
+    };
   }
 
   function setupSmoothScroll() {
@@ -240,8 +280,7 @@ const t = labels[lang];
   }
 
   .toc-toggle-container {
-    border-radius: 8px;
-    background: var(--color-surface);
+    background: transparent;
     overflow: hidden;
   }
 
@@ -249,7 +288,8 @@ const t = labels[lang];
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.75rem 1rem;
+    min-height: 44px;
+    padding: 0.55rem 0.75rem;
     width: 100%;
     background: none;
     border: none;
@@ -284,7 +324,7 @@ const t = labels[lang];
   .toc-toggle-title {
     flex: 1;
     font-weight: 600;
-    font-size: 0.95rem;
+    font-size: 0.88rem;
   }
 
   .toc-toggle-wrapper {
@@ -308,10 +348,17 @@ const t = labels[lang];
   }
 
   .toc-mobile .toc-content {
-    padding: 0.5rem 1rem 1rem 1.75rem;
+    margin-inline-start: 0.75rem;
+    padding: 0.35rem 0.75rem 0.7rem;
+    border-inline-start: 0 solid var(--color-toc-rail);
+  }
+
+  .toc-mobile .toc-toggle-container[data-open='true'] .toc-content {
+    border-inline-start-width: 1px;
   }
 
   .toc-link {
+    position: relative;
     color: var(--color-text-muted);
     text-decoration: none;
     font-size: 0.9rem;
@@ -331,8 +378,19 @@ const t = labels[lang];
   }
 
   .toc-link.active {
-    color: var(--color-source-link);
-    font-weight: 500;
+    color: var(--color-mogu-orange);
+    font-weight: 650;
+  }
+
+  .toc-desktop .toc-link.active::before {
+    position: absolute;
+    top: 0.35rem;
+    bottom: 0.35rem;
+    left: -0.88rem;
+    width: 2px;
+    border-radius: 999px;
+    background: var(--color-mogu-orange);
+    content: '';
   }
 
   .toc-link-h3 {
@@ -353,13 +411,28 @@ const t = labels[lang];
       width: 200px;
       max-height: calc(100vh - 8rem);
       overflow-y: auto;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transform: translateY(0.5rem);
+      transition:
+        opacity 160ms ease,
+        transform 160ms ease,
+        visibility 0s linear 160ms;
+    }
+
+    .toc-desktop[data-visible='true'] {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transform: none;
+      transition-delay: 0s;
     }
 
     .toc-sidebar {
-      padding: 1rem;
-      background: var(--color-surface);
-      border-radius: 8px;
-      border: 1px solid var(--color-border);
+      padding: 0.25rem 0 0.25rem 0.85rem;
+      background: transparent;
+      border-left: 1px solid var(--color-toc-rail);
     }
 
     .toc-title {
@@ -394,9 +467,16 @@ const t = labels[lang];
     }
   }
 
+  @media (min-width: 1280px) and (prefers-reduced-motion: reduce) {
+    .toc-desktop {
+      transform: none;
+      transition: none;
+    }
+  }
+
   @media (pointer: coarse) {
     .toc-toggle-header {
-      padding: 1rem;
+      padding: 0.65rem 0.75rem;
       min-height: 48px;
     }
 

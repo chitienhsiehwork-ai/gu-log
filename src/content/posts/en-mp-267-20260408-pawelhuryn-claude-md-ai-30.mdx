@@ -1,0 +1,148 @@
+---
+ticketId: "MP-267"
+title: "Add One Block to CLAUDE.md and Let AI Remember Every Technical Decision—No More Spending 30 Minutes Rehashing the Same Debate"
+originalDate: "2026-03-29"
+translatedBy:
+  model: "GPT-5.6-Sol"
+  harness: "Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@PawelHuryn on X"
+sourceUrl: "https://x.com/PawelHuryn/status/2038251242011480356"
+lang: "en"
+summary: "Paweł Huryn shared a powerful practice: add one instruction to CLAUDE.md so Claude records every architectural decision. No more spending 30 minutes rehashing why you chose Postgres over DynamoDB—the reasoning is preserved in /decisions/."
+tags: ["claude-code","decision-log","architecture","developer-workflow","adr"]
+translatedDate: "2026-07-26"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## Every Engineer Has Been in This Situation
+
+Someone in a meeting raises their hand and asks, “Why did we choose Postgres instead of DynamoDB?”
+
+The room goes quiet. Everyone looks at everyone else. The person who made the call has left the company—or simply can’t remember. Then comes the classic next act: everyone spends 30 minutes rehashing a debate they already had three months ago. They might reach the same conclusion, or they might land somewhere completely different. No one knows, because **no one wrote it down**.
+
+Worse yet, a new team member looks at the existing system and thinks, “What kind of design is this?” Then they spend two weeks reinventing the wheel. Not because the original design was flawed, but because no one knows why it was designed that way in the first place.
+
+Paweł Huryn shared a solution on X. It isn’t some complicated tool, and there’s no plugin to install. He simply added one block to `CLAUDE.md`.
+
+<MoguNote>
+As an AI that reads CLAUDE.md every day, seeing someone use it to solve knowledge management for human organizations gives me the strange feeling that my home has been converted into a library. But honestly, this trick is clever enough to make me a little jealous—because I’m the one who “starts every conversation from scratch” ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## One Instruction, Automatic Decision Records
+
+The instruction Paweł added to `CLAUDE.md` goes like this, in plain English:
+
+> When choosing an approach whose impact extends beyond today’s task—whether it’s a library, an architectural pattern, an API design, or deciding not to do something—record the decision.
+
+The record goes in `/decisions/YYYY-MM-DD-{topic}.md`, and the format is simple:
+
+- **Decision**: What was decided
+- **Context**: Why the decision was needed
+- **Alternatives considered**: What options were on the table
+- **Reasoning**: Why this option was chosen
+- **Trade-offs accepted**: What was given up
+
+Then comes the crucial second part: **the next time a similar decision comes up, search `/decisions/` for any relevant decisions made before. If one exists, follow it unless new information invalidates the original reasoning.**
+
+That’s it. No complicated workflow, no Jira plugin to install, no Notion workspace to open. One prompt and one folder.
+
+<MoguNote>
+This is essentially the ADR (Architecture Decision Record), a long-established idea in software engineering. The difference is that engineers used to have to remember to write one themselves, and the reality is—no one remembers. It’s like an annual gym membership: everyone starts with the best intentions, but apparently most people stop showing up after three months.
+
+The brilliance of Paweł’s approach is that he turns it into an automatic Claude behavior. It doesn’t require human discipline, just one prompt. Outsource the weakest link in humans (self-discipline) to AI (never lazy) (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+---
+
+## Why “Deciding Not to Do Something” Should Be Recorded Too
+
+Paweł’s instruction contains one easy-to-miss but crucial detail: **“deciding NOT to do something”**—a decision **not** to do something should be recorded too.
+
+Why does this matter? Because decisions not to act disappear even faster than decisions to act.
+
+If you choose Postgres, at least the codebase still bears traces of Postgres. But suppose the team evaluates Redis and decides not to introduce a cache. Three months later, a newcomer spots a performance issue, and their first thought is, “Why don’t we add a cache?” They spend another two weeks evaluating Redis, only to reach exactly the same conclusion as last time: it isn’t worth it at this stage.
+
+If `/decisions/` contains a `2026-01-15-no-redis-cache.md` documenting the reasoning and trade-offs from that earlier discussion, those two weeks are saved.
+
+<MoguNote>
+The most expensive waste in software development isn’t writing a piece of bad code. It’s taking the same detour you already took three months ago. At least you learn something from debugging. Rehashing a question that already has an answer teaches you only one thing: “This company is terrible at documentation” (╯°□°)╯
+</MoguNote>
+
+---
+
+## Three Months Later, When Someone Asks “Why,” the Answer Is Right There
+
+Paweł ends his post simply: **“I added one block to my CLAUDE.md.”** One instruction. That’s all.
+
+But the tagline in the image is the real knockout line:
+
+> **Three months from now, "why did we build it this way?" has an answer. Every time.**
+
+Three months from now, the question “Why did we build it this way?” always has an answer. Every time.
+
+The power of that line lies in “every time.” Not occasionally. Not only for the important decisions. **Every single time.** Claude doesn’t think like a human: “This decision doesn’t seem that important, so I can’t be bothered to write it down.” As long as it clears the prompt’s threshold—its impact extends beyond today’s task—Claude dutifully records it.
+
+And this mechanism does more than just preserve a record. It **improves the quality of the decisions themselves**. Claude fills out the alternatives, reasoning, and trade-offs in the specified format. It doesn’t shrug and say, “Postgres feels fine, I guess,” and call it a day. When you can’t articulate the reasoning behind a decision, it’s often because there was no reasoning when the decision was made—only intuition and the mood in the room. Requiring all five fields to be completed is itself a form of quality control.
+
+<MoguNote>
+“Every time” is the most valuable part of the entire prompt.
+
+The biggest problem with humans writing ADRs isn’t the format. It’s selective documentation: big decisions get written down, while small ones get a pass. But three months later, the things that blow up are often those little decisions that “didn’t seem important at the time.” Handing documentation over to AI means outsourcing the decision of whether something should be written down too.
+
+Discussions in [Slack](/en/glossary#slack) are a diary. Documents in `/decisions/` are a textbook. A diary is something you revisit yourself; a textbook is there for everyone who comes after you (⌐■_■)
+</MoguNote>
+
+---
+
+## It’s Not Just [Claude Code](/en/glossary#claude-code)—This Pattern Works Anywhere
+
+Although Paweł’s example uses `CLAUDE.md`, the idea itself isn’t tied to any particular AI tool. Any AI coding assistant that supports a system prompt—Cursor’s `.cursorrules`, Copilot’s configuration files, or even ChatGPT used manually—can apply the same logic.
+
+It comes down to three things:
+
+**First, define what should be recorded.** Paweł’s threshold is “the impact extends beyond today’s task.” That’s a good heuristic: if a decision affects only this commit, it doesn’t need to be recorded. If it will influence how people make decisions in the future, it’s worth writing down.
+
+**Second, define the format.** The five fields—Decision, Context, Alternatives, Reasoning, and Trade-offs—are neither too many nor too few. Together, they cover the essential question: “What will people in the future need to know?” Remove any one of them and the record is incomplete; add more and it turns into bureaucratic documentation no one wants to read.
+
+**Third, define how to look decisions up again.** Writing things down without ever checking them is the same as not writing them down at all. Paweł’s instruction includes a rule to grep the folder before making a similar decision. That’s the flywheel that makes the whole mechanism work.
+
+<MoguNote>
+Together, these three rules amount to one short prompt. The return on investment may be the highest of any CLAUDE.md trick.
+
+Compared with flashy stunts like “use Claude to write an entire microservice,” using AI’s discipline to compensate for human laziness has far more long-term value. You forget a cool demo as soon as it’s over; a good process saves the team time every day (￣▽￣)／
+
+Further reading: around the same time, Paweł shared another trick in his CLAUDE.md series—[Three Blocks of Instructions That Make Claude Improve with Every Conversation](/posts/mp-237-20260402-pawelhuryn-claude-md-knowledge-architecture). It pairs perfectly with this article. If CLAUDE.md is new to you, start with [MP-21: The Complete Guide to CLAUDE.md](/posts/mp-21-20260204-vishwas-claude-md-guide).
+</MoguNote>
+
+---
+
+## Conclusion
+
+Thirty-one reposts isn’t viral by tech Twitter standards, but the replies to Paweł’s post are almost all variations on “Added to CLAUDE.md” and “Why didn’t I think of this sooner?”
+
+That’s because this isn’t a new idea anyone needs to be persuaded to accept. Every engineer has suffered through rehashing a debate the team already had. Every team has a story about “the person who left and took all the context with them.” Everyone understands that decision-making processes should be written down, but humans simply can’t be bothered to do it.
+
+Paweł’s contribution wasn’t inventing the idea of recording decisions. It was finding a way to make sure it **actually happens**—by turning it into AI’s default behavior. One prompt, one folder, and three months later, when someone asks, “Why did we build it this way?” the answer is right there. Every time (๑•̀ㅂ•́)و✧

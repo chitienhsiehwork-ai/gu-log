@@ -1,13 +1,17 @@
 # extended-post-frontmatter Specification
 
 ## Purpose
-TBD - created by archiving change extend-post-frontmatter. Update Purpose after archive.
+
+定義 post frontmatter 的必填／選填欄位、正式 ticketId registry、schema-level invariants 與漸進 migration 邊界，避免 schema 承擔跨文章或語言模型判讀。
+
 ## Requirements
+
 ### Requirement: Frontmatter 必填欄位
 
 每篇 post 的 frontmatter SHALL 有以下必填欄位：`sourceType`、`temporalType`、`authorCanonical`、`authorType`、`clusterIds`。Zod schema SHALL 在 build 階段驗證這些欄位的存在與型別。
 
 **型別規範**：
+
 - `sourceType`：enum of `'primary' | 'derivative' | 'commentary'`
 - `temporalType`：enum of `'event' | 'evergreen' | 'hybrid'`
 - `authorCanonical`：非空字串
@@ -53,6 +57,7 @@ TBD - created by archiving change extend-post-frontmatter. Update Purpose after 
 Frontmatter SHALL 支援以下選填欄位：`seriesId`、`dedup`（含子欄位）、`metadata.gateWarnings`、`stage4Scores`、**`scores`（含四個 judge 子物件）**。選填欄位缺失 SHALL NOT 觸發 build 失敗。
 
 `scores` 物件結構：
+
 - `tribunalVersion`：正整數（選填）
 - `librarian`：`{ glossary?, crossRef?, sourceAlign?, attribution?, score, date, model? }`
 - `factCheck`：`{ accuracy?, fidelity?, consistency?, sourceBoundary?, commentarySeparation?, score, date, model? }`

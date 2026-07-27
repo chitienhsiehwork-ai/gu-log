@@ -8,6 +8,10 @@
 
 **Move fast, merge fast, fix fast.** Branch 是拋棄式的，sandbox 是拋棄式的。不要珍惜。快速做事、快速合、壞了快速修。
 
+## Editorial startup route
+
+CCC 只要要寫文、修文、改內容規則、writer prompt、judge prompt 或 editorial workflow，MUST 先讀 [`editorial-charter` spec](../openspec/specs/editorial-charter/spec.md)，再依 `AGENTS.md` 主題路由讀 operational docs。Playbook 不複述 charter。
+
 ## 授權範圍（user 已 pre-approved）
 
 - 直接 push 到 `claude/xxx` branch

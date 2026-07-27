@@ -19,6 +19,7 @@ run_case() {
   local json="$1"
   local active_workers="${2:-0}"
   local workers="${3:-1}"
+  local recheck_sec="${4:-300}"
   local tmp
   tmp=$(mktemp)
   cat > "$tmp" <<EOF
@@ -33,6 +34,7 @@ else
 fi
 EOF
   chmod +x "$tmp"
+  local rc=0
   USAGE_MONITOR="$tmp" \
     QUOTA_FLOOR=10 \
     QUOTA_BURST_ALLOWANCE=2 \
@@ -40,8 +42,10 @@ EOF
     AVG_ARTICLE_TIME=1800 \
     MIN_COOLDOWN=10 \
     MAX_COOLDOWN=1800 \
-    bash "$TRIBUNAL_LOOP" --workers "$workers" --controller-once "$active_workers"
+    CONTROLLER_RECHECK_SEC="$recheck_sec" \
+    bash "$TRIBUNAL_LOOP" --workers "$workers" --controller-once "$active_workers" || rc=$?
   rm -f "$tmp"
+  return "$rc"
 }
 
 full_openai='[{"provider":"openai","status":"ok","session_remaining_pct":100,"session_reset_min":300,"weekly_remaining_pct":100,"weekly_reset_hr":168}]'
@@ -83,3 +87,42 @@ claude_fixture='[{"provider":"claude","status":"ok","five_hr_remaining_pct":100,
 out=$(run_case "$claude_fixture")
 [ "$out" = "10|1|none|pacing" ] || fail "legacy Claude fixture parser regressed; got: $out"
 pass "legacy Claude quota fixture remains parseable for dev/backcompat"
+
+if run_case "$full_openai" 0 1 0 >/dev/null 2>&1; then
+  fail "zero controller re-check interval should fail closed"
+fi
+pass "controller re-check interval rejects zero"
+
+wait_root=$(mktemp -d)
+(
+  export RC_ROOT_DIR="$wait_root"
+  # shellcheck source=scripts/tribunal-run-control.sh
+  source "$ROOT_DIR/scripts/tribunal-run-control.sh"
+
+  [ "$(rc_bounded_wait_seconds 68160 300)" = "300" ]
+  [ "$(rc_bounded_wait_seconds 259200 300)" = "300" ]
+  [ "$(rc_bounded_wait_seconds 120 300)" = "120" ]
+  for invalid in 0 abc ''; do
+    if rc_bounded_wait_seconds "$invalid" 300 >/dev/null; then
+      exit 1
+    fi
+  done
+) || fail "production wait-budget helper did not bound long debt and preserve short cooldowns"
+rm -rf "$wait_root"
+grep -Fq \
+  'if ! CONTROLLER_WAIT_SEC=$(rc_bounded_wait_seconds "$CONTROLLER_COOLDOWN" "$CONTROLLER_RECHECK_SEC"); then' \
+  "$TRIBUNAL_LOOP" ||
+  fail "controller stop path does not fail closed around the tested wait-budget helper"
+invalid_wait_branch=$(sed -n \
+  '/if ! CONTROLLER_WAIT_SEC=$(rc_bounded_wait_seconds/,/^[[:space:]]*fi$/p' \
+  "$TRIBUNAL_LOOP")
+printf '%s\n' "$invalid_wait_branch" | grep -Fq 'rc_write_state "fallback"' ||
+  fail "invalid controller wait budget does not persist fallback state"
+printf '%s\n' "$invalid_wait_branch" |
+  grep -Fq 'rc_interruptible_sleep "$CONTROLLER_RECHECK_SEC"' ||
+  fail "invalid controller wait budget can hot-loop without a safe sleep"
+printf '%s\n' "$invalid_wait_branch" | grep -Fq 'continue' ||
+  fail "invalid controller wait budget can fall through toward dispatch"
+grep -Fq 'rc_interruptible_sleep "$CONTROLLER_WAIT_SEC"' "$TRIBUNAL_LOOP" ||
+  fail "controller stop path does not sleep the tested bounded wait value"
+pass "quota-stop wait keeps debt telemetry but bounds the next live quota re-check"

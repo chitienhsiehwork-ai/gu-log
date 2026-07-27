@@ -79,7 +79,7 @@ function parseArgs() {
 /**
  * Find all .mdx files that contain <Mermaid
  * @param {string[]} specificFiles - Optional list of specific files (relative to repo root)
- * @returns {string[]} - Array of absolute file paths
+ * @returns {Promise<string[]>} - Array of absolute file paths
  */
 async function findMermaidFiles(specificFiles) {
   let candidates;

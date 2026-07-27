@@ -1,8 +1,11 @@
 # tribunal-human-signal-loop Specification
 
 ## Purpose
-TBD - created by archiving change add-human-finishability-signals. Update Purpose after archive.
+
+定義 Tribunal 如何把版本化人類訊號路由成 deterministic evidence、bounded requeue、writer context 與 publisher quality block，同時保留正向訊號並限制 guest evidence 的自動化權限。
+
 ## Requirements
+
 ### Requirement: Tribunal SHALL consume unresolved human signals as deterministic evidence
 
 Tribunal SHALL include unresolved per-article human signals in judge and writer context as deterministic evidence. Human signals SHALL be read from the configured signal transport or generated packet, not inferred from model intuition. Tribunal-impacting signals SHALL be limited to `owner_trusted` or explicitly owner-approved evidence; `guest_reference` signals SHALL remain reference-only until promoted by ShroomDog / owner approval.
@@ -171,4 +174,3 @@ Positive human signals such as finish, share, or positive comment SHALL be prese
 - **BUT** it loses human finish/share/comment-positive signals compared with the previous version
 - **THEN** the system SHALL surface this as quality regression risk
 - **AND** human review MAY overrule score-based automation
-

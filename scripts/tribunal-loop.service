@@ -7,6 +7,9 @@ Type=simple
 # Local-only deployment config provides GU_LOG_DIR and USAGE_MONITOR. systemd
 # `$$` passes a literal `$` to bash so values expand only at runtime.
 EnvironmentFile=%h/.config/gu-log/tribunal.env
+Environment=TRIBUNAL_DEPLOYED_MODE=1
+Environment=TRIBUNAL_STRICT_ROLE_PROVIDERS=1
+Environment=GP_WRITER_MODE=cli
 ExecStart=/bin/bash -c ': "$${GU_LOG_DIR:?Missing GU_LOG_DIR in tribunal.env}"; : "$${USAGE_MONITOR:?Missing USAGE_MONITOR in tribunal.env}"; test -x "$$USAGE_MONITOR" || { echo "USAGE_MONITOR is not executable: $$USAGE_MONITOR" >&2; exit 78; }; cd "$$GU_LOG_DIR" && exec bash scripts/cc-tribunal-loop-wrapper.sh --workers 1'
 Restart=on-failure
 RestartSec=60

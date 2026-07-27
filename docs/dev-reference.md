@@ -4,7 +4,7 @@
 
 ## Tech Stack
 
-- **Framework**: Astro 5 (Content Collections + MDX)
+- **Framework**: Astro (Content Collections + MDX；版本 SSOT：[`package.json`](../package.json))
 - **Deployment**: Vercel (auto-deploy on push)
 - **Analytics**: Vercel Web Analytics (`@vercel/analytics`, inject in BaseLayout)
 - **Package manager**: pnpm
@@ -15,10 +15,10 @@
 
 ```
 src/
+├── content.config.ts          # Content collection schema
 ├── content/
-│   ├── config.ts              # Content collection schema
 │   └── posts/
-│       ├── gp-123-date-slug.mdx   # 中文版 (lang: "zh-tw")
+│       ├── gp-123-date-slug.mdx    # 中文版 (lang: "zh-tw")
 │       └── en-gp-123-date-slug.mdx # 英文版 (lang: "en")
 ├── components/
 │   ├── MoguNote.astro        # Mogu 吐槽框（所有系列通用）

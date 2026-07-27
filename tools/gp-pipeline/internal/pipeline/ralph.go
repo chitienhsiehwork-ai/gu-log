@@ -130,9 +130,10 @@ func (s *State) Ralph(ctx context.Context) error {
 	s.runPostFixers(ctx, activePath)
 
 	// Run the tribunal. tribunal.sh resolves the runtime provider per judge:
-	// VibeScorer runs on Claude Opus 4.5 while Librarian/FactChecker/FreshEyes
-	// stay on Codex GPT-5.5 (mac/VPS). When codex is absent (CCC sandbox) all
-	// four judges fall back to Claude.
+	// VibeScorer runs on the pinned Claude build declared in
+	// .claude/agents/vibe-opus-scorer.md (the SSOT — do not restate the version
+	// here) while Librarian/FactChecker/FreshEyes stay on Codex (mac/VPS). When
+	// codex is absent (CCC sandbox) all four judges fall back to Claude.
 	s.Log.Info("  Running 4-stage tribunal (via tribunal.sh)...")
 	passed, err := ralph.Run(ctx, ralph.Options{
 		RalphScript: filepath.Join(s.Cfg.ScriptsDir, "tribunal.sh"),
@@ -153,7 +154,10 @@ func (s *State) Ralph(ctx context.Context) error {
 	// Frontmatter normaliser — for every file in {zh, en}, strip old
 	// pipeline block + pipelineUrl, then inject the canonical 6-entry
 	// block. Matches the Python heredoc at bash lines 1245-1300.
-	writerModel, writerHarness := s.StampLabels()
+	writerModel, writerHarness, err := s.StampLabels()
+	if err != nil {
+		return fmt.Errorf("ralph: resolve writer stamp: %w", err)
+	}
 	judgeModel, judgeHarness := s.JudgeStampLabels()
 	writeModel := nonEmpty(s.WriteModel, writerModel)
 	writeHarness := nonEmpty(s.WriteHarness, writerHarness)

@@ -1,0 +1,173 @@
+---
+ticketId: "GP-261"
+title: '早上 Claude Code、下午 Codex：Agent 的經驗被切成三份'
+originalDate: '2026-07-24'
+translatedDate: '2026-07-25'
+translatedBy:
+  model: "Opus 5"
+  harness: "Claude Code CLI"
+
+
+  pipeline:
+    - role: "Written"
+      model: "Opus 5"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 5"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 5"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Rewritten"
+      model: "Opus 5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "Opus 5"
+      harness: "gp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@Letta_AI on X"
+sourceUrl: 'https://x.com/Letta_AI/status/2080535211473850822'
+lang: 'zh-tw'
+summary: 'Letta 開源 trajectory，把 Claude Code、Codex、OpenClaw 等 harness 留下的工作紀錄，正規化成同一種寫給 agent 讀的格式；在抽樣到的紀錄上，token 數壓到原生的五分之一左右。跨 harness 學習的前提，是先替每個 harness 產出的經驗訂一種標準格式。'
+tags: ['agent', 'memory', 'coding-agents', 'open-source']
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 10
+    commentarySeparation: 9
+    score: 8
+    date: "2026-07-25"
+    model: "claude-opus-5"
+  librarian:
+    glossary: 7
+    crossRef: 7
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-07-25"
+    model: "claude-opus-5"
+  freshEyes:
+    readability: 8
+    firstImpression: 9
+    payoffDensity: 9
+    lengthFit: 9
+    clarity: 9
+    score: 8
+    date: "2026-07-25"
+    model: "claude-opus-5"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 9
+    narrative: 8
+    score: 8
+    date: "2026-07-25"
+    model: "claude-opus-5"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+早上開 [Claude Code](/glossary#claude-code) 修一支壞掉的程式，下午換 [Codex](/glossary#codex) 跑另一支，晚上又回 Letta Code 收尾。三段工作留下三份紀錄，躺在三個資料夾，用三種格式寫成。
+
+對人類來說這只是換工具。對一個想從過去經驗變強的 [Agent](/glossary#agent) 來說，這是三本用不同文字寫的日記，而它只讀得懂自己那本。
+
+Letta 開源了 `trajectory`，把 Claude Code、Codex、`@pidotdev`、LangChain 的 `deepagents`、[OpenClaw](/glossary#openclaw)、Letta Code 以及其他 [harness](/glossary#agent-harness) 產出的工作紀錄，正規化成同一種格式——而且是為了讓 agent 讀得省而設計的那種。
+
+## 學不到東西，不是因為沒有經驗
+
+今天的 agent 從過去經驗改進自己的能力仍然有限。更麻煩的是，經驗本身被切開了：很多人本來就在 Claude Code、Codex、Letta Code 之間換來換去，組織裡則常常是每個人依個人偏好，各用各的 harness。於是建立記憶、學習，或者做夢，全都被關在單一 harness、單一使用者的範圍裡。
+
+跨 harness 學習的前提，是先替每個 harness 產出的經驗訂一種標準格式。目前的學習主要發生在 token 這個層次——不動模型權重，由 agent 自己去讀過去的經驗，從中長出系統提示、[Skill](/glossary#skill)，甚至是對 harness 本身的修改。所以一個理想的經驗格式要同時滿足兩件事：**跨 harness 標準化**，免得格式差異本身變成雜訊；以及 **token 效率**，讓 agent 用最低的成本把經驗讀完。
+
+<MoguNote>
+「做夢」不是文青修辭，是很具體的一件事：agent 在沒人下指令的離線時間，把白天做過的事重讀一遍，整理成之後用得上的記憶或程序。本站在 [SD-25](/posts/sd-25-20260525-agent-dream-skill-consolidation/) 聊過這個概念。
+
+而「經驗被切在各家 harness 裡」這件事，本站自己就是活案例：GP 的產線本來就跨 harness 在跑，寫稿在 Claude Code CLI，審稿和評分常常換到 Codex CLI。對人類編輯來說那只是幾個資料夾；對想從裡面學到東西的 agent 來說，那是好幾本外文日記。統一格式聽起來像雜務，實際上是「有沒有得學」的分水嶺。
+</MoguNote>
+
+---
+
+## 同一批資料，兩種讀者
+
+把 agent 的工作軌跡正規化這件事，已經有人做過。Harbor 的 [ATIF](https://github.com/harbor-framework/harbor/blob/main/rfcs/0001-trajectory-format.md) 就是一套，但它服務的目標不同：那套格式是為了完整重播和跑基準測試而生，會保留每一步的 token 統計、結構化的工具內容、未經截斷的輸出。
+
+`trajectory` 針對的是另一種讀者——正在讀過去工作紀錄來形成記憶的 agent。同一批資料，要拿去「一格一格重播」還是「快速讀完抓重點」，決定了什麼該留、什麼可以丟。
+
+---
+
+## 留下經驗，丟掉流水帳
+
+一份 `trajectory` 就是一串記錄：assistant 訊息、使用者訊息、推理、工具呼叫、工具結果。第一筆記錄放的是這份紀錄出自哪個 harness 的相關資訊。完整規格定義在 repo 裡的 [`trajectory-v1.schema.json`](https://github.com/letta-ai/trajectory/blob/main/schema/trajectory-v1.schema.json)。
+
+格式只保留理解 agent 經驗所需的東西，harness 自己記的那本流水帳則被丟掉：每一行外面那層信封、重複的內容、UI 事件流、加密過的推理區塊；過長的工具結果還可以選擇截斷。在抽樣到的紀錄上，這讓 token 數壓到原生格式的五分之一左右。
+
+```text
+                          Claude Code                    Codex
+Native                    951,115 tokens                 3,919,385 tokens
+Harbor ATIF               835,187 tokens（省 1.1 倍）      2,371,530 tokens（省 1.7 倍）
+Trajectory (untruncated)  211,923 tokens（省 4.5 倍）      1,938,450 tokens（省 2.0 倍）
+Trajectory (default)      170,934 tokens（省 5.6 倍）        727,516 tokens（省 5.4 倍）
+```
+
+最後一行的預設模式，就是會把過長工具結果截掉的那個。
+
+<MoguNote summary="以為 JSON 換 YAML 會省 token？實測反而多吃 7.6%——貴的是欄位名，不是符號。">
+省 token 這件事有一個很好踩的直覺陷阱：既然 JSON 的引號跟大括號那麼吵，換成 YAML 應該會更省吧？我拿一份仿 `trajectory` 形狀的資料實測過，答案是不會，而且更貴 (¬‿¬)
+
+在「短記錄很多」的情境（一堆工具呼叫配上截斷過的結果，也就是預設模式的日常長相），合規 YAML 比 JSONL 還多吃 7.6% 的 token。真正吃掉 token 的從來不是符號，是每一筆記錄都要重新報一次的欄位名——`role`、`tool_call_id`、一整串 ISO 格式的時間——再加上長字串裡那些 `\n` 逃逸。
+
+把這層信封丟掉、長字串直接原樣攤開，同一份資料比 JSONL 省 38.7%；換到「內容很長」的情境也還省 7.5%。把內容全部清空、只留格式本身，差距最赤裸：210 個 token 對 394 個。腳本收在[本站 repo](https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/experiments/trajectory-format-tokens.mjs) 裡，可以自己重跑。切詞用的是 `gpt-tokenizer` 的 `o200k_base`，Claude 那邊切法不同，絕對值會有出入，但這裡比的是同一份資料在不同排版下的比例。
+</MoguNote>
+
+---
+
+## 撈出來，轉過去
+
+套件本身做兩件事：列出任何一個 harness 在這台機器上留下的紀錄，然後把它轉成正規化的 `trajectory`。跨 harness 的資料因此可以聚在一起建索引，或者直接餵給負責記憶的 agent 處理。
+
+```typescript
+import { listTrajectories, normalizeTranscript } from "@letta-ai/trajectory";
+import { readFileSync } from "fs";
+
+// Discover local Claude Code sessions (also works for codex, letta-code, ...)
+const page = await listTrajectories({ source: "claude-code", limit: 10 });
+
+// Normalize one into the standard record format
+const transcript = readFileSync(page.items[0].path, "utf8");
+const { records, diagnostics } = normalizeTranscript({
+  source: "claude-code",
+  transcript,
+});
+```
+
+---
+
+## Letta Code 拿它來做什麼
+
+Letta Code 這個 harness 現在就用 `trajectory` 格式，把 Claude Code、Codex 這類本機 agent 留下的資料正規化。過去的紀錄會被讀過一輪，用來替 agent 的記憶打底。
+
+於是做夢的時候，agent 可以從這台機器上的每一個 harness 挑紀錄出來正規化——在 Claude Code 或 Codex 那邊學到的教訓，會用和它自己那些紀錄完全一樣的方式進入記憶。再往前推，把很多 harness、甚至很多使用者的經驗聚合起來變成學習與記憶，是 Letta 期待看到的下一步。
+
+想試的話，`npm install -g @letta-ai/trajectory` 裝套件；裝了 Letta Code 之後（`npm install -g @letta-ai/letta-code`），在裡面跑 `/init` 就會去讀其他 harness 留下的經驗。
+
+<MoguNote>
+前面那個省 38.7% 的排版有個要命的但書：它只能當單向的呈現層，不能拿來當儲存格式。
+
+合規 YAML 之所以貴，正是因為它一直在買保險——長字串前面那個 `|2-` 縮排指示符、遇到 CRLF 就退回引號模式，這些醜東西就是它保證「存進去什麼、讀出來就是什麼」的手段。拿掉當然變便宜，代價是內容一旦含 CRLF 或行尾空白，資料會安靜地壞掉，而且壞得無聲無息。
+
+所以合理的收法不是把 JSON 換掉，是分層：儲存繼續用 JSON，上面再疊一層專門給人和 agent 看的排版。不要弄丟東西是格式的工作，好讀是排版的工作，這兩件事本來就不該叫同一層扛。
+</MoguNote>
+
+---
+
+## 結語
+
+回到早上那三份紀錄。統一格式本身不會生出新的經驗，它只是讓昨天在 Claude Code 犯過的錯，今天到 Codex 那邊還算數。
+
+經驗一直都在，一次也沒少過。差別只在於它是躺在三個資料夾裡各自為政，還是終於被寫成同一種文字。

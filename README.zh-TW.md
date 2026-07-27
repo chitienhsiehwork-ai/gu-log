@@ -7,7 +7,7 @@
 **雙語 AI／技術 blog —— 把網路上的英文好文，用繁中重講一遍（也把繁中講回英文）。**
 
 [![Live](https://img.shields.io/badge/live-gu--log.vercel.app-cb4b16?style=flat-square)](https://gu-log.vercel.app/)
-&nbsp;[![Built with Astro](https://img.shields.io/badge/built%20with-Astro%205-ff5d01?style=flat-square&logo=astro&logoColor=white)](https://astro.build/)
+&nbsp;[![Built with Astro](https://img.shields.io/badge/built%20with-Astro-ff5d01?style=flat-square&logo=astro&logoColor=white)](https://astro.build/)
 &nbsp;[![Deployed on Vercel](https://img.shields.io/badge/deploy-Vercel-000?style=flat-square&logo=vercel&logoColor=white)](https://vercel.com/)
 
 [English](./README.md) · **繁體中文**
@@ -93,7 +93,8 @@ sub-8 的文章不會卡住 ship，而是排進背景重寫佇列（最多 3 輪
 
 ## 技術棧
 
-- **框架** —— [Astro 5](https://astro.build/)（Content Collections + MDX）
+- **框架** —— [Astro](https://astro.build/)（Content Collections + MDX；版本以
+  [`package.json`](./package.json) 為準）
 - **部署** —— Vercel（push 到 `main` 自動部署）
 - **套件管理** —— pnpm（唯一支援；`pnpm-lock.yaml` 是 single source of truth）
 - **字型** —— Inter + Noto Sans TC

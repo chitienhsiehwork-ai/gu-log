@@ -1,0 +1,145 @@
+---
+ticketId: "MP-257"
+title: "The LiteLLM Chain Reaction — From Trivy to PyPI, a Textbook AI Supply-Chain Meltdown"
+originalDate: "2026-03-31"
+translatedDate: "2026-04-06"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+source: "@zats on X"
+sourceUrl: "https://x.com/zats/status/2039697433915981926"
+lang: "en"
+summary: "TeamPCP compromised Aqua Security's Trivy CI/CD to plant a three-stage payload in LiteLLM 1.82.7–1.82.8. The supply-chain attack exposed API keys and cloud credentials by targeting the tooling layer that connects AI models to applications."
+tags: ["supply-chain-security","litellm","ci-cd","cybersecurity"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## When the Security Guard Is the Burglar
+
+Picture this: a building's security company gets bought off by criminals. The guards still patrol, still clock in, still wave at residents — but during each patrol, they quietly swap out every floor's locks with the criminals' versions. No one notices, because the guards' very presence signals "security."
+
+On March 24, 2026, a threat group called TeamPCP pulled off exactly the same trick — except the building was the entire AI open-source ecosystem.
+
+<MoguNote>
+LiteLLM is the universal adapter of the AI world — a Python library that lets developers call 100+ LLM providers (OpenAI, Anthropic, Google, Azure…) through a single API. According to Wiz's report, 36% of cloud environments have it installed. One-third. So TeamPCP didn't rob a bank — they reached directly into the cash drawers of a third of every ATM in the country. (╯°□°)╯
+</MoguNote>
+
+---
+
+## The "Security Inspector" Was the Mole
+
+The story starts with Trivy. Trivy is an open-source vulnerability scanner made by Aqua Security — the kind of tool that checks other people's code for problems. LiteLLM's CI/CD pipeline used Trivy as a gatekeeper: run a security scan before each build, only proceed if it comes back clean.
+
+TeamPCP didn't touch LiteLLM's code. They compromised Trivy's GitHub Actions workflow.
+
+Wait — what does that mean?
+
+It means LiteLLM's security inspector had been turned. From that point on, no matter what garbage got stuffed into LiteLLM's build environment, Trivy would smile and nod: "All clear. Approved."
+
+<MoguNote>
+Making the security scanner itself an attack vector. It's like using a hospital's sterilization equipment to spread a virus — and because every nurse "knows" sterilization equipment is clean, nobody questions it. Trivy's job was to "ensure code is clean," and it waved malicious code through every security check because it was the security check. This isn't a vulnerability. It's a logical blind spot. ┐(￣ヘ￣)┌
+</MoguNote>
+
+With Trivy under control, TeamPCP injected malicious code into LiteLLM's build environment. Build completed, pushed to PyPI. Version numbers 1.82.7 and 1.82.8 — looking like ordinary patch updates, nothing unusual.
+
+Then developers around the world started running `pip install`.
+
+---
+
+## Three-Stage Kill: What Happens After import
+
+Here's where it gets serious. When some engineer ran `pip install litellm==1.82.7` in their production environment, then `import litellm` — the moment that import executed, a precision three-stage kill chain went live.
+
+**Stage one: ransack everything.** The malicious code scans the entire machine for anything valuable: SSH keys, cloud credentials, Kubernetes secrets, cryptocurrency wallets, `.env` config files. No pickiness, grab everything. Imagine a burglar breaking into your house and not just checking the safe — but also under the pillows, in the freezer, inside the toilet tank.
+
+**Stage two: expand the foothold.** After grabbing Kubernetes service account tokens, the attack deploys privileged pods on every node in the cluster. One machine compromised, entire cluster falls. From "broke into one room" to "got the master key for the whole building."
+
+**Stage three is the nastiest** — installing a systemd unit disguised as a system service called `sysmon.service`, quietly fetching new instructions from `checkmarx[.]zone/raw` every 50 minutes. Even if discovered, even if cleaned up, as long as this backdoor remains, the attackers can come back anytime. This isn't a robbery. It's colonization.
+
+All harvested credentials get packed into `tpcp.tar.gz` and sent via HTTPS POST to `models.litellm[.]cloud`.
+
+<MoguNote>
+Notice that exfiltration domain: `models.litellm.cloud`. Not `.ai`, not `.com`, but `.cloud`. Looks exactly like LiteLLM's official model registry endpoint. Nine out of ten SREs seeing this traffic would wave it through — "Oh, LiteLLM fetching model metadata, totally normal." The essence of social engineering isn't tricking people to click links — it's making monitoring systems think everything's fine too. (⌐■_■)
+</MoguNote>
+
+---
+
+## Attackers Have Sprint Planning Too
+
+But the story doesn't end there. The attack methods in 1.82.7 and 1.82.8 were actually **different** — and 1.82.8 was clearly an "improved version." TeamPCP iterated between the two releases.
+
+Version 1.82.7 hid the malicious code in `litellm/proxy/proxy_server.py`. Triggered on `import litellm`, nasty enough. But TeamPCP apparently thought that wasn't enough.
+
+Version 1.82.8 dropped a malicious `.pth` loader directly in the wheel package's root directory. Python automatically loads all `.pth` files on startup — so it wasn't just programs that `import litellm` getting infected, but **every Python process** in that environment would be infected on launch. From precision sniper to carpet bombing, just one version number apart.
+
+<MoguNote>
+What TeamPCP was doing, from another angle, is just normal software development: ship v1, collect feedback, improve v2. Except what they "improved" was attack coverage. 1.82.7 was "only infected if you use LiteLLM," 1.82.8 was "run any Python program in an environment with LiteLLM installed, and you're infected." These people have their own backlog, their own release cycle, their own quality standards. It's just that their "quality" metric is destructive power. ヽ(°〇°)ﾉ
+</MoguNote>
+
+---
+
+## The Subprime Crisis of AI
+
+At this point, the full scale of the incident becomes clear. TeamPCP's operation spanned five ecosystems — GitHub Actions, Docker Hub, npm, Open VSX, PyPI. Not attacking five targets simultaneously, but using the spoils from the first to pry open the second, and the second to crack the third.
+
+Trivy trusts GitHub Actions. LiteLLM trusts Trivy. Developers trust LiteLLM on PyPI. Cloud environments trust the packages developers install.
+
+Each layer of trust, looked at individually, makes perfect sense.
+
+But stacked together, it becomes the 2008 subprime crisis. Every layer thinks "the upstream assets have already been validated," so they confidently build their trust on top. Then when the foundation cracks, the whole building shakes from the ground up.
+
+Affected organizations include thousands of AI companies, including Mercor AI. Data leaked in terabytes. API keys, cloud credentials, Kubernetes secrets — all gone.
+
+<MoguNote>
+Why LiteLLM specifically? Because it's not some obscure tool. It's the **connector layer** between AI applications and AI models — that universal adapter. Attackers didn't need to crack OpenAI's API, didn't need to breach Anthropic's defenses. Just control the adapter in the middle, and every API key and credential flowing through it lands in their pocket automatically. This is what "supply-chain attack" actually means: the target isn't the castle, it's the castle's plumbing. (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+---
+
+## Those SREs Pulling Three All-Nighters
+
+If you're reading this and starting to sweat — "wait, production might have LiteLLM installed" — here's the deal: just upgrading versions isn't enough.
+
+The problem isn't whether 1.82.7 and 1.82.8 are still there. PyPI yanked them. The problem is that backdoor. That `sysmon.service` quietly fetching instructions every 50 minutes doesn't disappear because you ran `pip install --upgrade`. Exposed environments need isolation, anomalous privileged pods in Kubernetes clusters need hunting, traffic to `checkmarx[.]zone` and `models.litellm[.]cloud` needs auditing.
+
+Then comes the most painful step: **rotate every exposed credential.** Cloud, Kubernetes, SSH, API keys — not a single one stays. This isn't about "might have been stolen" — if the payload ran, assume every key is already priced on the dark web.
+
+<MoguNote>
+"Rotate all exposed credentials" — seven words to say, three sleepless nights of work for an entire SRE team. But that's the cruelest part of supply-chain attacks: cleanup costs are always a hundred times higher than intrusion costs. TeamPCP might have spent a few weeks planning this attack, but victim SRE teams will spend months confirming their environments are truly clean. Better to rotate a hundred extra keys than miss the one that's already been used to open the door. (ง •̀_•́)ง
+</MoguNote>
+
+---
+
+## Closing Thoughts
+
+Back to that security guard metaphor.
+
+The most ironic part of this whole incident isn't that LiteLLM was compromised — it's that LiteLLM's "security system" Trivy was the entry point. A tool whose job is checking others for problems, once infiltrated, becomes the perfect cover. Because nobody checks the checker.
+
+The AI ecosystem is stacking abstraction layers at a frantic pace — model APIs, proxy frameworks, unified interfaces, automation pipelines. Each layer makes development more convenient, each layer also welds another link onto the trust chain. Next time you run `pip install`, the resolver isn't just doing dependency resolution — it's tracing a trust chain from GitHub Actions to PyPI to Kubernetes.
+
+Every link in that chain has someone assuming "the previous link already verified this." TeamPCP proved one thing: nobody did.
+
+<MoguNote>
+The security guard is the burglar, the sterilization equipment spreads the virus, the security inspector waves malicious code through — three ways of telling the same story, but the essence is identical: when "trust" itself becomes weaponized, every defense built on trust fails simultaneously. This isn't a technical problem. It's a philosophical one. And the AI supply chain keeps expanding. (╯°□°)╯
+</MoguNote>

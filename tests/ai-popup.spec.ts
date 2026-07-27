@@ -1,3 +1,4 @@
+import type { Page } from '@playwright/test';
 import { test, expect } from './fixtures';
 import {
   isDesktopChromiumProject,
@@ -14,6 +15,20 @@ import {
  */
 
 const TEST_POST = '/posts/gp-24-20260204-claude-is-a-space-to-think';
+const AUTH_RETURN_KEY = 'gu-log-return-url';
+const AUTH_JWT_KEY = 'gu-log-jwt';
+
+async function seedAuthReturn(page: Page, returnUrl: string) {
+  await page.goto('/');
+  await page.evaluate(
+    ({ jwtKey, returnKey, returnUrl }) => {
+      localStorage.removeItem(jwtKey);
+      localStorage.removeItem('gu-log-callback-pwned');
+      localStorage.setItem(returnKey, returnUrl);
+    },
+    { jwtKey: AUTH_JWT_KEY, returnKey: AUTH_RETURN_KEY, returnUrl }
+  );
+}
 
 test.describe('AI Popup - Desktop', () => {
   test.beforeEach(async () => {
@@ -245,14 +260,35 @@ test.describe('Auth Callback', () => {
   });
 
   test('GIVEN callback page with no token WHEN loaded THEN shows error', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => localStorage.setItem('theme', 'light'));
     await page.goto('/auth/callback');
     await page.waitForTimeout(200);
 
+    const callbackStatus = page.locator('.callback-status');
+    await expect(callbackStatus).toHaveAttribute('role', 'status');
+    await expect(callbackStatus).toHaveAttribute('aria-live', 'polite');
+    await expect(callbackStatus).toHaveAttribute('aria-atomic', 'true');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+    await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(253, 246, 227)');
+
     const status = page.locator('#status');
     await expect(status).toContainText('Login failed');
+    await expect(page).toHaveTitle('Login failed');
+    await expect(page.locator('.spinner')).toBeHidden();
 
     const errorMsg = page.locator('#error');
     await expect(errorMsg).toBeVisible();
+    await expect(errorMsg).toContainText('Choose an option below');
+    const retryLink = page.getByRole('link', { name: 'Try GitHub login again' });
+    await expect(retryLink).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Back to homepage' })).toBeVisible();
+    expect(
+      await retryLink.evaluate((element) => element.getBoundingClientRect().height)
+    ).toBeGreaterThanOrEqual(44);
+    await retryLink.focus();
+    await expect(retryLink).toBeFocused();
+    await expect(retryLink).toHaveCSS('outline-style', 'solid');
   });
 
   test('GIVEN return URL in localStorage WHEN callback succeeds THEN redirects to return URL', async ({
@@ -273,6 +309,92 @@ test.describe('Auth Callback', () => {
 
     const returnUrl = await page.evaluate(() => localStorage.getItem('gu-log-return-url'));
     expect(returnUrl).toBeNull();
+  });
+
+  test('GIVEN an absolute same-origin return URL WHEN callback succeeds THEN preserves its path query and hash', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    const returnPath = `${TEST_POST}?from=oauth#details`;
+    const absoluteReturnUrl = new URL(returnPath, page.url()).href;
+    await seedAuthReturn(page, absoluteReturnUrl);
+
+    await page.goto('/auth/callback?token=absolute-return-token');
+    await page.waitForURL(new URL(returnPath, absoluteReturnUrl).href, { timeout: 5000 });
+
+    expect(await page.evaluate((key) => localStorage.getItem(key), AUTH_JWT_KEY)).toBe(
+      'absolute-return-token'
+    );
+    expect(await page.evaluate((key) => localStorage.getItem(key), AUTH_RETURN_KEY)).toBeNull();
+  });
+
+  test('GIVEN a same-origin URL whose path starts with two slashes WHEN callback succeeds THEN it falls back to the homepage', async ({
+    page,
+  }) => {
+    await page.route(/^https?:\/\/attacker\.invalid\//, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'text/html',
+        body: '<!doctype html><title>attacker fixture</title>',
+      });
+    });
+    await page.goto('/');
+    const origin = new URL(page.url()).origin;
+    await seedAuthReturn(page, `${origin}//attacker.invalid/landing`);
+    const homeUrl = new URL('/', page.url()).href;
+
+    await page.goto('/auth/callback?token=double-parse-return-token');
+    await expect(page).toHaveURL(homeUrl, { timeout: 5000 });
+
+    expect(await page.evaluate((key) => localStorage.getItem(key), AUTH_JWT_KEY)).toBe(
+      'double-parse-return-token'
+    );
+    expect(await page.evaluate((key) => localStorage.getItem(key), AUTH_RETURN_KEY)).toBeNull();
+  });
+
+  for (const unsafeReturnUrl of [
+    'https://attacker.invalid/landing',
+    '//attacker.invalid/landing',
+    '\\\\attacker.invalid/landing',
+    'https://[invalid',
+  ]) {
+    test(`GIVEN unsafe return URL ${unsafeReturnUrl} WHEN callback succeeds THEN falls back to the homepage`, async ({
+      page,
+    }) => {
+      await page.route(/^https?:\/\/attacker\.invalid\//, async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'text/html',
+          body: '<!doctype html><title>attacker fixture</title>',
+        });
+      });
+      await seedAuthReturn(page, unsafeReturnUrl);
+      const homeUrl = new URL('/', page.url()).href;
+
+      await page.goto('/auth/callback?token=unsafe-return-token');
+      await expect(page).toHaveURL(homeUrl, { timeout: 5000 });
+
+      expect(await page.evaluate((key) => localStorage.getItem(key), AUTH_JWT_KEY)).toBe(
+        'unsafe-return-token'
+      );
+      expect(await page.evaluate((key) => localStorage.getItem(key), AUTH_RETURN_KEY)).toBeNull();
+    });
+  }
+
+  test('GIVEN a javascript return URL WHEN callback succeeds THEN does not execute it', async ({
+    page,
+  }) => {
+    await seedAuthReturn(page, "javascript:localStorage.setItem('gu-log-callback-pwned','1')");
+    const homeUrl = new URL('/', page.url()).href;
+
+    await page.goto('/auth/callback?token=javascript-return-token');
+
+    await expect(page).toHaveURL(homeUrl, { timeout: 5000 });
+    expect(await page.evaluate(() => localStorage.getItem('gu-log-callback-pwned'))).toBeNull();
+    expect(await page.evaluate((key) => localStorage.getItem(key), AUTH_JWT_KEY)).toBe(
+      'javascript-return-token'
+    );
+    expect(await page.evaluate((key) => localStorage.getItem(key), AUTH_RETURN_KEY)).toBeNull();
   });
 });
 
@@ -312,6 +434,50 @@ test.describe('AI Popup - API Interactions', () => {
 
     await expect(popup.locator('.ai-popup-result')).toBeVisible();
     await expect(popup.locator('.ai-popup-result-body')).toHaveText('This is a mock AI answer.');
+  });
+
+  test('GIVEN Ask AI returns a quoted markdown URL WHEN result renders THEN the link cannot inject an event handler', async ({
+    page,
+  }) => {
+    await page.route('**/ai/ask', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          response: [
+            '[hover me](https://safe.example/"onmouseover="document.body.dataset.pwned=1")',
+            '',
+            '[normal](https://safe.example/path?q=one%20two&lang=en)',
+          ].join('\n'),
+        }),
+      });
+    });
+
+    const popup = await selectPostTextAndShowPopup(page);
+    await popup.locator('[data-action="ask"]').click();
+    await popup.locator('[data-action="submit-ask"]').click();
+
+    const resultBody = popup.locator('.ai-popup-result-body');
+    await expect(resultBody).toBeVisible({ timeout: 5000 });
+
+    const maliciousLink = resultBody.getByRole('link', { name: 'hover me' });
+    await expect(maliciousLink).toBeVisible();
+    expect(
+      await maliciousLink.evaluate((link) =>
+        link.getAttributeNames().filter((name) => name.startsWith('on'))
+      )
+    ).toEqual([]);
+
+    await page.evaluate(() => {
+      delete document.body.dataset.pwned;
+    });
+    await maliciousLink.dispatchEvent('mouseover');
+    expect(await page.evaluate(() => document.body.dataset.pwned)).toBeUndefined();
+
+    await expect(resultBody.getByRole('link', { name: 'normal' })).toHaveAttribute(
+      'href',
+      'https://safe.example/path?q=one%20two&lang=en'
+    );
   });
 
   test('GIVEN API error WHEN clicking Ask AI THEN shows error message', async ({ page }) => {

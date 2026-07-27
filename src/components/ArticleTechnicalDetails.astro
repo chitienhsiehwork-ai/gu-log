@@ -1,0 +1,291 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { computeOverallComposite } from '../utils/tribunal-scores';
+import AiJudgeScore from './AiJudgeScore.astro';
+
+type PostData = CollectionEntry<'posts'>['data'];
+
+interface Props {
+  translatedDate: PostData['translatedDate'];
+  translatedBy: PostData['translatedBy'];
+  scores: PostData['scores'];
+  authorshipNote?: string | null;
+  isOriginalPost: boolean;
+  postVersion: number;
+  historyHref: string;
+  lang?: 'zh-tw' | 'en';
+}
+
+const {
+  translatedDate,
+  translatedBy,
+  scores,
+  authorshipNote,
+  isOriginalPost,
+  postVersion,
+  historyHref,
+  lang = 'zh-tw',
+} = Astro.props;
+
+const overallComposite = computeOverallComposite(scores);
+const hasTranslationInfo = Boolean((translatedDate && translatedBy) || authorshipNote);
+const strings =
+  lang === 'en'
+    ? {
+        title: 'Technical details',
+        writtenOn: 'Written on',
+        translatedOn: 'Translated on',
+        writingPipeline: 'writing pipeline',
+        translationPipeline: 'translation pipeline',
+        authorship: 'Authorship note:',
+        history: 'View edit history',
+      }
+    : {
+        title: '技術資訊',
+        writtenOn: '撰寫於',
+        translatedOn: '翻譯於',
+        writingPipeline: '撰寫 pipeline',
+        translationPipeline: '翻譯 pipeline',
+        authorship: '作者推定：',
+        history: '查看編輯歷史',
+      };
+---
+
+<details class="article-technical-details" data-article-technical-details>
+  <summary class="technical-summary">
+    <span class="technical-summary-icon" aria-hidden="true">
+      <svg
+        viewBox="0 0 24 24"
+        width="18"
+        height="18"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.7"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M4 7h10"></path>
+        <path d="M18 7h2"></path>
+        <path d="M4 17h2"></path>
+        <path d="M10 17h10"></path>
+        <circle cx="16" cy="7" r="2"></circle>
+        <circle cx="8" cy="17" r="2"></circle>
+      </svg>
+    </span>
+    <span class="technical-summary-title">{strings.title}</span>
+    <span class="technical-summary-meta">
+      {overallComposite !== null && <span>Tribunal {overallComposite}/10</span>}
+      {
+        hasTranslationInfo && (
+          <span>{isOriginalPost ? strings.writingPipeline : strings.translationPipeline}</span>
+        )
+      }
+      <span>v{postVersion}</span>
+    </span>
+    <span class="technical-summary-chevron" aria-hidden="true">
+      <svg
+        viewBox="0 0 24 24"
+        width="16"
+        height="16"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="m8 10 4 4 4-4"></path>
+      </svg>
+    </span>
+  </summary>
+
+  <div class="technical-content">
+    {
+      hasTranslationInfo && (
+        <div class="translation-info">
+          {translatedDate &&
+            translatedBy &&
+            (translatedBy.pipeline ? (
+              <>
+                <div>
+                  {isOriginalPost ? strings.writtenOn : strings.translatedOn} {translatedDate}
+                </div>
+                {translatedBy.pipeline.map((step) => (
+                  <div>
+                    {step.role} by {step.model} ({step.harness})
+                  </div>
+                ))}
+                {translatedBy.pipelineUrl && (
+                  <div>
+                    <a href={translatedBy.pipelineUrl} target="_blank" rel="noopener">
+                      View pipeline script →
+                    </a>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div>
+                {isOriginalPost ? strings.writtenOn : strings.translatedOn} {translatedDate} by{' '}
+                {translatedBy.model} ({translatedBy.harness})
+              </div>
+            ))}
+          {authorshipNote && (
+            <div class="authorship-note">
+              <strong>{strings.authorship}</strong>
+              <span>{authorshipNote}</span>
+            </div>
+          )}
+        </div>
+      )
+    }
+
+    {scores && <AiJudgeScore scores={scores} lang={lang} />}
+
+    <div class="post-version-info">
+      <span class="version-badge">v{postVersion}</span>
+      <a href={historyHref} target="_blank" rel="noopener" class="version-history-link">
+        {strings.history} →
+      </a>
+    </div>
+  </div>
+</details>
+
+<style>
+  .article-technical-details {
+    margin-top: 2rem;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--color-surface) 38%, transparent);
+    overflow: clip;
+  }
+
+  .technical-summary {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.55rem;
+    min-height: 48px;
+    padding: 0.7rem 0.9rem;
+    color: var(--color-text);
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .technical-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .technical-summary:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: -2px;
+  }
+
+  .technical-summary-icon {
+    display: inline-flex;
+    color: var(--color-text-muted);
+  }
+
+  .technical-summary-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+  }
+
+  .technical-summary-meta {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 0.3rem 0.8rem;
+    min-width: 0;
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+  }
+
+  .technical-summary-meta span + span::before {
+    content: '·';
+    margin-right: 0.8rem;
+    color: var(--color-border);
+  }
+
+  .technical-summary-chevron {
+    display: inline-flex;
+    color: var(--color-text-muted);
+    transition: transform 160ms ease;
+  }
+
+  .article-technical-details[open] .technical-summary-chevron {
+    transform: rotate(180deg);
+  }
+
+  .technical-content {
+    padding: 0 0.9rem 0.9rem;
+    border-top: 1px solid var(--color-divider);
+  }
+
+  .translation-info {
+    padding: 0.9rem 0 0;
+    color: var(--color-text-muted);
+    font-size: 0.82rem;
+    line-height: 1.55;
+  }
+
+  .translation-info .authorship-note {
+    margin-top: 0.5rem;
+  }
+
+  .authorship-note strong {
+    color: var(--color-text);
+    margin-right: 0.3rem;
+  }
+
+  .post-version-info {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 0.9rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--color-divider);
+    font-size: 0.82rem;
+  }
+
+  .version-badge {
+    display: inline-block;
+    padding: 0.12rem 0.45rem;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+  }
+
+  .version-history-link {
+    color: var(--color-text-muted);
+  }
+
+  .version-history-link:hover {
+    color: var(--color-accent);
+  }
+
+  .technical-content :global(.ai-judge-panel) {
+    margin-top: 0.9rem;
+    padding: 0.9rem 0 0;
+    background: transparent;
+    border: 0;
+    border-top: 1px solid var(--color-divider);
+    border-radius: 0;
+  }
+
+  @media (max-width: 560px) {
+    .technical-summary {
+      grid-template-columns: auto minmax(0, 1fr) auto;
+    }
+
+    .technical-summary-meta {
+      grid-column: 2 / 3;
+      justify-content: flex-start;
+    }
+
+    .technical-summary-chevron {
+      grid-column: 3;
+      grid-row: 1 / span 2;
+    }
+  }
+</style>

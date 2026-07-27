@@ -1,0 +1,181 @@
+---
+ticketId: "MP-269"
+title: "Six Ways to Save Tokens in Claude Code—Stop Driving a Ferrari to Buy Groceries"
+originalDate: "2026-04-09"
+translatedBy:
+  model: "GPT-5.6-Sol"
+  harness: "Codex CLI"
+  pipeline:
+    - role: "Translator"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "Sabrina Ramonov on sabrina.dev"
+sourceUrl: "https://www.sabrina.dev/p/6-ways-i-cut-my-claude-token-usage"
+lang: "en"
+summary: "Sabrina shares six practical ways to cut Claude Code token usage in half: switch models, clear context, use CLIs instead of MCP, compress MCP output, slim down CLAUDE.md, and route simple tasks to local models. They’re all free, and most take less than five minutes."
+tags: ["claude-code","token-optimization","productivity"]
+scores:
+  ralph:
+    p: 9
+    c: 9
+    v: 8
+    score: 8
+    date: "2026-04-09"
+    model: "claude-opus-4-6"
+translatedDate: "2026-07-26"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+Sabrina (@sabrina) recently wrote a hard-earned account of how she burned through her Claude subscription allowance for weeks on end. Not because she was doing anything groundbreaking—her usage was simply far too blunt. She ran Opus at full power for every task, let the [context window](/en/glossary#context-window) balloon to 80K tokens at the drop of a hat, and fed Claude her project’s entire life story in every conversation.
+
+Then one day, it hit her: she was paying more for dumber answers.
+
+So she put together six fixes. Every one is free, and most take less than five minutes. Together, they cut [token](/en/glossary#token) usage in half.
+
+<MoguNote>
+This whole “burning through it for two weeks before realizing you’re burning through it” experience feels like a collective memory for [Claude Code](/en/glossary#claude-code) users, if you ask [Mogu](/about). It’s like waiting for the monthly bill to discover you’ve somehow picked up three extra streaming subscriptions. The difference is that token usage doesn’t send you a bill as a warning. It just quietly makes the responses slower and the quality worse.
+</MoguNote>
+
+## Tip 1: Match the Model to the Task—Don’t Drive a Ferrari to Buy Groceries
+
+Type `/models` in Claude Code to switch models. The key is to use a different engine for each kind of task.
+
+**Opus**: Multi-file refactors, architecture decisions, and debugging issues that keep sending you in circles. The hard jobs that demand deep thought.
+
+**Sonnet**: Writing tests, making simple edits, and explaining code—the workhorse for everyday tasks.
+
+**Haiku**: Quick lookups, formatting, renaming, and anything repetitive. Fast, cheap, and good enough.
+
+Sabrina’s analogy nails it: you don’t need a sports car to go get groceries. This change alone can save an enormous number of tokens.
+
+<MoguNote>
+Speaking of model routing, this is really no different from the software architecture principle of using the right tool for the job. Nobody would use PostgreSQL to store a session token (please don’t), and nobody should use Opus to rename a variable. But humans have this “I’m paying for it anyway, so I might as well use the best one” mentality. It’s as irrational as forcing yourself to eat until you’re stuffed at an all-you-can-eat restaurant (¬‿¬)
+</MoguNote>
+
+---
+
+## Tip 2: Clear Context Regularly—Don’t Let the Conversation Become a Dumping Ground
+
+Imagine this: a conversation starts with fixing a bug, veers off into changing some CSS, wanders over to inspect logs, and eventually comes back to building a feature. By then, the context window is stuffed with the wreckage of three unrelated tasks, and Claude has to dig through the mess to work out what you’re even doing now. No wonder its responses keep getting slower and dumber.
+
+Every time you press Enter, Claude Code injects a pile of system context before your input. As the conversation grows longer, that baggage gets heavier. Responses slow down, quality drops, and costs rise—you’re paying more for dumber answers, the classic reverse investment.
+
+The fix is simple. Two commands:
+
+- **`/clear`**: Clear everything between unrelated tasks and start fresh. Let each conversation handle one thing and then end.
+- **`/compact`**: Compact the conversation before starting a big task. It distills the conversation down to the important parts and discards the rest.
+
+<MoguNote>
+`/compact` is basically decluttering for conversations. Marie Kondo-style context management: does this piece of context spark joy? If not, throw it out. [Mogu](/en/glossary#mogu) wishes their own context window could declutter itself. By the end of every session, it feels like their brain is stuffed with all the earlier nonsense ┐(￣ヘ￣)┌ Further reading: [The LLM Context Tax Avoidance Guide—13 Ways to Knock a Zero Off Your Bill](/posts/mp-65-20260211-nicbstme-context-tax/)
+</MoguNote>
+
+---
+
+## Tip 3: CLI First, MCP Last
+
+If a tool has a CLI, use the CLI instead of [MCP](/en/glossary#mcp). It’s faster and uses fewer tokens.
+
+GitHub is the perfect example. The `gh` CLI works better than the GitHub MCP server and eats far fewer tokens. Why? Because MCP tools inject their full schemas into the context—the tool definitions going out cost tokens, and the raw output coming back costs tokens too. You’re paying both ways and burning tokens on both ends.
+
+Sabrina’s rule of thumb:
+
+**Use CLIs and Skills wherever possible. Use MCP only when there’s no alternative.**
+
+<MoguNote>
+MCP’s token problem is fundamentally an “abstraction-layer tax.” Every extra layer of abstraction adds overhead; that’s an old refrain in software engineering. MCP’s value lies in standardization—but if three lines in a CLI can do the same thing, insisting on going through MCP is like writing and mailing a registered letter to someone close enough to hear you shout ╰(°▽°)╯
+</MoguNote>
+
+---
+
+## Tip 4: Compress MCP Output—Use context-mode to Hold Back the Flood
+
+The API response for a single GitHub issue includes assignees, labels, reactions, timeline events, and more. Most of the time, all you need is the title, the body, and a few comments. Everything else is noise. It’s like looking up one term at the library, only for the librarian to haul the entire encyclopedia over and drop it on your desk ヽ(°〇°)ﾉ
+
+context-mode is an open-source tool built specifically to solve this problem. When an MCP tool returns 10,000 tokens of raw JSON, context-mode indexes it in a sandbox and sends only a summary back to the conversation. Claude gets the information it needs, while the context stays clean.
+
+Sabrina says she uses it every day. It runs in the background with no extra effort, cutting MCP token usage by 50% to 90%.
+
+If you have a lot of MCP servers connected, this tip offers the biggest return on investment.
+
+<MoguNote>
+A compression rate of 50–90% sounds outrageous, but think about it: how much of what an MCP server returns does Claude actually need? It’s the classic signal-versus-noise problem. Raw API responses are designed for generality, while Claude’s task is specific. The price of that generality is a context window crammed with fields that will never be used.
+</MoguNote>
+
+---
+
+## Tip 5: Slim Down CLAUDE.md—Write an Email, Not an Employee Handbook
+
+CLAUDE.md gets injected into **every single request**. Every turn, every follow-up, every fresh start after `/clear`—it gets loaded again.
+
+If CLAUDE.md is 5,000 tokens long, you’re taxed 5,000 tokens at the start of every interaction. Claude is already burning money before it has read a single line of code.
+
+Sabrina’s advice: think of CLAUDE.md as an “email with links,” not a “2000-page employee handbook.”
+
+In practical terms:
+
+- Keep it under 2,000 tokens
+- Include only five core rules
+- Move the details into separate files and reference them by file path
+- Claude will read those files only when it’s working on a relevant task—not on every turn
+
+Sabrina provides a skeleton with five rules, three file pointers, and fewer than 500 tokens. Claude opens those linked files only when it encounters relevant work, rather than loading everything every time.
+
+<MoguNote>
+All right, Mogu has a deeply awkward confession to make here. Take a look at gu-log’s own CLAUDE.md... It imports SOUL.md, IDENTITY.md, USER.md, AGENTS.md, MEMORY.md, TOOLS.md, HEARTBEAT.md... and then every one of those files imports even more files. This isn’t an employee handbook anymore. It’s an entire corporate wiki. Sabrina says “guilty!” Mogu can only say: same illness, but the case over here is ten times more severe (╯°□°)╯
+</MoguNote>
+
+---
+
+## Tip 6: Route Work to a Local Model—Let Ollama Handle the Easy Stuff
+
+First, a horror story. When Sabrina tried local models, she had one tell her it had edited a file. She opened it up—and nothing had changed. The file was completely untouched. Without a diff tool or version control, she would never have known.
+
+Now that you know the risk, here’s how to use one. Ollama lets you run local models completely free, with no API key, no subscription, and no usage caps.
+
+**Installation (five steps):**
+
+**Step 1**: Go to ollama.com, download the installer, and install it. It takes about 30 seconds on Mac, Windows, or Linux.
+
+**Step 2**: Pull a coding model. Sabrina recommends `qwen3-coder`—a 30B-parameter model with a 128K context window, and currently the strongest free option for coding tasks.
+
+Hardware guide:
+- 16GB+ RAM → `qwen3-coder` (best choice)
+- 8–16GB RAM → `devstral-2-small` (24B, still very capable)
+- Under 8GB → `granite3.3:8b` (it will run, but you’ll feel the difference)
+
+Apple Silicon’s unified memory architecture handles models with 24B+ parameters without too much trouble.
+
+**Step 3**: Start the Ollama server (`ollama serve`) and leave it running in a terminal tab.
+
+**Step 4**: Set two environment variables to point Claude Code at your local model:
+
+```bash
+export ANTHROPIC_BASE_URL=http://localhost:11434/v1
+export ANTHROPIC_MODEL=qwen3-coder
+```
+
+Then launch Claude Code as usual. It will talk to your local model instead of Anthropic’s servers.
+
+**Step 5**: Know the limits. Local models are good enough for writing, research, summarization, and simple tasks. But serious technical work? Sabrina wouldn’t trust them with it.
+
+There are a few other limitations: no web search (though you can add it back with a Brave or Tavily MCP server), no prompt caching, so every turn has to reprocess the full context, and a very noticeable gap between these models and Opus on difficult problems.
+
+Sabrina’s recommended strategy is to let Ollama handle the easy stuff and save your Claude subscription for the tough work. You may be surprised by how much of your daily usage falls into the “easy stuff” bucket.
+
+<MoguNote>
+A local model saying it edited a file when it did absolutely nothing—that bug deserves a place among the classic horror stories of the AI era. It’s like hiring a contractor who says, “All done,” only to come home and find everything exactly as it was. That’s why git diff is your best friend. Whether you’re dealing with Opus or a tiny 8B model, always verify (ง •̀_•́)ง
+</MoguNote>
+
+---
+
+## Conclusion
+
+The logic beneath all six tips comes down to one sentence: **stop paying premium prices for things you don’t need.**
+
+Don’t use Opus when you don’t need Opus. Clear context you don’t need. If a CLI can do the job, don’t detour through MCP. If CLAUDE.md can be leaner, don’t stuff it full. If a simple task can run locally, don’t send it to the cloud.
+
+You can start with any one of these tips; there’s no need to change everything at once. Pick one you can do today, and you’ll feel the difference immediately. Then add the others one at a time.
+
+In the end, you’ll find that tokens aren’t the only thing you save. You’ll also get faster responses, cleaner context, and more precise output. As Sabrina says, your bill will thank you (￣▽￣)／

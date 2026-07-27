@@ -75,7 +75,7 @@ function annotateHtmlLink(content, url, _date) {
   const pattern = new RegExp(`(<a\\s+)([^>]*href=["']${escaped}["'])`, 'g');
 
   let changed = false;
-  const newContent = content.replace(pattern, (match, prefix, rest) => {
+  const newContent = content.replace(pattern, (_match, prefix, rest) => {
     changed = true;
     return `${prefix}class="broken-link" ${rest}`;
   });

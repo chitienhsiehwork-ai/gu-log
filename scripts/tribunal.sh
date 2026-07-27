@@ -41,15 +41,27 @@ export RC_ROOT_DIR="$ROOT_DIR"
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/tribunal-run-control.sh"
 
+if ! TRIBUNAL_VERSION="$(node "$SCRIPT_DIR/tribunal-version.mjs" current 2>/dev/null)"; then
+  echo "ERROR: invalid Tribunal version: could not read scripts/tribunal-version.mjs" >&2
+  exit 78
+fi
+case "$TRIBUNAL_VERSION" in
+  ''|*[!0-9]*)
+    echo "ERROR: invalid Tribunal version: ${TRIBUNAL_VERSION:-<empty>}" >&2
+    exit 78
+    ;;
+esac
+if [ "$TRIBUNAL_VERSION" -lt 1 ]; then
+  echo "ERROR: invalid Tribunal version: $TRIBUNAL_VERSION" >&2
+  exit 78
+fi
+
 # ─── Args ─────────────────────────────────────────────────────────────────────
 ONLY_STAGE=""
 POST_FILE=""
 ALLOW_REWRITE=""
 WRITE_FRONTMATTER=1
 SCORE_ONLY=0
-# v9 (move-clarity-vibe-to-fresheyes): clarity moved vibe → freshEyes.
-# Must stay in lockstep with frontmatter-scores.mjs CURRENT_TRIBUNAL_VERSION.
-TRIBUNAL_VERSION=9
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --only-stage)
@@ -148,7 +160,12 @@ tlog() {
 # "skipped", NOT as "passed" — otherwise stats are misleading. Chosen value:
 # 75 matches sysexits.h EX_TEMPFAIL ("temporary failure, retry later") which
 # is the closest stdlib semantic match.
-LOCK_FILE="/tmp/tribunal-${POST_FILE}.lock"
+ARTICLE_LOCK_DIR="${TRIBUNAL_ARTICLE_LOCK_DIR:-/tmp}"
+if ! mkdir -p "$ARTICLE_LOCK_DIR"; then
+  echo "[tribunal] cannot create article lock directory: $ARTICLE_LOCK_DIR (rc=70)." >&2
+  exit 70
+fi
+LOCK_FILE="$ARTICLE_LOCK_DIR/tribunal-${POST_FILE}.lock"
 exec 200>"$LOCK_FILE"
 if ! flock -n 200; then
   echo "[tribunal] skipped: another instance is already running for $POST_FILE (rc=75)." >&2
@@ -794,7 +811,7 @@ Write your JSON result to: SCORE_PATH_PLACEHOLDER"
       judge_task="$(cat <<PROMPT
 $judge_task
 
-## Tribunal v8 calibration reference
+## Tribunal calibration reference
 Read this if the current stage is Librarian, FreshEyes, Vibe, or Writer-adjacent reasoning:
 $calibration_ref
 
@@ -877,6 +894,13 @@ PROMPT
       mark_article_quota_suspended "$post_file" "$stage_key" "$runner_label" "$attempt" "$quota_reason"
       rm -f "$judge_out" "$actual_provider_file" "$quota_status_file" "$score_tmp"
       return 75
+    fi
+
+    if [ "$judge_rc" -eq 124 ]; then
+      tlog "  [tribunal-watchdog] idle timeout: no output/score-file progress; normalizing stalled judge to runner error."
+      mark_article_runner_error "$post_file" "$stage_key" "$runner_label" "$attempt" "watchdog_idle_timeout"
+      rm -f "$judge_out" "$actual_provider_file" "$quota_status_file" "$score_tmp"
+      return 70
     fi
 
     if [ "$judge_rc" -eq 70 ]; then
@@ -1178,7 +1202,7 @@ if [ "$TRIBUNAL_PROVIDER" != "codex" ]; then
   tlog "  Provider: codex absent — using Claude fallback (CCC sandbox)"
 fi
 
-# ─── Tribunal v8 Sequential Loop ──────────────────────────────────────────────
+# ─── Sequential Tribunal Loop ─────────────────────────────────────────────────
 # Format: stage_key:agent_name:validate_name:label:max_loops:fm_judge_key
 # fm_judge_key = frontmatter scores key (used by frontmatter-scores.mjs)
 # The runner_label is no longer a static column here: run_stage resolves it

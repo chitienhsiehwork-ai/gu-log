@@ -1,5 +1,6 @@
-import { defineCollection, z } from 'astro:content';
+import { defineCollection } from 'astro:content';
 import { glob } from 'astro/loaders';
+import { z } from 'astro/zod';
 
 const CANONICAL_TICKET_PATTERN = /^(GP|MP|SD|Lv)-(\d+|PENDING)$/;
 const RETIRED_TICKET_PATTERN = /^(SP|CP)-(\d+|PENDING)$/;
@@ -19,9 +20,16 @@ function canonicalTicketDiagnostic(value: string): string | null {
 const canonicalTicketId = z.string().superRefine((value, ctx) => {
   const diagnostic = canonicalTicketDiagnostic(value);
   if (diagnostic) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: diagnostic });
+    ctx.addIssue({ code: 'custom', message: diagnostic });
   }
 });
+
+const httpUrl = z
+  .string()
+  .url()
+  .refine((value) => /^https?:\/\//i.test(value), {
+    message: 'URL must use http:// or https://',
+  });
 
 const scoreDimension = z.number().int().min(0).max(10);
 const retiredClawdNoteKey = z.any().refine(() => false, {
@@ -124,11 +132,11 @@ const postsCollection = defineCollection({
               })
             )
             .optional(),
-          pipelineUrl: z.string().url().optional(),
+          pipelineUrl: httpUrl.optional(),
         })
         .optional(),
       source: z.string(), // e.g., "@0xdevshah on X"
-      sourceUrl: z.string().url(),
+      sourceUrl: httpUrl,
       author: z.string().optional(), // for original author
       summary: z.string(), // for index page preview
       lang: z.enum(['zh-tw', 'en']).default('zh-tw'),
@@ -192,28 +200,28 @@ const postsCollection = defineCollection({
     .superRefine((data, ctx) => {
       if (data.status === 'deprecated' && !data.deprecatedBy) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           message: 'deprecatedBy is required when status is deprecated',
           path: ['deprecatedBy'],
         });
       }
       if (data.status !== 'deprecated' && data.deprecatedBy) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           message: 'status must be deprecated when deprecatedBy is present',
           path: ['status'],
         });
       }
       if (data.dedup?.humanOverride && !data.dedup.humanOverrideReason?.trim()) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           message: 'dedup.humanOverrideReason is required when humanOverride is true',
           path: ['dedup', 'humanOverrideReason'],
         });
       }
       if (data.dedup?.acknowledgedOverlapWith?.length && !data.dedup.overlapJustification?.trim()) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           message: 'dedup.overlapJustification is required for acknowledged overlaps',
           path: ['dedup', 'overlapJustification'],
         });
@@ -225,7 +233,7 @@ const postsCollection = defineCollection({
         data.author === data.authorCanonical
       ) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           message: 'proxy author must be distinguishable from authorCanonical',
           path: ['author'],
         });
@@ -234,7 +242,7 @@ const postsCollection = defineCollection({
       const tribunalVersion = data.scores?.tribunalVersion ?? 8;
       if (data.stage4Scores && tribunalVersion >= 9 && data.stage4Scores.clarity != null) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           message: 'stage4Scores.clarity belongs to Fresh Eyes for tribunalVersion >= 9',
           path: ['stage4Scores', 'clarity'],
         });

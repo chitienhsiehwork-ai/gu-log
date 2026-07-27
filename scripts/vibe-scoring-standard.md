@@ -473,7 +473,7 @@ authority 決定：
 |----------|-----------|
 | Per-judge provider policy | `openspec/specs/codex-tribunal-runtime/spec.md` + `tribunal_judge_provider()` |
 | Claude model selector | `.claude/agents/<role>.md` 第一段 frontmatter 的 `model:` |
-| Codex model selector | `GP_CODEX_MODEL` + `tribunal_codex_exec()` |
+| Codex model selector | `.codex/agents/<role>.toml` 的 top-level `model`；`GP_CODEX_MODEL` 只作明示的單次執行覆寫 |
 | Writer mode / provider | `tribunal_writer_mode()` + `tribunal_writer_exec()` |
 | 實際執行 provenance | `tribunal_write_actual_provider()` + `run_stage()` |
 | 評分維度與 pass bar | 本文件 + `src/lib/tribunal-v2/pass-bar.ts` |

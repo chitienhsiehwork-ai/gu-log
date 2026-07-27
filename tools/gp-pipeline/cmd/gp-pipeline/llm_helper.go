@@ -29,7 +29,11 @@ func buildDispatcherForRole(state *rootState, role dispatcherRole) (*llm.Dispatc
 	case dispatcherJudge:
 		providers = llm.JudgeChainWithClaudeFallback(state.judgeAllowClaude)
 	default:
-		providers = llm.WritingChain()
+		var err error
+		providers, err = llm.WritingChain()
+		if err != nil {
+			return nil, fmt.Errorf("build dispatcher: %w", err)
+		}
 	}
 	disp, err := llm.NewDispatcher(state.log, providers...)
 	if err != nil {

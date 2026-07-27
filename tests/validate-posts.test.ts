@@ -308,12 +308,69 @@ describe('validatePost — required-field rules', () => {
     expect(r.errors.some((e: string) => e.includes('Invalid originalDate format'))).toBe(true);
   });
 
-  it('flags non-http sourceUrl', () => {
+  it.each([
+    'javascript:alert(1)',
+    'data:text/plain,owned',
+    'mailto:test@example.com',
+    'ftp://example.com/post',
+    'http://[',
+    'https://%',
+    'https://?query',
+    'https://exa mple.com',
+    'https:example.com',
+    'https:/example.com',
+    ' https://example.com',
+  ])('flags invalid sourceUrl: %s', (sourceUrl) => {
     const r = runWithFm(
-      validFm.map((l) => (l.startsWith('sourceUrl:') ? 'sourceUrl: ftp://x' : l))
+      validFm.map((l) =>
+        l.startsWith('sourceUrl:') ? `sourceUrl: ${JSON.stringify(sourceUrl)}` : l
+      )
     );
-    expect(r.errors.some((e: string) => e.includes('Invalid sourceUrl'))).toBe(true);
+    expect(r.errors).toContain(
+      `Invalid sourceUrl: "${sourceUrl}" (must start with http:// or https://)`
+    );
   });
+
+  it.each([
+    'javascript:alert(1)',
+    'data:text/plain,owned',
+    'mailto:test@example.com',
+    'ftp://example.com/run',
+    'http://[',
+    'https://%',
+    'https://?query',
+    'https://exa mple.com',
+    'https:example.com',
+    'https:/example.com',
+    ' https://example.com',
+  ])('flags invalid translatedBy.pipelineUrl: %s', (pipelineUrl) => {
+    const r = runWithFm([
+      ...validFm,
+      'translatedBy:',
+      '  model: GPT-5.6-Sol',
+      '  harness: Codex App',
+      `  pipelineUrl: ${JSON.stringify(pipelineUrl)}`,
+    ]);
+    expect(r.errors).toContain(
+      `Invalid translatedBy.pipelineUrl: "${pipelineUrl}" (must start with http:// or https://)`
+    );
+  });
+
+  it.each(['http://example.com/run', 'https://example.com/run'])(
+    'accepts translatedBy.pipelineUrl: %s',
+    (pipelineUrl) => {
+      const r = runWithFm([
+        ...validFm,
+        'translatedBy:',
+        '  model: GPT-5.6-Sol',
+        '  harness: Codex App',
+        `  pipelineUrl: ${pipelineUrl}`,
+      ]);
+      expect(r.errors.some((e: string) => e.includes('Invalid translatedBy.pipelineUrl'))).toBe(
+        false
+      );
+    }
+  );
 
   it('flags lang/filename mismatch (en lang on non-en filename)', () => {
     const r = runWithFm(validFm.map((l) => (l.startsWith('lang:') ? 'lang: en' : l)));

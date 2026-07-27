@@ -599,3 +599,14 @@ Sprin asked whether Tribunal v7 FreshEyes covers “length should be just right,
 - 情境：MP〈夢想變成工作之後〉翻 Ryo Lu 的 "you can still prompt, review, decide, ship"。FreshEyes judge 嫌英文動詞在安靜散文裡有摩擦感，writer 全翻成中文（下指令 / 審稿 / 做決定 / 出貨）。ShroomDog 看過選項後定調：prompt / review / ship 在台灣 tech 圈口語就是講英文，留著反而自然；「出貨」則幾乎沒人講，講的是「上線」。decide 維持中文「做決定」。
 - 修法：正文改回「還是可以 prompt、review、做決定、ship，讓事情繼續動」。
 - Reusable lesson：(1) **judge 的 taste ≠ ShroomDog 的 taste**：FreshEyes 對「英文動詞摩擦感」的判斷在這裡被 owner 推翻——工程圈實際口語的英文動詞（prompt / review / ship / merge / commit 這類）不算晶晶體，硬翻反而失真。(2) **「出貨」是翻譯腔警訊**：ship 對應的台灣口語是「上線」（或直接留 ship）；「出貨」是製造業詞彙滲進軟體語境。(3) 動詞留不留英文的判準是「工程師嘴巴上怎麼講」，不是「字典能不能翻」。
+
+## 2026-07-25 — writer + vibe scorer 一起升到 Opus 5（pin 世代前移，one-taste-loop 不變）
+
+### Feedback: 「use opus 5 instead of opus 4.5 for writer and vibe scorer (Not only writer)」
+
+- 情境：翻 @trq212 的 context engineering X Article 時，ShroomDog 先要求「這次 writer 試 Opus 5」，看過成稿後定調把 pin 本體換掉，並主動點明「不只 writer」——vibe scorer 要一起換。等於 2026-06-18 那條「writer / rewriter / vibe scorer 鎖同一代」的規則沒被推翻，只是那一代從 4.5 前移到 5。
+- 對照結果（同一份 source、同一份 writer prompt、都跑到 deterministic 檢查全綠）：4.5 版把原文的 Then/Now 清單直翻成六個同節奏對照塊；Opus 5 版主動合併重複段落、h2 改成帶論點的句子、段落之間有橋接句、結尾 callback 回開頭的「八成」。ShroomDog 之前退 4.7 是嫌 press-release 腔，Opus 5 這次沒出現那個症狀。
+- 修法：pin 的三個家一起改（`.claude/agents/tribunal-writer.md`、`.claude/agents/vibe-opus-scorer.md`、`claude.go` 的 `ClaudeOpusPinned`），PIN 註解寫上 sign-off 日期與世代沿革。
+- 撞到的前置 bug：`claude-opus-5` 是**整數版號**，而 Go 的 `claudeFamilyRe` 只認 `major-minor`，直接換 pin 會讓 `DisplayName` 把生 id 寫進 provenance、`HarnessName` 回 `Unknown Harness`。已修成 optional minor group 並加 regression test。教訓：**Claude 5 世代的命名換了形狀，任何靠 regex 解析 model id 的地方都要先驗一次**，不要假設 4.x 的 `major-minor` 還成立。
+- 一併收的 drift：`OPUS_ALIAS_CURRENT` 還寫 `claude-opus-4-8`，但實測 `claude -p --model opus --output-format json` 的 `modelUsage` key 已經是 `claude-opus-5`。
+- ⚠️ **待 ShroomDog 決定的副作用**：2026-06-18 刻意讓 Fresh Eyes / Fact Checker / Librarian 走浮動 `opus`，理由是「用跟 writer 不同代的 model 當陌生讀者，才抓得到 writer 同代看不到的盲點」。alias 現在也解析到 `claude-opus-5`，所以 **writer 跟這三個 judge 暫時是同一個 model，那個 model diversity 目前等於 0**。要救有兩條路：把 Fresh Eyes pin 到前一代（例如 4.5）換回 diversity，或接受「同代但 zero-context」已經夠當陌生讀者。這不是 agent 能自己定的品味決策，先記著。

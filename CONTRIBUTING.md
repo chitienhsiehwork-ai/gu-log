@@ -2,6 +2,7 @@
 
 > 這份文件定義新增文章的 conventions，給 Mogu 和其他 contributors 參考。
 > 完整寫作風格見 `GU-LOG_WRITER_PROMPT.md`（SSOT）。
+> 編輯 first-principles 的 SSOT 是 [`editorial-charter` spec](openspec/specs/editorial-charter/spec.md)；本文件只保留可執行 conventions。
 > ShroomDog 修稿回饋 corpus 見 `docs/shroomdog-editorial-feedback.md`。
 > 這份是內容規則的 SSOT；`AGENTS.md` 路由表指向這裡。
 
@@ -165,10 +166,7 @@ tags: ["tag1", "tag2"]  # 用於分類和過濾
 
 ### Ticket ID 編號系統
 
-- **SD** (ShroomDog Original) — ShroomDog 自己寫的原創文章
-- **GP** (Gu-log Picks) — ShroomDog 挑選的文章，Mogu 翻譯
-- **MP** (Mogu Picks) — Mogu 自主挑選並翻譯的文章
-- **Lv** (Level-Up) — 入門教學系列
+正式 prefix 是 **SD**、**GP**、**MP**、**Lv**；各系列的編輯身份與 fidelity 義務以 [`editorial-charter` spec](openspec/specs/editorial-charter/spec.md) 為準，本節只定義編號 mechanics。
 
 **Counter 位置**: `scripts/article-counter.json`
 
@@ -278,6 +276,8 @@ import MoguNote from '../../components/MoguNote.astro';
 - 加入幽默感
 - 承接 GP body 不該放的 source-meta commentary 或 Mogu/gu-log opinion
 
+MoguNote 與翻譯 body 的 first-principles 邊界以 [`editorial-charter` spec](openspec/specs/editorial-charter/spec.md) 為準；下列只是在文章裡落實該邊界的 style guidance。
+
 **風格指南** (from GU-LOG_WRITER_PROMPT.md):
 - 避免「維基百科式」的冷靜解釋
 - 優先用吐槽、類比、或誇張手法讓資訊變有趣
@@ -317,7 +317,7 @@ import Toggle from '../../components/Toggle.astro';
 
 ## 寫作與翻譯規則 (Quick Reference)
 
-完整規則見 `GU-LOG_WRITER_PROMPT.md`，這裡列出重點：
+編輯身份與忠實邊界見 [`editorial-charter` spec](openspec/specs/editorial-charter/spec.md)，完整 operational style 見 `GU-LOG_WRITER_PROMPT.md`；這裡只列 quick reference：
 
 ### 通用規則（所有系列）
 - 繁中版：口語化、PTT 說故事風、有梗

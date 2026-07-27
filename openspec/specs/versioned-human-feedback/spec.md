@@ -1,8 +1,11 @@
 # versioned-human-feedback Specification
 
 ## Purpose
-TBD - created by archiving change add-human-finishability-signals. Update Purpose after archive.
+
+定義人類回饋與文章可見版本的綁定、公開／私密訊號邊界、內容版本語意與 resolution lifecycle，讓後續自動化只採信可追溯且仍有效的回饋。
+
 ## Requirements
+
 ### Requirement: Gu-log comments and feedback SHALL bind to the article version visible at submission time
 
 Every gu-log comment or feedback record intended for quality learning SHALL include the article version snapshot visible when the feedback was submitted.
@@ -181,4 +184,3 @@ If commit fields are recorded, each field SHALL specify its semantic role, such 
 - **WHEN** an event snapshot records a commit-like identifier
 - **THEN** the field name SHALL identify whether it is the served build commit, article file commit, or content commit
 - **AND** automation SHALL NOT rely on a generic ambiguous `commit` field
-

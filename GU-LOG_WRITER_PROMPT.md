@@ -1,6 +1,8 @@
 # gu-log Content Creation Guide
 
 > **🪪 誰來生這份 prose**：gu-log 文章的寫 / 改寫 / vibe 評分 voice 是 owner-pin 在某一代 Opus（ShroomDog sign-off）。**CCC（Cloud Claude Code）的 session model 會浮動（現在 Opus 4.8），不准拿來直接生 / 改 / 評文章 prose**——寫 / 改寫委派 `tribunal-writer` agent、vibe 評分委派 `vibe-opus-scorer` agent，model pin 的 SSOT = 這兩個 agent 的 `model:` frontmatter。理由與機械工作例外見 [`CCC-playbook` 文章寫作 SOP](playbooks/CCC-playbook.md)。Local Claude actor（例如 `m1-cc`）走 pipeline / tribunal runner，pin 已內建。
+>
+> 寫文或改文前 MUST 先讀 [`editorial-charter` spec](openspec/specs/editorial-charter/spec.md)；編輯 first-principles 以它為 SSOT。本 prompt 只保留 writer 可執行的 voice、structure 與 wording guidance。
 
 ## 🧬 ShroomDog Feedback Corpus
 
@@ -187,10 +189,8 @@ import MoguNote from '../../components/MoguNote.astro';
 
 **🎯 主翻譯忠實、POV 靠 MoguNote 打（MP/GP 翻譯系列鐵則）**
 
-翻譯/精選系列（**MP** = Mogu Picks、**GP** = Gu-log Picks）的分工只有一條，兩層不互相越界：
+這個 body-note 邊界的定義與 author/self-check tests 只住在 [`editorial-charter` spec](openspec/specs/editorial-charter/spec.md)。寫稿時先判斷材料是在轉述 source payload，還是 gu-log 自己的 commentary：前者依 charter 的 fidelity tests 寫進正文，後者一律用 `<MoguNote>` 清楚分層。
 
-- **正文 = 忠實的翻譯**：原文的語氣、條件、邊界、hedge、結論照實翻，不加碼、不刪減、不在正文塞原文沒有的事實/數字/觀點（這是〈翻譯誠實性〉的延伸面）。讀者要原汁原味的原文，就看正文。
-- **POV = 全部進 MoguNote**（`<MoguNote>`）：gu-log 的吐槽、延伸、反例、把題材接回 AI/tech 圈的平行對照、對來源本身的 meta 評論，一律放 note。讀者要 gu-log 的靈魂，就看 MoguNote。
 - **推論：題材 off-domain 不是拒翻的理由**。就算原文跟 AI/tech 無關（生產力、心理、商業…），gu-log 的獨特觀點永遠打得出來，因為 MoguNote 永遠在。所以 pipeline eval 的「off-domain」判斷是 advisory，不是硬 blocker——值得翻就 `--force` 翻，相關性靠 note 層的平行對照補。
 
 **🪞 自我指涉 callback 是 MoguNote 的靈魂之一**：當原文講的東西 gu-log 自己也在做，就在 MoguNote 把它接回 gu-log 自身。這是把「外部觀察」變成「我們的親身實作」的最強招式，讀者最買單。常見對照：
@@ -351,7 +351,7 @@ gu-log 很多文章（尤其 AI/agent 圈）會引用「寫給模型的指令」
 - 英美文化 reference → 補充台灣讀者可能缺少的 context
 - Community inside joke → 解釋這在什麼社群流行、為什麼好笑
 
-**🚫 小眾梗品味守則**：類比 / 舉例要用**大眾都懂的層級**（例：MOBA、官方伺服器 vs 私服、電話線 vs 講的話）。**禁止把小眾專有名詞當文章骨幹類比**——具體被點名的反例是 Vainglory（含 Vainglorious / Kraken / Captain 等術語）：它太小眾、放進文章沒品味，只能用上位的通俗概念（MOBA）。這類 agent 教學／內部工具梗若只有特定小圈子懂，一律往上抽一層到大眾概念再用。（reviewer 應主動抓這種「作者自己圈子才懂」的類比。）
+**🎮 MOBA register**：依 [`editorial-charter` spec](openspec/specs/editorial-charter/spec.md) 判斷 voice owner。On-site MOBA glossary 上線前，陌生同事不會懂的深詞要在當下自然解釋，或先用較廣的 MOBA 概念，不能要求讀者靠外部搜尋才能看懂。
 
 ### 原文語感保留
 

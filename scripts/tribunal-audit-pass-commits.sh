@@ -49,6 +49,9 @@ else
   log_args+=(-n "$limit")
 fi
 
+assert_output="$(mktemp "${TMPDIR:-/tmp}/gu-log-tribunal-audit.XXXXXX")"
+trap 'rm -f -- "$assert_output"' EXIT
+
 failures=0
 checked=0
 while IFS=$'\t' read -r sha subject; do
@@ -61,14 +64,12 @@ while IFS=$'\t' read -r sha subject; do
   post_file="$slug.mdx"
   checked=$((checked + 1))
   if ! TRIBUNAL_REQUIRED_VERSION="${TRIBUNAL_AUDIT_REQUIRED_VERSION:-3}" \
-    "$ASSERT" "$repo" "$post_file" --commit "$sha" >/tmp/tribunal-audit-assert.out 2>&1; then
+    "$ASSERT" "$repo" "$post_file" --commit "$sha" >"$assert_output" 2>&1; then
     failures=$((failures + 1))
     echo "ERROR: progress-only Tribunal PASS commit detected: $sha $subject" >&2
-    sed 's/^/       /' /tmp/tribunal-audit-assert.out >&2
+    sed 's/^/       /' "$assert_output" >&2
   fi
 done < <(git -C "$repo" log "${log_args[@]}")
-
-rm -f /tmp/tribunal-audit-assert.out
 
 if [ "$failures" -gt 0 ]; then
   echo "❌ Tribunal PASS artifact audit failed: $failures bad commit(s), checked $checked." >&2

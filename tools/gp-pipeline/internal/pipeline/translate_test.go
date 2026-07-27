@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/config"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/llm"
@@ -25,6 +26,18 @@ func newTranslateTestState(t *testing.T) (*State, *llm.FakeProvider, string) {
 	zhContent := `---
 title: "Fake Title"
 ticketId: "GP-252"
+translatedDate: "2026-04-11"
+translatedBy:
+  model: "Old Translator"
+  harness: "Old Harness"
+  pipeline:
+    - role: "Written"
+      model: "Historical Writer"
+      harness: "Historical Writer Harness"
+    - role: "Reviewed"
+      model: "Historical Reviewer"
+      harness: "Historical Reviewer Harness"
+  pipelineUrl: "https://example.com/pipeline-run"
 lang: "zh-tw"
 source: "Simon Willison's Weblog"
 sourceUrl: "https://example.com/post"
@@ -308,9 +321,61 @@ func TestTranslate_RejectsPendingTicketForAllocatedFilename(t *testing.T) {
 	}
 }
 
-func TestTranslate_ProducesENSidecar(t *testing.T) {
+func TestTranslate_ExplicitClaudeMissingFailsClosedWithoutSidecar(t *testing.T) {
+	s, _, postsDir := newTranslateTestState(t)
+	s.RalphPassed = true
+
+	binDir := t.TempDir()
+	codexMarker := filepath.Join(t.TempDir(), "codex-called")
+	codexPath := filepath.Join(binDir, "codex")
+	script := `#!/bin/sh
+set -eu
+: > "$CODEX_MARKER"
+exit 0
+`
+	if err := os.WriteFile(codexPath, []byte(script), 0o755); err != nil {
+		t.Fatalf("write fake codex: %v", err)
+	}
+	t.Setenv("PATH", binDir)
+	t.Setenv("CODEX_MARKER", codexMarker)
+	t.Setenv("GP_WRITER_PROVIDER", "claude")
+
+	chain, err := llm.WritingChain()
+	if err != nil {
+		t.Fatal(err)
+	}
+	disp, err := llm.NewDispatcher(logx.New(), chain...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.Dispatcher = disp
+	s.WriterDispatcher = disp
+
+	err = s.Translate(context.Background())
+	if err == nil {
+		t.Fatal("Translate should fail when explicit Claude routing is unavailable")
+	}
+	if !strings.Contains(err.Error(), "binary not found") {
+		t.Fatalf("Translate error = %q, want missing-Claude diagnostic", err)
+	}
+	if _, err := os.Stat(filepath.Join(postsDir, "en-"+s.ActiveFilename)); !os.IsNotExist(err) {
+		t.Fatalf("missing Claude produced an English sidecar: %v", err)
+	}
+	if _, err := os.Stat(codexMarker); !os.IsNotExist(err) {
+		t.Fatalf("explicit Claude routing invoked Codex fallback: %v", err)
+	}
+}
+
+func TestTranslate_StampsActualTranslatorAndRunDateWithoutChangingSource(t *testing.T) {
 	s, fake, postsDir := newTranslateTestState(t)
 	s.RalphPassed = true
+	fake.ModelID = llm.ModelID("claude-opus-5")
+
+	sourcePath := filepath.Join(postsDir, s.ActiveFilename)
+	sourceBefore, err := os.ReadFile(sourcePath)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	enBody := `---
 title: "Fake Title"
@@ -326,6 +391,7 @@ en body
 		WriteFile: "translated-en.mdx",
 	})
 
+	runDateBefore := time.Now().Format("2006-01-02")
 	if err := s.Translate(context.Background()); err != nil {
 		t.Fatalf("Translate: %v", err)
 	}
@@ -339,10 +405,206 @@ en body
 	if !strings.Contains(string(data), `lang: "en"`) {
 		t.Errorf("en sidecar missing lang: \"en\":\n%s", data)
 	}
+	if s.TranslateModel != "Opus 5" {
+		t.Fatalf("TranslateModel = %q, want Opus 5", s.TranslateModel)
+	}
+	if s.TranslateHarness != "Claude Code CLI" {
+		t.Fatalf("TranslateHarness = %q, want Claude Code CLI", s.TranslateHarness)
+	}
+	if s.TranslatedDate == "" {
+		t.Fatal("TranslatedDate was not populated")
+	}
+	runDateAfter := time.Now().Format("2006-01-02")
+	if got := s.TranslatedDate; got != runDateBefore && got != runDateAfter {
+		t.Fatalf("TranslatedDate = %q, want current run date %q or %q", got, runDateBefore, runDateAfter)
+	}
+	for _, want := range []string{
+		`translatedDate: "` + s.TranslatedDate + `"`,
+		`translatedBy:`,
+		`  model: "Opus 5"`,
+		`  harness: "Claude Code CLI"`,
+	} {
+		if !strings.Contains(string(data), want) {
+			t.Errorf("en sidecar missing deterministic stamp %q:\n%s", want, data)
+		}
+	}
+	const sourceHistory = `  pipeline:
+    - role: "Written"
+      model: "Historical Writer"
+      harness: "Historical Writer Harness"
+    - role: "Reviewed"
+      model: "Historical Reviewer"
+      harness: "Historical Reviewer Harness"
+  pipelineUrl: "https://example.com/pipeline-run"`
+	if !strings.Contains(string(data), sourceHistory) {
+		t.Fatalf("en sidecar did not preserve the source pipeline history exactly:\n%s", data)
+	}
+	if got := strings.Count(string(data), "translatedBy:"); got != 1 {
+		t.Fatalf("translatedBy top-level block count = %d, want 1:\n%s", got, data)
+	}
+	sourceAfter, err := os.ReadFile(sourcePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(sourceAfter) != string(sourceBefore) {
+		t.Fatalf("Translate mutated the zh-tw source:\nbefore:\n%s\nafter:\n%s", sourceBefore, sourceAfter)
+	}
 	if len(fake.Called) != 1 {
 		t.Fatalf("expected exactly 1 dispatcher call, got %d", len(fake.Called))
 	}
 	if !strings.Contains(fake.Called[0].Prompt, "Simon Willison's Weblog") {
 		t.Errorf("prompt should embed the zh-tw source content")
+	}
+}
+
+func TestTranslate_StaleWorkArtifactCannotOverrideFreshStdout(t *testing.T) {
+	s, fake, postsDir := newTranslateTestState(t)
+	s.RalphPassed = true
+	fake.ModelID = llm.ModelID("claude-opus-5")
+
+	stale := `---
+title: "Stale translation"
+ticketId: "GP-252"
+lang: "en"
+---
+STALE BODY FROM AN EARLIER INVOCATION
+`
+	if err := os.WriteFile(filepath.Join(s.WorkDir, "translated-en.mdx"), []byte(stale), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	fresh := `---
+title: "Fresh translation"
+ticketId: "GP-252"
+lang: "en"
+---
+FRESH BODY FROM THIS INVOCATION
+`
+	fake.WithResponses(llm.FakeResponse{Output: fresh})
+
+	if err := s.Translate(context.Background()); err != nil {
+		t.Fatalf("Translate: %v", err)
+	}
+	sidecar, err := os.ReadFile(filepath.Join(postsDir, s.ActiveENFilename))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(sidecar), "FRESH BODY FROM THIS INVOCATION") {
+		t.Fatalf("sidecar did not use fresh provider stdout:\n%s", sidecar)
+	}
+	if strings.Contains(string(sidecar), "STALE BODY FROM AN EARLIER INVOCATION") {
+		t.Fatalf("sidecar reused a stale work artifact under fresh provenance:\n%s", sidecar)
+	}
+	for _, want := range []string{`model: "Opus 5"`, `harness: "Claude Code CLI"`} {
+		if !strings.Contains(string(sidecar), want) {
+			t.Fatalf("sidecar missing actual translator stamp %q:\n%s", want, sidecar)
+		}
+	}
+}
+
+func TestRewriteEnglishGlossaryTargets_OnlyRewritesBodyProse(t *testing.T) {
+	input := []byte(`---
+title: "Keep /glossary#frontmatter"
+summary: "Also keep /glossary#summary"
+lang: "en"
+---
+Read [Agent](/glossary#agent) and /glossary#raw-route.
+Already English: [MCP](/en/glossary#mcp).
+Inline code: ` + "`/glossary#inline-code`" + `.
+External URLs stay exact:
+- https://example.com/glossary#external
+- https://gu-log.vercel.app/glossary#absolute-internal
+- //cdn.example.com/glossary#protocol-relative
+- docs.example.com/glossary#bare-external
+
+<Card
+  href="/glossary#component-attribute"
+  label="Keep this structural target"
+>
+
+` + "```md" + `
+[Code fence](/glossary#fenced)
+` + "```" + `
+
+~~~txt
+/glossary#tilde-fence
+~~~
+`)
+
+	got, err := rewriteEnglishGlossaryTargets(input)
+	if err != nil {
+		t.Fatalf("rewriteEnglishGlossaryTargets: %v", err)
+	}
+	want := `---
+title: "Keep /glossary#frontmatter"
+summary: "Also keep /glossary#summary"
+lang: "en"
+---
+Read [Agent](/en/glossary#agent) and /en/glossary#raw-route.
+Already English: [MCP](/en/glossary#mcp).
+Inline code: ` + "`/glossary#inline-code`" + `.
+External URLs stay exact:
+- https://example.com/glossary#external
+- https://gu-log.vercel.app/glossary#absolute-internal
+- //cdn.example.com/glossary#protocol-relative
+- docs.example.com/glossary#bare-external
+
+<Card
+  href="/glossary#component-attribute"
+  label="Keep this structural target"
+>
+
+` + "```md" + `
+[Code fence](/glossary#fenced)
+` + "```" + `
+
+~~~txt
+/glossary#tilde-fence
+~~~
+`
+	if string(got) != want {
+		t.Fatalf("rewrite mismatch:\n--- got ---\n%s\n--- want ---\n%s", got, want)
+	}
+	again, err := rewriteEnglishGlossaryTargets(got)
+	if err != nil {
+		t.Fatalf("second rewriteEnglishGlossaryTargets: %v", err)
+	}
+	if string(again) != string(got) {
+		t.Fatalf("rewrite is not idempotent:\n--- first ---\n%s\n--- second ---\n%s", got, again)
+	}
+}
+
+func TestTranslate_NormalizesEnglishGlossaryTargetsBeforeWritingSidecar(t *testing.T) {
+	s, fake, postsDir := newTranslateTestState(t)
+	s.RalphPassed = true
+	fake.ModelID = llm.ModelID("claude-opus-5")
+
+	fake.WithResponses(llm.FakeResponse{Output: `---
+title: "Fake Title"
+ticketId: "GP-252"
+lang: "en"
+sourceUrl: "https://example.com/glossary#source"
+---
+Read [Agent](/glossary#agent), not ` + "`/glossary#inline`" + `.
+`})
+
+	if err := s.Translate(context.Background()); err != nil {
+		t.Fatalf("Translate: %v", err)
+	}
+	sidecar, err := os.ReadFile(filepath.Join(postsDir, s.ActiveENFilename))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		`sourceUrl: "https://example.com/glossary#source"`,
+		`[Agent](/en/glossary#agent)`,
+		"`/glossary#inline`",
+	} {
+		if !strings.Contains(string(sidecar), want) {
+			t.Fatalf("sidecar missing %q:\n%s", want, sidecar)
+		}
+	}
+	if strings.Contains(string(sidecar), `[Agent](/glossary#agent)`) {
+		t.Fatalf("sidecar kept the zh-tw glossary target:\n%s", sidecar)
 	}
 }

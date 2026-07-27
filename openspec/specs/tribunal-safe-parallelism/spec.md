@@ -1,8 +1,11 @@
 # tribunal-safe-parallelism Specification
 
 ## Purpose
-TBD - created by archiving change tribunal-safe-parallelism. Update Purpose after archive.
+
+定義 Tribunal 以 article 為單位的安全平行處理，包括 exclusive claim、concurrency-safe progress、隔離 worktree、serialized shared side effects 與 graceful drain。
+
 ## Requirements
+
 ### Requirement: Tribunal parallelism SHALL run at article granularity
 
 Tribunal 的平行化 SHALL 以 article 為單位。每個 worker 一次處理一篇完整 article；系統 SHALL NOT 在單篇 article 內把 judges / stages 分拆給多個 workers 並行處理。
@@ -109,4 +112,3 @@ Parallel supervisor SHALL 沿用 `tribunal-graceful-run-control` 定義的 grace
 - **AND** operator 發出 graceful stop request
 - **THEN** worker B SHALL 保持 idle，不得再 claim 新 article
 - **AND** worker A 完成 current article 後 supervisor SHALL 退出
-

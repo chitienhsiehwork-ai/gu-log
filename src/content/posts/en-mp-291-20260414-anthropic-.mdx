@@ -1,0 +1,175 @@
+---
+ticketId: "MP-291"
+title: "Anthropic Launches Official CLI Tool ant — the Age of curl + jq Drudgery Is Officially Over"
+originalDate: "2026-04-09"
+translatedBy:
+  model: "GPT-5.6-Sol"
+  harness: "Codex CLI"
+
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "anthropics on GitHub"
+sourceUrl: "https://github.com/anthropics/anthropic-cli"
+lang: "en"
+summary: "Anthropic has finally released an official CLI tool, ant. Written in Go, it features a resource-oriented architecture, built-in file injection, and GJSON transforms. No more manually assembling curl headers every time you call the Claude API."
+tags: ["anthropic","cli","developer-tools","claude-api"]
+pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (vibe-opus-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+translatedDate: "2026-07-26"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+Every developer who uses the Claude API has a dark history of wrestling with `curl`.
+
+It probably went something like this: first, write a massive `curl` command with three lines of headers. Stuff a JSON body into `-d`, complete with nested arrays. Go cross-eyed dealing with escape characters, then pipe the result to `jq` to extract the field you actually want. The whole process is manual and brittle, and one missing quote blows everything up.
+
+Anthropic apparently couldn't stand it either, so it stepped in with `ant`, an official CLI written in Go. The repo went up in January 2026 and was last updated on April 9. The idea is simple: make calling the Claude API feel as natural as using `gh` to work with GitHub.
+
+<MoguNote>
+GitHub has `gh`, AWS has `aws`, and Google Cloud has `gcloud`—now Anthropic has finally turned in its late assignment too. Put bluntly, if a platform's developers still have to handcraft curl commands for basic operations, that platform is in alpha. An official CLI is what marks graduation. In a way, it also suggests the user base is finally large enough to justify investing in a dedicated CLI tool. Anthropic's diploma arrived a little late, but at least it arrived (￣▽￣)／
+
+As an aside, [Simon Willison](/en/glossary#simon-willison) has previously [argued that CLI tools are better suited for LLMs than MCP](/posts/gp-72-20260218-simonw-cli-over-mcp/)—they use fewer tokens, have zero dependencies, and LLMs already know how to parse them. `ant` is following exactly that path. [Mogu](/about) doesn't think that's a coincidence.
+</MoguNote>
+
+## Installation: Two Lines and You're Done
+
+One line with Homebrew:
+
+```sh
+brew install anthropics/tap/ant
+```
+
+Or, if you're already in the Go ecosystem, just use `go install`:
+
+```sh
+go install 'github.com/anthropics/anthropic-cli/cmd/ant@latest'
+```
+
+No npm, no pip, no Docker. Drop the Go binary straight into `$PATH` and it works out of the box. This is the standard pattern for Go CLI tools: one binary, zero dependencies, cross-platform.
+
+---
+
+## Resource-Oriented: More Than Just an Architecture Buzzword
+
+The `ant` command structure looks like this:
+
+```sh
+ant [resource] <command> [flags...]
+```
+
+“Say what you want first, then say what to do with it”—that's the logic behind every good design. At a restaurant, you say “steak, medium-rare,” not “please give me beef heated in a 180-degree environment for seven minutes and then rested.” A resource-oriented CLI does the same thing: name the resource (`messages`) first, then the action (`create`), and add the details at the end.
+
+For developers familiar with RESTful design, this needs no explanation—it speaks the same language as `kubectl get pods` and `gh pr create`. For someone just getting started with the Claude API, it's also the easiest design to pick up.
+
+Here's what sending an actual message looks like (`ant` accepts relaxed JSON syntax, so keys don't have to be quoted):
+
+```sh
+ant messages create \
+  --api-key my-anthropic-api-key \
+  --max-tokens 1024 \
+  --message '{content: [{text: x, type: text}], role: user}' \
+  --model claude-sonnet-4-6
+```
+
+Compare that with the curl version you used to have to write:
+
+```sh
+curl https://api.anthropic.com/v1/messages \
+  -H "x-api-key: $ANTHROPIC_API_KEY" \
+  -H "anthropic-version: 2023-06-01" \
+  -H "content-type: application/json" \
+  -d '{"model":"claude-sonnet-4-6","max_tokens":1024,"messages":[{"role":"user","content":"x"}]}'
+```
+
+No manually managing headers, no JSON escaping hell, no memorizing an API version string. Not having to look up what to put in `anthropic-version` every single time is reason enough to install it.
+
+<MoguNote>
+Just look at that curl version: three lines of headers alone, followed by a JSON body nested deeply enough to make you cry. And if a single quote is out of place, you get a 400 Bad Request and spend half the day debugging before discovering it was a JSON syntax error. The `ant` version isn't exactly short either, but at least every flag has a clear meaning and you don't have to parse the JSON structure in your head. That's the difference good DX makes (￣▽￣)／
+</MoguNote>
+
+---
+
+## The Killer Feature: `@path` File Injection
+
+Ever get the feeling that you're trying to do one very simple thing, only to end up writing three times as much glue code as actual code?
+
+What you really want is a two-step process: “read this design spec → ask Claude to write the corresponding documentation.” But in reality, you first write a shell script to `cat` the file, pipe it into a JSON body, handle the newline characters (`\n` escapes), then deal with potential quote conflicts (`"` has to become `\"`), and finally pray there aren't any strange characters in the file that blow up the entire JSON payload. Forty lines of glue code later, and you still haven't started the real work.
+
+Then you see the `@path` syntax for the first time:
+
+```sh
+ant messages create --message '@prompt-template.txt' --model claude-sonnet-4-6
+```
+
+That's it. One `@` symbol, and the CLI reads the file, injects its contents, and handles all the escaping automatically.
+
+The reaction isn't “oh, that's convenient.” It's “wait, it could have been this simple all along?” This is the kind of feature that only gets added when a tool's designers have actually used the tool themselves—something derived from how developers really work with the Claude API, not a feature imagined on a whiteboard.
+
+<MoguNote>
+The `@` syntax looks like a small thing, but think about how much boilerplate it takes every time you need to put a file's contents into an API call. Handling newlines and escaped quotes inside JSON alone can waste an entire afternoon. This philosophy of turning the most common pain point into first-class syntax is what separates a good CLI from one that's merely usable ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## The Problem You Notice Only After Installing It
+
+After a week with `ant`, the curl hell is indeed gone. But the friction hasn't disappeared completely—because once you get the response, you still have to pipe it to `jq` to extract the field you want. Two tools, two syntaxes, two points of failure.
+
+The `--transform` flag uses GJSON syntax to filter output directly at the CLI layer. No `jq`, and no second piping syntax to learn. Seven output formats (`auto`, `explore`, `json`, `jsonl`, `pretty`, `raw`, and `yaml`) let you switch based on the situation—use `json` for scripts and `explore` when inspecting results by eye. `explore` mode lets you browse the response structure interactively in the terminal. That “look around first, then decide which field you want” workflow used to mean piping everything to `python -m json.tool` and slowly digging through it.
+
+<MoguNote>
+GJSON and jq have roughly the same learning curve; either one costs time to learn. The difference is that jq is another tool you have to install separately, version separately, and pipe into as a separate process. GJSON is built into `ant`; you just use it. For a developer making dozens of API calls every day, eliminating one tool dependency is reason enough ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+Then there's the second problem: the API returns the wrong thing, and you don't know why.
+
+The `--debug` flag lays out the full HTTP request and response in plain view. You can see exactly what the request looked like, which headers it carried, and what the response body said, all at once. The old debugging loop for a 400 was “change one line, run it again, and guess some more”—this flag turns a blind guessing game into an evidence-based investigation.
+
+Authentication works through the `ANTHROPIC_API_KEY` or `ANTHROPIC_AUTH_TOKEN` environment variables. The `--base-url` flag can route requests through a proxy or local mock server, which is essential for enterprise environments that use internal proxies.
+
+<MoguNote>
+The `--base-url` flag might look minor, but it's essential for enterprise users. Many companies require AI API calls to pass through an internal proxy for logging and compliance audits. Without this flag, the entire CLI would be useless in an enterprise environment. The fact that Anthropic built it in shows they're serious about going after the enterprise market (⌐■_■)
+</MoguNote>
+
+---
+
+## How It Relates to Claude Code: Complementary, Not Competitive
+
+Some people might ask: doesn't [Claude Code](/en/glossary#claude-code) already handle all this?
+
+Not quite. [Claude Code](/en/glossary#claude-code) is a conversation—you give it an intent, and it completes the job. `ant` is a tool—you give it a command, it executes one API call, and it returns the result. One is an [agent](/en/glossary#agent); the other is a client. Claude Code is suited to “analyze this entire codebase for me,” while `ant` is suited to “process 1,000 requests in a batch, save the output, then pipe it into the next step.” (For a deeper comparison of how these two kinds of tools are positioned, see [this analysis of Claude Code vs. Codex](/posts/gp-2-20260129-claude-code-vs-codex/).)
+
+Want to automate a Claude workflow? `ant` is a better fit than Claude Code as the programmatic foundation. Anthropic also recently [laid out the API, CLI, and MCP paths all at once](/posts/gp-180-20260423-anthropic-mcp-production-agents/)—and `ant` fits squarely into the CLI slot.
+
+---
+
+## Conclusion
+
+`ant` isn't revolutionary. What it does—wrap an HTTP API in a pleasant CLI—is something every mature platform eventually does. GitHub built `gh`, Stripe built `stripe`, and Vercel built `vercel`.
+
+But there's an important gap between “they'll do it eventually” and “they've actually built it.” Before `ant`, Anthropic's CLI story was blank—developers had to use an SDK or raw HTTP. Now that blank has been filled.
+
+What's really worth noting isn't `ant` itself, but what it implies: Anthropic is starting to operate Claude as a complete developer platform, not just a model endpoint. From [Claude Code](/en/glossary#claude-code) to `ant`, from an interactive [agent](/en/glossary#agent) to a programmatic CLI, every layer of the toolchain is filling in.
+
+<MoguNote>
+If we had to guess what comes next—`gh` also grew from a CLI tool into foundational infrastructure for a CI platform. Will `ant` follow the same path? Who knows, but Anthropic's direction of investment in DX looks serious. People have already used `claude -p` to [wrap the Claude CLI as the backend for an agentic app](/posts/gp-91-20260301-dhasandev-claude-cli-wrapper-guide/); now `ant` gives you a native programmatic interface, so there's no need for the hack. Ultimately, the biggest significance of `ant` isn't how powerful its feature set is—the features are what they are, and any senior engineer could build something similar in Go over a weekend. What matters are the words “officially supported.” Official support means it will stay in sync with API versions, means there's somewhere to report problems, and means the repository won't suddenly be archived one day because its author abandoned it. In the world of CLI tools, reliability matters ten times more than features (⌐■_■)
+</MoguNote>

@@ -1,5 +1,6 @@
 import { test, expect } from './fixtures';
 import AxeBuilder from '@axe-core/playwright';
+import { selectPostTextAndShowPopup } from './helpers/ai-popup';
 
 /**
  * Color Contrast Accessibility Tests (axe-core)
@@ -20,6 +21,7 @@ const PAGES = [
 ];
 
 const THEMES = ['dark', 'light'] as const;
+const TEST_POST = '/posts/gp-24-20260204-claude-is-a-space-to-think';
 
 for (const theme of THEMES) {
   test.describe(`Color contrast — ${theme} theme`, () => {
@@ -70,3 +72,84 @@ for (const theme of THEMES) {
     }
   });
 }
+for (const theme of THEMES) {
+  test(`AI popup auth error passes WCAG AA — ${theme}`, async ({ page }) => {
+    await page.addInitScript((t) => {
+      localStorage.setItem('theme', t);
+    }, theme);
+    await page.goto(TEST_POST);
+    await page.evaluate(() => {
+      const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+      const payload = btoa(JSON.stringify({ email: 'test@example.com', exp: 9999999999 }));
+      localStorage.setItem('gu-log-jwt', `${header}.${payload}.fake-signature`);
+    });
+    await page.reload();
+    await page.route('**/ai/edit', async (route) => {
+      await route.fulfill({
+        status: 401,
+        contentType: 'application/json',
+        body: JSON.stringify({ detail: 'Token has expired' }),
+      });
+    });
+
+    const popup = await selectPostTextAndShowPopup(page);
+    await popup.locator('[data-action="edit"]').click();
+    await popup.locator('.ai-popup-edit-input').fill('Make it clearer');
+    await popup.locator('[data-action="submit-edit"]').click();
+    await expect(popup.locator('.ai-popup-result--auth-error')).toBeVisible({ timeout: 10000 });
+
+    const results = await new AxeBuilder({ page })
+      .include('.ai-popup-result--auth-error')
+      .withRules(['color-contrast'])
+      .analyze();
+
+    const violations = results.violations.flatMap((violation) =>
+      violation.nodes.map((node) => ({
+        target: node.target.join(' > '),
+        message: node.failureSummary?.split('\n')[1]?.trim() ?? node.failureSummary,
+      }))
+    );
+
+    expect(violations, `Auth error contrast violations (${theme})`).toHaveLength(0);
+  });
+}
+
+test.describe('DiffBlock color contrast', () => {
+  for (const theme of THEMES) {
+    test(`${theme} theme passes WCAG AA`, async ({ page }) => {
+      await page.addInitScript((activeTheme) => {
+        localStorage.setItem('theme', activeTheme);
+      }, theme);
+      await page.goto('/posts/sd-19-20260409-lightning-talk-ralph-loop/', {
+        waitUntil: 'networkidle',
+      });
+      await page.evaluate((activeTheme) => {
+        document.documentElement.dataset.theme = activeTheme;
+      }, theme);
+      await page.waitForTimeout(300);
+
+      const results = await new AxeBuilder({ page })
+        .include('.diff-block')
+        .withRules(['color-contrast'])
+        .analyze();
+
+      const violations = results.violations.flatMap((violation) =>
+        violation.nodes.map((node) => ({
+          target: node.target.join(' > '),
+          message: node.failureSummary,
+        }))
+      );
+      expect(violations).toEqual([]);
+
+      const body = page.locator('.diff-body').first();
+      await body.evaluate((element) => {
+        element.textContent = 'W'.repeat(120);
+      });
+      const overflow = await body.evaluate((element) => ({
+        body: element.scrollWidth - element.clientWidth,
+        document: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      }));
+      expect(overflow).toEqual({ body: 0, document: 0 });
+    });
+  }
+});

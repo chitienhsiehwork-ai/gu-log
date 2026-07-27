@@ -36,22 +36,66 @@ usage() {
   exit "${1:-0}"
 }
 
-worker_path() {
+validate_worker_id() {
   local id="$1"
-  echo "$WORKER_PARENT/gu-log-worker-$id"
+  local LC_ALL=C
+  if [[ ! "$id" =~ ^[A-Za-z0-9][A-Za-z0-9_-]*$ ]]; then
+    printf 'ERROR: invalid worker id %q (expected letters, numbers, "_" or "-", starting with a letter or number)\n' "$id" >&2
+    return 64
+  fi
+}
+
+worker_path() {
+  local id="$1" path
+  validate_worker_id "$id" || return
+  path="$WORKER_PARENT/gu-log-worker-$id"
+  if [ "$path" = "$MAIN_REPO" ] || [ "$path" -ef "$MAIN_REPO" ]; then
+    printf 'ERROR: worker path equals active repo; refusing worker id %q\n' "$id" >&2
+    return 64
+  fi
+  printf '%s\n' "$path"
+}
+
+dependency_ready_marker() {
+  local path="$1" worker_git_dir
+  worker_git_dir=$(git -C "$path" rev-parse --absolute-git-dir 2>/dev/null) || return
+  printf '%s/tribunal-dependencies-ready\n' "$worker_git_dir"
+}
+
+is_registered_worktree() {
+  local expected="$1" field
+  while IFS= read -r -d '' field; do
+    if [ "$field" = "worktree $expected" ]; then
+      return 0
+    fi
+  done < <(git -C "$MAIN_REPO" worktree list --porcelain -z)
+  return 1
 }
 
 cmd_create() {
   local id="${1:-}"
   [ -z "$id" ] && { echo "ERROR: missing worker id" >&2; usage 1; }
 
-  local path
+  local path ready_marker
   path=$(worker_path "$id")
 
   if [ -d "$path" ]; then
     echo "Worker worktree already exists: $path"
-    git -C "$MAIN_REPO" worktree list | grep -F "$path" || echo "WARN: directory exists but git doesn't know it — may be stale"
-    exit 0
+    if ! is_registered_worktree "$path"; then
+      echo "ERROR: directory exists but git does not recognize it as a worktree" >&2
+      return 1
+    fi
+    if ! ready_marker=$(dependency_ready_marker "$path"); then
+      echo "ERROR: cannot resolve git directory for worker-$id" >&2
+      return 1
+    fi
+    if [ ! -e "$ready_marker" ]; then
+      echo "Worker dependencies are not ready — repairing with sync"
+      if ! cmd_sync "$id"; then
+        return 1
+      fi
+    fi
+    return 0
   fi
 
   cd "$MAIN_REPO"
@@ -65,9 +109,19 @@ cmd_create() {
   fi
   git worktree add "$path" "$SYNC_REF"
 
+  if ! ready_marker=$(dependency_ready_marker "$path"); then
+    echo "ERROR: cannot resolve git directory for worker-$id" >&2
+    return 1
+  fi
   echo "Running pnpm install in $path (this will take a minute)…"
-  cd "$path"
-  pnpm install --frozen-lockfile
+  if ! ( cd "$path" && pnpm install --frozen-lockfile ); then
+    echo "ERROR: pnpm install failed for worker-$id" >&2
+    return 1
+  fi
+  if ! : >"$ready_marker"; then
+    echo "ERROR: cannot persist dependency readiness for worker-$id" >&2
+    return 1
+  fi
 
   echo
   echo "Worker worktree ready: $path"
@@ -97,15 +151,25 @@ cmd_status() {
 
 cmd_sync() {
   local only_id="${1:-}"
+  if [ -n "$only_id" ]; then
+    validate_worker_id "$only_id"
+  fi
   cd "$MAIN_REPO"
   if [[ "$SYNC_REF" == origin/* ]]; then
-    git fetch origin "${SYNC_REF#origin/}" >/dev/null 2>&1 || { echo "WARN: git fetch $SYNC_REF failed" >&2; }
+    if ! git fetch origin "${SYNC_REF#origin/}" >/dev/null 2>&1; then
+      echo "ERROR: git fetch $SYNC_REF failed" >&2
+      return 1
+    fi
   fi
   local target_sha
-  target_sha=$(git rev-parse "$SYNC_REF")
+  if ! target_sha=$(git rev-parse "$SYNC_REF"); then
+    echo "ERROR: cannot resolve sync ref $SYNC_REF" >&2
+    return 1
+  fi
 
   local dir id before_sha lockfile_changed pkg_changed
-  local any=0
+  local ready_marker install_required
+  local any=0 sync_failed=0
   for dir in "$WORKER_PARENT"/gu-log-worker-*; do
     [ -d "$dir" ] || continue
     id="${dir##*/gu-log-worker-}"
@@ -114,8 +178,18 @@ cmd_sync() {
     fi
     any=1
 
+    if ! ready_marker=$(dependency_ready_marker "$dir"); then
+      echo "  ERROR: cannot resolve git directory for worker-$id" >&2
+      sync_failed=1
+      continue
+    fi
+    install_required=0
+    if [ ! -e "$ready_marker" ]; then
+      install_required=1
+    fi
+
     before_sha=$(git -C "$dir" rev-parse HEAD 2>/dev/null || echo "unknown")
-    if [ "$before_sha" = "$target_sha" ]; then
+    if [ "$before_sha" = "$target_sha" ] && [ "$install_required" -eq 0 ]; then
       echo "worker-$id: already at ${target_sha:0:8} ($SYNC_REF) — nothing to do"
       continue
     fi
@@ -130,29 +204,51 @@ cmd_sync() {
     if ! git -C "$dir" diff --quiet "$before_sha" "$target_sha" -- package.json 2>/dev/null; then
       pkg_changed=1
     fi
+    if [ "$lockfile_changed" = 1 ] || [ "$pkg_changed" = 1 ]; then
+      install_required=1
+    fi
+
+    # Invalidate readiness before reset. If reset succeeds but install fails
+    # (or the process dies between them), the missing receipt makes the next
+    # same-SHA sync retry instead of reporting a false-green no-op.
+    if [ "$install_required" -eq 1 ] && ! rm -f "$ready_marker"; then
+      echo "  ERROR: cannot invalidate dependency readiness for worker-$id" >&2
+      sync_failed=1
+      continue
+    fi
 
     echo "worker-$id: ${before_sha:0:8} -> ${target_sha:0:8}"
     # Reset is safe: worker worktrees are detached-HEAD, ephemeral snapshots
     # rebuilt from the active sync ref. Nothing worth preserving lives in them.
     if ! git -C "$dir" reset --hard "$target_sha" >/dev/null 2>&1; then
       echo "  ERROR: reset failed for worker-$id" >&2
+      sync_failed=1
       continue
     fi
 
-    if [ "$lockfile_changed" = 1 ] || [ "$pkg_changed" = 1 ]; then
-      echo "  pnpm-lock / package.json changed — running pnpm install"
-      ( cd "$dir" && pnpm install --frozen-lockfile >/dev/null 2>&1 ) \
-        || echo "  WARN: pnpm install failed for worker-$id" >&2
+    if [ "$install_required" = 1 ]; then
+      echo "  dependency install required — running pnpm install"
+      if ! ( cd "$dir" && pnpm install --frozen-lockfile >/dev/null 2>&1 ); then
+        echo "  ERROR: pnpm install failed for worker-$id" >&2
+        sync_failed=1
+      elif ! : >"$ready_marker"; then
+        echo "  ERROR: cannot persist dependency readiness for worker-$id" >&2
+        sync_failed=1
+      fi
     fi
   done
 
   if [ "$any" -eq 0 ]; then
     if [ -n "$only_id" ]; then
-      echo "No worker worktree matches id=$only_id"
+      echo "No worker worktree matches id=$only_id" >&2
+      return 1
     else
       echo "No worker worktrees found — nothing to sync"
+      return 0
     fi
   fi
+
+  return "$sync_failed"
 }
 
 cmd_remove() {
@@ -163,6 +259,10 @@ cmd_remove() {
   if [ ! -d "$path" ]; then
     echo "Worker worktree not found: $path"
     return 0
+  fi
+  if ! is_registered_worktree "$path"; then
+    echo "ERROR: refusing to remove unregistered directory: $path" >&2
+    return 1
   fi
   cd "$MAIN_REPO"
   echo "Removing worktree ${path}..."

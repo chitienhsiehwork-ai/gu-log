@@ -1,10 +1,12 @@
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { parse } from 'yaml';
 
 const SCRIPT = path.resolve(__dirname, '../scripts/list-content-gate-posts.mjs');
+const CI_WORKFLOW = path.resolve(__dirname, '../.github/workflows/ci.yml');
 
 function git(cwd: string, args: string[]): string {
   return execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();
@@ -34,6 +36,69 @@ function runGate(repo: string, baseRef = 'base'): string[] {
   }).trim();
   return output ? output.split('\n') : [];
 }
+
+describe('list-content-gate-posts fail-closed base contract', () => {
+  it('rejects an unresolvable base ref instead of returning an empty success', () => {
+    const repo = makeRepo();
+
+    try {
+      const file = path.join(repo, 'src', 'content', 'posts', 'gp-1-new.mdx');
+      fs.writeFileSync(file, post('GP-1', 'new-post'));
+      git(repo, ['add', '.']);
+      git(repo, ['commit', '-qm', 'seed head']);
+
+      const result = spawnSync('node', [SCRIPT, '--base=definitely-missing'], {
+        cwd: repo,
+        encoding: 'utf8',
+      });
+
+      expect(result.status).not.toBe(0);
+      expect(result.stdout).toBe('');
+      expect(result.stderr).toContain(
+        '[list-content-gate-posts] Unable to resolve base ref "definitely-missing"'
+      );
+    } finally {
+      fs.rmSync(repo, { recursive: true, force: true });
+    }
+  });
+
+  it('binds the CI selector and grandfather baseline to the immutable PR base SHA', () => {
+    const workflow = parse(fs.readFileSync(CI_WORKFLOW, 'utf8'));
+    const step = workflow.jobs['validate-content'].steps.find(({ name }: { name?: string }) =>
+      name?.startsWith('晶晶體 check')
+    );
+
+    expect(step.env.BASE_SHA).toBe('${{ github.event.pull_request.base.sha }}');
+    expect(step.run).not.toContain('|| true');
+    expect(step.run).toContain('git fetch --no-tags origin "$BASE_SHA"');
+    expect(step.run).toContain('git cat-file -e "$BASE_SHA^{commit}"');
+    expect(step.run).toContain('node scripts/list-content-gate-posts.mjs "--base=$BASE_SHA"');
+    expect(step.run).toContain(
+      'node scripts/check-jingjing.mjs "--baseline-ref=$BASE_SHA" $CHANGED_MDX'
+    );
+  });
+
+  it('still gates a unique new post when git grep returns no match', () => {
+    const repo = makeRepo();
+
+    try {
+      const postsDir = path.join(repo, 'src', 'content', 'posts');
+      fs.writeFileSync(path.join(postsDir, 'gp-1-existing.mdx'), post('GP-1', 'existing-post'));
+      git(repo, ['add', '.']);
+      git(repo, ['commit', '-qm', 'seed baseline']);
+      git(repo, ['branch', 'base']);
+
+      const newFile = 'src/content/posts/gp-2-new.mdx';
+      fs.writeFileSync(path.join(repo, newFile), post('GP-2', 'new-post'));
+      git(repo, ['add', '.']);
+      git(repo, ['commit', '-qm', 'add unique post']);
+
+      expect(runGate(repo)).toEqual([newFile]);
+    } finally {
+      fs.rmSync(repo, { recursive: true, force: true });
+    }
+  });
+});
 
 describe('list-content-gate-posts taxonomy migration scope', () => {
   it('exempts path-changing taxonomy-only renames above the configured rename limit', () => {

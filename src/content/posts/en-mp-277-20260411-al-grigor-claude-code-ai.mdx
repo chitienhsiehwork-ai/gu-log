@@ -1,0 +1,176 @@
+---
+ticketId: "MP-277"
+title: "Using Claude Code as a Project Manager: A One-Person, Four-Role AI Software Team"
+originalDate: "2026-04-07"
+translatedBy:
+  model: "GPT-5.6-Sol"
+  harness: "Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@Al_Grigor on X"
+sourceUrl: "https://twitter.com/Al_Grigor/status/2041561819077341425"
+lang: "en"
+summary: "Al Grigor uses Claude Code as an orchestrator across four roles—product manager, software engineer, QA tester, and on-call engineer. Each task must move from backlog through acceptance before commit, avoiding the trap of one agent writing code and approving its own work."
+tags: ["Claude Code","agents","workflow","software-engineering"]
+scores:
+  ralph:
+    p: 8
+    c: 9
+    v: 8
+    score: 8
+    date: "2026-04-11"
+    model: "claude-opus-4-6"
+translatedDate: "2026-07-26"
+---
+import MoguNote from '../../components/MoguNote.astro';
+
+Al Grigor shared a workflow on X that he has found especially useful lately: instead of treating [Claude Code](/en/glossary#claude-code) as a coding assistant, treat it as an **orchestrator** that manages a small software team made up of multiple agents. One agent is enough for a simple utility. But as a project grows, it becomes increasingly difficult to track progress, validate results, and catch cases where something is claimed to be finished when it really is not. Splitting the work across different roles works noticeably better.
+
+## Four roles, each with a job to do
+
+The core of this approach is dividing the work across four roles:
+
+**Product Manager (PM)** — Turns a vague idea into an implementable spec, complete with user stories, acceptance criteria, and test scenarios. At the end, the PM also performs a final acceptance review from the user's perspective.
+
+**Software Engineer (SWE)** — Writes the code and the tests. This is the role that actually builds the thing.
+
+**Tester (QA)** — Runs the tests, checks whether the acceptance criteria have been met, and issues a pass-or-fail report with evidence.
+
+**On-Call Engineer** — Monitors the CI/CD pipeline after the code is pushed and fixes it if the pipeline breaks.
+
+<MoguNote>
+This division of roles is almost identical to how a real software team is structured. But the point is not, "Wow, it's just like a real company." The point is **separation of concerns** — when the same agent writes the code, tests it, and signs off on it, of course it is going to think its own work is great. That is like asking the chef to double as the food critic and grade their own cooking. You can imagine how that turns out ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## Pipeline: the lifecycle of every task
+
+Every task goes through the same pipeline, with no exceptions:
+
+1. **Orchestrator creates a task** → adds it to the backlog
+2. **PM grooming** → turns the task into an implementable spec
+3. **SWE implementation** → writes code + tests
+4. **QA validation** → runs tests and checks the acceptance criteria
+5. If **QA rejects it** → send it back to the SWE for changes → then return it to QA
+6. If **QA accepts it** → the PM performs a final acceptance review
+7. **Everything passes** → only then does the orchestrator commit the code and close the task
+
+Al Grigor particularly emphasizes the importance of that final PM review: passing the tests does not mean the feature is correct. A feature can be completely bug-free from a technical standpoint and still miss the original user story.
+
+<MoguNote>
+This is exactly right. Anyone who has worked on a large project knows the peculiar despair of seeing every test turn green while the feature is still wrong. Tests can only verify that "the code did what it was told to do." They cannot verify that "this is what the user actually wanted." The PM's final review closes that gap. In a sense, this uses process to counter an AI agent's tendency to hallucinate — not a hallucination in the output, but one in the judgment that "the task is complete" (╯°□°)╯
+</MoguNote>
+
+---
+
+## Put the process in the repo, not in verbal instructions
+
+To keep the process consistent, Al Grigor put everything into the repository:
+
+- `.claude/agents/` — contains the definition file for each role
+- `PROCESS.md` — describes the entire workflow
+- `CLAUDE.md` — contains project-level instructions
+- **execute skill** — starts the entire pipeline
+
+This gives the agents a shared, explicit process to follow instead of requiring the same instructions to be repeated in chat every time.
+
+<MoguNote>
+This is a clever design. Encoding the process in the repo instead of the chat context effectively makes the "way of working" part of the code. Instructions in chat are ephemeral: an agent might forget them, ignore them, or gradually drift off course. But every agent reads the PROCESS.md in the repo when it starts, which makes the process much more consistent. It follows the same spirit as "Infrastructure as Code" in software engineering — if something matters, do not let it exist only in someone's head (or in some chat window) (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+---
+
+## Task tracking: the heavyweight and lightweight paths
+
+GitHub Issues is formal and provides a complete collaboration history, with reports and discussions attached to every task — but for an AI agent, calling an API and parsing the response adds friction. The alternative is the exact opposite: a **file-based tracker** that encodes task status directly in filenames, moving from `.todo.md` → `.groomed.md` → `.in-progress.md` → and finally into a `done/` folder. Run `ls`, and there is your dashboard.
+
+Al Grigor's view is that the tool does not matter; the process does. Whichever method you choose, the PM → SWE → QA → PM loop remains the same.
+
+<MoguNote>
+Encoding status in filenames is a little old-school, but it is highly practical. There is no database and no extra tracking tool, and it is especially agent-friendly — reading filenames is far simpler than parsing a GitHub API response. Sometimes the most low-tech solution is also the most robust (￣▽￣)／
+</MoguNote>
+
+---
+
+## Parallel processing: running two tasks at once
+
+Al Grigor usually runs two tasks at the same time. When one batch is finished, the orchestrator automatically pulls the next batch from the backlog.
+
+To keep the process running without manual intervention, he adds a recurring instruction to the task list telling the orchestrator: "After pulling the next batch of tasks, add this instruction back again." The orchestrator then keeps running until the backlog is empty.
+
+<MoguNote>
+Wait, is this basically the agent version of a cron job? Or, more precisely, a self-replicating instruction. After the orchestrator finishes one batch, it "reminds itself" to continue with the next one. It is a little uncanny, but very effective. This shifts the entire system from "passively waiting for instructions" to "actively working through the backlog," a crucial transition in an agentic workflow (⌐■_■)
+</MoguNote>
+
+---
+
+## Why does this work better?
+
+The main benefit is **narrower responsibility**. When each role is responsible for only one thing:
+
+- It becomes harder to skip steps
+- When something goes wrong, it is easier to pinpoint which stage failed
+- It avoids the most common failure mode — the same agent writes the code and then decides, "This code is correct"
+
+Separating planning, implementation, testing, and acceptance makes the entire process more controllable.
+
+---
+
+## Being honest about the limitations
+
+Al Grigor is very candid about the limitations of this approach:
+
+- The orchestrator **sometimes stops**, even when there are still tasks in the backlog
+- It **asks for unnecessary confirmation** even though more work is already queued
+- Sometimes it **skips the process and starts coding immediately**, ignoring the division of roles
+- There is **limited visibility into subagents**, making it difficult to see what each agent is doing internally
+
+So this setup still requires human supervision. It is not a "set it and forget it" system.
+
+<MoguNote>
+The candor in this "limitations" section deserves praise. When people share AI workflows, they often talk only about the successes, as though a little setup is all it takes to reach the moon. But in reality, prompt-based enforcement amounts to "asking nicely" for an agent to follow the process. It is not mandatory. An [Agent](/en/glossary#agent) can comply or not, and when it does not, it usually will not tell you. That is why the next step is to move the process out of markdown and into software — turning "suggestions" into "enforcement" (ง •̀_•́)ง
+</MoguNote>
+
+---
+
+## Proven across five real-world projects
+
+Al Grigor has used this setup to run five software projects. The core pattern remains the same: define the roles, define the pipeline, let the orchestrator move tasks forward, and intervene manually only when needed.
+
+Five projects are enough to show that this approach genuinely works. At the same time, they also demonstrate the ceiling of prompt-based enforcement — agents will not obediently follow PROCESS.md every single time.
+
+---
+
+## Next step: from Markdown to Software
+
+Al Grigor's next step is to move more of the methodology out of markdown documents and into software.
+
+The problem today is that a process written in markdown is fundamentally just **instructions that the agent can ignore**. What he wants is an orchestrator tool that enforces the workflow itself — PM grooming, SWE implementation, QA validation, PM acceptance. Every step must be completed before the next can begin, and only then can the code be committed.
+
+Beyond that, he also wants:
+- **Better subagent visibility** — the ability to see what each agent is doing internally
+- **Support for multiple backends** — not just Claude Code
+- **Non-blocking task pool** — more flexible task assignment
+
+---
+
+## Conclusion
+
+The most valuable insight in this post is not that "AI can simulate a software team" — that is merely the mechanism. The real insight is that **validation by a single agent is unreliable**. When the same agent is responsible for writing the code, running the tests, and deciding whether the work is complete, it will tend to tell the user that everything is OK. Splitting the work across multiple roles and having different agents review one another uses architecture to counter that tendency.
+
+Al Grigor's candid description of the limitations matters too: prompt-based enforcement is ultimately only a "suggestion." When the process exists only in markdown, an agent can choose to follow it or ignore it. The real next step is to turn the process into code — so that it is no longer about what an agent "should" do, but what it "can only" do.
+
+From suggestion to enforcement — Al Grigor's next step is also a challenge that everyone serious about multi-agent workflows will eventually have to face (◕‿◕)

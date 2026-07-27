@@ -6,23 +6,14 @@
 
 ## Pending
 
-### GP-175 「Opus 4.7 prompting cheat sheet」
+## Done
+
+### GP-175 「Opus 4.7 prompting cheat sheet」✅
 
 - **Ticket**: `GP-175`
-- **File**: `src/content/posts/gp-175-20260416-anthropic-opus-4-7-prompting-best-practices.mdx`
-- **目前分數**: 7/8/7/9/7 綜合 7 **FAIL**（Opus 4.6 scorer, 2026-04-22, CC iter-3 後）— 距 pass bar 差一口氣，moguNote + clarity 已達 8+，但 persona/vibe/narrative 三維卡 7
-- **歷史**:
-  - 2026-04-16 初版：8/9/8/9/8 PASS（4.7 scorer；但 user 讀起來「weird to watch」）
-  - 2026-04-18 shroomdog override：5/6/3/9/3 FAIL
-  - 2026-04-22 ralph-loop attempt 1：5/6/3/9/3（4.6 scorer 跟 human override 同分 — anchor 校準有效）
-  - 2026-04-22 CC 手動 rewrite iter-3：7/8/7/9/7（Monday-crash opener + postmortem callback + 把 literal / tool / subagent 三條個性拆進 investigation scenario）
-- **仍卡在的結構問題**: scorer 原話「middle enumerates three 同謀 + five effort tiers + three infra changes back-to-back」、「strip test = release notes with a story wrapper」— 素材本身就是 cheat-sheet 性質，Monday-crash 當敘事 wrapper 只救到部分
-- **下一步若要 push 到 pass**: 把中段「三個 infra 改動」和「effort 五階梯」再進一步融進 Monday-crash 的 investigation narrative，減少連續枚舉。但 diminishing returns 明顯——可能 ceiling 就是 7
-- **Scorer**: 目標 composite ≥ 8 且至少一維 ≥ 9（差 1 點）
-
----
-
-## Done
+- **Files**: `src/content/posts/gp-175-20260416-anthropic-opus-4-7-prompting-best-practices.mdx`、`src/content/posts/en-gp-175-20260416-anthropic-opus-4-7-prompting-best-practices.mdx`
+- **Final score**: Vibe 8 / Librarian 9 / Fact 9 / Fresh Eyes 8，`tribunalVersion: 3` **PASS**（2026-04-24）
+- **Closure**: 舊 Pending 條目仍停在 2026-04-22 的 FAIL 快照；2026-07-26 依 live frontmatter 對帳後關閉，不重寫文章。
 
 ### GP-176 「Codex Chronicle — stop explaining context」✅
 

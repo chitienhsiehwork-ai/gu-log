@@ -58,7 +58,7 @@ fi
 # ─── Step -1: Gitleaks secret scan (~500ms) ───────────────────────
 if command -v gitleaks >/dev/null 2>&1; then
     echo "🔐 Gitleaks: scanning for secrets..."
-    if ! gitleaks protect --staged --no-banner 2>&1; then
+    if ! gitleaks git --staged --no-banner 2>&1; then
         echo ""
         echo "❌ SECRETS DETECTED! Do NOT commit."
         echo "   If false positive, add to .gitleaks.toml allowlist."

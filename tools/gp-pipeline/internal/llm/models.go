@@ -39,7 +39,13 @@ const (
 	ModelClaudeHaiku  ModelID = "claude-haiku"
 )
 
-var claudeFamilyRe = regexp.MustCompile(`claude-(opus|sonnet|haiku)-([0-9]+)-([0-9]+)`)
+// claudeFamilyRe matches concrete Claude build ids. The minor version is
+// optional because the Claude 5 generation ships whole-number release names
+// ("claude-opus-5", "claude-sonnet-5") while the 4.x line is major-minor
+// ("claude-opus-4-5"). Without the optional group a 5-generation id falls
+// through to DisplayName's default branch (raw id into provenance) and to
+// HarnessName's "Unknown Harness" — both silent breakages.
+var claudeFamilyRe = regexp.MustCompile(`claude-(opus|sonnet|haiku)-([0-9]+)(?:-([0-9]+))?`)
 
 // DisplayName returns the human-readable model name the validator expects
 // in translatedBy.model. Unknown IDs pass through unchanged so the caller
@@ -53,6 +59,9 @@ func DisplayName(m ModelID) string {
 	normalized = strings.TrimSuffix(normalized, "[1m]")
 	if match := claudeFamilyRe.FindStringSubmatch(normalized); match != nil {
 		family := strings.ToUpper(match[1][:1]) + match[1][1:]
+		if match[3] == "" {
+			return family + " " + match[2]
+		}
 		return family + " " + match[2] + "." + match[3]
 	}
 	// Never display the floating `opus` alias verbatim. If a path ever stamps
@@ -64,7 +73,7 @@ func DisplayName(m ModelID) string {
 	}
 	switch m {
 	case ModelClaudeOpus:
-		return "Opus 4.8"
+		return "Opus 5"
 	case ModelClaudeSonnet:
 		return "Sonnet 4.6"
 	case ModelClaudeHaiku:

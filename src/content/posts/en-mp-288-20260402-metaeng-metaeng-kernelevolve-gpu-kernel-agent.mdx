@@ -1,0 +1,209 @@
+---
+ticketId: "MP-288"
+title: "KernelEvolve — Meta Uses AI Agents to Write GPU Kernels Automatically—and Beats Human Experts"
+originalDate: "2026-04-02"
+translatedBy:
+  model: "GPT-5.6-Sol"
+  harness: "Codex CLI"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (vibe-opus-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code (Ralph Loop)"
+source: "@MetaEng on X"
+sourceUrl: "https://engineering.fb.com/2026/04/02/developer-tools/kernelevolve-how-metas-ranking-engineer-agent-optimizes-ai-infrastructure/"
+lang: "en"
+summary: "Meta built KernelEvolve, an agent system that uses LLMs and search algorithms to generate hardware kernels automatically. It delivered over 60% higher inference throughput on NVIDIA GPUs and over 25% faster training on MTIA chips—in hours, not weeks."
+tags: ["meta","ai-infra","kernel-optimization","agentic-ai"]
+scores:
+  ralph:
+    p: 8
+    c: 8
+    v: 8
+    score: 8
+    date: "2026-04-13"
+translatedDate: "2026-07-26"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+Every time an AI model gets bigger and more complex, the engineers writing its low-level kernels lose a little more hair. What is a kernel? It is a small program that translates high-level matrix operations into low-level instructions the chip can actually execute. Every new GPU generation, model architecture, or custom operator means another round of hand-written kernels. Meta's hardware fleet now spans NVIDIA GPUs, AMD GPUs, its own MTIA chips, and CPUs. Once you multiply all those combinations together, the number of kernels does not merely grow—it explodes.
+
+Meta's answer: if there are not enough people, let AI write the kernels itself. The company built **KernelEvolve**, an [agentic](/en/glossary#agent) system that treats kernel optimization as a search problem. It does not ask an LLM for one version of the code and call it a day. It automatically generates hundreds of candidate kernels, compiles and tests each one, feeds the hardware profiling results back into the system, and iterates. Work that takes human experts weeks is finished in hours—and the resulting performance is better.
+
+This is the second article in Meta's “Ranking Engineer Agent” series. The previous one, about the ML Exploration [Agent](/en/glossary#agent), explained how agents can automate the design of ML experiments. This one goes deeper into the stack: how to make models run faster.
+
+## Kernel Hell: A Combinatorial Explosion in Three Dimensions
+
+First, we need to understand the scale of the problem. The total number of kernels is roughly the product of three factors:
+
+**Hardware types and generations × model architectures × number of operators**
+
+Every factor is expanding rapidly. Multiply them together, and you have a disaster.
+
+On the **hardware heterogeneity** front, Meta's own MTIA chip roadmap alone spans four generations in two years, from MTIA 300 through 500. Each generation has different compute capabilities, memory-bandwidth characteristics, and numeric formats. A kernel painstakingly tuned for the previous generation may be slow on the next one. And that is before considering NVIDIA and AMD, each with entirely different memory architectures, instruction sets, and execution models.
+
+On the **model architecture** front, Meta's recommendation models have gone through three major leaps: from early embedding-based deep learning recommendation models, to sequence learning models that use attention to process interaction history, then the Generative Ads Recommendation Model (GEM), and most recently the Meta Adaptive Ranking Model, which brings LLM scale to advertising. Every generation introduces operators the one before it never needed. Meta's production environment also runs fundamentally different model families side by side. A single ad request may pass through several models in one serving call.
+
+<MoguNote>
+This combinatorial explosion is honestly a management problem, not just an engineering one. (◍•ᴗ•◍) Do a rough estimate: several hardware platforms, multiple generations of each, multiple model architectures, and a pile of operators per architecture. Breaking a thousand combinations is easy. And each combination takes more than “tweaking a parameter.” It has to be rewritten, retested, and retuned.
+
+So here is the problem: there are only so many people in the world who can write good GPU kernels, and their salaries are astronomical. How do you scale? Hire more people? In theory, sure—but whenever a new hardware generation arrives, you need another group of people who can adapt to the new architecture. It is a race you can never catch up in. So Meta chose to stop chasing and let the machines run instead.
+</MoguNote>
+
+The **long tail of operators** is the easiest pain point to overlook. Vendor libraries such as cuBLAS and cuDNN cover common operations like GEMM, convolution, and standard activations, but production workloads are packed with custom operators those libraries do not include: data preprocessing such as feature hashing, bucketing, and sequence truncation, along with Meta-specific model operators such as fused feature interaction layers and specialized attention variants. There are no ready-made accelerator implementations for these. The choices are either to fall back to the CPU, sending latency through the roof, or force them through an unoptimized path, resulting in dreadful hardware utilization.
+
+And a hand-written NVIDIA kernel cannot simply be recompiled for AMD or MTIA. Every additional model architecture lengthens the tail; every additional chip multiplies the required work again.
+
+---
+
+## KernelEvolve's Core Idea: Treat Optimization as a Search Problem
+
+The typical AI coding assistant workflow goes like this: give an LLM a prompt, have it generate one kernel, test it, and stop. KernelEvolve takes a completely different approach.
+
+Think about the game of Go. A weak player makes a random move and sees what happens. A professional plays out the board 20 moves ahead, explores the most promising line deeply, and, if it leads nowhere, goes back and tries another. KernelEvolve approaches kernel optimization like the professional—except the board is the GPU's execution space, each move is a candidate kernel, and “winning” is defined by hardware profiling metrics.
+
+It formalizes kernel optimization as a **structured search problem**, looking for the best solution in the space of all possible implementations. A purpose-built, long-running job harness drives each iteration: compiling candidate kernels, validating correctness, measuring performance, running hardware profilers, and generating analysis reports—all while handling build cycles that can take minutes at a time and the occasional infrastructure failure.
+
+The system has five core components, meshing together like gears.
+
+### LLM Synthesizer: A Multi-Language, Multi-Hardware Kernel Generator
+
+The LLM generates candidate kernels, and it does not write in just one language. It can produce code in high-level DSLs—Triton, TLX, CuTe DSL, and FlyDSL—as well as low-level languages such as CUDA, HIP, and MTIA C++.
+
+The key is that its prompt is not a static template. Imagine an apprentice helping in a kitchen. On day one, they get a recipe. By day ten, the chef is saying, “That last dish had too much salt, and the heat was too low.” The LLM Synthesizer's prompt follows the same logic: it is a **dynamically constructed, context-aware prompt** that continually incorporates runtime diagnostics, hardware constraints, and the evaluation history of previous candidate kernels. Every round, the LLM generates a new version knowing exactly what went wrong in the last one.
+
+### Tree Search Engine: Strategic Exploration, Not Random Guessing
+
+The system explores the optimization space using graph-based search algorithms, including **Monte Carlo tree search** and **evolutionary strategies**. Each candidate kernel is a node in the search tree. The engine selects promising candidates, applies transformations, evaluates the results, and then decides whether to dig deeper or backtrack—balancing the exploitation of known good strategies against the exploration of new directions.
+
+<MoguNote>
+Using MCTS for kernel optimization honestly sounds a little like using a sledgehammer to crack a nut. The search algorithm AlphaGo used to play Go is now being used to find the fastest matrix-multiplication implementation—what kind of crossover episode is this? ヽ(゜∇゜)ノ
+
+But look closely at the design, and it really is not gratuitous. The important part is the **memory operator**: nodes do not evolve independently. Each one can choose how to extract context from the search tree—inherit its parent's optimization trajectory, compare differences with its siblings, or start from a clean slate to escape a local optimum. Sibling nodes collaborate with one another, while parent-child chains preserve successful paths. This goes far beyond “let the LLM try a few more times.” It is collective evolution with memory.
+
+So the verdict is: yes, it is a sledgehammer—but this is one very tough nut.
+</MoguNote>
+
+### Retrieval-Augmented Knowledge Base: Teaching the LLM About Unfamiliar Hardware
+
+The LLM's training data may contain no code at all for certain hardware, such as Meta's MTIA chips. KernelEvolve maintains a hierarchical knowledge base with three categories: correctness constraints to ensure kernel implementations are valid, cross-platform optimization guides covering debugging and tuning strategies, and hardware-specific documentation describing the architectural details of each accelerator platform.
+
+The system dynamically retrieves relevant knowledge based on runtime signals. Has memory bandwidth become the bottleneck? Pull up the memory-hierarchy documentation. A compilation error? Trigger the debugging guide.
+
+And this knowledge base **keeps evolving**. Every time the system successfully solves an optimization problem, it distills the effective strategy into a reusable skill—a concise optimization pattern or debugging heuristic—and writes it back into the knowledge base. Meta calls this a form of **in-context reinforcement learning**: each successful exploration enriches the context available to future sessions, allowing the system to solve similar problems faster and in fewer steps without retraining the model.
+
+### Automated Evaluation Framework: Measuring More Than Speed—and Explaining Why
+
+Every generated kernel must pass a rigorous validation pipeline: first correctness, through bitwise comparison with a reference implementation, and then performance. But performance evaluation goes far beyond a single runtime number.
+
+KernelEvolve integrates a full suite of profiling tools at two scales: system-level and chip-level.
+
+**System level** (first, find where the overall slowdown is)
+- **TritonBench**: runs a PyTorch baseline to validate numerical correctness and measures end-to-end speedup using production input shapes—confirming that the kernel is both faster and correct
+- **PyTorch Profiler**: captures the full execution timeline, including “kernel launch overhead”—the wait between the CPU asking the GPU to begin and execution actually starting—and “host-device synchronization,” where the CPU and GPU wait on each other
+
+**Chip level** (narrow the problem down to the exact hardware bottleneck)
+- **NCU** (NVIDIA Nsight Compute, for GPUs): exposes internal kernel hardware metrics, including **occupancy**—how many threads are actually running on the GPU, where higher means the GPU is busier—memory throughput, and instruction mix
+- **Proton**: goes one level deeper, showing the latency of individual instructions in the GPU pipeline and where they stall
+- **MTIA Insight** (for MTIA): Meta's dedicated profiler for its own chips, covering **PE utilization**—how much of the Processing Elements, MTIA's compute cores, are in use; utilization and **stall cycles** for **DPE/SFU/MLU**, the three execution units responsible for dense matrix operations, special mathematical functions, and memory movement; plus cache hit rates and memory-bandwidth usage
+
+These tools do not run in isolation. KernelEvolve unifies them through a compiler-centric abstraction: compiler transforms insert MLIR-level instrumentation, profiling passes collect metrics, and trace synthesis produces structured output. The search engine does not merely see that “kernel A is 1.2× faster than kernel B.” It sees **why**: whether the bottleneck is memory-bound, compute-bound, or caused by low occupancy that leaves the GPU sitting idle. It then feeds those diagnostic signals back to the LLM synthesizer to guide the next round of candidates.
+
+<MoguNote>
+Most LLM coding agents approach kernel optimization with vibes-based debugging: “Slow? Let's rewrite it and try again. Still slow? Try another one.” The information density of that loop is extremely low.
+
+KernelEvolve tells the LLM exactly where each version is slow: memory bandwidth is saturated, compute units are idle, or thread occupancy is too low. That may sound obvious, but almost nobody in the industry has gone this far. The reason is simple: integrating all these profilers and structuring their diagnostic data into a format an LLM can understand is a major engineering project in its own right.
+
+I do have one question here: can the LLM genuinely use this profiling data to make better decisions, or is it merely pretending to understand it? Judging by the results in the article, the answer is clearly the former—but that question alone deserves further research.
+</MoguNote>
+
+---
+
+## The Shared Data Foundation and the Flywheel Effect
+
+The results of every optimization session contribute to a shared data foundation. When one engineer's exploration discovers an effective tiling strategy for a particular class of operators, that insight becomes available knowledge for every future session. Early users do the hardest exploration; later users start refining from a point already close to optimal. It is a **compounding effect**: the system gets stronger every time it is used.
+
+More importantly, every optimization session naturally generates structured training data: an agentic trajectory recording the reasoning, code transformations, and evaluation feedback behind a high-performance kernel. Meta emphasizes that this domain-specific data is **rare and valuable**—no public dataset contains this kind of optimization intuition.
+
+Meta uses this data to post-train smaller, more specialized models through **agentic reinforcement learning**, with reward signals drawn directly from measured kernel performance. The result is a virtuous cycle: better models produce better kernels using fewer reasoning tokens and search steps, which in turn generates higher-quality training data. Over time, this flywheel lets Meta self-host increasingly efficient small models—small enough to run at scale while retaining the optimization capabilities of large frontier models.
+
+---
+
+## AI Writing Software for AI Chips: The MTIA Story
+
+The most striking use case in the entire article is KernelEvolve generating kernels for Meta's own MTIA chips.
+
+The problem is straightforward: MTIA is proprietary hardware. No public LLM on Earth has MTIA code in its training data. An ordinary coding assistant has never seen MTIA's documentation, instruction set, or programming idioms, so naturally it cannot write optimized MTIA kernels.
+
+KernelEvolve's solution is **systematic knowledge injection**. MTIA architecture manuals, instruction-set references, memory-hierarchy specifications, and optimization patterns are all encoded into the retrieval-augmented knowledge base. When the system needs to generate a kernel for MTIA, it dynamically retrieves that proprietary knowledge, effectively “learning” the hardware at runtime.
+
+<MoguNote>
+In plain English: they stuffed the hardware manual into RAG and told the AI to read it. It sounds like a shortcut, but think about it carefully and this is exactly the right approach. ᕙ(⇀‸↼‶)ᕗ
+
+The traditional approach is to wait until enough MTIA code appears in an LLM's training data—but the gap from “new chip launches,” to “the open-source community writes enough code,” to “the next training run” could last several years. KernelEvolve bypasses the wait entirely. When a new chip arrives, the engineering cost shifts from “hand-write thousands of kernels” to “organize a set of hardware documents and inject them into the knowledge base.”
+
+For companies investing heavily in custom silicon, this comes close to eliminating the long-standing bottleneck of software enablement. The broader applicability of this idea deserves even more attention than the headline 60% performance gain.
+</MoguNote>
+
+---
+
+## The Real-World Scorecard
+
+That is a lot of architecture. So how did it perform?
+
+**Benchmark performance**: On Stanford's KernelBench—250 kernel optimization problems across three difficulty levels—KernelEvolve achieved a **100% pass rate**. Every generated kernel was correct and faster than the PyTorch reference implementation. The system also validated 160 PyTorch ATen operators across three hardware platforms, for a total of 480 configurations, with 100% correctness.
+
+**Production speedups**:
+- On Meta's **MTIA chips**, generated kernels covered compute-bound, memory-bound, and custom operations, improving the **training throughput of an ads model by more than 25%**
+- On **NVIDIA GPUs**, KernelEvolve improved **inference throughput by more than 60%** for the **Andromeda ads model**, which had already been heavily optimized with tools including torch.compile and vendor libraries
+
+It is also worth noting that the code KernelEvolve currently optimizes in Meta's production environment serves trillions of inference requests every day.
+
+That figure of more than 60% deserves special attention. The comparison was not against an unoptimized baseline; it was against a highly optimized version already using torch.compile and vendor libraries.
+
+<MoguNote>
+All right, pause for a second. (ﾟДﾟ) “Another 60% on top of an already heavily optimized version” needs some interpretation.
+
+One reading is that AI search found optimization paths human engineers had never considered. Another, somewhat brutal reading is that when human engineers spend weeks tuning a kernel, they explore only the tip of the optimization-space iceberg. The space is simply too large; a few weeks is nowhere near enough. A machine can run hundreds of candidates in hours. A human cannot.
+
+So the issue is not whether humans are trying hard enough. Humans are inherently disadvantaged in an exponentially large search space. At its core, that 60% gap is a difference in search depth, not intelligence—but the outcome is the same: all that performance was sitting there untouched until the machine stepped in.
+</MoguNote>
+
+**Development speed**: Work that once required weeks of expert engineering time—profiling, iterating on tiling strategies, and debugging edge cases across hardware—is now completed in hours through automated search and evaluation. Engineers can shift their time from low-level coding to higher-value work: designing model architectures, improving training techniques, and defining optimization objectives.
+
+---
+
+## Conclusion
+
+Remember the line at the beginning about engineers losing more hair every time models get bigger? KernelEvolve's deeper logic is to replace “chasing models and hardware forever without ever catching up” with “let the system do the chasing while people take a step back.”
+
+The combinatorial explosion has not disappeared. Hardware generations are still accelerating, model architectures are still advancing, and the long tail of operators is still growing. But each cell in that exploding matrix no longer requires a human expert to sit down and carve out a solution by hand. Instead, it is filled by a search system that continuously learns and gets smarter with every run.
+
+The direction Meta points to at the end of the article is even more noteworthy: the same agentic techniques—structured reasoning, RAG-based knowledge, and closed-loop evaluation—can be applied to hybrid model search, compiler optimization, memory management, system configuration, and more. KernelEvolve is only one small step toward the Ranking Engineer Agent vision: an AI agent capable of **continuously optimizing its own performance-critical infrastructure**.
+
+Within the REA framework, ML Exploration finds better models, while KernelEvolve makes those models fast enough to deploy. Together, they accelerate ranking improvements from experiment to advertiser impact.
+
+For more technical detail, see the forthcoming ISCA 2026 paper, to be presented at the 53rd International Symposium on Computer Architecture: “KernelEvolve: Scaling Agentic Kernel Coding for Heterogeneous AI Accelerators at Meta.”
+
+More on the same question—“how do [agents](/en/glossary#agent) reshape AI system architecture?”:
+
+- [Anthropic Split Its Agent Architecture Apart—Separating the Brain from the Hands Made It 90% Faster](/posts/mp-287-20260413-article-anthropic-agent-90) (how a harness separates the brain from the execution environment)
+
+<MoguNote>
+(ง •̀_•́)ง Once AI starts helping AI write software that makes AI run faster, when does the recursion end?
+
+The answer may be: it does not. And the engineers' hair probably is not coming back either.
+</MoguNote>

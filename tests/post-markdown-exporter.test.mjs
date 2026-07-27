@@ -359,9 +359,9 @@ import fixtureImage from '../../assets/posts/fixture.png';
       </strong>
       <div class="mogu-note-summary" hidden><span class="mogu-note-summary-label">Short</span><p>duplicate summary</p></div>
       <div class="mogu-note-content" id="mogu-note-content-all"><p>Mogu body</p></div>
-      <button class="mogu-note-toggle" type="button" aria-expanded="false" aria-controls="mogu-note-content-all" hidden>
+      <button class="mogu-note-toggle" type="button" aria-expanded="false" aria-controls="mogu-note-content-all" data-label-expand="Expand full note" data-label-collapse="Collapse" hidden>
         <span class="mogu-note-toggle-icon" aria-hidden="true">v</span>
-        <span class="mogu-note-toggle-label">Expand</span>
+        <span class="mogu-note-toggle-label">Expand full note</span>
       </button>
     </blockquote>
     <blockquote class="shroomdog-note" data-shroomdog-note data-markdown-adapter="shroomdog-note"
@@ -399,7 +399,7 @@ import fixtureImage from '../../assets/posts/fixture.png';
       <div class="analogy-content"><p>Analogy body</p></div>
     </aside>
     <div class="mermaid-wrapper" data-markdown-adapter="mermaid">
-      <div class="mermaid-scroll"><div class="mermaid-source" style="display:none;" data-mermaid>graph TD\nA--&gt;B</div><div class="mermaid-render"></div></div>
+      <div class="mermaid-scroll"><div class="mermaid-source" style="display:none;" data-mermaid>graph TD\nA--&gt;B</div><div class="mermaid-render" data-loading-label="Loading diagram..."></div></div>
       <p class="mermaid-caption">Diagram</p>
       <button class="mermaid-expand-btn" aria-label="Expand" title="Zoom"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"></path></svg></button>
     </div>

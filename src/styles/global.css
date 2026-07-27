@@ -12,7 +12,13 @@
   --color-on-accent: #282a36;
   --color-border: #44475a;
   --color-divider: rgba(255, 255, 255, 0.1);
+  --color-toc-rail: #747b98; /* 3.41:1 on Dracula bg — non-text AA */
   --color-bg-muted: #343746;
+  --color-panel-subtle: rgba(0, 0, 0, 0.03);
+  --color-surface-meta: #cecdda;
+  --color-accent-soft-bg: rgba(255, 121, 198, 0.1);
+  --color-accent-soft-border: rgba(255, 121, 198, 0.25);
+  --color-accent-faint-bg: rgba(255, 121, 198, 0.08);
   --color-share-x: #ffffff;
   --color-share-facebook: #8be9fd;
   --color-share-line: #50fa7b;
@@ -41,8 +47,16 @@
 
   /* Semantic status colors — status UI must use these, never series badge tokens */
   --color-status-success: #69d2a0;
+  --color-status-success-soft-bg: rgba(105, 210, 160, 0.08);
+  --color-status-danger: #e09a9a;
   --color-status-warning: #ffb86c;
   --color-status-info: #8be9fd;
+  --color-status-neutral: #b8c2ea;
+  --color-technical-model: #b8c2ea;
+  --color-judge-librarian: #78b4ff;
+  --color-judge-factcheck: #e08aa5;
+  --color-judge-fresheyes: #c084fc;
+  --color-judge-vibe: #fbbf24;
 
   /* Section heading variants (dimmed for large text readability) */
   --color-heading-sd: #5ab88a;
@@ -54,6 +68,18 @@
   /* Mogu murmur variant accent — must be readable on --color-bg */
   --color-mogu-murmur: #ad8ae0; /* soft violet — 4.68:1 on #282a36 */
   --color-mogu-murmur-bg: rgba(173, 138, 224, 0.08);
+  --color-analogy-accent: #d9b65b;
+  --color-shroomdog-note-accent: #a4d3a2;
+  --color-shroomdog-note-bg: var(--color-surface);
+  --color-diff-before-bg: rgba(255, 85, 85, 0.06);
+  --color-diff-before-border: var(--color-border);
+  --color-diff-after-bg: rgba(80, 250, 123, 0.06);
+  --color-diff-after-border: var(--color-border);
+  --color-progress-start: #8be9fd;
+  --color-progress-end: #d6bcff;
+  --color-progress-track: #282a36;
+  --color-progress-track-border: #8f98ba;
+  --color-progress-muted: #b8c2ea;
 
   /* Common */
   --font-sans:
@@ -78,7 +104,13 @@
   --color-on-accent: #ffffff;
   --color-border: #d3cbb7;
   --color-divider: rgba(0, 0, 0, 0.18);
+  --color-toc-rail: #8b8578; /* 3.40:1 on Solarized Light bg — non-text AA */
   --color-bg-muted: #e5dfc9;
+  --color-panel-subtle: rgba(0, 0, 0, 0.03);
+  --color-surface-meta: #4a5a5e;
+  --color-accent-soft-bg: rgba(28, 103, 155, 0.1);
+  --color-accent-soft-border: rgba(28, 103, 155, 0.25);
+  --color-accent-faint-bg: rgba(28, 103, 155, 0.08);
   --color-share-x: #000000;
   --color-share-facebook: #195d8c;
   --color-share-line: #176052;
@@ -107,8 +139,16 @@
 
   /* Semantic status colors (light) */
   --color-status-success: #1d6a5c;
+  --color-status-success-soft-bg: rgba(29, 106, 92, 0.08);
+  --color-status-danger: #b71c1c;
   --color-status-warning: #854d35;
   --color-status-info: #195d8c;
+  --color-status-neutral: #475569;
+  --color-technical-model: #475569;
+  --color-judge-librarian: #1d4ed8;
+  --color-judge-factcheck: #8f3852;
+  --color-judge-fresheyes: #7e22ce;
+  --color-judge-vibe: #8a5000;
 
   /* Section heading variants (light) */
   --color-heading-sd: #1d6a5c;
@@ -120,6 +160,22 @@
   /* Mogu murmur variant accent — indigo readable on cream background */
   --color-mogu-murmur: #555aa0; /* indigo — 5.41:1 on #fdf6e3 */
   --color-mogu-murmur-bg: rgba(85, 90, 160, 0.08);
+  --color-analogy-accent: #715500;
+  --color-shroomdog-note-accent: #4b722e;
+  --color-shroomdog-note-bg: color-mix(
+    in srgb,
+    var(--color-shroomdog-note-accent) 6%,
+    var(--color-bg)
+  );
+  --color-diff-before-bg: #fef2f1;
+  --color-diff-before-border: #e8c4c0;
+  --color-diff-after-bg: #f2f5de;
+  --color-diff-after-border: #d7dcb1;
+  --color-progress-start: #195d8c;
+  --color-progress-end: #6b4ca0;
+  --color-progress-track: #e5dfc9;
+  --color-progress-track-border: #777267;
+  --color-progress-muted: #4a5a5e;
 
   /* MoguNote body text — dedicated token, default --color-text is only 4.59:1 on --color-surface (#616) */
   --color-mogu-note-text: #425458; /* 6.49:1 on #eee8d5 */
@@ -227,13 +283,13 @@ a:hover {
 }
 
 .post-content a,
-.source-citation a {
+.source-citation-link-text {
   text-decoration: underline;
   text-decoration-thickness: 0.08em;
   text-underline-offset: 0.15em;
 }
 
-.source-citation a {
+.source-citation-link-text {
   color: var(--color-source-link);
 }
 
@@ -342,61 +398,109 @@ blockquote.mogu-note br {
   margin-top: 0.5rem;
 }
 
-/* GeminiNote - ボケ role: wild analogies, imaginative tangents */
-blockquote.gemini-note {
-  background: var(--color-surface);
-  border-left: 3px solid #4285f4;
-  padding: 0.75rem 1rem;
-  border-radius: 0 8px 8px 0;
-  font-style: normal;
-  color: var(--color-text);
-  margin: var(--spacing-md) 0;
-}
-
-blockquote.gemini-note strong {
-  color: #4285f4;
-}
-
-blockquote.gemini-note br {
-  display: block;
-  content: '';
-  margin-top: 0.5rem;
-}
-
-/* CodexNote - ツッコミ role: fact-check, deadpan corrections */
-blockquote.codex-note {
-  background: var(--color-surface);
-  border-left: 3px solid #10b981;
-  padding: 0.75rem 1rem;
-  border-radius: 0 8px 8px 0;
-  font-style: normal;
-  color: var(--color-text);
-  margin: var(--spacing-md) 0;
-}
-
-blockquote.codex-note strong {
-  color: #10b981;
-}
-
-blockquote.codex-note br {
-  display: block;
-  content: '';
-  margin-top: 0.5rem;
-}
-
 /* Citation / Source */
 .source-citation {
-  background: var(--color-surface);
-  border-radius: 8px;
-  padding: var(--spacing-sm);
-  margin-bottom: var(--spacing-md);
-  border-left: 3px solid var(--color-accent);
+  padding: 0.4rem 0;
 }
 
-.source-citation a {
+.source-citation-link-text {
   word-break: normal;
   overflow-wrap: break-word;
   hyphens: none;
+}
+
+.post {
+  --post-prose-line-height: 1.82;
+  --post-note-line-height: 1.62;
+}
+
+.post .post-header {
+  margin-bottom: 1rem;
+}
+
+.post .post-header h1 {
+  margin-bottom: 0.75rem;
+  font-size: clamp(1.9rem, 5vw, 2.35rem);
+  line-height: 1.28;
+  letter-spacing: -0.018em;
+}
+
+.post-header .source-citation {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 44px;
+  margin: 0.8rem 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  text-decoration: none;
+}
+
+.post-header .source-citation-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  margin-top: 0.08rem;
+  color: var(--color-accent);
+}
+
+.post-header .source-citation-link-text {
+  min-width: 0;
+}
+
+.post .post-content {
+  margin: 1.75rem 0 0;
+}
+
+.post-content p {
+  margin-bottom: 1.15rem;
+  line-height: var(--post-prose-line-height);
+}
+
+.post-content h2 {
+  margin-top: 2.8rem;
+  margin-bottom: 1rem;
+  font-size: 1.58rem;
+  line-height: 1.42;
+  letter-spacing: -0.01em;
+}
+
+.post-content h3 {
+  margin-top: 2rem;
+  margin-bottom: 0.85rem;
+  font-size: 1.22rem;
+  line-height: 1.45;
+}
+
+.post-content :is(ul, ol) {
+  margin-bottom: 1.25rem;
+}
+
+.post-content li {
+  margin-bottom: 0.55rem;
+  line-height: 1.75;
+}
+
+.post-content blockquote:not(.mogu-note):not([data-mogu-note]):not([data-shroomdog-note]) {
+  margin: 1.5rem 0;
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.post-content :is([data-mogu-note], [data-shroomdog-note]) {
+  font-size: 0.95rem;
+  line-height: var(--post-note-line-height);
+}
+
+.post-content :is([data-mogu-note], [data-shroomdog-note]) :is(p, li) {
+  line-height: var(--post-note-line-height);
+}
+
+.post-content pre {
+  margin: 1.5rem 0;
+  padding: 1rem 1.05rem;
 }
 
 /* Article meta */
@@ -610,5 +714,243 @@ blockquote.codex-note br {
     width: fit-content;
     padding: 0.46rem 0.68rem;
     font-size: 0.88rem;
+  }
+}
+
+/* High-fanout components live in the shared BaseLayout asset instead of every HTML page. */
+.toggle-container {
+  margin: 0.15rem 0;
+  border-radius: 6px;
+  background: transparent;
+  overflow: hidden;
+  transition: background 0.15s ease;
+}
+
+.toggle-container:hover {
+  background: var(--color-surface-hover, rgba(255, 255, 255, 0.03));
+}
+
+.toggle-container[data-open='true'] {
+  background: var(--color-surface);
+}
+
+.toggle-container .toggle-header {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.65rem;
+  width: 100%;
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-family: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  text-align: left;
+  outline: none;
+  min-height: 44px;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.15s ease;
+}
+
+.toggle-container .toggle-header:hover {
+  color: var(--color-accent);
+}
+
+.toggle-container .toggle-header:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.toggle-container .toggle-icon {
+  width: 0;
+  height: 0;
+  border-left: 5px solid var(--color-accent);
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.toggle-container[data-open='true'] .toggle-icon {
+  transform: rotate(90deg);
+  opacity: 1;
+}
+
+.toggle-container .toggle-title {
+  flex: 1;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.toggle-container .toggle-wrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.toggle-container[data-open='true'] .toggle-wrapper {
+  grid-template-rows: 1fr;
+}
+
+.toggle-container .toggle-inner {
+  overflow: hidden;
+}
+
+.toggle-container .toggle-content {
+  padding: 0.25rem 0.65rem 0.75rem 1.5rem;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  line-height: 1.6;
+  min-height: 0;
+}
+
+.toggle-container .toggle-content p:last-child {
+  margin-bottom: 0;
+}
+
+.ticket-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ticket-wrapper .ticket-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  letter-spacing: 0.03em;
+  vertical-align: middle;
+  cursor: default;
+}
+
+.ticket-wrapper .ticket-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.ticket-wrapper .ticket-sd {
+  background-color: var(--color-badge-sd-bg);
+  color: var(--color-badge-sd);
+  border: 1px solid var(--color-badge-sd-border, var(--color-badge-border));
+}
+
+.ticket-wrapper .ticket-label-sd {
+  color: var(--color-badge-sd);
+}
+
+.ticket-wrapper .ticket-gp {
+  background-color: var(--color-badge-gp-bg);
+  color: var(--color-badge-gp);
+  border: 1px solid var(--color-badge-gp-border, var(--color-badge-border));
+}
+
+.ticket-wrapper .ticket-label-gp {
+  color: var(--color-badge-gp);
+}
+
+.ticket-wrapper .ticket-mp {
+  background-color: var(--color-badge-mp-bg);
+  color: var(--color-badge-mp);
+  border: 1px solid var(--color-badge-mp-border, var(--color-badge-border));
+}
+
+.ticket-wrapper .ticket-label-mp {
+  color: var(--color-badge-mp);
+}
+
+.ticket-wrapper .ticket-lv {
+  background-color: var(--color-badge-lv-bg);
+  color: var(--color-badge-lv);
+  border: 1px solid var(--color-badge-lv-border, var(--color-badge-border));
+}
+
+.ticket-wrapper .ticket-label-lv {
+  color: var(--color-badge-lv);
+}
+
+.post-status-label {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.post-status-label.post-status-label--deprecated {
+  color: var(--color-status-warning, #ffb86c);
+}
+
+.post-status-label.post-status-label--retired {
+  color: var(--color-text-muted);
+}
+
+.pagination {
+  margin: 2rem 0 1rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.pagination .pagination-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.pagination .pagination-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-source-link);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  text-decoration: none;
+  transition: all 0.15s ease;
+  min-width: 100px;
+  justify-content: center;
+}
+
+.pagination a.pagination-link:hover {
+  background: var(--color-surface-hover);
+  border-color: var(--color-accent);
+}
+
+.pagination .pagination-disabled {
+  opacity: 0.35;
+  cursor: default;
+  color: var(--color-text-muted);
+}
+
+.pagination .pagination-info {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.pagination a.pagination-link:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+  .toggle-container .toggle-header {
+    padding: 0.6rem 0.65rem;
+    min-height: 44px;
+  }
+
+  .pagination .pagination-link {
+    min-height: 44px;
+    padding: 0.6rem 1.2rem;
   }
 }

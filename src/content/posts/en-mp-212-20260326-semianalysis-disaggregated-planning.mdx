@@ -1,0 +1,72 @@
+---
+ticketId: "MP-212"
+title: "Disaggregated Planning: Why the Strongest Reasoning Model Isn't Always the Best Coder"
+originalDate: "2026-03-26"
+translatedDate: "2026-03-26"
+translatedBy:
+  model: "Gemini 3.1 Pro"
+  harness: "Gemini CLI"
+source: "@SemiAnalysis_ on X"
+sourceUrl: "https://x.com/SemiAnalysis_/status/2036971501736317197"
+lang: "en"
+summary: "SemiAnalysis argues that agentic coding might follow the same pattern as disaggregated prefill—splitting planning from execution. If the spec is good enough, cheaper models could handle execution, cutting costs significantly."
+tags: ["LLM","Agent","Coding"]
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+Picture this: a restaurant with a three-Michelin-star head chef, charging three thousand bucks a plate. And then the owner asks this world-class chef to chop onions, wash dishes, and wipe down tables. Sure, the knife skills are unmatched—but does chopping onions really require world-class knife skills?
+
+@SemiAnalysis_ recently floated an idea on X that's essentially asking the same question: in the world of [agentic coding](/en/glossary#Agent), are the most expensive models also stuck "chopping onions"?
+
+<MoguNote>
+Speaking of chefs chopping onions—this analogy hits even harder in AI agent circles. The mainstream approach right now is having one model do everything from start to finish: reading the codebase, designing the architecture, writing code, running tests, fixing bugs—all the same brain. It's like asking an architect to finish the blueprints and then squat at the construction site laying bricks. Not impossible, but those hands are awfully expensive (¬‿¬)
+</MoguNote>
+
+---
+
+## Breaking It Down: Prefill Got There First
+
+The story starts with how LLM inference architecture has evolved. On the inference side, there's a technique called disaggregated prefill—splitting the compute-heavy prefill phase from the memory-bound decode phase and running them on different hardware. Why split? Because these two phases have completely different resource profiles, and bundling them together just makes them drag each other down.
+
+SemiAnalysis says: hold on, isn't writing code the same deal?
+
+<MoguNote>
+This analogy is interesting, but also a bit dangerous. The prefill/decode split is a well-defined engineering problem—input tokens and output tokens have completely different computational characteristics, so the split is clear-cut. But where's the boundary between "planning" and "execution"? How detailed does a spec need to be before it's "good enough"? This isn't a clean hardware-level cut. It's more like asking "how detailed does an architectural blueprint need to be so the workers don't build it crooked"—and the answer is *it depends*, with enough dependencies to fill three more articles (╯°□°)╯
+</MoguNote>
+
+---
+
+## The Real Insight: Not "Which Is Stronger," but "Strong at Different Things"
+
+The key line in the thread: **planning and execution are different cognitive tasks, and they favor different model profiles.**
+
+This sounds intuitive on the surface, but think about it—it's actually challenging a deeply ingrained assumption: "the deeper a model reasons, the better it codes." SemiAnalysis pushes back: deep reasoning matters for planning, but execution might need a different set of capabilities (speed, consistency, fluency with boilerplate). A model that can spend five minutes thinking through architecture doesn't necessarily belong spending two hours typing out code line by line.
+
+The original author's illustration is blunt: `Opus architects, Sonnet/Codex builds.` — [Opus](/en/glossary#Opus) does the thinking, Sonnet or [Codex](/en/glossary#Codex) does the building. (This [Codex](/en/glossary#codex) is OpenAI's agentic coding product name revived in 2025, not the deprecated 2021 model—[the glossary has the full breakdown](/en/glossary#Codex).)
+
+<MoguNote>
+Honestly, this division of labor sounds elegant, but SemiAnalysis skipped over the hardest part: **handoff fidelity**. Can Sonnet really execute Opus's plan with 100% faithfulness? Or will subtle drift creep in during interpretation? It's like tossing a designer's Figma to an outsourced engineer—pixel-perfect in theory, but somehow a few buttons always end up 3px off. The more abstract the plan, the more freedom in execution, and the higher the probability of deviation. So the real bottleneck isn't whether you *can* split—it's how precise the plan needs to be after you do.
+</MoguNote>
+
+---
+
+## But Wait—About That Bill
+
+The thread drops a pretty devastating cost comparison: if a $3/M tokens model can perfectly execute a well-written spec, why burn $15/M tokens making the big model do grunt work?
+
+Five times the price difference. Same output.
+
+That's the core pitch of disaggregated planning: it's not that big models are bad—it's that their capabilities are overkill for certain stages. It's like hiring a lawyer to draft a contract—worth it. But hiring the same lawyer to photocopy the contract every day? That's waste.
+
+<MoguNote>
+"A $3 model can perfectly execute a well-written spec"—those four words "well-written spec" are doing some serious heavy lifting. [Simon Willison](/en/glossary#simon-willison) made this point when he was [discussing agentic engineering patterns](/posts/gp-80-20260223-simonw-agentic-engineering-patterns): writing code got cheap, but writing *good specs* is still expensive. So SemiAnalysis's cost-saving argument has a paradoxical premise—saving on execution costs requires spending more money (or time) in the planning phase to make the spec precise enough. How much of that 5x savings gets eaten back up? The math isn't as simple as the thread makes it sound ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## Conclusion
+
+Back to that restaurant. What SemiAnalysis is really asking isn't "which model should I use"—it's something more fundamental: **how many different types of "cognitive work" are actually involved in writing code?** Once you break that down clearly, you can match each type of work to its best-suited tool, and you won't need a three-star chef chopping onions anymore.
+
+That said, splitting things elegantly is one thing. Whether the two halves can reconnect cleanly after the split—that's the real hard fight (๑•̀ㅂ•́)و✧

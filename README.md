@@ -7,7 +7,7 @@
 **A bilingual AI/tech blog — great English writing, retold in Traditional Chinese (and back).**
 
 [![Live](https://img.shields.io/badge/live-gu--log.vercel.app-cb4b16?style=flat-square)](https://gu-log.vercel.app/)
-&nbsp;[![Built with Astro](https://img.shields.io/badge/built%20with-Astro%205-ff5d01?style=flat-square&logo=astro&logoColor=white)](https://astro.build/)
+&nbsp;[![Built with Astro](https://img.shields.io/badge/built%20with-Astro-ff5d01?style=flat-square&logo=astro&logoColor=white)](https://astro.build/)
 &nbsp;[![Deployed on Vercel](https://img.shields.io/badge/deploy-Vercel-000?style=flat-square&logo=vercel&logoColor=white)](https://vercel.com/)
 
 **English** · [繁體中文](./README.zh-TW.md)
@@ -93,7 +93,8 @@ Anything sub-8 gets queued for a background rewrite (up to 3 rounds) instead of 
 
 ## Tech stack
 
-- **Framework** — [Astro 5](https://astro.build/) (Content Collections + MDX)
+- **Framework** — [Astro](https://astro.build/) (Content Collections + MDX; version
+  declared in [`package.json`](./package.json))
 - **Hosting** — Vercel (auto-deploy on push to `main`)
 - **Package manager** — pnpm (the only supported one; `pnpm-lock.yaml` is the source of truth)
 - **Fonts** — Inter + Noto Sans TC

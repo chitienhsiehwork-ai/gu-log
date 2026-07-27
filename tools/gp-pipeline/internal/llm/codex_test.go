@@ -128,8 +128,12 @@ func TestCodexOnlyRunScopedOverrideUsesRequestedModel(t *testing.T) {
 	t.Setenv("GP_CODEX_MODEL", "gpt-5.6-sol")
 	t.Setenv("GP_WRITER_PROVIDER", "codex")
 
+	writerChain, err := WritingChain()
+	if err != nil {
+		t.Fatalf("WritingChain: %v", err)
+	}
 	for name, chain := range map[string][]Provider{
-		"writer": WritingChain(),
+		"writer": writerChain,
 		"judge":  DefaultJudgeChain(),
 	} {
 		if len(chain) != 1 {
@@ -147,6 +151,61 @@ func TestCodexOnlyRunScopedOverrideUsesRequestedModel(t *testing.T) {
 	}
 }
 
+func TestExplicitClaudeWriterProviderDoesNotFallBackToCodexWhenUnavailable(t *testing.T) {
+	binDir := t.TempDir()
+	codexPath := filepath.Join(binDir, "codex")
+	if err := os.WriteFile(codexPath, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+		t.Fatalf("write fake codex: %v", err)
+	}
+
+	t.Setenv("PATH", binDir)
+	t.Setenv("GP_WRITER_PROVIDER", "claude")
+
+	chain, err := WritingChain()
+	if err != nil {
+		t.Fatalf("WritingChain: %v", err)
+	}
+	if len(chain) != 1 {
+		t.Fatalf("writer chain length = %d, want 1", len(chain))
+	}
+	if _, ok := chain[0].(*ClaudeProvider); !ok {
+		t.Fatalf("writer provider type = %T, want *ClaudeProvider", chain[0])
+	}
+	if got := chain[0].Model(); got != ModelID(ClaudeOpusPinned) {
+		t.Fatalf("writer model = %q, want pinned %q", got, ClaudeOpusPinned)
+	}
+	if chain[0].Available() {
+		t.Fatal("Claude should be unavailable in the isolated PATH")
+	}
+
+	t.Setenv("GP_WRITER_PROVIDER", "")
+	autoChain, err := WritingChain()
+	if err != nil {
+		t.Fatalf("WritingChain auto: %v", err)
+	}
+	if len(autoChain) != 1 {
+		t.Fatalf("unset writer chain length = %d, want 1", len(autoChain))
+	}
+	if _, ok := autoChain[0].(*CodexProvider); !ok {
+		t.Fatalf("unset writer provider type = %T, want available Codex fallback", autoChain[0])
+	}
+}
+
+func TestWritingChainRejectsUnknownExplicitProvider(t *testing.T) {
+	t.Setenv("GP_WRITER_PROVIDER", "cluade")
+
+	chain, err := WritingChain()
+	if err == nil {
+		t.Fatalf("WritingChain = %#v, want an invalid-provider error", chain)
+	}
+	if !strings.Contains(err.Error(), `GP_WRITER_PROVIDER="cluade"`) {
+		t.Fatalf("WritingChain error = %q, want the invalid value", err)
+	}
+	if !strings.Contains(err.Error(), `valid values are "claude", "codex", or unset`) {
+		t.Fatalf("WritingChain error = %q, want actionable valid values", err)
+	}
+}
+
 func TestDefaultWritingChainUsesPinnedClaudeOpus(t *testing.T) {
 	chain := DefaultWritingChain()
 	if len(chain) != 1 {
@@ -161,7 +220,7 @@ func TestDefaultWritingChainUsesPinnedClaudeOpus(t *testing.T) {
 	if chain[0].Model() != ModelID(ClaudeOpusPinned) {
 		t.Fatalf("writing model = %q, want %q", chain[0].Model(), ClaudeOpusPinned)
 	}
-	if got := DisplayName(chain[0].Model()); got != "Opus 4.5" {
-		t.Fatalf("writing DisplayName = %q, want Opus 4.5", got)
+	if got := DisplayName(chain[0].Model()); got != "Opus 5" {
+		t.Fatalf("writing DisplayName = %q, want Opus 5", got)
 	}
 }

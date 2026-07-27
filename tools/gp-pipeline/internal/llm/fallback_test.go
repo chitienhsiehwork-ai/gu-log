@@ -30,7 +30,10 @@ func TestAnyAvailable(t *testing.T) {
 }
 
 func TestWritingChainUsesSingleResolvedWriter(t *testing.T) {
-	chain := WritingChain()
+	chain, err := WritingChain()
+	if err != nil {
+		t.Fatalf("WritingChain: %v", err)
+	}
 	if len(chain) == 0 {
 		t.Fatal("WritingChain returned an empty chain")
 	}
@@ -46,10 +49,9 @@ func TestWritingChainUsesSingleResolvedWriter(t *testing.T) {
 
 // TestJudgeChainWithClaudeFallbackResolvesOneJudge guards the stamp-resolution
 // path used by JudgeStampLabels. The chain must resolve to exactly one runnable
-// judge — Codex GPT-5.5 when codex is on PATH, else the Claude fallback (CCC /
-// web sandbox). It must NEVER come back empty or leave an unavailable codex as
-// the only entry on a codex-absent box, which is what let the pipeline stamp a
-// hardcoded GPT-5.5 signature on Claude-run posts.
+// judge: the configured Codex judge when available, otherwise the Claude
+// fallback used in CCC. It must never come back empty or mislabel a fallback
+// run with the unavailable primary provider.
 func TestJudgeChainWithClaudeFallbackResolvesOneJudge(t *testing.T) {
 	chain := JudgeChainWithClaudeFallback(false)
 	if len(chain) != 1 {
@@ -88,20 +90,23 @@ func TestEffectiveStampLabels(t *testing.T) {
 	// EffectiveStamp never invents an unknown label; it returns one of the two
 	// known provider identities. We can't force PATH here, so we just assert
 	// the result is internally consistent (model/harness from the same family).
-	model, harness := EffectiveStamp()
+	model, harness, err := EffectiveStamp()
+	if err != nil {
+		t.Fatalf("EffectiveStamp: %v", err)
+	}
 	switch model {
 	case "GPT-5.5":
 		if harness != "Codex CLI" {
 			t.Fatalf("GPT-5.5 stamped with harness %q, want Codex CLI", harness)
 		}
-	// When claude is on PATH the writer is the pinned build, so the stamp is
-	// "Opus 4.5" — not the floating-alias "Opus 4.8" (that was the provenance
-	// bug this guards against).
-	case "Opus 4.5", "Opus 4.8":
+	// When claude is on PATH the writer is the pinned build, so the stamp is the
+	// pinned build's display name — never the bare alias string (that was the
+	// provenance bug this guards against).
+	case "Opus 5":
 		if harness != "Claude Code CLI" {
 			t.Fatalf("%s stamped with harness %q, want Claude Code CLI", model, harness)
 		}
 	default:
-		t.Fatalf("EffectiveStamp model = %q, want GPT-5.5 or Opus 4.5", model)
+		t.Fatalf("EffectiveStamp model = %q, want GPT-5.5 or Opus 5", model)
 	}
 }

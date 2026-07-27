@@ -29,10 +29,8 @@ const KNOWN_MODEL_DISPLAY_NAMES = new Set(Object.values(MODEL_MAP).map((n) => n.
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const POSTS_DIR = path.join(__dirname, '../src/content/posts');
-const _COUNTER_FILE = path.join(__dirname, 'article-counter.json');
 
 // ─── Config ────────────────────────────────────────────────────────
-const _VALID_PREFIXES = ['GP', 'MP', 'SD', 'Lv'];
 const VALID_LANGS = ['zh-tw', 'en'];
 // PENDING is a legitimate in-flight ticket state used by the gp-pipeline
 // and by manual drafters working on parallel branches. The deploy step
@@ -41,7 +39,6 @@ const VALID_LANGS = ['zh-tw', 'en'];
 const TICKET_PATTERN = /^(GP|MP|SD|Lv)-(?:\d+|PENDING)$/;
 const RETIRED_TICKET_PATTERN = /^(SP|CP)-(\d+|PENDING)$/;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-const URL_PATTERN = /^https?:\/\/.+/;
 const MIN_CONTENT_LENGTH = 200; // characters, excluding frontmatter
 const REDUNDANT_BOTTOM_CITATION_PATTERNS = [
   /\n---\s*\n+\*\*原文來源[：:]\*\*/,
@@ -90,6 +87,18 @@ const containsCjkEscape = (line) => CJK_ESCAPE_MARKERS.some((m) => line.includes
 const CJK_GRANDFATHERED_LINES = new Map([]);
 
 // ─── Helpers ───────────────────────────────────────────────────────
+
+function isHttpUrl(value) {
+  if (typeof value !== 'string') return false;
+  const scheme = value.match(/^(https?):\/\//i)?.[1]?.toLowerCase();
+  if (!scheme) return false;
+  try {
+    const protocol = new URL(value).protocol;
+    return protocol === `${scheme}:`;
+  } catch {
+    return false;
+  }
+}
 
 // coerceYamlValue recursively normalizes a real yaml.parse() result back
 // into the flat-string / string-array shape every rule below already
@@ -337,8 +346,13 @@ function validatePost(filepath, allPosts, options = {}) {
   }
 
   // ── Rule 5: sourceUrl is valid URL ──
-  if (fm.sourceUrl && !URL_PATTERN.test(fm.sourceUrl)) {
+  if (fm.sourceUrl && !isHttpUrl(fm.sourceUrl)) {
     errors.push(`Invalid sourceUrl: "${fm.sourceUrl}" (must start with http:// or https://)`);
+  }
+  if (fm.translatedBy?.pipelineUrl && !isHttpUrl(fm.translatedBy.pipelineUrl)) {
+    errors.push(
+      `Invalid translatedBy.pipelineUrl: "${fm.translatedBy.pipelineUrl}" (must start with http:// or https://)`
+    );
   }
 
   // ── Rule 6: lang matches filename convention ──

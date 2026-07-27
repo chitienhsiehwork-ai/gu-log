@@ -1,0 +1,163 @@
+---
+ticketId: "MP-275"
+title: "Gemma 4 Arrives — Google's Open-Source Quartet Crushes Rivals on Token Efficiency but Still Lags in Intelligence"
+originalDate: "2026-04-04"
+translatedBy:
+  model: "GPT-5.6-Sol"
+  harness: "Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@ArtificialAnlys on X"
+sourceUrl: "https://twitter.com/ArtificialAnlys/status/2040241636089729451"
+lang: "en"
+summary: "Google’s Gemma 4 open-source family comes in four sizes, all with multimodal support, reasoning mode, and 256K context. The flagship 31B uses 2.5× fewer tokens than Qwen3.5 27B but trails it by 3 intelligence points, while the tiny E2B can run on a phone."
+tags: ["gemma","google","open-weights","benchmarks","on-device-ai"]
+translatedDate: "2026-07-26"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+On the open-source model leaderboard, Gemma 4 31B scored 39, while its rival Qwen3.5 27B scored 42. Most people would see that, say, “Google lost again,” and close the page.
+
+But when you lay out the full dataset from Artificial Analysis, the story takes a turn no one expected.
+
+(For the official specs, license terms, and a full overview of the family, see [MP-242](/posts/mp-242-20260403-article-gemma-4-google-gemini-3/). This article focuses on **independent benchmark results** — and the Artificial Analysis data tells a very different story from the leaderboard.)
+
+## The Price of 42 Points: The Bill No One Else Shows You
+
+Before writing Gemma 4's obituary, pull up Artificial Analysis's token usage table. To complete the same Intelligence Index benchmark suite, the models ran up the following output-token bills: GLM-4.7 burned through **167 million** tokens, Qwen3.5 used **98 million**, DeepSeek V3.2 used 61 million, and MiniMax-M2.5 used 56 million.
+
+Gemma 4 31B? **39 million.**
+
+GLM-4.7 scored only 3 points higher than Gemma 4, but used more than four times as many tokens. Qwen3.5 also led Gemma 4 by 3 points, while using 2.5 times as many tokens. Imagine two consultants producing the same report for a company: Consultant A charges $980,000, Consultant B charges $390,000, and the quality is about the same — which one is the boss going to hire?
+
+<MoguNote>
+Put more plainly: in API scenarios billed by the token, running Gemma 4 would cost about 40% as much as Qwen3.5.
+Forty percent. Not a 10% discount, not 30% off — a full 60% cut.
+Google's strategy this time isn't “get the highest score.” It's “write roughly the same answer with the least ink.”
+In school, that's called slacking off. In business, it's called efficiency (⌐■_■)
+</MoguNote>
+
+But wait — is that 3-point gap really just 3 points?
+
+---
+
+## Breaking Down the Scorecard: Where Did Those 3 Points Go?
+
+Once you break down the individual results, things get interesting. On the core knowledge benchmarks — SciCode, TerminalBench Hard, GPQA Diamond, IFBench, and HLE — Gemma 4 31B performed **almost identically** to the models scoring 42. Gemma 4 actually led on SciCode (43% vs. 40%) and TerminalBench Hard (36% vs. 33%), while tying exactly on GPQA Diamond and IFBench.
+
+So where did it lose those 3 points? The answer is **agentic capability** — tasks that require the model to connect tools and make multistep reasoning decisions on its own. Gemma 4 genuinely falls behind there.
+
+It's like two students getting nearly identical grades in Chinese, math, and English, only for one to pull ahead in PE. If the job doesn't involve running laps (that is, it doesn't require agent workflows), there's practically no difference between their grades.
+
+<MoguNote>
+So the question isn't “Is Gemma 4 weaker?” It's “Which subject is it weaker in?”
+If your deployment is for RAG, Q&A, summarization, or translation, it's basically on par with those 42-point models — at only 40% of the cost.
+If you need an agent to operate autonomously, then yes, you should choose something else.
+**Choosing a model has never been about picking the highest score. It's about picking the best fit for the test.** (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+---
+
+## The Family Formation: Google Isn't Moving One Piece — It's Playing the Whole Board
+
+At this point, you might be thinking: fine, 31B offers good value, but did Google really need to release four models at once?
+
+It did. Google isn't playing the game of “send one flagship up the leaderboard.” It wants to **cover the entire deployment curve** — from the data center to your pocket.
+
+We've already covered the big brother, 31B, which is built to go toe-to-toe with the competition. One tier down is **E4B** — 8B parameters, a 128K context window, and an Intelligence Index score of 19. The score isn't the point. What matters is that it's the first member of the family that can **listen**: it supports native audio input alongside text, images, and video. Monitoring and analysis, customer-service calls, understanding footage from the field — these use cases don't need 31B-level firepower. They need perception, and E4B sits right in that sweet spot.
+
+Then there's the smallest model, **E2B** — we'll give it its own section in a moment, because there's another counterintuitive surprise waiting there.
+
+But the member of the family that really raises eyebrows is the one in the middle.
+
+<MoguNote>
+The entire family is licensed under Apache 2.0. A lot of people gloss over that in a single sentence, but it matters ten times more than any benchmark score.
+Gemma 3's license came with a pile of restrictions, so the community practically had to consult a lawyer every time it wanted to use the model.
+Now it's simply Apache 2.0 — essentially Google saying, “Take it. Commercial use is fine. You don't have to ask.”
+This isn't an act of technical charity. It's an ecosystem strategy: the more places Gemma runs, the better it is for Google Cloud.
+The open-source world breathed a collective sigh of relief, and Google didn't make a bad deal either ╰(°▽°)╯
+</MoguNote>
+
+---
+
+## The Awkward One in the Family
+
+The pitch for the MoE architecture has always been seductive: lots of total parameters, but only a small group of “experts” wakes up for each task. In theory, you get the knowledge of a large model at the compute cost of a small one. **Gemma 4 26B A4B** is the product of that idea — 27B total parameters, with only 4B active at a time.
+
+The problem is that theory is theory, and the scorecard tells the truth.
+
+In the same category, Qwen3.5 35B A3B scored 37 with **3B** active parameters and posted an Agentic Index of 44. Gemma 4 used **4B** active parameters — 33% more active compute — only to score 31, with an Agentic Index of 32. It didn't just get embarrassed; it got embarrassed by a rival using fewer resources.
+
+The big brother goes toe-to-toe with 42-point models at 40% of the token bill, while the second child uses more resources and still can't beat its rival's A3B. Same family: one brother is the king of efficiency, the other is a cautionary tale about it. However you look at it, that's a pretty cruel script.
+
+<MoguNote>
+The potential of the MoE architecture is real — just look at Qwen3.5 A3B. Scoring 37 with 3B active parameters is incredible.
+But “good architecture” and “well executed” are two different things.
+Gemma 4 A4B is like a hybrid car that promises great fuel economy on the spec sheet, then burns more fuel in a road test than the conventional car next door.
+Maybe the routing wasn't trained well enough; maybe the expert-allocation strategy is the problem. Whatever the reason, this model is awkwardly positioned right now — cheaper than the flagship, but not cheap enough; weaker than Qwen, and noticeably so ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## The Twist: Somehow, the Small Models Are More “Honest” Than the Big Ones
+
+So far, the Gemma 4 story has been: “the flagship is cost-effective, the second child is a disappointment, and the little ones haven't come onstage yet.” But buried in the Artificial Analysis data is a finding that turns the entire narrative on its head.
+
+The **AA-Omniscience score** measures a model's self-awareness — whether it knows what it doesn't know. The closer the score is to 0, the better; the more negative it is, the more overconfident the model is and the more willing it is to make things up. Common sense says that a larger model knows more, so it should have better self-awareness, right?
+
+The results were the exact opposite.
+
+Gemma 4's two smaller models, E4B (-20) and E2B (-24), had dramatically better Omniscience scores than their own 31B flagship at **-45**. They were even comparable to a giant model like DeepSeek V3.2 (-21). Meanwhile, the “smart” large models — 31B, 26B A4B (-48), and Qwen3.5 27B (-42) — were all severely overconfident.
+
+The models that know the most are also the most willing to bluff an answer when they're unsure. The models that know the least have somehow learned to raise their hands and say, “I'm not sure about this one.”
+
+This isn't just an interesting data point. In fields such as medicine, law, and finance, where there's zero tolerance for hallucinations, a small model that says “I don't know” is **far safer** than a large model that's confidently wrong.
+
+<MoguNote>
+This finding is more worth remembering than every benchmark ranking combined.
+There are two possible explanations: Google may have applied special calibration during small-model training, or reasoning training itself may have side effects — encouraging models to “think more before answering,” only for all that extra thinking to sometimes make them more willing to bluff.
+Whatever the cause, the conclusion is the same: **A model's value isn't just about how many questions it gets right. It's also about whether it knows when it gets one wrong.**
+And somehow, the little ones beat the big ones at that (◕‿◕)
+</MoguNote>
+
+---
+
+## The Smallest One Has the Biggest Ambition
+
+Back to E2B. It has 5.1B total parameters, 2.3B active parameters, and takes up less than 3GB after 4-bit quantization — **small enough to run on a mid-to-high-end phone**. It supports text, images, video, and native audio. Intelligence Index score: 15.
+
+Fifteen sounds terrible, but look at it another way: three years ago, running an AI model that could process both text and images on a phone was the stuff of science fiction. Now this model not only runs there; it can also listen to audio, watch video, and perform function calling — completely offline, completely free (Apache 2.0), with latency determined by the local chip rather than the network.
+
+E2B's competitor isn't Qwen3.5 — it's CoreML and TFLite. Google isn't fighting other AI labs for benchmark points. It's fighting Apple for AI territory on the phone.
+
+From the token efficiency at the start of this article, to 31B's 60%-lower bill, to E4B's multimodal perception, and finally E2B's pocket-sized deployment, the design logic behind Gemma 4 has been the same all along: **don't build the smartest model; make AI run in as many places as possible.**
+
+---
+
+## Conclusion
+
+Gemma 4 does indeed trail Qwen3.5 and DeepSeek V3.2 by 3 points on the Intelligence Index. If all you look at is the leaderboard, that's the end of the story: Google comes in second again.
+
+But once you lay out the bill, dig up the Omniscience scores, and understand the legal significance of Apache 2.0, that 3-point gap on the leaderboard becomes the least important number in the entire story.
+
+The open-source model battlefield is no longer just about who scores highest on the test. **The next round is about who can make AI run at the lowest cost, in the most places, while making the fewest mistakes.** Judging by the Artificial Analysis data, Gemma 4 may not be the smartest — but Google may be winning a contest most people haven't even noticed yet.
+
+<MoguNote>
+One last dose of reality: token efficiency isn't a moat.
+Qwen and DeepSeek are working on the same optimizations, and this gap could narrow within six months. The scores can be caught, too.
+Gemma 4 has only two genuine long-term advantages: the legal certainty of Apache 2.0 and integration with Google's ecosystem (Android, Chrome, Vertex AI).
+Scores can be caught and efficiency can be copied. But if a model is already built into a billion phones — now that's a moat (ˉ▽ˉ;)
+</MoguNote>

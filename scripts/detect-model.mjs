@@ -26,7 +26,7 @@
  *
  * ⚠️ BUMP THIS when a newer Opus ships and the `opus` alias moves to it.
  */
-export const OPUS_ALIAS_CURRENT = 'claude-opus-4-8';
+export const OPUS_ALIAS_CURRENT = 'claude-opus-5';
 
 /**
  * Resolve a model selector to the concrete id used for RECORDING. The literal
@@ -51,6 +51,7 @@ export const MODEL_MAP = {
   // Claude 5 generation drops the decimal minor version (whole-number release
   // names), unlike the 4.x Opus/Sonnet line above — see validate-posts.mjs
   // Rule 15, which treats every MODEL_MAP value as a complete display name.
+  'claude-opus-5': 'Opus 5',
   'claude-sonnet-5': 'Sonnet 5',
   'claude-fable-5': 'Fable 5',
   'claude-sonnet-4-6': 'Sonnet 4.6',
@@ -63,6 +64,7 @@ export const MODEL_MAP = {
   'gemini-2.5-flash': 'Gemini 2.5 Flash',
   'gemini-3-pro': 'Gemini 3 Pro',
   // OpenAI Codex
+  'gpt-5.6-sol': 'GPT-5.6-Sol',
   'gpt-5.5': 'GPT-5.5',
   'gpt-5.4': 'GPT-5.4',
   'gpt-5.3-codex': 'GPT-5.3 Codex',

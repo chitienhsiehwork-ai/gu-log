@@ -6,6 +6,9 @@
  * Prefers hash fragment (#token=xxx) with query param fallback for compatibility.
  * Stores the JWT in localStorage and redirects back to the original page.
  */
+import '../../styles/global.css';
+
+const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
 ---
 
 <html lang="en">
@@ -13,6 +16,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Logging in...</title>
+    <script is:inline>
+      const theme = localStorage.getItem('theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', theme);
+    </script>
     <style>
       body {
         display: flex;
@@ -21,8 +28,9 @@
         min-height: 100vh;
         margin: 0;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        background: #1a1b26;
-        color: #a9b1d6;
+        line-height: 1.5;
+        background: var(--color-bg);
+        color: var(--color-text);
       }
       .callback-container {
         text-align: center;
@@ -31,8 +39,8 @@
       .spinner {
         width: 40px;
         height: 40px;
-        border: 3px solid #3b4261;
-        border-top-color: #7aa2f7;
+        border: 3px solid var(--color-border);
+        border-top-color: var(--color-status-info);
         border-radius: 50%;
         animation: spin 0.8s linear infinite;
         margin: 0 auto 1rem;
@@ -43,22 +51,75 @@
         }
       }
       .error {
-        color: #f7768e;
+        color: var(--color-status-danger);
         margin-top: 1rem;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.75rem 1rem;
+        margin-top: 1.5rem;
+      }
+      .actions a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        padding-inline: 0.75rem;
+        color: var(--color-accent);
+        font-weight: 600;
+      }
+      .actions a:focus-visible {
+        outline: 2px solid var(--color-status-info);
+        outline-offset: 3px;
+        border-radius: 0.25rem;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .spinner {
+          animation: none;
+        }
       }
     </style>
   </head>
   <body>
     <div class="callback-container">
-      <div class="spinner"></div>
-      <p id="status">Logging in...</p>
-      <p id="error" class="error" style="display:none;"></p>
+      <div class="callback-status" role="status" aria-live="polite" aria-atomic="true">
+        <div class="spinner" aria-hidden="true"></div>
+        <p id="status">Logging in...</p>
+        <p id="error" class="error" hidden></p>
+      </div>
+      <div id="actions" class="actions" hidden>
+        <a href={`${apiUrl}/auth/github`}>Try GitHub login again</a>
+        <a href="/">Back to homepage</a>
+      </div>
     </div>
 
     <script is:inline>
       (function () {
         const JWT_KEY = 'gu-log-jwt';
         const RETURN_KEY = 'gu-log-return-url';
+
+        function getSafeReturnUrl(rawReturnUrl) {
+          const fallbackUrl = `${window.location.origin}/`;
+          if (!rawReturnUrl) return fallbackUrl;
+
+          try {
+            const parsed = new URL(rawReturnUrl, window.location.origin);
+            if (
+              (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') ||
+              parsed.origin !== window.location.origin ||
+              parsed.pathname.startsWith('//')
+            ) {
+              return fallbackUrl;
+            }
+            return `${window.location.origin}${parsed.pathname}${parsed.search}${parsed.hash}`;
+          } catch {
+            return fallbackUrl;
+          }
+        }
 
         let token = null;
         if (window.location.hash) {
@@ -74,23 +135,25 @@
         if (token) {
           localStorage.setItem(JWT_KEY, token);
           document.getElementById('status').textContent = 'Login successful! Redirecting...';
+          document.querySelector('.spinner').hidden = true;
+          document.title = 'Login successful';
 
           // Redirect back to the page user was on
-          const returnUrl = localStorage.getItem(RETURN_KEY) || '/';
+          const returnUrl = localStorage.getItem(RETURN_KEY);
           localStorage.removeItem(RETURN_KEY);
+          const safeReturnUrl = getSafeReturnUrl(returnUrl);
 
           setTimeout(function () {
-            window.location.href = returnUrl;
+            window.location.href = safeReturnUrl;
           }, 500);
         } else {
           document.getElementById('status').textContent = 'Login failed.';
+          document.querySelector('.spinner').hidden = true;
+          document.title = 'Login failed';
           const errorEl = document.getElementById('error');
-          errorEl.style.display = 'block';
-          errorEl.textContent = 'No token received. Please try again.';
-
-          setTimeout(function () {
-            window.location.href = '/';
-          }, 3000);
+          errorEl.hidden = false;
+          errorEl.textContent = 'No token received. Choose an option below.';
+          document.getElementById('actions').hidden = false;
         }
       })();
     </script>
