@@ -104,6 +104,95 @@ test.describe('Component smoke — listing pages', () => {
   });
 });
 
+test.describe('Component smoke — shared high-fanout styles', () => {
+  for (const theme of ['dark', 'light'] as const) {
+    test(`${theme} Toggle, TicketBadge, and PostStatusLabel keep computed styles`, async ({
+      page,
+    }) => {
+      await page.addInitScript((selectedTheme) => {
+        localStorage.setItem('theme', selectedTheme);
+      }, theme);
+      await page.goto('/');
+
+      const toggle = page.locator('.post-preview .toggle-container').first();
+      const toggleHeader = toggle.locator('.toggle-header');
+      await expect(toggle).toBeVisible();
+      await expect(toggle).toHaveCSS('margin-bottom', '0px');
+      await expect(toggleHeader).toHaveCSS('padding-left', '12px');
+      await expect(toggleHeader).toHaveCSS('min-height', '44px');
+      await toggleHeader.focus();
+      await expect(toggleHeader).toHaveCSS('outline-style', 'solid');
+      await expect(toggleHeader).toHaveCSS('outline-width', '2px');
+      await toggleHeader.click();
+      await expect(toggle).toHaveAttribute('data-open', 'true');
+      await expect(toggleHeader).toHaveAttribute('aria-expanded', 'true');
+
+      const badge = page.locator('.ticket-wrapper .ticket-badge').first();
+      await expect(badge).toBeVisible();
+      await expect(badge).toHaveCSS('border-left-width', '1px');
+      expect(await badge.evaluate((element) => getComputedStyle(element).backgroundColor)).not.toBe(
+        'rgba(0, 0, 0, 0)'
+      );
+
+      const statusStyles = await page.evaluate(() => {
+        const deprecated = document.createElement('span');
+        deprecated.className = 'post-status-label post-status-label--deprecated';
+        const retired = document.createElement('span');
+        retired.className = 'post-status-label post-status-label--retired';
+        document.body.append(deprecated, retired);
+
+        const probe = document.createElement('span');
+        document.body.append(probe);
+        probe.style.color = 'var(--color-status-warning, #ffb86c)';
+        const warning = getComputedStyle(probe).color;
+        probe.style.color = 'var(--color-text-muted)';
+        const muted = getComputedStyle(probe).color;
+
+        const result = {
+          display: getComputedStyle(deprecated).display,
+          deprecated: getComputedStyle(deprecated).color,
+          retired: getComputedStyle(retired).color,
+          warning,
+          muted,
+        };
+        deprecated.remove();
+        retired.remove();
+        probe.remove();
+        return result;
+      });
+      expect(statusStyles).toEqual({
+        display: 'inline-flex',
+        deprecated: statusStyles.warning,
+        retired: statusStyles.muted,
+        warning: statusStyles.warning,
+        muted: statusStyles.muted,
+      });
+    });
+  }
+
+  test('Pagination keeps focus/touch sizing and SeriesNav avoids Toggle triangle styles', async ({
+    page,
+  }) => {
+    await page.goto('/en/tags/claude-code');
+
+    const paginationLink = page.locator('.pagination a.pagination-link').first();
+    await expect(paginationLink).toBeVisible();
+    await expect(paginationLink).toHaveCSS('min-width', '100px');
+    await paginationLink.focus();
+    await expect(paginationLink).toHaveCSS('outline-style', 'solid');
+    await expect(paginationLink).toHaveCSS('outline-width', '2px');
+    if (await page.evaluate(() => matchMedia('(pointer: coarse)').matches)) {
+      expect((await paginationLink.boundingBox())?.height).toBeGreaterThanOrEqual(44);
+    }
+
+    await page.goto('/posts/gp-144-20260402-ecc-instinct-system');
+    const seriesToggleIcon = page.locator('.series-list-toggle .toggle-icon');
+    await expect(seriesToggleIcon).toBeVisible();
+    await expect(seriesToggleIcon).toHaveCSS('border-left-width', '0px');
+    expect((await seriesToggleIcon.boundingBox())?.width).toBeGreaterThan(0);
+  });
+});
+
 test.describe('Component smoke — site shell', () => {
   test('home renders LanguageToggle in header', async ({ page }) => {
     const errs = attachConsoleErrorWatcher(page);
