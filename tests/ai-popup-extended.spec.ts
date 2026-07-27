@@ -260,15 +260,19 @@ test.describe('AI Popup - Short Selection Ignored', () => {
 });
 
 test.describe('AI Popup - Login Redirect', () => {
-  test('GIVEN not logged in WHEN clicking Login button THEN saves return URL', async ({ page }) => {
-    await page.goto(TEST_POST);
-    await page.evaluate(() => localStorage.removeItem('gu-log-jwt'));
+  test('GIVEN not logged in WHEN clicking Login button THEN saves the exact current URL', async ({
+    page,
+  }) => {
+    await page.goto(`${TEST_POST}?from=popup#selection`);
+    await page.evaluate(() => {
+      localStorage.removeItem('gu-log-jwt');
+      localStorage.removeItem('gu-log-return-url');
+    });
     await page.reload();
+    const expectedReturnUrl = page.url();
 
-    // We need to intercept the navigation that Login button triggers
-    // The login button navigates to apiUrl/auth/github, but we can check localStorage
+    // Mock the auth response, then return to the source origin to read its localStorage.
     await page.route('**/auth/github', (route) => {
-      // Don't actually navigate, just fulfill
       route.fulfill({ status: 200, body: 'Mock GitHub Auth' });
     });
 
@@ -278,10 +282,10 @@ test.describe('AI Popup - Login Redirect', () => {
 
     await expect(page.locator('body')).toContainText('Mock GitHub Auth');
     await page.goBack();
-    await page.waitForURL('**/posts/gp-24-20260204-claude-is-a-space-to-think');
+    await page.waitForURL(expectedReturnUrl);
 
     const savedUrl = await page.evaluate(() => localStorage.getItem('gu-log-return-url'));
-    expect(savedUrl).toContain(TEST_POST);
+    expect(savedUrl).toBe(expectedReturnUrl);
   });
 });
 
