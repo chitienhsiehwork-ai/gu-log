@@ -75,6 +75,8 @@ N/A TBD TBA
 # gu-log MDX components
 MoguNote ShroomDogNote PostImage Toggle TableOfContents ReadingProgress
 PrevNextNav
+# 站名本身。MoguNote 講「gu-log 的規則是⋯」時被判成晶晶體是誤判 — GP-262（2026-07-27）
+gu-log
 
 # AI labs / companies / orgs
 Anthropic OpenAI Google Meta Microsoft Apple Amazon AWS GCP Azure
@@ -93,6 +95,9 @@ LangChain LangGraph LlamaIndex Pinecone Weaviate Chroma Milvus
 # Letta = AI 公司（Letta Code / MemGPT）；Harbor = agent trajectory 框架。
 # 同 LangChain / Mistral 那一類的產品與組織名 — GP-261（2026-07-25）
 Letta Harbor
+# GP-262（2026-07-27）的筆記／閱讀工具與軟體名：Roam Research、Kortex（作者的舊產品）、
+# Eden（作者現在的產品）、MyMind、Kindle，以及 After Effects
+Roam Kortex Eden MyMind Kindle Effects
 Scale Insilico BenevolentAI Recursion Pharmaceuticals
 # Helm AI — Phil Chen career-advice post (2026-07-03)
 Helm
@@ -174,6 +179,12 @@ Phil Chen Vlad Feinberg Alfred Lin Michael Aman
 # Ryo Lu — Cursor Head of Design, cited author of GP-30 + the MP
 # when-the-dream-becomes-the-job post (2026-07-15)
 Ryo Lu
+# GP-262（2026-07-27）Dan Koe 的閱讀／筆記文引用的人：Norbert Wiener（造出
+# cybernetics 這個字）、Naval、Devon Eriksen、Austin Kleon（《Steal Like an Artist》），
+# 以及他列的一串札記本前輩：Marcus Aurelius、Mark Twain、H.P. Lovecraft、
+# Thomas Jefferson、Ronald Reagan、Montaigne、Rick Rubin、Seneca
+Norbert Wiener Naval Eriksen Austin Kleon
+Marcus Aurelius Twain H.P Lovecraft Jefferson Ronald Reagan Montaigne Rick Rubin Seneca
 
 # Places
 Albuquerque Hong Kong San Francisco SF Silicon Valley
