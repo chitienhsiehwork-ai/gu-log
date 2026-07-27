@@ -250,10 +250,11 @@ export function getReadRecords(currentRevisions?: Record<string, string | null>)
 export function getReadRecordMap(
   currentRevisions?: Record<string, string | null>
 ): Record<string, ReadRecord> {
-  return getReadRecords(currentRevisions).reduce<Record<string, ReadRecord>>((acc, record) => {
-    acc[record.slug] = record;
-    return acc;
-  }, {});
+  const records = Object.create(null) as Record<string, ReadRecord>;
+  for (const record of getReadRecords(currentRevisions)) {
+    records[record.slug] = record;
+  }
+  return records;
 }
 
 export function getReadState(

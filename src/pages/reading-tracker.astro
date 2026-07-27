@@ -224,7 +224,7 @@ const totalArticles = allPosts.length;
     isRead,
     markAsRead,
     markAsUnread,
-    getReadRecords,
+    getReadRecordMap,
     exportJson,
     importJson,
   } from '../lib/reading-tracker';
@@ -246,7 +246,7 @@ const totalArticles = allPosts.length;
   const totalArticles = document.querySelectorAll<HTMLElement>('.article-row').length;
 
   function currentRevisionMap(): Record<string, string | null> {
-    const revisions: Record<string, string | null> = {};
+    const revisions = Object.create(null) as Record<string, string | null>;
     document.querySelectorAll<HTMLElement>('.article-row').forEach((row) => {
       revisions[row.dataset.slug!] = row.dataset.currentRevision || null;
     });
@@ -254,12 +254,7 @@ const totalArticles = allPosts.length;
   }
 
   function readRecordMap() {
-    return getReadRecords(currentRevisionMap()).reduce<
-      Record<string, ReturnType<typeof getReadRecords>[number]>
-    >((acc, record) => {
-      acc[record.slug] = record;
-      return acc;
-    }, {});
+    return getReadRecordMap(currentRevisionMap());
   }
 
   function updateStats() {

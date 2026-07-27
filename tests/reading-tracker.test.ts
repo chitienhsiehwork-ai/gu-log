@@ -134,6 +134,37 @@ describe('reading-tracker', () => {
     expect(m.getReadSlugs().sort()).toEqual(['x', 'y']);
   });
 
+  it('keeps imported __proto__ slugs as serializable own records', async () => {
+    const m = await import('../src/lib/reading-tracker');
+    const imported = {
+      version: 2,
+      slugs: ['__proto__'],
+      records: [
+        {
+          slug: '__proto__',
+          method: 'manual_mark_read',
+          confidence: 'legacy_or_manual',
+          readAt: '2026-07-27T00:00:00.000Z',
+          lastReadAt: '2026-07-27T00:00:00.000Z',
+          readRevision: 'rev-1',
+          revisionState: 'current',
+        },
+      ],
+      lastUpdated: '2026-07-27T00:00:00.000Z',
+    };
+
+    expect(m.importJson(JSON.stringify(imported))).toBe(true);
+    const records = m.getReadRecordMap();
+
+    expect(Object.getPrototypeOf(records)).toBeNull();
+    expect(Object.hasOwn(records, '__proto__')).toBe(true);
+    expect(records['__proto__']).toMatchObject({ slug: '__proto__' });
+    expect(Object.values(records)).toHaveLength(1);
+    expect(JSON.parse(JSON.stringify(records))['__proto__']).toMatchObject({
+      slug: '__proto__',
+    });
+  });
+
   it('importJson rejects malformed input without crashing', async () => {
     const m = await import('../src/lib/reading-tracker');
     expect(m.importJson('not json')).toBe(false);
