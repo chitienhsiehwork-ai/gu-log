@@ -126,6 +126,48 @@ jq -e '. == {"schemaVersion": 1, "events": {}}' "$runtime/.score-loop/state/trib
   || fail "missing triage state should initialize with the default shape"
 pass "dry-run reports counts and initializes missing runtime ledgers"
 
+fetch_runtime="$TMP/fetch-runtime"
+fetch_batch_dir="$TMP/fetch-failure-batch"
+fetch_branch="publisher/fetch-must-succeed"
+git clone "$origin" "$fetch_runtime" >/dev/null 2>&1
+git -C "$fetch_runtime" checkout -b tribunal-fetch-runtime origin/main >/dev/null 2>&1
+git -C "$fetch_runtime" config user.email test@example.invalid
+git -C "$fetch_runtime" config user.name "Runtime"
+mkdir -p "$fetch_runtime/scripts" "$fetch_runtime/.score-loop/state"
+cp "$ROOT_DIR/scripts/tribunal-publisher.sh" "$fetch_runtime/scripts/tribunal-publisher.sh"
+cp "$ROOT_DIR/scripts/tribunal-helpers.sh" "$fetch_runtime/scripts/tribunal-helpers.sh"
+chmod +x "$fetch_runtime/scripts/tribunal-publisher.sh"
+cat > "$fetch_runtime/scripts/test-validate-hook.sh" <<'HOOK'
+#!/usr/bin/env bash
+exit 0
+HOOK
+chmod +x "$fetch_runtime/scripts/test-validate-hook.sh"
+cat > "$fetch_runtime/.score-loop/state/tribunal-progress.json" <<'JSON'
+{
+  "gp-1-test.mdx": { "status": "PASS", "tribunalVersion": 8 }
+}
+JSON
+printf '{"schemaVersion":1,"entries":{},"batches":{}}\n' > "$fetch_runtime/.score-loop/state/tribunal-publisher.json"
+printf '{"schemaVersion":1,"events":{}}\n' > "$fetch_runtime/.score-loop/state/tribunal-triage-events.json"
+printf 'Runtime rewrite must not publish from a stale cached ref.\n' >> "$fetch_runtime/src/content/posts/gp-1-test.mdx"
+cp "$fetch_runtime/.score-loop/state/tribunal-publisher.json" "$TMP/fetch-publisher-state.before"
+git -C "$fetch_runtime" remote set-url origin "$TMP/missing-origin.git"
+
+if fetch_failure_out="$(cd "$fetch_runtime" && \
+  TRIBUNAL_PUBLISHER_DISABLE_GH_SCAN=1 \
+  TRIBUNAL_PUBLISHER_SKIP_BUILD=1 \
+  TRIBUNAL_PUBLISHER_VALIDATE_HOOK="$fetch_runtime/scripts/test-validate-hook.sh" \
+  bash scripts/tribunal-publisher.sh --apply --max 10 --branch "$fetch_branch" --worktree "$fetch_batch_dir" 2>&1)"; then
+  fail "publisher must reject apply when origin/main cannot be refreshed"
+fi
+[ ! -e "$fetch_batch_dir" ] || fail "failed origin/main refresh must not create a publisher worktree"
+git -C "$fetch_runtime" show-ref --verify --quiet "refs/heads/$fetch_branch" \
+  && fail "failed origin/main refresh must not create a publisher branch"
+cmp -s "$TMP/fetch-publisher-state.before" "$fetch_runtime/.score-loop/state/tribunal-publisher.json" \
+  || fail "failed origin/main refresh must not reserve publisher state"
+grep -q 'origin/main' <<<"$fetch_failure_out" || fail "publisher should explain the failed origin/main refresh"
+pass "apply fails closed before branch, worktree, or state reservation when origin/main refresh fails"
+
 printf 'Runtime rewritten one.\n' >> "$runtime/src/content/posts/gp-1-test.mdx"
 printf 'Runtime rewritten one en.\n' >> "$runtime/src/content/posts/en-gp-1-test.mdx"
 

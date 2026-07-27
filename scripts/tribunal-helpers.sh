@@ -256,23 +256,84 @@ ensure_tribunal_progress_file() {
   local target="$1"
   local root="${2:-${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}}"
   local legacy="${3:-$(tribunal_legacy_progress_file "$root")}"
+  local migration_dir candidate backup="" migrate_legacy=0
 
-  mkdir -p "$(dirname "$target")" "$(tribunal_progress_migration_dir "$root")"
-
-  if [ -f "$target" ] && jq empty "$target" >/dev/null 2>&1; then
+  validate_tribunal_runtime_json_file "$target" "Tribunal progress ledger" || return 1
+  if [ -e "$target" ]; then
     return 0
   fi
 
-  if [ "$target" != "$legacy" ] && [ -f "$legacy" ] && jq empty "$legacy" >/dev/null 2>&1; then
-    local stamp backup
+  if [ "$target" != "$legacy" ]; then
+    validate_tribunal_runtime_json_file "$legacy" "legacy Tribunal progress ledger" || return 1
+    if [ -e "$legacy" ]; then
+      migrate_legacy=1
+    fi
+  fi
+
+  migration_dir="$(tribunal_progress_migration_dir "$root")"
+  mkdir -p "$(dirname "$target")" "$migration_dir"
+  candidate="$(mktemp "${target}.tmp.XXXXXX")" || return 1
+
+  if [ "$migrate_legacy" -eq 1 ]; then
+    if ! cp "$legacy" "$candidate"; then
+      rm -f "$candidate"
+      return 1
+    fi
+  elif ! printf '{}\n' > "$candidate"; then
+    rm -f "$candidate"
+    return 1
+  fi
+
+  if ! validate_tribunal_runtime_json_file \
+    "$candidate" \
+    "Tribunal progress migration candidate"; then
+    rm -f "$candidate"
+    return 1
+  fi
+
+  if [ "$migrate_legacy" -eq 1 ]; then
+    local stamp
     stamp="$(TZ=Asia/Taipei date +%Y%m%d-%H%M%S)"
-    backup="$(tribunal_progress_migration_dir "$root")/legacy-tribunal-progress-$stamp.json"
-    cp "$legacy" "$backup"
-    cp "$legacy" "$target"
-    return 0
+    backup="$(mktemp "$migration_dir/legacy-tribunal-progress-$stamp.XXXXXX")" || {
+      rm -f "$candidate"
+      return 1
+    }
+    if ! cp "$candidate" "$backup"; then
+      rm -f "$backup" "$candidate"
+      return 1
+    fi
+    if ! cmp "$candidate" "$backup" >/dev/null; then
+      rm -f "$backup" "$candidate"
+      return 1
+    fi
   fi
 
-  printf '{}\n' > "$target"
+  if ! command link "$candidate" "$target" 2>/dev/null; then
+    if [ -n "$backup" ]; then
+      if ! rm -f "$backup" "$candidate"; then
+        :
+      fi
+    else
+      if ! rm -f "$candidate"; then
+        :
+      fi
+    fi
+    if [ -e "$candidate" ] || { [ -n "$backup" ] && [ -e "$backup" ]; }; then
+      printf 'ERROR: unable to clean up an unpublished Tribunal progress candidate\n' >&2
+      return 1
+    fi
+    validate_tribunal_runtime_json_file "$target" "Tribunal progress ledger" || return 1
+    if [ -e "$target" ]; then
+      return 0
+    fi
+    printf 'ERROR: unable to atomically create Tribunal progress ledger: %s\n' "$target" >&2
+    return 1
+  fi
+
+  if ! rm -f "$candidate"; then
+    printf 'WARN: unable to remove published Tribunal progress candidate: %s\n' "$candidate" >&2
+  fi
+  return 0
 }
 
 tribunal_fetch_origin_main() {
