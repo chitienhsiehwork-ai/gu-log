@@ -38,22 +38,26 @@ describe('human signal UI wiring', () => {
   it('rebrand controls keep accessible focus, touch targets, and theme-owned colors', () => {
     const globalCss = read('src/styles/global.css');
     const share = read('src/components/ShareButton.astro');
-    const toggle = read('src/components/Toggle.astro');
     const toc = read('src/components/TableOfContents.astro');
     const search = read('src/components/SearchBar.astro');
-    const badge = read('src/components/TicketBadge.astro');
     const moguNote = read('src/components/MoguNote.astro');
 
     expect(globalCss).toContain('--color-on-accent:');
     expect(share).toContain('color: var(--color-on-accent)');
     expect(share).toContain('min-height: 44px');
-    expect(toggle).toContain('.toggle-header:focus-visible');
-    expect(toggle).toContain('min-height: 44px');
+    expect(globalCss).toContain('.toggle-container .toggle-header:focus-visible');
+    expect(globalCss).toMatch(/\.toggle-container \.toggle-header\s*\{[\s\S]*?min-height: 44px/);
     expect(toc).toContain('.toc-toggle-header:focus-visible');
     expect(toc).toContain('.toc-link:focus-visible');
     expect(search).toMatch(/\.search-modal-input\s*\{[\s\S]*?min-height: 44px/);
     expect(search).not.toMatch(/rgba\(/);
-    expect(badge).not.toMatch(/rgba\(/);
+    for (const series of ['sd', 'gp', 'mp', 'lv']) {
+      expect(globalCss).toMatch(
+        new RegExp(
+          String.raw`\.ticket-wrapper \.ticket-${series}\s*\{[\s\S]*?background-color: var\(--color-badge-${series}-bg\);[\s\S]*?color: var\(--color-badge-${series}\);[\s\S]*?border: 1px solid var\(--color-badge-${series}-border`
+        )
+      );
+    }
     expect(moguNote).toContain('background: var(--color-mogu-murmur-bg)');
   });
 });
