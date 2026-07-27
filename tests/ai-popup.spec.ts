@@ -1,3 +1,4 @@
+import type { Page } from '@playwright/test';
 import { test, expect } from './fixtures';
 import {
   isDesktopChromiumProject,
@@ -14,6 +15,20 @@ import {
  */
 
 const TEST_POST = '/posts/gp-24-20260204-claude-is-a-space-to-think';
+const AUTH_RETURN_KEY = 'gu-log-return-url';
+const AUTH_JWT_KEY = 'gu-log-jwt';
+
+async function seedAuthReturn(page: Page, returnUrl: string) {
+  await page.goto('/');
+  await page.evaluate(
+    ({ jwtKey, returnKey, returnUrl }) => {
+      localStorage.removeItem(jwtKey);
+      localStorage.removeItem('gu-log-callback-pwned');
+      localStorage.setItem(returnKey, returnUrl);
+    },
+    { jwtKey: AUTH_JWT_KEY, returnKey: AUTH_RETURN_KEY, returnUrl }
+  );
+}
 
 test.describe('AI Popup - Desktop', () => {
   test.beforeEach(async () => {
@@ -294,6 +309,92 @@ test.describe('Auth Callback', () => {
 
     const returnUrl = await page.evaluate(() => localStorage.getItem('gu-log-return-url'));
     expect(returnUrl).toBeNull();
+  });
+
+  test('GIVEN an absolute same-origin return URL WHEN callback succeeds THEN preserves its path query and hash', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    const returnPath = `${TEST_POST}?from=oauth#details`;
+    const absoluteReturnUrl = new URL(returnPath, page.url()).href;
+    await seedAuthReturn(page, absoluteReturnUrl);
+
+    await page.goto('/auth/callback?token=absolute-return-token');
+    await page.waitForURL(new URL(returnPath, absoluteReturnUrl).href, { timeout: 5000 });
+
+    expect(await page.evaluate((key) => localStorage.getItem(key), AUTH_JWT_KEY)).toBe(
+      'absolute-return-token'
+    );
+    expect(await page.evaluate((key) => localStorage.getItem(key), AUTH_RETURN_KEY)).toBeNull();
+  });
+
+  test('GIVEN a same-origin URL whose path starts with two slashes WHEN callback succeeds THEN it falls back to the homepage', async ({
+    page,
+  }) => {
+    await page.route(/^https?:\/\/attacker\.invalid\//, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'text/html',
+        body: '<!doctype html><title>attacker fixture</title>',
+      });
+    });
+    await page.goto('/');
+    const origin = new URL(page.url()).origin;
+    await seedAuthReturn(page, `${origin}//attacker.invalid/landing`);
+    const homeUrl = new URL('/', page.url()).href;
+
+    await page.goto('/auth/callback?token=double-parse-return-token');
+    await expect(page).toHaveURL(homeUrl, { timeout: 5000 });
+
+    expect(await page.evaluate((key) => localStorage.getItem(key), AUTH_JWT_KEY)).toBe(
+      'double-parse-return-token'
+    );
+    expect(await page.evaluate((key) => localStorage.getItem(key), AUTH_RETURN_KEY)).toBeNull();
+  });
+
+  for (const unsafeReturnUrl of [
+    'https://attacker.invalid/landing',
+    '//attacker.invalid/landing',
+    '\\\\attacker.invalid/landing',
+    'https://[invalid',
+  ]) {
+    test(`GIVEN unsafe return URL ${unsafeReturnUrl} WHEN callback succeeds THEN falls back to the homepage`, async ({
+      page,
+    }) => {
+      await page.route(/^https?:\/\/attacker\.invalid\//, async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'text/html',
+          body: '<!doctype html><title>attacker fixture</title>',
+        });
+      });
+      await seedAuthReturn(page, unsafeReturnUrl);
+      const homeUrl = new URL('/', page.url()).href;
+
+      await page.goto('/auth/callback?token=unsafe-return-token');
+      await expect(page).toHaveURL(homeUrl, { timeout: 5000 });
+
+      expect(await page.evaluate((key) => localStorage.getItem(key), AUTH_JWT_KEY)).toBe(
+        'unsafe-return-token'
+      );
+      expect(await page.evaluate((key) => localStorage.getItem(key), AUTH_RETURN_KEY)).toBeNull();
+    });
+  }
+
+  test('GIVEN a javascript return URL WHEN callback succeeds THEN does not execute it', async ({
+    page,
+  }) => {
+    await seedAuthReturn(page, "javascript:localStorage.setItem('gu-log-callback-pwned','1')");
+    const homeUrl = new URL('/', page.url()).href;
+
+    await page.goto('/auth/callback?token=javascript-return-token');
+
+    await expect(page).toHaveURL(homeUrl, { timeout: 5000 });
+    expect(await page.evaluate(() => localStorage.getItem('gu-log-callback-pwned'))).toBeNull();
+    expect(await page.evaluate((key) => localStorage.getItem(key), AUTH_JWT_KEY)).toBe(
+      'javascript-return-token'
+    );
+    expect(await page.evaluate((key) => localStorage.getItem(key), AUTH_RETURN_KEY)).toBeNull();
   });
 });
 

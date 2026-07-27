@@ -102,6 +102,25 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
         const JWT_KEY = 'gu-log-jwt';
         const RETURN_KEY = 'gu-log-return-url';
 
+        function getSafeReturnUrl(rawReturnUrl) {
+          const fallbackUrl = `${window.location.origin}/`;
+          if (!rawReturnUrl) return fallbackUrl;
+
+          try {
+            const parsed = new URL(rawReturnUrl, window.location.origin);
+            if (
+              (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') ||
+              parsed.origin !== window.location.origin ||
+              parsed.pathname.startsWith('//')
+            ) {
+              return fallbackUrl;
+            }
+            return `${window.location.origin}${parsed.pathname}${parsed.search}${parsed.hash}`;
+          } catch {
+            return fallbackUrl;
+          }
+        }
+
         let token = null;
         if (window.location.hash) {
           const hashParams = new URLSearchParams(window.location.hash.substring(1));
@@ -120,11 +139,12 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
           document.title = 'Login successful';
 
           // Redirect back to the page user was on
-          const returnUrl = localStorage.getItem(RETURN_KEY) || '/';
+          const returnUrl = localStorage.getItem(RETURN_KEY);
           localStorage.removeItem(RETURN_KEY);
+          const safeReturnUrl = getSafeReturnUrl(returnUrl);
 
           setTimeout(function () {
-            window.location.href = returnUrl;
+            window.location.href = safeReturnUrl;
           }, 500);
         } else {
           document.getElementById('status').textContent = 'Login failed.';
