@@ -335,6 +335,50 @@ test.describe('AI Popup - API Interactions', () => {
     await expect(popup.locator('.ai-popup-result-body')).toHaveText('This is a mock AI answer.');
   });
 
+  test('GIVEN Ask AI returns a quoted markdown URL WHEN result renders THEN the link cannot inject an event handler', async ({
+    page,
+  }) => {
+    await page.route('**/ai/ask', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          response: [
+            '[hover me](https://safe.example/"onmouseover="document.body.dataset.pwned=1")',
+            '',
+            '[normal](https://safe.example/path?q=one%20two&lang=en)',
+          ].join('\n'),
+        }),
+      });
+    });
+
+    const popup = await selectPostTextAndShowPopup(page);
+    await popup.locator('[data-action="ask"]').click();
+    await popup.locator('[data-action="submit-ask"]').click();
+
+    const resultBody = popup.locator('.ai-popup-result-body');
+    await expect(resultBody).toBeVisible({ timeout: 5000 });
+
+    const maliciousLink = resultBody.getByRole('link', { name: 'hover me' });
+    await expect(maliciousLink).toBeVisible();
+    expect(
+      await maliciousLink.evaluate((link) =>
+        link.getAttributeNames().filter((name) => name.startsWith('on'))
+      )
+    ).toEqual([]);
+
+    await page.evaluate(() => {
+      delete document.body.dataset.pwned;
+    });
+    await maliciousLink.dispatchEvent('mouseover');
+    expect(await page.evaluate(() => document.body.dataset.pwned)).toBeUndefined();
+
+    await expect(resultBody.getByRole('link', { name: 'normal' })).toHaveAttribute(
+      'href',
+      'https://safe.example/path?q=one%20two&lang=en'
+    );
+  });
+
   test('GIVEN API error WHEN clicking Ask AI THEN shows error message', async ({ page }) => {
     // Mock API error
     await page.route('**/ai/ask', async (route) => {
