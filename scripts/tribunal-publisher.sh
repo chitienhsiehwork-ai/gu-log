@@ -24,6 +24,7 @@ PUSH_PR=0
 SKIP_BUILD="${TRIBUNAL_PUBLISHER_SKIP_BUILD:-0}"
 REPO="${GU_LOG_GITHUB_REPO:-chitienhsiehwork-ai/gu-log}"
 GH_BIN="${GH_BIN:-gh}"
+OPEN_PR_SNAPSHOT_FILE=""
 
 usage() {
   cat >&2 <<'USAGE'
@@ -52,6 +53,13 @@ done
 tlog() {
   printf '[publisher] %s\n' "$*"
 }
+
+cleanup_open_pr_snapshot() {
+  if [ -n "$OPEN_PR_SNAPSHOT_FILE" ]; then
+    rm -f "$OPEN_PR_SNAPSHOT_FILE" "$OPEN_PR_SNAPSHOT_FILE.next"
+  fi
+}
+trap cleanup_open_pr_snapshot EXIT
 
 ensure_runtime_files() {
   validate_tribunal_runtime_json_file "$PUBLISHER_STATE_FILE" "publisher state"
@@ -111,13 +119,6 @@ publisher_gh() {
     printf '%s\n' "$token_out" >&2
   fi
   return "$rc"
-}
-
-publisher_has_gh_auth() {
-  local token_file="${GU_LOG_GH_TOKEN_FILE:-$HOME/.config/github-tokens/gu-log-operator.token}"
-  [ -n "${GU_LOG_GH_TOKEN:-}" ] && return 0
-  [ -f "$token_file" ] && return 0
-  "$GH_BIN" auth status >/dev/null 2>&1
 }
 
 collect_articles_by_status() {
@@ -218,80 +219,124 @@ record_event() {
   printf '%s\n' "$event_id"
 }
 
-publisher_label_on_pr() {
-  local pr_json="$1"
-  jq -e 'any(.labels[]?; (.name // "") == "tribunal-publisher")' <<<"$pr_json" >/dev/null 2>&1
-}
+prepare_open_pr_snapshot() {
+  local prs_json prs_stream files_json files_stream pr_number fixture_list fixture_files
+  fixture_list="${TRIBUNAL_PUBLISHER_PR_LIST_JSON_FILE:-}"
+  fixture_files="${TRIBUNAL_PUBLISHER_PR_FILES_DIR:-}"
+  OPEN_PR_SNAPSHOT_FILE="$(mktemp)"
 
-open_pr_list_json() {
   if [ "${TRIBUNAL_PUBLISHER_DISABLE_GH_SCAN:-0}" = "1" ]; then
-    printf '[]\n'
-  elif [ -n "${TRIBUNAL_PUBLISHER_PR_LIST_JSON_FILE:-}" ]; then
-    cat "$TRIBUNAL_PUBLISHER_PR_LIST_JSON_FILE"
-  elif ! publisher_has_gh_auth; then
-    printf '[]\n'
-  else
-    publisher_gh pr list --repo "$REPO" --state open --limit 200 --json number,title,headRefName,labels
+    printf '{"prs":[],"files":{}}\n' > "$OPEN_PR_SNAPSHOT_FILE"
+    return 0
   fi
-}
 
-open_pr_files_json() {
-  local pr_number="$1"
-  if [ "${TRIBUNAL_PUBLISHER_DISABLE_GH_SCAN:-0}" = "1" ]; then
-    printf '{"files":[]}\n'
-  elif [ -n "${TRIBUNAL_PUBLISHER_PR_FILES_DIR:-}" ] && [ -f "$TRIBUNAL_PUBLISHER_PR_FILES_DIR/$pr_number.json" ]; then
-    cat "$TRIBUNAL_PUBLISHER_PR_FILES_DIR/$pr_number.json"
-  elif ! publisher_has_gh_auth; then
-    printf '{"files":[]}\n'
-  else
-    publisher_gh pr view "$pr_number" --repo "$REPO" --json files
+  if [ -z "$fixture_list" ] && [ -n "$fixture_files" ]; then
+    echo "ERROR: unable to build GitHub conflict snapshot: files fixture directory requires a PR list fixture" >&2
+    return 1
   fi
+
+  if [ -n "$fixture_list" ]; then
+    if [ ! -f "$fixture_list" ]; then
+      echo "ERROR: unable to build GitHub conflict snapshot: missing PR list fixture: $fixture_list" >&2
+      return 1
+    fi
+    prs_json="$(cat "$fixture_list")"
+  else
+    if ! prs_stream="$(
+      publisher_gh api --paginate \
+        "repos/$REPO/pulls?state=open&per_page=100" \
+        --jq '.[] | {number, title, headRefName: .head.ref, labels: (.labels // [])}'
+    )"; then
+      echo "ERROR: unable to build GitHub conflict snapshot: open PR list request failed" >&2
+      return 1
+    fi
+    if ! prs_json="$(jq -s '.' <<<"$prs_stream")"; then
+      echo "ERROR: unable to build GitHub conflict snapshot: open PR list request returned invalid JSON" >&2
+      return 1
+    fi
+  fi
+
+  if ! jq -e '
+    type == "array"
+    and all(.[];
+      (.number | type == "number" and . >= 1 and floor == .)
+      and ((.title // "") | type == "string")
+      and ((.headRefName // "") | type == "string")
+      and ((.labels // []) | type == "array")
+      and all((.labels // [])[]?; ((.name // "") | type == "string"))
+    )
+  ' <<<"$prs_json" >/dev/null 2>&1; then
+    echo "ERROR: unable to build GitHub conflict snapshot: open PR list is invalid JSON or has an unexpected shape" >&2
+    return 1
+  fi
+
+  printf '%s\n' "$prs_json" | jq '{prs: ., files: {}}' > "$OPEN_PR_SNAPSHOT_FILE"
+
+  while IFS= read -r pr_number; do
+    [ -n "$pr_number" ] || continue
+    if [ -n "$fixture_list" ]; then
+      if [ -z "$fixture_files" ] || [ ! -f "$fixture_files/$pr_number.json" ]; then
+        echo "ERROR: unable to build GitHub conflict snapshot: missing files fixture for PR #$pr_number" >&2
+        return 1
+      fi
+      files_json="$(cat "$fixture_files/$pr_number.json")"
+    else
+      if ! files_stream="$(
+        publisher_gh api --paginate \
+          "repos/$REPO/pulls/$pr_number/files?per_page=100" \
+          --jq '.[] | {path: .filename}'
+      )"; then
+        echo "ERROR: unable to build GitHub conflict snapshot: files request failed for PR #$pr_number" >&2
+        return 1
+      fi
+      if ! files_json="$(jq -s '{files: .}' <<<"$files_stream")"; then
+        echo "ERROR: unable to build GitHub conflict snapshot: files request for PR #$pr_number returned invalid JSON" >&2
+        return 1
+      fi
+    fi
+
+    if ! jq -e '
+      type == "object"
+      and (.files | type == "array")
+      and all(.files[]; (.path | type == "string"))
+    ' <<<"$files_json" >/dev/null 2>&1; then
+      echo "ERROR: unable to build GitHub conflict snapshot: files for PR #$pr_number are invalid JSON or have an unexpected shape" >&2
+      return 1
+    fi
+
+    jq --arg number "$pr_number" --argjson files "$files_json" \
+      '.files[$number] = $files' \
+      "$OPEN_PR_SNAPSHOT_FILE" > "$OPEN_PR_SNAPSHOT_FILE.next"
+    mv "$OPEN_PR_SNAPSHOT_FILE.next" "$OPEN_PR_SNAPSHOT_FILE"
+  done < <(
+    jq -r '
+      .[]
+      | select(((.headRefName // "") | startswith("publisher/")) | not)
+      | select((any((.labels // [])[]?; (.name // "") == "tribunal-publisher")) | not)
+      | .number
+    ' <<<"$prs_json"
+  )
 }
 
 article_conflict_targets_json() {
   local article="$1"
-  local rels_json prs_json
+  local rels_json
   rels_json="$(post_relpaths_for_article "$article" | jq -R . | jq -s .)"
-  prs_json="$(open_pr_list_json)"
-  python3 - "$article" "$rels_json" "$prs_json" <<'PY'
-import json, os, subprocess, sys
+  python3 - "$article" "$rels_json" "$OPEN_PR_SNAPSHOT_FILE" <<'PY'
+import json, sys
 article = sys.argv[1]
 rels = json.loads(sys.argv[2])
-prs = json.loads(sys.argv[3])
+with open(sys.argv[3], "r", encoding="utf-8") as fh:
+    snapshot = json.load(fh)
 targets = []
-for pr in prs:
+for pr in snapshot["prs"]:
     labels = pr.get("labels", []) or []
     if (pr.get("headRefName", "") or "").startswith("publisher/"):
         continue
     if any((label.get("name", "") == "tribunal-publisher") for label in labels):
         continue
     num = pr["number"]
-    files_dir = os.environ.get("TRIBUNAL_PUBLISHER_PR_FILES_DIR")
-    if files_dir and os.path.isfile(os.path.join(files_dir, f"{num}.json")):
-        with open(os.path.join(files_dir, f"{num}.json"), "r", encoding="utf-8") as fh:
-            files_json = json.load(fh)
-    else:
-        gh_bin = os.environ.get("GH_BIN", "gh")
-        repo = os.environ.get("GU_LOG_GITHUB_REPO", "chitienhsiehwork-ai/gu-log")
-        token = os.environ.get("GU_LOG_GH_TOKEN")
-        token_file = os.environ.get("GU_LOG_GH_TOKEN_FILE", os.path.expanduser("~/.config/github-tokens/gu-log-operator.token"))
-        base_env = os.environ.copy()
-        cmd = [gh_bin, "pr", "view", str(num), "--repo", repo, "--json", "files"]
-        if token:
-            env = base_env.copy()
-            env["GH_TOKEN"] = token
-            out = subprocess.check_output(cmd, env=env)
-        else:
-            try:
-                out = subprocess.check_output(cmd, env=base_env)
-            except subprocess.CalledProcessError:
-                if not os.path.isfile(token_file):
-                    raise
-                env = base_env.copy()
-                with open(token_file, "r", encoding="utf-8") as fh:
-                    env["GH_TOKEN"] = fh.read().strip()
-                out = subprocess.check_output(cmd, env=env)
-        files_json = json.loads(out)
+    files_json = snapshot["files"][str(num)]
     paths = [f["path"] for f in files_json.get("files", [])]
     overlap = [p for p in paths if p in rels]
     if overlap:
@@ -311,7 +356,7 @@ refresh_conflict_events() {
   options_json='["keep_current","accept_tribunal","agent_merge","requeue","defer","no_action"]'
   while IFS= read -r article; do
     [ -n "$article" ] || continue
-    targets_json="$(article_conflict_targets_json "$article" <<<"$(open_pr_list_json)")"
+    targets_json="$(article_conflict_targets_json "$article")"
     if [ "$(jq 'length' <<<"$targets_json")" -gt 0 ]; then
       fingerprint="$(jq -c 'map(.id)' <<<"$targets_json")"
       summary="Open editorial PR already touches publishable Tribunal paths."
@@ -520,6 +565,7 @@ apply_batch() {
   fi
 }
 
+prepare_open_pr_snapshot
 ensure_runtime_files
 
 case "$MODE" in
