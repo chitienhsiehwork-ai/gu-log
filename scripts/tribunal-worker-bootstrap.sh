@@ -36,9 +36,24 @@ usage() {
   exit "${1:-0}"
 }
 
-worker_path() {
+validate_worker_id() {
   local id="$1"
-  echo "$WORKER_PARENT/gu-log-worker-$id"
+  local LC_ALL=C
+  if [[ ! "$id" =~ ^[A-Za-z0-9][A-Za-z0-9_-]*$ ]]; then
+    printf 'ERROR: invalid worker id %q (expected letters, numbers, "_" or "-", starting with a letter or number)\n' "$id" >&2
+    return 64
+  fi
+}
+
+worker_path() {
+  local id="$1" path
+  validate_worker_id "$id" || return
+  path="$WORKER_PARENT/gu-log-worker-$id"
+  if [ "$path" = "$MAIN_REPO" ] || [ "$path" -ef "$MAIN_REPO" ]; then
+    printf 'ERROR: worker path equals active repo; refusing worker id %q\n' "$id" >&2
+    return 64
+  fi
+  printf '%s\n' "$path"
 }
 
 cmd_create() {
@@ -97,6 +112,9 @@ cmd_status() {
 
 cmd_sync() {
   local only_id="${1:-}"
+  if [ -n "$only_id" ]; then
+    validate_worker_id "$only_id"
+  fi
   cd "$MAIN_REPO"
   if [[ "$SYNC_REF" == origin/* ]]; then
     git fetch origin "${SYNC_REF#origin/}" >/dev/null 2>&1 || { echo "WARN: git fetch $SYNC_REF failed" >&2; }
