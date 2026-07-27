@@ -11,11 +11,20 @@ HELPERS="$ROOT_DIR/scripts/tribunal-helpers.sh"
 WRAPPER="$ROOT_DIR/scripts/cc-tribunal-loop-wrapper.sh"
 LOOP="$ROOT_DIR/scripts/tribunal-quota-loop.sh"
 SERVICE="$ROOT_DIR/scripts/tribunal-loop.service"
+OBSOLETE_CRON="$ROOT_DIR/scripts/cc-cron-tribunal.sh"
 CODEX_AGENTS_DIR="$ROOT_DIR/.codex/agents"
 CODEX_WRITER="$CODEX_AGENTS_DIR/tribunal-writer.toml"
 
 fail() { echo "x $*" >&2; exit 1; }
 pass() { echo "ok $*"; }
+
+if [ -e "$OBSOLETE_CRON" ]; then
+  fail "obsolete Tribunal cron entrypoint returned alongside the systemd runtime"
+fi
+if grep -Fq 'cc-cron-tribunal.sh' "$WRAPPER"; then
+  fail "systemd wrapper still points readers at the obsolete cron entrypoint"
+fi
+pass "obsolete Tribunal cron entrypoint stays removed from the systemd runtime"
 
 if grep -Eq -- '--no-verify|--no-gpg-sign' "$TRIBUNAL" "$VIBE" "$HELPERS"; then
   fail "Tribunal runtime contains hook-bypass flags"
