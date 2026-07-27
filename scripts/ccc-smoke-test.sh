@@ -116,13 +116,13 @@ pw_bridge_browser_builds() {
 # ── --fix：開工前自動補環境 ───────────────────────────────────────
 if $FIX; then
   section "FIX: 補環境"
-  if [ ! -d node_modules ]; then
-    echo "  installing deps (pnpm install --frozen-lockfile)..."
-    pnpm install --frozen-lockfile >/tmp/ccc-smoke-install.log 2>&1 \
-      && pass "pnpm install" || fail "pnpm install" "see /tmp/ccc-smoke-install.log"
-  else
-    pass "node_modules 已存在，跳過 install"
-  fi
+  # 無條件 install：sandbox 預裝的 node_modules 可能跟 lockfile 不同步（實測 2026-07-27：
+  # node_modules 在、但 @mdx-js/mdx 沒裝，postbuild 的 build-post-markdown.mjs 直接
+  # ERR_MODULE_NOT_FOUND，tribunal 卡在 final build gate）。「目錄存在」不等於「依賴齊」，
+  # 而 --frozen-lockfile 已經同步時是 ~5s no-op，沒有跳過的理由。
+  echo "  installing deps (pnpm install --frozen-lockfile)..."
+  pnpm install --frozen-lockfile >/tmp/ccc-smoke-install.log 2>&1 \
+    && pass "pnpm install（與 lockfile 同步）" || fail "pnpm install" "see /tmp/ccc-smoke-install.log"
   bash scripts/setup-hooks.sh >/tmp/ccc-smoke-hooks.log 2>&1 \
     && pass "setup-hooks" || fail "setup-hooks" "see /tmp/ccc-smoke-hooks.log"
 
