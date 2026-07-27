@@ -84,6 +84,11 @@ chmod +x "$fake_bin/journalctl"
 cat > "$fake_bin/git" <<'FAKE'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >> "${GIT_CALLS:?}"
+if [ "$*" = "-C ${EXPECTED_SUPERVISOR:?} rev-parse --verify HEAD" ]; then
+  [ "${FAIL_SUPERVISOR_GIT:-0}" != "1" ] || exit 99
+  echo "0123456789abcdef0123456789abcdef01234567"
+  exit 0
+fi
 if [ "$*" = "-C ${EXPECTED_WORKTREE:?} rev-parse --short HEAD" ]; then
   echo "abc1234"
   exit 0
@@ -128,6 +133,8 @@ run_snapshot() {
     SYSTEMCTL_CALLS="$systemctl_calls" \
     JOURNALCTL_CALLS="$journalctl_calls" \
     GIT_CALLS="$git_calls" \
+    FAIL_SUPERVISOR_GIT="${FAIL_SUPERVISOR_GIT:-0}" \
+    EXPECTED_SUPERVISOR="$runtime_root" \
     EXPECTED_WORKTREE="$worker_root" \
     PATH="$fake_bin:$PATH" \
     bash "$SNAPSHOT"
@@ -164,11 +171,20 @@ old_line="$(grep -n '"article":"old.mdx"' <<<"$output" | cut -d: -f1)"
 [ "$new_line" -lt "$old_line" ] || fail "finished attempts are not newest-first"
 grep -q 'configured_floor=12%' <<<"$output" ||
   fail "effective unit environment did not override fallback"
+grep -q 'head=0123456789abcdef0123456789abcdef01234567' <<<"$output" ||
+  fail "read-only supervisor checkout HEAD observation missing"
 grep -q 'gu-log-worker-a: abc1234' <<<"$output" ||
   fail "read-only worker HEAD observation missing"
 grep -q '476 unscored' <<<"$output" &&
   fail "journal output leaked into the read-only state snapshot"
 pass "zero observation wins over an older positive count without journal fallback"
+
+output="$(FAIL_SUPERVISOR_GIT=1 run_snapshot)"
+grep -q 'status=unavailable reason=git_head_unreadable' <<<"$output" ||
+  fail "unreadable supervisor checkout HEAD did not degrade explicitly"
+grep -q 'RUNTIME GIT OBSERVATION' <<<"$output" ||
+  fail "unreadable supervisor checkout HEAD aborted later diagnostic sections"
+pass "unreadable supervisor checkout HEAD degrades without aborting the snapshot"
 
 cat > "$runtime_root/.score-loop/logs/tribunal-quota-loop-20260726-020000.log" <<'LOG'
 [2026-07-26 02:00:00 +0000] [quota-loop] No unscored articles and no workers in-flight. Sleeping 30min (interruptible).
@@ -255,6 +271,7 @@ output="$(
     SYSTEMCTL_CALLS="$systemctl_calls" \
     JOURNALCTL_CALLS="$journalctl_calls" \
     GIT_CALLS="$git_calls" \
+    EXPECTED_SUPERVISOR="$runtime_root" \
     EXPECTED_WORKTREE="$worker_root" \
     PATH="$fake_bin:$PATH" \
     bash "$SNAPSHOT"
@@ -301,8 +318,14 @@ if grep -Ev \
 fi
 [ ! -s "$journalctl_calls" ] ||
   fail "snapshot consulted the journal despite state/log-only semantics"
-if [ ! -s "$git_calls" ] ||
-  grep -Fvx -- "-C $worker_root rev-parse --short HEAD" "$git_calls"; then
-  fail "snapshot issued a git command beyond read-only worker HEAD observation"
+if [ ! -s "$git_calls" ]; then
+  fail "snapshot did not issue read-only git observations"
 fi
+while IFS= read -r git_call; do
+  case "$git_call" in
+    "-C $runtime_root rev-parse --verify HEAD" | \
+      "-C $worker_root rev-parse --short HEAD") ;;
+    *) fail "snapshot issued a git command beyond read-only HEAD observations: $git_call" ;;
+  esac
+done < "$git_calls"
 pass "both skills use one non-mutating snapshot entrypoint"

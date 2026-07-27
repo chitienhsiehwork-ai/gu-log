@@ -235,6 +235,16 @@ else
 fi
 echo
 
+echo "══════ SUPERVISOR CHECKOUT (live read-only) ══════"
+if supervisor_head="$(
+  git -C "$GU_LOG_DIR" rev-parse --verify HEAD 2>/dev/null
+)" && [ -n "$supervisor_head" ]; then
+  echo "status=observed semantics=live_read_only head=$supervisor_head"
+else
+  echo "status=unavailable reason=git_head_unreadable"
+fi
+echo
+
 echo "══════ RUNTIME GIT OBSERVATION (last daemon tick) ══════"
 print_json_file ".score-loop/state/runtime-git.json" "runtime-git.json"
 echo
