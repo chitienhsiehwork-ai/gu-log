@@ -1,8 +1,8 @@
 #!/bin/bash
 # cc-tribunal-loop-wrapper.sh — Thin systemd wrapper for tribunal-quota-loop.sh
 #
-# Loads CLAUDE_CODE_OAUTH_TOKEN from ~/.cc-cron-token before exec-ing the loop.
-# Same pattern as cc-cron-tribunal.sh.
+# Loads CLAUDE_CODE_OAUTH_TOKEN from ~/.cc-cron-token before exec-ing the
+# systemd-managed loop.
 #
 # Install: ExecStart in ~/.config/systemd/user/tribunal-loop.service
 
