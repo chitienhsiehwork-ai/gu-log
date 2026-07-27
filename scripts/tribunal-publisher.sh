@@ -54,14 +54,17 @@ tlog() {
 }
 
 ensure_runtime_files() {
+  validate_tribunal_runtime_json_file "$PUBLISHER_STATE_FILE" "publisher state"
+  validate_tribunal_runtime_json_file "$TRIAGE_EVENTS_FILE" "triage events"
   ensure_tribunal_progress_file "$PROGRESS_FILE" "$ROOT_DIR"
-  mkdir -p "$(dirname "$PUBLISHER_STATE_FILE")"
-  if [ ! -f "$PUBLISHER_STATE_FILE" ] || ! jq empty "$PUBLISHER_STATE_FILE" >/dev/null 2>&1; then
-    jq -n '{schemaVersion: 1, entries: {}, batches: {}}' > "$PUBLISHER_STATE_FILE"
-  fi
-  if [ ! -f "$TRIAGE_EVENTS_FILE" ] || ! jq empty "$TRIAGE_EVENTS_FILE" >/dev/null 2>&1; then
-    jq -n '{schemaVersion: 1, events: {}}' > "$TRIAGE_EVENTS_FILE"
-  fi
+  ensure_tribunal_runtime_json_file \
+    "$PUBLISHER_STATE_FILE" \
+    "publisher state" \
+    '{schemaVersion: 1, entries: {}, batches: {}}'
+  ensure_tribunal_runtime_json_file \
+    "$TRIAGE_EVENTS_FILE" \
+    "triage events" \
+    '{schemaVersion: 1, events: {}}'
 }
 
 post_relpaths_for_article() {

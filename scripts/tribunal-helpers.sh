@@ -208,6 +208,50 @@ tribunal_triage_events_file() {
   printf '%s/.score-loop/state/tribunal-triage-events.json\n' "$root"
 }
 
+# Validate an existing runtime JSON ledger without mutating the filesystem.
+# A missing path is valid because callers may initialize it after all sibling
+# ledgers pass this preflight.
+validate_tribunal_runtime_json_file() {
+  local target="$1"
+  local label="$2"
+
+  if [ -L "$target" ]; then
+    printf 'ERROR: %s must not be a symbolic link: %s\n' "$label" "$target" >&2
+    return 1
+  fi
+
+  if [ ! -e "$target" ]; then
+    return 0
+  fi
+
+  if [ ! -f "$target" ]; then
+    printf 'ERROR: %s is not a regular file: %s\n' "$label" "$target" >&2
+    return 1
+  fi
+
+  if ! jq empty "$target" >/dev/null 2>&1; then
+    printf 'ERROR: %s contains invalid JSON: %s\n' "$label" "$target" >&2
+    return 1
+  fi
+}
+
+# Initialize a missing runtime JSON ledger, but never repair or replace an
+# existing invalid file. Callers own the initial shape; this helper only
+# enforces the shared existence and JSON-syntax invariant.
+ensure_tribunal_runtime_json_file() {
+  local target="$1"
+  local label="$2"
+  local initial_filter="$3"
+
+  validate_tribunal_runtime_json_file "$target" "$label" || return 1
+  if [ -e "$target" ]; then
+    return 0
+  fi
+
+  mkdir -p "$(dirname "$target")"
+  jq -n "$initial_filter" > "$target"
+}
+
 ensure_tribunal_progress_file() {
   local target="$1"
   local root="${2:-${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}}"
