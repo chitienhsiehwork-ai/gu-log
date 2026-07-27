@@ -244,19 +244,90 @@ for auth_mode in apply-only push-pr; do
 done
 pass "GitHub conflict scan fails closed before ledger, validation, branch, worktree, or push mutations"
 
+recovery_branch="publisher/pr-create-recovery"
+recovery_batch_dir="$TMP/pr-create-recovery-worktree"
+: > "$auth_gh_log"
+recovery_out="$(cd "$auth_runtime" && \
+  env -u GU_LOG_GH_TOKEN \
+  GH_BIN="$auth_fake_gh" \
+  GH_CALL_LOG="$auth_gh_log" \
+  GU_LOG_GH_TOKEN_FILE="$auth_missing_token" \
+  PUBLISHER_STATE_FILE="$auth_publisher_state" \
+  TRIAGE_EVENTS_FILE="$auth_triage_state" \
+  TRIBUNAL_PUBLISHER_DISABLE_GH_SCAN=1 \
+  TRIBUNAL_PUBLISHER_SKIP_BUILD=1 \
+  TRIBUNAL_PUBLISHER_VALIDATE_HOOK="$auth_runtime/scripts/test-validate-hook.sh" \
+  TRIBUNAL_PUBLISHER_VALIDATE_SENTINEL="$auth_validate_sentinel" \
+  bash scripts/tribunal-publisher.sh --apply --push-pr --max 10 --branch "$recovery_branch" --worktree "$recovery_batch_dir")"
+[ ! -e "$recovery_batch_dir" ] || fail "PR creation failure after a successful push should still clean the publisher worktree"
+git -C "$auth_runtime" show-ref --verify --quiet "refs/heads/$recovery_branch" \
+  || fail "PR creation failure cleanup must preserve the local publisher branch"
+git --git-dir="$origin" show-ref --verify --quiet "refs/heads/$recovery_branch" \
+  || fail "PR creation failure cleanup must preserve the pushed remote branch"
+[ "$(jq -r '.entries["gp-1-test.mdx"].publishState' "$auth_publisher_state")" = "branch_pushed" ] \
+  || fail "PR creation failure after push must leave a branch_pushed recovery checkpoint"
+grep -q '^pr create ' "$auth_gh_log" || fail "publisher should attempt PR creation after a successful push"
+grep -Fq "worktree removed: $recovery_batch_dir" <<<"$recovery_out" \
+  || fail "publisher should report cleanup after a recoverable PR creation failure"
+pass "PR creation failure cleans the worktree while preserving local, remote, and ledger recovery state"
+
+printf '{"schemaVersion":1,"entries":{},"batches":{}}\n' > "$auth_publisher_state"
+printf '{"schemaVersion":1,"events":{}}\n' > "$auth_triage_state"
+cat > "$auth_runtime/.score-loop/state/tribunal-progress.json" <<'JSON'
+{
+  "gp-1-test.mdx": { "status": "PASS", "tribunalVersion": 8 }
+}
+JSON
+cat > "$origin/hooks/pre-receive" <<'HOOK'
+#!/usr/bin/env bash
+exit 1
+HOOK
+chmod +x "$origin/hooks/pre-receive"
+git --git-dir="$origin" config core.hooksPath "$origin/hooks"
+push_failure_branch="publisher/push-failure-preserves"
+push_failure_batch_dir="$TMP/push-failure-worktree"
+if push_failure_out="$(cd "$auth_runtime" && \
+  PUBLISHER_STATE_FILE="$auth_publisher_state" \
+  TRIAGE_EVENTS_FILE="$auth_triage_state" \
+  TRIBUNAL_PUBLISHER_DISABLE_GH_SCAN=1 \
+  TRIBUNAL_PUBLISHER_SKIP_BUILD=1 \
+  TRIBUNAL_PUBLISHER_VALIDATE_HOOK="$auth_runtime/scripts/test-validate-hook.sh" \
+  TRIBUNAL_PUBLISHER_VALIDATE_SENTINEL="$auth_validate_sentinel" \
+  bash scripts/tribunal-publisher.sh --apply --push-pr --max 10 --branch "$push_failure_branch" --worktree "$push_failure_batch_dir" 2>&1)"; then
+  fail "publisher must return nonzero when the batch branch push fails"
+fi
+[ -e "$push_failure_batch_dir/.git" ] || fail "push failure must preserve the publisher worktree for recovery"
+git -C "$auth_runtime" show-ref --verify --quiet "refs/heads/$push_failure_branch" \
+  || fail "push failure must preserve the local publisher branch"
+git --git-dir="$origin" show-ref --verify --quiet "refs/heads/$push_failure_branch" \
+  && fail "a rejected push must not create the remote publisher branch"
+[ "$(jq -r '.entries["gp-1-test.mdx"].publishState' "$auth_publisher_state")" = "batch_selected" ] \
+  || fail "push failure must preserve batch_selected instead of claiming branch_pushed"
+grep -Fq "worktree removed: $push_failure_batch_dir" <<<"$push_failure_out" \
+  && fail "push failure must not claim that it cleaned the recovery worktree"
+git -C "$auth_runtime" worktree remove "$push_failure_batch_dir" --force
+rm -f "$origin/hooks/pre-receive"
+git --git-dir="$origin" config --unset core.hooksPath
+pass "push failure returns nonzero and preserves the local worktree, branch, and honest ledger state"
+
 printf 'Runtime rewritten one.\n' >> "$runtime/src/content/posts/gp-1-test.mdx"
 printf 'Runtime rewritten one en.\n' >> "$runtime/src/content/posts/en-gp-1-test.mdx"
 
 batch_dir="$TMP/batch-worktree"
 apply_out="$(cd "$runtime" && TRIBUNAL_PUBLISHER_DISABLE_GH_SCAN=1 TRIBUNAL_PUBLISHER_SKIP_BUILD=1 TRIBUNAL_PUBLISHER_VALIDATE_HOOK="$runtime/scripts/test-validate-hook.sh" bash scripts/tribunal-publisher.sh --apply --max 10 --branch publisher/test-batch --worktree "$batch_dir")"
 
-[ -e "$batch_dir/.git" ] || fail "apply should create publisher worktree"
+[ ! -e "$batch_dir" ] || fail "default apply should remove the publisher worktree after committing"
+git -C "$runtime" show-ref --verify --quiet "refs/heads/publisher/test-batch" \
+  || fail "default cleanup must preserve the local publisher branch"
 grep -q 'selected gp-1-test.mdx' <<<"$apply_out" || fail "apply should select PASS article"
 grep -q 'publishState' "$runtime/.score-loop/state/tribunal-publisher.json" || fail "publisher state file missing"
 [ "$(jq -r '.entries["gp-1-test.mdx"].publishState' "$runtime/.score-loop/state/tribunal-publisher.json")" = "batch_selected" ] || fail "PASS article should move to batch_selected"
-grep -q 'Runtime rewritten one.' "$batch_dir/src/content/posts/gp-1-test.mdx" || fail "publisher worktree should receive runtime artifact"
-grep -q 'Runtime rewritten one en.' "$batch_dir/src/content/posts/en-gp-1-test.mdx" || fail "publisher worktree should receive runtime EN artifact"
-pass "apply materializes PASS artifact into clean origin/main-based worktree"
+git -C "$runtime" show "publisher/test-batch:src/content/posts/gp-1-test.mdx" | grep -q 'Runtime rewritten one.' \
+  || fail "publisher branch should contain the runtime artifact after worktree cleanup"
+git -C "$runtime" show "publisher/test-batch:src/content/posts/en-gp-1-test.mdx" | grep -q 'Runtime rewritten one en.' \
+  || fail "publisher branch should contain the runtime EN artifact after worktree cleanup"
+grep -Fq "worktree removed: $batch_dir" <<<"$apply_out" || fail "default apply should report publisher worktree cleanup"
+pass "apply materializes PASS artifacts, preserves the branch, and removes the default worktree"
 
 pr_list_json="$TMP/pr-list.json"
 pr_files_dir="$TMP/pr-files"
@@ -365,3 +436,55 @@ cmp -s "$publisher_symlink_before" "$publisher_symlink_target" || fail "publishe
 grep -q 'symbolic link' <<<"$symlink_out" || fail "publisher should explain a rejected ledger symlink"
 grep -Fq "$publisher_symlink" <<<"$symlink_out" || fail "publisher should identify the rejected ledger symlink path"
 pass "publisher preflights all runtime ledgers before mutation"
+
+printf '{"schemaVersion":1,"entries":{},"batches":{}}\n' > "$runtime/.score-loop/state/tribunal-publisher.json"
+printf '{"schemaVersion":1,"events":{}}\n' > "$runtime/.score-loop/state/tribunal-triage-events.json"
+cat > "$runtime/.score-loop/state/tribunal-progress.json" <<'JSON'
+{
+  "gp-1-test.mdx": { "status": "PASS", "tribunalVersion": 8 }
+}
+JSON
+fake_pnpm_dir="$TMP/fake-pnpm-bin"
+mkdir -p "$fake_pnpm_dir"
+cat > "$fake_pnpm_dir/pnpm" <<'PNPM'
+#!/usr/bin/env bash
+set -euo pipefail
+touch cleanup-dirty-sentinel
+PNPM
+chmod +x "$fake_pnpm_dir/pnpm"
+dirty_branch="publisher/dirty-cleanup-preserves"
+dirty_batch_dir="$TMP/dirty-cleanup-worktree"
+if dirty_cleanup_out="$(cd "$runtime" && \
+  PATH="$fake_pnpm_dir:$PATH" \
+  TRIBUNAL_PUBLISHER_DISABLE_GH_SCAN=1 \
+  TRIBUNAL_PUBLISHER_VALIDATE_HOOK="$runtime/scripts/test-validate-hook.sh" \
+  bash scripts/tribunal-publisher.sh --apply --max 10 --branch "$dirty_branch" --worktree "$dirty_batch_dir" 2>&1)"; then
+  fail "publisher must return nonzero rather than force-removing a dirty worktree"
+fi
+[ -e "$dirty_batch_dir/.git" ] || fail "unexpected dirty state must preserve the registered publisher worktree"
+[ -e "$dirty_batch_dir/cleanup-dirty-sentinel" ] || fail "unexpected untracked files must survive failed cleanup"
+git -C "$runtime" show-ref --verify --quiet "refs/heads/$dirty_branch" \
+  || fail "dirty cleanup failure must preserve the committed publisher branch"
+[ "$(jq -r '.entries["gp-1-test.mdx"].publishState' "$runtime/.score-loop/state/tribunal-publisher.json")" = "batch_selected" ] \
+  || fail "dirty cleanup failure must preserve the honest batch_selected checkpoint"
+grep -Fq "worktree removed: $dirty_batch_dir" <<<"$dirty_cleanup_out" \
+  && fail "dirty cleanup failure must not claim that it removed the worktree"
+git -C "$runtime" worktree remove "$dirty_batch_dir" --force
+pass "unexpected dirty state blocks cleanup without deleting the worktree or its recovery evidence"
+
+printf '{"schemaVersion":1,"entries":{},"batches":{}}\n' > "$runtime/.score-loop/state/tribunal-publisher.json"
+printf '{"schemaVersion":1,"events":{}}\n' > "$runtime/.score-loop/state/tribunal-triage-events.json"
+cat > "$runtime/.score-loop/state/tribunal-progress.json" <<'JSON'
+{
+  "gp-1-test.mdx": { "status": "PASS", "tribunalVersion": 8 }
+}
+JSON
+keep_batch_dir="$TMP/batch-worktree-kept"
+keep_out="$(cd "$runtime" && TRIBUNAL_PUBLISHER_DISABLE_GH_SCAN=1 TRIBUNAL_PUBLISHER_SKIP_BUILD=1 TRIBUNAL_PUBLISHER_VALIDATE_HOOK="$runtime/scripts/test-validate-hook.sh" bash scripts/tribunal-publisher.sh --apply --keep-worktree --max 10 --branch publisher/test-batch-kept --worktree "$keep_batch_dir")"
+[ -e "$keep_batch_dir/.git" ] || fail "--keep-worktree should preserve the registered publisher worktree"
+grep -q 'Runtime rewritten one.' "$keep_batch_dir/src/content/posts/gp-1-test.mdx" \
+  || fail "kept publisher worktree should contain the runtime artifact"
+grep -Fq "worktree kept at $keep_batch_dir for inspection" <<<"$keep_out" \
+  || fail "--keep-worktree should report the preserved inspection path"
+git -C "$runtime" worktree remove "$keep_batch_dir" --force
+pass "--keep-worktree explicitly preserves the publisher worktree for inspection"
