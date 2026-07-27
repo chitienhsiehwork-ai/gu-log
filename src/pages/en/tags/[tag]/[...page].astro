@@ -1,12 +1,14 @@
 ---
 import { getCollection } from 'astro:content';
-import BaseLayout from '../../../layouts/BaseLayout.astro';
-import Toggle from '../../../components/Toggle.astro';
-import TicketBadge from '../../../components/TicketBadge.astro';
-import PostStatusLabel from '../../../components/PostStatusLabel.astro';
-import { getListablePosts, getPostStatus } from '../../../utils/post-status';
+import type { GetStaticPathsOptions } from 'astro';
+import BaseLayout from '../../../../layouts/BaseLayout.astro';
+import Toggle from '../../../../components/Toggle.astro';
+import TicketBadge from '../../../../components/TicketBadge.astro';
+import PostStatusLabel from '../../../../components/PostStatusLabel.astro';
+import Pagination from '../../../../components/Pagination.astro';
+import { getListablePosts, getPostStatus } from '../../../../utils/post-status';
 
-export async function getStaticPaths() {
+export async function getStaticPaths({ paginate }: GetStaticPathsOptions) {
   const allPostsFull = await getCollection('posts');
   const allPosts = getListablePosts(allPostsFull, 'en');
 
@@ -16,25 +18,25 @@ export async function getStaticPaths() {
     (post.data.tags || []).forEach((tag) => tags.add(tag));
   });
 
-  // Generate a page for each tag
-  return Array.from(tags).map((tag) => {
-    // Filter posts with this tag
+  // Generate paginated pages for each tag
+  return Array.from(tags).flatMap((tag) => {
     const tagPosts = allPosts
       .filter((post) => post.data.tags?.includes(tag))
       .sort((a, b) => {
         const dateA = a.data.translatedDate || a.data.originalDate;
         const dateB = b.data.translatedDate || b.data.originalDate;
-        return dateB.localeCompare(dateA); // Newest first
+        return dateB.localeCompare(dateA);
       });
 
-    return {
+    return paginate(tagPosts, {
+      pageSize: 20,
       params: { tag },
-      props: { tag, posts: tagPosts, allPostsFull },
-    };
+      props: { tag, allPostsFull },
+    });
   });
 }
 
-const { tag, posts, allPostsFull } = Astro.props;
+const { page, tag, allPostsFull } = Astro.props;
 ---
 
 <BaseLayout title={`${tag} - Tags - gu-log`} lang="en">
@@ -47,12 +49,12 @@ const { tag, posts, allPostsFull } = Astro.props;
         <span class="tag-icon">#</span>
         {tag}
       </h1>
-      <p class="subtitle">{posts.length} articles</p>
+      <p class="subtitle">{page.total} articles</p>
     </header>
 
     <section class="posts-list">
       {
-        posts.map((post) => {
+        page.data.map((post) => {
           const status = getPostStatus(post, allPostsFull);
           return (
             <article
@@ -89,6 +91,8 @@ const { tag, posts, allPostsFull } = Astro.props;
         })
       }
     </section>
+
+    <Pagination page={page} lang="en" />
 
     <footer class="page-footer">
       <a href="/en/tags">← Back to tags list</a>

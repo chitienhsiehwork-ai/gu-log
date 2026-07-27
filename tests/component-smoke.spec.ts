@@ -74,6 +74,28 @@ test.describe('Component smoke — listing pages', () => {
     expect(errs, `console errors: ${errs.join('\n')}`).toEqual([]);
   });
 
+  test('English high-volume tag listing stays within the pagination budget', async ({ page }) => {
+    const errs = attachConsoleErrorWatcher(page);
+    await page.goto('/en/tags/claude-code');
+
+    await expect(page.locator('.post-card')).toHaveCount(20);
+    const pagination = page.locator('nav.pagination');
+    await expect(pagination).toContainText(/Page 1 of \d+/);
+
+    const next = pagination.locator('a.pagination-next');
+    await expect(next).toHaveAttribute('href', '/en/tags/claude-code/2');
+    await page.goto('/en/tags/claude-code/2');
+
+    await expect(page).toHaveURL(/\/en\/tags\/claude-code\/2\/?$/);
+    const secondPageCards = page.locator('.post-card');
+    expect(await secondPageCards.count()).toBeGreaterThan(0);
+    expect(await secondPageCards.count()).toBeLessThanOrEqual(20);
+    await expect(page.locator('nav.pagination')).toContainText(/Page 2 of \d+/);
+    await expect(page.locator('a.pagination-prev')).toHaveAttribute('href', '/en/tags/claude-code');
+
+    expect(errs, `console errors: ${errs.join('\n')}`).toEqual([]);
+  });
+
   test('gu-log-picks listing renders', async ({ page }) => {
     const errs = attachConsoleErrorWatcher(page);
     await page.goto('/gu-log-picks');
