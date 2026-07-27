@@ -53,6 +53,15 @@ type FetchOptions struct {
 // xURLRe matches https://x.com/... and twitter.com/... URLs.
 var xURLRe = regexp.MustCompile(`^https?://(?:www\.)?(?:x|twitter)\.com/`)
 
+// nonCanonicalIPv4Re catches the legacy numeric forms accepted by curl and
+// libc resolvers but intentionally rejected by net.ParseIP: a single 32-bit
+// integer, shortened dotted forms, octal components, and hexadecimal
+// components. Callers must check net.ParseIP first so canonical public IPv4
+// addresses remain valid.
+var nonCanonicalIPv4Re = regexp.MustCompile(
+	`(?i)^(?:0x[0-9a-f]+|[0-9]+)(?:\.(?:0x[0-9a-f]+|[0-9]+)){0,3}$`,
+)
+
 // Fetch routes a URL to the best available fetcher. X / Twitter URLs go
 // through FetchX (fxtwitter quality). Allowlisted YouTube hosts always go
 // through FetchYouTube and fail closed; they never fall back to generic HTML,
@@ -215,6 +224,8 @@ func validateSafeHTTPURL(raw string) error {
 		if ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsUnspecified() {
 			return fmt.Errorf("internal / loopback IP %s is not allowed", ip)
 		}
+	} else if nonCanonicalIPv4Re.MatchString(host) {
+		return fmt.Errorf("non-canonical IPv4 literal %q is not allowed", host)
 	}
 	return nil
 }
