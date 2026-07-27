@@ -8,8 +8,12 @@ permissions:
 
 jobs:
   smoke-test:
-    # Only run when Vercel deployment succeeds (or fails)
-    if: github.event.deployment.environment == 'Production'
+    # Run only for terminal Production states; failure/error must fail closed.
+    if: >-
+      github.event.deployment.environment == 'Production' &&
+      (github.event.deployment_status.state == 'success' ||
+      github.event.deployment_status.state == 'failure' ||
+      github.event.deployment_status.state == 'error')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -17,7 +21,9 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Report deployment failure
-        if: github.event.deployment_status.state == 'failure'
+        if: >-
+          github.event.deployment_status.state == 'failure' ||
+          github.event.deployment_status.state == 'error'
         env:
           DEPLOYMENT_SHA: ${{ github.event.deployment.sha }}
           DEPLOYMENT_URL: ${{ github.event.deployment_status.target_url }}
@@ -27,7 +33,10 @@ jobs:
           exit 1
 
       - name: Notify Telegram — deploy failed
-        if: github.event.deployment_status.state == 'failure' && always()
+        if: >-
+          always() &&
+          (github.event.deployment_status.state == 'failure' ||
+          github.event.deployment_status.state == 'error')
         env:
           TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TG_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
