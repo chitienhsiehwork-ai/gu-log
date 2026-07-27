@@ -19,6 +19,10 @@ export interface PostNavigationBaseline {
   publishedPostIds: ReadonlySet<string>;
 }
 
+function comparePostDatesDescending(a: PostEntry, b: PostEntry): number {
+  return new Date(b.data.originalDate).getTime() - new Date(a.data.originalDate).getTime();
+}
+
 function normalizeStatus(status?: string): PostStatus {
   return status === 'deprecated' || status === 'retired' ? status : 'published';
 }
@@ -111,7 +115,7 @@ export function createPostNavigationBaseline(
   posts: PostEntry[],
   lang: PostLang
 ): PostNavigationBaseline {
-  const publishedPosts = getPublishedPosts(posts, lang);
+  const publishedPosts = getPublishedPosts(posts, lang).sort(comparePostDatesDescending);
 
   return {
     publishedPosts,
@@ -127,7 +131,7 @@ export function getNavigablePostsFromBaseline(
     return [...baseline.publishedPosts];
   }
 
-  return [...baseline.publishedPosts, currentPost];
+  return [...baseline.publishedPosts, currentPost].sort(comparePostDatesDescending);
 }
 
 export function getListablePosts(posts: PostEntry[], lang?: PostLang): PostEntry[] {

@@ -39,10 +39,7 @@ const labels = {
 
 const t = labels[lang];
 
-// Sort posts by originalDate (newest first)
-const sortedPosts = allPosts.sort((a, b) => {
-  return new Date(b.data.originalDate).getTime() - new Date(a.data.originalDate).getTime();
-});
+const sortedPosts = allPosts;
 
 // Find current post index
 const currentIndex = sortedPosts.findIndex((post) => post.id === currentSlug);

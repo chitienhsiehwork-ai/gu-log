@@ -28,6 +28,7 @@ type FakePost = {
   data: {
     ticketId: string;
     lang: 'zh-tw' | 'en';
+    originalDate: string;
     status?: 'published' | 'deprecated' | 'retired';
     deprecatedBy?: string;
     deprecatedReason?: string;
@@ -43,7 +44,16 @@ function p(
   lang: 'zh-tw' | 'en',
   extra: Partial<FakePost['data']> = {}
 ): FakePost {
-  return { id, data: { slug: id, ticketId, lang, ...extra } as FakePost['data'] };
+  return {
+    id,
+    data: {
+      slug: id,
+      ticketId,
+      lang,
+      originalDate: '2026-01-01',
+      ...extra,
+    } as FakePost['data'],
+  };
 }
 
 const cast = (xs: FakePost[]) => xs as unknown as Parameters<typeof getPublishedPosts>[0];
@@ -291,7 +301,48 @@ describe('getNavigablePosts', () => {
     }
   );
 
-  it('returns an isolated array for each page because navigation consumers sort in place', () => {
+  it.each(['zh-tw', 'en'] as const)(
+    'sorts the reusable %s published baseline newest-first',
+    (lang) => {
+      const oldest = p(`${lang}-oldest`, 'GP-30', lang, { originalDate: '2026-01-01' });
+      const newest = p(`${lang}-newest`, 'GP-31', lang, { originalDate: '2026-03-01' });
+      const middle = p(`${lang}-middle`, 'GP-32', lang, { originalDate: '2026-02-01' });
+      const otherLang = p(`${lang}-other`, 'GP-33', lang === 'en' ? 'zh-tw' : 'en', {
+        originalDate: '2026-04-01',
+      });
+
+      const baseline = createPostNavigationBaseline(
+        cast([oldest, otherLang, newest, middle]),
+        lang
+      );
+
+      expect(baseline.publishedPosts.map((post) => post.id)).toEqual([
+        newest.id,
+        middle.id,
+        oldest.id,
+      ]);
+    }
+  );
+
+  it.each(['deprecated', 'retired'] as const)(
+    'inserts a %s current post into its chronological position',
+    (status) => {
+      const older = p('gp-40-older', 'GP-40', 'zh-tw', { originalDate: '2026-01-01' });
+      const current = p('gp-41-current', 'GP-41', 'zh-tw', {
+        originalDate: '2026-02-01',
+        status,
+      });
+      const newer = p('gp-42-newer', 'GP-42', 'zh-tw', { originalDate: '2026-03-01' });
+      const allPosts = cast([older, current, newer]);
+      const baseline = createPostNavigationBaseline(allPosts, 'zh-tw');
+
+      expect(
+        getNavigablePostsFromBaseline(baseline, current as any).map((post) => post.id)
+      ).toEqual([newer.id, current.id, older.id]);
+    }
+  );
+
+  it('returns an isolated sorted array for each page', () => {
     const firstPost = p('gp-20-first', 'GP-20', 'zh-tw');
     const secondPost = p('gp-21-second', 'GP-21', 'zh-tw');
     const allPosts = cast([firstPost, secondPost]);

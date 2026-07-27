@@ -16,4 +16,11 @@ describe('post route navigation budget', () => {
       expect(source).not.toContain('const navigablePosts = getNavigablePosts(allPosts, post);');
     }
   );
+
+  it('keeps chronological sorting out of the per-page navigation component', () => {
+    const source = readFileSync('src/components/PrevNextNav.astro', 'utf8');
+
+    expect(source).toContain('const sortedPosts = allPosts;');
+    expect(source).not.toContain('allPosts.sort(');
+  });
 });
