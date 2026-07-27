@@ -17,6 +17,7 @@ import {
 const TEST_POST = '/posts/gp-24-20260204-claude-is-a-space-to-think';
 const AUTH_RETURN_KEY = 'gu-log-return-url';
 const AUTH_JWT_KEY = 'gu-log-jwt';
+const AUTH_STORAGE_URL_KEY = 'gu-log-auth-storage-url';
 
 async function seedAuthReturn(page: Page, returnUrl: string) {
   await page.goto('/');
@@ -28,6 +29,34 @@ async function seedAuthReturn(page: Page, returnUrl: string) {
     },
     { jwtKey: AUTH_JWT_KEY, returnKey: AUTH_RETURN_KEY, returnUrl }
   );
+}
+
+async function captureAuthTokenStorageUrl(page: Page) {
+  await page.addInitScript(
+    ({ jwtKey, observedUrlKey }) => {
+      const originalSetItem = Storage.prototype.setItem;
+      Storage.prototype.setItem = function (this: Storage, key: string, value: string) {
+        if (key === jwtKey) {
+          originalSetItem.call(window.sessionStorage, observedUrlKey, window.location.href);
+        }
+        originalSetItem.call(this, key, value);
+      };
+    },
+    { jwtKey: AUTH_JWT_KEY, observedUrlKey: AUTH_STORAGE_URL_KEY }
+  );
+}
+
+async function expectTokenUrlScrubbedBeforeStorage(page: Page) {
+  const observedHref = await page.evaluate(
+    (key) => sessionStorage.getItem(key),
+    AUTH_STORAGE_URL_KEY
+  );
+  expect(observedHref).not.toBeNull();
+
+  const observedUrl = new URL(observedHref!);
+  expect(observedUrl.pathname).toMatch(/^\/auth\/callback\/?$/);
+  expect(observedUrl.search).toBe('');
+  expect(observedUrl.hash).toBe('');
 }
 
 test.describe('AI Popup - Desktop', () => {
@@ -234,6 +263,7 @@ test.describe('Auth Callback', () => {
   test('GIVEN callback page with token param WHEN loaded THEN stores JWT in localStorage', async ({
     page,
   }) => {
+    await captureAuthTokenStorageUrl(page);
     await page.goto('/');
     await page.evaluate(() => localStorage.removeItem('gu-log-jwt'));
 
@@ -243,11 +273,13 @@ test.describe('Auth Callback', () => {
     await page.waitForFunction(() => !!localStorage.getItem('gu-log-jwt'));
     const jwt = await page.evaluate(() => localStorage.getItem('gu-log-jwt'));
     expect(jwt).toBe('fake-jwt-token-12345');
+    await expectTokenUrlScrubbedBeforeStorage(page);
   });
 
   test('GIVEN callback page with hash token WHEN loaded THEN stores JWT in localStorage', async ({
     page,
   }) => {
+    await captureAuthTokenStorageUrl(page);
     await page.goto('/');
     await page.evaluate(() => localStorage.removeItem('gu-log-jwt'));
 
@@ -257,7 +289,44 @@ test.describe('Auth Callback', () => {
     await page.waitForFunction(() => !!localStorage.getItem('gu-log-jwt'));
     const jwt = await page.evaluate(() => localStorage.getItem('gu-log-jwt'));
     expect(jwt).toBe('hash-jwt-token-67890');
+    await expectTokenUrlScrubbedBeforeStorage(page);
   });
+
+  for (const { label, callbackSuffix, token } of [
+    {
+      label: 'query token',
+      callbackSuffix: '?token=query-history-token',
+      token: 'query-history-token',
+    },
+    {
+      label: 'hash token',
+      callbackSuffix: '#token=hash-history-token',
+      token: 'hash-history-token',
+    },
+  ]) {
+    test(`GIVEN callback with ${label} WHEN login returns and user goes Back THEN callback is absent from history`, async ({
+      page,
+    }) => {
+      await page.goto('/about');
+      const priorSafeUrl = page.url();
+      await page.evaluate(
+        ({ jwtKey, returnKey, returnUrl }) => {
+          localStorage.removeItem(jwtKey);
+          localStorage.setItem(returnKey, returnUrl);
+        },
+        { jwtKey: AUTH_JWT_KEY, returnKey: AUTH_RETURN_KEY, returnUrl: TEST_POST }
+      );
+
+      await page.goto(`/auth/callback${callbackSuffix}`);
+      await page.waitForURL(new URL(TEST_POST, priorSafeUrl).href, { timeout: 5000 });
+      expect(await page.evaluate((key) => localStorage.getItem(key), AUTH_JWT_KEY)).toBe(token);
+
+      await page.goBack();
+      await expect(page).toHaveURL(priorSafeUrl);
+      expect(page.url()).not.toContain('token=');
+      expect(page.url()).not.toContain('/auth/callback');
+    });
+  }
 
   test('GIVEN callback page with no token WHEN loaded THEN shows error', async ({ page }) => {
     await page.goto('/');
