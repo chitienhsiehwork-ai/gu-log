@@ -9,6 +9,8 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 ASSERT="$ROOT_DIR/scripts/tribunal-assert-pass-artifacts.sh"
 AUDIT="$ROOT_DIR/scripts/tribunal-audit-pass-commits.sh"
 AUDIT_SERVICE="$ROOT_DIR/scripts/tribunal-pass-audit.service"
+AUDIT_TIMER="$ROOT_DIR/scripts/tribunal-pass-audit.timer"
+RUNBOOK="$ROOT_DIR/docs/tribunal-runbook.md"
 
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
@@ -472,3 +474,64 @@ PATH="$service_fake_bin:/usr/bin:/bin" \
 [ "$(cat "$service_audit_sentinel")" = "--range 2b1bc361..origin/main" ] ||
   fail "daily PASS audit did not scan the exact remote-main range after a successful refresh"
 pass "daily PASS audit fails closed when origin/main cannot be refreshed"
+
+grep -qx 'Persistent=true' "$AUDIT_TIMER" ||
+  fail "daily PASS audit timer must catch up after VM downtime"
+grep -qx 'Unit=tribunal-pass-audit.service' "$AUDIT_TIMER" ||
+  fail "daily PASS audit timer does not target the audit oneshot"
+grep -Eq '^OnCalendar=.+Asia/Taipei$' "$AUDIT_TIMER" ||
+  fail "daily PASS audit timer does not pin its production schedule timezone"
+pass "daily PASS audit timer targets the oneshot with persistent local-time scheduling"
+
+deploy_section="$(
+  sed -n '/^## Deploy$/,/^## Worker worktree gotcha$/p' "$RUNBOOK"
+)"
+for unit in \
+  tribunal-loop.service \
+  tribunal-pass-audit.service \
+  tribunal-pass-audit.timer; do
+  grep -Fq "install -m 0644 scripts/$unit" <<<"$deploy_section" ||
+    fail "runbook deploy block does not install $unit"
+  grep -Fq "cmp -s scripts/$unit" <<<"$deploy_section" ||
+    fail "runbook checklist does not verify installed $unit source"
+done
+grep -Fq 'systemctl --user enable tribunal-pass-audit.timer' <<<"$deploy_section" ||
+  fail "runbook deploy block does not enable the PASS audit timer"
+grep -Fq 'systemctl --user restart tribunal-pass-audit.timer' <<<"$deploy_section" ||
+  fail "runbook deploy block does not re-arm the PASS audit timer after unit updates"
+grep -Fq 'systemctl --user restart tribunal-pass-audit.service' <<<"$deploy_section" ||
+  fail "runbook deploy block does not restart a fresh fail-closed PASS audit smoke"
+grep -Fq 'systemctl --user is-enabled tribunal-pass-audit.timer' <<<"$deploy_section" ||
+  fail "runbook checklist does not verify the PASS audit timer is enabled"
+grep -Fq 'systemctl --user is-active tribunal-pass-audit.timer' <<<"$deploy_section" ||
+  fail "runbook checklist does not verify the PASS audit timer is active"
+grep -Fq 'NextElapseUSecRealtime' <<<"$deploy_section" ||
+  fail "runbook checklist does not verify the PASS audit timer has a next trigger"
+grep -Fq 'ExecMainExitTimestamp' <<<"$deploy_section" ||
+  fail "runbook checklist does not verify the PASS audit smoke completed"
+grep -Fq 'DropInPaths' <<<"$deploy_section" ||
+  fail "runbook checklist does not expose effective unit overrides"
+grep -Fq 'FragmentPath' <<<"$deploy_section" ||
+  fail "runbook checklist does not verify the loaded unit fragments"
+grep -Fq 'NeedDaemonReload' <<<"$deploy_section" ||
+  fail "runbook checklist does not verify daemon-reload took effect"
+
+reload_line="$(
+  grep -nF 'systemctl --user daemon-reload' <<<"$deploy_section" |
+    head -1 |
+    cut -d: -f1
+)"
+smoke_line="$(
+  grep -nF 'systemctl --user restart tribunal-pass-audit.service' <<<"$deploy_section" |
+    head -1 |
+    cut -d: -f1
+)"
+timer_line="$(
+  grep -nF 'systemctl --user enable tribunal-pass-audit.timer' <<<"$deploy_section" |
+    head -1 |
+    cut -d: -f1
+)"
+if [ "$reload_line" -ge "$smoke_line" ] || [ "$smoke_line" -ge "$timer_line" ]; then
+  fail "runbook must reload, run a fresh smoke, then enable the daily timer"
+fi
+pass "runbook deploys and verifies the tracked PASS audit service and timer"
