@@ -38,7 +38,7 @@
 
 - **WHEN** 兩個視窗需要相同的追平欠額
 - **THEN** 控制器 SHALL 只回傳一次該欠額
-- **AND** 控制器 SHALL 以固定規則選擇約束來源
+- **AND** `binding_constraint` SHALL 指向短週期視窗
 
 ### Requirement: 控制器維持設定的額度保留底線
 
@@ -93,6 +93,13 @@
 - **THEN** 控制器 SHALL 回傳 `600|1|none|fallback`
 - **AND** 控制器 SHALL NOT 把未知視窗當成全額可用
 
+#### Scenario: 無效正式來源與有效歷史來源同時存在
+
+- **WHEN** 用量監測包含一筆可辨識但資料不完整的正式來源
+- **AND** 同一份回應另有一筆可解析的歷史相容來源
+- **THEN** 控制器 SHALL 回傳正式來源的安全降級決策
+- **AND** 控制器 SHALL NOT 以歷史相容來源繞過正式來源失敗
+
 #### Scenario: 用量監測呼叫失敗
 
 - **WHEN** 用量監測不存在、無法執行或以失敗狀態結束
@@ -107,7 +114,7 @@
 
 ### Requirement: 系統保存如實的控制器遙測
 
-舊模式以外，常駐程式 SHALL 對主迴圈的 `tick`、`dispatch`、`complete` 生命週期事件盡力追加逐行 JSON 歷史；狀態路徑可寫時，每次成功的主迴圈決策後 SHALL 覆寫控制器狀態。歷史與狀態 SHALL 記錄實際額度讀值、決策、約束來源、模式與僅供遙測的單篇成本估計。歷史追加失敗 SHALL 產生警告，不得靜默改變派送決策。
+封閉迴路模式中，常駐程式 SHALL 對主迴圈的 `tick`、`dispatch`、`complete` 生命週期事件盡力追加逐行 JSON 歷史；狀態路徑可寫時，每次成功的主迴圈決策後 SHALL 覆寫控制器狀態。歷史與狀態 SHALL 記錄實際額度讀值、決策、約束來源、模式與僅供遙測的單篇成本估計。事件發生時無法取得讀值，系統 SHALL 明確標記讀值不可用，不得把 `0`／`-1` 哨兵冒充實測百分比或重設時間。歷史追加失敗 SHALL 產生警告，不得靜默改變派送決策。
 
 #### Scenario: 主迴圈控制器決策成功
 
@@ -120,6 +127,12 @@
 - **WHEN** 常駐程式在舊模式以外派送並完成文章
 - **THEN** 它 SHALL 追加對應的 `dispatch` 與 `complete` 歷史事件
 - **AND** 事件 SHALL 保留當下實際生效的控制器模式與單篇成本遙測
+
+#### Scenario: 生命週期事件無法重讀額度
+
+- **WHEN** `tick`、`dispatch` 或 `complete` 事件的額度重讀失敗
+- **THEN** 對應歷史事件 SHALL 明確標記讀值不可用
+- **AND** 該事件 SHALL NOT 把 `0` 剩餘百分比或 `-1` 重設時間記成實測值
 
 #### Scenario: 常駐程式帶著既有歷史啟動
 
@@ -134,7 +147,7 @@
 
 ### Requirement: 系統從有效歷史校準單篇成本遙測
 
-舊模式以外，常駐程式 SHALL 只在保留歷史中有足夠有效的單工作行程「派送到完成」額度差值後，校準單篇成本遙測。常駐程式 SHALL 依正式執行環境設定平滑並限制估計；校準後的估計 SHALL 維持不參與閘門。
+封閉迴路模式中，常駐程式 SHALL 只在保留歷史中有足夠有效的單工作行程「派送到完成」額度差值後，校準單篇成本遙測。有效差值 SHALL 要求兩端讀值都明確可用且可比較；任何不可用、哨兵、反向或缺欄位紀錄 SHALL 被排除。常駐程式 SHALL 依正式執行環境設定平滑並限制估計；校準後的估計 SHALL 維持不參與閘門。
 
 #### Scenario: 歷史沒有足夠有效樣本
 
@@ -151,6 +164,12 @@
 
 - **WHEN** 一組生命週期紀錄回報超過一個建議工作行程
 - **THEN** 校準 SHALL 從單篇成本估計排除該組紀錄
+
+#### Scenario: 樣本任一端讀值不可用
+
+- **WHEN** 一組派送到完成紀錄的任一端標記讀值不可用、缺少必要欄位或含舊哨兵
+- **THEN** 校準 SHALL 排除整組紀錄
+- **AND** 該組紀錄 SHALL NOT 改變單篇成本遙測
 
 ### Requirement: 控制器執行設定的額外用量安全閥
 
@@ -174,22 +193,6 @@
 - **WHEN** 額外用量已啟用，但預算上限為零或不可用
 - **THEN** 控制器 SHALL NOT 除以該值或進入 `extra_limit`
 - **AND** 正常額度視窗評估 SHALL 繼續
-
-### Requirement: 系統保留明示的舊模式降級
-
-系統 SHALL 支援 `--legacy-quota` 作為明示的 operator 降級。舊模式 SHALL 依設定的額度保留底線使用二元執行／停止行為，且 SHALL NOT 寫入封閉迴路額度歷史、控制器狀態或單篇成本校準。未設定該旗標時，用量監測錯誤 SHALL 留在封閉迴路 `fallback`，並在後續派送週期重試。
-
-#### Scenario: Operator 啟用舊模式
-
-- **WHEN** 常駐程式以 `--legacy-quota` 啟動
-- **THEN** 它 SHALL 使用舊版二元保留底線決策，而不是消耗線節奏
-- **AND** 它 SHALL NOT 寫入封閉迴路歷史、控制器狀態或校準
-
-#### Scenario: 封閉迴路監測錯誤
-
-- **WHEN** 用量監測失敗，且 `--legacy-quota` 未啟用
-- **THEN** 常駐程式 SHALL 進入封閉迴路 `fallback`
-- **AND** 它 SHALL 在後續派送週期重試用量監測
 
 ## REMOVED Requirements
 
@@ -255,6 +258,6 @@
 
 ### Requirement: System SHALL preserve legacy fallback
 
-**Reason**: 舊 requirement 寫死過時保留底線，且沒有清楚區分明示舊模式與封閉迴路監測錯誤降級。
+**Reason**: 舊 requirement 寫死過時保留底線，且目前 `--legacy-quota` reader 不支援正式 OpenAI 額度輸入；把它宣稱成可用的 operator fallback 會提供錯誤復原指引。
 
-**Migration**: 改由「系統保留明示的舊模式降級」定義設定底線、遙測副作用邊界與封閉迴路重試。
+**Migration**: 正式來源錯誤改由「額度資料不可用時控制器安全降級」處理；`--legacy-quota` 只保留為非規範的歷史相容路徑，操作手冊 SHALL NOT 再把它列為正式 rollback procedure。

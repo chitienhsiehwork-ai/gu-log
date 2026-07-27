@@ -29,7 +29,7 @@ remote Tribunal service。
   消耗線政策。
 - 明訂執行中工作數與單篇成本指數移動平均只供可觀測性，不是假裝能保證
   保留底線的派送預留。
-- 把保留底線、欠額、降級、額外用量、歷史、狀態與舊模式寫成可
+- 把保留底線、欠額、降級、額外用量、歷史、狀態與正式來源優先序寫成可
   對應正式測試的 scenarios。
 - 移除只在測試內重演舊公式、卻沒有執行正式控制器的假覆蓋。
 - 在 apply 與 archive 階段同步操作手冊殘影及穩定版規格的 Purpose。
@@ -80,22 +80,23 @@ sample timestamp、sample 後未反映消耗 ledger、upcoming dispatch reservat
 
 ### 4. 不完整 metadata 走 fallback，不把未知 window 當成滿額
 
-Canonical provider 的短、長 window remaining percentage 與正數 reset metadata
-必須同時可用，controller 才能做 burn-rate math。缺欄位、無法解析、非正數
-reset 或 monitor 失敗都回到保守 fallback；不把未知或過期 reset 解讀為「quota
-全滿、全速跑」。
+正式來源的短、長視窗剩餘百分比與正數重設資料必須同時可用，控制器才做消耗線
+運算。缺欄位、無法解析、非正數重設或監測失敗都回到保守降級；不把未知或過期
+重設解讀為「額度全滿、全速跑」。只要回應中出現可辨識的正式來源，該來源無效
+就必須立刻安全降級，不得繼續找歷史相容來源來繞過失敗。
 
-歷史 fixture parsing 與 `--legacy-quota` 可以保留相容性，但不能改變 canonical
-closed-loop 的 fail-safe contract。
+歷史 fixture parser 可以留作非規範的開發相容性；`--legacy-quota` 目前不支援
+正式 OpenAI 額度輸入，因此不再宣稱它是可用的 operator rollback。操作手冊要
+移除這個錯誤復原指引，但這個 proposal 階段不必順手刪除歷史程式碼。
 
 ### 5. Observability 描述實際 daemon lifecycle
 
-Main loop 的 `tick`、`dispatch`、`complete` events 才寫 quota history；daemon
-startup 旋轉過期紀錄，完成工作後以有效的 single-worker samples 更新
-article-cost EMA。每次 main-loop controller decision 會更新 controller state。
-`--controller-once` 是純輸出診斷，不假稱一定寫 history/state。寫檔失敗必須是
-可見 warning 或維持 fail-safe 行為，但 observability failure 不應自行開更多
-worker。
+主迴圈的 `tick`、`dispatch`、`complete` 事件才寫額度歷史；常駐程式啟動時
+輪替過期紀錄，完成工作後以有效的單工作行程樣本更新單篇成本指數移動平均。
+事件重讀額度失敗時要寫明「不可用」狀態，不得把 `0|-1` 哨兵冒充真實量測；
+校準器也必須拒收任一端不可用、缺欄位或含哨兵的樣本。每次主迴圈控制器決策會
+更新控制器狀態。`--controller-once` 是純輸出診斷，不假稱一定寫歷史／狀態。
+寫檔失敗必須有可見警告或維持安全降級，但可觀測性失敗不應自行開更多工作行程。
 
 替代方案是保留「每次 `controller_tick` 都寫檔」的舊文字。這和 production
 diagnostic path 不符，也會讓測試驗證不存在的 side effect，因此不採用。
@@ -103,8 +104,9 @@ diagnostic path 不符，也會讓測試驗證不存在的 side effect，因此�
 ### 6. Tests 必須執行 production controller
 
 Blocking regression tests 會以 fixture usage monitor 執行
-`scripts/tribunal-quota-loop.sh --controller-once`，覆蓋 burn line、較長 debt、
-floor、in-flight non-gating、metadata fallback 與 safety valve。只在 test file
+`scripts/tribunal-quota-loop.sh --controller-once`，覆蓋消耗線、較長與相同
+欠額、保留底線、執行中工作不參與閘門、混合來源降級與安全閥。生命週期測試另
+覆蓋不可用讀值標記與校準拒收。只在 test file
 內重寫另一份 Python 公式的 assertions 要移除或改成直接錨定 production
 function。
 
@@ -118,8 +120,8 @@ function。
 - [兩個 window 的 reset 或 rounding 邊界可能產生很長 debt] → State 保留完整
   debt 作診斷，daemon 用 bounded live recheck interval 重讀 quota，不無界沉睡。
 - [完整替換 requirements 容易漏掉舊 spec 尚有價值的 observability 行為] →
-  Delta 逐條列出所有移除理由，新增 requirements 覆蓋 history rotation、state、
-  calibration、extra-usage、fallback 與 legacy scenarios。
+  Delta 逐條列出所有移除理由，新增 requirements 覆蓋歷史輪替、狀態、校準、
+  額外用量、降級與正式來源優先序。
 - [移除 synthetic tests 可能降低表面 case 數] → 以 production-anchored scenario
   matrix 取代；coverage 以實際 controller branch 為準，不以測試數量為準。
 
@@ -143,4 +145,5 @@ edge-case bug，該修正必須有獨立 atomic commit 與 regression test。Rol
 ## Open Questions
 
 - Human checkpoint ①要決定：是否正式接受現行 burn-rate policy 的保證邊界，
-  並把更強的 in-flight reserve guarantee 留給獨立 change。
+  並把更強的 in-flight reserve guarantee 留給獨立 change；同時接受
+  `--legacy-quota` 只剩歷史相容性，不再作為正式 operator fallback。
