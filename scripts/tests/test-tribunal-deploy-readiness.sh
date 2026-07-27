@@ -310,15 +310,18 @@ pass "exit-137 worker without marker returns prompt deterministic infrastructure
   strict_root="$TMP/strict"
   mkdir -p "$strict_root/bin"
   cat > "$strict_root/bin/codex" <<'FAKE_CODEX'
-#!/usr/bin/env bash
+#!/bin/sh
 if [ "${1:-}" = "exec" ] && [ "${2:-}" = "--help" ]; then exit 0; fi
 exit 0
 FAKE_CODEX
   chmod +x "$strict_root/bin/codex"
   # shellcheck source=scripts/tribunal-helpers.sh
   source "$HELPERS"
-  PATH="$strict_root/bin:/usr/bin:/bin"
-  if TRIBUNAL_STRICT_ROLE_PROVIDERS=1 \
+  [ "$(PATH="$strict_root/bin" tribunal_codex_cmd)" = "codex" ] || exit 1
+  if PATH="$strict_root/bin" tribunal_claude_cmd >/dev/null 2>&1; then
+    exit 1
+  fi
+  if PATH="$strict_root/bin" TRIBUNAL_STRICT_ROLE_PROVIDERS=1 \
     tribunal_judge_provider vibe-opus-scorer >/dev/null 2>&1; then
     exit 1
   fi
