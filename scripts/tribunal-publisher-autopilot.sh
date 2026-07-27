@@ -148,9 +148,9 @@ pr_list_json() {
     file_var="${TRIBUNAL_PUBLISHER_AUTOPILOT_MERGED_PRS_JSON_FILE:-}"
   fi
   if [ -n "$file_var" ]; then
-    jq --arg branch "$branch" '[.[] | select((.headRefName // "") == $branch)]' "$file_var"
+    jq --arg branch "$branch" '[.[] | select((.headRefName // "") == $branch and (.baseRefName // "") == "main")]' "$file_var"
   else
-    publisher_gh pr list --repo "$REPO" --state "$state" --head "$branch" --json number,url,isDraft,headRefName,state,mergedAt,mergeCommit
+    publisher_gh pr list --repo "$REPO" --state "$state" --head "$branch" --base main --json number,url,isDraft,headRefName,baseRefName,state,mergedAt,mergeCommit
   fi
 }
 

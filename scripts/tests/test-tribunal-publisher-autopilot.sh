@@ -38,8 +38,11 @@ JSON
 
 cat > "$TMP/open.json" <<'JSON'
 [
-  { "number": 42, "url": "https://example.com/pr/42", "isDraft": true, "headRefName": "publisher/batch-2", "state": "OPEN" },
-  { "number": 43, "url": "https://example.com/pr/43", "isDraft": false, "headRefName": "publisher/batch-3", "state": "OPEN" }
+  { "number": 141, "url": "https://example.com/pr/141", "isDraft": true, "headRefName": "publisher/batch-1", "baseRefName": "release", "state": "OPEN" },
+  { "number": 142, "url": "https://example.com/pr/142", "isDraft": true, "headRefName": "publisher/batch-2", "baseRefName": "release", "state": "OPEN" },
+  { "number": 42, "url": "https://example.com/pr/42", "isDraft": true, "headRefName": "publisher/batch-2", "baseRefName": "main", "state": "OPEN" },
+  { "number": 143, "url": "https://example.com/pr/143", "isDraft": false, "headRefName": "publisher/batch-3", "baseRefName": "release", "state": "OPEN" },
+  { "number": 43, "url": "https://example.com/pr/43", "isDraft": false, "headRefName": "publisher/batch-3", "baseRefName": "main", "state": "OPEN" }
 ]
 JSON
 
@@ -50,9 +53,28 @@ JSON
 cat > "$TMP/merged-batch3.json" <<'JSON'
 [
   {
+    "number": 242,
+    "url": "https://example.com/pr/242",
+    "headRefName": "publisher/batch-2",
+    "baseRefName": "release",
+    "state": "MERGED",
+    "mergedAt": "2026-05-21T09:00:00Z",
+    "mergeCommit": { "oid": "wrong-off-base-only-commit" }
+  },
+  {
+    "number": 143,
+    "url": "https://example.com/pr/143",
+    "headRefName": "publisher/batch-3",
+    "baseRefName": "release",
+    "state": "MERGED",
+    "mergedAt": "2026-05-22T09:00:00Z",
+    "mergeCommit": { "oid": "wrong-off-base-commit" }
+  },
+  {
     "number": 43,
     "url": "https://example.com/pr/43",
     "headRefName": "publisher/batch-3",
+    "baseRefName": "main",
     "state": "MERGED",
     "mergedAt": "2026-05-23T09:00:00Z",
     "mergeCommit": { "oid": "abc123def456" }
@@ -101,6 +123,8 @@ chmod +x "$TMP/create-hook.sh"
 grep -q '^42$' "$ready_log" || fail "draft publisher PR should be marked ready"
 grep -q '^42$' "$guard_log" || fail "merge guard should run for ready'd PR"
 grep -q '^43$' "$guard_log" || fail "merge guard should run for already-ready PR"
+! grep -qE '^(141|142|143)$' "$ready_log" || fail "off-base PR must not be marked ready"
+! grep -qE '^(141|142|143)$' "$guard_log" || fail "off-base PR must not reach merge guard"
 grep -q '^batch-1 publisher/batch-1$' "$create_log" || fail "branch_pushed batch should recover a PR"
 [ "$(jq -r '.entries["gp-1-test.mdx"].publishState' "$runtime/.score-loop/state/tribunal-publisher.json")" = "pr_open" ] || fail "recovered PR should move entry to pr_open"
 [ "$(jq -r '.entries["gp-1-test.mdx"].prNumber' "$runtime/.score-loop/state/tribunal-publisher.json")" = "41" ] || fail "recovered PR should store prNumber"
@@ -124,4 +148,35 @@ JSON
 [ "$(jq -r '.entries["gp-3-test.mdx"].publishState' "$runtime/.score-loop/state/tribunal-publisher.json")" = "published" ] || fail "merged publisher PR should reconcile to published"
 [ "$(jq -r '.entries["gp-3-test.mdx"].mergeCommit' "$runtime/.score-loop/state/tribunal-publisher.json")" = "abc123def456" ] || fail "published entry should record merge commit"
 [ "$(jq -r '.batches["batch-3"].state' "$runtime/.score-loop/state/tribunal-publisher.json")" = "published" ] || fail "batch state should reconcile to published"
+[ "$(jq -r '.entries["gp-2-test.mdx"].publishState' "$runtime/.score-loop/state/tribunal-publisher.json")" = "pr_open" ] || fail "off-base-only merged PR must not publish a batch"
+[ "$(jq -r '.entries["gp-2-test.mdx"].mergeCommit // ""' "$runtime/.score-loop/state/tribunal-publisher.json")" = "" ] || fail "off-base-only merged PR must not record merge metadata"
 pass "autopilot reconciles merged publisher PRs back into published state"
+
+gh_log="$TMP/gh.log"
+cat > "$TMP/gh-hook.sh" <<'HOOK'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$*" >> "$GH_LOG"
+if [ "$1 $2" = "pr list" ]; then
+  printf '[]\n'
+  exit 0
+fi
+exit 1
+HOOK
+chmod +x "$TMP/gh-hook.sh"
+
+(cd "$runtime" && \
+  GH_LOG="$gh_log" \
+  GH_BIN="$TMP/gh-hook.sh" \
+  GU_LOG_GH_TOKEN="fixture-token" \
+  bash scripts/tribunal-publisher-autopilot.sh --skip-apply)
+
+grep -q '^pr list ' "$gh_log" || fail "autopilot should query live PR state"
+if grep '^pr list ' "$gh_log" | grep -qv -- '--base main'; then
+  fail "every live open/merged PR lookup must constrain base to main"
+fi
+grep '^pr list ' "$gh_log" | grep -- '--state open' | grep -q -- '--base main' \
+  || fail "live open PR lookup must constrain base to main"
+grep '^pr list ' "$gh_log" | grep -- '--state merged' | grep -q -- '--base main' \
+  || fail "live merged PR lookup must constrain base to main"
+pass "autopilot constrains live PR lookup to the main base"
