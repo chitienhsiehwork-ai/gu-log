@@ -234,8 +234,14 @@ advance_open_batches() {
     is_draft="$(jq -r '.[0].isDraft // false' <<<"$open_json")"
     update_batch_state "$batch_id" "pr_open" "$pr_number" "" ""
     if [ "$is_draft" = "true" ]; then
-      pr_mark_ready "$pr_number" || tlog "WARN: failed to ready pr=$pr_number"
-      audit_event "pr_ready" "batch=$batch_id pr=$pr_number branch=$branch"
+      if pr_mark_ready "$pr_number"; then
+        audit_event "pr_ready" "batch=$batch_id pr=$pr_number branch=$branch"
+      else
+        rc=$?
+        tlog "WARN: failed to ready pr=$pr_number rc=$rc"
+        audit_event "pr_ready_failed" "batch=$batch_id pr=$pr_number branch=$branch rc=$rc"
+        continue
+      fi
     fi
 
     if run_merge_guard "$pr_number"; then

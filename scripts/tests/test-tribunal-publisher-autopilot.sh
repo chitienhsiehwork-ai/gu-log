@@ -152,6 +152,79 @@ JSON
 [ "$(jq -r '.entries["gp-2-test.mdx"].mergeCommit // ""' "$runtime/.score-loop/state/tribunal-publisher.json")" = "" ] || fail "off-base-only merged PR must not record merge metadata"
 pass "autopilot reconciles merged publisher PRs back into published state"
 
+cat > "$runtime/.score-loop/state/tribunal-publisher.json" <<'JSON'
+{
+  "schemaVersion": 1,
+  "entries": {
+    "gp-2-test.mdx": { "publishState": "pr_open", "batchId": "batch-2" },
+    "gp-3-test.mdx": { "publishState": "pr_open", "batchId": "batch-3" }
+  },
+  "batches": {
+    "batch-2": { "batchId": "batch-2", "branch": "publisher/batch-2", "entries": ["gp-2-test.mdx"], "state": "pr_open" },
+    "batch-3": { "batchId": "batch-3", "branch": "publisher/batch-3", "entries": ["gp-3-test.mdx"], "state": "pr_open" }
+  }
+}
+JSON
+
+cat > "$TMP/open-ready-failure.json" <<'JSON'
+[
+  { "number": 42, "url": "https://example.com/pr/42", "isDraft": true, "headRefName": "publisher/batch-2", "baseRefName": "main", "state": "OPEN" },
+  { "number": 43, "url": "https://example.com/pr/43", "isDraft": false, "headRefName": "publisher/batch-3", "baseRefName": "main", "state": "OPEN" }
+]
+JSON
+
+failed_ready_log="$TMP/failed-ready.log"
+ready_failure_guard_log="$TMP/ready-failure-guard.log"
+ready_failure_audit_log="$TMP/ready-failure-audit.jsonl"
+
+cat > "$TMP/failing-ready-hook.sh" <<'HOOK'
+#!/usr/bin/env bash
+set -euo pipefail
+echo "$1" >> "$FAILED_READY_LOG"
+[ "$1" != "42" ]
+HOOK
+chmod +x "$TMP/failing-ready-hook.sh"
+
+(cd "$runtime" && \
+  FAILED_READY_LOG="$failed_ready_log" \
+  GUARD_LOG="$ready_failure_guard_log" \
+  TRIBUNAL_PUBLISHER_AUTOPILOT_OPEN_PRS_JSON_FILE="$TMP/open-ready-failure.json" \
+  TRIBUNAL_PUBLISHER_AUTOPILOT_MERGED_PRS_JSON_FILE="$TMP/merged-none.json" \
+  TRIBUNAL_PUBLISHER_AUTOPILOT_READY_HOOK="$TMP/failing-ready-hook.sh" \
+  TRIBUNAL_PUBLISHER_AUTOPILOT_MERGE_GUARD_HOOK="$TMP/guard-hook.sh" \
+  TRIBUNAL_PUBLISHER_AUTOPILOT_AUDIT_LOG="$ready_failure_audit_log" \
+  bash scripts/tribunal-publisher-autopilot.sh --skip-apply)
+
+grep -q '^42$' "$failed_ready_log" || fail "draft publisher PR should attempt the ready transition"
+! grep -q '^42$' "$ready_failure_guard_log" || fail "failed ready transition must not reach merge guard"
+grep -q '^43$' "$ready_failure_guard_log" || fail "ready failure must not block an already-ready batch"
+jq -e 'select(.event == "pr_ready_failed" and (.detail | contains("batch=batch-2 pr=42")) and (.detail | contains("rc=1")))' "$ready_failure_audit_log" >/dev/null \
+  || fail "failed ready transition should be recorded honestly"
+if jq -e 'select(.event == "pr_ready" and (.detail | contains("batch=batch-2 pr=42")))' "$ready_failure_audit_log" >/dev/null; then
+  fail "failed ready transition must not be recorded as pr_ready"
+fi
+if jq -e 'select((.event == "merge_guard_allow" or .event == "merge_guard_defer") and (.detail | contains("batch=batch-2 pr=42")))' "$ready_failure_audit_log" >/dev/null; then
+  fail "failed ready transition must not record a merge guard decision"
+fi
+[ "$(jq -r '.entries["gp-2-test.mdx"].publishState' "$runtime/.score-loop/state/tribunal-publisher.json")" = "pr_open" ] || fail "failed ready transition should remain retryable"
+[ "$(jq -r '.batches["batch-2"].state' "$runtime/.score-loop/state/tribunal-publisher.json")" = "pr_open" ] || fail "failed ready transition should keep the batch retryable"
+[ "$(jq -r '.entries["gp-2-test.mdx"].prNumber' "$runtime/.score-loop/state/tribunal-publisher.json")" = "42" ] || fail "failed ready transition should retain PR metadata"
+
+retry_ready_log="$TMP/retry-ready.log"
+retry_guard_log="$TMP/retry-guard.log"
+(cd "$runtime" && \
+  READY_LOG="$retry_ready_log" \
+  GUARD_LOG="$retry_guard_log" \
+  TRIBUNAL_PUBLISHER_AUTOPILOT_OPEN_PRS_JSON_FILE="$TMP/open-ready-failure.json" \
+  TRIBUNAL_PUBLISHER_AUTOPILOT_MERGED_PRS_JSON_FILE="$TMP/merged-none.json" \
+  TRIBUNAL_PUBLISHER_AUTOPILOT_READY_HOOK="$TMP/ready-hook.sh" \
+  TRIBUNAL_PUBLISHER_AUTOPILOT_MERGE_GUARD_HOOK="$TMP/guard-hook.sh" \
+  bash scripts/tribunal-publisher-autopilot.sh --skip-apply)
+
+grep -q '^42$' "$retry_ready_log" || fail "later cycle should retry the ready transition"
+grep -q '^42$' "$retry_guard_log" || fail "successful ready retry should reach merge guard"
+pass "autopilot defers merge automation when marking a draft PR ready fails"
+
 gh_log="$TMP/gh.log"
 cat > "$TMP/gh-hook.sh" <<'HOOK'
 #!/usr/bin/env bash
