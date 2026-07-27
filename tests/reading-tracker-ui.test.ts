@@ -23,4 +23,11 @@ describe('reading tracker semantic status colors', () => {
     expect(source).not.toContain('rgba(255, 184, 108, 0.08)');
     expect(source).not.toContain('#ff5555');
   });
+
+  it('fails the build when the configured API URL is not HTTP(S)', () => {
+    expect(source).toContain('new URL(configuredApiUrl)');
+    expect(source).toContain("parsedApiUrl.protocol !== 'https:'");
+    expect(source).toContain("parsedApiUrl.protocol !== 'http:'");
+    expect(source).toContain('PUBLIC_API_URL must use http or https');
+  });
 });

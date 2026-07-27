@@ -12,6 +12,23 @@ export interface GistReadStoreV1 {
 
 export type GistReadStore = GistReadStoreV1 | ReadStoreV2;
 
+function safeReauthorizeUrl(value: unknown, apiUrl: string): string | undefined {
+  if (typeof value !== 'string' || !value) return undefined;
+  try {
+    const apiBase = new URL(apiUrl);
+    if (apiBase.protocol !== 'https:' && apiBase.protocol !== 'http:') return undefined;
+    if (apiBase.username || apiBase.password) return undefined;
+
+    const candidate = new URL(value, `${apiBase.origin}/`);
+    if (candidate.origin !== apiBase.origin) return undefined;
+    if (candidate.pathname !== '/auth/github') return undefined;
+    if (candidate.username || candidate.password) return undefined;
+    return candidate.href;
+  } catch {
+    return undefined;
+  }
+}
+
 export class ReaderSyncApiError extends Error {
   code: string;
   reauthorizeUrl?: string;
@@ -41,7 +58,11 @@ async function apiFetch(apiUrl: string, init?: RequestInit): Promise<Response> {
   });
 }
 
-async function readerSyncApiError(resp: Response, fallback: string): Promise<ReaderSyncApiError> {
+async function readerSyncApiError(
+  resp: Response,
+  fallback: string,
+  apiUrl: string
+): Promise<ReaderSyncApiError> {
   let detail: unknown;
   try {
     detail = (await resp.json()).detail;
@@ -53,16 +74,17 @@ async function readerSyncApiError(resp: Response, fallback: string): Promise<Rea
     return new ReaderSyncApiError(
       typeof d.message === 'string' ? d.message : fallback,
       typeof d.code === 'string' ? d.code : 'READER_SYNC_FAILED',
-      typeof d.reauthorizeUrl === 'string' ? d.reauthorizeUrl : undefined
+      safeReauthorizeUrl(d.reauthorizeUrl, apiUrl)
     );
   }
-  if (resp.status === 401) return new ReaderSyncApiError('登入已過期，請重新登入', 'SESSION_EXPIRED');
+  if (resp.status === 401)
+    return new ReaderSyncApiError('登入已過期，請重新登入', 'SESSION_EXPIRED');
   return new ReaderSyncApiError(`${fallback}：HTTP ${resp.status}`);
 }
 
 export async function pullFromReaderSyncApi(apiUrl: string): Promise<GistReadStore | null> {
   const resp = await apiFetch(apiUrl);
-  if (!resp.ok) throw await readerSyncApiError(resp, '拉取失敗');
+  if (!resp.ok) throw await readerSyncApiError(resp, '拉取失敗', apiUrl);
   const payload: { store?: GistReadStore } = await resp.json();
   return payload.store ?? null;
 }
@@ -79,7 +101,7 @@ export async function pushToReaderSyncApi(
     method: 'PUT',
     body: JSON.stringify({ store: data }),
   });
-  if (!resp.ok) throw await readerSyncApiError(resp, '推送失敗');
+  if (!resp.ok) throw await readerSyncApiError(resp, '推送失敗', apiUrl);
 }
 
 /**

@@ -5,7 +5,12 @@ import { getPublishedPosts } from '../utils/post-status';
 import { getPostReaderRevision } from '../utils/post-versions';
 
 const allPosts = getPublishedPosts(await getCollection('posts'), 'zh-tw');
-const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
+const configuredApiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
+const parsedApiUrl = new URL(configuredApiUrl);
+if (parsedApiUrl.protocol !== 'https:' && parsedApiUrl.protocol !== 'http:') {
+  throw new Error('PUBLIC_API_URL must use http or https');
+}
+const apiUrl = parsedApiUrl.href.replace(/\/$/, '');
 
 // Sort by date descending
 allPosts.sort((a, b) => {
