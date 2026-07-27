@@ -39,14 +39,14 @@ en_rel="src/content/posts/en-$post_file"
 changed_files() {
   case "$mode" in
     --staged)
-      git -C "$repo" diff --cached --name-only --diff-filter=ACMR
+      git -C "$repo" diff --cached --name-only --no-renames --diff-filter=ACMRD
       ;;
     --commit)
       if [ -z "$commit_sha" ]; then
         usage
         exit 2
       fi
-      git -C "$repo" diff-tree --no-commit-id --name-only -r "$commit_sha"
+      git -C "$repo" diff-tree --no-commit-id --name-only --no-renames -r "$commit_sha"
       ;;
     *)
       usage
@@ -64,10 +64,16 @@ read_file_at_check_target() {
   local rel="$1"
   case "$mode" in
     --staged)
-      git -C "$repo" show ":$rel" 2>/dev/null || [ -f "$repo/$rel" ] && cat "$repo/$rel"
+      if ! git -C "$repo" show ":$rel" 2>/dev/null; then
+        echo "ERROR: unable to read staged target post artifact from index: $rel" >&2
+        return 1
+      fi
       ;;
     --commit)
-      git -C "$repo" show "$commit_sha:$rel" 2>/dev/null || true
+      if ! git -C "$repo" show "$commit_sha:$rel" 2>/dev/null; then
+        echo "ERROR: unable to read committed target post artifact: $rel" >&2
+        return 1
+      fi
       ;;
   esac
 }
@@ -84,12 +90,12 @@ fi
 en_exists=0
 case "$mode" in
   --staged)
-    if git -C "$repo" ls-files --error-unmatch "$en_rel" >/dev/null 2>&1 || [ -f "$repo/$en_rel" ]; then
+    if git -C "$repo" cat-file -e ":$en_rel" 2>/dev/null || has_changed_file "$en_rel"; then
       en_exists=1
     fi
     ;;
   --commit)
-    if git -C "$repo" cat-file -e "$commit_sha:$en_rel" 2>/dev/null; then
+    if git -C "$repo" cat-file -e "$commit_sha:$en_rel" 2>/dev/null || has_changed_file "$en_rel"; then
       en_exists=1
     fi
     ;;
