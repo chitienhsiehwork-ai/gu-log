@@ -139,9 +139,11 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: ./.github/actions/setup-pnpm
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
       - name: WCAG AA contrast check
-        run: pnpm run check:contrast
+        run: node scripts/check-contrast.mjs
 
   validate-content:
     runs-on: ubuntu-latest
@@ -364,13 +366,15 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: ./.github/actions/setup-pnpm
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: dist
           path: dist/
       - name: Check internal links
-        run: pnpm run links:check -- --internal-only --ci
+        run: node scripts/check-links.mjs --internal-only --ci
 
   bundle-budget:
     # PR-level bundle budget gate — fails if blocking budgets are violated.
@@ -380,13 +384,15 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: ./.github/actions/setup-pnpm
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: dist
           path: dist/
       - name: Bundle budget check (no history write)
-        run: pnpm run bundle:check
+        run: node scripts/bundle-budget-check.mjs
 
   # ─── Aggregate gate for branch protection ─────────────────────────────────
   # Point required status checks at this single job instead of each leaf job.
