@@ -253,3 +253,42 @@ grep '^pr list ' "$gh_log" | grep -- '--state open' | grep -q -- '--base main' \
 grep '^pr list ' "$gh_log" | grep -- '--state merged' | grep -q -- '--base main' \
   || fail "live merged PR lookup must constrain base to main"
 pass "autopilot constrains live PR lookup to the main base"
+
+corrupt_publisher_state="$TMP/corrupt-publisher-state.json"
+corrupt_publisher_before="$TMP/corrupt-publisher-state.before"
+missing_triage_state="$TMP/autopilot-missing-triage-state.json"
+publisher_preflight_side_effects="$TMP/autopilot-publisher-preflight-side-effects"
+printf '{"sentinel":"publisher"\n' > "$corrupt_publisher_state"
+cp "$corrupt_publisher_state" "$corrupt_publisher_before"
+
+if corrupt_out="$(cd "$runtime" && \
+  PUBLISHER_STATE_FILE="$corrupt_publisher_state" \
+  TRIAGE_EVENTS_FILE="$missing_triage_state" \
+  TRIBUNAL_PUBLISHER_AUTOPILOT_LOCK_FILE="$publisher_preflight_side_effects/locks/autopilot.lock" \
+  TRIBUNAL_PUBLISHER_AUTOPILOT_AUDIT_LOG="$publisher_preflight_side_effects/state/audit.jsonl" \
+  bash scripts/tribunal-publisher-autopilot.sh --skip-apply 2>&1)"; then
+  fail "autopilot must reject corrupt publisher state"
+fi
+cmp -s "$corrupt_publisher_before" "$corrupt_publisher_state" || fail "autopilot must not overwrite corrupt publisher state"
+[ ! -e "$missing_triage_state" ] || fail "autopilot must validate all ledgers before initializing a missing sibling"
+[ ! -e "$publisher_preflight_side_effects" ] || fail "autopilot must validate runtime ledgers before creating lock or audit directories"
+grep -q 'invalid JSON' <<<"$corrupt_out" || fail "autopilot should explain corrupt publisher state"
+grep -Fq "$corrupt_publisher_state" <<<"$corrupt_out" || fail "autopilot should identify the corrupt publisher state path"
+
+missing_publisher_state="$TMP/autopilot-missing-publisher-state.json"
+corrupt_triage_state="$TMP/corrupt-triage-state.json"
+corrupt_triage_before="$TMP/corrupt-triage-state.before"
+printf '{"sentinel":"triage"\n' > "$corrupt_triage_state"
+cp "$corrupt_triage_state" "$corrupt_triage_before"
+
+if corrupt_out="$(cd "$runtime" && \
+  PUBLISHER_STATE_FILE="$missing_publisher_state" \
+  TRIAGE_EVENTS_FILE="$corrupt_triage_state" \
+  bash scripts/tribunal-publisher-autopilot.sh --skip-apply 2>&1)"; then
+  fail "autopilot must reject corrupt triage state"
+fi
+cmp -s "$corrupt_triage_before" "$corrupt_triage_state" || fail "autopilot must not overwrite corrupt triage state"
+[ ! -e "$missing_publisher_state" ] || fail "autopilot must not initialize publisher state before triage preflight passes"
+grep -q 'invalid JSON' <<<"$corrupt_out" || fail "autopilot should explain corrupt triage state"
+grep -Fq "$corrupt_triage_state" <<<"$corrupt_out" || fail "autopilot should identify the corrupt triage state path"
+pass "autopilot preflights all runtime ledgers before mutation"

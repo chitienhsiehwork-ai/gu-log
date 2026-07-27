@@ -120,7 +120,11 @@ JSON
 out="$(cd "$runtime" && TRIBUNAL_PUBLISHER_DISABLE_GH_SCAN=1 bash scripts/tribunal-publisher.sh --dry-run --max 10)"
 grep -q 'publishable PASS: 1' <<<"$out" || fail "dry-run should report one publishable PASS"
 grep -q 'FAILED metadata: 1' <<<"$out" || fail "dry-run should report one FAILED article"
-pass "dry-run reports publishable and failed counts"
+jq -e '. == {"schemaVersion": 1, "entries": {}, "batches": {}}' "$runtime/.score-loop/state/tribunal-publisher.json" >/dev/null \
+  || fail "missing publisher state should initialize with the default shape"
+jq -e '. == {"schemaVersion": 1, "events": {}}' "$runtime/.score-loop/state/tribunal-triage-events.json" >/dev/null \
+  || fail "missing triage state should initialize with the default shape"
+pass "dry-run reports counts and initializes missing runtime ledgers"
 
 printf 'Runtime rewritten one.\n' >> "$runtime/src/content/posts/gp-1-test.mdx"
 printf 'Runtime rewritten one en.\n' >> "$runtime/src/content/posts/en-gp-1-test.mdx"
@@ -182,3 +186,61 @@ grep -q 'validation_blocked gp-2-test.mdx' <<<"$apply_out2" || fail "invalid can
 grep -q 'selected gp-1-test.mdx' <<<"$apply_out2" && fail "conflicted article should not be selected into batch"
 [ "$(jq -r '[.events[] | select(.kind=="validation_blocked")] | length' "$runtime/.score-loop/state/tribunal-triage-events.json")" = "1" ] || fail "validation_blocked event should be recorded once"
 pass "candidate validation failure is isolated into triage event"
+
+corrupt_publisher_state="$TMP/publisher-corrupt-publisher-state.json"
+corrupt_publisher_before="$TMP/publisher-corrupt-publisher-state.before"
+missing_triage_state="$TMP/publisher-missing-triage-state.json"
+missing_progress="$TMP/publisher-missing-progress.json"
+printf '{"sentinel":"publisher"\n' > "$corrupt_publisher_state"
+cp "$corrupt_publisher_state" "$corrupt_publisher_before"
+
+if corrupt_out="$(cd "$runtime" && \
+  PROGRESS_FILE="$missing_progress" \
+  PUBLISHER_STATE_FILE="$corrupt_publisher_state" \
+  TRIAGE_EVENTS_FILE="$missing_triage_state" \
+  bash scripts/tribunal-publisher.sh --status 2>&1)"; then
+  fail "publisher must reject corrupt publisher state"
+fi
+cmp -s "$corrupt_publisher_before" "$corrupt_publisher_state" || fail "publisher must not overwrite corrupt publisher state"
+[ ! -e "$missing_triage_state" ] || fail "publisher must validate all ledgers before initializing a missing sibling"
+[ ! -e "$missing_progress" ] || fail "publisher must validate runtime ledgers before initializing progress"
+grep -q 'invalid JSON' <<<"$corrupt_out" || fail "publisher should explain corrupt publisher state"
+grep -Fq "$corrupt_publisher_state" <<<"$corrupt_out" || fail "publisher should identify the corrupt publisher state path"
+
+missing_publisher_state="$TMP/publisher-missing-publisher-state.json"
+corrupt_triage_state="$TMP/publisher-corrupt-triage-state.json"
+corrupt_triage_before="$TMP/publisher-corrupt-triage-state.before"
+printf '{"sentinel":"triage"\n' > "$corrupt_triage_state"
+cp "$corrupt_triage_state" "$corrupt_triage_before"
+
+if corrupt_out="$(cd "$runtime" && \
+  PUBLISHER_STATE_FILE="$missing_publisher_state" \
+  TRIAGE_EVENTS_FILE="$corrupt_triage_state" \
+  bash scripts/tribunal-publisher.sh --status 2>&1)"; then
+  fail "publisher must reject corrupt triage state"
+fi
+cmp -s "$corrupt_triage_before" "$corrupt_triage_state" || fail "publisher must not overwrite corrupt triage state"
+[ ! -e "$missing_publisher_state" ] || fail "publisher must not initialize publisher state before triage preflight passes"
+grep -q 'invalid JSON' <<<"$corrupt_out" || fail "publisher should explain corrupt triage state"
+grep -Fq "$corrupt_triage_state" <<<"$corrupt_out" || fail "publisher should identify the corrupt triage state path"
+
+publisher_symlink_target="$TMP/publisher-symlink-target.json"
+publisher_symlink_before="$TMP/publisher-symlink-target.before"
+publisher_symlink="$TMP/publisher-state-symlink.json"
+valid_triage_state="$TMP/publisher-valid-triage-state.json"
+printf '{"schemaVersion":1,"entries":{},"batches":{}}\n' > "$publisher_symlink_target"
+cp "$publisher_symlink_target" "$publisher_symlink_before"
+ln -s "$publisher_symlink_target" "$publisher_symlink"
+printf '{"schemaVersion":1,"events":{}}\n' > "$valid_triage_state"
+
+if symlink_out="$(cd "$runtime" && \
+  PUBLISHER_STATE_FILE="$publisher_symlink" \
+  TRIAGE_EVENTS_FILE="$valid_triage_state" \
+  bash scripts/tribunal-publisher.sh --status 2>&1)"; then
+  fail "publisher must reject a symlinked runtime ledger"
+fi
+[ -L "$publisher_symlink" ] || fail "publisher must leave a rejected ledger symlink intact"
+cmp -s "$publisher_symlink_before" "$publisher_symlink_target" || fail "publisher must not mutate a symlink target"
+grep -q 'symbolic link' <<<"$symlink_out" || fail "publisher should explain a rejected ledger symlink"
+grep -Fq "$publisher_symlink" <<<"$symlink_out" || fail "publisher should identify the rejected ledger symlink path"
+pass "publisher preflights all runtime ledgers before mutation"
