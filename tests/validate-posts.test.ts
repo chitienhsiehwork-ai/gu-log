@@ -115,6 +115,15 @@ describe('parseFrontmatter', () => {
     expect(typeof fm.originalDate).toBe('string');
     expect(fm.originalDate).toBe('2026-07-17');
   });
+
+  it('preserves every YAML mapping key as an own data property', () => {
+    const fm = parseFrontmatter(makePost([...validFm, '__proto__:', '  marker: mapping-value']));
+
+    expect(Object.hasOwn(fm, '__proto__')).toBe(true);
+    expect(fm.__proto__).toEqual({ marker: 'mapping-value' });
+    expect(fm.marker).toBeUndefined();
+    expect(Object.getPrototypeOf(fm)).toBe(Object.prototype);
+  });
 });
 
 describe('getBaseFilename', () => {
@@ -191,6 +200,16 @@ describe('validatePost — required-field rules', () => {
 
   it('flags missing title', () => {
     const r = runWithFm(validFm.filter((l) => !l.startsWith('title:')));
+    expect(r.errors).toContain('Missing required field: title');
+  });
+
+  it('does not accept an inherited title as a required frontmatter field', () => {
+    const r = runWithFm([
+      ...validFm.filter((l) => !l.startsWith('title:')),
+      '__proto__:',
+      '  title: inherited-title',
+    ]);
+
     expect(r.errors).toContain('Missing required field: title');
   });
 

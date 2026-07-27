@@ -118,9 +118,9 @@ function coerceYamlValue(value) {
   if (Array.isArray(value)) return value.map(coerceYamlValue);
   if (value instanceof Date) return value.toISOString().slice(0, 10);
   if (typeof value === 'object') {
-    const out = {};
-    for (const [k, v] of Object.entries(value)) out[k] = coerceYamlValue(v);
-    return out;
+    return Object.fromEntries(
+      Object.entries(value).map(([key, nestedValue]) => [key, coerceYamlValue(nestedValue)])
+    );
   }
   if (typeof value === 'string') return value;
   return String(value);
