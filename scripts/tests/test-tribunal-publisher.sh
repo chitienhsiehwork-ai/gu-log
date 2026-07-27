@@ -168,6 +168,82 @@ cmp -s "$TMP/fetch-publisher-state.before" "$fetch_runtime/.score-loop/state/tri
 grep -q 'origin/main' <<<"$fetch_failure_out" || fail "publisher should explain the failed origin/main refresh"
 pass "apply fails closed before branch, worktree, or state reservation when origin/main refresh fails"
 
+auth_runtime="$TMP/auth-runtime"
+auth_publisher_state="$TMP/auth-publisher-state.json"
+auth_triage_state="$TMP/auth-triage-state.json"
+auth_validate_sentinel="$TMP/auth-validate-ran"
+auth_gh_log="$TMP/auth-gh.log"
+auth_progress_before="$TMP/auth-progress.before"
+auth_fake_gh="$TMP/auth-fake-gh"
+auth_missing_token="$TMP/auth-missing-token"
+git clone "$origin" "$auth_runtime" >/dev/null 2>&1
+git -C "$auth_runtime" checkout -b tribunal-auth-runtime origin/main >/dev/null 2>&1
+git -C "$auth_runtime" config user.email test@example.invalid
+git -C "$auth_runtime" config user.name "Runtime"
+mkdir -p "$auth_runtime/scripts" "$auth_runtime/.score-loop/state"
+cp "$ROOT_DIR/scripts/tribunal-publisher.sh" "$auth_runtime/scripts/tribunal-publisher.sh"
+cp "$ROOT_DIR/scripts/tribunal-helpers.sh" "$auth_runtime/scripts/tribunal-helpers.sh"
+chmod +x "$auth_runtime/scripts/tribunal-publisher.sh"
+cat > "$auth_runtime/scripts/test-validate-hook.sh" <<'HOOK'
+#!/usr/bin/env bash
+set -euo pipefail
+: > "$TRIBUNAL_PUBLISHER_VALIDATE_SENTINEL"
+HOOK
+chmod +x "$auth_runtime/scripts/test-validate-hook.sh"
+cat > "$auth_runtime/.score-loop/state/tribunal-progress.json" <<'JSON'
+{
+  "gp-1-test.mdx": { "status": "PASS", "tribunalVersion": 8 }
+}
+JSON
+printf 'Runtime rewrite must not publish without a verified conflict snapshot.\n' >> "$auth_runtime/src/content/posts/gp-1-test.mdx"
+cp "$auth_runtime/.score-loop/state/tribunal-progress.json" "$auth_progress_before"
+cat > "$auth_fake_gh" <<'GH'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$*" >> "$GH_CALL_LOG"
+echo "not authenticated" >&2
+exit 1
+GH
+chmod +x "$auth_fake_gh"
+
+for auth_mode in apply-only push-pr; do
+  auth_batch_dir="$TMP/auth-failure-batch-$auth_mode"
+  auth_branch="publisher/github-scan-must-succeed-$auth_mode"
+  auth_args=(--apply --max 10 --branch "$auth_branch" --worktree "$auth_batch_dir")
+  if [ "$auth_mode" = "push-pr" ]; then
+    auth_args+=(--push-pr)
+  fi
+
+  if auth_failure_out="$(cd "$auth_runtime" && \
+    env -u GU_LOG_GH_TOKEN \
+    GH_BIN="$auth_fake_gh" \
+    GH_CALL_LOG="$auth_gh_log" \
+    GU_LOG_GH_TOKEN_FILE="$auth_missing_token" \
+    PUBLISHER_STATE_FILE="$auth_publisher_state" \
+    TRIAGE_EVENTS_FILE="$auth_triage_state" \
+    TRIBUNAL_PUBLISHER_SKIP_BUILD=1 \
+    TRIBUNAL_PUBLISHER_VALIDATE_HOOK="$auth_runtime/scripts/test-validate-hook.sh" \
+    TRIBUNAL_PUBLISHER_VALIDATE_SENTINEL="$auth_validate_sentinel" \
+    bash scripts/tribunal-publisher.sh "${auth_args[@]}" 2>&1)"; then
+    fail "publisher must reject $auth_mode when the GitHub conflict snapshot cannot be read"
+  fi
+  [ ! -e "$auth_publisher_state" ] || fail "failed GitHub preflight must not initialize publisher state"
+  [ ! -e "$auth_triage_state" ] || fail "failed GitHub preflight must not initialize triage state"
+  [ ! -e "$auth_validate_sentinel" ] || fail "failed GitHub preflight must not validate candidates"
+  [ ! -e "$auth_batch_dir" ] || fail "failed GitHub preflight must not create a publisher worktree"
+  git -C "$auth_runtime" show-ref --verify --quiet "refs/heads/$auth_branch" \
+    && fail "failed GitHub preflight must not create a publisher branch"
+  git --git-dir="$origin" show-ref --verify --quiet "refs/heads/$auth_branch" \
+    && fail "failed GitHub preflight must not push a publisher branch"
+  cmp -s "$auth_progress_before" "$auth_runtime/.score-loop/state/tribunal-progress.json" \
+    || fail "failed GitHub preflight must not mutate progress state"
+  grep -q 'pulls?state=open&per_page=100' "$auth_gh_log" \
+    || fail "publisher must verify conflict-scan access with a paginated PR list request"
+  grep -q '^pr create ' "$auth_gh_log" && fail "failed GitHub preflight must stop before PR creation"
+  grep -q 'GitHub conflict snapshot' <<<"$auth_failure_out" || fail "publisher should explain the failed GitHub conflict snapshot"
+done
+pass "GitHub conflict scan fails closed before ledger, validation, branch, worktree, or push mutations"
+
 printf 'Runtime rewritten one.\n' >> "$runtime/src/content/posts/gp-1-test.mdx"
 printf 'Runtime rewritten one en.\n' >> "$runtime/src/content/posts/en-gp-1-test.mdx"
 
@@ -237,6 +313,7 @@ printf '{"sentinel":"publisher"\n' > "$corrupt_publisher_state"
 cp "$corrupt_publisher_state" "$corrupt_publisher_before"
 
 if corrupt_out="$(cd "$runtime" && \
+  TRIBUNAL_PUBLISHER_DISABLE_GH_SCAN=1 \
   PROGRESS_FILE="$missing_progress" \
   PUBLISHER_STATE_FILE="$corrupt_publisher_state" \
   TRIAGE_EVENTS_FILE="$missing_triage_state" \
@@ -256,6 +333,7 @@ printf '{"sentinel":"triage"\n' > "$corrupt_triage_state"
 cp "$corrupt_triage_state" "$corrupt_triage_before"
 
 if corrupt_out="$(cd "$runtime" && \
+  TRIBUNAL_PUBLISHER_DISABLE_GH_SCAN=1 \
   PUBLISHER_STATE_FILE="$missing_publisher_state" \
   TRIAGE_EVENTS_FILE="$corrupt_triage_state" \
   bash scripts/tribunal-publisher.sh --status 2>&1)"; then
@@ -276,6 +354,7 @@ ln -s "$publisher_symlink_target" "$publisher_symlink"
 printf '{"schemaVersion":1,"events":{}}\n' > "$valid_triage_state"
 
 if symlink_out="$(cd "$runtime" && \
+  TRIBUNAL_PUBLISHER_DISABLE_GH_SCAN=1 \
   PUBLISHER_STATE_FILE="$publisher_symlink" \
   TRIAGE_EVENTS_FILE="$valid_triage_state" \
   bash scripts/tribunal-publisher.sh --status 2>&1)"; then

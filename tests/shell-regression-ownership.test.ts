@@ -29,7 +29,6 @@ const PORTABLE_CONTRACTS = [
   'test-tribunal-progress-ledger-migration.sh',
   'test-tribunal-publish-worker-changes.sh',
   'test-tribunal-publisher-autopilot.sh',
-  'test-tribunal-publisher-gh-auth-fallback.sh',
   'test-tribunal-runtime-git-hygiene.sh',
   'test-tribunal-shell-quota-parser.sh',
   'test-tribunal-worker-sync-ref.sh',
@@ -41,6 +40,7 @@ const PORTABLE_CONTRACTS = [
 // report these as skipped instead of producing false portability failures.
 const BASH4_CONTRACTS = [
   'test-tribunal-openai-quota-controller.sh',
+  'test-tribunal-publisher-gh-auth-fallback.sh',
   'test-tribunal-publisher.sh',
 ] as const;
 
