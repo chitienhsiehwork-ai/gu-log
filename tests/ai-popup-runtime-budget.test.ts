@@ -20,4 +20,17 @@ describe('AiPopup shared runtime budget', () => {
     expect(runtime).toContain("root.getAttribute('data-api-url')");
     expect(runtime).toContain("root.getAttribute('data-lang')");
   });
+
+  it('keeps login navigation out of DOM-derived client URLs', () => {
+    const component = readFileSync(componentUrl, 'utf8');
+    const runtime = readFileSync(runtimeUrl, 'utf8');
+
+    expect(component).toContain('id="ai-popup-login-target"');
+    expect(component).toContain('href={loginUrl}');
+    expect(component).toContain("parsedApiUrl.protocol !== 'https:'");
+    expect(component).toContain("parsedApiUrl.protocol !== 'http:'");
+    expect(runtime).toContain("document.getElementById('ai-popup-login-target')");
+    expect(runtime).toContain('loginTarget.click()');
+    expect(runtime).not.toMatch(/\blocation(?:\.href)?\s*=|\blocation\.(?:assign|replace)\s*\(/);
+  });
 });

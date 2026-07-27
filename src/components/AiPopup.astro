@@ -15,7 +15,15 @@ interface Props {
 
 const { filePath = '', postTitle = '', lang = 'zh-tw' } = Astro.props;
 
-const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
+const configuredApiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
+const parsedApiUrl = new URL(configuredApiUrl);
+
+if (parsedApiUrl.protocol !== 'https:' && parsedApiUrl.protocol !== 'http:') {
+  throw new Error('PUBLIC_API_URL must use http or https');
+}
+
+const apiUrl = parsedApiUrl.href.replace(/\/$/, '');
+const loginUrl = `${apiUrl}/auth/github`;
 ---
 
 <div
@@ -25,6 +33,9 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
   data-api-url={apiUrl}
   data-lang={lang}
 >
+  <a id="ai-popup-login-target" href={loginUrl} hidden aria-hidden="true" tabindex="-1">
+    GitHub login
+  </a>
   <!-- Popup is created dynamically by JS -->
 </div>
 
