@@ -466,3 +466,213 @@ set -e
 [ "$(jq -r '."gp-2-20260129-claude-code-vs-codex.mdx".status' "$race_progress")" = "RUNNER_ERROR" ] ||
   fail "peer article did not retain its independent runner-error status"
 pass "concurrent articles cannot steal each other's EXHAUSTED signal"
+
+# A judge PASS is not durable until its score reaches the target frontmatter.
+# Bash disables errexit inside functions invoked from an `if`, so an early zh
+# write failure used to be masked by a later successful/no-op EN write. The
+# runner also wrote resumable stage PASS before attempting either artifact,
+# causing the retry to skip the judge even after persistence failed.
+persistence_bin="$TMP/persistence-bin"
+persistence_progress="$TMP/persistence-progress.json"
+persistence_ledger_progress="$TMP/persistence-ledger-progress.json"
+persistence_lock_dir="$TMP/persistence-article-locks"
+persistence_calls="$TMP/persistence-judge-calls"
+persistence_partial_writes="$TMP/persistence-partial-writes"
+persistence_zh="$ROOT_DIR/src/content/posts/gp-1-20260128-demo.mdx"
+persistence_en="$ROOT_DIR/src/content/posts/en-gp-1-20260128-demo.mdx"
+persistence_real_node="$(command -v node)"
+persistence_real_jq="$(command -v jq)"
+mkdir -p "$persistence_bin" "$persistence_lock_dir"
+chmod 700 "$persistence_lock_dir"
+printf '{}\n' > "$persistence_progress"
+printf '{}\n' > "$persistence_ledger_progress"
+: > "$persistence_calls"
+: > "$persistence_partial_writes"
+
+cat > "$persistence_bin/codex" <<'PERSISTENCE_CODEX'
+#!/usr/bin/env bash
+if [ "${1:-}" = "exec" ] && [ "${2:-}" = "--help" ]; then
+  echo "fake codex exec help"
+  exit 0
+fi
+if [ "${1:-}" = "--version" ]; then
+  echo "codex-cli 0.128.0"
+  exit 0
+fi
+if [ "${1:-}" = "exec" ]; then
+  printf '%s\n' "$PERSISTENCE_FAILURE_MODE" >> "$PERSISTENCE_JUDGE_CALLS"
+  prompt="${!#}"
+  score_path="$(printf '%s\n' "$prompt" | sed -n 's/^Write your JSON result to: //p' | tail -1)"
+  [ -n "$score_path" ] || exit 2
+  cat > "$score_path" <<'JSON'
+{
+  "judge": "factCheck",
+  "dimensions": {
+    "accuracy": 8,
+    "fidelity": 8,
+    "consistency": 8,
+    "sourceBoundary": 8,
+    "commentarySeparation": 8
+  },
+  "score": 8,
+  "verdict": "PASS"
+}
+JSON
+  exit 0
+fi
+exit 1
+PERSISTENCE_CODEX
+chmod +x "$persistence_bin/codex"
+
+cat > "$persistence_bin/node" <<'PERSISTENCE_NODE'
+#!/usr/bin/env bash
+if [ "${1:-}" = "$PERSISTENCE_FRONTMATTER_HELPER" ] && [ "${2:-}" = "write" ]; then
+  case "$PERSISTENCE_FAILURE_MODE:${3:-}" in
+    primary-fails:*/en-*) exit 0 ;;
+    primary-fails:*) exit 9 ;;
+    en-fails:*/en-*) exit 9 ;;
+    en-fails:*)
+      "$PERSISTENCE_REAL_NODE" "$@" || exit $?
+      printf '\n<!-- persistence-test-partial-write -->\n' >> "${3:-}"
+      printf 'zh-write\n' >> "$PERSISTENCE_PARTIAL_WRITES"
+      exit 0
+      ;;
+    ledger-fails:*) exit 0 ;;
+  esac
+fi
+exec "$PERSISTENCE_REAL_NODE" "$@"
+PERSISTENCE_NODE
+chmod +x "$persistence_bin/node"
+
+cat > "$persistence_bin/jq" <<'PERSISTENCE_JQ'
+#!/usr/bin/env bash
+if [ "$PERSISTENCE_FAILURE_MODE" = "ledger-fails" ]; then
+  args=("$@")
+  for ((i = 0; i + 2 < ${#args[@]}; i++)); do
+    if [ "${args[$i]}" = "--arg" ] &&
+       [ "${args[$((i + 1))]}" = "status" ] &&
+       [ "${args[$((i + 2))]}" = "pass" ]; then
+      exit 9
+    fi
+  done
+fi
+exec "$PERSISTENCE_REAL_JQ" "$@"
+PERSISTENCE_JQ
+chmod +x "$persistence_bin/jq"
+
+persistence_zh_before="$(sha256sum "$persistence_zh" | awk '{print $1}')"
+persistence_en_before="$(sha256sum "$persistence_en" | awk '{print $1}')"
+
+run_persistence_attempt() {
+  local failure_mode="$1"
+  local progress_file="$2"
+  PATH="$persistence_bin:$PATH" \
+  PERSISTENCE_FAILURE_MODE="$failure_mode" \
+  PERSISTENCE_REAL_NODE="$persistence_real_node" \
+  PERSISTENCE_REAL_JQ="$persistence_real_jq" \
+  PERSISTENCE_FRONTMATTER_HELPER="$ROOT_DIR/scripts/frontmatter-scores.mjs" \
+  PERSISTENCE_JUDGE_CALLS="$persistence_calls" \
+  PROGRESS_FILE="$progress_file" \
+  TRIBUNAL_ARTICLE_LOCK_DIR="$persistence_lock_dir" \
+  TRIBUNAL_FORCE_PROVIDER=codex \
+  TRIBUNAL_CODEX_TIMEOUT_SEC=5 \
+  TRIBUNAL_CODEX_IDLE_TIMEOUT_SEC=5 \
+  TRIBUNAL_CODEX_IDLE_POLL_SEC=1 \
+  bash "$TRIBUNAL" --only-stage factChecker --no-commit gp-1-20260128-demo.mdx
+}
+
+set +e
+run_persistence_attempt primary-fails "$persistence_progress" \
+  >"$TMP/persistence-first.out" 2>"$TMP/persistence-first.err"
+persistence_first_rc=$?
+run_persistence_attempt primary-fails "$persistence_progress" \
+  >"$TMP/persistence-second.out" 2>"$TMP/persistence-second.err"
+persistence_second_rc=$?
+run_persistence_attempt ledger-fails "$persistence_ledger_progress" \
+  >"$TMP/persistence-ledger.out" 2>"$TMP/persistence-ledger.err"
+persistence_ledger_rc=$?
+set -e
+
+[ "$persistence_first_rc" -eq 70 ] ||
+  fail "frontmatter persistence failure must classify the first stage run as rc=70"
+[ "$persistence_second_rc" -eq 70 ] ||
+  fail "frontmatter persistence failure must classify the retry as rc=70"
+[ "$(grep -c '^primary-fails$' "$persistence_calls")" = "2" ] ||
+  fail "frontmatter persistence retry must invoke the judge twice"
+[ "$(jq -r '."gp-1-20260128-demo.mdx".status // empty' "$persistence_progress")" = "RUNNER_ERROR" ] ||
+  fail "frontmatter persistence failure must record RUNNER_ERROR"
+[ "$(jq -r '."gp-1-20260128-demo.mdx".stages.factChecker.status // empty' "$persistence_progress")" = "runner_error" ] ||
+  fail "frontmatter persistence failure must record retryable stage runner_error"
+[ "$(jq -r '."gp-1-20260128-demo.mdx".topLevelAttempts // -1' "$persistence_progress")" = "0" ] ||
+  fail "frontmatter persistence failure must not consume content attempts"
+if grep -q "already PASS" "$TMP/persistence-second.out" "$TMP/persistence-second.err"; then
+  fail "frontmatter persistence retry incorrectly skipped a stale PASS stage"
+fi
+[ "$(sha256sum "$persistence_zh" | awk '{print $1}')" = "$persistence_zh_before" ] ||
+  fail "failed primary frontmatter persistence changed the zh-tw article"
+[ "$(sha256sum "$persistence_en" | awk '{print $1}')" = "$persistence_en_before" ] ||
+  fail "failed primary frontmatter persistence changed the English article"
+pass "frontmatter persistence failures remain retryable and never publish stage PASS"
+
+persistence_pair_dir="$TMP/persistence-pair"
+persistence_pair_zh="$persistence_pair_dir/pair.mdx"
+persistence_pair_en="$persistence_pair_dir/en-pair.mdx"
+mkdir -p "$persistence_pair_dir"
+cat > "$persistence_pair_zh" <<'MDX'
+---
+title: Persistence fixture
+---
+Fixture body.
+MDX
+cp "$persistence_pair_zh" "$persistence_pair_en"
+persistence_pair_zh_before="$(sha256sum "$persistence_pair_zh" | awk '{print $1}')"
+persistence_pair_en_before="$(sha256sum "$persistence_pair_en" | awk '{print $1}')"
+persistence_pair_score='{
+  "judge": "factCheck",
+  "dimensions": {
+    "accuracy": 8,
+    "fidelity": 8,
+    "consistency": 8,
+    "sourceBoundary": 8,
+    "commentarySeparation": 8
+  },
+  "score": 8,
+  "verdict": "PASS",
+  "model": "codex-test"
+}'
+# shellcheck source=scripts/score-helpers.sh
+source "$ROOT_DIR/scripts/score-helpers.sh"
+set +e
+PATH="$persistence_bin:$PATH" \
+PERSISTENCE_FAILURE_MODE=en-fails \
+PERSISTENCE_REAL_NODE="$persistence_real_node" \
+PERSISTENCE_FRONTMATTER_HELPER="$ROOT_DIR/scripts/frontmatter-scores.mjs" \
+PERSISTENCE_PARTIAL_WRITES="$persistence_partial_writes" \
+write_score_to_frontmatter "$persistence_pair_zh" factCheck "$persistence_pair_score" \
+  >"$TMP/persistence-pair.out" 2>"$TMP/persistence-pair.err"
+persistence_pair_rc=$?
+set -e
+[ "$persistence_pair_rc" -ne 0 ] ||
+  fail "English frontmatter persistence failure must return nonzero"
+if grep -q 'command not found' "$TMP/persistence-pair.out" "$TMP/persistence-pair.err"; then
+  fail "bilingual persistence fixture did not invoke the score helper"
+fi
+[ "$(grep -c '^zh-write$' "$persistence_partial_writes")" = "1" ] ||
+  fail "bilingual persistence fixture did not complete the primary write before English failure"
+[ "$(sha256sum "$persistence_pair_zh" | awk '{print $1}')" = "$persistence_pair_zh_before" ] ||
+  fail "English persistence failure did not roll back the successful zh-tw write"
+[ "$(sha256sum "$persistence_pair_en" | awk '{print $1}')" = "$persistence_pair_en_before" ] ||
+  fail "English persistence failure changed the English article"
+pass "bilingual persistence rolls back both artifacts when the English write fails"
+
+[ "$persistence_ledger_rc" -eq 70 ] ||
+  fail "stage PASS ledger failure must classify as rc=70"
+[ "$(grep -c '^ledger-fails$' "$persistence_calls")" = "1" ] ||
+  fail "stage PASS ledger failure must invoke the judge once"
+[ "$(jq -r '."gp-1-20260128-demo.mdx".status // empty' "$persistence_ledger_progress")" = "RUNNER_ERROR" ] ||
+  fail "stage PASS ledger failure must record RUNNER_ERROR"
+[ "$(jq -r '."gp-1-20260128-demo.mdx".stages.factChecker.status // empty' "$persistence_ledger_progress")" = "runner_error" ] ||
+  fail "stage PASS ledger failure must not leave resumable PASS"
+[ "$(jq -r '."gp-1-20260128-demo.mdx".topLevelAttempts // -1' "$persistence_ledger_progress")" = "0" ] ||
+  fail "stage PASS ledger failure must not consume content attempts"
+pass "stage PASS ledger failures remain runner errors instead of false success"

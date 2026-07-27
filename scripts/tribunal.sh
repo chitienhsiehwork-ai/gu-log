@@ -1021,7 +1021,6 @@ PROMPT
     # ── Check pass bar (code wins over agent verdict) ─────────────────────────
     if check_pass_bar "$validate_name" "$score_tmp"; then
       tlog "  PASS: $label passed on attempt $attempt"
-      write_stage_progress "$post_file" "$stage_key" "pass" "$score_json" "$runner_label" "$attempt"
 
       # ── Write score to post frontmatter (tribunal badge) ──
       if [ -n "$fm_judge_key" ] && [ "$WRITE_FRONTMATTER" -eq 1 ]; then
@@ -1042,11 +1041,22 @@ PROMPT
           tlog "  Frontmatter updated for $fm_judge_key."
         else
           tlog "  ERROR: Failed to write $fm_judge_key score to frontmatter."
+          if ! mark_article_runner_error "$post_file" "$stage_key" "$runner_label" "$attempt" "frontmatter_persistence_failed"; then
+            tlog "  ERROR: Failed to persist RUNNER_ERROR after frontmatter failure."
+          fi
           rm -f "$score_tmp"
-          return 1
+          return 70
         fi
       fi
 
+      if ! write_stage_progress "$post_file" "$stage_key" "pass" "$score_json" "$runner_label" "$attempt"; then
+        tlog "  ERROR: Failed to persist resumable PASS for $stage_key."
+        if ! mark_article_runner_error "$post_file" "$stage_key" "$runner_label" "$attempt" "stage_pass_persistence_failed"; then
+          tlog "  ERROR: Failed to persist RUNNER_ERROR after stage PASS ledger failure."
+        fi
+        rm -f "$score_tmp"
+        return 70
+      fi
       rm -f "$score_tmp"
       return 0
     fi
