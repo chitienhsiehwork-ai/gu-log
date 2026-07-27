@@ -160,13 +160,89 @@ tlog() {
 # "skipped", NOT as "passed" — otherwise stats are misleading. Chosen value:
 # 75 matches sysexits.h EX_TEMPFAIL ("temporary failure, retry later") which
 # is the closest stdlib semantic match.
-ARTICLE_LOCK_DIR="${TRIBUNAL_ARTICLE_LOCK_DIR:-/tmp}"
-if ! mkdir -p "$ARTICLE_LOCK_DIR"; then
+ARTICLE_LOCK_DIR_IS_DEFAULT=0
+if [ -n "${TRIBUNAL_ARTICLE_LOCK_DIR:-}" ]; then
+  ARTICLE_LOCK_DIR="$TRIBUNAL_ARTICLE_LOCK_DIR"
+else
+  if [ -z "${HOME:-}" ]; then
+    echo "[tribunal] HOME is required to resolve the private article lock directory (rc=70)." >&2
+    exit 70
+  fi
+  ARTICLE_LOCK_DIR="$HOME/.local/state/gu-log/tribunal/article-locks"
+  ARTICLE_LOCK_DIR_IS_DEFAULT=1
+fi
+
+tribunal_lock_path_uid() {
+  if stat -c '%u' "$1" >/dev/null 2>&1; then
+    stat -c '%u' "$1"
+  else
+    stat -f '%u' "$1"
+  fi
+}
+
+tribunal_lock_path_mode() {
+  if stat -c '%a' "$1" >/dev/null 2>&1; then
+    stat -c '%a' "$1"
+  else
+    stat -f '%Lp' "$1"
+  fi
+}
+
+if [ -L "$ARTICLE_LOCK_DIR" ]; then
+  echo "[tribunal] article lock directory must not be a symbolic link: $ARTICLE_LOCK_DIR (rc=70)." >&2
+  exit 70
+fi
+if ! (umask 077 && mkdir -p "$ARTICLE_LOCK_DIR"); then
   echo "[tribunal] cannot create article lock directory: $ARTICLE_LOCK_DIR (rc=70)." >&2
   exit 70
 fi
+if [ -L "$ARTICLE_LOCK_DIR" ] || [ ! -d "$ARTICLE_LOCK_DIR" ]; then
+  echo "[tribunal] article lock path is not a safe directory: $ARTICLE_LOCK_DIR (rc=70)." >&2
+  exit 70
+fi
+ARTICLE_LOCK_UID="$(tribunal_lock_path_uid "$ARTICLE_LOCK_DIR" 2>/dev/null || true)"
+CURRENT_UID="$(id -u)"
+if [ "$ARTICLE_LOCK_UID" != "$CURRENT_UID" ]; then
+  echo "[tribunal] article lock directory must be owned by uid $CURRENT_UID: $ARTICLE_LOCK_DIR (rc=70)." >&2
+  exit 70
+fi
+if [ "$ARTICLE_LOCK_DIR_IS_DEFAULT" -eq 1 ]; then
+  if ! chmod 700 "$ARTICLE_LOCK_DIR"; then
+    echo "[tribunal] cannot secure article lock directory: $ARTICLE_LOCK_DIR (rc=70)." >&2
+    exit 70
+  fi
+else
+  ARTICLE_LOCK_MODE="$(tribunal_lock_path_mode "$ARTICLE_LOCK_DIR" 2>/dev/null || true)"
+  if [ -z "$ARTICLE_LOCK_MODE" ] || (( (8#$ARTICLE_LOCK_MODE) & 0022 )); then
+    echo "[tribunal] article lock directory must not be group/world-writable: $ARTICLE_LOCK_DIR (rc=70)." >&2
+    exit 70
+  fi
+fi
+
 LOCK_FILE="$ARTICLE_LOCK_DIR/tribunal-${POST_FILE}.lock"
-exec 200>"$LOCK_FILE"
+if [ -L "$LOCK_FILE" ] || { [ -e "$LOCK_FILE" ] && [ ! -f "$LOCK_FILE" ]; }; then
+  echo "[tribunal] article lock path is not a safe regular file: $LOCK_FILE (rc=70)." >&2
+  exit 70
+fi
+if [ -e "$LOCK_FILE" ]; then
+  ARTICLE_LOCK_FILE_UID="$(tribunal_lock_path_uid "$LOCK_FILE" 2>/dev/null || true)"
+  if [ "$ARTICLE_LOCK_FILE_UID" != "$CURRENT_UID" ]; then
+    echo "[tribunal] article lock file must be owned by uid $CURRENT_UID: $LOCK_FILE (rc=70)." >&2
+    exit 70
+  fi
+fi
+ARTICLE_LOCK_UMASK="$(umask)"
+umask 077
+if ! { exec 200>>"$LOCK_FILE"; }; then
+  umask "$ARTICLE_LOCK_UMASK"
+  echo "[tribunal] cannot open article lock file: $LOCK_FILE (rc=70)." >&2
+  exit 70
+fi
+umask "$ARTICLE_LOCK_UMASK"
+if [ -L "$LOCK_FILE" ] || [ ! -f "$LOCK_FILE" ] || ! chmod 600 "$LOCK_FILE"; then
+  echo "[tribunal] article lock file failed safety validation: $LOCK_FILE (rc=70)." >&2
+  exit 70
+fi
 if ! flock -n 200; then
   echo "[tribunal] skipped: another instance is already running for $POST_FILE (rc=75)." >&2
   exit 75
