@@ -447,7 +447,10 @@ apply_batch() {
   branch_name="${BRANCH_NAME:-publisher/$batch_id}"
   batch_dir="${WORKTREE_PATH:-$ROOT_DIR/.score-loop/publisher/$batch_id}"
 
-  tribunal_fetch_origin_main "$ROOT_DIR" /dev/null || true
+  if ! tribunal_fetch_origin_main "$ROOT_DIR" /dev/null; then
+    echo "ERROR: unable to refresh origin/main; refusing to publish from a cached ref" >&2
+    return 1
+  fi
 
   if git show-ref --verify --quiet "refs/heads/$branch_name"; then
     echo "ERROR: branch already exists locally: $branch_name" >&2
