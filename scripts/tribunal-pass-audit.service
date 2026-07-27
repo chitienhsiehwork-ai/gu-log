@@ -4,6 +4,7 @@ After=network-online.target
 
 [Service]
 Type=oneshot
+TimeoutStartSec=10min
 EnvironmentFile=%h/.config/gu-log/tribunal.env
 ExecStart=/bin/bash -lc ': "$${GU_LOG_DIR:?Missing GU_LOG_DIR in tribunal.env}"; cd "$$GU_LOG_DIR" || exit; git fetch origin main >/dev/null 2>&1 || { echo "ERROR: unable to refresh origin/main; refusing to audit a cached ref" >&2; exit 1; }; bash scripts/tribunal-audit-pass-commits.sh --range 2b1bc361..origin/main'
 Environment=TZ=Asia/Taipei

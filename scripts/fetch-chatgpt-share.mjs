@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { writeFile, mkdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 const USAGE = `Usage:
   node scripts/fetch-chatgpt-share.mjs <chatgpt-share-url> [--out <file>] [--format markdown|json]
@@ -38,11 +39,25 @@ function parseArgs(argv) {
   return args;
 }
 
-function shareIdFromUrl(url) {
-  const parsed = new URL(url);
-  const parts = parsed.pathname.split('/').filter(Boolean);
-  const shareIndex = parts.indexOf('share');
-  return shareIndex >= 0 ? parts[shareIndex + 1] : parts.at(-1);
+const INVALID_SHARE_URL = 'Expected a canonical ChatGPT share URL: https://chatgpt.com/share/<id>';
+
+export function parseChatGPTShareUrl(value) {
+  let parsed;
+  try {
+    parsed = new URL(value);
+  } catch {
+    throw new Error(INVALID_SHARE_URL);
+  }
+
+  const pathMatch = parsed.pathname.match(/^\/share\/([^/]+)\/?$/);
+  if (parsed.origin !== 'https://chatgpt.com' || parsed.username || parsed.password || !pathMatch) {
+    throw new Error(INVALID_SHARE_URL);
+  }
+
+  return {
+    sourceUrl: parsed.href,
+    shareId: pathMatch[1],
+  };
 }
 
 function jsStringLiteralToString(literalBody) {
@@ -251,11 +266,10 @@ function renderMarkdown(record) {
   return lines.join('\n');
 }
 
-async function main() {
-  const args = parseArgs(process.argv.slice(2));
-  const sourceUrl = args.url;
-  const shareId = shareIdFromUrl(sourceUrl);
-  const response = await fetch(sourceUrl, {
+export async function main(argv = process.argv.slice(2), fetchImpl = fetch) {
+  const args = parseArgs(argv);
+  const { sourceUrl, shareId } = parseChatGPTShareUrl(args.url);
+  const response = await fetchImpl(sourceUrl, {
     headers: {
       'user-agent': 'Mozilla/5.0 (compatible; gu-log-chatgpt-share-fetch/1.0)',
       accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -297,7 +311,9 @@ async function main() {
   console.error(`Wrote ${outPath}`);
 }
 
-main().catch((error) => {
-  console.error(error.message);
-  process.exit(1);
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main(process.argv.slice(2)).catch((error) => {
+    console.error(error.message);
+    process.exit(1);
+  });
+}

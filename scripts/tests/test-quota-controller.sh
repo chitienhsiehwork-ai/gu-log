@@ -474,30 +474,22 @@ print(f'{ema:.2f}')
 # Should shift ~30% toward 9.0 from wherever EMA was
 assert_between "outlier shifts EMA partially" "3.0" "6.0" "$result"
 
-# ─── Test 13: History JSONL append (structural test) ──────────────────────────
+# ─── Test 13: History JSONL append ────────────────────────────────────────────
 echo ""
-echo "--- JSONL structural test ---"
+echo "--- JSONL append ---"
 
-# Write a test entry and verify structure
-python3 -c "
-import json, datetime
-entry = {
-    'ts': datetime.datetime.now(datetime.timezone.utc).isoformat(),
-    'event': 'tick',
-    'five_hr_pct': 59.0,
-    'five_hr_resets_sec': 8280.0,
-    'seven_day_pct': 55.0,
-    'seven_day_resets_sec': 60840.0,
-    'extra_used_usd': 10.0,
-    'extra_limit_usd': 100.0,
-    'cooldown_sec': 120,
-    'recommended_workers': 1,
-    'binding_constraint': 'five_hour',
-    'article_cost_pct': 5.0,
-    'mode': 'pacing',
-}
-print(json.dumps(entry))
-" > "$QUOTA_HISTORY_FILE"
+# Exercise the production function without starting the daemon.
+CONTROLLER_FUNCTIONS_FILE=$(mktemp)
+sed -n \
+  '/^quota_history_append() {/,/^# Overwrite quota-controller.json/{ /^# Overwrite quota-controller.json/!p; }' \
+  "$ROOT_DIR/scripts/tribunal-quota-loop.sh" > "$CONTROLLER_FUNCTIONS_FILE"
+# shellcheck source=/dev/null
+source "$CONTROLLER_FUNCTIONS_FILE"
+
+: > "$QUOTA_HISTORY_FILE"
+quota_history_append \
+  "tick" "59" "8280" "55" "60840" "10" "100" \
+  "120" "1" "five_hour" "5.0" "pacing"
 
 # Verify it's valid JSONL
 valid=$(python3 -c "
@@ -515,6 +507,22 @@ with open('$QUOTA_HISTORY_FILE') as f:
             print('valid')
 " 2>/dev/null)
 assert_eq "JSONL entry has all required fields" "valid" "$valid"
+
+# A telemetry write failure must remain fail-soft, but it cannot be silent.
+FAKE_BIN=$(mktemp -d)
+printf '#!/usr/bin/env bash\nexit 42\n' > "$FAKE_BIN/python3"
+chmod +x "$FAKE_BIN/python3"
+: > "$LOG_FILE"
+append_rc=0
+PATH="$FAKE_BIN:$PATH" quota_history_append \
+  "tick" "59" "8280" "55" "60840" "10" "100" \
+  "120" "1" "five_hour" "5.0" "pacing" || append_rc=$?
+assert_eq "history write failure remains fail-soft" "0" "$append_rc"
+
+warning_count=$(grep -Fc \
+  "WARN: quota history append failed event=tick path=$QUOTA_HISTORY_FILE" \
+  "$LOG_FILE" || true)
+assert_eq "history write failure emits operator warning" "1" "$warning_count"
 
 # ─── Test 14: Reset string parsing ───────────────────────────────────────────
 echo ""
@@ -552,7 +560,9 @@ assert_eq "empty → -1" "-1" "$r4"
 assert_eq "None → -1" "-1" "$r5"
 
 # ─── Cleanup ──────────────────────────────────────────────────────────────────
-rm -f "$QUOTA_HISTORY_FILE" "$QUOTA_CONTROLLER_STATE" "$LOG_FILE"
+rm -f "$QUOTA_HISTORY_FILE" "$QUOTA_CONTROLLER_STATE" "$LOG_FILE" \
+  "$CONTROLLER_FUNCTIONS_FILE"
+rm -rf "$FAKE_BIN"
 
 # ─── Summary ──────────────────────────────────────────────────────────────────
 echo ""

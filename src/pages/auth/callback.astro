@@ -133,6 +133,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
         }
 
         if (token) {
+          window.history.replaceState(window.history.state, '', window.location.pathname);
           localStorage.setItem(JWT_KEY, token);
           document.getElementById('status').textContent = 'Login successful! Redirecting...';
           document.querySelector('.spinner').hidden = true;
@@ -144,7 +145,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
           const safeReturnUrl = getSafeReturnUrl(returnUrl);
 
           setTimeout(function () {
-            window.location.href = safeReturnUrl;
+            window.location.replace(safeReturnUrl);
           }, 500);
         } else {
           document.getElementById('status').textContent = 'Login failed.';

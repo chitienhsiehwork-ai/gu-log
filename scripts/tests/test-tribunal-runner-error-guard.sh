@@ -11,11 +11,26 @@ TRIBUNAL="$ROOT_DIR/scripts/tribunal.sh"
 fail() { echo "x $*" >&2; exit 1; }
 pass() { echo "ok $*"; }
 
+if grep -Fq 'TRIBUNAL_ARTICLE_LOCK_DIR:-/tmp' "$TRIBUNAL"; then
+  fail "tribunal default article lock directory must not be the shared /tmp root"
+fi
+pass "tribunal default article lock directory is not the shared /tmp root"
+
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 export TRIBUNAL_SHARED_LOCK_DIR="$TMP/shared-locks"
-export TRIBUNAL_ARTICLE_LOCK_DIR="$TMP/article-locks"
+export HOME="$TMP/home"
+unset TRIBUNAL_ARTICLE_LOCK_DIR
 mkdir -p "$TRIBUNAL_SHARED_LOCK_DIR"
+mkdir -p "$HOME"
+
+stat_mode() {
+  if stat -c '%a' "$1" >/dev/null 2>&1; then
+    stat -c '%a' "$1"
+  else
+    stat -f '%Lp' "$1"
+  fi
+}
 
 fake_bin="$TMP/bin"
 mkdir -p "$fake_bin"
@@ -52,8 +67,14 @@ bash "$TRIBUNAL" --score-only --only-stage factChecker gp-1-20260128-demo.mdx \
 rc=$?
 set -e
 
-[ -e "$TRIBUNAL_ARTICLE_LOCK_DIR/tribunal-gp-1-20260128-demo.mdx.lock" ] ||
-  fail "tribunal did not honor the isolated article lock directory"
+default_article_lock_dir="$HOME/.local/state/gu-log/tribunal/article-locks"
+[ -e "$default_article_lock_dir/tribunal-gp-1-20260128-demo.mdx.lock" ] ||
+  fail "tribunal did not use the private user-global article lock directory"
+[ "$(stat_mode "$default_article_lock_dir")" = "700" ] ||
+  fail "default article lock directory must have mode 700"
+[ "$(stat_mode "$default_article_lock_dir/tribunal-gp-1-20260128-demo.mdx.lock")" = "600" ] ||
+  fail "article lock file must have mode 600"
+pass "default article lock path is private and user-global"
 if [ "$rc" -ne 70 ]; then
   sed -n '1,120p' "$TMP/tribunal.out" >&2 || true
   sed -n '1,120p' "$TMP/tribunal.err" >&2 || true
@@ -74,6 +95,81 @@ if jq -e '."gp-1-20260128-demo.mdx".status == "FAILED" or ."gp-1-20260128-demo.m
   fail "runner crash polluted content status as FAILED/EXHAUSTED"
 fi
 pass "runner crash does not become content failure/exhaustion"
+
+# A pre-planted lock-file symlink must fail before opening the target. Opening
+# the historical predictable path with ">" truncated the victim before flock.
+symlink_lock_dir="$TMP/symlink-article-locks"
+symlink_victim="$TMP/symlink-victim"
+symlink_progress="$TMP/symlink-progress.json"
+mkdir -p "$symlink_lock_dir"
+chmod 700 "$symlink_lock_dir"
+printf 'do-not-truncate\n' > "$symlink_victim"
+printf '{}\n' > "$symlink_progress"
+ln -s "$symlink_victim" "$symlink_lock_dir/tribunal-gp-1-20260128-demo.mdx.lock"
+set +e
+PATH="$fake_bin:$PATH" \
+TRIBUNAL_ARTICLE_LOCK_DIR="$symlink_lock_dir" \
+TRIBUNAL_SCORE_ONLY_PROGRESS_FILE="$symlink_progress" \
+bash "$TRIBUNAL" --score-only --only-stage factChecker gp-1-20260128-demo.mdx \
+  >"$TMP/symlink.out" 2>"$TMP/symlink.err"
+symlink_rc=$?
+set -e
+[ "$symlink_rc" -eq 70 ] || fail "symlinked article lock should exit 70, got $symlink_rc"
+[ "$(cat "$symlink_victim")" = "do-not-truncate" ] ||
+  fail "symlinked article lock truncated its target"
+grep -q 'not a safe regular file' "$TMP/symlink.err" ||
+  fail "symlinked article lock rejection did not explain the unsafe path"
+[ "$(jq 'length' "$symlink_progress")" = "0" ] ||
+  fail "symlinked article lock reached progress initialization"
+pass "symlinked article lock fails closed without truncating its target"
+
+# An explicit override still has to name a private directory. Otherwise
+# another local account could pre-plant or replace the predictable lock file.
+public_lock_dir="$TMP/public-article-locks"
+public_progress="$TMP/public-progress.json"
+mkdir -p "$public_lock_dir"
+chmod 777 "$public_lock_dir"
+printf '{}\n' > "$public_progress"
+set +e
+PATH="$fake_bin:$PATH" \
+TRIBUNAL_ARTICLE_LOCK_DIR="$public_lock_dir" \
+TRIBUNAL_SCORE_ONLY_PROGRESS_FILE="$public_progress" \
+bash "$TRIBUNAL" --score-only --only-stage factChecker gp-1-20260128-demo.mdx \
+  >"$TMP/public.out" 2>"$TMP/public.err"
+public_rc=$?
+set -e
+[ "$public_rc" -eq 70 ] || fail "group/world-writable article lock directory should exit 70, got $public_rc"
+grep -q 'must not be group/world-writable' "$TMP/public.err" ||
+  fail "public article lock directory rejection did not explain the unsafe mode"
+[ "$(jq 'length' "$public_progress")" = "0" ] ||
+  fail "public article lock directory reached progress initialization"
+pass "group/world-writable article lock override fails closed"
+
+# A held regular lock must retain the established rc=75 skipped contract.
+collision_lock_dir="$TMP/collision-article-locks"
+collision_lock="$collision_lock_dir/tribunal-gp-1-20260128-demo.mdx.lock"
+collision_progress="$TMP/collision-progress.json"
+mkdir -p "$collision_lock_dir"
+chmod 700 "$collision_lock_dir"
+printf '{}\n' > "$collision_progress"
+exec 199>>"$collision_lock"
+chmod 600 "$collision_lock"
+flock -n 199
+set +e
+PATH="$fake_bin:$PATH" \
+TRIBUNAL_ARTICLE_LOCK_DIR="$collision_lock_dir" \
+TRIBUNAL_SCORE_ONLY_PROGRESS_FILE="$collision_progress" \
+bash "$TRIBUNAL" --score-only --only-stage factChecker gp-1-20260128-demo.mdx \
+  >"$TMP/collision.out" 2>"$TMP/collision.err"
+collision_rc=$?
+set -e
+exec 199>&-
+[ "$collision_rc" -eq 75 ] || fail "held article lock should exit 75, got $collision_rc"
+grep -q 'another instance is already running' "$TMP/collision.err" ||
+  fail "held article lock did not report the collision"
+[ "$(jq 'length' "$collision_progress")" = "0" ] ||
+  fail "held article lock reached progress initialization"
+pass "held article lock remains a skipped collision"
 
 # The stage runner intentionally normalizes a watchdog kill to infrastructure
 # rc=70. The supervisor must recover the original stall signal from that

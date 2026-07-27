@@ -162,8 +162,8 @@ rc_exit_stopped() {
 # Each article is guarded by a claim directory that mkdir-atomically ensures
 # only one worker can take it at a time. Supervisor calls rc_try_claim before
 # dispatching to tribunal.sh; worker releases on finish/fail/stop.
-# The per-article /tmp flock in tribunal.sh remains as
-# defense-in-depth.
+# The per-article private, user-global flock in tribunal.sh remains as
+# defense-in-depth across supervisor, worker-worktree, and manual invocations.
 : "${RC_CLAIMS_DIR:=$RC_ROOT_DIR/.score-loop/claims}"
 : "${RC_CLAIM_STALE_SEC:=21600}"   # 6 hours — beyond longest article run
 : "${RC_PROGRESS_LOCK:=$RC_ROOT_DIR/.score-loop/progress.lock}"

@@ -385,17 +385,25 @@ mark_entry_publish_state() {
   mv "$tmp" "$PUBLISHER_STATE_FILE"
 }
 
+validate_candidate_batch() {
+  local article
+  local args=()
+  for article in "$@"; do
+    args+=("$article")
+    if [ -f "$POSTS_DIR/en-$article" ]; then
+      args+=("en-$article")
+    fi
+  done
+  node "$ROOT_DIR/scripts/validate-posts.mjs" "${args[@]}" >/tmp/tribunal-publisher-validate.out 2>&1
+}
+
 validate_candidate_article() {
   local article="$1"
   if [ -n "${TRIBUNAL_PUBLISHER_VALIDATE_HOOK:-}" ]; then
     "${TRIBUNAL_PUBLISHER_VALIDATE_HOOK}" "$article"
     return
   fi
-  local args=("$article")
-  if [ -f "$POSTS_DIR/en-$article" ]; then
-    args+=("en-$article")
-  fi
-  node "$ROOT_DIR/scripts/validate-posts.mjs" "${args[@]}" >/tmp/tribunal-publisher-validate.out 2>&1
+  validate_candidate_batch "$article"
 }
 
 record_validation_blocked() {
@@ -474,14 +482,19 @@ apply_batch() {
   fi
 
   local validated=()
-  for article in "${selected[@]}"; do
-    if validate_candidate_article "$article"; then
-      validated+=("$article")
-    else
-      record_validation_blocked "$article" "validate-posts failed for candidate artifact"
-      tlog "  validation_blocked $article"
-    fi
-  done
+  if [ -z "${TRIBUNAL_PUBLISHER_VALIDATE_HOOK:-}" ] &&
+     validate_candidate_batch "${selected[@]}"; then
+    validated=("${selected[@]}")
+  else
+    for article in "${selected[@]}"; do
+      if validate_candidate_article "$article"; then
+        validated+=("$article")
+      else
+        record_validation_blocked "$article" "validate-posts failed for candidate artifact"
+        tlog "  validation_blocked $article"
+      fi
+    done
+  fi
 
   if [ "${#validated[@]}" -eq 0 ]; then
     tlog "No valid publishable PASS artifacts after candidate validation."

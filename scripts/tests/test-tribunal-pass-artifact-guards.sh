@@ -436,6 +436,22 @@ service_command="$(
 [ -n "$service_command" ] || fail "unable to extract daily PASS audit service command"
 service_command="${service_command//\$\$/\$}"
 
+service_section="$(
+  awk '
+    /^\[Service\]$/ { in_service = 1; next }
+    /^\[/ { in_service = 0 }
+    in_service { print }
+  ' "$AUDIT_SERVICE"
+)"
+timeout_directive_count="$(
+  grep -Ec '^Timeout(StartSec|Sec)=' <<<"$service_section" || true
+)"
+if [ "$timeout_directive_count" -ne 1 ] ||
+   ! grep -qx 'TimeoutStartSec=10min' <<<"$service_section"; then
+  fail "daily PASS audit service does not bound its oneshot start time"
+fi
+pass "daily PASS audit service bounds stalled fetches and audits"
+
 service_fixture="$TMP/daily-audit-service"
 service_fake_bin="$service_fixture/bin"
 service_repo="$service_fixture/repo"
