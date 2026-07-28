@@ -359,6 +359,7 @@ const t = i18n[lang];
       results.innerHTML = `<div class="search-loading" role="status">${loadingText}</div>`;
     }
     await ensureSearchIndex();
+    if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
       performSearch((e.target as HTMLInputElement).value);
     }, debounceMs);
