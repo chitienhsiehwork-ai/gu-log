@@ -622,6 +622,98 @@ test.describe('Component smoke — post page (RelatedArticles, ShareButton, Prev
 });
 
 test.describe('Component smoke — Mermaid error handling', () => {
+  test('renders CDN import failures instead of leaving an unhandled loading state', async ({
+    page,
+  }) => {
+    const pageErrors: string[] = [];
+    let interceptedRequests = 0;
+    let rejectMermaidImport = false;
+
+    await page.route('**/mermaid@11.16.0/dist/mermaid.esm.min.mjs*', async (route) => {
+      if (rejectMermaidImport) {
+        interceptedRequests += 1;
+        await route.abort('failed');
+        return;
+      }
+
+      await route.fulfill({
+        contentType: 'application/javascript',
+        headers: { 'access-control-allow-origin': '*' },
+        body: `
+            export default {
+              initialize() {},
+              async render() {
+                return { svg: '<svg viewBox="0 0 1 1"></svg>' };
+              },
+            };
+          `,
+      });
+    });
+
+    await page.goto('/en/posts/en-levelup-20260608-12-llm-internals/', {
+      waitUntil: 'load',
+    });
+    const warmTargets = page.locator('.mermaid-render');
+    const warmTargetCount = await warmTargets.count();
+    expect(warmTargetCount).toBeGreaterThan(0);
+    await expect(warmTargets.locator('svg')).toHaveCount(warmTargetCount);
+
+    await page.addInitScript(() => {
+      const errorTargets = new WeakSet<Element>();
+      let errorTargetCount = 0;
+      const recordErrorTargets = () => {
+        for (const target of document.querySelectorAll('.mermaid-render')) {
+          if (
+            !errorTargets.has(target) &&
+            target.querySelector('pre')?.textContent?.startsWith('Mermaid error:')
+          ) {
+            errorTargets.add(target);
+            errorTargetCount += 1;
+          }
+        }
+      };
+
+      new MutationObserver(recordErrorTargets).observe(document, {
+        childList: true,
+        subtree: true,
+      });
+      Object.defineProperty(window, '__mermaidErrorTargetCount', {
+        get: () => errorTargetCount,
+      });
+    });
+    page.on('pageerror', (error) => pageErrors.push(error.message));
+    rejectMermaidImport = true;
+    await page.reload({
+      waitUntil: 'load',
+    });
+    await expect.poll(() => interceptedRequests).toBeGreaterThan(0);
+
+    const renderTargets = page.locator('.mermaid-render');
+    const renderTargetCount = await renderTargets.count();
+    expect(renderTargetCount).toBeGreaterThan(0);
+
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            (
+              window as Window & {
+                __mermaidErrorTargetCount?: number;
+              }
+            ).__mermaidErrorTargetCount
+        )
+      )
+      .toBe(renderTargetCount);
+    await expect
+      .poll(() =>
+        renderTargets.evaluateAll((targets) =>
+          targets.every((target) => Boolean(target.querySelector('pre, svg')))
+        )
+      )
+      .toBe(true);
+    expect(pageErrors).toEqual([]);
+  });
+
   test('renders thrown Mermaid messages as text instead of markup', async ({ page }) => {
     const payload = '<img data-mermaid-error-probe src="data:,">';
 

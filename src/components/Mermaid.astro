@@ -175,10 +175,29 @@ const loadingLabel = isEnglish ? 'Loading diagram...' : '載入圖表中...';
     return styles.getPropertyValue(name).trim();
   }
 
+  function renderMermaidError(renderTarget: Element, cause: unknown) {
+    const error = document.createElement('pre');
+    error.style.cssText = 'color:var(--color-status-danger);font-size:0.8rem;';
+    error.textContent = `Mermaid error: ${String(cause)}`;
+    renderTarget.replaceChildren(error);
+  }
+
   // Initialize all Mermaid diagrams on page load
   async function initMermaidDiagrams() {
+    const wrappers = document.querySelectorAll('.mermaid-wrapper');
     const mermaidUrl = 'https://cdn.jsdelivr.net/npm/mermaid@11.16.0/dist/mermaid.esm.min.mjs';
-    const { default: mermaid } = await import(/* @vite-ignore */ mermaidUrl);
+    const mermaid = await import(/* @vite-ignore */ mermaidUrl)
+      .then(({ default: module }) => module)
+      .catch((error) => {
+        for (const wrapper of wrappers) {
+          const renderTarget = wrapper.querySelector('.mermaid-render');
+          if (renderTarget) renderMermaidError(renderTarget, error);
+        }
+        return null;
+      });
+
+    if (!mermaid) return;
+
     const themeStyles = getComputedStyle(document.documentElement);
 
     mermaid.initialize({
@@ -199,8 +218,6 @@ const loadingLabel = isEnglish ? 'Loading diagram...' : '載入圖表中...';
       flowchart: { htmlLabels: true, curve: 'basis' },
       securityLevel: 'strict',
     });
-
-    const wrappers = document.querySelectorAll('.mermaid-wrapper');
 
     // Collect all Chinese chars from diagrams to force-trigger font loading
     const allDefs: string[] = [];
@@ -244,10 +261,7 @@ const loadingLabel = isEnglish ? 'Loading diagram...' : '載入圖表中...';
         const { svg } = await mermaid.render(id, def);
         renderTarget.innerHTML = svg;
       } catch (e) {
-        const error = document.createElement('pre');
-        error.style.cssText = 'color:var(--color-status-danger);font-size:0.8rem;';
-        error.textContent = `Mermaid error: ${String(e)}`;
-        renderTarget.replaceChildren(error);
+        renderMermaidError(renderTarget, e);
         continue;
       }
 
