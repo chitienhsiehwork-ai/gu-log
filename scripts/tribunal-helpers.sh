@@ -1717,19 +1717,38 @@ tribunal_quota_parse_json() {
     provider_record
     | select(
         . != null
-        and .source == "cli"
+        and (.source == "cli" or .source == "codex-cli")
         and (.error? // null) == null
       )
     | .usage as $usage
-    | ($usage.primary.windowMinutes | select(type == "number" and . == 300)) as $session_window
+    | select(
+        ($usage | type) == "object"
+        and ($usage | has("primary"))
+        and ($usage | has("secondary"))
+      )
     | ($usage.secondary.windowMinutes | select(type == "number" and . == 10080)) as $weekly_window
-    | ($usage.primary.usedPercent | select(type == "number" and . >= 0 and . <= 100)) as $session_used
     | ($usage.secondary.usedPercent | select(type == "number" and . >= 0 and . <= 100)) as $weekly_used
-    | ($usage.primary.resetsAt | reset_epoch | select(. > $now)) as $session_reset_at
     | ($usage.secondary.resetsAt | reset_epoch | select(. > $now)) as $weekly_reset_at
+    | (
+        if $usage.primary == null then
+          # Negative values are the controller inactive-window sentinels.
+          # Burn-rate math ignores this pair instead of inferring quota.
+          [-1, -1]
+        elif ($usage.primary | type) == "object" then
+          ($usage.primary.windowMinutes | select(type == "number" and . == 300)) as $session_window
+          | ($usage.primary.usedPercent | select(type == "number" and . >= 0 and . <= 100)) as $session_used
+          | ($usage.primary.resetsAt | reset_epoch | select(. > $now)) as $session_reset_at
+          | [
+              (100 - $session_used | floor),
+              ([$session_reset_at - $now, 0] | max | floor)
+            ]
+        else
+          empty
+        end
+      ) as $session
     | [
-        (100 - $session_used | floor),
-        ([$session_reset_at - $now, 0] | max | floor),
+        $session[0],
+        $session[1],
         (100 - $weekly_used | floor),
         ([$weekly_reset_at - $now, 0] | max | floor)
       ]
@@ -1760,9 +1779,17 @@ tribunal_quota_decision() {
     printf 'suspend|unknown|0|CodexBar Codex JSON unavailable/unparseable\n'
     return 0
   fi
-  IFS='|' read -r _ session_reset weekly_left weekly_reset <<< "$parsed"
+  IFS='|' read -r session_left session_reset weekly_left weekly_reset <<< "$parsed"
   if [ "${weekly_left:-}" = "0" ]; then
     printf 'suspend|weekly|%s|weekly quota exhausted; resets in %s\n' "$weekly_reset" "$(tribunal_quota_human_duration "$weekly_reset")"
+    return 0
+  fi
+  if [ "${session_left:-}" = "-1" ] || [ "${session_reset:-}" = "-1" ]; then
+    printf 'suspend|unknown|0|primary quota window unavailable; refusing to infer reset\n'
+    return 0
+  fi
+  if [ "${session_left:-}" != "0" ]; then
+    printf 'suspend|unknown|0|validated quota windows remain nonzero; refusing to infer exhausted tier\n'
     return 0
   fi
   tier="session"

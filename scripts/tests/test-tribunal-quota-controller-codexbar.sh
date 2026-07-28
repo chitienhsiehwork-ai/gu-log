@@ -196,6 +196,77 @@ out="$(run_controller fixture TRIBUNAL_QUOTA_CODEXBAR_JSON="$sample")"
   fail "fixture injection unexpectedly invoked the combined monitor"
 pass "deterministic JSON injection bypasses every external quota command"
 
+live_primary_null="$(
+  printf '%s\n' "$sample" |
+    jq '
+      .[0].source = "codex-cli"
+      | .[0].usage.primary = null
+    '
+)"
+out="$(
+  run_controller fixture \
+    TRIBUNAL_QUOTA_CODEXBAR_JSON="$live_primary_null"
+)"
+[ "$out" = "10|2|none|pacing" ] ||
+  fail "live inactive-primary Codex JSON should pace from weekly quota, got: $out"
+pass "deployed controller treats a live null primary window as inactive"
+
+weekly_floor="$(
+  printf '%s\n' "$live_primary_null" |
+    jq '.[0].usage.secondary.usedPercent = 91'
+)"
+out="$(
+  run_controller fixture \
+    TRIBUNAL_QUOTA_CODEXBAR_JSON="$weekly_floor"
+)"
+case "$out" in
+  *"|0|seven_day|floor_stop") ;;
+  *) fail "inactive primary must preserve the weekly floor, got: $out" ;;
+esac
+
+weekly_debt="$(
+  printf '%s\n' "$live_primary_null" |
+    jq '.[0].usage.secondary.usedPercent = 25'
+)"
+out="$(
+  run_controller fixture \
+    TRIBUNAL_QUOTA_CODEXBAR_JSON="$weekly_debt"
+)"
+case "$out" in
+  *"|0|seven_day|weekly_debt") ;;
+  *) fail "inactive primary must preserve weekly burn debt, got: $out" ;;
+esac
+pass "inactive primary never bypasses weekly floor or burn-rate controls"
+
+mkdir -p "$FIXTURE_ROOT/.score-loop/state"
+: > "$FIXTURE_ROOT/.score-loop/state/quota-history.jsonl"
+for _ in 1 2 3 4 5; do
+  printf '%s\n' \
+    '{"event":"dispatch","five_hr_pct":50,"five_hr_resets_sec":3600,"seven_day_pct":60,"seven_day_resets_sec":500000,"recommended_workers":1}' \
+    '{"event":"complete","five_hr_pct":-1,"five_hr_resets_sec":-1,"seven_day_pct":59,"seven_day_resets_sec":499000,"recommended_workers":1}' \
+    >> "$FIXTURE_ROOT/.score-loop/state/quota-history.jsonl"
+done
+dry_output="$(
+  env \
+    PATH="$TMP/bin:$PATH" \
+    CODEXBAR_ARGV="$TMP/codexbar.argv" \
+    CODEXBAR_BEHAVIOR=fixture \
+    CODEXBAR_FIXTURE="$sample" \
+    FAKE_SYSTEMD_FRAGMENT_PATH="$TMP/installed-tribunal-runtime.slice" \
+    TRIBUNAL_DEPLOYED_MODE=1 \
+    TRIBUNAL_STRICT_ROLE_PROVIDERS=1 \
+    GP_WRITER_MODE=codex \
+    TRIBUNAL_WRITER_PREFLIGHT_TIMEOUT_SEC=2 \
+    TRIBUNAL_QUOTA_NOW_EPOCH="$now_epoch" \
+    TRIBUNAL_QUOTA_CODEXBAR_JSON="$live_primary_null" \
+    ARTICLE_COST_PCT=0.5 \
+    bash "$FIXTURE_ROOT/scripts/tribunal-quota-loop.sh" \
+      --workers 1 --dry-run 2>&1
+)"
+printf '%s\n' "$dry_output" | grep -Fq 'ARTICLE_COST_PCT=0.5 ' ||
+  fail "window availability transition polluted EMA calibration: $dry_output"
+pass "EMA skips samples whose active quota-window mask changed"
+
 malformed='{not-json'
 missing_fields='[{"provider":"codex","source":"cli","usage":{"primary":{"usedPercent":0}}}]'
 combined="$(
@@ -211,9 +282,17 @@ wrong_window="$(
   printf '%s\n' "$sample" |
     jq '.[0].usage.secondary.windowMinutes = 1440'
 )"
+malformed_primary="$(
+  printf '%s\n' "$live_primary_null" |
+    jq '.[0].usage.primary = false'
+)"
+missing_primary="$(
+  printf '%s\n' "$live_primary_null" |
+    jq 'del(.[0].usage.primary)'
+)"
 for fixture in \
   "$malformed" "$missing_fields" "$combined" "$expired_reset" \
-  "$wrong_source" "$wrong_window"; do
+  "$wrong_source" "$wrong_window" "$malformed_primary" "$missing_primary"; do
   out="$(run_controller fixture TRIBUNAL_QUOTA_CODEXBAR_JSON="$fixture")"
   [ "$out" = "600|1|none|fallback" ] ||
     fail "invalid Codex JSON must enter observable fallback, got: $out"
@@ -240,6 +319,27 @@ elapsed=$((SECONDS - start))
 [ ! -e "$TMP/combined-monitor.called" ] ||
   fail "CodexBar timeout fell back to the combined monitor"
 pass "CodexBar timeout is bounded and fails closed"
+
+grep -Fq \
+  'UNKNOWN_QUOTA_READINGS="-1|-1|-1|-1|0|0|0"' \
+  "$FIXTURE_ROOT/scripts/tribunal-quota-loop.sh" ||
+  fail "controller lacks one canonical unknown-quota telemetry tuple"
+if grep -Fq \
+  '0|-1|0|-1|0|0|0' \
+  "$FIXTURE_ROOT/scripts/tribunal-quota-loop.sh"; then
+  fail "controller still records unavailable quota as exhausted zero percent"
+fi
+[ "$(
+  grep -Fc \
+    'readings="$UNKNOWN_QUOTA_READINGS"' \
+    "$FIXTURE_ROOT/scripts/tribunal-quota-loop.sh"
+)" -eq 2 ] ||
+  fail "dispatch/complete fallback telemetry does not reuse the unknown tuple"
+grep -Fq \
+  'readings_raw="$UNKNOWN_QUOTA_READINGS"' \
+  "$FIXTURE_ROOT/scripts/tribunal-quota-loop.sh" ||
+  fail "tick fallback telemetry does not reuse the unknown tuple"
+pass "fallback telemetry preserves unknown percentages instead of inventing zero"
 
 set +e
 legacy_output="$(

@@ -60,7 +60,7 @@ user config／rules。評審與寫手的 prompt／角色設定仍各自組裝，
 codexbar usage --provider codex --source cli --format json --pretty
 ```
 
-消費端只解析這份 Codex JSON；指令失敗、逾時、JSON 格式錯誤或缺少必要 Codex 額度欄位時，依既有封閉失敗／可觀測備援合約處理，不得再呼叫沒有 `--provider codex` 的合併探測，也不得嘗試 Claude 額度路徑。部署版 service 不再以合併 `USAGE_MONITOR` 成功作為健康條件。
+消費端只解析這份 Codex JSON。CodexBar 目前可能把 CLI record 的 `source` 正規化成 `codex-cli`，也可能以明確的 `usage.primary: null` 表示短窗未啟用；這兩種 live schema 都不是缺額度。Parser 只在唯一 Codex record、有效 weekly `secondary` 視窗與明確 null primary 的組合下，把短窗記成不參與 burn-rate 運算，不會憑空補 reset 或剩餘額度。指令失敗、逾時、JSON 格式錯誤、缺少 primary key、非 null 的 malformed primary，或缺少必要 weekly 欄位時，依既有封閉失敗／可觀測備援合約處理，不得再呼叫沒有 `--provider codex` 的合併探測，也不得嘗試 Claude 額度路徑。部署版 service 不再以合併 `USAGE_MONITOR` 成功作為健康條件。
 
 替代方案是呼叫合併 JSON 後只挑 OpenAI entry。該行程仍會初始化 Claude 供應端，曾在 Claude PTY 半段卡住，所以即使 parser 忽略 Claude 也沒有隔離供應端副作用，不採用。
 

@@ -8,13 +8,21 @@
 
 - **WHEN** 部署版控制器需要讀取額度
 - **THEN** 它 SHALL 精確執行 `codexbar usage --provider codex --source cli --format json --pretty`
-- **AND** SHALL 從該 JSON 取得 Codex 短窗與長窗額度值
+- **AND** SHALL 從該 JSON 取得 Codex 目前有效的額度視窗值
 - **AND** SHALL NOT 呼叫合併供應端或 Claude 額度探測
+
+#### Scenario: CodexBar 回報短窗未啟用
+
+- **WHEN** 唯一的 Codex record 來自 `cli` 或 `codex-cli` source、`usage.primary` 明確為 `null`，且 weekly `secondary` 視窗完整有效
+- **THEN** parser SHALL 把短窗標記為不參與控制器運算，而不是猜測短窗 reset 或進入 fallback
+- **AND** 控制器 SHALL 繼續以通過驗證的 weekly 視窗做 floor 與 burn-rate 決策
+- **AND** 缺少 `primary` key、非 `null` 的 malformed primary，或無效的 weekly 視窗仍 SHALL 封閉失敗
 
 #### Scenario: Model 呼叫回報額度錯誤
 
 - **WHEN** 部署版 Codex 評審或寫手回報額度錯誤
 - **THEN** 額度錯誤處理器 SHALL 使用同一條限定 Codex 供應端的 CodexBar JSON 路徑決定等待或暫停
+- **AND** 只有通過驗證的 exhausted 視窗 MAY 提供 tier 與 reset；視窗 unavailable 或讀值仍非零時 SHALL 以 unknown 暫停，不得推測耗盡的視窗
 - **AND** SHALL NOT 呼叫合併或 Claude 額度路徑
 
 #### Scenario: Codex 額度 JSON 無法取得或無效

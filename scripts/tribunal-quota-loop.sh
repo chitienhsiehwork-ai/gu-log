@@ -80,6 +80,7 @@ QUOTA_HISTORY_FILE="$ROOT_DIR/.score-loop/state/quota-history.jsonl"
 QUOTA_CONTROLLER_STATE="$ROOT_DIR/.score-loop/state/quota-controller.json"
 WRITER_PREFLIGHT_STATE="$ROOT_DIR/.score-loop/state/writer-preflight.json"
 TRIBUNAL_EXHAUSTED_ALERT_THRESHOLD="${TRIBUNAL_EXHAUSTED_ALERT_THRESHOLD:-3}"
+UNKNOWN_QUOTA_READINGS="-1|-1|-1|-1|0|0|0"
 
 # ─── Args ─────────────────────────────────────────────────────────────────────
 while [ $# -gt 0 ]; do
@@ -728,6 +729,26 @@ except:
 # Look for consecutive dispatch/complete events
 deltas = []
 prev_dispatch = None
+
+def active_quota_reading(entry):
+    active = []
+    for name, pct_key, reset_key in (
+        ('five_hour', 'five_hr_pct', 'five_hr_resets_sec'),
+        ('seven_day', 'seven_day_pct', 'seven_day_resets_sec'),
+    ):
+        pct = entry.get(pct_key)
+        reset = entry.get(reset_key)
+        if (
+            isinstance(pct, (int, float))
+            and isinstance(reset, (int, float))
+            and pct >= 0
+            and reset >= 0
+        ):
+            active.append((name, float(pct)))
+    if not active:
+        return (), None
+    return tuple(name for name, _ in active), min(pct for _, pct in active)
+
 for entry in lines:
     event = entry.get('event', '')
     workers = entry.get('recommended_workers', 1)
@@ -736,11 +757,14 @@ for entry in lines:
     elif event == 'complete' and prev_dispatch is not None:
         # Only use single-worker deltas
         if prev_dispatch.get('recommended_workers', 1) <= 1 and workers <= 1:
-            pre_pct = min(prev_dispatch.get('five_hr_pct', 100), prev_dispatch.get('seven_day_pct', 100))
-            post_pct = min(entry.get('five_hr_pct', 100), entry.get('seven_day_pct', 100))
-            delta = pre_pct - post_pct
-            if delta > 0:  # only positive deltas make sense
-                deltas.append(delta)
+            pre_mask, pre_pct = active_quota_reading(prev_dispatch)
+            post_mask, post_pct = active_quota_reading(entry)
+            # A window becoming available/unavailable changes the observable
+            # basis. Never turn that schema transition into fake article cost.
+            if pre_mask == post_mask and pre_pct is not None and post_pct is not None:
+                delta = pre_pct - post_pct
+                if delta > 0:  # only positive deltas make sense
+                    deltas.append(delta)
         prev_dispatch = None
 
 # Cold start: not enough data
@@ -1119,6 +1143,9 @@ if [ -n "$CONTROLLER_ONCE" ]; then
 fi
 
 if [ "$DRY_RUN" = true ]; then
+  # Dry-run reports the same telemetry estimate production would load, but
+  # does not rotate or otherwise mutate the history file.
+  calibrate_article_cost
   tlog "=== Dry-run mode ==="
   mapfile -t ARTICLES < <(get_unscored_articles)
   tlog "Found ${#ARTICLES[@]} unscored articles:"
@@ -1263,7 +1290,8 @@ while true; do
     IFS='|' read -r CONTROLLER_COOLDOWN CONTROLLER_WORKERS CONTROLLER_BINDING CONTROLLER_MODE <<< "$tick_result"
 
     # Grab raw readings for history/state
-    readings_raw=$(get_dual_quota_readings 2>/dev/null) || readings_raw="0|-1|0|-1|0|0|0"
+    readings_raw=$(get_dual_quota_readings 2>/dev/null) ||
+      readings_raw="$UNKNOWN_QUOTA_READINGS"
     IFS='|' read -r five_pct_raw five_reset_raw seven_pct_raw seven_reset_raw extra_u_raw extra_l_raw extra_e_raw <<< "$readings_raw"
 
     tlog "CONTROLLER: cooldown=${CONTROLLER_COOLDOWN}s workers=${CONTROLLER_WORKERS} binding=${CONTROLLER_BINDING} mode=${CONTROLLER_MODE} 5hr=${five_pct_raw}% 7day=${seven_pct_raw}% cost_telemetry=${ARTICLE_COST_PCT}%"
@@ -1347,7 +1375,8 @@ while true; do
       rc_write_state "pacing" "dispatching worker-$free_id article=$article"
       # Log dispatch event for calibration
       if [ "$LEGACY_QUOTA" != true ]; then
-        d_readings=$(get_dual_quota_readings 2>/dev/null) || d_readings="0|-1|0|-1|0|0|0"
+        d_readings=$(get_dual_quota_readings 2>/dev/null) ||
+          d_readings="$UNKNOWN_QUOTA_READINGS"
         IFS='|' read -r d5 dr5 d7 dr7 deu del dee <<< "$d_readings"
         quota_history_append "dispatch" "$d5" "$dr5" "$d7" "$dr7" "$deu" "$del" \
           "${CONTROLLER_COOLDOWN:-10}" "${CONTROLLER_WORKERS:-1}" "${CONTROLLER_BINDING:-none}" \
@@ -1374,7 +1403,8 @@ while true; do
 
   # Log completion event for calibration (after worker finishes)
   if [ "$LEGACY_QUOTA" != true ]; then
-    c_readings=$(get_dual_quota_readings 2>/dev/null) || c_readings="0|-1|0|-1|0|0|0"
+    c_readings=$(get_dual_quota_readings 2>/dev/null) ||
+      c_readings="$UNKNOWN_QUOTA_READINGS"
     IFS='|' read -r c5 cr5 c7 cr7 ceu cel cee <<< "$c_readings"
     quota_history_append "complete" "$c5" "$cr5" "$c7" "$cr7" "$ceu" "$cel" \
       "${CONTROLLER_COOLDOWN:-10}" "${CONTROLLER_WORKERS:-1}" "${CONTROLLER_BINDING:-none}" \

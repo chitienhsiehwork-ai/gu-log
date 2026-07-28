@@ -77,6 +77,47 @@ IFS='|' read -r session_left session_reset weekly_left weekly_reset <<< "$parsed
 [ "$weekly_reset" = "385200" ] || fail "weekly reset should be 385200s (4d11h), got $weekly_reset"
 pass "CodexBar JSON parser reads primary/secondary usage and ISO reset times"
 
+live_primary_null="$(
+  printf '%s\n' "$sample" |
+    jq '
+      .[0].source = "codex-cli"
+      | .[0].usage.primary = null
+      | .[0].usage.secondary.usedPercent = 63
+    '
+)"
+parsed="$(
+  TRIBUNAL_QUOTA_NOW_EPOCH="$now_epoch" \
+    tribunal_quota_parse_json "$live_primary_null"
+)"
+IFS='|' read -r session_left session_reset weekly_left weekly_reset <<< "$parsed"
+[ "$session_left" = "-1" ] ||
+  fail "unavailable session percent should use sentinel -1, got $session_left"
+[ "$session_reset" = "-1" ] ||
+  fail "inactive session window should use reset sentinel -1, got $session_reset"
+[ "$weekly_left" = "37" ] ||
+  fail "live weekly percent should be 37, got $weekly_left"
+[ "$weekly_reset" = "385200" ] ||
+  fail "live weekly reset should remain 385200s, got $weekly_reset"
+pass "CodexBar parser accepts live codex-cli source with an inactive primary window"
+
+decision="$(
+  TRIBUNAL_QUOTA_CODEXBAR_JSON="$live_primary_null" \
+  TRIBUNAL_QUOTA_NOW_EPOCH="$now_epoch" \
+    tribunal_quota_decision codex 0
+)"
+IFS='|' read -r action tier reset_seconds reason <<< "$decision"
+[ "$action" = "suspend" ] ||
+  fail "unavailable primary quota should suspend after a model quota error"
+[ "$tier" = "unknown" ] ||
+  fail "unavailable primary quota must not be mislabeled as session exhaustion"
+[ "$reset_seconds" = "0" ] ||
+  fail "unavailable primary quota must not infer a reset"
+case "$reason" in
+  *"primary quota window unavailable"*) ;;
+  *) fail "unavailable primary quota reason is not actionable: $reason" ;;
+esac
+pass "model quota errors fail closed when the primary window is unavailable"
+
 stale_reset="$(
   printf '%s\n' "$sample" |
     jq --argjson now "$now_epoch" \
@@ -100,6 +141,16 @@ if TRIBUNAL_QUOTA_NOW_EPOCH="$now_epoch" \
   tribunal_quota_parse_json "$wrong_source" >/dev/null 2>&1; then
   fail "Codex quota parser accepted a non-CLI source"
 fi
+for spoofed_source in my-codex-cli claude-cli; do
+  spoofed_payload="$(
+    printf '%s\n' "$sample" |
+      jq --arg source "$spoofed_source" '.[0].source = $source'
+  )"
+  if TRIBUNAL_QUOTA_NOW_EPOCH="$now_epoch" \
+    tribunal_quota_parse_json "$spoofed_payload" >/dev/null 2>&1; then
+    fail "Codex quota parser accepted spoofed source $spoofed_source"
+  fi
+done
 wrong_window="$(
   printf '%s\n' "$sample" |
     jq '.[0].usage.primary.windowMinutes = 60'
@@ -107,6 +158,22 @@ wrong_window="$(
 if TRIBUNAL_QUOTA_NOW_EPOCH="$now_epoch" \
   tribunal_quota_parse_json "$wrong_window" >/dev/null 2>&1; then
   fail "Codex quota parser accepted drifted window metadata"
+fi
+invalid_primary="$(
+  printf '%s\n' "$live_primary_null" |
+    jq '.[0].usage.primary = false'
+)"
+missing_primary="$(
+  printf '%s\n' "$live_primary_null" |
+    jq 'del(.[0].usage.primary)'
+)"
+if TRIBUNAL_QUOTA_NOW_EPOCH="$now_epoch" \
+  tribunal_quota_parse_json "$invalid_primary" >/dev/null 2>&1; then
+  fail "Codex quota parser accepted a non-null malformed primary window"
+fi
+if TRIBUNAL_QUOTA_NOW_EPOCH="$now_epoch" \
+  tribunal_quota_parse_json "$missing_primary" >/dev/null 2>&1; then
+  fail "Codex quota parser treated a missing primary key as an explicit null window"
 fi
 pass "quota JSON parser rejects expired resets and source/window schema drift"
 
@@ -125,8 +192,12 @@ if TRIBUNAL_QUOTA_NOW_EPOCH="$now_epoch" \
 fi
 pass "quota JSON parsing rejects Claude-only/combined-provider substitution"
 
+session_exhausted="$(
+  printf '%s\n' "$sample" |
+    jq '.[0].usage.primary.usedPercent = 100'
+)"
 decision="$(
-  TRIBUNAL_QUOTA_CODEXBAR_JSON="$sample" \
+  TRIBUNAL_QUOTA_CODEXBAR_JSON="$session_exhausted" \
   TRIBUNAL_QUOTA_NOW_EPOCH="$now_epoch" \
   GP_QUOTA_MAX_WAIT=6h \
     tribunal_quota_decision codex 0
@@ -140,6 +211,24 @@ case "$reason" in
   *) fail "decision reason should mention 12m, got: $reason" ;;
 esac
 pass "short session quota decision sleeps until reset"
+
+decision="$(
+  TRIBUNAL_QUOTA_CODEXBAR_JSON="$sample" \
+  TRIBUNAL_QUOTA_NOW_EPOCH="$now_epoch" \
+    tribunal_quota_decision codex 0
+)"
+IFS='|' read -r action tier reset_seconds reason <<< "$decision"
+[ "$action" = "suspend" ] ||
+  fail "conflicting nonzero quota telemetry should suspend"
+[ "$tier" = "unknown" ] ||
+  fail "conflicting nonzero quota telemetry must not invent an exhausted tier"
+[ "$reset_seconds" = "0" ] ||
+  fail "conflicting nonzero quota telemetry must not invent a reset"
+case "$reason" in
+  *"validated quota windows remain nonzero"*) ;;
+  *) fail "conflicting quota reason is not actionable: $reason" ;;
+esac
+pass "model quota errors do not override validated nonzero windows"
 
 weekly_exhausted="$(printf '%s\n' "$sample" | jq '.[0].usage.secondary.usedPercent = 100')"
 decision="$(

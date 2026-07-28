@@ -462,15 +462,24 @@ ls -t .score-loop/logs/tribunal-quota-loop-*.log | head -1 | xargs grep 'CALIBRA
 ```
 
 Judge 遇到 quota error 時，shell error path 只執行以下 provider-specific
-probe，並直接解析 JSON 的 Codex `primary`／`secondary` windows：
+probe，並直接解析 JSON 的 Codex 額度視窗：
 
 ```bash
 codexbar usage --provider codex --source cli --format json --pretty
 ```
 
-這條路不呼叫 CodexBar combined usage，也不查 Claude。JSON 缺欄位、帶
-provider error、或 command 失敗時一律視為 unparseable 並 suspend，不從
-人類可讀文字猜 quota。
+這條路不呼叫 CodexBar combined usage，也不查 Claude。回傳 record 的
+`source` 可為 `cli` 或 CodexBar 正規化後的 `codex-cli`。如果
+`usage.primary` 明確為 `null`、weekly `secondary` 完整有效，短窗會以
+inactive sentinel 排除在 burn-rate 運算外，只由 weekly 視窗決策；這不等於
+猜短窗有 100% 額度。JSON 缺少 primary key、primary 非 null 卻 malformed、
+weekly 缺欄位、帶 provider error，或 command 失敗時一律視為 unparseable
+並 suspend，不從人類可讀文字猜 quota。
+
+若 model 回傳 quota-like error，但通過驗證的視窗仍有餘額，或 primary
+視窗 unavailable，error handler 會以 `unknown` 暫停；只有實際為零的
+視窗才會記錄 exhausted tier 與 reset。Controller probe 失敗時，history
+與 state 的未知百分比使用 `-1` sentinel，不得把 unavailable 寫成 `0%`。
 
 **Self-calibration**: After each article completes (in single-worker mode), the controller computes the actual quota delta and updates `ARTICLE_COST_PCT` via exponential moving average (alpha=0.3). Cold start uses 0.5% as telemetry only. With sufficient history (≥5 entries), EMA converges to the true average cost.
 
