@@ -53,4 +53,41 @@ describe('reading tracker semantic status colors', () => {
     expect(backgroundImport).toBeGreaterThanOrEqual(0);
     expect(backgroundPush).toBeLessThan(backgroundImport);
   });
+
+  it('keeps manual read UI and sync unchanged when the tracker write fails', () => {
+    const toggle = readButtonSource.indexOf('const nowRead = toggleRead(slug, readerRevision)');
+    const failedWriteGuard = readButtonSource.indexOf('if (nowRead === null) return;', toggle);
+    const recordSignal = readButtonSource.indexOf('recordManualMarkRead', toggle);
+    const updateUi = readButtonSource.indexOf('updateUI(nowRead)', toggle);
+    const dispatch = readButtonSource.indexOf("new CustomEvent('read-status-changed'", toggle);
+    const scheduleSync = readButtonSource.indexOf('scheduleDebouncedSync()', toggle);
+
+    expect(toggle).toBeGreaterThanOrEqual(0);
+    expect(failedWriteGuard).toBeGreaterThan(toggle);
+    expect(failedWriteGuard).toBeLessThan(recordSignal);
+    expect(failedWriteGuard).toBeLessThan(updateUi);
+    expect(failedWriteGuard).toBeLessThan(dispatch);
+    expect(failedWriteGuard).toBeLessThan(scheduleSync);
+  });
+
+  it('only updates auto-read UI and sync after the tracker write succeeds', () => {
+    const persistRead = readButtonSource.indexOf(
+      "const readPersisted = markAsRead(slug, 'active_scroll_end', readerRevision)"
+    );
+    const successGuard = readButtonSource.indexOf('if (readPersisted) {', persistRead);
+    const markDirty = readButtonSource.indexOf('markDirtyForSync()', successGuard);
+    const scheduleSync = readButtonSource.indexOf('scheduleDebouncedSync()', successGuard);
+    const updateButtons = readButtonSource.indexOf(
+      "document.querySelectorAll<HTMLElement>('[data-read-button]')",
+      successGuard
+    );
+    const cleanup = readButtonSource.indexOf('cleanupTracking()', successGuard);
+
+    expect(persistRead).toBeGreaterThanOrEqual(0);
+    expect(successGuard).toBeGreaterThan(persistRead);
+    expect(markDirty).toBeGreaterThan(successGuard);
+    expect(scheduleSync).toBeGreaterThan(successGuard);
+    expect(updateButtons).toBeGreaterThan(successGuard);
+    expect(cleanup).toBeGreaterThan(updateButtons);
+  });
 });

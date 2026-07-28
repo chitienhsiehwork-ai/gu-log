@@ -88,6 +88,80 @@ describe('reading-tracker', () => {
     expect(m.toggleRead('gp-1')).toBe(false);
   });
 
+  it('markAsRead fails closed when storage rejects the write', async () => {
+    const m = await import('../src/lib/reading-tracker');
+    const setItem = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+      throw new Error('storage denied');
+    });
+    try {
+      expect(m.markAsRead('gp-denied')).toBe(false);
+      expect(m.isRead('gp-denied')).toBe(false);
+    } finally {
+      setItem.mockRestore();
+    }
+  });
+
+  it('markAsUnread preserves the prior state when storage rejects the write', async () => {
+    const m = await import('../src/lib/reading-tracker');
+    expect(m.markAsRead('gp-existing')).toBe(true);
+    const setItem = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+      throw new Error('storage denied');
+    });
+    try {
+      expect(m.markAsUnread('gp-existing')).toBe(false);
+      expect(m.isRead('gp-existing')).toBe(true);
+    } finally {
+      setItem.mockRestore();
+    }
+  });
+
+  it('toggleRead returns null and preserves state when storage rejects either write', async () => {
+    const m = await import('../src/lib/reading-tracker');
+    const setItem = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+      throw new Error('storage denied');
+    });
+    try {
+      expect(m.toggleRead('gp-unread')).toBeNull();
+      expect(m.isRead('gp-unread')).toBe(false);
+    } finally {
+      setItem.mockRestore();
+    }
+
+    expect(m.markAsRead('gp-read')).toBe(true);
+    const secondSetItem = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+      throw new Error('storage denied');
+    });
+    try {
+      expect(m.toggleRead('gp-read')).toBeNull();
+      expect(m.isRead('gp-read')).toBe(true);
+    } finally {
+      secondSetItem.mockRestore();
+    }
+  });
+
+  it('does not attempt a mutation when storage cannot be read', async () => {
+    const getItem = vi.spyOn(localStorage, 'getItem').mockImplementation(() => {
+      throw new DOMException('storage denied', 'SecurityError');
+    });
+    const setItem = vi.spyOn(localStorage, 'setItem');
+    const m = await import('../src/lib/reading-tracker');
+    try {
+      expect(m.markAsRead('gp-read-denied')).toBe(false);
+      expect(setItem).not.toHaveBeenCalled();
+    } finally {
+      getItem.mockRestore();
+      setItem.mockRestore();
+    }
+  });
+
+  it('overwrites corrupt JSON when storage remains readable and writable', async () => {
+    localStorage.setItem('gu-log-read-articles', '{not valid}');
+    const m = await import('../src/lib/reading-tracker');
+
+    expect(m.markAsRead('gp-recovered')).toBe(true);
+    expect(m.isRead('gp-recovered')).toBe(true);
+  });
+
   it('getStats reports total + slugs + lastUpdated', async () => {
     const m = await import('../src/lib/reading-tracker');
     m.markAsRead('a');
