@@ -155,6 +155,58 @@ test.describe('Search - Edge Cases', () => {
     await expect(page.locator('.search-no-results')).toBeVisible({ timeout: 5000 });
   });
 
+  test('GIVEN rapid typing during the initial index fetch WHEN it resolves THEN runs one debounced search', async ({
+    page,
+  }) => {
+    let markIndexStarted!: () => void;
+    let releaseIndex!: () => void;
+    const indexStarted = new Promise<void>((resolve) => {
+      markIndexStarted = resolve;
+    });
+    const indexRelease = new Promise<void>((resolve) => {
+      releaseIndex = resolve;
+    });
+
+    await page.route('**/search-index.zh-tw.json', async (route) => {
+      markIndexStarted();
+      await indexRelease;
+      await route.continue();
+    });
+    await page.goto(BASE);
+    await page.click('[data-search-trigger]');
+    await page.waitForSelector('[data-search-modal][aria-hidden="false"]');
+
+    await page.evaluate(() => {
+      const results = document.querySelector<HTMLElement>('[data-search-results]');
+      if (!results) throw new Error('search results container missing');
+      results.dataset.resultRenderCount = '0';
+      new MutationObserver(() => {
+        if (!results.querySelector('.search-result-item')) return;
+        results.dataset.resultRenderCount = String(
+          Number(results.dataset.resultRenderCount ?? '0') + 1
+        );
+      }).observe(results, { childList: true });
+    });
+
+    const input = page.locator('[data-search-input]');
+    await input.fill('A');
+    await indexStarted;
+    await input.fill('AI');
+    await input.fill('AI ');
+    await input.fill('AI');
+
+    const indexResponse = page.waitForResponse('**/search-index.zh-tw.json');
+    releaseIndex();
+    await indexResponse;
+    await expect(page.locator('.search-result-item').first()).toBeVisible();
+    await page.waitForTimeout(400);
+
+    await expect(page.locator('[data-search-results]')).toHaveAttribute(
+      'data-result-render-count',
+      '1'
+    );
+  });
+
   test('GIVEN ticket ID search WHEN entering GP- THEN matches partial ticket IDs', async ({
     page,
   }) => {
