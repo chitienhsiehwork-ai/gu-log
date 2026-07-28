@@ -185,6 +185,83 @@ test.describe('Table of Contents', () => {
       ).toHaveClass(/active/);
     });
 
+    test('GIVEN the active section is unchanged WHEN the viewport updates THEN each heading is read once without class churn', async ({
+      page,
+    }) => {
+      await page.goto(testPostUrl);
+
+      const desktopLinks = page.locator('.toc-desktop .toc-link');
+      const lastLink = desktopLinks.last();
+      const targetId = await lastLink.getAttribute('data-heading-id');
+      expect(targetId).toBeTruthy();
+      await page.evaluate((id) => document.getElementById(id!)?.scrollIntoView(), targetId);
+      await expect(
+        page.locator(`.toc-desktop .toc-link[data-heading-id="${targetId}"]`)
+      ).toHaveClass(/active/);
+      await expect(page.locator(`.toc-link.active[data-heading-id="${targetId}"]`)).toHaveCount(2);
+      await expect(
+        page.locator(`.toc-mobile .toc-link.active[data-heading-id="${targetId}"]`)
+      ).toHaveCount(1);
+      await expect(
+        page.locator(`.toc-desktop .toc-link.active[data-heading-id="${targetId}"]`)
+      ).toHaveCount(1);
+
+      const metrics = await page.evaluate(async () => {
+        const tocLinks = Array.from(document.querySelectorAll('.toc-link'));
+        const headingIds = new Set(
+          tocLinks
+            .map((link) => link.getAttribute('data-heading-id'))
+            .filter((id): id is string => Boolean(id))
+        );
+        const originalGetBoundingClientRect = Element.prototype.getBoundingClientRect;
+        let headingReads = 0;
+        let classMutations = 0;
+
+        Element.prototype.getBoundingClientRect = function () {
+          if (this instanceof HTMLElement && headingIds.has(this.id)) {
+            headingReads += 1;
+          }
+          return originalGetBoundingClientRect.call(this);
+        };
+
+        const observer = new MutationObserver((records) => {
+          classMutations += records.length;
+        });
+        tocLinks.forEach((link) => {
+          observer.observe(link, { attributes: true, attributeFilter: ['class'] });
+        });
+
+        try {
+          window.dispatchEvent(new Event('scroll'));
+          await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+          await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+          await Promise.resolve();
+
+          return {
+            classMutations,
+            headingReads,
+            uniqueHeadings: headingIds.size,
+          };
+        } finally {
+          observer.disconnect();
+          Element.prototype.getBoundingClientRect = originalGetBoundingClientRect;
+        }
+      });
+
+      expect(metrics.uniqueHeadings).toBeGreaterThan(1);
+      expect(metrics.headingReads).toBe(metrics.uniqueHeadings);
+      expect(metrics.classMutations).toBe(0);
+
+      const firstLink = desktopLinks.first();
+      const firstHeadingId = await firstLink.getAttribute('data-heading-id');
+      expect(firstHeadingId).toBeTruthy();
+      await page.evaluate((id) => document.getElementById(id!)?.scrollIntoView(), firstHeadingId);
+      await expect(
+        page.locator(`.toc-link.active[data-heading-id="${firstHeadingId}"]`)
+      ).toHaveCount(2);
+      await expect(page.locator(`.toc-link.active[data-heading-id="${targetId}"]`)).toHaveCount(0);
+    });
+
     test('GIVEN the desktop TOC is visible WHEN user returns to the post header THEN it hides again', async ({
       page,
     }) => {
