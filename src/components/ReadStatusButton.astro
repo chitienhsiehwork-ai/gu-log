@@ -71,7 +71,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
 </div>
 
 <script>
-  import { isRead, toggleRead, markAsRead, exportJson, importJson } from '../lib/reading-tracker';
+  import { isRead, toggleRead, markAsRead, exportJson } from '../lib/reading-tracker';
   import {
     getGitHubToken,
     getGuLogSessionToken,
@@ -80,6 +80,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
     pullFromGist,
     pullFromReaderSyncApi,
     mergeSync,
+    importSyncStore,
   } from '../lib/gist-sync';
   import {
     recordManualMarkRead,
@@ -116,12 +117,12 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
           'https://api.shroomdog.dev';
         const remote = jwt ? await pullFromReaderSyncApi(apiUrl) : await pullFromGist(legacyToken!);
         const merged = mergeSync(JSON.parse(exportJson()), remote ?? []);
-        importJson(JSON.stringify(merged));
         if (jwt) {
           await pushToReaderSyncApi(apiUrl, merged);
         } else {
           await pushToGist(legacyToken!, merged);
         }
+        importSyncStore(merged);
         localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
         localStorage.removeItem(SYNC_DIRTY_KEY);
       } catch {

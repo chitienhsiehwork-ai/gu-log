@@ -241,6 +241,7 @@ const totalArticles = allPosts.length;
     pullFromGist,
     pullFromReaderSyncApi,
     mergeSync,
+    importSyncStore,
     ReaderSyncApiError,
   } from '../lib/gist-sync';
 
@@ -515,13 +516,13 @@ const totalArticles = allPosts.length;
           ? await pullFromGist(legacyToken!)
           : await pullFromReaderSyncApi(syncApiUrl());
         const merged = mergeSync(localStore, remote ?? []);
-        importJson(JSON.stringify(merged));
-        updateAllRows();
         if (useLegacy) {
           await pushToGist(legacyToken!, merged);
         } else {
           await pushToReaderSyncApi(syncApiUrl(), merged);
         }
+        importSyncStore(merged);
+        updateAllRows();
       } else if (mode === 'push') {
         if (useLegacy) {
           await pushToGist(legacyToken!, localStore);
@@ -533,7 +534,7 @@ const totalArticles = allPosts.length;
           ? await pullFromGist(legacyToken!)
           : await pullFromReaderSyncApi(syncApiUrl());
         if (remote) {
-          importJson(JSON.stringify(remote));
+          importSyncStore(remote);
           updateAllRows();
         }
       }
