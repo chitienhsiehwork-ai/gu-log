@@ -749,17 +749,6 @@ test.describe('AI Popup - API Interactions', () => {
     await popup.locator('[data-action="submit-edit"]').click();
     await expect(popup.locator('[data-action="confirm"]')).toBeVisible();
 
-    await popup.locator('[data-action="confirm"]').click();
-    await expect.poll(() => confirmRequests).toBe(1);
-    await expect(popup.locator('.ai-popup-spinner')).toBeVisible();
-
-    await selectPostText(page, { characters: 40 });
-    await page.waitForTimeout(50);
-    await page.keyboard.press('Escape');
-
-    await expect(popup.locator('.ai-popup-spinner')).toBeVisible();
-    expect(confirmRequests).toBe(1);
-
     await page.evaluate(() => {
       const testWindow = window as typeof window & {
         __aiPopupSelectionCallbacks?: Array<() => void>;
@@ -804,6 +793,25 @@ test.describe('AI Popup - API Interactions', () => {
 
       testWindow.__aiPopupSelectionCallbacks = delayedCallbacks;
     });
+    expect(
+      await page.evaluate(() => {
+        const testWindow = window as typeof window & {
+          __aiPopupSelectionCallbacks?: Array<() => void>;
+        };
+        return testWindow.__aiPopupSelectionCallbacks?.length ?? 0;
+      })
+    ).toBe(1);
+
+    await popup.locator('[data-action="confirm"]').click();
+    await expect.poll(() => confirmRequests).toBe(1);
+    await expect(popup.locator('.ai-popup-spinner')).toBeVisible();
+
+    await selectPostText(page, { characters: 40 });
+    await page.waitForTimeout(50);
+    await page.keyboard.press('Escape');
+
+    await expect(popup.locator('.ai-popup-spinner')).toBeVisible();
+    expect(confirmRequests).toBe(1);
 
     releaseConfirm?.();
     await expect(popup.locator('.ai-popup-committed')).toContainText('pending');

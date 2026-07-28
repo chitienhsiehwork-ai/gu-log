@@ -95,6 +95,7 @@
   let lastAskQuestion = '';
   let errorDismissTimer = null;
   let requestGeneration = 0;
+  let selectionGeneration = 0;
 
   function beginRequestContext() {
     requestGeneration += 1;
@@ -895,6 +896,7 @@
       return;
     }
 
+    selectionGeneration += 1;
     renderLoading(t.loadingConfirm, 'confirm-loading');
     try {
       const data = await apiRequest('/ai/edit/confirm', {
@@ -979,8 +981,9 @@
     if (currentState === 'confirm-loading') return;
 
     // Small delay to let selection finalize
+    const generation = selectionGeneration;
     setTimeout(function () {
-      if (currentState === 'confirm-loading') return;
+      if (generation !== selectionGeneration || currentState === 'confirm-loading') return;
 
       const sel = window.getSelection();
       const text = sel ? sel.toString().trim() : '';
