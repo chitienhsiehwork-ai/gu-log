@@ -41,6 +41,9 @@ onlyBuiltDependencies:
   - esbuild
   - sharp
 YAML
+cat > "$seed/.gitignore" <<'IGNORE'
+node_modules/
+IGNORE
 
 cat > "$seed/src/content/posts/gp-1-test.mdx" <<'POST'
 ---
