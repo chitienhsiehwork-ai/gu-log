@@ -185,13 +185,26 @@ const t = labels[lang];
 
     // Listen for read status changes
     window.addEventListener('read-status-changed', (e: Event) => {
-      const detail = (e as CustomEvent<{ slug: string; read: boolean }>).detail;
-      const indicator = nav.querySelector<HTMLElement>(
-        `[data-read-indicator][data-slug="${detail.slug}"]`
-      );
+      const detail = (e as CustomEvent<unknown>).detail;
+      if (typeof detail !== 'object' || detail === null) {
+        return;
+      }
+      let slug: unknown;
+      let read: unknown;
+      try {
+        slug = Reflect.get(detail, 'slug');
+        read = Reflect.get(detail, 'read');
+      } catch {
+        return;
+      }
+      if (typeof slug !== 'string' || typeof read !== 'boolean') return;
+
+      const indicator = Array.from(
+        nav.querySelectorAll<HTMLElement>('[data-read-indicator][data-slug]')
+      ).find((candidate) => candidate.dataset.slug === slug);
       if (indicator) {
-        indicator.classList.toggle('is-read', detail.read);
-        indicator.title = detail.read ? 'Read' : 'Unread';
+        indicator.classList.toggle('is-read', read);
+        indicator.title = read ? 'Read' : 'Unread';
       }
     });
 
