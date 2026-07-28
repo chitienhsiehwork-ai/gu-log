@@ -320,6 +320,36 @@ elapsed=$((SECONDS - start))
   fail "CodexBar timeout fell back to the combined monitor"
 pass "CodexBar timeout is bounded and fails closed"
 
+tick_path="$(
+  sed -n \
+    '/# ── Closed-loop controller path/,/tlog "CONTROLLER:/p' \
+    "$FIXTURE_ROOT/scripts/tribunal-quota-loop.sh"
+)"
+[ "$(
+  printf '%s\n' "$tick_path" |
+    grep -Fc 'get_dual_quota_readings'
+)" -eq 1 ] ||
+  fail "main controller tick must capture exactly one raw quota snapshot"
+printf '%s\n' "$tick_path" |
+  grep -Fq 'tick_result=$(controller_tick "$IN_FLIGHT" "$readings_raw")' ||
+  fail "main controller decision does not reuse its telemetry snapshot"
+pass "main controller decision and telemetry share one quota snapshot"
+
+completion_path="$(
+  sed -n \
+    '/# Log completion event for calibration/,/CONTROLLER_COOLDOWN="${CONTROLLER_COOLDOWN:-10}"/p' \
+    "$FIXTURE_ROOT/scripts/tribunal-quota-loop.sh"
+)"
+[ "$(
+  printf '%s\n' "$completion_path" |
+    grep -Fc 'get_dual_quota_readings'
+)" -eq 1 ] ||
+  fail "completion handling must capture exactly one raw quota snapshot"
+printf '%s\n' "$completion_path" |
+  grep -Fq 'fresh_tick=$(controller_tick "$IN_FLIGHT" "$c_readings")' ||
+  fail "post-completion decision does not reuse its telemetry snapshot"
+pass "completion telemetry and the next decision share one quota snapshot"
+
 grep -Fq \
   'UNKNOWN_QUOTA_READINGS="-1|-1|-1|-1|0|0|0"' \
   "$FIXTURE_ROOT/scripts/tribunal-quota-loop.sh" ||
