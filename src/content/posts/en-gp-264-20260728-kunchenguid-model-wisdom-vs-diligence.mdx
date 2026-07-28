@@ -1,0 +1,136 @@
+---
+ticketId: "GP-264"
+title: 'Big Model at Low Reasoning, or Small Model Cranked to Max? One Gives You "Wisdom," the Other Gives You "Diligence"'
+originalDate: '2026-07-27'
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code CLI"
+
+
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 5"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "Opus 5"
+      harness: "gp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@kunchenguid on X"
+sourceUrl: 'https://x.com/kunchenguid/status/2081765555091177537'
+lang: 'en'
+summary: 'Kun Chen spent about two weeks deliberately cycling through every combination of model size and reasoning intensity, and came away with a sharp intuition: model size gives you "wisdom" (breadth of knowledge, intuition, cross-domain connections), reasoning intensity gives you "diligence" (thorough evaluation, edge-case coverage). The two are not interchangeable. He argues that benchmarks collapsing everything into a single score is exactly why people confuse them.'
+tags: ['llm', 'benchmark', 'reasoning', 'model-routing']
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 7
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 8
+    commentarySeparation: 9
+    score: 8
+    date: "2026-07-28"
+    model: "claude-opus-5"
+  librarian:
+    glossary: 8
+    crossRef: 8
+    sourceAlign: 8
+    attribution: 9
+    score: 8
+    date: "2026-07-28"
+    model: "claude-opus-5"
+  freshEyes:
+    readability: 9
+    firstImpression: 9
+    payoffDensity: 9
+    lengthFit: 9
+    clarity: 9
+    score: 9
+    date: "2026-07-28"
+    model: "claude-opus-5"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-07-28"
+    model: "claude-opus-4-6"
+translatedDate: "2026-07-28"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+Run a flagship model (Opus, Fable) at low reasoning intensity, or take a lightweight model (Sonnet, Haiku) and crank reasoning to max? Kun Chen spent about two weeks deliberately trying every combination, and came away with a clean intuition: model size gives you "wisdom," reasoning intensity gives you "diligence." Two completely different things.
+
+## Wisdom and Diligence
+
+A bigger model has seen more, remembers more, and spans a wider range of domains. Its intuition is sharper—it can connect dots scattered across different fields and come up with ideas that are creative and genuinely illuminating. That's wisdom: having seen enough of the world that you can find unexpected connections when a new problem lands in front of you.
+
+Reasoning intensity makes the model more careful: evaluating each option one by one, thinking through the consequences of every step, digging up edge cases and checking them. That's diligence—not smarter, just more thorough. No option left unevaluated, no branch left unexplored.
+
+<MoguNote>
+"Reasoning intensity" is the user-facing knob for [test-time compute](/en/glossary#test-time-compute). Set it to low and the model answers instantly; set it to high and it goes back and forth in its head for several rounds before speaking. What it burns is inference-time compute. No amount of overtime can produce insights that weren't baked in during training.
+
+The same author's [agent fleet composition chart](/posts/mp-312-20260630-kunchenguid-agent-fleet-model-routing/) (first mate gets the smartest model with reasoning cranked to max; grunt work goes to the cheap ones) is the applied version of this principle—that post gave the lineup, this one explains why it's arranged that way. Even earlier, people were already debating that [the strongest reasoning model isn't necessarily the best coder](/posts/mp-212-20260326-semianalysis-disaggregated-planning/)—same axis.
+</MoguNote>
+
+---
+
+## A Hundred Roads and a Tunnel
+
+A hundred roads lie ahead. The diligent model evaluates them one by one, missing none—but it won't spontaneously realize: maybe the best move is to skip all hundred and dig a tunnel instead.
+
+The ability to step outside the given options and think of "dig a tunnel"—that's wisdom.
+
+Diligence makes sure no given option is missed; wisdom is what goes back and asks whether the set of options itself is right. The two can't substitute for each other. Cranking up reasoning intensity won't suddenly give a small model the breadth of a large one; using a bigger model won't automatically make it more careful.
+
+Kun Chen says this is when it clicked for him why the providers arrange their lineups the way they do, rather than just shipping one Fable-tier model with twelve reasoning presets—because model size and reasoning intensity aren't on the same axis at all.
+
+<MoguNote>
+**Diligence walks every road; wisdom discovers the roads themselves are wrong.** Next time your agent handles every edge case flawlessly and still gets the whole direction wrong—that's full marks for diligence, zero for wisdom. gu-log's own [four-judge system](/posts/sd-10-20260322-ralph-loop-quality-system/) sits right on this line: quality scoring needs taste (wisdom), so it uses the largest model; fact-checking needs thoroughness (diligence), so it deliberately swaps in a different model as a second pair of eyes. Different knobs, different turns. (╯°□°)╯
+</MoguNote>
+
+---
+
+## Why People Confuse Them
+
+Because of [benchmarks](/en/glossary#benchmark).
+
+The industry has been plotting model capabilities on a single line—run a test, get a score, rank them, highest on top. Kun Chen puts this bluntly: this framing is broken at the root, because it uses one dimension to measure a two-dimensional thing, flattening "wisdom" and "diligence" into a single number. Look at that number and you'll naturally think model size and reasoning intensity are interchangeable: a small model with cranked-up reasoning catches up in score, so it must have caught up to the big model.
+
+But what caught up is the score on the same test, not the same kind of capability. Being able to evaluate all hundred roads and being able to think of digging a tunnel might score the same on a benchmark—but when solving real problems, they're worlds apart.
+
+Kun Chen just hopes that evaluation benchmarks will eventually catch up and measure these two dimensions separately. Until then, the illusion persists.
+
+---
+
+## Choosing in Practice
+
+Until that day comes, Kun Chen's own approach boils down to three rules of thumb:
+
+- This problem needs a genius to crack—use a big model.
+- This problem needs a pen and a lot of paper to work through—crank up reasoning intensity.
+- It needs a genius to sit down with a pen and a lot of paper—turn both knobs up.
+
+<MoguNote>
+Compare these against the three most common types of work: refactoring a module where nobody can clearly define the boundaries—the option set itself is the problem, a genius-level call, bring the big model; sweeping a known bug across thirty files—the options are clear, there are just a lot of them, a pen and lots of paper is enough, max out reasoning intensity; deciding whether the entire system should switch architectures and then actually getting all thirty files right after the switch—congratulations, both knobs go to eleven, and so does the bill.
+</MoguNote>
+
+---
+
+## Closing
+
+The model walked all hundred roads and the problem still isn't solved—maybe what's missing isn't more roads. It's a tunnel.
