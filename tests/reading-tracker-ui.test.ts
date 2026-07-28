@@ -2,6 +2,10 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 const source = readFileSync(new URL('../src/pages/reading-tracker.astro', import.meta.url), 'utf8');
+const readButtonSource = readFileSync(
+  new URL('../src/components/ReadStatusButton.astro', import.meta.url),
+  'utf8'
+);
 
 describe('reading tracker semantic status colors', () => {
   it('themes sync badge foregrounds and backgrounds through status tokens', () => {
@@ -29,5 +33,24 @@ describe('reading tracker semantic status colors', () => {
     expect(source).toContain("parsedApiUrl.protocol !== 'https:'");
     expect(source).toContain("parsedApiUrl.protocol !== 'http:'");
     expect(source).toContain('PUBLIC_API_URL must use http or https');
+  });
+
+  it('routes foreground and background sync imports through the fail-closed helper', () => {
+    expect(source).not.toContain('importJson(JSON.stringify(merged))');
+    expect(source).not.toContain('importJson(JSON.stringify(remote))');
+    expect(source.match(/importSyncStore\(/g)).toHaveLength(2);
+    const foregroundPush = source.indexOf('await pushToReaderSyncApi(syncApiUrl(), merged)');
+    const foregroundImport = source.indexOf('importSyncStore(merged)');
+    expect(foregroundPush).toBeGreaterThanOrEqual(0);
+    expect(foregroundImport).toBeGreaterThanOrEqual(0);
+    expect(foregroundPush).toBeLessThan(foregroundImport);
+
+    expect(readButtonSource).not.toContain('importJson(JSON.stringify(merged))');
+    expect(readButtonSource.match(/importSyncStore\(/g)).toHaveLength(1);
+    const backgroundPush = readButtonSource.indexOf('await pushToReaderSyncApi(apiUrl, merged)');
+    const backgroundImport = readButtonSource.indexOf('importSyncStore(merged)');
+    expect(backgroundPush).toBeGreaterThanOrEqual(0);
+    expect(backgroundImport).toBeGreaterThanOrEqual(0);
+    expect(backgroundPush).toBeLessThan(backgroundImport);
   });
 });

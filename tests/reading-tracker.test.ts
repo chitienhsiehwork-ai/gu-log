@@ -31,6 +31,22 @@ beforeEach(() => {
   vi.resetModules();
 });
 
+function legacyV2Store(slug = 'legacy-v2') {
+  return {
+    version: 2,
+    slugs: [slug],
+    records: [
+      {
+        slug,
+        method: 'manual_mark_read',
+        confidence: 'legacy_or_manual',
+        lastReadAt: '2026-04-01T00:00:00.000Z',
+      },
+    ],
+    lastUpdated: '2026-04-01T00:00:00.000Z',
+  };
+}
+
 // ════════════════════════════════════════════════════════════════════════════
 // reading-tracker
 // ════════════════════════════════════════════════════════════════════════════
@@ -170,6 +186,171 @@ describe('reading-tracker', () => {
     expect(m.importJson('not json')).toBe(false);
     expect(m.importJson(JSON.stringify({ version: 99 }))).toBe(false);
     expect(m.getReadSlugs()).toEqual([]);
+  });
+
+  it.each([
+    ['array root', []],
+    ['unknown version', { version: 99, slugs: [], lastUpdated: '2026-07-27T00:00:00.000Z' }],
+    [
+      'mixed slug types',
+      {
+        version: 1,
+        slugs: ['valid', { slug: 'poisoned' }],
+        lastUpdated: '2026-07-27T00:00:00.000Z',
+      },
+    ],
+    [
+      'duplicate slugs',
+      {
+        version: 1,
+        slugs: ['duplicate', 'duplicate'],
+        lastUpdated: '2026-07-27T00:00:00.000Z',
+      },
+    ],
+    [
+      'non-array records',
+      {
+        version: 2,
+        slugs: ['poisoned'],
+        records: 'not-an-array',
+        lastUpdated: '2026-07-27T00:00:00.000Z',
+      },
+    ],
+    ['missing fields', { version: 1, slugs: ['poisoned'] }],
+    [
+      'invalid store timestamp',
+      { version: 1, slugs: ['poisoned'], lastUpdated: 'not-a-timestamp' },
+    ],
+    [
+      'invalid record timestamp',
+      {
+        version: 2,
+        slugs: ['poisoned'],
+        records: [
+          {
+            slug: 'poisoned',
+            method: 'manual_mark_read',
+            confidence: 'legacy_or_manual',
+            readAt: 'not-a-timestamp',
+            lastReadAt: '2026-07-27T00:00:00.000Z',
+            readRevision: null,
+            revisionState: 'unknown',
+          },
+        ],
+        lastUpdated: '2026-07-27T00:00:00.000Z',
+      },
+    ],
+    [
+      'mismatched current record timestamps',
+      {
+        version: 2,
+        slugs: ['poisoned'],
+        records: [
+          {
+            slug: 'poisoned',
+            method: 'manual_mark_read',
+            confidence: 'legacy_or_manual',
+            readAt: '2026-07-27T00:00:00.000Z',
+            lastReadAt: '2026-07-27T00:00:01.000Z',
+            readRevision: null,
+            revisionState: 'unknown',
+          },
+        ],
+        lastUpdated: '2026-07-27T00:00:01.000Z',
+      },
+    ],
+    [
+      'missing record fields',
+      {
+        version: 2,
+        slugs: ['poisoned'],
+        records: [{ slug: 'poisoned', readAt: '2026-07-27T00:00:00.000Z' }],
+        lastUpdated: '2026-07-27T00:00:00.000Z',
+      },
+    ],
+    [
+      'record-only slug',
+      {
+        version: 2,
+        slugs: [],
+        records: [
+          {
+            slug: 'poisoned',
+            method: 'manual_mark_read',
+            confidence: 'legacy_or_manual',
+            readAt: '2026-07-27T00:00:00.000Z',
+            lastReadAt: '2026-07-27T00:00:00.000Z',
+            readRevision: null,
+            revisionState: 'unknown',
+          },
+        ],
+        lastUpdated: '2026-07-27T00:00:00.000Z',
+      },
+    ],
+    [
+      'slug without record',
+      {
+        version: 2,
+        slugs: ['poisoned'],
+        records: [],
+        lastUpdated: '2026-07-27T00:00:00.000Z',
+      },
+    ],
+  ])('strict parser rejects %s and import leaves existing state unchanged', async (_, input) => {
+    const m = await import('../src/lib/reading-tracker');
+    m.markAsRead('existing', 'manual_mark_read', 'rev-existing');
+    const before = m.exportJson();
+
+    expect(m.parseReadStore(input)).toBeNull();
+    expect(m.importJson(JSON.stringify(input))).toBe(false);
+    expect(m.exportJson()).toBe(before);
+  });
+
+  it('strict parser accepts complete v1 and v2 stores', async () => {
+    const m = await import('../src/lib/reading-tracker');
+    const v1 = {
+      version: 1 as const,
+      slugs: ['legacy'],
+      lastUpdated: '2026-07-27T00:00:00.000Z',
+    };
+    const v2 = {
+      version: 2 as const,
+      slugs: ['current'],
+      records: [
+        {
+          slug: 'current',
+          method: 'active_scroll_end' as const,
+          confidence: 'active_finish' as const,
+          readAt: '2026-07-27T00:00:00.000Z',
+          lastReadAt: '2026-07-27T00:00:00.000Z',
+          readRevision: 'rev-current',
+          revisionState: 'current' as const,
+        },
+      ],
+      lastUpdated: '2026-07-27T00:00:01.000Z',
+    };
+
+    expect(m.parseReadStore(v1)).toEqual(v1);
+    expect(m.parseReadStore(v2)).toEqual(v2);
+  });
+
+  it('migrates the production legacy v2 record shape without losing read state', async () => {
+    const legacy = legacyV2Store();
+    localStorage.setItem('gu-log-read-articles', JSON.stringify(legacy));
+    const m = await import('../src/lib/reading-tracker');
+
+    expect(m.isRead('legacy-v2')).toBe(true);
+    expect(m.getReadRecords()).toEqual([
+      {
+        slug: 'legacy-v2',
+        method: 'manual_mark_read',
+        confidence: 'legacy_or_manual',
+        readAt: '2026-04-01T00:00:00.000Z',
+        lastReadAt: '2026-04-01T00:00:00.000Z',
+        readRevision: null,
+        revisionState: 'unknown',
+      },
+    ]);
   });
 
   it('survives corrupted localStorage entry (treats as empty)', async () => {
@@ -316,6 +497,176 @@ describe('gist-sync', () => {
     expect((error as { reauthorizeUrl?: string }).reauthorizeUrl).toBe(expected);
   });
 
+  it.each([
+    ['unknown version', { version: 99, slugs: [], lastUpdated: '2026-07-27T00:00:00.000Z' }],
+    [
+      'non-array records',
+      {
+        version: 2,
+        slugs: ['poisoned'],
+        records: 'not-an-array',
+        lastUpdated: '2026-07-27T00:00:00.000Z',
+      },
+    ],
+    ['missing fields', { version: 1, slugs: ['poisoned'] }],
+    ['invalid timestamp', { version: 1, slugs: ['poisoned'], lastUpdated: 'not-a-timestamp' }],
+  ])('pullFromReaderSyncApi rejects %s as an invalid payload', async (_, store) => {
+    (globalThis as any).localStorage.setItem('gu-log-jwt', 'header.payload.sig');
+    (globalThis as any).fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ store }),
+    });
+    const m = await import('../src/lib/gist-sync');
+
+    await expect(m.pullFromReaderSyncApi('https://api.shroomdog.dev')).rejects.toMatchObject({
+      name: 'ReaderSyncApiError',
+      code: 'READER_SYNC_INVALID_PAYLOAD',
+    });
+  });
+
+  it('pullFromReaderSyncApi accepts complete v1 and v2 stores', async () => {
+    (globalThis as any).localStorage.setItem('gu-log-jwt', 'header.payload.sig');
+    const stores = [
+      {
+        version: 1,
+        slugs: ['legacy'],
+        lastUpdated: '2026-07-27T00:00:00.000Z',
+      },
+      {
+        version: 2,
+        slugs: ['current'],
+        records: [
+          {
+            slug: 'current',
+            method: 'manual_mark_read',
+            confidence: 'legacy_or_manual',
+            readAt: '2026-07-27T00:00:00.000Z',
+            lastReadAt: '2026-07-27T00:00:00.000Z',
+            readRevision: null,
+            revisionState: 'unknown',
+          },
+        ],
+        lastUpdated: '2026-07-27T00:00:00.000Z',
+      },
+    ];
+    (globalThis as any).fetch = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ store: stores[0] }) })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ store: stores[1] }) });
+    const m = await import('../src/lib/gist-sync');
+
+    expect(await m.pullFromReaderSyncApi('https://api.shroomdog.dev')).toEqual(stores[0]);
+    expect(await m.pullFromReaderSyncApi('https://api.shroomdog.dev')).toEqual(stores[1]);
+  });
+
+  it.each([
+    ['non-object envelope', []],
+    ['missing store field', {}],
+    ['invalid JSON', null],
+  ])('pullFromReaderSyncApi rejects %s', async (_, payload) => {
+    (globalThis as any).localStorage.setItem('gu-log-jwt', 'header.payload.sig');
+    (globalThis as any).fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json:
+        payload === null
+          ? async () => {
+              throw new SyntaxError('invalid json');
+            }
+          : async () => payload,
+    });
+    const m = await import('../src/lib/gist-sync');
+
+    await expect(m.pullFromReaderSyncApi('https://api.shroomdog.dev')).rejects.toMatchObject({
+      name: 'ReaderSyncApiError',
+      code: 'READER_SYNC_INVALID_PAYLOAD',
+    });
+  });
+
+  it('pullFromReaderSyncApi keeps explicit null distinct from a malformed envelope', async () => {
+    (globalThis as any).localStorage.setItem('gu-log-jwt', 'header.payload.sig');
+    (globalThis as any).fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ store: null }),
+    });
+    const m = await import('../src/lib/gist-sync');
+
+    await expect(m.pullFromReaderSyncApi('https://api.shroomdog.dev')).resolves.toBeNull();
+  });
+
+  it('pullFromReaderSyncApi migrates the production legacy v2 record shape', async () => {
+    (globalThis as any).localStorage.setItem('gu-log-jwt', 'header.payload.sig');
+    (globalThis as any).fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ store: legacyV2Store('api-legacy') }),
+    });
+    const m = await import('../src/lib/gist-sync');
+
+    await expect(m.pullFromReaderSyncApi('https://api.shroomdog.dev')).resolves.toMatchObject({
+      version: 2,
+      slugs: ['api-legacy'],
+      records: [
+        {
+          slug: 'api-legacy',
+          readAt: '2026-04-01T00:00:00.000Z',
+          lastReadAt: '2026-04-01T00:00:00.000Z',
+          readRevision: null,
+          revisionState: 'unknown',
+        },
+      ],
+    });
+  });
+
+  it('importSyncStore fails closed without changing local reader state', async () => {
+    const tracker = await import('../src/lib/reading-tracker');
+    tracker.markAsRead('existing', 'manual_mark_read', 'rev-existing');
+    const before = tracker.exportJson();
+    const m = await import('../src/lib/gist-sync');
+
+    expect(() =>
+      m.importSyncStore({
+        version: 2,
+        slugs: ['poisoned'],
+        records: 'not-an-array',
+        lastUpdated: '2026-07-27T00:00:00.000Z',
+      })
+    ).toThrow(
+      expect.objectContaining({
+        name: 'ReaderSyncApiError',
+        code: 'READER_SYNC_INVALID_PAYLOAD',
+      })
+    );
+    expect(tracker.exportJson()).toBe(before);
+  });
+
+  it('importSyncStore treats storage failure as failure and leaves existing state unchanged', async () => {
+    const tracker = await import('../src/lib/reading-tracker');
+    tracker.markAsRead('existing', 'manual_mark_read', 'rev-existing');
+    const before = tracker.exportJson();
+    const setItem = vi.spyOn(localStorage, 'setItem').mockImplementationOnce(() => {
+      throw new Error('quota exceeded');
+    });
+    const m = await import('../src/lib/gist-sync');
+
+    expect(() =>
+      m.importSyncStore({
+        version: 1,
+        slugs: ['remote'],
+        lastUpdated: '2026-07-27T00:00:00.000Z',
+      })
+    ).toThrow(
+      expect.objectContaining({
+        name: 'ReaderSyncApiError',
+        code: 'READER_SYNC_INVALID_PAYLOAD',
+      })
+    );
+    expect(tracker.exportJson()).toBe(before);
+    setItem.mockRestore();
+  });
+
   it('findOrCreateGist returns cached id on 200', async () => {
     (globalThis as any).localStorage.setItem('gu-log-gist-id', 'cached-id-123');
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200 });
@@ -391,7 +742,72 @@ describe('gist-sync', () => {
     expect(await m.pullFromGist('tok')).toEqual(remote);
   });
 
-  it('pullFromGist returns null on schema mismatch', async () => {
+  it('pullFromGist migrates the production legacy v2 record shape', async () => {
+    (globalThis as any).localStorage.setItem('gu-log-gist-id', 'gid');
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, status: 200 })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          files: {
+            'gu-log-reading-tracker.json': {
+              content: JSON.stringify(legacyV2Store('gist-legacy')),
+            },
+          },
+        }),
+      });
+    (globalThis as any).fetch = fetchMock;
+    const m = await import('../src/lib/gist-sync');
+
+    await expect(m.pullFromGist('tok')).resolves.toMatchObject({
+      version: 2,
+      slugs: ['gist-legacy'],
+      records: [
+        {
+          slug: 'gist-legacy',
+          readAt: '2026-04-01T00:00:00.000Z',
+          lastReadAt: '2026-04-01T00:00:00.000Z',
+          readRevision: null,
+          revisionState: 'unknown',
+        },
+      ],
+    });
+  });
+
+  it.each([
+    ['array root', []],
+    ['null root', null],
+    ['missing files', {}],
+    ['null files', { files: null }],
+    ['file without content', { files: { 'gu-log-reading-tracker.json': {} } }],
+  ])('pullFromGist rejects malformed %s envelope', async (_, gist) => {
+    (globalThis as any).localStorage.setItem('gu-log-gist-id', 'gid');
+    (globalThis as any).fetch = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, status: 200 })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => gist });
+    const m = await import('../src/lib/gist-sync');
+
+    await expect(m.pullFromGist('tok')).rejects.toMatchObject({
+      name: 'ReaderSyncApiError',
+      code: 'READER_SYNC_INVALID_PAYLOAD',
+    });
+  });
+
+  it('pullFromGist returns null only when a valid files envelope lacks the tracker file', async () => {
+    (globalThis as any).localStorage.setItem('gu-log-gist-id', 'gid');
+    (globalThis as any).fetch = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, status: 200 })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ files: {} }) });
+    const m = await import('../src/lib/gist-sync');
+
+    await expect(m.pullFromGist('tok')).resolves.toBeNull();
+  });
+
+  it('pullFromGist rejects schema mismatch instead of treating it as an absent remote', async () => {
     (globalThis as any).localStorage.setItem('gu-log-gist-id', 'gid');
     const fetchMock = vi
       .fn()
@@ -407,7 +823,10 @@ describe('gist-sync', () => {
       });
     (globalThis as any).fetch = fetchMock;
     const m = await import('../src/lib/gist-sync');
-    expect(await m.pullFromGist('tok')).toBeNull();
+    await expect(m.pullFromGist('tok')).rejects.toMatchObject({
+      name: 'ReaderSyncApiError',
+      code: 'READER_SYNC_INVALID_PAYLOAD',
+    });
   });
 
   it('pushToGist throws localized error on 401', async () => {

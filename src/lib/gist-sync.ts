@@ -2,15 +2,10 @@ const GIST_DESCRIPTION = 'gu-log Reading Tracker (auto-synced)';
 const GIST_FILENAME = 'gu-log-reading-tracker.json';
 const GIST_ID_KEY = 'gu-log-gist-id';
 
-import type { ReadRecord, ReadStoreV2 } from './reading-tracker';
+import { importReadStore, parseReadStore } from './reading-tracker';
+import type { ReadRecord, ReadStoreV1, ReadStoreV2 } from './reading-tracker';
 
-export interface GistReadStoreV1 {
-  version: 1;
-  slugs: string[];
-  lastUpdated: string;
-}
-
-export type GistReadStore = GistReadStoreV1 | ReadStoreV2;
+export type GistReadStore = ReadStoreV1 | ReadStoreV2;
 
 function safeReauthorizeUrl(value: unknown, apiUrl: string): string | undefined {
   if (typeof value !== 'string' || !value) return undefined;
@@ -39,6 +34,10 @@ export class ReaderSyncApiError extends Error {
     this.code = code;
     this.reauthorizeUrl = reauthorizeUrl;
   }
+}
+
+function invalidPayloadError(): ReaderSyncApiError {
+  return new ReaderSyncApiError('同步資料格式不正確', 'READER_SYNC_INVALID_PAYLOAD');
 }
 
 export function getGuLogSessionToken(): string | null {
@@ -85,8 +84,25 @@ async function readerSyncApiError(
 export async function pullFromReaderSyncApi(apiUrl: string): Promise<GistReadStore | null> {
   const resp = await apiFetch(apiUrl);
   if (!resp.ok) throw await readerSyncApiError(resp, '拉取失敗', apiUrl);
-  const payload: { store?: GistReadStore } = await resp.json();
-  return payload.store ?? null;
+  let payload: unknown;
+  try {
+    payload = await resp.json();
+  } catch {
+    throw invalidPayloadError();
+  }
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    throw invalidPayloadError();
+  }
+  if (!Object.hasOwn(payload, 'store')) throw invalidPayloadError();
+  const store = (payload as { store?: unknown }).store;
+  if (store === null) return null;
+  const parsed = parseReadStore(store);
+  if (!parsed) throw invalidPayloadError();
+  return parsed;
+}
+
+export function importSyncStore(store: unknown): void {
+  if (!importReadStore(store)) throw invalidPayloadError();
 }
 
 export async function pushToReaderSyncApi(
@@ -219,21 +235,28 @@ export async function pullFromGist(token: string): Promise<GistReadStore | null>
   const gistId = await findOrCreateGist(token);
   const resp = await ghFetch(`https://api.github.com/gists/${gistId}`, token);
   if (!resp.ok) throw githubApiError(resp.status, '拉取失敗');
-  const gist: { files: Record<string, { content: string }> } = await resp.json();
-  const file = gist.files?.[GIST_FILENAME];
-  if (!file?.content) return null;
+  let gist: unknown;
   try {
-    const parsed = JSON.parse(file.content);
-    if (parsed.version === 1 && Array.isArray(parsed.slugs)) {
-      return parsed as GistReadStoreV1;
-    }
-    if (parsed.version === 2 && Array.isArray(parsed.slugs) && Array.isArray(parsed.records)) {
-      return parsed as ReadStoreV2;
-    }
+    gist = await resp.json();
   } catch {
-    // ignore
+    throw invalidPayloadError();
   }
-  return null;
+  if (!gist || typeof gist !== 'object' || Array.isArray(gist)) throw invalidPayloadError();
+  const files = (gist as { files?: unknown }).files;
+  if (!files || typeof files !== 'object' || Array.isArray(files)) throw invalidPayloadError();
+  if (!Object.hasOwn(files, GIST_FILENAME)) return null;
+  const file = (files as Record<string, unknown>)[GIST_FILENAME];
+  if (!file || typeof file !== 'object' || Array.isArray(file)) throw invalidPayloadError();
+  if (!Object.hasOwn(file, 'content')) throw invalidPayloadError();
+  const content = (file as { content?: unknown }).content;
+  if (typeof content !== 'string') throw invalidPayloadError();
+  try {
+    const parsed = parseReadStore(JSON.parse(content));
+    if (parsed) return parsed;
+  } catch {
+    // handled below
+  }
+  throw invalidPayloadError();
 }
 
 /** Merge per-article records — keep the record with the newest read timestamp. */
