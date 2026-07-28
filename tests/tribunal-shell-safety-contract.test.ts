@@ -27,12 +27,16 @@ describe('Tribunal shell safety contract', () => {
     expect(result.status, result.stdout + result.stderr).toBe(0);
   }, 35_000);
 
-  linuxIt('fails closed on runner and provenance infrastructure errors', () => {
-    const result = runShellTest(RUNNER_ERROR_GUARD, 90_000);
+  linuxIt(
+    'fails closed on runner and provenance infrastructure errors',
+    () => {
+      const result = runShellTest(RUNNER_ERROR_GUARD, 90_000);
 
-    expect(result.error, result.stdout + result.stderr).toBeUndefined();
-    expect(result.status, result.stdout + result.stderr).toBe(0);
-  }, 95_000);
+      expect(result.error, result.stdout + result.stderr).toBeUndefined();
+      expect(result.status, result.stdout + result.stderr).toBe(0);
+    },
+    95_000
+  );
 
   it('passes deployment readiness after the tracked-fixture runner releases its lock', () => {
     const result = runShellTest(DEPLOY_READINESS, 30_000);
