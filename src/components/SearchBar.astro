@@ -110,8 +110,7 @@ const t = i18n[lang];
 </div>
 
 <script>
-  import Fuse from 'fuse.js';
-  import type { FuseResultMatch, FuseResult } from 'fuse.js';
+  import type { default as Fuse, FuseResultMatch, FuseResult } from 'fuse.js';
   import { fuseOptions, type SearchEntry } from '../config/fuse-options';
 
   // Read config from data attributes (avoids define:vars which blocks module imports)
@@ -144,12 +143,15 @@ const t = i18n[lang];
   // Fetch locale-specific index on first keystroke (lazy)
   async function loadSearchIndex(session: number) {
     try {
-      const res = await fetch(`/search-index.${currentLang}.json`);
+      const [{ default: FuseConstructor }, res] = await Promise.all([
+        import('fuse.js'),
+        fetch(`/search-index.${currentLang}.json`),
+      ]);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const posts: SearchEntry[] = await res.json();
       if (session !== searchSession) return;
       searchIndex = posts;
-      fuse = new Fuse(searchIndex, fuseOptions);
+      fuse = new FuseConstructor(searchIndex, fuseOptions);
     } catch (e) {
       if (session !== searchSession) return;
       console.error('Failed to load search index:', e);
