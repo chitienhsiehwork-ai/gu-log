@@ -441,13 +441,13 @@ test.describe('Auth Callback', () => {
   for (const { label, callbackSuffix, token } of [
     {
       label: 'query token',
-      callbackSuffix: '?token=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJxdWVyeSJ9.query-storage-denied',
-      token: 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJxdWVyeSJ9.query-storage-denied',
+      callbackSuffix: '?token=query-storage-denied-token',
+      token: 'query-storage-denied-token',
     },
     {
       label: 'hash token',
-      callbackSuffix: '#token=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJoYXNoIn0.hash-storage-denied',
-      token: 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJoYXNoIn0.hash-storage-denied',
+      callbackSuffix: '#token=hash-storage-denied-token',
+      token: 'hash-storage-denied-token',
     },
   ]) {
     test(`GIVEN JWT storage is denied WHEN callback receives a ${label} THEN it fails closed after scrubbing the URL`, async ({
