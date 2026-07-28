@@ -18,7 +18,13 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Logging in...</title>
     <script is:inline>
-      const theme = localStorage.getItem('theme') || 'dark';
+      let theme = 'dark';
+      try {
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'light' || savedTheme === 'dark') theme = savedTheme;
+      } catch {
+        // Storage can be unavailable; dark is the safe first-paint fallback.
+      }
       document.documentElement.setAttribute('data-theme', theme);
     </script>
     <style>
@@ -122,6 +128,16 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
           }
         }
 
+        function showFailure(message) {
+          document.getElementById('status').textContent = 'Login failed.';
+          document.querySelector('.spinner').hidden = true;
+          document.title = 'Login failed';
+          const errorEl = document.getElementById('error');
+          errorEl.hidden = false;
+          errorEl.textContent = message;
+          document.getElementById('actions').hidden = false;
+        }
+
         let token = null;
         if (window.location.hash) {
           const hashParams = new URLSearchParams(window.location.hash.substring(1));
@@ -135,27 +151,39 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
 
         if (token) {
           window.history.replaceState(window.history.state, '', window.location.pathname);
-          localStorage.setItem(JWT_KEY, token);
+          try {
+            localStorage.setItem(JWT_KEY, token);
+          } catch {
+            try {
+              localStorage.removeItem(JWT_KEY);
+            } catch {
+              // Storage is fully unavailable; the error UI must remain terminal.
+            }
+            showFailure(
+              'Your login token could not be saved because site storage is unavailable. Enable site storage and try again.'
+            );
+            return;
+          }
           document.getElementById('status').textContent = 'Login successful! Redirecting...';
           document.querySelector('.spinner').hidden = true;
           document.title = 'Login successful';
 
           // Redirect back to the page user was on
-          const returnUrl = localStorage.getItem(RETURN_KEY);
-          localStorage.removeItem(RETURN_KEY);
+          let returnUrl = null;
+          try {
+            returnUrl = localStorage.getItem(RETURN_KEY);
+            localStorage.removeItem(RETURN_KEY);
+          } catch {
+            // Authentication succeeded; fall back home when return storage is unavailable.
+            returnUrl = null;
+          }
           const safeReturnUrl = getSafeReturnUrl(returnUrl);
 
           setTimeout(function () {
             window.location.replace(safeReturnUrl);
           }, 500);
         } else {
-          document.getElementById('status').textContent = 'Login failed.';
-          document.querySelector('.spinner').hidden = true;
-          document.title = 'Login failed';
-          const errorEl = document.getElementById('error');
-          errorEl.hidden = false;
-          errorEl.textContent = 'No token received. Choose an option below.';
-          document.getElementById('actions').hidden = false;
+          showFailure('No token received. Choose an option below.');
         }
       })();
     </script>
