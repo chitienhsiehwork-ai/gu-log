@@ -1599,7 +1599,10 @@ commit_progress() {
   local repo_dir="${TRIBUNAL_MAIN_REPO:-$ROOT_DIR}"
   (
     flock -x 10
-    cd "$repo_dir" || { tlog "WARN: commit_progress cd $repo_dir failed"; exit 0; }
+    cd "$repo_dir" || {
+      tlog "ERROR: commit_progress could not enter $repo_dir"
+      exit 70
+    }
 
     # Workers rewrite posts and write score frontmatter inside their isolated
     # worktree ($ROOT_DIR). Publish those target post artifacts into the main
@@ -1612,21 +1615,83 @@ commit_progress() {
       }
     fi
 
-    git add "$PROGRESS_FILE" 2>/dev/null || true
+    # The deployed runtime ledger is intentionally ignored and is not a commit
+    # candidate. Tracked legacy ledgers and non-ignored overrides must stage
+    # successfully so a Git failure cannot be mistaken for completed progress.
+    local progress_ignore_rc
+    progress_ignore_rc=0
+    git check-ignore -q -- "$PROGRESS_FILE" 2>> "$LOG_FILE" \
+      || progress_ignore_rc=$?
+    case "$progress_ignore_rc" in
+      0) ;;
+      1)
+        if ! git add -- "$PROGRESS_FILE" >> "$LOG_FILE" 2>&1; then
+          tlog "ERROR: failed to stage Tribunal progress path $PROGRESS_FILE"
+          exit 70
+        fi
+        ;;
+      *)
+        tlog "ERROR: could not inspect Tribunal progress path $PROGRESS_FILE"
+        exit 70
+        ;;
+    esac
+
     if [ -n "${POST_FILE:-}" ]; then
-      git add "src/content/posts/$POST_FILE" 2>/dev/null || true
-      git add "src/content/posts/en-$POST_FILE" 2>/dev/null || true
+      local post_path en_post_path en_lookup_rc stage_en_post
+      post_path="src/content/posts/$POST_FILE"
+      en_post_path="src/content/posts/en-$POST_FILE"
+      if ! git add -- "$post_path" >> "$LOG_FILE" 2>&1; then
+        tlog "ERROR: failed to stage Tribunal post artifact $post_path"
+        exit 70
+      fi
+
+      # The English sidecar is optional. If it exists or was tracked and is
+      # now deleted, stage it; a genuinely absent, untracked sidecar is a no-op.
+      stage_en_post=0
+      if [ -e "$en_post_path" ] || [ -L "$en_post_path" ]; then
+        stage_en_post=1
+      else
+        en_lookup_rc=0
+        git ls-files --error-unmatch -- "$en_post_path" >/dev/null 2>> "$LOG_FILE" \
+          || en_lookup_rc=$?
+        case "$en_lookup_rc" in
+          0) stage_en_post=1 ;;
+          1) ;;
+          *)
+            tlog "ERROR: could not inspect optional Tribunal post artifact $en_post_path"
+            exit 70
+            ;;
+        esac
+      fi
+      if [ "$stage_en_post" -eq 1 ] &&
+         ! git add -- "$en_post_path" >> "$LOG_FILE" 2>&1; then
+        tlog "ERROR: failed to stage Tribunal post artifact $en_post_path"
+        exit 70
+      fi
     fi
-    if git diff --cached --quiet; then
-      exit 0  # nothing to commit
-    fi
+
+    local staged_diff_rc
+    staged_diff_rc=0
+    git diff --cached --quiet || staged_diff_rc=$?
+    case "$staged_diff_rc" in
+      0) exit 0 ;; # nothing to commit
+      1) ;;
+      *)
+        tlog "ERROR: could not inspect staged Tribunal progress"
+        exit 70
+        ;;
+    esac
+
     if [[ "$msg" == *"all 4 stages PASS + final build"* ]]; then
       if ! bash "$SCRIPT_DIR/tribunal-assert-pass-artifacts.sh" "$repo_dir" "$POST_FILE" --staged >> "$LOG_FILE" 2>&1; then
         tlog "ERROR: Tribunal PASS artifact postcondition failed for $POST_FILE. Refusing progress-only PASS commit."
         exit 1
       fi
     fi
-    git commit -m "$msg" >> "$LOG_FILE" 2>&1 || exit 0
+    if ! git commit -m "$msg" >> "$LOG_FILE" 2>&1; then
+      tlog "ERROR: failed to commit Tribunal progress"
+      exit 70
+    fi
 
     if [ "${TRIBUNAL_ALLOW_PUSH:-0}" != "1" ]; then
       tlog "  TRIBUNAL_ALLOW_PUSH is not set; leaving Tribunal commit local (no push)."
