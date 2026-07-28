@@ -419,6 +419,33 @@ mark_article_runner_error() {
   ) 9>>"$RC_PROGRESS_LOCK"
 }
 
+ensure_article_runner_error_checkpoint() {
+  local article="$1" failed_stage="$2" model="$3" attempts="$4" reason="$5"
+  local existing_status existing_stage_status
+  existing_status="$(jq -r --arg a "$article" '.[$a].status // empty' "$PROGRESS_FILE")"
+  existing_stage_status="$(
+    jq -r --arg a "$article" --arg s "$failed_stage" \
+      '.[$a].stages[$s].status // empty' "$PROGRESS_FILE"
+  )"
+  if [ "$existing_status" != "RUNNER_ERROR" ] ||
+     [ "$existing_stage_status" != "runner_error" ]; then
+    if ! mark_article_runner_error \
+      "$article" "$failed_stage" "$model" "$attempts" "$reason"; then
+      tlog "  ERROR: failed to persist the fallback RUNNER_ERROR checkpoint."
+      return 1
+    fi
+  fi
+  if ! jq -e --arg a "$article" --arg s "$failed_stage" \
+    '.[$a].status == "RUNNER_ERROR"
+     and .[$a].stages[$s].status == "runner_error"' \
+    "$PROGRESS_FILE" >/dev/null; then
+    tlog "  ERROR: RUNNER_ERROR ledger postcondition failed."
+    return 1
+  fi
+  tlog "  RUNNER_ERROR is durable in $PROGRESS_FILE; article artifacts are intentionally not published."
+  return 0
+}
+
 mark_article_quota_suspended() {
   local article="$1" failed_stage="$2" model="$3" attempts="$4" reason="$5"
   (
@@ -528,16 +555,204 @@ cheap_validate_writer_rewrite() {
   return 0
 }
 
-revert_writer_rewrite_files() {
-  local post_file="$1"
-  local post_rel="src/content/posts/$post_file"
-  local en_rel="src/content/posts/en-$post_file"
-  git checkout -- "$post_rel" 2>/dev/null || true
-  if git ls-files --error-unmatch "$en_rel" >/dev/null 2>&1; then
-    git checkout -- "$en_rel" 2>/dev/null || true
-  elif [ -e "$en_rel" ]; then
-    rm -f -- "$en_rel"
+cheap_validate_writer_candidate() {
+  local candidate_dir="$1" post_file="$2" en_existed_before="$3"
+  local candidate_zh="$candidate_dir/$post_file"
+  local candidate_en="$candidate_dir/en-$post_file"
+  local validate_paths=("$candidate_zh")
+  if [ "$en_existed_before" = "1" ]; then
+    validate_paths+=("$candidate_en")
   fi
+
+  tlog "  Validating isolated writer candidate before canonical apply..."
+  if ! VALIDATE_PARTIAL_SCORES=1 \
+    node scripts/validate-posts.mjs "${validate_paths[@]}" \
+      >>"$LOG_FILE" 2>&1; then
+    tlog "  ERROR: validate-posts rejected the isolated writer candidate."
+    return 1
+  fi
+  return 0
+}
+
+discard_writer_rewrite_snapshot() {
+  local snapshot_token="$1"
+  if ! tribunal_post_pair_snapshot_discard "$snapshot_token"; then
+    tlog "  WARN: could not remove the successful writer rewrite snapshot."
+  fi
+}
+
+restore_writer_rewrite_snapshot() {
+  local post_path="$1"
+  local snapshot_token="$2"
+  local expected_candidate_token="$3"
+
+  if ! tribunal_post_pair_candidate_rollback \
+    "$post_path" "$snapshot_token" "$expected_candidate_token"; then
+    local durable_recovery_path
+    durable_recovery_path="$(
+      tribunal_post_pair_snapshot_persist_recovery "$snapshot_token" || true
+    )"
+    WRITER_TRANSACTION_RECOVERY_PATH="$durable_recovery_path"
+    if [ -n "$durable_recovery_path" ]; then
+      tlog "  ERROR: writer rewrite CAS rollback failed; canonical edit preserved; durable recovery token: $durable_recovery_path"
+    else
+      tlog "  ERROR: writer rewrite CAS rollback failed; canonical edit preserved; durable token persistence also failed."
+    fi
+    return 70
+  fi
+  discard_writer_rewrite_snapshot "$snapshot_token"
+  return 0
+}
+
+WRITER_TRANSACTION_SNAPSHOT_TOKEN=""
+WRITER_TRANSACTION_CANDIDATE_TOKEN=""
+WRITER_TRANSACTION_EN_EXISTED=0
+WRITER_TRANSACTION_RECOVERY_PATH=""
+WRITER_TRANSACTION_APPLY_UNCERTAIN=0
+
+# Run a Codex writer against private candidate files, never the canonical post
+# paths. The Codex subprocess gets a workspace-write sandbox rooted at its temp
+# workdir; the parent then reads stable candidate bytes and applies them only
+# if the canonical bilingual pair still exactly matches the captured baseline.
+run_writer_candidate_transaction() {
+  local post_path="$1"
+  local post_file="$2"
+  local stage="$3"
+  local attempt="$4"
+  local prompt_template="$5"
+  local writer_out="$6"
+  local quota_status_file="$7"
+  local snapshot_token snapshot_rc writer_work_dir writer_prompt writer_rc
+  local candidate_token candidate_capture_rc validation_work_dir apply_rc
+  local actual_provider_file actual_writer_provider actual_writer_model
+  local actual_writer_runner
+
+  WRITER_TRANSACTION_SNAPSHOT_TOKEN=""
+  WRITER_TRANSACTION_CANDIDATE_TOKEN=""
+  WRITER_TRANSACTION_EN_EXISTED=0
+  WRITER_TRANSACTION_RECOVERY_PATH=""
+  WRITER_TRANSACTION_APPLY_UNCERTAIN=0
+
+  if [ "$(tribunal_writer_mode)" != "codex" ]; then
+    tlog "  RUNNER ERROR: isolated writer transactions require GP_WRITER_MODE=codex."
+    return 70
+  fi
+  if [ -f "$ROOT_DIR/src/content/posts/en-$post_file" ]; then
+    WRITER_TRANSACTION_EN_EXISTED=1
+  fi
+
+  snapshot_rc=0
+  snapshot_token="$(tribunal_post_pair_snapshot_create "$post_path")" ||
+    snapshot_rc=$?
+  if [ "$snapshot_rc" -ne 0 ] || [ -z "$snapshot_token" ]; then
+    tlog "  RUNNER ERROR: could not snapshot the validated post state before isolated writer execution."
+    return 70
+  fi
+
+  writer_work_dir="$(tribunal_writer_work_dir)"
+  if ! tribunal_post_pair_candidate_materialize \
+    "$writer_work_dir" "$snapshot_token" >>"$writer_out" 2>&1; then
+    tlog "  RUNNER ERROR: could not materialize the private writer candidate."
+    discard_writer_rewrite_snapshot "$snapshot_token"
+    rm -rf "$writer_work_dir"
+    return 70
+  fi
+
+  writer_prompt="${prompt_template//TRIBUNAL_CANDIDATE_ZH_PATH/$writer_work_dir/$post_file}"
+  writer_prompt="${writer_prompt//TRIBUNAL_CANDIDATE_EN_PATH/$writer_work_dir/en-$post_file}"
+  actual_provider_file="$(mktemp)"
+  writer_rc=0
+  TRIBUNAL_QUOTA_STATUS_FILE="$quota_status_file" \
+    TRIBUNAL_ACTUAL_PROVIDER_FILE="$actual_provider_file" \
+    TRIBUNAL_WRITER_POST_FILE="$post_file" \
+    TRIBUNAL_WRITER_STAGE="$stage" \
+    TRIBUNAL_WRITER_ATTEMPT="$attempt" \
+    tribunal_writer_exec \
+      "$writer_work_dir" "tribunal-writer" "$writer_prompt" \
+      >>"$writer_out" 2>&1 || writer_rc=$?
+
+  if [ "$writer_rc" -ne 0 ]; then
+    discard_writer_rewrite_snapshot "$snapshot_token"
+    rm -rf "$writer_work_dir"
+    rm -f "$actual_provider_file"
+    return "$writer_rc"
+  fi
+  actual_writer_provider="$(
+    sed -n 's/^provider=//p' "$actual_provider_file" | head -1
+  )"
+  actual_writer_model="$(
+    sed -n 's/^model_id=//p' "$actual_provider_file" | head -1
+  )"
+  actual_writer_runner="$(
+    sed -n 's/^runner_label=//p' "$actual_provider_file" | head -1
+  )"
+  rm -f "$actual_provider_file"
+  if [ "$actual_writer_provider" != "codex" ] ||
+     [ -z "$actual_writer_model" ] ||
+     [ -z "$actual_writer_runner" ]; then
+    tlog "  RUNNER ERROR: tribunal-writer did not record complete Codex provider/model provenance."
+    discard_writer_rewrite_snapshot "$snapshot_token"
+    rm -rf "$writer_work_dir"
+    return 70
+  fi
+  tlog "  Actual writer provider: $actual_writer_provider (runtime model '$actual_writer_model', runner '$actual_writer_runner')"
+
+  candidate_capture_rc=0
+  candidate_token="$(
+    tribunal_post_pair_candidate_capture \
+      "$writer_work_dir" "$snapshot_token" 2>>"$writer_out"
+  )" || candidate_capture_rc=$?
+  rm -rf "$writer_work_dir"
+  if [ "$candidate_capture_rc" -ne 0 ] || [ -z "$candidate_token" ]; then
+    tlog "  ERROR: could not capture a stable isolated writer candidate."
+    discard_writer_rewrite_snapshot "$snapshot_token"
+    return 1
+  fi
+
+  # Validate and apply a parent-materialized copy of the captured bytes. Any
+  # setsid-escaped writer descendant only knows the now-removed writer path and
+  # cannot race this immutable parent handoff.
+  validation_work_dir="$(tribunal_writer_work_dir)"
+  if ! tribunal_post_pair_candidate_materialize \
+    "$validation_work_dir" "$candidate_token" >>"$writer_out" 2>&1; then
+    discard_writer_rewrite_snapshot "$snapshot_token"
+    rm -rf "$validation_work_dir"
+    return 70
+  fi
+  if ! cheap_validate_writer_candidate \
+    "$validation_work_dir" "$post_file" "$WRITER_TRANSACTION_EN_EXISTED"; then
+    discard_writer_rewrite_snapshot "$snapshot_token"
+    rm -rf "$validation_work_dir"
+    return 1
+  fi
+
+  apply_rc=0
+  WRITER_TRANSACTION_APPLY_UNCERTAIN=1
+  tribunal_post_pair_candidate_apply \
+    "$post_path" "$validation_work_dir" "$snapshot_token" \
+    >>"$writer_out" 2>&1 || apply_rc=$?
+  rm -rf "$validation_work_dir"
+  if [ "$apply_rc" -ne 0 ]; then
+    # The apply helper may have rejected a concurrent canonical edit before
+    # writing, or failed after a partial filesystem replacement. Never guess
+    # which state is authoritative and never overwrite it here. Persist the
+    # self-contained parent token for deterministic operator recovery.
+    WRITER_TRANSACTION_RECOVERY_PATH="$(
+      tribunal_post_pair_snapshot_persist_recovery "$snapshot_token" \
+        2>>"$writer_out" || true
+    )"
+    if [ -n "$WRITER_TRANSACTION_RECOVERY_PATH" ]; then
+      tlog "  RUNNER ERROR: candidate apply failed; durable recovery token: $WRITER_TRANSACTION_RECOVERY_PATH"
+    else
+      tlog "  RUNNER ERROR: candidate apply failed and durable recovery token persistence also failed."
+    fi
+    return 70
+  fi
+  WRITER_TRANSACTION_APPLY_UNCERTAIN=0
+
+  WRITER_TRANSACTION_SNAPSHOT_TOKEN="$snapshot_token"
+  WRITER_TRANSACTION_CANDIDATE_TOKEN="$candidate_token"
+  return 0
 }
 
 classify_build_failure() {
@@ -598,6 +813,7 @@ run_final_build_once() {
 repair_final_build_failure() {
   local post_file="$1" build_log="$2" repair_attempt="$3"
   local evidence writer_prompt writer_out writer_rc en_existed_before writer_quota_status_file
+  FINAL_BUILD_REPAIR_QUOTA_REASON=""
   evidence="$(tail -80 "$build_log" 2>/dev/null || true)"
   if [ -f "src/content/posts/en-$post_file" ]; then
     en_existed_before=1
@@ -612,19 +828,19 @@ You are the tribunal-writer for gu-log. All judge stages passed, but the final f
 ## Repo root
 $ROOT_DIR
 
-## Target post
-$ROOT_DIR/src/content/posts/$post_file
+## Writable zh-tw candidate
+TRIBUNAL_CANDIDATE_ZH_PATH
 
-## EN counterpart, if present
-$ROOT_DIR/src/content/posts/en-$post_file
+## Writable English candidate, if present
+TRIBUNAL_CANDIDATE_EN_PATH
 
 ## Build failure evidence (tail)
 $evidence
 
 ## Task
-1. Use absolute paths under the Repo root above; the isolated writer runner starts from a temp directory, not the repo root.
-2. Fix only content-actionable problems in $ROOT_DIR/src/content/posts/$post_file.
-3. Also update $ROOT_DIR/src/content/posts/en-$post_file if it exists and the same issue applies.
+1. The Repo root is read-only reference material. Never edit a path under it.
+2. Fix only content-actionable problems in TRIBUNAL_CANDIDATE_ZH_PATH.
+3. Also update TRIBUNAL_CANDIDATE_EN_PATH if it exists and the same issue applies.
 4. Inspect your diff before finishing. Do not run tribunal, judge agents, or any quota-burning model calls from inside this repair.
 5. Do not rewrite unrelated content and do not change stable frontmatter fields unless the build error specifically requires it.
 PROMPT
@@ -638,21 +854,15 @@ PROMPT
   writer_out="$(mktemp)"
   writer_quota_status_file="$(mktemp)"
   writer_rc=0
-  # Spawn from a temporary work-dir so the selected writer does not inherit
-  # unrelated repo-local instructions. Its job is to edit posts only.
-  local writer_work_dir
-  writer_work_dir="$(tribunal_llm_work_dir)"
-  TRIBUNAL_QUOTA_STATUS_FILE="$writer_quota_status_file" \
-    TRIBUNAL_WRITER_POST_FILE="$post_file" \
-    TRIBUNAL_WRITER_STAGE="finalBuild" \
-    TRIBUNAL_WRITER_ATTEMPT="$repair_attempt" \
-    tribunal_writer_exec "$writer_work_dir" "tribunal-writer" "$writer_prompt" > "$writer_out" 2>&1 || writer_rc=$?
-  rm -rf "$writer_work_dir"
+  run_writer_candidate_transaction \
+    "$ROOT_DIR/src/content/posts/$post_file" \
+    "$post_file" "finalBuild" "$repair_attempt" "$writer_prompt" \
+    "$writer_out" "$writer_quota_status_file" || writer_rc=$?
   if [ "$writer_rc" -eq 75 ]; then
     local writer_quota_reason
     writer_quota_reason="$(quota_status_summary "$writer_quota_status_file")"
     tlog "  QUOTA SUSPEND during final build repair writer: $writer_quota_reason"
-    mark_article_quota_suspended "$post_file" "finalBuild" "tribunal-writer" "$repair_attempt" "writer: $writer_quota_reason"
+    FINAL_BUILD_REPAIR_QUOTA_REASON="$writer_quota_reason"
     rm -f "$writer_out" "$writer_quota_status_file"
     return 75
   fi
@@ -660,25 +870,47 @@ PROMPT
     tlog "  WARN: final build repair writer exited with code $writer_rc"
     tail -10 "$writer_out" | while IFS= read -r line; do tlog "    $line"; done
     rm -f "$writer_out" "$writer_quota_status_file"
+    if [ "$writer_rc" -eq 70 ]; then
+      return 70
+    fi
     return 1
   fi
   rm -f "$writer_out" "$writer_quota_status_file"
 
-  cheap_validate_writer_rewrite "$post_file" "$en_existed_before"
+  if cheap_validate_writer_rewrite "$post_file" "$en_existed_before"; then
+    discard_writer_rewrite_snapshot "$WRITER_TRANSACTION_SNAPSHOT_TOKEN"
+    return 0
+  fi
+  if ! restore_writer_rewrite_snapshot \
+    "$ROOT_DIR/src/content/posts/$post_file" \
+    "$WRITER_TRANSACTION_SNAPSHOT_TOKEN" \
+    "$WRITER_TRANSACTION_CANDIDATE_TOKEN"; then
+    return 70
+  fi
+  return 1
 }
 
 run_final_build_gate() {
   local post_file="$1"
+  local post_path="$ROOT_DIR/src/content/posts/$post_file"
   local max_repairs=2
   local repair_attempt=0
   local build_log build_rc classification
+  local repair_snapshot_token repair_snapshot_rc repair_current_token
+  FINAL_BUILD_RUNNER_ERROR_REASON="rewrite_snapshot_or_restore_failed"
+  FINAL_BUILD_RUNNER_ERROR_ATTEMPT=0
   build_log="$(mktemp "${TMPDIR:-/tmp}/tribunal-final-build.XXXXXX")"
+  repair_snapshot_token=""
+  repair_current_token=""
 
   while true; do
     : > "$build_log"
     build_rc=0
     run_final_build_once "$build_log" || build_rc=$?
     if [ "$build_rc" -eq 0 ]; then
+      if [ -n "$repair_snapshot_token" ]; then
+        discard_writer_rewrite_snapshot "$repair_snapshot_token"
+      fi
       rm -f "$build_log"
       return 0
     fi
@@ -687,37 +919,173 @@ run_final_build_gate() {
     tlog "Final build failure classified as: $classification (rc=$build_rc)"
     if [ "$classification" = "operational" ]; then
       tlog "Final build failed due to likely operational/resource issue; not invoking writer repair."
-      revert_writer_rewrite_files "$post_file"
+      if [ -n "$repair_snapshot_token" ] &&
+         ! restore_writer_rewrite_snapshot \
+           "$post_path" "$repair_snapshot_token" "$repair_current_token"; then
+        FINAL_BUILD_RUNNER_ERROR_REASON="rewrite_restore_failed"
+        FINAL_BUILD_RUNNER_ERROR_ATTEMPT="$repair_attempt"
+        rm -f "$build_log"
+        return 70
+      fi
       rm -f "$build_log"
       return 1
     fi
     if [ "$classification" != "actionable" ]; then
       tlog "Final build failure is not clearly content-actionable; failing safely without PASS."
-      revert_writer_rewrite_files "$post_file"
+      if [ -n "$repair_snapshot_token" ] &&
+         ! restore_writer_rewrite_snapshot \
+           "$post_path" "$repair_snapshot_token" "$repair_current_token"; then
+        FINAL_BUILD_RUNNER_ERROR_REASON="rewrite_restore_failed"
+        FINAL_BUILD_RUNNER_ERROR_ATTEMPT="$repair_attempt"
+        rm -f "$build_log"
+        return 70
+      fi
       rm -f "$build_log"
       return 1
     fi
     if [ "$repair_attempt" -ge "$max_repairs" ]; then
       tlog "Final build repair attempts exhausted ($max_repairs); failing without PASS."
-      revert_writer_rewrite_files "$post_file"
+      if [ -n "$repair_snapshot_token" ] &&
+         ! restore_writer_rewrite_snapshot \
+           "$post_path" "$repair_snapshot_token" "$repair_current_token"; then
+        FINAL_BUILD_RUNNER_ERROR_REASON="rewrite_restore_failed"
+        FINAL_BUILD_RUNNER_ERROR_ATTEMPT="$repair_attempt"
+        rm -f "$build_log"
+        return 70
+      fi
       rm -f "$build_log"
       return 1
+    fi
+
+    if [ -z "$repair_snapshot_token" ]; then
+      repair_snapshot_rc=0
+      repair_snapshot_token="$(tribunal_post_pair_snapshot_create "$post_path")" ||
+        repair_snapshot_rc=$?
+      if [ "$repair_snapshot_rc" -ne 0 ] || [ -z "$repair_snapshot_token" ]; then
+        tlog "Final build repair snapshot creation failed; refusing writer repair."
+        FINAL_BUILD_RUNNER_ERROR_REASON="rewrite_snapshot_failed"
+        rm -f "$build_log"
+        return 70
+      fi
+      repair_current_token="$repair_snapshot_token"
     fi
 
     repair_attempt=$((repair_attempt + 1))
     local repair_rc=0
     repair_final_build_failure "$post_file" "$build_log" "$repair_attempt" || repair_rc=$?
     if [ "$repair_rc" -eq 75 ]; then
+      if ! restore_writer_rewrite_snapshot \
+        "$post_path" "$repair_snapshot_token" "$repair_current_token"; then
+        FINAL_BUILD_RUNNER_ERROR_REASON="rewrite_restore_failed"
+        FINAL_BUILD_RUNNER_ERROR_ATTEMPT="$repair_attempt"
+        rm -f "$build_log"
+        return 70
+      fi
+      if ! mark_article_quota_suspended \
+        "$post_file" "finalBuild" "tribunal-writer" "$repair_attempt" \
+        "writer: ${FINAL_BUILD_REPAIR_QUOTA_REASON:-quota exhausted}"; then
+        tlog "  RUNNER ERROR: failed to persist final-build quota suspension after restoring the post pair."
+        FINAL_BUILD_RUNNER_ERROR_REASON="quota_suspension_persistence_failed"
+        FINAL_BUILD_RUNNER_ERROR_ATTEMPT="$repair_attempt"
+        rm -f "$build_log"
+        return 70
+      fi
       rm -f "$build_log"
       return 75
     fi
+    if [ "$repair_rc" -eq 70 ]; then
+      FINAL_BUILD_RUNNER_ERROR_REASON="writer_candidate_transaction_failed"
+      FINAL_BUILD_RUNNER_ERROR_ATTEMPT="$repair_attempt"
+      if [ "${WRITER_TRANSACTION_APPLY_UNCERTAIN:-0}" = "0" ]; then
+        # This attempt failed before an uncertain canonical apply. Earlier
+        # repair attempts may still have changed the pair, so CAS-restore the
+        # one outer baseline only over the exact last known candidate.
+        if ! restore_writer_rewrite_snapshot \
+          "$post_path" "$repair_snapshot_token" "$repair_current_token"; then
+          FINAL_BUILD_RUNNER_ERROR_REASON="rewrite_restore_failed"
+        fi
+      fi
+      rm -f "$build_log"
+      return 70
+    fi
     if [ "$repair_rc" -ne 0 ]; then
       tlog "Final build repair attempt $repair_attempt failed cheap validation; failing without PASS."
-      revert_writer_rewrite_files "$post_file"
+      if ! restore_writer_rewrite_snapshot \
+        "$post_path" "$repair_snapshot_token" "$repair_current_token"; then
+        FINAL_BUILD_RUNNER_ERROR_REASON="rewrite_restore_failed"
+        FINAL_BUILD_RUNNER_ERROR_ATTEMPT="$repair_attempt"
+        rm -f "$build_log"
+        return 70
+      fi
       rm -f "$build_log"
       return 1
     fi
+    repair_current_token="$WRITER_TRANSACTION_CANDIDATE_TOKEN"
   done
+}
+
+# A PASS ledger is resumable only when its reader-visible score artifact still
+# exists in every current artifact (including a tracked English sidecar) and
+# matches the exact dimensions/score that earned the ledger PASS. Worker
+# bootstrap may reset/delete uncommitted artifacts while retaining the shared
+# runtime ledger; blindly skipping then would create a progress-only PASS that
+# the final artifact gate must reject much later.
+tracked_english_post_state() {
+  local post_file="$1"
+  local tracked_en="src/content/posts/en-$post_file"
+  local rc=0
+  git -C "$ROOT_DIR" ls-files --error-unmatch -- "$tracked_en" \
+    >/dev/null 2>&1 || rc=$?
+  case "$rc" in
+    0) return 0 ;;
+    1) return 1 ;;
+    *) return 70 ;;
+  esac
+}
+
+stage_pass_artifacts_present() {
+  local post_file="$1" stage_key="$2" fm_judge_key="$3"
+  if [ "$WRITE_FRONTMATTER" -ne 1 ] || [ -z "$fm_judge_key" ]; then
+    return 0
+  fi
+
+  local expected_score
+  expected_score="$(
+    jq -c --arg a "$post_file" --arg s "$stage_key" \
+      '.[$a].stages[$s].score // empty' "$PROGRESS_FILE"
+  )"
+  if [ -z "$expected_score" ] || [ "$expected_score" = "null" ]; then
+    return 1
+  fi
+
+  local post_path="$ROOT_DIR/src/content/posts/$post_file"
+  local en_path="$ROOT_DIR/src/content/posts/en-$post_file"
+  local artifact_path artifact_json tracked_en_rc
+  local -a artifact_paths=("$post_path")
+  tracked_en_rc=0
+  tracked_english_post_state "$post_file" || tracked_en_rc=$?
+  if [ "$tracked_en_rc" -eq 70 ]; then
+    return 1
+  fi
+  if [ "$tracked_en_rc" -eq 0 ] && [ ! -f "$en_path" ]; then
+    return 1
+  fi
+  if [ "$tracked_en_rc" -eq 0 ] || [ -f "$en_path" ]; then
+    artifact_paths+=("$en_path")
+  fi
+  for artifact_path in "${artifact_paths[@]}"; do
+    artifact_json="$(
+      node "$SCRIPT_DIR/frontmatter-scores.mjs" \
+        get "$artifact_path" "$fm_judge_key"
+    )"
+    if [ -z "$artifact_json" ] ||
+       ! jq -e --argjson expected "$expected_score" \
+         '.score == $expected.score and .dimensions == $expected.dimensions' \
+         <<<"$artifact_json" >/dev/null; then
+      return 1
+    fi
+  done
+  return 0
 }
 
 # ─── Pass Bar Checks (code is the rule) ───────────────────────────────────────
@@ -834,12 +1202,38 @@ run_stage() {
     return 70
   fi
 
+  # A tracked bilingual artifact cannot be repaired by writing a score to the
+  # remaining zh-tw file. Stop before invoking a judge so the old PASS cannot
+  # be silently replaced by another incomplete PASS.
+  if [ "$WRITE_FRONTMATTER" -eq 1 ] && [ -n "$fm_judge_key" ]; then
+    local tracked_en_rc=0
+    tracked_english_post_state "$post_file" || tracked_en_rc=$?
+    if [ "$tracked_en_rc" -eq 70 ]; then
+      tlog "  RUNNER ERROR: could not resolve tracked English artifact state."
+      mark_article_runner_error \
+        "$post_file" "$stage_key" "$runner_label" 0 \
+        "tracked_english_state_unavailable"
+      return 70
+    fi
+    if [ "$tracked_en_rc" -eq 0 ] &&
+       [ ! -f "$ROOT_DIR/src/content/posts/en-$post_file" ]; then
+      tlog "  RUNNER ERROR: tracked English artifact is missing; refusing a partial resume."
+      mark_article_runner_error \
+        "$post_file" "$stage_key" "$runner_label" 0 \
+        "tracked_english_artifact_missing"
+      return 70
+    fi
+  fi
+
   # ── Crash resume: skip already-passed stages ──
   local existing_status
   existing_status="$(get_stage_status "$post_file" "$stage_key")"
   if [ "$existing_status" = "pass" ]; then
-    tlog "  Stage '$label' already PASS (crash resume). Skipping."
-    return 0
+    if stage_pass_artifacts_present "$post_file" "$stage_key" "$fm_judge_key"; then
+      tlog "  Stage '$label' already PASS with matching frontmatter artifacts (crash resume). Skipping."
+      return 0
+    fi
+    tlog "  Stage '$label' ledger says PASS but frontmatter artifacts are missing or drifted; rerunning."
   fi
 
   tlog "=== Stage $label ($runner_label) | max_loops=$max_loops ==="
@@ -1089,6 +1483,7 @@ PROMPT
     tlog "  Invoking tribunal-writer for rewrite (timeout 900s)..."
 
     local writer_prompt writer_out writer_rc en_existed_before writer_quota_status_file
+    local rewrite_snapshot_token rewrite_candidate_token
     if [ -f "src/content/posts/en-$post_file" ]; then
       en_existed_before=1
     else
@@ -1100,11 +1495,11 @@ You are the tribunal-writer for gu-log. The $label judge reviewed this post and 
 ## Repo root
 $ROOT_DIR
 
-## Post to rewrite
-$ROOT_DIR/src/content/posts/$post_file
+## Writable zh-tw candidate
+TRIBUNAL_CANDIDATE_ZH_PATH
 
-## EN counterpart, if present
-$ROOT_DIR/src/content/posts/en-$post_file
+## Writable English candidate, if present
+TRIBUNAL_CANDIDATE_EN_PATH
 
 ## Judge Feedback (JSON)
 $score_json
@@ -1113,11 +1508,11 @@ $score_json
 $ssot_content
 
 ## Task
-1. Use absolute paths under the Repo root above; the isolated writer runner starts from a temp directory, not the repo root.
-2. Read $ROOT_DIR/src/content/posts/$post_file and $ROOT_DIR/GU-LOG_WRITER_PROMPT.md.
+1. The Repo root is read-only reference material. Never edit a path under it.
+2. Read TRIBUNAL_CANDIDATE_ZH_PATH and $ROOT_DIR/GU-LOG_WRITER_PROMPT.md.
 3. Read the judge feedback JSON above — identify every dimension that scored below 8.
-4. Rewrite the post to fix those specific failures. Write it back in-place.
-5. Also rewrite the EN counterpart at $ROOT_DIR/src/content/posts/en-$post_file if it exists and the same fix applies.
+4. Rewrite TRIBUNAL_CANDIDATE_ZH_PATH to fix those specific failures.
+5. Also rewrite TRIBUNAL_CANDIDATE_EN_PATH if it exists and the same fix applies.
 6. Inspect your diff before finishing. Do not run tribunal, judge agents, or any quota-burning model calls from inside this rewrite.
 
 Follow $ROOT_DIR/GU-LOG_WRITER_PROMPT.md and $ROOT_DIR/CONTRIBUTING.md frontmatter schema.
@@ -1132,28 +1527,44 @@ PROMPT
       rm -f "$score_tmp"
       return 1
     fi
+
     writer_out="$(mktemp)"
     writer_quota_status_file="$(mktemp)"
     writer_rc=0
-
-    # Writer reads the full post + judge feedback + scoring SSOT through the
-    # selected provider. Spawn from a temporary work-dir to isolate context.
-    local rewrite_work_dir
-    rewrite_work_dir="$(tribunal_llm_work_dir)"
-    TRIBUNAL_QUOTA_STATUS_FILE="$writer_quota_status_file" \
-      TRIBUNAL_WRITER_POST_FILE="$post_file" \
-      TRIBUNAL_WRITER_STAGE="$stage_key" \
-      TRIBUNAL_WRITER_ATTEMPT="$attempt" \
-      tribunal_writer_exec "$rewrite_work_dir" "tribunal-writer" "$writer_prompt" > "$writer_out" 2>&1 || writer_rc=$?
-    rm -rf "$rewrite_work_dir"
+    run_writer_candidate_transaction \
+      "$post_path" "$post_file" "$stage_key" "$attempt" "$writer_prompt" \
+      "$writer_out" "$writer_quota_status_file" || writer_rc=$?
 
     if [ "$writer_rc" -eq 75 ]; then
       local writer_quota_reason
       writer_quota_reason="$(quota_status_summary "$writer_quota_status_file")"
       tlog "  QUOTA SUSPEND during tribunal-writer rewrite: $writer_quota_reason"
-      mark_article_quota_suspended "$post_file" "$stage_key" "$runner_label" "$attempt" "writer: $writer_quota_reason"
+      if ! mark_article_quota_suspended \
+        "$post_file" "$stage_key" "$runner_label" "$attempt" \
+        "writer: $writer_quota_reason"; then
+        tlog "  RUNNER ERROR: failed to persist writer quota suspension after leaving canonical posts unchanged."
+        if ! mark_article_runner_error \
+          "$post_file" "$stage_key" "$runner_label" "$attempt" \
+          "quota_suspension_persistence_failed"; then
+          tlog "  ERROR: failed to persist RUNNER_ERROR after writer quota ledger failure."
+        fi
+        rm -f "$writer_out" "$writer_quota_status_file" "$score_tmp"
+        return 70
+      fi
       rm -f "$writer_out" "$writer_quota_status_file" "$score_tmp"
       return 75
+    fi
+
+    if [ "$writer_rc" -eq 70 ]; then
+      tlog "  RUNNER ERROR: isolated writer candidate transaction failed."
+      tail -15 "$writer_out" | while IFS= read -r line; do tlog "    $line"; done
+      if ! mark_article_runner_error \
+        "$post_file" "$stage_key" "$runner_label" "$attempt" \
+        "writer_candidate_transaction_failed"; then
+        tlog "  ERROR: failed to persist RUNNER_ERROR after candidate transaction failure."
+      fi
+      rm -f "$writer_out" "$writer_quota_status_file" "$score_tmp"
+      return 70
     fi
 
     if [ "$writer_rc" -ne 0 ]; then
@@ -1162,13 +1573,28 @@ PROMPT
       # rejection, a CLI error) is diagnosable instead of silently discarded.
       # Mirrors the final-build repair path's dump.
       tail -15 "$writer_out" | while IFS= read -r line; do tlog "    $line"; done
+      rm -f "$writer_out" "$writer_quota_status_file"
+      continue
     fi
+    rewrite_snapshot_token="$WRITER_TRANSACTION_SNAPSHOT_TOKEN"
+    rewrite_candidate_token="$WRITER_TRANSACTION_CANDIDATE_TOKEN"
     rm -f "$writer_out" "$writer_quota_status_file"
 
     # ── Cheap validation after rewrite (full build is deferred to final gate) ─
     if ! cheap_validate_writer_rewrite "$post_file" "$en_existed_before"; then
       tlog "  ERROR: cheap validation failed after writer rewrite. Reverting changes."
-      revert_writer_rewrite_files "$post_file"
+      if ! restore_writer_rewrite_snapshot \
+        "$post_path" "$rewrite_snapshot_token" "$rewrite_candidate_token"; then
+        tlog "  RUNNER ERROR: could not restore the pre-writer post state after validation failure."
+        if ! mark_article_runner_error \
+          "$post_file" "$stage_key" "$runner_label" "$attempt" "rewrite_restore_failed"; then
+          tlog "  ERROR: failed to persist RUNNER_ERROR after validation restore failure."
+        fi
+        rm -f "$score_tmp"
+        return 70
+      fi
+    else
+      discard_writer_rewrite_snapshot "$rewrite_snapshot_token"
     fi
 
     # Loop: re-score on next iteration
@@ -1316,7 +1742,10 @@ for stage_def in "${STAGES[@]}"; do
     exit 75
   elif [ "$stage_rc" -eq 70 ]; then
     tlog "=== RUNNER ERROR at stage: $label ==="
-    commit_progress "tribunal(${POST_FILE%.mdx}): RUNNER_ERROR at $label stage"
+    if ! ensure_article_runner_error_checkpoint \
+      "$POST_FILE" "$stage_key" "tribunal-runner" 0 "stage_runner_error"; then
+      tlog "  ERROR: stage RUNNER_ERROR has no verified durable ledger checkpoint."
+    fi
     exit 70
   elif [ "$stage_rc" -ne 0 ]; then
     tlog "=== FAILED at stage: $label ==="
@@ -1336,7 +1765,16 @@ fi
 tlog "=== ALL 4 STAGES PASSED: $POST_FILE ==="
 final_build_rc=0
 run_final_build_gate "$POST_FILE" || final_build_rc=$?
-if [ "$final_build_rc" -eq 75 ]; then
+if [ "$final_build_rc" -eq 70 ]; then
+  tlog "=== RUNNER ERROR at final build gate: $POST_FILE ==="
+  if ! ensure_article_runner_error_checkpoint \
+    "$POST_FILE" "finalBuild" "tribunal-writer" \
+    "${FINAL_BUILD_RUNNER_ERROR_ATTEMPT:-0}" \
+    "${FINAL_BUILD_RUNNER_ERROR_REASON:-rewrite_snapshot_or_restore_failed}"; then
+    tlog "  ERROR: final-build RUNNER_ERROR has no verified durable ledger checkpoint."
+  fi
+  exit 70
+elif [ "$final_build_rc" -eq 75 ]; then
   tlog "=== QUOTA SUSPENDED at final build gate: $POST_FILE ==="
   commit_progress "tribunal(${POST_FILE%.mdx}): QUOTA_SUSPENDED at final build gate"
   exit 75

@@ -11,6 +11,7 @@ AUDIT="$ROOT_DIR/scripts/tribunal-audit-pass-commits.sh"
 AUDIT_SERVICE="$ROOT_DIR/scripts/tribunal-pass-audit.service"
 AUDIT_TIMER="$ROOT_DIR/scripts/tribunal-pass-audit.timer"
 RUNBOOK="$ROOT_DIR/docs/tribunal-runbook.md"
+GITIGNORE="$ROOT_DIR/.gitignore"
 
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
@@ -503,6 +504,7 @@ deploy_section="$(
   sed -n '/^## Deploy$/,/^## Worker worktree gotcha$/p' "$RUNBOOK"
 )"
 for unit in \
+  tribunal-runtime.slice \
   tribunal-loop.service \
   tribunal-pass-audit.service \
   tribunal-pass-audit.timer; do
@@ -551,3 +553,103 @@ if [ "$reload_line" -ge "$smoke_line" ] || [ "$smoke_line" -ge "$timer_line" ]; 
   fail "runbook must reload, run a fresh smoke, then enable the daily timer"
 fi
 pass "runbook deploys and verifies the tracked PASS audit service and timer"
+
+drain_line="$(
+  grep -nF 'touch .score-loop/control/stop-graceful' <<<"$deploy_section" |
+    head -1 |
+    cut -d: -f1
+)"
+recovery_line="$(
+  grep -nF 'recover-pending src/content/posts' <<<"$deploy_section" |
+    head -1 |
+    cut -d: -f1
+)"
+materialize_line="$(
+  grep -nF 'git show origin/main:scripts/tribunal-post-pair-snapshot.py' \
+    <<<"$deploy_section" |
+    head -1 |
+    cut -d: -f1
+)"
+stash_line="$(
+  grep -nF 'git stash push -m "wip" --include-untracked' <<<"$deploy_section" |
+    head -1 |
+    cut -d: -f1
+)"
+fetch_line="$(
+  grep -nF 'git fetch origin main' <<<"$deploy_section" |
+    head -1 |
+    cut -d: -f1
+)"
+checkout_line="$(
+  grep -nF 'git checkout main && git merge --ff-only origin/main' \
+    <<<"$deploy_section" |
+    head -1 |
+    cut -d: -f1
+)"
+start_line="$(
+  grep -nF 'systemctl --user start tribunal-loop' <<<"$deploy_section" |
+    head -1 |
+    cut -d: -f1
+)"
+if [ -z "$drain_line" ] || [ -z "$fetch_line" ] ||
+   [ -z "$materialize_line" ] || [ -z "$recovery_line" ] ||
+   [ -z "$stash_line" ] || [ -z "$checkout_line" ] || [ -z "$start_line" ] ||
+   [ "$drain_line" -ge "$fetch_line" ] ||
+   [ "$fetch_line" -ge "$materialize_line" ] ||
+   [ "$materialize_line" -ge "$recovery_line" ] ||
+   [ "$recovery_line" -ge "$stash_line" ] ||
+   [ "$stash_line" -ge "$checkout_line" ] ||
+   [ "$checkout_line" -ge "$start_line" ]; then
+  fail "deploy must drain, fetch helper, recover, stash, sync, then restart in that order"
+fi
+grep -Fxq 'src/content/posts/.tribunal-pair-journal-*' "$GITIGNORE" ||
+  fail "bilingual apply journals are not protected from stash/add"
+grep -Fxq 'src/content/posts/.tribunal-restore-*' "$GITIGNORE" ||
+  fail "bilingual restore evidence is not protected from stash/add"
+if ! git -C "$ROOT_DIR" check-ignore -q \
+     src/content/posts/.tribunal-pair-journal-fixture.json ||
+   ! git -C "$ROOT_DIR" check-ignore -q \
+     src/content/posts/.tribunal-restore-zh-fixture; then
+  fail "bilingual crash evidence patterns are not effective git ignores"
+fi
+
+rollout_seed="$TMP/rollout-seed"
+rollout_origin="$TMP/rollout-origin.git"
+rollout_runtime="$TMP/rollout-runtime"
+git init -q "$rollout_seed"
+git -C "$rollout_seed" config user.email test@example.invalid
+git -C "$rollout_seed" config user.name "Tribunal Rollout Test"
+mkdir -p "$rollout_seed/scripts" "$rollout_seed/src/content/posts"
+printf 'old release\n' > "$rollout_seed/README.md"
+: > "$rollout_seed/src/content/posts/.gitkeep"
+git -C "$rollout_seed" add README.md src/content/posts/.gitkeep
+git -C "$rollout_seed" commit -qm "old release without recovery helper"
+old_release="$(git -C "$rollout_seed" rev-parse HEAD)"
+git init --bare -q "$rollout_origin"
+git -C "$rollout_seed" branch -M main
+git -C "$rollout_seed" remote add origin "$rollout_origin"
+git -C "$rollout_seed" push -q -u origin main
+git -C "$rollout_origin" symbolic-ref HEAD refs/heads/main
+cp "$ROOT_DIR/scripts/tribunal-post-pair-snapshot.py" \
+  "$rollout_seed/scripts/tribunal-post-pair-snapshot.py"
+git -C "$rollout_seed" add scripts/tribunal-post-pair-snapshot.py
+git -C "$rollout_seed" commit -qm "add recovery helper"
+git -C "$rollout_seed" push -q origin main
+git clone -q "$rollout_origin" "$rollout_runtime"
+git -C "$rollout_runtime" checkout -q --detach "$old_release"
+[ ! -e "$rollout_runtime/scripts/tribunal-post-pair-snapshot.py" ] ||
+  fail "old rollout fixture unexpectedly contains the recovery helper"
+git -C "$rollout_runtime" fetch -q origin main
+rollout_helper="$(mktemp "$TMP/rollout-recovery.XXXXXX.py")"
+git -C "$rollout_runtime" \
+  show origin/main:scripts/tribunal-post-pair-snapshot.py > "$rollout_helper"
+rollout_recovered="$(
+  python3 "$rollout_helper" recover-pending \
+    "$rollout_runtime/src/content/posts"
+)"
+[ "$rollout_recovered" = "0" ] ||
+  fail "fetched first-rollout helper returned invalid recovery count"
+[ ! -e "$rollout_runtime/scripts/tribunal-post-pair-snapshot.py" ] ||
+  fail "first-rollout recovery mutated the old checkout before stash/sync"
+pass "first rollout recovers from fetched main while the old checkout lacks the helper"
+pass "deploy preserves bilingual crash evidence across stash and checkout sync"

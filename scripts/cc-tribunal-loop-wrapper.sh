@@ -1,16 +1,12 @@
 #!/bin/bash
 # cc-tribunal-loop-wrapper.sh — Thin systemd wrapper for tribunal-quota-loop.sh
 #
-# Loads CLAUDE_CODE_OAUTH_TOKEN from ~/.cc-cron-token before exec-ing the
-# systemd-managed loop.
-#
 # Install: ExecStart in ~/.config/systemd/user/tribunal-loop.service
 
 set -euo pipefail
 export TZ=Asia/Taipei
 export PATH="$HOME/.local/bin:$HOME/bin:$PATH"
-export CLAUDE_CODE_OAUTH_TOKEN
-CLAUDE_CODE_OAUTH_TOKEN=$(head -1 "$HOME/.cc-cron-token")
+export GP_WRITER_MODE=codex
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 GU_LOG_DIR="${GU_LOG_DIR:-$(cd "$SCRIPT_DIR/.." && pwd)}"
@@ -37,7 +33,7 @@ if [ "${1:-}" = "--doctor" ]; then
     "$unit_environment" TRIBUNAL_STRICT_ROLE_PROVIDERS "${TRIBUNAL_STRICT_ROLE_PROVIDERS:-1}")"
   export GP_WRITER_MODE
   GP_WRITER_MODE="$(tribunal_effective_runtime_value \
-    "$unit_environment" GP_WRITER_MODE "${GP_WRITER_MODE:-cli}")"
+    "$unit_environment" GP_WRITER_MODE "${GP_WRITER_MODE:-codex}")"
   failed=0
   unit_enabled="$(systemctl --user is-enabled tribunal-loop 2>/dev/null || true)"
   [ -n "$unit_enabled" ] || unit_enabled="unknown"
@@ -54,6 +50,12 @@ if [ "${1:-}" = "--doctor" ]; then
   fi
   printf 'writer_mode=%s\n' "$(tribunal_writer_mode)"
   printf 'strict_role_providers=%s\n' "$TRIBUNAL_STRICT_ROLE_PROVIDERS"
+  if tribunal_validate_deployed_systemd_contract >/dev/null; then
+    printf 'systemd_containment=passed slice=tribunal-runtime.slice\n'
+  else
+    printf 'systemd_containment=failed slice=tribunal-runtime.slice\n'
+    failed=1
+  fi
   if ! tribunal_validate_role_provider_contract >/dev/null; then
     printf 'role_provider_contract=failed\n'
     failed=1

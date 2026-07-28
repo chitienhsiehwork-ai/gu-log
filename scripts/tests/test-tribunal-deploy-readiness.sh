@@ -19,28 +19,177 @@ mkdir -p "$TRIBUNAL_SHARED_LOCK_DIR"
 # shellcheck source=scripts/tribunal-helpers.sh
 source "$HELPERS"
 
-# A deployed loop must fail its writer preflight before any article claim. The
-# fixture deliberately runs only far enough to hit that boundary, so it also
-# works with macOS's Bash 3 despite the production loop requiring Bash 4.
+# A deployed loop must fail its Codex write canary before any article claim.
+# The fake Codex exits successfully but deliberately omits the canary file.
 preflight_root="$TMP/preflight-root"
-mkdir -p "$preflight_root/scripts"
+mkdir -p "$preflight_root/scripts" "$preflight_root/.codex/agents" \
+  "$preflight_root/bin" "$preflight_root/src/content/posts"
 cp "$ROOT_DIR/scripts/tribunal-quota-loop.sh" \
    "$ROOT_DIR/scripts/tribunal-helpers.sh" \
+   "$ROOT_DIR/scripts/tribunal-post-pair-snapshot.py" \
+   "$ROOT_DIR/scripts/tribunal-runtime.slice" \
    "$ROOT_DIR/scripts/tribunal-run-control.sh" \
    "$ROOT_DIR/scripts/tribunal-version.mjs" \
    "$preflight_root/scripts/"
+printf 'model = "gpt-writer-fixture"\n' \
+  > "$preflight_root/.codex/agents/tribunal-writer.toml"
+for role in vibe-opus-scorer fact-checker librarian fresh-eyes; do
+  printf 'model = "gpt-%s-fixture"\n' "$role" \
+    > "$preflight_root/.codex/agents/$role.toml"
+done
+cat > "$preflight_root/bin/codex" <<'NO_CANARY_CODEX'
+#!/usr/bin/env bash
+if [ "${1:-}" = "exec" ] && [ "${2:-}" = "--help" ]; then exit 0; fi
+exit 0
+NO_CANARY_CODEX
+cat > "$preflight_root/bin/systemctl" <<'FAKE_SYSTEMCTL'
+#!/usr/bin/env bash
+case "$*" in
+  "--user show tribunal-runtime.slice -p LoadState --value")
+    printf '%s\n' "${FAKE_SYSTEMD_LOAD_STATE:-loaded}" ;;
+  "--user show tribunal-runtime.slice -p ActiveState --value")
+    printf '%s\n' "${FAKE_SYSTEMD_ACTIVE_STATE:-active}" ;;
+  "--user show tribunal-runtime.slice -p MemoryMax --value")
+    printf '%s\n' "${FAKE_SYSTEMD_MEMORY_MAX:-4294967296}" ;;
+  "--user show tribunal-runtime.slice -p CPUQuotaPerSecUSec --value")
+    printf '%s\n' "${FAKE_SYSTEMD_CPU_QUOTA:-2s}" ;;
+  "--user show tribunal-runtime.slice -p TasksMax --value")
+    printf '%s\n' "${FAKE_SYSTEMD_TASKS_MAX:-1024}" ;;
+  "--user show tribunal-runtime.slice -p FragmentPath --value")
+    printf '%s\n' "$FAKE_SYSTEMD_FRAGMENT_PATH" ;;
+  "--user show tribunal-runtime.slice -p NeedDaemonReload --value")
+    printf '%s\n' "${FAKE_SYSTEMD_NEED_RELOAD:-no}" ;;
+  "--user show tribunal-runtime.slice -p DropInPaths --value")
+    printf '%s\n' "${FAKE_SYSTEMD_DROP_INS:-}" ;;
+  "--user show tribunal-loop.service -p Slice --value")
+    printf '%s\n' "${FAKE_SYSTEMD_SUPERVISOR_SLICE:-tribunal-runtime.slice}" ;;
+  *) exit 1 ;;
+esac
+FAKE_SYSTEMCTL
+cat > "$preflight_root/bin/systemd-run" <<'FAKE_SYSTEMD_RUN'
+#!/usr/bin/env bash
+if [ -n "${FAKE_SYSTEMD_RUN_CAPTURE:-}" ]; then
+  printf '%s\n' "$@" > "$FAKE_SYSTEMD_RUN_CAPTURE"
+fi
+while [ "$#" -gt 0 ]; do
+  if [ "$1" = "--" ]; then
+    shift
+    break
+  fi
+  shift
+done
+[ "$#" -gt 0 ] || exit 64
+exec "$@"
+FAKE_SYSTEMD_RUN
+chmod +x "$preflight_root/bin/codex" "$preflight_root/bin/systemctl" \
+  "$preflight_root/bin/systemd-run"
+cp "$ROOT_DIR/scripts/tribunal-runtime.slice" \
+  "$preflight_root/tribunal-runtime.slice"
+export FAKE_SYSTEMD_FRAGMENT_PATH="$preflight_root/tribunal-runtime.slice"
 set +e
+PATH="$preflight_root/bin:$PATH" \
 TRIBUNAL_DEPLOYED_MODE=1 \
 TRIBUNAL_STRICT_ROLE_PROVIDERS=0 \
-GP_WRITER_MODE=none \
+GP_WRITER_MODE=codex \
+bash "$preflight_root/scripts/tribunal-quota-loop.sh" --workers 1 \
+  >"$TMP/non-strict-preflight.out" 2>&1
+non_strict_preflight_rc=$?
+set -e
+[ "$non_strict_preflight_rc" -eq 78 ] ||
+  fail "deployed loop without strict routing should exit 78, got $non_strict_preflight_rc"
+grep -q 'TRIBUNAL_STRICT_ROLE_PROVIDERS=1 is required' \
+  "$TMP/non-strict-preflight.out" ||
+  fail "deployed non-strict rejection was not actionable"
+pass "deployed runtime rejects strict-off routing before any article claim"
+
+printf 'unknown journal fixture\n' \
+  > "$preflight_root/src/content/posts/.tribunal-pair-journal-invalid"
+set +e
+PATH="$preflight_root/bin:$PATH" \
+TRIBUNAL_DEPLOYED_MODE=1 \
+TRIBUNAL_STRICT_ROLE_PROVIDERS=1 \
+GP_WRITER_MODE=codex \
+bash "$preflight_root/scripts/tribunal-quota-loop.sh" --workers 1 \
+  >"$TMP/recovery-preflight.out" 2>&1
+recovery_preflight_rc=$?
+set -e
+rm -f "$preflight_root/src/content/posts/.tribunal-pair-journal-invalid"
+[ "$recovery_preflight_rc" -eq 78 ] ||
+  fail "deployed loop with unknown recovery evidence should exit 78, got $recovery_preflight_rc"
+grep -q 'deployed recovery failed before dispatch' \
+  "$TMP/recovery-preflight.out" ||
+  fail "deployed recovery failure was not actionable"
+pass "deployed runtime fails closed on unknown crash journal before dispatch"
+
+set +e
+PATH="$preflight_root/bin:$PATH" \
+TRIBUNAL_DEPLOYED_MODE=1 \
+TRIBUNAL_STRICT_ROLE_PROVIDERS=1 \
+GP_WRITER_MODE=codex \
+FAKE_SYSTEMD_LOAD_STATE=not-found \
+bash "$preflight_root/scripts/tribunal-quota-loop.sh" --workers 1 \
+  >"$TMP/systemd-preflight.out" 2>&1
+systemd_preflight_rc=$?
+set -e
+[ "$systemd_preflight_rc" -eq 78 ] ||
+  fail "deployed loop without its resource slice should exit 78, got $systemd_preflight_rc"
+grep -q 'systemd containment preflight failed before dispatch' \
+  "$TMP/systemd-preflight.out" ||
+  fail "deployed systemd containment failure was not actionable"
+pass "deployed runtime rejects missing cgroup containment before dispatch"
+
+assert_systemd_contract_rejects() {
+  local variable="$1" value="$2" expected="$3"
+  local output="$TMP/systemd-contract-${variable}.out"
+  (
+    export "$variable=$value"
+    PATH="$preflight_root/bin:$PATH"
+    if tribunal_validate_deployed_systemd_contract >"$output" 2>&1; then
+      exit 0
+    fi
+    exit 1
+  ) || {
+    grep -q "$expected" "$output" ||
+      fail "systemd contract drift $variable=$value lacked diagnostic: $expected"
+    return 0
+  }
+  fail "systemd contract accepted drift: $variable=$value"
+}
+
+assert_systemd_contract_rejects \
+  FAKE_SYSTEMD_MEMORY_MAX infinity 'effective limits are stale'
+assert_systemd_contract_rejects \
+  FAKE_SYSTEMD_CPU_QUOTA infinity 'effective limits are stale'
+assert_systemd_contract_rejects \
+  FAKE_SYSTEMD_TASKS_MAX infinity 'effective limits are stale'
+assert_systemd_contract_rejects \
+  FAKE_SYSTEMD_DROP_INS /tmp/unreviewed.conf 'unreviewed systemd drift'
+assert_systemd_contract_rejects \
+  FAKE_SYSTEMD_NEED_RELOAD yes 'unreviewed systemd drift'
+assert_systemd_contract_rejects \
+  FAKE_SYSTEMD_SUPERVISOR_SLICE app.slice 'outside tribunal-runtime.slice'
+printf 'stale slice fixture\n' > "$preflight_root/tribunal-runtime.slice"
+assert_systemd_contract_rejects \
+  FAKE_SYSTEMD_ACTIVE_STATE active 'fragment does not match the tracked unit'
+cp "$ROOT_DIR/scripts/tribunal-runtime.slice" \
+  "$preflight_root/tribunal-runtime.slice"
+pass "deployed runtime rejects stale limits, drop-ins, reload drift, wrong membership, and fragment drift"
+
+set +e
+PATH="$preflight_root/bin:$PATH" \
+TRIBUNAL_DEPLOYED_MODE=1 \
+TRIBUNAL_STRICT_ROLE_PROVIDERS=1 \
+GP_WRITER_MODE=codex \
+TRIBUNAL_WRITER_PREFLIGHT_TIMEOUT_SEC=2 \
+FAKE_SYSTEMD_RUN_CAPTURE="$TMP/preflight-systemd-run.argv" \
 bash "$preflight_root/scripts/tribunal-quota-loop.sh" --workers 1 \
   >"$TMP/preflight.out" 2>&1
 preflight_rc=$?
 set -e
 [ "$preflight_rc" -eq 78 ] ||
-  fail "deployed loop without CLI writer should fail 78 before dispatch, got $preflight_rc"
+  fail "deployed loop with failed Codex write canary should exit 78 before dispatch, got $preflight_rc"
 if [ -d "$preflight_root/.score-loop/claims" ] &&
-   find "$preflight_root/.score-loop/claims" -type f -print -quit | grep -q .; then
+   find "$preflight_root/.score-loop/claims" -mindepth 1 -print -quit | grep -q .; then
   fail "deployed preflight failure claimed an article"
 fi
 [ "$(jq -r '.status' "$preflight_root/.score-loop/state/writer-preflight.json")" = "failed" ] ||
@@ -49,33 +198,165 @@ grep -q 'before dispatch' "$TMP/preflight.out" ||
   fail "deployed preflight did not explain that failure occurred before dispatch"
 pass "deployed writer preflight fails closed before any article claim"
 
+for expected_arg in \
+  '--service-type=exec' \
+  '--expand-environment=no' \
+  '--slice=tribunal-runtime.slice' \
+  '--property=KillMode=control-group' \
+  '--property=SendSIGKILL=yes' \
+  '--property=OOMPolicy=kill' \
+  '--property=MemoryMax=2G' \
+  '--property=CPUQuota=200%' \
+  '--property=TasksMax=256'; do
+  grep -Fxq -- "$expected_arg" "$TMP/preflight-systemd-run.argv" ||
+    fail "deployed Codex transient service omitted: $expected_arg"
+done
+if grep -Fxq -- '--property=PartOf=tribunal-loop.service' \
+  "$TMP/preflight-systemd-run.argv"; then
+  fail "transient Codex service stop propagation would break article-boundary drain"
+fi
+grep -Eq '^--unit=gu-log-tribunal-codex-' \
+  "$TMP/preflight-systemd-run.argv" ||
+  fail "deployed Codex transient service did not use a parent-generated unit"
+pass "deployed Codex canary uses bounded transient-service cgroup containment"
+
+# A stale compatibility flag must not route a strict/deployed Codex quota
+# failure through Claude. The normal Codex quota handler owns suspend/retry.
+(
+  strict_quota_root="$TMP/strict-quota"
+  mkdir -p "$strict_quota_root"
+  tribunal_judge_provider() { printf 'codex\n'; }
+  tribunal_model_id_for_provider() { printf 'gpt-strict-fixture\n'; }
+  tribunal_codex_reasoning_effort() { printf 'xhigh\n'; }
+  tribunal_llm_exec() {
+    printf 'You have 0 weighted tokens left\n'
+    return 9
+  }
+  tribunal_claude_cmd() {
+    : > "$strict_quota_root/claude-called"
+    printf 'claude\n'
+  }
+  tribunal_quota_handle_file() {
+    printf '%s\n' "$1" > "$strict_quota_root/quota-provider"
+    return 89
+  }
+  set +e
+  TRIBUNAL_DEPLOYED_MODE=1 \
+  TRIBUNAL_STRICT_ROLE_PROVIDERS=1 \
+  GP_JUDGE_ALLOW_CLAUDE=1 \
+  TRIBUNAL_CODEX_IDLE_TIMEOUT_SEC=5 \
+  TRIBUNAL_CODEX_IDLE_POLL_SEC=0.1 \
+    tribunal_llm_exec_watchdog "$strict_quota_root" fact-checker \
+      "strict quota fixture" "$strict_quota_root/output"
+  strict_quota_rc=$?
+  set -e
+  [ "$strict_quota_rc" -eq 75 ]
+  [ ! -e "$strict_quota_root/claude-called" ]
+  [ "$(cat "$strict_quota_root/quota-provider")" = "codex" ]
+) || fail "strict/deployed quota handling honored stale Claude fallback state"
+pass "strict/deployed Codex quota errors ignore stale Claude fallback flags"
+
+# The deployed idle watchdog must stop the parent-generated transient service
+# identity. It must not fall back to a reusable numeric PGID after the Codex
+# process has crossed into its systemd cgroup.
+(
+  idle_root="$TMP/systemd-idle"
+  mkdir -p "$idle_root/.codex/agents" "$idle_root/bin" "$idle_root/work"
+  printf 'model = "gpt-idle-fixture"\n' \
+    > "$idle_root/.codex/agents/fact-checker.toml"
+  cat > "$idle_root/bin/codex" <<'CODEX'
+#!/usr/bin/env bash
+exit 0
+CODEX
+  cat > "$idle_root/bin/systemctl" <<'SYSTEMCTL'
+#!/usr/bin/env bash
+printf '%s\n' "$@" > "$SYSTEMCTL_CAPTURE"
+worker_pid="$(sed -n '1p' "$WATCHDOG_WORKER_PID_FILE")"
+kill -TERM "$worker_pid"
+SYSTEMCTL
+  chmod +x "$idle_root/bin/codex" "$idle_root/bin/systemctl"
+  # shellcheck source=scripts/tribunal-helpers.sh
+  source "$HELPERS"
+  REPO_ROOT="$idle_root"
+  tribunal_llm_exec() {
+    printf '%s\n' "$BASHPID" > "$WATCHDOG_WORKER_PID_FILE"
+    printf '%s\n' "${TRIBUNAL_CODEX_SYSTEMD_UNIT:-}" \
+      > "$WATCHDOG_UNIT_FILE"
+    while :; do sleep 1; done
+  }
+  tribunal_terminate_process_group() {
+    : > "$PGID_POISON"
+    return 1
+  }
+  set +e
+  PATH="$idle_root/bin:$PATH" \
+  TRIBUNAL_DEPLOYED_MODE=1 \
+  TRIBUNAL_STRICT_ROLE_PROVIDERS=1 \
+  TRIBUNAL_CODEX_IDLE_TIMEOUT_SEC=1 \
+  TRIBUNAL_CODEX_IDLE_POLL_SEC=0.1 \
+  WATCHDOG_WORKER_PID_FILE="$idle_root/worker.pid" \
+  WATCHDOG_UNIT_FILE="$idle_root/unit" \
+  SYSTEMCTL_CAPTURE="$idle_root/systemctl.argv" \
+  PGID_POISON="$idle_root/pgid-poison" \
+    tribunal_llm_exec_watchdog "$idle_root/work" fact-checker \
+      "idle fixture" "$idle_root/output"
+  idle_rc=$?
+  set -e
+  [ "$idle_rc" -eq 124 ]
+  unit="$(sed -n '1p' "$idle_root/unit")"
+  grep -qx -- '--user' "$idle_root/systemctl.argv"
+  grep -qx -- 'stop' "$idle_root/systemctl.argv"
+  grep -qx -- "$unit" "$idle_root/systemctl.argv"
+  [ ! -e "$idle_root/pgid-poison" ]
+) || fail "deployed idle watchdog did not stop its parent-held systemd unit"
+pass "deployed idle watchdog cancels by systemd unit identity, never PGID"
+
 # Monitor values are the unit's effective Environment= values. tribunal.env is
 # only a fallback, even when it contains conflicting values.
 (
   # shellcheck source=scripts/tribunal-helpers.sh
   source "$HELPERS"
-  unit='GP_WRITER_MODE=cli QUOTA_FLOOR=23 TRIBUNAL_STRICT_ROLE_PROVIDERS=1'
-  [ "$(tribunal_effective_runtime_value "$unit" GP_WRITER_MODE none)" = "cli" ]
+  unit='GP_WRITER_MODE=codex QUOTA_FLOOR=23 TRIBUNAL_STRICT_ROLE_PROVIDERS=1'
+  [ "$(tribunal_effective_runtime_value "$unit" GP_WRITER_MODE none)" = "codex" ]
   [ "$(tribunal_effective_runtime_value "$unit" QUOTA_FLOOR 10)" = "23" ]
   [ "$(tribunal_effective_runtime_value "$unit" TRIBUNAL_STRICT_ROLE_PROVIDERS 0)" = "1" ]
 ) || fail "effective unit environment did not override tribunal.env fallbacks"
 pass "monitor helper reports effective unit writer/floor/strict-role values"
 
 # Routine doctor reads the current service PID's successful startup state and
-# must not spend another Claude call. The explicit live probe is the only path
-# that invokes Claude, and it accepts exact OK only.
+# must not spend another Codex call. The explicit live probe is the only path
+# that reruns the bounded write canary.
 (
   doctor_home="$TMP/doctor-home"
   doctor_root="$TMP/doctor-root"
   doctor_bin="$TMP/doctor-bin"
-  mkdir -p "$doctor_home" "$doctor_root/.score-loop/state" "$doctor_bin"
-  printf 'fixture-token\n' > "$doctor_home/.cc-cron-token"
+  mkdir -p "$doctor_home" "$doctor_root/.score-loop/state" \
+    "$doctor_root/.codex/agents" "$doctor_root/scripts" "$doctor_bin"
+  cp "$ROOT_DIR/scripts/tribunal-runtime.slice" \
+    "$doctor_root/scripts/tribunal-runtime.slice"
+  cp "$ROOT_DIR/scripts/tribunal-runtime.slice" \
+    "$doctor_root/installed-tribunal-runtime.slice"
+  printf 'model = "gpt-writer-fixture"\n' \
+    > "$doctor_root/.codex/agents/tribunal-writer.toml"
+  for role in vibe-opus-scorer fact-checker librarian fresh-eyes; do
+    printf 'model = "gpt-%s-fixture"\n' "$role" \
+      > "$doctor_root/.codex/agents/$role.toml"
+  done
   cat > "$doctor_bin/systemctl" <<'SYSTEMCTL'
 #!/usr/bin/env bash
 case "$*" in
   *is-enabled*) printf 'enabled\n' ;;
-  *'Environment --value'*) printf 'GP_WRITER_MODE=cli TRIBUNAL_STRICT_ROLE_PROVIDERS=0\n' ;;
+  *'Environment --value'*) printf 'GP_WRITER_MODE=codex TRIBUNAL_STRICT_ROLE_PROVIDERS=1\n' ;;
   *'MainPID --value'*) printf '4242\n' ;;
+  *'tribunal-runtime.slice -p LoadState --value'*) printf 'loaded\n' ;;
+  *'tribunal-runtime.slice -p ActiveState --value'*) printf 'active\n' ;;
+  *'tribunal-runtime.slice -p MemoryMax --value'*) printf '4294967296\n' ;;
+  *'tribunal-runtime.slice -p CPUQuotaPerSecUSec --value'*) printf '2s\n' ;;
+  *'tribunal-runtime.slice -p TasksMax --value'*) printf '1024\n' ;;
+  *'tribunal-runtime.slice -p FragmentPath --value'*) printf '%s\n' "$DOCTOR_SLICE_FRAGMENT" ;;
+  *'tribunal-runtime.slice -p NeedDaemonReload --value'*) printf 'no\n' ;;
+  *'tribunal-runtime.slice -p DropInPaths --value'*) printf '\n' ;;
+  *'tribunal-loop.service -p Slice --value'*) printf 'tribunal-runtime.slice\n' ;;
   *) exit 1 ;;
 esac
 SYSTEMCTL
@@ -83,34 +364,43 @@ SYSTEMCTL
 #!/usr/bin/env bash
 printf 'yes\n'
 LOGINCTL
-  cat > "$doctor_bin/claude" <<'CLAUDE'
+  cat > "$doctor_bin/codex" <<'CODEX'
 #!/usr/bin/env bash
-: > "$FAKE_DOCTOR_CLAUDE_CALLED"
-cat >/dev/null
+if [ "${1:-}" = "exec" ] && [ "${2:-}" = "--help" ]; then exit 0; fi
+: > "$FAKE_DOCTOR_CODEX_CALLED"
+prompt="${!#}"
+path="$(printf '%s\n' "$prompt" | sed -n 's/^Canary path: //p')"
+token="$(printf '%s\n' "$prompt" | sed -n 's/^Canary token: //p')"
+[ -n "$path" ] && [ -n "$token" ] || exit 2
+printf '%s\n' "$token" > "$path"
 printf 'OK\n'
-CLAUDE
-  chmod +x "$doctor_bin/systemctl" "$doctor_bin/loginctl" "$doctor_bin/claude"
+CODEX
+  chmod +x "$doctor_bin/systemctl" "$doctor_bin/loginctl" "$doctor_bin/codex"
   cat > "$doctor_root/.score-loop/state/writer-preflight.json" <<'STATE'
-{"status":"passed","mode":"cli","detail":"OK","pid":4242,"updatedAt":"2026-07-24T00:00:00Z"}
+{"status":"passed","mode":"codex","detail":"OK","pid":4242,"updatedAt":"2026-07-24T00:00:00Z"}
 STATE
   HOME="$doctor_home" GU_LOG_DIR="$doctor_root" PATH="$doctor_bin:$PATH" \
-  FAKE_DOCTOR_CLAUDE_CALLED="$TMP/doctor-claude-called" \
+  DOCTOR_SLICE_FRAGMENT="$doctor_root/installed-tribunal-runtime.slice" \
+  FAKE_DOCTOR_CODEX_CALLED="$TMP/doctor-codex-called" \
     bash "$ROOT_DIR/scripts/cc-tribunal-loop-wrapper.sh" --doctor \
       >"$TMP/doctor-state.out"
   grep -q 'writer_preflight=passed source=state pid=4242' "$TMP/doctor-state.out"
-  [ ! -e "$TMP/doctor-claude-called" ]
+  grep -q 'systemd_containment=passed slice=tribunal-runtime.slice' \
+    "$TMP/doctor-state.out"
+  [ ! -e "$TMP/doctor-codex-called" ]
 
   HOME="$doctor_home" GU_LOG_DIR="$doctor_root" PATH="$doctor_bin:$PATH" \
-  FAKE_DOCTOR_CLAUDE_CALLED="$TMP/doctor-claude-called" \
+  DOCTOR_SLICE_FRAGMENT="$doctor_root/installed-tribunal-runtime.slice" \
+  FAKE_DOCTOR_CODEX_CALLED="$TMP/doctor-codex-called" \
   TRIBUNAL_WRITER_PREFLIGHT_TIMEOUT_SEC=2 \
     bash "$ROOT_DIR/scripts/cc-tribunal-loop-wrapper.sh" --doctor --live-probe \
       >"$TMP/doctor-live.out"
   grep -q 'writer_preflight=passed source=live result=OK' "$TMP/doctor-live.out"
-  [ -e "$TMP/doctor-claude-called" ]
+  [ -e "$TMP/doctor-codex-called" ]
 ) || fail "doctor cached/live writer preflight behavior is incorrect"
-pass "doctor reuses current PID state; only explicit live probe invokes Claude"
+pass "doctor reuses current PID state; only explicit live probe invokes the Codex write canary"
 
-# Judge and writer share tribunal_claude_exec. From an isolated workdir, both
+# Legacy compatibility judge and writer share tribunal_claude_exec. From an isolated workdir, both
 # must grant exactly REPO_ROOT through --add-dir and use the same noninteractive
 # narrow permission contract under root and non-root. --allowed-tools stays last,
 # prompts stay on stdin, and invalid roots fail before Claude.
@@ -174,32 +464,38 @@ FAKE_CLAUDE
 ) || fail "Claude judge/writer repo grant or noninteractive permission contract is unsafe"
 pass "Claude judge and writer use exact repo access and narrow noninteractive permissions"
 
-# Watchdog cancellation uses a dedicated POSIX session. A descendant that
-# ignores TERM must still die when the saved session receives KILL.
+# Watchdog cancellation uses a parent-created process group. A descendant that
+# ignores TERM must still die when the parent-held process group receives KILL.
 (
   session_root="$TMP/session-kill"
   mkdir -p "$session_root"
-  session_pid_file="$session_root/session.pid"
   child_pid_file="$session_root/child.pid"
-  TRIBUNAL_PROCESS_GROUP_FILE="$session_pid_file" \
-  TERM_CHILD_PID_FILE="$child_pid_file" \
-    tribunal_session_exec bash -c '
+  export TERM_CHILD_PID_FILE="$child_pid_file"
+  set -m
+  (
+    bash -c '
       trap "" TERM
       sh -c '"'"'trap "" TERM; echo "$$" > "$TERM_CHILD_PID_FILE"; while :; do sleep 1; done'"'"' &
       wait
-    ' >"$session_root/outer.log" 2>&1 &
+    '
+  ) >"$session_root/outer.log" 2>&1 &
   outer_pid=$!
   for _ in $(seq 1 50); do
-    [ -s "$session_pid_file" ] && [ -s "$child_pid_file" ] && break
+    [ -s "$child_pid_file" ] && break
     sleep 0.1
   done
-  if [ ! -s "$session_pid_file" ] || [ ! -s "$child_pid_file" ]; then
+  if [ ! -s "$child_pid_file" ]; then
     kill "$outer_pid" 2>/dev/null || true
     exit 1
   fi
   child_pid="$(cat "$child_pid_file")"
+  child_pgid="$(ps -o pgid= -p "$child_pid" 2>/dev/null | tr -d ' ')"
+  if [ "$child_pgid" != "$outer_pid" ]; then
+    kill "$outer_pid" 2>/dev/null || true
+    exit 1
+  fi
   TRIBUNAL_WATCHDOG_KILL_GRACE_SEC=0.2 \
-    tribunal_terminate_session "$session_pid_file" "$outer_pid"
+    tribunal_terminate_process_group "$outer_pid"
   wait "$outer_pid" 2>/dev/null || true
   for _ in $(seq 1 30); do
     kill -0 "$child_pid" 2>/dev/null || break
@@ -209,7 +505,7 @@ pass "Claude judge and writer use exact repo access and narrow noninteractive pe
     exit 1
   fi
 ) || fail "TERM-ignoring model descendant survived watchdog session cleanup"
-pass "watchdog kills a TERM-ignoring descendant from the saved process group"
+pass "watchdog kills a TERM-ignoring descendant using its parent-held process group"
 
 # Two near-simultaneous workers publish atomic completion markers only after
 # closing their distinct logs. Collection waits the exact PID named by each
@@ -304,29 +600,94 @@ pass "worker ID, exact exit code, flushed log, and cleanup stay paired"
 ) || fail "dead worker without marker hung or leaked/misattributed artifacts"
 pass "exit-137 worker without marker returns prompt deterministic infrastructure failure"
 
-# Strict Vibe routing must fail closed when Claude is missing even if Codex is
-# otherwise available.
+# Strict Vibe routing must use its Codex role model without requiring Claude.
 (
   strict_root="$TMP/strict"
-  mkdir -p "$strict_root/bin"
+  mkdir -p "$strict_root/bin" "$strict_root/.codex/agents"
+  printf 'model = "gpt-vibe-fixture"\n' \
+    > "$strict_root/.codex/agents/vibe-opus-scorer.toml"
   cat > "$strict_root/bin/codex" <<'FAKE_CODEX'
 #!/bin/sh
 if [ "${1:-}" = "exec" ] && [ "${2:-}" = "--help" ]; then exit 0; fi
 exit 0
 FAKE_CODEX
   chmod +x "$strict_root/bin/codex"
+  ln -s "$(command -v python3)" "$strict_root/bin/python3"
   # shellcheck source=scripts/tribunal-helpers.sh
   source "$HELPERS"
   [ "$(PATH="$strict_root/bin" tribunal_codex_cmd)" = "codex" ] || exit 1
   if PATH="$strict_root/bin" tribunal_claude_cmd >/dev/null 2>&1; then
     exit 1
   fi
-  if PATH="$strict_root/bin" TRIBUNAL_STRICT_ROLE_PROVIDERS=1 \
-    tribunal_judge_provider vibe-opus-scorer >/dev/null 2>&1; then
-    exit 1
-  fi
-) || fail "strict Vibe routing silently accepted a runtime without Claude"
-pass "strict Vibe routing fails closed when Claude is missing"
+  REPO_ROOT="$strict_root"
+  [ "$(PATH="$strict_root/bin" TRIBUNAL_STRICT_ROLE_PROVIDERS=1 \
+    tribunal_judge_provider vibe-opus-scorer)" = "codex" ]
+  [ "$(PATH="$strict_root/bin" TRIBUNAL_STRICT_ROLE_PROVIDERS=1 \
+    tribunal_llm_model_id vibe-opus-scorer)" = "gpt-vibe-fixture" ]
+) || fail "strict Vibe routing did not use Codex without Claude"
+pass "strict Vibe routing uses its Codex TOML model without Claude"
+
+# Judge and writer execution must bind one immutable model descriptor. Mutating
+# the role TOML after dispatch must not change either the model passed to the
+# executor or the provider/model/runner provenance recorded for that run.
+(
+  descriptor_root="$TMP/immutable-descriptor"
+  mkdir -p "$descriptor_root/.codex/agents" "$descriptor_root/bin" \
+    "$descriptor_root/work"
+  printf 'model = "gpt-writer-original"\n' \
+    > "$descriptor_root/.codex/agents/tribunal-writer.toml"
+  printf 'model = "gpt-judge-original"\n' \
+    > "$descriptor_root/.codex/agents/fact-checker.toml"
+  cat > "$descriptor_root/bin/codex" <<'FAKE_CODEX'
+#!/usr/bin/env bash
+exit 0
+FAKE_CODEX
+  chmod +x "$descriptor_root/bin/codex"
+  # shellcheck source=scripts/tribunal-helpers.sh
+  source "$HELPERS"
+  REPO_ROOT="$descriptor_root"
+
+  tribunal_writer_exec_raw() {
+    printf '%s\n' "${GP_CODEX_MODEL:-}" > "$descriptor_root/writer-model"
+    printf 'model = "gpt-writer-mutated"\n' \
+      > "$descriptor_root/.codex/agents/tribunal-writer.toml"
+    return 0
+  }
+  PATH="$descriptor_root/bin:$PATH" \
+  GP_WRITER_MODE=codex \
+  TRIBUNAL_CODEX_REASONING=xhigh \
+  TRIBUNAL_ACTUAL_PROVIDER_FILE="$descriptor_root/writer-provenance" \
+    tribunal_writer_exec "$descriptor_root/work" tribunal-writer \
+      "fixture writer prompt"
+  grep -qx 'gpt-writer-original' "$descriptor_root/writer-model"
+  grep -qx 'provider=codex' "$descriptor_root/writer-provenance"
+  grep -qx 'model_id=gpt-writer-original' \
+    "$descriptor_root/writer-provenance"
+  grep -qx 'runner_label=codex-gpt-writer-original-xhigh' \
+    "$descriptor_root/writer-provenance"
+
+  tribunal_llm_exec() {
+    printf '%s\n' "${GP_CODEX_MODEL:-}" > "$descriptor_root/judge-model"
+    printf 'model = "gpt-judge-mutated"\n' \
+      > "$descriptor_root/.codex/agents/fact-checker.toml"
+    return 0
+  }
+  PATH="$descriptor_root/bin:$PATH" \
+  TRIBUNAL_STRICT_ROLE_PROVIDERS=1 \
+  TRIBUNAL_CODEX_REASONING=xhigh \
+  TRIBUNAL_ACTUAL_PROVIDER_FILE="$descriptor_root/judge-provenance" \
+  TRIBUNAL_CODEX_IDLE_TIMEOUT_SEC=5 \
+  TRIBUNAL_CODEX_IDLE_POLL_SEC=0.1 \
+    tribunal_llm_exec_watchdog "$descriptor_root/work" fact-checker \
+      "fixture judge prompt" "$descriptor_root/judge-output"
+  grep -qx 'gpt-judge-original' "$descriptor_root/judge-model"
+  grep -qx 'provider=codex' "$descriptor_root/judge-provenance"
+  grep -qx 'model_id=gpt-judge-original' \
+    "$descriptor_root/judge-provenance"
+  grep -qx 'runner_label=codex-gpt-judge-original-xhigh' \
+    "$descriptor_root/judge-provenance"
+) || fail "judge/writer execution descriptor drifted after role TOML mutation"
+pass "judge/writer model and provenance share one immutable execution descriptor"
 
 # In CCC-compatible mode, Codex absence must execute the Claude judge and stamp
 # provider/model/runner provenance from the Claude role contract.
@@ -408,7 +769,7 @@ NOTIFIER
 ) || fail "alert dedupe/count/transition behavior is incorrect"
 pass "stall/EXHAUSTED/fallback/floor alerts execute with correct dedupe and counts"
 
-# A real tribunal fail→rewrite→pass cycle must reach the Claude CLI writer.
+# A real tribunal fail→rewrite→pass cycle must reach the isolated Codex writer.
 # The fake writer is a no-op; the existing valid fixture post passes cheap
 # validation, then the second fake judge result passes.
 writer_bin="$TMP/writer-bin"
@@ -425,7 +786,15 @@ fi
 if [ "${1:-}" = "exec" ]; then
   prompt="${!#}"
   score_path="$(printf '%s\n' "$prompt" | sed -n 's/^Write your JSON result to: //p' | tail -1)"
-  [ -n "$score_path" ] || exit 2
+  if [ -z "$score_path" ]; then
+    argv=" $* "
+    case "$argv" in
+      *" --sandbox workspace-write "*) ;;
+      *) exit 72 ;;
+    esac
+    printf '%s\n' "$*" >> "$FAKE_WRITER_CALLS"
+    exit 0
+  fi
   count=0
   [ ! -r "$FAKE_JUDGE_COUNT" ] || count="$(cat "$FAKE_JUDGE_COUNT")"
   count=$((count + 1))
@@ -444,19 +813,18 @@ JSON
 fi
 exit 1
 FAKE_JUDGE
-cat > "$writer_bin/claude" <<'FAKE_WRITER'
-#!/usr/bin/env bash
-printf '%s\n' "$*" >> "$FAKE_WRITER_CALLS"
-cat >/dev/null
-exit 0
-FAKE_WRITER
-chmod +x "$writer_bin/codex" "$writer_bin/claude"
+chmod +x "$writer_bin/codex"
 writer_progress="$TMP/writer-progress.json"
 printf '{}\n' > "$writer_progress"
+fixture_lock_dir="$ROOT_DIR/.score-loop/locks"
+mkdir -p "$fixture_lock_dir"
+chmod 700 "$fixture_lock_dir"
+exec 198>>"$fixture_lock_dir/tracked-gp-1-20260128-demo.lock"
+flock -x 198
 PATH="$writer_bin:$PATH" \
 FAKE_JUDGE_COUNT="$TMP/judge-count" \
 FAKE_WRITER_CALLS="$TMP/writer-calls" \
-GP_WRITER_MODE=cli \
+GP_WRITER_MODE=codex \
 TRIBUNAL_NO_COMMIT=1 \
 TRIBUNAL_SCORE_ONLY_PROGRESS_FILE="$writer_progress" \
 TRIBUNAL_CODEX_TIMEOUT_SEC=10 \
@@ -465,11 +833,12 @@ TRIBUNAL_CODEX_IDLE_POLL_SEC=1 \
 bash "$TRIBUNAL" --score-only --only-stage factChecker --allow-rewrite \
   gp-1-20260128-demo.mdx >"$TMP/writer.out" 2>&1 ||
   fail "real fail→writer→pass tribunal fixture failed"
+flock -u 198
 [ -e "$TRIBUNAL_ARTICLE_LOCK_DIR/tribunal-gp-1-20260128-demo.mdx.lock" ] ||
   fail "tribunal did not honor the isolated article lock directory"
-[ -s "$TMP/writer-calls" ] || fail "failing article never reached fake Claude writer"
-grep -q -- '--model' "$TMP/writer-calls" ||
-  fail "Claude writer call did not include its role model"
+[ -s "$TMP/writer-calls" ] || fail "failing article never reached fake Codex writer"
+grep -q -- '--sandbox workspace-write' "$TMP/writer-calls" ||
+  fail "Codex writer call did not use its isolated workspace sandbox"
 [ "$(cat "$TMP/judge-count")" = "2" ] ||
   fail "tribunal did not re-score after writer execution"
-pass "failing article reaches Claude writer and is re-scored to PASS"
+pass "failing article reaches isolated Codex writer and is re-scored to PASS"

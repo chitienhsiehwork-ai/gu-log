@@ -5,7 +5,10 @@
 # 3.2 at /bin/bash, so the shebang picks up whichever bash is on PATH
 # (typically Homebrew bash on Mac, system bash 5.x on Linux).
 #
-# Checks OpenAI/Codex quota via usage-monitor.sh and adapts processing speed.
+# In deployed mode, checks quota through the provider-specific CodexBar JSON
+# probe in tribunal-helpers.sh and adapts processing speed. The legacy combined
+# usage monitor remains available only behind the explicit non-deployed
+# --legacy-quota compatibility path.
 # Never burns below QUOTA_FLOOR% (human personal use reserve).
 #
 # Strategy: burn-rate controller.
@@ -77,6 +80,7 @@ QUOTA_HISTORY_FILE="$ROOT_DIR/.score-loop/state/quota-history.jsonl"
 QUOTA_CONTROLLER_STATE="$ROOT_DIR/.score-loop/state/quota-controller.json"
 WRITER_PREFLIGHT_STATE="$ROOT_DIR/.score-loop/state/writer-preflight.json"
 TRIBUNAL_EXHAUSTED_ALERT_THRESHOLD="${TRIBUNAL_EXHAUSTED_ALERT_THRESHOLD:-3}"
+UNKNOWN_QUOTA_READINGS="-1|-1|-1|-1|0|0|0"
 
 # ─── Args ─────────────────────────────────────────────────────────────────────
 while [ $# -gt 0 ]; do
@@ -117,6 +121,10 @@ if ! [[ "$CONTROLLER_RECHECK_SEC" =~ ^[1-9][0-9]*$ ]]; then
   echo "ERROR: CONTROLLER_RECHECK_SEC must be a positive integer (got: $CONTROLLER_RECHECK_SEC)" >&2
   exit 1
 fi
+if [ "${TRIBUNAL_DEPLOYED_MODE:-0}" = "1" ] && [ "$LEGACY_QUOTA" = true ]; then
+  echo "ERROR: deployed Tribunal cannot use --legacy-quota; provider-specific Codex quota is required" >&2
+  exit 78
+fi
 
 mkdir -p "$LOG_DIR" "$ROOT_DIR/.score-loop/state"
 
@@ -141,7 +149,38 @@ write_writer_preflight_state() {
 
 deployed_runtime_preflight() {
   [ "${TRIBUNAL_DEPLOYED_MODE:-0}" = "1" ] || return 0
-  local detail rc=0
+  local detail rc=0 recovered
+  if [ "${TRIBUNAL_STRICT_ROLE_PROVIDERS:-}" != "1" ]; then
+    detail="TRIBUNAL_STRICT_ROLE_PROVIDERS=1 is required in deployed mode"
+    write_writer_preflight_state "failed" "$detail" || true
+    tlog "ERROR: deployed preflight failed: $detail"
+    return 78
+  fi
+  recovered="$(
+    python3 "$SCRIPT_DIR/tribunal-post-pair-snapshot.py" \
+      recover-pending "$POSTS_DIR" 2>&1
+  )" || {
+    detail="pending bilingual writer transaction recovery failed: $recovered"
+    write_writer_preflight_state "failed" "$detail" || true
+    tlog "ERROR: deployed recovery failed before dispatch: $detail"
+    return 78
+  }
+  case "$recovered" in
+    ''|*[!0-9]*)
+      detail="pending bilingual writer transaction recovery returned invalid count: $recovered"
+      write_writer_preflight_state "failed" "$detail" || true
+      tlog "ERROR: deployed recovery failed before dispatch: $detail"
+      return 78
+      ;;
+  esac
+  if [ "$recovered" -gt 0 ]; then
+    tlog "Recovered $recovered pending bilingual writer transaction(s) before dispatch."
+  fi
+  if ! detail="$(tribunal_validate_deployed_systemd_contract 2>&1)"; then
+    write_writer_preflight_state "failed" "$detail" || true
+    tlog "ERROR: deployed systemd containment preflight failed before dispatch: $detail"
+    return 78
+  fi
   if ! tribunal_validate_role_provider_contract; then
     detail="role provider contract failed"
     write_writer_preflight_state "failed" "$detail" || true
@@ -204,6 +243,7 @@ AUTOSCALE_UP_SAMPLES=5
 AUTOSCALE_OOM_COOLDOWN_SEC=600
 AUTOSCALE_OOM_CAP=2
 AUTOSCALE_PER_WORKER_MB=400
+AUTOSCALE_RESOURCE_UNIT="${AUTOSCALE_RESOURCE_UNIT:-tribunal-runtime.slice}"
 AUTOSCALE_CONTROL_FILE="$ROOT_DIR/.score-loop/control/worker-limit"
 AUTOSCALE_STATE_FILE="$ROOT_DIR/.score-loop/state/autoscale.json"
 AUTOSCALE_LOW_MEM_STREAK=0
@@ -213,7 +253,7 @@ autoscale_memory_current() {
     echo "$AUTOSCALE_MOCK_MEMORY_CURRENT"
     return
   fi
-  systemctl --user show tribunal-loop -p MemoryCurrent --value 2>/dev/null \
+  systemctl --user show "$AUTOSCALE_RESOURCE_UNIT" -p MemoryCurrent --value 2>/dev/null \
     | grep -E '^[0-9]+$' | head -1
 }
 
@@ -222,7 +262,7 @@ autoscale_memory_max() {
     echo "$AUTOSCALE_MOCK_MEMORY_MAX"
     return
   fi
-  systemctl --user show tribunal-loop -p MemoryMax --value 2>/dev/null \
+  systemctl --user show "$AUTOSCALE_RESOURCE_UNIT" -p MemoryMax --value 2>/dev/null \
     | grep -E '^[0-9]+$' | head -1
 }
 
@@ -234,7 +274,7 @@ autoscale_recent_oom() {
     return
   fi
   command -v journalctl >/dev/null 2>&1 || return 1
-  journalctl --user -u tribunal-loop \
+  journalctl --user -u tribunal-loop -u "$AUTOSCALE_RESOURCE_UNIT" \
     --since "${AUTOSCALE_OOM_COOLDOWN_SEC} sec ago" \
     --no-pager 2>/dev/null | grep -q 'oom-kill'
 }
@@ -403,15 +443,23 @@ legacy_compute_tier_name() {
 }
 
 # ─── Quota: Closed-loop controller ───────────────────────────────────────────
-# Parses usage-monitor.sh --json output into dual-window quota readings.
-# Preferred provider is OpenAI/Codex:
-#   session_remaining_pct + session_reset_min   → 5hr bucket
-#   weekly_remaining_pct  + weekly_reset_hr     → weekly bucket
-# Claude parsing is retained only for --legacy-quota / historical dev fixtures.
+# Deployed mode consumes the bounded provider-specific CodexBar JSON probe and
+# its strict parser from tribunal-helpers.sh. Non-deployed compatibility keeps
+# the historical usage-monitor parser for local fixtures and legacy operation.
 # Outputs a single line of pipe-separated values:
 #   five_hr_pct|five_hr_resets_sec|seven_day_pct|seven_day_resets_sec|extra_used|extra_limit|extra_enabled
 # Returns exit code 1 on error.
 get_dual_quota_readings() {
+  if [ "${TRIBUNAL_DEPLOYED_MODE:-0}" = "1" ]; then
+    local codex_json codex_readings
+    codex_json="$(tribunal_quota_codexbar_json 2>/dev/null)" || return 1
+    [ -n "$codex_json" ] || return 1
+    codex_readings="$(tribunal_quota_parse_json "$codex_json" 2>/dev/null)" ||
+      return 1
+    printf '%s|0|0|0\n' "$codex_readings"
+    return 0
+  fi
+
   if [ ! -x "$USAGE_MONITOR" ]; then
     return 1
   fi
@@ -681,6 +729,26 @@ except:
 # Look for consecutive dispatch/complete events
 deltas = []
 prev_dispatch = None
+
+def active_quota_reading(entry):
+    active = []
+    for name, pct_key, reset_key in (
+        ('five_hour', 'five_hr_pct', 'five_hr_resets_sec'),
+        ('seven_day', 'seven_day_pct', 'seven_day_resets_sec'),
+    ):
+        pct = entry.get(pct_key)
+        reset = entry.get(reset_key)
+        if (
+            isinstance(pct, (int, float))
+            and isinstance(reset, (int, float))
+            and pct >= 0
+            and reset >= 0
+        ):
+            active.append((name, float(pct)))
+    if not active:
+        return (), None
+    return tuple(name for name, _ in active), min(pct for _, pct in active)
+
 for entry in lines:
     event = entry.get('event', '')
     workers = entry.get('recommended_workers', 1)
@@ -689,11 +757,14 @@ for entry in lines:
     elif event == 'complete' and prev_dispatch is not None:
         # Only use single-worker deltas
         if prev_dispatch.get('recommended_workers', 1) <= 1 and workers <= 1:
-            pre_pct = min(prev_dispatch.get('five_hr_pct', 100), prev_dispatch.get('seven_day_pct', 100))
-            post_pct = min(entry.get('five_hr_pct', 100), entry.get('seven_day_pct', 100))
-            delta = pre_pct - post_pct
-            if delta > 0:  # only positive deltas make sense
-                deltas.append(delta)
+            pre_mask, pre_pct = active_quota_reading(prev_dispatch)
+            post_mask, post_pct = active_quota_reading(entry)
+            # A window becoming available/unavailable changes the observable
+            # basis. Never turn that schema transition into fake article cost.
+            if pre_mask == post_mask and pre_pct is not None and post_pct is not None:
+                delta = pre_pct - post_pct
+                if delta > 0:  # only positive deltas make sense
+                    deltas.append(delta)
         prev_dispatch = None
 
 # Cold start: not enough data
@@ -783,6 +854,31 @@ worker_worktree() {
   fi
 }
 
+recover_worker_pending_transactions() {
+  local wt="$1" label="$2" recovered
+  [ -d "$wt" ] || return 0
+  if [ ! -d "$wt/src/content/posts" ]; then
+    tlog "ERROR: $label content directory is unavailable before crash recovery: $wt"
+    return 78
+  fi
+  recovered="$(
+    python3 "$SCRIPT_DIR/tribunal-post-pair-snapshot.py" \
+      recover-pending "$wt/src/content/posts" 2>&1
+  )" || {
+    tlog "ERROR: $label pending bilingual transaction recovery failed before worktree sync: $recovered"
+    return 78
+  }
+  case "$recovered" in
+    ''|*[!0-9]*)
+      tlog "ERROR: $label recovery returned invalid count before worktree sync: $recovered"
+      return 78
+      ;;
+  esac
+  if [ "$recovered" -gt 0 ]; then
+    tlog "Recovered $recovered pending bilingual transaction(s) in $label before worktree sync."
+  fi
+}
+
 # Ensure worker worktrees exist AND are synced with the supervisor's active
 # code ref. Called once at supervisor startup. Without the sync step, worker
 # worktrees keep whichever snapshot they had at `git worktree add` time, so
@@ -793,6 +889,7 @@ ensure_worktrees() {
   local id wt
   for id in "${WORKER_IDS[@]}"; do
     wt=$(worker_worktree "$id")
+    recover_worker_pending_transactions "$wt" "worker-$id" || exit $?
     if [ ! -d "$wt" ]; then
       tlog "Bootstrapping worker worktree: $wt"
       bash "$SCRIPT_DIR/tribunal-worker-bootstrap.sh" create "$id" >> "$LOG_FILE" 2>&1 || {
@@ -1046,6 +1143,9 @@ if [ -n "$CONTROLLER_ONCE" ]; then
 fi
 
 if [ "$DRY_RUN" = true ]; then
+  # Dry-run reports the same telemetry estimate production would load, but
+  # does not rotate or otherwise mutate the history file.
+  calibrate_article_cost
   tlog "=== Dry-run mode ==="
   mapfile -t ARTICLES < <(get_unscored_articles)
   tlog "Found ${#ARTICLES[@]} unscored articles:"
@@ -1079,7 +1179,11 @@ else
   tlog "  Workers: ${WORKERS}  Floor: ${QUOTA_FLOOR}%  BurstAllowance: ${QUOTA_BURST_ALLOWANCE}%"
   tlog "  MinCooldown: ${MIN_COOLDOWN}s  MaxCooldown: ${MAX_COOLDOWN}s"
 fi
-tlog "  Usage monitor: ${USAGE_MONITOR}"
+if [ "${TRIBUNAL_DEPLOYED_MODE:-0}" = "1" ] && [ "$LEGACY_QUOTA" != true ]; then
+  tlog "  Quota source: codexbar usage --provider codex --source cli --format json --pretty"
+else
+  tlog "  Usage monitor (compatibility): ${USAGE_MONITOR}"
+fi
 ensure_worktrees
 rc_gc_stale_claims
 rc_write_state "running" "startup"
@@ -1186,7 +1290,8 @@ while true; do
     IFS='|' read -r CONTROLLER_COOLDOWN CONTROLLER_WORKERS CONTROLLER_BINDING CONTROLLER_MODE <<< "$tick_result"
 
     # Grab raw readings for history/state
-    readings_raw=$(get_dual_quota_readings 2>/dev/null) || readings_raw="0|-1|0|-1|0|0|0"
+    readings_raw=$(get_dual_quota_readings 2>/dev/null) ||
+      readings_raw="$UNKNOWN_QUOTA_READINGS"
     IFS='|' read -r five_pct_raw five_reset_raw seven_pct_raw seven_reset_raw extra_u_raw extra_l_raw extra_e_raw <<< "$readings_raw"
 
     tlog "CONTROLLER: cooldown=${CONTROLLER_COOLDOWN}s workers=${CONTROLLER_WORKERS} binding=${CONTROLLER_BINDING} mode=${CONTROLLER_MODE} 5hr=${five_pct_raw}% 7day=${seven_pct_raw}% cost_telemetry=${ARTICLE_COST_PCT}%"
@@ -1217,15 +1322,15 @@ while true; do
       continue
     fi
 
-    # Handle fallback (usage-monitor error)
+    # Handle fallback (provider-specific CodexBar JSON unavailable or invalid).
     if [ "$CONTROLLER_MODE" = "fallback" ]; then
       if (( IN_FLIGHT == 0 )); then
-        tlog "Controller fallback mode; sleeping ${CONTROLLER_COOLDOWN}s (interruptible)."
-        rc_write_state "fallback" "cooldown=${CONTROLLER_COOLDOWN}s"
+        tlog "Controller fallback: provider-specific CodexBar JSON unavailable, timed out, or invalid; sleeping ${CONTROLLER_COOLDOWN}s (interruptible)."
+        rc_write_state "fallback" "CodexBar Codex JSON unavailable/timeout/invalid cooldown=${CONTROLLER_COOLDOWN}s"
         rc_interruptible_sleep "$CONTROLLER_COOLDOWN" || true
         continue
       fi
-      tlog "Controller fallback; waiting for a worker to finish before re-checking."
+      tlog "Controller fallback: provider-specific CodexBar JSON unavailable, timed out, or invalid; waiting for a worker to finish before re-checking."
       wait_any_worker
       continue
     fi
@@ -1270,7 +1375,8 @@ while true; do
       rc_write_state "pacing" "dispatching worker-$free_id article=$article"
       # Log dispatch event for calibration
       if [ "$LEGACY_QUOTA" != true ]; then
-        d_readings=$(get_dual_quota_readings 2>/dev/null) || d_readings="0|-1|0|-1|0|0|0"
+        d_readings=$(get_dual_quota_readings 2>/dev/null) ||
+          d_readings="$UNKNOWN_QUOTA_READINGS"
         IFS='|' read -r d5 dr5 d7 dr7 deu del dee <<< "$d_readings"
         quota_history_append "dispatch" "$d5" "$dr5" "$d7" "$dr7" "$deu" "$del" \
           "${CONTROLLER_COOLDOWN:-10}" "${CONTROLLER_WORKERS:-1}" "${CONTROLLER_BINDING:-none}" \
@@ -1297,7 +1403,8 @@ while true; do
 
   # Log completion event for calibration (after worker finishes)
   if [ "$LEGACY_QUOTA" != true ]; then
-    c_readings=$(get_dual_quota_readings 2>/dev/null) || c_readings="0|-1|0|-1|0|0|0"
+    c_readings=$(get_dual_quota_readings 2>/dev/null) ||
+      c_readings="$UNKNOWN_QUOTA_READINGS"
     IFS='|' read -r c5 cr5 c7 cr7 ceu cel cee <<< "$c_readings"
     quota_history_append "complete" "$c5" "$cr5" "$c7" "$cr7" "$ceu" "$cel" \
       "${CONTROLLER_COOLDOWN:-10}" "${CONTROLLER_WORKERS:-1}" "${CONTROLLER_BINDING:-none}" \

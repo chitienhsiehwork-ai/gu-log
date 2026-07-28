@@ -1,10 +1,4 @@
-# tribunal-24-7-operations Specification
-
-## Purpose
-
-定義 gu-log Tribunal 長時間部署的 writer、重啟、告警、監控與 burst 操作契約。
-
-## Requirements
+## ADDED Requirements
 
 ### Requirement: 部署版額度路徑 SHALL 使用限定 Codex 供應端的 JSON
 
@@ -37,6 +31,8 @@
 - **THEN** 部署版執行環境 SHALL 封閉失敗或進入既有可觀測的額度備援
 - **AND** SHALL 輸出可採取行動的 log 或警報
 - **AND** SHALL NOT 從 Claude 或合併供應端指令取得替代讀值
+
+## MODIFIED Requirements
 
 ### Requirement: 長時間執行的部署版環境 SHALL 啟用改寫
 
@@ -78,6 +74,8 @@
 - **THEN** 互動式 `subagent`、舊版 `cli` 或 CCC 供應端備援 MAY 維持可用
 - **AND** 這些相容路徑 SHALL NOT 滿足或繞過部署版 Codex 寫入 canary 合約
 
+## ADDED Requirements
+
 ### Requirement: 部署版雙語改寫 SHALL 以 crash-atomic 方式復原
 
 部署版雙語候選套用 SHALL 在第一次正式語言檔交換前，保存並 fsync 一份
@@ -111,50 +109,3 @@ worker worktree 的待處理 journal。復原 SHALL 可重入且有界；未知�
 - **WHEN** 待處理 journal 是 symlink／FIFO／特殊檔、目錄掃描超出設定上限，或 journal 擁有的 identity 不符合已知 baseline／候選狀態
 - **THEN** 復原 SHALL 在同步或派送前封閉失敗
 - **AND** SHALL 保留每個未知 journal／暫存／正式 artifact 供檢查
-
-### Requirement: The runtime SHALL survive a host reboot
-
-The deployed runtime SHALL be configured to restart automatically after a host reboot.
-
-#### Scenario: Daemon returns after reboot
-
-- **WHEN** the Tribunal VM host reboots
-- **THEN** the tribunal daemon SHALL start again without manual intervention
-- **AND** the deploy documentation SHALL state the required `systemctl --user enable` + `loginctl enable-linger` steps
-
-### Requirement: Operational failures SHALL reach the operator on the deploy host
-
-Abnormal runtime states SHALL be delivered to a channel the operator actually receives on the Linux deploy host. `TRIBUNAL_NOTIFIER`, when configured, SHALL be an executable path invoked directly with the complete alert message as one argument; the runtime SHALL NOT evaluate it as shell text. A macOS-only notification SHALL NOT be the sole alert path.
-
-#### Scenario: Stall or EXHAUSTED or fallback alerts the operator
-
-- **WHEN** the daemon stalls, hits an EXHAUSTED spike, or enters `fallback`/`floor_stop`
-- **THEN** an alert SHALL be sent via a host-appropriate channel (e.g. Telegram / host notifier)
-- **AND** where no channel is configured it SHALL at least record an observable log line, never silently no-op
-
-#### Scenario: Notifier message cannot become shell code
-
-- **WHEN** `TRIBUNAL_NOTIFIER` is configured and an alert message contains spaces, quotes, substitutions, or shell metacharacters
-- **THEN** the runtime SHALL execute the notifier path directly with the unchanged message as one argument
-- **AND** SHALL NOT use `eval`, `sh -c`, or equivalent shell interpretation
-
-### Requirement: The monitoring tool SHALL report the live controller state
-
-The monitoring tool SHALL parse the current controller output (`quota-controller.json`, `CONTROLLER:` log lines, the configured floor) rather than a retired format. It SHALL also report writer preflight, systemd unit enablement, and user linger state.
-
-#### Scenario: Monitor shows real quota/mode
-
-- **WHEN** an operator runs the tribunal monitor against the live daemon
-- **THEN** it SHALL show the current controller `mode` and quota reading
-- **AND** SHALL show the configured floor, writer mode/preflight, unit enabled state, and linger state
-- **AND** SHALL NOT report blanks because it is matching a removed `Tier …% remaining` format or a stale 3% floor (the real default floor is 10%)
-
-### Requirement: Burst spend SHALL be operator-configurable
-
-The runtime SHALL let an operator increase burn rate to drain a large quota balance before a refresh deadline, with the limits documented.
-
-#### Scenario: Operator raises burn rate
-
-- **WHEN** an operator wants to spend a large balance before refresh
-- **THEN** raising `--workers`, lowering `QUOTA_FLOOR`, raising `QUOTA_BURST_ALLOWANCE`, and lowering `MIN_COOLDOWN` SHALL increase throughput
-- **AND** the docs SHALL state that the cgroup autoscaler can cap workers at `AUTOSCALE_OOM_CAP` under memory pressure and that the controller paces Codex/GPT quota only, not Claude

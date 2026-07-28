@@ -4,13 +4,14 @@ After=network-online.target
 
 [Service]
 Type=simple
-# Local-only deployment config provides GU_LOG_DIR and USAGE_MONITOR. systemd
-# `$$` passes a literal `$` to bash so values expand only at runtime.
+Slice=tribunal-runtime.slice
+# Local-only deployment config provides GU_LOG_DIR. systemd `$$` passes a
+# literal `$` to bash so values expand only at runtime.
 EnvironmentFile=%h/.config/gu-log/tribunal.env
 Environment=TRIBUNAL_DEPLOYED_MODE=1
 Environment=TRIBUNAL_STRICT_ROLE_PROVIDERS=1
-Environment=GP_WRITER_MODE=cli
-ExecStart=/bin/bash -c ': "$${GU_LOG_DIR:?Missing GU_LOG_DIR in tribunal.env}"; : "$${USAGE_MONITOR:?Missing USAGE_MONITOR in tribunal.env}"; test -x "$$USAGE_MONITOR" || { echo "USAGE_MONITOR is not executable: $$USAGE_MONITOR" >&2; exit 78; }; cd "$$GU_LOG_DIR" && exec bash scripts/cc-tribunal-loop-wrapper.sh --workers 1'
+Environment=GP_WRITER_MODE=codex
+ExecStart=/bin/bash -c ': "$${GU_LOG_DIR:?Missing GU_LOG_DIR in tribunal.env}"; cd "$$GU_LOG_DIR" && exec bash scripts/cc-tribunal-loop-wrapper.sh --workers 1'
 Restart=on-failure
 RestartSec=60
 Environment=TZ=Asia/Taipei
@@ -26,8 +27,10 @@ KillSignal=SIGTERM
 # write. Allow up to 60min before SIGKILL.
 TimeoutStopSec=3600
 
-# Resource limits — sized for --workers 1 (overnight / light mode).
-# A single worker peaks ~400MB (tribunal-writer + pnpm build + claude CLI),
+# Resource limits — sized for --workers 1 (overnight / light mode). This unit
+# and every transient Codex service also share tribunal-runtime.slice, so the
+# autoscaler and aggregate ceiling include sibling Codex cgroups.
+# A single worker peaks ~400MB (tribunal-writer + pnpm build + Codex CLI),
 # supervisor + shared state ~200MB. 4G cap kept (rather than shrinking to
 # 1G or 2G) so scaling back up to 2–5 workers via `--workers N` only needs
 # the ExecStart line flipped, no unit-level retuning. CPUQuota 200% also

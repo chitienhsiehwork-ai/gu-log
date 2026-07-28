@@ -141,6 +141,13 @@ tribunal_llm_work_dir() {
   echo "$d"
 }
 
+tribunal_writer_work_dir() {
+  local d
+  d="$(mktemp -d -t tribunal-writer-XXXXXX)"
+  chmod 700 "$d"
+  echo "$d"
+}
+
 # Backward-compatible alias for older scripts still calling the old helper.
 tribunal_claude_work_dir() {
   tribunal_llm_work_dir
@@ -406,29 +413,6 @@ tribunal_fetch_and_report_origin_main() {
   printf '%s|%s|%s|%s|%s\n' "$fetched" "$state" "$ahead" "$behind" "$tracked_dirty"
 }
 
-# Run one external model command in its own POSIX session when the watchdog
-# provides a pid-file. Python's setsid() is available on both deployed Linux
-# and macOS, and gives the watchdog a stable process-group id even after an
-# intermediate shell exits or descendants ignore TERM.
-tribunal_session_exec() {
-  local pid_file="${TRIBUNAL_PROCESS_GROUP_FILE:-}"
-  if [ -z "$pid_file" ]; then
-    "$@"
-    return
-  fi
-  python3 -c '
-import os
-import pathlib
-import sys
-
-pid_file = pathlib.Path(sys.argv[1])
-command = sys.argv[2:]
-os.setsid()
-pid_file.write_text(f"{os.getpid()}\n", encoding="utf-8")
-os.execvp(command[0], command)
-' "$pid_file" "$@"
-}
-
 # Run a repo-local agent spec through Codex. Codex custom agents live in
 # `.codex/agents/*.toml`, but `codex exec` has no stable `--agent` flag for this
 # non-interactive tribunal path, so we inline the project-scoped Codex agent
@@ -475,21 +459,305 @@ $REPO_ROOT
 $user_prompt
 PROMPT
 )"
-  local reasoning_effort="${TRIBUNAL_CODEX_REASONING:-medium}"
+  tribunal_codex_workspace_prompt_exec "$work_dir" "$model" "$prompt"
+}
+
+tribunal_codex_systemd_unit_name() {
+  local kind="${1:-call}"
+  kind="$(printf '%s' "$kind" | tr -cd 'a-z0-9-')"
+  [ -n "$kind" ] || kind="call"
+  printf 'gu-log-tribunal-codex-%s-%s-%s-%s\n' \
+    "$kind" "${BASHPID:-$$}" "${RANDOM:-0}" "${RANDOM:-0}"
+}
+
+tribunal_stop_systemd_invocation() {
+  local unit="$1"
+  local systemctl_cmd
+  if ! [[ "$unit" =~ ^gu-log-tribunal-codex-[a-z0-9-]+-[0-9]+-[0-9]+-[0-9]+$ ]]; then
+    printf 'Refusing invalid Tribunal Codex systemd unit: %s\n' "$unit" >&2
+    return 1
+  fi
+  systemctl_cmd="$(command -v systemctl 2>/dev/null || true)"
+  case "$systemctl_cmd" in
+    /*) ;;
+    *)
+      printf 'Deployed Codex cancellation requires systemctl\n' >&2
+      return 1
+      ;;
+  esac
+  "$systemctl_cmd" --user stop "$unit"
+}
+
+tribunal_validate_deployed_systemd_contract() {
+  [ "$(uname -s 2>/dev/null || true)" = "Linux" ] || {
+    printf 'Deployed Codex containment requires Linux\n' >&2
+    return 1
+  }
+  local systemd_run systemctl_cmd
+  local load_state active_state memory_max cpu_quota tasks_max
+  local fragment_path need_reload drop_in_paths supervisor_slice
+  local repo_root tracked_slice
+  systemd_run="$(command -v systemd-run 2>/dev/null || true)"
+  systemctl_cmd="$(command -v systemctl 2>/dev/null || true)"
+  case "$systemd_run:$systemctl_cmd" in
+    /*:/*) ;;
+    *)
+      printf 'Deployed Codex containment requires systemd-run and systemctl\n' >&2
+      return 1
+      ;;
+  esac
+  load_state="$(
+    "$systemctl_cmd" --user show tribunal-runtime.slice \
+      -p LoadState --value 2>/dev/null
+  )" || {
+    printf 'Cannot reach the user systemd manager for Tribunal containment\n' >&2
+    return 1
+  }
+  if [ "$load_state" != "loaded" ]; then
+    printf 'tribunal-runtime.slice is not loaded (state=%s)\n' \
+      "${load_state:-unknown}" >&2
+    return 1
+  fi
+  active_state="$(
+    "$systemctl_cmd" --user show tribunal-runtime.slice \
+      -p ActiveState --value 2>/dev/null
+  )" || return 1
+  memory_max="$(
+    "$systemctl_cmd" --user show tribunal-runtime.slice \
+      -p MemoryMax --value 2>/dev/null
+  )" || return 1
+  cpu_quota="$(
+    "$systemctl_cmd" --user show tribunal-runtime.slice \
+      -p CPUQuotaPerSecUSec --value 2>/dev/null
+  )" || return 1
+  tasks_max="$(
+    "$systemctl_cmd" --user show tribunal-runtime.slice \
+      -p TasksMax --value 2>/dev/null
+  )" || return 1
+  fragment_path="$(
+    "$systemctl_cmd" --user show tribunal-runtime.slice \
+      -p FragmentPath --value 2>/dev/null
+  )" || return 1
+  need_reload="$(
+    "$systemctl_cmd" --user show tribunal-runtime.slice \
+      -p NeedDaemonReload --value 2>/dev/null
+  )" || return 1
+  drop_in_paths="$(
+    "$systemctl_cmd" --user show tribunal-runtime.slice \
+      -p DropInPaths --value 2>/dev/null
+  )" || return 1
+  supervisor_slice="$(
+    "$systemctl_cmd" --user show tribunal-loop.service \
+      -p Slice --value 2>/dev/null
+  )" || return 1
+
+  if [ "$active_state" != "active" ] ||
+     [ "$memory_max" != "4294967296" ] ||
+     [ "$cpu_quota" != "2s" ] ||
+     [ "$tasks_max" != "1024" ]; then
+    printf 'tribunal-runtime.slice effective limits are stale: ActiveState=%s MemoryMax=%s CPUQuotaPerSecUSec=%s TasksMax=%s\n' \
+      "${active_state:-unknown}" "${memory_max:-unknown}" \
+      "${cpu_quota:-unknown}" "${tasks_max:-unknown}" >&2
+    return 1
+  fi
+  if [ "$need_reload" != "no" ] || [ -n "$drop_in_paths" ]; then
+    printf 'tribunal-runtime.slice has unreviewed systemd drift: NeedDaemonReload=%s DropInPaths=%s\n' \
+      "${need_reload:-unknown}" "${drop_in_paths:-<none>}" >&2
+    return 1
+  fi
+  if [ "$supervisor_slice" != "tribunal-runtime.slice" ]; then
+    printf 'tribunal-loop.service is outside tribunal-runtime.slice (Slice=%s)\n' \
+      "${supervisor_slice:-unknown}" >&2
+    return 1
+  fi
+
+  repo_root="${REPO_ROOT:-${ROOT_DIR:-${GU_LOG_DIR:-}}}"
+  tracked_slice="${repo_root%/}/scripts/tribunal-runtime.slice"
+  if [ -z "$repo_root" ] || [[ "$fragment_path" != /* ]] ||
+     [ ! -f "$tracked_slice" ] || [ ! -f "$fragment_path" ] ||
+     ! cmp -s "$tracked_slice" "$fragment_path"; then
+    printf 'tribunal-runtime.slice fragment does not match the tracked unit (FragmentPath=%s)\n' \
+      "${fragment_path:-unknown}" >&2
+    return 1
+  fi
+}
+
+tribunal_codex_workspace_prompt_exec() {
+  local work_dir="$1"
+  local model="$2"
+  local prompt="$3"
+  local reasoning_effort
   local timeout_sec="${TRIBUNAL_CODEX_TIMEOUT_SEC:-3600}"
-  local codex_cmd
+  local codex_cmd codex_executable timeout_cmd
+  local -a codex_argv
+  reasoning_effort="$(tribunal_codex_reasoning_effort)" || return 2
+  if ! printf '%s\n' "$timeout_sec" | grep -Eq '^[1-9][0-9]*$'; then
+    printf 'Invalid TRIBUNAL_CODEX_TIMEOUT_SEC=%s (expected a positive integer)\n' \
+      "$timeout_sec" >&2
+    return 2
+  fi
   codex_cmd="$(tribunal_codex_cmd)" || return 127
+  read -r -a codex_argv <<<"$codex_cmd"
+  [ "${#codex_argv[@]}" -gt 0 ] || return 127
+  codex_executable="$(command -v "${codex_argv[0]}" 2>/dev/null || true)"
+  case "$codex_executable" in
+    /*) codex_argv[0]="$codex_executable" ;;
+    *)
+      printf 'Codex executable did not resolve to an absolute path: %s\n' \
+        "${codex_argv[0]}" >&2
+      return 127
+      ;;
+  esac
+  timeout_cmd="$(command -v timeout 2>/dev/null || true)"
+  case "$timeout_cmd" in
+    /*) ;;
+    *)
+      printf 'GNU timeout executable is unavailable\n' >&2
+      return 127
+      ;;
+  esac
   (
     cd "$work_dir" || exit
-    # Model descendants must never retain the article-level flock if the
-    # watchdog has to detach/kill an intermediate shell.
     exec 200>&-
-    # Close stdin so non-interactive Codex runs don't inherit the caller's
-    # open stdin and hang waiting for extra prompt text.
     exec </dev/null
-    # shellcheck disable=SC2086 # codex_cmd may be "node <bundled codex.js>".
-    tribunal_session_exec timeout "$timeout_sec" $codex_cmd exec --model "$model" -c "model_reasoning_effort=\"$reasoning_effort\"" --sandbox danger-full-access --skip-git-repo-check -- "$prompt"
+    # This command is the Codex judge/writer security boundary. Keep the
+    # isolated cwd as the only writable root; the repo/snapshots remain
+    # read-only and both tmp auto-write exceptions are disabled. Sandbox
+    # startup failure is terminal.
+    local -a codex_exec_argv
+    codex_exec_argv=(
+      "$timeout_cmd" "$timeout_sec"
+      "${codex_argv[@]}" exec
+      --model "$model"
+      -c "model_reasoning_effort=\"$reasoning_effort\""
+      -c 'approval_policy="never"'
+      -c 'sandbox_workspace_write.writable_roots=[]'
+      -c 'sandbox_workspace_write.exclude_slash_tmp=true'
+      -c 'sandbox_workspace_write.exclude_tmpdir_env_var=true'
+      -c 'sandbox_workspace_write.network_access=false'
+      -c 'shell_environment_policy.inherit="core"'
+      -c 'web_search="disabled"'
+      --sandbox workspace-write
+      --ignore-user-config
+      --ignore-rules
+      --ephemeral
+      --strict-config
+      --skip-git-repo-check
+      -- "$prompt"
+    )
+    if [ "${TRIBUNAL_DEPLOYED_MODE:-0}" = "1" ]; then
+      local systemd_run scope_unit scope_runtime_sec
+      local memory_max cpu_quota tasks_max
+      local -a scope_env
+      systemd_run="$(command -v systemd-run 2>/dev/null || true)"
+      case "$systemd_run" in
+        /*) ;;
+        *)
+          printf 'Deployed Codex containment requires systemd-run\n' >&2
+          exit 127
+          ;;
+      esac
+      memory_max="${TRIBUNAL_CODEX_SCOPE_MEMORY_MAX:-2G}"
+      cpu_quota="${TRIBUNAL_CODEX_SCOPE_CPU_QUOTA:-200%}"
+      tasks_max="${TRIBUNAL_CODEX_SCOPE_TASKS_MAX:-256}"
+      if ! [[ "$memory_max" =~ ^[1-9][0-9]*[KMGT]$ ]] ||
+         ! [[ "$cpu_quota" =~ ^[1-9][0-9]*%$ ]] ||
+         ! [[ "$tasks_max" =~ ^[1-9][0-9]*$ ]]; then
+        printf 'Invalid deployed Codex scope limits: MemoryMax=%s CPUQuota=%s TasksMax=%s\n' \
+          "$memory_max" "$cpu_quota" "$tasks_max" >&2
+        exit 2
+      fi
+      scope_unit="${TRIBUNAL_CODEX_SYSTEMD_UNIT:-$(
+        tribunal_codex_systemd_unit_name call
+      )}"
+      if ! [[ "$scope_unit" =~ ^gu-log-tribunal-codex-[a-z0-9-]+-[0-9]+-[0-9]+-[0-9]+$ ]]; then
+        printf 'Invalid Tribunal Codex systemd unit: %s\n' "$scope_unit" >&2
+        exit 2
+      fi
+      scope_runtime_sec=$((timeout_sec + 10))
+      scope_env=(
+        "--setenv=HOME=$HOME"
+        "--setenv=PATH=$PATH"
+      )
+      if [ -n "${CODEX_HOME:-}" ]; then
+        scope_env+=("--setenv=CODEX_HOME=$CODEX_HOME")
+      fi
+      if [ -n "${TZ:-}" ]; then
+        scope_env+=("--setenv=TZ=$TZ")
+      fi
+      exec "$systemd_run" \
+        --user \
+        --wait \
+        --pipe \
+        --collect \
+        --quiet \
+        --no-ask-password \
+        --service-type=exec \
+        --expand-environment=no \
+        "--unit=$scope_unit" \
+        --slice=tribunal-runtime.slice \
+        "--description=gu-log Tribunal isolated Codex invocation" \
+        "--working-directory=$work_dir" \
+        --property=KillMode=control-group \
+        --property=SendSIGKILL=yes \
+        --property=TimeoutStopSec=5s \
+        "--property=RuntimeMaxSec=${scope_runtime_sec}s" \
+        --property=OOMPolicy=kill \
+        "--property=MemoryMax=$memory_max" \
+        "--property=CPUQuota=$cpu_quota" \
+        "--property=TasksMax=$tasks_max" \
+        '--property=UnsetEnvironment=CLAUDE_CODE_OAUTH_TOKEN CLAUDE_API_KEY ANTHROPIC_API_KEY' \
+        "${scope_env[@]}" \
+        -- "${codex_exec_argv[@]}"
+    fi
+    exec "${codex_exec_argv[@]}"
   )
+}
+
+tribunal_codex_writer_prompt_exec() {
+  tribunal_codex_workspace_prompt_exec "$@"
+}
+
+tribunal_codex_writer_exec() {
+  local work_dir="$1"
+  local agent_name="$2"
+  local user_prompt="$3"
+  if [ -z "${REPO_ROOT:-}" ]; then
+    REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  fi
+  local codex_agent_file="$REPO_ROOT/.codex/agents/$agent_name.toml"
+  local legacy_agent_file="$REPO_ROOT/.claude/agents/$agent_name.md"
+  local codex_agent_spec=""
+  local legacy_agent_spec=""
+  local model=""
+  model="$(tribunal_codex_agent_model "$agent_name")" || return 1
+  if [ -f "$codex_agent_file" ]; then
+    codex_agent_spec="$(cat "$codex_agent_file")"
+  fi
+  if [ -f "$legacy_agent_file" ]; then
+    legacy_agent_spec="$(cat "$legacy_agent_file")"
+  fi
+  local prompt
+  prompt="$(cat <<PROMPT
+You are running inside the gu-log tribunal writer automation.
+
+## Codex agent config: $agent_name
+$codex_agent_spec
+
+## Legacy Claude Code rubric: $agent_name
+The following file is detailed rubric text only. Ignore its YAML frontmatter
+runtime fields.
+
+$legacy_agent_spec
+
+## Isolated candidate workspace
+$work_dir
+
+## User task
+$user_prompt
+PROMPT
+)"
+  tribunal_codex_writer_prompt_exec "$work_dir" "$model" "$prompt"
 }
 
 # ── Claude fallback (CCC sandbox: codex absent, only `claude` on PATH) ─────────
@@ -574,11 +842,7 @@ tribunal_strict_provider_for_role() {
     return 1
   fi
   case "$agent_name" in
-    vibe-opus-scorer)
-      tribunal_claude_cmd >/dev/null 2>&1 && printf 'claude\n' && return 0
-      printf 'Strict Tribunal routing requires claude for %s\n' "$agent_name" >&2
-      ;;
-    fact-checker|librarian|fresh-eyes)
+    vibe-opus-scorer|fact-checker|librarian|fresh-eyes)
       tribunal_codex_cmd >/dev/null 2>&1 && printf 'codex\n' && return 0
       printf 'Strict Tribunal routing requires codex for %s\n' "$agent_name" >&2
       ;;
@@ -601,12 +865,10 @@ tribunal_validate_role_provider_contract() {
       ;;
   esac
   local role
-  for role in fact-checker librarian fresh-eyes; do
+  for role in vibe-opus-scorer fact-checker librarian fresh-eyes; do
     tribunal_strict_provider_for_role "$role" >/dev/null || return 1
     tribunal_codex_agent_model "$role" >/dev/null || return 1
   done
-  tribunal_strict_provider_for_role vibe-opus-scorer >/dev/null || return 1
-  tribunal_claude_agent_model vibe-opus-scorer >/dev/null || return 1
 }
 
 # Resolve the active tribunal LLM provider: "codex" when present (the
@@ -643,20 +905,17 @@ tribunal_llm_provider() {
   return 1
 }
 
-# Agent-aware provider preference for a tribunal judge. Defaults to the global
-# tribunal_llm_provider for every judge EXCEPT vibe-opus-scorer, which prefers
-# Claude so the subjective taste score runs on the owner-pinned build declared
-# by `.claude/agents/vibe-opus-scorer.md`. The three
-# objective judges (librarian / fact-checker / fresh-eyes) keep the global
-# default: Codex on mac/VPS, Claude in the CCC codex-absent fallback.
+# Agent-aware provider preference for a tribunal judge. Deployed strict mode
+# returns earlier and binds all four judges to their Codex TOML roles. With
+# strict mode unset, the compatibility path keeps the historical Vibe/Claude
+# preference and otherwise uses the global Codex-first resolver.
 #
 # Precedence: global TRIBUNAL_FORCE_PROVIDER wins for ALL judges (emergency /
 # A-B test) because tribunal_llm_provider already honors it, so delegating
 # preserves the override. Availability: vibe prefers Claude only when the claude
 # binary is on PATH; otherwise it falls through to the global resolver exactly
-# like any other judge, so a box without Claude degrades gracefully instead of
-# hard-failing (this is by design — vibe=Claude is guaranteed only when both
-# codex and claude are present).
+# like any other judge. This fallback behavior is never part of deployed strict
+# success.
 #
 # Callers without a judge identity (empty agent_name) get the global resolver
 # byte-for-byte, so every existing non-judge call path is unchanged.
@@ -698,16 +957,20 @@ tribunal_writer_mode() {
   fi
 }
 
-# Probe the deployed CLI writer before any article is claimed. This is
-# deliberately tiny, non-interactive, and bounded; it verifies the same role
-# model selector and Claude auth path used by real rewrites.
-tribunal_writer_preflight() {
-  local mode model claude_cmd timeout_sec output rc=0
+# Probe the deployed Codex writer before any article is claimed. The canary is
+# deliberately tiny and bounded, but it executes through the exact same prompt
+# executor and workspace-write sandbox as a real rewrite.
+tribunal_writer_preflight() (
+  local mode model timeout_sec output rc=0 work_dir canary_file canary_token
   mode="$(tribunal_writer_mode)"
   case "$mode" in
-    cli) ;;
+    codex) ;;
     none|subagent)
-      printf 'Writer preflight failed: deployed runtime requires GP_WRITER_MODE=cli (got %s)\n' "$mode" >&2
+      printf 'Writer preflight failed: deployed runtime requires GP_WRITER_MODE=codex (got %s)\n' "$mode" >&2
+      return 1
+      ;;
+    cli)
+      printf 'Writer preflight failed: GP_WRITER_MODE=cli is compatibility-only and cannot be deployed\n' >&2
       return 1
       ;;
     *)
@@ -715,11 +978,7 @@ tribunal_writer_preflight() {
       return 1
       ;;
   esac
-  claude_cmd="$(tribunal_claude_cmd)" || {
-    printf 'Writer preflight failed: claude CLI is not on PATH\n' >&2
-    return 127
-  }
-  model="$(tribunal_claude_agent_model tribunal-writer)" || {
+  model="$(tribunal_codex_agent_model tribunal-writer)" || {
     printf 'Writer preflight failed: cannot resolve tribunal-writer model\n' >&2
     return 1
   }
@@ -728,23 +987,35 @@ tribunal_writer_preflight() {
     printf 'Writer preflight failed: TRIBUNAL_WRITER_PREFLIGHT_TIMEOUT_SEC must be a positive integer\n' >&2
     return 2
   fi
+  work_dir="$(tribunal_writer_work_dir)" || {
+    printf 'Writer preflight failed: cannot create isolated canary workspace\n' >&2
+    return 1
+  }
+  trap 'rm -rf "$work_dir"' EXIT
+  canary_file="$work_dir/.tribunal-writer-preflight-canary"
+  canary_token="tribunal-codex-writer-canary-$$-${RANDOM:-0}"
   output="$(
-    printf 'Reply OK only.\n' |
-      timeout "$timeout_sec" "$claude_cmd" -p --model "$model" \
-        --tools "" --no-session-persistence 2>&1
+    TRIBUNAL_CODEX_TIMEOUT_SEC="$timeout_sec" \
+      tribunal_codex_writer_prompt_exec "$work_dir" "$model" \
+        "This is a bounded deployed-writer write canary.
+Canary path: $canary_file
+Canary token: $canary_token
+Write exactly the canary token followed by one newline to the canary path.
+Do not write any other file. Reply OK only after the file is durable." 2>&1
   )" || rc=$?
   if [ "$rc" -ne 0 ]; then
-    printf 'Writer preflight failed: claude CLI/auth probe exited %s: %s\n' \
+    printf 'Writer preflight failed: Codex write canary exited %s: %s\n' \
       "$rc" "$(printf '%s' "$output" | tail -1)" >&2
     return "$rc"
   fi
-  output="$(printf '%s' "$output" | tr -d '\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
-  if [ "$output" != "OK" ]; then
-    printf 'Writer preflight failed: expected exact OK, got: %s\n' "$output" >&2
+  if [ ! -f "$canary_file" ] ||
+     [ "$(cat "$canary_file" 2>/dev/null || true)" != "$canary_token" ] ||
+     [ "$(wc -l < "$canary_file" 2>/dev/null | tr -d ' ' || true)" != "1" ]; then
+    printf 'Writer preflight failed: Codex write canary did not create the exact expected file\n' >&2
     return 1
   fi
   printf 'OK\n'
-}
+)
 
 # Parse one model selector strictly from the first YAML frontmatter block.
 # Body text is rubric prose and must never become runtime configuration.
@@ -876,7 +1147,7 @@ tribunal_model_id_for_provider() {
 # Claude-scored run is recorded as Claude internally — no second
 # provider-detection path.
 #
-# - codex  → codex-<resolved-model>-medium
+# - codex  → codex-<resolved-model>-<actual reasoning effort>
 # - claude → the judge's declared Claude build, symmetric to the frontmatter
 #            model_id
 tribunal_runner_label() {
@@ -891,12 +1162,31 @@ tribunal_runner_label_for_provider() {
   local agent_name="${2:-}"
   local model
   model="$(tribunal_model_id_for_provider "$provider" "$agent_name")" || return 1
+  tribunal_runner_label_for_resolved_model "$provider" "$model"
+}
+
+tribunal_codex_reasoning_effort() {
+  local reasoning="${TRIBUNAL_CODEX_REASONING:-medium}"
+  if ! [[ "$reasoning" =~ ^[A-Za-z0-9_-]+$ ]]; then
+    printf 'Invalid TRIBUNAL_CODEX_REASONING=%s\n' "$reasoning" >&2
+    return 1
+  fi
+  printf '%s\n' "$reasoning"
+}
+
+tribunal_runner_label_for_resolved_model() {
+  local provider="$1"
+  local model="$2"
+  local reasoning="${3:-}"
   case "$provider" in
     claude)
       printf '%s\n' "$model"
       ;;
     codex)
-      printf 'codex-%s-medium\n' "$model"
+      if [ -z "$reasoning" ]; then
+        reasoning="$(tribunal_codex_reasoning_effort)" || return 1
+      fi
+      printf 'codex-%s-%s\n' "$model" "$reasoning"
       ;;
     *)
       return 1
@@ -907,11 +1197,21 @@ tribunal_runner_label_for_provider() {
 tribunal_write_actual_provider() {
   local provider="$1"
   local agent_name="$2"
+  local resolved_model="${3:-}"
+  local resolved_reasoning="${4:-}"
   local out_file="${TRIBUNAL_ACTUAL_PROVIDER_FILE:-}"
   [ -n "$out_file" ] || return 0
   local model runner
-  model="$(tribunal_model_id_for_provider "$provider" "$agent_name")" || return 1
-  runner="$(tribunal_runner_label_for_provider "$provider" "$agent_name")" || return 1
+  if [ -n "$resolved_model" ]; then
+    model="$resolved_model"
+  else
+    model="$(tribunal_model_id_for_provider "$provider" "$agent_name")" || return 1
+  fi
+  runner="$(
+    tribunal_runner_label_for_resolved_model \
+      "$provider" "$model" "$resolved_reasoning"
+  )" ||
+    return 1
   {
     printf 'provider=%s\n' "$provider"
     printf 'model_id=%s\n' "$model"
@@ -990,7 +1290,7 @@ PROMPT
     # See tribunal_codex_exec: do not leak the article flock into timeout/CLI.
     exec 200>&-
     printf '%s' "$prompt" |
-      tribunal_session_exec timeout "$timeout_sec" "$claude_cmd" -p --model "$model" "${perm_args[@]}"
+      timeout "$timeout_sec" "$claude_cmd" -p --model "$model" "${perm_args[@]}"
   )
 }
 
@@ -1152,7 +1452,7 @@ tribunal_writer_exec_raw() {
       esac
       ;;
     codex)
-      tribunal_codex_exec "$work_dir" "$agent_name" "$user_prompt"
+      tribunal_codex_writer_exec "$work_dir" "$agent_name" "$user_prompt"
       ;;
     *)
       echo "ERROR: unsupported GP_WRITER_MODE='$(tribunal_writer_mode)' (expected none, subagent, cli, or codex)" >&2
@@ -1247,7 +1547,7 @@ tribunal_alert_controller_mode_transition() {
   TRIBUNAL_LAST_ALERTED_CONTROLLER_MODE="$mode"
   case "$mode" in
     fallback)
-      tribunal_quota_alarm "Tribunal quota controller entered fallback mode (1 worker / 600s); inspect USAGE_MONITOR."
+      tribunal_quota_alarm "Tribunal quota controller entered fallback mode (1 worker / 600s); inspect the provider-specific CodexBar JSON probe."
       ;;
     floor_stop)
       tribunal_quota_alarm "Tribunal quota controller entered floor_stop at configured floor ${floor}%."
@@ -1381,77 +1681,115 @@ tribunal_quota_max_wait_seconds() {
   tribunal_quota_seconds_from_text "${GP_QUOTA_MAX_WAIT:-6h}"
 }
 
-tribunal_quota_codexbar_block() {
-  local provider="$1"
-  local needle="codex"
-  local usage
-  case "$provider" in
-    claude*) needle="claude" ;;
+tribunal_quota_codexbar_json() {
+  local timeout_seconds="${GP_CODEXBAR_TIMEOUT_SECONDS:-20}"
+  case "$timeout_seconds" in
+    ''|*[!0-9]*|0) return 1 ;;
   esac
-  if [ -n "${TRIBUNAL_QUOTA_CODEXBAR_OUTPUT:-}" ]; then
-    usage="$TRIBUNAL_QUOTA_CODEXBAR_OUTPUT"
-  else
-    usage="$(timeout "${GP_CODEXBAR_TIMEOUT_SECONDS:-20}" codexbar usage 2>/dev/null || true)"
+  if [ -n "${TRIBUNAL_QUOTA_CODEXBAR_JSON:-}" ]; then
+    printf '%s\n' "$TRIBUNAL_QUOTA_CODEXBAR_JSON"
+    return 0
   fi
-  printf '%s\n' "$usage" | awk -v needle="$needle" '
-    BEGIN { in_block=0 }
-    {
-      lower=tolower($0)
-      is_header=(lower ~ /codex/ || lower ~ /claude/)
-      if (index(lower, needle) > 0) in_block=1
-      else if (in_block && is_header) exit
-      if (in_block) print
-    }
+  timeout "$timeout_seconds" \
+    codexbar usage --provider codex --source cli --format json --pretty
+}
+
+tribunal_quota_parse_json() {
+  local json="$1"
+  local now_epoch="${TRIBUNAL_QUOTA_NOW_EPOCH:-$(date +%s)}"
+  case "$now_epoch" in
+    ''|*[!0-9]*) return 1 ;;
+  esac
+  printf '%s\n' "$json" | jq -er --argjson now "$now_epoch" '
+    def provider_record:
+      if type == "array" then
+        select(length == 1 and .[0].provider == "codex") | .[0]
+      elif type == "object" and .provider == "codex" then
+        .
+      else
+        null
+      end;
+    def reset_epoch:
+      if type == "number" then .
+      elif type == "string" then fromdateiso8601
+      else 0
+      end;
+    provider_record
+    | select(
+        . != null
+        and (.source == "cli" or .source == "codex-cli")
+        and (.error? // null) == null
+      )
+    | .usage as $usage
+    | select(
+        ($usage | type) == "object"
+        and ($usage | has("primary"))
+        and ($usage | has("secondary"))
+      )
+    | ($usage.secondary.windowMinutes | select(type == "number" and . == 10080)) as $weekly_window
+    | ($usage.secondary.usedPercent | select(type == "number" and . >= 0 and . <= 100)) as $weekly_used
+    | ($usage.secondary.resetsAt | reset_epoch | select(. > $now)) as $weekly_reset_at
+    | (
+        if $usage.primary == null then
+          # Negative values are the controller inactive-window sentinels.
+          # Burn-rate math ignores this pair instead of inferring quota.
+          [-1, -1]
+        elif ($usage.primary | type) == "object" then
+          ($usage.primary.windowMinutes | select(type == "number" and . == 300)) as $session_window
+          | ($usage.primary.usedPercent | select(type == "number" and . >= 0 and . <= 100)) as $session_used
+          | ($usage.primary.resetsAt | reset_epoch | select(. > $now)) as $session_reset_at
+          | [
+              (100 - $session_used | floor),
+              ([$session_reset_at - $now, 0] | max | floor)
+            ]
+        else
+          empty
+        end
+      ) as $session
+    | [
+        $session[0],
+        $session[1],
+        (100 - $weekly_used | floor),
+        ([$weekly_reset_at - $now, 0] | max | floor)
+      ]
+    | map(tostring)
+    | join("|")
   '
-}
-
-tribunal_quota_percent_left_from_line() {
-  local line="$1"
-  printf '%s\n' "$line" | grep -Eio '[0-9]+[[:space:]]*%[[:space:]]*left' | head -1 | grep -Eo '[0-9]+' || true
-}
-
-tribunal_quota_parse_block() {
-  local block="$1"
-  local current_section="" line reset_text reset_seconds
-  local session_left="" session_reset=0 weekly_left="" weekly_reset=0
-  while IFS= read -r line; do
-    if [[ "$line" =~ ^[[:space:]]*Session: ]]; then
-      current_section="session"
-      session_left="$(tribunal_quota_percent_left_from_line "$line")"
-      continue
-    fi
-    if [[ "$line" =~ ^[[:space:]]*Weekly: ]]; then
-      current_section="weekly"
-      weekly_left="$(tribunal_quota_percent_left_from_line "$line")"
-      continue
-    fi
-    if [[ "$line" =~ ^[[:space:]]*Resets?[[:space:]]+in[[:space:]]+(.+) ]]; then
-      reset_text="${BASH_REMATCH[1]}"
-      reset_seconds="$(tribunal_quota_seconds_from_text "$reset_text")"
-      case "$current_section" in
-        session) session_reset="$reset_seconds" ;;
-        weekly) weekly_reset="$reset_seconds" ;;
-      esac
-    fi
-  done <<< "$block"
-  printf '%s|%s|%s|%s\n' "${session_left:-}" "${session_reset:-0}" "${weekly_left:-}" "${weekly_reset:-0}"
 }
 
 tribunal_quota_decision() {
   local provider="$1"
   local waits="$2"
-  local block tier reset_seconds max_wait max_waits parsed session_left session_reset weekly_left weekly_reset
+  local usage_json tier reset_seconds max_wait max_waits parsed session_reset weekly_left weekly_reset
   max_wait="$(tribunal_quota_max_wait_seconds)"
   max_waits="${GP_QUOTA_MAX_WAITS:-3}"
-  block="$(tribunal_quota_codexbar_block "$provider" || true)"
-  if [ -z "$block" ]; then
-    printf 'suspend|unknown|0|codexbar unavailable/unparseable\n'
+  case "$provider" in
+    codex*) ;;
+    *)
+      printf 'suspend|unknown|0|quota probe unavailable for non-Codex compatibility provider\n'
+      return 0
+      ;;
+  esac
+  if ! usage_json="$(tribunal_quota_codexbar_json 2>/dev/null)" ||
+     [ -z "$usage_json" ]; then
+    printf 'suspend|unknown|0|CodexBar Codex JSON unavailable/unparseable\n'
     return 0
   fi
-  parsed="$(tribunal_quota_parse_block "$block")"
+  if ! parsed="$(tribunal_quota_parse_json "$usage_json" 2>/dev/null)"; then
+    printf 'suspend|unknown|0|CodexBar Codex JSON unavailable/unparseable\n'
+    return 0
+  fi
   IFS='|' read -r session_left session_reset weekly_left weekly_reset <<< "$parsed"
   if [ "${weekly_left:-}" = "0" ]; then
     printf 'suspend|weekly|%s|weekly quota exhausted; resets in %s\n' "$weekly_reset" "$(tribunal_quota_human_duration "$weekly_reset")"
+    return 0
+  fi
+  if [ "${session_left:-}" = "-1" ] || [ "${session_reset:-}" = "-1" ]; then
+    printf 'suspend|unknown|0|primary quota window unavailable; refusing to infer reset\n'
+    return 0
+  fi
+  if [ "${session_left:-}" != "0" ]; then
+    printf 'suspend|unknown|0|validated quota windows remain nonzero; refusing to infer exhausted tier\n'
     return 0
   fi
   tier="session"
@@ -1518,26 +1856,99 @@ tribunal_quota_handle_file() {
   return 89
 }
 
+tribunal_writer_exec_quiesced_once() (
+  local exec_function="$1"
+  shift
+  local writer_pid rc cleanup_rc systemd_unit=""
+  # Best-effort resource cleanup for ordinary descendants. This process group
+  # is not a security boundary: a child can setsid() out of it. Canonical post
+  # safety instead comes from the dedicated Codex sandbox + disposable
+  # candidate transaction in tribunal.sh.
+  set -m
+  if [ "${TRIBUNAL_DEPLOYED_MODE:-0}" = "1" ]; then
+    systemd_unit="$(tribunal_codex_systemd_unit_name writer)"
+    (
+      TRIBUNAL_CODEX_SYSTEMD_UNIT="$systemd_unit" \
+        "$exec_function" "$@"
+    ) &
+  else
+    (
+      "$exec_function" "$@"
+    ) &
+  fi
+  writer_pid=$!
+  rc=0
+  wait "$writer_pid" || rc=$?
+  cleanup_rc=0
+  if [ -z "$systemd_unit" ] &&
+     kill -0 -- "-$writer_pid" 2>/dev/null; then
+    # Reap ordinary orphaned descendants to avoid resource leaks. A setsid()
+    # escape remains confined to the disposable candidate workspace.
+    TRIBUNAL_WATCHDOG_KILL_GRACE_SEC="${TRIBUNAL_WRITER_KILL_GRACE_SEC:-0.2}" \
+      tribunal_terminate_process_group "$writer_pid" || cleanup_rc=$?
+  fi
+  if [ "$cleanup_rc" -ne 0 ]; then
+    echo "ERROR: failed to quiesce tribunal-writer process group $writer_pid" >&2
+    return 70
+  fi
+  return "$rc"
+)
+
 tribunal_writer_exec() {
   local work_dir="$1"
   local agent_name="$2"
   local user_prompt="$3"
-  local mode
+  local mode provider resolved_model resolved_reasoning="" exec_function
   mode="$(tribunal_writer_mode)"
-  if [ "$mode" != "cli" ]; then
-    tribunal_writer_exec_raw "$work_dir" "$agent_name" "$user_prompt"
-    return $?
-  fi
+  case "$mode" in
+    codex)
+      provider="codex"
+      resolved_model="$(tribunal_codex_agent_model "$agent_name")" || return 1
+      resolved_reasoning="$(tribunal_codex_reasoning_effort)" || return 1
+      exec_function="tribunal_writer_exec_raw"
+      ;;
+    cli)
+      provider="$(tribunal_writer_provider 2>/dev/null || true)"
+      [ -n "$provider" ] || return 127
+      resolved_model="$(tribunal_model_id_for_provider "$provider" "$agent_name")" ||
+        return 1
+      exec_function="tribunal_writer_exec_raw_legacy_cli"
+      ;;
+    none|subagent)
+      tribunal_writer_exec_quiesced_once \
+        tribunal_writer_exec_raw "$work_dir" "$agent_name" "$user_prompt"
+      return $?
+      ;;
+    *)
+      tribunal_writer_exec_quiesced_once \
+        tribunal_writer_exec_raw "$work_dir" "$agent_name" "$user_prompt"
+      return $?
+      ;;
+  esac
 
-  local waits=0 provider out rc qrc
-  provider="$(tribunal_writer_provider 2>/dev/null || true)"
+  local waits=0 out rc qrc
   while true; do
     out="$(mktemp)"
     rc=0
-    tribunal_writer_exec_raw_legacy_cli "$work_dir" "$agent_name" "$user_prompt" >"$out" 2>&1 || rc=$?
+    if [ "$provider" = "codex" ]; then
+      GP_CODEX_MODEL="$resolved_model" \
+      TRIBUNAL_CODEX_REASONING="$resolved_reasoning" \
+        tribunal_writer_exec_quiesced_once \
+          "$exec_function" "$work_dir" "$agent_name" "$user_prompt" \
+          >"$out" 2>&1 || rc=$?
+    else
+      tribunal_writer_exec_quiesced_once \
+        "$exec_function" "$work_dir" "$agent_name" "$user_prompt" \
+        >"$out" 2>&1 || rc=$?
+    fi
     cat "$out"
     if [ "$rc" -eq 0 ]; then
       rm -f "$out"
+      if ! tribunal_write_actual_provider \
+        "$provider" "$agent_name" "$resolved_model" "$resolved_reasoning"; then
+        echo "ERROR: failed to record tribunal-writer provider/model provenance" >&2
+        return 70
+      fi
       return 0
     fi
     qrc=0
@@ -1554,30 +1965,32 @@ tribunal_writer_exec() {
   done
 }
 
-# Terminate the stable session created by tribunal_session_exec. TERM is
-# intentionally followed by KILL against the same saved process-group id, so a
+# Terminate a process group whose id was captured by the parent from `$!`.
+# TERM is intentionally followed by KILL against that same parent-held id, so a
 # TERM-ignoring descendant cannot escape by outliving/reparenting away from the
-# top shell.
-tribunal_terminate_session() {
-  local pid_file="$1" outer_pid="$2"
-  local grace="${TRIBUNAL_WATCHDOG_KILL_GRACE_SEC:-5}" pgid=""
-  if [ -s "$pid_file" ]; then
-    pgid="$(sed -n '1p' "$pid_file")"
-  fi
+# top shell. Never derive this id from child-writable state.
+tribunal_terminate_process_group() {
+  local pgid="$1"
+  local grace="${TRIBUNAL_WATCHDOG_KILL_GRACE_SEC:-5}"
+  local current_pgid
   case "$pgid" in
-    ''|*[!0-9]*) pgid="" ;;
+    ''|*[!0-9]*) return 1 ;;
   esac
-  if [ -n "$pgid" ]; then
-    kill -TERM -- "-$pgid" 2>/dev/null || true
-  else
-    kill -TERM "$outer_pid" 2>/dev/null || true
+  current_pgid="$(ps -o pgid= -p $$ 2>/dev/null | tr -d ' ' || true)"
+  if [ -z "$current_pgid" ] || [ "$pgid" = "$current_pgid" ]; then
+    return 1
   fi
+  kill -TERM -- "-$pgid" 2>/dev/null || true
   sleep "$grace"
-  if [ -n "$pgid" ]; then
-    kill -KILL -- "-$pgid" 2>/dev/null || true
-  else
-    kill -KILL "$outer_pid" 2>/dev/null || true
-  fi
+  kill -KILL -- "-$pgid" 2>/dev/null || true
+  local _check
+  for _check in 1 2 3 4 5 6 7 8 9 10; do
+    if ! kill -0 -- "-$pgid" 2>/dev/null; then
+      return 0
+    fi
+    sleep 0.05
+  done
+  return 1
 }
 
 # Run Codex with both a wall-clock timeout and an idle watchdog. The wall-clock
@@ -1586,7 +1999,7 @@ tribunal_terminate_session() {
 #
 # Args: work_dir agent_name prompt output_file progress_file
 # Returns: child exit code, or 124 when killed by the idle watchdog/timeout.
-tribunal_codex_exec_watchdog() {
+tribunal_codex_exec_watchdog() (
   local work_dir="$1"
   local agent_name="$2"
   local user_prompt="$3"
@@ -1594,21 +2007,57 @@ tribunal_codex_exec_watchdog() {
   local progress_file="${5:-}"
   local idle_timeout="${TRIBUNAL_CODEX_IDLE_TIMEOUT_SEC:-900}"
   local poll_interval="${TRIBUNAL_CODEX_IDLE_POLL_SEC:-30}"
-  local pid rc now last_change latest_mtime out_mtime progress_mtime waits force_provider provider qrc session_pid_file
+  local pid rc now last_change latest_mtime out_mtime progress_mtime waits
+  local force_provider provider resolved_model resolved_reasoning
+  local qrc cleanup_rc systemd_unit
   waits=0
   force_provider="${TRIBUNAL_FORCE_PROVIDER:-}"
+  # Job control puts each background judge in a process group led by `$!`.
+  # That id remains parent-held even though the judge itself is untrusted.
+  set -m
 
   : > "$output_file"
   while true; do
   : > "$output_file"
-  session_pid_file="$(mktemp "${TMPDIR:-/tmp}/tribunal-session.XXXXXX")"
-  if [ -n "$force_provider" ]; then
-    TRIBUNAL_PROCESS_GROUP_FILE="$session_pid_file" \
+  provider="${force_provider:-$(tribunal_judge_provider "$agent_name" 2>/dev/null || true)}"
+  [ -n "$provider" ] || {
+    printf '[tribunal-watchdog] failed to resolve judge provider\n' >> "$output_file"
+    return 70
+  }
+  resolved_model="$(tribunal_model_id_for_provider "$provider" "$agent_name")" || {
+    printf '[tribunal-watchdog] failed to resolve judge model\n' >> "$output_file"
+    return 70
+  }
+  resolved_reasoning=""
+  if [ "$provider" = "codex" ]; then
+    resolved_reasoning="$(tribunal_codex_reasoning_effort)" || {
+      printf '[tribunal-watchdog] failed to resolve Codex reasoning effort\n' >> "$output_file"
+      return 70
+    }
+  fi
+  systemd_unit=""
+  if [ "$provider" = "codex" ] &&
+     [ "${TRIBUNAL_DEPLOYED_MODE:-0}" = "1" ]; then
+    systemd_unit="$(tribunal_codex_systemd_unit_name judge)"
+  fi
+  if [ "$provider" = "codex" ]; then
+    if [ -n "$force_provider" ]; then
+      GP_CODEX_MODEL="$resolved_model" \
+      TRIBUNAL_CODEX_REASONING="$resolved_reasoning" \
       TRIBUNAL_FORCE_PROVIDER="$force_provider" \
+      TRIBUNAL_CODEX_SYSTEMD_UNIT="$systemd_unit" \
+        tribunal_llm_exec "$work_dir" "$agent_name" "$user_prompt" > "$output_file" 2>&1 &
+    else
+      GP_CODEX_MODEL="$resolved_model" \
+      TRIBUNAL_CODEX_REASONING="$resolved_reasoning" \
+      TRIBUNAL_CODEX_SYSTEMD_UNIT="$systemd_unit" \
+        tribunal_llm_exec "$work_dir" "$agent_name" "$user_prompt" > "$output_file" 2>&1 &
+    fi
+  elif [ -n "$force_provider" ]; then
+    TRIBUNAL_FORCE_PROVIDER="$force_provider" \
       tribunal_llm_exec "$work_dir" "$agent_name" "$user_prompt" > "$output_file" 2>&1 &
   else
-    TRIBUNAL_PROCESS_GROUP_FILE="$session_pid_file" \
-      tribunal_llm_exec "$work_dir" "$agent_name" "$user_prompt" > "$output_file" 2>&1 &
+    tribunal_llm_exec "$work_dir" "$agent_name" "$user_prompt" > "$output_file" 2>&1 &
   fi
   pid=$!
   last_change="$(date +%s)"
@@ -1630,26 +2079,50 @@ tribunal_codex_exec_watchdog() {
     fi
     if [ $((now - last_change)) -ge "$idle_timeout" ]; then
       printf '[tribunal-watchdog] idle for %ss with no output/score-file progress; killing judge pid %s\n' "$idle_timeout" "$pid" >> "$output_file"
-      tribunal_terminate_session "$session_pid_file" "$pid"
+      cleanup_rc=0
+      if [ -n "$systemd_unit" ]; then
+        tribunal_stop_systemd_invocation "$systemd_unit" \
+          >> "$output_file" 2>&1 || cleanup_rc=$?
+      elif kill -0 -- "-$pid" 2>/dev/null; then
+        tribunal_terminate_process_group "$pid" || cleanup_rc=$?
+      fi
       wait "$pid" 2>/dev/null || true
-      rm -f "$session_pid_file"
+      if [ "$cleanup_rc" -ne 0 ]; then
+        printf '[tribunal-watchdog] failed to quiesce judge process group %s\n' "$pid" >> "$output_file"
+        return 70
+      fi
       return 124
     fi
   done
 
   rc=0
   wait "$pid" || rc=$?
-  rm -f "$session_pid_file"
+  cleanup_rc=0
+  if [ -z "$systemd_unit" ] &&
+     kill -0 -- "-$pid" 2>/dev/null; then
+    tribunal_terminate_process_group "$pid" || cleanup_rc=$?
+  fi
+  if [ "$cleanup_rc" -ne 0 ]; then
+    printf '[tribunal-watchdog] failed to quiesce judge process group %s\n' "$pid" >> "$output_file"
+    return 70
+  fi
   if [ "$rc" -eq 0 ]; then
-    provider="${force_provider:-$(tribunal_judge_provider "$agent_name" 2>/dev/null || true)}"
-    if ! tribunal_write_actual_provider "$provider" "$agent_name"; then
+    if ! tribunal_write_actual_provider \
+      "$provider" "$agent_name" "$resolved_model" "$resolved_reasoning"; then
       printf '[tribunal-watchdog] failed to record provider/model provenance\n' >> "$output_file"
       return 70
     fi
     return 0
   fi
-  provider="${force_provider:-$(tribunal_judge_provider "$agent_name" 2>/dev/null || true)}"
-  if [ "$provider" = "codex" ] && [ "${GP_JUDGE_ALLOW_CLAUDE:-0}" = "1" ] && tribunal_claude_cmd >/dev/null 2>&1 && tribunal_quota_error_file "$output_file"; then
+  # The explicit Claude fallback is compatibility-only. A stale local flag
+  # must never override strict/deployed Codex routing or an explicit provider.
+  if [ "$provider" = "codex" ] &&
+     [ "${TRIBUNAL_DEPLOYED_MODE:-0}" != "1" ] &&
+     [ "${TRIBUNAL_STRICT_ROLE_PROVIDERS:-0}" != "1" ] &&
+     [ -z "$force_provider" ] &&
+     [ "${GP_JUDGE_ALLOW_CLAUDE:-0}" = "1" ] &&
+     tribunal_claude_cmd >/dev/null 2>&1 &&
+     tribunal_quota_error_file "$output_file"; then
     tribunal_quota_alarm "codex judge quota exhausted; trying explicit Claude judge fallback."
     force_provider="claude"
     waits=0
@@ -1666,7 +2139,7 @@ tribunal_codex_exec_watchdog() {
   fi
   return "$rc"
   done
-}
+)
 
 # Provider-agnostic alias. The watchdog body now dispatches through
 # tribunal_llm_exec (codex primary, claude CCC fallback), so prefer this name

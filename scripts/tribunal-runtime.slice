@@ -1,0 +1,10 @@
+[Unit]
+Description=Aggregate resource boundary for gu-log Tribunal
+
+[Slice]
+# The supervisor/build workers and every transient Codex invocation share this
+# ceiling. Per-invocation limits remain narrower, but the slice preserves the
+# aggregate memory/CPU contract when --workers is raised above one.
+CPUQuota=200%
+MemoryMax=4G
+TasksMax=1024
