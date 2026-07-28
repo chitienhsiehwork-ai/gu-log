@@ -269,6 +269,68 @@ test.describe('Component smoke — storage fallbacks', () => {
     await expect.poll(() => trackerNav.evaluate((element) => element.style.display)).toBe('none');
     expect(errs, `console errors: ${errs.join('\n')}`).toEqual([]);
   });
+
+  test('SeriesNav reads the tracker store once and keeps same-tab updates live', async ({
+    page,
+  }) => {
+    const readSlug = 'gp-143-20260402-ecc-autonomous-loops';
+    const unreadSlug = 'gp-146-20260402-ecc-hook-architecture';
+
+    await page.addInitScript((preloadedSlug) => {
+      localStorage.removeItem('gu-log-jwt');
+      localStorage.setItem(
+        'gu-log-read-articles',
+        JSON.stringify({
+          version: 1,
+          slugs: [preloadedSlug],
+          lastUpdated: '2026-07-29T00:00:00.000Z',
+        })
+      );
+
+      const originalGetItem = Storage.prototype.getItem;
+      let readStoreGets = 0;
+      Storage.prototype.getItem = function (key: string) {
+        if (key === 'gu-log-read-articles') {
+          readStoreGets += 1;
+        }
+        return originalGetItem.call(this, key);
+      };
+      Object.defineProperty(window, '__seriesNavReadStoreGets', {
+        get: () => readStoreGets,
+      });
+    }, readSlug);
+
+    await page.goto('/posts/gp-144-20260402-ecc-instinct-system');
+
+    const readIndicator = page.locator(
+      `[data-series-nav] [data-read-indicator][data-slug="${readSlug}"]`
+    );
+    const unreadIndicator = page.locator(
+      `[data-series-nav] [data-read-indicator][data-slug="${unreadSlug}"]`
+    );
+
+    await expect(readIndicator).toHaveClass(/is-read/);
+    await expect(unreadIndicator).not.toHaveClass(/is-read/);
+    expect(
+      await page.evaluate(
+        () => (window as Window & { __seriesNavReadStoreGets?: number }).__seriesNavReadStoreGets
+      )
+    ).toBe(1);
+
+    await page.evaluate((slug) => {
+      window.dispatchEvent(
+        new CustomEvent('read-status-changed', { detail: { slug, read: true } })
+      );
+    }, unreadSlug);
+
+    await expect(unreadIndicator).toHaveClass(/is-read/);
+    await expect(unreadIndicator).toHaveAttribute('title', 'Read');
+    expect(
+      await page.evaluate(
+        () => (window as Window & { __seriesNavReadStoreGets?: number }).__seriesNavReadStoreGets
+      )
+    ).toBe(1);
+  });
 });
 
 test.describe('Component smoke — shared high-fanout styles', () => {
