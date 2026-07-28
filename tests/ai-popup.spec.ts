@@ -3,6 +3,7 @@ import { test, expect } from './fixtures';
 import {
   isDesktopChromiumProject,
   isMobileProject,
+  selectPostText,
   selectPostTextAndShowPopup,
 } from './helpers/ai-popup';
 
@@ -677,5 +678,110 @@ test.describe('AI Popup - API Interactions', () => {
     // Should show confirm/cancel buttons
     await expect(popup.locator('[data-action="confirm"]')).toBeVisible();
     await expect(popup.locator('.ai-popup-actions [data-action="close"]')).toBeVisible();
+  });
+
+  test('GIVEN confirm is pending WHEN selection changes and Escape is pressed THEN the original commit result stays visible', async ({
+    page,
+  }) => {
+    let confirmRequests = 0;
+    let releaseConfirm: (() => void) | undefined;
+    const confirmGate = new Promise<void>((resolve) => {
+      releaseConfirm = resolve;
+    });
+
+    await page.route('**/ai/edit', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          diff: '- old text\n+ committed text',
+          editId: 'pending-confirm-id',
+        }),
+      });
+    });
+    await page.route('**/ai/edit/confirm', async (route) => {
+      confirmRequests += 1;
+      await confirmGate;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ commitHash: 'pending1234567890' }),
+      });
+    });
+
+    const popup = await selectPostTextAndShowPopup(page);
+    await popup.locator('[data-action="edit"]').click();
+    await popup.locator('.ai-popup-edit-input').fill('commit this change');
+    await popup.locator('[data-action="submit-edit"]').click();
+    await expect(popup.locator('[data-action="confirm"]')).toBeVisible();
+
+    await popup.locator('[data-action="confirm"]').click();
+    await expect.poll(() => confirmRequests).toBe(1);
+    await expect(popup.locator('.ai-popup-spinner')).toBeVisible();
+
+    await selectPostText(page, { characters: 40 });
+    await page.waitForTimeout(50);
+    await page.keyboard.press('Escape');
+
+    await expect(popup.locator('.ai-popup-spinner')).toBeVisible();
+    expect(confirmRequests).toBe(1);
+
+    await page.evaluate(() => {
+      const testWindow = window as typeof window & {
+        __aiPopupSelectionCallbacks?: Array<() => void>;
+      };
+      const delayedCallbacks: Array<() => void> = [];
+      const originalSetTimeout = window.setTimeout.bind(window);
+      window.setTimeout = ((
+        handler: TimerHandler,
+        timeout?: number,
+        ...args: unknown[]
+      ): number => {
+        if (timeout === 10 && typeof handler === 'function') {
+          delayedCallbacks.push(() => handler(...args));
+          return 1;
+        }
+        return originalSetTimeout(handler, timeout, ...args);
+      }) as typeof window.setTimeout;
+
+      try {
+        const paragraph = document.querySelector('.post-content p');
+        if (!paragraph) throw new Error('No post-content paragraph found');
+
+        const walker = document.createTreeWalker(paragraph, NodeFilter.SHOW_TEXT, {
+          acceptNode(node) {
+            return node.textContent?.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+          },
+        });
+        const textNode = walker.nextNode();
+        if (!textNode?.textContent) throw new Error('No selectable text node found');
+
+        const range = document.createRange();
+        range.setStart(textNode, 0);
+        range.setEnd(textNode, Math.min(30, textNode.textContent.length));
+        const selection = window.getSelection();
+        if (!selection) throw new Error('Selection API unavailable');
+        selection.removeAllRanges();
+        selection.addRange(range);
+        document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+      } finally {
+        window.setTimeout = originalSetTimeout;
+      }
+
+      testWindow.__aiPopupSelectionCallbacks = delayedCallbacks;
+    });
+
+    releaseConfirm?.();
+    await expect(popup.locator('.ai-popup-committed')).toContainText('pending');
+
+    await page.evaluate(() => {
+      const testWindow = window as typeof window & {
+        __aiPopupSelectionCallbacks?: Array<() => void>;
+      };
+      const callbacks = testWindow.__aiPopupSelectionCallbacks || [];
+      delete testWindow.__aiPopupSelectionCallbacks;
+      callbacks.forEach((callback) => callback());
+    });
+    await expect(popup.locator('.ai-popup-committed')).toContainText('pending');
   });
 });
