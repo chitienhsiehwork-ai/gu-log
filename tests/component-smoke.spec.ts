@@ -397,7 +397,7 @@ test.describe('Component smoke — Mermaid error handling', () => {
     const payload = '<img data-mermaid-error-probe src="data:,">';
 
     await page.route(
-      'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs',
+      'https://cdn.jsdelivr.net/npm/mermaid@11.16.0/dist/mermaid.esm.min.mjs',
       async (route) => {
         await route.fulfill({
           contentType: 'application/javascript',
