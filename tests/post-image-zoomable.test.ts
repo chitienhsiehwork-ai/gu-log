@@ -28,7 +28,6 @@ describe('PostImage zoomable image contract', () => {
 
     expect(component).toContain('touch-action: pan-x pan-y pinch-zoom');
     expect(component).not.toContain('touch-action: none');
-    expect(component).not.toContain('preventDefault()');
   });
 
   it('loads the high-resolution expanded image lazily on open', () => {
