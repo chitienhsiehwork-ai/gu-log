@@ -35,5 +35,7 @@
 
 - [x] 5.1 跑 Tribunal 安全、部署就緒、額度控制器、額度錯誤與監看 shell suites，保留精確指令輸出作為情境→測試證據。
 - [x] 5.2 跑擁有上述 shell 合約的 Vitest suites 與 repo 必要的 lint／type／build gates，確認沒有平行測試歸屬或受版控 fixture 競態回歸。
-- [ ] 5.3 在 Tribunal VM 同步受版控 unit，執行 `systemctl --user daemon-reload` 與 restart；確認 service 的有效 `PATH` 與子行程環境不注入或讀取 Claude 憑證，驗證啟動／doctor／派送／改寫／額度復原成功，且監看顯示五個 Codex 角色、寫手前置檢查通過與 Codex 供應端限定額度。
-- [ ] 5.4 執行一篇有界的失敗→Codex 改寫→重評 smoke，確認文章領取、寫手沙箱、來源、額度錯誤處理與 journal 全程未呼叫 Claude，再記錄可回復的部署證據。
+- [x] 5.3 在 Tribunal VM 同步受版控 unit，執行 `systemctl --user daemon-reload` 與 restart；確認 service 的有效 `PATH` 與子行程環境不注入或讀取 Claude 憑證，驗證啟動／doctor／派送／改寫／額度復原成功，且監看顯示五個 Codex 角色、寫手前置檢查通過與 Codex 供應端限定額度。
+  - 證據：SHA `11882de8`、service PID `1717734`；doctor 的 containment／role contract／writer preflight 全數通過；實際環境 key 無 Claude 憑證，provider-specific CodexBar 寫入 `five_hr=-1`、`weekly=36`。
+- [x] 5.4 執行一篇有界的失敗→Codex 改寫→重評 smoke，確認文章領取、寫手沙箱、來源、額度錯誤處理與 journal 全程未呼叫 Claude，再記錄可回復的部署證據。
+  - 證據：disposable worktree 的 GP-212 Fresh Eyes 由 `5 FAIL` 經 `codex / gpt-5.5 / codex-gpt-5.5-medium` 寫手改寫後，以 `8 PASS` 重評；雙語植入缺陷皆移除、HEAD 未變、無 journal 殘留，且 `TRIBUNAL_NO_COMMIT=1`。
