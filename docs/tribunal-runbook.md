@@ -15,37 +15,35 @@
 - `scripts/tribunal-worker-bootstrap.sh` — manage worker worktrees.
 - `scripts/tribunal-batch-runner.sh` — bounded one-shot (cron / manual). **Not a daemon** — use `tribunal-quota-loop.sh` for daemon.
 - `scripts/tribunal-loop.service` — systemd unit (user-scope).
-- `scripts/cc-tribunal-loop-wrapper.sh` — loads CLAUDE_CODE_OAUTH_TOKEN, exec's the loop.
+- `scripts/cc-tribunal-loop-wrapper.sh` — establishes the systemd PATH and execs the loop without loading Claude credentials.
 
 ## Deploy
 
-Host and checkout mappings are local-only. Before operating the VM, load `TRIBUNAL_HOST`、remote `GU_LOG_DIR` 與 remote `USAGE_MONITOR` from the local machine note; worker worktrees live beside `GU_LOG_DIR` as `gu-log-worker-{a,b}`.
+Host and checkout mappings are local-only. Before operating the VM, load
+`TRIBUNAL_HOST` 與 remote `GU_LOG_DIR` from the local machine note; worker
+worktrees live beside `GU_LOG_DIR` as `gu-log-worker-{a,b}`.
 
 ```bash
 # On Mac: merge the approved PR through the protected branch flow first.
 
-# One-time bootstrap（rerun whenever either remote path changes）.
-# GU_LOG_DIR and USAGE_MONITOR are absolute paths on the remote host.
+# One-time bootstrap（rerun whenever the remote checkout path changes）.
+# GU_LOG_DIR is an absolute path on the remote host.
 : "${TRIBUNAL_HOST:?Set TRIBUNAL_HOST}"
 : "${GU_LOG_DIR:?Set remote GU_LOG_DIR}"
-: "${USAGE_MONITOR:?Set remote USAGE_MONITOR}"
 
-case "$GU_LOG_DIR$USAGE_MONITOR" in
+case "$GU_LOG_DIR" in
   *$'\n'*|*$'\r'*|*"'"*)
-    echo "Remote paths must not contain newlines or single quotes" >&2
+    echo "Remote path must not contain newlines or single quotes" >&2
     return 1 2>/dev/null || exit 1
     ;;
 esac
 
 GU_LOG_DIR_B64=$(printf '%s' "$GU_LOG_DIR" | base64 | tr -d '\n')
-USAGE_MONITOR_B64=$(printf '%s' "$USAGE_MONITOR" | base64 | tr -d '\n')
-ssh "$TRIBUNAL_HOST" bash -s -- "$GU_LOG_DIR_B64" "$USAGE_MONITOR_B64" <<'CONFIG'
+ssh "$TRIBUNAL_HOST" bash -s -- "$GU_LOG_DIR_B64" <<'CONFIG'
 set -euo pipefail
 GU_LOG_DIR=$(printf '%s' "$1" | base64 --decode)
-USAGE_MONITOR=$(printf '%s' "$2" | base64 --decode)
 
 git -C "$GU_LOG_DIR" rev-parse --show-toplevel >/dev/null
-test -x "$USAGE_MONITOR"
 
 config_dir="$HOME/.config/gu-log"
 config_file="$config_dir/tribunal.env"
@@ -54,7 +52,6 @@ tmp=$(mktemp "$config_dir/.tribunal.env.XXXXXX")
 trap 'rm -f "$tmp"' EXIT
 {
   printf "GU_LOG_DIR='%s'\n" "$GU_LOG_DIR"
-  printf "USAGE_MONITOR='%s'\n" "$USAGE_MONITOR"
 } > "$tmp"
 chmod 600 "$tmp"
 mv "$tmp" "$config_file"
@@ -75,16 +72,51 @@ set -a
 . "$deploy_env"
 set +a
 : "${GU_LOG_DIR:?Missing GU_LOG_DIR in $deploy_env}"
-: "${USAGE_MONITOR:?Missing USAGE_MONITOR in $deploy_env}"
-test -x "$USAGE_MONITOR"
 cd "$GU_LOG_DIR"
+
+# Stop dispatch first. If an article is in flight, the service stays active
+# until that whole article (including its transient Codex unit) reaches the
+# article boundary. Never mutate or stash the checkout while it is live.
+if systemctl --user is-active --quiet tribunal-loop; then
+  touch .score-loop/control/stop-graceful
+  # wait for service inactive (minutes → up to 60min if article is mid-stage)
+  until [ "$(systemctl --user is-active tribunal-loop)" != "active" ]; do sleep 10; done
+fi
+
+# Fetch only updates Git object/ref storage; it does not touch checkout bytes.
+# Materialize the recovery helper from the freshly fetched protected main so
+# the first rollout also works when the old checkout does not have this file.
+git fetch origin main
+umask 077
+recovery_helper="$(
+  mktemp "${TMPDIR:-/tmp}/gu-log-tribunal-recovery.XXXXXX.py"
+)"
+trap 'rm -f "$recovery_helper"' EXIT
+git show origin/main:scripts/tribunal-post-pair-snapshot.py > "$recovery_helper"
+
+# Resolve any durable bilingual exchange evidence before stash/checkout can
+# touch tracked post bytes. An unknown journal keeps deployment failed closed.
+recovered="$(
+  python3 "$recovery_helper" \
+    recover-pending src/content/posts
+)"
+case "$recovered" in
+  ''|*[!0-9]*)
+    echo "Invalid Tribunal recovery count: $recovered" >&2
+    exit 78
+    ;;
+esac
+echo "Recovered $recovered pending bilingual writer transaction(s)."
+rm -f "$recovery_helper"
+trap - EXIT
 
 did_stash=false
 if ! git diff --quiet || ! git diff --cached --quiet || [ -n "$(git ls-files --others --exclude-standard)" ]; then
-  git stash push -m "wip" --include-untracked      # uncommitted tribunal rewrites live here
+  # Journal/restore evidence is gitignored, so --include-untracked cannot
+  # detach it from the canonical post directory.
+  git stash push -m "wip" --include-untracked
   did_stash=true
 fi
-git fetch origin main
 git checkout main && git merge --ff-only origin/main
 if [ "$did_stash" = true ]; then
   git stash pop
@@ -93,6 +125,7 @@ fi
 # Redeploy every tracked user unit so the effective runtime cannot silently
 # drift behind the checkout.
 install -d -m 700 "$HOME/.config/systemd/user"
+install -m 0644 scripts/tribunal-runtime.slice "$HOME/.config/systemd/user/tribunal-runtime.slice"
 install -m 0644 scripts/tribunal-loop.service "$HOME/.config/systemd/user/tribunal-loop.service"
 install -m 0644 scripts/tribunal-pass-audit.service "$HOME/.config/systemd/user/tribunal-pass-audit.service"
 install -m 0644 scripts/tribunal-pass-audit.timer "$HOME/.config/systemd/user/tribunal-pass-audit.timer"
@@ -106,11 +139,6 @@ systemctl --user enable tribunal-pass-audit.timer
 systemctl --user restart tribunal-pass-audit.timer
 loginctl enable-linger "$USER"
 
-# If tribunal code changed AND workers are running, drain + restart. Do not
-# combine this path with the force-terminate recovery below.
-touch .score-loop/control/stop-graceful
-# wait for service inactive (minutes → up to 60min if article is mid-stage)
-until [ "$(systemctl --user is-active tribunal-loop)" != "active" ]; do sleep 10; done
 systemctl --user start tribunal-loop   # supervisor auto-syncs worker worktrees at startup
 DEPLOY
 ```
@@ -123,26 +151,44 @@ deploy 時的 timer restart 可能立刻補跑一次 audit。這是預期行為�
 `enable` 讓 user unit 在 user manager 啟動時自動回來；`enable-linger`
 讓 user manager 在未登入時也會於開機後存在。兩個都要有，少一個就
 不能宣稱 reboot-persistent。部署後用 wrapper doctor 驗證 unit、linger、
-strict provider contract，以及目前 service PID 寫下的 writer preflight
-狀態；這個日常檢查不會再花一次 Claude quota：
+strict provider contract、loaded resource slice，以及目前 service PID 寫下
+的 writer preflight 狀態；這個日常檢查不會再執行一次 Codex：
 
 ```bash
 bash scripts/cc-tribunal-loop-wrapper.sh --doctor
 ```
 
-只有需要重新驗證 Claude CLI/auth 時才明確執行 live probe；成功輸出必須是
-exact `OK`，wrapper 才會放行：
+只有需要重新驗證 Codex CLI/auth 與實際寫入 sandbox 時才明確執行 live
+probe。它會在 disposable workspace 跑 bounded write canary，並重用正式
+writer 的 `workspace-write`、tmp exclusion、network-off executor；canary
+內容完全吻合後才輸出 exact `OK`：
 
 ```bash
 bash scripts/cc-tribunal-loop-wrapper.sh --doctor --live-probe
 ```
 
+Deployed judge、writer 與 write-canary 每次都由同一 command builder 建立
+transient systemd service。`KillMode=control-group` 會連 `setsid()` 後代一起
+回收；每次 invocation 有獨立 Memory/CPU/Tasks 上限，並和 supervisor、
+build workers 共用 `tribunal-runtime.slice` 的 aggregate ceiling。Startup
+若找不到已載入的 tracked slice，會在 article claim 前 exit 78，不會退回
+PGID cleanup 或 compatibility provider。
+
+Writer 的雙語 CAS 在第一次 exchange 前會 fsync mode-0600 journal。Startup
+會先掃 main checkout，再於任何 worker worktree sync 前掃現有 workers；
+可判定的 interrupted transaction 會重入復原，unknown/human/symlink/FIFO
+狀態則保留 evidence 並在 dispatch 前 fail closed。不要手動刪除
+`src/content/posts/.tribunal-pair-journal-*` 或對應 restore temp。
+
 部署 checklist：
 
-- `tribunal.env` 的 `GU_LOG_DIR`、off-repo `USAGE_MONITOR` 都存在且可執行。
-- Codex 與 Claude CLI 已安裝、已驗證 non-interactive auth。
+- `tribunal.env` 的 `GU_LOG_DIR` 存在且指向有效 checkout；不再設定或依賴
+  off-repo combined `USAGE_MONITOR`。
+- Codex CLI 已安裝、已驗證 non-interactive auth；deployed runtime 不讀
+  Claude CLI、Claude token 或 `~/.cc-cron-token`。
 - `systemctl --user enable tribunal-loop` 回報 enabled。
-- 下列三個 source-match 都 exit 0：
+- 下列四個 source-match 都 exit 0：
+  - `cmp -s scripts/tribunal-runtime.slice "$HOME/.config/systemd/user/tribunal-runtime.slice"`
   - `cmp -s scripts/tribunal-loop.service "$HOME/.config/systemd/user/tribunal-loop.service"`
   - `cmp -s scripts/tribunal-pass-audit.service "$HOME/.config/systemd/user/tribunal-pass-audit.service"`
   - `cmp -s scripts/tribunal-pass-audit.timer "$HOME/.config/systemd/user/tribunal-pass-audit.timer"`
@@ -160,7 +206,12 @@ bash scripts/cc-tribunal-loop-wrapper.sh --doctor --live-probe
   沒有未審核的 override；若非空，先逐一確認 effective contract。
 - `loginctl enable-linger "$USER"` 後 `loginctl show-user "$USER" -p Linger --value` 回報 yes。
 - `bash scripts/cc-tribunal-loop-wrapper.sh --doctor` 全數通過。
-- 啟動後 monitor 顯示 strict role routing、`GP_WRITER_MODE=cli` 與 writer preflight passed。
+- 啟動後 monitor 顯示 strict role routing、`GP_WRITER_MODE=codex` 與 writer preflight passed。
+
+Deployed strict mode 的四個 judges 與 writer 全部由 Codex 執行；每個角色的
+model 以 `.codex/agents/<role>.toml` 為 SSOT。`GP_WRITER_MODE=cli` 只保留
+舊 caller 相容性，不是 production 可接受的設定；deployed preflight 看到
+它會在任何 article claim 前以 rc 78 fail closed。
 
 只有 graceful drain 明確卡住時，才由 operator **另跑**以下 recovery；它不會接在正常 deploy 後自動執行：
 
@@ -304,9 +355,11 @@ Log interpretation:
 
 ## Auto scale-down / up (memory throttle)
 
-When `--workers > 1`, the supervisor samples its own cgroup memory each loop
-iteration and adjusts a soft cap on the active worker count. Keeps the
-service from OOM-killing itself when five parallel `pnpm build`s burst.
+When `--workers > 1`, the supervisor samples the shared
+`tribunal-runtime.slice` memory each loop iteration and adjusts a soft cap on
+the active worker count. The slice includes the supervisor/build workers and
+all transient Codex judge/writer services, so Codex RSS cannot disappear from
+autoscaling or escape the aggregate 4G/200% boundary.
 
 **Decision ladder** (per iteration):
 
@@ -348,9 +401,9 @@ arg. Tune thresholds in `tribunal-quota-loop.sh` (search `AUTOSCALE_*`).
 
 ## Quota Controller (closed-loop)
 
-Production 由 usage monitor 的 OpenAI session / weekly quota window 驅動
-closed-loop controller。每個 window 都以 reset 倒數推回目前應有的
-ideal burn line：
+Production 由 provider-specific Codex JSON 的 session / weekly quota
+window 驅動 closed-loop controller，不讀 combined provider output。每個
+window 都以 reset 倒數推回目前應有的 ideal burn line：
 
 ```
 spendable_pct = 100 - QUOTA_FLOOR
@@ -385,7 +438,7 @@ dispatch gate 或 cooldown 計算。
 | `five_hour_debt` | OpenAI session burn 超前 allowed line — 等理想線追上，0 workers |
 | `weekly_debt` | OpenAI weekly burn 超前 allowed line — 等理想線追上，0 workers |
 | `extra_limit` | Extra usage 超過 `EXTRA_USAGE_LIMIT` 比例 — 用 `MAX_COOLDOWN` 暫停 dispatch |
-| `fallback` | usage-monitor.sh unavailable — conservative 600s cooldown, 1 worker |
+| `fallback` | Codex quota JSON unavailable — conservative 600s cooldown, 1 worker |
 
 **Observability**:
 
@@ -408,18 +461,24 @@ ls -t .score-loop/logs/tribunal-quota-loop-*.log | head -1 | xargs grep 'CONTROL
 ls -t .score-loop/logs/tribunal-quota-loop-*.log | head -1 | xargs grep 'CALIBRATE:'
 ```
 
+Judge 遇到 quota error 時，shell error path 只執行以下 provider-specific
+probe，並直接解析 JSON 的 Codex `primary`／`secondary` windows：
+
+```bash
+codexbar usage --provider codex --source cli --format json --pretty
+```
+
+這條路不呼叫 CodexBar combined usage，也不查 Claude。JSON 缺欄位、帶
+provider error、或 command 失敗時一律視為 unparseable 並 suspend，不從
+人類可讀文字猜 quota。
+
 **Self-calibration**: After each article completes (in single-worker mode), the controller computes the actual quota delta and updates `ARTICLE_COST_PCT` via exponential moving average (alpha=0.3). Cold start uses 0.5% as telemetry only. With sufficient history (≥5 entries), EMA converges to the true average cost.
 
 **Startup rotation**: At daemon startup, entries older than 7 days are pruned from `quota-history.jsonl`.
 
-**Legacy fallback**: Start with `--legacy-quota` to revert to the old binary GO/STOP behavior:
-
-```bash
-# Edit the systemd unit or wrapper to add the flag
-ExecStart=... --workers 2 --legacy-quota
-```
-
-Legacy mode disables: controller, quota-history.jsonl, quota-controller.json, calibration.
+`--legacy-quota` 只保留給 non-deployed compatibility fixtures；deployed
+systemd 明確拒絕這個 flag（rc 78），避免重新啟動 combined provider probe。
+它不是 production rollback。
 
 ### Deadline burst
 
@@ -439,29 +498,25 @@ bash scripts/tribunal-quota-loop.sh --workers 5
 - 調低 `MIN_COOLDOWN` 縮短派送迴圈下限。
 - `AUTOSCALE_OOM_CAP` 仍是記憶體壓力／近期 OOM 下的硬上限；要求 5 workers
   不代表 cgroup 一定允許 5 個同時跑。
-- controller 只讀 OpenAI/Codex quota，**看不到 Claude writer quota**。Burst
-  前要另外確認 Claude CLI 可用額度，不能把 Codex 餘額當成整條 pipeline
-  的唯一燃料表。
+- controller 與 deployed writer 都只使用 OpenAI/Codex quota；deadline
+  burst 不需要、也不得拿 Claude quota 或 credential 當成功條件。
 
-systemd unit 對 off-repo `USAGE_MONITOR` 採 fail-closed：未設定、檔案不存在
-或不可執行時，`ExecStart` 在啟動 loop 前以 78 結束。直接手動執行
-`tribunal-quota-loop.sh` 則保留相容降級，controller 進 `fallback`
-（1 worker / 600 秒），並觸發 operator alert；這個降級不能拿來宣稱
-production daemon healthy。
+systemd unit 不再接受 off-repo `USAGE_MONITOR`，啟動只需要有效的
+`GU_LOG_DIR`。Quota 讀取由 tracked runtime 的 Codex-only JSON path 負責；
+provider-specific JSON 不可讀時的 `fallback` 會觸發 operator alert，且
+不能拿來宣稱 production daemon healthy。
 
 **Rollback procedure**:
 
-```bash
-# 1. Stop the daemon
-systemctl --user stop tribunal-loop
-
-# 2. Add --legacy-quota to the ExecStart line
-vi ~/.config/systemd/user/tribunal-loop.service
-
-# 3. Reload and restart
-systemctl --user daemon-reload
-systemctl --user start tribunal-loop
-```
+1. `systemctl --user stop tribunal-loop`，先保留 runtime ledger、recovery
+   token 與任何 `.tribunal-restore-*` exchange evidence。
+2. 透過正常 feature branch／PR 將 code 與 OpenSpec 整體 revert 到上一個已知
+   可用 release；不可只在新版 strict mode 加 `--legacy-quota` 或偷切
+   Claude fallback。
+3. VM checkout 同步到該 revert 已 merge 的 exact `origin/main`，重新複製
+   匹配版本的 tracked `scripts/tribunal-loop.service`。
+4. `systemctl --user daemon-reload` 後再啟動 service，跑 doctor、monitor 與
+   bounded smoke；provider contract 必須如實顯示該 rollback release 的行為。
 
 ## Troubleshooting
 
@@ -473,7 +528,6 @@ systemctl --user start tribunal-loop
 | `Git drift: state=behind` or `state=diverged` in supervisor log | origin/main advanced while runtime kept local progress / content edits | Expected in fetch-only mode. Runtime keeps processing its current snapshot; use publisher or an explicit operator sync instead of rebasing the daemon worktree. |
 | New code on main isn't reaching running workers | Worker worktrees are stale (see "Worker worktree gotcha" above) | `scripts/tribunal-worker-bootstrap.sh sync` — or restart (supervisor auto-syncs) |
 | Article marked EXHAUSTED after 5 attempts | Real content / scoring issue, or model-induced flakiness | Open the stage log, look at scorer reasons; rewrite manually or flag for human review |
-| Controller stuck in `floor_stop` even though quota looks OK | usage-monitor cache stale, or feedforward over-counting | Check `quota-controller.json` for `five_hr_pct` / `seven_day_pct`; force cache refresh: `rm /tmp/usage-monitor-cache/claude.json` |
+| Controller stuck in `floor_stop` even though quota looks OK | CodexBar reading stale, or feedforward over-counting | Check `quota-controller.json` for `five_hr_pct` / `seven_day_pct`; run `codexbar usage --provider codex --source cli --format json --pretty` directly |
 | `ARTICLE_COST_PCT` too high/low | Calibration EMA hasn't converged (cold start), or multi-worker noise | Check `quota-history.jsonl` for recent deltas; controller will self-correct after ~5 single-worker articles |
-| Controller in `fallback` mode | usage-monitor.sh returns error (OAuth token expired, API down) | SSH to the configured VM, run `"$USAGE_MONITOR" --json` manually to diagnose |
-| Extra usage alarm (`extra_limit` mode) | Extra usage approaching monthly cap | Check `extra_used_usd` / `extra_limit_usd` in quota-controller.json; adjust limit in Anthropic console if intentional |
+| Controller in `fallback` mode | Provider-specific CodexBar command failed or returned invalid JSON | SSH to the configured VM and run the exact CodexBar command above |

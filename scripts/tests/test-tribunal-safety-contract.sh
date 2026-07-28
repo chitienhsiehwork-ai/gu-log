@@ -11,6 +11,7 @@ HELPERS="$ROOT_DIR/scripts/tribunal-helpers.sh"
 WRAPPER="$ROOT_DIR/scripts/cc-tribunal-loop-wrapper.sh"
 LOOP="$ROOT_DIR/scripts/tribunal-quota-loop.sh"
 SERVICE="$ROOT_DIR/scripts/tribunal-loop.service"
+SLICE="$ROOT_DIR/scripts/tribunal-runtime.slice"
 OBSOLETE_CRON="$ROOT_DIR/scripts/cc-cron-tribunal.sh"
 CODEX_AGENTS_DIR="$ROOT_DIR/.codex/agents"
 CODEX_WRITER="$CODEX_AGENTS_DIR/tribunal-writer.toml"
@@ -77,6 +78,50 @@ if ! grep -q 'no output/score-file progress' "$HELPERS"; then
 fi
 pass "Codex idle watchdog semantics are present"
 
+if grep -q 'TRIBUNAL_PROCESS_GROUP_FILE' "$HELPERS"; then
+  fail "watchdog still exposes process-group kill authority through child-visible state"
+fi
+if ! grep -Fq 'tribunal_terminate_process_group "$pid"' "$HELPERS"; then
+  fail "watchdog does not terminate the parent-held judge process group"
+fi
+pass "watchdog kill authority remains parent-held"
+
+judge_exec_body="$(sed -n '/^tribunal_codex_exec()/,/^}/p' "$HELPERS")"
+if printf '%s\n' "$judge_exec_body" | grep -q -- '--sandbox danger-full-access'; then
+  fail "Codex judge still executes untrusted article prose with danger-full-access"
+fi
+if ! printf '%s\n' "$judge_exec_body" |
+     grep -Fq 'tribunal_codex_workspace_prompt_exec "$work_dir" "$model" "$prompt"'; then
+  fail "Codex judge does not use the shared isolated workspace executor"
+fi
+judge_sandbox_body="$(
+  sed -n '/^tribunal_codex_workspace_prompt_exec()/,/^}/p' "$HELPERS"
+)"
+for required in \
+  'approval_policy="never"' \
+  'sandbox_workspace_write.writable_roots=[]' \
+  'sandbox_workspace_write.exclude_slash_tmp=true' \
+  'sandbox_workspace_write.exclude_tmpdir_env_var=true' \
+  'sandbox_workspace_write.network_access=false' \
+  'shell_environment_policy.inherit="core"' \
+  'web_search="disabled"' \
+  '--sandbox workspace-write' \
+  '--ignore-user-config' \
+  '--ignore-rules' \
+  '--ephemeral' \
+  '--strict-config'; do
+  if ! printf '%s\n' "$judge_sandbox_body" | grep -Fq -- "$required"; then
+    fail "Codex judge sandbox is missing required boundary: $required"
+  fi
+done
+pass "Codex judge treats article prose as untrusted inside a network-off read-only-repo sandbox"
+
+if ! git -C "$ROOT_DIR" check-ignore -q \
+  ".score-loop/recovery/fixture.token.json"; then
+  fail "durable Tribunal recovery tokens are not excluded from git state"
+fi
+pass "durable Tribunal recovery tokens stay out of commits"
+
 if ! grep -q '.codex/agents/\$agent_name.toml' "$HELPERS"; then
   fail "Codex tribunal helper does not prefer .codex/agents custom agents"
 fi
@@ -116,8 +161,9 @@ pass "Tribunal model selection: per-role TOML + explicit run-scoped override"
 if ! grep -q 'tribunal_runner_label()' "$HELPERS"; then
   fail "tribunal_runner_label provider-aware helper is missing"
 fi
-if ! grep -q 'codex-%s-medium' "$HELPERS"; then
-  fail "tribunal_runner_label codex path no longer includes the resolved model"
+if ! grep -Fq "printf 'codex-%s-%s" "$HELPERS" ||
+   ! grep -Fq '${TRIBUNAL_CODEX_REASONING:-medium}' "$HELPERS"; then
+  fail "tribunal_runner_label codex path no longer includes the resolved model and actual reasoning effort"
 fi
 if ! grep -q 'runner_label="$(tribunal_runner_label' "$TRIBUNAL"; then
   fail "Tribunal progress runner_label is not resolved through tribunal_runner_label"
@@ -127,20 +173,15 @@ if grep -Eq 'codex-[^:[:space:]]+-medium:(factCheck|librarian|freshEyes|vibe)' "
 fi
 pass "Progress ledger runner_label is provider-aware (codex/claude), not a static codex string"
 
-# Per-judge provider resolver: VibeScorer prefers Claude while the three
-# objective judges stay Codex. Guard the resolver's existence, its vibe
-# special-case, and that model_id / runner_label / exec_raw / watchdog all
-# route through it.
+# Per-judge provider resolver: deployed strict mode keeps every judge on Codex;
+# compatibility mode may still use Claude when strict mode is unset.
 if ! grep -q 'tribunal_judge_provider()' "$HELPERS"; then
   fail "tribunal_judge_provider agent-aware resolver is missing"
-fi
-if ! grep -q 'vibe-opus-scorer)' "$HELPERS"; then
-  fail "tribunal_judge_provider does not route strict vibe-opus-scorer to Claude"
 fi
 if [ "$(grep -cF 'tribunal_judge_provider "$agent_name"' "$HELPERS")" -lt 3 ]; then
   fail "model_id/runner_label/exec_raw/watchdog do not all route through tribunal_judge_provider"
 fi
-pass "per-judge provider resolver present and wired (vibe=Claude, others=Codex)"
+pass "per-judge provider resolver is wired through deployed/compatibility boundaries"
 
 (
   fixture_root="$(mktemp -d "${TMPDIR:-/tmp}/gu-tribunal-codex-model.XXXXXX")"
@@ -263,7 +304,7 @@ pass "Claude model parser is frontmatter-only and exec fails before invocation"
   fixture_root="$(mktemp -d "${TMPDIR:-/tmp}/gu-tribunal-provider-contract.XXXXXX")"
   trap 'rm -rf "$fixture_root"' EXIT
   mkdir -p "$fixture_root/.codex/agents" "$fixture_root/.claude/agents" "$fixture_root/bin"
-  for role in fact-checker librarian fresh-eyes; do
+  for role in vibe-opus-scorer fact-checker librarian fresh-eyes; do
     printf 'model = "gpt-%s-fixture"\n' "$role" > "$fixture_root/.codex/agents/$role.toml"
   done
   printf '%s\n' '---' 'model: claude-vibe-fixture' '---' \
@@ -278,7 +319,12 @@ pass "Claude model parser is frontmatter-only and exec fails before invocation"
   PATH="$fixture_root/bin:/usr/bin:/bin"
 
   got_vibe="$(TRIBUNAL_STRICT_ROLE_PROVIDERS=1 tribunal_judge_provider vibe-opus-scorer)"
-  [ "$got_vibe" = "claude" ] || { echo "x strict vibe = '$got_vibe', want claude" >&2; exit 1; }
+  [ "$got_vibe" = "codex" ] || { echo "x strict vibe = '$got_vibe', want codex" >&2; exit 1; }
+  got_vibe_model="$(TRIBUNAL_STRICT_ROLE_PROVIDERS=1 tribunal_llm_model_id vibe-opus-scorer)"
+  [ "$got_vibe_model" = "gpt-vibe-opus-scorer-fixture" ] || {
+    echo "x strict vibe model = '$got_vibe_model'" >&2
+    exit 1
+  }
   got_fact="$(TRIBUNAL_STRICT_ROLE_PROVIDERS=1 tribunal_judge_provider fact-checker)"
   [ "$got_fact" = "codex" ] || { echo "x strict fact = '$got_fact', want codex" >&2; exit 1; }
   got_model="$(TRIBUNAL_STRICT_ROLE_PROVIDERS=1 tribunal_llm_model_id fact-checker)"
@@ -302,29 +348,71 @@ pass "Claude model parser is frontmatter-only and exec fails before invocation"
     exit 1
   fi
 ) || fail "strict role provider / compatibility fallback behavioral check failed"
-pass "strict routing is role-bound; compatibility fallback and explicit override remain available only when strict is unset"
+pass "strict routing keeps all four judges on role-pinned Codex; compatibility fallback remains strict-off only"
 
 if ! grep -q '^Environment=TRIBUNAL_STRICT_ROLE_PROVIDERS=1$' "$SERVICE" ||
-   ! grep -q '^Environment=GP_WRITER_MODE=cli$' "$SERVICE"; then
-  fail "systemd unit does not select strict role providers + CLI writer"
+   ! grep -q '^Environment=GP_WRITER_MODE=codex$' "$SERVICE" ||
+   ! grep -q '^Slice=tribunal-runtime.slice$' "$SERVICE" ||
+   ! grep -q '^export GP_WRITER_MODE=codex$' "$WRAPPER"; then
+  fail "systemd unit does not select strict Codex judges + Codex writer"
+fi
+if ! grep -q '^MemoryMax=4G$' "$SLICE" ||
+   ! grep -q '^CPUQuota=200%$' "$SLICE" ||
+   ! grep -q '^TasksMax=1024$' "$SLICE"; then
+  fail "shared Tribunal slice does not preserve the aggregate resource boundary"
+fi
+if ! grep -Fq -- '--slice=tribunal-runtime.slice' "$HELPERS" ||
+   ! grep -Fq -- '--property=KillMode=control-group' "$HELPERS" ||
+   ! grep -Fq -- '--expand-environment=no' "$HELPERS" ||
+   ! grep -q 'tribunal_stop_systemd_invocation' "$HELPERS"; then
+  fail "deployed Codex calls lack transient-service cgroup containment"
+fi
+if grep -Eq 'CLAUDE_CODE_OAUTH_TOKEN|cc-cron-token' "$WRAPPER" "$SERVICE"; then
+  fail "deployed service/wrapper still reads Claude credentials"
+fi
+if grep -q 'USAGE_MONITOR' "$WRAPPER" "$SERVICE"; then
+  fail "deployed service/wrapper still depends on an off-repo combined usage monitor"
 fi
 if ! grep -q 'deployed_runtime_preflight' "$LOOP" ||
    ! grep -q 'tribunal_writer_preflight' "$HELPERS"; then
   fail "deployed writer preflight is not wired before quota-loop dispatch"
 fi
+if ! grep -q 'recover-pending' "$LOOP" ||
+   ! grep -q 'recover-pending "$wt/src/content/posts"' "$LOOP"; then
+  fail "deployed startup does not recover pending canonical bilingual transactions"
+fi
+worker_recovery_line="$(
+  grep -n 'recover_worker_pending_transactions "$wt"' "$LOOP" |
+    head -1 | cut -d: -f1
+)"
+worker_sync_line="$(
+  grep -n 'tribunal-worker-bootstrap.sh" sync' "$LOOP" |
+    head -1 | cut -d: -f1
+)"
+if [ -z "$worker_recovery_line" ] || [ -z "$worker_sync_line" ] ||
+   [ "$worker_recovery_line" -ge "$worker_sync_line" ]; then
+  fail "worker crash journals are not recovered before destructive worktree sync"
+fi
 (
   fixture_root="$(mktemp -d "${TMPDIR:-/tmp}/gu-tribunal-writer-preflight.XXXXXX")"
   trap 'rm -rf "$fixture_root"' EXIT
-  mkdir -p "$fixture_root/.claude/agents" "$fixture_root/bin"
-  printf '%s\n' '---' 'model: claude-writer-fixture' '---' \
-    > "$fixture_root/.claude/agents/tribunal-writer.md"
-  cat > "$fixture_root/bin/claude" <<'FAKE_CLAUDE'
+  mkdir -p "$fixture_root/.codex/agents" "$fixture_root/bin"
+  printf 'model = "gpt-writer-fixture"\n' \
+    > "$fixture_root/.codex/agents/tribunal-writer.toml"
+  cat > "$fixture_root/bin/codex" <<'FAKE_CODEX'
 #!/usr/bin/env bash
-printf '%s\n' "$*" > "$FAKE_CLAUDE_ARGS"
-cat >/dev/null
+if [ "${1:-}" = "exec" ] && [ "${2:-}" = "--help" ]; then exit 0; fi
+prompt="${!#}"
+for ((i = 1; i < $#; i++)); do
+  printf '%s\n' "${!i}"
+done > "$FAKE_CODEX_ARGS"
+path="$(printf '%s\n' "$prompt" | sed -n 's/^Canary path: //p')"
+token="$(printf '%s\n' "$prompt" | sed -n 's/^Canary token: //p')"
+[ -n "$path" ] && [ -n "$token" ] || exit 2
+printf '%s\n' "$token" > "$path"
 printf 'OK\n'
-FAKE_CLAUDE
-  chmod +x "$fixture_root/bin/claude"
+FAKE_CODEX
+  chmod +x "$fixture_root/bin/codex"
   # shellcheck disable=SC1090
   source "$HELPERS"
   REPO_ROOT="$fixture_root"
@@ -337,22 +425,47 @@ FAKE_CLAUDE
     echo "x writer preflight accepted unconsumed subagent mode" >&2
     exit 1
   fi
-  PATH="$fixture_root/bin:$PATH" FAKE_CLAUDE_ARGS="$args" GP_WRITER_MODE=cli \
-    TRIBUNAL_WRITER_PREFLIGHT_TIMEOUT_SEC=2 tribunal_writer_preflight >/dev/null
-  grep -q -- '--no-session-persistence' "$args" || {
-    echo "x writer preflight is not non-persistent" >&2
-    exit 1
-  }
-  grep -q -- '--tools ' "$args" || {
-    echo "x writer preflight no-tools contract is missing" >&2
-    exit 1
-  }
-  if grep -q -- '--add-dir' "$args"; then
-    echo "x writer preflight unexpectedly grants repo access" >&2
+  if GP_WRITER_MODE=cli tribunal_writer_preflight >/dev/null 2>&1; then
+    echo "x writer preflight accepted compatibility-only cli mode" >&2
     exit 1
   fi
-) || fail "bounded non-interactive writer preflight behavioral check failed"
-pass "deployed systemd runtime selects strict routing and bounded CLI writer preflight"
+  PATH="$fixture_root/bin:$PATH" FAKE_CODEX_ARGS="$args" GP_WRITER_MODE=codex \
+    TRIBUNAL_WRITER_PREFLIGHT_TIMEOUT_SEC=2 tribunal_writer_preflight >/dev/null
+  cat > "$fixture_root/expected.args" <<'EXPECTED_ARGS'
+exec
+--model
+gpt-writer-fixture
+-c
+model_reasoning_effort="medium"
+-c
+approval_policy="never"
+-c
+sandbox_workspace_write.writable_roots=[]
+-c
+sandbox_workspace_write.exclude_slash_tmp=true
+-c
+sandbox_workspace_write.exclude_tmpdir_env_var=true
+-c
+sandbox_workspace_write.network_access=false
+-c
+shell_environment_policy.inherit="core"
+-c
+web_search="disabled"
+--sandbox
+workspace-write
+--ignore-user-config
+--ignore-rules
+--ephemeral
+--strict-config
+--skip-git-repo-check
+--
+EXPECTED_ARGS
+  cmp -s "$fixture_root/expected.args" "$args" || {
+    diff -u "$fixture_root/expected.args" "$args" >&2 || true
+    exit 1
+  }
+) || fail "bounded Codex write-canary preflight behavioral check failed"
+pass "deployed runtime selects strict Codex routing and reuses the exact writer sandbox for preflight"
 
 (
   fixture_root="$(mktemp -d "${TMPDIR:-/tmp}/gu-tribunal-notifier.XXXXXX")"
@@ -391,8 +504,25 @@ fi
 if ! grep -q 'Do not run the full tribunal' "$CODEX_WRITER"; then
   fail "Codex tribunal writer prompt does not prohibit nested tribunal/quota-burning calls"
 fi
-if ! grep -q 'Use absolute paths under the Repo root' "$TRIBUNAL"; then
-  fail "Tribunal writer task prompt does not force absolute repo paths"
+if ! grep -q 'The Repo root is read-only reference material' "$TRIBUNAL" ||
+   ! grep -q 'TRIBUNAL_CANDIDATE_ZH_PATH' "$TRIBUNAL"; then
+  fail "Tribunal writer task prompt does not confine edits to candidate paths"
+fi
+if ! grep -q 'tribunal_codex_writer_exec' "$HELPERS" ||
+   ! grep -q 'tribunal_codex_writer_prompt_exec' "$HELPERS" ||
+   ! grep -q -- '--sandbox workspace-write' "$HELPERS" ||
+   ! grep -q 'sandbox_workspace_write.exclude_slash_tmp=true' "$HELPERS"; then
+  fail "Tribunal Codex writer lacks its dedicated fail-closed sandbox"
+fi
+if ! sed -n '/^tribunal_codex_writer_exec()/,/^}/p' "$HELPERS" |
+     grep -q 'tribunal_codex_writer_prompt_exec' ||
+   ! sed -n '/^tribunal_codex_writer_prompt_exec()/,/^}/p' "$HELPERS" |
+     grep -q 'tribunal_codex_workspace_prompt_exec' ||
+   ! sed -n '/^tribunal_writer_preflight()/,/^)/p' "$HELPERS" |
+     grep -q 'tribunal_codex_writer_prompt_exec' ||
+   [ "$(sed -n '/^tribunal_codex_workspace_prompt_exec()/,/^}/p' "$HELPERS" |
+        grep -c -- '--sandbox workspace-write')" -ne 1 ]; then
+  fail "formal writer and deployed canary do not share one exact sandbox executor"
 fi
 if grep -q 'WRITING_GUIDELINES.md' "$TRIBUNAL" "$CODEX_WRITER"; then
   fail "Tribunal writer prompt references removed WRITING_GUIDELINES.md"

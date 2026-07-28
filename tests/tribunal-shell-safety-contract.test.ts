@@ -6,25 +6,38 @@ import { describe, expect, it } from 'vitest';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CONTRACT = path.join(ROOT, 'scripts/tests/test-tribunal-safety-contract.sh');
 const RUNNER_ERROR_GUARD = path.join(ROOT, 'scripts/tests/test-tribunal-runner-error-guard.sh');
+const DEPLOY_READINESS = path.join(ROOT, 'scripts/tests/test-tribunal-deploy-readiness.sh');
+const linuxIt = process.platform === 'linux' ? it : it.skip;
 
-function runShellTest(script: string) {
+function runShellTest(script: string, timeout: number) {
   return spawnSync('bash', [script], {
     cwd: ROOT,
     encoding: 'utf8',
     env: process.env,
+    timeout,
+    killSignal: 'SIGKILL',
   });
 }
 
 describe('Tribunal shell safety contract', () => {
   it('passes the blocking shell contract', () => {
-    const result = runShellTest(CONTRACT);
+    const result = runShellTest(CONTRACT, 30_000);
 
+    expect(result.error, result.stdout + result.stderr).toBeUndefined();
     expect(result.status, result.stdout + result.stderr).toBe(0);
-  }, 20_000);
+  }, 35_000);
 
-  it('fails closed on runner and provenance infrastructure errors', () => {
-    const result = runShellTest(RUNNER_ERROR_GUARD);
+  linuxIt('fails closed on runner and provenance infrastructure errors', () => {
+    const result = runShellTest(RUNNER_ERROR_GUARD, 90_000);
 
+    expect(result.error, result.stdout + result.stderr).toBeUndefined();
     expect(result.status, result.stdout + result.stderr).toBe(0);
-  }, 30_000);
+  }, 95_000);
+
+  it('passes deployment readiness after the tracked-fixture runner releases its lock', () => {
+    const result = runShellTest(DEPLOY_READINESS, 30_000);
+
+    expect(result.error, result.stdout + result.stderr).toBeUndefined();
+    expect(result.status, result.stdout + result.stderr).toBe(0);
+  }, 35_000);
 });

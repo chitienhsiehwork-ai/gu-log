@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Regression tests for tribunal shell quota parsing. Static only: no codexbar,
-# no Codex/Claude CLI calls, and no tribunal pipeline execution.
+# Regression tests for the shell quota-error probe. Uses a fake CodexBar only:
+# no Codex/Claude CLI calls and no tribunal pipeline execution.
 
 set -euo pipefail
 
@@ -13,40 +13,124 @@ source "$ROOT_DIR/scripts/tribunal-helpers.sh"
 fail() { echo "x $*" >&2; exit 1; }
 pass() { echo "ok $*"; }
 
-sample='== Codex 0.139.0 (oauth) ==
-Session: 70% left [========----]
-Resets in 12m
-Weekly: 64% left [=======-----]
-Pace: On pace | Expected 36% used | Runs out in 4d 10h
-Resets in 4d 11h
-Credits: 0 left
-Account: pnk7x9qwyw@privaterelay.appleid.com
-Plan: Pro 5x
+TMP="$(mktemp -d "${TMPDIR:-/tmp}/gu-tribunal-shell-quota.XXXXXX")"
+trap 'rm -rf "$TMP"' EXIT
+mkdir -p "$TMP/bin"
 
-== Claude 2.1.177 (claude) ==
-Session: 4% left [------------]
-Resets in 2h 44m
-Weekly: 90% left [==========--]
-Pace: 6% in deficit | Expected 4% used | Runs out in 2d 8h
-Resets in 6d 17h'
+sample='[
+  {
+    "provider": "codex",
+    "source": "cli",
+    "usage": {
+      "primary": {
+        "usedPercent": 30,
+        "windowMinutes": 300,
+        "resetsAt": "2026-07-28T00:12:00Z"
+      },
+      "secondary": {
+        "usedPercent": 36,
+        "windowMinutes": 10080,
+        "resetsAt": "2026-08-01T11:00:00Z"
+      }
+    }
+  }
+]'
 
-codex_block="$(TRIBUNAL_QUOTA_CODEXBAR_OUTPUT="$sample" tribunal_quota_codexbar_block codex)"
-parsed="$(tribunal_quota_parse_block "$codex_block")"
+cat > "$TMP/bin/codexbar" <<'CODEXBAR'
+#!/usr/bin/env bash
+printf '%s\n' "$@" > "$CODEXBAR_ARGV"
+printf '%s\n' "$CODEXBAR_FIXTURE"
+CODEXBAR
+chmod +x "$TMP/bin/codexbar"
+
+CODEXBAR_ARGV="$TMP/codexbar.argv" \
+CODEXBAR_FIXTURE="$sample" \
+PATH="$TMP/bin:$PATH" \
+  tribunal_quota_codexbar_json > "$TMP/codexbar.json"
+
+cat > "$TMP/expected.argv" <<'ARGV'
+usage
+--provider
+codex
+--source
+cli
+--format
+json
+--pretty
+ARGV
+cmp -s "$TMP/expected.argv" "$TMP/codexbar.argv" ||
+  fail "quota probe argv drifted from the provider-specific Codex JSON command"
+pass "quota errors invoke only the exact Codex provider/source JSON argv"
+
+now_epoch="$(
+  python3 - <<'PY'
+import datetime
+print(int(datetime.datetime(2026, 7, 28, tzinfo=datetime.timezone.utc).timestamp()))
+PY
+)"
+parsed="$(TRIBUNAL_QUOTA_NOW_EPOCH="$now_epoch" tribunal_quota_parse_json "$sample")"
 IFS='|' read -r session_left session_reset weekly_left weekly_reset <<< "$parsed"
 
 [ "$session_left" = "70" ] || fail "session percent should be 70, got $session_left"
 [ "$session_reset" = "720" ] || fail "session reset should be 720s (12m), got $session_reset"
 [ "$weekly_left" = "64" ] || fail "weekly percent should be 64, got $weekly_left"
 [ "$weekly_reset" = "385200" ] || fail "weekly reset should be 385200s (4d11h), got $weekly_reset"
-pass "codexbar multi-line session/weekly reset parser handles real format"
+pass "CodexBar JSON parser reads primary/secondary usage and ISO reset times"
 
-pace_seconds="$(tribunal_quota_seconds_from_text 'Pace: On pace | Expected 36% used | Runs out in 4d 10h')"
-if [ "$weekly_reset" = "$pace_seconds" ]; then
-  fail "weekly reset used Pace/Runs out duration ($pace_seconds) instead of Resets duration"
+stale_reset="$(
+  printf '%s\n' "$sample" |
+    jq --argjson now "$now_epoch" \
+      '.[0].usage.primary.resetsAt = $now'
+)"
+if TRIBUNAL_QUOTA_NOW_EPOCH="$now_epoch" \
+  tribunal_quota_parse_json "$stale_reset" >/dev/null 2>&1; then
+  fail "Codex quota parser accepted an expired primary reset"
 fi
-pass "Pace/Runs out line is not used as the weekly reset"
+past_reset="$(
+  printf '%s\n' "$sample" |
+    jq --argjson past "$((now_epoch - 1))" \
+      '.[0].usage.secondary.resetsAt = $past'
+)"
+if TRIBUNAL_QUOTA_NOW_EPOCH="$now_epoch" \
+  tribunal_quota_parse_json "$past_reset" >/dev/null 2>&1; then
+  fail "Codex quota parser accepted an expired secondary reset"
+fi
+wrong_source="$(printf '%s\n' "$sample" | jq '.[0].source = "web"')"
+if TRIBUNAL_QUOTA_NOW_EPOCH="$now_epoch" \
+  tribunal_quota_parse_json "$wrong_source" >/dev/null 2>&1; then
+  fail "Codex quota parser accepted a non-CLI source"
+fi
+wrong_window="$(
+  printf '%s\n' "$sample" |
+    jq '.[0].usage.primary.windowMinutes = 60'
+)"
+if TRIBUNAL_QUOTA_NOW_EPOCH="$now_epoch" \
+  tribunal_quota_parse_json "$wrong_window" >/dev/null 2>&1; then
+  fail "Codex quota parser accepted drifted window metadata"
+fi
+pass "quota JSON parser rejects expired resets and source/window schema drift"
 
-decision="$(TRIBUNAL_QUOTA_CODEXBAR_OUTPUT="$sample" GP_QUOTA_MAX_WAIT=6h tribunal_quota_decision codex 0)"
+claude_only='[{"provider":"claude","source":"cli","usage":{"primary":{"usedPercent":100,"resetsAt":"2026-07-28T00:12:00Z"},"secondary":{"usedPercent":10,"resetsAt":"2026-08-01T11:00:00Z"}}}]'
+if TRIBUNAL_QUOTA_NOW_EPOCH="$now_epoch" \
+  tribunal_quota_parse_json "$claude_only" >/dev/null 2>&1; then
+  fail "Codex quota parser accepted a Claude-only payload"
+fi
+combined="$(
+  printf '%s\n' "$sample" |
+    jq '. + [{"provider":"claude","source":"cli","usage":{}}]'
+)"
+if TRIBUNAL_QUOTA_NOW_EPOCH="$now_epoch" \
+  tribunal_quota_parse_json "$combined" >/dev/null 2>&1; then
+  fail "Codex quota parser accepted a combined-provider payload"
+fi
+pass "quota JSON parsing rejects Claude-only/combined-provider substitution"
+
+decision="$(
+  TRIBUNAL_QUOTA_CODEXBAR_JSON="$sample" \
+  TRIBUNAL_QUOTA_NOW_EPOCH="$now_epoch" \
+  GP_QUOTA_MAX_WAIT=6h \
+    tribunal_quota_decision codex 0
+)"
 IFS='|' read -r action tier reset_seconds reason <<< "$decision"
 [ "$action" = "wait" ] || fail "decision action should be wait, got $action ($decision)"
 [ "$tier" = "session" ] || fail "decision tier should be session, got $tier ($decision)"
@@ -57,8 +141,13 @@ case "$reason" in
 esac
 pass "short session quota decision sleeps until reset"
 
-weekly_exhausted="${sample/Weekly: 64% left/Weekly: 0% left}"
-decision="$(TRIBUNAL_QUOTA_CODEXBAR_OUTPUT="$weekly_exhausted" GP_QUOTA_MAX_WAIT=6h tribunal_quota_decision codex 0)"
+weekly_exhausted="$(printf '%s\n' "$sample" | jq '.[0].usage.secondary.usedPercent = 100')"
+decision="$(
+  TRIBUNAL_QUOTA_CODEXBAR_JSON="$weekly_exhausted" \
+  TRIBUNAL_QUOTA_NOW_EPOCH="$now_epoch" \
+  GP_QUOTA_MAX_WAIT=6h \
+    tribunal_quota_decision codex 0
+)"
 IFS='|' read -r action tier reset_seconds reason <<< "$decision"
 [ "$action" = "suspend" ] || fail "weekly exhausted action should suspend, got $action ($decision)"
 [ "$tier" = "weekly" ] || fail "weekly exhausted tier should be weekly, got $tier ($decision)"
@@ -68,3 +157,38 @@ case "$reason" in
   *) fail "weekly exhausted reason should mention 4d 11h, got: $reason" ;;
 esac
 pass "weekly quota exhaustion suspends with real reset metadata"
+
+rm -f "$TMP/codexbar.argv"
+decision="$(CODEXBAR_ARGV="$TMP/codexbar.argv" CODEXBAR_FIXTURE="$sample" \
+  PATH="$TMP/bin:$PATH" tribunal_quota_decision claude 0)"
+IFS='|' read -r action tier reset_seconds reason <<< "$decision"
+if [ "$action" != "suspend" ] || [ "$tier" != "unknown" ]; then
+  fail "legacy Claude compatibility quota should fail closed without a probe"
+fi
+[ ! -e "$TMP/codexbar.argv" ] ||
+  fail "legacy Claude compatibility path invoked CodexBar"
+pass "legacy Claude compatibility quota path never probes Claude or combined usage"
+
+(
+  tribunal_writer_mode() { printf 'codex\n'; }
+  tribunal_writer_exec_raw() {
+    printf '429 quota exceeded\n'
+    return 42
+  }
+  status_file="$TMP/writer-quota-status.json"
+  set +e
+  TRIBUNAL_QUOTA_CODEXBAR_JSON="$weekly_exhausted" \
+  TRIBUNAL_QUOTA_NOW_EPOCH="$now_epoch" \
+  TRIBUNAL_QUOTA_STATUS_FILE="$status_file" \
+    tribunal_writer_exec "$TMP" tribunal-writer 'quota fixture' \
+      >"$TMP/writer-quota.out" 2>&1
+  writer_rc=$?
+  set -e
+  [ "$writer_rc" -eq 75 ] ||
+    fail "Codex writer quota error should suspend with rc75, got $writer_rc"
+  grep -Fxq 'provider=codex' "$status_file" ||
+    fail "Codex writer quota status did not record provider=codex"
+  grep -Fxq 'action=suspend' "$status_file" ||
+    fail "Codex writer quota status did not record suspend"
+) || fail "Codex writer did not route quota errors through the shared JSON handler"
+pass "Codex writer quota errors use the provider-specific JSON wait/suspend path"

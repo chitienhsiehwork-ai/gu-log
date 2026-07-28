@@ -136,6 +136,85 @@ find_post_file_for_ticket() {
     | grep -v '/en-' | head -1
 }
 
+tribunal_post_pair_snapshot_create() {
+  python3 "$SCORE_ROOT/scripts/tribunal-post-pair-snapshot.py" create "$1"
+}
+
+tribunal_post_pair_snapshot_restore() {
+  printf '%s' "$2" |
+    python3 "$SCORE_ROOT/scripts/tribunal-post-pair-snapshot.py" restore "$1" -
+}
+
+tribunal_post_pair_candidate_materialize() {
+  printf '%s' "$2" |
+    python3 "$SCORE_ROOT/scripts/tribunal-post-pair-snapshot.py" \
+      materialize-candidate "$1" -
+}
+
+tribunal_post_pair_candidate_capture() {
+  printf '%s' "$2" |
+    python3 "$SCORE_ROOT/scripts/tribunal-post-pair-snapshot.py" \
+      capture-candidate "$1" -
+}
+
+tribunal_post_pair_candidate_apply() {
+  printf '%s' "$3" |
+    python3 "$SCORE_ROOT/scripts/tribunal-post-pair-snapshot.py" \
+      apply-candidate "$1" "$2" -
+}
+
+tribunal_post_pair_candidate_recover_pending() {
+  python3 "$SCORE_ROOT/scripts/tribunal-post-pair-snapshot.py" \
+    recover-pending "$1"
+}
+
+tribunal_post_pair_candidate_rollback() (
+  local post_path="$1"
+  local baseline_token="$2"
+  local expected_candidate_token="$3"
+  local rollback_dir rollback_rc=0
+
+  rollback_dir="$(mktemp -d "${TMPDIR:-/tmp}/tribunal-rollback.XXXXXX")" ||
+    return 70
+  if ! chmod 700 "$rollback_dir"; then
+    rmdir -- "$rollback_dir" 2>/dev/null || true
+    return 70
+  fi
+
+  # Automatic rollback is the inverse of candidate apply: materialize the
+  # parent-held baseline into a private directory, then compare-and-swap it
+  # over exactly the candidate bytes we previously applied. A human/parallel
+  # canonical edit therefore makes apply-candidate fail closed instead of
+  # being overwritten. The force restore helper remains operator-only.
+  tribunal_post_pair_candidate_materialize \
+    "$rollback_dir" "$baseline_token" || rollback_rc=$?
+  if [ "$rollback_rc" -eq 0 ]; then
+    tribunal_post_pair_candidate_apply \
+      "$post_path" "$rollback_dir" "$expected_candidate_token" ||
+      rollback_rc=$?
+  fi
+  rm -rf -- "$rollback_dir"
+  return "$rollback_rc"
+)
+
+tribunal_post_pair_snapshot_persist_recovery() {
+  # Worker worktrees are disposable and bootstrap may remove them forcefully.
+  # Recovery evidence therefore belongs to the supervisor's durable runtime
+  # root whenever one is available.
+  local recovery_root="${TRIBUNAL_MAIN_REPO:-$SCORE_ROOT}"
+  local recovery_dir="$recovery_root/.score-loop/recovery"
+  mkdir -p "$recovery_dir"
+  chmod 700 "$recovery_dir"
+  printf '%s' "$1" |
+    python3 "$SCORE_ROOT/scripts/tribunal-post-pair-snapshot.py" \
+      persist-recovery "$recovery_dir" -
+}
+
+tribunal_post_pair_snapshot_discard() {
+  printf '%s' "$1" |
+    python3 "$SCORE_ROOT/scripts/tribunal-post-pair-snapshot.py" discard -
+}
+
 # Write score JSON to MDX frontmatter via node helper.
 # Also writes to the en-* counterpart if it exists.
 write_score_to_frontmatter() (
