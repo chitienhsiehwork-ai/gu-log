@@ -521,6 +521,52 @@ test.describe('Component smoke — post page (RelatedArticles, ShareButton, Prev
     expect(errors).toEqual([]);
   });
 
+  test('read-status consumers ignore malformed global events', async ({ page }) => {
+    const errorsByRoute: Record<string, string[]> = {};
+
+    for (const [route, consumer] of [
+      ['/posts/gp-100-20260304-berryxia-ai-ai-prompt', '[data-related-articles]'],
+      ['/posts/gp-144-20260402-ecc-instinct-system', '[data-series-nav]'],
+    ] as const) {
+      await page.goto(route);
+      await expect(page.locator(consumer)).toBeVisible();
+
+      const errors = await page.evaluate(async () => {
+        const capturedErrors: string[] = [];
+        const captureError = (event: ErrorEvent) => {
+          capturedErrors.push(event.error?.message ?? event.message);
+          event.preventDefault();
+        };
+
+        window.addEventListener('error', captureError);
+        window.dispatchEvent(new Event('read-status-changed'));
+        window.dispatchEvent(
+          new CustomEvent('read-status-changed', {
+            detail: { slug: 'bad"]', read: true },
+          })
+        );
+        const hostileDetail = { read: true };
+        Object.defineProperty(hostileDetail, 'slug', {
+          get() {
+            throw new Error('read-status slug denied');
+          },
+        });
+        window.dispatchEvent(new CustomEvent('read-status-changed', { detail: hostileDetail }));
+        await new Promise((resolve) => window.setTimeout(resolve, 0));
+        window.removeEventListener('error', captureError);
+
+        return capturedErrors;
+      });
+
+      errorsByRoute[route] = errors;
+    }
+
+    expect(errorsByRoute).toEqual({
+      '/posts/gp-100-20260304-berryxia-ai-ai-prompt': [],
+      '/posts/gp-144-20260402-ecc-instinct-system': [],
+    });
+  });
+
   for (const theme of ['dark', 'light'] as const) {
     test(`${theme} editorial navigation text meets WCAG AA without side-tab cards`, async ({
       page,
