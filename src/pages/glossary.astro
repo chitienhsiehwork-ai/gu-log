@@ -247,13 +247,25 @@ const allLetters = grouped.map((g) => g.letter);
   });
 
   document.querySelectorAll<HTMLAnchorElement>('.term-link').forEach((link) => {
-    link.addEventListener('click', (e) => {
+    let copyAttempt = 0;
+    let copiedTimeout: ReturnType<typeof setTimeout> | undefined;
+
+    link.addEventListener('click', async (e) => {
       e.preventDefault();
       const url = new URL(link.href);
-      navigator.clipboard.writeText(url.toString());
+      const attempt = ++copyAttempt;
+      if (copiedTimeout) clearTimeout(copiedTimeout);
+      link.classList.remove('copied');
       history.replaceState(null, '', url.hash);
-      link.classList.add('copied');
-      setTimeout(() => link.classList.remove('copied'), 1200);
+
+      try {
+        await navigator.clipboard.writeText(url.toString());
+        if (attempt !== copyAttempt) return;
+        link.classList.add('copied');
+        copiedTimeout = setTimeout(() => link.classList.remove('copied'), 1200);
+      } catch {
+        // The hash link remains usable when Clipboard access is denied or unavailable.
+      }
     });
   });
 </script>
