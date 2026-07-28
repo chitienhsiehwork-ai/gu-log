@@ -335,6 +335,40 @@ test.describe('AI Popup - Mobile (programmatic selection)', () => {
 });
 
 test.describe('Auth Callback', () => {
+  test('GIVEN callback query token WHEN loading same-origin styles THEN does not leak token through Referer', async ({
+    page,
+  }) => {
+    const callbackToken = 'referrer-secret-token';
+    const probePath = '/auth/referrer-probe.css';
+
+    await page.route('**/auth/callback?token=*', async (route) => {
+      const response = await route.fetch();
+      const html = await response.text();
+      const firstActiveHeadElement = html.match(/<(?:link|script|style)\b/)?.[0];
+      expect(firstActiveHeadElement).toBeTruthy();
+      await route.fulfill({
+        response,
+        body: html.replace(
+          firstActiveHeadElement!,
+          `<link rel="stylesheet" href="${probePath}" />\n    ${firstActiveHeadElement}`
+        ),
+      });
+    });
+    await page.route(`**${probePath}`, async (route) => {
+      await route.fulfill({ contentType: 'text/css', body: 'body {}' });
+    });
+
+    const stylesheetRequestPromise = page.waitForRequest(
+      (request) =>
+        request.resourceType() === 'stylesheet' && new URL(request.url()).pathname === probePath
+    );
+    await page.goto(`/auth/callback?token=${callbackToken}`);
+
+    const stylesheetRequest = await stylesheetRequestPromise;
+    const requestHeaders = await stylesheetRequest.allHeaders();
+    expect(requestHeaders.referer ?? '').not.toContain(callbackToken);
+  });
+
   test('GIVEN callback page with token param WHEN loaded THEN stores JWT in localStorage', async ({
     page,
   }) => {
