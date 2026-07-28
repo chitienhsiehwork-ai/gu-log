@@ -31,9 +31,9 @@
 - [x] 4.3 檢查非部署版 `none`／`subagent`／舊版 `cli` 與 CCC 備援仍可用，但測試證明它們不能通過部署版嚴格前置檢查。
 - [x] 4.4 更新部署／監看／autoscale 可執行合約，安裝並驗證 `tribunal-runtime.slice`，證明暫態 Codex RSS 仍受總體 4G／200% 上限約束。
 
-## 5. 驗證與 clawd-vm rollout
+## 5. 驗證與 Tribunal VM rollout
 
 - [x] 5.1 跑 Tribunal 安全、部署就緒、額度控制器、額度錯誤與監看 shell suites，保留精確指令輸出作為情境→測試證據。
 - [x] 5.2 跑擁有上述 shell 合約的 Vitest suites 與 repo 必要的 lint／type／build gates，確認沒有平行測試歸屬或受版控 fixture 競態回歸。
-- [ ] 5.3 在 clawd-vm 同步受版控 unit，執行 `systemctl --user daemon-reload` 與 restart；確認 service 的有效 `PATH` 與子行程環境不注入或讀取 Claude 憑證，驗證啟動／doctor／派送／改寫／額度復原成功，且監看顯示五個 Codex 角色、寫手前置檢查通過與 Codex 供應端限定額度。
+- [ ] 5.3 在 Tribunal VM 同步受版控 unit，執行 `systemctl --user daemon-reload` 與 restart；確認 service 的有效 `PATH` 與子行程環境不注入或讀取 Claude 憑證，驗證啟動／doctor／派送／改寫／額度復原成功，且監看顯示五個 Codex 角色、寫手前置檢查通過與 Codex 供應端限定額度。
 - [ ] 5.4 執行一篇有界的失敗→Codex 改寫→重評 smoke，確認文章領取、寫手沙箱、來源、額度錯誤處理與 journal 全程未呼叫 Claude，再記錄可回復的部署證據。

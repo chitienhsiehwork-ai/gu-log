@@ -1,6 +1,6 @@
 ## Context
 
-clawd-vm 的正式 Tribunal 已有部署版嚴格模式、Codex 評審執行器、Codex 寫手執行器、寫手前置檢查與額度控制器，但目前的供應端邊界並不一致：VibeScorer 與寫手前置檢查仍需要 Claude，service wrapper 也會讀 Claude token；額度路徑還可能啟動合併或 Claude 探測。結果是 Codex 評審與隔離 Codex 寫手都可用時，daemon 仍可能在領取文章前因無關的 Claude 憑證或卡住的 Claude 額度探測失敗。
+Tribunal VM 的正式 Tribunal 已有部署版嚴格模式、Codex 評審執行器、Codex 寫手執行器、寫手前置檢查與額度控制器，但目前的供應端邊界並不一致：VibeScorer 與寫手前置檢查仍需要 Claude，service wrapper 也會讀 Claude token；額度路徑還可能啟動合併或 Claude 探測。結果是 Codex 評審與隔離 Codex 寫手都可用時，daemon 仍可能在領取文章前因無關的 Claude 憑證或卡住的 Claude 額度探測失敗。
 
 這是跨 Tribunal 解析器、寫手沙箱、額度控制器、systemd wrapper、監看與 runbook 的正式環境合約變更。安全底線不變：部署版執行環境必須在領取文章前封閉失敗，寫手只能修改專用候選工作區，實際 provider／model 必須可追溯。
 
@@ -8,7 +8,7 @@ clawd-vm 的正式 Tribunal 已有部署版嚴格模式、Codex 評審執行器�
 
 **Goals:**
 
-- clawd-vm 部署版嚴格模式的 VibeScorer、FactChecker、Librarian、FreshEyes 與 tribunal-writer 全部使用 Codex。
+- Tribunal VM 部署版嚴格模式的 VibeScorer、FactChecker、Librarian、FreshEyes 與 tribunal-writer 全部使用 Codex。
 - 每個角色從自己的 `.codex/agents/<role>.toml` 解析 model，並在既有進度／分數／log 來源邊界記錄實際 provider／model。
 - 正式 service 與 wrapper 不讀取、不匯出、不驗證任何 Claude token 或憑證。
 - 寫手前置檢查使用有逾時的 Codex 寫入 canary，重用正式寫手專用的 `workspace-write` 沙箱與角色設定。
@@ -66,7 +66,7 @@ codexbar usage --provider codex --source cli --format json --pretty
 
 ### 5. 相容備援留在部署邊界之外
 
-非部署版模式可繼續支援 `none`、`subagent`、舊版 `cli` 寫手與 Codex 不存在時的 CCC 評審備援。所有相容 branch 都必須由嚴格／部署 gate 隔開；即使 `claude` 不在 `PATH` 且所有 Claude 憑證都不存在，clawd-vm 的啟動、doctor、派送、改寫、額度處理與復原仍須成功，且不得檢查、呼叫或驗證這些相容 branch。
+非部署版模式可繼續支援 `none`、`subagent`、舊版 `cli` 寫手與 Codex 不存在時的 CCC 評審備援。所有相容 branch 都必須由嚴格／部署 gate 隔開；即使 `claude` 不在 `PATH` 且所有 Claude 憑證都不存在，Tribunal VM 的啟動、doctor、派送、改寫、額度處理與復原仍須成功，且不得檢查、呼叫或驗證這些相容 branch。
 
 替代方案是一次刪除相容 code。這會不必要地擴大變更，並破壞 CCC／本機互動流程；目前只需用可執行合約防止相容路徑回流正式環境。
 
@@ -125,7 +125,7 @@ EN 留在不同版本，也避免同步先抹掉復原證據。
 3. 更新 systemd unit／共用 slice、wrapper、監看／doctor 與 runbook，移除部署版 Claude token／合併監看的前置需求。
 4. 加入不可變描述、暫態 cgroup setsid 清理與 SIGKILL crash-journal 回歸。
 5. 跑 shell／Vitest 合約 suites，確認前置檢查在領取文章前封閉失敗、五個角色來源與精確 CodexBar argv。
-6. 在 clawd-vm 同步受版控 unit，`daemon-reload` 後 restart；以 doctor、監看、journal 與一篇有界文章 smoke 驗證只用 Codex 的路徑。
+6. 在 Tribunal VM 同步受版控 unit，`daemon-reload` 後 restart；以 doctor、監看、journal 與一篇有界文章 smoke 驗證只用 Codex 的路徑。
 
 回復採整體 revert 到前一個已知可用 release 與其匹配的受版控 systemd unit，再 `daemon-reload`／restart；不得只在新版本的嚴格模式內偷切 Claude 備援。回復後的供應端合約必須如實顯示為舊版，不得宣稱只用 Codex。
 
