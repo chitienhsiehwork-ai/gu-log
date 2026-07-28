@@ -755,30 +755,6 @@ run_writer_candidate_transaction() {
   return 0
 }
 
-classify_build_failure() {
-  local rc="$1" build_log="$2" post_file="$3"
-  local post_rel="src/content/posts/$post_file"
-  local en_rel="src/content/posts/en-$post_file"
-  if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then
-    echo operational
-    return 0
-  fi
-  if grep -Eiq 'out of memory|oom-kill|oom killed|killed process|heap out of memory|JavaScript heap out of memory|FATAL ERROR|SIGKILL|Killed$|Exit status 137' "$build_log" 2>/dev/null; then
-    echo operational
-    return 0
-  fi
-  # Only spend writer repair tokens when the full-build evidence points at the
-  # target post or its EN counterpart. Unrelated global/component/build breaks
-  # should fail safely instead of asking the writer to hallucinate a content fix.
-  if grep -Fq "$post_rel" "$build_log" 2>/dev/null || grep -Fq "$en_rel" "$build_log" 2>/dev/null; then
-    if grep -Eiq 'MDX|frontmatter|schema|Expected|Unexpected|SyntaxError|ParseError|cannot render|render|component|validate-posts|content collection|astro:content|src/content/posts' "$build_log" 2>/dev/null; then
-      echo actionable
-      return 0
-    fi
-  fi
-  echo unknown
-}
-
 run_final_build_once() {
   local build_log="$1"
   local lock_dir="${TRIBUNAL_SHARED_LOCK_DIR:-${TRIBUNAL_MAIN_REPO:-$ROOT_DIR}/.score-loop/locks}"
@@ -915,7 +891,7 @@ run_final_build_gate() {
       return 0
     fi
 
-    classification="$(classify_build_failure "$build_rc" "$build_log" "$post_file")"
+    classification="$(tribunal_classify_build_failure "$build_rc" "$build_log" "$post_file")"
     tlog "Final build failure classified as: $classification (rc=$build_rc)"
     if [ "$classification" = "operational" ]; then
       tlog "Final build failed due to likely operational/resource issue; not invoking writer repair."

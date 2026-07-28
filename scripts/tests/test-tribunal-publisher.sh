@@ -25,6 +25,26 @@ git -C "$seed" config user.email test@example.invalid
 git -C "$seed" config user.name "Tribunal Publisher Test"
 mkdir -p "$seed/src/content/posts"
 
+cat > "$seed/package.json" <<'JSON'
+{
+  "scripts": {
+    "build": "astro build"
+  },
+  "packageManager": "pnpm@10.29.3"
+}
+JSON
+cat > "$seed/pnpm-lock.yaml" <<'YAML'
+lockfileVersion: '9.0'
+YAML
+cat > "$seed/pnpm-workspace.yaml" <<'YAML'
+onlyBuiltDependencies:
+  - esbuild
+  - sharp
+YAML
+cat > "$seed/.gitignore" <<'IGNORE'
+node_modules/
+IGNORE
+
 cat > "$seed/src/content/posts/gp-1-test.mdx" <<'POST'
 ---
 ticketId: GP-1
@@ -596,3 +616,315 @@ grep -Fq "worktree kept at $keep_batch_dir for inspection" <<<"$keep_out" \
   || fail "--keep-worktree should report the preserved inspection path"
 git -C "$runtime" worktree remove "$keep_batch_dir" --force
 pass "--keep-worktree explicitly preserves the publisher worktree for inspection"
+
+setup_dependency_runtime() {
+  local target="$1"
+  git clone "$origin" "$target" >/dev/null 2>&1
+  git -C "$target" checkout -b tribunal-dependency-runtime origin/main >/dev/null 2>&1
+  git -C "$target" config user.email test@example.invalid
+  git -C "$target" config user.name "Runtime"
+  mkdir -p "$target/scripts" "$target/.score-loop/state"
+  cp "$ROOT_DIR/scripts/tribunal-publisher.sh" "$target/scripts/tribunal-publisher.sh"
+  cp "$ROOT_DIR/scripts/tribunal-helpers.sh" "$target/scripts/tribunal-helpers.sh"
+  chmod +x "$target/scripts/tribunal-publisher.sh"
+  cat > "$target/scripts/test-validate-hook.sh" <<'HOOK'
+#!/usr/bin/env bash
+exit 0
+HOOK
+  chmod +x "$target/scripts/test-validate-hook.sh"
+  cat > "$target/.score-loop/state/tribunal-progress.json" <<'JSON'
+{
+  "gp-1-test.mdx": { "status": "PASS", "tribunalVersion": 8 }
+}
+JSON
+  printf '{"schemaVersion":1,"entries":{},"batches":{}}\n' > "$target/.score-loop/state/tribunal-publisher.json"
+  printf '{"schemaVersion":1,"events":{}}\n' > "$target/.score-loop/state/tribunal-triage-events.json"
+  printf 'Runtime dependency-test rewrite.\n' >> "$target/src/content/posts/gp-1-test.mdx"
+}
+
+dependency_fake_bin="$TMP/dependency-fake-bin"
+dependency_fake_pnpm="$dependency_fake_bin/pnpm"
+mkdir -p "$dependency_fake_bin"
+cat > "$dependency_fake_pnpm" <<'PNPM'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$*" >> "$PNPM_CALL_LOG"
+case "$1" in
+  install)
+    [ "$*" = "install --frozen-lockfile --prefer-offline" ] || exit 64
+    if [ "$FAKE_PNPM_MODE" = "install-fail" ]; then
+      exit 75
+    fi
+    mkdir -p node_modules/.pnpm
+    cp pnpm-lock.yaml node_modules/.pnpm/lock.yaml
+    ;;
+  run)
+    [ "$*" = "run build" ] || exit 65
+    : > "$BUILD_SENTINEL"
+    case "$FAKE_PNPM_MODE" in
+      reuse)
+        [ -L node_modules ] || exit 76
+        [ "$(readlink node_modules)" = "$EXPECTED_NODE_MODULES" ] || exit 77
+        ;;
+      install-success)
+        [ -f node_modules/.pnpm/lock.yaml ] || exit 78
+        ;;
+      build-fail)
+        exit 79
+        ;;
+      actionable-build-fail)
+        printf '%s\n' 'src/content/posts/gp-1-test.mdx: MDX ParseError: Unexpected token'
+        exit 81
+        ;;
+      informational-build-fail)
+        printf '%s\n' 'INFO indexed src/content/posts/gp-1-test.mdx successfully'
+        printf '%s\n' 'ERROR: database connection failed'
+        exit 82
+        ;;
+      operational-target-build-fail)
+        printf '%s\n' 'src/content/posts/gp-1-test.mdx: MDX ParseError: Unexpected token'
+        printf '%s\n' 'FATAL ERROR: JavaScript heap out of memory'
+        exit 137
+        ;;
+      install-fail)
+        exit 80
+        ;;
+    esac
+    ;;
+  *)
+    exit 66
+    ;;
+esac
+PNPM
+chmod +x "$dependency_fake_pnpm"
+
+run_dependency_apply() {
+  local runtime="$1" pnpm_log="$2" build_sentinel="$3" mode="$4"
+  local branch="$5" worktree="$6"
+  (
+    cd "$runtime"
+    PATH="$dependency_fake_bin:$PATH" \
+    PNPM_CALL_LOG="$pnpm_log" \
+    BUILD_SENTINEL="$build_sentinel" \
+    FAKE_PNPM_MODE="$mode" \
+    EXPECTED_NODE_MODULES="$runtime/node_modules" \
+    TRIBUNAL_PUBLISHER_DISABLE_GH_SCAN=1 \
+    TRIBUNAL_PUBLISHER_VALIDATE_HOOK="$runtime/scripts/test-validate-hook.sh" \
+    bash scripts/tribunal-publisher.sh --apply --max 10 \
+      --branch "$branch" --worktree "$worktree"
+  )
+}
+
+reuse_runtime="$TMP/dependency-reuse-runtime"
+reuse_worktree="$TMP/dependency-reuse-worktree"
+reuse_branch="publisher/dependency-reuse"
+reuse_log="$TMP/dependency-reuse.log"
+reuse_build_sentinel="$TMP/dependency-reuse-build"
+setup_dependency_runtime "$reuse_runtime"
+mkdir -p "$reuse_runtime/node_modules/.pnpm" "$reuse_runtime/node_modules/.bin"
+cp "$reuse_runtime/pnpm-lock.yaml" "$reuse_runtime/node_modules/.pnpm/lock.yaml"
+cat > "$reuse_runtime/node_modules/.bin/astro" <<'ASTRO'
+#!/usr/bin/env bash
+exit 0
+ASTRO
+chmod +x "$reuse_runtime/node_modules/.bin/astro"
+if ! reuse_out="$(
+  run_dependency_apply "$reuse_runtime" "$reuse_log" "$reuse_build_sentinel" \
+    reuse "$reuse_branch" "$reuse_worktree"
+)"; then
+  fail "publisher should reuse exact installed dependencies for a clean matching batch"
+fi
+[ "$(wc -l < "$reuse_log" | tr -d ' ')" = "1" ] \
+  || fail "exact dependency reuse should call pnpm only for the build"
+grep -Fxq 'run build' "$reuse_log" || fail "exact dependency reuse should skip pnpm install"
+[ -e "$reuse_build_sentinel" ] || fail "exact dependency reuse should reach the build"
+grep -q 'Reusing exact runtime dependencies' <<<"$reuse_out" \
+  || fail "publisher should report exact dependency reuse"
+pass "matching manifests and installed lock reuse runtime dependencies without install"
+
+install_runtime="$TMP/dependency-install-runtime"
+install_worktree="$TMP/dependency-install-worktree"
+install_branch="publisher/dependency-install"
+install_log="$TMP/dependency-install.log"
+install_build_sentinel="$TMP/dependency-install-build"
+setup_dependency_runtime "$install_runtime"
+mkdir -p "$install_runtime/node_modules/.pnpm" "$install_runtime/node_modules/.bin"
+printf 'stale installed lock\n' > "$install_runtime/node_modules/.pnpm/lock.yaml"
+cat > "$install_runtime/node_modules/.bin/astro" <<'ASTRO'
+#!/usr/bin/env bash
+exit 0
+ASTRO
+chmod +x "$install_runtime/node_modules/.bin/astro"
+if ! install_out="$(
+  run_dependency_apply "$install_runtime" "$install_log" "$install_build_sentinel" \
+    install-success "$install_branch" "$install_worktree"
+)"; then
+  fail "publisher should install clean-worktree dependencies when installed lock evidence is stale"
+fi
+[ "$(wc -l < "$install_log" | tr -d ' ')" = "2" ] \
+  || fail "stale dependency evidence should install once and build once"
+sed -n '1p' "$install_log" | grep -Fxq 'install --frozen-lockfile --prefer-offline' \
+  || fail "publisher should use the exact fail-closed install command"
+sed -n '2p' "$install_log" | grep -Fxq 'run build' \
+  || fail "publisher should build only after dependency install succeeds"
+[ -e "$install_build_sentinel" ] || fail "installed dependency path should reach the build"
+grep -q 'Installing clean-worktree dependencies' <<<"$install_out" \
+  || fail "publisher should report clean-worktree dependency install"
+pass "stale installed lock falls back to frozen prefer-offline install before build"
+
+manifest_runtime="$TMP/dependency-manifest-runtime"
+manifest_worktree="$TMP/dependency-manifest-worktree"
+manifest_branch="publisher/dependency-manifest"
+manifest_log="$TMP/dependency-manifest.log"
+manifest_build_sentinel="$TMP/dependency-manifest-build"
+setup_dependency_runtime "$manifest_runtime"
+mkdir -p "$manifest_runtime/node_modules/.pnpm" "$manifest_runtime/node_modules/.bin"
+cp "$manifest_runtime/pnpm-lock.yaml" "$manifest_runtime/node_modules/.pnpm/lock.yaml"
+cat > "$manifest_runtime/node_modules/.bin/astro" <<'ASTRO'
+#!/usr/bin/env bash
+exit 0
+ASTRO
+chmod +x "$manifest_runtime/node_modules/.bin/astro"
+printf '\n' >> "$manifest_runtime/package.json"
+if ! manifest_out="$(
+  run_dependency_apply "$manifest_runtime" "$manifest_log" "$manifest_build_sentinel" \
+    install-success "$manifest_branch" "$manifest_worktree"
+)"; then
+  fail "publisher should install dependencies when root and batch manifests differ"
+fi
+sed -n '1p' "$manifest_log" | grep -Fxq 'install --frozen-lockfile --prefer-offline' \
+  || fail "manifest mismatch must bypass dependency reuse"
+grep -q 'Installing clean-worktree dependencies' <<<"$manifest_out" \
+  || fail "publisher should report install after manifest mismatch"
+pass "manifest mismatch bypasses runtime dependency reuse"
+
+install_failure_runtime="$TMP/dependency-install-failure-runtime"
+install_failure_worktree="$TMP/dependency-install-failure-worktree"
+install_failure_branch="publisher/dependency-install-failure"
+install_failure_log="$TMP/dependency-install-failure.log"
+install_failure_build_sentinel="$TMP/dependency-install-failure-build"
+setup_dependency_runtime "$install_failure_runtime"
+if install_failure_out="$(
+  run_dependency_apply "$install_failure_runtime" "$install_failure_log" \
+    "$install_failure_build_sentinel" install-fail \
+    "$install_failure_branch" "$install_failure_worktree" 2>&1
+)"; then
+  fail "publisher must fail closed when clean-worktree dependency install fails"
+fi
+[ ! -e "$install_failure_build_sentinel" ] \
+  || fail "dependency install failure must stop before the build"
+[ "$(jq '[.events[] | select(.kind=="validation_blocked")] | length' \
+  "$install_failure_runtime/.score-loop/state/tribunal-triage-events.json")" = "0" ] \
+  || fail "infrastructure install failure must not permanently block article validation"
+[ ! -e "$install_failure_worktree" ] \
+  || fail "dependency install failure should clean the disposable publisher worktree"
+git -C "$install_failure_runtime" show-ref --verify --quiet "refs/heads/$install_failure_branch" \
+  && fail "dependency install failure should delete the uncommitted publisher branch"
+install_retry_out="$(cd "$install_failure_runtime" && \
+  TRIBUNAL_PUBLISHER_DISABLE_GH_SCAN=1 \
+  bash scripts/tribunal-publisher.sh --dry-run --max 10)"
+grep -q 'publishable PASS: 1' <<<"$install_retry_out" \
+  || fail "dependency install failure must leave the article retryable"
+grep -q 'Dependency install failed; publisher will retry' <<<"$install_failure_out" \
+  || fail "publisher should explain retryable dependency install failure"
+pass "dependency install failure stops before build and leaves PASS artifact retryable"
+
+build_failure_runtime="$TMP/dependency-build-failure-runtime"
+build_failure_worktree="$TMP/dependency-build-failure-worktree"
+build_failure_branch="publisher/dependency-build-failure"
+build_failure_log="$TMP/dependency-build-failure.log"
+build_failure_sentinel="$TMP/dependency-build-failure-build"
+setup_dependency_runtime "$build_failure_runtime"
+if build_failure_out="$(
+  run_dependency_apply "$build_failure_runtime" "$build_failure_log" \
+    "$build_failure_sentinel" build-fail \
+    "$build_failure_branch" "$build_failure_worktree" 2>&1
+)"; then
+  fail "publisher must fail closed when the whole-site build fails"
+fi
+[ -e "$build_failure_sentinel" ] || fail "build failure fixture should reach the build"
+[ "$(jq '[.events[] | select(.kind=="validation_blocked")] | length' \
+  "$build_failure_runtime/.score-loop/state/tribunal-triage-events.json")" = "0" ] \
+  || fail "whole-site infrastructure failure must not permanently block article validation"
+[ ! -e "$build_failure_worktree" ] \
+  || fail "whole-site build failure should clean the disposable publisher worktree"
+git -C "$build_failure_runtime" show-ref --verify --quiet "refs/heads/$build_failure_branch" \
+  && fail "whole-site build failure should delete the uncommitted publisher branch"
+build_retry_out="$(cd "$build_failure_runtime" && \
+  TRIBUNAL_PUBLISHER_DISABLE_GH_SCAN=1 \
+  bash scripts/tribunal-publisher.sh --dry-run --max 10)"
+grep -q 'publishable PASS: 1' <<<"$build_retry_out" \
+  || fail "whole-site build failure must leave the article retryable"
+grep -q 'Batch build failed; publisher will retry' <<<"$build_failure_out" \
+  || fail "publisher should explain retryable whole-site build failure"
+install_private_log="$(sed -n 's/.*log=\([^)]*\)).*/\1/p' <<<"$install_failure_out" | head -1)"
+build_private_log="$(sed -n 's/.*log=\([^)]*\)).*/\1/p' <<<"$build_failure_out" | head -1)"
+if [ -z "$install_private_log" ] || [ -z "$build_private_log" ]; then
+  fail "publisher failure output should identify private diagnostic logs"
+fi
+[ "$install_private_log" != "$build_private_log" ] \
+  || fail "separate publisher invocations must not share diagnostic logs"
+if [ -e "$install_private_log" ] || [ -e "$build_private_log" ]; then
+  fail "private publisher diagnostic logs should be removed on exit"
+fi
+pass "whole-site build failure stays fail-closed without poisoning article retry state"
+
+actionable_runtime="$TMP/dependency-actionable-runtime"
+actionable_worktree="$TMP/dependency-actionable-worktree"
+actionable_branch="publisher/dependency-actionable-failure"
+actionable_log="$TMP/dependency-actionable.log"
+actionable_sentinel="$TMP/dependency-actionable-build"
+setup_dependency_runtime "$actionable_runtime"
+if actionable_out="$(
+  run_dependency_apply "$actionable_runtime" "$actionable_log" \
+    "$actionable_sentinel" actionable-build-fail \
+    "$actionable_branch" "$actionable_worktree" 2>&1
+)"; then
+  fail "publisher must fail closed when the build identifies target-post MDX damage"
+fi
+[ "$(jq '[.events[] | select(.kind=="validation_blocked")] | length' \
+  "$actionable_runtime/.score-loop/state/tribunal-triage-events.json")" = "1" ] \
+  || fail "target-post MDX build evidence should create one durable validation block"
+actionable_retry_out="$(cd "$actionable_runtime" && \
+  TRIBUNAL_PUBLISHER_DISABLE_GH_SCAN=1 \
+  bash scripts/tribunal-publisher.sh --dry-run --max 10)"
+grep -q 'publishable PASS: 0' <<<"$actionable_retry_out" \
+  || fail "target-post MDX build failure must stay blocked until content is repaired"
+grep -q 'blocked 1 target article' <<<"$actionable_out" \
+  || fail "publisher should report the article-specific build block"
+pass "target-post MDX build evidence remains a durable validation block"
+
+for safe_failure_mode in informational-build-fail operational-target-build-fail; do
+  safe_runtime="$TMP/dependency-$safe_failure_mode-runtime"
+  safe_worktree="$TMP/dependency-$safe_failure_mode-worktree"
+  safe_branch="publisher/dependency-$safe_failure_mode"
+  safe_log="$TMP/dependency-$safe_failure_mode.log"
+  safe_sentinel="$TMP/dependency-$safe_failure_mode-build"
+  setup_dependency_runtime "$safe_runtime"
+  if (
+    run_dependency_apply "$safe_runtime" "$safe_log" "$safe_sentinel" \
+      "$safe_failure_mode" "$safe_branch" "$safe_worktree" 2>&1
+  ) >/dev/null; then
+    fail "$safe_failure_mode must fail closed"
+  fi
+  [ "$(jq '[.events[] | select(.kind=="validation_blocked")] | length' \
+    "$safe_runtime/.score-loop/state/tribunal-triage-events.json")" = "0" ] \
+    || fail "$safe_failure_mode must not poison article retry state"
+  safe_retry_out="$(cd "$safe_runtime" && \
+    TRIBUNAL_PUBLISHER_DISABLE_GH_SCAN=1 \
+    bash scripts/tribunal-publisher.sh --dry-run --max 10)"
+  grep -q 'publishable PASS: 1' <<<"$safe_retry_out" \
+    || fail "$safe_failure_mode must leave the PASS artifact retryable"
+done
+pass "informational target paths and operational failures never create article blocks"
+
+failure_slug_log="$TMP/failure-slug-informational.log"
+failure_slug="gp-99-error-handling.mdx"
+printf 'INFO indexed src/content/posts/%s successfully\n' "$failure_slug" > "$failure_slug_log"
+failure_slug_classification="$(
+  source "$ROOT_DIR/scripts/tribunal-helpers.sh"
+  tribunal_classify_build_failure 1 "$failure_slug_log" "$failure_slug"
+)"
+[ "$failure_slug_classification" = "unknown" ] \
+  || fail "failure language inside a target filename must not make an informational line actionable"
+pass "classifier removes exact target paths before inspecting diagnostic markers"

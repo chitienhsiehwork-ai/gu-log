@@ -12,6 +12,47 @@ get_ticket_id() {
     | tr -d '[:space:]'
 }
 
+# Classify a full-site build failure for one target article.
+# Operational evidence wins even when the log also names the target. Content
+# evidence is actionable only when one diagnostic line contains both the exact
+# article path and explicit content-error language.
+tribunal_classify_build_failure() {
+  local rc="$1" build_log="$2" post_file="$3"
+  local post_rel="src/content/posts/$post_file"
+  local en_rel="src/content/posts/en-$post_file"
+  if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then
+    echo operational
+    return 0
+  fi
+  if grep -Eiq 'out of memory|oom-kill|oom killed|killed process|heap out of memory|JavaScript heap out of memory|FATAL ERROR|SIGKILL|Killed$|Exit status 137' "$build_log" 2>/dev/null; then
+    echo operational
+    return 0
+  fi
+  if awk -v post_rel="$post_rel" -v en_rel="$en_rel" '
+    function remove_literal(text, literal, pos) {
+      while ((pos = index(text, literal)) > 0) {
+        text = substr(text, 1, pos - 1) substr(text, pos + length(literal))
+      }
+      return text
+    }
+    {
+      names_target = index($0, post_rel) || index($0, en_rel)
+      diagnostic = remove_literal(remove_literal($0, post_rel), en_rel)
+      diagnostic = tolower(diagnostic)
+      names_content_surface = diagnostic ~ /(mdx|frontmatter|schema|render|component|validate-posts|content collection|astro:content)/
+      names_failure = diagnostic ~ /(error|fail|invalid|unexpected|expected|syntax|parse|cannot)/
+      if (names_target && names_content_surface && names_failure) {
+        found = 1
+      }
+    }
+    END { exit(found ? 0 : 1) }
+  ' "$build_log" 2>/dev/null; then
+    echo actionable
+    return 0
+  fi
+  echo unknown
+}
+
 # Validate vibe scorer JSON output — returns 0 if valid, 1 if not
 # Expects tribunal vibe scorer schema. Note: clarity ownership is version-aware
 # (move-clarity-vibe-to-fresheyes) — for tribunalVersion <= 8 the vibe schema is

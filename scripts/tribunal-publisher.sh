@@ -25,6 +25,8 @@ SKIP_BUILD="${TRIBUNAL_PUBLISHER_SKIP_BUILD:-0}"
 REPO="${GU_LOG_GITHUB_REPO:-chitienhsiehwork-ai/gu-log}"
 GH_BIN="${GH_BIN:-gh}"
 OPEN_PR_SNAPSHOT_FILE=""
+INSTALL_LOG=""
+BUILD_LOG=""
 
 usage() {
   cat >&2 <<'USAGE'
@@ -59,7 +61,13 @@ cleanup_open_pr_snapshot() {
     rm -f "$OPEN_PR_SNAPSHOT_FILE" "$OPEN_PR_SNAPSHOT_FILE.next"
   fi
 }
-trap cleanup_open_pr_snapshot EXIT
+
+cleanup_publisher_temp_files() {
+  cleanup_open_pr_snapshot
+  [ -z "$INSTALL_LOG" ] || rm -f "$INSTALL_LOG"
+  [ -z "$BUILD_LOG" ] || rm -f "$BUILD_LOG"
+}
+trap cleanup_publisher_temp_files EXIT
 
 ensure_runtime_files() {
   validate_tribunal_runtime_json_file "$PUBLISHER_STATE_FILE" "publisher state"
@@ -415,6 +423,67 @@ record_validation_blocked() {
   record_event "validation_blocked" "$article" "$fingerprint" "$targets_json" "$reason" "$options_json" >/dev/null
 }
 
+prepare_batch_logs() {
+  INSTALL_LOG="$(mktemp "${TMPDIR:-/tmp}/tribunal-publisher-install.XXXXXX")" || return 1
+  if ! BUILD_LOG="$(mktemp "${TMPDIR:-/tmp}/tribunal-publisher-build.XXXXXX")"; then
+    rm -f "$INSTALL_LOG"
+    INSTALL_LOG=""
+    return 1
+  fi
+}
+
+log_publisher_failure_tail() {
+  local log_file="$1"
+  tail -30 "$log_file" 2>/dev/null |
+    while IFS= read -r line; do
+      tlog "    $line"
+    done
+}
+
+batch_dependencies_are_reusable() {
+  local batch_dir="$1"
+  local manifest
+  [ -d "$ROOT_DIR/node_modules" ] || return 1
+  [ ! -L "$ROOT_DIR/node_modules" ] || return 1
+  [ -x "$ROOT_DIR/node_modules/.bin/astro" ] || return 1
+  [ -f "$ROOT_DIR/node_modules/.pnpm/lock.yaml" ] || return 1
+  cmp -s "$ROOT_DIR/pnpm-lock.yaml" "$ROOT_DIR/node_modules/.pnpm/lock.yaml" || return 1
+  for manifest in package.json pnpm-lock.yaml pnpm-workspace.yaml; do
+    [ -f "$ROOT_DIR/$manifest" ] || return 1
+    [ -f "$batch_dir/$manifest" ] || return 1
+    cmp -s "$ROOT_DIR/$manifest" "$batch_dir/$manifest" || return 1
+  done
+}
+
+prepare_batch_dependencies() {
+  local batch_dir="$1"
+  local install_rc=0
+  if batch_dependencies_are_reusable "$batch_dir" &&
+     ln -s "$ROOT_DIR/node_modules" "$batch_dir/node_modules"; then
+    tlog "Reusing exact runtime dependencies: $ROOT_DIR/node_modules"
+    return 0
+  fi
+
+  tlog "Installing clean-worktree dependencies."
+  (
+    cd "$batch_dir"
+    pnpm install --frozen-lockfile --prefer-offline
+  ) >"$INSTALL_LOG" 2>&1 || install_rc=$?
+  if [ "$install_rc" -ne 0 ]; then
+    tlog "Dependency install failed; publisher will retry (rc=$install_rc, log=$INSTALL_LOG)."
+    log_publisher_failure_tail "$INSTALL_LOG"
+    return "$install_rc"
+  fi
+}
+
+remove_reused_dependency_link() {
+  local batch_dir="$1"
+  local dependency_path="$batch_dir/node_modules"
+  [ -L "$dependency_path" ] || return 0
+  [ "$(readlink "$dependency_path")" = "$ROOT_DIR/node_modules" ] || return 1
+  rm -f "$dependency_path"
+}
+
 render_report() {
   refresh_conflict_events
   local publishable failed exhausted runner_error batched published conflicted validation_blocked
@@ -533,12 +602,41 @@ apply_batch() {
     return 0
   fi
   if [ "$SKIP_BUILD" != "1" ]; then
-    if ! (cd "$batch_dir" && pnpm run build >/tmp/tribunal-publisher-build.out 2>&1); then
-      local reason="whole-site build failed for batch"
+    if ! prepare_batch_logs; then
+      tlog "Unable to create private publisher logs; publisher will retry."
+      git worktree remove "$batch_dir" --force
+      git branch -D "$branch_name" >/dev/null 2>&1 || true
+      return 1
+    fi
+    if ! prepare_batch_dependencies "$batch_dir"; then
+      git worktree remove "$batch_dir" --force
+      git branch -D "$branch_name" >/dev/null 2>&1 || true
+      return 1
+    fi
+
+    local build_rc=0
+    (
+      cd "$batch_dir"
+      pnpm run build
+    ) >"$BUILD_LOG" 2>&1 || build_rc=$?
+    if ! remove_reused_dependency_link "$batch_dir"; then
+      tlog "Dependency link cleanup failed; preserving publisher worktree for recovery."
+      return 1
+    fi
+    if [ "$build_rc" -ne 0 ]; then
+      local actionable_count=0
+      log_publisher_failure_tail "$BUILD_LOG"
       for article in "${validated[@]}"; do
-        record_validation_blocked "$article" "$reason"
+        if [ "$(tribunal_classify_build_failure "$build_rc" "$BUILD_LOG" "$article")" = "actionable" ]; then
+          record_validation_blocked "$article" "whole-site build identified target-post content failure"
+          actionable_count=$((actionable_count + 1))
+        fi
       done
-      tlog "Batch build failed; emitted validation_blocked events."
+      if [ "$actionable_count" -gt 0 ]; then
+        tlog "Batch build failed; blocked $actionable_count target article(s) (rc=$build_rc, log=$BUILD_LOG)."
+      else
+        tlog "Batch build failed; publisher will retry (rc=$build_rc, log=$BUILD_LOG)."
+      fi
       git worktree remove "$batch_dir" --force
       git branch -D "$branch_name" >/dev/null 2>&1 || true
       return 1
