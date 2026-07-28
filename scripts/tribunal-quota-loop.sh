@@ -886,7 +886,7 @@ recover_worker_pending_transactions() {
 ensure_worktrees() {
   (( WORKERS == 1 )) && return 0
   export TRIBUNAL_WORKER_SYNC_REF="${TRIBUNAL_WORKER_SYNC_REF:-HEAD}"
-  local id wt
+  local id wt sync_rc
   for id in "${WORKER_IDS[@]}"; do
     wt=$(worker_worktree "$id")
     recover_worker_pending_transactions "$wt" "worker-$id" || exit $?
@@ -900,8 +900,14 @@ ensure_worktrees() {
   done
   # Fast-forward every worker worktree to the supervisor's current sync ref.
   tlog "Syncing worker worktrees to ${TRIBUNAL_WORKER_SYNC_REF}…"
-  bash "$SCRIPT_DIR/tribunal-worker-bootstrap.sh" sync >> "$LOG_FILE" 2>&1 || \
-    tlog "WARN: worktree sync reported errors (see log)"
+  bash "$SCRIPT_DIR/tribunal-worker-bootstrap.sh" sync >> "$LOG_FILE" 2>&1
+  sync_rc=$?
+  if [ "$sync_rc" -ne 0 ]; then
+    fatal_worker_rc=78
+    fatal_worker_detail="worker_sync_failed phase=startup bootstrap_rc=$sync_rc sync_ref=${TRIBUNAL_WORKER_SYNC_REF}"
+    tlog "ERROR: startup worktree sync failed rc=$sync_rc; refusing to dispatch stale worker snapshots."
+    return 78
+  fi
 }
 
 run_publisher_autopilot() {
@@ -934,19 +940,25 @@ spawn_worker() {
   local wt worker_result_log worker_completion worker_tracking
   wt=$(worker_worktree "$id")
   local slug="${article%.mdx}"
-  worker_result_log="$(mktemp "$LOG_DIR/tribunal-worker-${id}.XXXXXX.log")"
-  worker_completion="$WORKER_COMPLETION_DIR/$id.done"
-  worker_tracking="$WORKER_COMPLETION_DIR/$id.tracking"
-  rm -f "$worker_completion"
 
   # Sync worker worktree to the supervisor's active sync ref before each
   # dispatch. Per-dispatch cost is one no-op reset when nothing changed; when
   # the sync ref is origin/main the bootstrap helper also fetches the remote.
   if (( WORKERS > 1 )); then
+    local sync_rc
     export TRIBUNAL_WORKER_SYNC_REF="${TRIBUNAL_WORKER_SYNC_REF:-HEAD}"
-    bash "$SCRIPT_DIR/tribunal-worker-bootstrap.sh" sync "$id" >> "$LOG_FILE" 2>&1 || \
-      tlog "  WARN: pre-dispatch sync failed for worker-$id (continuing with current snapshot)"
+    bash "$SCRIPT_DIR/tribunal-worker-bootstrap.sh" sync "$id" >> "$LOG_FILE" 2>&1
+    sync_rc=$?
+    if [ "$sync_rc" -ne 0 ]; then
+      tlog "  ERROR: pre-dispatch sync failed for worker-$id rc=$sync_rc; refusing stale snapshot."
+      return "$sync_rc"
+    fi
   fi
+
+  worker_result_log="$(mktemp "$LOG_DIR/tribunal-worker-${id}.XXXXXX.log")"
+  worker_completion="$WORKER_COMPLETION_DIR/$id.done"
+  worker_tracking="$WORKER_COMPLETION_DIR/$id.tracking"
+  rm -f "$worker_completion"
 
   (
     trap - EXIT
@@ -975,6 +987,7 @@ spawn_worker() {
   WORKER_TRACKING[$id]=$worker_tracking
   tribunal_write_worker_tracking "$worker_tracking" "$id" "$pid" "$worker_result_log"
   tlog "  [worker-$id pid=$pid] dispatched: $article"
+  return 0
 }
 
 # Wait for ANY worker to finish. Releases its claim, logs outcome, clears
@@ -1074,7 +1087,7 @@ drain_and_exit() {
   done
   if [ "$fatal_worker_rc" -ne 0 ]; then
     rc_write_state "draining" "$fatal_worker_detail"
-    tlog "Fatal worker infrastructure failure; exiting rc=$fatal_worker_rc with claim retained."
+    tlog "Fatal worker infrastructure failure: $fatal_worker_detail; exiting rc=$fatal_worker_rc."
     exit "$fatal_worker_rc"
   fi
   rc_exit_stopped
@@ -1184,7 +1197,11 @@ if [ "${TRIBUNAL_DEPLOYED_MODE:-0}" = "1" ] && [ "$LEGACY_QUOTA" != true ]; then
 else
   tlog "  Usage monitor (compatibility): ${USAGE_MONITOR}"
 fi
-ensure_worktrees
+if ! ensure_worktrees; then
+  rc_write_state "draining" "$fatal_worker_detail"
+  tlog "Fatal worker infrastructure failure: $fatal_worker_detail; exiting rc=${fatal_worker_rc:-78} before dispatch."
+  exit "${fatal_worker_rc:-78}"
+fi
 rc_gc_stale_claims
 rc_write_state "running" "startup"
 # Seed autoscale state so operators see a baseline before the first scaling
@@ -1204,7 +1221,7 @@ while true; do
       drain_and_exit
     elif [ "$fatal_worker_rc" -ne 0 ]; then
       rc_write_state "draining" "$fatal_worker_detail"
-      tlog "Fatal worker infrastructure failure; exiting rc=$fatal_worker_rc with claim retained."
+      tlog "Fatal worker infrastructure failure: $fatal_worker_detail; exiting rc=$fatal_worker_rc."
       exit "$fatal_worker_rc"
     else
       rc_exit_stopped
@@ -1373,23 +1390,39 @@ while true; do
     # Claim + dispatch.
     if article=$(try_claim_next_article "worker-$free_id"); then
       rc_write_state "pacing" "dispatching worker-$free_id article=$article"
-      # Log dispatch event for calibration
+      # Capture dispatch telemetry before starting work, but append it only
+      # after the worker's fail-closed sync succeeds and the runner starts.
       if [ "$LEGACY_QUOTA" != true ]; then
         d_readings=$(get_dual_quota_readings 2>/dev/null) ||
           d_readings="$UNKNOWN_QUOTA_READINGS"
         IFS='|' read -r d5 dr5 d7 dr7 deu del dee <<< "$d_readings"
-        quota_history_append "dispatch" "$d5" "$dr5" "$d7" "$dr7" "$deu" "$del" \
-          "${CONTROLLER_COOLDOWN:-10}" "${CONTROLLER_WORKERS:-1}" "${CONTROLLER_BINDING:-none}" \
-          "$ARTICLE_COST_PCT" "${CONTROLLER_MODE:-pacing}"
       fi
-      spawn_worker "$free_id" "$article"
-      dispatched_this_iter=$((dispatched_this_iter + 1))
+      if spawn_worker "$free_id" "$article"; then
+        if [ "$LEGACY_QUOTA" != true ]; then
+          quota_history_append "dispatch" "$d5" "$dr5" "$d7" "$dr7" "$deu" "$del" \
+            "${CONTROLLER_COOLDOWN:-10}" "${CONTROLLER_WORKERS:-1}" "${CONTROLLER_BINDING:-none}" \
+            "$ARTICLE_COST_PCT" "${CONTROLLER_MODE:-pacing}"
+        fi
+        dispatched_this_iter=$((dispatched_this_iter + 1))
+      else
+        spawn_rc=$?
+        rc_release_claim "${article%.mdx}"
+        fatal_worker_rc=78
+        fatal_worker_detail="worker_sync_failed phase=pre_dispatch worker=$free_id article=${article%.mdx} bootstrap_rc=$spawn_rc claim_released=true"
+        rc_write_state "draining" "$fatal_worker_detail"
+        tlog "Fatal worker synchronization failure; draining without dispatching $article."
+        break
+      fi
     else
       # No claimable article (all already claimed by other workers)
       tlog "No claimable article for worker-$free_id (all in-flight elsewhere)."
       break
     fi
   done
+
+  if [ "$fatal_worker_rc" -ne 0 ]; then
+    drain_and_exit
+  fi
 
   # If no workers are running AND we couldn't dispatch, sleep a bit.
   if (( ${#WORKER_PID[@]} == 0 )); then

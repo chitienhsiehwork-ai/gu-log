@@ -400,3 +400,223 @@ grep -F 'ERROR: worker path equals active repo' "$alias_output" >/dev/null ||
 [ -L "$alias_repo" ] || fail "remove-self-alias deleted the active-repo alias"
 [ -d "$self_repo" ] || fail "remove-self-alias deleted its active repo fixture"
 pass "remove-self rejects a filesystem alias before destructive commands"
+
+# The bootstrap helper's failure must propagate through the quota-loop
+# supervisor. A sync helper that fails closed is insufficient if the caller
+# still launches tribunal.sh from the stale worker worktree.
+make_supervisor_fixture() {
+  local name="$1"
+  local fixture_parent="$TMP/supervisor-$name/runtime"
+  local fixture_root="$fixture_parent/gu-log"
+  local worker_id
+
+  mkdir -p \
+    "$fixture_root/scripts" \
+    "$fixture_root/src/content/posts" \
+    "$fixture_root/.score-loop/state"
+  cp \
+    "$ROOT_DIR/scripts/tribunal-helpers.sh" \
+    "$ROOT_DIR/scripts/tribunal-post-pair-snapshot.py" \
+    "$ROOT_DIR/scripts/tribunal-quota-loop.sh" \
+    "$ROOT_DIR/scripts/tribunal-run-control.sh" \
+    "$ROOT_DIR/scripts/tribunal-version.mjs" \
+    "$fixture_root/scripts/"
+
+  cat > "$fixture_root/scripts/tribunal-worker-bootstrap.sh" <<'BOOTSTRAP'
+#!/usr/bin/env bash
+if [ "${1:-}" != "sync" ]; then
+  exit 64
+fi
+if [ "$#" -eq 1 ]; then
+  exit "${STARTUP_SYNC_RC:-0}"
+fi
+case "$2" in
+  a) exit "${PRE_DISPATCH_SYNC_A_RC:-0}" ;;
+  b) exit "${PRE_DISPATCH_SYNC_B_RC:-0}" ;;
+  *) exit 65 ;;
+esac
+BOOTSTRAP
+  chmod +x "$fixture_root/scripts/tribunal-worker-bootstrap.sh"
+
+  cat > "$fixture_root/scripts/tribunal-publisher-autopilot.sh" <<'PUBLISHER'
+#!/usr/bin/env bash
+exit 0
+PUBLISHER
+  chmod +x "$fixture_root/scripts/tribunal-publisher-autopilot.sh"
+
+  cat > "$fixture_root/scripts/usage-monitor.sh" <<'USAGE'
+#!/usr/bin/env bash
+cat <<'JSON'
+[{
+  "provider": "openai",
+  "status": "ok",
+  "session_remaining_pct": 100,
+  "session_reset_min": 300,
+  "weekly_remaining_pct": 100,
+  "weekly_reset_hr": 168
+}]
+JSON
+USAGE
+  chmod +x "$fixture_root/scripts/usage-monitor.sh"
+
+  cat > "$fixture_root/src/content/posts/gp-sync-fixture.mdx" <<'ARTICLE'
+---
+title: "sync fixture"
+translatedDate: 2026-07-28
+---
+
+fixture
+ARTICLE
+  if [ "$name" = "pre-dispatch-failure" ]; then
+    cat > "$fixture_root/src/content/posts/gp-sync-fixture-two.mdx" <<'ARTICLE_TWO'
+---
+title: "sync fixture two"
+translatedDate: 2026-07-27
+---
+
+fixture two
+ARTICLE_TWO
+  fi
+  printf '{}\n' > "$fixture_root/.score-loop/state/tribunal-progress.json"
+
+  for worker_id in a b; do
+    mkdir -p \
+      "$fixture_parent/gu-log-worker-$worker_id/scripts" \
+      "$fixture_parent/gu-log-worker-$worker_id/src/content/posts"
+    cat > "$fixture_parent/gu-log-worker-$worker_id/scripts/tribunal.sh" <<'RUNNER'
+#!/usr/bin/env bash
+printf '%s:%s\n' "$TRIBUNAL_WORKER_ID" "$*" >> "$RUNNER_CALLS"
+sleep "${RUNNER_DELAY_SEC:-0}"
+printf '%s\n' "$TRIBUNAL_WORKER_ID" >> "$RUNNER_COMPLETIONS"
+exit "${RUNNER_RC:-77}"
+RUNNER
+    chmod +x "$fixture_parent/gu-log-worker-$worker_id/scripts/tribunal.sh"
+  done
+
+  mkdir -p "$fixture_root/fake-bin"
+  cat > "$fixture_root/fake-bin/tee" <<'FAKE_TEE'
+#!/usr/bin/env bash
+"$REAL_TEE" "$@"
+rc=$?
+[ "${FAKE_TEE_FAILURE:-0}" = "1" ] && exit 1
+exit "$rc"
+FAKE_TEE
+  chmod +x "$fixture_root/fake-bin/tee"
+
+  git -C "$fixture_root" init -q
+  git -C "$fixture_root" config user.name fixture
+  git -C "$fixture_root" config user.email fixture@example.invalid
+  git -C "$fixture_root" add .
+  git -C "$fixture_root" commit -qm fixture
+
+  printf '%s\n' "$fixture_root"
+}
+
+run_supervisor_case() {
+  local name="$1" startup_rc="$2" sync_a_rc="$3" sync_b_rc="$4"
+  local runner_rc="$5" runner_delay="$6" fake_tee_failure="$7"
+  local fixture_root output rc
+  fixture_root="$(make_supervisor_fixture "$name")"
+  output="$TMP/supervisor-$name.out"
+  : > "$TMP/supervisor-$name.runner-calls"
+  : > "$TMP/supervisor-$name.runner-completions"
+
+  set +e
+  timeout 15 env \
+    RUNNER_CALLS="$TMP/supervisor-$name.runner-calls" \
+    RUNNER_COMPLETIONS="$TMP/supervisor-$name.runner-completions" \
+    RUNNER_RC="$runner_rc" \
+    RUNNER_DELAY_SEC="$runner_delay" \
+    STARTUP_SYNC_RC="$startup_rc" \
+    PRE_DISPATCH_SYNC_A_RC="$sync_a_rc" \
+    PRE_DISPATCH_SYNC_B_RC="$sync_b_rc" \
+    FAKE_TEE_FAILURE="$fake_tee_failure" \
+    REAL_TEE="$(command -v tee)" \
+    TRIBUNAL_WORKER_SYNC_REF=HEAD \
+    USAGE_MONITOR="$fixture_root/scripts/usage-monitor.sh" \
+    AUTOSCALE_MOCK_MEMORY_CURRENT=1 \
+    AUTOSCALE_MOCK_MEMORY_MAX=10000000000 \
+    AUTOSCALE_MOCK_OOM=0 \
+    MIN_COOLDOWN=1 \
+    RC_SLICE_SEC=1 \
+    PATH="$fixture_root/fake-bin:$PATH" \
+    bash "$fixture_root/scripts/tribunal-quota-loop.sh" --workers 2 \
+      > "$output" 2>&1
+  rc=$?
+  set -e
+  printf '%s\n' "$rc"
+}
+
+startup_rc="$(run_supervisor_case startup-failure 42 0 0 77 0 0)"
+[ "$startup_rc" -eq 78 ] || {
+  sed -n '1,160p' "$TMP/supervisor-startup-failure.out" >&2
+  fail "startup sync rc=42 should fail the supervisor closed with rc=78, got $startup_rc"
+}
+[ ! -s "$TMP/supervisor-startup-failure.runner-calls" ] ||
+  fail "startup sync failure reached the article runner"
+startup_state="$TMP/supervisor-startup-failure/runtime/gu-log/.score-loop/state/runtime.json"
+grep -Fq 'worker_sync_failed phase=startup' "$startup_state" ||
+  fail "startup sync failure was not persisted as observable drain state"
+grep -Fq 'bootstrap_rc=42' "$startup_state" ||
+  fail "startup sync failure state lost the bootstrap rc"
+pass "startup sync failure exits rc=78 before every runner"
+
+pre_dispatch_rc="$(run_supervisor_case pre-dispatch-failure 0 0 42 0 0.2 0)"
+[ "$pre_dispatch_rc" -eq 78 ] || {
+  sed -n '1,200p' "$TMP/supervisor-pre-dispatch-failure.out" >&2
+  fail "pre-dispatch sync rc=42 should fail the supervisor closed with rc=78, got $pre_dispatch_rc"
+}
+[ "$(wc -l < "$TMP/supervisor-pre-dispatch-failure.runner-calls")" -eq 1 ] ||
+  fail "pre-dispatch sync failure should drain exactly one already-running worker"
+grep -Fxq 'a:gp-sync-fixture.mdx' \
+  "$TMP/supervisor-pre-dispatch-failure.runner-calls" ||
+  fail "pre-dispatch sync failure launched an unexpected worker/article"
+[ "$(wc -l < "$TMP/supervisor-pre-dispatch-failure.runner-completions")" -eq 1 ] ||
+  fail "supervisor exited before the in-flight worker completed"
+grep -Fxq 'a' "$TMP/supervisor-pre-dispatch-failure.runner-completions" ||
+  fail "worker-a completion was not observed"
+pre_dispatch_root="$TMP/supervisor-pre-dispatch-failure/runtime/gu-log"
+if find "$pre_dispatch_root/.score-loop/claims" \
+  -mindepth 1 -print -quit | grep -q .; then
+  fail "pre-dispatch sync failure left a stale article claim"
+fi
+grep -Fq 'worker_sync_failed phase=pre_dispatch' \
+  "$pre_dispatch_root/.score-loop/state/runtime.json" ||
+  fail "pre-dispatch sync failure was not persisted as observable drain state"
+grep -Fq 'bootstrap_rc=42' \
+  "$pre_dispatch_root/.score-loop/state/runtime.json" ||
+  fail "pre-dispatch sync failure state lost the bootstrap rc"
+dispatch_count="$(
+  jq -s '[.[] | select(.event == "dispatch")] | length' \
+    "$pre_dispatch_root/.score-loop/state/quota-history.jsonl"
+)"
+[ "$dispatch_count" -eq 1 ] ||
+  fail "pre-dispatch sync failure should retain exactly one real dispatch event, got $dispatch_count"
+grep -Fq '[worker-a] gp-sync-fixture — PASSED' \
+  "$TMP/supervisor-pre-dispatch-failure.out" ||
+  fail "supervisor did not collect worker-a before its fatal exit"
+grep -Fq 'claim_released=true' "$TMP/supervisor-pre-dispatch-failure.out" ||
+  fail "fatal supervisor log omitted released-claim detail"
+if grep -Fq 'with claim retained' "$TMP/supervisor-pre-dispatch-failure.out"; then
+  fail "released pre-dispatch claim was logged as retained"
+fi
+pass "pre-dispatch sync failure drains one in-flight worker and records only its real dispatch"
+
+success_rc="$(run_supervisor_case sync-success 0 0 0 77 0 1)"
+[ "$success_rc" -eq 0 ] || {
+  sed -n '1,200p' "$TMP/supervisor-sync-success.out" >&2
+  fail "successful startup + pre-dispatch sync should preserve the clean runner path, got $success_rc"
+}
+[ "$(wc -l < "$TMP/supervisor-sync-success.runner-calls")" -eq 1 ] ||
+  fail "successful sync path should reach exactly one article runner"
+[ "$(wc -l < "$TMP/supervisor-sync-success.runner-completions")" -eq 1 ] ||
+  fail "successful sync path should collect its runner despite a nonzero tlog status"
+success_root="$TMP/supervisor-sync-success/runtime/gu-log"
+if find "$success_root/.score-loop/claims" \
+  -mindepth 1 -print -quit | grep -q .; then
+  fail "successful worker completion left a stale article claim"
+fi
+jq -e 'select(.event == "dispatch")' \
+  "$success_root/.score-loop/state/quota-history.jsonl" >/dev/null ||
+  fail "successful sync path lost dispatch telemetry"
+pass "successful worker synchronization preserves one dispatch and clean claim release"
