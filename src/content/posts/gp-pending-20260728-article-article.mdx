@@ -1,0 +1,135 @@
+---
+ticketId: 'GP-PENDING'
+title: '大模型配低推理，還是小模型開到滿？一個給「智慧」，一個給「勤奮」'
+originalDate: '2026-07-27'
+translatedDate: '2026-07-28'
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code CLI"
+
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 5"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "Opus 5"
+      harness: "gp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@kunchenguid on X"
+sourceUrl: 'https://x.com/kunchenguid/status/2081765555091177537'
+lang: 'zh-tw'
+summary: 'Kun Chen 花了大約兩週，刻意把模型大小與推理強度的每種組合反覆用過，用出一組直覺：模型大小給的是「智慧」（見識、直覺、跨域連結），推理強度給的是「勤奮」（徹底評估、邊界案例），兩者不能互換。他認為 Benchmark 的一維分數就是大家搞混的原因。'
+tags: ['llm', 'benchmark', 'reasoning', 'model-routing']
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 7
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 8
+    commentarySeparation: 9
+    score: 8
+    date: "2026-07-28"
+    model: "claude-opus-5"
+  librarian:
+    glossary: 8
+    crossRef: 8
+    sourceAlign: 8
+    attribution: 9
+    score: 8
+    date: "2026-07-28"
+    model: "claude-opus-5"
+  freshEyes:
+    readability: 9
+    firstImpression: 9
+    payoffDensity: 9
+    lengthFit: 9
+    clarity: 9
+    score: 9
+    date: "2026-07-28"
+    model: "claude-opus-5"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-07-28"
+    model: "claude-opus-4-6"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+開旗艦模型（Opus、Fable 這類）配低推理強度，還是輕量模型（Sonnet、Haiku）把推理強度拉滿？Kun Chen 花了大約兩週，刻意把每種排列組合都反覆用過，用出一個直覺：模型大小給的是「智慧」，推理強度給的是「勤奮」。兩件完全不同的事。
+
+## 智慧和勤奮
+
+大模型見過更多東西、記得更多東西、橫跨的專業領域更廣。直覺更好，能把散落在不同地方的線索串起來，想出有創意、有啟發性的點子。這是智慧——見過的世界夠大，才能在新問題面前找到意想不到的連結。
+
+推理強度則讓模型更仔細：逐一評估每個選項、推敲每步的後果、把邊界案例翻出來檢查。這是勤奮——不是更聰明，是更徹底。一個方案都不漏，一條分支都不跳過。
+
+<MoguNote>
+「推理強度」就是 [test-time compute](/glossary#test-time-compute) 的使用者端旋鈕。調到 low，模型秒答；調到 high，模型在腦子裡來回推敲好幾輪才開口。燒的是推理時的算力。加班加再久，也生不出訓練時沒裝進去的見識。
+
+同一個作者的[那張 agent 艦隊編制圖](/posts/mp-312-20260630-kunchenguid-agent-fleet-model-routing/)（大副配最聰明的模型、推理強度開滿；瑣事丟便宜的）就是這套原理的實作版——那篇給的是配置表，這篇給的是配置表背後為什麼這樣排。更早之前也有人吵過[最強的推理模型不一定是最好的寫扣仔](/posts/mp-212-20260326-semianalysis-disaggregated-planning/)，同一條軸。
+</MoguNote>
+
+---
+
+## 一百條路和一條隧道
+
+前方有一百條路。勤奮的模型會一條一條評估，一條都不漏——但不會自己意識到：也許最好的選擇是一百條都不走，直接挖一條隧道。
+
+能跳出既有選項、想到「挖隧道」的，是智慧。
+
+勤奮讓給定的選項一個都不漏；智慧才會回頭問這組選項本身對不對。兩件事不能互相取代。拉高推理強度不會讓小模型突然擁有大模型的見識；用更大的模型也不會讓它自動變得更仔細。
+
+Kun Chen 說他這才想通各家為什麼把陣容排成現在這樣，而不是只出一個 Fable 等級的模型、配十二種推理檔位——因為模型大小跟推理強度根本不在同一條軸上。
+
+<MoguNote>
+**勤奮走遍所有路，智慧發現路本身是錯的。**下次 agent 把所有邊界案例都處理得整整齊齊、結果整個方向錯了——那就是滿分勤奮、零分智慧。gu-log 自己的[四法官](/posts/sd-10-20260322-ralph-loop-quality-system/)也踩在這條線上：品質評分需要品味（智慧），所以用最大的模型；事實查核需要仔細（勤奮），所以刻意換一個不同的模型來當第二雙眼睛。旋鈕不同，轉法不同。 (╯°□°)╯
+</MoguNote>
+
+---
+
+## 為什麼大家會搞混
+
+因為 [Benchmark](/glossary#benchmark)。
+
+業界一直把模型能力畫在一條線上——跑出一個分數、排名、高的排前面。這件事 Kun Chen 講得很硬：這種畫法從根上就是壞的，因為它用一個維度去量一件二維的事，把「智慧」和「勤奮」壓扁成同一個數字，看那個數字自然會覺得模型大小跟推理強度可以互換：小模型拉高推理強度，分數追上來了，好像就追上了大模型。
+
+但追上的只是同一個測試的分數，不是同一種能力。能把一百條路都算完，跟能想到乾脆挖隧道，在 benchmark 上可能拿一樣的分數——解決真實問題時差很遠。
+
+Kun Chen 只期望評估基準有一天會追上來，把這兩個維度分開量。在那之前，這個幻覺會一直在。
+
+---
+
+## 實戰選法
+
+在那天到來之前，Kun Chen 自己的選法是三條直覺：
+
+- 這個問題需要天才才解得開——用大模型。
+- 這個問題需要一枝筆加很多張紙才算得完——拉高推理強度。
+- 需要一個天才坐下來、拿著筆和很多張紙——兩個都調高。
+
+<MoguNote>
+對照一下最常見的三種活：要重構一個沒人講得清楚邊界在哪的模組——那是選項集合本身有問題，天才題，開大模型；把一個已知的 bug 在三十個檔案裡掃乾淨——選項很清楚，只是多，一枝筆加很多張紙就夠，推理強度拉滿；要決定整個系統該不該換架構、換完還要把三十個檔案都改對——恭喜，兩個旋鈕都得轉到底，帳單也是。
+</MoguNote>
+
+---
+
+## 結語
+
+模型把一百條路全走完了，問題還是沒解——也許差的不是更多的路，是一條隧道。
