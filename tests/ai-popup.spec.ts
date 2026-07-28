@@ -401,6 +401,279 @@ test.describe('Auth Callback', () => {
     await expectTokenUrlScrubbedBeforeStorage(page);
   });
 
+  test('GIVEN theme storage is denied WHEN callback loads THEN it falls back without a page error', async ({
+    page,
+  }) => {
+    const pageErrors: string[] = [];
+    page.on('pageerror', (error) => pageErrors.push(error.message));
+    await page.addInitScript(() => {
+      const originalGetItem = Storage.prototype.getItem;
+      const probe = { themeReads: 0 };
+      Object.defineProperty(window, '__callbackStorageProbe', { value: probe });
+      Storage.prototype.getItem = function (this: Storage, key: string) {
+        if (this === window.localStorage && key === 'theme') {
+          probe.themeReads += 1;
+          throw new DOMException('theme storage denied', 'SecurityError');
+        }
+        return originalGetItem.call(this, key);
+      };
+    });
+
+    await page.goto('/auth/callback');
+
+    expect(
+      await page.evaluate(
+        () =>
+          (
+            window as typeof window & {
+              __callbackStorageProbe?: { themeReads: number };
+            }
+          ).__callbackStorageProbe?.themeReads
+      )
+    ).toBeGreaterThan(0);
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await expect(page.locator('#status')).toHaveText('Login failed.');
+    await expect(page.locator('.spinner')).toBeHidden();
+    await expect(page.locator('#actions')).toBeVisible();
+    expect(pageErrors).toEqual([]);
+  });
+
+  for (const { label, callbackSuffix, token } of [
+    {
+      label: 'query token',
+      callbackSuffix: '?token=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJxdWVyeSJ9.query-storage-denied',
+      token: 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJxdWVyeSJ9.query-storage-denied',
+    },
+    {
+      label: 'hash token',
+      callbackSuffix: '#token=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJoYXNoIn0.hash-storage-denied',
+      token: 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJoYXNoIn0.hash-storage-denied',
+    },
+  ]) {
+    test(`GIVEN JWT storage is denied WHEN callback receives a ${label} THEN it fails closed after scrubbing the URL`, async ({
+      page,
+    }) => {
+      const pageErrors: string[] = [];
+      page.on('pageerror', (error) => pageErrors.push(error.message));
+      await page.goto('/');
+      await page.evaluate(
+        ({ jwtKey, returnKey, returnUrl }) => {
+          localStorage.setItem(jwtKey, 'stale-jwt-token');
+          localStorage.setItem(returnKey, returnUrl);
+        },
+        { jwtKey: AUTH_JWT_KEY, returnKey: AUTH_RETURN_KEY, returnUrl: TEST_POST }
+      );
+      expect(await page.evaluate((key) => localStorage.getItem(key), AUTH_JWT_KEY)).toBe(
+        'stale-jwt-token'
+      );
+      await page.addInitScript(
+        ({ jwtKey }) => {
+          const originalSetItem = Storage.prototype.setItem;
+          const probe = { jwtWrites: 0, jwtWriteHref: '', jwtWriteValue: '' };
+          Object.defineProperty(window, '__callbackStorageProbe', { value: probe });
+          Storage.prototype.setItem = function (this: Storage, key: string, value: string) {
+            if (this === window.localStorage && key === jwtKey) {
+              probe.jwtWrites += 1;
+              probe.jwtWriteHref = window.location.href;
+              probe.jwtWriteValue = value;
+              throw new DOMException(
+                '<img src=x onerror="document.body.dataset.pwned=1">',
+                'SecurityError'
+              );
+            }
+            return originalSetItem.call(this, key, value);
+          };
+        },
+        { jwtKey: AUTH_JWT_KEY }
+      );
+
+      await page.goto(`/auth/callback${callbackSuffix}`);
+
+      const storageProbe = await page.evaluate(
+        () =>
+          (
+            window as typeof window & {
+              __callbackStorageProbe?: {
+                jwtWrites: number;
+                jwtWriteHref: string;
+                jwtWriteValue: string;
+              };
+            }
+          ).__callbackStorageProbe
+      );
+      expect(storageProbe?.jwtWrites).toBe(1);
+      expect(storageProbe?.jwtWriteValue).toBe(token);
+      const jwtWriteUrl = new URL(storageProbe!.jwtWriteHref);
+      expect(jwtWriteUrl.pathname).toMatch(/^\/auth\/callback\/?$/);
+      expect(jwtWriteUrl.search).toBe('');
+      expect(jwtWriteUrl.hash).toBe('');
+      await expect(page).toHaveURL(/\/auth\/callback\/?$/);
+      await expect(page.locator('#status')).toHaveText('Login failed.');
+      await expect(page.locator('.spinner')).toBeHidden();
+      await expect(page.locator('#error')).toContainText('could not be saved');
+      await expect(page.locator('#actions')).toBeVisible();
+      await expect(page).toHaveTitle('Login failed');
+      await expect(page.locator('body')).not.toContainText(token);
+      await expect(page.locator('#error img')).toHaveCount(0);
+      expect(await page.evaluate(() => document.body.dataset.pwned)).toBeUndefined();
+      expect(await page.evaluate((key) => localStorage.getItem(key), AUTH_JWT_KEY)).toBeNull();
+      expect(await page.evaluate((key) => localStorage.getItem(key), AUTH_RETURN_KEY)).toBe(
+        TEST_POST
+      );
+
+      await page.waitForTimeout(700);
+      await expect(page).toHaveURL(/\/auth\/callback\/?$/);
+      await expect(page.locator('#status')).toHaveText('Login failed.');
+      expect(pageErrors).toEqual([]);
+    });
+  }
+
+  test('GIVEN JWT write and cleanup are both denied WHEN callback receives a token THEN it stays on a terminal failure UI', async ({
+    page,
+  }) => {
+    const token = 'fully-denied-storage-token';
+    const pageErrors: string[] = [];
+    page.on('pageerror', (error) => pageErrors.push(error.message));
+    await page.goto('/');
+    await page.evaluate(
+      ({ jwtKey, returnKey, returnUrl }) => {
+        localStorage.setItem(jwtKey, 'stale-jwt-token');
+        localStorage.setItem(returnKey, returnUrl);
+      },
+      { jwtKey: AUTH_JWT_KEY, returnKey: AUTH_RETURN_KEY, returnUrl: TEST_POST }
+    );
+    await page.addInitScript(
+      ({ jwtKey }) => {
+        const originalSetItem = Storage.prototype.setItem;
+        const originalRemoveItem = Storage.prototype.removeItem;
+        const probe = { jwtWrites: 0, jwtRemovals: 0, jwtWriteHref: '' };
+        Object.defineProperty(window, '__callbackStorageProbe', { value: probe });
+        Storage.prototype.setItem = function (this: Storage, key: string, value: string) {
+          if (this === window.localStorage && key === jwtKey) {
+            probe.jwtWrites += 1;
+            probe.jwtWriteHref = window.location.href;
+            throw new DOMException('JWT write denied', 'SecurityError');
+          }
+          return originalSetItem.call(this, key, value);
+        };
+        Storage.prototype.removeItem = function (this: Storage, key: string) {
+          if (this === window.localStorage && key === jwtKey) {
+            probe.jwtRemovals += 1;
+            throw new DOMException('JWT cleanup denied', 'SecurityError');
+          }
+          return originalRemoveItem.call(this, key);
+        };
+      },
+      { jwtKey: AUTH_JWT_KEY }
+    );
+
+    await page.goto(`/auth/callback?token=${token}`);
+
+    const storageProbe = await page.evaluate(
+      () =>
+        (
+          window as typeof window & {
+            __callbackStorageProbe?: {
+              jwtWrites: number;
+              jwtRemovals: number;
+              jwtWriteHref: string;
+            };
+          }
+        ).__callbackStorageProbe
+    );
+    expect(storageProbe?.jwtWrites).toBe(1);
+    expect(storageProbe?.jwtRemovals).toBe(1);
+    const jwtWriteUrl = new URL(storageProbe!.jwtWriteHref);
+    expect(jwtWriteUrl.pathname).toMatch(/^\/auth\/callback\/?$/);
+    expect(jwtWriteUrl.search).toBe('');
+    expect(jwtWriteUrl.hash).toBe('');
+    await expect(page).toHaveURL(/\/auth\/callback\/?$/);
+    await expect(page.locator('#status')).toHaveText('Login failed.');
+    await expect(page.locator('.spinner')).toBeHidden();
+    await expect(page.locator('#error')).toContainText('could not be saved');
+    await expect(page.locator('#actions')).toBeVisible();
+    await expect(page).toHaveTitle('Login failed');
+    await expect(page.locator('body')).not.toContainText(token);
+    expect(await page.evaluate((key) => localStorage.getItem(key), AUTH_JWT_KEY)).toBe(
+      'stale-jwt-token'
+    );
+    expect(await page.evaluate((key) => localStorage.getItem(key), AUTH_RETURN_KEY)).toBe(
+      TEST_POST
+    );
+
+    await page.waitForTimeout(700);
+    await expect(page).toHaveURL(/\/auth\/callback\/?$/);
+    await expect(page.locator('#status')).toHaveText('Login failed.');
+    expect(pageErrors).toEqual([]);
+  });
+
+  for (const operation of ['getItem', 'removeItem'] as const) {
+    test(`GIVEN return URL ${operation} is denied WHEN callback persists a token THEN it redirects home without a page error`, async ({
+      page,
+    }) => {
+      const token = `return-${operation}-denied-token`;
+      const probeKey = `callback-${operation}-denied-count`;
+      const pageErrors: string[] = [];
+      page.on('pageerror', (error) => pageErrors.push(error.message));
+      await page.goto('/');
+      await page.evaluate(
+        ({ jwtKey, probeKey, returnKey, returnUrl }) => {
+          localStorage.removeItem(jwtKey);
+          localStorage.setItem(returnKey, returnUrl);
+          sessionStorage.removeItem(probeKey);
+        },
+        {
+          jwtKey: AUTH_JWT_KEY,
+          probeKey,
+          returnKey: AUTH_RETURN_KEY,
+          returnUrl: TEST_POST,
+        }
+      );
+      await page.addInitScript(
+        ({ operation, probeKey, returnKey }) => {
+          const originalGetItem = Storage.prototype.getItem;
+          const originalRemoveItem = Storage.prototype.removeItem;
+          function recordOperation() {
+            const count = Number(window.sessionStorage.getItem(probeKey) || '0');
+            window.sessionStorage.setItem(probeKey, String(count + 1));
+          }
+          Storage.prototype.getItem = function (this: Storage, key: string) {
+            if (
+              this === window.localStorage &&
+              window.location.pathname.startsWith('/auth/callback') &&
+              operation === 'getItem' &&
+              key === returnKey
+            ) {
+              recordOperation();
+              throw new DOMException('return storage denied', 'SecurityError');
+            }
+            return originalGetItem.call(this, key);
+          };
+          Storage.prototype.removeItem = function (this: Storage, key: string) {
+            if (
+              this === window.localStorage &&
+              window.location.pathname.startsWith('/auth/callback') &&
+              operation === 'removeItem' &&
+              key === returnKey
+            ) {
+              recordOperation();
+              throw new DOMException('return storage denied', 'SecurityError');
+            }
+            return originalRemoveItem.call(this, key);
+          };
+        },
+        { operation, probeKey, returnKey: AUTH_RETURN_KEY }
+      );
+
+      await page.goto(`/auth/callback?token=${token}`);
+      await page.waitForURL(new URL('/', page.url()).origin + '/', { timeout: 5000 });
+
+      expect(await page.evaluate((key) => sessionStorage.getItem(key), probeKey)).toBe('1');
+      expect(await page.evaluate((key) => localStorage.getItem(key), AUTH_JWT_KEY)).toBe(token);
+      expect(pageErrors).toEqual([]);
+    });
+  }
+
   for (const { label, callbackSuffix, token } of [
     {
       label: 'query token',
