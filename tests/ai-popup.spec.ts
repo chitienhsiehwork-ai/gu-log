@@ -20,6 +20,96 @@ const AUTH_RETURN_KEY = 'gu-log-return-url';
 const AUTH_JWT_KEY = 'gu-log-jwt';
 const AUTH_STORAGE_URL_KEY = 'gu-log-auth-storage-url';
 
+interface AbortAwareRequestRecord {
+  aborted: boolean;
+  body: Record<string, unknown>;
+  hasSignal: boolean;
+}
+
+async function installAbortAwareFetchHarness(
+  page: Page,
+  endpoint: string,
+  staleResponse: Record<string, unknown>,
+  latestResponse: Record<string, unknown>
+) {
+  await page.evaluate(
+    ({ endpoint, staleResponse, latestResponse }) => {
+      const testWindow = window as typeof window & {
+        __aiPopupAbortAwareRequests?: AbortAwareRequestRecord[];
+        __aiPopupReleaseStaleRequest?: () => void;
+      };
+      const originalFetch = window.fetch.bind(window);
+      const requests: AbortAwareRequestRecord[] = [];
+      testWindow.__aiPopupAbortAwareRequests = requests;
+
+      window.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url =
+          typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+        if (!url.endsWith(endpoint)) return originalFetch(input, init);
+
+        const record: AbortAwareRequestRecord = {
+          aborted: Boolean(init?.signal?.aborted),
+          body: JSON.parse(String(init?.body || '{}')) as Record<string, unknown>,
+          hasSignal: Boolean(init?.signal),
+        };
+        requests.push(record);
+
+        if (requests.length > 1) {
+          return new Response(JSON.stringify(latestResponse), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+
+        return new Promise<Response>((resolve) => {
+          const signal = init?.signal;
+          const markAborted = () => {
+            record.aborted = true;
+          };
+          if (signal?.aborted) {
+            markAborted();
+          } else {
+            signal?.addEventListener('abort', markAborted, { once: true });
+          }
+          testWindow.__aiPopupReleaseStaleRequest = () => {
+            resolve(
+              new Response(JSON.stringify(staleResponse), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+              })
+            );
+          };
+        });
+      }) as typeof window.fetch;
+    },
+    { endpoint, staleResponse, latestResponse }
+  );
+}
+
+async function readAbortAwareRequests(page: Page): Promise<AbortAwareRequestRecord[]> {
+  return page.evaluate(() => {
+    const testWindow = window as typeof window & {
+      __aiPopupAbortAwareRequests?: AbortAwareRequestRecord[];
+    };
+    return testWindow.__aiPopupAbortAwareRequests || [];
+  });
+}
+
+async function releaseStaleRequest(page: Page) {
+  await page.evaluate(() => {
+    const testWindow = window as typeof window & {
+      __aiPopupReleaseStaleRequest?: () => void;
+    };
+    testWindow.__aiPopupReleaseStaleRequest?.();
+  });
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      })
+  );
+}
+
 async function seedAuthReturn(page: Page, returnUrl: string) {
   await page.goto('/');
   await page.evaluate(
@@ -222,37 +312,9 @@ test.describe('AI Popup - File Path Wiring', () => {
 });
 
 test.describe('AI Popup - Request ordering', () => {
-  test('GIVEN an earlier Ask is pending WHEN a new selection finishes first THEN the stale response cannot replace it', async ({
+  test('GIVEN an earlier Ask is pending WHEN a new selection starts THEN the stale request is aborted', async ({
     page,
   }) => {
-    const requestBodies: Array<Record<string, unknown>> = [];
-    let releaseFirstResponse: (() => void) | undefined;
-    const firstResponseGate = new Promise<void>((resolve) => {
-      releaseFirstResponse = resolve;
-    });
-
-    await page.route('**/ai/ask', async (route) => {
-      const body = JSON.parse(route.request().postData() || '{}') as Record<string, unknown>;
-      requestBodies.push(body);
-
-      if (requestBodies.length === 1) {
-        await firstResponseGate;
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          headers: { 'x-test-response': 'stale' },
-          body: JSON.stringify({ response: 'ANSWER_A' }),
-        });
-        return;
-      }
-
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ response: 'ANSWER_B' }),
-      });
-    });
-
     await page.goto(TEST_POST);
     await page.evaluate(() => {
       const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
@@ -260,14 +322,21 @@ test.describe('AI Popup - Request ordering', () => {
       localStorage.setItem('gu-log-jwt', header + '.' + payload + '.fake-signature');
     });
     await page.reload();
+    await installAbortAwareFetchHarness(
+      page,
+      '/ai/ask',
+      { response: 'ANSWER_A' },
+      { response: 'ANSWER_B' }
+    );
 
     const popup = await selectPostTextAndShowPopup(page);
     await popup.locator('[data-action="ask"]').click();
     const firstSelection = await popup.locator('.ai-popup-selection-text').textContent();
     await popup.locator('[data-action="submit-ask"]').click();
-    await expect.poll(() => requestBodies.length).toBe(1);
+    await expect.poll(async () => (await readAbortAwareRequests(page)).length).toBe(1);
 
     await selectPostTextAndShowPopup(page, { characters: 40 });
+    await expect.poll(async () => (await readAbortAwareRequests(page))[0]?.aborted).toBe(true);
     await popup.locator('[data-action="ask"]').click();
     const secondSelection = await popup.locator('.ai-popup-selection-text').textContent();
     expect(secondSelection).not.toBe(firstSelection);
@@ -275,23 +344,69 @@ test.describe('AI Popup - Request ordering', () => {
 
     const resultBody = popup.locator('.ai-popup-result-body');
     await expect(resultBody).toHaveText('ANSWER_B');
-    expect(requestBodies.map((body) => body.text)).toEqual([firstSelection, secondSelection]);
+    expect(
+      (await readAbortAwareRequests(page)).map((request) => ({
+        hasSignal: request.hasSignal,
+        text: request.body.text,
+      }))
+    ).toEqual([
+      { hasSignal: true, text: firstSelection },
+      { hasSignal: true, text: secondSelection },
+    ]);
 
-    const staleResponse = page.waitForResponse(
-      (response) =>
-        response.url().includes('/ai/ask') && response.headers()['x-test-response'] === 'stale'
-    );
-    releaseFirstResponse?.();
-    await staleResponse;
-    await page.evaluate(
-      () =>
-        new Promise<void>((resolve) => {
-          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-        })
-    );
-
+    await releaseStaleRequest(page);
     await expect(resultBody).toHaveText('ANSWER_B');
     await expect(popup.locator('.ai-popup-selection-text')).toHaveText(secondSelection || '');
+  });
+
+  test('GIVEN an earlier Edit is pending WHEN a new selection starts THEN the stale request is aborted', async ({
+    page,
+  }) => {
+    await page.goto(TEST_POST);
+    await page.evaluate(() => {
+      const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+      const payload = btoa(JSON.stringify({ email: 'test@example.com', exp: 9999999999 }));
+      localStorage.setItem('gu-log-jwt', header + '.' + payload + '.fake-signature');
+    });
+    await page.reload();
+    await installAbortAwareFetchHarness(
+      page,
+      '/ai/edit',
+      { diff: '- old text\n+ stale text', editId: 'stale-edit-id' },
+      {
+        diff: '- old text\n+ latest text',
+        editId: 'latest-edit-id',
+      }
+    );
+
+    const popup = await selectPostTextAndShowPopup(page);
+    await popup.locator('[data-action="edit"]').click();
+    const firstSelection = await popup.locator('.ai-popup-selection-text').textContent();
+    await popup.locator('.ai-popup-edit-input').fill('first edit');
+    await popup.locator('[data-action="submit-edit"]').click();
+    await expect.poll(async () => (await readAbortAwareRequests(page)).length).toBe(1);
+
+    await selectPostTextAndShowPopup(page, { characters: 40 });
+    await expect.poll(async () => (await readAbortAwareRequests(page))[0]?.aborted).toBe(true);
+    await popup.locator('[data-action="edit"]').click();
+    const secondSelection = await popup.locator('.ai-popup-selection-text').textContent();
+    expect(secondSelection).not.toBe(firstSelection);
+    await popup.locator('.ai-popup-edit-input').fill('second edit');
+    await popup.locator('[data-action="submit-edit"]').click();
+
+    await expect(popup.locator('.ai-popup-diff-add')).toHaveText('+ latest text');
+    expect(
+      (await readAbortAwareRequests(page)).map((request) => ({
+        hasSignal: request.hasSignal,
+        selectedText: request.body.selectedText,
+      }))
+    ).toEqual([
+      { hasSignal: true, selectedText: firstSelection },
+      { hasSignal: true, selectedText: secondSelection },
+    ]);
+
+    await releaseStaleRequest(page);
+    await expect(popup.locator('.ai-popup-diff-add')).toHaveText('+ latest text');
   });
 });
 
@@ -1015,6 +1130,23 @@ test.describe('AI Popup - API Interactions', () => {
         body: JSON.stringify({ commitHash: 'pending1234567890' }),
       });
     });
+    await page.evaluate(() => {
+      const testWindow = window as typeof window & {
+        __aiPopupConfirmIncludedSignal?: boolean;
+      };
+      const originalFetch = window.fetch.bind(window);
+      window.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url =
+          typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+        if (url.endsWith('/ai/edit/confirm')) {
+          testWindow.__aiPopupConfirmIncludedSignal = Object.prototype.hasOwnProperty.call(
+            init || {},
+            'signal'
+          );
+        }
+        return originalFetch(input, init);
+      }) as typeof window.fetch;
+    });
 
     const popup = await selectPostTextAndShowPopup(page);
     await popup.locator('[data-action="edit"]').click();
@@ -1077,6 +1209,14 @@ test.describe('AI Popup - API Interactions', () => {
 
     await popup.locator('[data-action="confirm"]').click();
     await expect.poll(() => confirmRequests).toBe(1);
+    expect(
+      await page.evaluate(() => {
+        const testWindow = window as typeof window & {
+          __aiPopupConfirmIncludedSignal?: boolean;
+        };
+        return testWindow.__aiPopupConfirmIncludedSignal;
+      })
+    ).toBe(false);
     await expect(popup.locator('.ai-popup-spinner')).toBeVisible();
 
     await selectPostText(page, { characters: 40 });
