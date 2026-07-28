@@ -489,6 +489,38 @@ test.describe('Component smoke — post page (RelatedArticles, ShareButton, Prev
     await expect(status).toContainText('留言目前無法載入');
   });
 
+  test('ignores null message payloads from the Giscus origin', async ({ page }) => {
+    await page.route('https://giscus.app/client.js', async (route) => {
+      await route.fulfill({
+        contentType: 'application/javascript',
+        body: '',
+      });
+    });
+    await page.goto('/posts/gp-100-20260304-berryxia-ai-ai-prompt');
+
+    const errors = await page.evaluate(async () => {
+      const capturedErrors: string[] = [];
+      const captureError = (event: ErrorEvent) => {
+        capturedErrors.push(event.error?.message ?? event.message);
+        event.preventDefault();
+      };
+
+      window.addEventListener('error', captureError);
+      window.dispatchEvent(
+        new MessageEvent('message', {
+          origin: 'https://giscus.app',
+          data: null,
+        })
+      );
+      await new Promise((resolve) => window.setTimeout(resolve, 0));
+      window.removeEventListener('error', captureError);
+
+      return capturedErrors;
+    });
+
+    expect(errors).toEqual([]);
+  });
+
   for (const theme of ['dark', 'light'] as const) {
     test(`${theme} editorial navigation text meets WCAG AA without side-tab cards`, async ({
       page,
