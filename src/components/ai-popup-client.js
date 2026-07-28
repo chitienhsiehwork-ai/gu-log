@@ -94,6 +94,27 @@
   let lastEditInstruction = '';
   let lastAskQuestion = '';
   let errorDismissTimer = null;
+  let requestGeneration = 0;
+
+  function beginRequestContext() {
+    requestGeneration += 1;
+    return {
+      generation: requestGeneration,
+      selectedText: selectedText,
+    };
+  }
+
+  function isRequestContextCurrent(context) {
+    return (
+      context.generation === requestGeneration &&
+      context.selectedText === selectedText &&
+      Boolean(popup)
+    );
+  }
+
+  function invalidateRequestContext() {
+    requestGeneration += 1;
+  }
 
   function clampText(text, maxLength) {
     if (!text || text.length <= maxLength) return text;
@@ -282,6 +303,7 @@
   const dialogLabel = lang === 'en' ? 'AI Popup' : 'AI 助手';
 
   function createPopup() {
+    invalidateRequestContext();
     if (popup) popup.remove();
 
     popup = document.createElement('div');
@@ -359,6 +381,7 @@
   }
 
   function removePopup() {
+    invalidateRequestContext();
     clearErrorDismissTimer();
     if (popup) {
       popup.remove();
@@ -809,19 +832,22 @@
     const input = popup ? popup.querySelector('.ai-popup-question-input') : null;
     const question = input ? input.value.trim() : '';
     lastAskQuestion = question;
+    const requestContext = beginRequestContext();
 
     renderLoading(t.loading);
     try {
       const body = {
-        text: selectedText,
+        text: requestContext.selectedText,
         context: postTitle,
       };
       if (question) {
         body.question = question;
       }
       const data = await apiRequest('/ai/ask', body);
+      if (!isRequestContextCurrent(requestContext)) return;
       renderAskResult(data.response || data.answer || JSON.stringify(data));
     } catch (err) {
+      if (!isRequestContextCurrent(requestContext)) return;
       renderError(err.message);
     }
   }
@@ -846,15 +872,18 @@
     }
 
     lastEditInstruction = instruction;
+    const requestContext = beginRequestContext();
     renderLoading(t.loadingEdit);
     try {
       const data = await apiRequest('/ai/edit', {
-        selectedText: selectedText,
+        selectedText: requestContext.selectedText,
         filePath: filePath,
         instruction: instruction,
       });
+      if (!isRequestContextCurrent(requestContext)) return;
       renderEditResult(data.diff || '', data.editId || data.id || '');
     } catch (err) {
+      if (!isRequestContextCurrent(requestContext)) return;
       renderError(err.message);
     }
   }

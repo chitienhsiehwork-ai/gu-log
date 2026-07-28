@@ -220,6 +220,80 @@ test.describe('AI Popup - File Path Wiring', () => {
   });
 });
 
+test.describe('AI Popup - Request ordering', () => {
+  test('GIVEN an earlier Ask is pending WHEN a new selection finishes first THEN the stale response cannot replace it', async ({
+    page,
+  }) => {
+    const requestBodies: Array<Record<string, unknown>> = [];
+    let releaseFirstResponse: (() => void) | undefined;
+    const firstResponseGate = new Promise<void>((resolve) => {
+      releaseFirstResponse = resolve;
+    });
+
+    await page.route('**/ai/ask', async (route) => {
+      const body = JSON.parse(route.request().postData() || '{}') as Record<string, unknown>;
+      requestBodies.push(body);
+
+      if (requestBodies.length === 1) {
+        await firstResponseGate;
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          headers: { 'x-test-response': 'stale' },
+          body: JSON.stringify({ response: 'ANSWER_A' }),
+        });
+        return;
+      }
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ response: 'ANSWER_B' }),
+      });
+    });
+
+    await page.goto(TEST_POST);
+    await page.evaluate(() => {
+      const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+      const payload = btoa(JSON.stringify({ email: 'test@example.com', exp: 9999999999 }));
+      localStorage.setItem('gu-log-jwt', header + '.' + payload + '.fake-signature');
+    });
+    await page.reload();
+
+    const popup = await selectPostTextAndShowPopup(page);
+    await popup.locator('[data-action="ask"]').click();
+    const firstSelection = await popup.locator('.ai-popup-selection-text').textContent();
+    await popup.locator('[data-action="submit-ask"]').click();
+    await expect.poll(() => requestBodies.length).toBe(1);
+
+    await selectPostTextAndShowPopup(page, { characters: 40 });
+    await popup.locator('[data-action="ask"]').click();
+    const secondSelection = await popup.locator('.ai-popup-selection-text').textContent();
+    expect(secondSelection).not.toBe(firstSelection);
+    await popup.locator('[data-action="submit-ask"]').click();
+
+    const resultBody = popup.locator('.ai-popup-result-body');
+    await expect(resultBody).toHaveText('ANSWER_B');
+    expect(requestBodies.map((body) => body.text)).toEqual([firstSelection, secondSelection]);
+
+    const staleResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes('/ai/ask') && response.headers()['x-test-response'] === 'stale'
+    );
+    releaseFirstResponse?.();
+    await staleResponse;
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) => {
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+        })
+    );
+
+    await expect(resultBody).toHaveText('ANSWER_B');
+    await expect(popup.locator('.ai-popup-selection-text')).toHaveText(secondSelection || '');
+  });
+});
+
 test.describe('AI Popup - Mobile (programmatic selection)', () => {
   test('GIVEN mobile viewport WHEN text selected THEN popup shows as bottom sheet', async ({
     page,
