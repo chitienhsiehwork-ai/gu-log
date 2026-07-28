@@ -1,11 +1,12 @@
 ---
-ticketId: 'GP-PENDING'
+ticketId: "GP-263"
 title: 'Anthropic 沒有要禁 open weights — Dario Amodei 攤開他真正害怕的兩個惡夢'
 originalDate: '2026-07-27'
 translatedDate: '2026-07-28'
 translatedBy:
   model: "Opus 5"
   harness: "Claude Code CLI"
+
   pipeline:
     - role: "Written"
       model: "Opus 5"
@@ -16,11 +17,17 @@ translatedBy:
     - role: "Refined"
       model: "Opus 5"
       harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Rewritten"
+      model: "Opus 5"
+      harness: "Claude Code CLI + Tribunal"
     - role: "Orchestrated"
       model: "Opus 5"
-      harness: "gp-pipeline"
+      harness: "gp-pipeline + Tribunal"
   pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
-source: 'Anthropic'
+source: "Anthropic"
 sourceUrl: 'https://www.anthropic.com/news/position-open-weights-models'
 lang: 'zh-tw'
 summary: '華府傳出考慮禁止美國公司使用中國 open weights 模型，科技業連署支持 open weights，也有人指控 Anthropic 想禁它來保護生意。Dario Amodei 出面否認，並列出他真正支持的三件事：管晶片、擋工業規模的蒸餾、強制測試所有夠強的模型。最深的一段藏在註腳裡——讓人類到今天還沒出事的，可能不是防守方。'

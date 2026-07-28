@@ -1,0 +1,213 @@
+---
+ticketId: "GP-263"
+title: "Anthropic Isn't Trying to Ban Open Weights — Dario Amodei Lays Out the Two Nightmares He Actually Fears"
+originalDate: '2026-07-27'
+translatedBy:
+  model: "Opus 5"
+  harness: "Claude Code CLI"
+
+  pipeline:
+    - role: "Written"
+      model: "Opus 5"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 5"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 5"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Rewritten"
+      model: "Opus 5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "Opus 5"
+      harness: "gp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "Anthropic"
+sourceUrl: 'https://www.anthropic.com/news/position-open-weights-models'
+lang: 'en'
+summary: 'Word from Washington that officials are weighing a ban on US companies using Chinese open weights models. A batch of tech companies signed an open letter backing open weights, and some accused Anthropic of pushing a ban to protect its own business. Dario Amodei denies it, and lays out the three things he actually supports: control the chips, stop industrial-scale distillation, and mandate testing for every model powerful enough to matter. The deepest passage is buried in footnote five — what has kept humanity safe so far may not be the defenders.'
+tags: ['ai-policy', 'open-weights', 'anthropic', 'ai-safety', 'geopolitics']
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 8
+    sourceBoundary: 8
+    commentarySeparation: 8
+    score: 8
+    date: "2026-07-28"
+    model: "claude-opus-5"
+  librarian:
+    glossary: 8
+    crossRef: 8
+    sourceAlign: 9
+    attribution: 8
+    score: 8
+    date: "2026-07-28"
+    model: "claude-opus-5"
+  freshEyes:
+    readability: 8
+    firstImpression: 9
+    payoffDensity: 9
+    lengthFit: 9
+    clarity: 9
+    score: 8
+    date: "2026-07-28"
+    model: "claude-opus-5"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-07-28"
+    model: "claude-opus-5"
+translatedDate: "2026-07-28"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+Word got out of Washington that some officials were considering barring US companies from using Chinese [open weights](/en/glossary#open-weights) models. A group of tech companies immediately signed an open letter in support of open weights. Others pointed a finger straight at Anthropic — claiming it wants open weights banned to protect its own business.
+
+Dario Amodei's answer leaves no wiggle room: Anthropic has never advocated banning open weights models. And a protectionist ban wouldn't solve any of his serious national security concerns — what he actually worries about is two nightmares.
+
+## Open weights without dangerous capabilities are a public good
+
+An open weights model with no dangerous capabilities is a public good. Beyond the compute needed to run it, it costs no one anything, and it delivers real value to companies, developers, and researchers alike.
+
+<MoguNote summary="Open weights is not open source, and "public good" here is the floor every later restriction has to clear.">
+For a piece written mainly to say "that never happened," the most interesting thing about it is what it does on the side: Dario reorders the list of things worth being afraid of, and then tucks the answer to "why hasn't humanity been wiped out by bioweapons yet" into footnote five.
+
+"Public good" isn't a courtesy line here, it's the floor — every restriction that follows has to explain why it doesn't step through it.
+
+gu-log covered the skeleton of Anthropic's policy thinking back in [GP-202](/posts/gp-202-20260515-anthropic-2028-ai-leadership-five-voices/) (the two scenarios for AI leadership in 2028, compute, export controls, distillation). This piece squeezes that same logic into one very concrete question — should open weights be banned or not — so treat that one as background reading.
+
+One more thing plenty of people mix up: open weights is not open source. The former just releases the trained weights for anyone to download, run, and fine-tune; the training data, the code, and the architectural details can stay a sealed box. Models that are genuinely open all the way down to data and code are far rarer.
+</MoguNote>
+
+---
+
+## Two nightmares, and the order determines what the policy should look like
+
+Amodei's worries come in two layers. He laid them out six months ago in ["The Adolescence of Technology"](https://darioamodei.com/essay/the-adolescence-of-technology), and he says he's held both of them for years.
+
+**The first and primary nightmare**: authoritarian governments — not only the CCP, but the CCP is plainly the most capable of the threats — training models more powerful than America's, and using them to secure a permanent military advantage or to repress their own people at a depth not previously possible.
+
+This concern is widely shared inside the US government. Vice President Vance warned in Paris last year that authoritarian regimes "have already stolen and used AI to strengthen their military, intelligence, and surveillance capabilities," and the intelligence community's 2026 Annual Threat Assessment states that strong progress on AI by other global powers is challenging US economic competitiveness and national security advantages.
+
+This nightmare has nothing to do with whether weights are open. It has even less to do with whether American companies use them. The single most dangerous model is quite likely one trained in secret and handed to the PLA to fly drones, and to the Ministry of State Security for surveillance and repression.
+
+**The second, secondary nightmare**: models powerful enough to be used for cyberattacks or biological attacks, plus the possibility of serious misalignment in the models themselves — that is, what they actually do drifting away from what humans want them to do.
+
+At this layer, there is one thing about open weights that genuinely has nothing to do with country of origin: whether it comes from China or anywhere else, an open weights model **may** carry more risk than a closed one. Guardrails are hard to attach, usage is hard to monitor, and once the weights are out, they can't be pulled back. The UK's AI Security Institute (AISI) put it bluntly in [its report](https://www.aisi.gov.uk/blog/how-far-behind-the-frontier-are-leading-open-weight-models-on-cyber):
+
+> The same openness underpinning these benefits precludes many of the safety measures that closed model developers can use to detect and disrupt misuse... Once open-weight models are released, these options are lost permanently... For models with dangerous capabilities – including highly cyber-capable models – open weight release therefore creates a persistent and irreversible risk of misuse.
+
+So "persistent and irreversible" has a specific range: it's about models with dangerous capabilities, including the highly cyber-capable ones. The models without dangerous capabilities aren't in that sentence.
+
+But banning American companies from using these models does nothing for that risk, because the bad actor is unlikely to be a legally registered US corporation. The one thing such a ban would reliably accomplish is giving US AI companies less competition —
+
+> It would protect US AI companies from competition, but that has never been my goal.
+
+<MoguNote summary="Banning law-abiding firms from lockpicks does not stop burglars — and his self-incrimination is checkable.">
+Banning legitimate businesses from using a tool in order to stop criminals is roughly like forbidding registered companies from buying lockpicks and then declaring burglary solved. The burglars are delighted ┐(￣ヘ￣)┌
+
+But the weight of that passage isn't in the analogy, it's in the self-incrimination. An AI CEO volunteering that "this policy would make me money," then saying that isn't the point — the statement itself is cheap. What's valuable is that it can be checked. And checking it is easy: look at the list he offers next and see whether any item on it works, in practice, to keep competitors' products out of the market. Read on.
+</MoguNote>
+
+---
+
+## The three things he does support
+
+What he and Anthropic have been arguing for all along is a different set of three things — not something invented this week to answer an open letter.
+
+### Chips: don't sell them, and go after the smuggling
+
+Don't sell powerful chips or chipmaking equipment to China, and crack down hard on the rampant smuggling and the assorted workarounds used to get them anyway.
+
+The reasoning is arithmetic. China's domestic production is limited, and how much compute you pour in roughly determines how strong a model you can train. Without American chips, you can't train something stronger than America's. This is the most efficient and most direct way to block the first nightmare. And since it also makes it harder to train models that US law can't reach, it helps with the second nightmare as a bonus.
+
+### Distillation: industrial-scale capability copying, which is a separate question from open weights
+
+Distillation takes vastly less compute than training a model from scratch. It lets China build models it shouldn't be able to build given the number of chips it has — effectively routing around part of the chip restrictions.
+
+Distillation does have a ceiling: it won't get the CCP to parity with or ahead of the US, but it can pull China's frontier to within a few months of America's.
+
+Many of the companies doing this do release open weights — but whether the weights are open matters far less than the fact that there's an authoritarian state behind these operations trying to overtake the frontier. The right response is to design policy tools that deter the behavior. A blanket ban on open weights is neither the right remedy nor anything Anthropic has asked for.
+
+Anthropic does its own version of this work: identifying and shutting down the accounts used for distillation. But he's candid that it's hard — the relevant accounts usually only become recognizable after a large batch has already been distilled away, and the other side often runs huge numbers of fake accounts as a moving target. No single company's efforts can solve the whole problem, which is exactly why they argue for policy.
+
+<MoguNote summary="Distillation defense runs structurally late: defenders read the past, attackers just open more accounts.">
+gu-log covered the concrete version of that difficulty in [MP-117](/posts/mp-117-20260224-anthropic-distillation-chinese-labs/): Anthropic publicly named three Chinese labs, saying they'd run 16 million conversations through 24,000 fake accounts to distill Claude's capabilities.
+
+Lay that piece next to this passage and you can see why he's punting to policy. "By the time you can recognize it, the goods are already gone" isn't an excuse, it's the physics of this kind of contest. The defender is always reading events that already happened; the attacker only has to keep opening new accounts. However diligent one company is, it's chasing a target that keeps growing new shapes (╯°□°)╯
+</MoguNote>
+
+### Testing: if a model is strong enough, test it — open or closed
+
+For the second nightmare, he thinks the best answer is almost boringly plain: before release, just test. Test for cyber capability, test for biological risk, test for alignment.
+
+And he thinks this one is close to consensus. The Trump administration has moved in this direction in recent months, and recent industry proposals argue for applying this kind of testing to the most capable models regardless of origin and regardless of whether they're open or closed, while fully exempting weaker models — the ones coming out of startups and academia, for instance.
+
+The order matters too. Whether open models are in fact riskier, and whether that risk can be mitigated, should be an output of testing, not a premise decided in advance. He leaves a door open as well: maybe there really is a way to make open weights safer, and Anthropic recently published research on [modular training strategies](https://alignment.anthropic.com/2026/modular-pretraining/).
+
+The last condition is a hard one. For testing to work, it has to be global — meaning the CCP has to be on board too. He thinks that limited kind of cooperation might genuinely be achievable: on keeping AI from being used to build bioweapons, China has interests of its own at stake.
+
+<MoguNote>
+"Test first, don't assume" sounds like common sense, but it's actually a position: it moves the burden of proof from "prove it's dangerous" to "run the process and look at the numbers." Nobody has to win the shouting match first; the numbers will talk.
+
+There's also a question he doesn't open up, even though the whole policy hinges on it: who does the testing? Who pays? Whose results count? "Mandatory safety testing" is three easy words to write, and every one of them is a fight on the way down.
+</MoguNote>
+
+---
+
+## The two sentences in the open letter he disagrees with
+
+He says he agrees with much of that [open letter](https://images.nvidia.com/pdf/Open-Weights-and-American-AI-Leadership.pdf): open weights broaden access to the AI economy, strengthen competition at least in some use cases, and give customers more control. As for the distillation concerns, those should be handled with targeted legal and commercial frameworks — the item above.
+
+He disagrees with only two sentences, and both suffer from the same word: **necessarily**.
+
+The letter argues that open weights necessarily make safety protections easier to develop, and that broadly distributed capability necessarily favors defenders over attackers.
+
+> It seems at least as likely to me that the opposite will be true.
+
+His example is biology. He worries the field has a severe attacker-defender asymmetry: a sufficiently strong model might be able to weaponize a pandemic-class virus quickly, using materials available anywhere; while defending against that thing is, even in the best case, a piece of practical engineering that takes years to complete — America's vaccine acceleration program was what the best case looks like.
+
+Which is why questions like this should be answered empirically, through rigorous pre-release testing, rather than assumed in advance.
+
+---
+
+## What has kept humanity safe so far may not be the defenders
+
+He believes what actually protects humanity in biology right now is neither "the defenders" nor the difficulty of obtaining materials, but **a negative correlation between intellectual capability and the desire to cause catastrophic harm**.
+
+The people capable of building that kind of thing generally don't want to; the people who want to generally can't. Past technologies — web search, even DNA synthesis — were nowhere near powerful enough to break that correlation. But he worries that at the current rate of progress, AI will break it soon.
+
+Put differently: a sufficiently powerful technology tears down every threshold, and in doing so it strips bare the question of who — attacker or defender — held the structural advantage all along. And in biology, he's worried the advantage sits with the attacker.
+
+<MoguNote summary="What has kept biology safe is not locks but the fact that most people smart enough to pick them do not want to.">
+Humanity has always assumed safety comes from locks — material controls, equipment review, supply chain tracking. His claim is that what's actually been holding the line is "most people who can pick locks don't want to." The lock's only job is to set the bar for how smart you have to be to open it, and that bar happens to land in a range where people that smart usually don't want to end the world. The last few uneventful decades ran on statistics being on our side, not on the door being thick.
+
+The trouble with sufficiently powerful AI isn't that it picks the lock itself, it's that it drops the how-smart-do-you-need-to-be bar straight to the floor. Threshold gone, and the only thing left holding the line is desire ヽ(°〇°)ﾉ
+
+Worth flagging the register too: he says "worried," "might," "at the current rate" — this is his read on the attack-defense structure, not a prophecy and not a verified conclusion. And his own prescription is exactly that: this kind of question should be answered by testing, not by anyone's intuition.
+</MoguNote>
+
+---
+
+## Closing
+
+Anthropic hasn't argued for banning open weights as a category, and doesn't plan to.
+
+The effort belongs in three other places: keeping powerful chips out of authoritarian governments' hands, stopping industrial-scale distillation, and mandating safety testing for every model powerful enough to matter — open and closed alike.
+
+As for whether open weights actually raise risk, and whether that risk can be mitigated, he leaves the answer to testing rather than calling it in advance. And that negative correlation, the one that's kept us out of trouble so far — he worries that at the current rate, AI will break it soon.
+
+<MoguNote>
+All three items on the policy list — chips, distillation, testing — are essentially ways of buying time for that correlation. Nobody ever signed a warranty on it, and nobody knows how many years it has left (￣▽￣)
+</MoguNote>
