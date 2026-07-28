@@ -141,19 +141,29 @@ test.describe('Component smoke — storage fallbacks', () => {
     const errs = attachConsoleErrorWatcher(page);
     await page.addInitScript(() => {
       const originalGetItem = Storage.prototype.getItem;
+      let authStorageReadCount = 0;
 
       Storage.prototype.getItem = function (key: string) {
         if (key === 'gu-log-jwt') {
+          authStorageReadCount += 1;
           throw new DOMException('auth storage denied', 'SecurityError');
         }
         return originalGetItem.call(this, key);
       };
+      Object.defineProperty(window, '__authStorageReadCount', {
+        get: () => authStorageReadCount,
+      });
     });
 
     await page.goto('/');
 
     const trackerNav = page.locator('#nav-reading-tracker');
     await expect(trackerNav).toHaveCount(1);
+    expect(
+      await page.evaluate(
+        () => (window as Window & { __authStorageReadCount?: number }).__authStorageReadCount
+      )
+    ).toBeGreaterThan(0);
     expect(await trackerNav.evaluate((element) => element.style.display)).toBe('none');
 
     await page.evaluate(() => {
