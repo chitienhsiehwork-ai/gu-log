@@ -95,6 +95,7 @@
   let lastAskQuestion = '';
   let errorDismissTimer = null;
   let requestGeneration = 0;
+  let selectionGeneration = 0;
 
   function beginRequestContext() {
     requestGeneration += 1;
@@ -463,10 +464,10 @@
     }
   }
 
-  function renderLoading(message) {
+  function renderLoading(message, state = 'loading') {
     if (!popup) return;
     clearErrorDismissTimer();
-    currentState = 'loading';
+    currentState = state;
 
     popup.innerHTML =
       '<div class="ai-popup-loading">' +
@@ -895,7 +896,8 @@
       return;
     }
 
-    renderLoading(t.loadingConfirm);
+    selectionGeneration += 1;
+    renderLoading(t.loadingConfirm, 'confirm-loading');
     try {
       const data = await apiRequest('/ai/edit/confirm', {
         editId: pendingEditId,
@@ -976,9 +978,13 @@
   function onSelectionEnd(event) {
     const target = event && event.target;
     if (popup && target && popup.contains(target)) return;
+    if (currentState === 'confirm-loading') return;
 
     // Small delay to let selection finalize
+    const generation = selectionGeneration;
     setTimeout(function () {
+      if (generation !== selectionGeneration || currentState === 'confirm-loading') return;
+
       const sel = window.getSelection();
       const text = sel ? sel.toString().trim() : '';
 
