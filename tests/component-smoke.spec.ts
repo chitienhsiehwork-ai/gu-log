@@ -134,6 +134,49 @@ test.describe('Component smoke — storage fallbacks', () => {
     await expect(toggle).toHaveAccessibleName('切換為深色主題');
     expect(errs, `console errors: ${errs.join('\n')}`).toEqual([]);
   });
+
+  test('reading tracker nav stays fail closed and preserves storage events when auth storage is unavailable', async ({
+    page,
+  }) => {
+    const errs = attachConsoleErrorWatcher(page);
+    await page.addInitScript(() => {
+      const originalGetItem = Storage.prototype.getItem;
+
+      Storage.prototype.getItem = function (key: string) {
+        if (key === 'gu-log-jwt') {
+          throw new DOMException('auth storage denied', 'SecurityError');
+        }
+        return originalGetItem.call(this, key);
+      };
+    });
+
+    await page.goto('/');
+
+    const trackerNav = page.locator('#nav-reading-tracker');
+    await expect(trackerNav).toHaveCount(1);
+    expect(await trackerNav.evaluate((element) => element.style.display)).toBe('none');
+
+    await page.evaluate(() => {
+      window.dispatchEvent(
+        new StorageEvent('storage', {
+          key: 'gu-log-jwt',
+          newValue: 'header.payload.sig',
+        })
+      );
+    });
+    await expect.poll(() => trackerNav.evaluate((element) => element.style.display)).toBe('');
+
+    await page.evaluate(() => {
+      window.dispatchEvent(
+        new StorageEvent('storage', {
+          key: 'gu-log-jwt',
+          newValue: null,
+        })
+      );
+    });
+    await expect.poll(() => trackerNav.evaluate((element) => element.style.display)).toBe('none');
+    expect(errs, `console errors: ${errs.join('\n')}`).toEqual([]);
+  });
 });
 
 test.describe('Component smoke — shared high-fanout styles', () => {

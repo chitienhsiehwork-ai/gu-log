@@ -134,7 +134,13 @@ const finalDescription = description || t.defaultDescription;
           const el = document.getElementById('nav-reading-tracker');
           if (el) el.style.display = '';
         }
-        if (localStorage.getItem('gu-log-jwt')) {
+        let hasSession = false;
+        try {
+          hasSession = Boolean(localStorage.getItem('gu-log-jwt'));
+        } catch {
+          // Storage can be unavailable; keep the authenticated nav fail closed.
+        }
+        if (hasSession) {
           // Inline to avoid FOUC — runs before body renders
           document.addEventListener('DOMContentLoaded', showTrackerNav);
         }
