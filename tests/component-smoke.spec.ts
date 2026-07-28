@@ -104,6 +104,38 @@ test.describe('Component smoke — listing pages', () => {
   });
 });
 
+test.describe('Component smoke — storage fallbacks', () => {
+  test('theme toggle remains usable when theme storage is unavailable', async ({ page }) => {
+    const errs = attachConsoleErrorWatcher(page);
+    await page.addInitScript(() => {
+      const originalGetItem = Storage.prototype.getItem;
+      const originalSetItem = Storage.prototype.setItem;
+
+      Storage.prototype.getItem = function (key: string) {
+        if (key === 'theme') throw new DOMException('theme storage denied', 'SecurityError');
+        return originalGetItem.call(this, key);
+      };
+      Storage.prototype.setItem = function (key: string, value: string) {
+        if (key === 'theme') throw new DOMException('theme storage denied', 'SecurityError');
+        return originalSetItem.call(this, key, value);
+      };
+    });
+
+    await page.goto('/');
+
+    const root = page.locator('html');
+    const toggle = page.locator('#theme-toggle');
+    await expect(root).toHaveAttribute('data-theme', 'dark');
+    await expect(toggle).toHaveAccessibleName('切換為淺色主題');
+
+    await toggle.click();
+
+    await expect(root).toHaveAttribute('data-theme', 'light');
+    await expect(toggle).toHaveAccessibleName('切換為深色主題');
+    expect(errs, `console errors: ${errs.join('\n')}`).toEqual([]);
+  });
+});
+
 test.describe('Component smoke — shared high-fanout styles', () => {
   for (const theme of ['dark', 'light'] as const) {
     test(`${theme} Toggle, TicketBadge, and PostStatusLabel keep computed styles`, async ({

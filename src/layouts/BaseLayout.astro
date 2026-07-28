@@ -116,8 +116,16 @@ const finalDescription = description || t.defaultDescription;
     <title>{title}</title>
     <!-- Prevent flash of wrong theme -->
     <script is:inline>
-      const theme = localStorage.getItem('theme') || 'dark';
-      document.documentElement.setAttribute('data-theme', theme);
+      (function () {
+        let theme = 'dark';
+        try {
+          const savedTheme = localStorage.getItem('theme');
+          if (savedTheme === 'light' || savedTheme === 'dark') theme = savedTheme;
+        } catch {
+          // Storage can be unavailable; dark is the safe first-paint fallback.
+        }
+        document.documentElement.setAttribute('data-theme', theme);
+      })();
     </script>
     <!-- Show reading tracker nav icon only when logged in -->
     <script is:inline>
