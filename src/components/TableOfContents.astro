@@ -99,16 +99,27 @@ const t = labels[lang];
 
     // Get all heading IDs from TOC links
     const tocLinks = Array.from(document.querySelectorAll('.toc-link'));
-    const headingIds = tocLinks.map((link) => link.getAttribute('data-heading-id')).filter(Boolean);
-    const headings = headingIds
-      .map((id) => document.getElementById(id!))
+    const linksByHeadingId = new Map<string, Element[]>();
+    for (const link of tocLinks) {
+      const headingId = link.getAttribute('data-heading-id');
+      if (!headingId) continue;
+
+      const matchingLinks = linksByHeadingId.get(headingId);
+      if (matchingLinks) {
+        matchingLinks.push(link);
+      } else {
+        linksByHeadingId.set(headingId, [link]);
+      }
+    }
+    const headings = Array.from(linksByHeadingId.keys())
+      .map((id) => document.getElementById(id))
       .filter(Boolean) as HTMLElement[];
 
     if (headings.length === 0) return;
 
     // Set up scroll highlighting
     cleanupScrollHighlight?.();
-    cleanupScrollHighlight = setupScrollHighlight(tocContainer, headings);
+    cleanupScrollHighlight = setupScrollHighlight(tocContainer, headings, linksByHeadingId);
 
     // Set up smooth scrolling
     setupSmoothScroll();
@@ -116,10 +127,15 @@ const t = labels[lang];
     // Note: Mobile toggle is handled by Toggle component's event delegation
   }
 
-  function setupScrollHighlight(tocContainer: Element, headings: HTMLElement[]) {
+  function setupScrollHighlight(
+    tocContainer: Element,
+    headings: HTMLElement[],
+    linksByHeadingId: Map<string, Element[]>
+  ) {
     const desktopToc = tocContainer.querySelector('.toc-desktop') as HTMLElement | null;
     const postHeader = document.querySelector('.post-header') as HTMLElement | null;
     let animationFrameId = 0;
+    let activeHeadingId: string | undefined;
 
     function setDesktopTocVisibility(visible: boolean) {
       if (!desktopToc) return;
@@ -151,14 +167,17 @@ const t = labels[lang];
         }
       }
 
-      document.querySelectorAll('.toc-link').forEach((link) => {
-        link.classList.remove('active');
-      });
-
-      if (currentHeading?.id) {
-        document.querySelectorAll(`[data-heading-id="${currentHeading.id}"]`).forEach((link) => {
+      const nextActiveHeadingId = currentHeading?.id;
+      if (nextActiveHeadingId && nextActiveHeadingId !== activeHeadingId) {
+        if (activeHeadingId) {
+          linksByHeadingId.get(activeHeadingId)?.forEach((link) => {
+            link.classList.remove('active');
+          });
+        }
+        linksByHeadingId.get(nextActiveHeadingId)?.forEach((link) => {
           link.classList.add('active');
         });
+        activeHeadingId = nextActiveHeadingId;
       }
 
       animationFrameId = 0;
@@ -189,6 +208,11 @@ const t = labels[lang];
       headerResizeObserver.disconnect();
       if (animationFrameId !== 0) {
         cancelAnimationFrame(animationFrameId);
+      }
+      if (activeHeadingId) {
+        linksByHeadingId.get(activeHeadingId)?.forEach((link) => {
+          link.classList.remove('active');
+        });
       }
     };
   }
