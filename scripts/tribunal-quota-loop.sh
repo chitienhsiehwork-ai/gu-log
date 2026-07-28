@@ -540,15 +540,22 @@ except Exception:
 }
 
 # Main controller tick. Called before each dispatch cycle.
-# Usage: controller_tick <active_workers>
+# Usage: controller_tick <active_workers> [quota_readings]
 # Outputs: cooldown_sec|recommended_workers|binding_constraint|mode
 # On error: outputs fallback values.
 controller_tick() {
   local active_workers="${1:-0}"
 
-  # Read dual quota
+  # Callers that also persist telemetry pass their already-captured snapshot so
+  # the decision, history, and state cannot describe different quota readings.
   local readings
-  if ! readings=$(get_dual_quota_readings); then
+  if [ "$#" -ge 2 ]; then
+    readings="$2"
+  elif ! readings=$(get_dual_quota_readings); then
+    echo "600|1|none|fallback"
+    return
+  fi
+  if [ -z "$readings" ]; then
     echo "600|1|none|fallback"
     return
   fi
@@ -1303,12 +1310,13 @@ while true; do
     CONTROLLER_WORKERS=$EFFECTIVE_WORKERS
   else
     # ── Closed-loop controller path ──────────────────────────────────────────
-    tick_result=$(controller_tick "$IN_FLIGHT")
-    IFS='|' read -r CONTROLLER_COOLDOWN CONTROLLER_WORKERS CONTROLLER_BINDING CONTROLLER_MODE <<< "$tick_result"
-
-    # Grab raw readings for history/state
-    readings_raw=$(get_dual_quota_readings 2>/dev/null) ||
+    if readings_raw=$(get_dual_quota_readings 2>/dev/null); then
+      tick_result=$(controller_tick "$IN_FLIGHT" "$readings_raw")
+    else
       readings_raw="$UNKNOWN_QUOTA_READINGS"
+      tick_result="600|1|none|fallback"
+    fi
+    IFS='|' read -r CONTROLLER_COOLDOWN CONTROLLER_WORKERS CONTROLLER_BINDING CONTROLLER_MODE <<< "$tick_result"
     IFS='|' read -r five_pct_raw five_reset_raw seven_pct_raw seven_reset_raw extra_u_raw extra_l_raw extra_e_raw <<< "$readings_raw"
 
     tlog "CONTROLLER: cooldown=${CONTROLLER_COOLDOWN}s workers=${CONTROLLER_WORKERS} binding=${CONTROLLER_BINDING} mode=${CONTROLLER_MODE} 5hr=${five_pct_raw}% 7day=${seven_pct_raw}% cost_telemetry=${ARTICLE_COST_PCT}%"
@@ -1436,8 +1444,12 @@ while true; do
 
   # Log completion event for calibration (after worker finishes)
   if [ "$LEGACY_QUOTA" != true ]; then
-    c_readings=$(get_dual_quota_readings 2>/dev/null) ||
+    if c_readings=$(get_dual_quota_readings 2>/dev/null); then
+      completion_quota_ok=true
+    else
       c_readings="$UNKNOWN_QUOTA_READINGS"
+      completion_quota_ok=false
+    fi
     IFS='|' read -r c5 cr5 c7 cr7 ceu cel cee <<< "$c_readings"
     quota_history_append "complete" "$c5" "$cr5" "$c7" "$cr7" "$ceu" "$cel" \
       "${CONTROLLER_COOLDOWN:-10}" "${CONTROLLER_WORKERS:-1}" "${CONTROLLER_BINDING:-none}" \
@@ -1449,7 +1461,11 @@ while true; do
   # Re-compute cooldown with fresh quota after worker completion
   if [ "$LEGACY_QUOTA" != true ]; then
     IN_FLIGHT=${#WORKER_PID[@]}
-    fresh_tick=$(controller_tick "$IN_FLIGHT") || fresh_tick=""
+    if [ "$completion_quota_ok" = true ]; then
+      fresh_tick=$(controller_tick "$IN_FLIGHT" "$c_readings") || fresh_tick=""
+    else
+      fresh_tick="600|1|none|fallback"
+    fi
     if [ -n "$fresh_tick" ]; then
       IFS='|' read -r CONTROLLER_COOLDOWN CONTROLLER_WORKERS CONTROLLER_BINDING CONTROLLER_MODE <<< "$fresh_tick"
     fi
