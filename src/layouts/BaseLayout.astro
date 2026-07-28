@@ -590,7 +590,10 @@ const finalDescription = description || t.defaultDescription;
 
       // Close on Escape
       document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') closeMenu();
+        if (e.key === 'Escape' && btn?.getAttribute('aria-expanded') === 'true') {
+          closeMenu();
+          btn.focus({ preventScroll: true });
+        }
       });
 
       // Close when a menu item is clicked (nav to new page)
