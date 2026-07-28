@@ -96,7 +96,12 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
     button.type = 'button';
     button.textContent = lang === 'en' ? 'Log out' : '登出';
     button.addEventListener('click', () => {
-      localStorage.removeItem(JWT_KEY);
+      try {
+        localStorage.removeItem(JWT_KEY);
+      } catch (_error) {
+        // Keep the authenticated UI when storage cannot persist the logout.
+        return;
+      }
       render();
     });
     status.appendChild(button);

@@ -133,4 +133,56 @@ test.describe('LoginCta Component', () => {
     const jwt = await page.evaluate(() => localStorage.getItem('gu-log-jwt'));
     expect(jwt).toBeNull();
   });
+
+  test('GIVEN logout storage is denied WHEN logout clicked THEN keeps the authenticated UI without a page error', async ({
+    page,
+  }) => {
+    const pageErrors: string[] = [];
+    page.on('pageerror', (error) => pageErrors.push(error.message));
+
+    await page.goto(TEST_POST);
+    const jwt = await page.evaluate(() => {
+      const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+      const payload = btoa(JSON.stringify({ email: 'tester@example.com' }));
+      const token = `${header}.${payload}.sig`;
+      localStorage.setItem('gu-log-jwt', token);
+      return token;
+    });
+    await page.addInitScript(() => {
+      const originalRemoveItem = Storage.prototype.removeItem;
+      let logoutRemovalAttempts = 0;
+      Object.defineProperty(window, '__logoutRemovalAttempts', {
+        get: () => logoutRemovalAttempts,
+      });
+      Storage.prototype.removeItem = function (this: Storage, key: string) {
+        if (this === window.localStorage && key === 'gu-log-jwt') {
+          logoutRemovalAttempts += 1;
+          throw new DOMException('logout storage denied', 'SecurityError');
+        }
+        return originalRemoveItem.call(this, key);
+      };
+    });
+
+    await page.reload();
+    const cta = page.locator('[data-login-cta]');
+    const logoutButton = cta.locator('.cta-logout');
+    await expect(logoutButton).toBeVisible();
+    await logoutButton.click();
+    await page.waitForTimeout(50);
+
+    expect(
+      await page.evaluate(
+        () =>
+          (
+            window as Window & {
+              __logoutRemovalAttempts?: number;
+            }
+          ).__logoutRemovalAttempts
+      )
+    ).toBe(1);
+    expect(await page.evaluate(() => localStorage.getItem('gu-log-jwt'))).toBe(jwt);
+    await expect(logoutButton).toBeVisible();
+    await expect(cta.locator('.github-login-btn')).toHaveCount(0);
+    expect(pageErrors).toEqual([]);
+  });
 });
