@@ -109,6 +109,63 @@ function isRecord(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
+function loadRules() {
+  if (!existsSync(RULES_PATH)) {
+    throw new Error('Invalid dependency freshness rules: dependency-rules.json is missing');
+  }
+
+  let rules;
+  try {
+    rules = JSON.parse(readFileSync(RULES_PATH, 'utf-8'));
+  } catch {
+    throw new Error('Invalid dependency freshness rules: expected a readable valid JSON file');
+  }
+  if (!isRecord(rules)) {
+    throw new Error('Invalid dependency freshness rules: expected an object');
+  }
+
+  const requiredKeys = [
+    'blockOnDeprecated',
+    'warnOnOutdated',
+    'warnOnUnmaintainedYears',
+    'maxOutdatedPercent',
+  ];
+  const unknownKeys = Object.keys(rules).filter((key) => !requiredKeys.includes(key));
+  if (unknownKeys.length > 0) {
+    throw new Error(
+      `Invalid dependency freshness rules: unknown key(s): ${unknownKeys.join(', ')}`
+    );
+  }
+  const missingKeys = requiredKeys.filter((key) => !Object.hasOwn(rules, key));
+  if (missingKeys.length > 0) {
+    throw new Error(
+      `Invalid dependency freshness rules: missing required key(s): ${missingKeys.join(', ')}`
+    );
+  }
+  if (typeof rules.blockOnDeprecated !== 'boolean') {
+    throw new Error('Invalid dependency freshness rules: blockOnDeprecated must be a boolean');
+  }
+  if (typeof rules.warnOnOutdated !== 'boolean') {
+    throw new Error('Invalid dependency freshness rules: warnOnOutdated must be a boolean');
+  }
+  if (!Number.isFinite(rules.warnOnUnmaintainedYears) || rules.warnOnUnmaintainedYears <= 0) {
+    throw new Error(
+      'Invalid dependency freshness rules: warnOnUnmaintainedYears must be a positive finite number'
+    );
+  }
+  if (
+    !Number.isFinite(rules.maxOutdatedPercent) ||
+    rules.maxOutdatedPercent < 0 ||
+    rules.maxOutdatedPercent > 100
+  ) {
+    throw new Error(
+      'Invalid dependency freshness rules: maxOutdatedPercent must be a finite number from 0 to 100'
+    );
+  }
+
+  return rules;
+}
+
 function semverParts(v) {
   if (!v) return null;
   const m = String(v).match(/^(\d+)\.(\d+)\.(\d+)/);
@@ -163,6 +220,8 @@ async function registryMetadata(pkg) {
 /* ── main ────────────────────────────────────────────────────────── */
 
 async function main() {
+  const rules = loadRules();
+
   // 1. Get outdated info
   const outdatedMap = await runJson(['outdated', '--json'], { allowExitOne: true });
   if (!isRecord(outdatedMap)) {
@@ -224,7 +283,7 @@ async function main() {
     let status = classifyVersion(current, latest);
     const { deprecatedMessage, lastPublishDate } = registryMetadataByPackage.get(name);
     const yearsAgo = (Date.now() - lastPublishDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
-    const possiblyUnmaintained = yearsAgo > 2;
+    const possiblyUnmaintained = yearsAgo > rules.warnOnUnmaintainedYears;
 
     if (deprecatedMessage) status = 'deprecated';
 
@@ -302,20 +361,6 @@ async function main() {
   console.log(`History updated → ${HISTORY_PATH}`);
 
   // ── enforce rules ──
-  let rules = {
-    blockOnDeprecated: true,
-    warnOnOutdated: true,
-    warnOnUnmaintainedYears: 2,
-    maxOutdatedPercent: 30,
-  };
-  if (existsSync(RULES_PATH)) {
-    try {
-      rules = JSON.parse(readFileSync(RULES_PATH, 'utf-8'));
-    } catch {
-      /* use defaults */
-    }
-  }
-
   let exitCode = 0;
 
   if (rules.blockOnDeprecated && report.deprecated > 0) {
