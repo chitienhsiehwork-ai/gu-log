@@ -114,6 +114,10 @@ if [ "$(git rev-parse --is-shallow-repository 2>/dev/null)" = "true" ]; then
     || git fetch --depth=2147483647 --quiet origin 2>/dev/null \
     || true
 fi
+if [ "$(git rev-parse --is-shallow-repository 2>/dev/null)" != "false" ]; then
+  echo "❌ Full Git history is unavailable; cannot verify post-versions.json freshness."
+  exit 1
+fi
 if ! node scripts/build-version-manifest.mjs --check; then
   echo "   Stale manifest — regenerating src/data/post-versions.json for you..."
   node scripts/build-version-manifest.mjs
