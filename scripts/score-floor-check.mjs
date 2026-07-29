@@ -60,16 +60,28 @@ const dims =
   tribunalVersion >= 9
     ? ['persona', 'moguNote', 'vibe', 'narrative']
     : ['persona', 'moguNote', 'vibe', 'clarity', 'narrative'];
-const missing = dims.filter((d) => typeof vibe[d] !== 'number');
-if (missing.length) {
-  console.error(`scores.vibe incomplete (missing: ${missing.join(', ')})`);
+const invalidDimensions = dims.filter((dimension) => !Number.isFinite(vibe[dimension]));
+if (invalidDimensions.length) {
+  console.error(
+    `scores.vibe incomplete or invalid (finite number required: ${invalidDimensions.join(', ')})`
+  );
   process.exit(1);
 }
 
-const composite =
-  typeof vibe.score === 'number'
-    ? vibe.score
-    : Math.floor(dims.reduce((sum, d) => sum + vibe[d], 0) / dims.length);
+const hasExplicitScore = Object.hasOwn(vibe, 'score');
+if (hasExplicitScore && !Number.isFinite(vibe.score)) {
+  console.error('scores.vibe.score must be a finite number');
+  process.exit(1);
+}
+
+const composite = hasExplicitScore
+  ? vibe.score
+  : Math.floor(dims.reduce((sum, d) => sum + vibe[d], 0) / dims.length);
+
+if (!Number.isFinite(composite)) {
+  console.error('scores.vibe composite must be a finite number');
+  process.exit(1);
+}
 
 if (composite < FLOOR) {
   console.error(`scores.vibe composite ${composite} < floor ${FLOOR} — iterate before shipping`);
