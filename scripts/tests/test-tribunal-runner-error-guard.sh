@@ -12,6 +12,7 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 TRIBUNAL="$ROOT_DIR/scripts/tribunal.sh"
+QUOTA_LOOP="$ROOT_DIR/scripts/tribunal-quota-loop.sh"
 
 fail() { echo "x $*" >&2; exit 1; }
 pass() { echo "ok $*"; }
@@ -298,6 +299,122 @@ if ! grep -q 'runner_error propagated' "$ROOT_DIR/scripts/tribunal-quota-loop.sh
   fail "quota loop does not drain on tribunal runner_error"
 fi
 pass "quota loop drains instead of sweeping the queue after runner_error"
+
+eval "$(sed -n '/^wait_any_worker() {/,/^}/p' "$QUOTA_LOOP")"
+eval "$(sed -n '/^drain_and_exit() {/,/^}/p' "$QUOTA_LOOP")"
+declare -F wait_any_worker >/dev/null || fail "unable to extract wait_any_worker"
+declare -F drain_and_exit >/dev/null || fail "unable to extract drain_and_exit"
+
+run_completion_attribution_scenario() (
+  local scenario="$1"
+  local scenario_dir="$TMP/completion-attribution-$scenario"
+  local fixture_marker="$scenario_dir/a.claimed.123"
+  local worker_result_log="$scenario_dir/worker-a.log"
+  local tracking_file="$scenario_dir/a.tracking"
+  local events="$scenario_dir/events.log"
+  local expected_detail
+
+  mkdir -p "$scenario_dir"
+  : > "$events"
+  printf 'worker evidence must survive\n' > "$worker_result_log"
+  printf 'tracking evidence\n' > "$tracking_file"
+
+  declare -A WORKER_PID=()
+  declare -A WORKER_ARTICLE=()
+  declare -A WORKER_RESULT_LOG=()
+  declare -A WORKER_COMPLETION=()
+  declare -A WORKER_TRACKING=()
+  stop_requested=false
+  stop_source=""
+  fatal_worker_rc=0
+  fatal_worker_detail=""
+  WORKER_COMPLETION_DIR="$scenario_dir"
+  LOG_FILE="$events"
+
+  event() { printf '%s:%s\n' "$1" "${2:-}" >> "$events"; }
+  tribunal_wait_for_worker_completion() {
+    TRIBUNAL_WORKER_COMPLETION_KIND="marker"
+    TRIBUNAL_WORKER_COMPLETION_MARKER="$fixture_marker"
+  }
+  tribunal_collect_worker_completion() { return 1; }
+  tlog() { :; }
+  rc_write_state() { :; }
+  rc_release_claim() { event release "$1"; }
+  rc_exit_stopped() { event graceful; }
+  wait() {
+    event wait "$1"
+    return 0
+  }
+
+  case "$scenario" in
+    collect)
+      printf 'worker_id=a\nrc=bogus\n' > "$fixture_marker"
+      WORKER_PID[a]=4242
+      WORKER_ARTICLE[a]=gp-1-completion-integrity
+      WORKER_RESULT_LOG[a]="$worker_result_log"
+      WORKER_COMPLETION[a]="$scenario_dir/a.done"
+      WORKER_TRACKING[a]="$tracking_file"
+      expected_detail="worker_attribution_error worker=a pid=4242 article=gp-1-completion-integrity marker_rc=invalid claim_retained=true result_log=$worker_result_log"
+      ;;
+    unmatched)
+      printf 'worker_id=ghost\nrc=0\n' > "$fixture_marker"
+      expected_detail="worker_attribution_error worker=ghost marker_rc=0 marker=$fixture_marker"
+      ;;
+    *)
+      fail "unknown completion attribution scenario: $scenario"
+      ;;
+  esac
+
+  set +e
+  wait_any_worker
+  wait_rc=$?
+  set -e
+  [ "$wait_rc" -eq 70 ] ||
+    fail "$scenario attribution mismatch should return 70, got $wait_rc"
+  [ "$fatal_worker_rc" -eq 70 ] ||
+    fail "$scenario attribution mismatch did not set fatal_worker_rc=70"
+  [ "$fatal_worker_detail" = "$expected_detail" ] ||
+    fail "$scenario attribution mismatch lost fatal detail: $fatal_worker_detail"
+  [ "$stop_requested" = true ] ||
+    fail "$scenario attribution mismatch did not request drain"
+  [ -f "$fixture_marker" ] ||
+    fail "$scenario attribution mismatch deleted its marker before fatal drain"
+
+  if [ "$scenario" = collect ]; then
+    [ -f "$worker_result_log" ] ||
+      fail "collect attribution mismatch deleted the worker result log"
+    ! grep -q '^release:' "$events" ||
+      fail "collect attribution mismatch released an unverified claim"
+    grep -qx 'wait:4242' "$events" ||
+      fail "collect attribution mismatch did not reap the exact worker pid"
+    [ ! -e "$tracking_file" ] ||
+      fail "collect attribution mismatch retained stale active tracking"
+    if [ -n "${WORKER_PID[a]+present}" ] ||
+      [ -n "${WORKER_ARTICLE[a]+present}" ] ||
+      [ -n "${WORKER_RESULT_LOG[a]+present}" ] ||
+      [ -n "${WORKER_COMPLETION[a]+present}" ] ||
+      [ -n "${WORKER_TRACKING[a]+present}" ]; then
+      fail "collect attribution mismatch retained active worker bookkeeping"
+    fi
+  else
+    ! grep -q '^wait:' "$events" ||
+      fail "unmatched completion marker attempted to reap an unknown pid"
+  fi
+
+  set +e
+  (drain_and_exit)
+  drain_rc=$?
+  set -e
+  [ "$drain_rc" -eq 70 ] ||
+    fail "$scenario attribution mismatch drained with rc=$drain_rc instead of 70"
+  ! grep -q '^graceful:' "$events" ||
+    fail "$scenario attribution mismatch was rewritten as stopped_by_request"
+)
+
+run_completion_attribution_scenario collect
+pass "worker completion attribution failure retains evidence and exits 70"
+run_completion_attribution_scenario unmatched
+pass "unmatched completion markers remain fatal infrastructure errors"
 
 old_bin="$TMP/old-bin"
 mkdir -p "$old_bin"
