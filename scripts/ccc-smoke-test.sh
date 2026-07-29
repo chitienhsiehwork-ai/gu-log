@@ -36,6 +36,12 @@ for arg in "$@"; do
   esac
 done
 
+LOG_DIR="$(mktemp -d "${TMPDIR:-/tmp}/gu-log-ccc-smoke.XXXXXX")" || {
+  echo "unable to create private smoke log directory" >&2
+  exit 1
+}
+readonly LOG_DIR
+
 # ── 顏色（非 tty 時關掉，CI log 不要色碼）──────────────────────────
 if [ -t 1 ]; then
   G='\033[0;32m'; R='\033[0;31m'; Y='\033[0;33m'; B='\033[0;34m'; N='\033[0m'
@@ -121,10 +127,10 @@ if $FIX; then
   # ERR_MODULE_NOT_FOUND，tribunal 卡在 final build gate）。「目錄存在」不等於「依賴齊」，
   # 而 --frozen-lockfile 已經同步時是 ~5s no-op，沒有跳過的理由。
   echo "  installing deps (pnpm install --frozen-lockfile)..."
-  pnpm install --frozen-lockfile >/tmp/ccc-smoke-install.log 2>&1 \
-    && pass "pnpm install（與 lockfile 同步）" || fail "pnpm install" "see /tmp/ccc-smoke-install.log"
-  bash scripts/setup-hooks.sh >/tmp/ccc-smoke-hooks.log 2>&1 \
-    && pass "setup-hooks" || fail "setup-hooks" "see /tmp/ccc-smoke-hooks.log"
+  pnpm install --frozen-lockfile >"$LOG_DIR/ccc-smoke-install.log" 2>&1 \
+    && pass "pnpm install（與 lockfile 同步）" || fail "pnpm install" "see $LOG_DIR/ccc-smoke-install.log"
+  bash scripts/setup-hooks.sh >"$LOG_DIR/ccc-smoke-hooks.log" 2>&1 \
+    && pass "setup-hooks" || fail "setup-hooks" "see $LOG_DIR/ccc-smoke-hooks.log"
 
   # Playwright chromium：CCC sandbox 不預裝瀏覽器 binary（npm 的 playwright 套件
   # 有，但 ~/.cache/ms-playwright 是空的），uiux-auditor / playwright-cli / verify
@@ -143,9 +149,9 @@ if $FIX; then
       pass "Playwright chromium 已有背景下載/驗證在跑，不重複觸發"
     elif [ -x node_modules/.bin/playwright ]; then
       nohup node_modules/.bin/playwright install chromium \
-        >/tmp/ccc-playwright-install.log 2>&1 &
+        >"$LOG_DIR/ccc-playwright-install.log" 2>&1 &
       disown 2>/dev/null || true
-      pass "Playwright chromium 背景驗證/下載中 (pid $!; log: /tmp/ccc-playwright-install.log)"
+      pass "Playwright chromium 背景驗證/下載中 (pid $!; log: $LOG_DIR/ccc-playwright-install.log)"
     else
       warn "Playwright bin 不在 node_modules" "pnpm install 完成後重跑 --fix 會補"
     fi
@@ -164,9 +170,9 @@ if $FIX; then
     if command -v openspec >/dev/null 2>&1; then
       pass "openspec CLI 已存在，跳過安裝"
     else
-      npm i -g @fission-ai/openspec@latest >/tmp/ccc-openspec-install.log 2>&1 \
+      npm i -g @fission-ai/openspec@latest >"$LOG_DIR/ccc-openspec-install.log" 2>&1 \
         && pass "openspec CLI 安裝完成 ($(openspec --version 2>/dev/null | head -1))" \
-        || warn "openspec CLI 安裝失敗" "見 /tmp/ccc-openspec-install.log"
+        || warn "openspec CLI 安裝失敗" "見 $LOG_DIR/ccc-openspec-install.log"
     fi
   fi
 fi
@@ -246,10 +252,10 @@ done
 # ── 7. 內容驗證 ───────────────────────────────────────────────────
 section "7. validate-posts"
 if [ -d node_modules ]; then
-  if node scripts/validate-posts.mjs >/tmp/ccc-smoke-validate.log 2>&1; then
-    pass "$(grep -oE 'PASSED: [0-9]+ file' /tmp/ccc-smoke-validate.log | head -1 || echo 'validate-posts 通過')"
+  if node scripts/validate-posts.mjs >"$LOG_DIR/ccc-smoke-validate.log" 2>&1; then
+    pass "$(grep -oE 'PASSED: [0-9]+ file' "$LOG_DIR/ccc-smoke-validate.log" | head -1 || echo 'validate-posts 通過')"
   else
-    fail "validate-posts 失敗" "see /tmp/ccc-smoke-validate.log"
+    fail "validate-posts 失敗" "see $LOG_DIR/ccc-smoke-validate.log"
   fi
 else
   warn "跳過 validate-posts（node_modules 缺）"
@@ -257,10 +263,10 @@ fi
 
 # ── 8. gp-pipeline 自編譯 + doctor ────────────────────────────────
 section "8. gp-pipeline doctor"
-if tools/gp-pipeline/gp-pipeline doctor >/tmp/ccc-smoke-doctor.log 2>&1; then
+if tools/gp-pipeline/gp-pipeline doctor >"$LOG_DIR/ccc-smoke-doctor.log" 2>&1; then
   pass "gp-pipeline 自編譯 + doctor healthy"
 else
-  fail "gp-pipeline doctor 失敗 (exit $?)" "see /tmp/ccc-smoke-doctor.log"
+  fail "gp-pipeline doctor 失敗 (exit $?)" "see $LOG_DIR/ccc-smoke-doctor.log"
 fi
 
 # ── 9. Playwright browser（optional，給 UI 工作用）────────────────
@@ -279,7 +285,7 @@ if [ -n "$PW_HS_WANT" ] && [ -x "$PW_HS_BIN" ]; then
 elif ls "$PW_CACHE"/chromium-* >/dev/null 2>&1; then
   warn "chromium 有目錄但 pinned build $PW_HS_WANT 缺 binary" "背景下載可能還沒好；content-integrity launch 會卡（--fix 會嘗試橋接舊 build）"
 elif pgrep -f "playwright install chromium" >/dev/null 2>&1; then
-  warn "chromium 背景下載中" "稍候再用 uiux-auditor / playwright-cli；log: /tmp/ccc-playwright-install.log"
+  warn "chromium 背景下載中" "稍候再用 uiux-auditor / playwright-cli；log 由啟動下載的 smoke invocation 保留"
 else
   warn "chromium 未裝" "UI 工作前先跑 'node_modules/.bin/playwright install chromium'（或 --fix 在 CCC 會自動背景補）"
 fi
@@ -288,12 +294,12 @@ fi
 if $FULL; then
   section "10. 慢 gate (--full)"
   if [ -d node_modules ]; then
-    pnpm run lint >/tmp/ccc-smoke-lint.log 2>&1 \
-      && pass "eslint" || fail "eslint" "see /tmp/ccc-smoke-lint.log"
-    pnpm run check:contrast >/tmp/ccc-smoke-contrast.log 2>&1 \
-      && pass "WCAG contrast" || fail "WCAG contrast" "see /tmp/ccc-smoke-contrast.log"
-    pnpm exec astro check >/tmp/ccc-smoke-astro.log 2>&1 \
-      && pass "astro check (type)" || fail "astro check" "see /tmp/ccc-smoke-astro.log"
+    pnpm run lint >"$LOG_DIR/ccc-smoke-lint.log" 2>&1 \
+      && pass "eslint" || fail "eslint" "see $LOG_DIR/ccc-smoke-lint.log"
+    pnpm run check:contrast >"$LOG_DIR/ccc-smoke-contrast.log" 2>&1 \
+      && pass "WCAG contrast" || fail "WCAG contrast" "see $LOG_DIR/ccc-smoke-contrast.log"
+    pnpm exec astro check >"$LOG_DIR/ccc-smoke-astro.log" 2>&1 \
+      && pass "astro check (type)" || fail "astro check" "see $LOG_DIR/ccc-smoke-astro.log"
   else
     warn "跳過 --full gate（node_modules 缺）"
   fi
