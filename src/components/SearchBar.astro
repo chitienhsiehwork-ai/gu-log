@@ -110,8 +110,7 @@ const t = i18n[lang];
 </div>
 
 <script>
-  import Fuse from 'fuse.js';
-  import type { FuseResultMatch, FuseResult } from 'fuse.js';
+  import type { default as Fuse, FuseResultMatch, FuseResult } from 'fuse.js';
   import { fuseOptions, type SearchEntry } from '../config/fuse-options';
 
   // Read config from data attributes (avoids define:vars which blocks module imports)
@@ -136,30 +135,36 @@ const t = i18n[lang];
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
   let selectedIndex = -1;
   let previouslyFocused: HTMLElement | null = null;
+  let searchSession = 0;
 
   // Teleport modal to body level so inert can be applied to all other body children
   if (modal) document.body.appendChild(modal);
 
   // Fetch locale-specific index on first keystroke (lazy)
-  async function loadSearchIndex() {
+  async function loadSearchIndex(session: number) {
     try {
-      const res = await fetch(`/search-index.${currentLang}.json`);
+      const [{ default: FuseConstructor }, res] = await Promise.all([
+        import('fuse.js'),
+        fetch(`/search-index.${currentLang}.json`),
+      ]);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const posts: SearchEntry[] = await res.json();
+      if (session !== searchSession) return;
       searchIndex = posts;
-      fuse = new Fuse(searchIndex, fuseOptions);
+      fuse = new FuseConstructor(searchIndex, fuseOptions);
     } catch (e) {
+      if (session !== searchSession) return;
       console.error('Failed to load search index:', e);
       loadPromise = null; // reset so next keystroke retries
-      if (results) {
+      if (results && isModalOpen() && input?.value.trim()) {
         results.innerHTML = `<div class="search-no-results">${escapeHtml(unavailableText)}</div>`;
       }
     }
   }
 
   // Ensures we only ever issue one fetch
-  function ensureSearchIndex() {
-    if (!loadPromise) loadPromise = loadSearchIndex();
+  function ensureSearchIndex(session: number) {
+    if (!loadPromise) loadPromise = loadSearchIndex(session);
     return loadPromise;
   }
 
@@ -177,6 +182,7 @@ const t = i18n[lang];
   }
 
   function openSearch() {
+    const session = searchSession;
     previouslyFocused = document.activeElement as HTMLElement | null;
     modal?.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
@@ -184,10 +190,18 @@ const t = i18n[lang];
     Array.from(document.body.children).forEach((el) => {
       if (el !== modal) (el as HTMLElement).setAttribute('inert', '');
     });
-    setTimeout(() => input?.focus(), 50);
+    setTimeout(() => {
+      if (session === searchSession && isModalOpen()) input?.focus();
+    }, 50);
   }
 
   function closeSearch() {
+    searchSession += 1;
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+      debounceTimer = null;
+    }
+    if (!searchIndex) loadPromise = null;
     modal?.setAttribute('aria-hidden', 'true');
     document.body.style.overflow = '';
     // Remove inert from all body children
@@ -249,7 +263,7 @@ const t = i18n[lang];
   }
 
   function performSearch(query: string) {
-    if (!searchIndex || !results) return;
+    if (!results) return;
 
     const trimmed = query.trim();
     if (!trimmed) {
@@ -257,6 +271,7 @@ const t = i18n[lang];
       selectedIndex = -1;
       return;
     }
+    if (!searchIndex) return;
 
     let allMatches: FuseResult<SearchEntry>[];
 
@@ -354,13 +369,21 @@ const t = i18n[lang];
   // Lazy-load on first keystroke, then debounce search
   input?.addEventListener('input', async (e) => {
     if (debounceTimer) clearTimeout(debounceTimer);
+    const session = searchSession;
     const query = (e.target as HTMLInputElement).value.trim();
-    if (query && !searchIndex && results) {
+    if (!query) {
+      if (results) results.innerHTML = '';
+      selectedIndex = -1;
+      return;
+    }
+    if (!searchIndex && results) {
       results.innerHTML = `<div class="search-loading" role="status">${loadingText}</div>`;
     }
-    await ensureSearchIndex();
+    await ensureSearchIndex(session);
+    if (session !== searchSession || !isModalOpen()) return;
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
+      if (session !== searchSession || !isModalOpen()) return;
       performSearch((e.target as HTMLInputElement).value);
     }, debounceMs);
   });

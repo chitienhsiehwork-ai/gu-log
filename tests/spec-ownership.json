@@ -168,6 +168,11 @@
       "owner": "ShroomDog",
       "reason": "文章 code block 的複製按鈕是全站共用互動；在 Mobile Safari 驗證 light/dark 最終 palette、touch opacity 與 390px 水平溢出，直接阻擋不可讀或選擇器失效的回歸。"
     },
+    "tests/share-button.spec.ts": {
+      "class": "blocking",
+      "owner": "ShroomDog",
+      "reason": "ShareButton 是文章共用互動；兩種 Clipboard API 同時失敗時不得產生未處理例外、暫存 DOM 洩漏或錯誤的成功訊號。"
+    },
     "tests/reading-progress.spec.ts": {
       "class": "nightly",
       "owner": "ShroomDog",

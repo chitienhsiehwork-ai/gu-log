@@ -3,7 +3,7 @@ import { test, expect } from './fixtures';
 const TEST_URL = '/artifacts/gp-245-trim-noop/';
 
 test.describe('Code copy button theme contract', () => {
-  test('GIVEN both themes WHEN code blocks render THEN the copy button uses the matching palette', async ({
+  test('GIVEN both themes WHEN code blocks render THEN the copy button uses the matching palette and exposes keyboard focus', async ({
     page,
   }) => {
     const response = await page.goto(TEST_URL, { waitUntil: 'networkidle' });
@@ -51,6 +51,18 @@ test.describe('Code copy button theme contract', () => {
           .locator('..')
           .hover({ position: { x: 10, y: 10 } });
         await expect(buttons.first()).toHaveCSS('opacity', '1');
+      }
+
+      await page.mouse.move(0, 0);
+      await button.focus();
+      await page.keyboard.press('Shift+Tab');
+      await page.keyboard.press('Tab');
+      await expect(button).toBeFocused();
+      await expect(button).toHaveCSS('opacity', '1');
+
+      await button.evaluate((element) => element.blur());
+      if (!styles.hoverNone) {
+        await expect(button).toHaveCSS('opacity', '0');
       }
     }
   });

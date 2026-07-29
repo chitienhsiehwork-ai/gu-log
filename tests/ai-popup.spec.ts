@@ -3,6 +3,7 @@ import { test, expect } from './fixtures';
 import {
   isDesktopChromiumProject,
   isMobileProject,
+  selectPostText,
   selectPostTextAndShowPopup,
 } from './helpers/ai-popup';
 
@@ -18,6 +19,96 @@ const TEST_POST = '/posts/gp-24-20260204-claude-is-a-space-to-think';
 const AUTH_RETURN_KEY = 'gu-log-return-url';
 const AUTH_JWT_KEY = 'gu-log-jwt';
 const AUTH_STORAGE_URL_KEY = 'gu-log-auth-storage-url';
+
+interface AbortAwareRequestRecord {
+  aborted: boolean;
+  body: Record<string, unknown>;
+  hasSignal: boolean;
+}
+
+async function installAbortAwareFetchHarness(
+  page: Page,
+  endpoint: string,
+  staleResponse: Record<string, unknown>,
+  latestResponse: Record<string, unknown>
+) {
+  await page.evaluate(
+    ({ endpoint, staleResponse, latestResponse }) => {
+      const testWindow = window as typeof window & {
+        __aiPopupAbortAwareRequests?: AbortAwareRequestRecord[];
+        __aiPopupReleaseStaleRequest?: () => void;
+      };
+      const originalFetch = window.fetch.bind(window);
+      const requests: AbortAwareRequestRecord[] = [];
+      testWindow.__aiPopupAbortAwareRequests = requests;
+
+      window.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url =
+          typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+        if (!url.endsWith(endpoint)) return originalFetch(input, init);
+
+        const record: AbortAwareRequestRecord = {
+          aborted: Boolean(init?.signal?.aborted),
+          body: JSON.parse(String(init?.body || '{}')) as Record<string, unknown>,
+          hasSignal: Boolean(init?.signal),
+        };
+        requests.push(record);
+
+        if (requests.length > 1) {
+          return new Response(JSON.stringify(latestResponse), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+
+        return new Promise<Response>((resolve) => {
+          const signal = init?.signal;
+          const markAborted = () => {
+            record.aborted = true;
+          };
+          if (signal?.aborted) {
+            markAborted();
+          } else {
+            signal?.addEventListener('abort', markAborted, { once: true });
+          }
+          testWindow.__aiPopupReleaseStaleRequest = () => {
+            resolve(
+              new Response(JSON.stringify(staleResponse), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+              })
+            );
+          };
+        });
+      }) as typeof window.fetch;
+    },
+    { endpoint, staleResponse, latestResponse }
+  );
+}
+
+async function readAbortAwareRequests(page: Page): Promise<AbortAwareRequestRecord[]> {
+  return page.evaluate(() => {
+    const testWindow = window as typeof window & {
+      __aiPopupAbortAwareRequests?: AbortAwareRequestRecord[];
+    };
+    return testWindow.__aiPopupAbortAwareRequests || [];
+  });
+}
+
+async function releaseStaleRequest(page: Page) {
+  await page.evaluate(() => {
+    const testWindow = window as typeof window & {
+      __aiPopupReleaseStaleRequest?: () => void;
+    };
+    testWindow.__aiPopupReleaseStaleRequest?.();
+  });
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      })
+  );
+}
 
 async function seedAuthReturn(page: Page, returnUrl: string) {
   await page.goto('/');
@@ -221,37 +312,9 @@ test.describe('AI Popup - File Path Wiring', () => {
 });
 
 test.describe('AI Popup - Request ordering', () => {
-  test('GIVEN an earlier Ask is pending WHEN a new selection finishes first THEN the stale response cannot replace it', async ({
+  test('GIVEN an earlier Ask is pending WHEN a new selection starts THEN the stale request is aborted', async ({
     page,
   }) => {
-    const requestBodies: Array<Record<string, unknown>> = [];
-    let releaseFirstResponse: (() => void) | undefined;
-    const firstResponseGate = new Promise<void>((resolve) => {
-      releaseFirstResponse = resolve;
-    });
-
-    await page.route('**/ai/ask', async (route) => {
-      const body = JSON.parse(route.request().postData() || '{}') as Record<string, unknown>;
-      requestBodies.push(body);
-
-      if (requestBodies.length === 1) {
-        await firstResponseGate;
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          headers: { 'x-test-response': 'stale' },
-          body: JSON.stringify({ response: 'ANSWER_A' }),
-        });
-        return;
-      }
-
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ response: 'ANSWER_B' }),
-      });
-    });
-
     await page.goto(TEST_POST);
     await page.evaluate(() => {
       const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
@@ -259,14 +322,21 @@ test.describe('AI Popup - Request ordering', () => {
       localStorage.setItem('gu-log-jwt', header + '.' + payload + '.fake-signature');
     });
     await page.reload();
+    await installAbortAwareFetchHarness(
+      page,
+      '/ai/ask',
+      { response: 'ANSWER_A' },
+      { response: 'ANSWER_B' }
+    );
 
     const popup = await selectPostTextAndShowPopup(page);
     await popup.locator('[data-action="ask"]').click();
     const firstSelection = await popup.locator('.ai-popup-selection-text').textContent();
     await popup.locator('[data-action="submit-ask"]').click();
-    await expect.poll(() => requestBodies.length).toBe(1);
+    await expect.poll(async () => (await readAbortAwareRequests(page)).length).toBe(1);
 
     await selectPostTextAndShowPopup(page, { characters: 40 });
+    await expect.poll(async () => (await readAbortAwareRequests(page))[0]?.aborted).toBe(true);
     await popup.locator('[data-action="ask"]').click();
     const secondSelection = await popup.locator('.ai-popup-selection-text').textContent();
     expect(secondSelection).not.toBe(firstSelection);
@@ -274,23 +344,69 @@ test.describe('AI Popup - Request ordering', () => {
 
     const resultBody = popup.locator('.ai-popup-result-body');
     await expect(resultBody).toHaveText('ANSWER_B');
-    expect(requestBodies.map((body) => body.text)).toEqual([firstSelection, secondSelection]);
+    expect(
+      (await readAbortAwareRequests(page)).map((request) => ({
+        hasSignal: request.hasSignal,
+        text: request.body.text,
+      }))
+    ).toEqual([
+      { hasSignal: true, text: firstSelection },
+      { hasSignal: true, text: secondSelection },
+    ]);
 
-    const staleResponse = page.waitForResponse(
-      (response) =>
-        response.url().includes('/ai/ask') && response.headers()['x-test-response'] === 'stale'
-    );
-    releaseFirstResponse?.();
-    await staleResponse;
-    await page.evaluate(
-      () =>
-        new Promise<void>((resolve) => {
-          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-        })
-    );
-
+    await releaseStaleRequest(page);
     await expect(resultBody).toHaveText('ANSWER_B');
     await expect(popup.locator('.ai-popup-selection-text')).toHaveText(secondSelection || '');
+  });
+
+  test('GIVEN an earlier Edit is pending WHEN a new selection starts THEN the stale request is aborted', async ({
+    page,
+  }) => {
+    await page.goto(TEST_POST);
+    await page.evaluate(() => {
+      const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+      const payload = btoa(JSON.stringify({ email: 'test@example.com', exp: 9999999999 }));
+      localStorage.setItem('gu-log-jwt', header + '.' + payload + '.fake-signature');
+    });
+    await page.reload();
+    await installAbortAwareFetchHarness(
+      page,
+      '/ai/edit',
+      { diff: '- old text\n+ stale text', editId: 'stale-edit-id' },
+      {
+        diff: '- old text\n+ latest text',
+        editId: 'latest-edit-id',
+      }
+    );
+
+    const popup = await selectPostTextAndShowPopup(page);
+    await popup.locator('[data-action="edit"]').click();
+    const firstSelection = await popup.locator('.ai-popup-selection-text').textContent();
+    await popup.locator('.ai-popup-edit-input').fill('first edit');
+    await popup.locator('[data-action="submit-edit"]').click();
+    await expect.poll(async () => (await readAbortAwareRequests(page)).length).toBe(1);
+
+    await selectPostTextAndShowPopup(page, { characters: 40 });
+    await expect.poll(async () => (await readAbortAwareRequests(page))[0]?.aborted).toBe(true);
+    await popup.locator('[data-action="edit"]').click();
+    const secondSelection = await popup.locator('.ai-popup-selection-text').textContent();
+    expect(secondSelection).not.toBe(firstSelection);
+    await popup.locator('.ai-popup-edit-input').fill('second edit');
+    await popup.locator('[data-action="submit-edit"]').click();
+
+    await expect(popup.locator('.ai-popup-diff-add')).toHaveText('+ latest text');
+    expect(
+      (await readAbortAwareRequests(page)).map((request) => ({
+        hasSignal: request.hasSignal,
+        selectedText: request.body.selectedText,
+      }))
+    ).toEqual([
+      { hasSignal: true, selectedText: firstSelection },
+      { hasSignal: true, selectedText: secondSelection },
+    ]);
+
+    await releaseStaleRequest(page);
+    await expect(popup.locator('.ai-popup-diff-add')).toHaveText('+ latest text');
   });
 });
 
@@ -334,6 +450,40 @@ test.describe('AI Popup - Mobile (programmatic selection)', () => {
 });
 
 test.describe('Auth Callback', () => {
+  test('GIVEN callback query token WHEN loading same-origin styles THEN does not leak token through Referer', async ({
+    page,
+  }) => {
+    const callbackToken = 'referrer-secret-token';
+    const probePath = '/auth/referrer-probe.css';
+
+    await page.route('**/auth/callback?token=*', async (route) => {
+      const response = await route.fetch();
+      const html = await response.text();
+      const firstActiveHeadElement = html.match(/<(?:link|script|style)\b/)?.[0];
+      expect(firstActiveHeadElement).toBeTruthy();
+      await route.fulfill({
+        response,
+        body: html.replace(
+          firstActiveHeadElement!,
+          `<link rel="stylesheet" href="${probePath}" />\n    ${firstActiveHeadElement}`
+        ),
+      });
+    });
+    await page.route(`**${probePath}`, async (route) => {
+      await route.fulfill({ contentType: 'text/css', body: 'body {}' });
+    });
+
+    const stylesheetRequestPromise = page.waitForRequest(
+      (request) =>
+        request.resourceType() === 'stylesheet' && new URL(request.url()).pathname === probePath
+    );
+    await page.goto(`/auth/callback?token=${callbackToken}`);
+
+    const stylesheetRequest = await stylesheetRequestPromise;
+    const requestHeaders = await stylesheetRequest.allHeaders();
+    expect(requestHeaders.referer ?? '').not.toContain(callbackToken);
+  });
+
   test('GIVEN callback page with token param WHEN loaded THEN stores JWT in localStorage', async ({
     page,
   }) => {
@@ -365,6 +515,279 @@ test.describe('Auth Callback', () => {
     expect(jwt).toBe('hash-jwt-token-67890');
     await expectTokenUrlScrubbedBeforeStorage(page);
   });
+
+  test('GIVEN theme storage is denied WHEN callback loads THEN it falls back without a page error', async ({
+    page,
+  }) => {
+    const pageErrors: string[] = [];
+    page.on('pageerror', (error) => pageErrors.push(error.message));
+    await page.addInitScript(() => {
+      const originalGetItem = Storage.prototype.getItem;
+      const probe = { themeReads: 0 };
+      Object.defineProperty(window, '__callbackStorageProbe', { value: probe });
+      Storage.prototype.getItem = function (this: Storage, key: string) {
+        if (this === window.localStorage && key === 'theme') {
+          probe.themeReads += 1;
+          throw new DOMException('theme storage denied', 'SecurityError');
+        }
+        return originalGetItem.call(this, key);
+      };
+    });
+
+    await page.goto('/auth/callback');
+
+    expect(
+      await page.evaluate(
+        () =>
+          (
+            window as typeof window & {
+              __callbackStorageProbe?: { themeReads: number };
+            }
+          ).__callbackStorageProbe?.themeReads
+      )
+    ).toBeGreaterThan(0);
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await expect(page.locator('#status')).toHaveText('Login failed.');
+    await expect(page.locator('.spinner')).toBeHidden();
+    await expect(page.locator('#actions')).toBeVisible();
+    expect(pageErrors).toEqual([]);
+  });
+
+  for (const { label, callbackSuffix, token } of [
+    {
+      label: 'query token',
+      callbackSuffix: '?token=query-storage-denied-token',
+      token: 'query-storage-denied-token',
+    },
+    {
+      label: 'hash token',
+      callbackSuffix: '#token=hash-storage-denied-token',
+      token: 'hash-storage-denied-token',
+    },
+  ]) {
+    test(`GIVEN JWT storage is denied WHEN callback receives a ${label} THEN it fails closed after scrubbing the URL`, async ({
+      page,
+    }) => {
+      const pageErrors: string[] = [];
+      page.on('pageerror', (error) => pageErrors.push(error.message));
+      await page.goto('/');
+      await page.evaluate(
+        ({ jwtKey, returnKey, returnUrl }) => {
+          localStorage.setItem(jwtKey, 'stale-jwt-token');
+          localStorage.setItem(returnKey, returnUrl);
+        },
+        { jwtKey: AUTH_JWT_KEY, returnKey: AUTH_RETURN_KEY, returnUrl: TEST_POST }
+      );
+      expect(await page.evaluate((key) => localStorage.getItem(key), AUTH_JWT_KEY)).toBe(
+        'stale-jwt-token'
+      );
+      await page.addInitScript(
+        ({ jwtKey }) => {
+          const originalSetItem = Storage.prototype.setItem;
+          const probe = { jwtWrites: 0, jwtWriteHref: '', jwtWriteValue: '' };
+          Object.defineProperty(window, '__callbackStorageProbe', { value: probe });
+          Storage.prototype.setItem = function (this: Storage, key: string, value: string) {
+            if (this === window.localStorage && key === jwtKey) {
+              probe.jwtWrites += 1;
+              probe.jwtWriteHref = window.location.href;
+              probe.jwtWriteValue = value;
+              throw new DOMException(
+                '<img src=x onerror="document.body.dataset.pwned=1">',
+                'SecurityError'
+              );
+            }
+            return originalSetItem.call(this, key, value);
+          };
+        },
+        { jwtKey: AUTH_JWT_KEY }
+      );
+
+      await page.goto(`/auth/callback${callbackSuffix}`);
+
+      const storageProbe = await page.evaluate(
+        () =>
+          (
+            window as typeof window & {
+              __callbackStorageProbe?: {
+                jwtWrites: number;
+                jwtWriteHref: string;
+                jwtWriteValue: string;
+              };
+            }
+          ).__callbackStorageProbe
+      );
+      expect(storageProbe?.jwtWrites).toBe(1);
+      expect(storageProbe?.jwtWriteValue).toBe(token);
+      const jwtWriteUrl = new URL(storageProbe!.jwtWriteHref);
+      expect(jwtWriteUrl.pathname).toMatch(/^\/auth\/callback\/?$/);
+      expect(jwtWriteUrl.search).toBe('');
+      expect(jwtWriteUrl.hash).toBe('');
+      await expect(page).toHaveURL(/\/auth\/callback\/?$/);
+      await expect(page.locator('#status')).toHaveText('Login failed.');
+      await expect(page.locator('.spinner')).toBeHidden();
+      await expect(page.locator('#error')).toContainText('could not be saved');
+      await expect(page.locator('#actions')).toBeVisible();
+      await expect(page).toHaveTitle('Login failed');
+      await expect(page.locator('body')).not.toContainText(token);
+      await expect(page.locator('#error img')).toHaveCount(0);
+      expect(await page.evaluate(() => document.body.dataset.pwned)).toBeUndefined();
+      expect(await page.evaluate((key) => localStorage.getItem(key), AUTH_JWT_KEY)).toBeNull();
+      expect(await page.evaluate((key) => localStorage.getItem(key), AUTH_RETURN_KEY)).toBe(
+        TEST_POST
+      );
+
+      await page.waitForTimeout(700);
+      await expect(page).toHaveURL(/\/auth\/callback\/?$/);
+      await expect(page.locator('#status')).toHaveText('Login failed.');
+      expect(pageErrors).toEqual([]);
+    });
+  }
+
+  test('GIVEN JWT write and cleanup are both denied WHEN callback receives a token THEN it stays on a terminal failure UI', async ({
+    page,
+  }) => {
+    const token = 'fully-denied-storage-token';
+    const pageErrors: string[] = [];
+    page.on('pageerror', (error) => pageErrors.push(error.message));
+    await page.goto('/');
+    await page.evaluate(
+      ({ jwtKey, returnKey, returnUrl }) => {
+        localStorage.setItem(jwtKey, 'stale-jwt-token');
+        localStorage.setItem(returnKey, returnUrl);
+      },
+      { jwtKey: AUTH_JWT_KEY, returnKey: AUTH_RETURN_KEY, returnUrl: TEST_POST }
+    );
+    await page.addInitScript(
+      ({ jwtKey }) => {
+        const originalSetItem = Storage.prototype.setItem;
+        const originalRemoveItem = Storage.prototype.removeItem;
+        const probe = { jwtWrites: 0, jwtRemovals: 0, jwtWriteHref: '' };
+        Object.defineProperty(window, '__callbackStorageProbe', { value: probe });
+        Storage.prototype.setItem = function (this: Storage, key: string, value: string) {
+          if (this === window.localStorage && key === jwtKey) {
+            probe.jwtWrites += 1;
+            probe.jwtWriteHref = window.location.href;
+            throw new DOMException('JWT write denied', 'SecurityError');
+          }
+          return originalSetItem.call(this, key, value);
+        };
+        Storage.prototype.removeItem = function (this: Storage, key: string) {
+          if (this === window.localStorage && key === jwtKey) {
+            probe.jwtRemovals += 1;
+            throw new DOMException('JWT cleanup denied', 'SecurityError');
+          }
+          return originalRemoveItem.call(this, key);
+        };
+      },
+      { jwtKey: AUTH_JWT_KEY }
+    );
+
+    await page.goto(`/auth/callback?token=${token}`);
+
+    const storageProbe = await page.evaluate(
+      () =>
+        (
+          window as typeof window & {
+            __callbackStorageProbe?: {
+              jwtWrites: number;
+              jwtRemovals: number;
+              jwtWriteHref: string;
+            };
+          }
+        ).__callbackStorageProbe
+    );
+    expect(storageProbe?.jwtWrites).toBe(1);
+    expect(storageProbe?.jwtRemovals).toBe(1);
+    const jwtWriteUrl = new URL(storageProbe!.jwtWriteHref);
+    expect(jwtWriteUrl.pathname).toMatch(/^\/auth\/callback\/?$/);
+    expect(jwtWriteUrl.search).toBe('');
+    expect(jwtWriteUrl.hash).toBe('');
+    await expect(page).toHaveURL(/\/auth\/callback\/?$/);
+    await expect(page.locator('#status')).toHaveText('Login failed.');
+    await expect(page.locator('.spinner')).toBeHidden();
+    await expect(page.locator('#error')).toContainText('could not be saved');
+    await expect(page.locator('#actions')).toBeVisible();
+    await expect(page).toHaveTitle('Login failed');
+    await expect(page.locator('body')).not.toContainText(token);
+    expect(await page.evaluate((key) => localStorage.getItem(key), AUTH_JWT_KEY)).toBe(
+      'stale-jwt-token'
+    );
+    expect(await page.evaluate((key) => localStorage.getItem(key), AUTH_RETURN_KEY)).toBe(
+      TEST_POST
+    );
+
+    await page.waitForTimeout(700);
+    await expect(page).toHaveURL(/\/auth\/callback\/?$/);
+    await expect(page.locator('#status')).toHaveText('Login failed.');
+    expect(pageErrors).toEqual([]);
+  });
+
+  for (const operation of ['getItem', 'removeItem'] as const) {
+    test(`GIVEN return URL ${operation} is denied WHEN callback persists a token THEN it redirects home without a page error`, async ({
+      page,
+    }) => {
+      const token = `return-${operation}-denied-token`;
+      const probeKey = `callback-${operation}-denied-count`;
+      const pageErrors: string[] = [];
+      page.on('pageerror', (error) => pageErrors.push(error.message));
+      await page.goto('/');
+      await page.evaluate(
+        ({ jwtKey, probeKey, returnKey, returnUrl }) => {
+          localStorage.removeItem(jwtKey);
+          localStorage.setItem(returnKey, returnUrl);
+          sessionStorage.removeItem(probeKey);
+        },
+        {
+          jwtKey: AUTH_JWT_KEY,
+          probeKey,
+          returnKey: AUTH_RETURN_KEY,
+          returnUrl: TEST_POST,
+        }
+      );
+      await page.addInitScript(
+        ({ operation, probeKey, returnKey }) => {
+          const originalGetItem = Storage.prototype.getItem;
+          const originalRemoveItem = Storage.prototype.removeItem;
+          function recordOperation() {
+            const count = Number(window.sessionStorage.getItem(probeKey) || '0');
+            window.sessionStorage.setItem(probeKey, String(count + 1));
+          }
+          Storage.prototype.getItem = function (this: Storage, key: string) {
+            if (
+              this === window.localStorage &&
+              window.location.pathname.startsWith('/auth/callback') &&
+              operation === 'getItem' &&
+              key === returnKey
+            ) {
+              recordOperation();
+              throw new DOMException('return storage denied', 'SecurityError');
+            }
+            return originalGetItem.call(this, key);
+          };
+          Storage.prototype.removeItem = function (this: Storage, key: string) {
+            if (
+              this === window.localStorage &&
+              window.location.pathname.startsWith('/auth/callback') &&
+              operation === 'removeItem' &&
+              key === returnKey
+            ) {
+              recordOperation();
+              throw new DOMException('return storage denied', 'SecurityError');
+            }
+            return originalRemoveItem.call(this, key);
+          };
+        },
+        { operation, probeKey, returnKey: AUTH_RETURN_KEY }
+      );
+
+      await page.goto(`/auth/callback?token=${token}`);
+      await page.waitForURL(new URL('/', page.url()).origin + '/', { timeout: 5000 });
+
+      expect(await page.evaluate((key) => sessionStorage.getItem(key), probeKey)).toBe('1');
+      expect(await page.evaluate((key) => localStorage.getItem(key), AUTH_JWT_KEY)).toBe(token);
+      expect(pageErrors).toEqual([]);
+    });
+  }
 
   for (const { label, callbackSuffix, token } of [
     {
@@ -677,5 +1100,143 @@ test.describe('AI Popup - API Interactions', () => {
     // Should show confirm/cancel buttons
     await expect(popup.locator('[data-action="confirm"]')).toBeVisible();
     await expect(popup.locator('.ai-popup-actions [data-action="close"]')).toBeVisible();
+  });
+
+  test('GIVEN confirm is pending WHEN selection changes and Escape is pressed THEN the original commit result stays visible', async ({
+    page,
+  }) => {
+    let confirmRequests = 0;
+    let releaseConfirm: (() => void) | undefined;
+    const confirmGate = new Promise<void>((resolve) => {
+      releaseConfirm = resolve;
+    });
+
+    await page.route('**/ai/edit', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          diff: '- old text\n+ committed text',
+          editId: 'pending-confirm-id',
+        }),
+      });
+    });
+    await page.route('**/ai/edit/confirm', async (route) => {
+      confirmRequests += 1;
+      await confirmGate;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ commitHash: 'pending1234567890' }),
+      });
+    });
+    await page.evaluate(() => {
+      const testWindow = window as typeof window & {
+        __aiPopupConfirmIncludedSignal?: boolean;
+      };
+      const originalFetch = window.fetch.bind(window);
+      window.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url =
+          typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+        if (url.endsWith('/ai/edit/confirm')) {
+          testWindow.__aiPopupConfirmIncludedSignal = Object.prototype.hasOwnProperty.call(
+            init || {},
+            'signal'
+          );
+        }
+        return originalFetch(input, init);
+      }) as typeof window.fetch;
+    });
+
+    const popup = await selectPostTextAndShowPopup(page);
+    await popup.locator('[data-action="edit"]').click();
+    await popup.locator('.ai-popup-edit-input').fill('commit this change');
+    await popup.locator('[data-action="submit-edit"]').click();
+    await expect(popup.locator('[data-action="confirm"]')).toBeVisible();
+
+    await page.evaluate(() => {
+      const testWindow = window as typeof window & {
+        __aiPopupSelectionCallbacks?: Array<() => void>;
+      };
+      const delayedCallbacks: Array<() => void> = [];
+      const originalSetTimeout = window.setTimeout.bind(window);
+      window.setTimeout = ((
+        handler: TimerHandler,
+        timeout?: number,
+        ...args: unknown[]
+      ): number => {
+        if (timeout === 10 && typeof handler === 'function') {
+          delayedCallbacks.push(() => handler(...args));
+          return 1;
+        }
+        return originalSetTimeout(handler, timeout, ...args);
+      }) as typeof window.setTimeout;
+
+      try {
+        const paragraph = document.querySelector('.post-content p');
+        if (!paragraph) throw new Error('No post-content paragraph found');
+
+        const walker = document.createTreeWalker(paragraph, NodeFilter.SHOW_TEXT, {
+          acceptNode(node) {
+            return node.textContent?.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+          },
+        });
+        const textNode = walker.nextNode();
+        if (!textNode?.textContent) throw new Error('No selectable text node found');
+
+        const range = document.createRange();
+        range.setStart(textNode, 0);
+        range.setEnd(textNode, Math.min(30, textNode.textContent.length));
+        const selection = window.getSelection();
+        if (!selection) throw new Error('Selection API unavailable');
+        selection.removeAllRanges();
+        selection.addRange(range);
+        document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+      } finally {
+        window.setTimeout = originalSetTimeout;
+      }
+
+      testWindow.__aiPopupSelectionCallbacks = delayedCallbacks;
+    });
+    expect(
+      await page.evaluate(() => {
+        const testWindow = window as typeof window & {
+          __aiPopupSelectionCallbacks?: Array<() => void>;
+        };
+        return testWindow.__aiPopupSelectionCallbacks?.length ?? 0;
+      })
+    ).toBe(1);
+
+    await popup.locator('[data-action="confirm"]').click();
+    await expect.poll(() => confirmRequests).toBe(1);
+    expect(
+      await page.evaluate(() => {
+        const testWindow = window as typeof window & {
+          __aiPopupConfirmIncludedSignal?: boolean;
+        };
+        return testWindow.__aiPopupConfirmIncludedSignal;
+      })
+    ).toBe(false);
+    await expect(popup.locator('.ai-popup-spinner')).toBeVisible();
+
+    await selectPostText(page, { characters: 40 });
+    await page.waitForTimeout(50);
+    await page.keyboard.press('Escape');
+
+    await expect(popup.locator('.ai-popup-spinner')).toBeVisible();
+    expect(confirmRequests).toBe(1);
+
+    releaseConfirm?.();
+    await expect(popup.locator('.ai-popup-committed')).toContainText('pending');
+
+    await page.evaluate(() => {
+      const testWindow = window as typeof window & {
+        __aiPopupSelectionCallbacks?: Array<() => void>;
+      };
+      const callbacks = testWindow.__aiPopupSelectionCallbacks || [];
+      delete testWindow.__aiPopupSelectionCallbacks;
+      callbacks.forEach((callback) => callback());
+    });
+    await expect(popup.locator('.ai-popup-committed')).toContainText('pending');
   });
 });

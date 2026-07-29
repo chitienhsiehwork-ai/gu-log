@@ -1,4 +1,4 @@
-/* global document, window, localStorage, atob, clearTimeout, setTimeout, fetch, requestAnimationFrame */
+/* global AbortController, document, window, localStorage, atob, clearTimeout, setTimeout, fetch, requestAnimationFrame */
 
 (function () {
   'use strict';
@@ -95,11 +95,26 @@
   let lastAskQuestion = '';
   let errorDismissTimer = null;
   let requestGeneration = 0;
+  let selectionGeneration = 0;
+  let activeRequestController = null;
+
+  function abortActiveRequest() {
+    if (!activeRequestController) return;
+
+    const controller = activeRequestController;
+    activeRequestController = null;
+    controller.abort();
+  }
 
   function beginRequestContext() {
     requestGeneration += 1;
+    abortActiveRequest();
+    const controller = new AbortController();
+    activeRequestController = controller;
     return {
+      controller: controller,
       generation: requestGeneration,
+      signal: controller.signal,
       selectedText: selectedText,
     };
   }
@@ -112,8 +127,15 @@
     );
   }
 
+  function finishRequestContext(context) {
+    if (activeRequestController === context.controller) {
+      activeRequestController = null;
+    }
+  }
+
   function invalidateRequestContext() {
     requestGeneration += 1;
+    abortActiveRequest();
   }
 
   function clampText(text, maxLength) {
@@ -463,10 +485,10 @@
     }
   }
 
-  function renderLoading(message) {
+  function renderLoading(message, state = 'loading') {
     if (!popup) return;
     clearErrorDismissTimer();
-    currentState = 'loading';
+    currentState = state;
 
     popup.innerHTML =
       '<div class="ai-popup-loading">' +
@@ -786,19 +808,22 @@
     return String(detail || '');
   }
 
-  async function apiRequest(endpoint, body) {
+  async function apiRequest(endpoint, body, signal) {
     const jwt = getJwt();
     const headers = { 'Content-Type': 'application/json' };
     if (jwt) headers['Authorization'] = 'Bearer ' + jwt;
 
     let res;
     try {
-      res = await fetch(apiUrl + endpoint, {
+      const requestOptions = {
         method: 'POST',
         headers: headers,
         body: JSON.stringify(body),
-      });
-    } catch (_error) {
+      };
+      if (signal) requestOptions.signal = signal;
+      res = await fetch(apiUrl + endpoint, requestOptions);
+    } catch (error) {
+      if (error && error.name === 'AbortError') throw error;
       // Network error (TypeError: Failed to fetch)
       throw new Error(t.networkError);
     }
@@ -843,12 +868,14 @@
       if (question) {
         body.question = question;
       }
-      const data = await apiRequest('/ai/ask', body);
+      const data = await apiRequest('/ai/ask', body, requestContext.signal);
       if (!isRequestContextCurrent(requestContext)) return;
       renderAskResult(data.response || data.answer || JSON.stringify(data));
     } catch (err) {
       if (!isRequestContextCurrent(requestContext)) return;
       renderError(err.message);
+    } finally {
+      finishRequestContext(requestContext);
     }
   }
 
@@ -875,16 +902,22 @@
     const requestContext = beginRequestContext();
     renderLoading(t.loadingEdit);
     try {
-      const data = await apiRequest('/ai/edit', {
-        selectedText: requestContext.selectedText,
-        filePath: filePath,
-        instruction: instruction,
-      });
+      const data = await apiRequest(
+        '/ai/edit',
+        {
+          selectedText: requestContext.selectedText,
+          filePath: filePath,
+          instruction: instruction,
+        },
+        requestContext.signal
+      );
       if (!isRequestContextCurrent(requestContext)) return;
       renderEditResult(data.diff || '', data.editId || data.id || '');
     } catch (err) {
       if (!isRequestContextCurrent(requestContext)) return;
       renderError(err.message);
+    } finally {
+      finishRequestContext(requestContext);
     }
   }
 
@@ -895,7 +928,8 @@
       return;
     }
 
-    renderLoading(t.loadingConfirm);
+    selectionGeneration += 1;
+    renderLoading(t.loadingConfirm, 'confirm-loading');
     try {
       const data = await apiRequest('/ai/edit/confirm', {
         editId: pendingEditId,
@@ -976,9 +1010,13 @@
   function onSelectionEnd(event) {
     const target = event && event.target;
     if (popup && target && popup.contains(target)) return;
+    if (currentState === 'confirm-loading') return;
 
     // Small delay to let selection finalize
+    const generation = selectionGeneration;
     setTimeout(function () {
+      if (generation !== selectionGeneration || currentState === 'confirm-loading') return;
+
       const sel = window.getSelection();
       const text = sel ? sel.toString().trim() : '';
 
