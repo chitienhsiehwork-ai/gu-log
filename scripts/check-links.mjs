@@ -206,16 +206,18 @@ export function isManualCheckDomain(url) {
 export function checkInternalLink(url, distDir = DIST_DIR) {
   if (!isInternalLink(url)) return false;
 
-  let path;
+  let parsed;
   try {
     // WHATWG URL parsing matches the browser: it removes query/fragment data
     // and normalizes literal or percent-encoded dot segments before the
     // pathname ever reaches the filesystem.
-    path = new URL(url, 'https://gu-log.vercel.app').pathname;
+    parsed = new URL(url, 'https://gu-log.vercel.app');
   } catch {
     return false;
   }
+  if (!INTERNAL_ORIGINS.has(parsed.origin)) return false;
 
+  let path = parsed.pathname;
   path = path.replace(/\/$/, '') || '/';
   const distRoot = resolve(distDir);
   const resolvedPath = resolve(distRoot, `.${path}`);
