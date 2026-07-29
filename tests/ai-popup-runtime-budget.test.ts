@@ -14,7 +14,6 @@ describe('AiPopup shared runtime budget', () => {
     expect(existsSync(runtimeUrl)).toBe(true);
 
     const runtime = readFileSync(runtimeUrl, 'utf8');
-    expect(runtime).toContain("const root = document.getElementById('ai-popup-root');");
     expect(runtime).toContain("root.getAttribute('data-file-path')");
     expect(runtime).toContain("root.getAttribute('data-post-title')");
     expect(runtime).toContain("root.getAttribute('data-api-url')");
@@ -29,7 +28,8 @@ describe('AiPopup shared runtime budget', () => {
     expect(component).toContain('href={loginUrl}');
     expect(component).toContain("parsedApiUrl.protocol !== 'https:'");
     expect(component).toContain("parsedApiUrl.protocol !== 'http:'");
-    expect(runtime).toContain("document.getElementById('ai-popup-login-target')");
+    expect(runtime).toMatch(/root\.querySelector\(\s*['"]#ai-popup-login-target['"]\s*\)/);
+    expect(runtime).not.toMatch(/document\.getElementById\(\s*['"]ai-popup-login-target['"]\s*\)/);
     expect(runtime).toContain('loginTarget.click()');
     expect(runtime).not.toMatch(/\blocation(?:\.href)?\s*=|\blocation\.(?:assign|replace)\s*\(/);
   });
