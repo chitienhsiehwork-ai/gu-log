@@ -3,8 +3,23 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import MoguNote from '../components/MoguNote.astro';
 import '../styles/glossary.css';
 import glossaryData from '../data/glossary.json';
+import { parseGlossaryUrl, type ParsedGlossaryUrl } from '../config/glossary';
 
-const glossary = [...glossaryData].sort((a, b) => a.term.localeCompare(b.term));
+const glossary = [...glossaryData]
+  .map((item) => ({
+    ...item,
+    safeUrl:
+      item.url !== undefined
+        ? parseGlossaryUrl(item.url, { allowInternal: true, field: `${item.term}.url` })
+        : undefined,
+    safeThreadUrl: item.thread
+      ? parseGlossaryUrl(item.thread.url, {
+          allowInternal: false,
+          field: `${item.term}.thread.url`,
+        })
+      : undefined,
+  }))
+  .sort((a, b) => a.term.localeCompare(b.term));
 
 const categories: { id: string; label: string }[] = [
   { id: 'all', label: '全部' },
@@ -23,14 +38,10 @@ const categoryLabel: Record<string, string> = {
   people: '人物',
 };
 
-function isExternalUrl(url: string) {
-  return /^https?:\/\//.test(url);
-}
+function urlLabel(url: ParsedGlossaryUrl) {
+  if (!url.external) return `gu-log${url.href}`;
 
-function urlLabel(url: string) {
-  if (!isExternalUrl(url)) return `gu-log${url}`;
-
-  const u = new URL(url);
+  const u = new URL(url.href);
   const host = u.hostname.replace('www.', '');
   const parts = u.pathname.split('/').filter(Boolean);
   const skip = /^(en|zh|ja|ko|de|fr|es|pt|ru)$/i;
@@ -130,23 +141,23 @@ const allLetters = grouped.map((g) => g.letter);
                   <dd>
                     <p class="term-def">{item.definition}</p>
                     {item.moguNote && <MoguNote>{item.moguNote}</MoguNote>}
-                    {item.url && (
+                    {item.safeUrl && (
                       <p class="term-meta">
                         <a
-                          href={item.url}
-                          target={isExternalUrl(item.url) ? '_blank' : undefined}
-                          rel={isExternalUrl(item.url) ? 'noopener noreferrer' : undefined}
+                          href={item.safeUrl.href}
+                          target={item.safeUrl.external ? '_blank' : undefined}
+                          rel={item.safeUrl.external ? 'noopener noreferrer' : undefined}
                         >
-                          {urlLabel(item.url)}
-                          {isExternalUrl(item.url) && ' ↗'}
+                          {urlLabel(item.safeUrl)}
+                          {item.safeUrl.external && ' ↗'}
                         </a>
                       </p>
                     )}
-                    {item.thread && (
+                    {item.thread && item.safeThreadUrl && (
                       <p class="term-meta">
                         Thread：{' '}
-                        <a href={item.thread.url} target="_blank" rel="noopener noreferrer">
-                          {item.thread.title ?? urlLabel(item.thread.url)} ↗
+                        <a href={item.safeThreadUrl.href} target="_blank" rel="noopener noreferrer">
+                          {item.thread.title ?? urlLabel(item.safeThreadUrl)} ↗
                         </a>
                       </p>
                     )}
