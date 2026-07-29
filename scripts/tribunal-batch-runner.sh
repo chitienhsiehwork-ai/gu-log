@@ -235,19 +235,30 @@ get_unscored_articles() {
   )
 
   for article in $all_zh_articles; do
-    # Skip deprecated
     local full_path="$POSTS_DIR/$article"
-    if grep -q '^status: "deprecated"' "$full_path" 2>/dev/null; then
+    # Skip deprecated posts. Frontmatter may use quoted or unquoted YAML
+    # scalars, so parse only the first frontmatter block instead of matching
+    # one exact string.
+    if awk '
+      /^---$/ { c++; if (c == 2) exit; next }
+      c == 1 && /^status:/ {
+        sub(/^status:[[:space:]]*/, "", $0)
+        gsub(/^[[:space:]"'\''"]+|[[:space:]"'\''"]+$/, "", $0)
+        if ($0 == "deprecated") found = 1
+        exit
+      }
+      END { exit(found ? 0 : 1) }
+    ' "$full_path" 2>/dev/null; then
       continue
     fi
 
-    # Check if already PASS in the current Tribunal version. Older PASS entries
-    # must be reprocessed across the version boundary.
+    # Skip terminal statuses only for the current Tribunal version. Older
+    # terminal entries must be reprocessed across the version boundary.
     local status
     status=$(jq -r --arg a "$article" --argjson v "$TRIBUNAL_VERSION" \
       'if ((.[$a].tribunalVersion // 0) >= $v) then (.[$a].status // "pending") else "pending" end' \
       "$PROGRESS_FILE" 2>/dev/null || echo "pending")
-    if [ "$status" = "PASS" ]; then
+    if [ "$status" = "PASS" ] || [ "$status" = "EXHAUSTED" ]; then
       continue
     fi
 
