@@ -1,6 +1,39 @@
 import { expect, test } from './fixtures';
 
 test.describe('ShareButton fallback', () => {
+  test('resets copied feedback two seconds after the latest successful copy', async ({ page }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, 'share', {
+        configurable: true,
+        value: undefined,
+      });
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: {
+          writeText: () => Promise.resolve(),
+        },
+      });
+    });
+    await page.clock.install();
+
+    await page.goto('/posts/gp-24-20260204-claude-is-a-space-to-think');
+
+    const copyButton = page.locator('.share-copy');
+    const copyText = copyButton.locator('.copy-text');
+    await copyButton.click();
+    await expect(copyText).toHaveText('已複製！');
+
+    await page.clock.fastForward(1000);
+    await copyButton.click();
+    await expect(copyText).toHaveText('已複製！');
+
+    await page.clock.fastForward(1001);
+    await expect(copyText).toHaveText('已複製！');
+
+    await page.clock.fastForward(999);
+    await expect(copyText).toHaveText('複製連結');
+  });
+
   const legacyCases = [
     {
       name: 'records failure when legacy copy throws',
