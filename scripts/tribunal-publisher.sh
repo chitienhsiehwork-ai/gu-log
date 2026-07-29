@@ -642,7 +642,18 @@ apply_batch() {
       return 1
     fi
   fi
-  git -C "$batch_dir" commit -m "publisher: materialize Tribunal batch $batch_id" >/dev/null
+  if ! git -C "$batch_dir" commit -m "publisher: materialize Tribunal batch $batch_id"; then
+    tlog "Batch commit failed; cleaning disposable worktree=$batch_dir branch=$branch_name for retry."
+    if ! git worktree remove --force -- "$batch_dir"; then
+      tlog "ERROR: batch commit worktree cleanup failed; manual recovery required: worktree=$batch_dir branch=$branch_name"
+      return 1
+    fi
+    if ! git branch -D -- "$branch_name" >/dev/null; then
+      tlog "ERROR: batch commit branch cleanup failed; manual recovery required: branch=$branch_name"
+      return 1
+    fi
+    return 1
+  fi
 
   reserve_batch_state "$batch_id" "$branch_name" "${validated[@]}"
 
