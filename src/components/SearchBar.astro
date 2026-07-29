@@ -136,6 +136,8 @@ const t = i18n[lang];
   let selectedIndex = -1;
   let previouslyFocused: HTMLElement | null = null;
   let searchSession = 0;
+  let previousBodyOverflow = '';
+  const inertedBySearch = new Set<Element>();
 
   // Teleport modal to body level so inert can be applied to all other body children
   if (modal) document.body.appendChild(modal);
@@ -185,10 +187,13 @@ const t = i18n[lang];
     const session = searchSession;
     previouslyFocused = document.activeElement as HTMLElement | null;
     modal?.setAttribute('aria-hidden', 'false');
+    previousBodyOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     // Set inert on all body children except the modal overlay
     Array.from(document.body.children).forEach((el) => {
-      if (el !== modal) (el as HTMLElement).setAttribute('inert', '');
+      if (el === modal || el.hasAttribute('inert')) return;
+      el.setAttribute('inert', '');
+      inertedBySearch.add(el);
     });
     setTimeout(() => {
       if (session === searchSession && isModalOpen()) input?.focus();
@@ -203,11 +208,12 @@ const t = i18n[lang];
     }
     if (!searchIndex) loadPromise = null;
     modal?.setAttribute('aria-hidden', 'true');
-    document.body.style.overflow = '';
-    // Remove inert from all body children
-    Array.from(document.body.children).forEach((el) => {
-      (el as HTMLElement).removeAttribute('inert');
+    document.body.style.overflow = previousBodyOverflow;
+    // Only remove inert that this search session owns.
+    inertedBySearch.forEach((el) => {
+      el.removeAttribute('inert');
     });
+    inertedBySearch.clear();
     if (input) input.value = '';
     if (results) results.innerHTML = '';
     selectedIndex = -1;
