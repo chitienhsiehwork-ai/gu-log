@@ -153,6 +153,59 @@ function writeCounter(counter) {
   fs.writeFileSync(COUNTER_FILE, `${JSON.stringify(counter, null, 2)}\n`);
 }
 
+function destinationPath(step) {
+  return path.join(POSTS_DIR, step.newName);
+}
+
+function assertDestinationAvailable(step) {
+  try {
+    fs.lstatSync(destinationPath(step));
+  } catch (err) {
+    if (err.code === 'ENOENT') return;
+    throw err;
+  }
+  throw new Error(`Destination already exists: ${step.newName}`);
+}
+
+function reserveDestinations(plan) {
+  const reservations = [];
+  try {
+    for (const step of plan) {
+      const oldPath = path.join(POSTS_DIR, step.oldName);
+      const newPath = destinationPath(step);
+      const stat = fs.lstatSync(oldPath);
+      fs.linkSync(oldPath, newPath);
+      reservations.push({ step, dev: stat.dev, ino: stat.ino });
+    }
+  } catch (err) {
+    const primaryError =
+      err.code === 'EEXIST'
+        ? new Error(`Destination already exists: ${plan[reservations.length].newName}`)
+        : err;
+    const cleanupErrors = [];
+    for (const reservation of reservations.reverse()) {
+      const newPath = destinationPath(reservation.step);
+      try {
+        const stat = fs.lstatSync(newPath);
+        if (stat.dev !== reservation.dev || stat.ino !== reservation.ino) {
+          throw new Error(`Refusing to remove changed reservation: ${reservation.step.newName}`);
+        }
+        fs.unlinkSync(newPath);
+      } catch (cleanupError) {
+        cleanupErrors.push(cleanupError);
+      }
+    }
+    if (cleanupErrors.length > 0) {
+      const cleanupMessage = cleanupErrors.map((error) => error.message).join('; ');
+      throw new AggregateError(
+        [primaryError, ...cleanupErrors],
+        `${primaryError.message}; reservation cleanup failed: ${cleanupMessage}`
+      );
+    }
+    throw primaryError;
+  }
+}
+
 /** Swap the ticketId in a file's frontmatter, in place. */
 function swapTicketId(absPath, prefix, n) {
   const content = fs.readFileSync(absPath, 'utf8');
@@ -188,6 +241,12 @@ function allocate({ filter, dryRun }) {
   const oldTicket = `${prefix}-PENDING`;
   const newTicket = `${prefix}-${n}`;
 
+  // Check the complete rename plan before changing ticketIds. linkSync below
+  // also enforces no-clobber if a destination appears after this preflight.
+  for (const step of plan) {
+    assertDestinationAvailable(step);
+  }
+
   process.stdout.write(`Allocating ${oldTicket} -> ${newTicket}\n`);
   for (const step of plan) {
     process.stdout.write(`  ${step.oldName}\n    -> ${step.newName}\n`);
@@ -199,12 +258,15 @@ function allocate({ filter, dryRun }) {
     return { ticketId: newTicket, files: plan.map((s) => s.newName) };
   }
 
-  // Swap ticketIds first (on the old paths), then rename the files.
+  // Reserve the complete rename plan before changing ticketIds. Hard links
+  // guarantee no-clobber if a destination appears after the preflight.
+  reserveDestinations(plan);
+
   for (const step of plan) {
     swapTicketId(path.join(POSTS_DIR, step.oldName), prefix, n);
   }
   for (const step of plan) {
-    fs.renameSync(path.join(POSTS_DIR, step.oldName), path.join(POSTS_DIR, step.newName));
+    fs.unlinkSync(path.join(POSTS_DIR, step.oldName));
   }
 
   counter[prefix].next = n + 1;
@@ -234,8 +296,15 @@ if (__isCli) {
     allocate({ filter, dryRun });
   } catch (err) {
     process.stderr.write(`✗ ${err.message}\n`);
-    process.exit(1);
+    process.exitCode = 1;
   }
 }
 
-export { findPendingPairs, selectPair, allocate, canonicalPrefix, validateCounter };
+export {
+  findPendingPairs,
+  selectPair,
+  allocate,
+  canonicalPrefix,
+  validateCounter,
+  reserveDestinations,
+};
