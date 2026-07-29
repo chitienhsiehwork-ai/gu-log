@@ -286,6 +286,7 @@ async function checkExternalLink(url, retries = MAX_RETRIES) {
           signal: controller2.signal,
           redirect: 'follow',
         });
+        await res.body?.cancel();
       } finally {
         clearTimeout(timeout2);
       }
