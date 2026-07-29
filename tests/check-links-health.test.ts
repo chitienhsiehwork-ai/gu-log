@@ -47,6 +47,7 @@ describe('broken-link internal path resolution', () => {
       expect(checkInternalLink('https://www.gu-log.vercel.app:443/posts/ok', distDir)).toBe(true);
       expect(checkInternalLink('https://gu-log.vercel.app:444/posts/ok', distDir)).toBe(false);
       expect(checkInternalLink('ftp://gu-log.vercel.app/posts/ok', distDir)).toBe(false);
+      expect(checkInternalLink('/\\evil.example/posts/ok', distDir)).toBe(false);
     } finally {
       await rm(root, { recursive: true, force: true });
     }
