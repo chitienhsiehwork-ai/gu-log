@@ -30,7 +30,7 @@ translatedBy:
 source: "@kunchenguid on X"
 sourceUrl: 'https://x.com/kunchenguid/status/2081765555091177537'
 lang: 'en'
-summary: 'Kun Chen spent about two weeks deliberately cycling through every combination of model size and reasoning intensity, and came away with a sharp intuition: model size gives you "wisdom" (breadth of knowledge, intuition, cross-domain connections), reasoning intensity gives you "diligence" (thorough evaluation, edge-case coverage). The two are not interchangeable. He argues that benchmarks collapsing everything into a single score is exactly why people confuse them.'
+summary: 'Kun Chen cycled through every model-size × reasoning-intensity combo for two weeks and landed on a clean split: model size gives "wisdom," reasoning intensity gives "diligence." The two aren''t interchangeable — and benchmarks flattening them into one score is why people confuse them.'
 tags: ['llm', 'benchmark', 'reasoning', 'model-routing']
 scores:
   tribunalVersion: 9
@@ -73,7 +73,7 @@ translatedDate: "2026-07-28"
 
 import MoguNote from '../../components/MoguNote.astro';
 
-Run a flagship model (Opus, Fable) at low reasoning intensity, or take a lightweight model (Sonnet, Haiku) and crank reasoning to max? Kun Chen spent about two weeks deliberately trying every combination, and came away with a clean intuition: model size gives you "wisdom," reasoning intensity gives you "diligence." Two completely different things.
+Run a big model ([Sol](/en/glossary#gpt-5-6), Opus) at low reasoning intensity, or take a small model ([Luna](/en/glossary#gpt-5-6), Haiku) and crank reasoning to max? Kun Chen spent about two weeks deliberately trying every combination, and came away with a clean intuition: model size gives you "wisdom," reasoning intensity gives you "diligence." Two completely different things.
 
 ## Wisdom and Diligence
 
@@ -81,7 +81,7 @@ A bigger model has seen more, remembers more, and spans a wider range of domains
 
 Reasoning intensity makes the model more careful: evaluating each option one by one, thinking through the consequences of every step, digging up edge cases and checking them. That's diligence—not smarter, just more thorough. No option left unevaluated, no branch left unexplored.
 
-<MoguNote>
+<MoguNote summary="Test-time compute is overtime, not new talent.">
 "Reasoning intensity" is the user-facing knob for [test-time compute](/en/glossary#test-time-compute). Set it to low and the model answers instantly; set it to high and it goes back and forth in its head for several rounds before speaking. What it burns is inference-time compute. No amount of overtime can produce insights that weren't baked in during training.
 
 The same author's [agent fleet composition chart](/posts/mp-312-20260630-kunchenguid-agent-fleet-model-routing/) (first mate gets the smartest model with reasoning cranked to max; grunt work goes to the cheap ones) is the applied version of this principle—that post gave the lineup, this one explains why it's arranged that way. Even earlier, people were already debating that [the strongest reasoning model isn't necessarily the best coder](/posts/mp-212-20260326-semianalysis-disaggregated-planning/)—same axis.
@@ -99,7 +99,7 @@ Diligence makes sure no given option is missed; wisdom is what goes back and ask
 
 Kun Chen says this is when it clicked for him why the providers arrange their lineups the way they do, rather than just shipping one Fable-tier model with twelve reasoning presets—because model size and reasoning intensity aren't on the same axis at all.
 
-<MoguNote>
+<MoguNote summary="Full-marks diligence, zero wisdom — when the direction is wrong.">
 **Diligence walks every road; wisdom discovers the roads themselves are wrong.** Next time your agent handles every edge case flawlessly and still gets the whole direction wrong—that's full marks for diligence, zero for wisdom. gu-log's own [four-judge system](/posts/sd-10-20260322-ralph-loop-quality-system/) sits right on this line: quality scoring needs taste (wisdom), so it uses the largest model; fact-checking needs thoroughness (diligence), so it deliberately swaps in a different model as a second pair of eyes. Different knobs, different turns. (╯°□°)╯
 </MoguNote>
 
@@ -125,7 +125,7 @@ Until that day comes, Kun Chen's own approach boils down to three rules of thumb
 - This problem needs a pen and a lot of paper to work through—crank up reasoning intensity.
 - It needs a genius to sit down with a pen and a lot of paper—turn both knobs up.
 
-<MoguNote>
+<MoguNote summary="Refactor = genius, bug sweep = diligence, architecture swap = both knobs to eleven.">
 Compare these against the three most common types of work: refactoring a module where nobody can clearly define the boundaries—the option set itself is the problem, a genius-level call, bring the big model; sweeping a known bug across thirty files—the options are clear, there are just a lot of them, a pen and lots of paper is enough, max out reasoning intensity; deciding whether the entire system should switch architectures and then actually getting all thirty files right after the switch—congratulations, both knobs go to eleven, and so does the bill.
 </MoguNote>
 

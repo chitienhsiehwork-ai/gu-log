@@ -763,6 +763,9 @@ try {
       GLOSSARY_TERMS.add(t.en);
       for (const w of t.en.split(/\s+/)) GLOSSARY_TERMS.add(w);
     }
+    if (Array.isArray(t.aliases)) {
+      for (const a of t.aliases) GLOSSARY_TERMS.add(a);
+    }
   }
 } catch (e) {
   console.error(`[check-jingjing] Failed to load glossary at ${GLOSSARY_PATH}: ${e.message}`);
