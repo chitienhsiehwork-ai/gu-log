@@ -650,6 +650,72 @@ JSON
   printf 'Runtime dependency-test rewrite.\n' >> "$target/src/content/posts/gp-1-test.mdx"
 }
 
+commit_failure_runtime="$TMP/commit-failure-runtime"
+commit_failure_worktree="$TMP/commit-failure-worktree"
+commit_failure_branch="publisher/commit-failure"
+commit_failure_hook_sentinel="$TMP/commit-failure-hook-ran"
+commit_failure_zh_before="$TMP/commit-failure-zh-before.mdx"
+commit_failure_en_before="$TMP/commit-failure-en-before.mdx"
+setup_dependency_runtime "$commit_failure_runtime"
+cp "$commit_failure_runtime/src/content/posts/gp-1-test.mdx" "$commit_failure_zh_before"
+cp "$commit_failure_runtime/src/content/posts/en-gp-1-test.mdx" "$commit_failure_en_before"
+git -C "$commit_failure_runtime" config core.hooksPath "$commit_failure_runtime/.git/hooks"
+cat > "$commit_failure_runtime/.git/hooks/pre-commit" <<'HOOK'
+#!/usr/bin/env bash
+: > "$COMMIT_HOOK_SENTINEL"
+printf 'commit hook stdout diagnostic\n'
+printf 'commit hook stderr diagnostic\n' >&2
+exit 87
+HOOK
+chmod +x "$commit_failure_runtime/.git/hooks/pre-commit"
+if commit_failure_out="$(cd "$commit_failure_runtime" && \
+  COMMIT_HOOK_SENTINEL="$commit_failure_hook_sentinel" \
+  TRIBUNAL_PUBLISHER_DISABLE_GH_SCAN=1 \
+  TRIBUNAL_PUBLISHER_SKIP_BUILD=1 \
+  TRIBUNAL_PUBLISHER_VALIDATE_HOOK="$commit_failure_runtime/scripts/test-validate-hook.sh" \
+  bash scripts/tribunal-publisher.sh --apply --max 10 \
+    --branch "$commit_failure_branch" --worktree "$commit_failure_worktree" 2>&1)"; then
+  fail "publisher must return nonzero when the batch commit fails"
+fi
+[ -e "$commit_failure_hook_sentinel" ] \
+  || fail "commit failure test must exercise the real pre-commit hook"
+[ ! -e "$commit_failure_worktree" ] \
+  || fail "commit failure should clean the disposable publisher worktree"
+git -C "$commit_failure_runtime" worktree list --porcelain \
+  | grep -Fxq "worktree $commit_failure_worktree" \
+  && fail "commit failure should unregister the disposable publisher worktree"
+git -C "$commit_failure_runtime" show-ref --verify --quiet "refs/heads/$commit_failure_branch" \
+  && fail "commit failure should delete the uncommitted publisher branch"
+git --git-dir="$origin" show-ref --verify --quiet "refs/heads/$commit_failure_branch" \
+  && fail "commit failure must not create a remote publisher branch"
+[ "$(jq -r '.entries["gp-1-test.mdx"].publishState // "ready_for_batch"' \
+  "$commit_failure_runtime/.score-loop/state/tribunal-publisher.json")" = "ready_for_batch" ] \
+  || fail "commit failure must leave the article retryable"
+jq -e '.entries == {} and .batches == {}' \
+  "$commit_failure_runtime/.score-loop/state/tribunal-publisher.json" >/dev/null \
+  || fail "commit failure must not reserve an entry or batch"
+jq -e '[.events[] | select(.kind=="validation_blocked")] | length == 0' \
+  "$commit_failure_runtime/.score-loop/state/tribunal-triage-events.json" >/dev/null \
+  || fail "commit failure must not poison article validation state"
+cmp -s "$commit_failure_zh_before" \
+  "$commit_failure_runtime/src/content/posts/gp-1-test.mdx" \
+  || fail "commit failure must preserve the canonical zh-tw artifact byte-for-byte"
+cmp -s "$commit_failure_en_before" \
+  "$commit_failure_runtime/src/content/posts/en-gp-1-test.mdx" \
+  || fail "commit failure must preserve the canonical English artifact byte-for-byte"
+commit_failure_retry_out="$(cd "$commit_failure_runtime" && \
+  TRIBUNAL_PUBLISHER_DISABLE_GH_SCAN=1 \
+  bash scripts/tribunal-publisher.sh --dry-run --max 10)"
+grep -q 'publishable PASS: 1' <<<"$commit_failure_retry_out" \
+  || fail "commit failure must leave the PASS artifact publishable on retry"
+grep -q 'commit hook stdout diagnostic' <<<"$commit_failure_out" \
+  || fail "publisher must preserve pre-commit stdout diagnostics"
+grep -q 'commit hook stderr diagnostic' <<<"$commit_failure_out" \
+  || fail "publisher must preserve pre-commit stderr diagnostics"
+grep -q 'Batch commit failed; cleaning disposable worktree=' <<<"$commit_failure_out" \
+  || fail "publisher should explain retryable batch commit failure"
+pass "commit failure cleans disposable git state and leaves the PASS artifact retryable"
+
 dependency_fake_bin="$TMP/dependency-fake-bin"
 dependency_fake_pnpm="$dependency_fake_bin/pnpm"
 mkdir -p "$dependency_fake_bin"
