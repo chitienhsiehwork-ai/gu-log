@@ -15,7 +15,18 @@ type Scenario =
   | 'metadata-timeout'
   | 'concurrency';
 
-function makeHarness(scenario: Scenario, preserveArtifacts = false) {
+const VALID_RULES = {
+  blockOnDeprecated: true,
+  warnOnOutdated: true,
+  warnOnUnmaintainedYears: 2,
+  maxOutdatedPercent: 30,
+};
+
+function makeHarness(
+  scenario: Scenario,
+  preserveArtifacts = false,
+  rulesContents: string | null = JSON.stringify(VALID_RULES)
+) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-dependency-freshness-'));
   const scriptsDir = path.join(root, 'scripts');
   const qualityDir = path.join(root, 'quality');
@@ -23,6 +34,7 @@ function makeHarness(scenario: Scenario, preserveArtifacts = false) {
   const commandLog = path.join(root, 'pnpm-commands.jsonl');
   const activityLog = path.join(root, 'pnpm-activity.jsonl');
   const activityDir = path.join(root, 'pnpm-active');
+  const rulesPath = path.join(qualityDir, 'dependency-rules.json');
   const baselinePath = path.join(qualityDir, 'dependency-freshness-baseline.json');
   const historyPath = path.join(qualityDir, 'dependency-freshness-history.json');
 
@@ -30,6 +42,10 @@ function makeHarness(scenario: Scenario, preserveArtifacts = false) {
   fs.mkdirSync(qualityDir, { recursive: true });
   fs.mkdirSync(binDir, { recursive: true });
   fs.copyFileSync(SCANNER_PATH, path.join(scriptsDir, 'dependency-freshness.mjs'));
+
+  if (rulesContents !== null) {
+    fs.writeFileSync(rulesPath, rulesContents);
+  }
 
   if (preserveArtifacts) {
     fs.writeFileSync(baselinePath, 'baseline-sentinel\n');
@@ -126,6 +142,7 @@ if (args[0] === 'view') {
       .filter((name) => name.endsWith('.active')).length;
     if (packageName !== 'epsilon' && activeAfterRelease === 0) writeFileSync(doneMarker, '');
   }
+  const publishDate = new Date(Date.now() - 365.25 * 24 * 60 * 60 * 1000).toISOString();
   if (process.env.FAKE_PNPM_SCENARIO === 'metadata-failure' && packageName === '@scope/beta') {
     writeSync(2, 'registry unavailable\\n');
     process.exit(42);
@@ -139,7 +156,7 @@ if (args[0] === 'view') {
       time: {
         created: '2025-01-01T00:00:00.000Z',
         modified: '2026-01-02T00:00:00.000Z',
-        '2.0.0': '2026-01-01T00:00:00.000Z'
+        '2.0.0': publishDate
       }
     }));
     process.exit(0);
@@ -147,7 +164,7 @@ if (args[0] === 'view') {
     writeSync(1, JSON.stringify({
       created: '2025-01-01T00:00:00.000Z',
       modified: '2026-01-02T00:00:00.000Z',
-      '1.0.0': '2026-01-01T00:00:00.000Z'
+      '1.0.0': publishDate
     }));
     process.exit(0);
   }
@@ -175,13 +192,15 @@ process.exit(64);
       timeout: scenario === 'concurrency' ? 9_000 : 6_000,
     });
 
-  const readCommands = (): string[][] =>
-    fs
+  const readCommands = (): string[][] => {
+    if (!fs.existsSync(commandLog)) return [];
+    return fs
       .readFileSync(commandLog, 'utf-8')
       .trim()
       .split('\n')
       .filter(Boolean)
       .map((line) => JSON.parse(line) as string[]);
+  };
 
   const readActivity = (): Array<{
     type: 'start';
@@ -315,7 +334,6 @@ describe('dependency freshness scanner registry boundaries', () => {
       })
     );
   });
-
   it('runs registry metadata four at a time while preserving report order', () => {
     const harness = makeHarness('concurrency');
 
@@ -338,5 +356,80 @@ describe('dependency freshness scanner registry boundaries', () => {
       'delta',
       'epsilon',
     ]);
+  });
+
+  it.each([
+    [
+      'unknown key',
+      JSON.stringify({
+        warnOnOutdated: true,
+        warnOnUnmaintainedYears: 2,
+        maxOutdatedPercent: 30,
+        blockOnDeprecate: true,
+      }),
+      'unknown key',
+    ],
+    [
+      'missing required key',
+      JSON.stringify({
+        blockOnDeprecated: true,
+        warnOnOutdated: true,
+        warnOnUnmaintainedYears: 2,
+      }),
+      'missing required key',
+    ],
+    [
+      'invalid boolean',
+      JSON.stringify({ ...VALID_RULES, blockOnDeprecated: 'true' }),
+      'blockOnDeprecated',
+    ],
+    [
+      'second invalid boolean',
+      JSON.stringify({ ...VALID_RULES, warnOnOutdated: 'true' }),
+      'warnOnOutdated',
+    ],
+    ['array root', '[]', 'expected an object'],
+    [
+      'non-positive unmaintained threshold',
+      JSON.stringify({ ...VALID_RULES, warnOnUnmaintainedYears: 0 }),
+      'warnOnUnmaintainedYears',
+    ],
+    [
+      'out-of-range outdated budget',
+      JSON.stringify({ ...VALID_RULES, maxOutdatedPercent: 101 }),
+      'maxOutdatedPercent',
+    ],
+    ['invalid JSON', '{', 'valid JSON'],
+    ['missing rules file', null, 'is missing'],
+  ])('rejects %s before pnpm or artifact writes', (_label, rulesContents, diagnostic) => {
+    const harness = makeHarness('deprecated', true, rulesContents);
+
+    const result = harness.run();
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('Invalid dependency freshness rules');
+    expect(result.stderr).toContain(diagnostic);
+    expect(harness.readCommands()).toEqual([]);
+    expect(fs.readFileSync(harness.baselinePath, 'utf-8')).toBe('baseline-sentinel\n');
+    expect(fs.readFileSync(harness.historyPath, 'utf-8')).toBe('history-sentinel\n');
+  });
+
+  it('uses warnOnUnmaintainedYears instead of a hard-coded threshold', () => {
+    const harness = makeHarness(
+      'success',
+      false,
+      JSON.stringify({ ...VALID_RULES, warnOnUnmaintainedYears: 0.5 })
+    );
+
+    const result = harness.run();
+
+    expect(result.status, result.stderr).toBe(0);
+    const baseline = JSON.parse(fs.readFileSync(harness.baselinePath, 'utf-8'));
+    expect(baseline.possiblyUnmaintained).toBe(2);
+    expect(
+      baseline.details.every(
+        (dependency: { possiblyUnmaintained?: boolean }) => dependency.possiblyUnmaintained
+      )
+    ).toBe(true);
   });
 });
