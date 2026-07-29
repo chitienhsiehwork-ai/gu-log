@@ -8,7 +8,12 @@ const REPO_ROOT = path.resolve(__dirname, '..');
 const SCANNER_PATH = path.join(REPO_ROOT, 'scripts', 'dependency-freshness.mjs');
 
 type Scenario =
-  'success' | 'deprecated' | 'outdated-partial-failure' | 'metadata-failure' | 'metadata-timeout';
+  | 'success'
+  | 'deprecated'
+  | 'outdated-partial-failure'
+  | 'metadata-failure'
+  | 'metadata-timeout'
+  | 'concurrency';
 
 function makeHarness(scenario: Scenario, preserveArtifacts = false) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-dependency-freshness-'));
@@ -16,6 +21,8 @@ function makeHarness(scenario: Scenario, preserveArtifacts = false) {
   const qualityDir = path.join(root, 'quality');
   const binDir = path.join(root, 'bin');
   const commandLog = path.join(root, 'pnpm-commands.jsonl');
+  const activityLog = path.join(root, 'pnpm-activity.jsonl');
+  const activityDir = path.join(root, 'pnpm-active');
   const baselinePath = path.join(qualityDir, 'dependency-freshness-baseline.json');
   const historyPath = path.join(qualityDir, 'dependency-freshness-history.json');
 
@@ -30,7 +37,16 @@ function makeHarness(scenario: Scenario, preserveArtifacts = false) {
   }
 
   const fakePnpm = `#!/usr/bin/env node
-const { appendFileSync, writeSync } = require('node:fs');
+const {
+  appendFileSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  unlinkSync,
+  writeFileSync,
+  writeSync
+} = require('node:fs');
+const { join } = require('node:path');
 
 const args = process.argv.slice(2);
 appendFileSync(process.env.FAKE_PNPM_LOG, JSON.stringify(args) + '\\n');
@@ -52,15 +68,64 @@ if (args[0] === 'outdated') {
 }
 
 if (args[0] === 'ls') {
+  const dependencies = process.env.FAKE_PNPM_SCENARIO === 'concurrency'
+    ? {
+        alpha: { version: '1.0.0' },
+        beta: { version: '2.0.0' },
+        gamma: { version: '3.0.0' },
+        delta: { version: '4.0.0' },
+        epsilon: { version: '5.0.0' }
+      }
+    : { alpha: { version: '1.0.0' } };
   writeSync(1, JSON.stringify([{
-    dependencies: { alpha: { version: '1.0.0' } },
-    devDependencies: { '@scope/beta': { version: '2.0.0' } }
+    dependencies,
+    devDependencies: process.env.FAKE_PNPM_SCENARIO === 'concurrency'
+      ? {}
+      : { '@scope/beta': { version: '2.0.0' } }
   }]));
   process.exit(0);
 }
 
 if (args[0] === 'view') {
   const packageName = args[1];
+  if (process.env.FAKE_PNPM_SCENARIO === 'concurrency') {
+    mkdirSync(process.env.FAKE_PNPM_ACTIVITY_DIR, { recursive: true });
+    const marker = join(
+      process.env.FAKE_PNPM_ACTIVITY_DIR,
+      packageName.replace(/[^a-z0-9]/gi, '_') + '.active'
+    );
+    const releaseMarker = join(process.env.FAKE_PNPM_ACTIVITY_DIR, 'first-batch.release');
+    const doneMarker = join(process.env.FAKE_PNPM_ACTIVITY_DIR, 'first-batch.done');
+    writeFileSync(marker, '');
+    const active = readdirSync(process.env.FAKE_PNPM_ACTIVITY_DIR)
+      .filter((name) => name.endsWith('.active')).length;
+    appendFileSync(
+      process.env.FAKE_PNPM_ACTIVITY_LOG,
+      JSON.stringify({
+        type: 'start',
+        packageName,
+        active,
+        firstBatchDone: existsSync(doneMarker)
+      }) + '\\n'
+    );
+
+    if (packageName !== 'epsilon') {
+      if (active === 4) writeFileSync(releaseMarker, '');
+      const deadline = Date.now() + 4_000;
+      while (!existsSync(releaseMarker)) {
+        if (Date.now() >= deadline) {
+          writeSync(2, 'first metadata batch never reached four active children\\n');
+          process.exit(65);
+        }
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10);
+      }
+    }
+
+    unlinkSync(marker);
+    const activeAfterRelease = readdirSync(process.env.FAKE_PNPM_ACTIVITY_DIR)
+      .filter((name) => name.endsWith('.active')).length;
+    if (packageName !== 'epsilon' && activeAfterRelease === 0) writeFileSync(doneMarker, '');
+  }
   if (process.env.FAKE_PNPM_SCENARIO === 'metadata-failure' && packageName === '@scope/beta') {
     writeSync(2, 'registry unavailable\\n');
     process.exit(42);
@@ -102,10 +167,12 @@ process.exit(64);
         ...process.env,
         PATH: `${binDir}${path.delimiter}${process.env.PATH ?? ''}`,
         FAKE_PNPM_LOG: commandLog,
+        FAKE_PNPM_ACTIVITY_LOG: activityLog,
+        FAKE_PNPM_ACTIVITY_DIR: activityDir,
         FAKE_PNPM_SCENARIO: scenario,
-        DEPENDENCY_FRESHNESS_COMMAND_TIMEOUT_MS: '500',
+        DEPENDENCY_FRESHNESS_COMMAND_TIMEOUT_MS: scenario === 'concurrency' ? '5000' : '500',
       },
-      timeout: 3_000,
+      timeout: scenario === 'concurrency' ? 9_000 : 6_000,
     });
 
   const readCommands = (): string[][] =>
@@ -116,7 +183,22 @@ process.exit(64);
       .filter(Boolean)
       .map((line) => JSON.parse(line) as string[]);
 
-  return { baselinePath, historyPath, readCommands, run };
+  const readActivity = (): Array<{
+    type: 'start';
+    packageName: string;
+    active: number;
+    firstBatchDone: boolean;
+  }> => {
+    if (!fs.existsSync(activityLog)) return [];
+    return fs
+      .readFileSync(activityLog, 'utf-8')
+      .trim()
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => JSON.parse(line));
+  };
+
+  return { baselinePath, historyPath, readActivity, readCommands, run };
 }
 
 describe('dependency freshness scanner registry boundaries', () => {
@@ -184,10 +266,14 @@ describe('dependency freshness scanner registry boundaries', () => {
     const commands = harness.readCommands();
     expect(commands.filter(([command]) => command === 'outdated')).toHaveLength(1);
     expect(commands.filter(([command]) => command === 'ls')).toHaveLength(1);
-    expect(commands.filter(([command]) => command === 'view')).toEqual([
-      ['view', 'alpha', 'deprecated', 'time', '--json'],
-      ['view', '@scope/beta', 'deprecated', 'time', '--json'],
-    ]);
+    const viewCommands = commands.filter(([command]) => command === 'view');
+    expect(viewCommands).toHaveLength(2);
+    expect(viewCommands).toEqual(
+      expect.arrayContaining([
+        ['view', 'alpha', 'deprecated', 'time', '--json'],
+        ['view', '@scope/beta', 'deprecated', 'time', '--json'],
+      ])
+    );
 
     const baseline = JSON.parse(fs.readFileSync(harness.baselinePath, 'utf-8'));
     expect(baseline).toMatchObject({
@@ -228,5 +314,29 @@ describe('dependency freshness scanner registry boundaries', () => {
         deprecatedMessage: 'use gamma instead',
       })
     );
+  });
+
+  it('runs registry metadata four at a time while preserving report order', () => {
+    const harness = makeHarness('concurrency');
+
+    const result = harness.run();
+
+    expect(result.status, result.stderr).toBe(0);
+    const activity = harness.readActivity();
+    expect(activity).toHaveLength(5);
+    expect(Math.max(...activity.map((event) => event.active))).toBe(4);
+    expect(activity.find((event) => event.packageName === 'epsilon')).toMatchObject({
+      active: 1,
+      firstBatchDone: true,
+    });
+
+    const baseline = JSON.parse(fs.readFileSync(harness.baselinePath, 'utf-8'));
+    expect(baseline.details.map((entry: { name: string }) => entry.name)).toEqual([
+      'alpha',
+      'beta',
+      'gamma',
+      'delta',
+      'epsilon',
+    ]);
   });
 });

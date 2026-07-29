@@ -12,11 +12,12 @@
  * as "possibly unmaintained".
  */
 
-import { execFileSync } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import { Buffer } from 'node:buffer';
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -25,6 +26,8 @@ const RULES_PATH = join(QUALITY, 'dependency-rules.json');
 const BASELINE_PATH = join(QUALITY, 'dependency-freshness-baseline.json');
 const HISTORY_PATH = join(QUALITY, 'dependency-freshness-history.json');
 const DEFAULT_COMMAND_TIMEOUT_MS = 15_000;
+const REGISTRY_METADATA_BATCH_SIZE = 4;
+const execFileAsync = promisify(execFile);
 
 const verbose = process.argv.includes('--verbose');
 
@@ -51,24 +54,26 @@ function childOutput(error, field) {
   return '';
 }
 
-function runJson(args, { allowExitOne = false } = {}) {
+function childExitStatus(error) {
+  if (!error || typeof error !== 'object') return null;
+  if (Number.isInteger(error.status)) return error.status;
+  if (Number.isInteger(error.code)) return error.code;
+  return null;
+}
+
+async function runJson(args, { allowExitOne = false } = {}) {
   let raw;
   try {
-    raw = execFileSync('pnpm', args, {
+    const result = await execFileAsync('pnpm', args, {
       cwd: ROOT,
       encoding: 'utf-8',
-      stdio: ['pipe', 'pipe', 'pipe'],
       timeout: COMMAND_TIMEOUT_MS,
     });
+    raw = result.stdout;
   } catch (error) {
     const stderr = childOutput(error, 'stderr');
-    if (
-      allowExitOne &&
-      error &&
-      typeof error === 'object' &&
-      error.status === 1 &&
-      stderr.trim() === ''
-    ) {
+    const exitStatus = childExitStatus(error);
+    if (allowExitOne && exitStatus === 1 && stderr.trim() === '') {
       raw = childOutput(error, 'stdout');
     } else {
       const timedOut =
@@ -88,7 +93,7 @@ function runJson(args, { allowExitOne = false } = {}) {
           ? `${command} timed out after ${COMMAND_TIMEOUT_MS}ms`
           : systemError
             ? `${command} failed with ${systemError}`
-            : `${command} failed${error?.status == null ? '' : ` with exit ${error.status}`}`
+            : `${command} failed${exitStatus == null ? '' : ` with exit ${exitStatus}`}`
       );
     }
   }
@@ -120,8 +125,8 @@ function classifyVersion(current, latest) {
   return 'fresh'; // same or only patch diff
 }
 
-function registryMetadata(pkg) {
-  const metadata = runJson(['view', pkg, 'deprecated', 'time', '--json']);
+async function registryMetadata(pkg) {
+  const metadata = await runJson(['view', pkg, 'deprecated', 'time', '--json']);
   if (!isRecord(metadata)) {
     throw new Error(`pnpm view ${pkg} returned incomplete registry metadata`);
   }
@@ -159,13 +164,13 @@ function registryMetadata(pkg) {
 
 async function main() {
   // 1. Get outdated info
-  const outdatedMap = runJson(['outdated', '--json'], { allowExitOne: true });
+  const outdatedMap = await runJson(['outdated', '--json'], { allowExitOne: true });
   if (!isRecord(outdatedMap)) {
     throw new Error('pnpm outdated returned a non-object result');
   }
 
   // 2. Get all direct dependencies
-  const lsData = runJson(['ls', '--json', '--depth', '0']);
+  const lsData = await runJson(['ls', '--json', '--depth', '0']);
   const root = Array.isArray(lsData) ? lsData[0] : lsData;
   if (!isRecord(root)) {
     throw new Error('pnpm ls returned an invalid root package');
@@ -179,6 +184,21 @@ async function main() {
   // Build package list
   const pkgNames = Object.keys(allDeps);
   console.log(`Scanning ${pkgNames.length} direct dependencies…\n`);
+
+  const registryMetadataByPackage = new Map();
+  for (let offset = 0; offset < pkgNames.length; offset += REGISTRY_METADATA_BATCH_SIZE) {
+    const batchNames = pkgNames.slice(offset, offset + REGISTRY_METADATA_BATCH_SIZE);
+    // Wait for every child in a batch before selecting the first input-order
+    // error. This keeps diagnostics deterministic and avoids exiting while a
+    // sibling pnpm process is still running.
+    const batchMetadata = (
+      await Promise.allSettled(batchNames.map((name) => registryMetadata(name)))
+    ).map((result) => {
+      if (result.status === 'rejected') throw result.reason;
+      return result.value;
+    });
+    batchNames.forEach((name, index) => registryMetadataByPackage.set(name, batchMetadata[index]));
+  }
 
   const details = [];
   const counters = { fresh: 0, stale: 0, outdated: 0, deprecated: 0, possiblyUnmaintained: 0 };
@@ -202,9 +222,7 @@ async function main() {
     const latest = outdatedInfo?.latest || current;
 
     let status = classifyVersion(current, latest);
-
-    // Fetch deprecated and publish-time metadata in one registry request.
-    const { deprecatedMessage, lastPublishDate } = registryMetadata(name);
+    const { deprecatedMessage, lastPublishDate } = registryMetadataByPackage.get(name);
     const yearsAgo = (Date.now() - lastPublishDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
     const possiblyUnmaintained = yearsAgo > 2;
 
