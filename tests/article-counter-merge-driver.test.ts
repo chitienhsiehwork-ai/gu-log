@@ -54,6 +54,17 @@ describe('article-counter merge driver', () => {
     expect(merged.MP.next).toBe(316);
   });
 
+  it.each(['ours', 'theirs'] as const)(
+    'rejects when %s decreases next below the merge base',
+    (side) => {
+      const ours = structuredClone(base);
+      const theirs = structuredClone(base);
+      (side === 'ours' ? ours : theirs).GP.next = 252;
+
+      expect(() => merge(ours, theirs)).toThrow(`${side}: GP.next decreased below base`);
+    }
+  );
+
   it('accepts a one-sided label change', () => {
     const ours = structuredClone(base);
     const theirs = structuredClone(base);
