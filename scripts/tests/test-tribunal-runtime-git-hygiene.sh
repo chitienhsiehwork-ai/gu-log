@@ -57,6 +57,21 @@ after_head="$(git -C "$runtime" rev-parse HEAD)"
 [ "$(printf '%s' "$summary" | cut -d'|' -f1)" = "true" ] || fail "fetch should report success"
 pass "fetch-only drift check updates observability without rebasing runtime"
 
+git -C "$runtime" remote set-url origin "$TMP/missing-origin.git"
+failed_state_file="$TMP/runtime-git-fetch-failed.json"
+failed_summary=""
+if failed_summary="$(tribunal_fetch_and_report_origin_main "$runtime" "$log" "$failed_state_file")"; then
+  fail "fetch failure should return non-zero so callers can emit their warning"
+fi
+
+[ "$(printf '%s' "$failed_summary" | cut -d'|' -f1)" = "false" ] \
+  || fail "failed fetch summary should retain fetched=false"
+jq -e 'type == "object" and (.state | type == "string")' "$failed_state_file" >/dev/null \
+  || fail "failed fetch should still write a valid cached-ref state snapshot"
+[ "$before_head" = "$(git -C "$runtime" rev-parse HEAD)" ] \
+  || fail "failed fetch drift check mutated runtime HEAD"
+pass "fetch failure remains observable without discarding cached drift state"
+
 if grep -q 'git pull --rebase' "$ROOT_DIR/scripts/tribunal-quota-loop.sh"; then
   fail "quota loop still contains git pull --rebase"
 fi

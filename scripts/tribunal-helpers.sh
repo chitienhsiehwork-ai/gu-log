@@ -452,6 +452,11 @@ tribunal_fetch_and_report_origin_main() {
   behind="$(jq -r '.behind // 0' "$state_file" 2>/dev/null || printf '0')"
   tracked_dirty="$(jq -r '.trackedDirty // 0' "$state_file" 2>/dev/null || printf '0')"
   printf '%s|%s|%s|%s|%s\n' "$fetched" "$state" "$ahead" "$behind" "$tracked_dirty"
+
+  if [ "$fetched" = "false" ]; then
+    return 1
+  fi
+  return 0
 }
 
 # Run a repo-local agent spec through Codex. Codex custom agents live in
