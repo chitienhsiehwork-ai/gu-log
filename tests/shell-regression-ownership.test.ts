@@ -12,6 +12,7 @@ const SHELL_TEST_DIR = path.join(ROOT, 'scripts', 'tests');
 const DEDICATED_CONTRACTS = [
   'test-session-start-context.sh',
   'test-tribunal-deploy-readiness.sh',
+  'test-tribunal-run-control-claims.sh',
   'test-tribunal-runner-error-guard.sh',
   'test-tribunal-safety-contract.sh',
 ] as const;
