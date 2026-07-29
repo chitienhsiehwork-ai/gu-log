@@ -47,6 +47,17 @@ const REPO_ROOT = process.cwd();
 const POSTS_DIR = path.join(REPO_ROOT, 'src/content/posts');
 const GLOSSARY_PATH = path.join(REPO_ROOT, 'src/data/glossary.json');
 const TAXONOMY_POLICY_PATH = path.join(REPO_ROOT, 'quality/brand-taxonomy-residual-allowlist.json');
+const DEFAULT_GIT_FETCH_TIMEOUT_MS = 10_000;
+const MAX_GIT_FETCH_TIMEOUT_MS = 120_000;
+
+function gitFetchTimeoutMs() {
+  const raw = process.env.CHECK_JINGJING_FETCH_TIMEOUT_MS;
+  if (!raw || !/^[1-9]\d*$/.test(raw)) return DEFAULT_GIT_FETCH_TIMEOUT_MS;
+  const parsed = Number(raw);
+  return Number.isSafeInteger(parsed) && parsed <= MAX_GIT_FETCH_TIMEOUT_MS
+    ? parsed
+    : DEFAULT_GIT_FETCH_TIMEOUT_MS;
+}
 
 // ── Hardcoded allowlist ────────────────────────────────────────────
 //
@@ -1008,13 +1019,19 @@ function readBaselineFile(repoRelative, baselineRef) {
   });
 }
 
+const baselineRefreshAttempts = new Set();
+
 function ensureRemoteBaselineRef(baselineRef) {
   const match = baselineRef.match(/^origin\/(.+)$/);
   if (!match) return;
+  if (baselineRefreshAttempts.has(baselineRef)) return;
+  baselineRefreshAttempts.add(baselineRef);
   const branch = match[1];
   execFileSync('git', ['fetch', 'origin', `${branch}:refs/remotes/origin/${branch}`, '--depth=1'], {
     cwd: REPO_ROOT,
     stdio: ['ignore', 'ignore', 'ignore'],
+    timeout: gitFetchTimeoutMs(),
+    killSignal: 'SIGKILL',
   });
 }
 

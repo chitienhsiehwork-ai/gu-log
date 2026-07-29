@@ -10,6 +10,7 @@ import { describe, it, expect } from 'vitest';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { spawnSync } from 'node:child_process';
 
 // Per-suite tmpdir; CodeQL js/path-injection-clean (mkdtempSync is a safe origin).
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'gucg-'));
@@ -299,6 +300,53 @@ describe('check-jingjing ALLOWLIST_RAW parsing (line-aware comments)', () => {
     expect(stderr).toMatch(/all detected violations are reported, including historical/);
     expect(stderr).not.toMatch(/only new violations are reported/);
     expect(stderr).not.toMatch(/historical grandfathered violations are ignored/);
+  });
+
+  it('bounds and deduplicates a stalled remote baseline refresh before a full scan', () => {
+    const CLI = path.join(__dirname, '..', 'scripts', 'check-jingjing.mjs');
+    const firstFile = tmpPath('jj-stalled-baseline-fetch-first.mdx');
+    const secondFile = tmpPath('jj-stalled-baseline-fetch-second.mdx');
+    const fakeBin = tmpPath('jj-stalled-baseline-bin');
+    const fetchMarker = tmpPath('jj-stalled-baseline-fetch.marker');
+    fs.mkdirSync(fakeBin, { recursive: true });
+    const fakeGit = path.join(fakeBin, 'git');
+    fs.writeFileSync(
+      fakeGit,
+      `#!/usr/bin/env bash
+if [ "$1" = "fetch" ]; then
+  printf 'fetch\\n' >> "$FETCH_MARKER"
+  exec sleep 2
+fi
+exit 1
+`
+    );
+    fs.chmodSync(fakeGit, 0o755);
+    for (const filepath of [firstFile, secondFile]) {
+      fs.writeFileSync(filepath, `---\nlang: zh-tw\n---\n這個 approach 真的很 solid。\n`);
+    }
+
+    const result = spawnSync(
+      process.execPath,
+      [CLI, '--baseline-ref=origin/main', firstFile, secondFile],
+      {
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          CHECK_JINGJING_FETCH_TIMEOUT_MS: '50',
+          FETCH_MARKER: fetchMarker,
+          PATH: `${fakeBin}${path.delimiter}${process.env.PATH}`,
+        },
+        timeout: 1_000,
+        killSignal: 'SIGKILL',
+      }
+    );
+
+    expect(result.error).toBeUndefined();
+    expect(result.signal).toBeNull();
+    expect(result.status).toBe(1);
+    expect(fs.readFileSync(fetchMarker, 'utf8').trim().split('\n')).toEqual(['fetch']);
+    expect(result.stderr).toMatch(/baseline ref .* could not be resolved/);
+    expect(result.stderr).toMatch(/all detected violations are reported, including historical/);
   });
 
   it('does not call a new file a baseline-ref fallback', () => {
