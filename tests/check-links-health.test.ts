@@ -1,5 +1,9 @@
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
+  checkInternalLink,
   evaluateExternalScanHealth,
   isManualCheckDomain,
   isReservedExampleUrl,
@@ -11,6 +15,43 @@ const responseFailures = (...statusCodes: number[]) =>
 
 const transportFailures = (count: number) =>
   Array.from({ length: count }, () => ({ error: 'fetch failed' }));
+
+describe('broken-link internal path resolution', () => {
+  it('does not let dot segments escape dist and borrow a repository file', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'gu-log-link-root-'));
+    const distDir = join(root, 'dist');
+
+    try {
+      await mkdir(distDir);
+      await writeFile(join(root, 'package.json'), '{}\n');
+
+      expect(checkInternalLink('/../package.json', distDir)).toBe(false);
+      expect(checkInternalLink('/%2e%2e/package.json', distDir)).toBe(false);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it('normalizes query strings, fragments, and same-origin absolute URLs', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'gu-log-link-root-'));
+    const distDir = join(root, 'dist');
+
+    try {
+      await mkdir(join(distDir, 'posts', 'ok'), { recursive: true });
+      await writeFile(join(distDir, 'posts', 'ok', 'index.html'), '<!doctype html>\n');
+
+      expect(checkInternalLink('/posts/ok?draft=1#section', distDir)).toBe(true);
+      expect(checkInternalLink('https://gu-log.vercel.app/posts/ok?draft=1#section', distDir)).toBe(
+        true
+      );
+      expect(checkInternalLink('https://www.gu-log.vercel.app:443/posts/ok', distDir)).toBe(true);
+      expect(checkInternalLink('https://gu-log.vercel.app:444/posts/ok', distDir)).toBe(false);
+      expect(checkInternalLink('ftp://gu-log.vercel.app/posts/ok', distDir)).toBe(false);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+});
 
 describe('broken-link reserved example URL detection', () => {
   it.each(['https://example.com/x', 'https://docs.example.com/x', '//example.com/x'])(
