@@ -107,8 +107,8 @@ audit_event() {
     '{timestamp: $ts, event: $event, detail: $detail}' >> "$AUDIT_LOG"
 }
 
-list_batch_ids() {
-  jq -r '.batches | keys[]?' "$PUBLISHER_STATE_FILE"
+list_active_batch_ids() {
+  jq -r '.batches | keys[]? as $batch | select((.[$batch].state // "") != "published") | $batch' "$PUBLISHER_STATE_FILE"
 }
 
 batch_branch() {
@@ -220,7 +220,7 @@ reconcile_merged_batches() {
       tlog "published batch=$batch_id pr=$pr_number"
       audit_event "published" "batch=$batch_id pr=$pr_number branch=$branch"
     fi
-  done < <(list_batch_ids)
+  done < <(list_active_batch_ids)
 }
 
 advance_open_batches() {
@@ -264,7 +264,7 @@ advance_open_batches() {
       tlog "merge-guard defer pr=$pr_number rc=$rc"
       audit_event "merge_guard_defer" "batch=$batch_id pr=$pr_number rc=$rc"
     fi
-  done < <(list_batch_ids)
+  done < <(list_active_batch_ids)
 }
 
 apply_new_batches() {
