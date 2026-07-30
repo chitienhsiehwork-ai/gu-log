@@ -14,7 +14,7 @@ describe('waitForHttpReady', () => {
   it('aborts a fetch that remains pending for the whole readiness deadline', async () => {
     let signal: AbortSignal | undefined;
     const fetchImpl = vi.fn((_url: string | URL | Request, init?: RequestInit) => {
-      signal = init?.signal;
+      signal = init?.signal ?? undefined;
       return new Promise<Response>((_resolve, reject) => {
         signal?.addEventListener(
           'abort',
@@ -48,7 +48,7 @@ describe('waitForHttpReady', () => {
   it('clears the deadline after the endpoint becomes ready', async () => {
     let signal: AbortSignal | undefined;
     const fetchImpl = vi.fn((_url: string | URL | Request, init?: RequestInit) => {
-      signal = init?.signal;
+      signal = init?.signal ?? undefined;
       return Promise.resolve({ ok: true } as Response);
     });
 
@@ -90,7 +90,7 @@ describe('waitForHttpReady', () => {
       .fn()
       .mockRejectedValueOnce(new TypeError('connection refused'))
       .mockImplementationOnce((_url: string | URL | Request, init?: RequestInit) => {
-        secondSignal = init?.signal;
+        secondSignal = init?.signal ?? undefined;
         return new Promise<Response>(() => {});
       });
     let outcome: boolean | undefined;
