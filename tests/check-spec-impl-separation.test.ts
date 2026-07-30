@@ -122,9 +122,7 @@ describe('check-spec-impl-separation', () => {
 
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('發現 1 個 commit');
-    expect(result.stdout).toContain(
-      'spec: openspec/changes/feature/specs/capability/spec.md'
-    );
+    expect(result.stdout).toContain('spec: openspec/changes/feature/specs/capability/spec.md');
     expect(result.stdout).toContain('impl: src/feature.ts');
     expect(result.stdout).not.toContain('✓ 近似唯讀牆');
   });
