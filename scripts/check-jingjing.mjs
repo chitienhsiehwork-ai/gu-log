@@ -77,6 +77,10 @@ MoguNote ShroomDogNote PostImage Toggle TableOfContents ReadingProgress
 PrevNextNav
 # 站名本身。MoguNote 講「gu-log 的規則是⋯」時被判成晶晶體是誤判 — GP-262（2026-07-27）
 gu-log
+# Tribunal 四個 judge 的角色名，同 MoguNote 那類 gu-log 自家系統專名。MoguNote 提到
+# 「四個法官（Vibe / Fact Checker / Librarian / Fresh Eyes）」時被判成晶晶體是誤判
+# — GP-265（2026-07-29），Fresh Eyes judge 自己也標記為 misclassification
+Tribunal Vibe Fact Checker Librarian Fresh Eyes
 
 # AI labs / companies / orgs
 Anthropic OpenAI Google Meta Microsoft Apple Amazon AWS GCP Azure
@@ -185,6 +189,9 @@ Ryo Lu
 # Thomas Jefferson、Ronald Reagan、Montaigne、Rick Rubin、Seneca
 Norbert Wiener Naval Eriksen Austin Kleon
 Marcus Aurelius Twain H.P Lovecraft Jefferson Ronald Reagan Montaigne Rick Rubin Seneca
+# GP-265（2026-07-29）Adam Hunt 的 AI 看空長推，以及他引用的 Tomas Pueyo
+#（2025-11 那張「刺蝟球」AGI 能力圖）
+Adam Hunt Tomas Pueyo
 
 # Places
 Albuquerque Hong Kong San Francisco SF Silicon Valley
