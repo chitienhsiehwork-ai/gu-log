@@ -74,6 +74,15 @@ detect_machine_id() {
     return
   fi
 
+  # Linux hosts that are VMs get a stable generic actor prefix without
+  # checking in a hostname or other machine-specific deployment fact.
+  if [[ "$uname_s" != "Darwin" ]] &&
+    command -v systemd-detect-virt >/dev/null 2>&1 &&
+    systemd-detect-virt --vm >/dev/null 2>&1; then
+    echo "vm"
+    return
+  fi
+
   echo "local"
 }
 
