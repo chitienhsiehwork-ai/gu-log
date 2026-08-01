@@ -98,6 +98,27 @@ mac_cdx_identity="$(GU_LOG_MACHINE_ID=m1 \
   ./scripts/detect-env.sh --runtime codex --identity)"
 [[ "$mac_cdx_identity" == "m1-cdx" ]]
 
+vm_detect_bin="$TMP_DIR/vm-detect-bin"
+mkdir -p "$vm_detect_bin"
+printf '%s\n' \
+  '#!/usr/bin/env bash' \
+  'exit 0' \
+  >"$vm_detect_bin/systemd-detect-virt"
+chmod +x "$vm_detect_bin/systemd-detect-virt"
+vm_cdx_context="$(PATH="$vm_detect_bin:$PATH" \
+  ./scripts/detect-env.sh --runtime codex --context)"
+grep -q '^env: agent_id=vm-cdx machine_id=vm runtime=codex environment=local ' \
+  <<<"$vm_cdx_context"
+[[ "$(PATH="$vm_detect_bin:$PATH" \
+  ./scripts/detect-env.sh --runtime codex --identity)" == "vm-cdx" ]]
+
+printf '%s\n' \
+  '#!/usr/bin/env bash' \
+  'exit 1' \
+  >"$vm_detect_bin/systemd-detect-virt"
+[[ "$(PATH="$vm_detect_bin:$PATH" \
+  ./scripts/detect-env.sh --runtime codex --identity)" == "local-cdx" ]]
+
 forced_claude_identity="$(CODEX_SHELL=1 GU_LOG_MACHINE_ID=m1 \
   ./scripts/detect-env.sh --runtime claude-code --identity)"
 [[ "$forced_claude_identity" == "m1-cc" ]]
