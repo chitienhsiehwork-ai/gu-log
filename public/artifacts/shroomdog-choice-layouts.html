@@ -1,0 +1,1581 @@
+<!doctype html>
+<html lang="zh-Hant" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ShroomDog’s Choice｜首頁構圖比較</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23955330'/%3E%3Cpath d='M7 15c1-6 4-9 9-9s8 3 9 9H7Zm6 1h7v5a4 4 0 0 1-4 4h-3v-9Z' fill='%23fdf6e3'/%3E%3C/svg%3E"
+    />
+    <style>
+      :root {
+        --bg: #fdf6e3;
+        --surface: #eee8d5;
+        --surface-hover: #e5dfc9;
+        --border: #d3cbb7;
+        --text: #4c626a;
+        --heading: #4a5a5e;
+        --muted: #4a5a5e;
+        --accent: #1c679b;
+        --on-accent: #fdf6e3;
+        --green: #1d6a5c;
+        --mogu: #894727;
+        --violet: #6b4ca0;
+        --warning: #c47a00;
+        --warning-text: #805000;
+        --warning-bg: #fff3cd;
+        --shadow: rgba(74, 90, 94, 0.13);
+        --choice-wash: rgba(137, 71, 39, 0.08);
+        --choice-border: rgba(137, 71, 39, 0.45);
+        --sans: Inter, 'Noto Sans TC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      }
+
+      [data-theme='dark'] {
+        --bg: #282a36;
+        --surface: #44475a;
+        --surface-hover: #525672;
+        --border: #626780;
+        --text: #cecdda;
+        --heading: #ecebf2;
+        --muted: #b8c2ea;
+        --accent: #8be9fd;
+        --on-accent: #282a36;
+        --green: #70d8a6;
+        --mogu: #ffc987;
+        --violet: #d6bcff;
+        --warning: #ffb86c;
+        --warning-text: #ffd39d;
+        --warning-bg: rgba(255, 184, 108, 0.12);
+        --shadow: rgba(0, 0, 0, 0.25);
+        --choice-wash: rgba(255, 184, 108, 0.08);
+        --choice-border: rgba(255, 184, 108, 0.42);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--sans);
+        line-height: 1.8;
+        transition:
+          background 180ms ease,
+          color 180ms ease;
+      }
+
+      button,
+      input,
+      textarea {
+        font: inherit;
+      }
+
+      button {
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      button:focus-visible,
+      a:focus-visible {
+        outline: 3px solid var(--accent);
+        outline-offset: 3px;
+      }
+
+      .page-shell {
+        width: min(1180px, calc(100% - 28px));
+        margin: 0 auto;
+        padding: 34px 0 72px;
+      }
+
+      .eyebrow {
+        margin: 0 0 8px;
+        color: var(--mogu);
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+
+      h1,
+      h2,
+      h3 {
+        color: var(--heading);
+        line-height: 1.3;
+      }
+
+      h1 {
+        max-width: 830px;
+        margin-bottom: 14px;
+        font-size: clamp(2rem, 5vw, 4rem);
+        letter-spacing: -0.04em;
+      }
+
+      .lede {
+        max-width: 780px;
+        margin-bottom: 24px;
+        color: var(--muted);
+        font-size: clamp(1rem, 2.1vw, 1.18rem);
+      }
+
+      .locked-decisions {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        margin: 0 0 30px;
+      }
+
+      .decision-chip {
+        min-height: 88px;
+        padding: 13px 14px;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: var(--surface);
+      }
+
+      .decision-chip strong {
+        display: block;
+        margin-bottom: 2px;
+        color: var(--mogu);
+        font-size: 0.78rem;
+      }
+
+      .decision-chip span {
+        display: block;
+        color: var(--heading);
+        font-size: 0.88rem;
+        line-height: 1.55;
+      }
+
+      .section-kicker {
+        margin-bottom: 6px;
+        color: var(--green);
+        font-size: 0.8rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+      }
+
+      .concept {
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
+        gap: 18px;
+        margin: 0 0 26px;
+      }
+
+      .concept-card,
+      .analogy-card {
+        padding: 20px;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: var(--surface);
+      }
+
+      .concept-card h2,
+      .analogy-card h2 {
+        margin-bottom: 8px;
+        font-size: 1.15rem;
+      }
+
+      .concept-card p,
+      .analogy-card p {
+        margin-bottom: 0;
+        font-size: 0.94rem;
+      }
+
+      .analogy-card {
+        border-left: 4px solid var(--mogu);
+      }
+
+      .workspace {
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: 22px;
+        background: var(--surface);
+        box-shadow: 0 18px 60px var(--shadow);
+      }
+
+      .controls {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        padding: 14px;
+        border-bottom: 1px solid var(--border);
+        background: color-mix(in srgb, var(--surface) 94%, transparent);
+        backdrop-filter: blur(14px);
+      }
+
+      .control-cluster {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .control-label {
+        margin-right: 2px;
+        color: var(--muted);
+        font-size: 0.75rem;
+        font-weight: 800;
+      }
+
+      .segmented {
+        display: inline-flex;
+        gap: 4px;
+        padding: 4px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--bg);
+      }
+
+      .segmented button,
+      .utility-button {
+        min-height: 42px;
+        padding: 8px 12px;
+        border: 0;
+        border-radius: 9px;
+        background: transparent;
+        color: var(--muted);
+        cursor: pointer;
+        font-weight: 700;
+      }
+
+      .segmented button:hover,
+      .utility-button:hover {
+        background: var(--surface-hover);
+        color: var(--heading);
+      }
+
+      .segmented button.is-active {
+        background: var(--accent);
+        color: var(--on-accent);
+        box-shadow: 0 3px 12px var(--shadow);
+      }
+
+      .utility-button {
+        border: 1px solid var(--border);
+        background: var(--bg);
+      }
+
+      .utility-button.is-active {
+        border-color: var(--mogu);
+        background: var(--choice-wash);
+        color: var(--mogu);
+      }
+
+      .variant-summary {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 10px;
+        padding: 14px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .variant-card {
+        position: relative;
+        padding: 14px;
+        border: 1px solid var(--border);
+        border-radius: 13px;
+        background: var(--bg);
+        cursor: pointer;
+        transition:
+          transform 150ms ease,
+          border-color 150ms ease,
+          background 150ms ease;
+      }
+
+      .variant-card:hover {
+        transform: translateY(-2px);
+        border-color: var(--accent);
+      }
+
+      .variant-card.is-active {
+        border-color: var(--mogu);
+        background: var(--choice-wash);
+        box-shadow: inset 0 0 0 1px var(--choice-border);
+      }
+
+      .variant-card b {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--heading);
+      }
+
+      .variant-card small {
+        display: block;
+        color: var(--muted);
+        line-height: 1.55;
+      }
+
+      .variant-card.is-active small {
+        color: var(--heading);
+      }
+
+      .recommend {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        color: var(--mogu);
+        font-size: 0.72rem;
+        font-weight: 900;
+      }
+
+      .preview-stage {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 290px;
+        gap: 18px;
+        align-items: start;
+        padding: 22px;
+        background:
+          linear-gradient(var(--border) 1px, transparent 1px),
+          linear-gradient(90deg, var(--border) 1px, transparent 1px), var(--surface-hover);
+        background-size: 24px 24px;
+      }
+
+      .mock-browser-wrap {
+        min-width: 0;
+      }
+
+      .mock-browser {
+        width: min(100%, 760px);
+        margin: 0 auto;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: var(--bg);
+        box-shadow: 0 14px 40px var(--shadow);
+        transition: width 250ms ease;
+      }
+
+      .mock-browser.is-mobile {
+        width: min(100%, 390px);
+      }
+
+      .browser-chrome {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        height: 36px;
+        padding: 0 12px;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface);
+      }
+
+      .browser-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: var(--border);
+      }
+
+      .browser-address {
+        flex: 1;
+        margin-left: 5px;
+        padding: 3px 10px;
+        border-radius: 999px;
+        background: var(--bg);
+        color: var(--muted);
+        font-size: 0.65rem;
+        text-align: center;
+      }
+
+      .site {
+        padding: 0 22px 38px;
+      }
+
+      .mock-browser.is-mobile .site {
+        padding: 0 14px 30px;
+      }
+
+      .site-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-height: 62px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .site-brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--heading);
+        font-size: 0.82rem;
+        font-weight: 800;
+      }
+
+      .brand-mark {
+        display: grid;
+        width: 36px;
+        height: 36px;
+        place-items: center;
+        border-radius: 9px;
+        background: var(--choice-wash);
+        color: var(--mogu);
+      }
+
+      .site-actions {
+        display: flex;
+        gap: 5px;
+      }
+
+      .site-action {
+        display: grid;
+        width: 34px;
+        height: 34px;
+        place-items: center;
+        border: 0;
+        background: transparent;
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+
+      .site-section {
+        position: relative;
+        padding: 21px 0 11px;
+        transition:
+          opacity 180ms ease,
+          filter 180ms ease,
+          transform 180ms ease;
+      }
+
+      .site-section + .site-section::before {
+        content: '';
+        display: block;
+        width: 44px;
+        height: 1px;
+        margin: 0 auto 20px;
+        background: var(--border);
+      }
+
+      .section-title-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .site-section h2 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0 0 2px;
+        color: var(--accent);
+        font-size: 1.16rem;
+        letter-spacing: -0.02em;
+      }
+
+      .site-section h2.choice-title {
+        color: var(--mogu);
+      }
+
+      .site-section h2.mogu-title {
+        color: var(--mogu);
+      }
+
+      .section-subtitle {
+        margin: 0 0 9px;
+        color: var(--muted);
+        font-size: 0.7rem;
+      }
+
+      .post-row {
+        padding: 10px 0;
+        border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+      }
+
+      .post-row h3 {
+        margin: 0 0 3px;
+        color: var(--heading);
+        font-size: 0.84rem;
+        line-height: 1.42;
+      }
+
+      .post-meta {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.64rem;
+      }
+
+      .ticket {
+        display: inline-block;
+        margin-right: 5px;
+        padding: 1px 6px;
+        border: 1px solid color-mix(in srgb, var(--accent) 42%, transparent);
+        border-radius: 999px;
+        color: var(--accent);
+        font-size: 0.58rem;
+        font-weight: 800;
+      }
+
+      .view-all {
+        margin: 9px 0 0;
+        color: var(--accent);
+        font-size: 0.68rem;
+        text-align: right;
+      }
+
+      .choice-seal {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 31px;
+        height: 31px;
+        border: 1px solid var(--choice-border);
+        border-radius: 50%;
+        background: var(--choice-wash);
+        color: var(--mogu);
+        font-size: 0.75rem;
+        font-weight: 900;
+      }
+
+      /* Variant A — chef's table */
+      .hero-choice {
+        margin-top: 18px;
+        padding: 17px;
+        border: 1px solid var(--choice-border);
+        border-radius: 17px;
+        background:
+          radial-gradient(circle at 88% 4%, var(--choice-wash), transparent 38%), var(--surface);
+        box-shadow: 0 10px 30px var(--shadow);
+      }
+
+      .hero-choice .section-subtitle {
+        margin-bottom: 13px;
+      }
+
+      .hero-feature {
+        padding: 13px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--bg);
+      }
+
+      .hero-feature .choice-number {
+        display: block;
+        margin-bottom: 5px;
+        color: var(--mogu);
+        font-size: 0.62rem;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+      }
+
+      .hero-feature h3 {
+        margin: 0 0 6px;
+        color: var(--heading);
+        font-size: 1rem;
+        line-height: 1.42;
+      }
+
+      .hero-feature p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.68rem;
+        line-height: 1.65;
+      }
+
+      .hero-secondary {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 9px;
+        margin-top: 9px;
+      }
+
+      .mini-choice {
+        padding: 10px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--bg);
+      }
+
+      .mini-choice b {
+        display: block;
+        color: var(--mogu);
+        font-size: 0.58rem;
+      }
+
+      .mini-choice span {
+        display: block;
+        margin-top: 3px;
+        color: var(--heading);
+        font-size: 0.7rem;
+        font-weight: 750;
+        line-height: 1.45;
+      }
+
+      /* Variant B — tasting menu */
+      .menu-choice {
+        margin: 20px 0 4px;
+        padding: 15px 16px 10px;
+        border: 1px solid var(--choice-border);
+        border-radius: 14px;
+        background: var(--choice-wash);
+      }
+
+      .numbered-row {
+        display: grid;
+        grid-template-columns: 25px 1fr;
+        gap: 9px;
+        align-items: start;
+        padding: 9px 0;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .numbered-row:last-child {
+        border-bottom: 0;
+      }
+
+      .numbered-row .num {
+        display: grid;
+        width: 23px;
+        height: 23px;
+        place-items: center;
+        border: 1px solid var(--choice-border);
+        border-radius: 7px;
+        color: var(--mogu);
+        font-size: 0.62rem;
+        font-weight: 900;
+      }
+
+      .numbered-row h3 {
+        margin: 1px 0 2px;
+        color: var(--heading);
+        font-size: 0.78rem;
+        line-height: 1.4;
+      }
+
+      /* Variant C — shelf */
+      .shelf-choice {
+        padding: 17px 0 2px;
+      }
+
+      .shelf-head {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+
+      .shelf-head .section-subtitle {
+        margin: 0;
+      }
+
+      .shelf-track {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .shelf-card {
+        min-width: 0;
+        padding: 11px;
+        border: 1px solid var(--border);
+        border-top: 3px solid var(--mogu);
+        border-radius: 10px;
+        background: var(--surface);
+      }
+
+      .shelf-card b {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--mogu);
+        font-size: 0.58rem;
+      }
+
+      .shelf-card span {
+        display: -webkit-box;
+        overflow: hidden;
+        color: var(--heading);
+        font-size: 0.68rem;
+        font-weight: 750;
+        line-height: 1.45;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 3;
+      }
+
+      .mock-browser.is-mobile .hero-secondary,
+      .mock-browser.is-mobile .shelf-track {
+        grid-template-columns: 1fr;
+      }
+
+      .mock-browser.is-mobile .shelf-track {
+        display: flex;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        padding-bottom: 7px;
+      }
+
+      .mock-browser.is-mobile .shelf-card {
+        min-width: 78%;
+        scroll-snap-align: start;
+      }
+
+      .variant-pane[hidden] {
+        display: none;
+      }
+
+      .scan-on .site-section:not(.attention-target),
+      .scan-on .site-header {
+        opacity: 0.3;
+        filter: grayscale(0.6) blur(0.35px);
+      }
+
+      .scan-on .attention-target {
+        z-index: 2;
+        transform: scale(1.012);
+        box-shadow:
+          0 0 0 4px var(--warning),
+          0 16px 38px var(--shadow);
+      }
+
+      .scan-label {
+        display: none;
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        z-index: 4;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: var(--warning-bg);
+        color: var(--warning-text);
+        font-size: 0.58rem;
+        font-weight: 900;
+      }
+
+      .scan-on .attention-target .scan-label {
+        display: block;
+      }
+
+      .inspector {
+        position: sticky;
+        top: 90px;
+        padding: 17px;
+        border: 1px solid var(--border);
+        border-radius: 15px;
+        background: var(--bg);
+      }
+
+      .inspector .variant-name {
+        margin-bottom: 5px;
+        color: var(--mogu);
+        font-size: 0.76rem;
+        font-weight: 900;
+      }
+
+      .inspector h3 {
+        margin-bottom: 10px;
+        font-size: 1.1rem;
+      }
+
+      .inspector dl {
+        margin: 0;
+      }
+
+      .inspector dt {
+        margin-top: 12px;
+        color: var(--muted);
+        font-size: 0.68rem;
+        font-weight: 900;
+        letter-spacing: 0.06em;
+      }
+
+      .inspector dd {
+        margin: 2px 0 0;
+        color: var(--heading);
+        font-size: 0.82rem;
+        line-height: 1.55;
+      }
+
+      .inspector .warning {
+        margin: 15px 0 0;
+        padding: 10px 11px;
+        border: 1px solid var(--warning);
+        border-radius: 10px;
+        background: var(--warning-bg);
+        color: var(--heading);
+        font-size: 0.75rem;
+        line-height: 1.55;
+      }
+
+      .comparison {
+        padding: 34px 0 0;
+      }
+
+      .comparison h2,
+      .quiz h2 {
+        margin-bottom: 8px;
+        font-size: 1.55rem;
+      }
+
+      .comparison-intro,
+      .quiz-intro {
+        max-width: 760px;
+        color: var(--muted);
+      }
+
+      .comparison-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 18px;
+      }
+
+      .comparison-card {
+        padding: 17px;
+        border: 1px solid var(--border);
+        border-radius: 15px;
+        background: var(--surface);
+      }
+
+      .comparison-card.recommended {
+        border-color: var(--choice-border);
+        box-shadow: inset 0 0 0 1px var(--choice-border);
+      }
+
+      .comparison-card h3 {
+        margin-bottom: 10px;
+        font-size: 1rem;
+      }
+
+      .comparison-card ul {
+        margin: 0;
+        padding-left: 1.15rem;
+      }
+
+      .comparison-card li {
+        margin-bottom: 6px;
+        font-size: 0.84rem;
+      }
+
+      .quiz {
+        margin-top: 40px;
+        padding: 24px;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: var(--surface);
+      }
+
+      .quiz-rule {
+        margin: 0 0 18px;
+        color: var(--mogu);
+        font-weight: 800;
+      }
+
+      .quiz-question {
+        padding: 18px 0;
+        border-top: 1px solid var(--border);
+      }
+
+      .quiz-question h3 {
+        margin-bottom: 10px;
+        font-size: 0.98rem;
+      }
+
+      .answers {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .answer {
+        min-height: 48px;
+        padding: 9px 11px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--bg);
+        color: var(--heading);
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .answer:hover {
+        border-color: var(--accent);
+        background: var(--surface-hover);
+      }
+
+      .answer.correct {
+        border-color: var(--green);
+        background: color-mix(in srgb, var(--green) 10%, var(--bg));
+      }
+
+      .answer.wrong {
+        border-color: var(--warning);
+        background: var(--warning-bg);
+      }
+
+      .feedback {
+        min-height: 27px;
+        margin: 8px 0 0;
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+
+      .quiz-complete {
+        display: none;
+        margin-top: 14px;
+        padding: 12px 14px;
+        border: 1px solid var(--green);
+        border-radius: 12px;
+        background: color-mix(in srgb, var(--green) 10%, var(--bg));
+        color: var(--heading);
+        font-weight: 750;
+      }
+
+      .quiz-complete.show {
+        display: block;
+      }
+
+      .copy-fallback {
+        display: none;
+        width: 100%;
+        min-height: 72px;
+        margin-top: 8px;
+        padding: 8px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      .copy-fallback.show {
+        display: block;
+      }
+
+      .handoff {
+        margin-top: 18px;
+        padding: 15px 17px;
+        border-left: 4px solid var(--accent);
+        border-radius: 10px;
+        background: var(--surface);
+      }
+
+      .handoff strong {
+        color: var(--heading);
+      }
+
+      @media (max-width: 900px) {
+        .locked-decisions,
+        .comparison-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+
+        .preview-stage {
+          grid-template-columns: 1fr;
+        }
+
+        .inspector {
+          position: static;
+        }
+      }
+
+      @media (max-width: 680px) {
+        .page-shell {
+          width: min(100% - 20px, 1180px);
+          padding-top: 20px;
+        }
+
+        .locked-decisions,
+        .concept,
+        .variant-summary,
+        .comparison-grid,
+        .answers {
+          grid-template-columns: 1fr;
+        }
+
+        .controls {
+          grid-template-columns: 1fr;
+        }
+
+        .preview-stage {
+          padding: 12px;
+        }
+
+        .variant-card {
+          padding-right: 60px;
+        }
+
+        .quiz {
+          padding: 17px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page-shell">
+      <p class="eyebrow">Level 5 · 首頁構圖</p>
+      <h1>主廚的私房菜，要站哪張桌？</h1>
+      <p class="lede">
+        這次不是在選「哪張卡片比較漂亮」，而是在決定讀者踏進 gu-log 的前五秒，先感受到
+        <strong>ShroomDog 的個人品味</strong>，還是先看到<strong>網站最近更新了什麼</strong>。
+      </p>
+
+      <section class="locked-decisions" aria-label="已鎖定的產品決策">
+        <div class="decision-chip">
+          <strong>公開承諾</strong>
+          <span>ShroomDog 本人背書、人工排序、長期策展</span>
+        </div>
+        <div class="decision-chip">
+          <strong>唯一真相來源</strong>
+          <span>一張中央菜單保存文章 ID 與順序</span>
+        </div>
+        <div class="decision-chip">
+          <strong>資格邊界</strong>
+          <span>公開文章皆可；retired／unlisted 永遠排除</span>
+        </div>
+        <div class="decision-chip">
+          <strong>雙語行為</strong>
+          <span>同一份菜單，各首頁只上自己的語言版本</span>
+        </div>
+      </section>
+
+      <section class="concept">
+        <div class="concept-card">
+          <p class="section-kicker">背景</p>
+          <h2>現在的首頁是一條「系列時間軸」</h2>
+          <p>
+            Gu-log Picks、Mogu Picks、ShroomDog Original、Level-Up
+            依序往下排，每區顯示三篇最新文章。
+            新區塊插在哪裡、長得多突出，會直接改寫首頁的閱讀順序。
+          </p>
+        </div>
+        <div class="analogy-card">
+          <p class="section-kicker">米其林私房套餐</p>
+          <h2>位置就是服務承諾</h2>
+          <p>
+            私房套餐放在門口黑板，是「這就是本店招牌」；放在正餐中段，是「熟客才懂的推薦」；縮成吧台小卡，則是「不打斷點餐，但隨時可以探索」。
+          </p>
+        </div>
+      </section>
+
+      <section class="workspace" aria-label="互動式首頁構圖比較">
+        <div class="controls">
+          <div class="control-cluster">
+            <span class="control-label">方案</span>
+            <div class="segmented" role="group" aria-label="選擇構圖方案">
+              <button type="button" data-select-variant="a" class="is-active" aria-pressed="true">
+                A 主廚桌
+              </button>
+              <button type="button" data-select-variant="b" aria-pressed="false">B 套餐段落</button>
+              <button type="button" data-select-variant="c" aria-pressed="false">C 精選書架</button>
+            </div>
+          </div>
+          <div class="control-cluster">
+            <div class="segmented" role="group" aria-label="切換預覽寬度">
+              <button type="button" data-viewport="desktop" class="is-active" aria-pressed="true">
+                桌機
+              </button>
+              <button type="button" data-viewport="mobile" aria-pressed="false">手機</button>
+            </div>
+            <button type="button" class="utility-button" id="theme-toggle" aria-pressed="false">
+              暗色
+            </button>
+            <button type="button" class="utility-button" id="scan-toggle" aria-pressed="false">
+              顯示前五秒視線
+            </button>
+          </div>
+        </div>
+
+        <div class="variant-summary" aria-label="三種方案摘要">
+          <button type="button" class="variant-card is-active" data-card-variant="a">
+            <span class="recommend">★ 推薦</span>
+            <b>A｜首屏主廚桌</b>
+            <small>精選先於系列，強烈宣告「先看我真正推薦的」</small>
+          </button>
+          <button type="button" class="variant-card" data-card-variant="b">
+            <b>B｜內容流套餐</b>
+            <small>最新文章先上桌，精選在第一道與第二道之間登場</small>
+          </button>
+          <button type="button" class="variant-card" data-card-variant="c">
+            <b>C｜緊湊精選書架</b>
+            <small>精選在頂端但收得薄，保留首頁原本的節奏</small>
+          </button>
+        </div>
+
+        <div class="preview-stage">
+          <div class="mock-browser-wrap">
+            <div class="mock-browser" id="mock-browser">
+              <div class="browser-chrome" aria-hidden="true">
+                <span class="browser-dot"></span><span class="browser-dot"></span
+                ><span class="browser-dot"></span>
+                <span class="browser-address">gu-log.vercel.app</span>
+              </div>
+              <div class="site" id="site-preview">
+                <header class="site-header">
+                  <div class="site-brand">
+                    <span class="brand-mark" aria-hidden="true">
+                      <svg
+                        width="22"
+                        height="22"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M5 10.5C5.8 6.8 8.2 5 12 5s6.2 1.8 7 5.5c.2.8-.4 1.5-1.2 1.5H6.2c-.8 0-1.4-.7-1.2-1.5Z"
+                          fill="currentColor"
+                          opacity=".9"
+                        />
+                        <path
+                          d="M9 12h6v3.5A3.5 3.5 0 0 1 11.5 19h-1A1.5 1.5 0 0 1 9 17.5V12Z"
+                          fill="currentColor"
+                          opacity=".55"
+                        />
+                        <circle cx="9" cy="9" r="1" fill="var(--bg)" />
+                        <circle cx="15" cy="8.5" r="1.2" fill="var(--bg)" />
+                      </svg>
+                    </span>
+                    <span>香菇大狗狗</span>
+                  </div>
+                  <div class="site-actions" aria-hidden="true">
+                    <span class="site-action">⌕</span><span class="site-action">文</span
+                    ><span class="site-action">☰</span>
+                  </div>
+                </header>
+
+                <div class="variant-pane" data-variant-pane="a">
+                  <section class="site-section hero-choice attention-target">
+                    <span class="scan-label">前五秒焦點</span>
+                    <div class="section-title-row">
+                      <div>
+                        <h2 class="choice-title">
+                          <span class="choice-seal">SD</span> ShroomDog’s Choice
+                        </h2>
+                        <p class="section-subtitle">
+                          ShroomDog 本人讀過、排過，願意用名字背書的私房選文
+                        </p>
+                      </div>
+                    </div>
+                    <article class="hero-feature">
+                      <span class="choice-number">NO. 01 · 本月首選</span>
+                      <h3>Claude Code Auto Mode：讓 AI 自己判斷哪些指令該擋、哪些放行</h3>
+                      <p>權限審批不是一直按 approve；真正的難題是讓系統知道什麼時候該停下來。</p>
+                    </article>
+                    <div class="hero-secondary">
+                      <article class="mini-choice">
+                        <b>02</b><span>AI 代理的練功秘笈？Evals 技能包讓 Agent 更懂評估</span>
+                      </article>
+                      <article class="mini-choice">
+                        <b>03</b><span>把 Codex 當隊友而不是工具人：10 個 Best Practices</span>
+                      </article>
+                    </div>
+                  </section>
+                  <section class="site-section">
+                    <h2>Gu-log Picks</h2>
+                    <p class="section-subtitle">ShroomDog 精選長文翻譯</p>
+                    <div class="post-row">
+                      <h3>Agent 為什麼總是在最後一哩路翻車？</h3>
+                      <p class="post-meta">
+                        <span class="ticket">GP-301</span>2026-08-01 · 翻譯自工程團隊
+                      </p>
+                    </div>
+                    <div class="post-row">
+                      <h3>把 context 當預算，而不是無底洞</h3>
+                      <p class="post-meta">
+                        <span class="ticket">GP-300</span>2026-07-31 · 翻譯自技術文章
+                      </p>
+                    </div>
+                    <p class="view-all">查看全部 →</p>
+                  </section>
+                  <section class="site-section">
+                    <h2 class="mogu-title">Mogu Picks</h2>
+                    <p class="section-subtitle">由 Mogu 翻譯與撰寫</p>
+                    <div class="post-row">
+                      <h3>今天也不要讓 AI 把資料庫炸掉</h3>
+                      <p class="post-meta"><span class="ticket">MP-299</span>2026-07-30 · Mogu</p>
+                    </div>
+                  </section>
+                </div>
+
+                <div class="variant-pane" data-variant-pane="b" hidden>
+                  <section class="site-section attention-target">
+                    <span class="scan-label">前五秒焦點</span>
+                    <h2>Gu-log Picks</h2>
+                    <p class="section-subtitle">ShroomDog 精選長文翻譯</p>
+                    <div class="post-row">
+                      <h3>Agent 為什麼總是在最後一哩路翻車？</h3>
+                      <p class="post-meta">
+                        <span class="ticket">GP-301</span>2026-08-01 · 翻譯自工程團隊
+                      </p>
+                    </div>
+                    <div class="post-row">
+                      <h3>把 context 當預算，而不是無底洞</h3>
+                      <p class="post-meta">
+                        <span class="ticket">GP-300</span>2026-07-31 · 翻譯自技術文章
+                      </p>
+                    </div>
+                    <p class="view-all">查看全部 →</p>
+                  </section>
+                  <section class="site-section menu-choice">
+                    <div class="section-title-row">
+                      <h2 class="choice-title">
+                        <span class="choice-seal">SD</span> ShroomDog’s Choice
+                      </h2>
+                    </div>
+                    <p class="section-subtitle">不是最新，是 ShroomDog 最想叫人先讀的三篇</p>
+                    <article class="numbered-row">
+                      <span class="num">01</span>
+                      <div>
+                        <h3>Claude Code Auto Mode：讓 AI 自己判斷哪些指令該擋、哪些放行</h3>
+                        <p class="post-meta"><span class="ticket">GP-127</span>主廚首選</p>
+                      </div>
+                    </article>
+                    <article class="numbered-row">
+                      <span class="num">02</span>
+                      <div>
+                        <h3>AI 代理的練功秘笈？Evals 技能包讓 Agent 更懂評估</h3>
+                        <p class="post-meta"><span class="ticket">GP-101</span>長期精選</p>
+                      </div>
+                    </article>
+                    <article class="numbered-row">
+                      <span class="num">03</span>
+                      <div>
+                        <h3>把 Codex 當隊友而不是工具人：10 個 Best Practices</h3>
+                        <p class="post-meta"><span class="ticket">GP-110</span>長期精選</p>
+                      </div>
+                    </article>
+                  </section>
+                  <section class="site-section">
+                    <h2 class="mogu-title">Mogu Picks</h2>
+                    <p class="section-subtitle">由 Mogu 翻譯與撰寫</p>
+                    <div class="post-row">
+                      <h3>今天也不要讓 AI 把資料庫炸掉</h3>
+                      <p class="post-meta"><span class="ticket">MP-299</span>2026-07-30 · Mogu</p>
+                    </div>
+                  </section>
+                </div>
+
+                <div class="variant-pane" data-variant-pane="c" hidden>
+                  <section class="site-section shelf-choice">
+                    <div class="shelf-head">
+                      <div>
+                        <h2 class="choice-title">
+                          <span class="choice-seal">SD</span> ShroomDog’s Choice
+                        </h2>
+                        <p class="section-subtitle">三篇私房選文，橫向滑動探索</p>
+                      </div>
+                      <span class="view-all">全部 →</span>
+                    </div>
+                    <div class="shelf-track">
+                      <article class="shelf-card">
+                        <b>01 · 主廚首選</b
+                        ><span>Claude Code Auto Mode：讓 AI 自己判斷哪些指令該擋</span>
+                      </article>
+                      <article class="shelf-card">
+                        <b>02 · 長期精選</b><span>AI 代理的練功秘笈？Evals 技能包</span>
+                      </article>
+                      <article class="shelf-card">
+                        <b>03 · 長期精選</b><span>把 Codex 當隊友而不是工具人</span>
+                      </article>
+                    </div>
+                  </section>
+                  <section class="site-section attention-target">
+                    <span class="scan-label">前五秒焦點</span>
+                    <h2>Gu-log Picks</h2>
+                    <p class="section-subtitle">ShroomDog 精選長文翻譯</p>
+                    <div class="post-row">
+                      <h3>Agent 為什麼總是在最後一哩路翻車？</h3>
+                      <p class="post-meta">
+                        <span class="ticket">GP-301</span>2026-08-01 · 翻譯自工程團隊
+                      </p>
+                    </div>
+                    <div class="post-row">
+                      <h3>把 context 當預算，而不是無底洞</h3>
+                      <p class="post-meta">
+                        <span class="ticket">GP-300</span>2026-07-31 · 翻譯自技術文章
+                      </p>
+                    </div>
+                    <p class="view-all">查看全部 →</p>
+                  </section>
+                  <section class="site-section">
+                    <h2 class="mogu-title">Mogu Picks</h2>
+                    <p class="section-subtitle">由 Mogu 翻譯與撰寫</p>
+                    <div class="post-row">
+                      <h3>今天也不要讓 AI 把資料庫炸掉</h3>
+                      <p class="post-meta"><span class="ticket">MP-299</span>2026-07-30 · Mogu</p>
+                    </div>
+                  </section>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <aside class="inspector" aria-live="polite">
+            <p class="variant-name" id="inspector-variant">A｜首屏主廚桌</p>
+            <h3 id="inspector-title">把個人品味升成首頁第一承諾</h3>
+            <dl>
+              <dt>讀者第一印象</dt>
+              <dd id="inspector-promise">這個網站有人真的讀過、挑過；先從主廚最推薦的開始。</dd>
+              <dt>最適合</dt>
+              <dd id="inspector-fit">
+                ShroomDog’s Choice 是新首頁的主要差異化，而不只是另一個分類。
+              </dd>
+              <dt>手機代價</dt>
+              <dd id="inspector-mobile">首屏會被精選完整佔據，最新文章需要再往下滑。</dd>
+            </dl>
+            <p class="warning" id="inspector-risk">
+              <strong>暗礁：</strong>若精選很久不換，首頁會比實際更新頻率看起來更靜止。
+            </p>
+          </aside>
+        </div>
+      </section>
+
+      <section class="comparison">
+        <p class="section-kicker">細節走讀</p>
+        <h2>三案不是美術差異，是三種產品人格</h2>
+        <p class="comparison-intro">
+          同樣三篇文章、同樣中央菜單，只改層級與位置，讀者收到的承諾就完全不同。
+        </p>
+        <div class="comparison-grid">
+          <article class="comparison-card recommended">
+            <h3>A｜首屏主廚桌 ★</h3>
+            <ul>
+              <li><strong>最強：</strong>一眼看懂這是人工策展。</li>
+              <li><strong>最弱：</strong>會壓低「最近更新」的能見度。</li>
+              <li><strong>保養：</strong>需要定期換首選，否則容易像固定廣告。</li>
+            </ul>
+          </article>
+          <article class="comparison-card">
+            <h3>B｜內容流套餐</h3>
+            <ul>
+              <li><strong>最強：</strong>保留現有首頁節奏，Choice 仍有獨立舞台。</li>
+              <li><strong>最弱：</strong>讀者可能先把它理解成第五個內容系列。</li>
+              <li><strong>保養：</strong>精選不常換也不會讓首頁看似停更。</li>
+            </ul>
+          </article>
+          <article class="comparison-card">
+            <h3>C｜緊湊精選書架</h3>
+            <ul>
+              <li><strong>最強：</strong>資訊密度低，手機不必先滑過大區塊。</li>
+              <li><strong>最弱：</strong>橫向卡片容易被掃過，背書感最弱。</li>
+              <li><strong>保養：</strong>適合長期固定名單，存在感不會過重。</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section class="quiz" aria-labelledby="quiz-title">
+        <p class="section-kicker">頁內理解檢查</p>
+        <h2 id="quiz-title">先確認看懂取捨，再回 chat 拍板</h2>
+        <p class="quiz-intro">這三題不是產品投票，只是確認構圖的代價沒有被漂亮外表藏起來。</p>
+        <p class="quiz-rule">三題都答對，才算真的比較完。</p>
+
+        <article class="quiz-question" data-question="1">
+          <h3>1. 如果目標是讓讀者第一眼就相信「這是 ShroomDog 本人選的」，哪案訊號最強？</h3>
+          <div class="answers">
+            <button class="answer" type="button" data-correct="true" data-answer="A｜首屏主廚桌">
+              A｜首屏主廚桌
+            </button>
+            <button class="answer" type="button" data-answer="B｜內容流套餐">B｜內容流套餐</button>
+            <button class="answer" type="button" data-answer="C｜緊湊精選書架">
+              C｜緊湊精選書架
+            </button>
+            <button class="answer" type="button" data-answer="三案相同">三案相同</button>
+          </div>
+          <p class="feedback" aria-live="polite"></p>
+          <textarea class="copy-fallback" readonly aria-label="可手動複製的答案"></textarea>
+        </article>
+
+        <article class="quiz-question" data-question="2">
+          <h3>2. 哪案最能保住「首頁先讓人看到最近更新」的既有閱讀順序？</h3>
+          <div class="answers">
+            <button class="answer" type="button" data-answer="A｜首屏主廚桌">A｜首屏主廚桌</button>
+            <button class="answer" type="button" data-correct="true" data-answer="B｜內容流套餐">
+              B｜內容流套餐
+            </button>
+            <button class="answer" type="button" data-answer="三案都會蓋住最新文章">
+              三案都會蓋住最新文章
+            </button>
+            <button class="answer" type="button" data-answer="改成隨機排序">改成隨機排序</button>
+          </div>
+          <p class="feedback" aria-live="polite"></p>
+          <textarea class="copy-fallback" readonly aria-label="可手動複製的答案"></textarea>
+        </article>
+
+        <article class="quiz-question" data-question="3">
+          <h3>3. C 案真正拿來交換的是什麼？</h3>
+          <div class="answers">
+            <button class="answer" type="button" data-answer="用較多維護成本換更高背書感">
+              用較多維護成本換更高背書感
+            </button>
+            <button class="answer" type="button" data-answer="用雙語一致性換桌機速度">
+              用雙語一致性換桌機速度
+            </button>
+            <button
+              class="answer"
+              type="button"
+              data-correct="true"
+              data-answer="用較弱存在感換更緊湊的手機首屏"
+            >
+              用較弱存在感換更緊湊的手機首屏
+            </button>
+            <button class="answer" type="button" data-answer="用退休文章換橫向捲動">
+              用退休文章換橫向捲動
+            </button>
+          </div>
+          <p class="feedback" aria-live="polite"></p>
+          <textarea class="copy-fallback" readonly aria-label="可手動複製的答案"></textarea>
+        </article>
+
+        <p class="quiz-complete" id="quiz-complete">
+          三個取捨都看懂了。頁內練習完成；真正的產品決策回到 Codex chat。
+        </p>
+      </section>
+
+      <p class="handoff">
+        <strong>回 chat 時只要回：</strong>
+        A、B、C，或直接說想混合哪兩案的特徵。頁內答案不會自動替你拍板。
+      </p>
+    </main>
+
+    <script>
+      (() => {
+        const variants = {
+          a: {
+            variant: 'A｜首屏主廚桌',
+            title: '把個人品味升成首頁第一承諾',
+            promise: '這個網站有人真的讀過、挑過；先從主廚最推薦的開始。',
+            fit: 'ShroomDog’s Choice 是新首頁的主要差異化，而不只是另一個分類。',
+            mobile: '首屏會被精選完整佔據，最新文章需要再往下滑。',
+            risk: '若精選很久不換，首頁會比實際更新頻率看起來更靜止。',
+          },
+          b: {
+            variant: 'B｜內容流套餐',
+            title: '讓最新內容先迎賓，精選負責第二印象',
+            promise: '網站持續更新；讀完第一道後，還有一份本人私藏菜單。',
+            fit: '想保留現有首頁節奏，同時給人工策展一個清楚但不壓場的位置。',
+            mobile: 'Choice 通常要滑過第一個系列才看得到，但閱讀順序最自然。',
+            risk: '外觀若太接近其他系列，讀者可能把 Choice 誤認成另一個內容分類。',
+          },
+          c: {
+            variant: 'C｜緊湊精選書架',
+            title: '在首屏留下人工策展訊號，但不佔滿舞台',
+            promise: '這裡有主廚推薦，想探索可以滑；首頁主菜仍是最近更新。',
+            fit: '重視手機密度，並預期精選名單長期穩定、不需要強烈活動感。',
+            mobile: '橫向滑動節省高度，但第三張卡可能根本沒被讀者看到。',
+            risk: '存在感最弱，可能把「本人背書」降格成裝飾性推薦列。',
+          },
+        };
+
+        let currentVariant = 'a';
+        let scanOn = false;
+        const mockBrowser = document.getElementById('mock-browser');
+        const sitePreview = document.getElementById('site-preview');
+
+        function selectVariant(next) {
+          currentVariant = next;
+          document.querySelectorAll('[data-variant-pane]').forEach((pane) => {
+            pane.hidden = pane.dataset.variantPane !== next;
+          });
+          document.querySelectorAll('[data-select-variant]').forEach((button) => {
+            const active = button.dataset.selectVariant === next;
+            button.classList.toggle('is-active', active);
+            button.setAttribute('aria-pressed', String(active));
+          });
+          document.querySelectorAll('[data-card-variant]').forEach((card) => {
+            card.classList.toggle('is-active', card.dataset.cardVariant === next);
+          });
+          const data = variants[next];
+          document.getElementById('inspector-variant').textContent = data.variant;
+          document.getElementById('inspector-title').textContent = data.title;
+          document.getElementById('inspector-promise').textContent = data.promise;
+          document.getElementById('inspector-fit').textContent = data.fit;
+          document.getElementById('inspector-mobile').textContent = data.mobile;
+          document.getElementById('inspector-risk').innerHTML =
+            '<strong>暗礁：</strong>' + data.risk;
+        }
+
+        document.querySelectorAll('[data-select-variant]').forEach((button) => {
+          button.addEventListener('click', () => selectVariant(button.dataset.selectVariant));
+        });
+        document.querySelectorAll('[data-card-variant]').forEach((card) => {
+          card.addEventListener('click', () => selectVariant(card.dataset.cardVariant));
+        });
+
+        document.querySelectorAll('[data-viewport]').forEach((button) => {
+          button.addEventListener('click', () => {
+            const mobile = button.dataset.viewport === 'mobile';
+            mockBrowser.classList.toggle('is-mobile', mobile);
+            document.querySelectorAll('[data-viewport]').forEach((candidate) => {
+              const active = candidate === button;
+              candidate.classList.toggle('is-active', active);
+              candidate.setAttribute('aria-pressed', String(active));
+            });
+          });
+        });
+
+        document.getElementById('theme-toggle').addEventListener('click', (event) => {
+          const dark = document.documentElement.dataset.theme !== 'dark';
+          document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+          event.currentTarget.textContent = dark ? '亮色' : '暗色';
+          event.currentTarget.classList.toggle('is-active', dark);
+          event.currentTarget.setAttribute('aria-pressed', String(dark));
+        });
+
+        document.getElementById('scan-toggle').addEventListener('click', (event) => {
+          scanOn = !scanOn;
+          sitePreview.classList.toggle('scan-on', scanOn);
+          event.currentTarget.textContent = scanOn ? '關閉前五秒視線' : '顯示前五秒視線';
+          event.currentTarget.classList.toggle('is-active', scanOn);
+          event.currentTarget.setAttribute('aria-pressed', String(scanOn));
+        });
+
+        const passed = new Set();
+        document.querySelectorAll('.quiz-question').forEach((question) => {
+          const feedback = question.querySelector('.feedback');
+          const fallback = question.querySelector('.copy-fallback');
+          question.querySelectorAll('.answer').forEach((answer) => {
+            answer.addEventListener('click', async () => {
+              question
+                .querySelectorAll('.answer')
+                .forEach((item) => item.classList.remove('correct', 'wrong'));
+              fallback.classList.remove('show');
+              const correct = answer.dataset.correct === 'true';
+              if (!correct) {
+                answer.classList.add('wrong');
+                feedback.textContent =
+                  question.dataset.question === '1'
+                    ? '這個方案的背書訊號較弱。回到預覽打開「前五秒視線」再看一次。'
+                    : question.dataset.question === '2'
+                      ? '再看三案的出場順序：誰先迎賓，誰就控制第一印象。'
+                      : '回看 C 案的手機預覽：它省下的是垂直高度，犧牲的是存在感。';
+                return;
+              }
+              answer.classList.add('correct');
+              passed.add(question.dataset.question);
+              const prompt = question.querySelector('h3').textContent.trim();
+              const copyText = prompt + '\n正解：' + answer.dataset.answer;
+              feedback.textContent = '答對。';
+              try {
+                await navigator.clipboard.writeText(copyText);
+                feedback.textContent += ' 已複製，可直接貼回 agent。';
+              } catch {
+                fallback.value = copyText;
+                fallback.classList.add('show');
+                feedback.textContent += ' 剪貼簿不可用，請從下方手動複製。';
+              }
+              if (passed.size === 3) document.getElementById('quiz-complete').classList.add('show');
+            });
+          });
+        });
+
+        selectVariant(currentVariant);
+      })();
+    </script>
+  </body>
+</html>
