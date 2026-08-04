@@ -99,6 +99,13 @@ LangChain LangGraph LlamaIndex Pinecone Weaviate Chroma Milvus
 # Letta = AI 公司（Letta Code / MemGPT）；Harbor = agent trajectory 框架。
 # 同 LangChain / Mistral 那一類的產品與組織名 — GP-261（2026-07-25）
 Letta Harbor
+# MCP 生態系 company / product / person names — GP MCP 2026-07-28 spec post
+Honeycomb Supabase Manufact mcp-use WAF EMA
+Inian Parameshwaran Parker David Soria Parra Nick
+# MCP 規格書 canonical feature/concept names — 讀者需要跟官方文件對齊
+session Session Streamable elicitation redirect
+Tasks Roots Sampling Logging
+Multi Round-Trip Dynamic Client Registration Metadata Documents
 # GP-262（2026-07-27）的筆記／閱讀工具與軟體名：Roam Research、Kortex（作者的舊產品）、
 # Eden（作者現在的產品）、MyMind、Kindle，以及 After Effects
 Roam Kortex Eden MyMind Kindle Effects
