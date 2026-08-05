@@ -148,6 +148,27 @@ if TRIBUNAL_RUNTIME_PROFILE=bogus TRIBUNAL_STRICT_ROLE_PROVIDERS=1 \
   exit 1
 fi
 
+isolated_helpers="$TMP_DIR/isolated-tribunal-helpers.sh"
+cp "$ROOT_DIR/scripts/tribunal-helpers.sh" "$isolated_helpers"
+if TRIBUNAL_RUNTIME_PROFILE=bogus bash -c '
+  source "$1"
+  model_router_profile
+' _ "$isolated_helpers" >/dev/null 2>&1; then
+  echo "isolated helper must reject an unknown explicit runtime profile" >&2
+  exit 1
+fi
+[ "$(TRIBUNAL_RUNTIME_PROFILE=legacy bash -c '
+  source "$1"
+  model_router_profile
+' _ "$isolated_helpers")" = legacy ]
+if TRIBUNAL_RUNTIME_PROFILE=vm-codex bash -c '
+  source "$1"
+  model_router_profile
+' _ "$isolated_helpers" >/dev/null 2>&1; then
+  echo "isolated helper must reject vm-codex without its model router" >&2
+  exit 1
+fi
+
 # A sourced router is a function library and must not mutate a legacy caller's
 # shell error/undefined-variable/pipefail policy.
 bash -c '

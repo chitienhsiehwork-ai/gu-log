@@ -11,11 +11,18 @@ else
   # isolation. Preserve their legacy route, but never mask a missing router
   # when vm-codex was explicitly requested.
   model_router_profile() {
-    if [ "${TRIBUNAL_RUNTIME_PROFILE:-legacy}" = "vm-codex" ]; then
-      printf 'vm-codex model router is unavailable\n' >&2
-      return 2
-    fi
-    printf 'legacy\n'
+    case "${TRIBUNAL_RUNTIME_PROFILE:-legacy}" in
+      legacy) printf 'legacy\n' ;;
+      vm-codex)
+        printf 'vm-codex model router is unavailable\n' >&2
+        return 2
+        ;;
+      *)
+        printf 'unknown runtime profile without model router: %s\n' \
+          "$TRIBUNAL_RUNTIME_PROFILE" >&2
+        return 2
+        ;;
+    esac
   }
   model_router_resolve() {
     local requested_role="${1:-unknown}"
