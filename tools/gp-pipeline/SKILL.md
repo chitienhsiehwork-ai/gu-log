@@ -24,6 +24,11 @@ wrapper 會在需要時把 Go CLI 編譯到忽略版控的 `bin/`。repo 不保�
 tools/gp-pipeline/gp-pipeline run '<url>' --prefix GP
 ```
 
+在 `vm-codex` 上，model routing 由 `config/llm-pipeline.json` 控制；只有
+Codex 與 Grok Build CLI 都通過 compatibility/auth check 才啟用。其他
+runtime（包含 Claude Code Cloud）維持 legacy behavior。model、effort 或
+quota threshold 升級時只改 config 與 contract tests，不在 skill 複製快照。
+
 Mogu Picks：
 
 ```bash

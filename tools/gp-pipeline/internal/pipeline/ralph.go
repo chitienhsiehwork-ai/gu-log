@@ -129,11 +129,9 @@ func (s *State) Ralph(ctx context.Context) error {
 
 	s.runPostFixers(ctx, activePath)
 
-	// Run the tribunal. tribunal.sh resolves the runtime provider per judge:
-	// VibeScorer runs on the pinned Claude build declared in
-	// .claude/agents/vibe-opus-scorer.md (the SSOT — do not restate the version
-	// here) while Librarian/FactChecker/FreshEyes stay on Codex (mac/VPS). When
-	// codex is absent (CCC sandbox) all four judges fall back to Claude.
+	// Run the tribunal. tribunal.sh owns per-judge runtime routing; legacy and
+	// Claude Code Cloud keep their historical provider chain, while VM-specific
+	// routes come from config/llm-pipeline.json.
 	s.Log.Info("  Running 4-stage tribunal (via tribunal.sh)...")
 	passed, err := ralph.Run(ctx, ralph.Options{
 		RalphScript: filepath.Join(s.Cfg.ScriptsDir, "tribunal.sh"),

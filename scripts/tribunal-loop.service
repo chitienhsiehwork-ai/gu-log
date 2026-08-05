@@ -10,7 +10,8 @@ Slice=tribunal-runtime.slice
 EnvironmentFile=%h/.config/gu-log/tribunal.env
 Environment=TRIBUNAL_DEPLOYED_MODE=1
 Environment=TRIBUNAL_STRICT_ROLE_PROVIDERS=1
-Environment=GP_WRITER_MODE=codex
+Environment=TRIBUNAL_RUNTIME_PROFILE=vm-codex
+Environment=GP_WRITER_MODE=grok
 ExecStart=/bin/bash -c ': "$${GU_LOG_DIR:?Missing GU_LOG_DIR in tribunal.env}"; cd "$$GU_LOG_DIR" && exec bash scripts/cc-tribunal-loop-wrapper.sh --workers 1'
 Restart=on-failure
 RestartSec=60
