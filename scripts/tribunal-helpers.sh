@@ -851,10 +851,6 @@ tribunal_grok_cmd() {
   return 1
 }
 
-tribunal_vm_profile_active() {
-  [ "$(model_router_profile 2>/dev/null || true)" = "vm-codex" ]
-}
-
 # Parse the top-level `model` selector from one Codex agent TOML file. Python's
 # stdlib TOML parser keeps comments and multiline developer instructions from
 # becoming runtime configuration. The value must be one non-empty selector
@@ -918,12 +914,13 @@ tribunal_strict_role_providers_enabled() {
 }
 
 tribunal_strict_provider_for_role() {
-  local agent_name="${1:-fact-checker}"
+  local agent_name="${1:-fact-checker}" runtime_profile
   if [ -n "${TRIBUNAL_FORCE_PROVIDER:-}" ]; then
     printf 'TRIBUNAL_STRICT_ROLE_PROVIDERS=1 conflicts with TRIBUNAL_FORCE_PROVIDER\n' >&2
     return 1
   fi
-  if tribunal_vm_profile_active; then
+  runtime_profile="$(model_router_profile)" || return 1
+  if [ "$runtime_profile" = "vm-codex" ]; then
     model_router_resolve "$agent_name" || return 1
     printf '%s\n' "$MODEL_ROUTER_PROVIDER"
     return 0
@@ -1007,7 +1004,7 @@ tribunal_llm_provider() {
 # Callers without a judge identity (empty agent_name) get the global resolver
 # byte-for-byte, so every existing non-judge call path is unchanged.
 tribunal_judge_provider() {
-  local agent_name="${1:-}"
+  local agent_name="${1:-}" runtime_profile
   if tribunal_strict_role_providers_enabled; then
     tribunal_strict_provider_for_role "$agent_name"
     return
@@ -1019,7 +1016,8 @@ tribunal_judge_provider() {
     tribunal_llm_provider
     return
   fi
-  if tribunal_vm_profile_active; then
+  runtime_profile="$(model_router_profile)" || return 1
+  if [ "$runtime_profile" = "vm-codex" ]; then
     model_router_resolve "$agent_name" || return 1
     printf '%s\n' "$MODEL_ROUTER_PROVIDER"
     return 0
@@ -1221,14 +1219,15 @@ tribunal_llm_model_id() {
 tribunal_model_id_for_provider() {
   local provider="$1"
   local agent_name="${2:-}"
-  local claude_model=""
+  local claude_model="" runtime_profile
   case "$provider" in
     claude)
       claude_model="$(tribunal_claude_agent_model "${agent_name:-tribunal-writer}")" || return 1
       tribunal_resolve_recorded_model "$claude_model"
       ;;
     codex)
-      if tribunal_vm_profile_active; then
+      runtime_profile="$(model_router_profile)" || return 1
+      if [ "$runtime_profile" = "vm-codex" ]; then
         model_router_resolve "$agent_name" || return 1
         printf '%s\n' "$MODEL_ROUTER_MODEL"
       else
@@ -1283,14 +1282,15 @@ tribunal_codex_reasoning_effort() {
 tribunal_runner_label_for_resolved_model() {
   local provider="$1"
   local model="$2"
-  local reasoning="${3:-}"
+  local reasoning="${3:-}" runtime_profile
   case "$provider" in
     claude)
       printf '%s\n' "$model"
       ;;
     codex)
       if [ -z "$reasoning" ]; then
-        if tribunal_vm_profile_active; then
+        runtime_profile="$(model_router_profile)" || return 1
+        if [ "$runtime_profile" = "vm-codex" ]; then
           model_router_resolve reviewer || return 1
           reasoning="$MODEL_ROUTER_REASONING"
         else
@@ -1335,6 +1335,15 @@ tribunal_write_actual_provider() {
     printf 'model_id=%s\n' "$model"
     printf 'runner_label=%s\n' "$runner"
   } > "$out_file"
+}
+
+tribunal_writer_provenance_complete() {
+  local provider="$1" model="$2" runner="$3"
+  case "$provider" in
+    codex|grok) ;;
+    *) return 1 ;;
+  esac
+  [ -n "$model" ] && [ -n "$runner" ]
 }
 
 # Claude equivalent of tribunal_codex_exec: inlines the .claude/agents/<name>.md
@@ -1415,7 +1424,7 @@ PROMPT
 tribunal_grok_prompt_exec() {
   local work_dir="$1" model="$2" reasoning="$3" sandbox_profile="$4" prompt="$5"
   local timeout_sec="${TRIBUNAL_CODEX_TIMEOUT_SEC:-3600}"
-  local grok_cmd grok_executable timeout_cmd
+  local grok_cmd grok_executable timeout_cmd runtime_profile
   local -a grok_argv
   grok_cmd="$(tribunal_grok_cmd)" || return 127
   grok_executable="$(command -v "$grok_cmd" 2>/dev/null || true)"
@@ -1432,6 +1441,11 @@ tribunal_grok_prompt_exec() {
     /*) ;;
     *) return 127 ;;
   esac
+  runtime_profile="$(model_router_profile)" || return 2
+  if [ "$runtime_profile" != "vm-codex" ]; then
+    printf 'Grok execution requires the vm-codex runtime profile\n' >&2
+    return 2
+  fi
   grok_argv=(
     "$timeout_cmd" "$timeout_sec" "$grok_executable"
     --no-auto-update
@@ -1452,7 +1466,7 @@ tribunal_grok_prompt_exec() {
     cd "$work_dir" || exit
     exec 200>&-
     exec </dev/null
-    if [ "${TRIBUNAL_DEPLOYED_MODE:-0}" = "1" ]; then
+    if [ "$runtime_profile" = "vm-codex" ]; then
       local systemd_run scope_unit scope_runtime_sec
       local memory_max cpu_quota tasks_max
       local -a scope_env
@@ -2267,7 +2281,6 @@ tribunal_writer_exec() {
           "$exec_function" "$work_dir" "$agent_name" "$user_prompt" \
           >"$out" 2>&1 || rc=$?
     else
-      TRIBUNAL_GROK_REASONING="$resolved_reasoning" \
       tribunal_writer_exec_quiesced_once \
         "$exec_function" "$work_dir" "$agent_name" "$user_prompt" \
         >"$out" 2>&1 || rc=$?
@@ -2339,7 +2352,7 @@ tribunal_codex_exec_watchdog() (
   local idle_timeout="${TRIBUNAL_CODEX_IDLE_TIMEOUT_SEC:-900}"
   local poll_interval="${TRIBUNAL_CODEX_IDLE_POLL_SEC:-30}"
   local pid rc now last_change latest_mtime out_mtime progress_mtime waits
-  local force_provider provider resolved_model resolved_reasoning
+  local force_provider provider resolved_model resolved_reasoning runtime_profile
   local qrc cleanup_rc systemd_unit
   waits=0
   force_provider="${TRIBUNAL_FORCE_PROVIDER:-}"
@@ -2356,7 +2369,11 @@ tribunal_codex_exec_watchdog() (
     return 70
   }
   resolved_reasoning=""
-  if tribunal_vm_profile_active; then
+  runtime_profile="$(model_router_profile)" || {
+    printf '[tribunal-watchdog] invalid runtime profile\n' >> "$output_file"
+    return 70
+  }
+  if [ "$runtime_profile" = "vm-codex" ]; then
     model_router_resolve "$agent_name" || {
       printf '[tribunal-watchdog] failed to resolve VM model route\n' >> "$output_file"
       return 70
@@ -2398,8 +2415,7 @@ tribunal_codex_exec_watchdog() (
         tribunal_llm_exec "$work_dir" "$agent_name" "$user_prompt" > "$output_file" 2>&1 &
     fi
   elif [ "$provider" = "grok" ]; then
-    TRIBUNAL_GROK_REASONING="$resolved_reasoning" \
-      tribunal_llm_exec "$work_dir" "$agent_name" "$user_prompt" > "$output_file" 2>&1 &
+    tribunal_llm_exec "$work_dir" "$agent_name" "$user_prompt" > "$output_file" 2>&1 &
   elif [ -n "$force_provider" ]; then
     TRIBUNAL_FORCE_PROVIDER="$force_provider" \
       tribunal_llm_exec "$work_dir" "$agent_name" "$user_prompt" > "$output_file" 2>&1 &

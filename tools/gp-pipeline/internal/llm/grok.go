@@ -2,6 +2,8 @@ package llm
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/runner"
@@ -10,42 +12,54 @@ import (
 // GrokProvider runs the official Grok Build CLI in single-turn headless mode.
 // Authentication stays in ~/.grok and is managed by the CLI itself.
 type GrokProvider struct {
+	RepoRoot        string
 	ModelName       string
 	ReasoningEffort string
 }
 
-func NewGrok(model, reasoningEffort string) *GrokProvider {
-	return &GrokProvider{ModelName: model, ReasoningEffort: reasoningEffort}
+func NewGrok(repoRoot, model, reasoningEffort string) *GrokProvider {
+	return &GrokProvider{
+		RepoRoot: repoRoot, ModelName: model, ReasoningEffort: reasoningEffort,
+	}
 }
 
 func (g *GrokProvider) Name() string   { return "grok-build-" + g.modelName() }
 func (g *GrokProvider) Model() ModelID { return ModelID(g.modelName()) }
 
 func (g *GrokProvider) Available() bool {
-	_, err := runner.LookPath("grok")
-	return err == nil
+	if g.RepoRoot == "" {
+		return false
+	}
+	bridge := filepath.Join(g.RepoRoot, "scripts", "tribunal-grok-provider.sh")
+	if info, err := os.Stat(bridge); err != nil || info.Mode()&0o111 == 0 {
+		return false
+	}
+	for _, binary := range []string{"grok", "systemd-run", "timeout"} {
+		if _, err := runner.LookPath(binary); err != nil {
+			return false
+		}
+	}
+	return true
 }
 
 func (g *GrokProvider) Run(ctx context.Context, prompt string, opts RunOptions) (string, error) {
-	args := []string{
-		"--no-auto-update",
-		"--model", g.modelName(),
-		"--reasoning-effort", g.reasoningEffort(),
-		"--sandbox", "workspace",
-		"--permission-mode", "bypassPermissions",
-		"--tools", "read_file,grep,list_dir,search_replace",
-		"--no-plan",
-		"--no-subagents",
-		"--no-memory",
-		"--disable-web-search",
-		"--output-format", "plain",
-		"--verbatim",
-		"--single", prompt,
+	workDir := opts.WorkDir
+	if workDir == "" {
+		var err error
+		workDir, err = os.MkdirTemp("", "gp-grok-probe-")
+		if err != nil {
+			return "", err
+		}
+		defer os.RemoveAll(workDir)
 	}
+	bridge := filepath.Join(g.RepoRoot, "scripts", "tribunal-grok-provider.sh")
 	res, err := runner.RunWithOptions(ctx, runner.Options{
-		Name:    "grok",
-		Args:    args,
-		WorkDir: opts.WorkDir,
+		Name: bridge,
+		Args: []string{
+			workDir, g.modelName(), g.reasoningEffort(), "workspace",
+		},
+		Stdin:   []byte(prompt),
+		WorkDir: workDir,
 	})
 	if err != nil {
 		return "", err

@@ -106,8 +106,10 @@ esac
 #   2. 在 Linux 上（Mac 是 Darwin）
 #   3. cwd 在 /home/user/ 底下（Claude Code web 的 sandbox 路徑）
 claude_remote=false
-[[ "$explicit_runtime" == "claude-code" && "${CLAUDE_CODE_REMOTE:-}" == "true" ]] && \
-  claude_remote=true
+# CLAUDE_CODE_REMOTE describes the host surface, not merely the requested
+# rendering persona. It must win even if a generic wrapper asks for a
+# Codex-shaped identity inside CCC.
+[[ "${CLAUDE_CODE_REMOTE:-}" == "true" ]] && claude_remote=true
 ccc_branch=false
 ccc_os=false
 ccc_cwd=false

@@ -27,7 +27,15 @@ SCRIPT
 cat > "$BIN_DIR/systemd-run" <<'SCRIPT'
 #!/usr/bin/env bash
 printf '%s\n' "$@" > "$SYSTEMD_RUN_ARGS"
-exit 0
+while [ "$#" -gt 0 ]; do
+  if [ "$1" = -- ]; then
+    shift
+    break
+  fi
+  shift
+done
+[ "$#" -gt 0 ] || exit 64
+exec "$@"
 SCRIPT
 chmod +x "$BIN_DIR/codex" "$BIN_DIR/grok" "$BIN_DIR/systemd-run"
 
@@ -56,6 +64,15 @@ export TRIBUNAL_REVIEWER_REMAINING_PCT
 [ "$(tribunal_judge_provider vibe-opus-scorer)" = grok ]
 [ "$(tribunal_llm_model_id vibe-opus-scorer)" = grok-4.5 ]
 [ "$(tribunal_runner_label vibe-opus-scorer)" = grok-build-grok-4.5-low ]
+tribunal_writer_provenance_complete \
+  grok grok-4.5 grok-build-grok-4.5-low
+tribunal_writer_provenance_complete \
+  codex gpt-5.6-sol codex-gpt-5.6-sol-xhigh
+if tribunal_writer_provenance_complete claude claude-opus-4-6 claude-opus-4-6 ||
+   tribunal_writer_provenance_complete grok '' grok-build-grok-4.5-low; then
+  printf 'writer provenance guard accepted an incomplete/unsupported provider\n' >&2
+  exit 1
+fi
 
 work_dir="$TMP_DIR/work"
 mkdir -p "$work_dir"
@@ -85,7 +102,7 @@ TRIBUNAL_DEPLOYED_MODE=1 \
 TRIBUNAL_CODEX_SYSTEMD_UNIT=gu-log-tribunal-codex-test-1-2-3 \
 TRIBUNAL_GROK_REMAINING_PCT=19 \
   tribunal_grok_exec "$work_dir" tribunal-writer 'rewrite fixture' >/dev/null
-[ ! -e "$GROK_CALLED" ]
+[ -e "$GROK_CALLED" ]
 grep -Fxq -- '--slice=tribunal-runtime.slice' "$SYSTEMD_RUN_ARGS"
 grep -Fxq -- '--property=KillMode=control-group' "$SYSTEMD_RUN_ARGS"
 grep -Fxq -- '--description=gu-log Tribunal isolated Grok invocation' \

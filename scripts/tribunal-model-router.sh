@@ -2,7 +2,9 @@
 # VM-only model router shared by Bash Tribunal and the Go gp-pipeline.
 # Non-VM actors return the legacy profile so their existing routing is untouched.
 
-set -euo pipefail
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+  set -euo pipefail
+fi
 
 MODEL_ROUTER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MODEL_ROUTER_ROOT="$(cd "$MODEL_ROUTER_DIR/.." && pwd)"
@@ -73,7 +75,9 @@ model_router_assert_profile_compatible() {
   )
 
   local available_models configured_model
-  available_models="$(timeout 15 grok models 2>/dev/null)" || {
+  available_models="$(
+    env -u XAI_API_KEY -u GROK_API_KEY timeout 15 grok models 2>/dev/null
+  )" || {
     printf 'runtime profile %s requires an authenticated Grok Build session\n' \
       "$profile" >&2
     return 2
@@ -105,28 +109,40 @@ model_router_role_key() {
   esac
 }
 
+model_router_validate_remaining() {
+  local value="$1"
+  [[ "$value" =~ ^[0-9]+([.][0-9]+)?$ ]] || return 1
+  awk -v value="$value" '
+    BEGIN {
+      if (value < 0 || value > 100) exit 1
+      printf "%.10g\n", value
+    }
+  '
+}
+
 model_router_usage_monitor_remaining() {
   local monitor="${USAGE_MONITOR:-}"
   [ -n "$monitor" ] && [ -x "$monitor" ] || return 1
-  local payload
+  local payload remaining
   payload="$(timeout 15 "$monitor" --json 2>/dev/null)" || return 1
-  jq -er '
+  remaining="$(jq -er '
     [ .[]
       | select(.provider == "openai" and .status == "ok")
       | [.session_remaining_pct, .weekly_remaining_pct][]
       | select(type == "number") ]
     | if length > 0 then min else empty end
-  ' <<<"$payload" 2>/dev/null
+  ' <<<"$payload" 2>/dev/null)" || return 1
+  model_router_validate_remaining "$remaining"
 }
 
 model_router_codexbar_remaining() {
   command -v codexbar >/dev/null 2>&1 || return 1
-  local payload
+  local payload remaining
   payload="$(
     timeout 15 codexbar usage --provider codex --source cli \
       --format json --no-color 2>/dev/null
   )" || return 1
-  jq -er '
+  remaining="$(jq -er '
     [ .[]
       | select(.provider == "codex" and (.error? // null) == null)
       | .usage
@@ -134,13 +150,14 @@ model_router_codexbar_remaining() {
       | select(type == "object" and (.usedPercent | type) == "number")
       | (100 - .usedPercent) ]
     | if length > 0 then min else empty end
-  ' <<<"$payload" 2>/dev/null
+  ' <<<"$payload" 2>/dev/null)" || return 1
+  model_router_validate_remaining "$remaining"
 }
 
 model_router_reviewer_remaining() {
-  if [[ "${TRIBUNAL_REVIEWER_REMAINING_PCT:-}" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
-    printf '%s\n' "$TRIBUNAL_REVIEWER_REMAINING_PCT"
-    return 0
+  if [ -n "${TRIBUNAL_REVIEWER_REMAINING_PCT:-}" ]; then
+    model_router_validate_remaining "$TRIBUNAL_REVIEWER_REMAINING_PCT"
+    return
   fi
   model_router_usage_monitor_remaining && return 0
   model_router_codexbar_remaining && return 0
@@ -148,21 +165,21 @@ model_router_reviewer_remaining() {
 }
 
 model_router_grok_remaining() {
-  if [[ "${TRIBUNAL_GROK_REMAINING_PCT:-}" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
-    printf '%s\n' "$TRIBUNAL_GROK_REMAINING_PCT"
-    return 0
+  if [ -n "${TRIBUNAL_GROK_REMAINING_PCT:-}" ]; then
+    model_router_validate_remaining "$TRIBUNAL_GROK_REMAINING_PCT"
+    return
   fi
   local enabled
   enabled="$(jq -r '.profiles["vm-codex"].grokQuota.enabled // false' \
     "$MODEL_ROUTER_CONFIG")"
   [ "$enabled" = "true" ] || return 1
   command -v codexbar >/dev/null 2>&1 || return 1
-  local payload
+  local payload remaining
   payload="$(
     timeout 15 codexbar usage --provider grok --source auto \
       --format json --no-color 2>/dev/null
   )" || return 1
-  jq -er '
+  remaining="$(jq -er '
     [ .[]
       | select(.provider == "grok" and (.error? // null) == null)
       | .usage
@@ -170,7 +187,8 @@ model_router_grok_remaining() {
       | select(type == "object" and (.usedPercent | type) == "number")
       | (100 - .usedPercent) ]
     | if length > 0 then min else empty end
-  ' <<<"$payload" 2>/dev/null
+  ' <<<"$payload" 2>/dev/null)" || return 1
+  model_router_validate_remaining "$remaining"
 }
 
 model_router_resolve() {
@@ -257,9 +275,6 @@ model_router_resolve() {
           MODEL_ROUTER_QUOTA_ACTION=defer
         fi
       fi
-    fi
-    if [ -n "${TRIBUNAL_GROK_REASONING:-}" ]; then
-      effort="$TRIBUNAL_GROK_REASONING"
     fi
   fi
 

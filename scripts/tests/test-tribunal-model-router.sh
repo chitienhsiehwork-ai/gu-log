@@ -19,7 +19,16 @@ if [ "${1:-}" = models ]; then
 fi
 exit 0
 SCRIPT
-chmod +x "$BIN_DIR/codex" "$BIN_DIR/grok"
+cat > "$BIN_DIR/codexbar" <<'SCRIPT'
+#!/usr/bin/env bash
+printf '[{"provider":"codex","usage":{"primary":{"usedPercent":-1}}}]\n'
+SCRIPT
+cat > "$BIN_DIR/usage-monitor" <<'SCRIPT'
+#!/usr/bin/env bash
+printf '[{"provider":"openai","status":"ok","session_remaining_pct":101,"weekly_remaining_pct":101}]\n'
+SCRIPT
+chmod +x "$BIN_DIR/codex" "$BIN_DIR/grok" "$BIN_DIR/codexbar" \
+  "$BIN_DIR/usage-monitor"
 export PATH="$BIN_DIR:$PATH"
 
 assert_route() {
@@ -58,6 +67,25 @@ assert_route "$({
   TRIBUNAL_RUNTIME_PROFILE=vm-codex \
   TRIBUNAL_GROK_REMAINING_PCT=9.99 bash "$ROUTER" writer --json
 })" grok-4.5 low criticalQuota pause
+assert_route "$({
+  TRIBUNAL_RUNTIME_PROFILE=vm-codex \
+  TRIBUNAL_REVIEWER_REMAINING_PCT=101 bash "$ROUTER" reviewer --json
+})" gpt-5.6-luna max lowQuota
+assert_route "$({
+  TRIBUNAL_RUNTIME_PROFILE=vm-codex \
+  TRIBUNAL_GROK_REMAINING_PCT=101 bash "$ROUTER" writer --json
+})" grok-4.5 low normal
+assert_route "$({
+  env -u TRIBUNAL_REVIEWER_REMAINING_PCT \
+    TRIBUNAL_RUNTIME_PROFILE=vm-codex \
+    USAGE_MONITOR="$BIN_DIR/usage-monitor" \
+    bash "$ROUTER" reviewer --json
+})" gpt-5.6-luna max lowQuota
+assert_route "$({
+  env -u TRIBUNAL_REVIEWER_REMAINING_PCT -u USAGE_MONITOR \
+    TRIBUNAL_RUNTIME_PROFILE=vm-codex \
+    bash "$ROUTER" reviewer --json
+})" gpt-5.6-luna max lowQuota
 
 legacy="$(TRIBUNAL_RUNTIME_PROFILE=legacy PATH=/usr/bin:/bin \
   bash "$ROUTER" reviewer --json)"
@@ -110,5 +138,24 @@ model_router_resolve vibeScorer
 [ "$MODEL_ROUTER_QUOTA_ACTION" = defer ]
 model_router_resolve reviewer
 [ "$MODEL_ROUTER_QUOTA_ACTION" = run ]
+
+if TRIBUNAL_RUNTIME_PROFILE=bogus TRIBUNAL_STRICT_ROLE_PROVIDERS=1 \
+  REPO_ROOT="$ROOT_DIR" bash -c '
+    source "$1/scripts/tribunal-helpers.sh"
+    tribunal_judge_provider fact-checker
+  ' _ "$ROOT_DIR" >/dev/null 2>&1; then
+  echo "invalid runtime profile must not fall through to legacy Codex" >&2
+  exit 1
+fi
+
+# A sourced router is a function library and must not mutate a legacy caller's
+# shell error/undefined-variable/pipefail policy.
+bash -c '
+  set +e +u +o pipefail
+  before="$-:$(set -o | awk '\''$1 == "pipefail" { print $2 }'\'')"
+  source "$1"
+  after="$-:$(set -o | awk '\''$1 == "pipefail" { print $2 }'\'')"
+  [ "$before" = "$after" ]
+' _ "$ROUTER"
 
 echo "ok vm-codex routing, compatibility gate, thresholds, and legacy isolation"

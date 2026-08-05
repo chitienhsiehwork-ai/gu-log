@@ -224,8 +224,9 @@ reviewer 取 session／weekly 較低剩餘百分比：`>= 20%` 使用
 `gpt-5.6-sol` + `xhigh`，`< 20%` 使用 `gpt-5.6-luna` + `max`；讀值未知時
 採保守的 Luna。Grok 4.5 writer／Vibe 使用 `low` effort。
 
-Grok 低 quota 政策只有在取得真實百分比時才生效：10–20% 保留 writer、
-延後 Vibe；低於 10% writer 也暫停，不會偷換其他 writer。現行 CodexBar
+Grok 低 quota 政策只有在取得真實百分比時才生效：
+`10% <= remaining < 20%` 保留 writer、延後 Vibe；低於 10% writer 也暫停，
+不會偷換其他 writer。現行 CodexBar
 尚無可靠 Grok Build quota feed，因此 `grokQuota.enabled` 預設為 `false`，
 未知就是 unknown，不捏造百分比。`TRIBUNAL_GROK_REMAINING_PCT` 只供有
 可信外部讀值的 operator 注入與 contract test；CodexBar 日後支援時，再於

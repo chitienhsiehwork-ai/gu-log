@@ -690,10 +690,9 @@ run_writer_candidate_transaction() {
     sed -n 's/^runner_label=//p' "$actual_provider_file" | head -1
   )"
   rm -f "$actual_provider_file"
-  if [ "$actual_writer_provider" != "codex" ] ||
-     [ -z "$actual_writer_model" ] ||
-     [ -z "$actual_writer_runner" ]; then
-    tlog "  RUNNER ERROR: tribunal-writer did not record complete Codex provider/model provenance."
+  if ! tribunal_writer_provenance_complete \
+    "$actual_writer_provider" "$actual_writer_model" "$actual_writer_runner"; then
+    tlog "  RUNNER ERROR: tribunal-writer did not record complete provider/model provenance."
     discard_writer_rewrite_snapshot "$snapshot_token"
     rm -rf "$writer_work_dir"
     return 70

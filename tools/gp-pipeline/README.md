@@ -30,13 +30,11 @@ wrapper 只負責在 source 較新時編譯 `cmd/gp-pipeline` 到 gitignored `bi
 維持原本 provider chain。VM profile 會先確認 Codex 與官方 Grok Build CLI
 都相容且已登入，缺任一個就 fail closed。
 
-所有常換的 model、effort 與 quota threshold 集中在
-`config/llm-pipeline.json`：reviewer 在剩餘 quota `>= 20%` 使用
-`gpt-5.6-sol`／`xhigh`，`< 20%` 或 quota unknown 使用
-`gpt-5.6-luna`／`max`；writer 與 Vibe Scorer 使用
-`grok-4.5`／`low`。Grok 有真實讀值時，10–20% 延後 Vibe 但保留 writer，
-低於 10% 暫停 writer；不會靜默改用其他 writer。CodexBar 尚未提供可靠
-Grok Build quota 前，自動 Grok probe 保持關閉，不猜百分比。
+所有常換的 model、effort、quota threshold 與 unknown policy 都只定義在
+`config/llm-pipeline.json`；README 不複製易過期的數值。Router 依該檔選擇
+reviewer、writer 與 Vibe Scorer，而且不會在低額度時靜默改用其他 writer。
+CodexBar 尚未提供可靠 Grok Build quota 前，自動 Grok probe 保持關閉，
+不猜百分比。
 
 ## Quick start
 
