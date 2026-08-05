@@ -137,6 +137,7 @@ func (s *State) Ralph(ctx context.Context) error {
 		RalphScript: filepath.Join(s.Cfg.ScriptsDir, "tribunal.sh"),
 		Filename:    s.ActiveFilename,
 		StdoutFile:  filepath.Join(s.WorkDir, "tribunal-stdout.txt"),
+		NoCommit:    true,
 	})
 	if err != nil {
 		// Ralph.Run only returns errors for misuse; bubble up.
