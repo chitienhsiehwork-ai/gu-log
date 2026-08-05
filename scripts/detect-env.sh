@@ -2,6 +2,7 @@
 # detect-env.sh — 判斷這個 coding-agent instance 的可路由 actor identity
 #
 # m1-cdx (example): M1 Mac 上的 Codex Desktop / Codex CLI
+# vm-codex:         VM 上的 Codex CLI（明確區分 VM runtime profile）
 # m1-cc  (example): M1 Mac 上的 Claude Code-compatible local harness
 # CCC              Cloud sandbox，auto-branch
 #
@@ -120,7 +121,11 @@ if $claude_remote || { $ccc_branch && $ccc_os && $ccc_cwd; }; then
   machine_id=cloud
 elif $codex_runtime; then
   mode=CC
-  human_mode="${machine_id}-cdx"
+  if [[ "$machine_id" == "vm" ]]; then
+    human_mode="vm-codex"
+  else
+    human_mode="${machine_id}-cdx"
+  fi
 else
   mode=CC
   human_mode="${machine_id}-cc"

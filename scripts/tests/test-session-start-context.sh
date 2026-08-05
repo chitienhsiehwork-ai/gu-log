@@ -107,10 +107,10 @@ printf '%s\n' \
 chmod +x "$vm_detect_bin/systemd-detect-virt"
 vm_cdx_context="$(PATH="$vm_detect_bin:$PATH" \
   ./scripts/detect-env.sh --runtime codex --context)"
-grep -q '^env: agent_id=vm-cdx machine_id=vm runtime=codex environment=local ' \
+grep -q '^env: agent_id=vm-codex machine_id=vm runtime=codex environment=local ' \
   <<<"$vm_cdx_context"
 [[ "$(PATH="$vm_detect_bin:$PATH" \
-  ./scripts/detect-env.sh --runtime codex --identity)" == "vm-cdx" ]]
+  ./scripts/detect-env.sh --runtime codex --identity)" == "vm-codex" ]]
 
 printf '%s\n' \
   '#!/usr/bin/env bash' \
