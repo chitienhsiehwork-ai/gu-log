@@ -102,6 +102,30 @@ func TestEval_GoGo(t *testing.T) {
 	}
 }
 
+func TestFetch_ExistingCaptureHydratesMetadata(t *testing.T) {
+	s, _, workDir := newTestState(t)
+	capture := "@Khazix0918 — 2026-08-05\nSource URL: https://x.com/khazix0918/status/2084919577562255639\nFetched via: fxtwitter\n\n=== MAIN TWEET ===\nEnough existing source material to resume without a network fetch.\n"
+	if err := os.WriteFile(filepath.Join(workDir, "source-tweet.md"), []byte(capture), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := s.Fetch(context.Background()); err != nil {
+		t.Fatalf("Fetch: %v", err)
+	}
+	if s.SourcePath != filepath.Join(workDir, "source-tweet.md") {
+		t.Errorf("SourcePath = %q", s.SourcePath)
+	}
+	if s.AuthorHandle != "Khazix0918" {
+		t.Errorf("AuthorHandle = %q, want Khazix0918", s.AuthorHandle)
+	}
+	if s.OriginalDate != "2026-08-05" {
+		t.Errorf("OriginalDate = %q, want 2026-08-05", s.OriginalDate)
+	}
+	if !s.SourceIsX {
+		t.Errorf("SourceIsX = false, want true")
+	}
+}
+
 func TestEval_SkipSkipExit12(t *testing.T) {
 	s, fake, _ := newTestState(t)
 	fake.WithResponses(
