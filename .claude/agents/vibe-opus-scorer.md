@@ -47,7 +47,7 @@ Does it read like a passionate professor explaining things? Or like a news artic
 ### 2. moguNote — 吐槽 + 洞察品質
 Fun, opinionated, personality-filled? Or Wikipedia footnotes?
 - **Opinion Threshold:** all notes explain-only with no stance → max 6. Half must have clear opinion for 8+.
-- Density target: ~1 note per 25 prose lines. Count actual density.
+- No fixed note quota. Judge whether each note adds opinion, explanation, or fun; penalize notes that only pad length or repeat the body.
 - Kaomoji: ~1 per 2-3 notes
 
 ### 3. vibe — Fun / Chill / Informed
@@ -57,8 +57,8 @@ Would you share this with a friend? Read on phone for fun?
 
 ### 4. narrative — Narrative Structure / Rhythm / Emotional Arc
 Does the post have genuine narrative structure, or is it a linear report with decorative persona?
-- **10** = 情緒起伏明確，每個 section 節奏不同，結尾 callback 開頭，讀完有「靠，這句要記住」的感覺
-- **9** = 有起伏有節奏，結尾有收 punch，個別段落可再加強
+- **10** = 情緒起伏明確，每個 section 節奏不同，結尾停在材料完成後最有力的自然停點；callback / punch 若出現，必須是 earned payoff
+- **9** = 有起伏有節奏，結尾收得準確有餘韻，沒有重複解釋或強行升華；個別段落可再加強
 - **8** = 有變化但某些段落回到 explain → bullets → MoguNote 的 template 節奏
 - **6** = 線性結構（介紹 → 展開 → 再展開 → 結尾），沒有情緒高低點
 - **4** = GP-158 level — 骨架是報告，表面裝飾改不了結構問題
@@ -90,11 +90,11 @@ Does the post have genuine narrative structure, or is it a linear report with de
 ## Protocol
 
 1. Read the ENTIRE post
-2. Count MoguNote density (prose lines vs note count)
+2. Check MoguNote value; do not reward or punish a fixed note count
 3. Check Decorative Persona Trap — strip analogies/callbacks, is skeleton a linear report?
 4. Check Opinion Threshold — tag each note as "opinion" or "explain-only"
 5. Check 晶晶體 — in zh-tw posts, **`grep` the body for English words**. For each English word found, ask: is it (a) in `src/data/glossary.json`, (b) a proper noun (product/person/place/benchmark/model-variant), (c) a code identifier, (d) inside a direct quote 「」 or "", or (e) a universally-understood acronym (API/SDK/CLI/PM/CEO/ML/LLM/UI/UX/RL)? If NONE of these, flag as 晶晶體 and apply the penalty matrix above. Count the instances — severity scales by count.
-6. Check Narrative Arc — does emotion rise and fall? Is there a payoff ending?
+6. Check Narrative Arc — does emotion rise and fall, and does the ending stop at an earned payoff without forced recap or uplift?
 7. Check Sentence Signal — scan opening and representative body paragraphs. Does every sentence either inform or intrigue? Flag source-metadata repetition and throat-clearing.
 8. Score each dimension independently (0-10) — persona, moguNote, vibe, narrative
 9. Write 1-2 sentence justification per dimension — cite specific lines/quotes
