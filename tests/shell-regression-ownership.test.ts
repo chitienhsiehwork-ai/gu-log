@@ -24,6 +24,7 @@ const PORTABLE_CONTRACTS = [
   'test-quota-controller.sh',
   'test-setup-hooks-worktree.sh',
   'test-tribunal-batch-provider-quota.sh',
+  'test-tribunal-model-router.sh',
   'test-tribunal-quota-controller-codexbar.sh',
   'test-tribunal-monitor-snapshot.sh',
   'test-tribunal-pass-artifact-guards.sh',
@@ -33,6 +34,7 @@ const PORTABLE_CONTRACTS = [
   'test-tribunal-runtime-git-hygiene.sh',
   'test-tribunal-shell-quota-parser.sh',
   'test-tribunal-systemd-containment.sh',
+  'test-tribunal-vm-routing.sh',
   'test-tribunal-worker-sync-ref.sh',
   'test-writer-broker.sh',
 ] as const;
