@@ -33,6 +33,20 @@ func newTestState(t *testing.T) (*State, *llm.FakeProvider, string) {
 	if err := os.WriteFile(styleGuide, []byte("# Style\nLHY tone.\n"), 0o644); err != nil {
 		t.Fatalf("write style guide: %v", err)
 	}
+	for name, body := range map[string]string{
+		"CONTRIBUTING.md":                          "# Contributing\n",
+		"docs/shroomdog-editorial-feedback.md":     "# Editorial feedback\n",
+		"openspec/specs/editorial-charter/spec.md": "# Editorial charter\n",
+		"scripts/vibe-scoring-standard.md":         "# Vibe scoring\n",
+	} {
+		path := filepath.Join(tmp, name)
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatalf("mkdir editorial context: %v", err)
+		}
+		if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+			t.Fatalf("write editorial context: %v", err)
+		}
+	}
 
 	fake := llm.NewFakeClaude()
 	disp, err := llm.NewDispatcher(logx.New(), fake)
