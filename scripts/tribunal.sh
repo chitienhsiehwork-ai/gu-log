@@ -610,8 +610,8 @@ WRITER_TRANSACTION_EN_EXISTED=0
 WRITER_TRANSACTION_RECOVERY_PATH=""
 WRITER_TRANSACTION_APPLY_UNCERTAIN=0
 
-# Run a Codex writer against private candidate files, never the canonical post
-# paths. The Codex subprocess gets a workspace-write sandbox rooted at its temp
+# Run the routed writer against private candidate files, never the canonical
+# post paths. The subprocess gets a workspace-write sandbox rooted at its temp
 # workdir; the parent then reads stable candidate bytes and applies them only
 # if the canonical bilingual pair still exactly matches the captured baseline.
 run_writer_candidate_transaction() {
@@ -633,10 +633,13 @@ run_writer_candidate_transaction() {
   WRITER_TRANSACTION_RECOVERY_PATH=""
   WRITER_TRANSACTION_APPLY_UNCERTAIN=0
 
-  if [ "$(tribunal_writer_mode)" != "codex" ]; then
-    tlog "  RUNNER ERROR: isolated writer transactions require GP_WRITER_MODE=codex."
-    return 70
-  fi
+  case "$(tribunal_writer_mode)" in
+    codex|grok) ;;
+    *)
+      tlog "  RUNNER ERROR: isolated writer transactions require GP_WRITER_MODE=codex or grok."
+      return 70
+      ;;
+  esac
   if [ -f "$ROOT_DIR/src/content/posts/en-$post_file" ]; then
     WRITER_TRANSACTION_EN_EXISTED=1
   fi
@@ -1308,6 +1311,9 @@ PROMPT
     actual_provider_file="$(mktemp)"
     quota_status_file="$(mktemp)"
     local judge_score_in_work="$judge_work_dir/score.json"
+    # Grok's minimal writer tool edits existing files; the trusted harness
+    # creates this placeholder before any untrusted article text reaches it.
+    printf '{}\n' > "$judge_score_in_work"
     judge_task="${judge_task/SCORE_PATH_PLACEHOLDER/$judge_score_in_work}"
     TRIBUNAL_CODEX_TIMEOUT_SEC="$stage_timeout" \
       TRIBUNAL_ACTUAL_PROVIDER_FILE="$actual_provider_file" \

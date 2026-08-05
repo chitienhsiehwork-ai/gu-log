@@ -351,10 +351,11 @@ pass "Claude model parser is frontmatter-only and exec fails before invocation"
 pass "strict routing keeps all four judges on role-pinned Codex; compatibility fallback remains strict-off only"
 
 if ! grep -q '^Environment=TRIBUNAL_STRICT_ROLE_PROVIDERS=1$' "$SERVICE" ||
-   ! grep -q '^Environment=GP_WRITER_MODE=codex$' "$SERVICE" ||
+   ! grep -q '^Environment=TRIBUNAL_RUNTIME_PROFILE=vm-codex$' "$SERVICE" ||
+   ! grep -q '^Environment=GP_WRITER_MODE=grok$' "$SERVICE" ||
    ! grep -q '^Slice=tribunal-runtime.slice$' "$SERVICE" ||
-   ! grep -q '^export GP_WRITER_MODE=codex$' "$WRAPPER"; then
-  fail "systemd unit does not select strict Codex judges + Codex writer"
+   ! grep -q '^export GP_WRITER_MODE=grok$' "$WRAPPER"; then
+  fail "systemd unit does not select the vm-codex profile + Grok writer"
 fi
 if ! grep -q '^MemoryMax=4G$' "$SLICE" ||
    ! grep -q '^CPUQuota=200%$' "$SLICE" ||
@@ -465,7 +466,7 @@ EXPECTED_ARGS
     exit 1
   }
 ) || fail "bounded Codex write-canary preflight behavioral check failed"
-pass "deployed runtime selects strict Codex routing and reuses the exact writer sandbox for preflight"
+pass "deployed runtime selects the VM profile while legacy Codex preflight stays compatible"
 
 (
   fixture_root="$(mktemp -d "${TMPDIR:-/tmp}/gu-tribunal-notifier.XXXXXX")"

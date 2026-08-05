@@ -24,6 +24,13 @@ wrapper 會在需要時把 Go CLI 編譯到忽略版控的 `bin/`。repo 不保�
 tools/gp-pipeline/gp-pipeline run '<url>' --prefix GP
 ```
 
+在 `vm-codex` 上，model routing 由 `config/llm-pipeline.json` 控制；只有
+Codex 與 Grok Build CLI 都通過 compatibility/auth check 才啟用。reviewer
+依 Codex quota 在 `gpt-5.6-sol`／`xhigh` 與
+`gpt-5.6-luna`／`max` 間切換，writer 與 Vibe Scorer 使用
+`grok-4.5`／`low`。其他 runtime（包含 Claude Code Cloud）維持 legacy
+behavior。升級 model 不要改這份 skill 的快照，改 config 與 tests。
+
 Mogu Picks：
 
 ```bash

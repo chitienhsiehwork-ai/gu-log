@@ -6,7 +6,8 @@
 set -euo pipefail
 export TZ=Asia/Taipei
 export PATH="$HOME/.local/bin:$HOME/bin:$PATH"
-export GP_WRITER_MODE=codex
+export TRIBUNAL_RUNTIME_PROFILE="${TRIBUNAL_RUNTIME_PROFILE:-vm-codex}"
+export GP_WRITER_MODE=grok
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 GU_LOG_DIR="${GU_LOG_DIR:-$(cd "$SCRIPT_DIR/.." && pwd)}"
@@ -33,7 +34,7 @@ if [ "${1:-}" = "--doctor" ]; then
     "$unit_environment" TRIBUNAL_STRICT_ROLE_PROVIDERS "${TRIBUNAL_STRICT_ROLE_PROVIDERS:-1}")"
   export GP_WRITER_MODE
   GP_WRITER_MODE="$(tribunal_effective_runtime_value \
-    "$unit_environment" GP_WRITER_MODE "${GP_WRITER_MODE:-codex}")"
+    "$unit_environment" GP_WRITER_MODE "${GP_WRITER_MODE:-grok}")"
   failed=0
   unit_enabled="$(systemctl --user is-enabled tribunal-loop 2>/dev/null || true)"
   [ -n "$unit_enabled" ] || unit_enabled="unknown"
