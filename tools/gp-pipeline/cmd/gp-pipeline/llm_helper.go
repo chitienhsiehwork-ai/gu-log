@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/llm"
@@ -24,15 +25,33 @@ func buildDispatcherForRole(state *rootState, role dispatcherRole) (*llm.Dispatc
 		}
 		return llm.NewDispatcher(state.log, fake)
 	}
+	runtimeRole := llm.RuntimeWriter
+	if role == dispatcherJudge {
+		runtimeRole = llm.RuntimeReviewer
+	}
 	var providers []llm.Provider
-	switch role {
-	case dispatcherJudge:
-		providers = llm.JudgeChainWithClaudeFallback(state.judgeAllowClaude)
-	default:
-		var err error
-		providers, err = llm.WritingChain()
-		if err != nil {
-			return nil, fmt.Errorf("build dispatcher: %w", err)
+	active := false
+	var err error
+	if state.cfg != nil && state.cfg.RepoRoot != "" {
+		providers, active, err = llm.ProvidersForRuntime(
+			context.Background(), state.cfg.RepoRoot, runtimeRole,
+		)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("build dispatcher: %w", err)
+	}
+	if !active {
+		providers = nil
+	}
+	if !active {
+		switch role {
+		case dispatcherJudge:
+			providers = llm.JudgeChainWithClaudeFallback(state.judgeAllowClaude)
+		default:
+			providers, err = llm.WritingChain()
+			if err != nil {
+				return nil, fmt.Errorf("build dispatcher: %w", err)
+			}
 		}
 	}
 	disp, err := llm.NewDispatcher(state.log, providers...)

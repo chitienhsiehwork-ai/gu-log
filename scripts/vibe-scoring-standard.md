@@ -348,7 +348,7 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 **🔴 Opinion Threshold（8 分門檻）:**
 - 全部 note 都是「解釋 + 比喻」但沒有自己立場 → **最高 6 分**
 - 8+ 門檻：至少一半的 notes 要有明確 opinion（同意/不同意原文、challenge 某個假設）
-- Density target: ~1 note per 25 prose lines
+- 沒有固定 note 配額。評分看每則是否真的增加觀點、解釋或樂趣；為湊密度而重講正文要扣分，短文沒有自然插入點時也不得反向扣分。
 
 **🪞 Self-referential callback（自我指涉）= moguNote 的高分訊號:**
 - 當原文講的東西 gu-log 自己也在做（對抗式 review → gu-log 的 tribunal；長跑 agent → pipeline；把教訓寫回指令 → playbook/prompt），一個把它接回 gu-log 自身、且**誠實**的 callback 是 highlight 級的 note——尤其敢自嘲的 meta（例：「你正在讀的這篇就是被 gu-log 四法官審過、拿 sub-8、還掛精修中 badge」）。真誠又貼題的 self-ref 可以是某個 note 上 9-10 的理由。
@@ -367,7 +367,7 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 | 5-6 | Plain, natural, but boring. |
 | 1-4 | 讀不下去，想關掉。 |
 
-**Sentence Signal Rule:** every sentence must be informative or intriguing. If a sentence only repeats source metadata, throat-clears, or restates what the reader already sees in the byline/source block, it is dead weight. Multiple dead sentences cap vibe at 7; a dead opening usually means the post should fail unless the rest recovers hard.
+**Sentence Signal Rule:** every sentence must be informative or intriguing. If a sentence only repeats source metadata, throat-clears, or restates what the reader already sees in the byline/source block, it is dead weight. Every paragraph must also advance a fact, action, relationship, condition, example, boundary, consequence, or grounded judgment; synonym-level restatement is not progress. Multiple dead sentences cap vibe at 7; a dead opening usually means the post should fail unless the rest recovers hard.
 
 **Compression gate:** Vibe does not perform corpus-overlap search; that belongs to Librarian. Vibe does ask whether the article is internally loose. If 25–40% of prose could be deleted without losing meaningful information, cap `vibe` at 7. If a section mostly restates earlier sections with different packaging, cap `vibe` at 6 even when facts are correct.
 
@@ -388,8 +388,8 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 
 | Score | Description |
 |-------|-------------|
-| 10 | 情緒起伏明確，每個 section 節奏不同，結尾 callback 開頭，讀完有「靠，這句要記住」的感覺 |
-| 9 | 有起伏有節奏，結尾有收 punch，個別段落可再加強 |
+| 10 | 情緒起伏明確，每個 section 節奏不同，結尾停在材料完成後最有力的自然停點；若有 callback 或 punch，必須是 earned payoff 而非固定模板 |
+| 9 | 有起伏有節奏，結尾收得準確有餘韻，沒有重複解釋或強行升華；個別段落可再加強 |
 | 8 | 有變化但某些段落回到 explain → bullets → MoguNote 的 template 節奏 |
 | 6 | 線性結構（介紹 → 展開 → 再展開 → 結尾），沒有情緒高低點 |
 | 4 | GP-158 level — 骨架是報告，表面裝飾改不了結構問題 |
@@ -398,6 +398,8 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 **Key test:** Strip analogies, kaomoji, and MoguNotes. Is the remaining skeleton a linear textbook report? If yes → narrative ≤ 5.
 
 **Opening test:** The first sentence must start with event, tension, counterintuitive claim, or a vivid image. Openings like 「原作者這篇分析文講了一個……」 / "This article discusses..." repeat source metadata and should cap narrative at 7.
+
+**Ending deletion test:** Delete the final one or two paragraphs mentally. If the post becomes stronger or loses no supported insight, the original ending is over-explaining. A callback, question, challenge, or one-liner is optional and earns credit only when it changes the meaning of earlier material without crossing the source boundary.
 
 **GP-158 教訓:** decorative persona (surface features + linear structure) = narrative ≤ 5.
 

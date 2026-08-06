@@ -134,6 +134,13 @@ func (s *State) Translate(ctx context.Context) error {
 	if raw, ok := translatedFile.GetScalar("translatedBy"); ok && raw != "" {
 		return fmt.Errorf("translate: generated translatedBy must be a mapping, got %q", raw)
 	}
+	// frontmatter.Parse is line-based, so a model-authored block that is not
+	// valid YAML gets this far unnoticed and only fails later in
+	// scripts/validate-posts.mjs — after the sidecar is already on disk.
+	translatedFile.RepairSingleQuotedScalars()
+	if err := translatedFile.ValidateYAML(); err != nil {
+		return fmt.Errorf("translate: generated English frontmatter is not valid YAML: %w", err)
+	}
 	// The model is not authoritative for provenance. Restore the canonical
 	// nested history from the zh-tw source, then stamp only this invocation's
 	// direct translator fields and date.

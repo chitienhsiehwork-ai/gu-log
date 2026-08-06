@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "profiles": {
+    "vm-codex": {
+      "requiredProviders": ["codex", "grok"],
+      "reviewer": {
+        "provider": "codex",
+        "primary": {
+          "model": "gpt-5.6-sol",
+          "reasoningEffort": "xhigh"
+        },
+        "lowQuota": {
+          "model": "gpt-5.6-luna",
+          "reasoningEffort": "max"
+        },
+        "lowQuotaThresholdRemainingPercent": 20,
+        "quotaUnknownPolicy": "lowQuota"
+      },
+      "writer": {
+        "provider": "grok",
+        "model": "grok-4.5",
+        "reasoningEffort": "low"
+      },
+      "vibeScorer": {
+        "provider": "grok",
+        "model": "grok-4.5",
+        "reasoningEffort": "low"
+      },
+      "grokQuota": {
+        "enabled": false,
+        "source": "codexbar",
+        "reserveWriterBelowRemainingPercent": 20,
+        "pauseWriterBelowRemainingPercent": 10,
+        "deferVibeBelowRemainingPercent": 20
+      }
+    }
+  }
+}

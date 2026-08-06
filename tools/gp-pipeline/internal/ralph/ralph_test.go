@@ -53,3 +53,29 @@ func TestRunReportsPassOnCleanExit(t *testing.T) {
 		t.Fatal("clean exit must report passed=true")
 	}
 }
+
+func TestRunCanDisableTribunalCommitOwnership(t *testing.T) {
+	dir := t.TempDir()
+	script := writeStubScript(t, dir, "echo no_commit=$TRIBUNAL_NO_COMMIT; exit 0")
+	stdoutFile := filepath.Join(dir, "tribunal-stdout.txt")
+
+	passed, err := Run(context.Background(), Options{
+		RalphScript: script,
+		Filename:    "gp-000-test.mdx",
+		StdoutFile:  stdoutFile,
+		NoCommit:    true,
+	})
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	if !passed {
+		t.Fatal("Run should pass")
+	}
+	got, err := os.ReadFile(stdoutFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "no_commit=1\n" {
+		t.Fatalf("tribunal env = %q, want no_commit=1", got)
+	}
+}
