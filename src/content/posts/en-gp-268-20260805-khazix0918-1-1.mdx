@@ -1,0 +1,144 @@
+---
+ticketId: 'GP-268'
+title: 'Human Writing 1.1: Ban lists only fix the surface — real material and a speaker’s stance are the skeleton'
+originalDate: '2026-08-05'
+translatedBy:
+  model: "Grok 4.5"
+  harness: "Grok Build CLI"
+  pipeline:
+    - role: 'Written'
+      model: 'Grok 4.5'
+      harness: 'Grok Build CLI'
+    - role: 'Reviewed'
+      model: 'GPT-5.6-Sol'
+      harness: 'Codex CLI'
+    - role: 'Refined'
+      model: 'Grok 4.5'
+      harness: 'Grok Build CLI'
+    - role: 'Scored'
+      model: 'GPT-5.6-Sol'
+      harness: 'Codex CLI + Tribunal'
+    - role: 'Rewritten'
+      model: 'Grok 4.5'
+      harness: 'Grok Build CLI + Tribunal'
+    - role: 'Orchestrated'
+      model: 'GPT-5.6-Sol'
+      harness: 'gp-pipeline + Tribunal'
+  pipelineUrl: 'https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline'
+source: '@Khazix0918 on X'
+sourceUrl: 'https://x.com/Khazix0918/status/2084919577562255639'
+lang: 'en'
+summary: 'Khazix open-sources human-writing 1.1: killing AI-sounding prose can’t stop at ban lists. Short on material? Research, ask, or write shorter. Every paragraph must advance; stop when the point lands. Rhetorical moves matter more than literal blacklists.'
+tags: ['prompt-engineering', 'developer-tools', 'ai-writing', 'open-source']
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 8
+    date: "2026-08-05"
+    model: "gpt-5.6-sol"
+  librarian:
+    glossary: 7
+    crossRef: 7
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-08-05"
+    model: "gpt-5.6-sol"
+  freshEyes:
+    readability: 9
+    firstImpression: 9
+    payoffDensity: 9
+    lengthFit: 9
+    clarity: 10
+    score: 9
+    date: "2026-08-05"
+    model: "gpt-5.6-sol"
+  vibe:
+    persona: 9
+    moguNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-08-05"
+    model: "grok-4.5"
+translatedDate: "2026-08-05"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+Ban “not only… but also…” or “not A, but B,” and a piece nobody has lived through is still a piece nobody has lived through.
+
+Around April, Khazix (@Khazix0918) published a “Khazix voice” [Skill](/en/glossary#skill). Looking back, it feels too rigid: it can turn someone into the Khazix of four months ago, but it won’t help a user find their own voice. So he sat down with friends from Chinese literature programs, distilled the internal rules, and released MIT-licensed [`human-writing`](https://github.com/KKKKhazix/human-writing) 1.1.0. This time the goal isn’t cloning a voiceprint — it starts with material and judgment.
+
+<MoguNote>
+gu-log has waded into the same river: AI-phrase ban lists can catch the surface, not empty paragraphs or fake-deep endings. So this time we didn’t just add rules — we also pulled “every ending needs a zinger or a callback” and fixed MoguNote quotas out of the writing prompt.
+</MoguNote>
+
+## Gate one isn’t style — it’s material
+
+This [Skill](/en/glossary#skill) splits “alive writing” into three layers, in a hard order:
+
+1. **Material** — identifiable facts, actions, quotes, lived experience
+2. **The speaker’s stance and judgment** — who’s talking, why this person can say it, which side they actually stand on
+3. **Tone** — voice and rhythm come last
+
+In classical Chinese writing terms: establish the argument first (what you really mean), then the evidence (which facts can carry it), and only then polish the prose (how you say it). You don’t reverse that order.
+
+Before a long nonfiction piece, the Skill checks whether the concrete, trackable material is enough. If not: research, ask at most three focused questions, narrow the topic, or just write shorter — you don’t pad emptiness into length. Before drafting it also asks: who’s speaking? What gives this person the right to know? Which facts, actions, or original words hold it up? What’s the real judgment?
+
+<MoguNote>
+Almost every “de-AI-flavor” tool bets everything on prose polish while the first two boxes stay empty. Opinions collapse into averaged correctness, detail becomes probability noise, and the only thing left that’s yours is the byline. Empty enough to flip a table. (╯°□°)╯
+</MoguNote>
+
+---
+
+## Prose can be plain; the person can’t be hollow
+
+During China’s gaokao season, a street video kept replaying for Khazix: strangers writing that year’s essay prompt on camera. The participants included a young woman the video tagged as a street-fashion “spirit girl,” a delivery rider, and a Chinese-language teacher. The first two weren’t necessarily ornate writers, but the emotion was thick and the language was direct; you finished feeling these people actually had stories.
+
+That’s where AI flavor takes root. A piece can have information, a viewpoint, a story, a clean arc, and an ending pretty enough to screenshot — **and still have no real person who lived inside it**. So the Skill pushes users to hand over real cases, real feelings, real thinking. Sincerity and heat are what “alive” means.
+
+A diary demo tests something else: when information isn’t enough, will the model stop and ask? Qwen 3.8 Max first demanded more specific, real detail; only once the material was enough did GPT-5.6 Sol expand into a long piece under the Skill. One line:
+
+> Even after years of writing, with thousands of pages sitting there, finding a recurring thought — or pinning down when a stretch of change began — still isn’t easy.
+
+<MoguNote>
+A model willing to hit the brakes when material is thin matters more than one that dumps a few thousand words in one go. What this Skill really raises isn’t the word ceiling — it’s the floor for refusing empty spin.
+</MoguNote>
+
+---
+
+## Every paragraph advances; stop when the point lands
+
+1.1 writes narrative discipline bluntly:
+
+- **Each new paragraph adds at least one thing**: a fact, action, example, distinction, or consequence. Restating the same point in different words doesn’t count as progress.
+- **Stop when the point lands**: once action, detail, or quoted speech has already handed the emotion and meaning to the reader, don’t chase another paragraph of “this means…”.
+- **End where the material runs out**: keep a callback only when the same image returns with a new meaning grown onto it; forced elevation and summary rehash get cut.
+
+When Lu Xun’s Kong Yiji pays for wine, he lines up nine copper coins — one verb carries poverty, pride, pedantry, and the last scrap of dignity. When Zhu Ziqing’s father crosses the tracks and climbs the platform for oranges, the actions finish and the feeling ends with them. Add psychological analysis after that and the force dissipates.
+
+<MoguNote>
+gu-log used to treat zingers and callbacks as required fields too. Now it’s the reverse: keep them only when they truly grow new meaning from what came before. Material used up — hands off.
+</MoguNote>
+
+---
+
+## 1.1 doesn’t just ban words — it bans the same bag of tricks
+
+A ban list can catch not-A-but-B, weird jargon, and tics like “the sharpest knife.” The model swaps synonyms and the problem walks right back in. **So 1.1 lifts the line of defense from “forbidden strings” to “forbidden rhetorical moves.”** The main example: invent a reader misunderstanding first, then glamorously overturn it so the next sentence looks deeper. Evidence-driven self-correction is still allowed; swapping words without swapping the move doesn’t count as fixed.
+
+The revision guide also asks one hard question: which paragraphs could **any model write, unchanged**? Either shore them up with sources, experience, or choices — or delete them.
+
+`human-writing` itself won’t spin up a personal writing Skill unasked; but if a user clearly provides dozens of their own pieces, Khazix allows a specialized version on this base. Universal rules and personalization aren’t in conflict. The difference is whether the voice grows out of real material.
+
+## Further reading
+
+- [GP-118: An Anthropic engineer’s Claude Code Skills field notes: nine types, design instincts, and the pits already fallen into](/posts/gp-118-20260318-trq212-claude-code-skills-lessons/)
+- [GP-266: MCP 2026-07-28: drop sessions, embrace stateless](/posts/gp-266-20260728-blog-modelcontextprotocol-io-2026-07-28-spec/)
+- [MP-170: ACE goes open source — AI coding environments are no longer a SaaS monopoly](/posts/mp-170-20260316-daniel-mac8-ace-open-source/)

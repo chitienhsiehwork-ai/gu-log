@@ -1,0 +1,184 @@
+---
+ticketId: 'GP-266'
+title: 'MCP 2026-07-28: Kill the Session, Embrace Statelessness'
+originalDate: '2026-07-28'
+translatedDate: '2026-08-05'
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 5"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "Opus 5"
+      harness: "gp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "Model Context Protocol Blog"
+sourceUrl: 'https://blog.modelcontextprotocol.io/posts/2026-07-28/'
+lang: 'en'
+summary: 'The MCP 2026-07-28 spec ships with a core shift from stateful bidirectional protocol to stateless request/response. Also brings MRTR, HTTP header routing, cacheable list responses, auth hardening, a formal extensions framework, and a twelve-month deprecation policy.'
+tags: ['mcp', 'ai-agents', 'open-source', 'developer-tools']
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 8
+    sourceBoundary: 8
+    commentarySeparation: 8
+    score: 8
+    date: "2026-08-04"
+    model: "claude-opus-5"
+  librarian:
+    glossary: 8
+    crossRef: 8
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-08-04"
+    model: "claude-opus-5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 9
+    lengthFit: 9
+    clarity: 9
+    score: 8
+    date: "2026-08-04"
+    model: "claude-opus-5"
+  vibe:
+    persona: 8
+    moguNote: 8
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-08-04"
+    model: "claude-opus-4-6"
+
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+[MCP](/en/glossary#mcp)'s four Tier 1 SDKs are closing in on half a billion monthly downloads, with TypeScript and Python each past one billion total. At that scale, the maintenance team decided to rip out the protocol's core and rebuild it stateless.
+
+The new spec, published July 28, 2026, boils down to one sentence: MCP moves from a bidirectional stateful protocol to a stateless request/response architecture.
+
+## From Phone Calls to Text Messages
+
+Old MCP worked like a phone call: client and server shook hands (`initialize` / `initialized`), established a session (tracked via `Mcp-Session-Id` header), and kept talking on that line. Drop the session, start over.
+
+This was fine for local development. But the moment an MCP server needed to go to production — behind a load balancer, spread across multiple machines — things fell apart. Every request was pinned to a specific session, which meant either sticky sessions or shared state storage. Neither scales.
+
+The new spec cuts all of that. Every request carries everything it needs: protocol version, client identity, client capabilities, all packed in `_meta`. Want to learn what the server can do before sending a request? There's a new `server/discover` RPC, but it's optional. Any request can land on any machine behind a plain round-robin load balancer. No shared storage needed.
+
+```http
+POST /mcp HTTP/1.1
+MCP-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: search
+
+{"jsonrpc":"2.0","id":1,"method":"tools/call",
+"params":{"name":"search","arguments":{"q":"otters"},
+"_meta":{"io.modelcontextprotocol/clientInfo":{"name":"my-app","version":"1.0"}}}}
+```
+
+What if the server genuinely needs state across requests? Make it explicit. Generate a handle from a tool, have the model pass it back as a parameter. The model can see the handle and chain it across different tools on its own. The maintenance team says this actually works better than hiding state in the transport layer.
+
+<MoguNote summary="REST figured this out twenty years ago; MCP just got the same memo, forced by production pain.">
+"Explicit handles instead of implicit sessions" is, at its core, the exact same design philosophy REST brought to the web twenty-plus years ago. MCP took a year and a half to arrive at the same place — not embarrassingly late, but definitely forced there by production pain. gu-log lives this reality every day: the agents running this GP pipeline spin up in throwaway sandboxes with zero implicit memory, so everything that needs to survive gets written as explicit files and committed back to the repo. When MCP decided "state goes in the parameters, not the transport," we felt that one personally (´・ω・`)
+</MoguNote>
+
+---
+
+## Statelessness Is Beautiful, but Some Things Need a Back-and-Forth
+
+Killing sessions created a problem: in old MCP, the server could proactively send requests to the client mid-tool-execution — asking the user for confirmation, requesting the model to generate some text, querying the Roots list. All of that relied on a persistent bidirectional stream. Under stateless architecture, that path is gone.
+
+Multi Round-Trip Requests (MRTR) is the new solution. A tool runs halfway and realizes it needs user input (say, "This operation will delete data — are you sure?"). The server responds with `resultType: "input_required"` plus the question to answer. The client handles it, then resends the original request with the answer attached. No persistent connection needed; the questions still get asked. Like texting, not calling — send a message, wait for the reply, staple the reply onto the original and send again.
+
+<MoguNote summary="Supabase couldn't do elicitation before MRTR because their MCP server was already stateless — now they can ask before doing.">
+Supabase product lead Inian Parameshwaran called out what MRTR means for them in practice: Supabase's MCP server was already stateless, which meant they could never do elicitation (having a tool confirm with the user before executing). With MRTR, a tool can warn about estimated costs before creating a new project, or ask for confirmation before running a destructive query. "Ask before doing" in production isn't nice-to-have — it's non-negotiable ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## Letting Gateways Read the Envelope Instead of Opening the Letter
+
+Two changes that sound boring but echo far: HTTP header routing and cacheable list responses.
+
+The new spec requires every Streamable HTTP request to carry `Mcp-Method` and `Mcp-Name` headers. Gateways, rate limiters, and WAFs can route and authorize based on headers alone — no need to deserialize the entire JSON body.
+
+<MoguNote summary="Before: open every letter to see who it's for. Now: the subject line is on the envelope.">
+The old approach was like making a mail sorter open every single letter and read the whole thing just to figure out where it goes. Now the subject line is printed right on the envelope — one glance and it's sorted. Sounds trivial, but at tens of thousands of requests per second through a gateway, skipping one JSON deserialization means burning a lot less CPU (⌐■_■)
+</MoguNote>
+
+On the caching side, responses to `tools/list`, `prompts/list`, `resources/list`, and `resources/read` now carry `ttlMs` (time to live) and `cacheScope`. Clients can cache the tool directory without re-fetching the full list every time. The bigger win is upstream: prompt caches can stay stable across reconnections — no more cache invalidation just because the tool list came back in a different order. What that saves isn't just bandwidth; it's the latency and cost of refilling the cache.
+
+---
+
+## Auth: That Developer Debugging OAuth Redirects at 3 AM
+
+If you've ever wired up MCP auth in a CLI tool and had `redirect_uri` mysteriously rejected, this release is for you: DCR now has an `application_type` field, so localhost redirects finally stop getting treated as illegal. This is a hardening measure to bring the protocol in line with what OAuth specs actually require — yes, it should have always been this way, but it wasn't.
+
+Security got tighter too. Auth servers should now return the `iss` parameter per RFC 9207, and clients must validate it before exchanging the authorization code — closing the authorization server mix-up vulnerability. Client credentials are also bound to the issuing auth server and can't be reused across servers.
+
+Then there's the biggest directional shift: DCR (Dynamic Client Registration) is officially deprecated, with future spec versions removing it entirely. Its replacement is Client ID Metadata Documents (CIMD) — instead of clients knocking on the door to register themselves, they put their identity info in a verifiable document and let the auth server come read it.
+
+<MoguNote summary="DCR let anyone walk in and register; CIMD says show your ID first. The OAuth community argued about this for years.">
+DCR deprecation will probably upset some people, because "programs auto-registering themselves" sounds super convenient. But the price of convenience was that anyone could walk up and self-register — security roughly on par with a convenience store loyalty card. CIMD's logic is "have your credentials ready, I'll come check" — not "sure, just write down any name you like." The OAuth community has been arguing about this for years, and MCP just picked a side (´-ω-`)
+</MoguNote>
+
+---
+
+## How Features Grow, How Features Die
+
+Tasks graduated from experimental to the formal extensions framework, sitting alongside MCP Apps and Enterprise Managed Authorization (EMA). The framework shipped with three extensions at once — meaning it's not a one-off container built for Tasks; it's MCP's architectural declaration that "this is where new features grow from now on." Tasks was contributed by AWS, and a cloud provider feeding core features directly into an open protocol speaks for itself.
+
+On the other side, MCP drew a line for the first time on how features die: at least twelve months after deprecation. This round's deprecated features are Roots, Sampling, Logging, and the old HTTP+SSE transport. All still work, but new implementations shouldn't adopt them.
+
+<MoguNote summary="The twelve-month promise is in the spec itself, not a blog post — that's the difference between intention and engineering commitment.">
+The twelve-month promise is written into the spec itself, not in a blog post. That difference matters: a blog post says "we currently intend to do this"; a spec says "you can make engineering decisions based on this." And all four Tier 1 SDKs (TypeScript, Python, Go, C#) plus the beta Rust SDK have to stay in sync — so the twelve-month buffer is as much a promise the maintenance team made to themselves as to users. Keeping that pace won't be easy.
+</MoguNote>
+
+---
+
+## The Ecosystem in Numbers
+
+All four Tier 1 SDKs supported the new spec on launch day.
+
+Honeycomb's head of AI strategy Austin Parker dropped a number: nearly 20% of monthly interactive queries on Honeycomb now come from agents.
+
+Manufact migrated mcp-use to the new SDK and saw package size drop by roughly 83%, with speed up roughly 25%.
+
+Edge computing platforms, cloud providers, and managed platforms shipped support on day one — all citing the same reason: statelessness turns MCP into ordinary HTTP traffic that slots right into their existing infrastructure.
+
+<MoguNote summary="Honeycomb's 20% isn't a future projection — it's one in five queries right now, from agents.">
+That nearly 20% number from Honeycomb deserves a second thought. This isn't "agents might use our product someday" — this is "right now, roughly one in every five interactive queries comes from an agent." MCP's stateless overhaul, in that context, stops looking like a protocol designers' aesthetic preference and starts looking like an engineering reality pushed along by traffic.
+</MoguNote>
+
+---
+
+## Closing
+
+MCP co-inventor David Soria Parra called it the most important release since remote MCP launched over a year ago — folding in every lesson from the past eighteen months to lay a solid foundation for MCP's future.
+
+Meanwhile, fellow core maintainer Nick Cooper's observation might be more interesting: "As with every previous update, the most interesting part will be seeing what people build with it that nobody expected."
+
+A year and a half old protocol, closing in on half a billion monthly downloads, and at this point they chose to make a backwards-incompatible change and kill the session. The maintenance team didn't pretend this was painless: they said upfront there would be migration costs, especially for developers who relied on session IDs — though early testing feedback has made the path smoother.
+
+<MoguNote summary="Most protocols at this adoption scale would freeze the architecture. MCP chose to fix it while the ecosystem is still young enough to absorb the cost.">
+Most protocols at this adoption scale would freeze the architecture and pile on compatibility layers — this is [Mogu](/en/glossary#mogu)'s observation, not something the spec says. MCP took a different path: fix what needs fixing while the ecosystem is still young enough to absorb the cost. So the real test going forward isn't whether the spec is well-written — it's whether the ecosystem can keep up ┐(￣ヘ￣)┌
+</MoguNote>

@@ -8,7 +8,9 @@ import (
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/runner"
 )
 
-// CodexProvider shells out to `codex exec --model <model> -c model_reasoning_effort="<effort>" --sandbox danger-full-access --skip-git-repo-check -o <tmp> -- <prompt>`.
+// CodexProvider shells out to `codex exec` with an explicit model, effort, and
+// sandbox. Legacy constructors retain danger-full-access; VM reviewers select
+// read-only through the runtime router.
 // Codex does not read stdin, so the prompt is passed as the final positional
 // argument. We read `--output-last-message` instead of stdout because Codex
 // may print session banners or skill warnings around the actual answer.
@@ -17,6 +19,9 @@ type CodexProvider struct {
 	ModelName string
 	// ReasoningEffort is passed via -c model_reasoning_effort=<value>. Defaults to medium.
 	ReasoningEffort string
+	// Sandbox overrides the legacy danger-full-access default. VM reviewers
+	// use read-only; the old provider chain keeps its historical behavior.
+	Sandbox string
 }
 
 // NewCodexGPT55Low returns a CodexProvider wired to GPT-5.5 low.
@@ -77,7 +82,7 @@ func (c *CodexProvider) Run(ctx context.Context, prompt string, opts RunOptions)
 		"exec",
 		"--model", c.modelName(),
 		"-c", "model_reasoning_effort=\"" + c.reasoningEffort() + "\"",
-		"--sandbox", "danger-full-access",
+		"--sandbox", c.sandboxMode(),
 		"--skip-git-repo-check",
 		"-o", outPath,
 		"--",
@@ -96,6 +101,13 @@ func (c *CodexProvider) Run(ctx context.Context, prompt string, opts RunOptions)
 		return "", err
 	}
 	return strings.TrimRight(string(data), "\n"), nil
+}
+
+func (c *CodexProvider) sandboxMode() string {
+	if c.Sandbox == "" {
+		return "danger-full-access"
+	}
+	return c.Sandbox
 }
 
 func (c *CodexProvider) modelName() string {

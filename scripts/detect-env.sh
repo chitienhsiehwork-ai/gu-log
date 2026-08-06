@@ -2,6 +2,7 @@
 # detect-env.sh — 判斷這個 coding-agent instance 的可路由 actor identity
 #
 # m1-cdx (example): M1 Mac 上的 Codex Desktop / Codex CLI
+# vm-codex:         VM 上的 Codex CLI（明確區分 VM runtime profile）
 # m1-cc  (example): M1 Mac 上的 Claude Code-compatible local harness
 # CCC              Cloud sandbox，auto-branch
 #
@@ -74,6 +75,15 @@ detect_machine_id() {
     return
   fi
 
+  # Linux hosts that are VMs get a stable generic actor prefix without
+  # checking in a hostname or other machine-specific deployment fact.
+  if [[ "$uname_s" != "Darwin" ]] &&
+    command -v systemd-detect-virt >/dev/null 2>&1 &&
+    systemd-detect-virt --vm >/dev/null 2>&1; then
+    echo "vm"
+    return
+  fi
+
   echo "local"
 }
 
@@ -96,8 +106,10 @@ esac
 #   2. 在 Linux 上（Mac 是 Darwin）
 #   3. cwd 在 /home/user/ 底下（Claude Code web 的 sandbox 路徑）
 claude_remote=false
-[[ "$explicit_runtime" == "claude-code" && "${CLAUDE_CODE_REMOTE:-}" == "true" ]] && \
-  claude_remote=true
+# CLAUDE_CODE_REMOTE describes the host surface, not merely the requested
+# rendering persona. It must win even if a generic wrapper asks for a
+# Codex-shaped identity inside CCC.
+[[ "${CLAUDE_CODE_REMOTE:-}" == "true" ]] && claude_remote=true
 ccc_branch=false
 ccc_os=false
 ccc_cwd=false
@@ -111,7 +123,11 @@ if $claude_remote || { $ccc_branch && $ccc_os && $ccc_cwd; }; then
   machine_id=cloud
 elif $codex_runtime; then
   mode=CC
-  human_mode="${machine_id}-cdx"
+  if [[ "$machine_id" == "vm" ]]; then
+    human_mode="vm-codex"
+  else
+    human_mode="${machine_id}-cdx"
+  fi
 else
   mode=CC
   human_mode="${machine_id}-cc"

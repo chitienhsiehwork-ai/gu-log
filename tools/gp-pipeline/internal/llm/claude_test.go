@@ -12,16 +12,15 @@ import (
 // Model() must keep the concrete pinned id, DisplayName must render it, and
 // Name() must still collapse to the family label for logs.
 //
-// Model() identity is the load-bearing assertion here. While the pin and the
-// alias happen to name the same build, their DisplayName strings match, so
-// comparing display names alone would no longer catch the collapse.
+// Model() identity is the load-bearing assertion here. The pin may differ
+// from the floating alias, so both identities are checked independently.
 func TestClaudeWriterModelPreservesPinnedVersion(t *testing.T) {
 	w := NewClaudeOpusWriter()
 	if got := w.Model(); got != ModelID(ClaudeOpusPinned) {
 		t.Fatalf("writer Model() = %q, want %q", got, ClaudeOpusPinned)
 	}
-	if got := DisplayName(w.Model()); got != "Opus 5" {
-		t.Fatalf("writer DisplayName = %q, want %q", got, "Opus 5")
+	if got := DisplayName(w.Model()); got != "Opus 4.6" {
+		t.Fatalf("writer DisplayName = %q, want %q", got, "Opus 4.6")
 	}
 	if got := w.Name(); got != string(ModelClaudeOpus) {
 		t.Fatalf("writer Name() = %q, want %q", got, ModelClaudeOpus)
@@ -112,7 +111,7 @@ printf '{"result":"ok","modelUsage":{"%s":{"outputTokens":7}}}\n' "$model"
 	if got := w.ActualModel(); got != ModelID(ClaudeOpusPinned) {
 		t.Fatalf("ActualModel after run = %q, want %q", got, ClaudeOpusPinned)
 	}
-	if got := DisplayName(w.ActualModel()); got != "Opus 5" {
-		t.Fatalf("stamped DisplayName = %q, want Opus 5", got)
+	if got := DisplayName(w.ActualModel()); got != "Opus 4.6" {
+		t.Fatalf("stamped DisplayName = %q, want Opus 4.6", got)
 	}
 }
