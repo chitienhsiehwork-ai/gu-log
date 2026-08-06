@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-07-26T00:00:00Z",
+  "updatedAt": "2026-08-05T00:00:00Z",
   "entries": [
     {
       "id": "1120654",
@@ -9,10 +9,16 @@
       "expiresAt": "2026-09-05"
     },
     {
-      "id": "1124334",
+      "id": "1130734",
       "name": "brace-expansion",
-      "reason": "LHCI 的 legacy 1.x 間接 dev dependency；5.x 路徑已升到 patched 版本，不進 production bundle，等待 LHCI 上游相容更新。",
+      "reason": "LHCI 的 legacy 1.x 間接 dev dependency（chrome-launcher → rimraf → glob → minimatch）；5.x 路徑已升到 patched 版本，不進 production bundle，等待 LHCI 上游相容更新。取代舊 advisory 1124334。",
       "expiresAt": "2026-09-05"
+    },
+    {
+      "id": "1130720",
+      "name": "fast-uri",
+      "reason": "@astrojs/check 的間接 dependency（→ @astrojs/language-server → volar-service-yaml → yaml-language-server → ajv）；@astrojs/check 僅 build-time type checking 使用，不進 production bundle，等待上游 ajv 更新。",
+      "expiresAt": "2026-08-19"
     }
   ]
 }

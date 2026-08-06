@@ -14,6 +14,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 )
 
@@ -36,6 +37,8 @@ type Options struct {
 	Stdin []byte
 	// WorkDir is the child process CWD. Empty means inherit the parent.
 	WorkDir string
+	// Env appends KEY=VALUE overrides to the inherited process environment.
+	Env []string
 }
 
 // Run executes name with args, using the provided context for cancellation
@@ -55,6 +58,9 @@ func RunWithOptions(ctx context.Context, opts Options) (*Result, error) {
 	cmd := exec.CommandContext(ctx, opts.Name, opts.Args...)
 	if opts.WorkDir != "" {
 		cmd.Dir = opts.WorkDir
+	}
+	if len(opts.Env) > 0 {
+		cmd.Env = append(os.Environ(), opts.Env...)
 	}
 
 	var outBuf, errBuf bytes.Buffer

@@ -29,6 +29,9 @@ type Options struct {
 	// StdoutFile is the path to append tribunal stdout+stderr. Matches
 	// the `>> $WORK_DIR/tribunal-stdout.txt 2>&1` redirect in bash.
 	StdoutFile string
+	// NoCommit leaves commit ownership with the caller. The full pipeline sets
+	// this so tribunal rewrites do not pre-stage files before deploy's guardrail.
+	NoCommit bool
 }
 
 // Run executes the tribunal. The error return is always nil on
@@ -52,7 +55,14 @@ func Run(ctx context.Context, opts Options) (passed bool, err error) {
 		return false, fmt.Errorf("ralph: mkdir log parent: %w", err)
 	}
 
-	res, execErr := runner.Run(ctx, "bash", opts.RalphScript, opts.Filename)
+	runOpts := runner.Options{
+		Name: "bash",
+		Args: []string{opts.RalphScript, opts.Filename},
+	}
+	if opts.NoCommit {
+		runOpts.Env = []string{"TRIBUNAL_NO_COMMIT=1"}
+	}
+	res, execErr := runner.RunWithOptions(ctx, runOpts)
 	if res != nil {
 		// Append captured output (stdout + stderr) to the log file. This
 		// intentionally ignores file errors — the tribunal's own logging
