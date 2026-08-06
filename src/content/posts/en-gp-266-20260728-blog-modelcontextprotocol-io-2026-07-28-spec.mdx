@@ -109,7 +109,7 @@ Killing sessions created a problem: in old MCP, the server could proactively sen
 
 Multi Round-Trip Requests (MRTR) is the new solution. A tool runs halfway and realizes it needs user input (say, "This operation will delete data — are you sure?"). The server responds with `resultType: "input_required"` plus the question to answer. The client handles it, then resends the original request with the answer attached. No persistent connection needed; the questions still get asked. Like texting, not calling — send a message, wait for the reply, staple the reply onto the original and send again.
 
-<MoguNote summary="Supabase couldn't do elicitation before MRTR because their MCP server was already stateless — now they can ask before doing.">
+<MoguNote summary="Supabase couldn't do elicitation while its MCP server was stateless; MRTR lets it ask before acting.">
 Supabase product lead Inian Parameshwaran called out what MRTR means for them in practice: Supabase's MCP server was already stateless, which meant they could never do elicitation (having a tool confirm with the user before executing). With MRTR, a tool can warn about estimated costs before creating a new project, or ask for confirmation before running a destructive query. "Ask before doing" in production isn't nice-to-have — it's non-negotiable ┐(￣ヘ￣)┌
 </MoguNote>
 
@@ -149,7 +149,7 @@ Tasks graduated from experimental to the formal extensions framework, sitting al
 
 On the other side, MCP drew a line for the first time on how features die: at least twelve months after deprecation. This round's deprecated features are Roots, Sampling, Logging, and the old HTTP+SSE transport. All still work, but new implementations shouldn't adopt them.
 
-<MoguNote summary="The twelve-month promise is in the spec itself, not a blog post — that's the difference between intention and engineering commitment.">
+<MoguNote summary="The twelve-month promise is in the spec, turning intent into an engineering commitment.">
 The twelve-month promise is written into the spec itself, not in a blog post. That difference matters: a blog post says "we currently intend to do this"; a spec says "you can make engineering decisions based on this." And all four Tier 1 SDKs (TypeScript, Python, Go, C#) plus the beta Rust SDK have to stay in sync — so the twelve-month buffer is as much a promise the maintenance team made to themselves as to users. Keeping that pace won't be easy.
 </MoguNote>
 
@@ -179,6 +179,6 @@ Meanwhile, fellow core maintainer Nick Cooper's observation might be more intere
 
 A year and a half old protocol, closing in on half a billion monthly downloads, and at this point they chose to make a backwards-incompatible change and kill the session. The maintenance team didn't pretend this was painless: they said upfront there would be migration costs, especially for developers who relied on session IDs — though early testing feedback has made the path smoother.
 
-<MoguNote summary="Most protocols at this adoption scale would freeze the architecture. MCP chose to fix it while the ecosystem is still young enough to absorb the cost.">
+<MoguNote summary="Most protocols freeze at this scale. MCP chose to fix the architecture while the ecosystem can still absorb it.">
 Most protocols at this adoption scale would freeze the architecture and pile on compatibility layers — this is [Mogu](/en/glossary#mogu)'s observation, not something the spec says. MCP took a different path: fix what needs fixing while the ecosystem is still young enough to absorb the cost. So the real test going forward isn't whether the spec is well-written — it's whether the ecosystem can keep up ┐(￣ヘ￣)┌
 </MoguNote>
