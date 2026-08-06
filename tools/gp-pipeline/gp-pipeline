@@ -19,6 +19,22 @@ BIN="$DIR/bin/gp-pipeline"
 PKG="./cmd/gp-pipeline"
 BUILD_FLAGS=(-trimpath -ldflags=-s\ -w)
 
+if [ -z "${TRIBUNAL_RUNTIME_PROFILE:-}" ]; then
+  identity="$(
+    bash "$DIR/../../scripts/detect-env.sh" \
+      --runtime codex --identity 2>/dev/null || true
+  )"
+  if [ "$identity" = "vm-codex" ]; then
+    export TRIBUNAL_RUNTIME_PROFILE=vm-codex
+  else
+    export TRIBUNAL_RUNTIME_PROFILE=legacy
+  fi
+fi
+if [ "$TRIBUNAL_RUNTIME_PROFILE" = "vm-codex" ] &&
+   [ -z "${GP_WRITER_MODE:-}" ]; then
+  export GP_WRITER_MODE=grok
+fi
+
 need_rebuild() {
   if [ ! -x "$BIN" ]; then
     return 0

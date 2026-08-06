@@ -129,16 +129,15 @@ func (s *State) Ralph(ctx context.Context) error {
 
 	s.runPostFixers(ctx, activePath)
 
-	// Run the tribunal. tribunal.sh resolves the runtime provider per judge:
-	// VibeScorer runs on the pinned Claude build declared in
-	// .claude/agents/vibe-opus-scorer.md (the SSOT — do not restate the version
-	// here) while Librarian/FactChecker/FreshEyes stay on Codex (mac/VPS). When
-	// codex is absent (CCC sandbox) all four judges fall back to Claude.
+	// Run the tribunal. tribunal.sh owns per-judge runtime routing; legacy and
+	// Claude Code Cloud keep their historical provider chain, while VM-specific
+	// routes come from config/llm-pipeline.json.
 	s.Log.Info("  Running 4-stage tribunal (via tribunal.sh)...")
 	passed, err := ralph.Run(ctx, ralph.Options{
 		RalphScript: filepath.Join(s.Cfg.ScriptsDir, "tribunal.sh"),
 		Filename:    s.ActiveFilename,
 		StdoutFile:  filepath.Join(s.WorkDir, "tribunal-stdout.txt"),
+		NoCommit:    true,
 	})
 	if err != nil {
 		// Ralph.Run only returns errors for misuse; bubble up.
@@ -152,19 +151,37 @@ func (s *State) Ralph(ctx context.Context) error {
 	}
 
 	// Frontmatter normaliser — for every file in {zh, en}, strip old
-	// pipeline block + pipelineUrl, then inject the canonical 6-entry
-	// block. Matches the Python heredoc at bash lines 1245-1300.
-	writerModel, writerHarness, err := s.StampLabels()
-	if err != nil {
-		return fmt.Errorf("ralph: resolve writer stamp: %w", err)
+	// pipeline block + pipelineUrl, then inject the canonical 6-entry block.
+	// A standalone `ralph --file` State has no run-scoped stage metadata, so
+	// reuse a complete canonical stamp already present on the post before
+	// consulting ambient provider defaults. Otherwise a recovery run can
+	// falsely attribute an existing Grok/GPT-5.6 article to old defaults.
+	existingStamp, _ := existingRalphPipelineStamp(activePath)
+	writeModel := nonEmpty(s.WriteModel, existingStamp.WriteModel)
+	writeHarness := nonEmpty(s.WriteHarness, existingStamp.WriteHarness)
+	refineModel := nonEmpty(s.RefineModel, existingStamp.RefineModel)
+	refineHarness := nonEmpty(s.RefineHarness, existingStamp.RefineHarness)
+	if writeModel == "" || writeHarness == "" || refineModel == "" || refineHarness == "" {
+		writerModel, writerHarness, err := s.StampLabels()
+		if err != nil {
+			return fmt.Errorf("ralph: resolve writer stamp: %w", err)
+		}
+		writeModel = nonEmpty(writeModel, writerModel)
+		writeHarness = nonEmpty(writeHarness, writerHarness)
+		refineModel = nonEmpty(refineModel, writerModel)
+		refineHarness = nonEmpty(refineHarness, writerHarness)
 	}
-	judgeModel, judgeHarness := s.JudgeStampLabels()
-	writeModel := nonEmpty(s.WriteModel, writerModel)
-	writeHarness := nonEmpty(s.WriteHarness, writerHarness)
-	reviewModel := nonEmpty(s.ReviewModel, judgeModel)
-	reviewHarness := nonEmpty(s.ReviewHarness, judgeHarness)
-	refineModel := nonEmpty(s.RefineModel, writerModel)
-	refineHarness := nonEmpty(s.RefineHarness, writerHarness)
+	reviewModel := nonEmpty(s.ReviewModel, existingStamp.ReviewModel)
+	reviewHarness := nonEmpty(s.ReviewHarness, existingStamp.ReviewHarness)
+	judgeModel := existingStamp.JudgeModel
+	judgeHarness := existingStamp.JudgeHarness
+	if reviewModel == "" || reviewHarness == "" || judgeModel == "" || judgeHarness == "" {
+		defaultJudgeModel, defaultJudgeHarness := s.JudgeStampLabels()
+		reviewModel = nonEmpty(reviewModel, defaultJudgeModel)
+		reviewHarness = nonEmpty(reviewHarness, defaultJudgeHarness)
+		judgeModel = nonEmpty(judgeModel, defaultJudgeModel)
+		judgeHarness = nonEmpty(judgeHarness, defaultJudgeHarness)
+	}
 	for _, fname := range []string{s.ActiveFilename, s.ActiveENFilename} {
 		path := filepath.Join(postsDir, fname)
 		if _, err := os.Stat(path); err != nil {
@@ -307,6 +324,52 @@ type PipelineStamp struct {
 	RefineHarness string
 	JudgeModel    string
 	JudgeHarness  string
+}
+
+// existingRalphPipelineStamp recovers the actual providers from a previously
+// normalized six-role pipeline. Partial/legacy blocks are deliberately
+// rejected so their gaps fall back to the current run's resolved providers.
+func existingRalphPipelineStamp(path string) (PipelineStamp, bool) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return PipelineStamp{}, false
+	}
+	f, err := frontmatter.Parse(data)
+	if err != nil {
+		return PipelineStamp{}, false
+	}
+	var metadata struct {
+		TranslatedBy struct {
+			Pipeline []struct {
+				Role    string `yaml:"role"`
+				Model   string `yaml:"model"`
+				Harness string `yaml:"harness"`
+			} `yaml:"pipeline"`
+		} `yaml:"translatedBy"`
+	}
+	if err := yaml.Unmarshal([]byte(f.FrontmatterText()), &metadata); err != nil {
+		return PipelineStamp{}, false
+	}
+
+	var stamp PipelineStamp
+	for _, entry := range metadata.TranslatedBy.Pipeline {
+		switch entry.Role {
+		case "Written":
+			stamp.WriteModel, stamp.WriteHarness = entry.Model, entry.Harness
+		case "Reviewed":
+			stamp.ReviewModel, stamp.ReviewHarness = entry.Model, entry.Harness
+		case "Refined":
+			stamp.RefineModel, stamp.RefineHarness = entry.Model, entry.Harness
+		case "Scored":
+			stamp.JudgeModel = entry.Model
+			stamp.JudgeHarness = strings.TrimSuffix(entry.Harness, " + Tribunal")
+		}
+	}
+	complete := stamp.WriteModel != "" && stamp.WriteHarness != "" &&
+		stamp.ReviewModel != "" && stamp.ReviewHarness != "" &&
+		stamp.RefineModel != "" && stamp.RefineHarness != "" &&
+		stamp.JudgeModel != "" && stamp.JudgeHarness != ""
+	return stamp, complete
 }
 
 func normalizeRalphFrontmatter(path string, stamp PipelineStamp) error {

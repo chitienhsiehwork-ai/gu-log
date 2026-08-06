@@ -109,6 +109,20 @@ process.exit(0);
 	if err := os.WriteFile(styleGuide, []byte("# Style\nLHY tone.\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	for name, body := range map[string]string{
+		"CONTRIBUTING.md":                          "# Contributing\n",
+		"docs/shroomdog-editorial-feedback.md":     "# Editorial feedback\n",
+		"openspec/specs/editorial-charter/spec.md": "# Editorial charter\n",
+		"scripts/vibe-scoring-standard.md":         "# Vibe scoring\n",
+	} {
+		path := filepath.Join(tmp, name)
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
 
 	// Empty validate-posts.mjs so deploy can skip it via SkipValidate.
 	if err := os.WriteFile(filepath.Join(scriptsDir, "validate-posts.mjs"), []byte(""), 0o644); err != nil {
@@ -206,6 +220,48 @@ func runGitForTest(t *testing.T, repo string, args ...string) string {
 		t.Fatalf("git %v: %v\n%s", args, err, out)
 	}
 	return strings.TrimSpace(string(out))
+}
+
+func TestStageEditorialContext_CopiesCanonicalFiles(t *testing.T) {
+	tmp := t.TempDir()
+	workDir := filepath.Join(tmp, "work")
+	files := map[string]string{
+		"GU-LOG_WRITER_PROMPT.md":                  "# Writer guide\n",
+		"CONTRIBUTING.md":                          "# Contributing\n",
+		"docs/shroomdog-editorial-feedback.md":     "# Editorial feedback\n",
+		"openspec/specs/editorial-charter/spec.md": "# Editorial charter\n",
+		"scripts/vibe-scoring-standard.md":         "# Vibe scoring\n",
+	}
+	for name, body := range files {
+		path := filepath.Join(tmp, name)
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	s := NewState()
+	s.WorkDir = workDir
+	s.Cfg = &config.Config{
+		RepoRoot:     tmp,
+		WritingGuide: filepath.Join(tmp, "GU-LOG_WRITER_PROMPT.md"),
+	}
+	if err := s.stageEditorialContext(); err != nil {
+		t.Fatalf("stageEditorialContext: %v", err)
+	}
+
+	for name, want := range files {
+		got, err := os.ReadFile(filepath.Join(workDir, name))
+		if err != nil {
+			t.Errorf("staged %s missing: %v", name, err)
+			continue
+		}
+		if string(got) != want {
+			t.Errorf("staged %s = %q, want %q", name, got, want)
+		}
+	}
 }
 
 func TestRun_HappyPath(t *testing.T) {

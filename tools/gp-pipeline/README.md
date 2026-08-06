@@ -23,6 +23,19 @@ Pipeline 包含 source validation、LLM routing、dedup、可恢復 state、coun
 
 wrapper 只負責在 source 較新時編譯 `cmd/gp-pipeline` 到 gitignored `bin/gp-pipeline`，然後 `exec`。repo 不追蹤平台特定 binary。
 
+## VM model routing
+
+`scripts/detect-env.sh --runtime codex --identity` 回報 `vm-codex` 時，wrapper
+才啟用同名 runtime profile；其他 Codex、Claude Code Cloud 與 legacy caller
+維持原本 provider chain。VM profile 會先確認 Codex 與官方 Grok Build CLI
+都相容且已登入，缺任一個就 fail closed。
+
+所有常換的 model、effort、quota threshold 與 unknown policy 都只定義在
+`config/llm-pipeline.json`；README 不複製易過期的數值。Router 依該檔選擇
+reviewer、writer 與 Vibe Scorer，而且不會在低額度時靜默改用其他 writer。
+CodexBar 尚未提供可靠 Grok Build quota 前，自動 Grok probe 保持關閉，
+不猜百分比。
+
 ## Quick start
 
 ```bash

@@ -91,11 +91,20 @@ tribunal_batch_active_providers() {
     codex)
       writer_provider="codex"
       ;;
+    grok)
+      writer_provider="grok"
+      ;;
     *) return 1 ;;
   esac
 
   for provider in "$global_provider" "$vibe_provider" "$fallback_provider" "$writer_provider"; do
     [ -n "$provider" ] || continue
+    # Grok uses the shared model router's quota policy. CodexBar cannot yet
+    # provide a reliable Grok percentage on this VM, so do not pretend the
+    # usage-monitor payload is authoritative for it.
+    if [ "$provider" = "grok" ]; then
+      continue
+    fi
     case "$provider" in
       codex|claude) ;;
       *) return 1 ;;

@@ -1880,6 +1880,9 @@ if [ "${1:-}" = "--version" ]; then
   echo "codex-cli 0.128.0"
   exit 0
 fi
+if [ "${1:-}" = "login" ] && [ "${2:-}" = "status" ]; then
+  exit 0
+fi
 if [ "${1:-}" = "exec" ]; then
   argv=" $* "
   case "$argv" in
@@ -1960,6 +1963,44 @@ fi
 exit 1
 FINAL_GATE_CODEX
 
+cat > "$final_gate_bin/grok" <<'FINAL_GATE_GROK'
+#!/usr/bin/env bash
+if [ "${1:-}" = "--help" ]; then
+  exit 0
+fi
+if [ "${1:-}" = "models" ]; then
+  printf 'Default model: grok-4.5\nAvailable models:\n  * grok-4.5 (default)\n'
+  exit 0
+fi
+prompt="${!#}"
+candidate_zh="$(
+  printf '%s\n' "$prompt" |
+    sed -n '/^## Writable zh-tw candidate$/{n;p;}' |
+    tail -1
+)"
+[ -f "$candidate_zh" ] || exit 72
+count=0
+[ ! -r "$FINAL_GATE_WRITER_COUNT" ] ||
+  count="$(cat "$FINAL_GATE_WRITER_COUNT")"
+count=$((count + 1))
+printf '%s\n' "$count" > "$FINAL_GATE_WRITER_COUNT"
+printf '\n<!-- final-gate-grok-writer-%s -->\n' "$count" >> "$candidate_zh"
+printf 'grok-ok\n'
+FINAL_GATE_GROK
+
+cat > "$final_gate_bin/systemd-run" <<'FINAL_GATE_SYSTEMD_RUN'
+#!/usr/bin/env bash
+while [ "$#" -gt 0 ]; do
+  if [ "$1" = -- ]; then
+    shift
+    break
+  fi
+  shift
+done
+[ "$#" -gt 0 ] || exit 64
+exec "$@"
+FINAL_GATE_SYSTEMD_RUN
+
 cat > "$final_gate_bin/pnpm" <<'FINAL_GATE_PNPM'
 #!/usr/bin/env bash
 count=0
@@ -2001,7 +2042,8 @@ for arg in "$@"; do
 done
 exec "$FINAL_GATE_REAL_JQ" "$@"
 FINAL_GATE_JQ
-chmod +x "$final_gate_bin/codex" "$final_gate_bin/pnpm" "$final_gate_bin/jq"
+chmod +x "$final_gate_bin/codex" "$final_gate_bin/grok" \
+  "$final_gate_bin/systemd-run" "$final_gate_bin/pnpm" "$final_gate_bin/jq"
 
 write_final_gate_progress() {
   local progress_file="$1"
@@ -2076,6 +2118,7 @@ write_final_gate_progress() {
 
 run_final_gate_scenario() {
   local name="$1" behavior="$2"
+  local writer_mode="${3:-codex}" runtime_profile=legacy
   local scenario_dir="$TMP/final-gate-$name"
   local progress_file="$scenario_dir/progress.json"
   local coordinator_dir="$scenario_dir/coordinator"
@@ -2106,6 +2149,9 @@ run_final_gate_scenario() {
   printf '0\n' > "$scenario_dir/build-count"
 
   tribunal_args=(--no-commit "$final_gate_post")
+  if [ "$writer_mode" = grok ]; then
+    runtime_profile=vm-codex
+  fi
 
   set +e
   PATH="$final_gate_bin:$PATH" \
@@ -2114,8 +2160,9 @@ run_final_gate_scenario() {
   TRIBUNAL_ARTICLE_LOCK_DIR="$scenario_dir/article-locks" \
   TRIBUNAL_SHARED_LOCK_DIR="$scenario_dir/shared-locks" \
   TRIBUNAL_MAIN_REPO="$coordinator_dir" \
+  TRIBUNAL_RUNTIME_PROFILE="$runtime_profile" \
   TRIBUNAL_FORCE_PROVIDER=codex \
-  GP_WRITER_MODE=codex \
+  GP_WRITER_MODE="$writer_mode" \
   GP_CODEX_MODEL=gpt-test \
   TRIBUNAL_CODEX_TIMEOUT_SEC=5 \
   FINAL_GATE_BEHAVIOR="$behavior" \
@@ -2204,6 +2251,18 @@ if find "$FINAL_GATE_LAST_DIR/tmp" -maxdepth 1 -name 'tribunal-rewrite.*' -print
   fail "successful final-build repair left its snapshot behind"
 fi
 pass "successful final-build repair retains writer changes and discards recovery state"
+
+run_final_gate_scenario grok-success success grok
+if [ "$FINAL_GATE_LAST_RC" -ne 0 ]; then
+  sed -n '1,200p' "$FINAL_GATE_LAST_DIR/out" >&2 || true
+  sed -n '1,200p' "$FINAL_GATE_LAST_DIR/err" >&2 || true
+  fail "successful Grok final-build repair must return rc=0"
+fi
+grep -Fq '<!-- final-gate-grok-writer-1 -->' "$final_gate_zh" ||
+  fail "successful Grok final-build repair discarded the writer change"
+[ "$(jq -r --arg a "$final_gate_post" '.[$a].status' "$FINAL_GATE_LAST_PROGRESS")" = "PASS" ] ||
+  fail "successful Grok final-build repair did not persist PASS"
+pass "Grok final-build repair accepts complete provider provenance"
 
 run_final_gate_scenario success-background success-background
 [ "$FINAL_GATE_LAST_RC" -eq 0 ] ||

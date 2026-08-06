@@ -14,8 +14,8 @@ import (
 // review.tmpl prompt and runs it through the dispatcher with WorkDir set
 // so the LLM can read draft-v1.mdx by relative path and write review.md
 // to the same directory. The review prompt does NOT embed the draft text
-// or the style guide contents — the LLM is expected to read them from
-// disk in the work dir, matching bash semantics.
+// or canonical editorial inputs — Review stages them so the LLM can read all
+// of them from the provider-visible work directory.
 func (s *State) Review(ctx context.Context) error {
 	reviewPath := filepath.Join(s.WorkDir, "review.md")
 
@@ -25,6 +25,9 @@ func (s *State) Review(ctx context.Context) error {
 	}
 
 	s.Log.Info("Step 3: review")
+	if err := s.stageEditorialContext(); err != nil {
+		return fmt.Errorf("review: %w", err)
+	}
 
 	prompt, err := prompts.Render("review", prompts.ReviewData{
 		TicketID: s.PromptTicketID,

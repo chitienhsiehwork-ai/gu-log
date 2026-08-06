@@ -474,6 +474,60 @@ func (f *File) StripLinesMatching(pred func(line string) bool) {
 	f.lines = out
 }
 
+// ValidateYAML reports whether the frontmatter block parses as YAML.
+//
+// The rest of this package is deliberately line-based, which is why an
+// invalid block can survive Parse, GetScalar and Bytes without complaint.
+// Callers that accept frontmatter from outside the pipeline (an LLM-authored
+// sidecar, an imported draft) SHOULD run this before writing the file.
+func (f *File) ValidateYAML() error {
+	var out any
+	if err := yaml.Unmarshal([]byte(f.FrontmatterText()), &out); err != nil {
+		return fmt.Errorf("frontmatter: invalid YAML: %w", err)
+	}
+	return nil
+}
+
+// singleQuotedScalarRe matches a scalar line whose value is wrapped in YAML
+// single quotes, at any indent (title:, summary:, and their nested cousins).
+var singleQuotedScalarRe = regexp.MustCompile(`^(\s*)([A-Za-z_][A-Za-z0-9_-]*): '(.*)'[ \t]*$`)
+
+// RepairSingleQuotedScalars fixes the one frontmatter defect a writer model
+// reproducibly emits: a value wrapped in YAML single quotes that still
+// contains a raw apostrophe (`title: 'Greg Isenberg's Map'`). The apostrophe
+// closes the scalar early, so the whole block stops being valid YAML — and
+// because both this package and scripts/validate-posts.mjs read frontmatter
+// line-by-line, nothing upstream notices. zh-tw prose rarely uses the
+// character, so it surfaces on en sidecars (see gu-log #546, which fixed the
+// values the pipeline writes itself; these arrive from the model).
+//
+// Repair is only attempted on a block that already fails ValidateYAML, and
+// only on lines that are unambiguously single-quoted scalars — the value is
+// re-emitted through QuoteScalar, which owns the escaping rules. It reports
+// whether anything changed; the caller MUST re-run ValidateYAML, because a
+// block can be invalid for reasons this does not address.
+func (f *File) RepairSingleQuotedScalars() bool {
+	if f.ValidateYAML() == nil {
+		return false
+	}
+	changed := false
+	for i, line := range f.lines {
+		m := singleQuotedScalarRe.FindStringSubmatch(line)
+		if m == nil {
+			continue
+		}
+		// A correctly escaped single-quoted scalar doubles its apostrophes;
+		// leave those alone, they are already valid.
+		value := strings.ReplaceAll(m[3], "''", "")
+		if !strings.Contains(value, "'") {
+			continue
+		}
+		f.lines[i] = m[1] + m[2] + ": " + QuoteScalar(strings.ReplaceAll(m[3], "''", "'"))
+		changed = true
+	}
+	return changed
+}
+
 // QuoteScalar serializes s as a YAML double-quoted scalar. yaml.v3 owns the
 // complete escaping rules, including physical line breaks, tabs, carriage
 // returns, and control characters.

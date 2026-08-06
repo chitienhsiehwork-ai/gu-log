@@ -285,7 +285,7 @@ MoguNote 與翻譯 body 的 first-principles 邊界以 [`editorial-charter` spec
 - ❌ 不要用反問句問讀者顯而易見的答案
 - 可驗證 facts 要有來源或保守措辭；推測要明示是推測；不要把 source-limited claim 寫成 verified fact
 
-**密度目標**：每 ~25 行 prose 一個 MoguNote
+**沒有固定密度**：有真正 insight 才放；沒有就不硬擠。MoguNote 不能拿來灌篇幅，也不能只為滿足配額重講正文。
 
 ### ShroomDogNote — ShroomDog 本人的聲音（SD 系列專用）
 

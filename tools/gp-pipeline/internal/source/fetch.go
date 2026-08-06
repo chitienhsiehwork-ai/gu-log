@@ -113,7 +113,7 @@ func FetchX(ctx context.Context, url string, opts FetchOptions) (*FetchResult, e
 		return nil, fmt.Errorf("fetchx: writing capture to %s: %w", outPath, err)
 	}
 
-	parsed := parseCaptureHeader(res.Stdout)
+	parsed := ParseCaptureHeader(res.Stdout)
 	parsed.Path = outPath
 	parsed.Bytes = len(res.Stdout)
 	parsed.IsX = true
@@ -282,7 +282,7 @@ func hasHTMLMarkers(in []byte) bool {
 	return strings.Contains(s, "</") || strings.Contains(strings.ToLower(s), "<!doctype")
 }
 
-// parseCaptureHeader pulls @handle, date, and "Fetched via" out of the
+// ParseCaptureHeader pulls @handle, date, source type, and "Fetched via" out of the
 // first few lines of a fetch-x-article.sh capture.
 //
 // Expected first three lines:
@@ -293,12 +293,13 @@ func hasHTMLMarkers(in []byte) bool {
 //
 // Any missing field is left as empty string. We never fail here — the
 // validator already ran.
-func parseCaptureHeader(content []byte) *FetchResult {
+func ParseCaptureHeader(content []byte) *FetchResult {
 	out := &FetchResult{}
 	lines := strings.SplitN(string(content), "\n", 5)
 
 	handleDateRe := regexp.MustCompile(`^(@[A-Za-z0-9_]+)\s*[—\-]?\s*(\d{4}-\d{2}-\d{2})?`)
 	fetchedViaRe := regexp.MustCompile(`^Fetched via:\s*(\S+)`)
+	sourceURLRe := regexp.MustCompile(`^Source URL:\s*(\S+)`)
 
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
@@ -315,6 +316,9 @@ func parseCaptureHeader(content []byte) *FetchResult {
 		if m := fetchedViaRe.FindStringSubmatch(trimmed); m != nil && out.FetchedVia == "" {
 			out.FetchedVia = m[1]
 			continue
+		}
+		if m := sourceURLRe.FindStringSubmatch(trimmed); m != nil {
+			out.IsX = xURLRe.MatchString(m[1])
 		}
 	}
 	return out

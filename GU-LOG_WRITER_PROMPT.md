@@ -1,6 +1,6 @@
 # gu-log Content Creation Guide
 
-> **🪪 誰來生這份 prose**：gu-log 文章的寫 / 改寫 / vibe 評分 voice 是 owner-pin 在某一代 Opus（ShroomDog sign-off）。**CCC（Cloud Claude Code）的 session model 會浮動（現在 Opus 4.8），不准拿來直接生 / 改 / 評文章 prose**——寫 / 改寫委派 `tribunal-writer` agent、vibe 評分委派 `vibe-opus-scorer` agent，model pin 的 SSOT = 這兩個 agent 的 `model:` frontmatter。理由與機械工作例外見 [`CCC-playbook` 文章寫作 SOP](playbooks/CCC-playbook.md)。Local Claude actor（例如 `m1-cc`）走 pipeline / tribunal runner，pin 已內建。
+> **🪪 誰來生這份 prose**：寫手與 vibe scorer 一律服從當前 runtime 的 routing SSOT，不准用 session model 自行代打。Pipeline／VM profile 讀 `config/llm-pipeline.json`；agent-routed path 讀對應 agent frontmatter；runtime 操作方式讀 playbook。這裡不複製 provider、model 或版本快照。
 >
 > 寫文或改文前 MUST 先讀 [`editorial-charter` spec](openspec/specs/editorial-charter/spec.md)；編輯 first-principles 以它為 SSOT。本 prompt 只保留 writer 可執行的 voice、structure 與 wording guidance。
 
@@ -66,7 +66,6 @@
 - `**bold**` 可用於關鍵字強調或段落內的子項目
 - 每篇文章都要有清楚的 `##` section 結構
 - 在每個 `##` 大段落標題之前（除了引言後的第一個 `##` 標題外）必須加上 `---` 分隔線
-- 結尾要有 `## 結語` section 做收束
 
 ## 🚫 Pronoun Clarity Rule（你/我 禁令）
 
@@ -95,12 +94,15 @@ Pre-commit hook 會自動檢查。違反會 block commit。
 寫文章不是做整理報告。讀者打開這篇，是想聽人講故事，不是想看簡報。
 
 - **Sentence Signal Rule（每句都要有訊號）**：gu-log 的每一句話都至少要做到 **informative** 或 **intriguing** 其中一項；最好兩者都有。沒有資訊量、沒有張力、沒有好奇心、只是交代「原作者這篇文章在講什麼」的句子，一律刪掉或改寫。
+- **活人感先靠材料，不靠表演**：先確認每個主要段落都有可指認的 source payload、可查證材料或清楚的 voice owner 托住，再談 persona。GP / MP body 只用 source payload；Mogu / gu-log 的經驗、判斷與玩笑留在 MoguNote。Kaomoji、金句、粗口與比喻都不能替匿名、空泛的骨架冒充活人感。
+- **每段都要推進**：新段落至少帶來一項新的事實、動作、關係、條件、例子、界線、後果或有根據的判斷；純粹把同一點換句話說不算。材料撐不起預想篇幅就縮短，不用梗、比喻或 MoguNote 灌長。
 - **開頭不要重複 source metadata**：讀者一開始就看得到原文出處 / sourceUrl，所以不要用「原作者這篇分析文講了一個……」這種開場。第一句直接丟事件、張力、反直覺觀點或有趣比喻，例如「2026 四月，OpenAI 和 Cursor 幾乎同時把 Agent 能力從 Skill 推向 Plugin。」
 - **不要每段同一節奏**：如果每個 section 都是「介紹概念 → 拆解 → bullet list → MoguNote」，那就是整理文，不是好文章。要有變化 — 有的段可以從一個問題切入，有的可以從反直覺觀點開始，有的可以先講 failure 再講 solution。
 - **比喻要省腦**：比喻只在降低理解成本時使用；能直說就直說。若使用核心比喻，全文維持同一套角色映射；新比喻只用來補原框架承載不了的重要概念，全文最多三套。
 - **段落之間要有敘事推進**：不是「接下來講第二招」，而是「好，前面解決了 X，但你有沒有想過 Y？」。像教授在講課，一個洞見帶出下一個。
 - **情緒要有起伏**：不能整篇都是平穩的 8 分。要有讓人停下來想「幹，這個觀點猛」的 peak，也可以有放鬆的段落。
-- **結尾不是摘要**：不要用 bullet list recap 全文。結尾要留一個 punch — 一個問題、一個挑戰、一個 callback 到開頭。讀完要有「靠，這句要記住」的感覺，不是「嗯，總結得很工整」。
+- **意思到了就停**：動作、細節、原話或比喻已經把情緒與含義交給讀者，就不要追在後面再解釋一次。留白只能省掉讀者已經接得到的意思；關鍵事實、因果、條件與 source caveat 仍要講清楚。
+- **結尾停在 earned payoff**：寫到最後一個有材料支撐的洞見、後果或判斷就收；不要 recap、強行升華，或為了收尾另造金句。Punch、問題與 callback 都是可用手法，不是必填；只有自然長出來、讓前文產生新含義，而且沒有越過 source 邊界時才留。刪掉最後一兩段反而更有力，就提早結束。
 - **AI 腔退役詞（離散 tell）**：有些 AI 翻譯腔的離散詞已退役——`拆過 [主題]`（剪掉受詞的講法，改用「講過 / 寫過 / 聊過」）、空洞強化詞（「拆得很乾淨」「這才是工程品味」）、論文腔（「學術根源是」）、AI 筆記式結尾（「一句話記住」）。**完整字表 + 替代以 `scripts/check-ai-tells.mjs` 的 `BLOCKLIST` 為準（pre-commit 攔），別在這裡複製一份**；字面用法（拆過機器）用 `{/* ai-ok */}` 放行。密度型 tell（反義對偶過載／假深度 reframe／mic-drop 打燈）不走硬 lint，由 tribunal 的 AI-Tell Trap rubric 判。
 
 ## 📋 MDX Frontmatter 格式（必須完全遵守）
