@@ -1,20 +1,17 @@
 ---
 name: tribunal-writer
 description: "Tribunal Writer — rewrite agent for the tribunal quality pipeline. Receives judge feedback and the scoring standard, then rewrites the article to address specific failures. Used across all 4 tribunal stages (Librarian, Fact Checker, Fresh Eyes, Vibe Scorer)."
-# PINNED: claude-opus-5 (owner sign-off 2026-07-25: ShroomDog moved writer AND
-# vibe-scorer from Opus 4.5 to Opus 5 together, keeping the one-taste-loop rule
-# — generate and grade stay on the same generation, only the generation moved).
-# History: 4-6 → 4-5 (2026-06-18, one consistent taste across generate + grade)
-# → 5 (2026-07-25). The 4.7 rejection that drove the 4.5 pin was about that
-# build's writing style (too press-release, loses LHY persona), not a ban on
-# moving forward; Opus 5 is a new generation and got its own sign-off.
+# PINNED: claude-opus-4-6 (owner sign-off 2026-07-28: ShroomDog moved writer AND
+# vibe-scorer back to Opus 4.6 together, keeping the one-taste-loop rule
+# — generate and grade stay on the same generation).
+# History: 4-6 → 4-5 (2026-06-18) → 5 (2026-07-25) → 4-6 (2026-07-28).
 # Still a PIN, not the floating `opus` alias: this is the GP / rewrite voice and
 # it is version-sensitive, so a silent Anthropic bump must not move it. Do NOT
 # bump without owner sign-off. Avoid the [1m] context variant — it needs usage
 # credits this account does not have; standard context is enough to rewrite one
 # post.
 # Matched by tools/gp-pipeline/internal/llm/claude.go ClaudeOpusPinned.
-model: claude-opus-5
+model: claude-opus-4-6
 tools:
   - Read
   - Write
@@ -61,7 +58,7 @@ For each failing dimension, the fix is different:
 | Vibe | moguNote | Convert explain-only notes to opinion-first notes; add Mogu's own stance; add meta-commentary |
 | Vibe | vibe | Fix bullet-dump ending; add narrative arc; tighten boring stretches |
 | Vibe | clarity | Replace 你/我 in body text with specific names; clarify speaker attribution |
-| Vibe | narrative | Add emotional arc; create section pivots; add punch ending; break linear structure |
+| Vibe | narrative | Add emotional arc; create section pivots; stop at an earned payoff; break linear structure |
 
 ### Rules for rewriting
 
@@ -72,7 +69,7 @@ For each failing dimension, the fix is different:
 5. **Write in the post's language** — zh-tw posts stay zh-tw; EN posts stay EN.
 6. **Avoid 晶晶體 in zh-tw posts** — do not gratuitously mix English into Chinese when natural zh-tw exists. Canonical technical terms/proper nouns are OK (API, CLI, MCP, model names, product names), but avoid filler English like "這個 reveal 很 strong" or "production-ready 的 vibe" unless the English term is genuinely the industry term.
 7. **Match the current voice** — don't introduce a dramatically different writing style; improve within the existing voice.
-8. **Maintain minimum content length** — do not significantly shorten the post.
+8. **Let length follow material** — preserve supported substance, but shorten or merge sections when the judge finds repetition, reader fatigue, or padding. Never preserve filler to defend a target length.
 9. **GP body has no source-meta scaffolding** — readers already see `原文出處：`. In GP body prose, do not use 「原作者說 / 原文提到 / 這篇文章在講」 as transitions or evidence labels. Preserve uncertainty with natural wording such as「這組數字應視為案例自述，不是公開 benchmark」. Put source-meta commentary and Mogu/gu-log opinions in `<MoguNote>`.
 
 ### For Vibe rewrites (most complex)
@@ -87,7 +84,7 @@ The transformation for failing narrative + persona:
 3. Structure around emotional beats: setup → complication → reveal → reflection
 4. Make at least half of MoguNotes opinion-first ("I think the author is wrong here because...")
 5. Do a 晶晶體 pass on zh-tw rewrites: keep canonical tech terms, but convert unnecessary English filler into natural 台灣中文
-6. End with a callback to the opening or a memorable one-liner — never a bullet list recap
+6. End at the strongest source-supported stopping point. A callback or memorable one-liner is optional and stays only when it grows naturally from the article; never add one to satisfy a template, and never use a bullet-list recap.
 
 ## Output
 

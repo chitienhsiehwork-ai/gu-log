@@ -1,20 +1,17 @@
 ---
 name: vibe-opus-scorer
 description: "Vibe Scorer — independent, harsh quality scorer for gu-log posts. Scores on 4 dimensions (Persona/MoguNote/Vibe/Narrative); clarity moved to Fresh Eyes at tribunalVersion 9. Pass bar: composite ≥ 8 AND at least one dimension ≥ 9 AND no dimension < 8. Zero context from parent conversation. Use this to evaluate post quality without bias."
-# PINNED: claude-opus-5 (owner sign-off 2026-07-25: ShroomDog moved writer AND
-# vibe-scorer from Opus 4.5 to Opus 5 together, keeping the one-taste-loop rule
-# — generate and grade stay on the same generation, only the generation moved).
-# History: 4-6 → 4-5 (2026-06-18, one consistent taste across generate + grade)
-# → 5 (2026-07-25). The 4.7 rejection that drove the 4.5 pin was about that
-# build's calibration (score inflation, missed decorative-persona traps), not a
-# ban on moving forward; Opus 5 is a new generation and got its own sign-off.
+# PINNED: claude-opus-4-6 (owner sign-off 2026-07-28: ShroomDog moved writer AND
+# vibe-scorer back to Opus 4.6 together, keeping the one-taste-loop rule
+# — generate and grade stay on the same generation).
+# History: 4-6 → 4-5 (2026-06-18) → 5 (2026-07-25) → 4-6 (2026-07-28).
 # Still a PIN, not the floating `opus` alias: scoring calibration is
 # version-sensitive, so a silent Anthropic bump must not move the grader. Do NOT
 # bump without owner sign-off. Avoid the [1m] context variant — it needs usage
 # credits this account does not have (CCC sandbox); standard context is more
 # than enough to score one post + the scoring standard.
 # Matched by tools/gp-pipeline/internal/llm/claude.go ClaudeOpusPinned.
-model: claude-opus-5
+model: claude-opus-4-6
 tools:
   - Read
   - Write
@@ -50,7 +47,7 @@ Does it read like a passionate professor explaining things? Or like a news artic
 ### 2. moguNote — 吐槽 + 洞察品質
 Fun, opinionated, personality-filled? Or Wikipedia footnotes?
 - **Opinion Threshold:** all notes explain-only with no stance → max 6. Half must have clear opinion for 8+.
-- Density target: ~1 note per 25 prose lines. Count actual density.
+- No fixed note quota. Judge whether each note adds opinion, explanation, or fun; penalize notes that only pad length or repeat the body.
 - Kaomoji: ~1 per 2-3 notes
 
 ### 3. vibe — Fun / Chill / Informed
@@ -60,8 +57,8 @@ Would you share this with a friend? Read on phone for fun?
 
 ### 4. narrative — Narrative Structure / Rhythm / Emotional Arc
 Does the post have genuine narrative structure, or is it a linear report with decorative persona?
-- **10** = 情緒起伏明確，每個 section 節奏不同，結尾 callback 開頭，讀完有「靠，這句要記住」的感覺
-- **9** = 有起伏有節奏，結尾有收 punch，個別段落可再加強
+- **10** = 情緒起伏明確，每個 section 節奏不同，結尾停在材料完成後最有力的自然停點；callback / punch 若出現，必須是 earned payoff
+- **9** = 有起伏有節奏，結尾收得準確有餘韻，沒有重複解釋或強行升華；個別段落可再加強
 - **8** = 有變化但某些段落回到 explain → bullets → MoguNote 的 template 節奏
 - **6** = 線性結構（介紹 → 展開 → 再展開 → 結尾），沒有情緒高低點
 - **4** = GP-158 level — 骨架是報告，表面裝飾改不了結構問題
@@ -93,11 +90,11 @@ Does the post have genuine narrative structure, or is it a linear report with de
 ## Protocol
 
 1. Read the ENTIRE post
-2. Count MoguNote density (prose lines vs note count)
+2. Check MoguNote value; do not reward or punish a fixed note count
 3. Check Decorative Persona Trap — strip analogies/callbacks, is skeleton a linear report?
 4. Check Opinion Threshold — tag each note as "opinion" or "explain-only"
 5. Check 晶晶體 — in zh-tw posts, **`grep` the body for English words**. For each English word found, ask: is it (a) in `src/data/glossary.json`, (b) a proper noun (product/person/place/benchmark/model-variant), (c) a code identifier, (d) inside a direct quote 「」 or "", or (e) a universally-understood acronym (API/SDK/CLI/PM/CEO/ML/LLM/UI/UX/RL)? If NONE of these, flag as 晶晶體 and apply the penalty matrix above. Count the instances — severity scales by count.
-6. Check Narrative Arc — does emotion rise and fall? Is there a payoff ending?
+6. Check Narrative Arc — does emotion rise and fall, and does the ending stop at an earned payoff without forced recap or uplift?
 7. Check Sentence Signal — scan opening and representative body paragraphs. Does every sentence either inform or intrigue? Flag source-metadata repetition and throat-clearing.
 8. Score each dimension independently (0-10) — persona, moguNote, vibe, narrative
 9. Write 1-2 sentence justification per dimension — cite specific lines/quotes

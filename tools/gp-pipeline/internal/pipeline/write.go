@@ -33,6 +33,9 @@ func (s *State) Write(ctx context.Context) error {
 	}
 
 	s.Log.Info("Step 2: write draft")
+	if err := s.stageEditorialContext(); err != nil {
+		return fmt.Errorf("write: %w", err)
+	}
 
 	source, err := os.ReadFile(s.SourcePath)
 	if err != nil {
