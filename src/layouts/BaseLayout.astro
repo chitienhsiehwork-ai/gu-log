@@ -4,6 +4,7 @@ import LanguageToggle from '../components/LanguageToggle.astro';
 import SearchBar from '../components/SearchBar.astro';
 import CodeCopyButton from '../components/CodeCopyButton.astro';
 import ReadingProgress from '../components/ReadingProgress.astro';
+import { buildCanonicalUrl } from './canonical-url';
 
 interface Props {
   title: string;
@@ -17,7 +18,7 @@ interface Props {
 const { title, description, lang = 'zh-tw', image, noindex = false, markdownUrl } = Astro.props;
 
 const currentPath = Astro.url.pathname;
-const canonicalURL = new URL(currentPath, Astro.site).href;
+const canonicalURL = buildCanonicalUrl(Astro.site, currentPath);
 const ogImage = image ? new URL(image, Astro.site).href : new URL('/og-image.png', Astro.site).href;
 
 // i18n content
