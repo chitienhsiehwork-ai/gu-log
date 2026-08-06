@@ -1,0 +1,191 @@
+---
+ticketId: 'GP-266'
+title: 'MCP 2026-07-28：砍掉 session，擁抱無狀態'
+originalDate: '2026-07-28'
+translatedDate: '2026-08-04'
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 5"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "Opus 5"
+      harness: "gp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "Model Context Protocol Blog"
+sourceUrl: 'https://blog.modelcontextprotocol.io/posts/2026-07-28/'
+lang: 'zh-tw'
+summary: 'MCP 2026-07-28 規格書正式發布，核心變革是從有狀態雙向協定轉為無狀態請求/回應架構。同時帶來 MRTR、HTTP header 路由、可快取列表、授權強化，以及正式的擴充框架與十二個月棄用政策。'
+tags: ['mcp', 'ai-agents', 'open-source', 'developer-tools']
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 8
+    sourceBoundary: 8
+    commentarySeparation: 8
+    score: 8
+    date: "2026-08-04"
+    model: "claude-opus-5"
+  librarian:
+    glossary: 8
+    crossRef: 8
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-08-04"
+    model: "claude-opus-5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 9
+    lengthFit: 9
+    clarity: 9
+    score: 8
+    date: "2026-08-04"
+    model: "claude-opus-5"
+  vibe:
+    persona: 8
+    moguNote: 8
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-08-04"
+    model: "claude-opus-4-6"
+
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+[MCP](/glossary#mcp) 的四套一級 SDK 每月下載量逼近五億次，TypeScript 和 Python 各自突破十億次總下載。在這個規模下，維護團隊把整個協定的核心從有狀態改成無狀態。
+
+2026 年 7 月 28 日發布的新版規格書，核心主張只有一句話——MCP 從雙向有狀態協定，轉為請求/回應的無狀態協定。
+
+## 從打電話變成傳簡訊
+
+舊版 MCP 的運作方式像打電話：用戶端和伺服器先握手（`initialize` / `initialized`），建立一個 session（透過 `Mcp-Session-Id` header 追蹤），然後雙方在這條線上持續對話。Session 一斷，一切重來。
+
+在本機開發的時候，這沒什麼問題。但當 MCP 伺服器需要部署到生產環境、放在負載平衡器後面、讓多台機器分攤流量，問題就浮出來了——每一次請求都綁定特定 session，要嘛把同一個使用者釘在同一台機器上，要嘛搞一套共享狀態儲存。這不是撐得住規模的作法。
+
+新版把這些全砍了。每一次請求自帶所有必要資訊：協定版本、用戶端身份、用戶端能力，統統塞在 `_meta` 裡面。想在發送請求前先了解伺服器的能力？有一個新的 `server/discover` RPC 可以用，但不是必要步驟。任何一次請求都可以落在一台普通的輪詢負載平衡器後面的任何一台機器，不需要共享儲存。
+
+```http
+POST /mcp HTTP/1.1
+MCP-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: search
+
+{"jsonrpc":"2.0","id":1,"method":"tools/call",
+"params":{"name":"search","arguments":{"q":"otters"},
+"_meta":{"io.modelcontextprotocol/clientInfo":{"name":"my-app","version":"1.0"}}}}
+```
+
+那如果伺服器真的需要跨請求保留狀態？答案是讓狀態變成顯式的。從工具裡產生一個識別碼，讓模型把它當作參數傳回來。模型看得到這個識別碼，能在不同工具之間自己串接。維護團隊說他們實際做下來，這比把狀態藏在傳輸層裡更好用。
+
+<MoguNote>
+「顯式識別碼取代隱式 session」的設計哲學，本質上就是 REST 在二十多年前對 web 做的事情。MCP 花了一年半終於走到同一步——晚到不算晚，但確實是被生產環境的痛逼出來的經典劇情。gu-log 自己就活在這個設定裡：跑這條 GP pipeline 的 agent 每次都在用完即丟的沙箱裡開工，沒有任何隱式記憶可言，所以每一份要活過這一輪的東西都得寫成顯式的檔案 commit 回 repo。看到 MCP 決定「狀態就攤開來當參數傳」，窩們是真的很有共鳴 (´・ω・`)
+</MoguNote>
+
+---
+
+## 無狀態很美，但有些事就是要一來一回
+
+砍掉 session 之後有一個問題需要解決：舊版 MCP 裡，伺服器可以在工具執行到一半的時候主動向用戶端發請求——問使用者要不要確認、請模型生成一段文字、查詢 Roots 清單。這些功能全靠一條持續開啟的雙向串流。無狀態的架構下，這條路直接斷了。
+
+Multi Round-Trip Requests（MRTR，多回合請求）是新的解法。工具執行到一半發現需要使用者輸入（例如「這個操作會刪除資料，確定嗎？」），伺服器回傳 `resultType: "input_required"` 加上需要回答的問題；用戶端收到後處理完畢，把原本的請求連同答案一起重新送出。不需要保持連線，該問的還是能問。像傳簡訊，不像講電話——發一封、等回覆、把回覆貼在原始訊息上再送一次。
+
+<MoguNote>
+Supabase 產品負責人 Inian Parameshwaran 點出了 MRTR 對他們的實際意義：Supabase 的 MCP 伺服器本來就是無狀態架構，所以一直沒辦法做 elicitation（讓工具在執行前跟使用者確認）。有了 MRTR，工具可以在建立新專案前先告知預估費用，或是在跑刪除查詢前先要求確認。「先問再做」在生產環境不是有了更好，是不能沒有 ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## 讓閘道不用拆信封
+
+接下來兩個改動聽起來很無聊，但它們影響的是每一秒幾萬次請求的閘道。
+
+新版規格要求每個 Streamable HTTP 請求必須帶上 `Mcp-Method` 和 `Mcp-Name` header。閘道、速率限制器、WAF 可以直接看 header 就做路由和授權決策，不用把整包 JSON 內容拆開來讀。
+
+<MoguNote>
+以前那個做法就像每封簡訊都要整封拆開讀完，才知道該轉給誰；現在主旨直接寫在標題列，掃一眼就能分流。在每秒幾萬次請求的閘道上，少做一次 JSON 反序列化省下的不是微秒，是真金白銀的 CPU 帳單 (⌐■_■)
+</MoguNote>
+
+另一個是快取。`tools/list`、`prompts/list`、`resources/list` 和 `resources/read` 的回應現在帶有 `ttlMs`（存活時間）和 `cacheScope`（快取範圍）。用戶端可以快取工具目錄，不用每次都重新拉完整清單。更實際的好處：prompt 快取在重新連線後可以保持穩定——不會因為工具清單的順序變了就讓整個快取失效，省下的不只是頻寬，是重新填充快取的延遲和成本。
+
+---
+
+## 授權：半夜三點在除錯 OAuth redirect 的那個人
+
+曾經在 CLI 工具裡接 MCP 授權、結果 `redirect_uri` 莫名其妙被拒絕的開發者，這次改版特別有感：DCR 新增了 `application_type` 欄位，localhost redirect 終於不會再被當成非法操作。這是一個讓現有協定符合 OAuth 規格要求的強化措施——是的，本來就該這樣，但本來就是沒有。
+
+安全面也收緊了。授權伺服器現在應依照 RFC 9207 回傳 `iss` 參數，用戶端必須在兌換授權碼之前驗證這個值，堵住授權伺服器混淆的漏洞。用戶端憑證也綁定到簽發它的授權伺服器，不能跨伺服器重用。
+
+然後是最大的方向轉彎：DCR（動態用戶端註冊）被正式標記為棄用，未來版本的規格書會直接移除它。取代它的是 Client ID Metadata Documents（CIMD）——用戶端不再自己跑去敲門註冊，而是把身份資料放在一份可驗證的文件裡讓授權伺服器來讀。
+
+<MoguNote>
+DCR 棄用這件事大概會讓一些人不開心，因為「程式自動註冊」聽起來超方便。但方便的代價是任何人都能來自助登記——安全性跟便利商店的會員卡差不多。CIMD 的邏輯是「你先把證件準備好，我來查」，不是「隨便，你自己寫個名字就行」。OAuth 社群為這件事吵了好幾年，MCP 選邊站了 (´-ω-`)
+</MoguNote>
+
+---
+
+## 功能怎麼長、功能怎麼退
+
+Tasks 從實驗性功能畢業，搬進正式的擴充框架，跟 MCP Apps、企業級代管授權（EMA）並列。這個擴充框架一次就裝了三種東西——意思是它不是為 Tasks 量身訂做的容器，而是 MCP 說「以後新功能都從這裡長」的架構宣言。Tasks 的貢獻者是 AWS，雲端供應商直接往開源協定裡送核心功能，不用多解釋這代表什麼。
+
+另一邊，MCP 第一次對功能怎麼死畫了一條線：棄用後至少保留十二個月。這一輪被標記棄用的有 Roots、Sampling、Logging，以及舊版 HTTP+SSE 傳輸方式。全部仍然能用，但新實作不該再採用。
+
+<MoguNote>
+十二個月的承諾寫進規格書本身，不是寫在 blog post 裡。這個差別很重要：blog post 是「我們目前打算這樣做」，規格書是「你可以據此做工程決策」。而且四套一級 SDK（TypeScript、Python、Go、C#）加上 beta 中的 Rust SDK 都得跟著同步更新——所以這十二個月的緩衝其實也是維護團隊給自己的承諾。要撐住這個節奏不容易。
+</MoguNote>
+
+---
+
+## 生態系的數字
+
+四套一級 SDK 在發布當天就支援新規格。
+
+Honeycomb 的 AI 策略負責人 Austin Parker 丟出了一個數字：Honeycomb 上將近兩成的月互動式查詢現在來自 agent。
+
+Manufact 把 mcp-use 遷到新版 SDK 之後，套件大小少了約 83%、速度快了 25%。
+
+邊緣運算平台、雲端供應商、代管平台在發布當天就跟上——共同的理由都一樣：無狀態讓 MCP 變成一般的 HTTP 流量，可以直接套用他們既有的那套基礎設施。
+
+<MoguNote>
+Honeycomb 那個將近兩成的數字值得多想一秒。這不是「未來 agent 可能會用我們的產品」——這是「現在大約每五個互動式查詢就有一個來自 agent」。MCP 的無狀態改造，在這個脈絡下看起來就不像是一群協定設計師的審美偏好，而是被流量推著走的工程現實。
+</MoguNote>
+
+---
+
+## 結語
+
+MCP 共同發明人 David Soria Parra 的說法是：這是自一年多前遠端 MCP 上線以來最重要的一次發布，把過去十八個月學到的教訓全部收進來，為 MCP 的未來打下穩固的基礎。
+
+與此同時，另一位核心維護者 Nick Cooper 的觀察可能更耐人尋味：「跟以前每次改版一樣，最有趣的部分會是看到大家用它蓋出什麼意料之外的東西。」
+
+一年半的協定，月下載量逼近五億，然後在這個時間點選擇做不向後相容的改動、砍掉 session。維護團隊沒有假裝這不痛：他們明說會有遷移成本，尤其是本來就依賴 session 識別碼的開發者，只是早期測試的回饋已經讓這條路好走一些。
+
+## 延伸閱讀
+
+- [MP-170: ACE 正式開源 — AI Coding Environment 不再是 SaaS 獨佔品](/posts/mp-170-20260316-daniel-mac8-ace-open-source/)
+- [MP-230: Figma 把畫布打開給 AI agent 了 — 現在可以直接在 canvas 上做設計](/posts/mp-230-20260330-figma-figma-ai-agent-canvas/)
+- [GP-72: Simon Willison：CLI 工具完勝 MCP — 省 token、零依賴、LLM 天生就會用](/posts/gp-72-20260218-simonw-cli-over-mcp/)
+
+
+<MoguNote>
+多數協定走到這個採用規模，通常會選擇凍結架構、往上疊相容層——這是 [Mogu](/glossary#mogu) 的觀察，不是規格書寫的。MCP 選了另一條路：趁生態系還年輕到能吸收這個成本的時候，把該改的改完。所以接下來真正的考題不是規格書寫得好不好，是生態系跟不跟得上 ┐(￣ヘ￣)┌
+</MoguNote>

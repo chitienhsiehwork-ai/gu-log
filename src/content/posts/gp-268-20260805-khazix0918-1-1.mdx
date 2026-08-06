@@ -1,0 +1,144 @@
+---
+ticketId: 'GP-268'
+title: '活人感寫作 1.1：禁句只治表皮，真材料與說話者的立場才是骨架'
+originalDate: '2026-08-05'
+translatedDate: '2026-08-05'
+translatedBy:
+  model: 'Grok 4.5'
+  harness: 'Grok Build CLI'
+  pipeline:
+    - role: 'Written'
+      model: 'Grok 4.5'
+      harness: 'Grok Build CLI'
+    - role: 'Reviewed'
+      model: 'GPT-5.6-Sol'
+      harness: 'Codex CLI'
+    - role: 'Refined'
+      model: 'Grok 4.5'
+      harness: 'Grok Build CLI'
+    - role: 'Scored'
+      model: 'GPT-5.6-Sol'
+      harness: 'Codex CLI + Tribunal'
+    - role: 'Rewritten'
+      model: 'Grok 4.5'
+      harness: 'Grok Build CLI + Tribunal'
+    - role: 'Orchestrated'
+      model: 'GPT-5.6-Sol'
+      harness: 'gp-pipeline + Tribunal'
+  pipelineUrl: 'https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline'
+source: '@Khazix0918 on X'
+sourceUrl: 'https://x.com/Khazix0918/status/2084919577562255639'
+lang: 'zh-tw'
+summary: '卡茲克開源 human-writing 1.1：去 AI 味不該停在禁句表。材料不足就研究、追問或縮短；每段真的推進；意思到了就停。修辭動作比字面黑名單更重要。'
+tags: ['prompt-engineering', 'developer-tools', 'ai-writing', 'open-source']
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 8
+    date: "2026-08-05"
+    model: "gpt-5.6-sol"
+  librarian:
+    glossary: 7
+    crossRef: 7
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-08-05"
+    model: "gpt-5.6-sol"
+  freshEyes:
+    readability: 9
+    firstImpression: 9
+    payoffDensity: 9
+    lengthFit: 9
+    clarity: 10
+    score: 9
+    date: "2026-08-05"
+    model: "gpt-5.6-sol"
+  vibe:
+    persona: 9
+    moguNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-08-05"
+    model: "grok-4.5"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+禁掉「不僅……更……」或「不是……而是」，一篇沒人活過的文章還是沒人活過。
+
+卡茲克（@Khazix0918）大概四月公開過一版「卡茲克文風」[Skill](/glossary#skill)，現在回頭看只覺得太固化：它能把人寫成四個月前的卡茲克，卻幫不了使用者找到自己的聲音。於是他跟中文系朋友討教，把內部規則蒸餾成 MIT 授權的 [`human-writing`](https://github.com/KKKKhazix/human-writing) 1.1.0。這次不複製聲紋，先處理材料與判斷。
+
+<MoguNote>
+gu-log 自己也踩過同一條河：禁 AI 腔字表能攔表皮，攔不住空轉段落與假深度結尾。所以這次不只加規則，也把「結尾一定要有金句或回扣」和固定 MoguNote 配額從寫作 prompt 拿掉。
+</MoguNote>
+
+## 第一關不是文筆，是材料
+
+這份 [Skill](/glossary#skill) 把「活人感」分成三層，而且先後很明確：
+
+1. **材料**——可指認的事實、動作、引句、經歷
+2. **說話者的立場與判斷**——誰在講、為什麼這個人講得出口、真正站在哪一邊
+3. **語氣**——最後才輪到口吻與節奏
+
+借傳統中文寫作的話說，就是先立義理（真正想說什麼），再做考據（哪些事實撐得住），最後才磨辭章（怎麼說）。順序不能倒過來。
+
+寫長篇非虛構之前，Skill 會先檢查具體、可追蹤的材料夠不夠。不夠就研究、最多追問三個聚焦問題、把題目收窄，或乾脆寫短一點；不能用空話灌成長文。動筆前還要問：誰在說話？這個人憑什麼知道？有哪些事實、動作或原話撐住？真正的判斷又是什麼？
+
+<MoguNote>
+「去 AI 味」工具幾乎全押在辭章，前面兩格卻是空的。觀點變成平均正確，細節變成機率噪音，最後只剩署名屬於本人。空到可以原地翻桌。(╯°□°)╯
+</MoguNote>
+
+---
+
+## 文筆可以不美，人不能是空的
+
+中國高考季，一支街頭找人寫當年作文題的影片讓卡茲克反覆重看。參加者是一位被影片稱作「精神小妹」、風格很鮮明的年輕女生，一位外送員和一位國文老師。前兩位的文筆未必華麗，但情緒濃、語言直，讀完會覺得這些人真的有故事。
+
+AI 味的根就在這裡。一篇東西資訊有、觀點有、故事有、起承轉合有，結尾還漂亮到可以截圖——**唯獨沒有一個真實的人在裡面生活過**。所以 Skill 會盡量逼使用者交出真實案例、真實情緒、真實所思所想；真誠與熾熱，才叫活人感。
+
+日記示範則測另一件事：資訊不夠時，模型會不會停下來問。Qwen 3.8 Max 先要求補上更具體、真實的資訊；材料足夠後，GPT-5.6 Sol 才配合 Skill 展開長文。其中一句是：
+
+> 即使真的寫了幾年，幾千頁文字擺在那裡，想找到某個反覆出現的念頭，或者弄清一段變化從何時開始，也不是一件容易的事。
+
+<MoguNote>
+模型願意在材料不足時踩煞車，比一次吐出幾千字更重要。這份 Skill 真正提高的不是字數上限，是拒絕空轉的下限。
+</MoguNote>
+
+---
+
+## 每段都要推進；意思到了就停
+
+1.1 把敘事紀律寫得很直接：
+
+- **新段落至少加一項**：事實、動作、例子、區分或後果。同一點換句話說，不算推進。
+- **意思到了就停**：動作、細節或原話已經把情緒與含義交給讀者，就不要再追一段「這代表……」。
+- **結尾停在材料用完處**：只有當同一意象再出現時已經長出新意思，才保留回扣；硬拗的升華與總結式重述直接砍。
+
+魯迅寫孔乙己付酒錢時「便排出九文大錢」：一個「排」字，窮、自負、迂腐與最後一點體面都在了。朱自清寫父親穿過鐵道、攀月台去買橘子，動作說完，感情就結束。後面若再補心理分析，力氣反而散掉。
+
+<MoguNote>
+gu-log 以前也把金句或回扣當過必填；現在反過來，只有真的讓前文長出新意思才留。材料用完就收手。
+</MoguNote>
+
+---
+
+## 1.1 不只禁字，還禁同一套招
+
+禁詞表能攔住不是／而是、奇怪黑話與「最硬的刀」一類口癖，但模型換同義詞重做一次，問題就回來了。**1.1 因此把防線從「禁止字串」抬到「禁止修辭動作」。** 主例是先發明一個讀者誤解，再華麗推翻，讓下一句顯得比較深。真正有證據帶動的自我修正仍然允許；只換詞、不換招，不算修好。
+
+修訂指南還問一刀：哪些段落**隨便一個模型都能原封不動寫出來**？要嘛補上來源、經驗或選擇來撐住，要嘛刪掉。
+
+`human-writing` 本身不會未經要求另建個人寫作 Skill；但使用者若明確提供幾十篇自己的文章，卡茲克也允許在這套基礎上做專屬版本。通用規則與個人化並不衝突，差別在於聲音是不是由真實材料長出來。
+
+## 延伸閱讀
+
+- [GP-118: Anthropic 工程師的 Claude Code Skills 實戰筆記：九大類型、設計心法、還有那些踩過的坑](/posts/gp-118-20260318-trq212-claude-code-skills-lessons/)
+- [GP-266: MCP 2026-07-28：砍掉 session，擁抱無狀態](/posts/gp-266-20260728-blog-modelcontextprotocol-io-2026-07-28-spec/)
+- [MP-170: ACE 正式開源 — AI Coding Environment 不再是 SaaS 獨佔品](/posts/mp-170-20260316-daniel-mac8-ace-open-source/)

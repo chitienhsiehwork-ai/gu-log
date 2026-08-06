@@ -606,3 +606,43 @@ func TestGetScalar_MultilineYAMLRemainsOutsideLineOrientedBoundary(t *testing.T)
 		})
 	}
 }
+
+func TestRepairSingleQuotedScalars_FixesRawApostrophe(t *testing.T) {
+	src := []byte("---\ntitle: 'Greg Isenberg's Map'\nsummary: 'it's fine'\nlang: 'en'\n---\nbody\n")
+	f, err := Parse(src)
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+	if err := f.ValidateYAML(); err == nil {
+		t.Fatal("expected the raw apostrophe to make the block invalid YAML")
+	}
+	if !f.RepairSingleQuotedScalars() {
+		t.Fatal("expected a repair")
+	}
+	if err := f.ValidateYAML(); err != nil {
+		t.Fatalf("still invalid after repair: %v", err)
+	}
+	if got, _ := f.GetScalar("title"); got != `"Greg Isenberg's Map"` {
+		t.Fatalf("title = %q", got)
+	}
+	if got, _ := f.GetScalar("lang"); got != "'en'" {
+		t.Fatalf("untouched scalar rewritten: %q", got)
+	}
+}
+
+func TestRepairSingleQuotedScalars_LeavesValidBlockAlone(t *testing.T) {
+	src := []byte("---\ntitle: 'Greg Isenberg''s Map'\nlang: 'en'\n---\nbody\n")
+	f, err := Parse(src)
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+	if err := f.ValidateYAML(); err != nil {
+		t.Fatalf("escaped apostrophe should be valid: %v", err)
+	}
+	if f.RepairSingleQuotedScalars() {
+		t.Fatal("valid block must not be rewritten")
+	}
+	if !bytes.Equal(f.Bytes(), src) {
+		t.Fatalf("bytes changed: %q", f.Bytes())
+	}
+}

@@ -158,16 +158,17 @@ strict provider contract、loaded resource slice，以及目前 service PID 寫�
 bash scripts/cc-tribunal-loop-wrapper.sh --doctor
 ```
 
-只有需要重新驗證 Codex CLI/auth 與實際寫入 sandbox 時才明確執行 live
+只有需要重新驗證正式 writer CLI/auth 與實際寫入 sandbox 時才明確執行 live
 probe。它會在 disposable workspace 跑 bounded write canary，並重用正式
-writer 的 `workspace-write`、tmp exclusion、network-off executor；canary
+writer 的隔離 workspace、non-interactive permission 與 systemd resource
+boundary；canary
 內容完全吻合後才輸出 exact `OK`：
 
 ```bash
 bash scripts/cc-tribunal-loop-wrapper.sh --doctor --live-probe
 ```
 
-Deployed judge、writer 與 write-canary 每次都由同一 command builder 建立
+Deployed judge、writer 與 write-canary 每次都建立
 transient systemd service。`KillMode=control-group` 會連 `setsid()` 後代一起
 回收；每次 invocation 有獨立 Memory/CPU/Tasks 上限，並和 supervisor、
 build workers 共用 `tribunal-runtime.slice` 的 aggregate ceiling。Startup
@@ -184,7 +185,7 @@ Writer 的雙語 CAS 在第一次 exchange 前會 fsync mode-0600 journal。Star
 
 - `tribunal.env` 的 `GU_LOG_DIR` 存在且指向有效 checkout；不再設定或依賴
   off-repo combined `USAGE_MONITOR`。
-- Codex CLI 已安裝、已驗證 non-interactive auth；deployed runtime 不讀
+- Codex CLI 與官方 Grok Build CLI 都已安裝、已驗證 non-interactive auth；deployed runtime 不讀
   Claude CLI、Claude token 或 `~/.cc-cron-token`。
 - `systemctl --user enable tribunal-loop` 回報 enabled。
 - 下列四個 source-match 都 exit 0：
@@ -206,12 +207,30 @@ Writer 的雙語 CAS 在第一次 exchange 前會 fsync mode-0600 journal。Star
   沒有未審核的 override；若非空，先逐一確認 effective contract。
 - `loginctl enable-linger "$USER"` 後 `loginctl show-user "$USER" -p Linger --value` 回報 yes。
 - `bash scripts/cc-tribunal-loop-wrapper.sh --doctor` 全數通過。
-- 啟動後 monitor 顯示 strict role routing、`GP_WRITER_MODE=codex` 與 writer preflight passed。
+- 啟動後 monitor 顯示 `TRIBUNAL_RUNTIME_PROFILE=vm-codex`、
+  `GP_WRITER_MODE=grok`、strict role routing 與 writer preflight passed。
 
-Deployed strict mode 的四個 judges 與 writer 全部由 Codex 執行；每個角色的
-model 以 `.codex/agents/<role>.toml` 為 SSOT。`GP_WRITER_MODE=cli` 只保留
-舊 caller 相容性，不是 production 可接受的設定；deployed preflight 看到
-它會在任何 article claim 前以 rc 78 fail closed。
+Deployed `vm-codex` profile 由 Codex 執行 Fact Checker、Librarian 與 Fresh
+Eyes，由 Grok Build 執行 writer 與 Vibe Scorer。model／effort／quota 門檻的
+單一 SSOT 是 `config/llm-pipeline.json`；升級 model 時只改這裡與 contract
+tests。`.codex/agents/*.toml` 與 `.claude/agents/*.md` 繼續服務 legacy／Claude
+Code Cloud，不受 VM profile 覆寫。`GP_WRITER_MODE=cli` 只保留舊 caller
+相容性，不是 production 可接受的設定；deployed preflight 看到它會在任何
+article claim 前以 rc 78 fail closed。
+
+`vm-codex` 啟動前會同時驗證 Codex 與 Grok CLI、登入狀態及 Grok model
+availability；任一不相容就 fail closed，不會半套啟用新 routing。Codex
+reviewer 取 session／weekly 較低剩餘百分比：`>= 20%` 使用
+`gpt-5.6-sol` + `xhigh`，`< 20%` 使用 `gpt-5.6-luna` + `max`；讀值未知時
+採保守的 Luna。Grok 4.5 writer／Vibe 使用 `low` effort。
+
+Grok 低 quota 政策只有在取得真實百分比時才生效：
+`10% <= remaining < 20%` 保留 writer、延後 Vibe；低於 10% writer 也暫停，
+不會偷換其他 writer。現行 CodexBar
+尚無可靠 Grok Build quota feed，因此 `grokQuota.enabled` 預設為 `false`，
+未知就是 unknown，不捏造百分比。`TRIBUNAL_GROK_REMAINING_PCT` 只供有
+可信外部讀值的 operator 注入與 contract test；CodexBar 日後支援時，再於
+同一份 config 開啟自動 probe。
 
 只有 graceful drain 明確卡住時，才由 operator **另跑**以下 recovery；它不會接在正常 deploy 後自動執行：
 
@@ -358,7 +377,7 @@ Log interpretation:
 When `--workers > 1`, the supervisor samples the shared
 `tribunal-runtime.slice` memory each loop iteration and adjusts a soft cap on
 the active worker count. The slice includes the supervisor/build workers and
-all transient Codex judge/writer services, so Codex RSS cannot disappear from
+all transient Codex/Grok judge/writer services, so provider RSS cannot disappear from
 autoscaling or escape the aggregate 4G/200% boundary.
 
 **Decision ladder** (per iteration):
@@ -507,8 +526,9 @@ bash scripts/tribunal-quota-loop.sh --workers 5
 - 調低 `MIN_COOLDOWN` 縮短派送迴圈下限。
 - `AUTOSCALE_OOM_CAP` 仍是記憶體壓力／近期 OOM 下的硬上限；要求 5 workers
   不代表 cgroup 一定允許 5 個同時跑。
-- controller 與 deployed writer 都只使用 OpenAI/Codex quota；deadline
-  burst 不需要、也不得拿 Claude quota 或 credential 當成功條件。
+- controller 只控制 OpenAI/Codex quota；Grok 另走上述獨立 gate。deadline
+  burst 不需要、也不得拿 Claude quota 或 credential 當成功條件，也不會
+  自動取消 Grok 的 10% writer reserve。
 
 systemd unit 不再接受 off-repo `USAGE_MONITOR`，啟動只需要有效的
 `GU_LOG_DIR`。Quota 讀取由 tracked runtime 的 Codex-only JSON path 負責；

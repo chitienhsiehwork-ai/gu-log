@@ -16,16 +16,17 @@ import (
 
 // doctorReport is the full JSON shape emitted with --json.
 type doctorReport struct {
-	GoVersion    string            `json:"goVersion"`
-	GoOS         string            `json:"goOS"`
-	GoArch       string            `json:"goArch"`
-	RepoRoot     string            `json:"repoRoot"`
-	Binaries     []binaryCheck     `json:"binaries"`
-	Capabilities []capabilityCheck `json:"capabilities"`
-	Files        []fileCheck       `json:"files"`
-	LLMProbes    []llm.ProbeResult `json:"llmProbes,omitempty"`
-	OK           bool              `json:"ok"`
-	FailReason   string            `json:"failReason,omitempty"`
+	GoVersion      string            `json:"goVersion"`
+	GoOS           string            `json:"goOS"`
+	GoArch         string            `json:"goArch"`
+	RepoRoot       string            `json:"repoRoot"`
+	RuntimeProfile string            `json:"runtimeProfile"`
+	Binaries       []binaryCheck     `json:"binaries"`
+	Capabilities   []capabilityCheck `json:"capabilities"`
+	Files          []fileCheck       `json:"files"`
+	LLMProbes      []llm.ProbeResult `json:"llmProbes,omitempty"`
+	OK             bool              `json:"ok"`
+	FailReason     string            `json:"failReason,omitempty"`
 }
 
 type binaryCheck struct {
@@ -96,15 +97,34 @@ are reported but do not affect the exit code.`,
 }
 
 func runDoctor(ctx context.Context, state *rootState, probeLLM bool) error {
-	report := doctorReport{
-		GoVersion: runtime.Version(),
-		GoOS:      runtime.GOOS,
-		GoArch:    runtime.GOARCH,
-		RepoRoot:  state.cfg.RepoRoot,
-		OK:        true,
+	writerRuntime, err := llm.ResolveRuntime(ctx, state.cfg.RepoRoot, llm.RuntimeWriter)
+	if err != nil {
+		return fmt.Errorf("doctor: writer runtime compatibility: %w", err)
 	}
+	requiredForProfile := append([]string{}, requiredBinaries...)
+	if writerRuntime.RuntimeProfile != "legacy" {
+		reviewerRuntime, err := llm.ResolveRuntime(
+			ctx, state.cfg.RepoRoot, llm.RuntimeReviewer,
+		)
+		if err != nil {
+			return fmt.Errorf("doctor: reviewer runtime compatibility: %w", err)
+		}
+		requiredForProfile = append(
+			requiredForProfile, writerRuntime.Provider, reviewerRuntime.Provider,
+		)
+	}
+	report := doctorReport{
+		GoVersion:      runtime.Version(),
+		GoOS:           runtime.GOOS,
+		GoArch:         runtime.GOARCH,
+		RepoRoot:       state.cfg.RepoRoot,
+		RuntimeProfile: writerRuntime.RuntimeProfile,
+		OK:             true,
+	}
+	requiredNames := make(map[string]bool, len(requiredForProfile))
 
-	for _, name := range requiredBinaries {
+	for _, name := range requiredForProfile {
+		requiredNames[name] = true
 		path, err := runner.LookPath(name)
 		report.Binaries = append(report.Binaries, binaryCheck{
 			Name:     name,
@@ -120,6 +140,9 @@ func runDoctor(ctx context.Context, state *rootState, probeLLM bool) error {
 		}
 	}
 	for _, name := range optionalBinaries {
+		if requiredNames[name] {
+			continue
+		}
 		path, err := runner.LookPath(name)
 		report.Binaries = append(report.Binaries, binaryCheck{
 			Name:     name,
@@ -147,6 +170,11 @@ func runDoctor(ctx context.Context, state *rootState, probeLLM bool) error {
 		{Name: "article-counter.json", Path: state.cfg.CounterFile, Required: true},
 		{Name: "GU-LOG_WRITER_PROMPT.md", Path: state.cfg.WritingGuide, Required: true},
 	}
+	if writerRuntime.RuntimeProfile != "legacy" {
+		fileChecks = append(fileChecks, fileCheck{
+			Name: "llm-pipeline.json", Path: state.cfg.ModelRouting, Required: true,
+		})
+	}
 	for i := range fileChecks {
 		fi, err := os.Stat(fileChecks[i].Path)
 		fileChecks[i].Found = err == nil && !fi.IsDir()
@@ -165,8 +193,10 @@ func runDoctor(ctx context.Context, state *rootState, probeLLM bool) error {
 		// should complete in a few seconds.
 		probeCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 		defer cancel()
-		disp, err := llm.NewDispatcher(state.log, llm.ProbeChain()...)
-		if err == nil {
+		providers, err := llm.ProbeChainForRuntime(probeCtx, state.cfg.RepoRoot)
+		if err != nil {
+			state.log.Warn("doctor: model routing failed: %v", err)
+		} else if disp, err := llm.NewDispatcher(state.log, providers...); err == nil {
 			report.LLMProbes = disp.Probe(probeCtx)
 		} else {
 			state.log.Warn("doctor: dispatcher init failed: %v", err)
@@ -189,6 +219,7 @@ func printDoctorHuman(state *rootState, r doctorReport) {
 	fmt.Printf("gp-pipeline doctor\n")
 	fmt.Printf("  go:       %s (%s/%s)\n", r.GoVersion, r.GoOS, r.GoArch)
 	fmt.Printf("  repo:     %s\n", r.RepoRoot)
+	fmt.Printf("  runtime:  %s\n", r.RuntimeProfile)
 	fmt.Printf("\n")
 
 	fmt.Printf("binaries:\n")
