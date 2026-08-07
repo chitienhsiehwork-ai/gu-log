@@ -23,34 +23,23 @@ function repoWithFullGitHistory(cwd: string): string {
   // Do not unshallow the test runner's checkout in-place. Vitest runs files in
   // parallel, and mutating .git here can make hook integration tests hang.
   const origin = run('git', ['remote', 'get-url', 'origin'], cwd).trim();
-  const headRef = process.env.GITHUB_HEAD_REF;
-  const refName = process.env.GITHUB_REF_NAME;
-  const currentBranch = run('git', ['branch', '--show-current'], cwd).trim();
   const headSha = run('git', ['rev-parse', 'HEAD'], cwd).trim();
-  const candidates = [headRef, refName, currentBranch, `origin/${currentBranch}`, headSha].filter(
-    (candidate): candidate is string => Boolean(candidate)
-  );
-
-  for (const ref of candidates) {
-    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-version-full-'));
-    try {
-      run(
-        'git',
-        ['clone', '--filter=blob:none', '--single-branch', '--branch', ref, origin, tmp],
-        cwd
-      );
-      return tmp;
-    } catch {
-      // Fall through to the next candidate; the unshallow fallback below
-      // is the one whose failure is worth surfacing.
-      fs.rmSync(tmp, { recursive: true, force: true });
-    }
-  }
 
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-version-full-'));
   try {
-    run('git', ['clone', '--no-local', cwd, tmp], cwd);
-    run('git', ['fetch', '--unshallow', 'origin'], tmp);
+    run('git', ['clone', '--no-local', '--no-checkout', cwd, tmp], cwd);
+    run('git', ['remote', 'set-url', 'origin', origin], tmp);
+    run('git', ['fetch', '--unshallow', '--filter=blob:none', 'origin'], tmp);
+    run('git', ['checkout', '--detach', headSha], tmp);
+
+    const fullHistory = run('git', ['rev-parse', '--is-shallow-repository'], tmp).trim();
+    if (fullHistory !== 'false') {
+      throw new Error(`Expected a full-history clone, got shallow state: ${fullHistory}`);
+    }
+    const clonedHead = run('git', ['rev-parse', 'HEAD'], tmp).trim();
+    if (clonedHead !== headSha) {
+      throw new Error(`Expected exact checkout ${headSha}, got ${clonedHead}`);
+    }
     return tmp;
   } catch (error) {
     fs.rmSync(tmp, { recursive: true, force: true });
@@ -149,6 +138,50 @@ describe('post version manifest freshness', () => {
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('post-versions.json fresh');
   }, 60_000);
+
+  it('checks the exact shallow checkout even when ambient GitHub refs point elsewhere', () => {
+    const origin = makeSyntheticRepo();
+    const initialBuild = runManifest(origin, []);
+    expect(initialBuild.status, initialBuild.stderr).toBe(0);
+    run('git', ['add', MANIFEST_PATH], origin);
+    run('git', ['commit', '-qm', 'fresh manifest'], origin);
+    run('git', ['branch', 'ambient-fresh'], origin);
+
+    fs.appendFileSync(
+      path.join(origin, 'src', 'content', 'posts', 'gp-999-regression.mdx'),
+      '\nexact checkout edit\n'
+    );
+    run('git', ['add', 'src/content/posts/gp-999-regression.mdx'], origin);
+    run('git', ['commit', '-qm', 'stale exact checkout'], origin);
+    const exactSha = run('git', ['rev-parse', 'HEAD'], origin).trim();
+    const exactBranch = run('git', ['branch', '--show-current'], origin).trim();
+
+    const shallow = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-version-exact-shallow-'));
+    run(
+      'git',
+      ['clone', '-q', '--depth', '1', '--branch', exactBranch, `file://${origin}`, shallow],
+      origin
+    );
+    expect(run('git', ['rev-parse', '--is-shallow-repository'], shallow).trim()).toBe('true');
+
+    const previousHeadRef = process.env.GITHUB_HEAD_REF;
+    const previousRefName = process.env.GITHUB_REF_NAME;
+    process.env.GITHUB_HEAD_REF = 'ambient-fresh';
+    process.env.GITHUB_REF_NAME = 'ambient-fresh';
+    try {
+      const fullHistory = repoWithFullGitHistory(shallow);
+
+      expect(run('git', ['rev-parse', 'HEAD'], fullHistory).trim()).toBe(exactSha);
+      const result = runManifest(fullHistory, ['--check']);
+      expect(result.status).not.toBe(0);
+      expect(result.stderr + result.stdout).toContain('post-versions.json is stale');
+    } finally {
+      if (previousHeadRef === undefined) delete process.env.GITHUB_HEAD_REF;
+      else process.env.GITHUB_HEAD_REF = previousHeadRef;
+      if (previousRefName === undefined) delete process.env.GITHUB_REF_NAME;
+      else process.env.GITHUB_REF_NAME = previousRefName;
+    }
+  }, 20_000);
 
   it('can precompute the manifest for staged post changes before commit', () => {
     const repo = makeSyntheticRepo();
