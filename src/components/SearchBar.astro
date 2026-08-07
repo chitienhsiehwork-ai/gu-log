@@ -110,8 +110,9 @@ const t = i18n[lang];
 </div>
 
 <script>
-  import type { default as Fuse, FuseResultMatch, FuseResult } from 'fuse.js';
+  import type { default as Fuse, FuseResultMatch } from 'fuse.js';
   import { fuseOptions, type SearchEntry } from '../config/fuse-options';
+  import { rankSearchResults } from '../lib/search-ranking';
 
   // Read config from data attributes (avoids define:vars which blocks module imports)
   const modal = document.querySelector('[data-search-modal]') as HTMLElement | null;
@@ -273,20 +274,13 @@ const t = i18n[lang];
     }
     if (!searchIndex) return;
 
-    let allMatches: FuseResult<SearchEntry>[];
-
-    // Special-case: ticket ID prefix search (SD, GP, MP, Lv) — exact prefix match
-    const isTicketPrefix = /^(sd|gp|mp|lv)[-\s]?\d*/i.test(trimmed);
-    if (isTicketPrefix) {
-      const lower = trimmed.toLowerCase();
-      const ticketMatches = searchIndex
-        .filter((p) => p.ticketId && p.ticketId.toLowerCase().startsWith(lower))
-        .map((item) => ({ item, matches: [] as FuseResultMatch[], refIndex: 0, score: 0 }));
-
-      allMatches = ticketMatches.length > 0 ? ticketMatches : (fuse?.search(trimmed) ?? []);
-    } else {
-      allMatches = fuse?.search(trimmed) ?? [];
-    }
+    const ranked = rankSearchResults({
+      query: trimmed,
+      searchIndex,
+      fuzzyResults: fuse?.search(trimmed) ?? [],
+      maxResults,
+    });
+    const allMatches = ranked.results;
 
     if (allMatches.length === 0) {
       results.innerHTML = `<div class="search-no-results">${noResultsText}</div>`;
@@ -296,8 +290,8 @@ const t = i18n[lang];
 
     // Cap the rendered list (panel scrolls); surface the full count above so
     // broad terms that match more than maxResults don't silently hide posts.
-    const total = allMatches.length;
-    const matches = allMatches.slice(0, maxResults);
+    const total = ranked.total;
+    const matches = allMatches;
     const countTpl = total > matches.length ? countCappedTpl : countAllTpl;
     const countText = countTpl
       .replace('{total}', String(total))

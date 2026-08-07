@@ -10,21 +10,34 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import Fuse from 'fuse.js';
 import { fuseOptions, type SearchEntry } from '../src/config/fuse-options';
+import { rankSearchResults } from '../src/lib/search-ranking';
 import { getSearchIndex } from './helpers/search-index-loader';
 import { searchRankingGoldenCases } from './data/search-ranking-fixture';
 
 let fuseZh: Fuse<SearchEntry>;
 let fuseEn: Fuse<SearchEntry>;
+let zhIndex: SearchEntry[];
+let enIndex: SearchEntry[];
 
 beforeAll(async () => {
-  const { zhIndex, enIndex } = await getSearchIndex();
+  ({ zhIndex, enIndex } = await getSearchIndex());
   fuseZh = new Fuse(zhIndex, fuseOptions);
   fuseEn = new Fuse(enIndex, fuseOptions);
 });
 
 /** Helper: search and return ticketIds of top N results */
-function searchTickets(fuse: Fuse<SearchEntry>, query: string, limit = 10): (string | null)[] {
-  return fuse.search(query, { limit }).map((r) => r.item.ticketId);
+function searchTickets(
+  index: readonly SearchEntry[],
+  fuse: Fuse<SearchEntry>,
+  query: string,
+  limit = 10
+): (string | null)[] {
+  return rankSearchResults({
+    query,
+    searchIndex: index,
+    fuzzyResults: fuse.search(query),
+    maxResults: limit,
+  }).results.map((result) => result.item.ticketId);
 }
 
 // ============================================================
@@ -33,12 +46,12 @@ function searchTickets(fuse: Fuse<SearchEntry>, query: string, limit = 10): (str
 
 describe('Search Relevance — zh-tw', () => {
   it('should find GP-90 (Simon Willison Interactive Explanations) when searching "interactive"', () => {
-    const tickets = searchTickets(fuseZh, 'interactive');
+    const tickets = searchTickets(zhIndex, fuseZh, 'interactive');
     expect(tickets).toContain('GP-90');
   });
 
   it('should find GP-90 when searching "interactive explanation"', () => {
-    const tickets = searchTickets(fuseZh, 'interactive explanation');
+    const tickets = searchTickets(zhIndex, fuseZh, 'interactive explanation');
     expect(tickets).toContain('GP-90');
   });
 
@@ -83,7 +96,7 @@ describe('Search Relevance — highlight quality', () => {
 
 describe('Search Relevance — ticket ID', () => {
   it('should find exact ticket by ID prefix', () => {
-    const tickets = searchTickets(fuseZh, 'GP-90');
+    const tickets = searchTickets(zhIndex, fuseZh, 'GP-90');
     expect(tickets[0]).toBe('GP-90');
   });
 });
@@ -91,7 +104,7 @@ describe('Search Relevance — ticket ID', () => {
 describe('Search Relevance — source URL', () => {
   it('should trace a pasted source URL back to the gu-log post', () => {
     const sourceUrl = 'https://x.com/vtrivedy10/status/2037203679997018362';
-    const tickets = searchTickets(fuseZh, sourceUrl);
+    const tickets = searchTickets(zhIndex, fuseZh, sourceUrl);
 
     expect(tickets[0]).toBe('GP-133');
   });
@@ -101,7 +114,7 @@ describe('Search Relevance — stable golden ranking', () => {
   for (const golden of searchRankingGoldenCases) {
     it(`keeps ${golden.name}`, () => {
       const fuse = new Fuse<SearchEntry>([...golden.entries], fuseOptions);
-      const tickets = searchTickets(fuse, golden.query, golden.tickets.length);
+      const tickets = searchTickets(golden.entries, fuse, golden.query, golden.tickets.length);
 
       expect(tickets).toEqual([...golden.tickets]);
     });
