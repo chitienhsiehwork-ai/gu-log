@@ -28,46 +28,46 @@ tags: ["ai-strategy","enterprise-ai","data-privacy"]
 scores:
   tribunalVersion: 9
   factCheck:
-    accuracy: 9
+    accuracy: 8
     fidelity: 8
     consistency: 9
-    sourceBoundary: 8
-    commentarySeparation: 8
+    sourceBoundary: 9
+    commentarySeparation: 9
     score: 8
-    date: "2026-07-13"
-    model: "claude-opus-4-8"
+    date: "2026-07-28"
+    model: "gpt-5.5"
   librarian:
-    glossary: 9
+    glossary: 8
     crossRef: 9
     sourceAlign: 8
-    attribution: 9
+    attribution: 8
     score: 8
-    date: "2026-07-13"
-    model: "claude-opus-4-8"
+    date: "2026-07-28"
+    model: "gpt-5.5"
   freshEyes:
     readability: 8
     firstImpression: 8
     payoffDensity: 8
     lengthFit: 8
-    clarity: 8
+    clarity: 9
     score: 8
-    date: "2026-07-13"
-    model: "claude-opus-4-8"
+    date: "2026-07-28"
+    model: "gpt-5.5"
   vibe:
     persona: 8
     moguNote: 8
     vibe: 8
     narrative: 9
     score: 8
-    date: "2026-07-13"
-    model: "claude-opus-4-5"
+    date: "2026-07-28"
+    model: "gpt-5.5"
 ---
 
 import MoguNote from '../../components/MoguNote.astro';
 
 A company buys an AI service, pays up, and thinks the deal is done. But the real bill is just getting started — want the model to perform a little better? Feed it more internal data. The more useful the model becomes, the more secrets get poured into it. By the time anyone notices, the most valuable thing the company owns is no longer in its hands.
 
-Microsoft CEO Satya Nadella says this is a mirror image of an old economics problem.
+This is a mirror image of an old economics problem.
 
 ## The Economist's Old Paradox, Flipped
 
@@ -75,7 +75,7 @@ Nobel laureate Kenneth Arrow described a paradox in the market for information l
 
 AI flips this on its head.
 
-Now it's the buyer's dilemma: to use AI, the buyer risks leaking their own secrets. Nadella calls this the "Reverse Information Paradox."
+Now it's the buyer's dilemma: to use AI, the buyer risks leaking their own secrets. That is the "Reverse Information Paradox."
 
 What makes it worse is time. The longer the service gets used, the more skewed the information asymmetry becomes: the vendor learns more and more about the customer, while the customer learns almost nothing about what the vendor is learning in return.
 
@@ -101,16 +101,16 @@ This is "local knowledge" in the Hayekian sense — knowledge of time, place, an
 
 ## The Ironic Asymmetry
 
-Here's the irony. Model providers claim fair use to train on public data — and that really is an important right that drives innovation. But what's the status quo? They turn around and impose strict distillation clauses on customers, while reserving the right to learn from customer usage data.
+The problem is asymmetry. Model providers can claim fair use to train on public data — and that really is an important right that drives innovation. But the risk enterprises have to watch is one-way learning rights: customers may be restricted from using one service's outputs to train another model, while the provider may still be able, within its product terms, to improve its own systems from usage signals.
 
 If learning only flows one way, economic value concentrates toward whoever owns the learning infrastructure — not the people who created the knowledge.
 
-Alex Karp put it this way: "What the technical customers want is control over their compute, their models, their data stack, and their alpha. They want to know they own the means of production, and it's not being transferred to someone else."
+What enterprises want to protect is not just "please don't peek at the folder." They want to make sure the means of production do not slowly move elsewhere through everyday use: compute, models, the data stack, and the judgment advantage the organization has built all need to stay inside a boundary the company controls.
 
-Setting aside the part where Karp is making the case for Palantir's business model, the argument itself holds up: whoever controls the learning loop takes the compound returns. The current regime is doing exactly the kind of transfer Karp describes.
+Whoever controls the learning loop takes the compound returns. The trust boundary is meant to keep those returns from quietly flowing to outside infrastructure.
 
 <MoguNote>
-So what's the status quo, really? The vendor says: "I can read every book in the world to get smarter — that's fair use. But what customers teach me while using my service? That's mine. They're not allowed to use it to train anyone else." How is that fair? It's basically "I read someone's book and learned to write, but they can't take the typo corrections they taught me and teach them to anyone else" (╯°□°)╯︵ ┻━┻
+So the thing to inspect is not only "did the data go to the cloud?" It's also how contracts and product boundaries define learning rights. The vendor can say: "I read the world's books and got smarter — that's fair use." But the enterprise can ask back: "When my usage teaches the system typo fixes, workflow judgment, and evaluation standards, why shouldn't that learning stay with me?" That's where the discomfort really lives (╯°□°)╯︵ ┻━┻
 </MoguNote>
 
 ---
@@ -133,7 +133,7 @@ The first step is reclaiming the evals. Whoever defines "what good looks like" c
 
 The second step is building internal training capability. Create a proprietary learning environment within the tenant boundary to fine-tune models. Let models learn against real workflows without exposing company knowledge. It's not easy, but the technology is already there.
 
-The third step is making sure the orchestration layer is decoupled from any single model. Ask a simple question: if a model currently in use gets taken away, can operations continue and evals be optimized with other models? Will the company's "veteran capability" vanish along with some "generalist model"? This "swap the model, keep the veterans" test is something Nadella brought up in [his earlier long essay on learning loops](/en/posts/en-gp-226-20260615-satyanadella-nadella/) — this piece takes that compound-moat argument and grounds it on the harder foundation of "trust boundary."
+The third step is making sure the orchestration layer is decoupled from any single model. Ask a simple question: if a model currently in use gets taken away, can operations continue and evals be optimized with other models? Will the company's "veteran capability" vanish along with some "generalist model"? This "swap the model, keep the veterans" test connects to [Nadella's earlier long essay on learning loops](/en/posts/en-gp-226-20260615-satyanadella-nadella/): models can be replaced, but the evals, workflows, and context an organization accumulates are what need to remain.
 
 Once decoupled, there's another benefit: context, models, and tasks can be combined in the most efficient, cost-effective way without sacrificing quality.
 
