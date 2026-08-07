@@ -18,30 +18,30 @@ tags: ["shroomdog-original","claude-tag","slack","agent","sandbox","agent-proxy"
 scores:
   tribunalVersion: 9
   factCheck:
-    accuracy: 8
+    accuracy: 7
     fidelity: 8
     consistency: 9
-    sourceBoundary: 9
-    commentarySeparation: 8
+    sourceBoundary: 10
+    commentarySeparation: 9
     score: 8
-    date: "2026-07-15"
-    model: "claude-opus-4-8"
+    date: "2026-07-28"
+    model: "gpt-5.5"
   vibe:
     persona: 8
     moguNote: 8
     vibe: 9
     narrative: 8
     score: 8
-    date: "2026-07-16"
-    model: "claude-opus-4-5"
+    date: "2026-07-28"
+    model: "gpt-5.5"
   librarian:
-    glossary: 9
+    glossary: 8
     crossRef: 9
     sourceAlign: 8
     attribution: 8
     score: 8
-    date: "2026-07-16"
-    model: "claude-opus-4-8"
+    date: "2026-07-28"
+    model: "gpt-5.5"
   freshEyes:
     readability: 8
     firstImpression: 8
@@ -49,14 +49,14 @@ scores:
     lengthFit: 8
     clarity: 9
     score: 8
-    date: "2026-07-16"
-    model: "claude-opus-4-8"
+    date: "2026-07-28"
+    model: "gpt-5.5"
 ---
 
 import MoguNote from '../../components/MoguNote.astro';
 import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
-想像一個場景：工程師在 [Slack](/glossary#slack) 頻道問 Claude 一個問題，Claude 開始查 codebase、跑測試、推分支。中途 PM 覺得需求不對，直接在同一個 thread 回一句「等等，先別合併，改成 X」——Claude 收到，馬上轉彎。
+想像一個場景：工程師在 [Slack](/glossary#slack) 頻道問 Claude 一個問題，Claude 開始查 codebase、跑測試、推分支。中途負責釐清需求的產品經理（PM）覺得方向不對，直接在同一個 thread 回一句「等等，先別合併，改成 X」——Claude 收到，馬上轉彎。
 
 這不是科幻場景，是 [Claude Tag](/glossary#claude-tag) 的預設行為。而最反直覺的地方在這裡：**Claude 不是任何一個人的私人秘書，它是整個頻道共用的隊友**。誰在 thread 裡講話，它就聽誰的。至於「怎麼跟 AI 隊友協作、叫它別送頭」，[SD-23](/posts/sd-23-20260510-ai-dota-teammates) 專門講過，這篇先聚焦官方版本身。
 
@@ -78,7 +78,7 @@ Claude Tag 的核心運作單位是 [thread](/glossary#thread)。在 Slack 頻�
 
 ## 沙箱會蒸發，Thread 才持久
 
-Claude Tag 跑在 Anthropic 代管的沙箱裡，跟 [Claude Code](/glossary#claude-code) on the web 用同一套運算環境。這個沙箱是暫時性的：閒置一段時間就會被釋放，下次 Claude 回覆時開一台全新的執行個體。**沒推送的分支、沒貼回 Slack 的產出，下次就不見了**。
+Claude Tag 跑在 Anthropic 代管的沙箱裡，跟 [Claude Code](/glossary#claude-code) 網頁版用同一套運算環境。這個沙箱是暫時性的：閒置一段時間就會被釋放，下次 Claude 回覆時開一台全新的執行個體。**沒推送的分支、沒貼回 Slack 的產出，下次就不見了**。
 
 <MoguNote>
 每次 Claude 被叫醒，它拿到的是一台乾淨的新機器，靠 thread 裡的對話記錄重建上下文。所以 thread 是長期記憶，沙箱只是工作用的草稿紙——草稿紙會被收走，只有寫回 thread 的東西才留得住。
