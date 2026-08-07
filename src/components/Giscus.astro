@@ -120,6 +120,8 @@ const errorText =
   window.addEventListener('message', (event) => {
     if (event.origin !== 'https://giscus.app') return;
     if (event.data === null || typeof event.data !== 'object' || !event.data.giscus) return;
+    const frameWindow = giscusContainer?.querySelector('iframe.giscus-frame')?.contentWindow;
+    if (!frameWindow || event.source !== frameWindow) return;
     markGiscusReady();
     updateGiscusTheme();
   });

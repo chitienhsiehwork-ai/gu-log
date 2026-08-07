@@ -521,6 +521,58 @@ test.describe('Component smoke — post page (RelatedArticles, ShareButton, Prev
     expect(errors).toEqual([]);
   });
 
+  test('only accepts Giscus payloads sent by the current comments iframe', async ({ page }) => {
+    await page.route('https://giscus.app/client.js', async (route) => {
+      await route.fulfill({
+        contentType: 'application/javascript',
+        body: '',
+      });
+    });
+    await page.goto('/posts/gp-100-20260304-berryxia-ai-ai-prompt');
+
+    const status = page.locator('.giscus-status');
+    await expect(status).toBeVisible();
+    await expect(status).toContainText('留言載入中');
+
+    const result = await page.evaluate(async () => {
+      const container = document.querySelector('.giscus-container');
+      const status = container?.querySelector<HTMLElement>('.giscus-status');
+      if (!container || !status) throw new Error('Giscus fixture was not rendered');
+
+      const frame = document.createElement('iframe');
+      frame.className = 'giscus-frame';
+      frame.src = 'about:blank';
+      const loaded = new Promise<void>((resolve) => {
+        frame.addEventListener('load', () => resolve(), { once: true });
+      });
+      container.appendChild(frame);
+      await loaded;
+
+      status.hidden = false;
+      window.dispatchEvent(
+        new MessageEvent('message', {
+          origin: 'https://giscus.app',
+          data: { giscus: {} },
+          source: window,
+        })
+      );
+      const afterWrongSource = status.hidden;
+
+      window.dispatchEvent(
+        new MessageEvent('message', {
+          origin: 'https://giscus.app',
+          data: { giscus: {} },
+          source: frame.contentWindow,
+        })
+      );
+
+      return { afterWrongSource, afterCurrentSource: status.hidden };
+    });
+
+    expect(result).toEqual({ afterWrongSource: false, afterCurrentSource: true });
+    await expect(status).toBeHidden();
+  });
+
   test('read-status consumers ignore malformed global events', async ({ page }) => {
     const errorsByRoute: Record<string, string[]> = {};
 
