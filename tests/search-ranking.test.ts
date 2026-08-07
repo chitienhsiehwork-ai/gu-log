@@ -66,13 +66,13 @@ describe('structured ticket ranking', () => {
   it('places every same-number ticket in normalized ASCII order before field-only fuzzy matches', () => {
     const mp250 = entry('mp-250', 'mp-250');
     const gp250 = entry('gp-250', 'GP-250');
-    const sp250 = entry('sp-250', 'SP-250');
+    const sd250 = entry('sd-250', 'SD-250');
     const zz250 = entry('zz-250', 'ZZ-250');
     const titleOnly = entry('title-only', 'GP-999', { title: '250 appears only in title' });
     const summaryOnly = entry('summary-only', null, { summary: 'Summary mentions 250' });
     const sourceOnly = entry('source-only', null, { source: 'Source 250' });
     const urlOnly = entry('url-only', null, { sourceUrl: 'https://example.com/250' });
-    const searchIndex = [mp250, titleOnly, zz250, gp250, summaryOnly, sp250, sourceOnly, urlOnly];
+    const searchIndex = [mp250, titleOnly, zz250, gp250, summaryOnly, sd250, sourceOnly, urlOnly];
     const fuzzyResults = [titleOnly, summaryOnly, sourceOnly, urlOnly, mp250, gp250].map(
       (item, index) => fuseResult(item, index)
     );
@@ -82,7 +82,7 @@ describe('structured ticket ranking', () => {
     expect(ranked.results.map(({ item }) => item.slug)).toEqual([
       'gp-250',
       'mp-250',
-      'sp-250',
+      'sd-250',
       'zz-250',
       'title-only',
       'summary-only',
