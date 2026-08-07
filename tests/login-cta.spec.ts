@@ -10,6 +10,63 @@ const TEST_POST = '/posts/gp-24-20260204-claude-is-a-space-to-think';
 const EN_TEST_POST = '/en/posts/en-gp-24-20260204-claude-is-a-space-to-think';
 
 test.describe('LoginCta Component', () => {
+  test('loads its runtime from a cacheable script instead of repeating it inline', async ({
+    page,
+  }) => {
+    await page.goto(TEST_POST);
+
+    const inlineRuntimeCount = await page
+      .locator('script:not([src])')
+      .evaluateAll(
+        (scripts) =>
+          scripts.filter((script) => script.textContent?.includes('gu-log-return-url')).length
+      );
+    expect(inlineRuntimeCount).toBe(0);
+    await expect(page.locator('script[src*="login-cta-client"]')).toHaveCount(1);
+    await expect(page.locator('[data-login-cta]')).toBeVisible();
+  });
+
+  test('ignores earlier clobber markers and keeps the server-rendered login link', async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      const observer = new MutationObserver((_records, activeObserver) => {
+        if (!document.body) return;
+
+        const marker = document.createElement('div');
+        marker.dataset.loginCta = '';
+        marker.dataset.apiUrl = 'javascript:alert(document.domain)//';
+
+        const fakeLogin = document.createElement('a');
+        fakeLogin.id = 'cta-login-btn';
+        fakeLogin.href = 'javascript:alert(document.domain)//';
+        fakeLogin.addEventListener('click', () => {
+          document.body.dataset.fakeLoginClicked = 'true';
+        });
+
+        document.body.prepend(marker, fakeLogin);
+        activeObserver.disconnect();
+      });
+      observer.observe(document, { childList: true, subtree: true });
+    });
+
+    await page.goto(TEST_POST);
+
+    const cta = page.locator('.login-cta-container[data-login-cta]');
+    const realLogin = cta.locator('#cta-login-btn');
+    await expect(cta).toBeVisible();
+    await expect(realLogin).toHaveAttribute('href', 'https://api.shroomdog.dev/auth/github');
+
+    await page.evaluate(() => {
+      document
+        .querySelector('.login-cta-container #cta-login-btn')
+        ?.addEventListener('click', (event) => event.preventDefault());
+    });
+    await realLogin.click();
+    await expect(page.locator('body')).not.toHaveAttribute('data-fake-login-clicked', 'true');
+    expect(await page.evaluate(() => localStorage.getItem('gu-log-return-url'))).toBe(page.url());
+  });
+
   test('GIVEN user is not logged in WHEN page loads THEN shows call-to-action with login button', async ({
     page,
   }) => {
@@ -51,6 +108,22 @@ test.describe('LoginCta Component', () => {
     await expect(cta).toContainText('Edit with AI — Select text to suggest an edit');
     await expect(cta.locator('.github-login-btn')).toContainText('Log in with GitHub');
     await expect(cta).not.toContainText('coming soon');
+  });
+
+  test('GIVEN an English reader is logged in WHEN the CTA renders THEN it separates the label from the identity', async ({
+    page,
+  }) => {
+    await page.goto(EN_TEST_POST);
+    await page.evaluate(() => {
+      const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+      const payload = btoa(JSON.stringify({ email: 'tester@example.com' }));
+      localStorage.setItem('gu-log-jwt', `${header}.${payload}.sig`);
+    });
+    await page.reload();
+
+    const status = page.locator('[data-login-cta] .cta-status');
+    await expect(status).toBeVisible();
+    await expect(status).toContainText('Logged in as: tester@example.com');
   });
 
   test('GIVEN a logged-out reader WHEN clicking Login THEN saves the exact current URL', async ({
@@ -182,7 +255,7 @@ test.describe('LoginCta Component', () => {
     ).toBe(1);
     expect(await page.evaluate(() => localStorage.getItem('gu-log-jwt'))).toBe(jwt);
     await expect(logoutButton).toBeVisible();
-    await expect(cta.locator('.github-login-btn')).toHaveCount(0);
+    await expect(cta.locator('.github-login-btn')).not.toBeVisible();
     expect(pageErrors).toEqual([]);
   });
 });
