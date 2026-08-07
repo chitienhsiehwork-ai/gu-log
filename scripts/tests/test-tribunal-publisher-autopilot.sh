@@ -362,6 +362,65 @@ grep '^pr list ' "$gh_log" | grep -- '--state merged' | grep -q -- '--base main'
   || fail "live merged PR lookup must constrain base to main"
 pass "autopilot constrains live PR lookup to the main base"
 
+published_state="$TMP/published-only.json"
+published_state_before="$TMP/published-only.before"
+published_triage="$TMP/published-only-triage.json"
+published_triage_before="$TMP/published-only-triage.before"
+published_gh_log="$TMP/published-only-gh.log"
+published_audit_log="$TMP/published-only-audit.jsonl"
+cat > "$published_state" <<'JSON'
+{
+  "schemaVersion": 1,
+  "entries": {
+    "gp-4-test.mdx": {
+      "publishState": "published",
+      "batchId": "batch-4",
+      "prNumber": 44,
+      "mergeCommit": "published-commit",
+      "mergedAt": "2026-05-24T09:00:00Z"
+    }
+  },
+  "batches": {
+    "batch-4": {
+      "batchId": "batch-4",
+      "branch": "publisher/batch-4",
+      "entries": ["gp-4-test.mdx"],
+      "state": "published",
+      "prNumber": 44,
+      "mergeCommit": "published-commit",
+      "mergedAt": "2026-05-24T09:00:00Z"
+    }
+  }
+}
+JSON
+printf '%s\n' '{ "schemaVersion": 1, "events": {} }' > "$published_triage"
+cp "$published_state" "$published_state_before"
+cp "$published_triage" "$published_triage_before"
+
+for cycle in 1 2; do
+  (cd "$runtime" && \
+    PUBLISHER_STATE_FILE="$published_state" \
+    TRIAGE_EVENTS_FILE="$published_triage" \
+    GH_LOG="$published_gh_log" \
+    GH_BIN="$TMP/gh-hook.sh" \
+    GU_LOG_GH_TOKEN="fixture-token" \
+    TRIBUNAL_PUBLISHER_AUTOPILOT_LOCK_FILE="$TMP/published-only-$cycle.lock" \
+    TRIBUNAL_PUBLISHER_AUTOPILOT_AUDIT_LOG="$published_audit_log" \
+    bash scripts/tribunal-publisher-autopilot.sh --skip-apply)
+done
+
+if [ -e "$published_gh_log" ]; then
+  cat "$published_gh_log" >&2
+  fail "terminal published batches must not spend GitHub API calls in later cycles"
+fi
+cmp -s "$published_state_before" "$published_state" \
+  || fail "terminal published cycles must leave publisher state byte-identical"
+cmp -s "$published_triage_before" "$published_triage" \
+  || fail "terminal published cycles must leave triage state byte-identical"
+[ ! -e "$published_audit_log" ] \
+  || fail "terminal published cycles must not duplicate audit events"
+pass "autopilot skips terminal published batches without GitHub API calls"
+
 corrupt_publisher_state="$TMP/corrupt-publisher-state.json"
 corrupt_publisher_before="$TMP/corrupt-publisher-state.before"
 missing_triage_state="$TMP/autopilot-missing-triage-state.json"
