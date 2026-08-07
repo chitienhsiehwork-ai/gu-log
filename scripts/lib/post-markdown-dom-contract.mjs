@@ -494,7 +494,12 @@ const mermaidRoot = node('div', ['mermaid-wrapper'], {
     optional(node('p', ['mermaid-caption'])),
     child(
       node('button', ['mermaid-expand-btn'], {
-        attributes: attrs({ ariaLabel: NON_EMPTY, title: NON_EMPTY }),
+        attributes: attrs({
+          type: 'button',
+          ariaLabel: NON_EMPTY,
+          ariaHasPopup: 'dialog',
+          title: NON_EMPTY,
+        }),
         children: [
           child(
             node('svg', [], {

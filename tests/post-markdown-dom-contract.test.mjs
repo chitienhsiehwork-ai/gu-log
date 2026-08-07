@@ -103,7 +103,8 @@ const FIXTURES = {
         <div class="mermaid-source" style="display:none;" data-mermaid>graph TD</div>
         <div class="mermaid-render" data-loading-label="Loading diagram..."></div>
       </div>
-      <button class="mermaid-expand-btn" aria-label="Expand" title="Zoom">
+      <button type="button" class="mermaid-expand-btn" aria-label="Expand"
+        aria-haspopup="dialog" title="Zoom">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
           stroke="currentColor" stroke-width="2">
           <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"></path>
