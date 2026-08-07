@@ -17,6 +17,10 @@
 - `scripts/tribunal-loop.service` — systemd unit (user-scope).
 - `scripts/cc-tribunal-loop-wrapper.sh` — establishes the systemd PATH and execs the loop without loading Claude credentials.
 
+## 評審路由與執行來源
+
+評審預設由正式的 `Tribunal` 入口啟動；入口必須保證四評審完整、模型路由正確，並記錄執行來源（`provenance`）。任何執行路徑都不得猜 `model`：版本敏感角色讀 `agent frontmatter`，其餘讀 `runtime config`。手動路徑（包含 `playbook` 授權的 `Agent` 直跑）也必須補齊實際 `provider`／`model` 的 `provenance`，不得放寬四評審完整性。
+
 ## Deploy
 
 Host and checkout mappings are local-only. Before operating the VM, load

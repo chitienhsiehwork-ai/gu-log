@@ -29,8 +29,8 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const POSTS_DIR = path.join(__dirname, '../src/content/posts');
 
-// Every series that gu-log ships in both languages. Matches the
-// "每篇文章同時產出 zh-tw 和 en 版" claim in CLAUDE.md.
+// Every series that gu-log ships in both languages. Content policy lives in
+// CONTRIBUTING.md; this array is the executable series list.
 const PAIRED_PREFIXES = ['GP', 'MP', 'SD', 'Lv'];
 
 function parseTicketId(content) {
