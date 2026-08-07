@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
+import { spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import * as checkerModule from '../scripts/check-glossary-links.mjs';
 import * as fixerModule from '../scripts/apply-glossary-links.mjs';
 
@@ -12,6 +14,7 @@ const fixer = fixerModule as any;
 
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'gugl-'));
 const tmpPath = (name: string) => path.join(TMP, path.basename(name));
+const CHECKER_CLI = fileURLToPath(new URL('../scripts/check-glossary-links.mjs', import.meta.url));
 
 const glossary = [
   {
@@ -44,6 +47,32 @@ const glossary = [
 ];
 
 describe('glossary link checker', () => {
+  it('accepts a valid changed-posts Git base', () => {
+    const result = spawnSync(
+      process.execPath,
+      [CHECKER_CLI, '--changed-posts=HEAD', '--format', 'json'],
+      { encoding: 'utf8' }
+    );
+
+    expect(result.error).toBeUndefined();
+    expect(result.status, result.stderr).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({ ok: true, violations: [] });
+  });
+
+  it('fails closed when the changed-posts Git base cannot be resolved', () => {
+    const missingBase = '--src-prefix=bogus';
+    const result = spawnSync(
+      process.execPath,
+      [CHECKER_CLI, `--changed-posts=${missingBase}`, '--format', 'json'],
+      { encoding: 'utf8' }
+    );
+
+    expect(result.status).not.toBe(0);
+    expect(result.stdout).not.toContain('"ok": true');
+    expect(result.stderr).toContain('Could not enumerate changed posts from Git base');
+    expect(result.stderr).toContain(missingBase);
+  });
+
   it('reports an unlinked safe body occurrence', () => {
     const file = tmpPath('missing.mdx');
     fs.writeFileSync(
