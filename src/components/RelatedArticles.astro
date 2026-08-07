@@ -141,7 +141,7 @@ const related = selected.map(({ post }) => post);
 }
 
 <script>
-  import { isRead } from '../lib/reading-tracker';
+  import { getReadSlugs } from '../lib/reading-tracker';
 
   function initRelatedArticles() {
     const section = document.querySelector<HTMLElement>('[data-related-articles]');
@@ -151,12 +151,13 @@ const related = selected.map(({ post }) => post);
     if (!list) return;
 
     const items = Array.from(list.querySelectorAll<HTMLElement>('li.related-card'));
+    const readSlugs = new Set(getReadSlugs());
 
     // Update read indicators
     items.forEach((li) => {
       const indicator = li.querySelector<HTMLElement>('[data-read-indicator]');
       const slug = li.dataset.slug ?? '';
-      const read = isRead(slug);
+      const read = readSlugs.has(slug);
       if (indicator) {
         indicator.classList.toggle('is-read', read);
         indicator.title = read ? 'Read' : 'Unread';
