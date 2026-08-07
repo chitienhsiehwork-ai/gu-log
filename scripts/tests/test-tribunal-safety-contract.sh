@@ -50,7 +50,10 @@ fi
 if ! grep -q 'Rewrite disabled for this run' "$TRIBUNAL"; then
   fail "judge-only failure path could invoke writer rewrite"
 fi
-if ! bash "$TRIBUNAL" --help 2>&1 | grep -q -- '--allow-rewrite'; then
+if ! tribunal_help="$(bash "$TRIBUNAL" --help 2>&1)"; then
+  fail "Tribunal --help command failed"
+fi
+if ! grep -q -- '--allow-rewrite' <<<"$tribunal_help"; then
   fail "--allow-rewrite is not documented in help"
 fi
 pass "judge-only/--only-stage requires explicit --allow-rewrite"
@@ -88,11 +91,11 @@ fi
 pass "watchdog kill authority remains parent-held"
 
 judge_exec_body="$(sed -n '/^tribunal_codex_exec()/,/^}/p' "$HELPERS")"
-if printf '%s\n' "$judge_exec_body" | grep -q -- '--sandbox danger-full-access'; then
+if grep -q -- '--sandbox danger-full-access' <<<"$judge_exec_body"; then
   fail "Codex judge still executes untrusted article prose with danger-full-access"
 fi
-if ! printf '%s\n' "$judge_exec_body" |
-     grep -Fq 'tribunal_codex_workspace_prompt_exec "$work_dir" "$model" "$prompt"'; then
+if ! grep -Fq 'tribunal_codex_workspace_prompt_exec "$work_dir" "$model" "$prompt"' \
+  <<<"$judge_exec_body"; then
   fail "Codex judge does not use the shared isolated workspace executor"
 fi
 judge_sandbox_body="$(
@@ -111,7 +114,7 @@ for required in \
   '--ignore-rules' \
   '--ephemeral' \
   '--strict-config'; do
-  if ! printf '%s\n' "$judge_sandbox_body" | grep -Fq -- "$required"; then
+  if ! grep -Fq -- "$required" <<<"$judge_sandbox_body"; then
     fail "Codex judge sandbox is missing required boundary: $required"
   fi
 done
@@ -528,14 +531,13 @@ if ! grep -q 'tribunal_codex_writer_exec' "$HELPERS" ||
    ! grep -q 'sandbox_workspace_write.exclude_slash_tmp=true' "$HELPERS"; then
   fail "Tribunal Codex writer lacks its dedicated fail-closed sandbox"
 fi
-if ! sed -n '/^tribunal_codex_writer_exec()/,/^}/p' "$HELPERS" |
-     grep -q 'tribunal_codex_writer_prompt_exec' ||
-   ! sed -n '/^tribunal_codex_writer_prompt_exec()/,/^}/p' "$HELPERS" |
-     grep -q 'tribunal_codex_workspace_prompt_exec' ||
-   ! sed -n '/^tribunal_writer_preflight()/,/^)/p' "$HELPERS" |
-     grep -q 'tribunal_codex_writer_prompt_exec' ||
-   [ "$(sed -n '/^tribunal_codex_workspace_prompt_exec()/,/^}/p' "$HELPERS" |
-        grep -c -- '--sandbox workspace-write')" -ne 1 ]; then
+writer_exec_body="$(sed -n '/^tribunal_codex_writer_exec()/,/^}/p' "$HELPERS")"
+writer_prompt_body="$(sed -n '/^tribunal_codex_writer_prompt_exec()/,/^}/p' "$HELPERS")"
+writer_preflight_body="$(sed -n '/^tribunal_writer_preflight()/,/^)/p' "$HELPERS")"
+if ! grep -q 'tribunal_codex_writer_prompt_exec' <<<"$writer_exec_body" ||
+   ! grep -q 'tribunal_codex_workspace_prompt_exec' <<<"$writer_prompt_body" ||
+   ! grep -q 'tribunal_codex_writer_prompt_exec' <<<"$writer_preflight_body" ||
+   [ "$(grep -c -- '--sandbox workspace-write' <<<"$judge_sandbox_body")" -ne 1 ]; then
   fail "formal writer and deployed canary do not share one exact sandbox executor"
 fi
 if grep -q 'WRITING_GUIDELINES.md' "$TRIBUNAL" "$CODEX_WRITER"; then
