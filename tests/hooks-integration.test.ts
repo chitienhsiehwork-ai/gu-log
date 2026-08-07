@@ -360,6 +360,41 @@ describe('pre-push: PENDING ticketId guard (Step 0) — real committed diff', ()
   }, 15_000);
 });
 
+describe('pre-push: post version manifest freshness', () => {
+  it('fails closed when a shallow clone cannot fetch full history', () => {
+    const source = makeFakeRepo();
+    commitAll(source, 'shallow source base');
+    fs.writeFileSync(path.join(source, 'tracked.txt'), 'second commit\n');
+    const headSha = commitAll(source, 'shallow source head');
+
+    const clone = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-hook-shallow-'));
+    execSync(`git clone -q --depth 1 "file://${source}" "${clone}"`);
+    expect(
+      execSync('git rev-parse --is-shallow-repository', {
+        cwd: clone,
+        encoding: 'utf-8',
+      }).trim()
+    ).toBe('true');
+
+    const missingOrigin = path.join(clone, 'missing-origin.git');
+    execSync(`git remote set-url origin "${missingOrigin}"`, { cwd: clone });
+    const stdin = `refs/heads/feature-x ${headSha} refs/heads/feature-x ${'0'.repeat(40)}\n`;
+
+    const result = runPrePush(clone, stdin);
+
+    expect(result.status).toBe(1);
+    expect(result.stdout + result.stderr).toContain(
+      'Full Git history is unavailable; cannot verify post-versions.json freshness.'
+    );
+    expect(
+      execSync('git rev-parse --is-shallow-repository', {
+        cwd: clone,
+        encoding: 'utf-8',
+      }).trim()
+    ).toBe('true');
+  });
+});
+
 describe('pre-push: Tribunal PASS artifact audit', () => {
   it('rejects a progress-only PASS commit in a pushed main range', () => {
     const repo = makeFakeRepo();
