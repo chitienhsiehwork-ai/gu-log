@@ -3,6 +3,57 @@ import { test, expect } from './fixtures';
 const TEST_URL = '/artifacts/gp-245-trim-noop/';
 
 test.describe('Code copy button theme contract', () => {
+  test('resets copied feedback two seconds after the latest successful copy', async ({ page }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: {
+          writeText: () => Promise.resolve(),
+        },
+      });
+    });
+    await page.clock.install();
+
+    await page.goto(TEST_URL);
+
+    const copyButton = page.locator('.copy-button').first();
+    const copyText = copyButton.locator('.copy-text');
+    await copyButton.click();
+    await expect(copyButton).toHaveClass(/copied/);
+    await expect(copyText).toHaveText('Copied!');
+
+    await page.clock.fastForward(1000);
+    await copyButton.click();
+    await expect(copyText).toHaveText('Copied!');
+
+    await page.clock.fastForward(1001);
+    await expect(copyButton).toHaveClass(/copied/);
+    await expect(copyText).toHaveText('Copied!');
+
+    await page.clock.fastForward(999);
+    await expect(copyButton).not.toHaveClass(/copied/);
+    await expect(copyText).toHaveText('Copy');
+  });
+
+  test('keeps one wrapper and copy button per code block after Astro navigation', async ({
+    page,
+  }) => {
+    await page.goto(TEST_URL);
+
+    const wrappers = page.locator('.code-block-wrapper');
+    const buttons = page.locator('.copy-button');
+    await expect(wrappers).toHaveCount(2);
+    await expect(buttons).toHaveCount(2);
+
+    await page.evaluate(() => {
+      document.dispatchEvent(new Event('astro:page-load'));
+    });
+
+    await expect(wrappers).toHaveCount(2);
+    await expect(buttons).toHaveCount(2);
+    await expect(page.locator('.code-block-wrapper .code-block-wrapper')).toHaveCount(0);
+  });
+
   test('GIVEN both themes WHEN code blocks render THEN the copy button uses the matching palette and exposes keyboard focus', async ({
     page,
   }) => {
