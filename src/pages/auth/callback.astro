@@ -8,7 +8,15 @@
  */
 import '../../styles/global.css';
 
-const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
+const configuredApiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
+const parsedApiUrl = new URL(configuredApiUrl);
+
+if (parsedApiUrl.protocol !== 'https:' && parsedApiUrl.protocol !== 'http:') {
+  throw new Error('PUBLIC_API_URL must use http or https');
+}
+
+const apiUrl = parsedApiUrl.href.replace(/\/$/, '');
+const loginUrl = `${apiUrl}/auth/github`;
 ---
 
 <html lang="en">
@@ -99,7 +107,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
         <p id="error" class="error" hidden></p>
       </div>
       <div id="actions" class="actions" hidden>
-        <a href={`${apiUrl}/auth/github`}>Try GitHub login again</a>
+        <a href={loginUrl}>Try GitHub login again</a>
         <a href="/">Back to homepage</a>
       </div>
     </div>
