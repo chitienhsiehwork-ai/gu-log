@@ -97,6 +97,32 @@ function isNonEmptyString(value) {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
+function collectSearchIdentities(name, items, errors) {
+  const identities = new Set();
+  for (const item of items) {
+    if (
+      !item ||
+      typeof item !== 'object' ||
+      Array.isArray(item) ||
+      !['zh-tw', 'en'].includes(item.lang) ||
+      !isNonEmptyString(item.slug)
+    ) {
+      continue;
+    }
+
+    const identity = JSON.stringify([item.lang, item.slug]);
+    if (identities.has(identity)) {
+      errors.push(`${name} contains duplicate identity lang=${item.lang} slug=${item.slug}`);
+    }
+    identities.add(identity);
+  }
+  return identities;
+}
+
+function setsEqual(left, right) {
+  return left.size === right.size && [...left].every((value) => right.has(value));
+}
+
 /** Validate the stable public shape of generated artifacts without needing a
  * server. Inputs stay text-based so unit tests can exercise malformed JSON as
  * well as structurally invalid data. */
@@ -185,11 +211,29 @@ export function validateArtifactContracts({ sitemaps, rss, searchIndexes }) {
     }
   }
 
+  const identitiesByName = new Map();
+  for (const [name, items] of parsedIndexes) {
+    identitiesByName.set(name, collectSearchIdentities(name, items, errors));
+  }
+
   for (const lang of ['zh-tw', 'en']) {
     const name = `search-index.${lang}.json`;
     const items = parsedIndexes.get(name);
     if (items?.some((item) => item?.lang !== lang)) {
       errors.push(`${name} must contain only lang=${lang} entries`);
+    }
+
+    const combinedItems = parsedIndexes.get('search-index.json');
+    const localizedIdentities = identitiesByName.get(name);
+    if (combinedItems && localizedIdentities) {
+      const combinedIdentities = collectSearchIdentities(
+        'search-index.json',
+        combinedItems.filter((item) => item?.lang === lang),
+        []
+      );
+      if (!setsEqual(combinedIdentities, localizedIdentities)) {
+        errors.push(`${name} membership must match search-index.json lang=${lang}`);
+      }
     }
   }
 
