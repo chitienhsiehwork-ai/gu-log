@@ -6,9 +6,17 @@
  * reader-visible article identity/body so backend-only metadata changes do not
  * make old reads look stale.
  */
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { execFileSync, execSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  renameSync,
+  unlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import yaml from 'yaml';
@@ -151,9 +159,30 @@ function writeOrCheckManifest() {
     console.log(`✅ post-reader-revisions.json fresh: ${count} posts tracked${hintText}`);
   } else {
     mkdirSync(dirname(outPath), { recursive: true });
-    writeFileSync(outPath, next);
+    replaceManifest(next);
     const hintText = includeStaged ? ' (including staged changes)' : '';
     console.log(`✅ post-reader-revisions.json: ${count} posts tracked${hintText}`);
+  }
+}
+
+function replaceManifest(next) {
+  const tempPath = join(
+    dirname(outPath),
+    `.post-reader-revisions.json.${process.pid}.${randomUUID()}.tmp`
+  );
+
+  try {
+    writeFileSync(tempPath, next);
+    renameSync(tempPath, outPath);
+  } catch (error) {
+    try {
+      unlinkSync(tempPath);
+    } catch (cleanupError) {
+      if (cleanupError?.code !== 'ENOENT') {
+        console.error('⚠️  Failed to remove temporary reader revision manifest:', cleanupError);
+      }
+    }
+    throw error;
   }
 }
 
