@@ -3,7 +3,11 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { gitDiffAddedVsBase } from '../scripts/check-translation-pairs.mjs';
+import {
+  findMissingPairs,
+  gitDiffAddedVsBase,
+  loadPostMap,
+} from '../scripts/check-translation-pairs.mjs';
 
 function git(cwd: string, args: string[]): string {
   return execFileSync('git', args, {
@@ -22,6 +26,25 @@ function postBody(ticketId: string, marker: string): string {
 }
 
 describe('translation-pair PR scope', () => {
+  it('reports a published English-only paired-series post as missing zh-tw', () => {
+    const postsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-translation-pairs-posts-'));
+
+    try {
+      const file = 'en-gp-987654-en-only-probe.mdx';
+      fs.writeFileSync(path.join(postsDir, file), postBody('GP-987654', 'english-only'));
+
+      expect(findMissingPairs(loadPostMap(postsDir))).toEqual([
+        {
+          ticketId: 'GP-987654',
+          file,
+          missingLang: 'zh-tw',
+        },
+      ]);
+    } finally {
+      fs.rmSync(postsDir, { recursive: true, force: true });
+    }
+  });
+
   it('does not classify a rename set above diff.renameLimit as added posts', () => {
     const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-translation-pairs-'));
 
