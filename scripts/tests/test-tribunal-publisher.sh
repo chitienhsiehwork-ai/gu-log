@@ -181,7 +181,10 @@ cat > "$batch_validation_bin/node" <<'NODE'
 #!/usr/bin/env bash
 set -euo pipefail
 case "$1" in
-  */scripts/validate-posts.mjs) printf '%s\n' "$*" >> "$VALIDATE_NODE_LOG" ;;
+  */scripts/validate-posts.mjs)
+    printf '%s\n' "$*" >> "$VALIDATE_NODE_LOG"
+    printf 'validator output: %s\n' "$*"
+    ;;
   *) exec "$VALIDATE_REAL_NODE" "$@" ;;
 esac
 NODE
@@ -207,6 +210,8 @@ grep -q 'selected gp-1-test.mdx' <<<"$batch_validation_out" \
   || fail "batch validation fast path should select gp-1"
 grep -q 'selected gp-2-test.mdx' <<<"$batch_validation_out" \
   || fail "batch validation fast path should select gp-2"
+grep -Fq 'validator output:' <<<"$batch_validation_out" \
+  || fail "successful validator output should remain visible to publisher operators"
 pass "valid candidates use one batched validate-posts invocation"
 
 fallback_validation_runtime="$TMP/fallback-validation-runtime"
@@ -223,6 +228,7 @@ case "$1" in
   *) exec "$VALIDATE_REAL_NODE" "$@" ;;
 esac
 printf '%s\n' "$*" >> "$VALIDATE_NODE_LOG"
+printf 'validator diagnostic: %s\n' "$*" >&2
 if [ "$#" -gt 3 ]; then
   exit 1
 fi
@@ -240,7 +246,7 @@ fallback_validation_out="$(cd "$fallback_validation_runtime" && \
   TRIBUNAL_PUBLISHER_SKIP_BUILD=1 \
   bash scripts/tribunal-publisher.sh --apply --max 10 \
     --branch publisher/batch-validation-fallback \
-    --worktree "$fallback_validation_worktree")"
+    --worktree "$fallback_validation_worktree" 2>&1)"
 [ "$(wc -l < "$fallback_validation_log" | tr -d ' ')" = "3" ] \
   || fail "failed batch validation should retry each candidate exactly once"
 grep -q 'validation_blocked gp-2-test.mdx' <<<"$fallback_validation_out" \
@@ -252,6 +258,8 @@ grep -q 'selected gp-2-test.mdx' <<<"$fallback_validation_out" \
 [ "$(jq -r '[.events[] | select(.kind=="validation_blocked")] | length' \
   "$fallback_validation_runtime/.score-loop/state/tribunal-triage-events.json")" = "1" ] \
   || fail "fallback validation should record exactly one validation_blocked event"
+grep -Fq 'validator diagnostic:' <<<"$fallback_validation_out" \
+  || fail "failed validator diagnostics should remain visible to publisher operators"
 pass "failed batch validation falls back to per-candidate isolation"
 
 fetch_runtime="$TMP/fetch-runtime"
