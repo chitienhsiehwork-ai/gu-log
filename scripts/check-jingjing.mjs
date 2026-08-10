@@ -150,6 +150,11 @@ Muse Spark Llama Maverick Sonnet Opus K2 K2.5 R1
 Flash
 Agent Swarm
 
+# Legacy tech / tools cited in source material
+valgrind dBase Clipper HyperCard WordPress
+# GP-272 brand / product names
+Old El Paso Lobsters
+
 # Programming languages / runtimes / tools
 Python JavaScript TypeScript Go Rust Zig C C++ Ruby Java Kotlin Swift Scala Elixir Erlang Haskell
 Node.js Bun Deno
@@ -210,6 +215,8 @@ Marcus Aurelius Twain H.P Lovecraft Jefferson Ronald Reagan Montaigne Rick Rubin
 Adam Hunt Tomas Pueyo
 # GP（2026-08-01）Greg Isenberg 的 26 條創業機會清單，以及文中引用的經濟學家 Keynes
 Greg Isenberg Keynes
+# GP-272（2026-08-10）Senko Rašić 的「code was never the hard part」反駁文
+Senko Ra
 
 # Places
 Albuquerque Hong Kong San Francisco SF Silicon Valley
@@ -283,6 +290,14 @@ Instant instant
 Humanity's
 tokens
 app
+
+# Classic CS/engineering book titles (GP-272 and general reuse)
+Art Cracking Interview Mom Continuous Discovery Habits Obviously Awesome
+Design Everyday Don't Make Me Think Powers Working Backwards Topologies
+Soul New Machine Programming
+
+# Technical terms that lose meaning when translated (GP-272)
+monad affordance allowance bit-rot meat Meat proxy
 
 # Research / dataset / paper names that show up as multi-word proper nouns
 # (already covered by their constituent words in some cases; explicit listing
