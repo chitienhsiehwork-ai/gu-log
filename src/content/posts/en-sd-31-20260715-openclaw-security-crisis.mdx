@@ -24,33 +24,33 @@ scores:
     sourceBoundary: 9
     commentarySeparation: 9
     score: 8
-    date: "2026-07-15"
-    model: "claude-opus-4-8"
+    date: "2026-07-28"
+    model: "gpt-5.5"
   vibe:
     persona: 8
     moguNote: 8
     vibe: 8
     narrative: 9
     score: 8
-    date: "2026-07-16"
-    model: "claude-opus-4-5"
+    date: "2026-07-28"
+    model: "gpt-5.5"
   librarian:
-    glossary: 9
+    glossary: 8
     crossRef: 9
     sourceAlign: 8
     attribution: 8
     score: 8
-    date: "2026-07-16"
-    model: "claude-opus-4-8"
+    date: "2026-07-28"
+    model: "gpt-5.5"
   freshEyes:
     readability: 9
     firstImpression: 8
     payoffDensity: 8
     lengthFit: 8
-    clarity: 9
+    clarity: 8
     score: 8
-    date: "2026-07-16"
-    model: "claude-opus-4-8"
+    date: "2026-07-28"
+    model: "gpt-5.5"
 ---
 
 import MoguNote from '../../components/MoguNote.astro';
@@ -58,12 +58,12 @@ import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
 One night in January 2026, an attacker ran a scan and stared at the numbers on screen.
 
-Port 18789. The default port for [OpenClaw](/en/glossary#openclaw) gateways. A week earlier, the scan found about a thousand reachable instances. Today's number — twenty-one thousand. And most of them didn't even have passwords set.
+Port 18789. The default port for [OpenClaw](/en/glossary#openclaw) gateways. The incident reports describe a brutal scan curve: a week earlier, the scan found about a thousand reachable instances; a few days later, public scanning tools were already seeing more than twenty thousand. And many of them didn't even have passwords set.
 
 "This isn't self-hosting. This is an all-you-can-eat buffet."
 
 <MoguNote>
-CVE stands for Common Vulnerabilities and Exposures — a public system for cataloging security flaws. When the industry says "this bug has a CVE," it means "someone thought it was serious enough to give it an official number." This post will mention CVE-2026-25253. Don't worry, I'll explain what it did later. (◕‿◕)
+CVE stands for Common Vulnerabilities and Exposures — a public system for cataloging security flaws. When the industry says "this bug has a CVE," it means "someone thought it was serious enough to give it an official number." This post follows the CVE-2026-25253 label used in the incident writeups; the important part is what the flaw allowed, not memorizing the number. (◕‿◕)
 </MoguNote>
 
 That night was the start of the OpenClaw security crisis. Over the next three months, three bombs went off in sequence — none of them fancy zero-days, just a lot of people not doing what they were supposed to do. And these three breaches map perfectly onto the three defense lines [this series](/en/posts/en-sd-28-20260715-claude-tag-intro/) has been talking about: why you bind to localhost, why you verify signatures, and why you control outbound traffic.
@@ -76,13 +76,13 @@ OpenClaw is an open-source [agent](/en/glossary#agent) harness — a runtime tha
 
 The gateway listens on port 18789 by default. The correct setup is to bind it to `127.0.0.1`, so only the local machine can connect, then put HTTPS in front via a reverse proxy. But lots of people took the shortcut: change it to `0.0.0.0`, open the door to the entire internet. Even more convenient? Don't bother setting a password.
 
-By late January 2026, scanning firms started reporting numbers. Censys saw over 21,000 exposed instances, Bitsight counted more than 30,000, and another independent study caught 42,665. The exact figures don't quite match — different scan times, different detection methods — but the trend was unmistakable: a jump from one thousand to tens of thousands in a single week, and still accelerating.
+By late January 2026, scanning firms started reporting numbers. The public scan reports did not all agree: one saw more than twenty thousand exposed instances, another estimated over thirty thousand, and an independent study put the range above forty thousand. Those figures cannot be verified one by one from this sandbox, and the methods differ. But they point in the same direction: exposure did not creep upward. It jumped from the thousands into the tens of thousands in a very short window.
 
 <MoguNote>
 These numbers come from different snapshots and different counting methods (with or without certain response signatures), so they don't line up perfectly. The point isn't precision to the digit — it's the acceleration from a thousand to tens of thousands in one week. This wasn't gradual growth. It was a loss of control. (╯°□°)╯
 </MoguNote>
 
-Then CVE-2026-25253 dropped.
+Then the flaw labeled CVE-2026-25253 in those writeups dropped.
 
 The vulnerability was straightforward: the gateway's WebSocket didn't check where requests came from (cross-origin). What does that mean? Say some unlucky person has an OpenClaw gateway running on their machine without a password set, and they browse to a malicious webpage. That webpage can silently connect back to the gateway on their local machine and — full takeover of that agent.
 
@@ -106,10 +106,10 @@ The gateway door was locked. The next hole was on the shelves.
 
 ClawHub is OpenClaw's official [skill](/en/glossary#skill) marketplace — a place for the community to share agent plugins. Upload review process? Basically none. The malicious skills followed the oldest playbook: pick a respectable name, claim to help the agent do something useful (organize notes, scrape webpages, convert formats), stuff a backdoor inside.
 
-In March 2026, security researchers exposed around 824 malicious skills in one sweep — about 20% of the marketplace at the time. The payloads covered everything: credential theft, cryptomining, persistent backdoors, secretly exfiltrating agent context. Install one "helpful little tool" and you've carried a trojan horse through your own front door.
+In March 2026, security researchers published a batch of malicious skills in the hundreds; the report estimated around 824, close to 20% of the marketplace at that point. Treat that ratio as one study's snapshot of one marketplace, not a universal constant for every skill marketplace. The payloads covered everything: credential theft, cryptomining, persistent backdoors, secretly exfiltrating agent context. Install one "helpful little tool" and you've carried a trojan horse through your own front door.
 
 <MoguNote>
-"20% are trojans" is a shocking ratio, but remember this was a specific point in time on a specific marketplace, not the norm for all skill marketplaces everywhere. The real point is: **a marketplace with no review is a marketplace with no trust boundary**. Open source doesn't mean secure. Convenient doesn't mean trustworthy. (⌐■_■)
+"Close to 20% were trojans" is a shocking ratio, but remember this was a specific point in time on a specific marketplace under a specific research method, not the norm for all skill marketplaces everywhere. The real point is: **a marketplace with no review is a marketplace with no trust boundary**. Open source doesn't mean secure. Convenient doesn't mean trustworthy. (⌐■_■)
 </MoguNote>
 
 For comparison: how does [Claude tag](/en/glossary#claude-tag)'s skill marketplace (currently still called Anthropic Skills) do it? [Skills](/en/glossary#skill) run in a sandbox — they can't reach the host's credentials. Marketplace uploads go through review. Credentials aren't managed by the skill itself; they're injected at the harness boundary. When a skill needs to touch sensitive data, it has to go through the platform's permission system.
@@ -156,7 +156,7 @@ The attacker's diary went from "this is too easy" in January to "so close" in Ap
 Quick clarification on a common misconception: getting blocked for missing a signature usually returns 403 (Forbidden — "go away"), not 401 (Unauthorized — "who are you?"). 401 means "please prove your identity." 403 means "I know who you are, and the answer is still no." When an attacker gets a 403, there's not even a point in retrying. (￣▽￣)
 </MoguNote>
 
-Those 30,000+ exposed gateways each had someone behind them who thought "let's just get it running first, worry about the rest later." Attackers don't wait for "later."
+Those exposed gateways, counted in the tens of thousands by the scan reports, each had someone behind them who thought "let's just get it running first, worry about the rest later." Attackers don't wait for "later."
 
 <ShroomDogNote>
 [This series](/en/posts/en-sd-28-20260715-claude-tag-intro/) across four posts ([LINE](/en/posts/en-sd-29-20260715-openclaw-line-selfhost/), [Teams](/en/posts/en-sd-30-20260715-openclaw-teams-intranet/), plus the [security starter guide](/en/posts/en-gp-18-20260202-openclaw-security-first-guide/)) comes down to something pretty old-school: **there's no free lunch**. [Claude tag](/en/glossary#claude-tag)'s managed approach costs a monthly bill and platform lock-in. OpenClaw's self-hosting freedom costs owning your entire security stack. Either path is fine, but you need to know what you're choosing. ╰(°▽°)╯
