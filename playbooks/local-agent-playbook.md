@@ -54,7 +54,7 @@ git log --oneline -5
 
 ### Merge flow
 
-Branch 與 merge policy 以 Tier-0 `AGENTS.md` 為 SSOT；local actor 也沒有直推 `main` 的例外：
+安全與使用者授權邊界見 [`AGENTS.md`〈共通硬邊界〉](../AGENTS.md#共通硬邊界)；分支、PR、CI、合併與失敗處理直接照 [`CCC-playbook.md`](CCC-playbook.md)。本機 agent 同樣沒有直推 `main` 的例外：
 
 - 從 `main` 開場 → 修改前建立 feature branch
 - 在 feature branch 上 → commit、push、開 PR、盯 CI，綠了依當前任務 gate 自行 merge

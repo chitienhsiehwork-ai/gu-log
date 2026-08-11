@@ -33,7 +33,7 @@
 //   - Banner 在 warnedByStage0=false 時不渲染
 //   - Reason text 正確顯示（XSS 防護！）
 //   - Override comment 在存在時渲染、不存在時不渲染
-//   - WCAG contrast 符合 (gu-log 有 contrast CI，見 CLAUDE.md memory)
+//   - WCAG 對比度符合（由既有對比度檢查器驗證）
 //
 // 不該測的:
 //   - Banner 好不好看 — 主觀，交給 uiux-auditor
@@ -126,8 +126,8 @@ describe('Stage0WarnBanner: content + XSS safety', () => {
 //
 // WHAT: Solarized 配色 + WCAG AA contrast + 不用紅色
 //
-// WHY:  CLAUDE.md 明確規定只用 Solarized CSS variables，且 banner
-//       不該像 error（所以不用紅）。gu-log memory 有 contrast convention:
+// WHY:  色彩權威來源定義可用色票，且橫幅不該像錯誤狀態
+//       （所以不用紅）。對比度檢查器採用這個慣例:
 //       `/* color: X on Y */` comment pattern enables CI check.
 //
 // PROS: - 避免 UI 違反 brand

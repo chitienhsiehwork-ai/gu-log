@@ -93,10 +93,10 @@
 
 ### Documentation
 
-- [x] **AC-24**: `CLAUDE.md` reads "Fresh Eyes ≥ 8", Vibe 5 dims, Librarian 4 dims — PASS
-  - Evidence: `CLAUDE.md:90` "Vibe Scorer (Opus): 五維評分（Persona / MoguNote / Vibe / Clarity / Narrative，0-10）"
-  - `CLAUDE.md:92` "Librarian (Sonnet): Glossary / cross-ref + identity linking / sourceAlign / attribution"
-  - `CLAUDE.md:94` "Fresh Eyes ≥ 8"
+- [x] **AC-24**: 當時的 `CLAUDE.md` 已符合評審系統的門檻與維度要求 — PASS
+  - 當時的證據：`94259876:CLAUDE.md:90`
+  - `94259876:CLAUDE.md:92`
+  - `94259876:CLAUDE.md:94`
   - No "≥ 7" references found
 
 ### Regression
