@@ -22,35 +22,35 @@ scores:
     fidelity: 9
     consistency: 9
     sourceBoundary: 9
-    commentarySeparation: 9
+    commentarySeparation: 8
     score: 8
-    date: "2026-07-15"
-    model: "claude-opus-4-8"
+    date: "2026-07-28"
+    model: "gpt-5.5"
   freshEyes:
     readability: 8
     firstImpression: 8
     payoffDensity: 8
     lengthFit: 8
-    clarity: 8
+    clarity: 9
     score: 8
-    date: "2026-07-16"
-    model: "claude-opus-4-8"
+    date: "2026-07-28"
+    model: "gpt-5.5"
   vibe:
     persona: 8
     moguNote: 9
     vibe: 8
     narrative: 8
     score: 8
-    date: "2026-07-16"
-    model: "claude-opus-4-5"
+    date: "2026-07-28"
+    model: "gpt-5.5"
   librarian:
     glossary: 8
-    crossRef: 9
+    crossRef: 8
     sourceAlign: 8
     attribution: 8
     score: 8
-    date: "2026-07-16"
-    model: "claude-opus-4-8"
+    date: "2026-07-28"
+    model: "gpt-5.5"
 ---
 
 import MoguNote from '../../components/MoguNote.astro';
@@ -88,15 +88,15 @@ Anthropic 不做 LINE 版是商業判斷，不是技術問題——LINE 是亞�
 
 OpenClaw 的本體是一支叫 gateway 的常駐程式，跑在 VPS 上當總機。想接哪個平台，就裝那個平台的 channel plugin——接 LINE 裝 `@openclaw/line`，接 Discord 裝 `@openclaw/discord`，以此類推。
 
-每個 plugin 負責講那個平台的方言。LINE 有 Flex message、範本、快速回覆；Discord 有嵌入訊息、表情回應；plugin 把這些差異包起來，gateway 只管路由。
+每個 plugin 負責講那個平台的方言。LINE 有 Flex 訊息、範本、快速回覆；Discord 有嵌入訊息、表情回應；plugin 把這些差異包起來，gateway 只管路由。
 
 <MoguNote>
-這種設計叫 plugin architecture，講白了就是「核心只管調度，髒活外包給插件」。好處是 gateway 不用為了支援一個新平台就大改，壞處是 plugin 品質參差——官方維護的通常沒問題，社群貢獻的就看運氣。OpenClaw 的 LINE plugin 是官方支援的，這點可以放心 (◕‿◕)
+這種設計叫插件式架構，講白了就是「核心只管調度，髒活外包給插件」。好處是 gateway 不用為了支援一個新平台就大改，壞處是 plugin 品質參差——官方維護的通常沒問題，社群貢獻的就看運氣。OpenClaw 的 LINE plugin 是官方支援的，這點可以放心 (◕‿◕)
 </MoguNote>
 
 LINE 的限制得先知道：
 
-- **Markdown 會被去除**：LINE 不吃 Markdown，星號、井號、反引號全部變成純文字。想要格式得用 Flex message，但那又是另一套學問。
+- **Markdown 會被去除**：LINE 不吃 Markdown，星號、井號、反引號全部變成純文字。想要格式得用 Flex 訊息，但那又是另一套學問。
 - **單則訊息 5000 字上限**：超過會被切塊成多則，讀起來會斷開。
 - **入站媒體預設 10MB**：傳大檔案進來會被 LINE 擋。
 
@@ -111,7 +111,7 @@ LINE 的限制得先知道：
 細節請看官方文件，這裡只講骨架。整個流程的邏輯是這樣：先去 LINE 那邊拿身份證明（channel access token 跟 channel 密鑰），然後在 VPS 上把 gateway 跑起來、裝好 LINE plugin，再回 LINE 後台登記 webhook URL 告訴它「有人傳訊息給這個 bot 時，請敲這個網址」。最後別忘了配對——OpenClaw 預設不是誰傳訊息都理，要先配對才會回，這是設計不是 bug。
 
 <ShroomDogNote>
-webhook URL 必須是公網 HTTPS，localhost 不行。如果在本機測試，ngrok 或 cloudflared 可以暫時用；正式部署得有自己的 domain 跟憑證。
+webhook URL 必須是公網 HTTPS，localhost 不行。如果在本機測試，ngrok 或 cloudflared 可以暫時用；正式部署得有自己的網域跟憑證。
 </ShroomDogNote>
 
 ---
@@ -130,7 +130,7 @@ OpenClaw 的 LINE channel 對陌生訊息預設發配對碼，不是收到就回
 
 **第二條：HMAC 簽章驗證**
 
-LINE 每次敲 webhook 會附上一個簽章（`x-line-signature` header），用 channel 密鑰對原始 body 算出來的 HMAC。OpenClaw 的 LINE plugin 會驗這個簽章，通過才收，否則直接回 403。
+LINE 每次敲 webhook 會附上一個簽章（`x-line-signature` header），用 channel 密鑰對原始請求內容算出來的 HMAC。OpenClaw 的 LINE plugin 會驗這個簽章，通過才收，否則直接回 403。
 
 <MoguNote>
 HMAC 全名是「雜湊訊息驗證碼」。簡單說就是「用一個只有主機跟 LINE 知道的密鑰，算出一個指紋」。路人沒有 channel 密鑰，算不出正確的指紋，假冒 LINE 塞假訊息進來會被當場抓包。
@@ -153,7 +153,7 @@ gateway 要藏在反向代理後面，只綁 `127.0.0.1`。直接綁 `0.0.0.0` �
 gateway 藏在 localhost、公網只露反代那一個 443 門、只放行 `/line/webhook` 一條路徑。順便把 HTTPS 憑證自動申請續期的事交給反代處理，gateway 內部講普通 localhost HTTP 就好。
 
 <MoguNote>
-攻擊者的視角大概是這樣：掃到 VPS、想戳 gateway 的 18789 port，結果那 port 綁在 localhost 連都連不上。繞去打 443，反代只認 `/line/webhook`，其他路徑直接 404。硬送請求過去又要驗 HMAC 簽章，假請求被回 403。「嗚嗚 18789 連不上、443 又被賞 403、簽章我他媽哪算得出來嗚嗚」——大概是這種心情。
+攻擊者的視角大概是這樣：掃到 VPS、想戳 gateway 的 18789 連接埠，結果那個連接埠綁在 localhost，連都連不上。繞去打 443，反代只認 `/line/webhook`，其他路徑直接 404。硬送請求過去又要驗 HMAC 簽章，假請求被回 403。「嗚嗚 18789 連不上、443 又被賞 403、簽章我他媽哪算得出來嗚嗚」——大概是這種心情。
 </MoguNote>
 
 工具的話，[Mogu](/glossary#mogu) 自己會挑 Caddy，因為設定最短、自動處理 Let's Encrypt。但這是一次性決策，不值得花篇幅教——反代概念懂了，工具換哪套都一樣。
