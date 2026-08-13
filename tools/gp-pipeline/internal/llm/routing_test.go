@@ -26,7 +26,7 @@ func TestProvidersForRuntimeResolvesVMCodexRoles(t *testing.T) {
 	writeExecutable(t, filepath.Join(binDir, "codex"), "#!/bin/sh\nexit 0\n")
 	writeExecutable(t, filepath.Join(binDir, "grok"), `#!/bin/sh
 if [ "${1:-}" = models ]; then
-  printf 'Default model: grok-4.5\nAvailable models:\n  * grok-4.5 (default)\n'
+  printf 'Default model: grok-4.6\nAvailable models:\n  * grok-4.6 (default)\n  - grok-4.5\n'
 fi
 exit 0
 `)
@@ -41,7 +41,7 @@ exit 0
 	if err != nil {
 		t.Fatalf("writer route: %v", err)
 	}
-	if !active || len(writers) != 1 || writers[0].Name() != "grok-build-grok-4.5" {
+	if !active || len(writers) != 1 || writers[0].Name() != "grok-build-grok-4.6" {
 		t.Fatalf("writer route = (%v, %v), want Grok active", writers, active)
 	}
 
@@ -68,7 +68,7 @@ func TestProvidersForRuntimeHonorsGrokQuotaActions(t *testing.T) {
 	writeExecutable(t, filepath.Join(binDir, "codex"), "#!/bin/sh\nexit 0\n")
 	writeExecutable(t, filepath.Join(binDir, "grok"), `#!/bin/sh
 if [ "${1:-}" = models ]; then
-  printf 'Default model: grok-4.5\nAvailable models:\n  * grok-4.5 (default)\n'
+  printf 'Default model: grok-4.6\nAvailable models:\n  * grok-4.6 (default)\n  - grok-4.5\n'
 fi
 exit 0
 `)

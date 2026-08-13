@@ -69,7 +69,7 @@ func (g *GrokProvider) Run(ctx context.Context, prompt string, opts RunOptions) 
 
 func (g *GrokProvider) modelName() string {
 	if g.ModelName == "" {
-		return string(ModelGrok45)
+		return string(ModelGrok46)
 	}
 	return g.ModelName
 }

@@ -17,7 +17,7 @@ set -euo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BIN="$DIR/bin/gp-pipeline"
 PKG="./cmd/gp-pipeline"
-BUILD_FLAGS=(-trimpath -ldflags=-s\ -w)
+BUILD_FLAGS=(-buildvcs=false -trimpath -ldflags=-s\ -w)
 
 if [ -z "${TRIBUNAL_RUNTIME_PROFILE:-}" ]; then
   identity="$(
