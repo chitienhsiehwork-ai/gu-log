@@ -83,10 +83,7 @@ func runReview(ctx context.Context, state *rootState, draftPath, workDir, ticket
 	s.WorkDir = workDir
 	s.PromptTicketID = ticketID
 
-	stepCtx, cancel := context.WithTimeout(ctx, 15*time.Minute)
-	defer cancel()
-
-	err = s.Review(stepCtx)
+	err = s.Review(ctx)
 
 	report := reviewReport{
 		Step:       "review",
